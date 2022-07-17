@@ -84,8 +84,26 @@ Napi::Value Frame::NewInstance(const Napi::Value arg) { return constructor.New({
 Napi::FunctionReference Reader::constructor = {};
 
 Reader::Reader(const Napi::CallbackInfo &info)
-    : ObjectWrap(info), reader(true),
-      io_device_(reinterpret_cast<IODevice *>(Napi::ObjectWrap<IODevice>::Unwrap(info[0].As<Napi::Object>()))) {}
+    : ObjectWrap(info), reader(true)
+      // ,io_device_(reinterpret_cast<IODevice *>(Napi::ObjectWrap<IODevice>::Unwrap(IODevice::NewInstance(info.This()).ToObject()))) 
+      {
+  SPDLOG_INFO("Reader::Reader 0");
+  SPDLOG_INFO("Reader::Reader 1 length {}", info.Length());
+  auto array = info[0].ToString();
+  SPDLOG_INFO("Reader::Reader 11 length {}", array);
+        auto category = longfist::enums::get_category_by_name(info[0].As<Napi::String>().Utf8Value());
+  SPDLOG_INFO("Reader::Reader 2");
+  auto group = info[1].As<Napi::String>().Utf8Value();
+  SPDLOG_INFO("Reader::Reader 3");
+  auto name = info[2].As<Napi::String>().Utf8Value();
+  SPDLOG_INFO("Reader::Reader 4");
+  auto mode = longfist::enums::get_mode_by_name(info[3].As<Napi::String>().Utf8Value());
+  SPDLOG_INFO("Reader::Reader 5");
+  auto dir = info[4].As<Napi::String>().Utf8Value();
+  SPDLOG_INFO("Reader::Reader 7");
+  SPDLOG_INFO("Reader::Reader {} {} {} {} {}",int(category), group, name, int(mode), dir);
+
+      }
 
 Napi::Value Reader::ToString(const Napi::CallbackInfo &info) { return Napi::String::New(info.Env(), "Reader.js"); }
 
@@ -111,12 +129,22 @@ Napi::Value Reader::Next(const Napi::CallbackInfo &info) {
 
 Napi::Value Reader::Join(const Napi::CallbackInfo &info) {
   auto category = longfist::enums::get_category_by_name(info[0].As<Napi::String>().Utf8Value());
+  SPDLOG_INFO("Join 2");
   auto group = info[1].As<Napi::String>().Utf8Value();
+  SPDLOG_INFO("Join 3");
   auto name = info[2].As<Napi::String>().Utf8Value();
+  SPDLOG_INFO("Join 4");
   auto mode = longfist::enums::get_mode_by_name(info[3].As<Napi::String>().Utf8Value());
+  SPDLOG_INFO("Join 5");
   uint32_t dest_id = info[4].As<Napi::Number>().Int32Value();
+  SPDLOG_INFO("Join 6");
   auto from_time = GetTimestamp(info[5]);
+  SPDLOG_INFO("Join 7");
+  io_device_->get_home();
+  SPDLOG_INFO("Join 8");
+  SPDLOG_INFO("Join {} {} {} {} {} {}",int(category), group, name, int(mode), dest_id, from_time);
   join(std::make_shared<location>(mode, category, group, name, io_device_->get_home()->locator), dest_id, from_time);
+  SPDLOG_INFO("Join {} {}",io_device_->get_home()->uname, io_device_->get_home()->location_uid);
   return {};
 }
 
@@ -146,7 +174,9 @@ void Reader::Init(Napi::Env env, Napi::Object exports) {
   exports.Set("Reader", func);
 }
 
-Napi::Value Reader::NewInstance(const Napi::Value arg) { return constructor.New({arg}); }
+Napi::Value Reader::NewInstance(const Napi::Value arg) { 
+  SPDLOG_INFO("Reader::NewInstance IsArray {}",arg.IsArray());
+   return constructor.New({arg}); }
 
 Napi::FunctionReference Assemble::constructor = {};
 
@@ -178,6 +208,28 @@ Napi::Value Assemble::Next(const Napi::CallbackInfo &info) {
   return {};
 }
 
+Napi::Value Assemble::Get_sessions(const Napi::CallbackInfo &info) {
+  std::vector<kungfu::longfist::types::Session> sessions = get_sessions();
+  size_t session_size = sessions.size();
+  auto result = Napi::Array::New(info.Env(), session_size);
+  for (int i = 0; i < session_size; i++) {
+    auto target = Napi::Object::New(info.Env());
+    set(sessions[i], target);
+    result.Set(i, target);
+  }
+  return result;
+}
+
+Napi::Value Assemble::Get_reader(const Napi::CallbackInfo &info) {
+  // uint32_t home_uid = info[0].ToNumber().Uint32Value();
+  SPDLOG_INFO("Reader::Get_reader 1 length {}", info.Length());
+        auto category = longfist::enums::get_category_by_name(info[0].As<Napi::String>().Utf8Value());
+  SPDLOG_INFO("Reader::Get_reader 2 {} ", int(category));
+  // auto iodev = IODevice::NewInstance(info.This());
+  auto reader = Reader::NewInstance(info.This());
+  return reader;
+}
+
 void Assemble::Init(Napi::Env env, Napi::Object exports) {
   Napi::HandleScope scope(env);
 
@@ -187,6 +239,8 @@ void Assemble::Init(Napi::Env env, Napi::Object exports) {
                                         InstanceMethod("seekToTime", &Assemble::SeekToTime),       //
                                         InstanceMethod("dataAvailable", &Assemble::DataAvailable), //
                                         InstanceMethod("next", &Assemble::Next),                   //
+                                        InstanceMethod("get_sessions", &Assemble::Get_sessions),
+                                        InstanceMethod("get_reader", &Assemble::Get_reader),
                                     });
 
   constructor = Napi::Persistent(func);

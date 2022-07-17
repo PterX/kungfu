@@ -8,16 +8,16 @@ import {
   Component,
 } from 'vue';
 import {
-  KF_HOME,
+  // KF_HOME,
   LOG_DIR,
 } from '@kungfu-trader/kungfu-js-api/config/pathConfig';
 import {
   getInstrumentTypeData,
   getProcessIdByKfLocation,
-  getTradingDate,
-  kfLogger,
-  removeJournal,
-  removeDB,
+  // getTradingDate,
+  // kfLogger,
+  // removeJournal,
+  // removeDB,
   getAvailDaemonList,
   loopToRunProcess,
   resolveInstrumentValue,
@@ -130,46 +130,49 @@ export const useTableSearchKeyword = <T>(
   };
 };
 
-const removeJournalBeforeStartAll = (
-  currentTradingDate: string,
-): Promise<void> => {
-  const clearJournalDateFromLocal = localStorage.getItem(
-    'clearJournalTradingDate',
-  );
+// const removeJournalBeforeStartAll = (
+//   currentTradingDate: string,
+// ): Promise<void> => {
+//   const clearJournalDateFromLocal = localStorage.getItem(
+//     'clearJournalTradingDate',
+//   );
 
-  kfLogger.info(
-    'Lastest Clear Journal Trading Date: ',
-    clearJournalDateFromLocal || '',
-  );
+//   kfLogger.info(
+//     'Lastest Clear Journal Trading Date: ',
+//     clearJournalDateFromLocal || '',
+//   );
 
-  if (currentTradingDate !== clearJournalDateFromLocal) {
-    localStorage.setItem('clearJournalTradingDate', currentTradingDate);
-    kfLogger.info('Clear Journal Trading Date: ', currentTradingDate);
-    return removeJournal(KF_HOME);
-  } else {
-    return Promise.resolve();
-  }
-};
+//   if (currentTradingDate !== clearJournalDateFromLocal) {
+//     localStorage.setItem('clearJournalTradingDate', currentTradingDate);
+//     kfLogger.info('Clear Journal Trading Date: ', currentTradingDate);
+//     return removeJournal(KF_HOME);
+//   } else {
+//     return Promise.resolve();
+//   }
 
-const removeDBBeforeStartAll = (currentTradingDate: string): Promise<void> => {
-  const clearDBDateFromLocal = localStorage.getItem('clearDBTradingDate');
+//   return Promise.resolve();
 
-  kfLogger.info('Lastest Clear DB Trading Date: ', clearDBDateFromLocal || '');
+// };
 
-  if (currentTradingDate !== clearDBDateFromLocal) {
-    localStorage.setItem('clearDBTradingDate', currentTradingDate);
-    kfLogger.info('Clear DB Trading Date: ', currentTradingDate);
-    return removeDB(KF_HOME);
-  } else {
-    return Promise.resolve();
-  }
-};
+// const removeDBBeforeStartAll = (currentTradingDate: string): Promise<void> => {
+//   const clearDBDateFromLocal = localStorage.getItem('clearDBTradingDate');
+
+//   kfLogger.info('Lastest Clear DB Trading Date: ', clearDBDateFromLocal || '');
+
+//   if (currentTradingDate !== clearDBDateFromLocal) {
+//     localStorage.setItem('clearDBTradingDate', currentTradingDate);
+//     kfLogger.info('Clear DB Trading Date: ', currentTradingDate);
+//     return removeDB(KF_HOME);
+//   } else {
+//     return Promise.resolve();
+//   }
+// };
 
 export const preStartAll = async (): Promise<(void | Proc)[]> => {
-  const currentTradingDate = getTradingDate();
+  // const currentTradingDate = getTradingDate();
   return Promise.all([
-    removeJournalBeforeStartAll(currentTradingDate),
-    removeDBBeforeStartAll(currentTradingDate),
+    // removeJournalBeforeStartAll(currentTradingDate),
+    // removeDBBeforeStartAll(currentTradingDate),
   ]);
 };
 

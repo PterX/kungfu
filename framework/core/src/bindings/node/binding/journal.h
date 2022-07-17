@@ -10,6 +10,7 @@
 #include <kungfu/yijinjing/io.h>
 #include <kungfu/yijinjing/journal/assemble.h>
 #include <kungfu/yijinjing/journal/journal.h>
+#include "operators.h"
 
 namespace kungfu::node {
 class Reader;
@@ -85,9 +86,15 @@ public:
 
   Napi::Value Next(const Napi::CallbackInfo &info);
 
+  Napi::Value Get_sessions(const Napi::CallbackInfo &info);
+
+  Napi::Value Get_reader(const Napi::CallbackInfo &info);
+
   static void Init(Napi::Env env, Napi::Object exports);
 
 private:
+  kungfu::node::serialize::JsGet get = {};
+  kungfu::node::serialize::JsSet set = {};
   static Napi::FunctionReference constructor;
 
   static std::vector<yijinjing::data::locator_ptr> ExtractLocator(const Napi::CallbackInfo &info);

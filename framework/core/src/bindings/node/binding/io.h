@@ -39,6 +39,8 @@ public:
 
   static void Init(Napi::Env env, Napi::Object exports);
 
+  static Napi::Value NewInstance(const Napi::Value arg) { return constructor.New({arg}); }
+
 private:
   static Napi::FunctionReference constructor;
 };

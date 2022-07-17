@@ -5,7 +5,8 @@
 
 #include <kungfu/yijinjing/journal/assemble.h>
 #include <kungfu/yijinjing/time.h>
-
+#include <kungfu/yijinjing/common.h>
+#include <kungfu/yijinjing/cache/backend.h>
 namespace kungfu::yijinjing::journal {
 struct noop_publisher : public publisher {
   noop_publisher() = default;
@@ -97,5 +98,21 @@ void assemble::sort() {
       current_reader_ = reader;
     }
   }
+}
+using namespace kungfu::longfist::enums;
+using namespace kungfu::longfist::types;
+using namespace sqlite_orm;
+
+std::vector<kungfu::longfist::types::Session> assemble::get_sessions() { 
+  kungfu::yijinjing::data::locator_ptr l(new  kungfu::yijinjing::data::locator()); 
+  auto index_location = kungfu::yijinjing::data::location::make_shared(mode::LIVE, category::SYSTEM, "journal", "index", l);
+  std::string session_db = l->layout_file(index_location, layout::SQLITE, "index");
+  kungfu::yijinjing::cache::SessionStoragePtr session_storage_(cache::make_storage_ptr(session_db, kungfu::longfist::SessionDataTypes));
+  if (not session_storage_->sync_schema_simulate().empty()) {
+    session_storage_->sync_schema();
+  }
+  auto bt = &Session::begin_time;
+  auto range = where(greater_or_equal(bt, 0) and lesser_or_equal(bt, INT64_MAX));
+  return session_storage_->get_all<Session>(range, order_by(bt));
 }
 } // namespace kungfu::yijinjing::journal

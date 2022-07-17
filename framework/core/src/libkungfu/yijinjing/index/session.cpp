@@ -3,6 +3,7 @@
 //
 
 #include <kungfu/yijinjing/index/session.h>
+#include <fstream>
 
 using namespace sqlite_orm;
 using namespace kungfu::longfist;
@@ -72,8 +73,7 @@ Session &session_builder::open_session(const location_ptr &source_location, int6
     session.mode = source_location->mode;
   }
   session.begin_time = time;
-  session.update_time = time;
-  session.end_time = 0;
+  session.end_time = time;
   session_storage_->replace(session);
   return session;
 }
@@ -84,16 +84,14 @@ void session_builder::close_session(const location_ptr &source_location, int64_t
   }
 
   auto &session = live_sessions_.at(source_location->uid);
-  session.end_time = time;
-  session.update_time = time;
+  session.end_time = -time;
   session_storage_->replace(session);
 }
 
 SessionMap &session_builder::close_all_sessions(int64_t time) {
   for (auto &pair : live_sessions_) {
     auto &session = pair.second;
-    session.end_time = time;
-    session.update_time = time;
+    session.end_time = -time;
     session_storage_->replace(session);
   }
   return live_sessions_;
@@ -104,9 +102,10 @@ void session_builder::update_session(const frame_ptr &frame) {
     return;
   }
   Session &session = live_sessions_.at(frame->source());
-  session.update_time = frame->gen_time();
+  session.end_time = frame->gen_time();
   session.frame_count++;
   session.data_size += frame->frame_length();
+    SPDLOG_ERROR("update_session session.end_time {}",  session.end_time);
 }
 
 void session_builder::rebuild_index_db() {

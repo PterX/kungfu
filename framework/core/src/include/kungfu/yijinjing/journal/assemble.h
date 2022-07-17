@@ -52,7 +52,9 @@ public:
 
   void next();
 
-  frame_ptr current_frame();
+  frame_ptr current_frame();  
+  
+  std::vector<kungfu::longfist::types::Session> get_sessions();
 
 protected:
   std::vector<reader_ptr> readers_ = {};

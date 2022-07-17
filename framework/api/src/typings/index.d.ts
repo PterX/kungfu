@@ -713,6 +713,20 @@ declare namespace KungfuApi {
     ): bigint;
     now(): bigint;
   }
+  export interface Session {
+    location_uid: number;
+    category: KfCategoryEnum;
+    group: string;
+    name: string;
+    mode: KfModeEnum;
+    value: string;
+  }
+  export interface Assemble {
+    get_sessions(): Session[];
+    seekToTime(): void;
+    next(): void;
+    dataAvailable(): boolean;
+  }
 
   export interface Longfist {
     Asset(): Asset;
@@ -741,6 +755,7 @@ declare namespace KungfuApi {
       bypassQuote?: boolean,
       bypassRestore?: boolean,
     ): Watcher | null;
+    Assemble(kfHome: string[]) : Assemble | null;
     shutdown(): void;
     formatStringToHashHex(id: string): string;
     formatTime(nano: bigint, format: string): string;

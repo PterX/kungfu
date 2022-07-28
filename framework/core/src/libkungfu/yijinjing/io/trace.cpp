@@ -102,7 +102,19 @@ void io_device_console::trace(int64_t begin_time, int64_t end_time, bool in, boo
   std::ofstream of_csv;
   if (!csv.empty()) {
     of_csv.open(csv, std::ofstream::out | std::ofstream::trunc);
-    of_csv << "gen_time" << "," << "trigger_time" << "," << "source" << "," << "dest" << "," << "msg_type" << "," << "frame_length" << "," << "data_length" << std::endl;
+    of_csv << "gen_time"
+           << ","
+           << "trigger_time"
+           << ","
+           << "source"
+           << ","
+           << "dest"
+           << ","
+           << "msg_type"
+           << ","
+           << "frame_length"
+           << ","
+           << "data_length" << std::endl;
   }
 
   while (reader->data_available() and reader->current_frame()->gen_time() <= end_time) {
@@ -175,16 +187,14 @@ void io_device_console::show(int64_t begin_time, int64_t end_time, bool in, bool
 
     reader->join(master_cmd_location, home_->uid, begin_time);
     reader->join(master_home_location, location::PUBLIC, begin_time);
-    SPDLOG_INFO("===== in master_cmd_location {} {} master_home_location {} {} home_ {} {}", 
-    master_cmd_location->uname, master_cmd_location->uid,
-    master_home_location->uname, master_home_location->uid,
-    home_->uname, home_->uid);
+    SPDLOG_INFO("===== in master_cmd_location {} {} master_home_location {} {} home_ {} {}", master_cmd_location->uname,
+                master_cmd_location->uid, master_home_location->uname, master_home_location->uid, home_->uname,
+                home_->uid);
   }
   if (out) {
     for (auto dest_id : get_locator()->list_location_dest(home_)) {
       reader->join(home_, dest_id, begin_time);
-    SPDLOG_INFO("===== out home_ {} {} dest_id {}", 
-    home_->uname, home_->uid, dest_id);
+      SPDLOG_INFO("===== out home_ {} {} dest_id {}", home_->uname, home_->uid, dest_id);
     }
   }
 
@@ -192,7 +202,17 @@ void io_device_console::show(int64_t begin_time, int64_t end_time, bool in, bool
   std::ofstream of_csv;
   if (!csv.empty()) {
     of_csv.open(csv, std::ofstream::out | std::ofstream::trunc);
-    of_csv << "gen_time" << "," << "trigger_time" << "," << "source" << "," << "dest" << "," << "msg_type" << "," << "data" << std::endl;
+    of_csv << "gen_time"
+           << ","
+           << "trigger_time"
+           << ","
+           << "source"
+           << ","
+           << "dest"
+           << ","
+           << "msg_type"
+           << ","
+           << "data" << std::endl;
   }
 
   while (reader->data_available() and reader->current_frame()->gen_time() <= end_time) {

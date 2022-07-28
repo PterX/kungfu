@@ -7,10 +7,10 @@
 
 #include "common.h"
 
+#include "operators.h"
 #include <kungfu/yijinjing/io.h>
 #include <kungfu/yijinjing/journal/assemble.h>
 #include <kungfu/yijinjing/journal/journal.h>
-#include "operators.h"
 
 namespace kungfu::node {
 class Reader;
@@ -69,22 +69,19 @@ public:
 
   static Napi::Value NewInstance(Napi::Value arg);
 
+  static Napi::FunctionReference constructor;
+
+  static yijinjing::data::location_ptr GetLocation(const Napi::CallbackInfo &info);
+
 private:
   yijinjing::io_device_ptr io_device_;
-  static Napi::FunctionReference constructor;
+  int64_t begin_time_;
+  int64_t end_time_;
 };
 
 class Assemble : public Napi::ObjectWrap<Assemble>, public yijinjing::journal::assemble {
 public:
   explicit Assemble(const Napi::CallbackInfo &info);
-
-  Napi::Value CurrentFrame(const Napi::CallbackInfo &info);
-
-  Napi::Value SeekToTime(const Napi::CallbackInfo &info);
-
-  Napi::Value DataAvailable(const Napi::CallbackInfo &info);
-
-  Napi::Value Next(const Napi::CallbackInfo &info);
 
   Napi::Value Get_sessions(const Napi::CallbackInfo &info);
 

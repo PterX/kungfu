@@ -5,10 +5,12 @@
 #include "journal.h"
 #include "io.h"
 #include "operators.h"
+#include <cmath>
 
 using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::journal;
+using namespace kungfu::longfist::types;
 
 namespace kungfu::node {
 int64_t GetTimestamp(Napi::Value arg) {
@@ -45,18 +47,14 @@ Napi::Value Frame::Source(const Napi::CallbackInfo &info) { return Napi::Number:
 Napi::Value Frame::Dest(const Napi::CallbackInfo &info) { return Napi::Number::New(info.Env(), frame_->dest()); }
 
 Napi::Value Frame::Data(const Napi::CallbackInfo &info) {
-  auto result = Napi::Object::New(info.Env());
-  boost::hana::for_each(longfist::StateDataTypes, [&](auto it) {
+  auto ret = Napi::String::New(info.Env(), "");
+  boost::hana::for_each(longfist::AllTypes, [&](auto it) {
     using DataType = typename decltype(+boost::hana::second(it))::type;
     if (frame_->msg_type() == DataType::tag) {
-      serialize::JsSet{}(frame_->data<DataType>(), result);
-      result.DefineProperties({
-          Napi::PropertyDescriptor::Value("tag", Napi::Number::New(result.Env(), DataType::tag)),
-          Napi::PropertyDescriptor::Value("type", Napi::String::New(result.Env(), DataType::type_name.c_str())) //
-      });
+      ret = Napi::String::New(info.Env(), frame_->data<DataType>().to_string());
     }
   });
-  return result;
+  return ret;
 }
 
 void Frame::Init(Napi::Env env, Napi::Object exports) {
@@ -81,29 +79,39 @@ void Frame::Init(Napi::Env env, Napi::Object exports) {
 
 Napi::Value Frame::NewInstance(const Napi::Value arg) { return constructor.New({arg}); }
 
+
+bool b;
 Napi::FunctionReference Reader::constructor = {};
-
 Reader::Reader(const Napi::CallbackInfo &info)
-    : ObjectWrap(info), reader(true)
-      // ,io_device_(reinterpret_cast<IODevice *>(Napi::ObjectWrap<IODevice>::Unwrap(IODevice::NewInstance(info.This()).ToObject()))) 
-      {
-  SPDLOG_INFO("Reader::Reader 0");
-  SPDLOG_INFO("Reader::Reader 1 length {}", info.Length());
-  auto array = info[0].ToString();
-  SPDLOG_INFO("Reader::Reader 11 length {}", array);
-        auto category = longfist::enums::get_category_by_name(info[0].As<Napi::String>().Utf8Value());
-  SPDLOG_INFO("Reader::Reader 2");
-  auto group = info[1].As<Napi::String>().Utf8Value();
-  SPDLOG_INFO("Reader::Reader 3");
-  auto name = info[2].As<Napi::String>().Utf8Value();
-  SPDLOG_INFO("Reader::Reader 4");
-  auto mode = longfist::enums::get_mode_by_name(info[3].As<Napi::String>().Utf8Value());
-  SPDLOG_INFO("Reader::Reader 5");
-  auto dir = info[4].As<Napi::String>().Utf8Value();
-  SPDLOG_INFO("Reader::Reader 7");
-  SPDLOG_INFO("Reader::Reader {} {} {} {} {}",int(category), group, name, int(mode), dir);
+    : ObjectWrap(info), reader(true), io_device_(std::make_shared<io_device>(GetLocation(info), true, true)),
+      begin_time_(info[4].As<Napi::BigInt>().Int64Value(&b)), end_time_(info[5].As<Napi::BigInt>().Int64Value(&b)) {
+  SPDLOG_INFO("begin_time_ {} end_time_ {} b {}", begin_time_, end_time_, b);
+  if (true) {
+    auto uid_str = fmt::format("{:08x}", io_device_->get_home()->uid);
+    auto master_cmd_location =
+        location::make_shared(kungfu::longfist::enums::mode::LIVE, kungfu::longfist::enums::category::SYSTEM, "master",
+                              uid_str, io_device_->get_locator());
+    auto master_home_location =
+        location::make_shared(kungfu::longfist::enums::mode::LIVE, kungfu::longfist::enums::category::SYSTEM, "master",
+                              "master", io_device_->get_locator());
 
-      }
+    join(master_cmd_location, io_device_->get_home()->uid, begin_time_);
+    join(master_home_location, location::PUBLIC, begin_time_);
+  }
+  if (true) {
+    for (auto dest_id : io_device_->get_locator()->list_location_dest(io_device_->get_home())) {
+      join(io_device_->get_home(), dest_id, begin_time_);
+    }
+  }
+}
+
+location_ptr Reader::GetLocation(const Napi::CallbackInfo &info) {
+  kungfu::longfist::enums::mode m = (kungfu::longfist::enums::mode)(info[0].ToNumber().Uint32Value());
+  kungfu::longfist::enums::category c = (kungfu::longfist::enums::category)(info[1].ToNumber().Uint32Value());
+  std::string group = info[2].ToString().Utf8Value();
+  std::string name = info[3].ToString().Utf8Value();
+  return std::make_shared<location>(m, c, group, name, GetDefaultRuntimeLocator());
+}
 
 Napi::Value Reader::ToString(const Napi::CallbackInfo &info) { return Napi::String::New(info.Env(), "Reader.js"); }
 
@@ -123,28 +131,63 @@ Napi::Value Reader::DataAvailable(const Napi::CallbackInfo &info) {
 }
 
 Napi::Value Reader::Next(const Napi::CallbackInfo &info) {
-  next();
+  if (data_available() && current_frame()->gen_time() <= end_time_) {
+    std::unordered_map<uint32_t, location_ptr> locations = {};
+    for (auto location : io_device_->get_home()->locator->list_locations(".*", ".*", ".*", ".*")) {
+      locations.emplace(location->uid, location);
+    }
+    auto frame = current_frame();
+    auto dest_name = frame->dest() == location::PUBLIC ? "public" : locations.at(frame->dest())->uname;
+    bool type_found = false;
+    boost::hana::for_each(kungfu::longfist::AllTypes, [&](auto type) {
+      using DataType = typename decltype(+boost::hana::second(type))::type;
+      if (frame->msg_type() == DataType::tag) {
+        SPDLOG_INFO("Next {} {} {} {} {} {}", time::strftime(frame->gen_time(), "%T.%N"),
+                    time::strftime(frame->trigger_time(), "%T.%N"), locations.at(frame->source())->uname, dest_name,
+                    DataType::type_name.c_str(), frame->data<DataType>().to_string());
+        type_found = true;
+      }
+    });
+    if (not type_found) {
+      auto location_uname = current_page()->get_location()->uname;
+      auto dest_id = current_page()->get_dest_id();
+      SPDLOG_ERROR("{}/{:08x} msg_type {} not found", location_uname, dest_id, frame->msg_type());
+      return {};
+    }
+    if (frame->dest() == io_device_->get_home()->uid and frame->msg_type() == RequestReadFrom::tag) {
+      auto request = frame->data<RequestReadFrom>();
+      auto source_location = locations.at(request.source_id);
+      join(source_location, io_device_->get_home()->uid, request.from_time);
+    }
+    if (frame->dest() == io_device_->get_home()->uid and frame->msg_type() == RequestReadFromPublic::tag) {
+      auto request = frame->data<RequestReadFromPublic>();
+      auto source_location = locations.at(request.source_id);
+      join(source_location, location::PUBLIC, request.from_time);
+    }
+    if (frame->dest() == io_device_->get_home()->uid and frame->msg_type() == RequestReadFromSync::tag) {
+      auto request = frame->data<RequestReadFromSync>();
+      auto source_location = locations.at(request.source_id);
+      join(source_location, location::SYNC, request.from_time);
+    }
+    if (frame->dest() == io_device_->get_home()->uid and frame->msg_type() == Deregister::tag) {
+      disjoin(location::make_shared(frame->data<Deregister>(), io_device_->get_locator())->uid);
+    }
+    auto node_frame = CurrentFrame(info);
+    next();
+    return node_frame;
+  }
   return {};
 }
 
 Napi::Value Reader::Join(const Napi::CallbackInfo &info) {
   auto category = longfist::enums::get_category_by_name(info[0].As<Napi::String>().Utf8Value());
-  SPDLOG_INFO("Join 2");
   auto group = info[1].As<Napi::String>().Utf8Value();
-  SPDLOG_INFO("Join 3");
   auto name = info[2].As<Napi::String>().Utf8Value();
-  SPDLOG_INFO("Join 4");
   auto mode = longfist::enums::get_mode_by_name(info[3].As<Napi::String>().Utf8Value());
-  SPDLOG_INFO("Join 5");
   uint32_t dest_id = info[4].As<Napi::Number>().Int32Value();
-  SPDLOG_INFO("Join 6");
   auto from_time = GetTimestamp(info[5]);
-  SPDLOG_INFO("Join 7");
   io_device_->get_home();
-  SPDLOG_INFO("Join 8");
-  SPDLOG_INFO("Join {} {} {} {} {} {}",int(category), group, name, int(mode), dest_id, from_time);
   join(std::make_shared<location>(mode, category, group, name, io_device_->get_home()->locator), dest_id, from_time);
-  SPDLOG_INFO("Join {} {}",io_device_->get_home()->uname, io_device_->get_home()->location_uid);
   return {};
 }
 
@@ -174,39 +217,13 @@ void Reader::Init(Napi::Env env, Napi::Object exports) {
   exports.Set("Reader", func);
 }
 
-Napi::Value Reader::NewInstance(const Napi::Value arg) { 
-  SPDLOG_INFO("Reader::NewInstance IsArray {}",arg.IsArray());
-   return constructor.New({arg}); }
+Napi::Value Reader::NewInstance(const Napi::Value arg) {
+  return constructor.New({arg});
+}
 
 Napi::FunctionReference Assemble::constructor = {};
 
-Assemble::Assemble(const Napi::CallbackInfo &info) : ObjectWrap(info), assemble(ExtractLocator(info)) {}
-
-Napi::Value Assemble::CurrentFrame(const Napi::CallbackInfo &info) {
-  auto frame = Frame::NewInstance(info.This());
-  Napi::ObjectWrap<Frame>::Unwrap(frame.As<Napi::Object>())->SetFrame(current_frame());
-  return frame;
-}
-
-Napi::Value Assemble::SeekToTime(const Napi::CallbackInfo &info) {
-  if (not IsValid(info, 0, &Napi::Value::IsBigInt)) {
-    return {};
-  }
-  auto time = GetBigInt(info, 0);
-  for (auto &reader : readers_) {
-    reader->seek_to_time(time);
-  }
-  return {};
-}
-
-Napi::Value Assemble::DataAvailable(const Napi::CallbackInfo &info) {
-  return Napi::Boolean::New(info.Env(), data_available());
-}
-
-Napi::Value Assemble::Next(const Napi::CallbackInfo &info) {
-  next();
-  return {};
-}
+Assemble::Assemble(const Napi::CallbackInfo &info) : ObjectWrap(info), assemble() {}
 
 Napi::Value Assemble::Get_sessions(const Napi::CallbackInfo &info) {
   std::vector<kungfu::longfist::types::Session> sessions = get_sessions();
@@ -221,12 +238,19 @@ Napi::Value Assemble::Get_sessions(const Napi::CallbackInfo &info) {
 }
 
 Napi::Value Assemble::Get_reader(const Napi::CallbackInfo &info) {
-  // uint32_t home_uid = info[0].ToNumber().Uint32Value();
-  SPDLOG_INFO("Reader::Get_reader 1 length {}", info.Length());
-        auto category = longfist::enums::get_category_by_name(info[0].As<Napi::String>().Utf8Value());
-  SPDLOG_INFO("Reader::Get_reader 2 {} ", int(category));
-  // auto iodev = IODevice::NewInstance(info.This());
-  auto reader = Reader::NewInstance(info.This());
+  std::vector<kungfu::longfist::types::Session> sessions = get_sessions();
+  size_t session_size = sessions.size();
+  uint32_t index = info[0].ToNumber().Uint32Value();
+  if (session_size <= index) {
+    throw Napi::Error::New(info.Env(), "index greater than session size");
+  }
+  auto node_mode = Napi::Number::New(info.Env(), int(sessions[index].mode));
+  auto node_category = Napi::Number::New(info.Env(), int(sessions[index].category));
+  auto node_group = Napi::String::New(info.Env(), sessions[index].group);
+  auto node_name = Napi::String::New(info.Env(), sessions[index].name);
+  auto begin_time = Napi::BigInt::New(info.Env(), sessions[index].begin_time);
+  auto end_time = Napi::BigInt::New(info.Env(), std::abs(sessions[index].end_time));
+  auto reader = Reader::constructor.New({node_mode, node_category, node_group, node_name, begin_time, end_time});
   return reader;
 }
 
@@ -235,10 +259,6 @@ void Assemble::Init(Napi::Env env, Napi::Object exports) {
 
   Napi::Function func = DefineClass(env, "Assemble",
                                     {
-                                        InstanceMethod("currentFrame", &Assemble::CurrentFrame),   //
-                                        InstanceMethod("seekToTime", &Assemble::SeekToTime),       //
-                                        InstanceMethod("dataAvailable", &Assemble::DataAvailable), //
-                                        InstanceMethod("next", &Assemble::Next),                   //
                                         InstanceMethod("get_sessions", &Assemble::Get_sessions),
                                         InstanceMethod("get_reader", &Assemble::Get_reader),
                                     });

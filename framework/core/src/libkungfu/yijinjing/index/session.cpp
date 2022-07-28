@@ -3,7 +3,6 @@
 //
 
 #include <kungfu/yijinjing/index/session.h>
-#include <fstream>
 
 using namespace sqlite_orm;
 using namespace kungfu::longfist;
@@ -105,7 +104,6 @@ void session_builder::update_session(const frame_ptr &frame) {
   session.end_time = frame->gen_time();
   session.frame_count++;
   session.data_size += frame->frame_length();
-    SPDLOG_ERROR("update_session session.end_time {}",  session.end_time);
 }
 
 void session_builder::rebuild_index_db() {

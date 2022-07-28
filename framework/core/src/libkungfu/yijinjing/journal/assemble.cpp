@@ -3,10 +3,10 @@
 // Created by Keren Dong on 2020/5/22.
 //
 
+#include <kungfu/yijinjing/cache/backend.h>
+#include <kungfu/yijinjing/common.h>
 #include <kungfu/yijinjing/journal/assemble.h>
 #include <kungfu/yijinjing/time.h>
-#include <kungfu/yijinjing/common.h>
-#include <kungfu/yijinjing/cache/backend.h>
 namespace kungfu::yijinjing::journal {
 struct noop_publisher : public publisher {
   noop_publisher() = default;
@@ -36,78 +36,23 @@ void copy_sink::put(const data::location_ptr &location, uint32_t dest_id, const 
   writers.at(dest_id)->copy_frame(frame);
 }
 
-assemble::assemble(const std::vector<data::locator_ptr> &locators, const std::string &mode, const std::string &category,
+assemble::assemble(const std::string &mode, const std::string &category,
                    const std::string &group, const std::string &name)
-    : mode_(mode), category_(category), group_(group), name_(name), publisher_(std::make_shared<noop_publisher>()) {
-  for (auto &locator : locators) {
-    locators_.push_back(locator);
-    readers_.push_back(std::make_shared<reader>(true));
-    auto reader = readers_.back();
-    for (auto &location : locator->list_locations(category, group, name, mode)) {
-      for (auto dest_id : locator->list_location_dest(location)) {
-        reader->join(location, dest_id, 0);
-      }
-    }
-  }
-  sort();
-}
+                    : mode_(mode), category_(category), group_(group), name_(name)  { }
 
-assemble assemble::operator+(assemble &other) {
-  if (mode_ != other.mode_ or category_ != other.category_ or group_ != other.group_ or name_ != other.name_) {
-    auto msg = fmt::format("assemble incompatible: {}/{}/{}/{}, {}/{}/{}/{}", category_, group_, name_, mode_,
-                           other.category_, other.group_, other.name_, other.mode_);
-    throw assemble_exception(msg);
-  }
-  std::vector<data::locator_ptr> merged_locators = {};
-  merged_locators.insert(merged_locators.end(), locators_.begin(), locators_.end());
-  merged_locators.insert(merged_locators.end(), other.locators_.begin(), other.locators_.end());
-  return assemble(merged_locators, mode_, category_, group_, name_);
-}
 
-void assemble::operator>>(const sink_ptr &sink) {
-  while (data_available()) {
-    auto page = current_reader_->current_page();
-    sink->put(page->get_location(), page->get_dest_id(), current_frame());
-    next();
-  }
-}
 
-bool assemble::data_available() {
-  for (auto &reader : readers_) {
-    if (reader->data_available()) {
-      return true;
-    }
-  }
-  return false;
-}
-
-void assemble::next() {
-  if (current_reader_ and current_reader_->data_available()) {
-    current_reader_->next();
-  }
-  sort();
-}
-
-frame_ptr assemble::current_frame() { return current_reader_->current_frame(); }
-
-void assemble::sort() {
-  int64_t min_time = INT64_MAX;
-  for (auto &reader : readers_) {
-    if (reader->data_available() and reader->current_frame()->gen_time() < min_time) {
-      min_time = reader->current_frame()->gen_time();
-      current_reader_ = reader;
-    }
-  }
-}
 using namespace kungfu::longfist::enums;
 using namespace kungfu::longfist::types;
 using namespace sqlite_orm;
 
-std::vector<kungfu::longfist::types::Session> assemble::get_sessions() { 
-  kungfu::yijinjing::data::locator_ptr l(new  kungfu::yijinjing::data::locator()); 
-  auto index_location = kungfu::yijinjing::data::location::make_shared(mode::LIVE, category::SYSTEM, "journal", "index", l);
+std::vector<kungfu::longfist::types::Session> assemble::get_sessions() {
+  kungfu::yijinjing::data::locator_ptr l(new kungfu::yijinjing::data::locator());
+  auto index_location =
+      kungfu::yijinjing::data::location::make_shared(mode::LIVE, category::SYSTEM, "journal", "index", l);
   std::string session_db = l->layout_file(index_location, layout::SQLITE, "index");
-  kungfu::yijinjing::cache::SessionStoragePtr session_storage_(cache::make_storage_ptr(session_db, kungfu::longfist::SessionDataTypes));
+  kungfu::yijinjing::cache::SessionStoragePtr session_storage_(
+      cache::make_storage_ptr(session_db, kungfu::longfist::SessionDataTypes));
   if (not session_storage_->sync_schema_simulate().empty()) {
     session_storage_->sync_schema();
   }

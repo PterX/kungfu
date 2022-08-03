@@ -20,7 +20,7 @@ import {
 } from '@kungfu-trader/kungfu-app/src/main/utils';
 import {
   kfLogger,
-  // removeJournal,
+  removeJournal,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { killExtra } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
 import {
@@ -35,7 +35,7 @@ import {
 import {
   BASE_DB_DIR,
   KF_HOME,
-  // NODE_DIR,
+  NODE_DIR,
 } from '@kungfu-trader/kungfu-js-api/config/pathConfig';
 import {
   initKfConfig,
@@ -62,11 +62,11 @@ async function createWindow(
   reloadAfterCrashed = false,
   reloadBySchedule = false,
 ) {
-  // try {
-  //   await removeJournal(NODE_DIR);
-  // } catch (err) {
-  //   kfLogger.error(err.message);
-  // }
+  try {
+    await removeJournal(NODE_DIR);
+  } catch (err) {
+    kfLogger.error(err.message);
+  }
 
   if (reloadAfterCrashed) {
     CrashedReloading = true;

@@ -31,6 +31,8 @@ public:
 
   Napi::Value Dest(const Napi::CallbackInfo &info);
 
+  Napi::Value StringMsgType(const Napi::CallbackInfo &info);
+
   Napi::Value Data(const Napi::CallbackInfo &info);
 
   static void Init(Napi::Env env, Napi::Object exports);
@@ -65,6 +67,8 @@ public:
 
   Napi::Value Disjoin(const Napi::CallbackInfo &info);
 
+  Napi::Value Run(const Napi::CallbackInfo &info);
+
   static void Init(Napi::Env env, Napi::Object exports);
 
   static Napi::Value NewInstance(Napi::Value arg);
@@ -83,6 +87,14 @@ class Assemble : public Napi::ObjectWrap<Assemble>, public yijinjing::journal::a
 public:
   explicit Assemble(const Napi::CallbackInfo &info);
 
+  Napi::Value CurrentFrame(const Napi::CallbackInfo &info);
+
+  Napi::Value SeekToTime(const Napi::CallbackInfo &info);
+
+  Napi::Value DataAvailable(const Napi::CallbackInfo &info);
+
+  Napi::Value Next(const Napi::CallbackInfo &info);
+  
   Napi::Value Get_sessions(const Napi::CallbackInfo &info);
 
   Napi::Value Get_reader(const Napi::CallbackInfo &info);
@@ -90,7 +102,6 @@ public:
   static void Init(Napi::Env env, Napi::Object exports);
 
 private:
-  kungfu::node::serialize::JsGet get = {};
   kungfu::node::serialize::JsSet set = {};
   static Napi::FunctionReference constructor;
 

@@ -22,7 +22,7 @@ import {
   findTargetFromArray,
   getProcessIdByKfLocation,
   kfLogger,
-  // removeJournal,
+  removeJournal,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import {
   BASE_DB_DIR,
@@ -211,7 +211,7 @@ export const registerScheduleTasks = async (
         console.log('May the Force be with you -- Yoda');
         pm2Kill().finally(() => {
           kfLogger.info('Core restarted, pm2 killed all');
-          // removeJournal(KF_HOME).then(() => createWindowFunc(false, true));
+          removeJournal(KF_HOME).then(() => createWindowFunc(false, true));
         });
       });
     });

@@ -39,19 +39,35 @@ private:
 
 class assemble {
 public:
-  explicit assemble(const std::string &mode = "*",
+  explicit assemble(const std::vector<data::locator_ptr> &locators, const std::string &mode = "*",
                     const std::string &category = "*", const std::string &group = "*", const std::string &name = "*");
 
   virtual ~assemble() = default;
 
+  assemble operator+(assemble &other);
+
+  void operator>>(const sink_ptr &sink);
+
+  bool data_available();
+
+  void next();
+
+  frame_ptr current_frame();
+
   std::vector<kungfu::longfist::types::Session> get_sessions();
+protected:
+  std::vector<reader_ptr> readers_ = {};
+  reader_ptr current_reader_ = {};
 
 private:
   const std::string &mode_;
   const std::string &category_;
   const std::string &group_;
   const std::string &name_;
+  publisher_ptr publisher_;
+  std::vector<data::locator_ptr> locators_ = {};
 
+  void sort();
 };
 DECLARE_PTR(assemble)
 } // namespace kungfu::yijinjing::journal

@@ -755,7 +755,7 @@ declare namespace KungfuApi {
       bypassQuote?: boolean,
       bypassRestore?: boolean,
     ): Watcher | null;
-    Assemble(kfHome: string[]) : Assemble | null;
+    Assemble(kfHome: string[]): Assemble | null;
     shutdown(): void;
     formatStringToHashHex(id: string): string;
     formatTime(nano: bigint, format: string): string;

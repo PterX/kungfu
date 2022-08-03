@@ -271,10 +271,12 @@ void bind(pybind11::module &&m) {
       .def("put", &copy_sink::put);
 
   py::class_<assemble, assemble_ptr>(m, "assemble")
-      .def(py::init<const std::string &, const std::string &,
+      .def(py::init<const std::vector<data::locator_ptr> &, const std::string &, const std::string &,
                     const std::string &, const std::string &>(),
-           py::arg("mode") = "*", py::arg("category") = "*", py::arg("group") = "*",
-           py::arg("name") = "*");
+           py::arg("locators"), py::arg("mode") = "*", py::arg("category") = "*", py::arg("group") = "*",
+           py::arg("name") = "*")
+      .def("__plus__", &assemble::operator+)
+      .def("__rshift__", &assemble::operator>>);
 
   py::class_<io_device, io_device_ptr>(m, "io_device")
       .def(py::init<location_ptr, bool, bool>(), py::arg("home"), py::arg("low_latency") = false,

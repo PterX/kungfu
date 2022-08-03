@@ -56,5 +56,4 @@ void journal::load_page(int page_id) {
 }
 
 void journal::load_next_page() { load_page(page_->get_page_id() + 1); }
-
 } // namespace kungfu::yijinjing::journal

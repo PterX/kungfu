@@ -90,17 +90,29 @@ exports.getWebpackExternals = () => {
   const apiPackageJSONPath = require.resolve(
     '@kungfu-trader/kungfu-js-api/package.json',
   );
+  const corePackageJSONPath = require.resolve(
+    '@kungfu-trader/kungfu-core/package.json',
+  );
+  const sdkPackageJSONPath = require.resolve(
+    '@kungfu-trader/kungfu-sdk/package.json',
+  );
   const currentPackageJSONPath = path.join(process.cwd(), 'package.json');
   const appPackageJSON = fs.readJSONSync(appPackageJSONPath);
   const apiPackageJSON = fs.readJSONSync(apiPackageJSONPath);
+  const corePackageJSON = fs.readJSONSync(corePackageJSONPath);
+  const sdkPackageJSON = fs.readJSONSync(sdkPackageJSONPath);
   const currentPackageJSON = fs.pathExistsSync(currentPackageJSONPath)
     ? fs.readJSONSync(currentPackageJSONPath)
     : {};
   return Object.keys({
-    ...appPackageJSON.dependencies,
-    ...apiPackageJSON.dependencies,
+    ...(appPackageJSON.dependencies || {}),
+    ...(apiPackageJSON.dependencies || {}),
+    ...(corePackageJSON.dependencies || {}),
+    ...(sdkPackageJSON.dependencies || {}),
     ...(currentPackageJSON.dependencies || {}),
-  }).filter((item) => !item.includes('kungfu-js-api'));
+  }).filter(
+    (item) => !item.includes('kungfu-js-api') || !item.includes('kungfu-core'),
+  );
 };
 
 exports.getAppDefaultDistDir = () => {
@@ -109,6 +121,10 @@ exports.getAppDefaultDistDir = () => {
 
 exports.getCliDefaultDistDir = () => {
   return path.resolve(this.getCliDir(), 'dist');
+};
+
+exports.getSdkDefaultDistDir = () => {
+  return path.resolve(this.getSdkDir(), 'dist');
 };
 
 exports.getAppDir = () => {
@@ -147,6 +163,12 @@ exports.getKfcDir = () => {
   );
 };
 
+exports.getSdkDir = () => {
+  return path.dirname(
+    require.resolve('@kungfu-trader/kungfu-sdk/package.json'),
+  );
+};
+
 exports.isProduction = (argv) => argv.mode === 'production';
 
 exports.getExtensionDirs = (production = false) => {
@@ -154,8 +176,9 @@ exports.getExtensionDirs = (production = false) => {
     path.resolve(process.cwd(), 'package.json'),
   );
 
-  const extdirs = [
+  return [
     ...Object.keys(packageJSON.dependencies || {}),
+    ...Object.keys(packageJSON.optionalDependencies || {}),
     ...(production ? [] : Object.keys(packageJSON.devDependencies || {})),
   ]
     .map((name) => {
@@ -170,12 +193,29 @@ exports.getExtensionDirs = (production = false) => {
       return fullPath;
     })
     .filter((fullpath) => !!fullpath);
-
-  return extdirs;
 };
 
 exports.getKungfuConfigKey = () => {
   return require(path.join(process.cwd(), 'package.json'))['kungfuConfig'][
     'key'
   ];
+};
+
+exports.buildDevArgv = (distDir, distName) => {
+  const cliDir = exports.getCliDir();
+  const appDir = exports.getAppDir();
+  const kfcDir = exports.getKfcDir();
+  const extdirs = exports.getExtensionDirs();
+
+  process.env.KFC_DIR = kfcDir;
+  process.env.APP_PUBLIC_DIR = path.join(appDir, 'public');
+  process.env.CLI_DIR = path.join(cliDir, 'dist', 'cli');
+  process.env.KFC_DEV = 'true';
+  process.env.EXTENSION_DIRS = [distDir, ...extdirs].join(path.delimiter);
+
+  return {
+    mode: 'development',
+    distDir: distDir,
+    distName: distName,
+  };
 };

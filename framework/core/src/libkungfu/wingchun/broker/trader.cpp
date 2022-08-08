@@ -21,14 +21,16 @@ void TraderVendor::set_service(Trader_ptr service) { service_ = std::move(servic
 void TraderVendor::on_start() {
   BrokerVendor::on_start();
 
+  events_ | is(BlockMessage::tag) | $$(service_->insert_block_message(event));
   events_ | is(OrderInput::tag) | $$(service_->insert_order(event));
   events_ | is(OrderAction::tag) | $$(service_->cancel_order(event));
   events_ | is(AssetRequest::tag) | $$(service_->req_account());
+  events_ | is(Deregister::tag) | $$(service_->on_strategy_exit(event));
   events_ | is(PositionRequest::tag) | $$(service_->req_position());
   events_ | is(RequestHistoryOrder::tag) | $$(service_->req_history_order(event));
   events_ | is(RequestHistoryTrade::tag) | $$(service_->req_history_trade(event));
   events_ | is(AssetSync::tag) | $$(service_->handle_asset_sync());
-  events_ | is(PositionSync::tag) | $$(service_->req_position());
+  events_ | is(PositionSync::tag) | $$(service_->handle_position_sync());
   events_ | is(ResetBookRequest::tag) | $$(get_writer(location::PUBLIC)->mark(now(), ResetBookRequest::tag));
 
   clean_orders();
@@ -106,8 +108,16 @@ bool Trader::write_default_asset_margin() {
 }
 
 void Trader::handle_asset_sync() {
-  req_account();
-  write_default_asset_margin();
+  if (state_ == BrokerState::Ready) {
+    req_account();
+    write_default_asset_margin();
+  }
+}
+
+void Trader::handle_position_sync() {
+  if (state_ == BrokerState::Ready) {
+    req_position();
+  }
 }
 
 } // namespace kungfu::wingchun::broker

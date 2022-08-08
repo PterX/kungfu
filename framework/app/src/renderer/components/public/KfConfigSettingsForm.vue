@@ -78,7 +78,7 @@ const props = withDefaults(
     labelAlign: 'right',
     labelWrap: false,
     labelCol: 6,
-    wrapperCol: 16,
+    wrapperCol: 14,
     rules: () => ({}),
     passPrimaryKeySpecialWordsVerify: false,
   },
@@ -277,9 +277,9 @@ function noZeroValidator(_rule: RuleObject, value: number): Promise<void> {
     return Promise.reject(new Error(t('validate.no_zero_number')));
   }
 
-  if (+value < 0) {
-    return Promise.reject(new Error(t('validate.no_negative_number')));
-  }
+  // if (+value < 0) {
+  //   return Promise.reject(new Error(t('validate.no_negative_number')));
+  // }
 
   return Promise.resolve();
 }
@@ -417,9 +417,9 @@ defineExpose({
     class="kf-config-form"
     ref="formRef"
     :model="formState"
-    :label-col="layout === 'inline' ? null : { span: labelCol }"
+    :labelCol="layout === 'inline' ? null : { span: labelCol }"
     :label-wrap="labelWrap"
-    :wrapper-col="layout === 'inline' ? null : { span: wrapperCol }"
+    :wrapperCol="layout === 'inline' ? null : { span: wrapperCol }"
     :labelAlign="labelAlign"
     :colon="false"
     :scrollToFirstError="true"
@@ -577,6 +577,11 @@ defineExpose({
           {{ option.label }}
         </a-radio>
       </a-radio-group>
+      <a-checkbox
+        v-else-if="item.type === 'checkbox'"
+        v-model:checked="formState[item.key]"
+        :disabled="(changeType === 'update' && item.primary) || item.disabled"
+      ></a-checkbox>
       <a-select
         v-else-if="numberEnumSelectType[item.type]"
         v-model:value="formState[item.key]"
@@ -818,7 +823,17 @@ export default defineComponent({
           .ant-row.ant-form-item {
             margin-bottom: 8px;
           }
+
+          .ant-form-item-label > label,
+          .global-setting-item .label {
+            font-size: 12px;
+            min-width: 100px;
+          }
         }
+      }
+
+      .ant-divider-horizontal {
+        margin: 12px 0;
       }
     }
   }
@@ -831,6 +846,10 @@ export default defineComponent({
     .ant-radio-wrapper {
       line-height: 2;
     }
+  }
+
+  .ant-form-item-extra {
+    white-space: pre-line;
   }
 }
 </style>

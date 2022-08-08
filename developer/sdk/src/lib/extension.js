@@ -7,6 +7,14 @@ const { spawnSync } = require('child_process');
 const { glob } = require('glob');
 const { promisify } = require('util');
 const { finished } = require('stream');
+const { shell } = require('@kungfu-trader/kungfu-core');
+const {
+  customResolve,
+  getKfcPath,
+  getKfcCmdArgs,
+  getCmakeCmdArgs,
+  kfcName,
+} = require('../utils');
 
 const pypackages = '__pypackages__';
 const kungfulibs = '__kungfulibs__';
@@ -46,18 +54,14 @@ function detectPlatform() {
   }
   return osName;
 }
-
-function getPackageJson() {
-  const packageJsonPath = path.join(process.cwd(), 'package.json');
-  if (!fse.existsSync(packageJsonPath)) {
-    console.log('package.json not found');
-    return;
-  }
-  return JSON.parse(fse.readFileSync(packageJsonPath));
-}
+exports.detectPlatform = detectPlatform;
 
 function hasSourceFor(packageJson, language) {
-  return packageJson.kungfuBuild && packageJson.kungfuBuild[language];
+  const config = packageJson.kungfuBuild;
+  const hasConfig = config && config[language];
+  const source = glob.sync(`src/${language}/**/*.*`);
+  const hasSource = source.length > 0;
+  return hasConfig || hasSource;
 }
 
 function getProjectName(packageJson) {
@@ -74,6 +78,8 @@ function generateCMakeFiles(projectName, kungfuBuild) {
     'bind/node': 'add_library',
   };
 
+  kungfuBuild = kungfuBuild || { cpp: { target: 'bind/python' } };
+
   const cppSources = [kungfuBuild.cpp.src || ['src/cpp']].flat();
 
   const cppLinksOpt = kungfuBuild.cpp.links || [];
@@ -85,15 +91,10 @@ function generateCMakeFiles(projectName, kungfuBuild) {
   fse.ensureDirSync(buildDir);
 
   ejs.renderFile(
-    require.resolve('@kungfu-trader/kungfu-sdk/templates/cmake/kungfu.cmake'),
+    customResolve('@kungfu-trader/kungfu-sdk/templates/cmake/kungfu.cmake'),
     {
-      kfcDir: path
-        .dirname(
-          require.resolve(
-            '@kungfu-trader/kungfu-core/dist/kfc/kungfubuildinfo.json',
-          ),
-        )
-        .replace(/\\/g, '/'),
+      kfcDir: getKfcPath(),
+      kfcExec: path.join(getKfcPath(), kfcName).replace(/\\/g, '/'),
       includes: glob.sync(path.join(kungfuLibDirPattern, 'include')),
       links: glob.sync(path.join(kungfuLibDirPattern, 'lib')),
       sources: cppSources,
@@ -112,7 +113,7 @@ function generateCMakeFiles(projectName, kungfuBuild) {
   }
 
   ejs.renderFile(
-    require.resolve('@kungfu-trader/kungfu-sdk/templates/cmake/CMakeLists.txt'),
+    customResolve('@kungfu-trader/kungfu-sdk/templates/cmake/CMakeLists.txt'),
     {
       projectName: projectName,
     },
@@ -129,8 +130,6 @@ const DefaultLibSiteURL_US = 'https://external.libkungfu.io';
 exports.DefaultLibSiteURL = process.env.GITHUB_ACTIONS
   ? DefaultLibSiteURL_US
   : DefaultLibSiteURL_CN;
-
-exports.detectPlatform = detectPlatform;
 
 exports.list = async (
   libSiteURL,
@@ -202,6 +201,11 @@ exports.installSingleLib = async (
 
   const libInfo = sourceLibs[libName][libVersion];
 
+  if (!(platform in libInfo.lib)) {
+    console.warn(`-- ${libName}@${libVersion} does not support ${platform}`);
+    return;
+  }
+
   const downloadFiles = async (localDir, files, buildRemoteURL, onFinish) => {
     for (const file of files) {
       const remoteFileURL = buildRemoteURL(file);
@@ -266,7 +270,7 @@ exports.installBatch = async (
   platform = detectPlatform(),
   arch = os.arch(),
 ) => {
-  const packageJson = getPackageJson();
+  const packageJson = shell.getPackageJson();
   if ('kungfuDependencies' in packageJson) {
     const libs = packageJson.kungfuDependencies;
     for (const libName in libs) {
@@ -280,8 +284,9 @@ exports.installBatch = async (
     }
   }
   if (hasSourceFor(packageJson, 'python')) {
-    spawnExec('yarn', ['kfc', 'engage', 'pdm', 'makeup']);
-    spawnExec('yarn', ['kfc', 'engage', 'pdm', 'install']);
+    const { cmd, args0 } = getKfcCmdArgs();
+    spawnExec(cmd, [...args0, 'engage', 'pdm', 'makeup']);
+    spawnExec(cmd, [...args0, 'engage', 'pdm', 'install']);
   }
 };
 
@@ -296,23 +301,25 @@ exports.clean = (keepLibs = true) => {
 };
 
 exports.configure = () => {
-  const packageJson = getPackageJson();
+  const packageJson = shell.getPackageJson();
   if (hasSourceFor(packageJson, 'cpp')) {
     generateCMakeFiles(getProjectName(packageJson), packageJson.kungfuBuild);
   }
 };
 
 exports.compile = () => {
-  const packageJson = getPackageJson();
+  const packageJson = shell.getPackageJson();
   const extensionName = packageJson.kungfuConfig.key;
-  const buildTargetDir = path.join('build', 'target');
   const outputDir = path.join('dist', extensionName);
+  const buildTargetDir = path.join('build', 'target');
 
   fse.ensureDirSync(outputDir);
 
   if (hasSourceFor(packageJson, 'python')) {
     const srcDir = path.join('src', 'python', extensionName);
-    const kfcArgs = ['kfc', 'engage', 'nuitka'];
+    const { cmd, args0 } = getKfcCmdArgs();
+
+    const kfcArgs = [...args0, 'engage', 'nuitka'];
     const nuitkaArgs = [
       '--module',
       '--assume-yes-for-downloads',
@@ -322,14 +329,16 @@ exports.compile = () => {
       `--output-dir=${outputDir}`,
       srcDir,
     ];
-    spawnExec('yarn', [...kfcArgs, ...nuitkaArgs]);
+    spawnExec(cmd, [...kfcArgs, ...nuitkaArgs]);
   }
 
   if (hasSourceFor(packageJson, 'cpp')) {
-    spawnExec('yarn', ['cmake-js', 'build']);
+    const { cmd, args0 } = getCmakeCmdArgs();
+    spawnExec(cmd, [...args0, 'build']);
   }
 
-  const packageJsonPath = path.join(process.cwd(), 'package.json');
+  const cwd = process.cwd().toString(); // 这一步避免在打包中process.cwd()被替换
+  const packageJsonPath = path.resolve(cwd, 'package.json');
   fse.copyFile(packageJsonPath, path.join(outputDir, 'package.json'));
 
   const copyOutput = (pattern) => {
@@ -349,24 +358,18 @@ exports.compile = () => {
   if (fse.existsSync(pypackages)) {
     fse.copySync(pypackages, path.join(outputDir, pypackages));
   }
-
-  fse.copySync(
-    require.resolve('@kungfu-trader/kungfu-core/dist/kfc/drone.node'),
-    path.join(outputDir, `${packageJson.binary.module_name}.node`),
-    {},
-  );
 };
 
 exports.format = () => {
-  const packageJson = getPackageJson();
+  const packageJson = shell.getPackageJson();
   const srcArgv = ['src'];
   if (hasSourceFor(packageJson, 'cpp')) {
-    require('@kungfu-trader/kungfu-core/.gyp/node-format-cpp')(srcArgv);
+    require('@kungfu-trader/kungfu-core/.gyp/run-format-cpp')(srcArgv);
   }
   if (hasSourceFor(packageJson, 'python')) {
-    require('@kungfu-trader/kungfu-core/.gyp/node-format-python')(srcArgv);
+    require('@kungfu-trader/kungfu-core/.gyp/run-format-python')(srcArgv);
   }
   if (packageJson.kungfuConfig && packageJson.kungfuConfig.ui_config) {
-    require('@kungfu-trader/kungfu-core/.gyp/node-format-js')(srcArgv);
+    require('@kungfu-trader/kungfu-core/.gyp/run-format-js')(srcArgv);
   }
 };

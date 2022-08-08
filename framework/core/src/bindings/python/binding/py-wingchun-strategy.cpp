@@ -88,13 +88,20 @@ public:
 
   void on_history_order(strategy::Context_ptr &context, const HistoryOrder &history_order,
                         const kungfu::yijinjing::data::location_ptr &location) override {
-    PYBIND11_OVERLOAD(void, strategy::Strategy,
-
-                      on_history_order, context, history_order, location);
+    PYBIND11_OVERLOAD(void, strategy::Strategy, on_history_order, context, history_order, location);
   }
   void on_history_trade(strategy::Context_ptr &context, const HistoryTrade &history_trade,
                         const kungfu::yijinjing::data::location_ptr &location) override {
     PYBIND11_OVERLOAD(void, strategy::Strategy, on_history_trade, context, history_trade, location);
+  }
+
+  void on_req_history_order_error(strategy::Context_ptr &context, const RequestHistoryOrderError &error,
+                                  const kungfu::yijinjing::data::location_ptr &location) override {
+    PYBIND11_OVERLOAD(void, strategy::Strategy, on_req_history_order_error, context, error, location);
+  }
+  void on_req_history_trade_error(strategy::Context_ptr &context, const RequestHistoryTradeError &error,
+                                  const kungfu::yijinjing::data::location_ptr &location) override {
+    PYBIND11_OVERLOAD(void, strategy::Strategy, on_req_history_trade_error, context, error, location);
   }
 
   void on_position_sync_reset(strategy::Context_ptr &context, const Book &old_book, const Book &new_book) override {
@@ -143,8 +150,10 @@ void bind_strategy(pybind11::module &m) {
            py::arg("account"), py::arg("limit_price"), py::arg("volume"), py::arg("type"), py::arg("side"),
            py::arg("offset") = Offset::Open, py::arg("hedge_flag") = HedgeFlag::Speculation, py::arg("is_swap") = false)
       .def("cancel_order", &strategy::Context::cancel_order)
-      .def("req_history_order", &strategy::Context::req_history_order)
-      .def("req_history_trade", &strategy::Context::req_history_trade)
+      .def("req_history_order", &strategy::Context::req_history_order, py::arg("source"), py::arg("account"),
+           py::arg("query_num") = 0)
+      .def("req_history_trade", &strategy::Context::req_history_trade, py::arg("source"), py::arg("account"),
+           py::arg("query_num") = 0)
       .def("hold_book", &strategy::Context::hold_book)
       .def("hold_positions", &strategy::Context::hold_positions)
       .def("is_book_held", &strategy::Context::is_book_held)
@@ -173,7 +182,9 @@ void bind_strategy(pybind11::module &m) {
       .def("on_asset_sync_reset", &strategy::Strategy::on_asset_sync_reset)
       .def("on_asset_margin_sync_reset", &strategy::Strategy::on_asset_margin_sync_reset)
       .def("on_history_order", &strategy::Strategy::on_history_order)
-      .def("on_history_trade", &strategy::Strategy::on_history_trade);
+      .def("on_history_trade", &strategy::Strategy::on_history_trade)
+      .def("on_req_history_order_error", &strategy::Strategy::on_req_history_order_error)
+      .def("on_req_history_trade_error", &strategy::Strategy::on_req_history_trade_error);
   ;
 }
 } // namespace kungfu::wingchun::pybind

@@ -7,7 +7,7 @@ import kungfu
 
 from kungfu.console import site
 from kungfu.yijinjing import journal as kfj
-from kungfu.yijinjing.log import create_logger
+from kungfu.yijinjing.log import find_logger
 from kungfu.yijinjing.practice.master import Master
 from kungfu.yijinjing.practice.coloop import KungfuEventLoop
 from kungfu.wingchun.strategy import Runner, Strategy
@@ -30,20 +30,43 @@ class ExecutorRegistry:
             "td": {},
             "strategy": {"default": ExtensionLoader(self.ctx, None, None)},
         }
+
+    def setup_log(self):
+        ctx = self.ctx
+        ctx.location = yjj.location(
+            kfj.MODES[ctx.mode],
+            kfj.CATEGORIES[ctx.category],
+            ctx.group,
+            ctx.name,
+            ctx.runtime_locator,
+        )
+        ctx.logger = find_logger(ctx.location, ctx.log_level)
+
+    def load_extensions(self):
+        self.setup_log()
+
+        ctx = self.ctx
+        ctx.logger.debug(f"finding kungfu extension for {ctx.location}")
+
         if ctx.extension_path:
             deque(map(self.register_extensions, ctx.extension_path.split(path.pathsep)))
         elif ctx.path:
-            self.read_config(os.path.join(os.path.dirname(ctx.path), "package.json"))
+            self.read_config(os.path.dirname(ctx.path))
 
     def register_extensions(self, root):
         for child in os.listdir(root):
             extension_dir = path.abspath(path.join(root, child))
-            config_path = path.join(extension_dir, "package.json")
-            self.read_config(config_path)
+            self.read_config(extension_dir)
 
-    def read_config(self, config_path):
+    def read_config(self, extension_dir):
+        config_path = os.path.join(extension_dir, "package.json")
+
+        def report(reason):
+            self.ctx.logger.info(
+                f"kungfu extension not found in {extension_dir}: {reason}"
+            )
+
         if path.exists(config_path):
-            extension_dir = config_path[:-13]
             with open(config_path, mode="r", encoding="utf8") as config_file:
                 config = json.load(config_file)
                 if "kungfuConfig" in config:
@@ -62,6 +85,15 @@ class ExecutorRegistry:
                                 self.executors[category][group] = ExtensionLoader(
                                     self.ctx, extension_dir, config
                                 )
+                    elif "key" in config["kungfuConfig"]:
+                        group = config["kungfuConfig"]["key"]
+                        self.executors["strategy"][group] = ExtensionLoader(
+                            self.ctx, extension_dir, config
+                        )
+                    else:
+                        report("missing key/config in kungfuConfig")
+                else:
+                    report("missing kungfuConfig")
 
     def __getitem__(self, category):
         return self.executors[category]
@@ -76,18 +108,43 @@ class ExecutorRegistry:
 class MasterLoader(dict):
     def __init__(self, ctx):
         super().__init__()
-        self["master"] = lambda mode, low_latency: Master(ctx).run()
+        self.ctx = ctx
+        self["master"] = self.run
+
+    def run(self, mode: str, low_latency: bool):
+        self.ctx.location = yjj.location(
+            kfj.MODES[mode],
+            lf.enums.category.SYSTEM,
+            "master",
+            "master",
+            self.ctx.runtime_locator,
+        )
+        self.ctx.logger = find_logger(self.ctx.location, self.ctx.log_level)
+        Master(self.ctx).run()
 
 
 class ServiceLoader(dict):
     def __init__(self, ctx):
         super().__init__()
-        self["cached"] = lambda mode, low_latency: yjj.cached(
-            ctx.runtime_locator, kfj.MODES[ctx.mode], ctx.low_latency
-        ).run()
-        self["ledger"] = lambda mode, low_latency: wc.Ledger(
-            ctx.runtime_locator, kfj.MODES[ctx.mode], ctx.low_latency
-        ).run()
+        self.ctx = ctx
+        self["cached"] = self.create_service("cached", yjj.cached)
+        self["ledger"] = self.create_service("ledger", wc.Ledger)
+
+    def create_service(self, name, service):
+        def run(mode: str, low_latency: bool):
+            self.ctx.location = yjj.location(
+                kfj.MODES[mode],
+                lf.enums.category.SYSTEM,
+                "service",
+                name,
+                self.ctx.runtime_locator,
+            )
+            self.ctx.logger = find_logger(self.ctx.location, self.ctx.log_level)
+            service(
+                self.ctx.runtime_locator, kfj.MODES[self.ctx.mode], low_latency
+            ).run()
+
+        return run
 
 
 class ExtensionLoader:
@@ -129,21 +186,21 @@ class ExtensionExecutor:
             ctx.name,
             ctx.runtime_locator,
         )
-        logger = create_logger(ctx.name, ctx.log_level, location)
+
         if loader.extension_dir:
             site.setup(loader.extension_dir)
             sys.path.insert(0, loader.extension_dir)
         module = importlib.import_module(ctx.group)
-        logger.info(f"loading {ctx.group} from {loader.extension_dir}")
+        self.ctx.logger.info(f"loading {ctx.group} from {loader.extension_dir}")
         vendor = vendor_builder(
             ctx.runtime_locator, ctx.group, ctx.name, ctx.low_latency
         )
         service_builder = getattr(module, ctx.category)
-        logger.debug(f"loaded service builder")
+        self.ctx.logger.debug(f"loaded service builder")
         service = service_builder(vendor)
-        logger.debug("set service for vendor")
+        self.ctx.logger.debug("set service for vendor")
         vendor.set_service(service)
-        logger.info(f"vendor {location.uname} ready to run")
+        self.ctx.logger.info(f"vendor {location.uname} ready to run")
         vendor.run()
 
     def run_market_data(self):
@@ -170,9 +227,20 @@ class ExtensionExecutor:
             ctx.name,
             ctx.runtime_locator,
         )
-        ctx.logger = create_logger(ctx.name, ctx.log_level, ctx.location)
+        os.environ["KF_STG_GROUP"] = ctx.group
+        os.environ["KF_STG_NAME"] = ctx.name
         if loader.config is None:
-            ctx.strategy = load_strategy(ctx, ctx.path, loader.config)
+            load = False
+            json_config = os.path.join(os.path.dirname(ctx.path), "package.json")
+            if path.exists(json_config):
+                with open(json_config, mode="r", encoding="utf8") as json_config_out:
+                    config = json.load(json_config_out)
+                    if "kungfuConfig" in config and "key" in config["kungfuConfig"]:
+                        key = config["kungfuConfig"]["key"]
+                        load = True
+                        ctx.strategy = load_strategy(ctx, ctx.path, key)
+            if not load:
+                ctx.strategy = load_strategy(ctx, ctx.path, loader.config)
         else:
             ctx.strategy = load_strategy(
                 ctx, ctx.path, loader.config["kungfuConfig"]["key"]
@@ -193,15 +261,19 @@ def load_strategy(ctx, path, key):
     if path.endswith(".py"):
         return Strategy(ctx)  # keep strategy alive for pybind11
     elif key is not None and (path.endswith(".so") or path.endswith(".pyd")):
-        ctx.path = os.path.join(os.path.dirname(path), key)
-        return Strategy(ctx)
+        return try_load_cpp_strategy(ctx, path, key)
     elif key is not None and path.endswith(key):
         return Strategy(ctx)
     else:
-        spec = spec_from_file_location(os.path.basename(path).split(".")[0], path)
-        try:
-            module_cpp = module_from_spec(spec)
-            spec.loader.exec_module(module_cpp)
-            return module_cpp.strategy()
-        except:
-            return Strategy(ctx)
+        ctx.path = os.path.join(os.path.dirname(path), key)
+        return Strategy(ctx)
+
+
+def try_load_cpp_strategy(ctx, path, key):
+    try:
+        module = importlib.import_module(key)
+        return module.strategy()
+    except Exception as e:
+        ctx.logger.info(f"fallback to python loader due to: {e}")
+        ctx.path = os.path.join(os.path.dirname(path), key)
+        return Strategy(ctx)

@@ -1,5 +1,4 @@
 import json
-import atexit
 import getpass
 import os
 import psutil
@@ -16,6 +15,7 @@ from conans import tools
 from distutils import sysconfig
 from os import environ
 from os import path
+from wcmatch import glob
 
 with open(path.join("package.json"), "r") as package_json_file:
     package_json = json.load(package_json_file)
@@ -31,9 +31,9 @@ class KungfuCoreConan(ConanFile):
         "nlohmann_json/3.10.5",
         "nng/1.5.2",
         "rxcpp/4.1.1",
-        # "sqlite3/3.37.2",
-        "sqlite_orm/1.7",
-        "spdlog/1.9.2",
+        "sqlite3/3.39.2",
+        "sqlite_orm/1.7.1",
+        "spdlog/1.10.0",
         "tabulate/1.4",
     ]
     settings = "os", "compiler", "build_type", "arch"
@@ -48,7 +48,12 @@ class KungfuCoreConan(ConanFile):
     default_options = {
         "fmt:header_only": "True",
         "spdlog:header_only": "True",
+        "spdlog:shared": "False",
+        "sqlite3:enable_column_metadata": "True",
         "sqlite3:enable_json1": "True",
+        "sqlite3:enable_preupdate_hook": "True",
+        "sqlite3:enable_dbstat_vtab": "True",
+        "sqlite3:shared": "False",
         "nng:http": "False",
         "log_level": "info",
         "arch": "x64",
@@ -69,6 +74,7 @@ class KungfuCoreConan(ConanFile):
     build_extensions_dir = path.join(build_dir, "build_extensions")
     dist_dir = path.join(conanfile_dir, "dist")
     kfc_dir = path.join(dist_dir, "kfc")
+    kfs_dir = path.join(dist_dir, "kfs")
 
     def configure(self):
         if tools.detected_os() != "Windows":
@@ -102,7 +108,7 @@ class KungfuCoreConan(ConanFile):
 
     def package(self):
         build_type = self.__get_build_type()
-        self.__clean_kfc_dir()
+        self.__clean_dist_dir()
         self.__run_freeze(build_type)
         self.__show_build_info(build_type)
 
@@ -134,15 +140,15 @@ class KungfuCoreConan(ConanFile):
             os.remove(build_info_path)
             self.output.info("Deleted kungfubuildinfo.json")
 
-    def __clean_kfc_dir(self):
-        if path.exists(self.kfc_dir):
+    def __clean_dist_dir(self):
+        if path.exists(self.dist_dir):
 
             def redo_with_write(redo_func, path, err):
                 os.chmod(path, stat.S_IWRITE)
                 redo_func(path)
 
-            shutil.rmtree(self.kfc_dir, onerror=redo_with_write)
-            self.output.info("Deleted kfc directory")
+            shutil.rmtree(self.dist_dir, onerror=redo_with_write)
+            self.output.info("Deleted dist directory")
 
     def __gen_build_info(self, build_type):
         git = tools.Git()
@@ -276,6 +282,11 @@ class KungfuCoreConan(ConanFile):
                     path.join(".", "src", "python", "kfc.spec"),
                 ]
             )
+
+        for file in glob.glob("*kfs*", flags=glob.EXTGLOB, root_dir=self.kfs_dir):
+            shutil.copy(path.join(self.kfs_dir, file), self.kfc_dir)
+        shutil.rmtree(self.kfs_dir)
+
         self.output.success("PyInstaller done")
 
     def __run_nuitka(self, build_type):
@@ -286,10 +297,12 @@ class KungfuCoreConan(ConanFile):
                 "--output-dir=build",
                 path.join("src", "python", "kfc.py"),
             )
+
         kfc_dist_dir = path.join(self.build_dir, "kfc.dist")
         shutil.copytree(build_type, kfc_dist_dir)
         tools.rmdir(self.kfc_dir)
         shutil.move(kfc_dist_dir, self.kfc_dir)
+
         self.output.success("Nuitka done")
 
     def __run_freeze(self, build_type):

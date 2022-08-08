@@ -7,6 +7,7 @@ import { dealOrderInputItem } from '@kungfu-trader/kungfu-js-api/utils/busiUtils
 import { h, VNode } from 'vue';
 import { makeOrderConfigKFTypes, orderInputTrans } from './config';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+import { getFutureArbitrageOrderTrans } from '../futureArbitrage/config';
 const { t } = VueI18n.global;
 
 export function dealStockOffset(
@@ -26,18 +27,36 @@ export function dealStockOffset(
 export function dealOrderPlaceVNode(
   makeOrderInput: KungfuApi.MakeOrderInput,
   orderCount: number,
+  isArbitrage: boolean,
 ): VNode {
   const orderData: KungfuApi.MakeOrderInput = dealStockOffset(makeOrderInput);
+
+  const currentOrderInputTrans = {
+    ...orderInputTrans,
+    ...(isArbitrage ? getFutureArbitrageOrderTrans(orderData.side) : {}),
+  };
 
   const orderInputResolved: Record<string, KungfuApi.KfTradeValueCommonData> =
     dealOrderInputItem(orderData);
 
+  return createOrderPlaceVNode(
+    orderInputResolved,
+    currentOrderInputTrans,
+    orderCount,
+  );
+}
+
+export const createOrderPlaceVNode = (
+  orderInputResolved: Record<string, KungfuApi.KfTradeValueCommonData>,
+  orderInputTrans: Record<string, string>,
+  orderCount: number,
+) => {
   const vnode = Object.keys(orderInputResolved)
     .filter((key) => {
       if (orderInputResolved[key].name.toString() === '[object Object]') {
         return false;
       }
-      return orderInputResolved[key].name !== '';
+      return orderInputResolved[key].name !== '' && orderInputTrans[key];
     })
     .map((key) =>
       h('div', { class: 'trading-data-detail-row' }, [
@@ -71,7 +90,7 @@ export function dealOrderPlaceVNode(
   const rootVNode: VNode = h('div', { class: 'modal-node' }, rootBox);
 
   return rootVNode;
-}
+};
 
 export const transformOrderInputToExtConfigForm = (
   orderInputFormState: Record<string, KungfuApi.KfConfigValue>,

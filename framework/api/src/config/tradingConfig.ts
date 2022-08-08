@@ -18,6 +18,8 @@ import {
   SpaceTabSettingEnum,
   SpaceSizeSettingEnum,
   StrategyExtTypes,
+  UnderweightEnum,
+  OrderInputKeyEnum,
 } from '../typings/enums';
 
 import { Pm2ProcessStatusTypes } from '../utils/processUtils';
@@ -168,6 +170,12 @@ export const KfCategory: Record<
   },
 };
 
+export const UnknownKfCategory: KungfuApi.KfTradeValueCommonData = {
+  name: t('tradingConfig.unknown'),
+  color: 'default',
+  level: 0,
+};
+
 export const Offset: Record<OffsetEnum, KungfuApi.KfTradeValueCommonData> = {
   [OffsetEnum.Open]: { name: t('tradingConfig.open'), color: 'red' },
   [OffsetEnum.Close]: { name: t('tradingConfig.close'), color: 'green' },
@@ -195,6 +203,14 @@ export const CodeSizeSetting: Record<
 > = {
   [SpaceSizeSettingEnum.FOURINDENT]: { name: '4' },
   [SpaceSizeSettingEnum.TWOINDENT]: { name: '2' },
+};
+
+export const OrderInputKeySetting: Record<
+  OrderInputKeyEnum,
+  KungfuApi.KfTradeValueCommonData
+> = {
+  [OrderInputKeyEnum.VOLUME]: { name: t('tradeConfig.volume') },
+  [OrderInputKeyEnum.PRICE]: { name: t('tradeConfig.price') },
 };
 
 export const Side: Record<SideEnum, KungfuApi.KfTradeValueCommonData> = {
@@ -257,7 +273,7 @@ export const OrderStatus: Record<
   KungfuApi.KfTradeValueCommonData
 > = {
   [OrderStatusEnum.Unknown]: {
-    name: t('tradingConfig.un_known'),
+    name: t('tradingConfig.unknown'),
     color: 'default',
   },
   [OrderStatusEnum.Submitted]: {
@@ -335,7 +351,7 @@ export const PriceType: Record<
   [PriceTypeEnum.Fok]: {
     name: t('tradingConfig.Fok'),
   },
-  [PriceTypeEnum.Unknown]: { name: t('tradingConfig.un_known') },
+  [PriceTypeEnum.Unknown]: { name: t('tradingConfig.unknown') },
 };
 
 export const HedgeFlag: Record<
@@ -379,7 +395,7 @@ export const InstrumentType: Record<
   KungfuApi.KfTradeValueCommonData
 > = {
   [InstrumentTypeEnum.unknown]: {
-    name: t('tradingConfig.un_known'),
+    name: t('tradingConfig.unknown'),
     color: 'default',
   },
   [InstrumentTypeEnum.stock]: {
@@ -434,12 +450,26 @@ export const InstrumentType: Record<
   },
 };
 
+export const UnderweightType: Record<
+  UnderweightEnum,
+  KungfuApi.KfTradeValueCommonData
+> = {
+  [UnderweightEnum.UnrestrictedShares]: {
+    name: t('blockTradeConfig.unrestricted_shares'),
+    color: 'default',
+  },
+  [UnderweightEnum.RestrictedShares]: {
+    name: t('blockTradeConfig.restricted_shares'),
+    color: 'default',
+  },
+};
+
 export const StrategyExtType: Record<
   StrategyExtTypes,
   KungfuApi.KfTradeValueCommonData
 > = {
   unknown: {
-    name: t('tradingConfig.un_known'),
+    name: t('tradingConfig.unknown'),
     color: 'default',
   },
   default: {
@@ -545,8 +575,8 @@ export const ExchangeIds: Record<string, KungfuApi.KfTradeValueCommonData> = {
     name: t('tradingConfig.HK'),
     color: InstrumentType[InstrumentTypeEnum.stock].color,
   },
-  HKOPT: {
-    name: t('tradingConfig.HKOPT'),
+  HKFUT: {
+    name: t('tradingConfig.HKFUT'),
     color: InstrumentType[InstrumentTypeEnum.stockoption].color,
   },
   US: {

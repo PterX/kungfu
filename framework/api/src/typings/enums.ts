@@ -134,6 +134,11 @@ export enum DirectionEnum {
   Short,
 }
 
+export enum UnderweightEnum {
+  UnrestrictedShares,
+  RestrictedShares,
+}
+
 export type DirectionTypes = keyof typeof DirectionEnum;
 
 export enum OrderStatusEnum {
@@ -203,4 +208,9 @@ export enum SpaceTabSettingEnum {
 export enum SpaceSizeSettingEnum {
   FOURINDENT = 'FOURINDENT',
   TWOINDENT = 'TWOINDENT',
+}
+
+export enum OrderInputKeyEnum {
+  VOLUME = 'VOLUME',
+  PRICE = 'PRICE',
 }

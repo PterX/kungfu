@@ -6,7 +6,7 @@ import {
   useProcessStatusDetailData,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import { kfConfigItemsToProcessArgs } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
-import globalBus from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/globalBus';
+import globalBus from '@kungfu-trader/kungfu-js-api/utils/globalBus';
 import { startTradingTask } from '@kungfu-trader/kungfu-js-api/actions/tradingTask';
 
 export const useTradingTask = (): {
@@ -150,7 +150,7 @@ export const useTradingTask = (): {
 
   onMounted(() => {
     if (app?.proxy) {
-      const subscription = globalBus.subscribe((data: KfBusEvent) => {
+      const subscription = globalBus.subscribe((data: KfEvent.KfBusEvent) => {
         if (data.tag === 'setTradingTask') {
           currentSelectedTradingTaskExtKey.value = data.extKey;
           setTradingTaskConfigPayload.value = data.payload;

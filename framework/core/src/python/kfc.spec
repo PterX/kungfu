@@ -3,7 +3,6 @@
 import glob
 import platform
 import os
-import PyInstaller
 
 from collections import deque
 from distutils import sysconfig
@@ -14,7 +13,7 @@ from os.path import (
     curdir as cwd,
     join as make_path,
 )
-from PyInstaller.building.api import COLLECT, EXE, PYZ
+from PyInstaller.building.api import COLLECT, EXE, PYZ, MERGE
 from PyInstaller.building.build_main import Analysis
 from PyInstaller.utils.hooks import collect_data_files
 from PyInstaller.utils.hooks import collect_submodules
@@ -43,17 +42,10 @@ build_dir = abspath(make_path(cwd, "build"))
 build_cpp_dir = abspath(make_path(build_dir, "src"))
 build_output_dir = make_path(build_dir, os.environ["CMAKE_BUILD_TYPE"])
 
-# site path
-site_path = abspath(dirname(dirname(PyInstaller.__file__)))
-
-# black requires
-data_blib2to3 = make_path(site_path, "blib2to3", "*.txt")
-
-# pdm requires
-data_pep517 = make_path(site_path, "pep517", "in_process", "_in_process.py")
-data_pdm_models = make_path(site_path, "pdm", "models", "*.json")
-data_pdm_pep582 = make_path(site_path, "pdm", "pep582", "sitecustomize.py")
-data_pip_certifi = make_path(site_path, "pip", "_vendor", "certifi", "*.pem")
+path_env = "PYI_PYTHONPATH"
+extra_python_paths = (
+    os.environ[path_env].split(os.pathsep) if path_env in os.environ else []
+)
 
 ###############################################################################
 
@@ -109,11 +101,14 @@ def get_runtimehooks():
 
 
 ###############################################################################
-name = "kfc"
 block_cipher = None
-a = Analysis(
+
+kfc_name = "kfc"
+kfs_name = "kfs"
+
+kfc_a = Analysis(
     scripts=["kfc.py"],
-    pathex=[],
+    pathex=extra_python_paths,
     binaries=[],
     datas=extend_datas(
         [
@@ -121,11 +116,6 @@ a = Analysis(
             (dep_pybind11_dir, "pybind11"),
             (make_path(build_output_dir, "*"), "."),
             (make_path(build_dir, "include"), "include"),
-            (data_blib2to3, "blib2to3"),
-            (data_pep517, make_path("pep517", "in_process")),
-            (data_pdm_models, make_path("pdm", "models")),
-            (data_pdm_pep582, make_path("pdm", "pep582")),
-            (data_pip_certifi, make_path("pip", "_vendor", "certifi")),
         ],
         src_dirs=[
             src_dir,
@@ -163,14 +153,34 @@ a = Analysis(
     runtime_hooks=get_runtimehooks(),
     cipher=block_cipher,
 )
-pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
-exe = EXE(
-    pyz,
-    a.scripts,
-    name=name,
+kfs_a = Analysis(scripts=["kfs.py"], pathex=extra_python_paths, cipher=block_cipher)
+
+MERGE((kfc_a, kfc_name, kfc_name), (kfs_a, kfs_name, kfs_name))
+
+kfc_pyz = PYZ(kfc_a.pure, kfc_a.zipped_data, cipher=block_cipher)
+kfc_exe = EXE(
+    kfc_pyz,
+    kfc_a.scripts,
+    name=kfc_name,
     console=True,
     debug=False,
     exclude_binaries=True,
     strip=False,
 )
-coll = COLLECT(exe, a.binaries, a.zipfiles, a.datas, name=name, strip=False)
+kfc_coll = COLLECT(
+    kfc_exe, kfc_a.binaries, kfc_a.zipfiles, kfc_a.datas, name=kfc_name, strip=False
+)
+
+kfs_pyz = PYZ(kfs_a.pure, kfs_a.zipped_data, cipher=block_cipher)
+kfs_exe = EXE(
+    kfs_pyz,
+    kfs_a.scripts,
+    name=kfs_name,
+    console=True,
+    debug=False,
+    exclude_binaries=True,
+    strip=False,
+)
+kfs_coll = COLLECT(
+    kfs_exe, kfs_a.binaries, kfs_a.zipfiles, kfs_a.datas, name=kfs_name, strip=False
+)

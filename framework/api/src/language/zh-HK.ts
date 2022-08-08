@@ -24,6 +24,8 @@ export default {
   save_file: '保存文件',
   detail: '详情',
   ok: '好的',
+  yes: '是',
+  no: '否',
 
   edit: '编辑',
   copy: '复制',
@@ -86,7 +88,7 @@ export default {
   },
 
   tradingConfig: {
-    un_known: '未知',
+    unknown: '未知',
     default: '封装策略',
     order_task: '下单任务',
 
@@ -193,7 +195,7 @@ export default {
     INE: '能源中心',
 
     HK: '港股',
-    HKOPT: '港股期货',
+    HKFUT: '港股期货',
     US: '美股',
     GLFX: '全球外汇',
     IPE: 'IPE',
@@ -302,6 +304,9 @@ export default {
     marked_value: '名义本金',
     margin: '保证金',
     avail_money: '可开仓名义本金',
+    avail_margin: '可用保证金',
+    cash_debt: '融资负债',
+    total_asset: '总资产',
     actions: '操作',
 
     add_td: '添加',
@@ -404,6 +409,8 @@ export default {
     average_trade_latency: '平均成交延迟(μs)',
     max_trade_latency: '最大成交延迟(μs)',
     min_trade_latency: '最小成交延迟(μs)',
+
+    greater_than_limit_value: '当前标的下单{key}最大值为{value}',
   },
 
   futureArbitrageConfig: {
@@ -416,6 +423,7 @@ export default {
     side: '互换交易意向',
     offset: '开平',
     hedge_flag: '套保',
+    is_swap: '互换',
     price_type: '方式',
     limit_price: '价差 A-B',
     volume: '交易意向总量',
@@ -423,6 +431,31 @@ export default {
     place_order: '交易意向',
     reset_order: '重置',
     only_corresponding: '只能对应',
+  },
+
+  blockTradeConfig: {
+    account_name: '账户',
+    instrument: '标的',
+    side: '买卖',
+    offset: '开平',
+    hedge_flag: '套保',
+    is_swap: '互换',
+    price_type: '方式',
+    limit_price: '价格',
+    volume: '下单量',
+    opponent_seat: '对方席位',
+    opponent_account: '对方股东',
+    match_number: '约定序号',
+    linkman: '联系人',
+    contact_way: '联系方式',
+    underweight_type: '减持类型',
+
+    unrestricted_shares: '非受限股份',
+    restricted_shares: '受限股份',
+
+    place_order: '下单',
+    reset_order: '重置',
+    only_number: '该项只能为数字',
   },
 
   globalSettingConfig: {
@@ -435,13 +468,15 @@ export default {
     select_language: '选择语言',
 
     porformance: '性能',
-    open_rocket_model: '开启极速模式',
+    rocket_model: '开启极速模式',
     rocket_model_desc:
-      '开启极速模式会极大的降低系统延迟, 并会使 CPU 使用效率达到100%, 开启后请重启功夫交易系统',
-    pass_quote: '跳过行情计算',
-    pass_quote_desc:
-      '在订阅一定数量(上千)支Ticker时, 由行情推送触发pnl计算会导致性能问题, 开启后会掉过行情计算',
-
+      '开启极速模式会极大的降低系统延迟, 并会使 CPU 使用效率达到100%, 开启后请重启功夫交易系统, 重启后生效',
+    bypass_accounting: '跳过UI进程计算',
+    bypass_accounting_desc:
+      'UI进程不再处理计算逻辑, 完全通过计算进程更新数据, 减轻UI进程性能占用, 重启后生效',
+    bypass_trading_data: '纯监控模式',
+    bypass_trading_data_desc:
+      '该模式下仅可监控进程运行状态, UI进行性能占用达到最低, 重启后生效',
     strategy: '策略',
     use_local_python: '使用本地Python',
     local_python_desc:
@@ -457,6 +492,12 @@ export default {
     set_fat_finger: '设置乌龙指触发阈值(百分比)',
     close_threshold: '平仓阈值',
     set_close_threshold: '设置平仓阈值(百分比)',
+    trade_limit: '交易限制',
+    set_trade_limit: '设置交易限制',
+    order_input_key: '限制属性',
+    limit_value: '最大值',
+    asset_margin: '两融',
+    show_asset_margin: '展示两融',
 
     code_editor: '代码编辑器',
     tab_space_type: '缩进类别',

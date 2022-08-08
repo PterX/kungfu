@@ -106,14 +106,6 @@ public:
     });
   }
 
-  /// 用新的asset, asset_margin替换原来策略的, 再修改holder_uid和ledger_category
-  //  template <typename T> void copy_asset(T &to, const T &from) {
-  //    auto st_holder_uid = to.holder_uid;
-  //    longfist::copy(to, from);
-  //    to.holder_uid = st_holder_uid;
-  //    to.ledger_category = LedgerCategory::Strategy;
-  //  };
-
 private:
   yijinjing::practice::apprentice &app_;
   broker::Client &broker_client_;
@@ -128,12 +120,6 @@ private:
   std::unordered_map<uint32_t, bool> books_replica_asset_guards_ = {}; // Asset::tag添加对应<location_uid,true>
   std::unordered_map<uint32_t, bool> books_replica_asset_margin_guards_ = {}; // AssetMargin::tag-><location_uid,true>
   std::unordered_map<uint32_t, bool> books_replica_position_guard_ = {}; // PositionEnd::tag添加对应<location_uid,true>
-
-  static constexpr auto bypass = [](yijinjing::practice::apprentice *app, bool bypass_quotes) {
-    return rx::filter([=](const event_ptr &event) {
-      return not(app->get_location(event->source())->category == longfist::enums::category::MD and bypass_quotes);
-    });
-  };
 
   Book_ptr make_book(uint32_t location_uid);
 

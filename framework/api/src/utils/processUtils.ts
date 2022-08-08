@@ -16,6 +16,7 @@ import {
   getIfProcessRunning,
   getIfProcessDeleted,
   delayMilliSeconds,
+  isTdMdStrategy,
 } from '../utils/busiUtils';
 import {
   buildProcessLogPath,
@@ -27,6 +28,7 @@ import {
 import { getKfGlobalSettingsValue } from '../config/globalSettings';
 import { Observable } from 'rxjs';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+import { Pm2StartOptions } from '../typings/global';
 const { t } = VueI18n.global;
 
 process.env.PM2_HOME = path.resolve(os.homedir(), '.pm2');
@@ -56,6 +58,8 @@ export const forceKill = (tasks: string[]): Promise<void> => {
       tree: isWin ? true : false,
       ignoreCase: true,
       silent: process.env.NODE_ENV === 'development' ? true : false,
+    }).catch((err) => {
+      console.warn((<Error>err).message);
     });
   });
 };
@@ -78,11 +82,6 @@ export const killKungfu = () => {
 export const killExtra = () => forceKill([kfcName, 'pm2']);
 
 //===================== pm2 start =======================
-
-interface Pm2StartOptions extends StartOptions {
-  name: string;
-  autorestart?: boolean;
-}
 
 export type Pm2ProcessStatusTypes =
   | 'online'
@@ -338,18 +337,20 @@ export const startProcess = async (
     watch: options.watch || false,
     force: options.force || false,
     exec_mode: 'fork',
-    kill_timeout: 16000,
+    kill_timeout: options.kill_timeout || 16000,
     env: {
       RELOAD_AFTER_CRASHED: process.env.RELOAD_AFTER_CRASHED || 'false',
       EXTENSION_DIRS: extDirs
         .map((dir) => dealSpaceInPath(path.dirname(dir)))
         .join(path.delimiter),
       KFC_DIR: process.env.KFC_DIR || '',
+      CLI_DIR: process.env.CLI_DIR || '',
       KF_HOME: dealSpaceInPath(KF_HOME),
       KF_RUNTIME_DIR: dealSpaceInPath(KF_RUNTIME_DIR),
       LANG: `${locale}.UTF-8`,
       PYTHONUTF8: '1',
       PYTHONIOENCODING: 'utf8',
+
       KFC_AS_VARIANT: '',
       ...options.env,
     },
@@ -360,10 +361,21 @@ export const startProcess = async (
 
 export const stopProcess = pm2Stop;
 
+export const requestStop = (
+  watcher: KungfuApi.Watcher,
+  kfLocation: KungfuApi.KfLocation,
+) => {
+  if (isTdMdStrategy(kfLocation.category)) {
+    return Promise.resolve(watcher.requestStop(kfLocation));
+  }
+
+  return Promise.resolve();
+};
+
 export const graceStopProcess = (
   watcher: KungfuApi.Watcher | null,
   kfLocation: KungfuApi.KfConfig | KungfuApi.KfLocation,
-  processStatusData: Pm2ProcessStatusData,
+  processStatusData?: Pm2ProcessStatusData,
 ): Promise<void> => {
   const processId = getProcessIdByKfLocation(kfLocation);
 
@@ -371,12 +383,16 @@ export const graceStopProcess = (
     return Promise.reject(new Error('Watcher is NULL'));
   }
 
-  if (getIfProcessRunning(processStatusData, processId)) {
-    if (!watcher.isReadyToInteract(kfLocation)) {
+  if (!processStatusData || getIfProcessRunning(processStatusData, processId)) {
+    if (
+      watcher &&
+      !watcher.isReadyToInteract(kfLocation) &&
+      isTdMdStrategy(kfLocation.category)
+    ) {
       return Promise.reject(new Error(t('未就绪', { processId })));
     }
 
-    return Promise.resolve(watcher.requestStop(kfLocation))
+    return Promise.resolve(requestStop(watcher, kfLocation))
       .then(() => delayMilliSeconds(1000))
       .then(() => stopProcess(processId));
   }
@@ -389,7 +405,7 @@ export const deleteProcess = pm2Delete;
 export const graceDeleteProcess = (
   watcher: KungfuApi.Watcher | null,
   kfLocation: KungfuApi.KfConfig | KungfuApi.KfLocation,
-  processStatusData: Pm2ProcessStatusData,
+  processStatusData?: Pm2ProcessStatusData,
 ): Promise<void> => {
   const processId = getProcessIdByKfLocation(kfLocation);
 
@@ -397,12 +413,16 @@ export const graceDeleteProcess = (
     return Promise.reject(new Error('Watcher is NULL'));
   }
 
-  if (getIfProcessRunning(processStatusData, processId)) {
-    if (watcher && !watcher.isReadyToInteract(kfLocation)) {
+  if (!processStatusData || getIfProcessRunning(processStatusData, processId)) {
+    if (
+      watcher &&
+      !watcher.isReadyToInteract(kfLocation) &&
+      isTdMdStrategy(kfLocation.category)
+    ) {
       return Promise.reject(new Error(t('未就绪', { processId })));
     }
 
-    return Promise.resolve(watcher.requestStop(kfLocation))
+    return Promise.resolve(requestStop(watcher, kfLocation))
       .then(() => delayMilliSeconds(1000))
       .then(() => deleteProcess(processId));
   } else if (!getIfProcessDeleted(processStatusData, processId)) {
@@ -583,7 +603,7 @@ export const startMaster = async (force = false): Promise<void> => {
 
   try {
     await preStartProcess(processName, force);
-    await killKfc();
+    if (force) await killKfc();
     const args = buildArgs('run -c system -g master -n master');
     await startProcess({
       name: processName,
@@ -655,7 +675,10 @@ async function preStartProcess(
 }
 
 //启动md
-export const startMd = async (sourceId: string): Promise<Proc | void> => {
+export const startMd = async (
+  sourceId: string,
+  kfConfig: KungfuApi.KfConfig,
+): Promise<Proc | void> => {
   const extDirs = await flattenExtensionModuleDirs(EXTENSION_DIRS);
   const args = buildArgs(
     `-X "${extDirs
@@ -663,26 +686,35 @@ export const startMd = async (sourceId: string): Promise<Proc | void> => {
       .join(path.delimiter)}" run -c md -g "${sourceId}" -n "${sourceId}"`,
   );
   const cwd = dealSpaceInPath(
-    path.join(KF_RUNTIME_DIR, 'td', sourceId, sourceId),
+    path.join(KF_RUNTIME_DIR, 'md', sourceId, sourceId),
   );
   await fse.ensureDir(cwd);
+  const options =
+    await globalThis.HookKeeper.getHooks().resolveStartOptions.trigger(
+      kfConfig,
+      {
+        name: `md_${sourceId}`,
+        cwd,
+        script: `${dealSpaceInPath(path.join(KFC_DIR, kfcName))}`,
+        args,
+        max_restarts: 3,
+        autorestart: true,
+        force: true,
+      },
+    );
 
-  return startProcess({
-    name: `md_${sourceId}`,
-    cwd,
-    script: `${dealSpaceInPath(path.join(KFC_DIR, kfcName))}`,
-    args,
-    max_restarts: 3,
-    autorestart: true,
-  }).catch((err) => {
+  return startProcess(options).catch((err) => {
     kfLogger.error(err.message);
   });
 };
 
 //启动td
-export const startTd = async (accountId: string): Promise<Proc | void> => {
+export const startTd = async (
+  accountId: string,
+  kfConfig: KungfuApi.KfConfig,
+): Promise<Proc | void> => {
   const extDirs = await flattenExtensionModuleDirs(EXTENSION_DIRS);
-  const { source, id } = accountId.parseSourceAccountId();
+  const { source, id } = (accountId || '').parseSourceAccountId();
   const args = buildArgs(
     `-X "${extDirs
       .map((dir) => dealSpaceInPath(path.dirname(dir)))
@@ -690,15 +722,22 @@ export const startTd = async (accountId: string): Promise<Proc | void> => {
   );
   const cwd = dealSpaceInPath(path.join(KF_RUNTIME_DIR, 'td', source, id));
   await fse.ensureDir(cwd);
+  const fullProcessId = `td_${accountId}`;
+  const options =
+    await globalThis.HookKeeper.getHooks().resolveStartOptions.trigger(
+      kfConfig,
+      {
+        name: fullProcessId,
+        cwd,
+        script: `${dealSpaceInPath(path.join(KFC_DIR, kfcName))}`,
+        args,
+        max_restarts: 3,
+        autorestart: true,
+        force: true,
+      },
+    );
 
-  return startProcess({
-    name: `td_${accountId}`,
-    cwd,
-    script: `${dealSpaceInPath(path.join(KFC_DIR, kfcName))}`,
-    args,
-    max_restarts: 3,
-    autorestart: true,
-  }).catch((err) => {
+  return startProcess(options).catch((err) => {
     kfLogger.error(err.message);
   });
 };
@@ -724,6 +763,7 @@ export const startTask = async (
     env: {
       CONFIG_SETTING: JSON.stringify(configSettings),
     },
+    force: true,
   }).catch((err) => {
     kfLogger.error(err.message);
   });
@@ -764,6 +804,7 @@ export const startStrategyByLocalPython = async (
     args,
     cwd: `'${pythonFolder}'`,
     script: `'${pythonFile}'`,
+    force: true,
   }).catch((err) => {
     kfLogger.error(err.message);
   });
@@ -788,6 +829,7 @@ export const startStrategy = (
     return startProcess({
       name: `strategy_${strategyId}`,
       args,
+      force: true,
     }).catch((err) => {
       kfLogger.error(err.message);
     });
@@ -798,10 +840,7 @@ export const startDzxy = () => {
   return startProcess({
     name: 'dzxy',
     args: '',
-    cwd:
-      process.env.NODE_ENV === 'development'
-        ? path.join(process.cwd(), 'dist', 'cli')
-        : path.resolve(__dirname),
+    cwd: process.env.CLI_DIR,
     script: 'dzxy.js',
     interpreter: path.join(KFC_DIR, kfcName),
     force: true,
@@ -809,6 +848,7 @@ export const startDzxy = () => {
     env: {
       KFC_AS_VARIANT: 'node',
     },
+    kill_timeout: 500,
   }).catch((err) => {
     kfLogger.error(err.message);
   });
@@ -826,6 +866,7 @@ export const startExtDaemon = (name: string, cwd: string, script: string) => {
     env: {
       KFC_AS_VARIANT: 'node',
     },
+    kill_timeout: 500,
   }).catch((err) => {
     kfLogger.error(err.message);
   });

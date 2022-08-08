@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { ClusterOutlined, FileTextOutlined } from '@ant-design/icons-vue';
+import Icon, { ClusterOutlined, FileTextOutlined } from '@ant-design/icons-vue';
 import { notification } from 'ant-design-vue';
 
 import KfProcessStatus from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfProcessStatus.vue';
@@ -32,6 +32,7 @@ import {
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import { KfCategoryTypes } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+
 const { t } = VueI18n.global;
 
 const app = getCurrentInstance();
@@ -53,47 +54,59 @@ const {
 const { tdExtTypeMap, mdExtTypeMap } = useExtConfigsRelated();
 
 let isClosingWindow = false;
+let isRestartSystem = 0;
 let hasAlertMasterStop = false;
 let hasAlertLedgerStop = false;
 let hasAlertCacheDStop = false;
+
+const getNotificationType = (flag: number) => {
+  return flag ? 'warning' : 'error';
+};
 
 watch(processStatusData, (newPSD, oldPSD) => {
   if (isClosingWindow) return;
 
   if (newPSD.master !== 'online' && oldPSD.master === 'online') {
-    if (!hasAlertMasterStop) {
+    if (isRestartSystem || !hasAlertMasterStop) {
       hasAlertMasterStop = true;
-      notification.error({
+      notification[getNotificationType(isRestartSystem)]({
         message: t('master_interrupt'),
         description: t('master_desc'),
         duration: 8,
         placement: 'bottomRight',
       });
+      isRestartSystem && isRestartSystem++;
     }
   }
 
   if (newPSD.cached !== 'online' && oldPSD.cached === 'online') {
-    if (!hasAlertCacheDStop) {
+    if (isRestartSystem || !hasAlertCacheDStop) {
       hasAlertCacheDStop = true;
-      notification.error({
+      notification[getNotificationType(isRestartSystem)]({
         message: t('cached_interrupt'),
         description: t('cached_desc'),
         duration: 8,
         placement: 'bottomRight',
       });
+      isRestartSystem && isRestartSystem++;
     }
   }
 
   if (newPSD.ledger !== 'online' && oldPSD.ledger === 'online') {
-    if (!hasAlertLedgerStop) {
+    if (isRestartSystem || !hasAlertLedgerStop) {
       hasAlertLedgerStop = true;
-      notification.error({
+      notification[getNotificationType(isRestartSystem)]({
         message: t('ledger_interrupt'),
         description: t('ledger_desc'),
         duration: 8,
         placement: 'bottomRight',
       });
+      isRestartSystem && isRestartSystem++;
     }
+  }
+
+  if (isRestartSystem >= 4) {
+    isRestartSystem = 0;
   }
 });
 
@@ -132,12 +145,33 @@ function handleOpenProcessControllerBoard(): void {
   processControllerBoardVisible.value = true;
 }
 
+const prefixMap = ref({});
+
+watch(
+  () => allKfConfigData,
+  () => {
+    prefixMap.value = categoryList.reduce((map, category) => {
+      allKfConfigData[category].forEach((location) => {
+        map[getProcessIdByKfLocation(location)] =
+          globalThis.HookKeeper.getHooks().prefix.trigger(location);
+      });
+      return map;
+    }, {});
+  },
+  { deep: true },
+);
+
 onMounted(() => {
   if (app?.proxy) {
-    const subscription = app?.proxy.$globalBus.subscribe((data) => {
+    const subscription = app.proxy.$globalBus.subscribe((data) => {
       if (data.tag === 'main') {
         if (data.name === 'clear-process-before-quit-start') {
           isClosingWindow = true;
+        }
+      }
+      if (data.tag === 'processStatus') {
+        if (data.name === 'system' && data.status === 'waiting restart') {
+          !isRestartSystem && (isRestartSystem = 1);
         }
       }
     });
@@ -209,6 +243,16 @@ onMounted(() => {
                 <div class="process-id info-item" v-else>
                   {{ config.name }}
                 </div>
+                <Icon
+                  v-if="
+                    prefixMap[getProcessIdByKfLocation(config)]?.prefixType ===
+                    'icon'
+                  "
+                  :component="
+                    prefixMap[getProcessIdByKfLocation(config)].prefix
+                  "
+                  style="font-size: 12px"
+                />
               </div>
               <div class="state-status">
                 <KfProcessStatus

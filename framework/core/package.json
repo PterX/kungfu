@@ -1,10 +1,10 @@
 {
   "name": "@kungfu-trader/kungfu-core",
   "author": {
-    "name": "kungfu-trader",
+    "name": "Kungfu Trader",
     "email": "info@kungfu.link"
   },
-  "version": "2.4.0-alpha.100",
+  "version": "2.4.0-alpha.127",
   "description": "Kungfu Core Library",
   "license": "Apache-2.0",
   "main": "lib/index.js",
@@ -25,6 +25,9 @@
     "freezer": "pyinstaller",
     "pypi_mirror": "https://mirrors.aliyun.com/pypi/simple"
   },
+  "configGithub": {
+    "pypi_mirror": "https://pypi.python.org/simple"
+  },
   "binary": {
     "module_name": "kungfu_node",
     "module_path": "dist/kfc",
@@ -32,43 +35,47 @@
     "package_name": "kfc-v{version}-{platform}-{arch}-{configuration}.tar.gz",
     "host": "https://prebuilt.libkungfu.cc"
   },
+  "binaryGithub": {
+    "host": "https://prebuilt.libkungfu.io"
+  },
   "scripts": {
-    "preinstall": "node .gyp/node-npm-config.js auto",
-    "install": "node .gyp/node-pre-gyp.js install",
-    "postinstall": "node .gyp/node-npm-config.js auto",
-    "link-node": "node .gyp/node-link.js",
-    "prebuild": "node .gyp/node-npm-config.js show",
-    "build": "node .gyp/node-pre-gyp.js build",
-    "clean": "node .gyp/node-pre-gyp.js clean",
-    "package": "node .gyp/node-pre-gyp.js package",
-    "rebuild": "node .gyp/node-pre-gyp.js rebuild",
-    "configure": "node .gyp/node-conan.js install",
-    "compile": "node .gyp/node-conan.js build",
-    "freeze": "node .gyp/node-conan.js package",
-    "wheel": "node .gyp/node-wheel.js",
-    "pipenv": "node .gyp/node-pipenv.js",
-    "poetry": "pipenv run python -m poetry",
+    "install": "node .gyp/run-build.js install",
+    "build": "node .gyp/run-build.js build",
+    "clean": "node .gyp/run-build.js clean",
+    "package": "node .gyp/run-build.js package",
+    "rebuild": "node .gyp/run-build.js rebuild",
+    "configure": "node .gyp/run-conan.js install",
+    "compile": "node .gyp/run-conan.js build",
+    "freeze": "node .gyp/run-conan.js package",
+    "link-node": "node .gyp/run-link-node.js",
+    "wheel": "node .gyp/run-wheel.js",
+    "pipenv": "node .gyp/run-pipenv.js",
+    "poetry": "node .gyp/run-poetry.js",
     "pyinstaller": "pipenv run pyinstaller",
     "nuitka": "pipenv run python -m nuitka",
-    "format": "node .gyp/node-format-all.js",
-    "format:cpp": "node .gyp/node-format-cpp.js src",
-    "format:python": "node .gyp/node-format-python.js src src/*/*.spec .*/*.py",
-    "format:js": "node .gyp/node-format-js.js \"(.gyp|lib)/**.js\"",
-    "dev": "pipenv run python .devtools/kfc.py",
-    "kfc": "node lib/kfc.js"
+    "format": "node .gyp/run-format-all.js",
+    "format:cpp": "node .gyp/run-format-cpp.js src",
+    "format:python": "node .gyp/run-format-python.js src src/*/*.spec .*/*.py",
+    "format:js": "node .gyp/run-format-js.js \"(.gyp|lib)/**.js\"",
+    "kfc": "node lib/kfc.js",
+    "kfs": "node lib/kfs.js",
+    "dev:kfc": "pipenv run python .devtools/kfc.py",
+    "dev:kfs": "pipenv run python .devtools/kfs.py",
+    "poetry:clear": "yarn -s poetry clear",
+    "poetry:lock": "yarn -s poetry lock"
   },
   "dependencies": {
     "@mapbox/node-pre-gyp": "^1.0.0",
-    "electron": "13.6.8",
-    "fs-extra": "^10.0.0",
-    "glob": "^7.2.0",
-    "nan": "^2.15.0",
-    "node-addon-api": "^4.3.0",
+    "fs-extra": "^10.1.0",
+    "glob": "^8.0.0",
     "sywac": "^1.3.0"
   },
   "devDependencies": {
-    "@kungfu-trader/kungfu-toolchain": "^2.4.0-alpha.100",
-    "@kungfu-trader/libnode": "14.19.0",
-    "cmake-js": "^6.3.0"
+    "@kungfu-trader/kungfu-toolchain": "^2.4.0-alpha.127",
+    "@kungfu-trader/libnode": "16.14.2",
+    "cmake-js": "^6.3.0",
+    "electron": "19.0.8",
+    "nan": "^2.15.0",
+    "node-addon-api": "^4.3.0"
   }
 }

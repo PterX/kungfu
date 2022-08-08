@@ -13,11 +13,15 @@ const appDir = getAppDir();
 
 const kfcDir = getKfcDir();
 const coreDir = getCoreDir();
-const extdirs = getExtensionDirs(true);
+const extensionDirs = getExtensionDirs(true);
 
-const extras = extdirs.map((fullpath) => {
+const extensions = extensionDirs.map((fullpath) => {
+  const extensionDir = path.resolve(fullpath, 'dist');
+  console.log(
+    `-- found kungfu extension: [${fse.readdirSync(extensionDir).join(', ')}]`,
+  );
   return {
-    from: path.resolve(fullpath, 'dist'),
+    from: extensionDir,
     to: 'app/kungfu-extensions',
   };
 });
@@ -25,7 +29,8 @@ const extras = extdirs.map((fullpath) => {
 module.exports = {
   generateUpdatesFilesForAllChannels: true,
   appId: 'Kungfu.Origin.KungFu.Trader',
-  electronVersion: kungfuCore.dependencies.electron,
+  electronVersion:
+    kungfuCore.devDependencies.electron || kungfuCore.dependencies.electron,
   publish: [
     {
       provider: 'generic',
@@ -36,13 +41,18 @@ module.exports = {
   files: [
     'dist/app/**/*',
     'dist/cli/**/*',
+    'dist/kfs/**/*',
     '!**/@kungfu-trader/kfx-*/**/*',
+    '!**/@kungfu-trader/kungfu-sdk/**/*',
+    '**/@kungfu-trader/kungfu-sdk/templates/**/*',
     '!**/@kungfu-trader/kungfu-core/*',
     '!**/@kungfu-trader/kungfu-core/**/*',
     '**/@kungfu-trader/kungfu-core/lib/*',
     '**/@kungfu-trader/kungfu-core/*.json',
     '!**/@kungfu-trader/kungfu-app/*',
     '!**/@kungfu-trader/kungfu-app/**/*',
+    '**/@kungfu-trader/kungfu-app/lib/*',
+    '**/@kungfu-trader/kungfu-app/package.json',
     '!**/@kungfu-trader/kungfu-cli/*',
     '!**/@kungfu-trader/kungfu-cli/**/*',
     '!**/@kungfu-trader/kungfu-js-api/*',
@@ -80,7 +90,7 @@ module.exports = {
       to: 'app',
       filter: ['package.json'],
     },
-    ...extras,
+    ...extensions,
   ],
   asar: false,
   dmg: {
@@ -115,6 +125,7 @@ module.exports = {
   linux: {
     icon: `${appDir}/public/logo/icon.icns`,
     target: ['rpm', 'appimage'],
+    executableName: 'Kungfu.app',
   },
   nsis: {
     oneClick: false,

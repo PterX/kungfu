@@ -24,6 +24,8 @@ export default {
   save_file: 'save file',
   detail: 'detail',
   ok: 'ok',
+  yes: 'yes',
+  no: 'no',
 
   edit: 'Edit',
   copy: 'Copy',
@@ -86,7 +88,7 @@ export default {
   },
 
   tradingConfig: {
-    un_known: 'Unknown',
+    unknown: 'Unknown',
     default: 'Default',
     order_task: 'Trade',
 
@@ -192,7 +194,7 @@ export default {
     INE: 'INE',
 
     HK: 'HK',
-    HKOPT: 'HKOPT',
+    HKFUT: 'HKFUT',
     US: 'US',
     GLFX: 'GLFX',
     IPE: 'IPE',
@@ -302,6 +304,9 @@ export default {
     marked_value: 'marked_value',
     margin: 'margin',
     avail_money: 'avail_money',
+    avail_margin: 'avail_margin',
+    cash_debt: 'cash_debt',
+    total_asset: 'total_asset',
     actions: 'actions',
 
     add_td: 'Add',
@@ -407,6 +412,9 @@ export default {
     average_trade_latency: 'Average transaction delay(μs)',
     max_trade_latency: 'Max transaction delay(μs)',
     min_trade_latency: 'Min transaction delay(μs)',
+
+    greater_than_limit_value:
+      'The order propety {key}`s maximum for current instrument is {value}',
   },
 
   futureArbitrageConfig: {
@@ -419,6 +427,7 @@ export default {
     side: 'side',
     offset: 'offset',
     hedge_flag: 'hedge_flag',
+    is_swap: 'is_swap',
     price_type: 'price_type',
     limit_price: 'limit_price A-B',
     volume: 'volume',
@@ -426,6 +435,31 @@ export default {
     place_order: 'Place Order',
     reset_order: 'Reset',
     only_corresponding: 'Can Only corresponding',
+  },
+
+  blockTradeConfig: {
+    account_name: 'account_name',
+    instrument: 'instrument',
+    side: 'side',
+    offset: 'offset',
+    hedge_flag: 'hedge_flag',
+    is_swap: 'is_swap',
+    price_type: 'price_type',
+    limit_price: 'limit_price',
+    volume: 'volume',
+    opponent_seat: 'opponent_seat',
+    opponent_account: 'opponent_account',
+    match_number: 'match_number',
+    linkman: 'linkman',
+    contact_way: 'contact_way',
+    underweight_type: 'underweight_type',
+
+    unrestricted_shares: 'Unrestricted shares',
+    restricted_shares: 'Restricted shares',
+
+    place_order: 'Place Order',
+    reset_order: 'Resert',
+    only_number: 'can only number',
   },
 
   globalSettingConfig: {
@@ -438,11 +472,14 @@ export default {
     select_language: 'Select Language',
 
     porformance: 'Performance',
-    open_rocket_model: 'Open Rocket Model',
+    rocket_model: 'Open Rocket Model',
     rocket_model_desc: 'Use CPU 100%, restart is required',
-    pass_quote: 'Close Quote Listener',
-    pass_quote_desc: 'Close Quote Listener',
-
+    bypass_accounting: 'Bypass UI Accounting',
+    bypass_accounting_desc:
+      'UI process no longer dealing with calculation, restart is required',
+    bypass_trading_data: 'Pure Monitor Mode',
+    bypass_trading_data_desc:
+      'Only monit processes status, ui costs lowest, restart is required',
     strategy: 'Strategy',
     use_local_python: 'Use Local Python',
     local_python_desc:
@@ -460,6 +497,12 @@ export default {
     close_threshold: 'Close Threshold',
     set_close_threshold:
       'Set the threshold for triggering an close(percentage)',
+    trade_limit: 'Trade Limit',
+    set_trade_limit: 'Set Trade limit value for price or volume property',
+    order_input_key: 'property',
+    limit_value: 'maximum',
+    asset_margin: 'AssetMargin',
+    show_asset_margin: 'AssetMargin Mode',
 
     code_editor: 'Editor',
     tab_space_type: 'Indentation Category',

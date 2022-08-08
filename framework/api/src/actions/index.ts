@@ -8,11 +8,10 @@ import {
   KfModeTypes,
 } from '../typings/enums';
 import {
+  buildProcessLogPath,
   KF_RUNTIME_DIR,
-  KF_SCHEDULE_TASKS_JSON_PATH,
   KF_SUBSCRIBED_INSTRUMENTS_JSON_PATH,
   KF_TD_GROUP_JSON_PATH,
-  LOG_DIR,
 } from '../config/pathConfig';
 import { pathExists, remove } from 'fs-extra';
 import {
@@ -115,10 +114,8 @@ export function removeKfLocation(
 }
 
 export function removeLog(kfLocation: KungfuApi.KfLocation): Promise<void> {
-  const logPath = path.resolve(
-    LOG_DIR,
-    `${getProcessIdByKfLocation(kfLocation)}.log`,
-  );
+  const processId = getProcessIdByKfLocation(kfLocation);
+  const logPath = buildProcessLogPath(processId);
   return pathExists(logPath).then((isExisted: boolean): Promise<void> => {
     if (isExisted) {
       return remove(logPath);
@@ -205,23 +202,6 @@ export const setTdGroup = (tdGroups: KungfuApi.KfExtraLocation[]) => {
   return fse.outputJSON(KF_TD_GROUP_JSON_PATH, tdGroups);
 };
 
-export const getScheduleTasks = async (): Promise<{
-  active?: boolean;
-  tasks?: KungfuApi.ScheduleTask[];
-}> => {
-  return fse.readFile(KF_SCHEDULE_TASKS_JSON_PATH).then((res) => {
-    const str = Buffer.from(res).toString();
-    return JSON.parse(str || '{}');
-  });
-};
-
-export const setScheduleTasks = async (tasksConfig: {
-  active: boolean;
-  tasks: KungfuApi.ScheduleTask[];
-}): Promise<void> => {
-  return fse.outputJSON(KF_SCHEDULE_TASKS_JSON_PATH, tasksConfig);
-};
-
 export const getAllRiskSettingList = (): Promise<KungfuApi.RiskSetting[]> => {
   return getAllKfRiskSettings().then((riskSettingOrigins) => {
     const riskSettings = riskSettingOrigins
@@ -257,8 +237,8 @@ export const setAllRiskSettingList = (
         max_cancel_ratio,
       } = item;
 
-      const group = account_id.parseSourceAccountId().source;
-      const name = account_id.parseSourceAccountId().id;
+      const group = (account_id || '').parseSourceAccountId().source;
+      const name = (account_id || '').parseSourceAccountId().id;
 
       return {
         location_uid: 0,

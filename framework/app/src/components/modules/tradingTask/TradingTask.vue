@@ -20,10 +20,11 @@ import path from 'path';
 import {
   getIfProcessRunning,
   getIfProcessStopping,
-  getTaskKfLocationByProcessId,
+  getStrategyKfLocationByProcessId,
   fromProcessArgsToKfConfigItems,
   kfConfigItemsToArgsByPrimaryForShow,
   dealTradingTaskName,
+  getTaskListFromProcessStatusData,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import {
   graceStopProcess,
@@ -41,7 +42,7 @@ import { messagePrompt } from '@kungfu-trader/kungfu-app/src/renderer/assets/met
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { useTradingTask } from './utils';
 
-import { ProcessStatusTypes } from '@kungfu-trader/kungfu-js-api/src/typings/enums';
+import { ProcessStatusTypes } from '@kungfu-trader/kungfu-js-api/typings/enums';
 
 const { t } = VueI18n.global;
 const { success, error } = messagePrompt();
@@ -59,20 +60,14 @@ const taskTypeKeys = computed(() => {
   return Object.keys(extConfigs.value['strategy'] || {});
 });
 const taskList = computed(() => {
-  const taskCGs = taskTypeKeys.value.map((item) => {
+  const taskPrefixs = taskTypeKeys.value.map((item) => {
     return `strategy_${item}`;
   });
 
-  return Object.keys(processStatusDetailData.value)
-    .filter((processId) => {
-      return (
-        taskCGs.findIndex((cg) => {
-          return processId.indexOf(cg) === 0;
-        }) !== -1
-      );
-    })
-    .map((processId) => processStatusDetailData.value[processId])
-    .sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
+  return getTaskListFromProcessStatusData(
+    taskPrefixs,
+    processStatusDetailData.value,
+  );
 });
 const { searchKeyword, tableData } =
   useTableSearchKeyword<Pm2ProcessStatusDetail>(taskList, ['name', 'args']);
@@ -104,7 +99,7 @@ function handleSwitchProcessStatusResolved(
 ) {
   event.stopPropagation();
 
-  const taskLocation = getTaskKfLocationByProcessId(record?.name || '');
+  const taskLocation = getStrategyKfLocationByProcessId(record?.name || '');
   if (!taskLocation) {
     error(`${record.name} ${t('tradingTaskConfig.illegal_process_id')}`);
     return;
@@ -158,7 +153,7 @@ function handleSwitchProcessStatusResolved(
 }
 
 function handleOpenLogviewResolved(record: Pm2ProcessStatusDetail) {
-  const taskLocation = getTaskKfLocationByProcessId(record?.name || '');
+  const taskLocation = getStrategyKfLocationByProcessId(record?.name || '');
   if (!taskLocation) {
     error(`${record.name} ${t('tradingTaskConfig.illegal_process_id')}`);
     return;
@@ -167,7 +162,7 @@ function handleOpenLogviewResolved(record: Pm2ProcessStatusDetail) {
 }
 
 function handleRemoveTask(record: Pm2ProcessStatusDetail) {
-  const taskLocation = getTaskKfLocationByProcessId(record?.name || '');
+  const taskLocation = getStrategyKfLocationByProcessId(record?.name || '');
   if (!taskLocation) {
     error(`${record.name} ${t('tradingTaskConfig.illegal_process_id')}`);
     return;
@@ -187,7 +182,7 @@ function handleRemoveTask(record: Pm2ProcessStatusDetail) {
 }
 
 function customRowResolved(record: Pm2ProcessStatusDetail) {
-  const taskLocation = getTaskKfLocationByProcessId(record?.name || '');
+  const taskLocation = getStrategyKfLocationByProcessId(record?.name || '');
   if (!taskLocation) {
     error(`${record.name} ${t('tradingTaskConfig.illegal_process_id')}`);
     return;
@@ -203,7 +198,7 @@ function customRowResolved(record: Pm2ProcessStatusDetail) {
 }
 
 function dealRowClassNameResolved(record: Pm2ProcessStatusDetail): string {
-  const taskLocation = getTaskKfLocationByProcessId(record?.name || '');
+  const taskLocation = getStrategyKfLocationByProcessId(record?.name || '');
   if (!taskLocation) {
     error(`${record.name} ${t('tradingTaskConfig.illegal_process_id')}`);
     return '';
@@ -250,7 +245,7 @@ function parseTaskSettingsFromEnv(configSettingsEnv = '[]') {
   try {
     configSettings = JSON.parse(configSettingsEnv) as KungfuApi.KfConfigItem[];
   } catch (err) {
-    console.error(err.message);
+    console.error((<Error>err).message);
   }
   return configSettings;
 }
@@ -258,7 +253,7 @@ function parseTaskSettingsFromEnv(configSettingsEnv = '[]') {
 function getProcessStatusName(
   record: Pm2ProcessStatusDetail,
 ): ProcessStatusTypes | undefined {
-  const taskLocation = getTaskKfLocationByProcessId(record?.name || '');
+  const taskLocation = getStrategyKfLocationByProcessId(record?.name || '');
   if (!taskLocation) {
     return;
   }
@@ -333,8 +328,8 @@ function getProcessStatusName(
                 @click.stop="
                   handleOpenSetTradingTaskModal(
                     'update',
-                    getTaskKfLocationByProcessId(record?.name || '')?.group ||
-                      '',
+                    getStrategyKfLocationByProcessId(record?.name || '')
+                      ?.group || '',
                     fromProcessArgsToKfConfigItems(record.args),
                   )
                 "

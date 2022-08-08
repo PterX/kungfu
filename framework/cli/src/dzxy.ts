@@ -1,8 +1,8 @@
-import './assets/methods/setDzxyEnv';
+import './setDzxyEnv';
+import './injectGlobal';
 import path from 'path';
 import { triggerStartStep } from '@kungfu-trader/kungfu-js-api/kungfu/tradingData';
 import {
-  dealTradingData,
   getOrderTradeFilterKey,
   getProcessIdByKfLocation,
   setTimerPromiseTask,
@@ -26,8 +26,10 @@ import { watcher } from '@kungfu-trader/kungfu-js-api/kungfu/watcher';
 import { HistoryDateEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import { writeCSV } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
 import { Row } from '@fast-csv/format';
+import { useAllExtComponentByPosition } from './assets/methods/utils';
 
 triggerStartStep();
+useAllExtComponentByPosition('dzxy');
 
 setTimerPromiseTask((): Promise<void> => {
   return new Promise((resolve) => {
@@ -40,12 +42,13 @@ setTimerPromiseTask((): Promise<void> => {
         },
       });
 
+    console.log('Heartbeat watcher living', watcher?.isLive());
     process.send &&
       process.send({
         type: 'process:msg',
         data: {
           type: 'WATCHER_IS_LIVE',
-          body: watcher ? !!watcher.isLive() : false,
+          body: watcher ? watcher.isLive() && watcher.isStarted() : false,
         },
       });
 
@@ -90,12 +93,8 @@ function resOrders(packet: Pm2PacketMain) {
   }
 
   const kfLocation = fromPacketToKfLocation(packet);
-  const orders = dealTradingData<KungfuApi.Order>(
-    watcher,
-    watcher.ledger.Order,
-    'Order',
-    kfLocation,
-  )
+  const orders = globalThis.HookKeeper.getHooks()
+    .dealTradingData.trigger(watcher, kfLocation, watcher.ledger.Order, 'order')
     .slice(0, 10)
     .map((item) =>
       dealOrder(
@@ -126,12 +125,8 @@ function resTrades(packet: Pm2PacketMain) {
   }
 
   const kfLocation = fromPacketToKfLocation(packet);
-  const trades = dealTradingData<KungfuApi.Trade>(
-    watcher,
-    watcher.ledger.Trade,
-    'Trade',
-    kfLocation,
-  )
+  const trades = globalThis.HookKeeper.getHooks()
+    .dealTradingData.trigger(watcher, kfLocation, watcher.ledger.Trade, 'trade')
     .slice(0, 10)
     .map((item) =>
       dealTrade(
@@ -162,14 +157,16 @@ function resPosition(packet: Pm2PacketMain) {
   }
 
   const kfLocation = fromPacketToKfLocation(packet);
-  const position = dealTradingData<KungfuApi.Position>(
-    watcher,
-    watcher.ledger.Position,
-    'Position',
-    kfLocation,
-  ).map((item) =>
-    dealPosition(watcher as KungfuApi.Watcher, item as KungfuApi.Position),
-  );
+  const position = globalThis.HookKeeper.getHooks()
+    .dealTradingData.trigger(
+      watcher,
+      kfLocation,
+      watcher.ledger.Position,
+      'position',
+    )
+    .map((item) =>
+      dealPosition(watcher as KungfuApi.Watcher, item as KungfuApi.Position),
+    );
 
   turnBigIntToString(position);
 
@@ -192,7 +189,10 @@ function resAsset(packet: Pm2PacketMain) {
   }
 
   const kfLocation = fromPacketToKfLocation(packet);
-  const assets = dealAssetsByHolderUID(watcher, watcher.ledger.Asset);
+  const assets = dealAssetsByHolderUID<KungfuApi.Asset>(
+    watcher,
+    watcher.ledger.Asset,
+  );
   const processId = getProcessIdByKfLocation(kfLocation);
   const assetsResolved = [assets[processId] || {}];
   turnBigIntToString(assetsResolved);
@@ -211,15 +211,24 @@ function resAsset(packet: Pm2PacketMain) {
 }
 
 function swithKfLocationResolved(data: SwitchKfLocationPacketData) {
-  const { category, group, name, value, status } = data;
-  const kfConfig: KungfuApi.KfConfig = {
+  const { category, group, name, value, status, cwd, script } = data;
+  const kfConfig: KungfuApi.KfConfig | KungfuApi.KfDaemonLocation = {
     category,
     group,
     name,
     value: value,
     location_uid: 0,
     mode: 'live',
+    cwd,
+    script,
   };
+
+  // task dealing logic
+  if (category === 'strategy' && group !== 'default') {
+    if (!value) {
+      return Promise.reject(new Error('Task cannot start in CLI'));
+    }
+  }
 
   return switchKfLocation(watcher, kfConfig, !status).catch((err) => {
     console.error(err.message);
@@ -257,7 +266,6 @@ function dealTradingDataItemResolved(item: KungfuApi.TradingDataTypes): Row {
 
 async function exportTradingData(date, output_folder) {
   const { tradingData } = await getKungfuHistoryData(
-    watcher,
     date,
     HistoryDateEnum.naturalDate,
     'all',

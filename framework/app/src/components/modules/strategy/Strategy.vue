@@ -4,7 +4,7 @@ import { ref, computed, toRefs, Ref } from 'vue';
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
 import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
 import KfSetByConfigModal from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfSetByConfigModal.vue';
-import {
+import Icon, {
   FileTextOutlined,
   SettingOutlined,
   DeleteOutlined,
@@ -53,7 +53,7 @@ const setStrategyConfigPayload = ref<KungfuApi.SetKfConfigPayload>({
 
 const { strategy } = toRefs(useAllKfConfigData());
 const strategyIdList = computed(() => {
-  return strategy.value.map((item: KungfuApi.KfConfig): string => item.name);
+  return strategy.value.map((item: KungfuApi.KfLocation): string => item.name);
 });
 
 const { dealRowClassName, customRow } = useCurrentGlobalKfLocation(
@@ -82,6 +82,9 @@ const columns = getColumns((dataIndex) => {
     );
   };
 });
+
+const getPrefixByLocation = (kfLocation: KungfuApi.KfLocation) =>
+  globalThis.HookKeeper.getHooks().prefix.trigger(kfLocation);
 
 function handleOpenSetStrategyDialog(
   type: KungfuApi.ModalChangeType,
@@ -189,7 +192,15 @@ function handleRemoveStrategy(record: KungfuApi.KfConfig) {
             record: KungfuApi.KfConfig,
           }"
         >
-          <template v-if="column.dataIndex === 'strategyFile'">
+          <template v-if="column.dataIndex === 'name'">
+            <span>{{ record[column.dataIndex] }}</span>
+            <Icon
+              v-if="getPrefixByLocation(record).prefixType === 'icon'"
+              :component="getPrefixByLocation(record).prefix"
+              style="font-size: 12px; margin-left: 7px"
+            />
+          </template>
+          <template v-else-if="column.dataIndex === 'strategyFile'">
             {{ getStrategyPathShowName(record) }}
           </template>
           <template v-else-if="column.dataIndex === 'processStatus'">

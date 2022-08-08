@@ -1,8 +1,6 @@
 const os = require('os');
 const path = require('path');
 
-declare const global: NodeJS.Global;
-
 const getHomePath = () => {
   switch (os.platform()) {
     case 'darwin':
@@ -19,33 +17,22 @@ const getHomePath = () => {
   }
 };
 
-if (process.env.NODE_ENV === 'development') {
-  global.__resources = `${__resources}`;
+if (process.env.APP_TYPE === 'main' || process.env.APP_TYPE === 'renderer') {
+  // globalThis.__kfResourcesPath 是一个容易出错的问题, 需要每个调用pathconfig的进程都需要注册这个值
+  globalThis.__kfResourcesPath = process.resourcesPath;
 } else {
-  global.__resources = path
-    .resolve(__dirname, '../public')
-    .replace(/\\/g, '\\\\');
-}
-
-if (
-  process.env.APP_TYPE === 'main' ||
-  process.env.APP_TYPE === 'renderer' ||
-  process.env.APP_TYPE === 'component'
-) {
-  //global.__kfResourcesPath 是一个容易出错的问题, 需要每个调用pathconfig的进程都需要注册这个值
-  global.__kfResourcesPath = process.resourcesPath;
-}
-
-if (process.env.APP_TYPE === 'cli') {
-  global.__kfResourcesPath = path
+  // cli + uiExtension are in the same way
+  globalThis.__kfResourcesPath = path
     .resolve(__dirname, '..', '..', '..')
     .replace(/\\/g, '\\\\');
 }
 
-if (process.env.APP_TYPE === 'daemon') {
-  global.__kfResourcesPath = path
-    .resolve(__dirname, '..', '..', '..')
-    .replace(/\\/g, '\\\\');
+if (process.env.NODE_ENV === 'development') {
+  globalThis.__publicResources = `${__resources}`;
+} else {
+  globalThis.__publicResources =
+    process.env.APP_PUBLIC_DIR ||
+    path.join(globalThis.__kfResourcesPath, 'app', 'dist', 'public');
 }
 
 export const KF_HOME_BASE_DIR_RESOLVE: string = getHomePath();

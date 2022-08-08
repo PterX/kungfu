@@ -5,7 +5,11 @@ import {
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
   delayMilliSeconds,
+  deleteNNFiles,
+  getAvailCliDaemonList,
+  getKfExtensionConfig,
   getProcessIdByKfLocation,
+  getTaskListFromProcessStatusData,
   kfLogger,
   removeJournal,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
@@ -25,25 +29,43 @@ import {
   startCacheD,
   processStatusDataObservable,
   Pm2Packet,
+  Pm2ProcessStatusDetail,
 } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
 import { combineLatest, filter, map, Observable } from 'rxjs';
-import { ProcessListItem } from 'src/typings';
+import { ProcessListItem } from '../../typings';
 import colors from 'colors';
 import { Widgets } from 'blessed';
-import { KF_HOME } from '@kungfu-trader/kungfu-js-api/config/pathConfig';
-import { dealStatus, getCategoryName } from '../methods/utils';
+import {
+  dealStatus,
+  getCategoryName,
+  startAllExtDaemons,
+} from '../methods/utils';
 import { globalState } from '../actions/globalState';
+import { dealProcessName } from '../methods/utils';
+import { KF_HOME } from '@kungfu-trader/kungfu-js-api/config/pathConfig';
 
-export const mdTdStrategyObservable = () => {
-  return new Observable<Record<KfCategoryTypes, KungfuApi.KfConfig[]>>(
-    (observer) => {
-      getAllKfConfigOriginData().then(
-        (allConfigs: Record<KfCategoryTypes, KungfuApi.KfConfig[]>) => {
-          observer.next(allConfigs);
-        },
-      );
-    },
-  );
+export const mdTdStrategyDaemonObservable = () => {
+  return new Observable<
+    Record<KfCategoryTypes, KungfuApi.KfConfig[] | KungfuApi.KfDaemonLocation[]>
+  >((observer) => {
+    Promise.all([getAllKfConfigOriginData(), getAvailCliDaemonList()]).then(
+      (
+        allConfigs: [
+          Record<KfCategoryTypes, KungfuApi.KfConfig[]>,
+          KungfuApi.KfDaemonLocation[],
+        ],
+      ) => {
+        observer.next({
+          ...allConfigs[0],
+          daemon: allConfigs[1].map((item) => ({
+            ...item,
+            location_uid: 0,
+            value: '',
+          })),
+        });
+      },
+    );
+  });
 };
 
 export const appStatesObservable = () => {
@@ -76,6 +98,14 @@ const getProcessStatus = (
   } else {
     return dealStatus(processStatus[processId] || '--');
   }
+};
+
+export const getExtConfigObservable = () => {
+  return new Observable<KungfuApi.KfExtConfigs>((observer) => {
+    getKfExtensionConfig().then((kfExtConfigs) => {
+      observer.next(kfExtConfigs);
+    });
+  });
 };
 
 export const specificProcessListObserver = (kfLocation: KungfuApi.KfConfig) =>
@@ -159,25 +189,34 @@ export const specificProcessListObserver = (kfLocation: KungfuApi.KfConfig) =>
 
 export const processListObservable = () =>
   combineLatest(
-    mdTdStrategyObservable(),
+    mdTdStrategyDaemonObservable(),
     processStatusDataObservable(),
     appStatesObservable(),
+    getExtConfigObservable(),
     (
-      mdTdStrategy: Record<KfCategoryTypes, KungfuApi.KfConfig[]>,
+      mdTdStrategyDaemon: Record<
+        KfCategoryTypes,
+        KungfuApi.KfConfig[] | KungfuApi.KfDaemonLocation[]
+      >,
       ps: {
         processStatus: Pm2ProcessStatusData;
         processStatusWithDetail: Pm2ProcessStatusDetailData;
       },
       appStates: Record<string, BrokerStateStatusTypes>,
+      extConfigs: KungfuApi.KfExtConfigs,
     ): ProcessListItem[] => {
-      const { md, td, strategy } = mdTdStrategy;
+      const { md, td, strategy, daemon } = mdTdStrategyDaemon;
       const { processStatus, processStatusWithDetail } = ps;
 
       const mdList: ProcessListItem[] = md.map((item) => {
         const processId = getProcessIdByKfLocation(item);
+        const prefixProps =
+          globalThis.HookKeeper.getHooks().prefix.trigger(item);
+        const prefix =
+          prefixProps.prefixType === 'text' ? prefixProps.prefix : '';
         return {
           processId,
-          processName: processId,
+          processName: prefix + processId,
           typeName: getCategoryName(item.category),
           category: item.category,
           group: item.group,
@@ -195,9 +234,13 @@ export const processListObservable = () =>
 
       const tdList: ProcessListItem[] = td.map((item) => {
         const processId = getProcessIdByKfLocation(item);
+        const prefixProps =
+          globalThis.HookKeeper.getHooks().prefix.trigger(item);
+        const prefix =
+          prefixProps.prefixType === 'text' ? prefixProps.prefix : '';
         return {
           processId,
-          processName: processId,
+          processName: prefix + processId,
           typeName: getCategoryName(item.category),
           category: item.category,
           group: item.group,
@@ -215,9 +258,13 @@ export const processListObservable = () =>
 
       const strategyList: ProcessListItem[] = strategy.map((item) => {
         const processId = getProcessIdByKfLocation(item);
+        const prefixProps =
+          globalThis.HookKeeper.getHooks().prefix.trigger(item);
+        const prefix =
+          prefixProps.prefixType === 'text' ? prefixProps.prefix : '';
         return {
           processId,
-          processName: processId,
+          processName: prefix + processId,
           typeName: getCategoryName(item.category),
           category: item.category,
           group: item.group,
@@ -228,6 +275,64 @@ export const processListObservable = () =>
           monit: processStatusWithDetail[processId]?.monit,
         };
       });
+
+      const daemonList: ProcessListItem[] = daemon.map((item) => {
+        const processId = getProcessIdByKfLocation(item);
+        const prefixProps =
+          globalThis.HookKeeper.getHooks().prefix.trigger(item);
+        const prefix =
+          prefixProps.prefixType === 'text' ? prefixProps.prefix : '';
+        return {
+          processId,
+          processName: prefix + (dealProcessName(processId) || processId),
+          typeName: getCategoryName(item.category as KfCategoryTypes),
+          category: item.category,
+          group: item.group,
+          name: item.name,
+          value: JSON.parse(item.value || '{}'),
+          status: processStatus[processId] || '--',
+          statusName: dealStatus(processStatus[processId] || '--'),
+          monit: processStatusWithDetail[processId]?.monit,
+          script: item.script,
+          cwd: item.cwd,
+        };
+      });
+
+      const taskPrefixs: string[] = Object.keys(
+        extConfigs['strategy'] || {},
+      ).map((key) => `strategy_${key}`);
+      const taskList: Pm2ProcessStatusDetail[] =
+        getTaskListFromProcessStatusData(
+          taskPrefixs,
+          ps.processStatusWithDetail,
+        );
+      const taskListResolved: ProcessListItem[] = taskList.map((item) => {
+        return {
+          processId: item.name || '',
+          processName: `${item.name?.toKfGroup()}_${item.name?.toKfName()}`,
+          typeName: colors.magenta('Task'),
+          category: 'strategy',
+          group: item.name?.toKfGroup() || '',
+          name: item.name?.toKfName() || '',
+          value: '',
+          status: item.status || '--',
+          statusName: dealStatus(item.status || '--'),
+          monit: item.monit,
+          script: item.script,
+          cwd: item.cwd,
+        };
+      });
+
+      const masterPrefixProps = globalThis.HookKeeper.getHooks().prefix.trigger(
+        {
+          category: 'system',
+          group: 'master',
+          name: 'master',
+          mode: 'live',
+        },
+      );
+      const masterPrefix =
+        masterPrefixProps.prefixType === 'text' ? masterPrefixProps.prefix : '';
 
       return [
         {
@@ -244,7 +349,7 @@ export const processListObservable = () =>
         },
         {
           processId: 'master',
-          processName: colors.bold('MASTER'),
+          processName: colors.bold(masterPrefix + 'MASTER'),
           typeName: colors.bgMagenta('Sys'),
           category: 'system',
           group: 'master',
@@ -253,18 +358,6 @@ export const processListObservable = () =>
           status: processStatus['master'] || '--',
           statusName: dealStatus(processStatus['master'] || '--'),
           monit: processStatusWithDetail['master']?.monit,
-        },
-        {
-          processId: 'ledger',
-          processName: 'LEDGER',
-          typeName: colors.bgMagenta('Sys'),
-          category: 'system',
-          group: 'service',
-          name: 'ledger',
-          value: {},
-          status: processStatus['ledger'] || '--',
-          statusName: dealStatus(processStatus['ledger'] || '--'),
-          monit: processStatusWithDetail['ledger']?.monit,
         },
         {
           processId: 'cached',
@@ -279,6 +372,18 @@ export const processListObservable = () =>
           monit: processStatusWithDetail['cached']?.monit,
         },
         {
+          processId: 'ledger',
+          processName: 'LEDGER',
+          typeName: colors.bgMagenta('Sys'),
+          category: 'system',
+          group: 'service',
+          name: 'ledger',
+          value: {},
+          status: processStatus['ledger'] || '--',
+          statusName: dealStatus(processStatus['ledger'] || '--'),
+          monit: processStatusWithDetail['ledger']?.monit,
+        },
+        {
           processId: 'dzxy',
           processName: 'DZXY',
           typeName: colors.bgMagenta('Sys'),
@@ -290,8 +395,10 @@ export const processListObservable = () =>
           statusName: dealStatus(processStatus['dzxy'] || '--'),
           monit: processStatusWithDetail['dzxy']?.monit,
         },
+        ...daemonList,
         ...mdList,
         ...tdList,
+        ...taskListResolved,
         ...strategyList,
       ];
     },
@@ -304,7 +411,7 @@ export const switchProcess = (
 ): void => {
   const status = proc.status !== '--';
   const startOrStop = status ? 'Stop' : 'Start';
-  const { category, group, name, value } = proc;
+  const { category, group, name, value, cwd, script } = proc;
 
   switch (category) {
     case 'system':
@@ -348,6 +455,7 @@ export const switchProcess = (
         }
       }
       break;
+    case 'daemon':
     case 'md':
     case 'td':
     case 'strategy':
@@ -370,6 +478,8 @@ export const switchProcess = (
         name,
         value: JSON.stringify(value),
         status,
+        cwd,
+        script,
       })
         .then(() => {
           messageBoard.log('Please wait...', 2, (err) => {
@@ -404,16 +514,14 @@ function preSwitchMain(
 ) {
   if (!status) {
     loading.load(`Start Archive, Please wait...`);
-    return removeJournal(KF_HOME)
-      .then(() => startArchiveMakeTask())
-      .then(() => {
-        loading.stop();
-        return message.log(`Archive success`, 2, (err) => {
-          if (err) {
-            console.error(err);
-          }
-        });
+    return startArchiveMakeTask().then(() => {
+      loading.stop();
+      return message.log(`Archive success`, 2, (err) => {
+        if (err) {
+          console.error(err);
+        }
       });
+    });
   }
 
   return Promise.resolve(true);
@@ -428,7 +536,9 @@ const switchMaster = async (status: boolean): Promise<void> => {
     if (process.env.NODE_ENV === 'production') {
       await killKungfu();
     }
+    await deleteNNFiles();
   } else {
+    await removeJournal(KF_HOME);
     await startMaster(false);
     await delayMilliSeconds(1000);
     await startCacheD(false);
@@ -436,5 +546,7 @@ const switchMaster = async (status: boolean): Promise<void> => {
     await startLedger(false);
     await delayMilliSeconds(1000);
     await startDzxy();
+    await delayMilliSeconds(1000);
+    await startAllExtDaemons();
   }
 };

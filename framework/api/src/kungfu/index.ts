@@ -5,6 +5,7 @@ import {
   dealDirection,
   dealHedgeFlag,
   dealInstrumentType,
+  dealIsSwap,
   dealLocationUID,
   dealOffset,
   dealOrderStat,
@@ -21,14 +22,6 @@ import {
 } from '../utils/busiUtils';
 import { HistoryDateEnum, LedgerCategoryEnum } from '../typings/enums';
 import { ExchangeIds } from '../config/tradingConfig';
-
-if (
-  process.env.RENDERER_ID &&
-  process.env.RENDERER_ID !== 'app' &&
-  process.env.RENDERER_ID !== 'dzxy'
-) {
-  throw new Error('Logview should not use kungfu.node');
-}
 
 export const kf = kungfu();
 
@@ -103,6 +96,9 @@ export const dealTradingDataItem = (
   if ('hedge_flag' in item) {
     itemResolved.hedge_flag = dealHedgeFlag(item.hedge_flag).name;
   }
+  if ('is_swap' in item) {
+    itemResolved.is_swap = dealIsSwap(item.is_swap).name;
+  }
   if ('source' in item && 'dest' in item && watcher) {
     itemResolved.source = resolveAccountId(
       watcher,
@@ -174,7 +170,6 @@ export const getKungfuDataByDateRange = (
 };
 
 export const getKungfuHistoryData = (
-  watcher: KungfuApi.Watcher | null,
   date: string,
   dateType: HistoryDateEnum,
   tradingDataTypeName: KungfuApi.TradingDataTypeName | 'all',
@@ -216,12 +211,12 @@ export const kfRequestMarketData = (
   }
 
   if (!watcher.isLive()) {
-    return Promise.reject(new Error(`Master 进程未连接`));
+    return Promise.reject(new Error(`Watcher is not live`));
   }
 
   if (!watcher.isReadyToInteract(mdLocation)) {
     const sourceId = getIdByKfLocation(mdLocation);
-    return Promise.reject(new Error(`行情源 ${sourceId} 未就绪`));
+    return Promise.reject(new Error(`Md ${sourceId} not ready`));
   }
 
   return Promise.resolve(
@@ -238,7 +233,7 @@ export const kfCancelOrder = (
   }
 
   if (!watcher.isLive()) {
-    return Promise.reject(new Error(`Master 未连接`));
+    return Promise.reject(new Error(`Watcher is not live`));
   }
 
   const { order_id, dest, source } = order;
@@ -247,7 +242,7 @@ export const kfCancelOrder = (
 
   if (!watcher.isReadyToInteract(sourceLocation)) {
     const accountId = getIdByKfLocation(sourceLocation);
-    return Promise.reject(new Error(`交易账户 ${accountId} 未就绪`));
+    return Promise.reject(new Error(`Td ${accountId} not ready`));
   }
 
   const orderAction: KungfuApi.OrderAction = {
@@ -273,7 +268,7 @@ export const kfCancelAllOrders = (
   }
 
   if (!watcher.isLive()) {
-    return Promise.reject(new Error(`Master 未连接`));
+    return Promise.reject(new Error(`Watcher is not live`));
   }
 
   const cancelOrderTasks = orders.map(
@@ -296,18 +291,75 @@ export const kfMakeOrder = (
   }
 
   if (!watcher.isLive()) {
-    return Promise.reject(new Error(`Master 未连接`));
+    return Promise.reject(new Error(`Watcher is not live`));
   }
 
   if (!watcher.isReadyToInteract(tdLocation)) {
     const accountId = getIdByKfLocation(tdLocation);
-    return Promise.reject(new Error(`交易账户 ${accountId} 未就绪`));
+    return Promise.reject(new Error(`Td ${accountId} not ready`));
   }
 
   const now = watcher.now();
   const orderInput: KungfuApi.OrderInput = {
     ...longfist.OrderInput(),
     ...makeOrderInput,
+    block_id: BigInt(0),
+    limit_price: makeOrderInput.limit_price || 0,
+    frozen_price: makeOrderInput.limit_price || 0,
+    volume: BigInt(makeOrderInput.volume),
+    insert_time: now,
+  };
+
+  if (strategyLocation) {
+    //设置orderInput的parentid, 来标记该order为策略手动下单
+    return Promise.resolve(
+      watcher.issueOrder(orderInput, tdLocation, strategyLocation),
+    );
+  } else {
+    return Promise.resolve(watcher.issueOrder(orderInput, tdLocation));
+  }
+};
+
+export const kfMakeBlockOrder = async (
+  watcher: KungfuApi.Watcher | null,
+  blockMessage: KungfuApi.BlockMessage,
+  makeOrderInput: KungfuApi.MakeOrderInput,
+  tdLocation: KungfuApi.KfLocation,
+  strategyLocation?: KungfuApi.KfLocation,
+): Promise<bigint> => {
+  if (!watcher) {
+    return Promise.reject(new Error('Watcher is NULL'));
+  }
+
+  if (!watcher.isLive()) {
+    return Promise.reject(new Error(`Watcher is not live`));
+  }
+
+  if (!watcher.isReadyToInteract(tdLocation)) {
+    const accountId = getIdByKfLocation(tdLocation);
+    return Promise.reject(new Error(`Td ${accountId} not ready`));
+  }
+
+  let block_id;
+  if (blockMessage) {
+    blockMessage = {
+      ...blockMessage,
+      opponent_seat: +blockMessage.opponent_seat,
+      match_number: BigInt(blockMessage.match_number),
+      value: JSON.stringify(blockMessage.value),
+      insert_time: watcher.now(),
+    };
+    block_id = await watcher.issueBlockMessage(blockMessage, tdLocation);
+  }
+  if (!block_id) {
+    return Promise.reject(new Error('Get block_id failed'));
+  }
+
+  const now = watcher.now();
+  const orderInput: KungfuApi.OrderInput = {
+    ...longfist.OrderInput(),
+    ...makeOrderInput,
+    block_id,
     limit_price: makeOrderInput.limit_price || 0,
     frozen_price: makeOrderInput.limit_price || 0,
     volume: BigInt(makeOrderInput.volume),
@@ -364,6 +416,63 @@ export const makeOrderByOrderInput = (
         return;
       }
       return kfMakeOrder(watcher, orderInput, tdLocation)
+        .then((order_id) => {
+          resolve(order_id);
+        })
+        .catch((err) => {
+          reject(err);
+        });
+    }
+  });
+};
+
+export const makeOrderByBlockMessage = (
+  watcher: KungfuApi.Watcher | null,
+  blockMessage: KungfuApi.BlockMessage,
+  orderInput: KungfuApi.MakeOrderInput,
+  kfLocation: KungfuApi.KfLocation,
+  accountId: string,
+): Promise<bigint> => {
+  return new Promise((resolve, reject) => {
+    if (!watcher) {
+      reject(new Error(`Watcher is NULL`));
+      return;
+    }
+
+    if (kfLocation.category === 'td') {
+      return kfMakeBlockOrder(watcher, blockMessage, orderInput, kfLocation)
+        .then((order_id) => {
+          resolve(order_id);
+        })
+        .catch((err) => {
+          reject(err);
+        });
+    } else if (kfLocation.category === 'strategy') {
+      const tdLocation = getMdTdKfLocationByProcessId(`td_${accountId || ''}`);
+      if (!tdLocation) {
+        reject(new Error('下单账户信息错误'));
+        return;
+      }
+      return kfMakeBlockOrder(
+        watcher,
+        blockMessage,
+        orderInput,
+        tdLocation,
+        kfLocation,
+      )
+        .then((order_id) => {
+          resolve(order_id);
+        })
+        .catch((err) => {
+          reject(err);
+        });
+    } else {
+      const tdLocation = getMdTdKfLocationByProcessId(`td_${accountId || ''}`);
+      if (!tdLocation) {
+        reject(new Error('下单账户信息错误'));
+        return;
+      }
+      return kfMakeBlockOrder(watcher, blockMessage, orderInput, tdLocation)
         .then((order_id) => {
           resolve(order_id);
         })

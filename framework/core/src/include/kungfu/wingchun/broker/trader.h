@@ -46,6 +46,8 @@ public:
 
   [[nodiscard]] virtual longfist::enums::AccountType get_account_type() const = 0;
 
+  virtual bool insert_block_message(const event_ptr &event) { return true; }
+
   virtual bool insert_order(const event_ptr &event) = 0;
 
   virtual bool cancel_order(const event_ptr &event) = 0;
@@ -57,6 +59,8 @@ public:
   virtual bool req_history_order(const event_ptr &event) { return true; }
 
   virtual bool req_history_trade(const event_ptr &event) { return true; }
+
+  virtual bool on_strategy_exit(const event_ptr &event) { return true; }
 
   /// 此函数自动发送一个空的AssetMargin数据. 两融柜台需要发送一个存有数据的AssetMargin, 请override此函数取消写入.
   /// 并且在使用writer写入完AssetMargin之后调用enable_asset_margin_sync()函数.
@@ -88,6 +92,7 @@ private:
   bool sync_position_ = false;
 
   void handle_asset_sync();
+  void handle_position_sync();
 };
 } // namespace kungfu::wingchun::broker
 

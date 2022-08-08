@@ -12,11 +12,13 @@ namespace kungfu::longfist::types {
 using namespace kungfu::longfist::enums;
 
 static constexpr int INSTRUMENT_ID_LEN = 32;
+static constexpr int ACCOUNT_ID_LEN = 32;
 static constexpr int PRODUCT_ID_LEN = 32;
 static constexpr int DATE_LEN = 9;
 static constexpr int EXCHANGE_ID_LEN = 16;
 
 static constexpr int ERROR_MSG_LEN = 128;
+static constexpr int JSON_STR_LEN = 512;
 
 KF_DEFINE_MARK_TYPE(PageEnd, 10000);
 KF_DEFINE_MARK_TYPE(SessionStart, 10001);
@@ -26,8 +28,6 @@ KF_DEFINE_MARK_TYPE(Ping, 10008);
 KF_DEFINE_MARK_TYPE(Pong, 10009);
 KF_DEFINE_MARK_TYPE(RequestStop, 10024);
 KF_DEFINE_MARK_TYPE(RequestStart, 10025);
-KF_DEFINE_MARK_TYPE(RequestHistoryOrder, 10029);
-KF_DEFINE_MARK_TYPE(RequestHistoryTrade, 10030);
 KF_DEFINE_MARK_TYPE(CachedReadyToRead, 10060);
 KF_DEFINE_MARK_TYPE(RequestCached, 10061);
 KF_DEFINE_MARK_TYPE(NewOrderSingle, 353);
@@ -75,14 +75,14 @@ KF_DEFINE_DATA_TYPE(                                      //
     (std::string, value)                                  //
 );
 
-KF_DEFINE_DATA_TYPE(                                               //
-    StrategyStateUpdate, 20002, PK(state), TIMESTAMP(update_time), //
-    (StrategyState, state),                                        //
-    (int64_t, update_time),                                        //
-    (std::string, info_a),                                         //
-    (std::string, info_b),                                         //
-    (std::string, info_c),                                         //
-    (std::string, value)                                           //
+KF_DEFINE_PACK_TYPE(                                                     //
+    StrategyStateUpdate, 20002, PK(update_time), TIMESTAMP(update_time), //
+    (StrategyState, state),                                              //
+    (int64_t, update_time),                                              //
+    (kungfu::array<char, JSON_STR_LEN>, info_a),                         //
+    (kungfu::array<char, JSON_STR_LEN>, info_b),                         //
+    (kungfu::array<char, JSON_STR_LEN>, info_c),                         //
+    (kungfu::array<char, JSON_STR_LEN>, value)                           //
 );
 
 KF_DEFINE_PACK_TYPE(                                             //
@@ -197,6 +197,12 @@ KF_DEFINE_PACK_TYPE(                                     //
     Channel, 10028, PK(source_id, dest_id), PERPETUAL(), //
     (uint32_t, source_id),                               //
     (uint32_t, dest_id)                                  //
+);
+
+KF_DEFINE_PACK_TYPE(                                            //
+    ChannelRequest, 10029, PK(source_id, dest_id), PERPETUAL(), //
+    (uint32_t, source_id),                                      //
+    (uint32_t, dest_id)                                         //
 );
 
 KF_DEFINE_PACK_TYPE(                                    //
@@ -387,8 +393,19 @@ KF_DEFINE_PACK_TYPE(                                       //
     (PriceType, price_type),             // 价格类型
     (VolumeCondition, volume_condition), // 成交量类型
     (TimeCondition, time_condition),     // 成交时间类型
+    (uint64_t, block_id),                // 大宗交易信息id, 非大宗交易则为0
 
     (int64_t, insert_time) // 写入时间
+);
+
+KF_DEFINE_PACK_TYPE(                                         //
+    BlockMessage, 207, PK(block_id), TIMESTAMP(insert_time), //
+    (uint64_t, block_id),      // 大宗交易信息id, 用于TD从OrderInput找到此数据
+    (uint32_t, opponent_seat), // 对手方席号
+    (uint64_t, match_number),  // 成交约定号
+    (kungfu::array<char, ACCOUNT_ID_LEN>, opponent_account), // 对手方股东账号
+    (kungfu::array<char, JSON_STR_LEN>, value),              // 联系人, 联系方式, 是否受限股份
+    (int64_t, insert_time)                                   // 写入时间
 );
 
 KF_DEFINE_PACK_TYPE(                                               //
@@ -415,6 +432,7 @@ KF_DEFINE_PACK_TYPE(                                                    //
 KF_DEFINE_PACK_TYPE(                                  //
     Order, 203, PK(order_id), TIMESTAMP(insert_time), //
     (uint64_t, order_id),                             // 订单ID
+    (uint64_t, external_id),                          // 柜台订单id, 字符型则hash转换
 
     (int64_t, insert_time), // 订单写入时间
     (int64_t, update_time), // 订单更新时间
@@ -452,6 +470,7 @@ KF_DEFINE_PACK_TYPE(                                  //
 KF_DEFINE_PACK_TYPE(                                         //
     HistoryOrder, 212, PK(order_id), TIMESTAMP(insert_time), //
     (uint64_t, order_id),                                    // 订单ID
+    (uint64_t, external_id),                                 // 柜台订单id, 字符型则hash转换
 
     (int64_t, insert_time), // 订单写入时间
     (int64_t, update_time), // 订单更新时间
@@ -461,7 +480,8 @@ KF_DEFINE_PACK_TYPE(                                         //
     (kungfu::array<char, INSTRUMENT_ID_LEN>, instrument_id), // 合约ID
     (kungfu::array<char, EXCHANGE_ID_LEN>, exchange_id),     // 交易所ID
 
-    (bool, is_last), // 是否为本次查询的最后一条记录
+    (bool, is_last),              // 是否为本次查询的最后一条记录
+    (HistoryDataType, data_type), // 标记本数据是正常数据, 本页最后一条数据, 全部数据的最后一条
 
     (InstrumentType, instrument_type), // 合约类型
 
@@ -493,7 +513,8 @@ KF_DEFINE_PACK_TYPE(                                 //
     Trade, 204, PK(trade_id), TIMESTAMP(trade_time), //
     (uint64_t, trade_id),                            // 成交ID
 
-    (uint64_t, order_id), // 订单ID
+    (uint64_t, order_id),    // 订单ID
+    (uint64_t, external_id), // 柜台订单id, 字符型则hash转换
 
     (int64_t, trade_time),                        // 成交时间
     (kungfu::array<char, DATE_LEN>, trading_day), // 交易日
@@ -518,7 +539,8 @@ KF_DEFINE_PACK_TYPE(                                        //
     HistoryTrade, 213, PK(trade_id), TIMESTAMP(trade_time), //
     (uint64_t, trade_id),                                   // 成交ID
 
-    (uint64_t, order_id), // 订单ID
+    (uint64_t, order_id),    // 订单ID
+    (uint64_t, external_id), // 柜台订单id, 字符型则hash转换
 
     (int64_t, trade_time),                        // 成交时间
     (kungfu::array<char, DATE_LEN>, trading_day), // 交易日
@@ -526,7 +548,9 @@ KF_DEFINE_PACK_TYPE(                                        //
     (kungfu::array<char, INSTRUMENT_ID_LEN>, instrument_id), // 合约ID
     (kungfu::array<char, EXCHANGE_ID_LEN>, exchange_id),     // 交易所ID
 
-    (bool, is_last), // 是否为本次查询的最后一条记录
+    (bool, is_last),              // 是否为本次查询的最后一条记录
+    (HistoryDataType, data_type), // 标记本数据是正常数据, 本页最后一条数据, 全部数据的最后一条
+    (bool, is_withdraw),          // 是否是撤单流水
 
     (InstrumentType, instrument_type), // 合约类型
 
@@ -653,6 +677,33 @@ KF_DEFINE_PACK_TYPE(                                  //
     (int64_t, ack_time),                              //
     (int64_t, trade_time)                             //
 );
+
+KF_DEFINE_PACK_TYPE(                                                       //
+    RequestHistoryOrder, 10029, PK(trigger_time), TIMESTAMP(trigger_time), //
+    (uint64_t, trigger_time),                                              // 触发时间
+    (uint32_t, query_num)                                                  // 请求查询的数量
+);
+
+KF_DEFINE_PACK_TYPE(                                                       //
+    RequestHistoryTrade, 10030, PK(trigger_time), TIMESTAMP(trigger_time), //
+    (uint64_t, trigger_time),                                              // 触发时间
+    (uint32_t, query_num)                                                  // 请求查询的数量
+);
+
+KF_DEFINE_PACK_TYPE(                                                           //
+    RequestHistoryOrderError, 10031, PK(trigger_time), TIMESTAMP(insert_time), //
+    (int32_t, error_id),                                                       // 错误ID
+    (kungfu::array<char, ERROR_MSG_LEN>, error_msg),                           // 错误信息
+    (int64_t, trigger_time)                                                    // 写入时间
+);
+
+KF_DEFINE_PACK_TYPE(                                                           //
+    RequestHistoryTradeError, 10032, PK(trigger_time), TIMESTAMP(insert_time), //
+    (int32_t, error_id),                                                       // 错误ID
+    (kungfu::array<char, ERROR_MSG_LEN>, error_msg),                           // 错误信息
+    (int64_t, trigger_time)                                                    // 写入时间
+);
+
 } // namespace kungfu::longfist::types
 
 #endif // KUNGFU_LONGFIST_TYPES_H

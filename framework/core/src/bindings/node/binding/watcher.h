@@ -21,7 +21,21 @@ namespace kungfu::node {
 constexpr uint64_t ID_TRANC = 0x00000000FFFFFFFF;
 constexpr uint32_t PAGE_ID_MASK = 0x80000000;
 
+class WatcherAutoClient : public wingchun::broker::SilentAutoClient {
+public:
+  explicit WatcherAutoClient(yijinjing::practice::apprentice &app, bool bypass_trading_Data);
+
+  ~WatcherAutoClient() = default;
+
+  void connect(const event_ptr &event, const longfist::types::Register &register_data) override;
+
+private:
+  bool bypass_trading_data_;
+};
+
 class Watcher : public Napi::ObjectWrap<Watcher>, public yijinjing::practice::apprentice {
+  typedef std::unordered_map<uint32_t, longfist::types::InstrumentKey> InstrumentKeyMap;
+
 public:
   explicit Watcher(const Napi::CallbackInfo &info);
 
@@ -67,6 +81,8 @@ public:
 
   Napi::Value IsReadyToInteract(const Napi::CallbackInfo &info);
 
+  Napi::Value IssueBlockMessage(const Napi::CallbackInfo &info);
+
   Napi::Value IssueOrder(const Napi::CallbackInfo &info);
 
   Napi::Value CancelOrder(const Napi::CallbackInfo &info);
@@ -80,15 +96,17 @@ public:
   static void Init(Napi::Env env, Napi::Object exports);
 
 protected:
+  const bool bypass_accounting_;
+  const bool bypass_trading_data_;
+
   void on_react() override;
 
   void on_start() override;
 
 private:
   static Napi::FunctionReference constructor;
-  const bool bypass_quotes_;
   uv_work_t uv_work_ = {};
-  wingchun::broker::SilentAutoClient broker_client_;
+  WatcherAutoClient broker_client_;
   wingchun::book::Bookkeeper bookkeeper_;
   Napi::ObjectReference state_ref_;
   Napi::ObjectReference ledger_ref_;
@@ -104,18 +122,45 @@ private:
   yijinjing::cache::bank data_bank_;
   yijinjing::cache::trading_bank trading_bank_;
   std::vector<kungfu::state<longfist::types::CacheReset>> reset_cache_states_;
-  std::unordered_map<uint32_t, longfist::types::InstrumentKey> subscribed_instruments_ = {};
+  InstrumentKeyMap subscribed_instruments_ = {};
   std::unordered_map<uint32_t, int> location_uid_states_map_ = {};
   std::unordered_map<uint32_t, longfist::types::StrategyStateUpdate> location_uid_strategy_states_map_ = {};
-  std::unordered_set<uint32_t> hash_instruments_ = {};
+  std::unordered_set<uint32_t> feeded_instruments_ = {};
 
   static constexpr auto bypass = [](yijinjing::practice::apprentice *app, bool bypass_quotes) {
-    return rx::filter([=](const event_ptr &event) {
-      return not(app->get_location(event->source())->category == longfist::enums::category::MD and bypass_quotes);
+    return rx::filter([&](const event_ptr &event) {
+      return not(app->get_location(event->source())->category == longfist::enums::category::MD and
+                 event->msg_type() != longfist::types::Instrument::tag and bypass_quotes);
     });
   };
 
-  void Feed(const event_ptr &event, bool is_restore = false);
+  static constexpr auto is_subscribed = [](const InstrumentKeyMap &subscribed_instruments) {
+    return rx::filter([&](const event_ptr &event) {
+      return subscribed_instruments.find(event->data<longfist::types::Quote>().uid()) != subscribed_instruments.end();
+    });
+  };
+
+  static constexpr auto is_trading_data = []() {
+    return rx::filter([](const event_ptr &event) {
+      bool is_target = false;
+      boost::hana::for_each(longfist::TradingDataTypes, [&](auto it) {
+        using DataType = typename decltype(+boost::hana::second(it))::type;
+        is_target |= DataType::tag == event->msg_type();
+      });
+      return is_target;
+    });
+  };
+
+  static constexpr auto while_is_trading_data = [](const event_ptr &event) {
+    bool is_target = false;
+    boost::hana::for_each(longfist::TradingDataTypes, [&](auto it) {
+      using DataType = typename decltype(+boost::hana::second(it))::type;
+      is_target |= DataType::tag == event->msg_type();
+    });
+    return is_target;
+  };
+
+  void Feed(const event_ptr &event, const longfist::types::Instrument &instrument);
 
   void RestoreState(const yijinjing::data::location_ptr &state_location, int64_t from, int64_t to, bool sync_schema);
 
@@ -137,11 +182,7 @@ private:
 
   void UpdateBook(const event_ptr &event, const longfist::types::Quote &quote);
 
-  void UpdateBook(int64_t update_time, uint32_t source_id, uint32_t dest_id, const longfist::types::Quote &quote);
-
   void UpdateBook(const event_ptr &event, const longfist::types::Position &position);
-
-  void UpdateBook(int64_t update_time, uint32_t source_id, uint32_t dest_id, const longfist::types::Position &position);
 
   void SyncLedger();
 
@@ -177,6 +218,9 @@ private:
       feed_state_data_bank(cache_state_position, data_bank_);
       state<kungfu::longfist::types::Asset> cache_state_asset(source, dest, event->gen_time(), book->asset);
       feed_state_data_bank(cache_state_asset, data_bank_);
+      state<kungfu::longfist::types::AssetMargin> cache_state_asset_margin(source, dest, event->gen_time(),
+                                                                           book->asset_margin);
+      feed_state_data_bank(cache_state_asset_margin, data_bank_);
     };
     update(event->source(), event->dest());
     update(event->dest(), event->source());
@@ -186,7 +230,8 @@ private:
   std::enable_if_t<std::is_same_v<TradingData, longfist::types::OrderInput>> UpdateBook(uint32_t source, uint32_t dest,
                                                                                         const TradingData &data) {
     bookkeeper_.on_order_input(now(), source, dest, data);
-    update_ledger(now(), source, dest, data);
+    state<kungfu::longfist::types::OrderInput> cache_state_order_input(source, dest, now(), data);
+    trading_bank_ << cache_state_order_input;
   }
 
   template <typename TradingData>
@@ -218,11 +263,15 @@ private:
   template <typename DataType>
   std::enable_if_t<std::is_same_v<DataType, longfist::types::Instrument>>
   UpdateLedger(const boost::hana::basic_type<DataType> &type) {
-    for (auto &pair : data_bank_[type]) {
-      auto &state = pair.second;
+    using DataTypeMap = std::unordered_map<uint64_t, state<DataType>>;
+    auto &instrument_map = const_cast<DataTypeMap &>(data_bank_[type]);
+    auto iter = instrument_map.begin();
+
+    while (iter != instrument_map.end() and instrument_map.size() > 0) {
+      auto &state = iter->second;
       update_ledger(state.update_time, state.source, state.dest, state.data);
+      iter = instrument_map.erase(iter);
     }
-    const_cast<std::unordered_map<uint64_t, state<DataType>> &>(data_bank_[type]).clear();
   }
 
   template <typename DataType> void UpdateOrder(const boost::hana::basic_type<DataType> &type) {
@@ -264,7 +313,7 @@ private:
 
       auto strategy_location = ExtractLocation(info, 2, get_locator());
 
-      if (not strategy_location or not has_location(strategy_location->uid)) {
+      if (not strategy_location) {
         return Napi::BigInt::New(info.Env(), std::uint64_t(0));
       }
 
@@ -278,7 +327,7 @@ private:
         return Napi::BigInt::New(info.Env(), id);
       }
 
-      Channel request = {};
+      ChannelRequest request = {};
       request.dest_id = strategy_location->uid;
       request.source_id = ledger_home_location_->uid;
       master_cmd_writer->write(trigger_time, request);
@@ -318,8 +367,10 @@ private:
   private:
     Watcher &watcher_;
   };
+
   DECLARE_PTR(BookListener);
 };
+
 } // namespace kungfu::node
 
 #endif // KUNGFU_NODE_WATCHER_H

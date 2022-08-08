@@ -1,7 +1,12 @@
 macro(kungfu_setup MODULE_NAME)
   include(<%- kfcDir -%>/cmake/compiler.cmake)
-  
+
+  add_compile_definitions(KUNGFU_MODULE_NAME=${MODULE_NAME})
   add_compile_definitions(FMT_HEADER_ONLY)
+  
+  if (${CMAKE_CXX_COMPILER_ID} MATCHES GNU)
+    set(CMAKE_CXX_FLAGS_RELEASE "-O")
+  endif ()
 
   include_directories("<%- kfcDir -%>/include")
   <%_ includes.forEach(dir => { _%>
@@ -20,12 +25,8 @@ macro(kungfu_setup MODULE_NAME)
 
   set(BUILD_OUTPUT_DIR "${PROJECT_BINARY_DIR}/target")
 
-  execute_process(
-    COMMAND
-    node -p "require('@kungfu-trader/kungfu-core').executable"
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    OUTPUT_VARIABLE KFC_EXECUTABLE
-  )
+  SET(KFC_EXECUTABLE "<%- kfcExec %>")
+
   string(REPLACE "\n" "" KFC_EXECUTABLE ${KFC_EXECUTABLE})
   string(REPLACE "\"" "" KFC_EXECUTABLE ${KFC_EXECUTABLE})
 

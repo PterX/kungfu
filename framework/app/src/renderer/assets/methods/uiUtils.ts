@@ -6,15 +6,15 @@ import {
   getCurrentInstance,
   toRaw,
   Component,
+  App,
 } from 'vue';
 import {
+  buildProcessLogPath,
   KF_HOME,
-  LOG_DIR,
 } from '@kungfu-trader/kungfu-js-api/config/pathConfig';
 import {
   getInstrumentTypeData,
   getProcessIdByKfLocation,
-  getTradingDate,
   kfLogger,
   removeJournal,
   removeDB,
@@ -24,7 +24,6 @@ import {
   transformSearchInstrumentResultToInstrument,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { ExchangeIds } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
-import dayjs from 'dayjs';
 import { BrowserWindow, getCurrentWindow, dialog } from '@electron/remote';
 import { ipcRenderer } from 'electron';
 import { message, Modal } from 'ant-design-vue';
@@ -39,6 +38,7 @@ import { VueNode } from 'ant-design-vue/lib/_util/type';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 const { t } = VueI18n.global;
 import fse from 'fs-extra';
+import { Router } from 'vue-router';
 
 // this utils file is only for ui components
 export const getUIComponents = (
@@ -73,13 +73,88 @@ export const getUIComponents = (
           .reduce((cData, cName) => {
             return {
               ...cData,
-              [`${key}-${cName}`]: global.require(
+              [`${key}-${cName}`]: globalThis.require(
                 path.join(extPath, (components || {})[cName]),
               ).default as Component,
             };
           }, {} as Record<string, Component>),
       };
     });
+};
+
+export const loadExtScripts = async (
+  components: {
+    key: string;
+    name: string;
+    script: string;
+    extPath: string;
+    position: KfUIExtLocatorTypes;
+    cData: Record<string, Component>;
+  }[],
+  app: App<Element>,
+) => {
+  const allExtScriptModules = await Promise.all(
+    components.map(({ extPath, script }) => {
+      const scriptPath = path.join(extPath, script);
+      if (script && fse.pathExistsSync(scriptPath)) {
+        return globalThis.require(scriptPath);
+      }
+    }),
+  );
+
+  allExtScriptModules
+    .filter((extScriptModule) => !!extScriptModule)
+    .forEach((extScriptModule) => {
+      app.use(extScriptModule.default, globalThis);
+    });
+
+  return components;
+};
+
+export const loadExtComponents = (
+  components: {
+    key: string;
+    name: string;
+    script: string;
+    extPath: string;
+    position: KfUIExtLocatorTypes;
+    cData: Record<string, Component>;
+  }[],
+  app: App<Element>,
+  router: Router,
+) => {
+  components.forEach(({ cData, position, key, name }) => {
+    switch (position) {
+      case 'sidebar':
+        if (cData[`${key}-entry`] && cData[`${key}-page`]) {
+          app.component(key, cData[`${key}-entry`]);
+          router.addRoute({
+            path: `/${key}`,
+            name: key,
+            component: cData[`${key}-page`],
+          });
+        } else {
+          console.warn(`${key}-entry or ${key}-page not in cData`);
+        }
+        break;
+      case 'board':
+        if (cData[`${key}-index`]) {
+          app.component(name, cData[`${key}-index`]);
+          if (app.config.globalProperties.$availKfBoards.indexOf(name) === -1) {
+            app.config.globalProperties.$availKfBoards.push(name);
+          }
+        } else {
+          console.warn(`${key}-index not in cData`);
+        }
+        break;
+      default:
+        if (cData[`${key}-index`]) {
+          app.component(key, cData[`${key}-index`]);
+        } else {
+          console.warn(`${key}-index not in cData`);
+        }
+    }
+  });
 };
 
 export const useModalVisible = (
@@ -130,35 +205,30 @@ export const useTableSearchKeyword = <T>(
   };
 };
 
-const removeJournalBeforeStartAll = (
-  currentTradingDate: string,
-): Promise<void> => {
-  const clearJournalDateFromLocal = localStorage.getItem(
-    'clearJournalTradingDate',
-  );
+const removeJournalBeforeStartAll = (): Promise<void> => {
+  const needClearJournalStr = localStorage.getItem('needClearJournal');
+  const needClearJournal = !!(needClearJournalStr && +needClearJournalStr);
 
-  kfLogger.info(
-    'Lastest Clear Journal Trading Date: ',
-    clearJournalDateFromLocal || '',
-  );
+  kfLogger.info('needClearJournal: ', needClearJournal);
 
-  if (currentTradingDate !== clearJournalDateFromLocal) {
-    localStorage.setItem('clearJournalTradingDate', currentTradingDate);
-    kfLogger.info('Clear Journal Trading Date: ', currentTradingDate);
+  if (needClearJournal) {
+    localStorage.setItem('needClearJournal', '0');
+    kfLogger.info('Clear Journal Done', needClearJournal);
     return removeJournal(KF_HOME);
   } else {
     return Promise.resolve();
   }
 };
 
-const removeDBBeforeStartAll = (currentTradingDate: string): Promise<void> => {
-  const clearDBDateFromLocal = localStorage.getItem('clearDBTradingDate');
+const removeDBBeforeStartAll = (): Promise<void> => {
+  const needClearDBStr = localStorage.getItem('needClearDB');
+  const needClearDB = !!(needClearDBStr && +needClearDBStr);
 
-  kfLogger.info('Lastest Clear DB Trading Date: ', clearDBDateFromLocal || '');
+  kfLogger.info('needClearDB: ', needClearDB);
 
-  if (currentTradingDate !== clearDBDateFromLocal) {
-    localStorage.setItem('clearDBTradingDate', currentTradingDate);
-    kfLogger.info('Clear DB Trading Date: ', currentTradingDate);
+  if (needClearDB) {
+    localStorage.setItem('needClearDB', '0');
+    kfLogger.info('Clear DB Done');
     return removeDB(KF_HOME);
   } else {
     return Promise.resolve();
@@ -166,11 +236,7 @@ const removeDBBeforeStartAll = (currentTradingDate: string): Promise<void> => {
 };
 
 export const preStartAll = async (): Promise<(void | Proc)[]> => {
-  const currentTradingDate = getTradingDate();
-  return Promise.all([
-    removeJournalBeforeStartAll(currentTradingDate),
-    removeDBBeforeStartAll(currentTradingDate),
-  ]);
+  return Promise.all([removeJournalBeforeStartAll(), removeDBBeforeStartAll()]);
 };
 
 export const postStartAll = async (): Promise<(void | Proc)[]> => {
@@ -219,7 +285,6 @@ export const openNewBrowserWindow = (
         nodeIntegration: true,
         nodeIntegrationInWorker: true,
         contextIsolation: false,
-        enableRemoteModule: true,
       },
       backgroundColor: '#000',
       ...windowConfig,
@@ -301,18 +366,18 @@ export const useIpcListener = (): void => {
       app?.proxy.$globalBus.next({
         tag: 'main',
         name: args,
-      } as MainProcessEvent);
+      } as KfEvent.MainProcessEvent);
     }
   });
 };
 
 export const markClearJournal = (): void => {
-  localStorage.setItem('clearJournalTradingDate', '');
+  localStorage.setItem('needClearJournal', '');
   messagePrompt().success(t('clear', { content: 'journal' }));
 };
 
 export const markClearDB = (): void => {
-  localStorage.setItem('clearDBTradingDate', '');
+  localStorage.setItem('needClearDB', '1');
   messagePrompt().success(t('clear', { content: 'DB' }));
 };
 
@@ -341,11 +406,7 @@ export const handleOpenLogview = (
   config: KungfuApi.KfConfig | KungfuApi.KfLocation,
 ): Promise<Electron.BrowserWindow | void> => {
   const hideloading = message.loading(t('open_window'));
-  const logPath = path.resolve(
-    LOG_DIR,
-    dayjs().format('YYYYMMDD'),
-    `${getProcessIdByKfLocation(config)}.log`,
-  );
+  const logPath = buildProcessLogPath(getProcessIdByKfLocation(config));
   return openLogView(logPath).finally(() => {
     hideloading();
   });
@@ -438,7 +499,7 @@ export const useDownloadHistoryTradingData = (): {
         tag: 'export',
         tradingDataType,
         currentKfLocation,
-      } as ExportTradingDataEvent);
+      } as KfEvent.ExportTradingDataEvent);
     }
   };
 

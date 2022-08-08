@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, Ref, ref, toRefs } from 'vue';
-import {
+import Icon, {
   FileTextOutlined,
   SettingOutlined,
   DeleteOutlined,
@@ -53,7 +53,7 @@ const currentSelectedSourceId = ref<string>('');
 const { extConfigs, mdExtTypeMap } = useExtConfigsRelated();
 const { md } = toRefs(useAllKfConfigData());
 const mdIdList = computed(() => {
-  return md.value.map((item: KungfuApi.KfConfig): string =>
+  return md.value.map((item: KungfuApi.KfLocation): string =>
     getIdByKfLocation(item),
   );
 });
@@ -72,7 +72,10 @@ const { searchKeyword, tableData } = useTableSearchKeyword<KungfuApi.KfConfig>(
 const { handleConfirmAddUpdateKfConfig, handleRemoveKfConfig } =
   useAddUpdateRemoveKfConfig();
 
-function handleOpenSetMdDialog(
+const getPrefixByLocation = (kfLocation: KungfuApi.KfLocation) =>
+  globalThis.HookKeeper.getHooks().prefix.trigger(kfLocation);
+
+async function handleOpenSetMdDialog(
   type = 'add' as KungfuApi.ModalChangeType,
   selectedSource: string,
   mdConfig?: KungfuApi.KfConfig,
@@ -89,7 +92,15 @@ function handleOpenSetMdDialog(
   currentSelectedSourceId.value = selectedSource;
   setMdConfigPayload.value.type = type;
   setMdConfigPayload.value.title = `${selectedSource} ${t('Md')}`;
-  setMdConfigPayload.value.config = extConfig;
+  setMdConfigPayload.value.config =
+    await globalThis.HookKeeper.getHooks().resolveExtConfig.trigger(
+      {
+        category: 'md',
+        group: selectedSource,
+        name: '*',
+      },
+      extConfig,
+    );
   setMdConfigPayload.value.initValue = undefined;
 
   if (type === 'update') {
@@ -181,6 +192,11 @@ function handleRemoveMd(record: KungfuApi.KfConfig) {
             <a-tag :color="getInstrumentTypeColor(mdExtTypeMap[record.name])">
               {{ record.group }}
             </a-tag>
+            <Icon
+              v-if="getPrefixByLocation(record).prefixType === 'icon'"
+              :component="getPrefixByLocation(record).prefix"
+              style="font-size: 12px"
+            />
           </template>
           <template v-else-if="column.dataIndex === 'stateStatus'">
             <KfProcessStatus

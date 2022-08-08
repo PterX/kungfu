@@ -3,9 +3,8 @@ import { SlidersOutlined, SettingOutlined } from '@ant-design/icons-vue';
 import KfProcessStatusController from '@kungfu-trader/kungfu-app/src/renderer/components/layout/KfProcessStatusController.vue';
 import { computed, getCurrentInstance, onBeforeUnmount, ref } from 'vue';
 import { useExtConfigsRelated } from '../../assets/methods/actionsUtils';
-import globalBus from '../../assets/methods/globalBus';
+import globalBus from '@kungfu-trader/kungfu-js-api/utils/globalBus';
 import KfGlobalSettingModal from '../public/KfGlobalSettingModal.vue';
-// import { useI18n } from "vue-i18n";
 
 const logo = require('@kungfu-trader/kungfu-app/src/renderer/assets/svg/LOGO.svg');
 
@@ -25,6 +24,17 @@ const sidebarFooterComponentConfigs = computed(() => {
     });
 });
 
+const footerComponentConfigs = computed(() => {
+  return Object.keys(uiExtConfigs.value)
+    .filter((key) => uiExtConfigs.value[key].position === 'footer')
+    .map((key) => {
+      return {
+        ...uiExtConfigs.value[key],
+        key,
+      };
+    });
+});
+
 const sidebarComponentConfigs = computed(() => {
   return Object.keys(uiExtConfigs.value)
     .filter((key) => uiExtConfigs.value[key].position === 'sidebar')
@@ -36,7 +46,7 @@ const sidebarComponentConfigs = computed(() => {
     });
 });
 
-const busSubscription = globalBus.subscribe((data: KfBusEvent) => {
+const busSubscription = globalBus.subscribe((data: KfEvent.KfBusEvent) => {
   if (data.tag === 'main') {
     switch (data.name) {
       case 'open-setting-dialog':
@@ -108,6 +118,9 @@ function handleToPage(pathname: string) {
     </a-layout>
     <a-layout-footer>
       <KfProcessStatusController></KfProcessStatusController>
+      <div class="kf-footer-box__warp" v-for="config in footerComponentConfigs">
+        <component :is="config.key"></component>
+      </div>
     </a-layout-footer>
     <KfGlobalSettingModal
       v-if="globalSettingModalVisible"
@@ -192,6 +205,12 @@ function handleToPage(pathname: string) {
     height: @layout-footer-height;
     line-height: @layout-footer-height;
     padding: 0 8px 0 0;
+
+    .kf-footer-box__warp {
+      float: right;
+      height: 100%;
+      margin-right: 8px;
+    }
   }
 }
 </style>

@@ -15,7 +15,7 @@ import {
   getPrimaryKeyFromKfConfigItem,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { setKfConfig } from '@kungfu-trader/kungfu-js-api/kungfu/store';
-import { PromptAnswer } from 'src/typings';
+import { PromptAnswer } from '../typings';
 
 inquirer.registerPrompt('autocomplete', autocompletePrompt);
 inquirer.registerPrompt('path', PathPrompt);
@@ -47,7 +47,15 @@ export const addMdTdStrategy = async (type: KfCategoryTypes): Promise<void> => {
     const extStrList = parseExtDataList(extDataList);
     const { source } = await selectKfExtPrompt(extStrList);
     const extKey = source.split('    ')[1];
-    const extConfig = extConfigs['md'][extKey];
+    const extConfig =
+      await globalThis.HookKeeper.getHooks().resolveExtConfig.trigger(
+        {
+          category: 'md',
+          group: extKey,
+          name: '*',
+        },
+        extConfigs['md'][extKey],
+      );
     const settings = extConfig?.settings;
 
     if (settings === undefined) {
@@ -74,7 +82,15 @@ export const addMdTdStrategy = async (type: KfCategoryTypes): Promise<void> => {
     const extStrList = parseExtDataList(extDataList);
     const { source } = await selectKfExtPrompt(extStrList);
     const extKey = source.split('    ')[1];
-    const extConfig = extConfigs['td'][extKey];
+    const extConfig =
+      await globalThis.HookKeeper.getHooks().resolveExtConfig.trigger(
+        {
+          category: 'td',
+          group: extKey,
+          name: '*',
+        },
+        extConfigs['td'][extKey],
+      );
     const settings = extConfig?.settings;
 
     if (settings === undefined) {

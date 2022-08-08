@@ -6,9 +6,8 @@ import {
   Menu,
   MenuItemConstructorOptions,
   shell,
-  ipcMain,
 } from 'electron';
-import * as remoteMain from '@electron/remote/main';
+import { initialize, enable as enableRemote } from '@electron/remote/main';
 import path from 'path';
 import os from 'os';
 import {
@@ -16,12 +15,8 @@ import {
   showCrashMessageBox,
   showKungfuInfo,
   openUrl,
-  registerScheduleTasks,
 } from '@kungfu-trader/kungfu-app/src/main/utils';
-import {
-  kfLogger,
-  removeJournal,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { kfLogger } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { killExtra } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
 import {
   clearDB,
@@ -35,12 +30,10 @@ import {
 import {
   BASE_DB_DIR,
   KF_HOME,
-  NODE_DIR,
 } from '@kungfu-trader/kungfu-js-api/config/pathConfig';
 import {
   initKfConfig,
   initKfDefaultInstruments,
-  ensureKungfuKey,
 } from '@kungfu-trader/kungfu-js-api/config';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 const { t } = VueI18n.global;
@@ -52,22 +45,15 @@ let SecheduleReloading = false;
 const isDev = process.env.NODE_ENV === 'development';
 const isMac = os.platform() === 'darwin';
 
-remoteMain.initialize();
+initialize();
 setMenu();
 initKfConfig();
 initKfDefaultInstruments();
-ensureKungfuKey();
 
 async function createWindow(
   reloadAfterCrashed = false,
   reloadBySchedule = false,
 ) {
-  try {
-    await removeJournal(NODE_DIR);
-  } catch (err) {
-    kfLogger.error(err.message);
-  }
-
   if (reloadAfterCrashed) {
     CrashedReloading = true;
     MainWindow && MainWindow.close();
@@ -88,7 +74,6 @@ async function createWindow(
       nodeIntegration: true,
       nodeIntegrationInWorker: true,
       contextIsolation: false,
-      enableRemoteModule: true,
       additionalArguments: [
         reloadAfterCrashed ? 'reloadAfterCrashed' : '',
         reloadBySchedule ? 'reloadBySchedule' : '',
@@ -96,6 +81,8 @@ async function createWindow(
     },
     backgroundColor: '#000',
   });
+
+  enableRemote(MainWindow.webContents);
 
   if (isDev) {
     MainWindow.loadURL('http://localhost:9090/index.html');
@@ -236,6 +223,10 @@ app.on('will-quit', (e) => {
   }
 
   e.preventDefault();
+});
+
+app.on('browser-window-created', (_, window) => {
+  enableRemote(window.webContents);
 });
 
 // In this file you can include the rest of your app's specific main process
@@ -385,8 +376,3 @@ process
       err.message,
     );
   });
-
-registerScheduleTasks(createWindow);
-ipcMain.on('schedule-setting-refresh', () => {
-  registerScheduleTasks(createWindow);
-});

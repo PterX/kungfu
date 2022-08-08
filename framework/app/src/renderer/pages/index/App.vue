@@ -5,11 +5,11 @@ import KfLayoutVue from '@kungfu-trader/kungfu-app/src/renderer/components/layou
 import KfSetByConfigModal from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfSetByConfigModal.vue';
 import zhCN from 'ant-design-vue/es/locale/zh_CN';
 import {
-  markClearDB,
   markClearJournal,
   removeLoadingMask,
   useIpcListener,
   handleOpenLogviewByFile,
+  markClearDB,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import {
   playSound,
@@ -22,7 +22,7 @@ import {
 import { useGlobalStore } from './store/global';
 import KfDownloadDateModal from '@kungfu-trader/kungfu-app/src/renderer/components/layout/KfHistoryDateModal.vue';
 import { tradingDataSubject } from '@kungfu-trader/kungfu-js-api/kungfu/tradingData';
-import globalBus from '../../assets/methods/globalBus';
+import globalBus from '@kungfu-trader/kungfu-js-api/utils/globalBus';
 import {
   dealAppStates,
   dealAssetsByHolderUID,
@@ -57,7 +57,10 @@ const tradingDataSubscription = tradingDataSubject.subscribe(
   (watcher: KungfuApi.Watcher) => {
     const appStates = dealAppStates(watcher, watcher.appStates);
     store.setAppStates(appStates);
-    const assets = dealAssetsByHolderUID(watcher, watcher.ledger.Asset);
+    const assets = dealAssetsByHolderUID<KungfuApi.Asset>(
+      watcher,
+      watcher.ledger.Asset,
+    );
     store.setAssets(assets);
     const strategyStates = dealStrategyStates(watcher, watcher.strategyStates);
     store.setStrategyStates(strategyStates);
@@ -77,7 +80,7 @@ store.setSubscribedInstruments();
 store.setRiskSettingList();
 store.setKfGlobalSetting();
 
-const busSubscription = globalBus.subscribe((data: KfBusEvent) => {
+const busSubscription = globalBus.subscribe((data: KfEvent.KfBusEvent) => {
   if (data.tag === 'main') {
     switch (data.name) {
       case 'clear-journal':
@@ -93,7 +96,7 @@ const busSubscription = globalBus.subscribe((data: KfBusEvent) => {
         globalBus.next({
           tag: 'export',
           tradingDataType: 'all',
-        } as ExportTradingDataEvent);
+        } as KfEvent.ExportTradingDataEvent);
     }
   }
   if (data.tag === 'update:riskSetting') {
@@ -118,7 +121,7 @@ onMounted(() => {
     app?.proxy &&
       app?.proxy.$globalBus.next({
         tag: 'resize',
-      } as ResizeEvent);
+      } as KfEvent.ResizeEvent);
   });
 });
 

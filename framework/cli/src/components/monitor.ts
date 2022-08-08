@@ -3,13 +3,14 @@ import MessageBox from '../assets/components/MessageBox';
 import Loading from '../assets/components/Loading';
 import { DEFAULT_PADDING, TABLE_BASE_OPTIONS } from '../assets/config/index';
 import blessed, { Widgets } from 'blessed';
-import { ListElementResolved, ProcessListItem } from 'src/typings';
+import { ListElementResolved, ProcessListItem } from '../typings';
 import {
   processListObservable,
   switchProcess,
 } from '../assets/actions/processList';
 import { dealMemory, parseToString } from '../assets/methods/utils';
 import { Log } from '../assets/actions/log';
+import { initBusEvent } from '../assets/actions/busEvent';
 import {
   debounce,
   setTimerPromiseTask,
@@ -209,6 +210,8 @@ export class MonitorDashboard extends Dashboard {
       const nameKey: string = boards[i];
       this.boards[nameKey].focus();
     });
+
+    initBusEvent(this);
   }
 
   _setLogItems() {

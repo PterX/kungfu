@@ -2,6 +2,7 @@
 // Created by Keren Dong on 2020/3/27.
 //
 
+#include <fstream>
 #include <kungfu/yijinjing/index/session.h>
 
 using namespace sqlite_orm;
@@ -84,6 +85,7 @@ void session_builder::close_session(const location_ptr &source_location, int64_t
 
   auto &session = live_sessions_.at(source_location->uid);
   session.end_time = -time;
+  session.update_time = time;
   session_storage_->replace(session);
 }
 
@@ -91,6 +93,7 @@ SessionMap &session_builder::close_all_sessions(int64_t time) {
   for (auto &pair : live_sessions_) {
     auto &session = pair.second;
     session.end_time = -time;
+    session.update_time = time;
     session_storage_->replace(session);
   }
   return live_sessions_;

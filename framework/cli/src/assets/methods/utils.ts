@@ -1,17 +1,26 @@
+import path from 'path';
+import fse from 'fs-extra';
 import inquirer from 'inquirer';
 import colors from 'colors';
 import { KfCategoryTypes } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
+  getAvailCliDaemonList,
   getIdByKfLocation,
+  getKfCliExtensionConfig,
   getProcessIdByKfLocation,
   initFormStateByConfig,
+  loopToRunProcess,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { getAllKfConfigOriginData } from '@kungfu-trader/kungfu-js-api/actions';
 import {
   BrokerStateStatus,
   Pm2ProcessStatus,
 } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
-import { PromptInputType, PromptQuestion } from 'src/typings';
+import { PromptInputType, PromptQuestion } from '../../typings';
+import { startExtDaemon } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
+import { Proc } from 'pm2';
+import { globalState } from '../actions/globalState';
+import { program } from 'commander';
 
 export const parseToString = (
   targetList: (string | number)[],
@@ -199,8 +208,8 @@ export const getKfLocation = (
   } else if (type === 'td') {
     return {
       category: 'td',
-      group: targetId.parseSourceAccountId().source,
-      name: targetId.parseSourceAccountId().id,
+      group: (targetId || '').parseSourceAccountId().source,
+      name: (targetId || '').parseSourceAccountId().id,
       mode: 'live',
     };
   } else if (type === 'strategy') {
@@ -232,14 +241,14 @@ export const selectTargetKfConfig = async (
         )),
     ...td.map((item) =>
       parseToString(
-        [colors.blue('td'), getIdByKfLocation(item)],
+        [colors.cyan('td'), getIdByKfLocation(item)],
         [8, 'auto'],
         1,
       ),
     ),
     ...strategy.map((item) =>
       parseToString(
-        [colors.cyan('strategy'), getIdByKfLocation(item)],
+        [colors.blue('strategy'), getIdByKfLocation(item)],
         [8, 'auto'],
         1,
       ),
@@ -304,6 +313,10 @@ export const dealMemory = (mem: number): string => {
   return Number((mem || 0) / (1024 * 1024)).toFixed(0) + 'MB';
 };
 
+export const dealProcessName = (name: string) => {
+  return name ? name.split('_').at(-1) : null;
+};
+
 export const calcHeaderWidth = (
   target: string[],
   wish: (string | number)[],
@@ -320,9 +333,11 @@ export const getCategoryName = (category: KfCategoryTypes) => {
   if (category === 'md') {
     return colors.yellow('Md');
   } else if (category === 'td') {
-    return colors.cyan('td');
+    return colors.cyan('Td');
   } else if (category === 'strategy') {
     return colors.blue('Strat');
+  } else if (category === 'daemon') {
+    return colors.green('Daem');
   } else {
     return colors.bgMagenta('Sys');
   }
@@ -344,4 +359,92 @@ export const getPadSpace = (num: number) => {
 
 export const isObject = (val) => {
   return Object.prototype.toString.call(val) === '[object Object]';
+};
+
+export const startAllExtDaemons = async () => {
+  const availDaemons = await getAvailCliDaemonList();
+  return loopToRunProcess<void | Proc>(
+    availDaemons.map((item) => {
+      return () =>
+        startExtDaemon(getProcessIdByKfLocation(item), item.cwd, item.script)
+          .then((res) => {
+            return res;
+          })
+          .catch((err) => console.error(err));
+    }),
+  );
+};
+
+interface KfExtModule {
+  install: (gs: unknown, gt: typeof globalThis) => void;
+}
+
+const indexUse = (ext: KfExtModule) => {
+  const { install } = ext;
+  if (install) {
+    install(program, globalThis);
+  }
+};
+
+const dzxyUse = (ext: KfExtModule) => {
+  const { install } = ext;
+  if (install) {
+    install(globalState, globalThis);
+  }
+};
+
+export const useAllExtScript = () => {
+  return getKfCliExtensionConfig()
+    .then((allConfigs) =>
+      Promise.all(
+        Object.values(allConfigs).map((config) => {
+          const { extPath, script } = config;
+          const scriptPath = path.join(extPath, script);
+          if (script && fse.pathExistsSync(scriptPath)) {
+            return <Record<string, KfExtModule>>(
+              __non_webpack_require__(scriptPath)
+            );
+          }
+
+          return null;
+        }),
+      ),
+    )
+    .then((allExtModules) => {
+      allExtModules.forEach((extModule) => {
+        if (extModule) {
+          dzxyUse(extModule['default']);
+        }
+      });
+    });
+};
+
+export const useAllExtComponentByPosition = async (
+  curPosition: 'index' | 'dzxy',
+) => {
+  const allConfigs = await getKfCliExtensionConfig();
+  for (const config of Object.values(allConfigs)) {
+    const { components, extPath } = config;
+    if (components) {
+      for (const key of Object.keys(components)) {
+        const { entry, position } = components[key];
+
+        if (position !== curPosition) continue;
+
+        const componentPath = path.join(extPath, entry);
+        if (entry && fse.pathExistsSync(componentPath)) {
+          const extModule = <Record<string, KfExtModule>>(
+            await __non_webpack_require__(componentPath)
+          );
+          if (extModule) {
+            if (curPosition === 'index') {
+              indexUse(extModule['default']);
+            } else if (curPosition === 'dzxy') {
+              dzxyUse(extModule['default']);
+            }
+          }
+        }
+      }
+    }
+  }
 };

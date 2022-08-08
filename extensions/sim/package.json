@@ -1,10 +1,10 @@
 {
   "name": "@kungfu-trader/kfx-broker-sim",
   "author": {
-    "name": "kungfu-trader",
+    "name": "Kungfu Trader",
     "email": "info@kungfu.link"
   },
-  "version": "2.4.0-alpha.100",
+  "version": "2.4.0-alpha.127",
   "description": "Kungfu Extension - SIM",
   "license": "Apache-2.0",
   "main": "package.json",
@@ -24,15 +24,15 @@
   "scripts": {
     "build": "kfs extension build",
     "clean": "kfs extension clean",
-    "format": "node ../../framework/core/.gyp/node-format-python.js src",
+    "format": "node ../../framework/core/.gyp/run-format-python.js src",
     "install": "node -e \"require('@kungfu-trader/kungfu-core').prebuilt('install')\"",
     "package": "kfs project package"
   },
   "dependencies": {
-    "@kungfu-trader/kungfu-core": "^2.4.0-alpha.100"
+    "@kungfu-trader/kungfu-core": "^2.4.0-alpha.127"
   },
   "devDependencies": {
-    "@kungfu-trader/kungfu-sdk": "^2.4.0-alpha.100"
+    "@kungfu-trader/kungfu-sdk": "^2.4.0-alpha.127"
   },
   "kungfuBuild": {
     "python": {

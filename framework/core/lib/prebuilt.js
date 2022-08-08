@@ -1,18 +1,68 @@
-module.exports = (...argv) => {
+const main = (...argv) => {
   const node_pre_gyp = require('@mapbox/node-pre-gyp');
-  const prog = new node_pre_gyp.Run({
-    argv: [process.execPath, __filename, ...argv],
-  });
-  const run = () => {
-    const command = prog.todo.shift();
-    command &&
+  const shell = require('./shell');
+
+  const Runner = function () {
+    const prog = new node_pre_gyp.Run({
+      argv: [process.execPath, __filename, ...argv],
+    });
+
+    const run = (runner) => {
+      const command = prog.todo.shift();
+      if (!command) {
+        return runner.success();
+      }
+      if (command.name === 'install') {
+        shell.setAutoConfig();
+        shell.showAutoConfig();
+      }
       prog.commands[command.name](command.args, function (err) {
-        if (err) {
-          console.log(err.message);
+        if (!err) {
+          process.nextTick(() => run(runner));
           return;
         }
-        process.nextTick(run);
+        if (
+          command.name !== 'install' ||
+          '--build-from-source' in command.args
+        ) {
+          runner.failure(err);
+        }
+        const msg = 'safely ignore missing binaries (expected to build)';
+        try {
+          require('npmlog').info('install', msg);
+        } catch (e) {
+          console.log(msg);
+        }
       });
+    };
+
+    if (prog.todo.length > 0) {
+      return run(this);
+    }
+
+    console.log(prog.usage());
   };
-  run();
+
+  const proto = Runner.prototype;
+  proto.failure = (err) => {
+    console.error(err);
+    process.exit(-1);
+  };
+  proto.success = () => true;
+  proto.onFailure = function (cb) {
+    this.failure = cb;
+    return this;
+  };
+  proto.onSuccess = function (cb) {
+    this.success = cb;
+    return this;
+  };
+
+  return new Runner();
 };
+
+module.exports = main;
+
+if (require.main === module) {
+  main();
+}

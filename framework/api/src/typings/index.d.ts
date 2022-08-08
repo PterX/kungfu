@@ -1,36 +1,8 @@
-declare const __resources: string;
+declare function __non_webpack_require__(id: string): unknown;
 declare const __python_version: string;
 declare const __git_commit_version: string;
 declare const __build_timestamp: number;
-
-declare module NodeJS {
-  interface Global {
-    __resources: string;
-    __kfResourcesPath: string;
-  }
-
-  interface Process {
-    resourcesPath: string;
-  }
-}
-
-declare module 'tail' {
-  export class Tail {
-    constructor(
-      filePath: string,
-      options: {
-        follow?: boolean;
-        fromBeginning?: boolean;
-        nLines?: number;
-        useWatchFile?: boolean;
-      },
-    );
-    watch(): void;
-    unwatch(): void;
-    on(type: 'line', callback: (data: string) => void);
-    on(type: 'error', callback: (err: Error) => void);
-  }
-}
+declare const __resources: string;
 
 declare namespace KungfuApi {
   import {
@@ -44,6 +16,7 @@ declare namespace KungfuApi {
     SideEnum,
     OffsetEnum,
     HedgeFlagEnum,
+    UnderweightEnum,
     LedgerCategoryEnum,
     VolumeConditionEnum,
     TimeConditionEnum,
@@ -56,6 +29,8 @@ declare namespace KungfuApi {
     KfModeEnum,
     KfModeTypes,
     OrderActionFlagEnum,
+    OrderInputKeyEnum,
+    KfExtConfigTypes,
   } from './enums';
   import { Dayjs } from 'dayjs';
 
@@ -94,6 +69,7 @@ declare namespace KungfuApi {
     | 'timePicker' //string
     | 'select'
     | 'radio'
+    | 'checkbox'
     | 'bool'
     | 'int'
     | 'float'
@@ -141,8 +117,6 @@ declare namespace KungfuApi {
     primary?: boolean;
     options?: KfSelectOption[];
     data?: KfSelectOption[];
-    args?: Array<{ key: string | number; value: string | number }>; // process
-    target?: string; // process
     tip?: string;
   }
 
@@ -168,6 +142,18 @@ declare namespace KungfuApi {
             entry: string;
             page: string;
           };
+      daemon?: Record<string, string>;
+      script?: string;
+    };
+    cli_config?: {
+      exhibit?: KfExhibitConfig;
+      components?: Record<
+        string,
+        {
+          position: 'index' | 'dzxy';
+          entry: string;
+        }
+      >;
       daemon?: Record<string, string>;
       script?: string;
     };
@@ -223,6 +209,24 @@ declare namespace KungfuApi {
     }
   >;
 
+  export type KfCliExtConfigs = Record<
+    string,
+    {
+      name: string;
+      extPath: string;
+      exhibit: KfExhibitConfig;
+      daemon: Record<string, string>;
+      components: Record<
+        string,
+        {
+          position: 'index' | 'dzxy';
+          entry: string;
+        }
+      > | null;
+      script: string;
+    }
+  >;
+
   export interface SetKfConfigPayload {
     type: KungfuApi.ModalChangeType;
     title: string;
@@ -242,6 +246,7 @@ declare namespace KungfuApi {
     side: SideEnum;
     offset: OffsetEnum;
     hedge_flag: HedgeFlagEnum;
+    is_swap: boolean;
   }
 
   export interface KfLogData {
@@ -380,6 +385,7 @@ declare namespace KungfuApi {
 
   export interface Order {
     order_id: bigint; //订单ID
+    external_id: bigint; //外部委托ID
     insert_time: bigint; //订单写入时间
     update_time: bigint; //订单更新时间
 
@@ -448,12 +454,27 @@ declare namespace KungfuApi {
     price_type: PriceTypeEnum; //价格类型
     volume_condition: VolumeConditionEnum; //成交量类型
     time_condition: TimeConditionEnum; //成交时间类型
+    block_id: bigint; // 大宗交易ID
 
     insert_time: bigint; //写入时间
 
     source: number;
     dest: number;
     uid_key: string;
+  }
+
+  export interface BlockMessage {
+    opponent_seat: number; // 对方手席位号
+    opponent_account: string; // 对方手账户
+    match_number: bigint; // 成交约定号
+    value:
+      | {
+          linkman: string; // 联系人
+          contact_way: string; // 联系方式
+          underweight_type: UnderweightEnum; // 减持类型
+        }
+      | string;
+    insert_time: bigint;
   }
 
   export interface OrderStat {
@@ -552,6 +573,7 @@ declare namespace KungfuApi {
   export interface Trade {
     trade_id: bigint; //成交ID
     order_id: bigint; //订单ID
+    external_id: bigint; //外部委托ID
     trade_time: bigint; //成交时间
 
     trading_day: string; //交易日
@@ -711,6 +733,10 @@ declare namespace KungfuApi {
       tdLocation: KfLocation,
       strategyLocation?: KfLocation,
     ): bigint;
+    issueBlockMessage(
+      blockMessage: BlockMessage,
+      tdLocation: KfLocation,
+    ): bigint;
     now(): bigint;
   }
   export interface Session {
@@ -752,8 +778,9 @@ declare namespace KungfuApi {
     watcher(
       kfHome: string,
       hashedId: string,
-      bypassQuote?: boolean,
-      bypassRestore?: boolean,
+      bypassRestore = false,
+      bypassAccounting = false,
+      bypassTradingData = false,
     ): Watcher | null;
     Assemble(kfHome: string[]): Assemble | null;
     shutdown(): void;
@@ -816,6 +843,12 @@ declare namespace KungfuApi {
     script: string;
   }
 
+  export type DerivedKfLocation =
+    | KfLocation
+    | KfExtraLocation
+    | kfConfig
+    | KfDaemonLocation;
+
   export type ScheduleTaskMode = 'restart' | 'start' | 'stop';
 
   export interface ScheduleTask {
@@ -824,6 +857,12 @@ declare namespace KungfuApi {
     second: string;
     mode: ScheduleTaskMode;
     processId: string;
+  }
+
+  export interface TradeLimitItem {
+    instrument: string;
+    orderInputKey: OrderInputKeyEnum;
+    limitValue: number;
   }
 }
 
@@ -848,8 +887,8 @@ declare namespace Code {
   }
 
   export interface FileIds {
-    file: number[];
-    folder: number[];
+    file: Array<number | 'pending'>;
+    folder: Array<number | 'pending'>;
   }
   export interface FileTreeByPath {
     ids: FileIds;
@@ -857,7 +896,7 @@ declare namespace Code {
   }
   export interface FileData {
     id: number;
-    parentId: number;
+    parentId: number | '';
     isDir: boolean;
     name: string;
     ext: string;
@@ -883,4 +922,132 @@ declare namespace Code {
     tabSpaceType: SpaceTabSettingEnum;
     tabSpaceSize: SpaceSizeSettingEnum;
   }
+}
+
+declare namespace KfEvent {
+  export interface ResizeEvent {
+    tag: 'resize';
+  }
+
+  export interface ProcessStatusChangeEvent {
+    tag: 'processStatus';
+    name: string;
+    status: Pm2ProcessStatusTypes;
+  }
+
+  export interface MainProcessEvent {
+    tag: 'main';
+    name: string;
+  }
+
+  export interface TradingDataUpdateEvent {
+    tag: 'tradingDataUpdate';
+    tradingDataType: TradingDataTypeName;
+  }
+
+  export interface ExportTradingDataEvent {
+    tag: 'export';
+    tradingDataType: TradingDataTypeName | 'all';
+    currentKfLocation?: KfLocation | KfConfig | undefined;
+  }
+
+  export interface TriggeOrderBook {
+    tag: 'orderbook';
+    instrument: InstrumentResolved;
+  }
+
+  export interface TriggerOrderBookUpdate {
+    tag: 'orderBookUpdate';
+    orderInput: InstrumentResolved | ExtraOrderInput;
+  }
+
+  export interface TriggerMakeOrder {
+    tag: 'makeOrder';
+    orderInput: InstrumentResolved | ExtraOrderInput;
+  }
+
+  export interface TriggerUpdateTdGroup {
+    tag: 'update:tdGroup';
+    tdGroups: KungfuApi.KfExtraLocation[];
+  }
+
+  export interface TriggerUpdateTd {
+    tag: 'update:td';
+    tds: KungfuApi.KfConfig[];
+  }
+
+  export interface TriggerUpdateRiskSetting {
+    tag: 'update:riskSetting';
+    riskSettings: RiskSetting[];
+  }
+
+  export interface TriggerUpdateMd {
+    tag: 'update:md';
+    mds: KungfuApi.KfConfig[];
+  }
+
+  export interface TriggerUpdateStrategy {
+    tag: 'update:strategy';
+    strategys: KungfuApi.KfConfig[];
+  }
+
+  export interface TriggerUpdateExtConfigs {
+    tag: 'update:extConfigs';
+    extConfigs: KungfuApi.KfExtConfigs;
+  }
+
+  export interface TriggerAddBoard {
+    tag: 'addBoard';
+    boardId: number;
+  }
+
+  export interface TriggerCurrentConfigModalReady {
+    tag: 'ready:currentConfigModal';
+    category: string;
+    extKey: string;
+    initValue: Record<string, KungfuApi.KfConfigValue>;
+  }
+
+  export interface TriggerCurrentConfigModalInput {
+    tag: 'input:currentConfigModal';
+    category: string;
+    extKey: string;
+    formState: KungfuApi.SetKfConfigPayload;
+  }
+
+  export interface TriggerOpenGlobalSettingModal {
+    tag: 'open:globalSetting';
+  }
+
+  export interface TriggerCloseGlobalSettingModal {
+    tag: 'close:globalSetting';
+  }
+
+  export interface TriggerSetCurrentConfigModalConfigSettings {
+    tag: 'update:currentConfigModalConfigSettings';
+    configSettings: KungfuApi.KfConfigItem[];
+  }
+
+  export type KfBusEvent =
+    | ResizeEvent
+    | ProcessStatusChangeEvent
+    | MainProcessEvent
+    | TradingDataUpdateEvent
+    | TriggeOrderBook
+    | TriggerOrderBookUpdate
+    | TriggerMakeOrder
+    | TriggerUpdateTdGroup
+    | TriggerUpdateTd
+    | TriggerUpdateRiskSetting
+    | TriggerUpdateMd
+    | TriggerUpdateStrategy
+    | TriggerUpdateExtConfigs
+    | TriggerAddBoard
+    | ExportTradingDataEvent
+    | TriggerConfigModalFormChanged
+    | TriggerCurrentConfigModalReady
+    | TriggerCurrentConfigModalInput
+    | TriggerOpenGlobalSettingModal
+    | TriggerCloseGlobalSettingModal
+    | TriggerSetCurrentConfigModalConfigSettings;
 }

@@ -2,12 +2,9 @@ import fse, { ensureFileSync } from 'fs-extra';
 import {
   KF_CONFIG_DEFAULT_PATH,
   KF_CONFIG_PATH,
-  KF_HOME,
   KF_INSTRUMENTS_DEFAULT_PATH,
   KF_INSTRUMENTS_PATH,
-  KUNGFU_RESOURCES_DIR,
 } from './pathConfig';
-import path from 'path';
 
 export const initKfConfig = () => {
   if (!fse.existsSync(KF_CONFIG_PATH)) {
@@ -22,15 +19,5 @@ export const initKfDefaultInstruments = () => {
     ensureFileSync(KF_INSTRUMENTS_PATH);
     const kfInstrumentsJSON = fse.readJsonSync(KF_INSTRUMENTS_DEFAULT_PATH);
     fse.outputJsonSync(KF_INSTRUMENTS_PATH, kfInstrumentsJSON);
-  }
-};
-
-export const ensureKungfuKey = () => {
-  const targetKeyFile = path.join(KF_HOME, 'kungfu.key');
-  if (!fse.existsSync(targetKeyFile)) {
-    fse.copyFileSync(
-      path.join(KUNGFU_RESOURCES_DIR, 'key', 'kungfu.key'),
-      targetKeyFile,
-    );
   }
 };

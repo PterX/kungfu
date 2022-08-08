@@ -1,13 +1,23 @@
 import fse from 'fs-extra';
-import { SpaceSizeSettingEnum, SpaceTabSettingEnum } from '../typings/enums';
-import { KF_CONFIG_PATH, PY_WHL_DIR } from './pathConfig';
-import { CodeSizeSetting, CodeTabSetting } from './tradingConfig';
+import os from 'os';
 import {
-  languageList,
-  langDefault,
-} from '@kungfu-trader/kungfu-js-api/language';
+  OrderInputKeyEnum,
+  SpaceSizeSettingEnum,
+  SpaceTabSettingEnum,
+} from '../typings/enums';
+import { KF_CONFIG_PATH, PY_WHL_DIR } from './pathConfig';
+import {
+  CodeSizeSetting,
+  CodeTabSetting,
+  OrderInputKeySetting,
+} from './tradingConfig';
+// import {
+//   languageList,
+//   langDefault,
+// } from '@kungfu-trader/kungfu-js-api/language';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 const { t } = VueI18n.global;
+const numCPUs = os.cpus() ? os.cpus().length : 1;
 
 export interface KfSystemConfig {
   key: string;
@@ -35,14 +45,14 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
         ],
         default: '-l info',
       },
-      {
-        key: 'language',
-        name: t('globalSettingConfig.language'),
-        tip: t('globalSettingConfig.select_language'),
-        type: 'select',
-        options: languageList,
-        default: langDefault,
-      },
+      // {
+      //   key: 'language',
+      //   name: t('globalSettingConfig.language'),
+      //   tip: t('globalSettingConfig.select_language'),
+      //   type: 'select',
+      //   options: languageList,
+      //   default: langDefault,
+      // },
     ],
   },
   {
@@ -51,15 +61,23 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
     config: [
       {
         key: 'rocket',
-        name: t('globalSettingConfig.open_rocket_model'),
+        name: t('globalSettingConfig.rocket_model'),
         tip: t('globalSettingConfig.rocket_model_desc'),
+        default: false,
+        disabled: numCPUs <= 4,
+        type: 'bool',
+      },
+      {
+        key: 'bypassAccounting',
+        name: t('globalSettingConfig.bypass_accounting'),
+        tip: t('globalSettingConfig.bypass_accounting_desc'),
         default: false,
         type: 'bool',
       },
       {
-        key: 'bypassQuote',
-        name: t('globalSettingConfig.pass_quote'),
-        tip: t('globalSettingConfig.pass_quote_desc'),
+        key: 'bypassTradingData',
+        name: t('globalSettingConfig.bypass_trading_data'),
+        tip: t('globalSettingConfig.bypass_trading_data_desc'),
         default: false,
         type: 'bool',
       },
@@ -112,6 +130,49 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
         tip: t('globalSettingConfig.set_close_threshold'),
         default: '',
         type: 'percent',
+      },
+
+      {
+        key: 'limit',
+        name: t('globalSettingConfig.trade_limit'),
+        tip: t('globalSettingConfig.set_trade_limit'),
+        default: [],
+        type: 'table',
+        columns: [
+          {
+            key: 'instrument',
+            name: t('tradeConfig.instrument'),
+            type: 'instrument',
+          },
+          {
+            key: 'orderInputKey',
+            name: t('globalSettingConfig.order_input_key'),
+            type: 'select',
+            options: [
+              {
+                value: OrderInputKeyEnum.VOLUME,
+                label: OrderInputKeySetting[OrderInputKeyEnum.VOLUME].name,
+              },
+              {
+                value: OrderInputKeyEnum.PRICE,
+                label: OrderInputKeySetting[OrderInputKeyEnum.PRICE].name,
+              },
+            ],
+          },
+          {
+            key: 'limitValue',
+            name: t('globalSettingConfig.limit_value'),
+            default: 0,
+            type: 'float',
+          },
+        ],
+      },
+      {
+        key: 'assetMargin',
+        name: t('globalSettingConfig.asset_margin'),
+        tip: t('globalSettingConfig.show_asset_margin'),
+        default: false,
+        type: 'bool',
       },
     ],
   },

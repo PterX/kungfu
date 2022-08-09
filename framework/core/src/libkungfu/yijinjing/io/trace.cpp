@@ -1,10 +1,7 @@
 //
 // Created by Keren Dong on 2020/3/25.
 //
-<<<<<<< HEAD
 
-=======
->>>>>>> 440a5b8d0cff05ae894bf0417967b56bd18830b5
 #include <fstream>
 #include <kungfu/common.h>
 #include <kungfu/yijinjing/io.h>

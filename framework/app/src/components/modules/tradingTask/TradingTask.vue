@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import {
   handleOpenLogview,
+  handleOpenJournalView,
   useDashboardBodySize,
   useTableSearchKeyword,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
@@ -14,6 +15,7 @@ import {
   FileTextOutlined,
   SettingOutlined,
   DeleteOutlined,
+  DatabaseOutlined,
 } from '@ant-design/icons-vue';
 import { columns } from './config';
 import path from 'path';
@@ -152,13 +154,18 @@ function handleSwitchProcessStatusResolved(
     });
 }
 
-function handleOpenLogviewResolved(record: Pm2ProcessStatusDetail) {
+function handleOpenViewResolved(
+  record: Pm2ProcessStatusDetail,
+  handleFunc: (
+    config: KungfuApi.KfLocation | KungfuApi.KfConfig,
+  ) => Promise<void | Electron.BrowserWindow>,
+) {
   const taskLocation = getStrategyKfLocationByProcessId(record?.name || '');
   if (!taskLocation) {
     error(`${record.name} ${t('tradingTaskConfig.illegal_process_id')}`);
     return;
   }
-  handleOpenLogview(taskLocation);
+  handleFunc(taskLocation);
 }
 
 function handleRemoveTask(record: Pm2ProcessStatusDetail) {
@@ -319,9 +326,15 @@ function getProcessStatusName(
           </template>
           <template v-else-if="column.dataIndex === 'actions'">
             <div class="kf-actions__warp">
+              <DatabaseOutlined
+                style="font-size: 12px"
+                @click.stop="
+                  handleOpenViewResolved(record, handleOpenJournalView)
+                "
+              ></DatabaseOutlined>
               <FileTextOutlined
                 style="font-size: 12px"
-                @click.stop="handleOpenLogviewResolved(record)"
+                @click.stop="handleOpenViewResolved(record, handleOpenLogview)"
               />
               <SettingOutlined
                 style="font-size: 12px"

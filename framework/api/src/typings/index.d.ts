@@ -59,6 +59,12 @@ declare namespace KungfuApi {
 
   type AnyEnumKeysAsStrings<TEnumType> = keyof TEnumType;
 
+  type FunctionOrData<U extends 'func' | 'data', T> = U extends 'func'
+    ? () => T
+    : U extends 'data'
+    ? T
+    : never;
+
   export type KfConfigItemSupportedTypes =
     | 'str'
     | 'password'
@@ -739,6 +745,7 @@ declare namespace KungfuApi {
     ): bigint;
     now(): bigint;
   }
+
   export interface Session {
     location_uid: number;
     category: KfCategoryEnum;
@@ -746,9 +753,46 @@ declare namespace KungfuApi {
     name: string;
     mode: KfModeEnum;
     value: string;
+    begin_time: bigint;
+    end_time: bigint;
+    update_time: bigint;
+    data_size: bigint;
+    frame_count: number;
   }
+
+  export interface SessionResolved extends Session {
+    index: number;
+    begin_time_resolved: string;
+    end_time_resolved: string;
+    is_closed: boolean;
+  }
+
+  export interface Frame<T extends 'func' | 'data' = 'data'> {
+    dataLength: FunctionOrData<T, number>;
+    genTime: FunctionOrData<T, bigint>;
+    triggerTime: FunctionOrData<T, bigint>;
+    msgType: FunctionOrData<T, number>; // to enum
+    stringMsgType: FunctionOrData<T, number>; // to enum
+    source: FunctionOrData<T, number>;
+    dest: FunctionOrData<T, number>;
+    data: FunctionOrData<T, string>;
+  }
+
+  export interface FrameResolved extends Frame {
+    gen_time_resolved: string;
+    trigger_time_resolved: string;
+    msg_type_resolved: string;
+    source_to_dest: string;
+    data_resolved: unknown[];
+  }
+
+  export interface AssembleReader {
+    run: (cb: (frame: Frame<'func'>) => void, num: number) => void;
+  }
+
   export interface Assemble {
-    get_sessions(): Session[];
+    get_reader(arg: number): AssembleReader;
+    get_sessions(kfLocation?: KfLocation): Session[];
     seekToTime(): void;
     next(): void;
     dataAvailable(): boolean;
@@ -775,6 +819,7 @@ declare namespace KungfuApi {
     CommissionStore(kfHome: string): CommissionStore;
     History(kfHome: string): HistoryStore;
     longfist: Longfist;
+    Assemble(kfHome: string[]): Assemble;
     watcher(
       kfHome: string,
       hashedId: string,
@@ -782,7 +827,6 @@ declare namespace KungfuApi {
       bypassAccounting = false,
       bypassTradingData = false,
     ): Watcher | null;
-    Assemble(kfHome: string[]): Assemble | null;
     shutdown(): void;
     formatStringToHashHex(id: string): string;
     formatTime(nano: bigint, format: string): string;

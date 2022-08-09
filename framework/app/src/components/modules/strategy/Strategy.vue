@@ -9,12 +9,14 @@ import Icon, {
   SettingOutlined,
   DeleteOutlined,
   FormOutlined,
+  DatabaseOutlined,
 } from '@ant-design/icons-vue';
 
 import {
   useTableSearchKeyword,
   useDashboardBodySize,
   handleOpenLogview,
+  handleOpenJournalView,
   handleOpenCodeView,
   messagePrompt,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
@@ -234,6 +236,10 @@ function handleRemoveStrategy(record: KungfuApi.KfConfig) {
           </template>
           <template v-else-if="column.dataIndex === 'actions'">
             <div class="kf-actions__warp">
+              <DatabaseOutlined
+                style="font-size: 12px"
+                @click.stop="handleOpenJournalView(record)"
+              ></DatabaseOutlined>
               <FileTextOutlined
                 style="font-size: 12px"
                 @click.stop="handleOpenLogview(record)"

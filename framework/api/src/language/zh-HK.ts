@@ -42,6 +42,7 @@ export default {
   clear_DB: '清理DB',
   reset_main_panel: '重置主面板',
   export_all_transaction_data: '导出所有交易数据',
+  view_all_journal: '查看所有journal',
 
   website: '官网',
   user_manual: '用户手册',
@@ -58,6 +59,7 @@ export default {
   clear: '清理 {content} 完成, 请重启应用',
   open_window: '正在打开窗口',
   open_code_editor: '正在打开代码编辑器',
+  open_journal_dashboard: '正在打开journal面板',
   open_trading_task_view: '正在打开交易任务视图',
   add_board: '添加面板',
   select_board: '请选择要添加的面板',
@@ -387,6 +389,20 @@ export default {
 
     subscribe_btn: '订阅',
     add_market: '添加自选',
+  },
+
+  journalConfig: {
+    begin_time: '开始时间',
+    end_time: '结束时间',
+    is_closed: '是否结束',
+
+    gen_time: '生成时间',
+    trigger_time: '触发时间',
+    msg_type: '类型',
+
+    export: '导出',
+
+    loading_journal: '正在加载 journal ...',
   },
 
   tradeConfig: {

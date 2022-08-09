@@ -42,6 +42,7 @@ export default {
   clear_DB: 'Clear DB',
   reset_main_panel: 'Reset main panel',
   export_all_transaction_data: 'E`xport all transaction data',
+  view_all_journal: 'View all journal',
 
   website: 'Website',
   user_manual: 'User manual',
@@ -59,6 +60,7 @@ export default {
   open_window: 'Opening window',
   open_code_editor: 'Opening code editor',
   open_trading_task_view: 'Opening trading task view',
+  open_journal_dashboard: 'Opening journal dashboard',
   add_board: 'Add Board',
   select_board: 'Please select the board to add',
   add_board_error: 'Add board target error',
@@ -390,6 +392,20 @@ export default {
 
     subscribe_btn: 'Subscribe',
     add_market: 'Add',
+  },
+
+  journalConfig: {
+    begin_time: 'begin_time',
+    end_time: 'end_time',
+    is_closed: 'is_end',
+
+    gen_time: 'gen_time',
+    trigger_time: '触发trigger_time时间',
+    msg_type: 'msg_type',
+
+    export: 'export',
+
+    loading_journal: 'loading journal...',
   },
 
   tradeConfig: {

@@ -55,6 +55,7 @@ public:
   frame_ptr current_frame();
 
   std::vector<kungfu::longfist::types::Session> get_sessions();
+
 protected:
   std::vector<reader_ptr> readers_ = {};
   reader_ptr current_reader_ = {};

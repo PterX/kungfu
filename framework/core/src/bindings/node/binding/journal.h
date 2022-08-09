@@ -94,7 +94,7 @@ public:
   Napi::Value DataAvailable(const Napi::CallbackInfo &info);
 
   Napi::Value Next(const Napi::CallbackInfo &info);
-  
+
   Napi::Value Get_sessions(const Napi::CallbackInfo &info);
 
   Napi::Value Get_reader(const Napi::CallbackInfo &info);

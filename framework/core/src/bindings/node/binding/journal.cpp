@@ -57,7 +57,7 @@ Napi::Value Frame::Data(const Napi::CallbackInfo &info) {
   return ret;
 }
 
-Napi::Value Frame::StringMsgType(const Napi::CallbackInfo &info) { 
+Napi::Value Frame::StringMsgType(const Napi::CallbackInfo &info) {
   auto ret = Napi::String::New(info.Env(), "");
   boost::hana::for_each(longfist::AllTypes, [&](auto it) {
     using DataType = typename decltype(+boost::hana::second(it))::type;
@@ -73,14 +73,14 @@ void Frame::Init(Napi::Env env, Napi::Object exports) {
 
   Napi::Function func = DefineClass(env, "Frame",
                                     {
-                                        InstanceMethod("dataLength", &Frame::DataLength),   //
-                                        InstanceMethod("genTime", &Frame::GenTime),         //
-                                        InstanceMethod("triggerTime", &Frame::TriggerTime), //
-                                        InstanceMethod("msgType", &Frame::MsgType),         //
+                                        InstanceMethod("dataLength", &Frame::DataLength),       //
+                                        InstanceMethod("genTime", &Frame::GenTime),             //
+                                        InstanceMethod("triggerTime", &Frame::TriggerTime),     //
+                                        InstanceMethod("msgType", &Frame::MsgType),             //
                                         InstanceMethod("stringMsgType", &Frame::StringMsgType), //
-                                        InstanceMethod("source", &Frame::Source),           //
-                                        InstanceMethod("dest", &Frame::Dest),               //
-                                        InstanceMethod("data", &Frame::Data)                //
+                                        InstanceMethod("source", &Frame::Source),               //
+                                        InstanceMethod("dest", &Frame::Dest),                   //
+                                        InstanceMethod("data", &Frame::Data)                    //
                                     });
 
   constructor = Napi::Persistent(func);
@@ -210,7 +210,7 @@ Napi::Value Reader::Disjoin(const Napi::CallbackInfo &info) {
 Napi::Value Reader::Run(const Napi::CallbackInfo &info) {
   int32_t limit = 0;
   Napi::Function cb = info[0].As<Napi::Function>();
-  if(info.Length() > 1) {
+  if (info.Length() > 1) {
     limit = info[1].ToNumber().Int32Value();
   }
   int32_t count = 0;
@@ -318,7 +318,7 @@ Napi::Value Assemble::Next(const Napi::CallbackInfo &info) {
 Napi::Value Assemble::Get_sessions(const Napi::CallbackInfo &info) {
   uint32_t uid = 0;
   bool filter(false);
-  if (info.Length() == 1 && info[0].IsObject()){
+  if (info.Length() == 1 && info[0].IsObject()) {
     uint32_t uid = info[0].ToObject().Get("location_uid").ToNumber().Uint32Value();
     filter = true;
   }
@@ -326,19 +326,19 @@ Napi::Value Assemble::Get_sessions(const Napi::CallbackInfo &info) {
   std::vector<kungfu::longfist::types::Session> session_ret;
   size_t session_size = sessions.size();
   for (int i = 0; i < session_size; i++) {
-    if(!filter || sessions[i].location_uid == uid) {
+    if (!filter || sessions[i].location_uid == uid) {
       session_ret.push_back(sessions[i]);
     }
   }
   size_t session_ret_size = sessions.size();
-  if(session_ret_size <= 0) {
+  if (session_ret_size <= 0) {
     return {};
   }
   auto result = Napi::Array::New(info.Env(), session_ret_size);
   for (int i = 0; i < session_ret_size; i++) {
     auto target = Napi::Object::New(info.Env());
-      set(session_ret[i], target);
-      result.Set(i, target);
+    set(session_ret[i], target);
+    result.Set(i, target);
   }
   return result;
 }

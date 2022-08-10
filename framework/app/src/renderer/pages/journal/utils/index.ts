@@ -1,33 +1,34 @@
 import { dealKfTime } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { parseURIParams } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
-import { getKfLocationByProcessId } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import {
+  getIdByKfLocation,
+  getKfLocationByProcessId,
+} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 
 export const getSessionLocationById = (
-  sessions: KungfuApi.Session[],
+  sessionMap: Record<number, KungfuApi.KfLocation>,
   uid: number,
-): KungfuApi.Session | KungfuApi.KfLocation | null => {
-  const sessionResolved = sessions.filter((item) => item.location_uid === uid);
-  if (sessionResolved.length) {
-    return sessionResolved[0];
-  }
-
-  return null;
+): KungfuApi.KfLocation | null => {
+  if (!sessionMap[uid]) return null;
+  return sessionMap[uid];
 };
 
 export const dealFrameMsgType = (msgType: number) => msgType.toString();
 
 export const dealFrameSourceToDest = (
   frameData: KungfuApi.Frame,
-  sessions: KungfuApi.Session[],
+  sessionMap: Record<number, KungfuApi.KfLocation>,
 ) => {
-  const sourceResolved = getSessionLocationById(
-    sessions,
-    frameData.source,
-  )?.name;
+  const sourceResolved = getSessionLocationById(sessionMap, frameData.source);
+  const destResolved = getSessionLocationById(sessionMap, frameData.dest);
+  const sourceLocationUID = sourceResolved
+    ? getIdByKfLocation(sourceResolved as KungfuApi.KfLocation)
+    : frameData.source;
+  const destLocationUID = destResolved
+    ? getIdByKfLocation(destResolved as KungfuApi.KfLocation)
+    : frameData.dest;
 
-  const destResolved = getSessionLocationById(sessions, frameData.dest)?.name;
-
-  return `${sourceResolved} → ${destResolved}`;
+  return `${sourceLocationUID} → ${destLocationUID}`;
 };
 
 const dealFrameData = (data: string): unknown[] => {
@@ -64,14 +65,14 @@ const dealFrameData = (data: string): unknown[] => {
 
 export const dealFrame = (
   frame: KungfuApi.Frame,
-  sessions: KungfuApi.SessionResolved[],
+  sessionMap: Record<number, KungfuApi.KfLocation>,
 ): KungfuApi.FrameResolved => {
   return {
     ...frame,
     gen_time_resolved: dealKfTime(frame.genTime, true),
     trigger_time_resolved: dealKfTime(frame.triggerTime, true),
     msg_type_resolved: dealFrameMsgType(frame.msgType),
-    source_to_dest: dealFrameSourceToDest(frame, sessions),
+    source_to_dest: dealFrameSourceToDest(frame, sessionMap),
     data_resolved: dealFrameData(frame.data),
   };
 };

@@ -5,6 +5,7 @@ import { KfHookKeeper } from '../hooks';
 declare global {
   interface Window {
     watcher: Watcher | null;
+    assemble: Assemble;
     kungfu: Kungfu;
     workers: Record<string, WebpackWorker>;
     fileId: number;

@@ -72,11 +72,29 @@ import KfTradingDataTable from '@kungfu-trader/kungfu-app/src/renderer/component
 import { dealFrame, getCurrentLocation } from './utils';
 import { message, Empty } from 'ant-design-vue';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+import {
+  KfCategoryEnum,
+  KfCategoryTypes,
+} from '@kungfu-trader/kungfu-js-api/typings/enums';
 
 const { t } = VueI18n.global;
 const currentLocation = getCurrentLocation();
 
 const sessions = ref<KungfuApi.SessionResolved[]>([]);
+const sessionMap = computed(() => {
+  return sessions.value.reduce((pre, session) => {
+    pre[session.location_uid] = {
+      category: KfCategoryEnum[
+        session.category as KfCategoryEnum
+      ] as KfCategoryTypes,
+      group: session.group,
+      name: session.name,
+      mode: 'live',
+    };
+    return pre;
+  }, {} as Record<number, KungfuApi.KfLocation>);
+});
+
 const currentSessionIndex = ref<number>(0);
 
 const limitReadCount = ref(10000);
@@ -141,6 +159,7 @@ const loadSessions = () => {
 
 const loadFrameData = (sessionId: number) => {
   const hideloading = message.loading(t('journalConfig.loading_journal'));
+  console.log('sessionId', sessionId);
 
   return new Promise<KungfuApi.FrameResolved[]>((resolve, reject) => {
     try {
@@ -173,7 +192,7 @@ const loadFrameData = (sessionId: number) => {
         if (!(`${curFrameData.genTime}` in frames)) {
           frames[`${curFrameData.genTime}`] = dealFrame(
             curFrameData,
-            sessions.value,
+            sessionMap.value,
           );
         }
 

@@ -15,7 +15,7 @@ export const getSessionColumns = (): KfTradingDataTableHeaderConfig[] => [
   {
     type: 'string',
     name: 'name',
-    dataIndex: 'name',
+    dataIndex: 'name_resolved',
     width: 160,
     sorter: buildStrSorter('name'),
   },

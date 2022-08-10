@@ -76,6 +76,7 @@ import {
   KfCategoryEnum,
   KfCategoryTypes,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
+import { getIdByKfLocation } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 
 const { t } = VueI18n.global;
 const currentLocation = getCurrentLocation();
@@ -147,6 +148,12 @@ const loadSessions = () => {
           index,
           begin_time_resolved: dealKfTime(getAbs<bigint>(item.begin_time)),
           end_time_resolved: dealKfTime(getAbs<bigint>(item.end_time)),
+          name_resolved: getIdByKfLocation({
+            category: item.category,
+            group: item.group,
+            name: item.name,
+            mode: 'live',
+          } as KungfuApi.KfLocation),
           is_closed: !!item.end_time,
         };
       })

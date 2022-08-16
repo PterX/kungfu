@@ -398,11 +398,19 @@ export default {
     end_time: '结束时间',
     is_closed: '是否结束',
 
+    dest: '目标',
+    source: '源头',
     gen_time: '生成时间',
     trigger_time: '触发时间',
-    msg_type: '类型',
+    msg_type: '消息类型',
+
+    filters: '过滤器',
+    apply_filters: '应用过滤',
 
     export: '导出',
+    export_file_path: '导出文件目录',
+    need_directroy: '请选择目录',
+    export_success: '导出成功',
 
     loading_journal: '正在加载 journal ...',
   },

@@ -400,13 +400,18 @@ export default {
     end_time: 'end_time',
     is_closed: 'is_end',
 
+    dest: 'destination',
+    source: 'source',
     gen_time: 'gen_time',
-    trigger_time: '触发trigger_time时间',
+    trigger_time: 'trigger_time',
     msg_type: 'msg_type',
 
-    export: 'export',
+    export: 'Export',
+    export_file_path: 'export_file_path',
+    need_directroy: 'Only allow directroy',
+    export_success: 'Export success',
 
-    loading_journal: 'loading journal...',
+    loading_journal: 'Loading journal...',
   },
 
   tradeConfig: {

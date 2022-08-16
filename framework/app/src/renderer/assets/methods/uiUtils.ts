@@ -355,6 +355,10 @@ export const openJournalView = (
     __dirname,
     'journal',
     `?processId=${processId}&locationUid=${locationUid}`,
+    {
+      width: 1280,
+      height: 960,
+    },
   );
 };
 

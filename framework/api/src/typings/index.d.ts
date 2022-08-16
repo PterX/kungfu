@@ -762,6 +762,7 @@ declare namespace KungfuApi {
 
   export interface SessionResolved extends Session {
     index: number;
+    name_resolved: string;
     begin_time_resolved: string;
     end_time_resolved: string;
     is_closed: boolean;
@@ -782,12 +783,16 @@ declare namespace KungfuApi {
     gen_time_resolved: string;
     trigger_time_resolved: string;
     msg_type_resolved: string;
+    dest_resolved: string;
+    source_resolved: string;
     source_to_dest: string;
     data_resolved: unknown[];
   }
 
   export interface AssembleReader {
     run: (cb: (frame: Frame<'func'>) => void, num: number) => void;
+    next: () => boolean;
+    currentFrame: () => Frame<'func'>;
   }
 
   export interface Assemble {

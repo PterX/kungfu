@@ -95,7 +95,7 @@ export const getColumns = (
 
 export const statisColums: AntTableColumns = [
   {
-    title: t('tradeConfig.instrument'),
+    title: t('tradeConfig.instrument_id'),
     dataIndex: 'instrumentId_exchangeId',
   },
   {

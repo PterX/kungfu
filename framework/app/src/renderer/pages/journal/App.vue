@@ -95,10 +95,13 @@ import {
   KfCategoryTypes,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import { getIdByKfLocation } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+<<<<<<< HEAD
 import { createFiltersEnumMap, FiltersEnum } from './utils/filterUtils';
 import KfTradingDataTable from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfTradingDataTable.vue';
 import ExportJournal from './components/ExportJournal.vue';
 import FrameFilters from './components/FrameFilters.vue';
+=======
+>>>>>>> d662831dfafca96ff7540907cb824b8b09bfe262
 
 const { t } = VueI18n.global;
 const currentLocation = getCurrentLocation();

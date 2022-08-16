@@ -765,6 +765,7 @@ declare namespace KungfuApi {
     name_resolved: string;
     begin_time_resolved: string;
     end_time_resolved: string;
+    name_resolved: string;
     is_closed: boolean;
   }
 

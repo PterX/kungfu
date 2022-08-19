@@ -670,7 +670,7 @@ export const confirmModal = (
   content: VueNode | (() => VueNode) | string,
   okText = t('confirm'),
   cancelText = t('cancel'),
-): Promise<void> => {
+): Promise<boolean> => {
   return new Promise((resolve) => {
     Modal.confirm({
       title: title,
@@ -678,7 +678,10 @@ export const confirmModal = (
       okText: okText,
       cancelText: cancelText,
       onOk: () => {
-        resolve();
+        resolve(true);
+      },
+      onCancel: () => {
+        resolve(false);
       },
     });
   });

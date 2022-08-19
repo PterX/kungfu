@@ -53,13 +53,13 @@ const emit = defineEmits<{
 
 const formRef = ref();
 const formLabelMap = {
-  [FiltersEnum.DEST]: {
-    label: t('journalConfig.dest'),
-    key: FiltersEnum.DEST,
-  },
   [FiltersEnum.SOURCE]: {
     label: t('journalConfig.source'),
     key: FiltersEnum.SOURCE,
+  },
+  [FiltersEnum.DEST]: {
+    label: t('journalConfig.dest'),
+    key: FiltersEnum.DEST,
   },
   [FiltersEnum.MSG_TYPE]: {
     label: t('journalConfig.msg_type'),

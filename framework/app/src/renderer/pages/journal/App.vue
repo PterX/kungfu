@@ -83,7 +83,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, computed, nextTick, toRaw } from 'vue';
+import { onMounted, ref, computed, toRaw } from 'vue';
 import { assemble, dealKfTime } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { getSessionColumns, getFrameColumns } from './config';
 import { removeLoadingMask } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
@@ -211,7 +211,7 @@ const getAbs = <T extends number | bigint>(num: T): T =>
   num < 0 ? (-num as T) : num;
 
 const loadSessions = () => {
-  nextTick(() => {
+  setTimeout(() => {
     let currentSessions = assemble.get_sessions();
 
     if (currentSessions.length) {

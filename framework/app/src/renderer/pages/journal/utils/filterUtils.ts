@@ -1,3 +1,4 @@
+import { OptionProps } from 'ant-design-vue/lib/select';
 import { computed, reactive } from 'vue';
 
 export enum FiltersEnum {
@@ -27,8 +28,8 @@ export const useFrameFilters = () => {
 
   type FilterOptionresolvedMap = Record<FiltersEnum, OptionItem[]>;
 
-  const filtersFormState = reactive<Record<FiltersEnum, string>>(
-    createFiltersEnumMap(''),
+  const filtersFormState = reactive<Record<FiltersEnum, string[]>>(
+    createFiltersEnumMap(() => []),
   );
 
   const filtersOptions = reactive<FilterOptionMap>(
@@ -38,12 +39,31 @@ export const useFrameFilters = () => {
   const filtersOptionsResolved = computed<FilterOptionresolvedMap>(() => {
     return Object.keys(filtersOptions).reduce<FilterOptionresolvedMap>(
       (pre, item) => {
-        pre[item] = Object.values(filtersOptions[item]);
+        pre[item] = Object.values(filtersOptions[item]) as OptionItem[];
+
         return pre;
       },
       {} as FilterOptionresolvedMap,
     );
   });
+
+  const optionSorter = (a: OptionProps, b: OptionProps) => {
+    const flagA = Number(/\d+/.test(a.key));
+    const flagB = Number(/\d+/.test(b.key));
+    if (flagA === flagB) {
+      return a.key.localeCompare(b.key);
+    } else if (flagA > flagB) {
+      return 1;
+    } else {
+      return -1;
+    }
+  };
+
+  const _addOption = (filterEnum: FiltersEnum, option: OptionItem) => {
+    if (option.value && !(option.value in filtersOptions[filterEnum])) {
+      filtersOptions[filterEnum][option.value] = option;
+    }
+  };
 
   const addOption = (
     filterEnum: FiltersEnum,
@@ -51,13 +71,10 @@ export const useFrameFilters = () => {
   ) => {
     if (Array.isArray(option)) {
       option.forEach((item) => {
-        if (!(item.value in filtersOptions[filterEnum]))
-          filtersOptions[filterEnum][item.value] = item;
+        _addOption(filterEnum, item);
       });
     } else {
-      if (!(option.value in filtersOptions[filterEnum])) {
-        filtersOptions[filterEnum][option.value] = option;
-      }
+      _addOption(filterEnum, option);
     }
   };
 
@@ -65,6 +82,7 @@ export const useFrameFilters = () => {
     filtersFormState,
     filtersOptions,
     filtersOptionsResolved,
+    optionSorter,
     addOption,
   };
 };

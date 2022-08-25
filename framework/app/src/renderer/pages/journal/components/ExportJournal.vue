@@ -54,16 +54,15 @@ import { writeCsvByStream } from '../utils';
 
 const { t } = VueI18n.global;
 
-const props = withDefaults(
-  defineProps<{
-    exportData: KungfuApi.FrameResolved[];
-    fileName: string;
-  }>(),
-  {
-    exportData: () => [],
-    fileName: '',
-  },
-);
+const emit = defineEmits<{
+  (
+    e: 'exportJournalData',
+    exportJournal: (
+      fileName: string,
+      exportData: KungfuApi.FrameResolved[],
+    ) => void,
+  ): void;
+}>();
 
 const EXPORT_KEY = 'export_file_path';
 const formRef = ref();
@@ -116,31 +115,47 @@ function handleSelectFile(): void {
 }
 
 const handleConfirmExport = () => {
-  if (props.exportData) {
-    formRef.value?.validate().then(() => {
-      if (!exportFormState[EXPORT_KEY]) {
-        message.error('导出目录不能为空');
-        return;
-      }
-      const headers = Object.keys(props.exportData).sort((a, b) =>
-        a.localeCompare(b),
-      );
-      writeCsvByStream<KungfuApi.FrameResolved>(
-        path.join(exportFormState[EXPORT_KEY], props.fileName + '.csv'),
-        props.exportData,
-        headers,
-      )
-        .then((res) => {
-          if (res) {
-            message.success(t('journalConfig.export_success'));
-            exportFormModalVisible.value = false;
+  emit(
+    'exportJournalData',
+    (fileName: string, exportData: KungfuApi.FrameResolved[]) => {
+      if (exportData?.length) {
+        formRef.value?.validate().then(() => {
+          if (!exportFormState[EXPORT_KEY]) {
+            message.error(t('journalConfig.directroy_be_valued'));
+            return;
           }
-        })
-        .catch((err) => {
-          message.error(err);
+
+          const headers = Object.keys(exportData[0]).filter((item, _, arr) => {
+            if (item === 'dataResolved') return false;
+            if (item === 'data') return true;
+            if (item.indexOf('Resolved') !== -1) return true;
+            return arr.indexOf(`${item}Resolved`) === -1;
+          });
+
+          const headerTransform = (headerItem: string) => {
+            const index = headerItem.indexOf('Resolved');
+            return index === -1 ? headerItem : headerItem.slice(0, index);
+          };
+
+          writeCsvByStream<KungfuApi.FrameResolved>(
+            path.join(exportFormState[EXPORT_KEY], fileName + '.csv'),
+            exportData,
+            headers,
+            headerTransform,
+          )
+            .then((res) => {
+              if (res) {
+                message.success(t('journalConfig.export_success'));
+                exportFormModalVisible.value = false;
+              }
+            })
+            .catch((err) => {
+              message.error(err.message);
+            });
         });
-    });
-  }
+      }
+    },
+  );
 };
 </script>
 

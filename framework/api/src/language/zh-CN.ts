@@ -399,6 +399,7 @@ export default {
   },
 
   journalConfig: {
+    session_id: 'Session ID',
     begin_time: '开始时间',
     end_time: '结束时间',
     is_closed: '是否结束',
@@ -416,8 +417,9 @@ export default {
     export_file_path: '导出文件目录',
     need_directroy: '请选择目录',
     export_success: '导出成功',
+    directroy_be_valued: '导出目录不能为空',
 
-    loading_journal: '正在加载 journal ...',
+    loading_journal: '正在加载 journal',
   },
 
   tradeConfig: {

@@ -9,21 +9,24 @@
   >
     <a-form-item
       v-for="item in Object.keys(formLabelMap)"
-      :key="formLabelMap[item].key"
-      :name="formLabelMap[item].key"
+      :key="item"
+      :name="item"
       class="kf-form-item__warp"
-      :label="formLabelMap[item].label"
+      :label="formLabelMap[item]"
     >
       <a-select
-        v-model:value="filtersFormState[formLabelMap[item].key]"
+        v-model:value="filtersFormState[item]"
+        mode="multiple"
+        :max-tag-count="2"
         show-search
         :placeholder="$t('keyword_input')"
         filter-option
+        :filter-sort="optionSorter"
         allow-clear
       >
         <a-select-option
           v-for="option in filtersOptionsResolved[item]"
-          :key="option.value"
+          :key="option.label"
           :value="option.value"
         >
           {{ option.label }}
@@ -48,26 +51,17 @@ import { useFrameFilters } from '../utils/filterUtils';
 const { t } = VueI18n.global;
 
 const emit = defineEmits<{
-  (e: 'applyFilters', frameFiltersMap: Record<FiltersEnum, string>): void;
+  (e: 'applyFilters', frameFiltersMap: Record<FiltersEnum, string[]>): void;
 }>();
 
 const formRef = ref();
 const formLabelMap = {
-  [FiltersEnum.SOURCE]: {
-    label: t('journalConfig.source'),
-    key: FiltersEnum.SOURCE,
-  },
-  [FiltersEnum.DEST]: {
-    label: t('journalConfig.dest'),
-    key: FiltersEnum.DEST,
-  },
-  [FiltersEnum.MSG_TYPE]: {
-    label: t('journalConfig.msg_type'),
-    key: FiltersEnum.MSG_TYPE,
-  },
+  [FiltersEnum.SOURCE]: t('journalConfig.source'),
+  [FiltersEnum.DEST]: t('journalConfig.dest'),
+  [FiltersEnum.MSG_TYPE]: t('journalConfig.msg_type'),
 };
 
-const { filtersFormState, filtersOptionsResolved, addOption } =
+const { filtersFormState, filtersOptionsResolved, optionSorter, addOption } =
   useFrameFilters();
 
 const handleApplyFilters = () => {

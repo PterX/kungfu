@@ -7,6 +7,8 @@ import {
   getIdByKfLocation,
   getKfLocationByProcessId,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { JournalFrameMsgType } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
+import { FrameMsgTypeEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 
 export const getSessionLocationById = (
   sessionMap: Record<number, KungfuApi.KfLocation>,
@@ -16,7 +18,10 @@ export const getSessionLocationById = (
   return sessionMap[uid];
 };
 
-export const dealFrameMsgType = (msgType: number) => msgType.toString();
+export const dealFrameMsgType = (
+  msgType: FrameMsgTypeEnum,
+): KungfuApi.KfTradeValueCommonData =>
+  JournalFrameMsgType[+msgType] || { name: '', color: 'default' };
 
 export const dealDestOrSource = (
   type: 'source' | 'dest',
@@ -32,31 +37,52 @@ export const dealDestOrSource = (
 };
 
 export const dealFrameSourceToDest = (
-  dest_resolved: string,
-  source_resolved: string,
+  sourceResolved: string,
+  destResolved: string,
 ) => {
-  return `${dest_resolved} → ${source_resolved}`;
+  return `${sourceResolved} → ${destResolved}`;
 };
 
 const dealFrameData = (data: string): unknown[] => {
   try {
     const object = JSON.parse(data);
     const formatToTreeData = (obj: unknown) => {
+      if (typeof obj === 'string') {
+        if (obj.indexOf('{') !== -1 || obj.indexOf('[') !== -1) {
+          try {
+            obj = JSON.parse(obj);
+          } catch (error) {
+            error;
+          }
+        }
+      }
+
       if (typeof obj !== 'object' || obj === null) return [];
       if (!Object.keys(obj).length) return [];
 
-      const dealValue = (value) => {
+      const dealKeyOrValue = (value) => {
         if (typeof value === 'boolean' || !Number.isNaN(+value)) return value;
 
         return `"${value}"`;
       };
 
+      const obj1 = obj; // to fix ts error
+
       return Object.keys(obj).map((key) => {
-        const children = formatToTreeData(obj[key]);
+        const children = formatToTreeData(obj1[key]);
         return {
-          title: children?.length ? key : `"${key}" : ${dealValue(obj[key])}`,
+          title: children?.length
+            ? `${key} : ${Array.isArray(obj1[key]) ? '[' : '{'}`
+            : `${dealKeyOrValue(key)} : ${dealKeyOrValue(obj1[key])},`,
           key,
-          ...(children?.length ? { children } : {}),
+          ...(children?.length
+            ? {
+                children: [
+                  ...children,
+                  { title: Array.isArray(obj1[key]) ? ']' : '}' },
+                ],
+              }
+            : {}),
         };
       });
     };
@@ -74,17 +100,17 @@ export const dealFrame = (
   frame: KungfuApi.Frame,
   sessionMap: Record<number, KungfuApi.KfLocation>,
 ): KungfuApi.FrameResolved => {
-  const dest_resolved = dealDestOrSource('dest', frame, sessionMap);
-  const source_resolved = dealDestOrSource('source', frame, sessionMap);
+  const destResolved = dealDestOrSource('dest', frame, sessionMap);
+  const sourceResolved = dealDestOrSource('source', frame, sessionMap);
   return {
     ...frame,
-    gen_time_resolved: dealKfTime(frame.genTime, true),
-    trigger_time_resolved: dealKfTime(frame.triggerTime, true),
-    msg_type_resolved: dealFrameMsgType(frame.msgType),
-    dest_resolved,
-    source_resolved,
-    source_to_dest: dealFrameSourceToDest(dest_resolved, source_resolved),
-    data_resolved: dealFrameData(frame.data),
+    genTimeResolved: dealKfTime(frame.genTime, true),
+    triggerTimeResolved: dealKfTime(frame.triggerTime, true),
+    msgTypeResolved: dealFrameMsgType(frame.msgType),
+    destResolved,
+    sourceResolved,
+    sourceToDest: dealFrameSourceToDest(sourceResolved, destResolved),
+    dataResolved: dealFrameData(frame.data),
   };
 };
 
@@ -108,6 +134,7 @@ export const writeCsvByStream = <T>(
   filePath: string,
   data: T[],
   headers?: string[],
+  headerTransform = (headerItem: string) => headerItem,
 ) => {
   return new Promise((resolve, reject) => {
     filePath = path.normalize(filePath);
@@ -132,7 +159,7 @@ export const writeCsvByStream = <T>(
       }
 
       try {
-        stream.write(headers);
+        stream.write(headers.map((item) => headerTransform(item)));
 
         for (const i of data) {
           stream.write(headers.map((header) => i[header]));

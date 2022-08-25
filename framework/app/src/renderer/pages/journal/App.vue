@@ -16,95 +16,56 @@
         <div class="kf-journal-bar-title">
           {{ `session: ${currentSessionTitle}` }}
         </div>
-        <div class="kf-journal-control-filters"></div>
-        <ExportJournal
-          :export-data="frameDataList"
-          :file-name="exportFileName"
-        />
+        <ExportJournal @export-journal-data="onExportJournalData" />
       </div>
-      <div class="kf-journal-filters-bar">
-        <div class="kf-journal-bar-title">
-          {{ `${$t('journalConfig.filters')}: ` }}
+      <div class="kf-journal-menu__wrap">
+        <a-menu
+          v-model:selectedKeys="currentMenuList"
+          class="kf-journal-menu-tab"
+        >
+          <a-menu-item v-for="item in menus" :key="item.key">
+            <template #icon>
+              <component :is="item.icon"></component>
+            </template>
+            {{ item.title }}
+          </a-menu-item>
+        </a-menu>
+        <div class="kf-journal-menu-content">
+          <EventsDashBoard
+            v-show="isCurrentMenuItem('event')"
+            ref="eventDashBoard"
+            :current-session-id="currentSessionId"
+            :session-location-map="sessionLocationMap"
+          />
+          <OrdersDashboard v-show="isCurrentMenuItem('order')" />
         </div>
-        <FrameFilters
-          ref="frameFilter"
-          @apply-filters="onFiltersApply"
-        ></FrameFilters>
       </div>
-      <div class="kf-journal-frame__wrap">
-        <KfTradingDataTable
-          v-model:selected-key="currentFramesKey"
-          :selectable="true"
-          :data-source="frameDataListResolved"
-          :columns="frameColumns"
-          key-field="genTime"
-          :resizable="false"
-          @click-cell="handleOpenFrameDetail"
-        ></KfTradingDataTable>
-      </div>
-      <a-spin
-        :spinning="loadingJournal"
-        :tip="t('journalConfig.loading_journal')"
-      />
     </div>
   </a-layout>
-  <a-drawer
-    v-model:visible="visible"
-    title="Event Frame"
-    placement="right"
-    :force-render="true"
-  >
-    <div class="frame-detail-drawer__wrap">
-      <template v-if="currentRowDataResolved">
-        <a-list size="normal" bordered :data-source="currentRowDataResolved">
-          <template #renderItem="{ item }">
-            <a-list-item>
-              <span class="frame-detail-datalist-key">{{ item.key }}</span>
-              <span class="frame-detail-datalist-value">{{ item.value }}</span>
-            </a-list-item>
-          </template>
-        </a-list>
-
-        <a-card title="Frame Data" style="margin-top: 35px">
-          <a-tree
-            :show-line="true"
-            :show-icon="true"
-            :tree-data="framesMap[currentFramesKey].data_resolved"
-            :selectable="false"
-            default-expand-all
-          ></a-tree>
-        </a-card>
-      </template>
-      <template v-else>
-        <a-empty :image="simpleImage"></a-empty>
-      </template>
-    </div>
-  </a-drawer>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref, computed, toRaw } from 'vue';
 import { assemble, dealKfTime } from '@kungfu-trader/kungfu-js-api/kungfu';
-import { getSessionColumns, getFrameColumns } from './config';
+import { getSessionColumns } from './config';
 import { removeLoadingMask } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
-import { dealFrame, getCurrentLocation } from './utils';
-import { Empty } from 'ant-design-vue';
-import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+import { getCurrentLocation } from './utils';
 import {
   KfCategoryEnum,
   KfCategoryTypes,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import { getIdByKfLocation } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
-import { createFiltersEnumMap, FiltersEnum } from './utils/filterUtils';
+import {
+  UnorderedListOutlined,
+  LineChartOutlined,
+} from '@ant-design/icons-vue';
 import KfTradingDataTable from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfTradingDataTable.vue';
 import ExportJournal from './components/ExportJournal.vue';
-import FrameFilters from './components/FrameFilters.vue';
+import EventsDashBoard from './components/EventsDashBoard.vue';
+import OrdersDashboard from './components/OrdersDashboard.vue';
 
-const { t } = VueI18n.global;
 const currentLocation = getCurrentLocation();
-const frameFilter = ref();
-
-const loadingJournal = ref(false);
+const eventDashBoard = ref();
 
 const sessions = ref<KungfuApi.SessionResolved[]>([]);
 const sessionLocationMap = computed(() => {
@@ -126,13 +87,13 @@ const sessionsMap = computed(() => {
 });
 
 const currentSessionKey = ref('');
-const currentFramesKey = ref('');
+const currentSessionId = ref(-1);
 
 const currentSessionTitle = computed(() => {
   if (currentSessionKey.value && Object.keys(sessionsMap.value).length) {
     const currentSession = sessionsMap.value[currentSessionKey.value];
     if (currentSession) {
-      return `${currentSession.name_resolved}   time: ${currentSession.begin_time_resolved} - ${currentSession.end_time_resolved}`;
+      return `${currentSession.session_id_resolved}   time: ${currentSession.begin_time_resolved} - ${currentSession.end_time_resolved}`;
     }
 
     return '';
@@ -141,12 +102,29 @@ const currentSessionTitle = computed(() => {
   return '';
 });
 
+const currentMenuList = ref<('event' | 'order')[]>(['event']);
+const menus = [
+  {
+    key: 'event',
+    title: 'Event',
+    icon: UnorderedListOutlined,
+  },
+  {
+    key: 'order',
+    title: 'Order',
+    icon: LineChartOutlined,
+  },
+];
+
+const isCurrentMenuItem = (key: 'event' | 'order') =>
+  currentMenuList.value.includes(key);
+
 const exportFileName = computed(() => {
   if (currentSessionKey.value && Object.keys(sessionsMap.value).length) {
     const currentSession = sessionsMap.value[currentSessionKey.value];
     if (currentSession) {
       return `${
-        currentSession.name_resolved
+        currentSession.session_id_resolved
       }_${currentSession.begin_time_resolved
         .split('.')[0]
         .split(':')
@@ -157,55 +135,7 @@ const exportFileName = computed(() => {
   return 'session';
 });
 
-const frameDataList = ref<KungfuApi.FrameResolved[]>([]);
-const frameFiltersReg = ref(createFiltersEnumMap(''));
-const frameDataListResolved = computed(() => {
-  return frameDataList.value.filter((item) => {
-    return Object.keys(frameFiltersReg.value).every((filterKey) => {
-      if (frameFiltersReg.value[filterKey]) {
-        console.log(frameFiltersReg.value[filterKey]);
-        const curReg = new RegExp(`^${frameFiltersReg.value[filterKey]}$`);
-        switch (filterKey) {
-          case FiltersEnum.DEST:
-            return curReg.test(item.dest + '');
-          case FiltersEnum.SOURCE:
-            return curReg.test(item.source + '');
-          case FiltersEnum.MSG_TYPE:
-            return curReg.test(item.msgType + '');
-        }
-
-        return true;
-      } else {
-        return true;
-      }
-    });
-  });
-});
-const framesMap = ref<Record<string, KungfuApi.FrameResolved>>({});
-
-const visible = ref(false);
-const currentRowDataResolved = computed(() => {
-  const currentRowData = framesMap.value[currentFramesKey.value];
-  if (currentRowData) {
-    return Object.keys(currentRowData)
-      .map((item) => {
-        if (item.includes('_') || item === 'data') return null;
-
-        return {
-          key: item as unknown as keyof KungfuApi.FrameResolved,
-          value: `${currentRowData[item]}`,
-        };
-      })
-      .filter((item) => !!item);
-  }
-
-  return null;
-});
-
-const simpleImage = Empty.PRESENTED_IMAGE_SIMPLE;
-
 const sessionColumns = getSessionColumns();
-const frameColumns = getFrameColumns();
 
 const getAbs = <T extends number | bigint>(num: T): T =>
   num < 0 ? (-num as T) : num;
@@ -223,7 +153,7 @@ const loadSessions = () => {
           return {
             index,
             ...item,
-            name_resolved: getIdByKfLocation(item),
+            session_id_resolved: getIdByKfLocation(item),
             begin_time_resolved: dealKfTime(getAbs<bigint>(item.begin_time)),
             end_time_resolved: dealKfTime(getAbs<bigint>(item.end_time)),
             is_closed: item.end_time < 0,
@@ -231,9 +161,12 @@ const loadSessions = () => {
         })
         .filter((item) => {
           if (currentLocation) {
-            return currentLocation.location_uid === item.location_uid;
+            return (
+              currentLocation.location_uid === item.location_uid &&
+              !!assemble.get_reader(item.index)
+            );
           } else {
-            return true;
+            return !!assemble.get_reader(item.index);
           }
         })
         .reverse();
@@ -242,131 +175,25 @@ const loadSessions = () => {
         const { index, begin_time } = sessions.value[0];
 
         currentSessionKey.value = `${begin_time}`;
-        loadFrameData(index);
+        currentSessionId.value = index;
       }
     }
   });
 };
 
-const loadFrameData = (sessionId: number) => {
-  loadingJournal.value = true;
-  console.log('sessionId', sessionId);
-
-  const journalReader = assemble.get_reader(sessionId);
-
-  framesMap.value = {};
-
-  return new Promise<KungfuApi.FrameResolved[]>((resolve, _) => {
-    const runner = () => {
-      setTimeout(() => {
-        const isUnfinish = journalReader.next();
-
-        if (isUnfinish) {
-          const frame = journalReader.currentFrame();
-
-          const curFrameData: KungfuApi.Frame = {
-            dataLength: frame.dataLength(),
-            genTime: frame.genTime(),
-            triggerTime: frame.triggerTime(),
-            msgType: frame.msgType(),
-            stringMsgType: frame.stringMsgType(),
-            source: frame.source(),
-            dest: frame.dest(),
-            data: frame.data(),
-          };
-
-          if (!(`${curFrameData.genTime}` in framesMap.value)) {
-            const curFrameDataResolved = dealFrame(
-              curFrameData,
-              sessionLocationMap.value,
-            );
-
-            framesMap.value[`${curFrameData.genTime}`] = curFrameDataResolved;
-
-            frameFilter.value.addOption(FiltersEnum.DEST, {
-              label: curFrameDataResolved.dest_resolved,
-              value: curFrameDataResolved.dest + '',
-            });
-            frameFilter.value.addOption(FiltersEnum.SOURCE, {
-              label: curFrameDataResolved.source_resolved,
-              value: curFrameDataResolved.source + '',
-            });
-            frameFilter.value.addOption(FiltersEnum.MSG_TYPE, {
-              label: curFrameDataResolved.stringMsgType,
-              value: curFrameDataResolved.msgType + '',
-            });
-          }
-
-          runner();
-        } else {
-          resolve(Object.values(toRaw(framesMap.value)));
-        }
-      });
-    };
-
-    runner();
-  }).then((res) => {
-    console.log(res);
-    frameDataList.value = res;
-    loadingJournal.value = false;
-  });
-
-  // return new Promise<KungfuApi.FrameResolved[]>((resolve, reject) => {
-  //   try {
-  //     const currentSession = sessions.value.filter(
-  //       (item) => item.index === sessionId,
-  //     )[0];
-  //     const targetCount = Math.min(currentSession.frame_count, 10000);
-  //     frameDataList.value = [];
-  //     const frames: Record<string, KungfuApi.FrameResolved> = {};
-  //     let count = 0;
-  //     journalReader.run((frame) => {
-  //       const curFrameData: KungfuApi.Frame = {
-  //         dataLength: frame.dataLength(),
-  //         genTime: frame.genTime(),
-  //         triggerTime: frame.triggerTime(),
-  //         msgType: frame.msgType(),
-  //         stringMsgType: frame.stringMsgType(),
-  //         source: frame.source(),
-  //         dest: frame.dest(),
-  //         data: frame.data(),
-  //       };
-  //       if (!(`${curFrameData.genTime}` in frames)) {
-  //         frames[`${curFrameData.genTime}`] = dealFrame(
-  //           curFrameData,
-  //           sessionMap.value,
-  //         );
-  //       }
-  //       if (++count >= targetCount) {
-  //         resolve(Object.values(frames));
-  //       }
-  //     }, targetCount);
-  //   } catch (error) {
-  //     reject(error);
-  //   }
-  // }).then((res) => {
-  //   frameDataList.value = res;
-  //   hideloading();
-  // });
-};
-
 onMounted(() => {
-  removeLoadingMask();
   loadSessions();
+  removeLoadingMask();
 });
 
 const handleSelectSession = ({ row }) => {
-  loadFrameData(row.index);
+  currentSessionId.value = row.index;
 };
 
-const handleOpenFrameDetail = () => {
-  visible.value = true;
-};
-
-const onFiltersApply = (filtersFormState: Record<FiltersEnum, string>) => {
-  Object.keys(filtersFormState).forEach((key) => {
-    frameFiltersReg.value[key] = filtersFormState[key];
-  });
+const onExportJournalData = (
+  exportData: (fileName: string, exportData: KungfuApi.FrameResolved[]) => void,
+) => {
+  exportData(exportFileName.value, eventDashBoard.value.frameDataList);
 };
 </script>
 
@@ -421,7 +248,7 @@ const onFiltersApply = (filtersFormState: Record<FiltersEnum, string>) => {
         box-sizing: border-box;
       }
 
-      .kf-journal-bar {
+      .kf-journal-control-bar {
         flex: 0 40px;
         height: 40px;
         background-color: #1d1d1d;
@@ -429,6 +256,7 @@ const onFiltersApply = (filtersFormState: Record<FiltersEnum, string>) => {
         margin-bottom: 2px;
         display: flex;
         align-items: center;
+        justify-content: space-between;
 
         .kf-journal-bar-title {
           font-size: 14px;
@@ -436,30 +264,28 @@ const onFiltersApply = (filtersFormState: Record<FiltersEnum, string>) => {
         }
       }
 
-      .kf-journal-control-bar {
-        .kf-journal-bar();
-        justify-content: space-between;
-      }
-
-      .kf-journal-filters-bar {
-        .kf-journal-bar();
-        justify-content: flex-start;
-      }
-
-      .kf-journal-frame__wrap {
+      .kf-journal-menu__wrap {
+        width: 100%;
         flex: auto;
+
+        display: flex;
+
+        .kf-journal-menu-tab {
+          flex: 0 120px;
+          width: 120px;
+          margin-right: 2px;
+
+          li {
+            width: 100%;
+          }
+        }
+
+        .kf-journal-menu-content {
+          flex: auto;
+          height: 100%;
+        }
       }
     }
-  }
-}
-
-.frame-detail-drawer__wrap {
-  height: 100%;
-  width: 100%;
-  padding: 30px 20px;
-
-  .ant-tree-switcher-noop {
-    display: none;
   }
 }
 </style>

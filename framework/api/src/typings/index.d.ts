@@ -30,6 +30,7 @@ declare namespace KungfuApi {
     OrderActionFlagEnum,
     OrderInputKeyEnum,
     KfExtConfigTypes,
+    FrameMsgTypeEnum,
   } from './enums';
   import { Dayjs } from 'dayjs';
 
@@ -755,10 +756,9 @@ declare namespace KungfuApi {
 
   export interface SessionResolved extends Session {
     index: number;
-    name_resolved: string;
+    session_id_resolved: string;
     begin_time_resolved: string;
     end_time_resolved: string;
-    name_resolved: string;
     is_closed: boolean;
   }
 
@@ -774,13 +774,13 @@ declare namespace KungfuApi {
   }
 
   export interface FrameResolved extends Frame {
-    gen_time_resolved: string;
-    trigger_time_resolved: string;
-    msg_type_resolved: string;
-    dest_resolved: string;
-    source_resolved: string;
-    source_to_dest: string;
-    data_resolved: unknown[];
+    genTimeResolved: string;
+    triggerTimeResolved: string;
+    msgTypeResolved: KfTradeValueCommonData;
+    destResolved: string;
+    sourceResolved: string;
+    sourceToDest: string;
+    dataResolved: unknown[];
   }
 
   export interface AssembleReader {

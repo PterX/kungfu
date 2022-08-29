@@ -766,7 +766,7 @@ declare namespace KungfuApi {
     dataLength: FunctionOrData<T, number>;
     genTime: FunctionOrData<T, bigint>;
     triggerTime: FunctionOrData<T, bigint>;
-    msgType: FunctionOrData<T, number>; // to enum
+    msgType: FunctionOrData<T, FrameMsgTypeEnum>; // to enum
     stringMsgType: FunctionOrData<T, number>; // to enum
     source: FunctionOrData<T, number>;
     dest: FunctionOrData<T, number>;

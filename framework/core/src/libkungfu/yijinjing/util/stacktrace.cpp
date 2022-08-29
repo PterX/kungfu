@@ -31,7 +31,7 @@
 namespace kungfu::yijinjing::util {
 
 std::string get_default_error_log_dir() {
-  char* kf_home = std::getenv("KF_HOME");
+  char *kf_home = std::getenv("KF_HOME");
   if (kf_home != NULL) {
     std::string kf_path = kf_home;
     return (std::filesystem::path(kf_path) / "logview").string();

@@ -178,9 +178,7 @@ def patchImportHardNodes():
                 self.module_filename,
                 self.finding,
             ) = ImportHardNodes.locateModule(
-                module_name=self.module_name,
-                parent_package=None,
-                level=0,
+                module_name=self.module_name, parent_package=None, level=0,
             )
 
         def getUsedModule(self):
@@ -195,9 +193,7 @@ def setup():
     useEngagedCommands()
     useEngagedEnvironment()
     os.environ.update(
-        {
-            "PYTHONPATH": os.pathsep.join(sys.path),
-        }
+        {"PYTHONPATH": os.pathsep.join(sys.path),}
     )
     variants.enable("python")
 

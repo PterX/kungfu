@@ -2,6 +2,7 @@ const path = require('path');
 const TerserPlugin = require('terser-webpack-plugin');
 const ESLintPlugin = require('eslint-webpack-plugin');
 const { isProduction, getAppDir } = require('./utils');
+const webpack = require('webpack');
 
 module.exports = {
   makeConfig: (argv) => {
@@ -35,7 +36,7 @@ module.exports = {
                       loader: 'ts-loader',
                       options: {
                         configFile: path.resolve(
-                          process.cwd(),
+                          process.cwd().toString(),
                           'tsconfig.json',
                         ),
                         // 对应文件添加个.ts或.tsx后缀

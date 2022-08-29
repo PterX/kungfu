@@ -10,7 +10,7 @@ import Icon, {
   FileTextOutlined,
   SettingOutlined,
   DeleteOutlined,
-  DatabaseOutlined,
+  BankOutlined,
 } from '@ant-design/icons-vue';
 
 import { categoryRegisterConfig, getColumns } from './config';
@@ -279,19 +279,19 @@ function handleRemoveTdGroup(item: KungfuApi.KfExtraLocation) {
     `${t('tdConfig.delete_amount_group', {
       group: item.name,
     })}, ${t('tdConfig.confirm_delete_group')}`,
-  )
-    .then(() => {
-      return removeTdGroup(item.name);
-    })
-    .then(() => {
-      return setTdGroups();
-    })
-    .then(() => {
-      success();
-    })
-    .catch((err) => {
-      error(err.message || t('operation_failed'));
-    });
+  ).then((flag) => {
+    if (!flag) return;
+    removeTdGroup(item.name)
+      .then(() => {
+        return setTdGroups();
+      })
+      .then(() => {
+        success();
+      })
+      .catch((err) => {
+        error(err.message || t('operation_failed'));
+      });
+  });
 }
 
 function handleRemoveTd(item: KungfuApi.KfConfig) {
@@ -541,10 +541,10 @@ function handleRemoveTd(item: KungfuApi.KfConfig) {
           </template>
           <template v-else-if="column.dataIndex === 'actions'">
             <div class="kf-actions__warp" v-if="record.category === 'td'">
-              <DatabaseOutlined
+              <BankOutlined
                 style="font-size: 12px"
                 @click.stop="handleOpenJournalView(record)"
-              ></DatabaseOutlined>
+              ></BankOutlined>
               <FileTextOutlined
                 style="font-size: 12px"
                 @click.stop="handleOpenLogview(record)"

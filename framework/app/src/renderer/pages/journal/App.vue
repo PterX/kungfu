@@ -3,91 +3,75 @@
     <div class="kf-journal-view__wrap">
       <div class="kf-journal-session__wrap">
         <KfTradingDataTable
+          v-model:selected-key="currentSessionKey"
+          :selectable="true"
           :data-source="sessions"
           :columns="sessionColumns"
           key-field="begin_time"
           :resizable="false"
-          :selectable="true"
-          :default-selected-index="0"
           @click-cell="handleSelectSession"
         ></KfTradingDataTable>
       </div>
       <div class="kf-journal-control-bar">
-        <div class="kf-journal-control-filters"></div>
-        <a-button>
-          {{ t('journalConfig.export') }}
-        </a-button>
+        <div class="kf-journal-bar-title">
+          {{ `session: ${currentSessionTitle}` }}
+        </div>
+        <ExportJournal @export-journal-data="onExportJournalData" />
       </div>
-      <div class="kf-journal-frame__wrap">
-        <KfTradingDataTable
-          :data-source="frameDataList"
-          :columns="frameColumns"
-          key-field="genTime"
-          :resizable="false"
-          :selectable="true"
-          @click-cell="handleOpenFrameDetail"
-        ></KfTradingDataTable>
+      <div class="kf-journal-menu__wrap">
+        <a-menu
+          v-model:selectedKeys="currentMenuList"
+          class="kf-journal-menu-tab"
+        >
+          <a-menu-item v-for="item in menus" :key="item.key">
+            <template #icon>
+              <component :is="item.icon"></component>
+            </template>
+            {{ item.title }}
+          </a-menu-item>
+        </a-menu>
+        <div class="kf-journal-menu-content">
+          <EventsDashBoard
+            v-show="isCurrentMenuItem('event')"
+            ref="eventDashBoard"
+            :current-session-id="currentSessionId"
+            :session-location-map="sessionLocationMap"
+          />
+          <OrdersDashboard v-show="isCurrentMenuItem('order')" />
+        </div>
       </div>
     </div>
   </a-layout>
-  <a-drawer v-model:visible="visible" title="Event Frame" placement="right">
-    <div class="frame-detail-drawer__wrap">
-      <template v-if="currentRowDataResolved">
-        <a-list size="normal" bordered :data-source="currentRowDataResolved">
-          <template #renderItem="{ item }">
-            <a-list-item>
-              <span class="frame-detail-datalist-key">{{ item.key }}</span>
-              <span class="frame-detail-datalist-value">{{ item.value }}</span>
-            </a-list-item>
-          </template>
-        </a-list>
-
-        <a-card title="Frame Data" style="margin-top: 35px">
-          <a-tree
-            :show-line="true"
-            :show-icon="true"
-            :tree-data="currentRowData.data_resolved"
-            :selectable="false"
-            default-expand-all
-          >
-            <template #switcherIcon="{ defaultIcon }">
-              <component :is="defaultIcon" />
-            </template>
-          </a-tree>
-        </a-card>
-      </template>
-      <template v-else>
-        <a-empty :image="simpleImage"></a-empty>
-      </template>
-    </div>
-  </a-drawer>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, computed } from 'vue';
+import { onMounted, ref, computed, toRaw } from 'vue';
 import { assemble, dealKfTime } from '@kungfu-trader/kungfu-js-api/kungfu';
-import { getSessionColumns, getFrameColumns } from './config';
+import { getSessionColumns } from './config';
 import { removeLoadingMask } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
-import KfTradingDataTable from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfTradingDataTable.vue';
-import { dealFrame, getCurrentLocation } from './utils';
-import { message, Empty } from 'ant-design-vue';
-import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+import { getCurrentLocation } from './utils';
 import {
   KfCategoryEnum,
   KfCategoryTypes,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import { getIdByKfLocation } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import {
+  UnorderedListOutlined,
+  LineChartOutlined,
+} from '@ant-design/icons-vue';
+import KfTradingDataTable from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfTradingDataTable.vue';
+import ExportJournal from './components/ExportJournal.vue';
+import EventsDashBoard from './components/EventsDashBoard.vue';
+import OrdersDashboard from './components/OrdersDashboard.vue';
 
-const { t } = VueI18n.global;
 const currentLocation = getCurrentLocation();
+const eventDashBoard = ref();
 
 const sessions = ref<KungfuApi.SessionResolved[]>([]);
-const sessionMap = computed(() => {
+const sessionLocationMap = computed(() => {
   return sessions.value.reduce((pre, session) => {
     pre[session.location_uid] = {
-      category: KfCategoryEnum[
-        session.category as KfCategoryEnum
-      ] as KfCategoryTypes,
+      category: session.category,
       group: session.group,
       name: session.name,
       mode: 'live',
@@ -95,137 +79,122 @@ const sessionMap = computed(() => {
     return pre;
   }, {} as Record<number, KungfuApi.KfLocation>);
 });
+const sessionsMap = computed(() => {
+  return sessions.value.reduce((pre, session) => {
+    pre[`${session.begin_time}`] = toRaw(session);
+    return pre;
+  }, {} as Record<string, KungfuApi.SessionResolved>);
+});
 
-const currentSessionIndex = ref<number>(0);
+const currentSessionKey = ref('');
+const currentSessionId = ref(-1);
 
-const limitReadCount = ref(10000);
-const frameDataList = ref<KungfuApi.FrameResolved[]>([]);
+const currentSessionTitle = computed(() => {
+  if (currentSessionKey.value && Object.keys(sessionsMap.value).length) {
+    const currentSession = sessionsMap.value[currentSessionKey.value];
+    if (currentSession) {
+      return `${currentSession.session_id_resolved}   time: ${currentSession.begin_time_resolved} - ${currentSession.end_time_resolved}`;
+    }
 
-const visible = ref(false);
-const currentRowData = ref<KungfuApi.FrameResolved | Record<string, never>>({});
-const currentRowDataResolved = computed(() => {
-  if (currentRowData.value) {
-    return Object.keys(currentRowData.value)
-      .map((item) => {
-        if (item.includes('_') || item === 'data') return null;
-
-        return {
-          key: item as unknown as keyof KungfuApi.FrameResolved,
-          value: `${currentRowData.value[item]}`,
-        };
-      })
-      .filter((item) => !!item);
+    return '';
   }
 
-  return null;
+  return '';
 });
 
-const simpleImage = Empty.PRESENTED_IMAGE_SIMPLE;
+const currentMenuList = ref<('event' | 'order')[]>(['event']);
+const menus = [
+  {
+    key: 'event',
+    title: 'Event',
+    icon: UnorderedListOutlined,
+  },
+  {
+    key: 'order',
+    title: 'Order',
+    icon: LineChartOutlined,
+  },
+];
+
+const isCurrentMenuItem = (key: 'event' | 'order') =>
+  currentMenuList.value.includes(key);
+
+const exportFileName = computed(() => {
+  if (currentSessionKey.value && Object.keys(sessionsMap.value).length) {
+    const currentSession = sessionsMap.value[currentSessionKey.value];
+    if (currentSession) {
+      return `${
+        currentSession.session_id_resolved
+      }_${currentSession.begin_time_resolved
+        .split('.')[0]
+        .split(':')
+        .join('-')}`;
+    }
+  }
+
+  return 'session';
+});
 
 const sessionColumns = getSessionColumns();
-const frameColumns = getFrameColumns();
-
-onMounted(() => {
-  removeLoadingMask();
-});
 
 const getAbs = <T extends number | bigint>(num: T): T =>
   num < 0 ? (-num as T) : num;
 
 const loadSessions = () => {
-  let currentSessions = assemble.get_sessions();
-  if (currentLocation) {
-    currentSessions = currentSessions.filter(
-      (item) => item.location_uid === currentLocation.location_uid,
-    );
-  }
+  setTimeout(() => {
+    let currentSessions = assemble.get_sessions();
 
-  if (currentSessions.length) {
-    sessions.value = currentSessions
-      .map((item, index) => {
-        return {
-          ...item,
-          index,
-          begin_time_resolved: dealKfTime(getAbs<bigint>(item.begin_time)),
-          end_time_resolved: dealKfTime(getAbs<bigint>(item.end_time)),
-          name_resolved: getIdByKfLocation({
-            category: item.category,
-            group: item.group,
-            name: item.name,
-            mode: 'live',
-          } as KungfuApi.KfLocation),
-          is_closed: !!item.end_time,
-        };
-      })
-      .reverse();
+    if (currentSessions.length) {
+      sessions.value = currentSessions
+        .map((item, index) => {
+          item.category = KfCategoryEnum[
+            item.category as KfCategoryEnum
+          ] as KfCategoryTypes;
+          return {
+            index,
+            ...item,
+            session_id_resolved: getIdByKfLocation(item),
+            begin_time_resolved: dealKfTime(getAbs<bigint>(item.begin_time)),
+            end_time_resolved: dealKfTime(getAbs<bigint>(item.end_time)),
+            is_closed: item.end_time < 0,
+          };
+        })
+        .filter((item) => {
+          if (currentLocation) {
+            return (
+              currentLocation.location_uid === item.location_uid &&
+              !!assemble.get_reader(item.index)
+            );
+          } else {
+            return !!assemble.get_reader(item.index);
+          }
+        })
+        .reverse();
 
-    currentSessionIndex.value = sessions.value[0].index;
-    loadFrameData(currentSessionIndex.value);
-  }
-};
+      if (sessions.value.length) {
+        const { index, begin_time } = sessions.value[0];
 
-const loadFrameData = (sessionId: number) => {
-  const hideloading = message.loading(t('journalConfig.loading_journal'));
-  console.log('sessionId', sessionId);
-
-  return new Promise<KungfuApi.FrameResolved[]>((resolve, reject) => {
-    try {
-      const journalReader = assemble.get_reader(sessionId);
-      const currentSession = sessions.value.filter(
-        (item) => item.index === sessionId,
-      )[0];
-
-      const targetCount = Math.min(
-        currentSession.frame_count,
-        limitReadCount.value,
-      );
-
-      frameDataList.value = [];
-
-      const frames: Record<string, KungfuApi.FrameResolved> = {};
-      let count = 0;
-      journalReader.run((frame) => {
-        const curFrameData: KungfuApi.Frame = {
-          dataLength: frame.dataLength(),
-          genTime: frame.genTime(),
-          triggerTime: frame.triggerTime(),
-          msgType: frame.msgType(),
-          stringMsgType: frame.stringMsgType(),
-          source: frame.source(),
-          dest: frame.dest(),
-          data: frame.data(),
-        };
-
-        if (!(`${curFrameData.genTime}` in frames)) {
-          frames[`${curFrameData.genTime}`] = dealFrame(
-            curFrameData,
-            sessionMap.value,
-          );
-        }
-
-        if (++count >= targetCount) {
-          resolve(Object.values(frames));
-        }
-      }, targetCount);
-    } catch (error) {
-      reject(error);
+        currentSessionKey.value = `${begin_time}`;
+        currentSessionId.value = index;
+      }
     }
-  }).then((res) => {
-    frameDataList.value = res;
-    hideloading();
   });
 };
 
+onMounted(() => {
+  loadSessions();
+  removeLoadingMask();
+});
+
 const handleSelectSession = ({ row }) => {
-  loadFrameData(row.index);
+  currentSessionId.value = row.index;
 };
 
-const handleOpenFrameDetail = ({ row }) => {
-  visible.value = true;
-  currentRowData.value = row;
+const onExportJournalData = (
+  exportData: (fileName: string, exportData: KungfuApi.FrameResolved[]) => void,
+) => {
+  exportData(exportFileName.value, eventDashBoard.value.frameDataList);
 };
-
-loadSessions();
 </script>
 
 <style lang="less">
@@ -251,6 +220,8 @@ loadSessions();
       height: 100%;
       width: 100%;
       padding: 0 8px 8px 8px;
+      display: flex;
+      flex-direction: column;
 
       .kf-dashboard__header {
         .kf-dashboard-item__warp {
@@ -268,41 +239,53 @@ loadSessions();
         }
       }
 
-      .kf-dashboard__body {
-        background: #000;
-        padding: 8px;
-        box-sizing: border-box;
-        border-radius: 4px;
-      }
-
       .kf-journal-session__wrap {
+        flex: 0 300px;
         height: 300px;
+        width: 60%;
+        margin: auto;
+        padding: 32px 0;
+        box-sizing: border-box;
       }
 
       .kf-journal-control-bar {
+        flex: 0 40px;
         height: 40px;
         background-color: #1d1d1d;
         padding: 5px 20px;
         margin-bottom: 2px;
         display: flex;
-        justify-content: space-between;
         align-items: center;
+        justify-content: space-between;
+
+        .kf-journal-bar-title {
+          font-size: 14px;
+          margin-right: 16px;
+        }
       }
 
-      .kf-journal-frame__wrap {
-        height: calc(100% - 350px);
+      .kf-journal-menu__wrap {
+        width: 100%;
+        flex: auto;
+
+        display: flex;
+
+        .kf-journal-menu-tab {
+          flex: 0 120px;
+          width: 120px;
+          margin-right: 2px;
+
+          li {
+            width: 100%;
+          }
+        }
+
+        .kf-journal-menu-content {
+          flex: auto;
+          height: 100%;
+        }
       }
     }
-  }
-}
-
-.frame-detail-drawer__wrap {
-  height: 100%;
-  width: 100%;
-  padding: 30px 20px;
-
-  .ant-tree-switcher-noop {
-    display: none;
   }
 }
 </style>

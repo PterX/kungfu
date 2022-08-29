@@ -81,6 +81,13 @@ const run = (distDir, distName = 'sdk') => {
     let results = '';
 
     spinner.on('success', () => {
+      const config = require('@kungfu-trader/kungfu-sdk/package.json');
+      fse.copySync(
+        require.resolve('@kungfu-trader/kungfu-core/dist/kfc/drone.node'),
+        path.join(distDir, distName, `${config.binary.module_name}.node`),
+        {},
+      );
+
       process.stdout.write('\x1B[2J\x1B[0f');
       console.log(`\n\n${results}`);
       console.log(`${okayLog}webpack ${chalk.yellow('`done`')}\n`);
@@ -106,7 +113,7 @@ const run = (distDir, distName = 'sdk') => {
 module.exports = run;
 
 if (require.main === module) {
-  const distDir = path.join(process.cwd(), 'dist');
+  const distDir = path.join(process.cwd().toString(), 'dist');
   fse.ensureDirSync(distDir);
   run(distDir).catch(console.error);
 }

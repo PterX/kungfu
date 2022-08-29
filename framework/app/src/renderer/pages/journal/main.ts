@@ -15,6 +15,11 @@ import {
   List,
   Card,
   Tree,
+  Modal,
+  Form,
+  Select,
+  Menu,
+  Tag,
 } from 'ant-design-vue';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 
@@ -31,6 +36,11 @@ app
   .use(List)
   .use(Card)
   .use(Tree)
+  .use(Modal)
+  .use(Select)
+  .use(Form)
+  .use(Menu)
+  .use(Tag)
   .use(VueVirtualScroller);
 
 app.use(VueI18n);

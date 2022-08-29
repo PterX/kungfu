@@ -18,7 +18,6 @@ static constexpr int DATE_LEN = 9;
 static constexpr int EXCHANGE_ID_LEN = 16;
 
 static constexpr int ERROR_MSG_LEN = 128;
-static constexpr int JSON_STR_LEN = 512;
 
 KF_DEFINE_MARK_TYPE(PageEnd, 10000);
 KF_DEFINE_MARK_TYPE(SessionStart, 10001);
@@ -75,14 +74,14 @@ KF_DEFINE_DATA_TYPE(                                      //
     (std::string, value)                                  //
 );
 
-KF_DEFINE_PACK_TYPE(                                                     //
+KF_DEFINE_DATA_TYPE(                                                     //
     StrategyStateUpdate, 20002, PK(update_time), TIMESTAMP(update_time), //
     (StrategyState, state),                                              //
     (int64_t, update_time),                                              //
-    (kungfu::array<char, JSON_STR_LEN>, info_a),                         //
-    (kungfu::array<char, JSON_STR_LEN>, info_b),                         //
-    (kungfu::array<char, JSON_STR_LEN>, info_c),                         //
-    (kungfu::array<char, JSON_STR_LEN>, value)                           //
+    (std::string, info_a),                                               //
+    (std::string, info_b),                                               //
+    (std::string, info_c),                                               //
+    (std::string, value)                                                 //
 );
 
 KF_DEFINE_PACK_TYPE(                                             //
@@ -403,9 +402,8 @@ KF_DEFINE_PACK_TYPE(                                         //
     (uint64_t, block_id),      // 大宗交易信息id, 用于TD从OrderInput找到此数据
     (uint32_t, opponent_seat), // 对手方席号
     (uint64_t, match_number),  // 成交约定号
-    (kungfu::array<char, ACCOUNT_ID_LEN>, opponent_account), // 对手方股东账号
-    (kungfu::array<char, JSON_STR_LEN>, value),              // 联系人, 联系方式, 是否受限股份
-    (int64_t, insert_time)                                   // 写入时间
+    (bool, is_specific),       // 是否受限(特定)股份
+    (int64_t, insert_time)     // 写入时间
 );
 
 KF_DEFINE_PACK_TYPE(                                               //

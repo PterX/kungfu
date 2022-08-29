@@ -23,7 +23,7 @@ const props = withDefaults(
     keyField?: string;
     resizable?: boolean;
     selectable?: boolean;
-    defaultSelectedIndex?: number;
+    selectedKey?: number | string;
   }>(),
   {
     columns: () => [],
@@ -31,7 +31,7 @@ const props = withDefaults(
     keyField: 'id',
     resizable: true,
     selectable: false,
-    defaultSelectedIndex: -1,
+    selectedKey: undefined,
   },
 );
 
@@ -54,6 +54,7 @@ defineEmits<{
     },
   ): void;
   (e: 'rightClickRow', data: { event: MouseEvent; row: TableDataItem }): void;
+  (e: 'update:selectedKey', data: number | string): void;
 }>();
 
 const app = getCurrentInstance();
@@ -61,7 +62,18 @@ const simpleImage = Empty.PRESENTED_IMAGE_SIMPLE;
 const kfScrollerTableBodyRef = ref();
 const kfScrollerTableWidth = ref(0);
 let clickTimer: number | undefined;
-const currentSelectKey = ref('');
+
+const currentSelectKey = computed(() => {
+  if (
+    props.selectable &&
+    props.selectedKey !== undefined &&
+    props.dataSource.length
+  ) {
+    return props.selectedKey;
+  }
+
+  return null;
+});
 
 const headerWidth = computed(() => {
   const widths: KfTradingDataTableHeaderConfig[] = []; //column use with
@@ -92,15 +104,6 @@ const headerWidth = computed(() => {
 onMounted(() => {
   if (kfScrollerTableBodyRef.value) {
     kfScrollerTableWidth.value = kfScrollerTableBodyRef.value.clientWidth;
-  }
-
-  if (
-    props.selectable &&
-    props.defaultSelectedIndex !== -1 &&
-    props.dataSource.length
-  ) {
-    currentSelectKey.value =
-      props.dataSource[props.defaultSelectedIndex][props.keyField];
   }
 
   if (app?.proxy && props.resizable) {
@@ -142,10 +145,13 @@ function handleClickCell(
   clickTimer && clearTimeout(clickTimer);
   clickTimer = +setTimeout(() => {
     if (app) {
-      if (props.selectable) {
-        currentSelectKey.value = row[props.keyField];
-      }
       app.emit('clickCell', { event: e, row, column });
+      app.emit(
+        'update:selectedKey',
+        typeof row[props.keyField] === 'number'
+          ? row[props.keyField]
+          : `${row[props.keyField]}`,
+      );
     }
   }, 300);
 }
@@ -202,6 +208,14 @@ function handleSort(
     currentSorterOrder.value = 'ascend';
   }
 }
+
+function isCurrentRow(itemKey: number | string | unknown) {
+  if (typeof itemKey !== 'number') {
+    return currentSelectKey.value === `${itemKey}`;
+  } else {
+    return currentSelectKey.value === itemKey;
+  }
+}
 </script>
 <template>
   <div class="kf-table">
@@ -250,7 +264,7 @@ function handleSort(
           <ul
             :class="[
               'kf-table-row',
-              currentSelectKey === item[props.keyField]
+              isCurrentRow(item[props.keyField])
                 ? 'kf-table-current-select'
                 : '',
             ]"

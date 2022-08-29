@@ -9,6 +9,7 @@ import {
   App,
 } from 'vue';
 import {
+  ARCHIVE_DIR,
   buildProcessLogPath,
   KF_HOME,
 } from '@kungfu-trader/kungfu-js-api/config/pathConfig';
@@ -22,7 +23,9 @@ import {
   loopToRunProcess,
   resolveInstrumentValue,
   transformSearchInstrumentResultToInstrument,
+  removeArchiveBeforeToday,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
 import { ExchangeIds } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import { BrowserWindow, getCurrentWindow, dialog } from '@electron/remote';
 import { ipcRenderer } from 'electron';
@@ -205,6 +208,12 @@ export const useTableSearchKeyword = <T>(
   };
 };
 
+const removeArchiveBeforeStartAll = (): Promise<void> => {
+  return removeArchiveBeforeToday(ARCHIVE_DIR).then(() => {
+    kfLogger.info('Clear Archive Done');
+  });
+};
+
 const removeJournalBeforeStartAll = (): Promise<void> => {
   const needClearJournalStr = localStorage.getItem('needClearJournal');
   const needClearJournal = !!(needClearJournalStr && +needClearJournalStr);
@@ -236,7 +245,11 @@ const removeDBBeforeStartAll = (): Promise<void> => {
 };
 
 export const preStartAll = async (): Promise<(void | Proc)[]> => {
-  return Promise.all([removeJournalBeforeStartAll(), removeDBBeforeStartAll()]);
+  return Promise.all([
+    removeJournalBeforeStartAll(),
+    removeDBBeforeStartAll(),
+    removeArchiveBeforeStartAll(),
+  ]);
 };
 
 export const postStartAll = async (): Promise<(void | Proc)[]> => {
@@ -342,6 +355,10 @@ export const openJournalView = (
     __dirname,
     'journal',
     `?processId=${processId}&locationUid=${locationUid}`,
+    {
+      width: 1280,
+      height: 960,
+    },
   );
 };
 
@@ -653,7 +670,7 @@ export const confirmModal = (
   content: VueNode | (() => VueNode) | string,
   okText = t('confirm'),
   cancelText = t('cancel'),
-): Promise<void> => {
+): Promise<boolean> => {
   return new Promise((resolve) => {
     Modal.confirm({
       title: title,
@@ -661,8 +678,26 @@ export const confirmModal = (
       okText: okText,
       cancelText: cancelText,
       onOk: () => {
-        resolve();
+        resolve(true);
+      },
+      onCancel: () => {
+        resolve(false);
       },
     });
   });
+};
+
+export const useBoardFilter = () => {
+  const rootPackageJson = readRootPackageJsonSync();
+  const boardFilter: Record<string, boolean | undefined> | undefined =
+    rootPackageJson?.boardFilter;
+
+  const getBoard = <T>(boardName: string, ifTrue: T, ifFalse: T): T => {
+    return boardFilter ? (boardFilter[boardName] ? ifTrue : ifFalse) : ifTrue;
+  };
+
+  return {
+    boardFilter,
+    getBoard,
+  };
 };

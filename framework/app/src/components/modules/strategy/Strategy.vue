@@ -9,7 +9,7 @@ import Icon, {
   SettingOutlined,
   DeleteOutlined,
   FormOutlined,
-  DatabaseOutlined,
+  BankOutlined,
 } from '@ant-design/icons-vue';
 
 import {
@@ -236,10 +236,10 @@ function handleRemoveStrategy(record: KungfuApi.KfConfig) {
           </template>
           <template v-else-if="column.dataIndex === 'actions'">
             <div class="kf-actions__warp">
-              <DatabaseOutlined
+              <BankOutlined
                 style="font-size: 12px"
                 @click.stop="handleOpenJournalView(record)"
-              ></DatabaseOutlined>
+              ></BankOutlined>
               <FileTextOutlined
                 style="font-size: 12px"
                 @click.stop="handleOpenLogview(record)"

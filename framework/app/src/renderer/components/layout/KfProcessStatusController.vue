@@ -2,7 +2,7 @@
 import Icon, {
   ClusterOutlined,
   FileTextOutlined,
-  DatabaseOutlined,
+  BankOutlined,
 } from '@ant-design/icons-vue';
 import { notification } from 'ant-design-vue';
 
@@ -308,10 +308,10 @@ onMounted(() => {
                 }}
               </div>
               <div class="actions kf-actions__warp">
-                <DatabaseOutlined
+                <BankOutlined
                   style="font-size: 12px"
                   @click.stop="handleOpenJournalView(config)"
-                ></DatabaseOutlined>
+                ></BankOutlined>
                 <FileTextOutlined
                   @click="handleOpenLogview(config)"
                   style="font-size: 14px"

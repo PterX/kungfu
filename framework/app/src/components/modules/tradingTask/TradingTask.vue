@@ -15,7 +15,7 @@ import {
   FileTextOutlined,
   SettingOutlined,
   DeleteOutlined,
-  DatabaseOutlined,
+  BankOutlined,
 } from '@ant-design/icons-vue';
 import { columns } from './config';
 import path from 'path';
@@ -326,12 +326,12 @@ function getProcessStatusName(
           </template>
           <template v-else-if="column.dataIndex === 'actions'">
             <div class="kf-actions__warp">
-              <DatabaseOutlined
+              <BankOutlined
                 style="font-size: 12px"
                 @click.stop="
                   handleOpenViewResolved(record, handleOpenJournalView)
                 "
-              ></DatabaseOutlined>
+              ></BankOutlined>
               <FileTextOutlined
                 style="font-size: 12px"
                 @click.stop="handleOpenViewResolved(record, handleOpenLogview)"

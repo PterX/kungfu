@@ -33,7 +33,7 @@ public:
     PYBIND11_OVERLOAD_PURE(bool, MarketData, subscribe, instruments);
   }
 
-  bool subscribe_all() override { PYBIND11_OVERLOAD_PURE(bool, MarketData, subscribe_all); }
+  bool subscribe_all() override { PYBIND11_OVERLOAD(bool, MarketData, subscribe_all); }
 
   bool unsubscribe(const std::vector<InstrumentKey> &instruments) override {
     PYBIND11_OVERLOAD_PURE(bool, MarketData, unsubscribe, instruments);
@@ -48,6 +48,10 @@ public:
 
   [[nodiscard]] AccountType get_account_type() const override {
     PYBIND11_OVERLOAD_PURE(const AccountType, Trader, get_account_type, );
+  }
+
+  bool insert_block_message(const kungfu::event_ptr &event) override {
+    PYBIND11_OVERLOAD(bool, Trader, insert_block_message, event);
   }
 
   bool insert_order(const kungfu::event_ptr &event) override {
@@ -110,6 +114,7 @@ void bind_broker(pybind11::module &m) {
       .def("add_timer", &Trader::add_timer)
       .def("add_time_interval", &Trader::add_time_interval)
       .def("update_broker_state", &Trader::update_broker_state)
+      .def("insert_block_message", &Trader::insert_block_message)
       .def("insert_order", &Trader::insert_order)
       .def("cancel_order", &Trader::cancel_order)
       .def("req_history_order", &Trader::req_history_order)

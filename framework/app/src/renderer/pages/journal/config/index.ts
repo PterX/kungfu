@@ -14,10 +14,10 @@ const buildStrSorter =
 export const getSessionColumns = (): KfTradingDataTableHeaderConfig[] => [
   {
     type: 'string',
-    name: 'name',
-    dataIndex: 'name_resolved',
+    name: t('journalConfig.session_id'),
+    dataIndex: 'session_id_resolved',
     width: 160,
-    sorter: buildStrSorter('name'),
+    sorter: buildStrSorter('session_id_resolved'),
   },
   {
     type: 'string',
@@ -45,21 +45,21 @@ export const getFrameColumns = (): KfTradingDataTableHeaderConfig[] => [
   {
     type: 'string',
     name: t('journalConfig.gen_time'),
-    dataIndex: 'gen_time_resolved',
+    dataIndex: 'genTimeResolved',
     width: 160,
     sorter: buildSorter('genTime'),
   },
   {
     type: 'string',
-    name: 'source → destination',
-    dataIndex: 'source_to_dest',
-    sorter: buildStrSorter('source_to_dest'),
+    name: `${t('journalConfig.source')} → ${t('journalConfig.dest')}`,
+    dataIndex: 'sourceToDest',
+    sorter: buildStrSorter('sourceToDest'),
     width: 260,
   },
   {
     type: 'string',
     name: t('journalConfig.msg_type'),
     dataIndex: 'stringMsgType',
-    width: 140,
+    width: 160,
   },
 ];

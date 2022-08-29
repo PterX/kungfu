@@ -20,6 +20,7 @@ import {
   StrategyExtTypes,
   UnderweightEnum,
   OrderInputKeyEnum,
+  FrameMsgTypeEnum,
 } from '../typings/enums';
 
 import { Pm2ProcessStatusTypes } from '../utils/processUtils';
@@ -210,7 +211,7 @@ export const OrderInputKeySetting: Record<
   KungfuApi.KfTradeValueCommonData
 > = {
   [OrderInputKeyEnum.VOLUME]: { name: t('tradeConfig.volume') },
-  [OrderInputKeyEnum.PRICE]: { name: t('tradeConfig.price') },
+  [OrderInputKeyEnum.PRICE]: { name: t('globalSettingConfig.single_price') },
 };
 
 export const Side: Record<SideEnum, KungfuApi.KfTradeValueCommonData> = {
@@ -675,4 +676,13 @@ export const SystemProcessName: Record<
   ledger: { name: t('tradingConfig.ledger') },
   cached: { name: t('tradingConfig.cached') },
   archive: { name: t('tradingConfig.archive') },
+};
+
+export const JournalFrameMsgType: Partial<
+  Record<FrameMsgTypeEnum, KungfuApi.KfTradeValueCommonData>
+> = {
+  [FrameMsgTypeEnum.Order]: {
+    name: 'Order',
+    color: 'red',
+  },
 };

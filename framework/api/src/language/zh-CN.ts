@@ -71,7 +71,7 @@ export default {
     '{category}ID系统唯一, {changeTypeName} 成功后不可修改, 确认 {key}',
   update_config_modal: '确认{key} 相关配置',
 
-  MakeOrderDashboard: '下单面板',
+  MakeOrder: '下单面板',
   FutureArbitrage: '套利指令',
   BlockTrade: '大宗交易',
   OrderBook: '深度行情',
@@ -240,6 +240,7 @@ export default {
     side: '买卖',
     offset: '开平',
     limit_price: '下单价格',
+    algorithm: '算法',
 
     make_order_number: '下单次数',
     no_empty: '下单量不可为空',
@@ -250,15 +251,19 @@ export default {
       '买入价格超出警戒线, 当前价格为 {price}, 警戒线为 {warningLine}, 当前乌龙指阈值为 {fatFinger}%',
     fat_finger_sell_modal:
       '卖出价格超出警戒线, 当前价格为 {price}, 警戒线为 {warningLine}, 当前乌龙指阈值为 {fatFinger}%',
+    close_apart_open_modal:
+      '下单量为 {volume}, 当前标的可平{direction}仓为 {closable_volume}, 超出数量为 {open_volume}\n点击 “超出部分反向开仓”, 将会 平{direction} {closable_volume}, 开{direction} {open_volume}\n点击“按原方案下单”, 将会继续平{direction} {volume}',
     start_process: '请先启动{process}交易进程',
     place_confirm: '下单确认',
     close_all: '是否全部平仓?',
     Continue: '继续下单',
+    original_plan: '按原方案下单',
+    beyond_to_open: '超出部分反向开仓',
   },
 
   orderConfig: {
     update_time: '更新时间',
-    instrument_id: '代码',
+    instrument_id: '标的',
     limit_price: '委托价',
     order_status: '订单状态',
     latency_system: '系统延迟μs',
@@ -286,7 +291,7 @@ export default {
     entrust_statistical: '委托统计',
     statistical_desc: '实时(最新100条数据)',
     entrust_statistical_number: '委托统计数量',
-    ntrust_statistical_price: '委托价统计',
+    entrust_statistical_price: '委托价统计',
     average_withdrawal_ratio: '平均撤单比 (仅统计 部成部撤 和 全部撤单)',
     average_system_latency: '平均系统延迟(μs)',
     min_system_latency: '最小系统延迟(μs)',
@@ -369,11 +374,12 @@ export default {
   },
 
   posGlobalConfig: {
-    instrument_id: '代码',
+    instrument_id: '标的',
     account_id_resolved: '持有账户',
     yesterday_volume: '昨',
     today_volume: '今',
     sum_volume: '总',
+    closable_volume: '可平',
     avg_open_price: '开仓均价',
     last_price: '最新价',
     unrealized_pnl: '浮动盈亏',
@@ -393,24 +399,33 @@ export default {
   },
 
   journalConfig: {
+    session_id: 'Session ID',
     begin_time: '开始时间',
     end_time: '结束时间',
     is_closed: '是否结束',
 
+    dest: '目标',
+    source: '源头',
     gen_time: '生成时间',
     trigger_time: '触发时间',
-    msg_type: '类型',
+    msg_type: '消息类型',
+
+    filters: '过滤器',
+    apply_filters: '应用过滤',
 
     export: '导出',
+    export_file_path: '导出文件目录',
+    need_directroy: '请选择目录',
+    export_success: '导出成功',
+    directroy_be_valued: '导出目录不能为空',
 
-    loading_journal: '正在加载 journal ...',
+    loading_journal: '正在加载 journal',
   },
 
   tradeConfig: {
-    instrument: '标的',
     trade_time_resolved: '成交时间',
     kf_time_resolved: '系统时间',
-    instrument_id: '代码',
+    instrument_id: '标的',
     price: '成交价',
     volume: '成交量',
     latency_trade: '成交延迟(μs)',
@@ -452,7 +467,7 @@ export default {
 
   blockTradeConfig: {
     account_name: '账户',
-    instrument: '标的',
+    instrument_id: '标的',
     side: '买卖',
     offset: '开平',
     hedge_flag: '套保',
@@ -461,11 +476,8 @@ export default {
     limit_price: '价格',
     volume: '下单量',
     opponent_seat: '对方席位',
-    opponent_account: '对方股东',
     match_number: '约定序号',
-    linkman: '联系人',
-    contact_way: '联系方式',
-    underweight_type: '减持类型',
+    is_specific: '减持类型',
 
     unrestricted_shares: '非受限股份',
     restricted_shares: '受限股份',
@@ -512,6 +524,7 @@ export default {
     trade_limit: '交易限制',
     set_trade_limit: '设置交易限制',
     order_input_key: '限制属性',
+    single_price: '单笔成交价',
     limit_value: '最大值',
     asset_margin: '两融',
     show_asset_margin: '展示两融',

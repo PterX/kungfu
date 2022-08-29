@@ -16,7 +16,6 @@ declare namespace KungfuApi {
     SideEnum,
     OffsetEnum,
     HedgeFlagEnum,
-    UnderweightEnum,
     LedgerCategoryEnum,
     VolumeConditionEnum,
     TimeConditionEnum,
@@ -31,6 +30,7 @@ declare namespace KungfuApi {
     OrderActionFlagEnum,
     OrderInputKeyEnum,
     KfExtConfigTypes,
+    FrameMsgTypeEnum,
   } from './enums';
   import { Dayjs } from 'dayjs';
 
@@ -269,26 +269,26 @@ declare namespace KungfuApi {
   }
 
   export interface ConfigStore {
-    getAllConfig(): Record<string, KfConfigOrigin>;
+    getAllConfig(): Record<string, KfConfigOrigin> | false;
     setConfig(
       category: string,
       group: string,
       name: string,
       mode: string,
       configValue: string,
-    ): void;
+    ): boolean;
     removeConfig(
       category: string,
       group: string,
       name: string,
       mode: string,
-    ): void;
+    ): boolean;
     getConfig(
       category: string,
       group: string,
       name: string,
       mode: string,
-    ): KungfuApi.KfConfig;
+    ): KungfuApi.KfConfig | false;
   }
 
   export interface HistoryStore {
@@ -296,12 +296,12 @@ declare namespace KungfuApi {
   }
 
   export interface CommissionStore {
-    getAllCommission(): Commission[];
+    getAllCommission(): Commission[] | false;
     setAllCommission(commissions: Commission[]): boolean;
   }
 
   export interface RiskSettingStore {
-    getAllRiskSetting(): Record<string, RiskSettingOrigin>;
+    getAllRiskSetting(): Record<string, RiskSettingOrigin> | false;
     setAllRiskSetting(riskSettings: RiskSettingOrigin[]): boolean;
   }
 
@@ -471,15 +471,8 @@ declare namespace KungfuApi {
 
   export interface BlockMessage {
     opponent_seat: number; // 对方手席位号
-    opponent_account: string; // 对方手账户
     match_number: bigint; // 成交约定号
-    value:
-      | {
-          linkman: string; // 联系人
-          contact_way: string; // 联系方式
-          underweight_type: UnderweightEnum; // 减持类型
-        }
-      | string;
+    is_specific: boolean; // 是否受限股份
     insert_time: bigint;
   }
 
@@ -541,6 +534,7 @@ declare namespace KungfuApi {
   }
 
   export interface PositionResolved extends Position {
+    closable_volume: bigint;
     account_id_resolved: string;
     instrument_id_resolved: string;
   }
@@ -762,9 +756,9 @@ declare namespace KungfuApi {
 
   export interface SessionResolved extends Session {
     index: number;
+    session_id_resolved: string;
     begin_time_resolved: string;
     end_time_resolved: string;
-    name_resolved: string;
     is_closed: boolean;
   }
 
@@ -772,7 +766,7 @@ declare namespace KungfuApi {
     dataLength: FunctionOrData<T, number>;
     genTime: FunctionOrData<T, bigint>;
     triggerTime: FunctionOrData<T, bigint>;
-    msgType: FunctionOrData<T, number>; // to enum
+    msgType: FunctionOrData<T, FrameMsgTypeEnum>; // to enum
     stringMsgType: FunctionOrData<T, number>; // to enum
     source: FunctionOrData<T, number>;
     dest: FunctionOrData<T, number>;
@@ -780,15 +774,19 @@ declare namespace KungfuApi {
   }
 
   export interface FrameResolved extends Frame {
-    gen_time_resolved: string;
-    trigger_time_resolved: string;
-    msg_type_resolved: string;
-    source_to_dest: string;
-    data_resolved: unknown[];
+    genTimeResolved: string;
+    triggerTimeResolved: string;
+    msgTypeResolved: KfTradeValueCommonData;
+    destResolved: string;
+    sourceResolved: string;
+    sourceToDest: string;
+    dataResolved: unknown[];
   }
 
   export interface AssembleReader {
     run: (cb: (frame: Frame<'func'>) => void, num: number) => void;
+    next: () => boolean;
+    currentFrame: () => Frame<'func'>;
   }
 
   export interface Assemble {

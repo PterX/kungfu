@@ -71,7 +71,7 @@ export default {
     '{category} ID unique in the system. {changeTypeName} cannot be modified after it succeeds.',
   update_config_modal: 'Confirm {key} configurations',
 
-  MakeOrderDashboard: 'Order Dashboard',
+  MakeOrder: 'Order Dashboard',
   FutureArbitrage: 'Future Arbitrage',
   OrderBook: 'Order Book',
   MarketData: 'Market Data',
@@ -238,6 +238,7 @@ export default {
     side: 'Side',
     offset: 'Offset',
     limit_price: 'LimitPrice',
+    algorithm: 'Algorithm',
 
     make_order_number: 'Order Number',
     no_empty: 'Order quantity cannot be empty',
@@ -248,10 +249,14 @@ export default {
       'The buying price exceeded the warning line, the current price is {price}, line for {warningLine}, fat finger is {fatFinger}%',
     fat_finger_sell_modal:
       'The selling price exceeded the warning line, the current price is {price}, line for {warningLine}, fat finger is {fatFinger}%',
+    close_apart_open_modal:
+      'The order input volume is {volume}, the current closable {direction} position is {closable_volume}, the excess is {open_volume}\nclick “Take excess to open”, will close {direction} {closable_volume}, open {direction} {open_volume}\nclick “Orignal plan”, will continue close {direction} {volume}',
     start_process: 'please start {process} first',
     place_confirm: 'Place Order Confirm',
     close_all: 'Close All?',
     Continue: 'Continue',
+    original_plan: 'Orignal plan',
+    beyond_to_open: 'Take excess to open',
   },
 
   orderConfig: {
@@ -284,7 +289,7 @@ export default {
     entrust_statistical: 'Entrust Statistical',
     statistical_desc: 'Real-time (latest 100 pieces of data)',
     entrust_statistical_number: 'Entrust Statistical Number',
-    ntrust_statistical_price: 'Entrust Statistical Price',
+    entrust_statistical_price: 'Entrust Statistical Price',
     average_withdrawal_ratio:
       'Average withdrawal ratio (only partial withdrawal and total withdrawal of statistics Department)',
     average_system_latency: 'Average System Latency(μs)',
@@ -376,6 +381,7 @@ export default {
     yesterday_volume: 'yesterday_volume',
     today_volume: 'today_volume',
     sum_volume: 'sum_volume',
+    closable_volume: 'closable_volume',
     avg_open_price: 'avg_open_price',
     last_price: 'last_price',
     unrealized_pnl: 'unrealized_pnl',
@@ -399,17 +405,21 @@ export default {
     end_time: 'end_time',
     is_closed: 'is_end',
 
+    dest: 'destination',
+    source: 'source',
     gen_time: 'gen_time',
-    trigger_time: '触发trigger_time时间',
+    trigger_time: 'trigger_time',
     msg_type: 'msg_type',
 
-    export: 'export',
+    export: 'Export',
+    export_file_path: 'export_file_path',
+    need_directroy: 'Only allow directroy',
+    export_success: 'Export success',
 
-    loading_journal: 'loading journal...',
+    loading_journal: 'Loading journal...',
   },
 
   tradeConfig: {
-    instrument: 'instrument',
     trade_time_resolved: 'trade_time',
     kf_time_resolved: 'kf_time',
     instrument_id: 'instrument_id',
@@ -455,7 +465,7 @@ export default {
 
   blockTradeConfig: {
     account_name: 'account_name',
-    instrument: 'instrument',
+    instrument_id: 'instrument',
     side: 'side',
     offset: 'offset',
     hedge_flag: 'hedge_flag',
@@ -464,11 +474,8 @@ export default {
     limit_price: 'limit_price',
     volume: 'volume',
     opponent_seat: 'opponent_seat',
-    opponent_account: 'opponent_account',
     match_number: 'match_number',
-    linkman: 'linkman',
-    contact_way: 'contact_way',
-    underweight_type: 'underweight_type',
+    is_specific: 'is_specific',
 
     unrestricted_shares: 'Unrestricted shares',
     restricted_shares: 'Restricted shares',
@@ -515,8 +522,9 @@ export default {
       'Set the threshold for triggering an close(percentage)',
     trade_limit: 'Trade Limit',
     set_trade_limit: 'Set Trade limit value for price or volume property',
-    order_input_key: 'property',
-    limit_value: 'maximum',
+    order_input_key: 'Property',
+    single_price: 'Single Price',
+    limit_value: 'Maximum',
     asset_margin: 'AssetMargin',
     show_asset_margin: 'AssetMargin Mode',
 

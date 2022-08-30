@@ -148,7 +148,11 @@ def show_journal(ctx, session_id, io_type, csv):
         ctx, session_id, io_type
     )
     io_device.show(
-        session["begin_time"], session["end_time"], show_in, show_out, csv,
+        session["begin_time"],
+        session["end_time"],
+        show_in,
+        show_out,
+        csv,
     )
 
 
@@ -157,5 +161,9 @@ def trace_journal(ctx, session_id, io_type, csv):
         ctx, session_id, io_type
     )
     io_device.trace(
-        session["begin_time"], session["end_time"], show_in, show_out, csv,
+        session["begin_time"],
+        session["end_time"],
+        show_in,
+        show_out,
+        csv,
     )

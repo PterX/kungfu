@@ -34,6 +34,9 @@ hero::hero(io_device_ptr io_device)
       io_device_(std::move(io_device)), now_(0) {
 
   os::handle_os_signals(this);
+  util::set_error_log_dir(get_locator()->layout_dir(
+      get_home(),
+      layout::LOG)); // get_io_device()->get_home()->locator->layout_file(get_io_device()->get_home(),layout::LOG,
   add_location(0, get_io_device()->get_home());
   add_location(0, master_home_location_);
   add_location(0, master_cmd_location_);

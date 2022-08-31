@@ -25,6 +25,7 @@ import {
   transformSearchInstrumentResultToInstrument,
   removeArchiveBeforeToday,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
 import { ExchangeIds } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import { BrowserWindow, getCurrentWindow, dialog } from '@electron/remote';
 import { ipcRenderer } from 'electron';
@@ -643,7 +644,7 @@ export const confirmModal = (
   content: VueNode | (() => VueNode) | string,
   okText = t('confirm'),
   cancelText = t('cancel'),
-): Promise<void> => {
+): Promise<boolean> => {
   return new Promise((resolve) => {
     Modal.confirm({
       title: title,
@@ -651,8 +652,26 @@ export const confirmModal = (
       okText: okText,
       cancelText: cancelText,
       onOk: () => {
-        resolve();
+        resolve(true);
+      },
+      onCancel: () => {
+        resolve(false);
       },
     });
   });
+};
+
+export const useBoardFilter = () => {
+  const rootPackageJson = readRootPackageJsonSync();
+  const boardFilter: Record<string, boolean | undefined> | undefined =
+    rootPackageJson?.boardFilter;
+
+  const getBoard = <T>(boardName: string, ifTrue: T, ifFalse: T): T => {
+    return boardFilter ? (boardFilter[boardName] ? ifTrue : ifFalse) : ifTrue;
+  };
+
+  return {
+    boardFilter,
+    getBoard,
+  };
 };

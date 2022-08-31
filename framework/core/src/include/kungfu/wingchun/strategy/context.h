@@ -62,6 +62,16 @@ public:
                              uint64_t data_type = 0) = 0;
 
   /**
+   * Insert Block Message
+   * @param opponent_seat
+   * @param match_number
+   * @param value
+   * @return
+   */
+  virtual uint64_t insert_block_message(const std::string &source, const std::string &account, uint32_t opponent_seat,
+                                        uint64_t match_number, bool is_specific = false) = 0;
+
+  /**
    * Insert order.
    * @param instrument_id instrument ID
    * @param exchange_id exchange ID
@@ -73,13 +83,38 @@ public:
    * @param side side
    * @param offset offset, defaults to longfist::enums::Offset::Open
    * @param hedge_flag hedge_flag, defaults to longfist::enums::HedgeFlag::Speculation
+   * @param block_id BlockMessage id
    * @return
    */
   virtual uint64_t insert_order(const std::string &instrument_id, const std::string &exchange_id,
                                 const std::string &source, const std::string &account, double limit_price,
                                 int64_t volume, longfist::enums::PriceType type, longfist::enums::Side side,
-                                longfist::enums::Offset offset, longfist::enums::HedgeFlag hedge_flag,
-                                bool is_swap = false) = 0;
+                                longfist::enums::Offset offset,
+                                longfist::enums::HedgeFlag hedge_flag = HedgeFlag::Speculation, bool is_swap = false,
+                                uint64_t block_id = 0) = 0;
+
+  /**
+   * Insert Batch Orders
+   * @param source
+   * @param account
+   * @param instrument_ids
+   * @param exchange_ids
+   * @param limit_prices
+   * @param volumes
+   * @param types
+   * @param sides
+   * @param offsets
+   * @param hedge_flags
+   * @param is_swaps
+   * @return
+   */
+  virtual bool insert_batch_orders(const std::string &source, const std::string &account,
+                                   const std::vector<std::string> &instrument_ids,
+                                   const std::vector<std::string> &exchange_ids, std::vector<double> limit_prices,
+                                   std::vector<int64_t> volumes, std::vector<longfist::enums::PriceType> types,
+                                   std::vector<longfist::enums::Side> sides,
+                                   std::vector<longfist::enums::Offset> offsets,
+                                   std::vector<longfist::enums::HedgeFlag> hedge_flags, std::vector<bool> is_swaps) = 0;
 
   /**
    * query history order

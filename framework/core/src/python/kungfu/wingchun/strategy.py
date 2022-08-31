@@ -181,7 +181,9 @@ class Strategy(wc.Strategy):
         self.ctx.subscribe = wc_context.subscribe
         self.ctx.subscribe_all = wc_context.subscribe_all
         self.ctx.add_account = self.__add_account
+        self.ctx.insert_block_message = wc_context.insert_block_message
         self.ctx.insert_order = wc_context.insert_order
+        self.ctx.insert_batch_orders = wc_context.insert_batch_orders
         self.ctx.cancel_order = wc_context.cancel_order
         self.ctx.req_history_order = wc_context.req_history_order
         self.ctx.req_history_trade = wc_context.req_history_trade

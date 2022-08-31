@@ -69,7 +69,7 @@ export default {
     '{category}ID系统唯一, {changeTypeName} 成功后不可修改, 确认 {key}',
   update_config_modal: '确认{key} 相关配置',
 
-  MakeOrderDashboard: '下单面板',
+  MakeOrder: '下单面板',
   FutureArbitrage: '套利指令',
   BlockTrade: '大宗交易',
   OrderBook: '深度行情',
@@ -238,6 +238,7 @@ export default {
     side: '买卖',
     offset: '开平',
     limit_price: '下单价格',
+    algorithm: '算法',
 
     make_order_number: '下单次数',
     no_empty: '下单量不可为空',
@@ -248,10 +249,14 @@ export default {
       '买入价格超出警戒线, 当前价格为 {price}, 警戒线为 {warningLine}, 当前乌龙指阈值为 {fatFinger}%',
     fat_finger_sell_modal:
       '卖出价格超出警戒线, 当前价格为 {price}, 警戒线为 {warningLine}, 当前乌龙指阈值为 {fatFinger}%',
+    close_apart_open_modal:
+      '下单量为 {volume}, 当前标的可平{direction}仓为 {closable_volume}, 超出数量为 {open_volume}\n点击 “超出部分反向开仓”, 将会 平{direction} {closable_volume}, 开{direction} {open_volume}\n点击“按原方案下单”, 将会继续平{direction} {volume}',
     start_process: '请先启动{process}交易进程',
     place_confirm: '下单确认',
     close_all: '是否全部平仓?',
     Continue: '继续下单',
+    original_plan: '按原方案下单',
+    beyond_to_open: '超出部分反向开仓',
   },
 
   orderConfig: {
@@ -372,6 +377,7 @@ export default {
     yesterday_volume: '昨',
     today_volume: '今',
     sum_volume: '总',
+    closable_volume: '可平',
     avg_open_price: '开仓均价',
     last_price: '最新价',
     unrealized_pnl: '浮动盈亏',
@@ -444,11 +450,8 @@ export default {
     limit_price: '价格',
     volume: '下单量',
     opponent_seat: '对方席位',
-    opponent_account: '对方股东',
     match_number: '约定序号',
-    linkman: '联系人',
-    contact_way: '联系方式',
-    underweight_type: '减持类型',
+    is_specific: '减持类型',
 
     unrestricted_shares: '非受限股份',
     restricted_shares: '受限股份',

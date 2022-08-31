@@ -16,7 +16,6 @@ declare namespace KungfuApi {
     SideEnum,
     OffsetEnum,
     HedgeFlagEnum,
-    UnderweightEnum,
     LedgerCategoryEnum,
     VolumeConditionEnum,
     TimeConditionEnum,
@@ -263,26 +262,26 @@ declare namespace KungfuApi {
   }
 
   export interface ConfigStore {
-    getAllConfig(): Record<string, KfConfigOrigin>;
+    getAllConfig(): Record<string, KfConfigOrigin> | false;
     setConfig(
       category: string,
       group: string,
       name: string,
       mode: string,
       configValue: string,
-    ): void;
+    ): boolean;
     removeConfig(
       category: string,
       group: string,
       name: string,
       mode: string,
-    ): void;
+    ): boolean;
     getConfig(
       category: string,
       group: string,
       name: string,
       mode: string,
-    ): KungfuApi.KfConfig;
+    ): KungfuApi.KfConfig | false;
   }
 
   export interface HistoryStore {
@@ -290,12 +289,12 @@ declare namespace KungfuApi {
   }
 
   export interface CommissionStore {
-    getAllCommission(): Commission[];
+    getAllCommission(): Commission[] | false;
     setAllCommission(commissions: Commission[]): boolean;
   }
 
   export interface RiskSettingStore {
-    getAllRiskSetting(): Record<string, RiskSettingOrigin>;
+    getAllRiskSetting(): Record<string, RiskSettingOrigin> | false;
     setAllRiskSetting(riskSettings: RiskSettingOrigin[]): boolean;
   }
 
@@ -465,15 +464,8 @@ declare namespace KungfuApi {
 
   export interface BlockMessage {
     opponent_seat: number; // 对方手席位号
-    opponent_account: string; // 对方手账户
     match_number: bigint; // 成交约定号
-    value:
-      | {
-          linkman: string; // 联系人
-          contact_way: string; // 联系方式
-          underweight_type: UnderweightEnum; // 减持类型
-        }
-      | string;
+    is_specific: boolean; // 是否受限股份
     insert_time: bigint;
   }
 
@@ -535,6 +527,7 @@ declare namespace KungfuApi {
   }
 
   export interface PositionResolved extends Position {
+    closable_volume: bigint;
     account_id_resolved: string;
     instrument_id_resolved: string;
   }

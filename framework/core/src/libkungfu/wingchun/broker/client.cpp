@@ -141,7 +141,7 @@ void Client::connect(const event_ptr &event, const Register &register_data) {
     app_.request_write_to(app_.now(), app_uid);
     app_.request_read_from(app_.now(), app_uid, resume_time_point);
     app_.request_read_from_public(app_.now(), app_uid, resume_time_point);
-    app_.request_read_from_sync(app_.now(), app_uid, resume_time_point); // 类似于request_read_from_public
+    app_.request_read_from_sync(app_.now(), app_uid, resume_time_point);
     SPDLOG_INFO("resume {} connection from {}", app_.get_location_uname(app_uid), time::strftime(resume_time_point));
   }
   if (app_location->category == category::STRATEGY and should_connect_strategy(app_location)) {
@@ -239,7 +239,7 @@ bool PassiveClient::is_custom_subscribed_all(uint32_t md_location_uid,
 
     SubscribeInstrumentType custom_type = instrument_type_to_subscribe_instrument_type(kf_instrument_type);
 
-    for (auto it : custom_sub) {
+    for (const auto &it : custom_sub) {
       std::string custom_exchange("0");
       switch (it.market_type) {
       case MarketType::BSE:
@@ -275,7 +275,9 @@ bool PassiveClient::is_custom_subscribed_all(uint32_t md_location_uid,
       }
       if ((it.data_type == SubscribeDataType::All or (uint64_t(it.data_type) & uint64_t(secu_dt)) != 0) and
           (custom_exchange.empty() || custom_exchange.compare(exchange) == 0) and
-          ((uint64_t(custom_type) & uint64_t(it.instrument_type)) != 0)) {
+          (it.instrument_type == SubscribeInstrumentType::All or
+           (uint64_t(custom_type) & uint64_t(it.instrument_type)) != 0)) {
+        /// using & operator because it.instrument_type maybe InstrumentType::Stock | InstrumentType::Future
         return true;
       }
     }
@@ -307,7 +309,7 @@ void PassiveClient::subscribe(const location_ptr &md_location, const std::string
 
 void PassiveClient::subscribe_all(const location_ptr &md_location, uint8_t market_type, uint64_t instrument_type,
                                   uint64_t data_type) {
-  enrolled_md_locations_.emplace(md_location->uid, true);
+  enrolled_md_locations_.insert_or_assign(md_location->uid, true);
   CustomSubscribe custrom_sub = {};
   custrom_sub.market_type = MarketType(market_type);
   custrom_sub.instrument_type = SubscribeInstrumentType(instrument_type);

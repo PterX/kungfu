@@ -20,6 +20,18 @@ const languageDir = path.join(root, 'language');
 const languageFile = path.join(languageDir, 'locale.json');
 const languageCNMergeFile = path.join(languageDir, 'zh-CN-merge.json');
 const languageENMergeFile = path.join(languageDir, 'en-US-merge.json');
+const rootPackageJson = require(path.join(root, 'package.json'));
+const appLibPackageJsonDir = path.join(appDir, 'lib', 'electron');
+const appLibPackageMergeJson = require(path.join(
+  appLibPackageJsonDir,
+  'package.merge.json',
+));
+const appLibPackageJsonPath = path.join(appLibPackageJsonDir, 'package.json');
+
+fse.writeJsonSync(appLibPackageJsonPath, {
+  ...rootPackageJson,
+  ...appLibPackageMergeJson,
+});
 
 const extensions = extensionDirs.map((fullpath) => {
   const extensionDir = path.resolve(fullpath, 'dist');
@@ -60,6 +72,7 @@ module.exports = {
     'dist/app/**/*',
     'dist/cli/**/*',
     'dist/kfs/**/*',
+    '!dist/kfs/native_modules/dist/**/*', //由于sdk依赖了app的electronBuilder方法, 所以会把electron打包进去, 需要过滤掉
     '!**/@kungfu-trader/kfx-*/**/*',
     '!**/@kungfu-trader/kungfu-sdk/**/*',
     '**/@kungfu-trader/kungfu-sdk/templates/**/*',

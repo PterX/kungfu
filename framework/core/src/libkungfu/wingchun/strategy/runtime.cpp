@@ -72,9 +72,28 @@ void RuntimeContext::subscribe_all(const std::string &source, uint8_t market_typ
   broker_client_.subscribe_all(find_md_location(source), market_type, instrument_type, data_type);
 }
 
-uint64_t RuntimeContext::insert_order(uint32_t account_location_uid, const std::string &instrument_id,
-                                      const std::string &exchange_id, double limit_price, int64_t volume,
-                                      PriceType type, Side side, Offset offset, HedgeFlag hedge_flag, bool is_swap) {
+uint64_t RuntimeContext::insert_block_message(const std::string &source, const std::string &account,
+                                              uint32_t opponent_seat, uint64_t match_number, bool is_specific) {
+  auto account_location_uid = get_td_location_uid(source, account);
+  if (not broker_client_.is_ready(account_location_uid)) {
+    SPDLOG_ERROR("account {} not ready", td_locations_.at(account_location_uid)->uname);
+    return 0;
+  }
+  auto writer = app_.get_writer(account_location_uid);
+  BlockMessage &msg = writer->open_data<BlockMessage>(app_.now());
+  msg.opponent_seat = opponent_seat;
+  msg.match_number = match_number;
+  msg.is_specific = is_specific;
+  msg.block_id = writer->current_frame_uid();
+  writer->close_data();
+  return msg.block_id;
+}
+
+uint64_t RuntimeContext::insert_order(const std::string &instrument_id, const std::string &exchange_id,
+                                      const std::string &source, const std::string &account, double limit_price,
+                                      int64_t volume, PriceType type, Side side, Offset offset, HedgeFlag hedge_flag,
+                                      bool is_swap, uint64_t block_id) {
+  auto account_location_uid = get_td_location_uid(source, account);
   auto insert_time = time::now_in_nano();
   if (not broker_client_.is_ready(account_location_uid)) {
     SPDLOG_ERROR("account {} not ready", td_locations_.at(account_location_uid)->uname);
@@ -99,6 +118,7 @@ uint64_t RuntimeContext::insert_order(uint32_t account_location_uid, const std::
   input.side = side;
   input.offset = offset;
   input.hedge_flag = hedge_flag;
+  input.block_id = block_id;
   input.is_swap = is_swap;
   input.insert_time = insert_time;
   writer->close_data();
@@ -106,13 +126,39 @@ uint64_t RuntimeContext::insert_order(uint32_t account_location_uid, const std::
   return input.order_id;
 }
 
-uint64_t RuntimeContext::insert_order(const std::string &instrument_id, const std::string &exchange_id,
-                                      const std::string &source, const std::string &account, double limit_price,
-                                      int64_t volume, PriceType type, Side side, Offset offset, HedgeFlag hedge_flag,
-                                      bool is_swap) {
+bool RuntimeContext::insert_batch_orders(const std::string &source, const std::string &account,
+                                         const std::vector<std::string> &instrument_ids,
+                                         const std::vector<std::string> &exchange_ids, std::vector<double> limit_prices,
+                                         std::vector<int64_t> volumes, std::vector<longfist::enums::PriceType> types,
+                                         std::vector<longfist::enums::Side> sides,
+                                         std::vector<longfist::enums::Offset> offsets,
+                                         std::vector<longfist::enums::HedgeFlag> hedge_flags,
+                                         std::vector<bool> is_swaps) {
+  bool flag = instrument_ids.size() == exchange_ids.size() and //
+              instrument_ids.size() == limit_prices.size() and //
+              instrument_ids.size() == volumes.size() and      //
+              instrument_ids.size() == types.size() and        //
+              instrument_ids.size() == sides.size() and        //
+              instrument_ids.size() == offsets.size() and      //
+              instrument_ids.size() == hedge_flags.size() and  //
+              instrument_ids.size() == is_swaps.size();
+  if (not flag) {
+    SPDLOG_ERROR("Batch size not equals!");
+    return false;
+  }
+
   auto account_location_uid = get_td_location_uid(source, account);
-  return insert_order(account_location_uid, instrument_id, exchange_id, limit_price, volume, type, side, offset,
-                      hedge_flag, is_swap);
+  auto writer = app_.get_writer(account_location_uid);
+  writer->mark(time::now_in_nano(), BatchOrderBegin::tag);
+
+  for (int i = 0; i < instrument_ids.size(); ++i) {
+    insert_order(instrument_ids.at(i), exchange_ids.at(i), source, account, limit_prices.at(i), volumes.at(i),
+                 types.at(i), sides.at(i), offsets.at(i), hedge_flags.at(i), is_swaps.at(i));
+  }
+
+  writer->mark(time::now_in_nano(), BatchOrderEnd::tag);
+  writer->close_data();
+  return false;
 }
 
 uint64_t RuntimeContext::cancel_order(uint64_t order_id) {
@@ -201,4 +247,5 @@ void RuntimeContext::update_strategy_state(StrategyStateUpdate &state_update) {
   state_update.update_time = now();
   writer->write(state_update.update_time, state_update);
 }
+
 } // namespace kungfu::wingchun::strategy

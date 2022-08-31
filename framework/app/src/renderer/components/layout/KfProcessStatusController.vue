@@ -1,5 +1,9 @@
 <script lang="ts" setup>
-import Icon, { ClusterOutlined, FileTextOutlined } from '@ant-design/icons-vue';
+import Icon, {
+  ClusterOutlined,
+  FileTextOutlined,
+  BankOutlined,
+} from '@ant-design/icons-vue';
 import { notification } from 'ant-design-vue';
 
 import KfProcessStatus from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfProcessStatus.vue';
@@ -16,6 +20,7 @@ import { SystemProcessName } from '@kungfu-trader/kungfu-js-api/config/tradingCo
 import {
   getInstrumentTypeColor,
   handleOpenLogview,
+  handleOpenJournalView,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import {
   getKfCategoryData,
@@ -303,6 +308,10 @@ onMounted(() => {
                 }}
               </div>
               <div class="actions kf-actions__warp">
+                <BankOutlined
+                  style="font-size: 12px"
+                  @click.stop="handleOpenJournalView(config)"
+                ></BankOutlined>
                 <FileTextOutlined
                   @click="handleOpenLogview(config)"
                   style="font-size: 14px"
@@ -403,7 +412,7 @@ onMounted(() => {
       }
 
       .actions {
-        width: 40px;
+        width: 60px;
       }
     }
   }

@@ -10,12 +10,14 @@ import Icon, {
   FileTextOutlined,
   SettingOutlined,
   DeleteOutlined,
+  BankOutlined,
 } from '@ant-design/icons-vue';
 
 import { categoryRegisterConfig, getColumns } from './config';
 import {
   useTableSearchKeyword,
   handleOpenLogview,
+  handleOpenJournalView,
   useDashboardBodySize,
   getInstrumentTypeColor,
   isInTdGroup,
@@ -539,6 +541,10 @@ function handleRemoveTd(item: KungfuApi.KfConfig) {
           </template>
           <template v-else-if="column.dataIndex === 'actions'">
             <div class="kf-actions__warp" v-if="record.category === 'td'">
+              <BankOutlined
+                style="font-size: 12px"
+                @click.stop="handleOpenJournalView(record)"
+              ></BankOutlined>
               <FileTextOutlined
                 style="font-size: 12px"
                 @click.stop="handleOpenLogview(record)"

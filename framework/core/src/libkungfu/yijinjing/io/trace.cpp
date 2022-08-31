@@ -1,6 +1,7 @@
 //
 // Created by Keren Dong on 2020/3/25.
 //
+
 #include <fstream>
 #include <kungfu/common.h>
 #include <kungfu/yijinjing/io.h>
@@ -186,10 +187,14 @@ void io_device_console::show(int64_t begin_time, int64_t end_time, bool in, bool
 
     reader->join(master_cmd_location, home_->uid, begin_time);
     reader->join(master_home_location, location::PUBLIC, begin_time);
+    SPDLOG_INFO("===== in master_cmd_location {} {} master_home_location {} {} home_ {} {}", master_cmd_location->uname,
+                master_cmd_location->uid, master_home_location->uname, master_home_location->uid, home_->uname,
+                home_->uid);
   }
   if (out) {
     for (auto dest_id : get_locator()->list_location_dest(home_)) {
       reader->join(home_, dest_id, begin_time);
+      SPDLOG_INFO("===== out home_ {} {} dest_id {}", home_->uname, home_->uid, dest_id);
     }
   }
 

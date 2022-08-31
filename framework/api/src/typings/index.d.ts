@@ -30,6 +30,7 @@ declare namespace KungfuApi {
     OrderActionFlagEnum,
     OrderInputKeyEnum,
     KfExtConfigTypes,
+    FrameMsgTypeEnum,
   } from './enums';
   import { Dayjs } from 'dayjs';
 
@@ -57,6 +58,12 @@ declare namespace KungfuApi {
   }
 
   type AnyEnumKeysAsStrings<TEnumType> = keyof TEnumType;
+
+  type FunctionOrData<U extends 'func' | 'data', T> = U extends 'func'
+    ? () => T
+    : U extends 'data'
+    ? T
+    : never;
 
   export type KfConfigItemSupportedTypes =
     | 'str'
@@ -733,6 +740,63 @@ declare namespace KungfuApi {
     now(): bigint;
   }
 
+  export interface Session {
+    location_uid: number;
+    category: KfCategoryEnum;
+    group: string;
+    name: string;
+    mode: KfModeEnum;
+    value: string;
+    begin_time: bigint;
+    end_time: bigint;
+    update_time: bigint;
+    data_size: bigint;
+    frame_count: number;
+  }
+
+  export interface SessionResolved extends Session {
+    index: number;
+    session_id_resolved: string;
+    begin_time_resolved: string;
+    end_time_resolved: string;
+    is_closed: boolean;
+  }
+
+  export interface Frame<T extends 'func' | 'data' = 'data'> {
+    dataLength: FunctionOrData<T, number>;
+    genTime: FunctionOrData<T, bigint>;
+    triggerTime: FunctionOrData<T, bigint>;
+    msgType: FunctionOrData<T, FrameMsgTypeEnum>; // to enum
+    stringMsgType: FunctionOrData<T, number>; // to enum
+    source: FunctionOrData<T, number>;
+    dest: FunctionOrData<T, number>;
+    data: FunctionOrData<T, string>;
+  }
+
+  export interface FrameResolved extends Frame {
+    genTimeResolved: string;
+    triggerTimeResolved: string;
+    msgTypeResolved: KfTradeValueCommonData;
+    destResolved: string;
+    sourceResolved: string;
+    sourceToDest: string;
+    dataResolved: unknown[];
+  }
+
+  export interface AssembleReader {
+    run: (cb: (frame: Frame<'func'>) => void, num: number) => void;
+    next: () => boolean;
+    currentFrame: () => Frame<'func'>;
+  }
+
+  export interface Assemble {
+    get_reader(arg: number): AssembleReader;
+    get_sessions(kfLocation?: KfLocation): Session[];
+    seekToTime(): void;
+    next(): void;
+    dataAvailable(): boolean;
+  }
+
   export interface Longfist {
     Asset(): Asset;
     AssetMargin(): AssetMargin;
@@ -754,6 +818,7 @@ declare namespace KungfuApi {
     CommissionStore(kfHome: string): CommissionStore;
     History(kfHome: string): HistoryStore;
     longfist: Longfist;
+    Assemble(kfHome: string[]): Assemble;
     watcher(
       kfHome: string,
       hashedId: string,

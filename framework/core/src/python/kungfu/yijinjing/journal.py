@@ -46,13 +46,13 @@ def collect_journal_locations(ctx):
                     "uid": yjj.hash_str_32(uname),
                     "readers": {dest: [page_id]},
                 }
-            ctx.logger.debug(
-                "found journal %s %s %s %s",
-                MODES[mode],
-                CATEGORIES[category],
-                group,
-                name,
-            )
+            # ctx.logger.debug(
+            #     "found journal %s %s %s %s",
+            #     MODES[mode],
+            #     CATEGORIES[category],
+            #     group,
+            #     name,
+            # )
         else:
             ctx.logger.warn(
                 "unable to match journal file %s to pattern %s",

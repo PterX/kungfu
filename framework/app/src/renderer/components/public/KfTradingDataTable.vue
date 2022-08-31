@@ -11,29 +11,37 @@ import {
   ref,
 } from 'vue';
 
+type TableDataItem =
+  | KungfuApi.TradingDataItem
+  | KungfuApi.Frame
+  | KungfuApi.Session;
+
 const props = withDefaults(
   defineProps<{
-    dataSource: KungfuApi.TradingDataItem[];
+    dataSource: TableDataItem[];
     columns: KfTradingDataTableHeaderConfig[];
     keyField?: string;
+    resizable?: boolean;
+    selectable?: boolean;
+    selectedKey?: number | string;
   }>(),
   {
     columns: () => [],
     dataSource: () => [],
     keyField: 'id',
+    resizable: true,
+    selectable: false,
+    selectedKey: undefined,
   },
 );
 
 defineEmits<{
-  (
-    e: 'dbclickRow',
-    data: { event: MouseEvent; row: KungfuApi.TradingDataItem },
-  ): void;
+  (e: 'dbclickRow', data: { event: MouseEvent; row: TableDataItem }): void;
   (
     e: 'clickCell',
     data: {
       event: MouseEvent;
-      row: KungfuApi.TradingDataItem;
+      row: TableDataItem;
       column: KfTradingDataTableHeaderConfig;
     },
   ): void;
@@ -41,14 +49,12 @@ defineEmits<{
     e: 'clickCell',
     data: {
       event: MouseEvent;
-      row: KungfuApi.TradingDataItem;
+      row: TableDataItem;
       column: KfTradingDataTableHeaderConfig;
     },
   ): void;
-  (
-    e: 'rightClickRow',
-    data: { event: MouseEvent; row: KungfuApi.TradingDataItem },
-  ): void;
+  (e: 'rightClickRow', data: { event: MouseEvent; row: TableDataItem }): void;
+  (e: 'update:selectedKey', data: number | string): void;
 }>();
 
 const app = getCurrentInstance();
@@ -56,6 +62,18 @@ const simpleImage = Empty.PRESENTED_IMAGE_SIMPLE;
 const kfScrollerTableBodyRef = ref();
 const kfScrollerTableWidth = ref(0);
 let clickTimer: number | undefined;
+
+const currentSelectKey = computed(() => {
+  if (
+    props.selectable &&
+    props.selectedKey !== undefined &&
+    props.dataSource.length
+  ) {
+    return props.selectedKey;
+  }
+
+  return null;
+});
 
 const headerWidth = computed(() => {
   const widths: KfTradingDataTableHeaderConfig[] = []; //column use with
@@ -88,7 +106,7 @@ onMounted(() => {
     kfScrollerTableWidth.value = kfScrollerTableBodyRef.value.clientWidth;
   }
 
-  if (app?.proxy) {
+  if (app?.proxy && props.resizable) {
     const subscription = app?.proxy.$globalBus
       .pipe(filter((e: KfEvent.KfBusEvent) => e.tag === 'resize'))
       .subscribe(() => {
@@ -114,23 +132,31 @@ function getHeaderWidth(column: KfTradingDataTableHeaderConfig): string {
   }
 }
 
-function handleDbClickRow(e: MouseEvent, row: KungfuApi.TradingDataItem): void {
+function handleDbClickRow(e: MouseEvent, row: TableDataItem): void {
   app && app.emit('dbclickRow', { event: e, row });
   clickTimer && clearTimeout(clickTimer);
 }
 
 function handleClickCell(
   e: MouseEvent,
-  row: KungfuApi.TradingDataItem,
+  row: TableDataItem,
   column: KfTradingDataTableHeaderConfig,
 ): void {
   clickTimer && clearTimeout(clickTimer);
   clickTimer = +setTimeout(() => {
-    app && app.emit('clickCell', { event: e, row, column });
+    if (app) {
+      app.emit('clickCell', { event: e, row, column });
+      app.emit(
+        'update:selectedKey',
+        typeof row[props.keyField] === 'number'
+          ? row[props.keyField]
+          : `${row[props.keyField]}`,
+      );
+    }
   }, 300);
 }
 
-function handleMousedown(e: MouseEvent, row: KungfuApi.TradingDataItem): void {
+function handleMousedown(e: MouseEvent, row: TableDataItem): void {
   if (e.button === 2) {
     app && app.emit('rightClickRow', { event: e, row });
   }
@@ -182,6 +208,14 @@ function handleSort(
     currentSorterOrder.value = 'ascend';
   }
 }
+
+function isCurrentRow(itemKey: number | string | unknown) {
+  if (typeof itemKey !== 'number') {
+    return currentSelectKey.value === `${itemKey}`;
+  } else {
+    return currentSelectKey.value === itemKey;
+  }
+}
 </script>
 <template>
   <div class="kf-table">
@@ -228,14 +262,19 @@ function handleSort(
       >
         <template v-slot="{ item }: { item: any }">
           <ul
-            class="kf-table-row"
+            :class="[
+              'kf-table-row',
+              isCurrentRow(item[props.keyField])
+                ? 'kf-table-current-select'
+                : '',
+            ]"
             @dblclick="handleDbClickRow($event, item)"
             @mousedown="handleMousedown($event, item)"
           >
             <li
               v-for="column in columns"
               :class="['kf-table-cell', column.type]"
-              :key="`${column.dataIndex}_${item[keyField as keyof KungfuApi.TradingDataItem]}`"
+              :key="`${column.dataIndex}_${item[keyField as keyof TableDataItem]}`"
               :style="{
                 'max-width': getHeaderWidth(column),
               }"
@@ -244,9 +283,7 @@ function handleSort(
             >
               <slot :item="item" :column="column">
                 <span>
-                  {{
-                    item[column.dataIndex as keyof KungfuApi.TradingDataItem]
-                  }}
+                  {{ item[column.dataIndex as keyof TableDataItem] }}
                 </span>
               </slot>
             </li>
@@ -378,6 +415,10 @@ function handleSort(
     &.number {
       text-align: right;
     }
+  }
+
+  .kf-table-current-select {
+    background: @tooltip-bg;
   }
 }
 </style>

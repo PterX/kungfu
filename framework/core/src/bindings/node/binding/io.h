@@ -18,6 +18,8 @@ inline yijinjing::data::locator_ptr GetRuntimeLocator(const std::string &dirname
   return std::make_shared<yijinjing::data::locator>(dirname);
 }
 
+inline yijinjing::data::locator_ptr GetDefaultRuntimeLocator() { return std::make_shared<yijinjing::data::locator>(); }
+
 inline yijinjing::data::locator_ptr ExtractRuntimeLocatorByInfo0(const Napi::CallbackInfo &info) {
   if (not IsValid(info, 0, &Napi::Value::IsString)) {
     throw Napi::Error::New(info.Env(), "Invalid Info[0] type, not string");
@@ -39,7 +41,8 @@ public:
 
   static void Init(Napi::Env env, Napi::Object exports);
 
-private:
+  static Napi::Value NewInstance(const Napi::Value arg) { return constructor.New({arg}); }
+
   static Napi::FunctionReference constructor;
 };
 } // namespace kungfu::node

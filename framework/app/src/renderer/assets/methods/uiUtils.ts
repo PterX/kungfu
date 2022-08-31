@@ -347,6 +347,21 @@ export const openCodeView = (
   return openNewBrowserWindow(__dirname, 'code', `?processId=${processId}`);
 };
 
+export const openJournalView = (
+  processId: string,
+  locationUid: string,
+): Promise<Electron.BrowserWindow> => {
+  return openNewBrowserWindow(
+    __dirname,
+    'journal',
+    `?processId=${processId}&locationUid=${locationUid}`,
+    {
+      width: 1280,
+      height: 960,
+    },
+  );
+};
+
 export const removeLoadingMask = (): void => {
   const $loadingMask = document.getElementById('loading');
   if ($loadingMask) $loadingMask.remove();
@@ -454,6 +469,17 @@ export const handleOpenCodeView = (
   });
 };
 
+export const handleOpenJournalView = (
+  config?: KungfuApi.KfConfig | KungfuApi.KfLocation,
+): Promise<Electron.BrowserWindow> => {
+  const hideloading = message.loading(t('open_journal_dashboard'));
+  const processId = config ? getProcessIdByKfLocation(config) : '';
+  const locationUid = config ? getKfLocationUID(config) || '' : '';
+  return openJournalView(processId, locationUid).finally(() => {
+    hideloading();
+  });
+};
+
 export const useDashboardBodySize = (): {
   dashboardBodyHeight: Ref;
   dashboardBodyWidth: Ref;
@@ -486,9 +512,9 @@ export const useDashboardBodySize = (): {
   };
 };
 
-export const getKfLocationUID = (kfConfig: KungfuApi.KfConfig): string => {
+export const getKfLocationUID = (kfLocation: KungfuApi.KfLocation): string => {
   if (!window.watcher) return '';
-  return window.watcher?.getLocationUID(kfConfig);
+  return window.watcher?.getLocationUID(kfLocation);
 };
 
 export const useDownloadHistoryTradingData = (): {

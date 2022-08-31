@@ -49,7 +49,7 @@ export const getColumns = (
     title: t('strategyConfig.actions'),
     dataIndex: 'actions',
     align: 'right',
-    width: 140,
+    width: 160,
     fixed: 'right',
   },
 ];

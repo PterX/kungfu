@@ -330,7 +330,7 @@ Napi::Value Assemble::Get_sessions(const Napi::CallbackInfo &info) {
       session_ret.push_back(sessions[i]);
     }
   }
-  size_t session_ret_size = sessions.size();
+  size_t session_ret_size = session_ret.size();
   if (session_ret_size <= 0) {
     return {};
   }
@@ -350,10 +350,11 @@ Napi::Value Assemble::Get_reader(const Napi::CallbackInfo &info) {
   if (session_size <= index) {
     throw Napi::Error::New(info.Env(), "index greater than session size");
   }
-  if(sessions[index].name.compare("master") == 0) {
+  if (sessions[index].name.compare("master") == 0) {
     return {};
   }
-  // SPDLOG_INFO("sessions[index].mode {} sessions[index].category {} sessions[index].group {} sessions[index].name {}",int(sessions[index].mode), int(sessions[index].category), sessions[index].group, sessions[index].name);
+  // SPDLOG_INFO("sessions[index].mode {} sessions[index].category {} sessions[index].group {} sessions[index].name
+  // {}",int(sessions[index].mode), int(sessions[index].category), sessions[index].group, sessions[index].name);
   auto node_mode = Napi::Number::New(info.Env(), int(sessions[index].mode));
   auto node_category = Napi::Number::New(info.Env(), int(sessions[index].category));
   auto node_group = Napi::String::New(info.Env(), sessions[index].group);

@@ -73,4 +73,6 @@ void reader::sort() {
     }
   }
 }
+
+
 } // namespace kungfu::yijinjing::journal

@@ -17,13 +17,13 @@
 #define YIJINJING_JOURNAL_H
 
 #include <mutex>
-
 #include <kungfu/common.h>
 #include <kungfu/longfist/longfist.h>
 #include <kungfu/yijinjing/journal/common.h>
 #include <kungfu/yijinjing/journal/frame.h>
 #include <kungfu/yijinjing/journal/page.h>
 #include <kungfu/yijinjing/time.h>
+
 
 namespace kungfu::yijinjing::journal {
 /**
@@ -102,11 +102,14 @@ public:
 
   void sort();
 
+  
+
 private:
   const bool lazy_;
   journal *current_;
   std::unordered_map<uint64_t, journal> journals_;
 };
+
 
 class writer {
 public:

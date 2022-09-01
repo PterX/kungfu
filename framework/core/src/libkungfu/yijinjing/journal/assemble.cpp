@@ -7,6 +7,7 @@
 #include <kungfu/yijinjing/common.h>
 #include <kungfu/yijinjing/journal/assemble.h>
 #include <kungfu/yijinjing/time.h>
+#include <kungfu/yijinjing/io.h>
 
 namespace kungfu::yijinjing::journal {
 struct noop_publisher : public publisher {
@@ -104,7 +105,7 @@ using namespace kungfu::longfist::enums;
 using namespace kungfu::longfist::types;
 using namespace sqlite_orm;
 
-std::vector<kungfu::longfist::types::Session> assemble::get_sessions() {
+std::vector<kungfu::longfist::types::Session> assemble::get_sessions(const kungfu::yijinjing::data::location_ptr& pl) {
   kungfu::yijinjing::data::locator_ptr l(new kungfu::yijinjing::data::locator());
   auto index_location =
       kungfu::yijinjing::data::location::make_shared(mode::LIVE, category::SYSTEM, "journal", "index", l);
@@ -116,6 +117,52 @@ std::vector<kungfu::longfist::types::Session> assemble::get_sessions() {
   }
   auto bt = &Session::begin_time;
   auto range = where(greater_or_equal(bt, 0) and lesser_or_equal(bt, INT64_MAX));
-  return session_storage_->get_all<Session>(range, order_by(bt));
+  auto sessions = session_storage_->get_all<Session>(range, order_by(bt));
+  if (!pl) {
+    return sessions;
+  } else {
+    std::vector<kungfu::longfist::types::Session> filtered_sessions;
+    std::copy_if(sessions.begin(), sessions.end(), std::back_inserter(filtered_sessions),
+                 [&pl](kungfu::longfist::types::Session x) { return x.location_uid == pl->location_uid; });
+    return filtered_sessions;
+  }
+}
+
+std::shared_ptr<frame_reader> assemble::get_reader(const kungfu::yijinjing::data::location_ptr& pl) {
+  auto io_dvc = std::make_shared<kungfu::yijinjing::io_device>(pl, true, true);
+  // int64_t begin_time = 0;
+  // auto sessions = get_sessions(pl);
+  // SPDLOG_INFO("sessions size {} pl->location_uid {}", sessions.size(), pl->location_uid);
+  // if (!sessions.empty()) {
+  //   begin_time = sessions[0].begin_time;
+    // SPDLOG_INFO("sessions begin_time {} end_time {}", sessions[0].begin_time, abs(sessions[0].end_time));
+    auto curr = std::chrono::system_clock::now();
+    time_t tm = std::chrono::system_clock::to_time_t(curr);
+    auto tm_begin = std::localtime(&tm);
+    tm_begin->tm_hour = 0;
+    tm_begin->tm_min = 0;
+    tm_begin->tm_sec = 0;   
+    std::time_t t_begin = std::mktime(tm_begin);
+    int64_t begin_time = t_begin * 1000000000;
+    auto tm_end = std::localtime(&tm);
+    tm_end->tm_hour = 23;
+    tm_end->tm_min = 59;
+    tm_end->tm_sec = 59; 
+    std::time_t t_end = std::mktime(tm_end);
+    int64_t end_time = t_end * 1000000000 + 999999999;
+    // SPDLOG_INFO("sessions begin_time {} end_time {}", begin_time, end_time);
+    auto p_reader = std::make_shared<frame_reader>(io_dvc, begin_time, end_time, true);
+    // auto p_reader = std::make_shared<frame_reader>(io_dvc, begin_time, abs(sessions[0].end_time), true);
+
+    auto uid_str = fmt::format("{:08x}", io_dvc->get_home()->uid);
+    auto master_cmd_location = kungfu::yijinjing::data::location::make_shared(mode::LIVE, category::SYSTEM, "master", uid_str, io_dvc->get_locator());
+    auto master_home_location = kungfu::yijinjing::data::location::make_shared(mode::LIVE, category::SYSTEM, "master", "master", io_dvc->get_locator());
+
+    p_reader->join(master_cmd_location, io_dvc->get_home()->uid, begin_time);
+    p_reader->join(master_home_location, kungfu::yijinjing::data::location::PUBLIC, begin_time);
+    for (auto dest_id : io_dvc->get_locator()->list_location_dest(io_dvc->get_home())) {
+      p_reader->join(io_dvc->get_home(), dest_id, begin_time);
+    }
+  return p_reader;
 }
 } // namespace kungfu::yijinjing::journal

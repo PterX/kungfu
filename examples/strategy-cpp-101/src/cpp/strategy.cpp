@@ -34,8 +34,7 @@ public:
   void on_quote(Context_ptr & context, const Quote &quote, const location_ptr &location) override {
     i++;
     SPDLOG_INFO("on quote: {} i {} location->uid {}", quote.last_price, i, location->location_uid);
-    if(i == 10){
-      SPDLOG_INFO("on quote:  in ");
+    if(i == 5){
     std::shared_ptr<kungfu::yijinjing::journal::assemble> p_assemble 
     = std::make_shared<kungfu::yijinjing::journal::assemble>(std::vector<locator_ptr>{});
     std::shared_ptr<kungfu::yijinjing::journal::frame_reader> r = p_assemble->get_reader(location);

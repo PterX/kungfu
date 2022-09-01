@@ -2,7 +2,8 @@
 namespace kungfu::yijinjing::journal {
 using namespace kungfu::longfist::types;
 frame_ptr frame_reader::next_frame() {
-    // SPDLOG_INFO("Next data_available() {} current_frame()->gen_time() {} end_time_ {}",data_available(), current_frame()->gen_time(), end_time_);
+  // SPDLOG_INFO("Next data_available() {} current_frame()->gen_time() {} end_time_ {}",data_available(),
+  // current_frame()->gen_time(), end_time_);
   if (data_available() && current_frame()->gen_time() <= end_time_) {
     //   if (current_frame()->gen_time() >= begin_time_) {
     std::unordered_map<uint32_t, kungfu::yijinjing::data::location_ptr> locations = {};

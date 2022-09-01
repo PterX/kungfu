@@ -5,8 +5,8 @@
 #ifndef YIJINJING_ASSEMBLE_H
 #define YIJINJING_ASSEMBLE_H
 
-#include <kungfu/yijinjing/journal/journal.h>
 #include <kungfu/yijinjing/journal/frame_reader.h>
+#include <kungfu/yijinjing/journal/journal.h>
 
 namespace kungfu::yijinjing::journal {
 class sink {
@@ -55,9 +55,9 @@ public:
 
   frame_ptr current_frame();
 
-  std::vector<kungfu::longfist::types::Session> get_sessions(const kungfu::yijinjing::data::location_ptr& pl = nullptr);
+  std::vector<kungfu::longfist::types::Session> get_sessions(const kungfu::yijinjing::data::location_ptr &pl = nullptr);
 
-  std::shared_ptr<frame_reader>  get_reader(const kungfu::yijinjing::data::location_ptr& pl);
+  std::shared_ptr<frame_reader> get_reader(const kungfu::yijinjing::data::location_ptr &pl);
 
 protected:
   std::vector<reader_ptr> readers_ = {};

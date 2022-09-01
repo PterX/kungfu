@@ -1,5 +1,5 @@
-#include <kungfu/yijinjing/journal/journal.h>
 #include <kungfu/yijinjing/io.h>
+#include <kungfu/yijinjing/journal/journal.h>
 namespace kungfu::yijinjing::journal {
 class frame_reader : public reader {
 public:

@@ -130,13 +130,29 @@ std::vector<kungfu::longfist::types::Session> assemble::get_sessions(const kungf
 
 std::shared_ptr<frame_reader> assemble::get_reader(const kungfu::yijinjing::data::location_ptr& pl) {
   auto io_dvc = std::make_shared<kungfu::yijinjing::io_device>(pl, true, true);
-  int64_t begin_time = 0;
-  auto sessions = get_sessions(pl);
-  SPDLOG_INFO("sessions size {} pl->location_uid {}", sessions.size(), pl->location_uid);
-  if (!sessions.empty()) {
-    begin_time = sessions[0].begin_time;
-    SPDLOG_INFO("sessions begin_time {} end_time {}", sessions[0].begin_time, abs(sessions[0].end_time));
-    auto p_reader = std::make_shared<frame_reader>(io_dvc, begin_time, abs(sessions[0].end_time), true);
+  // int64_t begin_time = 0;
+  // auto sessions = get_sessions(pl);
+  // SPDLOG_INFO("sessions size {} pl->location_uid {}", sessions.size(), pl->location_uid);
+  // if (!sessions.empty()) {
+  //   begin_time = sessions[0].begin_time;
+    // SPDLOG_INFO("sessions begin_time {} end_time {}", sessions[0].begin_time, abs(sessions[0].end_time));
+    auto curr = std::chrono::system_clock::now();
+    time_t tm = std::chrono::system_clock::to_time_t(curr);
+    auto tm_begin = std::localtime(&tm);
+    tm_begin->tm_hour = 0;
+    tm_begin->tm_min = 0;
+    tm_begin->tm_sec = 0;   
+    std::time_t t_begin = std::mktime(tm_begin);
+    int64_t begin_time = t_begin * 1000000000;
+    auto tm_end = std::localtime(&tm);
+    tm_end->tm_hour = 23;
+    tm_end->tm_min = 59;
+    tm_end->tm_sec = 59; 
+    std::time_t t_end = std::mktime(tm_end);
+    int64_t end_time = t_end * 1000000000 + 999999999;
+    // SPDLOG_INFO("sessions begin_time {} end_time {}", begin_time, end_time);
+    auto p_reader = std::make_shared<frame_reader>(io_dvc, begin_time, end_time, true);
+    // auto p_reader = std::make_shared<frame_reader>(io_dvc, begin_time, abs(sessions[0].end_time), true);
 
     auto uid_str = fmt::format("{:08x}", io_dvc->get_home()->uid);
     auto master_cmd_location = kungfu::yijinjing::data::location::make_shared(mode::LIVE, category::SYSTEM, "master", uid_str, io_dvc->get_locator());
@@ -147,8 +163,6 @@ std::shared_ptr<frame_reader> assemble::get_reader(const kungfu::yijinjing::data
     for (auto dest_id : io_dvc->get_locator()->list_location_dest(io_dvc->get_home())) {
       p_reader->join(io_dvc->get_home(), dest_id, begin_time);
     }
-    return p_reader;
-  }
-  return nullptr;
+  return p_reader;
 }
 } // namespace kungfu::yijinjing::journal

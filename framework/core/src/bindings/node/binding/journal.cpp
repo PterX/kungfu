@@ -143,6 +143,7 @@ Napi::Value Reader::DataAvailable(const Napi::CallbackInfo &info) {
 
 Napi::Value Reader::Next(const Napi::CallbackInfo &info) {
   if (data_available() && current_frame()->gen_time() <= end_time_) {
+    // if (current_frame()->gen_time() >= begin_time_) {
     std::unordered_map<uint32_t, location_ptr> locations = {};
     for (auto location : io_device_->get_home()->locator->list_locations(".*", ".*", ".*", ".*")) {
       locations.emplace(location->uid, location);
@@ -168,23 +169,25 @@ Napi::Value Reader::Next(const Napi::CallbackInfo &info) {
     if (frame->dest() == io_device_->get_home()->uid and frame->msg_type() == RequestReadFrom::tag) {
       auto request = frame->data<RequestReadFrom>();
       auto source_location = locations.at(request.source_id);
-      join(source_location, io_device_->get_home()->uid, request.from_time);
+      join(source_location, io_device_->get_home()->uid, begin_time_);
     }
     if (frame->dest() == io_device_->get_home()->uid and frame->msg_type() == RequestReadFromPublic::tag) {
       auto request = frame->data<RequestReadFromPublic>();
       auto source_location = locations.at(request.source_id);
-      join(source_location, location::PUBLIC, request.from_time);
+      join(source_location, location::PUBLIC, begin_time_);
     }
     if (frame->dest() == io_device_->get_home()->uid and frame->msg_type() == RequestReadFromSync::tag) {
       auto request = frame->data<RequestReadFromSync>();
       auto source_location = locations.at(request.source_id);
-      join(source_location, location::SYNC, request.from_time);
+      join(source_location, location::SYNC, begin_time_);
     }
     if (frame->dest() == io_device_->get_home()->uid and frame->msg_type() == Deregister::tag) {
       disjoin(location::make_shared(frame->data<Deregister>(), io_device_->get_locator())->uid);
     }
     next();
     return Napi::Boolean::New(info.Env(), true);
+    // }
+    // next();
   }
   return Napi::Boolean::New(info.Env(), false);
 }
@@ -215,6 +218,7 @@ Napi::Value Reader::Run(const Napi::CallbackInfo &info) {
   }
   int32_t count = 0;
   while ((limit <= 0 || count++ < limit) && data_available() && current_frame()->gen_time() <= end_time_) {
+    // if (current_frame()->gen_time() >= begin_time_) {
     std::unordered_map<uint32_t, location_ptr> locations = {};
     for (auto location : io_device_->get_home()->locator->list_locations(".*", ".*", ".*", ".*")) {
       locations.emplace(location->uid, location);
@@ -240,23 +244,24 @@ Napi::Value Reader::Run(const Napi::CallbackInfo &info) {
     if (frame->dest() == io_device_->get_home()->uid and frame->msg_type() == RequestReadFrom::tag) {
       auto request = frame->data<RequestReadFrom>();
       auto source_location = locations.at(request.source_id);
-      join(source_location, io_device_->get_home()->uid, request.from_time);
+      join(source_location, io_device_->get_home()->uid, begin_time_);
     }
     if (frame->dest() == io_device_->get_home()->uid and frame->msg_type() == RequestReadFromPublic::tag) {
       auto request = frame->data<RequestReadFromPublic>();
       auto source_location = locations.at(request.source_id);
-      join(source_location, location::PUBLIC, request.from_time);
+      join(source_location, location::PUBLIC, begin_time_);
     }
     if (frame->dest() == io_device_->get_home()->uid and frame->msg_type() == RequestReadFromSync::tag) {
       auto request = frame->data<RequestReadFromSync>();
       auto source_location = locations.at(request.source_id);
-      join(source_location, location::SYNC, request.from_time);
+      join(source_location, location::SYNC, begin_time_);
     }
     if (frame->dest() == io_device_->get_home()->uid and frame->msg_type() == Deregister::tag) {
       disjoin(location::make_shared(frame->data<Deregister>(), io_device_->get_locator())->uid);
     }
     auto node_frame = CurrentFrame(info);
     cb.Call({node_frame});
+    // }
     next();
   }
   return {};

@@ -92,6 +92,8 @@ public:
     live_ = false;
   }
 
+  int get_observer_recv_timeout();
+
 protected:
   int64_t begin_time_;
   int64_t end_time_;

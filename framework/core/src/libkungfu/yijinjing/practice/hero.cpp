@@ -152,6 +152,10 @@ void hero::on_notify() {}
 
 void hero::on_exit() {}
 
+void hero::get_observer_recv_timeout() {
+  return io_device_->get_observer()->get_recv_timeout();
+}
+
 uint64_t hero::make_chanel_hash(uint32_t source_id, uint32_t dest_id) const {
   return uint64_t(source_id) << 32u | uint64_t(dest_id);
 }

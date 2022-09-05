@@ -105,9 +105,10 @@ public:
 
 class nanomsg_observer : public observer, protected nanomsg_resource {
 public:
-  nanomsg_observer(const io_device &io_device, bool low_latency, protocol p)
-      : nanomsg_resource(io_device, low_latency, p), recv_flags_(low_latency ? NN_DONTWAIT : 0) {
-    socket_.setsockopt_int(NN_SOL_SOCKET, NN_RCVTIMEO, DEFAULT_RECV_TIMEOUT);
+  nanomsg_observer(const io_device &io_device, bool low_latency, protocol p, int recv_timeout = DEFAULT_RECV_TIMEOUT)
+      : nanomsg_resource(io_device, low_latency, p), recv_flags_(low_latency ? NN_DONTWAIT : 0),
+        recv_timeout_(recv_timeout) {
+    socket_.setsockopt_int(NN_SOL_SOCKET, NN_RCVTIMEO, recv_timeout_);
   }
 
   ~nanomsg_observer() override { socket_.close(); }
@@ -120,10 +121,13 @@ public:
 
   bool wait() override { return socket_.recv(recv_flags_) > 0; }
 
+  int get_recv_timeout() const { return recv_timeout_; }
+
   const std::string &get_notice() override { return socket_.last_message(); }
 
 private:
   int recv_flags_;
+  int recv_timeout_;
 };
 
 class nanomsg_observer_master : public nanomsg_observer {

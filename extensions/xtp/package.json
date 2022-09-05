@@ -29,10 +29,10 @@
     "package": "kfs project package"
   },
   "dependencies": {
-    "@kungfu-trader/kungfu-core": "^2.5.0-alpha.1"
+    "@kungfu-trader/kungfu-core": "^2.4.5-alpha.5"
   },
   "devDependencies": {
-    "@kungfu-trader/kungfu-sdk": "^2.5.0-alpha.1"
+    "@kungfu-trader/kungfu-sdk": "^2.4.5-alpha.5"
   },
   "kungfuDependencies": {
     "xtp": "v2.2.32.2"

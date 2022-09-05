@@ -29,6 +29,10 @@ public:
 
   Napi::Value Source(const Napi::CallbackInfo &info);
 
+  Napi::Value SourceName(const Napi::CallbackInfo &info);
+
+  Napi::Value DestName(const Napi::CallbackInfo &info);
+
   Napi::Value Dest(const Napi::CallbackInfo &info);
 
   Napi::Value StringMsgType(const Napi::CallbackInfo &info);
@@ -41,9 +45,11 @@ public:
 
 private:
   yijinjing::journal::frame_ptr frame_;
+  std::string source_name_;
+  std::string dest_name_;
   static Napi::FunctionReference constructor;
 
-  void SetFrame(yijinjing::journal::frame_ptr frame);
+  void SetFrame(yijinjing::journal::frame_ptr frame, std::string source_name = "", std::string dest_name = "");
 
   friend class Reader;
   friend class Assemble;
@@ -81,6 +87,7 @@ private:
   yijinjing::io_device_ptr io_device_;
   int64_t begin_time_;
   int64_t end_time_;
+  std::unordered_map<uint32_t, yijinjing::data::location_ptr> locations_;
 };
 
 class Assemble : public Napi::ObjectWrap<Assemble>, public yijinjing::journal::assemble {

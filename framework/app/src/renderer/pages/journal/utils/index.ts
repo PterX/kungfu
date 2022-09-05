@@ -109,7 +109,7 @@ export const dealFrame = (
     msgTypeResolved: dealFrameMsgType(frame.msgType),
     destResolved,
     sourceResolved,
-    sourceToDest: dealFrameSourceToDest(sourceResolved, destResolved),
+    sourceToDest: dealFrameSourceToDest(frame.sourceName, frame.destName),
     dataResolved: dealFrameData(frame.data),
   };
 };

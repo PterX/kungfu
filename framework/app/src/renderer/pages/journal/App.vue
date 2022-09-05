@@ -156,7 +156,7 @@ const loadSessions = () => {
             session_id_resolved: getIdByKfLocation(item),
             begin_time_resolved: dealKfTime(getAbs<bigint>(item.begin_time)),
             end_time_resolved: dealKfTime(getAbs<bigint>(item.end_time)),
-            is_closed: item.end_time < 0,
+            is_closed: item.end_time != 0n,
           };
         })
         .filter((item) => {

@@ -771,6 +771,8 @@ declare namespace KungfuApi {
     source: FunctionOrData<T, number>;
     dest: FunctionOrData<T, number>;
     data: FunctionOrData<T, string>;
+    sourceName: FunctionOrData<T, string>;
+    destName: FunctionOrData<T, string>;
   }
 
   export interface FrameResolved extends Frame {
@@ -785,7 +787,7 @@ declare namespace KungfuApi {
 
   export interface AssembleReader {
     run: (cb: (frame: Frame<'func'>) => void, num: number) => void;
-    next: () => boolean;
+    next: () => Frame<'func'> | null;
     currentFrame: () => Frame<'func'>;
   }
 

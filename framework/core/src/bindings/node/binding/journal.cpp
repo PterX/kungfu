@@ -28,7 +28,11 @@ Napi::FunctionReference Frame::constructor = {};
 
 Frame::Frame(const Napi::CallbackInfo &info) : ObjectWrap(info) {}
 
-void Frame::SetFrame(yijinjing::journal::frame_ptr frame) { frame_ = std::move(frame); }
+void Frame::SetFrame(yijinjing::journal::frame_ptr frame, std::string source_name, std::string dest_name) {
+  frame_ = std::move(frame);
+  source_name_ = source_name;
+  dest_name_ = dest_name;
+}
 
 Napi::Value Frame::DataLength(const Napi::CallbackInfo &info) {
   return Napi::Number::New(info.Env(), frame_->data_length());
@@ -45,6 +49,10 @@ Napi::Value Frame::MsgType(const Napi::CallbackInfo &info) { return Napi::Number
 Napi::Value Frame::Source(const Napi::CallbackInfo &info) { return Napi::Number::New(info.Env(), frame_->source()); }
 
 Napi::Value Frame::Dest(const Napi::CallbackInfo &info) { return Napi::Number::New(info.Env(), frame_->dest()); }
+
+Napi::Value Frame::SourceName(const Napi::CallbackInfo &info) { return Napi::String::New(info.Env(), source_name_); }
+
+Napi::Value Frame::DestName(const Napi::CallbackInfo &info) { return Napi::String::New(info.Env(), dest_name_); }
 
 Napi::Value Frame::Data(const Napi::CallbackInfo &info) {
   auto ret = Napi::String::New(info.Env(), "");
@@ -80,12 +88,13 @@ void Frame::Init(Napi::Env env, Napi::Object exports) {
                                         InstanceMethod("stringMsgType", &Frame::StringMsgType), //
                                         InstanceMethod("source", &Frame::Source),               //
                                         InstanceMethod("dest", &Frame::Dest),                   //
+                                        InstanceMethod("sourceName", &Frame::SourceName),       //
+                                        InstanceMethod("destName", &Frame::DestName),           //
                                         InstanceMethod("data", &Frame::Data)                    //
                                     });
 
   constructor = Napi::Persistent(func);
   constructor.SuppressDestruct();
-
   exports.Set("Frame", func);
 }
 
@@ -128,7 +137,18 @@ Napi::Value Reader::ToString(const Napi::CallbackInfo &info) { return Napi::Stri
 
 Napi::Value Reader::CurrentFrame(const Napi::CallbackInfo &info) {
   auto frame = Frame::NewInstance(info.This());
-  Napi::ObjectWrap<Frame>::Unwrap(frame.As<Napi::Object>())->SetFrame(current_frame());
+  std::string s;
+  std::string d;
+  auto c_frame = current_frame();
+  if (c_frame->dest() == location::PUBLIC) {
+    d = "public";
+  } else if (locations_.find(c_frame->dest()) != locations_.end()) {
+    d = locations_.at(c_frame->dest())->uname;
+  }
+  if (locations_.find(c_frame->source()) != locations_.end()) {
+    s = locations_.at(c_frame->source())->uname;
+  }
+  Napi::ObjectWrap<Frame>::Unwrap(frame.As<Napi::Object>())->SetFrame(current_frame(), s, d);
   return frame;
 }
 
@@ -144,18 +164,19 @@ Napi::Value Reader::DataAvailable(const Napi::CallbackInfo &info) {
 Napi::Value Reader::Next(const Napi::CallbackInfo &info) {
   if (data_available() && current_frame()->gen_time() <= end_time_) {
     // if (current_frame()->gen_time() >= begin_time_) {
-    std::unordered_map<uint32_t, location_ptr> locations = {};
-    for (auto location : io_device_->get_home()->locator->list_locations(".*", ".*", ".*", ".*")) {
-      locations.emplace(location->uid, location);
+    if (locations_.empty()) {
+      for (auto location : io_device_->get_home()->locator->list_locations(".*", ".*", ".*", ".*")) {
+        locations_.insert_or_assign(location->uid, location);
+      }
     }
     auto frame = current_frame();
-    auto dest_name = frame->dest() == location::PUBLIC ? "public" : locations.at(frame->dest())->uname;
+    auto dest_name = frame->dest() == location::PUBLIC ? "public" : locations_.at(frame->dest())->uname;
     bool type_found = false;
     boost::hana::for_each(kungfu::longfist::AllTypes, [&](auto type) {
       using DataType = typename decltype(+boost::hana::second(type))::type;
       if (frame->msg_type() == DataType::tag) {
         SPDLOG_INFO("Next {} {} {} {} {} {}", time::strftime(frame->gen_time(), "%T.%N"),
-                    time::strftime(frame->trigger_time(), "%T.%N"), locations.at(frame->source())->uname, dest_name,
+                    time::strftime(frame->trigger_time(), "%T.%N"), locations_.at(frame->source())->uname, dest_name,
                     DataType::type_name.c_str(), frame->data<DataType>().to_string());
         type_found = true;
       }
@@ -168,28 +189,29 @@ Napi::Value Reader::Next(const Napi::CallbackInfo &info) {
     }
     if (frame->dest() == io_device_->get_home()->uid and frame->msg_type() == RequestReadFrom::tag) {
       auto request = frame->data<RequestReadFrom>();
-      auto source_location = locations.at(request.source_id);
+      auto source_location = locations_.at(request.source_id);
       join(source_location, io_device_->get_home()->uid, begin_time_);
     }
     if (frame->dest() == io_device_->get_home()->uid and frame->msg_type() == RequestReadFromPublic::tag) {
       auto request = frame->data<RequestReadFromPublic>();
-      auto source_location = locations.at(request.source_id);
+      auto source_location = locations_.at(request.source_id);
       join(source_location, location::PUBLIC, begin_time_);
     }
     if (frame->dest() == io_device_->get_home()->uid and frame->msg_type() == RequestReadFromSync::tag) {
       auto request = frame->data<RequestReadFromSync>();
-      auto source_location = locations.at(request.source_id);
+      auto source_location = locations_.at(request.source_id);
       join(source_location, location::SYNC, begin_time_);
     }
     if (frame->dest() == io_device_->get_home()->uid and frame->msg_type() == Deregister::tag) {
       disjoin(location::make_shared(frame->data<Deregister>(), io_device_->get_locator())->uid);
     }
+    // return Napi::Boolean::New(info.Env(), true);
+    auto f = CurrentFrame(info);
     next();
-    return Napi::Boolean::New(info.Env(), true);
+    return f;
     // }
-    // next();
   }
-  return Napi::Boolean::New(info.Env(), false);
+  return info.Env().Null();
 }
 
 Napi::Value Reader::Join(const Napi::CallbackInfo &info) {
@@ -215,21 +237,22 @@ Napi::Value Reader::Run(const Napi::CallbackInfo &info) {
   if (info.Length() > 1) {
     limit = info[1].ToNumber().Int32Value();
   }
+  if (locations_.empty()) {
+    for (auto location : io_device_->get_home()->locator->list_locations(".*", ".*", ".*", ".*")) {
+      locations_.insert_or_assign(location->uid, location);
+    }
+  }
   int32_t count = 0;
   while ((limit <= 0 || count++ < limit) && data_available() && current_frame()->gen_time() <= end_time_) {
     // if (current_frame()->gen_time() >= begin_time_) {
-    std::unordered_map<uint32_t, location_ptr> locations = {};
-    for (auto location : io_device_->get_home()->locator->list_locations(".*", ".*", ".*", ".*")) {
-      locations.emplace(location->uid, location);
-    }
     auto frame = current_frame();
-    auto dest_name = frame->dest() == location::PUBLIC ? "public" : locations.at(frame->dest())->uname;
+    auto dest_name = frame->dest() == location::PUBLIC ? "public" : locations_.at(frame->dest())->uname;
     bool type_found = false;
     boost::hana::for_each(kungfu::longfist::AllTypes, [&](auto type) {
       using DataType = typename decltype(+boost::hana::second(type))::type;
       if (frame->msg_type() == DataType::tag) {
         SPDLOG_INFO("Next {} {} {} {} {} {}", time::strftime(frame->gen_time(), "%T.%N"),
-                    time::strftime(frame->trigger_time(), "%T.%N"), locations.at(frame->source())->uname, dest_name,
+                    time::strftime(frame->trigger_time(), "%T.%N"), locations_.at(frame->source())->uname, dest_name,
                     DataType::type_name.c_str(), frame->data<DataType>().to_string());
         type_found = true;
       }
@@ -242,17 +265,17 @@ Napi::Value Reader::Run(const Napi::CallbackInfo &info) {
     }
     if (frame->dest() == io_device_->get_home()->uid and frame->msg_type() == RequestReadFrom::tag) {
       auto request = frame->data<RequestReadFrom>();
-      auto source_location = locations.at(request.source_id);
+      auto source_location = locations_.at(request.source_id);
       join(source_location, io_device_->get_home()->uid, begin_time_);
     }
     if (frame->dest() == io_device_->get_home()->uid and frame->msg_type() == RequestReadFromPublic::tag) {
       auto request = frame->data<RequestReadFromPublic>();
-      auto source_location = locations.at(request.source_id);
+      auto source_location = locations_.at(request.source_id);
       join(source_location, location::PUBLIC, begin_time_);
     }
     if (frame->dest() == io_device_->get_home()->uid and frame->msg_type() == RequestReadFromSync::tag) {
       auto request = frame->data<RequestReadFromSync>();
-      auto source_location = locations.at(request.source_id);
+      auto source_location = locations_.at(request.source_id);
       join(source_location, location::SYNC, begin_time_);
     }
     if (frame->dest() == io_device_->get_home()->uid and frame->msg_type() == Deregister::tag) {
@@ -357,14 +380,22 @@ Napi::Value Assemble::Get_reader(const Napi::CallbackInfo &info) {
   if (sessions[index].name.compare("master") == 0) {
     return {};
   }
+  int64_t t_begin = 0;
+  int64_t t_end = 0;
+  if (info.Length() > 1) {
+    t_begin = info[1].ToNumber().Int64Value();
+    if (info.Length() > 2) {
+      t_end = info[2].ToNumber().Int64Value();
+    }
+  }
   // SPDLOG_INFO("sessions[index].mode {} sessions[index].category {} sessions[index].group {} sessions[index].name
   // {}",int(sessions[index].mode), int(sessions[index].category), sessions[index].group, sessions[index].name);
   auto node_mode = Napi::Number::New(info.Env(), int(sessions[index].mode));
   auto node_category = Napi::Number::New(info.Env(), int(sessions[index].category));
   auto node_group = Napi::String::New(info.Env(), sessions[index].group);
   auto node_name = Napi::String::New(info.Env(), sessions[index].name);
-  auto begin_time = Napi::BigInt::New(info.Env(), sessions[index].begin_time);
-  auto end_time = Napi::BigInt::New(info.Env(), std::abs(sessions[index].end_time));
+  auto begin_time = Napi::BigInt::New(info.Env(), t_begin > 0 ? t_begin : sessions[index].begin_time);
+  auto end_time = Napi::BigInt::New(info.Env(), t_end > 0 ? t_end : std::abs(sessions[index].end_time));
   auto reader = Reader::constructor.New({node_mode, node_category, node_group, node_name, begin_time, end_time});
   return reader;
 }

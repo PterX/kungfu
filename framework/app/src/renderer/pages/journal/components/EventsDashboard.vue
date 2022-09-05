@@ -192,10 +192,17 @@ const loadFrameData = (sessionId: number, checking = false) => {
     const runner = () => {
       setTimeout(() => {
         if (!journalReader) return;
-        const isUnfinish = journalReader.next();
+        const frame = journalReader.next();
+        if (frame) {
+          console.log('frame1', frame.msgType());
+          console.log('frame2', frame.stringMsgType());
+          console.log('frame3', frame.destName());
+        } else {
+          console.log('frame', frame);
+        }
 
-        if (isUnfinish) {
-          const frame = journalReader.currentFrame();
+        if (frame) {
+          // const frame = journalReader.currentFrame();
           ++count;
 
           const curFrameData: KungfuApi.Frame = {
@@ -207,6 +214,8 @@ const loadFrameData = (sessionId: number, checking = false) => {
             source: frame.source(),
             dest: frame.dest(),
             data: frame.data(),
+            destName: frame.destName(),
+            sourceName: frame.sourceName(),
           };
 
           if (!(`${curFrameData.genTime}` in curFramesMap)) {

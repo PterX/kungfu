@@ -78,7 +78,7 @@ class nanomsg_publisher_master : public nanomsg_publisher {
 public:
   nanomsg_publisher_master(const io_device &io_device, bool low_latency)
       : nanomsg_publisher(io_device, low_latency, protocol::PUBLISH) {
-    socket_.bind(bind_path_);
+    socket_.listen(bind_path_);
   }
 
   bool is_usable() override { return true; }
@@ -88,7 +88,7 @@ class nanomsg_publisher_client : public nanomsg_publisher {
 public:
   nanomsg_publisher_client(const io_device &io_device, bool low_latency)
       : nanomsg_publisher(io_device, low_latency, protocol::PUSH) {
-    socket_.connect(connect_path_);
+    socket_.dial(connect_path_);
   }
 
   bool is_usable() override {
@@ -106,17 +106,15 @@ public:
 class nanomsg_observer : public observer, protected nanomsg_resource {
 public:
   nanomsg_observer(const io_device &io_device, bool low_latency, protocol p, int recv_timeout = DEFAULT_RECV_TIMEOUT)
-      : nanomsg_resource(io_device, low_latency, p), recv_flags_(low_latency ? NN_DONTWAIT : 0),
-        recv_timeout_(recv_timeout) {
-    socket_.setsockopt_int(NN_SOL_SOCKET, NN_RCVTIMEO, recv_timeout_);
-  }
+      : nanomsg_resource(io_device, low_latency, p), recv_flags_(low_latency ? NNG_FLAG_NONBLOCK : 0),
+        recv_timeout_(recv_timeout) {}
 
   ~nanomsg_observer() override { socket_.close(); }
 
   void setup() override {
-    if (not low_latency_) {
-      socket_.setsockopt_int(NN_SOL_SOCKET, NN_RCVTIMEO, DEFAULT_NOTICE_TIMEOUT);
-    }
+    //   if (not low_latency_) {
+    //   socket_.setsockopt_int(NNG_OPT_RECVTIMEO, DEFAULT_NOTICE_TIMEOUT);
+    // }
   }
 
   bool wait() override { return socket_.recv(recv_flags_) > 0; }
@@ -134,7 +132,7 @@ class nanomsg_observer_master : public nanomsg_observer {
 public:
   nanomsg_observer_master(const io_device &io_device, bool low_latency)
       : nanomsg_observer(io_device, low_latency, protocol::PULL) {
-    socket_.bind(bind_path_);
+    socket_.listen(bind_path_);
   }
 
   bool is_usable() override { return true; }
@@ -144,8 +142,7 @@ class nanomsg_observer_client : public nanomsg_observer {
 public:
   nanomsg_observer_client(const io_device &io_device, bool low_latency)
       : nanomsg_observer(io_device, low_latency, protocol::SUBSCRIBE) {
-    socket_.connect(connect_path_);
-    socket_.setsockopt_str(NN_SUB, NN_SUB_SUBSCRIBE, "");
+    socket_.dial(connect_path_);
   }
 
   bool is_usable() override { return socket_.recv(0) > 0; }
@@ -178,19 +175,19 @@ writer_ptr io_device::open_writer_at(const data::location_ptr &location, uint32_
   return std::make_shared<writer>(location, dest_id, lazy_, publisher_);
 }
 
-socket_ptr io_device::connect_socket(const data::location_ptr &location, const protocol &p, int timeout) {
+socket_ptr io_device::dial_socket(const data::location_ptr &location, const protocol &p, int timeout) {
   socket_ptr s = std::make_shared<nanomsg::socket>(p);
-  s->connect(url_factory_->make_path_connect(location, p));
-  s->setsockopt_int(NN_SOL_SOCKET, NN_RCVTIMEO, timeout);
+  s->dial(url_factory_->make_path_connect(location, p));
+  s->setsockopt_int(NNG_OPT_SENDTIMEO, timeout);
   SPDLOG_INFO("connected socket [{}] {} at {} with timeout {}", nanomsg::get_protocol_name(p), location->name,
               s->get_url(), timeout);
   return s;
 }
 
-socket_ptr io_device::bind_socket(const protocol &p, int timeout) {
+socket_ptr io_device::listen_socket(const protocol &p, int timeout) {
   socket_ptr s = std::make_shared<nanomsg::socket>(p);
-  s->bind(url_factory_->make_path_bind(home_, p));
-  s->setsockopt_int(NN_SOL_SOCKET, NN_RCVTIMEO, timeout);
+  s->listen(url_factory_->make_path_bind(home_, p));
+  s->setsockopt_int(NNG_OPT_RECVTIMEO, timeout);
   SPDLOG_INFO("bind to socket [{}] {} at {} with timeout {}", nanomsg::get_protocol_name(p), home_->name, s->get_url(),
               timeout);
   return s;

@@ -74,7 +74,7 @@ int socket::getsockopt_int(const char *opt) {
 
 int socket::listen(const std::string &path) {
   url_ = "ipc://" + path;
-  int rc = nng_listener_create(&listener_, sock, url);
+  int rc = nng_listen(sock, url_.c_str(), NULL, 0);
   if (rc < 0) {
     SPDLOG_ERROR("can not listen to {}", url_);
     throw nn_exception(rc);
@@ -84,14 +84,13 @@ int socket::listen(const std::string &path) {
 }
 
 int socket::dial(const std::string &path) {
-  // url_ = "ipc://" + path;
-  // int rc = nn_connect(sock_, url_.c_str());
-  // if (rc < 0) {
-  //   SPDLOG_ERROR("can not connect to {}", url_);
-  //   throw nn_exception();
-  // }
-  // return rc;
-  return 0;
+  url_ = "ipc://" + path;
+  int rc = nn_dial(sock_, url_.c_str(), null, 0);
+  if (rc < 0) {
+    SPDLOG_ERROR("can not dial to {}", url_);
+    throw nn_exception(rc);
+  }
+  return rc;
 }
 
 void socket::close() {

@@ -63,9 +63,9 @@ inline protocol get_opposite_protol(protocol p) {
 
 class url_factory {
 public:
-  [[nodiscard]] virtual std::string make_path_bind(data::location_ptr location, protocol p) const = 0;
+  [[nodiscard]] virtual std::string make_path_listen(data::location_ptr location, protocol p) const = 0;
 
-  [[nodiscard]] virtual std::string make_path_connect(data::location_ptr location, protocol p) const = 0;
+  [[nodiscard]] virtual std::string make_path_dial(data::location_ptr location, protocol p) const = 0;
 };
 
 DECLARE_PTR(url_factory)
@@ -128,8 +128,6 @@ public:
 
 private:
   nng_socket sock_ = NNG_SOCKET_INITIALIZER;
-  nng_listener listener_;
-  nng_dialer dialer_;
   protocol protocol_;
   std::string url_;
   std::vector<char> buf_;

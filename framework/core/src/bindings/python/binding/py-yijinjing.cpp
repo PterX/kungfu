@@ -289,7 +289,6 @@ void bind(pybind11::module &&m) {
       .def("open_reader", &io_device::open_reader)
       .def("open_reader_to_subscribe", &io_device::open_reader_to_subscribe)
       .def("open_writer", &io_device::open_writer)
-      .def("dial_socket", &io_device::dial_socket, py::arg("location"), py::arg("protocol"), py::arg("timeout") = 0);
 
   py::class_<io_device_master, io_device, io_device_master_ptr>(m, "io_device_master")
       .def(py::init<location_ptr, bool>(), py::arg("home"), py::arg("low_latency"));

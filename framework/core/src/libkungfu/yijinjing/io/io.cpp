@@ -121,7 +121,7 @@ public:
 
   bool wait() override { return socket_.recv(recv_flags_) > 0; }
 
-  int get_recv_timeout() const { return recv_timeout_; }
+  int get_recv_timeout() const override { return recv_timeout_; }
 
   const std::string &get_notice() override { return socket_.last_message(); }
 

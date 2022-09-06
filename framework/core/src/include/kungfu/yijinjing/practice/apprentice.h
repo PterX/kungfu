@@ -90,6 +90,8 @@ protected:
 
   void on_write_to(const event_ptr &event);
 
+  int get_observer_recv_timeout() const;
+
   std::function<rx::observable<event_ptr>(rx::observable<event_ptr>)> timer(int64_t nanotime) {
     auto writer = get_writer(master_cmd_location_->uid);
     int32_t timer_usage_count = timer_usage_count_;

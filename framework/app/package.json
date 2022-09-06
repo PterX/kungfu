@@ -43,7 +43,7 @@
     "vue": "^3.2.34"
   },
   "devDependencies": {
-    "@kungfu-trader/kungfu-toolchain": "^2.4.6-alpha.3",
+    "@kungfu-trader/kungfu-toolchain": "^2.5.0-alpha.1",
     "@types/markdown-it": "^12.2.3",
     "electron": "19.0.8",
     "webpack-bundle-analyzer": "^4.6.1"

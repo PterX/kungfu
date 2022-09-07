@@ -684,10 +684,45 @@ export const SystemProcessName: Record<
 };
 
 export const JournalFrameMsgType: Partial<
-  Record<FrameMsgTypeEnum, KungfuApi.KfTradeValueCommonData>
+  Record<
+    FrameMsgTypeEnum,
+    KungfuApi.KfTradeValueCommonData | { name: string; color: string }
+  >
 > = {
   [FrameMsgTypeEnum.Order]: {
     name: 'Order',
-    color: 'red',
+    color: '#f5222d',
+  },
+  [FrameMsgTypeEnum.OrderInput]: {
+    name: 'OrderInput',
+    color: '#fa541c',
+  },
+  [FrameMsgTypeEnum.Trade]: {
+    name: 'Trade',
+    color: '#fa8c16',
+  },
+  [FrameMsgTypeEnum.Position]: {
+    name: 'Position',
+    color: '#fadb14',
+  },
+  [FrameMsgTypeEnum.Asset]: {
+    name: 'Asset',
+    color: '#a0d911',
+  },
+  [FrameMsgTypeEnum.AssetMargin]: {
+    name: 'AssetMargin',
+    color: '#52c41a',
+  },
+  [FrameMsgTypeEnum.Quote]: {
+    name: 'Quote',
+    color: '#1890ff',
+  },
+  [FrameMsgTypeEnum.Entrust]: {
+    name: 'Entrust',
+    color: '#2f54eb',
+  },
+  [FrameMsgTypeEnum.Transaction]: {
+    name: 'Transaction',
+    color: '#531dab',
   },
 };

@@ -135,12 +135,17 @@ const frameDataListResolved = computed(() => {
 const framesMap = shallowRef<Record<string, KungfuApi.FrameResolved>>({});
 
 const visible = ref(false);
+const excludeRowData = ['data', 'sourceToDest'];
 const currentRowDataResolved = computed(() => {
   const currentRowData = framesMap.value[currentFramesKey.value];
   if (currentRowData) {
     return Object.keys(currentRowData)
       .map((item) => {
-        if (item.indexOf('Resolved') !== -1 || item === 'data') return null;
+        if (
+          item.indexOf('Resolved') !== -1 ||
+          excludeRowData.indexOf(item) !== -1
+        )
+          return null;
 
         const key = currentRowData[`${item}Resolved`]
           ? `${item}Resolved`
@@ -189,59 +194,66 @@ const loadFrameData = (sessionId: number, checking = false) => {
   const curFramesMap = {};
 
   return new Promise<KungfuApi.FrameResolved[]>((resolve, _) => {
+    if (!journalReader) return resolve([]);
+    let frame: KungfuApi.Frame<'func'> | null = journalReader.currentFrame();
     const runner = () => {
       setTimeout(() => {
         if (!journalReader) return;
-        journalReader.run((frame) => {
-          if (frame) {
-            // const frame = journalReader.currentFrame();
-            ++count;
 
-            const curFrameData: KungfuApi.Frame = {
-              dataLength: frame.dataLength(),
-              genTime: frame.genTime(),
-              triggerTime: frame.triggerTime(),
-              msgType: frame.msgType(),
-              stringMsgType: frame.stringMsgType(),
-              source: frame.source(),
-              dest: frame.dest(),
-              data: frame.data(),
-              destName: frame.destName(),
-              sourceName: frame.sourceName(),
-            };
+        if (frame) {
+          const curFrameData: KungfuApi.Frame = {
+            dataLength: frame.dataLength(),
+            genTime: frame.genTime(),
+            triggerTime: frame.triggerTime(),
+            msgType: frame.msgType(),
+            stringMsgType: frame.stringMsgType(),
+            source: frame.source(),
+            dest: frame.dest(),
+            data: frame.data(),
+            destName: frame.destName(),
+            sourceName: frame.sourceName(),
+          };
 
-            if (!(`${curFrameData.genTime}` in curFramesMap)) {
-              const curFrameDataResolved = dealFrame(
-                curFrameData,
-                props.sessionLocationMap,
-              );
+          if (!(`${curFrameData.genTime}` in curFramesMap)) {
+            const curFrameDataResolved = dealFrame(
+              curFrameData,
+              props.sessionLocationMap,
+            );
 
-              curFramesMap[`${curFrameData.genTime}`] = curFrameDataResolved;
+            curFramesMap[`${curFrameData.genTime}`] = curFrameDataResolved;
 
-              frameFilter.value?.addOption(FiltersEnum.DEST, {
-                label: curFrameDataResolved.destResolved,
+            frameFilter.value?.addOption(FiltersEnum.DEST, [
+              {
+                label: curFrameDataResolved.destName,
                 value: curFrameDataResolved.dest + '',
-              });
-              frameFilter.value?.addOption(FiltersEnum.SOURCE, {
-                label: curFrameDataResolved.sourceResolved,
+              },
+            ]);
+            frameFilter.value?.addOption(FiltersEnum.SOURCE, [
+              {
+                label: curFrameDataResolved.sourceName,
                 value: curFrameDataResolved.source + '',
-              });
-              frameFilter.value?.addOption(FiltersEnum.MSG_TYPE, {
+              },
+            ]);
+            frameFilter.value?.addOption(FiltersEnum.MSG_TYPE, [
+              {
                 label: curFrameDataResolved.stringMsgType,
                 value: curFrameDataResolved.msgType + '',
-              });
+              },
+            ]);
+          }
+
+          ++count;
+          frame = journalReader.next();
+          runner();
+        } else {
+          Object.keys(curFramesMap).forEach((item) => {
+            if (!(item in framesMap.value)) {
+              framesMap.value[item] = curFramesMap[item];
             }
+          });
 
-            runner();
-          }
-        }, 0);
-        Object.keys(curFramesMap).forEach((item) => {
-          if (!(item in framesMap.value)) {
-            framesMap.value[item] = curFramesMap[item];
-          }
-        });
-
-        resolve(Object.values(toRaw(curFramesMap)));
+          resolve(Object.values(toRaw(curFramesMap)));
+        }
       });
     };
 

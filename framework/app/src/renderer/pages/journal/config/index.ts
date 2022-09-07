@@ -16,7 +16,7 @@ export const getSessionColumns = (): KfTradingDataTableHeaderConfig[] => [
     type: 'string',
     name: t('journalConfig.session_id'),
     dataIndex: 'session_id_resolved',
-    width: 160,
+    width: 224,
     sorter: buildStrSorter('session_id_resolved'),
   },
   {
@@ -54,7 +54,7 @@ export const getFrameColumns = (): KfTradingDataTableHeaderConfig[] => [
     name: `${t('journalConfig.source')} → ${t('journalConfig.dest')}`,
     dataIndex: 'sourceToDest',
     sorter: buildStrSorter('sourceToDest'),
-    width: 260,
+    width: 400,
   },
   {
     type: 'string',

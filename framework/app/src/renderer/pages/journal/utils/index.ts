@@ -7,8 +7,19 @@ import {
   getIdByKfLocation,
   getKfLocationByProcessId,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
-import { JournalFrameMsgType } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
-import { FrameMsgTypeEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
+import {
+  JournalFrameMsgType,
+  KfCategory,
+} from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
+import {
+  KfCategoryEnum,
+  FrameMsgTypeEnum,
+  KfCategoryTypes,
+} from '@kungfu-trader/kungfu-js-api/typings/enums';
+
+const consoleError = (error, ...datas) => {
+  console.log(...(datas.length ? ['datas: ', ...datas, '\n', error] : error));
+};
 
 export const getSessionLocationById = (
   sessionMap: Record<number, KungfuApi.KfLocation>,
@@ -16,6 +27,12 @@ export const getSessionLocationById = (
 ): KungfuApi.KfLocation | null => {
   if (!sessionMap[uid]) return null;
   return sessionMap[uid];
+};
+
+export const dealCategory = (
+  category: KfCategoryTypes,
+): KungfuApi.KfTradeValueCommonData => {
+  return KfCategory[KfCategoryEnum[category]];
 };
 
 export const dealFrameMsgType = (
@@ -52,7 +69,7 @@ const dealFrameData = (data: string): unknown[] => {
           try {
             obj = JSON.parse(obj);
           } catch (error) {
-            error;
+            consoleError(error, obj);
           }
         }
       }
@@ -92,6 +109,7 @@ const dealFrameData = (data: string): unknown[] => {
       { title: '}', key: 'root-end' },
     ];
   } catch (error) {
+    consoleError(error, data);
     return [{ title: 'null', key: 'root' }];
   }
 };
@@ -135,6 +153,10 @@ export const writeCsvByStream = <T>(
   data: T[],
   headers?: string[],
   headerTransform = (headerItem: string) => headerItem,
+  dataTransform = (dataItem, headerItem: string) => {
+    headerItem;
+    return dataItem;
+  },
 ) => {
   return new Promise((resolve, reject) => {
     filePath = path.normalize(filePath);
@@ -162,7 +184,9 @@ export const writeCsvByStream = <T>(
         stream.write(headers.map((item) => headerTransform(item)));
 
         for (const i of data) {
-          stream.write(headers.map((header) => i[header]));
+          stream.write(
+            headers.map((header) => dataTransform(i[header], header)),
+          );
         }
       } catch (error) {
         reject(error);

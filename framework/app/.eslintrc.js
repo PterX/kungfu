@@ -5,6 +5,7 @@ module.exports = {
   env: {
     node: true,
     'vue/setup-compiler-macros': true,
+    es2020: true,
   },
   extends: [
     'eslint:recommended',

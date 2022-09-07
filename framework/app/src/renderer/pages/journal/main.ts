@@ -12,6 +12,7 @@ import {
   Input,
   Layout,
   Spin,
+  Slider,
   List,
   Card,
   Tree,
@@ -40,6 +41,7 @@ app
   .use(Select)
   .use(Form)
   .use(Menu)
+  .use(Slider)
   .use(Tag)
   .use(VueVirtualScroller);
 

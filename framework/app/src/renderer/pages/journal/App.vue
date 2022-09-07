@@ -10,12 +10,43 @@
           key-field="begin_time"
           :resizable="false"
           @click-cell="handleSelectSession"
-        ></KfTradingDataTable>
+        >
+          <template
+            #default="{
+              item,
+              column,
+            }: {
+              item: KungfuApi.SessionResolved,
+              column: KfTradingDataTableHeaderConfig,
+            }"
+          >
+            <template v-if="column.dataIndex === 'session_id_resolved'">
+              <a-tag :color="dealCategory(item.category)?.color || 'default'">
+                {{ dealCategory(item.category)?.name }}
+              </a-tag>
+              {{ item[column.dataIndex as keyof KungfuApi.SessionResolved] }}
+            </template>
+            <template v-else>
+              <span>
+                {{ item[column.dataIndex as keyof KungfuApi.SessionResolved] }}
+              </span>
+            </template>
+          </template>
+        </KfTradingDataTable>
       </div>
       <div class="kf-journal-control-bar">
         <div class="kf-journal-bar-title">
-          {{ `session: ${currentSessionTitle}` }}
+          <a-tag :color="currentCategoryData?.color || 'default'">
+            {{ currentCategoryData?.name }}
+          </a-tag>
+          {{ currentSessionTitle }}
         </div>
+        <TimeSlider
+          v-model:time-range="currentTimeRange"
+          :limit-time-range="limitTimeRange"
+          :step="60"
+          class="kf-journal-time-slider"
+        ></TimeSlider>
         <ExportJournal @export-journal-data="onExportJournalData" />
       </div>
       <div class="kf-journal-menu__wrap">
@@ -49,17 +80,18 @@ import { onMounted, ref, computed, toRaw } from 'vue';
 import { assemble, dealKfTime } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { getSessionColumns } from './config';
 import { removeLoadingMask } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
-import { getCurrentLocation } from './utils';
+import { getCurrentLocation, dealCategory } from './utils';
 import {
   KfCategoryEnum,
   KfCategoryTypes,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
-import { getIdByKfLocation } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { getProcessIdByKfLocation } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import {
   UnorderedListOutlined,
   LineChartOutlined,
 } from '@ant-design/icons-vue';
 import KfTradingDataTable from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfTradingDataTable.vue';
+import TimeSlider from './components/TimeSlider.vue';
 import ExportJournal from './components/ExportJournal.vue';
 import EventsDashBoard from './components/EventsDashBoard.vue';
 import OrdersDashboard from './components/OrdersDashboard.vue';
@@ -88,18 +120,27 @@ const sessionsMap = computed(() => {
 
 const currentSessionKey = ref('');
 const currentSessionId = ref(-1);
+const currentTimeRange = ref<[number, number]>([0, 10000]);
+const limitTimeRange = ref<[number, number]>([0, 10000]);
+
+const currentSession = computed(() => {
+  if (currentSessionKey.value && Object.keys(sessionsMap.value).length) {
+    return sessionsMap.value[currentSessionKey.value];
+  }
+
+  return null;
+});
 
 const currentSessionTitle = computed(() => {
-  if (currentSessionKey.value && Object.keys(sessionsMap.value).length) {
-    const currentSession = sessionsMap.value[currentSessionKey.value];
-    if (currentSession) {
-      return `${currentSession.session_id_resolved}   time: ${currentSession.begin_time_resolved} - ${currentSession.end_time_resolved}`;
-    }
-
-    return '';
+  if (currentSession.value) {
+    return `${currentSession.value.session_id_resolved}`;
   }
 
   return '';
+});
+
+const currentCategoryData = computed(() => {
+  return dealCategory(currentSession.value?.category);
 });
 
 const currentMenuList = ref<('event' | 'order')[]>(['event']);
@@ -120,16 +161,13 @@ const isCurrentMenuItem = (key: 'event' | 'order') =>
   currentMenuList.value.includes(key);
 
 const exportFileName = computed(() => {
-  if (currentSessionKey.value && Object.keys(sessionsMap.value).length) {
-    const currentSession = sessionsMap.value[currentSessionKey.value];
-    if (currentSession) {
-      return `${
-        currentSession.session_id_resolved
-      }_${currentSession.begin_time_resolved
-        .split('.')[0]
-        .split(':')
-        .join('-')}`;
-    }
+  if (currentSession.value) {
+    return `${
+      currentSession.value.session_id_resolved
+    }_${currentSession.value.begin_time_resolved
+      .split('.')[0]
+      .split(':')
+      .join('-')}`;
   }
 
   return 'session';
@@ -153,7 +191,7 @@ const loadSessions = () => {
           return {
             index,
             ...item,
-            session_id_resolved: getIdByKfLocation(item),
+            session_id_resolved: getProcessIdByKfLocation(item),
             begin_time_resolved: dealKfTime(getAbs<bigint>(item.begin_time)),
             end_time_resolved: dealKfTime(getAbs<bigint>(item.end_time)),
             is_closed: item.end_time != 0n,
@@ -176,6 +214,7 @@ const loadSessions = () => {
 
         currentSessionKey.value = `${begin_time}`;
         currentSessionId.value = index;
+        setTimeRange(sessions.value[0]);
       }
     }
   });
@@ -188,6 +227,7 @@ onMounted(() => {
 
 const handleSelectSession = ({ row }) => {
   currentSessionId.value = row.index;
+  setTimeRange(row);
 };
 
 const onExportJournalData = (
@@ -195,6 +235,20 @@ const onExportJournalData = (
 ) => {
   exportData(exportFileName.value, eventDashBoard.value.frameDataList);
 };
+
+function setTimeRange(session: KungfuApi.Session) {
+  const { begin_time, end_time } = session;
+
+  currentTimeRange.value = [
+    Number(begin_time),
+    end_time ? Number(end_time) : new Date().getTime(),
+  ];
+
+  limitTimeRange.value = [
+    Number(begin_time),
+    end_time ? Number(end_time) : new Date().getTime(),
+  ];
+}
 </script>
 
 <style lang="less">
@@ -261,6 +315,11 @@ const onExportJournalData = (
         .kf-journal-bar-title {
           font-size: 14px;
           margin-right: 16px;
+        }
+
+        .kf-journal-time-slider {
+          max-width: 560px;
+          flex: 0 1 560px;
         }
       }
 

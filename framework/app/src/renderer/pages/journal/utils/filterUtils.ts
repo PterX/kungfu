@@ -59,23 +59,12 @@ export const useFrameFilters = () => {
     }
   };
 
-  const _addOption = (filterEnum: FiltersEnum, option: OptionItem) => {
-    if (option.value && !(option.value in filtersOptions[filterEnum])) {
-      filtersOptions[filterEnum][option.value] = option;
-    }
-  };
-
-  const addOption = (
-    filterEnum: FiltersEnum,
-    option: OptionItem | OptionItem[],
-  ) => {
-    if (Array.isArray(option)) {
-      option.forEach((item) => {
-        _addOption(filterEnum, item);
-      });
-    } else {
-      _addOption(filterEnum, option);
-    }
+  const addFilterOption = (filterEnum: FiltersEnum, options: OptionItem[]) => {
+    options.forEach((option) => {
+      if (option.value && !(option.value in filtersOptions[filterEnum])) {
+        filtersOptions[filterEnum][option.value] = option;
+      }
+    });
   };
 
   return {
@@ -83,6 +72,6 @@ export const useFrameFilters = () => {
     filtersOptions,
     filtersOptionsResolved,
     optionSorter,
-    addOption,
+    addFilterOption,
   };
 };

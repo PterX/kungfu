@@ -194,14 +194,6 @@ const loadFrameData = (sessionId: number, checking = false) => {
         if (!journalReader) return;
         const frame = journalReader.next();
         if (frame) {
-          console.log('frame1', frame.msgType());
-          console.log('frame2', frame.stringMsgType());
-          console.log('frame3', frame.destName());
-        } else {
-          console.log('frame', frame);
-        }
-
-        if (frame) {
           // const frame = journalReader.currentFrame();
           ++count;
 

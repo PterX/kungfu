@@ -114,8 +114,10 @@ Reader::Reader(const Napi::CallbackInfo &info)
     auto master_home_location =
         location::make_shared(kungfu::longfist::enums::mode::LIVE, kungfu::longfist::enums::category::SYSTEM, "master",
                               "master", io_device_->get_locator());
-
-    join(master_cmd_location, io_device_->get_home()->uid, begin_time_);
+    bool is_master = io_device_->get_home()->name.compare("master") == 0;
+    if (!is_master) {
+      join(master_cmd_location, io_device_->get_home()->uid, begin_time_);
+    }
     join(master_home_location, location::PUBLIC, begin_time_);
   }
   if (true) {
@@ -346,7 +348,7 @@ Napi::Value Assemble::Get_sessions(const Napi::CallbackInfo &info) {
   uint32_t uid = 0;
   bool filter(false);
   if (info.Length() == 1 && info[0].IsObject()) {
-    uint32_t uid = info[0].ToObject().Get("location_uid").ToNumber().Uint32Value();
+    uid = info[0].ToObject().Get("location_uid").ToNumber().Uint32Value();
     filter = true;
   }
   std::vector<kungfu::longfist::types::Session> sessions = get_sessions();
@@ -376,9 +378,6 @@ Napi::Value Assemble::Get_reader(const Napi::CallbackInfo &info) {
   uint32_t index = info[0].ToNumber().Uint32Value();
   if (session_size <= index) {
     throw Napi::Error::New(info.Env(), "index greater than session size");
-  }
-  if (sessions[index].name.compare("master") == 0) {
-    return {};
   }
   int64_t t_begin = 0;
   int64_t t_end = 0;

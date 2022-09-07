@@ -192,56 +192,56 @@ const loadFrameData = (sessionId: number, checking = false) => {
     const runner = () => {
       setTimeout(() => {
         if (!journalReader) return;
-        const frame = journalReader.next();
-        if (frame) {
-          // const frame = journalReader.currentFrame();
-          ++count;
+        journalReader.run((frame) => {
+          if (frame) {
+            // const frame = journalReader.currentFrame();
+            ++count;
 
-          const curFrameData: KungfuApi.Frame = {
-            dataLength: frame.dataLength(),
-            genTime: frame.genTime(),
-            triggerTime: frame.triggerTime(),
-            msgType: frame.msgType(),
-            stringMsgType: frame.stringMsgType(),
-            source: frame.source(),
-            dest: frame.dest(),
-            data: frame.data(),
-            destName: frame.destName(),
-            sourceName: frame.sourceName(),
-          };
+            const curFrameData: KungfuApi.Frame = {
+              dataLength: frame.dataLength(),
+              genTime: frame.genTime(),
+              triggerTime: frame.triggerTime(),
+              msgType: frame.msgType(),
+              stringMsgType: frame.stringMsgType(),
+              source: frame.source(),
+              dest: frame.dest(),
+              data: frame.data(),
+              destName: frame.destName(),
+              sourceName: frame.sourceName(),
+            };
 
-          if (!(`${curFrameData.genTime}` in curFramesMap)) {
-            const curFrameDataResolved = dealFrame(
-              curFrameData,
-              props.sessionLocationMap,
-            );
+            if (!(`${curFrameData.genTime}` in curFramesMap)) {
+              const curFrameDataResolved = dealFrame(
+                curFrameData,
+                props.sessionLocationMap,
+              );
 
-            curFramesMap[`${curFrameData.genTime}`] = curFrameDataResolved;
+              curFramesMap[`${curFrameData.genTime}`] = curFrameDataResolved;
 
-            frameFilter.value?.addOption(FiltersEnum.DEST, {
-              label: curFrameDataResolved.destResolved,
-              value: curFrameDataResolved.dest + '',
-            });
-            frameFilter.value?.addOption(FiltersEnum.SOURCE, {
-              label: curFrameDataResolved.sourceResolved,
-              value: curFrameDataResolved.source + '',
-            });
-            frameFilter.value?.addOption(FiltersEnum.MSG_TYPE, {
-              label: curFrameDataResolved.stringMsgType,
-              value: curFrameDataResolved.msgType + '',
-            });
-          }
-
-          runner();
-        } else {
-          Object.keys(curFramesMap).forEach((item) => {
-            if (!(item in framesMap.value)) {
-              framesMap.value[item] = curFramesMap[item];
+              frameFilter.value?.addOption(FiltersEnum.DEST, {
+                label: curFrameDataResolved.destResolved,
+                value: curFrameDataResolved.dest + '',
+              });
+              frameFilter.value?.addOption(FiltersEnum.SOURCE, {
+                label: curFrameDataResolved.sourceResolved,
+                value: curFrameDataResolved.source + '',
+              });
+              frameFilter.value?.addOption(FiltersEnum.MSG_TYPE, {
+                label: curFrameDataResolved.stringMsgType,
+                value: curFrameDataResolved.msgType + '',
+              });
             }
-          });
 
-          resolve(Object.values(toRaw(curFramesMap)));
-        }
+            runner();
+          }
+        }, 0);
+        Object.keys(curFramesMap).forEach((item) => {
+          if (!(item in framesMap.value)) {
+            framesMap.value[item] = curFramesMap[item];
+          }
+        });
+
+        resolve(Object.values(toRaw(curFramesMap)));
       });
     };
 

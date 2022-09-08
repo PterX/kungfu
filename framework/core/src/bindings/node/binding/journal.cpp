@@ -263,6 +263,7 @@ Napi::Value Reader::Run(const Napi::CallbackInfo &info) {
       auto location_uname = current_page()->get_location()->uname;
       auto dest_id = current_page()->get_dest_id();
       SPDLOG_ERROR("{}/{:08x} msg_type {} not found", location_uname, dest_id, frame->msg_type());
+      cb.Call({info.Env().Null()});
       return {};
     }
     if (frame->dest() == io_device_->get_home()->uid and frame->msg_type() == RequestReadFrom::tag) {
@@ -288,6 +289,7 @@ Napi::Value Reader::Run(const Napi::CallbackInfo &info) {
     // }
     next();
   }
+  cb.Call({info.Env().Null()});
   return {};
 }
 

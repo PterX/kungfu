@@ -383,10 +383,11 @@ Napi::Value Assemble::Get_reader(const Napi::CallbackInfo &info) {
   }
   int64_t t_begin = 0;
   int64_t t_end = 0;
+  bool bRet(false);
   if (info.Length() > 1) {
-    t_begin = info[1].ToNumber().Int64Value();
+    t_begin = info[1].As<Napi::BigInt>().Int64Value(&bRet);
     if (info.Length() > 2) {
-      t_end = info[2].ToNumber().Int64Value();
+      t_end = info[2].As<Napi::BigInt>().Int64Value(&bRet);
     }
   }
   // SPDLOG_INFO("sessions[index].mode {} sessions[index].category {} sessions[index].group {} sessions[index].name

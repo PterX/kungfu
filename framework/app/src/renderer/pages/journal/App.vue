@@ -65,8 +65,7 @@
           <EventsDashBoard
             v-show="isCurrentMenuItem('event')"
             ref="eventDashBoard"
-            :current-session-id="currentSessionId"
-            :current-session-closed="currentSession?.is_closed || true"
+            :current-session="currentSession"
             :current-time-range="currentTimeRange"
             :session-location-map="sessionLocationMap"
           />
@@ -122,8 +121,8 @@ const sessionsMap = computed(() => {
 
 const currentSessionKey = ref('');
 const currentSessionId = ref(-1);
-const currentTimeRange = ref<[bigint, bigint]>([0n, 10000n]);
-const limitTimeRange = ref<[bigint, bigint]>([0n, 10000n]);
+const currentTimeRange = ref<[bigint, bigint]>([0n, 0n]);
+const limitTimeRange = ref<[bigint, bigint]>([0n, 0n]);
 
 const currentSession = computed(() => {
   if (currentSessionKey.value && Object.keys(sessionsMap.value).length) {

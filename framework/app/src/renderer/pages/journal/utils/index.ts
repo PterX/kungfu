@@ -38,7 +38,7 @@ export const dealCategory = (
 export const dealFrameMsgType = (
   msgType: FrameMsgTypeEnum,
 ): KungfuApi.KfTradeValueCommonData =>
-  JournalFrameMsgType[+msgType] || { name: '', color: 'default' };
+  JournalFrameMsgType[+msgType] || { name: msgType, color: 'default' };
 
 export const dealDestOrSource = (
   type: 'source' | 'dest',

@@ -138,6 +138,7 @@ const handleConfirmExport = () => {
           };
 
           const dataTransform = (item, header: string) => {
+            console.log(header, item);
             switch (header) {
               case 'msgTypeResolved':
                 return item.name;

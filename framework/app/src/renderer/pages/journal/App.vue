@@ -66,6 +66,8 @@
             v-show="isCurrentMenuItem('event')"
             ref="eventDashBoard"
             :current-session-id="currentSessionId"
+            :current-session-closed="currentSession?.is_closed || true"
+            :current-time-range="currentTimeRange"
             :session-location-map="sessionLocationMap"
           />
           <OrdersDashboard v-show="isCurrentMenuItem('order')" />
@@ -120,8 +122,8 @@ const sessionsMap = computed(() => {
 
 const currentSessionKey = ref('');
 const currentSessionId = ref(-1);
-const currentTimeRange = ref<[number, number]>([0, 10000]);
-const limitTimeRange = ref<[number, number]>([0, 10000]);
+const currentTimeRange = ref<[bigint, bigint]>([0n, 10000n]);
+const limitTimeRange = ref<[bigint, bigint]>([0n, 10000n]);
 
 const currentSession = computed(() => {
   if (currentSessionKey.value && Object.keys(sessionsMap.value).length) {
@@ -240,13 +242,13 @@ function setTimeRange(session: KungfuApi.Session) {
   const { begin_time, end_time } = session;
 
   currentTimeRange.value = [
-    Number(begin_time),
-    end_time ? Number(end_time) : new Date().getTime(),
+    begin_time,
+    end_time ? end_time : BigInt(new Date().getTime() * 1000),
   ];
 
   limitTimeRange.value = [
-    Number(begin_time),
-    end_time ? Number(end_time) : new Date().getTime(),
+    begin_time,
+    end_time ? end_time : BigInt(new Date().getTime() * 1000),
   ];
 }
 </script>

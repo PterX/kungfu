@@ -94,6 +94,8 @@ import FrameFilters from './FrameFilters.vue';
 const props = withDefaults(
   defineProps<{
     currentSessionId: number;
+    currentSessionClosed: boolean;
+    currentTimeRange: [bigint, bigint];
     sessionLocationMap: Record<number, KungfuApi.KfLocation>;
   }>(),
   {
@@ -178,6 +180,7 @@ watch(
 
 let timer = 0;
 let journalReader: KungfuApi.AssembleReader | null = null;
+const LIMIT_COUNT = 10000;
 
 const loadFrameData = (sessionId: number, checking = false) => {
   console.log('sessionId', sessionId);
@@ -195,11 +198,8 @@ const loadFrameData = (sessionId: number, checking = false) => {
 
   return new Promise<KungfuApi.FrameResolved[]>((resolve, _) => {
     if (!journalReader) return resolve([]);
-    let frame: KungfuApi.Frame<'func'> | null = journalReader.currentFrame();
-    const runner = () => {
+    journalReader.run((frame) => {
       setTimeout(() => {
-        if (!journalReader) return;
-
         if (frame) {
           const curFrameData: KungfuApi.Frame = {
             dataLength: frame.dataLength(),
@@ -213,6 +213,7 @@ const loadFrameData = (sessionId: number, checking = false) => {
             destName: frame.destName(),
             sourceName: frame.sourceName(),
           };
+          console.log(curFrameData.genTime);
 
           if (!(`${curFrameData.genTime}` in curFramesMap)) {
             const curFrameDataResolved = dealFrame(
@@ -221,6 +222,9 @@ const loadFrameData = (sessionId: number, checking = false) => {
             );
 
             curFramesMap[`${curFrameData.genTime}`] = curFrameDataResolved;
+            if (!(`${curFrameData.genTime}` in framesMap.value)) {
+              framesMap.value[`${curFrameData.genTime}`] = curFrameDataResolved;
+            }
 
             frameFilter.value?.addOption(FiltersEnum.DEST, [
               {
@@ -243,21 +247,12 @@ const loadFrameData = (sessionId: number, checking = false) => {
           }
 
           ++count;
-          frame = journalReader.next();
-          runner();
         } else {
-          Object.keys(curFramesMap).forEach((item) => {
-            if (!(item in framesMap.value)) {
-              framesMap.value[item] = curFramesMap[item];
-            }
-          });
-
+          console.log('Done');
           resolve(Object.values(toRaw(curFramesMap)));
         }
       });
-    };
-
-    runner();
+    }, 0);
   }).then((res) => {
     console.log(res);
     console.log(count);
@@ -271,9 +266,11 @@ const loadFrameData = (sessionId: number, checking = false) => {
       loadingJournal.value = false;
     }
 
-    timer = window.setTimeout(() => {
-      loadFrameData(sessionId, true);
-    }, 500);
+    if (!props.currentSessionClosed && count < LIMIT_COUNT) {
+      timer = window.setTimeout(() => {
+        loadFrameData(sessionId, true);
+      }, 500);
+    }
   });
 };
 

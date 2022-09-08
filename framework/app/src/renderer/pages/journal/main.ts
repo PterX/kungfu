@@ -2,6 +2,7 @@ import './setEnv';
 import { createApp } from 'vue';
 import App from '@kungfu-trader/kungfu-app/src/renderer/pages/journal/App.vue';
 
+import store from './store';
 import VueVirtualScroller from 'vue-virtual-scroller';
 import 'vue-virtual-scroller/dist/vue-virtual-scroller.css';
 import {
@@ -27,6 +28,7 @@ import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 const app = createApp(App);
 
 app
+  .use(store)
   .use(Layout)
   .use(Button)
   .use(Checkbox)

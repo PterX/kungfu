@@ -792,7 +792,11 @@ declare namespace KungfuApi {
   }
 
   export interface Assemble {
-    get_reader(arg: number): AssembleReader;
+    get_reader(
+      arg: number,
+      startTime?: bigint,
+      endTime?: bigint,
+    ): AssembleReader;
     get_sessions(kfLocation?: KfLocation): Session[];
     seekToTime(): void;
     next(): void;

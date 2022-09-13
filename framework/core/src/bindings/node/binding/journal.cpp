@@ -250,7 +250,6 @@ Napi::Value Reader::Run(const Napi::CallbackInfo &info) {
     auto frame = current_frame();
     auto dest_name = frame->dest() == location::PUBLIC ? "public" : locations_.at(frame->dest())->uname;
     bool type_found = false;
-    bool is_dup = false;
     boost::hana::for_each(kungfu::longfist::AllTypes, [&](auto type) {
       using DataType = typename decltype(+boost::hana::second(type))::type;
       if (frame->msg_type() == DataType::tag) {
@@ -258,17 +257,8 @@ Napi::Value Reader::Run(const Napi::CallbackInfo &info) {
                     time::strftime(frame->trigger_time(), "%T.%N"), locations_.at(frame->source())->uname, dest_name,
                     DataType::type_name.c_str(), frame->data<DataType>().to_string());
         type_found = true;
-        if (gentimeSet_.find(frame->gen_time()) == gentimeSet_.end()) {
-          gentimeSet_.insert(frame->gen_time());
-        }else{
-          is_dup = true;
-        }
       }
     });
-    if(is_dup) {
-      next();
-      continue;
-    }
     if (not type_found) {
       auto location_uname = current_page()->get_location()->uname;
       auto dest_id = current_page()->get_dest_id();

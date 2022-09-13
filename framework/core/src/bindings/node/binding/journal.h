@@ -88,7 +88,6 @@ private:
   int64_t begin_time_;
   int64_t end_time_;
   std::unordered_map<uint32_t, yijinjing::data::location_ptr> locations_;
-  std::unordered_set<int64_t> gentimeSet_;
 };
 
 class Assemble : public Napi::ObjectWrap<Assemble>, public yijinjing::journal::assemble {

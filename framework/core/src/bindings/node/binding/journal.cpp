@@ -145,15 +145,9 @@ Napi::Value Reader::CurrentFrame(const Napi::CallbackInfo &info) {
   if (c_frame->dest() == location::PUBLIC) {
     d = "public";
   } else if (locations_.find(c_frame->dest()) != locations_.end()) {
-    std::cout << " c_frame->dest() " << c_frame->dest() << std::endl;
-    std::cout << (locations_.find(c_frame->dest()) != locations_.end()) << std::endl;
-    std::cout << locations_.at(c_frame->dest())->uname << std::endl;
     d = locations_.at(c_frame->dest())->uname;
   }
   if (locations_.find(c_frame->source()) != locations_.end()) {
-    std::cout << " c_frame->source() "  << c_frame->source() << std::endl;
-    std::cout << (locations_.find(c_frame->source()) != locations_.end()) << std::endl;
-    std::cout << locations_.at(c_frame->source())->uname << std::endl;
     s = locations_.at(c_frame->source())->uname;
   }
   Napi::ObjectWrap<Frame>::Unwrap(frame.As<Napi::Object>())->SetFrame(current_frame(), s, d);
@@ -254,13 +248,13 @@ Napi::Value Reader::Run(const Napi::CallbackInfo &info) {
   while ((limit <= 0 || count++ < limit) && data_available() && current_frame()->gen_time() <= end_time_) {
     // if (current_frame()->gen_time() >= begin_time_) {
     auto frame = current_frame();
-    auto dest_name = frame->dest() == location::PUBLIC ? "public" : locations_.at(frame->dest())->uname;
+    // auto dest_name = frame->dest() == location::PUBLIC ? "public" : locations_.at(frame->dest())->uname;
     bool type_found = false;
     boost::hana::for_each(kungfu::longfist::AllTypes, [&](auto type) {
       using DataType = typename decltype(+boost::hana::second(type))::type;
       if (frame->msg_type() == DataType::tag) {
-        SPDLOG_INFO("Next {} {} {} {} {}", time::strftime(frame->gen_time(), "%T.%N"),
-                    time::strftime(frame->trigger_time(), "%T.%N"), dest_name,
+        SPDLOG_INFO("Next {} {} {} {}", time::strftime(frame->gen_time(), "%T.%N"),
+                    time::strftime(frame->trigger_time(), "%T.%N"), 
                     DataType::type_name.c_str(), frame->data<DataType>().to_string());
         type_found = true;
       }
@@ -274,25 +268,16 @@ Napi::Value Reader::Run(const Napi::CallbackInfo &info) {
     }
     if (frame->dest() == io_device_->get_home()->uid and frame->msg_type() == RequestReadFrom::tag) {
       auto request = frame->data<RequestReadFrom>();
-      std::cout << "request.source_id 1"<< request.source_id << std::endl;
-    std::cout << (locations_.find(request.source_id) != locations_.end()) << std::endl;
-    std::cout << locations_.at(request.source_id)->uname << std::endl;
       auto source_location = locations_.at(request.source_id);
       join(source_location, io_device_->get_home()->uid, begin_time_);
     }
     if (frame->dest() == io_device_->get_home()->uid and frame->msg_type() == RequestReadFromPublic::tag) {
       auto request = frame->data<RequestReadFromPublic>();
-      std::cout << "request.source_id 2"<< request.source_id << std::endl;
-    std::cout << (locations_.find(request.source_id) != locations_.end()) << std::endl;
-    std::cout << locations_.at(request.source_id)->uname << std::endl;
       auto source_location = locations_.at(request.source_id);
       join(source_location, location::PUBLIC, begin_time_);
     }
     if (frame->dest() == io_device_->get_home()->uid and frame->msg_type() == RequestReadFromSync::tag) {
       auto request = frame->data<RequestReadFromSync>();
-      std::cout << "request.source_id 3"<< request.source_id << std::endl;
-    std::cout << (locations_.find(request.source_id) != locations_.end()) << std::endl;
-    std::cout << locations_.at(request.source_id)->uname << std::endl;
       auto source_location = locations_.at(request.source_id);
       join(source_location, location::SYNC, begin_time_);
     }

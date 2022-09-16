@@ -741,6 +741,7 @@ declare namespace KungfuApi {
   }
 
   export interface Session {
+    index: number;
     location_uid: number;
     category: KfCategoryEnum;
     group: string;
@@ -755,7 +756,6 @@ declare namespace KungfuApi {
   }
 
   export interface SessionResolved extends Session {
-    index: number;
     session_id_resolved: string;
     begin_time_resolved: string;
     end_time_resolved: string;
@@ -763,6 +763,7 @@ declare namespace KungfuApi {
   }
 
   export interface Frame<T extends 'func' | 'data' = 'data'> {
+    id: number;
     dataLength: FunctionOrData<T, number>;
     genTime: FunctionOrData<T, bigint>;
     triggerTime: FunctionOrData<T, bigint>;
@@ -797,7 +798,7 @@ declare namespace KungfuApi {
       startTime?: bigint,
       endTime?: bigint,
     ): AssembleReader;
-    get_sessions(kfLocation?: KfLocation): Session[];
+    get_sessions(kfLocation?: KfLocation): Session[] | undefined;
     seekToTime(): void;
     next(): void;
     dataAvailable(): boolean;

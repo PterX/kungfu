@@ -102,7 +102,7 @@ defineExpose({
 <style lang="less">
 .kf-form-item__warp {
   .ant-select {
-    min-width: 120px;
+    min-width: 160px;
   }
 }
 </style>

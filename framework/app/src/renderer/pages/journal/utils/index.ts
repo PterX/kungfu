@@ -1,3 +1,8 @@
+import { WorkerReceiver } from './../workers/receiver';
+import { storeToRefs } from 'pinia';
+import { useJournalStore } from './../store/journalStore';
+import { WorkerSender } from './../workers/sender';
+import { watch } from 'vue';
 import fse from 'fs-extra';
 import path from 'path';
 import { format } from '@fast-csv/format';
@@ -114,19 +119,14 @@ const dealFrameData = (data: string): unknown[] => {
   }
 };
 
-export const dealFrame = (
-  frame: KungfuApi.Frame,
-  sessionMap: Record<number, KungfuApi.KfLocation>,
-): KungfuApi.FrameResolved => {
-  const destResolved = dealDestOrSource('dest', frame, sessionMap);
-  const sourceResolved = dealDestOrSource('source', frame, sessionMap);
+export const dealFrame = (frame: KungfuApi.Frame): KungfuApi.FrameResolved => {
   return {
     ...frame,
     genTimeResolved: dealKfTime(frame.genTime, true),
     triggerTimeResolved: dealKfTime(frame.triggerTime, true),
     msgTypeResolved: dealFrameMsgType(frame.msgType),
-    destResolved,
-    sourceResolved,
+    destResolved: frame.destName,
+    sourceResolved: frame.sourceName,
     sourceToDest: dealFrameSourceToDest(frame.sourceName, frame.destName),
     dataResolved: dealFrameData(frame.data),
   };
@@ -199,5 +199,25 @@ export const writeCsvByStream = <T>(
     stream.end(() => {
       resolve(true);
     });
+  });
+};
+
+export const useDealJournalDatas = () => {
+  const journalStore = useJournalStore();
+  const journalState = storeToRefs(journalStore);
+
+  const worker = window.workers.dealJournalDatas;
+  const dataSender = new WorkerSender<KungfuApi.FrameResolved>(worker, 200);
+  const dataReceiver = new WorkerReceiver<KungfuApi.FrameResolved>();
+
+  watch(
+    () => journalState.currentSessionFrames.value,
+    (frames) => {
+      dataSender.sendData('send-events', frames);
+    },
+  );
+
+  dataReceiver.onMessage('recive-quotes', (message) => {
+    console.log(message);
   });
 };

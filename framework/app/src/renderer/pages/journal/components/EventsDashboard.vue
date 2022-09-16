@@ -11,11 +11,11 @@
     </div>
     <div class="kf-journal-frame__wrap">
       <KfTradingDataTable
-        v-model:selected-key="currentFramesKey"
+        v-model:selected-key="currentFramesId"
         :selectable="true"
         :data-source="frameDataListResolved"
         :columns="frameColumns"
-        key-field="genTime"
+        key-field="id"
         :resizable="false"
         @click-cell="handleOpenFrameDetail"
       >
@@ -68,7 +68,7 @@
           <a-tree
             :show-line="true"
             :show-icon="true"
-            :tree-data="framesMap[currentFramesKey].dataResolved"
+            :tree-data="framesMap[currentFramesId].dataResolved"
             :selectable="false"
             default-expand-all
           ></a-tree>
@@ -90,23 +90,25 @@ import { dealFrame } from '../utils';
 import { createFiltersEnumMap, FiltersEnum } from '../utils/filterUtils';
 import KfTradingDataTable from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfTradingDataTable.vue';
 import FrameFilters from './FrameFilters.vue';
+import { useJournalStore } from '../store/journalStore';
 
 const props = withDefaults(
   defineProps<{
     currentSession: KungfuApi.SessionResolved | null;
-    currentTimeRange: [bigint, bigint];
-    sessionLocationMap: Record<number, KungfuApi.KfLocation>;
+    currentTimeRangeData: {
+      range: [bigint, bigint];
+      reload: boolean;
+    };
   }>(),
-  {
-    sessionLocationMap: () => ({}),
-  },
+  {},
 );
 
+const journalStore = useJournalStore();
 const frameColumns = getFrameColumns();
 const simpleImage = Empty.PRESENTED_IMAGE_SIMPLE;
 const loadingJournal = ref(false);
 
-const currentFramesKey = ref('');
+const currentFramesId = ref<number>(-1);
 const frameFilter = ref();
 
 const frameDataList = shallowRef<KungfuApi.FrameResolved[]>([]);
@@ -138,7 +140,7 @@ const framesMap = shallowRef<Record<string, KungfuApi.FrameResolved>>({});
 const visible = ref(false);
 const excludeRowData = ['data', 'sourceToDest'];
 const currentRowDataResolved = computed(() => {
-  const currentRowData = framesMap.value[currentFramesKey.value];
+  const currentRowData = framesMap.value[currentFramesId.value];
   if (currentRowData) {
     return Object.keys(currentRowData)
       .map((item) => {
@@ -178,27 +180,47 @@ watch(
 );
 
 watch(
-  () => props.currentTimeRange,
-  (newRange, oldRange) => {
-    if (
-      props.currentSession &&
-      props.currentSession.begin_time !== newRange[0] &&
-      props.currentSession.end_time !== oldRange[1]
-    ) {
-      if (
-        newRange[0] &&
-        newRange[1] &&
-        (newRange[0] !== oldRange[0] || newRange[1] !== oldRange[1])
-      ) {
-        loadFrameData(props.currentSession, newRange[0], newRange[1]);
+  () => props.currentTimeRangeData,
+  (newRangeData) => {
+    if (props.currentSession) {
+      if (newRangeData.range[0] && newRangeData.range[1]) {
+        loadFrameData(
+          props.currentSession,
+          newRangeData.range[0],
+          newRangeData.range[1],
+          !newRangeData.reload,
+        );
       }
     }
   },
+  { deep: true },
 );
 
-let timer = 0;
 let journalReader: KungfuApi.AssembleReader | null = null;
-const LIMIT_COUNT = 10000;
+let lastReaderArgs = {
+  sessionId: 0,
+  startTime: 0n,
+  endTime: 0n,
+};
+const LIMIT_COUNT = 100000;
+
+const checkReaderArgs = (args: {
+  sessionId: number;
+  startTime: bigint;
+  endTime: bigint;
+}) => {
+  console.log('checkArgs', lastReaderArgs, args);
+  if (
+    args.sessionId === lastReaderArgs.sessionId &&
+    args.startTime === lastReaderArgs.startTime &&
+    args.endTime === lastReaderArgs.endTime
+  ) {
+    return false;
+  } else {
+    lastReaderArgs = args;
+    return true;
+  }
+};
 
 const loadFrameData = (
   session: KungfuApi.SessionResolved,
@@ -207,13 +229,16 @@ const loadFrameData = (
   checking = false,
 ) => {
   const sessionId = session.index;
-  console.log('sessionId', sessionId);
 
-  if (checking && timer) {
-    clearTimeout(timer);
-  } else {
+  if (!checkReaderArgs({ sessionId, startTime, endTime })) return;
+
+  if (!checking) {
     loadingJournal.value = true;
-    journalReader = assemble.get_reader(sessionId, startTime, endTime);
+    if (!session.is_closed) {
+      journalReader = assemble.get_reader(sessionId, startTime);
+    } else {
+      journalReader = assemble.get_reader(sessionId, startTime, endTime);
+    }
     framesMap.value = {};
   }
 
@@ -228,6 +253,7 @@ const loadFrameData = (
         journalReader.run((frame) => {
           if (frame) {
             const curFrameData: KungfuApi.Frame = {
+              id: total,
               dataLength: frame.dataLength(),
               genTime: frame.genTime(),
               triggerTime: frame.triggerTime(),
@@ -240,40 +266,32 @@ const loadFrameData = (
               sourceName: frame.sourceName(),
             };
 
-            if (!(`${curFrameData.genTime}` in curFramesMap)) {
-              const curFrameDataResolved = dealFrame(
-                curFrameData,
-                props.sessionLocationMap,
-              );
+            const curFrameDataResolved = dealFrame(curFrameData);
 
-              curFramesMap[`${curFrameData.genTime}`] = curFrameDataResolved;
-              if (!(`${curFrameData.genTime}` in framesMap.value)) {
-                framesMap.value[`${curFrameData.genTime}`] =
-                  curFrameDataResolved;
-              }
+            curFramesMap[curFrameDataResolved.id] = curFrameDataResolved;
+            framesMap.value[curFrameDataResolved.id] = curFrameDataResolved;
 
-              frameFilter.value?.addOption(FiltersEnum.DEST, [
-                {
-                  label: curFrameDataResolved.destName,
-                  value: curFrameDataResolved.dest + '',
-                },
-              ]);
-              frameFilter.value?.addOption(FiltersEnum.SOURCE, [
-                {
-                  label: curFrameDataResolved.sourceName,
-                  value: curFrameDataResolved.source + '',
-                },
-              ]);
-              frameFilter.value?.addOption(FiltersEnum.MSG_TYPE, [
-                {
-                  label: curFrameDataResolved.stringMsgType,
-                  value: curFrameDataResolved.msgType + '',
-                },
-              ]);
+            frameFilter.value?.addOption(FiltersEnum.DEST, [
+              {
+                label: curFrameDataResolved.destName,
+                value: curFrameDataResolved.dest + '',
+              },
+            ]);
+            frameFilter.value?.addOption(FiltersEnum.SOURCE, [
+              {
+                label: curFrameDataResolved.sourceName,
+                value: curFrameDataResolved.source + '',
+              },
+            ]);
+            frameFilter.value?.addOption(FiltersEnum.MSG_TYPE, [
+              {
+                label: curFrameDataResolved.stringMsgType,
+                value: curFrameDataResolved.msgType + '',
+              },
+            ]);
 
-              ++total;
-              ++count;
-            }
+            ++total;
+            ++count;
           }
         }, 10);
 
@@ -294,21 +312,12 @@ const loadFrameData = (
       frameDataList.value.push(...res);
     } else {
       frameDataList.value = res;
-      currentFramesKey.value = frameDataList.value[0]?.genTime + '';
-
-      loadingJournal.value = false;
+      currentFramesId.value = frameDataList.value[0]?.id;
     }
 
-    if (!session.is_closed && !endTime) {
-      timer = window.setTimeout(() => {
-        loadFrameData(
-          session,
-          startTime,
-          BigInt(new Date().getTime() * 1000000),
-          true,
-        );
-      }, 500);
-    }
+    journalStore.setCurrentSessionFrames(frameDataList.value);
+
+    loadingJournal.value = false;
   });
 };
 

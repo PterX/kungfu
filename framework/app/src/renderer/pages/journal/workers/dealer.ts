@@ -5,7 +5,7 @@ export class Dealer<T> {
     this.data = data;
   }
 
-  deal() {
-    this.data;
+  stringify(data) {
+    return;
   }
 }

@@ -1,4 +1,5 @@
 import './setEnv';
+import './injectWindow';
 import { createApp } from 'vue';
 import App from '@kungfu-trader/kungfu-app/src/renderer/pages/journal/App.vue';
 

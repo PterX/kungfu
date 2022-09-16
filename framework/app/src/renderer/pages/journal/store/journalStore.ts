@@ -2,23 +2,23 @@ import { defineStore } from 'pinia';
 
 interface journalState {
   sessions: KungfuApi.Session[];
-  frames: KungfuApi.Frame[];
+  currentSessionFrames: KungfuApi.FrameResolved[];
 
   currentSession: KungfuApi.SessionResolved | null;
 }
 
-export const useJournalStorage = defineStore('journal', {
+export const useJournalStore = defineStore('journal', {
   state: (): journalState => ({
     sessions: [],
-    frames: [],
+    currentSessionFrames: [],
     currentSession: null,
   }),
   actions: {
     setSessions(sessions: KungfuApi.Session[]) {
       this.sessions = sessions;
     },
-    setFrames(frames: KungfuApi.Frame[]) {
-      this.frames = frames;
+    setCurrentSessionFrames(frames: KungfuApi.FrameResolved[]) {
+      this.currentSessionFrames = frames;
     },
     setCurrentSession(session: KungfuApi.SessionResolved) {
       this.currentSession = session;

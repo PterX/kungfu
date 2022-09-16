@@ -42,7 +42,7 @@
           {{ currentSessionTitle }}
         </div>
         <TimeSlider
-          v-model:time-range="currentTimeRange"
+          v-model:time-range="currentTimeRangeData.range"
           :limit-time-range="limitTimeRange"
           :step="60"
           class="kf-journal-time-slider"
@@ -66,10 +66,9 @@
             v-show="isCurrentMenuItem('event')"
             ref="eventDashBoard"
             :current-session="currentSession"
-            :current-time-range="currentTimeRange"
-            :session-location-map="sessionLocationMap"
+            :current-time-range-data="currentTimeRangeData"
           />
-          <OrdersDashboard v-show="isCurrentMenuItem('order')" />
+          <OrdersDashboard v-show="isCurrentMenuItem('visual')" />
         </div>
       </div>
     </div>
@@ -77,7 +76,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, computed, toRaw } from 'vue';
+import { onMounted, ref, computed, toRaw, watch, nextTick } from 'vue';
 import { assemble, dealKfTime } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { getSessionColumns } from './config';
 import { removeLoadingMask } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
@@ -96,21 +95,15 @@ import TimeSlider from './components/TimeSlider.vue';
 import ExportJournal from './components/ExportJournal.vue';
 import EventsDashBoard from './components/EventsDashBoard.vue';
 import OrdersDashboard from './components/OrdersDashboard.vue';
+import { useJournalStore } from './store/journalStore';
 
 const currentLocation = getCurrentLocation();
 const eventDashBoard = ref();
+const journalStore = useJournalStore();
 
 const sessions = ref<KungfuApi.SessionResolved[]>([]);
-const sessionLocationMap = computed(() => {
-  return sessions.value.reduce((pre, session) => {
-    pre[session.location_uid] = {
-      category: session.category,
-      group: session.group,
-      name: session.name,
-      mode: 'live',
-    };
-    return pre;
-  }, {} as Record<number, KungfuApi.KfLocation>);
+const runningSessions = computed(() => {
+  return sessions.value.filter((item) => !item.is_closed);
 });
 const sessionsMap = computed(() => {
   return sessions.value.reduce((pre, session) => {
@@ -121,7 +114,10 @@ const sessionsMap = computed(() => {
 
 const currentSessionKey = ref('');
 const currentSessionId = ref(-1);
-const currentTimeRange = ref<[bigint, bigint]>([0n, 0n]);
+const currentTimeRangeData = ref<{ range: [bigint, bigint]; reload: boolean }>({
+  range: [0n, 0n],
+  reload: true,
+});
 const limitTimeRange = ref<[bigint, bigint]>([0n, 0n]);
 
 const currentSession = computed(() => {
@@ -144,7 +140,7 @@ const currentCategoryData = computed(() => {
   return dealCategory(currentSession.value?.category);
 });
 
-const currentMenuList = ref<('event' | 'order')[]>(['event']);
+const currentMenuList = ref<('event' | 'visual')[]>(['event']);
 const menus = [
   {
     key: 'event',
@@ -152,13 +148,13 @@ const menus = [
     icon: UnorderedListOutlined,
   },
   {
-    key: 'order',
-    title: 'Order',
+    key: 'visual',
+    title: 'Visual',
     icon: LineChartOutlined,
   },
 ];
 
-const isCurrentMenuItem = (key: 'event' | 'order') =>
+const isCurrentMenuItem = (key: 'event' | 'visual') =>
   currentMenuList.value.includes(key);
 
 const exportFileName = computed(() => {
@@ -176,59 +172,124 @@ const exportFileName = computed(() => {
 
 const sessionColumns = getSessionColumns();
 
+watch(
+  () => sessions.value,
+  () => {
+    journalStore.setSessions(sessions.value);
+  },
+  {
+    deep: true,
+  },
+);
+
+watch(
+  () => currentSession.value,
+  (newSession) => {
+    if (!newSession) return;
+
+    const { begin_time, end_time } = newSession;
+
+    limitTimeRange.value = [
+      begin_time,
+      end_time ? end_time : BigInt(new Date().getTime()) * 1000000n,
+    ];
+
+    currentTimeRangeData.value = {
+      range: limitTimeRange.value,
+      reload: true,
+    };
+  },
+);
+
 const getAbs = <T extends number | bigint>(num: T): T =>
   num < 0 ? (-num as T) : num;
 
+const getSessions = () =>
+  currentLocation
+    ? assemble.get_sessions(currentLocation)
+    : assemble.get_sessions();
+
 const loadSessions = () => {
-  setTimeout(() => {
-    let currentSessions = assemble.get_sessions();
+  let currentSessions = getSessions();
 
-    if (currentSessions.length) {
-      sessions.value = currentSessions
-        .map((item, index) => {
-          item.category = KfCategoryEnum[
-            item.category as KfCategoryEnum
-          ] as KfCategoryTypes;
-          return {
-            index,
-            ...item,
-            session_id_resolved: getProcessIdByKfLocation(item),
-            begin_time_resolved: dealKfTime(getAbs<bigint>(item.begin_time)),
-            end_time_resolved: dealKfTime(getAbs<bigint>(item.end_time)),
-            is_closed: item.end_time != 0n,
-          };
-        })
-        .filter((item) => {
-          if (currentLocation) {
-            return (
-              currentLocation.location_uid === item.location_uid &&
-              !!assemble.get_reader(item.index)
-            );
-          } else {
-            return !!assemble.get_reader(item.index);
-          }
-        })
-        .reverse();
+  if (currentSessions?.length) {
+    sessions.value = currentSessions
+      .map((item) => {
+        item.category = KfCategoryEnum[
+          item.category as KfCategoryEnum
+        ] as KfCategoryTypes;
+        return {
+          ...item,
+          session_id_resolved: getProcessIdByKfLocation(item),
+          begin_time_resolved: dealKfTime(getAbs<bigint>(item.begin_time)),
+          end_time_resolved: dealKfTime(getAbs<bigint>(item.end_time)),
+          is_closed: item.end_time != 0n,
+        };
+      })
+      .reverse();
 
-      if (sessions.value.length) {
-        const { index, begin_time } = sessions.value[0];
+    if (sessions.value.length) {
+      const { index, begin_time } = sessions.value[0];
 
-        currentSessionKey.value = `${begin_time}`;
-        currentSessionId.value = index;
-        setTimeRange(sessions.value[0]);
-      }
+      currentSessionKey.value = `${begin_time}`;
+      currentSessionId.value = index;
     }
-  });
+  }
+};
+
+const startCheckSessionsStatus = () => {
+  const start = () => {
+    window.setTimeout(() => {
+      const sessionsStatusMap = getSessions()?.reduce((map, session) => {
+        map[`${session.begin_time}`] =
+          session.end_time === 0n ? false : session.end_time;
+        return map;
+      }, {});
+      toRaw(runningSessions.value).forEach((session) => {
+        const currentEndTime = sessionsStatusMap?.[`${session.begin_time}`];
+        const index = sessions.value.length - session.index - 1;
+
+        if (currentEndTime) {
+          sessions.value[index].end_time = currentEndTime;
+          sessions.value[index].end_time_resolved = dealKfTime(
+            getAbs<bigint>(currentEndTime),
+          );
+          sessions.value[index].is_closed = true;
+        }
+
+        if (`${session.begin_time}` === currentSessionKey.value) {
+          // currentTimeRangeData.value = {
+          //   range: [
+          //     session.begin_time,
+          //     currentEndTime || BigInt(new Date().getTime()) * 1000000n,
+          //   ],
+          //   reload: false,
+          // };
+
+          limitTimeRange.value = [
+            session.begin_time,
+            currentEndTime || BigInt(new Date().getTime()) * 1000000n,
+          ];
+        }
+      });
+
+      nextTick(() => {
+        if (runningSessions.value.length) start();
+      });
+    }, 1000);
+  };
+
+  start();
 };
 
 onMounted(() => {
   loadSessions();
   removeLoadingMask();
+  startCheckSessionsStatus();
 });
 
 const handleSelectSession = ({ row }) => {
   currentSessionId.value = row.index;
-  setTimeRange(row);
 };
 
 const onExportJournalData = (
@@ -236,20 +297,6 @@ const onExportJournalData = (
 ) => {
   exportData(exportFileName.value, eventDashBoard.value.frameDataList);
 };
-
-function setTimeRange(session: KungfuApi.Session) {
-  const { begin_time, end_time } = session;
-
-  currentTimeRange.value = [
-    begin_time,
-    end_time ? end_time : BigInt(new Date().getTime() * 1000),
-  ];
-
-  limitTimeRange.value = [
-    begin_time,
-    end_time ? end_time : BigInt(new Date().getTime() * 1000),
-  ];
-}
 </script>
 
 <style lang="less">
@@ -295,7 +342,7 @@ function setTimeRange(session: KungfuApi.Session) {
       }
 
       .kf-journal-session__wrap {
-        flex: 0 300px;
+        flex: 0 0 300px;
         height: 300px;
         width: 60%;
         margin: auto;
@@ -304,8 +351,8 @@ function setTimeRange(session: KungfuApi.Session) {
       }
 
       .kf-journal-control-bar {
-        flex: 0 40px;
-        height: 40px;
+        flex: 0 0 50px;
+        height: 50px;
         background-color: #1d1d1d;
         padding: 5px 20px;
         margin-bottom: 2px;
@@ -326,12 +373,13 @@ function setTimeRange(session: KungfuApi.Session) {
 
       .kf-journal-menu__wrap {
         width: 100%;
+        height: calc(100% - 350px);
         flex: auto;
 
         display: flex;
 
         .kf-journal-menu-tab {
-          flex: 0 120px;
+          flex: 0 0 120px;
           width: 120px;
           margin-right: 2px;
 
@@ -343,6 +391,7 @@ function setTimeRange(session: KungfuApi.Session) {
         .kf-journal-menu-content {
           flex: auto;
           height: 100%;
+          width: 100%;
         }
       }
     }

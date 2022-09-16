@@ -354,11 +354,11 @@ Napi::Value Assemble::Get_sessions(const Napi::CallbackInfo &info) {
     filter = true;
   }
   std::vector<kungfu::longfist::types::Session> sessions = get_sessions();
-  std::vector<kungfu::longfist::types::Session> session_ret;
+  std::vector<std::pair<kungfu::longfist::types::Session, int>> session_ret;
   size_t session_size = sessions.size();
   for (int i = 0; i < session_size; i++) {
     if (!filter || sessions[i].location_uid == uid) {
-      session_ret.push_back(sessions[i]);
+      session_ret.push_back(std::make_pair(sessions[i], i));
     }
   }
   size_t session_ret_size = session_ret.size();
@@ -368,7 +368,8 @@ Napi::Value Assemble::Get_sessions(const Napi::CallbackInfo &info) {
   auto result = Napi::Array::New(info.Env(), session_ret_size);
   for (int i = 0; i < session_ret_size; i++) {
     auto target = Napi::Object::New(info.Env());
-    set(session_ret[i], target);
+    set(session_ret[i].first, target);
+    target.Set(Napi::String::New(info.Env(), "index"), Napi::Number::New(info.Env(), session_ret[i].second));
     result.Set(i, target);
   }
   return result;

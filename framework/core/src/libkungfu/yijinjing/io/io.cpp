@@ -78,7 +78,7 @@ public:
       : nanomsg_publisher(io_device, low_latency, protocol::PUBLISH) {}
 
   void setup() override {
-    socket_.setsockopt_int(NNG_OPT_SENDTIMEO, DEFAULT_NOTICE_TIMEOUT);
+    socket_.setsockopt_ms(NNG_OPT_SENDTIMEO, DEFAULT_NOTICE_TIMEOUT);
     socket_.listen(listen_path_);
   }
 
@@ -93,7 +93,7 @@ public:
   }
 
   void setup() override {
-    socket_.setsockopt_int(NNG_OPT_SENDTIMEO, DEFAULT_NOTICE_TIMEOUT);
+    socket_.setsockopt_ms(NNG_OPT_SENDTIMEO, DEFAULT_NOTICE_TIMEOUT);
     socket_.dial(dial_path_);
   }
 
@@ -132,7 +132,7 @@ public:
       : nanomsg_observer(io_device, low_latency, protocol::PULL) {}
 
   void setup() override {
-    socket_.setsockopt_int(NNG_OPT_RECVTIMEO, DEFAULT_RECV_TIMEOUT);
+    socket_.setsockopt_ms(NNG_OPT_RECVTIMEO, DEFAULT_RECV_TIMEOUT);
     socket_.listen(listen_path_);
   }
 
@@ -145,7 +145,7 @@ public:
       : nanomsg_observer(io_device, low_latency, protocol::SUBSCRIBE) {}
 
   void setup() override {
-    socket_.setsockopt_int(NNG_OPT_RECVTIMEO, DEFAULT_RECV_TIMEOUT);
+    socket_.setsockopt_ms(NNG_OPT_RECVTIMEO, DEFAULT_RECV_TIMEOUT);
     socket_.dial(dial_path_);
   }
 

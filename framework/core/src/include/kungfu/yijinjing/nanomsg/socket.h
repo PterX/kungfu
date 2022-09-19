@@ -98,13 +98,17 @@ public:
 
   void setsockopt_int(const char *opt, int value);
 
+  void setsockopt_ms(const char *opt, int value);
+
   void getsockopt(const char *opt, void *val, size_t *valszp);
 
   int getsockopt_int(const char *opt);
 
-  int listen(const std::string &path);
+  int getsockopt_ms(const char *opt);
 
-  int dial(const std::string &path);
+  int listen(const std::string &path, int flags = NNG_FLAG_NONBLOCK);
+
+  int dial(const std::string &path, int flags = NNG_FLAG_NONBLOCK);
 
   void close();
 
@@ -130,7 +134,8 @@ private:
   nng_socket sock_ = NNG_SOCKET_INITIALIZER;
   protocol protocol_;
   std::string url_;
-  std::vector<char> buf_;
+  char *buf_ = NULL;
+  size_t buf_size_;
   std::string message_;
 
   /*  Prevent making copies of the socket by accident. */

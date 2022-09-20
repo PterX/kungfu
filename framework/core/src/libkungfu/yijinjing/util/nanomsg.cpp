@@ -131,7 +131,7 @@ void socket::close() {
 }
 
 int socket::send(const std::string &msg, int flags) const {
-  int rc = nng_send(sock_, (void *)msg.c_str(), msg.length(), 0);
+  int rc = nng_send(sock_, (void *)msg.c_str(), msg.length(), flags);
   if (rc != 0) {
     SPDLOG_ERROR("can not send to {} error [{}] {}", url_, rc, nng_strerror(rc));
     throw nn_exception(rc);
@@ -140,7 +140,9 @@ int socket::send(const std::string &msg, int flags) const {
 }
 
 int socket::recv(int flags) {
-  int rc = nng_recv(sock_, &buf_, &buf_size_, NNG_FLAG_ALLOC);
+  char *buf;
+  size_t buf_size;
+  int rc = nng_recv(sock_, &buf, &buf_size, NNG_FLAG_ALLOC);
   if (rc != 0) {
     switch (rc) {
     case NNG_ETIMEDOUT:
@@ -150,11 +152,13 @@ int socket::recv(int flags) {
       throw nn_exception(rc);
     }
     }
-    message_.assign(buf_, 0);
+    message_.assign(buf, 0);
   } else {
-    message_.assign(buf_, buf_size_);
+
+    SPDLOG_INFO("----- buf {}, buf_size {} ----", buf, buf_size);
+    message_.assign(buf, buf_size);
   }
-  nng_free(buf_, buf_size_);
+  nng_free(buf_, buf_size);
   return rc;
 }
 

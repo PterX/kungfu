@@ -106,21 +106,21 @@ public:
 
   int getsockopt_ms(const char *opt);
 
-  int listen(const std::string &path, int flags = 0);
+  int listen(const std::string &path, int flags = NNG_FLAG_NONBLOCK);
 
-  int dial(const std::string &path, int flags = 0);
+  int dial(const std::string &path, int flags = NNG_FLAG_NONBLOCK);
 
   void close();
 
-  int send(const std::string &msg, int flags = 0) const;
+  int send(const std::string &msg, int flags = NNG_FLAG_NONBLOCK) const;
 
-  int recv(int flags = NNG_FLAG_ALLOC);
+  int recv(int flags = NNG_FLAG_NONBLOCK);
 
-  const std::string &recv_msg(int flags = NNG_FLAG_ALLOC);
+  const std::string &recv_msg(int flags = NNG_FLAG_NONBLOCK);
 
-  int send_json(const nlohmann::json &msg, int flags = NNG_FLAG_ALLOC) const;
+  int send_json(const nlohmann::json &msg, int flags = NNG_FLAG_NONBLOCK) const;
 
-  nlohmann::json recv_json(int flags = NNG_FLAG_ALLOC);
+  nlohmann::json recv_json(int flags = NNG_FLAG_NONBLOCK);
 
   [[nodiscard]] protocol get_protocol() const { return protocol_; };
 

@@ -131,7 +131,7 @@ void socket::close() {
 }
 
 int socket::send(const std::string &msg, int flags) const {
-  int rc = nng_send(sock_, (void *)msg.c_str(), msg.length(), flags);
+  int rc = nng_send(sock_, (void *)msg.c_str(), msg.length(), 0);
   if (rc != 0) {
     SPDLOG_ERROR("can not send to {} error [{}] {}", url_, rc, nng_strerror(rc));
     throw nn_exception(rc);
@@ -140,18 +140,16 @@ int socket::send(const std::string &msg, int flags) const {
 }
 
 int socket::recv(int flags) {
-  SPDLOG_INFO(123123);
-  int rc = nng_recv(sock_, &buf_, &buf_size_, flags);
+  int rc = nng_recv(sock_, &buf_, &buf_size_, NNG_FLAG_ALLOC);
   if (rc != 0) {
-    // switch (rc) {
-    // case NNG_ETIMEDOUT:
-    // case NNG_EAGAIN:
-    //   break;
-    // default: {
-    //   throw nn_exception(rc);
-    // }
-    // }
-    SPDLOG_ERROR("can not recv from {} errno [{}] {}", url_, rc, nng_strerror(rc));
+    switch (rc) {
+    case NNG_ETIMEDOUT:
+      break;
+    default: {
+      SPDLOG_ERROR("can not recv from {} errno [{}] {}", url_, rc, nng_strerror(rc));
+      throw nn_exception(rc);
+    }
+    }
     message_.assign(buf_, 0);
   } else {
     message_.assign(buf_, buf_size_);
@@ -175,10 +173,5 @@ nlohmann::json socket::recv_json(int flags) {
   } else {
     return nlohmann::json();
   }
-}
-
-const std::string &socket::request(const std::string &json_message) {
-  send(json_message);
-  return recv_msg();
 }
 } // namespace kungfu::yijinjing::nanomsg

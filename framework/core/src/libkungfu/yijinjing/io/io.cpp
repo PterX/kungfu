@@ -112,17 +112,22 @@ public:
 class nanomsg_observer : public observer, protected nanomsg_resource {
 public:
   nanomsg_observer(const io_device &io_device, bool low_latency, protocol p, int recv_timeout = DEFAULT_RECV_TIMEOUT)
-      : nanomsg_resource(io_device, low_latency, p), recv_flags_(low_latency ? NNG_FLAG_NONBLOCK : 0) {}
+      : nanomsg_resource(io_device, low_latency, p),
+        recv_flags_(low_latency ? NNG_FLAG_NONBLOCK || NNG_FLAG_ALLOC : NNG_FLAG_ALLOC) {}
 
   ~nanomsg_observer() override { socket_.close(); }
 
-  bool wait() override { return socket_.recv(recv_flags_) > 0; }
+  bool wait() override {
+    SPDLOG_INFO("wait ------------------");
+    int rc = socket_.recv(recv_flags_) == 0;
+    return rc;
+  }
 
   int get_recv_timeout() const override { return DEFAULT_RECV_TIMEOUT; }
 
   const std::string &get_notice() override { return socket_.last_message(); }
 
-private:
+protected:
   int recv_flags_;
 };
 
@@ -149,7 +154,7 @@ public:
     socket_.dial(dial_path_);
   }
 
-  bool is_usable() override { return socket_.recv(0) > 0; }
+  bool is_usable() override { return socket_.recv(recv_flags_) == 0; }
 };
 
 io_device::io_device(data::location_ptr home, const bool low_latency, const bool lazy)
@@ -198,6 +203,8 @@ bool io_device_client::is_usable() {
 void io_device_client::setup() {
   publisher_ = std::make_shared<nanomsg_publisher_client>(*this, is_low_latency());
   observer_ = std::make_shared<nanomsg_observer_client>(*this, is_low_latency());
+  publisher_->setup();
+  observer_->setup();
   std::this_thread::sleep_for(std::chrono::milliseconds(SETUP_TIMEOUT));
 }
 } // namespace kungfu::yijinjing

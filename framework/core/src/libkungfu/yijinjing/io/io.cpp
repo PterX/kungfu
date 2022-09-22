@@ -88,9 +88,7 @@ public:
 class nanomsg_publisher_client : public nanomsg_publisher {
 public:
   nanomsg_publisher_client(const io_device &io_device, bool low_latency)
-      : nanomsg_publisher(io_device, low_latency, protocol::PUSH) {
-    socket_.dial(dial_path_);
-  }
+      : nanomsg_publisher(io_device, low_latency, protocol::PUSH) {}
 
   void setup() override {
     socket_.setsockopt_ms(NNG_OPT_SENDTIMEO, DEFAULT_NOTICE_TIMEOUT);
@@ -105,7 +103,7 @@ public:
     ping["source"] = io_device_.get_home()->uid;
     ping["dest"] = 0;
     ping["data"] = "";
-    return publish(ping.dump()) > 0;
+    return publish(ping.dump()) == 0;
   }
 };
 
@@ -113,12 +111,11 @@ class nanomsg_observer : public observer, protected nanomsg_resource {
 public:
   nanomsg_observer(const io_device &io_device, bool low_latency, protocol p, int recv_timeout = DEFAULT_RECV_TIMEOUT)
       : nanomsg_resource(io_device, low_latency, p),
-        recv_flags_(low_latency ? NNG_FLAG_NONBLOCK || NNG_FLAG_ALLOC : NNG_FLAG_ALLOC) {}
+        recv_flags_(low_latency ? NNG_FLAG_NONBLOCK | NNG_FLAG_ALLOC : NNG_FLAG_ALLOC) {}
 
   ~nanomsg_observer() override { socket_.close(); }
 
   bool wait() override {
-    SPDLOG_INFO("wait ------------------");
     int rc = socket_.recv(recv_flags_) == 0;
     return rc;
   }
@@ -196,15 +193,24 @@ io_device_client::io_device_client(data::location_ptr home, bool low_latency)
 bool io_device_client::is_usable() {
   nanomsg_publisher_client publisher(*this, false);
   nanomsg_observer_client observer(*this, false);
+  publisher.setup();
+  observer.setup();
   std::this_thread::sleep_for(std::chrono::milliseconds(SETUP_TIMEOUT));
+  SPDLOG_INFO("publisher.is_usable() {}", publisher.is_usable());
+  SPDLOG_INFO("observer.is_usable() {}", observer.is_usable());
   return publisher.is_usable() and observer.is_usable();
 }
 
 void io_device_client::setup() {
+  SPDLOG_INFO(111);
   publisher_ = std::make_shared<nanomsg_publisher_client>(*this, is_low_latency());
   observer_ = std::make_shared<nanomsg_observer_client>(*this, is_low_latency());
+  SPDLOG_INFO(222);
   publisher_->setup();
+  SPDLOG_INFO(333);
   observer_->setup();
+  SPDLOG_INFO(444);
   std::this_thread::sleep_for(std::chrono::milliseconds(SETUP_TIMEOUT));
+  SPDLOG_INFO(555);
 }
 } // namespace kungfu::yijinjing

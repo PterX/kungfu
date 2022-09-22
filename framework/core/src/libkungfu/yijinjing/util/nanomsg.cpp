@@ -140,25 +140,26 @@ int socket::send(const std::string &msg, int flags) const {
 }
 
 int socket::recv(int flags) {
-  char *buf;
-  size_t buf_size;
-  int rc = nng_recv(sock_, &buf, &buf_size, NNG_FLAG_ALLOC);
+  int rc = nng_recv(sock_, &buf_, &buf_size_, flags);
   if (rc != 0) {
     switch (rc) {
     case NNG_ETIMEDOUT:
+    case NNG_EAGAIN:
       break;
+    case NNG_EINTR: {
+      SPDLOG_WARN("interrupted when receiving from [{}]", url_);
+      break;
+    }
     default: {
       SPDLOG_ERROR("can not recv from {} errno [{}] {}", url_, rc, nng_strerror(rc));
       throw nn_exception(rc);
     }
     }
-    message_.assign(buf, 0);
+    message_.assign("", 0);
   } else {
-
-    SPDLOG_INFO("----- buf {}, buf_size {} ----", buf, buf_size);
-    message_.assign(buf, buf_size);
+    message_.assign(buf_, buf_size_);
+    nng_free(buf_, buf_size_);
   }
-  nng_free(buf_, buf_size);
   return rc;
 }
 

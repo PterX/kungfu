@@ -6,19 +6,7 @@
 
 <script lang="ts" setup>
 import { onMounted, ref, watch, onBeforeUnmount } from 'vue';
-import * as echarts from 'echarts/core';
-import { CandlestickChart, LineChart } from 'echarts/charts';
-import {
-  TitleComponent,
-  TooltipComponent,
-  GridComponent,
-  LegendComponent,
-  DataZoomComponent,
-  MarkLineComponent,
-  MarkPointComponent,
-} from 'echarts/components';
-import { UniversalTransition } from 'echarts/features';
-import { SVGRenderer } from 'echarts/renderers';
+import * as echarts from 'echarts';
 
 const props = defineProps<{
   option: echarts.EChartsCoreOption;
@@ -29,20 +17,6 @@ defineEmits<{
 }>();
 
 const id = ref(new Date().getTime().toString());
-
-echarts.use([
-  TitleComponent,
-  TooltipComponent,
-  GridComponent,
-  LegendComponent,
-  DataZoomComponent,
-  MarkLineComponent,
-  MarkPointComponent,
-  CandlestickChart,
-  LineChart,
-  SVGRenderer,
-  UniversalTransition,
-]);
 
 const chartWrapper = ref<HTMLElement>();
 let myChart: echarts.ECharts | null = null;

@@ -29,7 +29,17 @@
           }"
         >
           <template v-if="column.dataIndex === 'stringMsgType'">
-            <a-tag :color="item.msgTypeResolved.color">
+            <a-tag
+              :style="{
+                color: item.msgTypeResolved.color || 'rgb(158, 158, 158)',
+                backgroundColor: dealTagBackgroudColor(
+                  item.msgTypeResolved.color || 'rgb(158, 158, 158)',
+                ),
+                border: `1px solid ${
+                  item.msgTypeResolved.color || 'rgb(158, 158, 158)'
+                }`,
+              }"
+            >
               {{ item.stringMsgType }}
             </a-tag>
           </template>
@@ -336,6 +346,15 @@ const onFiltersApply = (filtersFormState: Record<FiltersEnum, string[]>) => {
       }$`,
     );
   });
+};
+
+const dealTagBackgroudColor = (color: string) => {
+  if (!color) return '';
+  if (color.indexOf('rgb') !== -1 && color.indexOf('rgba') === -1) {
+    const rgba = color.substring(4, color.length - 1) + ', 0.3';
+    return `rgba(${rgba})`;
+  }
+  return color;
 };
 
 defineExpose({

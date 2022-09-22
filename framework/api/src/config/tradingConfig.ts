@@ -691,38 +691,38 @@ export const JournalFrameMsgType: Partial<
 > = {
   [FrameMsgTypeEnum.Order]: {
     name: 'Order',
-    color: '#f5222d',
+    color: 'rgb(245, 34, 45)',
   },
   [FrameMsgTypeEnum.OrderInput]: {
     name: 'OrderInput',
-    color: '#fa541c',
+    color: 'rgb(250, 84, 28)',
   },
   [FrameMsgTypeEnum.Trade]: {
     name: 'Trade',
-    color: '#fa8c16',
+    color: 'rgb(250, 140, 22)',
   },
   [FrameMsgTypeEnum.Position]: {
     name: 'Position',
-    color: '#fadb14',
+    color: 'rgb(250, 219, 20)',
   },
   [FrameMsgTypeEnum.Asset]: {
     name: 'Asset',
-    color: '#a0d911',
+    color: 'rgb(160, 217, 17)',
   },
   [FrameMsgTypeEnum.AssetMargin]: {
     name: 'AssetMargin',
-    color: '#52c41a',
+    color: 'rgb(82, 196, 26)',
   },
   [FrameMsgTypeEnum.Quote]: {
     name: 'Quote',
-    color: '#1890ff',
+    color: 'rgb(24, 144, 255)',
   },
   [FrameMsgTypeEnum.Entrust]: {
     name: 'Entrust',
-    color: '#2f54eb',
+    color: 'rgb(47, 84, 235)',
   },
   [FrameMsgTypeEnum.Transaction]: {
     name: 'Transaction',
-    color: '#531dab',
+    color: 'rgb(83, 29, 171)',
   },
 };

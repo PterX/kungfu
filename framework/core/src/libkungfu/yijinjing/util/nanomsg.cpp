@@ -139,6 +139,8 @@ int socket::send(const std::string &msg, int flags) const {
   return rc;
 }
 
+int socket::send_json(const nlohmann::json &msg, int flags) const { return send(msg.dump(), flags); }
+
 int socket::recv(int flags) {
   int rc = nng_recv(sock_, &buf_, &buf_size_, flags);
   if (rc != 0) {
@@ -167,8 +169,6 @@ const std::string &socket::recv_msg(int flags) {
   recv(flags);
   return message_;
 }
-
-int socket::send_json(const nlohmann::json &msg, int flags) const { return send(msg.dump(), flags); }
 
 nlohmann::json socket::recv_json(int flags) {
   int rc = 0;

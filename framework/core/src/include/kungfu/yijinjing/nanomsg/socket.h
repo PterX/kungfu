@@ -112,15 +112,15 @@ public:
 
   void close();
 
-  int send(const std::string &msg, int flags = 0) const;
+  int send(const std::string &msg, int flags = NNG_FLAG_NONBLOCK) const;
 
-  int recv(int flags = 0);
+  int send_json(const nlohmann::json &msg, int flags = NNG_FLAG_NONBLOCK) const;
+  
+  int recv(int flags = NNG_FLAG_ALLOC);
 
-  const std::string &recv_msg(int flags = 0);
+  const std::string &recv_msg(int flags = NNG_FLAG_ALLOC);
 
-  int send_json(const nlohmann::json &msg, int flags = 0) const;
-
-  nlohmann::json recv_json(int flags = 0);
+  nlohmann::json recv_json(int flags = NNG_FLAG_ALLOC);
 
   [[nodiscard]] protocol get_protocol() const { return protocol_; };
 

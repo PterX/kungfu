@@ -124,7 +124,7 @@ public:
 
   const std::string &get_notice() override { return socket_.last_message(); }
 
-protected:
+private:
   int recv_flags_;
 };
 
@@ -147,11 +147,12 @@ public:
       : nanomsg_observer(io_device, low_latency, protocol::SUBSCRIBE) {}
 
   void setup() override {
+    socket_.setsockopt_str(NNG_OPT_SUB_SUBSCRIBE, "");
     socket_.setsockopt_ms(NNG_OPT_RECVTIMEO, DEFAULT_RECV_TIMEOUT);
     socket_.dial(dial_path_);
   }
 
-  bool is_usable() override { return socket_.recv(recv_flags_) == 0; }
+  bool is_usable() override { return socket_.recv(NNG_FLAG_ALLOC) == 0; }
 };
 
 io_device::io_device(data::location_ptr home, const bool low_latency, const bool lazy)
@@ -193,24 +194,15 @@ io_device_client::io_device_client(data::location_ptr home, bool low_latency)
 bool io_device_client::is_usable() {
   nanomsg_publisher_client publisher(*this, false);
   nanomsg_observer_client observer(*this, false);
-  publisher.setup();
-  observer.setup();
   std::this_thread::sleep_for(std::chrono::milliseconds(SETUP_TIMEOUT));
-  SPDLOG_INFO("publisher.is_usable() {}", publisher.is_usable());
-  SPDLOG_INFO("observer.is_usable() {}", observer.is_usable());
   return publisher.is_usable() and observer.is_usable();
 }
 
 void io_device_client::setup() {
-  SPDLOG_INFO(111);
   publisher_ = std::make_shared<nanomsg_publisher_client>(*this, is_low_latency());
   observer_ = std::make_shared<nanomsg_observer_client>(*this, is_low_latency());
-  SPDLOG_INFO(222);
   publisher_->setup();
-  SPDLOG_INFO(333);
   observer_->setup();
-  SPDLOG_INFO(444);
   std::this_thread::sleep_for(std::chrono::milliseconds(SETUP_TIMEOUT));
-  SPDLOG_INFO(555);
 }
 } // namespace kungfu::yijinjing

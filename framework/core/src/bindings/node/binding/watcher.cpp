@@ -388,9 +388,6 @@ Napi::Value Watcher::Start(const Napi::CallbackInfo &info) {
     SPDLOG_INFO("Watcher uv loop started");
     auto watcher = (Watcher *)(req->data);
     while (req->data) {
-      SPDLOG_INFO("watcher->is_live() {}", watcher->is_live());
-      SPDLOG_INFO("watcher->is_started() {}", watcher->is_started());
-      SPDLOG_INFO("watcher->is_usable() {}", watcher->is_usable());
       if (not watcher->is_live() and not watcher->is_started() and watcher->is_usable()) {
         watcher->setup();
       }

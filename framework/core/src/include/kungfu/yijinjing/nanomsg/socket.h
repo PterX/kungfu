@@ -112,10 +112,10 @@ public:
 
   void close();
 
-  int send(const std::string &msg, int flags = NNG_FLAG_NONBLOCK) const;
+  int send(const std::string &msg, int flags = 0) const;
 
-  int send_json(const nlohmann::json &msg, int flags = NNG_FLAG_NONBLOCK) const;
-  
+  int send_json(const nlohmann::json &msg, int flags = 0) const;
+
   int recv(int flags = NNG_FLAG_ALLOC);
 
   const std::string &recv_msg(int flags = NNG_FLAG_ALLOC);

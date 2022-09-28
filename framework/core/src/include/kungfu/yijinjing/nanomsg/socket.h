@@ -112,9 +112,10 @@ public:
 
   void close();
 
-  int send(const std::string &msg, int flags = 0) const;
+  // the flag for send must be NNG_FLAG_NONBLOCK, master may not started when this client is running
+  int send(const std::string &msg, int flags = NNG_FLAG_NONBLOCK) const;
 
-  int send_json(const nlohmann::json &msg, int flags = 0) const;
+  int send_json(const nlohmann::json &msg, int flags = NNG_FLAG_NONBLOCK) const;
 
   int recv(int flags = NNG_FLAG_ALLOC);
 

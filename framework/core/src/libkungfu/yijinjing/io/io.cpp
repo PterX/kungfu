@@ -194,6 +194,8 @@ io_device_client::io_device_client(data::location_ptr home, bool low_latency)
 bool io_device_client::is_usable() {
   nanomsg_publisher_client publisher(*this, false);
   nanomsg_observer_client observer(*this, false);
+  publisher.setup();
+  observer.setup();
   std::this_thread::sleep_for(std::chrono::milliseconds(SETUP_TIMEOUT));
   return publisher.is_usable() and observer.is_usable();
 }

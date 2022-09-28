@@ -132,7 +132,6 @@ void socket::close() {
 
 int socket::send(const std::string &msg, int flags) const {
   int rc = nng_send(sock_, (void *)msg.c_str(), msg.length(), flags);
-  SPDLOG_INFO("socket send --------------- msg {}", msg);
   if (rc != 0 && rc != NNG_EAGAIN) {
     SPDLOG_ERROR("can not send to {} error [{}] {}", url_, rc, nng_strerror(rc));
     throw nn_exception(rc);

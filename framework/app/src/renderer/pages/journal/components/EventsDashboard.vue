@@ -11,11 +11,11 @@
     </div>
     <div class="kf-journal-frame__wrap">
       <KfTradingDataTable
-        v-model:selected-key="currentFramesKey"
+        v-model:selected-key="currentFramesId"
         :selectable="true"
         :data-source="frameDataListResolved"
         :columns="frameColumns"
-        key-field="genTime"
+        key-field="id"
         :resizable="false"
         @click-cell="handleOpenFrameDetail"
       >
@@ -29,7 +29,17 @@
           }"
         >
           <template v-if="column.dataIndex === 'stringMsgType'">
-            <a-tag :color="item.msgTypeResolved.color">
+            <a-tag
+              :style="{
+                color: item.msgTypeResolved.color || 'rgb(158, 158, 158)',
+                backgroundColor: dealTagBackgroudColor(
+                  item.msgTypeResolved.color || 'rgb(158, 158, 158)',
+                ),
+                border: `1px solid ${
+                  item.msgTypeResolved.color || 'rgb(158, 158, 158)'
+                }`,
+              }"
+            >
               {{ item.stringMsgType }}
             </a-tag>
           </template>
@@ -68,7 +78,7 @@
           <a-tree
             :show-line="true"
             :show-icon="true"
-            :tree-data="framesMap[currentFramesKey].dataResolved"
+            :tree-data="framesMap[currentFramesId].dataResolved"
             :selectable="false"
             default-expand-all
           ></a-tree>
@@ -82,7 +92,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, computed, watch, toRaw, shallowRef } from 'vue';
+import { ref, computed, watch, shallowRef } from 'vue';
 import { Empty } from 'ant-design-vue';
 import { assemble } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { getFrameColumns } from '../config';
@@ -90,22 +100,25 @@ import { dealFrame } from '../utils';
 import { createFiltersEnumMap, FiltersEnum } from '../utils/filterUtils';
 import KfTradingDataTable from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfTradingDataTable.vue';
 import FrameFilters from './FrameFilters.vue';
+import { useJournalStore } from '../store/journalStore';
 
 const props = withDefaults(
   defineProps<{
-    currentSessionId: number;
-    sessionLocationMap: Record<number, KungfuApi.KfLocation>;
+    currentSession: KungfuApi.SessionResolved | null;
+    currentTimeRangeData: {
+      range: [bigint, bigint];
+      reload: boolean;
+    };
   }>(),
-  {
-    sessionLocationMap: () => ({}),
-  },
+  {},
 );
 
+const journalStore = useJournalStore();
 const frameColumns = getFrameColumns();
 const simpleImage = Empty.PRESENTED_IMAGE_SIMPLE;
 const loadingJournal = ref(false);
 
-const currentFramesKey = ref('');
+const currentFramesId = ref<number>(-1);
 const frameFilter = ref();
 
 const frameDataList = shallowRef<KungfuApi.FrameResolved[]>([]);
@@ -135,12 +148,17 @@ const frameDataListResolved = computed(() => {
 const framesMap = shallowRef<Record<string, KungfuApi.FrameResolved>>({});
 
 const visible = ref(false);
+const excludeRowData = ['data', 'sourceToDest'];
 const currentRowDataResolved = computed(() => {
-  const currentRowData = framesMap.value[currentFramesKey.value];
+  const currentRowData = framesMap.value[currentFramesId.value];
   if (currentRowData) {
     return Object.keys(currentRowData)
       .map((item) => {
-        if (item.indexOf('Resolved') !== -1 || item === 'data') return null;
+        if (
+          item.indexOf('Resolved') !== -1 ||
+          excludeRowData.indexOf(item) !== -1
+        )
+          return null;
 
         const key = currentRowData[`${item}Resolved`]
           ? `${item}Resolved`
@@ -163,92 +181,134 @@ const currentRowDataResolved = computed(() => {
 });
 
 watch(
-  () => props.currentSessionId,
-  (newId, oldId) => {
-    if (newId !== -1 && newId !== oldId) {
-      loadFrameData(newId);
+  () => props.currentSession,
+  (newSession, oldSession) => {
+    if (newSession && newSession !== oldSession) {
+      loadFrameData(newSession, newSession.begin_time, newSession.end_time);
     }
   },
 );
 
-let timer = 0;
+watch(
+  () => props.currentTimeRangeData,
+  (newRangeData) => {
+    if (props.currentSession) {
+      if (newRangeData.range[0] && newRangeData.range[1]) {
+        loadFrameData(
+          props.currentSession,
+          newRangeData.range[0],
+          newRangeData.range[1],
+          !newRangeData.reload,
+        );
+      }
+    }
+  },
+  { deep: true },
+);
+
 let journalReader: KungfuApi.AssembleReader | null = null;
+let lastReaderArgs = {
+  sessionId: 0,
+  startTime: 0n,
+  endTime: 0n,
+};
+const LIMIT_COUNT = 100000;
 
-const loadFrameData = (sessionId: number, checking = false) => {
-  console.log('sessionId', sessionId);
-
-  if (checking && timer) {
-    clearTimeout(timer);
+const checkReaderArgs = (args: {
+  sessionId: number;
+  startTime: bigint;
+  endTime: bigint;
+}) => {
+  console.log('checkArgs', lastReaderArgs, args);
+  if (
+    args.sessionId === lastReaderArgs.sessionId &&
+    args.startTime === lastReaderArgs.startTime &&
+    args.endTime === lastReaderArgs.endTime
+  ) {
+    return false;
   } else {
+    lastReaderArgs = args;
+    return true;
+  }
+};
+
+const loadFrameData = (
+  session: KungfuApi.SessionResolved,
+  startTime: bigint,
+  endTime: bigint,
+  checking = false,
+) => {
+  const sessionId = session.index;
+
+  if (!checkReaderArgs({ sessionId, startTime, endTime })) return;
+
+  if (!checking) {
     loadingJournal.value = true;
-    journalReader = assemble.get_reader(sessionId);
+    if (!session.is_closed) {
+      journalReader = assemble.get_reader(sessionId, startTime);
+    } else {
+      journalReader = assemble.get_reader(sessionId, startTime, endTime);
+    }
     framesMap.value = {};
   }
 
-  let count = 0;
+  let total = 0;
   const curFramesMap = {};
 
   return new Promise<KungfuApi.FrameResolved[]>((resolve, _) => {
     const runner = () => {
       setTimeout(() => {
-        if (!journalReader) return;
-        const frame = journalReader.next();
-        if (frame) {
-          console.log('frame1', frame.msgType());
-          console.log('frame2', frame.stringMsgType());
-          console.log('frame3', frame.destName());
-        } else {
-          console.log('frame', frame);
-        }
+        if (!journalReader) return resolve([]);
+        let count = 0;
+        journalReader.run((frame) => {
+          if (frame) {
+            const curFrameData: KungfuApi.Frame = {
+              id: total,
+              dataLength: frame.dataLength(),
+              genTime: frame.genTime(),
+              triggerTime: frame.triggerTime(),
+              msgType: frame.msgType(),
+              stringMsgType: frame.stringMsgType(),
+              source: frame.source(),
+              dest: frame.dest(),
+              data: frame.data(),
+              destName: frame.destName(),
+              sourceName: frame.sourceName(),
+            };
 
-        if (frame) {
-          // const frame = journalReader.currentFrame();
-          ++count;
+            const curFrameDataResolved = dealFrame(curFrameData);
 
-          const curFrameData: KungfuApi.Frame = {
-            dataLength: frame.dataLength(),
-            genTime: frame.genTime(),
-            triggerTime: frame.triggerTime(),
-            msgType: frame.msgType(),
-            stringMsgType: frame.stringMsgType(),
-            source: frame.source(),
-            dest: frame.dest(),
-            data: frame.data(),
-            destName: frame.destName(),
-            sourceName: frame.sourceName(),
-          };
+            curFramesMap[curFrameDataResolved.id] = curFrameDataResolved;
+            framesMap.value[curFrameDataResolved.id] = curFrameDataResolved;
 
-          if (!(`${curFrameData.genTime}` in curFramesMap)) {
-            const curFrameDataResolved = dealFrame(
-              curFrameData,
-              props.sessionLocationMap,
-            );
+            frameFilter.value?.addOption(FiltersEnum.DEST, [
+              {
+                label: curFrameDataResolved.destName,
+                value: curFrameDataResolved.dest + '',
+              },
+            ]);
+            frameFilter.value?.addOption(FiltersEnum.SOURCE, [
+              {
+                label: curFrameDataResolved.sourceName,
+                value: curFrameDataResolved.source + '',
+              },
+            ]);
+            frameFilter.value?.addOption(FiltersEnum.MSG_TYPE, [
+              {
+                label: curFrameDataResolved.stringMsgType,
+                value: curFrameDataResolved.msgType + '',
+              },
+            ]);
 
-            curFramesMap[`${curFrameData.genTime}`] = curFrameDataResolved;
-
-            frameFilter.value?.addOption(FiltersEnum.DEST, {
-              label: curFrameDataResolved.destResolved,
-              value: curFrameDataResolved.dest + '',
-            });
-            frameFilter.value?.addOption(FiltersEnum.SOURCE, {
-              label: curFrameDataResolved.sourceResolved,
-              value: curFrameDataResolved.source + '',
-            });
-            frameFilter.value?.addOption(FiltersEnum.MSG_TYPE, {
-              label: curFrameDataResolved.stringMsgType,
-              value: curFrameDataResolved.msgType + '',
-            });
+            ++total;
+            ++count;
           }
+        }, 10);
 
-          runner();
+        if (count < 10 || total >= LIMIT_COUNT) {
+          resolve(Object.values(curFramesMap));
         } else {
-          Object.keys(curFramesMap).forEach((item) => {
-            if (!(item in framesMap.value)) {
-              framesMap.value[item] = curFramesMap[item];
-            }
-          });
-
-          resolve(Object.values(toRaw(curFramesMap)));
+          runner();
         }
       });
     };
@@ -256,20 +316,18 @@ const loadFrameData = (sessionId: number, checking = false) => {
     runner();
   }).then((res) => {
     console.log(res);
-    console.log(count);
+    console.log(total);
 
     if (checking) {
       frameDataList.value.push(...res);
     } else {
       frameDataList.value = res;
-      currentFramesKey.value = frameDataList.value[0]?.genTime + '';
-
-      loadingJournal.value = false;
+      currentFramesId.value = frameDataList.value[0]?.id;
     }
 
-    timer = window.setTimeout(() => {
-      loadFrameData(sessionId, true);
-    }, 500);
+    journalStore.setCurrentSessionFrames(frameDataList.value);
+
+    loadingJournal.value = false;
   });
 };
 
@@ -288,6 +346,15 @@ const onFiltersApply = (filtersFormState: Record<FiltersEnum, string[]>) => {
       }$`,
     );
   });
+};
+
+const dealTagBackgroudColor = (color: string) => {
+  if (!color) return '';
+  if (color.indexOf('rgb') !== -1 && color.indexOf('rgba') === -1) {
+    const rgba = color.substring(4, color.length - 1) + ', 0.3';
+    return `rgba(${rgba})`;
+  }
+  return color;
 };
 
 defineExpose({

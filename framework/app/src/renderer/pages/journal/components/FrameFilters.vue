@@ -61,8 +61,34 @@ const formLabelMap = {
   [FiltersEnum.MSG_TYPE]: t('journalConfig.msg_type'),
 };
 
-const { filtersFormState, filtersOptionsResolved, optionSorter, addOption } =
-  useFrameFilters();
+const {
+  filtersFormState,
+  filtersOptionsResolved,
+  optionSorter,
+  addFilterOption,
+} = useFrameFilters();
+
+const addOption = (
+  filterEnum: FiltersEnum,
+  options: {
+    label: string;
+    value: string;
+  }[],
+) => {
+  if (filterEnum === FiltersEnum.MSG_TYPE) {
+    filtersFormState.MSG_TYPE.push(
+      ...options.reduce((pre, item) => {
+        if (filtersFormState.MSG_TYPE.indexOf(item.value) === -1) {
+          pre.push(item.value);
+        }
+
+        return pre;
+      }, [] as string[]),
+    );
+  }
+
+  addFilterOption(filterEnum, options);
+};
 
 const handleApplyFilters = () => {
   emit('applyFilters', filtersFormState);
@@ -76,7 +102,7 @@ defineExpose({
 <style lang="less">
 .kf-form-item__warp {
   .ant-select {
-    min-width: 120px;
+    min-width: 160px;
   }
 }
 </style>

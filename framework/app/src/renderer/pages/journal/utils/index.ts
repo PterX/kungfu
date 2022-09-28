@@ -1,3 +1,8 @@
+import { WorkerReceiver } from './../workers/receiver';
+import { storeToRefs } from 'pinia';
+import { useJournalStore } from './../store/journalStore';
+import { WorkerSender } from './../workers/sender';
+import { watch } from 'vue';
 import fse from 'fs-extra';
 import path from 'path';
 import { format } from '@fast-csv/format';
@@ -7,8 +12,19 @@ import {
   getIdByKfLocation,
   getKfLocationByProcessId,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
-import { JournalFrameMsgType } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
-import { FrameMsgTypeEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
+import {
+  JournalFrameMsgType,
+  KfCategory,
+} from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
+import {
+  KfCategoryEnum,
+  FrameMsgTypeEnum,
+  KfCategoryTypes,
+} from '@kungfu-trader/kungfu-js-api/typings/enums';
+
+const consoleError = (error, ...datas) => {
+  console.log(...(datas.length ? ['datas: ', ...datas, '\n', error] : error));
+};
 
 export const getSessionLocationById = (
   sessionMap: Record<number, KungfuApi.KfLocation>,
@@ -18,10 +34,16 @@ export const getSessionLocationById = (
   return sessionMap[uid];
 };
 
+export const dealCategory = (
+  category: KfCategoryTypes,
+): KungfuApi.KfTradeValueCommonData => {
+  return KfCategory[KfCategoryEnum[category]];
+};
+
 export const dealFrameMsgType = (
   msgType: FrameMsgTypeEnum,
 ): KungfuApi.KfTradeValueCommonData =>
-  JournalFrameMsgType[+msgType] || { name: '', color: 'default' };
+  JournalFrameMsgType[+msgType] || { name: msgType, color: 'default' };
 
 export const dealDestOrSource = (
   type: 'source' | 'dest',
@@ -52,7 +74,7 @@ const dealFrameData = (data: string): unknown[] => {
           try {
             obj = JSON.parse(obj);
           } catch (error) {
-            error;
+            consoleError(error, obj);
           }
         }
       }
@@ -92,23 +114,19 @@ const dealFrameData = (data: string): unknown[] => {
       { title: '}', key: 'root-end' },
     ];
   } catch (error) {
+    consoleError(error, data);
     return [{ title: 'null', key: 'root' }];
   }
 };
 
-export const dealFrame = (
-  frame: KungfuApi.Frame,
-  sessionMap: Record<number, KungfuApi.KfLocation>,
-): KungfuApi.FrameResolved => {
-  const destResolved = dealDestOrSource('dest', frame, sessionMap);
-  const sourceResolved = dealDestOrSource('source', frame, sessionMap);
+export const dealFrame = (frame: KungfuApi.Frame): KungfuApi.FrameResolved => {
   return {
     ...frame,
     genTimeResolved: dealKfTime(frame.genTime, true),
     triggerTimeResolved: dealKfTime(frame.triggerTime, true),
     msgTypeResolved: dealFrameMsgType(frame.msgType),
-    destResolved,
-    sourceResolved,
+    destResolved: frame.destName,
+    sourceResolved: frame.sourceName,
     sourceToDest: dealFrameSourceToDest(frame.sourceName, frame.destName),
     dataResolved: dealFrameData(frame.data),
   };
@@ -135,6 +153,10 @@ export const writeCsvByStream = <T>(
   data: T[],
   headers?: string[],
   headerTransform = (headerItem: string) => headerItem,
+  dataTransform = (dataItem, headerItem: string) => {
+    headerItem;
+    return dataItem;
+  },
 ) => {
   return new Promise((resolve, reject) => {
     filePath = path.normalize(filePath);
@@ -162,7 +184,9 @@ export const writeCsvByStream = <T>(
         stream.write(headers.map((item) => headerTransform(item)));
 
         for (const i of data) {
-          stream.write(headers.map((header) => i[header]));
+          stream.write(
+            headers.map((header) => dataTransform(i[header], header)),
+          );
         }
       } catch (error) {
         reject(error);
@@ -175,5 +199,25 @@ export const writeCsvByStream = <T>(
     stream.end(() => {
       resolve(true);
     });
+  });
+};
+
+export const useDealJournalDatas = () => {
+  const journalStore = useJournalStore();
+  const journalState = storeToRefs(journalStore);
+
+  const worker = window.workers.dealJournalDatas;
+  const dataSender = new WorkerSender<KungfuApi.FrameResolved>(worker, 200);
+  const dataReceiver = new WorkerReceiver<KungfuApi.FrameResolved>();
+
+  watch(
+    () => journalState.currentSessionFrames.value,
+    (frames) => {
+      dataSender.sendData('send-events', frames);
+    },
+  );
+
+  dataReceiver.onMessage('recive-quotes', (message) => {
+    console.log(message);
   });
 };

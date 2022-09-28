@@ -114,8 +114,10 @@ Reader::Reader(const Napi::CallbackInfo &info)
     auto master_home_location =
         location::make_shared(kungfu::longfist::enums::mode::LIVE, kungfu::longfist::enums::category::SYSTEM, "master",
                               "master", io_device_->get_locator());
-
-    join(master_cmd_location, io_device_->get_home()->uid, begin_time_);
+    bool is_master = io_device_->get_home()->name.compare("master") == 0;
+    if (!is_master) {
+      join(master_cmd_location, io_device_->get_home()->uid, begin_time_);
+    }
     join(master_home_location, location::PUBLIC, begin_time_);
   }
   if (true) {
@@ -246,13 +248,13 @@ Napi::Value Reader::Run(const Napi::CallbackInfo &info) {
   while ((limit <= 0 || count++ < limit) && data_available() && current_frame()->gen_time() <= end_time_) {
     // if (current_frame()->gen_time() >= begin_time_) {
     auto frame = current_frame();
-    auto dest_name = frame->dest() == location::PUBLIC ? "public" : locations_.at(frame->dest())->uname;
+    // auto dest_name = frame->dest() == location::PUBLIC ? "public" : locations_.at(frame->dest())->uname;
     bool type_found = false;
     boost::hana::for_each(kungfu::longfist::AllTypes, [&](auto type) {
       using DataType = typename decltype(+boost::hana::second(type))::type;
       if (frame->msg_type() == DataType::tag) {
-        SPDLOG_INFO("Next {} {} {} {} {} {}", time::strftime(frame->gen_time(), "%T.%N"),
-                    time::strftime(frame->trigger_time(), "%T.%N"), locations_.at(frame->source())->uname, dest_name,
+        SPDLOG_INFO("Next {} {} {} {}", time::strftime(frame->gen_time(), "%T.%N"),
+                    time::strftime(frame->trigger_time(), "%T.%N"), 
                     DataType::type_name.c_str(), frame->data<DataType>().to_string());
         type_found = true;
       }
@@ -261,6 +263,7 @@ Napi::Value Reader::Run(const Napi::CallbackInfo &info) {
       auto location_uname = current_page()->get_location()->uname;
       auto dest_id = current_page()->get_dest_id();
       SPDLOG_ERROR("{}/{:08x} msg_type {} not found", location_uname, dest_id, frame->msg_type());
+      cb.Call({info.Env().Null()});
       return {};
     }
     if (frame->dest() == io_device_->get_home()->uid and frame->msg_type() == RequestReadFrom::tag) {
@@ -286,6 +289,7 @@ Napi::Value Reader::Run(const Napi::CallbackInfo &info) {
     // }
     next();
   }
+  cb.Call({info.Env().Null()});
   return {};
 }
 
@@ -346,15 +350,15 @@ Napi::Value Assemble::Get_sessions(const Napi::CallbackInfo &info) {
   uint32_t uid = 0;
   bool filter(false);
   if (info.Length() == 1 && info[0].IsObject()) {
-    uint32_t uid = info[0].ToObject().Get("location_uid").ToNumber().Uint32Value();
+    uid = info[0].ToObject().Get("location_uid").ToNumber().Uint32Value();
     filter = true;
   }
   std::vector<kungfu::longfist::types::Session> sessions = get_sessions();
-  std::vector<kungfu::longfist::types::Session> session_ret;
+  std::vector<std::pair<kungfu::longfist::types::Session, int>> session_ret;
   size_t session_size = sessions.size();
   for (int i = 0; i < session_size; i++) {
     if (!filter || sessions[i].location_uid == uid) {
-      session_ret.push_back(sessions[i]);
+      session_ret.push_back(std::make_pair(sessions[i], i));
     }
   }
   size_t session_ret_size = session_ret.size();
@@ -364,7 +368,8 @@ Napi::Value Assemble::Get_sessions(const Napi::CallbackInfo &info) {
   auto result = Napi::Array::New(info.Env(), session_ret_size);
   for (int i = 0; i < session_ret_size; i++) {
     auto target = Napi::Object::New(info.Env());
-    set(session_ret[i], target);
+    set(session_ret[i].first, target);
+    target.Set(Napi::String::New(info.Env(), "index"), Napi::Number::New(info.Env(), session_ret[i].second));
     result.Set(i, target);
   }
   return result;
@@ -377,15 +382,13 @@ Napi::Value Assemble::Get_reader(const Napi::CallbackInfo &info) {
   if (session_size <= index) {
     throw Napi::Error::New(info.Env(), "index greater than session size");
   }
-  if (sessions[index].name.compare("master") == 0) {
-    return {};
-  }
   int64_t t_begin = 0;
   int64_t t_end = 0;
+  bool bRet(false);
   if (info.Length() > 1) {
-    t_begin = info[1].ToNumber().Int64Value();
+    t_begin = info[1].As<Napi::BigInt>().Int64Value(&bRet);
     if (info.Length() > 2) {
-      t_end = info[2].ToNumber().Int64Value();
+      t_end = info[2].As<Napi::BigInt>().Int64Value(&bRet);
     }
   }
   // SPDLOG_INFO("sessions[index].mode {} sessions[index].category {} sessions[index].group {} sessions[index].name
@@ -395,7 +398,7 @@ Napi::Value Assemble::Get_reader(const Napi::CallbackInfo &info) {
   auto node_group = Napi::String::New(info.Env(), sessions[index].group);
   auto node_name = Napi::String::New(info.Env(), sessions[index].name);
   auto begin_time = Napi::BigInt::New(info.Env(), t_begin > 0 ? t_begin : sessions[index].begin_time);
-  auto end_time = Napi::BigInt::New(info.Env(), t_end > 0 ? t_end : std::abs(sessions[index].end_time));
+  auto end_time = Napi::BigInt::New(info.Env(), t_end > 0 ? t_end : (sessions[index].end_time == 0 ? kungfu::yijinjing::time::now_in_nano() : std::abs(sessions[index].end_time)));
   auto reader = Reader::constructor.New({node_mode, node_category, node_group, node_name, begin_time, end_time});
   return reader;
 }

@@ -7,7 +7,7 @@ export class WorkerSender<T> {
     this.limit = limit;
   }
 
-  sendData(data: T[]) {
+  sendData(type: string, data: T[]) {
     const len = data.length;
     const times = Math.ceil(len / this.limit);
 
@@ -16,16 +16,23 @@ export class WorkerSender<T> {
       const curData = data.slice(s, e);
       const isEnd = e === len;
 
-      const sendData = this.createSendData(curData, isEnd);
+      const sendData = this._createSendData(type, curData, isEnd);
 
       this.worker.postMessage(sendData);
     }
   }
 
-  createSendData(data: T[], isEnd: boolean) {
+  _createSendData(type: string, data: T[], isEnd: boolean) {
     return {
-      isEnd,
-      data,
+      type: type,
+      data: {
+        isEnd,
+        data: this._dealData(data),
+      },
     };
+  }
+
+  _dealData(data: T[]) {
+    return JSON.stringify(data);
   }
 }

@@ -130,11 +130,20 @@ const handleConfirmExport = () => {
             if (item === 'data') return true;
             if (item.indexOf('Resolved') !== -1) return true;
             return arr.indexOf(`${item}Resolved`) === -1;
-          });
+          }); // 只保留字段名中包含 Resolved 的字段，包括处理一些特殊情况
 
           const headerTransform = (headerItem: string) => {
             const index = headerItem.indexOf('Resolved');
             return index === -1 ? headerItem : headerItem.slice(0, index);
+          };
+
+          const dataTransform = (item, header: string) => {
+            switch (header) {
+              case 'msgTypeResolved':
+                return item.name;
+              default:
+                return item;
+            }
           };
 
           writeCsvByStream<KungfuApi.FrameResolved>(
@@ -142,6 +151,7 @@ const handleConfirmExport = () => {
             exportData,
             headers,
             headerTransform,
+            dataTransform,
           )
             .then((res) => {
               if (res) {

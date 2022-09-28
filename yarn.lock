@@ -1250,143 +1250,6 @@
     "@jridgewell/resolve-uri" "^3.0.3"
     "@jridgewell/sourcemap-codec" "^1.4.10"
 
-"@kungfu-trader/kungfu-app@^2.4.5":
-  version "2.4.5"
-  resolved "https://npm.pkg.github.com/download/@kungfu-trader/kungfu-app/2.4.5/3dc0c9a499a8261cfea3b29cad47e8439134c169#3dc0c9a499a8261cfea3b29cad47e8439134c169"
-  integrity sha512-QbrYYeiNNehDuk0+iPmfLznG6NBBBhzONgqr/9j4lhtrDy4uS1pa6HjafYXSHpMyxX6SoOASJe9WcKFfC/py9A==
-  dependencies:
-    "@kungfu-trader/kungfu-js-api" "^2.4.5"
-    ant-design-vue "^3.2.9"
-    core-js "^3.20.0"
-    iconv-lite "^0.6.3"
-    jschardet "^3.0.0"
-    markdown-it "^13.0.1"
-    pinia "^2.0.0"
-    sound-play "^1.1.0"
-    vue "^3.2.34"
-
-"@kungfu-trader/kungfu-cli@^2.4.5":
-  version "2.4.5"
-  resolved "https://npm.pkg.github.com/download/@kungfu-trader/kungfu-cli/2.4.5/7023c688d2178a89fa50eebba0d0d0e2a2da7963#7023c688d2178a89fa50eebba0d0d0e2a2da7963"
-  integrity sha512-MzEr2atH77xt+KAB5Uv1itAOfu1tTKq1Ku0hBrUSICieUerieh9QkLygsGAaxK2gdHaTDvt7b7uvKXeqXS993Q==
-  dependencies:
-    "@kungfu-trader/kungfu-js-api" "^2.4.5"
-    blessed "^0.1.81"
-    core-js "^3.20.0"
-
-"@kungfu-trader/kungfu-core@^2.4.5", "@kungfu-trader/kungfu-core@^2.4.5-alpha.5":
-  version "2.4.5"
-  resolved "https://npm.pkg.github.com/download/@kungfu-trader/kungfu-core/2.4.5/a02eb511fef8156ba43fca6e49f6d0b30d5bdb8b#a02eb511fef8156ba43fca6e49f6d0b30d5bdb8b"
-  integrity sha512-2UZG3SulkJiFGuGlI6h++3f2CnTbFGREdPk2DiK8Wz4sQUTCn6ex6Frg3jIQNN7ku604BxCAeZKoIoBJxNJQLA==
-  dependencies:
-    "@mapbox/node-pre-gyp" "^1.0.0"
-    glob "^8.0.0"
-    sywac "^1.3.0"
-
-"@kungfu-trader/kungfu-js-api@^2.4.5":
-  version "2.4.5"
-  resolved "https://npm.pkg.github.com/download/@kungfu-trader/kungfu-js-api/2.4.5/7ac48fd56423eb73aebada7036711fe5bb86c50e#7ac48fd56423eb73aebada7036711fe5bb86c50e"
-  integrity sha512-FXzH2eVMkmVU480DwLKPzHurVSXmqICVHVa1Z8IWEGRU5UgUbQT0l/bwgECySeiwqrMyuGh/0jY4y0DrbJl5pQ==
-  dependencies:
-    "@fast-csv/format" "^4.3.5"
-    "@kungfu-trader/kungfu-core" "^2.4.5"
-    cfonts "^2.10.0"
-    chalk "^4.1.0"
-    find-root "^1.1.0"
-    fkill "~7.2"
-    get-user-locale "^1.4.0"
-    glob "^8.0.3"
-    log4js "^6.4.0"
-    pm2 "^5.2.0"
-    ps-list "~7.2"
-    vue "^3.2.34"
-    vue-i18n "9.1.10"
-
-"@kungfu-trader/kungfu-sdk@^2.4.5-alpha.5":
-  version "2.4.5"
-  resolved "https://npm.pkg.github.com/download/@kungfu-trader/kungfu-sdk/2.4.5/86d51b7b6414eeeedf2ba40ccf83952a645e9bc6#86d51b7b6414eeeedf2ba40ccf83952a645e9bc6"
-  integrity sha512-VuOMiYcauQhY+87NQlEByYX8PT22RMPnzp5GiwxqMM1Il1zmVXXB8OxFDjWxN0odTH0pSpXBEWsPZpYNLlTWiA==
-  dependencies:
-    "@kungfu-trader/kungfu-app" "^2.4.5"
-    "@kungfu-trader/kungfu-cli" "^2.4.5"
-    "@kungfu-trader/kungfu-core" "^2.4.5"
-    "@kungfu-trader/kungfu-js-api" "^2.4.5"
-    "@kungfu-trader/kungfu-toolchain" "^2.4.5"
-
-"@kungfu-trader/kungfu-toolchain@^2.4.5":
-  version "2.4.5"
-  resolved "https://npm.pkg.github.com/download/@kungfu-trader/kungfu-toolchain/2.4.5/02cc6e2f7d867b751fe20b8d914ebffe0f37168f#02cc6e2f7d867b751fe20b8d914ebffe0f37168f"
-  integrity sha512-3BTPLJxpY0TR36VNkKTnQBTeL0cNDal8DwnKGJ8s5hojVySr00X5AxNLnhMg+eudCgDv3pjL5Kr4sIZ44P3Veg==
-  dependencies:
-    "@babel/core" "^7.17.8"
-    "@babel/plugin-proposal-class-properties" "^7.16.7"
-    "@babel/plugin-proposal-object-rest-spread" "^7.17.3"
-    "@babel/preset-env" "^7.16.11"
-    "@babel/preset-typescript" "^7.16.7"
-    "@electron/remote" "^2.0.0"
-    "@rushstack/eslint-patch" "^1.1.0"
-    "@types/node" "^17.0.0"
-    "@typescript-eslint/eslint-plugin" "^5.0.0"
-    "@typescript-eslint/parser" "^5.0.0"
-    "@vercel/webpack-asset-relocator-loader" "^1.7.0"
-    "@vue/cli-plugin-babel" "^5.0.0"
-    "@vue/cli-service" "^5.0.0"
-    "@vue/compiler-sfc" "^3.1.0"
-    "@vue/eslint-config-prettier" "^7.0.0"
-    "@vue/eslint-config-typescript" "^10.0.0"
-    add "^2.0.6"
-    babel-loader "^8.0.0"
-    babel-plugin-import "^1.13.3"
-    babel-plugin-syntax-dynamic-import "^6.18.0"
-    cmake-js "^6.3.0"
-    copy-webpack-plugin "^10.2.4"
-    core-js "^3.20.0"
-    css-loader "^6.5.0"
-    dayjs "^1.10.7"
-    electron "19.0.8"
-    electron-builder "^23.3.2"
-    electron-debug "^3.2.0"
-    eslint "^8.0.0"
-    eslint-plugin-prettier "^4.0.0"
-    eslint-plugin-vue "^8.4.0"
-    eslint-webpack-plugin "^3.1.1"
-    fast-stats "^0.0.6"
-    file-loader "^6.2.0"
-    find-root "^1.1.0"
-    find-yarn-workspace-root "^2.0.0"
-    fs-extra "^10.0.1"
-    html-webpack-plugin "^5.5.0"
-    less "^4.1.2"
-    less-loader "^6.0.0"
-    minimist "^1.2.6"
-    monaco-editor "^0.33.0"
-    monaco-editor-webpack-plugin "^7.0.1"
-    multispinner "^0.2.1"
-    node-loader "^2.0.0"
-    pinia "^2.0.10"
-    postcss "^8.4.5"
-    prettier "~2.7.1"
-    rimraf "^3.0.0"
-    rxjs "^7.5.5"
-    semver "^7.3.5"
-    style-loader "^3.3.1"
-    tail "^2.2.4"
-    thread-loader "^3.0.4"
-    treeify "^1.1.0"
-    ts-loader "^9.3.1"
-    typescript "~4.5.2"
-    url-loader "^4.1.1"
-    vue "^3.2.34"
-    vue-loader "^17.0.0"
-    vue-router "^4.0.14"
-    vue-virtual-scroller "^2.0.0-0"
-    webpack "^5.69.1"
-    webpack-cli "^4.9.2"
-    webpack-dev-server "^4.7.0"
-    webpack-merge "^5.8.0"
-    worker-loader "^3.0.8"
-    yarn "^1.22.0"
-
 "@kungfu-trader/libnode@16.15.0":
   version "16.15.0"
   resolved "https://npm.pkg.github.com/download/@kungfu-trader/libnode/16.15.0/42c00ca0239b32034459993d917b0a29bb676b71#42c00ca0239b32034459993d917b0a29bb676b71"
@@ -2609,6 +2472,13 @@
   dependencies:
     "@types/ms" "*"
 
+"@types/echarts@^4.9.16":
+  version "4.9.16"
+  resolved "https://registry.npmmirror.com/@types/echarts/-/echarts-4.9.16.tgz#7156aea4623f3543b083200f6c65e04d3693bcc8"
+  integrity sha512-bfiagfPw3dWauAIJ9fgoJQoL4hLWlGcltqwbE6LGye0NIY5xnbZau+mDmadCzGojic3MWuFDCUiO25kl4sRGeA==
+  dependencies:
+    "@types/zrender" "*"
+
 "@types/eslint-scope@^3.7.3":
   version "3.7.4"
   resolved "https://registry.npmmirror.com/@types/eslint-scope/-/eslint-scope-3.7.4.tgz#37fc1223f0786c39627068a12e94d6e6fc61de16"
@@ -2864,6 +2734,11 @@
   integrity sha512-Nz4MPhecOFArtm81gFQvQqdV7XYCrWKx5uUt6GNHredFHn1i2mtWqXTON7EPXMtNi1qjtjEM/VCHDhcHsAMLXQ==
   dependencies:
     "@types/yargs-parser" "*"
+
+"@types/zrender@*":
+  version "4.0.3"
+  resolved "https://registry.npmmirror.com/@types/zrender/-/zrender-4.0.3.tgz#d18b31648b2f11b9ec672a560836e1887a965ec1"
+  integrity sha512-EPI269lkHNsObwILJ1k1z7znLjKyePuWRy/XKK0shSGpBb9cIX307arcwJV4+2NeZj5wEjN06r4D8yFv7sI06g==
 
 "@typescript-eslint/eslint-plugin@^5.0.0":
   version "5.36.2"
@@ -11629,7 +11504,7 @@ truncate-utf8-bytes@^1.0.0:
   dependencies:
     utf8-byte-length "^1.0.1"
 
-ts-loader@^9.3.1:
+ts-loader@~9.3.1:
   version "9.3.1"
   resolved "https://registry.npmmirror.com/ts-loader/-/ts-loader-9.3.1.tgz#fe25cca56e3e71c1087fe48dc67f4df8c59b22d4"
   integrity sha512-OkyShkcZTsTwyS3Kt7a4rsT/t2qvEVQuKCTg4LJmpj9fhFR7ukGdZwV6Qq3tRUkqcXtfGpPR7+hFKHCG/0d3Lw==

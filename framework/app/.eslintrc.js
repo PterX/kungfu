@@ -4,6 +4,7 @@ module.exports = {
   root: true,
   env: {
     node: true,
+    es2020: true,
     'vue/setup-compiler-macros': true,
     es2020: true,
   },

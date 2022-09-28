@@ -84,7 +84,7 @@ int socket::getsockopt_int(const char *opt) {
   int value;
   rc = nng_socket_get_int(sock_, opt, &value);
   if (rc != 0) {
-    SPDLOG_ERROR("can not getsockopt_int, error [{}] {}", rc, nng_strerror(rc));
+    SPDLOG_ERROR("can not gesockopt_int, error [{}] {}", rc, nng_strerror(rc));
     throw nn_exception(rc);
   }
   return value;
@@ -132,7 +132,7 @@ void socket::close() {
 
 int socket::send(const std::string &msg, int flags) const {
   int rc = nng_send(sock_, (void *)msg.c_str(), msg.length(), flags);
-  if (rc != 0) {
+  if (rc != 0 && rc != NNG_EAGAIN) {
     SPDLOG_ERROR("can not send to {} error [{}] {}", url_, rc, nng_strerror(rc));
     throw nn_exception(rc);
   }

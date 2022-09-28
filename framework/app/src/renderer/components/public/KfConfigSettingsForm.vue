@@ -68,6 +68,7 @@ const props = withDefaults(
     >;
     steps?: Record<string, number>;
     passPrimaryKeySpecialWordsVerify?: boolean;
+    isPrimaryDisabled?: boolean;
   }>(),
   {
     formState: () => ({}),
@@ -83,6 +84,7 @@ const props = withDefaults(
     rules: () => ({}),
     steps: () => ({}),
     passPrimaryKeySpecialWordsVerify: false,
+    isPrimaryDisabled: false,
   },
 );
 
@@ -360,7 +362,10 @@ function handleRemoveFile(key: string, filename: string): void {
 }
 
 function handleTimePickerChange(date: Dayjs, key: string) {
-  formState[key] = dayjs(date).format('YYYY-MM-DD HH:mm:ss');
+  formState[key] =
+    dayjs(date).toString() === 'Invalid Date'
+      ? null
+      : dayjs(date).format('YYYY-MM-DD HH:mm:ss');
 }
 
 function handleInstrumentSelected(val: string, key: string) {
@@ -434,7 +439,8 @@ defineExpose({
       :name="item.key"
       :extra="item.tip"
       :rules="
-        (changeType === 'update' && item.primary) || item.disabled
+        (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
+        item.disabled
           ? []
           : [
               ...(rules[item.key]
@@ -505,24 +511,36 @@ defineExpose({
       <a-input
         v-if="item.type === 'str'"
         v-model:value.trim="formState[item.key]"
-        :disabled="(changeType === 'update' && item.primary) || item.disabled"
+        :disabled="
+          (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
+          item.disabled
+        "
       ></a-input>
       <a-input-password
         v-else-if="item.type === 'password'"
         v-model:value="formState[item.key]"
-        :disabled="(changeType === 'update' && item.primary) || item.disabled"
+        :disabled="
+          (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
+          item.disabled
+        "
       ></a-input-password>
       <a-input-number
         v-else-if="item.type === 'int'"
         v-model:value="formState[item.key]"
-        :disabled="(changeType === 'update' && item.primary) || item.disabled"
+        :disabled="
+          (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
+          item.disabled
+        "
       ></a-input-number>
       <a-input-number
         v-else-if="item.type === 'float'"
         :precision="4"
         :step="steps[item.key] || 0.0001"
         v-model:value="formState[item.key]"
-        :disabled="(changeType === 'update' && item.primary) || item.disabled"
+        :disabled="
+          (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
+          item.disabled
+        "
       ></a-input-number>
       <a-input-number
         v-else-if="item.type === 'percent'"
@@ -531,13 +549,19 @@ defineExpose({
         :formatter="formatterPercentNumber"
         :parser="parserPercentString"
         v-model:value="formState[item.key]"
-        :disabled="(changeType === 'update' && item.primary) || item.disabled"
+        :disabled="
+          (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
+          item.disabled
+        "
       ></a-input-number>
       <a-radio-group
         v-else-if="item.type === 'side'"
         v-model:value="formState[item.key]"
         :name="item.key"
-        :disabled="(changeType === 'update' && item.primary) || item.disabled"
+        :disabled="
+          (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
+          item.disabled
+        "
       >
         <a-radio v-for="key in Object.keys(Side).slice(0, 2)" :value="+key">
           {{ dealSide(+key).name }}
@@ -546,7 +570,10 @@ defineExpose({
       <a-select
         v-else-if="item.type === 'priceType'"
         v-model:value="formState[item.key]"
-        :disabled="(changeType === 'update' && item.primary) || item.disabled"
+        :disabled="
+          (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
+          item.disabled
+        "
       >
         <a-select-option
           v-for="key in Object.keys(PriceType).slice(0, 7)"
@@ -560,7 +587,10 @@ defineExpose({
         v-else-if="numberEnumRadioType[item.type]"
         v-model:value="formState[item.key]"
         :name="item.key"
-        :disabled="(changeType === 'update' && item.primary) || item.disabled"
+        :disabled="
+          (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
+          item.disabled
+        "
       >
         <a-radio
           v-for="key in Object.keys(numberEnumRadioType[item.type])"
@@ -573,7 +603,9 @@ defineExpose({
         v-else-if="item.type === 'radio'"
         v-model:value="formState[item.key]"
         :name="item.key"
-        :disabled="changeType === 'update' && item.primary"
+        :disabled="
+          changeType === 'update' && item.primary && !isPrimaryDisabled
+        "
       >
         <a-radio v-for="option in item.options" :value="option.value">
           {{ option.label }}
@@ -582,12 +614,18 @@ defineExpose({
       <a-checkbox
         v-else-if="item.type === 'checkbox'"
         v-model:checked="formState[item.key]"
-        :disabled="(changeType === 'update' && item.primary) || item.disabled"
+        :disabled="
+          (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
+          item.disabled
+        "
       ></a-checkbox>
       <a-select
         v-else-if="numberEnumSelectType[item.type]"
         v-model:value="formState[item.key]"
-        :disabled="(changeType === 'update' && item.primary) || item.disabled"
+        :disabled="
+          (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
+          item.disabled
+        "
       >
         {{ item.type }}
         <a-select-option
@@ -601,7 +639,10 @@ defineExpose({
       <a-select
         v-else-if="stringEnumSelectType[item.type]"
         v-model:value="formState[item.key]"
-        :disabled="(changeType === 'update' && item.primary) || item.disabled"
+        :disabled="
+          (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
+          item.disabled
+        "
       >
         {{ item.type }}
         <a-select-option
@@ -615,7 +656,10 @@ defineExpose({
       <a-select
         v-else-if="item.type === 'select'"
         v-model:value="formState[item.key]"
-        :disabled="(changeType === 'update' && item.primary) || item.disabled"
+        :disabled="
+          (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
+          item.disabled
+        "
       >
         <a-select-option
           v-for="option in item.options"
@@ -628,7 +672,10 @@ defineExpose({
       <a-select
         v-else-if="item.type === 'instrument'"
         :ref="item.key"
-        :disabled="(changeType === 'update' && item.primary) || item.disabled"
+        :disabled="
+          (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
+          item.disabled
+        "
         show-search
         v-model:value="formState[item.key]"
         :filter-option="false"
@@ -638,7 +685,10 @@ defineExpose({
       <a-select
         v-else-if="item.type === 'instruments'"
         :ref="item.key"
-        :disabled="(changeType === 'update' && item.primary) || item.disabled"
+        :disabled="
+          (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
+          item.disabled
+        "
         mode="multiple"
         show-search
         :value="formState[item.key]"
@@ -652,7 +702,10 @@ defineExpose({
       <a-select
         v-else-if="item.type === 'td'"
         v-model:value="formState[item.key]"
-        :disabled="(changeType === 'update' && item.primary) || item.disabled"
+        :disabled="
+          (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
+          item.disabled
+        "
       >
         <a-select-option
           v-for="config in td"
@@ -665,7 +718,10 @@ defineExpose({
       <a-select
         v-else-if="item.type === 'md'"
         v-model:value="formState[item.key]"
-        :disabled="(changeType === 'update' && item.primary) || item.disabled"
+        :disabled="
+          (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
+          item.disabled
+        "
       >
         <a-select-option
           v-for="config in md"
@@ -678,7 +734,10 @@ defineExpose({
       <a-select
         v-else-if="item.type === 'strategy'"
         v-model:value="formState[item.key]"
-        :disabled="(changeType === 'update' && item.primary) || item.disabled"
+        :disabled="
+          (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
+          item.disabled
+        "
       >
         <a-select-option
           v-for="config in strategy"
@@ -692,12 +751,18 @@ defineExpose({
         size="small"
         v-else-if="item.type === 'bool'"
         v-model:checked="formState[item.key]"
-        :disabled="(changeType === 'update' && item.primary) || item.disabled"
+        :disabled="
+          (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
+          item.disabled
+        "
       ></a-switch>
       <div v-else-if="item.type === 'file'" class="kf-form-item__warp file">
         <a-button
           size="small"
-          :disabled="(changeType === 'update' && item.primary) || item.disabled"
+          :disabled="
+            (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
+            item.disabled
+          "
           @click="handleSelectFile(item.key)"
         >
           <template #icon><DashOutlined /></template>
@@ -712,7 +777,10 @@ defineExpose({
       </div>
       <div v-else-if="item.type === 'files'" class="kf-form-item__warp file">
         <a-button
-          :disabled="(changeType === 'update' && item.primary) || item.disabled"
+          :disabled="
+            (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
+            item.disabled
+          "
           size="small"
           @click="handleSelectFiles(item.key)"
         >
@@ -734,7 +802,10 @@ defineExpose({
       </div>
       <a-time-picker
         v-else-if="item.type === 'timePicker'"
-        :disabled="(changeType === 'update' && item.primary) || item.disabled"
+        :disabled="
+          (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
+          item.disabled
+        "
         :value="formState[item.key] == null ? null : dayjs(formState[item.key])"
         @change="handleTimePickerChange($event as unknown as Dayjs, item.key)"
       ></a-time-picker>
@@ -743,7 +814,10 @@ defineExpose({
         v-else-if="item.type === 'table'"
       >
         <a-button
-          :disabled="(changeType === 'update' && item.primary) || item.disabled"
+          :disabled="
+            (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
+            item.disabled
+          "
         >
           <template #icon>
             <PlusOutlined @click.stop="handleAddItemIntoTableRows(item)" />
@@ -757,7 +831,8 @@ defineExpose({
           <a-button
             size="small"
             :disabled="
-              (changeType === 'update' && item.primary) || item.disabled
+              (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
+              item.disabled
             "
           >
             <template #icon>
@@ -852,6 +927,11 @@ export default defineComponent({
 
   .ant-form-item-extra {
     white-space: pre-line;
+  }
+
+  .ant-form-item-label {
+    overflow: inherit;
+    white-space: normal;
   }
 }
 </style>

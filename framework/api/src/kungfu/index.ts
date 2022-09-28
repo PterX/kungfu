@@ -22,7 +22,11 @@ import {
   resolveAccountId,
   resolveClientId,
 } from '../utils/busiUtils';
-import { HistoryDateEnum, LedgerCategoryEnum } from '../typings/enums';
+import {
+  HistoryDateEnum,
+  LedgerCategoryEnum,
+  InstrumentTypeEnum,
+} from '../typings/enums';
 import { ExchangeIds } from '../config/tradingConfig';
 
 export const kf = kungfu();
@@ -53,6 +57,11 @@ export const dealTradingDataItem = (
   isShowOrigin: boolean = false,
 ): Record<string, string | number | bigint> => {
   const itemResolved = { ...item } as Record<string, string | number | bigint>;
+  const instrument_type =
+    'instrument_type' in item
+      ? item.instrument_type
+      : InstrumentTypeEnum.unknown;
+  const isInstrumnetShotable = isShotable(instrument_type);
   if ('trade_time' in item && !isShowOrigin) {
     itemResolved.trade_time = dealKfTime(item.trade_time, true);
   }
@@ -69,7 +78,11 @@ export const dealTradingDataItem = (
     itemResolved.side = dealSide(item.side).name;
   }
   if ('offset' in item) {
-    itemResolved.offset = dealOffset(item.offset).name;
+    if (isInstrumnetShotable) {
+      itemResolved.offset = dealOffset(item.offset).name;
+    } else {
+      delete itemResolved.offset;
+    }
   }
   if ('status' in item) {
     itemResolved.status = dealOrderStatus(
@@ -82,13 +95,21 @@ export const dealTradingDataItem = (
   }
 
   if ('volume_condition' in item) {
-    itemResolved.volume_condition = dealVolumeCondition(
-      item.volume_condition,
-    ).name;
+    if (isInstrumnetShotable) {
+      itemResolved.volume_condition = dealVolumeCondition(
+        item.volume_condition,
+      ).name;
+    } else {
+      delete itemResolved.volume_condition;
+    }
   }
 
   if ('time_condition' in item) {
-    itemResolved.time_condition = dealTimeCondition(item.time_condition).name;
+    if (isInstrumnetShotable) {
+      itemResolved.time_condition = dealTimeCondition(item.time_condition).name;
+    } else {
+      delete itemResolved.time_condition;
+    }
   }
 
   if ('instrument_type' in item) {
@@ -97,10 +118,18 @@ export const dealTradingDataItem = (
     ).name;
   }
   if ('hedge_flag' in item) {
-    itemResolved.hedge_flag = dealHedgeFlag(item.hedge_flag).name;
+    if (isInstrumnetShotable) {
+      itemResolved.hedge_flag = dealHedgeFlag(item.hedge_flag).name;
+    } else {
+      delete itemResolved.hedge_flag;
+    }
   }
   if ('is_swap' in item) {
-    itemResolved.is_swap = dealIsSwap(item.is_swap).name;
+    if (isInstrumnetShotable) {
+      itemResolved.is_swap = dealIsSwap(item.is_swap).name;
+    } else {
+      delete itemResolved.is_swap;
+    }
   }
   if ('source' in item && 'dest' in item && watcher) {
     itemResolved.source = resolveAccountId(

@@ -36,7 +36,7 @@ import {
   dealCategory,
   dealAssetsByHolderUID,
   getAvailDaemonList,
-  removeNoDefaultStrategyFolders,
+  // removeNoDefaultStrategyFolders,
   getStrategyStateStatusName,
   isBrokerStateReady,
   dealKfNumber,
@@ -739,7 +739,10 @@ export const usePreStartAndQuitApp = (): {
             switch (data.name) {
               case 'record-before-quit':
                 preQuitSystemLoadingData.record = 'loading';
-                preQuitTasks([removeNoDefaultStrategyFolders()]).finally(() => {
+                preQuitTasks([
+                  // removeNoDefaultStrategyFolders(),
+                  Promise.resolve(),
+                ]).finally(() => {
                   ipcRenderer.send('record-before-quit-done');
                   preQuitSystemLoadingData.record = 'done';
                 });
@@ -1424,9 +1427,9 @@ export const useAssetMargins = () => {
   };
 };
 
-export const playSound = (): void => {
+export const playSound = (type: 'ding' | 'warn' = 'ding'): void => {
   const soundPath = path.join(
-    `${path.join(KUNGFU_RESOURCES_DIR, 'music/ding.mp3')}`,
+    `${path.join(KUNGFU_RESOURCES_DIR, `music/${type}.mp3`)}`,
   );
   const { globalSetting } = storeToRefs(useGlobalStore());
   if (globalSetting.value?.trade?.sound) {
@@ -1875,6 +1878,7 @@ export const useMakeOrderSubscribe = (
   formState: Ref<Record<string, KungfuApi.KfConfigValue>>,
 ) => {
   const app = getCurrentInstance();
+  let lastTriggerTag: 'makeOrder' | 'orderBookUpdate' | '' = '';
   onMounted(() => {
     if (app?.proxy) {
       const subscription = app.proxy.$globalBus.subscribe(
@@ -1898,6 +1902,7 @@ export const useMakeOrderSubscribe = (
             if (accountId) {
               formState.value.account_id = accountId;
             }
+            lastTriggerTag = 'makeOrder';
           }
 
           if (data.tag === 'orderBookUpdate') {
@@ -1918,15 +1923,19 @@ export const useMakeOrderSubscribe = (
               formState.value.limit_price = +Number(price).toFixed(4);
             }
 
-            if (
+            const shouldUpdateVolume =
+              lastTriggerTag === 'orderBookUpdate' || !formState.value.volume;
+            const isNewVolumeValuable =
               !!volume &&
               !Number.isNaN(Number(volume)) &&
-              BigInt(volume) !== BigInt(0)
-            ) {
+              BigInt(volume) !== BigInt(0);
+
+            if (shouldUpdateVolume && isNewVolumeValuable) {
               formState.value.volume = +Number(volume).toFixed(0);
             }
 
             formState.value.side = +side;
+            shouldUpdateVolume && (lastTriggerTag = 'orderBookUpdate');
           }
         },
       );

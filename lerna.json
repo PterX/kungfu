@@ -1,5 +1,9 @@
 {
+<<<<<<< HEAD
   "version": "2.5.0-alpha.1",
+=======
+  "version": "2.4.8-alpha.0",
+>>>>>>> f6f7f54e84deb0d0d9963f74893be68fe5b95f9c
   "packages": [
     "framework/*",
     "developer/*",

@@ -353,6 +353,14 @@ export const startProcess = async (
 
       KFC_AS_VARIANT: '',
       ...options.env,
+
+      // cover father process env
+      APP_TYPE: '',
+      APP_ID: '',
+      UI_EXT_TYPE: '',
+      BY_PASS_ACCOUNTING: '',
+      BY_PASS_TRADINGDATA: '',
+      BY_PASS_RESTORE: '',
     },
   };
 
@@ -367,25 +375,26 @@ export const requestStop = (
   watcher: KungfuApi.Watcher,
   kfLocation: KungfuApi.KfLocation,
 ) => {
-  if (isTdMdStrategy(kfLocation.category)) {
-    return Promise.resolve(watcher.requestStop(kfLocation));
-  }
-
-  return Promise.resolve();
+  return Promise.resolve(watcher.requestStop(kfLocation));
 };
 
-export const graceStopProcess = (
+export const graceStopProcess = async (
   watcher: KungfuApi.Watcher | null,
   kfLocation: KungfuApi.KfConfig | KungfuApi.KfLocation,
   processStatusData?: Pm2ProcessStatusData,
 ): Promise<void> => {
+  if (!processStatusData) {
+    const { processStatus } = await listProcessStatus();
+    processStatusData = processStatus;
+  }
+
   const processId = getProcessIdByKfLocation(kfLocation);
 
   if (!watcher) {
     return Promise.reject(new Error('Watcher is NULL'));
   }
 
-  if (!processStatusData || getIfProcessRunning(processStatusData, processId)) {
+  if (getIfProcessRunning(processStatusData, processId)) {
     if (
       watcher &&
       !watcher.isReadyToInteract(kfLocation) &&
@@ -394,7 +403,7 @@ export const graceStopProcess = (
       return Promise.reject(new Error(t('未就绪', { processId })));
     }
 
-    return Promise.resolve(requestStop(watcher, kfLocation))
+    return requestStop(watcher, kfLocation)
       .then(() => delayMilliSeconds(1000))
       .then(() => stopProcess(processId));
   }
@@ -404,18 +413,23 @@ export const graceStopProcess = (
 
 export const deleteProcess = pm2Delete;
 
-export const graceDeleteProcess = (
+export const graceDeleteProcess = async (
   watcher: KungfuApi.Watcher | null,
   kfLocation: KungfuApi.KfConfig | KungfuApi.KfLocation,
   processStatusData?: Pm2ProcessStatusData,
 ): Promise<void> => {
+  if (!processStatusData) {
+    const { processStatus } = await listProcessStatus();
+    processStatusData = processStatus;
+  }
+
   const processId = getProcessIdByKfLocation(kfLocation);
 
   if (!watcher) {
     return Promise.reject(new Error('Watcher is NULL'));
   }
 
-  if (!processStatusData || getIfProcessRunning(processStatusData, processId)) {
+  if (getIfProcessRunning(processStatusData, processId)) {
     if (
       watcher &&
       !watcher.isReadyToInteract(kfLocation) &&
@@ -424,7 +438,7 @@ export const graceDeleteProcess = (
       return Promise.reject(new Error(t('未就绪', { processId })));
     }
 
-    return Promise.resolve(requestStop(watcher, kfLocation))
+    return requestStop(watcher, kfLocation)
       .then(() => delayMilliSeconds(1000))
       .then(() => deleteProcess(processId));
   } else if (!getIfProcessDeleted(processStatusData, processId)) {
@@ -825,10 +839,10 @@ export const startStrategy = async (
 
   //因为pm2环境残留，在反复切换本地python跟内置python时，会出现本地python启动失败，所以需要先pm2 kill
   try {
-    console.log(`Clear existed strategy ${strategyIdResolved}`);
+    kfLogger.info(`Clear existed strategy ${strategyIdResolved}`);
     await deleteProcess(strategyIdResolved);
   } catch (err) {
-    console.warn(err);
+    kfLogger.warn(err);
   }
 
   if (ifLocalPython && strategyPath.endsWith('.py')) {

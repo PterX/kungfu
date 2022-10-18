@@ -254,8 +254,8 @@ Napi::Value Reader::Run(const Napi::CallbackInfo &info) {
       using DataType = typename decltype(+boost::hana::second(type))::type;
       if (frame->msg_type() == DataType::tag) {
         SPDLOG_INFO("Next {} {} {} {}", time::strftime(frame->gen_time(), "%T.%N"),
-                    time::strftime(frame->trigger_time(), "%T.%N"), 
-                    DataType::type_name.c_str(), frame->data<DataType>().to_string());
+                    time::strftime(frame->trigger_time(), "%T.%N"), DataType::type_name.c_str(),
+                    frame->data<DataType>().to_string());
         type_found = true;
       }
     });
@@ -398,7 +398,10 @@ Napi::Value Assemble::Get_reader(const Napi::CallbackInfo &info) {
   auto node_group = Napi::String::New(info.Env(), sessions[index].group);
   auto node_name = Napi::String::New(info.Env(), sessions[index].name);
   auto begin_time = Napi::BigInt::New(info.Env(), t_begin > 0 ? t_begin : sessions[index].begin_time);
-  auto end_time = Napi::BigInt::New(info.Env(), t_end > 0 ? t_end : (sessions[index].end_time == 0 ? kungfu::yijinjing::time::now_in_nano() : std::abs(sessions[index].end_time)));
+  auto end_time =
+      Napi::BigInt::New(info.Env(), t_end > 0 ? t_end
+                                              : (sessions[index].end_time == 0 ? kungfu::yijinjing::time::now_in_nano()
+                                                                               : std::abs(sessions[index].end_time)));
   auto reader = Reader::constructor.New({node_mode, node_category, node_group, node_name, begin_time, end_time});
   return reader;
 }

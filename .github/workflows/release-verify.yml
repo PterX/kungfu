@@ -9,8 +9,10 @@ on:
 
 jobs:
   try:
-    uses: kungfu-trader/workflows/.github/workflows/.release-verify.yml@v1
+    uses: kungfu-trader/workflows/.github/workflows/.release-verify.yml@v1.1-alpha
     with:
+      build-runner-linux: kungfu-builder-linux
+      build-runner-windows: kungfu-builder-windows
       use-pipenv: true
       use-poetry: true
       build-timeout-minutes: 150

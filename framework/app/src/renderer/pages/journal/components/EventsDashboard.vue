@@ -11,12 +11,12 @@
     </div>
     <div class="kf-journal-frame__wrap">
       <KfTradingDataTable
-        v-model:selected-key="currentFramesId"
         :selectable="true"
         :data-source="frameDataListResolved"
         :columns="frameColumns"
         key-field="id"
         :resizable="false"
+        :custom-row-class="dealRowClassName"
         @click-cell="handleOpenFrameDetail"
       >
         <template
@@ -331,7 +331,8 @@ const loadFrameData = (
   });
 };
 
-const handleOpenFrameDetail = () => {
+const handleOpenFrameDetail = ({ row }) => {
+  currentFramesId.value = row.id;
   visible.value = true;
 };
 
@@ -355,6 +356,10 @@ const dealTagBackgroudColor = (color: string) => {
     return `rgba(${rgba})`;
   }
   return color;
+};
+
+const dealRowClassName = (row) => {
+  return row.id === currentFramesId.value ? 'kf-current-table-select' : '';
 };
 
 defineExpose({

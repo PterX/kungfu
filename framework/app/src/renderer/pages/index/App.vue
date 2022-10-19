@@ -51,7 +51,7 @@ const {
 } = usePreStartAndQuitApp();
 
 useDealInstruments();
-useSubscibeInstrumentAtEntry();
+useSubscibeInstrumentAtEntry(window.watcher);
 
 const { exportDateModalVisible, exportDataLoading, handleConfirmExportDate } =
   useDealExportHistoryTradingData();

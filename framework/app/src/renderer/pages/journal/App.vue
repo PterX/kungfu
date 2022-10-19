@@ -3,12 +3,12 @@
     <div class="kf-journal-view__wrap">
       <div class="kf-journal-session__wrap">
         <KfTradingDataTable
-          v-model:selected-key="currentSessionKey"
           :selectable="true"
           :data-source="sessions"
           :columns="sessionColumns"
           key-field="begin_time"
           :resizable="false"
+          :custom-row-class="dealRowClassName"
           @click-cell="handleSelectSession"
         >
           <template
@@ -290,12 +290,20 @@ onMounted(() => {
 
 const handleSelectSession = ({ row }) => {
   currentSessionId.value = row.index;
+  currentSessionKey.value = row.begin_time + '';
+  console.log(row.begin_time);
 };
 
 const onExportJournalData = (
   exportData: (fileName: string, exportData: KungfuApi.FrameResolved[]) => void,
 ) => {
   exportData(exportFileName.value, eventDashBoard.value.frameDataList);
+};
+
+const dealRowClassName = (row) => {
+  return `${row.begin_time}` === currentSessionKey.value
+    ? 'kf-current-table-select'
+    : '';
 };
 </script>
 

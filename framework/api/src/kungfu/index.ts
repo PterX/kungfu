@@ -167,7 +167,7 @@ export const getKungfuDataByDateRange = (
     'OrderInput',
   ];
 
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
       //by trading date
       if (dateType === HistoryDateEnum.tradingDate) {
@@ -175,6 +175,10 @@ export const getKungfuDataByDateRange = (
         const kungfuDataYesterday = history.selectPeriod(yesFrom, from);
         const kungfuDataFriday = history.selectPeriod(fridayFrom, fridayTo);
         const historyData: KungfuApi.TradingData | Record<string, unknown> = {};
+
+        if (!kungfuDataToday || !kungfuDataYesterday || !kungfuDataFriday)
+          return reject(new Error('database_locked'));
+
         dataTypeForHistory.forEach((key) => {
           if (key === 'Order' || key === 'Trade' || key === 'OrderInput') {
             historyData[key] = Object.assign(
@@ -194,6 +198,9 @@ export const getKungfuDataByDateRange = (
         resolve(historyData);
       } else {
         const kungfuDataToday = history.selectPeriod(from, to);
+
+        if (!kungfuDataToday) return reject(new Error('database_locked'));
+
         resolve(kungfuDataToday);
       }
       clearTimeout(timer);
@@ -214,14 +221,12 @@ export const getKungfuHistoryData = (
       if (tradingDataTypeName === 'all') {
         return {
           tradingData: tradingData as KungfuApi.TradingData,
-          historyDatas: [],
         };
       }
 
       if (!kfLocation) {
         return {
           tradingData: tradingData as KungfuApi.TradingData,
-          historyDatas: [],
         };
       }
 
@@ -237,7 +242,7 @@ export const kfRequestMarketData = (
   exchangeId: string,
   instrumentId: string,
   mdLocation: KungfuApi.KfLocation,
-): Promise<void> => {
+): Promise<boolean> => {
   if (!watcher) {
     return Promise.reject(new Error('Watcher is NULL'));
   }

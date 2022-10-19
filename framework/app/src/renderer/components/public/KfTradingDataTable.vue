@@ -22,16 +22,16 @@ const props = withDefaults(
     columns: KfTradingDataTableHeaderConfig[];
     keyField?: string;
     resizable?: boolean;
-    selectable?: boolean;
-    selectedKey?: number | string;
+    itemSize?: number;
+    customRowClass?: (row: KungfuApi.TradingDataItem) => string;
   }>(),
   {
     columns: () => [],
     dataSource: () => [],
     keyField: 'id',
     resizable: true,
-    selectable: false,
-    selectedKey: undefined,
+    itemSize: 26,
+    customRowClass: () => '',
   },
 );
 
@@ -63,18 +63,6 @@ const kfScrollerTableBodyRef = ref();
 const kfScrollerTableWidth = ref(0);
 let clickTimer: number | undefined;
 
-const currentSelectKey = computed(() => {
-  if (
-    props.selectable &&
-    props.selectedKey !== undefined &&
-    props.dataSource.length
-  ) {
-    return props.selectedKey;
-  }
-
-  return null;
-});
-
 const headerWidth = computed(() => {
   const widths: KfTradingDataTableHeaderConfig[] = []; //column use with
   const flexs: KfTradingDataTableHeaderConfig[] = []; //column use flex
@@ -100,6 +88,8 @@ const headerWidth = computed(() => {
     return collection;
   }, {} as Record<string, string>);
 });
+
+const tableCellHeight = computed(() => `${props.itemSize}px`);
 
 onMounted(() => {
   if (kfScrollerTableBodyRef.value) {
@@ -208,14 +198,6 @@ function handleSort(
     currentSorterOrder.value = 'ascend';
   }
 }
-
-function isCurrentRow(itemKey: number | string | unknown) {
-  if (typeof itemKey !== 'number') {
-    return currentSelectKey.value === `${itemKey}`;
-  } else {
-    return currentSelectKey.value === itemKey;
-  }
-}
 </script>
 <template>
   <div class="kf-table">
@@ -256,18 +238,13 @@ function isCurrentRow(itemKey: number | string | unknown) {
         v-if="dataSourceResolved && dataSourceResolved.length"
         class="kf-table-scroller"
         :items="dataSourceResolved"
-        :item-size="26"
+        :item-size="Number(itemSize)"
         :key-field="keyField"
         :buffer="100"
       >
         <template v-slot="{ item }: { item: any }">
           <ul
-            :class="[
-              'kf-table-row',
-              isCurrentRow(item[props.keyField])
-                ? 'kf-table-current-select'
-                : '',
-            ]"
+            :class="['kf-table-row', customRowClass?.(item) || '']"
             @dblclick="handleDbClickRow($event, item)"
             @mousedown="handleMousedown($event, item)"
           >
@@ -277,6 +254,8 @@ function isCurrentRow(itemKey: number | string | unknown) {
               :key="`${column.dataIndex}_${item[keyField as keyof TableDataItem]}`"
               :style="{
                 'max-width': getHeaderWidth(column),
+                height: tableCellHeight,
+                lineHeight: tableCellHeight,
               }"
               @click.stop="handleClickCell($event, item, column)"
               :title="item[column.dataIndex]"
@@ -398,8 +377,6 @@ function isCurrentRow(itemKey: number | string | unknown) {
   }
 
   .kf-table-cell {
-    height: 26px;
-    line-height: 26px;
     padding: 0 6px;
     box-sizing: border-box;
     word-wrap: break-word;
@@ -415,10 +392,6 @@ function isCurrentRow(itemKey: number | string | unknown) {
     &.number {
       text-align: right;
     }
-  }
-
-  .kf-table-current-select {
-    background: @tooltip-bg;
   }
 }
 </style>

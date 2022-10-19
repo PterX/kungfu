@@ -93,7 +93,7 @@ import {
 import KfTradingDataTable from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfTradingDataTable.vue';
 import TimeSlider from './components/TimeSlider.vue';
 import ExportJournal from './components/ExportJournal.vue';
-import EventsDashBoard from './components/EventsDashBoard.vue';
+import EventsDashBoard from './components/EventsDashboard.vue';
 import OrdersDashboard from './components/OrdersDashboard.vue';
 import { useJournalStore } from './store/journalStore';
 

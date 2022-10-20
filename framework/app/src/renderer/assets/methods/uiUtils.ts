@@ -3,10 +3,12 @@ import {
   Ref,
   ref,
   computed,
+  watch,
   getCurrentInstance,
   toRaw,
   Component,
   App,
+  h,
 } from 'vue';
 import {
   ARCHIVE_DIR,
@@ -25,6 +27,7 @@ import {
   transformSearchInstrumentResultToInstrument,
   removeArchiveBeforeToday,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
 import { ExchangeIds } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import { BrowserWindow, getCurrentWindow, dialog } from '@electron/remote';
 import { ipcRenderer } from 'electron';
@@ -40,6 +43,7 @@ import { VueNode } from 'ant-design-vue/lib/_util/type';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 const { t } = VueI18n.global;
 import fse from 'fs-extra';
+import md from 'markdown-it';
 import { Router } from 'vue-router';
 
 // this utils file is only for ui components
@@ -196,10 +200,50 @@ export const useTableSearchKeyword = <T>(
               ).toString() || '',
           )
           .join('_');
-        return combinedValue.includes(searchKeyword.value);
+        return new RegExp(searchKeyword.value, 'ig').test(combinedValue);
       })
       .map((item) => toRaw(item));
   });
+
+  return {
+    searchKeyword,
+    tableData,
+  };
+};
+
+export const useWritableTableSearchKeyword = <T>(
+  targetList: Ref<T[]> | ComputedRef<T[]>,
+  keys: string[],
+): {
+  searchKeyword: Ref<string>;
+  tableData: Ref<T[]>;
+} => {
+  const searchKeyword = ref<string>('');
+  const tableData = ref<T[]>([]) as Ref<T[]>;
+
+  watch(
+    () => ({ keyword: searchKeyword.value, list: targetList.value }),
+    (newValue) => {
+      const { keyword, list } = newValue;
+      tableData.value = list
+        .filter((item: T) => {
+          const combinedValue = keys
+            .map(
+              (key: string) =>
+                (
+                  ((item as Record<string, unknown>)[key] as string | number) ||
+                  ''
+                ).toString() || '',
+            )
+            .join('_');
+          return new RegExp(keyword, 'ig').test(combinedValue);
+        })
+        .map((item) => toRaw(item));
+    },
+    {
+      deep: true,
+    },
+  );
 
   return {
     searchKeyword,
@@ -346,6 +390,21 @@ export const openCodeView = (
   return openNewBrowserWindow(__dirname, 'code', `?processId=${processId}`);
 };
 
+export const openJournalView = (
+  processId: string,
+  locationUid: string,
+): Promise<Electron.BrowserWindow> => {
+  return openNewBrowserWindow(
+    __dirname,
+    'journal',
+    `?processId=${processId}&locationUid=${locationUid}`,
+    {
+      width: 1280,
+      height: 960,
+    },
+  );
+};
+
 export const removeLoadingMask = (): void => {
   const $loadingMask = document.getElementById('loading');
   if ($loadingMask) $loadingMask.remove();
@@ -384,7 +443,7 @@ export const useIpcListener = (): void => {
 };
 
 export const markClearJournal = (): void => {
-  localStorage.setItem('needClearJournal', '');
+  localStorage.setItem('needClearJournal', '1');
   messagePrompt().success(t('clear', { content: 'journal' }));
 };
 
@@ -453,6 +512,17 @@ export const handleOpenCodeView = (
   });
 };
 
+export const handleOpenJournalView = (
+  config?: KungfuApi.KfConfig | KungfuApi.KfLocation,
+): Promise<Electron.BrowserWindow> => {
+  const hideloading = message.loading(t('open_journal_dashboard'));
+  const processId = config ? getProcessIdByKfLocation(config) : '';
+  const locationUid = config ? getKfLocationUID(config) || '' : '';
+  return openJournalView(processId, locationUid).finally(() => {
+    hideloading();
+  });
+};
+
 export const useDashboardBodySize = (): {
   dashboardBodyHeight: Ref;
   dashboardBodyWidth: Ref;
@@ -485,9 +555,9 @@ export const useDashboardBodySize = (): {
   };
 };
 
-export const getKfLocationUID = (kfConfig: KungfuApi.KfConfig): string => {
+export const getKfLocationUID = (kfLocation: KungfuApi.KfLocation): string => {
   if (!window.watcher) return '';
-  return window.watcher?.getLocationUID(kfConfig);
+  return window.watcher?.getLocationUID(kfLocation);
 };
 
 export const useDownloadHistoryTradingData = (): {
@@ -643,7 +713,7 @@ export const confirmModal = (
   content: VueNode | (() => VueNode) | string,
   okText = t('confirm'),
   cancelText = t('cancel'),
-): Promise<void> => {
+): Promise<boolean> => {
   return new Promise((resolve) => {
     Modal.confirm({
       title: title,
@@ -651,8 +721,51 @@ export const confirmModal = (
       okText: okText,
       cancelText: cancelText,
       onOk: () => {
-        resolve();
+        resolve(true);
+      },
+      onCancel: () => {
+        resolve(false);
       },
     });
   });
+};
+
+const markdown = md();
+
+export const openReadmeModal = (title: string, readmePath: string) => {
+  if (fse.existsSync(readmePath)) {
+    return fse.readFile(readmePath).then((buffer) => {
+      const str = buffer.toString();
+      const mdHtml = markdown.render(str);
+      const content = h('div', {
+        class: 'kf-modal-markdown__wrap',
+        innerHTML: mdHtml,
+      });
+      return Modal.confirm({
+        title: title,
+        content: content,
+        width: 600,
+        okText: t('confirm'),
+        cancelText: t('cancel'),
+      });
+    });
+  } else {
+    message.error(t('文件路径不存在'));
+    return Promise.reject();
+  }
+};
+
+export const useBoardFilter = () => {
+  const rootPackageJson = readRootPackageJsonSync();
+  const boardFilter: Record<string, boolean | undefined> | undefined =
+    rootPackageJson?.boardFilter;
+
+  const getBoard = <T>(boardName: string, ifTrue: T, ifFalse: T): T => {
+    return boardFilter ? (boardFilter[boardName] ? ifTrue : ifFalse) : ifTrue;
+  };
+
+  return {
+    boardFilter,
+    getBoard,
+  };
 };

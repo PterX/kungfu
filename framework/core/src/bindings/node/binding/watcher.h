@@ -23,7 +23,7 @@ constexpr uint32_t PAGE_ID_MASK = 0x80000000;
 
 class WatcherAutoClient : public wingchun::broker::SilentAutoClient {
 public:
-  explicit WatcherAutoClient(yijinjing::practice::apprentice &app, bool bypass_trading_Data);
+  explicit WatcherAutoClient(yijinjing::practice::apprentice &app, bool bypass_trading_data);
 
   ~WatcherAutoClient() = default;
 
@@ -106,6 +106,7 @@ protected:
 private:
   static Napi::FunctionReference constructor;
   uv_work_t uv_work_ = {};
+  bool uv_work_live_ = false;
   WatcherAutoClient broker_client_;
   wingchun::book::Bookkeeper bookkeeper_;
   Napi::ObjectReference state_ref_;
@@ -174,7 +175,7 @@ private:
 
   void OnDeregister(int64_t trigger_time, const longfist::types::Deregister &deregister_data);
 
-  void UpdateBrokerState(uint32_t broker_uid, const longfist::types::BrokerStateUpdate &state);
+  void UpdateBrokerState(uint32_t source_id, uint32_t dest_id, const longfist::types::BrokerStateUpdate &state);
 
   void UpdateStrategyState(uint32_t strategy_uid, const longfist::types::StrategyStateUpdate &state);
 
@@ -195,6 +196,16 @@ private:
   void UpdateEventCache(const event_ptr &event);
 
   void SyncEventCache();
+
+  void StartWorker();
+
+  void CancelWorker();
+
+  void AfterMasterDown();
+
+  void refresh_books();
+
+  void refresh_account_book(int64_t trigger_time, uint32_t account_uid);
 
   template <typename DataType>
   void feed_state_data_bank(const state<DataType> &state, yijinjing::cache::bank &receiver) {
@@ -251,26 +262,15 @@ private:
     return instruction.*id_ptr;
   }
 
-  template <typename DataType>
-  std::enable_if_t<not std::is_same_v<DataType, longfist::types::Instrument>>
-  UpdateLedger(const boost::hana::basic_type<DataType> &type) {
-    for (auto &pair : data_bank_[type]) {
-      auto &state = pair.second;
-      update_ledger(state.update_time, state.source, state.dest, state.data);
-    }
-  }
-
-  template <typename DataType>
-  std::enable_if_t<std::is_same_v<DataType, longfist::types::Instrument>>
-  UpdateLedger(const boost::hana::basic_type<DataType> &type) {
+  template <typename DataType> void UpdateLedger(const boost::hana::basic_type<DataType> &type) {
     using DataTypeMap = std::unordered_map<uint64_t, state<DataType>>;
-    auto &instrument_map = const_cast<DataTypeMap &>(data_bank_[type]);
-    auto iter = instrument_map.begin();
+    auto &target_map = const_cast<DataTypeMap &>(data_bank_[type]);
+    auto iter = target_map.begin();
 
-    while (iter != instrument_map.end() and instrument_map.size() > 0) {
+    while (iter != target_map.end() and target_map.size() > 0) {
       auto &state = iter->second;
       update_ledger(state.update_time, state.source, state.dest, state.data);
-      iter = instrument_map.erase(iter);
+      iter = target_map.erase(iter);
     }
   }
 
@@ -278,7 +278,7 @@ private:
     auto &order_queue = trading_bank_[type];
     int i = 0;
     kungfu::state<DataType> *pstate = nullptr;
-    while (i < 1024 && order_queue.pop(pstate) && pstate != nullptr) {
+    while (i < longfist::TRADING_MAP_RING_SIZE && order_queue.pop(pstate) && pstate != nullptr) {
       update_ledger(pstate->update_time, pstate->source, pstate->dest, pstate->data);
       i++;
     }

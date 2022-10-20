@@ -8,119 +8,161 @@
 
 namespace kungfu::yijinjing::nanomsg {
 
-const char *nn_exception::what() const throw() { return nn_strerror(errno_); }
+const char *nn_exception::what() const throw() { return nng_strerror(errno_); }
 
 int nn_exception::num() const { return errno_; }
 
-socket::socket(int domain, protocol p, int buffer_size) : protocol_(p), buf_(buffer_size) {
-  sock_ = nn_socket(domain, static_cast<int>(p));
-  if (sock_ < 0) {
-    SPDLOG_DEBUG("can not create socket");
-    throw nn_exception();
-  }
-}
-
-socket::~socket() { nn_close(sock_); }
-
-void socket::setsockopt(int level, int option, const void *optval, size_t optvallen) {
-  int rc = nn_setsockopt(sock_, level, option, optval, optvallen);
-  if (rc != 0) {
-    SPDLOG_DEBUG("can not setsockopt");
-    throw nn_exception();
-  }
-}
-
-void socket::setsockopt_str(int level, int option, std::string value) {
-  setsockopt(level, option, value.c_str(), value.length());
-}
-
-void socket::setsockopt_int(int level, int option, int value) { setsockopt(level, option, &value, sizeof(value)); }
-
-void socket::getsockopt(int level, int option, void *optval, size_t *optvallen) {
-  int rc = nn_getsockopt(sock_, level, option, optval, optvallen);
-  if (rc != 0) {
-    SPDLOG_DEBUG("can not getsockopt");
-    throw nn_exception();
-  }
-}
-
-int socket::getsockopt_int(int level, int option) {
+socket::socket(protocol p, int buffer_size) : protocol_(p), buf_size_(buffer_size) {
   int rc;
-  size_t s = sizeof(rc);
-  getsockopt(level, option, &rc, &s);
-  return rc;
-}
-
-int socket::bind(const std::string &path) {
-  url_ = "ipc://" + path;
-  int rc = nn_bind(sock_, url_.c_str());
-  if (rc < 0) {
-    SPDLOG_ERROR("can not bind to {}", url_);
-    throw nn_exception();
+  switch (p) {
+  case protocol::REPLY:
+    rc = nng_rep0_open(&sock_);
+    break;
+  case protocol::REQUEST:
+    rc = nng_req0_open(&sock_);
+    break;
+  case protocol::PUSH:
+    rc = nng_push0_open(&sock_);
+    break;
+  case protocol::PULL:
+    rc = nng_pull0_open(&sock_);
+    break;
+  case protocol::PUBLISH:
+    rc = nng_pub0_open(&sock_);
+    break;
+  case protocol::SUBSCRIBE:
+    rc = nng_sub0_open(&sock_);
+    break;
+  default:
+    SPDLOG_ERROR("unsupportted protocol {}", int(p));
   }
-  return rc;
-}
 
-int socket::connect(const std::string &path) {
-  url_ = "ipc://" + path;
-  int rc = nn_connect(sock_, url_.c_str());
-  if (rc < 0) {
-    SPDLOG_ERROR("can not connect to {}", url_);
-    throw nn_exception();
-  }
-  return rc;
-}
-
-void socket::shutdown(int how) {
-  int rc = nn_shutdown(sock_, how);
   if (rc != 0) {
-    SPDLOG_DEBUG("can not shutdown");
-    throw nn_exception();
+    SPDLOG_ERROR("can not create socket, protocol {}, error [{}] {}", int(p), rc, nng_strerror(rc));
+    throw nn_exception(rc);
   }
+}
+
+socket::~socket() { nng_close(sock_); }
+
+void socket::setsockopt(const char *opt, const void *val, size_t valsz) {
+  int rc = nng_socket_set(sock_, opt, val, valsz);
+  if (rc != 0) {
+    SPDLOG_ERROR("can not setsockopt, error [{}] {}", rc, nng_strerror(rc));
+    throw nn_exception(rc);
+  }
+}
+
+void socket::setsockopt_str(const char *opt, std::string value) { setsockopt(opt, value.c_str(), value.length()); }
+
+void socket::setsockopt_int(const char *opt, int value) {
+  int rc = nng_socket_set_int(sock_, opt, value);
+  if (rc != 0) {
+    SPDLOG_ERROR("can not setsockopt_int, error [{}] {}", rc, nng_strerror(rc));
+    throw nn_exception(rc);
+  }
+}
+
+void socket::setsockopt_ms(const char *opt, nng_duration value) {
+  int rc = nng_socket_set_ms(sock_, opt, value);
+  if (rc != 0) {
+    SPDLOG_ERROR("can not setsockopt_ms, error [{}] {}", rc, nng_strerror(rc));
+    throw nn_exception(rc);
+  }
+}
+
+void socket::getsockopt(const char *opt, void *val, size_t *valszp) {
+  int rc = nng_socket_get(sock_, opt, val, valszp);
+  if (rc != 0) {
+    SPDLOG_ERROR("can not getsockopt, error [{}] {}", rc, nng_strerror(rc));
+    throw nn_exception(rc);
+  }
+}
+
+int socket::getsockopt_int(const char *opt) {
+  int rc;
+  int value;
+  rc = nng_socket_get_int(sock_, opt, &value);
+  if (rc != 0) {
+    SPDLOG_ERROR("can not gesockopt_int, error [{}] {}", rc, nng_strerror(rc));
+    throw nn_exception(rc);
+  }
+  return value;
+}
+
+int socket::getsockopt_ms(const char *opt) {
+  int rc;
+  nng_duration value;
+  rc = nng_socket_get_ms(sock_, opt, &value);
+  if (rc != 0) {
+    SPDLOG_ERROR("can not getsockopt_ms, error [{}] {}", rc, nng_strerror(rc));
+    throw nn_exception(rc);
+  }
+  return value;
+}
+
+int socket::listen(const std::string &path, int flags) {
+  url_ = "ipc://" + path;
+  int rc = nng_listen(sock_, url_.c_str(), NULL, flags);
+  if (rc < 0) {
+    SPDLOG_ERROR("can not listen to {}, error [{}] {}", url_, rc, nng_strerror(rc));
+    throw nn_exception(rc);
+  }
+
+  return rc;
+}
+
+int socket::dial(const std::string &path, int flags) {
+  url_ = "ipc://" + path;
+  int rc = nng_dial(sock_, url_.c_str(), NULL, flags);
+  if (rc < 0) {
+    SPDLOG_ERROR("can not dial to {}, error [{}] {}", url_, rc, nng_strerror(rc));
+    throw nn_exception(rc);
+  }
+  return rc;
 }
 
 void socket::close() {
-  int rc = nn_close(sock_);
+  int rc = nng_close(sock_);
   if (rc != 0) {
-    SPDLOG_DEBUG("can not close");
-    throw nn_exception();
+    SPDLOG_ERROR("can not close, error [{}] {}", rc, nng_strerror(rc));
+    throw nn_exception(rc);
   }
 }
 
 int socket::send(const std::string &msg, int flags) const {
-  int rc = nn_send(sock_, msg.c_str(), msg.length(), flags);
-  if (rc < 0) {
-    if (nn_errno() != EAGAIN) {
-      SPDLOG_ERROR("can not send to {} errno [{}] {}", url_, nn_errno(), nn_strerror(nn_errno()));
-      throw nn_exception();
-    }
-    return -1;
+  int rc = nng_send(sock_, (void *)msg.c_str(), msg.length(), flags);
+  if (rc != 0 && rc != NNG_EAGAIN) {
+    SPDLOG_ERROR("can not send to {} error [{}] {}", url_, rc, nng_strerror(rc));
+    throw nn_exception(rc);
   }
   return rc;
 }
 
+int socket::send_json(const nlohmann::json &msg, int flags) const { return send(msg.dump(), flags); }
+
 int socket::recv(int flags) {
-  int rc = nn_recv(sock_, buf_.data(), buf_.size(), flags);
-  if (rc < 0) {
-    switch (nn_errno()) {
-    case ETIMEDOUT:
-    case EAGAIN:
+  int rc = nng_recv(sock_, &buf_, &buf_size_, flags);
+  if (rc != 0) {
+    switch (rc) {
+    case NNG_ETIMEDOUT:
+    case NNG_EAGAIN:
       break;
-    case EINTR: {
+    case NNG_EINTR: {
       SPDLOG_WARN("interrupted when receiving from [{}]", url_);
       break;
     }
     default: {
-      SPDLOG_ERROR("can not recv from [{}] errno [{}] {}", url_, nn_errno(), nn_strerror(nn_errno()));
-      throw nn_exception();
+      SPDLOG_ERROR("can not recv from {} errno [{}] {}", url_, rc, nng_strerror(rc));
+      throw nn_exception(rc);
     }
     }
-    message_.assign(buf_.data(), 0);
-    return 0;
+    message_.assign("", 0);
   } else {
-    message_.assign(buf_.data(), rc);
-    return rc;
+    message_.assign(buf_, buf_size_);
+    nng_free(buf_, buf_size_);
   }
+  return rc;
 }
 
 const std::string &socket::recv_msg(int flags) {
@@ -128,20 +170,13 @@ const std::string &socket::recv_msg(int flags) {
   return message_;
 }
 
-int socket::send_json(const nlohmann::json &msg, int flags) const { return send(msg.dump(), flags); }
-
 nlohmann::json socket::recv_json(int flags) {
   int rc = 0;
-  if ((rc = recv(flags)) > 0) {
+  if ((rc = recv(flags)) == 0) {
     SPDLOG_INFO("parsing json {} {}", rc, message_);
     return nlohmann::json::parse(message_);
   } else {
     return nlohmann::json();
   }
-}
-
-const std::string &socket::request(const std::string &json_message) {
-  send(json_message);
-  return recv_msg();
 }
 } // namespace kungfu::yijinjing::nanomsg

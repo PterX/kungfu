@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import {
   handleOpenLogview,
+  handleOpenJournalView,
   useDashboardBodySize,
   useTableSearchKeyword,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
@@ -14,6 +15,7 @@ import {
   FileTextOutlined,
   SettingOutlined,
   DeleteOutlined,
+  BankOutlined,
 } from '@ant-design/icons-vue';
 import { columns } from './config';
 import path from 'path';
@@ -33,6 +35,7 @@ import {
 } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
 import KfProcessStatus from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfProcessStatus.vue';
 import {
+  playSound,
   useAddUpdateRemoveKfConfig,
   useCurrentGlobalKfLocation,
   useExtConfigsRelated,
@@ -152,13 +155,18 @@ function handleSwitchProcessStatusResolved(
     });
 }
 
-function handleOpenLogviewResolved(record: Pm2ProcessStatusDetail) {
+function handleOpenViewResolved(
+  record: Pm2ProcessStatusDetail,
+  handleFunc: (
+    config: KungfuApi.KfLocation | KungfuApi.KfConfig,
+  ) => Promise<void | Electron.BrowserWindow>,
+) {
   const taskLocation = getStrategyKfLocationByProcessId(record?.name || '');
   if (!taskLocation) {
     error(`${record.name} ${t('tradingTaskConfig.illegal_process_id')}`);
     return;
   }
-  handleOpenLogview(taskLocation);
+  handleFunc(taskLocation);
 }
 
 function handleRemoveTask(record: Pm2ProcessStatusDetail) {
@@ -250,6 +258,8 @@ function parseTaskSettingsFromEnv(configSettingsEnv = '[]') {
   return configSettings;
 }
 
+const strategyStateMap: Record<string, string> = {};
+
 function getProcessStatusName(
   record: Pm2ProcessStatusDetail,
 ): ProcessStatusTypes | undefined {
@@ -257,7 +267,21 @@ function getProcessStatusName(
   if (!taskLocation) {
     return;
   }
-  return getStrategyStatusName(taskLocation);
+
+  const newState = getStrategyStatusName(taskLocation);
+  const oldState = strategyStateMap[record?.name || ''];
+
+  const isOldWarn = oldState === 'Warn' || oldState === 'Error';
+  const isNewWarn = newState === 'Warn' || newState === 'Error';
+  const oldNotEqualNew = isOldWarn && isNewWarn && oldState !== newState;
+
+  if ((!isOldWarn && isNewWarn) || oldNotEqualNew) {
+    playSound('warn');
+  }
+
+  strategyStateMap[record?.name || ''] = newState || '';
+
+  return newState;
 }
 </script>
 
@@ -319,9 +343,15 @@ function getProcessStatusName(
           </template>
           <template v-else-if="column.dataIndex === 'actions'">
             <div class="kf-actions__warp">
+              <BankOutlined
+                style="font-size: 12px"
+                @click.stop="
+                  handleOpenViewResolved(record, handleOpenJournalView)
+                "
+              ></BankOutlined>
               <FileTextOutlined
                 style="font-size: 12px"
-                @click.stop="handleOpenLogviewResolved(record)"
+                @click.stop="handleOpenViewResolved(record, handleOpenLogview)"
               />
               <SettingOutlined
                 style="font-size: 12px"

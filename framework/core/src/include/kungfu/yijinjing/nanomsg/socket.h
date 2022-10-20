@@ -9,25 +9,19 @@
 #include <cstring>
 #include <exception>
 
-#include <nng/compat/nanomsg/nn.h>
-#include <nng/compat/nanomsg/pipeline.h>
-#include <nng/compat/nanomsg/pubsub.h>
-#include <nng/compat/nanomsg/reqrep.h>
-
 #include <kungfu/yijinjing/common.h>
+#include <nng/nng.h>
+#include <nng/protocol/pipeline0/pull.h>
+#include <nng/protocol/pipeline0/push.h>
+#include <nng/protocol/pubsub0/pub.h>
+#include <nng/protocol/pubsub0/sub.h>
+#include <nng/protocol/reqrep0/rep.h>
+#include <nng/protocol/reqrep0/req.h>
 
 #define MAX_MSG_LENGTH 16 * 1024
 
 namespace kungfu::yijinjing::nanomsg {
-enum class protocol : int {
-  UNKNOWN = -1,
-  REPLY = NN_REP,
-  REQUEST = NN_REQ,
-  PUSH = NN_PUSH,
-  PULL = NN_PULL,
-  PUBLISH = NN_PUB,
-  SUBSCRIBE = NN_SUB
-};
+enum class protocol : int { UNKNOWN = -1, REPLY, REQUEST, PUSH, PULL, PUBLISH, SUBSCRIBE };
 
 inline std::string get_protocol_name(protocol p) {
   switch (p) {
@@ -69,16 +63,16 @@ inline protocol get_opposite_protol(protocol p) {
 
 class url_factory {
 public:
-  [[nodiscard]] virtual std::string make_path_bind(data::location_ptr location, protocol p) const = 0;
+  [[nodiscard]] virtual std::string make_path_listen(data::location_ptr location, protocol p) const = 0;
 
-  [[nodiscard]] virtual std::string make_path_connect(data::location_ptr location, protocol p) const = 0;
+  [[nodiscard]] virtual std::string make_path_dial(data::location_ptr location, protocol p) const = 0;
 };
 
 DECLARE_PTR(url_factory)
 
 class nn_exception : public std::exception {
 public:
-  nn_exception() : errno_(nn_errno()) {}
+  nn_exception(int err) : errno_(err) {}
 
   [[nodiscard]] virtual const char *what() const throw();
 
@@ -92,43 +86,42 @@ DECLARE_PTR(nn_exception)
 
 class socket {
 public:
-  socket(protocol p) : socket(AF_SP, p, MAX_MSG_LENGTH){};
+  socket(protocol p) : socket(p, MAX_MSG_LENGTH){};
 
-  socket(int domain, protocol p) : socket(domain, p, MAX_MSG_LENGTH){};
-
-  socket(int domain, protocol p, int buffer_size);
+  socket(protocol p, int buffer_size);
 
   ~socket();
 
-  void setsockopt(int level, int option, const void *optval, size_t optvallen);
+  void setsockopt(const char *opt, const void *val, size_t valsz);
 
-  void setsockopt_str(int level, int option, std::string value);
+  void setsockopt_str(const char *opt, std::string value);
 
-  void setsockopt_int(int level, int option, int value);
+  void setsockopt_int(const char *opt, int value);
 
-  void getsockopt(int level, int option, void *optval, size_t *optvallen);
+  void setsockopt_ms(const char *opt, int value);
 
-  int getsockopt_int(int level, int option);
+  void getsockopt(const char *opt, void *val, size_t *valszp);
 
-  int bind(const std::string &path);
+  int getsockopt_int(const char *opt);
 
-  int connect(const std::string &path);
+  int getsockopt_ms(const char *opt);
 
-  void shutdown(int how = 0);
+  int listen(const std::string &path, int flags = 0);
+
+  int dial(const std::string &path, int flags = 0);
 
   void close();
 
-  int send(const std::string &msg, int flags = NN_DONTWAIT) const;
+  // the flag for send must be NNG_FLAG_NONBLOCK, master may not started when this client is running
+  int send(const std::string &msg, int flags = NNG_FLAG_NONBLOCK) const;
 
-  int recv(int flags = NN_DONTWAIT);
+  int send_json(const nlohmann::json &msg, int flags = NNG_FLAG_NONBLOCK) const;
 
-  const std::string &recv_msg(int flags = NN_DONTWAIT);
+  int recv(int flags = NNG_FLAG_ALLOC);
 
-  int send_json(const nlohmann::json &msg, int flags = NN_DONTWAIT) const;
+  const std::string &recv_msg(int flags = NNG_FLAG_ALLOC);
 
-  nlohmann::json recv_json(int flags = 0);
-
-  const std::string &request(const std::string &json_message);
+  nlohmann::json recv_json(int flags = NNG_FLAG_ALLOC);
 
   [[nodiscard]] protocol get_protocol() const { return protocol_; };
 
@@ -137,10 +130,11 @@ public:
   [[nodiscard]] const std::string &last_message() const { return message_; };
 
 private:
-  int sock_;
+  nng_socket sock_ = NNG_SOCKET_INITIALIZER;
   protocol protocol_;
   std::string url_;
-  std::vector<char> buf_;
+  char *buf_ = NULL;
+  size_t buf_size_;
   std::string message_;
 
   /*  Prevent making copies of the socket by accident. */

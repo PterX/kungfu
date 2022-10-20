@@ -16,7 +16,6 @@
 #include <kungfu/common.h>
 #include <kungfu/longfist/longfist.h>
 #include <kungfu/yijinjing/journal/journal.h>
-#include <kungfu/yijinjing/journal/page.h>
 #include <kungfu/yijinjing/time.h>
 
 namespace kungfu::yijinjing::journal {

@@ -39,6 +39,15 @@ int64_t IntradayResumePolicy::get_resume_time(const apprentice &app, const Regis
   return std::max(app.get_last_active_time(), time::calendar_day_start(app.now()));
 }
 
+int64_t FromNowResumePolicy::get_connect_time(const apprentice &app, const Register &broker) const {
+  if (broker.checkin_time >= app.get_checkin_time()) {
+    return broker.checkin_time;
+  }
+  return get_resume_time(app, broker);
+}
+
+int64_t FromNowResumePolicy::get_resume_time(const apprentice &app, const Register &broker) const { return app.now(); }
+
 Client::Client(apprentice &app) : app_(app) {}
 
 const Client::InstrumentKeyMap &Client::get_instrument_keys() const { return instrument_keys_; }
@@ -51,6 +60,13 @@ bool Client::is_ready(uint32_t broker_location_uid) const {
     bool td_test = broker_location->category == category::TD and
                    ready_td_locations_.find(broker_location->uid) != ready_td_locations_.end();
     return md_test or td_test;
+  }
+  return false;
+}
+
+bool Client::is_connected(uint32_t broker_location_uid) const {
+  if (app_.has_location(broker_location_uid) and app_.has_writer(broker_location_uid)) {
+    return true;
   }
   return false;
 }
@@ -141,7 +157,7 @@ void Client::connect(const event_ptr &event, const Register &register_data) {
     app_.request_write_to(app_.now(), app_uid);
     app_.request_read_from(app_.now(), app_uid, resume_time_point);
     app_.request_read_from_public(app_.now(), app_uid, resume_time_point);
-    app_.request_read_from_sync(app_.now(), app_uid, resume_time_point); // 类似于request_read_from_public
+    app_.request_read_from_sync(app_.now(), app_uid, resume_time_point);
     SPDLOG_INFO("resume {} connection from {}", app_.get_location_uname(app_uid), time::strftime(resume_time_point));
   }
   if (app_location->category == category::STRATEGY and should_connect_strategy(app_location)) {
@@ -154,8 +170,7 @@ void Client::connect(const event_ptr &event, const Register &register_data) {
 
 void Client::update_broker_state(const event_ptr &event, const BrokerStateUpdate &state) {
   auto state_value = state.state;
-  auto broker_location = app_.get_location(event->source());
-
+  auto broker_location = app_.get_location(state.location_uid);
   bool state_ready = state_value == BrokerState::Ready;
   bool state_reset = state_value == BrokerState::Connected or state_value == BrokerState::DisConnected;
 
@@ -215,9 +230,9 @@ bool AutoClient::should_connect_strategy(const location_ptr &td_location) const 
 
 SilentAutoClient::SilentAutoClient(practice::apprentice &app) : AutoClient(app) {}
 
-bool SilentAutoClient::is_subscribed(const std::string &exchange_id, const std::string &instrument_id) const {
-  return false;
-}
+// bool SilentAutoClient::is_subscribed(const std::string &exchange_id, const std::string &instrument_id) const {
+//   return false;
+// }
 
 void SilentAutoClient::renew(int64_t trigger_time, const location_ptr &md_location) {}
 
@@ -239,7 +254,7 @@ bool PassiveClient::is_custom_subscribed_all(uint32_t md_location_uid,
 
     SubscribeInstrumentType custom_type = instrument_type_to_subscribe_instrument_type(kf_instrument_type);
 
-    for (auto it : custom_sub) {
+    for (const auto &it : custom_sub) {
       std::string custom_exchange("0");
       switch (it.market_type) {
       case MarketType::BSE:
@@ -275,7 +290,9 @@ bool PassiveClient::is_custom_subscribed_all(uint32_t md_location_uid,
       }
       if ((it.data_type == SubscribeDataType::All or (uint64_t(it.data_type) & uint64_t(secu_dt)) != 0) and
           (custom_exchange.empty() || custom_exchange.compare(exchange) == 0) and
-          ((uint64_t(custom_type) & uint64_t(it.instrument_type)) != 0)) {
+          (it.instrument_type == SubscribeInstrumentType::All or
+           (uint64_t(custom_type) & uint64_t(it.instrument_type)) != 0)) {
+        /// using & operator because it.instrument_type maybe InstrumentType::Stock | InstrumentType::Future
         return true;
       }
     }
@@ -307,7 +324,7 @@ void PassiveClient::subscribe(const location_ptr &md_location, const std::string
 
 void PassiveClient::subscribe_all(const location_ptr &md_location, uint8_t market_type, uint64_t instrument_type,
                                   uint64_t data_type) {
-  enrolled_md_locations_.emplace(md_location->uid, true);
+  enrolled_md_locations_.insert_or_assign(md_location->uid, true);
   CustomSubscribe custrom_sub = {};
   custrom_sub.market_type = MarketType(market_type);
   custrom_sub.instrument_type = SubscribeInstrumentType(instrument_type);

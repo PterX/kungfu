@@ -16,17 +16,24 @@ import {
   dealVolumeCondition,
   getIdByKfLocation,
   getMdTdKfLocationByProcessId,
+  isShotable,
+  isT0,
   kfLogger,
   resolveAccountId,
   resolveClientId,
 } from '../utils/busiUtils';
-import { HistoryDateEnum, LedgerCategoryEnum } from '../typings/enums';
+import {
+  HistoryDateEnum,
+  LedgerCategoryEnum,
+  InstrumentTypeEnum,
+} from '../typings/enums';
 import { ExchangeIds } from '../config/tradingConfig';
 
 export const kf = kungfu();
 
 kfLogger.info('Load kungfu node');
 
+export const assemble = kf.Assemble([KF_RUNTIME_DIR]);
 export const configStore = kf.ConfigStore(KF_RUNTIME_DIR);
 export const riskSettingStore = kf.RiskSettingStore(KF_RUNTIME_DIR);
 export const history = kf.History(KF_RUNTIME_DIR);
@@ -50,6 +57,11 @@ export const dealTradingDataItem = (
   isShowOrigin: boolean = false,
 ): Record<string, string | number | bigint> => {
   const itemResolved = { ...item } as Record<string, string | number | bigint>;
+  const instrument_type =
+    'instrument_type' in item
+      ? item.instrument_type
+      : InstrumentTypeEnum.unknown;
+  const isInstrumnetShotable = isShotable(instrument_type);
   if ('trade_time' in item && !isShowOrigin) {
     itemResolved.trade_time = dealKfTime(item.trade_time, true);
   }
@@ -66,7 +78,11 @@ export const dealTradingDataItem = (
     itemResolved.side = dealSide(item.side).name;
   }
   if ('offset' in item) {
-    itemResolved.offset = dealOffset(item.offset).name;
+    if (isInstrumnetShotable) {
+      itemResolved.offset = dealOffset(item.offset).name;
+    } else {
+      delete itemResolved.offset;
+    }
   }
   if ('status' in item) {
     itemResolved.status = dealOrderStatus(
@@ -79,13 +95,21 @@ export const dealTradingDataItem = (
   }
 
   if ('volume_condition' in item) {
-    itemResolved.volume_condition = dealVolumeCondition(
-      item.volume_condition,
-    ).name;
+    if (isInstrumnetShotable) {
+      itemResolved.volume_condition = dealVolumeCondition(
+        item.volume_condition,
+      ).name;
+    } else {
+      delete itemResolved.volume_condition;
+    }
   }
 
   if ('time_condition' in item) {
-    itemResolved.time_condition = dealTimeCondition(item.time_condition).name;
+    if (isInstrumnetShotable) {
+      itemResolved.time_condition = dealTimeCondition(item.time_condition).name;
+    } else {
+      delete itemResolved.time_condition;
+    }
   }
 
   if ('instrument_type' in item) {
@@ -94,10 +118,18 @@ export const dealTradingDataItem = (
     ).name;
   }
   if ('hedge_flag' in item) {
-    itemResolved.hedge_flag = dealHedgeFlag(item.hedge_flag).name;
+    if (isInstrumnetShotable) {
+      itemResolved.hedge_flag = dealHedgeFlag(item.hedge_flag).name;
+    } else {
+      delete itemResolved.hedge_flag;
+    }
   }
   if ('is_swap' in item) {
-    itemResolved.is_swap = dealIsSwap(item.is_swap).name;
+    if (isInstrumnetShotable) {
+      itemResolved.is_swap = dealIsSwap(item.is_swap).name;
+    } else {
+      delete itemResolved.is_swap;
+    }
   }
   if ('source' in item && 'dest' in item && watcher) {
     itemResolved.source = resolveAccountId(
@@ -135,7 +167,7 @@ export const getKungfuDataByDateRange = (
     'OrderInput',
   ];
 
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
       //by trading date
       if (dateType === HistoryDateEnum.tradingDate) {
@@ -143,6 +175,10 @@ export const getKungfuDataByDateRange = (
         const kungfuDataYesterday = history.selectPeriod(yesFrom, from);
         const kungfuDataFriday = history.selectPeriod(fridayFrom, fridayTo);
         const historyData: KungfuApi.TradingData | Record<string, unknown> = {};
+
+        if (!kungfuDataToday || !kungfuDataYesterday || !kungfuDataFriday)
+          return reject(new Error('database_locked'));
+
         dataTypeForHistory.forEach((key) => {
           if (key === 'Order' || key === 'Trade' || key === 'OrderInput') {
             historyData[key] = Object.assign(
@@ -162,6 +198,9 @@ export const getKungfuDataByDateRange = (
         resolve(historyData);
       } else {
         const kungfuDataToday = history.selectPeriod(from, to);
+
+        if (!kungfuDataToday) return reject(new Error('database_locked'));
+
         resolve(kungfuDataToday);
       }
       clearTimeout(timer);
@@ -182,14 +221,12 @@ export const getKungfuHistoryData = (
       if (tradingDataTypeName === 'all') {
         return {
           tradingData: tradingData as KungfuApi.TradingData,
-          historyDatas: [],
         };
       }
 
       if (!kfLocation) {
         return {
           tradingData: tradingData as KungfuApi.TradingData,
-          historyDatas: [],
         };
       }
 
@@ -205,7 +242,7 @@ export const kfRequestMarketData = (
   exchangeId: string,
   instrumentId: string,
   mdLocation: KungfuApi.KfLocation,
-): Promise<void> => {
+): Promise<boolean> => {
   if (!watcher) {
     return Promise.reject(new Error('Watcher is NULL'));
   }
@@ -344,9 +381,9 @@ export const kfMakeBlockOrder = async (
   if (blockMessage) {
     blockMessage = {
       ...blockMessage,
+      is_specific: !!blockMessage.is_specific,
       opponent_seat: +blockMessage.opponent_seat,
       match_number: BigInt(blockMessage.match_number),
-      value: JSON.stringify(blockMessage.value),
       insert_time: watcher.now(),
     };
     block_id = await watcher.issueBlockMessage(blockMessage, tdLocation);
@@ -558,6 +595,14 @@ export const dealTrade = (
   };
 };
 
+export const getPosClosableVolume = (position: KungfuApi.Position): bigint => {
+  return isShotable(position.instrument_type) || isT0(position.instrument_type)
+    ? BigInt(Math.max(+Number(position.volume - position.frozen_total), 0))
+    : BigInt(
+        Math.max(+Number(position.yesterday_volume - position.frozen_total), 0),
+      );
+};
+
 export const dealPosition = (
   watcher: KungfuApi.Watcher,
   pos: KungfuApi.Position,
@@ -567,8 +612,10 @@ export const dealPosition = (
     pos.ledger_category === LedgerCategoryEnum.td
       ? `${holderLocation.group}_${holderLocation.name}`
       : '--';
+  const closable_volume = getPosClosableVolume(pos);
   return {
     ...pos,
+    closable_volume,
     uid_key: pos.uid_key,
     account_id_resolved,
     instrument_id_resolved: `${pos.instrument_id} ${

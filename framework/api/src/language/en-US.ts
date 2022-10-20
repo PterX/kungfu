@@ -42,6 +42,7 @@ export default {
   clear_DB: 'Clear DB',
   reset_main_panel: 'Reset main panel',
   export_all_transaction_data: 'E`xport all transaction data',
+  view_all_journal: 'View all journal',
 
   website: 'Website',
   user_manual: 'User manual',
@@ -59,6 +60,7 @@ export default {
   open_window: 'Opening window',
   open_code_editor: 'Opening code editor',
   open_trading_task_view: 'Opening trading task view',
+  open_journal_dashboard: 'Opening journal dashboard',
   add_board: 'Add Board',
   select_board: 'Please select the board to add',
   add_board_error: 'Add board target error',
@@ -68,8 +70,9 @@ export default {
   add_config_modal:
     '{category} ID unique in the system. {changeTypeName} cannot be modified after it succeeds.',
   update_config_modal: 'Confirm {key} configurations',
+  database_locked: 'The database is occupied now, please wait and retry.',
 
-  MakeOrderDashboard: 'Order Dashboard',
+  MakeOrder: 'Order Dashboard',
   FutureArbitrage: 'Future Arbitrage',
   OrderBook: 'Order Book',
   MarketData: 'Market Data',
@@ -236,6 +239,7 @@ export default {
     side: 'Side',
     offset: 'Offset',
     limit_price: 'LimitPrice',
+    algorithm: 'Algorithm',
 
     make_order_number: 'Order Number',
     no_empty: 'Order quantity cannot be empty',
@@ -246,10 +250,14 @@ export default {
       'The buying price exceeded the warning line, the current price is {price}, line for {warningLine}, fat finger is {fatFinger}%',
     fat_finger_sell_modal:
       'The selling price exceeded the warning line, the current price is {price}, line for {warningLine}, fat finger is {fatFinger}%',
+    close_apart_open_modal:
+      'The order input volume is {volume}, the current closable {direction} position is {closable_volume}, the excess is {open_volume}\nclick “Take excess to open”, will close {direction} {closable_volume}, open {direction} {open_volume}\nclick “Orignal plan”, will continue close {direction} {volume}',
     start_process: 'please start {process} first',
     place_confirm: 'Place Order Confirm',
     close_all: 'Close All?',
     Continue: 'Continue',
+    original_plan: 'Orignal plan',
+    beyond_to_open: 'Take excess to open',
   },
 
   orderConfig: {
@@ -374,7 +382,10 @@ export default {
     yesterday_volume: 'yesterday_volume',
     today_volume: 'today_volume',
     sum_volume: 'sum_volume',
-    avg_open_price: 'avg_open_price',
+    frozen_total: 'frozen_total',
+    frozen_volume: 'frozen',
+    closable_volume: 'closable',
+    avg_open_price: 'avg_price',
     last_price: 'last_price',
     unrealized_pnl: 'unrealized_pnl',
   },
@@ -390,6 +401,25 @@ export default {
 
     subscribe_btn: 'Subscribe',
     add_market: 'Add',
+  },
+
+  journalConfig: {
+    begin_time: 'begin_time',
+    end_time: 'end_time',
+    is_closed: 'is_end',
+
+    dest: 'destination',
+    source: 'source',
+    gen_time: 'gen_time',
+    trigger_time: 'trigger_time',
+    msg_type: 'msg_type',
+
+    export: 'Export',
+    export_file_path: 'export_file_path',
+    need_directroy: 'Only allow directroy',
+    export_success: 'Export success',
+
+    loading_journal: 'Loading journal...',
   },
 
   tradeConfig: {
@@ -447,11 +477,8 @@ export default {
     limit_price: 'limit_price',
     volume: 'volume',
     opponent_seat: 'opponent_seat',
-    opponent_account: 'opponent_account',
     match_number: 'match_number',
-    linkman: 'linkman',
-    contact_way: 'contact_way',
-    underweight_type: 'underweight_type',
+    is_specific: 'is_specific',
 
     unrestricted_shares: 'Unrestricted shares',
     restricted_shares: 'Restricted shares',

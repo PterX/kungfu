@@ -44,6 +44,7 @@ protected:
 
 private:
   bool positions_requested_ = false;
+  bool broker_states_requested_ = false;
   bool positions_set_;
   bool started_;
   std::vector<Strategy_ptr> strategies_ = {};
@@ -94,6 +95,9 @@ private:
   };
   DECLARE_PTR(BookListener);
 };
+
+static const int64_t NANO_MILLISECOND = int64_t(1000000);
+
 } // namespace kungfu::wingchun::strategy
 
 #endif // WINGCHUN_RUNNER_H

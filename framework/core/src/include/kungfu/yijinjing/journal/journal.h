@@ -16,14 +16,13 @@
 #ifndef YIJINJING_JOURNAL_H
 #define YIJINJING_JOURNAL_H
 
-#include <mutex>
-
 #include <kungfu/common.h>
 #include <kungfu/longfist/longfist.h>
 #include <kungfu/yijinjing/journal/common.h>
 #include <kungfu/yijinjing/journal/frame.h>
 #include <kungfu/yijinjing/journal/page.h>
 #include <kungfu/yijinjing/time.h>
+#include <mutex>
 
 namespace kungfu::yijinjing::journal {
 /**

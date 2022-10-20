@@ -20,6 +20,7 @@ import {
   StrategyExtTypes,
   UnderweightEnum,
   OrderInputKeyEnum,
+  FrameMsgTypeEnum,
 } from '../typings/enums';
 
 import { Pm2ProcessStatusTypes } from '../utils/processUtils';
@@ -491,6 +492,11 @@ export const ShotableInstrumentTypes = [
   InstrumentTypeEnum.multi,
 ];
 
+export const T0InstrumentTypes = [
+  InstrumentTypeEnum.future,
+  InstrumentTypeEnum.bond,
+];
+
 export const AbleSubscribeInstrumentTypesBySourceType: Record<
   InstrumentTypes,
   InstrumentTypeEnum[]
@@ -675,4 +681,48 @@ export const SystemProcessName: Record<
   ledger: { name: t('tradingConfig.ledger') },
   cached: { name: t('tradingConfig.cached') },
   archive: { name: t('tradingConfig.archive') },
+};
+
+export const JournalFrameMsgType: Partial<
+  Record<
+    FrameMsgTypeEnum,
+    KungfuApi.KfTradeValueCommonData | { name: string; color: string }
+  >
+> = {
+  [FrameMsgTypeEnum.Order]: {
+    name: 'Order',
+    color: 'rgb(245, 34, 45)',
+  },
+  [FrameMsgTypeEnum.OrderInput]: {
+    name: 'OrderInput',
+    color: 'rgb(250, 84, 28)',
+  },
+  [FrameMsgTypeEnum.Trade]: {
+    name: 'Trade',
+    color: 'rgb(250, 140, 22)',
+  },
+  [FrameMsgTypeEnum.Position]: {
+    name: 'Position',
+    color: 'rgb(250, 219, 20)',
+  },
+  [FrameMsgTypeEnum.Asset]: {
+    name: 'Asset',
+    color: 'rgb(160, 217, 17)',
+  },
+  [FrameMsgTypeEnum.AssetMargin]: {
+    name: 'AssetMargin',
+    color: 'rgb(82, 196, 26)',
+  },
+  [FrameMsgTypeEnum.Quote]: {
+    name: 'Quote',
+    color: 'rgb(24, 144, 255)',
+  },
+  [FrameMsgTypeEnum.Entrust]: {
+    name: 'Entrust',
+    color: 'rgb(47, 84, 235)',
+  },
+  [FrameMsgTypeEnum.Transaction]: {
+    name: 'Transaction',
+    color: 'rgb(83, 29, 171)',
+  },
 };

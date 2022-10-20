@@ -20,6 +20,20 @@ const languageDir = path.join(root, 'language');
 const languageFile = path.join(languageDir, 'locale.json');
 const languageCNMergeFile = path.join(languageDir, 'zh-CN-merge.json');
 const languageENMergeFile = path.join(languageDir, 'en-US-merge.json');
+const configDir = path.join(root, 'config');
+const defaultInstrumentsJson = path.join(configDir, 'defaultInstruments.json');
+const rootPackageJson = require(path.join(root, 'package.json'));
+const appLibPackageJsonDir = path.join(appDir, 'lib', 'electron');
+const appLibPackageMergeJson = require(path.join(
+  appLibPackageJsonDir,
+  'package.merge.json',
+));
+const appLibPackageJsonPath = path.join(appLibPackageJsonDir, 'package.json');
+
+fse.writeJsonSync(appLibPackageJsonPath, {
+  ...rootPackageJson,
+  ...appLibPackageMergeJson,
+});
 
 const extensions = extensionDirs.map((fullpath) => {
   const extensionDir = path.resolve(fullpath, 'dist');
@@ -44,6 +58,10 @@ if (fse.existsSync(languageENMergeFile)) {
   console.log(`-- Found language en merge file ${languageENMergeFile}`);
 }
 
+if (fse.existsSync(defaultInstrumentsJson)) {
+  console.log(`-- Found defaultInstruments json ${defaultInstrumentsJson}`);
+}
+
 module.exports = {
   generateUpdatesFilesForAllChannels: true,
   appId: 'Kungfu.Origin.KungFu.Trader',
@@ -60,6 +78,7 @@ module.exports = {
     'dist/app/**/*',
     'dist/cli/**/*',
     'dist/kfs/**/*',
+    '!dist/kfs/native_modules/dist/**/*', //由于sdk依赖了app的electronBuilder方法, 所以会把electron打包进去, 需要过滤掉
     '!**/@kungfu-trader/kfx-*/**/*',
     '!**/@kungfu-trader/kungfu-sdk/**/*',
     '**/@kungfu-trader/kungfu-sdk/templates/**/*',
@@ -97,6 +116,9 @@ module.exports = {
         'public/keywords',
         'public/music',
         'public/language',
+        ...(fse.existsSync(defaultInstrumentsJson)
+          ? ['!public/config/defaultInstruments.json']
+          : []),
       ],
     },
     {
@@ -115,6 +137,14 @@ module.exports = {
             from: languageDir,
             to: 'app/dist/public/language',
             filter: ['locale.json', 'zh-CN-merge.json', 'en-US-merge.json'],
+          },
+        ]
+      : []),
+    ...(fse.existsSync(defaultInstrumentsJson)
+      ? [
+          {
+            from: defaultInstrumentsJson,
+            to: 'app/dist/public/config/defaultInstruments.json',
           },
         ]
       : []),

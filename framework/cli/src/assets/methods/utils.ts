@@ -87,7 +87,11 @@ export const getPromptQuestionsBySettings = (
 ): Promise<KungfuApi.KfConfigValue> => {
   const formState = initFormStateByConfig(settings, initValue || {});
   const questions = settings.map((item) =>
-    buildQuestionByKfConfigItem(item, formState[item.key], !!initValue),
+    buildQuestionByKfConfigItem(
+      item,
+      item.type === 'password' ? '' : formState[item.key],
+      !!initValue,
+    ),
   );
 
   return inquirer
@@ -167,6 +171,8 @@ export const buildQuestionByKfConfigItem = (
 
       return true;
     },
+
+    ...(targetType === 'path' ? { cwd: process.cwd().toString() } : {}),
   };
 
   if (value !== undefined && value !== '' && value !== 0) {
@@ -340,6 +346,36 @@ export const getCategoryName = (category: KfCategoryTypes) => {
     return colors.green('Daem');
   } else {
     return colors.bgMagenta('Sys');
+  }
+};
+
+export const dealKfConfigValue = async (
+  kfConfig: KungfuApi.KfConfig,
+  extConfigs: KungfuApi.KfExtConfigs,
+) => {
+  const extConfig =
+    await globalThis.HookKeeper.getHooks().resolveExtConfig.trigger(
+      kfConfig,
+      extConfigs[kfConfig.category][kfConfig.group],
+    );
+
+  try {
+    const settingsMap = extConfig?.settings.reduce((pre, item) => {
+      pre[item.key] = item.type;
+      return pre;
+    }, {});
+
+    const kfConfigValue = JSON.parse(kfConfig.value);
+    return JSON.stringify(
+      Object.keys(kfConfigValue).reduce((pre, key) => {
+        if (settingsMap[key] === 'password') {
+          pre[key] = '******';
+        }
+        return pre;
+      }, kfConfigValue),
+    );
+  } catch (error) {
+    return kfConfig.value;
   }
 };
 

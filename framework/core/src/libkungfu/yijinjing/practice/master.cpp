@@ -34,6 +34,40 @@ master::master(location_ptr home, bool low_latency)
 }
 
 void master::on_exit() {
+  notify_deregister_on_exit();
+  mark_session_end_on_exit();
+  notify_master_deregister_on_exit();
+}
+
+void master::notify_deregister_on_exit() {
+  auto now = time::now_in_nano();
+  auto &live_sessions = session_builder_.close_all_sessions(now);
+  for (auto &iter : live_sessions) {
+    auto &session = iter.second;
+    auto location_from_session = location::make_shared(session, get_locator());
+    if (session.location_uid != master_home_location_->uid) {
+      get_writer(location::PUBLIC)->write(now, location_from_session->to<Deregister>());
+    }
+  }
+}
+
+// after finished sending deregisters of other processes, then tell everyone master down
+void master::notify_master_deregister_on_exit() {
+  auto now = time::now_in_nano();
+  auto &live_sessions = session_builder_.close_all_sessions(now);
+  for (auto &iter : live_sessions) {
+    auto &session = iter.second;
+
+    if (has_writer(session.location_uid)) {
+      auto writer = get_writer(session.location_uid);
+      writer->write(now, master_home_location_->to<Deregister>());
+    } else {
+      SPDLOG_WARN("no writer {} {}", session.location_uid, get_location_uname(session.location_uid));
+    }
+  }
+}
+
+void master::mark_session_end_on_exit() {
   auto now = time::now_in_nano();
   get_writer(location::PUBLIC)->mark(now, SessionEnd::tag);
   auto &live_sessions = session_builder_.close_all_sessions(now);
@@ -42,6 +76,8 @@ void master::on_exit() {
     if (has_writer(session.location_uid)) {
       auto writer = get_writer(session.location_uid);
       writer->mark(now, SessionEnd::tag);
+    } else {
+      SPDLOG_WARN("no writer {} {}", session.location_uid, get_location_uname(session.location_uid));
     }
   }
 }
@@ -125,6 +161,17 @@ void master::react() {
   events_ | is(RequestReadFrom::tag) | $$(check_cached_ready_to_read(event));
   events_ | is(RequestReadFromPublic::tag) | $$(on_request_read_from_public(event));
   events_ | is(RequestReadFromSync::tag) | $$(on_request_read_from_sync(event));
+  // for watcher request stop master in widnows
+  events_ | is(RequestStop::tag) | filter([&](const event_ptr &event) {
+    auto dest = event->dest();
+    if (has_location(dest)) {
+      auto dest_location = get_location(dest);
+      if (dest_location->category == category::SYSTEM and dest_location->group == "master") {
+        return true;
+      }
+    }
+    return false;
+  }) | $$(signal_stop());
   events_ | is(ChannelRequest::tag) | $$(on_channel_request(event));
   events_ | is(TimeRequest::tag) | $$(on_time_request(event));
   events_ | is(Location::tag) | $$(on_new_location(event));
@@ -176,8 +223,12 @@ void master::check_cached_ready_to_read(const event_ptr &event) {
   auto read_from_source_id = request.source_id;
 
   if (read_from_source_id == cached_home_location_->uid) {
-    auto app_cmd_writer = get_writer(app_uid);
-    app_cmd_writer->mark(now(), CachedReadyToRead::tag);
+    if (has_writer(app_uid)) {
+      auto app_cmd_writer = get_writer(app_uid);
+      app_cmd_writer->mark(now(), CachedReadyToRead::tag);
+    } else {
+      SPDLOG_WARN("no writer {} {}", app_uid, get_location_uname(app_uid));
+    }
   }
 }
 
@@ -197,6 +248,7 @@ void master::on_request_write_to(const event_ptr &event) {
   const RequestWriteTo &request = event->data<RequestWriteTo>();
   auto trigger_time = event->gen_time();
   auto app_uid = event->source();
+  SPDLOG_INFO("on_request_write_to for {} to {}", get_location_uname(app_uid), get_location_uname(request.dest_id));
   if (not is_location_live(app_uid)) {
     return;
   }
@@ -216,6 +268,7 @@ void master::on_request_read_from(const event_ptr &event) {
   const RequestReadFrom &request = event->data<RequestReadFrom>();
   auto trigger_time = event->gen_time();
   auto app_uid = event->source();
+  SPDLOG_INFO("on_request_read_from for {} to {}", get_location_uname(app_uid), get_location_uname(request.source_id));
   if (not check_location_live(request.source_id, app_uid)) {
     return;
   }
@@ -242,10 +295,15 @@ void master::on_request_read_from_sync(const event_ptr &event) {
 void master::on_request_cached_done(const event_ptr &event) {
   auto request_cached_done_data = event->data<RequestCachedDone>();
   auto app_uid = request_cached_done_data.dest_id;
-  auto app_cmd_writer = get_writer(app_uid);
-  app_cmd_writer->mark(now(), RequestStart::tag);
-  write_registries(event->gen_time(), app_cmd_writer);
-  write_channels(event->gen_time(), app_cmd_writer);
+
+  if (has_writer(app_uid)) {
+    auto app_cmd_writer = get_writer(app_uid);
+    app_cmd_writer->mark(now(), RequestStart::tag);
+    write_registries(event->gen_time(), app_cmd_writer);
+    write_channels(event->gen_time(), app_cmd_writer);
+  } else {
+    SPDLOG_WARN("no writer {} {}", app_uid, get_location_uname(app_uid));
+  }
 }
 
 void master::on_channel_request(const event_ptr &event) {

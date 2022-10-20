@@ -17,8 +17,8 @@ namespace kungfu::wingchun::broker {
  * Policy interface to decide the time point to resume when connecting to a broker.
  */
 struct ResumePolicy {
-  [[nodiscard]] int64_t get_connect_time(const yijinjing::practice::apprentice &app,
-                                         const longfist::types::Register &broker) const;
+  [[nodiscard]] virtual int64_t get_connect_time(const yijinjing::practice::apprentice &app,
+                                                 const longfist::types::Register &broker) const;
 
   [[nodiscard]] virtual int64_t get_resume_time(const yijinjing::practice::apprentice &app,
                                                 const longfist::types::Register &broker) const = 0;
@@ -49,6 +49,14 @@ struct IntradayResumePolicy : public ResumePolicy {
                                         const longfist::types::Register &broker) const override;
 };
 
+struct FromNowResumePolicy : public ResumePolicy {
+  [[nodiscard]] int64_t get_connect_time(const yijinjing::practice::apprentice &app,
+                                         const longfist::types::Register &broker) const override;
+
+  [[nodiscard]] int64_t get_resume_time(const yijinjing::practice::apprentice &app,
+                                        const longfist::types::Register &broker) const override;
+};
+
 /**
  * Manage connections to brokers.
  */
@@ -68,6 +76,8 @@ public:
   [[nodiscard]] const InstrumentKeyMap &get_instrument_keys() const;
 
   [[nodiscard]] virtual bool is_ready(uint32_t broker_location_uid) const;
+
+  [[nodiscard]] virtual bool is_connected(uint32_t broker_location_uid) const;
 
   [[nodiscard]] virtual bool is_custom_subscribed(uint32_t md_location_uid) const = 0;
 
@@ -171,7 +181,7 @@ class SilentAutoClient : public AutoClient {
 public:
   explicit SilentAutoClient(yijinjing::practice::apprentice &app);
 
-  [[nodiscard]] bool is_subscribed(const std::string &exchange_id, const std::string &instrument_id) const override;
+  // [[nodiscard]] bool is_subscribed(const std::string &exchange_id, const std::string &instrument_id) const override;
 
   void renew(int64_t trigger_time, const yijinjing::data::location_ptr &md_location) override;
 
@@ -223,7 +233,7 @@ protected:
   [[nodiscard]] bool should_connect_strategy(const yijinjing::data::location_ptr &md_location) const override;
 
 private:
-  IntradayResumePolicy resume_policy_ = {};
+  FromNowResumePolicy resume_policy_ = {};
   CustomSubscribeMap custom_subs_ = {};
   EnrollmentMap enrolled_md_locations_ = {};
   EnrollmentMap enrolled_td_locations_ = {};
@@ -232,7 +242,7 @@ private:
 template <typename DataType>
 static constexpr auto is_md_datatype_v =
     std::is_same_v<DataType, longfist::types::Quote> or std::is_same_v<DataType, longfist::types::Entrust> or
-    std::is_same_v<DataType, longfist::types::Transaction> or std::is_same_v<DataType, longfist::types::Bar>;
+    std::is_same_v<DataType, longfist::types::Transaction>;
 
 template <typename DataType, std::enable_if_t<is_md_datatype_v<DataType>>...>
 static constexpr auto is_own(const Client &broker_client) {
@@ -240,12 +250,11 @@ static constexpr auto is_own(const Client &broker_client) {
     if (event->msg_type() == DataType::tag) {
       const DataType &data = event->data<DataType>();
       if (broker_client.is_custom_subscribed(event->source())) {
-        if (((std::is_same_v<DataType, longfist::types::Quote> ||
-              std::is_same_v<DataType, longfist::types::Bar>)&&broker_client
-                 .is_custom_subscribed_all(
-                     event->source(), kungfu::longfist::enums::SubscribeDataType::Snapshot,
-                     std::string(data.exchange_id.value),
-                     kungfu::wingchun::get_instrument_type(data.exchange_id, data.instrument_id))) ||
+        if ((std::is_same_v<DataType, longfist::types::Quote> &&
+             broker_client.is_custom_subscribed_all(
+                 event->source(), kungfu::longfist::enums::SubscribeDataType::Snapshot,
+                 std::string(data.exchange_id.value),
+                 kungfu::wingchun::get_instrument_type(data.exchange_id, data.instrument_id))) ||
             (std::is_same_v<DataType, longfist::types::Transaction> &&
              broker_client.is_custom_subscribed_all(
                  event->source(), kungfu::longfist::enums::SubscribeDataType::Transaction,

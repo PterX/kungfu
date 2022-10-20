@@ -216,12 +216,13 @@ void bind(pybind11::module &&m) {
 
   py::class_<socket, socket_ptr>(m, "socket")
       .def(py::init<protocol>(), py::arg("protocol"))
-      .def("setsockopt", &socket::setsockopt_str, py::arg("level"), py::arg("option"), py::arg("value"))
-      .def("setsockopt", &socket::setsockopt_int, py::arg("level"), py::arg("option"), py::arg("value"))
-      .def("getsockopt", &socket::getsockopt_int, py::arg("level"), py::arg("option"))
-      .def("bind", &socket::bind, py::arg("url"))
-      .def("connect", &socket::connect, py::arg("url"))
-      .def("shutdown", &socket::shutdown, py::arg("how") = 0)
+      .def("setsockopt", &socket::setsockopt_str, py::arg("option"), py::arg("value"))
+      .def("setsockopt", &socket::setsockopt_int, py::arg("option"), py::arg("value"))
+      .def("setsockopt", &socket::setsockopt_ms, py::arg("option"), py::arg("value"))
+      .def("getsockopt", &socket::getsockopt_int, py::arg("option"))
+      .def("getsockopt", &socket::getsockopt_ms, py::arg("option"))
+      .def("listen", &socket::listen, py::arg("url"), py::arg("flags") = 0)
+      .def("dial", &socket::dial, py::arg("url"), py::arg("flags") = 0)
       .def("close", &socket::close)
       .def("send", &socket::send, py::arg("msg"), py::arg("flags") = 0)
       .def("recv", &socket::recv_msg, py::arg("flags") = 0)
@@ -289,9 +290,7 @@ void bind(pybind11::module &&m) {
       .def("setup", &io_device::setup)
       .def("open_reader", &io_device::open_reader)
       .def("open_reader_to_subscribe", &io_device::open_reader_to_subscribe)
-      .def("open_writer", &io_device::open_writer)
-      .def("connect_socket", &io_device::connect_socket, py::arg("location"), py::arg("protocol"),
-           py::arg("timeout") = 0);
+      .def("open_writer", &io_device::open_writer);
 
   py::class_<io_device_master, io_device, io_device_master_ptr>(m, "io_device_master")
       .def(py::init<location_ptr, bool>(), py::arg("home"), py::arg("low_latency"));

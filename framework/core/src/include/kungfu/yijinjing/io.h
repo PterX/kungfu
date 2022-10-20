@@ -55,10 +55,6 @@ public:
 
   journal::writer_ptr open_writer_at(const data::location_ptr &location, uint32_t dest_id);
 
-  nanomsg::socket_ptr connect_socket(const data::location_ptr &location, const nanomsg::protocol &p, int timeout = 0);
-
-  nanomsg::socket_ptr bind_socket(const nanomsg::protocol &p, int timeout = 0);
-
   [[nodiscard]] nanomsg::url_factory_ptr get_url_factory() const { return url_factory_; }
 
   [[nodiscard]] publisher_ptr get_publisher() { return publisher_; }

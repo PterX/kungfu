@@ -5,6 +5,7 @@ import { KfHookKeeper } from '../hooks';
 declare global {
   interface Window {
     watcher: Watcher | null;
+    assemble: Assemble;
     kungfu: Kungfu;
     workers: Record<string, WebpackWorker>;
     fileId: number;
@@ -24,6 +25,8 @@ declare global {
       ELECTRON_ENABLE_STACK_DUMPING: boolean;
       RELOAD_AFTER_CRASHED: 'true' | 'false' | undefined; // 需要作为pm2 env参数传递，为了统一识别，用string
       BY_PASS_RESTORE: boolean;
+      BY_PASS_ACCOUNTING: boolean;
+      BY_PASS_TRADINGDATA: boolean;
     }
 
     interface Process {

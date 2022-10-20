@@ -51,11 +51,11 @@ locator_ptr IODevice::GetLocator(const Napi::CallbackInfo &info, int index) {
 }
 
 location_ptr IODevice::GetLocation(const Napi::CallbackInfo &info) {
-  longfist::enums::category c = longfist::enums::get_category_by_name(info[0].As<Napi::String>().Utf8Value());
-  auto group = info[1].As<Napi::String>().Utf8Value();
-  auto name = info[2].As<Napi::String>().Utf8Value();
-  longfist::enums::mode m = get_mode_by_name(info[3].As<Napi::String>().Utf8Value());
-  return std::make_shared<location>(m, c, group, name, GetLocator(info, 4));
+  kungfu::longfist::enums::mode m = (kungfu::longfist::enums::mode)(info[0].ToNumber().Uint32Value());
+  kungfu::longfist::enums::category c = (kungfu::longfist::enums::category)(info[1].ToNumber().Uint32Value());
+  std::string group = info[2].ToString().Utf8Value();
+  std::string name = info[3].ToString().Utf8Value();
+  return std::make_shared<location>(m, c, group, name, GetDefaultRuntimeLocator());
 }
 
 void IODevice::Init(Napi::Env env, Napi::Object exports) {

@@ -62,21 +62,22 @@ export function showKungfuInfo(): void {
 }
 
 function KillAll(): Promise<void> {
+  //不需要加killdaemon
   return new Promise((resolve) => {
     pm2Kill()
-      .catch((err) => kfLogger.error(err.message))
+      .catch((err) => kfLogger.error(err))
       .finally(() => {
         killKfc()
-          .catch((err) => kfLogger.error(err.message))
+          .catch((err) => kfLogger.error(err))
           .finally(() => {
             killKungfu()
-              .catch((err) => kfLogger.error(err.message))
+              .catch((err) => kfLogger.error(err))
               .finally(() => {
                 killExtra()
-                  .catch((err) => kfLogger.error(err.message))
+                  .catch((err) => kfLogger.error(err))
                   .finally(() => {
                     deleteNNFiles()
-                      .catch((err) => kfLogger.error(err.message))
+                      .catch((err) => kfLogger.error(err))
                       .finally(() => {
                         resolve();
                       });

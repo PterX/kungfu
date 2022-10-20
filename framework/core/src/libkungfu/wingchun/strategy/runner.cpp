@@ -72,12 +72,11 @@ void Runner::post_start() {
 
   events_ | is_own<Quote>(context_->get_broker_client()) |
       $$(invoke(&Strategy::on_quote, event->data<Quote>(), get_location(event->source())));
-  events_ | is_own<Bar>(context_->get_broker_client()) |
-      $$(invoke(&Strategy::on_bar, event->data<Bar>(), get_location(event->source())));
   events_ | is_own<Entrust>(context_->get_broker_client()) |
       $$(invoke(&Strategy::on_entrust, event->data<Entrust>(), get_location(event->source())));
   events_ | is_own<Transaction>(context_->get_broker_client()) |
       $$(invoke(&Strategy::on_transaction, event->data<Transaction>(), get_location(event->source())));
+
   events_ | is(Order::tag) | $$(invoke(&Strategy::on_order, event->data<Order>(), get_location(event->source())));
   events_ | is(Trade::tag) | $$(invoke(&Strategy::on_trade, event->data<Trade>(), get_location(event->source())));
   events_ | is(HistoryOrder::tag) |
@@ -112,6 +111,27 @@ void Runner::prepare(const event_ptr &event) {
       context_->get_broker_client().subscribe(position.exchange_id, position.instrument_id);
     }
   }
+
+  auto ledger_uid = ledger_home_location_->uid;
+  if (not has_writer(ledger_uid)) {
+    return;
+  }
+  auto writer = get_writer(ledger_uid);
+
+  auto connected_test = [&](auto &locations) {
+    for (const auto &pair : locations) {
+      if (not context_->get_broker_client().is_connected(pair.second->uid)) {
+        return false;
+      }
+    }
+    return true;
+  };
+  if (not broker_states_requested_ and connected_test(context_->list_accounts()) and
+      connected_test(context_->list_md())) {
+    writer->mark(now(), BrokerStateRequest::tag);
+    broker_states_requested_ = true;
+  }
+
   auto ready_test = [&](auto &locations) {
     for (const auto &pair : locations) {
       if (not context_->get_broker_client().is_ready(pair.second->uid)) {
@@ -123,10 +143,8 @@ void Runner::prepare(const event_ptr &event) {
   if (not ready_test(context_->list_accounts()) or not ready_test(context_->list_md())) {
     return;
   }
-  auto ledger_uid = ledger_home_location_->uid;
-  if (not positions_requested_ and has_writer(ledger_uid)) {
-    auto writer = get_writer(ledger_uid);
 
+  if (not positions_requested_) {
     if (not context_->is_book_held()) {
       // Start - Let ledger prepare book for strategy
       writer->mark(now(), KeepPositionsRequest::tag);

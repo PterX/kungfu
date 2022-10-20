@@ -42,6 +42,7 @@ export default {
   clear_DB: '清理DB',
   reset_main_panel: '重置主面板',
   export_all_transaction_data: '导出所有交易数据',
+  view_all_journal: '查看所有journal',
 
   website: '官网',
   user_manual: '用户手册',
@@ -58,6 +59,7 @@ export default {
   clear: '清理 {content} 完成, 请重启应用',
   open_window: '正在打开窗口',
   open_code_editor: '正在打开代码编辑器',
+  open_journal_dashboard: '正在打开journal面板',
   open_trading_task_view: '正在打开交易任务视图',
   add_board: '添加面板',
   select_board: '请选择要添加的面板',
@@ -68,8 +70,9 @@ export default {
   add_config_modal:
     '{category}ID系统唯一, {changeTypeName} 成功后不可修改, 确认 {key}',
   update_config_modal: '确认{key} 相关配置',
+  database_locked: '当前数据库被其他进程占用，请稍后再试',
 
-  MakeOrderDashboard: '下单面板',
+  MakeOrder: '下单面板',
   FutureArbitrage: '套利指令',
   BlockTrade: '大宗交易',
   OrderBook: '深度行情',
@@ -152,7 +155,7 @@ export default {
     Limit: '[Limit] 限价',
     Market: '[Any] 市价',
     FakBest5: '[FakBest5] 上海深圳最优五档即时成交剩余撤销, 不需要报价',
-    Forward_best: '[ForwardBest] 深圳本方方最优价格申报',
+    Forward_best: '[ForwardBest] 深圳本方最优价格申报',
     Reverse_best:
       '[ReverseBest] 上海最优五档即时成交剩余转限价, 深圳对手方最优价格申报, 不需要报价',
     Fak: '[Fak] 深圳即时成交剩余撤销',
@@ -238,6 +241,7 @@ export default {
     side: '买卖',
     offset: '开平',
     limit_price: '下单价格',
+    algorithm: '算法',
 
     make_order_number: '下单次数',
     no_empty: '下单量不可为空',
@@ -248,10 +252,14 @@ export default {
       '买入价格超出警戒线, 当前价格为 {price}, 警戒线为 {warningLine}, 当前乌龙指阈值为 {fatFinger}%',
     fat_finger_sell_modal:
       '卖出价格超出警戒线, 当前价格为 {price}, 警戒线为 {warningLine}, 当前乌龙指阈值为 {fatFinger}%',
+    close_apart_open_modal:
+      '下单量为 {volume}, 当前标的可平{direction}仓为 {closable_volume}, 超出数量为 {open_volume}\n点击 “超出部分反向开仓”, 将会 平{direction} {closable_volume}, 开{direction} {open_volume}\n点击“按原方案下单”, 将会继续平{direction} {volume}',
     start_process: '请先启动{process}交易进程',
     place_confirm: '下单确认',
     close_all: '是否全部平仓?',
     Continue: '继续下单',
+    original_plan: '按原方案下单',
+    beyond_to_open: '超出部分反向开仓',
   },
 
   orderConfig: {
@@ -372,6 +380,9 @@ export default {
     yesterday_volume: '昨',
     today_volume: '今',
     sum_volume: '总',
+    frozen_total: '冻结数量',
+    frozen_volume: '冻结',
+    closable_volume: '可平',
     avg_open_price: '开仓均价',
     last_price: '最新价',
     unrealized_pnl: '浮动盈亏',
@@ -388,6 +399,30 @@ export default {
 
     subscribe_btn: '订阅',
     add_market: '添加自选',
+  },
+
+  journalConfig: {
+    session_id: 'Session ID',
+    begin_time: '开始时间',
+    end_time: '结束时间',
+    is_closed: '是否结束',
+
+    dest: '目标',
+    source: '源头',
+    gen_time: '生成时间',
+    trigger_time: '触发时间',
+    msg_type: '消息类型',
+
+    filters: '过滤器',
+    apply_filters: '应用过滤',
+
+    export: '导出',
+    export_file_path: '导出文件目录',
+    need_directroy: '请选择目录',
+    export_success: '导出成功',
+    directroy_be_valued: '导出目录不能为空',
+
+    loading_journal: '正在加载 journal',
   },
 
   tradeConfig: {
@@ -444,11 +479,8 @@ export default {
     limit_price: '价格',
     volume: '下单量',
     opponent_seat: '对方席位',
-    opponent_account: '对方股东',
     match_number: '约定序号',
-    linkman: '联系人',
-    contact_way: '联系方式',
-    underweight_type: '减持类型',
+    is_specific: '减持类型',
 
     unrestricted_shares: '非受限股份',
     restricted_shares: '受限股份',

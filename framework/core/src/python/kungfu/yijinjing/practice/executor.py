@@ -258,6 +258,10 @@ class RegistryJSONEncoder(json.JSONEncoder):
 
 
 def load_strategy(ctx, path, key):
+    ctx.logger.debug(f"loading strategy from {path}")
+    ctx.logger.debug(f"strategy key: {key}")
+    ctx.logger.debug(f"strategy dirname: {os.path.dirname(path)}")
+
     if path.endswith(".py"):
         return Strategy(ctx)  # keep strategy alive for pybind11
     elif key is not None and (path.endswith(".so") or path.endswith(".pyd")):
@@ -272,8 +276,9 @@ def load_strategy(ctx, path, key):
 def try_load_cpp_strategy(ctx, path, key):
     try:
         module = importlib.import_module(key)
+        ctx.logger.debug(f"import as cpp strategy success")
         return module.strategy()
     except Exception as e:
-        ctx.logger.info(f"fallback to python loader due to: {e}")
+        ctx.logger.debug(f"fallback to python loader due to: {e}")
         ctx.path = os.path.join(os.path.dirname(path), key)
         return Strategy(ctx)

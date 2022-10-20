@@ -4,6 +4,7 @@ import Icon, {
   FileTextOutlined,
   SettingOutlined,
   DeleteOutlined,
+  BankOutlined,
 } from '@ant-design/icons-vue';
 
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
@@ -16,6 +17,7 @@ import { columns } from './config';
 import {
   getInstrumentTypeColor,
   handleOpenLogview,
+  handleOpenJournalView,
   messagePrompt,
   useDashboardBodySize,
   useTableSearchKeyword,
@@ -223,6 +225,10 @@ function handleRemoveMd(record: KungfuApi.KfConfig) {
           </template>
           <template v-else-if="column.dataIndex === 'actions'">
             <div class="kf-actions__warp">
+              <BankOutlined
+                style="font-size: 12px"
+                @click.stop="handleOpenJournalView(record)"
+              ></BankOutlined>
               <FileTextOutlined
                 style="font-size: 12px"
                 @click.stop="handleOpenLogview(record)"

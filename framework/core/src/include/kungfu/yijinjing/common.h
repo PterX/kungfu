@@ -61,6 +61,8 @@ public:
 
   virtual bool wait() = 0;
 
+  virtual int get_recv_timeout() const = 0;
+
   virtual const std::string &get_notice() = 0;
 };
 

@@ -120,7 +120,6 @@ Watcher::Watcher(const Napi::CallbackInfo &info)
     config_store->profile_.setup();
   }
 
-  uv_work_.data = (void *)this;
   SPDLOG_INFO("Watcher created for {}", get_home_uname());
 
   // byPassRestore will be true after ui browserWindow reopen by crashed
@@ -130,6 +129,8 @@ Watcher::Watcher(const Napi::CallbackInfo &info)
 
   for (const auto &item : config_store->profile_.get_all(Location{})) {
     auto saved_location = location::make_shared(item, get_locator());
+    SPDLOG_INFO("saved_location->name {} uname {} location_uid {} category {} group {}", saved_location->name,
+                saved_location->uname, saved_location->location_uid, saved_location->category, saved_location->group);
     if (saved_location->category == longfist::enums::category::SYSTEM) {
       continue;
     }
@@ -227,6 +228,13 @@ Napi::Value Watcher::IsStarted(const Napi::CallbackInfo &info) { return Napi::Bo
 
 Napi::Value Watcher::RequestStop(const Napi::CallbackInfo &info) {
   auto app_location = ExtractLocation(info, 0, get_locator());
+
+  // stop master
+  if (app_location->category == category::SYSTEM && app_location->group == "master") {
+    get_writer(master_cmd_location_->uid)->mark(now(), RequestStop::tag);
+    return Napi::Boolean::New(info.Env(), true);
+  }
+
   if (not has_writer(app_location->uid)) {
     return Napi::Boolean::New(info.Env(), false);
   }
@@ -337,6 +345,7 @@ void Watcher::Init(Napi::Env env, Napi::Object exports) {
 }
 
 void Watcher::on_react() {
+  SPDLOG_INFO("watcher on react");
   events_ | is(Quote::tag) | is_subscribed(subscribed_instruments_) | $$(feed_state_data(event, data_bank_));
   events_ | is(Instrument::tag) | $$(Feed(event, event->data<Instrument>()));
   events_ | skip_while(while_is(Quote::tag)) | is_trading_data() | $$(feed_trading_data(event, trading_bank_));
@@ -358,14 +367,40 @@ void Watcher::on_start() {
     events_ | is(Trade::tag) | $$(UpdateBook(event, event->data<Trade>()));
     events_ | is(Position::tag) | $$(UpdateBook(event, event->data<Position>()));
     events_ | is(PositionEnd::tag) | $$(UpdateAsset(event, event->data<PositionEnd>().holder_uid));
+    refresh_books();
   }
 
   events_ | is(Channel::tag) | $$(InspectChannel(event->gen_time(), event->data<Channel>()));
   events_ | is(Register::tag) | $$(OnRegister(event->gen_time(), event->data<Register>()));
   events_ | is(Deregister::tag) | $$(OnDeregister(event->gen_time(), event->data<Deregister>()));
-  events_ | is(BrokerStateUpdate::tag) | $$(UpdateBrokerState(event->source(), event->data<BrokerStateUpdate>()));
+  events_ | is(BrokerStateUpdate::tag) |
+      $$(UpdateBrokerState(event->source(), event->dest(), event->data<BrokerStateUpdate>()));
   events_ | is(StrategyStateUpdate::tag) | $$(UpdateStrategyState(event->source(), event->data<StrategyStateUpdate>()));
   events_ | is(CacheReset::tag) | $$(UpdateEventCache(event));
+}
+
+void Watcher::refresh_books() {
+  for (const auto &pair : bookkeeper_.get_books()) {
+    if (pair.second->asset.ledger_category == LedgerCategory::Account) {
+      refresh_account_book(now(), pair.first);
+    }
+  }
+}
+
+void Watcher::refresh_account_book(int64_t trigger_time, uint32_t account_uid) {
+  auto account_location = get_location(account_uid);
+  auto group = account_location->group;
+  auto md_location = location::make_shared(account_location->mode, category::MD, group, group, get_locator());
+  auto book = bookkeeper_.get_book(account_uid);
+  auto subscribe_positions = [&](auto positions) {
+    for (const auto &pair : positions) {
+      auto &position = pair.second;
+      broker_client_.subscribe(md_location, position.exchange_id, position.instrument_id);
+    }
+  };
+
+  subscribe_positions(book->long_positions);
+  subscribe_positions(book->short_positions);
 }
 
 void Watcher::Feed(const event_ptr &event, const Instrument &instrument) {
@@ -382,22 +417,7 @@ void Watcher::RestoreState(const location_ptr &state_location, int64_t from, int
 }
 
 Napi::Value Watcher::Start(const Napi::CallbackInfo &info) {
-  auto worker = [](uv_work_t *req) {
-    SPDLOG_INFO("Watcher uv loop started");
-    auto watcher = (Watcher *)(req->data);
-    while (req->data) {
-      if (not watcher->is_live() and not watcher->is_started() and watcher->is_usable()) {
-        watcher->setup();
-      }
-      if (watcher->is_live()) {
-        watcher->step();
-      }
-    }
-    watcher->signal_stop();
-    SPDLOG_INFO("Watcher uv loop stopped");
-  };
-  auto after = [](uv_work_t *req, int status) { SPDLOG_INFO("Watcher uv loop completed"); };
-  uv_queue_work(uv_default_loop(), &uv_work_, worker, after);
+  StartWorker();
   return {};
 }
 
@@ -430,10 +450,10 @@ void Watcher::SyncStrategyStates() {
     auto strategy_state_obj = Napi::Object::New(strategy_states_ref_.Env());
     strategy_state_obj.Set("state", Napi::Number::New(strategy_states_ref_.Env(), int(s.second.state)));
     strategy_state_obj.Set("update_time", Napi::Number::New(strategy_states_ref_.Env(), s.second.update_time));
-    strategy_state_obj.Set("info_a", Napi::String::New(strategy_states_ref_.Env(), s.second.info_a.to_string()));
-    strategy_state_obj.Set("info_b", Napi::String::New(strategy_states_ref_.Env(), s.second.info_b.to_string()));
-    strategy_state_obj.Set("info_c", Napi::String::New(strategy_states_ref_.Env(), s.second.info_c.to_string()));
-    strategy_state_obj.Set("value", Napi::String::New(strategy_states_ref_.Env(), s.second.value.to_string()));
+    strategy_state_obj.Set("info_a", Napi::String::New(strategy_states_ref_.Env(), s.second.info_a));
+    strategy_state_obj.Set("info_b", Napi::String::New(strategy_states_ref_.Env(), s.second.info_b));
+    strategy_state_obj.Set("info_c", Napi::String::New(strategy_states_ref_.Env(), s.second.info_c));
+    strategy_state_obj.Set("value", Napi::String::New(strategy_states_ref_.Env(), s.second.value));
     strategy_states_ref_.Set(format(s.first), strategy_state_obj);
   }
 }
@@ -526,7 +546,6 @@ void Watcher::OnRegister(int64_t trigger_time, const Register &register_data) {
   }
 
   auto app_location = get_location(register_data.location_uid);
-
   if (app_location->category == category::MD or app_location->category == category::TD) {
     location_uid_states_map_.insert_or_assign(app_location->uid, int(BrokerState::Pending));
   }
@@ -538,18 +557,75 @@ void Watcher::OnRegister(int64_t trigger_time, const Register &register_data) {
 
 void Watcher::OnDeregister(int64_t trigger_time, const Deregister &deregister_data) {
   auto app_location = location::make_shared(deregister_data, get_locator());
-  location_uid_states_map_.insert_or_assign(app_location->uid, int(BrokerState::Pending));
+  if (app_location->category == category::MD or app_location->category == category::TD) {
+    location_uid_states_map_.insert_or_assign(app_location->uid, int(BrokerState::Pending));
+  }
+
+  if (app_location->category == category::SYSTEM and app_location->group == "master" and
+      app_location->name == "master") {
+    CancelWorker();
+  }
 }
 
-void Watcher::UpdateBrokerState(uint32_t broker_uid, const BrokerStateUpdate &state) {
-  auto app_location = get_location(broker_uid);
-  location_uid_states_map_.insert_or_assign(app_location->uid, int(state.state));
+void Watcher::StartWorker() {
+  uv_work_.data = (void *)this;
+  uv_work_live_ = true;
+  auto worker = [](uv_work_t *req) {
+    auto watcher = (Watcher *)(req->data);
+    while (req->data && watcher->uv_work_live_) {
+      if (not watcher->is_live() and not watcher->is_started() and watcher->is_usable()) {
+        watcher->setup();
+      }
+      if (watcher->is_live()) {
+        watcher->step();
+      }
+    }
+    watcher->signal_stop();
+    watcher->pause();
+    SPDLOG_INFO("Watcher uv loop stopped");
+  };
+  auto after = [](uv_work_t *req, int status) {
+    SPDLOG_INFO("Watcher uv loop completed");
+    // have to wait for master down totally
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    auto watcher = (Watcher *)(req->data);
+    // have to be at this position, for deleting old journal securitily
+    watcher->AfterMasterDown();
+    watcher->set_begin_time(time::now_in_nano());
+    SPDLOG_INFO("Restart watcher uv loop");
+    // master may quit within watcher running time,
+    // so, once master deregistered, the uv logic in watcher need to be restarte.
+    watcher->StartWorker();
+  };
+  uv_queue_work(uv_default_loop(), &uv_work_, worker, after);
+}
+
+void Watcher::CancelWorker() { uv_work_live_ = false; }
+
+void Watcher::AfterMasterDown() {
+  reader_->disjoin(master_cmd_location_->uid);
+  writers_.erase(master_cmd_location_->uid);
+}
+
+void Watcher::UpdateBrokerState(uint32_t source_id, uint32_t dest_id, const BrokerStateUpdate &state) {
+  auto source_location = get_location(source_id);
+  if (source_location->category == category::TD or source_location->category == category::MD) {
+    location_uid_states_map_.insert_or_assign(source_location->uid, int(state.state));
+  }
+
+  if (dest_id == location::PUBLIC) {
+    return;
+  }
+
+  auto dest_location = get_location(dest_id);
+  if (dest_location->category == category::TD or dest_location->category == category::MD) {
+    location_uid_states_map_.insert_or_assign(dest_location->uid, int(state.state));
+  }
 }
 
 void Watcher::UpdateStrategyState(uint32_t strategy_uid, const StrategyStateUpdate &state) {
   auto app_location = get_location(strategy_uid);
-  location_uid_strategy_states_map_.erase(app_location->uid);
-  location_uid_strategy_states_map_.emplace(app_location->uid, state);
+  location_uid_strategy_states_map_.insert_or_assign(app_location->uid, state);
 }
 
 void Watcher::UpdateAsset(const event_ptr &event, uint32_t book_uid) {

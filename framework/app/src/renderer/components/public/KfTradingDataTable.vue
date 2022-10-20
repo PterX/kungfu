@@ -11,29 +11,37 @@ import {
   ref,
 } from 'vue';
 
+type TableDataItem =
+  | KungfuApi.TradingDataItem
+  | KungfuApi.Frame
+  | KungfuApi.Session;
+
 const props = withDefaults(
   defineProps<{
-    dataSource: KungfuApi.TradingDataItem[];
+    dataSource: TableDataItem[];
     columns: KfTradingDataTableHeaderConfig[];
     keyField?: string;
+    resizable?: boolean;
+    itemSize?: number;
+    customRowClass?: (row: KungfuApi.TradingDataItem) => string;
   }>(),
   {
     columns: () => [],
     dataSource: () => [],
     keyField: 'id',
+    resizable: true,
+    itemSize: 26,
+    customRowClass: () => '',
   },
 );
 
 defineEmits<{
-  (
-    e: 'dbclickRow',
-    data: { event: MouseEvent; row: KungfuApi.TradingDataItem },
-  ): void;
+  (e: 'dbclickRow', data: { event: MouseEvent; row: TableDataItem }): void;
   (
     e: 'clickCell',
     data: {
       event: MouseEvent;
-      row: KungfuApi.TradingDataItem;
+      row: TableDataItem;
       column: KfTradingDataTableHeaderConfig;
     },
   ): void;
@@ -41,14 +49,12 @@ defineEmits<{
     e: 'clickCell',
     data: {
       event: MouseEvent;
-      row: KungfuApi.TradingDataItem;
+      row: TableDataItem;
       column: KfTradingDataTableHeaderConfig;
     },
   ): void;
-  (
-    e: 'rightClickRow',
-    data: { event: MouseEvent; row: KungfuApi.TradingDataItem },
-  ): void;
+  (e: 'rightClickRow', data: { event: MouseEvent; row: TableDataItem }): void;
+  (e: 'update:selectedKey', data: number | string): void;
 }>();
 
 const app = getCurrentInstance();
@@ -83,12 +89,14 @@ const headerWidth = computed(() => {
   }, {} as Record<string, string>);
 });
 
+const tableCellHeight = computed(() => `${props.itemSize}px`);
+
 onMounted(() => {
   if (kfScrollerTableBodyRef.value) {
     kfScrollerTableWidth.value = kfScrollerTableBodyRef.value.clientWidth;
   }
 
-  if (app?.proxy) {
+  if (app?.proxy && props.resizable) {
     const subscription = app?.proxy.$globalBus
       .pipe(filter((e: KfEvent.KfBusEvent) => e.tag === 'resize'))
       .subscribe(() => {
@@ -114,23 +122,31 @@ function getHeaderWidth(column: KfTradingDataTableHeaderConfig): string {
   }
 }
 
-function handleDbClickRow(e: MouseEvent, row: KungfuApi.TradingDataItem): void {
+function handleDbClickRow(e: MouseEvent, row: TableDataItem): void {
   app && app.emit('dbclickRow', { event: e, row });
   clickTimer && clearTimeout(clickTimer);
 }
 
 function handleClickCell(
   e: MouseEvent,
-  row: KungfuApi.TradingDataItem,
+  row: TableDataItem,
   column: KfTradingDataTableHeaderConfig,
 ): void {
   clickTimer && clearTimeout(clickTimer);
   clickTimer = +setTimeout(() => {
-    app && app.emit('clickCell', { event: e, row, column });
+    if (app) {
+      app.emit('clickCell', { event: e, row, column });
+      app.emit(
+        'update:selectedKey',
+        typeof row[props.keyField] === 'number'
+          ? row[props.keyField]
+          : `${row[props.keyField]}`,
+      );
+    }
   }, 300);
 }
 
-function handleMousedown(e: MouseEvent, row: KungfuApi.TradingDataItem): void {
+function handleMousedown(e: MouseEvent, row: TableDataItem): void {
   if (e.button === 2) {
     app && app.emit('rightClickRow', { event: e, row });
   }
@@ -197,13 +213,13 @@ function handleSort(
         @click.stop="handleSort(column.dataIndex, column.sorter)"
       >
         <span class="name">{{ column.name }}</span>
-        <span class="sort-btn" v-if="column.sorter">
+        <span v-if="column.sorter" class="sort-btn">
           <CaretUpOutlined
             style="color: #bfbfbf; font-size: 11px"
             :class="{
               active:
                 column.dataIndex === currentSorterIndex &&
-                currentSorterOrder === 'descend',
+                currentSorterOrder === 'ascend',
             }"
           ></CaretUpOutlined>
           <CaretDownOutlined
@@ -211,7 +227,7 @@ function handleSort(
             :class="{
               active:
                 column.dataIndex === currentSorterIndex &&
-                currentSorterOrder === 'ascend',
+                currentSorterOrder === 'descend',
             }"
           ></CaretDownOutlined>
         </span>
@@ -222,31 +238,31 @@ function handleSort(
         v-if="dataSourceResolved && dataSourceResolved.length"
         class="kf-table-scroller"
         :items="dataSourceResolved"
-        :item-size="26"
+        :item-size="Number(itemSize)"
         :key-field="keyField"
         :buffer="100"
       >
         <template v-slot="{ item }: { item: any }">
           <ul
-            class="kf-table-row"
+            :class="['kf-table-row', customRowClass?.(item) || '']"
             @dblclick="handleDbClickRow($event, item)"
             @mousedown="handleMousedown($event, item)"
           >
             <li
               v-for="column in columns"
               :class="['kf-table-cell', column.type]"
-              :key="`${column.dataIndex}_${item[keyField as keyof KungfuApi.TradingDataItem]}`"
+              :key="`${column.dataIndex}_${item[keyField as keyof TableDataItem]}`"
               :style="{
                 'max-width': getHeaderWidth(column),
+                height: tableCellHeight,
+                lineHeight: tableCellHeight,
               }"
               @click.stop="handleClickCell($event, item, column)"
               :title="item[column.dataIndex]"
             >
               <slot :item="item" :column="column">
                 <span>
-                  {{
-                    item[column.dataIndex as keyof KungfuApi.TradingDataItem]
-                  }}
+                  {{ item[column.dataIndex as keyof TableDataItem] }}
                 </span>
               </slot>
             </li>
@@ -361,8 +377,6 @@ function handleSort(
   }
 
   .kf-table-cell {
-    height: 26px;
-    line-height: 26px;
     padding: 0 6px;
     box-sizing: border-box;
     word-wrap: break-word;

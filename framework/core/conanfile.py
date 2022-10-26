@@ -27,8 +27,8 @@ class KungfuCoreConan(ConanFile):
     generators = "cmake"
     requires = [
         "fmt/8.1.1",
-        "hana/1.7.0",
-        "nlohmann_json/3.10.5",
+        "hana/1.79.0",
+        "nlohmann_json/3.11.2",
         "nng/1.5.2",
         "rxcpp/4.1.1",
         "sqlite3/3.39.2",
@@ -259,6 +259,8 @@ class KungfuCoreConan(ConanFile):
                 runtime,
                 "--runtime-version",
                 self.__get_node_version(runtime),
+                f"--parallel",
+                f"{parallel_level}",
                 f"--CDPYTHON_EXECUTABLE={python_path}",
                 f"--CDSPDLOG_LOG_LEVEL_COMPILE={log_level}",
                 f"--CDCMAKE_BUILD_PARALLEL_LEVEL={parallel_level}",

@@ -245,7 +245,7 @@ class KungfuCoreConan(ConanFile):
         build_option = (
             toolset_option + ["--platform", str(self.options.arch)]
             if tools.detected_os() == "Windows"
-            else []
+            else ["--parallel", str(parallel_level)]
         )
 
         debug_option = ["--debug"] if build_type == "Debug" else []
@@ -259,8 +259,6 @@ class KungfuCoreConan(ConanFile):
                 runtime,
                 "--runtime-version",
                 self.__get_node_version(runtime),
-                f"--parallel",
-                f"{parallel_level}",
                 f"--CDPYTHON_EXECUTABLE={python_path}",
                 f"--CDSPDLOG_LOG_LEVEL_COMPILE={log_level}",
                 f"--CDCMAKE_BUILD_PARALLEL_LEVEL={parallel_level}",

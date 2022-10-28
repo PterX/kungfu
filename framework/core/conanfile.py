@@ -27,8 +27,8 @@ class KungfuCoreConan(ConanFile):
     generators = "cmake"
     requires = [
         "fmt/8.1.1",
-        "hana/1.7.0",
-        "nlohmann_json/3.10.5",
+        "hana/1.79.0",
+        "nlohmann_json/3.11.2",
         "nng/1.5.2",
         "rxcpp/4.1.1",
         "sqlite3/3.39.2",
@@ -245,7 +245,7 @@ class KungfuCoreConan(ConanFile):
         build_option = (
             toolset_option + ["--platform", str(self.options.arch)]
             if tools.detected_os() == "Windows"
-            else []
+            else ["--parallel", str(parallel_level)]
         )
 
         debug_option = ["--debug"] if build_type == "Debug" else []

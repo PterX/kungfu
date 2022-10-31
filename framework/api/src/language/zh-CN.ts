@@ -17,6 +17,7 @@ export default {
   location_error: '当前 Location 错误',
   watcher_error: 'Watcher is NULL',
   instrument_error: '标的错误',
+  component_error: '组件错误',
   prompt: '提示',
   warning: '警告',
   confirm: '确 认',
@@ -64,6 +65,10 @@ export default {
   add_board: '添加面板',
   select_board: '请选择要添加的面板',
   add_board_error: '添加面板目标错误',
+  select_date: '选择日期',
+  date_type: '日期类型',
+  natural_day: '自然日',
+  trading_day: '交易日',
 
   delete_category:
     '删除 {category} 所有数据， 如果该 {categoryName} 进程正在运行, 也将停止进程, 确认删除',
@@ -199,7 +204,7 @@ export default {
     INE: '能源中心',
 
     HK: '港股',
-    HKFUT: '港股期货',
+    HKFUT: '港期',
     US: '美股',
     GLFX: '全球外汇',
     IPE: 'IPE',
@@ -269,6 +274,7 @@ export default {
     order_status: '订单状态',
     latency_system: '系统延迟μs',
     latency_network: '网络延迟μs',
+    avg_price: '成交均价',
     dest_uname: '下单源',
     source_uname: '目标账户',
     completed: '已完成',
@@ -497,12 +503,15 @@ export default {
     for_all_log: '对系统内所有日志级别的设置',
 
     language: '语言',
-    select_language: '选择语言',
+    select_language_desc: '选择语言，修改后重启功夫生效',
+    bypass_archive: '跳过归档',
+    bypass_archive_desc:
+      '仅删除上个交易日留下的journal与log文件, 不再压缩打包, 归档后无法恢复之前的内存数据, 会加快启动速度',
 
     porformance: '性能',
     rocket_model: '开启极速模式',
     rocket_model_desc:
-      '开启极速模式会极大的降低系统延迟, 并会使 CPU 使用效率达到100%, 重启后生效',
+      '开启极速模式会极大的降低系统延迟 (只有当 CPU 核数大于 4 时才能开启) , 并会使 CPU 使用效率达到100%, 重启后生效',
     bypass_accounting: '跳过UI进程计算',
     bypass_accounting_desc:
       'UI进程不再处理计算逻辑, 完全通过计算进程更新数据, 减轻UI进程性能占用, 重启后生效',

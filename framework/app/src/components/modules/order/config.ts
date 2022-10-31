@@ -6,7 +6,7 @@ const { t } = VueI18n.global;
 const buildSorter =
   (dataIndex: keyof KungfuApi.OrderResolved) =>
   (a: KungfuApi.OrderResolved, b: KungfuApi.OrderResolved) =>
-    +Number(a[dataIndex]) - +Number(b[dataIndex]);
+    (+Number(a[dataIndex]) || 0) - (+Number(b[dataIndex]) || 0);
 
 const buildStrSorter =
   (dataIndex: keyof KungfuApi.OrderResolved) =>
@@ -56,8 +56,15 @@ export const getColumns = (
     dataIndex: 'volume_left',
     width: 120,
     sorter: (a: KungfuApi.OrderResolved, b: KungfuApi.OrderResolved) => {
-      return +Number(b.volume_left) - +Number(a.volume_left);
+      return +Number(a.volume_left) - +Number(b.volume_left);
     },
+  },
+  {
+    type: 'number',
+    name: t('orderConfig.avg_price'),
+    dataIndex: 'avg_price',
+    width: 120,
+    sorter: buildSorter('avg_price'),
   },
   {
     type: 'string',

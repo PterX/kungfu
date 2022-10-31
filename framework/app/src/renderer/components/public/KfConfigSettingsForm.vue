@@ -43,7 +43,11 @@ import {
   useInstruments,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import dayjs, { Dayjs } from 'dayjs';
-import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+import VueI18n, { useLanguage } from '@kungfu-trader/kungfu-js-api/language';
+import {
+  InstrumentTypeEnum,
+  SideEnum,
+} from '@kungfu-trader/kungfu-js-api/typings/enums';
 const { t } = VueI18n.global;
 
 const props = withDefaults(
@@ -112,8 +116,10 @@ const formRef = ref();
 
 const formState = reactive(props.formState);
 const { td, md, strategy } = toRefs(useAllKfConfigData());
+const { isLanguageKeyAvailable } = useLanguage();
 
 const primaryKeys = ref<string[]>(getPrimaryKeys(props.configSettings || []));
+const sideRadiosList = ref<string[]>(Object.keys(Side).slice(0, 2));
 const instrumentKeys = ref<Record<string, 'instrument' | 'instruments'>>(
   filterInstrumentKeysFromConfigSettings(props.configSettings),
 );
@@ -168,6 +174,29 @@ watch(instrumentsInFrom, (insts) => {
 watch(formState, (newVal) => {
   app && app.emit('update:formState', newVal);
 });
+
+if ('instrument' in formState) {
+  watch(
+    () => formState.instrument,
+    (newInstrument: string) => {
+      if (newInstrument) {
+        const instrumentResolved =
+          transformSearchInstrumentResultToInstrument(newInstrument);
+        if (instrumentResolved) {
+          const { instrumentType } = instrumentResolved;
+          if (instrumentType === InstrumentTypeEnum.stockoption) {
+            sideRadiosList.value = [
+              ...Object.keys(Side).slice(0, 2),
+              SideEnum.Exec + '',
+            ];
+          } else {
+            sideRadiosList.value = Object.keys(Side).slice(0, 2);
+          }
+        }
+      }
+    },
+  );
+}
 
 function getInstrumentsSearchRelated(
   instrumentKeys: Record<string, 'instrument' | 'instruments'>,
@@ -435,9 +464,11 @@ defineExpose({
     <a-form-item
       v-for="item in configSettings"
       :key="item.key"
-      :label="item.name"
+      :label="isLanguageKeyAvailable(item.name) ? $t(item.name) : item.name"
       :name="item.key"
-      :extra="item.tip"
+      :extra="
+        item.tip && isLanguageKeyAvailable(item.tip) ? $t(item.tip) : item.tip
+      "
       :rules="
         (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
         item.disabled
@@ -456,7 +487,11 @@ defineExpose({
                     {
                       required: item.required,
                       type: getValidatorType(item.type),
-                      message: item.errMsg || $t('validate.mandatory'),
+                      message: item.errMsg
+                        ? isLanguageKeyAvailable(item.errMsg)
+                          ? $t(item.errMsg)
+                          : item.errMsg
+                        : $t('validate.mandatory'),
                       trigger: 'blur',
                     },
                   ]
@@ -563,7 +598,7 @@ defineExpose({
           item.disabled
         "
       >
-        <a-radio v-for="key in Object.keys(Side).slice(0, 2)" :value="+key">
+        <a-radio v-for="key in sideRadiosList" :key="key" :value="+key">
           {{ dealSide(+key).name }}
         </a-radio>
       </a-radio-group>
@@ -607,8 +642,16 @@ defineExpose({
           changeType === 'update' && item.primary && !isPrimaryDisabled
         "
       >
-        <a-radio v-for="option in item.options" :value="option.value">
-          {{ option.label }}
+        <a-radio
+          v-for="option in item.options"
+          :key="option.value"
+          :value="option.value"
+        >
+          {{
+            isLanguageKeyAvailable(option.label + '')
+              ? $t(option.label + '')
+              : option.label
+          }}
         </a-radio>
       </a-radio-group>
       <a-checkbox
@@ -666,7 +709,11 @@ defineExpose({
           :key="option.value"
           :value="option.value"
         >
-          {{ option.label }}
+          {{
+            isLanguageKeyAvailable(option.label + '')
+              ? $t(option.label + '')
+              : option.label
+          }}
         </a-select-option>
       </a-select>
       <a-select

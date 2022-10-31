@@ -231,9 +231,9 @@ export const kfLogger = {
       process.env.NODE_ENV === 'development' ||
       process.env.APP_TYPE !== 'cli'
     ) {
-      console.warn('<KF_INFO>', ...args);
+      console.warn('<KF_WARN>', ...args);
     }
-    logger.warn('<KF_INFO>', args.join(' '));
+    logger.warn('<KF_WARN>', args.join(' '));
   },
 
   error: (...args: Array<any>) => {
@@ -241,9 +241,9 @@ export const kfLogger = {
       process.env.NODE_ENV === 'development' ||
       process.env.APP_TYPE !== 'cli'
     ) {
-      console.error('<KF_INFO>', ...args);
+      console.error('<KF_ERROR>', ...args);
     }
-    logger.error('<KF_INFO>', args.join(' '));
+    logger.error('<KF_ERROR>', args.join(' '));
   },
 };
 
@@ -592,6 +592,40 @@ export const getExhibitConfig =
       return extensionData;
     }, {});
   };
+
+export const getKfExtensionLanguage = async () => {
+  const kfExtConfigList = await getKfExtConfigList();
+
+  return kfExtConfigList.reduce((languageMap, config) => {
+    if ('language' in config) {
+      const defaultLangData: KungfuApi.KfExtOriginConfig['language'] = {
+        'zh-CN': {},
+        'en-US': {},
+      };
+      const langData =
+        typeof config.language === 'object' ? config.language : defaultLangData;
+
+      const extNames = {
+        'zh-CN': langData['zh-CN'][config.key] ?? config.name,
+        'en-US':
+          langData['en-US'][config.key] ??
+          (config.key[0].toUpperCase() + config.key.slice(1)).replace(
+            /(?<!^)([A-Z])/g,
+            ' $1',
+          ),
+      };
+
+      Object.keys(langData).forEach((langName) => {
+        languageMap[langName] = {
+          ...(languageMap[langName] || {}),
+          [config.key]: langData[langName],
+          [config.name]: extNames[langName] ?? config.name,
+        };
+      });
+    }
+    return languageMap;
+  }, {} as KungfuApi.KfExtLanguages);
+};
 
 export const getAvailDaemonList = async (): Promise<
   KungfuApi.KfDaemonLocation[]
@@ -1290,6 +1324,7 @@ export const dealOrderStat = (
   latencyNetwork: string;
   latencyTrade: string;
   trade_time: bigint;
+  avg_price: number;
 } | null => {
   const orderStat = orderStats[orderUKey];
   if (!orderStat) {
@@ -1315,6 +1350,7 @@ export const dealOrderStat = (
     latencyNetwork,
     latencyTrade,
     trade_time: orderStat.trade_time,
+    avg_price: orderStat.avg_price,
   };
 };
 
@@ -1465,8 +1501,12 @@ export const dealAssetsByHolderUID = <
   return Object.values(assets).reduce((assetsResolved, asset) => {
     const { holder_uid } = asset;
     const kfLocation = watcher.getLocation(holder_uid);
-    const processId = getProcessIdByKfLocation(kfLocation);
-    assetsResolved[processId] = asset;
+
+    if (kfLocation) {
+      const processId = getProcessIdByKfLocation(kfLocation);
+      assetsResolved[processId] = asset;
+    }
+
     return assetsResolved;
   }, {} as Record<string, T>);
 };

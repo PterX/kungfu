@@ -9,7 +9,7 @@ export default {
   rename: 'rename',
   set: 'Set',
   clean: 'clean',
-  Help: 'Help',
+  help: 'Help',
   run: 'Run',
   quit: 'Quit',
   operation_success: 'operation success',
@@ -17,6 +17,7 @@ export default {
   location_error: 'current location error',
   watcher_error: 'Watcher is NULL',
   instrument_error: 'instrument error',
+  component_error: 'component error',
   prompt: 'prompt',
   warning: 'warning',
   confirm: 'confirm',
@@ -41,8 +42,7 @@ export default {
   clear_journal: 'Clear journal',
   clear_DB: 'Clear DB',
   reset_main_panel: 'Reset main panel',
-  export_all_transaction_data: 'E`xport all transaction data',
-  view_all_journal: 'View all journal',
+  export_all_transaction_data: 'Export all transaction data',
 
   website: 'Website',
   user_manual: 'User manual',
@@ -52,8 +52,8 @@ export default {
   KungFu: 'Kungfu',
   about_kungfu: 'About Kungfu',
 
-  file: 'file',
-  folder: 'folder',
+  file: 'File',
+  folder: 'Folder',
 
   no_focus: 'The current page is not in focus',
   clear: 'Clearing {content} completed, please restart the application',
@@ -64,6 +64,10 @@ export default {
   add_board: 'Add Board',
   select_board: 'Please select the board to add',
   add_board_error: 'Add board target error',
+  select_date: 'Select Date',
+  date_type: 'Date Type',
+  natural_day: 'Natural Day',
+  trading_day: 'Trading Day',
 
   delete_category:
     'Delete all data in {category}, if the {categoryName} process is running, the process will also be stopped, confirm deletion',
@@ -74,6 +78,7 @@ export default {
 
   MakeOrder: 'Order Dashboard',
   FutureArbitrage: 'Future Arbitrage',
+  BlockTrade: 'Block Trade',
   OrderBook: 'Order Book',
   MarketData: 'Market Data',
   TradingTask: 'Trading Task',
@@ -267,6 +272,7 @@ export default {
     order_status: 'order_status',
     latency_system: 'latency_system(μs)',
     latency_network: 'latency_network(μs)',
+    avg_price: 'avg_price',
     dest_uname: 'dest_uname',
     source_uname: 'source_uname',
     completed: 'completed',
@@ -495,11 +501,15 @@ export default {
     for_all_log: 'For all Log',
 
     language: 'Language',
-    select_language: 'Select Language',
+    select_language_desc: 'Select Language, the modified restart takes effect',
+    bypass_archive: 'ByPass Archive',
+    bypass_archive_desc:
+      'Archive only delete journal and logs, zip nomore files',
 
     porformance: 'Performance',
     rocket_model: 'Open Rocket Model',
-    rocket_model_desc: 'Use CPU 100%, restart is required',
+    rocket_model_desc:
+      'Use CPU 100% (only when the CPU is greater than 4 core can open it) , restart is required',
     bypass_accounting: 'Bypass UI Accounting',
     bypass_accounting_desc:
       'UI process no longer dealing with calculation, restart is required',

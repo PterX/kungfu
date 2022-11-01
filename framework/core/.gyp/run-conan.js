@@ -19,7 +19,7 @@ function getNodeVersionOptions() {
     '-o',
     `node_version=${nodeVersion}`,
     '-o',
-    'with_yarn=True'
+    'with_yarn=True',
   ];
 }
 

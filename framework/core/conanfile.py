@@ -44,7 +44,7 @@ class KungfuCoreConan(ConanFile):
         "node_version": "ANY",
         "electron_version": "ANY",
         "vs_toolset": ["auto", "ClangCL"],
-        "with_yarn": [True, False]
+        "with_yarn": [True, False],
     }
     default_options = {
         "fmt:header_only": "True",
@@ -66,7 +66,7 @@ class KungfuCoreConan(ConanFile):
         "vs_toolset": "auto"
         if "CONAN_VS_TOOLSET" not in environ
         else environ["CONAN_VS_TOOLSET"],
-        "with_yarn": False
+        "with_yarn": False,
     }
     conanfile_dir = path.dirname(path.realpath(__file__))
     pyi_hooks_dir = path.join(conanfile_dir, "src", "python", "pyi-hooks")
@@ -215,7 +215,7 @@ class KungfuCoreConan(ConanFile):
                 "-B",
                 "../build",
                 "-DCMAKE_BUILD_TYPE=Release",
-                "-DSPDLOG_LOG_LEVEL_COMPILE=trace"
+                "-DSPDLOG_LOG_LEVEL_COMPILE=trace",
             )
             self.__run_cmake("--build", ".", "--config", "Release")
 

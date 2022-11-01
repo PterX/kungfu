@@ -44,6 +44,7 @@ class KungfuCoreConan(ConanFile):
         "node_version": "ANY",
         "electron_version": "ANY",
         "vs_toolset": ["auto", "ClangCL"],
+        "with_yarn": [True, False]
     }
     default_options = {
         "fmt:header_only": "True",
@@ -65,6 +66,7 @@ class KungfuCoreConan(ConanFile):
         "vs_toolset": "auto"
         if "CONAN_VS_TOOLSET" not in environ
         else environ["CONAN_VS_TOOLSET"],
+        "with_yarn": False
     }
     conanfile_dir = path.dirname(path.realpath(__file__))
     pyi_hooks_dir = path.join(conanfile_dir, "src", "python", "pyi-hooks")
@@ -201,8 +203,27 @@ class KungfuCoreConan(ConanFile):
             return
         toolset = self.__get_toolset()
         self.__enable_modules(runtime)
-        self.__run_cmake_js(build_type, "configure", runtime, toolset)
-        self.__run_cmake_js(build_type, "build", runtime, toolset)
+        if str(self.options.with_yarn) == "True":
+            self.__run_cmake_js(build_type, "configure", runtime, toolset)
+            self.__run_cmake_js(build_type, "build", runtime, toolset)
+        elif runtime == "node":
+            environ["KUNGFU_BUILD_SKIP_KUNGFU_NODE"] = "on"
+            environ["KUNGFU_BUILD_SKIP_PYKUNGFU"] = "on"
+            self.__run_cmake(
+                "-S",
+                "..",
+                "-B",
+                "../build",
+                "-DCMAKE_BUILD_TYPE=Release",
+                "-DSPDLOG_LOG_LEVEL_COMPILE=trace"
+            )
+            self.__run_cmake("--build", ".", "--config", "Release")
+
+    def __run_cmake(self, *args):
+        rc = psutil.Popen([tools.which("cmake"), *args]).wait()
+        if rc != 0:
+            self.output.error(f"cmake {args} failed with return code {rc}")
+            sys.exit(rc)
 
     def __run_cmake_js(self, build_type, cmd, runtime, toolset):
         [

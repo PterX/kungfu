@@ -191,7 +191,8 @@ export default {
     index: '指数',
     repo: '回购',
     crypto: '数字货币',
-    crypto_future: '数字货币合约',
+    crypto_future: '数字货币币本位合约',
+    crypto_ufuture: '数字货币U本位合约',
     multi: '多品种',
 
     SSE: '上交所',

@@ -190,6 +190,7 @@ export default {
     repo: 'Repo',
     crypto: 'Crypto',
     crypto_future: 'CryptoFuture',
+    crypto_ufuture: 'CryptoUFuture',
     multi: 'Multi',
 
     SSE: 'SSE',

@@ -25,10 +25,7 @@
 #define EXCHANGE_CZCE "CZCE"
 #define EXCHANGE_CFFEX "CFFEX"
 #define EXCHANGE_INE "INE"
-#define EXCHANGE_BINANCE "BINANCE"
-#define EXCHANGE_HB "HB"
 
-// 全市场exchange id定义
 #define EXCHANGE_HK "HK"           // 港股: 4（香港交易所）
 #define EXCHANGE_HK_FUTURE "HKFUT" // 港股期货: 5（香港交易所）
 #define EXCHANGE_US "US"           // 美股: 29（纳斯达克交易所）
@@ -49,10 +46,9 @@
 #define EXCHANGE_METL "METL"       // ES-METL: 74
 #define EXCHANGE_IPM "IPM"         // 国际贵金属: 5000
 
-#define SOURCE_SIM "sim"
-#define SOURCE_CTP "ctp"
-#define SOURCE_XTP "xtp"
-#define SOURCE_BAC "barrich"
+#define EXCHANGE_CRYPTO "CRYPTO"
+#define EXCHANGE_CRYPTO_FUTURE "CRYPTO-FUTURE"
+#define EXCHANGE_CRYPTO_UFUTURE "CRYPTO-UFUTURE"
 
 #define EPSILON (1e-6)
 #define DOUBLEMAX (1e16) // 一亿亿, 2018年A股总市值不到50万亿
@@ -226,9 +222,9 @@ inline longfist::enums::InstrumentType get_instrument_type_by_exchange_hk(const 
       {10000, 29999, longfist::enums::InstrumentType::StockOption}, // 衍生權證
       {30000, 39999, longfist::enums::InstrumentType::Stock},       // 供日後使用
       {41000, 46999, longfist::enums::InstrumentType::Stock},       // 供日後使用
-      {47000, 48999, longfist::enums::InstrumentType::Warrant},     // 界內證
+      {47000, 48999, longfist::enums::InstrumentType::StockOption}, // 界內證
       {49000, 49999, longfist::enums::InstrumentType::Stock},       // 供日後使用
-      {50000, 69999, longfist::enums::InstrumentType::Warrant},
+      {50000, 69999, longfist::enums::InstrumentType::StockOption},
       {70000, 79999, longfist::enums::InstrumentType::Stock}, // 供日後使用
       {82800, 82849, longfist::enums::InstrumentType::Fund},  // 交易所買賣基金
       {83000, 83199, longfist::enums::InstrumentType::Fund},
@@ -299,14 +295,18 @@ inline longfist::enums::InstrumentType get_instrument_type(const std::string &ex
              string_equals(exchange_id, EXCHANGE_CFFEX) || string_equals(exchange_id, EXCHANGE_CZCE) ||
              string_equals(exchange_id, EXCHANGE_INE)) {
     return longfist::enums::InstrumentType::Future;
-  } else if (string_equals(exchange_id, EXCHANGE_BINANCE) || string_equals(exchange_id, EXCHANGE_HB)) {
-    return longfist::enums::InstrumentType::Crypto;
   } else if (string_equals(exchange_id, EXCHANGE_HK)) {
     return get_instrument_type_by_exchange_hk(instrument_id);
   } else if (string_equals(exchange_id, EXCHANGE_HK_FUTURE)) {
     return longfist::enums::InstrumentType::Future;
   } else if (string_equals(exchange_id, EXCHANGE_US)) {
     return longfist::enums::InstrumentType::Stock;
+  } else if (string_equals(exchange_id, EXCHANGE_CRYPTO)) {
+    return longfist::enums::InstrumentType::Crypto;
+  } else if (string_equals(exchange_id, EXCHANGE_CRYPTO_FUTURE)) {
+    return longfist::enums::InstrumentType::CryptoFuture;
+  } else if (string_equals(exchange_id, EXCHANGE_CRYPTO_UFUTURE)) {
+    return longfist::enums::InstrumentType::CryptoUFuture;
   }
   SPDLOG_ERROR("invalid instrument type for exchange {} and instrument {}", exchange_id, instrument_id);
   return longfist::enums::InstrumentType::Unknown;
@@ -332,12 +332,12 @@ inline std::string str_from_instrument_type(longfist::enums::InstrumentType type
     return "Index";
   case longfist::enums::InstrumentType::Repo:
     return "Repo";
-  case longfist::enums::InstrumentType::Warrant:
-    return "Warrant";
-  case longfist::enums::InstrumentType::Iopt:
-    return "Iopt";
   case longfist::enums::InstrumentType::Crypto:
     return "Crypto";
+  case longfist::enums::InstrumentType::CryptoFuture:
+    return "CryptoFuture";
+  case longfist::enums::InstrumentType::CryptoUFuture:
+    return "CryptoUFuture";
   default:
     return "Unknown";
   }

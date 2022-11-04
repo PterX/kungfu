@@ -436,12 +436,17 @@ export const InstrumentType: Record<
   },
   [InstrumentTypeEnum.crypto]: {
     name: t('tradingConfig.crypto'),
-    color: 'blue',
+    color: 'orange',
     level: 10,
   },
   [InstrumentTypeEnum.cryptofuture]: {
     name: t('tradingConfig.crypto_future'),
-    color: 'blue',
+    color: 'red',
+    level: 10,
+  },
+  [InstrumentTypeEnum.cryptoufuture]: {
+    name: t('tradingConfig.crypto_ufuture'),
+    color: 'red',
     level: 10,
   },
   [InstrumentTypeEnum.multi]: {
@@ -489,12 +494,16 @@ export const ShotableInstrumentTypes = [
   InstrumentTypeEnum.future,
   InstrumentTypeEnum.stockoption,
   InstrumentTypeEnum.cryptofuture,
+  InstrumentTypeEnum.cryptoufuture,
   InstrumentTypeEnum.multi,
 ];
 
 export const T0InstrumentTypes = [
+  InstrumentTypeEnum.cryptofuture,
+  InstrumentTypeEnum.cryptoufuture,
   InstrumentTypeEnum.future,
   InstrumentTypeEnum.bond,
+  InstrumentTypeEnum.stockoption,
 ];
 
 export const AbleSubscribeInstrumentTypesBySourceType: Record<
@@ -530,6 +539,8 @@ export const AbleSubscribeInstrumentTypesBySourceType: Record<
 
   cryptofuture: [InstrumentTypeEnum.cryptofuture],
 
+  cryptoufuture: [InstrumentTypeEnum.cryptoufuture],
+
   multi: [
     InstrumentTypeEnum.stock,
     InstrumentTypeEnum.future,
@@ -541,6 +552,7 @@ export const AbleSubscribeInstrumentTypesBySourceType: Record<
     InstrumentTypeEnum.repo,
     InstrumentTypeEnum.crypto,
     InstrumentTypeEnum.cryptofuture,
+    InstrumentTypeEnum.cryptoufuture,
   ],
 };
 

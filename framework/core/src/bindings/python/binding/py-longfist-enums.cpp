@@ -47,9 +47,9 @@ void bind_enums(py::module &m) {
       .value("Fund", InstrumentType::Fund)
       .value("Index", InstrumentType::Index)
       .value("Repo", InstrumentType::Repo)
-      .value("Warrant", InstrumentType::Warrant)
-      .value("Iopt", InstrumentType::Iopt)
       .value("Crypto", InstrumentType::Crypto)
+      .value("CryptoFuture", InstrumentType::CryptoFuture)
+      .value("CryptoUFuture", InstrumentType::CryptoUFuture)
       .export_values()
       .def("__eq__", [](const InstrumentType &a, int b) { return static_cast<int>(a) == b; });
 

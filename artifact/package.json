@@ -22,11 +22,13 @@
     "cli": "yarn kfs craft cli"
   },
   "dependencies": {
+<<<<<<< HEAD
     "@kungfu-trader/kfx-broker-sim": "^2.5.0-alpha.6",
     "@kungfu-trader/kfx-broker-xtp-demo": "^2.5.0-alpha.6",
     "@kungfu-trader/kungfu-app": "^2.5.0-alpha.6",
-    "@kungfu-trader/kungfu-cli": "^2.5.0-alpha.6",
     "@kungfu-trader/kungfu-core": "^2.5.0-alpha.6",
     "@kungfu-trader/kungfu-sdk": "^2.5.0-alpha.6"
-  }
-}
+=======
+    "@kungfu-trader/kfx-broker-sim": "^2.4.23-alpha.0",
+    "@kungfu-trader/kfx-broker-xtp-demo": "^2.4.23-alpha.0",
+    "@kungfu-trader/kungfu-app": "^2.4.23-alpha.0",

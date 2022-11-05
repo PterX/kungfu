@@ -899,19 +899,6 @@ export const startExtDaemon = (name: string, cwd: string, script: string) => {
   });
 };
 
-export const startBar = (
-  targetName: string,
-  source: string,
-  timeInterval: string,
-): Promise<Proc | void> => {
-  return startProcess({
-    name: targetName,
-    args: buildArgs(`service bar -s ${source} --time-interval ${timeInterval}`),
-  }).catch((err) => {
-    kfLogger.error(err);
-  });
-};
-
 export const startCustomProcess = (
   targetName: string,
   params: string,

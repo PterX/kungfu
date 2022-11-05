@@ -270,7 +270,6 @@ export enum FrameMsgTypeEnum {
   Quote = 101,
   Entrust = 102,
   Transaction = 103,
-  Bar = 110,
   OrderInput = 201,
   BlockMessage = 207,
   OrderAction = 202,

@@ -90,27 +90,3 @@ def ledger(ctx, replay, session_id):
         ctx.category = "system"
         setup(ctx, session_id, ledger, ledger_instance)
     ledger_instance.run()
-
-
-@service.command()
-@click.option(
-    "-s",
-    "--source",
-    required=True,
-    help="data source",
-)
-@click.option(
-    "-t",
-    "--time-interval",
-    default="1m",
-    type=str,
-    help="bar time interval, s/m/h/d, s=Second m=Minute h=Hour d=Day",
-)
-@service_command_context
-def bar(ctx, source, time_interval):
-    ctx.mode = lf.enums.mode.LIVE
-    args = {"source": source, "time_interval": time_interval}
-    instance = wc.BarGenerator(
-        ctx.runtime_locator, ctx.mode, ctx.low_latency, json.dumps(args)
-    )
-    instance.run()

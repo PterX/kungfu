@@ -65,7 +65,6 @@ constexpr auto AllTypes = boost::hana::make_map( //
     TYPE_PAIR(Quote),                            //
     TYPE_PAIR(Entrust),                          //
     TYPE_PAIR(Transaction),                      //
-    TYPE_PAIR(Bar),                              //
     TYPE_PAIR(BlockMessage),                     //
     TYPE_PAIR(OrderInput),                       //
     TYPE_PAIR(OrderAction),                      //
@@ -112,7 +111,6 @@ constexpr auto AllDataTypes = boost::hana::make_map( //
     TYPE_PAIR(Quote),                                //
     TYPE_PAIR(Entrust),                              //
     TYPE_PAIR(Transaction),                          //
-    TYPE_PAIR(Bar),                                  //
     TYPE_PAIR(BlockMessage),                         //
     TYPE_PAIR(OrderInput),                           //
     TYPE_PAIR(OrderAction),                          //

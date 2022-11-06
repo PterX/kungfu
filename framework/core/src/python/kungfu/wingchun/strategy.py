@@ -209,7 +209,7 @@ class Strategy(wc.Strategy):
 
     def on_quote(self, wc_context, quote, location):
         self.__call_proxy(self._on_quote, self.ctx, quote, location)
-        
+
     def on_entrust(self, wc_context, entrust, location):
         self.__call_proxy(self._on_entrust, self.ctx, entrust, location)
 

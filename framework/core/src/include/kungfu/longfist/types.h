@@ -13,11 +13,11 @@ using namespace kungfu::longfist::enums;
 
 static constexpr int INSTRUMENT_ID_LEN = 32;
 static constexpr int ACCOUNT_ID_LEN = 32;
-static constexpr int PRODUCT_ID_LEN = 32;
+static constexpr int PRODUCT_ID_LEN = 128;
 static constexpr int DATE_LEN = 9;
 static constexpr int EXCHANGE_ID_LEN = 16;
 
-static constexpr int ERROR_MSG_LEN = 128;
+static constexpr int ERROR_MSG_LEN = 256;
 
 KF_DEFINE_MARK_TYPE(PageEnd, 10000);
 KF_DEFINE_MARK_TYPE(SessionStart, 10001);
@@ -351,28 +351,6 @@ KF_DEFINE_PACK_TYPE(                                                        //
     (int64_t, main_seq), // 主序号
     (int64_t, seq),      // 子序号
     (int64_t, biz_index) // 业务序号
-);
-
-KF_DEFINE_PACK_TYPE(                                                 //
-    Bar, 110, PK(instrument_id, exchange_id), TIMESTAMP(start_time), //
-    (kungfu::array<char, DATE_LEN>, trading_day),                    // 交易日
-    (kungfu::array<char, INSTRUMENT_ID_LEN>, instrument_id),         // 合约代码
-    (kungfu::array<char, EXCHANGE_ID_LEN>, exchange_id),             // 交易所代码
-
-    (InstrumentType, instrument_type), // 合约类型
-
-    (int64_t, start_time), // 开始时间
-    (int64_t, end_time),   // 结束时间
-
-    (double, open),  // 开
-    (double, close), // 收
-    (double, low),   // 低
-    (double, high),  // 高
-
-    (int64_t, volume),       // 区间交易量
-    (int64_t, start_volume), // 初始总交易量
-
-    (int32_t, tick_count) // 区间有效tick数
 );
 
 KF_DEFINE_PACK_TYPE(                                       //

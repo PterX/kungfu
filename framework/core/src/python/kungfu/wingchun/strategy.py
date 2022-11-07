@@ -48,7 +48,6 @@ class Strategy(wc.Strategy):
         self._on_trading_day = getattr(
             self._module, "on_trading_day", lambda ctx, trading_day: None
         )
-        self._on_bar = getattr(self._module, "on_bar", lambda ctx, bar, location: None)
         self._on_quote = getattr(
             self._module, "on_quote", lambda ctx, quote, location: None
         )
@@ -210,9 +209,6 @@ class Strategy(wc.Strategy):
 
     def on_quote(self, wc_context, quote, location):
         self.__call_proxy(self._on_quote, self.ctx, quote, location)
-
-    def on_bar(self, wc_context, bar, location):
-        self.__call_proxy(self._on_bar, self.ctx, bar, location)
 
     def on_entrust(self, wc_context, entrust, location):
         self.__call_proxy(self._on_entrust, self.ctx, entrust, location)

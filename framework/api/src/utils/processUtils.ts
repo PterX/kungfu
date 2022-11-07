@@ -404,7 +404,7 @@ export const graceStopProcess = async (
     }
 
     return requestStop(watcher, kfLocation)
-      .then(() => delayMilliSeconds(1000))
+      .then(() => delayMilliSeconds(200))
       .then(() => stopProcess(processId));
   }
 
@@ -894,19 +894,6 @@ export const startExtDaemon = (name: string, cwd: string, script: string) => {
       KFC_AS_VARIANT: 'node',
     },
     kill_timeout: 500,
-  }).catch((err) => {
-    kfLogger.error(err);
-  });
-};
-
-export const startBar = (
-  targetName: string,
-  source: string,
-  timeInterval: string,
-): Promise<Proc | void> => {
-  return startProcess({
-    name: targetName,
-    args: buildArgs(`service bar -s ${source} --time-interval ${timeInterval}`),
   }).catch((err) => {
     kfLogger.error(err);
   });

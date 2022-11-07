@@ -127,18 +127,18 @@ enum class SubscribeInstrumentType : uint64_t {
 
 // for trading, different type has different minimum volume, price, accounting rules for making order
 enum class InstrumentType : int8_t {
-  Unknown,     // 未知
-  Stock,       // 股票
-  Future,      // 期货
-  Bond,        // 债券
-  StockOption, // 股票期权
-  TechStock,   // 科技股
-  Fund,        // 基金
-  Index,       // 指数
-  Repo,        // 回购
-  Warrant,     // 认权证
-  Iopt,        // 牛熊证
-  Crypto,      // 数字货币
+  Unknown,       // 未知
+  Stock,         // 股票
+  StockOption,   // 股票期权
+  TechStock,     // 科技股
+  Future,        // 期货
+  Bond,          // 债券
+  Fund,          // 基金
+  Index,         // 指数
+  Repo,          // 回购
+  Crypto,        // 数字货币
+  CryptoFuture,  // 数字货币期货
+  CryptoUFuture, // 数字货币期货U本位
 };
 
 inline std::ostream &operator<<(std::ostream &os, InstrumentType t) { return os << int8_t(t); }

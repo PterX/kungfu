@@ -217,7 +217,9 @@ class KungfuCoreConan(ConanFile):
                 "-DCMAKE_BUILD_TYPE=Release",
                 "-DSPDLOG_LOG_LEVEL_COMPILE=trace",
             )
-            self.__run_cmake("--build", ".", "--config", "Release", "--", "-j", f"{os.cpu_count()}")
+            self.__run_cmake(
+                "--build", ".", "--config", "Release", "--", "-j", f"{os.cpu_count()}"
+            )
 
     def __run_cmake(self, *args):
         rc = psutil.Popen([tools.which("cmake"), *args]).wait()

@@ -1,7 +1,7 @@
+import conan
 import json
 import getpass
 import os
-import psutil
 import pathlib
 import platform
 import datetime
@@ -15,7 +15,6 @@ from conans import tools
 from distutils import sysconfig
 from os import environ
 from os import path
-from wcmatch import glob
 
 with open(path.join("package.json"), "r") as package_json_file:
     package_json = json.load(package_json_file)
@@ -24,7 +23,7 @@ with open(path.join("package.json"), "r") as package_json_file:
 class KungfuCoreConan(ConanFile):
     name = "kungfu-core"
     version = package_json["version"]
-    generators = "cmake"
+    generators = "cmake" if "NODE_GYP_RUN" in os.environ else "cmake_find_package"
     requires = [
         "fmt/8.1.1",
         "hana/1.79.0",
@@ -69,6 +68,8 @@ class KungfuCoreConan(ConanFile):
         "with_yarn": False,
     }
     conanfile_dir = path.dirname(path.realpath(__file__))
+    exports = "package.json"
+    exports_sources = "src/*", "package.json", "CMakeLists.txt"
     pyi_hooks_dir = path.join(conanfile_dir, "src", "python", "pyi-hooks")
     build_info_file = "kungfubuildinfo.json"
     build_dir = path.join(conanfile_dir, "build")
@@ -86,9 +87,17 @@ class KungfuCoreConan(ConanFile):
             if toolset != "auto":
                 self.settings.compiler.toolset = toolset
 
+    # def layout(self):
+    #     if "NODE_GYPE_RUN" not in os.environ:
+    #         tools.cmake.cmake_layout(self)
+
     def generate(self):
         """Updates mtime of lock files for node-gyp sake"""
-        self.__touch_lockfile()
+        if "NODE_GYP_RUN" in os.environ:
+            self.__touch_lockfile()
+        else:
+            tc = conan.tools.cmake.CMakeToolchain(self)
+            tc.generate()
 
     def imports(self):
         python_inc_src = sysconfig.get_python_inc(plat_specific=True)
@@ -209,20 +218,23 @@ class KungfuCoreConan(ConanFile):
         elif runtime == "node":
             environ["KUNGFU_BUILD_SKIP_KUNGFU_NODE"] = "on"
             environ["KUNGFU_BUILD_SKIP_PYKUNGFU"] = "on"
-            self.__run_cmake(
-                "-S",
-                "..",
-                "-B",
-                "../build",
-                "-DCMAKE_BUILD_TYPE=Release",
-                "-DSPDLOG_LOG_LEVEL_COMPILE=trace",
-            )
-            self.__run_cmake(
-                "--build", ".", "--config", "Release", "--", "-j", f"{os.cpu_count()}"
-            )
+            cmake = conan.tools.cmake.CMake(self)
+            cmake.configure()
+            cmake.build()
+            # self.__run_cmake(
+            #     "-S",
+            #     "..",
+            #     "-B",
+            #     "../build",
+            #     "-DCMAKE_BUILD_TYPE=Release",
+            #     "-DSPDLOG_LOG_LEVEL_COMPILE=trace",
+            # )
+            # self.__run_cmake(
+            #     "--build", ".", "--config", "Release", "--", "-j", f"{os.cpu_count()}"
+            # )
 
     def __run_cmake(self, *args):
-        rc = psutil.Popen([tools.which("cmake"), *args]).wait()
+        rc = subprocess.Popen([tools.which("cmake"), *args]).wait()
         if rc != 0:
             self.output.error(f"cmake {args} failed with return code {rc}")
             sys.exit(rc)
@@ -238,7 +250,7 @@ class KungfuCoreConan(ConanFile):
         self.output.success(f"cmake-js {cmd} done")
 
     def __run_yarn(self, *args):
-        rc = psutil.Popen([tools.which("yarn"), *args]).wait()
+        rc = subprocess.Popen([tools.which("yarn"), *args]).wait()
         if rc != 0:
             self.output.error(f"yarn {args} failed with return code {rc}")
             sys.exit(rc)
@@ -257,7 +269,7 @@ class KungfuCoreConan(ConanFile):
         parallel_level = os.cpu_count()
 
         python_path = (
-            psutil.Popen(["pipenv", "--py"], stdout=subprocess.PIPE)
+            subprocess.Popen(["pipenv", "--py"], stdout=subprocess.PIPE)
             .stdout.read()
             .decode()
             .strip()
@@ -306,6 +318,7 @@ class KungfuCoreConan(ConanFile):
                 ]
             )
 
+        from wcmatch import glob
         for file in glob.glob("*kfs*", flags=glob.EXTGLOB, root_dir=self.kfs_dir):
             shutil.copy(path.join(self.kfs_dir, file), self.kfc_dir)
         shutil.rmtree(self.kfs_dir)

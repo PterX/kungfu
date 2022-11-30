@@ -222,7 +222,11 @@ class KungfuCoreConan(ConanFile):
             self.output.warn(f"disabled build for runtime {runtime}")
             return
         toolset = self.__get_toolset()
-        parallel_opt = [] if tools.detected_os() == "Windows" else ["--", "-j", f"{os.cpu_count()}"]
+        parallel_opt = (
+            []
+            if tools.detected_os() == "Windows"
+            else ["--", "-j", f"{os.cpu_count()}"]
+        )
         self.__enable_modules(runtime)
         if str(self.options.with_yarn) == "True":
             self.__run_cmake_js(build_type, "configure", runtime, toolset)
@@ -238,9 +242,7 @@ class KungfuCoreConan(ConanFile):
                 "-DCMAKE_BUILD_TYPE=Release",
                 "-DSPDLOG_LOG_LEVEL_COMPILE=trace",
             )
-            self.__run_cmake(
-                "--build", ".", "--config", "Release", *parallel_opt
-            )
+            self.__run_cmake("--build", ".", "--config", "Release", *parallel_opt)
 
     def __run_cmake(self, *args):
         rc = subprocess.Popen([tools.which("cmake"), *args]).wait()
@@ -327,6 +329,7 @@ class KungfuCoreConan(ConanFile):
             )
 
         from wcmatch import glob
+
         for file in glob.glob("*kfs*", flags=glob.EXTGLOB, root_dir=self.kfs_dir):
             shutil.copy(path.join(self.kfs_dir, file), self.kfc_dir)
         shutil.rmtree(self.kfs_dir)

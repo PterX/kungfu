@@ -1074,7 +1074,7 @@
     minimatch "^3.1.2"
     strip-json-comments "^3.1.1"
 
-"@fast-csv/format@4.3.5":
+"@fast-csv/format@4.3.5", "@fast-csv/format@^4.3.5":
   version "4.3.5"
   resolved "https://registry.npmmirror.com/@fast-csv/format/-/format-4.3.5.tgz#90d83d1b47b6aaf67be70d6118f84f3e12ee1ff3"
   integrity sha512-8iRn6QF3I8Ak78lNAa+Gdl5MJJBM5vRHivFtMRUWINdevNo00K7OXxS2PshawLKTejVwieIlPmK5YlLu6w4u8A==
@@ -4477,25 +4477,6 @@ clone@^2.1.2:
   version "2.1.2"
   resolved "https://registry.npmmirror.com/clone/-/clone-2.1.2.tgz#1b7f4b9f591f1e8f83670401600345a02887435f"
   integrity sha512-3Pe/CF1Nn94hyhIYpjtiLhdCoEoz0DqQ+988E9gmeEdQZlojxnOb74wctFyuwWQHzqyf9X7C7MG8juUpqBJT8w==
-
-cmake-js@^7.0.0:
-  version "7.0.0"
-  resolved "https://registry.yarnpkg.com/cmake-js/-/cmake-js-7.0.0.tgz#0d0b6f292ba6d3f06738fd3a57a4c43f0144d8b8"
-  integrity sha512-Xmti54GzAg+70lsPRKsuw18ktAB+NwPS3m+b6dLzh3Zi+7k8QSVi857UWXzn9sjPXGz5BfSfo3vNISRaTVU/4A==
-  dependencies:
-    axios "^0.27.2"
-    debug "^4"
-    fs-extra "^10.1.0"
-    lodash.isplainobject "^4.0.6"
-    memory-stream "^1.0.0"
-    node-api-headers "^0.0.1"
-    npmlog "^6.0.2"
-    rc "^1.2.7"
-    semver "^7.3.8"
-    tar "^6.1.11"
-    url-join "^4.0.1"
-    which "^2.0.2"
-    yargs "^17.6.0"
 
 cmake-js@^7.0.0:
   version "7.0.0"
@@ -7968,6 +7949,11 @@ lodash.escaperegexp@^4.1.2:
   resolved "https://registry.npmmirror.com/lodash.escaperegexp/-/lodash.escaperegexp-4.1.2.tgz#64762c48618082518ac3df4ccf5d5886dae20347"
   integrity sha512-TM9YBvyC84ZxE3rgfefxUWiQKLilstD6k7PTGt6wfbtXF8ixIJLOL3VYyV/z+ZiPLsVxAsKAFVwWlWeb2Y8Yyw==
 
+lodash.flatten@^4.4.0:
+  version "4.4.0"
+  resolved "https://registry.yarnpkg.com/lodash.flatten/-/lodash.flatten-4.4.0.tgz#f31c22225a9632d2bbf8e4addbef240aa765a61f"
+  integrity sha512-C5N2Z3DgnnKr0LOpv/hKCgKdb7ZZwafIrsesve6lmzvZIRZRGaZ/l6Q8+2W7NaT+ZwO3fFlSCzCzrDCFdJfZ4g==
+
 lodash.groupby@^4.6.0:
   version "4.6.0"
   resolved "https://registry.npmmirror.com/lodash.groupby/-/lodash.groupby-4.6.0.tgz#0b08a1dcf68397c397855c3239783832df7403d1"
@@ -8247,13 +8233,6 @@ memfs@^3.4.3:
   integrity sha512-ygaiUSNalBX85388uskeCyhSAoOSgzBbtVCr9jA2RROssFL9Q19/ZXFqS+2Th2sr1ewNIWgFdLzLC3Yl1Zv+lw==
   dependencies:
     fs-monkey "^1.0.3"
-
-memory-stream@^1.0.0:
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/memory-stream/-/memory-stream-1.0.0.tgz#481dfd259ccdf57b03ec2c9632960044180e73c2"
-  integrity sha512-Wm13VcsPIMdG96dzILfij09PvuS3APtcKNh7M28FsCA/w6+1mjR7hhPmfFNoilX9xU7wTdhsH5lJAm6XNzdtww==
-  dependencies:
-    readable-stream "^3.4.0"
 
 memory-stream@^1.0.0:
   version "1.0.0"
@@ -11658,11 +11637,6 @@ url-join@^4.0.1:
   resolved "https://registry.yarnpkg.com/url-join/-/url-join-4.0.1.tgz#b642e21a2646808ffa178c4c5fda39844e12cde7"
   integrity sha512-jk1+QP6ZJqyOiuEI9AEWQfju/nB2Pw466kbA0LEZljHwKeMgd9WrAEgEGxjPDD2+TNbbb37rTyhEfrCXfuKXnA==
 
-url-join@^4.0.1:
-  version "4.0.1"
-  resolved "https://registry.yarnpkg.com/url-join/-/url-join-4.0.1.tgz#b642e21a2646808ffa178c4c5fda39844e12cde7"
-  integrity sha512-jk1+QP6ZJqyOiuEI9AEWQfju/nB2Pw466kbA0LEZljHwKeMgd9WrAEgEGxjPDD2+TNbbb37rTyhEfrCXfuKXnA==
-
 url-loader@^4.1.1:
   version "4.1.1"
   resolved "https://registry.npmmirror.com/url-loader/-/url-loader-4.1.1.tgz#28505e905cae158cf07c92ca622d7f237e70a4e2"
@@ -12388,19 +12362,6 @@ yargs@^17.6.0:
     string-width "^4.2.3"
     y18n "^5.0.5"
     yargs-parser "^21.1.1"
-
-yargs@^3.6.0:
-  version "3.32.0"
-  resolved "https://registry.npmmirror.com/yargs/-/yargs-3.32.0.tgz#03088e9ebf9e756b69751611d2a5ef591482c995"
-  integrity sha512-ONJZiimStfZzhKamYvR/xvmgW3uEkAUFSP91y2caTEPhzF6uP2JfPiVZcq66b/YR0C3uitxSV7+T1x8p5bkmMg==
-  dependencies:
-    cliui "^8.0.1"
-    escalade "^3.1.1"
-    get-caller-file "^2.0.5"
-    require-directory "^2.1.1"
-    string-width "^4.2.3"
-    y18n "^5.0.5"
-    yargs-parser "^21.0.0"
 
 yarn@^1.22.0:
   version "1.22.19"

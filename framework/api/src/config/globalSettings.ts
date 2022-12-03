@@ -58,6 +58,13 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
         default: langDefault,
       },
       {
+        key: 'autoRestartTd',
+        name: t('globalSettingConfig.auto_restart_td'),
+        tip: t('globalSettingConfig.auto_restart_td_desc'),
+        type: 'bool',
+        default: true,
+      },
+      {
         key: 'bypassArchive',
         name: t('globalSettingConfig.bypass_archive'),
         tip: t('globalSettingConfig.bypass_archive_desc'),
@@ -134,6 +141,7 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
         tip: t('globalSettingConfig.set_fat_finger'),
         default: '',
         type: 'percent',
+        min: 0,
       },
       {
         key: 'close',

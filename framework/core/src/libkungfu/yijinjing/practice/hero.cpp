@@ -137,7 +137,9 @@ std::string hero::get_location_uname(uint32_t uid) const {
 
 bool hero::is_location_live(uint32_t uid) const { return registry_.find(uid) != registry_.end(); }
 
-bool hero::has_channel(uint32_t source, uint32_t dest) const { return has_channel(make_chanel_hash(source, dest)); }
+bool hero::has_channel(uint32_t source, uint32_t dest) const {
+  return has_channel(make_source_dest_hash(source, dest));
+}
 
 bool hero::has_channel(uint64_t hash) const { return channels_.find(hash) != channels_.end(); }
 
@@ -152,7 +154,7 @@ void hero::on_notify() {}
 
 void hero::on_exit() {}
 
-uint64_t hero::make_chanel_hash(uint32_t source_id, uint32_t dest_id) const {
+uint64_t hero::make_source_dest_hash(uint32_t source_id, uint32_t dest_id) const {
   return uint64_t(source_id) << 32u | uint64_t(dest_id);
 }
 
@@ -172,11 +174,11 @@ bool hero::check_location_live(uint32_t source_id, uint32_t dest_id) const {
   if (not check_location_exists(source_id, dest_id)) {
     return false;
   }
-  if (registry_.find(source_id) == registry_.end()) {
+  if (!is_location_live(source_id)) {
     SPDLOG_ERROR("{} is not live", get_location_uname(source_id));
     return false;
   }
-  if (registry_.find(dest_id) == registry_.end()) {
+  if (!is_location_live(dest_id)) {
     SPDLOG_ERROR("{} is not live", get_location_uname(dest_id));
     return false;
   }
@@ -209,7 +211,7 @@ void hero::deregister_location(int64_t trigger_time, const uint32_t location_uid
 }
 
 void hero::register_channel(int64_t trigger_time, const Channel &channel) {
-  uint64_t channel_uid = make_chanel_hash(channel.source_id, channel.dest_id);
+  uint64_t channel_uid = make_source_dest_hash(channel.source_id, channel.dest_id);
   auto result = channels_.try_emplace(channel_uid, channel);
   if (result.second) {
     auto source_uname = get_location_uname(channel.source_id);
@@ -234,6 +236,32 @@ void hero::deregister_channel(uint32_t source_location_uid) {
   }
 }
 
+void hero::register_band(int64_t trigger_time, const Band &band) {
+  uint64_t band_uid = make_source_dest_hash(band.source_id, band.dest_id);
+  auto result = bands_.try_emplace(band_uid, band);
+  if (result.second) {
+    auto source_uname = get_location_uname(band.source_id);
+    auto dest_uname = get_location_uname(band.dest_id);
+    SPDLOG_TRACE("band [{:08x}] {} -> {} up", band_uid, source_uname, dest_uname);
+  }
+}
+
+void hero::deregister_band(uint32_t source_location_uid) {
+  auto band_it = bands_.begin();
+  while (band_it != bands_.end()) {
+    if (band_it->second.source_id == source_location_uid) {
+      const auto &band_uid = band_it->first;
+      const auto &band = band_it->second;
+      auto source_uname = get_location_uname(band.source_id);
+      auto dest_uname = get_location_uname(band.dest_id);
+      SPDLOG_TRACE("band [{:08x}] {} -> {} down", band_uid, source_uname, dest_uname);
+      band_it = bands_.erase(band_it);
+      continue;
+    }
+    band_it++;
+  }
+}
+
 void hero::require_read_from(int64_t trigger_time, uint32_t dest_id, uint32_t source_id, int64_t from_time) {
   do_require_read_from<RequestReadFrom>(get_writer(dest_id), trigger_time, dest_id, source_id, from_time);
 }
@@ -254,6 +282,14 @@ void hero::require_write_to(int64_t trigger_time, uint32_t source_id, uint32_t d
   RequestWriteTo &msg = writer->open_data<RequestWriteTo>(trigger_time);
   msg.dest_id = dest_id;
   writer->close_data();
+}
+
+void hero::require_write_to_band(int64_t trigger_time, uint32_t source_id,
+                                 const yijinjing::data::location_ptr &location) {
+  auto writer = get_writer(source_id);
+  RequestWriteToBand msg = {};
+  location->to<RequestWriteToBand>(msg);
+  writer->write(trigger_time, msg);
 }
 
 void hero::produce(const rx::subscriber<event_ptr> &sb) {

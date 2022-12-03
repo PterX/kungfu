@@ -18,6 +18,8 @@ export default {
   watcher_error: 'Watcher is NULL',
   instrument_error: 'instrument error',
   component_error: 'component error',
+  board_empty: 'Not added any board',
+  add_board_now: 'Add now',
   prompt: 'prompt',
   warning: 'warning',
   confirm: 'confirm',
@@ -251,6 +253,8 @@ export default {
     no_empty: 'Order quantity cannot be empty',
     total_order_amount: 'Total Order Amount',
     every_volume: 'Every Volume',
+    add_csv: 'Add Csv',
+    clear: 'Clear',
 
     fat_finger_buy_modal:
       'The buying price exceeded the warning line, the current price is {price}, line for {warningLine}, fat finger is {fatFinger}%',
@@ -501,6 +505,10 @@ export default {
     log_level: 'Log Level',
     for_all_log: 'For all Log',
 
+    auto_restart_td: 'Trading Process Auto Restart',
+    auto_restart_td_desc:
+      'While the trade process interruption, if this switch open, it will try to reconnect three times; if closed, it will not. During the restart process (from restart to trade process ready) , the position queried in the strategy will be 0, both `on_deregister` and `on_broker_state_change` methods need to be used within the policy to determine whether the status of the counter is `disconnected` or `restart ready`.',
+
     language: 'Language',
     select_language_desc: 'Select Language, the modified restart takes effect',
     bypass_archive: 'ByPass Archive',
@@ -577,6 +585,7 @@ export default {
     no_negative_number: 'Cannot contain negative',
     value_existing: '{value} has been in existence',
     mandatory: 'mandatory',
+    resolved_tip: 'Success resolved {success} {value}, failed {fail}',
   },
 
   editor: {

@@ -54,14 +54,19 @@ export const watcher = ((): KungfuApi.Watcher | null => {
   const globalSetting = getKfGlobalSettingsValue();
   const bypassAccounting =
     process.env.BY_PASS_ACCOUNTING ??
-    globalSetting?.performance?.bypassAccounting;
+    globalSetting?.performance?.bypassAccounting ??
+    false;
   const bypassTradingData =
     process.env.BY_PASS_TRADINGDATA ??
-    globalSetting?.performance?.bypassTradingData;
+    globalSetting?.performance?.bypassTradingData ??
+    false;
+  const refreshLedgerBeforeSync =
+    process.env.REFRESH_LEDGER_BEFORE_SYNC || false;
 
   kfLogger.info('bypassRestore', bypassRestore);
   kfLogger.info('bypassAccounting', bypassAccounting);
   kfLogger.info('bypassTradingData', bypassTradingData);
+  kfLogger.info('refreshLedgerBeforeSync', refreshLedgerBeforeSync);
 
   return kf.watcher(
     KF_RUNTIME_DIR,
@@ -69,6 +74,7 @@ export const watcher = ((): KungfuApi.Watcher | null => {
     !!bypassRestore,
     !!bypassAccounting,
     !!bypassTradingData,
+    !!refreshLedgerBeforeSync,
   );
 })();
 
@@ -83,10 +89,10 @@ export const startWatcherSyncTask = (
 ) => {
   if (watcher === null) return;
   return setTimerPromiseTask(() => {
-    return new Promise((resolve) => {
+    return new Promise(async (resolve) => {
       if (watcher.isLive() && watcher.isStarted()) {
         watcher.sync();
-        callback && callback(watcher);
+        callback && (await callback(watcher));
       }
       resolve(true);
     });

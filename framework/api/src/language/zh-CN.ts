@@ -18,6 +18,8 @@ export default {
   watcher_error: 'Watcher is NULL',
   instrument_error: '标的错误',
   component_error: '组件错误',
+  board_empty: '未添加任何面板',
+  add_board_now: '立即添加',
   prompt: '提示',
   warning: '警告',
   confirm: '确 认',
@@ -71,11 +73,11 @@ export default {
   trading_day: '交易日',
 
   delete_category:
-    '删除 {category} 所有数据， 如果该 {categoryName} 进程正在运行, 也将停止进程, 确认删除',
+    '删除 {category} 所有数据,  如果该 {categoryName} 进程正在运行, 也将停止进程, 确认删除',
   add_config_modal:
     '{category}ID系统唯一, {changeTypeName} 成功后不可修改, 确认 {key}',
   update_config_modal: '确认{key} 相关配置',
-  database_locked: '当前数据库被其他进程占用，请稍后再试',
+  database_locked: '当前数据库被其他进程占用, 请稍后再试',
 
   MakeOrder: '下单面板',
   FutureArbitrage: '套利指令',
@@ -253,6 +255,8 @@ export default {
     no_empty: '下单量不可为空',
     total_order_amount: '总下单量',
     every_volume: '每次下单量',
+    add_csv: '添加 csv',
+    clear: '清除',
 
     fat_finger_buy_modal:
       '买入价格超出警戒线, 当前价格为 {price}, 警戒线为 {warningLine}, 当前乌龙指阈值为 {fatFinger}%',
@@ -262,7 +266,7 @@ export default {
       '下单量为 {volume}, 当前标的可平{direction}仓为 {closable_volume}, 超出数量为 {open_volume}\n点击 “超出部分反向开仓”, 将会 平{direction} {closable_volume}, 开{direction} {open_volume}\n点击“按原方案下单”, 将会继续平{direction} {volume}',
     start_process: '请先启动{process}交易进程',
     place_confirm: '下单确认',
-    close_all: '是否全部平仓?',
+    continue_close_rate: '超过平仓阈值 ({rate}%), 是否继续下单?',
     Continue: '继续下单',
     original_plan: '按原方案下单',
     beyond_to_open: '超出部分反向开仓',
@@ -503,11 +507,15 @@ export default {
     log_level: '全局日志级别',
     for_all_log: '对系统内所有日志级别的设置',
 
+    auto_restart_td: '交易进程自动重启',
+    auto_restart_td_desc:
+      '交易进程断开时是否自动重启, 如果打开, 则当交易进程出错后, 会尝试重连三次, 如果关闭, 则不会；在重启过程中（重启开始到交易进程就绪）, 策略内查询到的持仓会为0, 需要在策略内通过 on_deregister, on_broker_state_change这两个方法来判断柜台状态是否断开/重启就绪',
+
     language: '语言',
-    select_language_desc: '选择语言，修改后重启功夫生效',
+    select_language_desc: '选择语言, 修改后重启功夫生效',
     bypass_archive: '跳过归档',
     bypass_archive_desc:
-      '仅删除上个交易日留下的journal与log文件, 不再压缩打包, 归档后无法恢复之前的内存数据, 会加快启动速度',
+      '仅删除上个交易日留下的journal与log文件, 不再压缩打包, 跳过归档后无法恢复之前的内存数据, 会加快启动速度',
 
     porformance: '性能',
     rocket_model: '开启极速模式',
@@ -576,6 +584,7 @@ export default {
     no_negative_number: '请输入非负数',
     value_existing: '{value}已存在',
     mandatory: '该项为必填项',
+    resolved_tip: '成功匹配 {success} 个{value}, 失败 {fail} 个',
   },
 
   editor: {

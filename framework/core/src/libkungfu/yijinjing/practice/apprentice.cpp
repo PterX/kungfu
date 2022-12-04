@@ -265,7 +265,9 @@ void apprentice::on_write_to_band(const event_ptr &event) {
 
 void apprentice::on_cached_ready_to_read() { request_cached(cached_home_location_->uid); }
 
-[[maybe_unused]] int apprentice::get_observer_recv_timeout() const { return get_io_device()->get_observer()->get_recv_timeout(); }
+[[maybe_unused]] int apprentice::get_observer_recv_timeout() const {
+  return get_io_device()->get_observer()->get_recv_timeout();
+}
 
 void apprentice::checkin() {
   auto now = time::now_in_nano();

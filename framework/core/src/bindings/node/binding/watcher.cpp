@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 //
 // Created by Keren Dong on 2020/1/14.
 //
@@ -60,6 +62,13 @@ inline bool GetBypassTradingData(const Napi::CallbackInfo &info) {
   return info[4].As<Napi::Boolean>().Value();
 }
 
+inline bool GetRefreshLedgerBeforeSync(const Napi::CallbackInfo &info) {
+  if (not IsValid(info, 5, &Napi::Value::IsBoolean)) {
+    throw Napi::Error::New(info.Env(), "Invalid refreshBeforeSync argument");
+  }
+  return info[5].As<Napi::Boolean>().Value();
+}
+
 WatcherAutoClient::WatcherAutoClient(yijinjing::practice::apprentice &app, bool bypass_trading_data)
     : SilentAutoClient(app), bypass_trading_data_(bypass_trading_data) {}
 
@@ -86,16 +95,19 @@ void WatcherAutoClient::connect(const event_ptr &event, const longfist::types::R
       SPDLOG_INFO("resume {} connection from {}", app_.get_location_uname(app_uid), time::strftime(resume_time_point));
     }
     return;
-  };
+  }
 
   wingchun::broker::SilentAutoClient::connect(event, register_data);
 }
+
+void WatcherAutoClient::connect(const event_ptr &event, const longfist::types::Band &band) { return; }
 
 Watcher::Watcher(const Napi::CallbackInfo &info)
     : ObjectWrap(info),                                                                                   //
       apprentice(GetWatcherLocation(info), true),                                                         //
       bypass_accounting_(GetBypassAccounting(info)),                                                      //
       bypass_trading_data_(GetBypassTradingData(info)),                                                   //
+      refresh_ledger_before_sync_(GetRefreshLedgerBeforeSync(info)),                                      //
       broker_client_(*this, bypass_trading_data_),                                                        //
       bookkeeper_(*this, broker_client_),                                                                 //
       state_ref_(Napi::ObjectReference::New(Napi::Object::New(info.Env()), 1)),                           //
@@ -191,11 +203,19 @@ Napi::Value Watcher::GetLocationUID(const Napi::CallbackInfo &info) {
   return Napi::Number::New(info.Env(), target_location->uid);
 }
 
+// TODO: 返回十进制，但需要16进制
 Napi::Value Watcher::GetInstrumentUID(const Napi::CallbackInfo &info) {
   auto exchange_id = info[0].ToString().Utf8Value();
   auto instrument_id = info[1].ToString().Utf8Value();
   auto key = hash_instrument(exchange_id.c_str(), instrument_id.c_str());
   return Napi::Number::New(info.Env(), key);
+}
+
+Napi::Value Watcher::GetInstrumentType(const Napi::CallbackInfo &info) {
+  auto exchange_id = info[0].ToString().Utf8Value();
+  auto instrument_id = info[1].ToString().Utf8Value();
+  auto instrument_type = get_instrument_type(exchange_id, instrument_id);
+  return Napi::Number::New(info.Env(), int(instrument_type));
 }
 
 Napi::Value Watcher::GetConfig(const Napi::CallbackInfo &info) { return config_ref_.Value(); }
@@ -322,7 +342,7 @@ void Watcher::Init(Napi::Env env, Napi::Object exports) {
                       InstanceMethod("hasLocation", &Watcher::HasLocation),                             //
                       InstanceMethod("getLocation", &Watcher::GetLocation),                             //
                       InstanceMethod("getLocationUID", &Watcher::GetLocationUID),                       //
-                      InstanceMethod("getInstrumentUID", &Watcher::GetInstrumentUID),                   //
+                      InstanceMethod("getInstrumentType", &Watcher::GetInstrumentType),                 //
                       InstanceMethod("publishState", &Watcher::PublishState),                           //
                       InstanceMethod("isReadyToInteract", &Watcher::IsReadyToInteract),                 //
                       InstanceMethod("issueBlockMessage", &Watcher::IssueBlockMessage),                 //
@@ -424,21 +444,28 @@ Napi::Value Watcher::Start(const Napi::CallbackInfo &info) {
   return {};
 }
 
-Napi::Value Watcher::Sync(const Napi::CallbackInfo &info) {
+void Watcher::Sync(const Napi::CallbackInfo &info) {
+  std::lock_guard<std::mutex> guard(feed_mutex_);
   SyncEventCache();
-  SyncLedger();
-  SyncOrder();
   SyncAppStates();
   SyncStrategyStates();
-  return {};
+  SyncLedger();
+  TryRefreshTradingData(info);
+  SyncTradingData();
 }
 
 void Watcher::SyncLedger() {
   boost::hana::for_each(StateDataTypes, [&](auto it) { UpdateLedger(+boost::hana::second(it)); });
 }
 
-void Watcher::SyncOrder() {
-  boost::hana::for_each(TradingDataTypes, [&](auto it) { UpdateOrder(+boost::hana::second(it)); });
+void Watcher::TryRefreshTradingData(const Napi::CallbackInfo &info) {
+  if (refresh_ledger_before_sync_) {
+    serialize::InitTradingDataMap(info, ledger_ref_, "ledger");
+  }
+}
+
+void Watcher::SyncTradingData() {
+  boost::hana::for_each(TradingDataTypes, [&](auto it) { UpdateTradingData(+boost::hana::second(it)); });
 }
 
 void Watcher::SyncAppStates() {
@@ -579,8 +606,9 @@ void Watcher::StartWorker() {
       if (not watcher->is_live() and not watcher->is_started() and watcher->is_usable()) {
         watcher->setup();
       }
-      if (watcher->is_live()) {
+      if (watcher->is_live() && watcher->feed_mutex_.try_lock()) {
         watcher->step();
+        watcher->feed_mutex_.unlock();
       }
     }
     watcher->signal_stop();

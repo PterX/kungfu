@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 //
 // Created by Keren Dong on 2020-07-20.
 //
@@ -154,6 +156,25 @@ std::vector<uint64_t> RuntimeContext::insert_batch_orders(
     uint64_t order_id =
         insert_order(instrument_ids.at(i), exchange_ids.at(i), source, account, limit_prices.at(i), volumes.at(i),
                      types.at(i), sides.at(i), offsets.at(i), hedge_flags.at(i), is_swaps.at(i));
+    order_ids.push_back(order_id);
+  }
+
+  writer->mark(time::now_in_nano(), BatchOrderEnd::tag);
+  writer->close_data();
+  return order_ids;
+}
+
+std::vector<uint64_t> RuntimeContext::insert_array_orders(const std::string &source, const std::string &account,
+                                                          std::vector<longfist::types::OrderInput> order_inputs) {
+  std::vector<uint64_t> order_ids{};
+  auto account_location_uid = get_td_location_uid(source, account);
+  auto writer = app_.get_writer(account_location_uid);
+  writer->mark(time::now_in_nano(), BatchOrderBegin::tag);
+
+  for (const OrderInput &input : order_inputs) {
+    uint64_t order_id =
+        insert_order(input.instrument_id, input.exchange_id, source, account, input.limit_price, input.volume,
+                     input.price_type, input.side, input.offset, input.hedge_flag, input.is_swap);
     order_ids.push_back(order_id);
   }
 

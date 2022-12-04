@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 //
 // Created by Keren Dong on 2019-06-20.
 //
@@ -47,6 +49,8 @@ public:
   virtual bool subscribe_custom(const longfist::types::CustomSubscribe &custom_sub) { return subscribe_all(); };
 
   virtual bool unsubscribe(const std::vector<longfist::types::InstrumentKey> &instrument_keys) = 0;
+
+  virtual bool on_custom_event(const event_ptr &event) { return true; }
 
 protected:
   [[nodiscard]] bool has_instrument(const std::string &instrument_id) const;

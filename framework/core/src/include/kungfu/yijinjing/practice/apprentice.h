@@ -1,17 +1,4 @@
-/*****************************************************************************
- * Copyright [www.kungfu-trader.com]
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *  http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *****************************************************************************/
+// SPDX-License-Identifier: Apache-2.0
 
 //
 // Created by Keren Dong on 2019-06-01.
@@ -50,7 +37,14 @@ public:
 
   void request_read_from_sync(int64_t trigger_time, uint32_t source_id, int64_t from_time);
 
+  void request_read_from_source_to_dest(int64_t trigger_time, const yijinjing::data::location_ptr &source_location,
+                                        uint32_t dest_id);
+
   void request_write_to(int64_t trigger_time, uint32_t dest_id);
+
+  void request_write_to_band(int64_t trigger_time, const yijinjing::data::location_ptr &location);
+
+  uint32_t request_band(const std::string &band_name);
 
   void request_cached_reader_writer();
 
@@ -92,7 +86,9 @@ protected:
 
   void on_write_to(const event_ptr &event);
 
-  int get_observer_recv_timeout() const;
+  void on_write_to_band(const event_ptr &event);
+
+  [[maybe_unused]] int get_observer_recv_timeout() const;
 
   std::function<rx::observable<event_ptr>(rx::observable<event_ptr>)> timer(int64_t nanotime) {
     auto writer = get_writer(master_cmd_location_->uid);
@@ -188,7 +184,6 @@ private:
   int64_t trading_day_ = 0;
   int32_t timer_usage_count_ = 0;
   std::unordered_map<int, int64_t> timer_checkpoints_ = {};
-
   void checkin();
 
   void expect_start();

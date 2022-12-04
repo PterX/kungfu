@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 //
 // Created by Keren Dong on 2020/3/12.
 //
@@ -82,8 +84,8 @@ public:
   [[nodiscard]] virtual bool is_custom_subscribed(uint32_t md_location_uid) const = 0;
 
   [[nodiscard]] virtual bool is_custom_subscribed_all(uint32_t md_location_uid,
-                                                      kungfu::longfist::enums::SubscribeDataType secu_dt,
-                                                      const std::string &exchange,
+                                                      kungfu::longfist::enums::SubscribeDataType data_type,
+                                                      const std::string &exchange_id,
                                                       InstrumentType kf_instrument_type) const = 0;
 
   [[nodiscard]] virtual bool is_all_subscribed(uint32_t md_location_uid) const = 0;
@@ -98,6 +100,8 @@ public:
                          const std::string &instrument_id);
 
   virtual void connect(const event_ptr &event, const longfist::types::Register &register_data);
+
+  virtual void connect(const event_ptr &event, const longfist::types::Band &band);
 
   virtual void renew(int64_t trigger_time, const yijinjing::data::location_ptr &md_location);
 
@@ -151,8 +155,8 @@ public:
   [[nodiscard]] bool is_custom_subscribed(uint32_t md_location_uid) const override;
 
   [[nodiscard]] bool is_custom_subscribed_all(uint32_t md_location_uid,
-                                              kungfu::longfist::enums::SubscribeDataType secu_dt,
-                                              const std::string &exchange,
+                                              kungfu::longfist::enums::SubscribeDataType data_type,
+                                              const std::string &exchange_id,
                                               InstrumentType kf_instrument_type) const override;
 
   [[nodiscard]] bool is_all_subscribed(uint32_t md_location) const override;
@@ -203,8 +207,8 @@ public:
   [[nodiscard]] bool is_custom_subscribed(uint32_t md_location_uid) const override;
 
   [[nodiscard]] bool is_custom_subscribed_all(uint32_t md_location_uid,
-                                              kungfu::longfist::enums::SubscribeDataType secu_dt,
-                                              const std::string &exchange,
+                                              kungfu::longfist::enums::SubscribeDataType data_type,
+                                              const std::string &exchange_id,
                                               InstrumentType kf_instrument_type) const override;
 
   [[nodiscard]] bool is_all_subscribed(uint32_t md_location) const override;
@@ -251,20 +255,17 @@ static constexpr auto is_own(const Client &broker_client) {
       const DataType &data = event->data<DataType>();
       if (broker_client.is_custom_subscribed(event->source())) {
         if ((std::is_same_v<DataType, longfist::types::Quote> &&
-             broker_client.is_custom_subscribed_all(
-                 event->source(), kungfu::longfist::enums::SubscribeDataType::Snapshot,
-                 std::string(data.exchange_id.value),
-                 kungfu::wingchun::get_instrument_type(data.exchange_id, data.instrument_id))) ||
+             broker_client.is_custom_subscribed_all(event->source(),
+                                                    kungfu::longfist::enums::SubscribeDataType::Snapshot,
+                                                    data.exchange_id, data.instrument_type)) ||
             (std::is_same_v<DataType, longfist::types::Transaction> &&
-             broker_client.is_custom_subscribed_all(
-                 event->source(), kungfu::longfist::enums::SubscribeDataType::Transaction,
-                 std::string(data.exchange_id.value),
-                 kungfu::wingchun::get_instrument_type(data.exchange_id, data.instrument_id))) ||
+             broker_client.is_custom_subscribed_all(event->source(),
+                                                    kungfu::longfist::enums::SubscribeDataType::Transaction,
+                                                    data.exchange_id, data.instrument_type)) ||
             (std::is_same_v<DataType, longfist::types::Entrust> &&
-             broker_client.is_custom_subscribed_all(
-                 event->source(), kungfu::longfist::enums::SubscribeDataType::Entrust,
-                 std::string(data.exchange_id.value),
-                 kungfu::wingchun::get_instrument_type(data.exchange_id, data.instrument_id)))) {
+             broker_client.is_custom_subscribed_all(event->source(),
+                                                    kungfu::longfist::enums::SubscribeDataType::Entrust,
+                                                    data.exchange_id, data.instrument_type))) {
           return true;
         }
       }

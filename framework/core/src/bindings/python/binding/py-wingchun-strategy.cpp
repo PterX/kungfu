@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 #include "py-wingchun.h"
 
 #include <pybind11/functional.h>
@@ -81,10 +83,21 @@ public:
     PYBIND11_OVERLOAD(void, strategy::Strategy, on_trade, context, trade, location);
   }
 
+  void on_deregister(strategy::Context_ptr &context, const Deregister &deregister,
+                     const kungfu::yijinjing::data::location_ptr &location) override {
+    PYBIND11_OVERLOAD(void, strategy::Strategy, on_deregister, context, deregister, location);
+  }
+
+  void on_broker_state_change(strategy::Context_ptr &context, const BrokerStateUpdate &brokerStateUpdate,
+                              const kungfu::yijinjing::data::location_ptr &location) override {
+    PYBIND11_OVERLOAD(void, strategy::Strategy, on_broker_state_change, context, brokerStateUpdate, location);
+  }
+
   void on_history_order(strategy::Context_ptr &context, const HistoryOrder &history_order,
                         const kungfu::yijinjing::data::location_ptr &location) override {
     PYBIND11_OVERLOAD(void, strategy::Strategy, on_history_order, context, history_order, location);
   }
+
   void on_history_trade(strategy::Context_ptr &context, const HistoryTrade &history_trade,
                         const kungfu::yijinjing::data::location_ptr &location) override {
     PYBIND11_OVERLOAD(void, strategy::Strategy, on_history_trade, context, history_trade, location);
@@ -148,6 +161,7 @@ void bind_strategy(pybind11::module &m) {
       .def("insert_block_message", &strategy::Context::insert_block_message, py::arg("source"), py::arg("account"),
            py::arg("opponent_seat"), py::arg("match_number"), py::arg("is_specific") = false)
       .def("insert_batch_orders", &strategy::Context::insert_batch_orders)
+      .def("insert_array_orders", &strategy::Context::insert_array_orders)
       .def("cancel_order", &strategy::Context::cancel_order)
       .def("req_history_order", &strategy::Context::req_history_order, py::arg("source"), py::arg("account"),
            py::arg("query_num") = 0)
@@ -179,6 +193,8 @@ void bind_strategy(pybind11::module &m) {
       .def("on_position_sync_reset", &strategy::Strategy::on_position_sync_reset)
       .def("on_asset_sync_reset", &strategy::Strategy::on_asset_sync_reset)
       .def("on_asset_margin_sync_reset", &strategy::Strategy::on_asset_margin_sync_reset)
+      .def("on_deregister ", &strategy::Strategy::on_deregister)
+      .def("on_broker_state_change ", &strategy::Strategy::on_broker_state_change)
       .def("on_history_order", &strategy::Strategy::on_history_order)
       .def("on_history_trade", &strategy::Strategy::on_history_trade)
       .def("on_req_history_order_error", &strategy::Strategy::on_req_history_order_error)

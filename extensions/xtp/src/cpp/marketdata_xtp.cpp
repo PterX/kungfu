@@ -5,6 +5,9 @@
 #include "marketdata_xtp.h"
 #include "type_convert.h"
 
+using namespace kungfu::yijinjing;
+using namespace kungfu::yijinjing::data;
+
 namespace kungfu::wingchun::xtp {
 struct MDConfiguration {
   int client_id;
@@ -40,6 +43,8 @@ MarketDataXTP::~MarketDataXTP() {
 }
 
 void MarketDataXTP::on_start() {
+  market_data_band_uid_ = request_band("market-data-band");
+
   MDConfiguration config = nlohmann::json::parse(get_config());
   if (config.client_id < 1 or config.client_id > 99) {
     throw wingchun_error("client_id must between 1 and 99");

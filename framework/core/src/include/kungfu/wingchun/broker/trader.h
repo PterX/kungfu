@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 //
 // Created by Keren Dong on 2019-06-20.
 //
@@ -65,6 +67,8 @@ public:
   virtual bool req_history_trade(const event_ptr &event) { return true; }
 
   virtual bool on_strategy_exit(const event_ptr &event) { return true; }
+
+  virtual bool on_custom_event(const event_ptr &event) { return true; }
 
   /// 此函数自动发送一个空的AssetMargin数据. 两融柜台需要发送一个存有数据的AssetMargin, 请override此函数取消写入.
   /// 并且在使用writer写入完AssetMargin之后调用enable_asset_margin_sync()函数.

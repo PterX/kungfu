@@ -581,8 +581,8 @@ function getRocketParams(args: string, ifRocket: boolean) {
 
 function buildArgs(args: string): string {
   const globalSetting = getKfGlobalSettingsValue();
-  const logLevel: string = globalSetting?.system?.logLevel || '';
-  const ifRocket = globalSetting?.performance?.rocket || false;
+  const logLevel: string = globalSetting?.system?.logLevel ?? '';
+  const ifRocket = globalSetting?.performance?.rocket ?? false;
   const rocket = getRocketParams(args, ifRocket);
   return [logLevel, args, rocket].join(' ');
 }
@@ -606,7 +606,7 @@ function startGetProcessStatusByName(name: string, callback: Function) {
 
 export function startArchiveMakeTask(cb?: Function) {
   const globalSetting = getKfGlobalSettingsValue();
-  const bypassArchive = globalSetting?.system?.bypassArchive || false;
+  const bypassArchive = globalSetting?.system?.bypassArchive ?? false;
   return startProcessGetStatusUntilStop(
     {
       name: 'archive',
@@ -731,6 +731,8 @@ export const startTd = async (
   accountId: string,
   kfConfig: KungfuApi.KfConfig,
 ): Promise<Proc | void> => {
+  const globalSetting = getKfGlobalSettingsValue();
+  const autorestart = globalSetting?.system?.autoRestartTd ?? true;
   const extDirs = await flattenExtensionModuleDirs(EXTENSION_DIRS);
   const { source, id } = (accountId || '').parseSourceAccountId();
   const args = buildArgs(
@@ -749,8 +751,12 @@ export const startTd = async (
         cwd,
         script: `${dealSpaceInPath(path.join(KFC_DIR, kfcName))}`,
         args,
-        max_restarts: 3,
-        autorestart: true,
+        ...(autorestart
+          ? {
+              max_restarts: 4, // pm2 在进程退出时对重启次数进行 +1，所有第一次退出也被计算在内，重启 3 次的话这里就应该填 4
+              autorestart: true,
+            }
+          : {}),
         force: true,
       },
     );
@@ -835,8 +841,8 @@ export const startStrategy = async (
 ): Promise<Proc | void> => {
   strategyPath = dealSpaceInPath(strategyPath);
   const globalSetting = getKfGlobalSettingsValue();
-  const ifLocalPython = globalSetting?.strategy?.python || false;
-  const pythonPath = globalSetting?.strategy?.pythonPath || '';
+  const ifLocalPython = globalSetting?.strategy?.python ?? false;
+  const pythonPath = globalSetting?.strategy?.pythonPath ?? '';
   const strategyIdResolved = `strategy_${strategyId}`;
 
   //因为pm2环境残留，在反复切换本地python跟内置python时，会出现本地python启动失败，所以需要先pm2 kill

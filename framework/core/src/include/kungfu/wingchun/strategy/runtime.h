@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 //
 // Created by Keren Dong on 2020/7/20.
 //
@@ -110,6 +112,15 @@ public:
                       std::vector<longfist::enums::Offset> offsets, std::vector<longfist::enums::HedgeFlag> hedge_flags,
                       std::vector<bool> is_swaps) override;
 
+  /**
+   *
+   * @param source
+   * @param account
+   * @param order_inputs
+   * @return
+   */
+  std::vector<uint64_t> insert_array_orders(const std::string &source, const std::string &account,
+                                            std::vector<longfist::types::OrderInput> order_inputs) override;
   /**
    * Cancel order.
    * @param order_id order ID

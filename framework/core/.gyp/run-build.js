@@ -1,6 +1,5 @@
 const fs = require('fs');
 const glob = require('glob');
-const os = require('os');
 const path = require('path');
 const { prebuilt, shell } = require('../lib');
 
@@ -15,27 +14,12 @@ function clean() {
 }
 
 function makePackage() {
-  const packageJson = JSON.parse(fs.readFileSync('package.json'));
-  const version = packageJson.version;
   const prebuilt = glob.sync('build/stage/**/*.tar.gz');
   const wheel = glob.sync('build/python/dist/*.whl');
   const packageDir = path.dirname(prebuilt[0]);
   const wheelFileName = path.basename(wheel[0]);
   console.log(`$ cp ${wheel} ${packageDir}`);
   fs.copyFileSync(wheel[0], path.join(packageDir, wheelFileName));
-
-  const srcFilename = `${packageDir}/libkungfu-src-${os.platform()}-${version}.tar`;
-  const srcArchive = require('archiver')('tar');
-  const srcOutput = fs.createWriteStream(srcFilename);
-  srcOutput.on('close', () => {
-    console.log(`archived ${srcFilename} ${srcArchive.pointer()} bytes`);
-  });
-  srcArchive.pipe(srcOutput);
-  srcArchive.glob('**', {
-    cwd: '.',
-    ignore: ['build/**', 'dist/**', 'node_modules/**', 'cmake-*/**'],
-  });
-  srcArchive.finalize();
 }
 
 function callPrebuilt(args, check = true) {

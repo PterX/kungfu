@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 //
 // Created by Keren Dong on 2020/1/28.
 //
@@ -16,7 +18,7 @@ static constexpr int ACCOUNT_ID_LEN = 32;
 static constexpr int PRODUCT_ID_LEN = 128;
 static constexpr int DATE_LEN = 9;
 static constexpr int EXCHANGE_ID_LEN = 16;
-
+static constexpr int TRAIDNG_PHASE_CODE_LEN = 8;
 static constexpr int ERROR_MSG_LEN = 256;
 
 KF_DEFINE_MARK_TYPE(PageEnd, 10000);
@@ -192,6 +194,21 @@ KF_DEFINE_PACK_TYPE(                                            //
     (uint32_t, dest_id)                                         //
 );
 
+KF_DEFINE_DATA_TYPE(                                          //
+    RequestWriteToBand, 10032, PK(location_uid), PERPETUAL(), //
+    (uint32_t, location_uid),                                 //
+    (enums::category, category),                              //
+    (enums::mode, mode),                                      //
+    (std::string, group),                                     //
+    (std::string, name)                                       //
+);
+
+KF_DEFINE_PACK_TYPE(                                  //
+    Band, 10033, PK(source_id, dest_id), PERPETUAL(), //
+    (uint32_t, source_id),                            //
+    (uint32_t, dest_id)                               //
+);
+
 KF_DEFINE_PACK_TYPE(                                    //
     RequestCachedDone, 10062, PK(dest_id), PERPETUAL(), //
     (uint32_t, dest_id)                                 //
@@ -232,7 +249,7 @@ KF_DEFINE_PACK_TYPE(                                              //
     (kungfu::array<char, EXCHANGE_ID_LEN>, exchange_id),          // 交易所ID
     (InstrumentType, instrument_type),                            // 合约类型
 
-    (kungfu::array<int8_t, PRODUCT_ID_LEN>, product_id), // 产品ID commit by JC
+    (kungfu::array<int8_t, PRODUCT_ID_LEN>, product_id), // 产品ID (品种)
 
     (int32_t, contract_multiplier), // 合约乘数
     (double, price_tick),           // 最小变动价位
@@ -249,7 +266,8 @@ KF_DEFINE_PACK_TYPE(                                              //
 
     (double, long_margin_ratio),  // 多头保证金率
     (double, short_margin_ratio), // 空头保证金率
-    (double, conversion_rate)     // 担保品折扣率
+    (double, conversion_rate),    // 担保品折扣率
+    (double, exchange_rate)       // 汇率
 );
 
 KF_DEFINE_PACK_TYPE(                                         //
@@ -304,20 +322,21 @@ KF_DEFINE_PACK_TYPE(                                         //
     (kungfu::array<double, 10>, ask_price),   // 申卖价
     (kungfu::array<int64_t, 10>, bid_volume), // 申买量
     (kungfu::array<int64_t, 10>, ask_volume), // 申卖量
-    (kungfu::array<char, 8>,
-     trading_phase_code) // 标的状态，
-                         // 第0位:
-                         // ‘S’表示启动(开市前)时段,‘C’表示集合竞价时段,‘T’表示连续交易时段,
-                         // ‘E’表示闭市时段 ,‘P’表示临时停牌,
-                         // ‘M’表示可恢复交易的熔断(盘中集合竞价),‘N’表示不可恢复交易的熔断(暂停交易至闭市)
-                         // ‘U’表示收盘集合竞价
-                         // ‘V’表示波动性中断（适用于股票期权)
-                         // 第1位:
-                         // ‘0’表示此产品不可正常交易,‘1’表示此产品可正常交易。
-                         // 第2位:
-                         // ‘0’表示未上市,‘1’表示已上市
-                         // 第3位:
-                         // ‘0’表示此产品在当前时段不接受进行新订单申报,‘1’ 表示此产品在当前时段可接受进行新订单申报。
+    (kungfu::array<char, TRAIDNG_PHASE_CODE_LEN>, trading_phase_code)
+    // 标的状态, 上交所用四位, 深交所用两位
+    //************************************上海现货行情交易状态***************************************************************
+    // 该字段为8位字符数组,左起每位表示特定的含义,无定义则填空格。
+    // 第0位:‘S’表示启动(开市前)时段,‘C’表示集合竞价时段,‘T’表示连续交易时段,
+    // ‘E’表示闭市时段 ,‘P’表示临时停牌,
+    // ‘M’表示可恢复交易的熔断(盘中集合竞价),‘N’表示不可恢复交易的熔断(暂停交易至闭市)
+    // ‘U’表示收盘集合竞价
+    // 第1位:‘0’表示此产品不可正常交易,‘1’表示此产品可正常交易。
+    // 第2位:‘0’表示未上市,‘1’表示已上市
+    // 第3位:‘0’表示此产品在当前时段不接受进行新订单申报,‘1’ 表示此产品在当前时段可接受进行新订单申报。
+
+    //************************************深圳现货行情交易状态***************************************************************
+    // 第 0位:‘S’= 启动(开市前)‘O’= 开盘集合竞价‘T’= 连续竞价‘B’= 休市‘C’= 收盘集合竞价‘E’= 已闭市‘H’= 临时停牌‘A’=
+    // 盘后交易‘V’=波动性中断 第 1位:‘0’= 正常状态 ‘1’= 全天停牌
 );
 
 KF_DEFINE_PACK_TYPE(                                                    //
@@ -336,9 +355,10 @@ KF_DEFINE_PACK_TYPE(                                                    //
     (Side, side),            // 委托方向
     (PriceType, price_type), // 订单价格类型（市价、限价、本方最优）
 
-    (int64_t, main_seq), // 主序号
-    (int64_t, seq),      // 子序号
-    (int64_t, biz_index) // 业务序号
+    (int64_t, main_seq),      // 主序号,
+    (int64_t, seq),           // 子序号,
+    (int64_t, orig_order_no), // 原始订单号 上海为原始订单号, 深圳为索引号
+    (int64_t, biz_index)      // 业务序号
 );
 
 KF_DEFINE_PACK_TYPE(                                                        //
@@ -438,7 +458,7 @@ KF_DEFINE_PACK_TYPE(                                  //
     (InstrumentType, instrument_type), // 合约类型
 
     (double, limit_price),  // 价格
-    (double, frozen_price), // 冻结价格，市价单冻结价格为0
+    (double, frozen_price), // 冻结价格, 市价单冻结价格为0
 
     (int64_t, volume),      // 数量
     (int64_t, volume_left), // 剩余数量
@@ -479,7 +499,7 @@ KF_DEFINE_PACK_TYPE(                                         //
     (InstrumentType, instrument_type), // 合约类型
 
     (double, limit_price),  // 价格
-    (double, frozen_price), // 冻结价格，市价单冻结价格为0
+    (double, frozen_price), // 冻结价格, 市价单冻结价格为0
 
     (int64_t, volume),      // 数量
     (int64_t, volume_left), // 剩余数量
@@ -655,7 +675,6 @@ KF_DEFINE_PACK_TYPE(                               //
     (double, margin_market_value), // 融资买入证券市值
     (double, margin_interest),     // 融资融券利息
     (double, settlement),          // 融资融券清算资金
-    (double, commission_ratio),    // 手续费费率
 
     (double, credit),          // 信贷额度
     (double, collateral_ratio) // 担保比例

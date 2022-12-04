@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 //
 // Created by Keren Dong on 2019-06-20.
 //
@@ -115,6 +117,16 @@ public:
                       std::vector<longfist::enums::PriceType> types, std::vector<longfist::enums::Side> sides,
                       std::vector<longfist::enums::Offset> offsets, std::vector<longfist::enums::HedgeFlag> hedge_flags,
                       std::vector<bool> is_swaps) = 0;
+
+  /**
+   * Insert Batch Orders
+   * @param source
+   * @param account
+   * @param order_inputs
+   * @return
+   */
+  virtual std::vector<uint64_t> insert_array_orders(const std::string &source, const std::string &account,
+                                                    std::vector<longfist::types::OrderInput> order_inputs) = 0;
 
   /**
    * query history order

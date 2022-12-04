@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 //
 // Created by Keren Dong on 2020/1/14.
 //
@@ -28,6 +30,7 @@ public:
   ~WatcherAutoClient() = default;
 
   void connect(const event_ptr &event, const longfist::types::Register &register_data) override;
+  void connect(const event_ptr &event, const longfist::types::Band &band) override;
 
 private:
   bool bypass_trading_data_;
@@ -50,6 +53,8 @@ public:
   Napi::Value GetLocationUID(const Napi::CallbackInfo &info);
 
   Napi::Value GetInstrumentUID(const Napi::CallbackInfo &info);
+
+  Napi::Value GetInstrumentType(const Napi::CallbackInfo &info);
 
   Napi::Value GetConfig(const Napi::CallbackInfo &info);
 
@@ -91,13 +96,15 @@ public:
 
   Napi::Value Start(const Napi::CallbackInfo &info);
 
-  Napi::Value Sync(const Napi::CallbackInfo &info);
+  void Sync(const Napi::CallbackInfo &info);
 
   static void Init(Napi::Env env, Napi::Object exports);
 
 protected:
   const bool bypass_accounting_;
   const bool bypass_trading_data_;
+  const bool refresh_ledger_before_sync_;
+  std::mutex feed_mutex_;
 
   void on_react() override;
 
@@ -187,7 +194,9 @@ private:
 
   void SyncLedger();
 
-  void SyncOrder();
+  void TryRefreshTradingData(const Napi::CallbackInfo &info);
+
+  void SyncTradingData();
 
   void SyncAppStates();
 
@@ -266,7 +275,6 @@ private:
     using DataTypeMap = std::unordered_map<uint64_t, state<DataType>>;
     auto &target_map = const_cast<DataTypeMap &>(data_bank_[type]);
     auto iter = target_map.begin();
-
     while (iter != target_map.end() and target_map.size() > 0) {
       auto &state = iter->second;
       update_ledger(state.update_time, state.source, state.dest, state.data);
@@ -274,7 +282,7 @@ private:
     }
   }
 
-  template <typename DataType> void UpdateOrder(const boost::hana::basic_type<DataType> &type) {
+  template <typename DataType> void UpdateTradingData(const boost::hana::basic_type<DataType> &type) {
     auto &order_queue = trading_bank_[type];
     int i = 0;
     kungfu::state<DataType> *pstate = nullptr;

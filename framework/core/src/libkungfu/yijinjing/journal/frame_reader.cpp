@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 #include <kungfu/yijinjing/journal/frame_reader.h>
 namespace kungfu::yijinjing::journal {
 using namespace kungfu::longfist::types;

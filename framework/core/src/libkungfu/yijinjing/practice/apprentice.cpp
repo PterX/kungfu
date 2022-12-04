@@ -1,17 +1,4 @@
-/*****************************************************************************
- * Copyright [www.kungfu-trader.com]
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *  http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *****************************************************************************/
+// SPDX-License-Identifier: Apache-2.0
 
 //
 // Created by Keren Dong on 2019-06-01.
@@ -278,7 +265,7 @@ void apprentice::on_write_to_band(const event_ptr &event) {
 
 void apprentice::on_cached_ready_to_read() { request_cached(cached_home_location_->uid); }
 
-int apprentice::get_observer_recv_timeout() const { return get_io_device()->get_observer()->get_recv_timeout(); }
+[[maybe_unused]] int apprentice::get_observer_recv_timeout() const { return get_io_device()->get_observer()->get_recv_timeout(); }
 
 void apprentice::checkin() {
   auto now = time::now_in_nano();

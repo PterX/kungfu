@@ -116,7 +116,11 @@ module.exports = {
             ),
             'src',
           ),
-          '@kungfu-trader/kungfu-app': getAppDir(),
+          ...(getAppDir()
+            ? {
+                '@kungfu-trader/kungfu-app': getAppDir(),
+              }
+            : {}),
         },
 
         extensions: ['.js', '.ts', '.d.ts', '.vue', '.json', '.css', '.node'],

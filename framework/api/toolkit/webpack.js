@@ -107,6 +107,12 @@ module.exports = {
           exclude: 'node_modules',
           failOnWarning: !production,
         }),
+        new webpack.IgnorePlugin({
+          resourceRegExp: /kungfu-cli/,
+        }),
+        new webpack.IgnorePlugin({
+          resourceRegExp: /kungfu-app/,
+        }),
       ],
       resolve: {
         alias: {

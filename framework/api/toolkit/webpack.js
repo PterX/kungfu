@@ -107,6 +107,12 @@ module.exports = {
           exclude: 'node_modules',
           failOnWarning: !production,
         }),
+        new webpack.IgnorePlugin({
+          resourceRegExp: /kungfu-cli/,
+        }),
+        new webpack.IgnorePlugin({
+          resourceRegExp: /kungfu-app/,
+        }),
       ],
       resolve: {
         alias: {
@@ -116,7 +122,11 @@ module.exports = {
             ),
             'src',
           ),
-          '@kungfu-trader/kungfu-app': getAppDir(),
+          ...(getAppDir()
+            ? {
+                '@kungfu-trader/kungfu-app': getAppDir(),
+              }
+            : {}),
         },
 
         extensions: ['.js', '.ts', '.d.ts', '.vue', '.json', '.css', '.node'],

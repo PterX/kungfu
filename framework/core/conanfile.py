@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
+
 import json
 import getpass
 import os
@@ -26,7 +28,6 @@ class KungfuCoreConan(ConanFile):
     generators = "cmake"
     requires = [
         "fmt/8.1.1",
-        "hana/1.79.0",
         "nlohmann_json/3.11.2",
         "nng/1.5.2",
         "rxcpp/4.1.1",
@@ -260,7 +261,8 @@ class KungfuCoreConan(ConanFile):
         self.output.success(f"cmake-js {cmd} done")
 
     def __run_yarn(self, *args):
-        rc = subprocess.Popen([tools.which("yarn"), *args]).wait()
+        yarn = "yarn" if tools.detected_os() != "Windows" else "yarn.cmd"
+        rc = subprocess.Popen([tools.which(yarn), *args]).wait()
         if rc != 0:
             self.output.error(f"yarn {args} failed with return code {rc}")
             sys.exit(rc)

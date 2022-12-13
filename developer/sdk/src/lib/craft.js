@@ -41,16 +41,24 @@ exports.build = () => {
 
 exports.package = async () => {
   const buildDir = ensureDir(process.cwd().toString(), 'build');
-  await require('@kungfu-trader/kungfu-app').electronBuild(buildDir);
+  try {
+    await require('@kungfu-trader/kungfu-app').electronBuild(buildDir);
+  } catch (err) {
+    console.warn(err);
+  }
 };
 
-exports.dev = (withWebpack) => {
+exports.dev = async (withWebpack) => {
   shell.verifyElectron();
-  require('@kungfu-trader/kungfu-app').devRun(
-    ensureDir(process.cwd().toString(), 'dist'),
-    'app',
-    withWebpack,
-  );
+  try {
+    await require('@kungfu-trader/kungfu-app').devRun(
+      ensureDir(process.cwd().toString(), 'dist'),
+      'app',
+      withWebpack,
+    );
+  } catch (err) {
+    console.warn(err);
+  }
 };
 
 exports.cli = () => {

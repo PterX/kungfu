@@ -21,7 +21,7 @@ public:
 
   [[nodiscard]] RuntimeContext_ptr get_context() const;
 
-  void add_operator(const Operator_ptr &operator);
+  void add_operator(const Operator_ptr &op);
 
   void on_exit() override;
 
@@ -57,27 +57,27 @@ private:
 
   template <typename OnMethod = void (Operator::*)(Context_ptr &)> void invoke(OnMethod method) {
     auto context = std::dynamic_pointer_cast<Context>(context_);
-    for (const auto &operator : operators_) {
-      (*operator.*method)(context);
+    for (const auto &op : operators_) {
+      (*op.*method)(context);
     }
-  }
+  };
 
   template <typename TradingData, typename OnMethod = void (Operator::*)(Context_ptr &, const TradingData &)>
   void invoke(OnMethod method, const TradingData &data) {
     auto context = std::dynamic_pointer_cast<Context>(context_);
-    for (const auto &operator : operators_) {
-      (*operator.*method)(context, data);
+    for (const auto &op : operators_) {
+      (*op.*method)(context, data);
     }
-  }
+  };
 
   template <typename TradingData, typename OnMethod = void (Operator::*)(Context_ptr &, const TradingData &,
                                                                          const kungfu::yijinjing::data::location_ptr &)>
   void invoke(OnMethod method, const TradingData &data, const kungfu::yijinjing::data::location_ptr &location) {
     auto context = std::dynamic_pointer_cast<Context>(context_);
-    for (const auto &operator : operators_) {
-      (*operator.*method)(context, data, location);
+    for (const auto &op : operators_) {
+      (*op.*method)(context, data, location);
     }
-  }
+  };
 
 };
 

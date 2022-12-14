@@ -9,7 +9,6 @@
 #define WINGCHUN_OPERATOR_CONTEXT_H
 #include <kungfu/longfist/longfist.h>
 #include <kungfu/wingchun/broker/client.h>
-// #include <kungfu/wingchun/operator/operator.h>
 #include <kungfu/yijinjing/practice/apprentice.h>
 
 namespace kungfu::wingchun::op {
@@ -25,19 +24,19 @@ public:
    */
   virtual int64_t now() const = 0;
 
-  // /**
-  //  * Add one shot timer callback.
-  //  * @param nanotime when to call in nano seconds
-  //  * @param callback callback function
-  //  */
-  // virtual void add_timer(int64_t nanotime, const std::function<void(event_ptr)> &callback) = 0;
+  /**
+   * Add one shot timer callback.
+   * @param nanotime when to call in nano seconds
+   * @param callback callback function
+   */
+  virtual void add_timer(int64_t nanotime, const std::function<void(event_ptr)> &callback) = 0;
 
-  // /**
-  //  * Add periodically callback.
-  //  * @param duration duration in nano seconds
-  //  * @param callback callback function
-  //  */
-  // virtual void add_time_interval(int64_t duration, const std::function<void(event_ptr)> &callback) = 0;
+  /**
+   * Add periodically callback.
+   * @param duration duration in nano seconds
+   * @param callback callback function
+   */
+  virtual void add_time_interval(int64_t duration, const std::function<void(event_ptr)> &callback) = 0;
 
 
   /**
@@ -77,12 +76,12 @@ public:
   virtual void req_deregister() {}
 
 // TODO update Operator State
-//   /**
-//    * Update Strategy State
-//    * @param state StrategyState
-//    * @param infos vector<string>, info_a, info_b, info_c.
-//    */
-//   virtual void update_strategy_state(longfist::types::StrategyStateUpdate &state_update) {}
+  // /**
+  //  * Update Strategy State
+  //  * @param state StrategyState
+  //  * @param infos vector<string>, info_a, info_b, info_c.
+  //  */
+  // virtual void update_strategy_state(longfist::types::StrategyStateUpdate &state_update) {}
 
 
 };

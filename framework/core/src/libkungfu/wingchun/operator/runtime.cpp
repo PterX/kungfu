@@ -48,7 +48,7 @@ void RuntimeContext::subscribe_all(const std::string &source, uint8_t market_typ
                                    uint64_t data_type) {
 }
 
-void RuntimeContext::subscribe(const std::string &source, const std::vector<std::string> &keys) {
+void RuntimeContext::subscribe_operator(const std::string &source, const std::vector<std::string> &keys) {
 
 }
 

@@ -64,6 +64,11 @@ public:
   virtual void on_broker_state_change(Context_ptr &context,
                                       const longfist::types::BrokerStateUpdate &broker_state_update,
                                       const kungfu::yijinjing::data::location_ptr &location){};
+  //   // 算子器状态变化回调
+  // //@param brokerStateUpdate     状态变化
+  // virtual void on_operator_state_change(Context_ptr &context,
+  //                                     const longfist::types::BrokerStateUpdate &broker_state_update,
+  //                                     const kungfu::yijinjing::data::location_ptr &location){};
 };
 
 DECLARE_PTR(Operator)

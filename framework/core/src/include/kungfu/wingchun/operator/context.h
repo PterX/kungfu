@@ -61,7 +61,7 @@ public:
    * @param source MD group
    * @param key instrument IDs
    */
-  virtual void subscribe(const std::string &source, const std::vector<std::string> &key) = 0;
+  virtual void subscribe_operator(const std::string &source, const std::vector<std::string> &key) = 0;
 
   /**
    * Get current trading day.

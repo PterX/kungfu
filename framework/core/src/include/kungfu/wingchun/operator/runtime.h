@@ -1,9 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 
-//
-// Created by Wei Jianan on 2022/12/10.
-//
-
 #ifndef WINGCHUN_OPERATOR_RUNTIME_H
 #define WINGCHUN_OPERATOR_RUNTIME_H
 

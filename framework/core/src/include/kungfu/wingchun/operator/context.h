@@ -1,12 +1,8 @@
 
 // SPDX-License-Identifier: Apache-2.0
-
-//
-// Created by Wei Jianan on 2022-12-10
-//
-
 #ifndef WINGCHUN_OPERATOR_CONTEXT_H
 #define WINGCHUN_OPERATOR_CONTEXT_H
+
 #include <kungfu/longfist/longfist.h>
 #include <kungfu/wingchun/broker/client.h>
 #include <kungfu/yijinjing/practice/apprentice.h>

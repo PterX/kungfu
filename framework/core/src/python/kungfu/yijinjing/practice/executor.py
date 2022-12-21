@@ -13,6 +13,7 @@ from kungfu.yijinjing.log import find_logger
 from kungfu.yijinjing.practice.master import Master
 from kungfu.yijinjing.practice.coloop import KungfuEventLoop
 from kungfu.wingchun.strategy import Runner, Strategy
+from kungfu.wingchun.operator import OpRunner, Operator
 
 from collections import deque
 from importlib.util import module_from_spec, spec_from_file_location
@@ -31,6 +32,7 @@ class ExecutorRegistry:
             "md": {},
             "td": {},
             "strategy": {"default": ExtensionLoader(self.ctx, None, None)},
+            "operator": {},
         }
 
     def setup_log(self):
@@ -88,10 +90,13 @@ class ExecutorRegistry:
                                     self.ctx, extension_dir, config
                                 )
                     elif "key" in config["kungfuConfig"]:
-                        group = config["kungfuConfig"]["key"]
-                        self.executors["strategy"][group] = ExtensionLoader(
-                            self.ctx, extension_dir, config
-                        )
+                        if self.ctx.category == "strategy" or self.ctx.category == "operator":
+                            group = config["kungfuConfig"]["key"]
+                            self.executors[self.ctx.category][group] = ExtensionLoader(
+                                self.ctx, extension_dir, config
+                            )
+                        else:
+                            report("load extension config with unsupported category.")
                     else:
                         report("missing key/config in kungfuConfig")
                 else:
@@ -173,10 +178,21 @@ class ExtensionExecutor:
             "md": self.run_market_data,
             "td": self.run_trader,
             "strategy": self.run_strategy,
+            "operator": self.run_operator,
         }
 
     def __call__(self, mode, low_latency):
         self.runners[self.ctx.category]()
+
+    def setup(self, loader, use_ctx_path=True):
+        if loader.extension_dir:
+            site.setup(loader.extension_dir)
+            sys.path.insert(0, loader.extension_dir)
+        elif use_ctx_path:
+            dirname = os.path.dirname(self.ctx.path)
+            site.setup(dirname)
+            sys.path.insert(0, dirname)
+        
 
     def run_broker_vendor(self, vendor_builder):
         ctx = self.ctx
@@ -189,9 +205,7 @@ class ExtensionExecutor:
             ctx.runtime_locator,
         )
 
-        if loader.extension_dir:
-            site.setup(loader.extension_dir)
-            sys.path.insert(0, loader.extension_dir)
+        self.setup(loader, user_ctx_path=False)
         module = importlib.import_module(ctx.group)
         self.ctx.logger.info(f"loading {ctx.group} from {loader.extension_dir}")
         vendor = vendor_builder(
@@ -213,14 +227,7 @@ class ExtensionExecutor:
 
     def run_strategy(self):
         loader = self.loader
-        if loader.extension_dir:
-            site.setup(loader.extension_dir)
-            sys.path.insert(0, loader.extension_dir)
-        else:
-            dirname = os.path.dirname(self.ctx.path)
-            site.setup(dirname)
-            sys.path.insert(0, dirname)
-
+        self.setup(loader, use_ctx_path=True)
         ctx = self.ctx
         ctx.location = yjj.location(
             kfj.MODES[ctx.mode],
@@ -241,18 +248,52 @@ class ExtensionExecutor:
                     if "kungfuConfig" in config and "key" in config["kungfuConfig"]:
                         key = config["kungfuConfig"]["key"]
                         load = True
-                        ctx.strategy = load_strategy(ctx, ctx.path, key)
+                        ctx.strategy = load_module(ctx, ctx.path, key, Strategy)
             if not load:
-                ctx.strategy = load_strategy(ctx, ctx.path, loader.config)
+                ctx.strategy = load_module(ctx, ctx.path, loader.config, Strategy)
         else:
-            ctx.strategy = load_strategy(
-                ctx, ctx.path, loader.config["kungfuConfig"]["key"]
+            ctx.strategy = load_module(
+                ctx, ctx.path, loader.config["kungfuConfig"]["key"], Strategy
             )
         # ctx.runner = Runner(ctx, kfj.MODES[ctx.mode])
         # ctx.runner = self.load_runner(ctx)
         ctx.runner.add_strategy(ctx.strategy)
         ctx.loop = KungfuEventLoop(ctx, ctx.runner)
         ctx.loop.run_forever()
+
+    
+    def run_operator(self):
+        loader = self.loader
+        self.setup(loader, use_ctx_path=True)
+        ctx = self.ctx
+        ctx.location = yjj.location(
+            kfj.MODES[ctx.mode],
+            lf.enums.category.OPERATOR,
+            ctx.group,
+            ctx.name,
+            ctx.runtime_locator,
+        )
+        os.environ["KF_OP_GROUP"] = ctx.group
+        os.environ["KF_OP_NAME"] = ctx.name # TODO check extension.h for implementation details
+        if loader.config is None:
+            load = False
+            json_config = os.path.join(os.path.dirname(ctx.path), "package.json")
+            if path.exists(json_config):
+                with open(json_config, mode="r", encoding="utf8") as json_config_out:
+                    config = json.load(json_config_out)
+                    if "kungfuConfig" in config and "key" in config["kungfuConfig"]:
+                        key = config["kungfuConfig"]["key"]
+                        load = True
+                        ctx.operator = load_module(ctx, ctx.path, key, Operator)
+            if not load:
+                ctx.operator = load_module(ctx, ctx.path, loader.config, Operator)
+        else:
+            ctx.operator = load_module(
+                ctx, ctx.path, loader.config["kungfuConfig"]["key"], Operator
+            )
+        ctx.op_runner = OpRunner(ctx, kfj.MODES[ctx.mode])
+        # ctx.runner = self.load_runner(ctx)
+        ctx.op_runner.add_operator(ctx.operator)
 
 
 class RegistryJSONEncoder(json.JSONEncoder):
@@ -261,31 +302,34 @@ class RegistryJSONEncoder(json.JSONEncoder):
         return str(obj) if test else obj.__dict__
 
 
-def load_strategy(ctx, path, key):
-    ctx.logger.debug(f"loading strategy from {path}")
-    ctx.logger.debug(f"strategy key: {key}")
-    ctx.logger.debug(f"strategy dirname: {os.path.dirname(path)}")
+def load_module(ctx, path, key, cls):
+    cls_name = cls.__name__
+    ctx.logger.debug(f"loading {cls_name} from {path}")
+    ctx.logger.debug(f"{cls_name} key: {key}")
+    ctx.logger.debug(f"{cls_name} dirname: {os.path.dirname(path)}")
 
     if path.endswith(".py"):
-        return Strategy(ctx)  # keep strategy alive for pybind11
+        return cls(ctx)  # keep strategy alive for pybind11
     elif key is not None and (path.endswith(".so") or path.endswith(".pyd")):
-        return try_load_cpp_strategy(ctx, path, key)
+        return try_load_cpp_module(ctx, path, key, cls)
     elif key is not None and path.endswith(key):
-        return Strategy(ctx)
+        return cls(ctx)
     else:
         ctx.path = os.path.join(os.path.dirname(path), key)
-        return Strategy(ctx)
+        return cls(ctx)
 
 
-def try_load_cpp_strategy(ctx, path, key):
+def try_load_cpp_module(ctx, path, key, cls):
+    cls_name = cls.__name__
     try:
         module = importlib.import_module(key)
-        ctx.logger.debug(f"import as cpp strategy success")
-        return module.strategy()
+        ctx.logger.debug(f"import as cpp {cls_name} success")
+        factory_func = getattr(module, cls_name.lower())
+        return factory_func()
     except Exception as e:
         ctx.logger.debug(f"fallback to python loader due to: {e}")
         ctx.path = os.path.join(os.path.dirname(path), key)
-        return Strategy(ctx)
+        return cls(ctx)
 
 
 def load_runner(ctx):

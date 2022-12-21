@@ -105,7 +105,7 @@ module.exports = {
           extensions: ['js', 'json', 'ts', 'css', 'less'],
           exclude: 'node_modules',
           failOnWarning: !production,
-        })
+        }),
       ],
       resolve: {
         alias: {

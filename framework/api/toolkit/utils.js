@@ -157,6 +157,10 @@ exports.getCliDefaultDistDir = () => {
   return path.resolve(this.getCliDir(), 'dist');
 };
 
+exports.getApiDefaultDistDir = () => {
+  return path.resolve(this.getApiDir(), 'dist');
+};
+
 exports.getSdkDefaultDistDir = () => {
   return path.resolve(this.getSdkDir(), 'dist');
 };
@@ -188,6 +192,16 @@ exports.getCliDir = () => {
   } catch (err) {
     console.warn('only warn: kungfu-cli not exist');
     return false;
+  }
+};
+
+exports.getJsApi = () => {
+  try {
+    return path.dirname(
+      require.resolve('@kungfu-trader/kungfu-js-api/package.json'),
+    );
+  } catch (err) {
+    return '.';
   }
 };
 

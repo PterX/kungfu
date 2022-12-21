@@ -54,7 +54,7 @@ export const dealKfTime = (nano: bigint, date = false): string => {
 export const dealTradingDataItem = (
   item: KungfuApi.TradingDataTypes,
   watcher: KungfuApi.Watcher | null,
-  isShowOrigin: boolean = false,
+  isShowOrigin = false,
 ): Record<string, string | number | bigint> => {
   const itemResolved = { ...item } as Record<string, string | number | bigint>;
   const instrument_type =
@@ -62,6 +62,19 @@ export const dealTradingDataItem = (
       ? item.instrument_type
       : InstrumentTypeEnum.unknown;
   const isInstrumnetShotable = isShotable(instrument_type);
+
+  if ('order_id' in item) {
+    itemResolved.order_id = item.order_id.toString();
+  }
+
+  if ('trade_id' in item) {
+    itemResolved.trade_id = item.trade_id.toString();
+  }
+
+  if ('instrument_id' in item) {
+    itemResolved.instrument_id = item.instrument_id.toString();
+  }
+
   if ('trade_time' in item && !isShowOrigin) {
     itemResolved.trade_time = dealKfTime(item.trade_time, true);
   }
@@ -598,7 +611,8 @@ export const dealTrade = (
 };
 
 export const getPosClosableVolume = (position: KungfuApi.Position): bigint => {
-  return isShotable(position.instrument_type) || isT0(position.instrument_type)
+  return isShotable(position.instrument_type) ||
+    isT0(position.instrument_type, position.exchange_id)
     ? BigInt(Math.max(+Number(position.volume - position.frozen_total), 0))
     : BigInt(
         Math.max(+Number(position.yesterday_volume - position.frozen_total), 0),

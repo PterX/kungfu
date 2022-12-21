@@ -99,6 +99,8 @@ export const useGlobalStore = defineStore('global', {
           tag: 'update:tdGroup',
           tdGroups: this.tdGroupList,
         });
+        this.setCurrentGlobalKfLocation(null);
+        this.setDefaultCurrentGlobalKfLocation();
       });
     },
 
@@ -174,18 +176,7 @@ export const useGlobalStore = defineStore('global', {
           strategys: strategy,
         });
 
-        if (
-          this.currentGlobalKfLocation === null ||
-          !this.checkCurrentGlobalKfLocationExisted()
-        ) {
-          if (td.length) {
-            this.setCurrentGlobalKfLocation(td[0]);
-          } else if (strategy.length) {
-            this.setCurrentGlobalKfLocation(strategy[0]);
-          } else {
-            this.setCurrentGlobalKfLocation(null);
-          }
-        }
+        this.setDefaultCurrentGlobalKfLocation();
       });
     },
 
@@ -240,6 +231,21 @@ export const useGlobalStore = defineStore('global', {
       return afterFilter.length > 0;
     },
 
+    setDefaultCurrentGlobalKfLocation() {
+      if (
+        this.currentGlobalKfLocation === null ||
+        !this.checkCurrentGlobalKfLocationExisted()
+      ) {
+        if (this.tdList.length) {
+          this.setCurrentGlobalKfLocation(this.tdList[0]);
+        } else if (this.strategyList.length) {
+          this.setCurrentGlobalKfLocation(this.strategyList[0]);
+        } else {
+          this.setCurrentGlobalKfLocation(null);
+        }
+      }
+    },
+
     setKfExtConfigs() {
       return getKfExtensionConfig().then(
         (kfExtConfigs: KungfuApi.KfExtConfigs) => {
@@ -275,6 +281,20 @@ export const useGlobalStore = defineStore('global', {
       value: KfLayout.BoardInfo[keyof KfLayout.BoardInfo],
     ) {
       (<typeof value>this.boardsMap[id][attrKey]) = value;
+    },
+
+    addBoardFromEmpty(targetContentId: string) {
+      const newBoardInfo: KfLayout.BoardInfo = {
+        paId: 0,
+        direction: KfLayoutDirection.v,
+        contents: [targetContentId],
+        current: targetContentId,
+        width: '100%',
+        height: '100%',
+      };
+      this.boardsMap[1] = newBoardInfo;
+      this.boardsMap[0].children = [1];
+      return Promise.resolve();
     },
 
     addBoardByContentId(

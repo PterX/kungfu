@@ -32,19 +32,21 @@ export enum LedgerCategoryEnum {
 
 export type LedgerCategoryTypes = keyof typeof LedgerCategoryEnum;
 
+
 export enum InstrumentTypeEnum {
   unknown,
   stock,
-  stockoption,
-  techstock,
   future,
   bond,
+  stockoption,
+  techstock,
   fund,
   index,
   repo,
+  warrant,
+  iopt,
   crypto,
   cryptofuture,
-  cryptoufuture,
   multi,
 }
 

@@ -27,6 +27,7 @@ void bind_enums(py::module &m) {
       .value("TD", category::TD)
       .value("STRATEGY", category::STRATEGY)
       .value("SYSTEM", category::SYSTEM)
+      .value("OPERATOR", category::OPERATOR)
       .export_values();
   m_enums.def("get_category_name", &get_category_name);
   m_enums.def("get_category_by_name", &get_category_by_name);

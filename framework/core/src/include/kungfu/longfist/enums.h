@@ -43,7 +43,7 @@ inline mode get_mode_by_name(const std::string &name) {
     return mode::LIVE;
 }
 
-enum class category : int8_t { MD, TD, STRATEGY, SYSTEM };
+enum class category : int8_t { MD, TD, STRATEGY, SYSTEM, OPERATOR};
 
 inline std::ostream &operator<<(std::ostream &os, category t) { return os << int8_t(t); }
 

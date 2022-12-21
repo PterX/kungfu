@@ -36,7 +36,9 @@
   "dependencies": {
     "@kungfu-trader/kungfu-core": "^2.5.0-alpha.11",
     "@kungfu-trader/kungfu-js-api": "^2.5.0-alpha.11",
-    "@kungfu-trader/kungfu-toolchain": "^2.5.0-alpha.11"
+    "@kungfu-trader/kungfu-toolchain": "^2.5.0-alpha.11",
+    "@kungfu-trader/kungfu-app": "^2.5.0-alpha.11",
+    "@kungfu-trader/kungfu-cli": "^2.5.0-alpha.11"
   },
   "optionalDependencies": {
     "@kungfu-trader/kungfu-app": "^2.5.0-alpha.11",

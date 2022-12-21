@@ -192,8 +192,6 @@ export default {
     tech_stock: '科技板股票',
     index: '指数',
     repo: '回购',
-    warrant: '认权证',
-    iopt: '牛熊证',
     crypto: '数字货币',
     crypto_future: '数字货币币本位合约',
     crypto_ufuture: '数字货币U本位合约',

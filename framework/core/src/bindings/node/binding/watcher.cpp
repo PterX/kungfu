@@ -120,8 +120,8 @@ Watcher::Watcher(const Napi::CallbackInfo &info)
       apprentice(GetWatcherLocation(info), true),                                                         //
       bypass_accounting_(GetBypassAccounting(info)),                                                      //
       bypass_trading_data_(GetBypassTradingData(info)),                                                   //
-      refresh_trading_data_before_sync_(GetRefreshLedgerBeforeSync(info)), //
-      milliseconds_sleep_after_step_(GetMillisecondsSleepAfterStep(info)), //
+      refresh_trading_data_before_sync_(GetRefreshLedgerBeforeSync(info)),                                //
+      milliseconds_sleep_after_step_(GetMillisecondsSleepAfterStep(info)),                                //
       broker_client_(*this, bypass_trading_data_),                                                        //
       bookkeeper_(*this, broker_client_),                                                                 //
       state_ref_(Napi::ObjectReference::New(Napi::Object::New(info.Env()), 1)),                           //

@@ -404,6 +404,15 @@ export const InstrumentType: Record<
     color: 'orange',
     level: 10,
   },
+  [InstrumentTypeEnum.stockoption]: {
+    name: t('tradingConfig.stock_option'),
+    color: 'blue',
+    level: 10,
+  },
+  [InstrumentTypeEnum.techstock]: {
+    name: t('tradingConfig.tech_stock'),
+    color: 'blue',
+  },
   [InstrumentTypeEnum.future]: {
     name: t('tradingConfig.future'),
     color: 'red',
@@ -413,18 +422,9 @@ export const InstrumentType: Record<
     name: t('tradingConfig.bond'),
     color: 'pink',
   },
-  [InstrumentTypeEnum.stockoption]: {
-    name: t('tradingConfig.stock_option'),
-    color: 'blue',
-    level: 10,
-  },
   [InstrumentTypeEnum.fund]: {
     name: t('tradingConfig.fund'),
     color: 'purple',
-  },
-  [InstrumentTypeEnum.techstock]: {
-    name: t('tradingConfig.tech_stock'),
-    color: 'blue',
   },
   [InstrumentTypeEnum.index]: {
     name: t('tradingConfig.index'),
@@ -505,6 +505,8 @@ export const T0InstrumentTypes = [
   InstrumentTypeEnum.bond,
   InstrumentTypeEnum.stockoption,
 ];
+
+export const T0ExchangeIds = ['US', 'HK'];
 
 export const AbleSubscribeInstrumentTypesBySourceType: Record<
   InstrumentTypes,

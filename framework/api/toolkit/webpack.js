@@ -2,7 +2,6 @@ const path = require('path');
 const TerserPlugin = require('terser-webpack-plugin');
 const ESLintPlugin = require('eslint-webpack-plugin');
 const { isProduction, getAppDir } = require('./utils');
-const webpack = require('webpack');
 
 module.exports = {
   makeConfig: (argv) => {
@@ -103,15 +102,9 @@ module.exports = {
       plugins: [
         new ESLintPlugin({
           fix: true /* 自动帮助修复 */,
-          extensions: ['js', 'json', 'ts', 'json', 'css', 'less'],
+          extensions: ['js', 'json', 'ts', 'css', 'less'],
           exclude: 'node_modules',
           failOnWarning: !production,
-        }),
-        new webpack.IgnorePlugin({
-          resourceRegExp: /kungfu-cli/,
-        }),
-        new webpack.IgnorePlugin({
-          resourceRegExp: /kungfu-app/,
         }),
       ],
       resolve: {

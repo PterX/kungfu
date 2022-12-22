@@ -243647,14 +243647,6 @@
     "id": "190831_湖北2092_sze",
     "ukey": "00000000821bc4c3"
   },
-  "0000000062b62765": {
-    "instrumentId": "000001",
-    "instrumentType": 7,
-    "instrumentName": "上证指数",
-    "exchangeId": "SSE",
-    "id": "000001_上证指数_sse",
-    "ukey": "0000000062b62765"
-  },
   "000000000d7c8ac5": {
     "instrumentId": "190833",
     "instrumentType": 3,

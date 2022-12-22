@@ -4,6 +4,20 @@ import {
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import { hashInstrumentUKey } from '@kungfu-trader/kungfu-js-api/kungfu';
 
+export const AccountingInstrumentDefaultValue = {
+  contract_multiplier: 10,
+  long_margin_ratio: 0.1,
+  short_margin_ratio: 0.1,
+  exchange_rate: 1,
+};
+
+export const getInstrumentDefaultValue = (
+  value,
+  key: keyof typeof AccountingInstrumentDefaultValue,
+) => {
+  return value || AccountingInstrumentDefaultValue[key];
+};
+
 class BaseTradeAmountUsage {
   constructor() {
     this;
@@ -40,8 +54,17 @@ class StockTradeAmountUsage extends BaseTradeAmountUsage {
     super();
   }
 
-  getTradeAmount(price: number, volume: number) {
-    return price * volume;
+  getTradeAmount(
+    price: number,
+    volume: number,
+    instrumentResolved: KungfuApi.InstrumentResolved,
+  ) {
+    const { exchangeId, instrumentId } = instrumentResolved;
+    const { exchange_rate } =
+      this.getInstrumentInWathcer(exchangeId, instrumentId) || {};
+    return (
+      price * volume * getInstrumentDefaultValue(exchange_rate, 'exchange_rate')
+    );
   }
 }
 
@@ -59,16 +82,28 @@ class FutureTradeAmountUsage extends BaseTradeAmountUsage {
     if (!instrumentResolved) return null;
 
     const { exchangeId, instrumentId } = instrumentResolved;
-    const { contract_multiplier, long_margin_ratio, short_margin_ratio } =
-      this.getInstrumentInWathcer(exchangeId, instrumentId) || {};
+    const {
+      contract_multiplier,
+      long_margin_ratio,
+      short_margin_ratio,
+      exchange_rate,
+    } = this.getInstrumentInWathcer(exchangeId, instrumentId) || {};
 
     if (direction === DirectionEnum.Long) {
       return (
-        price * volume * (contract_multiplier || 1) * (long_margin_ratio || 1)
+        price *
+        volume *
+        getInstrumentDefaultValue(contract_multiplier, 'contract_multiplier') *
+        getInstrumentDefaultValue(long_margin_ratio, 'long_margin_ratio') *
+        getInstrumentDefaultValue(exchange_rate, 'exchange_rate')
       );
     } else if (direction === DirectionEnum.Short) {
       return (
-        price * volume * (contract_multiplier || 1) * (short_margin_ratio || 1)
+        price *
+        volume *
+        getInstrumentDefaultValue(contract_multiplier, 'contract_multiplier') *
+        getInstrumentDefaultValue(short_margin_ratio, 'short_margin_ratio') *
+        getInstrumentDefaultValue(exchange_rate, 'exchange_rate')
       );
     }
 

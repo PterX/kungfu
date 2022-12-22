@@ -232,7 +232,6 @@ private:
     // auto today_volume_pre = position.volume - position.yesterday_volume;
     auto cm_mr =
         get_instrument_contract_multiplier_and_margin_ratio(book, trade.exchange_id, trade.instrument_id, position);
-
     auto contract_multiplier = cm_mr.contract_multiplier;
     auto margin = contract_multiplier * trade.price * cm_mr.exchange_rate * trade.volume * cm_mr.margin_ratio;
     auto delta_margin = std::min(position.margin, margin);

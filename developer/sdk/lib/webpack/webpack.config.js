@@ -6,6 +6,7 @@ const { merge } = require('webpack-merge');
 const {
   getWebpackExternals,
 } = require('@kungfu-trader/kungfu-js-api/toolkit/utils');
+const webpack = require('webpack');
 
 const webpackConfig = (argv) => {
   argv.passTJSLoader = true;
@@ -37,6 +38,14 @@ const webpackConfig = (argv) => {
       },
     },
     target: 'node',
+    plugins: [
+      new webpack.IgnorePlugin({
+        resourceRegExp: /kungfu-cli/,
+      }),
+      new webpack.IgnorePlugin({
+        resourceRegExp: /kungfu-app/,
+      }),
+    ],
   });
 };
 

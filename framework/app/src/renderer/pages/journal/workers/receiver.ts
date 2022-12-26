@@ -1,44 +1,82 @@
-export class WorkerReceiver<T> {
-  _data: T[] = [];
+/* eslint-disable @typescript-eslint/no-explicit-any */
+export class WorkerReceiver {
+  _typePrefix: string;
+  _worker?: Worker;
+  _data: Record<string, unknown[]> = {};
   callbacks: Record<
     string,
     {
-      onMessage?: (event: { data: T[]; isEnd: boolean }) => void;
-      onEnd?: (data: T[]) => void;
+      onMessage?: Array<
+        (event: {
+          data: any[];
+          isEnd: boolean;
+          info?: Record<string, any>;
+        }) => void
+      >;
+      onEnd?: Array<
+        (event: { data: any[]; info?: Record<string, any> }) => void
+      >;
     }
   >;
 
-  constructor() {
+  constructor(typePrefix: string, worker?: Worker) {
+    this._typePrefix = typePrefix;
+    this._worker = worker;
     this.callbacks = {};
-    self.addEventListener('message', (event) => {
-      this._onMessage(event.data || {});
-    });
+
+    if (worker) {
+      worker.onmessage = (event) => {
+        this._onMessage(event.data || {});
+      };
+    } else {
+      self.addEventListener('message', (event) => {
+        this._onMessage(event.data || {});
+      });
+    }
   }
 
-  _onMessage(message: {
+  _onMessage<T>(message: {
     type: string;
-    data: { data: string; isEnd: boolean };
+    data: { data: string; isEnd: boolean; info?: Record<string, any> };
   }) {
-    console.log(message);
     const { data, type } = message;
-    if (!type.startsWith('send')) return;
+    if (!type?.startsWith(this._typePrefix)) return;
+
     const resolvedData = JSON.parse(data.data) as T[];
-    this._receiveData(resolvedData || []);
-    this.callbacks[type].onMessage?.({ data: resolvedData, isEnd: data.isEnd });
-    if (data.isEnd) this.callbacks[type].onEnd?.(this._data);
+    this._receiveData<T>(type, resolvedData || []);
+
+    this.callbacks[type].onMessage?.forEach((cb) =>
+      cb({ data: resolvedData, isEnd: data.isEnd, info: data.info }),
+    );
+
+    if (data.isEnd)
+      this.callbacks[type].onEnd?.forEach((cb) =>
+        cb({ data: this._data[type], info: data.info }),
+      );
   }
 
-  _receiveData(data: T[]) {
-    this._data.push(...data);
+  _receiveData<T>(type: string, data: T[]) {
+    if (!this._data[type]) this._data[type] = [];
+    this._data[type].push(...data);
   }
 
-  onMessage(type: string, cb: (event: { data: T[]; isEnd: boolean }) => void) {
-    if (!this.callbacks[type]) this.callbacks[type] = {};
-    this.callbacks[type].onMessage = cb;
+  onMessage<T>(
+    type: string,
+    cb: (event: {
+      data: T[];
+      isEnd: boolean;
+      info?: Record<string, any>;
+    }) => void,
+  ) {
+    if (!this.callbacks[type]) this.callbacks[type] = { onMessage: [] };
+    this.callbacks[type].onMessage?.push(cb);
   }
 
-  onEnd(type, cb: (data: T[]) => void) {
-    if (!this.callbacks[type]) this.callbacks[type] = {};
-    this.callbacks[type].onEnd = cb;
+  onEnd<T>(
+    type: string,
+    cb: (event: { data: T[]; info?: Record<string, any> }) => void,
+  ) {
+    if (!this.callbacks[type]) this.callbacks[type] = { onEnd: [] };
+    this.callbacks[type].onEnd?.push(cb);
   }
 }

@@ -2,7 +2,7 @@ import { WorkerReceiver } from './../workers/receiver';
 import { storeToRefs } from 'pinia';
 import { useJournalStore } from './../store/journalStore';
 import { WorkerSender } from './../workers/sender';
-import { watch } from 'vue';
+import { watch, reactive, computed, toRaw } from 'vue';
 import fse from 'fs-extra';
 import path from 'path';
 import { format } from '@fast-csv/format';
@@ -203,21 +203,131 @@ export const writeCsvByStream = <T>(
 };
 
 export const useDealJournalDatas = () => {
+  type DataWrapper<T> = {
+    data: Record<string, T[]>;
+    isInit: boolean;
+  };
+
+  const quotes = reactive<DataWrapper<KungfuApi.Quote>>({
+    data: {},
+    isInit: true,
+  });
+  const orders = reactive<DataWrapper<KungfuApi.Order>>({
+    data: {},
+    isInit: true,
+  });
+  const trades = reactive<DataWrapper<KungfuApi.Trade>>({
+    data: {},
+    isInit: true,
+  });
+
   const journalStore = useJournalStore();
   const journalState = storeToRefs(journalStore);
 
   const worker = window.workers.dealJournalDatas;
   const dataSender = new WorkerSender<KungfuApi.FrameResolved>(worker, 200);
-  const dataReceiver = new WorkerReceiver<KungfuApi.FrameResolved>();
+  const dataReceiver = new WorkerReceiver('send', worker);
 
   watch(
-    () => journalState.currentSessionFrames.value,
+    () => journalState.lastUpdateSessionFrames.value,
     (frames) => {
-      dataSender.sendData('send-events', frames);
+      dataSender.sendData('send-events', frames, {
+        isInit: journalState.isSessionFramesInit.value,
+      });
     },
   );
 
-  dataReceiver.onMessage('recive-quotes', (message) => {
-    console.log(message);
+  const groupDataByInstrAndExcId = <
+    T extends KungfuApi.Trade | KungfuApi.Quote | KungfuApi.Order,
+  >(
+    data: T[],
+  ): Record<string, T[]> => {
+    return data.reduce((data, cur) => {
+      const key = `${cur.exchange_id}_${cur.instrument_id}`;
+      if (key in data && Array.isArray(data[key])) {
+        data[key].push(cur);
+      } else {
+        data[key] = [cur];
+      }
+      return data;
+    }, {} as Record<string, T[]>);
+  };
+
+  const dealUpdateData = <
+    T extends KungfuApi.Trade | KungfuApi.Quote | KungfuApi.Order,
+  >(
+    exsitedData: Record<string, T[]>,
+    curData: T[],
+    isInit: boolean,
+  ) => {
+    const resolvedCurData = groupDataByInstrAndExcId(curData);
+    const rawExsitedData = toRaw(exsitedData);
+    if (isInit) {
+      Object.keys(resolvedCurData).forEach((key) => {
+        rawExsitedData[key] = resolvedCurData[key];
+      });
+    } else {
+      Object.keys(resolvedCurData).forEach((key) => {
+        rawExsitedData[key].push(...resolvedCurData[key]);
+      });
+    }
+
+    return rawExsitedData;
+  };
+
+  dataReceiver.onEnd<KungfuApi.Quote>('send-quotes', ({ data, info }) => {
+    console.log('quote', data, info);
+    quotes.data = dealUpdateData(quotes.data, data, info?.isInit);
+    quotes.isInit = info?.isInit;
   });
+
+  dataReceiver.onEnd<KungfuApi.Trade>('send-trades', ({ data, info }) => {
+    console.log('trade', data, info);
+    trades.data = dealUpdateData(trades.data, data, info?.isInit);
+    trades.isInit = info?.isInit;
+  });
+
+  dataReceiver.onEnd<KungfuApi.Order>('send-orders', ({ data, info }) => {
+    console.log('order', data, info);
+    orders.data = dealUpdateData(orders.data, data, info?.isInit);
+    orders.isInit = info?.isInit;
+  });
+
+  const allTradingDatas = computed(() => {
+    const keys = Array.from(
+      new Set([
+        ...Object.keys(quotes.data),
+        ...Object.keys(orders.data),
+        ...Object.keys(trades.data),
+      ]),
+    );
+
+    return keys.reduce(
+      (datas, key) => {
+        return {
+          ...datas,
+          [key]: {
+            quotes: quotes.data[key] ?? [],
+            trades: trades.data[key] ?? [],
+            orders: orders.data[key] ?? [],
+          },
+        };
+      },
+      {} as Record<
+        string,
+        {
+          quotes: KungfuApi.Quote[];
+          orders: KungfuApi.Order[];
+          trades: KungfuApi.Trade[];
+        }
+      >,
+    );
+  });
+
+  return {
+    quotes,
+    orders,
+    trades,
+    allTradingDatas,
+  };
 };

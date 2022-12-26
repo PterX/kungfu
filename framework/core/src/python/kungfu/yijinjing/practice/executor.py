@@ -90,7 +90,10 @@ class ExecutorRegistry:
                                     self.ctx, extension_dir, config
                                 )
                     elif "key" in config["kungfuConfig"]:
-                        if self.ctx.category == "strategy" or self.ctx.category == "operator":
+                        if (
+                            self.ctx.category == "strategy"
+                            or self.ctx.category == "operator"
+                        ):
                             group = config["kungfuConfig"]["key"]
                             self.executors[self.ctx.category][group] = ExtensionLoader(
                                 self.ctx, extension_dir, config
@@ -192,7 +195,6 @@ class ExtensionExecutor:
             dirname = os.path.dirname(self.ctx.path)
             site.setup(dirname)
             sys.path.insert(0, dirname)
-        
 
     def run_broker_vendor(self, vendor_builder):
         ctx = self.ctx
@@ -261,7 +263,6 @@ class ExtensionExecutor:
         ctx.loop = KungfuEventLoop(ctx, ctx.runner)
         ctx.loop.run_forever()
 
-    
     def run_operator(self):
         loader = self.loader
         self.setup(loader, use_ctx_path=True)
@@ -274,7 +275,11 @@ class ExtensionExecutor:
             ctx.runtime_locator,
         )
         os.environ["KF_OP_GROUP"] = ctx.group
-        os.environ["KF_OP_NAME"] = ctx.name # TODO check extension.h for implementation details, how to deal with 1 runner : N operators?
+        os.environ[
+            "KF_OP_NAME"
+        ] = (
+            ctx.name
+        )  # TODO check extension.h for implementation details, how to deal with 1 runner : N operators?
         if loader.config is None:
             load = False
             json_config = os.path.join(os.path.dirname(ctx.path), "package.json")

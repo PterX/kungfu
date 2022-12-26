@@ -9,9 +9,9 @@
     "key": "KungfuOperator101Python"
   },
   "scripts": {
-    "clean": "kfs strategy clean",
-    "build": "kfs strategy build",
-    "package": "kfs strategy package",
+    "clean": "kfs  operator clean",
+    "build": "kfs operator build",
+    "package": "kfs operator package",
     "format": "node ../../framework/core/.gyp/run-format-python.js src"
   },
   "devDependencies": {

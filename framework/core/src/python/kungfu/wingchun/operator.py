@@ -115,7 +115,6 @@ class Operator(wc.Operator):
         else:
             func(*args)
 
-
     def __add_timer(self, nanotime, callback):
         def wrap_callback(event):
             self.__call_proxy(callback, self.ctx, event)
@@ -127,9 +126,6 @@ class Operator(wc.Operator):
             self.__call_proxy(callback, self.ctx, event)
 
         self.ctx.wc_context.add_time_interval(duration, wrap_callback)
-
-
-
 
     def pre_start(self, wc_context):
         self.ctx.wc_context = wc_context
@@ -160,7 +156,6 @@ class Operator(wc.Operator):
     def on_transaction(self, wc_context, transaction, location):
         self.__call_proxy(self._on_transaction, self.ctx, transaction, location)
 
-   
     def on_deregister(self, wc_context, deregister, location):
         self.__call_proxy(self._on_deregister, self.ctx, deregister, location)
 
@@ -172,5 +167,3 @@ class Operator(wc.Operator):
     def on_trading_day(self, wc_context, daytime):
         self.ctx.trading_day = kft.to_datetime(daytime)
         self.__call_proxy(self._on_trading_day, self.ctx, daytime)
-
-

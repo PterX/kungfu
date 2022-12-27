@@ -1,20 +1,13 @@
 import { WorkerReceiver } from './receiver';
 import { WorkerSender } from './sender';
 import { FrameMsgTypeEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
-import { dealKfTime } from '@kungfu-trader/kungfu-js-api/kungfu/index';
 
 const dataReceiver = new WorkerReceiver('send');
 const dataSender = new WorkerSender(self, 200);
 
 const jsonParse = (json: string) => {
   try {
-    const jsonResolved = JSON.parse(json, (key, value) => {
-      if (key.includes('time')) {
-        return dealKfTime(BigInt(value), true);
-      }
-
-      return value;
-    });
+    const jsonResolved = JSON.parse(json);
     return jsonResolved;
   } catch (err) {
     if (err instanceof Error) {

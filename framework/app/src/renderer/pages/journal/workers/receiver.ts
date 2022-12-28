@@ -49,10 +49,13 @@ export class WorkerReceiver {
       cb({ data: resolvedData, isEnd: data.isEnd, info: data.info }),
     );
 
-    if (data.isEnd)
+    if (data.isEnd) {
       this.callbacks[type].onEnd?.forEach((cb) =>
         cb({ data: this._data[type], info: data.info }),
       );
+
+      this._data[type] = [];
+    }
   }
 
   _receiveData<T>(type: string, data: T[]) {

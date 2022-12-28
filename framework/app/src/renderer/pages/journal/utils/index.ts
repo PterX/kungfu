@@ -2,7 +2,7 @@ import { WorkerReceiver } from './../workers/receiver';
 import { storeToRefs } from 'pinia';
 import { useJournalStore } from './../store/journalStore';
 import { WorkerSender } from './../workers/sender';
-import { watch, reactive, computed, toRaw } from 'vue';
+import { watch, reactive, computed } from 'vue';
 import fse from 'fs-extra';
 import path from 'path';
 import { format } from '@fast-csv/format';
@@ -261,35 +261,32 @@ export const useDealJournalDatas = () => {
     isInit: boolean,
   ) => {
     const resolvedCurData = groupDataByInstrAndExcId(curData);
-    const rawExsitedData = toRaw(exsitedData);
     if (isInit) {
       Object.keys(resolvedCurData).forEach((key) => {
-        rawExsitedData[key] = resolvedCurData[key];
+        exsitedData[key] = resolvedCurData[key];
       });
     } else {
       Object.keys(resolvedCurData).forEach((key) => {
-        rawExsitedData[key].push(...resolvedCurData[key]);
+        exsitedData[key].push(...resolvedCurData[key]);
       });
     }
-
-    return rawExsitedData;
   };
 
   dataReceiver.onEnd<KungfuApi.Quote>('send-quotes', ({ data, info }) => {
     console.log('quote', data, info);
-    quotes.data = dealUpdateData(quotes.data, data, info?.isInit);
+    dealUpdateData(quotes.data, data, info?.isInit);
     quotes.isInit = info?.isInit;
   });
 
   dataReceiver.onEnd<KungfuApi.Trade>('send-trades', ({ data, info }) => {
     console.log('trade', data, info);
-    trades.data = dealUpdateData(trades.data, data, info?.isInit);
+    dealUpdateData(trades.data, data, info?.isInit);
     trades.isInit = info?.isInit;
   });
 
   dataReceiver.onEnd<KungfuApi.Order>('send-orders', ({ data, info }) => {
     console.log('order', data, info);
-    orders.data = dealUpdateData(orders.data, data, info?.isInit);
+    dealUpdateData(orders.data, data, info?.isInit);
     orders.isInit = info?.isInit;
   });
 

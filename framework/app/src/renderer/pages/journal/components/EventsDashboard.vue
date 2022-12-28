@@ -219,7 +219,6 @@ const checkReaderArgs = (args: {
   startTime: bigint;
   endTime: bigint;
 }) => {
-  console.log('checkArgs', lastReaderArgs, args);
   if (
     args.sessionId === lastReaderArgs.sessionId &&
     args.startTime === lastReaderArgs.startTime &&
@@ -320,12 +319,12 @@ const loadFrameData = (
 
     if (checking) {
       frameDataList.value.push(...res);
+      journalStore.setCurrentSessionFrames(res, false);
     } else {
       frameDataList.value = res;
       currentFramesId.value = frameDataList.value[0]?.id;
+      journalStore.setCurrentSessionFrames(res, true);
     }
-
-    journalStore.setCurrentSessionFrames(frameDataList.value);
 
     loadingJournal.value = false;
   });

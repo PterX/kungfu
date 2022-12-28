@@ -4,6 +4,9 @@ declare const __git_commit_version: string;
 declare const __build_timestamp: number;
 declare const __resources: string;
 
+type AnyFunction = (...args: unknown[]) => unknown;
+type AnyPromiseFunction = (...args: unknown[]) => Promise<unknown>;
+
 declare namespace KungfuApi {
   import {
     BrokerStateStatusEnum,
@@ -119,6 +122,7 @@ declare namespace KungfuApi {
     type: KfConfigItemSupportedTypes;
     columns?: KfConfigItem[];
     errMsg?: string;
+    tip?: string;
     default?: KfConfigValue;
     required?: boolean;
     max?: number;
@@ -127,7 +131,7 @@ declare namespace KungfuApi {
     primary?: boolean;
     options?: KfSelectOption[];
     data?: KfSelectOption[];
-    tip?: string;
+    headers?: string[];
   }
 
   export interface KfExhibitConfigItem {
@@ -398,6 +402,8 @@ declare namespace KungfuApi {
 
     long_margin_ratio: number; //多头保证金率
     short_margin_ratio: number; //空头保证金率
+
+    exchange_rate: number; // 利率
 
     uid_key: string;
     ukey: string;
@@ -759,6 +765,7 @@ declare namespace KungfuApi {
       blockMessage: BlockMessage,
       tdLocation: KfLocation,
     ): bigint;
+    quit(): void;
     now(): bigint;
   }
 
@@ -854,7 +861,8 @@ declare namespace KungfuApi {
       bypassRestore = false,
       bypassAccounting = false,
       bypassTradingData = false,
-      refreshLedgerBeforeSync = false,
+      refreshTradingDataBeforeSync = false,
+      millisecondsSleepAfterStep = 200,
     ): Watcher | null;
     shutdown(): void;
     formatStringToHashHex(id: string): string;
@@ -915,7 +923,7 @@ declare namespace KungfuApi {
   export type DerivedKfLocation =
     | KfLocation
     | KfExtraLocation
-    | kfConfig
+    | KfConfig
     | KfDaemonLocation;
 
   export type ScheduleTaskMode = 'restart' | 'start' | 'stop';

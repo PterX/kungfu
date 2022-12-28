@@ -30,6 +30,7 @@ import {
   UnderweightType,
   ShotableInstrumentTypes,
   T0InstrumentTypes,
+  T0ExchangeIds,
 } from '../config/tradingConfig';
 import {
   KfCategoryEnum,
@@ -69,7 +70,11 @@ import {
   startTd,
 } from './processUtils';
 import { Proc } from 'pm2';
-import { listDir, removeTargetFilesInFolder } from './fileUtils';
+import {
+  listDir,
+  readRootPackageJsonSync,
+  removeTargetFilesInFolder,
+} from './fileUtils';
 import minimist from 'minimist';
 import VueI18n, { useLanguage } from '../language';
 import { unlinkSync } from 'fs-extra';
@@ -190,8 +195,8 @@ function setImmediateIter<T>(
   list: Array<T>,
   i: number,
   len: number,
-  cb: Function,
-  fcb: Function,
+  cb: (item: T, index: number) => void,
+  fcb: AnyFunction,
 ) {
   if (i < len) {
     setImmediate(() => {
@@ -216,7 +221,7 @@ log4js.configure({
 export const logger = log4js.getLogger('app');
 
 export const kfLogger = {
-  info: (...args: Array<any>) => {
+  info: (...args: Array<unknown>) => {
     if (
       process.env.NODE_ENV === 'development' ||
       process.env.APP_TYPE !== 'cli'
@@ -226,7 +231,7 @@ export const kfLogger = {
     logger.info('<KF_INFO>', args.join(' '));
   },
 
-  warn: (...args: Array<any>) => {
+  warn: (...args: Array<unknown>) => {
     if (
       process.env.NODE_ENV === 'development' ||
       process.env.APP_TYPE !== 'cli'
@@ -236,7 +241,7 @@ export const kfLogger = {
     logger.warn('<KF_WARN>', args.join(' '));
   },
 
-  error: (...args: Array<any>) => {
+  error: (...args: Array<unknown>) => {
     if (
       process.env.NODE_ENV === 'development' ||
       process.env.APP_TYPE !== 'cli'
@@ -252,10 +257,10 @@ export const dealSpaceInPath = (pathname: string) => {
   return normalizePath.replace(/ /g, ' ');
 };
 
-export const setTimerPromiseTask = (fn: Function, interval = 500) => {
-  var taskTimer: number | undefined = undefined;
-  var clear = false;
-  function timerPromiseTask(fn: Function, interval = 500) {
+export const setTimerPromiseTask = (fn: AnyPromiseFunction, interval = 500) => {
+  let taskTimer: number | undefined = undefined;
+  let clear = false;
+  function timerPromiseTask(fn: AnyPromiseFunction, interval = 500) {
     if (taskTimer)
       globalThis.clearTimeout(taskTimer as unknown as NodeJS.Timeout);
     fn().finally(() => {
@@ -283,9 +288,9 @@ export const loopToRunProcess = async <T>(
   promiseFunc: Array<() => Promise<T>>,
   interval = 100,
 ) => {
-  let i = 0,
-    len = promiseFunc.length;
-  let resList: (T | Error)[] = [];
+  let i = 0;
+  const len = promiseFunc.length;
+  const resList: (T | Error)[] = [];
   for (i = 0; i < len; i++) {
     const pFunc = promiseFunc[i];
     try {
@@ -302,7 +307,7 @@ export const loopToRunProcess = async <T>(
 
 export const delayMilliSeconds = (miliSeconds: number): Promise<void> => {
   return new Promise((resolve) => {
-    let timer = setTimeout(() => {
+    const timer = setTimeout(() => {
       resolve();
       clearTimeout(timer);
     }, miliSeconds);
@@ -390,8 +395,8 @@ export const flattenExtensionModuleDirs = async (
     }),
   );
 
-  let i = 0,
-    len = statsList.length;
+  let i = 0;
+  const len = statsList.length;
   for (i = 0; i < len; i++) {
     const statsDatas = statsList[i];
     for (let r = 0; r < statsDatas.length; r++) {
@@ -767,7 +772,7 @@ export const statTimeEnd = (name: string) => {
 };
 
 export const hidePasswordByLogger = (config: string) => {
-  let configCopy = JSON.parse(config);
+  const configCopy = JSON.parse(config);
   Object.keys(configCopy || {}).forEach((key: string) => {
     if (key.includes('password')) {
       configCopy[key] = '******';
@@ -1084,9 +1089,9 @@ export class KfNumList<T> {
   }
 }
 
-export const debounce = (fn: Function, delay = 300, immediate = false) => {
+export const debounce = (fn: AnyFunction, delay = 300, immediate = false) => {
   let timeout: number;
-  return (...args: any) => {
+  return (...args: Array<unknown>) => {
     if (immediate && !timeout) {
       fn(...args);
     }
@@ -1133,7 +1138,7 @@ const startProcessByKfLocation = async (
       } else if (kfLocation.name === 'cached') {
         return startCacheD(isForce);
       }
-
+      break;
     case 'td':
       return startTd(getIdByKfLocation(kfLocation), kfLocation);
     case 'md':
@@ -1178,8 +1183,37 @@ export const isShotable = (instrumentType: InstrumentTypeEnum): boolean => {
     : false;
 };
 
-export const isT0 = (instrumentType: InstrumentTypeEnum): boolean => {
-  return instrumentType ? T0InstrumentTypes.includes(instrumentType) : false;
+export const getT0Config = (): {
+  instrumentTypes: InstrumentTypeEnum[];
+  exchangeIds: string[];
+} => {
+  const rootPackageJson = readRootPackageJsonSync();
+  const T0Config = rootPackageJson?.appConfig?.T0T1?.T0 || {};
+  const instrumentTypes = (
+    Array.isArray(T0Config.instrumentTypes) ? T0Config.instrumentTypes : []
+  ).map((item) => InstrumentTypeEnum[item]);
+  const exchangeIds = Array.isArray(T0Config.exchangeIds)
+    ? T0Config.exchangeIds
+    : [];
+  return {
+    instrumentTypes,
+    exchangeIds,
+  };
+};
+
+export const isT0 = (
+  instrumentType: InstrumentTypeEnum,
+  exchangeId?: string,
+): boolean => {
+  const { instrumentTypes, exchangeIds } = getT0Config();
+  return (
+    (instrumentType
+      ? [...T0InstrumentTypes, ...instrumentTypes].includes(instrumentType)
+      : false) ||
+    (exchangeId
+      ? [...T0ExchangeIds, ...exchangeIds].includes(exchangeId)
+      : false)
+  );
 };
 
 export const dealKfNumber = (
@@ -1511,12 +1545,12 @@ export const dealAssetsByHolderUID = <
   }, {} as Record<string, T>);
 };
 
-export const dealOrderTradingData = (
+export const dealOrderTradingData = <T>(
   watcher: KungfuApi.Watcher,
-  tradingData: KungfuApi.DataTable<KungfuApi.OrderTradingData>,
+  tradingData: KungfuApi.DataTable<T>,
   tradingDataTypeName: KungfuApi.TradingDataTypeName,
   kfLocation: KungfuApi.KfLocation,
-): KungfuApi.OrderTradingData[] => {
+): T[] => {
   const currentUID = watcher.getLocationUID(kfLocation);
   const orderTradeFilterKey = getOrderTradeFilterKey(kfLocation.category);
   const sortKey = getTradingDataSortKey(tradingDataTypeName);
@@ -1530,12 +1564,12 @@ export const dealOrderTradingData = (
   }
 };
 
-export const dealLedgerTradingData = (
+export const dealLedgerTradingData = <T>(
   watcher: KungfuApi.Watcher,
-  tradingData: KungfuApi.DataTable<KungfuApi.LedgerTradingData>,
+  tradingData: KungfuApi.DataTable<T>,
   tradingDataTypeName: KungfuApi.TradingDataTypeName,
   kfLocation: KungfuApi.KfLocation,
-): KungfuApi.LedgerTradingData[] => {
+): T[] => {
   const sortKey = getTradingDataSortKey(tradingDataTypeName);
 
   const { category } = kfLocation;
@@ -1559,17 +1593,24 @@ export const dealLedgerTradingData = (
 };
 
 export const dealDefaultTradingData = <T>(
-  watcher: KungfuApi.Watcher,
-  tradingData: KungfuApi.DataTable<T>,
-  tradingDataTypeName: KungfuApi.TradingDataTypeName,
-  kfLocation: KungfuApi.KfLocation,
+  ...args: [
+    KungfuApi.Watcher,
+    KungfuApi.DataTable<T>,
+    KungfuApi.TradingDataTypeName,
+    KungfuApi.KfLocation,
+  ]
 ): T[] => {
-  return tradingData.list();
+  return args[1].list();
 };
 
 export const dealTradingDataMethodsMap: Record<
   KungfuApi.TradingDataTypeName,
-  any
+  <T>(
+    watcher: KungfuApi.Watcher,
+    tradingData: KungfuApi.DataTable<T>,
+    tradingDataTypeName: KungfuApi.TradingDataTypeName,
+    kfLocation: KungfuApi.KfLocation,
+  ) => T[]
 > = {
   Asset: dealLedgerTradingData,
   AssetMargin: dealLedgerTradingData,
@@ -1592,7 +1633,7 @@ export const dealTradingData = <T>(
     throw new Error('Watcher is NULL');
   }
 
-  return dealTradingDataMethodsMap[tradingDataTypeName](
+  return dealTradingDataMethodsMap[tradingDataTypeName]<T>(
     watcher,
     tradingData,
     tradingDataTypeName,
@@ -1856,7 +1897,7 @@ export const dealOrderInputItem = (
   const orderInputResolved: Record<string, KungfuApi.KfTradeValueCommonData> =
     {};
   const isInstrumnetShotable = isShotable(inputData.instrument_type);
-  for (let key in inputData) {
+  for (const key in inputData) {
     if (key === 'instrument_type') {
       orderInputResolved[key] = dealInstrumentType(inputData.instrument_type);
     } else if (key === 'price_type') {
@@ -1972,12 +2013,8 @@ export const fromProcessArgsToKfConfigItems = (
   args: string[],
 ): Record<string, KungfuApi.KfConfigValue> => {
   const taskArgs = minimist(args)['a'] || '{}';
-  try {
-    const data = JSON.parse(taskArgs);
-    return data;
-  } catch (err) {
-    throw err;
-  }
+  const data = JSON.parse(taskArgs);
+  return data;
 };
 
 export const getTaskListFromProcessStatusData = (
@@ -2031,7 +2068,7 @@ export function deleteNNFiles(rootPathName = KF_HOME) {
           reject(err);
         }
 
-        files.forEach((file: any) => {
+        files.forEach((file: string) => {
           unlinkSync(path.join(rootPathName, file));
         });
 

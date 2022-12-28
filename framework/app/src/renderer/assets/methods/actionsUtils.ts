@@ -1752,7 +1752,7 @@ export const useMakeOrderInfo = (
   const currentAvailPosVolume = computed(() => {
     if (!instrumentResolved.value) return '--';
 
-    const { instrumentType } = instrumentResolved.value;
+    const { instrumentType, exchangeId } = instrumentResolved.value;
     const { offset } = formState.value;
 
     if (currentPosition.value) {
@@ -1763,7 +1763,7 @@ export const useMakeOrderInfo = (
       const closable_today = today_volume - frozen_today;
       const closable_total = volume - frozen_total;
 
-      if (isShotable(instrumentType) || isT0(instrumentType)) {
+      if (isShotable(instrumentType) || isT0(instrumentType, exchangeId)) {
         if (offset === OffsetEnum.CloseYest) {
           return dealKfNumber(closable_yesterday) + '';
         } else if (offset === OffsetEnum.CloseToday) {
@@ -1819,6 +1819,7 @@ export const useMakeOrderInfo = (
           TradeAmountUsageMap[InstrumentTypeEnum.stock].getTradeAmount(
             currentPrice.value,
             volume,
+            instrumentResolved.value,
           ),
         );
       }
@@ -1833,20 +1834,18 @@ export const useMakeOrderInfo = (
   });
 
   const currentResidueMoney = computed(() => {
-    const { side } = formState.value;
+    const { offset } = formState.value;
     if (currentAvailMoney.value !== '--') {
       if (currentTradeAmount.value !== '--') {
-        if (side === SideEnum.Buy) {
+        if (offset === OffsetEnum.Open) {
           return dealKfPrice(
             Number(currentAvailMoney.value) - Number(currentTradeAmount.value),
           );
-        } else if (side === SideEnum.Sell) {
+        } else {
           return dealKfPrice(
             Number(currentAvailMoney.value) + Number(currentTradeAmount.value),
           );
         }
-
-        return '--';
       } else {
         return currentAvailMoney.value;
       }

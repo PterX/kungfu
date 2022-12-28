@@ -57,6 +57,9 @@ class ExecutorRegistry:
         elif ctx.path:
             self.read_config(os.path.dirname(ctx.path))
 
+        if ctx.group not in self.executors["strategy"]:
+            self.executors["strategy"][ctx.group] = ExtensionLoader(ctx, None, None)
+
     def register_extensions(self, root):
         for child in os.listdir(root):
             extension_dir = path.abspath(path.join(root, child))
@@ -244,6 +247,7 @@ class ExtensionExecutor:
         if loader.config is None:
             load = False
             json_config = os.path.join(os.path.dirname(ctx.path), "package.json")
+            # 如果策略目录下有package.json, 则从package.json里面读取key值作为策略的python模块名
             if path.exists(json_config):
                 with open(json_config, mode="r", encoding="utf8") as json_config_out:
                     config = json.load(json_config_out)
@@ -251,14 +255,13 @@ class ExtensionExecutor:
                         key = config["kungfuConfig"]["key"]
                         load = True
                         ctx.strategy = load_module(ctx, ctx.path, key, Strategy)
+            # 如果没有从策略目录下的读取到package.json, 则用ctx.group作为key值去导入策略模块, ctx.group是策略的python模块名
             if not load:
-                ctx.strategy = load_module(ctx, ctx.path, loader.config, Strategy)
+                ctx.strategy = load_module(ctx, ctx.path, ctx.group, Strategy)
         else:
             ctx.strategy = load_module(
                 ctx, ctx.path, loader.config["kungfuConfig"]["key"], Strategy
             )
-        # ctx.runner = Runner(ctx, kfj.MODES[ctx.mode])
-        # ctx.runner = self.load_runner(ctx)
         ctx.runner.add_strategy(ctx.strategy)
         ctx.loop = KungfuEventLoop(ctx, ctx.runner)
         ctx.loop.run_forever()
@@ -291,7 +294,7 @@ class ExtensionExecutor:
                         load = True
                         ctx.operator = load_module(ctx, ctx.path, key, Operator)
             if not load:
-                ctx.operator = load_module(ctx, ctx.path, loader.config, Operator)
+                ctx.operator = load_module(ctx, ctx.path, ctx.group, Operator)
         else:
             ctx.operator = load_module(
                 ctx, ctx.path, loader.config["kungfuConfig"]["key"], Operator
@@ -341,9 +344,7 @@ def try_load_cpp_module(ctx, path, key, cls):
 
 def load_runner(ctx):
     if ctx.vendor is not None:
-        # ctx.log.warn(f"sys.path: {sys.path}")
         sys.path.append(ctx.extension_path)
-        # ctx.log.warn(f"sys.path: {sys.path}")
         module = importlib.import_module(ctx.vendor)
         runner_vendor = getattr(module, "Runner")
         runner = runner_vendor(
@@ -353,7 +354,6 @@ def load_runner(ctx):
             kfj.MODES[ctx.mode],
             ctx.low_latency,
         )
-        # runner.ctx = ctx
         return runner
     else:
         return Runner(ctx, kfj.MODES[ctx.mode])

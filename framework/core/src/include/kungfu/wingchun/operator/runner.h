@@ -48,7 +48,6 @@ private:
   RuntimeContext_ptr context_;
 
   void prepare(const event_ptr &event);
-  void inspect_channel(const event_ptr &event);
 
   template <typename OnMethod = void (Operator::*)(Context_ptr &)> void invoke(OnMethod method) {
     auto context = std::dynamic_pointer_cast<Context>(context_);

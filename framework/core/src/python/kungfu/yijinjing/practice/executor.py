@@ -207,7 +207,7 @@ class ExtensionExecutor:
             ctx.runtime_locator,
         )
 
-        self.setup(loader, user_ctx_path=False)
+        self.setup(loader, use_ctx_path=False)
         module = importlib.import_module(ctx.group)
         self.ctx.logger.info(f"loading {ctx.group} from {loader.extension_dir}")
         vendor = vendor_builder(
@@ -299,6 +299,8 @@ class ExtensionExecutor:
         ctx.op_runner = OpRunner(ctx, kfj.MODES[ctx.mode])
         # ctx.runner = self.load_runner(ctx)
         ctx.op_runner.add_operator(ctx.operator)
+        ctx.op_runner.run()
+
 
 
 class RegistryJSONEncoder(json.JSONEncoder):

@@ -266,6 +266,10 @@ enum class StrategyState : int8_t { Normal, Warn, Error };
 
 inline std::ostream &operator<<(std::ostream &os, StrategyState t) { return os << int8_t(t); }
 
+enum class OperatorState : int8_t { Normal, Warn, Error };
+
+inline std::ostream &operator<<(std::ostream &os, OperatorState t) { return os << int8_t(t); }
+
 template <typename T, typename U> inline T sub_data_bitwise(const T &a, const T &b) {
   return static_cast<T>(static_cast<U>(a) | static_cast<U>(b));
 }

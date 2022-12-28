@@ -89,6 +89,16 @@ KF_DEFINE_DATA_TYPE(                                                     //
     (std::string, value)                                                 //
 );
 
+KF_DEFINE_DATA_TYPE(                                                     //
+    OperatorStateUpdate, 20003, PK(update_time), TIMESTAMP(update_time), //
+    (OperatorState, state),                                              //
+    (int64_t, update_time),                                              //
+    (std::string, info_a),                                               //
+    (std::string, info_b),                                               //
+    (std::string, info_c),                                               //
+    (std::string, value)                                                 //
+);
+
 KF_DEFINE_DATA_TYPE(                                   //
     RiskSetting, 10007, PK(location_uid), PERPETUAL(), //
     (uint32_t, location_uid),                          //

@@ -16,6 +16,8 @@ public:
    */
   int64_t now() const override;
 
+  void on_start() override;
+
   /**
    * Add one shot timer callback.
    * @param nanotime when to call in nano seconds
@@ -53,7 +55,7 @@ public:
    * @param source MD group
    * @param key instrument IDs
    */
-  virtual void subscribe_operator(const std::string &source, const std::vector<std::string> &keys) override;
+  void subscribe_operator(const std::string &source, const std::vector<std::string> &keys) override;
 
 
   /**
@@ -68,12 +70,12 @@ public:
    */
   void req_deregister() override;
 
-//   /**
-//    * Update Strategy State
-//    * @param state StrategyState
-//    * @param infos vector<string>, info_a, info_b, info_c.
-//    */
-//   void update_operator_state(longfist::types::StrategyStateUpdate &state_update) override;
+  /**
+   * Update Strategy State
+   * @param state StrategyState
+   * @param infos vector<string>, info_a, info_b, info_c.
+   */
+  void update_operator_state(longfist::types::OperatorStateUpdate &state_update) override;
 
 // TODO should md separate from operator?
 // TODO should list_md declare as virtual function in Context?
@@ -90,12 +92,12 @@ public:
    */
   broker::Client &get_broker_client();
 
+
 protected:
  // those 3 member maybe shared with BacktestContext
   yijinjing::practice::apprentice &app_;
   const rx::connectable_observable<event_ptr> &events_;
 
-  virtual void on_start();
   // TODO should find_md_location declare as virtual function in Context?
   // TODO should md separate from operator?
   const yijinjing::data::location_ptr &find_md_location(const std::string &source);
@@ -104,8 +106,7 @@ private:
   broker::PassiveClient broker_client_;
   yijinjing::data::location_map md_locations_ = {};
   std::unordered_map<std::string, yijinjing::data::location_ptr> market_data_ = {};
-// TODO why these friend functions?
-  friend void enable(RuntimeContext &context) { context.on_start(); }
+
 };
 
 DECLARE_PTR(RuntimeContext)

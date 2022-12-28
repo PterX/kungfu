@@ -108,8 +108,8 @@ void bind_operator(pybind11::module &m) {
            py::arg("market_type") = MarketType::All, py::arg("instrument_type") = SubscribeInstrumentType::All,
            py::arg("data_type") = SubscribeDataType::All)
       .def("subscribe_operator", &op::Context::subscribe_operator)
-      .def("req_deregister", &op::Context::req_deregister);
-      // .def("update_strategy_state", &op::Context::update_strategy_state);
+      .def("req_deregister", &op::Context::req_deregister)
+      .def("update_operator_state", &op::Context::update_operator_state);
 
   py::class_<op::RuntimeContext, op::Context, op::RuntimeContext_ptr>(m, "OpRuntimeContext");
 
@@ -124,8 +124,8 @@ void bind_operator(pybind11::module &m) {
       .def("on_entrust", &op::Operator::on_entrust)
       .def("on_transaction", &op::Operator::on_transaction)
       .def("on_deregister ", &op::Operator::on_deregister)
-      .def("on_broker_state_change ", &op::Operator::on_broker_state_change);
-      //TODO  on_operator_state_change
+      .def("on_broker_state_change ", &op::Operator::on_broker_state_change)
+      .def("on_operator_state_change ", &op::Operator::on_operator_state_change);
 
   ;
 }

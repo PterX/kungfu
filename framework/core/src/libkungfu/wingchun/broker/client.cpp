@@ -169,6 +169,12 @@ void Client::connect(const event_ptr &event, const Register &register_data) {
     app_.request_read_from_public(app_.now(), app_location->uid, resume_time_point);
     SPDLOG_INFO("resume {} connection from {}", app_.get_location_uname(app_uid), time::strftime(resume_time_point));
   }
+  if (app_location->category == category::OPERATOR and should_connect_operator(app_location)) {
+    app_.request_write_to(app_.now(), app_location->uid);
+    app_.request_read_from(app_.now(), app_location->uid, resume_time_point);
+    app_.request_read_from_public(app_.now(), app_location->uid, resume_time_point);
+    SPDLOG_INFO("resume {} connection from {}", app_.get_location_uname(app_uid), time::strftime(resume_time_point));
+  }
 }
 
 void Client::connect(const event_ptr &event, const Band &band) {
@@ -239,7 +245,9 @@ bool AutoClient::should_connect_md(uint32_t md_location_uid) const { return true
 
 bool AutoClient::should_connect_td(uint32_t td_location_uid) const { return true; }
 
-bool AutoClient::should_connect_strategy(const location_ptr &td_location) const { return true; }
+bool AutoClient::should_connect_strategy(const location_ptr &stg_location) const { return true; }
+
+bool AutoClient::should_connect_operator(const location_ptr &op_location) const { return true; }
 
 SilentAutoClient::SilentAutoClient(practice::apprentice &app) : AutoClient(app) {}
 
@@ -382,5 +390,9 @@ bool PassiveClient::should_connect_td(uint32_t td_location_uid) const {
   return enrolled_td_locations_.find(td_location_uid) != enrolled_td_locations_.end();
 }
 
-bool PassiveClient::should_connect_strategy(const location_ptr &td_location) const { return false; }
+bool PassiveClient::should_connect_strategy(const location_ptr &stg_location) const { return false; }
+
+bool PassiveClient::should_connect_operator(const location_ptr &op_location) const { 
+  return enrolled_md_locations_.find(op_location->uid) != enrolled_md_locations_.end();
+}
 } // namespace kungfu::wingchun::broker

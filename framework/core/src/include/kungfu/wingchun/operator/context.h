@@ -20,6 +20,8 @@ public:
    */
   virtual int64_t now() const = 0;
 
+  virtual void on_start() {};
+
   /**
    * Add one shot timer callback.
    * @param nanotime when to call in nano seconds
@@ -71,13 +73,12 @@ public:
    */
   virtual void req_deregister() {}
 
-// TODO update Operator State
-  // /**
-  //  * Update Strategy State
-  //  * @param state StrategyState
-  //  * @param infos vector<string>, info_a, info_b, info_c.
-  //  */
-  // virtual void update_strategy_state(longfist::types::StrategyStateUpdate &state_update) {}
+  /**
+   * Update Strategy State
+   * @param state StrategyState
+   * @param infos vector<string>, info_a, info_b, info_c.
+   */
+  virtual void update_operator_state(longfist::types::OperatorStateUpdate &state_update) {}
 
 
 };

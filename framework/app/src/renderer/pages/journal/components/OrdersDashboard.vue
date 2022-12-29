@@ -26,13 +26,13 @@ const allOptions = computed(() => {
     const markPoint = getMarkPoint({ Trade: trades, Order: orders });
 
     const data = quotes.map((quote) => [
-      dealKfTime(quote.data_time),
+      dealKfTime(BigInt(quote.data_time)),
       dealKfPrice(quote.open_price),
       dealKfPrice(quote.close_price),
       dealKfPrice(quote.high_price),
       dealKfPrice(quote.low_price),
     ]);
-    return { ...options, [key]: getOption(data, markPoint) };
+    return { ...options, [key]: getOption(key, data, markPoint) };
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   }, {} as Record<string, any>);
 });
@@ -59,7 +59,10 @@ const getMarkPoint = (data: {
 
         return data[type].map((item) => ({
           name: 'Mark',
-          coord: [dealKfTime(item[timeKey]), dealKfPrice(item[priceKey])],
+          coord: [
+            dealKfTime(BigInt(item[timeKey])),
+            dealKfPrice(item[priceKey]),
+          ],
           value: type,
           itemStyle: {
             color: 'rgb(41,60,85)',
@@ -72,8 +75,11 @@ const getMarkPoint = (data: {
   return markPoint;
 };
 
-function getOption(data, markPoint) {
+function getOption(title: string, data, markPoint) {
   const option = {
+    title: {
+      text: title,
+    },
     dataset: {
       source: data,
     },

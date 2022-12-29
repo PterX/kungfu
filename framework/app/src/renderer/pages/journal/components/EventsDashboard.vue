@@ -219,7 +219,6 @@ const checkReaderArgs = (args: {
   startTime: bigint;
   endTime: bigint;
 }) => {
-  console.log('checkArgs', lastReaderArgs, args);
   if (
     args.sessionId === lastReaderArgs.sessionId &&
     args.startTime === lastReaderArgs.startTime &&

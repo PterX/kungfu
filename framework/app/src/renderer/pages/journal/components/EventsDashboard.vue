@@ -245,9 +245,9 @@ const loadFrameData = (
   if (!checking) {
     loadingJournal.value = true;
     if (!session.is_closed) {
-      journalReader = assemble.get_reader(sessionId, startTime);
+      journalReader = assemble.getReader(sessionId, startTime);
     } else {
-      journalReader = assemble.get_reader(sessionId, startTime, endTime);
+      journalReader = assemble.getReader(sessionId, startTime, endTime);
     }
     framesMap.value = {};
   }

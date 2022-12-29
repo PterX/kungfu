@@ -104,9 +104,9 @@ public:
 
   Napi::Value Next(const Napi::CallbackInfo &info);
 
-  Napi::Value Get_sessions(const Napi::CallbackInfo &info);
+  Napi::Value GetSessions(const Napi::CallbackInfo &info);
 
-  Napi::Value Get_reader(const Napi::CallbackInfo &info);
+  Napi::Value GetReader(const Napi::CallbackInfo &info);
 
   static void Init(Napi::Env env, Napi::Object exports);
 

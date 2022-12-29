@@ -822,12 +822,12 @@ declare namespace KungfuApi {
   }
 
   export interface Assemble {
-    get_reader(
+    getReader(
       arg: number,
       startTime?: bigint,
       endTime?: bigint,
     ): AssembleReader;
-    get_sessions(kfLocation?: KfLocation): Session[] | undefined;
+    getSessions(kfLocation?: KfLocation): Session[] | undefined;
     seekToTime(): void;
     next(): void;
     dataAvailable(): boolean;

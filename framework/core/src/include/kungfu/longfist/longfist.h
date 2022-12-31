@@ -46,6 +46,7 @@ constexpr auto AllTypes = boost::hana::make_map( //
     TYPE_PAIR(TimeValue),                        //
     TYPE_PAIR(TimeKeyValue),                     //
     TYPE_PAIR(StrategyStateUpdate),              //
+    TYPE_PAIR(OperatorStateUpdate),              //
     TYPE_PAIR(Commission),                       //
     TYPE_PAIR(Session),                          //
     TYPE_PAIR(Location),                         //
@@ -94,6 +95,7 @@ constexpr auto AllDataTypes = boost::hana::make_map( //
     TYPE_PAIR(TimeValue),                            //
     TYPE_PAIR(TimeKeyValue),                         //
     TYPE_PAIR(StrategyStateUpdate),                  //
+    TYPE_PAIR(OperatorStateUpdate),                  //
     TYPE_PAIR(Commission),                           //
     TYPE_PAIR(Session),                              //
     TYPE_PAIR(Location),                             //
@@ -148,20 +150,21 @@ constexpr auto StateDataTypes = boost::hana::make_map( //
     TYPE_PAIR(Config),                                 //
     TYPE_PAIR(RiskSetting),                            //
     TYPE_PAIR(TimeValue),                              //
-    TYPE_PAIR(TimeKeyValue),
-    TYPE_PAIR(StrategyStateUpdate), //
-    TYPE_PAIR(Commission),          //
-    TYPE_PAIR(Instrument),          //
-    TYPE_PAIR(Quote),               //
-    TYPE_PAIR(OrderAction),         //
-    TYPE_PAIR(BlockMessage),        //
-    TYPE_PAIR(OrderInput),          //
-    TYPE_PAIR(Order),               //
-    TYPE_PAIR(Trade),               //
-    TYPE_PAIR(Asset),               //
-    TYPE_PAIR(AssetMargin),         //
-    TYPE_PAIR(Position),            //
-    TYPE_PAIR(OrderStat)            //
+    TYPE_PAIR(TimeKeyValue),                           // 
+    TYPE_PAIR(StrategyStateUpdate),                    //
+    TYPE_PAIR(OperatorStateUpdate),                    //
+    TYPE_PAIR(Commission),                             //
+    TYPE_PAIR(Instrument),                             //
+    TYPE_PAIR(Quote),                                  //
+    TYPE_PAIR(OrderAction),                            //
+    TYPE_PAIR(BlockMessage),                           //
+    TYPE_PAIR(OrderInput),                             //
+    TYPE_PAIR(Order),                                  //
+    TYPE_PAIR(Trade),                                  //
+    TYPE_PAIR(Asset),                                  //
+    TYPE_PAIR(AssetMargin),                            //
+    TYPE_PAIR(Position),                               //
+    TYPE_PAIR(OrderStat)                               //
 );
 
 constexpr auto TradingDataTypes = boost::hana::make_map( //

@@ -249,6 +249,8 @@ bool AutoClient::should_connect_strategy(const location_ptr &stg_location) const
 
 bool AutoClient::should_connect_operator(const location_ptr &op_location) const { return true; }
 
+bool AutoClient::should_connect_operator(uint32_t op_location_uid) const { return true; }
+
 SilentAutoClient::SilentAutoClient(practice::apprentice &app) : AutoClient(app) {}
 
 // bool SilentAutoClient::is_subscribed(const std::string &exchange_id, const std::string &instrument_id) const {
@@ -374,6 +376,10 @@ void PassiveClient::enroll_account(const location_ptr &td_location) {
   enrolled_td_locations_.emplace(td_location->uid, true);
 }
 
+void PassiveClient::enroll_operator(const location_ptr &op_location) {
+  enrolled_op_locations_.emplace(op_location->uid, true);
+}
+
 bool PassiveClient::should_connect_md(const location_ptr &md_location) const {
   return enrolled_md_locations_.find(md_location->uid) != enrolled_md_locations_.end();
 }
@@ -393,6 +399,10 @@ bool PassiveClient::should_connect_td(uint32_t td_location_uid) const {
 bool PassiveClient::should_connect_strategy(const location_ptr &stg_location) const { return false; }
 
 bool PassiveClient::should_connect_operator(const location_ptr &op_location) const { 
-  return enrolled_md_locations_.find(op_location->uid) != enrolled_md_locations_.end();
+  return enrolled_op_locations_.find(op_location->uid) != enrolled_op_locations_.end();
+}
+
+bool PassiveClient::should_connect_operator(uint32_t op_location_uid) const { 
+  return enrolled_op_locations_.find(op_location_uid) != enrolled_op_locations_.end();
 }
 } // namespace kungfu::wingchun::broker

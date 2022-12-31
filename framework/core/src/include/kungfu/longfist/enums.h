@@ -55,6 +55,8 @@ inline std::string get_category_name(category c) {
     return "td";
   case category::STRATEGY:
     return "strategy";
+  case category::OPERATOR:
+    return "operator";
   case category::SYSTEM:
     return "system";
   default:
@@ -69,6 +71,8 @@ inline category get_category_by_name(const std::string &name) {
     return category::TD;
   else if (name == "strategy")
     return category::STRATEGY;
+  else if (name == "operator")
+    return category::OPERATOR;
   else
     return category::SYSTEM;
 }

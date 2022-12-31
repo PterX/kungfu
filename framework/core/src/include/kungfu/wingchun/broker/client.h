@@ -125,6 +125,8 @@ public:
 
   [[nodiscard]] virtual bool should_connect_operator(const yijinjing::data::location_ptr &op_location) const = 0;
 
+  [[nodiscard]] virtual bool should_connect_operator(uint32_t op_location_uid) const = 0;
+
   kungfu::yijinjing::data::location_ptr get_location(uint32_t uid) const { return app_.get_location(uid); }
 
 protected:
@@ -175,6 +177,8 @@ protected:
   [[nodiscard]] bool should_connect_strategy(const yijinjing::data::location_ptr &stg_location) const override;
 
   [[nodiscard]] bool should_connect_operator(const yijinjing::data::location_ptr &op_location) const override;
+
+  [[nodiscard]] bool should_connect_operator(uint32_t op_location_uid) const override;
 
 private:
   StatelessResumePolicy resume_policy_ = {};
@@ -229,6 +233,8 @@ public:
 
   void enroll_account(const yijinjing::data::location_ptr &td_location);
 
+  void enroll_operator(const yijinjing::data::location_ptr &op_location);
+
 protected:
   [[nodiscard]] bool should_connect_md(const yijinjing::data::location_ptr &md_location) const override;
 
@@ -242,11 +248,14 @@ protected:
 
   [[nodiscard]] bool should_connect_operator(const yijinjing::data::location_ptr &op_location) const override;
 
+  [[nodiscard]] bool should_connect_operator(uint32_t op_location_uid) const override;
+
 private:
   FromNowResumePolicy resume_policy_ = {};
   CustomSubscribeMap custom_subs_ = {};
   EnrollmentMap enrolled_md_locations_ = {};
   EnrollmentMap enrolled_td_locations_ = {};
+  EnrollmentMap enrolled_op_locations_ = {};
 };
 
 template <typename DataType>
@@ -301,6 +310,17 @@ static constexpr auto is_own(const Client &broker_client) {
     if (event->msg_type() == DataType::tag) {
       const DataType &data = event->data<DataType>();
       return (broker_client.should_connect_md(event->source()) or broker_client.should_connect_td(event->source()));
+    }
+    return false;
+  });
+};
+
+template <typename DataType, std::enable_if_t<std::is_same_v<DataType, longfist::types::OperatorStateUpdate>>...>
+static constexpr auto is_own(const Client &broker_client) {
+  return rx::filter([&](const event_ptr &event) {
+    if (event->msg_type() == DataType::tag) {
+      const DataType &data = event->data<DataType>();
+      return (broker_client.should_connect_operator(event->source()));
     }
     return false;
   });

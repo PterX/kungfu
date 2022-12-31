@@ -49,14 +49,20 @@ public:
   void subscribe_all(const std::string &source, uint8_t market_type = 0, uint64_t instrument_type = 0,
                      uint64_t data_type = 0) override;
 
-   // TODO added for operator
   /**
    * Subscribe operator data.
-   * @param source MD group
-   * @param key instrument IDs
+   * @param group OPERATOR group
+   * @param name OPERATOR name 
    */
-  void subscribe_operator(const std::string &source, const std::vector<std::string> &keys) override;
+  void subscribe_operator(const std::string &group, const std::string &name) override;
 
+
+  /**
+   * publish operator data.
+   * @param key key of data to be published
+   * @param value value of data to be published
+   */
+  virtual void publish(const std::string &key, const std::string &value) override;
 
   /**
    * Get current trading day.
@@ -77,15 +83,19 @@ public:
    */
   void update_operator_state(longfist::types::OperatorStateUpdate &state_update) override;
 
-// TODO should md separate from operator?
-// TODO should list_md declare as virtual function in Context?
   /**
    * Get subscribed MD locations.
    * @return subscribed MD locations
    */
   const yijinjing::data::location_map &list_md() const;
 
-// TODO should get_broker_lient declare as virtual function in Context?
+  /**
+   * Get subscribed OPERATOR locations.
+   * @return subscribed OPERATOR locations
+   */
+  const yijinjing::data::location_map &list_op() const;
+
+
   /**
    * Get broker client.
    * @return broker client reference
@@ -98,14 +108,18 @@ protected:
   yijinjing::practice::apprentice &app_;
   const rx::connectable_observable<event_ptr> &events_;
 
-  // TODO should find_md_location declare as virtual function in Context?
-  // TODO should md separate from operator?
+  const yijinjing::data::location_ptr &find_location(const std::string &source, longfist::enums::category c, std::unordered_map<std::string, yijinjing::data::location_ptr> &locations);
+
   const yijinjing::data::location_ptr &find_md_location(const std::string &source);
+
+  const yijinjing::data::location_ptr &find_operator_location(const std::string &source);
 
 private:
   broker::PassiveClient broker_client_;
   yijinjing::data::location_map md_locations_ = {};
+  yijinjing::data::location_map op_locations_ = {};
   std::unordered_map<std::string, yijinjing::data::location_ptr> market_data_ = {};
+  std::unordered_map<std::string, yijinjing::data::location_ptr> operator_data_ = {};
 
 };
 

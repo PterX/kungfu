@@ -41,13 +41,14 @@ public:
   virtual void on_transaction(Context_ptr &context, const longfist::types::Transaction &transaction,
                               const kungfu::yijinjing::data::location_ptr &location){};
 
-  // TODO 考虑不提供python binding。
-  // 逐笔成交更新回调
+  // 用于做行情转录时的任意类型行情事件回调, 考虑不提供python binding
+  //@param event md发布的任意类型行情事件
+  virtual void on_event(Context_ptr &context, const event_ptr &event){};
+
+  // Operator publish 的 time_key_value 回调
   //@param transaction       逐笔成交数据
-  virtual void on_event(Context_ptr &context, const event_ptr &envet){};
-
-
-
+  virtual void on_time_key_value(Context_ptr &context, const longfist::types::TimeKeyValue &time_key_value,
+                              const kungfu::yijinjing::data::location_ptr &location){};
 
   // 断开回调
   //@param deregister     断开数据
@@ -60,7 +61,7 @@ public:
                                       const longfist::types::BrokerStateUpdate &broker_state_update,
                                       const kungfu::yijinjing::data::location_ptr &location){};
 
-    // 算子器状态变化回调
+  // 订阅的其他算子器状态变化回调
   //@param brokerStateUpdate     状态变化
   virtual void on_operator_state_change(Context_ptr &context,
                                       const longfist::types::OperatorStateUpdate &operator_state_update,

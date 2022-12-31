@@ -108,6 +108,7 @@ void bind_operator(pybind11::module &m) {
            py::arg("market_type") = MarketType::All, py::arg("instrument_type") = SubscribeInstrumentType::All,
            py::arg("data_type") = SubscribeDataType::All)
       .def("subscribe_operator", &op::Context::subscribe_operator)
+      .def("publish", &op::Context::publish)
       .def("req_deregister", &op::Context::req_deregister)
       .def("update_operator_state", &op::Context::update_operator_state);
 
@@ -123,6 +124,7 @@ void bind_operator(pybind11::module &m) {
       .def("on_quote", &op::Operator::on_quote)
       .def("on_entrust", &op::Operator::on_entrust)
       .def("on_transaction", &op::Operator::on_transaction)
+      .def("on_time_key_value", &op::Operator::on_time_key_value)
       .def("on_deregister ", &op::Operator::on_deregister)
       .def("on_broker_state_change ", &op::Operator::on_broker_state_change)
       .def("on_operator_state_change ", &op::Operator::on_operator_state_change);

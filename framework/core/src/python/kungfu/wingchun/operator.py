@@ -59,11 +59,8 @@ class Operator(wc.Operator):
         self._on_transaction = getattr(
             self._module, "on_transaction", lambda ctx, transaction, location: None
         )
-        self._on_order = getattr(
-            self._module, "on_order", lambda ctx, order, location: None
-        )
-        self._on_trade = getattr(
-            self._module, "on_trade", lambda ctx, trade, location: None
+        self._on_time_key_value = getattr(
+            self._module, "on_time_key_value", lambda ctx, time_key_value, location: None
         )
         self._on_deregister = getattr(
             self._module, "on_deregister", lambda ctx, deregister, location: None
@@ -73,36 +70,12 @@ class Operator(wc.Operator):
             "on_broker_state_change",
             lambda ctx, broker_state_update, location: None,
         )
-        self._on_history_order = getattr(
-            self._module, "on_history_order", lambda ctx, history_order, location: None
-        )
-        self._on_history_trade = getattr(
-            self._module, "on_history_trade", lambda ctx, history_trade, location: None
-        )
-        self._on_req_history_order_error = getattr(
+        self._on_operator_state_change = getattr(
             self._module,
-            "on_req_history_order_error",
-            lambda ctx, error, location: None,
+            "on_operator_state_change",
+            lambda ctx, operator_state_update, location: None,
         )
-        self._on_req_history_trade_error = getattr(
-            self._module,
-            "on_req_history_trade_error",
-            lambda ctx, error, location: None,
-        )
-        self._on_order_action_error = getattr(
-            self._module, "on_order_action_error", lambda ctx, error, location: None
-        )
-        self._on_position_sync_reset = getattr(
-            self._module, "on_position_sync_reset", lambda ctx, old_book, new_book: None
-        )
-        self._on_asset_sync_reset = getattr(
-            self._module, "on_asset_sync_reset", lambda ctx, old_asset, new_asset: None
-        )
-        self._on_asset_margin_sync_reset = getattr(
-            self._module,
-            "on_asset_margin_sync_reset",
-            lambda ctx, old_asset_margin, new_asset_margin: None,
-        )
+
 
     def __call_proxy(self, func, *args):
         if inspect.iscoroutinefunction(func):
@@ -134,7 +107,8 @@ class Operator(wc.Operator):
         self.ctx.add_time_interval = self.__add_time_interval
         self.ctx.subscribe = wc_context.subscribe
         self.ctx.subscribe_all = wc_context.subscribe_all
-        # self.ctx.update_operator_state = wc_context.update_operator_state
+        self.ctx.subscribe_operator = wc_context.subscribe_operator
+        self.ctx.update_operator_state = wc_context.update_operator_state
         self.ctx.req_deregister = wc_context.req_deregister
         self.__call_proxy(self._pre_start, self.ctx)
 
@@ -156,12 +130,20 @@ class Operator(wc.Operator):
     def on_transaction(self, wc_context, transaction, location):
         self.__call_proxy(self._on_transaction, self.ctx, transaction, location)
 
+    def on_time_key_value(self, wc_context, time_key_value, location):
+        self.__call_proxy(self._on_time_key_value, self.ctx, time_key_value, location)
+
     def on_deregister(self, wc_context, deregister, location):
         self.__call_proxy(self._on_deregister, self.ctx, deregister, location)
 
     def on_broker_state_change(self, wc_context, broker_state_update, location):
         self.__call_proxy(
             self._on_broker_state_change, self.ctx, broker_state_update, location
+        )
+
+    def on_operator_state_change(self, wc_context, operator_state_update, location):
+        self.__call_proxy(
+            self._on_operator_state_change, self.ctx, operator_state_update, location
         )
 
     def on_trading_day(self, wc_context, daytime):

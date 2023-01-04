@@ -59,6 +59,12 @@ class ExecutorRegistry:
 
         if ctx.group not in self.executors[ctx.category]:
             self.executors[ctx.category][ctx.group] = ExtensionLoader(ctx, None, None)
+        if (
+            ctx.category == "system"
+            and ctx.group == "service"
+            and ctx.name not in self.executors["system"]["service"]
+        ):
+            self.executors["system"]["service"].load_service(ctx)
 
     def register_extensions(self, root):
         for child in os.listdir(root):
@@ -158,6 +164,12 @@ class ServiceLoader(dict):
             ).run()
 
         return run
+
+    def load_service(self, ctx):
+        sys.path.append(ctx.extension_path)
+        module = importlib.import_module(ctx.name)
+        service_builder = getattr(module, "system")
+        self[ctx.name] = self.create_service(ctx.name, service_builder)
 
 
 class ExtensionLoader:

@@ -206,8 +206,8 @@ const getAbs = <T extends number | bigint>(num: T): T =>
 
 const getSessions = () =>
   currentLocation
-    ? assemble.get_sessions(currentLocation)
-    : assemble.get_sessions();
+    ? assemble.getSessions(currentLocation)
+    : assemble.getSessions();
 
 const loadSessions = () => {
   let currentSessions = getSessions();

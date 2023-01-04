@@ -55,8 +55,15 @@ class ExecutorRegistry:
         elif ctx.path:
             self.read_config(os.path.dirname(ctx.path))
 
-        if ctx.group not in self.executors["strategy"]:
+        if ctx.category == "strategy" and ctx.group not in self.executors["strategy"]:
             self.executors["strategy"][ctx.group] = ExtensionLoader(ctx, None, None)
+
+        if (
+            ctx.category == "system"
+            and ctx.group == "service"
+            and ctx.name not in self.executors["system"]["service"]
+        ):
+            self.executors["system"]["service"].load_service(ctx)
 
     def register_extensions(self, root):
         for child in os.listdir(root):
@@ -81,9 +88,9 @@ class ExecutorRegistry:
                             if category not in kfj.CATEGORIES:
                                 raise RuntimeError(f"Unsupported category {category}")
                             if (
-                                    self.executors["strategy"]["default"]
-                                    and self.ctx.category == "strategy"
-                                    and self.ctx.group == "default"
+                                self.executors["strategy"]["default"]
+                                and self.ctx.category == "strategy"
+                                and self.ctx.group == "default"
                             ):
                                 self.executors["strategy"]["default"].config = config
                             else:
@@ -150,6 +157,12 @@ class ServiceLoader(dict):
             ).run()
 
         return run
+
+    def load_service(self, ctx):
+        sys.path.append(ctx.extension_path)
+        module = importlib.import_module(ctx.name)
+        service_builder = getattr(module, "system")
+        self[ctx.name] = self.create_service(ctx.name, service_builder)
 
 
 class ExtensionLoader:
@@ -302,7 +315,7 @@ def load_runner(ctx):
             ctx.group,
             ctx.name,
             kfj.MODES[ctx.mode],
-            ctx.low_latency
+            ctx.low_latency,
         )
         return runner
     else:

@@ -71,7 +71,6 @@ void RuntimeContext::subscribe_operator(const std::string &group, const std::str
   op_locations_.emplace(operator_location->uid, operator_location);
 
   broker_client_.enroll_operator(operator_location);
-
 }
 
 void RuntimeContext::publish(const std::string &key, const std::string &value) {

@@ -99,7 +99,7 @@ void Runner::prepare(const event_ptr &event) {
     return true;
   };
   if (not broker_states_requested_  and
-      connected_test(context_->list_md())) {
+      connected_test(context_->list_md()) and connected_test(context_->list_op())) {
     writer->mark(now(), BrokerStateRequest::tag);
     broker_states_requested_ = true;
   }
@@ -112,7 +112,7 @@ void Runner::prepare(const event_ptr &event) {
     }
     return true;
   };
-  if (not ready_test(context_->list_md())) {
+  if (not ready_test(context_->list_md()) and ready_test(context_->list_op())) {
     return;
   }
   started_ = true;

@@ -61,7 +61,9 @@ bool Client::is_ready(uint32_t broker_location_uid) const {
                    ready_md_locations_.find(broker_location->uid) != ready_md_locations_.end();
     bool td_test = broker_location->category == category::TD and
                    ready_td_locations_.find(broker_location->uid) != ready_td_locations_.end();
-    return md_test or td_test;
+    bool op_test = broker_location->category == category::OPERATOR and
+                   ready_op_locations_.find(broker_location->uid) != ready_op_locations_.end();
+    return md_test or td_test or op_test;
   }
   return false;
 }
@@ -144,7 +146,8 @@ void Client::on_start(const rx::connectable_observable<event_ptr> &events) {
   events | is(Register::tag) | $$(connect(event, event->data<Register>()));
   events | is(Band::tag) | $$(connect(event, event->data<Band>()));
   events | is(BrokerStateUpdate::tag) | $$(update_broker_state(event, event->data<BrokerStateUpdate>()));
-  events | is(Deregister::tag) | $$(update_broker_state(event, event->data<Deregister>()));
+  events | is(OperatorStateUpdate::tag) | $$(update_operator_state(event, event->data<OperatorStateUpdate>()));
+  events | is(Deregister::tag) | $$(on_deregister(event->data<Deregister>()));
 }
 
 void Client::connect(const event_ptr &event, const Register &register_data) {
@@ -215,12 +218,20 @@ void Client::update_broker_state(const event_ptr &event, const BrokerStateUpdate
   broker_states_.emplace(broker_location->uid, state_value);
 }
 
-void Client::update_broker_state(const event_ptr &event, const longfist::types::Deregister &deregister_data) {
+void Client::update_operator_state(const event_ptr &event, const OperatorStateUpdate &state) {
+
+}
+
+void Client::on_deregister(const longfist::types::Deregister &deregister_data) {
   auto location_uid = deregister_data.location_uid;
-  auto broker_location = app_.get_location(location_uid);
-  broker_states_.emplace(location_uid, BrokerState::DisConnected);
-  ready_md_locations_.erase(location_uid);
-  ready_td_locations_.erase(location_uid);
+  auto node_location = app_.get_location(location_uid);
+  if (node_location->category == category::MD or node_location->category == category::MD) {
+    broker_states_.emplace(location_uid, BrokerState::DisConnected);
+    ready_md_locations_.erase(location_uid);
+    ready_td_locations_.erase(location_uid);
+  } else if (node_location->category == category::OPERATOR) {
+    operator_states_.emplace(location_uid, OperatorState::DisConnected);
+  }
 }
 
 AutoClient::AutoClient(apprentice &app) : Client(app) {}

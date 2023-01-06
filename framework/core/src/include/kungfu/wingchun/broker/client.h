@@ -65,6 +65,7 @@ struct FromNowResumePolicy : public ResumePolicy {
 class Client {
   typedef std::unordered_map<uint32_t, longfist::types::InstrumentKey> InstrumentKeyMap;
   typedef std::unordered_map<uint32_t, longfist::enums::BrokerState> BrokerStateMap;
+  typedef std::unordered_map<uint32_t, longfist::enums::OperatorState> OperatorStateMap;
   typedef std::unordered_map<std::string, yijinjing::data::location_ptr> ExchangeSourceMap;
   typedef std::unordered_map<uint32_t, yijinjing::data::location_ptr> InstrumentSourceMap;
 
@@ -134,15 +135,19 @@ protected:
 
 private:
   BrokerStateMap broker_states_ = {};
+  OperatorStateMap operator_states_ = {};
   InstrumentKeyMap instrument_keys_ = {};
   ExchangeSourceMap exchange_md_locations_ = {};
   InstrumentSourceMap instrument_md_locations_ = {};
   yijinjing::data::location_map ready_md_locations_ = {};
   yijinjing::data::location_map ready_td_locations_ = {};
+  yijinjing::data::location_map ready_op_locations_ = {};
 
   void update_broker_state(const event_ptr &event, const longfist::types::BrokerStateUpdate &state);
 
-  void update_broker_state(const event_ptr &event, const longfist::types::Deregister &deregister_data);
+  void update_operator_state(const event_ptr &event, const longfist::types::OperatorStateUpdate &state);
+
+  void on_deregister(const longfist::types::Deregister &deregister_data);
 };
 
 /**

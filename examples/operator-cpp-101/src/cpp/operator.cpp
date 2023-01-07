@@ -19,7 +19,13 @@ public:
     context->subscribe("sim", {"600000"}, {"SSE"});
   }
 
-  void post_start(Context_ptr & context) override { SPDLOG_INFO("operator started"); }
+  void post_start(Context_ptr & context) override { 
+    SPDLOG_INFO("operator started"); 
+    OperatorStateUpdate state_update;
+    state_update.state = OperatorState::Ready;
+    state_update.value = "ready";
+    context->update_operator_state(state_update);
+  }
 
   void on_quote(Context_ptr & context, const Quote &quote, const location_ptr &location) override {
     i++;

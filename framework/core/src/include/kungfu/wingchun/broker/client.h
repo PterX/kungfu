@@ -143,9 +143,51 @@ private:
   yijinjing::data::location_map ready_td_locations_ = {};
   yijinjing::data::location_map ready_op_locations_ = {};
 
-  void update_broker_state(const event_ptr &event, const longfist::types::BrokerStateUpdate &state);
+  // void update_broker_state(const event_ptr &event, const longfist::types::BrokerStateUpdate &state);
 
-  void update_operator_state(const event_ptr &event, const longfist::types::OperatorStateUpdate &state);
+  // void update_operator_state(const event_ptr &event, const longfist::types::OperatorStateUpdate &state);
+
+  template <typename AppStateUpdate, std::enable_if_t<std::is_same_v<AppStateUpdate, longfist::types::BrokerStateUpdate> or
+                                                      std::is_same_v<AppStateUpdate, longfist::types::OperatorStateUpdate>>...>
+  void update_app_state(const event_ptr &event, const AppStateUpdate &state) {
+    using AppState = decltype(state.state);
+    using kungfu::longfist::enums::category;
+    using yijinjing::data::location_map;
+    auto state_value = state.state;
+    auto app_location = app_.get_location(state.location_uid);
+    bool state_ready = state_value == AppState::Ready;
+    bool state_reset = state_value == AppState::Connected or state_value == AppState::DisConnected;
+
+    auto switch_broker_state = [&](category broker_category, location_map &ready_locations, auto on_app_ready) {
+      bool ready_recorded = ready_locations.find(app_location->uid) != ready_locations.end();
+      if (state_ready and app_.has_writer(app_location->uid) and not ready_recorded) {
+        ready_locations.emplace(app_location->uid, app_location);
+        SPDLOG_INFO("{} ready, state {}", app_location->uname, static_cast<int>(state_value));
+        on_app_ready();
+      }
+      if (state_reset and ready_recorded) {
+        ready_locations.erase(app_location->uid);
+        SPDLOG_INFO("{} reset, state {}", app_location->uname, static_cast<int>(state_value));
+      }
+    };
+    if constexpr (std::is_same<AppState, BrokerState>::value) {
+      if (app_location->category == category::MD) {
+        switch_broker_state(category::MD, ready_md_locations_, [&]() { renew(event->gen_time(), app_location); });
+        broker_states_.emplace(app_location->uid, state_value);
+      }
+      if (app_location->category == category::TD) {
+        switch_broker_state(category::TD, ready_td_locations_, [&]() { sync(event->gen_time(), app_location); });
+        broker_states_.emplace(app_location->uid, state_value);
+      }
+    }
+    if constexpr (std::is_same<AppState, OperatorState>::value) {
+      if (app_location->category == category::OPERATOR) {
+        switch_broker_state(category::OPERATOR, ready_op_locations_, [&]() { });
+
+        operator_states_.emplace(app_location->uid, state_value);
+      }
+    }
+  }
 
   void on_deregister(const longfist::types::Deregister &deregister_data);
 };

@@ -122,6 +122,7 @@ void RuntimeContext::req_deregister() { app_.request_deregister(); }
 void RuntimeContext::update_operator_state(OperatorStateUpdate &state_update) {
   auto writer = app_.get_writer(location::PUBLIC);
   state_update.update_time = now();
+  state_update.location_uid = app_.get_home_uid();
   writer->write(state_update.update_time, state_update);
 }
 

@@ -17,3 +17,8 @@ def on_quote(context, quote, location):
 def on_time_key_value(context, tkv, location):
     context.log.info("on time key value: {}".format(tkv))
 
+def on_operator_state_change(context, operator_state_update, location):
+    context.log.info("on operator state change: {}".format(operator_state_update))
+
+
+

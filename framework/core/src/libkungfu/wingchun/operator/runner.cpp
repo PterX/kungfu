@@ -75,7 +75,7 @@ void Runner::post_start() {
 
 
   invoke(&Operator::post_start);
-  SPDLOG_INFO("strategy {} started", get_io_device()->get_home()->name);
+  SPDLOG_INFO("operator {} started", get_io_device()->get_home()->name);
 }
 
 void Runner::pre_stop() { invoke(&Operator::pre_stop); }
@@ -112,7 +112,7 @@ void Runner::prepare(const event_ptr &event) {
     }
     return true;
   };
-  if (not ready_test(context_->list_md()) and ready_test(context_->list_op())) {
+  if (not ready_test(context_->list_md()) or not ready_test(context_->list_op())) {
     return;
   }
   started_ = true;

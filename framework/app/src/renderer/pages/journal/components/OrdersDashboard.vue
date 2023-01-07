@@ -1,53 +1,85 @@
 <template>
   <div class="kf-visual-container">
-    <div class="kf-visual-item">
-      <KfTradingCharts v-model:option="option1"></KfTradingCharts>
-    </div>
-    <div class="kf-visual-item">
-      <KfTradingCharts v-model:option="option2"></KfTradingCharts>
-    </div>
-    <div class="kf-visual-item">
-      <KfTradingCharts v-model:option="option3"></KfTradingCharts>
+    <div
+      v-for="key in Object.keys(allOptions)"
+      :key="key"
+      class="kf-visual-item"
+    >
+      <KfTradingCharts v-model:option="allOptions[key]"></KfTradingCharts>
     </div>
   </div>
 </template>
 
 <script lang="ts" setup>
-import dayjs from 'dayjs';
-import { reactive } from 'vue';
+import { dealKfTime } from '@kungfu-trader/kungfu-js-api/kungfu';
+import { dealKfPrice } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { computed } from 'vue';
 import KfTradingCharts from '../../../components/public/KfTradingCharts.vue';
-// import { useDealJournalDatas } from '../utils';
+import { useDealJournalDatas } from '../utils';
 
-// useDealJournalDatas();
+const { allTradingDatas } = useDealJournalDatas();
+
+const allOptions = computed(() => {
+  return Object.keys(allTradingDatas.value).reduce((options, key) => {
+    const { quotes, trades, orders } = allTradingDatas.value[key];
+
+    const markPoint = getMarkPoint({ Trade: trades, Order: orders });
+
+    const data = quotes.map((quote) => [
+      dealKfTime(BigInt(quote.data_time)),
+      dealKfPrice(quote.open_price),
+      dealKfPrice(quote.close_price),
+      dealKfPrice(quote.high_price),
+      dealKfPrice(quote.low_price),
+    ]);
+    return { ...options, [key]: getOption(key, data, markPoint) };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  }, {} as Record<string, any>);
+});
+
 const upColor = '#ec0000';
 const upBorderColor = '#8A0000';
 const downColor = '#00da3c';
 const downBorderColor = '#008F28';
-const dataCount = 200;
-const markPoint = {
-  label: {
-    formatter: function (param) {
-      return param;
-    },
-  },
-  data: [
-    {
-      name: 'Mark',
-      coord: ['2022/08/09\n08:09:10', 4000],
-      value: ['Trade', 'Order'][Math.floor(Math.random() * 2)],
-      itemStyle: {
-        color: 'rgb(41,60,85)',
+
+const getMarkPoint = (data: {
+  Trade: KungfuApi.Trade[];
+  Order: KungfuApi.Order[];
+}) => {
+  const markPoint = {
+    label: {
+      formatter: function (param) {
+        return param;
       },
     },
-  ],
-};
-const option1 = reactive(getOption());
-const option2 = reactive(getOption());
-const option3 = reactive(getOption());
+    data: Object.keys(data)
+      .map((type) => {
+        const timeKey = type === 'Order' ? 'update_time' : 'trade_time';
+        const priceKey = type === 'Order' ? 'limit_price' : 'price';
 
-function getOption() {
-  const data = generateOHLC(dataCount);
+        return data[type].map((item) => ({
+          name: 'Mark',
+          coord: [
+            dealKfTime(BigInt(item[timeKey])),
+            dealKfPrice(item[priceKey]),
+          ],
+          value: type,
+          itemStyle: {
+            color: 'rgb(41,60,85)',
+          },
+        }));
+      })
+      .flat(),
+  };
+
+  return markPoint;
+};
+
+function getOption(title: string, data, markPoint) {
   const option = {
+    title: {
+      text: title,
+    },
     dataset: {
       source: data,
     },
@@ -55,13 +87,6 @@ function getOption() {
       trigger: 'axis',
       axisPointer: {
         type: 'line',
-      },
-    },
-    toolbox: {
-      feature: {
-        dataZoom: {
-          yAxisIndex: false,
-        },
       },
     },
     grid: [
@@ -73,7 +98,7 @@ function getOption() {
       {
         left: '5%',
         right: '5%',
-        height: 80,
+        height: '90%',
         bottom: 80,
       },
     ],
@@ -125,81 +150,17 @@ function getOption() {
           borderColor: upBorderColor,
           borderColor0: downBorderColor,
         },
+        dimensions: ['date', 'open', 'close', 'highest', 'lowest'],
         encode: {
-          x: 0,
-          y: [1, 4, 3, 2],
+          x: 'date',
+          y: ['open', 'close', 'highest', 'lowest'],
         },
         markPoint,
-        // {
-        //   name: 'Volumn',
-        //   type: 'bar',
-        //   xAxisIndex: 1,
-        //   yAxisIndex: 1,
-        //   itemStyle: {
-        //     color: '#7fbe9e',
-        //   },
-        //   large: true,
-        //   encode: {
-        //     x: 0,
-        //     y: 5,
-        //   },
       },
     ],
   };
 
   return option;
-}
-
-function generateOHLC(count) {
-  let data: any[] = [];
-  let xValue = +new Date(2022, 7, 22);
-  let baseValue = Math.random() * 12000;
-  let minute = 60 * 1000;
-  let boxVals = new Array(4);
-  let dayRange = 12;
-  for (let i = 0; i < count; i++) {
-    baseValue = baseValue + Math.random() * 20 - 10;
-    for (let j = 0; j < 4; j++) {
-      boxVals[j] = (Math.random() - 0.5) * dayRange + baseValue;
-    }
-    boxVals.sort();
-    let openIdx = Math.round(Math.random() * 3);
-    let closeIdx = Math.round(Math.random() * 2);
-    if (closeIdx === openIdx) {
-      closeIdx++;
-    }
-    let volumn = boxVals[3] * (1000 + Math.random() * 500);
-    // ['open', 'close', 'lowest', 'highest', 'volumn']
-    // [1, 4, 3, 2]
-    data[i] = [
-      dayjs((xValue += minute)).format('YYYY-MM-DD\nHH:mm:ss'),
-      +boxVals[openIdx].toFixed(2),
-      +boxVals[3].toFixed(2),
-      +boxVals[0].toFixed(2),
-      +boxVals[closeIdx].toFixed(2),
-      +volumn.toFixed(0),
-      getSign(data, i, +boxVals[openIdx], +boxVals[closeIdx], 4), // sign
-    ];
-  }
-  return data;
-  function getSign(data, dataIndex, openVal, closeVal, closeDimIdx) {
-    var sign;
-    if (openVal > closeVal) {
-      sign = -1;
-    } else if (openVal < closeVal) {
-      sign = 1;
-    } else {
-      sign =
-        dataIndex > 0
-          ? // If close === open, compare with close of last record
-            data[dataIndex - 1][closeDimIdx] <= closeVal
-            ? 1
-            : -1
-          : // No record of previous, set to be positive
-            1;
-    }
-    return sign;
-  }
 }
 </script>
 
@@ -207,14 +168,11 @@ function generateOHLC(count) {
 .kf-visual-container {
   height: 100%;
   width: 100%;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-around;
-  align-items: center;
+  overflow-y: scroll;
 
   .kf-visual-item {
     width: 100%;
-    height: 32%;
+    height: 400px;
   }
 }
 </style>

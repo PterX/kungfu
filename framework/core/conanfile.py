@@ -70,7 +70,7 @@ class KungfuCoreConan(ConanFile):
     }
     gyp_call = "NODE_GYP_RUN" in os.environ
     exports = "package.json"
-    exports_sources = "src/*", "package.json", "CMakeLists.txt", ".cmake/*"
+    exports_sources = "src/*", "package.json", "CMakeLists.txt", ".cmake/*", ".deps/*"
     conanfile_dir = path.dirname(path.realpath(__file__))
     pyi_hooks_dir = path.join(conanfile_dir, "src", "python", "pyi-hooks")
     build_info_file = "kungfubuildinfo.json"

@@ -1,6 +1,6 @@
 <template>
   <div ref="chartWrapper" class="kf-charts__wrap">
-    <div :id="id"></div>
+    <div :id="id" class="kf-chart__content"></div>
   </div>
 </template>
 
@@ -63,7 +63,6 @@ onMounted(() => {
 
 function handleWrapperResize() {
   if (myChart) {
-    console.log(123);
     myChart.resize();
   }
 }
@@ -74,7 +73,7 @@ function handleWrapperResize() {
   height: 100%;
   width: 100%;
 
-  div {
+  .kf-chart__content {
     width: 100%;
     height: 100%;
   }

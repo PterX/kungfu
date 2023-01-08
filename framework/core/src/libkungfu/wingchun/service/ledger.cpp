@@ -38,7 +38,7 @@ void Ledger::on_start() {
   // events_ | is(OperatorStateUpdate::tag) | $$(update_operator_state_map(event->source(), event->data<OperatorStateUpdate>()));
   events_ | is(BrokerStateUpdate::tag) | $$(update_app_state_map(event->source(), event->data<BrokerStateUpdate>(), broker_states_));
   events_ | is(OperatorStateUpdate::tag) | $$(update_app_state_map(event->source(), event->data<OperatorStateUpdate>(), operator_states_));
-  events_ | is(Deregister::tag) | $$(on_deregister(event->source(), event->data<Deregister>()));
+  events_ | is(Deregister::tag) | $$(on_deregister(event->data<Deregister>()));
   events_ | is(OrderInput::tag) | $$(update_order_stat(event, event->data<OrderInput>()));
   events_ | is(Order::tag) | $$(update_order_stat(event, event->data<Order>()));
   events_ | is(Trade::tag) | $$(update_order_stat(event, event->data<Trade>()));
@@ -47,7 +47,7 @@ void Ledger::on_start() {
   events_ | is(RebuildPositionsRequest::tag) | $$(rebuild_positions(event->gen_time(), event->source()));
   events_ | is(MirrorPositionsRequest::tag) | $$(bookkeeper_.mirror_positions(event->gen_time(), event->source()));
   events_ | is(BrokerStateRequest::tag) | $$(write_app_state(event->gen_time(), event->source(), broker_states_));
-  // events_ | is(OperatorStateRequest::tag) | $$(write_app_state(event->gen_time(), event->source()), operator_states_);
+  events_ | is(OperatorStateRequest::tag) | $$(write_app_state(event->gen_time(), event->source(), operator_states_));
   events_ | is(AssetRequest::tag) | $$(write_book_reset(event->gen_time(), event->source()));
   events_ | is(PositionRequest::tag) | $$(write_strategy_data(event->gen_time(), event->source()));
   events_ | is(PositionEnd::tag) | $$(update_account_book(event->gen_time(), event->data<PositionEnd>().holder_uid););
@@ -67,12 +67,21 @@ void Ledger::update_operator_state_map(uint32_t location_uid, const OperatorStat
   write_app_state_to_public(operator_states_);
 }
 
-void Ledger::on_deregister(uint32_t location_uid, const Deregister &deregister) {
+void Ledger::on_deregister(const Deregister &deregister) {
+  uint32_t location_uid = deregister.location_uid;
   if (broker_states_.find(location_uid) != broker_states_.end()) {
+    // broker_states_[location_uid].state = BrokerState::DisConnected;
     broker_states_.erase(location_uid);
+    SPDLOG_INFO("deregister location [{:08x}] {}, from broker_states_", 
+          location_uid,
+          get_location_uname(location_uid));
   }
   if (operator_states_.find(location_uid) != operator_states_.end()) {
+    // operator_states_[location_uid].state = OperatorState::DisConnected;
     operator_states_.erase(location_uid);
+    SPDLOG_INFO("deregister location [{:08x}] {}, from operatoor_states_", 
+      location_uid,
+      get_location_uname(location_uid));
   }
   write_app_state_to_public(broker_states_);
   write_app_state_to_public(operator_states_);

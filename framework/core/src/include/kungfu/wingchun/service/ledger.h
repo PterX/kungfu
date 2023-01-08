@@ -49,7 +49,7 @@ private:
 
   void update_operator_state_map(uint32_t location_uid, const longfist::types::OperatorStateUpdate &state_update);
 
-  void on_deregister(uint32_t location_uid, const longfist::types::Deregister &deregister);
+  void on_deregister(const longfist::types::Deregister &deregister);
 
   void refresh_books();
 
@@ -83,6 +83,10 @@ private:
     for (const auto &pair : app_states) {
       auto &app_state = pair.second;
       writer->write(trigger_time, app_state);
+      SPDLOG_INFO("response to StateRequest, write to location {}, app {} state {}", 
+            get_location_uname(source_id),
+            get_location_uname(app_state.location_uid),
+            static_cast<int>(app_state.state));
     }
   };
 
@@ -93,7 +97,7 @@ private:
       auto &app_state = pair.second;
       writer->write(now(), app_state);
       SPDLOG_INFO("write to public location {}, app state {}", get_location_uname(app_state.location_uid),
-                  int(app_state.state));
+                  static_cast<int>(app_state.state));
     }
   };
 

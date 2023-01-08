@@ -94,7 +94,7 @@ KF_DEFINE_DATA_TYPE(                                                     //
     OperatorStateUpdate, 20003, PK(update_time), TIMESTAMP(update_time), //
     (OperatorState, state),                                              //
     (int64_t, update_time),                                              //
-    (uint32_t, location_uid),                         //
+    (uint32_t, location_uid),                                            //
     (std::string, info_a),                                               //
     (std::string, info_b),                                               //
     (std::string, value)                                                 //

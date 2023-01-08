@@ -28,27 +28,17 @@ public:
   }
 };
 
-
-
 class PyOperator : public op::Operator {
 public:
   using op::Operator::Operator; // Inherit constructors
 
-  void pre_start(op::Context_ptr &context) override {
-    PYBIND11_OVERLOAD(void, op::Operator, pre_start, context);
-  }
+  void pre_start(op::Context_ptr &context) override { PYBIND11_OVERLOAD(void, op::Operator, pre_start, context); }
 
-  void post_start(op::Context_ptr &context) override {
-    PYBIND11_OVERLOAD(void, op::Operator, post_start, context);
-  }
+  void post_start(op::Context_ptr &context) override { PYBIND11_OVERLOAD(void, op::Operator, post_start, context); }
 
-  void pre_stop(op::Context_ptr &context) override {
-    PYBIND11_OVERLOAD(void, op::Operator, pre_stop, context);
-  }
+  void pre_stop(op::Context_ptr &context) override { PYBIND11_OVERLOAD(void, op::Operator, pre_stop, context); }
 
-  void post_stop(op::Context_ptr &context) override {
-    PYBIND11_OVERLOAD(void, op::Operator, post_stop, context);
-  }
+  void post_stop(op::Context_ptr &context) override { PYBIND11_OVERLOAD(void, op::Operator, post_stop, context); }
 
   void on_trading_day(op::Context_ptr &context, int64_t daytime) override {
     PYBIND11_OVERLOAD(void, op::Operator, on_trading_day, context, daytime);
@@ -70,7 +60,7 @@ public:
   }
 
   void on_time_key_value(op::Context_ptr &context, const TimeKeyValue &time_key_value,
-                      const kungfu::yijinjing::data::location_ptr &location) override {
+                         const kungfu::yijinjing::data::location_ptr &location) override {
     PYBIND11_OVERLOAD(void, op::Operator, on_time_key_value, context, time_key_value, location);
   }
 
@@ -79,22 +69,20 @@ public:
     PYBIND11_OVERLOAD(void, op::Operator, on_deregister, context, deregister, location);
   }
 
-  void on_broker_state_change(op::Context_ptr &context, const BrokerStateUpdate & broker_state_update,
+  void on_broker_state_change(op::Context_ptr &context, const BrokerStateUpdate &broker_state_update,
                               const kungfu::yijinjing::data::location_ptr &location) override {
     PYBIND11_OVERLOAD(void, op::Operator, on_broker_state_change, context, broker_state_update, location);
   }
 
   void on_operator_state_change(op::Context_ptr &context, const OperatorStateUpdate &operator_state_update,
-                              const kungfu::yijinjing::data::location_ptr &location) override {
+                                const kungfu::yijinjing::data::location_ptr &location) override {
     PYBIND11_OVERLOAD(void, op::Operator, on_operator_state_change, context, operator_state_update, location);
   }
-
 };
 
 void bind_operator(pybind11::module &m) {
 
-  py::class_<op::Runner, kungfu::yijinjing::practice::apprentice, std::shared_ptr<op::Runner>>(
-      m, "OpRunner")
+  py::class_<op::Runner, kungfu::yijinjing::practice::apprentice, std::shared_ptr<op::Runner>>(m, "OpRunner")
       .def(py::init<kungfu::yijinjing::data::locator_ptr, const std::string &, const std::string &,
                     longfist::enums::mode, bool>())
       .def_property_readonly("context", &op::Runner::get_context)
@@ -114,9 +102,8 @@ void bind_operator(pybind11::module &m) {
       .def("add_timer", &op::Context::add_timer)
       .def("add_time_interval", &op::Context::add_time_interval)
       .def("subscribe", &op::Context::subscribe)
-      .def("subscribe_all", &op::Context::subscribe_all, py::arg("source"),
-           py::arg("market_type") = MarketType::All, py::arg("instrument_type") = SubscribeInstrumentType::All,
-           py::arg("data_type") = SubscribeDataType::All)
+      .def("subscribe_all", &op::Context::subscribe_all, py::arg("source"), py::arg("market_type") = MarketType::All,
+           py::arg("instrument_type") = SubscribeInstrumentType::All, py::arg("data_type") = SubscribeDataType::All)
       .def("subscribe_operator", &op::Context::subscribe_operator)
       .def("publish", &op::Context::publish)
       .def("req_deregister", &op::Context::req_deregister)

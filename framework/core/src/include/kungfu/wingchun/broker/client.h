@@ -147,8 +147,9 @@ private:
 
   // void update_operator_state(const event_ptr &event, const longfist::types::OperatorStateUpdate &state);
 
-  template <typename AppStateUpdate, std::enable_if_t<std::is_same_v<AppStateUpdate, longfist::types::BrokerStateUpdate> or
-                                                      std::is_same_v<AppStateUpdate, longfist::types::OperatorStateUpdate>>...>
+  template <typename AppStateUpdate,
+            std::enable_if_t<std::is_same_v<AppStateUpdate, longfist::types::BrokerStateUpdate> or
+                             std::is_same_v<AppStateUpdate, longfist::types::OperatorStateUpdate>>...>
   void update_app_state(const event_ptr &event, const AppStateUpdate &state) {
     using AppState = decltype(state.state);
     using kungfu::longfist::enums::category;
@@ -182,7 +183,7 @@ private:
     }
     if constexpr (std::is_same<AppState, OperatorState>::value) {
       if (app_location->category == category::OPERATOR) {
-        switch_broker_state(category::OPERATOR, ready_op_locations_, [&]() { });
+        switch_broker_state(category::OPERATOR, ready_op_locations_, [&]() {});
 
         operator_states_.emplace(app_location->uid, state_value);
       }
@@ -345,9 +346,8 @@ static constexpr auto is_own(const Client &broker_client) {
   return rx::filter([&](const event_ptr &event) {
     if (event->msg_type() == DataType::tag) {
       const DataType &data = event->data<DataType>();
-      return broker_client.should_connect_md(data.location_uid) or 
-            broker_client.should_connect_td(data.location_uid) or 
-            broker_client.should_connect_operator(data.location_uid);
+      return broker_client.should_connect_md(data.location_uid) or broker_client.should_connect_td(data.location_uid) or
+             broker_client.should_connect_operator(data.location_uid);
     }
     return false;
   });

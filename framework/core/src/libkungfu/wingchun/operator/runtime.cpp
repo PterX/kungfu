@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 
-
 #include <fmt/format.h>
 
 #include <kungfu/wingchun/operator/runtime.h>
@@ -22,10 +21,7 @@ RuntimeContext::RuntimeContext(apprentice &app, const rx::connectable_observable
   log::copy_log_settings(app_.get_home(), app_.get_home()->name);
 }
 
-void RuntimeContext::on_start() {
-  broker_client_.on_start(events_);
-
-}
+void RuntimeContext::on_start() { broker_client_.on_start(events_); }
 
 int64_t RuntimeContext::now() const { return app_.now(); }
 
@@ -37,8 +33,6 @@ void RuntimeContext::add_time_interval(int64_t duration, const std::function<voi
   app_.add_time_interval(duration, callback);
 }
 
-
-
 void RuntimeContext::subscribe(const std::string &source, const std::vector<std::string> &instrument_ids,
                                const std::string &exchange_ids) {
   auto md_location = find_md_location(source);
@@ -46,7 +40,6 @@ void RuntimeContext::subscribe(const std::string &source, const std::vector<std:
     broker_client_.subscribe(md_location, exchange_ids, instrument_id);
   }
   md_locations_.emplace(md_location->uid, md_location);
-
 }
 
 void RuntimeContext::subscribe_all(const std::string &source, uint8_t market_type, uint64_t instrument_type,
@@ -83,11 +76,9 @@ void RuntimeContext::publish(const std::string &key, const std::string &value) {
   writer->write(current_time, time_key_value);
 }
 
-
 const location_map &RuntimeContext::list_md() const { return md_locations_; }
 
 const location_map &RuntimeContext::list_op() const { return op_locations_; }
-
 
 int64_t RuntimeContext::get_trading_day() const { return app_.get_trading_day(); }
 
@@ -101,9 +92,9 @@ const location_ptr &RuntimeContext::find_operator_location(const std::string &so
   return find_location(source, category::OPERATOR, operator_data_);
 }
 
-
-
-const location_ptr &RuntimeContext::find_location(const std::string &source, category c, std::unordered_map<std::string, yijinjing::data::location_ptr> &locations) {
+const location_ptr &
+RuntimeContext::find_location(const std::string &source, category c,
+                              std::unordered_map<std::string, yijinjing::data::location_ptr> &locations) {
   if (locations.find(source) == locations.end()) {
     auto home_locator = app_.get_locator();
     auto source_location = location::make_shared(mode::LIVE, c, source, source, home_locator);
@@ -114,8 +105,6 @@ const location_ptr &RuntimeContext::find_location(const std::string &source, cat
   }
   return locations.at(source);
 }
-
-
 
 void RuntimeContext::req_deregister() { app_.request_deregister(); }
 

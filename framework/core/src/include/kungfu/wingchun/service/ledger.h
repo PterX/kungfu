@@ -45,10 +45,6 @@ private:
   OperatorStateMap operator_states_ = {};
   bool is_sync_;
 
-  void update_broker_state_map(uint32_t location_uid, const longfist::types::BrokerStateUpdate &state_update);
-
-  void update_operator_state_map(uint32_t location_uid, const longfist::types::OperatorStateUpdate &state_update);
-
   void on_deregister(const longfist::types::Deregister &deregister);
 
   void refresh_books();
@@ -72,7 +68,7 @@ private:
   void rebuild_positions(int64_t trigger_time, uint32_t strategy_uid);
 
   template <typename AppStateMap, typename AppStateUpdate>
-  void update_app_state_map(uint32_t location_uid, const AppStateUpdate &state_update, AppStateMap &app_states){
+  void update_app_state_map(uint32_t location_uid, const AppStateUpdate &state_update, AppStateMap &app_states) {
     app_states.insert_or_assign(location_uid, state_update);
     write_app_state_to_public(app_states);
   };
@@ -83,15 +79,12 @@ private:
     for (const auto &pair : app_states) {
       auto &app_state = pair.second;
       writer->write(trigger_time, app_state);
-      SPDLOG_INFO("response to StateRequest, write to location {}, app {} state {}", 
-            get_location_uname(source_id),
-            get_location_uname(app_state.location_uid),
-            static_cast<int>(app_state.state));
+      SPDLOG_INFO("response to StateRequest, write to location {}, app {} state {}", get_location_uname(source_id),
+                  get_location_uname(app_state.location_uid), static_cast<int>(app_state.state));
     }
   };
 
-  template <typename AppStateMap>
-  void write_app_state_to_public(const AppStateMap &app_states) {
+  template <typename AppStateMap> void write_app_state_to_public(const AppStateMap &app_states) {
     auto writer = get_writer(yijinjing::data::location::PUBLIC);
     for (const auto &pair : app_states) {
       auto &app_state = pair.second;

@@ -20,7 +20,7 @@ public:
    */
   virtual int64_t now() const = 0;
 
-  virtual void on_start() {};
+  virtual void on_start(){};
 
   /**
    * Add one shot timer callback.
@@ -35,7 +35,6 @@ public:
    * @param callback callback function
    */
   virtual void add_time_interval(int64_t duration, const std::function<void(event_ptr)> &callback) = 0;
-
 
   /**
    * Subscribe market data.
@@ -56,7 +55,7 @@ public:
   /**
    * Subscribe operator data.
    * @param group OPERATOR group
-   * @param name OPERATOR name 
+   * @param name OPERATOR name
    */
   virtual void subscribe_operator(const std::string &group, const std::string &name) = 0;
 
@@ -85,7 +84,6 @@ public:
    * @param infos vector<string>, info_a, info_b, info_c.
    */
   virtual void update_operator_state(longfist::types::OperatorStateUpdate &state_update) {}
-
 };
 } // namespace kungfu::wingchun::op
 

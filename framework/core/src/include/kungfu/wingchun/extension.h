@@ -64,8 +64,8 @@
   class StrategyType : public kungfu::wingchun::strategy::Strategy
 
 // no clear what this macro for.
-// #define KUNGFU_DEFINE_OPERATOR(OperatorType)                                                                           \
-//   m.def("operator", [&]() {                                                                                            \
+// #define KUNGFU_DEFINE_OPERATOR(OperatorType) \
+//   m.def("operator", [&]() { \
 //     return std::static_pointer_cast<kungfu::wingchun::op::Operator>(std::make_shared<OperatorType>());           \
 //   })
 
@@ -81,17 +81,17 @@
       auto lr = std::make_shared<locator>();                                                                           \
       std::string s_group(module_name);                                                                                \
       std::string s_name(module_name);                                                                                 \
-      char *env_group = std::getenv("KF_OP_GROUP");                                                                   \
+      char *env_group = std::getenv("KF_OP_GROUP");                                                                    \
       if (env_group != NULL) {                                                                                         \
         s_group = env_group;                                                                                           \
       }                                                                                                                \
-      char *env_name = std::getenv("KF_OP_NAME");                                                                     \
+      char *env_name = std::getenv("KF_OP_NAME");                                                                      \
       if (env_name != NULL) {                                                                                          \
         s_name = env_name;                                                                                             \
       }                                                                                                                \
       auto home = location::make_shared(mode::LIVE, category::OPERATOR, s_group, s_name, lr);                          \
       kungfu::yijinjing::log::copy_log_settings(home, module_name);                                                    \
-      return std::static_pointer_cast<kungfu::wingchun::op::Operator>(std::make_shared<OperatorType>());         \
+      return std::static_pointer_cast<kungfu::wingchun::op::Operator>(std::make_shared<OperatorType>());               \
     });                                                                                                                \
   };                                                                                                                   \
   class OperatorType : public kungfu::wingchun::op::Operator

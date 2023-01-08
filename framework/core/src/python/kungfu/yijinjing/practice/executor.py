@@ -290,7 +290,8 @@ class ExtensionExecutor:
             ctx.runtime_locator,
         )
         os.environ["KF_OP_GROUP"] = ctx.group
-        os.environ["KF_OP_NAME"] = ctx.name  # TODO check extension.h for implementation details, how to deal with 1 runner : N operators?
+        # TODO check extension.h for implementation details, how to deal with 1 runner : N operators?
+        os.environ["KF_OP_NAME"] = ctx.name
         if loader.config is None:
             load = False
             json_config = os.path.join(os.path.dirname(ctx.path), "package.json")
@@ -311,7 +312,6 @@ class ExtensionExecutor:
         # ctx.runner = self.load_runner(ctx)
         ctx.op_runner.add_operator(ctx.operator)
         ctx.op_runner.run()
-
 
 
 class RegistryJSONEncoder(json.JSONEncoder):

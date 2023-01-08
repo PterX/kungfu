@@ -16,7 +16,7 @@ Runner::Runner(locator_ptr locator, const std::string &group, const std::string 
 
 RuntimeContext_ptr Runner::get_context() const { return context_; }
 
-RuntimeContext_ptr Runner::make_context() { 
+RuntimeContext_ptr Runner::make_context() {
   if (get_home()->mode == mode::LIVE) {
     return std::make_shared<RuntimeContext>(*this, events_);
   }
@@ -26,13 +26,9 @@ void Runner::add_operator(const Operator_ptr &op) { operators_.push_back(op); }
 
 void Runner::on_exit() { post_stop(); }
 
-void Runner::on_trading_day(const event_ptr &event, int64_t daytime) {
-  invoke(&Operator::on_trading_day, daytime);
-}
+void Runner::on_trading_day(const event_ptr &event, int64_t daytime) { invoke(&Operator::on_trading_day, daytime); }
 
-void Runner::on_react() {
-    context_ = make_context();
-}
+void Runner::on_react() { context_ = make_context(); }
 
 void Runner::on_start() {
   context_->on_start();
@@ -43,11 +39,11 @@ void Runner::on_start() {
   events_ | is_own<BrokerStateUpdate>(context_->get_broker_client()) |
       $$(invoke(&Operator::on_broker_state_change, event->data<BrokerStateUpdate>(), get_location(event->source())));
   events_ | is_own<OperatorStateUpdate>(context_->get_broker_client()) |
-    $$(invoke(&Operator::on_operator_state_change, event->data<OperatorStateUpdate>(), get_location(event->source())));
-    
+      $$(invoke(&Operator::on_operator_state_change, event->data<OperatorStateUpdate>(),
+                get_location(event->source())));
+
   events_ | take_until(events_ | filter([&](auto e) { return started_; })) | $$(prepare(event));
   post_start();
-
 }
 
 void Runner::on_active() {
@@ -69,9 +65,10 @@ void Runner::post_start() {
       $$(invoke(&Operator::on_entrust, event->data<Entrust>(), get_location(event->source())));
   events_ | is_own<Transaction>(context_->get_broker_client()) |
       $$(invoke(&Operator::on_transaction, event->data<Transaction>(), get_location(event->source())));
-    
-  events_ | is(TimeKeyValue::tag) | $$(invoke(&Operator::on_time_key_value, event->data<TimeKeyValue>(), get_location(event->source())));
-  
+
+  events_ | is(TimeKeyValue::tag) |
+      $$(invoke(&Operator::on_time_key_value, event->data<TimeKeyValue>(), get_location(event->source())));
+
   invoke(&Operator::post_start);
   SPDLOG_INFO("operator {} started", get_io_device()->get_home()->name);
 }
@@ -96,8 +93,7 @@ void Runner::prepare(const event_ptr &event) {
     }
     return true;
   };
-  if (not broker_states_requested_  and
-      connected_test(context_->list_md()) and connected_test(context_->list_op())) {
+  if (not broker_states_requested_ and connected_test(context_->list_md()) and connected_test(context_->list_op())) {
 
     writer->mark(now(), BrokerStateRequest::tag);
     writer->mark(now(), OperatorStateRequest::tag);
@@ -117,9 +113,6 @@ void Runner::prepare(const event_ptr &event) {
   }
   started_ = true;
   post_start();
-
 }
-
-
 
 } // namespace kungfu::wingchun::op

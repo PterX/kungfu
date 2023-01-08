@@ -34,10 +34,10 @@ void Ledger::on_start() {
   bookkeeper_.on_start(events_);
   bookkeeper_.guard_positions();
 
-  // events_ | is(BrokerStateUpdate::tag) | $$(update_broker_state_map(event->source(), event->data<BrokerStateUpdate>()));
-  // events_ | is(OperatorStateUpdate::tag) | $$(update_operator_state_map(event->source(), event->data<OperatorStateUpdate>()));
-  events_ | is(BrokerStateUpdate::tag) | $$(update_app_state_map(event->source(), event->data<BrokerStateUpdate>(), broker_states_));
-  events_ | is(OperatorStateUpdate::tag) | $$(update_app_state_map(event->source(), event->data<OperatorStateUpdate>(), operator_states_));
+  events_ | is(BrokerStateUpdate::tag) |
+      $$(update_app_state_map(event->source(), event->data<BrokerStateUpdate>(), broker_states_));
+  events_ | is(OperatorStateUpdate::tag) |
+      $$(update_app_state_map(event->source(), event->data<OperatorStateUpdate>(), operator_states_));
   events_ | is(Deregister::tag) | $$(on_deregister(event->data<Deregister>()));
   events_ | is(OrderInput::tag) | $$(update_order_stat(event, event->data<OrderInput>()));
   events_ | is(Order::tag) | $$(update_order_stat(event, event->data<Order>()));
@@ -57,31 +57,18 @@ void Ledger::on_start() {
   refresh_books();
 }
 
-void Ledger::update_broker_state_map(uint32_t location_uid, const BrokerStateUpdate &state_update) {
-  broker_states_.insert_or_assign(location_uid, state_update);
-  write_app_state_to_public(broker_states_);
-}
-
-void Ledger::update_operator_state_map(uint32_t location_uid, const OperatorStateUpdate &state_update) {
-  operator_states_.insert_or_assign(location_uid, state_update);
-  write_app_state_to_public(operator_states_);
-}
-
 void Ledger::on_deregister(const Deregister &deregister) {
   uint32_t location_uid = deregister.location_uid;
   if (broker_states_.find(location_uid) != broker_states_.end()) {
     // broker_states_[location_uid].state = BrokerState::DisConnected;
     broker_states_.erase(location_uid);
-    SPDLOG_INFO("deregister location [{:08x}] {}, from broker_states_", 
-          location_uid,
-          get_location_uname(location_uid));
+    SPDLOG_INFO("deregister location [{:08x}] {}, from broker_states_", location_uid, get_location_uname(location_uid));
   }
   if (operator_states_.find(location_uid) != operator_states_.end()) {
     // operator_states_[location_uid].state = OperatorState::DisConnected;
     operator_states_.erase(location_uid);
-    SPDLOG_INFO("deregister location [{:08x}] {}, from operatoor_states_", 
-      location_uid,
-      get_location_uname(location_uid));
+    SPDLOG_INFO("deregister location [{:08x}] {}, from operatoor_states_", location_uid,
+                get_location_uname(location_uid));
   }
   write_app_state_to_public(broker_states_);
   write_app_state_to_public(operator_states_);

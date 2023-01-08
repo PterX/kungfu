@@ -29,7 +29,7 @@ constexpr auto AllTypes = boost::hana::make_map( //
     TYPE_PAIR(NewOrderSingle),                   //
     TYPE_PAIR(CancelOrder),                      //
     TYPE_PAIR(CancelAllOrder),                   //
-    TYPE_PAIR(OperatorStateRequest),               //
+    TYPE_PAIR(OperatorStateRequest),             //
     TYPE_PAIR(BrokerStateRequest),               //
     TYPE_PAIR(ResetBookRequest),                 //
     TYPE_PAIR(MirrorPositionsRequest),           //
@@ -151,7 +151,7 @@ constexpr auto StateDataTypes = boost::hana::make_map( //
     TYPE_PAIR(Config),                                 //
     TYPE_PAIR(RiskSetting),                            //
     TYPE_PAIR(TimeValue),                              //
-    TYPE_PAIR(TimeKeyValue),                           // 
+    TYPE_PAIR(TimeKeyValue),                           //
     TYPE_PAIR(StrategyStateUpdate),                    //
     TYPE_PAIR(OperatorStateUpdate),                    //
     TYPE_PAIR(Commission),                             //

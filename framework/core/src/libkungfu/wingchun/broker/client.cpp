@@ -193,33 +193,6 @@ void Client::connect(const event_ptr &event, const Band &band) {
   }
 }
 
-// void Client::update_broker_state(const event_ptr &event, const BrokerStateUpdate &state) {
-//   auto state_value = state.state;
-//   auto broker_location = app_.get_location(state.location_uid);
-//   bool state_ready = state_value == BrokerState::Ready;
-//   bool state_reset = state_value == BrokerState::Connected or state_value == BrokerState::DisConnected;
-
-//   auto switch_broker_state = [&](category broker_category, location_map &ready_locations, auto on_broker_ready) {
-//     bool ready_recorded = ready_locations.find(broker_location->uid) != ready_locations.end();
-//     if (state_ready and app_.has_writer(broker_location->uid) and not ready_recorded) {
-//       ready_locations.emplace(broker_location->uid, broker_location);
-//       SPDLOG_INFO("{} ready, state {}", broker_location->uname, (int)state_value);
-//       on_broker_ready();
-//     }
-//     if (state_reset and ready_recorded) {
-//       ready_locations.erase(broker_location->uid);
-//       SPDLOG_INFO("{} reset, state {}", broker_location->uname, (int)state_value);
-//     }
-//   };
-//   if (broker_location->category == category::MD) {
-//     switch_broker_state(category::MD, ready_md_locations_, [&]() { renew(event->gen_time(), broker_location); });
-//   }
-//   if (broker_location->category == category::TD) {
-//     switch_broker_state(category::TD, ready_td_locations_, [&]() { sync(event->gen_time(), broker_location); });
-//   }
-//   broker_states_.emplace(broker_location->uid, state_value);
-// }
-
 void Client::on_deregister(const longfist::types::Deregister &deregister_data) {
   auto location_uid = deregister_data.location_uid;
   auto node_location = app_.get_location(location_uid);
@@ -408,11 +381,11 @@ bool PassiveClient::should_connect_td(uint32_t td_location_uid) const {
 
 bool PassiveClient::should_connect_strategy(const location_ptr &stg_location) const { return false; }
 
-bool PassiveClient::should_connect_operator(const location_ptr &op_location) const { 
+bool PassiveClient::should_connect_operator(const location_ptr &op_location) const {
   return enrolled_op_locations_.find(op_location->uid) != enrolled_op_locations_.end();
 }
 
-bool PassiveClient::should_connect_operator(uint32_t op_location_uid) const { 
+bool PassiveClient::should_connect_operator(uint32_t op_location_uid) const {
   return enrolled_op_locations_.find(op_location_uid) != enrolled_op_locations_.end();
 }
 } // namespace kungfu::wingchun::broker

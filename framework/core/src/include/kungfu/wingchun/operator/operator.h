@@ -48,7 +48,7 @@ public:
   // Operator publish 的 time_key_value 回调
   //@param transaction       逐笔成交数据
   virtual void on_time_key_value(Context_ptr &context, const longfist::types::TimeKeyValue &time_key_value,
-                              const kungfu::yijinjing::data::location_ptr &location){};
+                                 const kungfu::yijinjing::data::location_ptr &location){};
 
   // 断开回调
   //@param deregister     断开数据
@@ -64,8 +64,8 @@ public:
   // 订阅的其他算子器状态变化回调
   //@param brokerStateUpdate     状态变化
   virtual void on_operator_state_change(Context_ptr &context,
-                                      const longfist::types::OperatorStateUpdate &operator_state_update,
-                                      const kungfu::yijinjing::data::location_ptr &location){};
+                                        const longfist::types::OperatorStateUpdate &operator_state_update,
+                                        const kungfu::yijinjing::data::location_ptr &location){};
 };
 
 DECLARE_PTR(Operator)

@@ -5,7 +5,7 @@
 
 #include <kungfu/wingchun/operator/context.h>
 
-namespace kungfu::wingchun::op{
+namespace kungfu::wingchun::op {
 class RuntimeContext : public Context {
 public:
   explicit RuntimeContext(yijinjing::practice::apprentice &app, const rx::connectable_observable<event_ptr> &events);
@@ -32,7 +32,6 @@ public:
    */
   void add_time_interval(int64_t duration, const std::function<void(event_ptr)> &callback) override;
 
-
   /**
    * Subscribe market data.
    * @param source MD group
@@ -52,10 +51,9 @@ public:
   /**
    * Subscribe operator data.
    * @param group OPERATOR group
-   * @param name OPERATOR name 
+   * @param name OPERATOR name
    */
   void subscribe_operator(const std::string &group, const std::string &name) override;
-
 
   /**
    * publish operator data.
@@ -95,20 +93,20 @@ public:
    */
   const yijinjing::data::location_map &list_op() const;
 
-
   /**
    * Get broker client.
    * @return broker client reference
    */
   broker::Client &get_broker_client();
 
-
 protected:
- // those 3 member maybe shared with BacktestContext
+  // those 3 member maybe shared with BacktestContext
   yijinjing::practice::apprentice &app_;
   const rx::connectable_observable<event_ptr> &events_;
 
-  const yijinjing::data::location_ptr &find_location(const std::string &source, longfist::enums::category c, std::unordered_map<std::string, yijinjing::data::location_ptr> &locations);
+  const yijinjing::data::location_ptr &
+  find_location(const std::string &source, longfist::enums::category c,
+                std::unordered_map<std::string, yijinjing::data::location_ptr> &locations);
 
   const yijinjing::data::location_ptr &find_md_location(const std::string &source);
 
@@ -120,7 +118,6 @@ private:
   yijinjing::data::location_map op_locations_ = {};
   std::unordered_map<std::string, yijinjing::data::location_ptr> market_data_ = {};
   std::unordered_map<std::string, yijinjing::data::location_ptr> operator_data_ = {};
-
 };
 
 DECLARE_PTR(RuntimeContext)

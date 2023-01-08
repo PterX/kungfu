@@ -43,7 +43,7 @@ inline mode get_mode_by_name(const std::string &name) {
     return mode::LIVE;
 }
 
-enum class category : int8_t { MD, TD, STRATEGY, SYSTEM, OPERATOR};
+enum class category : int8_t { MD, TD, STRATEGY, SYSTEM, OPERATOR };
 
 inline std::ostream &operator<<(std::ostream &os, category t) { return os << int8_t(t); }
 
@@ -270,12 +270,7 @@ enum class StrategyState : int8_t { Normal, Warn, Error };
 
 inline std::ostream &operator<<(std::ostream &os, StrategyState t) { return os << int8_t(t); }
 
-enum class OperatorState : int8_t { 
-  Pending = 0,
-  DisConnected = 2,
-  Connected = 3,
-  Ready = 100
-};
+enum class OperatorState : int8_t { Pending = 0, DisConnected = 2, Connected = 3, Ready = 100 };
 
 inline std::ostream &operator<<(std::ostream &os, OperatorState t) { return os << int8_t(t); }
 

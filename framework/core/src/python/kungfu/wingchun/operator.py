@@ -60,7 +60,9 @@ class Operator(wc.Operator):
             self._module, "on_transaction", lambda ctx, transaction, location: None
         )
         self._on_time_key_value = getattr(
-            self._module, "on_time_key_value", lambda ctx, time_key_value, location: None
+            self._module,
+            "on_time_key_value",
+            lambda ctx, time_key_value, location: None,
         )
         self._on_deregister = getattr(
             self._module, "on_deregister", lambda ctx, deregister, location: None
@@ -75,7 +77,6 @@ class Operator(wc.Operator):
             "on_operator_state_change",
             lambda ctx, operator_state_update, location: None,
         )
-
 
     def __call_proxy(self, func, *args):
         if inspect.iscoroutinefunction(func):

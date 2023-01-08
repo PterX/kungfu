@@ -345,7 +345,9 @@ static constexpr auto is_own(const Client &broker_client) {
   return rx::filter([&](const event_ptr &event) {
     if (event->msg_type() == DataType::tag) {
       const DataType &data = event->data<DataType>();
-      return broker_client.should_connect_md(data.location_uid) or broker_client.should_connect_td(data.location_uid);
+      return broker_client.should_connect_md(data.location_uid) or 
+            broker_client.should_connect_td(data.location_uid) or 
+            broker_client.should_connect_operator(data.location_uid);
     }
     return false;
   });
@@ -356,7 +358,7 @@ static constexpr auto is_own(const Client &broker_client) {
   return rx::filter([&](const event_ptr &event) {
     if (event->msg_type() == DataType::tag) {
       const DataType &data = event->data<DataType>();
-      return (broker_client.should_connect_md(event->source()) or broker_client.should_connect_td(event->source()));
+      return (broker_client.should_connect_md(data.location_uid) or broker_client.should_connect_td(data.location_uid));
     }
     return false;
   });
@@ -367,7 +369,7 @@ static constexpr auto is_own(const Client &broker_client) {
   return rx::filter([&](const event_ptr &event) {
     if (event->msg_type() == DataType::tag) {
       const DataType &data = event->data<DataType>();
-      return (broker_client.should_connect_operator(event->source()));
+      return broker_client.should_connect_operator(data.location_uid);
     }
     return false;
   });

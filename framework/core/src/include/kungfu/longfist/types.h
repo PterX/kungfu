@@ -36,6 +36,7 @@ KF_DEFINE_MARK_TYPE(RequestCached, 10061);
 KF_DEFINE_MARK_TYPE(NewOrderSingle, 353);
 KF_DEFINE_MARK_TYPE(CancelOrder, 354);
 KF_DEFINE_MARK_TYPE(CancelAllOrder, 355);
+KF_DEFINE_MARK_TYPE(OperatorStateRequest, 398);
 KF_DEFINE_MARK_TYPE(BrokerStateRequest, 399);
 KF_DEFINE_MARK_TYPE(ResetBookRequest, 400);
 KF_DEFINE_MARK_TYPE(MirrorPositionsRequest, 401);

@@ -101,6 +101,7 @@ void Runner::prepare(const event_ptr &event) {
   if (not broker_states_requested_  and
       connected_test(context_->list_md()) and connected_test(context_->list_op())) {
     writer->mark(now(), BrokerStateRequest::tag);
+    writer->mark(now(), OperatorStateRequest::tag);
     broker_states_requested_ = true;
   }
 

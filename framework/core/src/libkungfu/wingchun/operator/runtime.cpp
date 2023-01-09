@@ -88,10 +88,6 @@ const location_ptr &RuntimeContext::find_md_location(const std::string &source) 
   return find_location(source, category::MD, market_data_);
 }
 
-const location_ptr &RuntimeContext::find_operator_location(const std::string &source) {
-  return find_location(source, category::OPERATOR, operator_data_);
-}
-
 const location_ptr &
 RuntimeContext::find_location(const std::string &source, category c,
                               std::unordered_map<std::string, yijinjing::data::location_ptr> &locations) {

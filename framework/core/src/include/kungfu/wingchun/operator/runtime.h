@@ -110,8 +110,6 @@ protected:
 
   const yijinjing::data::location_ptr &find_md_location(const std::string &source);
 
-  const yijinjing::data::location_ptr &find_operator_location(const std::string &source);
-
 private:
   broker::PassiveClient broker_client_;
   yijinjing::data::location_map md_locations_ = {};

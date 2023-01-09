@@ -74,6 +74,25 @@ void RuntimeContext::subscribe_all(const std::string &source, uint8_t market_typ
   broker_client_.subscribe_all(find_md_location(source), market_type, instrument_type, data_type);
 }
 
+void RuntimeContext::subscribe_operator(const std::string &group, const std::string &name) {
+  uint32_t hashed_op = hash_operator(group, name);
+
+  if (op_locations_.find(hashed_op) != op_locations_.end()) {
+    throw wingchun_error(fmt::format("duplicated operator subscribed {}_{}", group, name));
+  }
+
+  auto home = app_.get_home();
+  auto operator_location = location::make_shared(mode::LIVE, category::OPERATOR, group, name, home->locator);
+  if (home->mode == mode::LIVE and not app_.has_location(operator_location->uid)) {
+    throw wingchun_error(fmt::format("invalid operator {}_{}", group, name));
+  }
+
+  // op_locations_.emplace(hashed_op, operator_location);
+  op_locations_.emplace(operator_location->uid, operator_location);
+
+  broker_client_.enroll_operator(operator_location);
+}
+
 uint64_t RuntimeContext::insert_block_message(const std::string &source, const std::string &account,
                                               uint32_t opponent_seat, uint64_t match_number, bool is_specific) {
   auto account_location_uid = get_td_location_uid(source, account);
@@ -202,6 +221,8 @@ uint64_t RuntimeContext::cancel_order(uint64_t order_id) {
 }
 
 const location_map &RuntimeContext::list_md() const { return md_locations_; }
+
+const location_map &RuntimeContext::list_op() const { return op_locations_; }
 
 const location_map &RuntimeContext::list_accounts() const { return td_locations_; }
 

@@ -84,6 +84,7 @@ constexpr auto AllTypes = boost::hana::make_map( //
     TYPE_PAIR(Position),                         //
     TYPE_PAIR(PositionEnd),                      //
     TYPE_PAIR(OrderStat),                        //
+    TYPE_PAIR(SyntheticData),                    //
     TYPE_PAIR(RequestHistoryOrder),              //
     TYPE_PAIR(RequestHistoryOrderError),         //
     TYPE_PAIR(RequestHistoryTrade),              //
@@ -132,7 +133,8 @@ constexpr auto AllDataTypes = boost::hana::make_map( //
     TYPE_PAIR(AssetMargin),                          //
     TYPE_PAIR(Position),                             //
     TYPE_PAIR(PositionEnd),                          //
-    TYPE_PAIR(OrderStat)                             //
+    TYPE_PAIR(OrderStat),                            //
+    TYPE_PAIR(SyntheticData)                         //
 );
 
 constexpr auto ProfileDataTypes = boost::hana::make_map( //
@@ -165,7 +167,8 @@ constexpr auto StateDataTypes = boost::hana::make_map( //
     TYPE_PAIR(Asset),                                  //
     TYPE_PAIR(AssetMargin),                            //
     TYPE_PAIR(Position),                               //
-    TYPE_PAIR(OrderStat)                               //
+    TYPE_PAIR(OrderStat),                              //
+    TYPE_PAIR(SyntheticData)                           //
 );
 
 constexpr auto TradingDataTypes = boost::hana::make_map( //

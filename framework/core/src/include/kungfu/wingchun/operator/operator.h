@@ -45,9 +45,9 @@ public:
   //@param event md发布的任意类型行情事件
   virtual void on_event(Context_ptr &context, const event_ptr &event){};
 
-  // Operator publish 的 time_key_value 回调
+  // Operator publish 的 synthetic_data 回调
   //@param transaction       逐笔成交数据
-  virtual void on_time_key_value(Context_ptr &context, const longfist::types::TimeKeyValue &time_key_value,
+  virtual void on_synthetic_data(Context_ptr &context, const longfist::types::SyntheticData &synthetic_data,
                                  const kungfu::yijinjing::data::location_ptr &location){};
 
   // 断开回调

@@ -66,14 +66,14 @@ void RuntimeContext::subscribe_operator(const std::string &group, const std::str
   broker_client_.enroll_operator(operator_location);
 }
 
-void RuntimeContext::publish(const std::string &key, const std::string &value) {
+void RuntimeContext::publish_synthetic_data(const std::string &key, const std::string &value) {
   auto writer = app_.get_writer(location::PUBLIC);
   auto current_time = now();
-  TimeKeyValue time_key_value;
-  time_key_value.update_time = current_time;
-  time_key_value.key = key;
-  time_key_value.value = value;
-  writer->write(current_time, time_key_value);
+  SyntheticData synthetic_data;
+  synthetic_data.update_time = current_time;
+  synthetic_data.key = key;
+  synthetic_data.value = value;
+  writer->write(current_time, synthetic_data);
 }
 
 const location_map &RuntimeContext::list_md() const { return md_locations_; }

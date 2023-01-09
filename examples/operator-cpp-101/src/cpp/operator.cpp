@@ -31,7 +31,7 @@ public:
     i++;
     std::string key = "price";
     std::string value = fmt::format("{}", quote.last_price);
-    context->publish(key, value);
+    context->publish_synthetic_data(key, value);
     SPDLOG_INFO("on quote: {} i {} location->uid {}", quote.last_price, i, location->location_uid);
   }
 

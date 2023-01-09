@@ -66,8 +66,8 @@ void Runner::post_start() {
   events_ | is_own<Transaction>(context_->get_broker_client()) |
       $$(invoke(&Operator::on_transaction, event->data<Transaction>(), get_location(event->source())));
 
-  events_ | is(TimeKeyValue::tag) |
-      $$(invoke(&Operator::on_time_key_value, event->data<TimeKeyValue>(), get_location(event->source())));
+  events_ | is(SyntheticData::tag) |
+      $$(invoke(&Operator::on_synthetic_data, event->data<SyntheticData>(), get_location(event->source())));
 
   invoke(&Operator::post_start);
   SPDLOG_INFO("operator {} started", get_io_device()->get_home()->name);

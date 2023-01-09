@@ -704,6 +704,16 @@ KF_DEFINE_PACK_TYPE(                                  //
     (double, avg_price)                               //
 );
 
+KF_DEFINE_DATA_TYPE(                                      //
+    SyntheticData, 301, PK(key), TIMESTAMP(update_time), //
+    (int64_t, update_time),                               //
+    (std::string, key),                                   //
+    (std::string, tag_a),                                 //
+    (std::string, tag_b),                                 //
+    (std::string, tag_c),                                 //
+    (std::string, value)                                  //
+);
+
 KF_DEFINE_PACK_TYPE(                                                       //
     RequestHistoryOrder, 10129, PK(trigger_time), TIMESTAMP(trigger_time), //
     (uint64_t, trigger_time),                                              // 触发时间

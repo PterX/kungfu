@@ -59,9 +59,9 @@ public:
     PYBIND11_OVERLOAD(void, op::Operator, on_transaction, context, transaction, location);
   }
 
-  void on_time_key_value(op::Context_ptr &context, const TimeKeyValue &time_key_value,
+  void on_synthetic_data(op::Context_ptr &context, const SyntheticData &synthetic_data,
                          const kungfu::yijinjing::data::location_ptr &location) override {
-    PYBIND11_OVERLOAD(void, op::Operator, on_time_key_value, context, time_key_value, location);
+    PYBIND11_OVERLOAD(void, op::Operator, on_synthetic_data, context, synthetic_data, location);
   }
 
   void on_deregister(op::Context_ptr &context, const Deregister &deregister,
@@ -105,7 +105,7 @@ void bind_operator(pybind11::module &m) {
       .def("subscribe_all", &op::Context::subscribe_all, py::arg("source"), py::arg("market_type") = MarketType::All,
            py::arg("instrument_type") = SubscribeInstrumentType::All, py::arg("data_type") = SubscribeDataType::All)
       .def("subscribe_operator", &op::Context::subscribe_operator)
-      .def("publish", &op::Context::publish)
+      .def("publish_synthetic_data", &op::Context::publish_synthetic_data)
       .def("req_deregister", &op::Context::req_deregister)
       .def("update_operator_state", &op::Context::update_operator_state);
 
@@ -121,7 +121,7 @@ void bind_operator(pybind11::module &m) {
       .def("on_quote", &op::Operator::on_quote)
       .def("on_entrust", &op::Operator::on_entrust)
       .def("on_transaction", &op::Operator::on_transaction)
-      .def("on_time_key_value", &op::Operator::on_time_key_value)
+      .def("on_synthetic_data", &op::Operator::on_synthetic_data)
       .def("on_deregister ", &op::Operator::on_deregister)
       .def("on_broker_state_change ", &op::Operator::on_broker_state_change)
       .def("on_operator_state_change ", &op::Operator::on_operator_state_change);

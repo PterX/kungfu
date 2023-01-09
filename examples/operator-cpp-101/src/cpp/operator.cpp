@@ -21,10 +21,6 @@ public:
 
   void post_start(Context_ptr & context) override { 
     SPDLOG_INFO("operator started"); 
-    OperatorStateUpdate state_update;
-    state_update.state = OperatorState::Ready;
-    state_update.value = "ready";
-    context->update_operator_state(state_update);
   }
 
   void on_quote(Context_ptr & context, const Quote &quote, const location_ptr &location) override {
@@ -38,6 +34,17 @@ public:
   void on_broker_state_change(Context_ptr & context, const BrokerStateUpdate &broker_state_update,
                               const location_ptr &location) override {
     SPDLOG_INFO("on broker state changed: {}", broker_state_update.to_string());
+    if (broker_state_update.state != BrokerState::Ready) {
+      OperatorStateUpdate state_update;
+      state_update.state = OperatorState::DisConnected;
+      state_update.value = "ready";
+      context->update_operator_state(state_update);
+    } else {
+      OperatorStateUpdate state_update;
+      state_update.state = OperatorState::Ready;
+      state_update.value = "ready";
+      context->update_operator_state(state_update);
+    }
   };
 
   void on_operator_state_change(Context_ptr & context, const OperatorStateUpdate &operator_state_update,

@@ -43,7 +43,7 @@ inline mode get_mode_by_name(const std::string &name) {
     return mode::LIVE;
 }
 
-enum class category : int8_t { MD, TD, STRATEGY, SYSTEM, OPERATOR};
+enum class category : int8_t { MD, TD, STRATEGY, SYSTEM, OPERATOR };
 
 inline std::ostream &operator<<(std::ostream &os, category t) { return os << int8_t(t); }
 
@@ -57,6 +57,8 @@ inline std::string get_category_name(category c) {
     return "strategy";
   case category::SYSTEM:
     return "system";
+  case category::OPERATOR:
+    return "operator";
   default:
     return "system";
   }
@@ -69,8 +71,11 @@ inline category get_category_by_name(const std::string &name) {
     return category::TD;
   else if (name == "strategy")
     return category::STRATEGY;
-  else
+  else if (name == "system") {
     return category::SYSTEM;
+  } else {
+    return category::OPERATOR;
+  }
 }
 
 enum class layout : int8_t { JOURNAL, SQLITE, NANOMSG, LOG };

@@ -1,0 +1,67 @@
+{
+  "name": "@kungfu-trader/bar-op",
+  "author": "kungfu-trader",
+  "version": "2.5.0-alpha.10",
+  "description": "KungFu Operator for Bar Data",
+  "license": "Apache-2.0",
+  "private": true,
+  "scripts": {
+    "clean": "kfs operator clean",
+    "build": "kfs operator build",
+    "package": "kfs operator package",
+    "format": "node ../../framework/core/.gyp/run-format-cpp.js src"
+  },
+  "dependencies": {
+    "@kungfu-trader/kungfu-core": "^2.5.0-alpha.13"
+  },
+  "devDependencies": {
+    "@kungfu-trader/kungfu-sdk": "^2.5.0-alpha.13"
+  },
+  "kungfuConfig": {
+    "key": "bar",
+    "name": "功夫ochlv",
+    "config": {
+      "operator": {
+        "type": "multi",
+        "settings": [
+          {
+            "key": "instrument_ids",
+            "name": "sim.",
+            "type": "str",
+            "errMsg": "",
+            "required": true,
+            "primary": true
+          },
+          {
+            "key": "period",
+            "name": "sim.match_mode",
+            "type": "select",
+            "options": [
+              {
+                "value": "1",
+                "label": "1minutss"
+              },
+              {
+                "value": "5",
+                "label": "5minutes"
+              },
+              {
+                "value": "15",
+                "label": "15minutes"
+              }
+              
+            ],
+            "errMsg": "xxx_mode_error",
+            "required": true
+          }
+        ]
+      }
+    },
+    "language": {
+      "zh-CN": {
+      },
+      "en-US": {
+      }
+    }
+  }
+}

@@ -1437,14 +1437,18 @@ export const useAllKfConfigData = (): Record<
       md: [],
       td: [],
       strategy: [],
+      operator: [],
     });
 
   onMounted(() => {
-    const { mdList, tdList, strategyList } = storeToRefs(useGlobalStore());
+    const { mdList, tdList, strategyList, operatorList } = storeToRefs(
+      useGlobalStore(),
+    );
 
     allKfConfigData.md = mdList as unknown as KungfuApi.KfConfig[];
     allKfConfigData.td = tdList as unknown as KungfuApi.KfConfig[];
     allKfConfigData.strategy = strategyList as unknown as KungfuApi.KfConfig[];
+    allKfConfigData.operator = operatorList as unknown as KungfuApi.KfConfig[];
 
     getAvailDaemonList().then((daemonList) => {
       allKfConfigData.daemon = daemonList;

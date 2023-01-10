@@ -95,6 +95,7 @@ declare namespace KungfuApi {
     | 'instrumentType' // select - number
     | 'td'
     | 'md'
+    | 'operator'
     | 'strategy'
     | 'instrument'
     | 'instruments'
@@ -952,7 +953,7 @@ declare namespace Code {
   import { SpaceTabSettingEnum, SpaceSizeSettingEnum } from './enums';
   export interface Strategy {
     strategy_id: string;
-    strategy_path: string;
+    file_path: string;
     add_time: number;
   }
 
@@ -1068,6 +1069,11 @@ declare namespace KfEvent {
     strategys: KungfuApi.KfConfig[];
   }
 
+  export interface TriggerUpdateOperator {
+    tag: 'update:operator';
+    strategys: KungfuApi.KfConfig[];
+  }
+
   export interface TriggerUpdateExtConfigs {
     tag: 'update:extConfigs';
     extConfigs: KungfuApi.KfExtConfigs;
@@ -1118,6 +1124,7 @@ declare namespace KfEvent {
     | TriggerUpdateRiskSetting
     | TriggerUpdateMd
     | TriggerUpdateStrategy
+    | TriggerUpdateOperator
     | TriggerUpdateExtConfigs
     | TriggerAddBoard
     | ExportTradingDataEvent

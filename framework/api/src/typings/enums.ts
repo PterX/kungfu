@@ -161,6 +161,7 @@ export enum KfCategoryEnum {
   td,
   strategy,
   system,
+  operator,
   daemon,
 }
 
@@ -287,4 +288,9 @@ export enum FrameMsgTypeEnum {
   RequestHistoryTrade = 10030,
   RequestHistoryOrderError = 10031,
   RequestHistoryTradeError = 10032,
+}
+
+export enum AddOperatorTypeEnum {
+  File,
+  Extension,
 }

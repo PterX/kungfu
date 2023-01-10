@@ -88,10 +88,16 @@ export default {
   Strategy: '策略进程',
   Md: '行情源',
   Td: '交易账户',
+  Operator: '算子',
   Trade: '成交记录',
   Order: '委托记录',
   PosGlobal: '持仓汇总',
   Pos: '持仓',
+
+  select_broker_ext: '选择柜台API',
+  select_operator_ext: '选择算子插件',
+  select_trade_task: '选择交易任务',
+  select_plugin_type: '选择插件类型',
 
   baseConfig: {
     main_panel: '主面板',
@@ -123,6 +129,7 @@ export default {
     md: '行情源',
     td: '交易账户 ',
     strategy: '策略',
+    operator: '算子',
 
     open: '开',
     close: '平',
@@ -333,7 +340,7 @@ export default {
     add_group_placeholder: '添加分组',
     set_td_group: '账户分组设置',
     account_group: '账户组',
-    td_not_found: '{td}柜台插件不存在',
+    td_not_found: '{td} 柜台插件不存在',
     sourse_not_found: '配置项不存在, 请检查 {value} package.json',
     need_only_group: '需保证该账户组名称唯一',
     delete_amount_group: '删除账户组 {group}',
@@ -345,12 +352,9 @@ export default {
     state_status: '状态',
     process_status: '进程',
     actions: '操作',
-    select_counter_api: '选择柜台API',
-    select_trade_task: '选择交易任务',
-    select_plugin_type: '选择插件类型',
 
     add_md: '添加',
-    counter_plugin_inexistence: '柜台插件不存在',
+    md_not_found: '{md} 柜台插件不存在',
   },
 
   strategyConfig: {
@@ -369,7 +373,28 @@ export default {
     add_strategy: '添加',
   },
 
+  operatorConfig: {
+    operator: '算子',
+    operator_id: '算子ID',
+    operator_file: '算子文件',
+    operator_path: '算子路径',
+    operator_path_tip:
+      '普通 python 算子选择 .py 文件, 加密 python 算子或cpp算子选择编译后的 .so 或 .pyd 文件',
+    process_status: '进程',
+    actions: '操作',
+    operator_tip: '需保证该算子ID唯一',
+
+    add_operator: '添加',
+    operator_not_found: '{operator} 算子插件不存在',
+    add_operator_type: {
+      title: '选择算子类型',
+      extension: '插件',
+      file: '文件',
+    },
+  },
+
   tradingTaskConfig: {
+    tradingTask: '交易任务',
     task_id: '任务ID',
     process_status: '进程',
     args: '参数',
@@ -378,7 +403,7 @@ export default {
     add_task: '添加',
     illegal_process_id: '不是合法交易任务进程ID',
     key_inexistence: '交易任务插件 key 不存在',
-    plugin_inexistence: '交易任务插件不存在',
+    plugin_inexistence: '{key} 交易任务插件不存在',
     configuration_inexistence: '配置项不存在, 请检查',
     delete_task: '删除交易任务',
     delete_task_content:

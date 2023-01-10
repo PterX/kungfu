@@ -18,7 +18,4 @@ using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::util;
 
-namespace kungfu::wingchun::op {
-
-
-} // namespace kungfu::wingchun::op
+namespace kungfu::wingchun::op {} // namespace kungfu::wingchun::op

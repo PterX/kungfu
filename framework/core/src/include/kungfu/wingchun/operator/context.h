@@ -20,7 +20,7 @@ public:
    */
   virtual int64_t now() const = 0;
 
-  virtual void on_start() {};
+  virtual void on_start(){};
 
   /**
    * Add one shot timer callback.
@@ -35,7 +35,6 @@ public:
    * @param callback callback function
    */
   virtual void add_time_interval(int64_t duration, const std::function<void(event_ptr)> &callback) = 0;
-
 
   /**
    * Subscribe market data.
@@ -53,13 +52,19 @@ public:
   virtual void subscribe_all(const std::string &source, uint8_t market_type = 0, uint64_t instrument_type = 0,
                              uint64_t data_type = 0) = 0;
 
- // TODO added for operator
   /**
    * Subscribe operator data.
-   * @param source MD group
-   * @param key instrument IDs
+   * @param group OPERATOR group
+   * @param name OPERATOR name
    */
-  virtual void subscribe_operator(const std::string &source, const std::vector<std::string> &key) = 0;
+  virtual void subscribe_operator(const std::string &group, const std::string &name) = 0;
+
+  /**
+   * publish operator data.
+   * @param key key of data to be published
+   * @param value value of data to be published
+   */
+  virtual void publish_synthetic_data(const std::string &key, const std::string &value) = 0;
 
   /**
    * Get current trading day.
@@ -79,8 +84,6 @@ public:
    * @param infos vector<string>, info_a, info_b, info_c.
    */
   virtual void update_operator_state(longfist::types::OperatorStateUpdate &state_update) {}
-
-
 };
 } // namespace kungfu::wingchun::op
 

@@ -2,8 +2,8 @@
 #ifndef WINGCHUN_OPERATOR_RUNNER_H
 #define WINGCHUN_OPERATOR_RUNNER_H
 
-#include <kungfu/wingchun/operator/runtime.h>
 #include <kungfu/wingchun/operator/operator.h>
+#include <kungfu/wingchun/operator/runtime.h>
 #include <kungfu/yijinjing/practice/apprentice.h>
 
 namespace kungfu::wingchun::op {
@@ -40,9 +40,9 @@ protected:
   virtual void post_stop();
 
 private:
-//   bool positions_requested_ = false;
+  //   bool positions_requested_ = false;
   bool broker_states_requested_ = false;
-//   bool positions_set_;
+  //   bool positions_set_;
   bool started_;
   std::vector<Operator_ptr> operators_ = {};
   RuntimeContext_ptr context_;
@@ -72,7 +72,6 @@ private:
       (*op.*method)(context, data, location);
     }
   };
-
 };
 
 static const int64_t NANO_MILLISECOND = int64_t(1000000);

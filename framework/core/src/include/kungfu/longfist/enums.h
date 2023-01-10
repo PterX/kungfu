@@ -55,8 +55,6 @@ inline std::string get_category_name(category c) {
     return "td";
   case category::STRATEGY:
     return "strategy";
-  case category::SYSTEM:
-    return "system";
   case category::OPERATOR:
     return "operator";
   default:
@@ -71,11 +69,10 @@ inline category get_category_by_name(const std::string &name) {
     return category::TD;
   else if (name == "strategy")
     return category::STRATEGY;
-  else if (name == "system") {
-    return category::SYSTEM;
-  } else {
+  else if (name == "operator")
     return category::OPERATOR;
-  }
+  else
+    return category::SYSTEM;
 }
 
 enum class layout : int8_t { JOURNAL, SQLITE, NANOMSG, LOG };
@@ -271,7 +268,7 @@ enum class StrategyState : int8_t { Normal, Warn, Error };
 
 inline std::ostream &operator<<(std::ostream &os, StrategyState t) { return os << int8_t(t); }
 
-enum class OperatorState : int8_t { Normal, Warn, Error };
+enum class OperatorState : int8_t { Pending = 0, DisConnected = 2, Connected = 3, Ready = 100 };
 
 inline std::ostream &operator<<(std::ostream &os, OperatorState t) { return os << int8_t(t); }
 

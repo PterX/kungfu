@@ -57,8 +57,14 @@ class ExecutorRegistry:
         elif ctx.path:
             self.read_config(os.path.dirname(ctx.path))
 
-        if ctx.group not in self.executors["strategy"]:
-            self.executors["strategy"][ctx.group] = ExtensionLoader(ctx, None, None)
+        if ctx.group not in self.executors[ctx.category]:
+            self.executors[ctx.category][ctx.group] = ExtensionLoader(ctx, None, None)
+        if (
+            ctx.category == "system"
+            and ctx.group == "service"
+            and ctx.name not in self.executors["system"]["service"]
+        ):
+            self.executors["system"]["service"].load_service(ctx)
 
     def register_extensions(self, root):
         for child in os.listdir(root):
@@ -158,6 +164,12 @@ class ServiceLoader(dict):
             ).run()
 
         return run
+
+    def load_service(self, ctx):
+        sys.path.append(ctx.extension_path)
+        module = importlib.import_module(ctx.name)
+        service_builder = getattr(module, "system")
+        self[ctx.name] = self.create_service(ctx.name, service_builder)
 
 
 class ExtensionLoader:
@@ -278,11 +290,8 @@ class ExtensionExecutor:
             ctx.runtime_locator,
         )
         os.environ["KF_OP_GROUP"] = ctx.group
-        os.environ[
-            "KF_OP_NAME"
-        ] = (
-            ctx.name
-        )  # TODO check extension.h for implementation details, how to deal with 1 runner : N operators?
+        # TODO check extension.h for implementation details, how to deal with 1 runner : N operators?
+        os.environ["KF_OP_NAME"] = ctx.name
         if loader.config is None:
             load = False
             json_config = os.path.join(os.path.dirname(ctx.path), "package.json")
@@ -303,7 +312,6 @@ class ExtensionExecutor:
         # ctx.runner = self.load_runner(ctx)
         ctx.op_runner.add_operator(ctx.operator)
         ctx.op_runner.run()
-
 
 
 class RegistryJSONEncoder(json.JSONEncoder):

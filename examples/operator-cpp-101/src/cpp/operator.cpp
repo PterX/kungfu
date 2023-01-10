@@ -1,7 +1,7 @@
 #include <kungfu/wingchun/extension.h>
 #include <kungfu/wingchun/operator/context.h>
-#include <kungfu/wingchun/operator/runtime.h>
 #include <kungfu/wingchun/operator/operator.h>
+#include <kungfu/wingchun/operator/runtime.h>
 #include <kungfu/yijinjing/journal/assemble.h>
 
 using namespace kungfu::longfist::enums;
@@ -19,27 +19,36 @@ public:
     context->subscribe("sim", {"600000"}, {"SSE"});
   }
 
-  void post_start(Context_ptr & context) override {
-    SPDLOG_INFO("operator started");
+  void post_start(Context_ptr & context) override { 
+    SPDLOG_INFO("operator started"); 
   }
 
   void on_quote(Context_ptr & context, const Quote &quote, const location_ptr &location) override {
     i++;
+    std::string key = "price";
+    std::string value = fmt::format("{}", quote.last_price);
+    context->publish_synthetic_data(key, value);
     SPDLOG_INFO("on quote: {} i {} location->uid {}", quote.last_price, i, location->location_uid);
-    if (i == 5) {
-      std::shared_ptr<kungfu::yijinjing::journal::assemble> p_assemble =
-          std::make_shared<kungfu::yijinjing::journal::assemble>(std::vector<locator_ptr>{});
-      std::shared_ptr<kungfu::yijinjing::journal::frame_reader> r = p_assemble->get_reader(location);
-      auto f = r->current_frame();
-      SPDLOG_INFO("f source {} dest {} data {}", f->source(), f->dest(), f->data_as_string());
-      while (true) {
-        auto f = r->next_frame();
-        if (!f) {
-          SPDLOG_INFO("f null");
-          break;
-        }
-        SPDLOG_INFO("f source {} dest {} data {}", f->source(), f->dest(), f->data_as_string());
-      }
-    }
   }
+
+  void on_broker_state_change(Context_ptr & context, const BrokerStateUpdate &broker_state_update,
+                              const location_ptr &location) override {
+    SPDLOG_INFO("on broker state changed: {}", broker_state_update.to_string());
+    if (broker_state_update.state != BrokerState::Ready) {
+      OperatorStateUpdate state_update;
+      state_update.state = OperatorState::DisConnected;
+      state_update.value = "ready";
+      context->update_operator_state(state_update);
+    } else {
+      OperatorStateUpdate state_update;
+      state_update.state = OperatorState::Ready;
+      state_update.value = "ready";
+      context->update_operator_state(state_update);
+    }
+  };
+
+  void on_operator_state_change(Context_ptr & context, const OperatorStateUpdate &operator_state_update,
+                              const location_ptr &location) override {
+    SPDLOG_INFO("on operator state changed: {}", operator_state_update.to_string());
+  };
 };

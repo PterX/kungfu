@@ -59,6 +59,11 @@ class Strategy(wc.Strategy):
         self._on_transaction = getattr(
             self._module, "on_transaction", lambda ctx, transaction, location: None
         )
+        self._on_synthetic_data = getattr(
+            self._module,
+            "on_synthetic_data",
+            lambda ctx, synthetic_data, location: None,
+        )
         self._on_order = getattr(
             self._module, "on_order", lambda ctx, order, location: None
         )
@@ -72,6 +77,11 @@ class Strategy(wc.Strategy):
             self._module,
             "on_broker_state_change",
             lambda ctx, broker_state_update, location: None,
+        )
+        self._on_operator_state_change = getattr(
+            self._module,
+            "on_operator_state_change",
+            lambda ctx, operator_state_update, location: None,
         )
         self._on_history_order = getattr(
             self._module, "on_history_order", lambda ctx, history_order, location: None
@@ -189,6 +199,7 @@ class Strategy(wc.Strategy):
         self.ctx.add_time_interval = self.__add_time_interval
         self.ctx.subscribe = wc_context.subscribe
         self.ctx.subscribe_all = wc_context.subscribe_all
+        self.ctx.subscribe_operator = wc_context.subscribe_operator
         self.ctx.add_account = self.__add_account
         self.ctx.insert_block_message = wc_context.insert_block_message
         self.ctx.insert_order = wc_context.insert_order
@@ -227,6 +238,9 @@ class Strategy(wc.Strategy):
     def on_transaction(self, wc_context, transaction, location):
         self.__call_proxy(self._on_transaction, self.ctx, transaction, location)
 
+    def on_synthetic_data(self, wc_context, synthetic_data, location):
+        self.__call_proxy(self.on_synthetic_data, self.ctx, synthetic_data, location)
+
     def on_order(self, wc_context, order, location):
         self.__call_proxy(self._on_order, self.ctx, order, location)
 
@@ -242,6 +256,11 @@ class Strategy(wc.Strategy):
     def on_broker_state_change(self, wc_context, broker_state_update, location):
         self.__call_proxy(
             self._on_broker_state_change, self.ctx, broker_state_update, location
+        )
+    
+    def on_operator_state_change(self, wc_context, operator_state_update, location):
+        self.__call_proxy(
+            self._on_operator_state_change, self.ctx, operator_state_update, location
         )
 
     def on_history_order(self, wc_context, history_order, location):

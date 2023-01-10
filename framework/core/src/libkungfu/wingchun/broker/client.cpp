@@ -54,20 +54,22 @@ Client::Client(apprentice &app) : app_(app) {}
 
 const Client::InstrumentKeyMap &Client::get_instrument_keys() const { return instrument_keys_; }
 
-bool Client::is_ready(uint32_t broker_location_uid) const {
-  if (app_.has_location(broker_location_uid) and app_.has_writer(broker_location_uid)) {
-    auto broker_location = app_.get_location(broker_location_uid);
-    bool md_test = broker_location->category == category::MD and
-                   ready_md_locations_.find(broker_location->uid) != ready_md_locations_.end();
-    bool td_test = broker_location->category == category::TD and
-                   ready_td_locations_.find(broker_location->uid) != ready_td_locations_.end();
-    return md_test or td_test;
+bool Client::is_ready(uint32_t app_location_uid) const {
+  if (app_.has_location(app_location_uid) and app_.has_writer(app_location_uid)) {
+    auto app_location = app_.get_location(app_location_uid);
+    bool md_test = app_location->category == category::MD and
+                   ready_md_locations_.find(app_location->uid) != ready_md_locations_.end();
+    bool td_test = app_location->category == category::TD and
+                   ready_td_locations_.find(app_location->uid) != ready_td_locations_.end();
+    bool op_test = app_location->category == category::OPERATOR and
+                   ready_op_locations_.find(app_location->uid) != ready_op_locations_.end();
+    return md_test or td_test or op_test;
   }
   return false;
 }
 
-bool Client::is_connected(uint32_t broker_location_uid) const {
-  if (app_.has_location(broker_location_uid) and app_.has_writer(broker_location_uid)) {
+bool Client::is_connected(uint32_t app_location_uid) const {
+  if (app_.has_location(app_location_uid) and app_.has_writer(app_location_uid)) {
     return true;
   }
   return false;
@@ -143,8 +145,11 @@ bool Client::try_sync(int64_t trigger_time, const location_ptr &td_location) {
 void Client::on_start(const rx::connectable_observable<event_ptr> &events) {
   events | is(Register::tag) | $$(connect(event, event->data<Register>()));
   events | is(Band::tag) | $$(connect(event, event->data<Band>()));
-  events | is(BrokerStateUpdate::tag) | $$(update_broker_state(event, event->data<BrokerStateUpdate>()));
-  events | is(Deregister::tag) | $$(update_broker_state(event, event->data<Deregister>()));
+  // events | is(BrokerStateUpdate::tag) | $$(update_broker_state(event, event->data<BrokerStateUpdate>()));
+  // events | is(OperatorStateUpdate::tag) | $$(update_operator_state(event, event->data<OperatorStateUpdate>()));
+  events | is(BrokerStateUpdate::tag) | $$(update_app_state(event, event->data<BrokerStateUpdate>()));
+  events | is(OperatorStateUpdate::tag) | $$(update_app_state(event, event->data<OperatorStateUpdate>()));
+  events | is(Deregister::tag) | $$(on_deregister(event->data<Deregister>()));
 }
 
 void Client::connect(const event_ptr &event, const Register &register_data) {
@@ -188,39 +193,17 @@ void Client::connect(const event_ptr &event, const Band &band) {
   }
 }
 
-void Client::update_broker_state(const event_ptr &event, const BrokerStateUpdate &state) {
-  auto state_value = state.state;
-  auto broker_location = app_.get_location(state.location_uid);
-  bool state_ready = state_value == BrokerState::Ready;
-  bool state_reset = state_value == BrokerState::Connected or state_value == BrokerState::DisConnected;
-
-  auto switch_broker_state = [&](category broker_category, location_map &ready_locations, auto on_broker_ready) {
-    bool ready_recorded = ready_locations.find(broker_location->uid) != ready_locations.end();
-    if (state_ready and app_.has_writer(broker_location->uid) and not ready_recorded) {
-      ready_locations.emplace(broker_location->uid, broker_location);
-      SPDLOG_INFO("{} ready, state {}", broker_location->uname, (int)state_value);
-      on_broker_ready();
-    }
-    if (state_reset and ready_recorded) {
-      ready_locations.erase(broker_location->uid);
-      SPDLOG_INFO("{} reset, state {}", broker_location->uname, (int)state_value);
-    }
-  };
-  if (broker_location->category == category::MD) {
-    switch_broker_state(category::MD, ready_md_locations_, [&]() { renew(event->gen_time(), broker_location); });
-  }
-  if (broker_location->category == category::TD) {
-    switch_broker_state(category::TD, ready_td_locations_, [&]() { sync(event->gen_time(), broker_location); });
-  }
-  broker_states_.emplace(broker_location->uid, state_value);
-}
-
-void Client::update_broker_state(const event_ptr &event, const longfist::types::Deregister &deregister_data) {
+void Client::on_deregister(const longfist::types::Deregister &deregister_data) {
   auto location_uid = deregister_data.location_uid;
-  auto broker_location = app_.get_location(location_uid);
-  broker_states_.emplace(location_uid, BrokerState::DisConnected);
-  ready_md_locations_.erase(location_uid);
-  ready_td_locations_.erase(location_uid);
+  auto node_location = app_.get_location(location_uid);
+  if (node_location->category == category::MD or node_location->category == category::TD) {
+    broker_states_.emplace(location_uid, BrokerState::DisConnected);
+    ready_md_locations_.erase(location_uid);
+    ready_td_locations_.erase(location_uid);
+  } else if (node_location->category == category::OPERATOR) {
+    operator_states_.emplace(location_uid, OperatorState::DisConnected);
+    ready_op_locations_.erase(location_uid);
+  }
 }
 
 AutoClient::AutoClient(apprentice &app) : Client(app) {}
@@ -248,6 +231,8 @@ bool AutoClient::should_connect_td(uint32_t td_location_uid) const { return true
 bool AutoClient::should_connect_strategy(const location_ptr &stg_location) const { return true; }
 
 bool AutoClient::should_connect_operator(const location_ptr &op_location) const { return true; }
+
+bool AutoClient::should_connect_operator(uint32_t op_location_uid) const { return true; }
 
 SilentAutoClient::SilentAutoClient(practice::apprentice &app) : AutoClient(app) {}
 
@@ -374,6 +359,10 @@ void PassiveClient::enroll_account(const location_ptr &td_location) {
   enrolled_td_locations_.emplace(td_location->uid, true);
 }
 
+void PassiveClient::enroll_operator(const location_ptr &op_location) {
+  enrolled_op_locations_.emplace(op_location->uid, true);
+}
+
 bool PassiveClient::should_connect_md(const location_ptr &md_location) const {
   return enrolled_md_locations_.find(md_location->uid) != enrolled_md_locations_.end();
 }
@@ -392,7 +381,11 @@ bool PassiveClient::should_connect_td(uint32_t td_location_uid) const {
 
 bool PassiveClient::should_connect_strategy(const location_ptr &stg_location) const { return false; }
 
-bool PassiveClient::should_connect_operator(const location_ptr &op_location) const { 
-  return enrolled_md_locations_.find(op_location->uid) != enrolled_md_locations_.end();
+bool PassiveClient::should_connect_operator(const location_ptr &op_location) const {
+  return enrolled_op_locations_.find(op_location->uid) != enrolled_op_locations_.end();
+}
+
+bool PassiveClient::should_connect_operator(uint32_t op_location_uid) const {
+  return enrolled_op_locations_.find(op_location_uid) != enrolled_op_locations_.end();
 }
 } // namespace kungfu::wingchun::broker

@@ -34,24 +34,22 @@ export const getColumns = (): AntTableColumns => [
   },
 ];
 
-export const addOperatorConfig: KungfuApi.KfConfigItem[] = [
-  {
-    key: 'type',
-    name: '类型',
-    default: AddOperatorTypeEnum.Extension,
-    type: 'radio',
-    options: [
-      {
-        label: AddOperatorType[AddOperatorTypeEnum.Extension].name,
-        value: AddOperatorTypeEnum.Extension,
-      },
-      {
-        label: AddOperatorType[AddOperatorTypeEnum.File].name,
-        value: AddOperatorTypeEnum.File,
-      },
-    ],
-  },
-];
+export const addOperatorConfig: KungfuApi.KfConfigItem = {
+  key: 'type',
+  name: '类型',
+  default: AddOperatorTypeEnum.Extension,
+  type: 'radio',
+  options: [
+    {
+      label: AddOperatorType[AddOperatorTypeEnum.Extension].name,
+      value: AddOperatorTypeEnum.Extension,
+    },
+    {
+      label: AddOperatorType[AddOperatorTypeEnum.File].name,
+      value: AddOperatorTypeEnum.File,
+    },
+  ],
+};
 
 export const setOperatorConfig: KungfuApi.KfExtConfig = {
   type: [],

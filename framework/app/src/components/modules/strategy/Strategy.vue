@@ -225,7 +225,7 @@ function handleRemoveStrategy(record: KungfuApi.KfConfig) {
               <FormOutlined
                 style="font-size: 12px"
                 @click.stop="handleOpenCodeView(record)"
-              ></FormOutlined>
+              />
               <SettingOutlined
                 style="font-size: 12px"
                 @click.stop="handleOpenSetStrategyDialog('update', record)"

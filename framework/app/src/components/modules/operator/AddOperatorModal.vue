@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { ref, getCurrentInstance } from 'vue';
 import { useModalVisible } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
-import KfConfigSettingsForm from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfConfigSettingsForm.vue';
-import { initFormStateByConfig } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { addOperatorConfig } from './config';
+import { AddOperatorTypeEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 
 const app = getCurrentInstance();
 const props = withDefaults(
@@ -16,16 +15,16 @@ const props = withDefaults(
 );
 
 const { modalVisible, closeModal } = useModalVisible(props.visible);
-const formState = ref(initFormStateByConfig(addOperatorConfig, {}));
+const selectedOpertorType = ref<AddOperatorTypeEnum>(AddOperatorTypeEnum.File);
 
 function handleConfirm() {
-  app && app.emit('confirm', formState.value.type);
+  app && app.emit('confirm', selectedOpertorType.value);
   closeModal();
 }
 </script>
 <template>
   <a-modal
-    class="add-operator-modal"
+    class="add-operator-type-modal"
     :width="320"
     v-model:visible="modalVisible"
     :title="$t('operatorConfig.add_operator_type.title')"
@@ -33,13 +32,28 @@ function handleConfirm() {
     @cancel="closeModal"
     @ok="handleConfirm"
   >
-    <KfConfigSettingsForm
-      ref="formRef"
-      v-model:formState="formState"
-      :config-settings="addOperatorConfig"
-      change-type="add"
-      :label-col="6"
-      :wrapper-col="14"
-    ></KfConfigSettingsForm>
+    <a-radio-group v-model:value="selectedOpertorType">
+      <a-radio
+        v-for="item in addOperatorConfig.options"
+        :key="item.value"
+        :value="item.value"
+        :style="{
+          height: '36px',
+          'line-height': '36px',
+          'font-size': '16px',
+          'min-width': '45%',
+        }"
+      >
+        <span class="operator-type__txt">{{ item.label }}</span>
+      </a-radio>
+    </a-radio-group>
   </a-modal>
 </template>
+<style lang="less">
+.add-operator-type-modal {
+  .operator-type__txt {
+    margin-right: 8px;
+    font-weight: bold;
+  }
+}
+</style>

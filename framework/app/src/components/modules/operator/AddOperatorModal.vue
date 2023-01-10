@@ -34,7 +34,7 @@ function handleConfirm() {
   >
     <a-radio-group v-model:value="selectedOpertorType">
       <a-radio
-        v-for="item in addOperatorConfig.options"
+        v-for="item in addOperatorConfig.options || []"
         :key="item.value"
         :value="item.value"
         :style="{

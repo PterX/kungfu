@@ -98,7 +98,7 @@ const baseBoardsMap: KfLayout.BoardsMap = {
   '8': {
     paId: 2,
     direction: 'h',
-    contents: ['Md'],
+    contents: ['Md', 'Operator'],
     current: 'Md',
     height: '17.577%',
   },

@@ -28,6 +28,7 @@ import {
   getProcessIdByKfLocation,
   getPropertyFromProcessStatusDetailDataByKfLocation,
   getIfProcessStopping,
+  isTdMd,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import {
   handleSwitchProcessStatus,
@@ -233,7 +234,7 @@ onMounted(() => {
                   v-else-if="config.category !== 'strategy'"
                 >
                   <a-tag
-                    v-if="config.category === 'td' || config.category === 'md'"
+                    v-if="isTdMd(config.category)"
                     :color="
                       getInstrumentTypeColor(
                         tdExtTypeMap[config.group] ||

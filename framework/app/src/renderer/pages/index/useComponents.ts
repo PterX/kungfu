@@ -24,6 +24,7 @@ export const useComponenets = (
     'Td',
     'Md',
     'Strategy',
+    'Operator',
     'TradingTask',
     'MarketData',
     'OrderBook',
@@ -45,10 +46,6 @@ export const useComponenets = (
       ),
     );
   });
-
-  app.config.globalProperties.$availKfBoards = components.map(
-    (componentName) => componentName,
-  );
 
   return useGlobalStore()
     .setKfUIExtConfigs()

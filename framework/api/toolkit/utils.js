@@ -64,25 +64,6 @@ exports.getPagesConfig = (argv) => {
   };
 };
 
-exports.getComponentsConfig = () => {
-  const appDir = this.getAppDir();
-  const componentsDir = path.resolve(appDir, 'src', 'components', 'modules');
-  const files = fs.readdirSync(componentsDir);
-  let entry = {};
-
-  files
-    .filter((file) => {
-      const filePath = path.join(componentsDir, file);
-      const stats = fs.statSync(filePath);
-      return stats.isDirectory();
-    })
-    .forEach((dir) => {
-      entry[dir] = path.resolve(componentsDir, dir, 'index.ts');
-    });
-
-  return entry;
-};
-
 const tryGetAppPackageJSON = () => {
   try {
     const appPackageJSONPath = require.resolve(

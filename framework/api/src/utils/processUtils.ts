@@ -16,7 +16,7 @@ import {
   getIfProcessRunning,
   getIfProcessDeleted,
   delayMilliSeconds,
-  isTdMdStrategy,
+  isTdMdOperatorStrategy,
 } from '../utils/busiUtils';
 import {
   buildProcessLogPath,
@@ -398,7 +398,7 @@ export const graceStopProcess = async (
     if (
       watcher &&
       !watcher.isReadyToInteract(kfLocation) &&
-      isTdMdStrategy(kfLocation.category)
+      isTdMdOperatorStrategy(kfLocation.category)
     ) {
       return Promise.reject(new Error(t('未就绪', { processId })));
     }
@@ -433,7 +433,7 @@ export const graceDeleteProcess = async (
     if (
       watcher &&
       !watcher.isReadyToInteract(kfLocation) &&
-      isTdMdStrategy(kfLocation.category)
+      isTdMdOperatorStrategy(kfLocation.category)
     ) {
       return Promise.reject(new Error(t('未就绪', { processId })));
     }
@@ -801,20 +801,53 @@ export const startTask = async (
   });
 };
 
-export const startStrategyByLocalPython = async (
+export const startOperatorByExt = async (
+  kfConfig: KungfuApi.DerivedKfLocation,
+) => {
+  const extDirs = await flattenExtensionModuleDirs(EXTENSION_DIRS);
+  const { group, name } = kfConfig;
+  const args = buildArgs(
+    `-X "${extDirs
+      .map((dir) => dealSpaceInPath(path.dirname(dir)))
+      .join(path.delimiter)}" run -c td -g "${group}" -n "${name}"`,
+  );
+  const cwd = dealSpaceInPath(
+    path.join(KF_RUNTIME_DIR, 'operator', group, name),
+  );
+  await fse.ensureDir(cwd);
+  const fullProcessId = `operator_${group}_${name}`;
+  const options =
+    await globalThis.HookKeeper.getHooks().resolveStartOptions.trigger(
+      kfConfig,
+      {
+        name: fullProcessId,
+        cwd,
+        script: `${dealSpaceInPath(path.join(KFC_DIR, kfcName))}`,
+        args,
+        force: true,
+      },
+    );
+
+  return startProcess(options).catch((err) => {
+    kfLogger.error(err);
+  });
+};
+
+export const startStrategyOperatorByLocalPython = async (
+  type: 'strategy' | 'operator',
   name: string,
-  strategyPath: string,
+  filePath: string,
   pythonPath: string,
 ): Promise<Proc | void> => {
   const baseArgs = [
     'run',
     '-c',
-    'strategy',
+    type,
     '-g',
     'default',
     '-n',
     name,
-    `'${strategyPath}'`,
+    `'${filePath}'`,
   ].join(' ');
   const baseArgsResolved = buildArgs(baseArgs);
   const args = ['-m', 'kungfu', baseArgsResolved].join(' ');
@@ -832,7 +865,7 @@ export const startStrategyByLocalPython = async (
     .join('/');
 
   return startProcess({
-    name: `strategy_${name}`,
+    name: `${type}_${name}`,
     args,
     cwd: `${dealSpaceInPath(pythonFolder)}`,
     script: `${pythonFile}`,
@@ -843,32 +876,33 @@ export const startStrategyByLocalPython = async (
 };
 
 //启动strategy
-export const startStrategy = async (
-  strategyId: string,
-  strategyPath: string,
+export const startStrategyOperator = async (
+  type: 'strategy' | 'operator',
+  id: string,
+  filePath: string,
 ): Promise<Proc | void> => {
-  strategyPath = dealSpaceInPath(strategyPath);
+  filePath = dealSpaceInPath(filePath);
   const globalSetting = getKfGlobalSettingsValue();
   const ifLocalPython = globalSetting?.strategy?.python ?? false;
   const pythonPath = globalSetting?.strategy?.pythonPath ?? '';
-  const strategyIdResolved = `strategy_${strategyId}`;
+  const strategyOperatorIdResolved = `${type}_${id}`;
 
   //因为pm2环境残留，在反复切换本地python跟内置python时，会出现本地python启动失败，所以需要先pm2 kill
   try {
-    kfLogger.info(`Clear existed strategy ${strategyIdResolved}`);
-    await deleteProcess(strategyIdResolved);
+    kfLogger.info(`Clear existed ${type} ${strategyOperatorIdResolved}`);
+    await deleteProcess(strategyOperatorIdResolved);
   } catch (err) {
     kfLogger.warn(err);
   }
 
-  if (ifLocalPython && strategyPath.endsWith('.py')) {
-    return startStrategyByLocalPython(strategyId, strategyPath, pythonPath);
+  if (ifLocalPython && filePath.endsWith('.py')) {
+    return startStrategyOperatorByLocalPython(type, id, filePath, pythonPath);
   } else {
     const args = buildArgs(
-      `run -c strategy -g default -n '${strategyId}' '${strategyPath}'`,
+      `run -c ${type} -g default -n '${id}' '${filePath}'`,
     );
     return startProcess({
-      name: strategyIdResolved,
+      name: strategyOperatorIdResolved,
       args,
       force: true,
     }).catch((err) => {

@@ -21,6 +21,7 @@ import {
   UnderweightEnum,
   OrderInputKeyEnum,
   FrameMsgTypeEnum,
+  AddOperatorTypeEnum,
 } from '../typings/enums';
 
 import { Pm2ProcessStatusTypes } from '../utils/processUtils';
@@ -168,6 +169,11 @@ export const KfCategory: Record<
     name: t('tradingConfig.strategy'),
     color: 'cyan',
     level: 60,
+  },
+  [KfCategoryEnum.operator]: {
+    name: t('tradingConfig.operator'),
+    color: 'green',
+    level: 80,
   },
 };
 
@@ -738,5 +744,19 @@ export const JournalFrameMsgType: Partial<
   [FrameMsgTypeEnum.Transaction]: {
     name: 'Transaction',
     color: 'rgb(83, 29, 171)',
+  },
+};
+
+export const AddOperatorType: Record<
+  AddOperatorTypeEnum,
+  KungfuApi.KfTradeValueCommonData
+> = {
+  [AddOperatorTypeEnum.Extension]: {
+    name: t('operatorConfig.add_operator_type.extension'),
+    color: 'blue',
+  },
+  [AddOperatorTypeEnum.File]: {
+    name: t('operatorConfig.add_operator_type.file'),
+    color: 'pink',
   },
 };

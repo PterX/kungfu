@@ -57,8 +57,6 @@ inline std::string get_category_name(category c) {
     return "strategy";
   case category::OPERATOR:
     return "operator";
-  case category::SYSTEM:
-    return "system";
   default:
     return "system";
   }

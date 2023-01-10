@@ -36,6 +36,7 @@ interface GlobalState {
   tdGroupList: KungfuApi.KfExtraLocation[];
   mdList: KungfuApi.KfConfig[];
   strategyList: KungfuApi.KfConfig[];
+  operatorList: KungfuApi.KfConfig[];
 
   processStatusData: Pm2ProcessStatusData;
   processStatusWithDetail: Pm2ProcessStatusDetailData;
@@ -72,6 +73,7 @@ export const useGlobalStore = defineStore('global', {
       tdGroupList: [],
       mdList: [],
       strategyList: [],
+      operatorList: [],
 
       processStatusData: {},
       processStatusWithDetail: {},
@@ -156,10 +158,11 @@ export const useGlobalStore = defineStore('global', {
 
     setKfConfigList() {
       return getAllKfConfigOriginData().then((res) => {
-        const { md, td, strategy } = res;
+        const { md, td, strategy, operator } = res;
         this.mdList = md;
         this.tdList = td;
         this.strategyList = strategy;
+        this.operatorList = operator;
 
         globalBus.next({
           tag: 'update:td',
@@ -174,6 +177,11 @@ export const useGlobalStore = defineStore('global', {
         globalBus.next({
           tag: 'update:strategy',
           strategys: strategy,
+        });
+
+        globalBus.next({
+          tag: 'update:operator',
+          operators: operator,
         });
 
         this.setDefaultCurrentGlobalKfLocation();
@@ -202,8 +210,9 @@ export const useGlobalStore = defineStore('global', {
         td: this.tdList,
         md: this.mdList,
         strategy: this.strategyList,
-        daemon: [],
         system: [],
+        operator: [],
+        daemon: [],
       };
 
       const targetKfConfigs: KungfuApi.KfConfig[] =

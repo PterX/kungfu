@@ -45,12 +45,16 @@ const { modalVisible, closeModal } = useModalVisible(props.visible);
 const { isLanguageKeyAvailable } = useLanguage();
 
 const modalTitle = computed(() => {
-  if (props.extensionType === 'td' || props.extensionType === 'md') {
-    return t('mdConfig.select_counter_api');
-  } else if (props.extensionType === 'strategy') {
-    return t('mdConfig.select_trade_task');
-  } else {
-    return t('mdConfig.select_plugin_type');
+  switch (props.extensionType) {
+    case 'td':
+    case 'md':
+      return t('select_broker_ext');
+    case 'operator':
+      return t('select_operator_ext');
+    case 'strategy':
+      return t('select_trade_task');
+    default:
+      return t('select_plugin_type');
   }
 });
 

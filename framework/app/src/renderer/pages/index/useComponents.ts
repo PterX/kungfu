@@ -47,6 +47,10 @@ export const useComponenets = (
     );
   });
 
+  app.config.globalProperties.$availKfBoards = components.map(
+    (componentName) => componentName,
+  );
+
   return useGlobalStore()
     .setKfUIExtConfigs()
     .then((configs) => getUIComponents(configs))

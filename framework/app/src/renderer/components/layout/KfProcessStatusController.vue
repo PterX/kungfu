@@ -43,11 +43,12 @@ const { t } = VueI18n.global;
 
 const app = getCurrentInstance();
 const processControllerBoardVisible = ref<boolean>(false);
-const categoryList: (KfCategoryTypes | string)[] = [
+const categoryList: KfCategoryTypes[] = [
   'system',
   'daemon',
   'td',
   'md',
+  'operator',
   'strategy',
 ];
 const allKfConfigData = useAllKfConfigData();

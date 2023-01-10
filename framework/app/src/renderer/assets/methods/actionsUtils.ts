@@ -222,7 +222,6 @@ export const useAddUpdateRemoveKfConfig = (): {
     group: string,
   ): Promise<void> => {
     const { formState, idByPrimaryKeys, changeType } = data;
-
     const changeTypename = changeType === 'add' ? t('add') : t('set');
     const categoryName = getKfCategoryData(category).name;
 

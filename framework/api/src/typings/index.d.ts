@@ -96,6 +96,7 @@ declare namespace KungfuApi {
     | 'td'
     | 'md'
     | 'operator'
+    | 'md&operator'
     | 'strategy'
     | 'instrument'
     | 'instruments'

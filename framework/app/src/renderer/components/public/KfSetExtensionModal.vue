@@ -6,6 +6,7 @@ import {
   getStrategyExtTypeData,
   getExtConfigList,
   isTdMd,
+  isOperator,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { useModalVisible } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import {
@@ -74,9 +75,13 @@ function handleConfirm() {
 function getKungfuTradeValueCommonDataByExtType(
   category: KfCategoryTypes,
   extType: InstrumentTypes | StrategyExtTypes,
-) {
+): KungfuApi.KfTradeValueCommonData | null {
   if (isTdMd(category)) {
     return getInstrumentTypeData(extType as InstrumentTypes);
+  }
+
+  if (isOperator(category)) {
+    return null;
   }
 
   return getStrategyExtTypeData(extType as StrategyExtTypes);
@@ -108,17 +113,23 @@ function getKungfuTradeValueCommonDataByExtType(
           {{ isLanguageKeyAvailable(item.name) ? $t(item.name) : item.name }}
         </span>
         <span class="source-id__txt">{{ item.key }}</span>
-        <a-tag
-          v-for="(extType, index) in item.type"
-          :key="index"
-          :color="
-            getKungfuTradeValueCommonDataByExtType(extensionType, extType).color
-          "
-        >
-          {{
-            getKungfuTradeValueCommonDataByExtType(extensionType, extType).name
-          }}
-        </a-tag>
+        <template v-for="(extType, index) in item.type">
+          <a-tag
+            v-if="
+              getKungfuTradeValueCommonDataByExtType(extensionType, extType)
+            "
+            :key="index"
+            :color="
+              getKungfuTradeValueCommonDataByExtType(extensionType, extType)
+                ?.color || 'default'
+            "
+          >
+            {{
+              getKungfuTradeValueCommonDataByExtType(extensionType, extType)
+                ?.name || ''
+            }}
+          </a-tag>
+        </template>
       </a-radio>
     </a-radio-group>
   </a-modal>

@@ -694,6 +694,14 @@ export const isTdMd = (category: KfCategoryTypes) => {
   return false;
 };
 
+export const isOperator = (category: KfCategoryTypes) => {
+  if (category === 'operator') {
+    return true;
+  }
+
+  return false;
+};
+
 export const isTdMdOperatorStrategy = (category: KfCategoryTypes) => {
   if (
     category === 'td' ||

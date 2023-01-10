@@ -30,6 +30,7 @@ import {
   useProcessStatusDetailData,
   useAddUpdateRemoveKfConfig,
   handleSwitchProcessStatus,
+  useExtConfigsRelated,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import {
   getIdByKfLocation,
@@ -69,7 +70,9 @@ const columns = getColumns();
 
 const addOperatorModalVisible = ref<boolean>(false);
 const setOperatorModalVisible = ref<boolean>(false);
+const setOperatorByExtModalVisible = ref<boolean>(false);
 const setExtensionModalVisible = ref<boolean>(false);
+const currentSelectedExtKey = ref<string>('');
 
 const setOperatorConfigPayload = ref<KungfuApi.SetKfConfigPayload>({
   type: 'add',
@@ -79,6 +82,8 @@ const setOperatorConfigPayload = ref<KungfuApi.SetKfConfigPayload>({
 
 const getPrefixByLocation = (kfLocation: KungfuApi.KfLocation) =>
   globalThis.HookKeeper.getHooks().prefix.trigger(kfLocation);
+
+const { extConfigs } = useExtConfigsRelated();
 
 function getOperatorType(
   operatorConfig: KungfuApi.KfConfig,
@@ -95,10 +100,17 @@ function handleOpenSetOperatorTypeDialog(
   type: AddOperatorTypeEnum,
   operatorConfig?: KungfuApi.KfConfig,
 ) {
-  console.log(method, type, '---');
   switch (type) {
     case AddOperatorTypeEnum.Extension:
-      handleOpenSetOperatorExtDialog();
+      if (method === 'add') {
+        handleOpenSetOperatorExtDialog();
+      } else if (method === 'update' && operatorConfig) {
+        handleConfirmSetOperatorExtDialog(
+          'update',
+          operatorConfig.group,
+          operatorConfig,
+        );
+      }
       break;
     case AddOperatorTypeEnum.File:
       handleOpenSetOperatorDialog(method, operatorConfig);
@@ -125,16 +137,63 @@ function handleOpenSetOperatorExtDialog() {
   setExtensionModalVisible.value = true;
 }
 
-function handleConfirmSetOperatorExtDialog(
+async function handleConfirmSetOperatorExtDialog(
   type = 'add' as KungfuApi.ModalChangeType,
-  selectedSource: string,
+  selectedOperatorExtKey: string,
   operatorConfig?: KungfuApi.KfConfig,
 ) {
-  console.log(type, selectedSource, operatorConfig);
+  const extConfig: KungfuApi.KfExtConfig = (extConfigs.value['operator'] || {})[
+    selectedOperatorExtKey
+  ];
+
+  if (!extConfig) {
+    error(
+      `${selectedOperatorExtKey} ${t('operatorConfig.operator_not_found', {
+        md: selectedOperatorExtKey,
+      })}`,
+    );
+    return;
+  }
+
+  currentSelectedExtKey.value = selectedOperatorExtKey;
+  setOperatorConfigPayload.value.type = type;
+  setOperatorConfigPayload.value.title = `${selectedOperatorExtKey} ${t(
+    'Operator',
+  )}`;
+  setOperatorConfigPayload.value.config =
+    await globalThis.HookKeeper.getHooks().resolveExtConfig.trigger(
+      {
+        category: 'operator',
+        group: selectedOperatorExtKey,
+        name: '*',
+      },
+      extConfig,
+    );
+  setOperatorConfigPayload.value.initValue = undefined;
+
+  if (type === 'update' && operatorConfig) {
+    setOperatorConfigPayload.value.initValue = JSON.parse(operatorConfig.value);
+  }
+
+  if (!extConfig?.settings?.length) {
+    handleConfirmAddUpdateKfConfig(
+      {
+        formState: {} as Record<string, KungfuApi.KfConfigValue>,
+        configSettings: [],
+        idByPrimaryKeys: selectedOperatorExtKey,
+        changeType: type,
+      },
+      'operator',
+      selectedOperatorExtKey,
+    );
+    return;
+  }
+
+  setOperatorByExtModalVisible.value = true;
 }
 
 function getOperatorPathShowName(kfConfig: KungfuApi.KfConfig): string {
-  const strategyPath = getConfigValue(kfConfig).file_path || '';
+  const strategyPath = getConfigValue(kfConfig).file_path || '--';
   return path.basename(strategyPath);
 }
 
@@ -196,7 +255,7 @@ function handleRemoveOperator(record: KungfuApi.KfConfig) {
           }"
         >
           <template v-if="column.dataIndex === 'name'">
-            <span>{{ record[column.dataIndex] }}</span>
+            <span>{{ getIdByKfLocation(record) }}</span>
             <Icon
               v-if="getPrefixByLocation(record).prefixType === 'icon'"
               :component="getPrefixByLocation(record).prefix"
@@ -276,6 +335,20 @@ function handleRemoveOperator(record: KungfuApi.KfConfig) {
       extensionType="operator"
       @confirm="handleConfirmSetOperatorExtDialog('add', $event)"
     ></KfSetExtensionModal>
+    <KfSetByConfigModal
+      v-if="setOperatorByExtModalVisible"
+      v-model:visible="setOperatorByExtModalVisible"
+      :payload="setOperatorConfigPayload"
+      :primaryKeyAvoidRepeatCompareTarget="operatorIdList"
+      :primaryKeyAvoidRepeatCompareExtra="currentSelectedExtKey"
+      @confirm="
+        handleConfirmAddUpdateKfConfig(
+          $event,
+          'operator',
+          currentSelectedExtKey,
+        )
+      "
+    ></KfSetByConfigModal>
   </div>
 </template>
 <style lang="less">

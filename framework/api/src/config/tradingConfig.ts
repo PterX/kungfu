@@ -172,7 +172,7 @@ export const KfCategory: Record<
   },
   [KfCategoryEnum.operator]: {
     name: t('tradingConfig.operator'),
-    color: 'green',
+    color: 'pink',
     level: 80,
   },
 };

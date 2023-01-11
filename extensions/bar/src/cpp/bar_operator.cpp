@@ -19,9 +19,7 @@ public:
     context->subscribe("sim", {"600000"}, {"SSE"});
   }
 
-  void post_start(Context_ptr & context) override { 
-    SPDLOG_INFO("operator started"); 
-  }
+  void post_start(Context_ptr & context) override { SPDLOG_INFO("operator started"); }
 
   void on_quote(Context_ptr & context, const Quote &quote, const location_ptr &location) override {
     i++;
@@ -48,7 +46,7 @@ public:
   };
 
   void on_operator_state_change(Context_ptr & context, const OperatorStateUpdate &operator_state_update,
-                              const location_ptr &location) override {
+                                const location_ptr &location) override {
     SPDLOG_INFO("on operator state changed: {}", operator_state_update.to_string());
   };
 };

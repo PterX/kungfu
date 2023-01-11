@@ -257,7 +257,7 @@ class Strategy(wc.Strategy):
         self.__call_proxy(
             self._on_broker_state_change, self.ctx, broker_state_update, location
         )
-    
+
     def on_operator_state_change(self, wc_context, operator_state_update, location):
         self.__call_proxy(
             self._on_operator_state_change, self.ctx, operator_state_update, location

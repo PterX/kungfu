@@ -384,6 +384,7 @@ export default {
     operator_path: '算子路径',
     operator_path_tip:
       '普通 python 算子选择 .py 文件, 加密 python 算子或cpp算子选择编译后的 .so 或 .pyd 文件',
+    state_status: '状态',
     process_status: '进程',
     actions: '操作',
     operator_tip: '需保证该算子ID唯一',

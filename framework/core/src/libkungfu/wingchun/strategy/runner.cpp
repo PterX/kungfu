@@ -151,7 +151,8 @@ void Runner::prepare(const event_ptr &event) {
     }
     return true;
   };
-  if (not ready_test(context_->list_accounts()) or not ready_test(context_->list_md()) or not ready_test(context_->list_op())) {
+  if (not ready_test(context_->list_accounts()) or not ready_test(context_->list_md()) or
+      not ready_test(context_->list_op())) {
     return;
   }
 

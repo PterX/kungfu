@@ -62,14 +62,13 @@ public:
    */
   virtual void subscribe_all(const std::string &source, uint8_t market_type = 0, uint64_t instrument_type = 0,
                              uint64_t data_type = 0) = 0;
-                            
+
   /**
    * Subscribe operator data.
    * @param group OPERATOR group
    * @param name OPERATOR name
    */
   virtual void subscribe_operator(const std::string &group, const std::string &name) = 0;
-
 
   /**
    * Insert Block Message

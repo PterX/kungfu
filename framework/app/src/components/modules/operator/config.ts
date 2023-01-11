@@ -19,6 +19,12 @@ export const getColumns = (): AntTableColumns => [
     fixed: 'left',
   },
   {
+    title: t('operatorConfig.state_status'),
+    dataIndex: 'stateStatus',
+    align: 'left',
+    width: 80,
+  },
+  {
     title: t('operatorConfig.process_status'),
     dataIndex: 'processStatus',
     align: 'center',

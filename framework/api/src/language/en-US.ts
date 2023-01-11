@@ -385,6 +385,7 @@ export default {
     operator_path: 'operator_path',
     operator_path_tip:
       'Normal python operator use .py file, packaged operator use .so or .pyd file in operator folder',
+    state_status: 'status',
     process_status: 'process',
     actions: 'actions',
     operator_tip: 'Ensure that the operator_id is unique',

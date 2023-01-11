@@ -6,6 +6,8 @@ import os
 import sys
 import types
 import kungfu
+import glob
+from fnmatch import fnmatch
 
 from kungfu.console import site
 from kungfu.yijinjing import journal as kfj
@@ -292,6 +294,11 @@ class ExtensionExecutor:
         os.environ["KF_OP_GROUP"] = ctx.group
         # TODO check extension.h for implementation details, how to deal with 1 runner : N operators?
         os.environ["KF_OP_NAME"] = ctx.name
+        if ctx.path is None:
+            self.setup(loader, use_ctx_path=False)
+            module_path = list(filter(lambda file_name: fnmatch(file_name, '*.so') or fnmatch(file_name, '*.pyd') or fnmatch(file_name, '*.py'),
+                   glob.glob(os.path.join(loader.extension_dir, ctx.group + '*'))))[0]
+            ctx.path = os.path.abspath(module_path)
         if loader.config is None:
             load = False
             json_config = os.path.join(os.path.dirname(ctx.path), "package.json")

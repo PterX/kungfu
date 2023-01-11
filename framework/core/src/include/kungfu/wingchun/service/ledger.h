@@ -89,7 +89,7 @@ private:
     for (const auto &pair : app_states) {
       auto &app_state = pair.second;
       writer->write(now(), app_state);
-      SPDLOG_INFO("write to public location {}, app state {}", get_location_uname(app_state.location_uid),
+      SPDLOG_INFO("write to public location app {} state {}", get_location_uname(app_state.location_uid),
                   static_cast<int>(app_state.state));
     }
   };

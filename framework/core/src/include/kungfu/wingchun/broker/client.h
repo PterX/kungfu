@@ -283,6 +283,10 @@ public:
 
   void enroll_operator(const yijinjing::data::location_ptr &op_location);
 
+  bool enrolled_operator_ready() const;
+
+  bool enrolled_md_ready() const;
+
 protected:
   [[nodiscard]] bool should_connect_md(const yijinjing::data::location_ptr &md_location) const override;
 

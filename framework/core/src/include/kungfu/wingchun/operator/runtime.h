@@ -97,7 +97,10 @@ public:
    * Get broker client.
    * @return broker client reference
    */
-  broker::Client &get_broker_client();
+  broker::PassiveClient &get_broker_client();
+
+
+  void check_dependency_state(const event_ptr &event);
 
 protected:
   // those 3 member maybe shared with BacktestContext
@@ -116,6 +119,7 @@ private:
   yijinjing::data::location_map op_locations_ = {};
   std::unordered_map<std::string, yijinjing::data::location_ptr> market_data_ = {};
   std::unordered_map<std::string, yijinjing::data::location_ptr> operator_data_ = {};
+  longfist::types::OperatorState state_;
 };
 
 DECLARE_PTR(RuntimeContext)

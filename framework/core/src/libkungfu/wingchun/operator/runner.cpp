@@ -42,6 +42,15 @@ void Runner::on_start() {
       $$(invoke(&Operator::on_operator_state_change, event->data<OperatorStateUpdate>(),
                 get_location(event->source())));
 
+  if (get_home()->mode == mode::LIVE) {
+    auto start_events = events_ | skip_until(events_ | filter([&](auto e) { return started_; }));
+    start_events | is(Deregister::tag) | $$(context_->check_dependency_state(event));
+    start_events | is(OperatorStateUpdate::tag) | $$(context_->check_dependency_state(event));
+    start_events | is(OperatorStateUpdate::tag) | $$(context_->check_dependency_state(event));
+    // events_ | is(BrokerStateUpdate::tag) | $$(context_->check_dependency_state(event));
+    // events_ | is(OperatorStateUpdate::tag) | $$(context_->check_dependency_state(event));
+  }
+
   events_ | take_until(events_ | filter([&](auto e) { return started_; })) | $$(prepare(event));
   post_start();
 }
@@ -100,19 +109,14 @@ void Runner::prepare(const event_ptr &event) {
     broker_states_requested_ = true;
   }
 
-  auto ready_test = [&](auto &locations) {
-    for (const auto &pair : locations) {
-      if (not context_->get_broker_client().is_ready(pair.second->uid)) {
-        return false;
-      }
-    }
-    return true;
-  };
-  if (not ready_test(context_->list_md()) or not ready_test(context_->list_op())) {
+  if (not context_->get_broker_client().enrolled_md_ready() or not context_->get_broker_client().enrolled_operator_ready()) {
     return;
   }
   started_ = true;
+
+  OperatorStateUpdate state_update;
+  state_update.state = OperatorState::Ready;
+  context_->update_operator_state(state_update);
   post_start();
 }
-
 } // namespace kungfu::wingchun::op

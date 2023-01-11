@@ -53,7 +53,7 @@ const operatorIdList = computed(() => {
     getIdByKfLocation(item),
   );
 });
-const { processStatusData } = useProcessStatusDetailData();
+const { processStatusData, getProcessStatusName } = useProcessStatusDetailData();
 const { allProcessOnline, handleSwitchAllProcessStatus } = useSwitchAllConfig(
   operator,
   processStatusData,
@@ -206,6 +206,7 @@ function handleRemoveOperator(record: KungfuApi.KfConfig) {
       error(err.message || t('operation_failed'));
     });
 }
+
 </script>
 
 <template>
@@ -264,6 +265,11 @@ function handleRemoveOperator(record: KungfuApi.KfConfig) {
           </template>
           <template v-else-if="column.dataIndex === 'operatorFile'">
             {{ getOperatorPathShowName(record) }}
+          </template>
+          <template v-else-if="column.dataIndex === 'stateStatus'">
+            <KfProcessStatus
+              :statusName="getProcessStatusName(record)"
+            ></KfProcessStatus>
           </template>
           <template v-else-if="column.dataIndex === 'processStatus'">
             <a-switch

@@ -56,7 +56,7 @@ public:
    */
   void subscribe_all(const std::string &source, uint8_t market_type = 0, uint64_t instrument_type = 0,
                      uint64_t data_type = 0) override;
-                    
+
   /**
    * Subscribe operator data.
    * @param group OPERATOR group
@@ -152,7 +152,6 @@ public:
    * @return subscribed OPERATOR locations
    */
   const yijinjing::data::location_map &list_op() const;
-
 
   /**
    * Get enrolled TD locations.

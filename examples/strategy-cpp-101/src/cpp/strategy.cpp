@@ -52,7 +52,8 @@ public:
     // }
   }
 
-  void on_synthetic_data(Context_ptr & context, const SyntheticData &synthetic_data, const location_ptr &location) override {
+  void on_synthetic_data(Context_ptr & context, const SyntheticData &synthetic_data, const location_ptr &location)
+      override {
     SPDLOG_INFO("on_synthetic_data: {} ", synthetic_data.to_string());
   }
 
@@ -62,7 +63,7 @@ public:
   };
 
   void on_operator_state_change(Context_ptr & context, const OperatorStateUpdate &operator_state_update,
-                              const location_ptr &location) override {
+                                const location_ptr &location) override {
     SPDLOG_INFO("on operator state changed: {}", operator_state_update.to_string());
   };
 };

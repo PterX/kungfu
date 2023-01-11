@@ -45,7 +45,7 @@ public:
   //@param transaction       逐笔成交数据
   virtual void on_transaction(Context_ptr &context, const longfist::types::Transaction &transaction,
                               const kungfu::yijinjing::data::location_ptr &location){};
-                  
+
   // Operator publish 的 synthetic_data 回调
   //@param synthetic_data   Operator publish 的 synthetic_data
   virtual void on_synthetic_data(Context_ptr &context, const longfist::types::SyntheticData &synthetic_data,

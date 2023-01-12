@@ -103,7 +103,6 @@ public:
    */
   broker::PassiveClient &get_broker_client();
 
-
   void check_dependency_state(const event_ptr &event);
 
 protected:

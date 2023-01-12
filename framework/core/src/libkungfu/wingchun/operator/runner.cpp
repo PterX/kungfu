@@ -107,7 +107,8 @@ void Runner::prepare(const event_ptr &event) {
     broker_states_requested_ = true;
   }
 
-  if (not context_->get_broker_client().enrolled_md_ready() or not context_->get_broker_client().enrolled_operator_ready()) {
+  if (not context_->get_broker_client().enrolled_md_ready() or
+      not context_->get_broker_client().enrolled_operator_ready()) {
     return;
   }
   started_ = true;

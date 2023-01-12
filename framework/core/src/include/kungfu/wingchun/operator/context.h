@@ -26,7 +26,6 @@ public:
    */
   virtual const std::string &get_config() const = 0;
 
-
   /**
    * Add one shot timer callback.
    * @param nanotime when to call in nano seconds

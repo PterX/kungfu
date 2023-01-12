@@ -53,7 +53,8 @@ const operatorIdList = computed(() => {
     getIdByKfLocation(item),
   );
 });
-const { processStatusData, getProcessStatusName } = useProcessStatusDetailData();
+const { processStatusData, getProcessStatusName } =
+  useProcessStatusDetailData();
 const { allProcessOnline, handleSwitchAllProcessStatus } = useSwitchAllConfig(
   operator,
   processStatusData,
@@ -206,7 +207,6 @@ function handleRemoveOperator(record: KungfuApi.KfConfig) {
       error(err.message || t('operation_failed'));
     });
 }
-
 </script>
 
 <template>

@@ -308,16 +308,12 @@ bool PassiveClient::is_custom_subscribed_all(uint32_t md_location_uid,
 
 bool PassiveClient::enrolled_operator_ready() const {
   return std::all_of(enrolled_op_locations_.begin(), enrolled_op_locations_.end(),
-                     [this](const auto &it) {
-                       return is_ready(it.first);
-                     });
+                     [this](const auto &it) { return is_ready(it.first); });
 }
 
 bool PassiveClient::enrolled_md_ready() const {
   return std::all_of(enrolled_md_locations_.begin(), enrolled_md_locations_.end(),
-                     [this](const auto &it) {
-                       return is_ready(it.first);
-                     });
+                     [this](const auto &it) { return is_ready(it.first); });
 }
 
 bool PassiveClient::is_all_subscribed(uint32_t md_location_uid) const {

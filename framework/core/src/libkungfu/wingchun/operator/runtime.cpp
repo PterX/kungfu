@@ -91,33 +91,33 @@ int64_t RuntimeContext::get_trading_day() const { return app_.get_trading_day();
 broker::PassiveClient &RuntimeContext::get_broker_client() { return broker_client_; }
 
 void RuntimeContext::check_dependency_state(const event_ptr &event) {
-    bool all_dependency_ready = true;
-    if (event->msg_type() == BrokerStateUpdate::tag) {
-      if (event->data<BrokerStateUpdate>().state == BrokerState::Ready and state_ == OperatorState::Ready)
-        return;
-      if (event->data<BrokerStateUpdate>().state != BrokerState::Ready and state_ != OperatorState::Ready)
-        return;
-      all_dependency_ready = broker_client_.enrolled_md_ready();
-    }
-    if (event->msg_type() == OperatorStateUpdate::tag) {
-      if (event->data<OperatorStateUpdate>().state == OperatorState::Ready and state_ == OperatorState::Ready) 
-        return;
-      if (event->data<OperatorStateUpdate>().state != OperatorState::Ready and state_ != OperatorState::Ready) 
-        return;
-      all_dependency_ready = broker_client_.enrolled_operator_ready();
-    }
-    if (event->msg_type() == Deregister::tag) {
-      all_dependency_ready = broker_client_.enrolled_operator_ready() and broker_client_.enrolled_md_ready();
-    }
-    OperatorStateUpdate state_update;
-    if (not all_dependency_ready) {
-      state_update.state = OperatorState::DisConnected;
-      update_operator_state(state_update);
-    } else {
-      state_update.state = OperatorState::Ready;
-      update_operator_state(state_update);
-    }
-    SPDLOG_DEBUG("checked dependency, all dependency ready={}, ", all_dependency_ready);
+  bool all_dependency_ready = true;
+  if (event->msg_type() == BrokerStateUpdate::tag) {
+    if (event->data<BrokerStateUpdate>().state == BrokerState::Ready and state_ == OperatorState::Ready)
+      return;
+    if (event->data<BrokerStateUpdate>().state != BrokerState::Ready and state_ != OperatorState::Ready)
+      return;
+    all_dependency_ready = broker_client_.enrolled_md_ready();
+  }
+  if (event->msg_type() == OperatorStateUpdate::tag) {
+    if (event->data<OperatorStateUpdate>().state == OperatorState::Ready and state_ == OperatorState::Ready)
+      return;
+    if (event->data<OperatorStateUpdate>().state != OperatorState::Ready and state_ != OperatorState::Ready)
+      return;
+    all_dependency_ready = broker_client_.enrolled_operator_ready();
+  }
+  if (event->msg_type() == Deregister::tag) {
+    all_dependency_ready = broker_client_.enrolled_operator_ready() and broker_client_.enrolled_md_ready();
+  }
+  OperatorStateUpdate state_update;
+  if (not all_dependency_ready) {
+    state_update.state = OperatorState::DisConnected;
+    update_operator_state(state_update);
+  } else {
+    state_update.state = OperatorState::Ready;
+    update_operator_state(state_update);
+  }
+  SPDLOG_DEBUG("checked dependency, all dependency ready={}, ", all_dependency_ready);
 }
 
 const location_ptr &RuntimeContext::find_md_location(const std::string &source) {

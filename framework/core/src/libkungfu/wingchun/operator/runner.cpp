@@ -31,7 +31,7 @@ void Runner::on_trading_day(const event_ptr &event, int64_t daytime) { invoke(&O
 void Runner::on_react() { context_ = make_context(); }
 
 void Runner::on_start() {
-  context_->on_start();
+  enable(*context_);
   pre_start();
   // TODO add skip_until for broker_states_requested_ == true later
   events_ | is_own<Deregister>(context_->get_broker_client()) |

@@ -22,8 +22,6 @@ public:
    */
   const std::string &get_config() const override;
 
-  void on_start() override;
-
   /**
    * Add one shot timer callback.
    * @param nanotime when to call in nano seconds
@@ -118,6 +116,8 @@ protected:
                 std::unordered_map<std::string, yijinjing::data::location_ptr> &locations);
 
   const yijinjing::data::location_ptr &find_md_location(const std::string &source);
+
+  void on_start() override;
 
 private:
   broker::PassiveClient broker_client_;

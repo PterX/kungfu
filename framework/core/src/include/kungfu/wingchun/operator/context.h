@@ -26,7 +26,6 @@ public:
    */
   virtual const std::string &get_config() const = 0;
 
-  virtual void on_start(){};
 
   /**
    * Add one shot timer callback.
@@ -90,6 +89,12 @@ public:
    * @param infos vector<string>, info_a, info_b, info_c.
    */
   virtual void update_operator_state(longfist::types::OperatorStateUpdate &state_update) {}
+
+protected:
+  virtual void on_start(){};
+
+private:
+  friend void enable(Context &context) { context.on_start(); }
 };
 } // namespace kungfu::wingchun::op
 

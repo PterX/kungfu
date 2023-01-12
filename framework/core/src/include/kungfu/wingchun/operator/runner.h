@@ -22,8 +22,6 @@ public:
 
   void on_trading_day(const event_ptr &event, int64_t daytime) override;
 
-  const std::string &get_config() const;
-
 protected:
   void on_react() override;
 

@@ -86,7 +86,6 @@ void bind_operator(pybind11::module &m) {
       .def(py::init<kungfu::yijinjing::data::locator_ptr, const std::string &, const std::string &,
                     longfist::enums::mode, bool>())
       .def_property_readonly("context", &op::Runner::get_context)
-      .def_property_readonly("config", &op::Runner::get_config)
       .def("set_begin_time", &op::Runner::set_begin_time)
       .def("set_end_time", &op::Runner::set_end_time)
       .def("now", &op::Runner::now)
@@ -99,6 +98,7 @@ void bind_operator(pybind11::module &m) {
 
   py::class_<op::Context, std::shared_ptr<op::Context>>(m, "OpContext")
       .def_property_readonly("trading_day", &op::Context::get_trading_day)
+      .def_property_readonly("config", &op::Context::get_config)
       .def("now", &op::Context::now)
       .def("add_timer", &op::Context::add_timer)
       .def("add_time_interval", &op::Context::add_time_interval)

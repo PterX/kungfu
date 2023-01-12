@@ -295,7 +295,6 @@ class ExtensionExecutor:
         # TODO check extension.h for implementation details, how to deal with 1 runner : N operators?
         os.environ["KF_OP_NAME"] = ctx.name
         if ctx.path is None:
-            self.setup(loader, use_ctx_path=False)
             module_path = list(filter(lambda file_name: fnmatch(file_name, '*.so') or fnmatch(file_name, '*.pyd') or fnmatch(file_name, '*.py'),
                    glob.glob(os.path.join(loader.extension_dir, ctx.group + '*'))))[0]
             ctx.path = os.path.abspath(module_path)

@@ -16,6 +16,12 @@ public:
    */
   int64_t now() const override;
 
+  /**
+   * Get config from database.
+   * @return config of current location_uid
+   */
+  const std::string &get_config() const override;
+
   void on_start() override;
 
   /**

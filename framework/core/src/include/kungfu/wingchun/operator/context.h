@@ -20,6 +20,12 @@ public:
    */
   virtual int64_t now() const = 0;
 
+  /**
+   * Get config from database.
+   * @return  config of current location_uid
+   */
+  virtual const std::string &get_config() const = 0;
+
   virtual void on_start(){};
 
   /**

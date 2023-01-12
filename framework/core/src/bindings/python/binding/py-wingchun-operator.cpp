@@ -86,6 +86,7 @@ void bind_operator(pybind11::module &m) {
       .def(py::init<kungfu::yijinjing::data::locator_ptr, const std::string &, const std::string &,
                     longfist::enums::mode, bool>())
       .def_property_readonly("context", &op::Runner::get_context)
+      .def_property_readonly("config", &op::Runner::get_config)
       .def("set_begin_time", &op::Runner::set_begin_time)
       .def("set_end_time", &op::Runner::set_end_time)
       .def("now", &op::Runner::now)

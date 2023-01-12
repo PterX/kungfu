@@ -26,6 +26,12 @@ void Runner::add_operator(const Operator_ptr &op) { operators_.push_back(op); }
 
 void Runner::on_exit() { post_stop(); }
 
+const std::string &Runner::get_config() const {
+  auto &config_map = get_state_bank()[boost::hana::type_c<Config>];
+  auto &config_obj = config_map.at(get_home_uid());
+  return config_obj.data.value;
+}
+
 void Runner::on_trading_day(const event_ptr &event, int64_t daytime) { invoke(&Operator::on_trading_day, daytime); }
 
 void Runner::on_react() { context_ = make_context(); }
@@ -47,8 +53,6 @@ void Runner::on_start() {
     start_events | is(Deregister::tag) | $$(context_->check_dependency_state(event));
     start_events | is(OperatorStateUpdate::tag) | $$(context_->check_dependency_state(event));
     start_events | is(OperatorStateUpdate::tag) | $$(context_->check_dependency_state(event));
-    // events_ | is(BrokerStateUpdate::tag) | $$(context_->check_dependency_state(event));
-    // events_ | is(OperatorStateUpdate::tag) | $$(context_->check_dependency_state(event));
   }
 
   events_ | take_until(events_ | filter([&](auto e) { return started_; })) | $$(prepare(event));

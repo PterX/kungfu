@@ -108,6 +108,12 @@ void WatcherAutoClient::connect(const event_ptr &event, const longfist::types::R
       app_.request_write_to(app_.now(), app_location->uid);
       SPDLOG_INFO("resume {} connection from {}", app_.get_location_uname(app_uid), time::strftime(resume_time_point));
     }
+
+    if (app_location->category == category::OPERATOR and should_connect_operator(app_location)) {
+      app_.request_write_to(app_.now(), app_location->uid);
+      SPDLOG_INFO("resume {} connection from {}", app_.get_location_uname(app_uid), time::strftime(resume_time_point));
+    }
+
   } else {
     wingchun::broker::SilentAutoClient::connect(event, register_data);
   }

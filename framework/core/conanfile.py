@@ -125,6 +125,11 @@ class KungfuCoreConan(ConanFile):
             self.copy("*", dst="lib", src=build_type)
             self.copy("*", dst="bin", src=path.join("src", "libkungfu", build_type))
 
+            from glob import glob
+            self.copy("*", dst="deps/hana", src=glob(".deps/hana-*")[0])
+            self.copy("*", dst="deps/pybind11", src=glob(".deps/pybind11-*")[0])
+            self.copy("*", dst="cmake", src=".cmake")
+
     def package_info(self):
         self.cpp_info.names["cmake_find_package"] = "kungfu"
         self.cpp_info.names["cmake_find_package_multi"] = "kungfu"

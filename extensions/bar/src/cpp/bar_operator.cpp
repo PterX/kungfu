@@ -25,19 +25,17 @@ struct Bar {
   std::size_t tick_count;
 };
 
-void to_json(nlohmann::json& j, const Bar& bar) {
-  j = nlohmann::json{
-    {"instrument_id", bar.instrument_id}, 
-    {"exchange_id", bar.exchange_id}, 
-    {"instrument_type", bar.instrument_type}, 
-    {"start_time", bar.start_time}, 
-    {"end_time", bar.end_time}, 
-    {"open", bar.open}, 
-    {"close", bar.close}, 
-    {"high", bar.high}, 
-    {"low", bar.low},
-    {"volume", bar.volume}
-  };
+void to_json(nlohmann::json &j, const Bar &bar) {
+  j = nlohmann::json{{"instrument_id", bar.instrument_id},
+                     {"exchange_id", bar.exchange_id},
+                     {"instrument_type", bar.instrument_type},
+                     {"start_time", bar.start_time},
+                     {"end_time", bar.end_time},
+                     {"open", bar.open},
+                     {"close", bar.close},
+                     {"high", bar.high},
+                     {"low", bar.low},
+                     {"volume", bar.volume}};
 }
 
 KUNGFU_MAIN_OPERATOR(BarOperator) {
@@ -51,7 +49,7 @@ public:
     std::string::size_type ins_pos_start = instrument_element.find_first_of('_', 0) + 1;
     std::string::size_type ins_pos_end = instrument_element.find_first_of('_', ins_pos_start);
     return std::make_pair(instrument_element.substr(ex_pos_start, ex_pos_end - ex_pos_start),
-                   instrument_element.substr(ins_pos_start, ins_pos_end - ins_pos_start));
+                          instrument_element.substr(ins_pos_start, ins_pos_end - ins_pos_start));
   }
 
   void pre_start(Context_ptr & context) override {
@@ -97,7 +95,8 @@ public:
       bar.close = quote.last_price;
     }
     if (quote.data_time >= bar.end_time) {
-      context->publish_synthetic_data(fmt::format("{}_{}", bar.instrument_id, time_interval_), nlohmann::json(bar).dump());
+      context->publish_synthetic_data(fmt::format("{}_{}", bar.instrument_id, time_interval_),
+                                      nlohmann::json(bar).dump());
       bar.start_time = bar.end_time;
       while (bar.start_time + time_interval_ < quote.data_time) {
         bar.start_time += time_interval_;
@@ -121,7 +120,6 @@ public:
         bar.close = 0;
       }
     }
-
   }
 
   void on_broker_state_change(Context_ptr & context, const BrokerStateUpdate &broker_state_update,
@@ -135,6 +133,6 @@ public:
   };
 
 private:
-   int64_t time_interval_;  
-   std::unordered_map<uint32_t, Bar> bars_;
+  int64_t time_interval_;
+  std::unordered_map<uint32_t, Bar> bars_;
 };

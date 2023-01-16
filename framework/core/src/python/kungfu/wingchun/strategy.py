@@ -239,7 +239,7 @@ class Strategy(wc.Strategy):
         self.__call_proxy(self._on_transaction, self.ctx, transaction, location)
 
     def on_synthetic_data(self, wc_context, synthetic_data, location):
-        self.__call_proxy(self.on_synthetic_data, self.ctx, synthetic_data, location)
+        self.__call_proxy(self._on_synthetic_data, self.ctx, synthetic_data, location)
 
     def on_order(self, wc_context, order, location):
         self.__call_proxy(self._on_order, self.ctx, order, location)

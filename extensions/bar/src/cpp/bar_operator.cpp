@@ -69,13 +69,12 @@ public:
   void post_start(Context_ptr & context) override { SPDLOG_INFO("operator started"); }
 
   void on_quote(Context_ptr & context, const Quote &quote, const location_ptr &location) override {
-    SPDLOG_INFO("on quote: {} ", quote.to_string());
     auto instrument_key = kungfu::wingchun::hash_instrument(quote.instrument_id, quote.exchange_id);
     auto pair = bars_.try_emplace(instrument_key);
     auto &bar = pair.first->second;
     if (pair.second) {
-      bar.instrument_id = std::string(quote.instrument_id);
-      bar.exchange_id = std::string(quote.exchange_id);
+      bar.instrument_id = quote.instrument_id.to_string();
+      bar.exchange_id = quote.exchange_id.to_string();
       auto current_time = context->now();
       bar.start_time = current_time - current_time % time_interval_;
       bar.end_time = bar.start_time + time_interval_;

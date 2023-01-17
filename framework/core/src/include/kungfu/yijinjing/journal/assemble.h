@@ -45,6 +45,9 @@ public:
   explicit assemble(const std::vector<data::locator_ptr> &locators, const std::string &mode = "*",
                     const std::string &category = "*", const std::string &group = "*", const std::string &name = "*");
 
+  explicit assemble(const std::string &mode = "*", const std::string &category = "*", const std::string &group = "*",
+                    const std::string &name = "*");
+
   virtual ~assemble() = default;
 
   assemble operator+(assemble &other);
@@ -61,9 +64,20 @@ public:
 
   std::shared_ptr<frame_reader> get_reader(const kungfu::yijinjing::data::location_ptr &pl);
 
+  void join_channel(const kungfu::yijinjing::data::location_ptr &pl, uint32_t dest_id, int64_t from_time);
+
+  void join_all(const kungfu::yijinjing::data::location_ptr &pl, int64_t from_time);
+
+  void disjoin(const uint32_t location_uid);
+
+  bool data_available(uint32_t location_uid);
+
+  frame_ptr current_frame(uint32_t location_uid);
+
 protected:
   std::vector<reader_ptr> readers_ = {};
   reader_ptr current_reader_ = {};
+  std::unordered_map<uint32_t, reader_ptr> location_readers_{}; // <location_uid, reader>
 
 private:
   const std::string &mode_;
@@ -74,6 +88,8 @@ private:
   std::vector<data::locator_ptr> locators_ = {};
 
   void sort();
+
+  reader_ptr get_reader(uint32_t location_uid);
 };
 DECLARE_PTR(assemble)
 } // namespace kungfu::yijinjing::journal

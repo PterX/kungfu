@@ -32,7 +32,7 @@ export const updateStrategyPath = async (
       kfLocation,
       JSON.stringify({
         strategy_id: strategyId,
-        strategy_path: strategyPath,
+        file_path: strategyPath,
         add_time: addTime,
       }),
     );

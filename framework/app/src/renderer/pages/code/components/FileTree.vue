@@ -92,7 +92,7 @@ const { success, error } = messagePrompt();
 watch(strategy.value as Code.Strategy, (newStrategy) => {
   getPath(newStrategy);
   initFileTree(newStrategy).then((fileItem) => {
-    const entryPath: string = newStrategy.strategy_path;
+    const entryPath: string = newStrategy.file_path;
 
     const currentFile = findTargetFromArray<Code.FileData>(
       Object.values(fileItem),
@@ -182,14 +182,14 @@ function handleAddFile() {
 
 //从prop内获取path
 function getPath(strategy: Code.Strategy) {
-  if (strategy && strategy.strategy_path) {
+  if (strategy && strategy.file_path) {
     //因为绑定策略时是文件，需要提取其父目录
-    strategyPath.value = path.dirname(strategy.strategy_path);
+    strategyPath.value = path.dirname(strategy.file_path);
     strategyPathName.value = path.basename(strategyPath.value);
   }
 }
 async function initFileTree(strategy) {
-  if (!strategy.strategy_id || !strategy.strategy_path) return;
+  if (!strategy.strategy_id || !strategy.file_path) return;
   //根文件夹得信息不像其他通过fs读取，而是直接从props的strategy中去取
   const rootId = window.fileId++;
 

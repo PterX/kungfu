@@ -88,7 +88,9 @@ async function handleOpenSetMdDialog(
   ];
 
   if (!extConfig) {
-    error(`${selectedSource} ${t('mdConfig.counter_plugin_inexistence')}`);
+    error(
+      `${selectedSource} ${t('mdConfig.md_not_found', { md: selectedSource })}`,
+    );
     return;
   }
 

@@ -25,6 +25,8 @@ void bind_service(pybind11::module &m);
 
 void bind_strategy(pybind11::module &m);
 
+void bind_operator(pybind11::module &m);
+
 void bind_utils(pybind11::module &m);
 
 } // namespace kungfu::wingchun::pybind

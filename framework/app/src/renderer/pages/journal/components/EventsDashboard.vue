@@ -314,9 +314,6 @@ const loadFrameData = (
 
     runner();
   }).then((res) => {
-    console.log(res);
-    console.log(total);
-
     if (checking) {
       frameDataList.value.push(...res);
       journalStore.setCurrentSessionFrames(res, false);

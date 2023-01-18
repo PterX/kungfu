@@ -18,6 +18,7 @@ public:
     SPDLOG_INFO("preparing strategy");
     context->add_account("sim", "1");
     context->subscribe("sim", {"600000"}, {"SSE"});
+    // context->subscribe_operator("bar", "my-bar");
   }
 
   void post_start(Context_ptr & context) override {
@@ -32,22 +33,37 @@ public:
   }
 
   void on_quote(Context_ptr & context, const Quote &quote, const location_ptr &location) override {
-    i++;
     SPDLOG_INFO("on quote: {} i {} location->uid {}", quote.last_price, i, location->location_uid);
-    if (i == 5) {
-      std::shared_ptr<kungfu::yijinjing::journal::assemble> p_assemble =
-          std::make_shared<kungfu::yijinjing::journal::assemble>(std::vector<locator_ptr>{});
-      std::shared_ptr<kungfu::yijinjing::journal::frame_reader> r = p_assemble->get_reader(location);
-      auto f = r->current_frame();
-      SPDLOG_INFO("f source {} dest {} data {}", f->source(), f->dest(), f->data_as_string());
-      while (true) {
-        auto f = r->next_frame();
-        if (!f) {
-          SPDLOG_INFO("f null");
-          break;
-        }
-        SPDLOG_INFO("f source {} dest {} data {}", f->source(), f->dest(), f->data_as_string());
-      }
-    }
+    // i++;
+    // if (i == 5) {
+    //   std::shared_ptr<kungfu::yijinjing::journal::assemble> p_assemble =
+    //       std::make_shared<kungfu::yijinjing::journal::assemble>(std::vector<locator_ptr>{});
+    //   std::shared_ptr<kungfu::yijinjing::journal::frame_reader> r = p_assemble->get_reader(location);
+    //   auto f = r->current_frame();
+    //   SPDLOG_INFO("f source {} dest {} data {}", f->source(), f->dest(), f->data_as_string());
+    //   while (true) {
+    //     auto f = r->next_frame();
+    //     if (!f) {
+    //       SPDLOG_INFO("f null");
+    //       break;
+    //     }
+    //     SPDLOG_INFO("f source {} dest {} data {}", f->source(), f->dest(), f->data_as_string());
+    //   }
+    // }
   }
+
+  void on_synthetic_data(Context_ptr & context, const SyntheticData &synthetic_data, const location_ptr &location)
+      override {
+    SPDLOG_INFO("on_synthetic_data: {} ", synthetic_data.to_string());
+  }
+
+  void on_broker_state_change(Context_ptr & context, const BrokerStateUpdate &broker_state_update,
+                              const location_ptr &location) override {
+    SPDLOG_INFO("on broker state changed: {}", broker_state_update.to_string());
+  };
+
+  void on_operator_state_change(Context_ptr & context, const OperatorStateUpdate &operator_state_update,
+                                const location_ptr &location) override {
+    SPDLOG_INFO("on operator state changed: {}", operator_state_update.to_string());
+  };
 };

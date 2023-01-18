@@ -493,6 +493,10 @@ inline uint32_t hash_account(const std::string &source_name, const std::string &
   return yijinjing::util::hash_str_32(source_name) ^ yijinjing::util::hash_str_32(account_id);
 }
 
+inline uint32_t hash_operator(const std::string &operator_group, const std::string &operator_name) {
+  return yijinjing::util::hash_str_32(operator_group) ^ yijinjing::util::hash_str_32(operator_name);
+}
+
 inline void order_from_input(const longfist::types::OrderInput &input, longfist::types::Order &order) {
   order.order_id = input.order_id;
 

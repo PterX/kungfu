@@ -36,6 +36,7 @@ KF_DEFINE_MARK_TYPE(RequestCached, 10061);
 KF_DEFINE_MARK_TYPE(NewOrderSingle, 353);
 KF_DEFINE_MARK_TYPE(CancelOrder, 354);
 KF_DEFINE_MARK_TYPE(CancelAllOrder, 355);
+KF_DEFINE_MARK_TYPE(OperatorStateRequest, 398);
 KF_DEFINE_MARK_TYPE(BrokerStateRequest, 399);
 KF_DEFINE_MARK_TYPE(ResetBookRequest, 400);
 KF_DEFINE_MARK_TYPE(MirrorPositionsRequest, 401);
@@ -86,6 +87,16 @@ KF_DEFINE_DATA_TYPE(                                                     //
     (std::string, info_a),                                               //
     (std::string, info_b),                                               //
     (std::string, info_c),                                               //
+    (std::string, value)                                                 //
+);
+
+KF_DEFINE_DATA_TYPE(                                                     //
+    OperatorStateUpdate, 20003, PK(update_time), TIMESTAMP(update_time), //
+    (OperatorState, state),                                              //
+    (int64_t, update_time),                                              //
+    (uint32_t, location_uid),                                            //
+    (std::string, info_a),                                               //
+    (std::string, info_b),                                               //
     (std::string, value)                                                 //
 );
 
@@ -691,6 +702,16 @@ KF_DEFINE_PACK_TYPE(                                  //
     (double, total_price),                            //
     (double, total_volume),                           //
     (double, avg_price)                               //
+);
+
+KF_DEFINE_DATA_TYPE(                                     //
+    SyntheticData, 301, PK(key), TIMESTAMP(update_time), //
+    (int64_t, update_time),                              //
+    (std::string, key),                                  //
+    (std::string, tag_a),                                //
+    (std::string, tag_b),                                //
+    (std::string, tag_c),                                //
+    (std::string, value)                                 //
 );
 
 KF_DEFINE_PACK_TYPE(                                                       //

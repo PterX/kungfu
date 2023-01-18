@@ -40,6 +40,10 @@ void copy_sink::put(const data::location_ptr &location, uint32_t dest_id, const 
   writers.at(dest_id)->copy_frame(frame);
 }
 
+assemble::assemble(const std::string &mode, const std::string &category, const std::string &group,
+                   const std::string &name)
+    : mode_(mode), category_(category), group_(group), name_(name), publisher_(std::make_shared<noop_publisher>()) {}
+
 assemble::assemble(const std::vector<data::locator_ptr> &locators, const std::string &mode, const std::string &category,
                    const std::string &group, const std::string &name)
     : mode_(mode), category_(category), group_(group), name_(name), publisher_(std::make_shared<noop_publisher>()) {
@@ -160,4 +164,30 @@ std::shared_ptr<frame_reader> assemble::get_reader(const kungfu::yijinjing::data
   }
   return p_reader;
 }
+
+void assemble::join_channel(const data::location_ptr &pl, uint32_t dest_id, int64_t from_time) {
+  get_reader(pl->location_uid)->join(pl, dest_id, from_time);
+}
+
+void assemble::join_all(const data::location_ptr &pl, int64_t from_time) {
+  for (auto dest_id : data::locator().list_location_dest(pl)) {
+    get_reader(pl->location_uid)->join(pl, dest_id, from_time);
+  }
+}
+
+reader_ptr assemble::get_reader(uint32_t location_uid) {
+  return location_readers_.try_emplace(location_uid, std::make_shared<reader>(true)).first->second;
+}
+
+bool assemble::data_available(uint32_t location_uid) { return get_reader(location_uid)->data_available(); }
+
+frame_ptr assemble::current_frame(uint32_t location_uid) {
+  auto reader = get_reader(location_uid);
+  auto frame = reader->current_frame();
+  reader->next();
+  return frame;
+}
+
+void assemble::disjoin(const uint32_t location_uid) { get_reader(location_uid)->disjoin(location_uid); }
+
 } // namespace kungfu::yijinjing::journal

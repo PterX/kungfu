@@ -64,6 +64,8 @@ public:
 
   std::shared_ptr<frame_reader> get_reader(const kungfu::yijinjing::data::location_ptr &pl);
 
+  reader_ptr get_reader(uint32_t location_uid);
+
   void join_channel(const kungfu::yijinjing::data::location_ptr &pl, uint32_t dest_id, int64_t from_time);
 
   void join_all(const kungfu::yijinjing::data::location_ptr &pl, int64_t from_time);
@@ -88,8 +90,6 @@ private:
   std::vector<data::locator_ptr> locators_ = {};
 
   void sort();
-
-  reader_ptr get_reader(uint32_t location_uid);
 };
 DECLARE_PTR(assemble)
 } // namespace kungfu::yijinjing::journal

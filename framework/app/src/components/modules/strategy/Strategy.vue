@@ -22,7 +22,7 @@ import {
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import { getColumns } from './config';
 import {
-  handleSwitchProcessStatus,
+  handleSwitchProcessStatusGenerator,
   useAddUpdateRemoveKfConfig,
   useAllKfConfigData,
   useAssets,
@@ -45,6 +45,7 @@ import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 const { t } = VueI18n.global;
 const { success, error } = messagePrompt();
 
+const handleSwitchProcessStatus = handleSwitchProcessStatusGenerator();
 const { dashboardBodyHeight, handleBodySizeChange } = useDashboardBodySize();
 
 const setStrategyModalVisible = ref<boolean>(false);

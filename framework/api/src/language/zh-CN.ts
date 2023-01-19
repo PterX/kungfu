@@ -99,6 +99,8 @@ export default {
   select_trade_task: '选择交易任务',
   select_plugin_type: '选择插件类型',
 
+  please_wait: '请稍后',
+
   baseConfig: {
     main_panel: '主面板',
     control_center: '控制中心',
@@ -356,6 +358,9 @@ export default {
     state_status: '状态',
     process_status: '进程',
     actions: '操作',
+    select_counter_api: '选择柜台API',
+    select_trade_task: '选择交易任务',
+    select_plugin_type: '选择插件类型',
 
     add_md: '添加',
     md_not_found: '{md} 柜台插件不存在',

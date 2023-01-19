@@ -98,6 +98,8 @@ export default {
   select_trade_task: 'Select trade task',
   select_plugin_type: 'Select extension type',
 
+  please_wait: '请稍后',
+
   baseConfig: {
     main_panel: 'HOME',
     control_center: 'Control',
@@ -203,6 +205,8 @@ export default {
     tech_stock: 'TechStock',
     index: 'Index',
     repo: 'Repo',
+    warrant: 'Warrant',
+    iopt: 'Iopt',
     crypto: 'Crypto',
     crypto_future: 'CryptoFuture',
     crypto_ufuture: 'CryptoUFuture',
@@ -357,9 +361,13 @@ export default {
     state_status: 'status',
     process_status: 'process',
     actions: 'actions',
+    select_counter_api: 'Select a counter',
+    select_trade_task: 'Select trade task',
+    select_plugin_type: 'Select plugin type',
 
     add_md: 'Add',
     md_not_found: '{md} MD not found',
+    counter_plugin_inexistence: 'Counter plugin inexistence',
   },
 
   strategyConfig: {

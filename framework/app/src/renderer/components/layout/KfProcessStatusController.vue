@@ -31,7 +31,7 @@ import {
   isTdMd,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import {
-  handleSwitchProcessStatus,
+  handleSwitchProcessStatusGenerator,
   useAllKfConfigData,
   useExtConfigsRelated,
   useProcessStatusDetailData,
@@ -42,6 +42,7 @@ import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 const { t } = VueI18n.global;
 
 const app = getCurrentInstance();
+const handleSwitchProcessStatus = handleSwitchProcessStatusGenerator();
 const processControllerBoardVisible = ref<boolean>(false);
 const categoryList: KfCategoryTypes[] = [
   'system',

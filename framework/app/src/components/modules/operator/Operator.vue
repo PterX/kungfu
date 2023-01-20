@@ -29,7 +29,7 @@ import {
   useSwitchAllConfig,
   useProcessStatusDetailData,
   useAddUpdateRemoveKfConfig,
-  handleSwitchProcessStatus,
+  handleSwitchProcessStatusGenerator,
   useExtConfigsRelated,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import {
@@ -68,6 +68,7 @@ const { handleConfirmAddUpdateKfConfig, handleRemoveKfConfig } =
   useAddUpdateRemoveKfConfig();
 
 const columns = getColumns();
+const handleSwitchProcessStatus = handleSwitchProcessStatusGenerator();
 
 const addOperatorModalVisible = ref<boolean>(false);
 const setOperatorModalVisible = ref<boolean>(false);

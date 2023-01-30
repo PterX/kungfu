@@ -81,6 +81,7 @@ void assemble::operator>>(const sink_ptr &sink) {
 }
 
 bool assemble::data_available() {
+  sort();
   for (auto &reader : readers_) {
     if (reader->data_available()) {
       return true;
@@ -165,29 +166,39 @@ std::shared_ptr<frame_reader> assemble::get_reader(const kungfu::yijinjing::data
   return p_reader;
 }
 
-void assemble::join_channel(const data::location_ptr &pl, uint32_t dest_id, int64_t from_time) {
-  get_reader(pl->location_uid)->join(pl, dest_id, from_time);
-}
+assemble::assemble(const data::location_ptr &source_location, uint32_t dest_id, longfist::enums::AssembleMode mode,
+                   int64_t from_time)
+    : assemble() {
+  readers_.clear();
+  data::locator l{};
+  readers_.push_back(std::make_shared<reader>(true));
+  auto reader = readers_.front();
 
-void assemble::join_all(const data::location_ptr &pl, int64_t from_time) {
-  for (auto dest_id : data::locator().list_location_dest(pl)) {
-    get_reader(pl->location_uid)->join(pl, dest_id, from_time);
+  // join channel
+  if (mode & AssembleMode::Channel) {
+    reader->join(source_location, dest_id, from_time);
   }
+
+  // join all journal dest of location
+  if (mode & AssembleMode::Write) {
+    for (auto dest : l.list_location_dest(source_location)) {
+      reader->join(source_location, dest, from_time);
+    }
+  }
+
+  // scan all location and join dest_id or PUBLIC
+  if (mode & AssembleMode::Read or mode & AssembleMode::Public) {
+    for (auto &location : l.list_locations("*", "*", "*", "*")) {
+      for (auto dest : l.list_location_dest(location)) {
+        if (dest == dest_id and mode & AssembleMode::Read) {
+          reader->join(location, dest_id, 0);
+        } else if (dest == data::location::PUBLIC and mode & AssembleMode::Public) {
+          reader->join(location, data::location::PUBLIC, from_time);
+        }
+      }
+    }
+  }
+  sort();
 }
-
-reader_ptr assemble::get_reader(uint32_t location_uid) {
-  return location_readers_.try_emplace(location_uid, std::make_shared<reader>(true)).first->second;
-}
-
-bool assemble::data_available(uint32_t location_uid) { return get_reader(location_uid)->data_available(); }
-
-frame_ptr assemble::current_frame(uint32_t location_uid) {
-  auto reader = get_reader(location_uid);
-  auto frame = reader->current_frame();
-  reader->next();
-  return frame;
-}
-
-void assemble::disjoin(const uint32_t location_uid) { get_reader(location_uid)->disjoin(location_uid); }
 
 } // namespace kungfu::yijinjing::journal

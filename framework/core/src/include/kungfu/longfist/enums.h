@@ -277,7 +277,8 @@ enum class AssembleMode : uint8_t {
   Channel = 0b00000001, // read only location to dest_id
   Write = 0b00000010,   // read all journal of this location
   Read = 0b00000100,    // read all journal of this dest_id
-  Public = 0b00001000   // read all journal of public
+  Public = 0b00001000,  // read all journal of public
+  All = 0b00010000      // read all journal
 };
 
 inline uint8_t operator&(AssembleMode l, AssembleMode r) { return uint8_t(l) & uint8_t(r); }

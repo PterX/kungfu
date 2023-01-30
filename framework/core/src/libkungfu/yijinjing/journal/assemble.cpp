@@ -186,13 +186,18 @@ assemble::assemble(const data::location_ptr &source_location, uint32_t dest_id, 
     }
   }
 
-  // scan all location and join dest_id or PUBLIC
-  if (mode & AssembleMode::Read or mode & AssembleMode::Public) {
+  // scan all locations, join dest_id or PUBLIC
+  bool b_read = mode & AssembleMode::Read;
+  bool b_public = mode & AssembleMode::Public;
+  bool b_all = mode & AssembleMode::All;
+  if (b_read or b_public or b_all) {
     for (auto &location : l.list_locations("*", "*", "*", "*")) {
       for (auto dest : l.list_location_dest(location)) {
-        if (dest == dest_id and mode & AssembleMode::Read) {
-          reader->join(location, dest_id, 0);
-        } else if (dest == data::location::PUBLIC and mode & AssembleMode::Public) {
+        if (b_all) {
+          reader->join(location, dest, from_time);
+        } else if (b_read and dest == dest_id) {
+          reader->join(location, dest_id, from_time);
+        } else if (b_public and dest == data::location::PUBLIC) {
           reader->join(location, data::location::PUBLIC, from_time);
         }
       }

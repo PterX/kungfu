@@ -22,7 +22,7 @@ import {
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import { getColumns } from './config';
 import {
-  handleSwitchProcessStatus,
+  handleSwitchProcessStatusGenerator,
   useAddUpdateRemoveKfConfig,
   useAllKfConfigData,
   useAssets,
@@ -37,6 +37,7 @@ import {
   getIfProcessStopping,
   getProcessIdByKfLocation,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { setStrategyConfig } from './config';
 import path from 'path';
 import KfBlinkNum from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfBlinkNum.vue';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
@@ -44,6 +45,7 @@ import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 const { t } = VueI18n.global;
 const { success, error } = messagePrompt();
 
+const handleSwitchProcessStatus = handleSwitchProcessStatusGenerator();
 const { dashboardBodyHeight, handleBodySizeChange } = useDashboardBodySize();
 
 const setStrategyModalVisible = ref<boolean>(false);
@@ -93,30 +95,7 @@ function handleOpenSetStrategyDialog(
   strategyConfig?: KungfuApi.KfConfig,
 ) {
   setStrategyConfigPayload.value.type = type;
-  setStrategyConfigPayload.value.config = {
-    type: [],
-    name: t('strategyConfig.strategy'),
-    category: 'strategy',
-    key: 'default',
-    extPath: '',
-    settings: [
-      {
-        key: 'strategy_id',
-        name: t('strategyConfig.strategy_id'),
-        type: 'str',
-        primary: true,
-        required: true,
-        tip: t('strategyConfig.strategy_tip'),
-      },
-      {
-        key: 'strategy_path',
-        name: t('strategyConfig.strategy_path'),
-        type: 'file',
-        tip: t('strategyConfig.strategy_path_tip'),
-        required: true,
-      },
-    ],
-  };
+  setStrategyConfigPayload.value.config = setStrategyConfig;
   setStrategyConfigPayload.value.initValue = undefined;
 
   if (type === 'update') {
@@ -131,7 +110,7 @@ function handleOpenSetStrategyDialog(
 }
 
 function getStrategyPathShowName(kfConfig: KungfuApi.KfConfig): string {
-  const strategyPath = getConfigValue(kfConfig).strategy_path || '';
+  const strategyPath = getConfigValue(kfConfig).file_path || '';
   return path.basename(strategyPath);
 }
 
@@ -247,7 +226,7 @@ function handleRemoveStrategy(record: KungfuApi.KfConfig) {
               <FormOutlined
                 style="font-size: 12px"
                 @click.stop="handleOpenCodeView(record)"
-              ></FormOutlined>
+              />
               <SettingOutlined
                 style="font-size: 12px"
                 @click.stop="handleOpenSetStrategyDialog('update', record)"

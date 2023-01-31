@@ -12,6 +12,7 @@ def pre_start(context):
     context.log.info("pre start")
     context.add_account(source, "123456")
     context.subscribe(source, ["600000"], exchange)
+    # context.subscribe_operator("bar", "my-bar")
 
 
 def on_quote(context, quote, location):
@@ -22,6 +23,10 @@ def on_quote(context, quote, location):
     context.insert_order(
         quote.instrument_id, exchange, source, "123456", price, 100, price_type, side
     )
+
+
+def on_synthetic_data(context, synthetic_dataa, location):
+    context.log.info("on_synthetic_data: {}".format(synthetic_dataa))
 
 
 def on_order(context, order, location):

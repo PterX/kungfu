@@ -245,7 +245,8 @@ void bind(pybind11::module &&m) {
       .def("data_available", &reader::data_available)
       .def("next", &reader::next)
       .def("join", &reader::join)
-      .def("disjoin", &reader::disjoin);
+      .def("disjoin", &reader::disjoin)
+      .def("disjoin_channel", &reader::disjoin_channel);
 
   auto writer_class = py::class_<writer, writer_ptr>(m, "writer");
   writer_class.def(py::init<const data::location_ptr &, uint32_t, bool, publisher_ptr>())

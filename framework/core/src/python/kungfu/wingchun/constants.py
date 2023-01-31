@@ -37,6 +37,7 @@ MarketType = lf.enums.MarketType
 SubscribeDataType = lf.enums.SubscribeDataType
 SubscribeInstrumentType = lf.enums.SubscribeInstrumentType
 StrategyState = lf.enums.StrategyState
+OperatorState = lf.enums.OperatorState
 HistoryDataType = lf.enums.HistoryDataType
 
 AllFinalOrderStatus = [

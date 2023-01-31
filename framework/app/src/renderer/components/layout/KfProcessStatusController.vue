@@ -28,9 +28,10 @@ import {
   getProcessIdByKfLocation,
   getPropertyFromProcessStatusDetailDataByKfLocation,
   getIfProcessStopping,
+  isTdMd,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import {
-  handleSwitchProcessStatus,
+  handleSwitchProcessStatusGenerator,
   useAllKfConfigData,
   useExtConfigsRelated,
   useProcessStatusDetailData,
@@ -41,12 +42,14 @@ import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 const { t } = VueI18n.global;
 
 const app = getCurrentInstance();
+const handleSwitchProcessStatus = handleSwitchProcessStatusGenerator();
 const processControllerBoardVisible = ref<boolean>(false);
-const categoryList: (KfCategoryTypes | string)[] = [
+const categoryList: KfCategoryTypes[] = [
   'system',
   'daemon',
   'td',
   'md',
+  'operator',
   'strategy',
 ];
 const allKfConfigData = useAllKfConfigData();
@@ -233,7 +236,7 @@ onMounted(() => {
                   v-else-if="config.category !== 'strategy'"
                 >
                   <a-tag
-                    v-if="config.category === 'td' || config.category === 'md'"
+                    v-if="isTdMd(config.category)"
                     :color="
                       getInstrumentTypeColor(
                         tdExtTypeMap[config.group] ||

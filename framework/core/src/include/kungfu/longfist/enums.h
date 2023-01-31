@@ -43,7 +43,7 @@ inline mode get_mode_by_name(const std::string &name) {
     return mode::LIVE;
 }
 
-enum class category : int8_t { MD, TD, STRATEGY, SYSTEM };
+enum class category : int8_t { MD, TD, STRATEGY, SYSTEM, OPERATOR };
 
 inline std::ostream &operator<<(std::ostream &os, category t) { return os << int8_t(t); }
 
@@ -55,8 +55,8 @@ inline std::string get_category_name(category c) {
     return "td";
   case category::STRATEGY:
     return "strategy";
-  case category::SYSTEM:
-    return "system";
+  case category::OPERATOR:
+    return "operator";
   default:
     return "system";
   }
@@ -69,6 +69,8 @@ inline category get_category_by_name(const std::string &name) {
     return category::TD;
   else if (name == "strategy")
     return category::STRATEGY;
+  else if (name == "operator")
+    return category::OPERATOR;
   else
     return category::SYSTEM;
 }
@@ -265,6 +267,23 @@ inline std::ostream &operator<<(std::ostream &os, BrokerState t) { return os << 
 enum class StrategyState : int8_t { Normal, Warn, Error };
 
 inline std::ostream &operator<<(std::ostream &os, StrategyState t) { return os << int8_t(t); }
+
+// enum value has to be same with BrokerState
+enum class OperatorState : int8_t { Pending = 0, DisConnected = 2, Connected = 3, Ready = 100 };
+
+inline std::ostream &operator<<(std::ostream &os, OperatorState t) { return os << int8_t(t); }
+
+enum class AssembleMode : uint8_t {
+  Channel = 0b00000001, // read only location to dest_id
+  Write = 0b00000010,   // read all journal of this location
+  Read = 0b00000100,    // read all journal of this dest_id
+  Public = 0b00001000,  // read all journal of public
+  All = 0b00010000      // read all journal
+};
+
+inline uint8_t operator&(AssembleMode l, AssembleMode r) { return uint8_t(l) & uint8_t(r); }
+
+inline std::ostream &operator<<(std::ostream &os, AssembleMode t) { return os << uint8_t(t); }
 
 template <typename T, typename U> inline T sub_data_bitwise(const T &a, const T &b) {
   return static_cast<T>(static_cast<U>(a) | static_cast<U>(b));

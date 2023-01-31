@@ -121,10 +121,10 @@ private:
   wingchun::book::Bookkeeper bookkeeper_;
   Napi::ObjectReference state_ref_;
   Napi::ObjectReference ledger_ref_;
-  Napi::ObjectReference app_states_ref_;
   Napi::ObjectReference history_ref_;
   Napi::ObjectReference config_ref_;
   Napi::ObjectReference commission_ref_;
+  Napi::ObjectReference app_states_ref_;
   Napi::ObjectReference strategy_states_ref_;
   serialize::JsUpdateState update_state;
   serialize::JsUpdateState update_ledger;
@@ -185,7 +185,14 @@ private:
 
   void OnDeregister(int64_t trigger_time, const longfist::types::Deregister &deregister_data);
 
-  void UpdateBrokerState(uint32_t source_id, uint32_t dest_id, const longfist::types::BrokerStateUpdate &state);
+  template <typename DataType>
+  void UpdateBrokerOperatorState(uint32_t source_id, uint32_t dest_id, const DataType &state) {
+    auto source_location = get_location(state.location_uid);
+    if (source_location->category == category::TD or source_location->category == category::MD or
+        source_location->category == category::OPERATOR) {
+      location_uid_states_map_.insert_or_assign(source_location->uid, int(state.state));
+    }
+  };
 
   void UpdateStrategyState(uint32_t strategy_uid, const longfist::types::StrategyStateUpdate &state);
 

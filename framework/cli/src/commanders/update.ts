@@ -81,7 +81,7 @@ export const updateMdTdStrategy = async () => {
         tip: '需保证该策略ID唯一',
       },
       {
-        key: 'strategy_path',
+        key: 'file_path',
         name: '策略路径',
         type: 'file',
         required: true,

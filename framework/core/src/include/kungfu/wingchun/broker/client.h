@@ -65,6 +65,7 @@ struct FromNowResumePolicy : public ResumePolicy {
 class Client {
   typedef std::unordered_map<uint32_t, longfist::types::InstrumentKey> InstrumentKeyMap;
   typedef std::unordered_map<uint32_t, longfist::enums::BrokerState> BrokerStateMap;
+  typedef std::unordered_map<uint32_t, longfist::enums::OperatorState> OperatorStateMap;
   typedef std::unordered_map<std::string, yijinjing::data::location_ptr> ExchangeSourceMap;
   typedef std::unordered_map<uint32_t, yijinjing::data::location_ptr> InstrumentSourceMap;
 
@@ -115,13 +116,17 @@ public:
 
   [[nodiscard]] virtual bool should_connect_md(const yijinjing::data::location_ptr &md_location) const = 0;
 
-  [[nodiscard]] virtual bool should_connect_td(const yijinjing::data::location_ptr &md_location) const = 0;
+  [[nodiscard]] virtual bool should_connect_td(const yijinjing::data::location_ptr &td_location) const = 0;
 
   [[nodiscard]] virtual bool should_connect_md(uint32_t md_location_uid) const = 0;
 
   [[nodiscard]] virtual bool should_connect_td(uint32_t td_location_uid) const = 0;
 
-  [[nodiscard]] virtual bool should_connect_strategy(const yijinjing::data::location_ptr &md_location) const = 0;
+  [[nodiscard]] virtual bool should_connect_strategy(const yijinjing::data::location_ptr &stg_location) const = 0;
+
+  [[nodiscard]] virtual bool should_connect_operator(const yijinjing::data::location_ptr &op_location) const = 0;
+
+  [[nodiscard]] virtual bool should_connect_operator(uint32_t op_location_uid) const = 0;
 
   kungfu::yijinjing::data::location_ptr get_location(uint32_t uid) const { return app_.get_location(uid); }
 
@@ -130,15 +135,62 @@ protected:
 
 private:
   BrokerStateMap broker_states_ = {};
+  OperatorStateMap operator_states_ = {};
   InstrumentKeyMap instrument_keys_ = {};
   ExchangeSourceMap exchange_md_locations_ = {};
   InstrumentSourceMap instrument_md_locations_ = {};
   yijinjing::data::location_map ready_md_locations_ = {};
   yijinjing::data::location_map ready_td_locations_ = {};
+  yijinjing::data::location_map ready_op_locations_ = {};
 
-  void update_broker_state(const event_ptr &event, const longfist::types::BrokerStateUpdate &state);
+  // void update_broker_state(const event_ptr &event, const longfist::types::BrokerStateUpdate &state);
 
-  void update_broker_state(const event_ptr &event, const longfist::types::Deregister &deregister_data);
+  // void update_operator_state(const event_ptr &event, const longfist::types::OperatorStateUpdate &state);
+
+  template <typename AppStateUpdate,
+            std::enable_if_t<std::is_same_v<AppStateUpdate, longfist::types::BrokerStateUpdate> or
+                             std::is_same_v<AppStateUpdate, longfist::types::OperatorStateUpdate>>...>
+  void update_app_state(const event_ptr &event, const AppStateUpdate &state) {
+    using AppState = decltype(state.state);
+    using kungfu::longfist::enums::category;
+    using yijinjing::data::location_map;
+    auto state_value = state.state;
+    auto app_location = app_.get_location(state.location_uid);
+    bool state_ready = state_value == AppState::Ready;
+    bool state_reset = state_value == AppState::Connected or state_value == AppState::DisConnected;
+
+    auto switch_broker_state = [&](category broker_category, location_map &ready_locations, auto on_app_ready) {
+      bool ready_recorded = ready_locations.find(app_location->uid) != ready_locations.end();
+      if (state_ready and app_.has_writer(app_location->uid) and not ready_recorded) {
+        ready_locations.emplace(app_location->uid, app_location);
+        SPDLOG_INFO("{} ready, state {}", app_location->uname, static_cast<int>(state_value));
+        on_app_ready();
+      }
+      if (state_reset and ready_recorded) {
+        ready_locations.erase(app_location->uid);
+        SPDLOG_INFO("{} reset, state {}", app_location->uname, static_cast<int>(state_value));
+      }
+    };
+    if constexpr (std::is_same<AppState, BrokerState>::value) {
+      if (app_location->category == category::MD) {
+        switch_broker_state(category::MD, ready_md_locations_, [&]() { renew(event->gen_time(), app_location); });
+        broker_states_.emplace(app_location->uid, state_value);
+      }
+      if (app_location->category == category::TD) {
+        switch_broker_state(category::TD, ready_td_locations_, [&]() { sync(event->gen_time(), app_location); });
+        broker_states_.emplace(app_location->uid, state_value);
+      }
+    }
+    if constexpr (std::is_same<AppState, OperatorState>::value) {
+      if (app_location->category == category::OPERATOR) {
+        switch_broker_state(category::OPERATOR, ready_op_locations_, [&]() {});
+
+        operator_states_.emplace(app_location->uid, state_value);
+      }
+    }
+  }
+
+  void on_deregister(const longfist::types::Deregister &deregister_data);
 };
 
 /**
@@ -164,13 +216,17 @@ public:
 protected:
   [[nodiscard]] bool should_connect_md(const yijinjing::data::location_ptr &md_location) const override;
 
-  [[nodiscard]] bool should_connect_td(const yijinjing::data::location_ptr &md_location) const override;
+  [[nodiscard]] bool should_connect_td(const yijinjing::data::location_ptr &td_location) const override;
 
   [[nodiscard]] bool should_connect_md(uint32_t md_location_uid) const override;
 
   [[nodiscard]] bool should_connect_td(uint32_t td_location_uid) const override;
 
-  [[nodiscard]] bool should_connect_strategy(const yijinjing::data::location_ptr &md_location) const override;
+  [[nodiscard]] bool should_connect_strategy(const yijinjing::data::location_ptr &stg_location) const override;
+
+  [[nodiscard]] bool should_connect_operator(const yijinjing::data::location_ptr &op_location) const override;
+
+  [[nodiscard]] bool should_connect_operator(uint32_t op_location_uid) const override;
 
 private:
   StatelessResumePolicy resume_policy_ = {};
@@ -225,6 +281,12 @@ public:
 
   void enroll_account(const yijinjing::data::location_ptr &td_location);
 
+  void enroll_operator(const yijinjing::data::location_ptr &op_location);
+
+  bool enrolled_operator_ready() const;
+
+  bool enrolled_md_ready() const;
+
 protected:
   [[nodiscard]] bool should_connect_md(const yijinjing::data::location_ptr &md_location) const override;
 
@@ -234,13 +296,18 @@ protected:
 
   [[nodiscard]] bool should_connect_td(uint32_t td_location_uid) const override;
 
-  [[nodiscard]] bool should_connect_strategy(const yijinjing::data::location_ptr &md_location) const override;
+  [[nodiscard]] bool should_connect_strategy(const yijinjing::data::location_ptr &stg_location) const override;
+
+  [[nodiscard]] bool should_connect_operator(const yijinjing::data::location_ptr &op_location) const override;
+
+  [[nodiscard]] bool should_connect_operator(uint32_t op_location_uid) const override;
 
 private:
   FromNowResumePolicy resume_policy_ = {};
   CustomSubscribeMap custom_subs_ = {};
   EnrollmentMap enrolled_md_locations_ = {};
   EnrollmentMap enrolled_td_locations_ = {};
+  EnrollmentMap enrolled_op_locations_ = {};
 };
 
 template <typename DataType>
@@ -283,7 +350,8 @@ static constexpr auto is_own(const Client &broker_client) {
   return rx::filter([&](const event_ptr &event) {
     if (event->msg_type() == DataType::tag) {
       const DataType &data = event->data<DataType>();
-      return broker_client.should_connect_md(data.location_uid) or broker_client.should_connect_td(data.location_uid);
+      return broker_client.should_connect_md(data.location_uid) or broker_client.should_connect_td(data.location_uid) or
+             broker_client.should_connect_operator(data.location_uid);
     }
     return false;
   });
@@ -294,7 +362,18 @@ static constexpr auto is_own(const Client &broker_client) {
   return rx::filter([&](const event_ptr &event) {
     if (event->msg_type() == DataType::tag) {
       const DataType &data = event->data<DataType>();
-      return (broker_client.should_connect_md(event->source()) or broker_client.should_connect_td(event->source()));
+      return (broker_client.should_connect_md(data.location_uid) or broker_client.should_connect_td(data.location_uid));
+    }
+    return false;
+  });
+};
+
+template <typename DataType, std::enable_if_t<std::is_same_v<DataType, longfist::types::OperatorStateUpdate>>...>
+static constexpr auto is_own(const Client &broker_client) {
+  return rx::filter([&](const event_ptr &event) {
+    if (event->msg_type() == DataType::tag) {
+      const DataType &data = event->data<DataType>();
+      return broker_client.should_connect_operator(data.location_uid);
     }
     return false;
   });

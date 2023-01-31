@@ -14,6 +14,7 @@ AlgoOrderInput = 210
 AlgoOrderReport = 211
 AlgoOrderModify = 212
 OrderActionError = 213
+SyntheticData = 301
 Subscribe = 302
 NewOrderSingle = 353
 CancelOrder = 354

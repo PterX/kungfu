@@ -83,6 +83,7 @@ CATEGORIES = {
     "td": lf.enums.category.TD,
     "strategy": lf.enums.category.STRATEGY,
     "system": lf.enums.category.SYSTEM,
+    "operator": lf.enums.category.OPERATOR,
     "*": lf.enums.category.SYSTEM,
 }
 

@@ -18,7 +18,10 @@ import {
   nextTick,
   defineComponent,
 } from 'vue';
-import { Side } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
+import {
+  KfCategory,
+  Side,
+} from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import {
   getIdByKfLocation,
   transformSearchInstrumentResultToInstrument,
@@ -45,6 +48,7 @@ import {
   InstrumentTypeEnum,
   PriceTypeEnum,
   SideEnum,
+  KfCategoryEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import { readCSV } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
 import { useGlobalStore } from '../../pages/index/store/global';
@@ -120,7 +124,7 @@ const app = getCurrentInstance();
 const formRef = ref();
 
 const formState = reactive(props.formState);
-const { td, md, strategy } = toRefs(useAllKfConfigData());
+const { td, md, operator, strategy } = toRefs(useAllKfConfigData());
 const { isLanguageKeyAvailable } = useLanguage();
 
 const primaryKeys = ref<string[]>(getPrimaryKeys(props.configSettings || []));
@@ -905,6 +909,51 @@ defineExpose({
       >
         <a-select-option
           v-for="config in md"
+          :key="getIdByKfLocation(config)"
+          :value="getIdByKfLocation(config)"
+        >
+          {{ getIdByKfLocation(config) }}
+        </a-select-option>
+      </a-select>
+      <a-select
+        v-else-if="item.type === 'md&operator'"
+        v-model:value="formState[item.key]"
+        :disabled="
+          (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
+          item.disabled
+        "
+      >
+        <a-select-option
+          v-for="config in md"
+          :key="getIdByKfLocation(config)"
+          :value="getIdByKfLocation(config)"
+        >
+          <a-tag :color="KfCategory[KfCategoryEnum.md].color">
+            {{ t('Md') }}
+          </a-tag>
+          {{ getIdByKfLocation(config) }}
+        </a-select-option>
+        <a-select-option
+          v-for="config in operator"
+          :key="getIdByKfLocation(config)"
+          :value="getIdByKfLocation(config)"
+        >
+          <a-tag :color="KfCategory[KfCategoryEnum.operator].color">
+            {{ t('Operator') }}
+          </a-tag>
+          {{ getIdByKfLocation(config) }}
+        </a-select-option>
+      </a-select>
+      <a-select
+        v-else-if="item.type === 'operator'"
+        v-model:value="formState[item.key]"
+        :disabled="
+          (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
+          item.disabled
+        "
+      >
+        <a-select-option
+          v-for="config in operator"
           :key="getIdByKfLocation(config)"
           :value="getIdByKfLocation(config)"
         >

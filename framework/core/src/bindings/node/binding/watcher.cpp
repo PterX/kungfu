@@ -108,6 +108,12 @@ void WatcherAutoClient::connect(const event_ptr &event, const longfist::types::R
       app_.request_write_to(app_.now(), app_location->uid);
       SPDLOG_INFO("resume {} connection from {}", app_.get_location_uname(app_uid), time::strftime(resume_time_point));
     }
+
+    if (app_location->category == category::OPERATOR and should_connect_operator(app_location)) {
+      app_.request_write_to(app_.now(), app_location->uid);
+      SPDLOG_INFO("resume {} connection from {}", app_.get_location_uname(app_uid), time::strftime(resume_time_point));
+    }
+
   } else {
     wingchun::broker::SilentAutoClient::connect(event, register_data);
   }
@@ -126,10 +132,10 @@ Watcher::Watcher(const Napi::CallbackInfo &info)
       bookkeeper_(*this, broker_client_),                                                                 //
       state_ref_(Napi::ObjectReference::New(Napi::Object::New(info.Env()), 1)),                           //
       ledger_ref_(Napi::ObjectReference::New(Napi::Object::New(info.Env()), 1)),                          //
-      app_states_ref_(Napi::ObjectReference::New(Napi::Object::New(info.Env()), 1)),                      //
       history_ref_(Napi::ObjectReference::New(History::NewInstance({info[0]}).ToObject(), 1)),            //
       config_ref_(Napi::ObjectReference::New(ConfigStore::NewInstance({info[0]}).ToObject(), 1)),         //
       commission_ref_(Napi::ObjectReference::New(CommissionStore::NewInstance({info[0]}).ToObject(), 1)), //
+      app_states_ref_(Napi::ObjectReference::New(Napi::Object::New(info.Env()), 1)),                      //
       strategy_states_ref_(Napi::ObjectReference::New(Napi::Object::New(info.Env()), 1)),                 //
       update_state(state_ref_),                                                                           //
       update_ledger(ledger_ref_),                                                                         //
@@ -422,7 +428,11 @@ void Watcher::on_start() {
   events_ | is(Register::tag) | $$(OnRegister(event->gen_time(), event->data<Register>()));
   events_ | is(Deregister::tag) | $$(OnDeregister(event->gen_time(), event->data<Deregister>()));
   events_ | is(BrokerStateUpdate::tag) |
-      $$(UpdateBrokerState(event->source(), event->dest(), event->data<BrokerStateUpdate>()));
+      $$(UpdateBrokerOperatorState<BrokerStateUpdate>(event->source(), event->dest(),
+                                                      event->data<BrokerStateUpdate>()));
+  events_ | is(OperatorStateUpdate::tag) |
+      $$(UpdateBrokerOperatorState<OperatorStateUpdate>(event->source(), event->dest(),
+                                                        event->data<OperatorStateUpdate>()));
   events_ | is(StrategyStateUpdate::tag) | $$(UpdateStrategyState(event->source(), event->data<StrategyStateUpdate>()));
   events_ | is(CacheReset::tag) | $$(UpdateEventCache(event));
 }
@@ -666,13 +676,6 @@ void Watcher::Quit(const Napi::CallbackInfo &info) { uv_work_live_ = false; }
 void Watcher::AfterMasterDown() {
   reader_->disjoin(master_cmd_location_->uid);
   writers_.clear();
-}
-
-void Watcher::UpdateBrokerState(uint32_t source_id, uint32_t dest_id, const BrokerStateUpdate &state) {
-  auto source_location = get_location(state.location_uid);
-  if (source_location->category == category::TD or source_location->category == category::MD) {
-    location_uid_states_map_.insert_or_assign(source_location->uid, int(state.state));
-  }
 }
 
 void Watcher::UpdateStrategyState(uint32_t strategy_uid, const StrategyStateUpdate &state) {

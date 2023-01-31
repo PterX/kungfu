@@ -213,29 +213,37 @@ export const getKfLocation = (
   type: KfCategoryTypes,
   targetId: string,
 ): KungfuApi.KfLocation => {
-  if (type === 'md') {
-    return {
-      category: 'md',
-      group: targetId,
-      name: targetId,
-      mode: 'live',
-    };
-  } else if (type === 'td') {
-    return {
-      category: 'td',
-      group: (targetId || '').parseSourceAccountId().source,
-      name: (targetId || '').parseSourceAccountId().id,
-      mode: 'live',
-    };
-  } else if (type === 'strategy') {
-    return {
-      category: 'strategy',
-      group: 'default',
-      name: targetId,
-      mode: 'live',
-    };
-  } else {
-    throw new Error(`Unsupported update category ${type}`);
+  switch (type) {
+    case 'md':
+      return {
+        category: 'md',
+        group: targetId,
+        name: targetId,
+        mode: 'live',
+      };
+    case 'td':
+      return {
+        category: 'td',
+        group: (targetId || '').parseSourceAccountId().source,
+        name: (targetId || '').parseSourceAccountId().id,
+        mode: 'live',
+      };
+    case 'operator':
+      return {
+        category: 'operator',
+        group: (targetId || '').toKfGroup(),
+        name: (targetId || '').toKfName(),
+        mode: 'live',
+      };
+    case 'strategy':
+      return {
+        category: 'strategy',
+        group: 'default',
+        name: targetId,
+        mode: 'live',
+      };
+    default:
+      throw new Error(`Unsupported update category ${type}`);
   }
 };
 
@@ -353,6 +361,8 @@ export const getCategoryName = (category: KfCategoryTypes) => {
     return colors.blue('Strat');
   } else if (category === 'daemon') {
     return colors.green('Daem');
+  } else if (category === 'operator') {
+    return colors.magenta('Oper');
   } else {
     return colors.bgMagenta('Sys');
   }

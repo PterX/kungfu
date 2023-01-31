@@ -87,10 +87,18 @@ export default {
   Strategy: 'Strategy',
   Md: 'Md',
   Td: 'Td',
+  Operator: 'Operator',
   Trade: 'Trade',
   Order: 'Order',
   PosGlobal: 'Positon Global',
   Pos: 'Positon',
+
+  select_broker_ext: 'Select a broker api',
+  select_operator_ext: 'Select a operator ext',
+  select_trade_task: 'Select trade task',
+  select_plugin_type: 'Select extension type',
+
+  please_wait: '请稍后',
 
   baseConfig: {
     main_panel: 'HOME',
@@ -128,6 +136,7 @@ export default {
     md: 'Md',
     td: 'Td',
     strategy: 'Strategy',
+    operator: 'Operator',
 
     open: 'Open',
     close: 'Close',
@@ -196,6 +205,8 @@ export default {
     tech_stock: 'TechStock',
     index: 'Index',
     repo: 'Repo',
+    warrant: 'Warrant',
+    iopt: 'Iopt',
     crypto: 'Crypto',
     crypto_future: 'CryptoFuture',
     crypto_ufuture: 'CryptoUFuture',
@@ -355,6 +366,7 @@ export default {
     select_plugin_type: 'Select plugin type',
 
     add_md: 'Add',
+    md_not_found: '{md} MD not found',
     counter_plugin_inexistence: 'Counter plugin inexistence',
   },
 
@@ -374,7 +386,30 @@ export default {
     add_strategy: 'Add',
   },
 
+  operatorConfig: {
+    operator: 'operator',
+    operator_id: 'operator_id',
+    operator_file: 'operator_file',
+    operator_path: 'operator_path',
+    operator_path_tip:
+      'Normal python operator use .py file, packaged operator use .so or .pyd file in operator folder',
+    state_status: 'status',
+    process_status: 'process',
+    actions: 'actions',
+    operator_tip: 'Ensure that the operator_id is unique',
+
+    add_operator: 'Add',
+    operator_not_found: '{operator} Operator not found',
+
+    add_operator_type: {
+      title: 'Select Operator Type',
+      extension: 'Extension',
+      file: 'File',
+    },
+  },
+
   tradingTaskConfig: {
+    tradingTask: 'Trading Task',
     task_id: 'task_id',
     process_status: 'process',
     args: 'arguments',
@@ -383,7 +418,7 @@ export default {
     add_task: 'Add',
     illegal_process_id: 'Not a legitimate trade task process_id',
     key_inexistence: 'The trade task plugin key does not exist',
-    plugin_inexistence: 'The trade task plugin does not exist',
+    plugin_inexistence: 'The trade task plugin {key} does not exist',
     configuration_inexistence:
       'The configuration item does not exist,please check',
     delete_task: 'Deleting a trade Task',

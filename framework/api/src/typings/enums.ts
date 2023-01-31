@@ -161,6 +161,7 @@ export enum KfCategoryEnum {
   td,
   strategy,
   system,
+  operator,
   daemon,
 }
 
@@ -246,6 +247,7 @@ export enum FrameMsgTypeEnum {
   TimeValue = 20000,
   TimeKeyValue = 20001,
   StrategyStateUpdate = 20002,
+  OperatorStateUpdate = 20003,
   Commission = 10006,
   RiskSetting = 10007,
   Session = 10010,
@@ -283,8 +285,14 @@ export enum FrameMsgTypeEnum {
   Asset = 206,
   AssetMargin = 211,
   OrderStat = 215,
+  SyntheticData = 301,
   RequestHistoryOrder = 10029,
   RequestHistoryTrade = 10030,
   RequestHistoryOrderError = 10031,
   RequestHistoryTradeError = 10032,
+}
+
+export enum AddOperatorTypeEnum {
+  File,
+  Extension,
 }

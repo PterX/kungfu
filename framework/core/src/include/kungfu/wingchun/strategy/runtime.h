@@ -10,9 +10,9 @@
 #include <kungfu/wingchun/strategy/context.h>
 
 namespace kungfu::wingchun::strategy {
-class RuntimeContext : public Context {
+class LiveContext : public Context {
 public:
-  explicit RuntimeContext(yijinjing::practice::apprentice &app, const rx::connectable_observable<event_ptr> &events);
+  explicit LiveContext(yijinjing::practice::apprentice &app, const rx::connectable_observable<event_ptr> &events);
 
   /**
    * Get current time in nano seconds.
@@ -215,10 +215,10 @@ private:
   std::unordered_map<uint32_t, uint32_t> account_location_ids_ = {};
   std::unordered_map<std::string, yijinjing::data::location_ptr> market_data_ = {};
 
-  friend void enable(RuntimeContext &context) { context.on_start(); }
+  friend void enable(LiveContext &context) { context.on_start(); }
 };
 
-DECLARE_PTR(RuntimeContext)
+DECLARE_PTR(LiveContext)
 } // namespace kungfu::wingchun::strategy
 
 #endif // WINGCHUN_RUNTIME_H

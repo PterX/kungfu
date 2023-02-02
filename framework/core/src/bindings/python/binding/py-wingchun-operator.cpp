@@ -110,7 +110,7 @@ void bind_operator(pybind11::module &m) {
       .def("req_deregister", &op::Context::req_deregister)
       .def("update_operator_state", &op::Context::update_operator_state);
 
-  py::class_<op::RuntimeContext, op::Context, op::RuntimeContext_ptr>(m, "OpRuntimeContext");
+  py::class_<op::LiveContext, op::Context, op::LiveContext_ptr>(m, "OpLiveContext");
 
   py::class_<op::Operator, PyOperator, op::Operator_ptr>(m, "Operator")
       .def(py::init())

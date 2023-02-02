@@ -19,7 +19,7 @@ public:
 
   ~Runner() override = default;
 
-  [[nodiscard]] RuntimeContext_ptr get_context() const;
+  [[nodiscard]] LiveContext_ptr get_context() const;
 
   void add_strategy(const Strategy_ptr &strategy);
 
@@ -36,7 +36,7 @@ protected:
 
   void on_active() override;
 
-  virtual RuntimeContext_ptr make_context();
+  virtual LiveContext_ptr make_context();
 
   virtual void pre_start();
 
@@ -52,7 +52,7 @@ private:
   bool positions_set_;
   bool started_;
   std::vector<Strategy_ptr> strategies_ = {};
-  RuntimeContext_ptr context_;
+  LiveContext_ptr context_;
 
   void prepare(const event_ptr &event);
   void inspect_channel(const event_ptr &event);

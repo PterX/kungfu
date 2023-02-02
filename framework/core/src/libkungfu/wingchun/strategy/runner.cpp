@@ -19,9 +19,9 @@ Runner::Runner(locator_ptr locator, const std::string &group, const std::string 
     : apprentice(location::make_shared(m, category::STRATEGY, group, name, std::move(locator)), low_latency),
       positions_set_(m == mode::BACKTEST), started_(m == mode::BACKTEST) {}
 
-RuntimeContext_ptr Runner::get_context() const { return context_; }
+LiveContext_ptr Runner::get_context() const { return context_; }
 
-RuntimeContext_ptr Runner::make_context() { return std::make_shared<RuntimeContext>(*this, events_); }
+LiveContext_ptr Runner::make_context() { return std::make_shared<LiveContext>(*this, events_); }
 
 void Runner::add_strategy(const Strategy_ptr &strategy) { strategies_.push_back(strategy); }
 

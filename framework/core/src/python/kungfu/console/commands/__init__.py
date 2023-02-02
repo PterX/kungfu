@@ -156,6 +156,7 @@ def kfc(ctx, home, extension_path, log_level, name, cli_dev_path):
     ctx.runtime_dir = ensure_dir(ctx, "runtime")
     ctx.archive_dir = ensure_dir(ctx, "archive")
     ctx.dataset_dir = ensure_dir(ctx, "dataset")
+    ctx.backtest_dir = ensure_dir(ctx, "backtest")
     ctx.inbox_dir = ensure_dir(ctx, "inbox")
 
     lf = kungfu.__binding__.longfist

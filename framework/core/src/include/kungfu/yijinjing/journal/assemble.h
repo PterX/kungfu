@@ -49,7 +49,7 @@ public:
                     const std::string &name = "*");
 
   explicit assemble(const data::location_ptr &source_location, uint32_t dest_id,
-                    longfist::enums::AssembleMode mode = longfist::enums::AssembleMode::Channel, int64_t from_time = 0);
+                    uint32_t assemble_mode = longfist::enums::AssembleMode::Channel, int64_t from_time = 0);
 
   virtual ~assemble() = default;
 

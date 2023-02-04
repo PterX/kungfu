@@ -38,6 +38,8 @@ void BrokerVendor::notify_broker_state() {
 
 BrokerService::BrokerService(BrokerVendor &vendor) : vendor_(vendor), state_(BrokerState::Pending) {}
 
+void BrokerService::on_react() {}
+
 void BrokerService::on_start() {}
 
 void BrokerService::on_exit() {}
@@ -121,4 +123,5 @@ void BrokerService::update_broker_state(BrokerState state) {
   broker_state.location_uid = get_home_uid();
   writer->close_data();
 }
+
 } // namespace kungfu::wingchun::broker

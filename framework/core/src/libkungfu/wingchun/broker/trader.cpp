@@ -30,6 +30,7 @@ void TraderVendor::react() {
 void TraderVendor::on_react() {
   events_ | is(ResetBookRequest::tag) |
       $([&](const event_ptr &event) { get_writer(location::PUBLIC)->mark(now(), ResetBookRequest::tag); });
+  service_->on_react();
 }
 
 void TraderVendor::on_start() {

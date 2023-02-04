@@ -22,6 +22,7 @@ void MarketDataVendor::set_service(MarketData_ptr service) { service_ = std::mov
 void MarketDataVendor::on_react() {
   BrokerVendor::on_react();
   events_ | is(Instrument::tag) | $$(service_->update_instrument(event->data<Instrument>()));
+  service_->on_react();
 }
 
 void MarketDataVendor::on_start() {

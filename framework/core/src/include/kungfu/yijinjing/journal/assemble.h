@@ -49,7 +49,7 @@ public:
                     const std::string &name = "*");
 
   explicit assemble(const data::location_ptr &source_location, uint32_t dest_id,
-                    longfist::enums::AssembleMode mode = longfist::enums::AssembleMode::Channel, int64_t from_time = 0);
+                    uint32_t assemble_mode = longfist::enums::AssembleMode::Channel, int64_t from_time = 0);
 
   virtual ~assemble() = default;
 
@@ -77,6 +77,10 @@ public:
     }
     return v;
   }
+
+  [[maybe_unused]] void seek_to_time(int64_t nano_time);
+
+  [[nodiscard]] const std::vector<reader_ptr> &get_readers() const { return readers_; }
 
 protected:
   std::vector<reader_ptr> readers_ = {};

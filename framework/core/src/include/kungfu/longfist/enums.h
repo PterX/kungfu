@@ -273,17 +273,14 @@ enum class OperatorState : int8_t { Pending = 0, DisConnected = 2, Connected = 3
 
 inline std::ostream &operator<<(std::ostream &os, OperatorState t) { return os << int8_t(t); }
 
-enum class AssembleMode : uint8_t {
-  Channel = 0b00000001, // read only location to dest_id
-  Write = 0b00000010,   // read all journal of this location
-  Read = 0b00000100,    // read all journal of this dest_id
-  Public = 0b00001000,  // read all journal of public
-  All = 0b00010000      // read all journal
+class AssembleMode {
+public:
+  inline static const uint32_t Channel = 0b00000001; // read only journal of location to dest_id
+  inline static const uint32_t Write = 0b00000010;   // read all journal from this location
+  inline static const uint32_t Read = 0b00000100;    // read all journal to this dest_id
+  inline static const uint32_t Public = 0b00001000;  // read all journal to location::PUBLIC
+  inline static const uint32_t All = 0b00010000;     // read all journal
 };
-
-inline uint8_t operator&(AssembleMode l, AssembleMode r) { return uint8_t(l) & uint8_t(r); }
-
-inline std::ostream &operator<<(std::ostream &os, AssembleMode t) { return os << uint8_t(t); }
 
 template <typename T, typename U> inline T sub_data_bitwise(const T &a, const T &b) {
   return static_cast<T>(static_cast<U>(a) | static_cast<U>(b));

@@ -121,4 +121,5 @@ void BrokerService::update_broker_state(BrokerState state) {
   broker_state.location_uid = get_home_uid();
   writer->close_data();
 }
+
 } // namespace kungfu::wingchun::broker

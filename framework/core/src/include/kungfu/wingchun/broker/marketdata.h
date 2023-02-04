@@ -52,6 +52,8 @@ public:
 
   virtual bool on_custom_event(const event_ptr &event) { return true; }
 
+  virtual void on_band(const event_ptr &event) {}
+
 protected:
   [[nodiscard]] bool has_instrument(const std::string &instrument_id) const;
 

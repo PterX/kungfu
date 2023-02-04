@@ -45,8 +45,6 @@ public:
 
   virtual ~BrokerService() = default;
 
-  virtual void on_react();
-
   virtual void on_start();
 
   virtual void on_exit();

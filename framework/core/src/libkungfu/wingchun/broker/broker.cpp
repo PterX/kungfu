@@ -38,8 +38,6 @@ void BrokerVendor::notify_broker_state() {
 
 BrokerService::BrokerService(BrokerVendor &vendor) : vendor_(vendor), state_(BrokerState::Pending) {}
 
-void BrokerService::on_react() {}
-
 void BrokerService::on_start() {}
 
 void BrokerService::on_exit() {}

@@ -78,6 +78,10 @@ public:
     return v;
   }
 
+  [[maybe_unused]] void seek_to_time(int64_t nano_time);
+
+  [[nodiscard]] const std::vector<reader_ptr> &get_readers() const { return readers_; }
+
 protected:
   std::vector<reader_ptr> readers_ = {};
   reader_ptr current_reader_ = {};

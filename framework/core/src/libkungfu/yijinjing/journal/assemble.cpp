@@ -206,4 +206,11 @@ assemble::assemble(const data::location_ptr &source_location, uint32_t dest_id, 
   sort();
 }
 
+[[maybe_unused]] void assemble::seek_to_time(int64_t nano_time) {
+  for (auto &reader : readers_) {
+    reader->seek_to_time(nano_time);
+  }
+  sort();
+}
+
 } // namespace kungfu::yijinjing::journal

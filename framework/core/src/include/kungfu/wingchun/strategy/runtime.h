@@ -21,6 +21,12 @@ public:
   int64_t now() const override;
 
   /**
+   * checked_ is strated started.
+   * @return current time in nano seconds
+   */
+  virtual bool is_started() const override;
+
+  /**
    * Add one shot timer callback.
    * @param nanotime when to call in nano seconds
    * @param callback callback function
@@ -163,13 +169,13 @@ public:
    * Get broker client.
    * @return broker client reference
    */
-  broker::Client &get_broker_client();
+  broker::Client &get_broker_client() override;
 
   /**
    * Get bookkeeper.
    * @return bookkeeper reference
    */
-  book::Bookkeeper &get_bookkeeper();
+  book::Bookkeeper &get_bookkeeper() override;
 
   /**
    * query history order
@@ -198,7 +204,9 @@ protected:
   yijinjing::practice::apprentice &app_;
   const rx::connectable_observable<event_ptr> &events_;
 
-  virtual void on_start();
+  virtual void on_start() override;
+
+  virtual void prepare(const event_ptr &event) override;
 
   uint32_t lookup_account_location_id(const std::string &account) const;
 
@@ -207,6 +215,10 @@ protected:
   const yijinjing::data::location_ptr &find_md_location(const std::string &source);
 
 private:
+  bool started_{false};
+  bool positions_requested_{false};
+  bool broker_states_requested_{false};
+  bool positions_set_{false};
   broker::PassiveClient broker_client_;
   book::Bookkeeper bookkeeper_;
   yijinjing::data::location_map md_locations_ = {};
@@ -214,8 +226,6 @@ private:
   yijinjing::data::location_map op_locations_ = {};
   std::unordered_map<uint32_t, uint32_t> account_location_ids_ = {};
   std::unordered_map<std::string, yijinjing::data::location_ptr> market_data_ = {};
-
-  friend void enable(LiveContext &context) { context.on_start(); }
 };
 
 DECLARE_PTR(LiveContext)

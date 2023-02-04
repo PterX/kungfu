@@ -21,6 +21,12 @@ public:
   virtual ~Context() = default;
 
   /**
+   * checked_ is strated started.
+   * @return current time in nano seconds
+   */
+  virtual bool is_started() const = 0;
+
+  /**
    * Get current time in nano seconds.
    * @return current time in nano seconds
    */
@@ -136,6 +142,18 @@ public:
                                                     std::vector<longfist::types::OrderInput> order_inputs) = 0;
 
   /**
+   * Get broker client.
+   * @return broker client reference
+   */
+  virtual broker::Client &get_broker_client() = 0;
+
+  /**
+   * Get bookkeeper.
+   * @return bookkeeper reference
+   */
+  virtual book::Bookkeeper &get_bookkeeper() = 0;
+
+  /**
    * query history order
    */
   virtual void req_history_order(const std::string &source, const std::string &account, uint32_t query_num = 0) = 0;
@@ -198,10 +216,19 @@ public:
    */
   virtual void update_strategy_state(longfist::types::StrategyStateUpdate &state_update) {}
 
+protected:
+  virtual void on_start() {}
+
+  virtual void prepare(const event_ptr &event) = 0;
+
 private:
   bool book_held_ = false;
   bool positions_mirrored_ = true;
+
+  friend void enable(Context &context) { context.on_start(); }
+  friend void prepare(const event_ptr &event, Context &context) { context.prepare(event); }
 };
+
 } // namespace kungfu::wingchun::strategy
 
 #endif // WINGCHUN_CONTEXT_H

@@ -498,8 +498,8 @@ inline uint32_t hash_operator(const std::string &operator_group, const std::stri
 }
 
 inline uint32_t hash_backtest_cache(int64_t start, int64_t end) {
-  return yijinjing::util::hash_32(reinterpret_cast<unsigned char *>(&start), sizeof(start)) ^ yijinjing::util::hash_32(
-      reinterpret_cast<unsigned char *>(&end), sizeof(end));
+  return yijinjing::util::hash_32(reinterpret_cast<unsigned char *>(&start), sizeof(start)) ^
+         yijinjing::util::hash_32(reinterpret_cast<unsigned char *>(&end), sizeof(end));
 }
 
 inline void order_from_input(const longfist::types::OrderInput &input, longfist::types::Order &order) {

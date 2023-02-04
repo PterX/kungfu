@@ -6,6 +6,4 @@
 
 #include <kungfu/wingchun/strategy/backtest.h>
 
-namespace kungfu::wingchun::strategy {
-    
-}
+namespace kungfu::wingchun::strategy {}

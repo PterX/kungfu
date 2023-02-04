@@ -40,7 +40,7 @@ void LiveContext::add_time_interval(int64_t duration, const std::function<void(e
 }
 
 void LiveContext::subscribe(const std::string &source, const std::vector<std::string> &instrument_ids,
-                               const std::string &exchange_ids) {
+                            const std::string &exchange_ids) {
   auto md_location = find_md_location(source);
   for (const auto &instrument_id : instrument_ids) {
     broker_client_.subscribe(md_location, exchange_ids, instrument_id);
@@ -49,7 +49,7 @@ void LiveContext::subscribe(const std::string &source, const std::vector<std::st
 }
 
 void LiveContext::subscribe_all(const std::string &source, uint8_t market_type, uint64_t instrument_type,
-                                   uint64_t data_type) {
+                                uint64_t data_type) {
   broker_client_.subscribe_all(find_md_location(source), market_type, instrument_type, data_type);
 }
 
@@ -126,7 +126,7 @@ const location_ptr &LiveContext::find_md_location(const std::string &source) {
 
 const location_ptr &
 LiveContext::find_location(const std::string &source, category c,
-                              std::unordered_map<std::string, yijinjing::data::location_ptr> &locations) {
+                           std::unordered_map<std::string, yijinjing::data::location_ptr> &locations) {
   if (locations.find(source) == locations.end()) {
     auto home_locator = app_.get_locator();
     auto source_location = location::make_shared(mode::LIVE, c, source, source, home_locator);

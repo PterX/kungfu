@@ -18,28 +18,40 @@ int64_t CacheTool::parse_time(const std::string &time_string) {
   return time_stamp;
 }
 
-CacheTool::CacheTool(std::string source, std::string start_time, std::string end_time, locator_ptr locator, bool overwrite)
+CacheTool::CacheTool(std::string source, std::string start_time, std::string end_time, locator_ptr locator,
+                     bool overwrite)
     : source_(std::move(source)), start_time_(parse_time(start_time)), end_time_(parse_time(end_time)),
-      locator_(std::move(locator)) {
+      last_gen_time_(start_time_), last_read_gen_time_(start_time_), locator_(std::move(locator)) {
   init(overwrite);
 }
 
 CacheTool::CacheTool(std::string source, int64_t start_time, int64_t end_time, locator_ptr locator, bool overwrite)
-    : source_(std::move(source)), start_time_(start_time), end_time_(end_time), locator_(std::move(locator)) {
+    : source_(std::move(source)), start_time_(start_time), end_time_(end_time), last_gen_time_(start_time),
+      last_read_gen_time_(end_time), locator_(std::move(locator)) {
   init(overwrite);
 }
 
-void CacheTool::write_raw_at(int64_t gen_time, int64_t trigger_time,  int32_t msg_type, uintptr_t data, uint32_t length) {
+void CacheTool::write_raw_at(int64_t gen_time, int64_t trigger_time, uint32_t dest_id, int32_t msg_type, uintptr_t data,
+                             uint32_t length) {
   valid_time(gen_time, trigger_time);
-  auto frame = writer_->open_frame(trigger_time, msg_type, length);
+  if (writers_.find(dest_id) == writers_.end()) {
+    writers_[dest_id] = std::make_shared<writer>(cache_location_, dest_id, true, publisher_);
+  }
+  auto frame = writers_.at(dest_id)->open_frame(trigger_time, msg_type, length);
   memcpy(const_cast<void *>(frame->data_address()), reinterpret_cast<void *>(data), length);
-  writer_->close_frame(length, gen_time);
+  writers_.at(dest_id)->close_frame(length, gen_time);
 }
 
-frame_ptr CacheTool::next_frame() const { 
+void CacheTool::join(uint32_t dest_id, const int64_t from_time) {
+  reader_->join(cache_location_, dest_id, from_time);
+}
+
+frame_ptr CacheTool::next_frame() const {
   if (reader_->data_available()) {
     reader_->next();
-    return reader_->current_frame();
+    auto frame = reader_->current_frame();
+    last_read_gen_time_ = frame->gen_time();
+    return frame;
   }
   return {};
 }
@@ -52,16 +64,16 @@ void CacheTool::init(bool overwrite) {
                                      time::strftime(start_time_), time::strftime(end_time_)));
   }
   uint32_t cache_uid = hash_backtest_cache(start_time_, end_time_);
-  auto cache_location =
+  auto cache_location_ =
       location::make_shared(mode::BACKTEST, category::MD, source_, fmt::format("{:08x}", cache_uid), locator_);
-  auto publisher = std::make_shared<yijinjing::journal::noop_publisher>();
+  auto publisher_ = std::make_shared<yijinjing::journal::noop_publisher>();
   if (overwrite) {
-    std::string cache_dir = locator_->layout_dir(cache_location, layout::JOURNAL);
+    std::string cache_dir = locator_->layout_dir(cache_location_, layout::JOURNAL);
     fs::remove_all(cache_dir);
   }
-  writer_ = std::make_shared<yijinjing::journal::writer>(cache_location, location::PUBLIC, true, publisher);
+  writers_[location::PUBLIC] = std::make_shared<yijinjing::journal::writer>(cache_location_, location::PUBLIC, true, publisher_);
   reader_ = std::make_shared<yijinjing::journal::reader>(true);
-  reader_->join(cache_location, location::PUBLIC, 0);
+  reader_->join(cache_location_, location::PUBLIC, start_time_);
 }
 
 void CacheTool::valid_time(int64_t gen_time, int64_t trigger_time) {
@@ -73,4 +85,5 @@ void CacheTool::valid_time(int64_t gen_time, int64_t trigger_time) {
         fmt::format("invalid time: trigger_time={} < last_gen_time_={}", trigger_time, last_gen_time_));
   }
   last_gen_time_ = gen_time;
-}} // namespace kungfu::wingchun::tool
+}
+} // namespace kungfu::wingchun::tool

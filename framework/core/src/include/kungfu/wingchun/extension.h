@@ -15,7 +15,7 @@
 #define KUNGFU_EXTENSION(...) PYBIND11_MODULE(KUNGFU_MODULE_NAME, m)
 
 #define KUNGFU_DEFINE_SERVICE(ServiceType)                                                                             \
-  m.def("system",                                                                                                      \
+  m.def("service",                                                                                                     \
         [&](kungfu::yijinjing::data::locator_ptr locator, kungfu::longfist::enums::mode m, bool low_latency = false) { \
           return std::static_pointer_cast<kungfu::yijinjing::practice::apprentice>(                                    \
               std::make_shared<ServiceType>(locator, m, low_latency));                                                 \

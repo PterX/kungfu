@@ -86,7 +86,11 @@ int64_t hero::now() const { return now_; }
 
 void hero::set_begin_time(int64_t begin_time) { begin_time_ = begin_time; }
 
+int64_t hero::get_begin_time() const { return begin_time_; }
+
 void hero::set_end_time(int64_t end_time) { end_time_ = end_time; }
+
+int64_t hero::get_end_time() const { return end_time_; }
 
 const locator_ptr &hero::get_locator() const { return io_device_->get_locator(); }
 
@@ -111,6 +115,10 @@ writer_ptr hero::get_writer(uint32_t dest_id) const {
     SPDLOG_ERROR("no writer for {}", get_location_uname(dest_id));
   }
   return writers_.at(dest_id);
+}
+
+std::unordered_map<uint32_t, writer_ptr> &hero::get_writers() {
+  return writers_;
 }
 
 bool hero::has_location(uint32_t uid) const { return locations_.find(uid) != locations_.end(); }
@@ -339,7 +347,7 @@ bool hero::drain(const rx::subscriber<event_ptr> &sb) {
     }
   }
   if (get_io_device()->get_home()->mode != mode::LIVE and not reader_->data_available()) {
-    SPDLOG_INFO("reached journal end {}", time::strftime(reader_->current_frame()->gen_time()));
+    SPDLOG_INFO("reached journal end {}", time::strftime(now()));
     return false;
   }
   return true;

@@ -18,15 +18,15 @@ int64_t CacheTool::parse_time(const std::string &time_string) {
   return time_stamp;
 }
 
-CacheTool::CacheTool(std::string source, std::string start_time, std::string end_time, locator_ptr locator,
+CacheTool::CacheTool(longfist::types::category c, std::string source, std::string start_time, std::string end_time, locator_ptr locator,
                      bool overwrite)
-    : source_(std::move(source)), start_time_(parse_time(start_time)), end_time_(parse_time(end_time)),
-      last_gen_time_(start_time_), last_read_gen_time_(start_time_), locator_(std::move(locator)) {
+    : category_(c), source_(std::move(source)), begin_time_(parse_time(start_time)), end_time_(parse_time(end_time)),
+      last_gen_time_(begin_time_), last_read_gen_time_(begin_time_), locator_(std::move(locator)) {
   init(overwrite);
 }
 
-CacheTool::CacheTool(std::string source, int64_t start_time, int64_t end_time, locator_ptr locator, bool overwrite)
-    : source_(std::move(source)), start_time_(start_time), end_time_(end_time), last_gen_time_(start_time),
+CacheTool::CacheTool(longfist::types::category c, std::string source, int64_t start_time, int64_t end_time, locator_ptr locator, bool overwrite)
+    : category_(c), source_(std::move(source)), begin_time_(start_time), end_time_(end_time), last_gen_time_(start_time),
       last_read_gen_time_(end_time), locator_(std::move(locator)) {
   init(overwrite);
 }
@@ -59,11 +59,11 @@ frame_ptr CacheTool::next_frame() const {
 bool CacheTool::data_available() const { return reader_->data_available(); }
 
 void CacheTool::init(bool overwrite) {
-  if (end_time_ < start_time_ or start_time_ < 0) {
+  if (end_time_ < begin_time_ or begin_time_ < 0) {
     throw wingchun_error(fmt::format("invalid time interval: start_time={} later than end_time={}",
-                                     time::strftime(start_time_), time::strftime(end_time_)));
+                                     time::strftime(begin_time_), time::strftime(end_time_)));
   }
-  uint32_t cache_uid = hash_backtest_cache(start_time_, end_time_);
+  uint32_t cache_uid = hash_backtest_cache(source_, begin_time_, end_time_);
   auto cache_location_ =
       location::make_shared(mode::BACKTEST, category::MD, source_, fmt::format("{:08x}", cache_uid), locator_);
   auto publisher_ = std::make_shared<yijinjing::journal::noop_publisher>();
@@ -73,11 +73,11 @@ void CacheTool::init(bool overwrite) {
   }
   writers_[location::PUBLIC] = std::make_shared<yijinjing::journal::writer>(cache_location_, location::PUBLIC, true, publisher_);
   reader_ = std::make_shared<yijinjing::journal::reader>(true);
-  reader_->join(cache_location_, location::PUBLIC, start_time_);
+  reader_->join(cache_location_, location::PUBLIC, begin_time_);
 }
 
 void CacheTool::valid_time(int64_t gen_time, int64_t trigger_time) {
-  if (gen_time < trigger_time or trigger_time < start_time_ or gen_time > end_time_) {
+  if (gen_time < trigger_time or trigger_time < begin_time_ or gen_time > end_time_) {
     throw wingchun_error(fmt::format("invalid time: gen_time={}, trigger_time={}", gen_time, trigger_time));
   }
   if (trigger_time < last_gen_time_) {

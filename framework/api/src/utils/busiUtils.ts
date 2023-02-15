@@ -31,6 +31,7 @@ import {
   ShotableInstrumentTypes,
   T0InstrumentTypes,
   T0ExchangeIds,
+  PriceLevel,
 } from '../config/tradingConfig';
 import {
   KfCategoryEnum,
@@ -55,6 +56,7 @@ import {
   StrategyStateStatusTypes,
   StrategyStateStatusEnum,
   UnderweightEnum,
+  PriceLevelEnum,
 } from '../typings/enums';
 import {
   graceDeleteProcess,
@@ -1318,6 +1320,11 @@ export const isT0 = (
   );
 };
 
+export const isKfColor = (color: string) => color.startsWith('kf-color');
+
+export const isHexOrRgbColor = (color: string) =>
+  color.startsWith('#') || color.startsWith('rgb') || color.startsWith('rgba');
+
 export const dealKfNumber = (
   preNumber: bigint | number | undefined | unknown,
 ): string | number | bigint | unknown => {
@@ -1377,6 +1384,40 @@ export const dealDirection = (
   return Direction[+direction as DirectionEnum];
 };
 
+export const resolveOffsetBySideAndDirection = (
+  side: SideEnum,
+  direction: DirectionEnum,
+): OffsetEnum => {
+  if (side === SideEnum.Buy) {
+    return direction === DirectionEnum.Long
+      ? OffsetEnum.Open
+      : OffsetEnum.Close;
+  } else if (side === SideEnum.Sell) {
+    return direction === DirectionEnum.Long
+      ? OffsetEnum.Close
+      : OffsetEnum.Open;
+  }
+
+  return OffsetEnum.Open;
+};
+
+export const resolveDirectionBySideAndOffset = (
+  side: SideEnum,
+  offset: OffsetEnum,
+): DirectionEnum => {
+  if (side === SideEnum.Buy) {
+    return offset === OffsetEnum.Open
+      ? DirectionEnum.Long
+      : DirectionEnum.Short;
+  } else if (side === SideEnum.Sell) {
+    return offset === OffsetEnum.Open
+      ? DirectionEnum.Short
+      : DirectionEnum.Long;
+  }
+
+  return DirectionEnum.Long;
+};
+
 export const dealOrderStatus = (
   status: OrderStatusEnum | number,
   errorMsg?: string,
@@ -1395,6 +1436,12 @@ export const dealPriceType = (
   priceType: PriceTypeEnum | number,
 ): KungfuApi.KfTradeValueCommonData => {
   return PriceType[+priceType as PriceTypeEnum];
+};
+
+export const dealPriceLevel = (
+  priceLevel: PriceLevelEnum | number,
+): KungfuApi.KfTradeValueCommonData => {
+  return PriceLevel[+priceLevel as PriceLevelEnum];
 };
 
 export const dealTimeCondition = (
@@ -1724,6 +1771,9 @@ export const dealTradingDataMethodsMap: Record<
   Position: dealLedgerTradingData,
   Quote: dealDefaultTradingData,
   Trade: dealOrderTradingData,
+  Basket: dealDefaultTradingData,
+  BasketInstrument: dealDefaultTradingData,
+  BasketOrder: dealDefaultTradingData,
 };
 
 export const dealTradingData = <T>(
@@ -1822,6 +1872,7 @@ export const numberEnumSelectType: Record<
 > = {
   side: Side,
   priceType: PriceType,
+  priceLevel: PriceLevel,
   instrumentType: InstrumentType,
   underweightType: UnderweightType,
 };
@@ -1845,11 +1896,25 @@ export const KfConfigValueNumberType = [
 export const KfConfigValueBooleanType = ['bool', 'checkbox'];
 
 export const KfConfigValueArrayType = [
+  'tds',
   'files',
   'instruments',
   'instrumentsCsv',
   'table',
+  'csvTable',
 ];
+
+export const initFormTimePicker = (initValue?: string) => {
+  if (typeof initValue !== 'string') return null;
+
+  if (initValue === 'now') {
+    return dayjs().format('YYYY-MM-DD HH:mm:ss');
+  } else if (/\d{2}:\d{2}:\d{2}/.test(initValue)) {
+    return dayjs(initValue, 'HH:mm:ss').format('YYYY-MM-DD HH:mm:ss');
+  }
+
+  return null;
+};
 
 export const initFormStateByConfig = (
   configSettings: KungfuApi.KfConfigItem[],
@@ -1911,6 +1976,8 @@ export const initFormStateByConfig = (
           defaultValue = [];
         }
       }
+    } else if (item.type === 'timePicker') {
+      defaultValue = initFormTimePicker(item?.default);
     }
 
     formState[item.key] = defaultValue;

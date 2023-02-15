@@ -94,7 +94,7 @@ public:
                         const std::string &account, double limit_price, int64_t volume, longfist::enums::PriceType type,
                         longfist::enums::Side side, longfist::enums::Offset offset,
                         longfist::enums::HedgeFlag hedge_flag = HedgeFlag::Speculation, bool is_swap = false,
-                        uint64_t block_id = 0) override;
+                        uint64_t block_id = 0, uint64_t parent_id = 0) override;
 
   /**
    *
@@ -128,6 +128,22 @@ public:
    */
   std::vector<uint64_t> insert_array_orders(const std::string &source, const std::string &account,
                                             std::vector<longfist::types::OrderInput> order_inputs) override;
+
+  /**
+   * Insert Basket Orders
+   * @param basket_id
+   * @param source
+   * @param account
+   * @param price_type
+   * @param price_level
+   * @param price_offset
+   * @param volume_mode
+   * @param total_volume
+   */
+  uint64_t insert_basket_order(uint64_t basket_id, const std::string &source, const std::string account,
+                               longfist::enums::PriceType price_type, longfist::enums::PriceLevel price_level,
+                               double price_offset = 0, int64_t volume = 0) override;
+
   /**
    * Cancel order.
    * @param order_id order ID
@@ -172,6 +188,12 @@ public:
   book::Bookkeeper &get_bookkeeper();
 
   /**
+   * Get basketorder engine.
+   * @return basketorder engine reference
+   */
+  basketorder::BasketOrderEngine &get_basketorder_engine();
+
+  /**
    * query history order
    */
   void req_history_order(const std::string &source, const std::string &account, uint32_t query_num = 0) override;
@@ -209,6 +231,7 @@ protected:
 private:
   broker::PassiveClient broker_client_;
   book::Bookkeeper bookkeeper_;
+  basketorder::BasketOrderEngine basketorder_engine_;
   yijinjing::data::location_map md_locations_ = {};
   yijinjing::data::location_map td_locations_ = {};
   yijinjing::data::location_map op_locations_ = {};

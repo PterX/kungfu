@@ -66,4 +66,8 @@ public:
                                 const location_ptr &location) override {
     SPDLOG_INFO("on operator state changed: {}", operator_state_update.to_string());
   };
+
+  void on_tree(Context_ptr & context, const Tree &tree, const location_ptr &location) override {
+    SPDLOG_INFO("on tree: {}", tree.to_string());
+  }
 };

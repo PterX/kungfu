@@ -3,6 +3,7 @@
 Quote = 101
 Entrust = 102
 Transaction = 103
+Tree = 104
 OrderInput = 201
 OrderAction = 202
 Order = 203
@@ -26,4 +27,3 @@ RemoveStrategy = 404
 PublishAllAssetInfo = 405
 Calendar = 601
 PositionEnd = 800
-InstrumentEnd = 802

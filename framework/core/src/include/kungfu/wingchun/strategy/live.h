@@ -45,7 +45,7 @@ public:
    * @param source TD group
    * @param account TD account ID
    */
-  void add_account(const std::string &source, const std::string &account) override;
+  void add_account(const std::string &sourceOperator, const std::string &account) override;
 
   /**
    * Subscribe market data.
@@ -176,7 +176,7 @@ public:
    * @return bookkeeper reference
    */
   book::Bookkeeper &get_bookkeeper() override;
-
+Operator
   /**
    * query history order
    */
@@ -201,9 +201,6 @@ public:
   void update_strategy_state(longfist::types::StrategyStateUpdate &state_update) override;
 
 protected:
-  yijinjing::practice::apprentice &app_;
-  const rx::connectable_observable<event_ptr> &events_;
-
   virtual void on_start() override;
 
   virtual void prepare(const event_ptr &event) override;

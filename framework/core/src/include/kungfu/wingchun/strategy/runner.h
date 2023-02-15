@@ -7,8 +7,10 @@
 #ifndef WINGCHUN_RUNNER_H
 #define WINGCHUN_RUNNER_H
 
-#include <kungfu/wingchun/strategy/runtime.h>
+#include <kungfu/wingchun/strategy/live.h>
+#include <kungfu/wingchun/strategy/backtest.h>
 #include <kungfu/wingchun/strategy/strategy.h>
+#include <kungfu/wingchun/strategy/matcher.h>
 #include <kungfu/yijinjing/practice/apprentice.h>
 
 namespace kungfu::wingchun::strategy {

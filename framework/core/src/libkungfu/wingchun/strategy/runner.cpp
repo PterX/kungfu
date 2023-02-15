@@ -20,7 +20,12 @@ Runner::Runner(locator_ptr locator, const std::string &group, const std::string 
 
 Context_ptr Runner::get_context() const { return context_; }
 
-Context_ptr Runner::make_context() { return std::make_shared<LiveContext>(*this, events_); }
+Context_ptr Runner::make_context() { 
+  if (get_home()->mode == mode::BACKTEST) {
+    return std::make_shared<BacktestContext>(*this, events_);
+  } 
+  return std::make_shared<LiveContext>(*this, events_);
+}
 
 void Runner::add_strategy(const Strategy_ptr &strategy) { strategies_.push_back(strategy); }
 

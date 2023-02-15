@@ -16,7 +16,7 @@
 namespace kungfu::wingchun::strategy {
 class Context : public std::enable_shared_from_this<Context> {
 public:
-  Context() = default;
+  Context(yijinjing::practice::apprentice &app, const rx::connectable_observable<event_ptr> &events);
 
   virtual ~Context() = default;
 
@@ -217,6 +217,8 @@ public:
   virtual void update_strategy_state(longfist::types::StrategyStateUpdate &state_update) {}
 
 protected:
+  yijinjing::practice::apprentice &app_;
+  const rx::connectable_observable<event_ptr> &events_;
   virtual void on_start() {}
 
   virtual void prepare(const event_ptr &event) = 0;

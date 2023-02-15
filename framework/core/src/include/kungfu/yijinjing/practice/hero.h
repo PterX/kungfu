@@ -48,7 +48,11 @@ public:
 
   void set_begin_time(int64_t begin_time);
 
+  int64_t get_begin_time() const;
+
   void set_end_time(int64_t end_time);
+
+  int64_t get_end_time() const;
 
   [[nodiscard]] const data::locator_ptr &get_locator() const;
 
@@ -67,8 +71,10 @@ public:
   [[nodiscard]] yijinjing::journal::reader_ptr get_reader() const;
 
   bool has_writer(uint32_t dest_id) const;
-
+  
   [[nodiscard]] yijinjing::journal::writer_ptr get_writer(uint32_t dest_id) const;
+
+  [[nodiscard]] std::unordered_map<uint32_t, yijinjing::journal::writer_ptr> & get_writers();
 
   bool has_location(uint32_t uid) const;
 

@@ -6,7 +6,7 @@
 
 #include <fmt/format.h>
 
-#include <kungfu/wingchun/strategy/runtime.h>
+#include <kungfu/wingchun/strategy/live.h>
 #include <kungfu/yijinjing/log.h>
 #include <kungfu/yijinjing/time.h>
 
@@ -21,7 +21,7 @@ using namespace kungfu::yijinjing::util;
 namespace kungfu::wingchun::strategy {
 
 LiveContext::LiveContext(apprentice &app, const rx::connectable_observable<event_ptr> &events)
-    : app_(app), events_(events), broker_client_(app_), bookkeeper_(app_, broker_client_) {
+    : Context(app, events), broker_client_(app_), bookkeeper_(app_, broker_client_) {
   log::copy_log_settings(app_.get_home(), app_.get_home()->name);
 }
 

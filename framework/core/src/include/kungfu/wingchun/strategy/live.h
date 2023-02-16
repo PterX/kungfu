@@ -176,7 +176,7 @@ public:
    * @return bookkeeper reference
    */
   book::Bookkeeper &get_bookkeeper() override;
-Operator
+  
   /**
    * query history order
    */

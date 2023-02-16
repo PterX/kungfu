@@ -88,8 +88,12 @@ const tdIdList = computed(() => {
     (item: KungfuApi.KfLocation): string => `${item.group}_${item.name}`,
   );
 });
-const { dealRowClassName, customRow, currentGlobalKfLocation } =
-  useCurrentGlobalKfLocation(window.watcher);
+const {
+  dealRowClassName,
+  customRow,
+  currentGlobalKfLocation,
+  resetCurrentGlobalKfLocation,
+} = useCurrentGlobalKfLocation(window.watcher);
 
 const { processStatusData, getProcessStatusName } =
   useProcessStatusDetailData();
@@ -327,6 +331,14 @@ function handleRemoveTdGroup(item: KungfuApi.KfExtraLocation) {
       })
       .then(() => {
         success();
+
+        if (
+          currentGlobalKfLocation.value &&
+          getProcessIdByKfLocation(item) ===
+            getProcessIdByKfLocation(currentGlobalKfLocation.value)
+        ) {
+          resetCurrentGlobalKfLocation();
+        }
       })
       .catch((err) => {
         error(err.message || t('operation_failed'));

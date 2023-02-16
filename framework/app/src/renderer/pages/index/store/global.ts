@@ -14,6 +14,8 @@ import {
   getAllRiskSettingList,
   getSubscribedInstruments,
   getTdGroups,
+  getAllBaskets,
+  getAllBasketInstruments,
 } from '@kungfu-trader/kungfu-js-api/actions';
 import {
   Pm2ProcessStatusDetailData,
@@ -24,6 +26,10 @@ import {
   KfCategoryTypes,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import globalBus from '@kungfu-trader/kungfu-js-api/utils/globalBus';
+import {
+  SideEnum,
+  OffsetEnum,
+} from '@kungfu-trader/kungfu-js-api/typings/enums';
 import { getKfGlobalSettingsValue } from '@kungfu-trader/kungfu-js-api/config/globalSettings';
 
 interface GlobalState {
@@ -37,6 +43,8 @@ interface GlobalState {
   mdList: KungfuApi.KfConfig[];
   strategyList: KungfuApi.KfConfig[];
   operatorList: KungfuApi.KfConfig[];
+  basketList: KungfuApi.Basket[];
+  basketInstrumentList: KungfuApi.BasketInstrument[];
 
   processStatusData: Pm2ProcessStatusData;
   processStatusWithDetail: Pm2ProcessStatusDetailData;
@@ -47,7 +55,8 @@ interface GlobalState {
   assets: Record<string, KungfuApi.Asset>;
   instruments: KungfuApi.InstrumentResolved[];
   instrumentsMap: Record<string, KungfuApi.InstrumentResolved>;
-  subscribedInstruments: KungfuApi.InstrumentResolved[];
+  subscribedInstrumentsByLocal: KungfuApi.InstrumentResolved[];
+  curSubscribedInstruments: Record<string, boolean>;
 
   riskSettings: KungfuApi.RiskSetting[];
 
@@ -58,6 +67,16 @@ interface GlobalState {
     | KungfuApi.KfConfig
     | KungfuApi.KfExtraLocation
     | null;
+
+  orderBookCurrentInstrument: KungfuApi.InstrumentResolved | undefined;
+
+  globalFormState: {
+    account_id?: string;
+    instrument?: string;
+    volume?: number;
+    side?: SideEnum;
+    offset?: OffsetEnum;
+  };
 }
 
 export const useGlobalStore = defineStore('global', {
@@ -74,6 +93,8 @@ export const useGlobalStore = defineStore('global', {
       mdList: [],
       strategyList: [],
       operatorList: [],
+      basketList: [],
+      basketInstrumentList: [],
 
       processStatusData: {},
       processStatusWithDetail: {},
@@ -83,13 +104,17 @@ export const useGlobalStore = defineStore('global', {
       assets: {},
       instruments: [],
       instrumentsMap: {},
-      subscribedInstruments: [],
+      subscribedInstrumentsByLocal: [],
+      curSubscribedInstruments: {},
 
       riskSettings: [],
 
       globalSetting: {},
 
       currentGlobalKfLocation: null,
+      orderBookCurrentInstrument: undefined,
+
+      globalFormState: {},
     };
   },
 
@@ -101,15 +126,17 @@ export const useGlobalStore = defineStore('global', {
           tag: 'update:tdGroup',
           tdGroups: this.tdGroupList,
         });
-        this.setCurrentGlobalKfLocation(null);
-        this.setDefaultCurrentGlobalKfLocation();
       });
     },
 
-    setSubscribedInstruments() {
+    setSubscribedInstrumentsByLocal() {
       getSubscribedInstruments().then((instruments) => {
-        this.subscribedInstruments = toRaw(instruments);
+        this.subscribedInstrumentsByLocal = toRaw(instruments);
       });
+    },
+
+    setCurSubscribedInstruments(newInstrumentsMap: Record<string, boolean>) {
+      Object.assign(this.curSubscribedInstruments, newInstrumentsMap);
     },
 
     setInstruments(instruments: KungfuApi.InstrumentResolved[]) {
@@ -130,6 +157,16 @@ export const useGlobalStore = defineStore('global', {
         | null,
     ) {
       this.currentGlobalKfLocation = kfLocation;
+    },
+
+    setOrderBookCurrentInstrument(
+      instrument: KungfuApi.InstrumentResolved | undefined,
+    ) {
+      this.orderBookCurrentInstrument = instrument;
+    },
+
+    setGlobalFormState(formState: GlobalState['globalFormState']) {
+      Object.assign(this.globalFormState, formState);
     },
 
     setAppStates(appStates: Record<string, BrokerStateStatusTypes>) {
@@ -195,6 +232,18 @@ export const useGlobalStore = defineStore('global', {
     setRiskSettingList() {
       return getAllRiskSettingList().then((res) => {
         this.riskSettings = res;
+      });
+    },
+
+    setBasketList() {
+      return getAllBaskets().then((basketList) => {
+        this.basketList = basketList;
+      });
+    },
+
+    setBasketInstrumentList() {
+      return getAllBasketInstruments().then((basketInstrumentList) => {
+        this.basketInstrumentList = basketInstrumentList;
       });
     },
 

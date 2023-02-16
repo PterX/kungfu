@@ -22,10 +22,12 @@ const props = withDefaults(
   defineProps<{
     visible: boolean;
     extensionType: KfCategoryTypes;
+    extFilter: (extConfig: KungfuApi.KfExtConfig) => boolean;
   }>(),
   {
     visible: false,
     extensionType: 'td',
+    extFilter: () => true,
   },
 );
 
@@ -39,7 +41,9 @@ const app = getCurrentInstance();
 const { extConfigs } = useExtConfigsRelated();
 const selectedExtension = ref<string>('');
 const availExtensionList = computed(() => {
-  return getExtConfigList(extConfigs.value, props.extensionType);
+  return getExtConfigList(extConfigs.value, props.extensionType).filter(
+    (extConfig) => props.extFilter(extConfig),
+  );
 });
 
 const { modalVisible, closeModal } = useModalVisible(props.visible);
@@ -90,7 +94,7 @@ function getKungfuTradeValueCommonDataByExtType(
 <template>
   <a-modal
     class="kf-set-source-modal"
-    :width="480"
+    :width="500"
     v-model:visible="modalVisible"
     :title="modalTitle"
     :destroyOnClose="true"
@@ -103,7 +107,7 @@ function getKungfuTradeValueCommonDataByExtType(
         :key="item.key"
         :value="item.key"
         :style="{
-          height: '36px',
+          'min-height': '36px',
           'line-height': '36px',
           'font-size': '16px',
           'min-width': '45%',

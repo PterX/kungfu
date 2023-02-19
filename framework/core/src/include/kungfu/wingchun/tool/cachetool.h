@@ -12,17 +12,16 @@ class CacheTool {
   static int64_t parse_time(const std::string &time);
 
 public:
-  CacheTool(longfist::types::category category, std::string source, std::string start_time, std::string end_time, yijinjing::data::locator_ptr locator,
-            bool overwrite = true);
-  CacheTool(longfist::types::category category, std::string source, int64_t start_time, int64_t end_time, yijinjing::data::locator_ptr locator,
-            bool overwrite = true);
+  CacheTool(longfist::types::category category, std::string source, std::string start_time, std::string end_time,
+            yijinjing::data::locator_ptr locator, bool overwrite = true);
+  CacheTool(longfist::types::category category, std::string source, int64_t start_time, int64_t end_time,
+            yijinjing::data::locator_ptr locator, bool overwrite = true);
 
-  int64_t get_start_time() const { return begin_time_;}
+  int64_t get_begin_time() const { return begin_time_; }
 
-  int64_t get_end_time() const { return end_time_;}
+  int64_t get_end_time() const { return end_time_; }
 
-
- virtual void run(){};
+  virtual void run(){};
 
 protected:
   template <typename T> void write_at(int64_t gen_time, int64_t trigger_time, uint32_t dest_id, const T &data) {
@@ -33,14 +32,14 @@ protected:
     writers_.at(dest_id)->write_at(gen_time, trigger_time, data);
   }
 
-  void write_raw_at(int64_t gen_time, int64_t trigger_time, uint32_t dest_id, int32_t msg_type, uintptr_t data, uint32_t length);
-
+  void write_raw_at(int64_t gen_time, int64_t trigger_time, uint32_t dest_id, int32_t msg_type, uintptr_t data,
+                    uint32_t length);
 
   yijinjing::journal::frame_ptr next_frame() const;
 
   bool data_available() const;
 
-  int64_t get_last_read_gen_time() const { return last_read_gen_time_;}
+  int64_t get_last_read_gen_time() const { return last_read_gen_time_; }
 
   void join(uint32_t dest_id, const int64_t from_time);
 
@@ -62,8 +61,9 @@ private:
 
 class CacheToolWriter : public CacheTool {
 public:
-  CacheToolWriter(longfist::types::category category, std::string source, std::string start_time, std::string end_time, yijinjing::data::locator_ptr locator) 
-  : CacheTool(category, source, start_time, end_time, locator, true) {}
+  CacheToolWriter(longfist::types::category category, std::string source, std::string start_time, std::string end_time,
+                  yijinjing::data::locator_ptr locator)
+      : CacheTool(category, source, start_time, end_time, locator, true) {}
 
   void write_raw(int64_t time_stamp, int32_t msg_type, uint32_t dest_id, uintptr_t data, uint32_t length) {
     write_raw_at(time_stamp, time_stamp, dest_id, msg_type, data, length);
@@ -72,20 +72,15 @@ public:
 
 class CacheToolReader : public CacheTool {
 public:
-    CacheToolReader(longfist::types::category category, std::string source, std::string start_time, std::string end_time, yijinjing::data::locator_ptr locator) 
-  : CacheTool(category, source, start_time, end_time, locator, false) {}
+  CacheToolReader(longfist::types::category category, std::string source, std::string start_time, std::string end_time,
+                  yijinjing::data::locator_ptr locator)
+      : CacheTool(category, source, start_time, end_time, locator, false) {}
 
-  yijinjing::journal::frame_ptr next_frame() const {
-    return CacheTool::next_frame();
-  }
+  yijinjing::journal::frame_ptr next_frame() const { return CacheTool::next_frame(); }
 
-  bool data_available() const {
-    return CacheTool::data_available();
-  }
+  bool data_available() const { return CacheTool::data_available(); }
 
-  void join(uint32_t dest_id) {
-    return CacheTool::join(dest_id, get_last_read_gen_time());
-  }
+  void join(uint32_t dest_id) { return CacheTool::join(dest_id, get_last_read_gen_time()); }
 };
 
 } // namespace kungfu::wingchun::tool

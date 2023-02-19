@@ -22,12 +22,19 @@ Context_ptr Runner::get_context() const { return context_; }
 
 Context_ptr Runner::make_context() { 
   if (get_home()->mode == mode::BACKTEST) {
-    return std::make_shared<BacktestContext>(*this, events_);
+    if (matcher_) {
+      set_runner(*matcher_, this);
+    } else {
+      throw wingchun_error("matcher not specified");
+    }
+    return std::make_shared<BacktestContext>(*this, events_, matcher_);
   } 
   return std::make_shared<LiveContext>(*this, events_);
 }
 
 void Runner::add_strategy(const Strategy_ptr &strategy) { strategies_.push_back(strategy); }
+
+void Runner::set_matcher(const Matcher_ptr &matcher) { matcher_ = matcher; }
 
 void Runner::on_exit() { post_stop(); }
 

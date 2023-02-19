@@ -8,11 +8,13 @@
 #define WINGCHUN_BACKTEST_H
 
 #include <kungfu/wingchun/strategy/context.h>
+#include <kungfu/wingchun/strategy/matcher.h>
 
 namespace kungfu::wingchun::strategy {
 class BacktestContext : public Context {
 public:
-  explicit BacktestContext(yijinjing::practice::apprentice &app, const rx::connectable_observable<event_ptr> &events);
+  explicit BacktestContext(yijinjing::practice::apprentice &app, const rx::connectable_observable<event_ptr> &events,
+                           Matcher_ptr matcher);
 
   /**
    * checked_ is strated started.
@@ -63,7 +65,7 @@ public:
   void subscribe_all(const std::string &source, uint8_t market_type = 0, uint64_t instrument_type = 0,
                      uint64_t data_type = 0) override;
 
-    /**
+  /**
    * Subscribe operator data.
    * @param group OPERATOR group
    * @param name OPERATOR name
@@ -79,7 +81,6 @@ public:
    */
   virtual uint64_t insert_block_message(const std::string &source, const std::string &account, uint32_t opponent_seat,
                                         uint64_t match_number, bool is_specific = false) override;
-
 
   /**
    * Insert order.
@@ -99,7 +100,7 @@ public:
                         longfist::enums::HedgeFlag hedge_flag = HedgeFlag::Speculation, bool is_swap = false,
                         uint64_t block_id = 0) override;
 
-/**
+  /**
    * Insert Batch Orders
    * @param source
    * @param account
@@ -147,12 +148,14 @@ public:
   /**
    * query history order
    */
-  virtual void req_history_order(const std::string &source, const std::string &account, uint32_t query_num = 0) override;
+  virtual void req_history_order(const std::string &source, const std::string &account,
+                                 uint32_t query_num = 0) override;
 
   /**
    * query history trade
    */
-  virtual void req_history_trade(const std::string &source, const std::string &account, uint32_t query_num = 0) override;
+  virtual void req_history_trade(const std::string &source, const std::string &account,
+                                 uint32_t query_num = 0) override;
 
   /**
    * Cancel order.
@@ -181,15 +184,21 @@ public:
   void update_strategy_state(longfist::types::StrategyStateUpdate &state_update) override;
 
 protected:
-
   virtual void on_start() override;
 
   virtual void prepare(const event_ptr &event) override;
 
   const yijinjing::data::location_ptr find_md_location(const std::string &source);
+
 private:
   broker::PassiveClient broker_client_;
   book::Bookkeeper bookkeeper_;
+  Matcher_ptr matcher_;
+
+  template <typename TradingData, typename OnMethod = void (Matcher::*)(int64_t, const TradingData &)>
+  void invoke(OnMethod method, int64_t gen_time, const TradingData &data) {
+    matcher_->*method(gen_time, data);
+  }
 };
 
 DECLARE_PTR(BacktestContext)

@@ -71,10 +71,8 @@ public:
   [[nodiscard]] yijinjing::journal::reader_ptr get_reader() const;
 
   bool has_writer(uint32_t dest_id) const;
-  
-  [[nodiscard]] yijinjing::journal::writer_ptr get_writer(uint32_t dest_id) const;
 
-  [[nodiscard]] std::unordered_map<uint32_t, yijinjing::journal::writer_ptr> & get_writers();
+  [[nodiscard]] yijinjing::journal::writer_ptr get_writer(uint32_t dest_id) const;
 
   bool has_location(uint32_t uid) const;
 

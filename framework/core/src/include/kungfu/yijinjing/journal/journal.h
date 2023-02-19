@@ -128,7 +128,7 @@ public:
     return const_cast<T &>(frame->template data<T>());
   }
 
-  void close_data();
+  void close_data(int64_t gen_time = time::now_in_nano());
 
   template <typename T>
   std::enable_if_t<size_fixed_v<T>> write(int64_t trigger_time, const T &data, int32_t msg_type = T::tag) {

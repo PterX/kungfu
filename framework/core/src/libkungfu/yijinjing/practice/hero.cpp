@@ -117,10 +117,6 @@ writer_ptr hero::get_writer(uint32_t dest_id) const {
   return writers_.at(dest_id);
 }
 
-std::unordered_map<uint32_t, writer_ptr> &hero::get_writers() {
-  return writers_;
-}
-
 bool hero::has_location(uint32_t uid) const { return locations_.find(uid) != locations_.end(); }
 
 location_ptr hero::get_location(uint32_t uid) const {

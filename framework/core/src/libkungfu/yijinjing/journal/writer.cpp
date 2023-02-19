@@ -81,7 +81,7 @@ void writer::write_raw(int64_t trigger_time, int32_t msg_type, uintptr_t data, u
   close_frame(length);
 }
 
-void writer::close_data() { close_frame(size_to_write_); }
+void writer::close_data(int64_t gen_time) { close_frame(size_to_write_, gen_time); }
 
 void writer::close_page(int64_t trigger_time) {
   page_ptr last_page = journal_.page_;

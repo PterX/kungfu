@@ -18,16 +18,17 @@ int64_t CacheTool::parse_time(const std::string &time_string) {
   return time_stamp;
 }
 
-CacheTool::CacheTool(longfist::types::category c, std::string source, std::string start_time, std::string end_time, locator_ptr locator,
-                     bool overwrite)
+CacheTool::CacheTool(longfist::types::category c, std::string source, std::string start_time, std::string end_time,
+                     locator_ptr locator, bool overwrite)
     : category_(c), source_(std::move(source)), begin_time_(parse_time(start_time)), end_time_(parse_time(end_time)),
       last_gen_time_(begin_time_), last_read_gen_time_(begin_time_), locator_(std::move(locator)) {
   init(overwrite);
 }
 
-CacheTool::CacheTool(longfist::types::category c, std::string source, int64_t start_time, int64_t end_time, locator_ptr locator, bool overwrite)
-    : category_(c), source_(std::move(source)), begin_time_(start_time), end_time_(end_time), last_gen_time_(start_time),
-      last_read_gen_time_(end_time), locator_(std::move(locator)) {
+CacheTool::CacheTool(longfist::types::category c, std::string source, int64_t start_time, int64_t end_time,
+                     locator_ptr locator, bool overwrite)
+    : category_(c), source_(std::move(source)), begin_time_(start_time), end_time_(end_time),
+      last_gen_time_(start_time), last_read_gen_time_(end_time), locator_(std::move(locator)) {
   init(overwrite);
 }
 
@@ -42,9 +43,7 @@ void CacheTool::write_raw_at(int64_t gen_time, int64_t trigger_time, uint32_t de
   writers_.at(dest_id)->close_frame(length, gen_time);
 }
 
-void CacheTool::join(uint32_t dest_id, const int64_t from_time) {
-  reader_->join(cache_location_, dest_id, from_time);
-}
+void CacheTool::join(uint32_t dest_id, const int64_t from_time) { reader_->join(cache_location_, dest_id, from_time); }
 
 frame_ptr CacheTool::next_frame() const {
   if (reader_->data_available()) {
@@ -71,7 +70,8 @@ void CacheTool::init(bool overwrite) {
     std::string cache_dir = locator_->layout_dir(cache_location_, layout::JOURNAL);
     fs::remove_all(cache_dir);
   }
-  writers_[location::PUBLIC] = std::make_shared<yijinjing::journal::writer>(cache_location_, location::PUBLIC, true, publisher_);
+  writers_[location::PUBLIC] =
+      std::make_shared<yijinjing::journal::writer>(cache_location_, location::PUBLIC, true, publisher_);
   reader_ = std::make_shared<yijinjing::journal::reader>(true);
   reader_->join(cache_location_, location::PUBLIC, begin_time_);
 }

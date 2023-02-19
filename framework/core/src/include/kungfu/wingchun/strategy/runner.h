@@ -7,10 +7,10 @@
 #ifndef WINGCHUN_RUNNER_H
 #define WINGCHUN_RUNNER_H
 
-#include <kungfu/wingchun/strategy/live.h>
 #include <kungfu/wingchun/strategy/backtest.h>
-#include <kungfu/wingchun/strategy/strategy.h>
+#include <kungfu/wingchun/strategy/live.h>
 #include <kungfu/wingchun/strategy/matcher.h>
+#include <kungfu/wingchun/strategy/strategy.h>
 #include <kungfu/yijinjing/practice/apprentice.h>
 
 namespace kungfu::wingchun::strategy {
@@ -24,6 +24,8 @@ public:
   [[nodiscard]] Context_ptr get_context() const;
 
   void add_strategy(const Strategy_ptr &strategy);
+
+  void set_matcher(const Matcher_ptr &matcher);
 
   void on_exit() override;
 
@@ -51,6 +53,7 @@ protected:
 private:
   std::vector<Strategy_ptr> strategies_ = {};
   Context_ptr context_;
+  Matcher_ptr matcher_;
 
   void inspect_channel(const event_ptr &event);
 

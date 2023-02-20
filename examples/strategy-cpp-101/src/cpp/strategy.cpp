@@ -17,7 +17,7 @@ public:
   void pre_start(Context_ptr & context) override {
     SPDLOG_INFO("preparing strategy");
     SPDLOG_INFO("arguments: {}", context->arguments());
-    context->add_account("sim", "1");
+    context->add_account("sim", "123456");
     context->subscribe("sim", {"600000"}, {"SSE"});
     // context->subscribe_operator("bar", "my-bar");
   }

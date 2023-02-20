@@ -6,6 +6,7 @@
 
 #include <kungfu/longfist/longfist.h>
 #include <kungfu/yijinjing/cache/cached.h>
+#include <kungfu/yijinjing/cache/profile.h>
 #include <kungfu/yijinjing/index/session.h>
 #include <kungfu/yijinjing/io.h>
 #include <kungfu/yijinjing/journal/assemble.h>
@@ -15,7 +16,6 @@
 #include <kungfu/yijinjing/nanomsg/socket.h>
 #include <kungfu/yijinjing/practice/apprentice.h>
 #include <kungfu/yijinjing/practice/master.h>
-#include <kungfu/yijinjing/practice/profile.h>
 #include <kungfu/yijinjing/time.h>
 #include <kungfu/yijinjing/util/util.h>
 

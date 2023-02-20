@@ -185,6 +185,8 @@ void bind_strategy(pybind11::module &m) {
       .def("req_deregister", &strategy::Context::req_deregister)
       .def("update_strategy_state", &strategy::Context::update_strategy_state);
 
+  py::class_<strategy::Matcher, std::shared_ptr<strategy::Matcher>>(m, "Matcher");
+
   py::class_<strategy::LiveContext, strategy::Context, strategy::LiveContext_ptr>(m, "LiveContext")
       .def_property_readonly("bookkeeper", &strategy::LiveContext::get_bookkeeper, py::return_value_policy::reference);
 

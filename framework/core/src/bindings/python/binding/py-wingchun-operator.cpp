@@ -126,7 +126,5 @@ void bind_operator(pybind11::module &m) {
       .def("on_deregister ", &op::Operator::on_deregister)
       .def("on_broker_state_change ", &op::Operator::on_broker_state_change)
       .def("on_operator_state_change ", &op::Operator::on_operator_state_change);
-
-  ;
 }
 } // namespace kungfu::wingchun::pybind

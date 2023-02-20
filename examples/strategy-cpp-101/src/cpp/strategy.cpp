@@ -57,7 +57,7 @@ public:
       override {
     SPDLOG_INFO("on_synthetic_data: {} ", synthetic_data.to_string());
   }
-  
+
   void on_broker_state_change(Context_ptr & context, const BrokerStateUpdate &broker_state_update,
                               const location_ptr &location) override {
     SPDLOG_INFO("on broker state changed: {}", broker_state_update.to_string());

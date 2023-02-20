@@ -28,6 +28,7 @@ protected:
     valid_time(gen_time, trigger_time);
     if (writers_.find(dest_id) == writers_.end()) {
       writers_[dest_id] = std::make_shared<yijinjing::journal::writer>(cache_location_, dest_id, true, publisher_);
+      join(dest_id, gen_time);
     }
     writers_.at(dest_id)->write_at(gen_time, trigger_time, data);
   }
@@ -35,7 +36,9 @@ protected:
   void write_raw_at(int64_t gen_time, int64_t trigger_time, uint32_t dest_id, int32_t msg_type, uintptr_t data,
                     uint32_t length);
 
-  yijinjing::journal::frame_ptr next_frame() const;
+  yijinjing::journal::frame_ptr current_frame() const;
+
+  void next();
 
   bool data_available() const;
 
@@ -76,7 +79,9 @@ public:
                   yijinjing::data::locator_ptr locator)
       : CacheTool(category, source, start_time, end_time, locator, false) {}
 
-  yijinjing::journal::frame_ptr next_frame() const { return CacheTool::next_frame(); }
+  yijinjing::journal::frame_ptr current_frame() const { return CacheTool::current_frame(); }
+
+  void next() { return CacheTool::next(); }
 
   bool data_available() const { return CacheTool::data_available(); }
 

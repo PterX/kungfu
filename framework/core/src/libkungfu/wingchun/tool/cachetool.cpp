@@ -37,6 +37,7 @@ void CacheTool::write_raw_at(int64_t gen_time, int64_t trigger_time, uint32_t de
   valid_time(gen_time, trigger_time);
   if (writers_.find(dest_id) == writers_.end()) {
     writers_[dest_id] = std::make_shared<writer>(cache_location_, dest_id, true, publisher_);
+    join(dest_id, gen_time);
   }
   auto frame = writers_.at(dest_id)->open_frame(trigger_time, msg_type, length);
   memcpy(const_cast<void *>(frame->data_address()), reinterpret_cast<void *>(data), length);
@@ -45,14 +46,15 @@ void CacheTool::write_raw_at(int64_t gen_time, int64_t trigger_time, uint32_t de
 
 void CacheTool::join(uint32_t dest_id, const int64_t from_time) { reader_->join(cache_location_, dest_id, from_time); }
 
-frame_ptr CacheTool::next_frame() const {
-  if (reader_->data_available()) {
-    reader_->next();
-    auto frame = reader_->current_frame();
-    last_read_gen_time_ = frame->gen_time();
-    return frame;
-  }
-  return {};
+frame_ptr CacheTool::current_frame() const {
+  reader_->sort();
+  auto frame = reader_->current_frame();
+  last_read_gen_time_ = frame->gen_time();
+  return frame;
+}
+
+void CacheTool::next() {
+  reader_->next();
 }
 
 bool CacheTool::data_available() const { return reader_->data_available(); }

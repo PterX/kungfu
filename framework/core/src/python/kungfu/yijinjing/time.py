@@ -32,6 +32,15 @@ def strftime(nanotime, format=DATETIME_FORMAT):
     normal_format = format.replace("%N", "{:09d}".format(nanotime % NANO_PER_SECOND))
     return to_datetime(nanotime).strftime(normal_format)
 
+def strptimes(timestr, formats=DATETIME_FORMAT):
+    if isinstance(formats, str):
+        formats = [formats]
+    for format in formats:
+        time_stamp = yjj.strptime(timestr, format)
+        if yjj.strftime(time_stamp, format) == timestr:
+            return time_stamp
+    raise ValueError("time data '{}' does not match any format={}".format(timestr, formats))
+
 
 def strptime(timestr, format=DATETIME_FORMAT):
     nano = re.findall(r"\d{9}", timestr)

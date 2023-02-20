@@ -67,7 +67,7 @@ const app = getCurrentInstance();
 const simpleImage = Empty.PRESENTED_IMAGE_SIMPLE;
 const kfScrollerTableBodyRef = ref();
 const kfScrollerTableWidth = ref(0);
-const dataSouceMap = ref<Record<string, KungfuApi.TradingDataItem>>({});
+const dataSouceMap = ref<Record<string, TableDataItem>>({});
 let allRowKeyFieldTrue: Record<string, boolean> = {};
 let allRowKeyFieldFalse: Record<string, boolean> = {};
 const isSelectAll = ref(false);
@@ -175,15 +175,14 @@ function handleClickCell(
 ): void {
   clickTimer && clearTimeout(clickTimer);
   clickTimer = +setTimeout(() => {
-    if (app) {
-      app.emit('clickCell', { event: e, row, column });
-      app.emit(
+
+      app && app.emit('clickCell', { event: e, row, column });
+      app && app.emit(
         'update:selectedKey',
         typeof row[props.keyField] === 'number'
           ? row[props.keyField]
           : `${row[props.keyField]}`,
       );
-    }
   }, 300);
 }
 

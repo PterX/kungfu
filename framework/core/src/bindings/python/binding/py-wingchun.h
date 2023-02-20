@@ -29,6 +29,8 @@ void bind_operator(pybind11::module &m);
 
 void bind_utils(pybind11::module &m);
 
+void bind_tool(pybind11::module &m);
+
 } // namespace kungfu::wingchun::pybind
 
 #endif // KUNGFU_PY_WINGCHUN_HPP

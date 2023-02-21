@@ -175,9 +175,9 @@ function handleClickCell(
 ): void {
   clickTimer && clearTimeout(clickTimer);
   clickTimer = +setTimeout(() => {
-
-      app && app.emit('clickCell', { event: e, row, column });
-      app && app.emit(
+    app && app.emit('clickCell', { event: e, row, column });
+    app &&
+      app.emit(
         'update:selectedKey',
         typeof row[props.keyField] === 'number'
           ? row[props.keyField]

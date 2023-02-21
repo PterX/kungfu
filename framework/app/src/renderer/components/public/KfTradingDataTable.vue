@@ -10,7 +10,6 @@ import {
   onBeforeMount,
   onMounted,
   ref,
-  shallowRef,
   toRaw,
 } from 'vue';
 
@@ -69,8 +68,8 @@ const simpleImage = Empty.PRESENTED_IMAGE_SIMPLE;
 const kfScrollerTableBodyRef = ref();
 const kfScrollerTableWidth = ref(0);
 const dataSouceMap = ref<Record<string, TableDataItem>>({});
-const allRowKeyFieldTrue = shallowRef<Record<string, boolean>>({});
-const allRowKeyFieldFalse = shallowRef<Record<string, boolean>>({});
+let allRowKeyFieldTrue: Record<string, boolean> = {};
+let allRowKeyFieldFalse: Record<string, boolean> = {};
 const isSelectAll = ref(false);
 const selectAllIndeterminate = ref(false);
 const selectedRowKeyFieldValues = ref<Record<string, boolean>>({});
@@ -109,8 +108,8 @@ watch(
   () => props.dataSource,
   (newDataSource) => {
     dataSouceMap.value = {};
-    allRowKeyFieldTrue.value = {};
-    allRowKeyFieldFalse.value = {};
+    allRowKeyFieldTrue = {};
+    allRowKeyFieldFalse = {};
 
     const tempSelectedValues = {};
     const tempSelectedRows = {};
@@ -118,8 +117,8 @@ watch(
     newDataSource.forEach((item) => {
       const key = `${item[props.keyField]}`;
       dataSouceMap.value[key] = item;
-      allRowKeyFieldTrue.value[key] = true;
-      allRowKeyFieldFalse.value[key] = false;
+      allRowKeyFieldTrue[key] = true;
+      allRowKeyFieldFalse[key] = false;
 
       if (key in selectedRowKeyFieldValues.value) {
         tempSelectedValues[key] = selectedRowKeyFieldValues.value[key];
@@ -176,15 +175,14 @@ function handleClickCell(
 ): void {
   clickTimer && clearTimeout(clickTimer);
   clickTimer = +setTimeout(() => {
-    if (app) {
-      app.emit('clickCell', { event: e, row, column });
+    app && app.emit('clickCell', { event: e, row, column });
+    app &&
       app.emit(
         'update:selectedKey',
         typeof row[props.keyField] === 'number'
           ? row[props.keyField]
           : `${row[props.keyField]}`,
       );
-    }
   }, 300);
 }
 
@@ -249,7 +247,7 @@ function handleSelectRow(isChecked: boolean, item: TableDataItem) {
   selectedRowKeyFieldValues.value[key] = isChecked;
 
   if (isChecked) {
-    selectedRowsMap.value[key] = dataSouceMap.value[key];
+    selectedRowsMap.value[key] = toRaw(dataSouceMap.value[key]);
   } else {
     delete selectedRowsMap.value[key];
   }
@@ -258,12 +256,12 @@ function handleSelectRow(isChecked: boolean, item: TableDataItem) {
 function handleSelectAll(isChecked: boolean) {
   if (!props.selectable) return;
 
-  const allSelected = Object.assign({}, toRaw(allRowKeyFieldTrue.value));
-  const allUnSelected = Object.assign({}, toRaw(allRowKeyFieldFalse.value));
+  const allSelected = Object.assign({}, allRowKeyFieldTrue);
+  const allUnSelected = Object.assign({}, allRowKeyFieldFalse);
+  const allRowsMap = Object.assign({}, toRaw(dataSouceMap.value));
 
   selectedRowKeyFieldValues.value = isChecked ? allSelected : allUnSelected;
-  selectedRowsMap.value = isChecked ? dataSouceMap.value : {};
-  selectAllIndeterminate.value = false;
+  selectedRowsMap.value = isChecked ? allRowsMap : {};
 }
 
 watch(
@@ -271,7 +269,7 @@ watch(
   (val) => {
     if (!props.selectable) return;
 
-    const allRowLength = Object.keys(allRowKeyFieldTrue.value).length;
+    const allRowLength = props.dataSource.length;
     if (!allRowLength) return;
 
     const selectedRowLength = Object.values(val).filter((item) => item).length;

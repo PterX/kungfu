@@ -147,7 +147,7 @@ void bind_strategy(pybind11::module &m) {
   py::class_<strategy::Runner, PyRunner, kungfu::yijinjing::practice::apprentice, std::shared_ptr<strategy::Runner>>(
       m, "Runner")
       .def(py::init<kungfu::yijinjing::data::locator_ptr, const std::string &, const std::string &,
-                    longfist::enums::mode, bool>())
+                    longfist::enums::mode, bool, const std::string &>())
       .def_property_readonly("context", &strategy::Runner::get_context)
       .def("set_begin_time", &strategy::Runner::set_begin_time)
       .def("set_end_time", &strategy::Runner::set_end_time)
@@ -179,8 +179,8 @@ void bind_strategy(pybind11::module &m) {
       .def("insert_batch_orders", &strategy::Context::insert_batch_orders)
       .def("insert_array_orders", &strategy::Context::insert_array_orders)
       .def("insert_basket_order", &strategy::Context::insert_basket_order, py::arg("basket_id"), py::arg("source"),
-           py::arg("account"), py::arg("price_type") = PriceType::Limit, py::arg("price_level") = PriceLevel::Lastest,
-           py::arg("price_offset") = 0, py::arg("volume") = 0)
+           py::arg("account"), py::arg("side"), py::arg("price_type") = PriceType::Limit,
+           py::arg("price_level") = PriceLevel::Lastest, py::arg("price_offset") = 0, py::arg("volume") = 0)
       .def("cancel_order", &strategy::Context::cancel_order)
       .def("req_history_order", &strategy::Context::req_history_order, py::arg("source"), py::arg("account"),
            py::arg("query_num") = 0)

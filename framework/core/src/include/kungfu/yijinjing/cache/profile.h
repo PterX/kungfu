@@ -7,11 +7,11 @@
 #ifndef KUNGFU_CONFIG_STORE_H
 #define KUNGFU_CONFIG_STORE_H
 
-#include <kungfu/longfist/longfist.h>
-#include <kungfu/yijinjing/cache/backend.h>
-#include <kungfu/yijinjing/common.h>
+#include "backend.h"
+#include "kungfu/longfist/longfist.h"
+#include "kungfu/yijinjing/common.h"
 
-namespace kungfu::yijinjing::practice {
+namespace kungfu::yijinjing::cache {
 class profile {
 public:
   explicit profile(const yijinjing::data::locator_ptr &locator);
@@ -67,6 +67,6 @@ private:
 
   yijinjing::cache::ProfileStoragePtr &get_storage();
 };
-} // namespace kungfu::yijinjing::practice
+} // namespace kungfu::yijinjing::cache
 
 #endif // KUNGFU_CONFIG_STORE_H

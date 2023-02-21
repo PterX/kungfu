@@ -141,8 +141,9 @@ public:
    * @param total_volume
    */
   uint64_t insert_basket_order(uint64_t basket_id, const std::string &source, const std::string account,
-                               longfist::enums::PriceType price_type, longfist::enums::PriceLevel price_level,
-                               double price_offset = 0, int64_t volume = 0) override;
+                               longfist::enums::Side side, longfist::enums::PriceType price_type,
+                               longfist::enums::PriceLevel price_level, double price_offset = 0,
+                               int64_t volume = 0) override;
 
   /**
    * Cancel order.
@@ -216,6 +217,12 @@ public:
    */
   void update_strategy_state(longfist::types::StrategyStateUpdate &state_update) override;
 
+  /**
+   * Get arguments kfc run -a
+   * @return string of arguments
+   */
+  std::string arguments() override;
+
 protected:
   yijinjing::practice::apprentice &app_;
   const rx::connectable_observable<event_ptr> &events_;
@@ -237,8 +244,10 @@ private:
   yijinjing::data::location_map op_locations_ = {};
   std::unordered_map<uint32_t, uint32_t> account_location_ids_ = {};
   std::unordered_map<std::string, yijinjing::data::location_ptr> market_data_ = {};
+  std::string arguments_;
 
   friend void enable(RuntimeContext &context) { context.on_start(); }
+  friend class Runner;
 };
 
 DECLARE_PTR(RuntimeContext)

@@ -20,15 +20,15 @@ Runner::Runner(locator_ptr locator, const std::string &group, const std::string 
 
 Context_ptr Runner::get_context() const { return context_; }
 
-Context_ptr Runner::make_context() { 
+Context_ptr Runner::make_context() {
   if (get_home()->mode == mode::BACKTEST) {
-    if (matcher_) {
-      set_runner(*matcher_, this);
-    } else {
-      throw wingchun_error("matcher not specified");
+    if (not matcher_) {
+      matcher_ = std::make_shared<BasicMatcher>();
+      // throw wingchun_error("matcher not specified");
     }
+    set_runner(*matcher_, this);
     return std::make_shared<BacktestContext>(*this, events_, matcher_);
-  } 
+  }
   return std::make_shared<LiveContext>(*this, events_);
 }
 
@@ -128,7 +128,6 @@ void Runner::post_start() {
 void Runner::pre_stop() { invoke(&Strategy::pre_stop); }
 
 void Runner::post_stop() { invoke(&Strategy::post_stop); }
-
 
 Runner::BookListener::BookListener(Runner &runner) : runner_(runner) {}
 

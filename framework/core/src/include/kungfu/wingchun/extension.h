@@ -108,11 +108,11 @@
 #define KUNGFU_MAIN_TOOL(ToolType)                                                                                     \
   class ToolType;                                                                                                      \
   PYBIND11_MODULE(KUNGFU_MODULE_NAME, m) {                                                                             \
-    m.def("tool", [&](kungfu::longfist::types::category category, std::string source, int64_t begin_time, int64_t end_time,    \
-            kungfu::yijinjing::data::locator_ptr locator) {                                              \
-              return std::static_pointer_cast<kungfu::wingchun::tool::CacheTool>(                                    \
-                  std::make_shared<ToolType>(category, source, begin_time, end_time, locator, true));                 \
-            });                                                                                                      \
-            };                                                                                                         \
-            class ToolType : public kungfu::wingchun::tool::CacheTool
+    m.def("tool", [&](kungfu::longfist::types::category category, std::string source, int64_t begin_time,              \
+                      int64_t end_time, kungfu::yijinjing::data::locator_ptr locator) {                                \
+      return std::static_pointer_cast<kungfu::wingchun::tool::CacheTool>(                                              \
+          std::make_shared<ToolType>(category, source, begin_time, end_time, locator, true));                          \
+    });                                                                                                                \
+  };                                                                                                                   \
+  class ToolType : public kungfu::wingchun::tool::CacheTool
 #endif // KUNGFU_EXTENSION_H

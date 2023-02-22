@@ -480,7 +480,10 @@ export default {
   journalConfig: {
     begin_time: 'begin_time',
     end_time: 'end_time',
-    is_closed: 'is_end',
+    status: 'Status',
+
+    finished: 'Finished',
+    running: 'Running',
 
     dest: 'destination',
     source: 'source',

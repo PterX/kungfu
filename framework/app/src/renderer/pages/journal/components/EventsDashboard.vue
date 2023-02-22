@@ -11,13 +11,12 @@
     </div>
     <div class="kf-journal-frame__wrap">
       <KfTradingDataTable
-        :selectable="true"
         :data-source="frameDataListResolved"
         :columns="frameColumns"
         key-field="id"
         :resizable="false"
         :custom-row-class="dealRowClassName"
-        @click-cell="handleOpenFrameDetail"
+        @click-row="handleOpenFrameDetail"
       >
         <template
           #default="{
@@ -101,6 +100,7 @@ import { createFiltersEnumMap, FiltersEnum } from '../utils/filterUtils';
 import KfTradingDataTable from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfTradingDataTable.vue';
 import FrameFilters from './FrameFilters.vue';
 import { useJournalStore } from '../store/journalStore';
+import { SessionStatusEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 
 const props = withDefaults(
   defineProps<{
@@ -243,7 +243,7 @@ const loadFrameData = (
 
   if (!checking) {
     loadingJournal.value = true;
-    if (!session.is_closed) {
+    if (session.status === SessionStatusEnum.Running) {
       journalReader = assemble.getReader(sessionId, startTime);
     } else {
       journalReader = assemble.getReader(sessionId, startTime, endTime);
@@ -382,13 +382,20 @@ defineExpose({
     background-color: #1d1d1d;
     padding: 5px 20px;
     margin-bottom: 2px;
+    overflow-x: overlay;
     display: flex;
     align-items: center;
-    justify-content: flex-start;
+    justify-content: center;
+    flex-wrap: nowrap;
 
     .kf-journal-bar-title {
+      white-space: nowrap;
       font-size: 14px;
       margin-right: 16px;
+    }
+
+    .ant-form-inline {
+      flex-wrap: nowrap;
     }
   }
 

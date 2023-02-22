@@ -1,3 +1,4 @@
+import { SessionStatusEnum } from './../../../../../../api/src/typings/enums';
 import { WorkerReceiver } from './../workers/receiver';
 import { storeToRefs } from 'pinia';
 import { useJournalStore } from './../store/journalStore';
@@ -11,6 +12,7 @@ import { parseURIParams } from '@kungfu-trader/kungfu-app/src/renderer/assets/me
 import {
   getIdByKfLocation,
   getKfLocationByProcessId,
+  getProcessIdByKfLocation,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import {
   JournalFrameMsgType,
@@ -24,6 +26,36 @@ import {
 
 const consoleError = (error, ...datas) => {
   console.log(...(datas.length ? ['datas: ', ...datas, '\n', error] : error));
+};
+
+export const getAbs = <T extends number | bigint>(num: T): T =>
+  num < 0 ? (-num as T) : num;
+
+export const getSessionStatus = (session: KungfuApi.Session) =>
+  session.end_time != 0n
+    ? SessionStatusEnum.Finished
+    : SessionStatusEnum.Running;
+
+export const dealSession = (
+  session: KungfuApi.Session,
+): KungfuApi.SessionResolved => {
+  session.category = KfCategoryEnum[
+    session.category as KfCategoryEnum
+  ] as KfCategoryTypes;
+  return {
+    ...session,
+    session_id_resolved: getProcessIdByKfLocation(session),
+    begin_time_resolved: dealKfTime(getAbs<bigint>(session.begin_time)),
+    end_time_resolved: dealKfTime(getAbs<bigint>(session.end_time)),
+    status: getSessionStatus(session),
+  };
+};
+
+export const dealSessionsToMap = (sessions: KungfuApi.Session[]) => {
+  return sessions.reduce((sessionsMap, cur) => {
+    sessionsMap[`${cur.begin_time}`] = dealSession(cur);
+    return sessionsMap;
+  }, {} as Record<string, KungfuApi.SessionResolved>);
 };
 
 export const getSessionLocationById = (

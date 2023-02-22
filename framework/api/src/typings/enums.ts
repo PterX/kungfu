@@ -251,6 +251,11 @@ export enum OrderInputKeyEnum {
   PRICE = 'PRICE',
 }
 
+export enum SessionStatusEnum {
+  Running,
+  Finished,
+}
+
 export enum FrameMsgTypeEnum {
   PageEnd = 10000,
   SessionStart = 10001,

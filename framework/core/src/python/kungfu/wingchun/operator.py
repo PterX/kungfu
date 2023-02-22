@@ -110,6 +110,7 @@ class Operator(wc.Operator):
         self.ctx.subscribe_all = wc_context.subscribe_all
         self.ctx.subscribe_operator = wc_context.subscribe_operator
         self.ctx.update_operator_state = wc_context.update_operator_state
+        self.ctx.publish_synthetic_data = wc_context.publish_synthetic_data
         self.ctx.req_deregister = wc_context.req_deregister
         self.__call_proxy(self._pre_start, self.ctx)
 

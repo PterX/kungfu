@@ -11,7 +11,7 @@
   "scripts": {
     "clean": "kfs extension clean",
     "build": "kfs extension build",
-    "package": "kfs tool package",
+    "package": "kfs  strategy package",
     "format": "node ../../framework/core/.gyp/run-format-cpp.js src"
   },
   "devDependencies": {

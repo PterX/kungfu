@@ -148,7 +148,13 @@ const frameDataListResolved = computed(() => {
 const framesMap = shallowRef<Record<string, KungfuApi.FrameResolved>>({});
 
 const visible = ref(false);
-const excludeRowData = ['data', 'sourceToDest'];
+const excludeRowData = [
+  'stringMsgType',
+  'sourceName',
+  'destName',
+  'data',
+  'sourceToDest',
+];
 const currentRowDataResolved = computed(() => {
   const currentRowData = framesMap.value[currentFramesId.value];
   if (currentRowData) {
@@ -166,7 +172,7 @@ const currentRowDataResolved = computed(() => {
 
         const value =
           item === 'msgType'
-            ? currentRowData.msgType
+            ? currentRowData.stringMsgType
             : `${currentRowData[key]}`;
 
         return {

@@ -25,9 +25,11 @@
               </a-tag>
               {{ item[column.dataIndex as keyof KungfuApi.SessionResolved] }}
             </template>
-            <template v-else-if="column.dataIndex === 'is_closed'">
-              <span class="">
-                {{ item[column.dataIndex] }}
+            <template v-else-if="column.dataIndex === 'status'">
+              <span
+                :style="{ color: SessionStatus[item[column.dataIndex]].color }"
+              >
+                {{ SessionStatus[item[column.dataIndex]].name }}
               </span>
             </template>
           </template>
@@ -77,7 +79,7 @@
 <script setup lang="ts">
 import { onMounted, ref, computed, toRaw, watch, nextTick } from 'vue';
 import { assemble, dealKfTime } from '@kungfu-trader/kungfu-js-api/kungfu';
-import { getSessionColumns } from './config';
+import { getSessionColumns, SessionStatus } from './config';
 import { removeLoadingMask } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import {
   getCurrentLocation,

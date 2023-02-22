@@ -124,7 +124,7 @@ const onAfterChange = (value: [number, number]) => {
   .kf-time-slider-time {
     font-size: 14px;
     width: 100px;
-    margin: 0 5px;
+    margin: 0 16px;
     flex: 0 0 100px;
   }
 

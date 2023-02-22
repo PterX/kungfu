@@ -20,7 +20,7 @@
         :max-tag-count="2"
         show-search
         :placeholder="$t('keyword_input')"
-        filter-option
+        :filter-option="handleFilterOption"
         :filter-sort="optionSorter"
         allow-clear
       >
@@ -88,6 +88,17 @@ const addOption = (
   }
 
   addFilterOption(filterEnum, options);
+};
+
+const handleFilterOption = (
+  inputValue: string,
+  option: {
+    key: string;
+    value: string;
+  },
+) => {
+  const reg = new RegExp(`.*${inputValue}.*`, 'i');
+  return reg.test(option.key);
 };
 
 const handleApplyFilters = () => {

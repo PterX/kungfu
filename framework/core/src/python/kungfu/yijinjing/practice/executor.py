@@ -249,7 +249,11 @@ class ExtensionExecutor:
         loader = self.loader
         self.setup(loader, use_ctx_path=True)
         ctx = self.ctx
-        locator = ctx.backtest_locator if kfj.MODES[ctx.mode] == lf.enums.mode.BACKTEST else ctx.runtime_locator
+        locator = (
+            ctx.backtest_locator
+            if kfj.MODES[ctx.mode] == lf.enums.mode.BACKTEST
+            else ctx.runtime_locator
+        )
         ctx.location = yjj.location(
             kfj.MODES[ctx.mode],
             lf.enums.category.STRATEGY,
@@ -280,8 +284,12 @@ class ExtensionExecutor:
             )
         if kfj.MODES[ctx.mode] == lf.enums.mode.BACKTEST:
             backtest_para = json.loads(ctx.backtest)
-            begin_time_stamp = kft.strptimes(backtest_para['begin_time'], ("%F %T", "%F %T.%N", "%Y%m%d", "%Y-%m-%d"))
-            end_time_stamp = kft.strptimes(backtest_para['end_time'], ("%F %T", "%F %T.%N", "%Y%m%d", "%Y-%m-%d"))
+            begin_time_stamp = kft.strptimes(
+                backtest_para["begin_time"], ("%F %T", "%F %T.%N", "%Y%m%d", "%Y-%m-%d")
+            )
+            end_time_stamp = kft.strptimes(
+                backtest_para["end_time"], ("%F %T", "%F %T.%N", "%Y%m%d", "%Y-%m-%d")
+            )
             ctx.runner.set_begin_time(begin_time_stamp)
             ctx.runner.set_end_time(end_time_stamp)
         ctx.runner.add_strategy(ctx.strategy)

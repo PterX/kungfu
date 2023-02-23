@@ -23,7 +23,7 @@
   "types": "src/typings/index.d.ts",
   "main": "lib/index.js",
   "scripts": {
-    "build": "node lib/webpack/build.js",
+    "build": "node --max_old_space_size=10240 lib/webpack/build.js",
     "clean": "rimraf build dist",
     "install": "node -e \"require('@kungfu-trader/kungfu-core').prebuilt('install')\"",
     "package": "node -e \"require('@kungfu-trader/kungfu-core').prebuilt('package')\"",

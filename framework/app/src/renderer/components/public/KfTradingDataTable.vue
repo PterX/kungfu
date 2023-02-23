@@ -44,11 +44,10 @@ const props = withDefaults(
 defineEmits<{
   (e: 'dbclickRow', data: { event: MouseEvent; row: TableDataItem }): void;
   (
-    e: 'clickCell',
+    e: 'clickRow',
     data: {
       event: MouseEvent;
       row: TableDataItem;
-      column: KfTradingDataTableHeaderConfig;
     },
   ): void;
   (
@@ -166,6 +165,13 @@ function getHeaderWidth(column: KfTradingDataTableHeaderConfig): string {
 function handleDbClickRow(e: MouseEvent, row: TableDataItem): void {
   app && app.emit('dbclickRow', { event: e, row });
   clickTimer && clearTimeout(clickTimer);
+}
+
+function handleClickRow(e: MouseEvent, row: TableDataItem): void {
+  clickTimer && clearTimeout(clickTimer);
+  clickTimer = +setTimeout(() => {
+    app && app.emit('clickRow', { event: e, row });
+  }, 300);
 }
 
 function handleClickCell(
@@ -350,6 +356,7 @@ defineExpose({
             :class="['kf-table-row', customRowClass?.(item) || '']"
             @dblclick="handleDbClickRow($event, item)"
             @mousedown="handleMousedown($event, item)"
+            @click.stop="handleClickRow($event, item)"
           >
             <li
               v-if="selectable"

@@ -473,7 +473,10 @@ export default {
     session_id: 'Session ID',
     begin_time: '开始时间',
     end_time: '结束时间',
-    is_closed: '是否结束',
+    status: '状态',
+
+    finished: '已结束',
+    running: '运行中',
 
     dest: '目标',
     source: '源头',

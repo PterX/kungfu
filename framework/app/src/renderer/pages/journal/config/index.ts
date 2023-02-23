@@ -1,3 +1,4 @@
+import { SessionStatusEnum } from './../../../../../../api/src/typings/enums';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 const { t } = VueI18n.global;
 
@@ -35,11 +36,25 @@ export const getSessionColumns = (): KfTradingDataTableHeaderConfig[] => [
   },
   {
     type: 'string',
-    name: t('journalConfig.is_closed'),
-    dataIndex: 'is_closed',
+    name: t('journalConfig.status'),
+    dataIndex: 'status',
     width: 100,
   },
 ];
+
+export const SessionStatus: Record<
+  SessionStatusEnum,
+  KungfuApi.KfTradeValueCommonData
+> = {
+  [SessionStatusEnum.Running]: {
+    name: t('journalConfig.running'),
+    color: '#FAAD14',
+  },
+  [SessionStatusEnum.Finished]: {
+    name: t('journalConfig.finished'),
+    color: 'gray',
+  },
+};
 
 export const getFrameColumns = (): KfTradingDataTableHeaderConfig[] => [
   {

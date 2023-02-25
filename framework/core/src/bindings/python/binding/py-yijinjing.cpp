@@ -249,7 +249,7 @@ void bind(pybind11::module &&m) {
       .def("disjoin_channel", &reader::disjoin_channel);
 
   auto writer_class = py::class_<writer, writer_ptr>(m, "writer");
-  writer_class.def(py::init<const data::location_ptr &, uint32_t, bool, publisher_ptr>())
+  writer_class.def(py::init<const data::location_ptr &, uint32_t, bool, publisher_ptr, bool>())
       .def("current_frame_uid", &writer::current_frame_uid)
       .def("copy_frame", &writer::copy_frame)
       .def("mark", &writer::mark)

@@ -17,9 +17,9 @@ namespace kungfu::yijinjing::journal {
  */
 class journal {
 public:
-  journal(data::location_ptr location, uint32_t dest_id, bool is_writing, bool lazy)
+  journal(data::location_ptr location, uint32_t dest_id, bool is_writing, bool lazy, bool low_latency)
       : location_(std::move(location)), dest_id_(dest_id), is_writing_(is_writing), lazy_(lazy),
-        frame_(std::shared_ptr<frame>(new frame())), page_frame_nb_(0u) {}
+        low_latency_(low_latency), frame_(std::shared_ptr<frame>(new frame())), page_frame_nb_(0u) {}
 
   ~journal();
 
@@ -50,7 +50,9 @@ private:
   const uint32_t dest_id_;
   const bool is_writing_;
   const bool lazy_;
+  const bool low_latency_;
   page_ptr page_;
+  page_ptr pre_page_;
   frame_ptr frame_;
   uint64_t page_frame_nb_;
 
@@ -59,6 +61,8 @@ private:
   /** load next page, current page will be released if not empty */
   void load_next_page();
 
+  void try_load_next_extra_page();
+
   friend class reader;
 
   friend class writer;
@@ -66,7 +70,7 @@ private:
 
 class reader {
 public:
-  explicit reader(bool lazy) : lazy_(lazy), current_(nullptr){};
+  explicit reader(bool lazy, bool low_latency) : lazy_(lazy), low_latency_(low_latency), current_(nullptr){};
 
   ~reader();
 
@@ -100,13 +104,14 @@ public:
 
 private:
   const bool lazy_;
+  const bool low_latency_;
   journal *current_;
   std::unordered_map<uint64_t, journal> journals_;
 };
 
 class writer {
 public:
-  writer(const data::location_ptr &location, uint32_t dest_id, bool lazy, publisher_ptr publisher);
+  writer(const data::location_ptr &location, uint32_t dest_id, bool lazy, publisher_ptr publisher, bool low_latency);
 
   [[nodiscard]] const data::location_ptr &get_location() const { return journal_.location_; }
 

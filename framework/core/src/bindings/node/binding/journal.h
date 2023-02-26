@@ -15,8 +15,6 @@
 #include <kungfu/yijinjing/journal/journal.h>
 
 namespace kungfu::node {
-class Reader;
-
 class Frame : public Napi::ObjectWrap<Frame> {
 public:
   explicit Frame(const Napi::CallbackInfo &info);

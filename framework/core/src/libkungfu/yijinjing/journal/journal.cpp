@@ -8,6 +8,7 @@
 namespace kungfu::yijinjing::journal {
 
 journal::~journal() {
+  flush_thread_alive_ = false;
   if (page_.get() != nullptr) {
     page_.reset();
   }
@@ -38,6 +39,11 @@ void journal::seek_to_time(int64_t nanotime) {
 
 void journal::load_page(int page_id) {
   if (page_.get() == nullptr or page_->get_page_id() != page_id) {
+
+    if (page_.get() != nullptr) {
+      post_page_ = std::move(page_);
+    }
+
     page_ = page::load(location_, dest_id_, page_id, is_writing_, lazy_);
     frame_->set_address(page_->first_frame_address());
     page_frame_nb_ = 0u;
@@ -54,6 +60,15 @@ void journal::try_load_next_extra_page() {
   }
   pre_page_ = page::load(location_, dest_id_, page_->get_page_id() + 1, false, lazy_, true);
   memset(reinterpret_cast<void *>(pre_page_->first_frame_address()), 0, pre_page_->get_body_size()); // warm up
+}
+
+void journal::release_page() {
+  while (flush_thread_alive_) {
+    if (post_page_.get() != nullptr) {
+      post_page_.reset();
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+  }
 }
 
 } // namespace kungfu::yijinjing::journal

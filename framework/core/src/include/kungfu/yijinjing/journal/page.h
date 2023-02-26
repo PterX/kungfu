@@ -22,6 +22,8 @@ class page {
 public:
   ~page();
 
+  void flush();
+
   [[nodiscard]] uint32_t get_page_size() const { return header_->page_size; }
 
   [[nodiscard]] data::location_ptr get_location() const { return location_; }

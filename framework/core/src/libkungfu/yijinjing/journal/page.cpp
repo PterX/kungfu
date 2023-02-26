@@ -21,8 +21,21 @@ page::~page() {
 
   auto end = std::chrono::system_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
-  SPDLOG_DEBUG("release_mmap_buffer   {}/{:08x}.{}.journal take time {} lazy {} size {} is_writing {}",
-               location_->uname, dest_id_, page_id_, duration.count(), lazy_, size_, is_writing_);
+  SPDLOG_INFO("release_mmap_buffer   {}/{:08x}.{}.journal take time {} lazy {} size {} is_writing {}", location_->uname,
+              dest_id_, page_id_, duration.count(), lazy_, size_, is_writing_);
+}
+
+void page::flush() {
+  auto start = std::chrono::system_clock::now();
+
+  if (not os::flush_mmap_buffer(address(), size_, lazy_)) {
+    SPDLOG_ERROR("can not flush page {}/{:08x}.{}.journal", location_->uname, dest_id_, page_id_);
+  }
+
+  auto end = std::chrono::system_clock::now();
+  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
+  SPDLOG_DEBUG("flush_mmap_buffer   {}/{:08x}.{}.journal take time {} lazy {} size {} is_writing {}", location_->uname,
+               dest_id_, page_id_, duration.count(), lazy_, size_, is_writing_);
 }
 
 void page::set_last_frame_position(uint64_t position) {

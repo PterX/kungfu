@@ -16,10 +16,18 @@ namespace kungfu::yijinjing::journal {
  * Journal class, the abstraction of continuous memory access
  */
 class journal {
+
 public:
   journal(data::location_ptr location, uint32_t dest_id, bool is_writing, bool lazy, bool low_latency)
       : location_(std::move(location)), dest_id_(dest_id), is_writing_(is_writing), lazy_(lazy),
-        low_latency_(low_latency), frame_(std::shared_ptr<frame>(new frame())), page_frame_nb_(0u) {}
+        low_latency_(low_latency), frame_(std::shared_ptr<frame>(new frame())), page_frame_nb_(0u) {
+
+    if (low_latency && is_writing) {
+      flush_thread_ = std::thread(&journal::release_page, this);
+      flush_thread_alive_ = true;
+      flush_thread_.detach();
+    }
+  }
 
   ~journal();
 
@@ -53,8 +61,11 @@ private:
   const bool low_latency_;
   page_ptr page_;
   page_ptr pre_page_;
+  page_ptr post_page_;
   frame_ptr frame_;
   uint64_t page_frame_nb_;
+  std::thread flush_thread_;
+  bool flush_thread_alive_;
 
   void load_page(int page_id);
 
@@ -62,6 +73,8 @@ private:
   void load_next_page();
 
   void try_load_next_extra_page();
+
+  void release_page();
 
   friend class reader;
 

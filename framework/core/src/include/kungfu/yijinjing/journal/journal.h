@@ -15,19 +15,16 @@ namespace kungfu::yijinjing::journal {
 /**
  * Journal class, the abstraction of continuous memory access
  */
+
+typedef std::unordered_map<uint64_t, journal> JournalMap;
 class journal {
 
 public:
-  journal(data::location_ptr location, uint32_t dest_id, bool is_writing, bool lazy, bool low_latency)
+  journal(data::location_ptr location, uint32_t dest_id, bool is_writing, bool lazy, bool low_latency,
+          bool cleaner_required)
       : location_(std::move(location)), dest_id_(dest_id), is_writing_(is_writing), lazy_(lazy),
-        low_latency_(low_latency), frame_(std::shared_ptr<frame>(new frame())), page_frame_nb_(0u) {
-
-    if (low_latency && is_writing) {
-      flush_thread_ = std::thread(&journal::release_page, this);
-      flush_thread_alive_ = true;
-      flush_thread_.detach();
-    }
-  }
+        low_latency_(low_latency), cleaner_required_(cleaner_required), frame_(std::shared_ptr<frame>(new frame())),
+        page_frame_nb_(0u) {}
 
   ~journal();
 
@@ -53,19 +50,20 @@ public:
    */
   void seek_to_time(int64_t nanotime);
 
+  void release_page();
+
 private:
   const data::location_ptr location_;
   const uint32_t dest_id_;
   const bool is_writing_;
   const bool lazy_;
   const bool low_latency_;
-  page_ptr page_;
+  const bool cleaner_required_;
   page_ptr pre_page_;
-  page_ptr post_page_;
+  page_ptr page_;
+  std::vector<page_ptr> passed_page_collector_;
   frame_ptr frame_;
   uint64_t page_frame_nb_;
-  std::thread flush_thread_;
-  bool flush_thread_alive_;
 
   void load_page(int page_id);
 
@@ -74,8 +72,6 @@ private:
 
   void try_load_next_extra_page();
 
-  void release_page();
-
   friend class reader;
 
   friend class writer;
@@ -83,7 +79,8 @@ private:
 
 class reader {
 public:
-  explicit reader(bool lazy, bool low_latency) : lazy_(lazy), low_latency_(low_latency), current_(nullptr){};
+  explicit reader(bool lazy, bool low_latency, bool cleaner_required)
+      : lazy_(lazy), low_latency_(low_latency), cleaner_required_(cleaner_required), current_(nullptr){};
 
   ~reader();
 
@@ -103,7 +100,7 @@ public:
 
   [[nodiscard]] page_ptr current_page() const { return current_->current_page(); }
 
-  [[nodiscard]] const std::unordered_map<uint64_t, journal> &journals() const { return journals_; }
+  [[nodiscard]] const JournalMap &get_journals() const { return journals_; }
 
   bool data_available();
 
@@ -115,20 +112,26 @@ public:
 
   void sort();
 
+  void release_page();
+
 private:
   const bool lazy_;
   const bool low_latency_;
+  const bool cleaner_required_;
   journal *current_;
-  std::unordered_map<uint64_t, journal> journals_;
+  JournalMap journals_;
 };
 
 class writer {
 public:
-  writer(const data::location_ptr &location, uint32_t dest_id, bool lazy, publisher_ptr publisher, bool low_latency);
+  writer(const data::location_ptr &location, uint32_t dest_id, bool lazy, publisher_ptr publisher, bool low_latency,
+         bool cleaner_required);
 
   [[nodiscard]] const data::location_ptr &get_location() const { return journal_.location_; }
 
   [[nodiscard]] uint32_t get_dest() const { return journal_.dest_id_; }
+
+  [[nodiscard]] const journal &get_journal() const { return journal_; }
 
   uint64_t current_frame_uid();
 
@@ -143,6 +146,8 @@ public:
   void mark_at(int64_t gen_time, int64_t trigger_time, int32_t msg_type);
 
   void write_raw(int64_t trigger_time, int32_t msg_type, uintptr_t data, uint32_t length);
+
+  void release_page();
 
   /**
    * Using auto with the return mess up the reference with the undlerying memory address, DO NOT USE it.

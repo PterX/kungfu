@@ -6,7 +6,7 @@ namespace kungfu::yijinjing::journal {
 class frame_reader : public reader {
 public:
   frame_reader(const kungfu::yijinjing::io_device_ptr &io, int64_t begin, int64_t end, bool lazy)
-      : reader(lazy, false), io_device_(io), begin_time_(begin), end_time_(end) {}
+      : reader(lazy, false, false), io_device_(io), begin_time_(begin), end_time_(end) {}
   frame_ptr next_frame();
 
 private:

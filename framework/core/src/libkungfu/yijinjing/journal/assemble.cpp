@@ -35,7 +35,8 @@ void copy_sink::put(const data::location_ptr &location, uint32_t dest_id, const 
   auto &writers = pair.first->second;
   if (writers.find(dest_id) == writers.end()) {
     auto target_location = data::location::make_shared(*location, locator_);
-    writers.try_emplace(dest_id, std::make_shared<writer>(target_location, dest_id, true, get_publisher(), false));
+    writers.try_emplace(dest_id,
+                        std::make_shared<writer>(target_location, dest_id, true, get_publisher(), false, false));
   }
   writers.at(dest_id)->copy_frame(frame);
 }
@@ -49,7 +50,7 @@ assemble::assemble(const std::vector<data::locator_ptr> &locators, const std::st
     : mode_(mode), category_(category), group_(group), name_(name), publisher_(std::make_shared<noop_publisher>()) {
   for (auto &locator : locators) {
     locators_.push_back(locator);
-    readers_.push_back(std::make_shared<reader>(true, false));
+    readers_.push_back(std::make_shared<reader>(true, false, false));
     auto reader = readers_.back();
     for (auto &location : locator->list_locations(category, group, name, mode)) {
       for (auto dest_id : locator->list_location_dest(location)) {
@@ -171,7 +172,7 @@ assemble::assemble(const data::location_ptr &source_location, uint32_t dest_id, 
     : assemble() {
   readers_.clear();
   data::locator l{};
-  readers_.push_back(std::make_shared<reader>(true, false));
+  readers_.push_back(std::make_shared<reader>(true, false, false));
   auto reader = readers_.front();
 
   // join channel

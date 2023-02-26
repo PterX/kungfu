@@ -198,7 +198,7 @@ private:
   int64_t checkin_time_ = INT64_MIN;
   int64_t trading_day_ = 0;
   int32_t timer_usage_count_ = 0;
-  yijinjing::practice::Cleaner cleaner_;
+  yijinjing::practice::cleaner cleaner_;
   std::unordered_map<int, int64_t> timer_checkpoints_ = {};
   void checkin();
 

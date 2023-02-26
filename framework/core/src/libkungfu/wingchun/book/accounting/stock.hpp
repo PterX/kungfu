@@ -189,10 +189,6 @@ public:
   }
 
   virtual void apply_order(Book_ptr &book, const Order &order) override {
-    if (book->orders.find(order.order_id) == book->orders.end()) {
-      book->orders.emplace(order.order_id, order);
-    }
-
     if (is_final_status(order.status)) {
       auto &position = book->get_position_for(order);
       auto cd_mr = get_instr_conversion_margin_rate(book, position);

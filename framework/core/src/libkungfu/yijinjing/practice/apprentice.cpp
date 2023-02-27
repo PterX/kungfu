@@ -18,7 +18,7 @@ using namespace std::chrono;
 namespace kungfu::yijinjing::practice {
 
 apprentice::apprentice(location_ptr home, bool low_latency)
-    : hero(std::make_shared<io_device_client>(home, low_latency)), trading_day_(time::today_start()) {}
+    : hero(std::make_shared<io_device_client>(home, low_latency)), trading_day_(time::today_start()), cleaner_(*this) {}
 
 bool apprentice::is_started() const { return started_; }
 
@@ -142,6 +142,13 @@ void apprentice::add_time_interval(int64_t duration, const std::function<void(co
 }
 
 void apprentice::on_trading_day(const event_ptr &event, int64_t daytime) {}
+
+void apprentice::release_page() {
+  reader_->release_page();
+  for (auto &iter : writers_) {
+    iter.second->release_page();
+  }
+}
 
 void apprentice::react() {
   events_ | is(TimeReset::tag) | first() | $$(reset_time(event->data<TimeReset>()));

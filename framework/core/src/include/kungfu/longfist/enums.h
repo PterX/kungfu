@@ -293,11 +293,11 @@ enum class BrokerState : int8_t {
   Ready = 100
 };
 
+inline std::ostream &operator<<(std::ostream &os, BrokerState t) { return os << int8_t(t); }
+
 enum class HistoryDataType : int8_t { Normal = 0, PageEnd = 1, TotalEnd = 2 };
 
 inline std::ostream &operator<<(std::ostream &os, HistoryDataType t) { return os << int8_t(t); }
-
-inline std::ostream &operator<<(std::ostream &os, BrokerState t) { return os << int8_t(t); }
 
 enum class StrategyState : int8_t { Normal, Warn, Error };
 
@@ -320,5 +320,10 @@ public:
 template <typename T, typename U> inline T sub_data_bitwise(const T &a, const T &b) {
   return static_cast<T>(static_cast<U>(a) | static_cast<U>(b));
 }
+
+enum class PageStatus : int8_t { Normal, PreOpen };
+
+inline std::ostream &operator<<(std::ostream &os, PageStatus t) { return os << int8_t(t); }
+
 } // namespace kungfu::longfist::enums
 #endif // KUNGFU_LONGFIST_ENUM_H

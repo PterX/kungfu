@@ -161,8 +161,6 @@ Watcher::Watcher(const Napi::CallbackInfo &info)
 
   for (const auto &item : config_store->profile_.get_all(Location{})) {
     auto saved_location = location::make_shared(item, get_locator());
-    SPDLOG_INFO("saved_location->name {} uname {} location_uid {} category {} group {}", saved_location->name,
-                saved_location->uname, saved_location->location_uid, saved_location->category, saved_location->group);
     add_location(now(), saved_location);
     if (saved_location->category == longfist::enums::category::SYSTEM) {
       if (saved_location->group != "node") {

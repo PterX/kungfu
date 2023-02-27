@@ -37,6 +37,7 @@ declare namespace KungfuApi {
     BasketVolumeTypeEnum,
     PriceLevelEnum,
     BasketOrderStatusEnum,
+    SessionStatusEnum,
   } from './enums';
   import { Dayjs } from 'dayjs';
   import { Row } from 'fast-csv';
@@ -917,7 +918,7 @@ declare namespace KungfuApi {
     session_id_resolved: string;
     begin_time_resolved: string;
     end_time_resolved: string;
-    is_closed: boolean;
+    status: SessionStatusEnum;
   }
 
   export interface Frame<T extends 'func' | 'data' = 'data'> {

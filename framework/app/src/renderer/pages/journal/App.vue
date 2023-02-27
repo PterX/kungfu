@@ -3,7 +3,6 @@
     <div class="kf-journal-view__wrap">
       <div class="kf-journal-session__wrap">
         <KfTradingDataTable
-          :selectable="true"
           :data-source="sessions"
           :columns="sessionColumns"
           key-field="begin_time"
@@ -26,9 +25,11 @@
               </a-tag>
               {{ item[column.dataIndex as keyof KungfuApi.SessionResolved] }}
             </template>
-            <template v-else>
-              <span>
-                {{ item[column.dataIndex as keyof KungfuApi.SessionResolved] }}
+            <template v-else-if="column.dataIndex === 'status'">
+              <span
+                :style="{ color: SessionStatus[item[column.dataIndex]].color }"
+              >
+                {{ SessionStatus[item[column.dataIndex]].name }}
               </span>
             </template>
           </template>
@@ -78,14 +79,16 @@
 <script setup lang="ts">
 import { onMounted, ref, computed, toRaw, watch, nextTick } from 'vue';
 import { assemble, dealKfTime } from '@kungfu-trader/kungfu-js-api/kungfu';
-import { getSessionColumns } from './config';
+import { getSessionColumns, SessionStatus } from './config';
 import { removeLoadingMask } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
-import { getCurrentLocation, dealCategory } from './utils';
 import {
-  KfCategoryEnum,
-  KfCategoryTypes,
-} from '@kungfu-trader/kungfu-js-api/typings/enums';
-import { getProcessIdByKfLocation } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+  getCurrentLocation,
+  dealCategory,
+  dealSessionsToMap,
+  getAbs,
+} from './utils';
+import { setTimerPromiseTask } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { SessionStatusEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
   UnorderedListOutlined,
   LineChartOutlined,
@@ -101,15 +104,14 @@ const currentLocation = getCurrentLocation();
 const eventDashBoard = ref();
 const journalStore = useJournalStore();
 
-const sessions = ref<KungfuApi.SessionResolved[]>([]);
-const runningSessions = computed(() => {
-  return sessions.value.filter((item) => !item.is_closed);
+const sessionsMap = ref<Record<string, KungfuApi.SessionResolved>>({});
+const sessions = computed(() => {
+  return Object.values(sessionsMap.value);
 });
-const sessionsMap = computed(() => {
-  return sessions.value.reduce((pre, session) => {
-    pre[`${session.begin_time}`] = toRaw(session);
-    return pre;
-  }, {} as Record<string, KungfuApi.SessionResolved>);
+const runningSessions = computed(() => {
+  return sessions.value.filter(
+    (item) => item.status === SessionStatusEnum.Running,
+  );
 });
 
 const currentSessionKey = ref('');
@@ -201,85 +203,66 @@ watch(
   },
 );
 
-const getAbs = <T extends number | bigint>(num: T): T =>
-  num < 0 ? (-num as T) : num;
-
 const getSessions = () =>
   currentLocation
     ? assemble.getSessions(currentLocation)
     : assemble.getSessions();
 
-const loadSessions = () => {
-  let currentSessions = getSessions();
+const loadSessions = (gotSessions?: KungfuApi.Session[]) => {
+  const currentSessions = gotSessions ?? getSessions();
 
   if (currentSessions?.length) {
-    sessions.value = currentSessions
-      .map((item) => {
-        item.category = KfCategoryEnum[
-          item.category as KfCategoryEnum
-        ] as KfCategoryTypes;
-        return {
-          ...item,
-          session_id_resolved: getProcessIdByKfLocation(item),
-          begin_time_resolved: dealKfTime(getAbs<bigint>(item.begin_time)),
-          end_time_resolved: dealKfTime(getAbs<bigint>(item.end_time)),
-          is_closed: item.end_time != 0n,
-        };
-      })
-      .reverse();
+    sessionsMap.value = dealSessionsToMap(currentSessions.reverse());
 
-    if (sessions.value.length) {
-      const { index, begin_time } = sessions.value[0];
+    nextTick(() => {
+      if (!gotSessions && sessions.value.length) {
+        const { index, begin_time } = sessions.value[0];
 
-      currentSessionKey.value = `${begin_time}`;
-      currentSessionId.value = index;
-    }
+        currentSessionKey.value = `${begin_time}`;
+        currentSessionId.value = index;
+      }
+    });
   }
 };
 
 const startCheckSessionsStatus = () => {
-  const start = () => {
-    window.setTimeout(() => {
-      const sessionsStatusMap = getSessions()?.reduce((map, session) => {
-        map[`${session.begin_time}`] =
-          session.end_time === 0n ? false : session.end_time;
-        return map;
-      }, {});
-      toRaw(runningSessions.value).forEach((session) => {
-        const currentEndTime = sessionsStatusMap?.[`${session.begin_time}`];
-        const index = sessions.value.length - session.index - 1;
+  setTimerPromiseTask(async () => {
+    let hasNewSession = false;
+    const currentSessions = getSessions();
+    const sessionsStatusMap = currentSessions?.reduce((map, session) => {
+      const key = `${session.begin_time}`;
+      map[key] = session.end_time === 0n ? false : session.end_time;
+      if (!(key in sessionsMap.value)) {
+        hasNewSession = true;
+      }
+      return map;
+    }, {});
 
-        if (currentEndTime) {
-          sessions.value[index].end_time = currentEndTime;
-          sessions.value[index].end_time_resolved = dealKfTime(
-            getAbs<bigint>(currentEndTime),
-          );
-          sessions.value[index].is_closed = true;
-        }
+    if (hasNewSession) {
+      loadSessions(currentSessions);
+      return;
+    }
 
-        if (`${session.begin_time}` === currentSessionKey.value) {
-          // currentTimeRangeData.value = {
-          //   range: [
-          //     session.begin_time,
-          //     currentEndTime || BigInt(new Date().getTime()) * 1000000n,
-          //   ],
-          //   reload: false,
-          // };
+    toRaw(runningSessions.value).forEach((session) => {
+      const currentKey = `${session.begin_time}`;
+      const currentEndTime = sessionsStatusMap?.[currentKey];
 
-          limitTimeRange.value = [
-            session.begin_time,
-            currentEndTime || BigInt(new Date().getTime()) * 1000000n,
-          ];
-        }
-      });
+      if (currentEndTime) {
+        sessionsMap.value[currentKey].end_time = currentEndTime;
+        sessionsMap.value[currentKey].end_time_resolved = dealKfTime(
+          getAbs<bigint>(currentEndTime),
+        );
+        sessionsMap.value[currentKey].status = SessionStatusEnum.Finished;
+      }
 
-      nextTick(() => {
-        if (runningSessions.value.length) start();
-      });
-    }, 1000);
-  };
-
-  start();
+      if (`${session.begin_time}` === currentSessionKey.value) {
+        limitTimeRange.value = [
+          session.begin_time,
+          currentEndTime || BigInt(new Date().getTime()) * 1000000n,
+        ];
+      }
+    });
+  }, 1000);
 };
 
 onMounted(() => {
@@ -291,7 +274,6 @@ onMounted(() => {
 const handleSelectSession = ({ row }) => {
   currentSessionId.value = row.index;
   currentSessionKey.value = row.begin_time + '';
-  console.log(row.begin_time);
 };
 
 const onExportJournalData = (

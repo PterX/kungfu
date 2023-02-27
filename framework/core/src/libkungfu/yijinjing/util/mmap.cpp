@@ -99,7 +99,7 @@ uintptr_t load_mmap_buffer(const std::string &path, size_t size, bool is_writing
 
 bool flush_mmap_buffer(uintptr_t address, size_t size, bool lazy) {
   void *buffer = reinterpret_cast<void *>(address);
-#ifdef _WINDOS
+#ifdef _WINDOWS
   FlushViewOfFile(buffer, 0);
 #else
   if (msync(buffer, size, MS_SYNC) != 0) {

@@ -40,7 +40,7 @@ page_ptr page::load(const data::location_ptr &location, uint32_t dest_id, uint32
 
   auto header = reinterpret_cast<page_header *>(address);
   bool is_virgin_page = header->last_frame_position == 0;
-  SPDLOG_TRACE("load page --- {}/{:08x}.{}.journal lazy {} size {} is_writing {} is_virgin_page {}", location->uname,
+  SPDLOG_TRACE("load page {}/{:08x}.{}.journal lazy {} size {} is_writing {} is_virgin_page {}", location->uname,
                dest_id, page_id, lazy, page_size, is_writing, is_virgin_page);
 
   if (is_virgin_page) {

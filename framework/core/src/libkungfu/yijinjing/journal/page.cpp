@@ -13,29 +13,15 @@ page::page(data::location_ptr location, uint32_t dest_id, const uint32_t page_id
 }
 
 page::~page() {
-  auto start = std::chrono::system_clock::now();
-
   if (not os::release_mmap_buffer(address(), size_, lazy_)) {
     SPDLOG_ERROR("can not release page {}/{:08x}.{}.journal", location_->uname, dest_id_, page_id_);
   }
-
-  auto end = std::chrono::system_clock::now();
-  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
-  SPDLOG_INFO("release_mmap_buffer   {}/{:08x}.{}.journal take time {} lazy {} size {} is_writing {}", location_->uname,
-              dest_id_, page_id_, duration.count(), lazy_, size_, is_writing_);
 }
 
 void page::flush() {
-  auto start = std::chrono::system_clock::now();
-
   if (not os::flush_mmap_buffer(address(), size_, lazy_)) {
     SPDLOG_ERROR("can not flush page {}/{:08x}.{}.journal", location_->uname, dest_id_, page_id_);
   }
-
-  auto end = std::chrono::system_clock::now();
-  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
-  SPDLOG_DEBUG("flush_mmap_buffer   {}/{:08x}.{}.journal take time {} lazy {} size {} is_writing {}", location_->uname,
-               dest_id_, page_id_, duration.count(), lazy_, size_, is_writing_);
 }
 
 void page::set_last_frame_position(uint64_t position) {
@@ -53,7 +39,11 @@ page_ptr page::load(const data::location_ptr &location, uint32_t dest_id, uint32
   }
 
   auto header = reinterpret_cast<page_header *>(address);
-  if (header->last_frame_position == 0) {
+  bool is_virgin_page = header->last_frame_position == 0;
+  SPDLOG_TRACE("load page --- {}/{:08x}.{}.journal lazy {} size {} is_writing {} is_virgin_page {}", location->uname,
+               dest_id, page_id, lazy, page_size, is_writing, is_virgin_page);
+
+  if (is_virgin_page) {
     header->version = __JOURNAL_VERSION__;
     header->page_header_length = sizeof(page_header);
     header->page_size = page_size;
@@ -61,8 +51,11 @@ page_ptr page::load(const data::location_ptr &location, uint32_t dest_id, uint32
     header->last_frame_position = header->page_header_length;
   }
 
-  if (pre_open) {
+  if (pre_open && is_virgin_page) {
     header->status = longfist::enums::PageStatus::PreOpen;
+    uintptr_t first_frame_address = address + header->page_header_length;
+    uint32_t body_size = page_size - header->page_header_length;
+    memset(reinterpret_cast<void *>(first_frame_address), 0, body_size); // warm up
   } else if (is_writing) {
     header->status = longfist::enums::PageStatus::Normal;
   }

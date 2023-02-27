@@ -40,7 +40,7 @@ public:
 
   [[nodiscard]] uintptr_t address_border() const { return address() + header_->page_size - sizeof(frame_header); }
 
-  [[nodiscard]] uintptr_t get_body_size() const { return size_ - header_->page_header_length; }
+  [[nodiscard]] uint32_t get_body_size() const { return size_ - header_->page_header_length; }
 
   [[nodiscard]] uintptr_t first_frame_address() const { return address() + header_->page_header_length; }
 

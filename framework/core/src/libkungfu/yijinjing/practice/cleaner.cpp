@@ -15,9 +15,7 @@ cleaner::cleaner(apprentice &app) : app_(app) {
 
 void cleaner::do_clean() {
   while (true) {
-    SPDLOG_INFO("-------------- release page start --");
     app_.release_page();
-    SPDLOG_INFO("-------------- release page end ----");
     std::this_thread::sleep_for(std::chrono::milliseconds(5000));
   }
 }

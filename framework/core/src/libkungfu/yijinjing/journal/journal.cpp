@@ -59,12 +59,13 @@ void journal::try_load_next_extra_page() {
     return;
   }
   pre_page_ = page::load(location_, dest_id_, page_->get_page_id() + 1, false, lazy_, true);
-  memset(reinterpret_cast<void *>(pre_page_->first_frame_address()), 0, pre_page_->get_body_size()); // warm up
 }
 
 void journal::release_page() {
   for (auto &page_ptr : passed_page_collector_) {
-    page_ptr.reset();
+    if (page_ptr.get() != nullptr && page_ptr.use_count() != 0) {
+      page_ptr.reset();
+    }
   }
 }
 

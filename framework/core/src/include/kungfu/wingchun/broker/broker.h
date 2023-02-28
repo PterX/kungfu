@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 //
 // Created by Keren Dong on 2020/3/10.
 //
@@ -86,6 +88,10 @@ public:
   void update_broker_state(BrokerState state);
 
   void request_deregister() { vendor_.request_deregister(); }
+
+  BrokerVendor &get_vendor() { return vendor_; }
+
+  uint32_t request_band(const std::string &band_name) { return vendor_.request_band(band_name); }
 
 protected:
   volatile BrokerState state_;

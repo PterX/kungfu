@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 #include <kungfu/common.h>
 #include <kungfu/longfist/longfist.h>
 #include <kungfu/yijinjing/cache/cached.h>
@@ -12,10 +14,13 @@ using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::cache;
 
+#define STORE_LIMIT 100
+#define STORE_INTERVAL_LIMIT 200
+
 namespace kungfu::yijinjing::cache {
 
 cached::cached(locator_ptr locator, mode m, bool low_latency)
-    : apprentice(location::make_shared(m, category::SYSTEM, "service", "cached", std::move(locator))),
+    : apprentice(location::make_shared(m, category::SYSTEM, "service", "cached", std::move(locator)), low_latency),
       profile_(get_locator()) {
   profile_.setup();
   profile_get_all(profile_, profile_bank_);
@@ -26,6 +31,9 @@ void cached::on_react() {
   events_ | is(Register::tag) | $$(register_triggger_clear_cache_shift(event->data<Register>()));
   events_ | is(RequestCached::tag) | $([&](const event_ptr &event) {
     auto source_id = event->source();
+
+    SPDLOG_INFO("get RequestCached from {}", get_location_uname(source_id));
+
     if (locations_.find(source_id) == locations_.end()) {
       SPDLOG_ERROR("no location {} in locations_", get_location_uname(source_id));
       return;
@@ -56,12 +64,17 @@ void cached::on_start() {
   events_ | is(CacheReset::tag) | $$(on_cache_reset(event));
   events_ | instanceof <journal::frame>() | filter([&](const event_ptr &event) {
                          auto source_id = event->source();
-                         return source_id != master_home_location_->location_uid and
-                                source_id != master_cmd_location_->location_uid;
+                         return source_id != master_home_location_->uid and source_id != master_cmd_location_->uid;
                        }) | $$(feed(event));
 }
 
 void cached::on_active() {
+  // limit cache overhead
+  if (store_interval_ < STORE_INTERVAL_LIMIT) {
+    store_interval_++;
+    return;
+  }
+  store_interval_ = 0;
   handle_cached_feeds();
   handle_profile_feeds();
 }
@@ -74,7 +87,7 @@ void cached::mark_request_cached_done(uint32_t dest_id) {
 }
 
 void cached::handle_cached_feeds() {
-  bool stored_controller = false;
+  int stored_controller = 0;
   boost::hana::for_each(StateDataTypes, [&](auto it) {
     using DataType = typename decltype(+boost::hana::second(it))::type;
     auto hana_type = boost::hana::type_c<DataType>;
@@ -84,19 +97,23 @@ void cached::handle_cached_feeds() {
 
     if (feed_map.size() != 0) {
       auto iter = feed_map.begin();
-      while (iter != feed_map.end() and !stored_controller) {
+      while (iter != feed_map.end() and stored_controller <= STORE_LIMIT) {
         auto &s = iter->second;
         auto source_id = s.source;
+        auto dest_id = s.dest;
         if (app_cache_shift_.find(source_id) != app_cache_shift_.end()) {
           try {
             app_cache_shift_.at(source_id) << s;
+            SPDLOG_TRACE("cache [feed] source {} dest {} {} data {}", get_location_uname(source_id),
+                         get_location_uname(dest_id), DataType::type_name.c_str(), s.data.to_string());
           } catch (const std::exception &e) {
             SPDLOG_ERROR("Unexpected exception by handle_cached_feeds {}", e.what());
+            stored_controller++;
             continue;
           }
 
           iter = feed_map.erase(iter);
-          stored_controller = true;
+          stored_controller++;
         } else {
           iter++;
         }
@@ -106,7 +123,7 @@ void cached::handle_cached_feeds() {
 }
 
 void cached::handle_profile_feeds() {
-  bool stored_controller = false;
+  int stored_controller = 0;
   boost::hana::for_each(ProfileDataTypes, [&](auto it) {
     using DataType = typename decltype(+boost::hana::second(it))::type;
     auto hana_type = boost::hana::type_c<DataType>;
@@ -116,18 +133,19 @@ void cached::handle_profile_feeds() {
 
     if (feed_map.size() != 0) {
       auto iter = feed_map.begin();
-      while (iter != feed_map.end() and !stored_controller) {
+      while (iter != feed_map.end() and stored_controller <= STORE_LIMIT) {
         auto &s = iter->second;
-
         try {
           profile_ << s;
+          SPDLOG_TRACE("cache [profile] {} data {}", DataType::type_name.c_str(), s.data.to_string());
         } catch (const std::exception &e) {
           SPDLOG_ERROR("Unexpected exception by handle_profile_feeds {}", e.what());
+          stored_controller++;
           continue;
         }
 
         iter = feed_map.erase(iter);
-        stored_controller = true;
+        stored_controller++;
       }
     }
   });

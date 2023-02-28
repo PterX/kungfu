@@ -1,17 +1,4 @@
-/*****************************************************************************
- * Copyright [www.kungfu-trader.com]
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *  http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *****************************************************************************/
+// SPDX-License-Identifier: Apache-2.0
 
 #include <kungfu/yijinjing/journal/journal.h>
 #include <kungfu/yijinjing/journal/page.h>
@@ -22,7 +9,7 @@ reader::~reader() { journals_.clear(); }
 
 void reader::join(const data::location_ptr &location, uint32_t dest_id, const int64_t from_time) {
   auto key = static_cast<uint64_t>(location->uid) << 32u | static_cast<uint64_t>(dest_id);
-  auto result = journals_.try_emplace(key, location, dest_id, false, lazy_);
+  auto result = journals_.try_emplace(key, location, dest_id, false, lazy_, low_latency_, cleaner_required_);
   if (result.second) {
     journals_.at(key).seek_to_time(from_time);
   }
@@ -37,6 +24,20 @@ void reader::disjoin(const uint32_t location_uid) {
       it++;
     } else {
       it = journals_.erase(it);
+    }
+  }
+  current_ = nullptr;
+  sort();
+}
+
+void reader::disjoin_channel(uint32_t location_uid, uint32_t dest_id) {
+  auto key = static_cast<uint64_t>(location_uid) << 32u | static_cast<uint64_t>(dest_id);
+  for (auto it = journals_.begin(); it != journals_.end();) {
+    if (it->first != key) {
+      it++;
+    } else {
+      journals_.erase(it);
+      break; // only one journal erased
     }
   }
   current_ = nullptr;
@@ -73,4 +74,11 @@ void reader::sort() {
     }
   }
 }
+
+void reader::release_page() {
+  for (auto &iter : journals_) {
+    iter.second.release_page();
+  }
+}
+
 } // namespace kungfu::yijinjing::journal

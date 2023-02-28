@@ -9,7 +9,7 @@ export default {
   rename: 'rename',
   set: 'Set',
   clean: 'clean',
-  Help: 'Help',
+  help: 'Help',
   run: 'Run',
   quit: 'Quit',
   operation_success: 'operation success',
@@ -17,6 +17,9 @@ export default {
   location_error: 'current location error',
   watcher_error: 'Watcher is NULL',
   instrument_error: 'instrument error',
+  component_error: 'component error',
+  board_empty: 'Not added any board',
+  add_board_now: 'Add now',
   prompt: 'prompt',
   warning: 'warning',
   confirm: 'confirm',
@@ -41,7 +44,7 @@ export default {
   clear_journal: 'Clear journal',
   clear_DB: 'Clear DB',
   reset_main_panel: 'Reset main panel',
-  export_all_transaction_data: 'E`xport all transaction data',
+  export_all_transaction_data: 'Export all transaction data',
 
   website: 'Website',
   user_manual: 'User manual',
@@ -51,44 +54,69 @@ export default {
   KungFu: 'Kungfu',
   about_kungfu: 'About Kungfu',
 
-  file: 'file',
-  folder: 'folder',
+  file: 'File',
+  folder: 'Folder',
 
   no_focus: 'The current page is not in focus',
   clear: 'Clearing {content} completed, please restart the application',
   open_window: 'Opening window',
   open_code_editor: 'Opening code editor',
   open_trading_task_view: 'Opening trading task view',
+  open_journal_dashboard: 'Opening journal dashboard',
   add_board: 'Add Board',
   select_board: 'Please select the board to add',
   add_board_error: 'Add board target error',
+  select_date: 'Select Date',
+  date_type: 'Date Type',
+  natural_day: 'Natural Day',
+  trading_day: 'Trading Day',
 
   delete_category:
     'Delete all data in {category}, if the {categoryName} process is running, the process will also be stopped, confirm deletion',
   add_config_modal:
     '{category} ID unique in the system. {changeTypeName} cannot be modified after it succeeds.',
   update_config_modal: 'Confirm {key} configurations',
+  database_locked: 'The database is occupied now, please wait and retry.',
 
-  MakeOrderDashboard: 'Order Dashboard',
+  MakeOrder: 'Order Dashboard',
   FutureArbitrage: 'Future Arbitrage',
+  BlockTrade: 'Block Trade',
   OrderBook: 'Order Book',
   MarketData: 'Market Data',
   TradingTask: 'Trading Task',
   Strategy: 'Strategy',
   Md: 'Md',
   Td: 'Td',
+  Operator: 'Operator',
   Trade: 'Trade',
   Order: 'Order',
   PosGlobal: 'Positon Global',
   Pos: 'Positon',
+
+  select_broker_ext: 'Select a broker api',
+  select_operator_ext: 'Select a operator ext',
+  select_trade_task: 'Select trade task',
+  select_plugin_type: 'Select extension type',
+
+  please_wait: '请稍后',
 
   baseConfig: {
     main_panel: 'HOME',
     control_center: 'Control',
   },
 
+  settingsFormConfig: {
+    keyword: 'Keyword',
+    add_csv: 'Import Csv',
+    csv_template: 'Download Csv Template',
+    add_csv_desc: 'csv headers are {header}',
+    clear: 'Clear',
+  },
+
   tradingConfig: {
     unknown: 'Unknown',
+    quantity: 'Quantity',
+    proportion: 'Proportion',
     default: 'Default',
     order_task: 'Trade',
 
@@ -112,11 +140,29 @@ export default {
     md: 'Md',
     td: 'Td',
     strategy: 'Strategy',
+    operator: 'Operator',
 
     open: 'Open',
     close: 'Close',
     close_today: 'CloseToday',
     close_yesterday: 'CloseYest',
+
+    by_quantity: 'ByQuantity',
+    by_proportion: 'ByProportion',
+
+    latest: 'Latest Price',
+    sell5: 'Fifth Sell Price',
+    sell4: 'Fourth Sell Price',
+    sell3: 'Third Sell Price',
+    sell2: 'Second Sell Price',
+    sell1: 'First Sell Price',
+    buy1: 'First Buy Price',
+    buy2: 'Second Buy Price',
+    buy3: 'Third Buy Price',
+    buy4: 'Fourth Buy Price',
+    buy5: 'Fifth Buy Price',
+    up_limit_price: 'High Limit Price',
+    low_limit_price: 'Low Limit Price',
 
     buy: 'Buy',
     sell: 'Sell',
@@ -175,13 +221,16 @@ export default {
     stock: 'Stock',
     future: 'Future',
     bond: 'Bond',
-    stock_option: '股票期权',
+    stock_option: 'StockOption',
     fund: 'Fund',
     tech_stock: 'TechStock',
     index: 'Index',
     repo: 'Repo',
+    warrant: 'Warrant',
+    iopt: 'Iopt',
     crypto: 'Crypto',
     crypto_future: 'CryptoFuture',
+    crypto_ufuture: 'CryptoUFuture',
     multi: 'Multi',
 
     SSE: 'SSE',
@@ -233,9 +282,13 @@ export default {
     price: 'Price',
     protect_price: 'Protect Price',
     price_type: 'Price Type',
+    price_level: 'Price Level',
+    price_offset: 'Price Offset',
     side: 'Side',
     offset: 'Offset',
+    direction: 'Direction',
     limit_price: 'LimitPrice',
+    algorithm: 'Algorithm',
 
     make_order_number: 'Order Number',
     no_empty: 'Order quantity cannot be empty',
@@ -246,10 +299,14 @@ export default {
       'The buying price exceeded the warning line, the current price is {price}, line for {warningLine}, fat finger is {fatFinger}%',
     fat_finger_sell_modal:
       'The selling price exceeded the warning line, the current price is {price}, line for {warningLine}, fat finger is {fatFinger}%',
+    close_apart_open_modal:
+      'The order input volume is {volume}, the current closable {direction} position is {closable_volume}, the excess is {open_volume}\nclick “Take excess to open”, will close {direction} {closable_volume}, open {direction} {open_volume}\nclick “Orignal plan”, will continue close {direction} {volume}',
     start_process: 'please start {process} first',
     place_confirm: 'Place Order Confirm',
     close_all: 'Close All?',
     Continue: 'Continue',
+    original_plan: 'Orignal plan',
+    beyond_to_open: 'Take excess to open',
   },
 
   orderConfig: {
@@ -259,6 +316,7 @@ export default {
     order_status: 'order_status',
     latency_system: 'latency_system(μs)',
     latency_network: 'latency_network(μs)',
+    avg_price: 'avg_price',
     dest_uname: 'dest_uname',
     source_uname: 'source_uname',
     completed: 'completed',
@@ -280,7 +338,7 @@ export default {
     confirm: 'confirm',
 
     entrust_statistical: 'Entrust Statistical',
-    statistical_desc: 'Real-time (latest 100 pieces of data)',
+    statistical_desc: 'Real-time (latest {count} pieces of data)',
     entrust_statistical_number: 'Entrust Statistical Number',
     entrust_statistical_price: 'Entrust Statistical Price',
     average_withdrawal_ratio:
@@ -332,6 +390,7 @@ export default {
     select_plugin_type: 'Select plugin type',
 
     add_md: 'Add',
+    md_not_found: '{md} MD not found',
     counter_plugin_inexistence: 'Counter plugin inexistence',
   },
 
@@ -351,7 +410,30 @@ export default {
     add_strategy: 'Add',
   },
 
+  operatorConfig: {
+    operator: 'operator',
+    operator_id: 'operator_id',
+    operator_file: 'operator_file',
+    operator_path: 'operator_path',
+    operator_path_tip:
+      'Normal python operator use .py file, packaged operator use .so or .pyd file in operator folder',
+    state_status: 'status',
+    process_status: 'process',
+    actions: 'actions',
+    operator_tip: 'Ensure that the operator_id is unique',
+
+    add_operator: 'Add',
+    operator_not_found: '{operator} Operator not found',
+
+    add_operator_type: {
+      title: 'Select Operator Type',
+      extension: 'Extension',
+      file: 'File',
+    },
+  },
+
   tradingTaskConfig: {
+    tradingTask: 'Trading Task',
     task_id: 'task_id',
     process_status: 'process',
     args: 'arguments',
@@ -360,7 +442,7 @@ export default {
     add_task: 'Add',
     illegal_process_id: 'Not a legitimate trade task process_id',
     key_inexistence: 'The trade task plugin key does not exist',
-    plugin_inexistence: 'The trade task plugin does not exist',
+    plugin_inexistence: 'The trade task plugin {key} does not exist',
     configuration_inexistence:
       'The configuration item does not exist,please check',
     delete_task: 'Deleting a trade Task',
@@ -374,7 +456,10 @@ export default {
     yesterday_volume: 'yesterday_volume',
     today_volume: 'today_volume',
     sum_volume: 'sum_volume',
-    avg_open_price: 'avg_open_price',
+    frozen_total: 'frozen_total',
+    frozen_volume: 'frozen',
+    closable_volume: 'closable',
+    avg_open_price: 'avg_price',
     last_price: 'last_price',
     unrealized_pnl: 'unrealized_pnl',
   },
@@ -392,6 +477,28 @@ export default {
     add_market: 'Add',
   },
 
+  journalConfig: {
+    begin_time: 'begin_time',
+    end_time: 'end_time',
+    status: 'Status',
+
+    finished: 'Finished',
+    running: 'Running',
+
+    dest: 'destination',
+    source: 'source',
+    gen_time: 'gen_time',
+    trigger_time: 'trigger_time',
+    msg_type: 'msg_type',
+
+    export: 'Export',
+    export_file_path: 'export_file_path',
+    need_directroy: 'Only allow directroy',
+    export_success: 'Export success',
+
+    loading_journal: 'Loading journal...',
+  },
+
   tradeConfig: {
     trade_time_resolved: 'trade_time',
     kf_time_resolved: 'kf_time',
@@ -407,7 +514,7 @@ export default {
     statistical: 'Transaction Statistical',
     statistical_count: 'Statistics of transaction quantity',
     statistical_price: 'Transaction price statistics',
-    statistical_desc: 'Real-time (latest 100 pieces of data)',
+    statistical_desc: 'Real-time (latest 500 pieces of data)',
     average_trade_latency: 'Average transaction delay(μs)',
     max_trade_latency: 'Max transaction delay(μs)',
     min_trade_latency: 'Min transaction delay(μs)',
@@ -447,11 +554,8 @@ export default {
     limit_price: 'limit_price',
     volume: 'volume',
     opponent_seat: 'opponent_seat',
-    opponent_account: 'opponent_account',
     match_number: 'match_number',
-    linkman: 'linkman',
-    contact_way: 'contact_way',
-    underweight_type: 'underweight_type',
+    is_specific: 'is_specific',
 
     unrestricted_shares: 'Unrestricted shares',
     restricted_shares: 'Restricted shares',
@@ -467,12 +571,20 @@ export default {
     log_level: 'Log Level',
     for_all_log: 'For all Log',
 
+    auto_restart_td: 'Trading Process Auto Restart',
+    auto_restart_td_desc:
+      'While the trade process interruption, if this switch open, it will try to reconnect three times; if closed, it will not. During the restart process (from restart to trade process ready) , the position queried in the strategy will be 0, both `on_deregister` and `on_broker_state_change` methods need to be used within the policy to determine whether the status of the counter is `disconnected` or `restart ready`.',
+
     language: 'Language',
-    select_language: 'Select Language',
+    select_language_desc: 'Select Language, the modified restart takes effect',
+    bypass_archive: 'ByPass Archive',
+    bypass_archive_desc:
+      'Archive only delete journal and logs, zip nomore files',
 
     porformance: 'Performance',
     rocket_model: 'Open Rocket Model',
-    rocket_model_desc: 'Use CPU 100%, restart is required',
+    rocket_model_desc:
+      'Use CPU 100% (only when the CPU is greater than 4 core can open it) , restart is required',
     bypass_accounting: 'Bypass UI Accounting',
     bypass_accounting_desc:
       'UI process no longer dealing with calculation, restart is required',
@@ -518,19 +630,6 @@ export default {
     close_today: 'Close Today',
     close_yesterday: 'Close Yesterday',
     min: 'Min',
-
-    timing_rev_top: 'Timing Rev. Top',
-    use_timing_rev_top: 'Enable Timing Rev. Top',
-    timing_task_list: 'Timing Task List',
-    add_timing: 'Add Timing',
-    target_process: 'Target Process',
-    manner: 'Manner',
-    daily_time: 'Daily Time',
-
-    master: 'master',
-    start: 'start',
-    stop: 'stop',
-    restart: 'restart',
   },
 
   风控: 'Risk Setting',
@@ -552,6 +651,7 @@ export default {
     no_negative_number: 'Cannot contain negative',
     value_existing: '{value} has been in existence',
     mandatory: 'mandatory',
+    resolved_tip: 'Success resolved {success} {value}, failed {fail}',
   },
 
   editor: {

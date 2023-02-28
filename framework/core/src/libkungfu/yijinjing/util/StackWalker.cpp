@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 /**********************************************************************
  *
  * StackWalker.cpp
@@ -91,8 +93,17 @@
 #include <stdlib.h>
 #include <tchar.h>
 #include <windows.h>
+
+#include <Psapi.h>
+#include <VersionHelpers.h>
+#include <inttypes.h> //---PRIxPTR
+#include <process.h>
+
 #pragma comment(lib, "version.lib") // for "VerQueryValue"
 #pragma warning(disable : 4826)
+#if _MSC_VER >= 1900
+#pragma warning(disable : 4091) // For fix unnamed enums from DbgHelp.h
+#endif
 
 // If VC7 and later, then use the shipped 'dbghelp.h'-file
 #pragma pack(push, 8)
@@ -229,6 +240,19 @@ static void MyStrCpy(char *szDest, size_t nMaxDestSize, const char *szSrc) {
 // Normally it should be enough to use 'CONTEXT_FULL' (better would be 'CONTEXT_ALL')
 #define USED_CONTEXT_FLAGS CONTEXT_FULL
 
+static const char *file_separator() { return "/"; }
+
+static int console_count = 5;
+
+struct _modinfo {
+  address addr;
+  char *full_path; // point to a char buffer
+  int buflen;      // size of the buffer
+  address base_addr;
+};
+
+char buffer_console[2048];
+
 class StackWalkerInternal {
 public:
   StackWalkerInternal(StackWalker *parent, HANDLE hProcess) {
@@ -268,9 +292,9 @@ public:
     // First try to load the newest one from
     TCHAR szTemp[4096];
     // But before we do this, we first check if the ".local" file exists
-    if (GetModuleFileName(NULL, szTemp, 4096) > 0) {
+    if (GetModuleFileName(NULL, szTemp, 4096) > 0) { // 返回执行程序的当前的绝对路径
       _tcscat_s(szTemp, _T(".local"));
-      if (GetFileAttributes(szTemp) == INVALID_FILE_ATTRIBUTES) {
+      if (GetFileAttributes(szTemp) == INVALID_FILE_ATTRIBUTES) { // 若文件不存在
         // ".local" file does not exist, so we can try to load the dbghelp.dll from the "Debugging Tools for Windows"
         // Ok, first try the new path according to the architecture:
 #ifdef _M_IX86
@@ -299,11 +323,13 @@ public:
         }
 #endif
         // If still not found, try the old directories...
+        // ，返回值是lpBuffer所指向的缓冲区中存储的字符数，不包括结束的空字符。
+        // 如果lpBuffer没有足够大来保存数据，返回值是缓冲区的大小
         if ((m_hDbhHelp == NULL) && (GetEnvironmentVariable(_T("ProgramFiles"), szTemp, 4096) > 0)) {
           _tcscat_s(szTemp, _T("\\Debugging Tools for Windows\\dbghelp.dll"));
           // now check if the file exists:
           if (GetFileAttributes(szTemp) != INVALID_FILE_ATTRIBUTES) {
-            m_hDbhHelp = LoadLibrary(szTemp);
+            m_hDbhHelp = LoadLibrary(szTemp); // 根据模块名称加载路径
           }
         }
 #if defined _M_X64 || defined _M_IA64
@@ -324,11 +350,11 @@ public:
     pSI = (tSI)GetProcAddress(m_hDbhHelp, "SymInitialize");
     pSC = (tSC)GetProcAddress(m_hDbhHelp, "SymCleanup");
 
-    pSW = (tSW)GetProcAddress(m_hDbhHelp, "StackWalk64");
+    pSW = (tSW)GetProcAddress(m_hDbhHelp, "StackWalk64"); ///
     pSGO = (tSGO)GetProcAddress(m_hDbhHelp, "SymGetOptions");
     pSSO = (tSSO)GetProcAddress(m_hDbhHelp, "SymSetOptions");
 
-    pSFTA = (tSFTA)GetProcAddress(m_hDbhHelp, "SymFunctionTableAccess64");
+    pSFTA = (tSFTA)GetProcAddress(m_hDbhHelp, "SymFunctionTableAccess64"); //
     pSGLFA = (tSGLFA)GetProcAddress(m_hDbhHelp, "SymGetLineFromAddr64");
     pSGMB = (tSGMB)GetProcAddress(m_hDbhHelp, "SymGetModuleBase64");
     pSGMI = (tSGMI)GetProcAddress(m_hDbhHelp, "SymGetModuleInfo64");
@@ -933,7 +959,7 @@ BOOL StackWalker::ShowCallstack(HANDLE hThread, const CONTEXT *context, PReadPro
   if (m_modulesLoaded == FALSE)
     this->LoadModules(); // ignore the result...
 
-  if (this->m_sw->m_hDbhHelp == NULL) {
+  if (this->m_sw->m_hDbhHelp == NULL) { // dll加载失败
     SetLastError(ERROR_DLL_INIT_FAILED);
     return FALSE;
   }
@@ -941,9 +967,9 @@ BOOL StackWalker::ShowCallstack(HANDLE hThread, const CONTEXT *context, PReadPro
   s_readMemoryFunction = readMemoryFunction;
   s_readMemoryFunction_UserData = pUserData;
 
-  if (context == NULL) {
-    // If no context is provided, capture the context
-    // See: https://stackwalker.codeplex.com/discussions/446958
+  if (context == NULL) { // 如果context是null，则进行调用进行获取
+                         // If no context is provided, capture the context
+                         // See: https://stackwalker.codeplex.com/discussions/446958
 #if _WIN32_WINNT <= 0x0501
     // If we need to support XP, we need to use the "old way", because "GetThreadId" is not available!
     if (hThread == GetCurrentThread())
@@ -1004,6 +1030,7 @@ BOOL StackWalker::ShowCallstack(HANDLE hThread, const CONTEXT *context, PReadPro
 #error "Platform not supported!"
 #endif
 
+  // 设置好IMAGEHLP_SYMBOL64
   pSym = (IMAGEHLP_SYMBOL64 *)malloc(sizeof(IMAGEHLP_SYMBOL64) + STACKWALK_MAX_NAMELEN);
   if (!pSym)
     goto cleanup; // not enough memory...
@@ -1053,7 +1080,8 @@ BOOL StackWalker::ShowCallstack(HANDLE hThread, const CONTEXT *context, PReadPro
       // show procedure info (SymGetSymFromAddr64())
       if (this->m_sw->pSGSFA(this->m_hProcess, s.AddrPC.Offset, &(csEntry.offsetFromSmybol), pSym) != FALSE) {
         MyStrCpy(csEntry.name, STACKWALK_MAX_NAMELEN, pSym->Name);
-        // UnDecorateSymbolName()
+        // SPDLOG_INFO("csEntry.name: {}", csEntry.name);
+        //  UnDecorateSymbolName()
         this->m_sw->pUDSN(pSym->Name, csEntry.undName, STACKWALK_MAX_NAMELEN, UNDNAME_NAME_ONLY);
         this->m_sw->pUDSN(pSym->Name, csEntry.undFullName, STACKWALK_MAX_NAMELEN, UNDNAME_COMPLETE);
       } else {
@@ -1107,7 +1135,7 @@ BOOL StackWalker::ShowCallstack(HANDLE hThread, const CONTEXT *context, PReadPro
           csEntry.symTypeString = nullptr;
           break;
         }
-
+        // SPDLOG_DEBUG("SymType: {}", csEntry.symTypeString);
         MyStrCpy(csEntry.moduleName, STACKWALK_MAX_NAMELEN, Module.ModuleName);
         csEntry.baseOfImage = Module.BaseOfImage;
         MyStrCpy(csEntry.loadedImageName, STACKWALK_MAX_NAMELEN, Module.LoadedImageName);
@@ -1213,6 +1241,7 @@ void StackWalker::OnLoadModule(LPCSTR img, LPCSTR mod, DWORD64 baseAddr, DWORD s
   }
   buffer[STACKWALK_MAX_NAMELEN - 1] = 0; // be sure it is NULL terminated
   OnOutput(buffer);
+  // SPDLOG_INFO("OnLoadModule:{}", buffer);
 }
 
 void StackWalker::OnCallstackEntry(CallstackEntryType eType, CallstackEntry &entry) {
@@ -1222,21 +1251,25 @@ void StackWalker::OnCallstackEntry(CallstackEntryType eType, CallstackEntry &ent
   maxLen = _TRUNCATE;
 #endif
   if ((eType != lastEntry) && (entry.offset != 0)) {
-    if (entry.name[0] == 0)
+    if (entry.name[0] == 0) {
       MyStrCpy(entry.name, STACKWALK_MAX_NAMELEN, "(function-name not available)");
-    if (entry.undName[0] != 0)
+    }
+    if (entry.undName[0] != 0) {
       MyStrCpy(entry.name, STACKWALK_MAX_NAMELEN, entry.undName);
-    if (entry.undFullName[0] != 0)
+    }
+    if (entry.undFullName[0] != 0) {
       MyStrCpy(entry.name, STACKWALK_MAX_NAMELEN, entry.undFullName);
+    }
     if (entry.lineFileName[0] == 0) {
       MyStrCpy(entry.lineFileName, STACKWALK_MAX_NAMELEN, "()");
       if (entry.moduleName[0] == 0)
         MyStrCpy(entry.moduleName, STACKWALK_MAX_NAMELEN, "(module-name not available)");
       _snprintf_s(buffer, maxLen, "%-16s %p: %s: %s", entry.moduleName, (LPVOID)entry.offset, entry.lineFileName,
                   entry.name);
-    } else
+    } else {
       _snprintf_s(buffer, maxLen, "%-16s %s:%d: %s", entry.moduleName, entry.lineFileName, entry.lineNumber,
                   entry.name);
+    }
     buffer[STACKWALK_MAX_NAMELEN - 1] = 0;
     OnOutput(buffer);
     SPDLOG_CRITICAL("{}", buffer);
@@ -1296,5 +1329,662 @@ void StackWalker::OnSymInit(LPCSTR szSearchPath, DWORD symOptions, LPCSTR szUser
 }
 
 void StackWalker::OnOutput(LPCSTR buffer) { OutputDebugStringA(buffer); }
+
+void StackWalker::print_windows_version(std::ostream &st) {
+
+  st << std::endl;
+  st << "--------------------------Windows version-----------------------------" << std::endl;
+  VS_FIXEDFILEINFO *file_info;
+  TCHAR kernel32_path[MAX_PATH];
+  UINT len, ret;
+
+  bool is_workstation = !IsWindowsServer();
+
+  // Get the full path to \Windows\System32\kernel32.dll and use that for
+  // determining what version of Windows we're running on.
+  len = MAX_PATH - (UINT)strlen("\\kernel32.dll") - 1;
+  ret = GetSystemDirectory(kernel32_path, len);
+  if (ret == 0 || ret > len) {
+    st << "Call to GetSystemDirectory failed\n";
+    return;
+  }
+
+  // TCHAR --> char* 需要unicode字符集换成多字节字符集
+  // strncat(c_kernel32_path, "\\kernel32.dll", MAX_PATH - ret);
+
+  // 改用windows库函数
+  lstrcat(kernel32_path, _T("\\kernel32.dll"));
+
+  DWORD version_size = GetFileVersionInfoSize(kernel32_path, NULL);
+  if (version_size == 0) {
+    st << "Call to GetFileVersionInfoSize failed\n";
+    return;
+  }
+  // 与java原来相比，简化了申请内存方式，合理性存疑。。。
+  LPTSTR version_info = (LPTSTR)malloc(version_size * sizeof(DWORD));
+  if (version_info == NULL) {
+    st << "Failed to allocate version_info";
+    return;
+  }
+  //
+  if (!GetFileVersionInfo(kernel32_path, NULL, version_size, version_info)) {
+    free(version_info);
+    st << "Call to GetFileVersionInfo failed\n";
+    return;
+  }
+
+  if (!VerQueryValue(version_info, TEXT("\\"), (LPVOID *)&file_info, &len)) {
+    free(version_info);
+    st << "Call to VerQueryValue failed" << std::endl;
+    return;
+  }
+
+  int major_version = HIWORD(file_info->dwProductVersionMS);
+  int minor_version = LOWORD(file_info->dwProductVersionMS);
+  int build_number = HIWORD(file_info->dwProductVersionLS);
+  int build_minor = LOWORD(file_info->dwProductVersionLS);
+  int os_vers = major_version * 1000 + minor_version;
+  free(version_info);
+
+  st << " Windows ";
+  switch (os_vers) {
+  case 6000:
+    if (is_workstation) {
+      st << "Vista";
+    } else {
+      st << "Server 2008";
+    }
+    break;
+
+  case 6001:
+    if (is_workstation) {
+      st << "7";
+    } else {
+      st << "Server 2008 R2";
+    }
+    break;
+
+  case 6002:
+    if (is_workstation) {
+      st << "8";
+    } else {
+      st << "Server 2012";
+    }
+    break;
+
+  case 6003:
+    if (is_workstation) {
+      st << "8.1";
+    } else {
+      st << "Server 2012 R2";
+    }
+    break;
+
+  case 10000:
+    if (is_workstation) {
+      if (build_number >= 22000) {
+        st << "11";
+      } else {
+        st << "10";
+      }
+    } else {
+      // distinguish Windows Server by build number
+      // - 2016 GA 10/2016 build: 14393
+      // - 2019 GA 11/2018 build: 17763
+      // - 2022 GA 08/2021 build: 20348
+      if (build_number > 20347) {
+        st << "Server 2022";
+      } else if (build_number > 17762) {
+        st << "Server 2019";
+      } else {
+        st << "Server 2016";
+      }
+    }
+    break;
+  default:
+    // Unrecognized windows, print out its major and minor versions
+    st << major_version << "." << minor_version;
+    break;
+  }
+  // Retrieve SYSTEM_INFO from GetNativeSystemInfo call so that we could
+  // find out whether we are running on 64 bit processor or not
+  SYSTEM_INFO si;
+  ZeroMemory(&si, sizeof(SYSTEM_INFO));
+  GetNativeSystemInfo(&si);
+  if ((si.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64) ||
+      (si.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_ARM64)) {
+    st << " , 64 bit";
+  }
+  st << " Build " << build_number;
+  st << " (" << major_version << "." << minor_version << "." << build_number << "." << build_minor << ")";
+
+  st << std::endl;
+}
+
+void StackWalker::get_sys_info(std::ostream &st) {
+  st << std::endl;
+  st << "--------------------------CPU Info-------------------------------------\n";
+  SYSTEM_INFO sysInfo; // 该结构体包含了当前计算机的信息：os体系结构、cpu的类型、cpu的数量、页面的大小以及其他信息。
+  GetSystemInfo(&sysInfo);
+  if (sysInfo.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64) {
+    st << "System Architecture: X64(AMD or Intel)" << std::endl;
+  } else if (sysInfo.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_ARM) {
+    st << "System Architecture: ARM" << std::endl;
+  } else if (sysInfo.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_IA64) {
+    st << "System Architecture: Intel Itanium-based " << std::endl;
+  } else if (sysInfo.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_INTEL) {
+    st << "System Architecture: X86\n" << std::endl;
+  } else {
+    st << "System Architecture: Unknown architecture.\n" << std::endl;
+  }
+
+  st << "CPU level :  " << sysInfo.wProcessorLevel << std::endl;
+  st << "CPU revision :  " << std::hex << sysInfo.wProcessorRevision << std::dec << std::endl;
+  st << "type of processor :  ";
+  switch (sysInfo.dwProcessorType) {
+  case 386:
+    st << "intel 386\n";
+    break;
+  case 486:
+    st << "intel 486\n";
+    break;
+  case 586:
+    st << "intel Pentium\n";
+    break;
+  case 2200:
+    st << "intel IA64\n";
+    break;
+  case 8664:
+    st << "AMD X8664\n";
+    break;
+  default:
+    st << "Unknown processor\n";
+    break;
+  }
+  st << "page size :  " << sysInfo.dwPageSize << std::endl;
+  st << "number of logical processors in the current group : " << sysInfo.dwNumberOfProcessors << std::endl;
+  st << "the lowest memory address accessible to applications and DLLs :  " << sysInfo.lpMinimumApplicationAddress
+     << std::endl;
+  st << "the highest memory accessible to applications and DLLs :  " << sysInfo.lpMaximumApplicationAddress
+     << std::endl;
+  st << "The granularity for the starting address :  " << sysInfo.dwAllocationGranularity << std::endl;
+}
+
+void StackWalker::print_environment_variables(std::ostream &st) {
+  st << std::endl;
+  st << "-------------------------environment variables--------------------------" << std::endl;
+  // List of environment variables that should be reported in error log file.
+  const char *env_list[] = {//// All platforms
+                            "JAVA_HOME", "JAVA_TOOL_OPTIONS", "_JAVA_OPTIONS", "CLASSPATH", "PATH", "USERNAME",
+
+                            //// Env variables that are defined on Linux/BSD
+                            "LD_LIBRARY_PATH", "LD_PRELOAD", "SHELL", "DISPLAY", "HOSTTYPE", "OSTYPE", "ARCH",
+                            "MACHTYPE", "LANG", "LC_ALL", "LC_CTYPE", "LC_NUMERIC", "LC_TIME", "TERM", "TMPDIR", "TZ",
+
+                            //// defined on AIX
+                            "LIBPATH", "LDR_PRELOAD", "LDR_PRELOAD64",
+
+                            // defined on Linux/AIX/BSD
+                            "_JAVA_SR_SIGNUM",
+
+                            //// defined on Darwin
+                            "DYLD_LIBRARY_PATH", "DYLD_FALLBACK_LIBRARY_PATH", "DYLD_FRAMEWORK_PATH",
+                            "DYLD_FALLBACK_FRAMEWORK_PATH", "DYLD_INSERT_LIBRARIES",
+
+                            // defined on Windows
+                            "OS", "PROCESSOR_IDENTIFIER", "_ALT_JAVA_HOME_DIR", "TMP", "TEMP", (const char *)0};
+  if (env_list) {
+    st << "Environment Variables:" << std::endl;
+
+    for (int i = 0; env_list[i] != NULL; i++) {
+      // char* envvar = ::getenv(env_list[i]);
+      // 将getenv替换成_dupenv_s函数
+      char *envvar = nullptr;
+      size_t sz = 0;
+      if (_dupenv_s(&envvar, &sz, env_list[i]) == 0 && envvar != NULL) {
+        st << env_list[i] << "=" << envvar;
+        // Use separate cr() printing to avoid unnecessary buffer operations that might cause truncation.
+        st << std::endl;
+      }
+    }
+  }
+}
+
+int StackWalker::get_loaded_modules_info(LoadedModulesCallbackFunc callback, void *param) {
+  HANDLE hProcess;
+
+#define MAX_NUM_MODULES 128
+  HMODULE modules[MAX_NUM_MODULES];
+  static char filename[MAX_PATH];
+  int result = 0;
+  int pid = _getpid(); // 修改 ----得到当前进程ID
+  hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, pid);
+  if (hProcess == NULL)
+    return 0;
+
+  DWORD size_needed;
+  if (!EnumProcessModules(hProcess, modules, sizeof(modules), &size_needed)) {
+    CloseHandle(hProcess);
+    return 0;
+  }
+
+  // number of modules that are currently loaded
+  int num_modules = size_needed / sizeof(HMODULE);
+
+  for (int i = 0; i < min(num_modules, MAX_NUM_MODULES); i++) {
+    // Get Full pathname:
+
+    if (!GetModuleFileNameExA(hProcess, modules[i], filename, sizeof(filename))) {
+      filename[0] = '\0';
+    }
+
+    MODULEINFO modinfo;
+    if (!GetModuleInformation(hProcess, modules[i], &modinfo, sizeof(modinfo))) {
+      modinfo.lpBaseOfDll = nullptr;
+      modinfo.SizeOfImage = 0;
+    }
+
+    // Invoke callback function
+    result = callback(filename, (address)modinfo.lpBaseOfDll,
+                      (address)((uint64_t)modinfo.lpBaseOfDll + (uint64_t)modinfo.SizeOfImage), param);
+    if (result)
+      break;
+  }
+
+  CloseHandle(hProcess);
+  return result;
+}
+
+int StackWalker::print_module(const char *fname, address base_address, address top_address, void *param) {
+  // #define PTR_FORMAT "0x%08" PRIxPTR
+  if (!param)
+    return -1;
+  std::ostream *st = (std::ostream *)param;
+
+  //(*st)<<fmt::format("{0x%08}-{0x%08} \t{%s}",base_address,top_address,fname)<<std::endl;
+
+  (*st) << "0x" << std::hex << std::setw(8) << std::setfill('0') << (intptr_t)base_address << " - " // setw只生效一次
+        << "0x" << std::setw(8) << (intptr_t)top_address << "  \t" << fname << std::hex << std::endl;
+
+  // printf(PTR_FORMAT " - " PTR_FORMAT " \t%s\n", base_address, top_address, fname);
+  return 0;
+};
+
+void StackWalker::print_dll_info(std::ostream *st) {
+  (*st) << std::endl;
+  (*st) << "--------------------------Dynamic libraries-----------------------------" << std::endl;
+  get_loaded_modules_info(StackWalker::print_module, (void *)st);
+}
+
+u_char *StackWalker::current_stack_base() {
+  MEMORY_BASIC_INFORMATION minfo;
+  address stack_bottom;
+  size_t stack_size;
+
+  VirtualQuery(&minfo, &minfo, sizeof(minfo));
+  stack_bottom = (address)minfo.AllocationBase;
+  stack_size = minfo.RegionSize;
+
+  // Add up the sizes of all the regions with the same
+  // AllocationBase.
+  while (1) {
+    VirtualQuery(stack_bottom + stack_size, &minfo, sizeof(minfo));
+    if (stack_bottom == (address)minfo.AllocationBase) {
+      stack_size += minfo.RegionSize;
+    } else {
+      break;
+    }
+  }
+  return stack_bottom + stack_size;
+}
+
+// 返回当前栈的大小
+size_t StackWalker::current_stack_size() {
+  size_t sz;
+  MEMORY_BASIC_INFORMATION minfo;
+  VirtualQuery(&minfo, &minfo, sizeof(minfo));
+  sz = (size_t)current_stack_base() - (size_t)minfo.AllocationBase;
+  return sz;
+}
+
+// 打印堆栈边界
+void StackWalker::print_stack_bound(std::ostream &st) {
+  st << "\n\n";
+  st << "stack:   ";
+  address stack_top = current_stack_base();
+  size_t stack_size = current_stack_size();
+  address stack_bottom = stack_top - stack_size;
+
+  st << "0x" << std::hex << std::setw(8) << (intptr_t)stack_bottom << " - 0x" // setw只生效一次
+     << std::setw(8) << (intptr_t)stack_top << std::dec << "\n\n";
+
+  // st<<fmt::format("[{PTR_FORMAT},{PTR_FORMAT}]",(intptr_t)(stack_bottom),(intptr_t)(stack_top))<<std::endl;
+
+  // printf("[" PTR_FORMAT "," PTR_FORMAT "]", (intptr_t)(stack_bottom), (intptr_t)(stack_top));
+  st << std::endl;
+}
+
+int StackWalker::_locate_module_by_addr(const char *mod_fname, address base_addr, address top_address, void *param) {
+  struct _modinfo *pmod = (struct _modinfo *)param;
+  if (!pmod)
+    return -1;
+
+  if (base_addr <= pmod->addr && top_address > pmod->addr) {
+    // if a buffer is provided, copy path name to the buffer
+    if (pmod->full_path) {
+      snprintf(pmod->full_path, pmod->buflen, "%s", mod_fname);
+    }
+    pmod->base_addr = base_addr;
+    return 1;
+  }
+  return 0;
+}
+
+bool StackWalker::dll_address_to_library_name(address addr, char *buf, int buflen, int *offset) {
+  // NOTE: the reason we don't use SymGetModuleInfo() is it doesn't always
+  //       return the full path to the DLL file, sometimes it returns path
+  //       to the corresponding PDB file (debug info); sometimes it only
+  //       returns partial path, which makes life painful.
+
+  struct _modinfo mi;
+  mi.addr = addr;
+  mi.full_path = buf;
+  mi.buflen = buflen;
+  if (get_loaded_modules_info(StackWalker::_locate_module_by_addr, (void *)&mi)) {
+    // buf already contains path name
+    if (offset)
+      *offset = addr - mi.base_addr;
+    return true;
+  }
+
+  buf[0] = '\0';
+  if (offset)
+    *offset = -1;
+  return false;
+}
+
+bool StackWalker::dll_address_to_function_name(address addr, char *buf, int buflen, int *offset, bool demangle) {
+
+  if (decode(addr, buf, buflen, offset, demangle)) // decode
+  {
+    return true;
+  }
+  if (offset != NULL)
+    *offset = -1;
+  buf[0] = '\0';
+  return false;
+}
+
+bool StackWalker::decode(const void *addr, char *buf, int buflen, int *offset, bool do_demangle) {
+  buf[0] = '\0';
+  *offset = -1;
+
+  if (addr == NULL) {
+    return false;
+  }
+
+  // Try decoding the symbol once. If we fail, attempt to rebuild the
+  // symbol search path - maybe the pc points to a dll whose pdb file is
+  // outside our search path. Then do attempt the decode again.
+  bool success = decode_locked(addr, buf, buflen, offset, do_demangle);
+
+  return success;
+}
+
+bool StackWalker::decode_locked(const void *addr, char *buf, int buflen, int *offset, bool do_demangle) {
+
+  DWORD64 displacement;
+  PIMAGEHLP_SYMBOL64 pSymbol = NULL;
+  bool success = false;
+
+  pSymbol = (IMAGEHLP_SYMBOL64 *)malloc(sizeof(IMAGEHLP_SYMBOL64) + STACKWALK_MAX_NAMELEN);
+  if (!pSymbol) {
+    SPDLOG_CRITICAL("not enough memory....");
+    return false;
+  }
+  ::memset(pSymbol, 0, sizeof(IMAGEHLP_SYMBOL64) + STACKWALK_MAX_NAMELEN);
+  pSymbol->SizeOfStruct = sizeof(IMAGEHLP_SYMBOL64);
+  pSymbol->MaxNameLength = STACKWALK_MAX_NAMELEN;
+
+  // It is unclear how SymGetSymFromAddr64 handles truncation. Experiments
+  // show it will return TRUE but not zero terminate (which is a really bad
+  // combination). Lets be super careful.
+  ::memset(pSymbol->Name, 0, pSymbol->MaxNameLength); // To catch truncation.
+
+  if (success = this->m_sw->pSGSFA(::GetCurrentProcess(), (DWORD64)addr, &displacement, pSymbol)) {
+    // success = true;
+    if (pSymbol->Name[pSymbol->MaxNameLength - 1] != '\0') {
+      // Symbol was truncated. Do not attempt to demangle. Instead, zero terminate the
+      // truncated string. We still return success - the truncated string may still
+      // be usable for the caller.
+      pSymbol->Name[pSymbol->MaxNameLength - 1] = '\0';
+      do_demangle = false;
+    }
+
+    // Attempt to demangle.
+    if (do_demangle && this->m_sw->pUDSN(pSymbol->Name, buf, buflen, UNDNAME_COMPLETE)) {
+      // ok.
+    } else {
+      strncpy_s(buf, buflen - 1, pSymbol->Name, buflen - 1);
+    }
+    buf[buflen - 1] = '\0';
+    *offset = (int)displacement;
+  }
+#if 0
+    if (success == false) {
+        DWORD error_code = GetLastError();
+        std::cout << "\tsymGetSymFromAddr64 returned error,error code: " << error_code << std::endl;
+    }
+#endif
+
+  free(pSymbol);
+
+  // DEBUG_ONLY(g_buffers.decode_buffer.check();)
+
+  return success;
+}
+
+void StackWalker::print_C_frame(std::ostream &st, char *buf, int buflen, address pc) {
+
+  int offset;
+  bool found;
+
+  if (buf == NULL || buflen < 1)
+    return;
+  // libname
+  buf[0] = '\0';
+  buffer_console[0] = '\0';
+  found = dll_address_to_library_name(pc, buf, buflen, &offset);
+  if (found && buf[0] != '\0') {
+    // skip directory names
+    const char *p1, *p2;
+    p1 = buf;
+    int len = (int)strlen(file_separator());
+    while ((p2 = strstr(p1, file_separator())) != NULL)
+      p1 = p2 + len;
+    st << "[" << p1 << "+0x" << std::hex << offset << "]" << std::dec;
+
+    if (console_count >= 0) {
+      // printf("[%s+0x%x]", p1, offset);
+      snprintf(buffer_console, STACKWALK_MAX_NAMELEN, "[%s+0x%x]", p1, offset);
+      // MyStrCpy(buffer_console, STACKWALK_MAX_NAMELEN, p1);
+    }
+  } else {
+    st << std::hex << std::setw(8) << (intptr_t)(pc) // setw只生效一次
+       << std::dec;
+
+    if (console_count >= 0) {
+      snprintf(buffer_console + strlen(buffer_console), STACKWALK_MAX_NAMELEN, "  0x%08llx", (intptr_t)(pc));
+      // printf("  0x%08llx", (intptr_t)(pc));
+    }
+  }
+
+  found = dll_address_to_function_name(pc, buf, buflen, &offset, /*默认参数true*/ true);
+  if (found) {
+    st << "  " << buf << "+0x" << std::hex << offset << std::dec;
+    if (console_count) {
+      snprintf(buffer_console + strlen(buffer_console), STACKWALK_MAX_NAMELEN, "  %s+0x%x", buf, offset);
+      // printf("  %s+0x%x", buf, offset);
+    }
+  }
+}
+
+bool StackWalker::get_source_info(const void *addr, char *buf, size_t buflen, int *line_no) {
+  buf[0] = '\0';
+  *line_no = -1;
+
+  if (addr == NULL) {
+    return false;
+  }
+
+  IMAGEHLP_LINE64 lineinfo;
+  memset(&lineinfo, 0, sizeof(lineinfo));
+  lineinfo.SizeOfStruct = sizeof(lineinfo);
+  DWORD displacement;
+  if (this->m_sw->pSGLFA(::GetCurrentProcess(), (DWORD64)addr, &displacement, &lineinfo)) {
+    if (buf != NULL && buflen > 0 && lineinfo.FileName != NULL) {
+      // We only return the file name, not the whole path.
+      char *p = lineinfo.FileName;
+      char *q = strrchr(lineinfo.FileName, '\\');
+      if (q) {
+        p = q + 1;
+      }
+      strncpy_s(buf, buflen - 1, p, buflen - 1);
+      buf[buflen - 1] = '\0';
+    }
+    if (line_no != 0) {
+      *line_no = lineinfo.LineNumber;
+    }
+    return true;
+  }
+#if 0
+    else{
+      DWORD error_code = GetLastError();
+      SPDLOG_CRITICAL("\tsymGetLineFromAddr64 returned error, error code: {:d}", error_code);
+    }
+#endif
+  return false;
+}
+
+bool StackWalker::_print_native_stack(std::ostream &st, const void *context, char *buf, int buf_size) {
+
+  CONTEXT ctx;
+  if (context != NULL) {
+    memcpy(&ctx, context, sizeof(ctx));
+  } else {
+    memset(&ctx, 0, sizeof(CONTEXT));
+    ctx.ContextFlags = USED_CONTEXT_FLAGS;
+    RtlCaptureContext(&ctx);
+  }
+
+  st << "-------------------------Native Stack--------------------------" << std::endl;
+
+  STACKFRAME stk;
+  memset(&stk, 0, sizeof(stk));
+  stk.AddrStack.Offset = ctx.Rsp;
+  stk.AddrStack.Mode = AddrModeFlat;
+  stk.AddrFrame.Offset = ctx.Rbp;
+  stk.AddrFrame.Mode = AddrModeFlat;
+  stk.AddrPC.Offset = ctx.Rip;
+  stk.AddrPC.Mode = AddrModeFlat;
+
+  int count = 0;
+  address lastpc = 0;
+
+  intptr_t StackPrintLimit = 128; // 手动定义
+
+  while (count++ < StackPrintLimit) {
+    intptr_t *sp = (intptr_t *)stk.AddrStack.Offset;
+    intptr_t *fp = (intptr_t *)stk.AddrFrame.Offset; // NOT necessarily the same as ctx.Rbp!
+    address pc = (address)stk.AddrPC.Offset;
+
+    if (pc != NULL) {
+      if (count == 2 && lastpc == pc) {
+        // Skip it -- StackWalk64() may return the same PC
+        // (but different SP) on the first try.
+      } else {
+        // Don't try to create a frame(sp, fp, pc) -- on WinX64, stk.AddrFrame
+        // may not contain what Java expects, and may cause the frame() constructor
+        // to crash. Let's just print out the symbolic address.
+        print_C_frame(st, buf, buf_size, pc);
+        // print source file and line, if available
+        char buf[128];
+        int line_no;
+        if (get_source_info(pc, buf, sizeof(buf), &line_no)) {
+          st << "  (" << buf << ":" << line_no << ")";
+          if (console_count >= 0) {
+            snprintf(buffer_console, STACKWALK_MAX_NAMELEN, "  (%s:%d)", buf, line_no);
+          }
+        }
+        if (console_count > 0) {
+          // std::cout << std::endl;
+          SPDLOG_CRITICAL("{}", buffer_console);
+          console_count--;
+        }
+        st << std::endl;
+      }
+      lastpc = pc;
+    }
+#if 0 
+      PVOID p = this->m_sw->pSFTA(GetCurrentProcess(), stk.AddrPC.Offset);
+      if (!p) {
+          // StackWalk64() can't handle this PC. Calling StackWalk64 again may cause crash.
+          DWORD error_code = GetLastError();
+          st<<"SymFunctionTableAccess64 returned error, error code: "<<error_code<<"\n";
+          //break;
+      }
+#endif
+
+    BOOL result = this->m_sw->pSW(IMAGE_FILE_MACHINE_AMD64, // __in      DWORD MachineType,
+                                  GetCurrentProcess(),      // __in      HANDLE hProcess,
+                                  GetCurrentThread(),       // __in      HANDLE hThread,
+                                  &stk,                     // __inout   LP STACKFRAME64 StackFrame,
+                                  &ctx,                     // __inout   PVOID ContextRecord,
+                                  NULL,                     // ReadMemoryRoutine
+                                  this->m_sw->pSFTA,        // FunctionTableAccessRoutine,
+                                  this->m_sw->pSGMB,        // GetModuleBaseRoutine
+                                  NULL                      // TranslateAddressRoutine
+    );
+
+    if (!result) {
+      break;
+    }
+  }
+  if (count > StackPrintLimit) {
+    st << "...<more frames>..." << std::endl;
+  }
+  st << std::endl;
+
+  return true;
+}
+
+void StackWalker::show_callstack(std::ostream &os, const void *context) {
+
+  if (m_modulesLoaded == FALSE)
+    this->LoadModules(); // ignore the result...
+
+  if (this->m_sw->m_hDbhHelp == NULL) {
+    SetLastError(ERROR_DLL_INIT_FAILED);
+    return;
+  }
+  // Windows version info
+  print_windows_version(os);
+
+  // CPU info
+  get_sys_info(os);
+
+  // environment variables info
+  print_environment_variables(os);
+
+  // Dynamic link library info
+  print_dll_info(&os);
+
+  // stack bound
+  print_stack_bound(os);
+
+  // stack info  ---------- _print_native_stack()可以用ShowCallstack()替换，输出stack信息没有区别（格式不同）
+  static char buf[2048];
+  _print_native_stack(os, context, buf, sizeof(buf));
+}
 
 #endif

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 //
 // Created by qlu on 2019-10-14.
 //
@@ -148,4 +150,5 @@ void Book::replace(const OrderInput &input) { order_inputs.insert_or_assign(inpu
 void Book::replace(const Order &order) { orders.insert_or_assign(order.order_id, order); }
 
 void Book::replace(const Trade &trade) { trades.insert_or_assign(trade.trade_id, trade); }
+
 } // namespace kungfu::wingchun::book

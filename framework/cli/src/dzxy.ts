@@ -5,14 +5,10 @@ import { triggerStartStep } from '@kungfu-trader/kungfu-js-api/kungfu/tradingDat
 import {
   getOrderTradeFilterKey,
   getProcessIdByKfLocation,
+  getTradingDataSortKey,
   setTimerPromiseTask,
-  switchKfLocation,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
-import { SwitchKfLocationPacketData } from './typings';
-import {
-  dealAppStates,
-  dealAssetsByHolderUID,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { dealAssetsByHolderUID } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { Pm2PacketMain } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
 import {
   dealOrder,
@@ -33,15 +29,6 @@ useAllExtComponentByPosition('dzxy');
 
 setTimerPromiseTask((): Promise<void> => {
   return new Promise((resolve) => {
-    process.send &&
-      process.send({
-        type: 'process:msg',
-        data: {
-          type: 'APP_STATES',
-          body: dealAppStates(watcher, watcher?.appStates || {}),
-        },
-      });
-
     console.log('Heartbeat watcher living', watcher?.isLive());
     process.send &&
       process.send({
@@ -54,18 +41,17 @@ setTimerPromiseTask((): Promise<void> => {
 
     resolve();
   });
-}, 3000);
+}, 2000);
 
 process.on('message', (packet: Pm2PacketMain) => {
-  const { type, topic, data } = packet;
+  const { type, topic } = packet;
   if (type !== 'process:msg') {
     return;
   }
 
+  console.log('dzxy get msg topic', topic);
+
   switch (topic) {
-    case 'SWITCH_KF_LOCATION':
-      swithKfLocationResolved(data as SwitchKfLocationPacketData);
-      break;
     case 'GET_ORDERS':
       resOrders(packet);
       break;
@@ -210,31 +196,6 @@ function resAsset(packet: Pm2PacketMain) {
     });
 }
 
-function swithKfLocationResolved(data: SwitchKfLocationPacketData) {
-  const { category, group, name, value, status, cwd, script } = data;
-  const kfConfig: KungfuApi.KfConfig | KungfuApi.KfDaemonLocation = {
-    category,
-    group,
-    name,
-    value: value,
-    location_uid: 0,
-    mode: 'live',
-    cwd,
-    script,
-  };
-
-  // task dealing logic
-  if (category === 'strategy' && group !== 'default') {
-    if (!value) {
-      return Promise.reject(new Error('Task cannot start in CLI'));
-    }
-  }
-
-  return switchKfLocation(watcher, kfConfig, !status).catch((err) => {
-    console.error(err.message);
-  });
-}
-
 function cancellAllOrders(packet: Pm2PacketMain) {
   if (!watcher) {
     throw new Error('Watcher is NULL');
@@ -271,10 +232,14 @@ async function exportTradingData(date, output_folder) {
     'all',
   );
 
-  const orders = tradingData.Order.sort('update_time');
-  const trades = tradingData.Trade.sort('trade_time');
-  const orderStat = tradingData.OrderStat.sort('insert_time');
-  const positions = tradingData.Trade.list();
+  const orderSortKey = getTradingDataSortKey('Order');
+  const tradeSortKey = getTradingDataSortKey('Trade');
+  const orderStatSortKey = getTradingDataSortKey('OrderStat');
+  const positionSortKey = getTradingDataSortKey('Position');
+  const orders = tradingData.Order.sort(orderSortKey);
+  const trades = tradingData.Trade.sort(tradeSortKey);
+  const orderStat = tradingData.OrderStat.sort(orderStatSortKey);
+  const positions = tradingData.Position.sort(positionSortKey);
 
   const ordersFilename = path.join(output_folder, `orders-${date}}`);
   const tradesFilename = path.join(output_folder, `trades-${date}`);

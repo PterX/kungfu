@@ -28,7 +28,7 @@ const { t } = VueI18n.global;
 const { success, error } = messagePrompt();
 
 const LOG_PATH = getLogPath();
-setHtmlTitle(`${t('kungfu')} - ${LOG_PATH}`);
+setHtmlTitle(LOG_PATH);
 
 const boardSize = ref<{ width: number; height: number }>({
   width: 0,
@@ -260,6 +260,7 @@ function resetLog() {
     user-select: text;
     padding-bottom: 4px;
     line-height: 1.5;
+    word-break: break-all;
 
     .error {
       color: lighten(@red2-base, 10%);

@@ -3,6 +3,8 @@
 Market data generator script.
 """
 
+#  SPDX-License-Identifier: Apache-2.0
+
 import argparse
 import csv
 import itertools
@@ -271,7 +273,7 @@ class OrderBookUtils(object):
             )
             data = struct.pack(
                 "<QI" + trade_update_fmt + order_book_level_fmt * 5 + valids_fmt,
-                *the_data
+                *the_data,
             )
             binfile.write(data)
 
@@ -746,7 +748,7 @@ def main(argv):
     mids = gen_book(args)
     colors = ["blue", "green", "red", "cyan", "magenta", "yellow", "black"]
 
-    for (i, series) in enumerate(mids):
+    for i, series in enumerate(mids):
         pyplot.plot(range(args.samples), numpy.array(series), colors[i % len(colors)])
     pyplot.show()
 

@@ -10,12 +10,14 @@ import Icon, {
   FileTextOutlined,
   SettingOutlined,
   DeleteOutlined,
+  BankOutlined,
 } from '@ant-design/icons-vue';
 
 import { categoryRegisterConfig, getColumns } from './config';
 import {
   useTableSearchKeyword,
   handleOpenLogview,
+  handleOpenJournalView,
   useDashboardBodySize,
   getInstrumentTypeColor,
   isInTdGroup,
@@ -23,7 +25,7 @@ import {
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import {
   useAddUpdateRemoveKfConfig,
-  handleSwitchProcessStatus,
+  handleSwitchProcessStatusGenerator,
   useSwitchAllConfig,
   useProcessStatusDetailData,
   useExtConfigsRelated,
@@ -54,6 +56,7 @@ import { storeToRefs } from 'pinia';
 
 const { t } = VueI18n.global;
 const { success, error } = messagePrompt();
+const handleSwitchProcessStatus = handleSwitchProcessStatusGenerator();
 const { dashboardBodyHeight, handleBodySizeChange } = useDashboardBodySize();
 const { globalSetting } = storeToRefs(useGlobalStore());
 const isShowAssetMargin = computed(() => {
@@ -85,9 +88,12 @@ const tdIdList = computed(() => {
     (item: KungfuApi.KfLocation): string => `${item.group}_${item.name}`,
   );
 });
-const { dealRowClassName, customRow } = useCurrentGlobalKfLocation(
-  window.watcher,
-);
+const {
+  dealRowClassName,
+  customRow,
+  currentGlobalKfLocation,
+  resetCurrentGlobalKfLocation,
+} = useCurrentGlobalKfLocation(window.watcher);
 
 const { processStatusData, getProcessStatusName } =
   useProcessStatusDetailData();
@@ -150,16 +156,56 @@ const { getAssetMarginsByKfConfig, getAssetMarginsByTdGroup } =
 const { handleConfirmAddUpdateKfConfig, handleRemoveKfConfig } =
   useAddUpdateRemoveKfConfig();
 
-const columns = computed(() =>
-  getColumns((dataIndex) => {
+const columns = computed(() => {
+  const sorter = (dataIndex) => {
     return (a: KungfuApi.KfConfig, b: KungfuApi.KfConfig) => {
       return (
-        (getAssetsByKfConfig(a)[dataIndex as keyof KungfuApi.Asset] || 0) -
-        (getAssetsByKfConfig(b)[dataIndex as keyof KungfuApi.Asset] || 0)
+        (+Number(getAssetsByKfConfig(a)[dataIndex as keyof KungfuApi.Asset]) ||
+          0) -
+        (+Number(getAssetsByKfConfig(b)[dataIndex as keyof KungfuApi.Asset]) ||
+          0)
       );
     };
-  }, isShowAssetMargin.value),
-);
+  };
+
+  const marginSorter = (dataIndex) => {
+    return (a: KungfuApi.KfConfig, b: KungfuApi.KfConfig) => {
+      return (
+        (+Number(
+          getAssetMarginsByKfConfig(a)[
+            dataIndex as keyof KungfuApi.AssetMargin
+          ],
+        ) || 0) -
+        (+Number(
+          getAssetMarginsByKfConfig(b)[
+            dataIndex as keyof KungfuApi.AssetMargin
+          ],
+        ) || 0)
+      );
+    };
+  };
+
+  if (currentGlobalKfLocation.value === null) {
+    return getColumns(
+      {
+        category: 'td',
+        group: '*',
+        name: '*',
+        mode: 'live',
+      },
+      sorter,
+      marginSorter,
+      isShowAssetMargin.value,
+    );
+  }
+
+  return getColumns(
+    currentGlobalKfLocation.value,
+    sorter,
+    marginSorter,
+    isShowAssetMargin.value,
+  );
+});
 
 const getPrefixByLocation = (kfLocation: KungfuApi.KfLocation) =>
   globalThis.HookKeeper.getHooks().prefix.trigger(kfLocation);
@@ -277,19 +323,27 @@ function handleRemoveTdGroup(item: KungfuApi.KfExtraLocation) {
     `${t('tdConfig.delete_amount_group', {
       group: item.name,
     })}, ${t('tdConfig.confirm_delete_group')}`,
-  )
-    .then(() => {
-      return removeTdGroup(item.name);
-    })
-    .then(() => {
-      return setTdGroups();
-    })
-    .then(() => {
-      success();
-    })
-    .catch((err) => {
-      error(err.message || t('operation_failed'));
-    });
+  ).then((flag) => {
+    if (!flag) return;
+    removeTdGroup(item.name)
+      .then(() => {
+        return setTdGroups();
+      })
+      .then(() => {
+        success();
+
+        if (
+          currentGlobalKfLocation.value &&
+          getProcessIdByKfLocation(item) ===
+            getProcessIdByKfLocation(currentGlobalKfLocation.value)
+        ) {
+          resetCurrentGlobalKfLocation();
+        }
+      })
+      .catch((err) => {
+        error(err.message || t('operation_failed'));
+      });
+  });
 }
 
 function handleRemoveTd(item: KungfuApi.KfConfig) {
@@ -393,7 +447,7 @@ function handleRemoveTd(item: KungfuApi.KfConfig) {
             "
           >
             <div class="td-name__warp">
-              <a-tag color="#FAAD14">账户组</a-tag>
+              <a-tag color="#FAAD14">{{ $t('tdConfig.account_group') }}</a-tag>
               <span>
                 {{ record.name }}
               </span>
@@ -539,6 +593,10 @@ function handleRemoveTd(item: KungfuApi.KfConfig) {
           </template>
           <template v-else-if="column.dataIndex === 'actions'">
             <div class="kf-actions__warp" v-if="record.category === 'td'">
+              <BankOutlined
+                style="font-size: 12px"
+                @click.stop="handleOpenJournalView(record)"
+              ></BankOutlined>
               <FileTextOutlined
                 style="font-size: 12px"
                 @click.stop="handleOpenLogview(record)"

@@ -1,64 +1,83 @@
 import { LedgerCategoryEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { DealTradingDataGetter } from '@kungfu-trader/kungfu-js-api/hooks/dealTradingDataHook';
+import { getTradingDataSortKey } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 const { t } = VueI18n.global;
 
-export const columns: AntTableColumns = [
+const buildSorter =
+  (dataIndex: keyof KungfuApi.Position) =>
+  (a: KungfuApi.Position, b: KungfuApi.Position) =>
+    (+Number(a[dataIndex]) || 0) - (+Number(b[dataIndex]) || 0);
+
+const buildStrSorter =
+  (dataIndex: keyof KungfuApi.Position) =>
+  (a: KungfuApi.Position, b: KungfuApi.Position) =>
+    a[dataIndex].toString().localeCompare(b[dataIndex].toString());
+
+export const getColumns = (): KfTradingDataTableHeaderConfig[] => [
   {
-    title: t('posGlobalConfig.instrument_id'),
+    type: 'string',
+    name: t('posGlobalConfig.instrument_id'),
     dataIndex: 'instrument_id',
-    align: 'left',
-    width: 120,
-    fixed: 'left',
-    minWidth: 120,
+    width: 260,
+    sorter: buildStrSorter('instrument_id'),
   },
   {
-    title: '',
+    name: '',
     dataIndex: 'direction',
-    width: 40,
-    align: 'left',
-    fixed: 'left',
-    minWidth: 40,
+    width: 50,
   },
   {
-    title: t('posGlobalConfig.yesterday_volume'),
+    type: 'number',
+    name: t('posGlobalConfig.yesterday_volume'),
     dataIndex: 'yesterday_volume',
-    align: 'right',
     width: 80,
+    sorter: buildSorter('yesterday_volume'),
   },
   {
-    title: t('posGlobalConfig.today_volume'),
+    type: 'number',
+    name: t('posGlobalConfig.today_volume'),
     dataIndex: 'today_volume',
-    align: 'right',
     width: 80,
+    sorter: (a: KungfuApi.Position, b: KungfuApi.Position) => {
+      const deltaA = a.volume - a.yesterday_volume;
+      const deltaB = b.volume - b.yesterday_volume;
+      return +Number(deltaA) - +Number(deltaB);
+    },
   },
   {
-    title: t('posGlobalConfig.sum_volume'),
+    type: 'number',
+    name: t('posGlobalConfig.sum_volume'),
     dataIndex: 'volume',
-    align: 'right',
     width: 80,
+    sorter: buildSorter('volume'),
   },
   {
-    title: t('posGlobalConfig.avg_open_price'),
+    type: 'number',
+    name: t('posGlobalConfig.avg_open_price'),
     dataIndex: 'avg_open_price',
-    align: 'right',
     width: 110,
+    sorter: buildSorter('avg_open_price'),
   },
   {
-    title: t('posGlobalConfig.last_price'),
+    type: 'number',
+    name: t('posGlobalConfig.last_price'),
     dataIndex: 'last_price',
-    align: 'right',
     width: 110,
+    sorter: buildSorter('last_price'),
   },
   {
-    title: t('posGlobalConfig.unrealized_pnl'),
+    type: 'number',
+    name: t('posGlobalConfig.unrealized_pnl'),
     dataIndex: 'unrealized_pnl',
-    align: 'right',
     width: 110,
-    fixed: 'right',
+    sorter: buildSorter('unrealized_pnl'),
   },
 ];
 
+const orderSortKey = getTradingDataSortKey('Order');
+const tradeSortKey = getTradingDataSortKey('Trade');
+const positionSortKey = getTradingDataSortKey('Position');
 export const categoryRegisterConfig: DealTradingDataGetter = {
   category: 'globalPos',
   commonData: {
@@ -71,7 +90,7 @@ export const categoryRegisterConfig: DealTradingDataGetter = {
       return orders
         .filter('exchange_id', group)
         .filter('instrument_id', name)
-        .sort('update_time');
+        .sort(orderSortKey);
     },
   },
   trade: {
@@ -80,7 +99,7 @@ export const categoryRegisterConfig: DealTradingDataGetter = {
       return trades
         .filter('exchange_id', group)
         .filter('instrument_id', name)
-        .sort('trade_time');
+        .sort(tradeSortKey);
     },
   },
   position: {
@@ -91,7 +110,7 @@ export const categoryRegisterConfig: DealTradingDataGetter = {
         .filter('ledger_category', LedgerCategoryEnum.td)
         .filter('exchange_id', group)
         .filter('instrument_id', name)
-        .sort('instrument_id')
+        .sort(positionSortKey)
         .reverse();
     },
   },

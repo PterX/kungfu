@@ -1,4 +1,5 @@
 import { Proc } from 'pm2';
+import { kfLogger } from '../utils/busiUtils';
 
 export type PreStartProcessMethod = (
   kfLocation: KungfuApi.DerivedKfLocation,
@@ -13,7 +14,7 @@ export class PreStartProcessHooks {
         get(target: Record<string, PreStartProcessMethod[]>, prop: string) {
           const locationPairs = prop.split('_');
           if (locationPairs.length != 3) {
-            console.warn(`Invalid hook key: ${prop}`);
+            kfLogger.warn(`Invalid hook key: ${prop}`);
             return [];
           }
 
@@ -55,7 +56,7 @@ export class PreStartProcessHooks {
           const methods = Reflect.get(target, prop);
           methods.push(value);
           Reflect.set(target, prop, methods);
-          console.log(`PreStartProcess hook ${prop} register success`);
+          kfLogger.info(`PreStartProcess hook ${prop} register success`);
           return true;
         },
       },

@@ -35,7 +35,7 @@ module.exports = {
                       loader: 'ts-loader',
                       options: {
                         configFile: path.resolve(
-                          process.cwd(),
+                          process.cwd().toString(),
                           'tsconfig.json',
                         ),
                         // 对应文件添加个.ts或.tsx后缀
@@ -102,7 +102,7 @@ module.exports = {
       plugins: [
         new ESLintPlugin({
           fix: true /* 自动帮助修复 */,
-          extensions: ['js', 'json', 'ts', 'json', 'css', 'less'],
+          extensions: ['js', 'json', 'ts', 'css', 'less'],
           exclude: 'node_modules',
           failOnWarning: !production,
         }),
@@ -115,7 +115,11 @@ module.exports = {
             ),
             'src',
           ),
-          '@kungfu-trader/kungfu-app': getAppDir(),
+          ...(getAppDir()
+            ? {
+                '@kungfu-trader/kungfu-app': getAppDir(),
+              }
+            : {}),
         },
 
         extensions: ['.js', '.ts', '.d.ts', '.vue', '.json', '.css', '.node'],

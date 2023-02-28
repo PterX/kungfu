@@ -1,3 +1,5 @@
+#  SPDX-License-Identifier: Apache-2.0
+
 import sys
 import os
 import builtins
@@ -175,6 +177,7 @@ def check_enableusersite():
 # To speedup startup time, we have copy of them.
 #
 # See https://bugs.python.org/issue29585
+
 
 # Copy of sysconfig._getuserbase()
 def _getuserbase():

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 //
 // Created by Keren Dong on 2019-06-10.
 //
@@ -25,25 +27,25 @@ namespace kungfu::yijinjing::os {
 
 uintptr_t load_mmap_buffer(const std::string &path, size_t size, bool is_writing, bool lazy) {
 #ifdef _WINDOWS
-  bool master = is_writing || !lazy;
-  HANDLE dumpFileDescriptor = CreateFileA(path.c_str(), (master) ? (GENERIC_READ | GENERIC_WRITE) : GENERIC_READ,
+  bool is_whip = is_writing || !lazy;
+  HANDLE dumpFileDescriptor = CreateFileA(path.c_str(), (is_whip) ? (GENERIC_READ | GENERIC_WRITE) : GENERIC_READ,
                                           FILE_SHARE_READ | FILE_SHARE_WRITE, NULL,
-                                          (master) ? OPEN_ALWAYS : OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+                                          (is_whip) ? OPEN_ALWAYS : OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 
   if (dumpFileDescriptor == INVALID_HANDLE_VALUE) {
     throw journal_error("unable to mmap for page " + path);
   }
 
   HANDLE fileMappingObject =
-      CreateFileMapping(dumpFileDescriptor, NULL, (master) ? PAGE_READWRITE : PAGE_READONLY, 0, size, NULL);
+      CreateFileMapping(dumpFileDescriptor, NULL, (is_whip) ? PAGE_READWRITE : PAGE_READONLY, 0, size, NULL);
 
   if (fileMappingObject == NULL) {
     int nRet = GetLastError();
-    SPDLOG_ERROR("{} CreateFileMapping Error = {}, {}\n", master ? "writer" : "reader", nRet, path);
+    SPDLOG_ERROR("{} CreateFileMapping Error = {}, {}\n", is_whip ? "writer" : "reader", nRet, path);
     throw journal_error("unable to mmap for page " + path);
   }
 
-  void *buffer = MapViewOfFile(fileMappingObject, (master) ? FILE_MAP_ALL_ACCESS : FILE_MAP_READ, 0, 0, size);
+  void *buffer = MapViewOfFile(fileMappingObject, (is_whip) ? FILE_MAP_ALL_ACCESS : FILE_MAP_READ, 0, 0, size);
 
   if (buffer == nullptr) {
     int nRet = GetLastError();
@@ -52,13 +54,13 @@ uintptr_t load_mmap_buffer(const std::string &path, size_t size, bool is_writing
   CloseHandle(fileMappingObject);
   CloseHandle(dumpFileDescriptor);
 #else
-  bool master = is_writing || !lazy;
-  int fd = open(path.c_str(), (master ? O_RDWR : O_RDONLY) | O_CREAT, (mode_t)0600);
+  bool is_whip = is_writing || !lazy;
+  int fd = open(path.c_str(), (is_whip ? O_RDWR : O_RDONLY) | O_CREAT, (mode_t)0600);
   if (fd < 0) {
     throw journal_error("failed to open file for page " + path);
   }
 
-  if (master) {
+  if (is_whip) {
     if (lseek(fd, size - 1, SEEK_SET) == -1) {
       close(fd);
       throw journal_error("failed to stretch for page " + path);
@@ -76,7 +78,7 @@ uintptr_t load_mmap_buffer(const std::string &path, size_t size, bool is_writing
    * races where it might get reassigned to something else if you first released the old resource then attempted to
    * regain it for the new resource.
    */
-  void *buffer = mmap(0, size, master ? (PROT_READ | PROT_WRITE) : PROT_READ, MAP_SHARED, fd, 0);
+  void *buffer = mmap(0, size, is_whip ? (PROT_READ | PROT_WRITE) : PROT_READ, MAP_SHARED, fd, 0);
 
   if (buffer == MAP_FAILED) {
     close(fd);
@@ -93,6 +95,18 @@ uintptr_t load_mmap_buffer(const std::string &path, size_t size, bool is_writing
 #endif // _WINDOWS
 
   return reinterpret_cast<uintptr_t>(buffer);
+}
+
+bool flush_mmap_buffer(uintptr_t address, size_t size, bool lazy) {
+  void *buffer = reinterpret_cast<void *>(address);
+#ifdef _WINDOWS
+  FlushViewOfFile(buffer, 0);
+#else
+  if (msync(buffer, size, MS_SYNC) != 0) {
+    return false;
+  }
+#endif
+  return true;
 }
 
 bool release_mmap_buffer(uintptr_t address, size_t size, bool lazy) {

@@ -7,7 +7,6 @@ const { spawnSync } = require('child_process');
 const { glob } = require('glob');
 const { promisify } = require('util');
 const { finished } = require('stream');
-const { shell } = require('@kungfu-trader/kungfu-core');
 const {
   customResolve,
   getKfcPath,
@@ -15,16 +14,21 @@ const {
   getCmakeCmdArgs,
   getCmakeNextCmdArgs,
   kfcName,
+  dealPath,
 } = require('../utils');
+const { shell, prebuilt } = require('@kungfu-trader/kungfu-core');
+const versioning = require('@mapbox/node-pre-gyp/lib/util/versioning');
+const project = require('./project');
 
 const pypackages = '__pypackages__';
 const kungfulibs = '__kungfulibs__';
-const kungfuLibDirPattern = path.join(kungfulibs, '*', '*');
+const kungfuLibDirPattern = `${kungfulibs}/*/*`;
+const cwd = process.cwd().toString();
 
 const spawnOptsShell = {
   shell: true,
   windowsHide: true,
-  cwd: fse.realpathSync(path.resolve(process.cwd())),
+  cwd: fse.realpathSync(path.join(cwd)),
 };
 
 const spawnOptsInherit = {
@@ -88,20 +92,22 @@ function generateCMakeFiles(projectName, kungfuBuild) {
     ? cppLinksOpt
     : cppLinksOpt[detectPlatform()];
 
-  const buildDir = path.join(process.cwd(), 'build');
+  const cwd = process.cwd().toString();
+  const buildDir = path.join(cwd, 'build');
   fse.ensureDirSync(buildDir);
+  const kfcDir = getKfcPath();
 
   ejs.renderFile(
     customResolve('@kungfu-trader/kungfu-sdk/templates/cmake/kungfu.cmake'),
     {
-      kfcDir: getKfcPath(),
-      kfcExec: path.join(getKfcPath(), kfcName).replace(/\\/g, '/'),
-      includes: glob.sync(path.join(kungfuLibDirPattern, 'include')),
-      links: glob.sync(path.join(kungfuLibDirPattern, 'lib')),
+      kfcDir: dealPath(kfcDir),
+      kfcExec: dealPath(path.join(kfcDir, kfcName)),
+      includes: glob.sync(`${kungfuLibDirPattern}/include`),
+      links: glob.sync(`${kungfuLibDirPattern}/lib`),
       sources: cppSources,
       extraSource: extraSources[kungfuBuild.cpp.target],
       makeTarget: targetMakers[kungfuBuild.cpp.target],
-      targetLinks: cppLinks.join(' '),
+      targetLinks: (cppLinks || ['']).join(' '),
     },
     (err, str) => {
       logError(err) ||
@@ -119,8 +125,10 @@ function generateCMakeFiles(projectName, kungfuBuild) {
       projectName: projectName,
     },
     (err, str) => {
-      logError(err) ||
-        fse.writeFileSync(path.join(process.cwd(), 'CMakeLists.txt'), str);
+      if (err) {
+        logError(err);
+      }
+      fse.writeFileSync(path.join(cwd, 'CMakeLists.txt'), str);
     },
   );
 }
@@ -178,7 +186,7 @@ exports.installSingleLib = async (
   platform = detectPlatform(),
   arch = os.arch(),
 ) => {
-  const localLibDir = path.resolve(kungfulibs, libName, libVersion);
+  const localLibDir = path.join(kungfulibs, libName, libVersion);
   if (fse.existsSync(localLibDir)) {
     console.log(
       `-- Lib ${libName}@${libVersion} exists at ${localLibDir}, skip downloading`,
@@ -292,8 +300,8 @@ exports.installBatch = async (
 };
 
 exports.clean = (keepLibs = true) => {
-  fse.removeSync(path.join(process.cwd(), 'build'));
-  fse.removeSync(path.join(process.cwd(), 'dist'));
+  fse.removeSync(path.join(process.cwd().toString(), 'build'));
+  fse.removeSync(path.join(process.cwd().toString(), 'dist'));
   if (!keepLibs) {
     const rm = (p) => fse.existsSync(p) && fse.removeSync(p);
     rm(pypackages);
@@ -312,7 +320,8 @@ exports.compile = () => {
   const packageJson = shell.getPackageJson();
   const extensionName = packageJson.kungfuConfig.key;
   const outputDir = path.join('dist', extensionName);
-  const buildTargetDir = path.join('build', 'target');
+  const buildTargetDir = path.join('build/target');
+  const buildTargetDirPattern = buildTargetDir.replace(/\\/g, '/');
 
   fse.ensureDirSync(outputDir);
 
@@ -334,19 +343,28 @@ exports.compile = () => {
   }
 
   if (hasSourceFor(packageJson, 'cpp')) {
-    const { cmd, args } = getCmakeCmdArgs();
-    spawnExec(cmd, [...args]);
+    const cmakeCmdArgs = getCmakeCmdArgs();
+    if (cmakeCmdArgs) {
+      console.log(`$ ${cmakeCmdArgs.cmd} ${cmakeCmdArgs.args.join(' ')} `);
+      const { cmd, args } = cmakeCmdArgs;
+      spawnExec(cmd, [...args]);
+    }
 
     const nextCmdArgs = getCmakeNextCmdArgs();
     if (nextCmdArgs) {
+      console.log(`$ ${nextCmdArgs.cmd} ${nextCmdArgs.args.join(' ')}`);
       const { cmd, args } = nextCmdArgs;
       spawnExec(cmd, [...args]);
     }
   }
 
   const cwd = process.cwd().toString(); // 这一步避免在打包中process.cwd()被替换
-  const packageJsonPath = path.resolve(cwd, 'package.json');
+  const packageJsonPath = path.join(cwd, 'package.json');
+  const readmePath = path.join(cwd, 'README.md');
   fse.copyFile(packageJsonPath, path.join(outputDir, 'package.json'));
+  if (fse.existsSync(readmePath)) {
+    fse.copyFile(readmePath, path.join(outputDir, 'README.md'));
+  }
 
   const copyOutput = (pattern) => {
     glob.sync(pattern).forEach((p) => {
@@ -355,11 +373,11 @@ exports.compile = () => {
   };
 
   if (fse.existsSync(buildTargetDir)) {
-    copyOutput(path.join(buildTargetDir, '*'));
+    copyOutput([buildTargetDirPattern, '*'].join('/'));
   }
 
   if (fse.existsSync(kungfulibs)) {
-    copyOutput(path.join(kungfuLibDirPattern, 'lib', '*'));
+    copyOutput([kungfuLibDirPattern, 'lib', '*'].join('/'));
   }
 
   if (fse.existsSync(pypackages)) {
@@ -371,12 +389,42 @@ exports.format = () => {
   const packageJson = shell.getPackageJson();
   const srcArgv = ['src'];
   if (hasSourceFor(packageJson, 'cpp')) {
-    require('@kungfu-trader/kungfu-core/.gyp/run-format-cpp')(srcArgv);
+    require('@kungfu-trader/kungfu-core/.gyp/run-format-cpp').main(srcArgv);
   }
   if (hasSourceFor(packageJson, 'python')) {
-    require('@kungfu-trader/kungfu-core/.gyp/run-format-python')(srcArgv);
+    require('@kungfu-trader/kungfu-core/.gyp/run-format-python').main(srcArgv);
   }
   if (packageJson.kungfuConfig && packageJson.kungfuConfig.ui_config) {
-    require('@kungfu-trader/kungfu-core/.gyp/run-format-js')(srcArgv);
+    require('@kungfu-trader/kungfu-core/.gyp/run-format-js').main(srcArgv);
   }
+};
+
+function updatePackageJson(packageJson) {
+  const config = packageJson.kungfuConfig || { key: 'KungfuTraderStrategy' };
+  packageJson.binary = {
+    module_name: config.key,
+    module_path: `dist/${config.key}`,
+    host: 'localhost',
+  };
+  packageJson.main = 'package.json';
+  return packageJson;
+}
+
+exports.package = () => {
+  const packageJson = shell.getPackageJson();
+
+  if (packageJson.host) {
+    project.package();
+    return;
+  }
+
+  const evaluate = versioning.evaluate;
+
+  versioning.evaluate = (packageJson, options, napiBuildVersion) => {
+    updatePackageJson(packageJson);
+    return evaluate(packageJson, options, napiBuildVersion);
+  };
+
+  project.makeBinary(updatePackageJson(packageJson));
+  prebuilt('package');
 };

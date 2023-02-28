@@ -4,6 +4,9 @@ declare const __git_commit_version: string;
 declare const __build_timestamp: number;
 declare const __resources: string;
 
+type AnyFunction = (...args: unknown[]) => unknown;
+type AnyPromiseFunction = (...args: unknown[]) => Promise<unknown>;
+
 declare namespace KungfuApi {
   import {
     BrokerStateStatusEnum,
@@ -16,7 +19,6 @@ declare namespace KungfuApi {
     SideEnum,
     OffsetEnum,
     HedgeFlagEnum,
-    UnderweightEnum,
     LedgerCategoryEnum,
     VolumeConditionEnum,
     TimeConditionEnum,
@@ -31,8 +33,14 @@ declare namespace KungfuApi {
     OrderActionFlagEnum,
     OrderInputKeyEnum,
     KfExtConfigTypes,
+    FrameMsgTypeEnum,
+    BasketVolumeTypeEnum,
+    PriceLevelEnum,
+    BasketOrderStatusEnum,
+    SessionStatusEnum,
   } from './enums';
   import { Dayjs } from 'dayjs';
+  import { Row } from 'fast-csv';
 
   export type AntInKungfuColorTypes =
     | 'default'
@@ -59,6 +67,12 @@ declare namespace KungfuApi {
 
   type AnyEnumKeysAsStrings<TEnumType> = keyof TEnumType;
 
+  type FunctionOrData<U extends 'func' | 'data', T> = U extends 'func'
+    ? () => T
+    : U extends 'data'
+    ? T
+    : never;
+
   export type KfConfigItemSupportedTypes =
     | 'str'
     | 'password'
@@ -74,20 +88,29 @@ declare namespace KungfuApi {
     | 'int'
     | 'float'
     | 'percent'
+    | 'error'
     | 'side' // select - number
     | 'offset' // select - number
     | 'direction' // select - number
     | 'priceType' // select - number
+    | 'priceLevel' // select - number
     | 'hedgeFlag' // select - number
     | 'volumeCondition' // select - number
     | 'timeCondition' // select - number
     | 'commissionMode' // select - number
     | 'instrumentType' // select - number
     | 'td'
+    | 'tds'
     | 'md'
+    | 'operator'
+    | 'md&operator'
     | 'strategy'
+    | 'basket'
     | 'instrument'
-    | 'instruments';
+    | 'instruments'
+    | 'instrumentsCsv'
+    | 'csvTable'
+    | 'basket';
 
   export type KfConfigValue =
     | string
@@ -103,6 +126,25 @@ declare namespace KungfuApi {
   export interface KfSelectOption {
     value: string | number;
     label: string | number;
+    type?: 'tag' | 'text';
+    color?: AntInKungfuColorTypes;
+  }
+
+  export interface KfConfigItemHeader {
+    title: string;
+    description: string;
+    type?: 'str' | 'num' | 'precent' | 'bool';
+    required?: boolean;
+    default?: KfConfigValue;
+  }
+
+  export interface KfConfigItemTemplate {
+    name: string;
+    data: Array<Row>;
+  }
+
+  export interface KfConfigItemSearch {
+    keys?: Array<string>;
   }
 
   export interface KfConfigItem {
@@ -111,13 +153,21 @@ declare namespace KungfuApi {
     type: KfConfigItemSupportedTypes;
     columns?: KfConfigItem[];
     errMsg?: string;
+    tip?: string;
     default?: KfConfigValue;
     required?: boolean;
+    max?: number;
+    min?: number;
     disabled?: boolean;
     primary?: boolean;
     options?: KfSelectOption[];
     data?: KfSelectOption[];
-    tip?: string;
+    headers?: KfConfigItemHeader[];
+    template?: KfConfigItemTemplate[];
+    search?: KfConfigItemSearch;
+
+    // ---- some ui releated ----;
+    noDivider?: boolean;
   }
 
   export interface KfExhibitConfigItem {
@@ -168,6 +218,11 @@ declare namespace KungfuApi {
         settings: KfConfigItem[];
       }
     >;
+    language: {
+      'zh-CN': Record<string, string>;
+      'en-US': Record<string, string>;
+      [langName: string]: Record<string, string>;
+    };
   }
 
   interface KfExhibitConfig {
@@ -227,6 +282,12 @@ declare namespace KungfuApi {
     }
   >;
 
+  export type KfExtLanguages = {
+    'zh-CN': Record<string, Record<string, string>>;
+    'en-US': Record<string, Record<string, string>>;
+    [langName: string]: Record<string, Record<string, string>>;
+  };
+
   export interface SetKfConfigPayload {
     type: KungfuApi.ModalChangeType;
     title: string;
@@ -234,7 +295,7 @@ declare namespace KungfuApi {
     initValue?: Record<string, KfConfigValue>;
   }
 
-  export type ModalChangeType = 'add' | 'update';
+  export type ModalChangeType = 'add' | 'update' | 'custom';
 
   export interface MakeOrderInput {
     instrument_id: string;
@@ -247,6 +308,7 @@ declare namespace KungfuApi {
     offset: OffsetEnum;
     hedge_flag: HedgeFlagEnum;
     is_swap: boolean;
+    parent_id: bigint;
   }
 
   export interface KfLogData {
@@ -263,40 +325,50 @@ declare namespace KungfuApi {
   }
 
   export interface ConfigStore {
-    getAllConfig(): Record<string, KfConfigOrigin>;
+    getAllConfig(): Record<string, KfConfigOrigin> | false;
     setConfig(
       category: string,
       group: string,
       name: string,
       mode: string,
       configValue: string,
-    ): void;
+    ): boolean;
     removeConfig(
       category: string,
       group: string,
       name: string,
       mode: string,
-    ): void;
+    ): boolean;
     getConfig(
       category: string,
       group: string,
       name: string,
       mode: string,
-    ): KungfuApi.KfConfig;
+    ): KungfuApi.KfConfig | false;
   }
 
   export interface HistoryStore {
-    selectPeriod(from: string, to: string): TradingData;
+    selectPeriod(from: string, to: string): TradingData | false;
   }
 
   export interface CommissionStore {
-    getAllCommission(): Commission[];
+    getAllCommission(): Commission[] | false;
     setAllCommission(commissions: Commission[]): boolean;
   }
 
   export interface RiskSettingStore {
-    getAllRiskSetting(): Record<string, RiskSettingOrigin>;
+    getAllRiskSetting(): Record<string, RiskSettingOrigin> | false;
     setAllRiskSetting(riskSettings: RiskSettingOrigin[]): boolean;
+  }
+
+  export interface BasketStore {
+    getAllBasket(): Basket[] | false;
+    setAllBasket(baskets: Basket[]): boolean;
+  }
+
+  export interface BasketInstrumentStore {
+    getAllBasketInstrument(): BasketInstrument[] | false;
+    setAllBasketInstrument(basketInstruments: BasketInstrument[]): boolean;
   }
 
   export interface DataTable<T> {
@@ -351,7 +423,6 @@ declare namespace KungfuApi {
     margin_market_value: number; //融资买入证券市值
     margin_interest: number; //融资融券利息
     settlement: number; //融资融券清算资金
-    commission_ratio: number; //手续费费率
 
     credit: number; //信贷额度
     collateral_ratio: number; //担保比例
@@ -379,6 +450,8 @@ declare namespace KungfuApi {
     long_margin_ratio: number; //多头保证金率
     short_margin_ratio: number; //空头保证金率
 
+    exchange_rate: number; // 利率
+
     uid_key: string;
     ukey: string;
   }
@@ -386,6 +459,7 @@ declare namespace KungfuApi {
   export interface Order {
     order_id: bigint; //订单ID
     external_id: bigint; //外部委托ID
+    parent_id: bigint; //母单号
     insert_time: bigint; //订单写入时间
     update_time: bigint; //订单更新时间
 
@@ -433,10 +507,12 @@ declare namespace KungfuApi {
     update_time_resolved: string;
     latency_system: string;
     latency_network: string;
+    avg_price: number;
   }
 
   export interface OrderInput {
     order_id: bigint; //订单ID
+    parent_id: bigint; //母单号
 
     instrument_id: string; //合约代码
     exchange_id: string; //交易所代码
@@ -465,16 +541,46 @@ declare namespace KungfuApi {
 
   export interface BlockMessage {
     opponent_seat: number; // 对方手席位号
-    opponent_account: string; // 对方手账户
     match_number: bigint; // 成交约定号
-    value:
-      | {
-          linkman: string; // 联系人
-          contact_way: string; // 联系方式
-          underweight_type: UnderweightEnum; // 减持类型
-        }
-      | string;
+    is_specific: boolean; // 是否受限股份
     insert_time: bigint;
+  }
+
+  export interface BasketOrderInput {
+    side: SideEnum;
+    price_type: PriceTypeEnum;
+    price_level: PriceLevelEnum;
+    price_offset: number;
+    volume: bigint;
+  }
+
+  export interface BasketOrder {
+    order_id: bigint; //订单ID
+    parent_id: bigint; //母单号
+    insert_time: bigint; //订单写入时间
+    update_time: bigint; //订单更新时间
+    side: SideEnum;
+    price_type: PriceTypeEnum;
+    price_level: PriceLevelEnum;
+    price_offset: number; // 价格偏移
+    volume: bigint;
+    volume_left: bigint;
+    status: BasketOrderStatusEnum;
+
+    source_id: number; // 下单方
+    dest_id: number;
+  }
+
+  export interface BasketOrderResolved extends BasketOrder {
+    basket_order_location: KfExtraLocation;
+    primary_time_resolved: string;
+    source_uname: string;
+    source_resolved_data: KfTradeValueCommonData;
+    dest_uname: string;
+    dest_resolved_data: KfTradeValueCommonData;
+    status_uname: string;
+    status_color: AntInKungfuColorTypes;
+    progress: number;
   }
 
   export interface OrderStat {
@@ -484,6 +590,9 @@ declare namespace KungfuApi {
     insert_time: bigint;
     ack_time: bigint;
     trade_time: bigint;
+    total_price: number;
+    total_volume: number;
+    avg_price: number;
 
     source: number;
     dest: number;
@@ -535,6 +644,7 @@ declare namespace KungfuApi {
   }
 
   export interface PositionResolved extends Position {
+    closable_volume: bigint;
     account_id_resolved: string;
     instrument_id_resolved: string;
   }
@@ -568,6 +678,7 @@ declare namespace KungfuApi {
     ask_price: number[]; //申卖价
     bid_volume: bigint[]; //申买量
     ask_volume: bigint[]; //申卖量
+    trading_phase_code: string; //标的状态
   }
 
   export interface Trade {
@@ -619,6 +730,9 @@ declare namespace KungfuApi {
     Position: DataTable<Position>;
     Quote: DataTable<Quote>;
     Trade: DataTable<Trade>;
+    Basket: DataTable<Basket>;
+    BasketInstrument: DataTable<BasketInstrument>;
+    BasketOrder: DataTable<BasketOrder>;
   }
 
   export type TradingDataItem =
@@ -671,6 +785,45 @@ declare namespace KungfuApi {
     min_commission: number;
   }
 
+  export interface Basket {
+    id: number;
+    name: string;
+    volume_type: BasketVolumeTypeEnum;
+    total_amount: bigint;
+  }
+
+  export interface BasketResolved extends Basket {
+    basket_location: KfExtraLocation;
+    location_id: string;
+    volume_type_resolved: string;
+  }
+
+  export interface BasketInstrument {
+    basket_uid: number;
+    instrument_id: string;
+    exchange_id: string;
+    instrument_type: InstrumentTypeEnum;
+    direction: DirectionEnum;
+    volume: bigint; // 数量
+    rate: number; // 比例
+  }
+
+  export interface BasketInstrumentResolved
+    extends BasketInstrument,
+      InstrumentResolved {
+    basketInstrumentName: string;
+    basketInstrumentId: string;
+  }
+
+  export interface BasketInstrumentForOrder extends BasketInstrumentResolved {
+    isNoQuote: boolean;
+    sideResolved: SideEnum;
+    offsetResolved: OffsetEnum;
+    volumeResolved: number; // 最终下单量
+    priceResolved: number; // 最终下单价
+    strategyLocation?: KfLocation;
+  }
+
   export interface RiskSetting {
     max_order_volume: number;
     max_daily_volume: number;
@@ -718,11 +871,15 @@ declare namespace KungfuApi {
     getLocationUID(kfLocation: KfLocation | KfConfig): string;
     getLocation(hashedKey: string | number): KfLocation;
     hasLocation(hashedKey: string | number): KfLocation;
+    getInstrumentType(
+      exchangeId: string,
+      instrumentId: string,
+    ): InstrumentTypeEnum;
     requestMarketData(
       kfLocation: KfLocation,
       exchangeId: string,
       instrumentId: string,
-    ): void;
+    ): boolean;
     cancelOrder(
       orderAction: OrderAction,
       tdLocation: KfLocation,
@@ -737,7 +894,73 @@ declare namespace KungfuApi {
       blockMessage: BlockMessage,
       tdLocation: KfLocation,
     ): bigint;
+    issueBasketOrder(basketOrder: BasketOrder, tdLocation: KfLocation): bigint;
+    quit(): void;
     now(): bigint;
+  }
+
+  export interface Session {
+    index: number;
+    location_uid: number;
+    category: KfCategoryEnum;
+    group: string;
+    name: string;
+    mode: KfModeEnum;
+    value: string;
+    begin_time: bigint;
+    end_time: bigint;
+    update_time: bigint;
+    data_size: bigint;
+    frame_count: number;
+  }
+
+  export interface SessionResolved extends Session {
+    session_id_resolved: string;
+    begin_time_resolved: string;
+    end_time_resolved: string;
+    status: SessionStatusEnum;
+  }
+
+  export interface Frame<T extends 'func' | 'data' = 'data'> {
+    id: number;
+    dataLength: FunctionOrData<T, number>;
+    genTime: FunctionOrData<T, bigint>;
+    triggerTime: FunctionOrData<T, bigint>;
+    msgType: FunctionOrData<T, FrameMsgTypeEnum>; // to enum
+    stringMsgType: FunctionOrData<T, number>; // to enum
+    source: FunctionOrData<T, number>;
+    dest: FunctionOrData<T, number>;
+    data: FunctionOrData<T, string>;
+    sourceName: FunctionOrData<T, string>;
+    destName: FunctionOrData<T, string>;
+  }
+
+  export interface FrameResolved extends Frame {
+    genTimeResolved: string;
+    triggerTimeResolved: string;
+    msgTypeResolved: KfTradeValueCommonData;
+    destResolved: string;
+    sourceResolved: string;
+    sourceToDest: string;
+    dataResolved: unknown[];
+  }
+
+  export interface AssembleReader {
+    run: (cb: (frame: Frame<'func'>) => void, num: number) => void;
+    next: () => Frame<'func'> | null;
+    currentFrame: () => Frame<'func'>;
+  }
+
+  export interface Assemble {
+    getReader(
+      arg: number,
+      startTime?: bigint,
+      endTime?: bigint,
+    ): AssembleReader;
+    getSessions(kfLocation?: KfLocation): Session[] | undefined;
+    seekToTime(): void;
+    next(): void;
+    dataAvailable(): boolean;
   }
 
   export interface Longfist {
@@ -753,33 +976,33 @@ declare namespace KungfuApi {
     Trade(): Trade;
     Commission(): Commission;
     RiskSetting(): RiskSettingOrigin;
+    Basket(): Basket;
+    BasketInstrument(): BasketInstrument;
+    BasketOrder(): BasketOrder;
   }
 
   export interface Kungfu {
     ConfigStore(kfHome: string): ConfigStore;
     RiskSettingStore(kfHome: string): RiskSettingStore;
     CommissionStore(kfHome: string): CommissionStore;
+    BasketStore(kfHome: string): BasketStore;
+    BasketInstrumentStore(kfHome: string): BasketInstrumentStore;
     History(kfHome: string): HistoryStore;
     longfist: Longfist;
+    Assemble(kfHome: string[]): Assemble;
     watcher(
       kfHome: string,
       hashedId: string,
       bypassRestore = false,
       bypassAccounting = false,
       bypassTradingData = false,
+      refreshTradingDataBeforeSync = false,
+      millisecondsSleepAfterStep = 200,
     ): Watcher | null;
     shutdown(): void;
     formatStringToHashHex(id: string): string;
     formatTime(nano: bigint, format: string): string;
     hash(str: string): string;
-  }
-
-  export interface InstrumentForSub {
-    uidKey: string;
-    exchangeId: string;
-    instrumentId: string;
-    instrumentType: InstrumentTypeEnum;
-    mdLocation: KfLocation;
   }
 
   export interface InstrumentResolved {
@@ -789,6 +1012,16 @@ declare namespace KungfuApi {
     exchangeId: string;
     id: string;
     ukey: string;
+  }
+
+  export interface InstrumentForSub extends InstrumentResolved {
+    uidKey: string;
+  }
+
+  export interface InstrumentForAccounting extends InstrumentResolved {
+    price: number;
+    volume: number;
+    direction: DirectionEnum;
   }
 
   export interface KfLocationBase {
@@ -831,7 +1064,7 @@ declare namespace KungfuApi {
   export type DerivedKfLocation =
     | KfLocation
     | KfExtraLocation
-    | kfConfig
+    | KfConfig
     | KfDaemonLocation;
 
   export type ScheduleTaskMode = 'restart' | 'start' | 'stop';
@@ -860,7 +1093,7 @@ declare namespace Code {
   import { SpaceTabSettingEnum, SpaceSizeSettingEnum } from './enums';
   export interface Strategy {
     strategy_id: string;
-    strategy_path: string;
+    file_path: string;
     add_time: number;
   }
 
@@ -976,6 +1209,11 @@ declare namespace KfEvent {
     strategys: KungfuApi.KfConfig[];
   }
 
+  export interface TriggerUpdateOperator {
+    tag: 'update:operator';
+    strategys: KungfuApi.KfConfig[];
+  }
+
   export interface TriggerUpdateExtConfigs {
     tag: 'update:extConfigs';
     extConfigs: KungfuApi.KfExtConfigs;
@@ -1026,6 +1264,7 @@ declare namespace KfEvent {
     | TriggerUpdateRiskSetting
     | TriggerUpdateMd
     | TriggerUpdateStrategy
+    | TriggerUpdateOperator
     | TriggerUpdateExtConfigs
     | TriggerAddBoard
     | ExportTradingDataEvent

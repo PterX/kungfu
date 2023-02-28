@@ -6,7 +6,7 @@ import {
 } from '@kungfu-trader/kungfu-js-api/config/globalSettings';
 import {
   useModalVisible,
-  useTableSearchKeyword,
+  useWritableTableSearchKeyword,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import { computed, onMounted, onUnmounted, reactive, ref } from 'vue';
 import KfConfigSettingsForm from './KfConfigSettingsForm.vue';
@@ -28,6 +28,7 @@ import { useExtConfigsRelated } from '../../assets/methods/actionsUtils';
 import globalBus from '@kungfu-trader/kungfu-js-api/utils/globalBus';
 import { useGlobalStore } from '../../pages/index/store/global';
 import { storeToRefs } from 'pinia';
+import { useLanguage } from '@kungfu-trader/kungfu-js-api/language';
 
 const props = withDefaults(
   defineProps<{
@@ -46,6 +47,7 @@ defineEmits<{
 const store = useGlobalStore();
 const { globalSetting } = storeToRefs(store);
 const { uiExtConfigs } = useExtConfigsRelated();
+const { isLanguageKeyAvailable } = useLanguage();
 
 const globalSettingComponentConfigs = computed(() => {
   return Object.keys(uiExtConfigs.value)
@@ -66,7 +68,9 @@ const globalSettingsFromStates = reactive(
 const { modalVisible, closeModal } = useModalVisible(props.visible);
 const commissions = ref<KungfuApi.Commission[]>([]);
 const { searchKeyword, tableData } =
-  useTableSearchKeyword<KungfuApi.Commission>(commissions, ['product_id']);
+  useWritableTableSearchKeyword<KungfuApi.Commission>(commissions, [
+    'product_id',
+  ]);
 
 onMounted(() => {
   globalBus.next({
@@ -176,18 +180,22 @@ function handleAddCommission() {
                   {{ $t('globalSettingConfig.add_comission') }}
                 </a-button>
               </div>
-              <div class="commission-setting-row" v-for="item in tableData">
+              <div
+                v-for="(item, index) in tableData"
+                :key="index"
+                class="commission-setting-row"
+              >
                 <div class="commission-setting-item">
                   <a-input
                     class="value product-id"
-                    v-model:value="item.product_id"
+                    v-model:value="item.data.product_id"
                     :placeholder="$t('globalSettingConfig.varieties')"
                   ></a-input>
                 </div>
                 <div class="commission-setting-item">
                   <a-select
                     class="value exchange-id"
-                    v-model:value="item.exchange_id"
+                    v-model:value="item.data.exchange_id"
                     :placeholder="$t('globalSettingConfig.exchange_id')"
                   >
                     <a-select-option
@@ -200,7 +208,7 @@ function handleAddCommission() {
                   </a-select>
                 </div>
                 <div class="commission-setting-item">
-                  <a-select class="value" v-model:value="item.mode">
+                  <a-select class="value" v-model:value="item.data.mode">
                     <a-select-option
                       v-for="key in Object.keys(CommissionMode)"
                       :key="key"
@@ -218,7 +226,7 @@ function handleAddCommission() {
                     class="value"
                     :precision="8"
                     step="0.00000001"
-                    v-model:value="item.open_ratio"
+                    v-model:value="item.data.open_ratio"
                   ></a-input-number>
                 </div>
                 <div class="commission-setting-item">
@@ -229,7 +237,7 @@ function handleAddCommission() {
                     class="value"
                     :precision="8"
                     step="0.00000001"
-                    v-model:value="item.close_ratio"
+                    v-model:value="item.data.close_ratio"
                   ></a-input-number>
                 </div>
                 <div class="commission-setting-item">
@@ -240,7 +248,7 @@ function handleAddCommission() {
                     class="value"
                     :precision="8"
                     step="0.00000001"
-                    v-model:value="item.close_today_ratio"
+                    v-model:value="item.data.close_today_ratio"
                   ></a-input-number>
                 </div>
                 <div class="commission-setting-item">
@@ -249,14 +257,14 @@ function handleAddCommission() {
                     class="value"
                     :precision="8"
                     step="0.00000001"
-                    v-model:value="item.min_commission"
+                    v-model:value="item.data.min_commission"
                   ></a-input-number>
                 </div>
                 <div class="commission-setting-item">
                   <DeleteOutlined
                     class="kf-hover"
                     style="font-size: 14px"
-                    @click="handleRemoveCommission(item)"
+                    @click="handleRemoveCommission(item.data)"
                   />
                 </div>
               </div>
@@ -264,7 +272,11 @@ function handleAddCommission() {
             <a-tab-pane
               v-for="config in globalSettingComponentConfigs"
               :key="config.key"
-              :tab="config.name"
+              :tab="
+                isLanguageKeyAvailable(config.name)
+                  ? $t(config.name)
+                  : config.name
+              "
             >
               <component :is="config.key"></component>
             </a-tab-pane>

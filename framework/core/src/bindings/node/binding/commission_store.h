@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 //
 // Created by Keren Dong on 2020/3/16.
 //
@@ -8,8 +10,8 @@
 #include "common.h"
 #include "operators.h"
 
+#include <kungfu/yijinjing/cache/profile.h>
 #include <kungfu/yijinjing/io.h>
-#include <kungfu/yijinjing/practice/profile.h>
 
 namespace kungfu::node {
 class CommissionStore : public Napi::ObjectWrap<CommissionStore> {
@@ -36,7 +38,7 @@ private:
   serialize::JsGet get = {};
   serialize::JsSet set = {};
   yijinjing::data::locator_ptr locator_;
-  yijinjing::practice::profile profile_;
+  yijinjing::cache::profile profile_;
 
   static Napi::FunctionReference constructor;
 

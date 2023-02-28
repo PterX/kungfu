@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 //
 // Created by Keren Dong on 2019-06-19.
 //
@@ -32,6 +34,7 @@
 #define EXCHANGE_HK "HK"           // 港股: 4（香港交易所）
 #define EXCHANGE_HK_FUTURE "HKFUT" // 港股期货: 5（香港交易所）
 #define EXCHANGE_US "US"           // 美股: 29（纳斯达克交易所）
+#define EXCHANGE_US_FUTURE "USFUT" // 美股: 29（纳斯达克交易所）
 #define EXCHANGE_GLFX "GLFX"       // 全球外汇: 41
 #define EXCHANGE_IPE "IPE"         // LME\IPE: 45(LME（伦敦金属交易所）、ICE)
 #define EXCHANGE_CBOT "CBOT"       // ES-CBOT: 62
@@ -49,12 +52,10 @@
 #define EXCHANGE_METL "METL"       // ES-METL: 74
 #define EXCHANGE_IPM "IPM"         // 国际贵金属: 5000
 
-#define SOURCE_SIM "sim"
-#define SOURCE_CTP "ctp"
-#define SOURCE_XTP "xtp"
-#define SOURCE_BAC "barrich"
-
 #define EPSILON (1e-6)
+#define EXCHANGE_CRYPTO "CRYPTO"
+#define EXCHANGE_CRYPTO_FUTURE "CRYPTO-FUTURE"
+#define EXCHANGE_CRYPTO_UFUTURE "CRYPTO-UFUTURE"
 #define DOUBLEMAX (1e16) // 一亿亿, 2018年A股总市值不到50万亿
 
 namespace kungfu::wingchun {
@@ -62,11 +63,11 @@ constexpr int64_t VOLUME_ZERO = 0;
 
 class wingchun_error : public std::runtime_error {
 public:
-  explicit wingchun_error(const std::string &__s) : std::runtime_error(__s) {}
+  explicit wingchun_error(const std::string &_s) : std::runtime_error(_s) {}
 
-  explicit wingchun_error(const char *__s) : std::runtime_error(__s) {}
+  [[maybe_unused]] explicit wingchun_error(const char *_s) : std::runtime_error(_s) {}
 
-  virtual ~wingchun_error() noexcept = default;
+  ~wingchun_error() noexcept override = default;
 };
 
 inline bool is_greater(double x, double y) { return std::isgreater(x - y, EPSILON); }
@@ -75,7 +76,7 @@ inline bool is_less(double x, double y) { return std::isless(x - y, EPSILON * -1
 
 inline bool is_equal(double x, double y) { return std::abs(x - y) <= EPSILON * std::abs(x); }
 
-inline bool is_greater_equal(double x, double y) { return is_greater(x, y) || is_equal(x, y); }
+[[maybe_unused]] inline bool is_greater_equal(double x, double y) { return is_greater(x, y) || is_equal(x, y); }
 
 inline bool is_less_equal(double x, double y) { return is_less(x, y) || is_equal(x, y); }
 
@@ -85,14 +86,14 @@ inline bool is_too_large(double x) { return is_greater(x, DOUBLEMAX); }
 
 inline bool is_valid_price(double price) { return !is_less_equal(price, 0.0) && !is_too_large(price); }
 
-inline double rounded(double x, int n) {
+[[maybe_unused]] inline double rounded(double x, int n) {
   if (is_too_large(x) || is_zero(x) || is_too_large(std::abs(x))) {
     return 0.0;
   } else {
     char out[64];
     double xrounded;
     sprintf(out, "%.*f", n, x);
-    xrounded = strtod(out, 0);
+    xrounded = strtod(out, nullptr);
     return xrounded;
   }
 }
@@ -105,7 +106,7 @@ inline bool string_equals_n(const std::string &s1, const std::string &s2, size_t
   return std::strncmp(s1.c_str(), s2.c_str(), l) == 0;
 }
 
-inline bool endswith(const std::string &str, const std::string &suffix) {
+[[maybe_unused]] inline bool endswith(const std::string &str, const std::string &suffix) {
   return str.size() >= suffix.size() && 0 == str.compare(str.size() - suffix.size(), suffix.size(), suffix);
 }
 
@@ -119,6 +120,16 @@ inline bool is_final_status(const longfist::enums::OrderStatus &status) {
   case longfist::enums::OrderStatus::Pending:
   case longfist::enums::OrderStatus::PartialFilledActive:
   case longfist::enums::OrderStatus::Unknown:
+    return false;
+  default:
+    return true;
+  }
+}
+
+inline bool is_final_basket_order_status(const longfist::enums::BasketOrderStatus &status) {
+  switch (status) {
+  case longfist::enums::BasketOrderStatus::Unknown:
+  case longfist::enums::BasketOrderStatus::Pending:
     return false;
   default:
     return true;
@@ -226,9 +237,9 @@ inline longfist::enums::InstrumentType get_instrument_type_by_exchange_hk(const 
       {10000, 29999, longfist::enums::InstrumentType::StockOption}, // 衍生權證
       {30000, 39999, longfist::enums::InstrumentType::Stock},       // 供日後使用
       {41000, 46999, longfist::enums::InstrumentType::Stock},       // 供日後使用
-      {47000, 48999, longfist::enums::InstrumentType::Warrant},     // 界內證
+      {47000, 48999, longfist::enums::InstrumentType::StockOption}, // 界內證
       {49000, 49999, longfist::enums::InstrumentType::Stock},       // 供日後使用
-      {50000, 69999, longfist::enums::InstrumentType::Warrant},
+      {50000, 69999, longfist::enums::InstrumentType::StockOption},
       {70000, 79999, longfist::enums::InstrumentType::Stock}, // 供日後使用
       {82800, 82849, longfist::enums::InstrumentType::Fund},  // 交易所買賣基金
       {83000, 83199, longfist::enums::InstrumentType::Fund},
@@ -262,6 +273,9 @@ inline longfist::enums::InstrumentType get_instrument_type_by_exchange_hk(const 
 inline longfist::enums::InstrumentType get_instrument_type(const std::string &exchange_id,
                                                            const std::string &instrument_id) {
   if (string_equals(exchange_id, EXCHANGE_SSE)) {
+    if (instrument_id.length() == 8) {
+      return longfist::enums::InstrumentType::StockOption;
+    }
     if (startswith(instrument_id, "00")) {
       return longfist::enums::InstrumentType::Index;
     } else if (startswith(instrument_id, "0")) {
@@ -279,9 +293,12 @@ inline longfist::enums::InstrumentType get_instrument_type(const std::string &ex
 
     return longfist::enums::InstrumentType::Stock;
   } else if (string_equals(exchange_id, EXCHANGE_SZE)) {
+    if (instrument_id.length() == 8) {
+      return longfist::enums::InstrumentType::StockOption;
+    }
     if (startswith(instrument_id, "15") || startswith(instrument_id, "16") || startswith(instrument_id, "18")) {
       return longfist::enums::InstrumentType::Fund;
-    } else if (startswith(instrument_id, "13")) {
+    } else if (startswith(instrument_id, "131")) {
       return longfist::enums::InstrumentType::Repo;
     } else if (startswith(instrument_id, "1")) {
       return longfist::enums::InstrumentType::Bond;
@@ -301,6 +318,14 @@ inline longfist::enums::InstrumentType get_instrument_type(const std::string &ex
     return longfist::enums::InstrumentType::Future;
   } else if (string_equals(exchange_id, EXCHANGE_US)) {
     return longfist::enums::InstrumentType::Stock;
+  } else if (string_equals(exchange_id, EXCHANGE_CRYPTO)) {
+    return longfist::enums::InstrumentType::Crypto;
+  } else if (string_equals(exchange_id, EXCHANGE_CRYPTO_FUTURE)) {
+    return longfist::enums::InstrumentType::CryptoFuture;
+  } else if (string_equals(exchange_id, EXCHANGE_CRYPTO_UFUTURE)) {
+    return longfist::enums::InstrumentType::CryptoUFuture;
+  } else if (string_equals(exchange_id, EXCHANGE_US_FUTURE)) {
+    return longfist::enums::InstrumentType::Future;
   }
   SPDLOG_ERROR("invalid instrument type for exchange {} and instrument {}", exchange_id, instrument_id);
   return longfist::enums::InstrumentType::Unknown;
@@ -326,12 +351,12 @@ inline std::string str_from_instrument_type(longfist::enums::InstrumentType type
     return "Index";
   case longfist::enums::InstrumentType::Repo:
     return "Repo";
-  case longfist::enums::InstrumentType::Warrant:
-    return "Warrant";
-  case longfist::enums::InstrumentType::Iopt:
-    return "Iopt";
   case longfist::enums::InstrumentType::Crypto:
     return "Crypto";
+  case longfist::enums::InstrumentType::CryptoFuture:
+    return "CryptoFuture";
+  case longfist::enums::InstrumentType::CryptoUFuture:
+    return "CryptoUFuture";
   default:
     return "Unknown";
   }
@@ -345,6 +370,8 @@ instrument_type_to_subscribe_instrument_type(longfist::enums::InstrumentType ins
   case longfist::enums::InstrumentType::Future:
     return longfist::enums::SubscribeInstrumentType::Future;
   case longfist::enums::InstrumentType::Bond:
+    return longfist::enums::SubscribeInstrumentType::Bond;
+  case longfist::enums::InstrumentType::Repo:
     return longfist::enums::SubscribeInstrumentType::Bond;
   case longfist::enums::InstrumentType::StockOption:
     return longfist::enums::SubscribeInstrumentType::StockOption;
@@ -425,9 +452,8 @@ inline std::string get_exchange_id_from_future_instrument_id(const std::string &
 inline bool is_shortable(longfist::enums::InstrumentType instrument_type) {
   using namespace longfist::enums;
   return not(instrument_type == InstrumentType::Stock or instrument_type == InstrumentType::Bond or
-             instrument_type == InstrumentType::Fund or instrument_type == InstrumentType::StockOption or
-             instrument_type == InstrumentType::TechStock or instrument_type == InstrumentType::Index or
-             instrument_type == InstrumentType::Repo);
+             instrument_type == InstrumentType::Fund or instrument_type == InstrumentType::TechStock or
+             instrument_type == InstrumentType::Index or instrument_type == InstrumentType::Repo);
 }
 
 inline longfist::enums::Direction get_direction(longfist::enums::InstrumentType instrument_type,
@@ -443,6 +469,11 @@ inline longfist::enums::Direction get_direction(longfist::enums::InstrumentType 
   } else if (side == Side::RepayStock) {
     return Direction::Short;
   }
+
+  if (side == Side::Exec) {
+    return Direction::Long;
+  }
+
   if (not is_shortable(instrument_type)) {
     return Direction::Long;
   }
@@ -468,8 +499,23 @@ inline uint32_t hash_instrument(const char *exchange_id, const char *instrument_
   return yijinjing::util::hash_str_32(instrument_id) ^ yijinjing::util::hash_str_32(exchange_id);
 }
 
+inline int32_t hash_instrument(const longfist::types::Order &order) {
+  int32_t flag =
+      get_direction(order.instrument_type, order.side, order.offset) == longfist::enums::Direction::Short ? -1 : 1;
+  int32_t instrument_key = hash_instrument(order.exchange_id, order.instrument_id) * flag;
+  return instrument_key;
+}
+
+inline uint32_t hash_basket_instrument(uint32_t basket_uid, const char *exchange_id, const char *instrument_id) {
+  return basket_uid ^ yijinjing::util::hash_str_32(instrument_id) ^ yijinjing::util::hash_str_32(exchange_id);
+}
+
 inline uint32_t hash_account(const std::string &source_name, const std::string &account_id) {
   return yijinjing::util::hash_str_32(source_name) ^ yijinjing::util::hash_str_32(account_id);
+}
+
+inline uint32_t hash_operator(const std::string &operator_group, const std::string &operator_name) {
+  return yijinjing::util::hash_str_32(operator_group) ^ yijinjing::util::hash_str_32(operator_name);
 }
 
 inline void order_from_input(const longfist::types::OrderInput &input, longfist::types::Order &order) {
@@ -485,7 +531,7 @@ inline void order_from_input(const longfist::types::OrderInput &input, longfist:
 
   order.volume = input.volume;
   order.volume_left = input.volume;
-  order.status = longfist::enums::OrderStatus::Submitted;
+  order.status = longfist::enums::OrderStatus::Pending;
 
   order.side = input.side;
   order.offset = input.offset;
@@ -496,6 +542,8 @@ inline void order_from_input(const longfist::types::OrderInput &input, longfist:
   order.price_type = input.price_type;
   order.volume_condition = input.volume_condition;
   order.time_condition = input.time_condition;
+
+  order.parent_id = input.parent_id;
 }
 
 } // namespace kungfu::wingchun

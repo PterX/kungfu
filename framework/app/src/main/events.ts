@@ -62,6 +62,10 @@ export function exportAllTradingData(mainWindow: BrowserWindow): void {
   sendMsgToMainWindow(mainWindow, 'export-all-trading-data');
 }
 
+export function viewAllJournal(mainWindow: BrowserWindow): void {
+  sendMsgToMainWindow(mainWindow, 'view-all-journal');
+}
+
 function sendMsgToMainWindow(mainWindow: BrowserWindow, msg: string): void {
   if (mainWindow && !mainWindow.isDestroyed() && mainWindow.webContents) {
     mainWindow.webContents.send('main-process-messages', msg);

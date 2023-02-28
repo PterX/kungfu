@@ -14,7 +14,7 @@ import {
   showQuitMessageBox,
   showCrashMessageBox,
   showKungfuInfo,
-  // openUrl,
+  openUrl,
 } from '@kungfu-trader/kungfu-app/src/main/utils';
 import { kfLogger } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { killExtra } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
@@ -22,6 +22,7 @@ import {
   clearDB,
   clearJournal,
   exportAllTradingData,
+  viewAllJournal,
   openLogFile,
   openSettingDialog,
   resetMainDashboard,
@@ -36,6 +37,7 @@ import {
   initKfDefaultInstruments,
 } from '@kungfu-trader/kungfu-js-api/config';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
 const { t } = VueI18n.global;
 
 let MainWindow: BrowserWindow | null = null;
@@ -194,7 +196,7 @@ app.on('ready', () => {
 //一上来先把所有之前意外没关掉的 pm2/kfc 进程kill掉
 console.time('init clean');
 killExtra()
-  .catch((err) => kfLogger.error(err.message))
+  .catch((err) => kfLogger.error(err))
   .finally(() => {
     console.timeEnd('init clean');
     killExtraFinished = true;
@@ -260,6 +262,9 @@ function setMenu() {
       click: () => app.quit(),
     });
   }
+
+  const rootPackageJson = readRootPackageJsonSync();
+  const isShowHelp = !(rootPackageJson?.appConfig?.showHelp === false); // 如果没有显示设置为 false，则显示
 
   const template: MenuItemConstructorOptions[] = [
     {
@@ -335,29 +340,39 @@ function setMenu() {
           accelerator: 'CommandOrControl+E',
           click: () => MainWindow && exportAllTradingData(MainWindow),
         },
+        {
+          label: t('view_all_journal'),
+          accelerator: 'CommandOrControl+J',
+          click: () => MainWindow && viewAllJournal(MainWindow),
+        },
       ],
     },
-    // {
-    //   label: t('help'),
-    //   submenu: [
-    //     {
-    //       label: t('website'),
-    //       click: () => openUrl('https://www.kungfu-trader.com/'),
-    //     },
-    //     {
-    //       label: t('user_manual'),
-    //       click: () => openUrl('https://www.kungfu-trader.com/manual/'),
-    //     },
-    //     {
-    //       label: t('API_documentation'),
-    //       click: () => openUrl('https://www.kungfu-trader.com/api-doc/'),
-    //     },
-    //     {
-    //       label: t('Kungfu_forum'),
-    //       click: () => openUrl('https://www.kungfu-trader.com/community/'),
-    //     },
-    //   ],
-    // },
+    ...(isShowHelp
+      ? [
+          {
+            label: t('help'),
+            submenu: [
+              {
+                label: t('website'),
+                click: () => openUrl('https://www.kungfu-trader.com/'),
+              },
+              {
+                label: t('user_manual'),
+                click: () => openUrl('https://www.kungfu-trader.com/manual/'),
+              },
+              {
+                label: t('API_documentation'),
+                click: () => openUrl('https://www.kungfu-trader.com/api-doc/'),
+              },
+              {
+                label: t('Kungfu_forum'),
+                click: () =>
+                  openUrl('https://www.kungfu-trader.com/community/'),
+              },
+            ],
+          },
+        ]
+      : []),
   ];
 
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
@@ -365,14 +380,8 @@ function setMenu() {
 
 process
   .on('uncaughtException', (err: Error) => {
-    kfLogger.error(
-      '[MASTER] Error caught in uncaughtException event:',
-      err.message,
-    );
+    kfLogger.error('[MASTER] Error caught in uncaughtException event:', err);
   })
   .on('unhandledRejection', (err: Error) => {
-    kfLogger.error(
-      '[MASTER] Error caught in unhandledRejection event:',
-      err.message,
-    );
+    kfLogger.error('[MASTER] Error caught in unhandledRejection event:', err);
   });

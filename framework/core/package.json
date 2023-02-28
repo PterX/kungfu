@@ -4,7 +4,7 @@
     "name": "Kungfu Trader",
     "email": "info@kungfu.link"
   },
-  "version": "2.5.0-alpha.0",
+  "version": "2.5.0-alpha.20",
   "description": "Kungfu Core Library",
   "license": "Apache-2.0",
   "main": "lib/index.js",
@@ -55,7 +55,7 @@
     "nuitka": "pipenv run python -m nuitka",
     "format": "node .gyp/run-format-all.js",
     "format:cpp": "node .gyp/run-format-cpp.js src",
-    "format:python": "node .gyp/run-format-python.js src src/*/*.spec .*/*.py",
+    "format:python": "node .gyp/run-format-python.js . src src/*/*.spec .*/*.py",
     "format:js": "node .gyp/run-format-js.js \"(.gyp|lib)/**.js\"",
     "kfc": "node lib/kfc.js",
     "kfs": "node lib/kfs.js",
@@ -66,16 +66,15 @@
   },
   "dependencies": {
     "@mapbox/node-pre-gyp": "^1.0.0",
-    "fs-extra": "^10.1.0",
     "glob": "^8.0.0",
     "sywac": "^1.3.0"
   },
   "devDependencies": {
-    "@kungfu-trader/kungfu-toolchain": "^2.5.0-alpha.0",
-    "@kungfu-trader/libnode": "16.14.2",
-    "cmake-js": "^6.3.0",
-    "electron": "19.0.8",
+    "@kungfu-trader/kungfu-toolchain": "^2.5.0-alpha.20",
+    "@kungfu-trader/libnode": "16.15.0",
+    "cmake-js": "^7.0.0",
+    "electron": "19.1.8",
     "nan": "^2.15.0",
-    "node-addon-api": "^4.3.0"
+    "node-addon-api": "^5.0.0"
   }
 }

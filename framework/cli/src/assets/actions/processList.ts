@@ -13,15 +13,14 @@ import {
   kfLogger,
   removeArchiveBeforeToday,
   removeJournal,
+  switchKfLocation,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import {
-  pm2KillGodDaemon,
   killExtra,
   killKfc,
   pm2Kill,
   Pm2ProcessStatusData,
   Pm2ProcessStatusDetailData,
-  sendDataToProcessIdByPm2,
   startArchiveMakeTask,
   killKungfu,
   startMaster,
@@ -29,11 +28,10 @@ import {
   startDzxy,
   startCacheD,
   processStatusDataObservable,
-  Pm2Packet,
   Pm2ProcessStatusDetail,
 } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
-import { combineLatest, filter, map, Observable } from 'rxjs';
-import { ProcessListItem } from '../../typings';
+import { combineLatest, Observable } from 'rxjs';
+import { ProcessListItem, SwitchKfLocationPacketData } from '../../typings';
 import colors from 'colors';
 import { Widgets } from 'blessed';
 import {
@@ -41,12 +39,12 @@ import {
   getCategoryName,
   startAllExtDaemons,
 } from '../methods/utils';
-import { globalState } from '../actions/globalState';
 import { dealProcessName } from '../methods/utils';
 import {
   ARCHIVE_DIR,
   KF_HOME,
 } from '@kungfu-trader/kungfu-js-api/config/pathConfig';
+import { globalState } from './globalState';
 
 export const mdTdStrategyDaemonObservable = () => {
   return new Observable<
@@ -73,17 +71,7 @@ export const mdTdStrategyDaemonObservable = () => {
 };
 
 export const appStatesObservable = () => {
-  return globalState.DZXY_SUBJECT.pipe(
-    filter((packet: Pm2Packet) => {
-      if (packet.data.type === 'APP_STATES') {
-        return true;
-      }
-      return false;
-    }),
-    map((packet: Pm2Packet) => {
-      return packet.data.body as Record<string, BrokerStateStatusTypes>;
-    }),
-  );
+  return globalState.APP_STATES_SUBJECT.asObservable();
 };
 
 const getProcessStatus = (
@@ -209,10 +197,34 @@ export const processListObservable = () =>
       appStates: Record<string, BrokerStateStatusTypes>,
       extConfigs: KungfuApi.KfExtConfigs,
     ): ProcessListItem[] => {
-      const { md, td, strategy, daemon } = mdTdStrategyDaemon;
+      const { md, operator, td, strategy, daemon } = mdTdStrategyDaemon;
       const { processStatus, processStatusWithDetail } = ps;
 
       const mdList: ProcessListItem[] = md.map((item) => {
+        const processId = getProcessIdByKfLocation(item);
+        const prefixProps =
+          globalThis.HookKeeper.getHooks().prefix.trigger(item);
+        const prefix =
+          prefixProps.prefixType === 'text' ? prefixProps.prefix : '';
+        return {
+          processId,
+          processName: prefix + processId,
+          typeName: getCategoryName(item.category),
+          category: item.category,
+          group: item.group,
+          name: item.name,
+          value: JSON.parse(item.value || '{}'),
+          status: processStatus[processId] || '--',
+          statusName: dealStatus(
+            processStatus[processId]
+              ? appStates[processId] || processStatus[processId] || '--'
+              : '--',
+          ),
+          monit: processStatusWithDetail[processId]?.monit,
+        };
+      });
+
+      const operatorList: ProcessListItem[] = operator.map((item) => {
         const processId = getProcessIdByKfLocation(item);
         const prefixProps =
           globalThis.HookKeeper.getHooks().prefix.trigger(item);
@@ -401,6 +413,7 @@ export const processListObservable = () =>
         },
         ...daemonList,
         ...mdList,
+        ...operatorList,
         ...tdList,
         ...taskListResolved,
         ...strategyList,
@@ -408,11 +421,14 @@ export const processListObservable = () =>
     },
   );
 
-export const switchProcess = (
+export const switchProcess = async (
   proc: ProcessListItem,
   messageBoard: Widgets.MessageElement,
   loading: Widgets.LoadingElement,
-): void => {
+): Promise<void> => {
+  const { watcher } = await import(
+    '@kungfu-trader/kungfu-js-api/kungfu/watcher'
+  );
   const status = proc.status !== '--';
   const startOrStop = status ? 'Stop' : 'Start';
   const { category, group, name, value, cwd, script } = proc;
@@ -438,7 +454,7 @@ export const switchProcess = (
               },
             );
           })
-          .catch((err: Error) => kfLogger.error(err.message));
+          .catch((err: Error) => kfLogger.error(err));
       } else {
         if (status) {
           messageBoard.log('Stop master first', 2, (err) => {
@@ -461,9 +477,19 @@ export const switchProcess = (
       break;
     case 'daemon':
     case 'md':
+    case 'operator':
     case 'td':
     case 'strategy':
-      if (!globalState.DZXY_WATCHER_IS_LIVE) {
+      if (!watcher) {
+        messageBoard.log('Watcher is NULL', 2, (err) => {
+          if (err) {
+            console.error(err);
+          }
+        });
+        return;
+      }
+
+      if (!watcher.isLive()) {
         messageBoard.log(
           'Start master first, If did, Please wait...',
           2,
@@ -476,15 +502,19 @@ export const switchProcess = (
         return;
       }
 
-      sendDataToProcessIdByPm2('SWITCH_KF_LOCATION', globalState.DZXY_PM_ID, {
-        category,
-        group,
-        name,
-        value: JSON.stringify(value),
-        status,
-        cwd,
-        script,
-      })
+      swithKfLocationResolved(
+        watcher,
+        {
+          category,
+          group,
+          name,
+          value: JSON.stringify(value),
+          status,
+          cwd,
+          script,
+        },
+        messageBoard,
+      )
         .then(() => {
           messageBoard.log('Please wait...', 2, (err) => {
             if (err) {
@@ -493,8 +523,7 @@ export const switchProcess = (
           });
         })
         .catch((err) => {
-          const errMsg = parseSwtchKfLocationErrMessage(err.message);
-          messageBoard.log(errMsg, 2, (err) => {
+          messageBoard.log(err.message, 2, (err) => {
             if (err) {
               console.error(err);
             }
@@ -503,12 +532,37 @@ export const switchProcess = (
   }
 };
 
-function parseSwtchKfLocationErrMessage(errMsg: string): string {
-  if (errMsg.includes('offline')) {
-    return 'Start master first, If did, Please wait...';
+function swithKfLocationResolved(
+  watcher: KungfuApi.Watcher,
+  data: SwitchKfLocationPacketData,
+  messageBoard: Widgets.MessageElement,
+) {
+  const { category, group, name, value, status, cwd, script } = data;
+  const kfConfig: KungfuApi.KfConfig | KungfuApi.KfDaemonLocation = {
+    category,
+    group,
+    name,
+    value: value,
+    location_uid: 0,
+    mode: 'live',
+    cwd,
+    script,
+  };
+
+  // task dealing logic
+  if (category === 'strategy' && group !== 'default') {
+    if (!value) {
+      return Promise.reject(new Error('Task cannot start in CLI'));
+    }
   }
 
-  return errMsg;
+  return switchKfLocation(watcher, kfConfig, !status).catch((err) => {
+    messageBoard.log(err.message, 2, (err) => {
+      if (err) {
+        console.error(err);
+      }
+    });
+  });
 }
 
 function preSwitchMain(
@@ -534,7 +588,6 @@ function preSwitchMain(
 const switchMaster = async (status: boolean): Promise<void> => {
   if (!status) {
     await pm2Kill();
-    await pm2KillGodDaemon();
     await killKfc();
     await killExtra();
     if (process.env.NODE_ENV === 'production') {
@@ -547,7 +600,7 @@ const switchMaster = async (status: boolean): Promise<void> => {
     await startMaster(false);
     await delayMilliSeconds(1000);
     await startCacheD(false);
-    await delayMilliSeconds(1000);
+    await delayMilliSeconds(2000);
     await startLedger(false);
     await delayMilliSeconds(1000);
     await startDzxy();

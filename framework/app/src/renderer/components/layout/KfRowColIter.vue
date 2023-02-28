@@ -7,6 +7,7 @@
       <KfRowColIter
         :board-id="childBoardId"
         :closable="closable"
+        :props-map-by-component="propsMapByComponent"
       ></KfRowColIter>
     </template>
     <template v-if="contents.length">
@@ -16,10 +17,10 @@
           [classNameForTabDrag]: true,
           'is-dragging': isBoardDragging,
         }"
-        :activeKey="boardInfo.current"
+        :active-key="boardInfo.current"
         style="height: 100%; width: 100%"
         :type="closable ? 'editable-card' : 'card'"
-        :tabBarStyle="{ margin: 0 }"
+        :tab-bar-style="{ margin: 0 }"
         @edit="(targetKey, action) => hanldeEdit(boardId, targetKey, action)"
         @tabClick="handleClickTab"
         @dragenter="handleDragEnter"
@@ -35,7 +36,7 @@
               @dragstart="handleDragStart(content)"
               @dragend="handleDragEnd"
             >
-              {{ content }}
+              {{ getBoardNameByLanguage(content) }}
             </div>
           </template>
           <a-card style="width: 100%; height: 100%">
@@ -43,8 +44,14 @@
               v-if="hasComponent(content) && content === boardInfo.current"
               :is="content"
               :id="content"
+              :props-map-by-component="propsMapByComponent"
             ></component>
-            <KfNoData v-else :txt="`${content} 组件错误`"></KfNoData>
+            <KfNoData
+              v-else
+              :txt="`${getBoardNameByLanguage(content)} ${$t(
+                'component_error',
+              )}`"
+            ></KfNoData>
           </a-card>
         </a-tab-pane>
       </a-tabs>
@@ -58,6 +65,7 @@
       <KfRowColIter
         :board-id="childBoardId"
         :closable="closable"
+        :props-map-by-component="propsMapByComponent"
       ></KfRowColIter>
     </template>
     <template v-if="contents.length">
@@ -67,10 +75,10 @@
           [classNameForTabDrag]: true,
           'is-dragging': isBoardDragging,
         }"
-        :activeKey="boardInfo.current"
+        :active-key="boardInfo.current"
         style="height: 100%; width: 100%"
         :type="closable ? 'editable-card' : 'card'"
-        :tabBarStyle="{ margin: 0 }"
+        :tab-bar-style="{ margin: 0 }"
         @edit="(targetKey, action) => hanldeEdit(boardId, targetKey, action)"
         @tabClick="handleClickTab"
         @dragenter="handleDragEnter"
@@ -86,7 +94,7 @@
               @dragstart="handleDragStart(content)"
               @dragend="handleDragEnd"
             >
-              {{ content }}
+              {{ getBoardNameByLanguage(content) }}
             </div>
           </template>
           <a-card style="width: 100%; height: 100%">
@@ -94,8 +102,14 @@
               v-if="hasComponent(content) && content === boardInfo.current"
               :is="content"
               :id="content"
+              :props-map-by-component="propsMapByComponent"
             ></component>
-            <KfNoData v-else :txt="`${content} 组件错误`"></KfNoData>
+            <KfNoData
+              v-else
+              :txt="`${getBoardNameByLanguage(content)} ${$t(
+                'component_error',
+              )}`"
+            ></KfNoData>
           </a-card>
         </a-tab-pane>
       </a-tabs>
@@ -116,6 +130,9 @@ import KfDragCol from '@kungfu-trader/kungfu-app/src/renderer/components/layout/
 import KfNoData from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfNoData.vue';
 
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
+import VueI18n, { useLanguage } from '@kungfu-trader/kungfu-js-api/language';
+
+const { t } = VueI18n.global;
 
 interface KfRowColIterData {
   h: KfLayoutDirection;
@@ -146,12 +163,21 @@ export default defineComponent({
       type: Boolean as PropType<boolean>,
       default: false,
     },
+
+    propsMapByComponent: {
+      type: Object as PropType<BuiltinComponentProps['propsMapByComponent']>,
+      default: () => ({}),
+    },
   },
 
   setup() {
     const { boardsMap, dragedContentData, isBoardDragging } = storeToRefs(
       useGlobalStore(),
     );
+    const { isLanguageKeyAvailable } = useLanguage();
+
+    const getBoardNameByLanguage = (contentId: string) =>
+      isLanguageKeyAvailable(contentId) ? t(contentId) : contentId;
 
     const {
       setBoardsMapAttrById,
@@ -182,6 +208,8 @@ export default defineComponent({
       setDragedContentData,
       afterDragMoveBoard,
       markIsBoardDragging,
+
+      getBoardNameByLanguage,
     };
   },
 
@@ -394,6 +422,15 @@ export default defineComponent({
         pointer-events: none;
       }
     }
+  }
+}
+
+.ant-tabs-dropdown-menu-item {
+  min-width: 80px;
+
+  .ant-tabs-dropdown-menu-title-content {
+    display: flex;
+    justify-content: space-between;
   }
 }
 </style>

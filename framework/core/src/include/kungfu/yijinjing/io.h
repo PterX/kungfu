@@ -1,17 +1,4 @@
-/*****************************************************************************
- * Copyright [www.kungfu-trader.com]
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *  http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *****************************************************************************/
+// SPDX-License-Identifier: Apache-2.0
 
 //
 // Created by Keren Dong on 2019-06-01.
@@ -47,6 +34,10 @@ public:
 
   [[nodiscard]] bool is_low_latency() const { return low_latency_; }
 
+  [[nodiscard]] bool is_cleaner_required() const {
+    return low_latency_ && lazy_ && home_->mode == kungfu::longfist::enums::mode::LIVE;
+  }
+
   journal::reader_ptr open_reader_to_subscribe();
 
   journal::reader_ptr open_reader(const data::location_ptr &location, uint32_t dest_id);
@@ -54,10 +45,6 @@ public:
   journal::writer_ptr open_writer(uint32_t dest_id);
 
   journal::writer_ptr open_writer_at(const data::location_ptr &location, uint32_t dest_id);
-
-  nanomsg::socket_ptr connect_socket(const data::location_ptr &location, const nanomsg::protocol &p, int timeout = 0);
-
-  nanomsg::socket_ptr bind_socket(const nanomsg::protocol &p, int timeout = 0);
 
   [[nodiscard]] nanomsg::url_factory_ptr get_url_factory() const { return url_factory_; }
 

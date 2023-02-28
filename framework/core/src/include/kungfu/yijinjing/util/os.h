@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 //
 // Created by Keren Dong on 2019-06-04.
 //
@@ -22,6 +24,8 @@ namespace kungfu::yijinjing::os {
  * @return the address of mapped memory
  */
 uintptr_t load_mmap_buffer(const std::string &path, size_t size, bool is_writing = false, bool lazy = true);
+
+bool flush_mmap_buffer(uintptr_t address, size_t size, bool lazy);
 
 bool release_mmap_buffer(uintptr_t address, size_t size, bool lazy);
 

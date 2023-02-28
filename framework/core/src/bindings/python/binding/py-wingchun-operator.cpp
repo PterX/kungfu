@@ -1,0 +1,132 @@
+// SPDX-License-Identifier: Apache-2.0
+
+#include "py-wingchun.h"
+
+#include <pybind11/functional.h>
+#include <pybind11/stl.h>
+
+#include <kungfu/wingchun/operator/context.h>
+#include <kungfu/wingchun/operator/runner.h>
+
+using namespace kungfu::longfist;
+using namespace kungfu::longfist::types;
+using namespace kungfu::yijinjing;
+using namespace kungfu::yijinjing::data;
+using namespace kungfu::yijinjing::journal;
+using namespace kungfu::wingchun;
+
+namespace py = pybind11;
+
+namespace kungfu::wingchun::pybind {
+
+class PyOpRunner : public op::Runner {
+public:
+  using op::Runner::Runner;
+
+  void on_trading_day(const event_ptr &event, int64_t daytime) override {
+    PYBIND11_OVERLOAD(void, op::Runner, on_trading_day, event, daytime);
+  }
+};
+
+class PyOperator : public op::Operator {
+public:
+  using op::Operator::Operator; // Inherit constructors
+
+  void pre_start(op::Context_ptr &context) override { PYBIND11_OVERLOAD(void, op::Operator, pre_start, context); }
+
+  void post_start(op::Context_ptr &context) override { PYBIND11_OVERLOAD(void, op::Operator, post_start, context); }
+
+  void pre_stop(op::Context_ptr &context) override { PYBIND11_OVERLOAD(void, op::Operator, pre_stop, context); }
+
+  void post_stop(op::Context_ptr &context) override { PYBIND11_OVERLOAD(void, op::Operator, post_stop, context); }
+
+  void on_trading_day(op::Context_ptr &context, int64_t daytime) override {
+    PYBIND11_OVERLOAD(void, op::Operator, on_trading_day, context, daytime);
+  }
+
+  void on_quote(op::Context_ptr &context, const Quote &quote,
+                const kungfu::yijinjing::data::location_ptr &location) override {
+    PYBIND11_OVERLOAD(void, op::Operator, on_quote, context, quote, location);
+  }
+
+  void on_entrust(op::Context_ptr &context, const Entrust &entrust,
+                  const kungfu::yijinjing::data::location_ptr &location) override {
+    PYBIND11_OVERLOAD(void, op::Operator, on_entrust, context, entrust, location);
+  }
+
+  void on_transaction(op::Context_ptr &context, const Transaction &transaction,
+                      const kungfu::yijinjing::data::location_ptr &location) override {
+    PYBIND11_OVERLOAD(void, op::Operator, on_transaction, context, transaction, location);
+  }
+
+  void on_synthetic_data(op::Context_ptr &context, const SyntheticData &synthetic_data,
+                         const kungfu::yijinjing::data::location_ptr &location) override {
+    PYBIND11_OVERLOAD(void, op::Operator, on_synthetic_data, context, synthetic_data, location);
+  }
+
+  void on_deregister(op::Context_ptr &context, const Deregister &deregister,
+                     const kungfu::yijinjing::data::location_ptr &location) override {
+    PYBIND11_OVERLOAD(void, op::Operator, on_deregister, context, deregister, location);
+  }
+
+  void on_broker_state_change(op::Context_ptr &context, const BrokerStateUpdate &broker_state_update,
+                              const kungfu::yijinjing::data::location_ptr &location) override {
+    PYBIND11_OVERLOAD(void, op::Operator, on_broker_state_change, context, broker_state_update, location);
+  }
+
+  void on_operator_state_change(op::Context_ptr &context, const OperatorStateUpdate &operator_state_update,
+                                const kungfu::yijinjing::data::location_ptr &location) override {
+    PYBIND11_OVERLOAD(void, op::Operator, on_operator_state_change, context, operator_state_update, location);
+  }
+};
+
+void bind_operator(pybind11::module &m) {
+
+  py::class_<op::Runner, kungfu::yijinjing::practice::apprentice, std::shared_ptr<op::Runner>>(m, "OpRunner")
+      .def(py::init<kungfu::yijinjing::data::locator_ptr, const std::string &, const std::string &,
+                    longfist::enums::mode, bool>())
+      .def_property_readonly("context", &op::Runner::get_context)
+      .def("set_begin_time", &op::Runner::set_begin_time)
+      .def("set_end_time", &op::Runner::set_end_time)
+      .def("now", &op::Runner::now)
+      .def("run", &op::Runner::run)
+      .def("setup", &op::Runner::setup)
+      .def("step", &op::Runner::step)
+      .def("on_trading_day", &op::Runner::on_trading_day)
+      .def("on_exit", &op::Runner::on_exit)
+      .def("add_operator", &op::Runner::add_operator);
+
+  py::class_<op::Context, std::shared_ptr<op::Context>>(m, "OpContext")
+      .def_property_readonly("trading_day", &op::Context::get_trading_day)
+      .def_property_readonly("config", &op::Context::get_config)
+      .def("now", &op::Context::now)
+      .def("add_timer", &op::Context::add_timer)
+      .def("add_time_interval", &op::Context::add_time_interval)
+      .def("subscribe", &op::Context::subscribe)
+      .def("subscribe_all", &op::Context::subscribe_all, py::arg("source"), py::arg("market_type") = MarketType::All,
+           py::arg("instrument_type") = SubscribeInstrumentType::All, py::arg("data_type") = SubscribeDataType::All)
+      .def("subscribe_operator", &op::Context::subscribe_operator)
+      .def("publish_synthetic_data", &op::Context::publish_synthetic_data)
+      .def("req_deregister", &op::Context::req_deregister)
+      .def("update_operator_state", &op::Context::update_operator_state);
+
+  py::class_<op::RuntimeContext, op::Context, op::RuntimeContext_ptr>(m, "OpRuntimeContext");
+
+  py::class_<op::Operator, PyOperator, op::Operator_ptr>(m, "Operator")
+      .def(py::init())
+      .def("pre_start", &op::Operator::pre_start)
+      .def("post_start", &op::Operator::post_start)
+      .def("pre_stop", &op::Operator::pre_stop)
+      .def("post_stop", &op::Operator::post_stop)
+      .def("on_trading_day", &op::Operator::on_trading_day)
+      .def("on_quote", &op::Operator::on_quote)
+      .def("on_entrust", &op::Operator::on_entrust)
+      .def("on_transaction", &op::Operator::on_transaction)
+      .def("on_synthetic_data", &op::Operator::on_synthetic_data)
+      .def("on_deregister ", &op::Operator::on_deregister)
+      .def("on_broker_state_change ", &op::Operator::on_broker_state_change)
+      .def("on_operator_state_change ", &op::Operator::on_operator_state_change);
+
+  ;
+}
+} // namespace kungfu::wingchun::pybind

@@ -6,6 +6,7 @@ import {
   getStrategyExtTypeData,
   getExtConfigList,
   isTdMd,
+  isOperator,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { useModalVisible } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import {
@@ -14,17 +15,19 @@ import {
   StrategyExtTypes,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import { useExtConfigsRelated } from '../../assets/methods/actionsUtils';
-import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+import VueI18n, { useLanguage } from '@kungfu-trader/kungfu-js-api/language';
 const { t } = VueI18n.global;
 
 const props = withDefaults(
   defineProps<{
     visible: boolean;
     extensionType: KfCategoryTypes;
+    extFilter: (extConfig: KungfuApi.KfExtConfig) => boolean;
   }>(),
   {
     visible: false,
     extensionType: 'td',
+    extFilter: () => true,
   },
 );
 
@@ -38,18 +41,25 @@ const app = getCurrentInstance();
 const { extConfigs } = useExtConfigsRelated();
 const selectedExtension = ref<string>('');
 const availExtensionList = computed(() => {
-  return getExtConfigList(extConfigs.value, props.extensionType);
+  return getExtConfigList(extConfigs.value, props.extensionType).filter(
+    (extConfig) => props.extFilter(extConfig),
+  );
 });
 
 const { modalVisible, closeModal } = useModalVisible(props.visible);
+const { isLanguageKeyAvailable } = useLanguage();
 
 const modalTitle = computed(() => {
-  if (props.extensionType === 'td' || props.extensionType === 'md') {
-    return t('mdConfig.select_counter_api');
-  } else if (props.extensionType === 'strategy') {
-    return t('mdConfig.select_trade_task');
-  } else {
-    return t('mdConfig.select_plugin_type');
+  switch (props.extensionType) {
+    case 'td':
+    case 'md':
+      return t('select_broker_ext');
+    case 'operator':
+      return t('select_operator_ext');
+    case 'strategy':
+      return t('select_trade_task');
+    default:
+      return t('select_plugin_type');
   }
 });
 
@@ -69,9 +79,13 @@ function handleConfirm() {
 function getKungfuTradeValueCommonDataByExtType(
   category: KfCategoryTypes,
   extType: InstrumentTypes | StrategyExtTypes,
-) {
+): KungfuApi.KfTradeValueCommonData | null {
   if (isTdMd(category)) {
     return getInstrumentTypeData(extType as InstrumentTypes);
+  }
+
+  if (isOperator(category)) {
+    return null;
   }
 
   return getStrategyExtTypeData(extType as StrategyExtTypes);
@@ -80,7 +94,7 @@ function getKungfuTradeValueCommonDataByExtType(
 <template>
   <a-modal
     class="kf-set-source-modal"
-    :width="480"
+    :width="500"
     v-model:visible="modalVisible"
     :title="modalTitle"
     :destroyOnClose="true"
@@ -89,29 +103,37 @@ function getKungfuTradeValueCommonDataByExtType(
   >
     <a-radio-group v-model:value="selectedExtension">
       <a-radio
-        :value="item.key"
-        :key="item.key"
         v-for="item in availExtensionList"
+        :key="item.key"
+        :value="item.key"
         :style="{
-          height: '36px',
+          'min-height': '36px',
           'line-height': '36px',
           'font-size': '16px',
           'min-width': '45%',
         }"
       >
-        <span class="source-name__txt">{{ item.name }}</span>
+        <span class="source-name__txt">
+          {{ isLanguageKeyAvailable(item.name) ? $t(item.name) : item.name }}
+        </span>
         <span class="source-id__txt">{{ item.key }}</span>
-        <a-tag
-          v-for="(extType, index) in item.type"
-          :key="index"
-          :color="
-            getKungfuTradeValueCommonDataByExtType(extensionType, extType).color
-          "
-        >
-          {{
-            getKungfuTradeValueCommonDataByExtType(extensionType, extType).name
-          }}
-        </a-tag>
+        <template v-for="(extType, index) in item.type">
+          <a-tag
+            v-if="
+              getKungfuTradeValueCommonDataByExtType(extensionType, extType)
+            "
+            :key="index"
+            :color="
+              getKungfuTradeValueCommonDataByExtType(extensionType, extType)
+                ?.color || 'default'
+            "
+          >
+            {{
+              getKungfuTradeValueCommonDataByExtType(extensionType, extType)
+                ?.name || ''
+            }}
+          </a-tag>
+        </template>
       </a-radio>
     </a-radio-group>
   </a-modal>

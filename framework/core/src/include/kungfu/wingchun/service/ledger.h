@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 //
 // Created by Keren Dong on 2019-06-28.
 //
@@ -14,9 +16,12 @@
 namespace kungfu::wingchun::service {
 
 // key = hash_instrument(exchange_id, instrument_id)
-typedef std::unordered_map<uint32_t, longfist::types::Position> PositionMap;
 
 class Ledger : public yijinjing::practice::apprentice {
+  typedef std::unordered_map<uint32_t, longfist::types::BrokerStateUpdate> BrokerStateMap;
+  typedef std::unordered_map<uint32_t, longfist::types::OperatorStateUpdate> OperatorStateMap;
+  typedef std::unordered_map<uint32_t, longfist::types::Position> PositionMap;
+
 public:
   explicit Ledger(yijinjing::data::locator_ptr locator, longfist::enums::mode m, bool low_latency = false);
 
@@ -36,7 +41,11 @@ private:
   book::Bookkeeper bookkeeper_;
   book::BookMap tmp_books_;
   std::unordered_map<uint64_t, state<longfist::types::OrderStat>> order_stats_ = {};
+  BrokerStateMap broker_states_ = {};
+  OperatorStateMap operator_states_ = {};
   bool is_sync_;
+
+  void on_deregister(const longfist::types::Deregister &deregister);
 
   void refresh_books();
 
@@ -57,6 +66,33 @@ private:
   void keep_positions(int64_t trigger_time, uint32_t strategy_uid);
 
   void rebuild_positions(int64_t trigger_time, uint32_t strategy_uid);
+
+  template <typename AppStateMap, typename AppStateUpdate>
+  void update_app_state_map(uint32_t location_uid, const AppStateUpdate &state_update, AppStateMap &app_states) {
+    app_states.insert_or_assign(location_uid, state_update);
+    write_app_state_to_public(app_states);
+  };
+
+  template <typename AppStateMap>
+  void write_app_state(int64_t trigger_time, uint32_t source_id, const AppStateMap &app_states) {
+    auto writer = get_writer(source_id);
+    for (const auto &pair : app_states) {
+      auto &app_state = pair.second;
+      writer->write(trigger_time, app_state);
+      SPDLOG_INFO("response to StateRequest, write to location {}, app {} state {}", get_location_uname(source_id),
+                  get_location_uname(app_state.location_uid), static_cast<int>(app_state.state));
+    }
+  };
+
+  template <typename AppStateMap> void write_app_state_to_public(const AppStateMap &app_states) {
+    auto writer = get_writer(yijinjing::data::location::PUBLIC);
+    for (const auto &pair : app_states) {
+      auto &app_state = pair.second;
+      writer->write(now(), app_state);
+      SPDLOG_INFO("write to public location app {} state {}", get_location_uname(app_state.location_uid),
+                  static_cast<int>(app_state.state));
+    }
+  };
 
   void write_book_reset(int64_t trigger_time, uint32_t book_uid);
 

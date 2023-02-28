@@ -39,7 +39,9 @@ export const selectMdTdStrategy = async () => {
   return getKfCategoryFromString(answers.type);
 };
 
-export const addMdTdStrategy = async (type: KfCategoryTypes): Promise<void> => {
+export const addMdTdStrategy = async (
+  type: KfCategoryTypes,
+): Promise<boolean> => {
   const extConfigs = await getKfExtensionConfig();
 
   if (type === 'md') {
@@ -127,7 +129,7 @@ export const addMdTdStrategy = async (type: KfCategoryTypes): Promise<void> => {
         tip: '需保证该策略ID唯一',
       },
       {
-        key: 'strategy_path',
+        key: 'file_path',
         name: '策略路径',
         type: 'file',
         required: true,
@@ -154,6 +156,8 @@ export const addMdTdStrategy = async (type: KfCategoryTypes): Promise<void> => {
       }),
     );
   }
+
+  return Promise.resolve(false);
 };
 
 export const selectKfExtPrompt = async (

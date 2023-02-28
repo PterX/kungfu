@@ -1,12 +1,19 @@
 import { StartOptions } from 'pm2';
 import { I18n } from 'vue-i18n';
 import { KfHookKeeper } from '../hooks';
+import { InstrumentTypeEnum, InstrumentTypes } from './enums';
 
 declare global {
   interface Window {
     watcher: Watcher | null;
+    assemble: Assemble;
     kungfu: Kungfu;
     workers: Record<string, WebpackWorker>;
+    basketStore: KungfuApi.BasketStore;
+    basketInstrumentStore: KungfuApi.BasketInstrumentStore;
+    configStore: KungfuApi.ConfigStore;
+    riskSettingStore: KungfuApi.RiskSettingStore;
+    commissionStore: KungfuApi.CommissionStore;
     fileId: number;
     testCase: Record<string, any>;
     pm2: any;
@@ -23,7 +30,12 @@ declare global {
       ELECTRON_RUN_AS_NODE: boolean;
       ELECTRON_ENABLE_STACK_DUMPING: boolean;
       RELOAD_AFTER_CRASHED: 'true' | 'false' | undefined; // 需要作为pm2 env参数传递，为了统一识别，用string
+      REFRESH_LEDGER_BEFORE_SYNC: boolean;
       BY_PASS_RESTORE: boolean;
+      BY_PASS_ACCOUNTING: boolean;
+      BY_PASS_TRADINGDATA: boolean;
+      REFRESH_LEDGER_BEFORE_SYNC: boolean;
+      MILLISECONDS_SLEEP_AFTER_STEP: number;
     }
 
     interface Process {
@@ -61,4 +73,30 @@ declare module globalThis {
 export interface Pm2StartOptions extends StartOptions {
   name: string;
   autorestart?: boolean;
+}
+
+export interface T0T1Config {
+  T0: {
+    instrumentTypes: InstrumentTypes[];
+    exchangeIds: string[];
+  };
+}
+
+export interface RootConfigJSON {
+  kungfuCraft?: {
+    appTitle?: string;
+    productName?: string;
+  };
+  boardFilter?: Record<string, boolean>;
+  appConfig?: {
+    showHelp?: boolean;
+
+    T0T1?: T0T1Config;
+
+    makeOrder?: {
+      priceTypeFilter?: Record<string, boolean>;
+      offsetFilter?: Record<string, boolean>;
+      ableHedgeFlag?: boolean;
+    };
+  };
 }

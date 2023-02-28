@@ -5,6 +5,9 @@
 #include "marketdata_xtp.h"
 #include "type_convert.h"
 
+using namespace kungfu::yijinjing;
+using namespace kungfu::yijinjing::data;
+
 namespace kungfu::wingchun::xtp {
 struct MDConfiguration {
   int client_id;
@@ -40,9 +43,11 @@ MarketDataXTP::~MarketDataXTP() {
 }
 
 void MarketDataXTP::on_start() {
+  level2_tick_band_uid_ = request_band("market-data-band");
+
   MDConfiguration config = nlohmann::json::parse(get_config());
   if (config.client_id < 1 or config.client_id > 99) {
-    throw wingchun_error("client_id must between 1 and 99");
+    SPDLOG_ERROR("client_id must between 1 and 99");
   }
   auto md_ip = config.md_ip.c_str();
   auto account_id = config.account_id.c_str();
@@ -155,6 +160,7 @@ void MarketDataXTP::OnQueryAllTickers(XTPQSI *ticker_info, XTPRI *error_info, bo
   Instrument &instrument = get_writer(0)->open_data<Instrument>(0);
   from_xtp(ticker_info, instrument);
   get_writer(0)->close_data();
+  SPDLOG_TRACE("instrument {}", instrument.to_string());
 }
 
 void MarketDataXTP::OnDepthMarketData(XTPMD *market_data, int64_t *bid1_qty, int32_t bid1_count, int32_t max_bid1_count,
@@ -166,13 +172,13 @@ void MarketDataXTP::OnDepthMarketData(XTPMD *market_data, int64_t *bid1_qty, int
 
 void MarketDataXTP::OnTickByTick(XTPTBT *tbt_data) {
   if (tbt_data->type == XTP_TBT_ENTRUST) {
-    Entrust &entrust = get_writer(0)->open_data<Entrust>(0);
+    Entrust &entrust = get_writer(level2_tick_band_uid_)->open_data<Entrust>(0);
     from_xtp(*tbt_data, entrust);
-    get_writer(0)->close_data();
+    get_writer(level2_tick_band_uid_)->close_data();
   } else if (tbt_data->type == XTP_TBT_TRADE) {
-    Transaction &transaction = get_writer(0)->open_data<Transaction>(0);
+    Transaction &transaction = get_writer(level2_tick_band_uid_)->open_data<Transaction>(0);
     from_xtp(*tbt_data, transaction);
-    get_writer(0)->close_data();
+    get_writer(level2_tick_band_uid_)->close_data();
   }
 }
 
@@ -194,8 +200,10 @@ void MarketDataXTP::OnQueryAllTickersFullInfo(XTPQFI *ticker_info, XTPRI *error_
   } else if (ticker_info->exchange_id == 2) {
     instrument.exchange_id = EXCHANGE_SZE;
   }
-  memcpy(instrument.product_id, ticker_info->ticker_name, PRODUCT_ID_LEN);
+
+  memcpy(instrument.product_id, ticker_info->ticker_name, strlen(ticker_info->ticker_name));
   instrument.instrument_type = get_instrument_type(instrument.exchange_id, instrument.instrument_id);
   get_writer(0)->close_data();
+  SPDLOG_TRACE("instrument {}", instrument.to_string());
 }
 } // namespace kungfu::wingchun::xtp

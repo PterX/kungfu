@@ -11,10 +11,10 @@ import {
   CodeTabSetting,
   OrderInputKeySetting,
 } from './tradingConfig';
-// import {
-//   languageList,
-//   langDefault,
-// } from '@kungfu-trader/kungfu-js-api/language';
+import {
+  languageList,
+  langDefault,
+} from '@kungfu-trader/kungfu-js-api/language';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 const { t } = VueI18n.global;
 const numCPUs = os.cpus() ? os.cpus().length : 1;
@@ -24,6 +24,10 @@ export interface KfSystemConfig {
   name: string;
   config: KungfuApi.KfConfigItem[];
 }
+
+const __python_version_resolved = __python_version
+  ? [...__python_version.split('.').slice(0, 2), 'x'].join('.')
+  : '3.9.x';
 
 export const getKfGlobalSettings = (): KfSystemConfig[] => [
   {
@@ -45,14 +49,28 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
         ],
         default: '-l info',
       },
-      // {
-      //   key: 'language',
-      //   name: t('globalSettingConfig.language'),
-      //   tip: t('globalSettingConfig.select_language'),
-      //   type: 'select',
-      //   options: languageList,
-      //   default: langDefault,
-      // },
+      {
+        key: 'language',
+        name: t('globalSettingConfig.language'),
+        tip: t('globalSettingConfig.select_language_desc'),
+        type: 'select',
+        options: languageList,
+        default: langDefault,
+      },
+      {
+        key: 'autoRestartTd',
+        name: t('globalSettingConfig.auto_restart_td'),
+        tip: t('globalSettingConfig.auto_restart_td_desc'),
+        type: 'bool',
+        default: true,
+      },
+      {
+        key: 'bypassArchive',
+        name: t('globalSettingConfig.bypass_archive'),
+        tip: t('globalSettingConfig.bypass_archive_desc'),
+        type: 'bool',
+        default: false,
+      },
     ],
   },
   {
@@ -91,7 +109,7 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
         key: 'python',
         name: t('globalSettingConfig.use_local_python'),
         tip: t('globalSettingConfig.local_python_desc', {
-          py_version: __python_version,
+          py_version: __python_version_resolved,
           whl_dir_path: PY_WHL_DIR,
         }),
         default: false,
@@ -123,6 +141,7 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
         tip: t('globalSettingConfig.set_fat_finger'),
         default: '',
         type: 'percent',
+        min: 0,
       },
       {
         key: 'close',

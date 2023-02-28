@@ -1,26 +1,14 @@
-# Copyright [www.kungfu-trader.com]
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-# http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# SPDX-License-Identifier: Apache-2.0
 
 cmake_minimum_required(VERSION 3.15)
 project(kungfu)
 
 ##########################################################################
 
-include(.cmake/editor.cmake)
-include(.cmake/compiler.cmake)
-include(.cmake/libnode.cmake)
-include(build/conanbuildinfo.cmake)
+include(${PROJECT_SOURCE_DIR}/.cmake/editor.cmake)
+include(${PROJECT_SOURCE_DIR}/.cmake/compiler.cmake)
+include(${PROJECT_SOURCE_DIR}/.cmake/libnode.cmake)
+include(${CONANBUILDINFO_DIR}/conanbuildinfo.cmake)
 conan_basic_setup(KEEP_RPATHS NO_OUTPUT_DIRS SKIP_STD SKIP_FPIC)
 
 ##########################################################################
@@ -39,6 +27,7 @@ option(NNG_ENABLE_NNGCAT "" OFF)
 
 ##########################################################################
 
+include_directories(.deps/hana-1.80.0/include)
 include_directories(src/include)
 
 ##########################################################################

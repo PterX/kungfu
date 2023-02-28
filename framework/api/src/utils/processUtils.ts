@@ -16,7 +16,7 @@ import {
   getIfProcessRunning,
   getIfProcessDeleted,
   delayMilliSeconds,
-  isTdMdStrategy,
+  isTdMdOperatorStrategy,
 } from '../utils/busiUtils';
 import {
   buildProcessLogPath,
@@ -156,7 +156,7 @@ export const pm2Connect = (): Promise<void> => {
   return new Promise((resolve, reject) => {
     pm2.connect((err: Error) => {
       if (err) {
-        kfLogger.error(err.message);
+        kfLogger.error(err);
         reject(err);
         return;
       }
@@ -170,7 +170,7 @@ export const pm2List = (): Promise<ProcessDescription[]> => {
   return new Promise((resolve, reject) => {
     pm2.list((err: Error, pList: ProcessDescription[]) => {
       if (err) {
-        kfLogger.error(err.message);
+        kfLogger.error(err);
         reject(err);
         return;
       }
@@ -187,7 +187,7 @@ export const pm2Describe = (
     //此处无需connect, 不然windows会卡死
     pm2.describe(processId, (err: Error, pList: ProcessDescription[]) => {
       if (err) {
-        kfLogger.error(err.message);
+        kfLogger.error(err);
         reject(err);
         return;
       }
@@ -203,7 +203,7 @@ const pm2Start = (options: Pm2StartOptions): Promise<Proc> => {
       .then(() => {
         pm2.start(options, (err: Error, proc: Proc) => {
           if (err) {
-            kfLogger.error(err.message);
+            kfLogger.error(err);
             reject(err);
             return;
           }
@@ -212,7 +212,7 @@ const pm2Start = (options: Pm2StartOptions): Promise<Proc> => {
         });
       })
       .catch((err: Error) => {
-        kfLogger.error(err.message);
+        kfLogger.error(err);
         reject(err);
       });
   });
@@ -224,7 +224,7 @@ const pm2Stop = (processId: string): Promise<void> => {
       .then(() => {
         pm2.stop(processId, (err: Error) => {
           if (err) {
-            kfLogger.error(err.message);
+            kfLogger.error(err);
             reject(err);
             return;
           }
@@ -233,7 +233,7 @@ const pm2Stop = (processId: string): Promise<void> => {
         });
       })
       .catch((err: Error) => {
-        kfLogger.error(err.message);
+        kfLogger.error(err);
         reject(err);
       });
   });
@@ -245,7 +245,7 @@ const pm2Delete = (processId: string): Promise<void> => {
       .then(() => {
         pm2.delete(processId, (err: Error) => {
           if (err) {
-            kfLogger.error(err.message);
+            kfLogger.error(err);
             reject(err);
             return;
           }
@@ -254,7 +254,7 @@ const pm2Delete = (processId: string): Promise<void> => {
         });
       })
       .catch((err: Error) => {
-        kfLogger.error(err.message);
+        kfLogger.error(err);
         reject(err);
       });
   });
@@ -276,7 +276,7 @@ export const pm2Kill = (): Promise<void> => {
       ) => {
         pm2.disconnect();
         if (err) {
-          kfLogger.error(err.message);
+          kfLogger.error(err);
           reject(err);
           return;
         }
@@ -299,7 +299,7 @@ export const pm2KillGodDaemon = (): Promise<void> => {
       pm2.killDaemon((err: Error) => {
         pm2.disconnect();
         if (err) {
-          kfLogger.error(err.message);
+          kfLogger.error(err);
           reject(err);
           return;
         }
@@ -353,10 +353,20 @@ export const startProcess = async (
 
       KFC_AS_VARIANT: '',
       ...options.env,
+
+      // cover father process env
+      APP_TYPE: '',
+      APP_ID: '',
+      UI_EXT_TYPE: '',
+      BY_PASS_ACCOUNTING: '',
+      BY_PASS_TRADINGDATA: '',
+      BY_PASS_RESTORE: '',
     },
   };
 
-  return pm2Start(optionsResolved).catch((err) => kfLogger.error(err.message));
+  return pm2Start(optionsResolved).catch((err) => {
+    kfLogger.error(err);
+  });
 };
 
 export const stopProcess = pm2Stop;
@@ -365,35 +375,36 @@ export const requestStop = (
   watcher: KungfuApi.Watcher,
   kfLocation: KungfuApi.KfLocation,
 ) => {
-  if (isTdMdStrategy(kfLocation.category)) {
-    return Promise.resolve(watcher.requestStop(kfLocation));
-  }
-
-  return Promise.resolve();
+  return Promise.resolve(watcher.requestStop(kfLocation));
 };
 
-export const graceStopProcess = (
+export const graceStopProcess = async (
   watcher: KungfuApi.Watcher | null,
   kfLocation: KungfuApi.KfConfig | KungfuApi.KfLocation,
   processStatusData?: Pm2ProcessStatusData,
 ): Promise<void> => {
+  if (!processStatusData) {
+    const { processStatus } = await listProcessStatus();
+    processStatusData = processStatus;
+  }
+
   const processId = getProcessIdByKfLocation(kfLocation);
 
   if (!watcher) {
     return Promise.reject(new Error('Watcher is NULL'));
   }
 
-  if (!processStatusData || getIfProcessRunning(processStatusData, processId)) {
+  if (getIfProcessRunning(processStatusData, processId)) {
     if (
       watcher &&
       !watcher.isReadyToInteract(kfLocation) &&
-      isTdMdStrategy(kfLocation.category)
+      isTdMdOperatorStrategy(kfLocation.category)
     ) {
       return Promise.reject(new Error(t('未就绪', { processId })));
     }
 
-    return Promise.resolve(requestStop(watcher, kfLocation))
-      .then(() => delayMilliSeconds(1000))
+    return requestStop(watcher, kfLocation)
+      .then(() => delayMilliSeconds(200))
       .then(() => stopProcess(processId));
   }
 
@@ -402,27 +413,32 @@ export const graceStopProcess = (
 
 export const deleteProcess = pm2Delete;
 
-export const graceDeleteProcess = (
+export const graceDeleteProcess = async (
   watcher: KungfuApi.Watcher | null,
   kfLocation: KungfuApi.KfConfig | KungfuApi.KfLocation,
   processStatusData?: Pm2ProcessStatusData,
 ): Promise<void> => {
+  if (!processStatusData) {
+    const { processStatus } = await listProcessStatus();
+    processStatusData = processStatus;
+  }
+
   const processId = getProcessIdByKfLocation(kfLocation);
 
   if (!watcher) {
     return Promise.reject(new Error('Watcher is NULL'));
   }
 
-  if (!processStatusData || getIfProcessRunning(processStatusData, processId)) {
+  if (getIfProcessRunning(processStatusData, processId)) {
     if (
       watcher &&
       !watcher.isReadyToInteract(kfLocation) &&
-      isTdMdStrategy(kfLocation.category)
+      isTdMdOperatorStrategy(kfLocation.category)
     ) {
       return Promise.reject(new Error(t('未就绪', { processId })));
     }
 
-    return Promise.resolve(requestStop(watcher, kfLocation))
+    return requestStop(watcher, kfLocation)
       .then(() => delayMilliSeconds(1000))
       .then(() => deleteProcess(processId));
   } else if (!getIfProcessDeleted(processStatusData, processId)) {
@@ -434,18 +450,21 @@ export const graceDeleteProcess = (
 
 export function startProcessGetStatusUntilStop(
   options: Pm2StartOptions,
-  cb?: Function,
+  cb?: (processStatus: Pm2ProcessStatusTypes) => void,
 ) {
   return new Promise((resolve) => {
     startProcess({ ...options }).then(() => {
-      let timer = startGetProcessStatusByName(options.name, (res: any[]) => {
-        const status = res[0]?.pm2_env?.status as Pm2ProcessStatusTypes;
-        cb && cb(status);
-        if (status !== 'online') {
-          timer.clearLoop();
-          resolve(status);
-        }
-      });
+      const timer = startGetProcessStatusByName(
+        options.name,
+        (res: ProcessDescription[]) => {
+          const status = res[0]?.pm2_env?.status as Pm2ProcessStatusTypes;
+          cb && cb(status);
+          if (status !== 'online') {
+            timer.clearLoop();
+            resolve(status);
+          }
+        },
+      );
     });
   });
 }
@@ -480,7 +499,7 @@ export const listProcessStatus = (): Promise<{
   processStatus: Pm2ProcessStatusData;
   processStatusWithDetail: Pm2ProcessStatusDetailData;
 }> => {
-  return pm2List().then((pList: any[]) => {
+  return pm2List().then((pList: ProcessDescription[]) => {
     const processStatus = buildProcessStatus(pList);
     const processStatusWithDetail = buildProcessStatusWidthDetail(pList);
     return { processStatus, processStatusWithDetail };
@@ -489,7 +508,7 @@ export const listProcessStatus = (): Promise<{
 
 export const listProcessStatusWithDetail =
   (): Promise<Pm2ProcessStatusDetailData> => {
-    return pm2List().then((pList: any[]) =>
+    return pm2List().then((pList: ProcessDescription[]) =>
       buildProcessStatusWidthDetail(pList),
     );
   };
@@ -565,20 +584,23 @@ function getRocketParams(args: string, ifRocket: boolean) {
 
 function buildArgs(args: string): string {
   const globalSetting = getKfGlobalSettingsValue();
-  const logLevel: string = globalSetting?.system?.logLevel || '';
-  const ifRocket = globalSetting?.performance?.rocket || false;
+  const logLevel: string = globalSetting?.system?.logLevel ?? '';
+  const ifRocket = globalSetting?.performance?.rocket ?? false;
   const rocket = getRocketParams(args, ifRocket);
   return [logLevel, args, rocket].join(' ');
 }
 
 //循环获取processStatus
-function startGetProcessStatusByName(name: string, callback: Function) {
+function startGetProcessStatusByName(
+  name: string,
+  callback: (pList: ProcessDescription[]) => void,
+) {
   const timer = setTimerPromiseTask(() => {
     return pm2Describe(name)
       .then((pList: ProcessDescription[]) => {
         callback(pList);
       })
-      .catch((err) => kfLogger.error(err.message));
+      .catch((err) => kfLogger.error(err));
   }, 1000);
 
   return timer;
@@ -588,11 +610,15 @@ function startGetProcessStatusByName(name: string, callback: Function) {
 
 //================ business related start ===============
 
-export function startArchiveMakeTask(cb?: Function) {
+export function startArchiveMakeTask(
+  cb?: (processStatus: Pm2ProcessStatusTypes) => void,
+) {
+  const globalSetting = getKfGlobalSettingsValue();
+  const bypassArchive = globalSetting?.system?.bypassArchive ?? false;
   return startProcessGetStatusUntilStop(
     {
       name: 'archive',
-      args: buildArgs('journal archive'),
+      args: buildArgs(`journal archive ${bypassArchive ? '-m delete' : ''}`),
     },
     cb,
   );
@@ -667,7 +693,7 @@ async function preStartProcess(
 
   if (!force && isProcessAlive) {
     const err = new Error(`kungfu ${processName} is alive`);
-    kfLogger.error(err.message);
+    kfLogger.error(err);
     return Promise.reject(err);
   }
 
@@ -677,7 +703,7 @@ async function preStartProcess(
 //启动md
 export const startMd = async (
   sourceId: string,
-  kfConfig: KungfuApi.KfConfig,
+  kfConfig: KungfuApi.DerivedKfLocation,
 ): Promise<Proc | void> => {
   const extDirs = await flattenExtensionModuleDirs(EXTENSION_DIRS);
   const args = buildArgs(
@@ -704,15 +730,17 @@ export const startMd = async (
     );
 
   return startProcess(options).catch((err) => {
-    kfLogger.error(err.message);
+    kfLogger.error(err);
   });
 };
 
 //启动td
 export const startTd = async (
   accountId: string,
-  kfConfig: KungfuApi.KfConfig,
+  kfConfig: KungfuApi.DerivedKfLocation,
 ): Promise<Proc | void> => {
+  const globalSetting = getKfGlobalSettingsValue();
+  const autorestart = globalSetting?.system?.autoRestartTd ?? true;
   const extDirs = await flattenExtensionModuleDirs(EXTENSION_DIRS);
   const { source, id } = (accountId || '').parseSourceAccountId();
   const args = buildArgs(
@@ -731,14 +759,18 @@ export const startTd = async (
         cwd,
         script: `${dealSpaceInPath(path.join(KFC_DIR, kfcName))}`,
         args,
-        max_restarts: 3,
-        autorestart: true,
+        ...(autorestart
+          ? {
+              max_restarts: 4, // pm2 在进程退出时对重启次数进行 +1，所有第一次退出也被计算在内，重启 3 次的话这里就应该填 4
+              autorestart: true,
+            }
+          : {}),
         force: true,
       },
     );
 
   return startProcess(options).catch((err) => {
-    kfLogger.error(err.message);
+    kfLogger.error(err);
   });
 };
 
@@ -765,24 +797,57 @@ export const startTask = async (
     },
     force: true,
   }).catch((err) => {
-    kfLogger.error(err.message);
+    kfLogger.error(err);
   });
 };
 
-export const startStrategyByLocalPython = async (
+export const startOperatorByExt = async (
+  kfConfig: KungfuApi.DerivedKfLocation,
+) => {
+  const extDirs = await flattenExtensionModuleDirs(EXTENSION_DIRS);
+  const { group, name } = kfConfig;
+  const args = buildArgs(
+    `-X "${extDirs
+      .map((dir) => dealSpaceInPath(path.dirname(dir)))
+      .join(path.delimiter)}" run -c operator -g "${group}" -n "${name}"`,
+  );
+  const cwd = dealSpaceInPath(
+    path.join(KF_RUNTIME_DIR, 'operator', group, name),
+  );
+  await fse.ensureDir(cwd);
+  const fullProcessId = `operator_${group}_${name}`;
+  const options =
+    await globalThis.HookKeeper.getHooks().resolveStartOptions.trigger(
+      kfConfig,
+      {
+        name: fullProcessId,
+        cwd,
+        script: `${dealSpaceInPath(path.join(KFC_DIR, kfcName))}`,
+        args,
+        force: true,
+      },
+    );
+
+  return startProcess(options).catch((err) => {
+    kfLogger.error(err);
+  });
+};
+
+export const startStrategyOperatorByLocalPython = async (
+  category: 'strategy' | 'operator',
   name: string,
-  strategyPath: string,
+  filePath: string,
   pythonPath: string,
 ): Promise<Proc | void> => {
   const baseArgs = [
     'run',
     '-c',
-    'strategy',
+    category,
     '-g',
     'default',
     '-n',
     name,
-    `'${strategyPath}'`,
+    `'${filePath}'`,
   ].join(' ');
   const baseArgsResolved = buildArgs(baseArgs);
   const args = ['-m', 'kungfu', baseArgsResolved].join(' ');
@@ -791,7 +856,7 @@ export const startStrategyByLocalPython = async (
     return Promise.reject(new Error('No local python path!'));
   }
 
-  const fullPythonPathList = pythonPath.split('/');
+  const fullPythonPathList = pythonPath.replace(/\\/g, '/').split('/');
   const pythonFolder = fullPythonPathList
     .slice(0, fullPythonPathList.length - 1)
     .join('/');
@@ -800,38 +865,53 @@ export const startStrategyByLocalPython = async (
     .join('/');
 
   return startProcess({
-    name: `strategy_${name}`,
+    name: `${category}_${name}`,
     args,
-    cwd: `'${pythonFolder}'`,
-    script: `'${pythonFile}'`,
+    cwd: `${dealSpaceInPath(pythonFolder)}`,
+    script: `${pythonFile}`,
     force: true,
   }).catch((err) => {
-    kfLogger.error(err.message);
+    kfLogger.error(err);
   });
 };
 
 //启动strategy
-export const startStrategy = (
-  strategyId: string,
-  strategyPath: string,
+export const startStrategyOperator = async (
+  category: 'strategy' | 'operator',
+  id: string,
+  filePath: string,
 ): Promise<Proc | void> => {
-  strategyPath = dealSpaceInPath(strategyPath);
+  filePath = dealSpaceInPath(filePath);
   const globalSetting = getKfGlobalSettingsValue();
-  const ifLocalPython = globalSetting?.strategy?.python || false;
-  const pythonPath = globalSetting?.strategy?.pythonPath || '';
+  const ifLocalPython = globalSetting?.strategy?.python ?? false;
+  const pythonPath = globalSetting?.strategy?.pythonPath ?? '';
+  const strategyOperatorIdResolved = `${category}_${id}`;
 
-  if (ifLocalPython && strategyPath.endsWith('.py')) {
-    return startStrategyByLocalPython(strategyId, strategyPath, pythonPath);
+  //因为pm2环境残留，在反复切换本地python跟内置python时，会出现本地python启动失败，所以需要先pm2 kill
+  try {
+    kfLogger.info(`Clear existed ${category} ${strategyOperatorIdResolved}`);
+    await deleteProcess(strategyOperatorIdResolved);
+  } catch (err) {
+    kfLogger.warn(err);
+  }
+
+  if (ifLocalPython && filePath.endsWith('.py')) {
+    return startStrategyOperatorByLocalPython(
+      category,
+      id,
+      filePath,
+      pythonPath,
+    );
   } else {
     const args = buildArgs(
-      `run -c strategy -g default -n '${strategyId}' '${strategyPath}'`,
+      `run -c ${category} -g default -n '${id}' '${filePath}'`,
     );
     return startProcess({
-      name: `strategy_${strategyId}`,
+      name: strategyOperatorIdResolved,
       args,
       force: true,
     }).catch((err) => {
-      kfLogger.error(err.message);
+      kfLogger.error(err);
     });
   }
 };
@@ -850,7 +930,7 @@ export const startDzxy = () => {
     },
     kill_timeout: 500,
   }).catch((err) => {
-    kfLogger.error(err.message);
+    kfLogger.error(err);
   });
 };
 
@@ -868,20 +948,7 @@ export const startExtDaemon = (name: string, cwd: string, script: string) => {
     },
     kill_timeout: 500,
   }).catch((err) => {
-    kfLogger.error(err.message);
-  });
-};
-
-export const startBar = (
-  targetName: string,
-  source: string,
-  timeInterval: string,
-): Promise<Proc | void> => {
-  return startProcess({
-    name: targetName,
-    args: buildArgs(`service bar -s ${source} --time-interval ${timeInterval}`),
-  }).catch((err) => {
-    kfLogger.error(err.message);
+    kfLogger.error(err);
   });
 };
 
@@ -894,7 +961,7 @@ export const startCustomProcess = (
     name: targetName,
     args,
   }).catch((err) => {
-    kfLogger.error(err.message);
+    kfLogger.error(err);
   });
 };
 

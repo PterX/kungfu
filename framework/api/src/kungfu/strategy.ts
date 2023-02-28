@@ -3,8 +3,13 @@ import { getStrategyKfLocation, getKfConfig } from './store';
 export const getStrategyById = (
   strategyId: string,
 ): Promise<Array<Code.Strategy>> => {
-  return new Promise((resolve) => {
-    const strategyData: KungfuApi.KfConfig = getKfConfig(strategyId);
+  return new Promise((resolve, reject) => {
+    const strategyData: KungfuApi.KfConfig | false = getKfConfig(strategyId);
+    if (!strategyData) {
+      reject(new Error('Failed to get strategy'));
+      return;
+    }
+
     const strategy: Array<Code.Strategy> = [
       { ...JSON.parse(strategyData.value || '{}') },
     ];
@@ -27,7 +32,7 @@ export const updateStrategyPath = async (
       kfLocation,
       JSON.stringify({
         strategy_id: strategyId,
-        strategy_path: strategyPath,
+        file_path: strategyPath,
         add_time: addTime,
       }),
     );

@@ -81,7 +81,7 @@ export const updateMdTdStrategy = async () => {
         tip: '需保证该策略ID唯一',
       },
       {
-        key: 'strategy_path',
+        key: 'file_path',
         name: '策略路径',
         type: 'file',
         required: true,
@@ -90,6 +90,8 @@ export const updateMdTdStrategy = async () => {
 
     return buildPromptAndSetConfig(strategySettings, initValue, kfLocation);
   }
+
+  return false;
 };
 
 function getTargetKfConfig(
@@ -104,7 +106,7 @@ async function buildPromptAndSetConfig(
   settings: KungfuApi.KfConfigItem[],
   initValue: Record<string, KungfuApi.KfConfigValue>,
   kfLocation: KungfuApi.KfLocation,
-): Promise<void> {
+): Promise<boolean> {
   const formState = await getPromptQuestionsBySettings(settings, initValue);
 
   return setKfConfig(

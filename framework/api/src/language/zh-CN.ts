@@ -17,6 +17,9 @@ export default {
   location_error: '当前 Location 错误',
   watcher_error: 'Watcher is NULL',
   instrument_error: '标的错误',
+  component_error: '组件错误',
+  board_empty: '未添加任何面板',
+  add_board_now: '立即添加',
   prompt: '提示',
   warning: '警告',
   confirm: '确 认',
@@ -42,6 +45,7 @@ export default {
   clear_DB: '清理DB',
   reset_main_panel: '重置主面板',
   export_all_transaction_data: '导出所有交易数据',
+  view_all_journal: '查看所有journal',
 
   website: '官网',
   user_manual: '用户手册',
@@ -58,18 +62,24 @@ export default {
   clear: '清理 {content} 完成, 请重启应用',
   open_window: '正在打开窗口',
   open_code_editor: '正在打开代码编辑器',
+  open_journal_dashboard: '正在打开journal面板',
   open_trading_task_view: '正在打开交易任务视图',
   add_board: '添加面板',
   select_board: '请选择要添加的面板',
   add_board_error: '添加面板目标错误',
+  select_date: '选择日期',
+  date_type: '日期类型',
+  natural_day: '自然日',
+  trading_day: '交易日',
 
   delete_category:
-    '删除 {category} 所有数据， 如果该 {categoryName} 进程正在运行, 也将停止进程, 确认删除',
+    '删除 {category} 所有数据,  如果该 {categoryName} 进程正在运行, 也将停止进程, 确认删除',
   add_config_modal:
     '{category}ID系统唯一, {changeTypeName} 成功后不可修改, 确认 {key}',
   update_config_modal: '确认{key} 相关配置',
+  database_locked: '当前数据库被其他进程占用, 请稍后再试',
 
-  MakeOrderDashboard: '下单面板',
+  MakeOrder: '下单面板',
   FutureArbitrage: '套利指令',
   BlockTrade: '大宗交易',
   OrderBook: '深度行情',
@@ -78,14 +88,30 @@ export default {
   Strategy: '策略进程',
   Md: '行情源',
   Td: '交易账户',
+  Operator: '算子',
   Trade: '成交记录',
   Order: '委托记录',
   PosGlobal: '持仓汇总',
   Pos: '持仓',
 
+  select_broker_ext: '选择柜台API',
+  select_operator_ext: '选择算子插件',
+  select_trade_task: '选择交易任务',
+  select_plugin_type: '选择插件类型',
+
+  please_wait: '请稍后',
+
   baseConfig: {
     main_panel: '主面板',
     control_center: '控制中心',
+  },
+
+  settingsFormConfig: {
+    keyword: '关键词',
+    add_csv: '导入 csv',
+    csv_template: '下载 csv 模板',
+    add_csv_desc: 'csv 表头为 {header}',
+    clear: '清除',
   },
 
   tradingConfig: {
@@ -113,11 +139,29 @@ export default {
     md: '行情源',
     td: '交易账户 ',
     strategy: '策略',
+    operator: '算子',
 
     open: '开',
     close: '平',
     close_today: '平今',
     close_yesterday: '平昨',
+
+    by_quantity: '按数量',
+    by_proportion: '按比例',
+
+    latest: '最新价',
+    sell5: '卖五价',
+    sell4: '卖四价',
+    sell3: '卖三价',
+    sell2: '卖二价',
+    sell1: '卖一价',
+    buy1: '买一价',
+    buy2: '买二价',
+    buy3: '买三价',
+    buy4: '买四价',
+    buy5: '买五价',
+    up_limit_price: '涨停价',
+    low_limit_price: '跌停价',
 
     buy: '买',
     sell: '卖',
@@ -152,7 +196,7 @@ export default {
     Limit: '[Limit] 限价',
     Market: '[Any] 市价',
     FakBest5: '[FakBest5] 上海深圳最优五档即时成交剩余撤销, 不需要报价',
-    Forward_best: '[ForwardBest] 深圳本方方最优价格申报',
+    Forward_best: '[ForwardBest] 深圳本方最优价格申报',
     Reverse_best:
       '[ReverseBest] 上海最优五档即时成交剩余转限价, 深圳对手方最优价格申报, 不需要报价',
     Fak: '[Fak] 深圳即时成交剩余撤销',
@@ -183,7 +227,8 @@ export default {
     index: '指数',
     repo: '回购',
     crypto: '数字货币',
-    crypto_future: '数字货币合约',
+    crypto_future: '数字货币币本位合约',
+    crypto_ufuture: '数字货币U本位合约',
     multi: '多品种',
 
     SSE: '上交所',
@@ -196,7 +241,7 @@ export default {
     INE: '能源中心',
 
     HK: '港股',
-    HKFUT: '港股期货',
+    HKFUT: '港期',
     US: '美股',
     GLFX: '全球外汇',
     IPE: 'IPE',
@@ -235,9 +280,13 @@ export default {
     price: '价格',
     protect_price: '保护价格',
     price_type: '方式',
+    price_level: '目标价格',
+    price_offset: '偏移',
     side: '买卖',
     offset: '开平',
+    direction: '多空',
     limit_price: '下单价格',
+    algorithm: '算法',
 
     make_order_number: '下单次数',
     no_empty: '下单量不可为空',
@@ -248,10 +297,14 @@ export default {
       '买入价格超出警戒线, 当前价格为 {price}, 警戒线为 {warningLine}, 当前乌龙指阈值为 {fatFinger}%',
     fat_finger_sell_modal:
       '卖出价格超出警戒线, 当前价格为 {price}, 警戒线为 {warningLine}, 当前乌龙指阈值为 {fatFinger}%',
+    close_apart_open_modal:
+      '下单量为 {volume}, 当前标的可平 {direction} 仓为 {closable_volume}, 超出数量为 {open_volume}\n点击 “超出部分反向开仓”, 将会 平 {direction} {closable_volume}, 开{direction} {open_volume}\n点击“按原方案下单”, 将会继续平 {direction} {volume}',
     start_process: '请先启动{process}交易进程',
     place_confirm: '下单确认',
-    close_all: '是否全部平仓?',
+    continue_close_rate: '超过平仓阈值 ({rate}%), 是否继续下单?',
     Continue: '继续下单',
+    original_plan: '按原方案下单',
+    beyond_to_open: '超出部分反向开仓',
   },
 
   orderConfig: {
@@ -261,6 +314,7 @@ export default {
     order_status: '订单状态',
     latency_system: '系统延迟μs',
     latency_network: '网络延迟μs',
+    avg_price: '成交均价',
     dest_uname: '下单源',
     source_uname: '目标账户',
     completed: '已完成',
@@ -282,7 +336,7 @@ export default {
     confirm: '确认',
 
     entrust_statistical: '委托统计',
-    statistical_desc: '实时(最新100条数据)',
+    statistical_desc: '实时(最新{count}条数据)',
     entrust_statistical_number: '委托统计数量',
     entrust_statistical_price: '委托价统计',
     average_withdrawal_ratio: '平均撤单比 (仅统计 部成部撤 和 全部撤单)',
@@ -314,7 +368,7 @@ export default {
     add_group_placeholder: '添加分组',
     set_td_group: '账户分组设置',
     account_group: '账户组',
-    td_not_found: '{td}柜台插件不存在',
+    td_not_found: '{td} 柜台插件不存在',
     sourse_not_found: '配置项不存在, 请检查 {value} package.json',
     need_only_group: '需保证该账户组名称唯一',
     delete_amount_group: '删除账户组 {group}',
@@ -331,7 +385,7 @@ export default {
     select_plugin_type: '选择插件类型',
 
     add_md: '添加',
-    counter_plugin_inexistence: '柜台插件不存在',
+    md_not_found: '{md} 柜台插件不存在',
   },
 
   strategyConfig: {
@@ -350,7 +404,29 @@ export default {
     add_strategy: '添加',
   },
 
+  operatorConfig: {
+    operator: '算子',
+    operator_id: '算子ID',
+    operator_file: '算子文件',
+    operator_path: '算子路径',
+    operator_path_tip:
+      '普通 python 算子选择 .py 文件, 加密 python 算子或cpp算子选择编译后的 .so 或 .pyd 文件',
+    state_status: '状态',
+    process_status: '进程',
+    actions: '操作',
+    operator_tip: '需保证该算子ID唯一',
+
+    add_operator: '添加',
+    operator_not_found: '{operator} 算子插件不存在',
+    add_operator_type: {
+      title: '选择算子类型',
+      extension: '插件',
+      file: '文件',
+    },
+  },
+
   tradingTaskConfig: {
+    tradingTask: '交易任务',
     task_id: '任务ID',
     process_status: '进程',
     args: '参数',
@@ -359,7 +435,7 @@ export default {
     add_task: '添加',
     illegal_process_id: '不是合法交易任务进程ID',
     key_inexistence: '交易任务插件 key 不存在',
-    plugin_inexistence: '交易任务插件不存在',
+    plugin_inexistence: '{key} 交易任务插件不存在',
     configuration_inexistence: '配置项不存在, 请检查',
     delete_task: '删除交易任务',
     delete_task_content:
@@ -372,6 +448,9 @@ export default {
     yesterday_volume: '昨',
     today_volume: '今',
     sum_volume: '总',
+    frozen_total: '冻结数量',
+    frozen_volume: '冻结',
+    closable_volume: '可平',
     avg_open_price: '开仓均价',
     last_price: '最新价',
     unrealized_pnl: '浮动盈亏',
@@ -390,6 +469,33 @@ export default {
     add_market: '添加自选',
   },
 
+  journalConfig: {
+    session_id: 'Session ID',
+    begin_time: '开始时间',
+    end_time: '结束时间',
+    status: '状态',
+
+    finished: '已结束',
+    running: '运行中',
+
+    dest: '目标',
+    source: '源头',
+    gen_time: '生成时间',
+    trigger_time: '触发时间',
+    msg_type: '消息类型',
+
+    filters: '过滤器',
+    apply_filters: '应用过滤',
+
+    export: '导出',
+    export_file_path: '导出文件目录',
+    need_directroy: '请选择目录',
+    export_success: '导出成功',
+    directroy_be_valued: '导出目录不能为空',
+
+    loading_journal: '正在加载 journal',
+  },
+
   tradeConfig: {
     trade_time_resolved: '成交时间',
     kf_time_resolved: '系统时间',
@@ -405,7 +511,7 @@ export default {
     statistical: '成交统计',
     statistical_count: '统计成交数量',
     statistical_price: '成交价统计',
-    statistical_desc: '实时(最新100条数据)',
+    statistical_desc: '实时(最新500条数据)',
     average_trade_latency: '平均成交延迟(μs)',
     max_trade_latency: '最大成交延迟(μs)',
     min_trade_latency: '最小成交延迟(μs)',
@@ -444,11 +550,8 @@ export default {
     limit_price: '价格',
     volume: '下单量',
     opponent_seat: '对方席位',
-    opponent_account: '对方股东',
     match_number: '约定序号',
-    linkman: '联系人',
-    contact_way: '联系方式',
-    underweight_type: '减持类型',
+    is_specific: '减持类型',
 
     unrestricted_shares: '非受限股份',
     restricted_shares: '受限股份',
@@ -464,13 +567,20 @@ export default {
     log_level: '全局日志级别',
     for_all_log: '对系统内所有日志级别的设置',
 
+    auto_restart_td: '交易进程自动重启',
+    auto_restart_td_desc:
+      '交易进程断开时是否自动重启, 如果打开, 则当交易进程出错后, 会尝试重连三次, 如果关闭, 则不会；在重启过程中（重启开始到交易进程就绪）, 策略内查询到的持仓会为0, 需要在策略内通过 on_deregister, on_broker_state_change这两个方法来判断柜台状态是否断开/重启就绪',
+
     language: '语言',
-    select_language: '选择语言',
+    select_language_desc: '选择语言, 修改后重启功夫生效',
+    bypass_archive: '跳过归档',
+    bypass_archive_desc:
+      '仅删除上个交易日留下的journal与log文件, 不再压缩打包, 跳过归档后无法恢复之前的内存数据, 会加快启动速度',
 
     porformance: '性能',
     rocket_model: '开启极速模式',
     rocket_model_desc:
-      '开启极速模式会极大的降低系统延迟, 并会使 CPU 使用效率达到100%, 重启后生效',
+      '开启极速模式会极大的降低系统延迟 (只有当 CPU 核数大于 4 时才能开启) , 并会使 CPU 使用效率达到100%, 重启后生效',
     bypass_accounting: '跳过UI进程计算',
     bypass_accounting_desc:
       'UI进程不再处理计算逻辑, 完全通过计算进程更新数据, 减轻UI进程性能占用, 重启后生效',
@@ -514,19 +624,6 @@ export default {
     close_today: '平今',
     close_yesterday: '平昨',
     min: '最小',
-
-    timing_rev_top: '定时起停',
-    use_timing_rev_top: '使用定时起停',
-    timing_task_list: '定时起停任务列表',
-    add_timing: '添加定时',
-    target_process: '目标进程',
-    manner: '方式',
-    daily_time: '每日时间',
-
-    master: '主控进程',
-    start: '启动',
-    stop: '停止',
-    restart: '重启',
   },
 
   风控: '风控',
@@ -547,6 +644,7 @@ export default {
     no_negative_number: '请输入非负数',
     value_existing: '{value}已存在',
     mandatory: '该项为必填项',
+    resolved_tip: '成功匹配 {success} 个{value}, 失败 {fail} 个',
   },
 
   editor: {

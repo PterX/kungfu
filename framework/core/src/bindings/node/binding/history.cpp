@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 //
 // Created by Keren Dong on 2020/3/17.
 //
@@ -41,7 +43,7 @@ Napi::Value History::SelectPeriod(const Napi::CallbackInfo &info) {
   } catch (const std::exception &ex) {
     SPDLOG_ERROR("failed to select: {}", ex.what());
     yijinjing::util::print_stack_trace();
-    return {};
+    return Napi::Boolean::New(info.Env(), false);
   }
 }
 

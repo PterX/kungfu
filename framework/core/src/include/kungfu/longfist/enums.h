@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 //
 // Created by Keren Dong on 2020/1/28.
 //
@@ -41,7 +43,7 @@ inline mode get_mode_by_name(const std::string &name) {
     return mode::LIVE;
 }
 
-enum class category : int8_t { MD, TD, STRATEGY, SYSTEM };
+enum class category : int8_t { MD, TD, STRATEGY, SYSTEM, OPERATOR };
 
 inline std::ostream &operator<<(std::ostream &os, category t) { return os << int8_t(t); }
 
@@ -53,8 +55,8 @@ inline std::string get_category_name(category c) {
     return "td";
   case category::STRATEGY:
     return "strategy";
-  case category::SYSTEM:
-    return "system";
+  case category::OPERATOR:
+    return "operator";
   default:
     return "system";
   }
@@ -67,6 +69,8 @@ inline category get_category_by_name(const std::string &name) {
     return category::TD;
   else if (name == "strategy")
     return category::STRATEGY;
+  else if (name == "operator")
+    return category::OPERATOR;
   else
     return category::SYSTEM;
 }
@@ -121,22 +125,24 @@ enum class SubscribeInstrumentType : uint64_t {
   Fund = 0x0000000000020,       ///< 订阅基金证券品种类别
   Index = 0x000000000040,       ///< 订阅指数证券品种类别
   HKT = 0x000000000080,         ///< 订阅港股通证券品种类别
+
+  /// SubscribeInstrumentType(All | Stock), 虽然没有定义值为3的枚举值, 这个操作不会报错, 会得到一个值为3的枚举值
 };
 
 // for trading, different type has different minimum volume, price, accounting rules for making order
 enum class InstrumentType : int8_t {
-  Unknown,     // 未知
-  Stock,       // 股票
-  Future,      // 期货
-  Bond,        // 债券
-  StockOption, // 股票期权
-  TechStock,   // 科技股
-  Fund,        // 基金
-  Index,       // 指数
-  Repo,        // 回购
-  Warrant,     // 认权证
-  Iopt,        // 牛熊证
-  Crypto,      // 数字货币
+  Unknown,       // 未知
+  Stock,         // 股票
+  StockOption,   // 股票期权
+  TechStock,     // 科技股
+  Future,        // 期货
+  Bond,          // 债券
+  Fund,          // 基金
+  Index,         // 指数
+  Repo,          // 回购
+  Crypto,        // 数字货币
+  CryptoFuture,  // 数字货币期货
+  CryptoUFuture, // 数字货币期货U本位
 };
 
 inline std::ostream &operator<<(std::ostream &os, InstrumentType t) { return os << int8_t(t); }
@@ -196,10 +202,29 @@ enum class PriceType : int8_t {
   ReverseBest, // 上海最优五档即时成交剩余转限价, 深圳对手方最优价格申报，不需要报价
   Fak,         // 深圳即时成交剩余撤销，不需要报价
   Fok,         // 深圳市价全额成交或者撤销，不需要报价
-  UnKnown
+  Unknown
 };
 
 inline std::ostream &operator<<(std::ostream &os, PriceType t) { return os << int8_t(t); }
+
+enum class PriceLevel : int8_t {
+  Lastest, // 最新价
+  Sell5,
+  Sell4,
+  Sell3,
+  Sell2,
+  Sell1,
+  Buy1,
+  Buy2,
+  Buy3,
+  Buy4,
+  Buy5,
+  UpperLimitPrice, // 涨停价
+  LowerLimitPrice, // 跌停价
+  Unknown
+};
+
+inline std::ostream &operator<<(std::ostream &os, PriceLevel t) { return os << int8_t(t); }
 
 enum class VolumeCondition : int8_t { Any, Min, All };
 
@@ -222,6 +247,22 @@ enum class OrderStatus : int8_t {
 };
 
 inline std::ostream &operator<<(std::ostream &os, OrderStatus t) { return os << int8_t(t); }
+
+enum class BasketOrderStatus : int8_t { Unknown, Pending, PartialFilledNotActive, PartialFilledActive, Filled };
+
+inline std::ostream &operator<<(std::ostream &os, BasketOrderStatus t) { return os << int8_t(t); }
+
+enum class BasketOrderCalculationMode : int8_t { Static, Dynamic };
+
+inline std::ostream &operator<<(std::ostream &os, BasketOrderCalculationMode t) { return os << int8_t(t); }
+
+enum class BasketVolumeType : int8_t { Unknown, Quantity, Proportion };
+
+inline std::ostream &operator<<(std::ostream &os, BasketVolumeType t) { return os << int8_t(t); }
+
+enum class BasketType : int8_t { Custom, ETF };
+
+inline std::ostream &operator<<(std::ostream &os, BasketType t) { return os << int8_t(t); }
 
 enum class Direction : int8_t { Long, Short };
 
@@ -252,18 +293,37 @@ enum class BrokerState : int8_t {
   Ready = 100
 };
 
+inline std::ostream &operator<<(std::ostream &os, BrokerState t) { return os << int8_t(t); }
+
 enum class HistoryDataType : int8_t { Normal = 0, PageEnd = 1, TotalEnd = 2 };
 
 inline std::ostream &operator<<(std::ostream &os, HistoryDataType t) { return os << int8_t(t); }
-
-inline std::ostream &operator<<(std::ostream &os, BrokerState t) { return os << int8_t(t); }
 
 enum class StrategyState : int8_t { Normal, Warn, Error };
 
 inline std::ostream &operator<<(std::ostream &os, StrategyState t) { return os << int8_t(t); }
 
+// enum value has to be same with BrokerState
+enum class OperatorState : int8_t { Pending = 0, DisConnected = 2, Connected = 3, Ready = 100 };
+
+inline std::ostream &operator<<(std::ostream &os, OperatorState t) { return os << int8_t(t); }
+
+class AssembleMode {
+public:
+  inline static const uint32_t Channel = 0b00000001; // read only journal of location to dest_id
+  inline static const uint32_t Write = 0b00000010;   // read all journal from this location
+  inline static const uint32_t Read = 0b00000100;    // read all journal to this dest_id
+  inline static const uint32_t Public = 0b00001000;  // read all journal to location::PUBLIC
+  inline static const uint32_t All = 0b00010000;     // read all journal
+};
+
 template <typename T, typename U> inline T sub_data_bitwise(const T &a, const T &b) {
   return static_cast<T>(static_cast<U>(a) | static_cast<U>(b));
 }
+
+enum class PageStatus : int8_t { Normal, PreOpen };
+
+inline std::ostream &operator<<(std::ostream &os, PageStatus t) { return os << int8_t(t); }
+
 } // namespace kungfu::longfist::enums
 #endif // KUNGFU_LONGFIST_ENUM_H

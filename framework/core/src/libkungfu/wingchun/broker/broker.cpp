@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 //
 // Created by Keren Dong on 2020/3/10.
 //
@@ -114,8 +116,10 @@ void BrokerService::add_time_interval(int64_t nanotime, const std::function<void
 void BrokerService::update_broker_state(BrokerState state) {
   state_ = state;
   auto writer = get_writer(location::PUBLIC);
-  BrokerStateUpdate &update = writer->open_data<BrokerStateUpdate>();
-  update.state = state_;
+  BrokerStateUpdate &broker_state = writer->open_data<BrokerStateUpdate>();
+  broker_state.state = state_;
+  broker_state.location_uid = get_home_uid();
   writer->close_data();
 }
+
 } // namespace kungfu::wingchun::broker

@@ -13,8 +13,12 @@ import {
   ref,
 } from 'vue';
 import KfBlinkNum from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfBlinkNum.vue';
-import { SideEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
+import {
+  InstrumentTypeEnum,
+  SideEnum,
+} from '@kungfu-trader/kungfu-js-api/typings/enums';
 import { useQuote } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
+import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
 
 const currentInstrument = ref<KungfuApi.InstrumentResolved | undefined>();
 const { getQuoteByInstrument, getLastPricePercent } = useQuote();
@@ -29,6 +33,8 @@ const quoteData = computed(() => {
 });
 
 onMounted(() => {
+  currentInstrument.value = useGlobalStore().orderBookCurrentInstrument;
+
   if (app?.proxy) {
     const subscription = app.proxy.$globalBus.subscribe(
       (data: KfEvent.KfBusEvent) => {
@@ -49,7 +55,7 @@ const askPrices = computed(() => {
     return [];
   }
 
-  return quoteData.value.ask_price;
+  return dealQuoteAskPidPrices(quoteData.value, 'ask');
 });
 
 const bidPrices = computed(() => {
@@ -57,7 +63,7 @@ const bidPrices = computed(() => {
     return [];
   }
 
-  return quoteData.value.bid_price;
+  return dealQuoteAskPidPrices(quoteData.value, 'bid');
 });
 
 const askVolume = computed(() => {
@@ -104,6 +110,38 @@ function handleTriggerSellOrderBookPriceVolume(
     price,
     volume: BigInt(volume),
   });
+}
+
+function dealQuoteAskPidPrices(
+  quoteData: KungfuApi.Quote,
+  type: 'ask' | 'bid',
+) {
+  if (quoteData.instrument_type === InstrumentTypeEnum.future) {
+    if (currentInstrument.value) {
+      const price_tick =
+        (
+          (window.watcher?.ledger?.Instrument[currentInstrument.value.ukey] ||
+            {}) as KungfuApi.Instrument
+        ).price_tick ?? 0;
+
+      const target_price_tick = type === 'ask' ? +price_tick : -price_tick;
+
+      if (price_tick !== 0) {
+        return quoteData[`${type}_price`].reduce((pre, cur, index) => {
+          if (index === 0 || toLedgalPriceVolume(cur)) {
+            pre.push(toLedgalPriceVolume(cur));
+          } else {
+            const prePrice = pre[index - 1];
+            pre.push(toLedgalPriceVolume(prePrice + target_price_tick));
+          }
+
+          return pre;
+        }, [] as number[]);
+      }
+    }
+  }
+
+  return quoteData[`${type}_price`];
 }
 
 function toLedgalPriceVolume(num: number | bigint) {
@@ -218,7 +256,7 @@ function toLedgalPriceVolume(num: number | bigint) {
 <style lang="less">
 .kf-order-book__warp {
   height: 100%;
-  width: 100%;
+  width: calc(100% - 8px);
   display: flex;
   flex-direction: column;
   padding: 8px 8px;

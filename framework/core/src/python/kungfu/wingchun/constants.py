@@ -1,3 +1,5 @@
+#  SPDX-License-Identifier: Apache-2.0
+
 from pykungfu import longfist as lf
 
 
@@ -25,6 +27,7 @@ BsFlag = lf.enums.BsFlag
 OrderStatus = lf.enums.OrderStatus
 Direction = lf.enums.Direction
 PriceType = lf.enums.PriceType
+PriceLevel = lf.enums.PriceLevel
 VolumeCondition = lf.enums.VolumeCondition
 TimeCondition = lf.enums.TimeCondition
 OrderActionFlag = lf.enums.OrderActionFlag
@@ -35,7 +38,11 @@ MarketType = lf.enums.MarketType
 SubscribeDataType = lf.enums.SubscribeDataType
 SubscribeInstrumentType = lf.enums.SubscribeInstrumentType
 StrategyState = lf.enums.StrategyState
+OperatorState = lf.enums.OperatorState
 HistoryDataType = lf.enums.HistoryDataType
+
+BasketVolumeType = lf.enums.BasketVolumeType
+BasketType = lf.enums.BasketType
 
 AllFinalOrderStatus = [
     int(OrderStatus.Filled),

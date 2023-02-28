@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 #include "py-longfist.h"
 
 #include <kungfu/longfist/longfist.h>
@@ -25,6 +27,7 @@ void bind_enums(py::module &m) {
       .value("TD", category::TD)
       .value("STRATEGY", category::STRATEGY)
       .value("SYSTEM", category::SYSTEM)
+      .value("OPERATOR", category::OPERATOR)
       .export_values();
   m_enums.def("get_category_name", &get_category_name);
   m_enums.def("get_category_by_name", &get_category_by_name);
@@ -47,9 +50,9 @@ void bind_enums(py::module &m) {
       .value("Fund", InstrumentType::Fund)
       .value("Index", InstrumentType::Index)
       .value("Repo", InstrumentType::Repo)
-      .value("Warrant", InstrumentType::Warrant)
-      .value("Iopt", InstrumentType::Iopt)
       .value("Crypto", InstrumentType::Crypto)
+      .value("CryptoFuture", InstrumentType::CryptoFuture)
+      .value("CryptoUFuture", InstrumentType::CryptoUFuture)
       .export_values()
       .def("__eq__", [](const InstrumentType &a, int b) { return static_cast<int>(a) == b; });
 
@@ -142,6 +145,46 @@ void bind_enums(py::module &m) {
       .export_values()
       .def("__eq__", [](const PriceType &a, int b) { return static_cast<int>(a) == b; });
 
+  py::enum_<PriceLevel>(m_enums, "PriceLevel", py::arithmetic())
+      .value("Lastest", PriceLevel::Lastest)
+      .value("Sell5", PriceLevel::Sell5)
+      .value("Sell4", PriceLevel::Sell4)
+      .value("Sell3", PriceLevel::Sell3)
+      .value("Sell2", PriceLevel::Sell2)
+      .value("Sell1", PriceLevel::Sell1)
+      .value("Buy1", PriceLevel::Buy1)
+      .value("Buy2", PriceLevel::Buy2)
+      .value("Buy3", PriceLevel::Buy3)
+      .value("Buy4", PriceLevel::Buy4)
+      .value("Buy5", PriceLevel::Buy5)
+      .value("UpperLimitPrice", PriceLevel::UpperLimitPrice)
+      .value("lowerLimitPrice", PriceLevel::LowerLimitPrice)
+      .value("Unknown", PriceLevel::Unknown)
+      .export_values()
+      .def("__eq__", [](const Direction &a, int b) { return static_cast<int>(a) == b; });
+
+  py::enum_<BasketOrderStatus>(m_enums, "BasketOrderStatus", py::arithmetic())
+      .value("Unknown", BasketOrderStatus::Unknown)
+      .value("Pending", BasketOrderStatus::Pending)
+      .value("PartialFilledNotActive", BasketOrderStatus::PartialFilledNotActive)
+      .value("PartialFilledActive", BasketOrderStatus::PartialFilledActive)
+      .value("Filled", BasketOrderStatus::Filled)
+      .export_values()
+      .def("__eq__", [](const BrokerState &a, int b) { return static_cast<int>(a) == b; });
+
+  py::enum_<BasketVolumeType>(m_enums, "BasketVolumeType", py::arithmetic())
+      .value("Unknown", BasketVolumeType::Unknown)
+      .value("Quantity", BasketVolumeType::Quantity)
+      .value("Proportion", BasketVolumeType::Proportion)
+      .export_values()
+      .def("__eq__", [](const BrokerState &a, int b) { return static_cast<int>(a) == b; });
+
+  py::enum_<BasketType>(m_enums, "BasketType", py::arithmetic())
+      .value("Custom", BasketType::Custom)
+      .value("ETF", BasketType::ETF)
+      .export_values()
+      .def("__eq__", [](const BrokerState &a, int b) { return static_cast<int>(a) == b; });
+
   py::enum_<VolumeCondition>(m_enums, "VolumeCondition", py::arithmetic())
       .value("Any", VolumeCondition::Any)
       .value("Min", VolumeCondition::Min)
@@ -177,6 +220,14 @@ void bind_enums(py::module &m) {
       .value("Ready", BrokerState::Ready)
       .export_values()
       .def("__eq__", [](const BrokerState &a, int b) { return static_cast<int>(a) == b; });
+
+  py::enum_<OperatorState>(m_enums, "OperatorState", py::arithmetic())
+      .value("Pending", OperatorState::Pending)
+      .value("DisConnected", OperatorState::DisConnected)
+      .value("Connected", OperatorState::Connected)
+      .value("Ready", OperatorState::Ready)
+      .export_values()
+      .def("__eq__", [](const OperatorState &a, int b) { return static_cast<int>(a) == b; });
 
   py::enum_<HistoryDataType>(m_enums, "HistoryDataType", py::arithmetic())
       .value("Normal", HistoryDataType::Normal)

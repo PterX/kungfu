@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 module.exports = function () {
   const binding = (() => {
     try {
@@ -62,12 +64,20 @@ module.exports = function () {
     CommissionStore: function (home) {
       return new binding.CommissionStore(home);
     },
+    BasketStore: function (home) {
+      return new binding.BasketStore(home);
+    },
+    BasketInstrumentStore: function (home) {
+      return new binding.BasketInstrumentStore(home);
+    },
     watcher: function (
       home,
       name,
       bypassRestore = false,
       bypassAccounting = false,
       bypassTradingData = false,
+      refreshTradingDataBeforeSync = false,
+      millisecondsSleepAfterStep = 200,
     ) {
       return new binding.Watcher(
         home,
@@ -75,6 +85,8 @@ module.exports = function () {
         bypassRestore,
         bypassAccounting,
         bypassTradingData,
+        refreshTradingDataBeforeSync,
+        millisecondsSleepAfterStep,
       );
     },
   };

@@ -1,6 +1,5 @@
 import { getCurrentInstance, onBeforeUnmount, onMounted, ref, Ref } from 'vue';
 import path from 'path';
-import { message } from 'ant-design-vue';
 import {
   useExtConfigsRelated,
   useProcessStatusDetailData,
@@ -8,6 +7,11 @@ import {
 import { kfConfigItemsToProcessArgs } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import globalBus from '@kungfu-trader/kungfu-js-api/utils/globalBus';
 import { startTradingTask } from '@kungfu-trader/kungfu-js-api/actions/tradingTask';
+import VueI18n, {
+  useLanguage,
+} from '@kungfu-trader/kungfu-js-api/language/index';
+import { messagePrompt } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
+const { t } = VueI18n.global;
 
 export const useTradingTask = (): {
   setTradingTaskModalVisible: Ref<boolean>;
@@ -36,13 +40,15 @@ export const useTradingTask = (): {
   const currentSelectedTradingTaskExtKey = ref<string>('');
   const setTradingTaskConfigPayload = ref<KungfuApi.SetKfConfigPayload>({
     type: 'add',
-    title: '交易任务',
+    title: t('tradingTaskConfig.tradingTask'),
     config: {} as KungfuApi.KfExtConfig,
   });
   const { extConfigs } = useExtConfigsRelated();
   const { processStatusData } = useProcessStatusDetailData();
+  const { isLanguageKeyAvailable } = useLanguage();
   const app = getCurrentInstance();
   const tradingTaskCategory = 'strategy';
+  const { success, error } = messagePrompt();
 
   const handleOpenSetTradingTaskModal = (
     type = 'add' as KungfuApi.ModalChangeType,
@@ -50,7 +56,7 @@ export const useTradingTask = (): {
     taskInitValue?: Record<string, KungfuApi.KfConfigValue>,
   ) => {
     if (selectedExtKey === '') {
-      message.error(`交易任务插件 key 不存在`);
+      error(t('tradingTaskConfig.key_inexistence'));
       return;
     }
 
@@ -59,13 +65,21 @@ export const useTradingTask = (): {
     ] || {})[selectedExtKey];
 
     if (!extConfig) {
-      message.error(`${selectedExtKey} 交易任务插件不存在`);
+      error(
+        t('tradinTaskConfig.plugin_inexistence', {
+          key: selectedExtKey,
+        }),
+      );
       return;
     }
 
     currentSelectedTradingTaskExtKey.value = selectedExtKey;
     setTradingTaskConfigPayload.value.type = type;
-    setTradingTaskConfigPayload.value.title = `${extConfig.name}`;
+    setTradingTaskConfigPayload.value.title = `${
+      isLanguageKeyAvailable(extConfig.name)
+        ? t(extConfig.name)
+        : extConfig.name
+    }`;
     setTradingTaskConfigPayload.value.config = extConfig;
     setTradingTaskConfigPayload.value.initValue = undefined;
 
@@ -74,11 +88,7 @@ export const useTradingTask = (): {
     }
 
     if (!extConfig?.settings?.length) {
-      message.error(
-        `配置项不存在, 请检查 ${
-          extConfig?.name || selectedExtKey
-        } package.json`,
-      );
+      error(t('tradingTaskConfig.configuration_inexistence'));
       return;
     }
 
@@ -119,12 +129,16 @@ export const useTradingTask = (): {
       {})[extKey];
 
     if (!extConfig) {
-      message.error(`${extKey} 交易任务插件不存在`);
+      error(
+        t('tradinTaskConfig.plugin_inexistence', {
+          key: extKey,
+        }),
+      );
       return;
     }
 
     if (!extConfig.extPath) {
-      message.error(`配置项不存在, 请检查 ${extConfig?.name}`);
+      error(t('tradingTaskConfig.configuration_inexistence'));
       return;
     }
 
@@ -143,9 +157,9 @@ export const useTradingTask = (): {
       data.configSettings,
     )
       .then(() => {
-        message.success('操作成功');
+        success();
       })
-      .catch((err: Error) => message.error(err.message || '操作失败'));
+      .catch((err: Error) => error(err.message || t('operation_failed')));
   };
 
   onMounted(() => {

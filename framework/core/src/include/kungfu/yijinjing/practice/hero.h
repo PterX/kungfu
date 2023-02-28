@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 //
 // Created by Keren Dong on 2019-06-15.
 //
@@ -9,6 +11,7 @@
 #include <kungfu/yijinjing/index/session.h>
 #include <kungfu/yijinjing/io.h>
 #include <kungfu/yijinjing/journal/journal.h>
+#include <kungfu/yijinjing/log.h>
 #include <kungfu/yijinjing/time.h>
 
 #ifndef KUNGFU_SETUP_LOG
@@ -22,6 +25,8 @@ inline yijinjing::data::location_ptr make_system_location(const std::string &gro
   return yijinjing::data::location::make_shared(longfist::enums::mode::LIVE, longfist::enums::category::SYSTEM, group,
                                                 name, locator);
 }
+
+typedef std::unordered_map<uint32_t, yijinjing::journal::writer_ptr> WriterMap;
 
 class hero : public resource {
 public:
@@ -38,6 +43,10 @@ public:
   void run();
 
   bool is_live() const;
+
+  bool is_low_latency() const;
+
+  bool is_cleaner_required() const;
 
   void signal_stop();
 
@@ -67,6 +76,8 @@ public:
 
   [[nodiscard]] yijinjing::journal::writer_ptr get_writer(uint32_t dest_id) const;
 
+  [[nodiscard]] const WriterMap &get_writers() const;
+
   bool has_location(uint32_t uid) const;
 
   [[nodiscard]] yijinjing::data::location_ptr get_location(uint32_t uid) const;
@@ -92,11 +103,18 @@ public:
     live_ = false;
   }
 
+  yijinjing::data::location_ptr get_ledger_home_location();
+
+  yijinjing::data::location_ptr get_master_home_location();
+
+  yijinjing::data::location_ptr get_master_cmd_location();
+
 protected:
   int64_t begin_time_;
   int64_t end_time_;
   yijinjing::journal::reader_ptr reader_;
-  std::unordered_map<uint32_t, yijinjing::journal::writer_ptr> writers_ = {};
+  WriterMap writers_ = {};
+  std::unordered_map<uint64_t, longfist::types::Band> bands_ = {};
   std::unordered_map<uint64_t, longfist::types::Channel> channels_ = {};
   std::unordered_map<uint32_t, yijinjing::data::location_ptr> locations_ = {};
   std::unordered_map<uint32_t, longfist::types::Register> registry_ = {};
@@ -107,7 +125,7 @@ protected:
   const yijinjing::data::location_ptr cached_home_location_;
   const yijinjing::data::location_ptr ledger_home_location_;
 
-  uint64_t make_chanel_hash(uint32_t source_id, uint32_t dest_id) const;
+  uint64_t make_source_dest_hash(uint32_t source_id, uint32_t dest_id) const;
 
   bool check_location_exists(uint32_t source_id, uint32_t dest_id) const;
 
@@ -125,7 +143,11 @@ protected:
 
   void register_channel(int64_t trigger_time, const longfist::types::Channel &channel);
 
-  void deregister_channel(uint32_t source_location_uid);
+  void deregister_channel(uint32_t source_id);
+
+  void register_band(int64_t trigger_time, const longfist::types::Band &band);
+
+  void deregister_band(uint32_t source_id);
 
   void require_read_from(int64_t trigger_time, uint32_t dest_id, uint32_t source_id, int64_t from_time);
 
@@ -134,6 +156,8 @@ protected:
   void require_read_from_sync(int64_t trigger_time, uint32_t dest_id, uint32_t source_id, int64_t from_time);
 
   void require_write_to(int64_t trigger_time, uint32_t source_id, uint32_t dest_id);
+
+  void require_write_to_band(int64_t trigger_time, uint32_t source_id, const yijinjing::data::location_ptr &location);
 
   virtual void react() = 0;
 

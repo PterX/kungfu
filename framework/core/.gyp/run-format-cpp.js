@@ -1,9 +1,11 @@
+// SPDX-License-Identifier: Apache-2.0
+
 const glob = require('glob');
 const path = require('path');
 const { shell } = require('../lib');
 
 function main(argv) {
-  const cwd = process.cwd();
+  const cwd = process.cwd().toString();
   process.chdir(path.dirname(__dirname));
 
   shell.run('clang-format', ['--version'], true, { tolerant: true });

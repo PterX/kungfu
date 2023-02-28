@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
+
 # to corporate clion with cmake-js:
 # https://github.com/cmake-js/cmake-js/issues/23
 if (EDITOR)
@@ -51,4 +53,8 @@ if (EDITOR)
   endfunction(parse_cmakejs_properties)
 
   parse_cmakejs_properties()
+
+  set(CONANBUILDINFO_DIR "${PROJECT_SOURCE_DIR}/build")
+else()
+  set(CONANBUILDINFO_DIR ${CMAKE_BINARY_DIR})
 endif ()

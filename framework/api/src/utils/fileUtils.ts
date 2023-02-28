@@ -1,8 +1,10 @@
 import path from 'path';
 import fse from 'fs-extra';
-import * as csv from '@fast-csv/format';
-import { Row } from '@fast-csv/format';
+import * as csv from 'fast-csv';
+import { FormatterRow, ParserOptionsArgs } from 'fast-csv';
+import findRoot from 'find-root';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+import { RootConfigJSON } from '../typings/global';
 const { t } = VueI18n.global;
 
 //添加文件
@@ -27,17 +29,64 @@ export const addFileSync = (
   }
 };
 
+export const readCSV = <T>(
+  filepath: string,
+  headers: ParserOptionsArgs['headers'],
+  options?: {
+    transformer?: (row) => T;
+    validator?: (row) => boolean;
+  },
+) => {
+  filepath = path.normalize(filepath);
+  return new Promise<{
+    resRows: T[];
+    errRows: Array<{ row: number; data: Array<string | number | boolean> }>;
+  }>((resolve, reject) => {
+    const resRows: T[] = [];
+    const errRows: Array<{
+      row: number;
+      data: Array<string | number | boolean>;
+    }> = [];
+
+    let parsing = csv.parseFile(filepath, {
+      headers: headers,
+      skipLines: headers === true ? 0 : 1,
+    });
+
+    if (options?.validator) {
+      parsing = parsing.validate(options.validator);
+    }
+
+    parsing
+      .on('data', function (row) {
+        resRows.push(options?.transformer ? options.transformer(row) : row);
+      })
+      .on('data-invalid', function (data, row) {
+        errRows.push({
+          data,
+          row,
+        });
+      })
+      .on('end', function () {
+        resolve({ resRows, errRows });
+      })
+      .on('error', (err) => {
+        reject(err);
+      });
+  });
+};
+
 export const writeCSV = (
   filePath: string,
   data: KungfuApi.TradingDataTypes[],
-  transform = (row: KungfuApi.TradingDataTypes) => row as Row,
+  transform = (row: KungfuApi.TradingDataTypes) => row as FormatterRow,
 ): Promise<void> => {
   filePath = path.normalize(filePath);
   return new Promise((resolve, reject) => {
     csv
       .writeToPath(filePath, data, {
         headers: true,
-        transform: transform,
+        transform,
       })
       .on('finish', function () {
         resolve();
@@ -54,7 +103,7 @@ export const getFileContent = (targetPath: string): Promise<string> => {
   targetPath = path.normalize(targetPath);
   return new Promise((resolve, reject): void => {
     const file = fse.createReadStream(targetPath);
-    let fileContextList: Array<Buffer> = [];
+    const fileContextList: Array<Buffer> = [];
     file.on('data', (data) => {
       fileContextList.push(data as Buffer);
     });
@@ -88,7 +137,7 @@ export const removeFileFolder = (targetPath: string): Promise<void> => {
 export const removeFilesInFolder = (targetDir: string) => {
   targetDir = path.normalize(targetDir);
   if (!fse.existsSync(targetDir)) throw new Error(`${targetDir} not existed!`);
-  const promises = fse.readdirSync(targetDir).map((file: any) => {
+  const promises = fse.readdirSync(targetDir).map((file: string) => {
     const filePath = path.join(targetDir, file);
     return removeFileFolder(filePath);
   });
@@ -141,4 +190,34 @@ export const removeTargetFilesInFolder = (
   iterator(targetFolder);
 
   return Promise.resolve();
+};
+
+export const findPackageRoot = () => {
+  const cwd = process.cwd().toString();
+  const dirname = path.resolve(__dirname);
+  let searchPath = '';
+  if (process.env.NODE_ENV === 'production') {
+    searchPath = dirname;
+  } else {
+    searchPath = cwd;
+  }
+  if (searchPath.includes('node_modules')) {
+    return findRoot(path.resolve(searchPath.split('node_modules')[0]));
+  }
+  return findRoot(path.resolve(searchPath));
+};
+
+export const readRootPackageJsonSync = (): RootConfigJSON => {
+  const rootDir = findPackageRoot();
+  const packageJsonPath = path.join(rootDir, 'package.json');
+  if (fse.existsSync(packageJsonPath)) {
+    try {
+      return fse.readJSONSync(packageJsonPath);
+    } catch (err) {
+      console.error(err);
+      return {};
+    }
+  }
+
+  return {};
 };

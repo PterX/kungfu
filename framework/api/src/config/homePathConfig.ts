@@ -1,7 +1,7 @@
-const os = require('os');
-const path = require('path');
+import os from 'os';
+import path from 'path';
 
-const getHomePath = () => {
+const getHomePath = (): string => {
   switch (os.platform()) {
     case 'darwin':
       return path.join(
@@ -14,6 +14,8 @@ const getHomePath = () => {
       return path.join(os.homedir(), 'AppData', 'Roaming', 'kungfu');
     case 'linux':
       return path.join(os.homedir(), '.config', 'kungfu');
+    default:
+      throw new Error(`Unsupported platform ${os.platform()}`);
   }
 };
 
@@ -36,3 +38,7 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 export const KF_HOME_BASE_DIR_RESOLVE: string = getHomePath();
+
+if (process.env.APP_TYPE === 'renderer') {
+  console.log('process.env.NODE_ENV', process.env.NODE_ENV);
+}

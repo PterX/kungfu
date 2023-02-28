@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 //
 // Created by Keren Dong on 2020/2/25.
 //
@@ -5,8 +7,8 @@
 #ifndef KUNGFU_NODE_RISKSETTING_H
 #define KUNGFU_NODE_RISKSETTING_H
 
+#include <kungfu/yijinjing/cache/profile.h>
 #include <kungfu/yijinjing/io.h>
-#include <kungfu/yijinjing/practice/profile.h>
 
 #include "common.h"
 #include "operators.h"
@@ -36,7 +38,7 @@ private:
   serialize::JsGet get = {};
   serialize::JsSet set = {};
   yijinjing::data::locator_ptr locator_;
-  yijinjing::practice::profile profile_;
+  yijinjing::cache::profile profile_;
 
   static Napi::FunctionReference constructor;
 

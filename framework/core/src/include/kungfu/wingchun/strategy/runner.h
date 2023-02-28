@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 //
 // Created by Keren Dong on 2019-06-20.
 //
@@ -13,7 +15,7 @@ namespace kungfu::wingchun::strategy {
 class Runner : public yijinjing::practice::apprentice {
 public:
   Runner(yijinjing::data::locator_ptr locator, const std::string &group, const std::string &name,
-         longfist::enums::mode m, bool low_latency);
+         longfist::enums::mode m, bool low_latency, const std::string &arguments = "");
 
   ~Runner() override = default;
 
@@ -26,6 +28,8 @@ public:
   void on_trading_day(const event_ptr &event, int64_t daytime) override;
 
 protected:
+  void react() override;
+
   void on_react() override;
 
   void on_start() override;
@@ -44,10 +48,12 @@ protected:
 
 private:
   bool positions_requested_ = false;
+  bool broker_states_requested_ = false;
   bool positions_set_;
   bool started_;
   std::vector<Strategy_ptr> strategies_ = {};
   RuntimeContext_ptr context_;
+  const std::string arguments_;
 
   void prepare(const event_ptr &event);
   void inspect_channel(const event_ptr &event);
@@ -94,6 +100,9 @@ private:
   };
   DECLARE_PTR(BookListener);
 };
+
+static const int64_t NANO_MILLISECOND = int64_t(1000000);
+
 } // namespace kungfu::wingchun::strategy
 
 #endif // WINGCHUN_RUNNER_H

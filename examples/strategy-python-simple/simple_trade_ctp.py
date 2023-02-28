@@ -24,7 +24,6 @@ EXCHANGE = Exchange.SHFE
 def pre_start(context):
     context.add_account(Source.CTP, ACCOUNT)
     context.subscribe(Source.CTP, ["rb2009"], Exchange.SHFE)
-    # context.subscribe(Source.BAR, ["rb2005", "rb2010"], Exchange.SHFE)
     # context.subscribe(Source.CTP, ["BB2005", "BB2006", "EG2005", "EG2006"], Exchange.DCE)
 
 
@@ -74,12 +73,6 @@ def on_quote(context, quote, location):
     else:
         context.log.info(f"insert order failed {order_id}")
     pass
-
-
-# 收到k线行情时回调，行情信息通过bar对象获取
-def on_bar(context, bar, location):
-    context.log.info("[on_bar] {}".format(bar))
-
 
 # 收到订单状态回报时回调
 def on_order(context, order, location):

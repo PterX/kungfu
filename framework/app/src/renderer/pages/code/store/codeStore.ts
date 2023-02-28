@@ -21,7 +21,7 @@ export const useCodeStore = defineStore('code', {
       currentStrategy: {
         add_time: 0,
         strategy_id: '',
-        strategy_path: '',
+        file_path: '',
       }, //当前运行策略
       strategyList: [], //策略列表
       currentFile: {} as Code.FileData, //文件树高亮

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 //
 // Created by Keren Dong on 2020/3/17.
 //
@@ -7,8 +9,8 @@
 
 #include "common.h"
 
+#include <kungfu/yijinjing/cache/profile.h>
 #include <kungfu/yijinjing/common.h>
-#include <kungfu/yijinjing/practice/profile.h>
 
 namespace kungfu::node {
 class History : public Napi::ObjectWrap<History> {
@@ -26,7 +28,7 @@ public:
 private:
   yijinjing::data::locator_ptr locator_;
   yijinjing::data::location_ptr ledger_location_;
-  yijinjing::practice::profile profile_;
+  yijinjing::cache::profile profile_;
   static Napi::FunctionReference constructor;
 };
 } // namespace kungfu::node

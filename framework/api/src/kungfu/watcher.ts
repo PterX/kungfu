@@ -3,6 +3,7 @@ import { KF_RUNTIME_DIR } from '../config/pathConfig';
 import { getKfGlobalSettingsValue } from '@kungfu-trader/kungfu-js-api/config/globalSettings';
 import {
   booleanProcessEnv,
+  kfLogger,
   setTimerPromiseTask,
   // statTime,
   // statTimeEnd,
@@ -18,14 +19,16 @@ export const getWatcherId = () => {
   ]
     .filter((str) => !!str)
     .join('-');
-  console.log(`WatcherId ${watcherId}`);
+  kfLogger.info(`WatcherId ${watcherId}`);
   return watcherId;
 };
 
 export const watcher = ((): KungfuApi.Watcher | null => {
   if (process.env.APP_TYPE !== 'renderer') {
     if (process.env.APP_TYPE !== 'daemon') {
-      return null;
+      if (process.env.APP_TYPE !== 'cli') {
+        return null;
+      }
     }
   }
 
@@ -35,8 +38,7 @@ export const watcher = ((): KungfuApi.Watcher | null => {
     }
   }
 
-  //for cli show
-  console.log(
+  kfLogger.info(
     'Init Watcher',
     'APP_TYPE',
     process.env.APP_TYPE || 'undefined',
@@ -50,11 +52,25 @@ export const watcher = ((): KungfuApi.Watcher | null => {
     booleanProcessEnv(process.env.RELOAD_AFTER_CRASHED) ||
     process.env.BY_PASS_RESTORE;
   const globalSetting = getKfGlobalSettingsValue();
-  const bypassAccounting = globalSetting?.performance?.bypassAccounting;
-  const bypassTradingData = globalSetting?.performance?.bypassTradingData;
-  console.log('bypassRestore', bypassRestore);
-  console.log('bypassAccounting', bypassAccounting);
-  console.log('bypassTradingData', bypassTradingData);
+  const bypassAccounting =
+    process.env.BY_PASS_ACCOUNTING ??
+    globalSetting?.performance?.bypassAccounting ??
+    false;
+  const bypassTradingData =
+    process.env.BY_PASS_TRADINGDATA ??
+    globalSetting?.performance?.bypassTradingData ??
+    false;
+  const refreshTradingDataBeforeSync =
+    process.env.REFRESH_LEDGER_BEFORE_SYNC ?? false;
+
+  const millisecondsSleepAfterStep =
+    process.env.MILLISECONDS_SLEEP_AFTER_STEP ?? 200;
+
+  kfLogger.info('bypassRestore', bypassRestore);
+  kfLogger.info('bypassAccounting', bypassAccounting);
+  kfLogger.info('bypassTradingData', bypassTradingData);
+  kfLogger.info('refreshTradingDataBeforeSync', refreshTradingDataBeforeSync);
+  kfLogger.info('millisecondsSleepAfterStep', millisecondsSleepAfterStep);
 
   return kf.watcher(
     KF_RUNTIME_DIR,
@@ -62,6 +78,8 @@ export const watcher = ((): KungfuApi.Watcher | null => {
     !!bypassRestore,
     !!bypassAccounting,
     !!bypassTradingData,
+    !!refreshTradingDataBeforeSync,
+    +millisecondsSleepAfterStep,
   );
 })();
 
@@ -72,16 +90,14 @@ export const startWatcher = () => {
 
 export const startWatcherSyncTask = (
   interval = 1000,
-  callback: (watcher: KungfuApi.Watcher) => void,
+  callback?: (watcher: KungfuApi.Watcher) => void,
 ) => {
   if (watcher === null) return;
-  return setTimerPromiseTask(() => {
-    return new Promise((resolve) => {
-      if (watcher.isLive() && watcher.isStarted()) {
-        watcher.sync();
-        callback(watcher);
-      }
-      resolve(true);
-    });
+  return setTimerPromiseTask(async () => {
+    if (watcher.isLive() && watcher.isStarted()) {
+      watcher.sync();
+      callback && (await callback(watcher));
+    }
+    return true;
   }, interval);
 };

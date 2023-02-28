@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 //
 // Created by Keren Dong on 2019-06-20.
 //
@@ -6,6 +8,7 @@
 #define WINGCHUN_CONTEXT_H
 
 #include <kungfu/longfist/longfist.h>
+#include <kungfu/wingchun/basketorder/basketorderengine.h>
 #include <kungfu/wingchun/book/bookkeeper.h>
 #include <kungfu/wingchun/broker/client.h>
 #include <kungfu/wingchun/strategy/strategy.h>
@@ -62,6 +65,23 @@ public:
                              uint64_t data_type = 0) = 0;
 
   /**
+   * Subscribe operator data.
+   * @param group OPERATOR group
+   * @param name OPERATOR name
+   */
+  virtual void subscribe_operator(const std::string &group, const std::string &name) = 0;
+
+  /**
+   * Insert Block Message
+   * @param opponent_seat
+   * @param match_number
+   * @param value
+   * @return
+   */
+  virtual uint64_t insert_block_message(const std::string &source, const std::string &account, uint32_t opponent_seat,
+                                        uint64_t match_number, bool is_specific = false) = 0;
+
+  /**
    * Insert order.
    * @param instrument_id instrument ID
    * @param exchange_id exchange ID
@@ -73,13 +93,64 @@ public:
    * @param side side
    * @param offset offset, defaults to longfist::enums::Offset::Open
    * @param hedge_flag hedge_flag, defaults to longfist::enums::HedgeFlag::Speculation
+   * @param block_id BlockMessage id
    * @return
    */
   virtual uint64_t insert_order(const std::string &instrument_id, const std::string &exchange_id,
                                 const std::string &source, const std::string &account, double limit_price,
                                 int64_t volume, longfist::enums::PriceType type, longfist::enums::Side side,
-                                longfist::enums::Offset offset, longfist::enums::HedgeFlag hedge_flag,
-                                bool is_swap = false) = 0;
+                                longfist::enums::Offset offset,
+                                longfist::enums::HedgeFlag hedge_flag = HedgeFlag::Speculation, bool is_swap = false,
+                                uint64_t block_id = 0, uint64_t parent_id = 0) = 0;
+
+  /**
+   * Insert Batch Orders
+   * @param source
+   * @param account
+   * @param instrument_ids
+   * @param exchange_ids
+   * @param limit_prices
+   * @param volumes
+   * @param types
+   * @param sides
+   * @param offsets
+   * @param hedge_flags
+   * @param is_swaps
+   * @return
+   */
+  virtual std::vector<uint64_t>
+  insert_batch_orders(const std::string &source, const std::string &account,
+                      const std::vector<std::string> &instrument_ids, const std::vector<std::string> &exchange_ids,
+                      std::vector<double> limit_prices, std::vector<int64_t> volumes,
+                      std::vector<longfist::enums::PriceType> types, std::vector<longfist::enums::Side> sides,
+                      std::vector<longfist::enums::Offset> offsets, std::vector<longfist::enums::HedgeFlag> hedge_flags,
+                      std::vector<bool> is_swaps) = 0;
+
+  /**
+   * Insert Batch Orders
+   * @param source
+   * @param account
+   * @param order_inputs
+   * @return
+   */
+  virtual std::vector<uint64_t> insert_array_orders(const std::string &source, const std::string &account,
+                                                    std::vector<longfist::types::OrderInput> order_inputs) = 0;
+
+  /**
+   * Insert Basket Orders
+   * @param basket_id
+   * @param source
+   * @param account
+   * @param price_type
+   * @param price_level
+   * @param price_offset
+   * @param volume_mode
+   * @param total_volume
+   */
+  virtual uint64_t insert_basket_order(uint64_t basket_id, const std::string &source, const std::string account,
+                                       longfist::enums::Side side, longfist::enums::PriceType price_type,
+                                       longfist::enums::PriceLevel price_level, double price_offset = 0,
+                                       int64_t volume = 0) = 0;
 
   /**
    * query history order
@@ -143,6 +214,12 @@ public:
    * @param infos vector<string>, info_a, info_b, info_c.
    */
   virtual void update_strategy_state(longfist::types::StrategyStateUpdate &state_update) {}
+
+  /**
+   * Get arguments kfc run -a
+   * @return string of arguments
+   */
+  virtual std::string arguments() { return {}; }
 
 private:
   bool book_held_ = false;

@@ -1,9 +1,12 @@
+// SPDX-License-Identifier: Apache-2.0
+
 #include "py-yijinjing.h"
 
 #include <pybind11/stl.h>
 
 #include <kungfu/longfist/longfist.h>
 #include <kungfu/yijinjing/cache/cached.h>
+#include <kungfu/yijinjing/cache/profile.h>
 #include <kungfu/yijinjing/index/session.h>
 #include <kungfu/yijinjing/io.h>
 #include <kungfu/yijinjing/journal/assemble.h>
@@ -13,7 +16,6 @@
 #include <kungfu/yijinjing/nanomsg/socket.h>
 #include <kungfu/yijinjing/practice/apprentice.h>
 #include <kungfu/yijinjing/practice/master.h>
-#include <kungfu/yijinjing/practice/profile.h>
 #include <kungfu/yijinjing/time.h>
 #include <kungfu/yijinjing/util/util.h>
 
@@ -216,12 +218,13 @@ void bind(pybind11::module &&m) {
 
   py::class_<socket, socket_ptr>(m, "socket")
       .def(py::init<protocol>(), py::arg("protocol"))
-      .def("setsockopt", &socket::setsockopt_str, py::arg("level"), py::arg("option"), py::arg("value"))
-      .def("setsockopt", &socket::setsockopt_int, py::arg("level"), py::arg("option"), py::arg("value"))
-      .def("getsockopt", &socket::getsockopt_int, py::arg("level"), py::arg("option"))
-      .def("bind", &socket::bind, py::arg("url"))
-      .def("connect", &socket::connect, py::arg("url"))
-      .def("shutdown", &socket::shutdown, py::arg("how") = 0)
+      .def("setsockopt", &socket::setsockopt_str, py::arg("option"), py::arg("value"))
+      .def("setsockopt", &socket::setsockopt_int, py::arg("option"), py::arg("value"))
+      .def("setsockopt", &socket::setsockopt_ms, py::arg("option"), py::arg("value"))
+      .def("getsockopt", &socket::getsockopt_int, py::arg("option"))
+      .def("getsockopt", &socket::getsockopt_ms, py::arg("option"))
+      .def("listen", &socket::listen, py::arg("url"), py::arg("flags") = 0)
+      .def("dial", &socket::dial, py::arg("url"), py::arg("flags") = 0)
       .def("close", &socket::close)
       .def("send", &socket::send, py::arg("msg"), py::arg("flags") = 0)
       .def("recv", &socket::recv_msg, py::arg("flags") = 0)
@@ -242,10 +245,11 @@ void bind(pybind11::module &&m) {
       .def("data_available", &reader::data_available)
       .def("next", &reader::next)
       .def("join", &reader::join)
-      .def("disjoin", &reader::disjoin);
+      .def("disjoin", &reader::disjoin)
+      .def("disjoin_channel", &reader::disjoin_channel);
 
   auto writer_class = py::class_<writer, writer_ptr>(m, "writer");
-  writer_class.def(py::init<const data::location_ptr &, uint32_t, bool, publisher_ptr>())
+  writer_class.def(py::init<const data::location_ptr &, uint32_t, bool, publisher_ptr, bool, bool>())
       .def("current_frame_uid", &writer::current_frame_uid)
       .def("copy_frame", &writer::copy_frame)
       .def("mark", &writer::mark)
@@ -289,9 +293,7 @@ void bind(pybind11::module &&m) {
       .def("setup", &io_device::setup)
       .def("open_reader", &io_device::open_reader)
       .def("open_reader_to_subscribe", &io_device::open_reader_to_subscribe)
-      .def("open_writer", &io_device::open_writer)
-      .def("connect_socket", &io_device::connect_socket, py::arg("location"), py::arg("protocol"),
-           py::arg("timeout") = 0);
+      .def("open_writer", &io_device::open_writer);
 
   py::class_<io_device_master, io_device, io_device_master_ptr>(m, "io_device_master")
       .def(py::init<location_ptr, bool>(), py::arg("home"), py::arg("low_latency"));

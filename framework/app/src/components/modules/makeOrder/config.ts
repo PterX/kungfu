@@ -1,4 +1,3 @@
-import { ShotableInstrumentTypes } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import {
   HedgeFlagEnum,
   InstrumentTypeEnum,
@@ -8,6 +7,10 @@ import {
   SideEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+import {
+  getAbleHedgeFlag,
+  isShotable,
+} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 const { t } = VueI18n.global;
 
 export const LABEL_COL = 6;
@@ -16,14 +19,9 @@ export const WRAPPER_COL = 14;
 export const getConfigSettings = (
   category?: KfCategoryTypes,
   instrumentTypeEnum?: InstrumentTypeEnum,
+  sideEnum?: SideEnum,
   priceType?: PriceTypeEnum,
 ): KungfuApi.KfConfigItem[] => {
-  const shotable = instrumentTypeEnum
-    ? ShotableInstrumentTypes.includes(
-        instrumentTypeEnum || InstrumentTypeEnum.unknown,
-      )
-    : false;
-
   const defaultSettings: KungfuApi.KfConfigItem[] = [
     category === 'td'
       ? null
@@ -46,23 +44,28 @@ export const getConfigSettings = (
       default: SideEnum.Buy,
       required: true,
     },
-    ...(shotable
-      ? [
-          {
-            key: 'offset',
-            name: t('tradingConfig.offset'),
-            type: 'offset',
-            default: OffsetEnum.Open,
-            required: true,
-          },
-          {
-            key: 'hedge_flag',
-            name: t('tradingConfig.hedge'),
-            type: 'hedgeFlag',
-            default: HedgeFlagEnum.Speculation,
-            required: true,
-          },
-        ]
+    ...(isShotable(instrumentTypeEnum || InstrumentTypeEnum.unknown)
+      ? ([
+          instrumentTypeEnum === InstrumentTypeEnum.stockoption &&
+          sideEnum === SideEnum.Exec
+            ? null
+            : {
+                key: 'offset',
+                name: t('tradingConfig.offset'),
+                type: 'offset',
+                default: OffsetEnum.Open,
+                required: true,
+              },
+          instrumentTypeEnum === InstrumentTypeEnum.future && getAbleHedgeFlag()
+            ? {
+                key: 'hedge_flag',
+                name: t('tradingConfig.hedge'),
+                type: 'hedgeFlag',
+                default: HedgeFlagEnum.Speculation,
+                required: true,
+              }
+            : null,
+        ].filter((item) => !!item) as KungfuApi.KfConfigItem[])
       : []),
     {
       key: 'price_type',
@@ -78,12 +81,14 @@ export const getConfigSettings = (
           ? t('tradingConfig.price')
           : t('tradingConfig.protect_price'),
       type: 'float',
+      min: 0,
       required: priceType !== PriceTypeEnum.Market ? true : false,
     },
     {
       key: 'volume',
       name: t('tradingConfig.volume'),
       type: 'int',
+      min: 0,
       required: true,
     },
   ].filter((item) => !!item) as KungfuApi.KfConfigItem[];
@@ -98,6 +103,14 @@ export const makeOrderConfigKFTypes = [
   'offset',
   'hedgeFlag',
   'pricetype',
+];
+
+export const makeOrderConfigKFKeys = [
+  'account_id',
+  'instrument',
+  'side',
+  'offset',
+  'volume',
 ];
 
 export const orderInputTrans: Record<string, string> = {

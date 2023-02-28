@@ -40,7 +40,7 @@ TraderXTP::~TraderXTP() {
 void TraderXTP::on_start() {
   TDConfiguration config = nlohmann::json::parse(get_config());
   if (config.client_id < 1 or config.client_id > 99) {
-    throw wingchun_error("client_id must between 1 and 99");
+    SPDLOG_ERROR("client_id must between 1 and 99");
   }
   std::string runtime_folder = get_runtime_folder();
   SPDLOG_INFO("Connecting XTP account {} with tcp://{}:{}", config.account_id, config.td_ip, config.td_port);
@@ -84,6 +84,7 @@ bool TraderXTP::insert_order(const event_ptr &event) {
   Order &order = writer->open_data<Order>(event->gen_time());
   order_from_input(input, order);
   strncpy(order.trading_day, trading_day_.c_str(), DATE_LEN);
+  order.external_id = xtp_order_id;
   order.insert_time = nano;
   order.update_time = nano;
 
@@ -196,6 +197,7 @@ void TraderXTP::OnQueryPosition(XTPQueryStkPositionRsp *position, XTPRI *error_i
                  request_id, is_last);
     return;
   }
+  SPDLOG_TRACE("OnQueryPosition: {}", to_string(*position));
   auto writer = get_position_writer();
   Position &stock_pos = writer->open_data<Position>(0);
   if (error_info == nullptr || error_info->error_id == 0) {
@@ -222,6 +224,7 @@ void TraderXTP::OnQueryAsset(XTPQueryAssetRsp *asset, XTPRI *error_info, int req
                  request_id, is_last);
   }
   if (error_info == nullptr || error_info->error_id == 0 || error_info->error_id == 11000350) {
+    SPDLOG_TRACE("OnQueryAsset: {}", to_string(*asset));
     auto writer = get_asset_writer();
     Asset &account = writer->open_data<Asset>(0);
     if (error_info == nullptr || error_info->error_id == 0) {
@@ -240,7 +243,7 @@ bool TraderXTP::req_history_order(const event_ptr &event) {
   int request_id = request_id_++;
   int ret = api_->QueryOrders(&query_param, session_id_, request_id);
   if (0 != ret) {
-    SPDLOG_ERROR("QueryOrders False ： {}", ret);
+    SPDLOG_ERROR("QueryOrders False: {}", ret);
   }
   map_request_location_.emplace(request_id, event->source());
   return 0 == ret;
@@ -265,7 +268,7 @@ void TraderXTP::OnQueryOrder(XTPQueryOrderRsp *order_info, XTPRI *error_info, in
   if (order_info == nullptr) {
     SPDLOG_WARN("XTPQueryOrderRsp* order_info == nullptr, no data returned!");
     history_order.is_last = true;
-    strncpy(history_order.error_msg, "返回数据为空，可能代表无历史Order数据", ERROR_MSG_LEN);
+    strncpy(history_order.error_msg, "返回数据为空, 可能代表无历史Order数据", ERROR_MSG_LEN);
     writer->close_data();
     return;
   }
@@ -298,7 +301,7 @@ void TraderXTP::OnQueryTrade(XTPQueryTradeRsp *trade_info, XTPRI *error_info, in
   if (trade_info == nullptr) {
     SPDLOG_WARN("XTPQueryTradeRsp* trade_info == nullptr, no data returned!");
     history_trade.is_last = true;
-    strncpy(history_trade.error_msg, "返回数据为空，可能代表无历史Trade数据", ERROR_MSG_LEN);
+    strncpy(history_trade.error_msg, "返回数据为空,可能代表无历史Trade数据", ERROR_MSG_LEN);
     writer->close_data();
     return;
   }

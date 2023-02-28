@@ -26,6 +26,10 @@ import {
   graceDeleteProcess,
   Pm2ProcessStatusData,
 } from '../utils/processUtils';
+import {
+  basketStore,
+  basketInstrumentStore,
+} from '@kungfu-trader/kungfu-js-api/kungfu';
 
 export const getAllKfConfigOriginData = (): Promise<
   Record<KfCategoryTypes, KungfuApi.KfConfig[]>
@@ -44,6 +48,9 @@ export const getAllKfConfigOriginData = (): Promise<
     return {
       md: allConfigResolved.filter((config: KungfuApi.KfConfig) => {
         return config.category === 'md';
+      }),
+      operator: allConfigResolved.filter((config: KungfuApi.KfConfig) => {
+        return config.category === 'operator';
       }),
       td: allConfigResolved.filter((config: KungfuApi.KfConfig) => {
         return config.category === 'td';
@@ -105,7 +112,9 @@ export function removeKfLocation(
 
   return pathExists(targetDir).then((isExisted: boolean): Promise<void> => {
     if (isExisted) {
-      return remove(targetDir);
+      return remove(targetDir).catch((err) => {
+        console.warn(err);
+      });
     }
 
     console.warn(`Location Dir ${targetDir} is not existed`);
@@ -118,7 +127,9 @@ export function removeLog(kfLocation: KungfuApi.KfLocation): Promise<void> {
   const logPath = buildProcessLogPath(processId);
   return pathExists(logPath).then((isExisted: boolean): Promise<void> => {
     if (isExisted) {
-      return remove(logPath);
+      return remove(logPath).catch((err) => {
+        console.warn(err);
+      });
     }
 
     console.warn(`Log Path ${logPath} is not existed`);
@@ -257,4 +268,34 @@ export const setAllRiskSettingList = (
     });
 
   return setAllKfRiskSettings(riskSettingOrigins);
+};
+
+export const getAllBaskets = (): Promise<KungfuApi.Basket[]> => {
+  const baskets = basketStore.getAllBasket();
+  if (baskets) {
+    return Promise.resolve(baskets);
+  }
+  return Promise.resolve([]);
+};
+
+export const setAllBaskets = (baskets: KungfuApi.Basket[]) => {
+  return Promise.resolve(basketStore.setAllBasket(baskets));
+};
+
+export const getAllBasketInstruments = (): Promise<
+  KungfuApi.BasketInstrument[]
+> => {
+  const basketInstruments = basketInstrumentStore.getAllBasketInstrument();
+  if (basketInstruments) {
+    return Promise.resolve(basketInstruments);
+  }
+  return Promise.resolve([]);
+};
+
+export const setAllBasketInstruments = (
+  basketInstruments: KungfuApi.BasketInstrument[],
+) => {
+  return Promise.resolve(
+    basketInstrumentStore.setAllBasketInstrument(basketInstruments),
+  );
 };

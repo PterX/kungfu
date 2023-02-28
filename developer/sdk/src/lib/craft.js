@@ -15,17 +15,20 @@ exports.build = () => {
     getAppDir,
     getCliDir,
     getSdkDir,
+    getJsApi,
   } = require('@kungfu-trader/kungfu-js-api/toolkit/utils');
 
   const appDistDir = path.join(getAppDir(), 'dist', 'app');
-  const publicDir = path.resolve(getAppDir(), 'public');
+  const publicDir = path.join(getAppDir(), 'public');
   const cliDistDir = path.join(getCliDir(), 'dist', 'cli');
+  const apiDistDir = path.join(getJsApi(), 'dist', 'api');
   const kfsDistDir = path.join(getSdkDir(), 'dist', 'sdk');
 
-  const targetDistDir = ensureDir(process.cwd(), 'dist');
+  const targetDistDir = ensureDir(process.cwd().toString(), 'dist');
   const targetAppDistDir = ensureDir(targetDistDir, 'app');
   const targetPublicDistDir = ensureDir(targetDistDir, 'public');
   const targetCliDistDir = ensureDir(targetDistDir, 'cli');
+  const targetApiDistDir = ensureDir(targetDistDir, 'api');
   const targetKfsDistDir = ensureDir(targetDistDir, 'kfs');
   const targetCliDistPublicDir = ensureDir(getCliDir(), 'dist', 'public');
 
@@ -35,22 +38,31 @@ exports.build = () => {
   fse.copySync(appDistDir, targetAppDistDir, {});
   fse.copySync(publicDir, targetPublicDistDir, {});
   fse.copySync(cliDistDir, targetCliDistDir, {});
+  fse.copySync(apiDistDir, targetApiDistDir, {});
   fse.copySync(kfsDistDir, targetKfsDistDir, {});
   fse.copySync(publicDir, targetCliDistPublicDir, {});
 };
 
 exports.package = async () => {
-  const buildDir = ensureDir(process.cwd(), 'build');
-  await require('@kungfu-trader/kungfu-app').electronBuild(buildDir);
+  const buildDir = ensureDir(process.cwd().toString(), 'build');
+  try {
+    await require('@kungfu-trader/kungfu-app').electronBuild(buildDir);
+  } catch (err) {
+    console.warn(err);
+  }
 };
 
-exports.dev = (withWebpack) => {
+exports.dev = async (withWebpack) => {
   shell.verifyElectron();
-  require('@kungfu-trader/kungfu-app').devRun(
-    ensureDir(process.cwd(), 'dist'),
-    'app',
-    withWebpack,
-  );
+  try {
+    await require('@kungfu-trader/kungfu-app').devRun(
+      ensureDir(process.cwd().toString(), 'dist'),
+      'app',
+      withWebpack,
+    );
+  } catch (err) {
+    console.warn(err);
+  }
 };
 
 exports.cli = () => {

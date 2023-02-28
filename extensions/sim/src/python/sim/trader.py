@@ -1,3 +1,5 @@
+#  SPDX-License-Identifier: Apache-2.0
+
 import importlib
 import json
 import kungfu
@@ -22,6 +24,7 @@ class MatchMode:
     PartialFill = "partialfill"
     Fill = "fill"
     Custom = "custom"
+    Multiple = "multiple_transactions"
 
 
 OrderRecord = namedtuple("OrderRecord", ["source", "dest", "order"])
@@ -33,6 +36,7 @@ class TraderSim(wc.Trader):
         self.ctx = DottedDict()
         self.match_mode = None
         self.logger = find_logger(self.home)
+        self.map_block_msg = {}
 
     def on_start(self):
         config = json.loads(self.config)
@@ -57,18 +61,47 @@ class TraderSim(wc.Trader):
 
         self.update_broker_state(lf.enums.BrokerState.Ready)
 
+    def insert_block_message(self, event):
+        block_msg = event.BlockMessage()
+        self.logger.info(f"{block_msg}")
+        self.map_block_msg[block_msg.block_id] = block_msg
+
+    def insert_batch_orders(self, event):
+        self.logger.info(f"insert_batch_orders")
+        self.logger.info(f"{self.order_inputs}")
+        for item in self.order_inputs[event.source]:
+            self.insert_order_(event, item)
+
+        self.clear_order_inputs(event.source)
+        self.logger.info(f"{self.order_inputs}")
+
     def insert_order(self, event):
+        self.insert_order_(event, event.OrderInput())
+
+    def insert_order_(self, event, order_input):
         volume_traded = 0
 
         if self.match_mode == MatchMode.Custom:
             return self.ctx.insert_order(self.ctx, event)
         else:
             writer = self.get_writer(event.source)
-            order_input = event.OrderInput()
+            # order_input = event.OrderInput()
             order = wc.utils.order_from_input(order_input)
             order.insert_time = event.gen_time
             order.update_time = event.gen_time
             order.trading_day = kft.strfnow("%Y%m%d")
+            # 增加repo不可以买入的限制
+            if (
+                wc.utils.get_instrument_type(
+                    order_input.exchange_id, order_input.instrument_id
+                )
+                == lf.enums.InstrumentType.Repo
+            ):
+                if order.side == lf.enums.Side.Buy:
+                    order.status = lf.enums.OrderStatus.Error
+                    order.error_msg = "repo can not buy"
+                    writer.write(event.gen_time, order)
+                    return False
             min_vol = (
                 100
                 if wc.utils.get_instrument_type(
@@ -102,13 +135,27 @@ class TraderSim(wc.Trader):
             elif self.match_mode == MatchMode.Fill:
                 volume_traded = order_input.volume
                 order.status = lf.enums.OrderStatus.Filled
+            elif self.match_mode == MatchMode.Multiple:
+                volume_traded = order_input.volume
+                order.status = lf.enums.OrderStatus.Filled
             else:
                 raise Exception("invalid match mode {}".format(self.match_mode))
             order.volume_left = order.volume - volume_traded
+
+            if order_input.block_id != 0:
+                if order_input.block_id in self.map_block_msg:
+                    self.logger.info(f"{self.map_block_msg[order_input.block_id]}")
+                else:
+                    self.logger.error(f"invalid block_id: {order_input.block_id}")
+                    order.status = lf.enums.OrderStatus.Error
+                    order.error_msg = "No Block Message"
+                    writer.write(event.gen_time, order)
+                    return False
+
             writer.write(event.gen_time, order)
             self.ctx.orders[order.order_id] = order
 
-            if volume_traded > 0:
+            if volume_traded > 0 and self.match_mode != MatchMode.Multiple:
                 trade = lf.types.Trade()
                 trade.trade_id = writer.current_frame_uid()
                 trade.order_id = order.order_id
@@ -120,7 +167,25 @@ class TraderSim(wc.Trader):
                 trade.instrument_type = order.instrument_type
                 trade.exchange_id = order.exchange_id
                 trade.trade_time = yjj.now_in_nano()
+                trade.trading_day = kft.strfnow("%Y%m%d")
                 writer.write(event.gen_time, trade)
+            elif volume_traded > 0 and self.match_mode == MatchMode.Multiple:
+                while volume_traded > 0:
+                    trade = lf.types.Trade()
+                    trade.trade_id = writer.current_frame_uid()
+                    trade.order_id = order.order_id
+                    trade.volume = min_vol
+                    trade.price = order.limit_price
+                    trade.side = order.side
+                    trade.offset = order.offset
+                    trade.instrument_id = order.instrument_id
+                    trade.instrument_type = order.instrument_type
+                    trade.exchange_id = order.exchange_id
+                    trade.trade_time = yjj.now_in_nano()
+                    trade.trading_day = kft.strfnow("%Y%m%d")
+                    writer.write(event.gen_time, trade)
+                    volume_traded -= trade.volume
+                    self.logger.debug(f"trade.trade_id: {trade.trade_id}")
 
             return True
 

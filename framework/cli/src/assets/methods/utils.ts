@@ -3,6 +3,7 @@ import fse from 'fs-extra';
 import inquirer from 'inquirer';
 import colors from 'colors';
 import { KfCategoryTypes } from '@kungfu-trader/kungfu-js-api/typings/enums';
+import resolveExtConfigHook from '@kungfu-trader/kungfu-js-api/hooks/resolveExtConfigHook';
 import {
   getAvailCliDaemonList,
   getIdByKfLocation,
@@ -87,7 +88,11 @@ export const getPromptQuestionsBySettings = (
 ): Promise<KungfuApi.KfConfigValue> => {
   const formState = initFormStateByConfig(settings, initValue || {});
   const questions = settings.map((item) =>
-    buildQuestionByKfConfigItem(item, formState[item.key], !!initValue),
+    buildQuestionByKfConfigItem(
+      item,
+      item.type === 'password' ? '' : formState[item.key],
+      !!initValue,
+    ),
   );
 
   return inquirer
@@ -142,7 +147,7 @@ export const renderSelect = (configItem: KungfuApi.KfConfigItem) => {
 
 export const buildQuestionByKfConfigItem = (
   configItem: KungfuApi.KfConfigItem,
-  value: KungfuApi.KfConfigValue | undefined,
+  dafultValue: KungfuApi.KfConfigValue | undefined,
   isUpdate = false,
 ) => {
   const { key, type } = configItem;
@@ -165,12 +170,22 @@ export const buildQuestionByKfConfigItem = (
         return new Error('Required');
       }
 
+      if ((isUpdate && configItem.primary) || configItem.disabled) {
+        if (value !== dafultValue) {
+          return new Error("This value can't change");
+        }
+
+        return true;
+      }
+
       return true;
     },
+
+    ...(targetType === 'path' ? { cwd: process.cwd().toString() } : {}),
   };
 
-  if (value !== undefined && value !== '' && value !== 0) {
-    questions.default = value;
+  if (dafultValue !== undefined && dafultValue !== '' && dafultValue !== 0) {
+    questions.default = dafultValue;
   }
 
   return questions;
@@ -198,29 +213,37 @@ export const getKfLocation = (
   type: KfCategoryTypes,
   targetId: string,
 ): KungfuApi.KfLocation => {
-  if (type === 'md') {
-    return {
-      category: 'md',
-      group: targetId,
-      name: targetId,
-      mode: 'live',
-    };
-  } else if (type === 'td') {
-    return {
-      category: 'td',
-      group: (targetId || '').parseSourceAccountId().source,
-      name: (targetId || '').parseSourceAccountId().id,
-      mode: 'live',
-    };
-  } else if (type === 'strategy') {
-    return {
-      category: 'strategy',
-      group: 'default',
-      name: targetId,
-      mode: 'live',
-    };
-  } else {
-    throw new Error(`Unsupported update category ${type}`);
+  switch (type) {
+    case 'md':
+      return {
+        category: 'md',
+        group: targetId,
+        name: targetId,
+        mode: 'live',
+      };
+    case 'td':
+      return {
+        category: 'td',
+        group: (targetId || '').parseSourceAccountId().source,
+        name: (targetId || '').parseSourceAccountId().id,
+        mode: 'live',
+      };
+    case 'operator':
+      return {
+        category: 'operator',
+        group: (targetId || '').toKfGroup(),
+        name: (targetId || '').toKfName(),
+        mode: 'live',
+      };
+    case 'strategy':
+      return {
+        category: 'strategy',
+        group: 'default',
+        name: targetId,
+        mode: 'live',
+      };
+    default:
+      throw new Error(`Unsupported update category ${type}`);
   }
 };
 
@@ -338,8 +361,39 @@ export const getCategoryName = (category: KfCategoryTypes) => {
     return colors.blue('Strat');
   } else if (category === 'daemon') {
     return colors.green('Daem');
+  } else if (category === 'operator') {
+    return colors.magenta('Oper');
   } else {
     return colors.bgMagenta('Sys');
+  }
+};
+
+export const dealKfConfigValue = async (
+  kfConfig: KungfuApi.KfConfig,
+  extConfigs: KungfuApi.KfExtConfigs,
+) => {
+  const extConfig = await (
+    globalThis.HookKeeper.getHooks()
+      .resolveExtConfig as typeof resolveExtConfigHook
+  ).trigger(kfConfig, extConfigs[kfConfig.category][kfConfig.group]);
+
+  try {
+    const settingsMap = extConfig?.settings.reduce((pre, item) => {
+      pre[item.key] = item.type;
+      return pre;
+    }, {});
+
+    const kfConfigValue = JSON.parse(kfConfig.value);
+    return JSON.stringify(
+      Object.keys(kfConfigValue).reduce((pre, key) => {
+        if (settingsMap[key] === 'password') {
+          pre[key] = '******';
+        }
+        return pre;
+      }, kfConfigValue),
+    );
+  } catch (error) {
+    return kfConfig.value;
   }
 };
 

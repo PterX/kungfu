@@ -5,7 +5,6 @@ import {
   clearProcessBeforeQuitStart,
   clearProcessBeforeQuitEnd,
 } from './events';
-import path from 'path';
 import {
   killKfc,
   killKungfu,
@@ -24,6 +23,7 @@ import {
 } from '@kungfu-trader/kungfu-js-api/config/pathConfig';
 import packageJSON from '@kungfu-trader/kungfu-app/package.json';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+import { getDialogLogoPath } from '@kungfu-trader/kungfu-js-api/config/brand';
 const { t } = VueI18n.global;
 
 let BeforeQuitLoading = false;
@@ -55,28 +55,27 @@ export function showKungfuInfo(): void {
     defaultId: 0,
     detail: info,
     buttons: [t('ok')],
-    icon: nativeImage.createFromPath(
-      path.join(globalThis.__publicResources, 'logo', 'logo.png'),
-    ),
+    icon: nativeImage.createFromPath(getDialogLogoPath()),
   });
 }
 
 function KillAll(): Promise<void> {
+  //不需要加killdaemon
   return new Promise((resolve) => {
     pm2Kill()
-      .catch((err) => kfLogger.error(err.message))
+      .catch((err) => kfLogger.error(err))
       .finally(() => {
         killKfc()
-          .catch((err) => kfLogger.error(err.message))
+          .catch((err) => kfLogger.error(err))
           .finally(() => {
             killKungfu()
-              .catch((err) => kfLogger.error(err.message))
+              .catch((err) => kfLogger.error(err))
               .finally(() => {
                 killExtra()
-                  .catch((err) => kfLogger.error(err.message))
+                  .catch((err) => kfLogger.error(err))
                   .finally(() => {
                     deleteNNFiles()
-                      .catch((err) => kfLogger.error(err.message))
+                      .catch((err) => kfLogger.error(err))
                       .finally(() => {
                         resolve();
                       });
@@ -112,9 +111,7 @@ export function showQuitMessageBox(
         cancelId: 1,
         message: t('quit_confirm'),
         buttons: [t('confirm'), t('cancel')],
-        icon: nativeImage.createFromPath(
-          path.join(globalThis.__publicResources, 'logo', 'logo.png'),
-        ),
+        icon: nativeImage.createFromPath(getDialogLogoPath()),
       })
       .then(({ response }) => {
         if (response === 0) {
@@ -145,9 +142,7 @@ export function showCrashMessageBox(): Promise<boolean> {
       cancelId: 1,
       message: t('restart_process'),
       buttons: [t('confirm'), t('cancel')],
-      icon: nativeImage.createFromPath(
-        path.join(globalThis.__publicResources, 'logo', 'logo.png'),
-      ),
+      icon: nativeImage.createFromPath(getDialogLogoPath()),
     })
     .then(({ response }) => {
       if (response === 0) {

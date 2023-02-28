@@ -1,8 +1,12 @@
+# SPDX-License-Identifier: Apache-2.0
+
 # PyInstaller Settings
 ###############################################################################
 import glob
+import pathlib
 import platform
 import os
+import shutil
 
 from collections import deque
 from distutils import sysconfig
@@ -17,6 +21,7 @@ from PyInstaller.building.api import COLLECT, EXE, PYZ, MERGE
 from PyInstaller.building.build_main import Analysis
 from PyInstaller.utils.hooks import collect_data_files
 from PyInstaller.utils.hooks import collect_submodules
+from PyInstaller.utils.hooks import logger
 
 ###############################################################################
 # python dir
@@ -32,6 +37,7 @@ cmake_dir = abspath(make_path(cwd, ".cmake"))
 
 # cpp dependencies
 deps_dir = abspath(make_path(cwd, ".deps"))
+dep_hana_dir = abspath(make_path(deps_dir, "hana-*"))
 dep_pybind11_dir = abspath(make_path(deps_dir, "pybind11*"))
 
 # kungfu source files
@@ -113,6 +119,7 @@ kfc_a = Analysis(
     datas=extend_datas(
         [
             (cmake_dir, "cmake"),
+            (make_path(dep_hana_dir, "include"), "include"),
             (dep_pybind11_dir, "pybind11"),
             (make_path(build_output_dir, "*"), "."),
             (make_path(build_dir, "include"), "include"),
@@ -128,11 +135,13 @@ kfc_a = Analysis(
     hiddenimports=extend_hiddenimports(
         modules=[
             "black",
+            "chardet",
             "pip._internal",
             "pip._vendor",
             "pkg_resources",
             "pdm",
             "pep517",
+            "pyproject_hooks",
             "shellingham",
             "nuitka",
             "ordered_set",
@@ -140,6 +149,8 @@ kfc_a = Analysis(
             "setuptools",
             "numpy",
             "pandas",
+            "scipy",
+            "statsmodels",
         ],
         executable_modules=[
             "kungfu",
@@ -184,3 +195,29 @@ kfs_exe = EXE(
 kfs_coll = COLLECT(
     kfs_exe, kfs_a.binaries, kfs_a.zipfiles, kfs_a.datas, name=kfs_name, strip=False
 )
+
+###############################################################################
+
+
+def copy_dll_x64(dll_pattern):
+    """
+    Some libs require '-x64' suffix for kfc bundled dlls like libcrypto and libssl
+    :param dll_pattern:
+    :return:
+    """
+    from wcmatch import glob
+
+    kfc_dir = kfc_coll.name
+
+    def locate(file):
+        return abspath(make_path(kfc_dir, file))
+
+    for dll_file in glob.glob(dll_pattern, flags=glob.EXTGLOB, root_dir=kfc_dir):
+        dll_path = pathlib.Path(dll_file)
+        x64_dll = make_path(dll_path.parent, dll_path.stem + "-x64" + ".dll")
+        logger.info(f"Copying {locate(dll_path)} to {locate(x64_dll)}")
+        shutil.copyfile(locate(dll_path), locate(x64_dll))
+
+
+copy_dll_x64("libssl-*.dll")
+copy_dll_x64("libcrypto-*.dll")

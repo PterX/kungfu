@@ -1,3 +1,5 @@
+#  SPDX-License-Identifier: Apache-2.0
+
 import glob
 import json
 import kungfu
@@ -47,17 +49,11 @@ def collect_journal_locations(ctx):
                     "readers": {dest: [page_id]},
                 }
             ctx.logger.debug(
-                "found journal %s %s %s %s",
-                MODES[mode],
-                CATEGORIES[category],
-                group,
-                name,
+                f"found journal {MODES[mode]} {CATEGORIES[category]} {group} {name}"
             )
         else:
             ctx.logger.warn(
-                "unable to match journal file %s to pattern %s",
-                journal,
-                JOURNAL_PAGE_REGEX,
+                f"unable to match journal file {journal} to pattern {JOURNAL_PAGE_REGEX}"
             )
     return locations
 
@@ -95,9 +91,9 @@ def find_sessions(ctx):
             session.group,
             session.name,
             session.begin_time,
-            abs(session.end_time),
-            session.end_time <= 0,
-            abs(session.end_time) - session.begin_time,
+            session.end_time,
+            session.end_time != 0,
+            abs(session.update_time) - session.begin_time,
         ]
     return sessions_df
 
@@ -149,7 +145,7 @@ def show_journal(ctx, session_id, io_type, csv):
     )
     io_device.show(
         session["begin_time"],
-        session["end_time"],
+        session["begin_time"] + session["duration"],
         show_in,
         show_out,
         csv,
@@ -162,7 +158,7 @@ def trace_journal(ctx, session_id, io_type, csv):
     )
     io_device.trace(
         session["begin_time"],
-        session["end_time"],
+        session["begin_time"] + session["duration"],
         show_in,
         show_out,
         csv,

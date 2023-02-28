@@ -1,8 +1,13 @@
 
+// SPDX-License-Identifier: Apache-2.0
+
 //
 // Created by Keren Dong on 2020/5/22.
 //
 
+#include <kungfu/yijinjing/cache/backend.h>
+#include <kungfu/yijinjing/common.h>
+#include <kungfu/yijinjing/io.h>
 #include <kungfu/yijinjing/journal/assemble.h>
 #include <kungfu/yijinjing/time.h>
 
@@ -30,17 +35,22 @@ void copy_sink::put(const data::location_ptr &location, uint32_t dest_id, const 
   auto &writers = pair.first->second;
   if (writers.find(dest_id) == writers.end()) {
     auto target_location = data::location::make_shared(*location, locator_);
-    writers.try_emplace(dest_id, std::make_shared<writer>(target_location, dest_id, true, get_publisher()));
+    writers.try_emplace(dest_id,
+                        std::make_shared<writer>(target_location, dest_id, true, get_publisher(), false, false));
   }
   writers.at(dest_id)->copy_frame(frame);
 }
+
+assemble::assemble(const std::string &mode, const std::string &category, const std::string &group,
+                   const std::string &name)
+    : mode_(mode), category_(category), group_(group), name_(name), publisher_(std::make_shared<noop_publisher>()) {}
 
 assemble::assemble(const std::vector<data::locator_ptr> &locators, const std::string &mode, const std::string &category,
                    const std::string &group, const std::string &name)
     : mode_(mode), category_(category), group_(group), name_(name), publisher_(std::make_shared<noop_publisher>()) {
   for (auto &locator : locators) {
     locators_.push_back(locator);
-    readers_.push_back(std::make_shared<reader>(true));
+    readers_.push_back(std::make_shared<reader>(true, false, false));
     auto reader = readers_.back();
     for (auto &location : locator->list_locations(category, group, name, mode)) {
       for (auto dest_id : locator->list_location_dest(location)) {
@@ -72,6 +82,7 @@ void assemble::operator>>(const sink_ptr &sink) {
 }
 
 bool assemble::data_available() {
+  sort();
   for (auto &reader : readers_) {
     if (reader->data_available()) {
       return true;
@@ -98,4 +109,109 @@ void assemble::sort() {
     }
   }
 }
+using namespace kungfu::longfist::enums;
+using namespace kungfu::longfist::types;
+using namespace sqlite_orm;
+
+std::vector<kungfu::longfist::types::Session> assemble::get_sessions(const kungfu::yijinjing::data::location_ptr &pl) {
+  kungfu::yijinjing::data::locator_ptr l(new kungfu::yijinjing::data::locator());
+  auto index_location =
+      kungfu::yijinjing::data::location::make_shared(mode::LIVE, category::SYSTEM, "journal", "index", l);
+  std::string session_db = l->layout_file(index_location, layout::SQLITE, "index");
+  kungfu::yijinjing::cache::SessionStoragePtr session_storage_(
+      cache::make_storage_ptr(session_db, kungfu::longfist::SessionDataTypes));
+  if (not session_storage_->sync_schema_simulate().empty()) {
+    session_storage_->sync_schema();
+  }
+  auto bt = &Session::begin_time;
+  auto range = where(greater_or_equal(bt, 0) and lesser_or_equal(bt, INT64_MAX));
+  auto sessions = session_storage_->get_all<Session>(range, order_by(bt));
+  if (!pl) {
+    return sessions;
+  } else {
+    std::vector<kungfu::longfist::types::Session> filtered_sessions;
+    std::copy_if(sessions.begin(), sessions.end(), std::back_inserter(filtered_sessions),
+                 [&pl](kungfu::longfist::types::Session x) { return x.location_uid == pl->location_uid; });
+    return filtered_sessions;
+  }
+}
+
+std::shared_ptr<frame_reader> assemble::get_reader(const kungfu::yijinjing::data::location_ptr &pl) {
+  auto io_dvc = std::make_shared<kungfu::yijinjing::io_device>(pl, true, true);
+  auto curr = std::chrono::system_clock::now();
+  time_t tm = std::chrono::system_clock::to_time_t(curr);
+  auto tm_begin = std::localtime(&tm);
+  tm_begin->tm_hour = 0;
+  tm_begin->tm_min = 0;
+  tm_begin->tm_sec = 0;
+  std::time_t t_begin = std::mktime(tm_begin);
+  int64_t begin_time = t_begin * 1000000000;
+  auto tm_end = std::localtime(&tm);
+  tm_end->tm_hour = 23;
+  tm_end->tm_min = 59;
+  tm_end->tm_sec = 59;
+  std::time_t t_end = std::mktime(tm_end);
+  int64_t end_time = t_end * 1000000000 + 999999999;
+  auto p_reader = std::make_shared<frame_reader>(io_dvc, begin_time, end_time, true);
+  auto uid_str = fmt::format("{:08x}", io_dvc->get_home()->uid);
+  auto master_cmd_location = kungfu::yijinjing::data::location::make_shared(mode::LIVE, category::SYSTEM, "master",
+                                                                            uid_str, io_dvc->get_locator());
+  auto master_home_location = kungfu::yijinjing::data::location::make_shared(mode::LIVE, category::SYSTEM, "master",
+                                                                             "master", io_dvc->get_locator());
+
+  p_reader->join(master_cmd_location, io_dvc->get_home()->uid, begin_time);
+  p_reader->join(master_home_location, kungfu::yijinjing::data::location::PUBLIC, begin_time);
+  for (auto dest_id : io_dvc->get_locator()->list_location_dest(io_dvc->get_home())) {
+    p_reader->join(io_dvc->get_home(), dest_id, begin_time);
+  }
+  return p_reader;
+}
+
+assemble::assemble(const data::location_ptr &source_location, uint32_t dest_id, uint32_t assemble_mode,
+                   int64_t from_time)
+    : assemble() {
+  readers_.clear();
+  data::locator l{};
+  readers_.push_back(std::make_shared<reader>(true, false, false));
+  auto reader = readers_.front();
+
+  // join channel
+  if (assemble_mode & AssembleMode::Channel) {
+    reader->join(source_location, dest_id, from_time);
+  }
+
+  // join all journal dest of location
+  if (assemble_mode & AssembleMode::Write) {
+    for (auto dest : l.list_location_dest(source_location)) {
+      reader->join(source_location, dest, from_time);
+    }
+  }
+
+  // scan all locations, join dest_id or PUBLIC
+  bool b_read = assemble_mode & AssembleMode::Read;
+  bool b_public = assemble_mode & AssembleMode::Public;
+  bool b_all = assemble_mode & AssembleMode::All;
+  if (b_read or b_public or b_all) {
+    for (auto &location : l.list_locations("*", "*", "*", "*")) {
+      for (auto dest : l.list_location_dest(location)) {
+        if (b_all) {
+          reader->join(location, dest, from_time);
+        } else if (b_read and dest == dest_id) {
+          reader->join(location, dest_id, from_time);
+        } else if (b_public and dest == data::location::PUBLIC) {
+          reader->join(location, data::location::PUBLIC, from_time);
+        }
+      }
+    }
+  }
+  sort();
+}
+
+[[maybe_unused]] void assemble::seek_to_time(int64_t nano_time) {
+  for (auto &reader : readers_) {
+    reader->seek_to_time(nano_time);
+  }
+  sort();
+}
+
 } // namespace kungfu::yijinjing::journal

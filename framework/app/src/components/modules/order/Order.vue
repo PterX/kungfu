@@ -88,11 +88,18 @@ const statisticModalVisible = ref<boolean>(false);
 
 const columns = computed(() => {
   if (currentGlobalKfLocation.value === null) {
-    return getColumns('td', !!historyDate.value);
+    return getColumns(
+      {
+        category: 'td',
+        group: '*',
+        name: '*',
+        mode: 'live',
+      },
+      !!historyDate.value,
+    );
   }
 
-  const { category } = currentGlobalKfLocation.value;
-  return getColumns(category, !!historyDate.value);
+  return getColumns(currentGlobalKfLocation.value, !!historyDate.value);
 });
 
 onMounted(() => {
@@ -122,7 +129,7 @@ onMounted(() => {
         if (unfinishedOrder.value) {
           orders.value = toRaw(
             ordersResolved
-              .slice(0, 100)
+              .slice(0, 2000)
               .filter((item) => !isFinishedOrderStatus(item.status))
               .map((item) =>
                 toRaw(dealOrder(watcher, item, watcher.ledger.OrderStat)),
@@ -133,7 +140,7 @@ onMounted(() => {
 
         orders.value = toRaw(
           ordersResolved
-            .slice(0, 100)
+            .slice(0, 500)
             .map((item) =>
               toRaw(dealOrder(watcher, item, watcher.ledger.OrderStat)),
             ),
@@ -163,27 +170,42 @@ watch(historyDate, async (newDate) => {
 
   orders.value = [];
   historyDataLoading.value = true;
-  await delayMilliSeconds(500);
-  const { tradingData } = await getKungfuHistoryData(
-    newDate.format(),
-    HistoryDateEnum.naturalDate,
-    'Order',
-    currentGlobalKfLocation.value,
-  );
-  const orderResolved =
-    globalThis.HookKeeper.getHooks().dealTradingData.trigger(
-      window.watcher,
-      currentGlobalKfLocation.value,
-      tradingData.Order,
-      'order',
-    ) as KungfuApi.Order[];
+  delayMilliSeconds(500)
+    .then(() =>
+      getKungfuHistoryData(
+        newDate.format(),
+        HistoryDateEnum.naturalDate,
+        'Order',
+        currentGlobalKfLocation.value as KungfuApi.KfLocation,
+      ),
+    )
+    .then((historyData) => {
+      if (!historyData) return;
 
-  orders.value = toRaw(
-    orderResolved.map((item) =>
-      toRaw(dealOrder(window.watcher, item, tradingData.OrderStat, true)),
-    ),
-  );
-  historyDataLoading.value = false;
+      const { tradingData } = historyData;
+
+      const orderResolved =
+        globalThis.HookKeeper.getHooks().dealTradingData.trigger(
+          window.watcher,
+          currentGlobalKfLocation.value,
+          tradingData.Order,
+          'order',
+        ) as KungfuApi.Order[];
+
+      orders.value = toRaw(
+        orderResolved.map((item) =>
+          toRaw(dealOrder(window.watcher, item, tradingData.OrderStat, true)),
+        ),
+      );
+      historyDataLoading.value = false;
+    })
+    .catch((err) => {
+      if (err.message === 'database_locked') {
+        messagePrompt().error(t('database_locked'));
+      } else {
+        console.error(err.message);
+      }
+    });
 });
 
 function isFinishedOrderStatus(orderStatus: OrderStatusEnum): boolean {
@@ -221,8 +243,8 @@ function handleCancelAllOrders(): void {
     `${t('orderConfig.confirm')} ${currentCategoryData.value?.name} ${name} ${t(
       'orderConfig.cancel_all',
     )}`,
-  ).then(() => {
-    if (!currentGlobalKfLocation.value || !window.watcher) {
+  ).then((flag) => {
+    if (!flag || !currentGlobalKfLocation.value || !window.watcher) {
       return;
     }
 
@@ -274,7 +296,10 @@ const adjustOrderConfig = reactive({
   offsetLeft: 0,
   offsetTop: 0,
 });
-const adjustOrderForm = ref<{ price: number; volume: number }>({
+const adjustOrderForm = ref<{
+  price: number;
+  volume: number;
+}>({
   price: 0,
   volume: 0,
 });
@@ -339,6 +364,13 @@ function handleClickAdjustOrderMask(): void {
     return;
   }
 
+  if (+Number(order.volume_left) === +adjustOrderForm.value.volume) {
+    if (+order.limit_price === +adjustOrderForm.value.price) {
+      adjustOrderMaskVisible.value = false;
+      return;
+    }
+  }
+
   kfCancelOrder(window.watcher, order)
     .then(() => {
       const makeOrderInput: KungfuApi.MakeOrderInput = {
@@ -352,6 +384,7 @@ function handleClickAdjustOrderMask(): void {
         offset: +order.offset,
         hedge_flag: +order.hedge_flag,
         is_swap: !!order.is_swap,
+        parent_id: 0n,
       };
 
       return makeOrderByOrderInput(
@@ -523,7 +556,12 @@ function testOrderSourceIsOnline(order: KungfuApi.OrderResolved) {
               {{ dealKfPrice(item.limit_price) }}
             </template>
             <template v-else-if="column.dataIndex === 'volume_left'">
-              {{ item.volume - item.volume_left }} / {{ item.volume }}
+              <span
+                style="float: right"
+                :title="`${item.volume - item.volume_left} / ${item.volume}`"
+              >
+                {{ `${item.volume - item.volume_left} / ${item.volume}` }}
+              </span>
             </template>
             <template v-else-if="column.dataIndex === 'status_uname'">
               <span :class="`color-${item.status_color}`">
@@ -555,7 +593,8 @@ function testOrderSourceIsOnline(order: KungfuApi.OrderResolved) {
       v-if="statisticModalVisible"
       v-model:visible="statisticModalVisible"
       :orders="tableData"
-      :historyDate="historyDate"
+      :is-unfinished-order="unfinishedOrder"
+      :history-date="historyDate"
     ></StatisticModal>
   </div>
 </template>

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 //
 // Created by Keren Dong on 2019-06-28.
 //
@@ -32,6 +34,11 @@ void Ledger::on_start() {
   bookkeeper_.on_start(events_);
   bookkeeper_.guard_positions();
 
+  events_ | is(BrokerStateUpdate::tag) |
+      $$(update_app_state_map(event->source(), event->data<BrokerStateUpdate>(), broker_states_));
+  events_ | is(OperatorStateUpdate::tag) |
+      $$(update_app_state_map(event->source(), event->data<OperatorStateUpdate>(), operator_states_));
+  events_ | is(Deregister::tag) | $$(on_deregister(event->data<Deregister>()));
   events_ | is(OrderInput::tag) | $$(update_order_stat(event, event->data<OrderInput>()));
   events_ | is(Order::tag) | $$(update_order_stat(event, event->data<Order>()));
   events_ | is(Trade::tag) | $$(update_order_stat(event, event->data<Trade>()));
@@ -39,14 +46,32 @@ void Ledger::on_start() {
   events_ | is(KeepPositionsRequest::tag) | $$(keep_positions(event->gen_time(), event->source()));
   events_ | is(RebuildPositionsRequest::tag) | $$(rebuild_positions(event->gen_time(), event->source()));
   events_ | is(MirrorPositionsRequest::tag) | $$(bookkeeper_.mirror_positions(event->gen_time(), event->source()));
+  events_ | is(BrokerStateRequest::tag) | $$(write_app_state(event->gen_time(), event->source(), broker_states_));
+  events_ | is(OperatorStateRequest::tag) | $$(write_app_state(event->gen_time(), event->source(), operator_states_));
   events_ | is(AssetRequest::tag) | $$(write_book_reset(event->gen_time(), event->source()));
   events_ | is(PositionRequest::tag) | $$(write_strategy_data(event->gen_time(), event->source()));
-  events_ | is(PositionEnd::tag) | skip_while(while_to(location::SYNC)) |
-      $$(update_account_book(event->gen_time(), event->data<PositionEnd>().holder_uid););
+  events_ | is(PositionEnd::tag) | $$(update_account_book(event->gen_time(), event->data<PositionEnd>().holder_uid););
 
   add_time_interval(time_unit::NANOSECONDS_PER_MINUTE, [&](auto e) { request_asset_sync(e->gen_time()); });
   add_time_interval(time_unit::NANOSECONDS_PER_MINUTE, [&](auto e) { request_position_sync(e->gen_time()); });
   refresh_books();
+}
+
+void Ledger::on_deregister(const Deregister &deregister) {
+  uint32_t location_uid = deregister.location_uid;
+  if (broker_states_.find(location_uid) != broker_states_.end()) {
+    // broker_states_[location_uid].state = BrokerState::DisConnected;
+    broker_states_.erase(location_uid);
+    SPDLOG_INFO("deregister location [{:08x}] {}, from broker_states_", location_uid, get_location_uname(location_uid));
+  }
+  if (operator_states_.find(location_uid) != operator_states_.end()) {
+    // operator_states_[location_uid].state = OperatorState::DisConnected;
+    operator_states_.erase(location_uid);
+    SPDLOG_INFO("deregister location [{:08x}] {}, from operatoor_states_", location_uid,
+                get_location_uname(location_uid));
+  }
+  write_app_state_to_public(broker_states_);
+  write_app_state_to_public(operator_states_);
 }
 
 void Ledger::refresh_books() {
@@ -112,6 +137,11 @@ void Ledger::update_order_stat(const event_ptr &event, const Trade &data) {
   auto &stat = get_order_stat(data.order_id, event);
   if (stat.trade_time == 0) {
     stat.trade_time = event->gen_time();
+    stat.total_price += data.price * data.volume;
+    stat.total_volume += data.volume;
+    if (stat.total_volume > 0) {
+      stat.avg_price = int((stat.total_price / stat.total_volume) * 10000) / 10000.0;
+    }
     write_to(event->gen_time(), stat, event->source());
   }
 }

@@ -46,6 +46,7 @@ const pos = ref<KungfuApi.PositionResolved[]>([]);
 const { searchKeyword, tableData } =
   useTableSearchKeyword<KungfuApi.PositionResolved>(pos, [
     'instrument_id_resolved',
+    'exchange_id',
     'direction',
     'account_id_resolved',
   ]);
@@ -60,11 +61,15 @@ const { instruments } = useInstruments();
 
 const columns = computed(() => {
   if (currentGlobalKfLocation.value === null) {
-    return getColumns('td');
+    return getColumns({
+      category: 'td',
+      group: '*',
+      name: '*',
+      mode: 'live',
+    });
   }
 
-  const category = currentGlobalKfLocation.value?.category;
-  return getColumns(category);
+  return getColumns(currentGlobalKfLocation.value);
 });
 
 onMounted(() => {
@@ -101,10 +106,10 @@ watch(currentGlobalKfLocation, () => {
 
 function handleClickRow(data: {
   event: MouseEvent;
-  row: KungfuApi.TradingDataItem;
+  row: KungfuApi.PositionResolved;
   column: KfTradingDataTableHeaderConfig;
 }) {
-  const row = data.row as KungfuApi.Position;
+  const row = data.row;
   const { instrument_id, instrument_type, exchange_id } = row;
   const ensuredInstrument: KungfuApi.InstrumentResolved =
     getInstrumentByInstrumentPair(
@@ -123,10 +128,7 @@ function handleClickRow(data: {
       row.yesterday_volume !== BigInt(0)
         ? OffsetEnum.CloseYest
         : OffsetEnum.CloseToday,
-    volume:
-      row.yesterday_volume !== BigInt(0)
-        ? row.yesterday_volume
-        : row.volume - row.yesterday_volume,
+    volume: row.closable_volume,
 
     price: row.last_price || row.avg_open_price || 0,
     accountId: isTdStrategyCategory(currentGlobalKfLocation.value?.category)

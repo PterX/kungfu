@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 //
 // Created by Keren Dong on 2019-06-20.
 //
@@ -25,11 +27,19 @@ void MarketDataVendor::on_react() {
 void MarketDataVendor::on_start() {
   BrokerVendor::on_start();
   events_ | is(CustomSubscribe::tag) | $$(service_->subscribe_custom(event->data<CustomSubscribe>()));
-  events_ | is(InstrumentKey::tag) | $$(service_->subscribe({event->data<InstrumentKey>()}));
+  events_ | is(InstrumentKey::tag) | $$(service_->add_instrument_key(event->data<InstrumentKey>()));
+  events_ | is(Band::tag) | $$(service_->on_band(event));
+  events_ | instanceof <journal::frame>() | $$(service_->on_custom_event(event));
   service_->on_start();
+
+  add_time_interval(time_unit::NANOSECONDS_PER_SECOND, [&](auto e) { service_->try_subscribe(); });
 }
 
 BrokerService_ptr MarketDataVendor::get_service() { return service_; }
+
+void MarketDataVendor::on_trading_day(const event_ptr &event, int64_t daytime) {
+  service_->on_trading_day(event, daytime);
+}
 
 bool MarketData::has_instrument(const std::string &instrument_id) const {
   return instruments_.find(instrument_id) != instruments_.end();
@@ -42,4 +52,14 @@ const Instrument &MarketData::get_instrument(const std::string &instrument_id) c
 void MarketData::update_instrument(Instrument instrument) {
   instruments_.emplace(instrument.instrument_id, instrument);
 }
+
+void MarketData::try_subscribe() {
+  if (not instruments_to_subscribe_.empty()) {
+    subscribe(instruments_to_subscribe_);
+  }
+  instruments_to_subscribe_.clear();
+}
+
+void MarketData::add_instrument_key(const InstrumentKey &key) { instruments_to_subscribe_.push_back(key); }
+
 } // namespace kungfu::wingchun::broker

@@ -14,6 +14,8 @@ import {
   getAllRiskSettingList,
   getSubscribedInstruments,
   getTdGroups,
+  getAllBaskets,
+  getAllBasketInstruments,
 } from '@kungfu-trader/kungfu-js-api/actions';
 import {
   Pm2ProcessStatusDetailData,
@@ -24,6 +26,10 @@ import {
   KfCategoryTypes,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import globalBus from '@kungfu-trader/kungfu-js-api/utils/globalBus';
+import {
+  SideEnum,
+  OffsetEnum,
+} from '@kungfu-trader/kungfu-js-api/typings/enums';
 import { getKfGlobalSettingsValue } from '@kungfu-trader/kungfu-js-api/config/globalSettings';
 
 interface GlobalState {
@@ -36,6 +42,9 @@ interface GlobalState {
   tdGroupList: KungfuApi.KfExtraLocation[];
   mdList: KungfuApi.KfConfig[];
   strategyList: KungfuApi.KfConfig[];
+  operatorList: KungfuApi.KfConfig[];
+  basketList: KungfuApi.Basket[];
+  basketInstrumentList: KungfuApi.BasketInstrument[];
 
   processStatusData: Pm2ProcessStatusData;
   processStatusWithDetail: Pm2ProcessStatusDetailData;
@@ -45,7 +54,9 @@ interface GlobalState {
 
   assets: Record<string, KungfuApi.Asset>;
   instruments: KungfuApi.InstrumentResolved[];
-  subscribedInstruments: KungfuApi.InstrumentResolved[];
+  instrumentsMap: Record<string, KungfuApi.InstrumentResolved>;
+  subscribedInstrumentsByLocal: KungfuApi.InstrumentResolved[];
+  curSubscribedInstruments: Record<string, boolean>;
 
   riskSettings: KungfuApi.RiskSetting[];
 
@@ -56,6 +67,16 @@ interface GlobalState {
     | KungfuApi.KfConfig
     | KungfuApi.KfExtraLocation
     | null;
+
+  orderBookCurrentInstrument: KungfuApi.InstrumentResolved | undefined;
+
+  globalFormState: {
+    account_id?: string;
+    instrument?: string;
+    volume?: number;
+    side?: SideEnum;
+    offset?: OffsetEnum;
+  };
 }
 
 export const useGlobalStore = defineStore('global', {
@@ -71,6 +92,9 @@ export const useGlobalStore = defineStore('global', {
       tdGroupList: [],
       mdList: [],
       strategyList: [],
+      operatorList: [],
+      basketList: [],
+      basketInstrumentList: [],
 
       processStatusData: {},
       processStatusWithDetail: {},
@@ -79,13 +103,18 @@ export const useGlobalStore = defineStore('global', {
       strategyStates: {},
       assets: {},
       instruments: [],
-      subscribedInstruments: [],
+      instrumentsMap: {},
+      subscribedInstrumentsByLocal: [],
+      curSubscribedInstruments: {},
 
       riskSettings: [],
 
       globalSetting: {},
 
       currentGlobalKfLocation: null,
+      orderBookCurrentInstrument: undefined,
+
+      globalFormState: {},
     };
   },
 
@@ -100,14 +129,24 @@ export const useGlobalStore = defineStore('global', {
       });
     },
 
-    setSubscribedInstruments() {
+    setSubscribedInstrumentsByLocal() {
       getSubscribedInstruments().then((instruments) => {
-        this.subscribedInstruments = toRaw(instruments);
+        this.subscribedInstrumentsByLocal = toRaw(instruments);
       });
+    },
+
+    setCurSubscribedInstruments(newInstrumentsMap: Record<string, boolean>) {
+      Object.assign(this.curSubscribedInstruments, newInstrumentsMap);
     },
 
     setInstruments(instruments: KungfuApi.InstrumentResolved[]) {
       this.instruments = toRaw(instruments);
+    },
+
+    setInstrumentsMap(
+      instrumentsMap: Record<string, KungfuApi.InstrumentResolved>,
+    ) {
+      this.instrumentsMap = toRaw(instrumentsMap);
     },
 
     setCurrentGlobalKfLocation(
@@ -118,6 +157,16 @@ export const useGlobalStore = defineStore('global', {
         | null,
     ) {
       this.currentGlobalKfLocation = kfLocation;
+    },
+
+    setOrderBookCurrentInstrument(
+      instrument: KungfuApi.InstrumentResolved | undefined,
+    ) {
+      this.orderBookCurrentInstrument = instrument;
+    },
+
+    setGlobalFormState(formState: GlobalState['globalFormState']) {
+      Object.assign(this.globalFormState, formState);
     },
 
     setAppStates(appStates: Record<string, BrokerStateStatusTypes>) {
@@ -146,10 +195,11 @@ export const useGlobalStore = defineStore('global', {
 
     setKfConfigList() {
       return getAllKfConfigOriginData().then((res) => {
-        const { md, td, strategy } = res;
+        const { md, td, strategy, operator } = res;
         this.mdList = md;
         this.tdList = td;
         this.strategyList = strategy;
+        this.operatorList = operator;
 
         globalBus.next({
           tag: 'update:td',
@@ -166,18 +216,12 @@ export const useGlobalStore = defineStore('global', {
           strategys: strategy,
         });
 
-        if (
-          this.currentGlobalKfLocation === null ||
-          !this.checkCurrentGlobalKfLocationExisted()
-        ) {
-          if (td.length) {
-            this.setCurrentGlobalKfLocation(td[0]);
-          } else if (strategy.length) {
-            this.setCurrentGlobalKfLocation(strategy[0]);
-          } else {
-            this.setCurrentGlobalKfLocation(null);
-          }
-        }
+        globalBus.next({
+          tag: 'update:operator',
+          operators: operator,
+        });
+
+        this.setDefaultCurrentGlobalKfLocation();
       });
     },
 
@@ -188,6 +232,18 @@ export const useGlobalStore = defineStore('global', {
     setRiskSettingList() {
       return getAllRiskSettingList().then((res) => {
         this.riskSettings = res;
+      });
+    },
+
+    setBasketList() {
+      return getAllBaskets().then((basketList) => {
+        this.basketList = basketList;
+      });
+    },
+
+    setBasketInstrumentList() {
+      return getAllBasketInstruments().then((basketInstrumentList) => {
+        this.basketInstrumentList = basketInstrumentList;
       });
     },
 
@@ -203,8 +259,9 @@ export const useGlobalStore = defineStore('global', {
         td: this.tdList,
         md: this.mdList,
         strategy: this.strategyList,
-        daemon: [],
         system: [],
+        operator: [],
+        daemon: [],
       };
 
       const targetKfConfigs: KungfuApi.KfConfig[] =
@@ -230,6 +287,21 @@ export const useGlobalStore = defineStore('global', {
       );
 
       return afterFilter.length > 0;
+    },
+
+    setDefaultCurrentGlobalKfLocation() {
+      if (
+        this.currentGlobalKfLocation === null ||
+        !this.checkCurrentGlobalKfLocationExisted()
+      ) {
+        if (this.tdList.length) {
+          this.setCurrentGlobalKfLocation(this.tdList[0]);
+        } else if (this.strategyList.length) {
+          this.setCurrentGlobalKfLocation(this.strategyList[0]);
+        } else {
+          this.setCurrentGlobalKfLocation(null);
+        }
+      }
     },
 
     setKfExtConfigs() {
@@ -267,6 +339,20 @@ export const useGlobalStore = defineStore('global', {
       value: KfLayout.BoardInfo[keyof KfLayout.BoardInfo],
     ) {
       (<typeof value>this.boardsMap[id][attrKey]) = value;
+    },
+
+    addBoardFromEmpty(targetContentId: string) {
+      const newBoardInfo: KfLayout.BoardInfo = {
+        paId: 0,
+        direction: KfLayoutDirection.v,
+        contents: [targetContentId],
+        current: targetContentId,
+        width: '100%',
+        height: '100%',
+      };
+      this.boardsMap[1] = newBoardInfo;
+      this.boardsMap[0].children = [1];
+      return Promise.resolve();
     },
 
     addBoardByContentId(

@@ -110,7 +110,6 @@ class Pybind11Extension(_Extension):
         self.extra_link_args[:0] = flags
 
     def __init__(self, *args, **kwargs):
-
         self._cxx_level = 0
         cxx_std = kwargs.pop("cxx_std", 0)
 
@@ -169,7 +168,6 @@ class Pybind11Extension(_Extension):
 
     @cxx_std.setter
     def cxx_std(self, level):
-
         if self._cxx_level:
             warnings.warn("You cannot safely change the cxx_level after setting it!")
 
@@ -427,7 +425,6 @@ class ParallelCompile(object):
             extra_postargs=None,
             depends=None,
         ):
-
             # These lines are directly from distutils.ccompiler.CCompiler
             macros, objects, extra_postargs, pp_opts, build = compiler._setup_compile(
                 output_dir, macros, include_dirs, sources, depends, extra_postargs

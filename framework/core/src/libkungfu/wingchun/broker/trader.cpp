@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 //
 // Created by Keren Dong on 2019-06-20.
 //
@@ -18,11 +20,22 @@ TraderVendor::TraderVendor(locator_ptr locator, const std::string &group, const 
 
 void TraderVendor::set_service(Trader_ptr service) { service_ = std::move(service); }
 
+void TraderVendor::react() {
+  events_ | skip_until(events_ | is(RequestStart::tag)) | is(OrderInput::tag) | $$(service_->handle_order_input(event));
+  events_ | skip_until(events_ | is(RequestStart::tag)) |
+      instanceof <journal::frame>() | $$(service_->on_custom_event(event));
+  apprentice::react();
+}
+
+void TraderVendor::on_react() {
+  events_ | is(ResetBookRequest::tag) |
+      $([&](const event_ptr &event) { get_writer(location::PUBLIC)->mark(now(), ResetBookRequest::tag); });
+}
+
 void TraderVendor::on_start() {
   BrokerVendor::on_start();
 
   events_ | is(BlockMessage::tag) | $$(service_->insert_block_message(event));
-  events_ | is(OrderInput::tag) | $$(service_->insert_order(event));
   events_ | is(OrderAction::tag) | $$(service_->cancel_order(event));
   events_ | is(AssetRequest::tag) | $$(service_->req_account());
   events_ | is(Deregister::tag) | $$(service_->on_strategy_exit(event));
@@ -31,7 +44,11 @@ void TraderVendor::on_start() {
   events_ | is(RequestHistoryTrade::tag) | $$(service_->req_history_trade(event));
   events_ | is(AssetSync::tag) | $$(service_->handle_asset_sync());
   events_ | is(PositionSync::tag) | $$(service_->handle_position_sync());
-  events_ | is(ResetBookRequest::tag) | $$(get_writer(location::PUBLIC)->mark(now(), ResetBookRequest::tag));
+  events_ | is(Band::tag) | $$(service_->on_band(event));
+
+  events_ | filter([&](const event_ptr &event) {
+    return event->msg_type() == BatchOrderBegin::tag or event->msg_type() == BatchOrderEnd::tag;
+  }) | $$(service_->handle_batch_order_tag(event));
 
   clean_orders();
 
@@ -118,6 +135,30 @@ void Trader::handle_position_sync() {
   if (state_ == BrokerState::Ready) {
     req_position();
   }
+}
+
+void Trader::handle_order_input(const event_ptr &event) {
+  /// try_emplace default insert false to map, means not batch mode
+  if (batch_status_.try_emplace(event->source()).first->second) {
+    const OrderInput &input = event->data<OrderInput>();
+    order_inputs_.try_emplace(event->source()).first->second.push_back(input);
+  } else {
+    insert_order(event);
+  }
+}
+
+void Trader::handle_batch_order_tag(const event_ptr &event) {
+  if (event->msg_type() == BatchOrderBegin::tag) {
+    batch_status_.insert_or_assign(event->source(), true);
+  } else if (event->msg_type() == BatchOrderEnd::tag) {
+    batch_status_.insert_or_assign(event->source(), false);
+    insert_batch_orders(event);
+  }
+}
+
+bool Trader::insert_block_message(const event_ptr &event) {
+  const BlockMessage &msg = event->data<BlockMessage>();
+  return block_messages_.try_emplace(msg.block_id, msg).second;
 }
 
 } // namespace kungfu::wingchun::broker

@@ -49,7 +49,32 @@ export const getColumns = (
     title: t('strategyConfig.actions'),
     dataIndex: 'actions',
     align: 'right',
-    width: 140,
+    width: 160,
     fixed: 'right',
   },
 ];
+
+export const setStrategyConfig: KungfuApi.KfExtConfig = {
+  type: [],
+  name: t('strategyConfig.strategy'),
+  category: 'strategy',
+  key: 'default',
+  extPath: '',
+  settings: [
+    {
+      key: 'strategy_id',
+      name: t('strategyConfig.strategy_id'),
+      type: 'str',
+      primary: true,
+      required: true,
+      tip: t('strategyConfig.strategy_tip'),
+    },
+    {
+      key: 'file_path',
+      name: t('strategyConfig.strategy_path'),
+      type: 'file',
+      tip: t('strategyConfig.strategy_path_tip'),
+      required: true,
+    },
+  ],
+};

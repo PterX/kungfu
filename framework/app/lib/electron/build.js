@@ -7,7 +7,10 @@ const run = (distDir) => {
   const packageJson = require(`${path.join(cwd, 'package.json')}`);
   const version = semver.parse(packageJson.version);
   const craftName = packageJson.name.replace(/@.*\//g, '');
-  const craftConfig = packageJson.kungfuCraft || { productName: 'Kungfu' };
+  const craftConfig = {
+    appId: packageJson?.kungfuCraft?.appId || 'Kungfu.Origin.KungFu.Trader',
+    productName: packageJson?.kungfuCraft?.productName || 'Kungfu',
+  };
   const appConfig = {
     artifactName:
       '${productName}-${buildVersion}-${os}-${arch}-${channel}.${ext}',

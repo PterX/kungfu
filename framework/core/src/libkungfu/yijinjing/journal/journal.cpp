@@ -1,22 +1,8 @@
-/*****************************************************************************
- * Copyright [www.kungfu-trader.com]
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *  http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *****************************************************************************/
+// SPDX-License-Identifier: Apache-2.0
 
 #include <kungfu/common.h>
 #include <kungfu/longfist/longfist.h>
 #include <kungfu/yijinjing/journal/journal.h>
-#include <kungfu/yijinjing/journal/page.h>
 #include <kungfu/yijinjing/time.h>
 
 namespace kungfu::yijinjing::journal {
@@ -25,12 +11,14 @@ journal::~journal() {
   if (page_.get() != nullptr) {
     page_.reset();
   }
+  release_page();
 }
 
 void journal::next() {
   assert(page_.get() != nullptr);
   if (frame_->msg_type() == longfist::types::PageEnd::tag) {
     load_next_page();
+    try_load_next_extra_page();
   } else {
     frame_->move_to_next();
     page_frame_nb_++;
@@ -43,6 +31,7 @@ void journal::seek_to_time(int64_t nanotime) {
   while (page_->is_full() && page_->end_time() <= nanotime) {
     load_next_page();
   }
+  try_load_next_extra_page();
   while (frame_->has_data() && frame_->gen_time() <= nanotime) {
     next();
   }
@@ -50,6 +39,11 @@ void journal::seek_to_time(int64_t nanotime) {
 
 void journal::load_page(int page_id) {
   if (page_.get() == nullptr or page_->get_page_id() != page_id) {
+
+    if (page_.get() != nullptr && cleaner_required_) {
+      passed_page_collector_.push_back(std::move(page_));
+    }
+
     page_ = page::load(location_, dest_id_, page_id, is_writing_, lazy_);
     frame_->set_address(page_->first_frame_address());
     page_frame_nb_ = 0u;
@@ -57,4 +51,22 @@ void journal::load_page(int page_id) {
 }
 
 void journal::load_next_page() { load_page(page_->get_page_id() + 1); }
+
+// saving time for other process switch page, except the master
+// only for master reading, and low_latency mode
+void journal::try_load_next_extra_page() {
+  if (lazy_ || is_writing_ || !low_latency_) {
+    return;
+  }
+  pre_page_ = page::load(location_, dest_id_, page_->get_page_id() + 1, false, lazy_, true);
+}
+
+void journal::release_page() {
+  for (auto &page_ptr : passed_page_collector_) {
+    if (page_ptr.get() != nullptr && page_ptr.use_count() != 0) {
+      page_ptr.reset();
+    }
+  }
+}
+
 } // namespace kungfu::yijinjing::journal

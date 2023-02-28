@@ -34,11 +34,13 @@ import {
   TimePicker,
   Divider,
   Dropdown,
+  Progress,
 } from 'ant-design-vue';
 
 import {
   postStartAll,
   preStartAll,
+  mergeExtLanguages,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
 import {
@@ -67,6 +69,8 @@ import { useComponenets } from './useComponents';
 import globalBus from '@kungfu-trader/kungfu-js-api/utils/globalBus';
 
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+import zhCN from 'ant-design-vue/es/locale/zh_CN';
+import enUS from 'ant-design-vue/es/locale/en_US';
 
 const app = createApp(App);
 
@@ -102,28 +106,52 @@ app
   .use(Statistic)
   .use(Divider)
   .use(Dropdown)
+  .use(Progress)
   .use(VueVirtualScroller);
 
+app.config.globalProperties.$antLocalesMap = {
+  'zh-CN': zhCN,
+  'en-US': enUS,
+};
 app.config.globalProperties.$globalBus = globalBus;
 app.config.globalProperties.$tradingDataSubject = tradingDataSubject;
 
 app.use(VueI18n);
-useComponenets(app, router).then(() => {
-  app.mount('#app');
-});
+
+mergeExtLanguages().then(() =>
+  useComponenets(app, router).then(() => {
+    app.mount('#app');
+  }),
+);
 
 const globalStore = useGlobalStore();
+const __BYPASS_ARCHIVE__ = false;
 
 if (!booleanProcessEnv(process.env.RELOAD_AFTER_CRASHED)) {
   preStartAll()
-    .then(() => {
-      return startArchiveMakeTask((archiveStatus: Pm2ProcessStatusTypes) => {
+    .then(async () => {
+      if (__BYPASS_ARCHIVE__) {
         globalBus.next({
           tag: 'processStatus',
           name: 'archive',
-          status: archiveStatus,
+          status: 'online',
         });
-      });
+        await delayMilliSeconds(2000);
+        globalBus.next({
+          tag: 'processStatus',
+          name: 'archive',
+          status: 'stopped',
+        });
+        return;
+      } else {
+        return startArchiveMakeTask((archiveStatus: Pm2ProcessStatusTypes) => {
+          globalBus.next({
+            tag: 'processStatus',
+            name: 'archive',
+            status: archiveStatus,
+          });
+        });
+      }
     })
     .then(() => startMaster(false))
     .catch((err) => console.error(err.message))
@@ -141,7 +169,7 @@ if (!booleanProcessEnv(process.env.RELOAD_AFTER_CRASHED)) {
 
       delayMilliSeconds(1000)
         .then(() => startCacheD(false))
-        .then(() => delayMilliSeconds(1000))
+        .then(() => delayMilliSeconds(2000))
         .then(() => startLedger(false))
         .then(() => postStartAll())
         .then(() => delayMilliSeconds(1000))
@@ -167,4 +195,4 @@ if (!booleanProcessEnv(process.env.RELOAD_AFTER_CRASHED)) {
   );
 }
 
-triggerStartStep();
+triggerStartStep(1000);

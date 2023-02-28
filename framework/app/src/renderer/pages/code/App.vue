@@ -18,10 +18,11 @@ const { error } = messagePrompt();
 const store = useCodeStore();
 const ProcessId: string = getProcessId();
 
-setHtmlTitle(`${t('kungfu')} - ${ProcessId}.log`);
+setHtmlTitle(ProcessId);
+
 const strategy = reactive<Code.Strategy>({
   strategy_id: '',
-  strategy_path: '',
+  file_path: '',
   add_time: 0,
 });
 const strategyName = ProcessId.split('_')[1];
@@ -37,7 +38,7 @@ function handleStrategyJsonList(strategyList): void {
     strategyList[curnStrategyIndex.value].value,
   );
   strategy.strategy_id = value.strategy_id;
-  strategy.strategy_path = value.strategy_path;
+  strategy.file_path = value.file_path;
   strategy.add_time = value.add_time;
   store.setCurrentStrategy(strategy);
 }
@@ -55,7 +56,7 @@ function handleStrategyList(strategyList): void {
   const value: Code.Strategy = strategyList[0];
 
   strategy.strategy_id = value.strategy_id;
-  strategy.strategy_path = value.strategy_path;
+  strategy.file_path = value.file_path;
   strategy.add_time = value.add_time;
   store.setCurrentStrategy(strategy);
 }

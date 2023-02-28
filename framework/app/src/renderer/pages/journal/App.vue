@@ -43,9 +43,11 @@
           {{ currentSessionTitle }}
         </div>
         <TimeSlider
+          ref="timeSlider"
           v-model:time-range="currentTimeRangeData.range"
           :limit-time-range="limitTimeRange"
           :step="60"
+          stick
           class="kf-journal-time-slider"
         ></TimeSlider>
         <ExportJournal @export-journal-data="onExportJournalData" />
@@ -101,6 +103,7 @@ import OrdersDashboard from './components/OrdersDashboard.vue';
 import { useJournalStore } from './store/journalStore';
 
 const currentLocation = getCurrentLocation();
+const timeSlider = ref();
 const eventDashBoard = ref();
 const journalStore = useJournalStore();
 
@@ -260,6 +263,10 @@ const startCheckSessionsStatus = () => {
           session.begin_time,
           currentEndTime || BigInt(new Date().getTime()) * 1000000n,
         ];
+
+        currentTimeRangeData.value.reload = !timeSlider.value?.sticking.some(
+          (item) => item,
+        );
       }
     });
   }, 1000);

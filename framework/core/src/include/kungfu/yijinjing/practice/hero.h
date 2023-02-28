@@ -26,6 +26,8 @@ inline yijinjing::data::location_ptr make_system_location(const std::string &gro
                                                 name, locator);
 }
 
+typedef std::unordered_map<uint32_t, yijinjing::journal::writer_ptr> WriterMap;
+
 class hero : public resource {
 public:
   explicit hero(yijinjing::io_device_ptr io_device);
@@ -41,6 +43,10 @@ public:
   void run();
 
   bool is_live() const;
+
+  bool is_low_latency() const;
+
+  bool is_cleaner_required() const;
 
   void signal_stop();
 
@@ -69,6 +75,8 @@ public:
   bool has_writer(uint32_t dest_id) const;
 
   [[nodiscard]] yijinjing::journal::writer_ptr get_writer(uint32_t dest_id) const;
+
+  [[nodiscard]] const WriterMap &get_writers() const;
 
   bool has_location(uint32_t uid) const;
 
@@ -105,7 +113,7 @@ protected:
   int64_t begin_time_;
   int64_t end_time_;
   yijinjing::journal::reader_ptr reader_;
-  std::unordered_map<uint32_t, yijinjing::journal::writer_ptr> writers_ = {};
+  WriterMap writers_ = {};
   std::unordered_map<uint64_t, longfist::types::Band> bands_ = {};
   std::unordered_map<uint64_t, longfist::types::Channel> channels_ = {};
   std::unordered_map<uint32_t, yijinjing::data::location_ptr> locations_ = {};

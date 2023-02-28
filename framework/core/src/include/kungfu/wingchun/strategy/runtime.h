@@ -223,6 +223,8 @@ public:
    */
   std::string arguments() override;
 
+  void set_arguments(const std::string &arguments) { arguments_ = arguments; }
+
 protected:
   yijinjing::practice::apprentice &app_;
   const rx::connectable_observable<event_ptr> &events_;
@@ -247,7 +249,6 @@ private:
   std::string arguments_;
 
   friend void enable(RuntimeContext &context) { context.on_start(); }
-  friend class Runner;
 };
 
 DECLARE_PTR(RuntimeContext)

@@ -130,10 +130,6 @@ public:
   }
 
   void apply_order(Book_ptr &book, const Order &order) override {
-    if (book->orders.find(order.order_id) == book->orders.end()) {
-      book->orders.insert_or_assign(order.order_id, order);
-    }
-
     if (not is_final_status(order.status))
       return;
 
@@ -165,10 +161,6 @@ public:
   }
 
   void apply_trade(Book_ptr &book, const Trade &trade) override {
-    if (book->trades.find(trade.trade_id) == book->trades.end()) {
-      book->trades.emplace(trade.trade_id, trade);
-    }
-
     auto offset = get_offset(book, trade);
     auto direction = get_direction(trade.instrument_type, trade.side, offset);
     auto &position = book->get_position(direction, trade.exchange_id, trade.instrument_id);

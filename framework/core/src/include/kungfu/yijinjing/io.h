@@ -34,6 +34,10 @@ public:
 
   [[nodiscard]] bool is_low_latency() const { return low_latency_; }
 
+  [[nodiscard]] bool is_cleaner_required() const {
+    return low_latency_ && lazy_ && home_->mode == kungfu::longfist::enums::mode::LIVE;
+  }
+
   journal::reader_ptr open_reader_to_subscribe();
 
   journal::reader_ptr open_reader(const data::location_ptr &location, uint32_t dest_id);

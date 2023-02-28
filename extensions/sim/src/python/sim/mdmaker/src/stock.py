@@ -273,7 +273,7 @@ class OrderBookUtils(object):
             )
             data = struct.pack(
                 "<QI" + trade_update_fmt + order_book_level_fmt * 5 + valids_fmt,
-                *the_data
+                *the_data,
             )
             binfile.write(data)
 

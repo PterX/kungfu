@@ -225,6 +225,8 @@ class ExtensionExecutor:
         )
 
         self.setup(loader, use_ctx_path=False)
+        # let TD and MD start without package.json
+        sys.path.insert(0, ctx.extension_path)
         module = importlib.import_module(ctx.group)
         self.ctx.logger.info(f"loading {ctx.group} from {loader.extension_dir}")
         vendor = vendor_builder(

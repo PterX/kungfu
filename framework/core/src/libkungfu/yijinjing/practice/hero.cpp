@@ -80,6 +80,10 @@ void hero::run() {
 
 bool hero::is_live() const { return live_; }
 
+bool hero::is_low_latency() const { return io_device_->is_low_latency(); }
+
+bool hero::is_cleaner_required() const { return io_device_->is_cleaner_required(); }
+
 void hero::signal_stop() { live_ = false; }
 
 int64_t hero::now() const { return now_; }
@@ -112,6 +116,8 @@ writer_ptr hero::get_writer(uint32_t dest_id) const {
   }
   return writers_.at(dest_id);
 }
+
+const WriterMap &hero::get_writers() const { return writers_; }
 
 bool hero::has_location(uint32_t uid) const { return locations_.find(uid) != locations_.end(); }
 

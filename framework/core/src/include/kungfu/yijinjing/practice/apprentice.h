@@ -19,11 +19,19 @@ class cleaner {
 public:
   explicit cleaner(yijinjing::practice::apprentice &app);
 
+  virtual ~cleaner() = default;
+
+  void on_react();
+
 private:
   yijinjing::practice::apprentice &app_;
-  std::thread cleaning_thread_;
+  std::thread cleaning_worker_;
+  std::mutex cv_mutex_;
+  bool cleaning_worker_alive_ = true;
 
   void do_clean();
+
+  bool is_cleaner_worker_required() const;
 };
 
 class apprentice : public hero {
@@ -74,7 +82,7 @@ public:
     get_writer(dest_id)->write(trigger_time, data);
   }
 
-  void release_page();
+  bool release_page();
 
 protected:
   cache::bank state_bank_;

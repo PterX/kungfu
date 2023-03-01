@@ -46,7 +46,7 @@ public:
 
   bool is_low_latency() const;
 
-  bool is_cleaner_required() const;
+  const bus_ptr &get_bus() const;
 
   void signal_stop();
 

@@ -19,15 +19,11 @@ void cleaner::on_react() {
 void cleaner::do_clean() {
   while (true) {
     std::unique_lock lk(cv_mutex_);
-    app_.get_bus()->get_cv().wait(lk, [&]() {
-      return app_.release_page() && app_.is_live();
-    });
+    app_.get_bus()->get_cv().wait(lk, [&]() { return app_.release_page() && app_.is_live(); });
     lk.unlock();
   }
 }
 
-bool cleaner::is_cleaner_worker_required() const {
-  return app_.get_bus()->is_on_load_page_required();
-}
+bool cleaner::is_cleaner_worker_required() const { return app_.get_bus()->is_on_load_page_required(); }
 
 } // namespace kungfu::yijinjing::practice

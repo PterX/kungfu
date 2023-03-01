@@ -82,7 +82,7 @@ bool hero::is_live() const { return live_; }
 
 bool hero::is_low_latency() const { return io_device_->is_low_latency(); }
 
-const bus_ptr& hero::get_bus() const { return io_device_->get_bus(); }
+const bus_ptr &hero::get_bus() const { return io_device_->get_bus(); }
 
 void hero::signal_stop() { live_ = false; }
 

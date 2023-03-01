@@ -33,13 +33,12 @@ public:
 
   [[nodiscard]] const data::location_ptr &get_live_home() const { return live_home_; }
 
-
   [[nodiscard]] bool is_low_latency() const { return low_latency_; }
 
   [[nodiscard]] bool is_cleaner_required() const {
     return low_latency_ && lazy_ && home_->mode == kungfu::longfist::enums::mode::LIVE;
   }
-  const bus_ptr& get_bus() const { return bus_; }
+  const bus_ptr &get_bus() const { return bus_; }
 
   journal::reader_ptr open_reader_to_subscribe();
 

@@ -13,12 +13,14 @@ page::page(data::location_ptr location, uint32_t dest_id, const uint32_t page_id
 }
 
 page::~page() {
+  SPDLOG_TRACE("release page {}/{:08x}.{}.journal", location_->uname, dest_id_, page_id_);
   if (not os::release_mmap_buffer(address(), size_, lazy_)) {
     SPDLOG_ERROR("can not release page {}/{:08x}.{}.journal", location_->uname, dest_id_, page_id_);
   }
 }
 
 void page::flush() {
+  SPDLOG_TRACE("flush page {}/{:08x}.{}.journal", location_->uname, dest_id_, page_id_);
   if (not os::flush_mmap_buffer(address(), size_, lazy_)) {
     SPDLOG_ERROR("can not flush page {}/{:08x}.{}.journal", location_->uname, dest_id_, page_id_);
   }

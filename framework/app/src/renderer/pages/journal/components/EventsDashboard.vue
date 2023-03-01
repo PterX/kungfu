@@ -218,7 +218,9 @@ let lastReaderArgs = {
   startTime: 0n,
   endTime: 0n,
 };
-const LIMIT_COUNT = 100000;
+
+const EVERY_COUNT = 10;
+const LIMIT_COUNT = 1000;
 
 const checkReaderArgs = (args: {
   sessionId: number;
@@ -308,9 +310,9 @@ const loadFrameData = (
             ++total;
             ++count;
           }
-        }, 10);
+        }, EVERY_COUNT);
 
-        if (count < 10 || total >= LIMIT_COUNT) {
+        if (count < EVERY_COUNT || total >= LIMIT_COUNT) {
           resolve(Object.values(curFramesMap));
         } else {
           runner();
@@ -330,6 +332,8 @@ const loadFrameData = (
     }
 
     loadingJournal.value = false;
+
+    if (total >= LIMIT_COUNT) loadFrameData(session, startTime, endTime, true);
   });
 };
 
@@ -393,6 +397,10 @@ defineExpose({
     align-items: center;
     justify-content: center;
     flex-wrap: nowrap;
+
+    &::-webkit-scrollbar {
+      height: 4px;
+    }
 
     .kf-journal-bar-title {
       white-space: nowrap;

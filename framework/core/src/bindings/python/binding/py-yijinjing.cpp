@@ -248,8 +248,10 @@ void bind(pybind11::module &&m) {
       .def("disjoin", &reader::disjoin)
       .def("disjoin_channel", &reader::disjoin_channel);
 
+  py::class_<bus, bus_ptr>(m, "bus").def("on_load_page", &bus::on_load_page);
+
   auto writer_class = py::class_<writer, writer_ptr>(m, "writer");
-  writer_class.def(py::init<const data::location_ptr &, uint32_t, bool, publisher_ptr, bool, bool>())
+  writer_class.def(py::init<const data::location_ptr &, uint32_t, bool, publisher_ptr, bool, const bus_ptr &>())
       .def("current_frame_uid", &writer::current_frame_uid)
       .def("copy_frame", &writer::copy_frame)
       .def("mark", &writer::mark)

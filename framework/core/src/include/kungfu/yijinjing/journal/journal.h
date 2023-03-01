@@ -5,6 +5,7 @@
 
 #include <kungfu/common.h>
 #include <kungfu/longfist/longfist.h>
+#include <kungfu/yijinjing/bus.h>
 #include <kungfu/yijinjing/journal/common.h>
 #include <kungfu/yijinjing/journal/frame.h>
 #include <kungfu/yijinjing/journal/page.h>
@@ -21,10 +22,9 @@ class journal {
 
 public:
   journal(data::location_ptr location, uint32_t dest_id, bool is_writing, bool lazy, bool low_latency,
-          bool cleaner_required)
+          const bus_ptr &bus)
       : location_(std::move(location)), dest_id_(dest_id), is_writing_(is_writing), lazy_(lazy),
-        low_latency_(low_latency), cleaner_required_(cleaner_required), frame_(std::shared_ptr<frame>(new frame())),
-        page_frame_nb_(0u) {}
+        low_latency_(low_latency), bus_(bus), frame_(std::shared_ptr<frame>(new frame())), page_frame_nb_(0u) {}
 
   ~journal();
 
@@ -50,7 +50,7 @@ public:
    */
   void seek_to_time(int64_t nanotime);
 
-  void release_page();
+  bool release_page();
 
 private:
   const data::location_ptr location_;
@@ -58,7 +58,7 @@ private:
   const bool is_writing_;
   const bool lazy_;
   const bool low_latency_;
-  const bool cleaner_required_;
+  bus_ptr bus_;
   page_ptr pre_page_;
   page_ptr page_;
   std::vector<page_ptr> passed_page_collector_;
@@ -79,8 +79,8 @@ private:
 
 class reader {
 public:
-  explicit reader(bool lazy, bool low_latency, bool cleaner_required)
-      : lazy_(lazy), low_latency_(low_latency), cleaner_required_(cleaner_required), current_(nullptr){};
+  explicit reader(bool lazy, bool low_latency, const bus_ptr &bus)
+      : lazy_(lazy), low_latency_(low_latency), bus_(bus), current_(nullptr){};
 
   ~reader();
 
@@ -112,12 +112,12 @@ public:
 
   void sort();
 
-  void release_page();
+  bool release_page();
 
 private:
   const bool lazy_;
   const bool low_latency_;
-  const bool cleaner_required_;
+  bus_ptr bus_;
   journal *current_;
   JournalMap journals_;
 };
@@ -125,7 +125,7 @@ private:
 class writer {
 public:
   writer(const data::location_ptr &location, uint32_t dest_id, bool lazy, publisher_ptr publisher, bool low_latency,
-         bool cleaner_required);
+         const bus_ptr &bus);
 
   [[nodiscard]] const data::location_ptr &get_location() const { return journal_.location_; }
 
@@ -147,7 +147,7 @@ public:
 
   void write_raw(int64_t trigger_time, int32_t msg_type, uintptr_t data, uint32_t length);
 
-  void release_page();
+  bool release_page();
 
   /**
    * Using auto with the return mess up the reference with the undlerying memory address, DO NOT USE it.

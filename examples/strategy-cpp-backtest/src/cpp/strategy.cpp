@@ -24,11 +24,15 @@ public:
 
   void on_quote(Context_ptr & context, const Quote &quote, const location_ptr &location) override {
     SPDLOG_INFO("on quote: {} ", quote.to_string());
-    context->insert_order(quote.instrument_id, quote.exchange_id, "SSE", "123456", quote.ask_price[0] + 5, 100,
-                          PriceType::Limit, Side::ShortSell, Offset::Open);
+    // context->insert_order(quote.instrument_id, quote.exchange_id, "SSE", "123456", quote.ask_price[0] + 5, 100,
+    //                       PriceType::Limit, Side::ShortSell, Offset::Open);
     context->insert_order(quote.instrument_id, quote.exchange_id, "SSE", "123456", quote.bid_price[0] + 5, 100,
                           PriceType::Limit, Side::Buy, Offset::Open);
   }
+
+  void on_entrust(Context_ptr & context, const Entrust &entrust, const location_ptr &location) {}
+
+  void on_transaction(Context_ptr & context, const Transaction &transaction, const location_ptr &location) {}
 
   void on_order(Context_ptr & context, const Order &order, const location_ptr &location) override {
     SPDLOG_INFO("on order: {} location->name {}", order.to_string(), location->uname);

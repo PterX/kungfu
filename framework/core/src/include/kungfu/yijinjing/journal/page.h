@@ -83,6 +83,9 @@ inline static uint32_t find_page_size(const data::location_ptr &location, uint32
       dest_id != 0) {
     return 16 * MB;
   }
+  if (location->mode == longfist::enums::mode::BACKTEST) {
+    return 128 * MB;
+  } 
   return MB;
 }
 } // namespace kungfu::yijinjing::journal

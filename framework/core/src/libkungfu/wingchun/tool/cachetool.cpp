@@ -49,6 +49,10 @@ void CacheTool::join(uint32_t dest_id, const int64_t from_time) { reader_->join(
 frame_ptr CacheTool::current_frame() const {
   reader_->sort();
   auto frame = reader_->current_frame();
+  if (frame->msg_type() == longfist::types::PageEnd::tag) {
+    reader_->next();
+    return current_frame();
+  }
   last_read_gen_time_ = frame->gen_time();
   return frame;
 }
@@ -65,9 +69,7 @@ void CacheTool::init(bool overwrite) {
   uint32_t cache_uid = hash_backtest_cache(name_, begin_time_, end_time_);
   auto cache_location_ =
       location::make_shared(mode::BACKTEST, category::MD, name_, fmt::format("{:08x}", cache_uid), locator_);
-  auto publisher_ = std::make_shared<yijinjing::journal::noop_publisher>();
-  if (overwrite) {
-    std::string cache_dir = locator_->layout_dir(cache_location_, layout::JOURNAL);
+  auto publisher_ = std::make_shared<yijinjing::journal::noop_publisher>(); if (overwrite) { std::string cache_dir = locator_->layout_dir(cache_location_, layout::JOURNAL);
     fs::remove_all(cache_dir);
   }
   writers_[location::PUBLIC] =

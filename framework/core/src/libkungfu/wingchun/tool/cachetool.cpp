@@ -1,6 +1,6 @@
 #include <kungfu/wingchun/common.h>
-#include <kungfu/yijinjing/bus.h>
 #include <kungfu/wingchun/tool/cachetool.h>
+#include <kungfu/yijinjing/bus.h>
 #include <kungfu/yijinjing/journal/assemble.h>
 
 using kungfu::yijinjing::time;
@@ -37,7 +37,8 @@ void CacheTool::write_raw_at(int64_t gen_time, int64_t trigger_time, uint32_t de
                              uint32_t length) {
   valid_time(gen_time, trigger_time);
   if (writers_.find(dest_id) == writers_.end()) {
-    writers_[dest_id] = std::make_shared<writer>(cache_location_, dest_id, true, publisher_, false, std::make_shared<yijinjing::bus>(false));
+    writers_[dest_id] = std::make_shared<writer>(cache_location_, dest_id, true, publisher_, false,
+                                                 std::make_shared<yijinjing::bus>(false));
     join(dest_id, gen_time);
   }
   auto frame = writers_.at(dest_id)->open_frame(trigger_time, msg_type, length);
@@ -70,11 +71,13 @@ void CacheTool::init(bool overwrite) {
   uint32_t cache_uid = hash_backtest_cache(name_, begin_time_, end_time_);
   auto cache_location_ =
       location::make_shared(mode::BACKTEST, category::MD, name_, fmt::format("{:08x}", cache_uid), locator_);
-  auto publisher_ = std::make_shared<yijinjing::journal::noop_publisher>(); if (overwrite) { std::string cache_dir = locator_->layout_dir(cache_location_, layout::JOURNAL);
+  auto publisher_ = std::make_shared<yijinjing::journal::noop_publisher>();
+  if (overwrite) {
+    std::string cache_dir = locator_->layout_dir(cache_location_, layout::JOURNAL);
     fs::remove_all(cache_dir);
   }
-  writers_[location::PUBLIC] =
-      std::make_shared<yijinjing::journal::writer>(cache_location_, location::PUBLIC, true, publisher_, false, std::make_shared<yijinjing::bus>(false));
+  writers_[location::PUBLIC] = std::make_shared<yijinjing::journal::writer>(
+      cache_location_, location::PUBLIC, true, publisher_, false, std::make_shared<yijinjing::bus>(false));
   reader_ = std::make_shared<yijinjing::journal::reader>(true, false, std::make_shared<yijinjing::bus>(false));
   reader_->join(cache_location_, location::PUBLIC, begin_time_);
 }

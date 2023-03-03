@@ -163,7 +163,7 @@ public:
    * @param price_offset
    * @param volume_mode
    * @param total_volume
-  */
+   */
   virtual uint64_t insert_basket_order(uint64_t basket_id, const std::string &source, const std::string account,
                                        longfist::enums::Side side, longfist::enums::PriceType price_type,
                                        longfist::enums::PriceLevel price_level, double price_offset = 0,
@@ -236,7 +236,7 @@ public:
    * Get arguments kfc run -a
    * @return string of arguments
    */
-  const std::string &arguments() {return arguments_; };
+  const std::string &arguments() { return arguments_; };
 
   void set_arguments(const std::string &arguments) { arguments_ = arguments; }
 
@@ -246,6 +246,7 @@ protected:
   virtual void on_start() {}
 
   virtual void prepare(const event_ptr &event) = 0;
+
 private:
   bool book_held_ = false;
   bool positions_mirrored_ = true;

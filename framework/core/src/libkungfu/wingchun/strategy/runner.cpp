@@ -16,8 +16,10 @@ using namespace kungfu::yijinjing::practice;
 
 namespace kungfu::wingchun::strategy {
 
-Runner::Runner(locator_ptr locator, const std::string &group, const std::string &name, mode m, bool low_latency, const std::string &arguments)
-    : apprentice(location::make_shared(m, category::STRATEGY, group, name, std::move(locator)), low_latency), arguments_(arguments) {}
+Runner::Runner(locator_ptr locator, const std::string &group, const std::string &name, mode m, bool low_latency,
+               const std::string &arguments)
+    : apprentice(location::make_shared(m, category::STRATEGY, group, name, std::move(locator)), low_latency),
+      arguments_(arguments) {}
 
 Context_ptr Runner::get_context() const { return context_; }
 

@@ -191,7 +191,7 @@ uint64_t LiveContext::insert_block_message(const std::string &source, const std:
 uint64_t LiveContext::insert_order(const std::string &instrument_id, const std::string &exchange_id,
                                    const std::string &source, const std::string &account, double limit_price,
                                    int64_t volume, PriceType type, Side side, Offset offset, HedgeFlag hedge_flag,
-                                      bool is_swap, uint64_t block_id, uint64_t parent_id) {
+                                   bool is_swap, uint64_t block_id, uint64_t parent_id) {
   auto account_location_uid = get_td_location_uid(source, account);
   auto insert_time = time::now_in_nano();
   if (not broker_client_.is_ready(account_location_uid)) {
@@ -283,9 +283,9 @@ std::vector<uint64_t> LiveContext::insert_array_orders(const std::string &source
 }
 
 uint64_t LiveContext::insert_basket_order(uint64_t basket_id, const std::string &source, const std::string account,
-                                             longfist::enums::Side side, longfist::enums::PriceType price_type,
-                                             longfist::enums::PriceLevel price_level, double price_offset,
-                                             int64_t volume) {
+                                          longfist::enums::Side side, longfist::enums::PriceType price_type,
+                                          longfist::enums::PriceLevel price_level, double price_offset,
+                                          int64_t volume) {
   auto account_location_uid = get_td_location_uid(source, account);
   auto insert_time = time::now_in_nano();
   if (not broker_client_.is_ready(account_location_uid)) {

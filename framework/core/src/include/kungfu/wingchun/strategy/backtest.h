@@ -133,7 +133,6 @@ public:
   virtual std::vector<uint64_t> insert_array_orders(const std::string &source, const std::string &account,
                                                     std::vector<longfist::types::OrderInput> order_inputs) override;
 
-
   /*
    * Insert Basket Orders
    * @param basket_id
@@ -144,7 +143,7 @@ public:
    * @param price_offset
    * @param volume_mode
    * @param total_volume
-  */
+   */
   virtual uint64_t insert_basket_order(uint64_t basket_id, const std::string &source, const std::string account,
                                        longfist::enums::Side side, longfist::enums::PriceType price_type,
                                        longfist::enums::PriceLevel price_level, double price_offset = 0,

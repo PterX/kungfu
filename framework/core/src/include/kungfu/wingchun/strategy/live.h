@@ -223,8 +223,6 @@ public:
    */
   void update_strategy_state(longfist::types::StrategyStateUpdate &state_update) override;
 
-
-
 protected:
   virtual void on_start() override;
 

@@ -154,9 +154,11 @@ std::vector<uint64_t> BacktestContext::insert_array_orders(const std::string &so
 }
 
 uint64_t BacktestContext::insert_basket_order(uint64_t basket_id, const std::string &source, const std::string account,
-                                       longfist::enums::Side side, longfist::enums::PriceType price_type,
-                                       longfist::enums::PriceLevel price_level, double price_offset,
-                                       int64_t volume) { return {}; }
+                                              longfist::enums::Side side, longfist::enums::PriceType price_type,
+                                              longfist::enums::PriceLevel price_level, double price_offset,
+                                              int64_t volume) {
+  return {};
+}
 
 uint64_t BacktestContext::cancel_order(uint64_t order_id) {
   auto writer = app_.get_writer(location::PUBLIC);

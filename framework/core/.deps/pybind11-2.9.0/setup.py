@@ -84,7 +84,8 @@ version_hex = matches.get("HEX", "MISSING")
 expected_version_hex = build_expected_version_hex(matches)
 if version_hex != expected_version_hex:
     msg = "PYBIND11_VERSION_HEX {} does not match expected value {}!".format(
-        version_hex, expected_version_hex,
+        version_hex,
+        expected_version_hex,
     )
     raise RuntimeError(msg)
 

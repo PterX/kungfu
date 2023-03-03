@@ -23,7 +23,13 @@ class Runner(wc.Runner):
         if ctx.arguments is None:
             ctx.arguments = ""
         wc.Runner.__init__(
-            self, locator, ctx.group, ctx.name, mode, ctx.low_latency, ctx.arguments,
+            self,
+            locator,
+            ctx.group,
+            ctx.name,
+            mode,
+            ctx.low_latency,
+            ctx.arguments,
         )
         self.ctx = ctx
 

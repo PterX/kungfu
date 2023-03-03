@@ -308,7 +308,8 @@ private:
     auto contract_multiplier = cm_mr.contract_multiplier;
     auto product_key = yijinjing::util::hash_str_32(get_instrument_product(trade.instrument_id));
     if (book->commissions.find(product_key) == book->commissions.end()) {
-      SPDLOG_WARN("commission information missing for {}@{}", trade.instrument_id, trade.exchange_id);
+      // TODO comment temporarliy for backtest without commisions
+      // SPDLOG_WARN("commission information missing for {}@{}", trade.instrument_id, trade.exchange_id);
       return 0;
     }
     auto &commission = book->commissions.at(product_key);
@@ -338,7 +339,8 @@ private:
     auto hashed_instrument_key = hash_instrument(exchange_id, instrument_id);
     contract_multiplier_and_margin_ratio cm_mr = {};
     if (book->instruments.find(hashed_instrument_key) == book->instruments.end()) {
-      SPDLOG_WARN("instrument information missing for {}@{}", instrument_id, exchange_id);
+      // TODO comment tempoorarly for backtest without commisions
+      // SPDLOG_WARN("instrument information missing for {}@{}", instrument_id, exchange_id);
       cm_mr.contract_multiplier = DEFAULT_INSTRUMENT_CONTRACT_MULTIPLIER;
       cm_mr.margin_ratio = position.direction == Direction::Long ? DEFAULT_INSTRUMENT_LONG_MARGIN_RATIO
                                                                  : DEFAULT_INSTRUMENT_SHORT_MARGIN_RATIO;

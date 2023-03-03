@@ -106,13 +106,17 @@ export default {
   },
 
   settingsFormConfig: {
-    add_csv: 'Add Csv',
-    add_csv_desc: "csv headers are 'instrument'_id and 'exchange_id'",
+    keyword: 'Keyword',
+    add_csv: 'Import Csv',
+    csv_template: 'Download Csv Template',
+    add_csv_desc: 'csv headers are {header}',
     clear: 'Clear',
   },
 
   tradingConfig: {
     unknown: 'Unknown',
+    quantity: 'Quantity',
+    proportion: 'Proportion',
     default: 'Default',
     order_task: 'Trade',
 
@@ -142,6 +146,23 @@ export default {
     close: 'Close',
     close_today: 'CloseToday',
     close_yesterday: 'CloseYest',
+
+    by_quantity: 'ByQuantity',
+    by_proportion: 'ByProportion',
+
+    latest: 'Latest Price',
+    sell5: 'Fifth Sell Price',
+    sell4: 'Fourth Sell Price',
+    sell3: 'Third Sell Price',
+    sell2: 'Second Sell Price',
+    sell1: 'First Sell Price',
+    buy1: 'First Buy Price',
+    buy2: 'Second Buy Price',
+    buy3: 'Third Buy Price',
+    buy4: 'Fourth Buy Price',
+    buy5: 'Fifth Buy Price',
+    up_limit_price: 'High Limit Price',
+    low_limit_price: 'Low Limit Price',
 
     buy: 'Buy',
     sell: 'Sell',
@@ -261,8 +282,11 @@ export default {
     price: 'Price',
     protect_price: 'Protect Price',
     price_type: 'Price Type',
+    price_level: 'Price Level',
+    price_offset: 'Price Offset',
     side: 'Side',
     offset: 'Offset',
+    direction: 'Direction',
     limit_price: 'LimitPrice',
     algorithm: 'Algorithm',
 
@@ -456,7 +480,10 @@ export default {
   journalConfig: {
     begin_time: 'begin_time',
     end_time: 'end_time',
-    is_closed: 'is_end',
+    status: 'Status',
+
+    finished: 'Finished',
+    running: 'Running',
 
     dest: 'destination',
     source: 'source',

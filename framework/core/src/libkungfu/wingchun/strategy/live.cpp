@@ -21,13 +21,14 @@ using namespace kungfu::yijinjing::util;
 namespace kungfu::wingchun::strategy {
 
 LiveContext::LiveContext(apprentice &app, const rx::connectable_observable<event_ptr> &events)
-    : Context(app, events), broker_client_(app_), bookkeeper_(app_, broker_client_) {
+    : Context(app, events), broker_client_(app_), bookkeeper_(app_, broker_client_), basketorder_engine_(app_) {
   log::copy_log_settings(app_.get_home(), app_.get_home()->name);
 }
 
 void LiveContext::on_start() {
   broker_client_.on_start(events_);
   bookkeeper_.on_start(events_);
+  basketorder_engine_.on_start(events_);
 }
 
 bool LiveContext::is_started() const { return started_; }
@@ -121,13 +122,13 @@ void LiveContext::add_account(const std::string &source, const std::string &acco
   uint32_t hashed_account = hash_account(source, account);
 
   if (td_locations_.find(hashed_account) != td_locations_.end()) {
-    throw wingchun_error(fmt::format("duplicated account {}_{}", source, account));
+    SPDLOG_ERROR(fmt::format("duplicated account {}_{}", source, account));
   }
 
   auto home = app_.get_io_device()->get_home();
   auto account_location = location::make_shared(mode::LIVE, category::TD, source, account, home->locator);
   if (home->mode == mode::LIVE and not app_.has_location(account_location->uid)) {
-    throw wingchun_error(fmt::format("invalid account {}_{}", source, account));
+    SPDLOG_ERROR(fmt::format("invalid account {}_{}", source, account));
   }
 
   td_locations_.emplace(hashed_account, account_location);
@@ -190,7 +191,7 @@ uint64_t LiveContext::insert_block_message(const std::string &source, const std:
 uint64_t LiveContext::insert_order(const std::string &instrument_id, const std::string &exchange_id,
                                    const std::string &source, const std::string &account, double limit_price,
                                    int64_t volume, PriceType type, Side side, Offset offset, HedgeFlag hedge_flag,
-                                   bool is_swap, uint64_t block_id) {
+                                      bool is_swap, uint64_t block_id, uint64_t parent_id) {
   auto account_location_uid = get_td_location_uid(source, account);
   auto insert_time = time::now_in_nano();
   if (not broker_client_.is_ready(account_location_uid)) {
@@ -217,6 +218,7 @@ uint64_t LiveContext::insert_order(const std::string &instrument_id, const std::
   input.offset = offset;
   input.hedge_flag = hedge_flag;
   input.block_id = block_id;
+  input.parent_id = parent_id;
   input.is_swap = is_swap;
   input.insert_time = insert_time;
   writer->close_data();
@@ -280,6 +282,37 @@ std::vector<uint64_t> LiveContext::insert_array_orders(const std::string &source
   return order_ids;
 }
 
+uint64_t LiveContext::insert_basket_order(uint64_t basket_id, const std::string &source, const std::string account,
+                                             longfist::enums::Side side, longfist::enums::PriceType price_type,
+                                             longfist::enums::PriceLevel price_level, double price_offset,
+                                             int64_t volume) {
+  auto account_location_uid = get_td_location_uid(source, account);
+  auto insert_time = time::now_in_nano();
+  if (not broker_client_.is_ready(account_location_uid)) {
+    SPDLOG_ERROR("account {} not ready", td_locations_.at(account_location_uid)->uname);
+    return 0;
+  }
+
+  auto writer = app_.get_writer(account_location_uid);
+  BasketOrder &input = writer->open_data<BasketOrder>(app_.now());
+  input.order_id = writer->current_frame_uid();
+  input.parent_id = basket_id;
+  input.source_id = app_.get_home_uid();
+  input.dest_id = account_location_uid;
+  input.side = side;
+  input.price_type = price_type;
+  input.price_level = price_level;
+  input.price_offset = price_offset;
+  input.volume = volume;
+  input.insert_time = insert_time;
+  input.calculation_mode =
+      input.volume == VOLUME_ZERO ? BasketOrderCalculationMode::Dynamic : BasketOrderCalculationMode::Static;
+
+  writer->close_data();
+  basketorder_engine_.insert_basket_order(app_.now(), input);
+  return input.order_id;
+}
+
 uint64_t LiveContext::cancel_order(uint64_t order_id) {
   uint32_t account_location_uid = (order_id >> 32u) xor (app_.get_home_uid());
   if (not broker_client_.is_ready(account_location_uid)) {
@@ -313,11 +346,12 @@ book::Bookkeeper &LiveContext::get_bookkeeper() { return bookkeeper_; }
 uint32_t LiveContext::lookup_account_location_id(const std::string &account) const {
   return account_location_ids_.at(hash_str_32(account));
 }
+basketorder::BasketOrderEngine &LiveContext::get_basketorder_engine() { return basketorder_engine_; }
 
 uint32_t LiveContext::get_td_location_uid(const std::string &source, const std::string &account) const {
   uint32_t hashed_account = hash_account(source, account);
   if (td_locations_.find(hashed_account) == td_locations_.end()) {
-    throw wingchun_error(fmt::format("invalid account {}_{}", source, account));
+    SPDLOG_ERROR(fmt::format("invalid account {}_{}", source, account));
   }
 
   return td_locations_.at(hashed_account)->uid;
@@ -328,7 +362,7 @@ const location_ptr &LiveContext::find_md_location(const std::string &source) {
     auto home = app_.get_home();
     auto md_location = location::make_shared(mode::LIVE, category::MD, source, source, home->locator);
     if (not app_.has_location(md_location->uid)) {
-      throw wingchun_error(fmt::format("invalid md {}", source));
+      SPDLOG_ERROR(fmt::format("invalid md {}", source));
     }
     market_data_.emplace(source, md_location);
   }

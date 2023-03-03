@@ -27,7 +27,7 @@ protected:
   template <typename T> void write_at(int64_t gen_time, int64_t trigger_time, uint32_t dest_id, const T &data) {
     valid_time(gen_time, trigger_time);
     if (writers_.find(dest_id) == writers_.end()) {
-      writers_[dest_id] = std::make_shared<yijinjing::journal::writer>(cache_location_, dest_id, true, publisher_);
+      writers_[dest_id] = std::make_shared<yijinjing::journal::writer>(cache_location_, dest_id, true, publisher_, false, std::make_shared<yijinjing::bus>(false));
       join(dest_id, gen_time);
     }
     writers_.at(dest_id)->write_at(gen_time, trigger_time, data);

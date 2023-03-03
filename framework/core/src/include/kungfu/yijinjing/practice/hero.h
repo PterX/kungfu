@@ -26,6 +26,8 @@ inline yijinjing::data::location_ptr make_system_location(const std::string &gro
                                                 name, locator);
 }
 
+typedef std::unordered_map<uint32_t, yijinjing::journal::writer_ptr> WriterMap;
+
 class hero : public resource {
 public:
   explicit hero(yijinjing::io_device_ptr io_device);
@@ -41,6 +43,10 @@ public:
   void run();
 
   bool is_live() const;
+
+  bool is_low_latency() const;
+
+  const bus_ptr &get_bus() const;
 
   void signal_stop();
 
@@ -73,6 +79,8 @@ public:
   bool has_writer(uint32_t dest_id) const;
 
   [[nodiscard]] yijinjing::journal::writer_ptr get_writer(uint32_t dest_id) const;
+
+  [[nodiscard]] const WriterMap &get_writers() const;
 
   bool has_location(uint32_t uid) const;
 
@@ -109,7 +117,7 @@ protected:
   int64_t begin_time_;
   int64_t end_time_;
   yijinjing::journal::reader_ptr reader_;
-  std::unordered_map<uint32_t, yijinjing::journal::writer_ptr> writers_ = {};
+  WriterMap writers_ = {};
   std::unordered_map<uint64_t, longfist::types::Band> bands_ = {};
   std::unordered_map<uint64_t, longfist::types::Channel> channels_ = {};
   std::unordered_map<uint32_t, yijinjing::data::location_ptr> locations_ = {};
@@ -139,11 +147,11 @@ protected:
 
   void register_channel(int64_t trigger_time, const longfist::types::Channel &channel);
 
-  void deregister_channel(uint32_t source_location_uid);
+  void deregister_channel(uint32_t source_id);
 
   void register_band(int64_t trigger_time, const longfist::types::Band &band);
 
-  void deregister_band(uint32_t source_location_uid);
+  void deregister_band(uint32_t source_id);
 
   void require_read_from(int64_t trigger_time, uint32_t dest_id, uint32_t source_id, int64_t from_time);
 

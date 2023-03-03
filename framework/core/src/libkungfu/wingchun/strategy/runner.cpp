@@ -15,8 +15,9 @@ using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::practice;
 
 namespace kungfu::wingchun::strategy {
-Runner::Runner(locator_ptr locator, const std::string &group, const std::string &name, mode m, bool low_latency)
-    : apprentice(location::make_shared(m, category::STRATEGY, group, name, std::move(locator)), low_latency) {}
+
+Runner::Runner(locator_ptr locator, const std::string &group, const std::string &name, mode m, bool low_latency, const std::string &arguments)
+    : apprentice(location::make_shared(m, category::STRATEGY, group, name, std::move(locator)), low_latency), arguments_(arguments) {}
 
 Context_ptr Runner::get_context() const { return context_; }
 
@@ -47,10 +48,13 @@ void Runner::on_trading_day(const event_ptr &event, int64_t daytime) {
 
 void Runner::react() {
   context_ = make_context();
+  context_->set_arguments(arguments_);
 
   auto start_events = events_ | skip_until(events_ | filter([&](auto e) { return context_->is_started(); }));
   start_events | is_own<Quote>(context_->get_broker_client()) |
       $$(invoke(&Strategy::on_quote, event->data<Quote>(), get_location(event->source())));
+  start_events | is_own<Tree>(context_->get_broker_client()) |
+      $$(invoke(&Strategy::on_tree, event->data<Tree>(), get_location(event->source())));
   start_events | is_own<Entrust>(context_->get_broker_client()) |
       $$(invoke(&Strategy::on_entrust, event->data<Entrust>(), get_location(event->source())));
   start_events | is_own<Transaction>(context_->get_broker_client()) |
@@ -121,6 +125,12 @@ void Runner::post_start() {
                 get_location(event->source())));
   events_ | is(OrderActionError::tag) |
       $$(invoke(&Strategy::on_order_action_error, event->data<OrderActionError>(), get_location(event->source())));
+  events_ | is_own<Deregister>(context_->get_broker_client()) |
+      $$(invoke(&Strategy::on_deregister, event->data<Deregister>(), get_location(event->source())));
+  events_ | is_own<BrokerStateUpdate>(context_->get_broker_client()) |
+      $$(invoke(&Strategy::on_broker_state_change, event->data<BrokerStateUpdate>(),
+                get_location(event->data<BrokerStateUpdate>().location_uid)));
+
   invoke(&Strategy::post_start);
   SPDLOG_INFO("strategy {} started", get_io_device()->get_home()->name);
 }

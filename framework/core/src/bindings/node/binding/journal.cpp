@@ -105,7 +105,8 @@ Napi::Value Frame::NewInstance(const Napi::Value arg) { return constructor.New({
 bool b;
 Napi::FunctionReference Reader::constructor = {};
 Reader::Reader(const Napi::CallbackInfo &info)
-    : ObjectWrap(info), reader(true), io_device_(std::make_shared<io_device>(GetLocation(info), true, true)),
+    : ObjectWrap(info), reader(true, false, std::make_shared<bus>(false)),
+      io_device_(std::make_shared<io_device>(GetLocation(info), true, true)),
       begin_time_(info[4].As<Napi::BigInt>().Int64Value(&b)), end_time_(info[5].As<Napi::BigInt>().Int64Value(&b)) {
   if (true) {
     auto uid_str = fmt::format("{:08x}", io_device_->get_home()->uid);

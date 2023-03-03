@@ -20,7 +20,17 @@ yjj = kungfu.__binding__.yijinjing
 
 class Runner(wc.Runner):
     def __init__(self, ctx, locator, mode):
-        wc.Runner.__init__(self, locator, ctx.group, ctx.name, mode, ctx.low_latency)
+        if ctx.arguments is None:
+            ctx.arguments = ""
+        wc.Runner.__init__(
+            self,
+            locator,
+            ctx.group,
+            ctx.name,
+            mode,
+            ctx.low_latency,
+            ctx.arguments,
+        )
         self.ctx = ctx
 
 
@@ -51,6 +61,9 @@ class Strategy(wc.Strategy):
         self._on_quote = getattr(
             self._module, "on_quote", lambda ctx, quote, location: None
         )
+        self._on_tree = getattr(
+            self._module, "on_tree", lambda ctx, tree, location: None
+        )
         self._on_entrust = getattr(
             self._module, "on_entrust", lambda ctx, entrust, location: None
         )
@@ -65,6 +78,10 @@ class Strategy(wc.Strategy):
         self._on_order = getattr(
             self._module, "on_order", lambda ctx, order, location: None
         )
+        self._on_order_action_error = getattr(
+            self._module, "on_order_action_error", lambda ctx, error, location: None
+        )
+
         self._on_trade = getattr(
             self._module, "on_trade", lambda ctx, trade, location: None
         )
@@ -96,9 +113,6 @@ class Strategy(wc.Strategy):
             self._module,
             "on_req_history_trade_error",
             lambda ctx, error, location: None,
-        )
-        self._on_order_action_error = getattr(
-            self._module, "on_order_action_error", lambda ctx, error, location: None
         )
         self._on_position_sync_reset = getattr(
             self._module, "on_position_sync_reset", lambda ctx, old_book, new_book: None
@@ -132,6 +146,7 @@ class Strategy(wc.Strategy):
             self.ctx.runtime_locator,
         )
         self.ctx.book = self.ctx.wc_context.bookkeeper.get_book(location.uid)
+        self.ctx.basketorder_engine = self.ctx.wc_context.basketorder_engine
 
     def __add_timer(self, nanotime, callback):
         def wrap_callback(event):
@@ -201,6 +216,7 @@ class Strategy(wc.Strategy):
         self.ctx.add_account = self.__add_account
         self.ctx.insert_block_message = wc_context.insert_block_message
         self.ctx.insert_order = wc_context.insert_order
+        self.ctx.insert_basket_order = wc_context.insert_basket_order
         self.ctx.insert_batch_orders = wc_context.insert_batch_orders
         self.ctx.insert_array_orders = wc_context.insert_array_orders
         self.ctx.cancel_order = wc_context.cancel_order
@@ -229,6 +245,9 @@ class Strategy(wc.Strategy):
 
     def on_quote(self, wc_context, quote, location):
         self.__call_proxy(self._on_quote, self.ctx, quote, location)
+
+    def on_tree(self, wc_context, tree, location):
+        self.__call_proxy(self._on_tree, self.ctx, tree, location)
 
     def on_entrust(self, wc_context, entrust, location):
         self.__call_proxy(self._on_entrust, self.ctx, entrust, location)

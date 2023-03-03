@@ -52,6 +52,8 @@ public:
 
   virtual bool on_custom_event(const event_ptr &event) { return true; }
 
+  virtual void on_band(const event_ptr &event) {}
+
 protected:
   [[nodiscard]] bool has_instrument(const std::string &instrument_id) const;
 
@@ -59,7 +61,12 @@ protected:
 
   void update_instrument(longfist::types::Instrument instrument);
 
+  void try_subscribe();
+
+  void add_instrument_key(const longfist::types::InstrumentKey &key);
+
   std::unordered_map<std::string, longfist::types::Instrument> instruments_ = {};
+  std::vector<longfist::types::InstrumentKey> instruments_to_subscribe_{};
 };
 } // namespace kungfu::wingchun::broker
 

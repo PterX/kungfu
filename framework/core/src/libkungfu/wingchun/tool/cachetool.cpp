@@ -1,4 +1,5 @@
 #include <kungfu/wingchun/common.h>
+#include <kungfu/yijinjing/bus.h>
 #include <kungfu/wingchun/tool/cachetool.h>
 #include <kungfu/yijinjing/journal/assemble.h>
 
@@ -36,7 +37,7 @@ void CacheTool::write_raw_at(int64_t gen_time, int64_t trigger_time, uint32_t de
                              uint32_t length) {
   valid_time(gen_time, trigger_time);
   if (writers_.find(dest_id) == writers_.end()) {
-    writers_[dest_id] = std::make_shared<writer>(cache_location_, dest_id, true, publisher_);
+    writers_[dest_id] = std::make_shared<writer>(cache_location_, dest_id, true, publisher_, false, std::make_shared<yijinjing::bus>(false));
     join(dest_id, gen_time);
   }
   auto frame = writers_.at(dest_id)->open_frame(trigger_time, msg_type, length);
@@ -73,8 +74,8 @@ void CacheTool::init(bool overwrite) {
     fs::remove_all(cache_dir);
   }
   writers_[location::PUBLIC] =
-      std::make_shared<yijinjing::journal::writer>(cache_location_, location::PUBLIC, true, publisher_);
-  reader_ = std::make_shared<yijinjing::journal::reader>(true);
+      std::make_shared<yijinjing::journal::writer>(cache_location_, location::PUBLIC, true, publisher_, false, std::make_shared<yijinjing::bus>(false));
+  reader_ = std::make_shared<yijinjing::journal::reader>(true, false, std::make_shared<yijinjing::bus>(false));
   reader_->join(cache_location_, location::PUBLIC, begin_time_);
 }
 

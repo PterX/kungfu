@@ -202,10 +202,29 @@ enum class PriceType : int8_t {
   ReverseBest, // 上海最优五档即时成交剩余转限价, 深圳对手方最优价格申报，不需要报价
   Fak,         // 深圳即时成交剩余撤销，不需要报价
   Fok,         // 深圳市价全额成交或者撤销，不需要报价
-  UnKnown
+  Unknown
 };
 
 inline std::ostream &operator<<(std::ostream &os, PriceType t) { return os << int8_t(t); }
+
+enum class PriceLevel : int8_t {
+  Lastest, // 最新价
+  Sell5,
+  Sell4,
+  Sell3,
+  Sell2,
+  Sell1,
+  Buy1,
+  Buy2,
+  Buy3,
+  Buy4,
+  Buy5,
+  UpperLimitPrice, // 涨停价
+  LowerLimitPrice, // 跌停价
+  Unknown
+};
+
+inline std::ostream &operator<<(std::ostream &os, PriceLevel t) { return os << int8_t(t); }
 
 enum class VolumeCondition : int8_t { Any, Min, All };
 
@@ -228,6 +247,22 @@ enum class OrderStatus : int8_t {
 };
 
 inline std::ostream &operator<<(std::ostream &os, OrderStatus t) { return os << int8_t(t); }
+
+enum class BasketOrderStatus : int8_t { Unknown, Pending, PartialFilledNotActive, PartialFilledActive, Filled };
+
+inline std::ostream &operator<<(std::ostream &os, BasketOrderStatus t) { return os << int8_t(t); }
+
+enum class BasketOrderCalculationMode : int8_t { Static, Dynamic };
+
+inline std::ostream &operator<<(std::ostream &os, BasketOrderCalculationMode t) { return os << int8_t(t); }
+
+enum class BasketVolumeType : int8_t { Unknown, Quantity, Proportion };
+
+inline std::ostream &operator<<(std::ostream &os, BasketVolumeType t) { return os << int8_t(t); }
+
+enum class BasketType : int8_t { Custom, ETF };
+
+inline std::ostream &operator<<(std::ostream &os, BasketType t) { return os << int8_t(t); }
 
 enum class Direction : int8_t { Long, Short };
 
@@ -258,11 +293,11 @@ enum class BrokerState : int8_t {
   Ready = 100
 };
 
+inline std::ostream &operator<<(std::ostream &os, BrokerState t) { return os << int8_t(t); }
+
 enum class HistoryDataType : int8_t { Normal = 0, PageEnd = 1, TotalEnd = 2 };
 
 inline std::ostream &operator<<(std::ostream &os, HistoryDataType t) { return os << int8_t(t); }
-
-inline std::ostream &operator<<(std::ostream &os, BrokerState t) { return os << int8_t(t); }
 
 enum class StrategyState : int8_t { Normal, Warn, Error };
 
@@ -273,8 +308,22 @@ enum class OperatorState : int8_t { Pending = 0, DisConnected = 2, Connected = 3
 
 inline std::ostream &operator<<(std::ostream &os, OperatorState t) { return os << int8_t(t); }
 
+class AssembleMode {
+public:
+  inline static const uint32_t Channel = 0b00000001; // read only journal of location to dest_id
+  inline static const uint32_t Write = 0b00000010;   // read all journal from this location
+  inline static const uint32_t Read = 0b00000100;    // read all journal to this dest_id
+  inline static const uint32_t Public = 0b00001000;  // read all journal to location::PUBLIC
+  inline static const uint32_t All = 0b00010000;     // read all journal
+};
+
 template <typename T, typename U> inline T sub_data_bitwise(const T &a, const T &b) {
   return static_cast<T>(static_cast<U>(a) | static_cast<U>(b));
 }
+
+enum class PageStatus : int8_t { Normal, PreOpen };
+
+inline std::ostream &operator<<(std::ostream &os, PageStatus t) { return os << int8_t(t); }
+
 } // namespace kungfu::longfist::enums
 #endif // KUNGFU_LONGFIST_ENUM_H

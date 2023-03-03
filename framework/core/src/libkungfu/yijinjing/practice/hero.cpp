@@ -80,6 +80,10 @@ void hero::run() {
 
 bool hero::is_live() const { return live_; }
 
+bool hero::is_low_latency() const { return io_device_->is_low_latency(); }
+
+const bus_ptr &hero::get_bus() const { return io_device_->get_bus(); }
+
 void hero::signal_stop() { live_ = false; }
 
 int64_t hero::now() const { return now_; }
@@ -116,6 +120,8 @@ writer_ptr hero::get_writer(uint32_t dest_id) const {
   }
   return writers_.at(dest_id);
 }
+
+const WriterMap &hero::get_writers() const { return writers_; }
 
 bool hero::has_location(uint32_t uid) const { return locations_.find(uid) != locations_.end(); }
 
@@ -158,7 +164,7 @@ const std::unordered_map<uint64_t, longfist::types::Channel> &hero::get_channels
 
 void hero::on_notify() {}
 
-void hero::on_exit() {}
+void hero::on_exit() { SPDLOG_INFO("default on_exit"); }
 
 location_ptr hero::get_ledger_home_location() { return ledger_home_location_; }
 
@@ -232,10 +238,10 @@ void hero::register_channel(int64_t trigger_time, const Channel &channel) {
   }
 }
 
-void hero::deregister_channel(uint32_t source_location_uid) {
+void hero::deregister_channel(uint32_t source_id) {
   auto channel_it = channels_.begin();
   while (channel_it != channels_.end()) {
-    if (channel_it->second.source_id == source_location_uid) {
+    if (channel_it->second.source_id == source_id) {
       const auto &channel_uid = channel_it->first;
       const auto &channel = channel_it->second;
       auto source_uname = get_location_uname(channel.source_id);
@@ -258,10 +264,10 @@ void hero::register_band(int64_t trigger_time, const Band &band) {
   }
 }
 
-void hero::deregister_band(uint32_t source_location_uid) {
+void hero::deregister_band(uint32_t source_id) {
   auto band_it = bands_.begin();
   while (band_it != bands_.end()) {
-    if (band_it->second.source_id == source_location_uid) {
+    if (band_it->second.source_id == source_id) {
       const auto &band_uid = band_it->first;
       const auto &band = band_it->second;
       auto source_uname = get_location_uname(band.source_id);

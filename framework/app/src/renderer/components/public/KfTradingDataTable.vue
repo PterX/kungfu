@@ -5,10 +5,12 @@ import { CaretUpOutlined, CaretDownOutlined } from '@ant-design/icons-vue';
 import { filter } from 'rxjs';
 import {
   computed,
+  watch,
   getCurrentInstance,
   onBeforeMount,
   onMounted,
   ref,
+  toRaw,
 } from 'vue';
 
 type TableDataItem =
@@ -23,7 +25,9 @@ const props = withDefaults(
     keyField?: string;
     resizable?: boolean;
     itemSize?: number;
-    customRowClass?: (row: KungfuApi.TradingDataItem) => string;
+    selectable?: boolean;
+    selection?: KfTradingDataTableSelection; // 仅在 selectable 为 true 的时候生效
+    customRowClass?: (row: TableDataItem) => string;
   }>(),
   {
     columns: () => [],
@@ -31,6 +35,8 @@ const props = withDefaults(
     keyField: 'id',
     resizable: true,
     itemSize: 26,
+    selectable: false,
+    selection: () => ({}),
     customRowClass: () => '',
   },
 );
@@ -38,11 +44,10 @@ const props = withDefaults(
 defineEmits<{
   (e: 'dbclickRow', data: { event: MouseEvent; row: TableDataItem }): void;
   (
-    e: 'clickCell',
+    e: 'clickRow',
     data: {
       event: MouseEvent;
       row: TableDataItem;
-      column: KfTradingDataTableHeaderConfig;
     },
   ): void;
   (
@@ -61,6 +66,13 @@ const app = getCurrentInstance();
 const simpleImage = Empty.PRESENTED_IMAGE_SIMPLE;
 const kfScrollerTableBodyRef = ref();
 const kfScrollerTableWidth = ref(0);
+const dataSouceMap = ref<Record<string, TableDataItem>>({});
+let allRowKeyFieldTrue: Record<string, boolean> = {};
+let allRowKeyFieldFalse: Record<string, boolean> = {};
+const isSelectAll = ref(false);
+const selectAllIndeterminate = ref(false);
+const selectedRowKeyFieldValues = ref<Record<string, boolean>>({});
+const selectedRowsMap = ref<Record<string, TableDataItem>>({});
 let clickTimer: number | undefined;
 
 const headerWidth = computed(() => {
@@ -90,6 +102,34 @@ const headerWidth = computed(() => {
 });
 
 const tableCellHeight = computed(() => `${props.itemSize}px`);
+
+watch(
+  () => props.dataSource,
+  (newDataSource) => {
+    dataSouceMap.value = {};
+    allRowKeyFieldTrue = {};
+    allRowKeyFieldFalse = {};
+
+    const tempSelectedValues = {};
+    const tempSelectedRows = {};
+
+    newDataSource.forEach((item) => {
+      const key = `${item[props.keyField]}`;
+      dataSouceMap.value[key] = item;
+      allRowKeyFieldTrue[key] = true;
+      allRowKeyFieldFalse[key] = false;
+
+      if (key in selectedRowKeyFieldValues.value) {
+        tempSelectedValues[key] = selectedRowKeyFieldValues.value[key];
+        tempSelectedRows[key] = selectedRowsMap.value[key];
+      }
+    });
+
+    selectedRowKeyFieldValues.value = tempSelectedValues;
+    selectedRowsMap.value = tempSelectedRows;
+  },
+  { immediate: true },
+);
 
 onMounted(() => {
   if (kfScrollerTableBodyRef.value) {
@@ -127,6 +167,13 @@ function handleDbClickRow(e: MouseEvent, row: TableDataItem): void {
   clickTimer && clearTimeout(clickTimer);
 }
 
+function handleClickRow(e: MouseEvent, row: TableDataItem): void {
+  clickTimer && clearTimeout(clickTimer);
+  clickTimer = +setTimeout(() => {
+    app && app.emit('clickRow', { event: e, row });
+  }, 300);
+}
+
 function handleClickCell(
   e: MouseEvent,
   row: TableDataItem,
@@ -134,15 +181,14 @@ function handleClickCell(
 ): void {
   clickTimer && clearTimeout(clickTimer);
   clickTimer = +setTimeout(() => {
-    if (app) {
-      app.emit('clickCell', { event: e, row, column });
+    app && app.emit('clickCell', { event: e, row, column });
+    app &&
       app.emit(
         'update:selectedKey',
         typeof row[props.keyField] === 'number'
           ? row[props.keyField]
           : `${row[props.keyField]}`,
       );
-    }
   }, 300);
 }
 
@@ -198,14 +244,77 @@ function handleSort(
     currentSorterOrder.value = 'ascend';
   }
 }
+
+function handleSelectRow(isChecked: boolean, item: TableDataItem) {
+  if (!props.selectable) return;
+
+  const key = item[props.keyField];
+
+  selectedRowKeyFieldValues.value[key] = isChecked;
+
+  if (isChecked) {
+    selectedRowsMap.value[key] = toRaw(dataSouceMap.value[key]);
+  } else {
+    delete selectedRowsMap.value[key];
+  }
+}
+
+function handleSelectAll(isChecked: boolean) {
+  if (!props.selectable) return;
+
+  const allSelected = Object.assign({}, allRowKeyFieldTrue);
+  const allUnSelected = Object.assign({}, allRowKeyFieldFalse);
+  const allRowsMap = Object.assign({}, toRaw(dataSouceMap.value));
+
+  selectedRowKeyFieldValues.value = isChecked ? allSelected : allUnSelected;
+  selectedRowsMap.value = isChecked ? allRowsMap : {};
+}
+
+watch(
+  () => selectedRowKeyFieldValues.value,
+  (val) => {
+    if (!props.selectable) return;
+
+    const allRowLength = props.dataSource.length;
+    if (!allRowLength) return;
+
+    const selectedRowLength = Object.values(val).filter((item) => item).length;
+
+    selectAllIndeterminate.value =
+      !!selectedRowLength && selectedRowLength < allRowLength;
+    isSelectAll.value = selectedRowLength === allRowLength;
+  },
+  {
+    deep: true,
+  },
+);
+
+defineExpose({
+  selectedRowsMap,
+  isSelectAll,
+  handleSelectRow,
+  handleSelectAll,
+});
 </script>
 <template>
   <div class="kf-table">
     <ul class="kf-table-header kf-table-row">
       <li
+        v-if="selectable"
+        class="kf-table-cell kf-table-select-cell"
+        style="width: 36px; flex-basis: 36px"
+        :title="$t('select_all')"
+      >
+        <a-checkbox
+          v-model:checked="isSelectAll"
+          :indeterminate="selectAllIndeterminate"
+          @change="handleSelectAll(!!$event.target.checked)"
+        />
+      </li>
+      <li
         v-for="column in columns"
-        :class="['kf-table-cell', column.type]"
         :key="column.dataIndex"
+        :class="['kf-table-cell', column.type]"
         :title="column.name"
         :style="{
           'max-width': getHeaderWidth(column),
@@ -233,7 +342,7 @@ function handleSort(
         </span>
       </li>
     </ul>
-    <div class="kf-table-body" ref="kfScrollerTableBodyRef">
+    <div ref="kfScrollerTableBodyRef" class="kf-table-body">
       <RecycleScroller
         v-if="dataSourceResolved && dataSourceResolved.length"
         class="kf-table-scroller"
@@ -242,23 +351,40 @@ function handleSort(
         :key-field="keyField"
         :buffer="100"
       >
-        <template v-slot="{ item }: { item: any }">
+        <template #default="{ item }: { item: TableDataItem }">
           <ul
             :class="['kf-table-row', customRowClass?.(item) || '']"
             @dblclick="handleDbClickRow($event, item)"
             @mousedown="handleMousedown($event, item)"
+            @click.stop="handleClickRow($event, item)"
           >
             <li
+              v-if="selectable"
+              class="kf-table-cell kf-table-select-cell"
+              :style="{
+                width: '36px',
+                flexBasis: '36px',
+                height: tableCellHeight,
+                lineHeight: tableCellHeight,
+              }"
+            >
+              <a-checkbox
+                v-model:checked="selectedRowKeyFieldValues[item[keyField]]"
+                :disabled="selection[item[keyField]]?.disabled ?? false"
+                @change="handleSelectRow(!!$event.target.checked, item)"
+              ></a-checkbox>
+            </li>
+            <li
               v-for="column in columns"
-              :class="['kf-table-cell', column.type]"
               :key="`${column.dataIndex}_${item[keyField as keyof TableDataItem]}`"
+              :class="['kf-table-cell', column.type]"
               :style="{
                 'max-width': getHeaderWidth(column),
                 height: tableCellHeight,
                 lineHeight: tableCellHeight,
               }"
-              @click.stop="handleClickCell($event, item, column)"
               :title="item[column.dataIndex]"
+              @click.stop="handleClickCell($event, item, column)"
             >
               <slot :item="item" :column="column">
                 <span>
@@ -392,6 +518,14 @@ function handleSort(
     &.number {
       text-align: right;
     }
+  }
+
+  .kf-table-select-cell {
+    flex-grow: 0;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 }
 </style>

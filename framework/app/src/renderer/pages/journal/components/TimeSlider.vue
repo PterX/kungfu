@@ -1,12 +1,35 @@
 <template>
   <div class="kf-time-slider__wrap">
     <div class="kf-time-slider-time">
-      {{ startAndEndTimeStr[0] }}
+      <a-input-group v-if="timeInputData[0].inputting" compact>
+        <a-input v-model:value="timeInputData[0].value" />
+        <a-button
+          type="primary"
+          size="small"
+          @click="handleConfirmTimeInput(0)"
+        >
+          {{ $t('confirm') }}
+        </a-button>
+        <a-button type="normal" size="small" @click="resetInputData(0)">
+          {{ $t('cancel') }}
+        </a-button>
+      </a-input-group>
+      <span
+        v-else
+        class="kf-time-slider-text"
+        @dblclick="handleDbClickTimeText(0)"
+      >
+        {{ timeStrs[0] }}
+      </span>
     </div>
     <a-slider
-      :ref="slider"
+      ref="slider"
       v-model:value="currentTimeRange"
       class="kf-time-slider"
+      :class="{
+        'kf-time-slider-handler-focus-1': sticking[0],
+        'kf-time-slider-handler-focus-2': sticking[1],
+      }"
       :min="limitRangeResolved[0]"
       :max="limitRangeResolved[1]"
       :step="nano2millionSecond(step)"
@@ -15,20 +38,46 @@
       @after-change="onAfterChange"
     />
     <div class="kf-time-slider-time">
-      {{ startAndEndTimeStr[1] }}
+      <a-input-group v-if="timeInputData[1].inputting" compact>
+        <a-input v-model:value="timeInputData[1].value" />
+        <a-button
+          type="primary"
+          size="small"
+          @click="handleConfirmTimeInput(1)"
+        >
+          {{ $t('confirm') }}
+        </a-button>
+        <a-button type="normal" size="small" @click="resetInputData(0)">
+          {{ $t('cancel') }}
+        </a-button>
+      </a-input-group>
+      <span
+        v-else
+        class="kf-time-slider-text"
+        @dblclick="handleDbClickTimeText(1)"
+      >
+        {{ timeStrs[1] }}
+      </span>
     </div>
   </div>
 </template>
 
 <script lang="ts" setup>
-import { dealKfTime } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { computed, ref, watch } from 'vue';
+
+import { dealKfTime } from '@kungfu-trader/kungfu-js-api/kungfu';
+import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+
+const { t } = VueI18n.global;
+
+type DoubleArray<T> = [T, T];
 
 const props = withDefaults(
   defineProps<{
-    timeRange: [bigint, bigint]; // 当前只支持纳秒级别的时间
-    limitTimeRange: [bigint, bigint]; // 当前只支持纳秒级别的时间
+    timeRange: DoubleArray<bigint>; // 当前只支持纳秒级别的时间
+    limitTimeRange: DoubleArray<bigint>; // 当前只支持纳秒级别的时间
     step: number;
+    stick: boolean;
   }>(),
   {
     step: 10000000, // step 为纳秒级别， 默认为10毫秒
@@ -36,13 +85,18 @@ const props = withDefaults(
 );
 
 const emit = defineEmits<{
-  (e: 'update:timeRange', value: [bigint, bigint]): void;
+  (e: 'update:timeRange', value: DoubleArray<bigint>): void;
 }>();
-
-const slider = ref();
 
 const SCALE = 1000000;
 const BIGINT_SCALE = BigInt(SCALE);
+
+const slider = ref();
+const sticking = ref<DoubleArray<boolean>>([false, false]);
+const timeInputData = ref<DoubleArray<{ inputting: boolean; value: string }>>([
+  { inputting: false, value: '' },
+  { inputting: false, value: '' },
+]);
 
 const nano2millionSecond = (number: bigint | number) => {
   if (typeof number === 'bigint') {
@@ -52,13 +106,35 @@ const nano2millionSecond = (number: bigint | number) => {
   }
 };
 
+const kfTimeCached = new Map();
+const customDealKftime = (time: bigint) => {
+  if (!kfTimeCached.has(time)) kfTimeCached.set(time, dealKfTime(time));
+  return kfTimeCached.get(time);
+};
+
+const str2millionTime = (timeStr: string) => {
+  return new Promise<number>((resolve, reject) => {
+    const timeRegx = /\d{2}:\d{2}:\d{2}.\d{3}/;
+    if (!timeRegx.test(timeStr)) reject(t(''));
+    const [h, m, s, ms] = timeStr.match(timeRegx)?.slice(1) as string[];
+    const inputMillionSecond =
+      (Number(h) * 3600 + Number(m) * 60 + Number(s)) * 1000 + Number(ms);
+    resolve(inputMillionSecond);
+  });
+};
+
 const million2nanoSecond = (number: number) => {
   return BigInt(number * SCALE);
 };
 
-const currentTimeRange = ref<[number, number]>([
+const currentTimeRange = ref<DoubleArray<number>>([
   nano2millionSecond(props.timeRange[0]),
   nano2millionSecond(props.timeRange[1]),
+]);
+
+const limitRangeResolved = ref<DoubleArray<number>>([
+  nano2millionSecond(props.limitTimeRange[0]),
+  nano2millionSecond(props.limitTimeRange[1]),
 ]);
 
 watch(
@@ -71,28 +147,42 @@ watch(
   },
 );
 
-const limitRangeResolved = computed(() => {
-  const resolvedRange = [
-    nano2millionSecond(props.limitTimeRange[0]),
-    nano2millionSecond(props.limitTimeRange[1]),
+watch(
+  () => props.limitTimeRange,
+  (newLimitRange) => {
+    limitRangeResolved.value = [
+      nano2millionSecond(newLimitRange[0]),
+      nano2millionSecond(newLimitRange[1]),
+    ];
+
+    if (props.stick) {
+      if (sticking.value[0]) {
+        currentTimeRange.value[0] = limitRangeResolved.value[0];
+      }
+
+      if (sticking.value[1]) {
+        currentTimeRange.value[1] = limitRangeResolved.value[1];
+      }
+
+      if (sticking.value.some((item) => item)) {
+        emit('update:timeRange', [
+          dealUpdateTime(currentTimeRange.value[0]),
+          dealUpdateTime(currentTimeRange.value[1]),
+        ]);
+      }
+    }
+  },
+);
+
+const timeStrs = computed(() => {
+  return [
+    customDealKftime(props.timeRange[0]),
+    customDealKftime(props.timeRange[1]),
   ];
-
-  return resolvedRange;
 });
-
-const startAndEndTimeStr = computed(() => {
-  return [dealKfTime(props.timeRange[0]), dealKfTime(props.timeRange[1])];
-});
-
-// const marks = computed(() => {
-//   return {
-//     [currentTimeRange.value[0]]: startAndEndTimeStr.value[0],
-//     [currentTimeRange.value[1]]: startAndEndTimeStr.value[1],
-//   };
-// });
 
 const tipFormatter = (num: number) => {
-  return dealKfTime(BigInt(num * SCALE));
+  return customDealKftime(BigInt(num * SCALE));
 };
 
 const dealUpdateTime = (time: number) => {
@@ -101,18 +191,52 @@ const dealUpdateTime = (time: number) => {
   return million2nanoSecond(time);
 };
 
-const onAfterChange = (value: [number, number]) => {
+const onAfterChange = (value: DoubleArray<number>) => {
   if (
     value[0] === nano2millionSecond(props.timeRange[0]) &&
     value[1] === nano2millionSecond(props.timeRange[1])
   )
     return;
 
+  if (props.stick) {
+    sticking.value[0] = value[0] === limitRangeResolved.value[0];
+    sticking.value[1] = value[1] === limitRangeResolved.value[1];
+  }
+
   emit('update:timeRange', [
     dealUpdateTime(value[0]),
     dealUpdateTime(value[1]),
   ]);
 };
+
+const resetInputData = (index: 0 | 1) => {
+  timeInputData.value[index] = {
+    inputting: false,
+    value: '',
+  };
+};
+
+const handleDbClickTimeText = (index: 0 | 1) => {
+  timeInputData.value[index] = {
+    inputting: true,
+    value: timeStrs.value[index],
+  };
+};
+
+const handleConfirmTimeInput = (index: 0 | 1) => {
+  str2millionTime(timeInputData.value[index].value).then((resolvedTime) => {
+    currentTimeRange.value[index] = resolvedTime;
+    emit('update:timeRange', [
+      dealUpdateTime(currentTimeRange.value[0]),
+      dealUpdateTime(currentTimeRange.value[1]),
+    ]);
+    resetInputData(index);
+  });
+};
+
+defineExpose({
+  sticking,
+});
 </script>
 
 <style lang="less">
@@ -122,14 +246,29 @@ const onAfterChange = (value: [number, number]) => {
   justify-content: space-between;
 
   .kf-time-slider-time {
-    font-size: 14px;
     width: 100px;
-    margin: 0 5px;
+    margin: 0 16px;
     flex: 0 0 100px;
+
+    .kf-time-slider-text {
+      font-size: 14px;
+    }
   }
 
   .kf-time-slider {
     flex: 1;
+  }
+
+  .kf-time-slider-handler-focus-1 {
+    .ant-slider-handle-1 {
+      border-color: #faad14;
+    }
+  }
+
+  .kf-time-slider-handler-focus-2 {
+    .ant-slider-handle-2 {
+      border-color: #faad14;
+    }
   }
 }
 </style>

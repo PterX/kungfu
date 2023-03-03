@@ -23,7 +23,8 @@ void copy_sink::put(const data::location_ptr &location, uint32_t dest_id, const 
   auto &writers = pair.first->second;
   if (writers.find(dest_id) == writers.end()) {
     auto target_location = data::location::make_shared(*location, locator_);
-    writers.try_emplace(dest_id, std::make_shared<writer>(target_location, dest_id, true, get_publisher()));
+    writers.try_emplace(dest_id, std::make_shared<writer>(target_location, dest_id, true, get_publisher(), false,
+                                                          std::make_shared<bus>(false)));
   }
   writers.at(dest_id)->copy_frame(frame);
 }
@@ -37,7 +38,7 @@ assemble::assemble(const std::vector<data::locator_ptr> &locators, const std::st
     : mode_(mode), category_(category), group_(group), name_(name), publisher_(std::make_shared<noop_publisher>()) {
   for (auto &locator : locators) {
     locators_.push_back(locator);
-    readers_.push_back(std::make_shared<reader>(true));
+    readers_.push_back(std::make_shared<reader>(true, false, std::make_shared<bus>(false)));
     auto reader = readers_.back();
     for (auto &location : locator->list_locations(category, group, name, mode)) {
       for (auto dest_id : locator->list_location_dest(location)) {
@@ -69,6 +70,7 @@ void assemble::operator>>(const sink_ptr &sink) {
 }
 
 bool assemble::data_available() {
+  sort();
   for (auto &reader : readers_) {
     if (reader->data_available()) {
       return true;
@@ -153,29 +155,51 @@ std::shared_ptr<frame_reader> assemble::get_reader(const kungfu::yijinjing::data
   return p_reader;
 }
 
-void assemble::join_channel(const data::location_ptr &pl, uint32_t dest_id, int64_t from_time) {
-  get_reader(pl->location_uid)->join(pl, dest_id, from_time);
-}
+assemble::assemble(const data::location_ptr &source_location, uint32_t dest_id, uint32_t assemble_mode,
+                   int64_t from_time)
+    : assemble() {
+  readers_.clear();
+  data::locator l{};
+  readers_.push_back(std::make_shared<reader>(true, false, std::make_shared<bus>(false)));
+  auto reader = readers_.front();
 
-void assemble::join_all(const data::location_ptr &pl, int64_t from_time) {
-  for (auto dest_id : data::locator().list_location_dest(pl)) {
-    get_reader(pl->location_uid)->join(pl, dest_id, from_time);
+  // join channel
+  if (assemble_mode & AssembleMode::Channel) {
+    reader->join(source_location, dest_id, from_time);
   }
+
+  // join all journal dest of location
+  if (assemble_mode & AssembleMode::Write) {
+    for (auto dest : l.list_location_dest(source_location)) {
+      reader->join(source_location, dest, from_time);
+    }
+  }
+
+  // scan all locations, join dest_id or PUBLIC
+  bool b_read = assemble_mode & AssembleMode::Read;
+  bool b_public = assemble_mode & AssembleMode::Public;
+  bool b_all = assemble_mode & AssembleMode::All;
+  if (b_read or b_public or b_all) {
+    for (auto &location : l.list_locations("*", "*", "*", "*")) {
+      for (auto dest : l.list_location_dest(location)) {
+        if (b_all) {
+          reader->join(location, dest, from_time);
+        } else if (b_read and dest == dest_id) {
+          reader->join(location, dest_id, from_time);
+        } else if (b_public and dest == data::location::PUBLIC) {
+          reader->join(location, data::location::PUBLIC, from_time);
+        }
+      }
+    }
+  }
+  sort();
 }
 
-reader_ptr assemble::get_reader(uint32_t location_uid) {
-  return location_readers_.try_emplace(location_uid, std::make_shared<reader>(true)).first->second;
+[[maybe_unused]] void assemble::seek_to_time(int64_t nano_time) {
+  for (auto &reader : readers_) {
+    reader->seek_to_time(nano_time);
+  }
+  sort();
 }
-
-bool assemble::data_available(uint32_t location_uid) { return get_reader(location_uid)->data_available(); }
-
-frame_ptr assemble::current_frame(uint32_t location_uid) {
-  auto reader = get_reader(location_uid);
-  auto frame = reader->current_frame();
-  reader->next();
-  return frame;
-}
-
-void assemble::disjoin(const uint32_t location_uid) { get_reader(location_uid)->disjoin(location_uid); }
 
 } // namespace kungfu::yijinjing::journal

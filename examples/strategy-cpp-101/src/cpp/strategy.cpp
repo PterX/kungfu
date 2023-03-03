@@ -15,6 +15,7 @@ public:
 
   void pre_start(Context_ptr & context) override {
     SPDLOG_INFO("preparing strategy");
+    SPDLOG_INFO("arguments: {}", context->arguments());
     context->add_account("sim", "123456");
     context->subscribe("sim", {"600000"}, {"SSE"});
     // context->subscribe_operator("bar", "my-bar");
@@ -65,4 +66,8 @@ public:
                                 const location_ptr &location) override {
     SPDLOG_INFO("on operator state changed: {}", operator_state_update.to_string());
   };
+
+  void on_tree(Context_ptr & context, const Tree &tree, const location_ptr &location) override {
+    SPDLOG_INFO("on tree: {}", tree.to_string());
+  }
 };

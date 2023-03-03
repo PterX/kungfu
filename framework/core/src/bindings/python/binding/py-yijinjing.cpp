@@ -6,6 +6,7 @@
 
 #include <kungfu/longfist/longfist.h>
 #include <kungfu/yijinjing/cache/cached.h>
+#include <kungfu/yijinjing/cache/profile.h>
 #include <kungfu/yijinjing/index/session.h>
 #include <kungfu/yijinjing/io.h>
 #include <kungfu/yijinjing/journal/assemble.h>
@@ -15,7 +16,6 @@
 #include <kungfu/yijinjing/nanomsg/socket.h>
 #include <kungfu/yijinjing/practice/apprentice.h>
 #include <kungfu/yijinjing/practice/master.h>
-#include <kungfu/yijinjing/practice/profile.h>
 #include <kungfu/yijinjing/time.h>
 #include <kungfu/yijinjing/util/util.h>
 
@@ -245,10 +245,13 @@ void bind(pybind11::module &&m) {
       .def("data_available", &reader::data_available)
       .def("next", &reader::next)
       .def("join", &reader::join)
-      .def("disjoin", &reader::disjoin);
+      .def("disjoin", &reader::disjoin)
+      .def("disjoin_channel", &reader::disjoin_channel);
+
+  py::class_<bus, bus_ptr>(m, "bus").def("on_load_page", &bus::on_load_page);
 
   auto writer_class = py::class_<writer, writer_ptr>(m, "writer");
-  writer_class.def(py::init<const data::location_ptr &, uint32_t, bool, publisher_ptr>())
+  writer_class.def(py::init<const data::location_ptr &, uint32_t, bool, publisher_ptr, bool, const bus_ptr &>())
       .def("current_frame_uid", &writer::current_frame_uid)
       .def("copy_frame", &writer::copy_frame)
       .def("mark", &writer::mark)

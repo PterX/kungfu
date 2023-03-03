@@ -9,6 +9,11 @@ declare global {
     assemble: Assemble;
     kungfu: Kungfu;
     workers: Record<string, WebpackWorker>;
+    basketStore: KungfuApi.BasketStore;
+    basketInstrumentStore: KungfuApi.BasketInstrumentStore;
+    configStore: KungfuApi.ConfigStore;
+    riskSettingStore: KungfuApi.RiskSettingStore;
+    commissionStore: KungfuApi.CommissionStore;
     fileId: number;
     testCase: Record<string, any>;
     pm2: any;

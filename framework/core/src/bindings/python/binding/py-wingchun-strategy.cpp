@@ -58,6 +58,11 @@ public:
     PYBIND11_OVERLOAD(void, strategy::Strategy, on_quote, context, quote, location);
   }
 
+  void on_tree(strategy::Context_ptr &context, const Tree &tree,
+               const kungfu::yijinjing::data::location_ptr &location) override {
+    PYBIND11_OVERLOAD(void, strategy::Strategy, on_tree, context, tree, location);
+  }
+
   void on_entrust(strategy::Context_ptr &context, const Entrust &entrust,
                   const kungfu::yijinjing::data::location_ptr &location) override {
     PYBIND11_OVERLOAD(void, strategy::Strategy, on_entrust, context, entrust, location);
@@ -142,7 +147,7 @@ void bind_strategy(pybind11::module &m) {
   py::class_<strategy::Runner, PyRunner, kungfu::yijinjing::practice::apprentice, std::shared_ptr<strategy::Runner>>(
       m, "Runner")
       .def(py::init<kungfu::yijinjing::data::locator_ptr, const std::string &, const std::string &,
-                    longfist::enums::mode, bool>())
+                    longfist::enums::mode, bool, const std::string &>())
       .def_property_readonly("context", &strategy::Runner::get_context)
       .def("set_begin_time", &strategy::Runner::set_begin_time)
       .def("set_end_time", &strategy::Runner::set_end_time)
@@ -156,6 +161,7 @@ void bind_strategy(pybind11::module &m) {
 
   py::class_<strategy::Context, std::shared_ptr<strategy::Context>>(m, "Context")
       .def_property_readonly("trading_day", &strategy::Context::get_trading_day)
+      .def_property_readonly("arguments", &strategy::Context::arguments)
       .def("now", &strategy::Context::now)
       .def("add_timer", &strategy::Context::add_timer)
       .def("add_time_interval", &strategy::Context::add_time_interval)
@@ -165,14 +171,17 @@ void bind_strategy(pybind11::module &m) {
            py::arg("market_type") = MarketType::All, py::arg("instrument_type") = SubscribeInstrumentType::All,
            py::arg("data_type") = SubscribeDataType::All)
       .def("subscribe_operator", &strategy::Context::subscribe_operator)
-      .def("insert_order", &strategy::Context::insert_order, py::arg("symbol"), py::arg("exchange"), py::arg("source"),
-           py::arg("account"), py::arg("limit_price"), py::arg("volume"), py::arg("type"), py::arg("side"),
-           py::arg("offset") = Offset::Open, py::arg("hedge_flag") = HedgeFlag::Speculation, py::arg("is_swap") = false,
-           py::arg("block_id") = 0)
+      .def("insert_order", &strategy::Context::insert_order, py::arg("instrument_id"), py::arg("exchange"),
+           py::arg("source"), py::arg("account"), py::arg("limit_price"), py::arg("volume"), py::arg("type"),
+           py::arg("side"), py::arg("offset") = Offset::Open, py::arg("hedge_flag") = HedgeFlag::Speculation,
+           py::arg("is_swap") = false, py::arg("block_id") = 0, py::arg("parent_id") = 0)
       .def("insert_block_message", &strategy::Context::insert_block_message, py::arg("source"), py::arg("account"),
            py::arg("opponent_seat"), py::arg("match_number"), py::arg("is_specific") = false)
       .def("insert_batch_orders", &strategy::Context::insert_batch_orders)
       .def("insert_array_orders", &strategy::Context::insert_array_orders)
+      .def("insert_basket_order", &strategy::Context::insert_basket_order, py::arg("basket_id"), py::arg("source"),
+           py::arg("account"), py::arg("side"), py::arg("price_type") = PriceType::Limit,
+           py::arg("price_level") = PriceLevel::Lastest, py::arg("price_offset") = 0, py::arg("volume") = 0)
       .def("cancel_order", &strategy::Context::cancel_order)
       .def("req_history_order", &strategy::Context::req_history_order, py::arg("source"), py::arg("account"),
            py::arg("query_num") = 0)
@@ -188,7 +197,9 @@ void bind_strategy(pybind11::module &m) {
   py::class_<strategy::Matcher, std::shared_ptr<strategy::Matcher>>(m, "Matcher");
 
   py::class_<strategy::LiveContext, strategy::Context, strategy::LiveContext_ptr>(m, "LiveContext")
-      .def_property_readonly("bookkeeper", &strategy::LiveContext::get_bookkeeper, py::return_value_policy::reference);
+      .def_property_readonly("bookkeeper", &strategy::LiveContext::get_bookkeeper, py::return_value_policy::reference)
+      .def_property_readonly("basketorder_engine", &strategy::LiveContext::get_basketorder_engine,
+                             py::return_value_policy::reference);
 
   py::class_<strategy::Strategy, PyStrategy, strategy::Strategy_ptr>(m, "Strategy")
       .def(py::init())
@@ -198,10 +209,12 @@ void bind_strategy(pybind11::module &m) {
       .def("post_stop", &strategy::Strategy::post_stop)
       .def("on_trading_day", &strategy::Strategy::on_trading_day)
       .def("on_quote", &strategy::Strategy::on_quote)
+      .def("on_tree", &strategy::Strategy::on_tree)
       .def("on_entrust", &strategy::Strategy::on_entrust)
       .def("on_transaction", &strategy::Strategy::on_transaction)
       .def("on_synthetic_data", &strategy::Strategy::on_synthetic_data)
       .def("on_order", &strategy::Strategy::on_order)
+      .def("on_order_action_error", &strategy::Strategy::on_order_action_error)
       .def("on_trade", &strategy::Strategy::on_trade)
       .def("on_position_sync_reset", &strategy::Strategy::on_position_sync_reset)
       .def("on_asset_sync_reset", &strategy::Strategy::on_asset_sync_reset)
@@ -213,6 +226,5 @@ void bind_strategy(pybind11::module &m) {
       .def("on_history_trade", &strategy::Strategy::on_history_trade)
       .def("on_req_history_order_error", &strategy::Strategy::on_req_history_order_error)
       .def("on_req_history_trade_error", &strategy::Strategy::on_req_history_trade_error);
-  ;
 }
 } // namespace kungfu::wingchun::pybind

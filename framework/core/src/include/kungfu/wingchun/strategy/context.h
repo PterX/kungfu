@@ -8,6 +8,7 @@
 #define WINGCHUN_CONTEXT_H
 
 #include <kungfu/longfist/longfist.h>
+#include <kungfu/wingchun/basketorder/basketorderengine.h>
 #include <kungfu/wingchun/book/bookkeeper.h>
 #include <kungfu/wingchun/broker/client.h>
 #include <kungfu/wingchun/strategy/strategy.h>
@@ -106,7 +107,7 @@ public:
                                 int64_t volume, longfist::enums::PriceType type, longfist::enums::Side side,
                                 longfist::enums::Offset offset,
                                 longfist::enums::HedgeFlag hedge_flag = HedgeFlag::Speculation, bool is_swap = false,
-                                uint64_t block_id = 0) = 0;
+                                uint64_t block_id = 0, uint64_t parent_id = 0) = 0;
 
   /**
    * Insert Batch Orders
@@ -152,6 +153,21 @@ public:
    * @return bookkeeper reference
    */
   virtual book::Bookkeeper &get_bookkeeper() = 0;
+  /*
+   * Insert Basket Orders
+   * @param basket_id
+   * @param source
+   * @param account
+   * @param price_type
+   * @param price_level
+   * @param price_offset
+   * @param volume_mode
+   * @param total_volume
+  */
+  virtual uint64_t insert_basket_order(uint64_t basket_id, const std::string &source, const std::string account,
+                                       longfist::enums::Side side, longfist::enums::PriceType price_type,
+                                       longfist::enums::PriceLevel price_level, double price_offset = 0,
+                                       int64_t volume = 0) = 0;
 
   /**
    * query history order
@@ -216,16 +232,24 @@ public:
    */
   virtual void update_strategy_state(longfist::types::StrategyStateUpdate &state_update) {}
 
+  /**
+   * Get arguments kfc run -a
+   * @return string of arguments
+   */
+  const std::string &arguments() {return arguments_; };
+
+  void set_arguments(const std::string &arguments) { arguments_ = arguments; }
+
 protected:
   yijinjing::practice::apprentice &app_;
   const rx::connectable_observable<event_ptr> &events_;
   virtual void on_start() {}
 
   virtual void prepare(const event_ptr &event) = 0;
-
 private:
   bool book_held_ = false;
   bool positions_mirrored_ = true;
+  std::string arguments_;
 
   friend void enable(Context &context) { context.on_start(); }
   friend void prepare(const event_ptr &event, Context &context) { context.prepare(event); }

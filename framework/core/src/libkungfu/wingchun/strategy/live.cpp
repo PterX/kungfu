@@ -6,7 +6,7 @@
 
 #include <fmt/format.h>
 
-#include <kungfu/wingchun/strategy/runtime.h>
+#include <kungfu/wingchun/strategy/live.h>
 #include <kungfu/yijinjing/log.h>
 #include <kungfu/yijinjing/time.h>
 
@@ -20,28 +20,105 @@ using namespace kungfu::yijinjing::util;
 
 namespace kungfu::wingchun::strategy {
 
-RuntimeContext::RuntimeContext(apprentice &app, const rx::connectable_observable<event_ptr> &events)
-    : app_(app), events_(events), broker_client_(app_), bookkeeper_(app_, broker_client_), basketorder_engine_(app_) {
+LiveContext::LiveContext(apprentice &app, const rx::connectable_observable<event_ptr> &events)
+    : Context(app, events), broker_client_(app_), bookkeeper_(app_, broker_client_), basketorder_engine_(app_) {
   log::copy_log_settings(app_.get_home(), app_.get_home()->name);
 }
 
-void RuntimeContext::on_start() {
+void LiveContext::on_start() {
   broker_client_.on_start(events_);
   bookkeeper_.on_start(events_);
   basketorder_engine_.on_start(events_);
 }
 
-int64_t RuntimeContext::now() const { return app_.now(); }
+bool LiveContext::is_started() const { return started_; }
 
-void RuntimeContext::add_timer(int64_t nanotime, const std::function<void(event_ptr)> &callback) {
+void LiveContext::prepare(const event_ptr &event) {
+
+  if (event->msg_type() == Position::tag) {
+    const Position &position = event->data<Position>();
+    if (position.holder_uid == app_.get_home_uid()) {
+      get_broker_client().subscribe(position.exchange_id, position.instrument_id);
+    }
+  }
+
+  auto ledger_uid = app_.get_ledger_home_location()->uid;
+  if (not app_.has_writer(ledger_uid)) {
+    return;
+  }
+  auto writer = app_.get_writer(ledger_uid);
+
+  auto connected_test = [&](auto &locations) {
+    for (const auto &pair : locations) {
+      if (not get_broker_client().is_connected(pair.second->uid)) {
+        return false;
+      }
+    }
+    return true;
+  };
+  if (not broker_states_requested_ and connected_test(list_accounts()) and connected_test(list_md()) and
+      connected_test(list_op())) {
+    writer->mark(now(), BrokerStateRequest::tag);
+    writer->mark(now(), OperatorStateRequest::tag);
+    broker_states_requested_ = true;
+  }
+
+  auto ready_test = [&](auto &locations) {
+    for (const auto &pair : locations) {
+      if (not get_broker_client().is_ready(pair.second->uid)) {
+        return false;
+      }
+    }
+    return true;
+  };
+  if (not ready_test(list_accounts()) or not ready_test(list_md()) or not ready_test(list_op())) {
+    return;
+  }
+
+  if (not positions_requested_) {
+    if (not is_book_held()) {
+      // Start - Let ledger prepare book for strategy
+      writer->mark(now(), KeepPositionsRequest::tag);
+      writer->mark(now(), ResetBookRequest::tag);
+    }
+
+    for (const auto &pair : get_broker_client().get_instrument_keys()) {
+      writer->write(now(), pair.second);
+    }
+    if (is_positions_mirrored()) {
+      writer->mark(now(), MirrorPositionsRequest::tag);
+    }
+    // End - Let ledger prepare book for strategy
+    if (not is_book_held() and not is_positions_mirrored()) {
+      writer->mark(now(), RebuildPositionsRequest::tag);
+    }
+    // Request ledger to recover book for strategy
+    writer->mark(now(), AssetRequest::tag);
+    writer->mark(now(), PositionRequest::tag);
+    positions_requested_ = true;
+    return;
+  }
+  if (event->msg_type() == PositionEnd::tag and event->source() == ledger_uid) {
+    positions_set_ = true;
+  }
+  if (not positions_set_) {
+    return;
+  }
+  get_bookkeeper().guard_positions();
+  started_ = true;
+}
+
+int64_t LiveContext::now() const { return app_.now(); }
+
+void LiveContext::add_timer(int64_t nanotime, const std::function<void(event_ptr)> &callback) {
   app_.add_timer(nanotime, callback);
 }
 
-void RuntimeContext::add_time_interval(int64_t duration, const std::function<void(event_ptr)> &callback) {
+void LiveContext::add_time_interval(int64_t duration, const std::function<void(event_ptr)> &callback) {
   app_.add_time_interval(duration, callback);
 }
 
-void RuntimeContext::add_account(const std::string &source, const std::string &account) {
+void LiveContext::add_account(const std::string &source, const std::string &account) {
   uint32_t hashed_account = hash_account(source, account);
 
   if (td_locations_.find(hashed_account) != td_locations_.end()) {
@@ -61,8 +138,8 @@ void RuntimeContext::add_account(const std::string &source, const std::string &a
   broker_client_.enroll_account(account_location);
 }
 
-void RuntimeContext::subscribe(const std::string &source, const std::vector<std::string> &instrument_ids,
-                               const std::string &exchange_ids) {
+void LiveContext::subscribe(const std::string &source, const std::vector<std::string> &instrument_ids,
+                            const std::string &exchange_ids) {
   auto md_location = find_md_location(source);
   for (const auto &instrument_id : instrument_ids) {
     broker_client_.subscribe(md_location, exchange_ids, instrument_id);
@@ -70,12 +147,12 @@ void RuntimeContext::subscribe(const std::string &source, const std::vector<std:
   md_locations_.emplace(md_location->uid, md_location);
 }
 
-void RuntimeContext::subscribe_all(const std::string &source, uint8_t market_type, uint64_t instrument_type,
-                                   uint64_t data_type) {
+void LiveContext::subscribe_all(const std::string &source, uint8_t market_type, uint64_t instrument_type,
+                                uint64_t data_type) {
   broker_client_.subscribe_all(find_md_location(source), market_type, instrument_type, data_type);
 }
 
-void RuntimeContext::subscribe_operator(const std::string &group, const std::string &name) {
+void LiveContext::subscribe_operator(const std::string &group, const std::string &name) {
   uint32_t hashed_op = hash_operator(group, name);
 
   if (op_locations_.find(hashed_op) != op_locations_.end()) {
@@ -94,8 +171,8 @@ void RuntimeContext::subscribe_operator(const std::string &group, const std::str
   broker_client_.enroll_operator(operator_location);
 }
 
-uint64_t RuntimeContext::insert_block_message(const std::string &source, const std::string &account,
-                                              uint32_t opponent_seat, uint64_t match_number, bool is_specific) {
+uint64_t LiveContext::insert_block_message(const std::string &source, const std::string &account,
+                                           uint32_t opponent_seat, uint64_t match_number, bool is_specific) {
   auto account_location_uid = get_td_location_uid(source, account);
   if (not broker_client_.is_ready(account_location_uid)) {
     SPDLOG_ERROR("account {} not ready", td_locations_.at(account_location_uid)->uname);
@@ -111,10 +188,10 @@ uint64_t RuntimeContext::insert_block_message(const std::string &source, const s
   return msg.block_id;
 }
 
-uint64_t RuntimeContext::insert_order(const std::string &instrument_id, const std::string &exchange_id,
-                                      const std::string &source, const std::string &account, double limit_price,
-                                      int64_t volume, PriceType type, Side side, Offset offset, HedgeFlag hedge_flag,
-                                      bool is_swap, uint64_t block_id, uint64_t parent_id) {
+uint64_t LiveContext::insert_order(const std::string &instrument_id, const std::string &exchange_id,
+                                   const std::string &source, const std::string &account, double limit_price,
+                                   int64_t volume, PriceType type, Side side, Offset offset, HedgeFlag hedge_flag,
+                                   bool is_swap, uint64_t block_id, uint64_t parent_id) {
   auto account_location_uid = get_td_location_uid(source, account);
   auto insert_time = time::now_in_nano();
   if (not broker_client_.is_ready(account_location_uid)) {
@@ -149,12 +226,13 @@ uint64_t RuntimeContext::insert_order(const std::string &instrument_id, const st
   return input.order_id;
 }
 
-std::vector<uint64_t> RuntimeContext::insert_batch_orders(
-    const std::string &source, const std::string &account, const std::vector<std::string> &instrument_ids,
-    const std::vector<std::string> &exchange_ids, std::vector<double> limit_prices, std::vector<int64_t> volumes,
-    std::vector<longfist::enums::PriceType> types, std::vector<longfist::enums::Side> sides,
-    std::vector<longfist::enums::Offset> offsets, std::vector<longfist::enums::HedgeFlag> hedge_flags,
-    std::vector<bool> is_swaps) {
+std::vector<uint64_t>
+LiveContext::insert_batch_orders(const std::string &source, const std::string &account,
+                                 const std::vector<std::string> &instrument_ids,
+                                 const std::vector<std::string> &exchange_ids, std::vector<double> limit_prices,
+                                 std::vector<int64_t> volumes, std::vector<longfist::enums::PriceType> types,
+                                 std::vector<longfist::enums::Side> sides, std::vector<longfist::enums::Offset> offsets,
+                                 std::vector<longfist::enums::HedgeFlag> hedge_flags, std::vector<bool> is_swaps) {
   std::vector<uint64_t> order_ids{};
   bool flag = instrument_ids.size() == exchange_ids.size() and //
               instrument_ids.size() == limit_prices.size() and //
@@ -185,8 +263,8 @@ std::vector<uint64_t> RuntimeContext::insert_batch_orders(
   return order_ids;
 }
 
-std::vector<uint64_t> RuntimeContext::insert_array_orders(const std::string &source, const std::string &account,
-                                                          std::vector<longfist::types::OrderInput> order_inputs) {
+std::vector<uint64_t> LiveContext::insert_array_orders(const std::string &source, const std::string &account,
+                                                       std::vector<longfist::types::OrderInput> order_inputs) {
   std::vector<uint64_t> order_ids{};
   auto account_location_uid = get_td_location_uid(source, account);
   auto writer = app_.get_writer(account_location_uid);
@@ -204,10 +282,10 @@ std::vector<uint64_t> RuntimeContext::insert_array_orders(const std::string &sou
   return order_ids;
 }
 
-uint64_t RuntimeContext::insert_basket_order(uint64_t basket_id, const std::string &source, const std::string account,
-                                             longfist::enums::Side side, longfist::enums::PriceType price_type,
-                                             longfist::enums::PriceLevel price_level, double price_offset,
-                                             int64_t volume) {
+uint64_t LiveContext::insert_basket_order(uint64_t basket_id, const std::string &source, const std::string account,
+                                          longfist::enums::Side side, longfist::enums::PriceType price_type,
+                                          longfist::enums::PriceLevel price_level, double price_offset,
+                                          int64_t volume) {
   auto account_location_uid = get_td_location_uid(source, account);
   auto insert_time = time::now_in_nano();
   if (not broker_client_.is_ready(account_location_uid)) {
@@ -235,7 +313,7 @@ uint64_t RuntimeContext::insert_basket_order(uint64_t basket_id, const std::stri
   return input.order_id;
 }
 
-uint64_t RuntimeContext::cancel_order(uint64_t order_id) {
+uint64_t LiveContext::cancel_order(uint64_t order_id) {
   uint32_t account_location_uid = (order_id >> 32u) xor (app_.get_home_uid());
   if (not broker_client_.is_ready(account_location_uid)) {
     SPDLOG_ERROR("invalid order_id {:16x}", order_id);
@@ -253,25 +331,24 @@ uint64_t RuntimeContext::cancel_order(uint64_t order_id) {
   return action.order_action_id;
 }
 
-const location_map &RuntimeContext::list_md() const { return md_locations_; }
+const location_map &LiveContext::list_md() const { return md_locations_; }
 
-const location_map &RuntimeContext::list_op() const { return op_locations_; }
+const location_map &LiveContext::list_op() const { return op_locations_; }
 
-const location_map &RuntimeContext::list_accounts() const { return td_locations_; }
+const location_map &LiveContext::list_accounts() const { return td_locations_; }
 
-int64_t RuntimeContext::get_trading_day() const { return app_.get_trading_day(); }
+int64_t LiveContext::get_trading_day() const { return app_.get_trading_day(); }
 
-broker::Client &RuntimeContext::get_broker_client() { return broker_client_; }
+broker::Client &LiveContext::get_broker_client() { return broker_client_; }
 
-book::Bookkeeper &RuntimeContext::get_bookkeeper() { return bookkeeper_; }
+book::Bookkeeper &LiveContext::get_bookkeeper() { return bookkeeper_; }
 
-basketorder::BasketOrderEngine &RuntimeContext::get_basketorder_engine() { return basketorder_engine_; }
-
-uint32_t RuntimeContext::lookup_account_location_id(const std::string &account) const {
+uint32_t LiveContext::lookup_account_location_id(const std::string &account) const {
   return account_location_ids_.at(hash_str_32(account));
 }
+basketorder::BasketOrderEngine &LiveContext::get_basketorder_engine() { return basketorder_engine_; }
 
-uint32_t RuntimeContext::get_td_location_uid(const std::string &source, const std::string &account) const {
+uint32_t LiveContext::get_td_location_uid(const std::string &source, const std::string &account) const {
   uint32_t hashed_account = hash_account(source, account);
   if (td_locations_.find(hashed_account) == td_locations_.end()) {
     SPDLOG_ERROR(fmt::format("invalid account {}_{}", source, account));
@@ -280,7 +357,7 @@ uint32_t RuntimeContext::get_td_location_uid(const std::string &source, const st
   return td_locations_.at(hashed_account)->uid;
 }
 
-const location_ptr &RuntimeContext::find_md_location(const std::string &source) {
+const location_ptr &LiveContext::find_md_location(const std::string &source) {
   if (market_data_.find(source) == market_data_.end()) {
     auto home = app_.get_home();
     auto md_location = location::make_shared(mode::LIVE, category::MD, source, source, home->locator);
@@ -292,7 +369,7 @@ const location_ptr &RuntimeContext::find_md_location(const std::string &source) 
   return market_data_.at(source);
 }
 
-void RuntimeContext::req_history_order(const std::string &source, const std::string &account, uint32_t query_num) {
+void LiveContext::req_history_order(const std::string &source, const std::string &account, uint32_t query_num) {
   auto account_location_uid = get_td_location_uid(source, account);
   if (not broker_client_.is_ready(account_location_uid)) {
     SPDLOG_ERROR("account {}_{} not ready", source, account);
@@ -305,7 +382,7 @@ void RuntimeContext::req_history_order(const std::string &source, const std::str
   writer->close_data();
 }
 
-void RuntimeContext::req_history_trade(const std::string &source, const std::string &account, uint32_t query_num) {
+void LiveContext::req_history_trade(const std::string &source, const std::string &account, uint32_t query_num) {
   auto account_location_uid = get_td_location_uid(source, account);
   if (not broker_client_.is_ready(account_location_uid)) {
     SPDLOG_ERROR("account {}_{} not ready", source, account);
@@ -318,14 +395,12 @@ void RuntimeContext::req_history_trade(const std::string &source, const std::str
   writer->close_data();
 }
 
-void RuntimeContext::req_deregister() { app_.request_deregister(); }
+void LiveContext::req_deregister() { app_.request_deregister(); }
 
-void RuntimeContext::update_strategy_state(StrategyStateUpdate &state_update) {
+void LiveContext::update_strategy_state(StrategyStateUpdate &state_update) {
   auto writer = app_.get_writer(location::PUBLIC);
   state_update.update_time = now();
   writer->write(state_update.update_time, state_update);
 }
-
-std::string RuntimeContext::arguments() { return arguments_; }
 
 } // namespace kungfu::wingchun::strategy

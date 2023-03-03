@@ -8,12 +8,19 @@
 #define WINGCHUN_BACKTEST_H
 
 #include <kungfu/wingchun/strategy/context.h>
+#include <kungfu/wingchun/strategy/matcher.h>
 
 namespace kungfu::wingchun::strategy {
 class BacktestContext : public Context {
 public:
-  BacktestContext() = default;
-  ~BacktestContext() = default;
+  explicit BacktestContext(yijinjing::practice::apprentice &app, const rx::connectable_observable<event_ptr> &events,
+                           Matcher_ptr matcher);
+
+  /**
+   * checked_ is strated started.
+   * @return current time in nano seconds
+   */
+  virtual bool is_started() const;
 
   /**
    * Get current time in nano seconds.
@@ -59,6 +66,23 @@ public:
                      uint64_t data_type = 0) override;
 
   /**
+   * Subscribe operator data.
+   * @param group OPERATOR group
+   * @param name OPERATOR name
+   */
+  virtual void subscribe_operator(const std::string &group, const std::string &name) override;
+
+  /**
+   * Insert Block Message
+   * @param opponent_seat
+   * @param match_number
+   * @param value
+   * @return
+   */
+  virtual uint64_t insert_block_message(const std::string &source, const std::string &account, uint32_t opponent_seat,
+                                        uint64_t match_number, bool is_specific = false) override;
+
+  /**
    * Insert order.
    * @param instrument_id instrument ID
    * @param exchange_id exchange ID
@@ -77,6 +101,78 @@ public:
                         uint64_t block_id = 0, uint64_t parent_id = 0) override;
 
   /**
+   * Insert Batch Orders
+   * @param source
+   * @param account
+   * @param instrument_ids
+   * @param exchange_ids
+   * @param limit_prices
+   * @param volumes
+   * @param types
+   * @param sides
+   * @param offsets
+   * @param hedge_flags
+   * @param is_swaps
+   * @return
+   */
+  virtual std::vector<uint64_t>
+  insert_batch_orders(const std::string &source, const std::string &account,
+                      const std::vector<std::string> &instrument_ids, const std::vector<std::string> &exchange_ids,
+                      std::vector<double> limit_prices, std::vector<int64_t> volumes,
+                      std::vector<longfist::enums::PriceType> types, std::vector<longfist::enums::Side> sides,
+                      std::vector<longfist::enums::Offset> offsets, std::vector<longfist::enums::HedgeFlag> hedge_flags,
+                      std::vector<bool> is_swaps) override;
+
+  /**
+   * Insert Batch Orders
+   * @param source
+   * @param account
+   * @param order_inputs
+   * @return
+   */
+  virtual std::vector<uint64_t> insert_array_orders(const std::string &source, const std::string &account,
+                                                    std::vector<longfist::types::OrderInput> order_inputs) override;
+
+  /*
+   * Insert Basket Orders
+   * @param basket_id
+   * @param source
+   * @param account
+   * @param price_type
+   * @param price_level
+   * @param price_offset
+   * @param volume_mode
+   * @param total_volume
+   */
+  virtual uint64_t insert_basket_order(uint64_t basket_id, const std::string &source, const std::string account,
+                                       longfist::enums::Side side, longfist::enums::PriceType price_type,
+                                       longfist::enums::PriceLevel price_level, double price_offset = 0,
+                                       int64_t volume = 0) override;
+  /**
+   * Get broker client.
+   * @return broker client reference
+   */
+  virtual broker::Client &get_broker_client() override;
+
+  /**
+   * Get bookkeeper.
+   * @return bookkeeper reference
+   */
+  virtual book::Bookkeeper &get_bookkeeper() override;
+
+  /**
+   * query history order
+   */
+  virtual void req_history_order(const std::string &source, const std::string &account,
+                                 uint32_t query_num = 0) override;
+
+  /**
+   * query history trade
+   */
+  virtual void req_history_trade(const std::string &source, const std::string &account,
+                                 uint32_t query_num = 0) override;
+
+  /**
    * Cancel order.
    * @param order_id order ID
    * @return order action ID
@@ -88,6 +184,36 @@ public:
    * @return current trading day
    */
   int64_t get_trading_day() const override;
+
+  /**
+   * request deregister.
+   * @return void
+   */
+  void req_deregister() override;
+
+  /**
+   * Update Strategy State
+   * @param state StrategyState
+   * @param infos vector<string>, info_a, info_b, info_c.
+   */
+  void update_strategy_state(longfist::types::StrategyStateUpdate &state_update) override;
+
+protected:
+  virtual void on_start() override;
+
+  virtual void prepare(const event_ptr &event) override;
+
+  const yijinjing::data::location_ptr find_md_location(const std::string &source);
+
+private:
+  broker::PassiveClient broker_client_;
+  book::Bookkeeper bookkeeper_;
+  Matcher_ptr matcher_;
+
+  template <typename TradingData, typename OnMethod = void (Matcher::*)(int64_t, const TradingData &)>
+  void invoke(OnMethod method, int64_t gen_time, const TradingData &data) {
+    matcher_->*method(gen_time, data);
+  }
 };
 
 DECLARE_PTR(BacktestContext)

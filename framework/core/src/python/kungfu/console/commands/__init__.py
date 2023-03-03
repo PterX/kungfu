@@ -77,6 +77,7 @@ class PrioritizedCommandGroup(click.Group):
                     "dataset_dir",
                     "inbox_dir",
                     "runtime_locator",
+                    "backtest_locator",
                     "config_location",
                     "console_location",
                     "index_location",
@@ -100,10 +101,7 @@ class PrioritizedCommandGroup(click.Group):
     "~/.config on linux, ~/Library/Application Support on mac",
 )
 @click.option(
-    "-X",
-    "--extension-path",
-    type=str,
-    help="where to find extensions",
+    "-X", "--extension-path", type=str, help="where to find extensions",
 )
 @click.option(
     "-l",
@@ -156,6 +154,7 @@ def kfc(ctx, home, extension_path, log_level, name, cli_dev_path):
     ctx.runtime_dir = ensure_dir(ctx, "runtime")
     ctx.archive_dir = ensure_dir(ctx, "archive")
     ctx.dataset_dir = ensure_dir(ctx, "dataset")
+    ctx.backtest_dir = ensure_dir(ctx, "backtest")
     ctx.inbox_dir = ensure_dir(ctx, "inbox")
 
     lf = kungfu.__binding__.longfist
@@ -164,6 +163,7 @@ def kfc(ctx, home, extension_path, log_level, name, cli_dev_path):
     # have to keep locator alive from python side
     # https://github.com/pybind/pybind11/issues/1546
     ctx.runtime_locator = yjj.locator(ctx.runtime_dir)
+    ctx.backtest_locator = yjj.locator(ctx.backtest_dir)
     ctx.config_location = yjj.location(
         lf.enums.mode.LIVE,
         lf.enums.category.SYSTEM,

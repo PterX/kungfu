@@ -162,6 +162,7 @@ void bind_strategy(pybind11::module &m) {
   py::class_<strategy::Context, std::shared_ptr<strategy::Context>>(m, "Context")
       .def_property_readonly("trading_day", &strategy::Context::get_trading_day)
       .def_property_readonly("arguments", &strategy::Context::arguments)
+      .def_property_readonly("bookkeeper", &strategy::Context::get_bookkeeper, py::return_value_policy::reference)
       .def("now", &strategy::Context::now)
       .def("add_timer", &strategy::Context::add_timer)
       .def("add_time_interval", &strategy::Context::add_time_interval)
@@ -196,8 +197,9 @@ void bind_strategy(pybind11::module &m) {
 
   py::class_<strategy::Matcher, std::shared_ptr<strategy::Matcher>>(m, "Matcher");
 
+  // TODO to be pruned. use Context instead
   py::class_<strategy::LiveContext, strategy::Context, strategy::LiveContext_ptr>(m, "LiveContext")
-      .def_property_readonly("bookkeeper", &strategy::LiveContext::get_bookkeeper, py::return_value_policy::reference)
+      // .def_property_readonly("bookkeeper", &strategy::LiveContext::get_bookkeeper, py::return_value_policy::reference)
       .def_property_readonly("basketorder_engine", &strategy::LiveContext::get_basketorder_engine,
                              py::return_value_policy::reference);
 

@@ -26,6 +26,12 @@ service_command_context = kfc.pass_context("low_latency")
     type=click.Choice(kfj.CATEGORIES.keys()),
     help="category",
 )
+@click.option(
+    "-b",
+    "--backtest",
+    type=str,
+    help="backetst parameter",
+)
 @click.option("-g", "--group", type=str, help="group")
 @click.option("-n", "--name", type=str, help="name")
 @click.option("-x", "--low-latency", is_flag=True, help="run in low latency mode")
@@ -33,9 +39,21 @@ service_command_context = kfc.pass_context("low_latency")
 @click.option("-a", "--arguments", type=str, required=False)
 @click.option("-v", "--vendor", type=str, required=False)
 @kfc.pass_context()
-def run(ctx, mode, category, group, name, low_latency, reference, arguments, vendor):
+def run(
+    ctx,
+    mode,
+    category,
+    backtest,
+    group,
+    name,
+    low_latency,
+    reference,
+    arguments,
+    vendor,
+):
     ctx.mode = mode
     ctx.category = category
+    ctx.backtest = backtest
     ctx.group = group
     ctx.name = name
     ctx.low_latency = low_latency

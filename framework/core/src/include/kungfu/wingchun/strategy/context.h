@@ -17,9 +17,15 @@
 namespace kungfu::wingchun::strategy {
 class Context : public std::enable_shared_from_this<Context> {
 public:
-  Context() = default;
+  Context(yijinjing::practice::apprentice &app, const rx::connectable_observable<event_ptr> &events);
 
   virtual ~Context() = default;
+
+  /**
+   * checked_ is strated started.
+   * @return current time in nano seconds
+   */
+  virtual bool is_started() const = 0;
 
   /**
    * Get current time in nano seconds.
@@ -137,6 +143,17 @@ public:
                                                     std::vector<longfist::types::OrderInput> order_inputs) = 0;
 
   /**
+   * Get broker client.
+   * @return broker client reference
+   */
+  virtual broker::Client &get_broker_client() = 0;
+
+  /**
+   * Get bookkeeper.
+   * @return bookkeeper reference
+   */
+  virtual book::Bookkeeper &get_bookkeeper() = 0;
+  /*
    * Insert Basket Orders
    * @param basket_id
    * @param source
@@ -219,12 +236,26 @@ public:
    * Get arguments kfc run -a
    * @return string of arguments
    */
-  virtual std::string arguments() { return {}; }
+  const std::string &arguments() { return arguments_; };
+
+  void set_arguments(const std::string &arguments) { arguments_ = arguments; }
+
+protected:
+  yijinjing::practice::apprentice &app_;
+  const rx::connectable_observable<event_ptr> &events_;
+  virtual void on_start() {}
+
+  virtual void prepare(const event_ptr &event) = 0;
 
 private:
   bool book_held_ = false;
   bool positions_mirrored_ = true;
+  std::string arguments_;
+
+  friend void enable(Context &context) { context.on_start(); }
+  friend void prepare(const event_ptr &event, Context &context) { context.prepare(event); }
 };
+
 } // namespace kungfu::wingchun::strategy
 
 #endif // WINGCHUN_CONTEXT_H

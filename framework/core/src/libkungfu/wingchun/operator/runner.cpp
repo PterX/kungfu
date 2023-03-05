@@ -14,11 +14,11 @@ Runner::Runner(locator_ptr locator, const std::string &group, const std::string 
     : apprentice(location::make_shared(m, category::OPERATOR, group, name, std::move(locator)), low_latency),
       started_(m == mode::BACKTEST) {}
 
-RuntimeContext_ptr Runner::get_context() const { return context_; }
+LiveContext_ptr Runner::get_context() const { return context_; }
 
-RuntimeContext_ptr Runner::make_context() {
+LiveContext_ptr Runner::make_context() {
   if (get_home()->mode == mode::LIVE) {
-    return std::make_shared<RuntimeContext>(*this, events_);
+    return std::make_shared<LiveContext>(*this, events_);
   }
 }
 

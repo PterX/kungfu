@@ -87,6 +87,10 @@ public:
 protected:
   cache::bank state_bank_;
 
+  friend void add_location(yijinjing::practice::apprentice &app, const yijinjing::data::location_ptr &location) {
+    app.add_location(app.now(), location);
+  }
+
   void react() override;
 
   void on_active() override;

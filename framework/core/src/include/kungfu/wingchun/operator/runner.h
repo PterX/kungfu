@@ -14,7 +14,7 @@ public:
 
   ~Runner() override = default;
 
-  [[nodiscard]] RuntimeContext_ptr get_context() const;
+  [[nodiscard]] LiveContext_ptr get_context() const;
 
   void add_operator(const Operator_ptr &op);
 
@@ -29,7 +29,7 @@ protected:
 
   void on_active() override;
 
-  virtual RuntimeContext_ptr make_context();
+  virtual LiveContext_ptr make_context();
 
   virtual void pre_start();
 
@@ -45,7 +45,7 @@ private:
   //   bool positions_set_;
   bool started_;
   std::vector<Operator_ptr> operators_ = {};
-  RuntimeContext_ptr context_;
+  LiveContext_ptr context_;
 
   void prepare(const event_ptr &event);
 

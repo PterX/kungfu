@@ -12,6 +12,7 @@ from fnmatch import fnmatch
 from kungfu.console import site
 from kungfu.yijinjing import journal as kfj
 from kungfu.yijinjing.log import find_logger
+from kungfu.yijinjing import time as kft
 from kungfu.yijinjing.practice.master import Master
 from kungfu.yijinjing.practice.coloop import KungfuEventLoop
 from kungfu.wingchun.strategy import Runner, Strategy
@@ -250,16 +251,21 @@ class ExtensionExecutor:
         loader = self.loader
         self.setup(loader, use_ctx_path=True)
         ctx = self.ctx
+        locator = (
+            ctx.backtest_locator
+            if kfj.MODES[ctx.mode] == lf.enums.mode.BACKTEST
+            else ctx.runtime_locator
+        )
         ctx.location = yjj.location(
             kfj.MODES[ctx.mode],
             lf.enums.category.STRATEGY,
             ctx.group,
             ctx.name,
-            ctx.runtime_locator,
+            locator,
         )
         os.environ["KF_STG_GROUP"] = ctx.group
         os.environ["KF_STG_NAME"] = ctx.name
-        ctx.runner = load_runner(ctx)  # 先load runner才能识别出定制的Strategy
+        ctx.runner = load_runner(ctx, locator)  # 先load runner才能识别出定制的Strategy
         if loader.config is None:
             load = False
             json_config = os.path.join(os.path.dirname(ctx.path), "package.json")
@@ -278,9 +284,22 @@ class ExtensionExecutor:
             ctx.strategy = load_module(
                 ctx, ctx.path, loader.config["kungfuConfig"]["key"], Strategy
             )
+        if kfj.MODES[ctx.mode] == lf.enums.mode.BACKTEST:
+            backtest_para = json.loads(ctx.backtest)
+            begin_time_stamp = kft.strptimes(
+                backtest_para["begin_time"], ("%F %T", "%F %T.%N", "%Y%m%d", "%Y-%m-%d")
+            )
+            end_time_stamp = kft.strptimes(
+                backtest_para["end_time"], ("%F %T", "%F %T.%N", "%Y%m%d", "%Y-%m-%d")
+            )
+            ctx.runner.set_begin_time(begin_time_stamp)
+            ctx.runner.set_end_time(end_time_stamp)
         ctx.runner.add_strategy(ctx.strategy)
-        ctx.loop = KungfuEventLoop(ctx, ctx.runner)
-        ctx.loop.run_forever()
+        if kfj.MODES[ctx.mode] == lf.enums.mode.LIVE:
+            ctx.loop = KungfuEventLoop(ctx, ctx.runner)
+            ctx.loop.run_forever()
+        else:
+            ctx.runner.run()
 
     def run_operator(self):
         loader = self.loader
@@ -364,7 +383,7 @@ def try_load_cpp_module(ctx, path, key, cls):
         return cls(ctx)
 
 
-def load_runner(ctx):
+def load_runner(ctx, locator):
     if ctx.vendor is not None:
         sys.path.append(ctx.extension_path)
         module = importlib.import_module(ctx.vendor)
@@ -372,7 +391,7 @@ def load_runner(ctx):
         if ctx.arguments is None:
             ctx.arguments = ""
         runner = runner_vendor(
-            ctx.runtime_locator,
+            locator,
             ctx.group,
             ctx.name,
             kfj.MODES[ctx.mode],
@@ -381,4 +400,4 @@ def load_runner(ctx):
         )
         return runner
     else:
-        return Runner(ctx, kfj.MODES[ctx.mode])
+        return Runner(ctx, locator, kfj.MODES[ctx.mode])

@@ -1,6 +1,5 @@
 #include <kungfu/wingchun/extension.h>
 #include <kungfu/wingchun/strategy/context.h>
-#include <kungfu/wingchun/strategy/runtime.h>
 #include <kungfu/wingchun/strategy/strategy.h>
 #include <kungfu/yijinjing/journal/assemble.h>
 

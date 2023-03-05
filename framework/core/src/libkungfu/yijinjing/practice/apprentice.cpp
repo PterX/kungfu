@@ -14,6 +14,7 @@ using namespace kungfu::longfist::types;
 using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
 using namespace std::chrono;
+namespace fs = std::filesystem;
 
 namespace kungfu::yijinjing::practice {
 
@@ -223,9 +224,10 @@ void apprentice::react() {
   }
   if (get_io_device()->get_home()->mode == mode::BACKTEST) {
     // dest_id 0 should be configurable TODO
-    auto home = get_io_device()->get_home();
-    auto bt_location = location::make_shared(mode::BACKTEST, category::MD, home->group, home->name, get_locator());
-    reader_->join(bt_location, location::PUBLIC, begin_time_);
+    std::string journal_dir = get_locator()->layout_dir(get_home(), layout::JOURNAL);
+    fs::remove_all(journal_dir);
+    writers_.emplace(location::PUBLIC, get_io_device()->open_writer(location::PUBLIC));
+    reader_->join(get_home(), location::PUBLIC, begin_time_);
     started_ = true;
     on_start();
   }

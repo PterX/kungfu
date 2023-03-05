@@ -32,3 +32,6 @@ build/
 build-*/
 cmake-build-debug/
 dist/
+
+# Debug related
+debug-example/

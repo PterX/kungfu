@@ -6,9 +6,9 @@
 #include <kungfu/wingchun/operator/context.h>
 
 namespace kungfu::wingchun::op {
-class RuntimeContext : public Context {
+class LiveContext : public Context {
 public:
-  explicit RuntimeContext(yijinjing::practice::apprentice &app, const rx::connectable_observable<event_ptr> &events);
+  explicit LiveContext(yijinjing::practice::apprentice &app, const rx::connectable_observable<event_ptr> &events);
 
   /**
    * Get current time in nano seconds.
@@ -127,7 +127,7 @@ private:
   longfist::types::OperatorState state_;
 };
 
-DECLARE_PTR(RuntimeContext)
+DECLARE_PTR(LiveContext)
 } // namespace kungfu::wingchun::op
 
 #endif //  WINGCHUN_OPERATOR_RUNTIME_H

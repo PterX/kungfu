@@ -70,7 +70,7 @@ void CacheTool::init(bool overwrite) {
   }
   uint32_t cache_uid = hash_backtest_cache(name_, begin_time_, end_time_);
   auto cache_location_ =
-      location::make_shared(mode::BACKTEST, category::MD, name_, fmt::format("{:08x}", cache_uid), locator_);
+      location::make_shared(mode::BACKTEST, category::MD, group_, fmt::format("{:08x}", cache_uid), locator_);
   auto publisher_ = std::make_shared<yijinjing::journal::noop_publisher>();
   if (overwrite) {
     std::string cache_dir = locator_->layout_dir(cache_location_, layout::JOURNAL);

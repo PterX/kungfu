@@ -103,7 +103,7 @@
       return std::static_pointer_cast<kungfu::wingchun::strategy::Matcher>(std::make_shared<MatcherType>());           \
     });                                                                                                                \
   };                                                                                                                   \
-  class MatcherType : public kungfu::wingchun::op::Matcher
+  class MatcherType : public kungfu::wingchun::strategy::Matcher
 
 #define KUNGFU_MAIN_TOOL(ToolType)                                                                                     \
   class ToolType;                                                                                                      \

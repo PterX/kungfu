@@ -21,7 +21,7 @@ int64_t CacheTool::parse_time(const std::string &time_string) {
 
 CacheTool::CacheTool(longfist::types::category c, std::string group, std::string name, std::string start_time,
                      std::string end_time, locator_ptr locator, bool overwrite)
-    : category_(c), group_(group), name_(std::move(name)), begin_time_(parse_time(start_time)),
+    : category_(c), group_(std::move(group)), name_(std::move(name)), begin_time_(parse_time(start_time)),
       end_time_(parse_time(end_time)), last_gen_time_(begin_time_), last_read_gen_time_(begin_time_),
       locator_(std::move(locator)) {
   init(overwrite);

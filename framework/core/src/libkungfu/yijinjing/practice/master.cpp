@@ -192,8 +192,9 @@ void master::on_active() {
     on_interval_check(now);
     last_check_ = now;
   }
-  handle_timer_tasks();
 }
+
+void master::on_frame() { handle_timer_tasks(); }
 
 void master::handle_timer_tasks() {
   auto now = time::now_in_nano();

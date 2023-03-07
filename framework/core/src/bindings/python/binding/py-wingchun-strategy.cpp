@@ -151,6 +151,7 @@ void bind_strategy(pybind11::module &m) {
       .def_property_readonly("context", &strategy::Runner::get_context)
       .def("set_begin_time", &strategy::Runner::set_begin_time)
       .def("set_end_time", &strategy::Runner::set_end_time)
+      .def("set_matcher", &strategy::Runner::set_matcher)
       .def("now", &strategy::Runner::now)
       .def("run", &strategy::Runner::run)
       .def("setup", &strategy::Runner::setup)

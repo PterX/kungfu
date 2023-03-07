@@ -8,6 +8,12 @@
   "kungfuConfig": {
     "key": "KungfuStrategyBTCpp"
   },
+  "kungfuBuild": {
+    "cpp" : {
+      "cmakeOverride": true,
+      "target": "bind/python"
+    }
+  },
   "scripts": {
     "clean": "kfs strategy clean",
     "build": "kfs strategy build",

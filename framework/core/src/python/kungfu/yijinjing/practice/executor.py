@@ -7,6 +7,7 @@ import sys
 import types
 import kungfu
 import glob
+from pathlib import Path
 from fnmatch import fnmatch
 
 from kungfu.console import site
@@ -292,6 +293,7 @@ class ExtensionExecutor:
             end_time_stamp = kft.strptimes(
                 backtest_para["end_time"], ("%F %T", "%F %T.%N", "%Y%m%d", "%Y-%m-%d")
             )
+            ctx.runner.set_matcher = load_matcher(ctx, ctx.matcher)
             ctx.runner.set_begin_time(begin_time_stamp)
             ctx.runner.set_end_time(end_time_stamp)
         ctx.runner.add_strategy(ctx.strategy)
@@ -369,6 +371,15 @@ def load_module(ctx, path, key, cls):
         ctx.path = os.path.join(os.path.dirname(path), key)
         return cls(ctx)
 
+def load_matcher(ctx, path):
+    lib_name = Path(path).stem.split('.')[0]
+    module = importlib.import_module(lib_name )
+    ctx.logger.debug(f"import matcher: {lib_name} success")
+    matcher_builder = getattr(module, "matcher")
+    return matcher_builder()
+
+
+    
 
 def try_load_cpp_module(ctx, path, key, cls):
     cls_name = cls.__name__

@@ -29,7 +29,7 @@ CacheTool::CacheTool(longfist::types::category c, std::string group, std::string
 
 CacheTool::CacheTool(longfist::types::category c, std::string group, std::string name, int64_t start_time,
                      int64_t end_time, locator_ptr locator, bool overwrite)
-    : category_(c), name_(std::move(name)), begin_time_(start_time), end_time_(end_time), last_gen_time_(start_time),
+    : category_(c), group_(std::move(group)), name_(std::move(name)), begin_time_(start_time), end_time_(end_time), last_gen_time_(start_time),
       last_read_gen_time_(end_time), locator_(std::move(locator)) {
   init(overwrite);
 }

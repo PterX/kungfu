@@ -170,17 +170,17 @@ private:
         SPDLOG_INFO("{} reset, state {}", app_location->uname, static_cast<int>(state_value));
       }
     };
-    if constexpr (std::is_same<AppState, BrokerState>::value) {
-      if (app_location->category == category::MD) {
+    if constexpr (std::is_same<AppState, longfist::enums::BrokerState>::value) {
+      if (app_location->category == longfist::enums::category::MD) {
         switch_broker_state(category::MD, ready_md_locations_, [&]() { renew(event->gen_time(), app_location); });
         broker_states_.emplace(app_location->uid, state_value);
       }
-      if (app_location->category == category::TD) {
+      if (app_location->category == longfist::enums::category::TD) {
         switch_broker_state(category::TD, ready_td_locations_, [&]() { sync(event->gen_time(), app_location); });
         broker_states_.emplace(app_location->uid, state_value);
       }
     }
-    if constexpr (std::is_same<AppState, OperatorState>::value) {
+    if constexpr (std::is_same<AppState, longfist::enums::OperatorState>::value) {
       if (app_location->category == category::OPERATOR) {
         switch_broker_state(category::OPERATOR, ready_op_locations_, [&]() {});
 

@@ -124,7 +124,7 @@ private:
   yijinjing::data::location_map op_locations_ = {};
   std::unordered_map<std::string, yijinjing::data::location_ptr> market_data_ = {};
   std::unordered_map<std::string, yijinjing::data::location_ptr> operator_data_ = {};
-  longfist::types::OperatorState state_;
+  longfist::enums::OperatorState state_;
 };
 
 DECLARE_PTR(RuntimeContext)

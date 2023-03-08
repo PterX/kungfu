@@ -13,7 +13,6 @@
 #include <kungfu/yijinjing/log.h>
 #include <kungfu/yijinjing/practice/apprentice.h>
 
-using namespace kungfu::longfist::enums;
 namespace kungfu::wingchun::broker {
 /**
  * Policy interface to decide the time point to resume when connecting to a broker.
@@ -87,7 +86,7 @@ public:
   [[nodiscard]] virtual bool is_custom_subscribed_all(uint32_t md_location_uid,
                                                       kungfu::longfist::enums::SubscribeDataType data_type,
                                                       const std::string &exchange_id,
-                                                      InstrumentType kf_instrument_type) const = 0;
+                                                      longfist::enums::InstrumentType kf_instrument_type) const = 0;
 
   [[nodiscard]] virtual bool is_all_subscribed(uint32_t md_location_uid) const = 0;
 
@@ -209,7 +208,7 @@ public:
   [[nodiscard]] bool is_custom_subscribed_all(uint32_t md_location_uid,
                                               kungfu::longfist::enums::SubscribeDataType data_type,
                                               const std::string &exchange_id,
-                                              InstrumentType kf_instrument_type) const override;
+                                              longfist::enums::InstrumentType kf_instrument_type) const override;
 
   [[nodiscard]] bool is_all_subscribed(uint32_t md_location) const override;
 
@@ -265,7 +264,7 @@ public:
   [[nodiscard]] bool is_custom_subscribed_all(uint32_t md_location_uid,
                                               kungfu::longfist::enums::SubscribeDataType data_type,
                                               const std::string &exchange_id,
-                                              InstrumentType kf_instrument_type) const override;
+                                              longfist::enums::InstrumentType kf_instrument_type) const override;
 
   [[nodiscard]] bool is_all_subscribed(uint32_t md_location) const override;
 

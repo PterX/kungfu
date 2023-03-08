@@ -70,9 +70,9 @@ void CacheTool::init(bool overwrite) {
                                      time::strftime(begin_time_), time::strftime(end_time_)));
   }
   uint32_t cache_uid = hash_backtest_cache(name_, begin_time_, end_time_);
-  auto cache_location_ =
+  cache_location_ =
       location::make_shared(mode::BACKTEST, category::MD, group_, fmt::format("{:08x}", cache_uid), locator_);
-  auto publisher_ = std::make_shared<yijinjing::journal::noop_publisher>();
+  publisher_ = std::make_shared<yijinjing::journal::noop_publisher>();
   if (overwrite) {
     std::string cache_dir = locator_->layout_dir(cache_location_, layout::JOURNAL);
     fs::remove_all(cache_dir);
@@ -87,9 +87,9 @@ void CacheTool::valid_time(int64_t gen_time, int64_t trigger_time) {
   if (gen_time < trigger_time or trigger_time < begin_time_ or gen_time > end_time_) {
     throw wingchun_error(fmt::format("invalid time: gen_time={}, trigger_time={}", gen_time, trigger_time));
   }
-  if (trigger_time < last_gen_time_) {
+  if (gen_time < last_gen_time_) {
     throw wingchun_error(
-        fmt::format("invalid time: trigger_time={} < last_gen_time_={}", trigger_time, last_gen_time_));
+        fmt::format("invalid time: gen_time={} < last_gen_time_={}", trigger_time, last_gen_time_));
   }
   last_gen_time_ = gen_time;
 }

@@ -293,7 +293,9 @@ class ExtensionExecutor:
             end_time_stamp = kft.strptimes(
                 backtest_para["end_time"], ("%F %T", "%F %T.%N", "%Y%m%d", "%Y-%m-%d")
             )
-            ctx.runner.set_matcher = load_matcher(ctx, ctx.matcher)
+            matcher = load_matcher(ctx, ctx.matcher)
+            if matcher:
+                ctx.runner.set_matcher(matcher)
             ctx.runner.set_begin_time(begin_time_stamp)
             ctx.runner.set_end_time(end_time_stamp)
         ctx.runner.add_strategy(ctx.strategy)
@@ -372,11 +374,17 @@ def load_module(ctx, path, key, cls):
         return cls(ctx)
 
 def load_matcher(ctx, path):
-    lib_name = Path(path).stem.split('.')[0]
-    module = importlib.import_module(lib_name )
-    ctx.logger.debug(f"import matcher: {lib_name} success")
-    matcher_builder = getattr(module, "matcher")
-    return matcher_builder()
+    try:
+        sys.path.append(str(Path(path).parent))
+        lib_name = Path(path).stem.split('.')[0]
+        module = importlib.import_module(lib_name )
+        ctx.logger.debug(f"import matcher: {lib_name} success")
+        matcher_builder = getattr(module, "matcher")
+        return matcher_builder()
+    except Exception as e:
+        ctx.logger.debug("load_matcher failed: {}".format(e))
+        ctx.logger.warn("matcher path: {} cannot be import by python".format(path))
+        return None
 
 
     

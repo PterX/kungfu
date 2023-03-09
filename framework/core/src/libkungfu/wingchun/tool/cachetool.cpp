@@ -5,9 +5,11 @@
 
 using kungfu::yijinjing::time;
 using namespace kungfu::longfist::types;
+using namespace kungfu::longfist::enums;
 using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::journal;
 namespace fs = std::filesystem;
+
 namespace kungfu::wingchun::tool {
 
 int64_t CacheTool::parse_time(const std::string &time_string) {
@@ -29,8 +31,8 @@ CacheTool::CacheTool(longfist::enums::category c, std::string group, std::string
 
 CacheTool::CacheTool(longfist::enums::category c, std::string group, std::string name, int64_t start_time,
                      int64_t end_time, locator_ptr locator, bool overwrite)
-    : category_(c), group_(std::move(group)), name_(std::move(name)), begin_time_(start_time), end_time_(end_time), last_gen_time_(start_time),
-      last_read_gen_time_(end_time), locator_(std::move(locator)) {
+    : category_(c), group_(std::move(group)), name_(std::move(name)), begin_time_(start_time), end_time_(end_time),
+      last_gen_time_(start_time), last_read_gen_time_(end_time), locator_(std::move(locator)) {
   init(overwrite);
 }
 
@@ -91,8 +93,7 @@ void CacheTool::valid_time(int64_t gen_time, int64_t trigger_time) {
     throw wingchun_error(fmt::format("invalid time: gen_time={}, trigger_time={}", gen_time, trigger_time));
   }
   if (gen_time < last_gen_time_) {
-    throw wingchun_error(
-        fmt::format("invalid time: gen_time={} < last_gen_time_={}", trigger_time, last_gen_time_));
+    throw wingchun_error(fmt::format("invalid time: gen_time={} < last_gen_time_={}", trigger_time, last_gen_time_));
   }
   last_gen_time_ = gen_time;
 }

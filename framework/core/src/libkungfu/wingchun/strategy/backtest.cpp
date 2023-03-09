@@ -14,6 +14,7 @@ using namespace kungfu::yijinjing::practice;
 using namespace kungfu::rx;
 using namespace kungfu::longfist;
 using namespace kungfu::longfist::types;
+using namespace kungfu::longfist::enums;
 using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::util;
@@ -83,7 +84,6 @@ uint64_t BacktestContext::insert_order(const std::string &instrument_id, const s
                                        const std::string &source, const std::string &account, double limit_price,
                                        int64_t volume, PriceType type, Side side, Offset offset, HedgeFlag hedge_flag,
                                        bool is_swap, uint64_t block_id, uint64_t parent_id) {
-  // auto account_location_uid = get_td_location_uid(source, account);
   auto insert_time = now();
   auto instrument_type = get_instrument_type(exchange_id, instrument_id);
   if (instrument_type == InstrumentType::Unknown) {
@@ -108,6 +108,26 @@ uint64_t BacktestContext::insert_order(const std::string &instrument_id, const s
   input.is_swap = is_swap;
   input.insert_time = insert_time;
   writer->close_data(now());
+  // TODO
+  // bookkeeper_.on_order_input(app_.now(), app_.get_home_uid(), account_location_uid, input);
+  return input.order_id;
+}
+
+uint64_t BacktestContext::insert_order_input(const std::string &source, const std::string &account,
+                                             longfist::types::OrderInput &order_input) {
+  auto insert_time = now();
+  order_input.instrument_type = get_instrument_type(order_input.exchange_id, order_input.instrument_id);
+  if (order_input.instrument_type == InstrumentType::Unknown) {
+    SPDLOG_ERROR("unsupported instrument type {} of {}.{}", str_from_instrument_type(order_input.instrument_type),
+                 order_input.instrument_id, order_input.exchange_id);
+    return 0;
+  }
+  auto writer = app_.get_writer(location::PUBLIC);
+  OrderInput &input = writer->open_data<OrderInput>(app_.now());
+  memcpy(&input, &order_input, sizeof(input));
+  input.order_id = input.order_id == 0 ? writer->current_frame_uid() : input.order_id;
+  input.insert_time = insert_time;
+  writer->close_data();
   // TODO
   // bookkeeper_.on_order_input(app_.now(), app_.get_home_uid(), account_location_uid, input);
   return input.order_id;
@@ -142,7 +162,7 @@ std::vector<uint64_t> BacktestContext::insert_batch_orders(
 }
 
 std::vector<uint64_t> BacktestContext::insert_array_orders(const std::string &source, const std::string &account,
-                                                           std::vector<longfist::types::OrderInput> order_inputs) {
+                                                           std::vector<longfist::types::OrderInput> &order_inputs) {
   std::vector<uint64_t> order_ids{};
   for (const OrderInput &input : order_inputs) {
     uint64_t order_id =
@@ -153,7 +173,7 @@ std::vector<uint64_t> BacktestContext::insert_array_orders(const std::string &so
   return order_ids;
 }
 
-uint64_t BacktestContext::insert_basket_order(uint64_t basket_id, const std::string &source, const std::string account,
+uint64_t BacktestContext::insert_basket_order(uint64_t basket_id, const std::string &source, const std::string &account,
                                               longfist::enums::Side side, longfist::enums::PriceType price_type,
                                               longfist::enums::PriceLevel price_level, double price_offset,
                                               int64_t volume) {
@@ -193,6 +213,10 @@ void BacktestContext::req_deregister() { app_.request_deregister(); }
 
 void BacktestContext::update_strategy_state(StrategyStateUpdate &state_update) {
   // not implemented
+}
+
+yijinjing::journal::writer_ptr BacktestContext::get_writer(const std::string &source, const std::string &account) {
+  return app_.get_writer(location::PUBLIC);
 }
 
 } // namespace kungfu::wingchun::strategy

@@ -106,8 +106,18 @@ public:
                                 const std::string &source, const std::string &account, double limit_price,
                                 int64_t volume, longfist::enums::PriceType type, longfist::enums::Side side,
                                 longfist::enums::Offset offset,
-                                longfist::enums::HedgeFlag hedge_flag = HedgeFlag::Speculation, bool is_swap = false,
-                                uint64_t block_id = 0, uint64_t parent_id = 0) = 0;
+                                longfist::enums::HedgeFlag hedge_flag = longfist::enums::HedgeFlag::Speculation,
+                                bool is_swap = false, uint64_t block_id = 0, uint64_t parent_id = 0) = 0;
+
+  /**
+   * Insert Order
+   * @param source
+   * @param account
+   * @param order_input
+   * @return
+   */
+  virtual uint64_t insert_order_input(const std::string &source, const std::string &account,
+                                      longfist::types::OrderInput &order_input) = 0;
 
   /**
    * Insert Batch Orders
@@ -140,7 +150,7 @@ public:
    * @return
    */
   virtual std::vector<uint64_t> insert_array_orders(const std::string &source, const std::string &account,
-                                                    std::vector<longfist::types::OrderInput> order_inputs) = 0;
+                                                    std::vector<longfist::types::OrderInput> &order_inputs) = 0;
 
   /**
    * Get broker client.
@@ -164,7 +174,7 @@ public:
    * @param volume_mode
    * @param total_volume
    */
-  virtual uint64_t insert_basket_order(uint64_t basket_id, const std::string &source, const std::string account,
+  virtual uint64_t insert_basket_order(uint64_t basket_id, const std::string &source, const std::string &account,
                                        longfist::enums::Side side, longfist::enums::PriceType price_type,
                                        longfist::enums::PriceLevel price_level, double price_offset = 0,
                                        int64_t volume = 0) = 0;
@@ -240,9 +250,19 @@ public:
 
   void set_arguments(const std::string &arguments) { arguments_ = arguments; }
 
+  /**
+   *
+   * @param source td source id
+   * @param account td account id
+   * @return writer to related td
+   */
+  virtual yijinjing::journal::writer_ptr get_writer(const std::string &source, const std::string &account) = 0;
+
 protected:
   yijinjing::practice::apprentice &app_;
   const rx::connectable_observable<event_ptr> &events_;
+  std::string arguments_;
+
   virtual void on_start() {}
 
   virtual void prepare(const event_ptr &event) = 0;
@@ -250,7 +270,6 @@ protected:
 private:
   bool book_held_ = false;
   bool positions_mirrored_ = true;
-  std::string arguments_;
 
   friend void enable(Context &context) { context.on_start(); }
   friend void prepare(const event_ptr &event, Context &context) { context.prepare(event); }

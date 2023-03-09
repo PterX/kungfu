@@ -51,7 +51,7 @@ protected:
   void join(uint32_t dest_id, const int64_t from_time);
 
 private:
-  longfist::types::category category_;
+  longfist::enums::category category_;
   std::string group_;
   std::string name_;
   yijinjing::data::locator_ptr locator_;
@@ -73,7 +73,7 @@ private:
 
 class CacheToolWriter : public CacheTool {
 public:
-  CacheToolWriter(longfist::types::category category, std::string group, std::string name, std::string start_time,
+  CacheToolWriter(longfist::enums::category category, std::string group, std::string name, std::string start_time,
                   std::string end_time, yijinjing::data::locator_ptr locator)
       : CacheTool(category, group, name, start_time, end_time, locator, true) {}
 
@@ -84,7 +84,7 @@ public:
 
 class CacheToolReader : public CacheTool {
 public:
-  CacheToolReader(longfist::types::category category, std::string group, std::string name, std::string start_time,
+  CacheToolReader(longfist::enums::category category, std::string group, std::string name, std::string start_time,
                   std::string end_time, yijinjing::data::locator_ptr locator)
       : CacheTool(category, group, name, start_time, end_time, locator, false) {}
 

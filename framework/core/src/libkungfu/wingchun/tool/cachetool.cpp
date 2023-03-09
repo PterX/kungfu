@@ -19,7 +19,7 @@ int64_t CacheTool::parse_time(const std::string &time_string) {
   return time_stamp;
 }
 
-CacheTool::CacheTool(longfist::types::category c, std::string group, std::string name, std::string start_time,
+CacheTool::CacheTool(longfist::enums::category c, std::string group, std::string name, std::string start_time,
                      std::string end_time, locator_ptr locator, bool overwrite)
     : category_(c), group_(std::move(group)), name_(std::move(name)), begin_time_(parse_time(start_time)),
       end_time_(parse_time(end_time)), last_gen_time_(begin_time_), last_read_gen_time_(begin_time_),
@@ -27,7 +27,7 @@ CacheTool::CacheTool(longfist::types::category c, std::string group, std::string
   init(overwrite);
 }
 
-CacheTool::CacheTool(longfist::types::category c, std::string group, std::string name, int64_t start_time,
+CacheTool::CacheTool(longfist::enums::category c, std::string group, std::string name, int64_t start_time,
                      int64_t end_time, locator_ptr locator, bool overwrite)
     : category_(c), group_(std::move(group)), name_(std::move(name)), begin_time_(start_time), end_time_(end_time), last_gen_time_(start_time),
       last_read_gen_time_(end_time), locator_(std::move(locator)) {
@@ -37,14 +37,17 @@ CacheTool::CacheTool(longfist::types::category c, std::string group, std::string
 void CacheTool::write_raw_at(int64_t gen_time, int64_t trigger_time, uint32_t dest_id, int32_t msg_type, uintptr_t data,
                              uint32_t length) {
   valid_time(gen_time, trigger_time);
-  if (writers_.find(dest_id) == writers_.end()) {
-    writers_[dest_id] = std::make_shared<writer>(cache_location_, dest_id, true, publisher_, false,
-                                                 std::make_shared<yijinjing::bus>(false));
-    join(dest_id, gen_time);
-  }
+  valid_dest(dest_id, gen_time);
   auto frame = writers_.at(dest_id)->open_frame(trigger_time, msg_type, length);
   memcpy(const_cast<void *>(frame->data_address()), reinterpret_cast<void *>(data), length);
   writers_.at(dest_id)->close_frame(length, gen_time);
+}
+
+void CacheTool::write_raw_at_as(int64_t gen_time, int64_t trigger_time, uint32_t source_id, uint32_t dest_id, int32_t msg_type, uintptr_t data,
+                             uint32_t length) {
+  valid_time(gen_time, trigger_time);
+  valid_dest(dest_id, gen_time);
+  writers_.at(dest_id)->write_raw_at_as(gen_time, trigger_time, source_id, dest_id, msg_type, data, length);
 }
 
 void CacheTool::join(uint32_t dest_id, const int64_t from_time) { reader_->join(cache_location_, dest_id, from_time); }
@@ -92,5 +95,14 @@ void CacheTool::valid_time(int64_t gen_time, int64_t trigger_time) {
         fmt::format("invalid time: gen_time={} < last_gen_time_={}", trigger_time, last_gen_time_));
   }
   last_gen_time_ = gen_time;
+}
+
+void CacheTool::valid_dest(uint32_t dest_id, int64_t gen_time) {
+
+  if (writers_.find(dest_id) == writers_.end()) {
+    writers_[dest_id] = std::make_shared<writer>(cache_location_, dest_id, true, publisher_, false,
+                                                 std::make_shared<yijinjing::bus>(false));
+    join(dest_id, gen_time);
+  }
 }
 } // namespace kungfu::wingchun::tool

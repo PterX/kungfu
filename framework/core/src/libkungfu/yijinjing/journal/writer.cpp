@@ -83,6 +83,14 @@ void writer::write_raw(int64_t trigger_time, int32_t msg_type, uintptr_t data, u
   close_frame(length);
 }
 
+void writer::write_raw_at_as(int64_t gen_time, int64_t trigger_time, uint32_t source, uint32_t dest, int32_t msg_type, uintptr_t data, uint32_t length) {
+  auto frame = open_frame(trigger_time, msg_type, length);
+  frame->set_source(source);
+  frame->set_dest(dest);
+  memcpy(const_cast<void *>(frame->data_address()), reinterpret_cast<void *>(data), length);
+  close_frame(length, gen_time);
+}
+
 void writer::close_data(int64_t gen_time) { close_frame(size_to_write_, gen_time); }
 
 void writer::close_page(int64_t trigger_time) {

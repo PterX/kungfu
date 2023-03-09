@@ -12,9 +12,9 @@ class CacheTool {
   static int64_t parse_time(const std::string &time);
 
 public:
-  CacheTool(longfist::types::category category, std::string group, std::string name, std::string start_time,
+  CacheTool(longfist::enums::category category, std::string group, std::string name, std::string start_time,
             std::string end_time, yijinjing::data::locator_ptr locator, bool overwrite = true);
-  CacheTool(longfist::types::category category, std::string group, std::string name, int64_t start_time,
+  CacheTool(longfist::enums::category category, std::string group, std::string name, int64_t start_time,
             int64_t end_time, yijinjing::data::locator_ptr locator, bool overwrite = true);
 
   int64_t get_begin_time() const { return begin_time_; }
@@ -50,7 +50,7 @@ protected:
 private:
   void init(bool overwrite);
   void valid_time(int64_t gen_time, int64_t trigger_time);
-  longfist::types::category category_;
+  longfist::enums::category category_;
   std::string group_;
   std::string name_;
   yijinjing::data::locator_ptr locator_;
@@ -66,7 +66,7 @@ private:
 
 class CacheToolWriter : public CacheTool {
 public:
-  CacheToolWriter(longfist::types::category category, std::string group, std::string name, std::string start_time,
+  CacheToolWriter(longfist::enums::category category, std::string group, std::string name, std::string start_time,
                   std::string end_time, yijinjing::data::locator_ptr locator)
       : CacheTool(category, group, name, start_time, end_time, locator, true) {}
 
@@ -77,7 +77,7 @@ public:
 
 class CacheToolReader : public CacheTool {
 public:
-  CacheToolReader(longfist::types::category category, std::string group, std::string name, std::string start_time,
+  CacheToolReader(longfist::enums::category category, std::string group, std::string name, std::string start_time,
                   std::string end_time, yijinjing::data::locator_ptr locator)
       : CacheTool(category, group, name, start_time, end_time, locator, false) {}
 

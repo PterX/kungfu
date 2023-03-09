@@ -117,8 +117,11 @@ exports.getWebpackExternals = () => {
     : {};
   return Object.keys({
     ...(appPackageJSON.dependencies || {}),
+    ...(appPackageJSON.optionalDependencies || {}),
     ...(apiPackageJSON.dependencies || {}),
+    ...(apiPackageJSON.optionalDependencies || {}),
     ...(cliPackageJSON.dependencies || {}),
+    ...(cliPackageJSON.optionalDependencies || {}),
     ...(sdkPackageJSON.dependencies || {}),
     ...(corePackageJSON.dependencies || {}),
     ...(currentPackageJSON.dependencies || {}),

@@ -151,7 +151,7 @@ type TablesSearchRelated = Record<
 const app = getCurrentInstance();
 const formRef = ref();
 
-const formState = reactive(props.formState);
+const formState = ref(props.formState);
 const { td, md, operator, strategy } = toRefs(useAllKfConfigData());
 const { basketList, buildBasketOptionValue } = useBasket();
 const { isLanguageKeyAvailable } = useLanguage();

@@ -845,7 +845,7 @@ export const AddOperatorType: Record<
     name: t('operatorConfig.add_operator_type.file'),
     color: 'pink',
   },
-}
+};
 
 export const InstrumentMinOrderVolume = {
   [InstrumentTypeEnum.stock]: 100,

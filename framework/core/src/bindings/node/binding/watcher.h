@@ -134,8 +134,8 @@ private:
   std::unordered_map<uint32_t, longfist::types::StrategyStateUpdate> location_uid_strategy_states_map_ = {};
   std::unordered_set<uint32_t> feeded_instruments_ = {};
 
-  typedef kungfu::longfist::enums::mode mode;                                                                      \
-  typedef kungfu::longfist::enums::category category;   
+  typedef kungfu::longfist::enums::mode mode;
+  typedef kungfu::longfist::enums::category category;
 
   static constexpr auto bypass = [](yijinjing::practice::apprentice *app, bool bypass_quotes) {
     return rx::filter([&](const event_ptr &event) {

@@ -236,7 +236,7 @@ public:
    * Get arguments kfc run -a
    * @return string of arguments
    */
-  const std::string &arguments() { return arguments_; };
+  const std::string &get_arguments() { return arguments_; };
 
   void set_arguments(const std::string &arguments) { arguments_ = arguments; }
 

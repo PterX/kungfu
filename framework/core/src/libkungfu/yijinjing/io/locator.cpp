@@ -51,7 +51,7 @@ std::string get_backtest_dir() {
   return (root / "kungfu" / "home" / "backtest").string();
 }
 
-locator::locator() : root_(get_backtest_dir()) {}
+locator::locator() : root_(get_runtime_dir()) {}
 
 locator::locator(es::mode m) {
   switch (m) {

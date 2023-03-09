@@ -64,6 +64,8 @@ class locator {
 public:
   locator();
 
+  locator(longfist::enums::mode m);
+
   explicit locator(const std::string &root) : root_(root) {}
 
   virtual ~locator() = default;

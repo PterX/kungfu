@@ -33,7 +33,35 @@ std::string get_runtime_dir() {
   return (root / "kungfu" / "home" / "runtime").string();
 }
 
-locator::locator() : root_(get_runtime_dir()) {}
+std::string get_backtest_dir() {
+  auto backtest_dir = std::getenv("KF_BACKTEST_DIR");
+  if (backtest_dir != nullptr) {
+    return backtest_dir;
+  }
+#ifdef _WINDOWS
+  auto appdata = std::getenv("APPDATA");
+  auto root = fs::path(appdata);
+#elif __APPLE__
+  auto user_home = std::getenv("HOME");
+  auto root = fs::path(user_home) / "Library" / "Application Support";
+#elif __linux__
+  auto user_home = std::getenv("HOME");
+  auto root = fs::path(user_home) / ".config";
+#endif // _WINDOWS
+  return (root / "kungfu" / "home" / "backtest").string();
+}
+
+locator::locator() : root_(get_backtest_dir()) {}
+
+locator::locator(es::mode m) {
+  switch (m) {
+  case es::mode::LIVE:
+    root_ = get_runtime_dir();
+    break;
+  case es::mode::BACKTEST:
+    root_ = get_backtest_dir();
+  }
+}
 
 bool locator::has_env(const std::string &name) const { return std::getenv(name.c_str()) != nullptr; }
 

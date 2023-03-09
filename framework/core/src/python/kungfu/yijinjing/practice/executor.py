@@ -374,11 +374,12 @@ def load_module(ctx, path, key, cls):
         ctx.path = os.path.join(os.path.dirname(path), key)
         return cls(ctx)
 
+
 def load_matcher(ctx, path):
     try:
         sys.path.append(str(Path(path).parent))
-        lib_name = Path(path).stem.split('.')[0]
-        module = importlib.import_module(lib_name )
+        lib_name = Path(path).stem.split(".")[0]
+        module = importlib.import_module(lib_name)
         ctx.logger.debug(f"import matcher: {lib_name} success")
         matcher_builder = getattr(module, "matcher")
         return matcher_builder()
@@ -387,8 +388,6 @@ def load_matcher(ctx, path):
         ctx.logger.warn("matcher path: {} cannot be import by python".format(path))
         return None
 
-
-    
 
 def try_load_cpp_module(ctx, path, key, cls):
     cls_name = cls.__name__

@@ -45,8 +45,8 @@ void CacheTool::write_raw_at(int64_t gen_time, int64_t trigger_time, uint32_t de
   writers_.at(dest_id)->close_frame(length, gen_time);
 }
 
-void CacheTool::write_raw_at_as(int64_t gen_time, int64_t trigger_time, uint32_t source_id, uint32_t dest_id, int32_t msg_type, uintptr_t data,
-                             uint32_t length) {
+void CacheTool::write_raw_at_as(int64_t gen_time, int64_t trigger_time, uint32_t source_id, uint32_t dest_id,
+                                int32_t msg_type, uintptr_t data, uint32_t length) {
   valid_time(gen_time, trigger_time);
   valid_dest(dest_id, gen_time);
   writers_.at(dest_id)->write_raw_at_as(gen_time, trigger_time, source_id, dest_id, msg_type, data, length);

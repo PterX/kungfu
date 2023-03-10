@@ -21,6 +21,13 @@
               std::make_shared<ServiceType>(locator, m, low_latency));                                                 \
         })
 
+#define KUNGFU_DEFINE_CACHE_TOOL(ToolType)                                                                             \
+  m.def("tool", [&](kungfu::longfist::types::category category, std::string group, std::string name,                   \
+                    int64_t begin_time, int64_t end_time, kungfu::yijinjing::data::locator_ptr locator) {              \
+    return std::static_pointer_cast<kungfu::wingchun::tool::CacheTool>(                                                \
+        std::make_shared<ToolType>(category, group, name, begin_time, end_time, locator, true));                       \
+  })
+
 #define KUNGFU_DEFINE_MD(MarketDataType)                                                                               \
   m.def("md", [&](kungfu::wingchun::broker::BrokerVendor &vendor) {                                                    \
     return std::static_pointer_cast<kungfu::wingchun::broker::MarketData>(std::make_shared<MarketDataType>(vendor));   \

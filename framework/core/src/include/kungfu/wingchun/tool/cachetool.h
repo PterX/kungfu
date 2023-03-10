@@ -35,10 +35,9 @@ protected:
 
   void write_raw_at(int64_t gen_time, int64_t trigger_time, uint32_t dest_id, int32_t msg_type, uintptr_t data,
                     uint32_t length);
-  
 
-  void write_raw_at_as(int64_t gen_time, int64_t trigger_time, uint32_t source, uint32_t dest_id, int32_t msg_type, uintptr_t data,
-                    uint32_t length);
+  void write_raw_at_as(int64_t gen_time, int64_t trigger_time, uint32_t source, uint32_t dest_id, int32_t msg_type,
+                       uintptr_t data, uint32_t length);
 
   yijinjing::journal::frame_ptr current_frame() const;
 

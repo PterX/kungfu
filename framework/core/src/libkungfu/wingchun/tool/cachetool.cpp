@@ -81,6 +81,7 @@ void CacheTool::init(bool overwrite) {
   if (overwrite) {
     std::string cache_dir = locator_->layout_dir(cache_location_, layout::JOURNAL);
     fs::remove_all(cache_dir);
+    SPDLOG_INFO("cacheTool ready to write to: {}", cache_location_->uname);
   }
   writers_[location::PUBLIC] = std::make_shared<yijinjing::journal::writer>(
       cache_location_, location::PUBLIC, true, publisher_, false, std::make_shared<yijinjing::bus>(false));

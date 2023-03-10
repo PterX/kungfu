@@ -58,6 +58,7 @@ void BacktestContext::add_account(const std::string &source, const std::string &
 void BacktestContext::subscribe(const std::string &source, const std::vector<std::string> &instrument_ids,
                                 const std::string &exchange_ids) {
   auto md_location = find_md_location(source);
+  SPDLOG_INFO("subscribe source={} in: {}", source, md_location->uname);
   add_location(app_, md_location);
   app_.get_reader()->join(md_location, location::PUBLIC, app_.get_begin_time());
   for (const auto &instrument_id : instrument_ids) {

@@ -32,6 +32,7 @@ import {
   T0InstrumentTypes,
   T0ExchangeIds,
   PriceLevel,
+  InstrumentMinOrderVolume,
 } from '../config/tradingConfig';
 import {
   KfCategoryEnum,
@@ -82,6 +83,7 @@ import minimist from 'minimist';
 import VueI18n, { useLanguage } from '../language';
 import { unlinkSync } from 'fs-extra';
 import { T0T1Config } from '../typings/global';
+import { getKfGlobalSettingsValue } from '../config/globalSettings';
 const { t } = VueI18n.global;
 interface SourceAccountId {
   source: string;
@@ -1366,6 +1368,15 @@ export const sum = (list: number[]): number => {
   return list.reduce((accumlator, a) => accumlator + +a);
 };
 
+export const dealVolumeByInstrumentType = (
+  volume: number,
+  instrumentType: InstrumentTypeEnum,
+) => {
+  const minOrderVolume = InstrumentMinOrderVolume[instrumentType] || 1;
+  const orderVolume = Math.max(volume, minOrderVolume);
+  return ~~(orderVolume / minOrderVolume) * minOrderVolume;
+};
+
 export const dealSide = (
   side: SideEnum | number,
 ): KungfuApi.KfTradeValueCommonData => {
@@ -1890,11 +1901,17 @@ export const KfConfigValueArrayType = [
 export const initFormTimePicker = (initValue?: string) => {
   if (typeof initValue !== 'string') return null;
 
+  let parsedValue: dayjs.Dayjs | null = null;
+
   if (initValue === 'now') {
-    return dayjs().format('YYYY-MM-DD HH:mm:ss');
+    parsedValue = dayjs();
   } else if (/\d{2}:\d{2}:\d{2}/.test(initValue)) {
-    return dayjs(initValue, 'HH:mm:ss').format('YYYY-MM-DD HH:mm:ss');
+    parsedValue = dayjs(initValue, 'HH:mm:ss');
+  } else if (/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/.test(initValue)) {
+    parsedValue = dayjs(initValue, 'YYYY-MM-DD HH:mm:ss');
   }
+
+  if (parsedValue) return parsedValue.format('YYYY-MM-DD HH:mm:ss');
 
   return null;
 };
@@ -2106,6 +2123,8 @@ export const dealByConfigItemType = (
       return dealDirection(+value as DirectionEnum).name;
     case 'priceType':
       return dealPriceType(+value as PriceTypeEnum).name;
+    case 'priceLevel':
+      return dealPriceLevel(+value as PriceLevelEnum).name;
     case 'hedgeFlag':
       return dealHedgeFlag(+value as HedgeFlagEnum).name;
     case 'volumeCondition':
@@ -2246,4 +2265,15 @@ export const dealCmdPath = (pathname: string) => {
       .join('/');
   }
   return pathname;
+};
+
+export const isUpdateVersionLogicEnable = () => {
+  const packageJson = readRootPackageJsonSync();
+  return !!packageJson?.kungfuCraft?.autoUpdate?.update;
+};
+
+export const isCheckVersionLogicEnable = () => {
+  const updateVersionLogicEnable = isUpdateVersionLogicEnable();
+  const globalSetting = getKfGlobalSettingsValue();
+  return updateVersionLogicEnable && !!globalSetting?.update?.isCheckVersion;
 };

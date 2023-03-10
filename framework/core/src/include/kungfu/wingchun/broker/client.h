@@ -13,7 +13,6 @@
 #include <kungfu/yijinjing/log.h>
 #include <kungfu/yijinjing/practice/apprentice.h>
 
-using namespace kungfu::longfist::enums;
 namespace kungfu::wingchun::broker {
 /**
  * Policy interface to decide the time point to resume when connecting to a broker.
@@ -87,7 +86,7 @@ public:
   [[nodiscard]] virtual bool is_custom_subscribed_all(uint32_t md_location_uid,
                                                       kungfu::longfist::enums::SubscribeDataType data_type,
                                                       const std::string &exchange_id,
-                                                      InstrumentType kf_instrument_type) const = 0;
+                                                      longfist::enums::InstrumentType kf_instrument_type) const = 0;
 
   [[nodiscard]] virtual bool is_all_subscribed(uint32_t md_location_uid) const = 0;
 
@@ -171,17 +170,18 @@ private:
         SPDLOG_INFO("{} reset, state {}", app_location->uname, static_cast<int>(state_value));
       }
     };
-    if constexpr (std::is_same<AppState, BrokerState>::value) {
-      if (app_location->category == category::MD) {
-        switch_broker_state(category::MD, ready_md_locations_, [&]() { renew(event->gen_time(), app_location); });
+    if constexpr (std::is_same<AppState, longfist::enums::BrokerState>::value) {
+      if (app_location->category == longfist::enums::category::MD) {
+        switch_broker_state(longfist::enums::category::MD, ready_md_locations_,
+                            [&]() { renew(event->gen_time(), app_location); });
         broker_states_.emplace(app_location->uid, state_value);
       }
-      if (app_location->category == category::TD) {
+      if (app_location->category == longfist::enums::category::TD) {
         switch_broker_state(category::TD, ready_td_locations_, [&]() { sync(event->gen_time(), app_location); });
         broker_states_.emplace(app_location->uid, state_value);
       }
     }
-    if constexpr (std::is_same<AppState, OperatorState>::value) {
+    if constexpr (std::is_same<AppState, longfist::enums::OperatorState>::value) {
       if (app_location->category == category::OPERATOR) {
         switch_broker_state(category::OPERATOR, ready_op_locations_, [&]() {});
 
@@ -209,7 +209,7 @@ public:
   [[nodiscard]] bool is_custom_subscribed_all(uint32_t md_location_uid,
                                               kungfu::longfist::enums::SubscribeDataType data_type,
                                               const std::string &exchange_id,
-                                              InstrumentType kf_instrument_type) const override;
+                                              longfist::enums::InstrumentType kf_instrument_type) const override;
 
   [[nodiscard]] bool is_all_subscribed(uint32_t md_location) const override;
 
@@ -265,7 +265,7 @@ public:
   [[nodiscard]] bool is_custom_subscribed_all(uint32_t md_location_uid,
                                               kungfu::longfist::enums::SubscribeDataType data_type,
                                               const std::string &exchange_id,
-                                              InstrumentType kf_instrument_type) const override;
+                                              longfist::enums::InstrumentType kf_instrument_type) const override;
 
   [[nodiscard]] bool is_all_subscribed(uint32_t md_location) const override;
 

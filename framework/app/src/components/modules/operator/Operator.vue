@@ -6,6 +6,7 @@ import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/p
 import AddOperatorModal from './AddOperatorModal.vue';
 import KfSetByConfigModal from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfSetByConfigModal.vue';
 import KfSetExtensionModal from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfSetExtensionModal.vue';
+import KfProcessStatus from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfProcessStatus.vue';
 import Icon, {
   FileTextOutlined,
   SettingOutlined,

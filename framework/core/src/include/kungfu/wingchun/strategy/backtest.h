@@ -20,7 +20,7 @@ public:
    * checked_ is strated started.
    * @return current time in nano seconds
    */
-  virtual bool is_started() const;
+  virtual bool is_started() const override;
 
   /**
    * Get current time in nano seconds.
@@ -97,8 +97,18 @@ public:
   uint64_t insert_order(const std::string &instrument_id, const std::string &exchange_id, const std::string &source,
                         const std::string &account, double limit_price, int64_t volume, longfist::enums::PriceType type,
                         longfist::enums::Side side, longfist::enums::Offset offset,
-                        longfist::enums::HedgeFlag hedge_flag = HedgeFlag::Speculation, bool is_swap = false,
-                        uint64_t block_id = 0, uint64_t parent_id = 0) override;
+                        longfist::enums::HedgeFlag hedge_flag = longfist::enums::HedgeFlag::Speculation,
+                        bool is_swap = false, uint64_t block_id = 0, uint64_t parent_id = 0) override;
+
+  /**
+   * Insert Order
+   * @param source
+   * @param account
+   * @param order_input
+   * @return
+   */
+  uint64_t insert_order_input(const std::string &source, const std::string &account,
+                              longfist::types::OrderInput &order_input) override;
 
   /**
    * Insert Batch Orders
@@ -131,7 +141,7 @@ public:
    * @return
    */
   virtual std::vector<uint64_t> insert_array_orders(const std::string &source, const std::string &account,
-                                                    std::vector<longfist::types::OrderInput> order_inputs) override;
+                                                    std::vector<longfist::types::OrderInput> &order_inputs) override;
 
   /*
    * Insert Basket Orders
@@ -144,7 +154,7 @@ public:
    * @param volume_mode
    * @param total_volume
    */
-  virtual uint64_t insert_basket_order(uint64_t basket_id, const std::string &source, const std::string account,
+  virtual uint64_t insert_basket_order(uint64_t basket_id, const std::string &source, const std::string &account,
                                        longfist::enums::Side side, longfist::enums::PriceType price_type,
                                        longfist::enums::PriceLevel price_level, double price_offset = 0,
                                        int64_t volume = 0) override;
@@ -197,6 +207,14 @@ public:
    * @param infos vector<string>, info_a, info_b, info_c.
    */
   void update_strategy_state(longfist::types::StrategyStateUpdate &state_update) override;
+
+  /**
+   *
+   * @param source td source id
+   * @param account td account id
+   * @return writer to related td
+   */
+  virtual yijinjing::journal::writer_ptr get_writer(const std::string &source, const std::string &account) override;
 
 protected:
   virtual void on_start() override;

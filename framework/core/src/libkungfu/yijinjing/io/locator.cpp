@@ -33,7 +33,35 @@ std::string get_runtime_dir() {
   return (root / "kungfu" / "home" / "runtime").string();
 }
 
+std::string get_root_dir(es::mode m, const std::string &tag) {
+#ifdef _WINDOWS
+  auto appdata = std::getenv("APPDATA");
+  auto root = fs::path(appdata);
+#elif __APPLE__
+  auto user_home = std::getenv("HOME");
+  auto root = fs::path(user_home) / "Library" / "Application Support";
+#elif __linux__
+  auto user_home = std::getenv("HOME");
+  auto root = fs::path(user_home) / ".config";
+#endif // _WINDOWS
+  switch (m) {
+  case es::mode::LIVE:
+    return (root / "kungfu" / "home" / "runtime").string();
+  case es::mode::BACKTEST:
+    return (root / "kungfu" / "home" / "backtest").string();
+  case es::mode::DATA:
+    return (root / "kungfu" / "home" / "dataset" / tag).string();
+  case es::mode::REPLAY:
+    return (root / "kungfu" / "home" / "replay" / tag).string();
+  default:
+    SPDLOG_ERROR("unrecognized mode: {}, init root_ as mode::LIVE", m);
+  }
+  return (root / "kungfu" / "home" / "runtime").string();
+}
+
 locator::locator() : root_(get_runtime_dir()) {}
+
+locator::locator(es::mode m, const std::string &tag) : dir_mode_(m) { root_ = get_root_dir(m, tag); }
 
 bool locator::has_env(const std::string &name) const { return std::getenv(name.c_str()) != nullptr; }
 

@@ -11,6 +11,7 @@
 using namespace kungfu::rx;
 using namespace kungfu::longfist;
 using namespace kungfu::longfist::types;
+using namespace kungfu::longfist::enums;
 using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
 using namespace std::chrono;
@@ -234,6 +235,8 @@ void apprentice::react() {
 }
 
 void apprentice::on_active() {}
+
+void apprentice::on_frame() {}
 
 void apprentice::on_react() {}
 

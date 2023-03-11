@@ -12,6 +12,7 @@
 using namespace kungfu::rx;
 using namespace kungfu::longfist;
 using namespace kungfu::longfist::types;
+using namespace kungfu::longfist::enums;
 using namespace kungfu::yijinjing::cache;
 using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::journal;
@@ -186,7 +187,9 @@ void master::react() {
   events_ | instanceof <journal::frame>() | $$(feed(event));
 }
 
-void master::on_active() {
+void master::on_active() { on_frame(); }
+
+void master::on_frame() {
   auto now = time::now_in_nano();
   if (last_check_ + time_unit::NANOSECONDS_PER_SECOND < now) {
     on_interval_check(now);

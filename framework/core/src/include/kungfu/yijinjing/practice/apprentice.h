@@ -95,6 +95,8 @@ protected:
 
   void on_active() override;
 
+  void on_frame() override;
+
   virtual void on_react();
 
   virtual void on_start();
@@ -121,7 +123,7 @@ protected:
     auto writer = get_writer(master_cmd_location_->uid);
     int32_t timer_usage_count = timer_usage_count_;
     int64_t duration_ns = nanotime - now();
-    longfist::types::TimeRequest &r = writer->open_data<longfist::types::TimeRequest>(0);
+    longfist::types::TimeRequest &r = writer->open_data<longfist::types::TimeRequest>(data::location::PUBLIC);
     r.id = timer_usage_count;
     r.duration = duration_ns;
     r.repeat = 1;
@@ -142,7 +144,7 @@ protected:
     auto duration_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(d).count();
     auto writer = get_writer(master_cmd_location_->uid);
     int32_t timer_usage_count = timer_usage_count_;
-    longfist::types::TimeRequest &r = writer->open_data<longfist::types::TimeRequest>(0);
+    longfist::types::TimeRequest &r = writer->open_data<longfist::types::TimeRequest>(data::location::PUBLIC);
     r.id = timer_usage_count;
     r.duration = duration_ns;
     r.repeat = 1;

@@ -7,6 +7,7 @@ import sys
 import types
 import kungfu
 import glob
+from pathlib import Path
 from fnmatch import fnmatch
 
 from kungfu.console import site
@@ -285,6 +286,7 @@ class ExtensionExecutor:
                 ctx, ctx.path, loader.config["kungfuConfig"]["key"], Strategy
             )
         if kfj.MODES[ctx.mode] == lf.enums.mode.BACKTEST:
+            ctx.logger.debug(f"ctx.backtest: {ctx.backtest}")
             backtest_para = json.loads(ctx.backtest)
             begin_time_stamp = kft.strptimes(
                 backtest_para["begin_time"], ("%F %T", "%F %T.%N", "%Y%m%d", "%Y-%m-%d")
@@ -292,6 +294,9 @@ class ExtensionExecutor:
             end_time_stamp = kft.strptimes(
                 backtest_para["end_time"], ("%F %T", "%F %T.%N", "%Y%m%d", "%Y-%m-%d")
             )
+            matcher = load_matcher(ctx, ctx.matcher)
+            if matcher:
+                ctx.runner.set_matcher(matcher)
             ctx.runner.set_begin_time(begin_time_stamp)
             ctx.runner.set_end_time(end_time_stamp)
         ctx.runner.add_strategy(ctx.strategy)
@@ -368,6 +373,20 @@ def load_module(ctx, path, key, cls):
     else:
         ctx.path = os.path.join(os.path.dirname(path), key)
         return cls(ctx)
+
+
+def load_matcher(ctx, path):
+    try:
+        sys.path.append(str(Path(path).parent))
+        lib_name = Path(path).stem.split(".")[0]
+        module = importlib.import_module(lib_name)
+        ctx.logger.debug(f"import matcher: {lib_name} success")
+        matcher_builder = getattr(module, "matcher")
+        return matcher_builder()
+    except Exception as e:
+        ctx.logger.debug("load_matcher failed: {}".format(e))
+        ctx.logger.warn("matcher path: {} cannot be import by python".format(path))
+        return None
 
 
 def try_load_cpp_module(ctx, path, key, cls):

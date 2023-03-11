@@ -9,6 +9,7 @@ import os
 import sys
 
 from kungfu.yijinjing import time as kft
+from kungfu.yijinjing import journal as kfj
 from kungfu.wingchun import constants
 from kungfu.wingchun import utils
 from kungfu.wingchun.constants import *
@@ -145,8 +146,10 @@ class Strategy(wc.Strategy):
             self.ctx.name,
             self.ctx.runtime_locator,
         )
-        self.ctx.book = self.ctx.wc_context.bookkeeper.get_book(location.uid)
-        self.ctx.basketorder_engine = self.ctx.wc_context.basketorder_engine
+        # TODO temporarliy solution for backtest
+        if self.ctx.mode != lf.enums.mode.BACKTEST:
+            self.ctx.book = self.ctx.wc_context.bookkeeper.get_book(location.uid)
+            self.ctx.basketorder_engine = self.ctx.wc_context.basketorder_engine
 
     def __add_timer(self, nanotime, callback):
         def wrap_callback(event):
@@ -216,6 +219,7 @@ class Strategy(wc.Strategy):
         self.ctx.add_account = self.__add_account
         self.ctx.insert_block_message = wc_context.insert_block_message
         self.ctx.insert_order = wc_context.insert_order
+        self.ctx.insert_order_input = wc_context.insert_order_input
         self.ctx.insert_basket_order = wc_context.insert_basket_order
         self.ctx.insert_batch_orders = wc_context.insert_batch_orders
         self.ctx.insert_array_orders = wc_context.insert_array_orders

@@ -159,7 +159,7 @@ assemble::assemble(const data::location_ptr &source_location, uint32_t dest_id, 
                    int64_t from_time)
     : assemble() {
   readers_.clear();
-  data::locator l{};
+  data::locator_ptr l = source_location->locator;
   readers_.push_back(std::make_shared<reader>(true, false, std::make_shared<bus>(false)));
   auto reader = readers_.front();
 
@@ -170,7 +170,7 @@ assemble::assemble(const data::location_ptr &source_location, uint32_t dest_id, 
 
   // join all journal dest of location
   if (assemble_mode & AssembleMode::Write) {
-    for (auto dest : l.list_location_dest(source_location)) {
+    for (auto dest : l->list_location_dest(source_location)) {
       reader->join(source_location, dest, from_time);
     }
   }
@@ -180,8 +180,8 @@ assemble::assemble(const data::location_ptr &source_location, uint32_t dest_id, 
   bool b_public = assemble_mode & AssembleMode::Public;
   bool b_all = assemble_mode & AssembleMode::All;
   if (b_read or b_public or b_all) {
-    for (auto &location : l.list_locations("*", "*", "*", "*")) {
-      for (auto dest : l.list_location_dest(location)) {
+    for (auto &location : l->list_locations("*", "*", "*", "*")) {
+      for (auto dest : l->list_location_dest(location)) {
         if (b_all) {
           reader->join(location, dest, from_time);
         } else if (b_read and dest == dest_id) {

@@ -147,6 +147,9 @@ public:
 
   void write_raw(int64_t trigger_time, int32_t msg_type, uintptr_t data, uint32_t length);
 
+  void write_raw_at_as(int64_t gen_time, int64_t trigger_time, uint32_t source, uint32_t dest, int32_t msg_type,
+                       uintptr_t data, uint32_t length);
+
   bool release_page();
 
   /**

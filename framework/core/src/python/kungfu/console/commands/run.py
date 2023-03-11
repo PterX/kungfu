@@ -32,6 +32,12 @@ service_command_context = kfc.pass_context("low_latency")
     type=str,
     help="backetst parameter",
 )
+@click.option(
+    "-r",
+    "--matcher",
+    type=str,
+    help="path to matcher dll",
+)
 @click.option("-g", "--group", type=str, help="group")
 @click.option("-n", "--name", type=str, help="name")
 @click.option("-x", "--low-latency", is_flag=True, help="run in low latency mode")
@@ -44,6 +50,7 @@ def run(
     mode,
     category,
     backtest,
+    matcher,
     group,
     name,
     low_latency,
@@ -54,6 +61,7 @@ def run(
     ctx.mode = mode
     ctx.category = category
     ctx.backtest = backtest
+    ctx.matcher = matcher
     ctx.group = group
     ctx.name = name
     ctx.low_latency = low_latency

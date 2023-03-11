@@ -17,6 +17,8 @@ public:
   CacheTool(longfist::enums::category category, std::string group, std::string name, int64_t start_time,
             int64_t end_time, yijinjing::data::locator_ptr locator, bool overwrite = true);
 
+  virtual ~CacheTool() = default;
+
   int64_t get_begin_time() const { return begin_time_; }
 
   int64_t get_end_time() const { return end_time_; }

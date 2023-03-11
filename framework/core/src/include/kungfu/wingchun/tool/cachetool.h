@@ -49,7 +49,6 @@ protected:
 
   void join(uint32_t dest_id, const int64_t from_time);
 
-private:
   longfist::enums::category category_;
   std::string group_;
   std::string name_;

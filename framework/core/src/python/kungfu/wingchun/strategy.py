@@ -140,15 +140,17 @@ class Strategy(wc.Strategy):
 
     def __init_book(self):
         location = yjj.location(
-            lf.enums.mode.LIVE,
+            kfj.MODES[self.ctx.mode],
             lf.enums.category.STRATEGY,
             self.ctx.group,
             self.ctx.name,
-            self.ctx.runtime_locator,
+            self.ctx.runtime_locator
+            if kfj.MODES[self.ctx.mode] != lf.enums.mode.BACKTEST
+            else self.ctx.backtest_locator,
         )
-        # TODO temporarliy solution for backtest
-        if self.ctx.mode != lf.enums.mode.BACKTEST:
-            self.ctx.book = self.ctx.wc_context.bookkeeper.get_book(location.uid)
+
+        self.ctx.book = self.ctx.wc_context.bookkeeper.get_book(location.uid)
+        if kfj.MODES[self.ctx.mode] != lf.enums.mode.BACKTEST:
             self.ctx.basketorder_engine = self.ctx.wc_context.basketorder_engine
 
     def __add_timer(self, nanotime, callback):

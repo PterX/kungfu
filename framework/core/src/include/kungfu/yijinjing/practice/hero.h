@@ -46,7 +46,7 @@ public:
 
   bool is_low_latency() const;
 
-  bool is_cleaner_required() const;
+  const bus_ptr &get_bus() const;
 
   void signal_stop();
 
@@ -162,6 +162,8 @@ protected:
   virtual void react() = 0;
 
   virtual void on_active() = 0;
+
+  virtual void on_frame() = 0;
 
   static constexpr auto feed_profile_data = [](const event_ptr &event, auto &receiver) {
     boost::hana::for_each(longfist::ProfileDataTypes, [&](auto it) {

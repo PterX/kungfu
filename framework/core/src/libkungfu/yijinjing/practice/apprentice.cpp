@@ -11,6 +11,7 @@
 using namespace kungfu::rx;
 using namespace kungfu::longfist;
 using namespace kungfu::longfist::types;
+using namespace kungfu::longfist::enums;
 using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
 using namespace std::chrono;
@@ -143,11 +144,13 @@ void apprentice::add_time_interval(int64_t duration, const std::function<void(co
 
 void apprentice::on_trading_day(const event_ptr &event, int64_t daytime) {}
 
-void apprentice::release_page() {
-  reader_->release_page();
+bool apprentice::release_page() {
+  bool result = false;
+  result |= reader_->release_page();
   for (auto &iter : writers_) {
-    iter.second->release_page();
+    result |= iter.second->release_page();
   }
+  return result;
 }
 
 void apprentice::react() {
@@ -169,6 +172,7 @@ void apprentice::react() {
 
   SPDLOG_TRACE("building reactive event handlers");
   on_react();
+  cleaner_.on_react();
 
   if (get_io_device()->get_home()->mode == mode::LIVE) {
     auto self_register_event = events_ | skip_until(events_ | is(Register::tag) | filter([&](const event_ptr &event) {
@@ -229,6 +233,8 @@ void apprentice::react() {
 }
 
 void apprentice::on_active() {}
+
+void apprentice::on_frame() {}
 
 void apprentice::on_react() {}
 

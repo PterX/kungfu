@@ -82,7 +82,7 @@ bool hero::is_live() const { return live_; }
 
 bool hero::is_low_latency() const { return io_device_->is_low_latency(); }
 
-bool hero::is_cleaner_required() const { return io_device_->is_cleaner_required(); }
+const bus_ptr &hero::get_bus() const { return io_device_->get_bus(); }
 
 void hero::signal_stop() { live_ = false; }
 
@@ -338,6 +338,7 @@ bool hero::drain(const rx::subscriber<event_ptr> &sb) {
         now_ = frame_time;
       }
       sb.on_next(reader_->current_frame());
+      on_frame();
       reader_->next();
     } else {
       SPDLOG_INFO("reached journal end {}", time::strftime(reader_->current_frame()->gen_time()));

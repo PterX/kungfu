@@ -497,6 +497,8 @@ export default {
     export_success: 'Export success',
 
     loading_journal: 'Loading journal...',
+
+    input_time_format_error: 'The inputed time format error',
   },
 
   tradeConfig: {

@@ -494,6 +494,8 @@ export default {
     directroy_be_valued: '导出目录不能为空',
 
     loading_journal: '正在加载 journal',
+
+    input_time_format_error: '输入时间格式有误',
   },
 
   tradeConfig: {

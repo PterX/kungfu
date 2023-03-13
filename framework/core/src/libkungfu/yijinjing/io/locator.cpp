@@ -44,19 +44,25 @@ std::string get_root_dir(es::mode m, const std::string &tag) {
   auto user_home = std::getenv("HOME");
   auto root = fs::path(user_home) / ".config";
 #endif // _WINDOWS
-  switch (m) {
-  case es::mode::LIVE:
-    return (root / "kungfu" / "home" / "runtime").string();
-  case es::mode::BACKTEST:
-    return (root / "kungfu" / "home" / "backtest").string();
-  case es::mode::DATA:
-    return (root / "kungfu" / "home" / "dataset" / tag).string();
-  case es::mode::REPLAY:
-    return (root / "kungfu" / "home" / "replay" / tag).string();
-  default:
+
+  static const std::unordered_map<es::mode, std::pair<std::string, std::string>> map_env = {
+      {es::mode::LIVE, std::pair("KF_RUNTIME_DIR", "runtime")},
+      {es::mode::BACKTEST, std::pair("KF_BACKTEST_DIR", "backtest")},
+      {es::mode::DATA, std::pair("KF_DATASET_DIR", "dataset")},
+      {es::mode::REPLAY, std::pair("KF_REPLAY_DIR", "replay")},
+  };
+
+  auto iter = map_env.find(m);
+  if (iter == map_env.end()) {
     SPDLOG_ERROR("unrecognized mode: {}, init root_ as mode::LIVE", m);
+    return (root / "kungfu" / "home" / "runtime").string();
+  } else {
+    auto dir_path = std::getenv(iter->second.first.c_str());
+    if (dir_path != nullptr) {
+      return dir_path;
+    }
+    return (root / "kungfu" / "home" / iter->second.second / tag).string();
   }
-  return (root / "kungfu" / "home" / "runtime").string();
 }
 
 locator::locator() : root_(get_runtime_dir()) {}

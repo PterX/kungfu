@@ -1,5 +1,5 @@
-#include <kungfu/wingchun/extension.h>
 #include <kungfu/wingchun/common.h>
+#include <kungfu/wingchun/extension.h>
 #include <kungfu/wingchun/strategy/matcher.h>
 #include <spdlog/spdlog.h>
 
@@ -7,9 +7,9 @@ using namespace kungfu::longfist::enums;
 using namespace kungfu::longfist::types;
 using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::journal;
+using kungfu::wingchun::get_direction;
 using kungfu::wingchun::hash_instrument;
 using kungfu::wingchun::order_from_input;
-using kungfu::wingchun::get_direction;
 using kungfu::yijinjing::time;
 
 KUNGFU_MAIN_MATCHER(SimpleMatcher) {
@@ -22,10 +22,10 @@ public:
   typedef std::unordered_map<uint32_t, Quote> QuoteMap;
 
   virtual void on_quote(const Quote &quote) override {
-  // InstrumentKey instrument_key{};
-  // instrument_key.instrument_id = quote.instrument_id;
-  // instrument_key.exchange_id = quote.exchange_id;
-  // instrument_key.instrument_type = quote.instrument_type;
+    // InstrumentKey instrument_key{};
+    // instrument_key.instrument_id = quote.instrument_id;
+    // instrument_key.exchange_id = quote.exchange_id;
+    // instrument_key.instrument_type = quote.instrument_type;
     quotes_[hash_instrument(quote.exchange_id, quote.instrument_id)] = quote;
     match();
   }
@@ -105,7 +105,7 @@ public:
     }
   }
 
-  void filled_order_trade(Order &order, Trade &trade) {
+  void filled_order_trade(Order & order, Trade & trade) {
     order.status = OrderStatus::Filled;
     order.update_time = now();
     order.volume_left = 0;
@@ -129,5 +129,4 @@ public:
 private:
   QuoteMap quotes_;
   OrderMap orders_;
-  
 };

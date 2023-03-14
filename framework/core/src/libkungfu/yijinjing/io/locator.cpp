@@ -15,36 +15,33 @@ namespace kungfu::yijinjing::data {
 namespace fs = std::filesystem;
 namespace es = longfist::enums;
 
+fs::path get_default_root() {
+  char *kf_home = std::getenv("KF_HOME");
+  if (kf_home != nullptr) {
+    return fs::path{kf_home};
+  }
+#ifdef _WINDOWS
+  auto appdata = std::getenv("APPDATA");
+  auto root = fs::path(appdata) / "kungfu" / "home";
+#elif __APPLE__
+  auto user_home = std::getenv("HOME");
+  auto root = fs::path(user_home) / "Library" / "Application Support" / "kungfu" / "home";
+#elif __linux__
+  auto user_home = std::getenv("HOME");
+  auto root = fs::path(user_home) / ".config" / "kungfu" / "home";
+#endif // _WINDOWS
+  return root;
+}
+
 std::string get_runtime_dir() {
   auto runtime_dir = std::getenv("KF_RUNTIME_DIR");
   if (runtime_dir != nullptr) {
     return runtime_dir;
   }
-#ifdef _WINDOWS
-  auto appdata = std::getenv("APPDATA");
-  auto root = fs::path(appdata);
-#elif __APPLE__
-  auto user_home = std::getenv("HOME");
-  auto root = fs::path(user_home) / "Library" / "Application Support";
-#elif __linux__
-  auto user_home = std::getenv("HOME");
-  auto root = fs::path(user_home) / ".config";
-#endif // _WINDOWS
-  return (root / "kungfu" / "home" / "runtime").string();
+  return (get_default_root() / "runtime").string();
 }
 
 std::string get_root_dir(es::mode m, const std::string &tag) {
-#ifdef _WINDOWS
-  auto appdata = std::getenv("APPDATA");
-  auto root = fs::path(appdata);
-#elif __APPLE__
-  auto user_home = std::getenv("HOME");
-  auto root = fs::path(user_home) / "Library" / "Application Support";
-#elif __linux__
-  auto user_home = std::getenv("HOME");
-  auto root = fs::path(user_home) / ".config";
-#endif // _WINDOWS
-
   static const std::unordered_map<es::mode, std::pair<std::string, std::string>> map_env = {
       {es::mode::LIVE, std::pair("KF_RUNTIME_DIR", "runtime")},
       {es::mode::BACKTEST, std::pair("KF_BACKTEST_DIR", "backtest")},
@@ -54,18 +51,18 @@ std::string get_root_dir(es::mode m, const std::string &tag) {
 
   auto iter = map_env.find(m);
   if (iter == map_env.end()) {
-    SPDLOG_ERROR("unrecognized mode: {}, init root_ as mode::LIVE", m);
-    return (root / "kungfu" / "home" / "runtime").string();
+    SPDLOG_WARN("unrecognized mode: {}, init root_ as mode::LIVE", m);
+    return get_runtime_dir();
   } else {
     auto dir_path = std::getenv(iter->second.first.c_str());
     if (dir_path != nullptr) {
       return dir_path;
     }
-    return (root / "kungfu" / "home" / iter->second.second / tag).string();
+    return (get_default_root() / iter->second.second / tag).string();
   }
 }
 
-locator::locator() : root_(get_runtime_dir()) {}
+locator::locator() : root_(get_runtime_dir()), dir_mode_(es::mode::LIVE) {}
 
 locator::locator(es::mode m, const std::string &tag) : dir_mode_(m) { root_ = get_root_dir(m, tag); }
 

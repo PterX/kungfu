@@ -5,7 +5,7 @@
 //
 
 #include <fmt/format.h>
-
+#include <filesystem>
 #include <kungfu/wingchun/strategy/backtest.h>
 #include <kungfu/yijinjing/log.h>
 #include <kungfu/yijinjing/time.h>
@@ -18,6 +18,7 @@ using namespace kungfu::longfist::enums;
 using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::util;
+namespace fs = std::filesystem;
 
 namespace kungfu::wingchun::strategy {
 
@@ -58,6 +59,10 @@ void BacktestContext::add_account(const std::string &source, const std::string &
 void BacktestContext::subscribe(const std::string &source, const std::vector<std::string> &instrument_ids,
                                 const std::string &exchange_ids) {
   auto md_location = find_md_location(source);
+  auto page_name = fmt::format("{:08x}.{}", location::PUBLIC, 1);
+  if (not fs::exists(md_location->locator->layout_file(md_location, layout::JOURNAL, page_name))) {
+    throw wingchun_error(fmt::format("md public journal {} not exists", md_location->uname));
+  }
   SPDLOG_INFO("subscribe source={} in: {}", source, md_location->uname);
   add_location(app_, md_location);
   app_.get_reader()->join(md_location, location::PUBLIC, app_.get_begin_time());

@@ -27,7 +27,7 @@ Context_ptr Runner::make_context() {
   if (get_home()->mode == mode::BACKTEST) {
     if (not matcher_) {
       matcher_ = std::make_shared<BasicMatcher>();
-      // throw wingchun_error("matcher not specified");
+      SPDLOG_WARN("Runner in backtest mode not specified Matcher, Default Quote-based Matcher used.");
     }
     set_runner(*matcher_, this);
     return std::make_shared<BacktestContext>(*this, events_, matcher_);

@@ -86,6 +86,8 @@ const bus_ptr &hero::get_bus() const { return io_device_->get_bus(); }
 
 void hero::signal_stop() { live_ = false; }
 
+void hero::set_now(int64_t now) { now_ = now; }
+
 int64_t hero::now() const { return now_; }
 
 void hero::set_begin_time(int64_t begin_time) { begin_time_ = begin_time; }

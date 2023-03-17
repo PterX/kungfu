@@ -33,7 +33,7 @@ service_command_context = kfc.pass_context("low_latency")
     help="backetst parameter",
 )
 @click.option(
-    "-r",
+    "-M",
     "--matcher",
     type=str,
     help="path to matcher dll",

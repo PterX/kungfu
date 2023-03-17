@@ -27,7 +27,6 @@ public:
 
   virtual void run(){};
 
-protected:
   template <typename T> void write_at(int64_t gen_time, int64_t trigger_time, uint32_t dest_id, const T &data) {
     valid_time(gen_time, trigger_time);
     valid_dest(dest_id, gen_time);
@@ -35,13 +34,12 @@ protected:
     writers_.at(dest_id)->write_at(gen_time, trigger_time, data);
   }
 
+protected:
   void write_raw_at(int64_t gen_time, int64_t trigger_time, uint32_t dest_id, int32_t msg_type, uintptr_t data,
                     uint32_t length);
 
   void write_raw_at_as(int64_t gen_time, int64_t trigger_time, uint32_t source, uint32_t dest_id, int32_t msg_type,
                        uintptr_t data, uint32_t length);
-
-  yijinjing::journal::frame_ptr current_frame() const;
 
   void next();
 
@@ -50,6 +48,8 @@ protected:
   int64_t get_last_read_gen_time() const { return last_read_gen_time_; }
 
   void join(uint32_t dest_id, const int64_t from_time);
+
+  yijinjing::journal::frame_ptr current_frame() const;
 
   longfist::enums::category category_;
   std::string group_;

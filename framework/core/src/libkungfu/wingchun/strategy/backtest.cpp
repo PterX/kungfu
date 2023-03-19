@@ -7,6 +7,7 @@
 #include <fmt/format.h>
 #include <kungfu/wingchun/strategy/backtest.h>
 #include <kungfu/yijinjing/log.h>
+#include <kungfu/yijinjing/nanomsg/socket.h>
 #include <kungfu/yijinjing/time.h>
 
 using namespace kungfu::yijinjing::practice;
@@ -17,6 +18,7 @@ using namespace kungfu::longfist::enums;
 using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::util;
+using kungfu::yijinjing::nanomsg::nanomsg_json;
 
 namespace kungfu::wingchun::strategy {
 
@@ -28,7 +30,7 @@ BacktestContext::BacktestContext(apprentice &app, const rx::connectable_observab
 
 void BacktestContext::on_start() {
   auto writer = app_.get_writer(location::PUBLIC);
-  writer->mark_at(app_.get_begin_time(), app_.get_begin_time(), RequestStart::tag);
+  // writer->mark_at(app_.get_begin_time(), app_.get_begin_time(), RequestStart::tag);
   // broker_client_.on_start(events_);
   bookkeeper_.on_start(events_);
   events_ | is_own<Quote>(get_broker_client()) | $$(matcher_->on_quote(event->data<Quote>()));
@@ -36,6 +38,7 @@ void BacktestContext::on_start() {
   events_ | is_own<Transaction>(get_broker_client()) | $$(matcher_->on_transaction(event->data<Transaction>()));
   events_ | is(OrderInput::tag) | $$(matcher_->on_order_input(event->data<OrderInput>()));
   events_ | is(OrderAction::tag) | $$(matcher_->on_order_action(event->data<OrderAction>()));
+  events_ | $$(on_timer_check());
 }
 
 bool BacktestContext::is_started() const { return true; }
@@ -45,11 +48,40 @@ void BacktestContext::prepare(const event_ptr &event) {}
 int64_t BacktestContext::now() const { return app_.now(); }
 
 void BacktestContext::add_timer(int64_t nanotime, const std::function<void(event_ptr)> &callback) {
-  //   app_.add_timer(nanotime, callback);
+  pre_timer_callbacks_.emplace(nanotime, callback);
 }
 
 void BacktestContext::add_time_interval(int64_t duration, const std::function<void(event_ptr)> &callback) {
-  //   app_.add_time_interval(duration, callback);
+  auto timer_callback = [this, callback, duration](event_ptr event) {
+    callback(event);
+    this->add_time_interval(duration, callback);
+  };
+  // TODO
+  pre_timer_callbacks_.emplace(now() + duration, timer_callback);
+}
+
+void BacktestContext::on_timer_check() {
+  if (not pre_timer_callbacks_.empty()) {
+    timer_callbacks_.insert(pre_timer_callbacks_.begin(), pre_timer_callbacks_.end());
+    pre_timer_callbacks_.clear();
+  }
+  auto it = timer_callbacks_.begin();
+  auto now_time = now();
+  while (it != timer_callbacks_.end()) {
+    if (it->first <= now_time) {
+      nlohmann::json time_event;
+      time_event["msg_type"] = Time::tag;
+      time_event["gen_time"] = now_time;
+      time_event["trigger_time"] = now_time;
+      time_event["source"] = app_.get_home_uid();
+      time_event["dest"] = app_.get_home_uid();
+      time_event["data"] = nlohmann::json::object();
+      it->second(std::make_shared<nanomsg_json>(time_event.dump()));
+      it = timer_callbacks_.erase(it);
+    } else {
+      return;
+    }
+  }
 }
 
 void BacktestContext::add_account(const std::string &source, const std::string &account) {}

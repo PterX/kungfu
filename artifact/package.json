@@ -23,7 +23,7 @@
   },
   "dependencies": {
     "@kungfu-trader/kfx-broker-sim": "^2.5.1-alpha.2",
-    "@kungfu-trader/kfx-broker-bar": "^2.5.1-alpha.2",
+    "@kungfu-trader/kfx-operator-bar": "^2.5.1-alpha.2",
     "@kungfu-trader/kfx-broker-xtp-demo": "^2.5.1-alpha.2",
     "@kungfu-trader/kungfu-app": "^2.5.1-alpha.2",
     "@kungfu-trader/kungfu-cli": "^2.5.1-alpha.2",

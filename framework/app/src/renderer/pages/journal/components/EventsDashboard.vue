@@ -16,6 +16,7 @@
         key-field="id"
         :resizable="false"
         :custom-row-class="dealRowClassName"
+        @click-cell="handleOpenFrameDetail"
         @click-row="handleOpenFrameDetail"
       >
         <template

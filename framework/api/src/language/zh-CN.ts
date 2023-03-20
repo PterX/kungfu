@@ -243,6 +243,8 @@ export default {
     HK: '港股',
     HKFUT: '港期',
     US: '美股',
+    SGX: '新股',
+    SGXFUT: '新期',
     GLFX: '全球外汇',
     IPE: 'IPE',
     CBOT: 'CBOT',
@@ -494,6 +496,8 @@ export default {
     directroy_be_valued: '导出目录不能为空',
 
     loading_journal: '正在加载 journal',
+
+    input_time_format_error: '输入时间格式有误',
   },
 
   tradeConfig: {
@@ -624,6 +628,19 @@ export default {
     close_today: '平今',
     close_yesterday: '平昨',
     min: '最小',
+
+    update: '版本更新',
+    is_check_version: '检测更新',
+    is_check_version_desc: '启动功夫时, 是否检测更新',
+    current_version: '当前版本',
+    already_latest_version: '已是最新版本',
+    new_version: '新版本',
+    start_download: '开始下载',
+    find_new_version: '发现新版本: {version}\n是否现在下载安装包? ',
+    downloaded: '下载完成, 等待安装',
+    to_install: '现在安装',
+    warning_before_install:
+      '安装会清理当日交易数并退出功夫 (如有需要请提前备份), 确定现在安装吗? (建议盘后进行)',
   },
 
   风控: '风控',

@@ -227,6 +227,10 @@ private:
   broker::PassiveClient broker_client_;
   book::Bookkeeper bookkeeper_;
   Matcher_ptr matcher_;
+  std::multimap<int64_t, std::function<void(event_ptr)>> pre_timer_callbacks_ = {};
+  std::multimap<int64_t, std::function<void(event_ptr)>> timer_callbacks_ = {};
+
+  void on_timer_check();
 
   template <typename TradingData, typename OnMethod = void (Matcher::*)(int64_t, const TradingData &)>
   void invoke(OnMethod method, int64_t gen_time, const TradingData &data) {

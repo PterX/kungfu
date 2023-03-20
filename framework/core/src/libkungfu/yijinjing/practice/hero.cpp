@@ -86,6 +86,8 @@ const bus_ptr &hero::get_bus() const { return io_device_->get_bus(); }
 
 void hero::signal_stop() { live_ = false; }
 
+void hero::set_now(int64_t now) { now_ = now; }
+
 int64_t hero::now() const { return now_; }
 
 void hero::set_begin_time(int64_t begin_time) { begin_time_ = begin_time; }
@@ -155,12 +157,31 @@ bool hero::has_channel(uint32_t source, uint32_t dest) const {
 
 bool hero::has_channel(uint64_t hash) const { return channels_.find(hash) != channels_.end(); }
 
+const longfist::types::Channel &hero::get_channel(uint32_t source, uint32_t dest) const {
+  return get_channel(make_source_dest_hash(source, dest));
+}
+
 const Channel &hero::get_channel(uint64_t hash) const {
   assert(has_channel(hash));
   return channels_.at(hash);
 }
 
 const std::unordered_map<uint64_t, longfist::types::Channel> &hero::get_channels() const { return channels_; }
+
+bool hero::has_band(uint32_t source, uint32_t dest) const { return has_band(make_source_dest_hash(source, dest)); }
+
+bool hero::has_band(uint64_t hash) const { return bands_.find(hash) != bands_.end(); }
+
+const longfist::types::Band &hero::get_band(uint32_t source, uint32_t dest) const {
+  return get_band(make_source_dest_hash(source, dest));
+}
+
+const longfist::types::Band &hero::get_band(uint64_t hash) const {
+  assert(has_band(hash));
+  return bands_.at(hash);
+}
+
+const std::unordered_map<uint64_t, longfist::types::Band> &hero::get_bands() const { return bands_; }
 
 void hero::on_notify() {}
 

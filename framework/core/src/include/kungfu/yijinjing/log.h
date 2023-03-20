@@ -15,6 +15,10 @@
 #define TS_PATTERN "[%m/%d %H:%M:%S.%N] "
 #define LOG_PATTERN "[%^%=8l%$] [%6P/%-6t] [%s:%##%!] %v"
 
+#ifndef KUNGFU_SETUP_LOGGER
+#define KUNGFU_SETUP_LOGGER(location, name) kungfu::yijinjing::log::copy_log_settings(location, name)
+#endif // KUNGFU_SETUP_LOGGER
+
 namespace kungfu::yijinjing::log {
 
 std::shared_ptr<spdlog::logger> get_main_logger();

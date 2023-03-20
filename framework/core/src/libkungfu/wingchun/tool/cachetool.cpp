@@ -88,7 +88,7 @@ void CacheTool::init(bool overwrite) {
       cache_location_, location::PUBLIC, true, publisher_, false, std::make_shared<yijinjing::bus>(false));
   reader_ = std::make_shared<yijinjing::journal::reader>(true, false, std::make_shared<yijinjing::bus>(false));
   reader_->join(cache_location_, location::PUBLIC, begin_time_);
-  kungfu::yijinjing::log::copy_log_settings(cache_location_, cache_location_->name);
+  KUNGFU_SETUP_LOGGER(cache_location_, cache_location_->name);
 }
 
 void CacheTool::valid_time(int64_t gen_time, int64_t trigger_time) {

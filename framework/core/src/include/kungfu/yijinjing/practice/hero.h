@@ -50,6 +50,8 @@ public:
 
   void signal_stop();
 
+  void set_now(int64_t now);
+
   int64_t now() const;
 
   void set_begin_time(int64_t begin_time);
@@ -94,9 +96,21 @@ public:
 
   bool has_channel(uint64_t hash) const;
 
+  const longfist::types::Channel &get_channel(uint32_t source, uint32_t dest) const;
+
   const longfist::types::Channel &get_channel(uint64_t hash) const;
 
   const std::unordered_map<uint64_t, longfist::types::Channel> &get_channels() const;
+
+  bool has_band(uint32_t source, uint32_t dest) const;
+
+  bool has_band(uint64_t hash) const;
+
+  const longfist::types::Band &get_band(uint32_t source, uint32_t dest) const;
+
+  const longfist::types::Band &get_band(uint64_t hash) const;
+
+  const std::unordered_map<uint64_t, longfist::types::Band> &get_bands() const;
 
   virtual void on_notify();
 

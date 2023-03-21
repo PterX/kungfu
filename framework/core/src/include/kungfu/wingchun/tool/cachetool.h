@@ -77,6 +77,10 @@ public:
                   std::string end_time, yijinjing::data::locator_ptr locator)
       : CacheTool(category, group, name, start_time, end_time, locator, true) {}
 
+  CacheToolWriter(longfist::enums::category category, std::string group, std::string name, int64_t start_time,
+                  int64_t end_time, yijinjing::data::locator_ptr locator)
+      : CacheTool(category, group, name, start_time, end_time, locator, true) {}
+
   void write_raw(int64_t time_stamp, int32_t msg_type, uint32_t dest_id, uintptr_t data, uint32_t length) {
     write_raw_at(time_stamp, time_stamp, dest_id, msg_type, data, length);
   }
@@ -86,6 +90,10 @@ class CacheToolReader : public CacheTool {
 public:
   CacheToolReader(longfist::enums::category category, std::string group, std::string name, std::string start_time,
                   std::string end_time, yijinjing::data::locator_ptr locator)
+      : CacheTool(category, group, name, start_time, end_time, locator, false) {}
+
+  CacheToolReader(longfist::enums::category category, std::string group, std::string name, int64_t start_time,
+                  int64_t end_time, yijinjing::data::locator_ptr locator)
       : CacheTool(category, group, name, start_time, end_time, locator, false) {}
 
   yijinjing::journal::frame_ptr current_frame() const { return CacheTool::current_frame(); }

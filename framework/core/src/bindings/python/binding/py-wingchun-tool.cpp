@@ -31,7 +31,9 @@ void bind_tool(pybind11::module &m) {
       py::class_<CacheToolWriter, CacheTool, std::shared_ptr<CacheToolWriter>>(m, "CacheToolWriter")
           .def(py::init<category, std::string, std::string, std::string, std::string, locator_ptr>(),
                py::arg("category"), py::arg("group"), py::arg("name"), py::arg("start_time"), py::arg("end_time"),
-               py::arg("locator"));
+               py::arg("locator"))
+          .def(py::init<category, std::string, std::string, int64_t, int64_t, locator_ptr>(), py::arg("category"),
+               py::arg("group"), py::arg("name"), py::arg("start_time"), py::arg("end_time"), py::arg("locator"));
 
   boost::hana::for_each(AllDataTypes, [&](auto type) {
     using DataType = typename decltype(+boost::hana::second(type))::type;
@@ -43,6 +45,8 @@ void bind_tool(pybind11::module &m) {
 
   py::class_<CacheToolReader, CacheTool, std::shared_ptr<CacheToolReader>>(m, "CacheToolReader")
       .def(py::init<category, std::string, std::string, std::string, std::string, locator_ptr>(), py::arg("category"),
+           py::arg("group"), py::arg("name"), py::arg("start_time"), py::arg("end_time"), py::arg("locator"))
+      .def(py::init<category, std::string, std::string, int64_t, int64_t, locator_ptr>(), py::arg("category"),
            py::arg("group"), py::arg("name"), py::arg("start_time"), py::arg("end_time"), py::arg("locator"))
       .def("current_frame", &CacheToolReader::current_frame)
       .def("next", &CacheToolReader::next)

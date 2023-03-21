@@ -14,11 +14,10 @@ public:
   TestSimDataTool(category category, std::string group, std::string name, int64_t start_time, int64_t end_time,
                   locator_ptr locator, bool overwrite = true)
       : CacheTool(category, group, name, start_time, end_time, locator, overwrite) {
-    KUNGFU_SETUP_LOGGER(cache_location_, cache_location_->name);
+    KUNGFU_SETUP_LOGGER(get_location(), get_location()->name);
   };
 
   virtual void run() override {
-
     frame_ptr frame;
     for (std::size_t i = 0; i < 100; ++i) {
       Quote quote{};

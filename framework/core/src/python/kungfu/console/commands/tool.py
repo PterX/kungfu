@@ -35,12 +35,12 @@ yjj = kungfu.__binding__.yijinjing
 @kfc.pass_context()
 def tool(ctx, begin, end, category, group, name, tool_path):
     location = yjj.location(
-            kfj.MODES["backtest"],
-            kfj.CATEGORIES[category],
-            group,
-            name,
-            ctx.backtest_locator,
-        )
+        kfj.MODES["backtest"],
+        kfj.CATEGORIES[category],
+        group,
+        name,
+        ctx.backtest_locator,
+    )
     logger = find_logger(location, ctx.log_level)
     begin_time_stamp = kft.strptimes(begin)
     end_time_stamp = kft.strptimes(end)
@@ -48,11 +48,11 @@ def tool(ctx, begin, end, category, group, name, tool_path):
     tool_dir = str(tool_path.parent)
     sys.path.append(os.path.relpath(tool_dir))
 
-    module_name = tool_path.stem.split('.')[0]
+    module_name = tool_path.stem.split(".")[0]
     logger.debug(f"loading module from {tool_path}")
     module = importlib.import_module(module_name)
 
-    if not tool_path.suffix.endswith('py'):
+    if not tool_path.suffix.endswith("py"):
         tool_builder = getattr(module, "tool")
         tool = tool_builder(
             kfj.CATEGORIES[category],
@@ -65,5 +65,11 @@ def tool(ctx, begin, end, category, group, name, tool_path):
         tool.run()
     else:
         tool_func = getattr(module, "run")
-        tool_func(kfj.CATEGORIES[category], group, name, begin_time_stamp, end_time_stamp, ctx.backtest_locator)
-        
+        tool_func(
+            kfj.CATEGORIES[category],
+            group,
+            name,
+            begin_time_stamp,
+            end_time_stamp,
+            ctx.backtest_locator,
+        )

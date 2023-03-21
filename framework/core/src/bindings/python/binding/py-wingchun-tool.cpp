@@ -32,9 +32,8 @@ void bind_tool(pybind11::module &m) {
           .def(py::init<category, std::string, std::string, std::string, std::string, locator_ptr>(),
                py::arg("category"), py::arg("group"), py::arg("name"), py::arg("start_time"), py::arg("end_time"),
                py::arg("locator"))
-          .def(py::init<category, std::string, std::string, int64_t, int64_t, locator_ptr>(),
-               py::arg("category"), py::arg("group"), py::arg("name"), py::arg("start_time"), py::arg("end_time"),
-               py::arg("locator"));
+          .def(py::init<category, std::string, std::string, int64_t, int64_t, locator_ptr>(), py::arg("category"),
+               py::arg("group"), py::arg("name"), py::arg("start_time"), py::arg("end_time"), py::arg("locator"));
 
   boost::hana::for_each(AllDataTypes, [&](auto type) {
     using DataType = typename decltype(+boost::hana::second(type))::type;

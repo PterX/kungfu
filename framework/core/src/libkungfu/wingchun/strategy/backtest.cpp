@@ -56,7 +56,6 @@ void BacktestContext::add_time_interval(int64_t duration, const std::function<vo
     callback(event);
     this->add_time_interval(duration, callback);
   };
-  // TODO
   pre_timer_callbacks_.emplace(now() + duration, timer_callback);
 }
 
@@ -102,6 +101,13 @@ void BacktestContext::subscribe(const std::string &source, const std::vector<std
 
 void BacktestContext::subscribe_all(const std::string &source, uint8_t market_type, uint64_t instrument_type,
                                     uint64_t data_type) {
+  auto md_location = find_md_location(source);
+  if (md_location->locator->list_page_id(md_location, location::PUBLIC).empty()) {
+    throw wingchun_error(fmt::format("md public journal {} not exists", md_location->uname));
+  }
+  SPDLOG_INFO("subscribe source={} in: {}", source, md_location->uname);
+  add_location(app_, md_location);
+  app_.get_reader()->join(md_location, location::PUBLIC, app_.get_begin_time());
   broker_client_.subscribe_all(find_md_location(source), market_type, instrument_type, data_type);
 }
 

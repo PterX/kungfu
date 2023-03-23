@@ -19,7 +19,7 @@
           <span
             class="create"
             :title="$t('editor.new_file')"
-            v-if="strategyPath"
+            v-if="currrentcodePath"
             @click="handleAddFile"
           >
             <FileAddFilled class="icon" />
@@ -27,16 +27,16 @@
           <span
             class="create"
             :title="$t('editor.new_folder')"
-            v-if="strategyPath"
+            v-if="currrentcodePath"
             @click="handleAddFolder"
           >
             <FolderAddFilled class="icon" />
           </span>
         </span>
       </div>
-      <div class="file-tree-body" v-if="strategyPath">
+      <div class="file-tree-body" v-if="currrentcodePath">
         <div class="scroll-view">
-          <div v-for="file in myFileTree">
+          <div v-for="file in currrentFileTree">
             <FileNode
               v-if="file.root"
               :count="0"
@@ -90,16 +90,16 @@ const props = defineProps<{
 const { filePath } = props;
 const { currentNode, fileTreeType } = toRefs(props);
 
-const strategyPath = ref<string>('');
-const strategyPathName = ref<string>('');
-const myFileTree = ref<Code.IFileTree>({});
+const currrentcodePath = ref<string>('');
+const currrentcodePathName = ref<string>('');
+const currrentFileTree = ref<Code.IFileTree>({});
 // const { proxy } = getCurrentInstance() as ComponentInternalInstance;
 const { currentFile, fileTree } = storeToRefs(useCodeStore());
 const { error } = messagePrompt();
 
 watch(currentNode.value as Code.Icodeinfo, (newStrategy) => {
-  strategyPath.value = path.dirname(newStrategy.file_path);
-  strategyPathName.value = path.basename(strategyPath.value);
+  currrentcodePath.value = path.dirname(newStrategy.file_path);
+  currrentcodePathName.value = path.basename(currrentcodePath.value);
   initFileTree(newStrategy).then((fileItem) => {
     const entryPath: string = newStrategy.file_path;
     const currentFile = findTargetFromArray<Code.FileData>(
@@ -204,9 +204,9 @@ async function initFileTree(currentNode) {
     id: rootId,
     parentId: 0,
     isDir: true,
-    name: strategyPathName.value,
+    name: currrentcodePathName.value,
     ext: '',
-    filePath: strategyPath.value,
+    filePath: currrentcodePath.value,
     children: { file: [], folder: [] },
     stats: {},
     root: true,
@@ -230,7 +230,7 @@ async function initFileTree(currentNode) {
   rootFileTree[rootId] = rootFile;
   // padding
   rootFileTree = bindFunctionalNode(rootFileTree);
-  myFileTree.value = rootFileTree;
+  currrentFileTree.value = rootFileTree;
   store.setFileTree(rootFileTree);
   store.setCurrentFile(rootFile);
 

@@ -50,12 +50,12 @@ export const useCodeStore = defineStore('code', {
       this.currentFile = file;
     },
 
-    //策略编辑，设置文件树
+    //编辑，设置文件树
     setFileTree(fileTree: Code.IFileTree): void {
       this.fileTree = fileTree;
     },
 
-    //策略编辑，设置文件节点
+    //编辑，设置文件节点
     setFileNode({
       id,
       attr,
@@ -71,7 +71,7 @@ export const useCodeStore = defineStore('code', {
       this.fileTree[id] = node;
     },
 
-    //策略编辑，添加文件或文件夹时，添加“pending”
+    //编辑，添加文件或文件夹时，添加“pending”
     addFileFolderPending({ id, type }): void {
       const targetChildren = this.fileTree[id].children;
       if (type == 'folder') {
@@ -91,7 +91,7 @@ export const useCodeStore = defineStore('code', {
       }
     },
 
-    //策略编辑时，添加文件或文件夹时，删除“pending”
+    //编辑时，添加文件或文件夹时，删除“pending”
     removeFileFolderPending({ id, type }): void {
       const targetChildren = this.fileTree[id].children;
       if (type == 'folder') {

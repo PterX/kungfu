@@ -179,7 +179,6 @@ const props = defineProps<{
   type: string;
   id: number | string;
   count: number | string;
-  filePath?: string;
 }>();
 
 const { type, count } = props;
@@ -377,7 +376,6 @@ const handleEditFileBlur = () => {
       reloadFolder(parentId, newName);
     })
     .then(() => {
-      // updateStrategyToApp(newPath);
       if (fileNode.value === entryFile.value || fileNode.value.isEntryFile) {
         ipcEmitDataByName('updateStrategyPath', {
           strategyId: store.currentStrategy.code_id,

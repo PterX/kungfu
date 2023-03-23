@@ -8,14 +8,14 @@ import {
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import Editor from './components/MonacoEditor.vue';
 import FileTree from './components/FileTree.vue';
-import { useCodeStore } from './store/codeStore';
+// import { useCodeStore } from './store/codeStore';
 // import { ipcEmitDataByName } from '../../../renderer/ipcMsg/emitter';
 import MainContentVue from './components/MainContent.vue';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 const { t } = VueI18n.global;
 
 // const { error } = messagePrompt();
-const store = useCodeStore();
+// const store = useCodeStore();
 
 const urlParmObj: Record<string, string> = getUrlParams();
 const processId = urlParmObj['processId'];
@@ -26,7 +26,7 @@ console.log(dirPath, 'urlparm99999======');
 
 setHtmlTitle(processId);
 
-const currentCode = reactive<Code.Icodeinfo>({
+const currentNode = reactive<Code.Icodeinfo>({
   code_id: '',
   file_path: '',
   add_time: 0,
@@ -48,10 +48,10 @@ filePath.value = urlParmObj['file_path'];
 //   const value: Code.Icodeinfo = JSON.parse(
 //     strategyList[curnStrategyIndex.value].value,
 //   );
-//   currentCode.code_id = value.code_id;
-//   currentCode.file_path = value.file_path;
-//   currentCode.add_time = value.add_time;
-//   store.setCurrentStrategy(currentCode);
+//   currentNode.code_id = value.code_id;
+//   currentNode.file_path = value.file_path;
+//   currentNode.add_time = value.add_time;
+//   store.setCurrentStrategy(currentNode);
 // }
 
 // function getCurrentStrategy(strategyList) {
@@ -66,18 +66,18 @@ filePath.value = urlParmObj['file_path'];
 // function handleStrategyList(strategyList): void {
 //   const value: Code.Icodeinfo = strategyList[0];
 
-//   currentCode.code_id = value.code_id;
-//   currentCode.file_path = value.file_path;
-//   currentCode.add_time = value.add_time;
-//   store.setCurrentStrategy(currentCode);
+//   currentNode.code_id = value.code_id;
+//   currentNode.file_path = value.file_path;
+//   currentNode.add_time = value.add_time;
+//   store.setCurrentStrategy(currentNode);
 // }
 
 // function handleUpdateStrategy(strategyPath) {
-//   if (!currentCode.code_id) {
+//   if (!currentNode.code_id) {
 //     error(t('策略id不存在!'));
 //     return;
 //   }
-//   updateStrategy(currentCode.code_id, strategyPath);
+//   updateStrategy(currentNode.code_id, strategyPath);
 // }
 
 // async function updateStrategy(strategyId: string, strategyPath: string) {
@@ -121,11 +121,11 @@ onMounted(() => {
   //   });
   // });
 
-  currentCode.code_id = urlParmObj.processId;
-  currentCode.file_path = urlParmObj.file_path;
-  currentCode.add_time = new Date().getTime();
-  store.setCurrentStrategy(currentCode);
-  store.getKungfuConfig();
+  currentNode.code_id = urlParmObj.processId;
+  currentNode.file_path = urlParmObj.file_path;
+  currentNode.add_time = new Date().getTime();
+  // store.setCurrentStrategy(currentNode);
+  // store.getKungfuConfig();
   bindCloseWindowEvent();
 });
 
@@ -142,7 +142,7 @@ watchEffect(() => {
         <FileTree
           :filePath="filePath"
           :fileTreeType="fileTreeType"
-          :currentCode="currentCode"
+          :currentNode="currentNode"
         ></FileTree>
         <Editor class="editor" ref="code-editor"></Editor>
       </div>

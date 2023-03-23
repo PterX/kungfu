@@ -8,9 +8,11 @@
       {{ $t('editor.set_strategy_entrance') }}
     </a-button> -->
     <div class="file-tree-content">
-      <div class="currentCode-name">
+      <div class="currentNode-name">
         <span class="name">
-          <span v-if="currentCode">{{ currentCode.code_id }}</span>
+          <span v-if="currentNode">
+            {{ currentNode.code_id.split('_')[1] }}
+          </span>
           ({{ $t('editor.current') + $t('editor.' + fileTreeType) }})
         </span>
         <span class="tree-deal-file">
@@ -34,7 +36,7 @@
       </div>
       <div class="file-tree-body" v-if="strategyPath">
         <div class="scroll-view">
-          <div v-for="file in fileTree">
+          <div v-for="file in myFileTree">
             <FileNode
               v-if="file.root"
               :count="0"
@@ -80,32 +82,31 @@ const { t } = VueI18n.global;
 
 const store = useCodeStore();
 const props = defineProps<{
-  currentCode: Code.Icodeinfo;
+  currentNode: Code.Icodeinfo;
   fileTreeType: string;
   filePath: string;
 }>();
 
 const { filePath } = props;
-const { currentCode, fileTreeType } = toRefs(props);
+const { currentNode, fileTreeType } = toRefs(props);
 
 const strategyPath = ref<string>('');
 const strategyPathName = ref<string>('');
+const myFileTree = ref<Code.IFileTree>({});
 // const { proxy } = getCurrentInstance() as ComponentInternalInstance;
 const { currentFile, fileTree } = storeToRefs(useCodeStore());
 const { error } = messagePrompt();
 
-watch(currentCode.value as Code.Icodeinfo, (newStrategy) => {
-  console.log(newStrategy, 'newStrategy999999');
-  getPath(newStrategy);
+watch(currentNode.value as Code.Icodeinfo, (newStrategy) => {
+  strategyPath.value = path.dirname(newStrategy.file_path);
+  strategyPathName.value = path.basename(strategyPath.value);
   initFileTree(newStrategy).then((fileItem) => {
     const entryPath: string = newStrategy.file_path;
-
     const currentFile = findTargetFromArray<Code.FileData>(
       Object.values(fileItem),
       'filePath',
       entryPath,
     );
-
     if (currentFile) {
       store.setEntryFile(currentFile);
       store.setCurrentFile(currentFile);
@@ -121,21 +122,21 @@ watch(currentCode.value as Code.Icodeinfo, (newStrategy) => {
 //     })
 //     .then((strategyPath) => {
 //       if (!strategyPath || !strategyPath.filePaths[0]) return;
-//       if (!currentCode.value?.strategy_id) return;
+//       if (!currentNode.value?.strategy_id) return;
 //       bindStrategyPath(strategyPath.filePaths[0]);
 //     });
 // }
 
 //bind data中path 与 sqlite中path
 // async function bindStrategyPath(strategyPathNew) {
-//   if (currentCode && currentCode.value.strategy_id) {
+//   if (currentNode && currentNode.value.strategy_id) {
 //     await ipcEmitDataByName('updateStrategyPath', {
-//       strategyId: currentCode.value.strategy_id,
+//       strategyId: currentNode.value.strategy_id,
 //       strategyPath: strategyPathNew,
 //     });
 //     success(
 //       t('editor.set_strategy_success', {
-//         file: currentCode.value.strategy_id,
+//         file: currentNode.value.strategy_id,
 //       }),
 //     );
 //     //每次更新path，需要通知root组件更新stratgy
@@ -187,15 +188,15 @@ function handleAddFile() {
 }
 
 //从prop内获取path
-function getPath(currentCode: Code.Icodeinfo) {
-  if (currentCode && currentCode.file_path) {
-    //因为绑定策略时是文件，需要提取其父目录
-    strategyPath.value = path.dirname(currentCode.file_path);
-    strategyPathName.value = path.basename(strategyPath.value);
-  }
-}
-async function initFileTree(currentCode) {
-  if (!currentCode.strategy_id || !currentCode.file_path) return;
+// function getPath(currentNode: Code.Icodeinfo) {
+//   if (currentNode && currentNode.file_path) {
+//     //因为绑定策略时是文件，需要提取其父目录
+//     strategyPath.value = path.dirname(currentNode.file_path);
+//     strategyPathName.value = path.basename(strategyPath.value);
+//   }
+// }
+async function initFileTree(currentNode) {
+  if (!currentNode.code_id || !currentNode.file_path) return;
   //根文件夹得信息不像其他通过fs读取，而是直接从props的strategy中去取
   const rootId = window.fileId++;
 
@@ -229,6 +230,7 @@ async function initFileTree(currentCode) {
   rootFileTree[rootId] = rootFile;
   // padding
   rootFileTree = bindFunctionalNode(rootFileTree);
+  myFileTree.value = rootFileTree;
   store.setFileTree(rootFileTree);
   store.setCurrentFile(rootFile);
 
@@ -259,7 +261,7 @@ function bindFunctionalNode(curFileTree) {
     margin: auto;
   }
 
-  .currentCode-name {
+  .currentNode-name {
     font-size: 14px;
     font-weight: bolder;
     margin-top: 8px;
@@ -345,7 +347,7 @@ function bindFunctionalNode(curFileTree) {
 <style lang="less" scoped>
 .file-tree {
   padding-top: 0;
-  .currentCode-name {
+  .currentNode-name {
     margin-bottom: 8px;
   }
 }

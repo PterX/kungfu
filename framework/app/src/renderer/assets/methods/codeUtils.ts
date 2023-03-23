@@ -19,8 +19,6 @@ export const getTreeByFilePath = (
   fileTree = fileTree || {};
   let strategyPath: string = strategy.filePath;
   strategyPath = path.normalize(strategyPath);
-  console.log(strategyPath, 'strategyPath===8888');
-
   const filePath: string = path.resolve(strategyPath);
   const dirList: Code.FileData[] = [];
   const fileList: Code.FileData[] = [];

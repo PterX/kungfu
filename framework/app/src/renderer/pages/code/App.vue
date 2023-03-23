@@ -2,7 +2,7 @@
 import { onMounted, reactive, watchEffect, ref } from 'vue';
 import { getUrlParams } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/codeUtils';
 import {
-  // messagePrompt,
+  messagePrompt,
   // removeLoadingMask,
   setHtmlTitle,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
@@ -14,7 +14,7 @@ import MainContentVue from './components/MainContent.vue';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 const { t } = VueI18n.global;
 
-// const { error } = messagePrompt();
+const { error } = messagePrompt();
 const store = useCodeStore();
 
 const urlParmObj: Record<string, string> = getUrlParams();
@@ -36,32 +36,6 @@ const filePath = ref<string>('');
 
 filePath.value = urlParmObj['file_path'];
 
-// const strategyName = processId.split('_')[1];
-// const curnStrategyIndex: {
-//   value: number;
-// } = {
-//   value: 0,
-// };
-// 处理JSON格式strangeList
-// function handleStrategyJsonList(strategyList): void {
-//   getCurrentStrategy(strategyList);
-//   const value: Code.Icodeinfo = JSON.parse(
-//     strategyList[curnStrategyIndex.value].value,
-//   );
-//   currentNode.code_id = value.code_id;
-//   currentNode.file_path = value.file_path;
-//   currentNode.add_time = value.add_time;
-//   store.setCurrentStrategy(currentNode);
-// }
-
-// function getCurrentStrategy(strategyList) {
-//   strategyList.forEach((item, index) => {
-//     if (item.name === strategyName) {
-//       curnStrategyIndex.value = index;
-//     }
-//   });
-// }
-
 // 处理Object格式strageList
 function handleStrategyList(strategyList): void {
   const value: Code.Icodeinfo = strategyList[0];
@@ -72,13 +46,15 @@ function handleStrategyList(strategyList): void {
   store.setCurrentStrategy(currentNode);
 }
 
-// function handleUpdateStrategy(strategyPath) {
-//   if (!currentNode.code_id) {
-//     error(t('策略id不存在!'));
-//     return;
-//   }
-//   updateStrategy(currentNode.code_id, strategyPath);
-// }
+function handleUpdateStrategy(strategyPath) {
+  console.log(strategyPath, 'zheerchufalema ??? ===');
+  if (!currentNode.code_id) {
+    error(t('code_id不存在!'));
+    return;
+  }
+  currentNode.file_path = strategyPath;
+  updateStrategy(currentNode.code_id, strategyPath);
+}
 
 async function updateStrategy(strategyId: string, strategyPath: string) {
   await getStrategyById(strategyId);
@@ -143,7 +119,7 @@ watchEffect(() => {
           :filePath="filePath"
           :fileTreeType="fileTreeType"
           :currentNode="currentNode"
-          @updateStrategy="updateStrategy"
+          @updateStrategy="handleUpdateStrategy"
         ></FileTree>
         <Editor class="editor" ref="code-editor"></Editor>
       </div>

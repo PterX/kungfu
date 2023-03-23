@@ -11,7 +11,7 @@
       <div
         class="each-files"
         :class="{
-          'root-file': fileNode.root,
+          'root-file': fileNode?.root,
           active: fileNode.filePath === currentFile.filePath,
         }"
         :style="{ 'padding-left': `${curCount * 16 + 5}px` }"
@@ -21,7 +21,7 @@
           <span
             class="file-name"
             :class="{
-              'root-name': fileNode.root,
+              'root-name': fileNode?.root,
               'normal-name': entryFile.filePath !== fileNode.filePath,
             }"
             v-if="fileNode && !onEditing && fileNode.name"
@@ -74,7 +74,7 @@
           </span>
           <div
             class="deal-file"
-            v-show="fileNode && !onEditing && fileNode.name && !fileNode.root"
+            v-show="fileNode && !onEditing && fileNode.name && !fileNode?.root"
           >
             <span
               class="mouse-over"
@@ -94,7 +94,7 @@
         </div>
         <span
           class="path"
-          v-if="fileNode && fileNode.root"
+          v-if="fileNode && fileNode?.root"
           :title="fileNode.filePath"
         >
           {{ fileNode.filePath }}
@@ -229,7 +229,7 @@ function handleClickFile(file) {
   //如果为dir
   //打开文件夹, 如果children不为空，直接展示, 之后异步更新，将原来删除
   //如果children为空，读取文件夹下文件，赋值children
-  if (type == 'folder' && !file.root) {
+  if (type == 'folder' && !file?.root) {
     openFolder(file, fileTree.value);
   }
 }
@@ -377,6 +377,7 @@ const handleEditFileBlur = () => {
       reloadFolder(parentId, newName);
     })
     .then(() => {
+      // updateStrategyToApp(newPath);
       if (fileNode.value === entryFile.value || fileNode.value.isEntryFile) {
         ipcEmitDataByName('updateStrategyPath', {
           strategyId: store.currentStrategy.code_id,

@@ -8,14 +8,14 @@ import {
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import Editor from './components/MonacoEditor.vue';
 import FileTree from './components/FileTree.vue';
-// import { useCodeStore } from './store/codeStore';
-// import { ipcEmitDataByName } from '../../../renderer/ipcMsg/emitter';
+import { useCodeStore } from './store/codeStore';
+import { ipcEmitDataByName } from '../../../renderer/ipcMsg/emitter';
 import MainContentVue from './components/MainContent.vue';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 const { t } = VueI18n.global;
 
 // const { error } = messagePrompt();
-// const store = useCodeStore();
+const store = useCodeStore();
 
 const urlParmObj: Record<string, string> = getUrlParams();
 const processId = urlParmObj['processId'];
@@ -63,14 +63,14 @@ filePath.value = urlParmObj['file_path'];
 // }
 
 // 处理Object格式strageList
-// function handleStrategyList(strategyList): void {
-//   const value: Code.Icodeinfo = strategyList[0];
+function handleStrategyList(strategyList): void {
+  const value: Code.Icodeinfo = strategyList[0];
 
-//   currentNode.code_id = value.code_id;
-//   currentNode.file_path = value.file_path;
-//   currentNode.add_time = value.add_time;
-//   store.setCurrentStrategy(currentNode);
-// }
+  currentNode.code_id = value.code_id;
+  currentNode.file_path = value.file_path;
+  currentNode.add_time = value.add_time;
+  store.setCurrentStrategy(currentNode);
+}
 
 // function handleUpdateStrategy(strategyPath) {
 //   if (!currentNode.code_id) {
@@ -80,18 +80,18 @@ filePath.value = urlParmObj['file_path'];
 //   updateStrategy(currentNode.code_id, strategyPath);
 // }
 
-// async function updateStrategy(strategyId: string, strategyPath: string) {
-//   await getStrategyById(strategyId);
-// }
+async function updateStrategy(strategyId: string, strategyPath: string) {
+  await getStrategyById(strategyId);
+}
 
 let shouldClose = false;
 
-// async function getStrategyById(strategyId: string) {
-//   const { data } = (await ipcEmitDataByName('strategyById', {
-//     strategyId,
-//   })) as Record<string, Array<Code.Icodeinfo>>;
-//   handleStrategyList(data);
-// }
+async function getStrategyById(strategyId: string) {
+  const { data } = (await ipcEmitDataByName('strategyById', {
+    strategyId,
+  })) as Record<string, Array<Code.Icodeinfo>>;
+  handleStrategyList(data);
+}
 
 function bindCloseWindowEvent() {
   shouldClose = false;
@@ -143,6 +143,7 @@ watchEffect(() => {
           :filePath="filePath"
           :fileTreeType="fileTreeType"
           :currentNode="currentNode"
+          @updateStrategy="updateStrategy"
         ></FileTree>
         <Editor class="editor" ref="code-editor"></Editor>
       </div>

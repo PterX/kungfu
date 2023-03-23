@@ -44,6 +44,7 @@
               :id="file.id"
               type="folder"
               :filePath="filePath"
+              @updateStrategyToApp="updateStrategyToApp"
             ></FileNode>
           </div>
         </div>
@@ -54,15 +55,15 @@
 
 <script lang="ts">
 export default {
-  // emits: ['updateStrategy'],
+  emits: ['updateStrategy'],
 };
 </script>
 <script setup lang="ts">
 import {
   watch,
   ref,
-  // getCurrentInstance,
-  // ComponentInternalInstance,
+  getCurrentInstance,
+  ComponentInternalInstance,
   toRefs,
 } from 'vue';
 import path from 'path';
@@ -97,7 +98,7 @@ const { currentNode, fileTreeType } = toRefs(props);
 const currrentcodePath = ref<string>('');
 const currrentcodePathName = ref<string>('');
 const currrentFileTree = ref<Code.IFileTree>({});
-// const { proxy } = getCurrentInstance() as ComponentInternalInstance;
+const { proxy } = getCurrentInstance() as ComponentInternalInstance;
 const { currentFile, fileTree } = storeToRefs(useCodeStore());
 const { error } = messagePrompt();
 
@@ -149,9 +150,9 @@ watch(currentNode.value as Code.Icodeinfo, (newStrategy) => {
 //   }
 // }
 
-// function updateStrategyToApp(strategyPath) {
-//   proxy?.$emit('updateStrategy', strategyPath);
-// }
+function updateStrategyToApp(strategyPath) {
+  proxy?.$emit('updateStrategy', strategyPath);
+}
 
 //加文件夹
 function handleAddFolder() {

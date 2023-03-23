@@ -182,8 +182,7 @@ const props = defineProps<{
   filePath?: string;
 }>();
 
-const { type, count, filePath } = props;
-console.log(filePath, 'filenode===');
+const { type, count } = props;
 
 const { fileNode, id } = toRefs(props);
 const curCount = ref<number>(+(count || 0));
@@ -428,8 +427,8 @@ function getIcon(file: Code.FileData): string {
       if (!iconName) iconName = 'folder';
     }
   } else {
-    const ext: string = file.ext || '';
-    const fileName: string = file.name || '';
+    const ext: string = file?.ext || '';
+    const fileName: string = file?.name || '';
     if (ext && iconFileJSON[ext]) {
       iconName = iconFileJSON[ext];
     } else {
@@ -481,7 +480,7 @@ function getSiblingsName(parentId) {
 
 onMounted(() => {
   nextTick(() => {
-    if (fileNode) {
+    if (fileNode.value) {
       iconPath.value = getIcon(fileNode.value);
     }
     if (document.getElementById('add-input')) {

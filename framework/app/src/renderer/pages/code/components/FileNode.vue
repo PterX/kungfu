@@ -68,7 +68,9 @@
               !onEditing
             "
           >
-            ({{ $t('editor.entry_file') }})
+            (
+            <span class="text-entry-file">{{ $t('editor.entry_file') }}</span>
+            )
           </span>
           <div
             class="deal-file"
@@ -177,9 +179,12 @@ const props = defineProps<{
   type: string;
   id: number | string;
   count: number | string;
+  filePath?: string;
 }>();
 
-const { type, count } = props;
+const { type, count, filePath } = props;
+console.log(filePath, 'filenode===');
+
 const { fileNode, id } = toRefs(props);
 const curCount = ref<number>(+(count || 0));
 const childCount = ref<number>(curCount.value + 1);
@@ -375,7 +380,7 @@ const handleEditFileBlur = () => {
     .then(() => {
       if (fileNode.value === entryFile.value || fileNode.value.isEntryFile) {
         ipcEmitDataByName('updateStrategyPath', {
-          strategyId: store.currentStrategy.strategy_id,
+          strategyId: store.currentStrategy.code_id,
           strategyPath: newPath,
         }).then(() => {
           updateStrategyToApp(newPath);
@@ -515,6 +520,9 @@ onMounted(() => {
       flex: 1;
       white-space: nowrap;
       margin-right: 10px;
+    }
+    .text-entry-file {
+      color: @gold-base;
     }
     .path {
       margin: 0 4px;

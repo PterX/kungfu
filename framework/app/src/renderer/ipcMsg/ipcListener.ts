@@ -44,6 +44,7 @@ export function bindIPCListener(store) {
     const childWin = BrowserWindow.fromId(childWinId);
     return new Promise(() => {
       if (childWin) {
+        console.log(store, '什么store====?');
         childWin.webContents.send('ipc-res-strategyList', store.strategyList);
       }
     });

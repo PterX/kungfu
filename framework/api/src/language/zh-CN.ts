@@ -678,6 +678,9 @@ export default {
     illegal_character: '名称不能包含\\/:*?"<>|',
     delate_confirm: '确认删除 {value} 吗？',
     cannot_delate_entry: '不可删除入口文件',
+    current: '当前',
+    operator: '算子',
+    strategy: '策略',
   },
 
   logview: {

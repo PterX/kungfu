@@ -366,6 +366,8 @@ export const openNewBrowserWindow = (
       ? `http://localhost:9090/${name}.html${params}`
       : `file://${folderName}/${name}.html${params}`;
 
+  console.log(modalPath, 'modalPath');
+
   return new Promise((resolve, reject) => {
     const win = new BrowserWindow({
       ...(getNewWindowLocation() || {}),
@@ -421,8 +423,13 @@ export const openLogView = (
 
 export const openCodeView = (
   processId: string,
+  file_path: string,
 ): Promise<Electron.BrowserWindow> => {
-  return openNewBrowserWindow(__dirname, 'code', `?processId=${processId}`);
+  return openNewBrowserWindow(
+    __dirname,
+    'code',
+    `?processId=${processId}&file_path=${file_path}`,
+  );
 };
 
 export const openJournalView = (
@@ -550,9 +557,13 @@ export const handleOpenCodeView = (
   config: KungfuApi.KfConfig | KungfuApi.KfLocation,
 ): Promise<Electron.BrowserWindow> => {
   const openMessage = message.loading(t('open_code_editor'));
-  return openCodeView(getProcessIdByKfLocation(config)).finally(() => {
-    openMessage();
-  });
+  const filepath = JSON.parse(config['value'])['file_path'];
+  console.log(filepath, 'filepath');
+  return openCodeView(getProcessIdByKfLocation(config), filepath).finally(
+    () => {
+      openMessage();
+    },
+  );
 };
 
 export const handleOpenJournalView = (

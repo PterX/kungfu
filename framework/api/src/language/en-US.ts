@@ -686,6 +686,9 @@ export default {
     illegal_character: 'The name cannot contain \\/:*?" <>|',
     delate_confirm: 'Are you sure to delete {value}?',
     cannot_delate_entry: 'Cannot delete the entry',
+    current: 'current',
+    operator: 'operator',
+    strategy: 'strategy',
   },
 
   logview: {

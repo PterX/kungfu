@@ -7,7 +7,7 @@ import {
 // import { KfCategoryTypes } from '@kungfu-trader/kungfu-js-api/typings/enums';
 
 interface ICodeState {
-  currentStrategy: Code.Strategy;
+  currentStrategy: Code.Icodeinfo;
   strategyList: KungfuApi.KfConfig[];
   currentFile: Code.FileData;
   entryFile: Code.FileData;
@@ -20,7 +20,7 @@ export const useCodeStore = defineStore('code', {
     return {
       currentStrategy: {
         add_time: 0,
-        strategy_id: '',
+        code_id: '',
         file_path: '',
       }, //当前运行策略
       strategyList: [], //策略列表
@@ -37,7 +37,7 @@ export const useCodeStore = defineStore('code', {
       this.fileTree = {};
     },
     //设置当前策略
-    setCurrentStrategy(strategy: Code.Strategy): void {
+    setCurrentStrategy(strategy: Code.Icodeinfo): void {
       this.currentStrategy = strategy;
     },
 

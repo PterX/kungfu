@@ -2,7 +2,7 @@ import { setKfConfig } from './store';
 import { getStrategyKfLocation, getKfConfig } from './store';
 export const getStrategyById = (
   strategyId: string,
-): Promise<Array<Code.Strategy>> => {
+): Promise<Array<Code.Icodeinfo>> => {
   return new Promise((resolve, reject) => {
     const strategyData: KungfuApi.KfConfig | false = getKfConfig(strategyId);
     if (!strategyData) {
@@ -10,7 +10,7 @@ export const getStrategyById = (
       return;
     }
 
-    const strategy: Array<Code.Strategy> = [
+    const strategy: Array<Code.Icodeinfo> = [
       { ...JSON.parse(strategyData.value || '{}') },
     ];
     resolve(strategy);
@@ -22,7 +22,7 @@ export const updateStrategyPath = async (
   strategyPath: string,
 ) => {
   let addTime = +new Date().getTime() * Math.pow(10, 6);
-  const strategyOld: Array<Code.Strategy> = await getStrategyById(strategyId);
+  const strategyOld: Array<Code.Icodeinfo> = await getStrategyById(strategyId);
   const kfLocation = getStrategyKfLocation(strategyId);
   if (strategyOld.length) {
     addTime = strategyOld[0].add_time;

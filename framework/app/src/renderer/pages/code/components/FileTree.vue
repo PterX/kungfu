@@ -1,17 +1,17 @@
 <template>
   <div class="file-tree">
-    <a-button
+    <!-- <a-button
       type="default"
       class="open-editor-folder"
       @click="handleBindStrategyFolder"
     >
       {{ $t('editor.set_strategy_entrance') }}
-    </a-button>
+    </a-button> -->
     <div class="file-tree-content">
-      <div class="strategy-name">
+      <div class="currentCode-name">
         <span class="name">
-          <span v-if="strategy">{{ strategy.strategy_id }}</span>
-          （{{ $t('editor.current_strategy') }})
+          <span v-if="currentCode">{{ currentCode.code_id }}</span>
+          ({{ $t('editor.current') + $t('editor.' + fileTreeType) }})
         </span>
         <span class="tree-deal-file">
           <span
@@ -41,7 +41,7 @@
               :fileNode="file"
               :id="file.id"
               type="folder"
-              @updateStrategyToApp="updateStrategyToApp"
+              :filePath="filePath"
             ></FileNode>
           </div>
         </div>
@@ -52,20 +52,20 @@
 
 <script lang="ts">
 export default {
-  emits: ['updateStrategy'],
+  // emits: ['updateStrategy'],
 };
 </script>
 <script setup lang="ts">
 import {
   watch,
   ref,
-  getCurrentInstance,
-  ComponentInternalInstance,
+  // getCurrentInstance,
+  // ComponentInternalInstance,
   toRefs,
 } from 'vue';
 import path from 'path';
 import { storeToRefs } from 'pinia';
-import { dialog } from '@electron/remote';
+// import { dialog } from '@electron/remote';
 import { getTreeByFilePath } from '../../../assets/methods/codeUtils';
 import { useCodeStore } from '../store/codeStore';
 import FileNode from './FileNode.vue';
@@ -73,23 +73,29 @@ import { findTargetFromArray } from '@kungfu-trader/kungfu-js-api/utils/busiUtil
 import { openFolder, buildFileObj } from '../../../assets/methods/codeUtils';
 
 import { FileAddFilled, FolderAddFilled } from '@ant-design/icons-vue';
-import { ipcEmitDataByName } from '../../../ipcMsg/emitter';
+// import { ipcEmitDataByName } from '../../../ipcMsg/emitter';
 import { messagePrompt } from '../../../assets/methods/uiUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 const { t } = VueI18n.global;
 
 const store = useCodeStore();
 const props = defineProps<{
-  strategy: Code.Strategy;
+  currentCode: Code.Icodeinfo;
+  fileTreeType: string;
+  filePath: string;
 }>();
-const { strategy } = toRefs(props);
+
+const { filePath } = props;
+const { currentCode, fileTreeType } = toRefs(props);
+
 const strategyPath = ref<string>('');
 const strategyPathName = ref<string>('');
-const { proxy } = getCurrentInstance() as ComponentInternalInstance;
+// const { proxy } = getCurrentInstance() as ComponentInternalInstance;
 const { currentFile, fileTree } = storeToRefs(useCodeStore());
-const { success, error } = messagePrompt();
+const { error } = messagePrompt();
 
-watch(strategy.value as Code.Strategy, (newStrategy) => {
+watch(currentCode.value as Code.Icodeinfo, (newStrategy) => {
+  console.log(newStrategy, 'newStrategy999999');
   getPath(newStrategy);
   initFileTree(newStrategy).then((fileItem) => {
     const entryPath: string = newStrategy.file_path;
@@ -108,38 +114,38 @@ watch(strategy.value as Code.Strategy, (newStrategy) => {
 });
 
 //绑定策略
-function handleBindStrategyFolder() {
-  dialog
-    .showOpenDialog({
-      properties: ['openFile'],
-    })
-    .then((strategyPath) => {
-      if (!strategyPath || !strategyPath.filePaths[0]) return;
-      if (!strategy.value?.strategy_id) return;
-      bindStrategyPath(strategyPath.filePaths[0]);
-    });
-}
+// function handleBindStrategyFolder() {
+//   dialog
+//     .showOpenDialog({
+//       properties: ['openFile'],
+//     })
+//     .then((strategyPath) => {
+//       if (!strategyPath || !strategyPath.filePaths[0]) return;
+//       if (!currentCode.value?.strategy_id) return;
+//       bindStrategyPath(strategyPath.filePaths[0]);
+//     });
+// }
 
 //bind data中path 与 sqlite中path
-async function bindStrategyPath(strategyPathNew) {
-  if (strategy && strategy.value.strategy_id) {
-    await ipcEmitDataByName('updateStrategyPath', {
-      strategyId: strategy.value.strategy_id,
-      strategyPath: strategyPathNew,
-    });
-    success(
-      t('editor.set_strategy_success', {
-        file: strategy.value.strategy_id,
-      }),
-    );
-    //每次更新path，需要通知root组件更新stratgy
-    updateStrategyToApp(strategyPathNew);
-  }
-}
+// async function bindStrategyPath(strategyPathNew) {
+//   if (currentCode && currentCode.value.strategy_id) {
+//     await ipcEmitDataByName('updateStrategyPath', {
+//       strategyId: currentCode.value.strategy_id,
+//       strategyPath: strategyPathNew,
+//     });
+//     success(
+//       t('editor.set_strategy_success', {
+//         file: currentCode.value.strategy_id,
+//       }),
+//     );
+//     //每次更新path，需要通知root组件更新stratgy
+//     updateStrategyToApp(strategyPathNew);
+//   }
+// }
 
-function updateStrategyToApp(strategyPath) {
-  proxy?.$emit('updateStrategy', strategyPath);
-}
+// function updateStrategyToApp(strategyPath) {
+//   proxy?.$emit('updateStrategy', strategyPath);
+// }
 
 //加文件夹
 function handleAddFolder() {
@@ -181,15 +187,15 @@ function handleAddFile() {
 }
 
 //从prop内获取path
-function getPath(strategy: Code.Strategy) {
-  if (strategy && strategy.file_path) {
+function getPath(currentCode: Code.Icodeinfo) {
+  if (currentCode && currentCode.file_path) {
     //因为绑定策略时是文件，需要提取其父目录
-    strategyPath.value = path.dirname(strategy.file_path);
+    strategyPath.value = path.dirname(currentCode.file_path);
     strategyPathName.value = path.basename(strategyPath.value);
   }
 }
-async function initFileTree(strategy) {
-  if (!strategy.strategy_id || !strategy.file_path) return;
+async function initFileTree(currentCode) {
+  if (!currentCode.strategy_id || !currentCode.file_path) return;
   //根文件夹得信息不像其他通过fs读取，而是直接从props的strategy中去取
   const rootId = window.fileId++;
 
@@ -253,7 +259,7 @@ function bindFunctionalNode(curFileTree) {
     margin: auto;
   }
 
-  .strategy-name {
+  .currentCode-name {
     font-size: 14px;
     font-weight: bolder;
     margin-top: 8px;
@@ -332,6 +338,15 @@ function bindFunctionalNode(curFileTree) {
         }
       }
     }
+  }
+}
+</style>
+
+<style lang="less" scoped>
+.file-tree {
+  padding-top: 0;
+  .currentCode-name {
+    margin-bottom: 8px;
   }
 }
 </style>

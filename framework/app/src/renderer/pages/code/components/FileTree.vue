@@ -78,6 +78,10 @@ import { FileAddFilled, FolderAddFilled } from '@ant-design/icons-vue';
 // import { ipcEmitDataByName } from '../../../ipcMsg/emitter';
 import { messagePrompt } from '../../../assets/methods/uiUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+import {
+  // messagePrompt,
+  removeLoadingMask,
+} from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 const { t } = VueI18n.global;
 
 const store = useCodeStore();
@@ -101,6 +105,7 @@ watch(currentNode.value as Code.Icodeinfo, (newStrategy) => {
   currrentcodePath.value = path.dirname(newStrategy.file_path);
   currrentcodePathName.value = path.basename(currrentcodePath.value);
   initFileTree(newStrategy).then((fileItem) => {
+    removeLoadingMask();
     const entryPath: string = newStrategy.file_path;
     const currentFile = findTargetFromArray<Code.FileData>(
       Object.values(fileItem),

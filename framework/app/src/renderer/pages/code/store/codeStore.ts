@@ -45,7 +45,7 @@ export const useCodeStore = defineStore('code', {
       this.strategyList = data;
     },
 
-    //策略编辑，设置当前文件
+    //编辑，设置当前文件
     setCurrentFile(file: Code.FileData): void {
       this.currentFile = file;
     },

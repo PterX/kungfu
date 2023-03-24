@@ -1,5 +1,5 @@
 <script setup lang="ts">
-//vue相关函数、组件等
+//vue生态相关
 import { onMounted, reactive, ref } from 'vue';
 import MainContentVue from './components/MainContent.vue';
 import Editor from './components/MonacoEditor.vue';
@@ -36,32 +36,33 @@ const filePath = ref<string>('');
 //将URL中带过来的路径存入filePath
 filePath.value = urlParmObj.file_path;
 
-function handleCodeList(strategyList): void {
-  const value: Code.Icodeinfo = strategyList[0];
+function handleCodeList(codeList): void {
+  console.log(codeList, 'codeList===');
+  const value: Code.Icodeinfo = codeList[0];
   currentNode.code_id = value.code_id;
   currentNode.file_path = value.file_path;
   currentNode.add_time = value.add_time;
   store.setCurrentStrategy(currentNode);
 }
 
-function handleUpdateCode(strategyPath) {
-  console.log(strategyPath, 'strategyPath=======');
+function handleUpdateCode(codeFullPath) {
+  console.log('app=====进来了吗');
   if (!currentNode.code_id) {
     error(t('code_id不存在!'));
     return;
   }
-  currentNode.file_path = strategyPath;
-  updateCodeByid(currentNode.code_id, strategyPath);
+  currentNode.file_path = codeFullPath;
+  updateCodeByid(currentNode.code_id, codeFullPath);
 }
 
-async function updateCodeByid(strategyId: string, strategyPath: string) {
-  await getCodeInfoById(strategyId);
+async function updateCodeByid(currentCodeId: string, codeFullPath: string) {
+  await getCodeInfoById(currentCodeId);
 }
 
 let shouldClose = false;
 
 async function getCodeInfoById(codeId: string) {
-  const { data } = (await ipcEmitDataByName('strategyById', {
+  const { data } = (await ipcEmitDataByName('CodeById', {
     codeId,
   })) as Record<string, Array<Code.Icodeinfo>>;
   handleCodeList(data);

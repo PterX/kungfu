@@ -51,8 +51,8 @@ export const removeKfConfig = (
   );
 };
 
-export const getKfConfig = (strategyId: string) => {
-  const kfLocation: KungfuApi.KfLocation = getStrategyKfLocation(strategyId);
+export const getKfConfig = (currentCodeId: string) => {
+  const kfLocation: KungfuApi.KfLocation = getCodeKfLocationByid(currentCodeId);
   return configStore.getConfig(
     kfLocation.category,
     kfLocation.group,
@@ -61,8 +61,8 @@ export const getKfConfig = (strategyId: string) => {
   );
 };
 
-export const getStrategyKfLocation = (strategyId: string) => {
-  const [category, name] = strategyId.split('_');
+export const getCodeKfLocationByid = (currentCodeId: string) => {
+  const [category, name] = currentCodeId && currentCodeId.split('_');
   return {
     category,
     group: 'default',

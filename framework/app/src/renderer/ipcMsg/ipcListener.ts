@@ -8,14 +8,14 @@ import { messagePrompt } from '../assets/methods/uiUtils';
 const { success, error } = messagePrompt();
 
 export function bindIPCListener(store) {
-  ipcRenderer.removeAllListeners('ipc-emit-strategyById');
-  ipcRenderer.on('ipc-emit-strategyById', (event, { childWinId, params }) => {
+  ipcRenderer.removeAllListeners('ipc-emit-CodeById');
+  ipcRenderer.on('ipc-emit-CodeById', (event, { childWinId, params }) => {
     const childWin = BrowserWindow.fromId(childWinId);
-    const { strategyId } = params;
-    return getCodeInfoById(strategyId)
+    const { codeId } = params;
+    return getCodeInfoById(codeId)
       .then((strategies) => {
         if (childWin) {
-          childWin.webContents.send('ipc-res-strategyById', strategies);
+          childWin.webContents.send('ipc-res-CodeById', strategies);
         }
       })
       .catch((err) => {

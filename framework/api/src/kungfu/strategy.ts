@@ -1,5 +1,5 @@
 import { setKfConfig } from './store';
-import { getStrategyKfLocation, getKfConfig } from './store';
+import { getCodeKfLocationByid, getKfConfig } from './store';
 export const getCodeInfoById = (
   strategyId: string,
 ): Promise<Array<Code.Icodeinfo>> => {
@@ -26,7 +26,7 @@ export const updateCurrentCodePath = async (
 ) => {
   let addTime = +new Date().getTime() * Math.pow(10, 6);
   const strategyOld: Array<Code.Icodeinfo> = await getCodeInfoById(codeId);
-  const kfLocation = getStrategyKfLocation(codeId);
+  const kfLocation = getCodeKfLocationByid(codeId);
   if (strategyOld.length) {
     addTime = strategyOld[0].add_time;
   }

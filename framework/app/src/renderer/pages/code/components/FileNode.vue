@@ -126,7 +126,7 @@
           :id="id"
           type="file"
           :count="childCount"
-          @updateStrategyToApp="updateStrategyToApp"
+          @updateCodeToApp="updateCodeToApp"
         />
       </div>
     </div>
@@ -136,7 +136,7 @@
 <script lang="ts">
 export default {
   name: 'ComFileNode',
-  emits: ['updateStrategyToApp'],
+  emits: ['updateCodeToApp'],
 };
 </script>
 
@@ -376,20 +376,22 @@ const handleEditFileBlur = () => {
       reloadFolder(parentId, newName);
     })
     .then(() => {
+      console.log(store.currentStrategy, newPath, 'store.currentStrategy');
       if (fileNode.value === entryFile.value || fileNode.value.isEntryFile) {
         ipcEmitDataByName('updateStrategyPath', {
           strategyId: store.currentStrategy.code_id,
           strategyPath: newPath,
         }).then(() => {
-          updateStrategyToApp(newPath);
+          console.log('修改入口文件名称可以成功吗？');
+          updateCodeToApp(newPath);
         });
       }
     });
   editValue.value = '';
 };
 
-function updateStrategyToApp(newPath) {
-  proxy?.$emit('updateStrategyToApp', newPath);
+function updateCodeToApp(newPath) {
+  proxy?.$emit('updateCodeToApp', newPath);
 }
 
 //重制状态

@@ -44,7 +44,7 @@
               :id="file.id"
               type="folder"
               :filePath="filePath"
-              @updateStrategyToApp="updateStrategyToApp"
+              @updateCodeToApp="updateCodeToApp"
             ></FileNode>
           </div>
         </div>
@@ -55,7 +55,7 @@
 
 <script lang="ts">
 export default {
-  emits: ['updateStrategy'],
+  emits: ['updateCode'],
 };
 </script>
 <script setup lang="ts">
@@ -137,12 +137,12 @@ watch(currentNode as Code.Icodeinfo, (newCurrentNode) => {
 //       }),
 //     );
 //     //每次更新path，需要通知root组件更新stratgy
-//     updateStrategyToApp(strategyPathNew);
+//     updateCodeToApp(strategyPathNew);
 //   }
 // }
 
-function updateStrategyToApp(strategyPath) {
-  proxy?.$emit('updateStrategy', strategyPath);
+function updateCodeToApp(strategyPath) {
+  proxy?.$emit('updateCode', strategyPath);
 }
 
 //加文件夹

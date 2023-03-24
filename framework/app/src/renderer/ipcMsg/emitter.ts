@@ -23,7 +23,7 @@ export const ipcEmitDataByName = (
       childWinId: currentWin.id,
       params: Object.freeze(postData || {}),
     });
-
+    console.log(interval, 'interval----');
     const timer = setTimeout(() => {
       reject(new Error(`ipc-emit-${name} timeout`));
       ipcRenderer.removeAllListeners(`ipc-res-${name}`);

@@ -6,13 +6,16 @@ import Editor from './components/MonacoEditor.vue';
 import FileTree from './components/FileTree.vue';
 //公共函数，用来获取跳转过来的URL中携带的参数，用来给窗口设置标题
 import { getUrlParams } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/codeUtils';
-import { setHtmlTitle } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
+import {
+  setHtmlTitle,
+  messagePrompt,
+} from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 
 import { useCodeStore } from './store/codeStore';
 import { ipcEmitDataByName } from '../../../renderer/ipcMsg/emitter';
-// import VueI18n from '@kungfu-trader/kungfu-js-api/language';
-// const { t } = VueI18n.global;
-// const { error } = messagePrompt();
+import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+const { t } = VueI18n.global;
+const { error } = messagePrompt();
 const store = useCodeStore();
 
 //获取到当前的URL中的参数，然后通过processId字段给窗口设置标题
@@ -33,36 +36,35 @@ const filePath = ref<string>('');
 //将URL中带过来的路径存入filePath
 filePath.value = urlParmObj.file_path;
 
-// 处理Object格式strageList
-function handleStrategyList(strategyList): void {
+function handleCodeList(strategyList): void {
   const value: Code.Icodeinfo = strategyList[0];
-
   currentNode.code_id = value.code_id;
   currentNode.file_path = value.file_path;
   currentNode.add_time = value.add_time;
   store.setCurrentStrategy(currentNode);
 }
 
-// function handleUpdateStrategy(strategyPath) {
-// if (!currentNode.code_id) {
-//   error(t('code_id不存在!'));
-//   return;
-// }
-// currentNode.file_path = strategyPath;
-// updateStrategy(currentNode.code_id, strategyPath);
-// }
+function handleUpdateCode(strategyPath) {
+  console.log(strategyPath, 'strategyPath=======');
+  if (!currentNode.code_id) {
+    error(t('code_id不存在!'));
+    return;
+  }
+  currentNode.file_path = strategyPath;
+  updateCodeByid(currentNode.code_id, strategyPath);
+}
 
-async function updateStrategy(strategyId: string, strategyPath: string) {
-  await getStrategyById(strategyId);
+async function updateCodeByid(strategyId: string, strategyPath: string) {
+  await getCodeInfoById(strategyId);
 }
 
 let shouldClose = false;
 
-async function getStrategyById(strategyId: string) {
+async function getCodeInfoById(strategyId: string) {
   const { data } = (await ipcEmitDataByName('strategyById', {
     strategyId,
   })) as Record<string, Array<Code.Icodeinfo>>;
-  handleStrategyList(data);
+  handleCodeList(data);
 }
 
 //绑定窗口关闭事件
@@ -103,7 +105,7 @@ onMounted(() => {
           :filePath="filePath"
           :fileTreeType="fileTreeType"
           :currentNode="currentNode"
-          @updateStrategy="updateStrategy"
+          @updateCode="handleUpdateCode"
         ></FileTree>
         <Editor class="editor" ref="code-editor"></Editor>
       </div>

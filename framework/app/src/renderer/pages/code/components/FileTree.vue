@@ -44,6 +44,7 @@
               :id="file.id"
               type="folder"
               :filePath="filePath"
+              @updateStrategyToApp="updateStrategyToApp"
             ></FileNode>
           </div>
         </div>
@@ -54,12 +55,12 @@
 
 <script lang="ts">
 export default {
-  // emits: ['updateStrategy'],
+  emits: ['updateStrategy'],
 };
 </script>
 <script setup lang="ts">
 // vue生态相关
-import { watch, ref } from 'vue';
+import { watch, ref, getCurrentInstance, ComponentInternalInstance } from 'vue';
 import FileNode from './FileNode.vue';
 import { storeToRefs } from 'pinia';
 import { useCodeStore } from '../store/codeStore';
@@ -87,7 +88,7 @@ const { filePath, currentNode } = props;
 const currrentcodePath = ref<string>('');
 const currrentcodePathName = ref<string>('');
 // const currrentFileTree = ref<Code.IFileTree>({});
-// const { proxy } = getCurrentInstance() as ComponentInternalInstance;
+const { proxy } = getCurrentInstance() as ComponentInternalInstance;
 const { currentFile, fileTree } = storeToRefs(useCodeStore());
 const { error } = messagePrompt();
 
@@ -140,9 +141,9 @@ watch(currentNode as Code.Icodeinfo, (newCurrentNode) => {
 //   }
 // }
 
-// function updateStrategyToApp(strategyPath) {
-//   proxy?.$emit('updateStrategy', strategyPath);
-// }
+function updateStrategyToApp(strategyPath) {
+  proxy?.$emit('updateStrategy', strategyPath);
+}
 
 //加文件夹
 function handleAddFolder() {

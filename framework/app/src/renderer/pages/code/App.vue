@@ -8,12 +8,12 @@ import FileTree from './components/FileTree.vue';
 import { getUrlParams } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/codeUtils';
 import { setHtmlTitle } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 
-// import { useCodeStore } from './store/codeStore';
-// import { ipcEmitDataByName } from '../../../renderer/ipcMsg/emitter';
+import { useCodeStore } from './store/codeStore';
+import { ipcEmitDataByName } from '../../../renderer/ipcMsg/emitter';
 // import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 // const { t } = VueI18n.global;
 // const { error } = messagePrompt();
-// const store = useCodeStore();
+const store = useCodeStore();
 
 //获取到当前的URL中的参数，然后通过processId字段给窗口设置标题
 const urlParmObj = getUrlParams();
@@ -34,14 +34,14 @@ const filePath = ref<string>('');
 filePath.value = urlParmObj.file_path;
 
 // 处理Object格式strageList
-// function handleStrategyList(strategyList): void {
-//   const value: Code.Icodeinfo = strategyList[0];
+function handleStrategyList(strategyList): void {
+  const value: Code.Icodeinfo = strategyList[0];
 
-//   currentNode.code_id = value.code_id;
-//   currentNode.file_path = value.file_path;
-//   currentNode.add_time = value.add_time;
-//   store.setCurrentStrategy(currentNode);
-// }
+  currentNode.code_id = value.code_id;
+  currentNode.file_path = value.file_path;
+  currentNode.add_time = value.add_time;
+  store.setCurrentStrategy(currentNode);
+}
 
 // function handleUpdateStrategy(strategyPath) {
 // if (!currentNode.code_id) {
@@ -52,18 +52,18 @@ filePath.value = urlParmObj.file_path;
 // updateStrategy(currentNode.code_id, strategyPath);
 // }
 
-// async function updateStrategy(strategyId: string, strategyPath: string) {
-//   await getStrategyById(strategyId);
-// }
+async function updateStrategy(strategyId: string, strategyPath: string) {
+  await getStrategyById(strategyId);
+}
 
 let shouldClose = false;
 
-// async function getStrategyById(strategyId: string) {
-//   const { data } = (await ipcEmitDataByName('strategyById', {
-//     strategyId,
-//   })) as Record<string, Array<Code.Icodeinfo>>;
-//   handleStrategyList(data);
-// }
+async function getStrategyById(strategyId: string) {
+  const { data } = (await ipcEmitDataByName('strategyById', {
+    strategyId,
+  })) as Record<string, Array<Code.Icodeinfo>>;
+  handleStrategyList(data);
+}
 
 //绑定窗口关闭事件
 function bindCloseWindowEvent() {
@@ -88,6 +88,7 @@ onMounted(() => {
   currentNode.code_id = urlParmObj.processId;
   currentNode.file_path = urlParmObj.file_path;
   currentNode.add_time = new Date().getTime();
+  store.setCurrentStrategy(currentNode);
   const categoryStr = urlParmObj.processId.split('_')[0];
   fileTreeType.value = categoryStr;
   bindCloseWindowEvent();
@@ -102,6 +103,7 @@ onMounted(() => {
           :filePath="filePath"
           :fileTreeType="fileTreeType"
           :currentNode="currentNode"
+          @updateStrategy="updateStrategy"
         ></FileTree>
         <Editor class="editor" ref="code-editor"></Editor>
       </div>

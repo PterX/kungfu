@@ -62,10 +62,11 @@ export const getKfConfig = (strategyId: string) => {
 };
 
 export const getStrategyKfLocation = (strategyId: string) => {
+  const [category, name] = strategyId.split('_');
   return {
-    category: 'strategy',
+    category,
     group: 'default',
-    name: strategyId,
+    name: name,
     mode: 'live',
   };
 };

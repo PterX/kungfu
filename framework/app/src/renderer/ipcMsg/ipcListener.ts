@@ -1,6 +1,6 @@
 import { ipcRenderer } from 'electron';
 import {
-  getStrategyById,
+  getCodeInfoById,
   updateCurrentCodePath,
 } from '@kungfu-trader/kungfu-js-api/kungfu/strategy';
 import { BrowserWindow } from '@electron/remote';
@@ -12,7 +12,7 @@ export function bindIPCListener(store) {
   ipcRenderer.on('ipc-emit-strategyById', (event, { childWinId, params }) => {
     const childWin = BrowserWindow.fromId(childWinId);
     const { strategyId } = params;
-    return getStrategyById(strategyId)
+    return getCodeInfoById(strategyId)
       .then((strategies) => {
         if (childWin) {
           childWin.webContents.send('ipc-res-strategyById', strategies);
@@ -28,8 +28,9 @@ export function bindIPCListener(store) {
     'ipc-emit-updateCurrentCodePath',
     (event, { childWinId, params }) => {
       const childWin = BrowserWindow.fromId(childWinId);
-      const { strategyId, strategyPath } = params;
-      return updateCurrentCodePath(strategyId, strategyPath).then(() => {
+      console.log(params, 'paramsparamsparams');
+      const { codeId, fileNewPath } = params;
+      return updateCurrentCodePath(codeId, fileNewPath).then(() => {
         store.setKfConfigList();
         success();
         if (childWin) {
@@ -44,7 +45,6 @@ export function bindIPCListener(store) {
     const childWin = BrowserWindow.fromId(childWinId);
     return new Promise(() => {
       if (childWin) {
-        console.log(store, '什么store====?');
         childWin.webContents.send('ipc-res-strategyList', store.strategyList);
       }
     });

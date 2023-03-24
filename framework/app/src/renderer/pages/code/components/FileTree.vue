@@ -36,7 +36,7 @@
       </div>
       <div class="file-tree-body" v-if="currrentcodePath">
         <div class="scroll-view">
-          <div v-for="file in currrentFileTree">
+          <div v-for="file in fileTree">
             <FileNode
               v-if="file.root"
               :count="0"
@@ -97,7 +97,7 @@ const { currentNode, fileTreeType } = toRefs(props);
 
 const currrentcodePath = ref<string>('');
 const currrentcodePathName = ref<string>('');
-const currrentFileTree = ref<Code.IFileTree>({});
+// const currrentFileTree = ref<Code.IFileTree>({});
 const { proxy } = getCurrentInstance() as ComponentInternalInstance;
 const { currentFile, fileTree } = storeToRefs(useCodeStore());
 const { error } = messagePrompt();
@@ -236,7 +236,7 @@ async function initFileTree(currentNode) {
   rootFileTree[rootId] = rootFile;
   // padding
   rootFileTree = bindFunctionalNode(rootFileTree);
-  currrentFileTree.value = rootFileTree;
+  // currrentFileTree.value = rootFileTree;
   store.setFileTree(rootFileTree);
   store.setCurrentFile(rootFile);
 

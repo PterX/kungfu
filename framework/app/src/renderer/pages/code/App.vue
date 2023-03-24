@@ -34,10 +34,9 @@ const fileTreeType = ref<string>('');
 //filePath用来存入当前点击编辑按钮选中的文件路径
 const filePath = ref<string>('');
 //将URL中带过来的路径存入filePath
-filePath.value = urlParmObj.file_path;
+filePath.value = decodeURI(urlParmObj.file_path);
 
 function handleCodeList(codeList): void {
-  console.log(codeList, 'codeList===');
   const value: Code.Icodeinfo = codeList[0];
   currentNode.code_id = value.code_id;
   currentNode.file_path = value.file_path;
@@ -46,7 +45,6 @@ function handleCodeList(codeList): void {
 }
 
 function handleUpdateCode(codeFullPath) {
-  console.log('app=====进来了吗');
   if (!currentNode.code_id) {
     error(t('code_id不存在!'));
     return;
@@ -89,7 +87,7 @@ function bindCloseWindowEvent() {
 //当前组件一挂载到页面上以后，将URL中拿到的数据源设置给currentNode。然后传给子组件FileTree
 onMounted(() => {
   currentNode.code_id = urlParmObj.processId;
-  currentNode.file_path = urlParmObj.file_path;
+  currentNode.file_path = decodeURI(urlParmObj.file_path);
   currentNode.add_time = new Date().getTime();
   store.setCurrentStrategy(currentNode);
   const categoryStr = urlParmObj.processId.split('_')[0];

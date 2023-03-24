@@ -556,7 +556,6 @@ export const handleOpenCodeView = (
 ): Promise<Electron.BrowserWindow> => {
   const openMessage = message.loading(t('open_code_editor'));
   const filepath = JSON.parse(config['value'])['file_path'];
-  console.log(filepath, 'filepath');
   return openCodeView(getProcessIdByKfLocation(config), filepath).finally(
     () => {
       openMessage();

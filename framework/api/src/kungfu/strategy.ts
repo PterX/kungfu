@@ -1,13 +1,10 @@
 import { setKfConfig } from './store';
 import { getCodeKfLocationByid, getKfConfig } from './store';
 export const getCodeInfoById = (
-  strategyId: string,
+  codeId: string,
 ): Promise<Array<Code.Icodeinfo>> => {
-  console.log(strategyId, 'strategyIdstrategyIdstrategyIdstrategyId');
   return new Promise((resolve, reject) => {
-    const strategyData: KungfuApi.KfConfig | false = getKfConfig(strategyId);
-    console.log(strategyData, 'strategyDatastrategyDatastrategyData');
-
+    const strategyData: KungfuApi.KfConfig | false = getKfConfig(codeId);
     if (!strategyData) {
       reject(new Error('Failed to get strategy'));
       return;

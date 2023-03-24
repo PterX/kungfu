@@ -28,7 +28,6 @@ export function bindIPCListener(store) {
     'ipc-emit-updateCurrentCodePath',
     (event, { childWinId, params }) => {
       const childWin = BrowserWindow.fromId(childWinId);
-      console.log(params, 'paramsparamsparams');
       const { codeId, fileNewPath } = params;
       return updateCurrentCodePath(codeId, fileNewPath).then(() => {
         store.setKfConfigList();

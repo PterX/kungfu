@@ -1109,6 +1109,11 @@ declare namespace Code {
     add_time: number;
   }
 
+  export interface IurlInfo {
+    file_path: string;
+    processId: string;
+  }
+
   export interface FileProps {
     root?: boolean;
     filePath?: string;

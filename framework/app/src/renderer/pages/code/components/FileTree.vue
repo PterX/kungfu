@@ -44,7 +44,6 @@
               :id="file.id"
               type="folder"
               :filePath="filePath"
-              @updateStrategyToApp="updateStrategyToApp"
             ></FileNode>
           </div>
         </div>
@@ -55,59 +54,49 @@
 
 <script lang="ts">
 export default {
-  emits: ['updateStrategy'],
+  // emits: ['updateStrategy'],
 };
 </script>
 <script setup lang="ts">
-import {
-  watch,
-  ref,
-  getCurrentInstance,
-  ComponentInternalInstance,
-  toRefs,
-} from 'vue';
-import path from 'path';
-import { storeToRefs } from 'pinia';
-// import { dialog } from '@electron/remote';
-import { getTreeByFilePath } from '../../../assets/methods/codeUtils';
-import { useCodeStore } from '../store/codeStore';
+// vue生态相关
+import { watch, ref } from 'vue';
 import FileNode from './FileNode.vue';
+import { storeToRefs } from 'pinia';
+import { useCodeStore } from '../store/codeStore';
+//node生态相关
+import path from 'path';
+//ant-design组件
+import { FileAddFilled, FolderAddFilled } from '@ant-design/icons-vue';
+//功夫自定义公共函数
+import { getTreeByFilePath } from '../../../assets/methods/codeUtils';
 import { findTargetFromArray } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { openFolder, buildFileObj } from '../../../assets/methods/codeUtils';
-
-import { FileAddFilled, FolderAddFilled } from '@ant-design/icons-vue';
-// import { ipcEmitDataByName } from '../../../ipcMsg/emitter';
 import { messagePrompt } from '../../../assets/methods/uiUtils';
-import VueI18n from '@kungfu-trader/kungfu-js-api/language';
-import {
-  // messagePrompt,
-  removeLoadingMask,
-} from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
-const { t } = VueI18n.global;
+import { removeLoadingMask } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 
+//code编辑器使用的store
 const store = useCodeStore();
+//定义props，以及数据类型
 const props = defineProps<{
   currentNode: Code.Icodeinfo;
   fileTreeType: string;
   filePath: string;
 }>();
-
-const { filePath } = props;
-const { currentNode, fileTreeType } = toRefs(props);
-
+//从props解构出来filePath
+const { filePath, currentNode } = props;
 const currrentcodePath = ref<string>('');
 const currrentcodePathName = ref<string>('');
 // const currrentFileTree = ref<Code.IFileTree>({});
-const { proxy } = getCurrentInstance() as ComponentInternalInstance;
+// const { proxy } = getCurrentInstance() as ComponentInternalInstance;
 const { currentFile, fileTree } = storeToRefs(useCodeStore());
 const { error } = messagePrompt();
 
-watch(currentNode.value as Code.Icodeinfo, (newStrategy) => {
-  currrentcodePath.value = path.dirname(newStrategy.file_path);
+//监视currentNode，拿到最新的的数据然后初始化左侧的文件树
+watch(currentNode as Code.Icodeinfo, (newCurrentNode) => {
+  currrentcodePath.value = path.dirname(newCurrentNode.file_path);
   currrentcodePathName.value = path.basename(currrentcodePath.value);
-  initFileTree(newStrategy).then((fileItem) => {
-    removeLoadingMask();
-    const entryPath: string = newStrategy.file_path;
+  initFileTree(newCurrentNode).then((fileItem) => {
+    const entryPath: string = newCurrentNode.file_path;
     const currentFile = findTargetFromArray<Code.FileData>(
       Object.values(fileItem),
       'filePath',
@@ -117,6 +106,7 @@ watch(currentNode.value as Code.Icodeinfo, (newStrategy) => {
       store.setEntryFile(currentFile);
       store.setCurrentFile(currentFile);
     }
+    removeLoadingMask();
   });
 });
 
@@ -150,9 +140,9 @@ watch(currentNode.value as Code.Icodeinfo, (newStrategy) => {
 //   }
 // }
 
-function updateStrategyToApp(strategyPath) {
-  proxy?.$emit('updateStrategy', strategyPath);
-}
+// function updateStrategyToApp(strategyPath) {
+//   proxy?.$emit('updateStrategy', strategyPath);
+// }
 
 //加文件夹
 function handleAddFolder() {
@@ -203,9 +193,7 @@ function handleAddFile() {
 // }
 async function initFileTree(currentNode) {
   if (!currentNode.code_id || !currentNode.file_path) return;
-  //根文件夹得信息不像其他通过fs读取，而是直接从props的strategy中去取
   const rootId = window.fileId++;
-
   const rootFile: Code.FileData = buildFileObj({
     id: rootId,
     parentId: 0,

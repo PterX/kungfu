@@ -317,24 +317,30 @@ function handleDelete() {
     fileNode.value.filePath !== entryFile.value.filePath
   ) {
     const parentId = fileNode.value?.parentId;
-    const typeName = type == 'folder' ? t('folder') : t('file');
+    const typeName = type == 'folder' ? 'folder' : 'file';
+    confirmModal(t('prompt'), t(`editor.delate_${typeName}_confirm`)).then(
+      (flag) => {
+        if (!flag) return;
 
-    confirmModal(t('prompt'), t('editor.delate_confirm')).then((flag) => {
-      if (!flag) return;
-
-      removeFileFolder(fileNode.value?.filePath || '')
-        .then(() => {
-          store.setCurrentFile(entryFile.value);
-        })
-        .then(() =>
-          openFolder(fileTree.value[parentId || 0], fileTree.value, true, true),
-        )
-        .then(() => success(`${typeName}${t('operation_success')}`))
-        .catch((err) => {
-          if (err == 'cancel') return;
-          error(err.message || t('operation_failed'));
-        });
-    });
+        removeFileFolder(fileNode.value?.filePath || '')
+          .then(() => {
+            store.setCurrentFile(entryFile.value);
+          })
+          .then(() =>
+            openFolder(
+              fileTree.value[parentId || 0],
+              fileTree.value,
+              true,
+              true,
+            ),
+          )
+          .then(() => success(`${typeName}${t('operation_success')}`))
+          .catch((err) => {
+            if (err == 'cancel') return;
+            error(err.message || t('operation_failed'));
+          });
+      },
+    );
   } else {
     warning(t('editor.cannot_delate_entry'));
     return;

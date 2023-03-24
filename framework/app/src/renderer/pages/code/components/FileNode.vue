@@ -384,7 +384,7 @@ const handleEditFileBlur = () => {
     .then(() => {
       if (fileNode.value === entryFile.value || fileNode.value.isEntryFile) {
         ipcEmitDataByName('updateCurrentCodePath', {
-          codeId: store.currentStrategy.code_id,
+          codeId: store.currentCodeInfo.code_id,
           fileNewPath: newPath,
         }).then(() => {
           updateCodeToApp(newPath);

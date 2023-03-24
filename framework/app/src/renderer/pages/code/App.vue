@@ -41,7 +41,7 @@ function handleCodeList(codeList): void {
   currentNode.code_id = value.code_id;
   currentNode.file_path = value.file_path;
   currentNode.add_time = value.add_time;
-  store.setCurrentStrategy(currentNode);
+  store.setCurrentCode(currentNode);
 }
 
 function handleUpdateCode(codeFullPath) {
@@ -89,7 +89,7 @@ onMounted(() => {
   currentNode.code_id = urlParmObj.processId;
   currentNode.file_path = decodeURI(urlParmObj.file_path);
   currentNode.add_time = new Date().getTime();
-  store.setCurrentStrategy(currentNode);
+  store.setCurrentCode(currentNode);
   const categoryStr = urlParmObj.processId.split('_')[0];
   fileTreeType.value = categoryStr;
   bindCloseWindowEvent();

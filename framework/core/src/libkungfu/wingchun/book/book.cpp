@@ -28,7 +28,7 @@ double Book::get_frozen_price(uint64_t order_id) {
 
 void Book::ensure_position(const InstrumentKey &instrument_key) {
   if (is_shortable(instrument_key.instrument_type)) {
-    auto &short_position = get_position_for(Direction::Short, instrument_key);
+    const auto &short_position = get_position_for(Direction::Short, instrument_key);
     assert(short_position.volume >= 0);
   }
   auto &long_position = get_position_for(Direction::Long, instrument_key);
@@ -114,13 +114,21 @@ void Book::update(int64_t update_time) {
     if (!is_stock)
       is_stock_acct = false;
     auto is_future = position.instrument_type == InstrumentType::Future;
+
+    double db_exchage_rate = 1.0;
+    auto hashed_instrument_key = hash_instrument(position.exchange_id, position.instrument_id);
+    if (instruments.find(hashed_instrument_key) != instruments.end()) {
+      auto &instrument = instruments.at(hashed_instrument_key);
+      db_exchage_rate = is_equal(instrument.exchange_rate, 0.0) ? 1.0 : instrument.exchange_rate;
+    }
+
     auto position_market_value =
-        position.volume * (position.last_price > 0 ? position.last_price : position.avg_open_price);
+        position.volume * (position.last_price > 0 ? position.last_price : position.avg_open_price) * db_exchage_rate;
     margin += position.margin;
 
     if (!(is_stock and position.direction == Direction::Short)) {
       asset.market_value += position_market_value;
-      asset.unrealized_pnl += position.unrealized_pnl;
+      asset.unrealized_pnl += position.unrealized_pnl * db_exchage_rate;
     }
     if (is_stock) {
       if (position.direction == Direction::Long) {
@@ -130,7 +138,7 @@ void Book::update(int64_t update_time) {
       }
 
     } else if (is_future) {
-      asset.dynamic_equity += position.margin + position.position_pnl;
+      asset.dynamic_equity += position.margin + position.position_pnl * db_exchage_rate;
     }
   };
 

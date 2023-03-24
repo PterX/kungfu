@@ -23,6 +23,7 @@ import {
   StrategyExtTypes,
   OrderInputKeyEnum,
   LedgerCategoryEnum,
+  CurrencyEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
   getKfCategoryData,
@@ -49,7 +50,7 @@ import {
   isCheckVersionLogicEnable,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { BasketVolumeType } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
-import { writeCSV } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
+import { writeCsvWithUTF8Bom } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
 import {
   isAllMainProcessRunning,
   Pm2ProcessStatusData,
@@ -510,15 +511,31 @@ export const useDealExportHistoryTradingData = (): {
       );
 
       return Promise.all([
-        writeCSV(ordersFilename, orders, dealTradingDataItemResolved()),
-        writeCSV(tradesFilename, trades, dealTradingDataItemResolved()),
-        writeCSV(
+        writeCsvWithUTF8Bom(
+          ordersFilename,
+          orders,
+          dealTradingDataItemResolved(),
+        ),
+        writeCsvWithUTF8Bom(
+          tradesFilename,
+          trades,
+          dealTradingDataItemResolved(),
+        ),
+        writeCsvWithUTF8Bom(
           orderStatFilename,
           orderStat,
           dealTradingDataItemResolved(true),
         ),
-        writeCSV(posFilename, positions, dealTradingDataItemResolved()),
-        writeCSV(assetFilename, assets, dealTradingDataItemResolved()),
+        writeCsvWithUTF8Bom(
+          posFilename,
+          positions,
+          dealTradingDataItemResolved(),
+        ),
+        writeCsvWithUTF8Bom(
+          assetFilename,
+          assets,
+          dealTradingDataItemResolved(),
+        ),
       ])
         .then(() => {
           shell.showItemInFolder(ordersFilename);
@@ -597,7 +614,11 @@ export const useDealExportHistoryTradingData = (): {
         tradingDataType.toLowerCase(),
       );
 
-    return writeCSV(filename, exportDatas, dealTradingDataItemResolved())
+    return writeCsvWithUTF8Bom(
+      filename,
+      exportDatas,
+      dealTradingDataItemResolved(),
+    )
       .then(() => {
         shell.showItemInFolder(filename);
         success();
@@ -957,10 +978,10 @@ export const usePreStartAndQuitApp = (): {
     return Promise.resolve();
   };
 
-  onMounted(() => {
+  onMounted(async () => {
     if (
       booleanProcessEnv(process.env.RELOAD_AFTER_CRASHED) &&
-      isAllMainProcessRunning()
+      (await isAllMainProcessRunning())
     ) {
       preStartSystemLoadingData.archive = 'done';
       preStartSystemLoadingData.extraResourcesLoading = 'done';
@@ -1414,8 +1435,42 @@ export const useActiveInstruments = () => {
     }
   };
 
+  const getInstrumentByIdsWithWatcher = (
+    instrumentId: string,
+    exchangeId: string,
+  ) => {
+    const ukey = hashInstrumentUKey(instrumentId, exchangeId);
+    const watcher = window.watcher as KungfuApi.Watcher;
+    const instrument = watcher.ledger.Instrument[ukey];
+    if (instrument) return instrument;
+
+    const instruments = watcher.ledger.Instrument.filter(
+      'instrument_id',
+      instrumentId,
+    )
+      .filter('exchange_id', exchangeId)
+      .list();
+    if (instruments.length) return instruments[0];
+
+    return null;
+  };
+
+  const getInstrumentCurrencyByIds = (
+    instrumentId: string,
+    exchangeId: string,
+  ) => {
+    const instrument = getInstrumentByIdsWithWatcher(instrumentId, exchangeId);
+    if (instrument) {
+      return instrument.currency_type;
+    }
+
+    return CurrencyEnum.Unknown;
+  };
+
   return {
     getInstrumentByIds,
+    getInstrumentByIdsWithWatcher,
+    getInstrumentCurrencyByIds,
   };
 };
 

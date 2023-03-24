@@ -12,6 +12,9 @@
 #include <kungfu/yijinjing/time.h>
 
 namespace kungfu::yijinjing::journal {
+using namespace kungfu::longfist::enums;
+using namespace kungfu::longfist::types;
+
 struct noop_publisher : public publisher {
   noop_publisher() = default;
   bool is_usable() override { return true; }

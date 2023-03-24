@@ -20,6 +20,8 @@ Runner::Runner(locator_ptr locator, const std::string &group, const std::string 
     : apprentice(location::make_shared(m, category::STRATEGY, group, name, std::move(locator)), low_latency),
       positions_set_(m == mode::BACKTEST), started_(m == mode::BACKTEST), arguments_(arguments) {}
 
+Runner::~Runner() { context_.reset(); }
+
 RuntimeContext_ptr Runner::get_context() const { return context_; }
 
 RuntimeContext_ptr Runner::make_context() { return std::make_shared<RuntimeContext>(*this, events_); }
@@ -138,7 +140,7 @@ void Runner::prepare(const event_ptr &event) {
   }
   auto writer = get_writer(ledger_uid);
 
-  auto connected_test = [&](auto &locations) {
+  auto connected_test = [&](const auto &locations) {
     for (const auto &pair : locations) {
       if (not context_->get_broker_client().is_connected(pair.second->uid)) {
         return false;
@@ -153,7 +155,7 @@ void Runner::prepare(const event_ptr &event) {
     broker_states_requested_ = true;
   }
 
-  auto ready_test = [&](auto &locations) {
+  auto ready_test = [&](const auto &locations) {
     for (const auto &pair : locations) {
       if (not context_->get_broker_client().is_ready(pair.second->uid)) {
         return false;

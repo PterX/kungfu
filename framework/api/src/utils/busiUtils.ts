@@ -58,6 +58,7 @@ import {
   StrategyStateStatusEnum,
   UnderweightEnum,
   PriceLevelEnum,
+  CurrencyEnum,
 } from '../typings/enums';
 import {
   graceDeleteProcess,
@@ -84,7 +85,10 @@ import VueI18n, { useLanguage } from '../language';
 import { unlinkSync } from 'fs-extra';
 import { T0T1Config } from '../typings/global';
 import { getKfGlobalSettingsValue } from '../config/globalSettings';
+import { Currency } from '../config/tradingConfig';
 const { t } = VueI18n.global;
+import { Observable } from 'rxjs';
+
 interface SourceAccountId {
   source: string;
   id: string;
@@ -1374,6 +1378,9 @@ export const dealVolumeByInstrumentType = (
 ) => {
   const minOrderVolume = InstrumentMinOrderVolume[instrumentType] || 1;
   const orderVolume = Math.max(volume, minOrderVolume);
+
+  if (instrumentType === InstrumentTypeEnum.techstock) return orderVolume;
+
   return ~~(orderVolume / minOrderVolume) * minOrderVolume;
 };
 
@@ -1474,6 +1481,10 @@ export const dealIsSwap = (isSwap: boolean) => {
 
 export const dealUnderweightType = (underweightType: UnderweightEnum) => {
   return UnderweightType[+underweightType as UnderweightEnum];
+};
+
+export const dealCurrency = (currency: CurrencyEnum | number) => {
+  return Currency[+currency as CurrencyEnum];
 };
 
 export const getKfCategoryData = (
@@ -2276,4 +2287,16 @@ export const isCheckVersionLogicEnable = () => {
   const updateVersionLogicEnable = isUpdateVersionLogicEnable();
   const globalSetting = getKfGlobalSettingsValue();
   return updateVersionLogicEnable && !!globalSetting?.update?.isCheckVersion;
+};
+
+export const buildIfWatcherLiveObservable = (watcher: KungfuApi.Watcher) => {
+  return new Observable<boolean>((sub) => {
+    const timer = setTimerPromiseTask(async () => {
+      if (watcher.isLive()) {
+        sub.next(true);
+        sub.complete();
+        timer.clearLoop();
+      }
+    }, 1000);
+  });
 };

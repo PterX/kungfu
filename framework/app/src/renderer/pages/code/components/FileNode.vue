@@ -334,7 +334,7 @@ function handleDelete() {
               true,
             ),
           )
-          .then(() => success(`${typeName}${t('operation_success')}`))
+          .then(() => success(`${t(typeName)}${t('operation_success')}`))
           .catch((err) => {
             if (err == 'cancel') return;
             error(err.message || t('operation_failed'));

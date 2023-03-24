@@ -3,8 +3,11 @@ import { getStrategyKfLocation, getKfConfig } from './store';
 export const getStrategyById = (
   strategyId: string,
 ): Promise<Array<Code.Icodeinfo>> => {
+  console.log(strategyId, 'strategyIdstrategyIdstrategyIdstrategyId');
   return new Promise((resolve, reject) => {
     const strategyData: KungfuApi.KfConfig | false = getKfConfig(strategyId);
+    console.log(strategyData, 'strategyDatastrategyDatastrategyData');
+
     if (!strategyData) {
       reject(new Error('Failed to get strategy'));
       return;
@@ -17,7 +20,7 @@ export const getStrategyById = (
   });
 };
 
-export const updateStrategyPath = async (
+export const updateCurrentCodePath = async (
   strategyId: string,
   strategyPath: string,
 ) => {

@@ -376,13 +376,11 @@ const handleEditFileBlur = () => {
       reloadFolder(parentId, newName);
     })
     .then(() => {
-      console.log(store.currentStrategy, newPath, 'store.currentStrategy');
       if (fileNode.value === entryFile.value || fileNode.value.isEntryFile) {
-        ipcEmitDataByName('updateStrategyPath', {
-          strategyId: store.currentStrategy.code_id,
-          strategyPath: newPath,
+        ipcEmitDataByName('updateCurrentCodePath', {
+          codeId: store.currentStrategy.code_id,
+          fileNewPath: newPath,
         }).then(() => {
-          console.log('修改入口文件名称可以成功吗？');
           updateCodeToApp(newPath);
         });
       }

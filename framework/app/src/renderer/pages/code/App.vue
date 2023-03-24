@@ -60,9 +60,9 @@ async function updateCodeByid(strategyId: string, strategyPath: string) {
 
 let shouldClose = false;
 
-async function getCodeInfoById(strategyId: string) {
+async function getCodeInfoById(codeId: string) {
   const { data } = (await ipcEmitDataByName('strategyById', {
-    strategyId,
+    codeId,
   })) as Record<string, Array<Code.Icodeinfo>>;
   handleCodeList(data);
 }

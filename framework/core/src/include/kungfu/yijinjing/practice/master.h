@@ -91,7 +91,7 @@ private:
 
   void on_new_location(const event_ptr &event);
 
-  void write_time_reset(int64_t trigger_time, const journal::writer_ptr &writer);
+  static void write_time_reset(int64_t trigger_time, const journal::writer_ptr &writer);
 
   void write_trading_day(int64_t trigger_time, const journal::writer_ptr &writer);
 

@@ -50,7 +50,7 @@ void Ledger::on_start() {
   events_ | is(OperatorStateRequest::tag) | $$(write_app_state(event->gen_time(), event->source(), operator_states_));
   events_ | is(AssetRequest::tag) | $$(write_book_reset(event->gen_time(), event->source()));
   events_ | is(PositionRequest::tag) | $$(write_strategy_data(event->gen_time(), event->source()));
-  events_ | is(PositionEnd::tag) | $$(update_account_book(event->gen_time(), event->data<PositionEnd>().holder_uid););
+  events_ | is(PositionEnd::tag) | $$(update_account_book(event->gen_time(), event->data<PositionEnd>().holder_uid));
 
   add_time_interval(time_unit::NANOSECONDS_PER_MINUTE, [&](auto e) { request_asset_sync(e->gen_time()); });
   add_time_interval(time_unit::NANOSECONDS_PER_MINUTE, [&](auto e) { request_position_sync(e->gen_time()); });
@@ -59,17 +59,11 @@ void Ledger::on_start() {
 
 void Ledger::on_deregister(const Deregister &deregister) {
   uint32_t location_uid = deregister.location_uid;
-  if (broker_states_.find(location_uid) != broker_states_.end()) {
-    // broker_states_[location_uid].state = BrokerState::DisConnected;
-    broker_states_.erase(location_uid);
-    SPDLOG_INFO("deregister location [{:08x}] {}, from broker_states_", location_uid, get_location_uname(location_uid));
-  }
-  if (operator_states_.find(location_uid) != operator_states_.end()) {
-    // operator_states_[location_uid].state = OperatorState::DisConnected;
-    operator_states_.erase(location_uid);
-    SPDLOG_INFO("deregister location [{:08x}] {}, from operatoor_states_", location_uid,
-                get_location_uname(location_uid));
-  }
+  broker_states_.erase(location_uid);
+  SPDLOG_INFO("deregister location [{:08x}] {}, from broker_states_", location_uid, get_location_uname(location_uid));
+  operator_states_.erase(location_uid);
+  SPDLOG_INFO("deregister location [{:08x}] {}, from operatoor_states_", location_uid,
+              get_location_uname(location_uid));
   write_app_state_to_public(broker_states_);
   write_app_state_to_public(operator_states_);
 }
@@ -181,7 +175,7 @@ void Ledger::keep_positions(int64_t trigger_time, uint32_t strategy_uid) {
 
 void Ledger::rebuild_positions(int64_t trigger_time, uint32_t strategy_uid) {
   auto strategy_book = bookkeeper_.get_book(strategy_uid);
-  auto rebuild_book = [&](auto &positions) {
+  const auto rebuild_book = [&](const auto &positions) {
     for (const auto &pair : positions) {
       auto &position = pair.second;
       if (strategy_book->has_position_for(position)) {
@@ -216,7 +210,7 @@ void Ledger::write_strategy_data(int64_t trigger_time, uint32_t strategy_uid) {
   for (const auto &pair : bookkeeper_.get_books()) {
     auto &book = pair.second;
     auto &asset = book->asset;
-    auto &asset_margin = book->asset_margin;
+    const auto &asset_margin = book->asset_margin;
     auto book_uid = asset.holder_uid;
     bool has_account = asset.ledger_category == LedgerCategory::Account and has_channel(book_uid, strategy_uid);
     bool is_strategy = asset.ledger_category == LedgerCategory::Strategy and book_uid == strategy_uid;

@@ -49,7 +49,8 @@ private:
   std::string dest_name_;
   static Napi::FunctionReference constructor;
 
-  void SetFrame(yijinjing::journal::frame_ptr frame, std::string source_name = "", std::string dest_name = "");
+  void SetFrame(yijinjing::journal::frame_ptr frame, const std::string &source_name = {},
+                const std::string &dest_name = {});
 
   friend class Reader;
   friend class Assemble;

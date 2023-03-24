@@ -49,7 +49,7 @@ void LiveContext::prepare(const event_ptr &event) {
   }
   auto writer = app_.get_writer(ledger_uid);
 
-  auto connected_test = [&](auto &locations) {
+  auto connected_test = [&](const auto &locations) {
     for (const auto &pair : locations) {
       if (not get_broker_client().is_connected(pair.second->uid)) {
         return false;
@@ -64,7 +64,7 @@ void LiveContext::prepare(const event_ptr &event) {
     broker_states_requested_ = true;
   }
 
-  auto ready_test = [&](auto &locations) {
+  auto ready_test = [&](const auto &locations) {
     for (const auto &pair : locations) {
       if (not get_broker_client().is_ready(pair.second->uid)) {
         return false;

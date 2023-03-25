@@ -20,21 +20,27 @@ import { useDealJournalDatas } from '../utils';
 const { allTradingDatas } = useDealJournalDatas();
 
 const allOptions = computed(() => {
-  return Object.keys(allTradingDatas.value).reduce((options, key) => {
-    const { quotes, trades, orders } = allTradingDatas.value[key];
+  const resolvedOptions = Object.keys(allTradingDatas.value).reduce(
+    (options, key) => {
+      const { quotes, trades, orders } = allTradingDatas.value[key];
 
-    const markPoint = getMarkPoint({ Trade: trades, Order: orders });
+      const markPoint = getMarkPoint({ Trade: trades, Order: orders });
 
-    const data = quotes.map((quote) => [
-      dealKfTime(BigInt(quote.data_time)),
-      dealKfPrice(quote.open_price),
-      dealKfPrice(quote.close_price),
-      dealKfPrice(quote.high_price),
-      dealKfPrice(quote.low_price),
-    ]);
-    return { ...options, [key]: getOption(key, data, markPoint) };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  }, {} as Record<string, any>);
+      const data = quotes.map((quote) => [
+        dealKfTime(BigInt(quote.data_time)),
+        dealKfPrice(quote.open_price),
+        dealKfPrice(quote.close_price),
+        dealKfPrice(quote.high_price),
+        dealKfPrice(quote.low_price),
+      ]);
+      return { ...options, [key]: getOption(key, data, markPoint) };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    },
+    {} as Record<string, any>,
+  );
+
+  console.log(resolvedOptions);
+  return resolvedOptions;
 });
 
 const upColor = '#ec0000';
@@ -71,7 +77,7 @@ const getMarkPoint = (data: {
       })
       .flat(),
   };
-
+  console.log(markPoint);
   return markPoint;
 };
 

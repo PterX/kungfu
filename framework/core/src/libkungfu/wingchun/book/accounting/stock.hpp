@@ -80,56 +80,53 @@ public:
   virtual void apply_quote(Book_ptr &book, const Quote &quote) override {
     static int counter = 0;
     auto apply = [&](Position &position) {
-      if (is_valid_price(quote.last_price) and position.volume) {
-        if (not position.last_price) {
-          // SPDLOG_INFO("position.last_price set to {} for {} ", quote.last_price, position.instrument_id);
-          position.last_price = quote.last_price;
-        }
-        // position.last_price = position.last_price > 0 ? position.last_price : quote.last_price;
-        double price_change = quote.last_price - position.last_price;
+      if (not is_valid_price(quote.last_price) or not position.volume) {
+        return;
+      }
 
-        if (price_change) {
-          auto cd_mr = get_instr_conversion_margin_rate(book, position);
-          double market_value_change = price_change * cd_mr.exchange_rate * position.volume;
-          double avail_margin_change;
+      if (not position.last_price) {
+        position.last_price = quote.last_price;
+      }
+      double price_change = quote.last_price - position.last_price;
+      position.last_price = quote.last_price;
 
-          auto &asset = book->asset;
-          auto &asset_margin = book->asset_margin;
+      auto cd_mr = get_instr_conversion_margin_rate(book, position);
+      double market_value_change = price_change * cd_mr.exchange_rate * position.volume;
 
-          if (position.direction == Direction::Long) {
-            avail_margin_change = cd_mr.conversion_rate * market_value_change;
-            // position.margin would not be changed for Long direction, the margin depends on debt.
-            // TODO: As non-margin position and margin position are combined together, need distinguish each volume.
-            // asset_margin.margin_market_value += price_change * position.margin_volume;
+      auto &asset = book->asset;
+      auto &asset_margin = book->asset_margin;
 
-            asset.market_value += market_value_change; // Asset.market_value means Long positions only.
-            asset.unrealized_pnl += market_value_change;
-            asset_margin.total_asset += market_value_change;
-          } else {
-            double short_margin_change = 0;
-            if (quote.last_price < position.avg_open_price) {
-              short_margin_change = cd_mr.short_margin_ratio * market_value_change;
-            } else {
-              short_margin_change = market_value_change; // short_margin_ratio as 100% when last_price > avg_open_price;
-            }
-            avail_margin_change = -cd_mr.conversion_rate * market_value_change - short_margin_change;
-            position.margin += short_margin_change;
-            asset_margin.short_margin += short_margin_change;
-            asset_margin.short_market_value += market_value_change;
-            // Asset_margin.margin is combined with long_margin and short_margin.
-            asset_margin.margin += short_margin_change;
-            asset.unrealized_pnl -= market_value_change;
-          }
-          asset_margin.avail_margin += avail_margin_change;
+      if (position.direction == Direction::Long) {
+        // position.margin would not be changed for Long direction, the margin depends on debt.
+        // TODO: As non-margin position and margin position are combined together, need distinguish each volume.
+        // asset_margin.margin_market_value += price_change * position.margin_volume;
 
-          position.last_price = quote.last_price;
-          // update position.unrealized_pnl
-          update_position(book, position);
-          if (counter > 20) {
-            counter = 0;
-            calculate_marketvalue(book);
-          }
-        }
+        asset.market_value += market_value_change; // Asset.market_value means Long positions only.
+        asset.unrealized_pnl += market_value_change;
+        asset_margin.total_asset += market_value_change;
+      } else {
+        // short_margin_ratio as 100% when last_price > avg_open_price;
+        double short_margin_change = (quote.last_price < position.avg_open_price)
+                                         ? cd_mr.short_margin_ratio * market_value_change
+                                         : market_value_change;
+
+        position.margin += short_margin_change;
+        asset_margin.short_margin += short_margin_change;
+        asset_margin.short_market_value += market_value_change;
+        // Asset_margin.margin is combined with long_margin and short_margin.
+        asset_margin.margin += short_margin_change;
+        double avail_margin_change = (price_change && position.direction == Direction::Short)
+                                         ? (-cd_mr.conversion_rate * market_value_change - short_margin_change)
+                                         : 0;
+        asset_margin.avail_margin += avail_margin_change;
+        asset.unrealized_pnl -= market_value_change;
+      }
+
+      // update position.unrealized_pnl
+      update_position(book, position);
+      if (counter > 20) {
+        counter = 0;
+        calculate_marketvalue(book);
       }
     };
     apply(book->get_position_for(Direction::Long, quote));
@@ -253,11 +250,11 @@ public:
   }
 
   virtual void update_position(Book_ptr &book, Position &position) override {
-    auto cd_mr = get_instr_conversion_margin_rate(book, position);
+    // auto cd_mr = get_instr_conversion_margin_rate(book, position);
     if (position.last_price > 0) {
       double price_change = position.last_price - position.avg_open_price;
       position.unrealized_pnl = (position.direction == Direction::Long ? price_change : -price_change) *
-                                cd_mr.exchange_rate * position.volume;
+                                /*cd_mr.exchange_rate **/ position.volume;
     }
   }
 
@@ -307,12 +304,13 @@ protected:
     double tax = calculate_tax(trade);
     position.last_price = position.last_price > 0 ? position.last_price : trade.price;
     if (position.volume + trade.volume > 0 && trade.price > 0) {
-      position.avg_open_price =
-          (position.avg_open_price * position.volume + trade_amt) / (double)(position.volume + trade.volume);
-      position.position_cost_price = (position.position_cost_price * position.volume + trade_amt + commission + tax) /
-                                     (double)(position.volume + trade.volume);
+      position.avg_open_price = (position.avg_open_price * position.volume + trade_amt / cd_mr.exchange_rate) /
+                                (double)(position.volume + trade.volume);
+      position.position_cost_price =
+          (position.position_cost_price * position.volume + trade_amt / cd_mr.exchange_rate + commission + tax) /
+          (double)(position.volume + trade.volume);
     }
-    double unrealized_pnl_change = (position.last_price - trade.price) * cd_mr.exchange_rate * trade.volume;
+    double unrealized_pnl_change = (position.last_price - trade.price) /** cd_mr.exchange_rate*/ * trade.volume;
     position.volume += trade.volume;
     // update_position(book, position);
     // equals to :
@@ -326,7 +324,7 @@ protected:
     asset.avail += avail_cash_change;
     asset.intraday_fee += commission + tax;
     asset.accumulated_fee += commission + tax;
-    asset.unrealized_pnl += unrealized_pnl_change;
+    asset.unrealized_pnl += unrealized_pnl_change * cd_mr.exchange_rate;
     // position.last_price is used for market_value calc instead of trade.price.
     double position_market_value_change = trade.volume * position.last_price * cd_mr.exchange_rate;
     asset.market_value += position_market_value_change;
@@ -350,10 +348,11 @@ protected:
     double commission = calculate_commission(trade);
     auto tax = calculate_tax(trade);
     if (position.volume + trade.volume > 0 && trade.price > 0) {
-      position.avg_open_price =
-          (position.avg_open_price * position.volume + trade_amt) / (double)(position.volume + trade.volume);
-      position.position_cost_price = (position.position_cost_price * position.volume + trade_amt - commission - tax) /
-                                     (double)(position.volume + trade.volume);
+      position.avg_open_price = (position.avg_open_price * position.volume + trade_amt / cd_mr.exchange_rate) /
+                                (double)(position.volume + trade.volume);
+      position.position_cost_price =
+          (position.position_cost_price * position.volume + trade_amt / cd_mr.exchange_rate - commission - tax) /
+          (double)(position.volume + trade.volume);
     }
     double original_volume = position.volume;
     position.volume += trade.volume;
@@ -419,7 +418,7 @@ protected:
     auto &position = book->get_position_for(trade);
 
     auto cd_mr = get_instr_conversion_margin_rate(book, position);
-    double trade_amt = trade.price * cd_mr.exchange_rate * trade.volume;
+    double trade_amt = trade.price /** cd_mr.exchange_rate*/ * trade.volume;
     // TODO: margin_commission requires a dedicate calculate_margin_commission(Trade&);
     auto &asset_margin = book->asset_margin;
     double commission = calculate_commission(trade);
@@ -438,7 +437,7 @@ protected:
     // TODO: the commission & tax should be included ?
     double cash_margin_change = trade_amt * cd_mr.long_margin_ratio;
 
-    double unrealized_pnl_change = (position.last_price - trade.price) * cd_mr.exchange_rate * trade.volume;
+    double unrealized_pnl_change = (position.last_price - trade.price) /** cd_mr.exchange_rate*/ * trade.volume;
     // SPDLOG_TRACE("position.last_price {} trade.price {} (commission + tax) {} unrealized_pnl_change {}",
     //              position.last_price, trade.price, (commission + tax), unrealized_pnl_change);
 
@@ -468,7 +467,7 @@ protected:
 
     asset.market_value += market_value_change;
     asset.frozen_margin -= frozen_margin_to_release;
-    asset.unrealized_pnl += unrealized_pnl_change;
+    asset.unrealized_pnl += unrealized_pnl_change * cd_mr.exchange_rate;
     asset.intraday_fee += commission + tax;
     asset.accumulated_fee += commission + tax;
 
@@ -500,8 +499,9 @@ protected:
     position.yesterday_volume = std::max(position.yesterday_volume - trade.volume, VOLUME_ZERO);
     position.volume = std::max(position.volume - trade.volume, VOLUME_ZERO);
     // Use position_cost_price would be better than avg_open_price for realized_pnl
-    auto realized_pnl = (trade.price - position.avg_open_price) * cd_mr.exchange_rate * trade.volume;
-    auto unrealized_pnl_change = (position.last_price - position.avg_open_price) * cd_mr.exchange_rate * trade.volume;
+    auto realized_pnl = (trade.price - position.avg_open_price) /** cd_mr.exchange_rate*/ * trade.volume;
+    auto unrealized_pnl_change =
+        (position.last_price - position.avg_open_price) /** cd_mr.exchange_rate*/ * trade.volume;
     position.realized_pnl += realized_pnl;
     // Need revise the unrealized_pnl since the price may change.
     // double prev_unrealized_pnl = position.unrealized_pnl;
@@ -518,8 +518,8 @@ protected:
     double position_market_value_change = -position.last_price * cd_mr.exchange_rate * trade.volume;
 
     auto &asset = book->asset;
-    asset.realized_pnl += realized_pnl;
-    asset.unrealized_pnl -= unrealized_pnl_change;
+    asset.realized_pnl += realized_pnl * cd_mr.exchange_rate;
+    asset.unrealized_pnl -= unrealized_pnl_change * cd_mr.exchange_rate;
 
     asset.market_value += position_market_value_change;
     asset.intraday_fee += commission + tax;
@@ -579,7 +579,7 @@ protected:
 
     position.last_price = position.last_price > 0 ? position.last_price : trade.price;
 
-    auto realized_pnl = (position.avg_open_price - trade.price) * cd_mr.exchange_rate * trade.volume;
+    auto realized_pnl = (position.avg_open_price - trade.price) /** cd_mr.exchange_rate*/ * trade.volume;
     double trade_amt = trade.price * cd_mr.exchange_rate * trade.volume;
     double repay_debt_mrkt_value = position.last_price * cd_mr.exchange_rate * trade.volume;
     double frozen_cash_to_release = book->get_frozen_price(trade.order_id) * cd_mr.exchange_rate * trade.volume;
@@ -624,10 +624,11 @@ protected:
     position.frozen_yesterday = std::max(position.frozen_yesterday - trade.volume, VOLUME_ZERO);
     position.yesterday_volume = std::max(position.yesterday_volume - trade.volume, VOLUME_ZERO);
     position.volume = std::max(position.volume - trade.volume, VOLUME_ZERO);
-    double realized_pnl = (trade.price - position.avg_open_price) * cd_mr.exchange_rate * trade.volume;
+    double realized_pnl = (trade.price - position.avg_open_price) /** cd_mr.exchange_rate*/ * trade.volume;
     position.realized_pnl += realized_pnl;
 
-    double unrealized_pnl_change = (position.last_price - position.avg_open_price) * cd_mr.exchange_rate * trade.volume;
+    double unrealized_pnl_change =
+        (position.last_price - position.avg_open_price) /** cd_mr.exchange_rate*/ * trade.volume;
     position.unrealized_pnl -= unrealized_pnl_change;
     // position.unrealized_pnl -= realized_pnl;
 
@@ -640,8 +641,8 @@ protected:
     double cash_delivery = trade_amt - repay_cash_debt - (commission + tax);
     // SPDLOG_TRACE("position.margin {} trade_amt {} cash_delivery {}", position.margin, trade_amt, cash_delivery);
 
-    asset.realized_pnl += realized_pnl;
-    asset.unrealized_pnl -= realized_pnl; // unrealized_pnl_change
+    asset.realized_pnl += realized_pnl * cd_mr.exchange_rate;
+    asset.unrealized_pnl -= realized_pnl * cd_mr.exchange_rate; // unrealized_pnl_change
     asset.avail += cash_delivery;
     asset.market_value -= trade_amt;
     asset.intraday_fee += commission + tax;

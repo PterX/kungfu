@@ -489,7 +489,7 @@ void Watcher::Feed(const event_ptr &event, const Instrument &instrument) {
 
 void Watcher::RestoreState(const location_ptr &state_location, int64_t from, int64_t to, bool sync_schema) {
   add_location(0, state_location);
-  serialize::JsRestoreState(ledger_ref_, state_location)(from, to, sync_schema);
+  serialize::JsRestoreState(ledger_ref_, state_location).filter_no<Position, Asset>(from, to, sync_schema);
 }
 
 Napi::Value Watcher::Start(const Napi::CallbackInfo &info) {
@@ -513,7 +513,7 @@ void Watcher::SyncLedger() {
 
 void Watcher::TryRefreshTradingData(const Napi::CallbackInfo &info) {
   if (refresh_trading_data_before_sync_) {
-    serialize::InitTradingDataMap(info, ledger_ref_, "ledger");
+    serialize::InitTradingDataMap(ledger_ref_, "ledger");
   }
 }
 
@@ -648,6 +648,7 @@ void Watcher::OnDeregister(int64_t trigger_time, const Deregister &deregister_da
   if (app_location->category == category::SYSTEM and app_location->group == "master" and
       app_location->name == "master") {
     CancelWorker();
+    serialize::InitTradingDataMap(ledger_ref_, "ledger");
   }
 }
 
@@ -703,7 +704,6 @@ void Watcher::UpdateStrategyState(uint32_t strategy_uid, const StrategyStateUpda
 
 void Watcher::UpdateAsset(const event_ptr &event, uint32_t book_uid) {
   auto book = bookkeeper_.get_book(book_uid);
-  book->update(event->gen_time());
   state<Asset> cache_state_asset(ledger_home_location_->uid, book_uid, event->gen_time(), book->asset);
   feed_state_data_bank(cache_state_asset, data_bank_);
   state<AssetMargin> cache_state_asset_margin(ledger_home_location_->uid, book_uid, event->gen_time(),
@@ -755,7 +755,6 @@ Watcher::BookListener::BookListener(Watcher &watcher) : watcher_(watcher) {}
 
 void Watcher::BookListener::on_asset_sync_reset(const Asset &old_asset, const Asset &new_asset) {
   auto book = watcher_.bookkeeper_.get_book(new_asset.holder_uid);
-  book->update(watcher_.now());
   state<Asset> cache_state(watcher_.ledger_home_location_->uid, book->asset.holder_uid, book->asset.update_time,
                            book->asset);
   watcher_.feed_state_data_bank(cache_state, watcher_.data_bank_);
@@ -764,26 +763,25 @@ void Watcher::BookListener::on_asset_sync_reset(const Asset &old_asset, const As
 void Watcher::BookListener::on_asset_margin_sync_reset(const AssetMargin &old_asset_margin,
                                                        const AssetMargin &new_asset_margin) {
   auto book = watcher_.bookkeeper_.get_book(new_asset_margin.holder_uid);
-  book->update(watcher_.now());
   state<AssetMargin> cache_state(watcher_.ledger_home_location_->uid, book->asset_margin.holder_uid,
                                  book->asset_margin.update_time, book->asset_margin);
   watcher_.feed_state_data_bank(cache_state, watcher_.data_bank_);
 }
 
 void Watcher::BookListener::on_position_sync_reset(const book::Book &old_book, const book::Book &new_book) {
-  auto fun_update_st_position = [&](book::PositionMap &position_map) {
-    for (auto &st_pair : position_map) {
-      auto &position = st_pair.second;
+  auto update_position = [&](book::PositionMap &position_map) {
+    for (auto &pair : position_map) {
+      auto &position = pair.second;
       state<Position> cache_state(watcher_.ledger_home_location_->uid, position.holder_uid, position.update_time,
                                   position);
       watcher_.feed_state_data_bank(cache_state, watcher_.data_bank_);
     }
   };
 
-  for (auto &bk_pair : watcher_.bookkeeper_.get_books()) {
-    auto &st_book = bk_pair.second;
-    fun_update_st_position(st_book->long_positions);
-    fun_update_st_position(st_book->short_positions);
+  for (auto &pair : watcher_.bookkeeper_.get_books()) {
+    auto &book = pair.second;
+    update_position(book->long_positions);
+    update_position(book->short_positions);
   }
 }
 

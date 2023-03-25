@@ -218,7 +218,7 @@ void Ledger::write_strategy_data(int64_t trigger_time, uint32_t strategy_uid) {
       write_positions(trigger_time, strategy_uid, book->long_positions);
       write_positions(trigger_time, strategy_uid, book->short_positions);
       writer->write(trigger_time, asset);
-      writer->write(trigger_time, asset_margin);
+      writer->write(trigger_time, book->asset_margin);
     }
   }
   writer->open_data<PositionEnd>(trigger_time).holder_uid = strategy_uid;

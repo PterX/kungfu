@@ -133,6 +133,7 @@ void Client::sync(int64_t trigger_time, const yijinjing::data::location_ptr &td_
   auto writer = app_.get_writer(td_location->uid);
   writer->mark(trigger_time, AssetRequest::tag);
   writer->mark(trigger_time, PositionRequest::tag);
+  writer->mark(trigger_time, OrderTradeRequest::tag);
 }
 
 bool Client::try_sync(int64_t trigger_time, const location_ptr &td_location) {
@@ -318,11 +319,11 @@ bool PassiveClient::enrolled_md_ready() const {
 bool PassiveClient::is_all_subscribed(uint32_t md_location_uid) const {
   if (should_connect_md(app_.get_location(md_location_uid))) {
     const auto &custom_sub = custom_subs_.at(md_location_uid);
-    for (auto it : custom_sub) {
-      if (it.market_type == MarketType::All and it.instrument_type == SubscribeInstrumentType::All and
-          it.data_type == SubscribeDataType::All) {
-        return true;
-      }
+    if (std::any_of(custom_sub.begin(), custom_sub.end(), [](const auto &it) {
+          return it.market_type == MarketType::All and it.instrument_type == SubscribeInstrumentType::All and
+                 it.data_type == SubscribeDataType::All;
+        })) {
+      return true;
     }
   }
 

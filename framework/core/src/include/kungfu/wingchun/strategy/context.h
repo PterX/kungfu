@@ -233,14 +233,14 @@ public:
    * request deregister.
    * @return void
    */
-  virtual void req_deregister() {}
+  virtual void req_deregister(){};
 
   /**
    * Update Strategy State
    * @param state StrategyState
    * @param infos vector<string>, info_a, info_b, info_c.
    */
-  virtual void update_strategy_state(longfist::types::StrategyStateUpdate &state_update) {}
+  virtual void update_strategy_state(longfist::types::StrategyStateUpdate &state_update){};
 
   /**
    * Get arguments kfc run -a
@@ -248,6 +248,7 @@ public:
    */
   const std::string &get_arguments() { return arguments_; };
 
+  //TODO make itfriend funciton
   void set_arguments(const std::string &arguments) { arguments_ = arguments; }
 
   /**

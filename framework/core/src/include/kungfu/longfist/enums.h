@@ -537,7 +537,6 @@ enum class BrokerState : int8_t {
 
 inline std::ostream &operator<<(std::ostream &os, BrokerState t) { return os << int8_t(t); }
 
-
 NLOHMANN_JSON_SERIALIZE_ENUM(BrokerState, {
                                               {BrokerState::Pending, "Pending"},
                                               {BrokerState::Idle, "Idle"},

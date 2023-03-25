@@ -248,7 +248,7 @@ public:
    */
   const std::string &get_arguments() { return arguments_; };
 
-  //TODO make itfriend funciton
+  // TODO make itfriend funciton
   void set_arguments(const std::string &arguments) { arguments_ = arguments; }
 
   /**

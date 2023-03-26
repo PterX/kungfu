@@ -287,7 +287,12 @@ class ExtensionExecutor:
             )
         if kfj.MODES[ctx.mode] == lf.enums.mode.BACKTEST:
             ctx.logger.debug(f"ctx.backtest: {ctx.backtest}")
-            backtest_para = json.loads(ctx.backtest)
+            if ctx.backtest.endswith(".json"):
+                with open(ctx.backtest, "r", encoding="utf-8") as json_file:
+                    backtest_para = json.load(json_file)
+            else:
+                backtest_para = json.loads(ctx.backtest)
+
             begin_time_stamp = kft.strptimes(
                 backtest_para["begin_time"], ("%F %T", "%F %T.%N", "%Y%m%d", "%Y-%m-%d")
             )

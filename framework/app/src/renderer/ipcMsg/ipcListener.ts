@@ -1,21 +1,21 @@
 import { ipcRenderer } from 'electron';
 import {
-  getCodeInfoById,
-  updateCurrentCodePath,
+  getStrategyById,
+  updateStrategyPath,
 } from '@kungfu-trader/kungfu-js-api/kungfu/strategy';
 import { BrowserWindow } from '@electron/remote';
 import { messagePrompt } from '../assets/methods/uiUtils';
 const { success, error } = messagePrompt();
 
 export function bindIPCListener(store) {
-  ipcRenderer.removeAllListeners('ipc-emit-CodeById');
-  ipcRenderer.on('ipc-emit-CodeById', (event, { childWinId, params }) => {
+  ipcRenderer.removeAllListeners('ipc-emit-strategyById');
+  ipcRenderer.on('ipc-emit-strategyById', (event, { childWinId, params }) => {
     const childWin = BrowserWindow.fromId(childWinId);
-    const { codeId } = params;
-    return getCodeInfoById(codeId)
+    const { strategyId } = params;
+    return getStrategyById(strategyId)
       .then((strategies) => {
         if (childWin) {
-          childWin.webContents.send('ipc-res-CodeById', strategies);
+          childWin.webContents.send('ipc-res-strategyById', strategies);
         }
       })
       .catch((err) => {
@@ -23,17 +23,17 @@ export function bindIPCListener(store) {
       });
   });
 
-  ipcRenderer.removeAllListeners('ipc-emit-updateCurrentCodePath');
+  ipcRenderer.removeAllListeners('ipc-emit-updateStrategyPath');
   ipcRenderer.on(
-    'ipc-emit-updateCurrentCodePath',
+    'ipc-emit-updateStrategyPath',
     (event, { childWinId, params }) => {
       const childWin = BrowserWindow.fromId(childWinId);
-      const { codeId, fileNewPath } = params;
-      return updateCurrentCodePath(codeId, fileNewPath).then(() => {
+      const { strategyId, strategyPath } = params;
+      return updateStrategyPath(strategyId, strategyPath).then(() => {
         store.setKfConfigList();
         success();
         if (childWin) {
-          childWin.webContents.send('ipc-res-updateCurrentCodePath');
+          childWin.webContents.send('ipc-res-updateStrategyPath');
         }
       });
     },

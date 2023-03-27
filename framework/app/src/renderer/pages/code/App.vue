@@ -9,7 +9,7 @@ import { getUrlParams } from '@kungfu-trader/kungfu-app/src/renderer/assets/meth
 import {
   setHtmlTitle,
   // messagePrompt,
-  removeLoadingMask,
+  // removeLoadingMask,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 
 import { useCodeStore } from './store/codeStore';
@@ -93,7 +93,7 @@ onMounted(() => {
   store.setCurrentCode(currentNode);
   const categoryStr = urlParmObj.processId.split('_')[0];
   fileTreeType.value = categoryStr;
-  removeLoadingMask();
+  // removeLoadingMask();
   bindCloseWindowEvent();
 });
 </script>

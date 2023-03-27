@@ -53,7 +53,11 @@ export default {
 </script>
 <script setup lang="ts">
 // vue生态相关
-import { watch, ref, getCurrentInstance, ComponentInternalInstance } from 'vue';
+import {
+  watch,
+  ref,
+  // getCurrentInstance, ComponentInternalInstance
+} from 'vue';
 import FileNode from './FileNode.vue';
 import { storeToRefs } from 'pinia';
 import { useCodeStore } from '../store/codeStore';
@@ -65,7 +69,10 @@ import { FileAddFilled, FolderAddFilled } from '@ant-design/icons-vue';
 import { getTreeByFilePath } from '../../../assets/methods/codeUtils';
 import { findTargetFromArray } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { openFolder, buildFileObj } from '../../../assets/methods/codeUtils';
-import { messagePrompt } from '../../../assets/methods/uiUtils';
+import {
+  messagePrompt,
+  removeLoadingMask,
+} from '../../../assets/methods/uiUtils';
 
 //code编辑器使用的store
 const store = useCodeStore();
@@ -80,7 +87,7 @@ const { filePath, currentNode } = props;
 const currentCodePath = ref<string>('');
 const currrentcodePathName = ref<string>('');
 // const currrentFileTree = ref<Code.IFileTree>({});
-const { proxy } = getCurrentInstance() as ComponentInternalInstance;
+// const { proxy } = getCurrentInstance() as ComponentInternalInstance;
 const { currentFile, fileTree } = storeToRefs(useCodeStore());
 const { error } = messagePrompt();
 
@@ -99,6 +106,7 @@ watch(currentNode as Code.CodeInfo, (newCurrentNode) => {
       store.setEntryFile(currentFile);
       store.setCurrentFile(currentFile);
     }
+    removeLoadingMask();
   });
 });
 

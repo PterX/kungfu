@@ -1,12 +1,5 @@
 <template>
   <div class="file-tree">
-    <!-- <a-button
-      type="default"
-      class="open-editor-folder"
-      @click="handleBindStrategyFolder"
-    >
-      {{ $t('editor.set_strategy_entrance') }}
-    </a-button> -->
     <div class="file-tree-content">
       <div class="current-node-name">
         <span class="name">
@@ -109,36 +102,6 @@ watch(currentNode as Code.CodeInfo, (newCurrentNode) => {
   });
 });
 
-//绑定策略
-// function handleBindStrategyFolder() {
-//   dialog
-//     .showOpenDialog({
-//       properties: ['openFile'],
-//     })
-//     .then((strategyPath) => {
-//       if (!strategyPath || !strategyPath.filePaths[0]) return;
-//       if (!currentNode.value?.strategy_id) return;
-//       bindStrategyPath(strategyPath.filePaths[0]);
-//     });
-// }
-
-//bind data中path 与 sqlite中path
-// async function bindStrategyPath(strategyPathNew) {
-//   if (currentNode && currentNode.value.strategy_id) {
-//     await ipcEmitDataByName('updateStrategyPath', {
-//       strategyId: currentNode.value.strategy_id,
-//       strategyPath: strategyPathNew,
-//     });
-//     success(
-//       t('editor.set_strategy_success', {
-//         file: currentNode.value.strategy_id,
-//       }),
-//     );
-//     //每次更新path，需要通知root组件更新stratgy
-//     updateCodeToApp(strategyPathNew);
-//   }
-// }
-
 function updateCodeToApp(strategyPath) {
   proxy?.$emit('updateCode', strategyPath);
 }
@@ -182,14 +145,6 @@ function handleAddFile() {
   }
 }
 
-//从prop内获取path
-// function getPath(currentNode: Code.CodeInfo) {
-//   if (currentNode && currentNode.file_path) {
-//     //因为绑定策略时是文件，需要提取其父目录
-//     strategyPath.value = path.dirname(currentNode.file_path);
-//     strategyPathName.value = path.basename(strategyPath.value);
-//   }
-// }
 async function initFileTree(currentNode) {
   if (!currentNode.code_id || !currentNode.file_path) return;
   const rootId = window.fileId++;

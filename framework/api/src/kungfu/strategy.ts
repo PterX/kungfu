@@ -2,7 +2,7 @@ import { setKfConfig } from './store';
 import { getCodeKfLocationByid, getKfConfig } from './store';
 export const getCodeInfoById = (
   codeId: string,
-): Promise<Array<Code.Icodeinfo>> => {
+): Promise<Array<Code.CodeInfo>> => {
   return new Promise((resolve, reject) => {
     const strategyData: KungfuApi.KfConfig | false = getKfConfig(codeId);
     if (!strategyData) {
@@ -10,7 +10,7 @@ export const getCodeInfoById = (
       return;
     }
 
-    const strategy: Array<Code.Icodeinfo> = [
+    const strategy: Array<Code.CodeInfo> = [
       { ...JSON.parse(strategyData.value || '{}') },
     ];
     resolve(strategy);
@@ -22,7 +22,7 @@ export const updateCurrentCodePath = async (
   fileNewPath: string,
 ) => {
   let addTime = +new Date().getTime() * Math.pow(10, 6);
-  const strategyOld: Array<Code.Icodeinfo> = await getCodeInfoById(codeId);
+  const strategyOld: Array<Code.CodeInfo> = await getCodeInfoById(codeId);
   const kfLocation = getCodeKfLocationByid(codeId);
   if (strategyOld.length) {
     addTime = strategyOld[0].add_time;

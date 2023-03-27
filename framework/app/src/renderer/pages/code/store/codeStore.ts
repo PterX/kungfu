@@ -7,7 +7,7 @@ import {
 // import { KfCategoryTypes } from '@kungfu-trader/kungfu-js-api/typings/enums';
 
 interface ICodeState {
-  currentCodeInfo: Code.Icodeinfo;
+  currentCodeInfo: Code.CodeInfo;
   codeList: KungfuApi.KfConfig[];
   currentFile: Code.FileData;
   entryFile: Code.FileData;
@@ -37,7 +37,7 @@ export const useCodeStore = defineStore('code', {
       this.fileTree = {};
     },
     //设置当前选中文件
-    setCurrentCode(currentNode: Code.Icodeinfo): void {
+    setCurrentCode(currentNode: Code.CodeInfo): void {
       this.currentCodeInfo = currentNode;
     },
 

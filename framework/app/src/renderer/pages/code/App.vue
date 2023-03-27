@@ -9,6 +9,7 @@ import { getUrlParams } from '@kungfu-trader/kungfu-app/src/renderer/assets/meth
 import {
   setHtmlTitle,
   messagePrompt,
+  removeLoadingMask,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 
 import { useCodeStore } from './store/codeStore';
@@ -24,7 +25,7 @@ const processId = urlParmObj.processId;
 setHtmlTitle(processId);
 
 //设置currentNode用来存储当前编辑项的数据信息
-const currentNode = reactive<Code.Icodeinfo>({
+const currentNode = reactive<Code.CodeInfo>({
   code_id: '',
   file_path: '',
   add_time: 0,
@@ -37,7 +38,7 @@ const filePath = ref<string>('');
 filePath.value = decodeURI(urlParmObj.file_path);
 
 function handleCodeList(codeList): void {
-  const value: Code.Icodeinfo = codeList[0];
+  const value: Code.CodeInfo = codeList[0];
   currentNode.code_id = value.code_id;
   currentNode.file_path = value.file_path;
   currentNode.add_time = value.add_time;
@@ -62,7 +63,7 @@ let shouldClose = false;
 async function getCodeInfoById(codeId: string) {
   const { data } = (await ipcEmitDataByName('CodeById', {
     codeId,
-  })) as Record<string, Array<Code.Icodeinfo>>;
+  })) as Record<string, Array<Code.CodeInfo>>;
   handleCodeList(data);
 }
 
@@ -92,6 +93,7 @@ onMounted(() => {
   store.setCurrentCode(currentNode);
   const categoryStr = urlParmObj.processId.split('_')[0];
   fileTreeType.value = categoryStr;
+  removeLoadingMask();
   bindCloseWindowEvent();
 });
 </script>

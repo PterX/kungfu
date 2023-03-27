@@ -8,7 +8,7 @@
       {{ $t('editor.set_strategy_entrance') }}
     </a-button> -->
     <div class="file-tree-content">
-      <div class="currentNode-name">
+      <div class="current-node-name">
         <span class="name">
           <span v-if="currentNode">
             {{ currentNode.code_id.split('_')[1] }}
@@ -19,7 +19,7 @@
           <span
             class="create"
             :title="$t('editor.new_file')"
-            v-if="currrentcodePath"
+            v-if="currentCodePath"
             @click="handleAddFile"
           >
             <FileAddFilled class="icon" />
@@ -27,14 +27,14 @@
           <span
             class="create"
             :title="$t('editor.new_folder')"
-            v-if="currrentcodePath"
+            v-if="currentCodePath"
             @click="handleAddFolder"
           >
             <FolderAddFilled class="icon" />
           </span>
         </span>
       </div>
-      <div class="file-tree-body" v-if="currrentcodePath">
+      <div class="file-tree-body" v-if="currentCodePath">
         <div class="scroll-view">
           <div v-for="file in fileTree">
             <FileNode
@@ -73,19 +73,18 @@ import { getTreeByFilePath } from '../../../assets/methods/codeUtils';
 import { findTargetFromArray } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { openFolder, buildFileObj } from '../../../assets/methods/codeUtils';
 import { messagePrompt } from '../../../assets/methods/uiUtils';
-import { removeLoadingMask } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 
 //code编辑器使用的store
 const store = useCodeStore();
 //定义props，以及数据类型
 const props = defineProps<{
-  currentNode: Code.Icodeinfo;
+  currentNode: Code.CodeInfo;
   fileTreeType: string;
   filePath: string;
 }>();
 //从props解构出来filePath
 const { filePath, currentNode } = props;
-const currrentcodePath = ref<string>('');
+const currentCodePath = ref<string>('');
 const currrentcodePathName = ref<string>('');
 // const currrentFileTree = ref<Code.IFileTree>({});
 const { proxy } = getCurrentInstance() as ComponentInternalInstance;
@@ -93,9 +92,9 @@ const { currentFile, fileTree } = storeToRefs(useCodeStore());
 const { error } = messagePrompt();
 
 //监视currentNode，拿到最新的的数据然后初始化左侧的文件树
-watch(currentNode as Code.Icodeinfo, (newCurrentNode) => {
-  currrentcodePath.value = path.dirname(newCurrentNode.file_path);
-  currrentcodePathName.value = path.basename(currrentcodePath.value);
+watch(currentNode as Code.CodeInfo, (newCurrentNode) => {
+  currentCodePath.value = path.dirname(newCurrentNode.file_path);
+  currrentcodePathName.value = path.basename(currentCodePath.value);
   initFileTree(newCurrentNode).then((fileItem) => {
     const entryPath: string = newCurrentNode.file_path;
     const currentFile = findTargetFromArray<Code.FileData>(
@@ -107,7 +106,6 @@ watch(currentNode as Code.Icodeinfo, (newCurrentNode) => {
       store.setEntryFile(currentFile);
       store.setCurrentFile(currentFile);
     }
-    removeLoadingMask();
   });
 });
 
@@ -185,7 +183,7 @@ function handleAddFile() {
 }
 
 //从prop内获取path
-// function getPath(currentNode: Code.Icodeinfo) {
+// function getPath(currentNode: Code.CodeInfo) {
 //   if (currentNode && currentNode.file_path) {
 //     //因为绑定策略时是文件，需要提取其父目录
 //     strategyPath.value = path.dirname(currentNode.file_path);
@@ -201,7 +199,7 @@ async function initFileTree(currentNode) {
     isDir: true,
     name: currrentcodePathName.value,
     ext: '',
-    filePath: currrentcodePath.value,
+    filePath: currentCodePath.value,
     children: { file: [], folder: [] },
     stats: {},
     root: true,
@@ -256,7 +254,7 @@ function bindFunctionalNode(curFileTree) {
     margin: auto;
   }
 
-  .currentNode-name {
+  .current-node-name {
     font-size: 14px;
     font-weight: bolder;
     margin-top: 8px;
@@ -342,7 +340,7 @@ function bindFunctionalNode(curFileTree) {
 <style lang="less" scoped>
 .file-tree {
   padding-top: 0;
-  .currentNode-name {
+  .current-node-name {
     margin-bottom: 8px;
   }
 }

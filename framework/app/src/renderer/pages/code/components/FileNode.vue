@@ -383,6 +383,7 @@ const handleEditFileBlur = () => {
     })
     .then(() => {
       if (fileNode.value === entryFile.value || fileNode.value.isEntryFile) {
+        //更新入口文件名称从子窗口到父窗口
         ipcEmitDataByName('updateCurrentCodePath', {
           codeId: store.currentCodeInfo.code_id,
           fileNewPath: newPath,

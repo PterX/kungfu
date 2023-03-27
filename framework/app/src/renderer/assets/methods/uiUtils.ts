@@ -555,7 +555,7 @@ export const handleOpenCodeView = (
   config: KungfuApi.KfConfig | KungfuApi.KfLocation,
 ): Promise<Electron.BrowserWindow> => {
   const openMessage = message.loading(t('open_code_editor'));
-  const filepath = JSON.parse(config['value'])['file_path'];
+  const filepath = JSON.parse((config as KungfuApi.KfConfig).value).file_path;
   return openCodeView(getProcessIdByKfLocation(config), filepath).finally(
     () => {
       openMessage();

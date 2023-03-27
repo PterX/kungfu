@@ -126,8 +126,8 @@
           :id="id"
           type="file"
           :count="childCount"
-          @updateCodeToApp="updateCodeToApp"
         />
+        <!-- @updateCodeToApp="updateCodeToApp" 用于上面组件 -->
       </div>
     </div>
   </div>
@@ -136,7 +136,7 @@
 <script lang="ts">
 export default {
   name: 'ComFileNode',
-  emits: ['updateCodeToApp'],
+  // emits: ['updateCodeToApp'],
 };
 </script>
 
@@ -154,8 +154,8 @@ import {
   computed,
   watch,
   nextTick,
-  getCurrentInstance,
-  ComponentInternalInstance,
+  // getCurrentInstance,
+  // ComponentInternalInstance,
 } from 'vue';
 import { Alert } from 'ant-design-vue';
 import { openFolder } from '../../../assets/methods/codeUtils';
@@ -164,13 +164,13 @@ import {
   addFileSync,
 } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
 import fse from 'fs-extra';
-import { ipcEmitDataByName } from '../../../ipcMsg/emitter';
+// import { ipcEmitDataByName } from '../../../ipcMsg/emitter';
 import { confirmModal, messagePrompt } from '../../../assets/methods/uiUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 const { t } = VueI18n.global;
 
 const { success, error, warning } = messagePrompt();
-const { proxy } = getCurrentInstance() as ComponentInternalInstance;
+// const { proxy } = getCurrentInstance() as ComponentInternalInstance;
 
 const store = useCodeStore();
 
@@ -382,22 +382,23 @@ const handleEditFileBlur = () => {
       reloadFolder(parentId, newName);
     })
     .then(() => {
-      if (fileNode.value === entryFile.value || fileNode.value.isEntryFile) {
-        //更新入口文件名称从子窗口到父窗口
-        ipcEmitDataByName('updateCurrentCodePath', {
-          codeId: store.currentCodeInfo.code_id,
-          fileNewPath: newPath,
-        }).then(() => {
-          updateCodeToApp(newPath);
-        });
-      }
+      // 子窗口修改入口文件名称，先不通知父窗口进行修改
+      // if (fileNode.value === entryFile.value || fileNode.value.isEntryFile) {
+      //   //更新入口文件名称从子窗口到父窗口
+      //   ipcEmitDataByName('updateCurrentCodePath', {
+      //     codeId: store.currentCodeInfo.code_id,
+      //     fileNewPath: newPath,
+      //   }).then(() => {
+      //     updateCodeToApp(newPath);
+      //   });
+      // }
     });
   editValue.value = '';
 };
 
-function updateCodeToApp(newPath) {
-  proxy?.$emit('updateCodeToApp', newPath);
-}
+// function updateCodeToApp(newPath) {
+//   proxy?.$emit('updateCodeToApp', newPath);
+// }
 
 //重制状态
 function resetStatus(): void {

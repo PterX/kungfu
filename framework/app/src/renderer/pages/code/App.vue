@@ -8,15 +8,15 @@ import FileTree from './components/FileTree.vue';
 import { getUrlParams } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/codeUtils';
 import {
   setHtmlTitle,
-  messagePrompt,
+  // messagePrompt,
   removeLoadingMask,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 
 import { useCodeStore } from './store/codeStore';
-import { ipcEmitDataByName } from '../../../renderer/ipcMsg/emitter';
-import VueI18n from '@kungfu-trader/kungfu-js-api/language';
-const { t } = VueI18n.global;
-const { error } = messagePrompt();
+// import { ipcEmitDataByName } from '../../../renderer/ipcMsg/emitter';
+// import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+// const { t } = VueI18n.global;
+// const { error } = messagePrompt();
 const store = useCodeStore();
 
 //获取到当前的URL中的参数，然后通过processId字段给窗口设置标题
@@ -37,35 +37,35 @@ const filePath = ref<string>('');
 //将URL中带过来的路径存入filePath
 filePath.value = decodeURI(urlParmObj.file_path);
 
-function handleCodeList(codeList): void {
-  const value: Code.CodeInfo = codeList[0];
-  currentNode.code_id = value.code_id;
-  currentNode.file_path = value.file_path;
-  currentNode.add_time = value.add_time;
-  store.setCurrentCode(currentNode);
-}
+// function handleCodeList(codeList): void {
+//   const value: Code.CodeInfo = codeList[0];
+//   currentNode.code_id = value.code_id;
+//   currentNode.file_path = value.file_path;
+//   currentNode.add_time = value.add_time;
+//   store.setCurrentCode(currentNode);
+// }
 
-function handleUpdateCode(codeFullPath) {
-  if (!currentNode.code_id) {
-    error(t('code_id不存在!'));
-    return;
-  }
-  currentNode.file_path = codeFullPath;
-  updateCodeByid(currentNode.code_id, codeFullPath);
-}
+// function handleUpdateCode(codeFullPath) {
+//   if (!currentNode.code_id) {
+//     error(t('code_id不存在!'));
+//     return;
+//   }
+//   currentNode.file_path = codeFullPath;
+//   updateCodeByid(currentNode.code_id, codeFullPath);
+// }
 
-async function updateCodeByid(currentCodeId: string, codeFullPath: string) {
-  await getCodeInfoById(currentCodeId);
-}
+// async function updateCodeByid(currentCodeId: string, codeFullPath: string) {
+//   await getCodeInfoById(currentCodeId);
+// }
 
 let shouldClose = false;
 
-async function getCodeInfoById(codeId: string) {
-  const { data } = (await ipcEmitDataByName('CodeById', {
-    codeId,
-  })) as Record<string, Array<Code.CodeInfo>>;
-  handleCodeList(data);
-}
+// async function getCodeInfoById(codeId: string) {
+//   const { data } = (await ipcEmitDataByName('CodeById', {
+//     codeId,
+//   })) as Record<string, Array<Code.CodeInfo>>;
+//   handleCodeList(data);
+// }
 
 //绑定窗口关闭事件
 function bindCloseWindowEvent() {
@@ -106,8 +106,8 @@ onMounted(() => {
           :filePath="filePath"
           :fileTreeType="fileTreeType"
           :currentNode="currentNode"
-          @updateCode="handleUpdateCode"
         ></FileTree>
+        <!-- @updateCode="handleUpdateCode" 用于上面组件 -->
         <Editor class="editor" ref="code-editor"></Editor>
       </div>
     </MainContentVue>

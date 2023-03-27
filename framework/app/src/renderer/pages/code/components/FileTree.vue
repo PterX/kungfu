@@ -37,8 +37,8 @@
               :id="file.id"
               type="folder"
               :filePath="filePath"
-              @updateCodeToApp="updateCodeToApp"
             ></FileNode>
+            <!-- @updateCodeToApp="updateCodeToApp" 用于上面组件 -->
           </div>
         </div>
       </div>
@@ -48,7 +48,7 @@
 
 <script lang="ts">
 export default {
-  emits: ['updateCode'],
+  // emits: ['updateCode'],
 };
 </script>
 <script setup lang="ts">
@@ -102,9 +102,9 @@ watch(currentNode as Code.CodeInfo, (newCurrentNode) => {
   });
 });
 
-function updateCodeToApp(strategyPath) {
-  proxy?.$emit('updateCode', strategyPath);
-}
+// function updateCodeToApp(strategyPath) {
+//   proxy?.$emit('updateCode', strategyPath);
+// }
 
 //加文件夹
 function handleAddFolder() {

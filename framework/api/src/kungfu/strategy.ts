@@ -1,29 +1,29 @@
 import { setKfConfig } from './store';
-import { getCodeKfLocationByid, getKfConfig } from './store';
-export const getCodeInfoById = (
-  codeId: string,
-): Promise<Array<Code.CodeInfo>> => {
+import { getStrategyKfLocation, getKfConfig } from './store';
+export const getStrategyById = (
+  strategyId: string,
+): Promise<Array<Code.Strategy>> => {
   return new Promise((resolve, reject) => {
-    const strategyData: KungfuApi.KfConfig | false = getKfConfig(codeId);
+    const strategyData: KungfuApi.KfConfig | false = getKfConfig(strategyId);
     if (!strategyData) {
       reject(new Error('Failed to get strategy'));
       return;
     }
 
-    const strategy: Array<Code.CodeInfo> = [
+    const strategy: Array<Code.Strategy> = [
       { ...JSON.parse(strategyData.value || '{}') },
     ];
     resolve(strategy);
   });
 };
 
-export const updateCurrentCodePath = async (
-  codeId: string,
-  fileNewPath: string,
+export const updateStrategyPath = async (
+  strategyId: string,
+  strategyPath: string,
 ) => {
   let addTime = +new Date().getTime() * Math.pow(10, 6);
-  const strategyOld: Array<Code.CodeInfo> = await getCodeInfoById(codeId);
-  const kfLocation = getCodeKfLocationByid(codeId);
+  const strategyOld: Array<Code.Strategy> = await getStrategyById(strategyId);
+  const kfLocation = getStrategyKfLocation(strategyId);
   if (strategyOld.length) {
     addTime = strategyOld[0].add_time;
   }
@@ -31,8 +31,8 @@ export const updateCurrentCodePath = async (
     const strategy = setKfConfig(
       kfLocation,
       JSON.stringify({
-        code_id: codeId,
-        file_path: fileNewPath,
+        strategy_id: strategyId,
+        file_path: strategyPath,
         add_time: addTime,
       }),
     );

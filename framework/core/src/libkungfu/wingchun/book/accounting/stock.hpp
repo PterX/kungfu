@@ -263,8 +263,8 @@ protected:
   // Guard for multi-threaded
   std::mutex accounting_mutex_;
   // AccountingMethod is stateless, involve context value?
-  [[maybe_unused]] double short_market_value_ = 0;
-  [[maybe_unused]] double long_market_value_ = 0;
+  double short_market_value_ = 0;
+  double long_market_value_ = 0;
 
   virtual void calculate_marketvalue(Book_ptr &book) {
     double short_market_value = 0;

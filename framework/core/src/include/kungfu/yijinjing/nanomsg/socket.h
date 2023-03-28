@@ -104,7 +104,6 @@ public:
 
   void getsockopt(const char *opt, void *val, size_t *valszp);
 
-
   int getsockopt_int(const char *opt);
 
   int getsockopt_ms(const char *opt);
@@ -125,7 +124,6 @@ public:
   const std::string &recv_msg(int flags = NNG_FLAG_ALLOC);
 
   nlohmann::json recv_json(int flags = NNG_FLAG_ALLOC);
-
 
   [[maybe_unused]] [[nodiscard]] protocol get_protocol() const { return protocol_; };
 

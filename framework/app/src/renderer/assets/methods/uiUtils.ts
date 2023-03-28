@@ -421,13 +421,13 @@ export const openLogView = (
 
 export const openCodeView = (
   processId: string,
-  file_path: string,
+  filePath: string,
   isEntryFilenameEditable: boolean,
 ): Promise<Electron.BrowserWindow> => {
   return openNewBrowserWindow(
     __dirname,
     'code',
-    `?processId=${processId}&file_path=${file_path}&isEntryFilenameEditable=${isEntryFilenameEditable}`,
+    `?processId=${processId}&filePath=${filePath}&isEntryFilenameEditable=${isEntryFilenameEditable}`,
   );
 };
 
@@ -557,10 +557,10 @@ export const handleOpenCodeView = (
   isEntryFilenameEditable: boolean,
 ): Promise<Electron.BrowserWindow> => {
   const openMessage = message.loading(t('open_code_editor'));
-  const file_path = JSON.parse((config as KungfuApi.KfConfig).value).file_path;
+  const filePath = JSON.parse((config as KungfuApi.KfConfig).value).file_path;
   return openCodeView(
     getProcessIdByKfLocation(config),
-    file_path,
+    filePath,
     isEntryFilenameEditable,
   ).finally(() => {
     openMessage();

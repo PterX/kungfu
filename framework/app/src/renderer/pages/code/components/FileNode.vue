@@ -77,6 +77,7 @@
             v-show="fileNode && !onEditing && fileNode.name && !fileNode?.root"
           >
             <span
+              v-if="ifCanEdit"
               class="mouse-over"
               :title="$t('rename')"
               @click.stop="handleRename"
@@ -116,12 +117,14 @@
           :id="id"
           type="folder"
           :count="childCount"
+          :if-can-edit="editFlaf"
         />
       </div>
     </div>
     <div v-if="isShowChildren">
       <div v-for="id in fileNode.children.file">
         <ComFileNode
+          :if-can-edit="editFlaf"
           :fileNode="fileTree[id]"
           :id="id"
           type="file"
@@ -179,13 +182,15 @@ const props = defineProps<{
   type: string;
   id: number | string;
   count: number | string;
+  ifCanEdit: boolean;
 }>();
 
-const { type, count } = props;
+const { type, count, ifCanEdit } = props;
 
 const { fileNode, id } = toRefs(props);
 const curCount = ref<number>(+(count || 0));
 const childCount = ref<number>(curCount.value + 1);
+const editFlaf = ref<boolean>(ifCanEdit);
 
 const iconPath = ref<string>('');
 const fileName = ref<string>('');
@@ -376,29 +381,11 @@ const handleEditFileBlur = () => {
   const parentId = fileNode.value?.parentId;
 
   // 更改文件名
-  fse
-    .rename(oldPath, newPath)
-    .then(() => {
-      reloadFolder(parentId, newName);
-    })
-    .then(() => {
-      // 子窗口修改入口文件名称，先不通知父窗口进行修改
-      // if (fileNode.value === entryFile.value || fileNode.value.isEntryFile) {
-      //   //更新入口文件名称从子窗口到父窗口
-      //   ipcEmitDataByName('updateCurrentCodePath', {
-      //     codeId: store.currentCodeInfo.code_id,
-      //     fileNewPath: newPath,
-      //   }).then(() => {
-      //     updateCodeToApp(newPath);
-      //   });
-      // }
-    });
+  fse.rename(oldPath, newPath).then(() => {
+    reloadFolder(parentId, newName);
+  });
   editValue.value = '';
 };
-
-// function updateCodeToApp(newPath) {
-//   proxy?.$emit('updateCodeToApp', newPath);
-// }
 
 //重制状态
 function resetStatus(): void {

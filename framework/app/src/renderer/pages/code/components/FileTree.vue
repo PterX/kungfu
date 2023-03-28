@@ -37,6 +37,7 @@
               :id="file.id"
               type="folder"
               :filePath="filePath"
+              :ifCanEdit="ifCanEdit"
             ></FileNode>
             <!-- @updateCodeToApp="updateCodeToApp" 用于上面组件 -->
           </div>
@@ -81,13 +82,12 @@ const props = defineProps<{
   currentNode: Code.CodeInfo;
   fileTreeType: string;
   filePath: string;
+  ifCanEdit: boolean;
 }>();
 //从props解构出来filePath
-const { filePath, currentNode } = props;
+const { filePath, currentNode, ifCanEdit } = props;
 const currentCodePath = ref<string>('');
 const currrentcodePathName = ref<string>('');
-// const currrentFileTree = ref<Code.IFileTree>({});
-// const { proxy } = getCurrentInstance() as ComponentInternalInstance;
 const { currentFile, fileTree } = storeToRefs(useCodeStore());
 const { error } = messagePrompt();
 
@@ -109,10 +109,6 @@ watch(currentNode as Code.CodeInfo, (newCurrentNode) => {
     removeLoadingMask();
   });
 });
-
-// function updateCodeToApp(strategyPath) {
-//   proxy?.$emit('updateCode', strategyPath);
-// }
 
 //加文件夹
 function handleAddFolder() {

@@ -6,13 +6,12 @@
 
 #include <kungfu/common.h>
 #include <kungfu/yijinjing/nanomsg/socket.h>
-#include <kungfu/yijinjing/util/util.h>
 
 namespace kungfu::yijinjing::nanomsg {
 
 const char *nn_exception::what() const throw() { return nng_strerror(errno_); }
 
-int nn_exception::num() const { return errno_; }
+[[maybe_unused]] int nn_exception::num() const { return errno_; }
 
 socket::socket(protocol p, int buffer_size) : protocol_(p), buf_size_(buffer_size) {
   int rc;
@@ -173,13 +172,14 @@ const std::string &socket::recv_msg(int flags) {
   return message_;
 }
 
-nlohmann::json socket::recv_json(int flags) {
+[[maybe_unused]] nlohmann::json socket::recv_json(int flags) {
+
   int rc = 0;
   if ((rc = recv(flags)) == 0) {
     SPDLOG_INFO("parsing json {} {}", rc, message_);
     return nlohmann::json::parse(message_);
   } else {
-    return nlohmann::json();
+    return nlohmann::json{};
   }
 }
 } // namespace kungfu::yijinjing::nanomsg

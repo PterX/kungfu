@@ -136,7 +136,7 @@ void Client::sync(int64_t trigger_time, const yijinjing::data::location_ptr &td_
   writer->mark(trigger_time, OrderTradeRequest::tag);
 }
 
-bool Client::try_sync(int64_t trigger_time, const location_ptr &td_location) {
+[[maybe_unused]] bool Client::try_sync(int64_t trigger_time, const location_ptr &td_location) {
   if (ready_td_locations_.find(td_location->uid) == ready_td_locations_.end()) {
     return false;
   }
@@ -240,7 +240,7 @@ SilentAutoClient::SilentAutoClient(practice::apprentice &app) : AutoClient(app) 
 //   return false;
 // }
 
-void SilentAutoClient::renew(int64_t trigger_time, const location_ptr &md_location){};
+void SilentAutoClient::renew(int64_t trigger_time, const location_ptr &md_location) {}
 
 void SilentAutoClient::sync(int64_t trigger_time, const location_ptr &td_location) {}
 

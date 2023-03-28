@@ -250,6 +250,8 @@ public:
 
   // TODO make itfriend funciton
   void set_arguments(const std::string &arguments) { arguments_ = arguments; }
+  
+  void set_started(bool started) {started_ = started; }
 
   /**
    *
@@ -263,6 +265,8 @@ protected:
   yijinjing::practice::apprentice &app_;
   const rx::connectable_observable<event_ptr> &events_;
   std::string arguments_;
+  bool started_{false};
+
 
   virtual void on_start() {}
 

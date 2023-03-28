@@ -47,8 +47,8 @@ inline mode get_mode_by_name(const std::string &name) {
     return mode::REPLAY;
   else if (name == "backtest")
     return mode::BACKTEST;
-  else
-    return mode::LIVE;
+
+  return mode::LIVE;
 }
 
 enum class category : int8_t { MD, TD, STRATEGY, SYSTEM, OPERATOR };
@@ -72,6 +72,7 @@ inline std::string get_category_name(category c) {
     return "strategy";
   case category::OPERATOR:
     return "operator";
+  case category::SYSTEM:
   default:
     return "system";
   }
@@ -108,7 +109,6 @@ inline std::string get_layout_name(layout l) {
   case layout::NANOMSG:
     return "nn";
   case layout::LOG:
-    return "log";
   default:
     return "log";
   }
@@ -147,6 +147,7 @@ enum class SubscribeDataType : uint64_t {
   Snapshot = 0x000000000001,    ///< 订阅快照数据类别
   Entrust = 0x000000000002,     ///< 订阅逐笔委托数据
   Transaction = 0x000000000004, ///< 订阅逐笔成交数据
+  Tree = 0x000000000008,        ///< 建树行情, 目前只有盛立有
 };
 
 NLOHMANN_JSON_SERIALIZE_ENUM(SubscribeDataType, {
@@ -154,6 +155,7 @@ NLOHMANN_JSON_SERIALIZE_ENUM(SubscribeDataType, {
                                                     {SubscribeDataType::Snapshot, "Snapshot"},
                                                     {SubscribeDataType::Entrust, "Entrust"},
                                                     {SubscribeDataType::Transaction, "Transaction"},
+                                                    {SubscribeDataType::Tree, "Tree"},
                                                 })
 
 // for subscribe
@@ -588,7 +590,7 @@ public:
   inline static const uint32_t All = 0b00010000;     // read all journal
 };
 
-template <typename T, typename U> inline T sub_data_bitwise(const T &a, const T &b) {
+template <typename T, typename U> [[maybe_unused]] inline T sub_data_bitwise(const T &a, const T &b) {
   return static_cast<T>(static_cast<U>(a) | static_cast<U>(b));
 }
 

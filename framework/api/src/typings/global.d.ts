@@ -96,6 +96,7 @@ export type AllPublishOptions =
 type Writeable<T> = { -readonly [P in keyof T]: T[P] };
 
 export interface RootConfigJSON {
+  name?: string;
   version?: string;
   kungfuCraft?: {
     appTitle?: string;
@@ -108,6 +109,8 @@ export interface RootConfigJSON {
   boardFilter?: Record<string, boolean>;
   appConfig?: {
     showHelp?: boolean;
+
+    kfConfigInitValue?: Record<string, KungfuApi.KfConfigValue>;
 
     T0T1?: T0T1Config;
 

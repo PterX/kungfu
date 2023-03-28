@@ -699,7 +699,6 @@ export const showTradingDataDetail = (
       vnode,
     ),
     t('confirm'),
-    '',
   );
 };
 
@@ -911,7 +910,6 @@ export const usePreStartAndQuitApp = (): {
   preStartSystemLoading: ComputedRef<boolean>;
   preQuitSystemLoadingData: Record<string, 'loading' | 'done' | undefined>;
   preQuitSystemLoading: ComputedRef<boolean>;
-  saveBoardsMap: () => Promise<void>;
 } => {
   const app = getCurrentInstance();
 
@@ -921,6 +919,8 @@ export const usePreStartAndQuitApp = (): {
     archive: 'loading',
     watcher: 'loading',
     extraResourcesLoading: 'loading',
+    cpusSafeNumChecking: 'loading',
+    VCDepsExistsChecking: 'loading',
   });
 
   const preQuitSystemLoadingData = reactive<
@@ -969,27 +969,29 @@ export const usePreStartAndQuitApp = (): {
 
   startGetWatcherStatus();
 
-  const saveBoardsMap = (): Promise<void> => {
-    const { boardsMap } = storeToRefs(useGlobalStore());
-    localStorage.setItem(
-      'indexBoardsMap',
-      JSON.stringify(boardsMap.value || '{}'),
-    );
-    return Promise.resolve();
-  };
-
   onMounted(async () => {
     if (
       booleanProcessEnv(process.env.RELOAD_AFTER_CRASHED) &&
       (await isAllMainProcessRunning())
     ) {
+      preStartSystemLoadingData.cpusSafeNumChecking = 'done';
+      preStartSystemLoadingData.VCDepsExistsChecking = 'done';
       preStartSystemLoadingData.archive = 'done';
       preStartSystemLoadingData.extraResourcesLoading = 'done';
     }
 
     if (app?.proxy) {
-      const subscription = app?.proxy.$globalBus.subscribe(
+      const subscription = app.proxy.$globalBus.subscribe(
         (data: KfEvent.KfBusEvent) => {
+          if (data.tag === 'preStartCheck') {
+            if (data.name === 'cpusNum') {
+              preStartSystemLoadingData.cpusSafeNumChecking = 'done';
+            }
+            if (data.name === 'VCDeps') {
+              preStartSystemLoadingData.VCDepsExistsChecking = 'done';
+            }
+          }
+
           if (data.tag === 'processStatus') {
             if (data.name && data.name === 'archive') {
               preStartSystemLoadingData.archive =
@@ -1043,7 +1045,6 @@ export const usePreStartAndQuitApp = (): {
     preStartSystemLoading,
     preQuitSystemLoadingData,
     preQuitSystemLoading,
-    saveBoardsMap,
   };
 };
 

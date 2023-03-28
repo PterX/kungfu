@@ -21,11 +21,11 @@ class ipc_url_factory : public url_factory {
 public:
   virtual ~ipc_url_factory() {}
 
-  [[nodiscard]] std::string make_path_listen(data::location_ptr location, protocol p) const override {
+  [[maybe_unused]] [[nodiscard]] std::string make_path_listen(data::location_ptr location, protocol p) const override {
     return location->locator->layout_file(location, layout::NANOMSG, get_protocol_name(p));
   }
 
-  [[nodiscard]] std::string make_path_dial(data::location_ptr location, protocol p) const override {
+  [[maybe_unused]][[nodiscard]] std::string make_path_dial(data::location_ptr location, protocol p) const override {
     return location->locator->layout_file(location, layout::NANOMSG, get_protocol_name(get_opposite_protol(p)));
   }
 };
@@ -156,7 +156,7 @@ io_device::io_device(data::location_ptr home, const bool low_latency, const bool
 
 reader_ptr io_device::open_reader_to_subscribe() { return std::make_shared<reader>(lazy_, low_latency_, bus_); }
 
-reader_ptr io_device::open_reader(const data::location_ptr &location, uint32_t dest_id) {
+[[maybe_unused]] reader_ptr io_device::open_reader(const data::location_ptr &location, uint32_t dest_id) {
   auto r = std::make_shared<reader>(lazy_, low_latency_, bus_);
   r->join(location, dest_id, 0);
   return r;
@@ -168,6 +168,25 @@ writer_ptr io_device::open_writer(uint32_t dest_id) {
 
 writer_ptr io_device::open_writer_at(const data::location_ptr &location, uint32_t dest_id) {
   return std::make_shared<writer>(location, dest_id, lazy_, publisher_, low_latency_, bus_);
+}
+
+[[maybe_unused]] socket_ptr io_device::connect_socket(const data::location_ptr &location, const protocol &p,
+                                                      int timeout) {
+  socket_ptr s = std::make_shared<nanomsg::socket>(p);
+  s->connect(url_factory_->make_path_connect(location, p));
+  s->setsockopt_int(NN_SOL_SOCKET, NN_RCVTIMEO, timeout);
+  SPDLOG_INFO("connected socket [{}] {} at {} with timeout {}", nanomsg::get_protocol_name(p), location->name,
+              s->get_url(), timeout);
+  return s;
+}
+
+[[maybe_unused]] socket_ptr io_device::bind_socket(const protocol &p, int timeout) {
+  socket_ptr s = std::make_shared<nanomsg::socket>(p);
+  s->bind(url_factory_->make_path_bind(home_, p));
+  s->setsockopt_int(NN_SOL_SOCKET, NN_RCVTIMEO, timeout);
+  SPDLOG_INFO("bind to socket [{}] {} at {} with timeout {}", nanomsg::get_protocol_name(p), home_->name, s->get_url(),
+              timeout);
+  return s;
 }
 
 io_device_master::io_device_master(data::location_ptr home, bool low_latency)

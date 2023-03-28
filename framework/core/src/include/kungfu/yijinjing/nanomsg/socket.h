@@ -88,7 +88,7 @@ DECLARE_PTR(nn_exception)
 
 class socket {
 public:
-  explicit socket(protocol p) : socket(AF_SP, p, MAX_MSG_LENGTH){};
+  explicit socket(protocol p) : socket(p, MAX_MSG_LENGTH){};
 
   socket(protocol p, int buffer_size);
 
@@ -113,8 +113,7 @@ public:
 
   int dial(const std::string &path, int flags = 0);
 
-
-  void close() const;
+  void close();
 
   // the flag for send must be NNG_FLAG_NONBLOCK, master may not started when this client is running
   int send(const std::string &msg, int flags = NNG_FLAG_NONBLOCK) const;

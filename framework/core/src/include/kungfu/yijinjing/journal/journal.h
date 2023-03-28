@@ -100,7 +100,7 @@ public:
 
   [[nodiscard]] page_ptr current_page() const { return current_->current_page(); }
 
-  [[maybe_unused]] [[nodiscard]] JournalMap &journals() const { return journals_; }
+  [[maybe_unused]] [[nodiscard]] const JournalMap &get_journals() const { return journals_; }
 
   bool data_available();
 

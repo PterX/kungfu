@@ -93,7 +93,7 @@ void BacktestContext::subscribe(const std::string &source, const std::vector<std
   }
   SPDLOG_INFO("subscribe source={} in: {}", source, md_location->uname);
   add_location(app_, md_location);
-  app_.get_reader()->join(md_location, location::PUBLIC, app_.get_begin_time());
+  app_.get_reader()->join(md_location, location::PUBLIC, std::max(app_.get_begin_time(), app_.now()));
   for (const auto &instrument_id : instrument_ids) {
     broker_client_.subscribe(md_location, exchange_ids, instrument_id);
   }
@@ -107,7 +107,7 @@ void BacktestContext::subscribe_all(const std::string &source, uint8_t market_ty
   }
   SPDLOG_INFO("subscribe source={} in: {}", source, md_location->uname);
   add_location(app_, md_location);
-  app_.get_reader()->join(md_location, location::PUBLIC, app_.get_begin_time());
+  app_.get_reader()->join(md_location, location::PUBLIC, std::max(app_.get_begin_time(), app_.now()));
   broker_client_.subscribe_all(find_md_location(source), market_type, instrument_type, data_type);
 }
 

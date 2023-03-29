@@ -61,6 +61,7 @@ void hero::setup() {
   events_ = observable<>::create<event_ptr>([this](auto &s) { delegate_produce(this, s); }) | holdon();
   react();
   live_ = true;
+  now_ = get_begin_time();
 }
 
 void hero::step() {

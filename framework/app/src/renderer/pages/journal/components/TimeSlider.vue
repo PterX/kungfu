@@ -2,21 +2,25 @@
   <div class="kf-time-slider__wrap">
     <div class="kf-time-slider-time">
       <a-input-group v-if="timeInputData[0].inputting" compact>
-        <a-input v-model:value="timeInputData[0].value" />
-        <a-button
-          type="primary"
-          size="small"
-          @click="handleConfirmTimeInput(0)"
-        >
-          {{ $t('confirm') }}
+        <a-input
+          v-model:value="timeInputData[0].value"
+          @press-enter="handleConfirmTimeInput(0)"
+        />
+        <a-button type="normal" @click="resetInputData(0)">
+          <template #icon>
+            <close-outlined />
+          </template>
         </a-button>
-        <a-button type="normal" size="small" @click="resetInputData(0)">
-          {{ $t('cancel') }}
+        <a-button type="primary" @click="handleConfirmTimeInput(0)">
+          <template #icon>
+            <check-outlined />
+          </template>
         </a-button>
       </a-input-group>
       <span
         v-else
         class="kf-time-slider-text"
+        style="text-align: end"
         @dblclick="handleDbClickTimeText(0)"
       >
         {{ timeStrs[0] }}
@@ -39,21 +43,25 @@
     />
     <div class="kf-time-slider-time">
       <a-input-group v-if="timeInputData[1].inputting" compact>
-        <a-input v-model:value="timeInputData[1].value" />
-        <a-button
-          type="primary"
-          size="small"
-          @click="handleConfirmTimeInput(1)"
-        >
-          {{ $t('confirm') }}
+        <a-input
+          v-model:value="timeInputData[1].value"
+          @press-enter="handleConfirmTimeInput(0)"
+        />
+        <a-button type="normal" @click="resetInputData(1)">
+          <template #icon>
+            <close-outlined />
+          </template>
         </a-button>
-        <a-button type="normal" size="small" @click="resetInputData(0)">
-          {{ $t('cancel') }}
+        <a-button type="primary" @click="handleConfirmTimeInput(1)">
+          <template #icon>
+            <check-outlined />
+          </template>
         </a-button>
       </a-input-group>
       <span
         v-else
         class="kf-time-slider-text"
+        style="text-align: start"
         @dblclick="handleDbClickTimeText(1)"
       >
         {{ timeStrs[1] }}
@@ -65,8 +73,10 @@
 <script lang="ts" setup>
 import { computed, ref, watch } from 'vue';
 
+import { CheckOutlined, CloseOutlined } from '@ant-design/icons-vue';
 import { dealKfTime } from '@kungfu-trader/kungfu-js-api/kungfu';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+import { messagePrompt } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 
 const { t } = VueI18n.global;
 
@@ -92,7 +102,10 @@ const SCALE = 1000000;
 const BIGINT_SCALE = BigInt(SCALE);
 
 const slider = ref();
-const sticking = ref<DoubleArray<boolean>>([false, false]);
+const sticking = ref<DoubleArray<boolean>>([
+  props.timeRange[0] === props.limitTimeRange[0],
+  props.timeRange[0] === props.limitTimeRange[0],
+]);
 const timeInputData = ref<DoubleArray<{ inputting: boolean; value: string }>>([
   { inputting: false, value: '' },
   { inputting: false, value: '' },
@@ -113,13 +126,18 @@ const customDealKftime = (time: bigint) => {
 };
 
 const str2millionTime = (timeStr: string) => {
+  timeStr = timeStr.replaceAll(' ', '');
   return new Promise<number>((resolve, reject) => {
-    const timeRegx = /\d{2}:\d{2}:\d{2}.\d{3}/;
-    if (!timeRegx.test(timeStr)) reject(t(''));
+    const timeRegx = /(\d{2}):(\d{2}):(\d{2})\.?(\d{3})?/;
+    if (!timeRegx.test(timeStr))
+      reject(t('journalConfig.input_time_format_error'));
     const [h, m, s, ms] = timeStr.match(timeRegx)?.slice(1) as string[];
-    const inputMillionSecond =
-      (Number(h) * 3600 + Number(m) * 60 + Number(s)) * 1000 + Number(ms);
-    resolve(inputMillionSecond);
+    const date = new Date();
+    date.setHours(+h);
+    date.setMinutes(+m);
+    date.setSeconds(+s);
+    date.setMilliseconds(+ms || 0);
+    resolve(date.getTime());
   });
 };
 
@@ -224,14 +242,15 @@ const handleDbClickTimeText = (index: 0 | 1) => {
 };
 
 const handleConfirmTimeInput = (index: 0 | 1) => {
-  str2millionTime(timeInputData.value[index].value).then((resolvedTime) => {
-    currentTimeRange.value[index] = resolvedTime;
-    emit('update:timeRange', [
-      dealUpdateTime(currentTimeRange.value[0]),
-      dealUpdateTime(currentTimeRange.value[1]),
-    ]);
-    resetInputData(index);
-  });
+  str2millionTime(timeInputData.value[index].value)
+    .then((resolvedTime) => {
+      currentTimeRange.value[index] = resolvedTime;
+      onAfterChange(currentTimeRange.value);
+      resetInputData(index);
+    })
+    .catch((err) => {
+      messagePrompt().error(err);
+    });
 };
 
 defineExpose({
@@ -246,12 +265,26 @@ defineExpose({
   justify-content: space-between;
 
   .kf-time-slider-time {
-    width: 100px;
+    width: 160px;
     margin: 0 16px;
-    flex: 0 0 100px;
+    flex: 0 0 160px;
+    font-size: 14px;
+
+    .ant-input-group-compact {
+      display: flex;
+
+      input {
+        width: 112px;
+      }
+
+      button {
+        width: 24px;
+      }
+    }
 
     .kf-time-slider-text {
-      font-size: 14px;
+      display: block;
+      width: 100%;
     }
   }
 

@@ -30,7 +30,8 @@ Napi::FunctionReference Frame::constructor = {};
 
 Frame::Frame(const Napi::CallbackInfo &info) : ObjectWrap(info) {}
 
-void Frame::SetFrame(yijinjing::journal::frame_ptr frame, std::string source_name, std::string dest_name) {
+void Frame::SetFrame(yijinjing::journal::frame_ptr frame, const std::string &source_name,
+                     const std::string &dest_name) {
   frame_ = std::move(frame);
   source_name_ = source_name;
   dest_name_ = dest_name;
@@ -352,7 +353,7 @@ Napi::Value Assemble::GetSessions(const Napi::CallbackInfo &info) {
     }
   }
   size_t session_ret_size = session_ret.size();
-  if (session_ret_size <= 0) {
+  if (session_ret_size == 0) {
     return {};
   }
   auto result = Napi::Array::New(info.Env(), session_ret_size);
@@ -421,7 +422,7 @@ std::vector<locator_ptr> Assemble::ExtractLocator(const Napi::CallbackInfo &info
   auto locators = info[0].As<Napi::Array>();
   for (int i = 0; i < locators.Length(); i++) {
     // result.push_back(IODevice::GetLocator(locators, i));
-    continue;
+    // continue;
   }
   return result;
 }

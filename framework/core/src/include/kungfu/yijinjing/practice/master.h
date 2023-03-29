@@ -41,11 +41,11 @@ public:
 
   virtual int64_t acquire_trading_day() = 0;
 
-  void publish_trading_day();
+  [[maybe_unused]] void publish_trading_day();
 
   void register_app(const event_ptr &event);
 
-  void deregister_app(int64_t trigger_time, uint32_t app_location_uid);
+  [[maybe_unused]] void deregister_app(int64_t trigger_time, uint32_t app_location_uid);
 
 protected:
   void react() final;
@@ -91,7 +91,7 @@ private:
 
   void on_new_location(const event_ptr &event);
 
-  void write_time_reset(int64_t trigger_time, const journal::writer_ptr &writer);
+  static void write_time_reset(int64_t trigger_time, const journal::writer_ptr &writer);
 
   void write_trading_day(int64_t trigger_time, const journal::writer_ptr &writer);
 

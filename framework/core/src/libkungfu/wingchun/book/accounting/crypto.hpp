@@ -22,7 +22,7 @@ public:
   void get_instrument(const Book_ptr &book, const Trade &trade, char *instrument_a, char *instrument_b,
                       char *instrument_commission, int64_t &volume_a, int64_t &volume_b, int64_t &volume_commission) {
     auto instrument_hash = hash_instrument(trade.exchange_id, trade.instrument_id);
-    auto &instrument = book->instruments.at(instrument_hash);
+    const auto &instrument = book->instruments.at(instrument_hash);
     strncpy(instrument_a, instrument.instrument_id, strlen(instrument.instrument_id) - instrument.delivery_year);
     strcpy(instrument_b, &(instrument.instrument_id[strlen(instrument.instrument_id) - instrument.delivery_year]));
     if (trade.hedge_flag == HedgeFlag::Speculation)
@@ -78,13 +78,13 @@ public:
 protected:
   std::unordered_map<uint64_t, double> commission_map_ = {};
 
-  virtual void apply_buy(Book_ptr &book, const Trade &trade) {}
+  [[maybe_unused]] virtual void apply_buy(Book_ptr &book, const Trade &trade) {}
 
-  virtual void apply_sell(Book_ptr &book, const Trade &trade) {}
+  [[maybe_unused]] virtual void apply_sell(Book_ptr &book, const Trade &trade) {}
 
-  virtual double calculate_commission(const Trade &trade) { return trade.commission; }
+  [[maybe_unused]] virtual double calculate_commission(const Trade &trade) { return trade.commission; }
 
-  virtual double calculate_tax(const Trade &trade) { return trade.tax; }
+  [[maybe_unused]] virtual double calculate_tax(const Trade &trade) { return trade.tax; }
 };
 } // namespace kungfu::wingchun::book
 #endif // WINGCHUN_ACCOUNTING_CRYPTO_H

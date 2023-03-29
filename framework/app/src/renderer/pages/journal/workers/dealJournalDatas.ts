@@ -18,17 +18,24 @@ const jsonParse = (json: string) => {
 };
 
 dataReceiver.onEnd<KungfuApi.FrameResolved>('send-events', ({ data, info }) => {
-  const trades = data
-    .filter((item) => item.msgType === FrameMsgTypeEnum.Trade)
-    .map((trade) => jsonParse(trade.data)) as KungfuApi.Trade[];
+  const quotes: KungfuApi.Quote[] = [];
+  const orders: KungfuApi.Order[] = [];
+  const trades: KungfuApi.Trade[] = [];
 
-  const quotes = data
-    .filter((item) => item.msgType === FrameMsgTypeEnum.Quote)
-    .map((quote) => jsonParse(quote.data)) as KungfuApi.Quote[];
-
-  const orders = data
-    .filter((item) => item.msgType === FrameMsgTypeEnum.Order)
-    .map((order) => jsonParse(order.data)) as KungfuApi.Order[];
+  data.forEach((item) => {
+    const resolvedData = jsonParse(item.data);
+    switch (item.msgType) {
+      case FrameMsgTypeEnum.Quote:
+        quotes.push(resolvedData);
+        break;
+      case FrameMsgTypeEnum.Order:
+        orders.push(resolvedData);
+        break;
+      case FrameMsgTypeEnum.Trade:
+        trades.push(resolvedData);
+        break;
+    }
+  });
 
   dataSender.sendData('send-trades', trades, info);
   dataSender.sendData('send-quotes', quotes, info);

@@ -32,7 +32,7 @@ public:
     });
     boost::hana::for_each(boost::hana::accessors<DataType>(), [&](auto it) {
       auto name = boost::hana::first(it);
-      auto accessor = boost::hana::second(it);
+      [[maybe_unused]] auto accessor = boost::hana::second(it);
       using ValueType = std::decay_t<std::invoke_result_t<decltype(accessor), const DataType &>>;
       InitValue<ValueType>(object, name.c_str());
     });
@@ -302,6 +302,36 @@ public:
 
   void operator()(int64_t from, int64_t to, bool sync_schema = false);
 
+  template <typename... Ts>
+  void filter_no([[maybe_unused]] int64_t from, [[maybe_unused]] int64_t to, bool sync_schema = false) {
+    [[maybe_unused]] auto now = yijinjing::time::now_in_nano();
+    [[maybe_unused]] auto source = location_->uid;
+    auto locator = location_->locator;
+    for (auto dest : locator->list_location_dest_by_db(location_)) {
+      auto db_file = locator->layout_file(location_, longfist::enums::layout::SQLITE, fmt::format("{:08x}", dest));
+      auto storage = yijinjing::cache::make_storage_ptr(db_file, longfist::StateDataTypes);
+      if (sync_schema) {
+        storage->sync_schema();
+      }
+
+      boost::hana::for_each(longfist::StateDataTypes, [&](auto it) {
+        using DataType = typename decltype(+boost::hana::second(it))::type;
+        if constexpr (type_belong_to<DataType, Ts...>()) {
+          return;
+        }
+
+        for (const auto &data : yijinjing::cache::time_spec<DataType>::get_all(storage, from, to)) {
+          try {
+            set(data, state_, source, dest, now);
+          } catch (const std::exception &e) {
+            SPDLOG_ERROR("Unexpected exception by operator() set {}", e.what());
+            continue;
+          }
+        }
+      });
+    }
+  }
+
 private:
   Napi::ObjectReference &state_;
   yijinjing::data::location_ptr location_;
@@ -351,7 +381,7 @@ private:
 
 void InitStateMap(const Napi::CallbackInfo &info, Napi::ObjectReference &state, const std::string &name);
 
-void InitTradingDataMap(const Napi::CallbackInfo &info, Napi::ObjectReference &state, const std::string &name);
+void InitTradingDataMap(Napi::ObjectReference &state, const std::string &name);
 } // namespace kungfu::node::serialize
 
 #endif // KUNGFU_NODE_SERIALIZE_H

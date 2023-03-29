@@ -39,8 +39,8 @@ void Bookkeeper::set_accounting_method(InstrumentType instrument_type, const Acc
 
 void Bookkeeper::on_trading_day(int64_t daytime) {
   auto trading_day = time::strftime(daytime, KUNGFU_TRADING_DAY_FORMAT);
-  for (auto &book_pair : books_) {
-    auto &book = book_pair.second;
+  for (const auto &book_pair : books_) {
+    const auto &book = book_pair.second;
     strcpy(book->asset.trading_day, trading_day.c_str());
     for (auto &pos_pair : book->long_positions) {
       pos_pair.second.trading_day = book->asset.trading_day;
@@ -162,11 +162,13 @@ void Bookkeeper::update_instrument(const longfist::types::Instrument &instrument
 }
 
 void Bookkeeper::update_book(const event_ptr &event, const InstrumentKey &instrument_key) {
+  std::lock_guard<std::mutex> lock(update_book_mutex_);
   broker_client_.subscribe(instrument_key);
   get_book(event->source())->ensure_position(instrument_key);
 }
 
 void Bookkeeper::update_book(const event_ptr &event, const Quote &quote) {
+  std::lock_guard<std::mutex> lock(update_book_mutex_);
   if (accounting_methods_.find(quote.instrument_type) == accounting_methods_.end()) {
     return;
   }
@@ -236,15 +238,15 @@ void Bookkeeper::try_sync_book_replica(uint32_t location_uid) {
   bool asset_changed = false;
   bool asset_margin_changed = false;
 
-  auto fun_asset_compare = [](const Asset &old_asset, const Asset &new_asset) {
+  auto asset_compare = [](const Asset &old_asset, const Asset &new_asset) {
     bool changed = false;
     changed |= old_asset.avail != new_asset.avail;   // 可用资金
     changed |= old_asset.margin != new_asset.margin; // 保证金(期货)
     return changed;
   };
-  asset_changed |= fun_asset_compare(old_book->asset, new_book->asset);
+  asset_changed |= asset_compare(old_book->asset, new_book->asset);
 
-  auto fun_asset_margin_compare = [](const AssetMargin &old_asset_margin, const AssetMargin &new_asset_margin) {
+  auto asset_margin_compare = [](const AssetMargin &old_asset_margin, const AssetMargin &new_asset_margin) {
     bool changed = false;
     changed |= old_asset_margin.total_asset != new_asset_margin.total_asset;   // 总资产
     changed |= old_asset_margin.avail_margin != new_asset_margin.avail_margin; // 可用保证金
@@ -255,13 +257,13 @@ void Bookkeeper::try_sync_book_replica(uint32_t location_uid) {
     changed |= old_asset_margin.short_cash != new_asset_margin.short_cash;     // 融券卖出金额
     return changed;
   };
-  asset_margin_changed |= fun_asset_margin_compare(old_book->asset_margin, new_book->asset_margin);
+  asset_margin_changed |= asset_margin_compare(old_book->asset_margin, new_book->asset_margin);
 
-  auto fun_position_compare = [](const PositionMap &source_map, Book_ptr &target_book) {
+  auto position_compare = [](const PositionMap &source_map, Book_ptr &target_book) {
     bool changed = false;
     for (auto &source_pair : source_map) {
       auto &source_position = source_pair.second;
-      auto &target_position = target_book->get_position_for(source_position.direction, source_position);
+      const auto &target_position = target_book->get_position_for(source_position.direction, source_position);
       changed |= source_position.volume != target_position.volume;                     // 数量
       changed |= source_position.yesterday_volume != target_position.yesterday_volume; // 昨仓数量
     }
@@ -269,11 +271,11 @@ void Bookkeeper::try_sync_book_replica(uint32_t location_uid) {
   };
 
   /// 用new_book的position去检测old_book的position,new有old无会加上
-  position_changed |= fun_position_compare(new_book->long_positions, old_book);
-  position_changed |= fun_position_compare(new_book->short_positions, old_book);
+  position_changed |= position_compare(new_book->long_positions, old_book);
+  position_changed |= position_compare(new_book->short_positions, old_book);
   /// 用old_book的position去检测new_book的position，old有new无会设置为0删掉
-  position_changed |= fun_position_compare(old_book->long_positions, new_book);
-  position_changed |= fun_position_compare(old_book->short_positions, new_book);
+  position_changed |= position_compare(old_book->long_positions, new_book);
+  position_changed |= position_compare(old_book->short_positions, new_book);
 
   /// position_changed更新book也会修改asset信息, on_asset_sync_reset仅在asset改变而position不改变的情况下调用
   if (asset_changed and not position_changed) {

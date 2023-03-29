@@ -1117,10 +1117,10 @@ declare module '@kungfu-trader/kungfu-core' {
 declare namespace Code {
   import { Stats } from 'fs-extra';
   import { SpaceTabSettingEnum, SpaceSizeSettingEnum } from './enums';
-  export interface Strategy {
-    strategy_id: string;
+
+  export interface CodeInfo {
+    code_id: string;
     file_path: string;
-    add_time: number;
   }
 
   export interface FileProps {

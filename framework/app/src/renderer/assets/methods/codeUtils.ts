@@ -6,20 +6,16 @@ import { Stats } from 'fs-extra';
 import { deepClone } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { useCodeStore } from '../../pages/code/store/codeStore';
 
-export const getProcessId = () => {
-  return parseURIParams().processId || '';
-};
-
 export const getUrlParams = parseURIParams;
 
 export const getTreeByFilePath = (
-  strategy: Code.FileData,
+  fileData: Code.FileData,
   fileTree: Code.IFileTree,
 ): Promise<Code.FileTreeByPath> => {
   fileTree = fileTree || {};
-  let strategyPath: string = strategy.filePath;
-  strategyPath = path.normalize(strategyPath);
-  const filePath: string = path.resolve(strategyPath);
+  let fileDataPath: string = fileData.filePath;
+  fileDataPath = path.normalize(fileDataPath);
+  const filePath: string = path.resolve(fileDataPath);
   const dirList: Code.FileData[] = [];
   const fileList: Code.FileData[] = [];
   const ids: Code.FileIds = { file: [], folder: [] };
@@ -34,7 +30,7 @@ export const getTreeByFilePath = (
           const isDir: boolean = stats.isDirectory();
           const fileInfo: Code.FileData = buildFileObj({
             id: 0,
-            parentId: strategy.id,
+            parentId: fileData.id,
             isDir,
             name: file,
             ext: path

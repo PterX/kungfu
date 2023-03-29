@@ -19,7 +19,6 @@ export const useCodeStore = defineStore('code', {
   state: (): ICodeState => {
     return {
       currentCodeInfo: {
-        add_time: 0,
         code_id: '',
         file_path: '',
       }, //当前运行策略

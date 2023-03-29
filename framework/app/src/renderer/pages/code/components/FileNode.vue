@@ -58,26 +58,15 @@
             @blur="handleAddFileBlur"
             @pressEnter="enterBlur"
           ></a-input>
-          <span
-            class="text-overflow"
-            v-show="
-              fileNode &&
-              (fileNode.isEntryFile ||
-                fileNode.filePath === entryFile.filePath) &&
-              fileNode.filePath !== undefined &&
-              !onEditing
-            "
-          >
-            (
-            <span class="text-entry-file">{{ $t('editor.entry_file') }}</span>
-            )
+          <span class="text-overflow" v-show="isEntryFile && !onEditing">
+            <span class="text-entry-file">({{ $t('editor.entry_file') }})</span>
           </span>
           <div
             class="deal-file"
             v-show="fileNode && !onEditing && fileNode.name && !fileNode?.root"
           >
             <span
-              v-if="ifCanEdit"
+              v-if="!isEntryFile || isEntryFilenameEditable"
               class="mouse-over"
               :title="$t('rename')"
               @click.stop="handleRename"
@@ -117,14 +106,14 @@
           :id="id"
           type="folder"
           :count="childCount"
-          :if-can-edit="editFlaf"
+          :isEntryFilenameEditable="isEntryFilenameEditable"
         />
       </div>
     </div>
     <div v-if="isShowChildren">
       <div v-for="id in fileNode.children.file">
         <ComFileNode
-          :if-can-edit="editFlaf"
+          :isEntryFilenameEditable="isEntryFilenameEditable"
           :fileNode="fileTree[id]"
           :id="id"
           type="file"
@@ -139,7 +128,6 @@
 <script lang="ts">
 export default {
   name: 'ComFileNode',
-  // emits: ['updateCodeToApp'],
 };
 </script>
 
@@ -150,16 +138,7 @@ import iconFolderJSON from '../config/iconFolderConfig.json';
 import iconFileJSON from '../config/iconFileConfig.json';
 import path from 'path';
 import { storeToRefs } from 'pinia';
-import {
-  onMounted,
-  ref,
-  toRefs,
-  computed,
-  watch,
-  nextTick,
-  // getCurrentInstance,
-  // ComponentInternalInstance,
-} from 'vue';
+import { onMounted, ref, toRefs, computed, watch, nextTick } from 'vue';
 import { Alert } from 'ant-design-vue';
 import { openFolder } from '../../../assets/methods/codeUtils';
 import {
@@ -167,13 +146,11 @@ import {
   addFileSync,
 } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
 import fse from 'fs-extra';
-// import { ipcEmitDataByName } from '../../../ipcMsg/emitter';
 import { confirmModal, messagePrompt } from '../../../assets/methods/uiUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 const { t } = VueI18n.global;
 
 const { success, error, warning } = messagePrompt();
-// const { proxy } = getCurrentInstance() as ComponentInternalInstance;
 
 const store = useCodeStore();
 
@@ -182,15 +159,12 @@ const props = defineProps<{
   type: string;
   id: number | string;
   count: number | string;
-  ifCanEdit: boolean;
+  isEntryFilenameEditable: boolean;
 }>();
 
-const { type, count, ifCanEdit } = props;
-
-const { fileNode, id } = toRefs(props);
+const { fileNode, id, count, type } = toRefs(props);
 const curCount = ref<number>(+(count || 0));
 const childCount = ref<number>(curCount.value + 1);
-const editFlaf = ref<boolean>(ifCanEdit);
 
 const iconPath = ref<string>('');
 const fileName = ref<string>('');
@@ -214,6 +188,15 @@ const isPending = computed(() => {
   return fileTree.value['pending']['parentId'] === id.value;
 });
 
+const isEntryFile = computed(() => {
+  return (
+    fileNode.value &&
+    (fileNode.value.isEntryFile ||
+      fileNode.value.filePath === entryFile.value.filePath) &&
+    fileNode.value.filePath !== undefined
+  );
+});
+
 watch(isShowChildren, () => {
   iconPath.value = getIcon(fileNode.value);
 });
@@ -233,7 +216,7 @@ function handleClickFile(file) {
   //如果为dir
   //打开文件夹, 如果children不为空，直接展示, 之后异步更新，将原来删除
   //如果children为空，读取文件夹下文件，赋值children
-  if (type == 'folder' && !file?.root) {
+  if (type.value == 'folder' && !file?.root) {
     openFolder(file, fileTree.value);
   }
 }
@@ -262,10 +245,10 @@ const handleAddFileBlur = (e) => {
       parentId !== null && parentId !== undefined
         ? fileTree.value[parentId].filePath
         : '';
-    const typeName = type == 'folder' ? t('folder') : t('file');
+    const typeName = type.value == 'folder' ? t('folder') : t('file');
 
-    if (type === 'folder' || type === 'file') {
-      addFileSync(targetPath, filename, type);
+    if (type.value === 'folder' || type.value === 'file') {
+      addFileSync(targetPath, filename, type.value);
     }
     store.removeFileFolderPending({
       id: fileNode.value?.parentId,
@@ -322,30 +305,26 @@ function handleDelete() {
     fileNode.value.filePath !== entryFile.value.filePath
   ) {
     const parentId = fileNode.value?.parentId;
-    const typeName = type == 'folder' ? 'folder' : 'file';
-    confirmModal(t('prompt'), t(`editor.delate_${typeName}_confirm`)).then(
-      (flag) => {
-        if (!flag) return;
+    const typeName = type.value == 'folder' ? t('folder') : t('file');
+    confirmModal(
+      t('prompt'),
+      t('editor.delete_confirm', { value: typeName }),
+    ).then((flag) => {
+      if (!flag) return;
 
-        removeFileFolder(fileNode.value?.filePath || '')
-          .then(() => {
-            store.setCurrentFile(entryFile.value);
-          })
-          .then(() =>
-            openFolder(
-              fileTree.value[parentId || 0],
-              fileTree.value,
-              true,
-              true,
-            ),
-          )
-          .then(() => success(`${t(typeName)}${t('operation_success')}`))
-          .catch((err) => {
-            if (err == 'cancel') return;
-            error(err.message || t('operation_failed'));
-          });
-      },
-    );
+      removeFileFolder(fileNode.value?.filePath || '')
+        .then(() => {
+          store.setCurrentFile(entryFile.value);
+        })
+        .then(() =>
+          openFolder(fileTree.value[parentId || 0], fileTree.value, true, true),
+        )
+        .then(() => success(`${t(typeName)}${t('operation_success')}`))
+        .catch((err) => {
+          if (err == 'cancel') return;
+          error(err.message || t('operation_failed'));
+        });
+    });
   } else {
     warning(t('editor.cannot_delate_entry'));
     return;
@@ -409,7 +388,7 @@ function reloadFolder(parentId, filename) {
 
 function getIcon(file: Code.FileData): string {
   let iconName: string = '';
-  if (type == 'folder') {
+  if (type.value == 'folder') {
     if (file['open']) {
       if (iconFolderJSON[file.name]) {
         iconName = iconFolderJSON[file.name] + '-open';

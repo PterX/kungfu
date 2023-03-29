@@ -3,10 +3,7 @@
     <div class="file-tree-content">
       <div class="current-node-name">
         <span class="name">
-          <span v-if="currentNode">
-            {{ currentNode.code_id.split('_')[1] }}
-          </span>
-          ({{ $t('editor.current') + $t('editor.' + fileTreeType) }})
+          {{ $t('editor.current') + $t('folder') }}
         </span>
         <span class="tree-deal-file">
           <span
@@ -37,9 +34,8 @@
               :id="file.id"
               type="folder"
               :filePath="filePath"
-              :ifCanEdit="ifCanEdit"
+              :isEntryFilenameEditable="isEntryFilenameEditable"
             ></FileNode>
-            <!-- @updateCodeToApp="updateCodeToApp" 用于上面组件 -->
           </div>
         </div>
       </div>
@@ -47,54 +43,42 @@
   </div>
 </template>
 
-<script lang="ts">
-export default {
-  // emits: ['updateCode'],
-};
-</script>
 <script setup lang="ts">
-// vue生态相关
-import {
-  watch,
-  ref,
-  // getCurrentInstance, ComponentInternalInstance
-} from 'vue';
+import { watch, ref } from 'vue';
 import FileNode from './FileNode.vue';
 import { storeToRefs } from 'pinia';
 import { useCodeStore } from '../store/codeStore';
-//node生态相关
 import path from 'path';
-//ant-design组件
 import { FileAddFilled, FolderAddFilled } from '@ant-design/icons-vue';
-//功夫自定义公共函数
-import { getTreeByFilePath } from '../../../assets/methods/codeUtils';
-import { findTargetFromArray } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
-import { openFolder, buildFileObj } from '../../../assets/methods/codeUtils';
 import {
-  messagePrompt,
-  removeLoadingMask,
-} from '../../../assets/methods/uiUtils';
+  getTreeByFilePath,
+  openFolder,
+  buildFileObj,
+} from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/codeUtils';
+import { findTargetFromArray } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { messagePrompt } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 
-//code编辑器使用的store
 const store = useCodeStore();
-//定义props，以及数据类型
-const props = defineProps<{
-  currentNode: Code.CodeInfo;
-  fileTreeType: string;
-  filePath: string;
-  ifCanEdit: boolean;
-}>();
-//从props解构出来filePath
-const { filePath, currentNode, ifCanEdit } = props;
+const props = withDefaults(
+  defineProps<{
+    currentNode: Code.CodeInfo;
+    filePath: string;
+    isEntryFilenameEditable?: boolean;
+  }>(),
+  {
+    isEntryFilenameEditable: true,
+  },
+);
+
 const currentCodePath = ref<string>('');
-const currrentcodePathName = ref<string>('');
+const currentCodePathName = ref<string>('');
 const { currentFile, fileTree } = storeToRefs(useCodeStore());
 const { error } = messagePrompt();
 
 //监视currentNode，拿到最新的的数据然后初始化左侧的文件树
-watch(currentNode as Code.CodeInfo, (newCurrentNode) => {
+watch(props.currentNode as Code.CodeInfo, (newCurrentNode) => {
   currentCodePath.value = path.dirname(newCurrentNode.file_path);
-  currrentcodePathName.value = path.basename(currentCodePath.value);
+  currentCodePathName.value = path.basename(currentCodePath.value);
   initFileTree(newCurrentNode).then((fileItem) => {
     const entryPath: string = newCurrentNode.file_path;
     const currentFile = findTargetFromArray<Code.FileData>(
@@ -106,7 +90,6 @@ watch(currentNode as Code.CodeInfo, (newCurrentNode) => {
       store.setEntryFile(currentFile);
       store.setCurrentFile(currentFile);
     }
-    removeLoadingMask();
   });
 });
 
@@ -156,7 +139,7 @@ async function initFileTree(currentNode) {
     id: rootId,
     parentId: 0,
     isDir: true,
-    name: currrentcodePathName.value,
+    name: currentCodePathName.value,
     ext: '',
     filePath: currentCodePath.value,
     children: { file: [], folder: [] },

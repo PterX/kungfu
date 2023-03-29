@@ -676,12 +676,9 @@ export default {
     name_repeat: '此位置已存在文件或文件夹 {name}, 请选择其他名称！',
     empty_input: '必须提供文件或文件夹名称！',
     illegal_character: '名称不能包含\\/:*?"<>|',
-    delate_folder_confirm: '确认删除文件夹吗？',
-    delate_file_confirm: '确认删除文件吗？',
+    delete_confirm: '确认删除{value}吗？',
     cannot_delate_entry: '不可删除入口文件',
     current: '当前',
-    operator: '算子',
-    strategy: '策略',
   },
 
   logview: {

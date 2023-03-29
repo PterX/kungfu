@@ -42,11 +42,14 @@ import {
   postStartAll,
   preStartAll,
   mergeExtLanguages,
+  checkCpusNumAndConfirmModal,
+  checkVCDepsAndConfirmModal,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
 import {
   booleanProcessEnv,
   delayMilliSeconds,
+  buildIfWatcherLiveObservable,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import {
   Pm2ProcessStatusDetailData,
@@ -58,6 +61,7 @@ import {
   startCacheD,
   startMaster,
   isAllMainProcessRunning,
+  KillAll,
 } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
 
 import {
@@ -73,7 +77,7 @@ import globalBus from '@kungfu-trader/kungfu-js-api/utils/globalBus';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import zhCN from 'ant-design-vue/es/locale/zh_CN';
 import enUS from 'ant-design-vue/es/locale/en_US';
-import { KillAll } from '../../../../../api/src/utils/processUtils';
+import { first } from 'rxjs';
 
 const app = createApp(App);
 
@@ -130,48 +134,78 @@ mergeExtLanguages().then(() =>
 
 const globalStore = useGlobalStore();
 const __BYPASS_ARCHIVE__ = false;
+let appMounted = false;
+
+globalBus.subscribe((data) => {
+  if (data.tag === 'appMounted') {
+    appMounted = true;
+  }
+});
 
 const initStartAll = () => {
-  preStartAll()
-    .then(async () => {
-      if (__BYPASS_ARCHIVE__) {
+  const start = () => {
+    preStartAll()
+      .then(() => checkCpusNumAndConfirmModal())
+      .then((res) => {
         globalBus.next({
-          tag: 'processStatus',
-          name: 'archive',
-          status: 'online',
+          tag: 'preStartCheck',
+          name: 'cpusNum',
+          status: res,
         });
-        await delayMilliSeconds(2000);
+      })
+      .then(() => checkVCDepsAndConfirmModal())
+      .then((res) => {
         globalBus.next({
-          tag: 'processStatus',
-          name: 'archive',
-          status: 'stopped',
+          tag: 'preStartCheck',
+          name: 'VCDeps',
+          status: res,
         });
-        return;
-      } else {
-        return startArchiveMakeTask((archiveStatus: Pm2ProcessStatusTypes) => {
+      })
+      .then(async () => {
+        if (__BYPASS_ARCHIVE__) {
           globalBus.next({
             tag: 'processStatus',
             name: 'archive',
-            status: archiveStatus,
+            status: 'online',
           });
-        });
-      }
-    })
-    .then(() => startMaster(false))
-    .catch((err) => console.error(err.message))
-    .finally(() => {
-      startGetProcessStatus(
-        (res: {
-          processStatus: Pm2ProcessStatusData;
-          processStatusWithDetail: Pm2ProcessStatusDetailData;
-        }) => {
-          const { processStatus, processStatusWithDetail } = res;
-          globalStore.setProcessStatus(processStatus);
-          globalStore.setProcessStatusWithDetail(processStatusWithDetail);
-        },
-      );
+          await delayMilliSeconds(2000);
+          globalBus.next({
+            tag: 'processStatus',
+            name: 'archive',
+            status: 'stopped',
+          });
+          return;
+        } else {
+          return startArchiveMakeTask(
+            (archiveStatus: Pm2ProcessStatusTypes) => {
+              globalBus.next({
+                tag: 'processStatus',
+                name: 'archive',
+                status: archiveStatus,
+              });
+            },
+          );
+        }
+      })
+      .then(() => startMaster(false))
+      .catch((err) => console.error(err.message))
+      .finally(() => {
+        startGetProcessStatus(
+          (res: {
+            processStatus: Pm2ProcessStatusData;
+            processStatusWithDetail: Pm2ProcessStatusDetailData;
+          }) => {
+            const { processStatus, processStatusWithDetail } = res;
+            globalStore.setProcessStatus(processStatus);
+            globalStore.setProcessStatusWithDetail(processStatusWithDetail);
+          },
+        );
+      });
 
-      delayMilliSeconds(1000)
+    const watcherIsLiveObervable = buildIfWatcherLiveObservable(window.watcher);
+    watcherIsLiveObervable.pipe(first()).subscribe(() => {
+      console.log('watcher is live');
+      delayMilliSeconds(2000)
         .then(() => startCacheD(false))
         .then(() => delayMilliSeconds(2000))
         .then(() => startLedger(false))
@@ -186,6 +220,17 @@ const initStartAll = () => {
         })
         .catch((err) => console.error(err.message));
     });
+  };
+
+  if (appMounted) {
+    start();
+  } else {
+    globalBus.subscribe((data) => {
+      if (data.tag === 'appMounted') {
+        start();
+      }
+    });
+  }
 };
 
 if (!booleanProcessEnv(process.env.RELOAD_AFTER_CRASHED)) {

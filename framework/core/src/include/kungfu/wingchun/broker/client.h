@@ -36,7 +36,7 @@ struct StatelessResumePolicy : public ResumePolicy {
 /**
  * Always resume from the last unread frame, is intended to be used by system services that needs continuity.
  */
-struct ContinuousResumePolicy : public ResumePolicy {
+struct [[maybe_unused]] ContinuousResumePolicy : public ResumePolicy {
   [[nodiscard]] int64_t get_resume_time(const yijinjing::practice::apprentice &app,
                                         const longfist::types::Register &broker) const override;
 };
@@ -45,7 +45,7 @@ struct ContinuousResumePolicy : public ResumePolicy {
  * Resumes from the last unread frame, or the start of today if the last unread frame was before it.
  * This policy ensures the client does not look back data before today, is intended to be used by strategies.
  */
-struct IntradayResumePolicy : public ResumePolicy {
+struct [[maybe_unused]] IntradayResumePolicy : public ResumePolicy {
   [[nodiscard]] int64_t get_resume_time(const yijinjing::practice::apprentice &app,
                                         const longfist::types::Register &broker) const override;
 };
@@ -88,7 +88,7 @@ public:
                                                       const std::string &exchange_id,
                                                       longfist::enums::InstrumentType kf_instrument_type) const = 0;
 
-  [[nodiscard]] virtual bool is_all_subscribed(uint32_t md_location_uid) const = 0;
+  [[maybe_unused]] [[nodiscard]] virtual bool is_all_subscribed(uint32_t md_location_uid) const = 0;
 
   [[nodiscard]] virtual bool is_subscribed(const std::string &exchange_id, const std::string &instrument_id) const;
 
@@ -109,7 +109,7 @@ public:
 
   virtual void sync(int64_t trigger_time, const yijinjing::data::location_ptr &td_location);
 
-  virtual bool try_sync(int64_t trigger_time, const yijinjing::data::location_ptr &td_location);
+  [[maybe_unused]] virtual bool try_sync(int64_t trigger_time, const yijinjing::data::location_ptr &td_location);
 
   virtual void on_start(const rx::connectable_observable<event_ptr> &events);
 
@@ -127,7 +127,9 @@ public:
 
   [[nodiscard]] virtual bool should_connect_operator(uint32_t op_location_uid) const = 0;
 
-  kungfu::yijinjing::data::location_ptr get_location(uint32_t uid) const { return app_.get_location(uid); }
+  [[nodiscard]] kungfu::yijinjing::data::location_ptr get_location(uint32_t uid) const {
+    return app_.get_location(uid);
+  }
 
 protected:
   yijinjing::practice::apprentice &app_;
@@ -325,8 +327,7 @@ static constexpr auto is_own(const Client &broker_client) {
                                                     kungfu::longfist::enums::SubscribeDataType::Snapshot,
                                                     data.exchange_id, data.instrument_type)) ||
             (std::is_same_v<DataType, longfist::types::Tree> &&
-             broker_client.is_custom_subscribed_all(event->source(),
-                                                    kungfu::longfist::enums::SubscribeDataType::Snapshot,
+             broker_client.is_custom_subscribed_all(event->source(), kungfu::longfist::enums::SubscribeDataType::Tree,
                                                     data.exchange_id, data.instrument_type)) ||
             (std::is_same_v<DataType, longfist::types::Transaction> &&
              broker_client.is_custom_subscribed_all(event->source(),
@@ -345,7 +346,7 @@ static constexpr auto is_own(const Client &broker_client) {
     }
     return false;
   });
-};
+}
 
 template <typename DataType, std::enable_if_t<std::is_same_v<DataType, longfist::types::Register> or
                                               std::is_same_v<DataType, longfist::types::Deregister>>...>
@@ -358,7 +359,7 @@ static constexpr auto is_own(const Client &broker_client) {
     }
     return false;
   });
-};
+}
 
 template <typename DataType, std::enable_if_t<std::is_same_v<DataType, longfist::types::BrokerStateUpdate>>...>
 static constexpr auto is_own(const Client &broker_client) {
@@ -380,7 +381,7 @@ static constexpr auto is_own(const Client &broker_client) {
     }
     return false;
   });
-};
+}
 
 } // namespace kungfu::wingchun::broker
 

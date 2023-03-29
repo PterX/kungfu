@@ -17,7 +17,7 @@ public:
   Runner(yijinjing::data::locator_ptr locator, const std::string &group, const std::string &name,
          longfist::enums::mode m, bool low_latency, const std::string &arguments = "");
 
-  ~Runner() override = default;
+  virtual ~Runner();
 
   [[nodiscard]] RuntimeContext_ptr get_context() const;
 
@@ -100,8 +100,6 @@ private:
   };
   DECLARE_PTR(BookListener);
 };
-
-static const int64_t NANO_MILLISECOND = int64_t(1000000);
 
 } // namespace kungfu::wingchun::strategy
 

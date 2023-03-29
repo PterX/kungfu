@@ -94,7 +94,7 @@ constexpr auto AllTypes = boost::hana::make_map( //
     TYPE_PAIR(RequestHistoryTradeError)          //
 );
 
-constexpr auto AllDataTypes = boost::hana::make_map( //
+[[maybe_unused]] constexpr auto AllDataTypes = boost::hana::make_map( //
     TYPE_PAIR(Config),                               //
     TYPE_PAIR(RiskSetting),                          //
     TYPE_PAIR(TimeValue),                            //
@@ -212,8 +212,7 @@ constexpr auto build_state_map = [](auto types) {
 constexpr auto build_ring_state_map = [](auto types, size_t ring_size) {
   auto maps = boost::hana::transform(boost::hana::values(types), [ring_size](auto value) {
     using DataType = typename decltype(+value)::type;
-    kungfu::yijinjing::cache::ringqueue<state<DataType>> *p =
-        new kungfu::yijinjing::cache::ringqueue<state<DataType>>(ring_size);
+    auto *p = new kungfu::yijinjing::cache::ringqueue<state<DataType>>(ring_size);
     return boost::hana::make_pair(value, p);
   });
   return boost::hana::unpack(maps, boost::hana::make_map);
@@ -225,7 +224,7 @@ DECLARE_PTR(ProfileMapType)
 using StateMapType = decltype(build_state_map(longfist::StateDataTypes));
 DECLARE_PTR(StateMapType)
 
-static size_t TRADING_MAP_RING_SIZE = 2048;
+static size_t TRADING_MAP_RING_SIZE = 1024;
 using TradingMapType = decltype(build_ring_state_map(longfist::TradingDataTypes, TRADING_MAP_RING_SIZE));
 DECLARE_PTR(TradingMapType)
 
@@ -239,6 +238,6 @@ template <typename DataType> std::enable_if_t<not size_fixed_v<DataType>> copy(D
     accessor(to) = accessor(from);
   });
 }
-}; // namespace kungfu::longfist
+} // namespace kungfu::longfist
 
 #endif // KUNGFU_LONGFIST_H

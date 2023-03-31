@@ -19,7 +19,6 @@ namespace kungfu::yijinjing::journal {
 
 typedef std::unordered_map<uint64_t, journal> JournalMap;
 class journal {
-
 public:
   journal(data::location_ptr location, uint32_t dest_id, bool is_writing, bool lazy, bool low_latency,
           const bus_ptr &bus)
@@ -32,7 +31,7 @@ public:
 
   [[nodiscard]] page_ptr &current_page() { return page_; }
 
-  [[nodiscard]] const data::location_ptr &get_location() { return location_; }
+  [[nodiscard]] const data::location_ptr &get_location() const { return location_; }
 
   [[maybe_unused]] [[nodiscard]] uint32_t get_source() const { return location_->location_uid; }
 
@@ -146,6 +145,9 @@ public:
   [[maybe_unused]] void mark_at(int64_t gen_time, int64_t trigger_time, int32_t msg_type);
 
   [[maybe_unused]] void write_raw(int64_t trigger_time, int32_t msg_type, uintptr_t data, uint32_t length);
+
+  [[maybe_unused]] void write_bytes(int64_t trigger_time, int32_t msg_type, const std::vector<uint8_t> &data,
+                                    uint32_t length);
 
   bool release_page();
 

@@ -9,6 +9,7 @@
 
 #include "kungfu/yijinjing/cache/ringqueue.h"
 #include <kungfu/longfist/types.h>
+#include <unordered_set>
 
 #define TYPE_PAIR(DataType) boost::hana::make_pair(HANA_STR(#DataType), boost::hana::type_c<types::DataType>)
 
@@ -35,6 +36,7 @@ constexpr auto AllTypes = boost::hana::make_map( //
     TYPE_PAIR(MirrorPositionsRequest),           //
     TYPE_PAIR(AssetRequest),                     //
     TYPE_PAIR(PositionRequest),                  //
+    TYPE_PAIR(OrderTradeRequest),                //
     TYPE_PAIR(AssetSync),                        //
     TYPE_PAIR(KeepPositionsRequest),             //
     TYPE_PAIR(RebuildPositionsRequest),          //
@@ -95,53 +97,53 @@ constexpr auto AllTypes = boost::hana::make_map( //
 );
 
 [[maybe_unused]] constexpr auto AllDataTypes = boost::hana::make_map( //
-    TYPE_PAIR(Config),                               //
-    TYPE_PAIR(RiskSetting),                          //
-    TYPE_PAIR(TimeValue),                            //
-    TYPE_PAIR(TimeKeyValue),                         //
-    TYPE_PAIR(StrategyStateUpdate),                  //
-    TYPE_PAIR(OperatorStateUpdate),                  //
-    TYPE_PAIR(Commission),                           //
-    TYPE_PAIR(Session),                              //
-    TYPE_PAIR(Location),                             //
-    TYPE_PAIR(Register),                             //
-    TYPE_PAIR(Deregister),                           //
-    TYPE_PAIR(CacheReset),                           //
-    TYPE_PAIR(BrokerStateUpdate),                    //
-    TYPE_PAIR(RequestReadFrom),                      //
-    TYPE_PAIR(RequestReadFromPublic),                //
-    TYPE_PAIR(RequestReadFromSync),                  //
-    TYPE_PAIR(RequestWriteTo),                       //
-    TYPE_PAIR(RequestWriteToBand),                   //
-    TYPE_PAIR(Band),                                 //
-    TYPE_PAIR(Basket),                               //
-    TYPE_PAIR(BasketInstrument),                     //
-    TYPE_PAIR(TradingDay),                           //
-    TYPE_PAIR(Channel),                              //
-    TYPE_PAIR(ChannelRequest),                       //
-    TYPE_PAIR(TimeRequest),                          //
-    TYPE_PAIR(TimeReset),                            //
-    TYPE_PAIR(Instrument),                           //
-    TYPE_PAIR(InstrumentKey),                        //
-    TYPE_PAIR(Quote),                                //
-    TYPE_PAIR(Tree),                                 //
-    TYPE_PAIR(Entrust),                              //
-    TYPE_PAIR(Transaction),                          //
-    TYPE_PAIR(BlockMessage),                         //
-    TYPE_PAIR(OrderInput),                           //
-    TYPE_PAIR(OrderAction),                          //
-    TYPE_PAIR(OrderActionError),                     //
-    TYPE_PAIR(Order),                                //
-    TYPE_PAIR(Trade),                                //
-    TYPE_PAIR(HistoryOrder),                         //
-    TYPE_PAIR(HistoryTrade),                         //
-    TYPE_PAIR(Asset),                                //
-    TYPE_PAIR(AssetMargin),                          //
-    TYPE_PAIR(Position),                             //
-    TYPE_PAIR(PositionEnd),                          //
-    TYPE_PAIR(OrderStat),                            //
-    TYPE_PAIR(SyntheticData),                        //
-    TYPE_PAIR(BasketOrder)                           //
+    TYPE_PAIR(Config),                                                //
+    TYPE_PAIR(RiskSetting),                                           //
+    TYPE_PAIR(TimeValue),                                             //
+    TYPE_PAIR(TimeKeyValue),                                          //
+    TYPE_PAIR(StrategyStateUpdate),                                   //
+    TYPE_PAIR(OperatorStateUpdate),                                   //
+    TYPE_PAIR(Commission),                                            //
+    TYPE_PAIR(Session),                                               //
+    TYPE_PAIR(Location),                                              //
+    TYPE_PAIR(Register),                                              //
+    TYPE_PAIR(Deregister),                                            //
+    TYPE_PAIR(CacheReset),                                            //
+    TYPE_PAIR(BrokerStateUpdate),                                     //
+    TYPE_PAIR(RequestReadFrom),                                       //
+    TYPE_PAIR(RequestReadFromPublic),                                 //
+    TYPE_PAIR(RequestReadFromSync),                                   //
+    TYPE_PAIR(RequestWriteTo),                                        //
+    TYPE_PAIR(RequestWriteToBand),                                    //
+    TYPE_PAIR(Band),                                                  //
+    TYPE_PAIR(Basket),                                                //
+    TYPE_PAIR(BasketInstrument),                                      //
+    TYPE_PAIR(TradingDay),                                            //
+    TYPE_PAIR(Channel),                                               //
+    TYPE_PAIR(ChannelRequest),                                        //
+    TYPE_PAIR(TimeRequest),                                           //
+    TYPE_PAIR(TimeReset),                                             //
+    TYPE_PAIR(Instrument),                                            //
+    TYPE_PAIR(InstrumentKey),                                         //
+    TYPE_PAIR(Quote),                                                 //
+    TYPE_PAIR(Tree),                                                  //
+    TYPE_PAIR(Entrust),                                               //
+    TYPE_PAIR(Transaction),                                           //
+    TYPE_PAIR(BlockMessage),                                          //
+    TYPE_PAIR(OrderInput),                                            //
+    TYPE_PAIR(OrderAction),                                           //
+    TYPE_PAIR(OrderActionError),                                      //
+    TYPE_PAIR(Order),                                                 //
+    TYPE_PAIR(Trade),                                                 //
+    TYPE_PAIR(HistoryOrder),                                          //
+    TYPE_PAIR(HistoryTrade),                                          //
+    TYPE_PAIR(Asset),                                                 //
+    TYPE_PAIR(AssetMargin),                                           //
+    TYPE_PAIR(Position),                                              //
+    TYPE_PAIR(PositionEnd),                                           //
+    TYPE_PAIR(OrderStat),                                             //
+    TYPE_PAIR(SyntheticData),                                         //
+    TYPE_PAIR(BasketOrder)                                            //
 );
 
 constexpr auto ProfileDataTypes = boost::hana::make_map( //
@@ -192,6 +194,17 @@ constexpr auto TradingDataTypes = boost::hana::make_map( //
     TYPE_PAIR(OrderStat),                                //
     TYPE_PAIR(BasketOrder)                               //
 );
+
+const auto build_data_set = [](auto types) {
+  std::unordered_set<int32_t> s;
+  boost::hana::for_each(types, [&](auto it) {
+    using DataType = typename decltype(+boost::hana::second(it))::type;
+    s.emplace(DataType::tag);
+  });
+  return s;
+};
+
+const std::unordered_set<int32_t> AllTypesTags = build_data_set(AllTypes);
 
 constexpr auto build_data_map = [](auto types) {
   auto maps = boost::hana::transform(boost::hana::values(types), [](auto value) {

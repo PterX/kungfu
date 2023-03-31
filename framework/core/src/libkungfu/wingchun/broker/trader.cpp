@@ -25,7 +25,7 @@ void TraderVendor::set_service(Trader_ptr service) { service_ = std::move(servic
 
 void TraderVendor::react() {
   events_ | skip_until(events_ | is(RequestStart::tag)) | is(OrderInput::tag) | $$(service_->handle_order_input(event));
-  events_ | skip_until(events_ | is(RequestStart::tag)) | instanceof <frame>() | $$(service_->on_custom_event(event));
+  events_ | skip_until(events_ | is(RequestStart::tag)) | is_custom() | $$(service_->on_custom_event(event));
   apprentice::react();
 }
 
@@ -295,7 +295,7 @@ void Trader::recover() {
   }
 }
 
-void Trader::clear_order_inputs(const uint64_t location_uid) { order_inputs_.erase(location_uid); }
+void Trader::clear_order_inputs(uint64_t location_uid) { order_inputs_.erase(location_uid); }
 
 [[maybe_unused]] void Trader::disable_recover() { disable_recover_ = true; }
 

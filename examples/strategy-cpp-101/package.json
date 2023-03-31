@@ -12,7 +12,8 @@
     "clean": "kfs strategy clean",
     "build": "kfs strategy build",
     "package": "kfs strategy package",
-    "format": "node ../../framework/core/.gyp/run-format-cpp.js src"
+    "format": "node ../../framework/core/.gyp/run-format-cpp.js src",
+    "dev": "kfc -l debug run -c strategy -g KungfuStrategy101Cpp -n demo ./dist/KungfuStrategy101Cpp/KungfuStrategy101Cpp.cp39-win_amd64.pyd"
   },
   "devDependencies": {
     "@kungfu-trader/kungfu-sdk": "^2.6.0-alpha.7"

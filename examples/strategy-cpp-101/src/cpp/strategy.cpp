@@ -16,7 +16,7 @@ public:
   void pre_start(Context_ptr & context) override {
     SPDLOG_INFO("preparing strategy");
     SPDLOG_INFO("arguments: {}", context->get_arguments());
-    context->add_account("sim", "123456");
+    context->add_account("sim", "fill");
     context->subscribe("sim", {"600000"}, {"SSE"});
     // context->subscribe_operator("bar", "my-bar");
   }
@@ -69,5 +69,12 @@ public:
 
   void on_tree(Context_ptr & context, const Tree &tree, const location_ptr &location) override {
     SPDLOG_INFO("on tree: {}", tree.to_string());
+  }
+
+  void on_custom_data(Context_ptr & context, uint32_t msg_type, const std::vector<uint8_t> &data, uint32_t length,
+                      const kungfu::yijinjing::data::location_ptr &location) override {
+    SPDLOG_WARN("on_custom_data msg_type: {}", msg_type);
+    SPDLOG_WARN("on_custom_data data: {}", data.data());
+    SPDLOG_WARN("on_custom_data length: {}", length);
   }
 };

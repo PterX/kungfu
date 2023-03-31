@@ -95,7 +95,7 @@ public:
 
   void enable_positions_sync();
 
-  void clear_order_inputs(const uint64_t location_uid);
+  void clear_order_inputs(uint64_t location_uid);
 
   std::unordered_map<uint64_t, std::vector<longfist::types::OrderInput>> &get_order_inputs() { return order_inputs_; }
 

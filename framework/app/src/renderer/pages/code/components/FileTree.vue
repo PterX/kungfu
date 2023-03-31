@@ -200,6 +200,7 @@ function bindFunctionalNode(curFileTree) {
     font-size: 14px;
     font-weight: bolder;
     margin-top: 8px;
+    margin-bottom: 8px;
     height: 30px;
     line-height: 30px;
     padding: 0px 8px;
@@ -275,15 +276,6 @@ function bindFunctionalNode(curFileTree) {
         }
       }
     }
-  }
-}
-</style>
-
-<style lang="less" scoped>
-.file-tree {
-  padding-top: 0;
-  .current-node-name {
-    margin-bottom: 8px;
   }
 }
 </style>

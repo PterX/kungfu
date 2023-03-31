@@ -59,6 +59,7 @@ bool hero::is_usable() { return io_device_->is_usable(); }
 void hero::setup() {
   io_device_->setup();
   events_ = observable<>::create<event_ptr>([this](auto &s) { delegate_produce(this, s); }) | holdon();
+  now_ = get_begin_time();
   react();
   live_ = true;
 }

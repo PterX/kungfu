@@ -90,7 +90,7 @@ public:
   int notify() override { PYBIND11_OVERLOAD_PURE(int, publisher, notify); }
 
   int publish(const std::string &json_message) override {
-    PYBIND11_OVERLOAD_PURE(int, publisher, publish, json_message)
+    PYBIND11_OVERLOAD_PURE(int, publisher, publish, json_message);
   }
 };
 
@@ -104,7 +104,7 @@ public:
 class PySink : public sink {
 public:
   void put(const data::location_ptr &location, uint32_t dest_id, const frame_ptr &frame) override {
-    PYBIND11_OVERLOAD_PURE(void, sink, put, location, dest_id, frame)
+    PYBIND11_OVERLOAD_PURE(void, sink, put, location, dest_id, frame);
   }
   void close() override { PYBIND11_OVERLOAD(void, sink, close); }
 };
@@ -277,13 +277,24 @@ void bind(pybind11::module &&m) {
       .def(py::init<data::locator_ptr>())
       .def("put", &copy_sink::put);
 
-  py::class_<assemble, assemble_ptr>(m, "assemble")
+  auto assemble_class = py::class_<assemble, assemble_ptr>(m, "assemble");
+  assemble_class
       .def(py::init<const std::vector<data::locator_ptr> &, const std::string &, const std::string &,
                     const std::string &, const std::string &>(),
            py::arg("locators"), py::arg("mode") = "*", py::arg("category") = "*", py::arg("group") = "*",
            py::arg("name") = "*")
+      .def(py::init<const data::location_ptr &, uint32_t, uint32_t, int64_t>(), py::arg("source_location"),
+           py::arg("dest_id"), py::arg("assemble_mode") = longfist::enums::AssembleMode::Channel,
+           py::arg("from_time") = 0)
+      .def("read_headers", &assemble::read_headers, py::arg("end_time") = INT64_MAX)
       .def("__plus__", &assemble::operator+)
       .def("__rshift__", &assemble::operator>>);
+  boost::hana::for_each(AllDataTypes, [&](auto type) {
+    using DataType = typename decltype(+boost::hana::second(type))::type;
+    assemble_class.def("read_all", py::overload_cast<int32_t, int64_t>(&assemble::read_all<DataType>),
+                       py::arg("msg_type") = DataType::tag, py::arg("end_time") = INT64_MAX,
+                       py::return_value_policy::move);
+  });
 
   py::class_<io_device, io_device_ptr>(m, "io_device")
       .def(py::init<location_ptr, bool, bool>(), py::arg("home"), py::arg("low_latency") = false,

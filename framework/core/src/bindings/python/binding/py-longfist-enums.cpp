@@ -282,5 +282,13 @@ void bind_enums(py::module &m) {
       .def("__eq__", [](const SubscribeInstrumentType &a, int b) { return static_cast<int>(a) == b; })
       .def("__or__", py::overload_cast<const SubscribeInstrumentType &, const SubscribeInstrumentType &>(
                          &sub_data_bitwise<SubscribeInstrumentType, uint64_t>));
+
+  //  py::enum_<AssembleMode>("AssembleMode", py::arithmetic())
+  //      .value("Channel", AssembleMode::Channel)
+  //      .value("Write", AssembleMode::Write)
+  //      .value("Read", AssembleMode::Read)
+  //      .value("Public", AssembleMode::Public)
+  //      .value("All", AssembleMode::All)
+  //      .export_values()
 }
 } // namespace kungfu::longfist::pybind

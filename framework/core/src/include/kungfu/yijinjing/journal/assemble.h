@@ -67,7 +67,8 @@ public:
 
   std::shared_ptr<frame_reader> get_reader(const kungfu::yijinjing::data::location_ptr &pl);
 
-  template <typename T> [[maybe_unused]] std::vector<T> read_all(int32_t msg_type, int64_t end_time = INT64_MAX) {
+  template <typename T>
+  [[maybe_unused]] std::vector<T> read_all(int32_t msg_type = T::tag, int64_t end_time = INT64_MAX) {
     std::vector<T> v{};
     while (data_available() and current_frame()->gen_time() < end_time) {
       if (current_frame()->msg_type() == msg_type) {
@@ -77,6 +78,8 @@ public:
     }
     return v;
   }
+
+  [[maybe_unused]] std::vector<longfist::types::frame_header> read_headers(int64_t end_time = INT64_MAX);
 
   [[maybe_unused]] void seek_to_time(int64_t nano_time);
 

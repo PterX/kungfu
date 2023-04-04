@@ -22,15 +22,15 @@ fs::path get_default_root() {
   }
 #ifdef _WINDOWS
   auto appdata = std::getenv("APPDATA");
-  auto root = fs::path(appdata) / "kungfu" / "home";
+  auto root = fs::path(appdata);
 #elif __APPLE__
   auto user_home = std::getenv("HOME");
-  auto root = fs::path(user_home) / "Library" / "Application Support" / "kungfu" / "home";
+  auto root = fs::path(user_home) / "Library" / "Application Support";
 #elif __linux__
   auto user_home = std::getenv("HOME");
-  auto root = fs::path(user_home) / ".config" / "kungfu" / "home";
+  auto root = fs::path(user_home) / ".config";
 #endif // _WINDOWS
-  return root;
+  return root / "kungfu" / "home";
 }
 
 std::string get_runtime_dir() {
@@ -41,7 +41,7 @@ std::string get_runtime_dir() {
   return (get_default_root() / "runtime").string();
 }
 
-std::string get_root_dir(es::mode m, const std::string &tag) {
+std::string get_root_dir(es::mode m, const std::vector<std::string> &tags) {
   static const std::unordered_map<es::mode, std::pair<std::string, std::string>> map_env = {
       {es::mode::LIVE, std::pair("KF_RUNTIME_DIR", "runtime")},
       {es::mode::BACKTEST, std::pair("KF_BACKTEST_DIR", "backtest")},
@@ -58,13 +58,16 @@ std::string get_root_dir(es::mode m, const std::string &tag) {
     if (dir_path != nullptr) {
       return dir_path;
     }
-    return (get_default_root() / iter->second.second / tag).string();
+    auto home_dir_path = get_default_root() / iter->second.second;
+    home_dir_path /= std::accumulate(tags.begin(), tags.end(), fs::path{},
+                                     [&](const fs::path &p, const std::string &tag) { return p / tag; });
+    return home_dir_path.string();
   }
 }
 
 locator::locator() : root_(get_runtime_dir()), dir_mode_(es::mode::LIVE) {}
 
-locator::locator(es::mode m, const std::string &tag) : dir_mode_(m) { root_ = get_root_dir(m, tag); }
+locator::locator(es::mode m, const std::vector<std::string> &tags) : dir_mode_(m) { root_ = get_root_dir(m, tags); }
 
 bool locator::has_env(const std::string &name) const { return std::getenv(name.c_str()) != nullptr; }
 

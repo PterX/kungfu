@@ -19,7 +19,6 @@ namespace kungfu::yijinjing::journal {
 
 typedef std::unordered_map<uint64_t, journal> JournalMap;
 class journal {
-
 public:
   journal(data::location_ptr location, uint32_t dest_id, bool is_writing, bool lazy, bool low_latency,
           const bus_ptr &bus)

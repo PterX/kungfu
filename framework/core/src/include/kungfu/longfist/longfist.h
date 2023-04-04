@@ -15,6 +15,8 @@
 
 namespace kungfu::longfist {
 constexpr auto AllTypes = boost::hana::make_map( //
+    TYPE_PAIR(frame_header),                     //
+    TYPE_PAIR(page_header),                      //
     TYPE_PAIR(PageEnd),                          //
     TYPE_PAIR(SessionStart),                     //
     TYPE_PAIR(SessionEnd),                       //
@@ -97,6 +99,8 @@ constexpr auto AllTypes = boost::hana::make_map( //
 );
 
 [[maybe_unused]] constexpr auto AllDataTypes = boost::hana::make_map( //
+    TYPE_PAIR(frame_header),                                          //
+    TYPE_PAIR(page_header),                                           //
     TYPE_PAIR(Config),                                                //
     TYPE_PAIR(RiskSetting),                                           //
     TYPE_PAIR(TimeValue),                                             //

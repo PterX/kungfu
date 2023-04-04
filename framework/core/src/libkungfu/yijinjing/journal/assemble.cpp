@@ -12,6 +12,9 @@
 #include <kungfu/yijinjing/time.h>
 
 namespace kungfu::yijinjing::journal {
+using namespace longfist::enums;
+using namespace longfist::types;
+
 sink::sink() : publisher_(std::make_shared<noop_publisher>()) {}
 
 publisher_ptr sink::get_publisher() { return publisher_; }
@@ -124,7 +127,7 @@ std::vector<kungfu::longfist::types::Session> assemble::get_sessions(const kungf
   }
 }
 
-std::shared_ptr<frame_reader> assemble::get_reader(const kungfu::yijinjing::data::location_ptr &pl) {
+[[maybe_unused]] std::shared_ptr<frame_reader> assemble::get_reader(const kungfu::yijinjing::data::location_ptr &pl) {
   auto io_dvc = std::make_shared<kungfu::yijinjing::io_device>(pl, true, true);
   auto curr = std::chrono::system_clock::now();
   time_t tm = std::chrono::system_clock::to_time_t(curr);
@@ -200,6 +203,29 @@ assemble::assemble(const data::location_ptr &source_location, uint32_t dest_id, 
     reader->seek_to_time(nano_time);
   }
   sort();
+}
+
+[[maybe_unused]] std::vector<frame_header> assemble::read_headers(int32_t msg_type, int64_t end_time) {
+  std::vector<frame_header> v{};
+  while (data_available() and current_frame()->gen_time() < end_time) {
+    if (current_frame()->msg_type() == msg_type) {
+      v.push_back(*reinterpret_cast<frame_header *>(current_frame()->address()));
+    }
+    next();
+  }
+  return v;
+}
+
+std::vector<std::vector<uint8_t>> assemble::read_bytes(int32_t msg_type, int64_t end_time) {
+  std::vector<std::vector<uint8_t>> v{};
+  while (data_available() and current_frame()->gen_time() < end_time) {
+    if (current_frame()->msg_type() == msg_type) {
+      v.emplace_back(current_frame()->data_as_bytes(),
+                     current_frame()->data_as_bytes() + current_frame()->data_length());
+    }
+    next();
+  }
+  return v;
 }
 
 } // namespace kungfu::yijinjing::journal

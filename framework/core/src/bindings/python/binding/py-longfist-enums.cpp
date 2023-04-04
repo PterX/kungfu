@@ -283,12 +283,12 @@ void bind_enums(py::module &m) {
       .def("__or__", py::overload_cast<const SubscribeInstrumentType &, const SubscribeInstrumentType &>(
                          &sub_data_bitwise<SubscribeInstrumentType, uint64_t>));
 
-  //  py::enum_<AssembleMode>("AssembleMode", py::arithmetic())
-  //      .value("Channel", AssembleMode::Channel)
-  //      .value("Write", AssembleMode::Write)
-  //      .value("Read", AssembleMode::Read)
-  //      .value("Public", AssembleMode::Public)
-  //      .value("All", AssembleMode::All)
-  //      .export_values()
+  py::class_<AssembleMode>(m_enums, "AssembleMode")
+      .def(py::init<>())
+      .def_readonly_static("Channel", &AssembleMode::Channel)
+      .def_readonly_static("Write", &AssembleMode::Write)
+      .def_readonly_static("Read", &AssembleMode::Read)
+      .def_readonly_static("Public", &AssembleMode::Public)
+      .def_readonly_static("All", &AssembleMode::All);
 }
 } // namespace kungfu::longfist::pybind

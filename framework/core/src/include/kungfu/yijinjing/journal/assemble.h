@@ -65,7 +65,7 @@ public:
 
   std::vector<kungfu::longfist::types::Session> get_sessions(const kungfu::yijinjing::data::location_ptr &pl = nullptr);
 
-  std::shared_ptr<frame_reader> get_reader(const kungfu::yijinjing::data::location_ptr &pl);
+  [[maybe_unused]] std::shared_ptr<frame_reader> get_reader(const kungfu::yijinjing::data::location_ptr &pl);
 
   template <typename T>
   [[maybe_unused]] std::vector<T> read_all(int32_t msg_type = T::tag, int64_t end_time = INT64_MAX) {
@@ -79,7 +79,25 @@ public:
     return v;
   }
 
-  [[maybe_unused]] std::vector<longfist::types::frame_header> read_headers(int64_t end_time = INT64_MAX);
+  template <typename T> [[maybe_unused]] std::vector<T> read_all(const T &, int64_t end_time = INT64_MAX) {
+    return read_all<T>(T::tag, end_time);
+  }
+
+  std::vector<std::vector<uint8_t>> read_bytes(int32_t msg_type, int64_t end_time = INT64_MAX);
+
+  template <typename T>
+  [[maybe_unused]] std::vector<std::vector<uint8_t>> read_bytes(const T & = {}, int64_t end_time = INT64_MAX) {
+    return read_bytes(T::tag, end_time);
+  }
+
+  [[maybe_unused]] std::vector<longfist::types::frame_header> read_headers(int32_t msg_type,
+                                                                           int64_t end_time = INT64_MAX);
+
+  template <typename T>
+  [[maybe_unused]] std::vector<longfist::types::frame_header> read_headers(const T & = {},
+                                                                           int64_t end_time = INT64_MAX) {
+    return read_headers(T::tag, end_time);
+  }
 
   [[maybe_unused]] void seek_to_time(int64_t nano_time);
 

@@ -1,0 +1,10 @@
+{
+  "scripts": {
+    "format": "node ../../framework/core/.gyp/run-format-cpp.js src",
+    "read_headers": "kfc -l debug assemble src/json/read_headers_10026.json",
+    "read_all": "kfc -l debug assemble src/json/read_all_Location.json"
+  },
+  "devDependencies": {
+    "@kungfu-trader/kungfu-sdk": "^2.5.1-alpha.2"
+  }
+}

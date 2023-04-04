@@ -19,7 +19,6 @@ namespace kungfu::yijinjing::journal {
 
 typedef std::unordered_map<uint64_t, journal> JournalMap;
 class journal {
-
 public:
   journal(data::location_ptr location, uint32_t dest_id, bool is_writing, bool lazy, bool low_latency,
           const bus_ptr &bus)
@@ -146,6 +145,9 @@ public:
   [[maybe_unused]] void mark_at(int64_t gen_time, int64_t trigger_time, int32_t msg_type);
 
   [[maybe_unused]] void write_raw(int64_t trigger_time, int32_t msg_type, uintptr_t data, uint32_t length);
+
+  [[maybe_unused]] void write_bytes(int64_t trigger_time, int32_t msg_type, const std::vector<uint8_t> &data,
+                                    uint32_t length);
 
   void write_raw_at_as(int64_t gen_time, int64_t trigger_time, uint32_t source, uint32_t dest, int32_t msg_type,
                        uintptr_t data, uint32_t length);

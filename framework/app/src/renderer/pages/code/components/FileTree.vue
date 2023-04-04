@@ -1,23 +1,15 @@
 <template>
   <div class="file-tree">
-    <a-button
-      type="default"
-      class="open-editor-folder"
-      @click="handleBindStrategyFolder"
-    >
-      {{ $t('editor.set_strategy_entrance') }}
-    </a-button>
     <div class="file-tree-content">
-      <div class="strategy-name">
+      <div class="current-node-name">
         <span class="name">
-          <span v-if="strategy">{{ strategy.strategy_id }}</span>
-          （{{ $t('editor.current_strategy') }})
+          {{ $t('editor.current') + $t('folder') }}
         </span>
         <span class="tree-deal-file">
           <span
             class="create"
             :title="$t('editor.new_file')"
-            v-if="strategyPath"
+            v-if="currentCodePath"
             @click="handleAddFile"
           >
             <FileAddFilled class="icon" />
@@ -25,14 +17,14 @@
           <span
             class="create"
             :title="$t('editor.new_folder')"
-            v-if="strategyPath"
+            v-if="currentCodePath"
             @click="handleAddFolder"
           >
             <FolderAddFilled class="icon" />
           </span>
         </span>
       </div>
-      <div class="file-tree-body" v-if="strategyPath">
+      <div class="file-tree-body" v-if="currentCodePath">
         <div class="scroll-view">
           <div v-for="file in fileTree">
             <FileNode
@@ -41,7 +33,8 @@
               :fileNode="file"
               :id="file.id"
               type="folder"
-              @updateStrategyToApp="updateStrategyToApp"
+              :filePath="filePath"
+              :isEntryFilenameEditable="isEntryFilenameEditable"
             ></FileNode>
           </div>
         </div>
@@ -50,96 +43,55 @@
   </div>
 </template>
 
-<script lang="ts">
-export default {
-  emits: ['updateStrategy'],
-};
-</script>
 <script setup lang="ts">
-import {
-  watch,
-  ref,
-  getCurrentInstance,
-  ComponentInternalInstance,
-  toRefs,
-} from 'vue';
-import path from 'path';
-import { storeToRefs } from 'pinia';
-import { dialog } from '@electron/remote';
-import { getTreeByFilePath } from '../../../assets/methods/codeUtils';
-import { useCodeStore } from '../store/codeStore';
+import { watch, ref } from 'vue';
 import FileNode from './FileNode.vue';
-import { findTargetFromArray } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
-import { openFolder, buildFileObj } from '../../../assets/methods/codeUtils';
-
+import { storeToRefs } from 'pinia';
+import { useCodeStore } from '../store/codeStore';
+import path from 'path';
 import { FileAddFilled, FolderAddFilled } from '@ant-design/icons-vue';
-import { ipcEmitDataByName } from '../../../ipcMsg/emitter';
-import { messagePrompt } from '../../../assets/methods/uiUtils';
-import VueI18n from '@kungfu-trader/kungfu-js-api/language';
-const { t } = VueI18n.global;
+import {
+  getTreeByFilePath,
+  openFolder,
+  buildFileObj,
+} from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/codeUtils';
+import { findTargetFromArray } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { messagePrompt } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 
 const store = useCodeStore();
-const props = defineProps<{
-  strategy: Code.Strategy;
-}>();
-const { strategy } = toRefs(props);
-const strategyPath = ref<string>('');
-const strategyPathName = ref<string>('');
-const { proxy } = getCurrentInstance() as ComponentInternalInstance;
+const props = withDefaults(
+  defineProps<{
+    currentNode: Code.CodeInfo;
+    filePath: string;
+    isEntryFilenameEditable?: boolean;
+  }>(),
+  {
+    isEntryFilenameEditable: true,
+  },
+);
+
+const currentCodePath = ref<string>('');
+const currentCodePathName = ref<string>('');
 const { currentFile, fileTree } = storeToRefs(useCodeStore());
-const { success, error } = messagePrompt();
+const { error } = messagePrompt();
 
-watch(strategy.value as Code.Strategy, (newStrategy) => {
-  getPath(newStrategy);
-  initFileTree(newStrategy).then((fileItem) => {
-    const entryPath: string = newStrategy.file_path;
-
+//监视currentNode，拿到最新的的数据然后初始化左侧的文件树
+watch(props.currentNode as Code.CodeInfo, (newCurrentNode) => {
+  currentCodePath.value = path.dirname(newCurrentNode.file_path);
+  currentCodePathName.value = path.basename(currentCodePath.value);
+  initFileTree(newCurrentNode).then((fileItem) => {
+    const entryPath: string = newCurrentNode.file_path;
     const currentFile = findTargetFromArray<Code.FileData>(
       Object.values(fileItem),
       'filePath',
       entryPath,
     );
-
     if (currentFile) {
       store.setEntryFile(currentFile);
       store.setCurrentFile(currentFile);
     }
   });
 });
-
-//绑定策略
-function handleBindStrategyFolder() {
-  dialog
-    .showOpenDialog({
-      properties: ['openFile'],
-    })
-    .then((strategyPath) => {
-      if (!strategyPath || !strategyPath.filePaths[0]) return;
-      if (!strategy.value?.strategy_id) return;
-      bindStrategyPath(strategyPath.filePaths[0]);
-    });
-}
-
-//bind data中path 与 sqlite中path
-async function bindStrategyPath(strategyPathNew) {
-  if (strategy && strategy.value.strategy_id) {
-    await ipcEmitDataByName('updateStrategyPath', {
-      strategyId: strategy.value.strategy_id,
-      strategyPath: strategyPathNew,
-    });
-    success(
-      t('editor.set_strategy_success', {
-        file: strategy.value.strategy_id,
-      }),
-    );
-    //每次更新path，需要通知root组件更新stratgy
-    updateStrategyToApp(strategyPathNew);
-  }
-}
-
-function updateStrategyToApp(strategyPath) {
-  proxy?.$emit('updateStrategy', strategyPath);
-}
 
 //加文件夹
 function handleAddFolder() {
@@ -180,26 +132,16 @@ function handleAddFile() {
   }
 }
 
-//从prop内获取path
-function getPath(strategy: Code.Strategy) {
-  if (strategy && strategy.file_path) {
-    //因为绑定策略时是文件，需要提取其父目录
-    strategyPath.value = path.dirname(strategy.file_path);
-    strategyPathName.value = path.basename(strategyPath.value);
-  }
-}
-async function initFileTree(strategy) {
-  if (!strategy.strategy_id || !strategy.file_path) return;
-  //根文件夹得信息不像其他通过fs读取，而是直接从props的strategy中去取
+async function initFileTree(currentNode) {
+  if (!currentNode.code_id || !currentNode.file_path) return;
   const rootId = window.fileId++;
-
   const rootFile: Code.FileData = buildFileObj({
     id: rootId,
     parentId: 0,
     isDir: true,
-    name: strategyPathName.value,
+    name: currentCodePathName.value,
     ext: '',
-    filePath: strategyPath.value,
+    filePath: currentCodePath.value,
     children: { file: [], folder: [] },
     stats: {},
     root: true,
@@ -223,6 +165,7 @@ async function initFileTree(strategy) {
   rootFileTree[rootId] = rootFile;
   // padding
   rootFileTree = bindFunctionalNode(rootFileTree);
+  // currrentFileTree.value = rootFileTree;
   store.setFileTree(rootFileTree);
   store.setCurrentFile(rootFile);
 
@@ -253,10 +196,11 @@ function bindFunctionalNode(curFileTree) {
     margin: auto;
   }
 
-  .strategy-name {
+  .current-node-name {
     font-size: 14px;
     font-weight: bolder;
     margin-top: 8px;
+    margin-bottom: 8px;
     height: 30px;
     line-height: 30px;
     padding: 0px 8px;

@@ -145,6 +145,10 @@ export const useUpdateVersion = () => {
     if (!isUpdateVersionLogicEnable()) return;
 
     vueInstance?.proxy?.$globalBus.subscribe((data) => {
+      if (data.tag === 'app-is-already') {
+        ipcRenderer.send('auto-update-renderer-ready');
+      }
+
       if (data.tag === 'main') {
         if (data.name === 'auto-update-find-new-version') {
           hasNewVersion.value = true;
@@ -920,7 +924,6 @@ export const usePreStartAndQuitApp = (): {
     watcher: 'loading',
     extraResourcesLoading: 'loading',
     cpusSafeNumChecking: 'loading',
-    VCDepsExistsChecking: 'loading',
   });
 
   const preQuitSystemLoadingData = reactive<
@@ -942,7 +945,7 @@ export const usePreStartAndQuitApp = (): {
     () => preStartSystemLoading.value,
     (newVal) => {
       if (!newVal) {
-        ipcRenderer.send('auto-update-renderer-ready');
+        app?.proxy?.$globalBus.next({ tag: 'app-is-already' });
         watchStopHandle();
       }
     },
@@ -975,7 +978,6 @@ export const usePreStartAndQuitApp = (): {
       (await isAllMainProcessRunning())
     ) {
       preStartSystemLoadingData.cpusSafeNumChecking = 'done';
-      preStartSystemLoadingData.VCDepsExistsChecking = 'done';
       preStartSystemLoadingData.archive = 'done';
       preStartSystemLoadingData.extraResourcesLoading = 'done';
     }
@@ -986,9 +988,6 @@ export const usePreStartAndQuitApp = (): {
           if (data.tag === 'preStartCheck') {
             if (data.name === 'cpusNum') {
               preStartSystemLoadingData.cpusSafeNumChecking = 'done';
-            }
-            if (data.name === 'VCDeps') {
-              preStartSystemLoadingData.VCDepsExistsChecking = 'done';
             }
           }
 
@@ -2443,24 +2442,18 @@ export const useBasket = () => {
 
   onMounted(() => {
     if (app?.proxy) {
-      const subscription = app.proxy.$tradingDataSubject.subscribe(
-        (watcher: KungfuApi.Watcher) => {
-          store.setBasketList();
-          store.setBasketInstrumentList();
-
-          // const basketInWatcher = watcher.ledger.Basket.sort('id')
-          // const basketInstrumentInWatcher = watcher.ledger.BasketInstrument.list()
-          watcher;
-          basketList.value = store.basketList;
-          basketInstrumentList.value = store.basketInstrumentList;
-        },
-      );
-
-      onBeforeUnmount(() => {
-        subscription.unsubscribe();
-      });
+      updateBasketData();
     }
   });
+
+  function updateBasketData() {
+    store.setBasketList();
+    store.setBasketInstrumentList();
+
+    basketList.value = store.basketList;
+    basketInstrumentList.value = store.basketInstrumentList;
+    return Promise.resolve();
+  }
 
   function buildBasketOptionLabel(basket: KungfuApi.Basket) {
     return `${basket.name} ${BasketVolumeType[basket.volume_type].name}`;
@@ -2489,5 +2482,6 @@ export const useBasket = () => {
     buildBasketOptionLabel,
     buildBasketOptionValue,
     parseBasketOptionValue,
+    updateBasketData,
   };
 };

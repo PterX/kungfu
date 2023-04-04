@@ -48,7 +48,7 @@ public:
 
   virtual bool wait() = 0;
 
-  virtual int get_recv_timeout() const = 0;
+  [[nodiscard]] virtual int get_recv_timeout() const = 0;
 
   virtual const std::string &get_notice() = 0;
 };
@@ -64,9 +64,9 @@ class locator {
 public:
   locator();
 
-  locator(longfist::enums::mode m, const std::string &tag = {});
+  explicit locator(longfist::enums::mode m, const std::vector<std::string> &tag = {});
 
-  explicit locator(const std::string &root) : root_(root) {}
+  explicit locator(const std::string &root) : root_(root), dir_mode_(longfist::enums::mode::LIVE) {}
 
   virtual ~locator() = default;
 
@@ -184,6 +184,12 @@ template <typename EventType>
 static constexpr auto instanceof
     = []() { return filter([](const event_ptr &event) { return dynamic_cast<EventType *>(event.get()) != nullptr; }); };
 
+static constexpr auto is_custom = []() {
+  return filter([](const event_ptr &event) {
+    return longfist::AllTypesTags.find(event->msg_type()) == longfist::AllTypesTags.end();
+  });
+};
+
 template <typename... Ts>
 static constexpr auto event_filter_any = [](auto member) {
   return [=](Ts... arg) {
@@ -285,7 +291,7 @@ template <class T, class Observable, class Subject> struct steppable : public op
 
       auto localState = state;
 
-      // when the connection is finished it should shutdown the connection
+      // when the connection is finished it should shut down the connection
       cs.add([destination, localState]() {
         if (!localState->connection.empty()) {
           destination.remove(localState->connection.get());

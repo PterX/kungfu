@@ -1,90 +1,41 @@
 <script setup lang="ts">
-import { nextTick, onMounted, reactive } from 'vue';
-import { getProcessId } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/codeUtils';
+import { onMounted, reactive, ref, nextTick } from 'vue';
+import MainContentVue from './components/MainContent.vue';
+import Editor from './components/MonacoEditor.vue';
+import FileTree from './components/FileTree.vue';
+//公共函数，用来获取跳转过来的URL中携带的参数，用来给窗口设置标题
+import { getUrlParams } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/codeUtils';
 import {
-  messagePrompt,
   removeLoadingMask,
   setHtmlTitle,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
-import Editor from './components/MonacoEditor.vue';
-import FileTree from './components/FileTree.vue';
+
 import { useCodeStore } from './store/codeStore';
-import { ipcEmitDataByName } from '../../../renderer/ipcMsg/emitter';
-import MainContentVue from './components/MainContent.vue';
-import VueI18n from '@kungfu-trader/kungfu-js-api/language';
-const { t } = VueI18n.global;
-
-const { error } = messagePrompt();
 const store = useCodeStore();
-const ProcessId: string = getProcessId();
 
-setHtmlTitle(ProcessId);
+const urlParmObj = getUrlParams();
+setHtmlTitle(urlParmObj.id);
 
-const strategy = reactive<Code.Strategy>({
-  strategy_id: '',
+//设置currentNode用来存储当前编辑项的数据信息
+const currentNode = reactive<Code.CodeInfo>({
+  code_id: '',
   file_path: '',
-  add_time: 0,
 });
-const strategyName = ProcessId.split('_')[1];
-const curnStrategyIndex: {
-  value: number;
-} = {
-  value: 0,
-};
-// 处理JSON格式strangeList
-function handleStrategyJsonList(strategyList): void {
-  getCurrentStrategy(strategyList);
-  const value: Code.Strategy = JSON.parse(
-    strategyList[curnStrategyIndex.value].value,
-  );
-  strategy.strategy_id = value.strategy_id;
-  strategy.file_path = value.file_path;
-  strategy.add_time = value.add_time;
-  store.setCurrentStrategy(strategy);
-}
 
-function getCurrentStrategy(strategyList) {
-  strategyList.forEach((item, index) => {
-    if (item.name === strategyName) {
-      curnStrategyIndex.value = index;
-    }
-  });
-}
+const isEntryFilenameEditable = ref<boolean>(
+  urlParmObj.isEntryFilenameEditable
+    ? urlParmObj.isEntryFilenameEditable === 'true'
+    : true,
+);
 
-// 处理Object格式strageList
-function handleStrategyList(strategyList): void {
-  const value: Code.Strategy = strategyList[0];
+//filePath用来存入当前点击编辑按钮选中的文件路径
+const filePath = ref<string>(decodeURI(urlParmObj.filePath));
 
-  strategy.strategy_id = value.strategy_id;
-  strategy.file_path = value.file_path;
-  strategy.add_time = value.add_time;
-  store.setCurrentStrategy(strategy);
-}
+let shouldClose = false;
 
-function handleUpdateStrategy(strategyPath) {
-  if (!strategy.strategy_id) {
-    error(t('策略id不存在!'));
-    return;
-  }
-  updateStrategy(strategy.strategy_id, strategyPath);
-}
-
-async function updateStrategy(strategyId: string, strategyPath: string) {
-  await getStrategyById(strategyId);
-}
-
-let shouldClose: boolean = false;
-
-async function getStrategyById(strategyId: string) {
-  const { data } = (await ipcEmitDataByName('strategyById', {
-    strategyId,
-  })) as Record<string, Array<Code.Strategy>>;
-  handleStrategyList(data);
-}
-
+//绑定窗口关闭事件
 function bindCloseWindowEvent() {
   shouldClose = false;
-
   window.onbeforeunload = (e) => {
     e.preventDefault(e);
     if (shouldClose) return undefined;
@@ -99,17 +50,16 @@ function bindCloseWindowEvent() {
     return false;
   };
 }
-onMounted(() => {
-  ipcEmitDataByName('strategyList').then(({ data }) => {
-    store.setStrategyList(data);
-    nextTick().then(() => {
-      handleStrategyJsonList(store.strategyList);
-      removeLoadingMask();
-    });
-  });
 
-  store.getKungfuConfig();
+//当前组件一挂载到页面上以后，将URL中拿到的数据源设置给currentNode。然后传给子组件FileTree
+onMounted(() => {
+  currentNode.code_id = urlParmObj.id;
+  currentNode.file_path = decodeURI(urlParmObj.filePath);
+  store.setCurrentCode(currentNode);
   bindCloseWindowEvent();
+  nextTick(() => {
+    removeLoadingMask();
+  });
 });
 </script>
 
@@ -118,8 +68,9 @@ onMounted(() => {
     <MainContentVue>
       <div class="code-content">
         <FileTree
-          :strategy="strategy"
-          @updateStrategy="handleUpdateStrategy"
+          :isEntryFilenameEditable="isEntryFilenameEditable"
+          :filePath="filePath"
+          :currentNode="currentNode"
         ></FileTree>
         <Editor class="editor" ref="code-editor"></Editor>
       </div>

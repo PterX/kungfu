@@ -65,6 +65,10 @@ void Runner::react() {
   start_events | is(Trade::tag) | $$(invoke(&Strategy::on_trade, event->data<Trade>(), get_location(event->source())));
   start_events | is(SyntheticData::tag) |
       $$(invoke(&Strategy::on_synthetic_data, event->data<SyntheticData>(), get_location(event->source())));
+  start_events | is_custom() |
+      $$(invoke(&Strategy::on_custom_data, event->msg_type(),
+                {event->data_as_bytes(), event->data_as_bytes() + event->data_length()}, event->data_length(),
+                get_location(event->source())));
   apprentice::react();
 }
 

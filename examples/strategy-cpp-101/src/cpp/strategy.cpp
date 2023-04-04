@@ -16,7 +16,7 @@ public:
   void pre_start(Context_ptr & context) override {
     SPDLOG_INFO("preparing strategy");
     SPDLOG_INFO("arguments: {}", context->get_arguments());
-    context->add_account("sim", "123456");
+    context->add_account("sim", "fill");
     context->subscribe("sim", {"600000"}, {"SSE"});
     // context->subscribe_operator("bar", "my-bar");
   }
@@ -30,6 +30,24 @@ public:
     //   auto &book = pair.second;
     //   SPDLOG_INFO("book asset: {}", book->asset.to_string());
     // }
+    auto l_ptr = location::make_shared(mode::LIVE, category::MD, "sim", "sim", {});
+    kungfu::yijinjing::journal::assemble asb(l_ptr, location::PUBLIC, AssembleMode::All);
+    auto headers = asb.read_headers(Location{});
+    for (const auto &head : headers) {
+      SPDLOG_INFO("head: {}", head.to_string());
+    }
+    kungfu::yijinjing::journal::assemble asb2(l_ptr, location::PUBLIC, AssembleMode::All);
+    auto locations = asb2.read_bytes<Location>();
+    SPDLOG_INFO("locations.length: {}", locations.size());
+    for (const auto &loc : locations) {
+      SPDLOG_INFO("locaton byte: {}", std::string(loc.begin(), loc.end()));
+    }
+    kungfu::yijinjing::journal::assemble asb3(l_ptr, location::PUBLIC, AssembleMode::All);
+    auto l3 = asb3.read_all<Location>();
+    SPDLOG_INFO("locations.length: {}", l3.size());
+    for (const auto &loc : l3) {
+      SPDLOG_INFO("l3 : {}", loc.to_string());
+    }
   }
 
   void on_quote(Context_ptr & context, const Quote &quote, const location_ptr &location) override {
@@ -69,5 +87,12 @@ public:
 
   void on_tree(Context_ptr & context, const Tree &tree, const location_ptr &location) override {
     SPDLOG_INFO("on tree: {}", tree.to_string());
+  }
+
+  void on_custom_data(Context_ptr & context, uint32_t msg_type, const std::vector<uint8_t> &data, uint32_t length,
+                      const kungfu::yijinjing::data::location_ptr &location) override {
+    SPDLOG_WARN("on_custom_data msg_type: {}", msg_type);
+    SPDLOG_WARN("on_custom_data data: {}", data.data());
+    SPDLOG_WARN("on_custom_data length: {}", length);
   }
 };

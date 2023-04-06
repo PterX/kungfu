@@ -1,7 +1,7 @@
 {
   "name": "@kungfu-trader/examples-strategy-cpp",
   "author": "kungfu-trader",
-  "version": "2.6.0-alpha.8",
+  "version": "2.6.0-alpha.9",
   "description": "KungFu Strategy 101 - C++ Demo",
   "license": "Apache-2.0",
   "private": true,
@@ -16,7 +16,7 @@
     "dev": "kfc -l debug run -c strategy -g KungfuStrategy101Cpp -n demo ./dist/KungfuStrategy101Cpp/KungfuStrategy101Cpp.cp39-win_amd64.pyd"
   },
   "devDependencies": {
-    "@kungfu-trader/kungfu-sdk": "^2.6.0-alpha.8"
+    "@kungfu-trader/kungfu-sdk": "^2.6.0-alpha.9"
   },
   "repository": {
     "url": "https://github.com/kungfu-trader/kungfu.git"

@@ -95,10 +95,32 @@ public:
     return read_all<T>(T::tag, end_time);
   }
 
-  std::vector<std::vector<uint8_t>> read_bytes(int32_t msg_type, int64_t end_time = INT64_MAX);
+  template <typename T>
+  std::vector<std::pair<longfist::types::frame_header, T>> read_header_data(int32_t msg_type = T::tag,
+                                                                            int64_t end_time = INT64_MAX) {
+    std::vector<std::pair<longfist::types::frame_header, T>> v{};
+    while (data_available() and current_frame()->gen_time() < end_time) {
+      if (current_frame()->msg_type() == msg_type) {
+        v.emplace_back(*reinterpret_cast<longfist::types::frame_header *>(current_frame()->address()),
+                       current_frame()->template data<T>());
+      }
+      next();
+    }
+    return v;
+  }
 
   template <typename T>
-  [[maybe_unused]] std::vector<std::vector<uint8_t>> read_bytes(const T & = {}, int64_t end_time = INT64_MAX) {
+  [[maybe_unused]] std::vector<std::pair<longfist::types::frame_header, T>>
+  read_header_data(const T &, int64_t end_time = INT64_MAX) {
+    return read_header_data<T>(T::tag, end_time);
+  }
+
+  std::vector<std::pair<longfist::types::frame_header, std::vector<uint8_t>>> read_bytes(int32_t msg_type,
+                                                                                         int64_t end_time = INT64_MAX);
+
+  template <typename T>
+  [[maybe_unused]] std::vector<std::pair<longfist::types::frame_header, std::vector<uint8_t>>>
+  read_bytes(const T & = {}, int64_t end_time = INT64_MAX) {
     return read_bytes(T::tag, end_time);
   }
 

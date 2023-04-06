@@ -9,8 +9,8 @@
     "key": "KungfuToolCpp"
   },
   "scripts": {
-    "clean": "kfs extension clean",
-    "build": "kfs extension build",
+    "clean": "kfs strategy clean",
+    "build": "kfs strategy build",
     "package": "kfs  strategy package",
     "format": "node ../../framework/core/.gyp/run-format-cpp.js src",
     "dev": "kfc -l debug tool -c md -g md -n md -t build/target/KungfuToolCpp.cp39-win_amd64.pyd  -b \"2022-01-01\" -e \"2024-01-01\""

@@ -106,13 +106,15 @@ def assemble(ctx, reference):
         )
 
         arguments = []
-        for idx, param in enumerate(config.get("arguments", [])):
+        argv = config.get("arguments", [])
+        for idx, param in enumerate(argv):
             if param in dir(lf.types):
                 arguments.append(getattr(lf.types, param)())
             else:
                 arguments.append(param)
 
-        fn = getattr(asb, config["function"])
+        fn_name = config.get("function")
+        fn = getattr(asb, fn_name)
         datas = fn(*arguments)
 
         def log_data():
@@ -121,39 +123,80 @@ def assemble(ctx, reference):
 
         if "export" in config:
             export_layout = config.get("export")
-            data_list = []
-            for data in datas:
-                d = {}
-                if hasattr(lf.types, type(data).__name__):
-                    for t in dir(data):
-                        if not t.startswith("__"):
-                            d[t] = getattr(data, t)
-                else:
-                    d["data"] = data
-                data_list.append(d)
-            df = pandas.DataFrame(data_list)
+            ctx.log.info(f"export: {export_layout}")
 
-            fn_name = config.get("function")
+            if len(datas) < 1:
+                ctx.log.warn(f"result of {fn_name}(*{argv}) is empty!")
+                exit(0)
+
+            def deal_lf_types():
+                data_list = []
+                for data in datas:
+                    d = {}
+                    if hasattr(lf.types, type(data).__name__):
+                        for t in dir(data[0]):
+                            if not t.startswith("__"):
+                                d[t] = getattr(data, t)
+                    data_list.append(d)
+                return pandas.DataFrame(data_list)
+
+            def deal_tuple():
+                header_list = []
+                data_list = []
+                for data in datas:
+                    h = {}
+                    d = {}
+                    if isinstance(data[0], lf.types.frame_header):
+                        for t in dir(data[0]):
+                            if not t.startswith("__"):
+                                h[t] = getattr(data[0], t)
+                    else:
+                        ctx.log.error(
+                            f"illegal data[0] type: {type(data[0])}, {data[0]}"
+                        )
+
+                    if hasattr(lf.types, type(data[1]).__name__):
+                        for t in dir(data[1]):
+                            if not t.startswith("__"):
+                                d[t] = getattr(data[1], t)
+                    else:
+                        d["data"] = data[1]
+
+                    header_list.append(h)
+                    data_list.append(d)
+                return pandas.concat(
+                    [pandas.DataFrame(header_list), pandas.DataFrame(data_list)], axis=1
+                )
+
+            def get_df():
+                if isinstance(datas[0], tuple):
+                    return deal_tuple()
+                elif hasattr(lf.types, type(datas[0]).__name__):
+                    return deal_lf_types()
+                else:
+                    ctx.log.error(f"illegal type: {type(datas[0])}")
+                    exit(-1)
+
             param_name = config.get("arguments", [""])[0]
             now = yjj.strfnow().replace(" ", "_").replace(":", "")
             ctx.log.info(f"now: {now}")
 
-            def to_xls():
+            def to_xls(df: pandas.DataFrame):
                 ctx.log.info(f"now: {now}")
                 xls_name = f"{now}_{fn_name}_{param_name}.xlsx"
                 with pandas.ExcelWriter(xls_name) as writer:
                     df.to_excel(writer, index=False)
 
-            def to_csv():
+            def to_csv(df: pandas.DataFrame):
                 ctx.log.info(f"now: {now}")
                 csv_name = f"{now}_{fn_name}_{param_name}.csv"
                 df.to_csv(csv_name, index=False)
 
             def deal_layout(lay: str):
                 if re.search("(xls|xlsx)", lay):
-                    to_xls()
+                    to_xls(get_df())
                 elif re.search("(csv)", lay):
-                    to_csv()
+                    to_csv(get_df())
                 else:
                     log_data()
 

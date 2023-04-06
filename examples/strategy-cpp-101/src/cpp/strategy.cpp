@@ -41,7 +41,7 @@ public:
     auto locations = asb2.read_bytes<Location>();
     SPDLOG_INFO("locations.length: {}", locations.size());
     for (const auto &loc : locations) {
-      SPDLOG_INFO("locaton byte: {}", std::string(loc.begin(), loc.end()));
+      SPDLOG_INFO("locaton byte: {}", std::string(loc.second.begin(), loc.second.end()));
     }
     kungfu::yijinjing::journal::assemble asb3(l_ptr, location::PUBLIC, AssembleMode::All);
     auto l3 = asb3.read_all<Location>();

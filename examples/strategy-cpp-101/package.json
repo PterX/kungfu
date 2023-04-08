@@ -13,7 +13,8 @@
     "build": "kfs strategy build",
     "package": "kfs strategy package",
     "format": "node ../../framework/core/.gyp/run-format-cpp.js src",
-    "dev": "kfc -l debug run -c strategy -g KungfuStrategy101Cpp -n demo ./dist/KungfuStrategy101Cpp/KungfuStrategy101Cpp.cp39-win_amd64.pyd",
+    "dev:win": "kfc -l debug run -c strategy -g KungfuStrategy101Cpp -n demo ./dist/KungfuStrategy101Cpp/KungfuStrategy101Cpp.cp39-win_amd64.pyd",
+    "dev:linux": "kfc -l debug run -c strategy -g KungfuStrategy101Cpp -n demo ./dist/KungfuStrategy101Cpp/KungfuStrategy101Cpp.cpython-39-x86_64-linux-gnu.so",
     "master": "kfc -l debug run -c system -g master -n master",
     "cached": "kfc -l debug run -c system -g service -n cached"
   },

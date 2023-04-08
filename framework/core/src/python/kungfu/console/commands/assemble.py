@@ -4,7 +4,7 @@ import click
 import json
 import kungfu
 import re
-
+import sys
 import pandas
 from kungfu.console.commands import kfc, PrioritizedCommandGroup
 from kungfu.yijinjing.log import find_logger
@@ -127,14 +127,14 @@ def assemble(ctx, reference):
 
             if len(datas) < 1:
                 ctx.log.warn(f"result of {fn_name}(*{argv}) is empty!")
-                exit(0)
+                sys.exit(0)
 
             def deal_lf_types():
                 data_list = []
                 for data in datas:
                     d = {}
                     if hasattr(lf.types, type(data).__name__):
-                        for t in dir(data[0]):
+                        for t in dir(data):
                             if not t.startswith("__"):
                                 d[t] = getattr(data, t)
                     data_list.append(d)
@@ -175,7 +175,7 @@ def assemble(ctx, reference):
                     return deal_lf_types()
                 else:
                     ctx.log.error(f"illegal type: {type(datas[0])}")
-                    exit(-1)
+                    sys.exit(-1)
 
             param_name = config.get("arguments", [""])[0]
             now = yjj.strfnow().replace(" ", "_").replace(":", "")

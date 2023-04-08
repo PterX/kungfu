@@ -52,6 +52,8 @@ public:
 
   int64_t now() const;
 
+  void set_now(int64_t now);
+
   void set_begin_time(int64_t begin_time);
 
   void set_end_time(int64_t end_time);

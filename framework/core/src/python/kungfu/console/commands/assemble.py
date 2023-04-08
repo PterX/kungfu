@@ -134,7 +134,7 @@ def assemble(ctx, reference):
                 for data in datas:
                     d = {}
                     if hasattr(lf.types, type(data).__name__):
-                        for t in dir(data[0]):
+                        for t in dir(data):
                             if not t.startswith("__"):
                                 d[t] = getattr(data, t)
                     data_list.append(d)

@@ -23,6 +23,7 @@ import {
   StrategyExtTypes,
   OrderInputKeyEnum,
   LedgerCategoryEnum,
+  CurrencyEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
   getKfCategoryData,
@@ -49,7 +50,7 @@ import {
   isCheckVersionLogicEnable,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { BasketVolumeType } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
-import { writeCSV } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
+import { writeCsvWithUTF8Bom } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
 import {
   isAllMainProcessRunning,
   Pm2ProcessStatusData,
@@ -144,6 +145,10 @@ export const useUpdateVersion = () => {
     if (!isUpdateVersionLogicEnable()) return;
 
     vueInstance?.proxy?.$globalBus.subscribe((data) => {
+      if (data.tag === 'app-is-already') {
+        ipcRenderer.send('auto-update-renderer-ready');
+      }
+
       if (data.tag === 'main') {
         if (data.name === 'auto-update-find-new-version') {
           hasNewVersion.value = true;
@@ -510,15 +515,31 @@ export const useDealExportHistoryTradingData = (): {
       );
 
       return Promise.all([
-        writeCSV(ordersFilename, orders, dealTradingDataItemResolved()),
-        writeCSV(tradesFilename, trades, dealTradingDataItemResolved()),
-        writeCSV(
+        writeCsvWithUTF8Bom(
+          ordersFilename,
+          orders,
+          dealTradingDataItemResolved(),
+        ),
+        writeCsvWithUTF8Bom(
+          tradesFilename,
+          trades,
+          dealTradingDataItemResolved(),
+        ),
+        writeCsvWithUTF8Bom(
           orderStatFilename,
           orderStat,
           dealTradingDataItemResolved(true),
         ),
-        writeCSV(posFilename, positions, dealTradingDataItemResolved()),
-        writeCSV(assetFilename, assets, dealTradingDataItemResolved()),
+        writeCsvWithUTF8Bom(
+          posFilename,
+          positions,
+          dealTradingDataItemResolved(),
+        ),
+        writeCsvWithUTF8Bom(
+          assetFilename,
+          assets,
+          dealTradingDataItemResolved(),
+        ),
       ])
         .then(() => {
           shell.showItemInFolder(ordersFilename);
@@ -597,7 +618,11 @@ export const useDealExportHistoryTradingData = (): {
         tradingDataType.toLowerCase(),
       );
 
-    return writeCSV(filename, exportDatas, dealTradingDataItemResolved())
+    return writeCsvWithUTF8Bom(
+      filename,
+      exportDatas,
+      dealTradingDataItemResolved(),
+    )
       .then(() => {
         shell.showItemInFolder(filename);
         success();
@@ -678,7 +703,6 @@ export const showTradingDataDetail = (
       vnode,
     ),
     t('confirm'),
-    '',
   );
 };
 
@@ -890,7 +914,6 @@ export const usePreStartAndQuitApp = (): {
   preStartSystemLoading: ComputedRef<boolean>;
   preQuitSystemLoadingData: Record<string, 'loading' | 'done' | undefined>;
   preQuitSystemLoading: ComputedRef<boolean>;
-  saveBoardsMap: () => Promise<void>;
 } => {
   const app = getCurrentInstance();
 
@@ -900,6 +923,7 @@ export const usePreStartAndQuitApp = (): {
     archive: 'loading',
     watcher: 'loading',
     extraResourcesLoading: 'loading',
+    cpusSafeNumChecking: 'loading',
   });
 
   const preQuitSystemLoadingData = reactive<
@@ -921,7 +945,7 @@ export const usePreStartAndQuitApp = (): {
     () => preStartSystemLoading.value,
     (newVal) => {
       if (!newVal) {
-        ipcRenderer.send('auto-update-renderer-ready');
+        app?.proxy?.$globalBus.next({ tag: 'app-is-already' });
         watchStopHandle();
       }
     },
@@ -948,27 +972,25 @@ export const usePreStartAndQuitApp = (): {
 
   startGetWatcherStatus();
 
-  const saveBoardsMap = (): Promise<void> => {
-    const { boardsMap } = storeToRefs(useGlobalStore());
-    localStorage.setItem(
-      'indexBoardsMap',
-      JSON.stringify(boardsMap.value || '{}'),
-    );
-    return Promise.resolve();
-  };
-
-  onMounted(() => {
+  onMounted(async () => {
     if (
       booleanProcessEnv(process.env.RELOAD_AFTER_CRASHED) &&
-      isAllMainProcessRunning()
+      (await isAllMainProcessRunning())
     ) {
+      preStartSystemLoadingData.cpusSafeNumChecking = 'done';
       preStartSystemLoadingData.archive = 'done';
       preStartSystemLoadingData.extraResourcesLoading = 'done';
     }
 
     if (app?.proxy) {
-      const subscription = app?.proxy.$globalBus.subscribe(
+      const subscription = app.proxy.$globalBus.subscribe(
         (data: KfEvent.KfBusEvent) => {
+          if (data.tag === 'preStartCheck') {
+            if (data.name === 'cpusNum') {
+              preStartSystemLoadingData.cpusSafeNumChecking = 'done';
+            }
+          }
+
           if (data.tag === 'processStatus') {
             if (data.name && data.name === 'archive') {
               preStartSystemLoadingData.archive =
@@ -1022,7 +1044,6 @@ export const usePreStartAndQuitApp = (): {
     preStartSystemLoading,
     preQuitSystemLoadingData,
     preQuitSystemLoading,
-    saveBoardsMap,
   };
 };
 
@@ -1414,8 +1435,42 @@ export const useActiveInstruments = () => {
     }
   };
 
+  const getInstrumentByIdsWithWatcher = (
+    instrumentId: string,
+    exchangeId: string,
+  ) => {
+    const ukey = hashInstrumentUKey(instrumentId, exchangeId);
+    const watcher = window.watcher as KungfuApi.Watcher;
+    const instrument = watcher.ledger.Instrument[ukey];
+    if (instrument) return instrument;
+
+    const instruments = watcher.ledger.Instrument.filter(
+      'instrument_id',
+      instrumentId,
+    )
+      .filter('exchange_id', exchangeId)
+      .list();
+    if (instruments.length) return instruments[0];
+
+    return null;
+  };
+
+  const getInstrumentCurrencyByIds = (
+    instrumentId: string,
+    exchangeId: string,
+  ) => {
+    const instrument = getInstrumentByIdsWithWatcher(instrumentId, exchangeId);
+    if (instrument) {
+      return instrument.currency_type;
+    }
+
+    return CurrencyEnum.Unknown;
+  };
+
   return {
     getInstrumentByIds,
+    getInstrumentByIdsWithWatcher,
+    getInstrumentCurrencyByIds,
   };
 };
 
@@ -2387,24 +2442,18 @@ export const useBasket = () => {
 
   onMounted(() => {
     if (app?.proxy) {
-      const subscription = app.proxy.$tradingDataSubject.subscribe(
-        (watcher: KungfuApi.Watcher) => {
-          store.setBasketList();
-          store.setBasketInstrumentList();
-
-          // const basketInWatcher = watcher.ledger.Basket.sort('id')
-          // const basketInstrumentInWatcher = watcher.ledger.BasketInstrument.list()
-          watcher;
-          basketList.value = store.basketList;
-          basketInstrumentList.value = store.basketInstrumentList;
-        },
-      );
-
-      onBeforeUnmount(() => {
-        subscription.unsubscribe();
-      });
+      updateBasketData();
     }
   });
+
+  function updateBasketData() {
+    store.setBasketList();
+    store.setBasketInstrumentList();
+
+    basketList.value = store.basketList;
+    basketInstrumentList.value = store.basketInstrumentList;
+    return Promise.resolve();
+  }
 
   function buildBasketOptionLabel(basket: KungfuApi.Basket) {
     return `${basket.name} ${BasketVolumeType[basket.volume_type].name}`;
@@ -2433,5 +2482,6 @@ export const useBasket = () => {
     buildBasketOptionLabel,
     buildBasketOptionValue,
     parseBasketOptionValue,
+    updateBasketData,
   };
 };

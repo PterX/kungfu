@@ -1,5 +1,4 @@
-// import path from 'path';
-// import os from 'os';
+import semver from 'semver';
 import { app, ipcMain, BrowserWindow } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import {
@@ -18,8 +17,28 @@ import {
 import { KF_HOME } from '@kungfu-trader/kungfu-js-api/config/pathConfig';
 import { killAllBeforeQuit } from './utils';
 import { removeTargetFilesInFolder } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
+import { RootConfigJSON } from '@kungfu-trader/kungfu-js-api/typings/global';
 
 autoUpdater.logger = kfLogger;
+
+const getChannel = (isPrerelease: boolean) => {
+  const prefix = 'kungfu-update';
+  const baseChannel = isPrerelease ? 'alpha' : 'latest';
+  return `${prefix}-${baseChannel}`;
+};
+
+const getProjectName = (rootConfigJson: RootConfigJSON): string => {
+  if (rootConfigJson.name) {
+    const names = rootConfigJson.name.split('/');
+    if (names.length) {
+      return names[1];
+    } else {
+      return rootConfigJson.name;
+    }
+  }
+
+  return `kungfu-project-name-undefined-${new Date().toDateString()}`;
+};
 
 function handleUpdateKungfu(MainWindow: BrowserWindow | null) {
   kfLogger.info('Kungfu client version: ', app.getVersion());
@@ -29,15 +48,28 @@ function handleUpdateKungfu(MainWindow: BrowserWindow | null) {
   const rootPackageJson = readRootPackageJsonSync();
   const updaterOption = rootPackageJson?.kungfuCraft?.autoUpdate?.update;
 
-  if (!updaterOption) return;
+  if (!rootPackageJson || !updaterOption) return;
 
-  // 之后可以有更详细的目录划分
-  // if (updaterOption.provider === 'generic') {
-  //   updaterOption.url = path.resolve(
-  //     updaterOption.url,
-  //     `/update/${os.platform}/${app.getVersion()}`,
-  //   );
-  // }
+  const projectName = getProjectName(rootPackageJson);
+  const version = semver.parse(
+    rootPackageJson.version as string,
+  ) as semver.SemVer;
+  const targetVersion = version.prerelease.length
+    ? semver.inc(version, 'prerelease', 'alpha')
+    : semver.inc(version, 'patch');
+  const artifactPath = `${projectName}/v${version.major}/v${targetVersion}`;
+
+  kfLogger.info('Kungfu autoUpdater artifact path: ', artifactPath);
+
+  updaterOption.channel = getChannel(!!version.prerelease.length);
+
+  if (updaterOption.provider === 'generic') {
+    updaterOption.url = `${updaterOption.url}/${artifactPath}`;
+  } else if (updaterOption.provider === 's3') {
+    updaterOption.path = artifactPath;
+  }
+
+  kfLogger.info('Kungfu autoUpdater option: ', JSON.stringify(updaterOption));
 
   autoUpdater.autoDownload = false;
   autoUpdater.autoInstallOnAppQuit = false;
@@ -97,7 +129,6 @@ function handleUpdateKungfu(MainWindow: BrowserWindow | null) {
             ['etc', 'config.db'],
           ).then(() => {
             autoUpdater.quitAndInstall(false, true);
-            // MainWindow.destroy();
             app.exit();
           });
         });

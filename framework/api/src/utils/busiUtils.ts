@@ -58,6 +58,7 @@ import {
   StrategyStateStatusEnum,
   UnderweightEnum,
   PriceLevelEnum,
+  CurrencyEnum,
 } from '../typings/enums';
 import {
   graceDeleteProcess,
@@ -84,7 +85,10 @@ import VueI18n, { useLanguage } from '../language';
 import { unlinkSync } from 'fs-extra';
 import { T0T1Config } from '../typings/global';
 import { getKfGlobalSettingsValue } from '../config/globalSettings';
+import { Currency } from '../config/tradingConfig';
 const { t } = VueI18n.global;
+import { Observable } from 'rxjs';
+
 interface SourceAccountId {
   source: string;
   id: string;
@@ -350,6 +354,39 @@ export const buildObjectFromArray = <T>(
     }
     return item1;
   }, {} as Record<string | number, T | T[keyof T] | undefined>);
+};
+
+export const mergeObject = (
+  targetObj: Record<string, KungfuApi.KfConfigValue>,
+  sourceObj: Record<string, KungfuApi.KfConfigValue>,
+) => {
+  if (typeof targetObj !== 'object' || typeof sourceObj !== 'object')
+    return targetObj;
+
+  const allKeys = Array.from(
+    new Set([...Object.keys(targetObj), ...Object.keys(sourceObj)]),
+  );
+
+  allKeys.forEach((key) => {
+    if (key in targetObj) {
+      if (key in sourceObj) {
+        if (
+          typeof targetObj[key] === 'object' &&
+          typeof sourceObj[key] === 'object'
+        ) {
+          targetObj[key] = mergeObject(targetObj[key], sourceObj[key]);
+        } else {
+          targetObj[key] = sourceObj[key];
+        }
+      }
+    } else {
+      if (key in sourceObj) {
+        targetObj[key] = sourceObj[key];
+      }
+    }
+  });
+
+  return targetObj;
 };
 
 export const getInstrumentTypeData = (
@@ -1374,6 +1411,9 @@ export const dealVolumeByInstrumentType = (
 ) => {
   const minOrderVolume = InstrumentMinOrderVolume[instrumentType] || 1;
   const orderVolume = Math.max(volume, minOrderVolume);
+
+  if (instrumentType === InstrumentTypeEnum.techstock) return orderVolume;
+
   return ~~(orderVolume / minOrderVolume) * minOrderVolume;
 };
 
@@ -1474,6 +1514,10 @@ export const dealIsSwap = (isSwap: boolean) => {
 
 export const dealUnderweightType = (underweightType: UnderweightEnum) => {
   return UnderweightType[+underweightType as UnderweightEnum];
+};
+
+export const dealCurrency = (currency: CurrencyEnum | number) => {
+  return Currency[+currency as CurrencyEnum];
 };
 
 export const getKfCategoryData = (
@@ -1896,22 +1940,48 @@ export const KfConfigValueArrayType = [
   'instrumentsCsv',
   'table',
   'csvTable',
+  'rangePicker',
 ];
 
-export const initFormTimePicker = (initValue?: string) => {
-  if (typeof initValue !== 'string') return null;
+export const KfConfigValueTimeType = [
+  'rangePicker',
+  'dateTimePicker',
+  'datePicker',
+  'timePicker',
+];
 
-  let parsedValue: dayjs.Dayjs | null = null;
+export const initFormTimePicker = (initValue?: string | string[]) => {
+  if (typeof initValue !== 'string' && !Array.isArray(initValue)) return null;
 
-  if (initValue === 'now') {
-    parsedValue = dayjs();
-  } else if (/\d{2}:\d{2}:\d{2}/.test(initValue)) {
-    parsedValue = dayjs(initValue, 'HH:mm:ss');
-  } else if (/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/.test(initValue)) {
-    parsedValue = dayjs(initValue, 'YYYY-MM-DD HH:mm:ss');
+  if (typeof initValue === 'string') {
+    let parsedValue: dayjs.Dayjs | null = null;
+
+    if (initValue === 'now') {
+      parsedValue = dayjs();
+    } else if (/^\d{2}:\d{2}:\d{2}$/.test(initValue)) {
+      parsedValue = dayjs(initValue, 'HH:mm:ss');
+      if (parsedValue) return parsedValue.format('YYYY-MM-DD HH:mm:ss');
+    } else if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(initValue)) {
+      parsedValue = dayjs(initValue, 'YYYY-MM-DD HH:mm:ss');
+      if (parsedValue) return parsedValue.format('YYYY-MM-DD HH:mm:ss');
+    } else if (/^\d{4}-\d{2}-\d{2}$/.test(initValue)) {
+      parsedValue = dayjs(initValue, 'YYYY-MM-DD');
+      if (parsedValue) return parsedValue.format('YYYY-MM-DD');
+    }
+  } else if (Array.isArray(initValue)) {
+    let parsedStartValue: dayjs.Dayjs | null = null;
+    let parsedEndValue: dayjs.Dayjs | null = null;
+    const [start, end] = initValue;
+    parsedStartValue = dayjs(start, 'YYYY-MM-DD HH:mm:ss');
+    parsedEndValue = dayjs(end, 'YYYY-MM-DD HH:mm:ss');
+
+    if (parsedStartValue && parsedEndValue) {
+      return [
+        parsedStartValue.format('YYYY-MM-DD HH:mm:ss'),
+        parsedEndValue.format('YYYY-MM-DD HH:mm:ss'),
+      ];
+    }
   }
-
-  if (parsedValue) return parsedValue.format('YYYY-MM-DD HH:mm:ss');
 
   return null;
 };
@@ -1927,6 +1997,7 @@ export const initFormStateByConfig = (
     const isBoolean = KfConfigValueBooleanType.includes(type);
     const isNumber = KfConfigValueNumberType.includes(type);
     const isArray = KfConfigValueArrayType.includes(type);
+    const isTime = KfConfigValueTimeType.includes(type);
 
     let defaultValue;
 
@@ -1935,7 +2006,7 @@ export const initFormStateByConfig = (
         ? false
         : isNumber
         ? 0
-        : type === 'timePicker'
+        : isTime
         ? null
         : isArray
         ? []
@@ -1976,7 +2047,7 @@ export const initFormStateByConfig = (
           defaultValue = [];
         }
       }
-    } else if (item.type === 'timePicker') {
+    } else if (KfConfigValueTimeType.includes(type)) {
       defaultValue = initFormTimePicker(item?.default);
     }
 
@@ -2276,4 +2347,16 @@ export const isCheckVersionLogicEnable = () => {
   const updateVersionLogicEnable = isUpdateVersionLogicEnable();
   const globalSetting = getKfGlobalSettingsValue();
   return updateVersionLogicEnable && !!globalSetting?.update?.isCheckVersion;
+};
+
+export const buildIfWatcherLiveObservable = (watcher: KungfuApi.Watcher) => {
+  return new Observable<boolean>((sub) => {
+    const timer = setTimerPromiseTask(async () => {
+      if (watcher.isLive()) {
+        sub.next(true);
+        sub.complete();
+        timer.clearLoop();
+      }
+    }, 1000);
+  });
 };

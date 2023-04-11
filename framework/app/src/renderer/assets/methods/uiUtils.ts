@@ -34,13 +34,14 @@ import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/file
 import { ExchangeIds } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import { BrowserWindow, getCurrentWindow, dialog } from '@electron/remote';
 import { ipcRenderer } from 'electron';
-import { message, Modal } from 'ant-design-vue';
+import { message, Modal, ModalFuncProps } from 'ant-design-vue';
 import {
   InstrumentTypes,
   KfUIExtLocatorTypes,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import path from 'path';
 import { startExtDaemon } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
+import { checkIfCpusNumSafe } from '@kungfu-trader/kungfu-js-api/utils/osUtils';
 import { Proc } from 'pm2';
 import { VueNode } from 'ant-design-vue/lib/_util/type';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
@@ -330,6 +331,18 @@ export const preStartAll = async (): Promise<(void | Proc)[]> => {
   ]);
 };
 
+export const checkCpusNumAndConfirmModal = (): Promise<boolean> => {
+  return checkIfCpusNumSafe().then((flag) => {
+    if (flag) return Promise.resolve(true);
+
+    return confirmModalByCustomArgs(
+      t('system_prompt'),
+      t('computer_performance_abnormal'),
+      { zIndex: 1001 },
+    );
+  });
+};
+
 export const postStartAll = async (): Promise<(void | Proc)[]> => {
   const availDaemons = await getAvailDaemonList();
   return loopToRunProcess<void | Proc>(
@@ -420,9 +433,15 @@ export const openLogView = (
 };
 
 export const openCodeView = (
-  processId: string,
+  id: string,
+  filePath: string,
+  isEntryFilenameEditable: boolean,
 ): Promise<Electron.BrowserWindow> => {
-  return openNewBrowserWindow(__dirname, 'code', `?processId=${processId}`);
+  return openNewBrowserWindow(
+    __dirname,
+    'code',
+    `?id=${id}&filePath=${filePath}&isEntryFilenameEditable=${isEntryFilenameEditable}`,
+  );
 };
 
 export const openJournalView = (
@@ -504,10 +523,10 @@ export const messagePrompt = (): {
     message.success(msg);
   };
   const error = (msg: string = t('operation_failed')): void => {
-    message.error(msg);
+    message.error(msg, 5);
   };
   const warning = (msg: string): void => {
-    message.warning(msg);
+    message.warning(msg, 5);
   };
   return {
     success,
@@ -547,10 +566,12 @@ export const handleOpenLogviewByFile =
   };
 
 export const handleOpenCodeView = (
-  config: KungfuApi.KfConfig | KungfuApi.KfLocation,
+  id: string,
+  filePath: string,
+  isEntryFilenameEditable: boolean,
 ): Promise<Electron.BrowserWindow> => {
   const openMessage = message.loading(t('open_code_editor'));
-  return openCodeView(getProcessIdByKfLocation(config)).finally(() => {
+  return openCodeView(id, filePath, isEntryFilenameEditable).finally(() => {
     openMessage();
   });
 };
@@ -763,6 +784,29 @@ export const confirmModal = (
       content: content,
       okText: okText,
       cancelText: cancelText,
+      onOk: () => {
+        resolve(true);
+      },
+      onCancel: () => {
+        resolve(false);
+      },
+    });
+  });
+};
+
+export const confirmModalByCustomArgs = (
+  title: string,
+  content: VueNode | (() => VueNode) | string,
+  args: ModalFuncProps = {},
+): Promise<boolean> => {
+  return new Promise((resolve) => {
+    Modal.confirm({
+      title,
+      content,
+      ...args,
+      okText: args?.okText || t('confirm'),
+      cancelText: args?.cancelText || t('cancel'),
+      zIndex: args?.zIndex || 1000,
       onOk: () => {
         resolve(true);
       },

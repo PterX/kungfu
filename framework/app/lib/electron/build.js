@@ -1,4 +1,4 @@
-const run = (distDir, andPublish) => {
+const run = (distDir) => {
   const electronBuilder = require('electron-builder');
   const path = require('path');
   const semver = require('semver');
@@ -10,11 +10,6 @@ const run = (distDir, andPublish) => {
   const craftConfig = {
     appId: packageJson?.kungfuCraft?.appId || 'Kungfu.Origin.KungFu.Trader',
     productName: packageJson?.kungfuCraft?.productName || 'Kungfu',
-    ...(andPublish
-      ? {
-          publish: packageJson?.kungfuCraft?.autoUpdate?.publish,
-        }
-      : {}),
   };
   const appConfig = {
     artifactName:

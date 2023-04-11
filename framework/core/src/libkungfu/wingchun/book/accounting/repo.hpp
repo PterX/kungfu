@@ -13,7 +13,7 @@ public:
   void apply_quote(Book_ptr &book, const Quote &quote) override {}
 
   void apply_order_input(Book_ptr &book, const OrderInput &input) override {
-    auto &position = book->get_position_for(input);
+    const auto &position = book->get_position_for(input);
     auto cd_mr = get_instr_conversion_margin_rate(book, position);
     if (input.side == Side::Sell) {
       book->asset.frozen_cash += input.volume * cd_mr.exchange_rate;
@@ -24,7 +24,7 @@ public:
 
   void apply_order(Book_ptr &book, const Order &order) override {
     if (is_final_status(order.status)) {
-      auto &position = book->get_position_for(order);
+      const auto &position = book->get_position_for(order);
       auto cd_mr = get_instr_conversion_margin_rate(book, position);
       if (order.side == Side::Sell) {
         book->asset.frozen_cash -= order.volume_left * cd_mr.exchange_rate;
@@ -48,7 +48,7 @@ public:
     position.avg_open_price = 1;
     auto commission = calculate_commission(book, trade);
     auto tax = calculate_tax(trade);
-    auto days = get_repo_expire_days(trade.instrument_id);
+    //    auto days = get_repo_expire_days(trade.instrument_id);
     //    auto profit = trade.volume / 100 / 360 * days;
 
     position.volume += trade.volume;
@@ -63,7 +63,7 @@ public:
   }
 
   double calculate_commission(const Book_ptr &book, const Trade &trade) {
-    auto &position = book->get_position_for(trade);
+    const auto &position = book->get_position_for(trade);
     auto cd_mr = get_instr_conversion_margin_rate(book, position);
     auto rate = get_repo_commission_rate(trade.instrument_id);
     return trade.volume * rate * cd_mr.exchange_rate;

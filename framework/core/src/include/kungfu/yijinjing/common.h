@@ -48,7 +48,7 @@ public:
 
   virtual bool wait() = 0;
 
-  virtual int get_recv_timeout() const = 0;
+  [[nodiscard]] virtual int get_recv_timeout() const = 0;
 
   virtual const std::string &get_notice() = 0;
 };
@@ -64,7 +64,9 @@ class locator {
 public:
   locator();
 
-  explicit locator(const std::string &root) : root_(root) {}
+  explicit locator(longfist::enums::mode m, const std::vector<std::string> &tag = {});
+
+  explicit locator(const std::string &root) : root_(root), dir_mode_(longfist::enums::mode::LIVE) {}
 
   virtual ~locator() = default;
 
@@ -77,7 +79,8 @@ public:
   [[nodiscard]] virtual std::string layout_file(const location_ptr &location, longfist::enums::layout layout,
                                                 const std::string &name) const;
 
-  [[nodiscard]] virtual std::string default_to_system_db(const location_ptr &location, const std::string &name) const;
+  [[maybe_unused]] [[maybe_unused]] [[nodiscard]] virtual std::string
+  default_to_system_db(const location_ptr &location, const std::string &name) const;
 
   [[nodiscard]] virtual std::vector<uint32_t> list_page_id(const location_ptr &location, uint32_t dest_id) const;
 
@@ -89,8 +92,11 @@ public:
 
   [[nodiscard]] virtual std::vector<uint32_t> list_location_dest_by_db(const location_ptr &location) const;
 
+  [[nodiscard]] longfist::enums::mode get_dir_mode() const { return dir_mode_; }
+
 private:
   std::filesystem::path root_;
+  longfist::enums::mode dir_mode_;
 };
 
 struct location : public std::enable_shared_from_this<location>, public longfist::types::Location {
@@ -177,6 +183,12 @@ static constexpr auto error_handler_log = [](const std::string &subscriber_name)
 template <typename EventType>
 static constexpr auto instanceof
     = []() { return filter([](const event_ptr &event) { return dynamic_cast<EventType *>(event.get()) != nullptr; }); };
+
+static constexpr auto is_custom = []() {
+  return filter([](const event_ptr &event) {
+    return longfist::AllTypesTags.find(event->msg_type()) == longfist::AllTypesTags.end();
+  });
+};
 
 template <typename... Ts>
 static constexpr auto event_filter_any = [](auto member) {
@@ -279,7 +291,7 @@ template <class T, class Observable, class Subject> struct steppable : public op
 
       auto localState = state;
 
-      // when the connection is finished it should shutdown the connection
+      // when the connection is finished it should shut down the connection
       cs.add([destination, localState]() {
         if (!localState->connection.empty()) {
           destination.remove(localState->connection.get());

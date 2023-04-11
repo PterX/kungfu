@@ -76,7 +76,8 @@ export default {
   add_config_modal:
     '{category} ID unique in the system. {changeTypeName} cannot be modified after it succeeds.',
   update_config_modal: 'Confirm {key} configurations',
-  database_locked: 'The database is occupied now, please wait and retry.',
+  database_locked:
+    'Detect there are some trading, should make sure the trading data be saved, suggest do this after closing quotation.',
 
   MakeOrder: 'Order Dashboard',
   FutureArbitrage: 'Future Arbitrage',
@@ -111,6 +112,10 @@ export default {
     csv_template: 'Download Csv Template',
     add_csv_desc: 'csv headers are {header}',
     clear: 'Clear',
+    total: 'Total {sum} pieces of data',
+    import_successed: 'Import Successed',
+    import_failed: 'Import Failed',
+    csv_format_error: 'Csv format error, please check and retry',
   },
 
   tradingConfig: {
@@ -245,8 +250,37 @@ export default {
     HK: 'HK',
     HKFUT: 'HKFUT',
     US: 'US',
+    USFUT: 'USFUT',
     SGX: 'SGX',
     SGXFUT: 'SGXFUT',
+    EUR: 'EUR',
+    EURFUT: 'EURFUT',
+    LON: 'LON',
+    LONFUT: 'LONFUT',
+    AEX: 'AEX',
+    AEXFUT: 'AEXFUT',
+    AUX: 'AUX',
+    AUXFUT: 'AUXFUT',
+    HEXS: 'HEXS',
+    HEXSFUT: 'HEXSFUT',
+    IDX: 'IDX',
+    IDXFUT: 'IDXFUT',
+    KORC: 'KORC',
+    LME: 'LME',
+    MYS: 'MYS',
+    MYSFUT: 'MYSFUT',
+    ABB: 'ABB',
+    PRX: 'PRX',
+    PRXFUT: 'PRXFUT',
+    SIX: 'SIX',
+    SIXFUT: 'SIXFUT',
+    TAX: 'TAX',
+    TAXFUT: 'TAXFUT',
+    JP: 'JP',
+    JPFUT: 'JPFUT',
+    TSE: 'TSE',
+    TSEFUT: 'TSEFUT',
+    XETRA: 'XETRA',
     GLFX: 'GLFX',
     IPE: 'IPE',
     CBOT: 'CBOT',
@@ -268,6 +302,16 @@ export default {
     SPC: 'SPC',
     SPD: 'SPD',
     IPS: 'IPS',
+
+    CNY: 'CNY',
+    HKD: 'HKD',
+    USD: 'USD',
+    JPY: 'JPY',
+    GBP: 'GBP',
+    EURO: 'EUR',
+    CNH: 'CNH',
+    SGD: 'SGD',
+    MYR: 'MYR',
 
     master: 'master',
     ledger: 'ledger',
@@ -305,7 +349,8 @@ export default {
       'The order input volume is {volume}, the current closable {direction} position is {closable_volume}, the excess is {open_volume}\nclick “Take excess to open”, will close {direction} {closable_volume}, open {direction} {open_volume}\nclick “Orignal plan”, will continue close {direction} {volume}',
     start_process: 'please start {process} first',
     place_confirm: 'Place Order Confirm',
-    close_all: 'Close All?',
+    continue_close_rate:
+      'Exceed the close warning value ({rate}%), if you want to continue to make order?',
     Continue: 'Continue',
     original_plan: 'Orignal plan',
     beyond_to_open: 'Take excess to open',
@@ -603,6 +648,11 @@ export default {
     python_path_desc:
       'local python path is required to be selected, and kungfu*.whl should be installed in this path',
 
+    currency: 'Currency',
+    instrument_currency: 'Instrument Currency',
+    instrument_currency_desc:
+      'If open, will show the instrument currency type after instrument name in Position board',
+
     trade: 'Trade',
     sound: 'Traded Sound',
     use_sound: 'Enable the system traded prompt sound',
@@ -684,8 +734,12 @@ export default {
       'This location already exists file or folder {name}, please select a different name',
     empty_input: 'File or folder name must be provided',
     illegal_character: 'The name cannot contain \\/:*?" <>|',
-    delate_confirm: 'Are you sure to delete {value}?',
+    delate_folder_confirm: 'Are you sure to delete folder?',
+    delate_file_confirm: 'Are you sure to delete file?',
     cannot_delate_entry: 'Cannot delete the entry',
+    current: 'current',
+    operator: 'operator',
+    strategy: 'strategy',
   },
 
   logview: {
@@ -711,6 +765,8 @@ export default {
   kungfu: 'Kungfu',
 
   system_prompt: 'System Prompt',
+  computer_performance_done: 'Computer performance detecting done ✓',
+  computer_performance_detecting: 'Computer performance detecting...',
   archive_done: 'Kungfu archive done',
   archive_loading: 'Kungfu archive loading...',
   environment_done: 'Kungfu environment done ✓',
@@ -721,6 +777,9 @@ export default {
   saving_data_loading: 'Saving data loading ...',
   end_all_transactions: 'End all transactions ✓',
   closing: 'End the transaction process, Please do not close...',
+
+  computer_performance_abnormal:
+    'Computer performance is too low, continue start maybe make system process crash, suggest use the CPU core num more than 8.',
 
   quit_confirm:
     'Exiting the application ends all transactions, Confirm to exit?',

@@ -93,9 +93,18 @@ public:
 };
 
 const std::unordered_map<LocationTimeType, LocationTimeData> g_locationTimeMap = {
-    {LocationTimeType::Beijing, LocationTimeData(8, ZoneTimeType::BeijingTime)},
+    {LocationTimeType::Beijing, LocationTimeData(8, ZoneTimeType::BJ)},
     {LocationTimeType::Singapore, LocationTimeData(8, ZoneTimeType::SGT)},
     {LocationTimeType::Tokyo, LocationTimeData(9, ZoneTimeType::JST)},
+    {LocationTimeType::Amsterdam, LocationTimeData(9, ZoneTimeType::CET)},
+    {LocationTimeType::Finland, LocationTimeData(9, ZoneTimeType::CEST)},
+    {LocationTimeType::Jakarta, LocationTimeData(9, ZoneTimeType::KRAT)},
+    {LocationTimeType::Korea, LocationTimeData(9, ZoneTimeType::KST)},
+    {LocationTimeType::Malaysia, LocationTimeData(9, ZoneTimeType::BJ)},
+    {LocationTimeType::Paris, LocationTimeData(9, ZoneTimeType::CET)},
+    {LocationTimeType::Switzerland, LocationTimeData(9, ZoneTimeType::CET)},
+    {LocationTimeType::Thailand, LocationTimeData(9, ZoneTimeType::KRAT)},
+    {LocationTimeType::Toronto, LocationTimeData(9, ZoneTimeType::EST)},
     {LocationTimeType::AmericaEastern,
      // 美东时间夏令时：[3月第二个星期日凌晨2点，11月第一个周日凌晨2点]
      LocationTimeData(-5, SummerDayTime(2, 2, 2), SummerDayTime(10, 1, 2), ZoneTimeType::EST, ZoneTimeType::EDT)},
@@ -115,7 +124,7 @@ const std::unordered_map<LocationTimeType, LocationTimeData> g_locationTimeMap =
 };
 
 namespace TimeUtil {
-time_t TimeToSeconds(const std::string &time, bool is_gmt) {
+[[maybe_unused]] time_t TimeToSeconds(const std::string &time, bool is_gmt) {
   int year, month, day, hour, minute, second;
   sscanf(time.c_str(), "%d-%d-%d %d:%d:%d", &year, &month, &day, &hour, &minute, &second);
 
@@ -135,7 +144,7 @@ time_t TimeToSeconds(int year, int month, int day, int hour, int minute, int sec
   return is_gmt ? mkgmtime(&t_temp) : mktime(&t_temp);
 }
 
-time_t DateToSeconds(const std::string &time, bool is_gmt) {
+[[maybe_unused]] time_t DateToSeconds(const std::string &time, bool is_gmt) {
   int year, month, day;
   sscanf(time.c_str(), "%d-%d-%d", &year, &month, &day);
 
@@ -183,7 +192,8 @@ std::shared_ptr<LocalTimeInfo> TranslateGMTimeToLocalTime(time_t gmt, const Loca
   return t_local;
 }
 
-time_t TranslateLocalTimeToGMTime(time_t local_seconds, LocationTimeType loc_type, LocalTimeInfo *info /*= nullptr*/) {
+[[maybe_unused]] time_t TranslateLocalTimeToGMTime(time_t local_seconds, LocationTimeType loc_type,
+                                                   LocalTimeInfo *info /*= nullptr*/) {
   const LocationTimeData &data = GetLocationTimeDataByType(loc_type);
 
   /*

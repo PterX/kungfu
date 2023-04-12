@@ -444,6 +444,7 @@ KF_DEFINE_PACK_TYPE(                                                        //
     (int64_t, seq),      // 子序号
     (int64_t, biz_index) // 业务序号
 );
+
 KF_DEFINE_PACK_TYPE(                                        //
     Tree, 104, PK(instrument_id, exchange_id), PERPETUAL(), //
     (kungfu::array<char, DATE_LEN>, trading_day),           // 交易日

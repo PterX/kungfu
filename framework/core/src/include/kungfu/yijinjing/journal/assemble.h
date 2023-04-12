@@ -55,6 +55,10 @@ public:
 
   assemble operator+(assemble &other);
 
+  assemble &operator+=(const assemble &other);
+
+  assemble &operator-=(const assemble &other);
+
   void operator>>(const sink_ptr &sink);
 
   bool data_available();
@@ -125,6 +129,10 @@ public:
 
   [[maybe_unused]] [[nodiscard]] const std::vector<reader_ptr> &get_readers() const { return readers_; }
 
+  void disjoin(uint32_t location_uid);
+
+  void disjoin_channel(uint32_t location_uid, uint32_t dest_id);
+
 protected:
   std::vector<reader_ptr> readers_ = {};
   reader_ptr current_reader_ = {};
@@ -136,6 +144,7 @@ private:
   const std::string &name_;
   publisher_ptr publisher_;
   std::vector<data::locator_ptr> locators_ = {};
+  int64_t from_time_ = 0;
 
   void sort();
 };

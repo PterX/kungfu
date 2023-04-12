@@ -1012,6 +1012,7 @@ declare namespace KungfuApi {
   }
 
   export interface Kungfu {
+    shutdown(): void;
     ConfigStore(kfHome: string): ConfigStore;
     RiskSettingStore(kfHome: string): RiskSettingStore;
     CommissionStore(kfHome: string): CommissionStore;
@@ -1057,6 +1058,10 @@ declare namespace KungfuApi {
   export interface KfLocationBase {
     group: string;
     name: string;
+  }
+
+  export interface KfLocationGroup extends KfLocation {
+    children?: KfLocation[];
   }
 
   export interface KfLocation extends KfLocationBase {

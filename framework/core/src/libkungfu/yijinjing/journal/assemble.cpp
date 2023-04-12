@@ -220,7 +220,7 @@ assemble::assemble(const data::location_ptr &source_location, uint32_t dest_id, 
 [[maybe_unused]] std::vector<frame_header> assemble::read_headers(int32_t msg_type, int64_t end_time) {
   std::vector<frame_header> v{};
   while (data_available() and current_frame()->gen_time() < end_time) {
-    if (current_frame()->msg_type() == msg_type) {
+    if (msg_type == 0 or current_frame()->msg_type() == msg_type) {
       v.push_back(*reinterpret_cast<frame_header *>(current_frame()->address()));
     }
     next();
@@ -232,7 +232,7 @@ std::vector<std::pair<longfist::types::frame_header, std::vector<uint8_t>>> asse
                                                                                                  int64_t end_time) {
   std::vector<std::pair<longfist::types::frame_header, std::vector<uint8_t>>> v{};
   while (data_available() and current_frame()->gen_time() < end_time) {
-    if (current_frame()->msg_type() == msg_type) {
+    if (msg_type == 0 or current_frame()->msg_type() == msg_type) {
       const frame_header &head = *reinterpret_cast<frame_header *>(current_frame()->address());
       std::vector<uint8_t> bytes{current_frame()->data_as_bytes(),
                                  current_frame()->data_as_bytes() + current_frame()->data_length()};

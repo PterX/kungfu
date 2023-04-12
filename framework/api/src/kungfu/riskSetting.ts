@@ -21,7 +21,7 @@ export const setAllKfRiskSettings = (
   riskSettings: KungfuApi.RiskSettingForSave[],
 ): Promise<boolean> => {
   kfLogger.info('Set kungfu RiskSettings');
-    const kfRiskSetting = longfist.RiskSetting();
+    const kfRiskSetting = longfist.types.RiskSetting();
     const riskSettingResolved = riskSettings
       .filter((item) => item.category === 'td' && item.group && item.name)
       .map((item) => ({

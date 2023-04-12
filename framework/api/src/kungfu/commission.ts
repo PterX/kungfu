@@ -13,17 +13,17 @@ export const setKfCommission = (
   commissions: KungfuApi.Commission[],
 ): Promise<boolean> => {
   kfLogger.info('Set kungfu Commission');
-    const kfCommissionData = longfist.types.Commission();
-    const comissionsResolved = commissions
-      .filter((item) => {
-        return item.product_id && item.exchange_id;
-      })
-      .map((item: KungfuApi.Commission) => {
-        return {
-          ...kfCommissionData,
-          ...item,
-        };
-      });
+  const kfCommissionData = longfist.types.Commission();
+  const comissionsResolved = commissions
+    .filter((item) => {
+      return item.product_id && item.exchange_id;
+    })
+    .map((item: KungfuApi.Commission) => {
+      return {
+        ...kfCommissionData,
+        ...item,
+      };
+    });
 
   return getResultUntilValuable(() =>
     commissionStore.setAllCommission(comissionsResolved),

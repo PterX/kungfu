@@ -22,7 +22,7 @@ export const setKfCommission = (
 ): Promise<boolean> => {
   kfLogger.info('Set kungfu Commission');
   return new Promise((resolve, reject) => {
-    const kfCommissionData = longfist.Commission();
+    const kfCommissionData = longfist.types.Commission();
     const comissionsResolved = commissions
       .filter((item) => {
         return item.product_id && item.exchange_id;

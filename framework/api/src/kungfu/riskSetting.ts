@@ -22,7 +22,7 @@ export const setAllKfRiskSettings = (
 ): Promise<boolean> => {
   kfLogger.info('Set kungfu RiskSettings');
   return new Promise((resolve, reject) => {
-    const kfRiskSetting = longfist.RiskSetting();
+    const kfRiskSetting = longfist.types.RiskSetting();
     const riskSettingResolved = riskSettings
       .filter((item) => item.category === 'td' && item.group && item.name)
       .map((item) => ({

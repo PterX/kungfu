@@ -955,12 +955,10 @@ declare namespace KungfuApi {
     genTime: FunctionOrData<T, bigint>;
     triggerTime: FunctionOrData<T, bigint>;
     msgType: FunctionOrData<T, FrameMsgTypeEnum>; // to enum
-    stringMsgType: FunctionOrData<T, number>; // to enum
     source: FunctionOrData<T, number>;
     dest: FunctionOrData<T, number>;
     data: FunctionOrData<T, string>;
-    sourceName: FunctionOrData<T, string>;
-    destName: FunctionOrData<T, string>;
+    // destName: FunctionOrData<T, string>;
   }
 
   export interface FrameResolved extends Frame {
@@ -992,21 +990,25 @@ declare namespace KungfuApi {
   }
 
   export interface Longfist {
-    Asset(): Asset;
-    AssetMargin(): AssetMargin;
-    Instrument(): Instrument;
-    Order(): Order;
-    OrderInput(): OrderInput;
-    OrderAction(): OrderAction;
-    OrderStat(): OrderStat;
-    Position(): Position;
-    Quote(): Quote;
-    Trade(): Trade;
-    Commission(): Commission;
-    RiskSetting(): RiskSettingOrigin;
-    Basket(): Basket;
-    BasketInstrument(): BasketInstrument;
-    BasketOrder(): BasketOrder;
+    types: {
+      Asset(): Asset;
+      AssetMargin(): AssetMargin;
+      Instrument(): Instrument;
+      Order(): Order;
+      OrderInput(): OrderInput;
+      OrderAction(): OrderAction;
+      OrderStat(): OrderStat;
+      Position(): Position;
+      Quote(): Quote;
+      Trade(): Trade;
+      Commission(): Commission;
+      RiskSetting(): RiskSettingOrigin;
+      Basket(): Basket;
+      BasketInstrument(): BasketInstrument;
+      BasketOrder(): BasketOrder;
+    };
+
+    msgTypes: Record<number, string>;
   }
 
   export interface Kungfu {
@@ -1016,7 +1018,7 @@ declare namespace KungfuApi {
     BasketStore(kfHome: string): BasketStore;
     BasketInstrumentStore(kfHome: string): BasketInstrumentStore;
     History(kfHome: string): HistoryStore;
-    longfist: Longfist;
+    Longfist(): Longfist;
     Assemble(kfHome: string[]): Assemble;
     watcher(
       kfHome: string,

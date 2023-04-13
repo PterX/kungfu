@@ -192,36 +192,37 @@ std::vector<kungfu::longfist::types::Session> assemble::get_sessions(const kungf
   }
 }
 
-[[maybe_unused]] std::shared_ptr<frame_reader> assemble::get_reader(const kungfu::yijinjing::data::location_ptr &pl) {
-  auto io_dvc = std::make_shared<kungfu::yijinjing::io_device>(pl, true, true);
-  auto curr = std::chrono::system_clock::now();
-  time_t tm = std::chrono::system_clock::to_time_t(curr);
-  auto tm_begin = std::localtime(&tm);
-  tm_begin->tm_hour = 0;
-  tm_begin->tm_min = 0;
-  tm_begin->tm_sec = 0;
-  std::time_t t_begin = std::mktime(tm_begin);
-  int64_t begin_time = t_begin * 1000000000;
-  auto tm_end = std::localtime(&tm);
-  tm_end->tm_hour = 23;
-  tm_end->tm_min = 59;
-  tm_end->tm_sec = 59;
-  std::time_t t_end = std::mktime(tm_end);
-  int64_t end_time = t_end * 1000000000 + 999999999;
-  auto p_reader = std::make_shared<frame_reader>(io_dvc, begin_time, end_time, true);
-  auto uid_str = fmt::format("{:08x}", io_dvc->get_home()->uid);
-  auto master_cmd_location = kungfu::yijinjing::data::location::make_shared(mode::LIVE, category::SYSTEM, "master",
-                                                                            uid_str, io_dvc->get_locator());
-  auto master_home_location = kungfu::yijinjing::data::location::make_shared(mode::LIVE, category::SYSTEM, "master",
-                                                                             "master", io_dvc->get_locator());
+// [[maybe_unused]] std::shared_ptr<frame_reader> assemble::get_reader(const kungfu::yijinjing::data::location_ptr &pl)
+// {
+//   auto io_dvc = std::make_shared<kungfu::yijinjing::io_device>(pl, true, true);
+//   auto curr = std::chrono::system_clock::now();
+//   time_t tm = std::chrono::system_clock::to_time_t(curr);
+//   auto tm_begin = std::localtime(&tm);
+//   tm_begin->tm_hour = 0;
+//   tm_begin->tm_min = 0;
+//   tm_begin->tm_sec = 0;
+//   std::time_t t_begin = std::mktime(tm_begin);
+//   int64_t begin_time = t_begin * 1000000000;
+//   auto tm_end = std::localtime(&tm);
+//   tm_end->tm_hour = 23;
+//   tm_end->tm_min = 59;
+//   tm_end->tm_sec = 59;
+//   std::time_t t_end = std::mktime(tm_end);
+//   int64_t end_time = t_end * 1000000000 + 999999999;
+//   auto p_reader = std::make_shared<frame_reader>(io_dvc, begin_time, end_time, true);
+//   auto uid_str = fmt::format("{:08x}", io_dvc->get_home()->uid);
+//   auto master_cmd_location = kungfu::yijinjing::data::location::make_shared(mode::LIVE, category::SYSTEM, "master",
+//                                                                             uid_str, io_dvc->get_locator());
+//   auto master_home_location = kungfu::yijinjing::data::location::make_shared(mode::LIVE, category::SYSTEM, "master",
+//                                                                              "master", io_dvc->get_locator());
 
-  p_reader->join(master_cmd_location, io_dvc->get_home()->uid, begin_time);
-  p_reader->join(master_home_location, kungfu::yijinjing::data::location::PUBLIC, begin_time);
-  for (auto dest_id : io_dvc->get_locator()->list_location_dest(io_dvc->get_home())) {
-    p_reader->join(io_dvc->get_home(), dest_id, begin_time);
-  }
-  return p_reader;
-}
+//   p_reader->join(master_cmd_location, io_dvc->get_home()->uid, begin_time);
+//   p_reader->join(master_home_location, kungfu::yijinjing::data::location::PUBLIC, begin_time);
+//   for (auto dest_id : io_dvc->get_locator()->list_location_dest(io_dvc->get_home())) {
+//     p_reader->join(io_dvc->get_home(), dest_id, begin_time);
+//   }
+//   return p_reader;
+// }
 
 assemble::assemble(const data::location_ptr &source_location, uint32_t dest_id, uint32_t assemble_mode,
                    int64_t from_time)

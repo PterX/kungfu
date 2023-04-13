@@ -260,11 +260,14 @@ void master::on_request_write_to_band(const event_ptr &event) {
   auto home = io_device->get_home();
   auto target_location = location::make_shared(request, home->locator);
 
+  //layout have to be journal, for locator::list_locations
+  auto dirname = home->locator->layout_dir(target_location, enums::layout::JOURNAL);
+
   // notify others band location, but it represents a simulation location, no register, only location
   try_add_location(now(), target_location);
   get_writer(location::PUBLIC)->write(now(), dynamic_cast<Location &>(*target_location));
 
-  SPDLOG_INFO("on_request_write_to_band for {} to {}", get_location_uname(app_uid), request.name);
+  SPDLOG_INFO("on_request_write_to_band for {} to {}, dirname {}", get_location_uname(app_uid), request.name, dirname);
   reader_->join(get_location(app_uid), request.location_uid, trigger_time);
   require_write_to_band(trigger_time, app_uid, target_location);
   auto app_cmd_writer = get_writer(app_uid);

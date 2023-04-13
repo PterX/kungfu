@@ -539,7 +539,6 @@ enum class BrokerState : int8_t {
 
 inline std::ostream &operator<<(std::ostream &os, BrokerState t) { return os << int8_t(t); }
 
-
 NLOHMANN_JSON_SERIALIZE_ENUM(BrokerState, {
                                               {BrokerState::Pending, "Pending"},
                                               {BrokerState::Idle, "Idle"},
@@ -588,7 +587,8 @@ public:
   inline static const uint32_t Write = 0b00000010;   // read all journal from this location
   inline static const uint32_t Read = 0b00000100;    // read all journal to this dest_id
   inline static const uint32_t Public = 0b00001000;  // read all journal to location::PUBLIC
-  inline static const uint32_t All = 0b00010000;     // read all journal
+  inline static const uint32_t Sync = 0b00010000;    // read all journal to location::PUBLIC
+  inline static const uint32_t All = 0b00100000;     // read all journal
 };
 
 template <typename T, typename U> [[maybe_unused]] inline T sub_data_bitwise(const T &a, const T &b) {

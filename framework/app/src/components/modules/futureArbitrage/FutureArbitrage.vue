@@ -5,6 +5,7 @@ import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/p
 import KfConfigSettingsForm from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfConfigSettingsForm.vue';
 import { getConfigSettings } from './config';
 import { RuleObject } from 'ant-design-vue/lib/form';
+import { categoryRegisterConfig } from '../posGlobal/config';
 import { FutureArbitrageCodeEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import { makeOrderByOrderInput } from '@kungfu-trader/kungfu-js-api/kungfu';
 import {
@@ -38,6 +39,19 @@ const {
   currentCategoryData,
   getCurrentGlobalKfLocationId,
 } = useCurrentGlobalKfLocation(window.watcher);
+
+const isShowCurrentGlobalKfLocationTitle = computed(() => {
+  return (
+    currentGlobalKfLocation.value?.category !== categoryRegisterConfig.category
+  );
+});
+
+const tdList = computed<KungfuApi.KfLocation[] | null | undefined>(() => {
+  return currentGlobalKfLocation.value &&
+    'children' in currentGlobalKfLocation.value
+    ? currentGlobalKfLocation.value.children
+    : null;
+});
 
 const configSettings = computed(() => {
   if (!currentGlobalKfLocation.value) {
@@ -203,7 +217,9 @@ function handleMakeOrder() {
   <div class="kf-make-order-dashboard__warp">
     <KfDashboard @boardSizeChange="handleBodySizeChange">
       <template v-slot:title>
-        <span v-if="currentGlobalKfLocation">
+        <span
+          v-if="currentGlobalKfLocation && isShowCurrentGlobalKfLocationTitle"
+        >
           <a-tag
             v-if="currentCategoryData"
             :color="currentCategoryData?.color || 'default'"
@@ -228,6 +244,7 @@ function handleMakeOrder() {
             ref="formRef"
             v-model:formState="formState"
             :configSettings="configSettings"
+            :tdList="tdList"
             changeType="add"
             :label-col="6"
             :wrapper-col="14"

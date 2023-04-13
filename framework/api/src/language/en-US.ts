@@ -76,7 +76,9 @@ export default {
   add_config_modal:
     '{category} ID unique in the system. {changeTypeName} cannot be modified after it succeeds.',
   update_config_modal: 'Confirm {key} configurations',
-  database_locked: 'The database is occupied now, please wait and retry.',
+  database_locked: 'Detect there are some trading, database has been used',
+  export_database_locked:
+    'Detect there are some trading, should make sure the trading data be saved, suggest do this after closing quotation.',
 
   MakeOrder: 'Order Dashboard',
   FutureArbitrage: 'Future Arbitrage',
@@ -93,12 +95,13 @@ export default {
   PosGlobal: 'Positon Global',
   Pos: 'Positon',
 
+  please_wait: 'Please wait...',
+  please_wait_and_retry: 'Please wait and retry',
+
   select_broker_ext: 'Select a broker api',
   select_operator_ext: 'Select a operator ext',
   select_trade_task: 'Select trade task',
   select_plugin_type: 'Select extension type',
-
-  please_wait: '请稍后',
 
   baseConfig: {
     main_panel: 'HOME',
@@ -678,6 +681,7 @@ export default {
     comission: 'Comission',
     varieties: 'Varieties',
     add_comission: 'Add',
+    save_comission: 'Save',
     exchange_id: 'Exchange ID',
     open: 'Open',
     close_today: 'Close Today',
@@ -735,6 +739,7 @@ export default {
     illegal_character: 'The name cannot contain \\/:*?" <>|',
     delate_folder_confirm: 'Are you sure to delete folder?',
     delate_file_confirm: 'Are you sure to delete file?',
+    delate_confirm: 'Are you sure to delete {value}?',
     cannot_delate_entry: 'Cannot delete the entry',
     current: 'current',
     operator: 'operator',
@@ -766,8 +771,6 @@ export default {
   system_prompt: 'System Prompt',
   computer_performance_done: 'Computer performance detecting done ✓',
   computer_performance_detecting: 'Computer performance detecting...',
-  vc_deps_done: 'VS dependencies detecting done ✓',
-  vc_deps_detecting: 'VS dependencies detecting...',
   archive_done: 'Kungfu archive done',
   archive_loading: 'Kungfu archive loading...',
   environment_done: 'Kungfu environment done ✓',
@@ -781,9 +784,6 @@ export default {
 
   computer_performance_abnormal:
     'Computer performance is too low, continue start maybe make system process crash, suggest use the CPU core num more than 8.',
-  vc_deps_abnormal: 'Without Visual C++ dependencies, install now?',
-  vc_deps_abnormal_message:
-    '(notice: without this dependency will crash the Td and Md when them start)',
 
   quit_confirm:
     'Exiting the application ends all transactions, Confirm to exit?',

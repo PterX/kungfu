@@ -28,6 +28,8 @@ protected:
 
   void on_active() override;
 
+  void on_notify() override;
+
   static constexpr auto profile_get_all = [](auto &profile, auto &receiver) {
     boost::hana::for_each(longfist::ProfileDataTypes, [&](auto it) {
       auto type = boost::hana::second(it);
@@ -52,29 +54,29 @@ private:
   yijinjing::cache::bank feed_bank_;
   yijinjing::cache::profile profile_;
   ProfileStateBank profile_bank_ = ProfileStateBank(longfist::ProfileDataTypes);
-  int store_interval_ = 0;
+  const int store_volume_every_loop_;
 
   void on_location(const event_ptr &event);
 
-  void handle_cached_feeds();
+  void handle_cached_feeds(int store_volume_every_loop);
 
-  void handle_profile_feeds();
+  void handle_profile_feeds(int store_volume_every_loop);
 
   void mark_request_cached_done(uint32_t dest_id);
 
   void inspect_channel(int64_t trigger_time, const longfist::types::Channel &channel);
 
-  void channel_trigger_make_cache_shift(const longfist::types::Channel &channel);
+  void make_cache_shift(uint32_t source_id, uint32_t dest_id);
 
   void register_triggger_clear_cache_shift(const longfist::types::Register &deregister_data);
+
+  void register_trigger_listen_public(int64_t trigger_time, const longfist::types::Register &register_data);
 
   void on_cache_reset(const event_ptr &event);
 
   void ensure_cached_storage(uint32_t source_id, uint32_t dest_id);
 
   void feed(const event_ptr &event);
-
-  void async_handle_feeds();
 };
 
 } // namespace kungfu::yijinjing::cache

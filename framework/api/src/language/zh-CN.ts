@@ -77,7 +77,9 @@ export default {
   add_config_modal:
     '{category}ID系统唯一, {changeTypeName} 成功后不可修改, 确认 {key}',
   update_config_modal: '确认{key} 相关配置',
-  database_locked: '当前数据库被其他进程占用, 请稍后再试',
+  database_locked: '检测到当前有交易进行, 数据库被占用',
+  export_database_locked:
+    '检测到当前有交易进行, 为不影响交易数据落地, 建议收盘后尝试进行此操作',
 
   MakeOrder: '下单面板',
   FutureArbitrage: '套利指令',
@@ -100,6 +102,7 @@ export default {
   select_plugin_type: '选择插件类型',
 
   please_wait: '请稍后',
+  please_wait_and_retry: '请稍后重试',
 
   baseConfig: {
     main_panel: '主面板',
@@ -679,6 +682,7 @@ export default {
     comission: '期货手续费',
     varieties: '品种',
     add_comission: '添加',
+    save_comission: '保存',
     exchange_id: '交易所',
     open: '开仓',
     close_today: '平今',
@@ -759,8 +763,6 @@ export default {
   system_prompt: '系统提示',
   computer_performance_done: '电脑性能检测已完成 ✓',
   computer_performance_detecting: '电脑性能检测中...',
-  vc_deps_done: 'VS依赖检测已完成 ✓',
-  vc_deps_detecting: 'VS依赖检测中...',
   archive_done: '功夫归档完成 ✓',
   archive_loading: '功夫归档中...',
   environment_done: '功夫环境准备完成 ✓',
@@ -774,9 +776,6 @@ export default {
 
   computer_performance_abnormal:
     '电脑性能过低, 继续启动可能会导致系统进程奔溃, 建议使用8核及以上的 CPU 运行系统',
-  vc_deps_abnormal: '缺少 Visual C++ 依赖, 是否现在安装?',
-  vc_deps_abnormal_message:
-    '(注: 缺少此依赖会导致 交易账户 和 行情源 启动失败)',
 
   quit_confirm: '退出应用会结束所有交易进程, 确认退出吗?',
   restart_process: '功夫图形进程中断, 该中断不会影响交易, 是否重启图形进程？',

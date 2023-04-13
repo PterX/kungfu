@@ -99,6 +99,8 @@ public:
 
   void Quit(const Napi::CallbackInfo &info);
 
+  void AfterMasterDown(const Napi::CallbackInfo &info);
+
 protected:
   const bool bypass_accounting_;
   const bool bypass_trading_data_;
@@ -203,7 +205,7 @@ private:
 
   void SyncLedger();
 
-  void TryRefreshTradingData(const Napi::CallbackInfo &info);
+  void TryRefreshTradingData();
 
   void SyncTradingData();
 
@@ -218,8 +220,6 @@ private:
   void StartWorker();
 
   void CancelWorker();
-
-  void AfterMasterDown();
 
   void refresh_books();
 

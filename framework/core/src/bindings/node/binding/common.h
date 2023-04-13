@@ -34,7 +34,7 @@ inline int64_t GetBigInt(const Napi::Value &value) {
     return value.ToNumber().Int32Value();
   }
   if (value.IsBigInt()) {
-    bool lossless = {};
+    bool lossless;
     return value.As<Napi::BigInt>().Int64Value(&lossless);
   }
   return INT64_MAX;

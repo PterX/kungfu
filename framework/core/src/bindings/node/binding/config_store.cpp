@@ -9,6 +9,7 @@
 
 using namespace kungfu::longfist;
 using namespace kungfu::longfist::types;
+using namespace kungfu::longfist::enums;
 using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
 
@@ -91,6 +92,24 @@ Napi::Value ConfigStore::RemoveConfig(const Napi::CallbackInfo &info) {
   return Napi::Boolean::New(info.Env(), true);
 }
 
+Napi::Value ConfigStore::GetAllLocation(const Napi::CallbackInfo &info) {
+  auto table = Napi::Object::New(info.Env());
+  try {
+    for (const auto &config : profile_.get_all(Location{})) {
+      auto uid = fmt::format("{:016x}", config.uid());
+      auto object = Napi::Object::New(info.Env());
+      set(config, object);
+      table.Set(uid, object);
+    }
+  } catch (const std::exception &ex) {
+    SPDLOG_ERROR("failed to GetAllLocation {}", ex.what());
+    yijinjing::util::print_stack_trace();
+    return Napi::Boolean::New(info.Env(), false);
+  }
+
+  return table;
+}
+
 void ConfigStore::Init(Napi::Env env, Napi::Object exports) {
   Napi::HandleScope scope(env);
 
@@ -100,6 +119,7 @@ void ConfigStore::Init(Napi::Env env, Napi::Object exports) {
                                         InstanceMethod("getConfig", &ConfigStore::GetConfig),
                                         InstanceMethod("getAllConfig", &ConfigStore::GetAllConfig),
                                         InstanceMethod("removeConfig", &ConfigStore::RemoveConfig),
+                                        InstanceMethod("getAllLocation", &ConfigStore::GetAllLocation),
                                     });
 
   constructor = Napi::Persistent(func);

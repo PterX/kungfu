@@ -125,6 +125,11 @@ class Strategy(wc.Strategy):
             "on_asset_margin_sync_reset",
             lambda ctx, old_asset_margin, new_asset_margin: None,
         )
+        self._on_custom_data = getattr(
+            self._module,
+            "on_custom_data",
+            lambda ctx, msg_type, data, length, location: None,
+        )
 
     def __call_proxy(self, func, *args):
         if inspect.iscoroutinefunction(func):
@@ -230,6 +235,7 @@ class Strategy(wc.Strategy):
         self.ctx.hold_positions = wc_context.hold_positions
         self.ctx.get_account_book = self.__get_account_book
         self.ctx.req_deregister = wc_context.req_deregister
+        self.ctx.get_writer = wc_context.get_writer
         self.ctx.buy = functools.partial(self.__async_insert_order, Side.Buy)
         self.ctx.sell = functools.partial(self.__async_insert_order, Side.Sell)
         self.__init_book()
@@ -311,6 +317,11 @@ class Strategy(wc.Strategy):
             self.ctx,
             old_asset_margin,
             new_asset_margin,
+        )
+
+    def on_custom_data(self, wc_context, msg_type, data, length, location):
+        self.__call_proxy(
+            self._on_custom_data, self.ctx, msg_type, data, length, location
         )
 
 

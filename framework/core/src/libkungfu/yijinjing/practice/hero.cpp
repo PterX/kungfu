@@ -88,6 +88,8 @@ void hero::signal_stop() { live_ = false; }
 
 int64_t hero::now() const { return now_; }
 
+void hero::set_now(int64_t now) { now_ = now; }
+
 void hero::set_begin_time(int64_t begin_time) { begin_time_ = begin_time; }
 
 void hero::set_end_time(int64_t end_time) { end_time_ = end_time; }
@@ -189,11 +191,13 @@ void hero::on_notify() {}
 
 void hero::on_exit() { SPDLOG_INFO("default on_exit"); }
 
-location_ptr hero::get_ledger_home_location() { return ledger_home_location_; }
+location_ptr hero::get_ledger_home_location() const { return ledger_home_location_; }
 
-[[maybe_unused]] location_ptr hero::get_master_home_location() { return master_home_location_; }
+[[maybe_unused]] location_ptr hero::get_master_home_location() const { return master_home_location_; }
 
-[[maybe_unused]] location_ptr hero::get_master_cmd_location() { return master_cmd_location_; }
+[[maybe_unused]] location_ptr hero::get_master_cmd_location() const { return master_cmd_location_; }
+
+const rx::connectable_observable<event_ptr> &hero::get_events() const { return events_; }
 
 uint64_t hero::make_source_dest_hash(uint32_t source_id, uint32_t dest_id) {
   return uint64_t(source_id) << 32u | uint64_t(dest_id);

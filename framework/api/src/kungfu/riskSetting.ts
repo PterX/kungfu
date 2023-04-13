@@ -8,9 +8,8 @@ export const getAllKfRiskSettings = (): Promise<
   KungfuApi.RiskSettingOrigin[]
 > => {
   kfLogger.info('Get kungfu RiskSettings');
-  if (!fse.pathExistsSync(path.join(BASE_DB_DIR, 'config.db'))) { 
+  if (!fse.pathExistsSync(path.join(BASE_DB_DIR, 'config.db'))) {
     return Promise.resolve([]);
-
   }
 
   return getResultUntilValuable(() =>

@@ -329,7 +329,7 @@ export const getResultUntilValuable = <T>(
             resolve(result);
           } else {
             if (++count * 16 > timeout) {
-              reject(new Error('timeout'));
+              reject(new Error('GetResultUntilValuable Timeout'));
             } else {
               getterResolved();
             }

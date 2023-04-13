@@ -541,6 +541,15 @@ export default {
     loading_journal: '正在加载 journal',
 
     input_time_format_error: '输入时间格式有误',
+
+    search_instrument_id: '搜索标的',
+
+    stock_price: '股价',
+
+    trade_node: '成交节点',
+
+    order_node: '下单节点',
+
   },
 
   tradeConfig: {

@@ -240,6 +240,10 @@ export const useDealJournalDatas = () => {
     isInit: boolean;
   };
 
+  const mdQuotes = reactive<DataWrapper<KungfuApi.Quote>>({
+    data: {},
+    isInit: true,
+  });
   const quotes = reactive<DataWrapper<KungfuApi.Quote>>({
     data: {},
     isInit: true,
@@ -255,7 +259,6 @@ export const useDealJournalDatas = () => {
 
   const journalStore = useJournalStore();
   const journalState = storeToRefs(journalStore);
-
   const worker = window.workers.dealJournalDatas;
   const dataSender = new WorkerSender<KungfuApi.FrameResolved>(worker, 200);
   const dataReceiver = new WorkerReceiver('send', worker);
@@ -263,8 +266,19 @@ export const useDealJournalDatas = () => {
   watch(
     () => journalState.lastUpdateSessionFrames.value,
     (frames) => {
+      if (frames[0] === undefined) return;
+      console.log('frames', frames, journalState.isSessionFramesInit.value);
       dataSender.sendData('send-events', frames, {
         isInit: journalState.isSessionFramesInit.value,
+      });
+    },
+  );
+
+  watch(
+    () => journalState.mdLastUpdateSessionFrames.value,
+    (frames) => {
+      dataSender.sendData('send-md-events', frames, {
+        isInit: journalState.isMdSessionFramesInit.value,
       });
     },
   );
@@ -305,22 +319,31 @@ export const useDealJournalDatas = () => {
   };
 
   dataReceiver.onEnd<KungfuApi.Quote>('send-quotes', ({ data, info }) => {
-    console.log('quote', data, info);
     dealUpdateData(quotes.data, data, info?.isInit);
     quotes.isInit = info?.isInit;
   });
 
   dataReceiver.onEnd<KungfuApi.Trade>('send-trades', ({ data, info }) => {
-    console.log('trade', data, info);
     dealUpdateData(trades.data, data, info?.isInit);
     trades.isInit = info?.isInit;
   });
 
   dataReceiver.onEnd<KungfuApi.Order>('send-orders', ({ data, info }) => {
-    console.log('order', data, info);
     dealUpdateData(orders.data, data, info?.isInit);
     orders.isInit = info?.isInit;
   });
+  dataReceiver.onEnd<KungfuApi.Quote>('send-md-quotes', ({ data, info }) => {
+    dealUpdateData(mdQuotes.data, data, info?.isInit);
+    mdQuotes.isInit = info?.isInit;
+  });
+  const clearTradingData = () => {
+    quotes.data = {};
+    quotes.isInit = true;
+    orders.data = {};
+    orders.isInit = true;
+    trades.data = {};
+    trades.isInit = true;
+  };
 
   const allTradingDatas = computed(() => {
     const keys = Array.from(
@@ -352,11 +375,33 @@ export const useDealJournalDatas = () => {
       >,
     );
   });
+  const mdQuotoDatas = computed(() => {
+    const keys = Array.from(new Set([...Object.keys(mdQuotes.data)]));
+
+    return keys.reduce(
+      (datas, key) => {
+        return {
+          ...datas,
+          [key]: {
+            mdQuotes: mdQuotes.data[key] ?? [],
+          },
+        };
+      },
+      {} as Record<
+        string,
+        {
+          mdQuotes: KungfuApi.Quote[];
+        }
+      >,
+    );
+  });
 
   return {
     quotes,
     orders,
     trades,
     allTradingDatas,
+    mdQuotoDatas,
+    clearTradingData,
   };
 };

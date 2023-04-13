@@ -40,6 +40,9 @@
       range
       :tip-formatter="tipFormatter"
       @after-change="onAfterChange"
+      @mousedown="handleMouseDown"
+      @mouseup="handleMouseUp"
+      v-dragging="{ onMouseDown: handleMouseDown, onMouseUp: handleMouseUp }"
     />
     <div class="kf-time-slider-time">
       <a-input-group v-if="timeInputData[1].inputting" compact>
@@ -71,7 +74,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, ref, watch } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 
 import { CheckOutlined, CloseOutlined } from '@ant-design/icons-vue';
 import { dealKfTime } from '@kungfu-trader/kungfu-js-api/kungfu';
@@ -82,6 +85,8 @@ const { t } = VueI18n.global;
 
 type DoubleArray<T> = [T, T];
 
+//  q:timeRage是从哪里来的？  从哪里传递过来的？
+//  a: 从父组件传递过来的，父组件是Journal.vue
 const props = withDefaults(
   defineProps<{
     timeRange: DoubleArray<bigint>; // 当前只支持纳秒级别的时间
@@ -101,6 +106,7 @@ const emit = defineEmits<{
 const SCALE = 1000000;
 const BIGINT_SCALE = BigInt(SCALE);
 
+const isDragging = ref<Boolean>(false);
 const slider = ref();
 const sticking = ref<DoubleArray<boolean>>([
   props.timeRange[0] === props.limitTimeRange[0],
@@ -110,6 +116,28 @@ const timeInputData = ref<DoubleArray<{ inputting: boolean; value: string }>>([
   { inputting: false, value: '' },
   { inputting: false, value: '' },
 ]);
+
+onMounted(() => {
+  window.addEventListener('mouseup', globalMouseUp);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('mouseup', globalMouseUp);
+});
+
+const handleMouseDown = () => {
+  isDragging.value = true;
+};
+
+const handleMouseUp = () => {
+  isDragging.value = false;
+};
+
+const globalMouseUp = () => {
+  if (isDragging.value) {
+    isDragging.value = false;
+  }
+};
 
 const nano2millionSecond = (number: bigint | number) => {
   if (typeof number === 'bigint') {
@@ -172,8 +200,7 @@ watch(
       nano2millionSecond(newLimitRange[0]),
       nano2millionSecond(newLimitRange[1]),
     ];
-
-    if (props.stick) {
+    if (props.stick && !isDragging.value) {
       if (sticking.value[0]) {
         currentTimeRange.value[0] = limitRangeResolved.value[0];
       }
@@ -220,7 +247,6 @@ const onAfterChange = (value: DoubleArray<number>) => {
     sticking.value[0] = value[0] === limitRangeResolved.value[0];
     sticking.value[1] = value[1] === limitRangeResolved.value[1];
   }
-
   emit('update:timeRange', [
     dealUpdateTime(value[0]),
     dealUpdateTime(value[1]),

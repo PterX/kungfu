@@ -114,6 +114,9 @@ const props = withDefaults(
   {},
 );
 
+const isFrameCache = ref(false);
+const cacheFrameDataList = shallowRef<KungfuApi.FrameResolved[]>([]);
+
 const journalStore = useJournalStore();
 const frameColumns = getFrameColumns();
 const simpleImage = Empty.PRESENTED_IMAGE_SIMPLE;
@@ -125,25 +128,38 @@ const frameFilter = ref();
 const frameDataList = shallowRef<KungfuApi.FrameResolved[]>([]);
 const frameFiltersReg = ref(createFiltersEnumMap(/.*/));
 const frameDataListResolved = computed(() => {
-  return frameDataList.value.filter((item) => {
-    return Object.keys(frameFiltersReg.value).every((filterKey) => {
-      if (frameFiltersReg.value[filterKey]) {
-        const curReg = frameFiltersReg.value[filterKey as FiltersEnum];
-        switch (filterKey) {
-          case FiltersEnum.DEST:
-            return curReg.test(item.dest + '');
-          case FiltersEnum.SOURCE:
-            return curReg.test(item.source + '');
-          case FiltersEnum.MSG_TYPE:
-            return curReg.test(item.msgType + '');
-        }
+  let newRrameList: KungfuApi.FrameResolved[] = [];
+  if (frameDataList.value.length <= 0) {
+    newRrameList = [];
+  } else {
+    newRrameList = frameDataList.value.filter((item) => {
+      return Object.keys(frameFiltersReg.value).every((filterKey) => {
+        if (frameFiltersReg.value[filterKey]) {
+          const curReg = frameFiltersReg.value[filterKey as FiltersEnum];
+          switch (filterKey) {
+            case FiltersEnum.DEST:
+              return curReg.test(item.dest + '');
+            case FiltersEnum.SOURCE:
+              return curReg.test(item.source + '');
+            case FiltersEnum.MSG_TYPE:
+              return curReg.test(item.msgType + '');
+          }
 
-        return true;
-      } else {
-        return true;
-      }
+          return true;
+        } else {
+          return true;
+        }
+      });
     });
-  });
+  }
+
+  if (isFrameCache.value && cacheFrameDataList.value.length > 0) {
+    cacheFrameDataList.value = [...cacheFrameDataList.value, ...newRrameList];
+    return cacheFrameDataList.value;
+  } else {
+    cacheFrameDataList.value = newRrameList;
+    return cacheFrameDataList.value;
+  }
 });
 
 const framesMap = shallowRef<Record<string, KungfuApi.FrameResolved>>({});
@@ -220,7 +236,7 @@ let lastReaderArgs = {
   endTime: 0n,
 };
 
-const EVERY_COUNT = 10;
+const EVERY_COUNT = 20;
 const LIMIT_COUNT = 1000;
 
 const checkReaderArgs = (args: {
@@ -285,10 +301,8 @@ const loadFrameData = (
             };
 
             const curFrameDataResolved = dealFrame(curFrameData);
-
             curFramesMap[curFrameDataResolved.id] = curFrameDataResolved;
             framesMap.value[curFrameDataResolved.id] = curFrameDataResolved;
-
             frameFilter.value?.addOption(FiltersEnum.DEST, [
               {
                 label: curFrameDataResolved.destName,
@@ -307,7 +321,6 @@ const loadFrameData = (
                 value: curFrameDataResolved.msgType + '',
               },
             ]);
-
             ++total;
             ++count;
           }
@@ -324,14 +337,22 @@ const loadFrameData = (
     runner();
   }).then((res) => {
     if (checking) {
-      frameDataList.value.push(...res);
+      if (res.length > 0) {
+        isFrameCache.value = true;
+        frameDataList.value = res;
+      }
+
       journalStore.setCurrentSessionFrames(res, false);
     } else {
+      isFrameCache.value = false;
       frameDataList.value = res;
+
       currentFramesId.value = frameDataList.value[0]?.id;
+      isFrameCache.value = false;
+      cacheFrameDataList.value = [];
       journalStore.setCurrentSessionFrames(res, true);
     }
-
+    console.log('frame', frameDataListResolved.value);
     loadingJournal.value = false;
 
     if (total >= LIMIT_COUNT) loadFrameData(session, startTime, endTime, true);

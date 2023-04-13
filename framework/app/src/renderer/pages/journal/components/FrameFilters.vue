@@ -86,7 +86,6 @@ const addOption = (
       }, [] as string[]),
     );
   }
-
   addFilterOption(filterEnum, options);
 };
 

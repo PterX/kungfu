@@ -71,7 +71,13 @@
             :current-session="currentSession"
             :current-time-range-data="currentTimeRangeData"
           />
-          <OrdersDashboard v-show="isCurrentMenuItem('visual')" />
+          <OrdersDashboard
+            v-show="isCurrentMenuItem('visual')"
+            :sessions="sessions"
+            :current-session="currentSession"
+            :md-session="mdSession"
+            :current-time-range-data="currentTimeRangeData"
+          />
         </div>
       </div>
     </div>
@@ -101,12 +107,11 @@ import ExportJournal from './components/ExportJournal.vue';
 import EventsDashBoard from './components/EventsDashboard.vue';
 import OrdersDashboard from './components/OrdersDashboard.vue';
 import { useJournalStore } from './store/journalStore';
-
 const currentLocation = getCurrentLocation();
 const timeSlider = ref();
 const eventDashBoard = ref();
+const mdSession = ref();
 const journalStore = useJournalStore();
-
 const sessionsMap = ref<Record<string, KungfuApi.SessionResolved>>({});
 const sessions = computed(() => {
   return Object.values(sessionsMap.value);
@@ -116,7 +121,6 @@ const runningSessions = computed(() => {
     (item) => item.status === SessionStatusEnum.Running,
   );
 });
-
 const currentSessionKey = ref('');
 const currentSessionId = ref(-1);
 const currentTimeRangeData = ref<{ range: [bigint, bigint]; reload: boolean }>({
@@ -188,9 +192,19 @@ watch(
 );
 
 watch(
+  () => mdSession.value?.end_time,
+  (newStatus) => {
+    getMdSessions();
+  },
+);
+
+watch(
   () => currentSession.value,
   (newSession) => {
     if (!newSession) return;
+    console.log('loadnewSession', currentSession.value);
+    // const { clearTradingData } = useDealJournalDatas();
+    // clearTradingData();
 
     const { begin_time, end_time } = newSession;
 
@@ -198,7 +212,6 @@ watch(
       begin_time,
       end_time ? end_time : BigInt(new Date().getTime()) * 1000000n,
     ];
-
     currentTimeRangeData.value = {
       range: limitTimeRange.value,
       reload: true,
@@ -211,9 +224,26 @@ const getSessions = () =>
     ? assemble.getSessions(currentLocation)
     : assemble.getSessions();
 
+const getMdSessions = () => {
+  const sessions = assemble.getSessions();
+  if (!sessions) {
+    mdSession.value = null;
+    return null;
+  }
+  const mdSessions = sessions.filter((item) => item.name === 'sim');
+  const mdRuningSessions = mdSessions.filter(
+    (item) => item.end_time === BigInt(0),
+  );
+  if (mdRuningSessions.length) {
+    mdSession.value = mdRuningSessions[mdRuningSessions.length - 1];
+    return mdRuningSessions[mdRuningSessions.length - 1];
+  }
+  mdSession.value = mdSessions[0];
+  return mdSession.value;
+};
+
 const loadSessions = (gotSessions?: KungfuApi.Session[]) => {
   const currentSessions = gotSessions ?? getSessions();
-
   if (currentSessions?.length) {
     sessionsMap.value = dealSessionsToMap(currentSessions.reverse());
 
@@ -240,9 +270,9 @@ const startCheckSessionsStatus = () => {
       }
       return map;
     }, {});
-
     if (hasNewSession) {
       loadSessions(currentSessions);
+      getMdSessions();
       return;
     }
 
@@ -276,6 +306,7 @@ onMounted(() => {
   loadSessions();
   removeLoadingMask();
   startCheckSessionsStatus();
+  getMdSessions();
 });
 
 const handleSelectSession = ({ row }) => {

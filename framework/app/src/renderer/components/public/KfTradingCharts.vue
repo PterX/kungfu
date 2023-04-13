@@ -1,6 +1,6 @@
 <template>
   <div ref="chartWrapper" class="kf-charts__wrap">
-    <div :id="id" class="kf-chart__content"></div>
+    <div :ref="chart" :id="id" class="kf-chart__content"></div>
   </div>
 </template>
 
@@ -13,11 +13,11 @@ const props = defineProps<{
 }>();
 
 defineEmits<{
-  (e: 'update:option', option: echarts.EChartsCoreOption): void;
+  (e: 'update:option', option: echarts.EChartsOption): void;
 }>();
 
 const id = ref(new Date().getTime().toString());
-
+const chart = ref();
 const chartWrapper = ref<HTMLElement>();
 let myChart: echarts.ECharts | null = null;
 
@@ -72,6 +72,7 @@ function handleWrapperResize() {
 .kf-charts__wrap {
   height: 100%;
   width: 100%;
+  margin-bottom: 200px;
 
   .kf-chart__content {
     width: 100%;

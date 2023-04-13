@@ -41,15 +41,17 @@ module.exports = function () {
     pyEvalFile: binding.pyEvalFile,
     shutdown: binding.shutdown,
     Longfist: () => new binding.Longfist(),
-    Assemble: function (arg) {
+    Assemble: function (
+      arg,
+      mode = '*',
+      category = '*',
+      group = '*',
+      name = '*',
+    ) {
       if (Array.isArray(arg)) {
-        return new binding.Assemble(
-          arg.map(function (home) {
-            return home;
-          }),
-        );
+        return new binding.Assemble(arg, mode, category, group, name);
       } else {
-        return new binding.Assemble([arg]);
+        return new binding.Assemble([arg], mode, category, group, name);
       }
     },
     History: function (home) {

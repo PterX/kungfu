@@ -106,7 +106,9 @@ io_device_console::io_device_console(data::location_ptr home, int32_t console_wi
 
   while (tracer->data_available() and tracer->current_frame()->gen_time() <= end_time) {
     auto frame = tracer->current_frame();
-    auto dest_name = frame->dest() == location::PUBLIC ? "public" : locations.at(frame->dest())->uname;
+    auto dest_name = frame->dest() == location::PUBLIC ? "public"
+                     : location::SYNC                  ? "sync"
+                                                       : locations.at(frame->dest())->uname;
     bool type_found = false;
     boost::hana::for_each(AllTypes, [&](auto type) {
       using DataType = typename decltype(+boost::hana::second(type))::type;
@@ -169,7 +171,9 @@ io_device_console::io_device_console(data::location_ptr home, int32_t console_wi
 
   while (tracer->data_available() and tracer->current_frame()->gen_time() <= end_time) {
     auto frame = tracer->current_frame();
-    auto dest_name = frame->dest() == location::PUBLIC ? "public" : locations.at(frame->dest())->uname;
+    auto dest_name = frame->dest() == location::PUBLIC ? "public"
+                     : location::SYNC                  ? "sync"
+                                                       : locations.at(frame->dest())->uname;
     bool type_found = false;
     boost::hana::for_each(AllTypes, [&](auto type) {
       using DataType = typename decltype(+boost::hana::second(type))::type;

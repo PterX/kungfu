@@ -17,23 +17,21 @@ namespace kungfu::node {
 class IODevice : public Napi::ObjectWrap<IODevice>, public yijinjing::io_device {
 public:
   explicit IODevice(const Napi::CallbackInfo &info);
-  
+
   static void Init(Napi::Env env, Napi::Object exports);
 
   Napi::Value OpenReader(const Napi::CallbackInfo &info);
 
-  Napi::Value GetAllLocations(const Napi::CallbackInfo& info);
-  
+  Napi::Value GetAllLocations(const Napi::CallbackInfo &info);
+
   static Napi::Value NewInstance(const Napi::Value arg) { return constructor.New({arg}); }
 
   static yijinjing::data::locator_ptr GetLocatorByIndex(const Napi::Array &locators, int index = 0);
 
-  static yijinjing::data::location_ptr GetLocation(const Napi::CallbackInfo &info);
+  static yijinjing::data::location_ptr ExtractLocation(const Napi::CallbackInfo &info, int index,
+                                                       const yijinjing::data::locator_ptr &locator);
 
-  static yijinjing::data::location_ptr ExtractLocation(const Napi::CallbackInfo &info, int index, const yijinjing::data::locator_ptr &locator);
-  
-
-  static std::vector<yijinjing::data::locator_ptr> ExtractLocators(const Napi::CallbackInfo& info);
+  static std::vector<yijinjing::data::locator_ptr> ExtractLocators(const Napi::CallbackInfo &info);
 
   static yijinjing::data::locator_ptr GetDefaultRuntimeLocator();
 

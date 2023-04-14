@@ -72,6 +72,9 @@ module.exports = function () {
     BasketInstrumentStore: function (home) {
       return new binding.BasketInstrumentStore(home);
     },
+    IODevice: function (location) {
+      return new binding.IODevice(location);
+    },
     watcher: function (
       home,
       name,

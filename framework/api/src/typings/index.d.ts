@@ -1011,6 +1011,10 @@ declare namespace KungfuApi {
     msgTypes: Record<number, string>;
   }
 
+  export interface IODevice {
+    getAllLocations(kfRuntimeDir: string): Record<string, KfLocation>;
+  }
+
   export interface Kungfu {
     shutdown(): void;
     ConfigStore(kfHome: string): ConfigStore;
@@ -1019,6 +1023,7 @@ declare namespace KungfuApi {
     BasketStore(kfHome: string): BasketStore;
     BasketInstrumentStore(kfHome: string): BasketInstrumentStore;
     History(kfHome: string): HistoryStore;
+    IODevice(location: KfLocation): IODevice;
     Longfist(): Longfist;
     Assemble(kfHome: string[]): Assemble;
     watcher(

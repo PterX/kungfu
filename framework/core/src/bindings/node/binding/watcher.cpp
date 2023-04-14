@@ -36,7 +36,8 @@ inline location_ptr GetWatcherLocation(const Napi::CallbackInfo &info) {
 
   auto runtime_dir = info[0].As<Napi::String>().Utf8Value();
   auto name = info[1].As<Napi::String>().Utf8Value();
-  auto result = std::make_shared<location>(mode::LIVE, category::SYSTEM, "node", name, IODevice::GetRuntimeLocator(runtime_dir));
+  auto result =
+      std::make_shared<location>(mode::LIVE, category::SYSTEM, "node", name, IODevice::GetRuntimeLocator(runtime_dir));
   log::copy_log_settings(result, result->name);
   return result;
 }

@@ -16,7 +16,8 @@ namespace kungfu::node {
 
 Napi::FunctionReference IODevice::constructor = {};
 
-IODevice::IODevice(const Napi::CallbackInfo &info) : ObjectWrap(info), io_device(GetLocation(info), true, true) {
+IODevice::IODevice(const Napi::CallbackInfo &info)
+    : ObjectWrap(info), io_device(ExtractLocation(info, 0, IODevice::GetDefaultRuntimeLocator()), true, true) {
   Napi::Env env = info.Env();
   Napi::HandleScope scope(env);
 }
@@ -30,14 +31,6 @@ locator_ptr IODevice::GetLocatorByIndex(const Napi::Array &locators, int index) 
 
   auto dirname = locators[index].As<Napi::String>().Utf8Value();
   return IODevice::GetRuntimeLocator(dirname);
-}
-
-location_ptr IODevice::GetLocation(const Napi::CallbackInfo &info) {
-  kungfu::longfist::enums::mode m = (kungfu::longfist::enums::mode)(info[0].ToNumber().Uint32Value());
-  kungfu::longfist::enums::category c = (kungfu::longfist::enums::category)(info[1].ToNumber().Uint32Value());
-  std::string group = info[2].ToString().Utf8Value();
-  std::string name = info[3].ToString().Utf8Value();
-  return std::make_shared<location>(m, c, group, name, IODevice::GetDefaultRuntimeLocator());
 }
 
 locator_ptr IODevice::GetDefaultRuntimeLocator() { return std::make_shared<yijinjing::data::locator>(); }
@@ -54,8 +47,8 @@ std::vector<locator_ptr> IODevice::ExtractLocators(const Napi::CallbackInfo &inf
   return result;
 }
 
-Napi::Value IODevice::GetAllLocations(const Napi::CallbackInfo& info) {
- if (not IsValid(info, 0, &Napi::Value::IsString)) {
+Napi::Value IODevice::GetAllLocations(const Napi::CallbackInfo &info) {
+  if (not IsValid(info, 0, &Napi::Value::IsString)) {
     throw Napi::Error::New(info.Env(), "Invalid locator argument");
   }
 
@@ -99,11 +92,11 @@ location_ptr IODevice::ExtractLocation(const Napi::CallbackInfo &info, int index
   }
 }
 
-locator_ptr IODevice::GetRuntimeLocator(const std::string& dirname) {
+locator_ptr IODevice::GetRuntimeLocator(const std::string &dirname) {
   return std::make_shared<yijinjing::data::locator>(dirname);
 }
 
-locator_ptr IODevice::ExtractRuntimeLocatorByIndex(const Napi::CallbackInfo& info, int index) {
+locator_ptr IODevice::ExtractRuntimeLocatorByIndex(const Napi::CallbackInfo &info, int index) {
   if (not IsValid(info, index, &Napi::Value::IsString)) {
     throw Napi::Error::New(info.Env(), "Invalid Info[0] type, not string");
   }

@@ -17,8 +17,8 @@ SessionStore::SessionStore(const Napi::CallbackInfo &info)
       {};
 
 SessionStore::~SessionStore() {
-    SPDLOG_INFO("SessionStore destructor");
-    io_device_->reset();
+  SPDLOG_INFO("SessionStore destructor");
+  io_device_->reset();
 }
 
 Napi::Value SessionStore::GetAllSessions(const Napi::CallbackInfo &info) {

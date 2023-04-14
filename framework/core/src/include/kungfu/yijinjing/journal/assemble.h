@@ -8,7 +8,6 @@
 #define YIJINJING_ASSEMBLE_H
 
 #include <kungfu/yijinjing/journal/journal.h>
-#include <kungfu/yijinjing/journal/tracer.h>
 
 namespace kungfu::yijinjing::journal {
 class sink {
@@ -66,8 +65,6 @@ public:
   void next();
 
   frame_ptr current_frame();
-
-  std::vector<kungfu::longfist::types::Session> get_sessions(const kungfu::yijinjing::data::location_ptr &pl = nullptr);
 
   template <typename T>
   [[maybe_unused]] std::vector<T> read_all(int32_t msg_type = T::tag, int64_t end_time = INT64_MAX) {

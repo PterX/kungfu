@@ -116,6 +116,7 @@ Napi::Object InitAll(Napi::Env env, Napi::Object exports) {
   IODevice::Init(env, exports);
   DataTable::Init(env, exports);
   Watcher::Init(env, exports);
+  Tracer::Init(env, exports);
   exports.Set("hash", Napi::Function::New(env, Hash));
   exports.Set("formatStringToHashHex", Napi::Function::New(env, FormatStringToHashHex));
   exports.Set("formatTime", Napi::Function::New(env, FormatTime));

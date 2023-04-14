@@ -260,7 +260,7 @@ void master::on_request_write_to_band(const event_ptr &event) {
   auto home = io_device->get_home();
   auto target_location = location::make_shared(request, home->locator);
 
-  //layout have to be journal, for locator::list_locations
+  // layout have to be journal, for locator::list_locations
   auto dirname = home->locator->layout_dir(target_location, enums::layout::JOURNAL);
 
   // notify others band location, but it represents a simulation location, no register, only location

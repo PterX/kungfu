@@ -36,7 +36,7 @@ inline location_ptr GetWatcherLocation(const Napi::CallbackInfo &info) {
 
   auto runtime_dir = info[0].As<Napi::String>().Utf8Value();
   auto name = info[1].As<Napi::String>().Utf8Value();
-  auto result = std::make_shared<location>(mode::LIVE, category::SYSTEM, "node", name, GetRuntimeLocator(runtime_dir));
+  auto result = std::make_shared<location>(mode::LIVE, category::SYSTEM, "node", name, IODevice::GetRuntimeLocator(runtime_dir));
   log::copy_log_settings(result, result->name);
   return result;
 }
@@ -221,7 +221,7 @@ Napi::Value Watcher::GetLocation(const Napi::CallbackInfo &info) {
 }
 
 Napi::Value Watcher::GetLocationUID(const Napi::CallbackInfo &info) {
-  auto target_location = ExtractLocation(info, 0, get_locator());
+  auto target_location = IODevice::ExtractLocation(info, 0, get_locator());
   return Napi::Number::New(info.Env(), target_location->uid);
 }
 
@@ -263,7 +263,7 @@ Napi::Value Watcher::IsLive(const Napi::CallbackInfo &info) { return Napi::Boole
 Napi::Value Watcher::IsStarted(const Napi::CallbackInfo &info) { return Napi::Boolean::New(info.Env(), is_started()); }
 
 Napi::Value Watcher::RequestStop(const Napi::CallbackInfo &info) {
-  auto app_location = ExtractLocation(info, 0, get_locator());
+  auto app_location = IODevice::ExtractLocation(info, 0, get_locator());
 
   // stop master
   if (app_location->category == category::SYSTEM && app_location->group == "master") {
@@ -289,7 +289,7 @@ Napi::Value Watcher::PublishState(const Napi::CallbackInfo &info) {
 }
 
 Napi::Value Watcher::IsReadyToInteract(const Napi::CallbackInfo &info) {
-  auto account_location = ExtractLocation(info, 0, get_locator());
+  auto account_location = IODevice::ExtractLocation(info, 0, get_locator());
   return Napi::Boolean::New(info.Env(), account_location and has_writer(account_location->uid));
 }
 
@@ -306,13 +306,13 @@ Napi::Value Watcher::IssueOrder(const Napi::CallbackInfo &info) {
 Napi::Value Watcher::IssueBasketOrder(const Napi::CallbackInfo &info) {
   SPDLOG_INFO("issue basket order manually");
 
-  auto account_location = ExtractLocation(info, 1, get_locator());
+  auto account_location = IODevice::ExtractLocation(info, 1, get_locator());
   auto basket_order_info = info[0].ToObject();
   basket_order_info.Set("dest_id", Napi::Number::New(info.Env(), account_location->uid));
   if (info.Length() == 2) {
     basket_order_info.Set("source_id", Napi::Number::New(info.Env(), get_home_uid()));
   } else {
-    auto strategy_location = ExtractLocation(info, 2, get_locator());
+    auto strategy_location = IODevice::ExtractLocation(info, 2, get_locator());
     basket_order_info.Set("source_id", Napi::Number::New(info.Env(), strategy_location->uid));
   }
 
@@ -343,7 +343,7 @@ Napi::Value Watcher::RequestMarketData(const Napi::CallbackInfo &info) {
     return Napi::Boolean::New(info.Env(), false);
   }
 
-  auto md_location = ExtractLocation(info, 0, get_locator());
+  auto md_location = IODevice::ExtractLocation(info, 0, get_locator());
   auto exchange_id = info[1].ToString().Utf8Value();
   auto instrument_id = info[2].ToString().Utf8Value();
 

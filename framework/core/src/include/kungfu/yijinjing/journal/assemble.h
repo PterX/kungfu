@@ -69,8 +69,6 @@ public:
 
   std::vector<kungfu::longfist::types::Session> get_sessions(const kungfu::yijinjing::data::location_ptr &pl = nullptr);
 
-  // [[maybe_unused]] std::shared_ptr<tracer> get_reader(const kungfu::yijinjing::data::location_ptr &pl);
-
   template <typename T>
   [[maybe_unused]] std::vector<T> read_all(int32_t msg_type = T::tag, int64_t end_time = INT64_MAX) {
     std::vector<T> v{};

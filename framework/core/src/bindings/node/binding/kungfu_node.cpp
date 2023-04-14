@@ -55,6 +55,7 @@ decltype(__pfnDliNotifyHook2) __pfnDliNotifyHook2 = load_exe_hook;
 #include "journal.h"
 #include "longfist.h"
 #include "risk_setting_store.h"
+#include "session_store.h"
 #include "watcher.h"
 
 using namespace kungfu::longfist;
@@ -108,6 +109,7 @@ Napi::Object InitAll(Napi::Env env, Napi::Object exports) {
   CommissionStore::Init(env, exports);
   BasketStore::Init(env, exports);
   BasketInstrumentStore::Init(env, exports);
+  SessionStore::Init(env, exports);
   Frame::Init(env, exports);
   Reader::Init(env, exports);
   Assemble::Init(env, exports);

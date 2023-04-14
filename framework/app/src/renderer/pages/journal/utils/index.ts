@@ -1,4 +1,4 @@
-import { SessionStatusEnum } from './../../../../../../api/src/typings/enums';
+import { SessionStatusEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import { WorkerReceiver } from './../workers/receiver';
 import { storeToRefs } from 'pinia';
 import { useJournalStore } from './../store/journalStore';

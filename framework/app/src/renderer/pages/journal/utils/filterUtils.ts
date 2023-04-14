@@ -24,7 +24,7 @@ export const useFrameFilters = () => {
     value: string;
   };
 
-  type FilterOptionMap = Record<FiltersEnum, Record<string, OptionItem>>;
+  type FilterOptionMap = Record<FiltersEnum, OptionItem[]>;
 
   type FilterOptionresolvedMap = Record<FiltersEnum, OptionItem[]>;
 
@@ -33,10 +33,11 @@ export const useFrameFilters = () => {
   );
 
   const filtersOptions = reactive<FilterOptionMap>(
-    createFiltersEnumMap<Record<string, OptionItem>>(() => ({})),
+    createFiltersEnumMap<OptionItem[]>(() => []),
   );
 
   const filtersOptionsResolved = computed<FilterOptionresolvedMap>(() => {
+    console.log('filtersOptions', filtersOptions);
     return Object.keys(filtersOptions).reduce<FilterOptionresolvedMap>(
       (pre, item) => {
         pre[item] = Object.values(filtersOptions[item]) as OptionItem[];

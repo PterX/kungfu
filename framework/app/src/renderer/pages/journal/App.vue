@@ -70,6 +70,7 @@
             ref="eventDashBoard"
             :current-session="currentSession"
             :current-time-range-data="currentTimeRangeData"
+            :location-map="locationMap"
           />
           <OrdersDashboard
             v-show="isCurrentMenuItem('visual')"
@@ -89,6 +90,7 @@ import { onMounted, ref, computed, toRaw, watch, nextTick } from 'vue';
 import { assemble, dealKfTime } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { getSessionColumns, SessionStatus } from './config';
 import { removeLoadingMask } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
+
 import {
   getCurrentLocation,
   dealCategory,
@@ -107,12 +109,20 @@ import ExportJournal from './components/ExportJournal.vue';
 import EventsDashBoard from './components/EventsDashboard.vue';
 import OrdersDashboard from './components/OrdersDashboard.vue';
 import { useJournalStore } from './store/journalStore';
+import { getAllLocation } from '@kungfu-trader/kungfu-js-api/kungfu/store';
+import {
+  KfModeEnum,
+  KfCategoryEnum,
+} from '@kungfu-trader/kungfu-js-api/typings/enums';
+
 const currentLocation = getCurrentLocation();
 const timeSlider = ref();
 const eventDashBoard = ref();
 const mdSession = ref();
 const journalStore = useJournalStore();
 const sessionsMap = ref<Record<string, KungfuApi.SessionResolved>>({});
+const allLocation = ref<Record<string, KungfuApi.KfConfig>>({});
+const locationMap = ref<Record<string, string>>({});
 const sessions = computed(() => {
   return Object.values(sessionsMap.value);
 });
@@ -185,6 +195,12 @@ watch(
   () => sessions.value,
   () => {
     journalStore.setSessions(sessions.value);
+    allLocation.value = getAllLocation();
+    console.log('allLocation', allLocation.value);
+    nextTick(() => {
+      locationMap.value = dealLocationsToMap(allLocation.value);
+      console.log('locationMap', locationMap.value);
+    });
   },
   {
     deep: true,
@@ -205,6 +221,12 @@ watch(
     console.log('loadnewSession', currentSession.value);
     // const { clearTradingData } = useDealJournalDatas();
     // clearTradingData();
+    allLocation.value = getAllLocation();
+    console.log('allLocation', allLocation.value);
+    nextTick(() => {
+      locationMap.value = dealLocationsToMap(allLocation.value);
+      console.log('locationMap', locationMap.value);
+    });
 
     const { begin_time, end_time } = newSession;
 
@@ -218,6 +240,29 @@ watch(
     };
   },
 );
+
+const dealLocationsToMap = (locations: Record<string, KungfuApi.KfConfig>) => {
+  const locationMap: Record<string, KungfuApi.KfConfig> = {};
+  Object.values(locations).forEach((item) => {
+    locationMap[item.location_uid] = item;
+  });
+  return ransformObject(locationMap);
+};
+const ransformObject = (obj: Record<string, KungfuApi.KfConfig>) => {
+  const output = {};
+
+  for (const key in obj) {
+    // eslint-disable-next-line no-prototype-builtins
+    if (obj.hasOwnProperty(key)) {
+      const item = obj[key];
+      output[key] = `${KfCategoryEnum[item.category]}/${item.group}/${
+        item.name
+      }/${KfModeEnum[item.mode]}`;
+    }
+  }
+
+  return output;
+};
 
 const getSessions = () =>
   currentLocation

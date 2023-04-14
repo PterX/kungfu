@@ -2,13 +2,6 @@
   <div class="kf-visual-container">
     <!-- 搜索框和搜索按钮 -->
     <div class="kf-visual-search">
-      <!-- <input
-       
-
-        
-        placeholder="输入 key"
-      />
-      <button>{{ t('journalConfig.export') }}</button> -->
       <a-input-search
         v-model:value="searchKey"
         class="search-input"
@@ -62,20 +55,20 @@ const props = withDefaults(
 );
 
 let mdSessionBeginTime = props.mdSession ? props.mdSession.begin_time : 0n;
-const searchKey = ref<string>(''); // 搜索框绑定的数据
-const chartRefs: { [key: string]: HTMLElement } = reactive({}); // 用于存储图表 DOM 元素的引用
-const chartsContainer = ref<HTMLElement | null>(null); // 图表容器的引用
+const searchKey = ref<string>('');
+const chartRefs: { [key: string]: HTMLElement } = reactive({});
+const chartsContainer = ref<HTMLElement | null>(null);
 
 const scrollToKey = () => {
   if (!searchKey.value) {
-    alert('请输入 key');
+    alert(t('journalConfig.please_input_instrument_id)'));
     return;
   }
 
   const target = chartRefs[searchKey.value];
 
   if (!target) {
-    alert('找不到对应的图表');
+    alert(t('journalConfig.undefined_instrument_id'));
     return;
   }
 
@@ -132,7 +125,6 @@ const loadFrameData = (
 
   if (!checking) {
     if (sessionId === SessionStatusEnum.Running) {
-      //todo: 后端需要支持实时读取
       journalReader = assemble.getReader(sessionId, startTime);
     } else {
       journalReader = assemble.getReader(sessionId, startTime, endTime);
@@ -154,12 +146,9 @@ const loadFrameData = (
               genTime: frame.genTime(),
               triggerTime: frame.triggerTime(),
               msgType: frame.msgType(),
-              stringMsgType: frame.stringMsgType(),
               source: frame.source(),
               dest: frame.dest(),
               data: frame.data(),
-              destName: frame.destName(),
-              sourceName: frame.sourceName(),
             };
             const curFrameDataResolved = dealFrame(curFrameData);
 
@@ -185,6 +174,7 @@ const loadFrameData = (
     } else {
       journalStore.setMdSessionFrames(res, true);
     }
+    console.log('mdjournal',res)
     if (total >= LIMIT_COUNT) loadFrameData(session, startTime, endTime, true);
   });
 };
@@ -222,14 +212,14 @@ const allOptions = computed(() => {
       const newOrders = ordersDiff > 0 ? orders.slice(-ordersDiff) : orders;
 
       const timestampMap = new Map();
-      let timetemp: string[] = [];
-      let timetemp2: string[] = [];
+      let timeTemp: string[] = [];
+      let timeTemp2: string[] = [];
       //将quotes所有的时间戳格式化后放到一个数组里面
       quotes.forEach((item) => {
         if (item) {
           const timestampKey = 'data_time';
-          const b = dealKfTime(BigInt(item[timestampKey]));
-          timetemp2.push(b);
+          const time = dealKfTime(BigInt(item[timestampKey]));
+          timeTemp2.push(time);
         }
       });
       const processData = (data, type) => {
@@ -252,7 +242,7 @@ const allOptions = computed(() => {
             item[priceKey] !== undefined
           ) {
             const timestamp = dealKfTime(BigInt(item[timestampKey]));
-            timetemp.push(timestamp);
+            timeTemp.push(timestamp);
             const timestampInSeconds = timestamp.slice(0, -4);
             const price = dealKfPrice(item[priceKey]);
             const key = `${timestampInSeconds}`;
@@ -302,10 +292,10 @@ const allOptions = computed(() => {
 
       console.log('data;quotes;trades;orders', {
         allData,
-        timeTemp: timetemp.sort((a, b) => {
+        timeTemp: timeTemp.sort((a, b) => {
           return a > b ? 1 : -1;
         }),
-        timetemp2: timetemp2.sort((a, b) => {
+        timeTemp2: timeTemp2.sort((a, b) => {
           return a > b ? 1 : -1;
         }),
         oldnew: { oldOptionData, newData },
@@ -339,43 +329,43 @@ const allOptions = computed(() => {
   return resolvedOptions;
 });
 
-const upColor = '#ec0000';
-const upBorderColor = '#8A0000';
-const downColor = '#00da3c';
-const downBorderColor = '#008F28';
+// const upColor = '#ec0000';
+// const upBorderColor = '#8A0000';
+// const downColor = '#00da3c';
+// const downBorderColor = '#008F28';
 
-const getMarkPoint = (data: {
-  Trade: KungfuApi.Trade[];
-  Order: KungfuApi.Order[];
-}) => {
-  const markPoint = {
-    label: {
-      formatter: function (param) {
-        return param;
-      },
-    },
-    data: Object.keys(data)
-      .map((type) => {
-        const timeKey = type === 'Order' ? 'update_time' : 'trade_time';
-        const priceKey = type === 'Order' ? 'limit_price' : 'price';
+// const getMarkPoint = (data: {
+//   Trade: KungfuApi.Trade[];
+//   Order: KungfuApi.Order[];
+// }) => {
+//   const markPoint = {
+//     label: {
+//       formatter: function (param) {
+//         return param;
+//       },
+//     },
+//     data: Object.keys(data)
+//       .map((type) => {
+//         const timeKey = type === 'Order' ? 'update_time' : 'trade_time';
+//         const priceKey = type === 'Order' ? 'limit_price' : 'price';
 
-        return data[type].map((item) => ({
-          name: 'Mark',
-          coord: [
-            dealKfTime(BigInt(item[timeKey])),
-            dealKfPrice(item[priceKey]),
-          ],
-          value: type,
-          itemStyle: {
-            color: 'rgb(41,60,85)',
-          },
-        }));
-      })
-      .flat(),
-  };
-  // console.log('markPoint',markPoint);
-  return markPoint;
-};
+//         return data[type].map((item) => ({
+//           name: 'Mark',
+//           coord: [
+//             dealKfTime(BigInt(item[timeKey])),
+//             dealKfPrice(item[priceKey]),
+//           ],
+//           value: type,
+//           itemStyle: {
+//             color: 'rgb(41,60,85)',
+//           },
+//         }));
+//       })
+//       .flat(),
+//   };
+//   // console.log('markPoint',markPoint);
+//   return markPoint;
+// };
 
 function getXAxisData(oldData, newData) {
   if (newData.length <= 0) {

@@ -553,6 +553,9 @@ export default {
 
     order_node: '下单节点',
 
+    input_instrument_id: '请输入标的名称',
+
+    undefined_instrument_id: '找不到对应的标的',
   },
 
   tradeConfig: {

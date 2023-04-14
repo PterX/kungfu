@@ -1264,6 +1264,17 @@
     "@jridgewell/resolve-uri" "3.1.0"
     "@jridgewell/sourcemap-codec" "1.4.14"
 
+"@kungfu-trader/kungfu-sdk@^2.5.1-alpha.2":
+  version "2.6.0-alpha.9"
+  resolved "https://npm.pkg.github.com/download/@kungfu-trader/kungfu-sdk/2.6.0-alpha.9/c8d5764e401a0d90e16200ffd00f71e439a38f85#c8d5764e401a0d90e16200ffd00f71e439a38f85"
+  integrity sha512-bAofrKNRi5sJXiqh6z5Iqx6F45fHbNbk0UufMbLPRG6xupTrsJeRSbJKVF8Lh3bJf7+2IWwvQYTS/oZCl/qSLQ==
+  dependencies:
+    "@kungfu-trader/kungfu-app" "^2.6.0-alpha.9"
+    "@kungfu-trader/kungfu-cli" "^2.6.0-alpha.9"
+    "@kungfu-trader/kungfu-core" "^2.6.0-alpha.9"
+    "@kungfu-trader/kungfu-js-api" "^2.6.0-alpha.9"
+    "@kungfu-trader/kungfu-toolchain" "^2.6.0-alpha.9"
+
 "@kungfu-trader/libnode@16.15.0":
   version "16.15.0"
   resolved "https://npm.pkg.github.com/download/@kungfu-trader/libnode/16.15.0/42c00ca0239b32034459993d917b0a29bb676b71#42c00ca0239b32034459993d917b0a29bb676b71"

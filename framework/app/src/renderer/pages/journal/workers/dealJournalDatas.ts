@@ -22,7 +22,7 @@ dataReceiver.onEnd<KungfuApi.FrameResolved>('send-events', ({ data, info }) => {
   const orders: KungfuApi.Order[] = [];
   const trades: KungfuApi.Trade[] = [];
   data.forEach((item) => {
-    const resolvedData = jsonParse(item.data);
+    const resolvedData = jsonParse(JSON.stringify(item.data));
     switch (item.msgType) {
       case FrameMsgTypeEnum.Quote:
         quotes.push(resolvedData);
@@ -45,7 +45,7 @@ dataReceiver.onEnd<KungfuApi.FrameResolved>(
   ({ data, info }) => {
     const quotes: KungfuApi.Quote[] = [];
     data.forEach((item) => {
-      const resolvedData = jsonParse(item.data);
+      const resolvedData = jsonParse(JSON.stringify(item.data));
       switch (item.msgType) {
         case FrameMsgTypeEnum.Quote:
           quotes.push(resolvedData);

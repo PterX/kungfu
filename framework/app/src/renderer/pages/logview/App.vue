@@ -112,11 +112,11 @@ function resetLog() {
   <a-layout>
     <div class="kf-log-view__warp">
       <KfDashboard @boardSizeChange="handleChangeBoardSize">
-        <template v-slot:header>
+        <template #header>
           <KfDashboardItem>
             <a-checkbox
-              size="small"
               v-model:checked="scrollToBottomChecked"
+              size="small"
               @change="scrollToBottom"
             >
               {{ $t('logview.scroll_to_bottom') }}
@@ -126,8 +126,8 @@ function resetLog() {
             <div class="search-in-table__warp">
               <a-input-search
                 ref="inputSearchRef"
-                class="search-int-table__item"
                 v-model:value="searchKeyword"
+                class="search-int-table__item"
                 :placeholder="$t('keyword_input')"
                 style="width: 120px"
               />
@@ -175,7 +175,7 @@ function resetLog() {
           :simple-array="true"
         >
           <template
-            v-slot="{
+            #default="{
               item,
               index,
               active,
@@ -192,8 +192,8 @@ function resetLog() {
               :data-index="index"
             >
               <div
-                :active="active"
                 :id="`kf-log-item-${item.id}`"
+                :active="active"
                 class="kf-log-line"
                 v-html="item.messageForSearch || item.message"
               ></div>

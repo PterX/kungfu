@@ -1,4 +1,4 @@
-import { SessionStatusEnum } from './../../../../../../api/src/typings/enums';
+import { SessionStatusEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import { WorkerReceiver } from './../workers/receiver';
 import { storeToRefs } from 'pinia';
 import { useJournalStore } from './../store/journalStore';
@@ -131,11 +131,11 @@ const dealFrameData = (data: string): unknown[] => {
           key,
           ...(children?.length
             ? {
-                children: [
-                  ...children,
-                  { title: Array.isArray(obj1[key]) ? ']' : '}' },
-                ],
-              }
+              children: [
+                ...children,
+                { title: Array.isArray(obj1[key]) ? ']' : '}' },
+              ],
+            }
             : {}),
         };
       });

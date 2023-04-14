@@ -6,6 +6,8 @@
 #include <kungfu/yijinjing/journal/journal.h>
 
 namespace kungfu::yijinjing::journal {
+using namespace longfist::types;
+
 constexpr uint32_t PAGE_ID_TRANC = 0xFFFF0000;
 constexpr uint32_t FRAME_ID_TRANC = 0x0000FFFF;
 
@@ -20,6 +22,7 @@ writer::writer(const data::location_ptr &location, uint32_t dest_id, bool lazy, 
 uint64_t writer::current_frame_uid() {
   uint32_t page_part = (journal_.page_->page_id_ << 16u) & PAGE_ID_TRANC;
   uint32_t frame_part = journal_.page_frame_nb_ & FRAME_ID_TRANC;
+  // frame_id_base is used for get account id while canceling order
   return frame_id_base_ | ((page_part | frame_part) xor writer_start_time_32int_);
 }
 
@@ -71,14 +74,21 @@ void writer::mark(int64_t trigger_time, int32_t msg_type) {
   close_frame(0);
 }
 
-void writer::mark_at(int64_t gen_time, int64_t trigger_time, int32_t msg_type) {
+[[maybe_unused]] void writer::mark_at(int64_t gen_time, int64_t trigger_time, int32_t msg_type) {
   open_frame(trigger_time, msg_type, 0);
   close_frame(0, gen_time);
 }
 
-void writer::write_raw(int64_t trigger_time, int32_t msg_type, uintptr_t data, uint32_t length) {
+[[maybe_unused]] void writer::write_raw(int64_t trigger_time, int32_t msg_type, uintptr_t data, uint32_t length) {
   auto frame = open_frame(trigger_time, msg_type, length);
   memcpy(const_cast<void *>(frame->data_address()), reinterpret_cast<void *>(data), length);
+  close_frame(length);
+}
+
+[[maybe_unused]] void writer::write_bytes(int64_t trigger_time, int32_t msg_type, const std::vector<uint8_t> &data,
+                                          uint32_t length) {
+  auto frame = open_frame(trigger_time, msg_type, length);
+  memcpy(const_cast<void *>(frame->data_address()), data.data(), length);
   close_frame(length);
 }
 

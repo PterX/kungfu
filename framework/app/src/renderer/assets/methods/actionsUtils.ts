@@ -23,6 +23,7 @@ import {
   StrategyExtTypes,
   OrderInputKeyEnum,
   LedgerCategoryEnum,
+  CurrencyEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
   getKfCategoryData,
@@ -47,9 +48,10 @@ import {
   getTradingDataSortKey,
   isUpdateVersionLogicEnable,
   isCheckVersionLogicEnable,
+  kfLogger,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { BasketVolumeType } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
-import { writeCSV } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
+import { writeCsvWithUTF8Bom } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
 import {
   isAllMainProcessRunning,
   Pm2ProcessStatusData,
@@ -144,6 +146,10 @@ export const useUpdateVersion = () => {
     if (!isUpdateVersionLogicEnable()) return;
 
     vueInstance?.proxy?.$globalBus.subscribe((data) => {
+      if (data.tag === 'app-is-already') {
+        ipcRenderer.send('auto-update-renderer-ready');
+      }
+
       if (data.tag === 'main') {
         if (data.name === 'auto-update-find-new-version') {
           hasNewVersion.value = true;
@@ -163,7 +169,7 @@ export const useUpdateVersion = () => {
         }
 
         if (data.name === 'auto-update-download-process') {
-          process.value = +data.payload.process;
+          process.value = Number((+data.payload.process).toFixed(2));
           if (process.value === 100) {
             progressStatus.value = 'success';
           } else {
@@ -332,6 +338,8 @@ export const useAddUpdateRemoveKfConfig = (): {
               resolve();
             })
             .catch((err) => {
+              error(`${t('database_locked')}, ${t('please_wait_and_retry')}`);
+              kfLogger.error(err);
               reject(err);
             });
         },
@@ -377,25 +385,27 @@ export const useAddUpdateRemoveKfConfig = (): {
             mode: 'live',
           };
 
-          return setKfConfig(
-            kfLocation,
-            JSON.stringify({
-              ...formState,
-              add_time: +new Date().getTime() * Math.pow(10, 6),
-            }),
-          )
-            .then(() => {
-              success();
-            })
-            .then(() => {
-              useGlobalStore().setKfConfigList();
-            })
-            .catch((err: Error) => {
-              error(t('operation_failed') + err.message);
-            })
-            .finally(() => {
-              resolve();
-            });
+          return new Promise<void>((resolve, reject) => {
+            setKfConfig(
+              kfLocation,
+              JSON.stringify({
+                ...formState,
+                add_time: +new Date().getTime() * Math.pow(10, 6),
+              }),
+            )
+              .then(() => {
+                success();
+              })
+              .then(() => {
+                useGlobalStore().setKfConfigList();
+                resolve();
+              })
+              .catch((err: Error) => {
+                error(`${t('database_locked')}, ${t('please_wait_and_retry')}`);
+                kfLogger.error(err);
+                reject(err);
+              });
+          });
         },
         onCancel() {
           resolve();
@@ -438,7 +448,6 @@ export const useDealExportHistoryTradingData = (): {
     if (!exportEventData.value) {
       throw new Error('exportEventData is undefined');
     }
-
     const { currentKfLocation, tradingDataType } =
       exportEventData.value || ({} as KfEvent.ExportTradingDataEvent);
     const { date, dateType } = formState;
@@ -458,7 +467,7 @@ export const useDealExportHistoryTradingData = (): {
       } catch (err) {
         if (err instanceof Error) {
           if (err.message === 'database_locked') {
-            error(t('database_locked'));
+            error(t('export_database_locked'));
           } else {
             console.error(err);
           }
@@ -480,6 +489,8 @@ export const useDealExportHistoryTradingData = (): {
       const positions = tradingData.Position.sort(positionSortKey);
       const assetSortKey = getTradingDataSortKey('Asset');
       const assets = tradingData.Asset.sort(assetSortKey);
+      const orderInputSortKey = getTradingDataSortKey('OrderInput');
+      const orderInputs = tradingData.OrderInput.sort(orderInputSortKey);
 
       const { filePaths } = await dialog.showOpenDialog({
         properties: ['openDirectory'],
@@ -488,9 +499,7 @@ export const useDealExportHistoryTradingData = (): {
       if (!filePaths) {
         return;
       }
-
       const targetFolder = filePaths[0];
-
       const ordersFilename = path.join(
         targetFolder,
         `orders-${dateResolved}.csv`,
@@ -508,17 +517,42 @@ export const useDealExportHistoryTradingData = (): {
         targetFolder,
         `assets-${dateResolved}.csv`,
       );
+      const orderInputsFilename = path.join(
+        targetFolder,
+        `orderInputs-${dateResolved}.csv`,
+      );
 
       return Promise.all([
-        writeCSV(ordersFilename, orders, dealTradingDataItemResolved()),
-        writeCSV(tradesFilename, trades, dealTradingDataItemResolved()),
-        writeCSV(
+        writeCsvWithUTF8Bom(
+          ordersFilename,
+          orders,
+          dealTradingDataItemResolved(),
+        ),
+        writeCsvWithUTF8Bom(
+          tradesFilename,
+          trades,
+          dealTradingDataItemResolved(),
+        ),
+        writeCsvWithUTF8Bom(
           orderStatFilename,
           orderStat,
           dealTradingDataItemResolved(true),
         ),
-        writeCSV(posFilename, positions, dealTradingDataItemResolved()),
-        writeCSV(assetFilename, assets, dealTradingDataItemResolved()),
+        writeCsvWithUTF8Bom(
+          posFilename,
+          positions,
+          dealTradingDataItemResolved(),
+        ),
+        writeCsvWithUTF8Bom(
+          assetFilename,
+          assets,
+          dealTradingDataItemResolved(),
+        ),
+        writeCsvWithUTF8Bom(
+          orderInputsFilename,
+          orderInputs,
+          dealTradingDataItemResolved(),
+        ),
       ])
         .then(() => {
           shell.showItemInFolder(ordersFilename);
@@ -548,7 +582,7 @@ export const useDealExportHistoryTradingData = (): {
     } catch (err) {
       if (err instanceof Error) {
         if (err.message === 'database_locked') {
-          error(t('database_locked'));
+          error(t('export_database_locked'));
         } else {
           console.error(err);
         }
@@ -597,7 +631,11 @@ export const useDealExportHistoryTradingData = (): {
         tradingDataType.toLowerCase(),
       );
 
-    return writeCSV(filename, exportDatas, dealTradingDataItemResolved())
+    return writeCsvWithUTF8Bom(
+      filename,
+      exportDatas,
+      dealTradingDataItemResolved(),
+    )
       .then(() => {
         shell.showItemInFolder(filename);
         success();
@@ -678,7 +716,6 @@ export const showTradingDataDetail = (
       vnode,
     ),
     t('confirm'),
-    '',
   );
 };
 
@@ -890,7 +927,6 @@ export const usePreStartAndQuitApp = (): {
   preStartSystemLoading: ComputedRef<boolean>;
   preQuitSystemLoadingData: Record<string, 'loading' | 'done' | undefined>;
   preQuitSystemLoading: ComputedRef<boolean>;
-  saveBoardsMap: () => Promise<void>;
 } => {
   const app = getCurrentInstance();
 
@@ -900,6 +936,7 @@ export const usePreStartAndQuitApp = (): {
     archive: 'loading',
     watcher: 'loading',
     extraResourcesLoading: 'loading',
+    cpusSafeNumChecking: 'loading',
   });
 
   const preQuitSystemLoadingData = reactive<
@@ -921,7 +958,7 @@ export const usePreStartAndQuitApp = (): {
     () => preStartSystemLoading.value,
     (newVal) => {
       if (!newVal) {
-        ipcRenderer.send('auto-update-renderer-ready');
+        app?.proxy?.$globalBus.next({ tag: 'app-is-already' });
         watchStopHandle();
       }
     },
@@ -948,27 +985,26 @@ export const usePreStartAndQuitApp = (): {
 
   startGetWatcherStatus();
 
-  const saveBoardsMap = (): Promise<void> => {
-    const { boardsMap } = storeToRefs(useGlobalStore());
-    localStorage.setItem(
-      'indexBoardsMap',
-      JSON.stringify(boardsMap.value || '{}'),
-    );
-    return Promise.resolve();
-  };
-
   onMounted(() => {
-    if (
-      booleanProcessEnv(process.env.RELOAD_AFTER_CRASHED) &&
-      isAllMainProcessRunning()
-    ) {
-      preStartSystemLoadingData.archive = 'done';
-      preStartSystemLoadingData.extraResourcesLoading = 'done';
+    if (booleanProcessEnv(process.env.RELOAD_AFTER_CRASHED)) {
+      isAllMainProcessRunning().then((flag) => {
+        if (flag) {
+          preStartSystemLoadingData.cpusSafeNumChecking = 'done';
+          preStartSystemLoadingData.archive = 'done';
+          preStartSystemLoadingData.extraResourcesLoading = 'done';
+        }
+      });
     }
 
     if (app?.proxy) {
-      const subscription = app?.proxy.$globalBus.subscribe(
+      const subscription = app.proxy.$globalBus.subscribe(
         (data: KfEvent.KfBusEvent) => {
+          if (data.tag === 'preStartCheck') {
+            if (data.name === 'cpusNum') {
+              preStartSystemLoadingData.cpusSafeNumChecking = 'done';
+            }
+          }
+
           if (data.tag === 'processStatus') {
             if (data.name && data.name === 'archive') {
               preStartSystemLoadingData.archive =
@@ -1022,7 +1058,6 @@ export const usePreStartAndQuitApp = (): {
     preStartSystemLoading,
     preQuitSystemLoadingData,
     preQuitSystemLoading,
-    saveBoardsMap,
   };
 };
 
@@ -1414,8 +1449,42 @@ export const useActiveInstruments = () => {
     }
   };
 
+  const getInstrumentByIdsWithWatcher = (
+    instrumentId: string,
+    exchangeId: string,
+  ) => {
+    const ukey = hashInstrumentUKey(instrumentId, exchangeId);
+    const watcher = window.watcher as KungfuApi.Watcher;
+    const instrument = watcher.ledger.Instrument[ukey];
+    if (instrument) return instrument;
+
+    const instruments = watcher.ledger.Instrument.filter(
+      'instrument_id',
+      instrumentId,
+    )
+      .filter('exchange_id', exchangeId)
+      .list();
+    if (instruments.length) return instruments[0];
+
+    return null;
+  };
+
+  const getInstrumentCurrencyByIds = (
+    instrumentId: string,
+    exchangeId: string,
+  ) => {
+    const instrument = getInstrumentByIdsWithWatcher(instrumentId, exchangeId);
+    if (instrument) {
+      return instrument.currency_type;
+    }
+
+    return CurrencyEnum.Unknown;
+  };
+
   return {
     getInstrumentByIds,
+    getInstrumentByIdsWithWatcher,
+    getInstrumentCurrencyByIds,
   };
 };
 
@@ -1535,7 +1604,7 @@ export const useCurrentGlobalKfLocation = (
   watcher: KungfuApi.Watcher | null,
 ): {
   currentGlobalKfLocation: Ref<
-    KungfuApi.KfLocation | KungfuApi.KfConfig | null
+    KungfuApi.KfLocation | KungfuApi.KfLocationGroup | KungfuApi.KfConfig | null
   >;
   currentCategoryData: ComputedRef<KungfuApi.KfTradeValueCommonData | null>;
   currentUID: ComputedRef<string>;
@@ -2387,24 +2456,18 @@ export const useBasket = () => {
 
   onMounted(() => {
     if (app?.proxy) {
-      const subscription = app.proxy.$tradingDataSubject.subscribe(
-        (watcher: KungfuApi.Watcher) => {
-          store.setBasketList();
-          store.setBasketInstrumentList();
-
-          // const basketInWatcher = watcher.ledger.Basket.sort('id')
-          // const basketInstrumentInWatcher = watcher.ledger.BasketInstrument.list()
-          watcher;
-          basketList.value = store.basketList;
-          basketInstrumentList.value = store.basketInstrumentList;
-        },
-      );
-
-      onBeforeUnmount(() => {
-        subscription.unsubscribe();
-      });
+      updateBasketData();
     }
   });
+
+  function updateBasketData() {
+    store.setBasketList();
+    store.setBasketInstrumentList();
+
+    basketList.value = store.basketList;
+    basketInstrumentList.value = store.basketInstrumentList;
+    return Promise.resolve();
+  }
 
   function buildBasketOptionLabel(basket: KungfuApi.Basket) {
     return `${basket.name} ${BasketVolumeType[basket.volume_type].name}`;
@@ -2433,5 +2496,6 @@ export const useBasket = () => {
     buildBasketOptionLabel,
     buildBasketOptionValue,
     parseBasketOptionValue,
+    updateBasketData,
   };
 };

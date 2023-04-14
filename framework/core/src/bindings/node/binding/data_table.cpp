@@ -100,7 +100,7 @@ Napi::Value DataTable::Range(const Napi::CallbackInfo &info) {
     auto name = names.Get(i);
     auto data = Value().Get(name).ToObject();
     auto value = data.Get(key);
-    auto add = [&](auto &val, auto &lower_bound, auto &upper_bound) {
+    auto add = [&](const auto &val, const auto &lower_bound, const auto &upper_bound) {
       if (val >= lower_bound and (val <= upper_bound or upper_bound == lower_bound)) {
         result.Set(name, data);
       }
@@ -118,7 +118,7 @@ Napi::Value DataTable::Range(const Napi::CallbackInfo &info) {
       add(val, lower_bound, upper_bound);
     }
     if (value.IsBigInt() and IsValid(info, 1, &Napi::Value::IsString)) {
-      bool lossless = {};
+      bool lossless;
       auto val = value.As<Napi::BigInt>().Int64Value(&lossless);
       auto lower_bound = TryParseTime(info, 1);
       auto upper_bound = IsValid(info, 2, &Napi::Value::IsString) ? TryParseTime(info, 2) : lower_bound;

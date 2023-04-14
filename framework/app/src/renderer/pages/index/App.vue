@@ -17,7 +17,6 @@ import {
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import {
   playSound,
-  useBasket,
   useDealExportHistoryTradingData,
   useDealInstruments,
   usePreStartAndQuitApp,
@@ -53,7 +52,6 @@ const {
 
 useDealInstruments();
 useSubscibeInstrumentAtEntry(window.watcher);
-useBasket();
 
 const { exportDateModalVisible, exportDataLoading, handleConfirmExportDate } =
   useDealExportHistoryTradingData();
@@ -147,6 +145,8 @@ onMounted(() => {
         tag: 'resize',
       } as KfEvent.ResizeEvent);
   });
+
+  app?.proxy?.$globalBus.next({ tag: 'appMounted' });
 });
 
 onBeforeUnmount(() => {
@@ -167,6 +167,10 @@ onBeforeUnmount(() => {
       :title="$t('system_prompt')"
       :visible="preStartSystemLoading"
       :status="[
+        {
+          key: 'cpusSafeNumChecking',
+          status: preStartSystemLoadingData.cpusSafeNumChecking,
+        },
         { key: 'archive', status: preStartSystemLoadingData.archive },
         { key: 'watcher', status: preStartSystemLoadingData.watcher },
         {
@@ -175,6 +179,10 @@ onBeforeUnmount(() => {
         },
       ]"
       :txt="{
+        cpusSafeNumChecking: {
+          done: $t('computer_performance_done'),
+          loading: $t('computer_performance_detecting'),
+        },
         archive: { done: $t('archive_done'), loading: $t('archive_loading') },
         watcher: {
           done: $t('environment_done'),

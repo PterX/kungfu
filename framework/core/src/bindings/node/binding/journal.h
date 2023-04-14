@@ -8,8 +8,8 @@
 #define KUNGFU_NODE_JOURNAL_H
 
 #include "common.h"
-
 #include "operators.h"
+
 #include <kungfu/yijinjing/io.h>
 #include <kungfu/yijinjing/journal/assemble.h>
 #include <kungfu/yijinjing/journal/journal.h>
@@ -35,8 +35,6 @@ public:
 
   Napi::Value Dest(const Napi::CallbackInfo &info);
 
-  Napi::Value StringMsgType(const Napi::CallbackInfo &info);
-
   Napi::Value Data(const Napi::CallbackInfo &info);
 
   static void Init(Napi::Env env, Napi::Object exports);
@@ -44,12 +42,11 @@ public:
   static Napi::Value NewInstance(Napi::Value arg);
 
 private:
+  kungfu::node::serialize::JsSet set = {};
   yijinjing::journal::frame_ptr frame_;
-  std::string source_name_;
-  std::string dest_name_;
   static Napi::FunctionReference constructor;
 
-  void SetFrame(yijinjing::journal::frame_ptr frame, std::string source_name = "", std::string dest_name = "");
+  void SetFrame(yijinjing::journal::frame_ptr frame);
 
   friend class Reader;
   friend class Assemble;

@@ -197,14 +197,16 @@ watch(historyDate, async (newDate) => {
           toRaw(dealOrder(window.watcher, item, tradingData.OrderStat, true)),
         ),
       );
-      historyDataLoading.value = false;
     })
     .catch((err) => {
       if (err.message === 'database_locked') {
-        messagePrompt().error(t('database_locked'));
+        messagePrompt().error(t('export_database_locked'));
       } else {
         console.error(err.message);
       }
+    })
+    .finally(() => {
+      historyDataLoading.value = false;
     });
 });
 

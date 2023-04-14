@@ -42,7 +42,7 @@ public:
 
   journal::reader_ptr open_reader_to_subscribe();
 
-  journal::reader_ptr open_reader(const data::location_ptr &location, uint32_t dest_id);
+  [[maybe_unused]] journal::reader_ptr open_reader(const data::location_ptr &location, uint32_t dest_id);
 
   journal::writer_ptr open_writer(uint32_t dest_id);
 
@@ -89,9 +89,9 @@ class io_device_console : public io_device {
 public:
   io_device_console(data::location_ptr home, int32_t console_width, int32_t console_height);
 
-  void trace(int64_t begin_time, int64_t end_time, bool in, bool out, std::string csv);
+  [[maybe_unused]] void trace(int64_t begin_time, int64_t end_time, bool in, bool out, std::string csv);
 
-  void show(int64_t begin_time, int64_t end_time, bool in, bool out, std::string csv);
+  [[maybe_unused]] void show(int64_t begin_time, int64_t end_time, bool in, bool out, std::string csv);
 
 private:
   int32_t console_width_;

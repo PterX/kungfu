@@ -32,7 +32,6 @@ module.exports = function () {
 
   return {
     _binding: binding,
-    longfist: binding.longfist,
     hash: binding.hash,
     formatTime: binding.formatTime,
     formatStringToHashHex: binding.formatStringToHashHex,
@@ -41,6 +40,7 @@ module.exports = function () {
     pyEval: binding.pyEval,
     pyEvalFile: binding.pyEvalFile,
     shutdown: binding.shutdown,
+    Longfist: () => new binding.Longfist(),
     Assemble: function (arg) {
       if (Array.isArray(arg)) {
         return new binding.Assemble(

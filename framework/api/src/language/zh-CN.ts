@@ -77,7 +77,9 @@ export default {
   add_config_modal:
     '{category}ID系统唯一, {changeTypeName} 成功后不可修改, 确认 {key}',
   update_config_modal: '确认{key} 相关配置',
-  database_locked: '当前数据库被其他进程占用, 请稍后再试',
+  database_locked: '检测到当前有交易进行, 数据库被占用',
+  export_database_locked:
+    '检测到当前有交易进行, 为不影响交易数据落地, 建议收盘后尝试进行此操作',
 
   MakeOrder: '下单面板',
   FutureArbitrage: '套利指令',
@@ -100,6 +102,7 @@ export default {
   select_plugin_type: '选择插件类型',
 
   please_wait: '请稍后',
+  please_wait_and_retry: '请稍后重试',
 
   baseConfig: {
     main_panel: '主面板',
@@ -112,6 +115,10 @@ export default {
     csv_template: '下载 csv 模板',
     add_csv_desc: 'csv 表头为 {header}',
     clear: '清除',
+    total: '共计 {sum} 条数据',
+    import_successed: '导入成功',
+    import_failed: '导入失败',
+    csv_format_error: 'csv 格式错误, 请检查后重试',
   },
 
   tradingConfig: {
@@ -243,9 +250,38 @@ export default {
     HK: '港股',
     HKFUT: '港期',
     US: '美股',
+    USFUT: '美期',
     SGX: '新股',
     SGXFUT: '新期',
-    GLFX: '全球外汇',
+    EUR: '欧股',
+    EURFUT: '欧期',
+    LON: '英股',
+    LONFUT: '英期',
+    AEX: '荷股',
+    AEXFUT: '荷期',
+    AUX: '澳股',
+    AUXFUT: '澳期',
+    HEXS: '新股',
+    HEXSFUT: '新期',
+    IDX: '印尼股',
+    IDXFUT: '印尼期',
+    KORC: '韩碳所',
+    LME: '伦金所',
+    MYS: '马来股',
+    MYSFUT: '马来期',
+    ABB: '美布告',
+    PRX: '法股',
+    PRXFUT: '法期',
+    SIX: '瑞股',
+    SIXFUT: '瑞期',
+    TAX: '泰股',
+    TAXFUT: '泰期',
+    JP: '日股',
+    JPFUT: '日期',
+    TSE: '多股',
+    TSEFUT: '多期',
+    XETRA: 'XETRA',
+    GLFX: '外汇',
     IPE: 'IPE',
     CBOT: 'CBOT',
     CEC: 'CEC',
@@ -266,6 +302,16 @@ export default {
     SPC: '郑商所 跨品种 SPC',
     SPD: '大商所 跨期 SPD',
     IPS: '大商所 跨品种 IPS',
+
+    CNY: 'CNY',
+    HKD: 'HKD',
+    USD: 'USD',
+    JPY: 'JPY',
+    GBP: 'GBP',
+    EURO: 'EUR',
+    CNH: 'CNH',
+    SGD: 'SGD',
+    MYR: 'MYR',
 
     master: '主控进程',
     ledger: '计算服务',
@@ -599,6 +645,10 @@ export default {
     python_path_desc:
       '功夫将会以选择的python路径运行策略, 同时需要保证 kungfu*.whl 已经通过 pip安装',
 
+    currency: '币种',
+    instrument_currency: '标的币种',
+    instrument_currency_desc: '打开时，会在持仓面板的标的列展示标的币种',
+
     trade: '交易',
     sound: '成交提示音',
     use_sound: '启用成交提示音',
@@ -623,6 +673,7 @@ export default {
     comission: '期货手续费',
     varieties: '品种',
     add_comission: '添加',
+    save_comission: '保存',
     exchange_id: '交易所',
     open: '开仓',
     close_today: '平今',
@@ -676,8 +727,9 @@ export default {
     name_repeat: '此位置已存在文件或文件夹 {name}, 请选择其他名称！',
     empty_input: '必须提供文件或文件夹名称！',
     illegal_character: '名称不能包含\\/:*?"<>|',
-    delate_confirm: '确认删除 {value} 吗？',
+    delete_confirm: '确认删除{value}吗？',
     cannot_delate_entry: '不可删除入口文件',
+    current: '当前',
   },
 
   logview: {
@@ -700,6 +752,8 @@ export default {
   kungfu: '功夫交易系统',
 
   system_prompt: '系统提示',
+  computer_performance_done: '电脑性能检测已完成 ✓',
+  computer_performance_detecting: '电脑性能检测中...',
   archive_done: '功夫归档完成 ✓',
   archive_loading: '功夫归档中...',
   environment_done: '功夫环境准备完成 ✓',
@@ -710,6 +764,9 @@ export default {
   saving_data_loading: '保存数据中...',
   end_all_transactions: '结束所有交易进程 ✓',
   closing: '结束交易进程中, 请勿关闭...',
+
+  computer_performance_abnormal:
+    '电脑性能过低, 继续启动可能会导致系统进程奔溃, 建议使用8核及以上的 CPU 运行系统',
 
   quit_confirm: '退出应用会结束所有交易进程, 确认退出吗?',
   restart_process: '功夫图形进程中断, 该中断不会影响交易, 是否重启图形进程？',

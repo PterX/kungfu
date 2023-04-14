@@ -6,7 +6,6 @@
 
 #include "journal.h"
 #include "io.h"
-#include "operators.h"
 #include <cmath>
 
 using namespace kungfu::yijinjing;
@@ -30,11 +29,7 @@ Napi::FunctionReference Frame::constructor = {};
 
 Frame::Frame(const Napi::CallbackInfo &info) : ObjectWrap(info) {}
 
-void Frame::SetFrame(yijinjing::journal::frame_ptr frame, std::string source_name, std::string dest_name) {
-  frame_ = std::move(frame);
-  source_name_ = source_name;
-  dest_name_ = dest_name;
-}
+void Frame::SetFrame(yijinjing::journal::frame_ptr frame) { frame_ = std::move(frame); }
 
 Napi::Value Frame::DataLength(const Napi::CallbackInfo &info) {
   return Napi::Number::New(info.Env(), frame_->data_length());
@@ -52,30 +47,16 @@ Napi::Value Frame::Source(const Napi::CallbackInfo &info) { return Napi::Number:
 
 Napi::Value Frame::Dest(const Napi::CallbackInfo &info) { return Napi::Number::New(info.Env(), frame_->dest()); }
 
-Napi::Value Frame::SourceName(const Napi::CallbackInfo &info) { return Napi::String::New(info.Env(), source_name_); }
-
-Napi::Value Frame::DestName(const Napi::CallbackInfo &info) { return Napi::String::New(info.Env(), dest_name_); }
-
 Napi::Value Frame::Data(const Napi::CallbackInfo &info) {
-  auto ret = Napi::String::New(info.Env(), "");
-  boost::hana::for_each(longfist::AllTypes, [&](auto it) {
+  auto result = Napi::Object::New(info.Env());
+  // have to be AllDataTypes, for data size is not 0
+  boost::hana::for_each(longfist::AllDataTypes, [&](auto it) {
     using DataType = typename decltype(+boost::hana::second(it))::type;
     if (frame_->msg_type() == DataType::tag) {
-      ret = Napi::String::New(info.Env(), frame_->data<DataType>().to_string());
+      set(frame_->data<DataType>(), result);
     }
   });
-  return ret;
-}
-
-Napi::Value Frame::StringMsgType(const Napi::CallbackInfo &info) {
-  auto ret = Napi::String::New(info.Env(), "");
-  boost::hana::for_each(longfist::AllTypes, [&](auto it) {
-    using DataType = typename decltype(+boost::hana::second(it))::type;
-    if (frame_->msg_type() == DataType::tag) {
-      ret = Napi::String::New(info.Env(), boost::hana::first(it).c_str());
-    }
-  });
-  return ret;
+  return result;
 }
 
 void Frame::Init(Napi::Env env, Napi::Object exports) {
@@ -83,16 +64,13 @@ void Frame::Init(Napi::Env env, Napi::Object exports) {
 
   Napi::Function func = DefineClass(env, "Frame",
                                     {
-                                        InstanceMethod("dataLength", &Frame::DataLength),       //
-                                        InstanceMethod("genTime", &Frame::GenTime),             //
-                                        InstanceMethod("triggerTime", &Frame::TriggerTime),     //
-                                        InstanceMethod("msgType", &Frame::MsgType),             //
-                                        InstanceMethod("stringMsgType", &Frame::StringMsgType), //
-                                        InstanceMethod("source", &Frame::Source),               //
-                                        InstanceMethod("dest", &Frame::Dest),                   //
-                                        InstanceMethod("sourceName", &Frame::SourceName),       //
-                                        InstanceMethod("destName", &Frame::DestName),           //
-                                        InstanceMethod("data", &Frame::Data)                    //
+                                        InstanceMethod("dataLength", &Frame::DataLength),   //
+                                        InstanceMethod("genTime", &Frame::GenTime),         //
+                                        InstanceMethod("triggerTime", &Frame::TriggerTime), //
+                                        InstanceMethod("msgType", &Frame::MsgType),         //
+                                        InstanceMethod("source", &Frame::Source),           //
+                                        InstanceMethod("dest", &Frame::Dest),               //
+                                        InstanceMethod("data", &Frame::Data)                //
                                     });
 
   constructor = Napi::Persistent(func);
@@ -102,12 +80,13 @@ void Frame::Init(Napi::Env env, Napi::Object exports) {
 
 Napi::Value Frame::NewInstance(const Napi::Value arg) { return constructor.New({arg}); }
 
-bool b;
+bool lossless;
 Napi::FunctionReference Reader::constructor = {};
 Reader::Reader(const Napi::CallbackInfo &info)
     : ObjectWrap(info), reader(true, false, std::make_shared<bus>(false)),
       io_device_(std::make_shared<io_device>(GetLocation(info), true, true)),
-      begin_time_(info[4].As<Napi::BigInt>().Int64Value(&b)), end_time_(info[5].As<Napi::BigInt>().Int64Value(&b)) {
+      begin_time_(info[4].As<Napi::BigInt>().Int64Value(&lossless)),
+      end_time_(info[5].As<Napi::BigInt>().Int64Value(&lossless)) {
   if (true) {
     auto uid_str = fmt::format("{:08x}", io_device_->get_home()->uid);
     auto master_cmd_location =
@@ -141,18 +120,7 @@ Napi::Value Reader::ToString(const Napi::CallbackInfo &info) { return Napi::Stri
 
 Napi::Value Reader::CurrentFrame(const Napi::CallbackInfo &info) {
   auto frame = Frame::NewInstance(info.This());
-  std::string s;
-  std::string d;
-  auto c_frame = current_frame();
-  if (c_frame->dest() == location::PUBLIC) {
-    d = "public";
-  } else if (locations_.find(c_frame->dest()) != locations_.end()) {
-    d = locations_.at(c_frame->dest())->uname;
-  }
-  if (locations_.find(c_frame->source()) != locations_.end()) {
-    s = locations_.at(c_frame->source())->uname;
-  }
-  Napi::ObjectWrap<Frame>::Unwrap(frame.As<Napi::Object>())->SetFrame(current_frame(), s, d);
+  Napi::ObjectWrap<Frame>::Unwrap(frame.As<Napi::Object>())->SetFrame(current_frame());
   return frame;
 }
 
@@ -173,7 +141,6 @@ Napi::Value Reader::Next(const Napi::CallbackInfo &info) {
       }
     }
     auto frame = current_frame();
-    auto dest_name = frame->dest() == location::PUBLIC ? "public" : locations_.at(frame->dest())->uname;
     bool type_found = false;
     boost::hana::for_each(kungfu::longfist::AllTypes, [&](auto type) {
       using DataType = typename decltype(+boost::hana::second(type))::type;
@@ -374,11 +341,11 @@ Napi::Value Assemble::GetReader(const Napi::CallbackInfo &info) {
   }
   int64_t t_begin = 0;
   int64_t t_end = 0;
-  bool bRet(false);
+  bool lossless;
   if (info.Length() > 1) {
-    t_begin = info[1].As<Napi::BigInt>().Int64Value(&bRet);
+    t_begin = info[1].As<Napi::BigInt>().Int64Value(&lossless);
     if (info.Length() > 2) {
-      t_end = info[2].As<Napi::BigInt>().Int64Value(&bRet);
+      t_end = info[2].As<Napi::BigInt>().Int64Value(&lossless);
     }
   }
   auto node_mode = Napi::Number::New(info.Env(), int(sessions[index].mode));
@@ -420,8 +387,7 @@ std::vector<locator_ptr> Assemble::ExtractLocator(const Napi::CallbackInfo &info
   std::vector<locator_ptr> result = {};
   auto locators = info[0].As<Napi::Array>();
   for (int i = 0; i < locators.Length(); i++) {
-    // result.push_back(IODevice::GetLocator(locators, i));
-    continue;
+    result.push_back(IODevice::GetLocator(locators, i));
   }
   return result;
 }

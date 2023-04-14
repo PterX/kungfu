@@ -59,7 +59,7 @@ import {
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
   readCSV,
-  writeCSV,
+  writeCsvWithUTF8Bom,
 } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
 import { hashInstrumentUKey } from '@kungfu-trader/kungfu-js-api/kungfu';
 import {
@@ -76,6 +76,7 @@ const props = withDefaults(
   defineProps<{
     formState: Record<string, KungfuApi.KfConfigValue>;
     configSettings: KungfuApi.KfConfigItem[];
+    tdList?: KungfuApi.KfLocation[] | null;
     changeType?: KungfuApi.ModalChangeType;
     primaryKeyAvoidRepeatCompareExtra?: string;
     primaryKeyAvoidRepeatCompareTarget?: string[];
@@ -95,10 +96,12 @@ const props = withDefaults(
     steps?: Record<string, number>;
     passPrimaryKeySpecialWordsVerify?: boolean;
     isPrimaryDisabled?: boolean;
+    willReplaceWholeFormState?: boolean;
   }>(),
   {
     formState: () => ({}),
     configSettings: () => [],
+    tdList: () => null,
     changeType: 'add',
     primaryKeyAvoidRepeatCompareTarget: () => [],
     primaryKeyAvoidRepeatCompareExtra: '',
@@ -111,6 +114,7 @@ const props = withDefaults(
     steps: () => ({}),
     passPrimaryKeySpecialWordsVerify: false,
     isPrimaryDisabled: false,
+    willReplaceWholeFormState: false,
   },
 );
 
@@ -156,6 +160,7 @@ const { td, md, operator, strategy } = toRefs(useAllKfConfigData());
 const { basketList, buildBasketOptionValue } = useBasket();
 const { isLanguageKeyAvailable } = useLanguage();
 
+const spinning = ref(false);
 const primaryKeys = ref<string[]>(getPrimaryKeys(props.configSettings || []));
 const sideRadiosList = ref<string[]>(Object.keys(Side).slice(0, 2));
 const customerFormItemTips = reactive<Record<string, string>>({});
@@ -226,16 +231,24 @@ watch(instrumentsInFrom, (insts) => {
   });
 });
 
+if (props.willReplaceWholeFormState) {
+  watch(
+    () => props.formState,
+    (newVal) => {
+      formState.value = newVal;
+    },
+  );
+}
+
 watch(
-  () => props.formState,
+  () => formState.value,
   (newVal) => {
-    formState.value = newVal;
+    app && app.emit('update:formState', newVal);
+  },
+  {
+    deep: true,
   },
 );
-
-watch(formState.value, (newVal) => {
-  app && app.emit('update:formState', newVal);
-});
 
 if ('instrument' in formState.value && 'side' in formState.value) {
   watch(
@@ -513,6 +526,7 @@ function instrumentsCsvCallback(
   formState.value[targetKey] = resolvedInstruments.map((item) =>
     buildInstrumentSelectOptionValue(item),
   );
+  return Promise.resolve();
 }
 
 function handleClearInstrumentsCsv(targetKey: string) {
@@ -532,43 +546,57 @@ function csvTableCallback(
     }[],
     targetKey: string,
   ) {
-    if (errRows.length) {
-      console.warn('Csv resolve error rows:', errRows);
-    }
-
-    if (data.length) {
-      if (mode === 'reset') {
-        formState.value[targetKey].length = 0;
+    return new Promise<void>((resolve) => {
+      if (errRows.length) {
+        console.warn('Csv resolve error rows:', errRows);
+        messagePrompt().error(
+          `${t('settingsFormConfig.import_failed')}: ${t(
+            'settingsFormConfig.csv_format_error',
+          )}`,
+        );
+        return resolve();
       }
 
-      const headers = Object.keys(data[0]);
-      const isInstrumentHeader =
-        headers.includes('instrument_id') && headers.includes('exchange_id');
-      const instrumentColumnConfig = columns.find(
-        (item) => item.type === 'instrument',
-      );
-      const shouldResolveInstrument =
-        isInstrumentHeader && instrumentColumnConfig;
-      if (shouldResolveInstrument) {
-        const { getInstrumentByIds } = useActiveInstruments();
+      if (data.length) {
+        if (mode === 'reset') {
+          formState.value[targetKey].length = 0;
+        }
 
-        data.forEach((item) => {
-          const instrument = getInstrumentByIds(
-            item.instrument_id,
-            `${item.exchange_id}`.toUpperCase(),
-            true,
-          ) as KungfuApi.InstrumentResolved;
+        const headers = Object.keys(data[0]);
+        const isInstrumentHeader =
+          headers.includes('instrument_id') && headers.includes('exchange_id');
+        const instrumentColumnConfig = columns.find(
+          (item) => item.type === 'instrument',
+        );
+        const shouldResolveInstrument =
+          isInstrumentHeader && instrumentColumnConfig;
+        nextTick(() => {
+          if (shouldResolveInstrument) {
+            const { getInstrumentByIds } = useActiveInstruments();
 
-          formState.value[targetKey].push({
-            ...item,
-            [instrumentColumnConfig.key]:
-              buildInstrumentSelectOptionValue(instrument),
-          });
+            data.forEach((item) => {
+              const instrument = getInstrumentByIds(
+                item.instrument_id,
+                `${item.exchange_id}`.toUpperCase(),
+                true,
+              ) as KungfuApi.InstrumentResolved;
+
+              formState.value[targetKey].push({
+                ...item,
+                [instrumentColumnConfig.key]:
+                  buildInstrumentSelectOptionValue(instrument),
+              });
+            });
+          } else {
+            formState.value[targetKey].push(...data);
+          }
+          messagePrompt().success();
+          resolve();
         });
-      } else {
-        formState.value[targetKey].push(...data);
       }
-    }
+
+      resolve();
+    });
   };
 }
 
@@ -698,7 +726,7 @@ function handleSelectCsv<T>(
       data: (string | number | boolean)[];
     }[],
     targetKey: string,
-  ) => void,
+  ) => Promise<void>,
 ): void {
   dialog
     .showOpenDialog({
@@ -708,17 +736,28 @@ function handleSelectCsv<T>(
     .then((res) => {
       const { filePaths } = res;
       if (filePaths.length) {
+        spinning.value = true;
         readCSV<T>(filePaths[0], true, {
           validator: buildCsvHeadersValidator(headers),
           transformer: buildCsvHeadersTransformer(headers),
         })
           .then(({ resRows, errRows }) => {
-            callback && callback(resRows, errRows, targetKey);
+            if (callback) return callback(resRows, errRows, targetKey);
+
+            return Promise.resolve();
           })
           .catch((err) => {
+            messagePrompt().error(
+              `${t('settingsFormConfig.import_failed')}: ${t(
+                'settingsFormConfig.csv_format_error',
+              )}`,
+            );
             if (err instanceof Error) {
               console.error(err);
             }
+          })
+          .finally(() => {
+            spinning.value = false;
           });
       }
     });
@@ -741,7 +780,7 @@ function handleDownloadCsvTemplate(
                 filePaths[0],
                 template.name || t('settingsFormConfig.csv_template') + '.csv',
               );
-              return writeCSV(filePath, template.data || []);
+              return writeCsvWithUTF8Bom(filePath, template.data || []);
             }),
           ).then(() => {
             messagePrompt().success();
@@ -784,6 +823,136 @@ function handleRemoveFile(key: string, filename: string): void {
   if (index !== -1) {
     (formState.value[key] as string[]).splice(index, 1);
   }
+}
+
+function onOpenRangePickerChange(open: boolean, key: string) {
+  if (open) {
+    formState.value[key] = null;
+  }
+}
+
+function onRangePickerCalendarChange(val: Dayjs[], key: string) {
+  if (val) {
+    formState.value[key] = val.map((d) => {
+      if (d) {
+        return d.format('YYYY-MM-DD HH:mm:ss');
+      } else if (val[0]) {
+        return val[0].format('YYYY-MM-DD HH:mm:ss');
+      } else if (val[1]) {
+        return val[1].format('YYYY-MM-DD HH:mm:ss');
+      } else {
+        return dayjs().format('YYYY-MM-DD HH:mm:ss');
+      }
+    });
+  }
+}
+
+function disabledEndDate(currentDate: Dayjs, key: string, timeInterval = 1) {
+  if (!formState.value[key] || !formState.value[key][0]) {
+    return false;
+  }
+  let endTime;
+  const startTime = dayjs(formState.value[key][0]);
+  const hour = startTime.hour();
+  const minute = startTime.minute();
+  if (hour === 0 && minute === 0) {
+    endTime = startTime.add(timeInterval, 'day');
+  } else {
+    endTime = startTime.add(timeInterval + 1, 'day');
+  }
+
+  return (
+    currentDate &&
+    (currentDate.valueOf() <= startTime.valueOf() ||
+      currentDate.valueOf() >= endTime.valueOf())
+  );
+}
+
+function disabledEndTime(
+  currentDate: Dayjs,
+  type: string,
+  key: string,
+  timeInterval = 1,
+) {
+  if (!formState.value[key] || !formState.value[key][0]) {
+    return {};
+  }
+  if (type === 'start') {
+    return {};
+  }
+
+  const startTime = dayjs(formState.value[key][0]);
+  const endTime = startTime.add(timeInterval, 'day');
+
+  const disabledHours = () => {
+    const hours: number[] = [];
+
+    if (currentDate.isSame(startTime, 'day')) {
+      for (let i = 0; i <= startTime.hour(); i++) {
+        hours.push(i);
+      }
+    }
+
+    if (currentDate.isSame(endTime, 'day')) {
+      for (let i = endTime.hour() + 1; i < 24; i++) {
+        hours.push(i);
+      }
+    }
+
+    return hours;
+  };
+
+  const disabledMinutes = (selectedHour) => {
+    const minutes: number[] = [];
+
+    if (
+      currentDate.isSame(startTime, 'day') &&
+      selectedHour === startTime.hour()
+    ) {
+      for (let i = 0; i <= startTime.minute(); i++) {
+        minutes.push(i);
+      }
+    }
+
+    if (currentDate.isSame(endTime, 'day') && selectedHour === endTime.hour()) {
+      for (let i = endTime.minute() + 1; i < 60; i++) {
+        minutes.push(i);
+      }
+    }
+
+    return minutes;
+  };
+
+  return {
+    disabledHours,
+    disabledMinutes,
+  };
+}
+
+function handleRangePickerChange(date: Dayjs[], key: string) {
+  if (date) {
+    formState.value[key] = date.map((d) =>
+      dayjs(d).toString() === 'Invalid Date'
+        ? null
+        : dayjs(d).format('YYYY-MM-DD HH:mm:ss'),
+    );
+  } else {
+    formState.value[key] = null;
+  }
+}
+
+function handleDateTimePickerChange(date: Dayjs, key: string) {
+  formState.value[key] =
+    dayjs(date).toString() === 'Invalid Date'
+      ? null
+      : dayjs(date).format('YYYY-MM-DD HH:mm:ss');
+}
+
+function handleDatePickerChange(date: Dayjs, key: string) {
+  formState.value[key] =
+    dayjs(date).toString() === 'Invalid Date'
+      ? null
+      : dayjs(date).format('YYYY-MM-DD');
 }
 
 function handleTimePickerChange(date: Dayjs, key: string) {
@@ -958,7 +1127,7 @@ defineExpose({
       ></a-input>
       <a-input-password
         v-else-if="item.type === 'password'"
-        v-model:value="formState[item.key]"
+        v-model:value.trim="formState[item.key]"
         :disabled="
           (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
           item.disabled
@@ -1228,7 +1397,7 @@ defineExpose({
         "
       >
         <a-select-option
-          v-for="config in td"
+          v-for="config in tdList ? tdList : td"
           :key="getIdByKfLocation(config)"
           :value="getIdByKfLocation(config)"
         >
@@ -1484,6 +1653,68 @@ defineExpose({
           </div>
         </template>
       </div>
+      <a-range-picker
+        v-else-if="item.type === 'rangePicker'"
+        :disabled="
+          (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
+          item.disabled
+        "
+        :disabled-date="
+          (currentDate) =>
+            disabledEndDate(currentDate, item.key, item.disableDateRange)
+        "
+        :disabled-time="
+          (currentDate, type) =>
+            disabledEndTime(currentDate, type, item.key, item.disableDateRange)
+        "
+        :show-time="{
+          hideDisabledOptions: true,
+          defaultValue: [
+            dayjs('00:00:00', 'HH:mm:ss'),
+            dayjs('11:59:59', 'HH:mm:ss'),
+          ],
+        }"
+        :value="Array.isArray(formState[item.key]) ? formState[item.key].map((item: string) => dayjs(item)) : null"
+        @open-change="
+          onOpenRangePickerChange($event as unknown as boolean, item.key)
+        "
+        @calendar-change="
+          onRangePickerCalendarChange($event as unknown as Dayjs[], item.key)
+        "
+        @change="
+          handleRangePickerChange($event as unknown as Dayjs[], item.key)
+        "
+      ></a-range-picker>
+      <a-date-picker
+        v-else-if="item.type === 'dateTimePicker'"
+        :disabled="
+          (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
+          item.disabled
+        "
+        format="YYYY-MM-DD HH:mm:ss"
+        :show-time="{ defaultValue: dayjs('00:00:00', 'HH:mm:ss') }"
+        :value="
+          formState[item.key] == null || formState[item.key] == ''
+            ? null
+            : dayjs(formState[item.key])
+        "
+        @change="
+          handleDateTimePickerChange($event as unknown as Dayjs, item.key)
+        "
+      ></a-date-picker>
+      <a-date-picker
+        v-else-if="item.type === 'datePicker'"
+        :disabled="
+          (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
+          item.disabled
+        "
+        :value="
+          formState[item.key] == null || formState[item.key] == ''
+            ? null
+            : dayjs(formState[item.key])
+        "
+        @change="handleDatePickerChange($event as unknown as Dayjs, item.key)"
+      ></a-date-picker>
       <a-time-picker
         v-else-if="item.type === 'timePicker'"
         :disabled="
@@ -1555,6 +1786,16 @@ defineExpose({
               <PlusOutlined @click.stop="handleAddItemIntoTableRows(item)" />
             </template>
           </a-button>
+          <div
+            v-if="item.type === 'csvTable' && !!item.search"
+            class="table-in-config-setting-total"
+          >
+            {{
+              $t('settingsFormConfig.total', {
+                sum: formState[item.key]?.length ?? 0,
+              })
+            }}
+          </div>
         </div>
         <template v-if="!!item.search">
           <RecycleScroller
@@ -1571,7 +1812,7 @@ defineExpose({
             :items="tablesSearchRelated[item.key].tableData.value"
             :item-size="calcTableItemHeight(layout, !!item.noDivider)"
             key-field="id"
-            :buffer="100"
+            :buffer="0"
           >
             <template
               #default="{
@@ -1618,6 +1859,7 @@ defineExpose({
                       passPrimaryKeySpecialWordsVerify
                     "
                     :is-primary-disabled="isPrimaryDisabled"
+                    :will-replace-whole-form-state="true"
                   ></KfConfigSettingsForm>
                   <div class="table-in-config-setting-row-buttons__wrap">
                     <a-button
@@ -1714,6 +1956,9 @@ defineExpose({
         </template>
       </div>
     </a-form-item>
+    <Teleport to="body">
+      <a-spin class="kf-config-setting-form-spin" :spinning="spinning"></a-spin>
+    </Teleport>
   </a-form>
 </template>
 <script lang="ts">
@@ -1798,6 +2043,12 @@ export default defineComponent({
           height: 32px;
         }
       }
+
+      .table-in-config-setting-total {
+        display: flex;
+        align-items: center;
+        margin-left: 16px;
+      }
     }
 
     .table-in-config-setting-row {
@@ -1866,5 +2117,9 @@ export default defineComponent({
     overflow: inherit;
     white-space: normal;
   }
+}
+
+.kf-config-setting-form-spin {
+  z-index: 9999;
 }
 </style>

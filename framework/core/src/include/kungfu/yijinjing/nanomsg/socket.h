@@ -20,7 +20,7 @@
 #include <nng/protocol/reqrep0/rep.h>
 #include <nng/protocol/reqrep0/req.h>
 
-#define MAX_MSG_LENGTH 16 * 1024
+#define MAX_MSG_LENGTH (16 * 1024)
 
 namespace kungfu::yijinjing::nanomsg {
 enum class protocol : int { UNKNOWN = -1, REPLY, REQUEST, PUSH, PULL, PUBLISH, SUBSCRIBE };
@@ -44,7 +44,7 @@ inline std::string get_protocol_name(protocol p) {
   }
 }
 
-inline protocol get_opposite_protol(protocol p) {
+[[maybe_unused]] inline protocol get_opposite_protol(protocol p) {
   switch (p) {
   case protocol::REPLY:
     return protocol::REQUEST;
@@ -76,9 +76,9 @@ class nn_exception : public std::exception {
 public:
   nn_exception(int err) : errno_(err) {}
 
-  [[nodiscard]] virtual const char *what() const throw();
+  [[nodiscard]] const char *what() const noexcept override;
 
-  [[nodiscard]] int num() const;
+  [[maybe_unused]] [[nodiscard]] int num() const;
 
 private:
   int errno_;
@@ -88,7 +88,7 @@ DECLARE_PTR(nn_exception)
 
 class socket {
 public:
-  socket(protocol p) : socket(p, MAX_MSG_LENGTH){};
+  explicit socket(protocol p) : socket(p, MAX_MSG_LENGTH){};
 
   socket(protocol p, int buffer_size);
 
@@ -125,7 +125,7 @@ public:
 
   nlohmann::json recv_json(int flags = NNG_FLAG_ALLOC);
 
-  [[nodiscard]] protocol get_protocol() const { return protocol_; };
+  [[maybe_unused]] [[nodiscard]] protocol get_protocol() const { return protocol_; };
 
   [[nodiscard]] const std::string &get_url() const { return url_; };
 

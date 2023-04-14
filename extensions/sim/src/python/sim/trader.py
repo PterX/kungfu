@@ -39,11 +39,17 @@ class TraderSim(wc.Trader):
         self.map_block_msg = {}
         self.enable_self_detect()
 
+    def on_recover(self):
+        pass
+
     def on_start(self):
         config = json.loads(self.config)
         self.match_mode = config.get("match_mode", MatchMode.Custom)
 
         self.ctx.orders = {}
+
+        for k, v in self.orders.items():
+            self.ctx.orders[k] = v.data
 
         if self.match_mode == MatchMode.Custom:
             path = config.get("path")
@@ -59,6 +65,9 @@ class TraderSim(wc.Trader):
             )
             self.ctx.req_account = getattr(impl, "req_account", lambda ctx: False)
             self.ctx.req_position = getattr(impl, "req_position", lambda ctx: False)
+            self.ctx.req_order_trade = getattr(
+                impl, "req_order_trade", lambda ctx: False
+            )
 
         self.update_broker_state(lf.enums.BrokerState.Ready)
 
@@ -88,6 +97,7 @@ class TraderSim(wc.Trader):
             writer = self.get_writer(event.source)
             # order_input = event.OrderInput()
             order = wc.utils.order_from_input(order_input)
+            order.external_order_id = str(order.order_id)
             order.insert_time = event.gen_time
             order.update_time = event.gen_time
             order.trading_day = kft.strfnow("%Y%m%d")
@@ -215,4 +225,9 @@ class TraderSim(wc.Trader):
     def req_position(self):
         if self.match_mode == MatchMode.Custom:
             return self.ctx.req_position(self.ctx)
+        return False
+
+    def req_order_trade(self):
+        if self.match_mode == MatchMode.Custom:
+            return self.ctx.req_order_trade(self.ctx)
         return False

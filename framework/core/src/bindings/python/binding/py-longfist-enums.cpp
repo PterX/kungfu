@@ -50,6 +50,8 @@ void bind_enums(py::module &m) {
       .value("Fund", InstrumentType::Fund)
       .value("Index", InstrumentType::Index)
       .value("Repo", InstrumentType::Repo)
+      .value("Warrant", InstrumentType::Warrant)
+      .value("Iopt", InstrumentType::Iopt)
       .value("Crypto", InstrumentType::Crypto)
       .value("CryptoFuture", InstrumentType::CryptoFuture)
       .value("CryptoUFuture", InstrumentType::CryptoUFuture)
@@ -262,6 +264,7 @@ void bind_enums(py::module &m) {
       .value("Snapshot", SubscribeDataType::Snapshot)
       .value("Transaction", SubscribeDataType::Transaction)
       .value("Entrust", SubscribeDataType::Entrust)
+      .value("Tree", SubscribeDataType::Tree)
       .export_values()
       .def("__eq__", [](const SubscribeDataType &a, uint64_t b) { return static_cast<uint64_t>(a) == b; })
       .def("__or__", py::overload_cast<const SubscribeDataType &, const SubscribeDataType &>(
@@ -281,5 +284,14 @@ void bind_enums(py::module &m) {
       .def("__eq__", [](const SubscribeInstrumentType &a, int b) { return static_cast<int>(a) == b; })
       .def("__or__", py::overload_cast<const SubscribeInstrumentType &, const SubscribeInstrumentType &>(
                          &sub_data_bitwise<SubscribeInstrumentType, uint64_t>));
+
+  py::class_<AssembleMode>(m_enums, "AssembleMode")
+      .def(py::init<>())
+      .def_readonly_static("Channel", &AssembleMode::Channel)
+      .def_readonly_static("Write", &AssembleMode::Write)
+      .def_readonly_static("Read", &AssembleMode::Read)
+      .def_readonly_static("Public", &AssembleMode::Public)
+      .def_readonly_static("Sync", &AssembleMode::Sync)
+      .def_readonly_static("All", &AssembleMode::All);
 }
 } // namespace kungfu::longfist::pybind

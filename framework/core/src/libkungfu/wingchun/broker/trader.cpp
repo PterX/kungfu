@@ -6,6 +6,7 @@
 
 #include <kungfu/common.h>
 #include <kungfu/wingchun/broker/trader.h>
+#include <kungfu/yijinjing/journal/assemble.h>
 #include <kungfu/yijinjing/time.h>
 
 using namespace kungfu::rx;
@@ -14,6 +15,7 @@ using namespace kungfu::longfist::enums;
 using namespace kungfu::yijinjing::practice;
 using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
+using namespace kungfu::yijinjing::journal;
 
 namespace kungfu::wingchun::broker {
 TraderVendor::TraderVendor(locator_ptr locator, const std::string &group, const std::string &name, bool low_latency)
@@ -23,8 +25,7 @@ void TraderVendor::set_service(Trader_ptr service) { service_ = std::move(servic
 
 void TraderVendor::react() {
   events_ | skip_until(events_ | is(RequestStart::tag)) | is(OrderInput::tag) | $$(service_->handle_order_input(event));
-  events_ | skip_until(events_ | is(RequestStart::tag)) |
-      instanceof <journal::frame>() | $$(service_->on_custom_event(event));
+  events_ | skip_until(events_ | is(RequestStart::tag)) | is_custom() | $$(service_->on_custom_event(event));
   apprentice::react();
 }
 
@@ -39,6 +40,7 @@ void TraderVendor::on_start() {
   events_ | is(BlockMessage::tag) | $$(service_->insert_block_message(event));
   events_ | is(OrderAction::tag) | $$(service_->cancel_order(event));
   events_ | is(AssetRequest::tag) | $$(service_->req_account());
+  events_ | is(OrderTradeRequest::tag) | $$(service_->req_order_trade());
   events_ | is(Deregister::tag) | $$(service_->on_strategy_exit(event));
   events_ | is(PositionRequest::tag) | $$(service_->req_position());
   events_ | is(RequestHistoryOrder::tag) | $$(service_->req_history_order(event));
@@ -51,8 +53,9 @@ void TraderVendor::on_start() {
     return event->msg_type() == BatchOrderBegin::tag or event->msg_type() == BatchOrderEnd::tag;
   }) | $$(service_->handle_batch_order_tag(event));
 
-  clean_orders();
-
+  //  clean_orders();
+  service_->recover();
+  service_->on_recover();
   service_->on_start();
 }
 
@@ -94,7 +97,7 @@ void TraderVendor::clean_orders() {
 
 void TraderVendor::on_trading_day(const event_ptr &event, int64_t daytime) { service_->on_trading_day(event, daytime); }
 
-const std::string &Trader::get_account_id() const { return get_home()->name; }
+[[maybe_unused]] const std::string &Trader::get_account_id() const { return get_home()->name; }
 
 yijinjing::journal::writer_ptr Trader::get_asset_writer() const {
   return get_writer(sync_asset_ ? location::SYNC : location::PUBLIC);
@@ -143,33 +146,52 @@ bool Trader::has_self_deal_risk(const event_ptr &event) {
     return false;
   }
   const OrderInput &input = event->data<OrderInput>();
+  static std::string str_ex_instrument;
+  str_ex_instrument = input.exchange_id.to_string() + input.instrument_id.to_string();
+  auto risk_check = [&]() -> bool {
+    auto iter = map_ex_instrument_to_order_ids_.find(str_ex_instrument);
 
-  auto fun_has_self_deal_risk = [&](const Order &order) -> bool {
-    if (strcmp(order.instrument_id, input.instrument_id) or strcmp(order.exchange_id, input.exchange_id)) {
+    /// 没有相同的标的, 判定为不存在风险
+    if (iter == map_ex_instrument_to_order_ids_.end()) {
       return false;
     }
-    if (order.side == input.side or is_final_status(order.status)) {
-      return false;
-    } else {
+
+    /// 存在相同标的, 遍历每一个order_id, 判断是否存在自成交风险
+    return std::any_of(iter->second.begin(), iter->second.end(), [&](const auto order_id) -> bool {
+      const auto order_iter = orders_.find(order_id);
+
+      /// 只接收到了OrderInput, 没有生成相应的order, 判定为不存在风险
+      if (order_iter == orders_.end()) {
+        return false;
+      }
+
+      const Order &order = order_iter->second.data;
+
+      /// 方向相同或者是委托完结, 判定为不存在风险
+      if (order.side == input.side or is_final_status(order.status)) {
+        return false;
+      }
+
+      /// 存在反方向未完成委托, 且当前委托是市价, 判定为存在风险
       if (input.price_type != PriceType::Limit) {
         return true;
-      } else {
-        if (input.side == Side::Buy and input.limit_price < order.limit_price) {
-          return false;
-        } else if (input.side == Side::Sell and input.limit_price > order.limit_price) {
-          return false;
-        } else {
-          return true;
-        }
       }
-    }
+
+      /// 限价, 判断买卖方向和价格
+      if (input.side == Side::Buy and input.limit_price < order.limit_price) {
+        return false; /// 新委托买价低于已存在卖价, 判定为不存在风险
+      } else if (input.side == Side::Sell and input.limit_price > order.limit_price) {
+        return false; /// 新委托卖价高于已存在买价, 判定为不存在风险
+      } else {
+        return true; /// 新委托买价大于等于已存在卖价, 或 新委托卖价小于等于已存在买价, 判定为存在风险
+      }
+    });
   };
 
-  for (const auto pair : orders_) {
-    if (fun_has_self_deal_risk(pair.second.data)) {
-      return true;
-    }
+  if (risk_check()) {
+    return true;
   }
+  map_ex_instrument_to_order_ids_.try_emplace(str_ex_instrument).first->second.emplace(input.order_id);
   return false;
 }
 
@@ -210,5 +232,79 @@ bool Trader::insert_block_message(const event_ptr &event) {
 }
 
 void Trader::enable_self_detect() { self_deal_detect_ = true; }
+
+void Trader::recover() {
+  if (disable_recover_) {
+    return;
+  }
+
+  deal_write_frame();
+  deal_read_frame();
+}
+
+void Trader::deal_write_frame() {
+  assemble asb_write(get_home(), location::PUBLIC, AssembleMode::Write);
+  asb_write.seek_to_time(time::today_start()); // recover from today
+  SPDLOG_DEBUG("before assemble read");
+  int64_t count = 0;
+  while (asb_write.data_available()) {
+    const auto &frame = asb_write.current_frame();
+    if (frame->msg_type() == Order::tag) {
+      const Order &order = frame->data<Order>();
+      orders_.insert_or_assign(order.order_id, state<Order>(frame->source(), frame->dest(), frame->gen_time(), order));
+      map_ex_instrument_to_order_ids_.try_emplace(order.exchange_id.to_string() + order.instrument_id.to_string())
+          .first->second.emplace(order.order_id);
+    } else if (frame->msg_type() == Trade::tag) {
+      const Trade &trade = frame->data<Trade>();
+      trades_.insert_or_assign(trade.trade_id, state<Trade>(frame->source(), frame->dest(), frame->gen_time(), trade));
+    }
+    asb_write.next();
+    ++count;
+  }
+  SPDLOG_DEBUG("after assemble read, count: {}", count);
+
+  // set order as Lost which without external_order_id
+  for (auto &pair : orders_) {
+    Order &order = pair.second.data;
+    if (not is_final_status(order.status) and order.external_order_id.to_string().empty()) {
+      order.status = OrderStatus::Lost;
+      order.update_time = time::now_in_nano();
+
+      if (has_writer(pair.second.dest)) {
+        write_to(order, pair.second.dest);
+      }
+    }
+  }
+}
+
+void Trader::deal_read_frame() {
+  // write a Lost Order to journal when read an OrderInput whose order_id not in orders_
+  assemble asb_read(get_home(), get_home_uid(), AssembleMode::Read);
+  asb_read.disjoin(get_vendor().get_ledger_home_location()->location_uid);
+  SPDLOG_DEBUG("before assemble read");
+  int64_t count = 0;
+  while (asb_read.data_available()) {
+    const auto &frame = asb_read.current_frame();
+    if (frame->msg_type() == OrderInput::tag) {
+      const OrderInput &order_input = frame->data<OrderInput>();
+      if (orders_.find(order_input.order_id) == orders_.end()) {
+        if (has_writer(frame->dest())) {
+          Order &order = get_writer(frame->dest())->open_data<Order>();
+          order_from_input(order_input, order);
+          order.status = OrderStatus::Lost;
+          order.update_time = time::now_in_nano();
+          get_writer(frame->dest())->close_data();
+        }
+      }
+    }
+    asb_read.next();
+    ++count;
+  }
+  SPDLOG_DEBUG("after assemble read, count: {}", count);
+}
+
+void Trader::clear_order_inputs(const uint64_t location_uid) { order_inputs_.erase(location_uid); }
+
+[[maybe_unused]] void Trader::disable_recover() { disable_recover_ = true; }
 
 } // namespace kungfu::wingchun::broker

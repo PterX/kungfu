@@ -20,6 +20,8 @@ Runner::Runner(locator_ptr locator, const std::string &group, const std::string 
     : apprentice(location::make_shared(m, category::STRATEGY, group, name, std::move(locator)), low_latency),
       positions_set_(m == mode::BACKTEST), started_(m == mode::BACKTEST), arguments_(arguments) {}
 
+Runner::~Runner() { context_.reset(); }
+
 RuntimeContext_ptr Runner::get_context() const { return context_; }
 
 RuntimeContext_ptr Runner::make_context() { return std::make_shared<RuntimeContext>(*this, events_); }
@@ -52,6 +54,10 @@ void Runner::react() {
   start_events | is(Trade::tag) | $$(invoke(&Strategy::on_trade, event->data<Trade>(), get_location(event->source())));
   start_events | is(SyntheticData::tag) |
       $$(invoke(&Strategy::on_synthetic_data, event->data<SyntheticData>(), get_location(event->source())));
+  start_events | is_custom() |
+      $$(invoke(&Strategy::on_custom_data, event->msg_type(),
+                {event->data_as_bytes(), event->data_as_bytes() + event->data_length()}, event->data_length(),
+                get_location(event->source())));
   apprentice::react();
 }
 
@@ -138,7 +144,7 @@ void Runner::prepare(const event_ptr &event) {
   }
   auto writer = get_writer(ledger_uid);
 
-  auto connected_test = [&](auto &locations) {
+  auto connected_test = [&](const auto &locations) {
     for (const auto &pair : locations) {
       if (not context_->get_broker_client().is_connected(pair.second->uid)) {
         return false;
@@ -153,7 +159,7 @@ void Runner::prepare(const event_ptr &event) {
     broker_states_requested_ = true;
   }
 
-  auto ready_test = [&](auto &locations) {
+  auto ready_test = [&](const auto &locations) {
     for (const auto &pair : locations) {
       if (not context_->get_broker_client().is_ready(pair.second->uid)) {
         return false;
@@ -197,6 +203,7 @@ void Runner::prepare(const event_ptr &event) {
   }
   context_->get_bookkeeper().guard_positions();
   started_ = true;
+  context_->set_started(true);
   post_start();
 }
 

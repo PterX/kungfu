@@ -131,11 +131,11 @@ const dealFrameData = (data: string): unknown[] => {
           key,
           ...(children?.length
             ? {
-              children: [
-                ...children,
-                { title: Array.isArray(obj1[key]) ? ']' : '}' },
-              ],
-            }
+                children: [
+                  ...children,
+                  { title: Array.isArray(obj1[key]) ? ']' : '}' },
+                ],
+              }
             : {}),
         };
       });

@@ -84,7 +84,7 @@ bool lossless;
 Napi::FunctionReference Reader::constructor = {};
 Reader::Reader(const Napi::CallbackInfo &info)
     : ObjectWrap(info), reader(true, false, std::make_shared<bus>(false)),
-      io_device_(std::make_shared<io_device>(GetLocation(info), true, true)),
+      io_device_(std::make_shared<io_device>(GetLocation(info), false, true)),
       begin_time_(info[4].As<Napi::BigInt>().Int64Value(&lossless)),
       end_time_(info[5].As<Napi::BigInt>().Int64Value(&lossless)) {
   if (true) {

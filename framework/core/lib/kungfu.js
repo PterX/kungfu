@@ -54,6 +54,7 @@ module.exports = function () {
         return new binding.Assemble([arg], mode, category, group, name);
       }
     },
+
     History: function (home) {
       return new binding.History(home);
     },
@@ -72,9 +73,13 @@ module.exports = function () {
     BasketInstrumentStore: function (home) {
       return new binding.BasketInstrumentStore(home);
     },
-    IODevice: function (location) {
-      return new binding.IODevice(location);
+    SessionStore: function (location, home) {
+      return new binding.SessionStore(location, home);
     },
+    IODevice: function (location, home) {
+      return new binding.IODevice(location, home);
+    },
+
     watcher: function (
       home,
       name,

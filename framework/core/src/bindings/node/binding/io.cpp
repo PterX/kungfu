@@ -17,7 +17,8 @@ namespace kungfu::node {
 Napi::FunctionReference IODevice::constructor = {};
 
 IODevice::IODevice(const Napi::CallbackInfo &info)
-    : ObjectWrap(info), io_device(ExtractLocation(info, 0, IODevice::GetDefaultRuntimeLocator()), true, true) {
+    : ObjectWrap(info),
+      io_device(ExtractLocation(info, 0, IODevice::ExtractRuntimeLocatorByIndex(info, 1)), true, true) {
   Napi::Env env = info.Env();
   Napi::HandleScope scope(env);
 }
@@ -33,8 +34,6 @@ locator_ptr IODevice::GetLocatorByIndex(const Napi::Array &locators, int index) 
   return IODevice::GetRuntimeLocator(dirname);
 }
 
-locator_ptr IODevice::GetDefaultRuntimeLocator() { return std::make_shared<yijinjing::data::locator>(); }
-
 std::vector<locator_ptr> IODevice::ExtractLocators(const Napi::CallbackInfo &info) {
   if (not IsValid(info, 0, &Napi::Value::IsArray)) {
     throw Napi::Error::New(info.Env(), "Invalid locators argument");
@@ -48,12 +47,8 @@ std::vector<locator_ptr> IODevice::ExtractLocators(const Napi::CallbackInfo &inf
 }
 
 Napi::Value IODevice::GetAllLocations(const Napi::CallbackInfo &info) {
-  if (not IsValid(info, 0, &Napi::Value::IsString)) {
-    throw Napi::Error::New(info.Env(), "Invalid locator argument");
-  }
 
-  auto dirname = info[0].ToString().Utf8Value();
-  auto locator = IODevice::GetRuntimeLocator(dirname);
+  auto locator = get_locator();
   auto table = Napi::Object::New(info.Env());
 
   for (auto location : locator->list_locations(".*", ".*", ".*", ".*")) {
@@ -96,9 +91,11 @@ locator_ptr IODevice::GetRuntimeLocator(const std::string &dirname) {
   return std::make_shared<yijinjing::data::locator>(dirname);
 }
 
+locator_ptr IODevice::GetDefaultRuntimeLocator() { return std::make_shared<yijinjing::data::locator>(); }
+
 locator_ptr IODevice::ExtractRuntimeLocatorByIndex(const Napi::CallbackInfo &info, int index) {
   if (not IsValid(info, index, &Napi::Value::IsString)) {
-    throw Napi::Error::New(info.Env(), "Invalid Info[0] type, not string");
+    throw Napi::Error::New(info.Env(), "Invalid Info[" + std::to_string(index) + "] type, not string");
   }
 
   auto runtime_dir = info[index].As<Napi::String>().Utf8Value();

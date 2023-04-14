@@ -108,8 +108,6 @@ public:
 private:
   kungfu::node::serialize::JsSet set = {};
   static Napi::FunctionReference constructor;
-
-  static std::vector<yijinjing::data::locator_ptr> ExtractLocator(const Napi::CallbackInfo &info);
 };
 } // namespace kungfu::node
 #endif // KUNGFU_NODE_JOURNAL_H

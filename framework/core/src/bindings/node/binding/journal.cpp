@@ -84,7 +84,7 @@ bool lossless;
 Napi::FunctionReference Reader::constructor = {};
 Reader::Reader(const Napi::CallbackInfo &info)
     : ObjectWrap(info), reader(true, false, std::make_shared<bus>(false)),
-      io_device_(std::make_shared<io_device>(GetLocation(info), true, true)),
+      io_device_(std::make_shared<io_device>(GetLocation(info), false, true)),
       begin_time_(info[4].As<Napi::BigInt>().Int64Value(&lossless)),
       end_time_(info[5].As<Napi::BigInt>().Int64Value(&lossless)) {
   if (true) {
@@ -113,7 +113,7 @@ location_ptr Reader::GetLocation(const Napi::CallbackInfo &info) {
   kungfu::longfist::enums::category c = (kungfu::longfist::enums::category)(info[1].ToNumber().Uint32Value());
   std::string group = info[2].ToString().Utf8Value();
   std::string name = info[3].ToString().Utf8Value();
-  return std::make_shared<location>(m, c, group, name, GetDefaultRuntimeLocator());
+  return std::make_shared<location>(m, c, group, name, IODevice::GetDefaultRuntimeLocator());
 }
 
 Napi::Value Reader::ToString(const Napi::CallbackInfo &info) { return Napi::String::New(info.Env(), "Reader.js"); }
@@ -275,7 +275,7 @@ Napi::Value Reader::NewInstance(const Napi::Value arg) { return constructor.New(
 
 Napi::FunctionReference Assemble::constructor = {};
 
-Assemble::Assemble(const Napi::CallbackInfo &info) : ObjectWrap(info), assemble(ExtractLocator(info)) {}
+Assemble::Assemble(const Napi::CallbackInfo &info) : ObjectWrap(info), assemble(IODevice::ExtractLocators(info)) {}
 
 Napi::Value Assemble::CurrentFrame(const Napi::CallbackInfo &info) {
   auto frame = Frame::NewInstance(info.This());
@@ -378,17 +378,5 @@ void Assemble::Init(Napi::Env env, Napi::Object exports) {
   constructor.SuppressDestruct();
 
   exports.Set("Assemble", func);
-}
-
-std::vector<locator_ptr> Assemble::ExtractLocator(const Napi::CallbackInfo &info) {
-  if (not IsValid(info, 0, &Napi::Value::IsArray)) {
-    throw Napi::Error::New(info.Env(), "Invalid locators argument");
-  }
-  std::vector<locator_ptr> result = {};
-  auto locators = info[0].As<Napi::Array>();
-  for (int i = 0; i < locators.Length(); i++) {
-    result.push_back(IODevice::GetLocator(locators, i));
-  }
-  return result;
 }
 } // namespace kungfu::node

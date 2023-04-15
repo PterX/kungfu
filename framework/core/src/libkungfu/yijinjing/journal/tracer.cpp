@@ -12,7 +12,7 @@ namespace kungfu::yijinjing::journal {
 
 tracer::tracer(const location_ptr location, bool in, bool out, int64_t begin, int64_t end)
     : home_(location), reader_(std::make_shared<reader>(true, false, std::make_shared<bus>(false))), in_(in), out_(out),
-      begin_time_(begin), end_time_(end) {
+      begin_time_(begin), end_time_(end == 0 ? INT64_MAX : end) {
 
   if (in) {
     auto uid_str = fmt::format("{:08x}", home_->uid);

@@ -8,6 +8,7 @@
 #define YIJINJING_ASSEMBLE_H
 
 #include <kungfu/yijinjing/journal/journal.h>
+#include <kungfu/yijinjing/bus.h>
 
 namespace kungfu::yijinjing::journal {
 class sink {
@@ -17,9 +18,11 @@ public:
   virtual void put(const data::location_ptr &location, uint32_t dest_id, const frame_ptr &frame) = 0;
   virtual void close(){};
   [[nodiscard]] publisher_ptr get_publisher();
+  [[nodiscard]] bus_ptr get_bus();
 
 private:
   publisher_ptr publisher_;
+  bus_ptr bus_;
 };
 DECLARE_PTR(sink)
 

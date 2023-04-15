@@ -243,7 +243,7 @@ void master::check_cached_ready_to_read(const event_ptr &event) {
 void master::feed(const event_ptr &event) {
   handle_timer_tasks();
 
-  if (registry_.find(event->source()) == registry_.end()) {
+  if (!is_location_live(event->source())) {
     return;
   }
 

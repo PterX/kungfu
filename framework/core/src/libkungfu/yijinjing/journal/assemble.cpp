@@ -27,9 +27,11 @@ struct assemble_exception : std::runtime_error {
   explicit assemble_exception(const std::string &msg) : std::runtime_error(msg){};
 };
 
-sink::sink() : publisher_(std::make_shared<noop_publisher>()) {}
+sink::sink() : publisher_(std::make_shared<noop_publisher>()), bus_(std::make_shared<bus>(false)) {}
 
 publisher_ptr sink::get_publisher() { return publisher_; }
+
+bus_ptr sink::get_bus() {return bus_;}
 
 copy_sink::copy_sink(data::locator_ptr locator) : sink(), locator_(std::move(locator)) {}
 

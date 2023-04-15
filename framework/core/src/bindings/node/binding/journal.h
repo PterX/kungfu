@@ -14,6 +14,7 @@
 #include <kungfu/yijinjing/journal/assemble.h>
 #include <kungfu/yijinjing/journal/journal.h>
 #include <kungfu/yijinjing/journal/tracer.h>
+#include <kungfu/yijinjing/log.h>
 
 namespace kungfu::node {
 class Tracer : public Napi::ObjectWrap<Tracer>, public yijinjing::journal::tracer {
@@ -21,7 +22,7 @@ class Tracer : public Napi::ObjectWrap<Tracer>, public yijinjing::journal::trace
 public:
   explicit Tracer(const Napi::CallbackInfo &info);
 
-  ~Tracer();
+  ~Tracer() override;
 
   [[nodiscard]] Napi::Value DataAvailable(const Napi::CallbackInfo &info);
 

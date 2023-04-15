@@ -5,6 +5,7 @@ using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::journal;
 using namespace kungfu::longfist::types;
+using namespace kungfu::longfist::enums;
 
 namespace kungfu::node {
 
@@ -16,7 +17,9 @@ Tracer::Tracer(const Napi::CallbackInfo &info)
              GetBool(info, 2),                                                                    //
              GetBool(info, 3),                                                                    //
              GetBigInt(info, 4),                                                                  //
-             GetBigInt(info, 5)) {}
+             GetBigInt(info, 5)) {
+  SPDLOG_INFO("Tracer Init");
+}
 
 Tracer::~Tracer() { SPDLOG_INFO("Tracer destructor"); }
 

@@ -81,7 +81,7 @@ module.exports = function () {
     },
 
     tracer: function (location, home, read, write, begin, end) {
-      return new binding.Tracer(location, home, read, write, begin, end)
+      return new binding.Tracer(location, home, read, write, begin, end);
     },
 
     watcher: function (

@@ -14,16 +14,6 @@ using namespace kungfu::yijinjing::journal;
 using namespace kungfu::longfist::types;
 
 namespace kungfu::node {
-int64_t GetTimestamp(Napi::Value arg) {
-  if (arg.IsNumber()) {
-    return arg.ToNumber().Int32Value();
-  }
-  if (arg.IsBigInt()) {
-    bool lossless;
-    return arg.As<Napi::BigInt>().Int64Value(&lossless);
-  }
-  throw yijinjing_error("timestamp argument must be bigint");
-}
 
 Napi::FunctionReference Frame::constructor = {};
 
@@ -125,7 +115,7 @@ Napi::Value Reader::CurrentFrame(const Napi::CallbackInfo &info) {
 }
 
 Napi::Value Reader::SeekToTime(const Napi::CallbackInfo &info) {
-  seek_to_time(GetTimestamp(info[0]));
+  seek_to_time(GetBigInt(info, 0));
   return {};
 }
 
@@ -185,7 +175,7 @@ Napi::Value Reader::Join(const Napi::CallbackInfo &info) {
   auto name = info[2].As<Napi::String>().Utf8Value();
   auto mode = longfist::enums::get_mode_by_name(info[3].As<Napi::String>().Utf8Value());
   uint32_t dest_id = info[4].As<Napi::Number>().Int32Value();
-  auto from_time = GetTimestamp(info[5]);
+  auto from_time = GetBigInt(info, 5);
   join(std::make_shared<location>(mode, category, group, name, io_device_->get_home()->locator), dest_id, from_time);
   return {};
 }
@@ -193,60 +183,6 @@ Napi::Value Reader::Join(const Napi::CallbackInfo &info) {
 Napi::Value Reader::Disjoin(const Napi::CallbackInfo &info) {
   uint32_t dest_id = info[0].As<Napi::Number>().Int32Value();
   disjoin(dest_id);
-  return {};
-}
-
-Napi::Value Reader::Run(const Napi::CallbackInfo &info) {
-  int32_t limit = 0;
-  Napi::Function cb = info[0].As<Napi::Function>();
-  if (info.Length() > 1) {
-    limit = info[1].ToNumber().Int32Value();
-  }
-  if (locations_.empty()) {
-    for (auto location : io_device_->get_home()->locator->list_locations(".*", ".*", ".*", ".*")) {
-      locations_.insert_or_assign(location->uid, location);
-    }
-  }
-  int32_t count = 0;
-  while ((limit <= 0 || count++ < limit) && data_available() && current_frame()->gen_time() <= end_time_) {
-    auto frame = current_frame();
-    bool type_found = false;
-    boost::hana::for_each(kungfu::longfist::AllTypes, [&](auto type) {
-      using DataType = typename decltype(+boost::hana::second(type))::type;
-      if (frame->msg_type() == DataType::tag) {
-        type_found = true;
-      }
-    });
-    if (not type_found) {
-      auto location_uname = current_page()->get_location()->uname;
-      auto dest_id = current_page()->get_dest_id();
-      SPDLOG_ERROR("{}/{:08x} msg_type {} not found", location_uname, dest_id, frame->msg_type());
-      cb.Call({info.Env().Null()});
-      return {};
-    }
-    if (frame->dest() == io_device_->get_home()->uid and frame->msg_type() == RequestReadFrom::tag) {
-      auto request = frame->data<RequestReadFrom>();
-      auto source_location = locations_.at(request.source_id);
-      join(source_location, io_device_->get_home()->uid, begin_time_);
-    }
-    if (frame->dest() == io_device_->get_home()->uid and frame->msg_type() == RequestReadFromPublic::tag) {
-      auto request = frame->data<RequestReadFromPublic>();
-      auto source_location = locations_.at(request.source_id);
-      join(source_location, location::PUBLIC, begin_time_);
-    }
-    if (frame->dest() == io_device_->get_home()->uid and frame->msg_type() == RequestReadFromSync::tag) {
-      auto request = frame->data<RequestReadFromSync>();
-      auto source_location = locations_.at(request.source_id);
-      join(source_location, location::SYNC, begin_time_);
-    }
-    if (frame->dest() == io_device_->get_home()->uid and frame->msg_type() == Deregister::tag) {
-      disjoin(location::make_shared(frame->data<Deregister>(), io_device_->get_locator())->uid);
-    }
-    auto node_frame = CurrentFrame(info);
-    cb.Call({node_frame});
-    next();
-  }
-  cb.Call({info.Env().Null()});
   return {};
 }
 
@@ -262,7 +198,6 @@ void Reader::Init(Napi::Env env, Napi::Object exports) {
                                         InstanceMethod("next", &Reader::Next),                   //
                                         InstanceMethod("join", &Reader::Join),                   //
                                         InstanceMethod("disjoin", &Reader::Disjoin),             //
-                                        InstanceMethod("run", &Reader::Run),                     //
                                     });
 
   constructor = Napi::Persistent(func);
@@ -303,71 +238,11 @@ Napi::Value Assemble::Next(const Napi::CallbackInfo &info) {
   return {};
 }
 
-Napi::Value Assemble::GetSessions(const Napi::CallbackInfo &info) {
-  uint32_t uid = 0;
-  bool filter(false);
-  if (info.Length() == 1 && info[0].IsObject()) {
-    uid = info[0].ToObject().Get("location_uid").ToNumber().Uint32Value();
-    filter = true;
-  }
-  std::vector<kungfu::longfist::types::Session> sessions = get_sessions();
-  std::vector<std::pair<kungfu::longfist::types::Session, int>> session_ret;
-  size_t session_size = sessions.size();
-  for (int i = 0; i < session_size; i++) {
-    if (!filter || sessions[i].location_uid == uid) {
-      session_ret.push_back(std::make_pair(sessions[i], i));
-    }
-  }
-  size_t session_ret_size = session_ret.size();
-  if (session_ret_size <= 0) {
-    return {};
-  }
-  auto result = Napi::Array::New(info.Env(), session_ret_size);
-  for (int i = 0; i < session_ret_size; i++) {
-    auto target = Napi::Object::New(info.Env());
-    set(session_ret[i].first, target);
-    target.Set(Napi::String::New(info.Env(), "index"), Napi::Number::New(info.Env(), session_ret[i].second));
-    result.Set(i, target);
-  }
-  return result;
-}
-
-Napi::Value Assemble::GetReader(const Napi::CallbackInfo &info) {
-  std::vector<kungfu::longfist::types::Session> sessions = get_sessions();
-  size_t session_size = sessions.size();
-  uint32_t index = info[0].ToNumber().Uint32Value();
-  if (session_size <= index) {
-    throw Napi::Error::New(info.Env(), "index greater than session size");
-  }
-  int64_t t_begin = 0;
-  int64_t t_end = 0;
-  bool lossless;
-  if (info.Length() > 1) {
-    t_begin = info[1].As<Napi::BigInt>().Int64Value(&lossless);
-    if (info.Length() > 2) {
-      t_end = info[2].As<Napi::BigInt>().Int64Value(&lossless);
-    }
-  }
-  auto node_mode = Napi::Number::New(info.Env(), int(sessions[index].mode));
-  auto node_category = Napi::Number::New(info.Env(), int(sessions[index].category));
-  auto node_group = Napi::String::New(info.Env(), sessions[index].group);
-  auto node_name = Napi::String::New(info.Env(), sessions[index].name);
-  auto begin_time = Napi::BigInt::New(info.Env(), t_begin > 0 ? t_begin : sessions[index].begin_time);
-  auto end_time =
-      Napi::BigInt::New(info.Env(), t_end > 0 ? t_end
-                                              : (sessions[index].end_time == 0 ? kungfu::yijinjing::time::now_in_nano()
-                                                                               : std::abs(sessions[index].end_time)));
-  auto reader = Reader::constructor.New({node_mode, node_category, node_group, node_name, begin_time, end_time});
-  return reader;
-}
-
 void Assemble::Init(Napi::Env env, Napi::Object exports) {
   Napi::HandleScope scope(env);
 
   Napi::Function func = DefineClass(env, "Assemble",
                                     {
-                                        InstanceMethod("getSessions", &Assemble::GetSessions),
-                                        InstanceMethod("getReader", &Assemble::GetReader),
                                         InstanceMethod("currentFrame", &Assemble::CurrentFrame),   //
                                         InstanceMethod("seekToTime", &Assemble::SeekToTime),       //
                                         InstanceMethod("dataAvailable", &Assemble::DataAvailable), //

@@ -80,6 +80,10 @@ module.exports = function () {
       return new binding.IODevice(location, home);
     },
 
+    tracer: function (location, home, read, write, begin, end) {
+      return new binding.Tracer(location, home, read, write, begin, end);
+    },
+
     watcher: function (
       home,
       name,

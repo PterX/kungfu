@@ -13,8 +13,31 @@
 #include <kungfu/yijinjing/io.h>
 #include <kungfu/yijinjing/journal/assemble.h>
 #include <kungfu/yijinjing/journal/journal.h>
+#include <kungfu/yijinjing/journal/tracer.h>
+#include <kungfu/yijinjing/log.h>
 
 namespace kungfu::node {
+class Tracer : public Napi::ObjectWrap<Tracer>, public yijinjing::journal::tracer {
+
+public:
+  explicit Tracer(const Napi::CallbackInfo &info);
+
+  ~Tracer() override;
+
+  [[nodiscard]] Napi::Value DataAvailable(const Napi::CallbackInfo &info);
+
+  [[nodiscard]] Napi::Value CurrentFrame(const Napi::CallbackInfo &info);
+
+  void Next(const Napi::CallbackInfo &info);
+
+  static void Init(Napi::Env env, Napi::Object exports);
+
+  static Napi::Value NewInstance(Napi::Value arg);
+
+private:
+  static Napi::FunctionReference constructor;
+};
+
 class Frame : public Napi::ObjectWrap<Frame> {
 public:
   explicit Frame(const Napi::CallbackInfo &info);
@@ -50,6 +73,7 @@ private:
 
   friend class Reader;
   friend class Assemble;
+  friend class Tracer;
 };
 
 class Reader : public Napi::ObjectWrap<Reader>, public yijinjing::journal::reader {
@@ -69,8 +93,6 @@ public:
   Napi::Value Join(const Napi::CallbackInfo &info);
 
   Napi::Value Disjoin(const Napi::CallbackInfo &info);
-
-  Napi::Value Run(const Napi::CallbackInfo &info);
 
   static void Init(Napi::Env env, Napi::Object exports);
 
@@ -98,10 +120,6 @@ public:
   Napi::Value DataAvailable(const Napi::CallbackInfo &info);
 
   Napi::Value Next(const Napi::CallbackInfo &info);
-
-  Napi::Value GetSessions(const Napi::CallbackInfo &info);
-
-  Napi::Value GetReader(const Napi::CallbackInfo &info);
 
   static void Init(Napi::Env env, Napi::Object exports);
 

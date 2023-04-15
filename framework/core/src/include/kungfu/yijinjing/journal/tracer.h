@@ -22,7 +22,9 @@ public:
 
   [[nodiscard]] const yijinjing::data::location_ptr &get_home() const { return home_; }
 
-  [[nodiscard]] bool data_available() const { return reader_->data_available(); };
+  [[nodiscard]] bool data_available() const {
+    return reader_->data_available() && current_frame()->gen_time() < end_time_;
+  };
 
   [[nodiscard]] yijinjing::journal::frame_ptr current_frame() const;
 

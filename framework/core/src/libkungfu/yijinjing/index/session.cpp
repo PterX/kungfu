@@ -120,8 +120,12 @@ void session_builder::update_session(const frame_ptr &frame) {
   for (const auto &location : locator->list_locations("*", "*", "*", "*")) {
     SPDLOG_TRACE("investigating journal for [{:08x}] {}", location->uid, location->uname);
 
-    if (location->category != category::SYSTEM or location->group != "master") {
+    if (location->category != category::SYSTEM) {
       formatstr_to_locations.emplace(fmt::format("{:08x}", location->uid), location);
+    }
+
+    if (location->group == "master" and location->category != category::SYSTEM) {
+      SPDLOG_WARN("group is master but not system {}", location->uname);
     }
 
     if (location->category == category::SYSTEM and location->group == "master" and location->name == "master") {
@@ -148,7 +152,7 @@ void session_builder::update_session(const frame_ptr &frame) {
         open_session(formatstr_to_locations.at(uid_str), frame->gen_time());
       } else if (frame->msg_type() == SessionEnd::tag) {
         close_session(formatstr_to_locations.at(uid_str), frame->gen_time());
-      } else if (location->category != category::SYSTEM or location->group != "master") {
+      } else if (location->category != category::SYSTEM) {
         update_session(frame);
       } else if (location->category == category::SYSTEM and location->group == "master" and
                  location->name == "master") {
@@ -160,7 +164,8 @@ void session_builder::update_session(const frame_ptr &frame) {
     }
     reader->next();
   }
-  for (const auto &pair : live_sessions_) {
+  for (auto &pair : live_sessions_) {
+    pair.second.end_time = pair.second.end_time == 0 ? yijinjing::time::now_in_nano() : pair.second.end_time;
     session_storage_->replace(pair.second);
   }
 }

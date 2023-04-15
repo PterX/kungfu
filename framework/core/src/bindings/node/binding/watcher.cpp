@@ -49,27 +49,6 @@ inline bool GetBypassRestore(const Napi::CallbackInfo &info) {
   return info[2].As<Napi::Boolean>().Value();
 }
 
-inline bool GetBypassAccounting(const Napi::CallbackInfo &info) {
-  if (not IsValid(info, 3, &Napi::Value::IsBoolean)) {
-    throw Napi::Error::New(info.Env(), "Invalid bypassAccounting argument");
-  }
-  return info[3].As<Napi::Boolean>().Value();
-}
-
-inline bool GetBypassTradingData(const Napi::CallbackInfo &info) {
-  if (not IsValid(info, 4, &Napi::Value::IsBoolean)) {
-    throw Napi::Error::New(info.Env(), "Invalid bypassTradingData argument");
-  }
-  return info[4].As<Napi::Boolean>().Value();
-}
-
-inline bool GetRefreshLedgerBeforeSync(const Napi::CallbackInfo &info) {
-  if (not IsValid(info, 5, &Napi::Value::IsBoolean)) {
-    throw Napi::Error::New(info.Env(), "Invalid refreshBeforeSync argument");
-  }
-  return info[5].As<Napi::Boolean>().Value();
-}
-
 inline int GetMillisecondsSleepAfterStep(const Napi::CallbackInfo &info) {
   if (not IsValid(info, 6, &Napi::Value::IsNumber)) {
     throw Napi::Error::New(info.Env(), "Invalid millisecondsSleepAfterStep argument");
@@ -125,9 +104,9 @@ void WatcherAutoClient::connect(const event_ptr &event, const longfist::types::B
 Watcher::Watcher(const Napi::CallbackInfo &info)
     : ObjectWrap(info),                                                                   //
       apprentice(GetWatcherLocation(info), true),                                         //
-      bypass_accounting_(GetBypassAccounting(info)),                                      //
-      bypass_trading_data_(GetBypassTradingData(info)),                                   //
-      refresh_trading_data_before_sync_(GetRefreshLedgerBeforeSync(info)),                //
+      bypass_accounting_(GetBool(info, 3)),                                               //
+      bypass_trading_data_(GetBool(info, 4)),                                             //
+      refresh_trading_data_before_sync_(GetBool(info, 5)),                                //
       milliseconds_sleep_after_step_(GetMillisecondsSleepAfterStep(info)),                //
       broker_client_(*this, bypass_trading_data_),                                        //
       bookkeeper_(*this, broker_client_), basketorder_engine_(*this),                     //

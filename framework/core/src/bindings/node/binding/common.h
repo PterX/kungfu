@@ -46,5 +46,13 @@ inline int64_t GetBigInt(const Napi::Value &value) {
 }
 
 inline int64_t GetBigInt(const Napi::CallbackInfo &info, int i) { return GetBigInt(info[i]); }
+
+inline bool GetBool(const Napi::CallbackInfo &info, int i) {
+  if (not IsValid(info, i, &Napi::Value::IsBoolean)) {
+    throw Napi::Error::New(info.Env(), "Invalid bool argument index: " + std::to_string(i));
+  }
+  return info[i].As<Napi::Boolean>().Value();
+}
+
 } // namespace kungfu::node
 #endif // KUNGFU_NODE_COMMON_H

@@ -269,6 +269,7 @@ void bind(pybind11::module &&m) {
   py::class_<sink, PySink, sink_ptr>(m, "sink")
       .def(py::init())
       .def_property_readonly("publisher", &sink::get_publisher)
+      .def_property_readonly("bus", &sink::get_bus)
       .def("put", &sink::put)
       .def("close", &sink::close);
 
@@ -313,6 +314,7 @@ void bind(pybind11::module &&m) {
       .def(py::init<location_ptr, bool, bool>(), py::arg("home"), py::arg("low_latency") = false,
            py::arg("lazy") = true)
       .def_property_readonly("publisher", &io_device::get_publisher)
+      .def_property_readonly("bus", &io_device::get_bus)
       .def_property_readonly("observer", &io_device::get_observer)
       .def_property_readonly("home", &io_device::get_home)
       .def_property_readonly("live_home", &io_device::get_live_home)

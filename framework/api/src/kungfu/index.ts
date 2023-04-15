@@ -33,7 +33,6 @@ export const kf = kungfu();
 
 kfLogger.info('Load kungfu node');
 
-
 export const assemble = kf.Assemble([KF_RUNTIME_DIR]);
 export const configStore = kf.ConfigStore(KF_RUNTIME_DIR);
 export const riskSettingStore = kf.RiskSettingStore(KF_RUNTIME_DIR);
@@ -69,7 +68,7 @@ export function getWatcherId(): string {
     .join('-');
   kfLogger.info(`WatcherId ${watcherId}`);
   return watcherId;
-};
+}
 
 export const dealKfTime = (nano: bigint, date = false): string => {
   if (nano === BigInt(0)) {

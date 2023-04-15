@@ -117,27 +117,30 @@ void session_builder::update_session(const frame_ptr &frame) {
   std::unordered_map<std::string, location_ptr> formatstr_to_locations = {};
   auto locator = io_device_->get_locator();
   auto reader = io_device_->open_reader_to_subscribe();
-  for (const auto &location : locator->list_locations("*", "*", "*", "*")) {
-    SPDLOG_TRACE("investigating journal for [{:08x}] {}", location->uid, location->uname);
 
-    if (location->category != category::SYSTEM) {
-      formatstr_to_locations.emplace(fmt::format("{:08x}", location->uid), location);
+  auto master_location = location::make_shared(mode::LIVE, category::SYSTEM, "master", "master", locator);
+  for (const auto &location : locator->list_locations("*", "*", "*", "live")) {
+    if (location->category == category::SYSTEM && location->group == "master") {
+      continue;
     }
+    SPDLOG_TRACE("investigating journal for {} [{:08x}] {}", location->uid, location->uid, location->uname);
+    auto uid_str = fmt::format("{:08x}", location->uid);
+    formatstr_to_locations.emplace(uid_str, location);
+  }
+  formatstr_to_locations.emplace("master", master_location);
 
-    if (location->group == "master" and location->category != category::SYSTEM) {
-      SPDLOG_WARN("group is master but not system {}", location->uname);
-    }
-
-    if (location->category == category::SYSTEM and location->group == "master" and location->name == "master") {
-      formatstr_to_locations.emplace(location->name, location);
-    }
-
-    for (const auto dest_uid : locator->list_location_dest(location)) {
-      reader->join(location, dest_uid, 0);
+  for (const auto &master_cmd_location : locator->list_locations("system", "master", "*", "live")) {
+    SPDLOG_TRACE("investigating master journal for {} {} {}", master_cmd_location->uid, master_cmd_location->name,
+                 master_cmd_location->uname);
+    if (master_cmd_location->name != "master" &&
+        formatstr_to_locations.find(master_cmd_location->name) != formatstr_to_locations.end()) {
+      reader->join(master_cmd_location, formatstr_to_locations.at(master_cmd_location->name)->uid, 0);
     }
   }
+  reader->join(master_location, location::PUBLIC, 0);
 
   session_storage_->remove_all<Session>();
+
   while (reader->data_available()) {
     auto location = reader->current_page()->get_location();
     std::string uid_str = location->name;
@@ -146,17 +149,11 @@ void session_builder::update_session(const frame_ptr &frame) {
       reader->next();
       continue;
     }
-
     try {
       if (frame->msg_type() == SessionStart::tag) {
         open_session(formatstr_to_locations.at(uid_str), frame->gen_time());
       } else if (frame->msg_type() == SessionEnd::tag) {
         close_session(formatstr_to_locations.at(uid_str), frame->gen_time());
-      } else if (location->category != category::SYSTEM) {
-        update_session(frame);
-      } else if (location->category == category::SYSTEM and location->group == "master" and
-                 location->name == "master") {
-        update_session(frame);
       }
     } catch (const std::exception &ex) {
       SPDLOG_ERROR("problematic frame at {}, {}, {}", location->uname, formatstr_to_locations.at(uid_str)->uname,

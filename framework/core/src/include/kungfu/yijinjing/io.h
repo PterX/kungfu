@@ -32,7 +32,7 @@ public:
   [[nodiscard]] const data::location_ptr &get_home() const { return home_; }
 
   [[nodiscard]] const data::location_ptr &get_live_home() const { return live_home_; }
-  
+
   [[nodiscard]] bool is_low_latency() const { return low_latency_; }
 
   [[nodiscard]] bool is_cleaner_required() const {

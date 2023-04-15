@@ -79,7 +79,6 @@ module.exports = function () {
     IODevice: function (location, home) {
       return new binding.IODevice(location, home);
     },
-
     tracer: function (location, home, read, write, begin, end) {
       return new binding.Tracer(location, home, read, write, begin, end);
     },

@@ -35,6 +35,8 @@ tracer::tracer(const location_ptr location, bool in, bool out, int64_t begin, in
   }
 };
 
+tracer::~tracer() { reader_.reset(); }
+
 frame_ptr tracer::current_frame() const {
   auto frame = reader_->current_frame();
 

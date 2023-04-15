@@ -31,7 +31,7 @@ sink::sink() : publisher_(std::make_shared<noop_publisher>()), bus_(std::make_sh
 
 publisher_ptr sink::get_publisher() { return publisher_; }
 
-bus_ptr sink::get_bus() {return bus_;}
+bus_ptr sink::get_bus() { return bus_; }
 
 copy_sink::copy_sink(data::locator_ptr locator) : sink(), locator_(std::move(locator)) {}
 

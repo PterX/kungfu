@@ -18,8 +18,6 @@ public:
 
   void next() { reader_->next(); };
 
-  void seek_to_time(int64_t nanotime) { reader_->seek_to_time(nanotime); };
-
   [[nodiscard]] const yijinjing::data::locator_ptr &get_locator() const { return home_->locator; }
 
   [[nodiscard]] const yijinjing::data::location_ptr &get_home() const { return home_; }

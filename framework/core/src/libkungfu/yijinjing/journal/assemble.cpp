@@ -27,9 +27,11 @@ struct assemble_exception : std::runtime_error {
   explicit assemble_exception(const std::string &msg) : std::runtime_error(msg){};
 };
 
-sink::sink() : publisher_(std::make_shared<noop_publisher>()) {}
+sink::sink() : publisher_(std::make_shared<noop_publisher>()), bus_(std::make_shared<bus>(false)) {}
 
 publisher_ptr sink::get_publisher() { return publisher_; }
+
+bus_ptr sink::get_bus() { return bus_; }
 
 copy_sink::copy_sink(data::locator_ptr locator) : sink(), locator_(std::move(locator)) {}
 
@@ -168,29 +170,6 @@ void assemble::sort() {
 using namespace kungfu::longfist::enums;
 using namespace kungfu::longfist::types;
 using namespace sqlite_orm;
-
-std::vector<kungfu::longfist::types::Session> assemble::get_sessions(const kungfu::yijinjing::data::location_ptr &pl) {
-  kungfu::yijinjing::data::locator_ptr l(new kungfu::yijinjing::data::locator());
-  auto index_location =
-      kungfu::yijinjing::data::location::make_shared(mode::LIVE, category::SYSTEM, "journal", "index", l);
-  std::string session_db = l->layout_file(index_location, layout::SQLITE, "index");
-  kungfu::yijinjing::cache::SessionStoragePtr session_storage_(
-      cache::make_storage_ptr(session_db, kungfu::longfist::SessionDataTypes));
-  if (not session_storage_->sync_schema_simulate().empty()) {
-    session_storage_->sync_schema();
-  }
-  auto bt = &Session::begin_time;
-  auto range = where(greater_or_equal(bt, 0) and lesser_or_equal(bt, INT64_MAX));
-  auto sessions = session_storage_->get_all<Session>(range, order_by(bt));
-  if (!pl) {
-    return sessions;
-  } else {
-    std::vector<kungfu::longfist::types::Session> filtered_sessions;
-    std::copy_if(sessions.begin(), sessions.end(), std::back_inserter(filtered_sessions),
-                 [&pl](kungfu::longfist::types::Session x) { return x.location_uid == pl->location_uid; });
-    return filtered_sessions;
-  }
-}
 
 assemble::assemble(const data::location_ptr &source_location, uint32_t dest_id, uint32_t assemble_mode,
                    int64_t from_time)

@@ -104,7 +104,7 @@ io_device_console::io_device_console(data::location_ptr home, int32_t console_wi
            << "data_length" << std::endl;
   }
 
-  while (tracer->data_available() and tracer->current_frame()->gen_time() <= end_time) {
+  while (tracer->data_available()) {
     auto frame = tracer->current_frame();
     auto dest_name = frame->dest() == location::PUBLIC ? "public"
                      : location::SYNC                  ? "sync"
@@ -169,7 +169,7 @@ io_device_console::io_device_console(data::location_ptr home, int32_t console_wi
            << "data" << std::endl;
   }
 
-  while (tracer->data_available() and tracer->current_frame()->gen_time() <= end_time) {
+  while (tracer->data_available()) {
     auto frame = tracer->current_frame();
     auto dest_name = frame->dest() == location::PUBLIC ? "public"
                      : location::SYNC                  ? "sync"

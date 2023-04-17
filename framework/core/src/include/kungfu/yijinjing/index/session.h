@@ -7,6 +7,7 @@
 #ifndef KUNGFU_SESSION_H
 #define KUNGFU_SESSION_H
 
+#include <kungfu/common.h>
 #include <kungfu/longfist/longfist.h>
 #include <kungfu/yijinjing/cache/backend.h>
 #include <kungfu/yijinjing/io.h>

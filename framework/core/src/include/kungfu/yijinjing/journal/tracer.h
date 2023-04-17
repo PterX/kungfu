@@ -14,7 +14,7 @@ class tracer {
 public:
   explicit tracer(const yijinjing::data::location_ptr location, bool in, bool out, int64_t begin, int64_t end);
 
-  virtual ~tracer() = default;
+  ~tracer();
 
   void next() { reader_->next(); };
 
@@ -22,13 +22,14 @@ public:
 
   [[nodiscard]] const yijinjing::data::location_ptr &get_home() const { return home_; }
 
-  [[nodiscard]] bool data_available() const { return reader_->data_available(); };
+  [[nodiscard]] bool data_available() const {
+    return reader_->data_available() && current_frame()->gen_time() < end_time_;
+  };
 
   [[nodiscard]] yijinjing::journal::frame_ptr current_frame() const;
 
   [[nodiscard]] yijinjing::journal::page_ptr current_page() const { return reader_->current_page(); };
 
-  // TODO support band
   [[nodiscard]] LocationMap &get_all_locations() { return locations_; }
 
 private:

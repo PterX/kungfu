@@ -7,8 +7,8 @@
 #ifndef YIJINJING_ASSEMBLE_H
 #define YIJINJING_ASSEMBLE_H
 
+#include <kungfu/yijinjing/bus.h>
 #include <kungfu/yijinjing/journal/journal.h>
-#include <kungfu/yijinjing/journal/tracer.h>
 
 namespace kungfu::yijinjing::journal {
 class sink {
@@ -18,9 +18,11 @@ public:
   virtual void put(const data::location_ptr &location, uint32_t dest_id, const frame_ptr &frame) = 0;
   virtual void close(){};
   [[nodiscard]] publisher_ptr get_publisher();
+  [[nodiscard]] bus_ptr get_bus();
 
 private:
   publisher_ptr publisher_;
+  bus_ptr bus_;
 };
 DECLARE_PTR(sink)
 
@@ -66,8 +68,6 @@ public:
   void next();
 
   frame_ptr current_frame();
-
-  std::vector<kungfu::longfist::types::Session> get_sessions(const kungfu::yijinjing::data::location_ptr &pl = nullptr);
 
   template <typename T>
   [[maybe_unused]] std::vector<T> read_all(int32_t msg_type = T::tag, int64_t end_time = INT64_MAX) {

@@ -244,12 +244,15 @@ def archive(ctx, format, mode):
         )
     )
 
+    return
+
     ctx.logger.info("pruning runtime logs")
     prune_layout_files(ctx.runtime_dir, "log", "live")
     ctx.logger.info("pruning runtime journals")
     prune_layout_files(ctx.runtime_dir, "journal", "live")
 
     if os.path.exists(today_archive_path):
+        ctx.logger.info(f"unpack_archive {today_archive_path}")
         shutil.unpack_archive(today_archive_path, ctx.runtime_dir)
     ctx.logger.info("archive done")
 

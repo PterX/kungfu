@@ -29,7 +29,7 @@
           }"
         >
           <template v-if="column.dataIndex === 'stringMsgType'">
-            <a-tag
+            <!-- <a-tag
               :style="{
                 color: item.msgTypeResolved.color || 'rgb(158, 158, 158)',
                 backgroundColor: dealTagBackgroudColor(
@@ -41,7 +41,7 @@
               }"
             >
               {{ item.stringMsgType }}
-            </a-tag>
+            </a-tag> -->
           </template>
           <template v-else>
             <span>
@@ -150,9 +150,9 @@ const framesMap = shallowRef<Record<string, KungfuApi.FrameResolved>>({});
 
 const visible = ref(false);
 const excludeRowData = [
-  'stringMsgType',
-  'sourceName',
-  'destName',
+  // 'stringMsgType',
+  // 'sourceName',
+  // 'destName',
   'data',
   'sourceToDest',
 ];
@@ -171,10 +171,12 @@ const currentRowDataResolved = computed(() => {
           ? `${item}Resolved`
           : item;
 
-        const value =
-          item === 'msgType'
-            ? currentRowData.stringMsgType
-            : `${currentRowData[key]}`;
+        // const value =
+        //   item === 'msgType'
+        //     ? currentRowData.stringMsgType
+        //     : `${currentRowData[key]}`;
+
+        const value = `NEED TO FIX ${key}`;
 
         return {
           key: item as unknown as keyof KungfuApi.FrameResolved,
@@ -276,12 +278,12 @@ const loadFrameData = (
               genTime: frame.genTime(),
               triggerTime: frame.triggerTime(),
               msgType: frame.msgType(),
-              stringMsgType: frame.stringMsgType(),
+              // stringMsgType: frame.stringMsgType(),
               source: frame.source(),
               dest: frame.dest(),
               data: frame.data(),
-              destName: frame.destName(),
-              sourceName: frame.sourceName(),
+              // destName: frame.destName(),
+              // sourceName: frame.sourceName(),
             };
 
             const curFrameDataResolved = dealFrame(curFrameData);
@@ -289,24 +291,24 @@ const loadFrameData = (
             curFramesMap[curFrameDataResolved.id] = curFrameDataResolved;
             framesMap.value[curFrameDataResolved.id] = curFrameDataResolved;
 
-            frameFilter.value?.addOption(FiltersEnum.DEST, [
-              {
-                label: curFrameDataResolved.destName,
-                value: curFrameDataResolved.dest + '',
-              },
-            ]);
-            frameFilter.value?.addOption(FiltersEnum.SOURCE, [
-              {
-                label: curFrameDataResolved.sourceName,
-                value: curFrameDataResolved.source + '',
-              },
-            ]);
-            frameFilter.value?.addOption(FiltersEnum.MSG_TYPE, [
-              {
-                label: curFrameDataResolved.stringMsgType,
-                value: curFrameDataResolved.msgType + '',
-              },
-            ]);
+            // frameFilter.value?.addOption(FiltersEnum.DEST, [
+            //   {
+            //     label: curFrameDataResolved.destName,
+            //     value: curFrameDataResolved.dest + '',
+            //   },
+            // ]);
+            // frameFilter.value?.addOption(FiltersEnum.SOURCE, [
+            //   {
+            //     label: curFrameDataResolved.sourceName,
+            //     value: curFrameDataResolved.source + '',
+            //   },
+            // ]);
+            // frameFilter.value?.addOption(FiltersEnum.MSG_TYPE, [
+            //   {
+            //     label: curFrameDataResolved.stringMsgType,
+            //     value: curFrameDataResolved.msgType + '',
+            //   },
+            // ]);
 
             ++total;
             ++count;
@@ -356,14 +358,14 @@ const onFiltersApply = (filtersFormState: Record<FiltersEnum, string[]>) => {
   });
 };
 
-const dealTagBackgroudColor = (color: string) => {
-  if (!color) return '';
-  if (color.indexOf('rgb') !== -1 && color.indexOf('rgba') === -1) {
-    const rgba = color.substring(4, color.length - 1) + ', 0.3';
-    return `rgba(${rgba})`;
-  }
-  return color;
-};
+// const dealTagBackgroudColor = (color: string) => {
+//   if (!color) return '';
+//   if (color.indexOf('rgb') !== -1 && color.indexOf('rgba') === -1) {
+//     const rgba = color.substring(4, color.length - 1) + ', 0.3';
+//     return `rgba(${rgba})`;
+//   }
+//   return color;
+// };
 
 const dealRowClassName = (row) => {
   return row.id === currentFramesId.value ? 'kf-current-table-select' : '';

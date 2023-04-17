@@ -99,6 +99,8 @@ public:
 
   void Quit(const Napi::CallbackInfo &info);
 
+  void AfterMasterDown(const Napi::CallbackInfo &info);
+
 protected:
   const bool bypass_accounting_;
   const bool bypass_trading_data_;
@@ -203,7 +205,7 @@ private:
 
   void SyncLedger();
 
-  void TryRefreshTradingData(const Napi::CallbackInfo &info);
+  void TryRefreshTradingData();
 
   void SyncTradingData();
 
@@ -218,8 +220,6 @@ private:
   void StartWorker();
 
   void CancelWorker();
-
-  void AfterMasterDown();
 
   void refresh_books();
 
@@ -336,7 +336,7 @@ private:
   template <typename Instruction, typename IdPtrType = uint64_t Instruction::*>
   Napi::Value InteractWithTD(const Napi::CallbackInfo &info, const Napi::Object &instruction_object, IdPtrType id_ptr) {
     try {
-      auto account_location = ExtractLocation(info, 1, get_locator());
+      auto account_location = IODevice::ExtractLocation(info, 1, get_locator());
       if (not is_location_live(account_location->uid) or not has_writer(account_location->uid)) {
         return Napi::BigInt::New(info.Env(), std::uint64_t(0));
       }
@@ -354,7 +354,7 @@ private:
         return Napi::BigInt::New(info.Env(), instruction.*id_ptr);
       }
 
-      auto strategy_location = ExtractLocation(info, 2, get_locator());
+      auto strategy_location = IODevice::ExtractLocation(info, 2, get_locator());
 
       if (not strategy_location) {
         return Napi::BigInt::New(info.Env(), std::uint64_t(0));

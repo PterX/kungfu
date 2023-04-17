@@ -76,6 +76,7 @@ const props = withDefaults(
   defineProps<{
     formState: Record<string, KungfuApi.KfConfigValue>;
     configSettings: KungfuApi.KfConfigItem[];
+    tdList?: KungfuApi.KfLocation[] | null;
     changeType?: KungfuApi.ModalChangeType;
     primaryKeyAvoidRepeatCompareExtra?: string;
     primaryKeyAvoidRepeatCompareTarget?: string[];
@@ -100,6 +101,7 @@ const props = withDefaults(
   {
     formState: () => ({}),
     configSettings: () => [],
+    tdList: () => null,
     changeType: 'add',
     primaryKeyAvoidRepeatCompareTarget: () => [],
     primaryKeyAvoidRepeatCompareExtra: '',
@@ -1395,7 +1397,7 @@ defineExpose({
         "
       >
         <a-select-option
-          v-for="config in td"
+          v-for="config in tdList ? tdList : td"
           :key="getIdByKfLocation(config)"
           :value="getIdByKfLocation(config)"
         >

@@ -118,7 +118,7 @@ Napi::Value DataTable::Range(const Napi::CallbackInfo &info) {
       add(val, lower_bound, upper_bound);
     }
     if (value.IsBigInt() and IsValid(info, 1, &Napi::Value::IsString)) {
-      bool lossless = {};
+      bool lossless;
       auto val = value.As<Napi::BigInt>().Int64Value(&lossless);
       auto lower_bound = TryParseTime(info, 1);
       auto upper_bound = IsValid(info, 2, &Napi::Value::IsString) ? TryParseTime(info, 2) : lower_bound;

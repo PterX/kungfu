@@ -94,6 +94,8 @@ public:
 
   [[nodiscard]] longfist::enums::mode get_dir_mode() const { return dir_mode_; }
 
+  bool operator==(const locator &another) const;
+
 private:
   std::filesystem::path root_;
   longfist::enums::mode dir_mode_;

@@ -24,6 +24,7 @@
   "dependencies": {
     "@kungfu-trader/kfx-broker-sim": "^2.6.0-alpha.10",
     "@kungfu-trader/kfx-broker-xtp-demo": "^2.6.0-alpha.10",
+    "@kungfu-trader/kfx-operator-bar": "^2.6.0-alpha.10",
     "@kungfu-trader/kungfu-app": "^2.6.0-alpha.10",
     "@kungfu-trader/kungfu-cli": "^2.6.0-alpha.10",
     "@kungfu-trader/kungfu-core": "^2.6.0-alpha.10",

@@ -12,6 +12,15 @@ module.exports = {
       optimization: {
         minimize: true,
         minimizer: [new TerserPlugin()],
+        splitChunks: {
+          chunks: 'all',
+        },
+      },
+      cache: {
+        type: 'filesystem',
+        buildDependencies: {
+          config: [__filename],
+        },
       },
       module: {
         rules: [

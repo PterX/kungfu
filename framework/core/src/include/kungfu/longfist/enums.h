@@ -57,6 +57,7 @@ NLOHMANN_JSON_SERIALIZE_ENUM(category, {
                                            {category::MD, "MD"},
                                            {category::TD, "TD"},
                                            {category::STRATEGY, "STRATEGY"},
+                                           {category::OPERATOR, "OPERATOR"},
                                            {category::SYSTEM, "SYSTEM"},
                                        })
 
@@ -587,7 +588,8 @@ public:
   inline static const uint32_t Write = 0b00000010;   // read all journal from this location
   inline static const uint32_t Read = 0b00000100;    // read all journal to this dest_id
   inline static const uint32_t Public = 0b00001000;  // read all journal to location::PUBLIC
-  inline static const uint32_t All = 0b00010000;     // read all journal
+  inline static const uint32_t Sync = 0b00010000;    // read all journal to location::PUBLIC
+  inline static const uint32_t All = 0b00100000;     // read all journal
 };
 
 template <typename T, typename U> [[maybe_unused]] inline T sub_data_bitwise(const T &a, const T &b) {

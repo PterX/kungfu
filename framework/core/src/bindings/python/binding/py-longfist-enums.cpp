@@ -50,6 +50,8 @@ void bind_enums(py::module &m) {
       .value("Fund", InstrumentType::Fund)
       .value("Index", InstrumentType::Index)
       .value("Repo", InstrumentType::Repo)
+      .value("Warrant", InstrumentType::Warrant)
+      .value("Iopt", InstrumentType::Iopt)
       .value("Crypto", InstrumentType::Crypto)
       .value("CryptoFuture", InstrumentType::CryptoFuture)
       .value("CryptoUFuture", InstrumentType::CryptoUFuture)
@@ -289,6 +291,7 @@ void bind_enums(py::module &m) {
       .def_readonly_static("Write", &AssembleMode::Write)
       .def_readonly_static("Read", &AssembleMode::Read)
       .def_readonly_static("Public", &AssembleMode::Public)
+      .def_readonly_static("Sync", &AssembleMode::Sync)
       .def_readonly_static("All", &AssembleMode::All);
 }
 } // namespace kungfu::longfist::pybind

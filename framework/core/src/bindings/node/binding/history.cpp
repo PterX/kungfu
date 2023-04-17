@@ -22,7 +22,7 @@ namespace kungfu::node {
 Napi::FunctionReference History::constructor = {};
 
 History::History(const Napi::CallbackInfo &info)
-    : ObjectWrap(info), locator_(ExtractRuntimeLocatorByInfo0(info)),
+    : ObjectWrap(info), locator_(IODevice::ExtractRuntimeLocatorByIndex(info, 0)),
       ledger_location_(location::make_shared(mode::LIVE, category::SYSTEM, "service", "ledger", locator_)),
       profile_(locator_) {}
 

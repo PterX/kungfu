@@ -1,4 +1,4 @@
-import { SessionStatusEnum } from './../../../../../../api/src/typings/enums';
+import { SessionStatusEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 const { t } = VueI18n.global;
 

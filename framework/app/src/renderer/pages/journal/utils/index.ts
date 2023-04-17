@@ -1,4 +1,4 @@
-import { SessionStatusEnum } from './../../../../../../api/src/typings/enums';
+import { SessionStatusEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import { WorkerReceiver } from './../workers/receiver';
 import { storeToRefs } from 'pinia';
 import { useJournalStore } from './../store/journalStore';
@@ -157,9 +157,10 @@ export const dealFrame = (frame: KungfuApi.Frame): KungfuApi.FrameResolved => {
     genTimeResolved: dealKfTime(frame.genTime, true),
     triggerTimeResolved: dealKfTime(frame.triggerTime, true),
     msgTypeResolved: dealFrameMsgType(frame.msgType),
-    destResolved: frame.destName,
-    sourceResolved: frame.sourceName,
-    sourceToDest: dealFrameSourceToDest(frame.sourceName, frame.destName),
+    destResolved: 'TODO',
+    sourceResolved: 'TODO',
+    // sourceToDest: dealFrameSourceToDest(frame.sourceName, frame.destName),
+    sourceToDest: 'TODO',
     dataResolved: dealFrameData(frame.data),
   };
 };

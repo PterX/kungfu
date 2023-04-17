@@ -11,6 +11,7 @@
 #include <kungfu/yijinjing/practice/hero.h>
 #include <kungfu/yijinjing/time.h>
 #include <kungfu/yijinjing/util/os.h>
+#include <kungfu/yijinjing/util/util.h>
 
 using namespace kungfu::rx;
 using namespace kungfu::longfist::enums;
@@ -381,5 +382,14 @@ void hero::delegate_produce(hero *instance, const rx::subscriber<event_ptr> &sub
 #else
   instance->produce(subscriber);
 #endif
+}
+
+yijinjing::journal::writer_ptr &hero::get_thread_writer() {
+  if (not thread_writer_ or thread_id_ == 0) {
+    thread_id_ = kungfu::yijinjing::util::get_thread_id();
+    thread_writer_ = get_io_device()->open_writer(thread_id_);
+    reader_->join(get_home(), thread_id_, now());
+  }
+  return thread_writer_;
 }
 } // namespace kungfu::yijinjing::practice

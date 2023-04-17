@@ -8,6 +8,7 @@ namespace kungfu::yijinjing::journal {
 reader::~reader() { journals_.clear(); }
 
 void reader::join(const data::location_ptr &location, uint32_t dest_id, const int64_t from_time) {
+  std::lock_guard<std::mutex> lk(mtx_join_);
   auto key = static_cast<uint64_t>(location->uid) << 32u | static_cast<uint64_t>(dest_id);
   auto result = journals_.try_emplace(key, location, dest_id, false, lazy_);
   if (result.second) {

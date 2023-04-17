@@ -103,6 +103,7 @@ private:
   const bool lazy_;
   journal *current_;
   std::unordered_map<uint64_t, journal> journals_;
+  std::mutex mtx_join_;
 };
 
 class writer {

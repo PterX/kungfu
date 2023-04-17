@@ -127,6 +127,8 @@ protected:
   int64_t begin_time_;
   int64_t end_time_;
   yijinjing::journal::reader_ptr reader_;
+  inline static thread_local uint32_t thread_id_{0};
+  inline static thread_local yijinjing::journal::writer_ptr thread_writer_;
   WriterMap writers_ = {};
   std::unordered_map<uint64_t, longfist::types::Band> bands_ = {};
   std::unordered_map<uint64_t, longfist::types::Channel> channels_ = {};
@@ -138,6 +140,8 @@ protected:
   const yijinjing::data::location_ptr master_cmd_location_;
   const yijinjing::data::location_ptr cached_home_location_;
   const yijinjing::data::location_ptr ledger_home_location_;
+
+  yijinjing::journal::writer_ptr &get_thread_writer();
 
   static uint64_t make_source_dest_hash(uint32_t source_id, uint32_t dest_id);
 

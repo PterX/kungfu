@@ -89,6 +89,8 @@ void hero::signal_stop() { live_ = false; }
 
 int64_t hero::now() const { return now_; }
 
+void hero::set_now(int64_t now) { now_ = now; }
+
 void hero::set_begin_time(int64_t begin_time) { begin_time_ = begin_time; }
 
 int64_t hero::get_begin_time() const { return begin_time_; }

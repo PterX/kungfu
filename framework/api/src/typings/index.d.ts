@@ -96,6 +96,7 @@ declare namespace KungfuApi {
     | 'files' // string[]
     | 'folder' // string
     | 'table' // any[]
+    | 'rangePicker' //string[]
     | 'dateTimePicker' //string
     | 'datePicker' //string
     | 'timePicker' //string
@@ -185,6 +186,7 @@ declare namespace KungfuApi {
     template?: KfConfigItemTemplate[];
     search?: KfConfigItemSearch;
     importMode?: 'reset' | 'add';
+    disableDateRange?: number; //时间范围选择器不可选的日期范围
 
     // ---- some ui releated ----;
     noDivider?: boolean;
@@ -1117,10 +1119,10 @@ declare module '@kungfu-trader/kungfu-core' {
 declare namespace Code {
   import { Stats } from 'fs-extra';
   import { SpaceTabSettingEnum, SpaceSizeSettingEnum } from './enums';
-  export interface Strategy {
-    strategy_id: string;
+
+  export interface CodeInfo {
+    code_id: string;
     file_path: string;
-    add_time: number;
   }
 
   export interface FileProps {

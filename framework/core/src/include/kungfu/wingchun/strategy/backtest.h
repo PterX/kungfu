@@ -221,7 +221,7 @@ protected:
 
   virtual void prepare(const event_ptr &event) override;
 
-  const yijinjing::data::location_ptr find_md_location(const std::string &source);
+  yijinjing::data::location_ptr find_md_location(const std::string &source);
 
 private:
   broker::PassiveClient broker_client_;

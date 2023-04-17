@@ -239,7 +239,7 @@ broker::Client &BacktestContext::get_broker_client() { return broker_client_; }
 
 book::Bookkeeper &BacktestContext::get_bookkeeper() { return bookkeeper_; }
 
-const location_ptr BacktestContext::find_md_location(const std::string &source) {
+location_ptr BacktestContext::find_md_location(const std::string &source) {
   uint32_t cache_uid = hash_backtest_cache(source, app_.get_begin_time(), app_.get_end_time());
   auto cache_location =
       location::make_shared(mode::BACKTEST, category::MD, source, fmt::format("{:08x}", cache_uid), app_.get_locator());

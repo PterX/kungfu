@@ -11,7 +11,7 @@
       <div
         class="each-files"
         :class="{
-          'root-file': fileNode.root,
+          'root-file': fileNode?.root,
           active: fileNode.filePath === currentFile.filePath,
         }"
         :style="{ 'padding-left': `${curCount * 16 + 5}px` }"
@@ -21,7 +21,7 @@
           <span
             class="file-name"
             :class="{
-              'root-name': fileNode.root,
+              'root-name': fileNode?.root,
               'normal-name': entryFile.filePath !== fileNode.filePath,
             }"
             v-if="fileNode && !onEditing && fileNode.name"
@@ -58,23 +58,15 @@
             @blur="handleAddFileBlur"
             @pressEnter="enterBlur"
           ></a-input>
-          <span
-            class="text-overflow"
-            v-show="
-              fileNode &&
-              (fileNode.isEntryFile ||
-                fileNode.filePath === entryFile.filePath) &&
-              fileNode.filePath !== undefined &&
-              !onEditing
-            "
-          >
-            ({{ $t('editor.entry_file') }})
+          <span class="text-overflow" v-show="isEntryFile && !onEditing">
+            <span class="text-entry-file">({{ $t('editor.entry_file') }})</span>
           </span>
           <div
             class="deal-file"
-            v-show="fileNode && !onEditing && fileNode.name && !fileNode.root"
+            v-show="fileNode && !onEditing && fileNode.name && !fileNode?.root"
           >
             <span
+              v-if="!isEntryFile || isEntryFilenameEditable"
               class="mouse-over"
               :title="$t('rename')"
               @click.stop="handleRename"
@@ -92,7 +84,7 @@
         </div>
         <span
           class="path"
-          v-if="fileNode && fileNode.root"
+          v-if="fileNode && fileNode?.root"
           :title="fileNode.filePath"
         >
           {{ fileNode.filePath }}
@@ -114,18 +106,20 @@
           :id="id"
           type="folder"
           :count="childCount"
+          :isEntryFilenameEditable="isEntryFilenameEditable"
         />
       </div>
     </div>
     <div v-if="isShowChildren">
       <div v-for="id in fileNode.children.file">
         <ComFileNode
+          :isEntryFilenameEditable="isEntryFilenameEditable"
           :fileNode="fileTree[id]"
           :id="id"
           type="file"
           :count="childCount"
-          @updateStrategyToApp="updateStrategyToApp"
         />
+        <!-- @updateCodeToApp="updateCodeToApp" 用于上面组件 -->
       </div>
     </div>
   </div>
@@ -134,7 +128,6 @@
 <script lang="ts">
 export default {
   name: 'ComFileNode',
-  emits: ['updateStrategyToApp'],
 };
 </script>
 
@@ -145,16 +138,7 @@ import iconFolderJSON from '../config/iconFolderConfig.json';
 import iconFileJSON from '../config/iconFileConfig.json';
 import path from 'path';
 import { storeToRefs } from 'pinia';
-import {
-  onMounted,
-  ref,
-  toRefs,
-  computed,
-  watch,
-  nextTick,
-  getCurrentInstance,
-  ComponentInternalInstance,
-} from 'vue';
+import { onMounted, ref, toRefs, computed, watch, nextTick } from 'vue';
 import { Alert } from 'ant-design-vue';
 import { openFolder } from '../../../assets/methods/codeUtils';
 import {
@@ -162,13 +146,11 @@ import {
   addFileSync,
 } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
 import fse from 'fs-extra';
-import { ipcEmitDataByName } from '../../../ipcMsg/emitter';
 import { confirmModal, messagePrompt } from '../../../assets/methods/uiUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 const { t } = VueI18n.global;
 
 const { success, error, warning } = messagePrompt();
-const { proxy } = getCurrentInstance() as ComponentInternalInstance;
 
 const store = useCodeStore();
 
@@ -177,10 +159,10 @@ const props = defineProps<{
   type: string;
   id: number | string;
   count: number | string;
+  isEntryFilenameEditable: boolean;
 }>();
 
-const { type, count } = props;
-const { fileNode, id } = toRefs(props);
+const { fileNode, id, count, type } = toRefs(props);
 const curCount = ref<number>(+(count || 0));
 const childCount = ref<number>(curCount.value + 1);
 
@@ -206,6 +188,15 @@ const isPending = computed(() => {
   return fileTree.value['pending']['parentId'] === id.value;
 });
 
+const isEntryFile = computed(() => {
+  return (
+    fileNode.value &&
+    (fileNode.value.isEntryFile ||
+      fileNode.value.filePath === entryFile.value.filePath) &&
+    fileNode.value.filePath !== undefined
+  );
+});
+
 watch(isShowChildren, () => {
   iconPath.value = getIcon(fileNode.value);
 });
@@ -225,7 +216,7 @@ function handleClickFile(file) {
   //如果为dir
   //打开文件夹, 如果children不为空，直接展示, 之后异步更新，将原来删除
   //如果children为空，读取文件夹下文件，赋值children
-  if (type == 'folder' && !file.root) {
+  if (type.value == 'folder' && !file?.root) {
     openFolder(file, fileTree.value);
   }
 }
@@ -254,10 +245,10 @@ const handleAddFileBlur = (e) => {
       parentId !== null && parentId !== undefined
         ? fileTree.value[parentId].filePath
         : '';
-    const typeName = type == 'folder' ? t('folder') : t('file');
+    const typeName = type.value == 'folder' ? t('folder') : t('file');
 
-    if (type === 'folder' || type === 'file') {
-      addFileSync(targetPath, filename, type);
+    if (type.value === 'folder' || type.value === 'file') {
+      addFileSync(targetPath, filename, type.value);
     }
     store.removeFileFolderPending({
       id: fileNode.value?.parentId,
@@ -314,9 +305,11 @@ function handleDelete() {
     fileNode.value.filePath !== entryFile.value.filePath
   ) {
     const parentId = fileNode.value?.parentId;
-    const typeName = type == 'folder' ? t('folder') : t('file');
-
-    confirmModal(t('prompt'), t('editor.delate_confirm')).then((flag) => {
+    const typeName = type.value == 'folder' ? t('folder') : t('file');
+    confirmModal(
+      t('prompt'),
+      t('editor.delete_confirm', { value: typeName }),
+    ).then((flag) => {
       if (!flag) return;
 
       removeFileFolder(fileNode.value?.filePath || '')
@@ -326,7 +319,7 @@ function handleDelete() {
         .then(() =>
           openFolder(fileTree.value[parentId || 0], fileTree.value, true, true),
         )
-        .then(() => success(`${typeName}${t('operation_success')}`))
+        .then(() => success(`${t(typeName)}${t('operation_success')}`))
         .catch((err) => {
           if (err == 'cancel') return;
           error(err.message || t('operation_failed'));
@@ -367,27 +360,11 @@ const handleEditFileBlur = () => {
   const parentId = fileNode.value?.parentId;
 
   // 更改文件名
-  fse
-    .rename(oldPath, newPath)
-    .then(() => {
-      reloadFolder(parentId, newName);
-    })
-    .then(() => {
-      if (fileNode.value === entryFile.value || fileNode.value.isEntryFile) {
-        ipcEmitDataByName('updateStrategyPath', {
-          strategyId: store.currentStrategy.strategy_id,
-          strategyPath: newPath,
-        }).then(() => {
-          updateStrategyToApp(newPath);
-        });
-      }
-    });
+  fse.rename(oldPath, newPath).then(() => {
+    reloadFolder(parentId, newName);
+  });
   editValue.value = '';
 };
-
-function updateStrategyToApp(newPath) {
-  proxy?.$emit('updateStrategyToApp', newPath);
-}
 
 //重制状态
 function resetStatus(): void {
@@ -411,7 +388,7 @@ function reloadFolder(parentId, filename) {
 
 function getIcon(file: Code.FileData): string {
   let iconName: string = '';
-  if (type == 'folder') {
+  if (type.value == 'folder') {
     if (file['open']) {
       if (iconFolderJSON[file.name]) {
         iconName = iconFolderJSON[file.name] + '-open';
@@ -423,8 +400,8 @@ function getIcon(file: Code.FileData): string {
       if (!iconName) iconName = 'folder';
     }
   } else {
-    const ext: string = file.ext || '';
-    const fileName: string = file.name || '';
+    const ext: string = file?.ext || '';
+    const fileName: string = file?.name || '';
     if (ext && iconFileJSON[ext]) {
       iconName = iconFileJSON[ext];
     } else {
@@ -476,7 +453,7 @@ function getSiblingsName(parentId) {
 
 onMounted(() => {
   nextTick(() => {
-    if (fileNode) {
+    if (fileNode.value) {
       iconPath.value = getIcon(fileNode.value);
     }
     if (document.getElementById('add-input')) {
@@ -515,6 +492,9 @@ onMounted(() => {
       flex: 1;
       white-space: nowrap;
       margin-right: 10px;
+    }
+    .text-entry-file {
+      color: @gold-base;
     }
     .path {
       margin: 0 4px;

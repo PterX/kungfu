@@ -994,6 +994,11 @@ declare namespace KungfuApi {
     next(): void;
     dataAvailable(): boolean;
   }
+  export interface Tracer {
+    currentFrame(): Frame;
+    dataAvailable(): boolean;
+    next(): void;
+  }
 
   export interface Longfist {
     types: {
@@ -1041,6 +1046,14 @@ declare namespace KungfuApi {
     IODevice(location: KfLocation, kfHome: string): IODevice;
     Longfist(): Longfist;
     Assemble(kfHome: string[]): Assemble;
+    tracer(
+      location: KfLocation,
+      kfHome: string,
+      home: boolean,
+      write: boolean,
+      startTime: bigint,
+      endTime: bigint,
+    ): Tracer;
     watcher(
       kfHome: string,
       hashedId: string,

@@ -93,6 +93,9 @@ def sessions(ctx, sortby, ascending, tablefmt):
     all_sessions["begin_time"] = all_sessions["begin_time"].apply(
         lambda t: kft.strftime(t, kft.SESSION_DATETIME_FORMAT)
     )
+    all_sessions["update_time"] = all_sessions["update_time"].apply(
+        lambda t: kft.strftime(abs(t), kft.SESSION_DATETIME_FORMAT)
+    )
     all_sessions["end_time"] = all_sessions["end_time"].apply(
         lambda t: kft.strftime(abs(t), kft.SESSION_DATETIME_FORMAT)
     )
@@ -118,6 +121,16 @@ def rebuild_index(ctx):
     session_builder = yjj.session_builder(io_device)
     click.echo("rebuild sqlite db")
     session_builder.rebuild_index_db()
+    click.echo("done")
+
+
+@journal.command()
+@journal_command_context
+def update_index(ctx):
+    io_device = yjj.io_device(ctx.console_location)
+    session_builder = yjj.session_builder(io_device)
+    click.echo("update sqlite db")
+    session_builder.update_index_db()
     click.echo("done")
 
 
@@ -243,8 +256,7 @@ def archive(ctx, format, mode):
             filter(os.path.isdir, sorted(os.listdir(os.curdir))),
         )
     )
-
-    return
+    update_index_db(ctx)
 
     ctx.logger.info("pruning runtime logs")
     prune_layout_files(ctx.runtime_dir, "log", "live")
@@ -289,17 +301,6 @@ def export_logs(ctx, src_dir, dst_dir):
 
 
 def make_archive(ctx, archive_format, archive_date):
-    archive_locator = Locator(archive_date)
-    index_location = yjj.location(
-        lf.enums.mode.LIVE,
-        lf.enums.category.SYSTEM,
-        "journal",
-        "index",
-        archive_locator,
-    )
-    io_device = yjj.io_device(index_location, True, True)
-    session_builder = yjj.session_builder(io_device)
-    session_builder.rebuild_index_db()
     archive_name = f"{ARCHIVE_PREFIX}-{archive_date}"
     archive_file = f"{archive_name}.{archive_format}"
     if os.path.exists(archive_file):
@@ -308,6 +309,19 @@ def make_archive(ctx, archive_format, archive_date):
     shutil.make_archive(archive_name, archive_format, archive_date)
     shutil.rmtree(archive_date)
     ctx.logger.info(f"compressed archive for {archive_date}")
+
+
+def update_index_db(ctx):
+    index_location = yjj.location(
+        lf.enums.mode.LIVE,
+        lf.enums.category.SYSTEM,
+        "journal",
+        "index",
+        ctx.runtime_locator,
+    )
+    io_device = yjj.io_device(index_location, True, True)
+    session_builder = yjj.session_builder(io_device)
+    session_builder.update_index_db()
 
 
 def print_archive(archive_file):

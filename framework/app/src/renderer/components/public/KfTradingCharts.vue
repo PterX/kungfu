@@ -1,11 +1,11 @@
 <template>
   <div ref="chartWrapper" class="kf-charts__wrap">
-    <div :ref="chart" :id="id" class="kf-chart__content"></div>
+    <div :id="id" :ref="chart" class="kf-chart__content"></div>
   </div>
 </template>
 
 <script lang="ts" setup>
-import { onMounted, ref, watch, onBeforeUnmount } from 'vue';
+import { onMounted, ref, watch, onBeforeUnmount, watchEffect } from 'vue';
 import * as echarts from 'echarts';
 
 const props = defineProps<{
@@ -55,6 +55,9 @@ watch(
     deep: true,
   },
 );
+watchEffect(() => {
+  console.log('option', props.option);
+});
 
 onMounted(() => {
   initChart();

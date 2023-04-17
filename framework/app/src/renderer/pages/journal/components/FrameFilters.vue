@@ -21,10 +21,8 @@
         :max-tag-count="2"
         show-search
         :placeholder="$t('keyword_input')"
-   
         allow-clear
       >
-     
         <!-- <a-select-option
           v-for="option in filtersOptions[item]"
           :key="option.label"
@@ -44,13 +42,20 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+import { longfist } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { FiltersEnum } from '../utils/filterUtils';
 import { useFrameFilters } from '../utils/filterUtils';
 
 const { t } = VueI18n.global;
 
+const props = withDefaults(
+  defineProps<{
+    locationMap: Record<string, string>;
+  }>(),
+  {},
+);
 const emit = defineEmits<{
   (e: 'applyFilters', frameFiltersMap: Record<FiltersEnum, string[]>): void;
 }>();
@@ -62,12 +67,11 @@ const formLabelMap = {
   [FiltersEnum.MSG_TYPE]: t('journalConfig.msg_type'),
 };
 const options3 = ref([
-      
-        {label: 'td/sim/1/live', value: '2764285673'},
-        {label: 'system/service/cached/live', value: '2999745424'}
+  { label: 'td/sim/1/live', value: '2764285673' },
+  { label: 'system/service/cached/live', value: '2999745424' },
 ]);
-    console.log(options3.value)
-const optionsMap = ref<string[]>([]);
+console.log(options3.value);
+// const optionsMap = ref<string[]>([]);
 
 const {
   filtersFormState,
@@ -76,6 +80,29 @@ const {
   // addFilterOption,
 } = useFrameFilters();
 
+watch(
+  () => props.locationMap,
+  () => {
+    let msg: Record<number, string> = longfist.msgTypes;
+    filtersOptions.DEST = Object.entries(props.locationMap).map(
+      ([key, value]) => ({
+        label: value as string,
+        value: key,
+      }),
+    );
+    filtersOptions.SOURCE = Object.entries(props.locationMap).map(
+      ([key, value]) => ({
+        label: value as string,
+        value: key,
+      }),
+    );
+    filtersOptions.MSG_TYPE = Object.entries(msg).map(([key, value]) => ({
+      label: value,
+      value: key,
+    }));
+  },
+);
+
 const addOption = (
   filterEnum: FiltersEnum,
   options: {
@@ -83,7 +110,6 @@ const addOption = (
     value: string;
   }[],
 ) => {
-
   if (filterEnum === FiltersEnum.MSG_TYPE) {
     filtersFormState.MSG_TYPE.push(
       ...options.reduce((pre, item) => {
@@ -95,16 +121,16 @@ const addOption = (
       }, [] as string[]),
     );
     //options[0]push进filtersOptions.MSG_TYPE中，如果已经存在相同元素不要添加
-    if (!filtersOptions.MSG_TYPE) {
-      optionsMap.value = [];
-    } else if (
-      !optionsMap.value.includes(options[0].value) &&
-      options[0].label !== undefined &&
-      options[0].value !== undefined
-    ) {
-      optionsMap.value.push(options[0].value);
-      filtersOptions.MSG_TYPE.push(options[0]);
-    }
+    // if (!filtersOptions.MSG_TYPE) {
+    //   optionsMap.value = [];
+    // } else if (
+    //   !optionsMap.value.includes(options[0].value) &&
+    //   options[0].label !== undefined &&
+    //   options[0].value !== undefined
+    // ) {
+    //   optionsMap.value.push(options[0].value);
+    //   filtersOptions.MSG_TYPE.push(options[0]);
+    // }
   }
   if (filterEnum === FiltersEnum.SOURCE) {
     filtersFormState.SOURCE.push(
@@ -116,16 +142,16 @@ const addOption = (
         return pre;
       }, [] as string[]),
     );
-    if (!filtersOptions.SOURCE) {
-      optionsMap.value = [];
-    } else if (
-      !optionsMap.value.includes(options[0].value) &&
-      options[0].label !== undefined &&
-      options[0].value !== undefined
-    ) {
-      optionsMap.value.push(options[0].value);
-      filtersOptions.SOURCE.push(options[0]);
-    }
+    // if (!filtersOptions.SOURCE) {
+    //   optionsMap.value = [];
+    // } else if (
+    //   !optionsMap.value.includes(options[0].value) &&
+    //   options[0].label !== undefined &&
+    //   options[0].value !== undefined
+    // ) {
+    //   optionsMap.value.push(options[0].value);
+    //   filtersOptions.SOURCE.push(options[0]);
+    // }
   }
 
   if (filterEnum === FiltersEnum.DEST) {
@@ -138,16 +164,16 @@ const addOption = (
         return pre;
       }, [] as string[]),
     );
-    if (!filtersOptions.DEST) {
-      optionsMap.value = [];
-    } else if (
-      !optionsMap.value.includes(options[0].value) &&
-      options[0].label !== undefined &&
-      options[0].value !== undefined
-    ) {
-      optionsMap.value.push(options[0].value);
-      filtersOptions.DEST.push(options[0]);
-    }
+    // if (!filtersOptions.DEST) {
+    //   optionsMap.value = [];
+    // } else if (
+    //   !optionsMap.value.includes(options[0].value) &&
+    //   options[0].label !== undefined &&
+    //   options[0].value !== undefined
+    // ) {
+    //   optionsMap.value.push(options[0].value);
+    //   filtersOptions.DEST.push(options[0]);
+    // }
   }
   // filtersOptions.MSG_TYPE = filtersFormState.MSG_TYPE.map(
   //   (item) => ({
@@ -164,13 +190,6 @@ const addOption = (
   //   value: item,
   // }));
 
-  console.log(
-    'filter',
-    filterEnum,
-    options,
-    filtersFormState,
-    filtersOptions,
-  );
   // addFilterOption(filterEnum, options);
 };
 

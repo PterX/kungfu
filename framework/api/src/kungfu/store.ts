@@ -9,7 +9,6 @@ import {
 import { BASE_DB_DIR } from '../config/pathConfig';
 
 export const getKfAllConfig = (): Promise<KungfuApi.KfConfigOrigin[]> => {
-  console.log('getKfAllLocation', configStore.getAllLocation());
   if (fse.pathExistsSync(path.join(BASE_DB_DIR, 'config.db'))) {
     return getResultUntilValuable(() => configStore.getAllConfig()).then(
       (allConfigs) => Object.values(allConfigs),

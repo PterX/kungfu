@@ -6,6 +6,7 @@
       </div>
       <FrameFilters
         ref="frameFilter"
+        :location-map="locationMap"
         @apply-filters="onFiltersApply"
       ></FrameFilters>
     </div>
@@ -102,7 +103,6 @@ import KfTradingDataTable from '@kungfu-trader/kungfu-app/src/renderer/component
 import FrameFilters from './FrameFilters.vue';
 import { useJournalStore } from '../store/journalStore';
 import { SessionStatusEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
-// import { longfist } from '@kungfu-trader/kungfu-js-api/kungfu';
 
 const props = withDefaults(
   defineProps<{
@@ -204,8 +204,6 @@ const currentRowDataResolved = computed(() => {
             ? currentRowData.stringMsgType
             : `${currentRowData[key]}`;
 
-        // const value = `NEED TO FIX ${key}`;
-
         return {
           key: item as unknown as keyof KungfuApi.FrameResolved,
           value,
@@ -221,8 +219,14 @@ watch(
   () => props.currentSession,
   (newSession, oldSession) => {
     if (newSession && newSession !== oldSession) {
+      isLoading = false;
       cacheId = 0;
-      loadFrameData(newSession, newSession.begin_time, newSession.end_time);
+      loadFrameData(
+        newSession,
+        newSession.begin_time,
+        newSession.end_time,
+        true,
+      );
     }
   },
 );
@@ -230,6 +234,7 @@ watch(
 watch(
   () => props.currentTimeRangeData,
   (newRangeData) => {
+    console.log('newRangeData', newRangeData, isLoading);
     if (props.currentSession) {
       if (newRangeData.range[0] && newRangeData.range[1]) {
         if (newRangeData.reload) {
@@ -275,7 +280,6 @@ const checkReaderArgs = (args: {
 };
 
 const getDataResolved = (data: object): dataResolvedType | null => {
-  console.log('data111', data);
   if (data !== null) {
     const result: dataResolvedType = [];
     Object.keys(data).forEach((item) => {
@@ -289,14 +293,161 @@ const getDataResolved = (data: object): dataResolvedType | null => {
   return null;
 };
 let cacheId = 0;
+let isLoading = false;
+// const loadFrameData = (
+//   session: KungfuApi.SessionResolved,
+//   startTime: bigint,
+//   endTime: bigint,
+//   checking = false,
+// ) => {
+//   if (isLoading) return;
+//   isLoading = true;
+//   const sessionId = session.index;
+//   if (!checkReaderArgs({ sessionId, startTime, endTime })) return;
+
+//   if (!checking) {
+//     loadingJournal.value = true;
+//     if (session.status === SessionStatusEnum.Running) {
+//       journalReader = assemble.getReader(sessionId, startTime);
+//     } else {
+//       journalReader = assemble.getReader(sessionId, startTime, endTime);
+//     }
+//     framesMap.value = {};
+//   }
+
+//   let total;
+//   if (checking) {
+//     total = cacheId;
+//   } else {
+//     total = 0;
+//   }
+//   console.log(
+//     'checking',
+//     { sessionId, startTime, endTime },
+//     checking,
+//     journalReader,
+//   );
+
+//   const curFramesMap = {};
+
+//   return new Promise<KungfuApi.FrameResolved[]>((resolve, _) => {
+//     const runner = () => {
+//       setTimeout(() => {
+//         if (!journalReader) return resolve([]);
+//         let count = 0;
+//         journalReader.run((frame) => {
+//           console.log('frame', frame);
+//           if (frame) {
+//             const dataResolved: dataResolvedType = [
+//               { children: [], key: 'root-start', title: '{' },
+//               { key: 'root-end', title: '}' },
+//             ];
+//             const data = frame.data();
+//             const dataChildren = getDataResolved(data);
+//             if (dataChildren !== undefined && dataChildren !== null) {
+//               if (!dataResolved[0].children) dataResolved[0].children = [];
+//               dataResolved[0].children = dataChildren;
+//             }
+//             const curFrameData: KungfuApi.Frame = {
+//               id: total,
+//               dataLength: frame.dataLength(),
+//               genTime: frame.genTime(),
+//               triggerTime: frame.triggerTime(),
+//               msgType: frame.msgType(),
+//               stringMsgType: longfist.msgTypes[frame.msgType()],
+//               source: frame.source(),
+//               dest: frame.dest(),
+//               data: data,
+
+//               dataResolved: dataResolved,
+//             };
+
+//             curFrameData.destName = props.locationMap[curFrameData.dest];
+//             curFrameData.sourceName = props.locationMap[curFrameData.source];
+//             curFrameData.sourceToDest = `${curFrameData.sourceName} -> ${curFrameData.destName}`;
+//             const curFrameDataResolved = dealFrame(curFrameData);
+//             curFramesMap[curFrameDataResolved.id] = curFrameDataResolved;
+//             framesMap.value[curFrameDataResolved.id] = curFrameDataResolved;
+//             frameFilter.value?.addOption(FiltersEnum.DEST, [
+//               {
+//                 label: curFrameDataResolved.destName,
+//                 value: curFrameDataResolved.dest + '',
+//               },
+//             ]);
+//             frameFilter.value?.addOption(FiltersEnum.SOURCE, [
+//               {
+//                 label: curFrameDataResolved.sourceName,
+//                 value: curFrameDataResolved.source + '',
+//               },
+//             ]);
+//             frameFilter.value?.addOption(FiltersEnum.MSG_TYPE, [
+//               {
+//                 label: curFrameDataResolved.stringMsgType,
+//                 value: curFrameDataResolved.msgType + '',
+//               },
+//             ]);
+//             console.log(
+//               'journalReader',
+//               journalReader,
+//               curFrameData,
+//               frame,
+//               dataChildren,
+//               frameFilter.value,
+//             );
+
+//             ++total;
+//             ++count;
+//           }
+//         }, EVERY_COUNT);
+
+//         if (count < EVERY_COUNT || total - cacheId >= LIMIT_COUNT) {
+//           resolve(Object.values(curFramesMap));
+//         } else {
+//           runner();
+//         }
+//       });
+//     };
+
+//     runner();
+//   }).then((res) => {
+//     cacheId = total;
+//     if (checking) {
+//       if (res.length > 0) {
+//         isFrameCache.value = true;
+//         frameDataList.value = res;
+//       }
+
+//       journalStore.setCurrentSessionFrames(res, false);
+//     } else {
+//       isFrameCache.value = false;
+//       frameDataList.value = res;
+
+//       currentFramesId.value = frameDataList.value[0]?.id;
+//       isFrameCache.value = false;
+//       cacheFrameDataList.value = [];
+//       journalStore.setCurrentSessionFrames(res, true);
+//     }
+//     console.log('journalthen', res, frameDataListResolved.value, checking, [
+//       { total, cacheId },
+//     ]);
+//     loadingJournal.value = false;
+//     isLoading = false;
+
+//     // if (total >= LIMIT_COUNT) {
+//     //   loadFrameData(session, startTime, endTime, true);
+//     // }
+//   });
+// };
+
 const loadFrameData = (
   session: KungfuApi.SessionResolved,
   startTime: bigint,
   endTime: bigint,
   checking = false,
 ) => {
+  if (isLoading) return;
+  isLoading = true;
   const sessionId = session.index;
-
   if (!checkReaderArgs({ sessionId, startTime, endTime })) return;
 
   if (!checking) {
@@ -318,86 +469,86 @@ const loadFrameData = (
 
   const curFramesMap = {};
 
-  return new Promise<KungfuApi.FrameResolved[]>((resolve, _) => {
-    const runner = () => {
-      setTimeout(() => {
-        if (!journalReader) return resolve([]);
-        let count = 0;
-        journalReader.run((frame) => {
-          if (frame) {
-            const dataResolved: dataResolvedType = [
-              { children: [], key: 'root-start', title: '{' },
-              { key: 'root-end', title: '}' },
-            ];
-            const data = frame.data();
-            const dataChildren = getDataResolved(data);
-            if (dataChildren !== undefined && dataChildren !== null) {
-              if (!dataResolved[0].children) dataResolved[0].children = [];
-              dataResolved[0].children = dataChildren;
-            }
-            const curFrameData: KungfuApi.Frame = {
-              id: total,
-              dataLength: frame.dataLength(),
-              genTime: frame.genTime(),
-              triggerTime: frame.triggerTime(),
-              msgType: frame.msgType(),
-              stringMsgType: longfist.msgTypes[frame.msgType()],
-              source: frame.source(),
-              dest: frame.dest(),
-              data: data,
-
-              dataResolved: dataResolved,
-              // destName: frame.destName(),
-              // sourceName: frame.sourceName(),
-            };
-
-            curFrameData.destName = props.locationMap[curFrameData.dest];
-            curFrameData.sourceName = props.locationMap[curFrameData.source];
-            curFrameData.sourceToDest = `${curFrameData.sourceName} -> ${curFrameData.destName}`;
-            const curFrameDataResolved = dealFrame(curFrameData);
-            curFramesMap[curFrameDataResolved.id] = curFrameDataResolved;
-            framesMap.value[curFrameDataResolved.id] = curFrameDataResolved;
-            frameFilter.value?.addOption(FiltersEnum.DEST, [
-              {
-                label: curFrameDataResolved.destName,
-                value: curFrameDataResolved.dest + '',
-              },
-            ]);
-            frameFilter.value?.addOption(FiltersEnum.SOURCE, [
-              {
-                label: curFrameDataResolved.sourceName,
-                value: curFrameDataResolved.source + '',
-              },
-            ]);
-            frameFilter.value?.addOption(FiltersEnum.MSG_TYPE, [
-              {
-                label: curFrameDataResolved.stringMsgType,
-                value: curFrameDataResolved.msgType + '',
-              },
-            ]);
-            console.log(
-              'journalReader',
-              curFrameData,
-              frame,
-              dataChildren,
-              frameFilter.value,
-            );
-
-            ++total;
-            ++count;
-          }
-        }, EVERY_COUNT);
-
-        if (count < EVERY_COUNT || total - cacheId >= LIMIT_COUNT) {
-          resolve(Object.values(curFramesMap));
-        } else {
-          runner();
+  const runner = async (): Promise<KungfuApi.FrameResolved[]> => {
+    if (!journalReader) return Promise.resolve([]);
+    let count = 0;
+    journalReader.run((frame) => {
+      if (frame) {
+        const dataResolved: dataResolvedType = [
+          { children: [], key: 'root-start', title: '{' },
+          { key: 'root-end', title: '}' },
+        ];
+        const data = frame.data();
+        const dataChildren = getDataResolved(data);
+        if (dataChildren !== undefined && dataChildren !== null) {
+          if (!dataResolved[0].children) dataResolved[0].children = [];
+          dataResolved[0].children = dataChildren;
         }
-      });
-    };
+        const curFrameData: KungfuApi.Frame = {
+          id: total,
+          dataLength: frame.dataLength(),
+          genTime: frame.genTime(),
+          triggerTime: frame.triggerTime(),
+          msgType: frame.msgType(),
+          stringMsgType: longfist.msgTypes[frame.msgType()],
+          source: frame.source(),
+          dest: frame.dest(),
+          data: data,
 
-    runner();
-  }).then((res) => {
+          dataResolved: dataResolved,
+        };
+
+        curFrameData.destName = props.locationMap[curFrameData.dest];
+        curFrameData.sourceName = props.locationMap[curFrameData.source];
+        curFrameData.sourceToDest = `${curFrameData.sourceName} -> ${curFrameData.destName}`;
+        const curFrameDataResolved = dealFrame(curFrameData);
+        curFramesMap[curFrameDataResolved.id] = curFrameDataResolved;
+        framesMap.value[curFrameDataResolved.id] = curFrameDataResolved;
+        frameFilter.value?.addOption(FiltersEnum.DEST, [
+          {
+            label: curFrameDataResolved.destName,
+            value: curFrameDataResolved.dest + '',
+          },
+        ]);
+        frameFilter.value?.addOption(FiltersEnum.SOURCE, [
+          {
+            label: curFrameDataResolved.sourceName,
+            value: curFrameDataResolved.source + '',
+          },
+        ]);
+        frameFilter.value?.addOption(FiltersEnum.MSG_TYPE, [
+          {
+            label: curFrameDataResolved.stringMsgType,
+            value: curFrameDataResolved.msgType + '',
+          },
+        ]);
+        console.log(
+          'journalReader',
+          journalReader,
+          curFrameData,
+          frame,
+          dataChildren,
+          frameFilter.value,
+        );
+        ++total;
+        ++count;
+      }
+    }, EVERY_COUNT);
+    console.log('count', count);
+
+    if (count < EVERY_COUNT || total - cacheId >= LIMIT_COUNT) {
+      return Object.values(curFramesMap);
+    } else {
+      return new Promise<KungfuApi.FrameResolved[]>((resolve) => {
+        requestAnimationFrame(async () => {
+          const res = await runner();
+          resolve(res);
+        });
+      });
+    }
+  };
+
+  return runner().then((res) => {
     cacheId = total;
     if (checking) {
       if (res.length > 0) {
@@ -413,18 +564,42 @@ const loadFrameData = (
       currentFramesId.value = frameDataList.value[0]?.id;
       isFrameCache.value = false;
       cacheFrameDataList.value = [];
+
       journalStore.setCurrentSessionFrames(res, true);
     }
     console.log('journalthen', res, frameDataListResolved.value, checking, [
       { total, cacheId },
+      [startTime, endTime],
     ]);
     loadingJournal.value = false;
 
-    // if (total >= LIMIT_COUNT) {
-    //   loadFrameData(session, startTime, endTime, true);
-    // }
+    isLoading = false;
+    if (total >= LIMIT_COUNT) {
+      loadFrameData(session, startTime, endTime, true);
+    }
+
+    // return sleep(1000).then(() => {
+    //   isLoading = false;
+    //   if (total >= LIMIT_COUNT) {
+    //     loadFrameData(session, startTime, endTime, true);
+    //   }
+    // });
   });
 };
+// debugger;
+// const sleep = (duration) => {
+//   const start = performance.now();
+//   return new Promise<void>((resolve) => {
+//     const checkTime = (timestamp) => {
+//       if (timestamp - start >= duration) {
+//         resolve();
+//       } else {
+//         requestAnimationFrame(checkTime);
+//       }
+//     };
+//     requestAnimationFrame(checkTime);
+//   });
+// };
 
 const handleOpenFrameDetail = ({ row }) => {
   currentFramesId.value = row.id;

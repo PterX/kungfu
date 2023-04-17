@@ -208,13 +208,13 @@ declare namespace KungfuApi {
       position: KfUIExtLocatorTypes;
       exhibit?: KfExhibitConfig;
       components?:
-      | {
-        index: string;
-      }
-      | {
-        entry: string;
-        page: string;
-      };
+        | {
+            index: string;
+          }
+        | {
+            entry: string;
+            page: string;
+          };
       daemon?: Record<string, string>;
       script?: string;
     };
@@ -234,10 +234,10 @@ declare namespace KungfuApi {
       string,
       {
         type?:
-        | InstrumentTypes[]
-        | InstrumentTypes
-        | StrategyExtTypes[]
-        | StrategyExtTypes;
+          | InstrumentTypes[]
+          | InstrumentTypes
+          | StrategyExtTypes[]
+          | StrategyExtTypes;
         settings: KfConfigItem[];
       }
     >;
@@ -274,14 +274,14 @@ declare namespace KungfuApi {
       position: KfUIExtLocatorTypes;
       exhibit: KfExhibitConfig;
       components:
-      | {
-        index: string;
-      }
-      | {
-        entry: string;
-        page: string;
-      }
-      | null;
+        | {
+            index: string;
+          }
+        | {
+            entry: string;
+            page: string;
+          }
+        | null;
       daemon: Record<string, string>;
       script: string;
     }
@@ -839,7 +839,7 @@ declare namespace KungfuApi {
 
   export interface BasketInstrumentResolved
     extends BasketInstrument,
-    InstrumentResolved {
+      InstrumentResolved {
     basketInstrumentName: string;
     basketInstrumentId: string;
   }
@@ -1018,7 +1018,10 @@ declare namespace KungfuApi {
   }
 
   export interface IODevice {
-    getAllLocations(): Record<string, KfLocation>;
+    getAllLocations(): Record<
+      string,
+      KfLocation & { uname: string; uid: number }
+    >;
   }
 
   export interface SessionStore {

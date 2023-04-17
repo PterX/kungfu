@@ -70,7 +70,7 @@
             ref="eventDashBoard"
             :current-session="currentSession"
             :current-time-range-data="currentTimeRangeData"
-            :location-map="locationMap"
+            :location-map="SourceAndDestNameMap"
           />
           <OrdersDashboard
             v-show="isCurrentMenuItem('visual')"
@@ -86,8 +86,20 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, computed, toRaw, watch, nextTick } from 'vue';
-import { assemble, dealKfTime } from '@kungfu-trader/kungfu-js-api/kungfu';
+import {
+  onMounted,
+  ref,
+  computed,
+  toRaw,
+  watch,
+  nextTick,
+  watchEffect,
+} from 'vue';
+import {
+  dealKfTime,
+  sessionStore,
+  io,
+} from '@kungfu-trader/kungfu-js-api/kungfu';
 import { getSessionColumns, SessionStatus } from './config';
 import { removeLoadingMask } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 
@@ -109,20 +121,25 @@ import ExportJournal from './components/ExportJournal.vue';
 import EventsDashBoard from './components/EventsDashboard.vue';
 import OrdersDashboard from './components/OrdersDashboard.vue';
 import { useJournalStore } from './store/journalStore';
-import { getAllLocation } from '@kungfu-trader/kungfu-js-api/kungfu/store';
-import {
-  KfModeEnum,
-  KfCategoryEnum,
-} from '@kungfu-trader/kungfu-js-api/typings/enums';
+// import { getAllLocation } from '@kungfu-trader/kungfu-js-api/kungfu/store';
+// import {
+//   KfModeEnum,
+//   KfCategoryEnum,
+// } from '@kungfu-trader/kungfu-js-api/typings/enums';
+
+type LocationRseolved = KungfuApi.KfLocation & {
+  uname: string;
+  uid: number;
+};
 
 const currentLocation = getCurrentLocation();
 const timeSlider = ref();
 const eventDashBoard = ref();
 const mdSession = ref();
 const journalStore = useJournalStore();
+const allLocations = ref<Record<string, LocationRseolved>>({});
 const sessionsMap = ref<Record<string, KungfuApi.SessionResolved>>({});
-const allLocation = ref<Record<string, KungfuApi.KfConfig>>({});
-const locationMap = ref<Record<string, string>>({});
+const SourceAndDestNameMap = ref<Record<string, string>>({});
 const sessions = computed(() => {
   return Object.values(sessionsMap.value);
 });
@@ -190,17 +207,20 @@ const exportFileName = computed(() => {
 });
 
 const sessionColumns = getSessionColumns();
-
+watchEffect(() => {
+  console.log('sessions', sessions.value, sessionsMap.value, currentLocation);
+});
 watch(
   () => sessions.value,
   () => {
     journalStore.setSessions(sessions.value);
-    allLocation.value = getAllLocation();
-    console.log('allLocation', allLocation.value);
-    nextTick(() => {
-      locationMap.value = dealLocationsToMap(allLocation.value);
-      console.log('locationMap', locationMap.value);
-    });
+    allLocations.value = io.getAllLocations();
+    SourceAndDestNameMap.value = dealsessionsToMap(allLocations.value);
+    console.log(
+      'SourceAndDestNameMap',
+      SourceAndDestNameMap.value,
+      sessionsMap.value,
+    );
   },
   {
     deep: true,
@@ -209,7 +229,7 @@ watch(
 
 watch(
   () => mdSession.value?.end_time,
-  (newStatus) => {
+  () => {
     getMdSessions();
   },
 );
@@ -219,14 +239,12 @@ watch(
   (newSession) => {
     if (!newSession) return;
     console.log('loadnewSession', currentSession.value);
-    // const { clearTradingData } = useDealJournalDatas();
-    // clearTradingData();
-    allLocation.value = getAllLocation();
-    console.log('allLocation', allLocation.value);
-    nextTick(() => {
-      locationMap.value = dealLocationsToMap(allLocation.value);
-      console.log('locationMap', locationMap.value);
-    });
+    // allsessions.value = getAllLocation();
+    // console.log('allLocation', allLocation.value);
+    // nextTick(() => {
+    //   SourceAndDestNameMap.value = dealsessionsToMap(allLocation.value);
+    //   console.log('SourceAndDestNameMap', SourceAndDestNameMap.value);
+    // });
 
     const { begin_time, end_time } = newSession;
 
@@ -241,36 +259,36 @@ watch(
   },
 );
 
-const dealLocationsToMap = (locations: Record<string, KungfuApi.KfConfig>) => {
-  const locationMap: Record<string, KungfuApi.KfConfig> = {};
-  Object.values(locations).forEach((item) => {
-    locationMap[item.location_uid] = item;
+const dealsessionsToMap = (sessions: Record<string, LocationRseolved>) => {
+  const SourceAndDestNameMap: Record<string, LocationRseolved> = {};
+  Object.values(sessions).forEach((item) => {
+    SourceAndDestNameMap[item.uid] = item;
   });
-  return ransformObject(locationMap);
+  return ransformObject(SourceAndDestNameMap);
 };
-const ransformObject = (obj: Record<string, KungfuApi.KfConfig>) => {
-  const output = {};
+const ransformObject = (obj: Record<string, LocationRseolved>) => {
+  const output: Record<string, string> = {};
 
   for (const key in obj) {
     // eslint-disable-next-line no-prototype-builtins
     if (obj.hasOwnProperty(key)) {
       const item = obj[key];
-      output[key] = `${KfCategoryEnum[item.category]}/${item.group}/${
-        item.name
-      }/${KfModeEnum[item.mode]}`;
+      output[key] = `${item.category}/${item.group}/${item.name}/${item.mode}`;
     }
   }
+  output['0'] = 'public';
 
   return output;
 };
 
-const getSessions = () =>
-  currentLocation
-    ? assemble.getSessions(currentLocation)
-    : assemble.getSessions();
+const getSessions = () => {
+  return currentLocation
+    ? sessionStore.getSessionsForLocation(currentLocation)
+    : sessionStore.getAllSessions();
+};
 
 const getMdSessions = () => {
-  const sessions = assemble.getSessions();
+  const sessions = sessionStore.getAllSessions();
   if (!sessions) {
     mdSession.value = null;
     return null;
@@ -289,9 +307,21 @@ const getMdSessions = () => {
 
 const loadSessions = (gotSessions?: KungfuApi.Session[]) => {
   const currentSessions = gotSessions ?? getSessions();
+  console.log(
+    'getsessions',
+    sessionStore.getAllSessions(),
+    io.getAllLocations(),
+    currentLocation,
+    currentSessions,
+  );
+  console.log(
+    'allsession',
+    sessionStore.getAllSessions(),
+    io.getAllLocations(),
+  );
   if (currentSessions?.length) {
     sessionsMap.value = dealSessionsToMap(currentSessions.reverse());
-
+    console.log('sessionsMap', sessionsMap.value);
     nextTick(() => {
       if (!gotSessions && sessions.value.length) {
         const { index, begin_time } = sessions.value[0];

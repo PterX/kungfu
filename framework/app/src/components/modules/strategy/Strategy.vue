@@ -110,7 +110,7 @@ function handleOpenSetStrategyDialog(
 }
 
 function getStrategyPathShowName(kfConfig: KungfuApi.KfConfig): string {
-  const strategyPath = getConfigValue(kfConfig).strategy_path || '';
+  const strategyPath = getConfigValue(kfConfig).file_path || '';
   return path.basename(strategyPath);
 }
 
@@ -125,7 +125,7 @@ function handleRemoveStrategy(record: KungfuApi.KfConfig) {
 }
 function handleOpenCodeViewResolved(record: KungfuApi.KfConfig) {
   const processId = getProcessIdByKfLocation(record);
-  const filePath = getConfigValue(record).strategy_path;
+  const filePath = getConfigValue(record).file_path;
   return handleOpenCodeView(processId, filePath, false);
 }
 </script>

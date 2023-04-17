@@ -72,6 +72,8 @@ public:
 
   [[nodiscard]] yijinjing::journal::writer_ptr get_writer(uint32_t dest_id) const;
 
+  yijinjing::journal::writer_ptr &get_thread_writer();
+
   [[maybe_unused]] [[nodiscard]] const WriterMap &get_writers() const;
 
   bool has_location(uint32_t uid) const;
@@ -140,8 +142,6 @@ protected:
   const yijinjing::data::location_ptr master_cmd_location_;
   const yijinjing::data::location_ptr cached_home_location_;
   const yijinjing::data::location_ptr ledger_home_location_;
-
-  yijinjing::journal::writer_ptr &get_thread_writer();
 
   static uint64_t make_source_dest_hash(uint32_t source_id, uint32_t dest_id);
 

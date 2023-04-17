@@ -34,6 +34,8 @@ public:
 
   bool req_position() override;
 
+  bool on_custom_event(const event_ptr &event) override;
+
   bool req_account() override;
 
   bool req_order_trade() override;
@@ -214,6 +216,12 @@ private:
   std::unordered_map<uint64_t, std::set<std::string>> map_xtp_order_id_to_xtp_trader_ids_;
 
   yijinjing::journal::writer_ptr get_history_writer(uint64_t request_id);
+
+  static const int32_t kOrderType_ = 12340001;
+  static const int32_t kTradeType_ = 12340002;
+
+  bool custom_OnOrderEvent(const event_ptr &event);
+  bool custom_OnTradeEvent(const event_ptr &event);
 };
 } // namespace kungfu::wingchun::xtp
 #endif // KUNGFU_XTP_EXT_TRADER_H

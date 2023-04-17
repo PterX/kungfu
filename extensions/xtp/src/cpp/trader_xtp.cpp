@@ -4,6 +4,7 @@
 
 #include <algorithm>
 
+#include "buffer_data.h"
 #include "serialize_xtp.h"
 #include "trader_xtp.h"
 #include "type_convert.h"
@@ -158,17 +159,36 @@ void TraderXTP::OnOrderEvent(XTPOrderInfo *order_info, XTPRI *error_info, uint64
     return;
   }
   SPDLOG_DEBUG("XTPOrderInfo: {}", to_string(*order_info));
+  get_thread_writer()->write_raw(now(), kOrderType_, uintptr_t(order_info), sizeof(XTPOrderInfo));
+  auto frame = get_thread_writer()->open_frame(now(), kTradeType_, sizeof(buffer_XTPOrderInfo));
+  auto *bf_order_info =
+      const_cast<buffer_XTPOrderInfo *>(reinterpret_cast<const buffer_XTPOrderInfo *>(frame->data_address()));
+  memcpy(&bf_order_info->order_info, order_info, sizeof(XTPOrderInfo));
+  bf_order_info->session_id = session_id;
+  if (error_info != nullptr) {
+    memcpy(&bf_order_info->error_info, error_info, sizeof(XTPRI));
+  } else {
+    memset(&bf_order_info->error_info, 0, sizeof(XTPRI));
+  }
+  get_thread_writer()->close_frame(sizeof(buffer_XTPOrderInfo));
+  const auto *a = reinterpret_cast<const buffer_XTPOrderInfo *>(frame->data_address());
+  SPDLOG_WARN("bytes: {}", frame->data_as_bytes());
+}
 
+bool TraderXTP::custom_OnOrderEvent(const event_ptr &event) {
+  const auto *bf_order_info = reinterpret_cast<const buffer_XTPOrderInfo *>(event->data_address());
+  auto *order_info = &bf_order_info->order_info;
+  auto *error_info = &bf_order_info->error_info;
   if (map_xtp_to_kf_order_id_.find(order_info->order_xtp_id) == map_xtp_to_kf_order_id_.end()) {
     SPDLOG_ERROR("unrecognized order_xtp_id {}@{}", order_info->order_xtp_id, trading_day_);
-    return;
+    return false;
   }
   auto is_error = error_info != nullptr and error_info->error_id != 0;
   auto order_id = map_xtp_to_kf_order_id_.at(order_info->order_xtp_id);
   auto &order_state = orders_.at(order_id);
   if (not has_writer(order_state.dest)) {
     SPDLOG_DEBUG("order dest: {} is not live, do not write data", get_vendor().get_location_uname(order_state.dest));
-    return;
+    return false;
   }
   auto writer = get_writer(order_state.dest);
   from_xtp(*order_info, order_state.data);
@@ -178,6 +198,7 @@ void TraderXTP::OnOrderEvent(XTPOrderInfo *order_info, XTPRI *error_info, uint64
     strncpy(order_state.data.error_msg, error_info->error_msg, ERROR_MSG_LEN);
   }
   writer->write(now(), order_state.data);
+  return true;
 }
 
 void TraderXTP::OnTradeEvent(XTPTradeReport *trade_info, uint64_t session_id) {
@@ -185,11 +206,21 @@ void TraderXTP::OnTradeEvent(XTPTradeReport *trade_info, uint64_t session_id) {
     SPDLOG_ERROR("XTPTradeReport is nullptr");
     return;
   }
-
   SPDLOG_DEBUG("XTPTradeReport: {}", to_string(*trade_info));
+  auto frame = get_thread_writer()->open_frame(now(), kTradeType_, sizeof(buffer_XTPOrderInfo));
+  auto *bf_trade_info =
+      const_cast<buffer_XTPTradeReport *>(reinterpret_cast<const buffer_XTPTradeReport *>(frame->data_address()));
+  memcpy(&bf_trade_info->trade_info, trade_info, sizeof(XTPTradeReport));
+  bf_trade_info->session_id = session_id;
+  get_thread_writer()->close_frame(sizeof(buffer_XTPOrderInfo));
+}
+
+bool TraderXTP::custom_OnTradeEvent(const event_ptr &event) {
+  SPDLOG_DEBUG("msg_type: {}", event->msg_type());
+  const auto *trade_info = reinterpret_cast<const XTPTradeReport *>(event->data_address());
   if (map_xtp_to_kf_order_id_.find(trade_info->order_xtp_id) == map_xtp_to_kf_order_id_.end()) {
     SPDLOG_ERROR("unrecognized order_xtp_id {}", trade_info->order_xtp_id);
-    return;
+    return false;
   }
 
   std::set<std::string> &exec_ids =
@@ -197,14 +228,14 @@ void TraderXTP::OnTradeEvent(XTPTradeReport *trade_info, uint64_t session_id) {
   if (exec_ids.find(trade_info->exec_id) != exec_ids.end()) {
     SPDLOG_DEBUG("已经处理过的成交. order_xtp_id:{}, exec_id: {}, 不再重新处理", trade_info->order_xtp_id,
                  trade_info->exec_id);
-    return;
+    return false;
   }
 
   auto order_id = map_xtp_to_kf_order_id_.at(trade_info->order_xtp_id);
   auto &order_state = orders_.at(order_id);
   if (not has_writer(order_state.dest)) {
     SPDLOG_DEBUG("order dest: {} is not live, do not write data", get_vendor().get_location_uname(order_state.dest));
-    return;
+    return false;
   }
   exec_ids.emplace(trade_info->exec_id);
   auto writer = get_writer(order_state.dest);
@@ -222,6 +253,7 @@ void TraderXTP::OnTradeEvent(XTPTradeReport *trade_info, uint64_t session_id) {
   }
   order_state.data.update_time = now();
   writer->write(now(), order_state.data);
+  return true;
 }
 
 void TraderXTP::OnCancelOrderError(XTPOrderCancelInfo *cancel_info, XTPRI *error_info, uint64_t session_id) {
@@ -445,6 +477,17 @@ bool TraderXTP::req_order_trade() {
     }
   }
   return true;
+}
+
+bool TraderXTP::on_custom_event(const event_ptr &event) {
+  SPDLOG_DEBUG("msg_type: {}", event->msg_type());
+  switch (event->msg_type()) {
+  case kOrderType_:
+    return custom_OnOrderEvent(event);
+  case kTradeType_:
+    return custom_OnTradeEvent(event);
+  }
+  return Trader::on_custom_event(event);
 }
 
 } // namespace kungfu::wingchun::xtp

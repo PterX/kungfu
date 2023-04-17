@@ -2081,7 +2081,7 @@ export const initFormStateByConfig = (
         }
       }
     } else if (KfConfigValueTimeType.includes(type)) {
-      defaultValue = initFormTimePicker(item?.default);
+      defaultValue = initFormTimePicker(defaultValue);
     }
 
     formState[item.key] = defaultValue;

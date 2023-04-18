@@ -52,6 +52,8 @@ public:
 
   [[maybe_unused]] void rebuild_index_db();
 
+  [[maybe_unused]] void update_index_db();
+
 private:
   SessionMap live_sessions_ = {};
 };

@@ -96,7 +96,6 @@ private:
   void set_dest(uint32_t dest) { header_->dest = dest; }
 
   void copy(frame &source) {
-    memset(header_, 0, source.frame_length());
     memcpy(header_, source.header_, source.frame_length());
   }
 

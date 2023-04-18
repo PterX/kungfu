@@ -358,8 +358,6 @@ bool hero::drain(const rx::subscriber<event_ptr> &sb) {
       if (frame_time > now_) {
         now_ = frame_time;
       }
-      SPDLOG_INFO("header: {}",
-                  reinterpret_cast<longfist::types::frame_header *>(reader_->current_frame()->address())->to_string());
       sb.on_next(reader_->current_frame());
       on_frame();
       reader_->next();

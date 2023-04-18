@@ -220,6 +220,14 @@ KF_DEFINE_PACK_TYPE(                                            //
     (uint32_t, dest_id)                                         //
 );
 
+KF_DEFINE_PACK_TYPE(                                                       //
+    JoinChannel, 10034, PK(location_uid, source_id, dest_id), PERPETUAL(), //
+    (uint32_t, location_uid),                                              //
+    (uint32_t, source_id),                                                 //
+    (uint32_t, dest_id),                                                   //
+    (int64_t, join_time)                                                   //
+);
+
 KF_DEFINE_DATA_TYPE(                                          //
     RequestWriteToBand, 10032, PK(location_uid), PERPETUAL(), //
     (uint32_t, location_uid),                                 //

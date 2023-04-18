@@ -87,6 +87,12 @@ void master::mark_session_end_on_exit() {
 
 void master::on_notify() { get_io_device()->get_publisher()->notify(); }
 
+void master::on_join_channel(const event_ptr &event) {
+  auto join_channel = event->data_as_string();
+  JoinChannel join_channel_data(join_channel.c_str(), join_channel.length());
+  get_writer(join_channel_data.location_uid)->write(now(), join_channel_data);
+}
+
 void master::register_app(const event_ptr &event) {
   auto io_device = std::dynamic_pointer_cast<io_device_master>(get_io_device());
   auto home = io_device->get_home();
@@ -182,6 +188,7 @@ void master::react() {
   events_ | is(TimeRequest::tag) | $$(on_time_request(event));
   events_ | is(Location::tag) | $$(on_new_location(event));
   events_ | is(Register::tag) | $$(register_app(event));
+  events_ | is(JoinChannel::tag) | $$(on_join_channel(event));
   events_ | is(RequestCachedDone::tag) | $$(on_request_cached_done(event));
   events_ | is(Ping::tag) | $$(pong(event));
   events_ | instanceof <journal::frame>() | $$(feed(event));
@@ -207,6 +214,7 @@ void master::handle_timer_tasks() {
       auto &task = it->second;
       if (task.checkpoint <= now) {
         get_writer(app_id)->mark(0, Time::tag);
+        SPDLOG_DEBUG("app_id:{} , location: {}", app_id, get_location_uname(app_id));
         task.checkpoint += task.duration;
         task.repeat_count++;
         if (task.repeat_count >= task.repeat_limit) {

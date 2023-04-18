@@ -76,6 +76,8 @@ protected:
 
   virtual void on_start();
 
+  void on_join_channel(const event_ptr &event);
+
   void on_register(int64_t trigger_time, const longfist::types::Register &register_data);
 
   void on_deregister(const event_ptr &event);
@@ -93,6 +95,7 @@ protected:
   void on_write_to_band(const event_ptr &event);
 
   std::function<rx::observable<event_ptr>(rx::observable<event_ptr>)> timer(int64_t nanotime) {
+    SPDLOG_DEBUG("nanotime: {}", time::strftime(nanotime));
     auto writer = get_writer(master_cmd_location_->uid);
     int32_t timer_usage_count = timer_usage_count_;
     int64_t duration_ns = nanotime - now();
@@ -105,8 +108,11 @@ protected:
     timer_usage_count_++;
     return [&, duration_ns, timer_usage_count](const rx::observable<event_ptr> &src) {
       return events_ | rx::filter([&, duration_ns, timer_usage_count](const event_ptr &event) {
+               SPDLOG_DEBUG("event->gen_time(): {}", time::strftime(event->gen_time()));
+               SPDLOG_DEBUG("timer_checkpoints_[timer_usage_count] + duration_ns): {}",
+                            time::strftime(timer_checkpoints_[timer_usage_count] + duration_ns));
                return (event->msg_type() == longfist::types::Time::tag &&
-                       event->gen_time() > timer_checkpoints_[timer_usage_count] + duration_ns);
+                       event->gen_time() >= timer_checkpoints_[timer_usage_count] + duration_ns);
              }) |
              rx::first();
     };
@@ -127,7 +133,7 @@ protected:
     return [&, duration_ns, timer_usage_count](const rx::observable<event_ptr> &src) {
       return events_ | rx::filter([&, duration_ns, timer_usage_count](const event_ptr &event) {
                if (event->msg_type() == longfist::types::Time::tag &&
-                   event->gen_time() > timer_checkpoints_[timer_usage_count] + duration_ns) {
+                   event->gen_time() >= timer_checkpoints_[timer_usage_count] + duration_ns) {
                  auto writer = get_writer(master_cmd_location_->uid);
                  longfist::types::TimeRequest &r = writer->open_data<longfist::types::TimeRequest>(0);
                  r.id = timer_usage_count;
@@ -186,7 +192,6 @@ private:
   int64_t trading_day_ = 0;
   int32_t timer_usage_count_ = 0;
   std::unordered_map<int, int64_t> timer_checkpoints_ = {};
-  inline static thread_local uint32_t thread_id_{0};
   inline static thread_local yijinjing::journal::writer_ptr thread_writer_;
 
   void checkin();

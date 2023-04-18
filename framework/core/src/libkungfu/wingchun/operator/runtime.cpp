@@ -24,7 +24,7 @@ LiveContext::LiveContext(apprentice &app, const rx::connectable_observable<event
 
 void LiveContext::on_start() { broker_client_.on_start(events_); }
 
-const std::string &LiveContext::get_config() const {
+const std::string LiveContext::get_config() const {
   auto &config_map = app_.get_state_bank()[boost::hana::type_c<Config>];
   if (config_map.find(app_.get_home_uid()) == config_map.end()) {
     return "{}";

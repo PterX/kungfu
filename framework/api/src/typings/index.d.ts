@@ -995,9 +995,9 @@ declare namespace KungfuApi {
     dataAvailable(): boolean;
   }
   export interface Tracer {
-    currentFrame(): Frame;
+    currentFrame(): Frame<'func'>;
     dataAvailable(): boolean;
-    next(): void;
+    next(): Tracer;
   }
 
   export interface Longfist {

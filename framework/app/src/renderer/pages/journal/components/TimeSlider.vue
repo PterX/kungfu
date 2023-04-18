@@ -29,6 +29,7 @@
     <a-slider
       ref="slider"
       v-model:value="currentTimeRange"
+      v-dragging="{ onMouseDown: handleMouseDown, onMouseUp: handleMouseUp }"
       class="kf-time-slider"
       :class="{
         'kf-time-slider-handler-focus-1': sticking[0],
@@ -42,7 +43,6 @@
       @after-change="onAfterChange"
       @mousedown="handleMouseDown"
       @mouseup="handleMouseUp"
-      v-dragging="{ onMouseDown: handleMouseDown, onMouseUp: handleMouseUp }"
     />
     <div class="kf-time-slider-time">
       <a-input-group v-if="timeInputData[1].inputting" compact>
@@ -91,6 +91,8 @@ const props = withDefaults(
   defineProps<{
     timeRange: DoubleArray<bigint>; // 当前只支持纳秒级别的时间
     limitTimeRange: DoubleArray<bigint>; // 当前只支持纳秒级别的时间
+    isExternalUpdate: boolean;
+    nolRange: DoubleArray<bigint>;
     step: number;
     stick: boolean;
   }>(),
@@ -101,12 +103,13 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   (e: 'update:timeRange', value: DoubleArray<bigint>): void;
+  (e: 'externalUpdate', value: boolean): void;
 }>();
 
 const SCALE = 1000000;
 const BIGINT_SCALE = BigInt(SCALE);
 
-const isDragging = ref<Boolean>(false);
+const isDragging = ref<boolean>(false);
 const slider = ref();
 const sticking = ref<DoubleArray<boolean>>([
   props.timeRange[0] === props.limitTimeRange[0],
@@ -182,6 +185,29 @@ const limitRangeResolved = ref<DoubleArray<number>>([
   nano2millionSecond(props.limitTimeRange[0]),
   nano2millionSecond(props.limitTimeRange[1]),
 ]);
+
+watch(
+  () => props.nolRange,
+  () => {
+    if (props.isExternalUpdate) {
+      console.log('llllll', {
+        currentTimeRange: currentTimeRange.value,
+        nolRange: props.nolRange,
+      });
+      onAfterChange([
+        nano2millionSecond(props.nolRange[0]),
+        nano2millionSecond(props.nolRange[1]),
+      ]);
+    }
+  },
+);
+// watch(
+//   () => currentTimeRange.value,
+//   () => {
+//     console.log('externalUpdate', props.isExternalUpdate);
+//     emit('externalUpdate', false);
+//   },
+// );
 
 watch(
   () => props.timeRange,

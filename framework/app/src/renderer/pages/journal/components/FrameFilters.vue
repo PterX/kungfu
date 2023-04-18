@@ -44,7 +44,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
-import { longfist } from '@kungfu-trader/kungfu-js-api/kungfu';
+import { longfist, tracer } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { FiltersEnum } from '../utils/filterUtils';
 import { useFrameFilters } from '../utils/filterUtils';
 
@@ -53,12 +53,16 @@ const { t } = VueI18n.global;
 const props = withDefaults(
   defineProps<{
     locationMap: Record<string, string>;
+    currentLocation: KungfuApi.KfLocation | null;
+    currentTimeRange: [bigint, bigint];
   }>(),
   {},
 );
 const emit = defineEmits<{
   (e: 'applyFilters', frameFiltersMap: Record<FiltersEnum, string[]>): void;
 }>();
+const read = ref(false);
+const write = ref(false);
 
 const formRef = ref();
 const formLabelMap = {
@@ -73,6 +77,7 @@ const options3 = ref([
 console.log(options3.value);
 // const optionsMap = ref<string[]>([]);
 
+let tracerFrame: KungfuApi.Tracer | null = null;
 const {
   filtersFormState,
   filtersOptions,
@@ -113,7 +118,10 @@ const addOption = (
   if (filterEnum === FiltersEnum.MSG_TYPE) {
     filtersFormState.MSG_TYPE.push(
       ...options.reduce((pre, item) => {
-        if (!filtersFormState.MSG_TYPE.includes(item.label)) {
+        if (
+          !filtersFormState.MSG_TYPE.includes(item.label) &&
+          Number(item.value) <= 10000
+        ) {
           pre.push(item.label);
         }
 
@@ -204,7 +212,28 @@ const addOption = (
 //   return reg.test(option.key);
 // };
 
+if (read.value) {
+  tracerFrame = tracer(
+    props.currentLocation as KungfuApi.KfLocation,
+    true,
+    false,
+    props.currentTimeRange[0],
+    props.currentTimeRange[1],
+  );
+}
+if (write.value) {
+  tracerFrame = tracer(
+    props.currentLocation as KungfuApi.KfLocation,
+    false,
+    true,
+    props.currentTimeRange[0],
+    props.currentTimeRange[1],
+  );
+}
+console.log(tracerFrame);
+
 const handleApplyFilters = () => {
+  console.log('过滤', filtersFormState);
   emit('applyFilters', filtersFormState);
 };
 

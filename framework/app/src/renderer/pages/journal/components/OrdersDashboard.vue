@@ -31,7 +31,7 @@
 import { dealKfTime } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { dealKfPrice } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { computed, reactive, ref, watch, watchEffect } from 'vue';
-import { assemble } from '@kungfu-trader/kungfu-js-api/kungfu';
+// import { assemble } from '@kungfu-trader/kungfu-js-api/kungfu';
 import KfTradingCharts from '../../../components/public/KfTradingCharts.vue';
 import { useDealJournalDatas } from '../utils';
 import { SessionStatusEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
@@ -125,9 +125,9 @@ const loadFrameData = (
 
   if (!checking) {
     if (sessionId === SessionStatusEnum.Running) {
-      journalReader = assemble.getReader(sessionId, startTime);
+      // journalReader = assemble.getReader(sessionId, startTime);
     } else {
-      journalReader = assemble.getReader(sessionId, startTime, endTime);
+      // journalReader = assemble.getReader(sessionId, startTime, endTime);
     }
   }
 
@@ -174,7 +174,7 @@ const loadFrameData = (
     } else {
       journalStore.setMdSessionFrames(res, true);
     }
-    console.log('mdjournal',res)
+    console.log('mdjournal', res);
     if (total >= LIMIT_COUNT) loadFrameData(session, startTime, endTime, true);
   });
 };

@@ -46,6 +46,8 @@
           ref="timeSlider"
           v-model:time-range="currentTimeRangeData.range"
           :limit-time-range="limitTimeRange"
+          :is-external-update="isExternalUpdate"
+          :nol-range="nolRange"
           :step="60"
           stick
           class="kf-journal-time-slider"
@@ -69,8 +71,12 @@
             v-show="isCurrentMenuItem('event')"
             ref="eventDashBoard"
             :current-session="currentSession"
+            :current-location="currentLocation"
             :current-time-range-data="currentTimeRangeData"
             :location-map="SourceAndDestNameMap"
+            :is-external-update="isExternalUpdate"
+            @change-time-range="onChangeTimeRange"
+            @external-update="onExternalUpdate"
           />
           <OrdersDashboard
             v-show="isCurrentMenuItem('visual')"
@@ -131,7 +137,7 @@ type LocationRseolved = KungfuApi.KfLocation & {
   uname: string;
   uid: number;
 };
-
+const isExternalUpdate = ref(false);
 const currentLocation = getCurrentLocation();
 const timeSlider = ref();
 const eventDashBoard = ref();
@@ -207,6 +213,7 @@ const exportFileName = computed(() => {
 });
 
 const sessionColumns = getSessionColumns();
+
 watchEffect(() => {
   console.log('sessions', sessions.value, sessionsMap.value, currentLocation);
 });
@@ -252,13 +259,24 @@ watch(
       begin_time,
       end_time ? end_time : BigInt(new Date().getTime()) * 1000000n,
     ];
+
     currentTimeRangeData.value = {
       range: limitTimeRange.value,
       reload: true,
     };
   },
 );
+let nolRange: [bigint, bigint] = [0n, 0n];
 
+const onChangeTimeRange = (range: [bigint, bigint]) => {
+  isExternalUpdate.value = true;
+  nolRange = range;
+  console.log('onChangeTimeRange', range, nolRange);
+};
+
+const onExternalUpdate = (value: boolean) => {
+  isExternalUpdate.value = value;
+};
 const dealsessionsToMap = (sessions: Record<string, LocationRseolved>) => {
   const SourceAndDestNameMap: Record<string, LocationRseolved> = {};
   Object.values(sessions).forEach((item) => {

@@ -147,6 +147,8 @@ void assemble::next() {
 
 frame_ptr assemble::current_frame() { return current_reader_->current_frame(); }
 
+page_ptr assemble::current_page() { return current_reader_->current_page(); }
+
 void assemble::sort() {
   int64_t min_time = INT64_MAX;
   for (auto &reader : readers_) {
@@ -228,12 +230,20 @@ std::vector<std::pair<longfist::types::frame_header, std::vector<uint8_t>>> asse
                                                                                                  int64_t end_time) {
   std::vector<std::pair<longfist::types::frame_header, std::vector<uint8_t>>> v{};
   while (data_available() and current_frame()->gen_time() < end_time) {
-    if (msg_type == 0 or current_frame()->msg_type() == msg_type) {
+    if (msg_type == 0 or
+        current_frame()->msg_type() == msg_type && current_page()->get_version() == __JOURNAL_VERSION__) {
       const frame_header &head = *reinterpret_cast<frame_header *>(current_frame()->address());
       std::vector<uint8_t> bytes{current_frame()->data_as_bytes(),
                                  current_frame()->data_as_bytes() + current_frame()->data_length()};
       v.emplace_back(head, bytes);
     }
+
+    if (current_page()->get_version() != __JOURNAL_VERSION__) {
+      SPDLOG_WARN("journal version mismatch, expect {}, got {}, page_id {}, location uid {} location name {}",
+                  __JOURNAL_VERSION__, current_page()->get_version(), current_page()->get_page_id(),
+                  current_page()->get_location()->uid, current_page()->get_location()->uname);
+    }
+
     next();
   }
   return v;

@@ -4,7 +4,7 @@ import { computed, reactive, Ref, ref, watch, nextTick } from 'vue';
 import {
   debounce,
   isCriticalLog,
-  KfNumList,
+  KfFixedList,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { Tail } from 'tail';
 import { messagePrompt, parseURIParams } from './uiUtils';
@@ -60,7 +60,7 @@ export const useLogInit = (
   logPath: string,
   nLines = 10000,
 ): {
-  logList: KungfuApi.KfNumList<KungfuApi.KfLogData>;
+  logList: KungfuApi.KfFixedList<KungfuApi.KfLogData>;
   scrollToBottomChecked: Ref<boolean>;
   scrollerTableRef: Ref;
   scrollToBottom: () => void;
@@ -68,8 +68,8 @@ export const useLogInit = (
   clearLogState: () => void;
 } => {
   let LogTail: Tail | null = null;
-  const logList = reactive<KungfuApi.KfNumList<KungfuApi.KfLogData>>(
-    new KfNumList(nLines),
+  const logList = reactive<KungfuApi.KfFixedList<KungfuApi.KfLogData>>(
+    new KfFixedList(nLines),
   );
   const scrollerTableRef = ref();
   const scrollToBottomChecked = ref<boolean>(false);
@@ -125,7 +125,7 @@ export const useLogInit = (
 };
 
 export const useLogSearch = (
-  logList: KungfuApi.KfNumList<KungfuApi.KfLogData>,
+  logList: KungfuApi.KfFixedList<KungfuApi.KfLogData>,
   scrollerTableRef: Ref,
   contentSize: Ref<{
     width: number;

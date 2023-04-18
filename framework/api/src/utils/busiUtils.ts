@@ -1179,7 +1179,7 @@ export const getPropertyFromProcessStatusDetailDataByKfLocation = (
   };
 };
 
-export class KfNumList<T> {
+export class KfFixedList<T> {
   list: T[];
   limit: number;
 

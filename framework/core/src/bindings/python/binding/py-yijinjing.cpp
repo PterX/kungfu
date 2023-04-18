@@ -343,7 +343,8 @@ void bind(pybind11::module &&m) {
 
   py::class_<session_builder, session_finder, std::shared_ptr<session_builder>>(m, "session_builder")
       .def(py::init<io_device_ptr>())
-      .def("rebuild_index_db", &session_builder::rebuild_index_db);
+      .def("rebuild_index_db", &session_builder::rebuild_index_db)
+      .def("update_index_db", &session_builder::update_index_db);
 
   auto profile_class = py::class_<profile, std::shared_ptr<profile>>(m, "profile");
   profile_class.def(py::init<const locator_ptr &>());

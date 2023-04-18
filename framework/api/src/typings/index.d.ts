@@ -341,7 +341,7 @@ declare namespace KungfuApi {
     messageForSearch: string;
   }
 
-  export class KfNumList<T> {
+  export class KfFixedList<T> {
     list: T[];
     limit: number;
     insert(item: T): void;

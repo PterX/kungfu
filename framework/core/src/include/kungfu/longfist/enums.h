@@ -57,6 +57,7 @@ NLOHMANN_JSON_SERIALIZE_ENUM(category, {
                                            {category::MD, "MD"},
                                            {category::TD, "TD"},
                                            {category::STRATEGY, "STRATEGY"},
+                                           {category::OPERATOR, "OPERATOR"},
                                            {category::SYSTEM, "SYSTEM"},
                                        })
 

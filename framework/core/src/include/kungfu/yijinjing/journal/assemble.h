@@ -69,6 +69,8 @@ public:
 
   frame_ptr current_frame();
 
+  page_ptr current_page();
+
   template <typename T>
   [[maybe_unused]] std::vector<T> read_all(int32_t msg_type = T::tag, int64_t end_time = INT64_MAX) {
     std::vector<T> v{};

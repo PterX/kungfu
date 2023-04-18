@@ -4,25 +4,25 @@ import colors from 'colors';
 import { buildProcessLogPath } from '@kungfu-trader/kungfu-js-api/config/pathConfig';
 import {
   isCriticalLog,
-  KfNumList,
+  KfFixedList,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { ensureFileSync } from 'fs-extra';
 
 export class Log {
   logTail: Tail | null;
   lines: number;
-  logList: KungfuApi.KfNumList<string>;
+  logList: KungfuApi.KfFixedList<string>;
   EXTRA_LINES: number;
 
   constructor(lines = 2000) {
     this.EXTRA_LINES = 1000;
     this.logTail = null;
     this.lines = lines;
-    this.logList = new KfNumList(lines + this.EXTRA_LINES);
+    this.logList = new KfFixedList(lines + this.EXTRA_LINES);
   }
 
   initProcessId(processId: string) {
-    this.logList = new KfNumList(this.lines + this.EXTRA_LINES);
+    this.logList = new KfFixedList(this.lines + this.EXTRA_LINES);
     this.tailLog(processId);
   }
 

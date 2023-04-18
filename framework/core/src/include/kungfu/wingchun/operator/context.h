@@ -24,7 +24,7 @@ public:
    * Get config from database.
    * @return  config of current location_uid
    */
-  virtual const std::string &get_config() const = 0;
+  virtual const std::string get_config() const = 0;
 
   /**
    * Add one shot timer callback.

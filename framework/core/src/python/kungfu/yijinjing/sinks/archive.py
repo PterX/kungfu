@@ -39,6 +39,6 @@ class ArchiveSink(yjj.sink):
                 self.locator,
             )
             writers[dest_id] = yjj.writer(
-                target_location, dest_id, True, self.publisher
+                target_location, dest_id, True, self.publisher, False, self.bus
             )
         writers[dest_id].copy_frame(frame)

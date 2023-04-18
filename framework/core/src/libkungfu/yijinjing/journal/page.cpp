@@ -57,9 +57,9 @@ page_ptr page::load(const data::location_ptr &location, uint32_t dest_id, uint32
 
   if (pre_open && is_virgin_page) {
     header->status = longfist::enums::PageStatus::PreOpen;
-    uintptr_t first_frame_address = address + header->page_header_length;
-    uint32_t body_size = page_size - header->page_header_length;
-    memset(reinterpret_cast<void *>(first_frame_address), 0, body_size); // warm up
+    // uintptr_t first_frame_address = address + header->page_header_length;
+    // uint32_t body_size = page_size - header->page_header_length;
+    // memset(reinterpret_cast<void *>(first_frame_address), 0, body_size); // warm up
   } else if (is_writing) {
     header->status = longfist::enums::PageStatus::Normal;
   }

@@ -41,17 +41,20 @@ module.exports = function () {
     pyEvalFile: binding.pyEvalFile,
     shutdown: binding.shutdown,
     Longfist: () => new binding.Longfist(),
-    Assemble: function (arg) {
+    Assemble: function (
+      arg,
+      mode = '*',
+      category = '*',
+      group = '*',
+      name = '*',
+    ) {
       if (Array.isArray(arg)) {
-        return new binding.Assemble(
-          arg.map(function (home) {
-            return home;
-          }),
-        );
+        return new binding.Assemble(arg, mode, category, group, name);
       } else {
-        return new binding.Assemble([arg]);
+        return new binding.Assemble([arg], mode, category, group, name);
       }
     },
+
     History: function (home) {
       return new binding.History(home);
     },
@@ -70,6 +73,16 @@ module.exports = function () {
     BasketInstrumentStore: function (home) {
       return new binding.BasketInstrumentStore(home);
     },
+    SessionStore: function (location, home) {
+      return new binding.SessionStore(location, home);
+    },
+    IODevice: function (location, home) {
+      return new binding.IODevice(location, home);
+    },
+    tracer: function (location, home, read, write, begin, end) {
+      return new binding.Tracer(location, home, read, write, begin, end);
+    },
+
     watcher: function (
       home,
       name,

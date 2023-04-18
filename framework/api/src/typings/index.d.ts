@@ -1011,6 +1011,15 @@ declare namespace KungfuApi {
     msgTypes: Record<number, string>;
   }
 
+  export interface IODevice {
+    getAllLocations(): Record<string, KfLocation>;
+  }
+
+  export interface SessionStore {
+    getAllSessions(): Session[];
+    getSessionsForLocation(kfLocation: KfLocation): Session[];
+  }
+
   export interface Kungfu {
     shutdown(): void;
     ConfigStore(kfHome: string): ConfigStore;
@@ -1018,7 +1027,9 @@ declare namespace KungfuApi {
     CommissionStore(kfHome: string): CommissionStore;
     BasketStore(kfHome: string): BasketStore;
     BasketInstrumentStore(kfHome: string): BasketInstrumentStore;
+    SessionStore(location: KfLocation, kfHome: string): SessionStore;
     History(kfHome: string): HistoryStore;
+    IODevice(location: KfLocation, kfHome: string): IODevice;
     Longfist(): Longfist;
     Assemble(kfHome: string[]): Assemble;
     watcher(

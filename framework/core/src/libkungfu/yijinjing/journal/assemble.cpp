@@ -27,9 +27,11 @@ struct assemble_exception : std::runtime_error {
   explicit assemble_exception(const std::string &msg) : std::runtime_error(msg){};
 };
 
-sink::sink() : publisher_(std::make_shared<noop_publisher>()) {}
+sink::sink() : publisher_(std::make_shared<noop_publisher>()), bus_(std::make_shared<bus>(false)) {}
 
 publisher_ptr sink::get_publisher() { return publisher_; }
+
+bus_ptr sink::get_bus() { return bus_; }
 
 copy_sink::copy_sink(data::locator_ptr locator) : sink(), locator_(std::move(locator)) {}
 
@@ -156,6 +158,8 @@ void assemble::next() {
 
 frame_ptr assemble::current_frame() { return current_reader_->current_frame(); }
 
+page_ptr assemble::current_page() { return current_reader_->current_page(); }
+
 void assemble::sort() {
   int64_t min_time = INT64_MAX;
   for (auto &reader : readers_) {
@@ -168,60 +172,6 @@ void assemble::sort() {
 using namespace kungfu::longfist::enums;
 using namespace kungfu::longfist::types;
 using namespace sqlite_orm;
-
-std::vector<kungfu::longfist::types::Session> assemble::get_sessions(const kungfu::yijinjing::data::location_ptr &pl) {
-  kungfu::yijinjing::data::locator_ptr l(new kungfu::yijinjing::data::locator());
-  auto index_location =
-      kungfu::yijinjing::data::location::make_shared(mode::LIVE, category::SYSTEM, "journal", "index", l);
-  std::string session_db = l->layout_file(index_location, layout::SQLITE, "index");
-  kungfu::yijinjing::cache::SessionStoragePtr session_storage_(
-      cache::make_storage_ptr(session_db, kungfu::longfist::SessionDataTypes));
-  if (not session_storage_->sync_schema_simulate().empty()) {
-    session_storage_->sync_schema();
-  }
-  auto bt = &Session::begin_time;
-  auto range = where(greater_or_equal(bt, 0) and lesser_or_equal(bt, INT64_MAX));
-  auto sessions = session_storage_->get_all<Session>(range, order_by(bt));
-  if (!pl) {
-    return sessions;
-  } else {
-    std::vector<kungfu::longfist::types::Session> filtered_sessions;
-    std::copy_if(sessions.begin(), sessions.end(), std::back_inserter(filtered_sessions),
-                 [&pl](kungfu::longfist::types::Session x) { return x.location_uid == pl->location_uid; });
-    return filtered_sessions;
-  }
-}
-
-[[maybe_unused]] std::shared_ptr<frame_reader> assemble::get_reader(const kungfu::yijinjing::data::location_ptr &pl) {
-  auto io_dvc = std::make_shared<kungfu::yijinjing::io_device>(pl, true, true);
-  auto curr = std::chrono::system_clock::now();
-  time_t tm = std::chrono::system_clock::to_time_t(curr);
-  auto tm_begin = std::localtime(&tm);
-  tm_begin->tm_hour = 0;
-  tm_begin->tm_min = 0;
-  tm_begin->tm_sec = 0;
-  std::time_t t_begin = std::mktime(tm_begin);
-  int64_t begin_time = t_begin * 1000000000;
-  auto tm_end = std::localtime(&tm);
-  tm_end->tm_hour = 23;
-  tm_end->tm_min = 59;
-  tm_end->tm_sec = 59;
-  std::time_t t_end = std::mktime(tm_end);
-  int64_t end_time = t_end * 1000000000 + 999999999;
-  auto p_reader = std::make_shared<frame_reader>(io_dvc, begin_time, end_time, true);
-  auto uid_str = fmt::format("{:08x}", io_dvc->get_home()->uid);
-  auto master_cmd_location = kungfu::yijinjing::data::location::make_shared(mode::LIVE, category::SYSTEM, "master",
-                                                                            uid_str, io_dvc->get_locator());
-  auto master_home_location = kungfu::yijinjing::data::location::make_shared(mode::LIVE, category::SYSTEM, "master",
-                                                                             "master", io_dvc->get_locator());
-
-  p_reader->join(master_cmd_location, io_dvc->get_home()->uid, begin_time);
-  p_reader->join(master_home_location, kungfu::yijinjing::data::location::PUBLIC, begin_time);
-  for (auto dest_id : io_dvc->get_locator()->list_location_dest(io_dvc->get_home())) {
-    p_reader->join(io_dvc->get_home(), dest_id, begin_time);
-  }
-  return p_reader;
-}
 
 assemble::assemble(const data::location_ptr &source_location, uint32_t dest_id, uint32_t assemble_mode,
                    int64_t from_time)
@@ -291,12 +241,20 @@ std::vector<std::pair<longfist::types::frame_header, std::vector<uint8_t>>> asse
                                                                                                  int64_t end_time) {
   std::vector<std::pair<longfist::types::frame_header, std::vector<uint8_t>>> v{};
   while (data_available() and current_frame()->gen_time() < end_time) {
-    if (msg_type == 0 or current_frame()->msg_type() == msg_type) {
+    if (msg_type == 0 or
+        current_frame()->msg_type() == msg_type && current_page()->get_version() == __JOURNAL_VERSION__) {
       const frame_header &head = *reinterpret_cast<frame_header *>(current_frame()->address());
       std::vector<uint8_t> bytes{current_frame()->data_as_bytes(),
                                  current_frame()->data_as_bytes() + current_frame()->data_length()};
       v.emplace_back(head, bytes);
     }
+
+    if (current_page()->get_version() != __JOURNAL_VERSION__) {
+      SPDLOG_WARN("journal version mismatch, expect {}, got {}, page_id {}, location uid {} location name {}",
+                  __JOURNAL_VERSION__, current_page()->get_version(), current_page()->get_page_id(),
+                  current_page()->get_location()->uid, current_page()->get_location()->uname);
+    }
+
     next();
   }
   return v;

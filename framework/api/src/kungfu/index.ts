@@ -40,7 +40,35 @@ export const history = kf.History(KF_RUNTIME_DIR);
 export const commissionStore = kf.CommissionStore(KF_RUNTIME_DIR);
 export const basketStore = kf.BasketStore(KF_RUNTIME_DIR);
 export const basketInstrumentStore = kf.BasketInstrumentStore(KF_RUNTIME_DIR);
+export const sessionStore = kf.SessionStore(
+  getCurrentNodeLocation(),
+  KF_RUNTIME_DIR,
+);
 export const longfist = kf.Longfist();
+export const io = kf.IODevice(getCurrentNodeLocation(), KF_RUNTIME_DIR);
+
+export function getCurrentNodeLocation(): KungfuApi.KfLocation {
+  return {
+    mode: 'live',
+    category: 'system',
+    group: 'node',
+    name: getWatcherId(),
+  };
+}
+
+export function getWatcherId(): string {
+  const watcherId = [
+    process.env.APP_TYPE,
+    process.env.UI_EXT_TYPE,
+    (process.env.APP_ID || '').length > 16
+      ? kf.formatStringToHashHex(process.env.APP_ID || '')
+      : process.env.APP_ID,
+  ]
+    .filter((str) => !!str)
+    .join('-');
+  kfLogger.info(`WatcherId ${watcherId}`);
+  return watcherId;
+}
 
 export const dealKfTime = (nano: bigint, date = false): string => {
   if (nano === BigInt(0)) {

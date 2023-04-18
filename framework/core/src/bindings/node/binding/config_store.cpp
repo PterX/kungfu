@@ -17,11 +17,11 @@ namespace kungfu::node {
 Napi::FunctionReference ConfigStore::constructor = {};
 
 ConfigStore::ConfigStore(const Napi::CallbackInfo &info)
-    : ObjectWrap(info), locator_(ExtractRuntimeLocatorByInfo0(info)), profile_(locator_) {}
+    : ObjectWrap(info), locator_(IODevice::ExtractRuntimeLocatorByIndex(info, 0)), profile_(locator_) {}
 
 inline Config getConfigFromJs(const Napi::CallbackInfo &info, const locator_ptr &locator) {
   Config query = {};
-  auto config_location = ExtractLocation(info, 0, locator);
+  auto config_location = IODevice::ExtractLocation(info, 0, locator);
   if (config_location) {
     query.location_uid = config_location->uid;
     query.category = config_location->category;
@@ -92,24 +92,6 @@ Napi::Value ConfigStore::RemoveConfig(const Napi::CallbackInfo &info) {
   return Napi::Boolean::New(info.Env(), true);
 }
 
-Napi::Value ConfigStore::GetAllLocation(const Napi::CallbackInfo &info) {
-  auto table = Napi::Object::New(info.Env());
-  try {
-    for (const auto &config : profile_.get_all(Location{})) {
-      auto uid = fmt::format("{:016x}", config.uid());
-      auto object = Napi::Object::New(info.Env());
-      set(config, object);
-      table.Set(uid, object);
-    }
-  } catch (const std::exception &ex) {
-    SPDLOG_ERROR("failed to GetAllLocation {}", ex.what());
-    yijinjing::util::print_stack_trace();
-    return Napi::Boolean::New(info.Env(), false);
-  }
-
-  return table;
-}
-
 void ConfigStore::Init(Napi::Env env, Napi::Object exports) {
   Napi::HandleScope scope(env);
 
@@ -119,7 +101,6 @@ void ConfigStore::Init(Napi::Env env, Napi::Object exports) {
                                         InstanceMethod("getConfig", &ConfigStore::GetConfig),
                                         InstanceMethod("getAllConfig", &ConfigStore::GetAllConfig),
                                         InstanceMethod("removeConfig", &ConfigStore::RemoveConfig),
-                                        InstanceMethod("getAllLocation", &ConfigStore::GetAllLocation),
                                     });
 
   constructor = Napi::Persistent(func);

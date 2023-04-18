@@ -94,6 +94,8 @@ public:
 
   [[nodiscard]] longfist::enums::mode get_dir_mode() const { return dir_mode_; }
 
+  [[nodiscard]] std::string get_root() const { return root_.string(); }
+
   bool operator==(const locator &another) const;
 
 private:

@@ -48,10 +48,10 @@ int64_t BrokerService::now() const { return vendor_.now(); }
 
 BrokerState BrokerService::get_state() { return state_; }
 
-const std::string &BrokerService::get_config() const {
+const std::string BrokerService::get_config() const {
   auto &config_map = get_state_bank()[boost::hana::type_c<Config>];
   if (config_map.find(get_home_uid()) == config_map.end()) {
-    return "\"\"";
+    return "{}";
   }
   auto &config_obj = config_map.at(get_home_uid());
   return config_obj.data.value;

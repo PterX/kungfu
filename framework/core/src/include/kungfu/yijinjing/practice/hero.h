@@ -72,8 +72,6 @@ public:
 
   [[nodiscard]] yijinjing::journal::writer_ptr get_writer(uint32_t dest_id) const;
 
-  yijinjing::journal::writer_ptr &get_thread_writer();
-
   [[maybe_unused]] [[nodiscard]] const WriterMap &get_writers() const;
 
   bool has_location(uint32_t uid) const;
@@ -129,8 +127,6 @@ protected:
   int64_t begin_time_;
   int64_t end_time_;
   yijinjing::journal::reader_ptr reader_;
-  inline static thread_local uint32_t thread_id_{0};
-  inline static thread_local yijinjing::journal::writer_ptr thread_writer_;
   WriterMap writers_ = {};
   std::unordered_map<uint64_t, longfist::types::Band> bands_ = {};
   std::unordered_map<uint64_t, longfist::types::Channel> channels_ = {};

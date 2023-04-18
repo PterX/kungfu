@@ -358,6 +358,8 @@ bool hero::drain(const rx::subscriber<event_ptr> &sb) {
       if (frame_time > now_) {
         now_ = frame_time;
       }
+      SPDLOG_INFO("header: {}",
+                  reinterpret_cast<longfist::types::frame_header *>(reader_->current_frame()->address())->to_string());
       sb.on_next(reader_->current_frame());
       on_frame();
       reader_->next();
@@ -384,12 +386,4 @@ void hero::delegate_produce(hero *instance, const rx::subscriber<event_ptr> &sub
 #endif
 }
 
-yijinjing::journal::writer_ptr &hero::get_thread_writer() {
-  if (not thread_writer_ or thread_id_ == 0) {
-    thread_id_ = kungfu::yijinjing::util::get_thread_id();
-    thread_writer_ = get_io_device()->open_writer(thread_id_);
-    reader_->join(get_home(), thread_id_, now());
-  }
-  return thread_writer_;
-}
 } // namespace kungfu::yijinjing::practice

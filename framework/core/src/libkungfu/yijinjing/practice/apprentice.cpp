@@ -315,4 +315,20 @@ void apprentice::expect_start() {
 void apprentice::reset_time(const longfist::types::TimeReset &time_reset) {
   time::reset(time_reset.system_clock_count, time_reset.steady_clock_count);
 }
+
+yijinjing::journal::writer_ptr &apprentice::get_thread_writer() {
+  if (not thread_writer_ or thread_id_ == 0) {
+    thread_id_ = kungfu::yijinjing::util::get_thread_id();
+    thread_writer_ = get_io_device()->open_writer(thread_id_);
+    int dest_id = kungfu::yijinjing::util::get_thread_id();
+    int64_t nano = now();
+    SPDLOG_DEBUG("dest_id: {}, now: {}", dest_id, time::strftime(nano));
+    add_timer(now(), [&, dest_id, nano](const auto &event) {
+      SPDLOG_DEBUG("dest_id: {}, now: {}", dest_id, time::strftime(nano));
+      reader_->join(get_home(), dest_id, nano);
+    });
+  }
+  return thread_writer_;
+}
+
 } // namespace kungfu::yijinjing::practice

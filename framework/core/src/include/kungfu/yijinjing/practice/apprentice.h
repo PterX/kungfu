@@ -61,6 +61,8 @@ public:
     get_writer(dest_id)->write(trigger_time, data);
   }
 
+  yijinjing::journal::writer_ptr &get_thread_writer();
+
 protected:
   cache::bank state_bank_;
 
@@ -184,6 +186,9 @@ private:
   int64_t trading_day_ = 0;
   int32_t timer_usage_count_ = 0;
   std::unordered_map<int, int64_t> timer_checkpoints_ = {};
+  inline static thread_local uint32_t thread_id_{0};
+  inline static thread_local yijinjing::journal::writer_ptr thread_writer_;
+
   void checkin();
 
   void expect_start();

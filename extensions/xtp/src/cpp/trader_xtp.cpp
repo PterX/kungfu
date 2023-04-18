@@ -19,6 +19,7 @@ struct TDConfiguration {
   std::string td_ip;
   int td_port;
   bool self_deal_detect;
+  bool sync_external_order;
 };
 
 void from_json(const nlohmann::json &j, TDConfiguration &c) {
@@ -29,6 +30,7 @@ void from_json(const nlohmann::json &j, TDConfiguration &c) {
   j.at("td_ip").get_to(c.td_ip);
   j.at("td_port").get_to(c.td_port);
   j.at("self_deal_detect").get_to(c.self_deal_detect);
+  c.sync_external_order = j.value<bool>("sync_external_order", false);
 }
 
 TraderXTP::TraderXTP(broker::BrokerVendor &vendor) : Trader(vendor), session_id_(0), request_id_(0), trading_day_("") {
@@ -159,8 +161,8 @@ void TraderXTP::OnOrderEvent(XTPOrderInfo *order_info, XTPRI *error_info, uint64
     return;
   }
   SPDLOG_DEBUG("XTPOrderInfo: {}", to_string(*order_info));
-  get_thread_writer()->write_raw(now(), kOrderType_, uintptr_t(order_info), sizeof(XTPOrderInfo));
-  auto frame = get_thread_writer()->open_frame(now(), kTradeType_, sizeof(buffer_XTPOrderInfo));
+  //  get_thread_writer()->write_raw(now(), kOrderType_, uintptr_t(order_info), sizeof(XTPOrderInfo));
+  auto frame = get_thread_writer()->open_frame(now(), kOrderType_, sizeof(buffer_XTPOrderInfo));
   auto *bf_order_info =
       const_cast<buffer_XTPOrderInfo *>(reinterpret_cast<const buffer_XTPOrderInfo *>(frame->data_address()));
   memcpy(&bf_order_info->order_info, order_info, sizeof(XTPOrderInfo));
@@ -171,8 +173,8 @@ void TraderXTP::OnOrderEvent(XTPOrderInfo *order_info, XTPRI *error_info, uint64
     memset(&bf_order_info->error_info, 0, sizeof(XTPRI));
   }
   get_thread_writer()->close_frame(sizeof(buffer_XTPOrderInfo));
-  const auto *a = reinterpret_cast<const buffer_XTPOrderInfo *>(frame->data_address());
-  SPDLOG_WARN("bytes: {}", frame->data_as_bytes());
+  SPDLOG_WARN("buffer_XTPOrderInfo: {}", to_string(bf_order_info->order_info));
+  SPDLOG_WARN("session_id: {}", bf_order_info->session_id);
 }
 
 bool TraderXTP::custom_OnOrderEvent(const event_ptr &event) {

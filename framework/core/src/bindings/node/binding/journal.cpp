@@ -78,7 +78,8 @@ bool lossless;
 Napi::FunctionReference Reader::constructor = {};
 Reader::Reader(const Napi::CallbackInfo &info)
     : ObjectWrap(info), reader(true, false, std::make_shared<bus>(false)),
-      io_device_(std::make_shared<io_device>(IODevice::ExtractLocation(info, 0, IODevice::GetDefaultRuntimeLocator()), false, true)) {}
+      io_device_(std::make_shared<io_device>(IODevice::ExtractLocation(info, 0, IODevice::GetDefaultRuntimeLocator()),
+                                             false, true)) {}
 
 Napi::Value Reader::ToString(const Napi::CallbackInfo &info) { return Napi::String::New(info.Env(), "Reader.js"); }
 

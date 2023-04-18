@@ -45,6 +45,8 @@ public:
 
   void register_app(const event_ptr &event);
 
+  void on_join_channel(const event_ptr &event);
+
   [[maybe_unused]] void deregister_app(int64_t trigger_time, uint32_t app_location_uid);
 
 protected:

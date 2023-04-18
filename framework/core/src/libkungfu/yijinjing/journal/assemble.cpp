@@ -15,7 +15,6 @@ namespace kungfu::yijinjing::journal {
 using namespace longfist::enums;
 using namespace longfist::types;
 
-
 sink::sink() : publisher_(std::make_shared<noop_publisher>()), bus_(std::make_shared<bus>(false)) {}
 
 publisher_ptr sink::get_publisher() { return publisher_; }

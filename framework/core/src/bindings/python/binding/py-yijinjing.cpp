@@ -88,8 +88,8 @@ class PyPublisher : public publisher {
 public:
   int notify() override { PYBIND11_OVERLOAD_PURE(int, publisher, notify); }
 
-  int publish(const std::string &json_message) override {
-    PYBIND11_OVERLOAD_PURE(int, publisher, publish, json_message);
+  int publish(const std::string &json_message, int flags = NNG_FLAG_NONBLOCK) override {
+    PYBIND11_OVERLOAD_PURE(int, publisher, publish, json_message, flags);
   }
 };
 

@@ -13,10 +13,12 @@ typedef std::unordered_map<uint32_t, yijinjing::data::location_ptr> LocationMap;
 class tracer {
 public:
   explicit tracer(const yijinjing::data::location_ptr location, bool in, bool out, int64_t begin, int64_t end);
-
+  
   ~tracer();
 
   void next() { reader_->next(); };
+
+  void seek_to_time(int64_t nanotime) { reader_->seek_to_time(nanotime); };
 
   [[nodiscard]] const yijinjing::data::locator_ptr &get_locator() const { return home_->locator; }
 
@@ -31,6 +33,11 @@ public:
   [[nodiscard]] yijinjing::journal::page_ptr current_page() const { return reader_->current_page(); };
 
   [[nodiscard]] LocationMap &get_all_locations() { return locations_; }
+
+protected:
+  [[nodiscard]] int64_t get_begin_time() const { return begin_time_; }
+  
+  [[nodiscard]] int64_t get_end_time() const { return end_time_; }
 
 private:
   yijinjing::data::location_ptr home_;

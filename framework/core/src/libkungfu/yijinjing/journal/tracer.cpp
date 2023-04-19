@@ -40,17 +40,17 @@ tracer::~tracer() { reader_.reset(); }
 frame_ptr tracer::current_frame() const {
   auto frame = reader_->current_frame();
 
-  if (frame->dest() == home_->uid and frame->msg_type() == RequestReadFrom::tag and in_) {
+  if (frame->dest() == home_->uid and frame->msg_type() == RequestReadFrom::tag) {
     auto request = frame->data<RequestReadFrom>();
     auto source_location = locations_.at(request.source_id);
     reader_->join(source_location, home_->uid, begin_time_);
   }
-  if (frame->dest() == home_->uid and frame->msg_type() == RequestReadFromPublic::tag and in_) {
+  if (frame->dest() == home_->uid and frame->msg_type() == RequestReadFromPublic::tag) {
     auto request = frame->data<RequestReadFromPublic>();
     auto source_location = locations_.at(request.source_id);
     reader_->join(source_location, location::PUBLIC, begin_time_);
   }
-  if (frame->dest() == home_->uid and frame->msg_type() == RequestReadFromSync::tag and in_) {
+  if (frame->dest() == home_->uid and frame->msg_type() == RequestReadFromSync::tag) {
     auto request = frame->data<RequestReadFromSync>();
     auto source_location = locations_.at(request.source_id);
     reader_->join(source_location, location::SYNC, begin_time_);

@@ -9,6 +9,7 @@
 
 #include "common.h"
 #include "operators.h"
+#include <deque>
 
 #include <kungfu/yijinjing/io.h>
 #include <kungfu/yijinjing/journal/assemble.h>
@@ -27,6 +28,8 @@ public:
   [[nodiscard]] Napi::Value DataAvailable(const Napi::CallbackInfo &info);
 
   [[nodiscard]] Napi::Value CurrentFrame(const Napi::CallbackInfo &info);
+
+  void SeekToTime(const Napi::CallbackInfo &info);
 
   void Next(const Napi::CallbackInfo &info);
 

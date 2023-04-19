@@ -7,6 +7,7 @@
 #include <cstdarg>
 #include <filesystem>
 #include <rxcpp/rx.hpp>
+#include <nng/nng.h>
 
 #include <kungfu/common.h>
 #include <kungfu/longfist/longfist.h>
@@ -37,7 +38,7 @@ public:
 
   virtual int notify() = 0;
 
-  virtual int publish(const std::string &json_message) = 0;
+  virtual int publish(const std::string &json_message, int flags = NNG_FLAG_NONBLOCK) = 0;
 };
 
 DECLARE_PTR(publisher)

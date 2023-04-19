@@ -30,7 +30,7 @@
 <script lang="ts" setup>
 import { dealKfTime } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { dealKfPrice } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
-import { computed, reactive, ref, watch, watchEffect } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 // import { assemble } from '@kungfu-trader/kungfu-js-api/kungfu';
 import KfTradingCharts from '../../../components/public/KfTradingCharts.vue';
 import { useDealJournalDatas } from '../utils';
@@ -174,7 +174,7 @@ const loadFrameData = (
     } else {
       journalStore.setMdSessionFrames(res, true);
     }
-    console.log('mdjournal', res);
+    // console.log('mdjournal', res);
     if (total >= LIMIT_COUNT) loadFrameData(session, startTime, endTime, true);
   });
 };
@@ -290,23 +290,24 @@ const allOptions = computed(() => {
         newData = [];
       }
 
-      console.log('data;quotes;trades;orders', {
-        allData,
-        timeTemp: timeTemp.sort((a, b) => {
-          return a > b ? 1 : -1;
-        }),
-        timeTemp2: timeTemp2.sort((a, b) => {
-          return a > b ? 1 : -1;
-        }),
-        oldnew: { oldOptionData, newData },
-        allTradingDatas,
-        ll: { quotes, trades, orders },
-        new: {
-          newQuotes,
-          newTrades,
-          newOrders,
-        },
-      });
+      // console.log('data;quotes;trades;orders', {
+      //   allData,
+      //   timeTemp: timeTemp.sort((a, b) => {
+      //     return a > b ? 1 : -1;
+      //   }),
+      //   timeTemp2: timeTemp2.sort((a, b) => {
+      //     return a > b ? 1 : -1;
+      //   }),
+      //   oldnew: { oldOptionData, newData },
+      //   allTradingDatas,
+      //   ll: { quotes, trades, orders },
+      //   new: {
+      //     newQuotes,
+      //     newTrades,
+      //     newOrders,
+      //   },
+      // });
+
       return {
         ...options,
         [key]: getOption(key, oldOptionData, newData, reset),
@@ -320,11 +321,11 @@ const allOptions = computed(() => {
   for (const key in allTradingDatas.value) {
     previousAllTradingDatas.set(key, allTradingDatas.value[key]);
   }
-  console.log(
-    'previousAllTradingDatas',
-    previousAllTradingDatas,
-    resolvedOptions,
-  );
+  // console.log(
+  //   'previousAllTradingDatas',
+  //   previousAllTradingDatas,
+  //   resolvedOptions,
+  // );
 
   return resolvedOptions;
 });
@@ -564,15 +565,15 @@ function getOption(
   };
   return option;
 }
-watchEffect(() => {
-  console.log(
-    'allOptions;allTradingDatas;mdQ>>>',
-    allOptions.value,
-    allTradingDatas.value,
-    mdQuotoDatas.value,
-    Object.keys(allOptions),
-  );
-});
+// watchEffect(() => {
+//   console.log(
+//     'allOptions;allTradingDatas;mdQ>>>',
+//     allOptions.value,
+//     allTradingDatas.value,
+//     mdQuotoDatas.value,
+//     Object.keys(allOptions),
+//   );
+// });
 </script>
 
 <style lang="less">

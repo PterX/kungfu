@@ -556,6 +556,14 @@ export default {
     input_instrument_id: '请输入标的名称',
 
     undefined_instrument_id: '找不到对应的标的',
+
+    read_event: '输入事件',
+
+    write_event: '输出事件',
+
+    Event: '事件',
+
+    Visual: '视图',
   },
 
   tradeConfig: {

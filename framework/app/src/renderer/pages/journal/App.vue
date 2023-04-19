@@ -127,6 +127,7 @@ import ExportJournal from './components/ExportJournal.vue';
 import EventsDashBoard from './components/EventsDashboard.vue';
 import OrdersDashboard from './components/OrdersDashboard.vue';
 import { useJournalStore } from './store/journalStore';
+import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 // import { getAllLocation } from '@kungfu-trader/kungfu-js-api/kungfu/store';
 // import {
 //   KfModeEnum,
@@ -137,6 +138,7 @@ type LocationRseolved = KungfuApi.KfLocation & {
   uname: string;
   uid: number;
 };
+const { t } = VueI18n.global;
 const isExternalUpdate = ref(false);
 const currentLocation = getCurrentLocation();
 const timeSlider = ref();
@@ -186,12 +188,12 @@ const currentMenuList = ref<('event' | 'visual')[]>(['event']);
 const menus = [
   {
     key: 'event',
-    title: 'Event',
+    title: t('journalConfig.Event'),
     icon: UnorderedListOutlined,
   },
   {
     key: 'visual',
-    title: 'Visual',
+    title: t('journalConfig.Visual'),
     icon: LineChartOutlined,
   },
 ];

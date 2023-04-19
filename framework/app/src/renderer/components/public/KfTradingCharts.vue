@@ -5,7 +5,7 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, ref, watch, onBeforeUnmount, watchEffect } from 'vue';
+import { onMounted, ref, watch, onBeforeUnmount } from 'vue';
 import * as echarts from 'echarts';
 
 const props = defineProps<{
@@ -55,9 +55,9 @@ watch(
     deep: true,
   },
 );
-watchEffect(() => {
-  console.log('option', props.option);
-});
+// watchEffect(() => {
+//   console.log('option', props.option);
+// });
 
 onMounted(() => {
   initChart();

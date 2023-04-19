@@ -21,7 +21,7 @@ dataReceiver.onEnd<KungfuApi.FrameResolved>('send-events', ({ data, info }) => {
   const quotes: KungfuApi.Quote[] = [];
   const orders: KungfuApi.Order[] = [];
   const trades: KungfuApi.Trade[] = [];
-  console.log('send-events', data);
+  // console.log('send-events', data);
   data.forEach((item) => {
     const resolvedData = jsonParse(JSON.stringify(item.data));
     switch (item.msgType) {

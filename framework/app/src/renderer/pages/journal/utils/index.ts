@@ -268,7 +268,7 @@ export const useDealJournalDatas = () => {
     () => journalState.lastUpdateSessionFrames.value,
     (frames) => {
       if (frames[0] === undefined) return;
-      console.log('frames', frames, journalState.isSessionFramesInit.value);
+      // console.log('frames', frames, journalState.isSessionFramesInit.value);
       dataSender.sendData('send-events', frames, {
         isInit: journalState.isSessionFramesInit.value,
       });

@@ -6,13 +6,14 @@
 #include <csignal>
 #include <cstdarg>
 #include <filesystem>
-#include <rxcpp/rx.hpp>
 #include <nng/nng.h>
+#include <rxcpp/rx.hpp>
 
 #include <kungfu/common.h>
 #include <kungfu/longfist/longfist.h>
 #include <kungfu/yijinjing/util/stacktrace.h>
 #include <kungfu/yijinjing/util/util.h>
+#include <nng/compat/nanomsg/nn.h>
 
 namespace kungfu {
 namespace yijinjing {

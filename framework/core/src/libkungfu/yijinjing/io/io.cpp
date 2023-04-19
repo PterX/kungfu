@@ -56,7 +56,9 @@ public:
 
   int notify() override { return low_latency_ ? 0 : publish("{}"); }
 
-  int publish(const std::string &json_message, int flags = NNG_FLAG_NONBLOCK) override { return socket_.send(json_message, flags); }
+  int publish(const std::string &json_message, int flags = NNG_FLAG_NONBLOCK) override {
+    return socket_.send(json_message, flags);
+  }
 };
 
 class nanomsg_publisher_master : public nanomsg_publisher {

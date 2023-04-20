@@ -18,6 +18,8 @@ public:
 
   void next() { reader_->next(); };
 
+  void seek_to_time(int64_t nanotime);
+
   [[nodiscard]] const yijinjing::data::locator_ptr &get_locator() const { return home_->locator; }
 
   [[nodiscard]] const yijinjing::data::location_ptr &get_home() const { return home_; }
@@ -32,14 +34,22 @@ public:
 
   [[nodiscard]] LocationMap &get_all_locations() { return locations_; }
 
+protected:
+  [[nodiscard]] int64_t get_begin_time() const { return begin_time_; }
+
+  [[nodiscard]] int64_t get_end_time() const { return end_time_; }
+
 private:
   yijinjing::data::location_ptr home_;
   yijinjing::journal::reader_ptr reader_;
+  yijinjing::journal::reader_ptr reader_for_in_;
   LocationMap locations_;
   bool in_;
   bool out_;
   int64_t begin_time_;
   int64_t end_time_;
+
+  void join_for_in(const yijinjing::journal::frame_ptr &frame) const;
 };
 
 DECLARE_PTR(tracer);

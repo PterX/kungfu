@@ -114,7 +114,7 @@ public:
 
   void close();
 
-  // the flag for send must be NNG_FLAG_NONBLOCK, master may not started when this client is running
+  // Send policy changed to flag = 0 at app register, then notify with flag = NNG_FLAG_NONBLOCK
   int send(const std::string &msg, int flags = NNG_FLAG_NONBLOCK) const;
 
   int send_json(const nlohmann::json &msg, int flags = NNG_FLAG_NONBLOCK) const;

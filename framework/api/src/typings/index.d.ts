@@ -341,7 +341,7 @@ declare namespace KungfuApi {
     messageForSearch: string;
   }
 
-  export class KfNumList<T> {
+  export class KfFixedList<T> {
     list: T[];
     limit: number;
     insert(item: T): void;
@@ -987,6 +987,7 @@ declare namespace KungfuApi {
     seekToTime(): void;
     next(): void;
     dataAvailable(): boolean;
+    seekToTime(nanotime: bigint): void;
   }
 
   export interface Longfist {

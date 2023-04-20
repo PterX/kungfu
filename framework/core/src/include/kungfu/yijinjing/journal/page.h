@@ -9,21 +9,13 @@
 
 namespace kungfu::yijinjing::journal {
 
-// KF_DEFINE_PACK_TYPE(                          //
-//     page_header, 1, PK(version), PERPETUAL(), //
-//     (uint32_t, version),                      //
-//     (uint32_t, page_header_length),           //
-//     (uint32_t, page_size),                    //
-//     (uint32_t, frame_header_length),          //
-//     (longfist::enums::PageStatus, status),    // 0 close 1 preopen 2 open 3 flushing
-//     (uint64_t, last_frame_position)           //
-//);
-
 class page {
 public:
   ~page();
 
   void flush();
+
+  [[nodiscard]] uint32_t get_version() const { return header_->version; }
 
   [[nodiscard]] uint32_t get_page_size() const { return header_->page_size; }
 
@@ -98,7 +90,7 @@ inline static uint32_t find_page_size(const data::location_ptr &location, uint32
   }
   if ((location->category == longfist::enums::category::TD ||
        location->category == longfist::enums::category::STRATEGY ||
-       location->category == longfist::enums::category::OPERATOR) &&
+       location->category == longfist::enums::category::OPERATOR || location->group == "service") &&
       dest_id != 0) {
     return 16 * MB;
   }

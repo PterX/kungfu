@@ -52,6 +52,8 @@ public:
 
   int64_t now() const;
 
+  void set_now(int64_t now);
+
   void set_begin_time(int64_t begin_time);
 
   int64_t get_begin_time() const;
@@ -123,11 +125,13 @@ public:
     live_ = false;
   }
 
-  yijinjing::data::location_ptr get_ledger_home_location();
+  yijinjing::data::location_ptr get_ledger_home_location() const;
 
-  [[maybe_unused]] yijinjing::data::location_ptr get_master_home_location();
+  [[maybe_unused]] yijinjing::data::location_ptr get_master_home_location() const;
 
-  [[maybe_unused]] yijinjing::data::location_ptr get_master_cmd_location();
+  [[maybe_unused]] yijinjing::data::location_ptr get_master_cmd_location() const;
+
+  const rx::connectable_observable<event_ptr> &get_events() const;
 
 protected:
   int64_t begin_time_;

@@ -341,7 +341,7 @@ declare namespace KungfuApi {
     messageForSearch: string;
   }
 
-  export class KfNumList<T> {
+  export class KfFixedList<T> {
     list: T[];
     limit: number;
     insert(item: T): void;
@@ -955,12 +955,10 @@ declare namespace KungfuApi {
     genTime: FunctionOrData<T, bigint>;
     triggerTime: FunctionOrData<T, bigint>;
     msgType: FunctionOrData<T, FrameMsgTypeEnum>; // to enum
-    stringMsgType: FunctionOrData<T, number>; // to enum
     source: FunctionOrData<T, number>;
     dest: FunctionOrData<T, number>;
     data: FunctionOrData<T, string>;
-    sourceName: FunctionOrData<T, string>;
-    destName: FunctionOrData<T, string>;
+    // destName: FunctionOrData<T, string>;
   }
 
   export interface FrameResolved extends Frame {
@@ -989,34 +987,51 @@ declare namespace KungfuApi {
     seekToTime(): void;
     next(): void;
     dataAvailable(): boolean;
+    seekToTime(nanotime: bigint): void;
   }
 
   export interface Longfist {
-    Asset(): Asset;
-    AssetMargin(): AssetMargin;
-    Instrument(): Instrument;
-    Order(): Order;
-    OrderInput(): OrderInput;
-    OrderAction(): OrderAction;
-    OrderStat(): OrderStat;
-    Position(): Position;
-    Quote(): Quote;
-    Trade(): Trade;
-    Commission(): Commission;
-    RiskSetting(): RiskSettingOrigin;
-    Basket(): Basket;
-    BasketInstrument(): BasketInstrument;
-    BasketOrder(): BasketOrder;
+    types: {
+      Asset(): Asset;
+      AssetMargin(): AssetMargin;
+      Instrument(): Instrument;
+      Order(): Order;
+      OrderInput(): OrderInput;
+      OrderAction(): OrderAction;
+      OrderStat(): OrderStat;
+      Position(): Position;
+      Quote(): Quote;
+      Trade(): Trade;
+      Commission(): Commission;
+      RiskSetting(): RiskSettingOrigin;
+      Basket(): Basket;
+      BasketInstrument(): BasketInstrument;
+      BasketOrder(): BasketOrder;
+    };
+
+    msgTypes: Record<number, string>;
+  }
+
+  export interface IODevice {
+    getAllLocations(): Record<string, KfLocation>;
+  }
+
+  export interface SessionStore {
+    getAllSessions(): Session[];
+    getSessionsForLocation(kfLocation: KfLocation): Session[];
   }
 
   export interface Kungfu {
+    shutdown(): void;
     ConfigStore(kfHome: string): ConfigStore;
     RiskSettingStore(kfHome: string): RiskSettingStore;
     CommissionStore(kfHome: string): CommissionStore;
     BasketStore(kfHome: string): BasketStore;
     BasketInstrumentStore(kfHome: string): BasketInstrumentStore;
+    SessionStore(location: KfLocation, kfHome: string): SessionStore;
     History(kfHome: string): HistoryStore;
-    longfist: Longfist;
+    IODevice(location: KfLocation, kfHome: string): IODevice;
+    Longfist(): Longfist;
     Assemble(kfHome: string[]): Assemble;
     watcher(
       kfHome: string,
@@ -1055,6 +1070,10 @@ declare namespace KungfuApi {
   export interface KfLocationBase {
     group: string;
     name: string;
+  }
+
+  export interface KfLocationGroup extends KfLocation {
+    children?: KfLocation[];
   }
 
   export interface KfLocation extends KfLocationBase {

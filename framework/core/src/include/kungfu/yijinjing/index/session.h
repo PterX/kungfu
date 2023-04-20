@@ -7,6 +7,7 @@
 #ifndef KUNGFU_SESSION_H
 #define KUNGFU_SESSION_H
 
+#include <kungfu/common.h>
 #include <kungfu/longfist/longfist.h>
 #include <kungfu/yijinjing/cache/backend.h>
 #include <kungfu/yijinjing/io.h>
@@ -50,6 +51,8 @@ public:
   void update_session(const journal::frame_ptr &frame);
 
   [[maybe_unused]] void rebuild_index_db();
+
+  [[maybe_unused]] void update_index_db();
 
 private:
   SessionMap live_sessions_ = {};

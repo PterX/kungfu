@@ -3,6 +3,7 @@
 
 using namespace kungfu::longfist;
 using namespace kungfu::longfist::types;
+using namespace kungfu::longfist::enums;
 using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
 
@@ -10,7 +11,7 @@ namespace kungfu::node {
 Napi::FunctionReference BasketInstrumentStore::constructor = {};
 
 BasketInstrumentStore::BasketInstrumentStore(const Napi::CallbackInfo &info)
-    : ObjectWrap(info), locator_(ExtractRuntimeLocatorByInfo0(info)), profile_(locator_) {}
+    : ObjectWrap(info), locator_(IODevice::ExtractRuntimeLocatorByIndex(info, 0)), profile_(locator_) {}
 
 Napi::Value BasketInstrumentStore::SetAllBasketInstruments(const Napi::CallbackInfo &info) {
   if (info[0].IsArray()) {

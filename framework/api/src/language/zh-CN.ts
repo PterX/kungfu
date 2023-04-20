@@ -77,8 +77,9 @@ export default {
   add_config_modal:
     '{category}ID系统唯一, {changeTypeName} 成功后不可修改, 确认 {key}',
   update_config_modal: '确认{key} 相关配置',
-  database_locked:
-    '检测到当前有交易进行，为不影响交易数据落地，建议收盘后尝试进行此操作',
+  database_locked: '检测到当前有交易进行, 数据库被占用',
+  export_database_locked:
+    '检测到当前有交易进行, 为不影响交易数据落地, 建议收盘后尝试进行此操作',
 
   MakeOrder: '下单面板',
   FutureArbitrage: '套利指令',
@@ -101,6 +102,7 @@ export default {
   select_plugin_type: '选择插件类型',
 
   please_wait: '请稍后',
+  please_wait_and_retry: '请稍后重试',
 
   baseConfig: {
     main_panel: '主面板',
@@ -382,7 +384,7 @@ export default {
     confirm: '确认',
 
     entrust_statistical: '委托统计',
-    statistical_desc: '实时(最新{count}条数据)',
+    statistical_desc: '实时',
     entrust_statistical_number: '委托统计数量',
     entrust_statistical_price: '委托价统计',
     average_withdrawal_ratio: '平均撤单比 (仅统计 部成部撤 和 全部撤单)',
@@ -559,7 +561,7 @@ export default {
     statistical: '成交统计',
     statistical_count: '统计成交数量',
     statistical_price: '成交价统计',
-    statistical_desc: '实时(最新500条数据)',
+    statistical_desc: '实时',
     average_trade_latency: '平均成交延迟(μs)',
     max_trade_latency: '最大成交延迟(μs)',
     min_trade_latency: '最小成交延迟(μs)',
@@ -671,6 +673,7 @@ export default {
     comission: '期货手续费',
     varieties: '品种',
     add_comission: '添加',
+    save_comission: '保存',
     exchange_id: '交易所',
     open: '开仓',
     close_today: '平今',

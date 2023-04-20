@@ -88,8 +88,8 @@ class PyPublisher : public publisher {
 public:
   int notify() override { PYBIND11_OVERLOAD_PURE(int, publisher, notify); }
 
-  int publish(const std::string &json_message) override {
-    PYBIND11_OVERLOAD_PURE(int, publisher, publish, json_message);
+  int publish(const std::string &json_message, int flags = NNG_FLAG_NONBLOCK) override {
+    PYBIND11_OVERLOAD_PURE(int, publisher, publish, json_message, flags);
   }
 };
 
@@ -269,6 +269,7 @@ void bind(pybind11::module &&m) {
   py::class_<sink, PySink, sink_ptr>(m, "sink")
       .def(py::init())
       .def_property_readonly("publisher", &sink::get_publisher)
+      .def_property_readonly("bus", &sink::get_bus)
       .def("put", &sink::put)
       .def("close", &sink::close);
 
@@ -313,6 +314,7 @@ void bind(pybind11::module &&m) {
       .def(py::init<location_ptr, bool, bool>(), py::arg("home"), py::arg("low_latency") = false,
            py::arg("lazy") = true)
       .def_property_readonly("publisher", &io_device::get_publisher)
+      .def_property_readonly("bus", &io_device::get_bus)
       .def_property_readonly("observer", &io_device::get_observer)
       .def_property_readonly("home", &io_device::get_home)
       .def_property_readonly("live_home", &io_device::get_live_home)
@@ -341,7 +343,8 @@ void bind(pybind11::module &&m) {
 
   py::class_<session_builder, session_finder, std::shared_ptr<session_builder>>(m, "session_builder")
       .def(py::init<io_device_ptr>())
-      .def("rebuild_index_db", &session_builder::rebuild_index_db);
+      .def("rebuild_index_db", &session_builder::rebuild_index_db)
+      .def("update_index_db", &session_builder::update_index_db);
 
   auto profile_class = py::class_<profile, std::shared_ptr<profile>>(m, "profile");
   profile_class.def(py::init<const locator_ptr &>());

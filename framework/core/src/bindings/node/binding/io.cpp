@@ -13,7 +13,60 @@ using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
 
 namespace kungfu::node {
-location_ptr ExtractLocation(const Napi::CallbackInfo &info, int index, const locator_ptr &locator) {
+
+Napi::FunctionReference IODevice::constructor = {};
+
+IODevice::IODevice(const Napi::CallbackInfo &info)
+    : ObjectWrap(info),
+      io_device(ExtractLocation(info, 0, IODevice::ExtractRuntimeLocatorByIndex(info, 1)), false, true) {
+  Napi::Env env = info.Env();
+  Napi::HandleScope scope(env);
+}
+
+Napi::Value IODevice::OpenReader(const Napi::CallbackInfo &info) { return Reader::NewInstance(info.This()); }
+
+locator_ptr IODevice::GetLocatorByIndex(const Napi::Array &locators, int index) {
+  if (not IsValid(locators, index, &Napi::Value::IsString)) {
+    throw Napi::Error::New(locators.Env(), "Invalid locator argument");
+  }
+
+  auto dirname = locators[index].As<Napi::String>().Utf8Value();
+  return IODevice::GetRuntimeLocator(dirname);
+}
+
+std::vector<locator_ptr> IODevice::ExtractLocators(const Napi::CallbackInfo &info) {
+  if (not IsValid(info, 0, &Napi::Value::IsArray)) {
+    throw Napi::Error::New(info.Env(), "Invalid locators argument");
+  }
+  std::vector<locator_ptr> result = {};
+  auto locators = info[0].As<Napi::Array>();
+  for (int i = 0; i < locators.Length(); i++) {
+    result.push_back(IODevice::GetLocatorByIndex(locators, i));
+  }
+  return result;
+}
+
+Napi::Value IODevice::GetAllLocations(const Napi::CallbackInfo &info) {
+
+  auto locator = get_locator();
+  auto table = Napi::Object::New(info.Env());
+
+  for (auto location : locator->list_locations(".*", ".*", ".*", ".*")) {
+    auto uid = fmt::format("{:016x}", location->uid);
+    auto locationObj = Napi::Object::New(info.Env());
+    locationObj.Set("category", Napi::String::New(info.Env(), get_category_name(location->category)));
+    locationObj.Set("group", Napi::String::New(info.Env(), location->group));
+    locationObj.Set("name", Napi::String::New(info.Env(), location->name));
+    locationObj.Set("mode", Napi::String::New(info.Env(), get_mode_name(location->mode)));
+    locationObj.Set("uname", Napi::String::New(info.Env(), location->uname));
+    locationObj.Set("uid", Napi::Number::New(info.Env(), location->uid));
+    table.Set(uid, locationObj);
+  }
+
+  return table;
+}
+
+location_ptr IODevice::ExtractLocation(const Napi::CallbackInfo &info, int index, const locator_ptr &locator) {
   try {
     if (info[index].IsObject()) {
       auto obj = info[index].ToObject();
@@ -34,30 +87,19 @@ location_ptr ExtractLocation(const Napi::CallbackInfo &info, int index, const lo
   }
 }
 
-Napi::FunctionReference IODevice::constructor = {};
-
-IODevice::IODevice(const Napi::CallbackInfo &info) : ObjectWrap(info), io_device(GetLocation(info), true, true) {
-  Napi::Env env = info.Env();
-  Napi::HandleScope scope(env);
+locator_ptr IODevice::GetRuntimeLocator(const std::string &dirname) {
+  return std::make_shared<yijinjing::data::locator>(dirname);
 }
 
-Napi::Value IODevice::OpenReader(const Napi::CallbackInfo &info) { return Reader::NewInstance(info.This()); }
+locator_ptr IODevice::GetDefaultRuntimeLocator() { return std::make_shared<yijinjing::data::locator>(); }
 
-locator_ptr IODevice::GetLocator(const Napi::CallbackInfo &info, int index) {
-  if (not IsValid(info, index, &Napi::Value::IsObject)) {
-    throw Napi::Error::New(info.Env(), "Invalid locator argument");
+locator_ptr IODevice::ExtractRuntimeLocatorByIndex(const Napi::CallbackInfo &info, int index) {
+  if (not IsValid(info, index, &Napi::Value::IsString)) {
+    throw Napi::Error::New(info.Env(), "Invalid Info[" + std::to_string(index) + "] type, not string");
   }
 
-  auto dirname = info[index].As<Napi::String>().Utf8Value();
-  return GetRuntimeLocator(dirname);
-}
-
-location_ptr IODevice::GetLocation(const Napi::CallbackInfo &info) {
-  kungfu::longfist::enums::mode m = (kungfu::longfist::enums::mode)(info[0].ToNumber().Uint32Value());
-  kungfu::longfist::enums::category c = (kungfu::longfist::enums::category)(info[1].ToNumber().Uint32Value());
-  std::string group = info[2].ToString().Utf8Value();
-  std::string name = info[3].ToString().Utf8Value();
-  return std::make_shared<location>(m, c, group, name, GetDefaultRuntimeLocator());
+  auto runtime_dir = info[index].As<Napi::String>().Utf8Value();
+  return IODevice::GetRuntimeLocator(runtime_dir);
 }
 
 void IODevice::Init(Napi::Env env, Napi::Object exports) {
@@ -66,6 +108,7 @@ void IODevice::Init(Napi::Env env, Napi::Object exports) {
   Napi::Function func = DefineClass(env, "IODevice",
                                     {
                                         InstanceMethod("openReader", &IODevice::OpenReader),
+                                        InstanceMethod("getAllLocations", &IODevice::GetAllLocations),
                                     });
 
   constructor = Napi::Persistent(func);

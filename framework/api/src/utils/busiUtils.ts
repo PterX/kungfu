@@ -59,6 +59,7 @@ import {
   UnderweightEnum,
   PriceLevelEnum,
   CurrencyEnum,
+  HistoryDateEnum,
 } from '../typings/enums';
 import {
   graceDeleteProcess,
@@ -313,6 +314,39 @@ export const loopToRunProcess = async <T>(
     await delayMilliSeconds(interval);
   }
   return resList;
+};
+
+export const getResultUntilValuable = <T>(
+  getter: (...args) => T | false,
+  timeout = 5000,
+): Promise<T> => {
+  return new Promise((resolve, reject) => {
+    let count = 0;
+    const getterResolved = () => {
+      setTimeout(() => {
+        try {
+          const result = getter();
+          if (result) {
+            resolve(result);
+          } else {
+            if (++count * 16 > timeout) {
+              reject(new Error('GetResultUntilValuable Timeout'));
+            } else {
+              getterResolved();
+            }
+          }
+        } catch (err) {
+          if (++count * 16 > timeout) {
+            reject(err);
+          } else {
+            getterResolved();
+          }
+        }
+      }, 16);
+    };
+
+    getterResolved();
+  });
 };
 
 export const delayMilliSeconds = (miliSeconds: number): Promise<void> => {
@@ -1146,7 +1180,7 @@ export const getPropertyFromProcessStatusDetailDataByKfLocation = (
   };
 };
 
-export class KfNumList<T> {
+export class KfFixedList<T> {
   list: T[];
   limit: number;
 
@@ -1363,6 +1397,41 @@ export const isKfColor = (color: string) => color.startsWith('kf-color');
 
 export const isHexOrRgbColor = (color: string) =>
   color.startsWith('#') || color.startsWith('rgb') || color.startsWith('rgba');
+
+export const dealMillionSencond2NanoSecond = (ms: number | bigint) =>
+  BigInt(ms) * 1000000n;
+
+export const dealDateToNanotimeRange = (
+  date: string | number,
+  dateType = HistoryDateEnum.naturalDate,
+): {
+  from: bigint;
+  to: bigint;
+} | null => {
+  const day = dayjs(date);
+  if (!day.isValid()) return null;
+
+  const dayOfWeek = day.day();
+  const isTradingDay = dateType === HistoryDateEnum.tradingDate;
+
+  const startTime = (
+    isTradingDay
+      ? day.add(dayOfWeek === 1 ? -3 : -1, 'day').hour(15) // last trading day 15:00
+      : day.hour(0)
+  )
+    .minute(0)
+    .second(0);
+  const from = dealMillionSencond2NanoSecond(startTime.valueOf());
+  const endTime = (isTradingDay ? day.hour(15) : day.add(1, 'day').hour(0))
+    .minute(0)
+    .second(0);
+  const to = dealMillionSencond2NanoSecond(endTime.valueOf());
+
+  return {
+    from,
+    to,
+  };
+};
 
 export const dealKfNumber = (
   preNumber: bigint | number | undefined | unknown,
@@ -2048,7 +2117,7 @@ export const initFormStateByConfig = (
         }
       }
     } else if (KfConfigValueTimeType.includes(type)) {
-      defaultValue = initFormTimePicker(item?.default);
+      defaultValue = initFormTimePicker(defaultValue);
     }
 
     formState[item.key] = defaultValue;

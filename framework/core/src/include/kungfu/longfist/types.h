@@ -46,9 +46,6 @@ KF_DEFINE_MARK_TYPE(PositionSync, 405);
 KF_DEFINE_MARK_TYPE(KeepPositionsRequest, 406);
 KF_DEFINE_MARK_TYPE(RebuildPositionsRequest, 407);
 KF_DEFINE_MARK_TYPE(OrderTradeRequest, 408);
-KF_DEFINE_MARK_TYPE(AlgoOrderInput, 20010);
-KF_DEFINE_MARK_TYPE(AlgoOrderReport, 20011);
-KF_DEFINE_MARK_TYPE(AlgoOrderModify, 20012);
 
 KF_DEFINE_PACK_TYPE(                                           //
     frame_header, 0, PK(gen_time), TIMESTAMP(gen_time),        //
@@ -444,6 +441,7 @@ KF_DEFINE_PACK_TYPE(                                                        //
     (int64_t, seq),      // 子序号
     (int64_t, biz_index) // 业务序号
 );
+
 KF_DEFINE_PACK_TYPE(                                        //
     Tree, 104, PK(instrument_id, exchange_id), PERPETUAL(), //
     (kungfu::array<char, DATE_LEN>, trading_day),           // 交易日

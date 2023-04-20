@@ -6,12 +6,14 @@
 #include <csignal>
 #include <cstdarg>
 #include <filesystem>
+#include <nng/nng.h>
 #include <rxcpp/rx.hpp>
 
 #include <kungfu/common.h>
 #include <kungfu/longfist/longfist.h>
 #include <kungfu/yijinjing/util/stacktrace.h>
 #include <kungfu/yijinjing/util/util.h>
+#include <nng/compat/nanomsg/nn.h>
 
 namespace kungfu {
 namespace yijinjing {
@@ -37,7 +39,7 @@ public:
 
   virtual int notify() = 0;
 
-  virtual int publish(const std::string &json_message) = 0;
+  virtual int publish(const std::string &json_message, int flags = NNG_FLAG_NONBLOCK) = 0;
 };
 
 DECLARE_PTR(publisher)
@@ -93,6 +95,10 @@ public:
   [[nodiscard]] virtual std::vector<uint32_t> list_location_dest_by_db(const location_ptr &location) const;
 
   [[nodiscard]] longfist::enums::mode get_dir_mode() const { return dir_mode_; }
+
+  [[nodiscard]] std::string get_root() const { return root_.string(); }
+
+  bool operator==(const locator &another) const;
 
 private:
   std::filesystem::path root_;

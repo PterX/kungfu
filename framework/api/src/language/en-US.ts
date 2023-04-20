@@ -76,7 +76,8 @@ export default {
   add_config_modal:
     '{category} ID unique in the system. {changeTypeName} cannot be modified after it succeeds.',
   update_config_modal: 'Confirm {key} configurations',
-  database_locked:
+  database_locked: 'Detect there are some trading, database has been used',
+  export_database_locked:
     'Detect there are some trading, should make sure the trading data be saved, suggest do this after closing quotation.',
 
   MakeOrder: 'Order Dashboard',
@@ -94,12 +95,13 @@ export default {
   PosGlobal: 'Positon Global',
   Pos: 'Positon',
 
+  please_wait: 'Please wait...',
+  please_wait_and_retry: 'Please wait and retry',
+
   select_broker_ext: 'Select a broker api',
   select_operator_ext: 'Select a operator ext',
   select_trade_task: 'Select trade task',
   select_plugin_type: 'Select extension type',
-
-  please_wait: '请稍后',
 
   baseConfig: {
     main_panel: 'HOME',
@@ -385,7 +387,7 @@ export default {
     confirm: 'confirm',
 
     entrust_statistical: 'Entrust Statistical',
-    statistical_desc: 'Real-time (latest {count} pieces of data)',
+    statistical_desc: 'Real-time',
     entrust_statistical_number: 'Entrust Statistical Number',
     entrust_statistical_price: 'Entrust Statistical Price',
     average_withdrawal_ratio:
@@ -563,7 +565,7 @@ export default {
     statistical: 'Transaction Statistical',
     statistical_count: 'Statistics of transaction quantity',
     statistical_price: 'Transaction price statistics',
-    statistical_desc: 'Real-time (latest 500 pieces of data)',
+    statistical_desc: 'Real-time',
     average_trade_latency: 'Average transaction delay(μs)',
     max_trade_latency: 'Max transaction delay(μs)',
     min_trade_latency: 'Min transaction delay(μs)',
@@ -679,6 +681,7 @@ export default {
     comission: 'Comission',
     varieties: 'Varieties',
     add_comission: 'Add',
+    save_comission: 'Save',
     exchange_id: 'Exchange ID',
     open: 'Open',
     close_today: 'Close Today',
@@ -736,6 +739,7 @@ export default {
     illegal_character: 'The name cannot contain \\/:*?" <>|',
     delate_folder_confirm: 'Are you sure to delete folder?',
     delate_file_confirm: 'Are you sure to delete file?',
+    delate_confirm: 'Are you sure to delete {value}?',
     cannot_delate_entry: 'Cannot delete the entry',
     current: 'current',
     operator: 'operator',

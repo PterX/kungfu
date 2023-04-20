@@ -42,15 +42,17 @@ int64_t session_finder::find_last_active_time(const data::location_ptr &source_l
 
 [[maybe_unused]] SessionVector session_finder::find_sessions(int64_t from, int64_t to) {
   auto bt = &Session::begin_time;
-  auto range = where(greater_or_equal(bt, from) and lesser_or_equal(bt, to));
+  auto ut = &Session::update_time;
+  auto range = where(greater_or_equal(ut, from) and lesser_or_equal(ut, to));
   return session_storage_->get_all<Session>(range, order_by(bt));
 }
 
 [[maybe_unused]] SessionVector session_finder::find_sessions_for(const location_ptr &source_location, int64_t from,
                                                                  int64_t to) {
   auto bt = &Session::begin_time;
+  auto ut = &Session::update_time;
   auto match_uid = eq(&Session::location_uid, source_location->uid);
-  auto range = where(match_uid and greater_or_equal(bt, from) and lesser_or_equal(bt, to));
+  auto range = where(match_uid and greater_or_equal(ut, from) and lesser_or_equal(ut, to));
   return session_storage_->get_all<Session>(range, order_by(bt));
 }
 
@@ -114,8 +116,10 @@ void session_builder::update_session(const frame_ptr &frame) {
 }
 
 [[maybe_unused]] void session_builder::rebuild_index_db() {
+  SPDLOG_INFO("rebuild_index_db");
   std::unordered_map<std::string, location_ptr> formatstr_to_locations = {};
   auto locator = io_device_->get_locator();
+  SPDLOG_INFO("Locator: root {} mode {}", locator->get_root(), int(locator->get_dir_mode()));
   auto reader = io_device_->open_reader_to_subscribe();
   for (const auto &location : locator->list_locations("*", "*", "*", "*")) {
     SPDLOG_TRACE("investigating journal for [{:08x}] {}", location->uid, location->uname);
@@ -161,7 +165,28 @@ void session_builder::update_session(const frame_ptr &frame) {
     reader->next();
   }
   for (const auto &pair : live_sessions_) {
-    session_storage_->replace(pair.second);
+    auto session = pair.second;
+    if (session.end_time == 0) {
+      session.end_time =
+          session.update_time == session.begin_time ? yijinjing::time::now_in_nano() : session.update_time;
+    }
+    session_storage_->replace(session);
+  }
+}
+
+[[maybe_unused]] void session_builder::update_index_db() {
+  SPDLOG_INFO("update_index_db");
+  auto locator = io_device_->get_locator();
+  SPDLOG_INFO("Locator: root {} mode {}", locator->get_root(), int(locator->get_dir_mode()));
+  auto sessions = session_storage_->get_all<Session>();
+  for (int i = 0; i < sessions.size(); i++) {
+    auto &session = sessions[i];
+    session.end_time = session.end_time == 0                           //
+                           ? session.update_time == session.begin_time //
+                                 ? yijinjing::time::now_in_nano()
+                                 : session.update_time //
+                           : session.end_time;
+    session_storage_->replace(session);
   }
 }
 } // namespace kungfu::yijinjing::index

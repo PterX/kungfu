@@ -37,14 +37,12 @@ constexpr auto AllTypes = boost::hana::make_map( //
     TYPE_PAIR(ResetBookRequest),                 //
     TYPE_PAIR(MirrorPositionsRequest),           //
     TYPE_PAIR(AssetRequest),                     //
-    TYPE_PAIR(PositionRequest),                  //
-    TYPE_PAIR(OrderTradeRequest),                //
     TYPE_PAIR(AssetSync),                        //
+    TYPE_PAIR(PositionRequest),                  //
+    TYPE_PAIR(PositionSync),                     //
+    TYPE_PAIR(OrderTradeRequest),                //
     TYPE_PAIR(KeepPositionsRequest),             //
     TYPE_PAIR(RebuildPositionsRequest),          //
-    TYPE_PAIR(AlgoOrderInput),                   //
-    TYPE_PAIR(AlgoOrderReport),                  //
-    TYPE_PAIR(AlgoOrderModify),                  //
     TYPE_PAIR(Config),                           //
     TYPE_PAIR(RiskSetting),                      //
     TYPE_PAIR(TimeValue),                        //

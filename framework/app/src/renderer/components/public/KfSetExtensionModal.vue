@@ -22,7 +22,7 @@ const props = withDefaults(
   defineProps<{
     visible: boolean;
     extensionType: KfCategoryTypes;
-    extFilter: (extConfig: KungfuApi.KfExtConfig) => boolean;
+    extFilter?: (extConfig: KungfuApi.KfExtConfig) => boolean;
   }>(),
   {
     visible: false,

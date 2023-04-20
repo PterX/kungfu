@@ -7,7 +7,7 @@
 #ifndef YIJINJING_ASSEMBLE_H
 #define YIJINJING_ASSEMBLE_H
 
-#include <kungfu/yijinjing/journal/frame_reader.h>
+#include <kungfu/yijinjing/bus.h>
 #include <kungfu/yijinjing/journal/journal.h>
 
 namespace kungfu::yijinjing::journal {
@@ -16,7 +16,7 @@ struct noop_publisher : public publisher {
   bool is_usable() override { return true; }
   void setup() override {}
   int notify() override { return 0; }
-  int publish(const std::string &json_message) override { return 0; }
+  int publish(const std::string &json_message, int flags = NNG_FLAG_NONBLOCK) override { return 0; }
 };
 
 struct assemble_exception : std::runtime_error {
@@ -30,9 +30,11 @@ public:
   virtual void put(const data::location_ptr &location, uint32_t dest_id, const frame_ptr &frame) = 0;
   virtual void close(){};
   [[nodiscard]] publisher_ptr get_publisher();
+  [[nodiscard]] bus_ptr get_bus();
 
 private:
   publisher_ptr publisher_;
+  bus_ptr bus_;
 };
 DECLARE_PTR(sink)
 
@@ -67,6 +69,10 @@ public:
 
   assemble operator+(assemble &other);
 
+  assemble &operator+=(const assemble &other);
+
+  assemble &operator-=(const assemble &other);
+
   void operator>>(const sink_ptr &sink);
 
   bool data_available();
@@ -75,9 +81,7 @@ public:
 
   frame_ptr current_frame();
 
-  std::vector<kungfu::longfist::types::Session> get_sessions(const kungfu::yijinjing::data::location_ptr &pl = nullptr);
-
-  [[maybe_unused]] std::shared_ptr<frame_reader> get_reader(const kungfu::yijinjing::data::location_ptr &pl);
+  page_ptr current_page();
 
   template <typename T>
   [[maybe_unused]] std::vector<T> read_all(int32_t msg_type = T::tag, int64_t end_time = INT64_MAX) {
@@ -137,6 +141,10 @@ public:
 
   [[maybe_unused]] [[nodiscard]] const std::vector<reader_ptr> &get_readers() const { return readers_; }
 
+  void disjoin(uint32_t location_uid);
+
+  void disjoin_channel(uint32_t location_uid, uint32_t dest_id);
+
 protected:
   std::vector<reader_ptr> readers_ = {};
   reader_ptr current_reader_ = {};
@@ -148,6 +156,7 @@ private:
   const std::string &name_;
   publisher_ptr publisher_;
   std::vector<data::locator_ptr> locators_ = {};
+  int64_t from_time_ = 0;
 
   void sort();
 };

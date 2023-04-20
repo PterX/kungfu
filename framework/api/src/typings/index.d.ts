@@ -987,6 +987,7 @@ declare namespace KungfuApi {
     seekToTime(): void;
     next(): void;
     dataAvailable(): boolean;
+    seekToTime(nanotime: bigint): void;
   }
 
   export interface Longfist {

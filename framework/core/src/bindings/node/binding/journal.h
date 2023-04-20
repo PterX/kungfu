@@ -16,6 +16,7 @@
 #include <kungfu/yijinjing/journal/journal.h>
 #include <kungfu/yijinjing/journal/tracer.h>
 #include <kungfu/yijinjing/log.h>
+#include <kungfu/yijinjing/time.h>
 
 namespace kungfu::node {
 class Tracer : public Napi::ObjectWrap<Tracer>, public yijinjing::journal::tracer {
@@ -28,6 +29,8 @@ public:
   [[nodiscard]] Napi::Value DataAvailable(const Napi::CallbackInfo &info);
 
   [[nodiscard]] Napi::Value CurrentFrame(const Napi::CallbackInfo &info);
+
+  Napi::Value Now(const Napi::CallbackInfo &info);
 
   void SeekToTime(const Napi::CallbackInfo &info);
 

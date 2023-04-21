@@ -73,7 +73,6 @@ void cached::on_start() {
 void cached::on_frame() {}
 
 void cached::on_active() {
-  // SPDLOG_TRACE("cached::on_active");
   handle_cached_feeds(store_volume_every_loop_);
   handle_profile_feeds(store_volume_every_loop_);
 }

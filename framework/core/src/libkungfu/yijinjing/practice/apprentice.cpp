@@ -7,6 +7,7 @@
 #include <kungfu/common.h>
 #include <kungfu/yijinjing/practice/apprentice.h>
 #include <kungfu/yijinjing/util/os.h>
+#include <nng/nng.h>
 
 using namespace kungfu::rx;
 using namespace kungfu::longfist;
@@ -303,7 +304,7 @@ void apprentice::checkin() {
   data["last_active_time"] = now;
   request["data"] = data;
 
-  get_io_device()->get_publisher()->publish(request.dump());
+  get_io_device()->get_publisher()->publish(request.dump(), 0);
 }
 
 void apprentice::expect_start() {

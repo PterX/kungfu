@@ -15,7 +15,7 @@ jobs:
     with:
       build-runner-linux: kungfu-builder-linux
       build-runner-windows: kungfu-builder-windows
-      builder-container: docker.io/kungfutrader/kungfu-builder-centos:v1.2.2
+      build-runner-macos: macos-12-xl
       use-pipenv: true
       use-poetry: true
       build-timeout-minutes: 150

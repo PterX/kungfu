@@ -33,6 +33,17 @@ Napi::Value Tracer::CurrentFrame(const Napi::CallbackInfo &info) {
   return frame;
 }
 
+Napi::Value Tracer::Now(const Napi::CallbackInfo &info) { return Napi::BigInt::New(info.Env(), time::now_in_nano()); }
+
+void Tracer::SeekToTime(const Napi::CallbackInfo &info) {
+  if (not IsValid(info, 0, &Napi::Value::IsBigInt)) {
+    throw Napi::Error::New(info.Env(), "Invalid bigint argument");
+  }
+
+  auto target_time = GetBigInt(info, 0);
+  seek_to_time(target_time);
+}
+
 void Tracer::Next(const Napi::CallbackInfo &info) { next(); }
 
 void Tracer::Init(Napi::Env env, Napi::Object exports) {
@@ -43,8 +54,9 @@ void Tracer::Init(Napi::Env env, Napi::Object exports) {
                                         InstanceMethod("currentFrame", &Tracer::CurrentFrame),   //
                                         InstanceMethod("dataAvailable", &Tracer::DataAvailable), //
                                         InstanceMethod("next", &Tracer::Next),                   //
+                                        InstanceMethod("now", &Tracer::Now),                     //
+                                        InstanceMethod("seekToTime", &Tracer::SeekToTime),       //
                                     });
-
   constructor = Napi::Persistent(func);
   constructor.SuppressDestruct();
 

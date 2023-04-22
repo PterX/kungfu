@@ -22,6 +22,8 @@ import {
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import { useQuote } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
+import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+const { t } = VueI18n.global;
 
 const currentInstrument = ref<KungfuApi.InstrumentResolved | undefined>();
 const { getQuoteByInstrument, getLastPricePercent } = useQuote();
@@ -71,6 +73,14 @@ const bidPrices = computed(() => {
   }
 
   return dealQuoteAskPidPrices(quoteData.value, 'bid');
+});
+
+const limitPrices = computed(() => {
+  if (!quoteData.value) {
+    return [];
+  }
+
+  return [quoteData.value.upper_limit_price, quoteData.value.lower_limit_price];
 });
 
 const askVolume = computed(() => {
@@ -175,6 +185,19 @@ function toLedgalPriceVolume(num: number | bigint) {
 <template>
   <div class="kf-order-book__warp">
     <div class="level-book">
+      <div class="level-row">
+        <div class="left_warp"></div>
+        <div class="price">
+          {{
+            limitPrices[0] !== 0 && limitPrices[0] !== undefined
+              ? dealKfPrice(toLedgalPriceVolume(limitPrices[0]))
+              : '--'
+          }}
+        </div>
+        <div class="limit_price_name">
+          {{ t('tradingConfig.up_limit_price') }}
+        </div>
+      </div>
       <div v-for="(_item, index) in Array(10)" :key="index" class="level-row">
         <div
           class="buy volume"
@@ -266,6 +289,19 @@ function toLedgalPriceVolume(num: number | bigint) {
           "
         ></div>
       </div>
+      <div class="level-row">
+        <div class="left_warp"></div>
+        <div class="price">
+          {{
+            limitPrices[1] !== 0 && limitPrices[1] !== undefined
+              ? dealKfPrice(toLedgalPriceVolume(limitPrices[1]))
+              : '--'
+          }}
+        </div>
+        <div class="limit_price_name">
+          {{ t('tradingConfig.low_limit_price') }}
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -290,7 +326,9 @@ function toLedgalPriceVolume(num: number | bigint) {
       justify-content: space-between;
 
       .price,
-      .volume {
+      .volume,
+      .left_warp,
+      .limit_price_name {
         flex: 1;
         padding-right: 8px;
         align-items: center;

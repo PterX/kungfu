@@ -175,6 +175,7 @@ const tableKeys = ref<Record<string, KungfuApi.KfConfigItem>>(
 watch(
   () => props.configSettings,
   (newVal) => {
+    console.log('watch configSettings', newVal, props.steps);
     primaryKeys.value = getPrimaryKeys(newVal);
     instrumentKeys.value = filterInstrumentKeysFromConfigSettings(newVal);
     tableKeys.value = filterTableKeysFromConfigSettings(newVal);
@@ -1149,8 +1150,8 @@ defineExpose({
         v-model:value="formState[item.key]"
         :max="item.max ?? Infinity"
         :min="item.min ?? -Infinity"
-        :precision="item.precision ?? 4"
-        :step="steps[item.key] || 0.0001"
+        :precision="item.precision ?? 3"
+        :step="steps[item.key] || 0.001"
         :disabled="
           (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
           item.disabled
@@ -1355,8 +1356,8 @@ defineExpose({
       <a-select
         v-else-if="item.type === 'instrument'"
         :ref="item.key"
-        class="instrument-select"
         v-model:value="formState[item.key]"
+        class="instrument-select"
         :disabled="
           (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
           item.disabled

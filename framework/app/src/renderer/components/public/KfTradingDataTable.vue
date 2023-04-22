@@ -150,6 +150,7 @@ onMounted(() => {
       .pipe(filter((e: KfEvent.KfBusEvent) => e.tag === 'resize'))
       .subscribe(() => {
         if (kfScrollerTableBodyRef.value) {
+          console.log('subscribe', kfScrollerTableBodyRef.value);
           kfScrollerTableWidth.value = kfScrollerTableBodyRef.value.clientWidth;
         }
       });

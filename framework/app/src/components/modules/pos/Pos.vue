@@ -6,6 +6,7 @@ import {
   dealCurrency,
   isTdStrategyCategory,
   getIdByKfLocation,
+  countDecimalPlaces,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import {
   useDownloadHistoryTradingData,
@@ -30,7 +31,10 @@ import {
 import { storeToRefs } from 'pinia';
 import { getColumns } from './config';
 import KfBlinkNum from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfBlinkNum.vue';
-import { dealPosition } from '@kungfu-trader/kungfu-js-api/kungfu';
+import {
+  dealPosition,
+  hashInstrumentUKey,
+} from '@kungfu-trader/kungfu-js-api/kungfu';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
 import {
   OffsetEnum,
@@ -95,8 +99,22 @@ onMounted(() => {
           ) as KungfuApi.Position[];
 
         pos.value = toRaw(
-          positions.reverse().map((item) => dealPosition(watcher, item)),
+          positions.reverse().map((item) => {
+            const ukey = hashInstrumentUKey(
+              item.instrument_id,
+              item.exchange_id,
+            );
+            const price_tick =
+              (
+                (window.watcher?.ledger?.Instrument[ukey] ||
+                  {}) as KungfuApi.Instrument
+              ).price_tick ?? 0.001;
+            const precision = countDecimalPlaces(price_tick);
+
+            return dealPosition(watcher, item, precision);
+          }),
         );
+        console.log('pos', pos.value);
       },
     );
 
@@ -151,7 +169,7 @@ function dealLocationUIDResolved(holderUID: number): string {
 <template>
   <div class="kf-position__warp kf-translateZ">
     <KfDashboard @boardSizeChange="handleBodySizeChange">
-      <template v-slot:title>
+      <template #title>
         <span v-if="currentGlobalKfLocation">
           <a-tag
             v-if="currentCategoryData"
@@ -159,12 +177,12 @@ function dealLocationUIDResolved(holderUID: number): string {
           >
             {{ currentCategoryData?.name }}
           </a-tag>
-          <span class="name" v-if="currentGlobalKfLocation">
+          <span v-if="currentGlobalKfLocation" class="name">
             {{ getCurrentGlobalKfLocationId(currentGlobalKfLocation) }}
           </span>
         </span>
       </template>
-      <template v-slot:header>
+      <template #header>
         <KfDashboardItem>
           <a-input-search
             v-model:value="searchKeyword"
@@ -185,12 +203,12 @@ function dealLocationUIDResolved(holderUID: number): string {
       </template>
       <KfTradingDataTable
         :columns="columns"
-        :dataSource="tableData"
-        keyField="uid_key"
+        :data-source="tableData"
+        key-field="uid_key"
         @clickCell="handleClickRow"
       >
         <template
-          v-slot:default="{
+          #default="{
             item,
             column,
           }: {
@@ -235,15 +253,19 @@ function dealLocationUIDResolved(holderUID: number): string {
             <KfBlinkNum :num="Number(item.volume).toFixed(0)"></KfBlinkNum>
           </template>
           <template v-else-if="column.dataIndex === 'avg_open_price'">
-            <KfBlinkNum :num="dealKfPrice(item.avg_open_price)"></KfBlinkNum>
+            <KfBlinkNum
+              :num="dealKfPrice(item.avg_open_price, item.precision)"
+            ></KfBlinkNum>
           </template>
           <template v-else-if="column.dataIndex === 'last_price'">
-            <KfBlinkNum :num="dealKfPrice(item.last_price)"></KfBlinkNum>
+            <KfBlinkNum
+              :num="dealKfPrice(item.last_price, item.precision)"
+            ></KfBlinkNum>
           </template>
           <template v-else-if="column.dataIndex === 'unrealized_pnl'">
             <KfBlinkNum
               mode="compare-zero"
-              :num="dealAssetPrice(item.unrealized_pnl)"
+              :num="dealAssetPrice(item.unrealized_pnl, item.precision)"
             ></KfBlinkNum>
           </template>
         </template>

@@ -4,7 +4,7 @@ import {
   useDashboardBodySize,
   useTableSearchKeyword,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
-import { computed, ref } from 'vue';
+import { computed, ref, watchEffect } from 'vue';
 import minimist from 'minimist';
 
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
@@ -176,6 +176,9 @@ function handleSwitchProcessStatusResolved(
   const configSettings = parseTaskSettingsFromEnv(
     record.config_settings || '[]',
   );
+  watchEffect(() => {
+    console.log('parseTaskSettingsFromEnv', configSettings)
+  })
 
   return startTask(taskLocation, soPath, args, configSettings)
     .catch((err: Error) => error(err.message))

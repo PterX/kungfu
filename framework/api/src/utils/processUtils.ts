@@ -400,6 +400,7 @@ export function pm2LaunchBus(cb: (err: Error, pm2_bus: Pm2Bus) => void) {
 export const startProcess = async (
   options: Pm2StartOptions,
 ): Promise<Proc | void> => {
+  console.log('startProcess', options);
   const extDirs = await flattenExtensionModuleDirs(EXTENSION_DIRS);
   const optionsResolved: Pm2StartOptions = {
     name: options.name,
@@ -444,7 +445,7 @@ export const startProcess = async (
       BY_PASS_RESTORE: '',
     },
   };
-
+  console.log('optionsResolved', optionsResolved, options.env);
   return pm2Start(optionsResolved).catch((err) => {
     kfLogger.error(err);
   });

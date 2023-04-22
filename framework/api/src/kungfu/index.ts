@@ -637,6 +637,7 @@ export const dealOrder = (
   order: KungfuApi.Order,
   orderStats: KungfuApi.DataTable<KungfuApi.OrderStat>,
   isHistory = false,
+  precision = 3,
 ): KungfuApi.OrderResolved => {
   const sourceResolvedData = resolveAccountId(
     watcher,
@@ -665,6 +666,7 @@ export const dealOrder = (
     latency_system: latencyData.latencySystem,
     latency_network: latencyData.latencyNetwork,
     avg_price: latencyData.avg_price,
+    precision: precision,
   };
 };
 
@@ -673,6 +675,7 @@ export const dealTrade = (
   trade: KungfuApi.Trade,
   orderStats: KungfuApi.DataTable<KungfuApi.OrderStat>,
   isHistory = false,
+  precision = 3,
 ): KungfuApi.TradeResolved => {
   const sourceResolvedData = resolveAccountId(
     watcher,
@@ -697,6 +700,7 @@ export const dealTrade = (
     trade_time_resolved: dealKfTime(trade.trade_time, isHistory),
     kf_time_resovlved: dealKfTime(latencyData.trade_time, isHistory),
     latency_trade: latencyData.latencyTrade,
+    precision: precision,
   };
 };
 
@@ -712,6 +716,7 @@ export const getPosClosableVolume = (position: KungfuApi.Position): bigint => {
 export const dealPosition = (
   watcher: KungfuApi.Watcher,
   pos: KungfuApi.Position,
+  precision = 3,
 ): KungfuApi.PositionResolved => {
   const holderLocation = watcher.getLocation(pos.holder_uid);
   const account_id_resolved =
@@ -727,5 +732,6 @@ export const dealPosition = (
     instrument_id_resolved: `${pos.instrument_id} ${
       ExchangeIds[pos.exchange_id]?.name ?? ''
     }`,
+    precision: precision,
   };
 };

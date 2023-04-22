@@ -13,7 +13,10 @@ import { useModalVisible } from '@kungfu-trader/kungfu-app/src/renderer/assets/m
 import {
   buildIdByKeysFromKfConfigSettings,
   initFormStateByConfig,
+  transformSearchInstrumentResultToInstrument,
+  countDecimalPlaces,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { hashInstrumentUKey } from '@kungfu-trader/kungfu-js-api/kungfu';
 import KfConfigSettingsForm from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfConfigSettingsForm.vue';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 const { t } = VueI18n.global;
@@ -46,6 +49,10 @@ const props = withDefaults(
 const configSettings = ref<KungfuApi.KfConfigItem[]>(
   props.payload.config?.settings || [],
 );
+
+const formSteps = ref({});
+
+const priceDecimal = ['price', 'level_diff'];
 
 defineEmits<{
   (
@@ -151,6 +158,32 @@ function handleCancel(): void {
 }
 
 function handleFormStateChange(formState) {
+  console.log('handleFormStateChange', formState);
+  if (formState.ticker) {
+    const instrumentResolved = transformSearchInstrumentResultToInstrument(
+      formState.ticker,
+    );
+    if (instrumentResolved) {
+      const { instrumentId, exchangeId } = instrumentResolved;
+      const instrumentUKey = hashInstrumentUKey(instrumentId, exchangeId);
+      const price_tisk =
+        (
+          window.watcher.ledger.Instrument[
+            instrumentUKey
+          ] as KungfuApi.Instrument
+        )?.price_tick || 0.001;
+      const precision = countDecimalPlaces(price_tisk);
+      configSettings.value.map((item) => {
+        if (priceDecimal.includes(item.key)) {
+          item.precision = precision;
+          formSteps.value[item.key] = price_tisk;
+        }
+        return item;
+      });
+    }
+  }
+
+  console.log(configSettings.value);
   if (app?.proxy) {
     app?.proxy.$globalBus.next({
       tag: 'input:currentConfigModal',
@@ -186,6 +219,7 @@ function handleFormStateChange(formState) {
       :primary-key-avoid-repeat-compare-extra="
         primaryKeyAvoidRepeatCompareExtra
       "
+      :steps="formSteps"
       @update:form-state="handleFormStateChange"
     ></KfConfigSettingsForm>
   </a-modal>

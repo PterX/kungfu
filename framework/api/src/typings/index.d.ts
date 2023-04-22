@@ -176,7 +176,8 @@ declare namespace KungfuApi {
     template?: KfConfigItemTemplate[];
     search?: KfConfigItemSearch;
     importMode?: 'reset' | 'add';
-    disableDateRange?: number; //时间范围选择器不可选的日期范围
+    disableDateRange?: number; // 时间范围选择器不可选的日期范围
+    precision?: number; // 小数位数
 
     // ---- some ui releated ----;
     noDivider?: boolean;
@@ -524,6 +525,7 @@ declare namespace KungfuApi {
     latency_system: string;
     latency_network: string;
     avg_price: number;
+    precision?: number;
   }
 
   export interface OrderInput {
@@ -658,12 +660,14 @@ declare namespace KungfuApi {
     unrealized_pnl: number; //未实现盈亏
 
     uid_key: string;
+    ukey?: string;
   }
 
   export interface PositionResolved extends Position {
     closable_volume: bigint;
     account_id_resolved: string;
     instrument_id_resolved: string;
+    precision?: number;
   }
 
   export interface Quote {
@@ -726,6 +730,9 @@ declare namespace KungfuApi {
     source: number;
     dest: number;
     uid_key: string;
+    decimal_places?: number; //成交价格限定位数
+
+    ukey?: string; //hash key
   }
 
   export interface TradeResolved extends Trade {
@@ -736,6 +743,7 @@ declare namespace KungfuApi {
     trade_time_resolved: string;
     kf_time_resovlved: string;
     latency_trade: string;
+    precision?: number;
   }
 
   export interface TradingData {

@@ -90,6 +90,14 @@ export const useTradingTask = (): {
       );
       return;
     }
+    console.log('handleOpenSetTradingTaskModal', {
+      selectedExtKey,
+      taskInitValue,
+      tradingTaskCategory,
+      extConfigs,
+      extConfig,
+      setTradingTaskConfigPayload,
+    });
 
     triggerAddTradingTask(selectedExtKey, setTradingTaskConfigPayload.value);
   };
@@ -164,6 +172,7 @@ export const useTradingTask = (): {
           currentSelectedTradingTaskExtKey.value = data.extKey;
           setTradingTaskConfigPayload.value = data.payload;
           setTradingTaskModalVisible.value = true;
+          console.log('setTradingTask', { data });
         }
       });
 

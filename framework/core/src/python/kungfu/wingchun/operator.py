@@ -1,7 +1,7 @@
 #  SPDX-License-Identifier: Apache-2.0
 
 import asyncio
-import importlib
+import importlib.util
 import inspect
 import functools
 import kungfu
@@ -41,8 +41,10 @@ class Operator(wc.Operator):
     def __init_operator(self, path):
         operator_dir = os.path.dirname(path)
         name_no_ext = os.path.split(os.path.basename(path))
-        sys.path.append(os.path.relpath(operator_dir))
-        self._module = importlib.import_module(os.path.splitext(name_no_ext[1])[0])
+        module_name = os.path.splitext(name_no_ext[1])[0]
+        module_spec = importlib.util.spec_from_file_location(module_name, path)
+        self._module = importlib.util.module_from_spec(module_spec)
+        module_spec.loader.exec_module(self._module)
         self._pre_start = getattr(self._module, "pre_start", lambda ctx: None)
         self._post_start = getattr(self._module, "post_start", lambda ctx: None)
         self._pre_stop = getattr(self._module, "pre_stop", lambda ctx: None)

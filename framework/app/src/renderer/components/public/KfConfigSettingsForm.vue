@@ -175,7 +175,6 @@ const tableKeys = ref<Record<string, KungfuApi.KfConfigItem>>(
 watch(
   () => props.configSettings,
   (newVal) => {
-    console.log('watch configSettings', newVal, props.steps);
     primaryKeys.value = getPrimaryKeys(newVal);
     instrumentKeys.value = filterInstrumentKeysFromConfigSettings(newVal);
     tableKeys.value = filterTableKeysFromConfigSettings(newVal);

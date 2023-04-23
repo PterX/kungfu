@@ -133,7 +133,6 @@ onMounted(() => {
         );
         allTrades.value = tempAllTrades;
         trades.value = tempAllTrades.slice(0, 2000);
-        console.log('trades', tradesResolved, trades.value, allTrades.value);
       },
     );
 
@@ -181,7 +180,6 @@ watch(historyDate, async (newDate) => {
       if (!historyData) return;
 
       const { tradingData } = historyData;
-      console.log('tradingData', tradingData);
 
       const tradesResolved =
         globalThis.HookKeeper.getHooks().dealTradingData.trigger(

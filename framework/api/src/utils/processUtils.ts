@@ -400,7 +400,6 @@ export function pm2LaunchBus(cb: (err: Error, pm2_bus: Pm2Bus) => void) {
 export const startProcess = async (
   options: Pm2StartOptions,
 ): Promise<Proc | void> => {
-  console.log('startProcess', options);
   const extDirs = await flattenExtensionModuleDirs(EXTENSION_DIRS);
   const optionsResolved: Pm2StartOptions = {
     name: options.name,

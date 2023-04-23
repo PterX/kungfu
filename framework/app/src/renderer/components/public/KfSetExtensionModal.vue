@@ -68,7 +68,6 @@ onMounted(() => {
 
 function handleConfirm() {
   app && app.emit('confirm', selectedExtension.value);
-  console.log('selectedExtension', selectedExtension.value);
   closeModal();
 }
 

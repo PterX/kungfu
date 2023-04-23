@@ -182,7 +182,6 @@ function handleFormStateChange(formState) {
     }
   }
 
-  console.log(configSettings.value);
   if (app?.proxy) {
     app?.proxy.$globalBus.next({
       tag: 'input:currentConfigModal',

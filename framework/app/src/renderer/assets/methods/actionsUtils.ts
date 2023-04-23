@@ -1433,7 +1433,6 @@ export const useActiveInstruments = () => {
   ) => {
     const ukey = hashInstrumentUKey(instrumentId, exchangeId);
     const instrumentResolved = instrumentsMap[ukey];
-    console.log('instrumentsMap', instrumentsMap);
 
     if (instrumentResolved) {
       return instrumentResolved;

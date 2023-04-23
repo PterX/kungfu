@@ -114,7 +114,6 @@ onMounted(() => {
             return dealPosition(watcher, item, precision);
           }),
         );
-        console.log('pos', pos.value);
       },
     );
 

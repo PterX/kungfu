@@ -166,17 +166,17 @@ function handleFormStateChange(formState) {
     if (instrumentResolved) {
       const { instrumentId, exchangeId } = instrumentResolved;
       const instrumentUKey = hashInstrumentUKey(instrumentId, exchangeId);
-      const price_tisk =
+      const price_tick =
         (
           window.watcher.ledger.Instrument[
             instrumentUKey
           ] as KungfuApi.Instrument
         )?.price_tick || 0.001;
-      const precision = countDecimalPlaces(price_tisk);
+      const precision = countDecimalPlaces(price_tick);
       configSettings.value.map((item) => {
         if (priceDecimal.includes(item.key)) {
           item.precision = precision;
-          formSteps.value[item.key] = price_tisk;
+          formSteps.value[item.key] = price_tick;
         }
         return item;
       });

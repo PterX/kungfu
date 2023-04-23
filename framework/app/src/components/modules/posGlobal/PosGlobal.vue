@@ -103,7 +103,6 @@ onMounted(() => {
             }),
           );
         });
-        console.log('posGol', pos.value);
       },
     );
 

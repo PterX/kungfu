@@ -158,9 +158,6 @@ function handleSwitchProcessStatusResolved(
   const configSettings = parseTaskSettingsFromEnv(
     record.config_settings || '[]',
   );
-  watchEffect(() => {
-    console.log('parseTaskSettingsFromEnv', configSettings)
-  })
 
   return startTask(taskLocation, soPath, args, configSettings)
     .catch((err: Error) => error(err.message))

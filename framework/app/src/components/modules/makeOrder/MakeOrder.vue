@@ -1,5 +1,12 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, reactive, ref, watch, watchEffect } from 'vue';
+import {
+  computed,
+  nextTick,
+  onMounted,
+  reactive,
+  ref,
+  watch,
+} from 'vue';
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
 import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
 import KfConfigSettingsForm from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfConfigSettingsForm.vue';
@@ -19,7 +26,6 @@ import {
   makeOrderByOrderInput,
   hashInstrumentUKey,
   getPosClosableVolume,
-  
 } from '@kungfu-trader/kungfu-js-api/kungfu';
 import {
   InstrumentTypeEnum,
@@ -41,7 +47,7 @@ import {
   getProcessIdByKfLocation,
   initFormStateByConfig,
   isShotable,
-  countDecimalPlaces
+  countDecimalPlaces,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import OrderConfirmModal from './OrderConfirmModal.vue';
 import VueI18n, { useLanguage } from '@kungfu-trader/kungfu-js-api/language';
@@ -97,11 +103,9 @@ const {
 const { getValidatorByOrderInputKey } = useTradeLimit();
 
 let precision = 0;
-console.log(precision)
 const makeOrderInstrumentType = ref<InstrumentTypeEnum>(
   InstrumentTypeEnum.unknown,
 );
-
 
 const tdList = computed<KungfuApi.KfLocation[] | null | undefined>(() => {
   return currentGlobalKfLocation.value &&
@@ -126,7 +130,6 @@ const configSettings = computed(() => {
   );
 });
 
-
 const rules = computed(() => {
   const { instrument } = formState.value;
   return {
@@ -146,9 +149,6 @@ const rules = computed(() => {
     },
   };
 });
-watchEffect(() => {
-  console.log('formState',formState.value,configSettings.value,rules.value)
-})
 const isShowConfirmModal = ref<boolean>(false);
 const curOrderVolume = ref<number>(0);
 const curOrderType = ref<InstrumentTypeEnum>(InstrumentTypeEnum.unknown);
@@ -157,7 +157,6 @@ const formSteps = reactive<
 >({});
 const currentPercent = ref<number>(0);
 const percentList = [10, 20, 50, 80, 100];
-watchEffect(()=>{console.log('steps',formState.value)})
 
 const makeOrderData = computed(() => {
   if (!instrumentResolved.value) {
@@ -244,8 +243,7 @@ watch(
     formSteps.limit_price =
       (window.watcher.ledger.Instrument[instrumentUKey] as KungfuApi.Instrument)
         ?.price_tick || 1;
-        precision = countDecimalPlaces(formSteps.limit_price);
-console.log('formSteps.limit_price',formSteps.limit_price,formSteps,formState.value)
+    precision = countDecimalPlaces(formSteps.limit_price);
 
     makeOrderInstrumentType.value = instrumentResolved.value.instrumentType;
   },

@@ -13,7 +13,6 @@ import {
   onBeforeUnmount,
   onMounted,
   ref,
-  watchEffect,
 } from 'vue';
 import KfBlinkNum from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfBlinkNum.vue';
 import {
@@ -36,9 +35,6 @@ const quoteData = computed(() => {
   }
 
   return getQuoteByInstrument(currentInstrument.value);
-});
-watchEffect(() => {
-  console.log('quote', quoteData.value);
 });
 
 onMounted(() => {
@@ -140,9 +136,7 @@ function dealQuoteAskPidPrices(
           (window.watcher?.ledger?.Instrument[currentInstrument.value.ukey] ||
             {}) as KungfuApi.Instrument
         ).price_tick ?? 0.001;
-      // price_tick = 0.001;
       precision = countDecimalPlaces(price_tick);
-      console.log('precision', precision);
 
       const target_price_tick = type === 'ask' ? +price_tick : -price_tick;
 

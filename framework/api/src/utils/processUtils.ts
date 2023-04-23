@@ -444,7 +444,6 @@ export const startProcess = async (
       BY_PASS_RESTORE: '',
     },
   };
-  console.log('optionsResolved', optionsResolved, options.env);
   return pm2Start(optionsResolved).catch((err) => {
     kfLogger.error(err);
   });

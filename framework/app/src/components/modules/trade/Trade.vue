@@ -136,13 +136,6 @@ onMounted(() => {
       },
     );
 
-    // const instrumentSubscription = app.proxy.$globalBus.subscribe(
-    //   (data: KfEvent.KfBusEvent) => {
-    //     if (data.tag === 'orderbook') {
-    //       currentInstrument.value = data.instrument;
-    //     }
-    //   },
-    // );
     onBeforeUnmount(() => {
       subscription.unsubscribe();
     });

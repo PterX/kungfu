@@ -31,7 +31,6 @@ hero::hero(io_device_ptr io_device)
     : begin_time_(time::now_in_nano()), end_time_(INT64_MAX),
       master_home_location_(make_system_location("master", "master", io_device->get_locator())),
       master_cmd_location_(make_system_location("master", encode(io_device), io_device->get_locator())),
-      cached_home_location_(make_system_location("service", "cached", io_device->get_locator())),
       ledger_home_location_(make_system_location("service", "ledger", io_device->get_locator())),
       io_device_(std::move(io_device)), now_(0) {
 
@@ -42,7 +41,6 @@ hero::hero(io_device_ptr io_device)
   add_location(0, get_io_device()->get_home());
   add_location(0, master_home_location_);
   add_location(0, master_cmd_location_);
-  add_location(0, cached_home_location_);
   add_location(0, ledger_home_location_);
   reader_ = io_device_->open_reader_to_subscribe();
 }
@@ -126,7 +124,10 @@ writer_ptr hero::get_writer(uint32_t dest_id) const {
 
 [[maybe_unused]] const WriterMap &hero::get_writers() const { return writers_; }
 
-bool hero::has_location(uint32_t uid) const { return locations_.find(uid) != locations_.end(); }
+bool hero::has_location(uint32_t uid) const {
+  std::scoped_lock<std::mutex> lock(locations_mutex_);
+  return locations_.find(uid) != locations_.end();
+}
 
 location_ptr hero::get_location(uint32_t uid) const {
   if (not has_location(uid)) {
@@ -134,6 +135,7 @@ location_ptr hero::get_location(uint32_t uid) const {
   }
 
   assert(has_location(uid));
+  std::scoped_lock<std::mutex> lock(locations_mutex_);
   return locations_.at(uid);
 }
 
@@ -150,13 +152,19 @@ std::string hero::get_location_uname(uint32_t uid) const {
   return get_location(uid)->uname;
 }
 
-bool hero::is_location_live(uint32_t uid) const { return registry_.find(uid) != registry_.end(); }
+bool hero::is_location_live(uint32_t uid) const {
+  std::scoped_lock<std::mutex> lock(registry_mutex_);
+  return registry_.find(uid) != registry_.end();
+}
 
 bool hero::has_channel(uint32_t source, uint32_t dest) const {
   return has_channel(make_source_dest_hash(source, dest));
 }
 
-bool hero::has_channel(uint64_t hash) const { return channels_.find(hash) != channels_.end(); }
+bool hero::has_channel(uint64_t hash) const {
+  std::scoped_lock<std::mutex> lock(channels_mutex_);
+  return channels_.find(hash) != channels_.end();
+}
 
 [[maybe_unused]] const longfist::types::Channel &hero::get_channel(uint32_t source, uint32_t dest) const {
   return get_channel(make_source_dest_hash(source, dest));
@@ -164,20 +172,31 @@ bool hero::has_channel(uint64_t hash) const { return channels_.find(hash) != cha
 
 const Channel &hero::get_channel(uint64_t hash) const {
   assert(has_channel(hash));
+  std::scoped_lock<std::mutex> lock(channels_mutex_);
   return channels_.at(hash);
 }
 
 [[maybe_unused]] const std::unordered_map<uint64_t, longfist::types::Channel> &hero::get_channels() const {
+  std::scoped_lock<std::mutex> lock(channels_mutex_);
   return channels_;
 }
 
-const std::unordered_map<uint32_t, longfist::types::Register> &hero::get_registry() const { return registry_; }
+const std::unordered_map<uint32_t, longfist::types::Register> &hero::get_registry() const {
+  std::scoped_lock<std::mutex> lock(registry_mutex_);
+  return registry_;
+}
 
-const std::unordered_map<uint32_t, yijinjing::data::location_ptr> &hero::get_locations() const { return locations_; }
+const std::unordered_map<uint32_t, yijinjing::data::location_ptr> &hero::get_locations() const {
+  std::scoped_lock<std::mutex> lock(locations_mutex_);
+  return locations_;
+}
 
 bool hero::has_band(uint32_t source, uint32_t dest) const { return has_band(make_source_dest_hash(source, dest)); }
 
-bool hero::has_band(uint64_t hash) const { return bands_.find(hash) != bands_.end(); }
+bool hero::has_band(uint64_t hash) const {
+  std::scoped_lock<std::mutex> lock(bands_mutex_);
+  return bands_.find(hash) != bands_.end();
+}
 
 const longfist::types::Band &hero::get_band(uint32_t source, uint32_t dest) const {
   return get_band(make_source_dest_hash(source, dest));
@@ -185,10 +204,14 @@ const longfist::types::Band &hero::get_band(uint32_t source, uint32_t dest) cons
 
 const longfist::types::Band &hero::get_band(uint64_t hash) const {
   assert(has_band(hash));
+  std::scoped_lock<std::mutex> lock(bands_mutex_);
   return bands_.at(hash);
 }
 
-const std::unordered_map<uint64_t, longfist::types::Band> &hero::get_bands() const { return bands_; }
+const std::unordered_map<uint64_t, longfist::types::Band> &hero::get_bands() const {
+  std::scoped_lock<std::mutex> lock(bands_mutex_);
+  return bands_;
+}
 
 void hero::on_notify() {}
 
@@ -233,15 +256,22 @@ bool hero::check_location_live(uint32_t source_id, uint32_t dest_id) const {
   return true;
 }
 
-void hero::add_location(int64_t, const location_ptr &location) { locations_.try_emplace(location->uid, location); }
+void hero::add_location(int64_t, const location_ptr &location) {
+  std::scoped_lock<std::mutex> lock(locations_mutex_);
+  locations_.try_emplace(location->uid, location);
+}
 
 void hero::add_location(int64_t trigger_time, const Location &location) {
   add_location(trigger_time, data::location::make_shared(location, get_locator()));
 }
 
-void hero::remove_location(int64_t trigger_time, uint32_t location_uid) { locations_.erase(location_uid); }
+void hero::remove_location(int64_t trigger_time, uint32_t location_uid) {
+  std::scoped_lock<std::mutex> lock(locations_mutex_);
+  locations_.erase(location_uid);
+}
 
 void hero::register_location(int64_t, const Register &register_data) {
+  std::scoped_lock<std::mutex> lock(registry_mutex_);
   uint32_t location_uid = register_data.location_uid;
   auto result = registry_.try_emplace(location_uid, register_data);
   if (result.second) {
@@ -250,6 +280,7 @@ void hero::register_location(int64_t, const Register &register_data) {
 }
 
 void hero::deregister_location(int64_t, const uint32_t location_uid) {
+  std::scoped_lock<std::mutex> lock(registry_mutex_);
   auto result = registry_.erase(location_uid);
   if (result) {
     SPDLOG_TRACE("location [{:08x}] {} down", location_uid, get_location_uname(location_uid));
@@ -257,7 +288,8 @@ void hero::deregister_location(int64_t, const uint32_t location_uid) {
 }
 
 void hero::register_channel(int64_t, const Channel &channel) {
-  [[maybe_unused]] uint64_t channel_uid = make_source_dest_hash(channel.source_id, channel.dest_id);
+  std::scoped_lock<std::mutex> lock(channels_mutex_);
+  uint64_t channel_uid = make_source_dest_hash(channel.source_id, channel.dest_id);
   auto result = channels_.try_emplace(channel_uid, channel);
   if (result.second) {
     auto source_uname = get_location_uname(channel.source_id);
@@ -267,6 +299,7 @@ void hero::register_channel(int64_t, const Channel &channel) {
 }
 
 void hero::deregister_channel(uint32_t source_id) {
+  std::scoped_lock<std::mutex> lock(channels_mutex_);
   auto channel_it = channels_.begin();
   while (channel_it != channels_.end()) {
     if (channel_it->second.source_id == source_id) {
@@ -283,6 +316,7 @@ void hero::deregister_channel(uint32_t source_id) {
 }
 
 void hero::register_band(int64_t, const Band &band) {
+  std::scoped_lock<std::mutex> lock(bands_mutex_);
   uint64_t band_uid = make_source_dest_hash(band.source_id, band.dest_id);
   auto result = bands_.try_emplace(band_uid, band);
   if (result.second) {
@@ -293,6 +327,7 @@ void hero::register_band(int64_t, const Band &band) {
 }
 
 void hero::deregister_band(uint32_t source_id) {
+  std::scoped_lock<std::mutex> lock(bands_mutex_);
   auto band_it = bands_.begin();
   while (band_it != bands_.end()) {
     if (band_it->second.source_id == source_id) {

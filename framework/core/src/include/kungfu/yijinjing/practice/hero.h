@@ -138,15 +138,11 @@ protected:
   int64_t end_time_;
   yijinjing::journal::reader_ptr reader_;
   WriterMap writers_ = {};
-  std::unordered_map<uint64_t, longfist::types::Band> bands_ = {};
-  std::unordered_map<uint64_t, longfist::types::Channel> channels_ = {};
-  std::unordered_map<uint32_t, yijinjing::data::location_ptr> locations_ = {};
-  std::unordered_map<uint32_t, longfist::types::Register> registry_ = {};
+
   rx::connectable_observable<event_ptr> events_ = {};
 
   const yijinjing::data::location_ptr master_home_location_;
   const yijinjing::data::location_ptr master_cmd_location_;
-  const yijinjing::data::location_ptr cached_home_location_;
   const yijinjing::data::location_ptr ledger_home_location_;
 
   static uint64_t make_source_dest_hash(uint32_t source_id, uint32_t dest_id);
@@ -221,6 +217,16 @@ private:
   yijinjing::io_device_ptr io_device_;
   rx::composite_subscription cs_;
   int64_t now_;
+
+  std::unordered_map<uint64_t, longfist::types::Band> bands_ = {};
+  mutable std::mutex bands_mutex_;
+  std::unordered_map<uint64_t, longfist::types::Channel> channels_ = {};
+  mutable std::mutex channels_mutex_;
+  std::unordered_map<uint32_t, yijinjing::data::location_ptr> locations_ = {};
+  mutable std::mutex locations_mutex_;
+  std::unordered_map<uint32_t, longfist::types::Register> registry_ = {};
+  mutable std::mutex registry_mutex_;
+
   volatile bool continual_ = true;
   volatile bool live_ = false;
 

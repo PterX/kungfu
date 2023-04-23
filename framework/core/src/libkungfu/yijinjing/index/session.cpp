@@ -68,6 +68,7 @@ int64_t session_builder::find_last_active_time(const data::location_ptr &source_
 }
 
 Session &session_builder::open_session(const location_ptr &source_location, int64_t time) {
+  std::lock_guard<std::mutex> lock(update_session_mutex_);
   auto pair = live_sessions_.try_emplace(source_location->uid);
   auto &session = pair.first->second;
   if (pair.second) {
@@ -85,6 +86,7 @@ Session &session_builder::open_session(const location_ptr &source_location, int6
 }
 
 void session_builder::close_session(const location_ptr &source_location, int64_t time) {
+  std::lock_guard<std::mutex> lock(update_session_mutex_);
   if (live_sessions_.find(source_location->uid) == live_sessions_.end()) {
     return;
   }
@@ -96,6 +98,7 @@ void session_builder::close_session(const location_ptr &source_location, int64_t
 }
 
 SessionMap &session_builder::close_all_sessions(int64_t time) {
+  std::lock_guard<std::mutex> lock(update_session_mutex_);
   for (auto &pair : live_sessions_) {
     auto &session = pair.second;
     session.end_time = time;
@@ -106,6 +109,7 @@ SessionMap &session_builder::close_all_sessions(int64_t time) {
 }
 
 void session_builder::update_session(const frame_ptr &frame) {
+  std::lock_guard<std::mutex> lock(update_session_mutex_);
   if (live_sessions_.find(frame->source()) == live_sessions_.end()) {
     return;
   }
@@ -116,6 +120,7 @@ void session_builder::update_session(const frame_ptr &frame) {
 }
 
 [[maybe_unused]] void session_builder::rebuild_index_db() {
+  std::lock_guard<std::mutex> lock(update_session_mutex_);
   SPDLOG_INFO("rebuild_index_db");
   std::unordered_map<std::string, location_ptr> formatstr_to_locations = {};
   auto locator = io_device_->get_locator();
@@ -175,6 +180,7 @@ void session_builder::update_session(const frame_ptr &frame) {
 }
 
 [[maybe_unused]] void session_builder::update_index_db() {
+  std::lock_guard<std::mutex> lock(update_session_mutex_);
   SPDLOG_INFO("update_index_db");
   auto locator = io_device_->get_locator();
   SPDLOG_INFO("Locator: root {} mode {}", locator->get_root(), int(locator->get_dir_mode()));

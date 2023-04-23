@@ -67,10 +67,6 @@ public:
 
   uint32_t request_band(const std::string &band_name);
 
-  void request_cached_reader_writer();
-
-  void request_cached(uint32_t source_id);
-
   void add_timer(int64_t nanotime, const std::function<void(const event_ptr &)> &callback);
 
   void add_time_interval(int64_t nanotime, const std::function<void(const event_ptr &)> &callback);
@@ -106,8 +102,6 @@ protected:
   void on_deregister(const event_ptr &event);
 
   void on_read_from(const event_ptr &event);
-
-  void on_cached_ready_to_read();
 
   void on_read_from_public(const event_ptr &event);
 

@@ -62,8 +62,6 @@ private:
 
   void handle_profile_feeds(int store_volume_every_loop);
 
-  void mark_request_cached_done(uint32_t dest_id);
-
   void inspect_channel(int64_t trigger_time, const longfist::types::Channel &channel);
 
   void make_cache_shift(uint32_t source_id, uint32_t dest_id);

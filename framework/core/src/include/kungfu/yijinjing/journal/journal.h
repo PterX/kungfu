@@ -223,7 +223,7 @@ public:
 private:
   const uint64_t frame_id_base_;
   journal journal_;
-  std::mutex writer_mtx_ = {};
+  std::mutex writer_mutex_ = {};
   publisher_ptr publisher_;
   size_t size_to_write_;
   int64_t last_gen_time_;

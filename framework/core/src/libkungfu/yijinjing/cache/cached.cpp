@@ -31,34 +31,34 @@ void cached::on_react() {
   events_ | is(Location::tag) | $$(on_location(event));
   events_ | is(Register::tag) | $$(register_triggger_clear_cache_shift(event->data<Register>()));
   events_ | is(Register::tag) | $$(register_trigger_listen_public(event->gen_time(), event->data<Register>()));
-  events_ | is(RequestCached::tag) | $([&](const event_ptr &event) {
-    auto source_id = event->source();
+  // events_ | is(RequestCached::tag) | $([&](const event_ptr &event) {
+  //   auto source_id = event->source();
 
-    SPDLOG_INFO("get RequestCached from {}", get_location_uname(source_id));
+  //   SPDLOG_INFO("get RequestCached from {}", get_location_uname(source_id));
 
-    if (locations_.find(source_id) == locations_.end()) {
-      SPDLOG_ERROR("no location {} in locations_", get_location_uname(source_id));
-      return;
-    }
+  //   if (locations_.find(source_id) == locations_.end()) {
+  //     SPDLOG_ERROR("no location {} in locations_", get_location_uname(source_id));
+  //     return;
+  //   }
 
-    app_cache_shift_.try_emplace(source_id, locations_.at(source_id));
-    auto cached_writer = get_writer(source_id);
+  //   app_cache_shift_.try_emplace(source_id, locations_.at(source_id));
+  //   auto cached_writer = get_writer(source_id);
 
-    try {
-      app_cache_shift_.at(source_id) >> cached_writer;
-    } catch (const std::exception &ex) {
-      SPDLOG_ERROR("failed to write cache {} {} {}", source_id, get_location_uname(source_id), ex.what());
-    }
+  //   try {
+  //     app_cache_shift_.at(source_id) >> cached_writer;
+  //   } catch (const std::exception &ex) {
+  //     SPDLOG_ERROR("failed to write cache {} {} {}", source_id, get_location_uname(source_id), ex.what());
+  //   }
 
-    try {
-      profile_get_all(profile_, profile_bank_);
-      profile_bank_ >> cached_writer;
-    } catch (const std::exception &ex) {
-      SPDLOG_ERROR("failed to write profile info {} {} {}", source_id, get_location_uname(source_id), ex.what());
-    }
+  //   try {
+  //     profile_get_all(profile_, profile_bank_);
+  //     profile_bank_ >> cached_writer;
+  //   } catch (const std::exception &ex) {
+  //     SPDLOG_ERROR("failed to write profile info {} {} {}", source_id, get_location_uname(source_id), ex.what());
+  //   }
 
-    mark_request_cached_done(source_id);
-  });
+  //   mark_request_cached_done(source_id);
+  // });
 }
 
 void cached::on_start() {
@@ -80,13 +80,6 @@ void cached::on_active() {
 void cached::on_notify() {
   SPDLOG_TRACE("cached::on_notify");
   handle_cached_feeds(LOW_LATENCY_STORE_VOLUME_BY_INTERVAL);
-}
-
-void cached::mark_request_cached_done(uint32_t dest_id) {
-  auto writer = get_writer(master_cmd_location_->uid);
-  RequestCachedDone &rcd = writer->open_data<RequestCachedDone>();
-  rcd.dest_id = dest_id;
-  writer->close_data();
 }
 
 void cached::handle_cached_feeds(int store_volume_every_loop) {
@@ -164,7 +157,7 @@ void cached::inspect_channel(int64_t trigger_time, const Channel &channel) {
 }
 
 void cached::make_cache_shift(uint32_t source_id, uint32_t dest_id) {
-  if (locations_.find(source_id) == locations_.end()) {
+  if (not has_location(source_id)) {
     SPDLOG_ERROR("no source {} in locations_", get_location_uname(source_id));
     return;
   }
@@ -174,7 +167,7 @@ void cached::make_cache_shift(uint32_t source_id, uint32_t dest_id) {
     return;
   }
 
-  const location_ptr &location = locations_.at(source_id);
+  const location_ptr &location = get_location(source_id);
   app_cache_shift_.emplace(source_id, location);
   ensure_cached_storage(source_id, dest_id);
 }

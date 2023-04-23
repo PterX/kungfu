@@ -45,6 +45,8 @@ public:
 
   void register_app(const event_ptr &event);
 
+  void register_worker(const event_ptr &event);
+
   [[maybe_unused]] void deregister_app(int64_t trigger_time, uint32_t app_location_uid);
 
 protected:
@@ -62,12 +64,12 @@ private:
 
   std::unordered_map<uint32_t, uint32_t> app_cmd_locations_ = {};
   std::unordered_map<uint32_t, std::unordered_map<int32_t, timer_task>> timer_tasks_ = {};
+  std::vector<std::thread> register_workers_;
+  std::mutex register_mutex_;
 
   void handle_timer_tasks();
 
   void try_add_location(int64_t trigger_time, const data::location_ptr &app_location);
-
-  void check_cached_ready_to_read(const event_ptr &event);
 
   void feed(const event_ptr &event);
 

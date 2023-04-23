@@ -154,9 +154,6 @@ void Ledger::inspect_channel(int64_t trigger_time, const Channel &channel) {
   auto source_location = get_location(channel.source_id);
   auto is_from_account = source_location->category == category::TD;
 
-  if (channel.source_id == cached_home_location_->uid or channel.dest_id == cached_home_location_->uid) {
-    return;
-  }
   if (channel.source_id != get_live_home_uid() and channel.dest_id != get_live_home_uid()) {
     reader_->join(source_location, channel.dest_id, trigger_time);
   }

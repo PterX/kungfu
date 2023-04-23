@@ -30,8 +30,6 @@ KF_DEFINE_MARK_TYPE(Ping, 10008);
 KF_DEFINE_MARK_TYPE(Pong, 10009);
 KF_DEFINE_MARK_TYPE(RequestStop, 10024);
 KF_DEFINE_MARK_TYPE(RequestStart, 10025);
-KF_DEFINE_MARK_TYPE(CachedReadyToRead, 10060);
-KF_DEFINE_MARK_TYPE(RequestCached, 10061);
 KF_DEFINE_MARK_TYPE(NewOrderSingle, 353);
 KF_DEFINE_MARK_TYPE(CancelOrder, 354);
 KF_DEFINE_MARK_TYPE(CancelAllOrder, 355);
@@ -262,11 +260,6 @@ KF_DEFINE_PACK_TYPE(                                                            
     (enums::Direction, direction),                                                     // 方向
     (int64_t, volume),                                                                 // 数量
     (double, rate)                                                                     // 比例, volume比例
-);
-
-KF_DEFINE_PACK_TYPE(                                    //
-    RequestCachedDone, 10062, PK(dest_id), PERPETUAL(), //
-    (uint32_t, dest_id)                                 //
 );
 
 KF_DEFINE_PACK_TYPE(                         //

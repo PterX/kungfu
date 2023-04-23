@@ -15,7 +15,10 @@ import {
   ref,
 } from 'vue';
 import KfBlinkNum from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfBlinkNum.vue';
-import { SideEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
+import {
+  SideEnum,
+  InstrumentTypeEnum,
+} from '@kungfu-trader/kungfu-js-api/typings/enums';
 import { useQuote } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
@@ -126,7 +129,7 @@ function dealQuoteAskPidPrices(
   quoteData: KungfuApi.Quote,
   type: 'ask' | 'bid',
 ) {
-  if (quoteData.instrument_type === 1) {
+  if (quoteData.instrument_type === InstrumentTypeEnum.future) {
     if (currentInstrument.value) {
       let price_tick =
         (

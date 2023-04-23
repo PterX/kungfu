@@ -6,8 +6,8 @@ import {
   getIdByKfLocation,
   delayMilliSeconds,
   getProcessIdByKfLocation,
-  countDecimalPlaces,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { getPriceTiskAndPrecision } from '@kungfu-trader/kungfu-js-api/utils/accounting';
 import {
   useDownloadHistoryTradingData,
   useTableSearchKeyword,
@@ -42,7 +42,6 @@ import {
   kfCancelAllOrders,
   kfCancelOrder,
   makeOrderByOrderInput,
-  hashInstrumentUKey,
 } from '@kungfu-trader/kungfu-js-api/kungfu';
 import type { Dayjs } from 'dayjs';
 import { UnfinishedOrderStatus } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
@@ -131,16 +130,12 @@ onMounted(() => {
 
         if (unfinishedOrder.value) {
           const tempAllOrders = ordersResolved.map((item) => {
-            const ukey = hashInstrumentUKey(
+            const { precision } = getPriceTiskAndPrecision(
               item.instrument_id,
               item.exchange_id,
+              0.001,
             );
-            const price_tick =
-              (
-                (window.watcher?.ledger?.Instrument[ukey] ||
-                  {}) as KungfuApi.Instrument
-              ).price_tick ?? 0.001;
-            const precision = countDecimalPlaces(price_tick);
+
             return toRaw(
               dealOrder(
                 watcher,

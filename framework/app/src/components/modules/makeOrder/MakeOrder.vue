@@ -16,6 +16,7 @@ import {
   confirmModal,
   messagePrompt,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
+import {getPriceTiskAndPrecision} from '@kungfu-trader/kungfu-js-api/utils/accounting';
 import { getConfigSettings, LABEL_COL, WRAPPER_COL } from './config';
 import {
   dealOrderPlaceVNode,
@@ -47,7 +48,6 @@ import {
   getProcessIdByKfLocation,
   initFormStateByConfig,
   isShotable,
-  countDecimalPlaces,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import OrderConfirmModal from './OrderConfirmModal.vue';
 import VueI18n, { useLanguage } from '@kungfu-trader/kungfu-js-api/language';
@@ -239,11 +239,10 @@ watch(
     triggerOrderBook(instrumentResolved.value);
 
     const { instrumentId, exchangeId } = instrumentResolved.value;
-    const instrumentUKey = hashInstrumentUKey(instrumentId, exchangeId);
-    formSteps.limit_price =
-      (window.watcher.ledger.Instrument[instrumentUKey] as KungfuApi.Instrument)
-        ?.price_tick || 1;
-    precision = countDecimalPlaces(formSteps.limit_price);
+    const {price_tick,precision : precisionNumber } =  getPriceTiskAndPrecision(instrumentId, exchangeId ,1)
+
+    precision = precisionNumber
+    formSteps.limit_price =price_tick
 
     makeOrderInstrumentType.value = instrumentResolved.value.instrumentType;
   },

@@ -14,9 +14,8 @@ import {
   buildIdByKeysFromKfConfigSettings,
   initFormStateByConfig,
   transformSearchInstrumentResultToInstrument,
-  countDecimalPlaces,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
-import { hashInstrumentUKey } from '@kungfu-trader/kungfu-js-api/kungfu';
+import { getPriceTiskAndPrecision } from '@kungfu-trader/kungfu-js-api/utils/accounting';
 import KfConfigSettingsForm from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfConfigSettingsForm.vue';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 const { t } = VueI18n.global;
@@ -158,20 +157,24 @@ function handleCancel(): void {
 }
 
 function handleFormStateChange(formState) {
-  if (formState.ticker) {
+  const ticker = configSettings.value.reduce((acc, item) => {
+    if (item.type === 'instrument') {
+      acc = item.key;
+    }
+    return acc;
+  }, '');
+  console.log('ticker', ticker, formState, configSettings);
+  if (formState[ticker]) {
     const instrumentResolved = transformSearchInstrumentResultToInstrument(
-      formState.ticker,
+      formState[ticker],
     );
     if (instrumentResolved) {
       const { instrumentId, exchangeId } = instrumentResolved;
-      const instrumentUKey = hashInstrumentUKey(instrumentId, exchangeId);
-      const price_tick =
-        (
-          window.watcher.ledger.Instrument[
-            instrumentUKey
-          ] as KungfuApi.Instrument
-        )?.price_tick || 1;
-      const precision = countDecimalPlaces(price_tick);
+      const { price_tick, precision } = getPriceTiskAndPrecision(
+        instrumentId,
+        exchangeId,
+        1,
+      );
       configSettings.value.map((item) => {
         if (priceDecimal.includes(item.key)) {
           item.precision = precision;

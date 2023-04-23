@@ -660,7 +660,6 @@ declare namespace KungfuApi {
     unrealized_pnl: number; //未实现盈亏
 
     uid_key: string;
-    ukey?: string;
   }
 
   export interface PositionResolved extends Position {
@@ -731,8 +730,6 @@ declare namespace KungfuApi {
     dest: number;
     uid_key: string;
     decimal_places?: number; //成交价格限定位数
-
-    ukey?: string; //hash key
   }
 
   export interface TradeResolved extends Trade {

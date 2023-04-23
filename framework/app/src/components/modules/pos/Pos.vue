@@ -6,8 +6,9 @@ import {
   dealCurrency,
   isTdStrategyCategory,
   getIdByKfLocation,
-  countDecimalPlaces,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { getPriceTiskAndPrecision } from '@kungfu-trader/kungfu-js-api/utils/accounting';
+
 import {
   useDownloadHistoryTradingData,
   useTableSearchKeyword,
@@ -31,10 +32,7 @@ import {
 import { storeToRefs } from 'pinia';
 import { getColumns } from './config';
 import KfBlinkNum from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfBlinkNum.vue';
-import {
-  dealPosition,
-  hashInstrumentUKey,
-} from '@kungfu-trader/kungfu-js-api/kungfu';
+import { dealPosition } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
 import {
   OffsetEnum,
@@ -100,16 +98,11 @@ onMounted(() => {
 
         pos.value = toRaw(
           positions.reverse().map((item) => {
-            const ukey = hashInstrumentUKey(
+            const { precision } = getPriceTiskAndPrecision(
               item.instrument_id,
               item.exchange_id,
+              0.001,
             );
-            const price_tick =
-              (
-                (window.watcher?.ledger?.Instrument[ukey] ||
-                  {}) as KungfuApi.Instrument
-              ).price_tick ?? 0.001;
-            const precision = countDecimalPlaces(price_tick);
 
             return dealPosition(watcher, item, precision);
           }),

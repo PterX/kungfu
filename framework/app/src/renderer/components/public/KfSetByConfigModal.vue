@@ -158,7 +158,6 @@ function handleCancel(): void {
 }
 
 function handleFormStateChange(formState) {
-  console.log('handleFormStateChange', formState);
   if (formState.ticker) {
     const instrumentResolved = transformSearchInstrumentResultToInstrument(
       formState.ticker,
@@ -171,7 +170,7 @@ function handleFormStateChange(formState) {
           window.watcher.ledger.Instrument[
             instrumentUKey
           ] as KungfuApi.Instrument
-        )?.price_tick || 0.001;
+        )?.price_tick || 1;
       const precision = countDecimalPlaces(price_tick);
       configSettings.value.map((item) => {
         if (priceDecimal.includes(item.key)) {

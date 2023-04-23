@@ -46,8 +46,6 @@ void BrokerService::on_active() {}
 
 void BrokerService::on_exit() {}
 
-void BrokerService::on_trading_day(const event_ptr &event, int64_t daytime) {}
-
 int64_t BrokerService::now() const { return vendor_.now(); }
 
 BrokerState BrokerService::get_state() { return state_; }

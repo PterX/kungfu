@@ -25,8 +25,6 @@ Ledger::Ledger(locator_ptr locator, mode m, bool low_latency)
 
 void Ledger::on_exit() {}
 
-void Ledger::on_trading_day(const event_ptr &event, int64_t daytime) { bookkeeper_.on_trading_day(daytime); }
-
 book::Bookkeeper &Ledger::get_bookkeeper() { return bookkeeper_; }
 
 void Ledger::on_start() {

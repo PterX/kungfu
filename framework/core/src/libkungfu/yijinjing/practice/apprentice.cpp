@@ -21,7 +21,7 @@ namespace fs = std::filesystem;
 namespace kungfu::yijinjing::practice {
 
 apprentice::apprentice(location_ptr home, bool low_latency)
-    : hero(std::make_shared<io_device_client>(home, low_latency)), trading_day_(time::today_start()), cleaner_(*this) {}
+    : hero(std::make_shared<io_device_client>(home, low_latency)), cleaner_(*this) {}
 
 bool apprentice::is_started() const { return started_; }
 
@@ -32,8 +32,6 @@ uint32_t apprentice::get_master_commands_uid() const { return master_cmd_locatio
 int64_t apprentice::get_checkin_time() const { return checkin_time_; }
 
 int64_t apprentice::get_last_active_time() const { return last_active_time_; }
-
-int64_t apprentice::get_trading_day() const { return trading_day_; }
 
 const cache::bank &apprentice::get_state_bank() const { return state_bank_; }
 
@@ -113,8 +111,6 @@ void apprentice::add_time_interval(int64_t duration, const std::function<void(co
   });
 }
 
-void apprentice::on_trading_day(const event_ptr &event, int64_t daytime) {}
-
 bool apprentice::release_page() {
   bool result = false;
   result |= reader_->release_page();
@@ -136,7 +132,6 @@ void apprentice::react() {
   events_ | is(RequestWriteToBand::tag) | $$(on_write_to_band(event));
   events_ | is(Channel::tag) | $$(register_channel(event->gen_time(), event->data<Channel>()));
   events_ | is(Band::tag) | $$(register_band(event->gen_time(), event->data<Band>()));
-  events_ | is(TradingDay::tag) | $$(on_trading_day(event, event->data<TradingDay>().timestamp));
   events_ | is(RequestStop::tag) | to(get_home_uid()) | $$(signal_stop());
   events_ | take_until(events_ | is(RequestStart::tag)) | $$(feed_state_data(event, state_bank_));
 

@@ -53,8 +53,6 @@ public:
 
   virtual void on_exit();
 
-  virtual void on_trading_day(const event_ptr &event, int64_t daytime);
-
   [[nodiscard]] int64_t now() const;
 
   [[nodiscard]] BrokerState get_state();

@@ -21,12 +21,12 @@ namespace kungfu::yijinjing::practice {
 
 master::master(location_ptr home, bool low_latency)
     : hero(std::make_shared<io_device_master>(home, low_latency)), start_time_(time::now_in_nano()), last_check_(0),
-      session_builder_(get_io_device()), profile_(get_locator()) {
-  profile_.setup();
-  for (const auto &app_location : profile_.get_all(Location{})) {
+      session_builder_(get_io_device()), cached_(get_locator()) {
+
+  for (const auto &app_location : cached_.get_all<Location>()) {
     add_location(start_time_, location::make_shared(app_location, get_locator()));
   }
-  for (const auto &config : profile_.get_all(Config{})) {
+  for (const auto &config : cached_.get_all<Config>()) {
     try_add_location(start_time_, location::make_shared(config, get_locator()));
   }
 
@@ -138,7 +138,6 @@ void master::register_worker(const event_ptr &event) {
   require_write_to(event->gen_time(), app_location->uid, master_cmd_location->uid);
 
   write_time_reset(event->gen_time(), app_cmd_writer);
-  write_trading_day(event->gen_time(), app_cmd_writer);
 
   app_cmd_writer->mark(time::now_in_nano(), RequestStart::tag);
   write_locations(event->gen_time(), app_cmd_writer);
@@ -163,8 +162,6 @@ void master::register_worker(const event_ptr &event) {
   timer_tasks_.erase(app_location_uid);
   get_writer(location::PUBLIC)->write(trigger_time, location->to<Deregister>());
 }
-
-[[maybe_unused]] void master::publish_trading_day() { write_trading_day(0, get_writer(location::PUBLIC)); }
 
 void master::react() {
   events_ | is(RequestWriteTo::tag) | $$(on_request_write_to(event));
@@ -352,14 +349,6 @@ void master::write_time_reset(int64_t, const writer_ptr &writer) {
   TimeReset &time_reset = writer->open_data<TimeReset>();
   time_reset.system_clock_count = time_base.system_clock_count;
   time_reset.steady_clock_count = time_base.steady_clock_count;
-  writer->close_data();
-}
-
-void master::write_trading_day(int64_t, const writer_ptr &writer) {
-  // this acquire_trading_day is a python binding method, it takes too much time and triggers write deal lock
-  auto timestamp = acquire_trading_day();
-  TradingDay &trading_day = writer->open_data<TradingDay>();
-  trading_day.timestamp = timestamp;
   writer->close_data();
 }
 

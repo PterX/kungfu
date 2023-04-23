@@ -233,8 +233,6 @@ uint64_t BacktestContext::cancel_order(uint64_t order_id) {
   return action.order_action_id;
 }
 
-int64_t BacktestContext::get_trading_day() const { return time::calendar_day_start(now()); }
-
 broker::Client &BacktestContext::get_broker_client() { return broker_client_; }
 
 book::Bookkeeper &BacktestContext::get_bookkeeper() { return bookkeeper_; }

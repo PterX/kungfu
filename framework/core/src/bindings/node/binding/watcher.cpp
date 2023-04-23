@@ -228,10 +228,6 @@ Napi::Value Watcher::GetAppStates(const Napi::CallbackInfo &info) { return app_s
 
 Napi::Value Watcher::GetStrategyStates(const Napi::CallbackInfo &info) { return strategy_states_ref_.Value(); }
 
-Napi::Value Watcher::GetTradingDay(const Napi::CallbackInfo &info) {
-  return Napi::String::New(ledger_ref_.Env(), time::strftime(get_trading_day(), KUNGFU_TRADING_DAY_FORMAT));
-}
-
 Napi::Value Watcher::Now(const Napi::CallbackInfo &info) {
   return Napi::BigInt::New(ledger_ref_.Env(), time::now_in_nano());
 }
@@ -375,7 +371,6 @@ void Watcher::Init(Napi::Env env, Napi::Object exports) {
                       InstanceAccessor("ledger", &Watcher::GetLedger, &Watcher::NoSet),                 //
                       InstanceAccessor("appStates", &Watcher::GetAppStates, &Watcher::NoSet),           //
                       InstanceAccessor("strategyStates", &Watcher::GetStrategyStates, &Watcher::NoSet), //
-                      InstanceAccessor("tradingDay", &Watcher::GetTradingDay, &Watcher::NoSet),         //
                   });
 
   constructor = Napi::Persistent(func);

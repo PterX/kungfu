@@ -150,7 +150,6 @@ class ServiceLoader(dict):
     def __init__(self, ctx):
         super().__init__()
         self.ctx = ctx
-        self["cached"] = self.create_service("cached", yjj.cached)
         self["ledger"] = self.create_service("ledger", wc.Ledger)
 
     def create_service(self, name, service):

@@ -7,7 +7,7 @@
 #ifndef KUNGFU_MASTER_H
 #define KUNGFU_MASTER_H
 
-#include <kungfu/yijinjing/cache/profile.h>
+#include <kungfu/yijinjing/cache/cached.h>
 #include <kungfu/yijinjing/io.h>
 #include <kungfu/yijinjing/journal/common.h>
 #include <kungfu/yijinjing/practice/hero.h>
@@ -39,10 +39,6 @@ public:
 
   virtual void on_interval_check(int64_t nanotime) = 0;
 
-  virtual int64_t acquire_trading_day() = 0;
-
-  [[maybe_unused]] void publish_trading_day();
-
   void register_app(const event_ptr &event);
 
   void register_worker(const event_ptr &event);
@@ -60,7 +56,7 @@ private:
   int64_t start_time_;
   int64_t last_check_;
   index::session_builder session_builder_;
-  cache::profile profile_;
+  yijinjing::cache::cached cached_;
 
   std::unordered_map<uint32_t, uint32_t> app_cmd_locations_ = {};
   std::unordered_map<uint32_t, std::unordered_map<int32_t, timer_task>> timer_tasks_ = {};
@@ -94,8 +90,6 @@ private:
   void on_new_location(const event_ptr &event);
 
   static void write_time_reset(int64_t trigger_time, const journal::writer_ptr &writer);
-
-  void write_trading_day(int64_t trigger_time, const journal::writer_ptr &writer);
 
   void write_locations(int64_t trigger_time, const journal::writer_ptr &writer);
 

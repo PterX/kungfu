@@ -15,20 +15,83 @@ using ProfileDataTypesType = decltype(longfist::ProfileDataTypes);
 using ProfileStateMapType = decltype(longfist::build_state_map(longfist::ProfileDataTypes));
 typedef yijinjing::cache::typed_bank<ProfileDataTypesType, ProfileStateMapType> ProfileStateBank;
 
-class cached : public yijinjing::practice::apprentice {
+// class cached : public yijinjing::practice::apprentice {
+// public:
+//   explicit cached(yijinjing::data::locator_ptr locator, longfist::enums::mode m, bool low_latency = false);
+
+// protected:
+//   void on_start() override;
+
+//   void on_react() override;
+
+//   void on_frame() override;
+
+//   void on_active() override;
+
+//   void on_notify() override;
+
+//   static constexpr auto profile_get_all = [](auto &profile, auto &receiver) {
+//     boost::hana::for_each(longfist::ProfileDataTypes, [&](auto it) {
+//       auto type = boost::hana::second(it);
+//       using DataType = typename decltype(+type)::type;
+//       int get_all_count = 0;
+//       while (get_all_count++ < 10) {
+//         try {
+//           for (const auto &data : profile.get_all(DataType{})) {
+//             auto s = state(0, 0, 0, data);
+//             receiver << s;
+//           }
+//           break;
+//         } catch (const std::exception &e) {
+//           SPDLOG_ERROR("Unexpected exception by profile_get_all {}", e.what());
+//         }
+//       }
+//     });
+//   };
+
+// private:
+//   std::unordered_map<uint32_t, yijinjing::cache::shift> app_cache_shift_ = {};
+//   yijinjing::cache::bank feed_bank_;
+//   yijinjing::cache::profile profile_;
+//   ProfileStateBank profile_bank_ = ProfileStateBank(longfist::ProfileDataTypes);
+//   const int store_volume_every_loop_;
+
+//   void on_location(const event_ptr &event);
+
+//   void handle_cached_feeds(int store_volume_every_loop);
+
+//   void handle_profile_feeds(int store_volume_every_loop);
+
+//   void inspect_channel(int64_t trigger_time, const longfist::types::Channel &channel);
+
+//   void make_cache_shift(uint32_t source_id, uint32_t dest_id);
+
+//   void register_triggger_clear_cache_shift(const longfist::types::Register &deregister_data);
+
+//   void register_trigger_listen_public(int64_t trigger_time, const longfist::types::Register &register_data);
+
+//   void on_cache_reset(const event_ptr &event);
+
+//   void ensure_cached_storage(uint32_t source_id, uint32_t dest_id);
+
+//   void feed(const event_ptr &event);
+// };
+
+class cached {
 public:
-  explicit cached(yijinjing::data::locator_ptr locator, longfist::enums::mode m, bool low_latency = false);
+  explicit cached(yijinjing::data::locator_ptr locator);
 
-protected:
-  void on_start() override;
+  ~cached();
 
-  void on_react() override;
+  template <typename DataType> std::vector<DataType> get_all() { return profile_.get_all(DataType{}); }
 
-  void on_frame() override;
+  void restore(const yijinjing::data::location_ptr location);
 
-  void on_active() override;
-
-  void on_notify() override;
+private:
+  yijinjing::cache::profile profile_;
+  ProfileStateBank profile_bank_ = ProfileStateBank(longfist::ProfileDataTypes);
+  std::unordered_map<uint32_t, yijinjing::cache::shift> app_cache_shift_ = {};
+  yijinjing::cache::bank feed_bank_;
 
   static constexpr auto profile_get_all = [](auto &profile, auto &receiver) {
     boost::hana::for_each(longfist::ProfileDataTypes, [&](auto it) {
@@ -48,33 +111,6 @@ protected:
       }
     });
   };
-
-private:
-  std::unordered_map<uint32_t, yijinjing::cache::shift> app_cache_shift_ = {};
-  yijinjing::cache::bank feed_bank_;
-  yijinjing::cache::profile profile_;
-  ProfileStateBank profile_bank_ = ProfileStateBank(longfist::ProfileDataTypes);
-  const int store_volume_every_loop_;
-
-  void on_location(const event_ptr &event);
-
-  void handle_cached_feeds(int store_volume_every_loop);
-
-  void handle_profile_feeds(int store_volume_every_loop);
-
-  void inspect_channel(int64_t trigger_time, const longfist::types::Channel &channel);
-
-  void make_cache_shift(uint32_t source_id, uint32_t dest_id);
-
-  void register_triggger_clear_cache_shift(const longfist::types::Register &deregister_data);
-
-  void register_trigger_listen_public(int64_t trigger_time, const longfist::types::Register &register_data);
-
-  void on_cache_reset(const event_ptr &event);
-
-  void ensure_cached_storage(uint32_t source_id, uint32_t dest_id);
-
-  void feed(const event_ptr &event);
 };
 
 } // namespace kungfu::yijinjing::cache

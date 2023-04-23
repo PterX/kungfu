@@ -71,12 +71,6 @@ public:
   virtual void publish_synthetic_data(const std::string &key, const std::string &value) = 0;
 
   /**
-   * Get current trading day.
-   * @return current trading day
-   */
-  virtual int64_t get_trading_day() const = 0;
-
-  /**
    * request deregister.
    * @return void
    */

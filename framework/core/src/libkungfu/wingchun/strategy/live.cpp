@@ -367,8 +367,6 @@ const location_map &LiveContext::list_op() const { return op_locations_; }
 
 const location_map &LiveContext::list_accounts() const { return td_locations_; }
 
-int64_t LiveContext::get_trading_day() const { return app_.get_trading_day(); }
-
 broker::Client &LiveContext::get_broker_client() { return broker_client_; }
 
 book::Bookkeeper &LiveContext::get_bookkeeper() { return bookkeeper_; }

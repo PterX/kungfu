@@ -57,7 +57,6 @@ import {
   startArchiveMakeTask,
   startGetProcessStatus,
   startLedger,
-  startCacheD,
   startMaster,
   isAllMainProcessRunning,
   KillAll,
@@ -198,9 +197,7 @@ const initStartAll = () => {
     const watcherIsLiveObervable = buildIfWatcherLiveObservable(window.watcher);
     watcherIsLiveObervable.pipe(first()).subscribe(() => {
       console.log('watcher is live');
-      delayMilliSeconds(2000)
-        .then(() => startCacheD(false))
-        .then(() => delayMilliSeconds(2000))
+      delayMilliSeconds(1000)
         .then(() => startLedger(false))
         .then(() => postStartAll())
         .then(() => delayMilliSeconds(1000))

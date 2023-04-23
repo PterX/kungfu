@@ -48,8 +48,6 @@ public:
 
   int64_t get_checkin_time() const;
 
-  int64_t get_trading_day() const;
-
   const cache::bank &get_state_bank() const;
 
   void request_read_from(int64_t trigger_time, uint32_t source_id, int64_t from_time);
@@ -70,8 +68,6 @@ public:
   void add_timer(int64_t nanotime, const std::function<void(const event_ptr &)> &callback);
 
   void add_time_interval(int64_t nanotime, const std::function<void(const event_ptr &)> &callback);
-
-  virtual void on_trading_day(const event_ptr &event, int64_t daytime);
 
   template <typename DataType>
   void write_to(int64_t trigger_time, DataType &data, uint32_t dest_id = yijinjing::data::location::PUBLIC) {
@@ -204,7 +200,6 @@ private:
   bool started_ = false;
   int64_t last_active_time_ = INT64_MIN;
   int64_t checkin_time_ = INT64_MIN;
-  int64_t trading_day_ = 0;
   int32_t timer_usage_count_ = 0;
   yijinjing::practice::cleaner cleaner_;
   std::unordered_map<int, int64_t> timer_checkpoints_ = {};

@@ -65,8 +65,6 @@ public:
 
   Napi::Value GetStrategyStates(const Napi::CallbackInfo &info);
 
-  Napi::Value GetTradingDay(const Napi::CallbackInfo &info);
-
   Napi::Value Now(const Napi::CallbackInfo &info);
 
   Napi::Value IsUsable(const Napi::CallbackInfo &info);

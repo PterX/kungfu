@@ -379,7 +379,7 @@ private:
   Napi::ObjectReference &state_;
 };
 
-void InitStateMap(Napi::ObjectReference &state, const std::string &name);
+void InitStateMap(const Napi::CallbackInfo &info, Napi::ObjectReference &state, const std::string &name);
 
 void InitTradingDataInStateMap(Napi::ObjectReference &state, const std::string &name);
 } // namespace kungfu::node::serialize

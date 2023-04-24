@@ -6,6 +6,7 @@
 #include <csignal>
 #include <cstdarg>
 #include <filesystem>
+#include <nng/nng.h>
 #include <rxcpp/rx.hpp>
 
 #include <kungfu/common.h>
@@ -38,7 +39,7 @@ public:
 
   virtual int notify() = 0;
 
-  virtual int publish(const std::string &json_message, int flags = NN_DONTWAIT) = 0;
+  virtual int publish(const std::string &json_message, int flags = NNG_FLAG_NONBLOCK) = 0;
 };
 
 DECLARE_PTR(publisher)
@@ -48,6 +49,8 @@ public:
   virtual ~observer() = default;
 
   virtual bool wait() = 0;
+
+  [[nodiscard]] virtual int get_recv_timeout() const = 0;
 
   virtual const std::string &get_notice() = 0;
 };
@@ -90,6 +93,10 @@ public:
   [[nodiscard]] virtual std::vector<uint32_t> list_location_dest(const location_ptr &location) const;
 
   [[nodiscard]] virtual std::vector<uint32_t> list_location_dest_by_db(const location_ptr &location) const;
+
+  [[nodiscard]] longfist::enums::mode get_dir_mode() const { return dir_mode_; }
+
+  [[nodiscard]] std::string get_root() const { return root_.string(); }
 
   bool operator==(const locator &another) const;
 
@@ -290,7 +297,7 @@ template <class T, class Observable, class Subject> struct steppable : public op
 
       auto localState = state;
 
-      // when the connection is finished it should shutdown the connection
+      // when the connection is finished it should shut down the connection
       cs.add([destination, localState]() {
         if (!localState->connection.empty()) {
           destination.remove(localState->connection.get());

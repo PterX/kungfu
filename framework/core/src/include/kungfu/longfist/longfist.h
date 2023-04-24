@@ -32,6 +32,7 @@ constexpr auto AllTypes = boost::hana::make_map( //
     TYPE_PAIR(NewOrderSingle),                   //
     TYPE_PAIR(CancelOrder),                      //
     TYPE_PAIR(CancelAllOrder),                   //
+    TYPE_PAIR(OperatorStateRequest),             //
     TYPE_PAIR(BrokerStateRequest),               //
     TYPE_PAIR(ResetBookRequest),                 //
     TYPE_PAIR(MirrorPositionsRequest),           //
@@ -42,14 +43,12 @@ constexpr auto AllTypes = boost::hana::make_map( //
     TYPE_PAIR(OrderTradeRequest),                //
     TYPE_PAIR(KeepPositionsRequest),             //
     TYPE_PAIR(RebuildPositionsRequest),          //
-    TYPE_PAIR(AlgoOrderInput),                   //
-    TYPE_PAIR(AlgoOrderReport),                  //
-    TYPE_PAIR(AlgoOrderModify),                  //
     TYPE_PAIR(Config),                           //
     TYPE_PAIR(RiskSetting),                      //
     TYPE_PAIR(TimeValue),                        //
     TYPE_PAIR(TimeKeyValue),                     //
     TYPE_PAIR(StrategyStateUpdate),              //
+    TYPE_PAIR(OperatorStateUpdate),              //
     TYPE_PAIR(Commission),                       //
     TYPE_PAIR(Session),                          //
     TYPE_PAIR(Location),                         //
@@ -76,7 +75,6 @@ constexpr auto AllTypes = boost::hana::make_map( //
     TYPE_PAIR(Tree),                             //
     TYPE_PAIR(Entrust),                          //
     TYPE_PAIR(Transaction),                      //
-    TYPE_PAIR(Bar),                              //
     TYPE_PAIR(BlockMessage),                     //
     TYPE_PAIR(OrderInput),                       //
     TYPE_PAIR(OrderAction),                      //
@@ -90,6 +88,7 @@ constexpr auto AllTypes = boost::hana::make_map( //
     TYPE_PAIR(Position),                         //
     TYPE_PAIR(PositionEnd),                      //
     TYPE_PAIR(OrderStat),                        //
+    TYPE_PAIR(SyntheticData),                    //
     TYPE_PAIR(BasketOrder),                      //
     TYPE_PAIR(RequestHistoryOrder),              //
     TYPE_PAIR(RequestHistoryOrderError),         //
@@ -105,6 +104,7 @@ constexpr auto AllTypes = boost::hana::make_map( //
     TYPE_PAIR(TimeValue),                                             //
     TYPE_PAIR(TimeKeyValue),                                          //
     TYPE_PAIR(StrategyStateUpdate),                                   //
+    TYPE_PAIR(OperatorStateUpdate),                                   //
     TYPE_PAIR(Commission),                                            //
     TYPE_PAIR(Session),                                               //
     TYPE_PAIR(Location),                                              //
@@ -131,7 +131,6 @@ constexpr auto AllTypes = boost::hana::make_map( //
     TYPE_PAIR(Tree),                                                  //
     TYPE_PAIR(Entrust),                                               //
     TYPE_PAIR(Transaction),                                           //
-    TYPE_PAIR(Bar),                                                   //
     TYPE_PAIR(BlockMessage),                                          //
     TYPE_PAIR(OrderInput),                                            //
     TYPE_PAIR(OrderAction),                                           //
@@ -145,6 +144,7 @@ constexpr auto AllTypes = boost::hana::make_map( //
     TYPE_PAIR(Position),                                              //
     TYPE_PAIR(PositionEnd),                                           //
     TYPE_PAIR(OrderStat),                                             //
+    TYPE_PAIR(SyntheticData),                                         //
     TYPE_PAIR(BasketOrder)                                            //
 );
 
@@ -168,6 +168,7 @@ constexpr auto StateDataTypes = boost::hana::make_map( //
     TYPE_PAIR(TimeValue),                              //
     TYPE_PAIR(TimeKeyValue),                           //
     TYPE_PAIR(StrategyStateUpdate),                    //
+    TYPE_PAIR(OperatorStateUpdate),                    //
     TYPE_PAIR(Commission),                             //
     TYPE_PAIR(Instrument),                             //
     TYPE_PAIR(Basket),                                 //
@@ -183,6 +184,7 @@ constexpr auto StateDataTypes = boost::hana::make_map( //
     TYPE_PAIR(AssetMargin),                            //
     TYPE_PAIR(Position),                               //
     TYPE_PAIR(OrderStat),                              //
+    TYPE_PAIR(SyntheticData),                          //
     TYPE_PAIR(BasketOrder)                             //
 );
 

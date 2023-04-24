@@ -3,23 +3,19 @@
 #ifndef YIJINJING_PAGE_H
 #define YIJINJING_PAGE_H
 
+#include <kungfu/longfist/types.h>
 #include <kungfu/yijinjing/journal/common.h>
 #include <kungfu/yijinjing/journal/frame.h>
 
 namespace kungfu::yijinjing::journal {
 
-// KF_DEFINE_PACK_TYPE(                          //
-//     page_header, 1, PK(version), PERPETUAL(), //
-//     (uint32_t, version),                      //
-//     (uint32_t, page_header_length),           //
-//     (uint32_t, page_size),                    //
-//     (uint32_t, frame_header_length),          //
-//     (uint64_t, last_frame_position)           //
-//);
-
 class page {
 public:
   ~page();
+
+  void flush();
+
+  [[nodiscard]] uint32_t get_version() const { return header_->version; }
 
   [[nodiscard]] uint32_t get_page_size() const { return header_->page_size; }
 
@@ -43,6 +39,8 @@ public:
     return address() + header_->page_size - sizeof(longfist::types::frame_header);
   }
 
+  [[nodiscard]] uint32_t get_body_size() const { return size_ - header_->page_header_length; }
+
   [[nodiscard]] uintptr_t first_frame_address() const { return address() + header_->page_header_length; }
 
   [[nodiscard]] uintptr_t last_frame_address() const { return address() + header_->last_frame_position; }
@@ -53,7 +51,10 @@ public:
   }
 
   static page_ptr load(const data::location_ptr &location, uint32_t dest_id, uint32_t page_id, bool is_writing,
-                       bool lazy);
+                       bool lazy, bool pre_open = false);
+
+  static page_ptr load_header_and_1st_frame_header(const data::location_ptr &location, uint32_t dest_id,
+                                                   uint32_t page_id, bool is_writing, bool lazy);
 
   static std::string get_page_path(const data::location_ptr &location, uint32_t dest_id, uint32_t page_id);
 
@@ -64,10 +65,12 @@ private:
   const uint32_t dest_id_;
   const uint32_t page_id_;
   const bool lazy_;
+  const bool is_writing_;
   const size_t size_;
   const longfist::types::page_header *header_;
 
-  page(data::location_ptr location, uint32_t dest_id, uint32_t page_id, size_t size, bool lazy, uintptr_t address);
+  page(data::location_ptr location, uint32_t dest_id, uint32_t page_id, size_t size, bool lazy, bool is_writing,
+       uintptr_t address);
 
   /**
    * update page header when new frame added
@@ -86,7 +89,8 @@ inline static uint32_t find_page_size(const data::location_ptr &location, uint32
     return 128 * MB;
   }
   if ((location->category == longfist::enums::category::TD ||
-       location->category == longfist::enums::category::STRATEGY) &&
+       location->category == longfist::enums::category::STRATEGY ||
+       location->category == longfist::enums::category::OPERATOR || location->group == "service") &&
       dest_id != 0) {
     return 16 * MB;
   }

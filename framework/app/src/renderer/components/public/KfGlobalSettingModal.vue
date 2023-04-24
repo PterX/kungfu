@@ -145,7 +145,7 @@ function handleRemoveCommission(commission: KungfuApi.Commission) {
 }
 
 function handleAddCommission() {
-  const newCommission = longfist.Commission();
+  const newCommission = longfist.types.Commission();
   commissions.value.unshift(newCommission);
 }
 </script>

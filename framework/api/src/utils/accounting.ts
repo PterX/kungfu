@@ -229,14 +229,12 @@ const TradeAccountingUsageMap: Record<InstrumentTypeEnum, AccountingUsage> = {
   [InstrumentTypeEnum.fund]: new StockAccountingUsage(),
   [InstrumentTypeEnum.bond]: new BondAccountingUsage(),
   [InstrumentTypeEnum.stockoption]: new FutureAccountingUsage(),
-  [InstrumentTypeEnum.warrant]: new FutureAccountingUsage(),
-  [InstrumentTypeEnum.iopt]: new FutureAccountingUsage(),
   [InstrumentTypeEnum.techstock]: new StockAccountingUsage(),
   [InstrumentTypeEnum.index]: new StockAccountingUsage(),
   [InstrumentTypeEnum.repo]: new RepoAccountingUsage(),
   [InstrumentTypeEnum.crypto]: new CryptoAccountingUsage(),
-  [InstrumentTypeEnum.cryptofuture]: new DefaultAccountingUsage(),
+  [InstrumentTypeEnum.cryptofuture]: new FutureAccountingUsage(),
+  [InstrumentTypeEnum.cryptoufuture]: new FutureAccountingUsage(),
   [InstrumentTypeEnum.multi]: new DefaultAccountingUsage(),
 };
-
 export { TradeAccountingUsageMap };

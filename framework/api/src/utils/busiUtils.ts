@@ -71,7 +71,8 @@ import {
   startLedger,
   startMaster,
   startMd,
-  startStrategy,
+  startOperatorByExt,
+  startStrategyOperator,
   startTd,
 } from './processUtils';
 import { Proc } from 'pm2';
@@ -329,7 +330,7 @@ export const getResultUntilValuable = <T>(
             resolve(result);
           } else {
             if (++count * 16 > timeout) {
-              reject(new Error('timeout'));
+              reject(new Error('GetResultUntilValuable Timeout'));
             } else {
               getterResolved();
             }
@@ -768,8 +769,21 @@ export const isTdMd = (category: KfCategoryTypes) => {
   return false;
 };
 
-export const isTdMdStrategy = (category: KfCategoryTypes) => {
-  if (category === 'td' || category === 'md' || category === 'strategy') {
+export const isOperator = (category: KfCategoryTypes) => {
+  if (category === 'operator') {
+    return true;
+  }
+
+  return false;
+};
+
+export const isTdMdOperatorStrategy = (category: KfCategoryTypes) => {
+  if (
+    category === 'td' ||
+    category === 'md' ||
+    category === 'operator' ||
+    category === 'strategy'
+  ) {
     return true;
   }
 
@@ -885,38 +899,36 @@ export const removeDB = (targetFolder: string): Promise<void> => {
 export const getProcessIdByKfLocation = (
   kfLocation: KungfuApi.KfLocation,
 ): string => {
-  if (kfLocation.category === 'td') {
-    return `${kfLocation.category}_${kfLocation.group}_${kfLocation.name}`;
-  } else if (kfLocation.category === 'md') {
-    return `${kfLocation.category}_${kfLocation.group}`;
-  } else if (kfLocation.category === 'strategy') {
-    if (kfLocation.group === 'default') {
-      return `${kfLocation.category}_${kfLocation.name}`;
-    } else {
+  switch (kfLocation.category) {
+    case 'md':
+      return `${kfLocation.category}_${kfLocation.group}`;
+    case 'strategy':
+    case 'operator':
+      if (kfLocation.group === 'default') {
+        return `${kfLocation.category}_${kfLocation.name}`;
+      } else {
+        return `${kfLocation.category}_${kfLocation.group}_${kfLocation.name}`;
+      }
+    case 'system':
+      return kfLocation.name;
+    default:
       return `${kfLocation.category}_${kfLocation.group}_${kfLocation.name}`;
-    }
-  } else if (kfLocation.category === 'system') {
-    return kfLocation.name;
-  } else {
-    return `${kfLocation.category}_${kfLocation.group}_${kfLocation.name}`;
   }
 };
 
 export const getIdByKfLocation = (kfLocation: KungfuApi.KfLocation): string => {
-  if (kfLocation.category === 'td') {
-    return `${kfLocation.group}_${kfLocation.name}`;
-  } else if (kfLocation.category === 'md') {
-    return `${kfLocation.group}`;
-  } else if (kfLocation.category === 'strategy') {
-    if (kfLocation.group === 'default') {
-      return `${kfLocation.name}`;
-    } else {
+  switch (kfLocation.category) {
+    case 'md':
+      return `${kfLocation.group}`;
+    case 'strategy':
+    case 'operator':
+      if (kfLocation.group === 'default') {
+        return `${kfLocation.name}`;
+      } else {
+        return `${kfLocation.group}_${kfLocation.name}`;
+      }
+    default:
       return `${kfLocation.group}_${kfLocation.name}`;
-    }
-  } else if (kfLocation.category === 'system') {
-    return `${kfLocation.group}_${kfLocation.name}`;
-  } else {
-    return `${kfLocation.group}_${kfLocation.name}`;
   }
 };
 
@@ -943,6 +955,22 @@ export const getMdTdKfLocationByProcessId = (
         mode: 'live',
       };
     }
+  }
+
+  return null;
+};
+
+export const getOperatorKfLocationByProcessId = (
+  processId: string,
+): KungfuApi.KfLocation | null => {
+  if (processId.split('_').length === 3) {
+    const [category, group, name] = processId.split('_');
+    return {
+      category: category as KfCategoryTypes,
+      group,
+      name,
+      mode: 'live',
+    };
   }
 
   return null;
@@ -1021,6 +1049,8 @@ export const getKfLocationByProcessId = (
 ): KungfuApi.KfLocation | null => {
   if (processId.indexOf('td_') === 0 || processId.indexOf('md_') === 0) {
     return getMdTdKfLocationByProcessId(processId);
+  } else if (processId.indexOf('operator_') === 0) {
+    return getOperatorKfLocationByProcessId(processId);
   } else if (processId.indexOf('strategy_') === 0) {
     return getStrategyKfLocationByProcessId(processId);
   } else if (processId.indexOf('daemon_') === 0) {
@@ -1150,7 +1180,7 @@ export const getPropertyFromProcessStatusDetailDataByKfLocation = (
   };
 };
 
-export class KfNumList<T> {
+export class KfFixedList<T> {
   list: T[];
   limit: number;
 
@@ -1220,13 +1250,27 @@ const startProcessByKfLocation = async (
     case 'md':
       return startMd(getIdByKfLocation(kfLocation), kfLocation);
     case 'strategy':
-      const strategyPath =
-        JSON.parse((kfLocation as KungfuApi.KfConfig)?.value || '{}')
-          .strategy_path || '';
-      if (!strategyPath) {
-        throw new Error('Start Stratgy without strategy_path');
+    case 'operator':
+      // 插件类 operator
+      if (
+        kfLocation.category === 'operator' &&
+        kfLocation.group !== 'default'
+      ) {
+        return startOperatorByExt(kfLocation);
       }
-      return startStrategy(getIdByKfLocation(kfLocation), strategyPath);
+
+      // 文件类 strategy 与 operator
+      const filePath =
+        JSON.parse((kfLocation as KungfuApi.KfConfig)?.value || '{}')
+          .file_path || '';
+      if (!filePath) {
+        throw new Error(`Start ${kfLocation.category} without file path`);
+      }
+      return startStrategyOperator(
+        kfLocation.category,
+        getIdByKfLocation(kfLocation),
+        filePath,
+      );
     case 'daemon':
       return startExtDaemon(
         getProcessIdByKfLocation(kfLocation),

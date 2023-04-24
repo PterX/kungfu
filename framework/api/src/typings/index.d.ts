@@ -41,9 +41,11 @@ declare namespace KungfuApi {
     OrderActionFlagEnum,
     OrderInputKeyEnum,
     KfExtConfigTypes,
+    FrameMsgTypeEnum,
     BasketVolumeTypeEnum,
     PriceLevelEnum,
     BasketOrderStatusEnum,
+    SessionStatusEnum,
     CurrencyEnum,
   } from './enums';
   import { Dayjs } from 'dayjs';
@@ -81,6 +83,12 @@ declare namespace KungfuApi {
 
   type AnyEnumKeysAsStrings<TEnumType> = keyof TEnumType;
 
+  type FunctionOrData<U extends 'func' | 'data', T> = U extends 'func'
+    ? () => T
+    : U extends 'data'
+    ? T
+    : never;
+
   export type KfConfigItemSupportedTypes =
     | 'str'
     | 'password'
@@ -113,6 +121,8 @@ declare namespace KungfuApi {
     | 'td'
     | 'tds'
     | 'md'
+    | 'operator'
+    | 'md&operator'
     | 'strategy'
     | 'basket'
     | 'instrument'
@@ -332,7 +342,7 @@ declare namespace KungfuApi {
     messageForSearch: string;
   }
 
-  export class KfNumList<T> {
+  export class KfFixedList<T> {
     list: T[];
     limit: number;
     insert(item: T): void;
@@ -921,22 +931,98 @@ declare namespace KungfuApi {
     now(): bigint;
   }
 
+  export interface Session {
+    index: number;
+    location_uid: number;
+    category: KfCategoryEnum;
+    group: string;
+    name: string;
+    mode: KfModeEnum;
+    value: string;
+    begin_time: bigint;
+    end_time: bigint;
+    update_time: bigint;
+    data_size: bigint;
+    frame_count: number;
+  }
+
+  export interface SessionResolved extends Session {
+    session_id_resolved: string;
+    begin_time_resolved: string;
+    end_time_resolved: string;
+    status: SessionStatusEnum;
+  }
+
+  export interface Frame<T extends 'func' | 'data' = 'data'> {
+    id: number;
+    dataLength: FunctionOrData<T, number>;
+    genTime: FunctionOrData<T, bigint>;
+    triggerTime: FunctionOrData<T, bigint>;
+    msgType: FunctionOrData<T, FrameMsgTypeEnum>; // to enum
+    source: FunctionOrData<T, number>;
+    dest: FunctionOrData<T, number>;
+    data: FunctionOrData<T, string>;
+    // destName: FunctionOrData<T, string>;
+  }
+
+  export interface FrameResolved extends Frame {
+    genTimeResolved: string;
+    triggerTimeResolved: string;
+    msgTypeResolved: KfTradeValueCommonData;
+    destResolved: string;
+    sourceResolved: string;
+    sourceToDest: string;
+    dataResolved: unknown[];
+  }
+
+  export interface AssembleReader {
+    run: (cb: (frame: Frame<'func'>) => void, num: number) => void;
+    next: () => Frame<'func'> | null;
+    currentFrame: () => Frame<'func'>;
+  }
+
+  export interface Assemble {
+    getReader(
+      arg: number,
+      startTime?: bigint,
+      endTime?: bigint,
+    ): AssembleReader;
+    getSessions(kfLocation?: KfLocation): Session[] | undefined;
+    seekToTime(): void;
+    next(): void;
+    dataAvailable(): boolean;
+    seekToTime(nanotime: bigint): void;
+  }
+
   export interface Longfist {
-    Asset(): Asset;
-    AssetMargin(): AssetMargin;
-    Instrument(): Instrument;
-    Order(): Order;
-    OrderInput(): OrderInput;
-    OrderAction(): OrderAction;
-    OrderStat(): OrderStat;
-    Position(): Position;
-    Quote(): Quote;
-    Trade(): Trade;
-    Commission(): Commission;
-    RiskSetting(): RiskSettingOrigin;
-    Basket(): Basket;
-    BasketInstrument(): BasketInstrument;
-    BasketOrder(): BasketOrder;
+    types: {
+      Asset(): Asset;
+      AssetMargin(): AssetMargin;
+      Instrument(): Instrument;
+      Order(): Order;
+      OrderInput(): OrderInput;
+      OrderAction(): OrderAction;
+      OrderStat(): OrderStat;
+      Position(): Position;
+      Quote(): Quote;
+      Trade(): Trade;
+      Commission(): Commission;
+      RiskSetting(): RiskSettingOrigin;
+      Basket(): Basket;
+      BasketInstrument(): BasketInstrument;
+      BasketOrder(): BasketOrder;
+    };
+
+    msgTypes: Record<number, string>;
+  }
+
+  export interface IODevice {
+    getAllLocations(): Record<string, KfLocation>;
+  }
+
+  export interface SessionStore {
+    getAllSessions(): Session[];
+    getSessionsForLocation(kfLocation: KfLocation): Session[];
   }
 
   export interface Kungfu {
@@ -946,8 +1032,11 @@ declare namespace KungfuApi {
     CommissionStore(kfHome: string): CommissionStore;
     BasketStore(kfHome: string): BasketStore;
     BasketInstrumentStore(kfHome: string): BasketInstrumentStore;
+    SessionStore(location: KfLocation, kfHome: string): SessionStore;
     History(kfHome: string): HistoryStore;
-    longfist: Longfist;
+    IODevice(location: KfLocation, kfHome: string): IODevice;
+    Longfist(): Longfist;
+    Assemble(kfHome: string[]): Assemble;
     watcher(
       kfHome: string,
       hashedId: string,
@@ -1053,10 +1142,10 @@ declare module '@kungfu-trader/kungfu-core' {
 declare namespace Code {
   import { Stats } from 'fs-extra';
   import { SpaceTabSettingEnum, SpaceSizeSettingEnum } from './enums';
-  export interface Strategy {
-    strategy_id: string;
-    strategy_path: string;
-    add_time: number;
+
+  export interface CodeInfo {
+    code_id: string;
+    file_path: string;
   }
 
   export interface FileProps {
@@ -1172,6 +1261,11 @@ declare namespace KfEvent {
     strategys: KungfuApi.KfConfig[];
   }
 
+  export interface TriggerUpdateOperator {
+    tag: 'update:operator';
+    strategys: KungfuApi.KfConfig[];
+  }
+
   export interface TriggerUpdateExtConfigs {
     tag: 'update:extConfigs';
     extConfigs: KungfuApi.KfExtConfigs;
@@ -1222,6 +1316,7 @@ declare namespace KfEvent {
     | TriggerUpdateRiskSetting
     | TriggerUpdateMd
     | TriggerUpdateStrategy
+    | TriggerUpdateOperator
     | TriggerUpdateExtConfigs
     | TriggerAddBoard
     | ExportTradingDataEvent

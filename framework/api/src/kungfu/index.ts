@@ -33,13 +33,42 @@ export const kf = kungfu();
 
 kfLogger.info('Load kungfu node');
 
+export const assemble = kf.Assemble([KF_RUNTIME_DIR]);
 export const configStore = kf.ConfigStore(KF_RUNTIME_DIR);
 export const riskSettingStore = kf.RiskSettingStore(KF_RUNTIME_DIR);
 export const history = kf.History(KF_RUNTIME_DIR);
 export const commissionStore = kf.CommissionStore(KF_RUNTIME_DIR);
 export const basketStore = kf.BasketStore(KF_RUNTIME_DIR);
 export const basketInstrumentStore = kf.BasketInstrumentStore(KF_RUNTIME_DIR);
-export const longfist = kf.longfist;
+export const sessionStore = kf.SessionStore(
+  getCurrentNodeLocation(),
+  KF_RUNTIME_DIR,
+);
+export const longfist = kf.Longfist();
+export const io = kf.IODevice(getCurrentNodeLocation(), KF_RUNTIME_DIR);
+
+export function getCurrentNodeLocation(): KungfuApi.KfLocation {
+  return {
+    mode: 'live',
+    category: 'system',
+    group: 'node',
+    name: getWatcherId(),
+  };
+}
+
+export function getWatcherId(): string {
+  const watcherId = [
+    process.env.APP_TYPE,
+    process.env.UI_EXT_TYPE,
+    (process.env.APP_ID || '').length > 16
+      ? kf.formatStringToHashHex(process.env.APP_ID || '')
+      : process.env.APP_ID,
+  ]
+    .filter((str) => !!str)
+    .join('-');
+  kfLogger.info(`WatcherId ${watcherId}`);
+  return watcherId;
+}
 
 export const dealKfTime = (nano: bigint, date = false): string => {
   if (nano === BigInt(0)) {
@@ -297,7 +326,7 @@ export const kfCancelOrder = (
   }
 
   const orderAction: KungfuApi.OrderAction = {
-    ...longfist.OrderAction(),
+    ...longfist.types.OrderAction(),
     order_id,
   };
 
@@ -352,7 +381,7 @@ export const kfMakeOrder = (
 
   const now = watcher.now();
   const orderInput: KungfuApi.OrderInput = {
-    ...longfist.OrderInput(),
+    ...longfist.types.OrderInput(),
     ...makeOrderInput,
     block_id: BigInt(0),
     limit_price: makeOrderInput.limit_price || 0,
@@ -408,7 +437,7 @@ export const kfMakeBlockOrder = async (
 
   const now = watcher.now();
   const orderInput: KungfuApi.OrderInput = {
-    ...longfist.OrderInput(),
+    ...longfist.types.OrderInput(),
     ...makeOrderInput,
     block_id,
     limit_price: makeOrderInput.limit_price || 0,
@@ -556,7 +585,7 @@ export const makeOrderByBasketInstruments = (
 
   const makeOrderTasks = basketInstruments.map((basketInstrument) => {
     const makeOrderInput: KungfuApi.MakeOrderInput = {
-      ...longfist.OrderInput(),
+      ...longfist.types.OrderInput(),
       parent_id: parentId,
       instrument_id: `${basketInstrument.instrument_id}`,
       exchange_id: `${basketInstrument.exchange_id}`,
@@ -603,7 +632,7 @@ export const makeOrderByBasketTrade = (
 
   const now = watcher.now();
   const basketOrder: KungfuApi.BasketOrder = {
-    ...longfist.BasketOrder(),
+    ...longfist.types.BasketOrder(),
     parent_id: BigInt(basket.id),
     insert_time: now,
     side: +basketOrderInput.side,

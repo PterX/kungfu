@@ -3,3 +3,4 @@ process.env.APP_ID = dayjs().format('MMDDHHmmss');
 process.env.BY_PASS_RESTORE = true;
 process.env.BY_PASS_ACCOUNTING = true;
 process.env.BY_PASS_TRADINGDATA = true;
+process.env.MILLISECONDS_SLEEP_AFTER_STEP = 500;

@@ -64,35 +64,36 @@ exports.getPagesConfig = (argv) => {
   };
 };
 
-exports.getComponentsConfig = () => {
-  const appDir = this.getAppDir();
-  const componentsDir = path.resolve(appDir, 'src', 'components', 'modules');
-  const files = fs.readdirSync(componentsDir);
-  let entry = {};
+const tryGetAppPackageJSON = () => {
+  try {
+    const appPackageJSONPath = require.resolve(
+      '@kungfu-trader/kungfu-app/package.json',
+    );
+    const appPackageJSON = fs.readJSONSync(appPackageJSONPath);
+    return appPackageJSON;
+  } catch (err) {
+    console.warn('only warn: kungfu-app not exist');
+    return {};
+  }
+};
 
-  files
-    .filter((file) => {
-      const filePath = path.join(componentsDir, file);
-      const stats = fs.statSync(filePath);
-      return stats.isDirectory();
-    })
-    .forEach((dir) => {
-      entry[dir] = path.resolve(componentsDir, dir, 'index.ts');
-    });
-
-  return entry;
+const tryGetCliPackageJSON = () => {
+  try {
+    const cliPackageJSONPath = require.resolve(
+      '@kungfu-trader/kungfu-cli/package.json',
+    );
+    const cliPackageJSON = fs.readJSONSync(cliPackageJSONPath);
+    return cliPackageJSON;
+  } catch (err) {
+    console.warn('only warn: kungfu-cli not exist');
+    return {};
+  }
 };
 
 exports.getWebpackExternals = () => {
   // 有些package会作为其他package依赖，需要放在此处处理
-  const appPackageJSONPath = require.resolve(
-    '@kungfu-trader/kungfu-app/package.json',
-  );
   const apiPackageJSONPath = require.resolve(
     '@kungfu-trader/kungfu-js-api/package.json',
-  );
-  const cliPackageJSONPath = require.resolve(
-    '@kungfu-trader/kungfu-cli/package.json',
   );
   const sdkPackageJSONPath = require.resolve(
     '@kungfu-trader/kungfu-sdk/package.json',
@@ -106,9 +107,9 @@ exports.getWebpackExternals = () => {
     'package.json',
   );
 
-  const appPackageJSON = fs.readJSONSync(appPackageJSONPath);
   const apiPackageJSON = fs.readJSONSync(apiPackageJSONPath);
-  const cliPackageJSON = fs.readJSONSync(cliPackageJSONPath);
+  const cliPackageJSON = tryGetCliPackageJSON();
+  const appPackageJSON = tryGetAppPackageJSON();
   const sdkPackageJSON = fs.readJSONSync(sdkPackageJSONPath);
   const corePackageJSON = fs.readJSONSync(corePackageJSONPath);
   const currentPackageJSON = fs.pathExistsSync(currentPackageJSONPath)
@@ -149,9 +150,15 @@ exports.getSdkDefaultDistDir = () => {
 };
 
 exports.getAppDir = () => {
-  return path.dirname(
-    require.resolve('@kungfu-trader/kungfu-app/package.json'),
-  );
+  try {
+    const appPackageJSONPath = require.resolve(
+      '@kungfu-trader/kungfu-app/package.json',
+    );
+    return path.dirname(appPackageJSONPath);
+  } catch (err) {
+    console.warn('only warn: kungfu-app not exist');
+    return false;
+  }
 };
 
 exports.getApiDir = () => {
@@ -162,11 +169,13 @@ exports.getApiDir = () => {
 
 exports.getCliDir = () => {
   try {
-    return path.dirname(
-      require.resolve('@kungfu-trader/kungfu-cli/package.json'),
+    const cliPackageJSONPath = require.resolve(
+      '@kungfu-trader/kungfu-cli/package.json',
     );
+    return path.dirname(cliPackageJSONPath);
   } catch (err) {
-    return '.';
+    console.warn('only warn: kungfu-cli not exist');
+    return false;
   }
 };
 

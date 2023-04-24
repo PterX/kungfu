@@ -43,6 +43,7 @@
 // so we need not to check the version (because we only support _MSC_VER >= 1100)!
 #pragma once
 
+#include <iostream>
 #include <windows.h>
 
 #if _MSC_VER >= 1900
@@ -58,6 +59,8 @@ typedef unsigned __int64 SIZE_T, *PSIZE_T;
 typedef unsigned long SIZE_T, *PSIZE_T;
 #endif
 #endif // _MSC_VER < 1300
+
+typedef unsigned char *address;
 
 class StackWalkerInternal; // forward
 class StackWalker {
@@ -114,6 +117,34 @@ public:
   );
 
   BOOL ShowObject(LPVOID pObject);
+
+  // new add
+  typedef int (*LoadedModulesCallbackFunc)(const char *, address, address, void *);
+  void print_windows_version(std::ostream &st);
+  void print_environment_variables(std::ostream &st); // 环境变量
+
+  void get_sys_info(std::ostream &st); // CPU
+
+  int get_loaded_modules_info(LoadedModulesCallbackFunc callback, void *param);
+  static int print_module(const char *fname, address base_address, address top_address, void *param);
+  void print_dll_info(std::ostream *st); // dll
+
+  address current_stack_base();
+  size_t current_stack_size();              // 返回当前栈的大小
+  void print_stack_bound(std::ostream &st); // 打印堆栈边界
+
+  void show_callstack(std::ostream &os, const void *context = NULL);
+
+  //----堆栈信息的函数
+  bool dll_address_to_library_name(address addr, char *buf, int buflen, int *offset);
+  static int _locate_module_by_addr(const char *mod_fname, address base_addr, address top_address, void *param);
+  void print_C_frame(std::ostream &st, char *buf, int buflen, address pc);
+  bool _print_native_stack(std::ostream &st, const void *context, char *buf, int buf_size);
+  bool get_source_info(const void *addr, char *buf, size_t buflen, int *line_no);
+  bool decode(const void *addr, char *buf, int buflen, int *offset, bool do_demangle);
+  bool dll_address_to_function_name(address addr, char *buf, int buflen, int *offset, bool demangle);
+  bool decode_locked(const void *addr, char *buf, int buflen, int *offset, bool do_demangle);
+  //----堆栈信息的函数
 
 #if _MSC_VER >= 1300
   // due to some reasons, the "STACKWALK_MAX_NAMELEN" must be declared as "public"

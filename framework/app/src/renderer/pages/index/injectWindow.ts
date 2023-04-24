@@ -1,13 +1,11 @@
 import workers from '@kungfu-trader/kungfu-app/src/renderer/assets/workers';
-import {
-  getWatcherId,
-  watcher,
-} from '@kungfu-trader/kungfu-js-api/kungfu/watcher';
+import { watcher } from '@kungfu-trader/kungfu-js-api/kungfu/watcher';
 import {
   basketInstrumentStore,
   basketStore,
   commissionStore,
   configStore,
+  getWatcherId,
   kf,
   riskSettingStore,
 } from '@kungfu-trader/kungfu-js-api/kungfu';

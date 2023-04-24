@@ -5,10 +5,10 @@ project(kungfu)
 
 ##########################################################################
 
-include(.cmake/editor.cmake)
-include(.cmake/compiler.cmake)
-include(.cmake/libnode.cmake)
-include(build/conanbuildinfo.cmake)
+include(${PROJECT_SOURCE_DIR}/.cmake/editor.cmake)
+include(${PROJECT_SOURCE_DIR}/.cmake/compiler.cmake)
+include(${PROJECT_SOURCE_DIR}/.cmake/libnode.cmake)
+include(${CONANBUILDINFO_DIR}/conanbuildinfo.cmake)
 conan_basic_setup(KEEP_RPATHS NO_OUTPUT_DIRS SKIP_STD SKIP_FPIC)
 
 ##########################################################################

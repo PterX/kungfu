@@ -48,13 +48,17 @@ exports.package = async () => {
   await require('@kungfu-trader/kungfu-app').electronBuild(buildDir);
 };
 
-exports.dev = (withWebpack) => {
+exports.dev = async (withWebpack) => {
   shell.verifyElectron();
-  require('@kungfu-trader/kungfu-app').devRun(
-    ensureDir(process.cwd().toString(), 'dist'),
-    'app',
-    withWebpack,
-  );
+  try {
+    await require('@kungfu-trader/kungfu-app').devRun(
+      ensureDir(process.cwd().toString(), 'dist'),
+      'app',
+      withWebpack,
+    );
+  } catch (err) {
+    console.warn(err);
+  }
 };
 
 exports.cli = () => {

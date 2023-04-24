@@ -20,16 +20,18 @@ struct noop_publisher : public publisher {
   bool is_usable() override { return true; }
   void setup() override {}
   int notify() override { return 0; }
-  int publish(const std::string &json_message, int flags = NN_DONTWAIT) override { return 0; }
+  int publish(const std::string &json_message, int flags = NNG_FLAG_NONBLOCK) override { return 0; }
 };
 
 struct assemble_exception : std::runtime_error {
   explicit assemble_exception(const std::string &msg) : std::runtime_error(msg){};
 };
 
-sink::sink() : publisher_(std::make_shared<noop_publisher>()) {}
+sink::sink() : publisher_(std::make_shared<noop_publisher>()), bus_(std::make_shared<bus>(false)) {}
 
 publisher_ptr sink::get_publisher() { return publisher_; }
+
+bus_ptr sink::get_bus() { return bus_; }
 
 copy_sink::copy_sink(data::locator_ptr locator) : sink(), locator_(std::move(locator)) {}
 
@@ -38,7 +40,8 @@ void copy_sink::put(const data::location_ptr &location, uint32_t dest_id, const 
   auto &writers = pair.first->second;
   if (writers.find(dest_id) == writers.end()) {
     auto target_location = data::location::make_shared(*location, locator_);
-    writers.try_emplace(dest_id, std::make_shared<writer>(target_location, dest_id, true, get_publisher()));
+    writers.try_emplace(dest_id, std::make_shared<writer>(target_location, dest_id, true, get_publisher(), false,
+                                                          std::make_shared<bus>(false)));
   }
   writers.at(dest_id)->copy_frame(frame);
 }
@@ -52,7 +55,7 @@ assemble::assemble(const std::vector<data::locator_ptr> &locators, const std::st
     : mode_(mode), category_(category), group_(group), name_(name), publisher_(std::make_shared<noop_publisher>()) {
   for (auto &locator : locators) {
     locators_.push_back(locator);
-    readers_.push_back(std::make_shared<reader>(true));
+    readers_.push_back(std::make_shared<reader>(true, false, std::make_shared<bus>(false)));
     auto reader = readers_.back();
     for (auto &location : locator->list_locations(category, group, name, mode)) {
       for (auto dest_id : locator->list_location_dest(location)) {
@@ -85,7 +88,7 @@ assemble &assemble::operator+=(const assemble &other) {
       if (this_locator == other_locator) {
         auto &this_reader = readers_.at(this_locator_index);
         const auto &other_reader = other.readers_.at(other_locator_index);
-        for (const auto &other_pair : other_reader->journals()) {
+        for (const auto &other_pair : other_reader->get_journals()) {
           const auto &other_journal = other_pair.second;
           this_reader->join(other_journal.get_location(), other_journal.get_dest(), other.from_time_);
         }
@@ -103,9 +106,9 @@ assemble &assemble::operator+=(const assemble &other) {
     const auto &other_locator = other.locators_.at(other_locator_index);
     const auto &other_reader = other.readers_.at(other_locator_index);
     locators_.push_back(other_locator);
-    readers_.push_back(std::make_shared<reader>(true));
+    readers_.push_back(std::make_shared<reader>(true, false, std::make_shared<bus>(false)));
     auto &this_reader = readers_.back();
-    for (const auto &other_pair : other_reader->journals()) {
+    for (const auto &other_pair : other_reader->get_journals()) {
       const auto &other_journal = other_pair.second;
       this_reader->join(other_journal.get_location(), other_journal.get_dest(), other.from_time_);
     }
@@ -122,7 +125,7 @@ assemble &assemble::operator-=(const assemble &other) {
       if (this_locator == other_locator) {
         auto &this_reader = readers_.at(this_locator_index);
         const auto &other_reader = other.readers_.at(other_locator_index);
-        for (const auto &other_pair : other_reader->journals()) {
+        for (const auto &other_pair : other_reader->get_journals()) {
           const auto &other_journal = other_pair.second;
           this_reader->disjoin_channel(other_journal.get_location()->location_uid, other_journal.get_dest());
         }
@@ -143,12 +146,6 @@ void assemble::operator>>(const sink_ptr &sink) {
 
 bool assemble::data_available() {
   sort();
-  //  for (auto &reader : readers_) {
-  //    if (reader->data_available()) {
-  //      return true;
-  //    }
-  //  }
-  //  return false;
   return std::any_of(readers_.begin(), readers_.end(), [](auto &r) { return r->data_available(); });
 }
 
@@ -161,6 +158,8 @@ void assemble::next() {
 
 frame_ptr assemble::current_frame() { return current_reader_->current_frame(); }
 
+page_ptr assemble::current_page() { return current_reader_->current_page(); }
+
 void assemble::sort() {
   int64_t min_time = INT64_MAX;
   for (auto &reader : readers_) {
@@ -170,6 +169,9 @@ void assemble::sort() {
     }
   }
 }
+using namespace kungfu::longfist::enums;
+using namespace kungfu::longfist::types;
+using namespace sqlite_orm;
 
 assemble::assemble(const data::location_ptr &source_location, uint32_t dest_id, uint32_t assemble_mode,
                    int64_t from_time)
@@ -179,7 +181,7 @@ assemble::assemble(const data::location_ptr &source_location, uint32_t dest_id, 
   readers_.clear();
   data::locator &l = *source_location->locator;
   locators_.push_back(source_location->locator);
-  readers_.push_back(std::make_shared<reader>(true));
+  readers_.push_back(std::make_shared<reader>(true, false, std::make_shared<bus>(false)));
   auto reader = readers_.front();
 
   // join channel
@@ -239,12 +241,20 @@ std::vector<std::pair<longfist::types::frame_header, std::vector<uint8_t>>> asse
                                                                                                  int64_t end_time) {
   std::vector<std::pair<longfist::types::frame_header, std::vector<uint8_t>>> v{};
   while (data_available() and current_frame()->gen_time() < end_time) {
-    if (msg_type == 0 or current_frame()->msg_type() == msg_type) {
+    if (msg_type == 0 or
+        current_frame()->msg_type() == msg_type && current_page()->get_version() == __JOURNAL_VERSION__) {
       const frame_header &head = *reinterpret_cast<frame_header *>(current_frame()->address());
       std::vector<uint8_t> bytes{current_frame()->data_as_bytes(),
                                  current_frame()->data_as_bytes() + current_frame()->data_length()};
       v.emplace_back(head, bytes);
     }
+
+    if (current_page()->get_version() != __JOURNAL_VERSION__) {
+      SPDLOG_WARN("journal version mismatch, expect {}, got {}, page_id {}, location uid {} location name {}",
+                  __JOURNAL_VERSION__, current_page()->get_version(), current_page()->get_page_id(),
+                  current_page()->get_location()->uid, current_page()->get_location()->uname);
+    }
+
     next();
   }
   return v;

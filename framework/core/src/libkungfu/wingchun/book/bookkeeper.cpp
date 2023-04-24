@@ -341,7 +341,6 @@ void Bookkeeper::try_sync_book_replica(uint32_t location_uid) {
       book_listener->on_position_sync_reset(*old_book, *new_book);
     }
   }
-
   books_replica_.erase(location_uid); // delete replica every time
 }
 

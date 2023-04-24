@@ -61,7 +61,7 @@ public:
 
   [[nodiscard]] std::string get_runtime_folder();
 
-  [[nodiscard]] const std::string &get_config() const;
+  [[nodiscard]] const std::string get_config() const;
 
   [[maybe_unused]] [[nodiscard]] const std::string &get_risk_setting() const;
 

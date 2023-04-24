@@ -7,6 +7,7 @@
 #ifndef KUNGFU_IO_H
 #define KUNGFU_IO_H
 
+#include <kungfu/yijinjing/bus.h>
 #include <kungfu/yijinjing/journal/journal.h>
 #include <kungfu/yijinjing/nanomsg/socket.h>
 
@@ -34,6 +35,11 @@ public:
 
   [[nodiscard]] bool is_low_latency() const { return low_latency_; }
 
+  [[nodiscard]] bool is_cleaner_required() const {
+    return low_latency_ && lazy_ && home_->mode == kungfu::longfist::enums::mode::LIVE;
+  }
+  const bus_ptr &get_bus() const { return bus_; }
+
   journal::reader_ptr open_reader_to_subscribe();
 
   [[maybe_unused]] journal::reader_ptr open_reader(const data::location_ptr &location, uint32_t dest_id);
@@ -41,11 +47,6 @@ public:
   journal::writer_ptr open_writer(uint32_t dest_id);
 
   journal::writer_ptr open_writer_at(const data::location_ptr &location, uint32_t dest_id);
-
-  [[maybe_unused]] nanomsg::socket_ptr connect_socket(const data::location_ptr &location, const nanomsg::protocol &p,
-                                                      int timeout = 0);
-
-  [[maybe_unused]] nanomsg::socket_ptr bind_socket(const nanomsg::protocol &p, int timeout = 0);
 
   [[nodiscard]] nanomsg::url_factory_ptr get_url_factory() const { return url_factory_; }
 
@@ -61,6 +62,7 @@ protected:
   nanomsg::url_factory_ptr url_factory_;
   publisher_ptr publisher_;
   observer_ptr observer_;
+  bus_ptr bus_;
 };
 
 DECLARE_PTR(io_device)

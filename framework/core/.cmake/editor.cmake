@@ -53,4 +53,8 @@ if (EDITOR)
   endfunction(parse_cmakejs_properties)
 
   parse_cmakejs_properties()
+
+  set(CONANBUILDINFO_DIR "${PROJECT_SOURCE_DIR}/build")
+else()
+  set(CONANBUILDINFO_DIR ${CMAKE_BINARY_DIR})
 endif ()

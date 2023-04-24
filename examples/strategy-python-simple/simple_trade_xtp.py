@@ -18,7 +18,6 @@ def pre_start(context):
     context.add_account("xtp", "15040900")
     context.subscribe("xtp", ["600198", "600548"], Exchange.SSE)
     # context.subscribe(source, ["159901", "300030"], Exchange.SZE)
-    # context.subscribe(Source.BAR, ["159901", "300030"], Exchange.SZE)
 
 
 def post_start(context):

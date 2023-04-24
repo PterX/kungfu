@@ -57,8 +57,6 @@ import { Router } from 'vue-router';
 
 export const mergeExtLanguages = async () => {
   const languages = await getKfExtensionLanguage();
-  console.log("Kungfu extension's languages:", languages);
-
   Object.keys(languages).forEach((langName) => {
     if (langName in VueI18n.global.messages) {
       VueI18n.global.mergeLocaleMessage(langName, languages[langName]);
@@ -438,9 +436,30 @@ export const openLogView = (
 };
 
 export const openCodeView = (
-  processId: string,
+  id: string,
+  filePath: string,
+  isEntryFilenameEditable: boolean,
 ): Promise<Electron.BrowserWindow> => {
-  return openNewBrowserWindow(__dirname, 'code', `?processId=${processId}`);
+  return openNewBrowserWindow(
+    __dirname,
+    'code',
+    `?id=${id}&filePath=${filePath}&isEntryFilenameEditable=${isEntryFilenameEditable}`,
+  );
+};
+
+export const openJournalView = (
+  processId: string,
+  locationUid: string,
+): Promise<Electron.BrowserWindow> => {
+  return openNewBrowserWindow(
+    __dirname,
+    'journal',
+    `?processId=${processId}&locationUid=${locationUid}`,
+    {
+      width: 1280,
+      height: 960,
+    },
+  );
 };
 
 export const removeLoadingMask = (): void => {
@@ -550,11 +569,24 @@ export const handleOpenLogviewByFile =
   };
 
 export const handleOpenCodeView = (
-  config: KungfuApi.KfConfig | KungfuApi.KfLocation,
+  id: string,
+  filePath: string,
+  isEntryFilenameEditable: boolean,
 ): Promise<Electron.BrowserWindow> => {
   const openMessage = message.loading(t('open_code_editor'));
-  return openCodeView(getProcessIdByKfLocation(config)).finally(() => {
+  return openCodeView(id, filePath, isEntryFilenameEditable).finally(() => {
     openMessage();
+  });
+};
+
+export const handleOpenJournalView = (
+  config?: KungfuApi.KfConfig | KungfuApi.KfLocation,
+): Promise<Electron.BrowserWindow> => {
+  const hideloading = message.loading(t('open_journal_dashboard'));
+  const processId = config ? getProcessIdByKfLocation(config) : '';
+  const locationUid = config ? getKfLocationUID(config) || '' : '';
+  return openJournalView(processId, locationUid).finally(() => {
+    hideloading();
   });
 };
 
@@ -590,9 +622,9 @@ export const useDashboardBodySize = (): {
   };
 };
 
-export const getKfLocationUID = (kfConfig: KungfuApi.KfConfig): string => {
+export const getKfLocationUID = (kfLocation: KungfuApi.KfLocation): string => {
   if (!window.watcher) return '';
-  return window.watcher?.getLocationUID(kfConfig);
+  return window.watcher?.getLocationUID(kfLocation);
 };
 
 export const useDownloadHistoryTradingData = (): {

@@ -3,11 +3,11 @@
 #ifndef KUNGFU_CACHED_H
 #define KUNGFU_CACHED_H
 
+#include <kungfu/yijinjing/cache/profile.h>
 #include <kungfu/yijinjing/cache/runtime.h>
 #include <kungfu/yijinjing/io.h>
 #include <kungfu/yijinjing/log.h>
 #include <kungfu/yijinjing/practice/apprentice.h>
-#include <kungfu/yijinjing/practice/profile.h>
 
 namespace kungfu::yijinjing::cache {
 
@@ -52,7 +52,7 @@ protected:
 private:
   std::unordered_map<uint32_t, yijinjing::cache::shift> app_cache_shift_ = {};
   yijinjing::cache::bank feed_bank_;
-  yijinjing::practice::profile profile_;
+  yijinjing::cache::profile profile_;
   ProfileStateBank profile_bank_ = ProfileStateBank(longfist::ProfileDataTypes);
   const int store_volume_every_loop_;
 

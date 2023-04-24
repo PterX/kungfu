@@ -20,6 +20,8 @@ import {
   StrategyExtTypes,
   UnderweightEnum,
   OrderInputKeyEnum,
+  FrameMsgTypeEnum,
+  AddOperatorTypeEnum,
   PriceLevelEnum,
   BasketVolumeTypeEnum,
   BasketOrderStatusEnum,
@@ -171,6 +173,11 @@ export const KfCategory: Record<
     name: t('tradingConfig.strategy'),
     color: 'cyan',
     level: 60,
+  },
+  [KfCategoryEnum.operator]: {
+    name: t('tradingConfig.operator'),
+    color: 'pink',
+    level: 80,
   },
 };
 
@@ -485,15 +492,6 @@ export const InstrumentType: Record<
     color: 'orange',
     level: 10,
   },
-  [InstrumentTypeEnum.future]: {
-    name: t('tradingConfig.future'),
-    color: 'red',
-    level: 10,
-  },
-  [InstrumentTypeEnum.bond]: {
-    name: t('tradingConfig.bond'),
-    color: 'pink',
-  },
   [InstrumentTypeEnum.stockoption]: {
     name: t('tradingConfig.stock_option'),
     color: 'blue',
@@ -503,6 +501,15 @@ export const InstrumentType: Record<
     name: t('tradingConfig.tech_stock'),
     color: 'blue',
   },
+  [InstrumentTypeEnum.future]: {
+    name: t('tradingConfig.future'),
+    color: 'red',
+    level: 10,
+  },
+  [InstrumentTypeEnum.bond]: {
+    name: t('tradingConfig.bond'),
+    color: 'pink',
+  },
   [InstrumentTypeEnum.fund]: {
     name: t('tradingConfig.fund'),
     color: 'purple',
@@ -511,26 +518,23 @@ export const InstrumentType: Record<
     name: t('tradingConfig.index'),
     color: 'purple',
   },
-  [InstrumentTypeEnum.warrant]: {
-    name: t('tradingConfig.warrant'),
-    color: 'blue',
-  },
-  [InstrumentTypeEnum.iopt]: {
-    name: t('tradingConfig.iopt'),
-    color: 'blue',
-  },
   [InstrumentTypeEnum.repo]: {
     name: t('tradingConfig.repo'),
     color: 'red',
   },
   [InstrumentTypeEnum.crypto]: {
     name: t('tradingConfig.crypto'),
-    color: 'blue',
+    color: 'orange',
     level: 10,
   },
   [InstrumentTypeEnum.cryptofuture]: {
     name: t('tradingConfig.crypto_future'),
-    color: 'blue',
+    color: 'red',
+    level: 10,
+  },
+  [InstrumentTypeEnum.cryptoufuture]: {
+    name: t('tradingConfig.crypto_ufuture'),
+    color: 'red',
     level: 10,
   },
   [InstrumentTypeEnum.multi]: {
@@ -578,12 +582,16 @@ export const ShotableInstrumentTypes = [
   InstrumentTypeEnum.future,
   InstrumentTypeEnum.stockoption,
   InstrumentTypeEnum.cryptofuture,
+  InstrumentTypeEnum.cryptoufuture,
   InstrumentTypeEnum.multi,
 ];
 
 export const T0InstrumentTypes = [
+  InstrumentTypeEnum.cryptofuture,
+  InstrumentTypeEnum.cryptoufuture,
   InstrumentTypeEnum.future,
   InstrumentTypeEnum.bond,
+  InstrumentTypeEnum.stockoption,
 ];
 
 export const T0ExchangeIds = ['US', 'HK'];
@@ -601,8 +609,6 @@ export const AbleSubscribeInstrumentTypesBySourceType: Record<
     InstrumentTypeEnum.techstock,
     InstrumentTypeEnum.index,
     InstrumentTypeEnum.repo,
-    InstrumentTypeEnum.warrant,
-    InstrumentTypeEnum.iopt,
     InstrumentTypeEnum.stockoption,
   ],
 
@@ -620,13 +626,11 @@ export const AbleSubscribeInstrumentTypesBySourceType: Record<
 
   repo: [InstrumentTypeEnum.repo],
 
-  warrant: [InstrumentTypeEnum.warrant],
-
-  iopt: [InstrumentTypeEnum.iopt],
-
   crypto: [InstrumentTypeEnum.crypto],
 
   cryptofuture: [InstrumentTypeEnum.cryptofuture],
+
+  cryptoufuture: [InstrumentTypeEnum.cryptoufuture],
 
   multi: [
     InstrumentTypeEnum.stock,
@@ -639,6 +643,7 @@ export const AbleSubscribeInstrumentTypesBySourceType: Record<
     InstrumentTypeEnum.repo,
     InstrumentTypeEnum.crypto,
     InstrumentTypeEnum.cryptofuture,
+    InstrumentTypeEnum.cryptoufuture,
   ],
 };
 
@@ -895,6 +900,64 @@ export const SystemProcessName: Record<
   ledger: { name: t('tradingConfig.ledger') },
   cached: { name: t('tradingConfig.cached') },
   archive: { name: t('tradingConfig.archive') },
+};
+
+export const JournalFrameMsgType: Partial<
+  Record<
+    FrameMsgTypeEnum,
+    KungfuApi.KfTradeValueCommonData | { name: string; color: string }
+  >
+> = {
+  [FrameMsgTypeEnum.Order]: {
+    name: 'Order',
+    color: 'rgb(245, 34, 45)',
+  },
+  [FrameMsgTypeEnum.OrderInput]: {
+    name: 'OrderInput',
+    color: 'rgb(250, 84, 28)',
+  },
+  [FrameMsgTypeEnum.Trade]: {
+    name: 'Trade',
+    color: 'rgb(250, 140, 22)',
+  },
+  [FrameMsgTypeEnum.Position]: {
+    name: 'Position',
+    color: 'rgb(250, 219, 20)',
+  },
+  [FrameMsgTypeEnum.Asset]: {
+    name: 'Asset',
+    color: 'rgb(160, 217, 17)',
+  },
+  [FrameMsgTypeEnum.AssetMargin]: {
+    name: 'AssetMargin',
+    color: 'rgb(82, 196, 26)',
+  },
+  [FrameMsgTypeEnum.Quote]: {
+    name: 'Quote',
+    color: 'rgb(24, 144, 255)',
+  },
+  [FrameMsgTypeEnum.Entrust]: {
+    name: 'Entrust',
+    color: 'rgb(47, 84, 235)',
+  },
+  [FrameMsgTypeEnum.Transaction]: {
+    name: 'Transaction',
+    color: 'rgb(83, 29, 171)',
+  },
+};
+
+export const AddOperatorType: Record<
+  AddOperatorTypeEnum,
+  KungfuApi.KfTradeValueCommonData
+> = {
+  [AddOperatorTypeEnum.Extension]: {
+    name: t('operatorConfig.add_operator_type.extension'),
+    color: 'blue',
+  },
+  [AddOperatorTypeEnum.File]: {
+    name: t('operatorConfig.add_operator_type.file'),
+    color: 'pink',
+  },
 };
 
 export const InstrumentMinOrderVolume = {

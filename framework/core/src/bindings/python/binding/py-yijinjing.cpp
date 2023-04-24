@@ -6,6 +6,7 @@
 
 #include <kungfu/longfist/longfist.h>
 #include <kungfu/yijinjing/cache/cached.h>
+#include <kungfu/yijinjing/cache/profile.h>
 #include <kungfu/yijinjing/index/session.h>
 #include <kungfu/yijinjing/io.h>
 #include <kungfu/yijinjing/journal/assemble.h>
@@ -15,12 +16,10 @@
 #include <kungfu/yijinjing/nanomsg/socket.h>
 #include <kungfu/yijinjing/practice/apprentice.h>
 #include <kungfu/yijinjing/practice/master.h>
-#include <kungfu/yijinjing/practice/profile.h>
 #include <kungfu/yijinjing/time.h>
 #include <kungfu/yijinjing/util/util.h>
 
 using namespace kungfu::longfist;
-using namespace kungfu::longfist::types;
 using namespace kungfu::longfist::types;
 using namespace kungfu::longfist::enums;
 using namespace kungfu::yijinjing::cache;
@@ -89,8 +88,8 @@ class PyPublisher : public publisher {
 public:
   int notify() override { PYBIND11_OVERLOAD_PURE(int, publisher, notify); }
 
-  int publish(const std::string &json_message, int flags = NN_DONTWAIT) override {
-    PYBIND11_OVERLOAD_PURE(int, publisher, publish, json_message, flags)
+  int publish(const std::string &json_message, int flags = NNG_FLAG_NONBLOCK) override {
+    PYBIND11_OVERLOAD_PURE(int, publisher, publish, json_message, flags);
   }
 };
 
@@ -104,7 +103,7 @@ public:
 class PySink : public sink {
 public:
   void put(const data::location_ptr &location, uint32_t dest_id, const frame_ptr &frame) override {
-    PYBIND11_OVERLOAD_PURE(void, sink, put, location, dest_id, frame)
+    PYBIND11_OVERLOAD_PURE(void, sink, put, location, dest_id, frame);
   }
   void close() override { PYBIND11_OVERLOAD(void, sink, close); }
 };
@@ -220,12 +219,13 @@ void bind(pybind11::module &&m) {
 
   py::class_<socket, socket_ptr>(m, "socket")
       .def(py::init<protocol>(), py::arg("protocol"))
-      .def("setsockopt", &socket::setsockopt_str, py::arg("level"), py::arg("option"), py::arg("value"))
-      .def("setsockopt", &socket::setsockopt_int, py::arg("level"), py::arg("option"), py::arg("value"))
-      .def("getsockopt", &socket::getsockopt_int, py::arg("level"), py::arg("option"))
-      .def("bind", &socket::bind, py::arg("url"))
-      .def("connect", &socket::connect, py::arg("url"))
-      .def("shutdown", &socket::shutdown, py::arg("how") = 0)
+      .def("setsockopt", &socket::setsockopt_str, py::arg("option"), py::arg("value"))
+      .def("setsockopt", &socket::setsockopt_int, py::arg("option"), py::arg("value"))
+      .def("setsockopt", &socket::setsockopt_ms, py::arg("option"), py::arg("value"))
+      .def("getsockopt", &socket::getsockopt_int, py::arg("option"))
+      .def("getsockopt", &socket::getsockopt_ms, py::arg("option"))
+      .def("listen", &socket::listen, py::arg("url"), py::arg("flags") = 0)
+      .def("dial", &socket::dial, py::arg("url"), py::arg("flags") = 0)
       .def("close", &socket::close)
       .def("send", &socket::send, py::arg("msg"), py::arg("flags") = 0)
       .def("recv", &socket::recv_msg, py::arg("flags") = 0)
@@ -246,10 +246,13 @@ void bind(pybind11::module &&m) {
       .def("data_available", &reader::data_available)
       .def("next", &reader::next)
       .def("join", &reader::join)
-      .def("disjoin", &reader::disjoin);
+      .def("disjoin", &reader::disjoin)
+      .def("disjoin_channel", &reader::disjoin_channel);
+
+  py::class_<bus, bus_ptr>(m, "bus").def("on_load_page", &bus::on_load_page);
 
   auto writer_class = py::class_<writer, writer_ptr>(m, "writer");
-  writer_class.def(py::init<const data::location_ptr &, uint32_t, bool, publisher_ptr>())
+  writer_class.def(py::init<const data::location_ptr &, uint32_t, bool, publisher_ptr, bool, const bus_ptr &>())
       .def("current_frame_uid", &writer::current_frame_uid)
       .def("copy_frame", &writer::copy_frame)
       .def("mark", &writer::mark)
@@ -266,6 +269,7 @@ void bind(pybind11::module &&m) {
   py::class_<sink, PySink, sink_ptr>(m, "sink")
       .def(py::init())
       .def_property_readonly("publisher", &sink::get_publisher)
+      .def_property_readonly("bus", &sink::get_bus)
       .def("put", &sink::put)
       .def("close", &sink::close);
 
@@ -310,6 +314,7 @@ void bind(pybind11::module &&m) {
       .def(py::init<location_ptr, bool, bool>(), py::arg("home"), py::arg("low_latency") = false,
            py::arg("lazy") = true)
       .def_property_readonly("publisher", &io_device::get_publisher)
+      .def_property_readonly("bus", &io_device::get_bus)
       .def_property_readonly("observer", &io_device::get_observer)
       .def_property_readonly("home", &io_device::get_home)
       .def_property_readonly("live_home", &io_device::get_live_home)
@@ -317,9 +322,7 @@ void bind(pybind11::module &&m) {
       .def("setup", &io_device::setup)
       .def("open_reader", &io_device::open_reader)
       .def("open_reader_to_subscribe", &io_device::open_reader_to_subscribe)
-      .def("open_writer", &io_device::open_writer)
-      .def("connect_socket", &io_device::connect_socket, py::arg("location"), py::arg("protocol"),
-           py::arg("timeout") = 0);
+      .def("open_writer", &io_device::open_writer);
 
   py::class_<io_device_master, io_device, io_device_master_ptr>(m, "io_device_master")
       .def(py::init<location_ptr, bool>(), py::arg("home"), py::arg("low_latency"));
@@ -340,7 +343,8 @@ void bind(pybind11::module &&m) {
 
   py::class_<session_builder, session_finder, std::shared_ptr<session_builder>>(m, "session_builder")
       .def(py::init<io_device_ptr>())
-      .def("rebuild_index_db", &session_builder::rebuild_index_db);
+      .def("rebuild_index_db", &session_builder::rebuild_index_db)
+      .def("update_index_db", &session_builder::update_index_db);
 
   auto profile_class = py::class_<profile, std::shared_ptr<profile>>(m, "profile");
   profile_class.def(py::init<const locator_ptr &>());

@@ -11,25 +11,19 @@
 #include <cstring>
 #include <exception>
 
-#include <nng/compat/nanomsg/nn.h>
-#include <nng/compat/nanomsg/pipeline.h>
-#include <nng/compat/nanomsg/pubsub.h>
-#include <nng/compat/nanomsg/reqrep.h>
-
 #include <kungfu/yijinjing/common.h>
+#include <nng/nng.h>
+#include <nng/protocol/pipeline0/pull.h>
+#include <nng/protocol/pipeline0/push.h>
+#include <nng/protocol/pubsub0/pub.h>
+#include <nng/protocol/pubsub0/sub.h>
+#include <nng/protocol/reqrep0/rep.h>
+#include <nng/protocol/reqrep0/req.h>
 
 #define MAX_MSG_LENGTH (16 * 1024)
 
 namespace kungfu::yijinjing::nanomsg {
-enum class protocol : int {
-  UNKNOWN = -1,
-  REPLY = NN_REP,
-  REQUEST = NN_REQ,
-  PUSH = NN_PUSH,
-  PULL = NN_PULL,
-  PUBLISH = NN_PUB,
-  SUBSCRIBE = NN_SUB
-};
+enum class protocol : int { UNKNOWN = -1, REPLY, REQUEST, PUSH, PULL, PUBLISH, SUBSCRIBE };
 
 inline std::string get_protocol_name(protocol p) {
   switch (p) {
@@ -71,16 +65,16 @@ inline std::string get_protocol_name(protocol p) {
 
 class url_factory {
 public:
-  [[nodiscard]] virtual std::string make_path_bind(data::location_ptr location, protocol p) const = 0;
+  [[nodiscard]] virtual std::string make_path_listen(data::location_ptr location, protocol p) const = 0;
 
-  [[nodiscard]] virtual std::string make_path_connect(data::location_ptr location, protocol p) const = 0;
+  [[nodiscard]] virtual std::string make_path_dial(data::location_ptr location, protocol p) const = 0;
 };
 
 DECLARE_PTR(url_factory)
 
 class nn_exception : public std::exception {
 public:
-  nn_exception() : errno_(nn_errno()) {}
+  nn_exception(int err) : errno_(err) {}
 
   [[nodiscard]] const char *what() const noexcept override;
 
@@ -94,43 +88,42 @@ DECLARE_PTR(nn_exception)
 
 class socket {
 public:
-  explicit socket(protocol p) : socket(AF_SP, p, MAX_MSG_LENGTH){};
+  explicit socket(protocol p) : socket(p, MAX_MSG_LENGTH){};
 
-  socket(int domain, protocol p) : socket(domain, p, MAX_MSG_LENGTH){};
-
-  socket(int domain, protocol p, int buffer_size);
+  socket(protocol p, int buffer_size);
 
   ~socket();
 
-  void setsockopt(int level, int option, const void *optval, size_t optvallen) const;
+  void setsockopt(const char *opt, const void *val, size_t valsz);
 
-  void setsockopt_str(int level, int option, const std::string &value) const;
+  void setsockopt_str(const char *opt, std::string value);
 
-  void setsockopt_int(int level, int option, int value) const;
+  void setsockopt_int(const char *opt, int value);
 
-  void getsockopt(int level, int option, void *optval, size_t *optvallen) const;
+  void setsockopt_ms(const char *opt, int value);
 
-  [[maybe_unused]] [[nodiscard]] int getsockopt_int(int level, int option) const;
+  void getsockopt(const char *opt, void *val, size_t *valszp);
 
-  int bind(const std::string &path);
+  int getsockopt_int(const char *opt);
 
-  int connect(const std::string &path);
+  int getsockopt_ms(const char *opt);
 
-  [[maybe_unused]] void shutdown(int how = 0) const;
+  int listen(const std::string &path, int flags = 0);
 
-  void close() const;
+  int dial(const std::string &path, int flags = 0);
 
-  int send(const std::string &msg, int flags = NN_DONTWAIT) const;
+  void close();
 
-  int recv(int flags = NN_DONTWAIT);
+  // Send policy changed to flag = 0 at app register, then notify with flag = NNG_FLAG_NONBLOCK
+  int send(const std::string &msg, int flags = NNG_FLAG_NONBLOCK) const;
 
-  const std::string &recv_msg(int flags = NN_DONTWAIT);
+  int send_json(const nlohmann::json &msg, int flags = NNG_FLAG_NONBLOCK) const;
 
-  [[maybe_unused]] [[nodiscard]] int send_json(const nlohmann::json &msg, int flags = NN_DONTWAIT) const;
+  int recv(int flags = NNG_FLAG_ALLOC);
 
-  [[maybe_unused]] nlohmann::json recv_json(int flags = 0);
+  const std::string &recv_msg(int flags = NNG_FLAG_ALLOC);
 
-  const std::string &request(const std::string &json_message);
+  nlohmann::json recv_json(int flags = NNG_FLAG_ALLOC);
 
   [[maybe_unused]] [[nodiscard]] protocol get_protocol() const { return protocol_; };
 
@@ -139,10 +132,11 @@ public:
   [[nodiscard]] const std::string &last_message() const { return message_; };
 
 private:
-  int sock_;
+  nng_socket sock_ = NNG_SOCKET_INITIALIZER;
   protocol protocol_;
   std::string url_;
-  std::vector<char> buf_;
+  char *buf_ = NULL;
+  size_t buf_size_;
   std::string message_;
 
   /*  Prevent making copies of the socket by accident. */

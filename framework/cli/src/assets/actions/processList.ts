@@ -197,10 +197,34 @@ export const processListObservable = () =>
       appStates: Record<string, BrokerStateStatusTypes>,
       extConfigs: KungfuApi.KfExtConfigs,
     ): ProcessListItem[] => {
-      const { md, td, strategy, daemon } = mdTdStrategyDaemon;
+      const { md, operator, td, strategy, daemon } = mdTdStrategyDaemon;
       const { processStatus, processStatusWithDetail } = ps;
 
       const mdList: ProcessListItem[] = md.map((item) => {
+        const processId = getProcessIdByKfLocation(item);
+        const prefixProps =
+          globalThis.HookKeeper.getHooks().prefix.trigger(item);
+        const prefix =
+          prefixProps.prefixType === 'text' ? prefixProps.prefix : '';
+        return {
+          processId,
+          processName: prefix + processId,
+          typeName: getCategoryName(item.category),
+          category: item.category,
+          group: item.group,
+          name: item.name,
+          value: JSON.parse(item.value || '{}'),
+          status: processStatus[processId] || '--',
+          statusName: dealStatus(
+            processStatus[processId]
+              ? appStates[processId] || processStatus[processId] || '--'
+              : '--',
+          ),
+          monit: processStatusWithDetail[processId]?.monit,
+        };
+      });
+
+      const operatorList: ProcessListItem[] = operator.map((item) => {
         const processId = getProcessIdByKfLocation(item);
         const prefixProps =
           globalThis.HookKeeper.getHooks().prefix.trigger(item);
@@ -389,6 +413,7 @@ export const processListObservable = () =>
         },
         ...daemonList,
         ...mdList,
+        ...operatorList,
         ...tdList,
         ...taskListResolved,
         ...strategyList,
@@ -452,6 +477,7 @@ export const switchProcess = async (
       break;
     case 'daemon':
     case 'md':
+    case 'operator':
     case 'td':
     case 'strategy':
       if (!watcher) {

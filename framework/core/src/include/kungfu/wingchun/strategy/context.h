@@ -65,6 +65,13 @@ public:
                              uint64_t data_type = 0) = 0;
 
   /**
+   * Subscribe operator data.
+   * @param group OPERATOR group
+   * @param name OPERATOR name
+   */
+  virtual void subscribe_operator(const std::string &group, const std::string &name) = 0;
+
+  /**
    * Insert Block Message
    * @param opponent_seat
    * @param match_number

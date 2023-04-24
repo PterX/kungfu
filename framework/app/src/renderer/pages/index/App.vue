@@ -12,6 +12,7 @@ import {
   useIpcListener,
   handleOpenLogviewByFile,
   markClearDB,
+  handleOpenJournalView,
   setHtmlTitle,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import {
@@ -103,6 +104,10 @@ const busSubscription = globalBus.subscribe((data: KfEvent.KfBusEvent) => {
           tag: 'export',
           tradingDataType: 'all',
         } as KfEvent.ExportTradingDataEvent);
+        break;
+      case 'view-all-journal':
+        handleOpenJournalView();
+        break;
     }
   }
   if (data.tag === 'update:riskSetting') {

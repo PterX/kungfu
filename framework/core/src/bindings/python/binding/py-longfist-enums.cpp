@@ -27,6 +27,7 @@ void bind_enums(py::module &m) {
       .value("TD", category::TD)
       .value("STRATEGY", category::STRATEGY)
       .value("SYSTEM", category::SYSTEM)
+      .value("OPERATOR", category::OPERATOR)
       .export_values();
   m_enums.def("get_category_name", &get_category_name);
   m_enums.def("get_category_by_name", &get_category_by_name);
@@ -52,6 +53,8 @@ void bind_enums(py::module &m) {
       .value("Warrant", InstrumentType::Warrant)
       .value("Iopt", InstrumentType::Iopt)
       .value("Crypto", InstrumentType::Crypto)
+      .value("CryptoFuture", InstrumentType::CryptoFuture)
+      .value("CryptoUFuture", InstrumentType::CryptoUFuture)
       .export_values()
       .def("__eq__", [](const InstrumentType &a, int b) { return static_cast<int>(a) == b; });
 
@@ -219,6 +222,14 @@ void bind_enums(py::module &m) {
       .value("Ready", BrokerState::Ready)
       .export_values()
       .def("__eq__", [](const BrokerState &a, int b) { return static_cast<int>(a) == b; });
+
+  py::enum_<OperatorState>(m_enums, "OperatorState", py::arithmetic())
+      .value("Pending", OperatorState::Pending)
+      .value("DisConnected", OperatorState::DisConnected)
+      .value("Connected", OperatorState::Connected)
+      .value("Ready", OperatorState::Ready)
+      .export_values()
+      .def("__eq__", [](const OperatorState &a, int b) { return static_cast<int>(a) == b; });
 
   py::enum_<HistoryDataType>(m_enums, "HistoryDataType", py::arithmetic())
       .value("Normal", HistoryDataType::Normal)

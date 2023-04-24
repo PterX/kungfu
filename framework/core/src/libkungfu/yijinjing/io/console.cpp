@@ -3,9 +3,11 @@
 //
 // Created by Keren Dong on 2020/3/25.
 //
+
 #include <fstream>
 #include <kungfu/common.h>
 #include <kungfu/yijinjing/io.h>
+#include <kungfu/yijinjing/journal/tracer.h>
 #include <kungfu/yijinjing/log.h>
 #include <kungfu/yijinjing/time.h>
 #include <tabulate/table.hpp>
@@ -79,26 +81,9 @@ io_device_console::io_device_console(data::location_ptr home, int32_t console_wi
 
 [[maybe_unused]] void io_device_console::trace(int64_t begin_time, int64_t end_time, bool in, bool out,
                                                std::string csv) {
-  std::unordered_map<uint32_t, location_ptr> locations = {};
-  for (auto location : home_->locator->list_locations(".*", ".*", ".*", ".*")) {
-    locations.emplace(location->uid, location);
-  }
-
-  auto reader = open_reader_to_subscribe();
-
-  if (in) {
-    auto uid_str = fmt::format("{:08x}", home_->uid);
-    auto master_cmd_location = location::make_shared(mode::LIVE, category::SYSTEM, "master", uid_str, get_locator());
-    auto master_home_location = location::make_shared(mode::LIVE, category::SYSTEM, "master", "master", get_locator());
-
-    reader->join(master_cmd_location, home_->uid, begin_time);
-    reader->join(master_home_location, location::PUBLIC, begin_time);
-  }
-  if (out) {
-    for (auto dest_id : get_locator()->list_location_dest(home_)) {
-      reader->join(home_, dest_id, begin_time);
-    }
-  }
+  SPDLOG_INFO("trace begin_time {} end_time {}", begin_time, end_time);
+  auto tracer = std::make_shared<yijinjing::journal::tracer>(home_, in, out, begin_time, end_time);
+  auto &locations = tracer->get_all_locations();
 
   console_table table(console_width_, console_height_);
   std::ofstream of_csv;
@@ -119,9 +104,11 @@ io_device_console::io_device_console(data::location_ptr home, int32_t console_wi
            << "data_length" << std::endl;
   }
 
-  while (reader->data_available() and reader->current_frame()->gen_time() <= end_time) {
-    auto frame = reader->current_frame();
-    auto dest_name = frame->dest() == location::PUBLIC ? "public" : locations.at(frame->dest())->uname;
+  while (tracer->data_available()) {
+    auto frame = tracer->current_frame();
+    auto dest_name = frame->dest() == location::PUBLIC ? "public"
+                     : location::SYNC                  ? "sync"
+                                                       : locations.at(frame->dest())->uname;
     bool type_found = false;
     boost::hana::for_each(AllTypes, [&](auto type) {
       using DataType = typename decltype(+boost::hana::second(type))::type;
@@ -134,6 +121,7 @@ io_device_console::io_device_console(data::location_ptr home, int32_t console_wi
             DataType::type_name.c_str(),                        //
             frame->data<DataType>().to_string()                 //
         });
+
         if (!csv.empty()) {
           of_csv << time::strftime(frame->gen_time(), TIME_FORMAT) << ","
                  << time::strftime(frame->trigger_time(), TIME_FORMAT) << "," << locations.at(frame->source())->uname
@@ -143,32 +131,16 @@ io_device_console::io_device_console(data::location_ptr home, int32_t console_wi
         type_found = true;
       }
     });
+
     if (not type_found) {
-      auto location_uname = reader->current_page()->get_location()->uname;
-      auto dest_id = reader->current_page()->get_dest_id();
-      SPDLOG_ERROR("{}/{:08x} msg_type {} not found", location_uname, dest_id, frame->msg_type());
-      break;
+      auto location_uname = tracer->current_page()->get_location()->uname;
+      auto dest_id = tracer->current_page()->get_dest_id();
+      SPDLOG_WARN("{}/{:08x} msg_type {} not found", location_uname, dest_id, frame->msg_type());
     }
-    if (frame->dest() == home_->uid and frame->msg_type() == RequestReadFrom::tag) {
-      auto request = frame->data<RequestReadFrom>();
-      auto source_location = locations.at(request.source_id);
-      reader->join(source_location, home_->uid, request.from_time);
-    }
-    if (frame->dest() == home_->uid and frame->msg_type() == RequestReadFromPublic::tag) {
-      auto request = frame->data<RequestReadFromPublic>();
-      auto source_location = locations.at(request.source_id);
-      reader->join(source_location, location::PUBLIC, request.from_time);
-    }
-    if (frame->dest() == home_->uid and frame->msg_type() == RequestReadFromSync::tag) {
-      auto request = frame->data<RequestReadFromSync>();
-      auto source_location = locations.at(request.source_id);
-      reader->join(source_location, location::SYNC, request.from_time);
-    }
-    if (frame->dest() == home_->uid and frame->msg_type() == Deregister::tag) {
-      reader->disjoin(location::make_shared(frame->data<Deregister>(), get_locator())->uid);
-    }
-    reader->next();
+
+    tracer->next();
   }
+
   if (!csv.empty()) {
     of_csv.close();
   }
@@ -176,26 +148,9 @@ io_device_console::io_device_console(data::location_ptr home, int32_t console_wi
 
 [[maybe_unused]] void io_device_console::show(int64_t begin_time, int64_t end_time, bool in, bool out,
                                               std::string csv) {
-  std::unordered_map<uint32_t, location_ptr> locations = {};
-  for (auto location : home_->locator->list_locations(".*", ".*", ".*", ".*")) {
-    locations.emplace(location->uid, location);
-  }
-
-  auto reader = open_reader_to_subscribe();
-
-  if (in) {
-    auto uid_str = fmt::format("{:08x}", home_->uid);
-    auto master_cmd_location = location::make_shared(mode::LIVE, category::SYSTEM, "master", uid_str, get_locator());
-    auto master_home_location = location::make_shared(mode::LIVE, category::SYSTEM, "master", "master", get_locator());
-
-    reader->join(master_cmd_location, home_->uid, begin_time);
-    reader->join(master_home_location, location::PUBLIC, begin_time);
-  }
-  if (out) {
-    for (auto dest_id : get_locator()->list_location_dest(home_)) {
-      reader->join(home_, dest_id, begin_time);
-    }
-  }
+  SPDLOG_INFO("show begin_time {} end_time {}", begin_time, end_time);
+  auto tracer = std::make_shared<yijinjing::journal::tracer>(home_, in, out, begin_time, end_time);
+  auto &locations = tracer->get_all_locations();
 
   console_table table(console_width_, console_height_, true);
   std::ofstream of_csv;
@@ -214,9 +169,11 @@ io_device_console::io_device_console(data::location_ptr home, int32_t console_wi
            << "data" << std::endl;
   }
 
-  while (reader->data_available() and reader->current_frame()->gen_time() <= end_time) {
-    auto frame = reader->current_frame();
-    auto dest_name = frame->dest() == location::PUBLIC ? "public" : locations.at(frame->dest())->uname;
+  while (tracer->data_available()) {
+    auto frame = tracer->current_frame();
+    auto dest_name = frame->dest() == location::PUBLIC ? "public"
+                     : location::SYNC                  ? "sync"
+                                                       : locations.at(frame->dest())->uname;
     bool type_found = false;
     boost::hana::for_each(AllTypes, [&](auto type) {
       using DataType = typename decltype(+boost::hana::second(type))::type;
@@ -239,32 +196,16 @@ io_device_console::io_device_console(data::location_ptr home, int32_t console_wi
         type_found = true;
       }
     });
+
     if (not type_found) {
-      auto location_uname = reader->current_page()->get_location()->uname;
-      auto dest_id = reader->current_page()->get_dest_id();
-      SPDLOG_ERROR("{}/{:08x} msg_type {} not found", location_uname, dest_id, frame->msg_type());
-      break;
+      auto location_uname = tracer->current_page()->get_location()->uname;
+      auto dest_id = tracer->current_page()->get_dest_id();
+      SPDLOG_WARN("{}/{:08x} msg_type {} not found", location_uname, dest_id, frame->msg_type());
     }
-    if (frame->dest() == home_->uid and frame->msg_type() == RequestReadFrom::tag) {
-      auto request = frame->data<RequestReadFrom>();
-      auto source_location = locations.at(request.source_id);
-      reader->join(source_location, home_->uid, request.from_time);
-    }
-    if (frame->dest() == home_->uid and frame->msg_type() == RequestReadFromPublic::tag) {
-      auto request = frame->data<RequestReadFromPublic>();
-      auto source_location = locations.at(request.source_id);
-      reader->join(source_location, location::PUBLIC, request.from_time);
-    }
-    if (frame->dest() == home_->uid and frame->msg_type() == RequestReadFromSync::tag) {
-      auto request = frame->data<RequestReadFromSync>();
-      auto source_location = locations.at(request.source_id);
-      reader->join(source_location, location::SYNC, request.from_time);
-    }
-    if (frame->dest() == home_->uid and frame->msg_type() == Deregister::tag) {
-      reader->disjoin(location::make_shared(frame->data<Deregister>(), get_locator())->uid);
-    }
-    reader->next();
+
+    tracer->next();
   }
+
   if (!csv.empty()) {
     of_csv.close();
   }

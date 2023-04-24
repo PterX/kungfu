@@ -43,12 +43,6 @@ public:
   virtual void on_tree(Context_ptr &context, const longfist::types::Tree &tree,
                        const kungfu::yijinjing::data::location_ptr &location){};
 
-  // bar 数据更新回调
-  // @param bar               bar 数据
-  // @param location          数据来源
-  virtual void on_bar(Context_ptr &context, const longfist::types::Bar &bar,
-                      const kungfu::yijinjing::data::location_ptr &location){};
-
   // 逐笔委托更新回调
   // @param entrust           逐笔委托数据
   // @param location          数据来源
@@ -60,6 +54,11 @@ public:
   // @param location          数据来源
   virtual void on_transaction(Context_ptr &context, const longfist::types::Transaction &transaction,
                               const kungfu::yijinjing::data::location_ptr &location){};
+
+  // Operator publish 的 synthetic_data 回调
+  //@param synthetic_data   Operator publish 的 synthetic_data
+  virtual void on_synthetic_data(Context_ptr &context, const longfist::types::SyntheticData &synthetic_data,
+                                 const kungfu::yijinjing::data::location_ptr &location){};
 
   // 订单信息更新回调
   // @param order             订单信息数据
@@ -133,6 +132,12 @@ public:
   virtual void on_broker_state_change(Context_ptr &context,
                                       const longfist::types::BrokerStateUpdate &broker_state_update,
                                       const kungfu::yijinjing::data::location_ptr &location){};
+
+  // 订阅的其他算子器状态变化回调
+  //@param operator_state_update     状态变化
+  virtual void on_operator_state_change(Context_ptr &context,
+                                        const longfist::types::OperatorStateUpdate &operator_state_update,
+                                        const kungfu::yijinjing::data::location_ptr &location){};
 
   /**
    * 自定义数据回调, 如果数据的msg_type不在AllTypes, 则会通过此函数响应

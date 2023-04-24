@@ -62,6 +62,7 @@ export default {
   open_window: 'Opening window',
   open_code_editor: 'Opening code editor',
   open_trading_task_view: 'Opening trading task view',
+  open_journal_dashboard: 'Opening journal dashboard',
   add_board: 'Add Board',
   select_board: 'Please select the board to add',
   add_board_error: 'Add board target error',
@@ -88,6 +89,7 @@ export default {
   Strategy: 'Strategy',
   Md: 'Md',
   Td: 'Td',
+  Operator: 'Operator',
   Trade: 'Trade',
   Order: 'Order',
   PosGlobal: 'Positon Global',
@@ -95,6 +97,11 @@ export default {
 
   please_wait: 'Please wait...',
   please_wait_and_retry: 'Please wait and retry',
+
+  select_broker_ext: 'Select a broker api',
+  select_operator_ext: 'Select a operator ext',
+  select_trade_task: 'Select trade task',
+  select_plugin_type: 'Select extension type',
 
   baseConfig: {
     main_panel: 'HOME',
@@ -140,6 +147,7 @@ export default {
     md: 'Md',
     td: 'Td',
     strategy: 'Strategy',
+    operator: 'Operator',
 
     open: 'Open',
     close: 'Close',
@@ -229,6 +237,7 @@ export default {
     iopt: 'Iopt',
     crypto: 'Crypto',
     crypto_future: 'CryptoFuture',
+    crypto_ufuture: 'CryptoUFuture',
     multi: 'Multi',
 
     SSE: 'SSE',
@@ -430,6 +439,7 @@ export default {
     select_plugin_type: 'Select plugin type',
 
     add_md: 'Add',
+    md_not_found: '{md} MD not found',
     counter_plugin_inexistence: 'Counter plugin inexistence',
   },
 
@@ -449,7 +459,30 @@ export default {
     add_strategy: 'Add',
   },
 
+  operatorConfig: {
+    operator: 'operator',
+    operator_id: 'operator_id',
+    operator_file: 'operator_file',
+    operator_path: 'operator_path',
+    operator_path_tip:
+      'Normal python operator use .py file, packaged operator use .so or .pyd file in operator folder',
+    state_status: 'status',
+    process_status: 'process',
+    actions: 'actions',
+    operator_tip: 'Ensure that the operator_id is unique',
+
+    add_operator: 'Add',
+    operator_not_found: '{operator} Operator not found',
+
+    add_operator_type: {
+      title: 'Select Operator Type',
+      extension: 'Extension',
+      file: 'File',
+    },
+  },
+
   tradingTaskConfig: {
+    tradingTask: 'Trading Task',
     task_id: 'task_id',
     process_status: 'process',
     args: 'arguments',
@@ -458,7 +491,7 @@ export default {
     add_task: 'Add',
     illegal_process_id: 'Not a legitimate trade task process_id',
     key_inexistence: 'The trade task plugin key does not exist',
-    plugin_inexistence: 'The trade task plugin does not exist',
+    plugin_inexistence: 'The trade task plugin {key} does not exist',
     configuration_inexistence:
       'The configuration item does not exist,please check',
     delete_task: 'Deleting a trade Task',
@@ -491,6 +524,30 @@ export default {
 
     subscribe_btn: 'Subscribe',
     add_market: 'Add',
+  },
+
+  journalConfig: {
+    begin_time: 'begin_time',
+    end_time: 'end_time',
+    status: 'Status',
+
+    finished: 'Finished',
+    running: 'Running',
+
+    dest: 'destination',
+    source: 'source',
+    gen_time: 'gen_time',
+    trigger_time: 'trigger_time',
+    msg_type: 'msg_type',
+
+    export: 'Export',
+    export_file_path: 'export_file_path',
+    need_directroy: 'Only allow directroy',
+    export_success: 'Export success',
+
+    loading_journal: 'Loading journal...',
+
+    input_time_format_error: 'The inputed time format error',
   },
 
   tradeConfig: {
@@ -680,8 +737,13 @@ export default {
       'This location already exists file or folder {name}, please select a different name',
     empty_input: 'File or folder name must be provided',
     illegal_character: 'The name cannot contain \\/:*?" <>|',
+    delate_folder_confirm: 'Are you sure to delete folder?',
+    delate_file_confirm: 'Are you sure to delete file?',
     delate_confirm: 'Are you sure to delete {value}?',
     cannot_delate_entry: 'Cannot delete the entry',
+    current: 'current',
+    operator: 'operator',
+    strategy: 'strategy',
   },
 
   logview: {

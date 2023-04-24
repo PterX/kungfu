@@ -45,6 +45,7 @@ export default {
   clear_DB: '清理DB',
   reset_main_panel: '重置主面板',
   export_all_transaction_data: '导出所有交易数据',
+  view_all_journal: '查看所有journal',
 
   website: '官网',
   user_manual: '用户手册',
@@ -61,6 +62,7 @@ export default {
   clear: '清理 {content} 完成, 请重启应用',
   open_window: '正在打开窗口',
   open_code_editor: '正在打开代码编辑器',
+  open_journal_dashboard: '正在打开journal面板',
   open_trading_task_view: '正在打开交易任务视图',
   add_board: '添加面板',
   select_board: '请选择要添加的面板',
@@ -88,10 +90,16 @@ export default {
   Strategy: '策略进程',
   Md: '行情源',
   Td: '交易账户',
+  Operator: '算子',
   Trade: '成交记录',
   Order: '委托记录',
   PosGlobal: '持仓汇总',
   Pos: '持仓',
+
+  select_broker_ext: '选择柜台API',
+  select_operator_ext: '选择算子插件',
+  select_trade_task: '选择交易任务',
+  select_plugin_type: '选择插件类型',
 
   please_wait: '请稍后',
   please_wait_and_retry: '请稍后重试',
@@ -138,6 +146,7 @@ export default {
     md: '行情源',
     td: '交易账户 ',
     strategy: '策略',
+    operator: '算子',
 
     open: '开',
     close: '平',
@@ -224,10 +233,9 @@ export default {
     tech_stock: '科技板股票',
     index: '指数',
     repo: '回购',
-    warrant: '认权证',
-    iopt: '牛熊证',
     crypto: '数字货币',
-    crypto_future: '数字货币合约',
+    crypto_future: '数字货币币本位合约',
+    crypto_ufuture: '数字货币U本位合约',
     multi: '多品种',
 
     SSE: '上交所',
@@ -408,7 +416,7 @@ export default {
     add_group_placeholder: '添加分组',
     set_td_group: '账户分组设置',
     account_group: '账户组',
-    td_not_found: '{td}柜台插件不存在',
+    td_not_found: '{td} 柜台插件不存在',
     sourse_not_found: '配置项不存在, 请检查 {value} package.json',
     need_only_group: '需保证该账户组名称唯一',
     delete_amount_group: '删除账户组 {group}',
@@ -425,7 +433,7 @@ export default {
     select_plugin_type: '选择插件类型',
 
     add_md: '添加',
-    counter_plugin_inexistence: '柜台插件不存在',
+    md_not_found: '{md} 柜台插件不存在',
   },
 
   strategyConfig: {
@@ -444,7 +452,29 @@ export default {
     add_strategy: '添加',
   },
 
+  operatorConfig: {
+    operator: '算子',
+    operator_id: '算子ID',
+    operator_file: '算子文件',
+    operator_path: '算子路径',
+    operator_path_tip:
+      '普通 python 算子选择 .py 文件, 加密 python 算子或cpp算子选择编译后的 .so 或 .pyd 文件',
+    state_status: '状态',
+    process_status: '进程',
+    actions: '操作',
+    operator_tip: '需保证该算子ID唯一',
+
+    add_operator: '添加',
+    operator_not_found: '{operator} 算子插件不存在',
+    add_operator_type: {
+      title: '选择算子类型',
+      extension: '插件',
+      file: '文件',
+    },
+  },
+
   tradingTaskConfig: {
+    tradingTask: '交易任务',
     task_id: '任务ID',
     process_status: '进程',
     args: '参数',
@@ -453,7 +483,7 @@ export default {
     add_task: '添加',
     illegal_process_id: '不是合法交易任务进程ID',
     key_inexistence: '交易任务插件 key 不存在',
-    plugin_inexistence: '交易任务插件不存在',
+    plugin_inexistence: '{key} 交易任务插件不存在',
     configuration_inexistence: '配置项不存在, 请检查',
     delete_task: '删除交易任务',
     delete_task_content:
@@ -485,6 +515,35 @@ export default {
 
     subscribe_btn: '订阅',
     add_market: '添加自选',
+  },
+
+  journalConfig: {
+    session_id: 'Session ID',
+    begin_time: '开始时间',
+    end_time: '结束时间',
+    status: '状态',
+
+    finished: '已结束',
+    running: '运行中',
+
+    dest: '目标',
+    source: '源头',
+    gen_time: '生成时间',
+    trigger_time: '触发时间',
+    msg_type: '消息类型',
+
+    filters: '过滤器',
+    apply_filters: '应用过滤',
+
+    export: '导出',
+    export_file_path: '导出文件目录',
+    need_directroy: '请选择目录',
+    export_success: '导出成功',
+    directroy_be_valued: '导出目录不能为空',
+
+    loading_journal: '正在加载 journal',
+
+    input_time_format_error: '输入时间格式有误',
   },
 
   tradeConfig: {
@@ -668,8 +727,9 @@ export default {
     name_repeat: '此位置已存在文件或文件夹 {name}, 请选择其他名称！',
     empty_input: '必须提供文件或文件夹名称！',
     illegal_character: '名称不能包含\\/:*?"<>|',
-    delate_confirm: '确认删除 {value} 吗？',
+    delete_confirm: '确认删除{value}吗？',
     cannot_delate_entry: '不可删除入口文件',
+    current: '当前',
   },
 
   logview: {

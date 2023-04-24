@@ -75,6 +75,7 @@ type BuiltinComponents =
   | 'Td'
   | 'Md'
   | 'Strategy'
+  | 'Operator'
   | 'TradingTask'
   | 'MarketData'
   | 'OrderBook'

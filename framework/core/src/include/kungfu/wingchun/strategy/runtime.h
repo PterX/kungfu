@@ -58,6 +58,13 @@ public:
                      uint64_t data_type = 0) override;
 
   /**
+   * Subscribe operator data.
+   * @param group OPERATOR group
+   * @param name OPERATOR name
+   */
+  virtual void subscribe_operator(const std::string &group, const std::string &name) override;
+
+  /**
    * Insert Block Message
    * @param opponent_seat
    * @param match_number
@@ -168,6 +175,12 @@ public:
   const yijinjing::data::location_map &list_md() const;
 
   /**
+   * Get subscribed OPERATOR locations.
+   * @return subscribed OPERATOR locations
+   */
+  const yijinjing::data::location_map &list_op() const;
+
+  /**
    * Get enrolled TD locations.
    * @return enrolled TD locations
    */
@@ -254,6 +267,7 @@ private:
   basketorder::BasketOrderEngine basketorder_engine_;
   yijinjing::data::location_map md_locations_ = {};
   yijinjing::data::location_map td_locations_ = {};
+  yijinjing::data::location_map op_locations_ = {};
   std::unordered_map<uint32_t, uint32_t> account_location_ids_ = {};
   std::unordered_map<std::string, yijinjing::data::location_ptr> market_data_ = {};
   std::string arguments_;

@@ -81,6 +81,9 @@
 #define EXCHANGE_IPM "IPM"   // 国际贵金属: 5000
 
 #define EPSILON (1e-6)
+#define EXCHANGE_CRYPTO "CRYPTO"
+#define EXCHANGE_CRYPTO_FUTURE "CRYPTO-FUTURE"
+#define EXCHANGE_CRYPTO_UFUTURE "CRYPTO-UFUTURE"
 #define DOUBLEMAX (1e16) // 一亿亿, 2018年A股总市值不到50万亿
 
 namespace kungfu::wingchun {
@@ -262,9 +265,9 @@ inline longfist::enums::InstrumentType get_instrument_type_by_exchange_hk(const 
       {10000, 29999, longfist::enums::InstrumentType::StockOption}, // 衍生權證
       {30000, 39999, longfist::enums::InstrumentType::Stock},       // 供日後使用
       {41000, 46999, longfist::enums::InstrumentType::Stock},       // 供日後使用
-      {47000, 48999, longfist::enums::InstrumentType::Warrant},     // 界內證
+      {47000, 48999, longfist::enums::InstrumentType::StockOption}, // 界內證
       {49000, 49999, longfist::enums::InstrumentType::Stock},       // 供日後使用
-      {50000, 69999, longfist::enums::InstrumentType::Warrant},
+      {50000, 69999, longfist::enums::InstrumentType::StockOption},
       {70000, 79999, longfist::enums::InstrumentType::Stock}, // 供日後使用
       {82800, 82849, longfist::enums::InstrumentType::Fund},  // 交易所買賣基金
       {83000, 83199, longfist::enums::InstrumentType::Fund},
@@ -358,6 +361,12 @@ inline longfist::enums::InstrumentType get_instrument_type(const std::string &ex
              string_equals(exchange_id, EXCHANGE_TAX) || string_equals(exchange_id, EXCHANGE_JP) ||
              string_equals(exchange_id, EXCHANGE_TSE) || string_equals(exchange_id, EXCHANGE_EUR)) {
     return longfist::enums::InstrumentType::Stock;
+  } else if (string_equals(exchange_id, EXCHANGE_CRYPTO)) {
+    return longfist::enums::InstrumentType::Crypto;
+  } else if (string_equals(exchange_id, EXCHANGE_CRYPTO_FUTURE)) {
+    return longfist::enums::InstrumentType::CryptoFuture;
+  } else if (string_equals(exchange_id, EXCHANGE_CRYPTO_UFUTURE)) {
+    return longfist::enums::InstrumentType::CryptoUFuture;
   }
 
   SPDLOG_ERROR("invalid instrument type for exchange {} and instrument {}", exchange_id, instrument_id);
@@ -384,12 +393,12 @@ inline std::string str_from_instrument_type(longfist::enums::InstrumentType type
     return "Index";
   case longfist::enums::InstrumentType::Repo:
     return "Repo";
-  case longfist::enums::InstrumentType::Warrant:
-    return "Warrant";
-  case longfist::enums::InstrumentType::Iopt:
-    return "Iopt";
   case longfist::enums::InstrumentType::Crypto:
     return "Crypto";
+  case longfist::enums::InstrumentType::CryptoFuture:
+    return "CryptoFuture";
+  case longfist::enums::InstrumentType::CryptoUFuture:
+    return "CryptoUFuture";
   default:
     return "Unknown";
   }
@@ -547,6 +556,10 @@ inline uint32_t hash_basket_instrument(uint32_t basket_uid, const char *exchange
 
 inline uint32_t hash_account(const std::string &source_name, const std::string &account_id) {
   return yijinjing::util::hash_str_32(source_name) ^ yijinjing::util::hash_str_32(account_id);
+}
+
+inline uint32_t hash_operator(const std::string &operator_group, const std::string &operator_name) {
+  return yijinjing::util::hash_str_32(operator_group) ^ yijinjing::util::hash_str_32(operator_name);
 }
 
 inline void order_from_input(const longfist::types::OrderInput &input, longfist::types::Order &order) {

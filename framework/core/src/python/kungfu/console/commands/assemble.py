@@ -26,6 +26,7 @@ CATEGORIES = {
     "md": lf.enums.category.MD,
     "strategy": lf.enums.category.STRATEGY,
     "system": lf.enums.category.SYSTEM,
+    "operator": lf.enums.category.OPERATOR,
 }
 
 ASSEMBLE_MODE = {

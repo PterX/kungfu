@@ -51,12 +51,13 @@ inline mode get_mode_by_name(const std::string &name) {
   return mode::LIVE;
 }
 
-enum class category : int8_t { MD, TD, STRATEGY, SYSTEM };
+enum class category : int8_t { MD, TD, STRATEGY, SYSTEM, OPERATOR };
 
 NLOHMANN_JSON_SERIALIZE_ENUM(category, {
                                            {category::MD, "MD"},
                                            {category::TD, "TD"},
                                            {category::STRATEGY, "STRATEGY"},
+                                           {category::OPERATOR, "OPERATOR"},
                                            {category::SYSTEM, "SYSTEM"},
                                        })
 
@@ -70,6 +71,8 @@ inline std::string get_category_name(category c) {
     return "td";
   case category::STRATEGY:
     return "strategy";
+  case category::OPERATOR:
+    return "operator";
   case category::SYSTEM:
   default:
     return "system";
@@ -83,6 +86,8 @@ inline category get_category_by_name(const std::string &name) {
     return category::TD;
   else if (name == "strategy")
     return category::STRATEGY;
+  else if (name == "operator")
+    return category::OPERATOR;
   else
     return category::SYSTEM;
 }
@@ -183,18 +188,20 @@ NLOHMANN_JSON_SERIALIZE_ENUM(SubscribeInstrumentType, {
 
 // for trading, different type has different minimum volume, price, accounting rules for making order
 enum class InstrumentType : int8_t {
-  Unknown,     // 未知
-  Stock,       // 股票
-  Future,      // 期货
-  Bond,        // 债券
-  StockOption, // 股票期权
-  TechStock,   // 科技股
-  Fund,        // 基金
-  Index,       // 指数
-  Repo,        // 回购
-  Warrant,     // 认权证
-  Iopt,        // 牛熊证
-  Crypto,      // 数字货币
+  Unknown,       // 未知
+  Stock,         // 股票
+  StockOption,   // 股票期权
+  TechStock,     // 科技股
+  Future,        // 期货
+  Bond,          // 债券
+  Fund,          // 基金
+  Index,         // 指数
+  Repo,          // 回购
+  Crypto,        // 数字货币
+  CryptoFuture,  // 数字货币期货
+  CryptoUFuture, // 数字货币期货U本位
+  Warrant,
+  Iopt
 };
 
 NLOHMANN_JSON_SERIALIZE_ENUM(InstrumentType, {
@@ -208,6 +215,8 @@ NLOHMANN_JSON_SERIALIZE_ENUM(InstrumentType, {
                                                  {InstrumentType::Index, "Index"},
                                                  {InstrumentType::Repo, "Repo"},
                                                  {InstrumentType::Crypto, "Crypto"},
+                                                 {InstrumentType::CryptoFuture, "CryptoFuture"},
+                                                 {InstrumentType::CryptoUFuture, "CryptoUFuture"},
                                                  {InstrumentType::Warrant, "Warrant"},
                                                  {InstrumentType::Iopt, "Iopt"},
                                              })
@@ -529,6 +538,8 @@ enum class BrokerState : int8_t {
   Ready = 100
 };
 
+inline std::ostream &operator<<(std::ostream &os, BrokerState t) { return os << int8_t(t); }
+
 NLOHMANN_JSON_SERIALIZE_ENUM(BrokerState, {
                                               {BrokerState::Pending, "Pending"},
                                               {BrokerState::Idle, "Idle"},
@@ -538,8 +549,6 @@ NLOHMANN_JSON_SERIALIZE_ENUM(BrokerState, {
                                               {BrokerState::LoginFailed, "LoginFailed"},
                                               {BrokerState::Ready, "Ready"},
                                           })
-
-inline std::ostream &operator<<(std::ostream &os, BrokerState t) { return os << int8_t(t); }
 
 enum class HistoryDataType : int8_t { Normal = 0, PageEnd = 1, TotalEnd = 2 };
 
@@ -561,6 +570,18 @@ NLOHMANN_JSON_SERIALIZE_ENUM(StrategyState, {
 
 inline std::ostream &operator<<(std::ostream &os, StrategyState t) { return os << int8_t(t); }
 
+// enum value has to be same with BrokerState
+enum class OperatorState : int8_t { Pending = 0, DisConnected = 2, Connected = 3, Ready = 100 };
+
+NLOHMANN_JSON_SERIALIZE_ENUM(OperatorState, {
+                                                {OperatorState::Pending, "Pending"},
+                                                {OperatorState::DisConnected, "DisConnected"},
+                                                {OperatorState::Connected, "ErrConnectedor"},
+                                                {OperatorState::Ready, "Ready"},
+                                            })
+
+inline std::ostream &operator<<(std::ostream &os, OperatorState t) { return os << int8_t(t); }
+
 class AssembleMode {
 public:
   inline static const uint32_t Channel = 0b00000001; // read only journal of location to dest_id
@@ -574,5 +595,10 @@ public:
 template <typename T, typename U> [[maybe_unused]] inline T sub_data_bitwise(const T &a, const T &b) {
   return static_cast<T>(static_cast<U>(a) | static_cast<U>(b));
 }
+
+enum class PageStatus : int8_t { Normal, PreOpen };
+
+inline std::ostream &operator<<(std::ostream &os, PageStatus t) { return os << int8_t(t); }
+
 } // namespace kungfu::longfist::enums
 #endif // KUNGFU_LONGFIST_ENUM_H

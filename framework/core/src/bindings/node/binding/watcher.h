@@ -136,6 +136,9 @@ private:
   std::unordered_map<uint32_t, longfist::types::StrategyStateUpdate> location_uid_strategy_states_map_ = {};
   std::unordered_set<uint32_t> feeded_instruments_ = {};
 
+  typedef kungfu::longfist::enums::mode mode;
+  typedef kungfu::longfist::enums::category category;
+
   static constexpr auto bypass = [](yijinjing::practice::apprentice *app, bool bypass_quotes) {
     return rx::filter([&](const event_ptr &event) {
       return not(app->get_location(event->source())->category == longfist::enums::category::MD and
@@ -183,7 +186,14 @@ private:
 
   void OnDeregister(int64_t trigger_time, const longfist::types::Deregister &deregister_data);
 
-  void UpdateBrokerState(uint32_t source_id, uint32_t dest_id, const longfist::types::BrokerStateUpdate &state);
+  template <typename DataType>
+  void UpdateBrokerOperatorState(uint32_t source_id, uint32_t dest_id, const DataType &state) {
+    auto source_location = get_location(state.location_uid);
+    if (source_location->category == category::TD or source_location->category == category::MD or
+        source_location->category == category::OPERATOR) {
+      location_uid_states_map_.insert_or_assign(source_location->uid, int(state.state));
+    }
+  };
 
   void UpdateStrategyState(uint32_t strategy_uid, const longfist::types::StrategyStateUpdate &state);
 
@@ -326,7 +336,7 @@ private:
   template <typename Instruction, typename IdPtrType = uint64_t Instruction::*>
   Napi::Value InteractWithTD(const Napi::CallbackInfo &info, const Napi::Object &instruction_object, IdPtrType id_ptr) {
     try {
-      auto account_location = ExtractLocation(info, 1, get_locator());
+      auto account_location = IODevice::ExtractLocation(info, 1, get_locator());
       if (not is_location_live(account_location->uid) or not has_writer(account_location->uid)) {
         return Napi::BigInt::New(info.Env(), std::uint64_t(0));
       }
@@ -344,7 +354,7 @@ private:
         return Napi::BigInt::New(info.Env(), instruction.*id_ptr);
       }
 
-      auto strategy_location = ExtractLocation(info, 2, get_locator());
+      auto strategy_location = IODevice::ExtractLocation(info, 2, get_locator());
 
       if (not strategy_location) {
         return Napi::BigInt::New(info.Env(), std::uint64_t(0));

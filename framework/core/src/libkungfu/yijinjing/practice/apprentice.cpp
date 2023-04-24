@@ -7,6 +7,7 @@
 #include <kungfu/common.h>
 #include <kungfu/yijinjing/practice/apprentice.h>
 #include <kungfu/yijinjing/util/os.h>
+#include <nng/nng.h>
 
 using namespace kungfu::rx;
 using namespace kungfu::longfist;
@@ -19,7 +20,7 @@ using namespace std::chrono;
 namespace kungfu::yijinjing::practice {
 
 apprentice::apprentice(location_ptr home, bool low_latency)
-    : hero(std::make_shared<io_device_client>(home, low_latency)), trading_day_(time::today_start()) {}
+    : hero(std::make_shared<io_device_client>(home, low_latency)), trading_day_(time::today_start()), cleaner_(*this) {}
 
 bool apprentice::is_started() const { return started_; }
 
@@ -144,6 +145,15 @@ void apprentice::add_time_interval(int64_t duration, const std::function<void(co
 
 void apprentice::on_trading_day(const event_ptr &event, int64_t daytime) {}
 
+bool apprentice::release_page() {
+  bool result = false;
+  result |= reader_->release_page();
+  for (auto &iter : writers_) {
+    result |= iter.second->release_page();
+  }
+  return result;
+}
+
 void apprentice::react() {
   events_ | is(TimeReset::tag) | first() | $$(reset_time(event->data<TimeReset>()));
   events_ | is(Location::tag) | $$(add_location(event->gen_time(), event->data<Location>()));
@@ -163,6 +173,7 @@ void apprentice::react() {
 
   SPDLOG_TRACE("building reactive event handlers");
   on_react();
+  cleaner_.on_react();
 
   if (get_io_device()->get_home()->mode == mode::LIVE) {
     auto self_register_event = events_ | skip_until(events_ | is(Register::tag) | filter([&](const event_ptr &event) {
@@ -267,6 +278,10 @@ void apprentice::on_write_to_band(const event_ptr &event) {
 }
 
 void apprentice::on_cached_ready_to_read() { request_cached(cached_home_location_->uid); }
+
+[[maybe_unused]] int apprentice::get_observer_recv_timeout() const {
+  return get_io_device()->get_observer()->get_recv_timeout();
+}
 
 void apprentice::checkin() {
   auto now = time::now_in_nano();

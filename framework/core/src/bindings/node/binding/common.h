@@ -39,12 +39,27 @@ inline int64_t GetBigInt(const Napi::Value &value) {
     return value.ToNumber().Int32Value();
   }
   if (value.IsBigInt()) {
-    bool lossless = {};
+    bool lossless;
     return value.As<Napi::BigInt>().Int64Value(&lossless);
   }
   return INT64_MAX;
 }
 
 inline int64_t GetBigInt(const Napi::CallbackInfo &info, int i) { return GetBigInt(info[i]); }
+
+inline bool GetBool(const Napi::CallbackInfo &info, int i) {
+  if (not IsValid(info, i, &Napi::Value::IsBoolean)) {
+    throw Napi::Error::New(info.Env(), "Invalid bool argument index: " + std::to_string(i));
+  }
+  return info[i].As<Napi::Boolean>().Value();
+}
+
+inline bool GetNumber(const Napi::CallbackInfo &info, int i) {
+  if (not IsValid(info, i, &Napi::Value::IsNumber)) {
+    throw Napi::Error::New(info.Env(), "Invalid number argument index: " + std::to_string(i));
+  }
+  return info[i].As<Napi::Number>().Int32Value();
+}
+
 } // namespace kungfu::node
 #endif // KUNGFU_NODE_COMMON_H

@@ -24,6 +24,7 @@ export const useComponents = (
     'Td',
     'Md',
     'Strategy',
+    'Operator',
     'TradingTask',
     'MarketData',
     'OrderBook',

@@ -64,11 +64,6 @@ public:
     PYBIND11_OVERLOAD(void, strategy::Strategy, on_tree, context, tree, location);
   }
 
-  void on_bar(strategy::Context_ptr &context, const Bar &bar,
-              const kungfu::yijinjing::data::location_ptr &location) override {
-    PYBIND11_OVERLOAD(void, strategy::Strategy, on_bar, context, bar, location);
-  }
-
   void on_entrust(strategy::Context_ptr &context, const Entrust &entrust,
                   const kungfu::yijinjing::data::location_ptr &location) override {
     PYBIND11_OVERLOAD(void, strategy::Strategy, on_entrust, context, entrust, location);
@@ -77,6 +72,11 @@ public:
   void on_transaction(strategy::Context_ptr &context, const Transaction &transaction,
                       const kungfu::yijinjing::data::location_ptr &location) override {
     PYBIND11_OVERLOAD(void, strategy::Strategy, on_transaction, context, transaction, location);
+  }
+
+  void on_synthetic_data(strategy::Context_ptr &context, const SyntheticData &synthetic_data,
+                         const kungfu::yijinjing::data::location_ptr &location) override {
+    PYBIND11_OVERLOAD(void, strategy::Strategy, on_synthetic_data, context, synthetic_data, location);
   }
 
   void on_order(strategy::Context_ptr &context, const Order &order,
@@ -102,6 +102,11 @@ public:
   void on_broker_state_change(strategy::Context_ptr &context, const BrokerStateUpdate &brokerStateUpdate,
                               const kungfu::yijinjing::data::location_ptr &location) override {
     PYBIND11_OVERLOAD(void, strategy::Strategy, on_broker_state_change, context, brokerStateUpdate, location);
+  }
+
+  void on_operator_state_change(strategy::Context_ptr &context, const OperatorStateUpdate &operator_state_update,
+                                const kungfu::yijinjing::data::location_ptr &location) override {
+    PYBIND11_OVERLOAD(void, strategy::Strategy, on_operator_state_change, context, operator_state_update, location);
   }
 
   void on_history_order(strategy::Context_ptr &context, const HistoryOrder &history_order,
@@ -170,6 +175,7 @@ void bind_strategy(pybind11::module &m) {
       .def("subscribe_all", &strategy::Context::subscribe_all, py::arg("source"),
            py::arg("market_type") = MarketType::All, py::arg("instrument_type") = SubscribeInstrumentType::All,
            py::arg("data_type") = SubscribeDataType::All)
+      .def("subscribe_operator", &strategy::Context::subscribe_operator)
       .def("insert_order_input", &strategy::Context::insert_order_input)
       .def("insert_order", &strategy::Context::insert_order, py::arg("instrument_id"), py::arg("exchange"),
            py::arg("source"), py::arg("account"), py::arg("limit_price"), py::arg("volume"), py::arg("type"),
@@ -210,9 +216,9 @@ void bind_strategy(pybind11::module &m) {
       .def("on_trading_day", &strategy::Strategy::on_trading_day)
       .def("on_quote", &strategy::Strategy::on_quote)
       .def("on_tree", &strategy::Strategy::on_tree)
-      .def("on_bar", &strategy::Strategy::on_bar)
       .def("on_entrust", &strategy::Strategy::on_entrust)
       .def("on_transaction", &strategy::Strategy::on_transaction)
+      .def("on_synthetic_data", &strategy::Strategy::on_synthetic_data)
       .def("on_order", &strategy::Strategy::on_order)
       .def("on_order_action_error", &strategy::Strategy::on_order_action_error)
       .def("on_trade", &strategy::Strategy::on_trade)
@@ -221,6 +227,7 @@ void bind_strategy(pybind11::module &m) {
       .def("on_asset_margin_sync_reset", &strategy::Strategy::on_asset_margin_sync_reset)
       .def("on_deregister ", &strategy::Strategy::on_deregister)
       .def("on_broker_state_change ", &strategy::Strategy::on_broker_state_change)
+      .def("on_operator_state_change ", &strategy::Strategy::on_operator_state_change)
       .def("on_history_order", &strategy::Strategy::on_history_order)
       .def("on_history_trade", &strategy::Strategy::on_history_trade)
       .def("on_req_history_order_error", &strategy::Strategy::on_req_history_order_error)

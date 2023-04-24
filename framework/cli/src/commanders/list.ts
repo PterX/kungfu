@@ -42,7 +42,7 @@ export const listKfLocations = async (): Promise<void> => {
       [
         colors.blue('strategy'),
         colors.bold(getIdByKfLocation(s)),
-        JSON.parse(s.value).strategy_path,
+        JSON.parse(s.value).file_path,
       ],
       [10, 15, 'auto'],
       1,

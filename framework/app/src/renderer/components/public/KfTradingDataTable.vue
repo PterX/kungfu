@@ -13,30 +13,27 @@ import {
   toRaw,
 } from 'vue';
 
-export interface API {
-  selectedRowsMap: Record<string, KungfuApi.TradingDataItem>;
-  isSelectAll: boolean;
-  handleSelectRow: (
-    isChecked: boolean,
-    item: KungfuApi.TradingDataItem,
-  ) => void;
-  handleSelectAll: (isChecked: boolean) => void;
-}
+type TableDataItem =
+  | KungfuApi.TradingDataItem
+  | KungfuApi.Frame
+  | KungfuApi.Session;
 
 const props = withDefaults(
   defineProps<{
-    dataSource: KungfuApi.TradingDataItem[];
+    dataSource: TableDataItem[];
     columns: KfTradingDataTableHeaderConfig[];
     keyField?: string;
+    resizable?: boolean;
     itemSize?: number;
     selectable?: boolean;
     selection?: KfTradingDataTableSelection; // 仅在 selectable 为 true 的时候生效
-    customRowClass?: (row: KungfuApi.TradingDataItem) => string;
+    customRowClass?: (row: TableDataItem) => string;
   }>(),
   {
     columns: () => [],
     dataSource: () => [],
     keyField: 'id',
+    resizable: true,
     itemSize: 26,
     selectable: false,
     selection: () => ({}),
@@ -45,43 +42,37 @@ const props = withDefaults(
 );
 
 defineEmits<{
+  (e: 'dbclickRow', data: { event: MouseEvent; row: TableDataItem }): void;
   (
-    e: 'dbclickRow',
-    data: { event: MouseEvent; row: KungfuApi.TradingDataItem },
-  ): void;
-  (
-    e: 'clickCell',
+    e: 'clickRow',
     data: {
       event: MouseEvent;
-      row: KungfuApi.TradingDataItem;
-      column: KfTradingDataTableHeaderConfig;
+      row: TableDataItem;
     },
   ): void;
   (
     e: 'clickCell',
     data: {
       event: MouseEvent;
-      row: KungfuApi.TradingDataItem;
+      row: TableDataItem;
       column: KfTradingDataTableHeaderConfig;
     },
   ): void;
-  (
-    e: 'rightClickRow',
-    data: { event: MouseEvent; row: KungfuApi.TradingDataItem },
-  ): void;
+  (e: 'rightClickRow', data: { event: MouseEvent; row: TableDataItem }): void;
+  (e: 'update:selectedKey', data: number | string): void;
 }>();
 
 const app = getCurrentInstance();
 const simpleImage = Empty.PRESENTED_IMAGE_SIMPLE;
 const kfScrollerTableBodyRef = ref();
 const kfScrollerTableWidth = ref(0);
-const dataSouceMap = ref<Record<string, KungfuApi.TradingDataItem>>({});
+const dataSouceMap = ref<Record<string, TableDataItem>>({});
 let allRowKeyFieldTrue: Record<string, boolean> = {};
 let allRowKeyFieldFalse: Record<string, boolean> = {};
 const isSelectAll = ref(false);
 const selectAllIndeterminate = ref(false);
 const selectedRowKeyFieldValues = ref<Record<string, boolean>>({});
-const selectedRowsMap = ref<Record<string, KungfuApi.TradingDataItem>>({});
+const selectedRowsMap = ref<Record<string, TableDataItem>>({});
 let clickTimer: number | undefined;
 
 const headerWidth = computed(() => {
@@ -145,7 +136,7 @@ onMounted(() => {
     kfScrollerTableWidth.value = kfScrollerTableBodyRef.value.clientWidth;
   }
 
-  if (app?.proxy) {
+  if (app?.proxy && props.resizable) {
     const subscription = app?.proxy.$globalBus
       .pipe(filter((e: KfEvent.KfBusEvent) => e.tag === 'resize'))
       .subscribe(() => {
@@ -171,23 +162,37 @@ function getHeaderWidth(column: KfTradingDataTableHeaderConfig): string {
   }
 }
 
-function handleDbClickRow(e: MouseEvent, row: KungfuApi.TradingDataItem): void {
+function handleDbClickRow(e: MouseEvent, row: TableDataItem): void {
   app && app.emit('dbclickRow', { event: e, row });
   clickTimer && clearTimeout(clickTimer);
 }
 
+function handleClickRow(e: MouseEvent, row: TableDataItem): void {
+  clickTimer && clearTimeout(clickTimer);
+  clickTimer = +setTimeout(() => {
+    app && app.emit('clickRow', { event: e, row });
+  }, 300);
+}
+
 function handleClickCell(
   e: MouseEvent,
-  row: KungfuApi.TradingDataItem,
+  row: TableDataItem,
   column: KfTradingDataTableHeaderConfig,
 ): void {
   clickTimer && clearTimeout(clickTimer);
   clickTimer = +setTimeout(() => {
     app && app.emit('clickCell', { event: e, row, column });
+    app &&
+      app.emit(
+        'update:selectedKey',
+        typeof row[props.keyField] === 'number'
+          ? row[props.keyField]
+          : `${row[props.keyField]}`,
+      );
   }, 300);
 }
 
-function handleMousedown(e: MouseEvent, row: KungfuApi.TradingDataItem): void {
+function handleMousedown(e: MouseEvent, row: TableDataItem): void {
   if (e.button === 2) {
     app && app.emit('rightClickRow', { event: e, row });
   }
@@ -240,7 +245,7 @@ function handleSort(
   }
 }
 
-function handleSelectRow(isChecked: boolean, item: KungfuApi.TradingDataItem) {
+function handleSelectRow(isChecked: boolean, item: TableDataItem) {
   if (!props.selectable) return;
 
   const key = item[props.keyField];
@@ -346,11 +351,12 @@ defineExpose({
         :key-field="keyField"
         :buffer="100"
       >
-        <template #default="{ item }: { item: any }">
+        <template #default="{ item }: { item: TableDataItem }">
           <ul
             :class="['kf-table-row', customRowClass?.(item) || '']"
             @dblclick="handleDbClickRow($event, item)"
             @mousedown="handleMousedown($event, item)"
+            @click.stop="handleClickRow($event, item)"
           >
             <li
               v-if="selectable"
@@ -370,7 +376,7 @@ defineExpose({
             </li>
             <li
               v-for="column in columns"
-              :key="`${column.dataIndex}_${item[keyField as keyof KungfuApi.TradingDataItem]}`"
+              :key="`${column.dataIndex}_${item[keyField as keyof TableDataItem]}`"
               :class="['kf-table-cell', column.type]"
               :style="{
                 'max-width': getHeaderWidth(column),
@@ -382,9 +388,7 @@ defineExpose({
             >
               <slot :item="item" :column="column">
                 <span>
-                  {{
-                    item[column.dataIndex as keyof KungfuApi.TradingDataItem]
-                  }}
+                  {{ item[column.dataIndex as keyof TableDataItem] }}
                 </span>
               </slot>
             </li>

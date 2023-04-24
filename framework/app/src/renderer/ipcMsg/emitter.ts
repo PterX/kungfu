@@ -8,8 +8,8 @@ ipcRenderer.setMaxListeners(10);
 export const ipcEmitDataByName = (
   name: string,
   postData?: {
-    strategyId: string;
-    strategyPath?: string;
+    codeId: string;
+    fileNewPath?: string;
   },
   interval?: number,
 ): Promise<{ data: unknown }> => {
@@ -23,7 +23,6 @@ export const ipcEmitDataByName = (
       childWinId: currentWin.id,
       params: Object.freeze(postData || {}),
     });
-
     const timer = setTimeout(() => {
       reject(new Error(`ipc-emit-${name} timeout`));
       ipcRenderer.removeAllListeners(`ipc-res-${name}`);

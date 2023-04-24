@@ -6,23 +6,14 @@
 
 #include "journal.h"
 #include "io.h"
-#include "operators.h"
+#include <cmath>
 
 using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::journal;
+using namespace kungfu::longfist::types;
 
 namespace kungfu::node {
-int64_t GetTimestamp(Napi::Value arg) {
-  if (arg.IsNumber()) {
-    return arg.ToNumber().Int32Value();
-  }
-  if (arg.IsBigInt()) {
-    bool lossless;
-    return arg.As<Napi::BigInt>().Int64Value(&lossless);
-  }
-  throw yijinjing_error("timestamp argument must be bigint");
-}
 
 Napi::FunctionReference Frame::constructor = {};
 
@@ -48,7 +39,8 @@ Napi::Value Frame::Dest(const Napi::CallbackInfo &info) { return Napi::Number::N
 
 Napi::Value Frame::Data(const Napi::CallbackInfo &info) {
   auto result = Napi::Object::New(info.Env());
-  boost::hana::for_each(longfist::StateDataTypes, [&](auto it) {
+  // have to be AllDataTypes, for data size is not 0
+  boost::hana::for_each(longfist::AllDataTypes, [&](auto it) {
     using DataType = typename decltype(+boost::hana::second(it))::type;
     if (frame_->msg_type() == DataType::tag) {
       serialize::JsSet{}(frame_->data<DataType>(), result);
@@ -77,17 +69,17 @@ void Frame::Init(Napi::Env env, Napi::Object exports) {
 
   constructor = Napi::Persistent(func);
   constructor.SuppressDestruct();
-
   exports.Set("Frame", func);
 }
 
 Napi::Value Frame::NewInstance(const Napi::Value arg) { return constructor.New({arg}); }
 
+bool lossless;
 Napi::FunctionReference Reader::constructor = {};
-
 Reader::Reader(const Napi::CallbackInfo &info)
-    : ObjectWrap(info), reader(true),
-      io_device_(reinterpret_cast<IODevice *>(Napi::ObjectWrap<IODevice>::Unwrap(info[0].As<Napi::Object>()))) {}
+    : ObjectWrap(info), reader(true, false, std::make_shared<bus>(false)),
+      io_device_(std::make_shared<io_device>(IODevice::ExtractLocation(info, 0, IODevice::GetDefaultRuntimeLocator()),
+                                             false, true)) {}
 
 Napi::Value Reader::ToString(const Napi::CallbackInfo &info) { return Napi::String::New(info.Env(), "Reader.js"); }
 
@@ -98,7 +90,7 @@ Napi::Value Reader::CurrentFrame(const Napi::CallbackInfo &info) {
 }
 
 Napi::Value Reader::SeekToTime(const Napi::CallbackInfo &info) {
-  seek_to_time(GetTimestamp(info[0]));
+  seek_to_time(GetBigInt(info, 0));
   return {};
 }
 
@@ -117,7 +109,7 @@ Napi::Value Reader::Join(const Napi::CallbackInfo &info) {
   auto name = info[2].As<Napi::String>().Utf8Value();
   auto mode = longfist::enums::get_mode_by_name(info[3].As<Napi::String>().Utf8Value());
   uint32_t dest_id = info[4].As<Napi::Number>().Int32Value();
-  auto from_time = GetTimestamp(info[5]);
+  auto from_time = GetBigInt(info, 5);
   join(std::make_shared<location>(mode, category, group, name, io_device_->get_home()->locator), dest_id, from_time);
   return {};
 }
@@ -152,7 +144,7 @@ Napi::Value Reader::NewInstance(const Napi::Value arg) { return constructor.New(
 
 Napi::FunctionReference Assemble::constructor = {};
 
-Assemble::Assemble(const Napi::CallbackInfo &info) : ObjectWrap(info), assemble(ExtractLocator(info)) {}
+Assemble::Assemble(const Napi::CallbackInfo &info) : ObjectWrap(info), assemble(IODevice::ExtractLocators(info)) {}
 
 Napi::Value Assemble::CurrentFrame(const Napi::CallbackInfo &info) {
   auto frame = Frame::NewInstance(info.This());
@@ -195,17 +187,5 @@ void Assemble::Init(Napi::Env env, Napi::Object exports) {
   constructor.SuppressDestruct();
 
   exports.Set("Assemble", func);
-}
-
-std::vector<locator_ptr> Assemble::ExtractLocator(const Napi::CallbackInfo &info) {
-  if (not IsValid(info, 0, &Napi::Value::IsArray)) {
-    throw Napi::Error::New(info.Env(), "Invalid locators argument");
-  }
-  std::vector<locator_ptr> result = {};
-  // auto locators = info[0].As<Napi::Array>();
-  // for (int i = 0; i < locators.Length(); i++) {
-  // result.push_back(IODevice::GetLocator(locators, i));
-  // }
-  return result;
 }
 } // namespace kungfu::node

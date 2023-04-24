@@ -44,9 +44,15 @@ public:
 
   bool is_live() const;
 
+  bool is_low_latency() const;
+
+  const bus_ptr &get_bus() const;
+
   void signal_stop();
 
   int64_t now() const;
+
+  void set_now(int64_t now);
 
   void set_begin_time(int64_t begin_time);
 

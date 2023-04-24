@@ -70,7 +70,7 @@ class KungfuCoreConan(ConanFile):
     }
     gyp_call = "NODE_GYP_RUN" in os.environ
     exports = "package.json"
-    exports_sources = "src/*", "package.json", "CMakeLists.txt", ".cmake/*"
+    exports_sources = "src/*", "package.json", "CMakeLists.txt", ".cmake/*", ".deps/*"
     conanfile_dir = path.dirname(path.realpath(__file__))
     pyi_hooks_dir = path.join(conanfile_dir, "src", "python", "pyi-hooks")
     build_info_file = "kungfubuildinfo.json"
@@ -86,6 +86,10 @@ class KungfuCoreConan(ConanFile):
             toolset = self.__get_toolset()
             if toolset != "auto":
                 self.settings.compiler.toolset = toolset
+
+    # def layout(self):
+    #     if "NODE_GYPE_RUN" not in os.environ:
+    #         tools.cmake.cmake_layout(self)
 
     def generate(self):
         """Updates mtime of lock files for node-gyp sake"""
@@ -120,6 +124,13 @@ class KungfuCoreConan(ConanFile):
             self.copy("*", dst="include", src="src/include")
             self.copy("*", dst="lib", src=build_type)
             self.copy("*", dst="bin", src=path.join("src", "libkungfu", build_type))
+
+            from glob import glob
+
+            self.copy("*", dst="deps/hana", src=glob(".deps/hana-*")[0])
+            self.copy("*", dst="deps/pybind11", src=glob(".deps/pybind11-*")[0])
+            self.copy("*", dst="deps/sqlite_orm", src=glob(".deps/sqlite_orm-*")[0])
+            self.copy("*", dst="cmake", src=".cmake")
 
     def package_info(self):
         self.cpp_info.names["cmake_find_package"] = "kungfu"

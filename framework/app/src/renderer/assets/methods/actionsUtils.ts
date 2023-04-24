@@ -363,7 +363,6 @@ export const useAddUpdateRemoveKfConfig = (): {
     group: string,
   ): Promise<void> => {
     const { formState, idByPrimaryKeys, changeType } = data;
-
     const changeTypename = changeType === 'add' ? t('add') : t('set');
     const categoryName = getKfCategoryData(category).name;
 
@@ -1791,14 +1790,18 @@ export const useAllKfConfigData = (): Record<
       md: [],
       td: [],
       strategy: [],
+      operator: [],
     });
 
   onMounted(() => {
-    const { mdList, tdList, strategyList } = storeToRefs(useGlobalStore());
+    const { mdList, tdList, strategyList, operatorList } = storeToRefs(
+      useGlobalStore(),
+    );
 
     allKfConfigData.md = mdList as unknown as KungfuApi.KfConfig[];
     allKfConfigData.td = tdList as unknown as KungfuApi.KfConfig[];
     allKfConfigData.strategy = strategyList as unknown as KungfuApi.KfConfig[];
+    allKfConfigData.operator = operatorList as unknown as KungfuApi.KfConfig[];
 
     getAvailDaemonList().then((daemonList) => {
       allKfConfigData.daemon = daemonList;

@@ -16,7 +16,7 @@ import {
   getIfProcessRunning,
   getIfProcessDeleted,
   delayMilliSeconds,
-  isTdMdStrategy,
+  isTdMdOperatorStrategy,
   deleteNNFiles,
 } from '../utils/busiUtils';
 import {
@@ -478,7 +478,7 @@ export const graceStopProcess = async (
     if (
       watcher &&
       !watcher.isReadyToInteract(kfLocation) &&
-      isTdMdStrategy(kfLocation.category)
+      isTdMdOperatorStrategy(kfLocation.category)
     ) {
       return Promise.reject(new Error(t('未就绪', { processId })));
     }
@@ -513,7 +513,7 @@ export const graceDeleteProcess = async (
     if (
       watcher &&
       !watcher.isReadyToInteract(kfLocation) &&
-      isTdMdStrategy(kfLocation.category)
+      isTdMdOperatorStrategy(kfLocation.category)
     ) {
       return Promise.reject(new Error(t('未就绪', { processId })));
     }
@@ -891,20 +891,53 @@ export const startTask = async (
   });
 };
 
-export const startStrategyByLocalPython = async (
+export const startOperatorByExt = async (
+  kfConfig: KungfuApi.DerivedKfLocation,
+) => {
+  const extDirs = await flattenExtensionModuleDirs(EXTENSION_DIRS);
+  const { group, name } = kfConfig;
+  const args = buildArgs(
+    `-X "${extDirs
+      .map((dir) => dealSpaceInPath(path.dirname(dir)))
+      .join(path.delimiter)}" run -c operator -g "${group}" -n "${name}"`,
+  );
+  const cwd = dealSpaceInPath(
+    path.join(KF_RUNTIME_DIR, 'operator', group, name),
+  );
+  await fse.ensureDir(cwd);
+  const fullProcessId = `operator_${group}_${name}`;
+  const options =
+    await globalThis.HookKeeper.getHooks().resolveStartOptions.trigger(
+      kfConfig,
+      {
+        name: fullProcessId,
+        cwd,
+        script: `${dealSpaceInPath(path.join(KFC_DIR, kfcName))}`,
+        args,
+        force: true,
+      },
+    );
+
+  return startProcess(options).catch((err) => {
+    kfLogger.error(err);
+  });
+};
+
+export const startStrategyOperatorByLocalPython = async (
+  category: 'strategy' | 'operator',
   name: string,
-  strategyPath: string,
+  filePath: string,
   pythonPath: string,
 ): Promise<Proc | void> => {
   const baseArgs = [
     'run',
     '-c',
-    'strategy',
+    category,
     '-g',
     'default',
     '-n',
     name,
-    `'${strategyPath}'`,
+    `'${filePath}'`,
   ].join(' ');
   const baseArgsResolved = buildArgs(baseArgs);
   const args = ['-m', 'kungfu', baseArgsResolved].join(' ');
@@ -922,7 +955,7 @@ export const startStrategyByLocalPython = async (
     .join('/');
 
   return startProcess({
-    name: `strategy_${name}`,
+    name: `${category}_${name}`,
     args,
     cwd: `${dealSpaceInPath(pythonFolder)}`,
     script: `${pythonFile}`,
@@ -933,35 +966,41 @@ export const startStrategyByLocalPython = async (
 };
 
 //启动strategy
-export const startStrategy = async (
-  strategyId: string,
-  strategyPath: string,
+export const startStrategyOperator = async (
+  category: 'strategy' | 'operator',
+  id: string,
+  filePath: string,
 ): Promise<Proc | void> => {
-  strategyPath = dealSpaceInPath(strategyPath);
+  filePath = dealSpaceInPath(filePath);
   const globalSetting = getKfGlobalSettingsValue();
   const ifLocalPython = globalSetting?.strategy?.python ?? false;
   const pythonPath = globalSetting?.strategy?.pythonPath ?? '';
-  const strategyIdResolved = `strategy_${strategyId}`;
+  const strategyOperatorIdResolved = `${category}_${id}`;
 
   //因为pm2环境残留，在反复切换本地python跟内置python时，会出现本地python启动失败，所以需要先pm2 kill
   try {
     const { processStatus } = await listProcessStatus();
-    if (!getIfProcessDeleted(processStatus, strategyIdResolved)) {
-      kfLogger.info(`Clear existed strategy ${strategyIdResolved}`);
-      await deleteProcess(strategyIdResolved);
+    if (!getIfProcessDeleted(processStatus, strategyOperatorIdResolved)) {
+      kfLogger.info(`Clear existed ${category} ${strategyOperatorIdResolved}`);
+      await deleteProcess(strategyOperatorIdResolved);
     }
   } catch (err) {
     kfLogger.warn(err);
   }
 
-  if (ifLocalPython && strategyPath.endsWith('.py')) {
-    return startStrategyByLocalPython(strategyId, strategyPath, pythonPath);
+  if (ifLocalPython && filePath.endsWith('.py')) {
+    return startStrategyOperatorByLocalPython(
+      category,
+      id,
+      filePath,
+      pythonPath,
+    );
   } else {
     const args = buildArgs(
-      `run -c strategy -g default -n '${strategyId}' '${strategyPath}'`,
+      `run -c ${category} -g default -n '${id}' '${filePath}'`,
     );
     return startProcess({
-      name: strategyIdResolved,
+      name: strategyOperatorIdResolved,
       args,
       force: true,
     }).catch((err) => {
@@ -1001,19 +1040,6 @@ export const startExtDaemon = (name: string, cwd: string, script: string) => {
       KFC_AS_VARIANT: 'node',
     },
     kill_timeout: 500,
-  }).catch((err) => {
-    kfLogger.error(err);
-  });
-};
-
-export const startBar = (
-  targetName: string,
-  source: string,
-  timeInterval: string,
-): Promise<Proc | void> => {
-  return startProcess({
-    name: targetName,
-    args: buildArgs(`service bar -s ${source} --time-interval ${timeInterval}`),
   }).catch((err) => {
     kfLogger.error(err);
   });

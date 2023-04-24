@@ -9,12 +9,14 @@ import Icon, {
   SettingOutlined,
   DeleteOutlined,
   FormOutlined,
+  BankOutlined,
 } from '@ant-design/icons-vue';
 
 import {
   useTableSearchKeyword,
   useDashboardBodySize,
   handleOpenLogview,
+  handleOpenJournalView,
   handleOpenCodeView,
   messagePrompt,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
@@ -35,6 +37,7 @@ import {
   getIfProcessStopping,
   getProcessIdByKfLocation,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { setStrategyConfig } from './config';
 import path from 'path';
 import KfBlinkNum from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfBlinkNum.vue';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
@@ -92,30 +95,7 @@ function handleOpenSetStrategyDialog(
   strategyConfig?: KungfuApi.KfConfig,
 ) {
   setStrategyConfigPayload.value.type = type;
-  setStrategyConfigPayload.value.config = {
-    type: [],
-    name: t('strategyConfig.strategy'),
-    category: 'strategy',
-    key: 'default',
-    extPath: '',
-    settings: [
-      {
-        key: 'strategy_id',
-        name: t('strategyConfig.strategy_id'),
-        type: 'str',
-        primary: true,
-        required: true,
-        tip: t('strategyConfig.strategy_tip'),
-      },
-      {
-        key: 'strategy_path',
-        name: t('strategyConfig.strategy_path'),
-        type: 'file',
-        tip: t('strategyConfig.strategy_path_tip'),
-        required: true,
-      },
-    ],
-  };
+  setStrategyConfigPayload.value.config = setStrategyConfig;
   setStrategyConfigPayload.value.initValue = undefined;
 
   if (type === 'update') {
@@ -130,7 +110,7 @@ function handleOpenSetStrategyDialog(
 }
 
 function getStrategyPathShowName(kfConfig: KungfuApi.KfConfig): string {
-  const strategyPath = getConfigValue(kfConfig).strategy_path || '';
+  const strategyPath = getConfigValue(kfConfig).file_path || '';
   return path.basename(strategyPath);
 }
 
@@ -142,6 +122,11 @@ function handleRemoveStrategy(record: KungfuApi.KfConfig) {
     .catch((err) => {
       error(err.message || t('operation_failed'));
     });
+}
+function handleOpenCodeViewResolved(record: KungfuApi.KfConfig) {
+  const processId = getProcessIdByKfLocation(record);
+  const filePath = getConfigValue(record).file_path;
+  return handleOpenCodeView(processId, filePath, false);
 }
 </script>
 
@@ -235,14 +220,18 @@ function handleRemoveStrategy(record: KungfuApi.KfConfig) {
           </template>
           <template v-else-if="column.dataIndex === 'actions'">
             <div class="kf-actions__warp">
+              <BankOutlined
+                style="font-size: 12px"
+                @click.stop="handleOpenJournalView(record)"
+              ></BankOutlined>
               <FileTextOutlined
                 style="font-size: 12px"
                 @click.stop="handleOpenLogview(record)"
               />
               <FormOutlined
                 style="font-size: 12px"
-                @click.stop="handleOpenCodeView(record)"
-              ></FormOutlined>
+                @click.stop="handleOpenCodeViewResolved(record)"
+              />
               <SettingOutlined
                 style="font-size: 12px"
                 @click.stop="handleOpenSetStrategyDialog('update', record)"

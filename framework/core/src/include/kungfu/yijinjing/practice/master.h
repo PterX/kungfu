@@ -7,10 +7,10 @@
 #ifndef KUNGFU_MASTER_H
 #define KUNGFU_MASTER_H
 
+#include <kungfu/yijinjing/cache/profile.h>
 #include <kungfu/yijinjing/io.h>
 #include <kungfu/yijinjing/journal/common.h>
 #include <kungfu/yijinjing/practice/hero.h>
-#include <kungfu/yijinjing/practice/profile.h>
 
 namespace kungfu::yijinjing::practice {
 
@@ -58,7 +58,7 @@ private:
   int64_t start_time_;
   int64_t last_check_;
   index::session_builder session_builder_;
-  profile profile_;
+  cache::profile profile_;
 
   std::unordered_map<uint32_t, uint32_t> app_cmd_locations_ = {};
   std::unordered_map<uint32_t, std::unordered_map<int32_t, timer_task>> timer_tasks_ = {};

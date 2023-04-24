@@ -4,13 +4,13 @@
 // Created by Keren Dong on 2020/2/25.
 //
 
-#include <kungfu/yijinjing/practice/profile.h>
+#include <kungfu/yijinjing/cache/profile.h>
 
 using namespace kungfu::longfist;
 using namespace kungfu::longfist::enums;
 using namespace kungfu::yijinjing::data;
 
-namespace kungfu::yijinjing::practice {
+namespace kungfu::yijinjing::cache {
 
 std::string default_db_file(const locator_ptr &locator) {
   auto config_location = std::make_shared<location>(mode::LIVE, category::SYSTEM, "etc", "kungfu", locator);
@@ -31,4 +31,4 @@ yijinjing::cache::ProfileStoragePtr &profile::get_storage() {
   static auto storage = yijinjing::cache::make_storage_ptr(profile_db_file_, ProfileDataTypes);
   return storage;
 }
-} // namespace kungfu::yijinjing::practice
+} // namespace kungfu::yijinjing::cache

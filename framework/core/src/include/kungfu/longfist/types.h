@@ -35,6 +35,7 @@ KF_DEFINE_MARK_TYPE(RequestCached, 10061);
 KF_DEFINE_MARK_TYPE(NewOrderSingle, 353);
 KF_DEFINE_MARK_TYPE(CancelOrder, 354);
 KF_DEFINE_MARK_TYPE(CancelAllOrder, 355);
+KF_DEFINE_MARK_TYPE(OperatorStateRequest, 398);
 KF_DEFINE_MARK_TYPE(BrokerStateRequest, 399);
 KF_DEFINE_MARK_TYPE(ResetBookRequest, 400);
 KF_DEFINE_MARK_TYPE(MirrorPositionsRequest, 401);
@@ -45,26 +46,23 @@ KF_DEFINE_MARK_TYPE(PositionSync, 405);
 KF_DEFINE_MARK_TYPE(KeepPositionsRequest, 406);
 KF_DEFINE_MARK_TYPE(RebuildPositionsRequest, 407);
 KF_DEFINE_MARK_TYPE(OrderTradeRequest, 408);
-KF_DEFINE_MARK_TYPE(AlgoOrderInput, 20010);
-KF_DEFINE_MARK_TYPE(AlgoOrderReport, 20011);
-KF_DEFINE_MARK_TYPE(AlgoOrderModify, 20012);
 
-KF_DEFINE_PACK_TYPE(                                    //
-    frame_header, 0, PK(gen_time), TIMESTAMP(gen_time), //
-    /** total frame length (including header and data body) */
-    (volatile uint32_t, length), //
-    /** header length */
-    (uint32_t, header_length), //
-    /** generate time of the frame data */
-    (int64_t, gen_time), //
-    /** trigger time for this frame, use for latency stats */
-    (int64_t, trigger_time), //
-    /** msg type of the data in frame */
-    (volatile int32_t, msg_type), //
-    /** source of this frame */
-    (uint32_t, source), //
-    /** dest of this frame */
-    (uint32_t, dest) //
+KF_DEFINE_PACK_TYPE(                                           //
+    frame_header, 0, PK(gen_time), TIMESTAMP(gen_time),        //
+    /** total frame length (including header and data body) */ //
+    (volatile uint32_t, length),                               //
+    /** header length */                                       //
+    (uint32_t, header_length),                                 //
+    /** generate time of the frame data */                     //
+    (int64_t, gen_time),                                       //
+    /** trigger time for this frame, use for latency stats */  //
+    (int64_t, trigger_time),                                   //
+    /** msg type of the data in frame */                       //
+    (volatile int32_t, msg_type),                              //
+    /** source of this frame */                                //
+    (uint32_t, source),                                        //
+    /** dest of this frame */                                  //
+    (uint32_t, dest)                                           //
 );
 
 KF_DEFINE_PACK_TYPE(                          //
@@ -73,6 +71,7 @@ KF_DEFINE_PACK_TYPE(                          //
     (uint32_t, page_header_length),           //
     (uint32_t, page_size),                    //
     (uint32_t, frame_header_length),          //
+    (longfist::enums::PageStatus, status),    // 0 close 1 preopen 2 open 3 flushing
     (uint64_t, last_frame_position)           //
 );
 
@@ -112,6 +111,16 @@ KF_DEFINE_DATA_TYPE(                                                     //
     (std::string, info_a),                                               //
     (std::string, info_b),                                               //
     (std::string, info_c),                                               //
+    (std::string, value)                                                 //
+);
+
+KF_DEFINE_DATA_TYPE(                                                     //
+    OperatorStateUpdate, 20003, PK(update_time), TIMESTAMP(update_time), //
+    (enums::OperatorState, state),                                       //
+    (int64_t, update_time),                                              //
+    (uint32_t, location_uid),                                            //
+    (std::string, info_a),                                               //
+    (std::string, info_b),                                               //
     (std::string, value)                                                 //
 );
 
@@ -476,28 +485,6 @@ KF_DEFINE_PACK_TYPE(                                        //
 
 );
 
-KF_DEFINE_PACK_TYPE(                                                 //
-    Bar, 110, PK(instrument_id, exchange_id), TIMESTAMP(start_time), //
-    (kungfu::array<char, DATE_LEN>, trading_day),                    // 交易日
-    (kungfu::array<char, INSTRUMENT_ID_LEN>, instrument_id),         // 合约代码
-    (kungfu::array<char, EXCHANGE_ID_LEN>, exchange_id),             // 交易所代码
-
-    (enums::InstrumentType, instrument_type), // 合约类型
-
-    (int64_t, start_time), // 开始时间
-    (int64_t, end_time),   // 结束时间
-
-    (double, open),  // 开
-    (double, close), // 收
-    (double, low),   // 低
-    (double, high),  // 高
-
-    (int64_t, volume),       // 区间交易量
-    (int64_t, start_volume), // 初始总交易量
-
-    (int32_t, tick_count) // 区间有效tick数
-);
-
 KF_DEFINE_PACK_TYPE(                                       //
     OrderInput, 201, PK(order_id), TIMESTAMP(insert_time), //
     (uint64_t, order_id),                                  // 订单ID
@@ -809,6 +796,16 @@ KF_DEFINE_PACK_TYPE(                                  //
     (double, total_price),                            //
     (double, total_volume),                           //
     (double, avg_price)                               //
+);
+
+KF_DEFINE_DATA_TYPE(                                     //
+    SyntheticData, 301, PK(key), TIMESTAMP(update_time), //
+    (int64_t, update_time),                              //
+    (std::string, key),                                  //
+    (std::string, tag_a),                                //
+    (std::string, tag_b),                                //
+    (std::string, tag_c),                                //
+    (std::string, value)                                 //
 );
 
 KF_DEFINE_PACK_TYPE(                                        //

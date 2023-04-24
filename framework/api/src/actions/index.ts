@@ -49,6 +49,9 @@ export const getAllKfConfigOriginData = (): Promise<
       md: allConfigResolved.filter((config: KungfuApi.KfConfig) => {
         return config.category === 'md';
       }),
+      operator: allConfigResolved.filter((config: KungfuApi.KfConfig) => {
+        return config.category === 'operator';
+      }),
       td: allConfigResolved.filter((config: KungfuApi.KfConfig) => {
         return config.category === 'td';
       }),

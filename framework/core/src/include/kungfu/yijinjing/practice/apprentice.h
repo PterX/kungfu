@@ -13,6 +13,27 @@
 #include <kungfu/yijinjing/time.h>
 
 namespace kungfu::yijinjing::practice {
+class apprentice;
+
+class cleaner {
+public:
+  explicit cleaner(yijinjing::practice::apprentice &app);
+
+  virtual ~cleaner() = default;
+
+  void on_react();
+
+private:
+  yijinjing::practice::apprentice &app_;
+  std::thread cleaning_worker_;
+  std::mutex cv_mutex_;
+  bool cleaning_worker_alive_ = true;
+
+  void do_clean();
+
+  bool is_cleaner_worker_required() const;
+};
+
 class apprentice : public hero {
 public:
   explicit apprentice(yijinjing::data::location_ptr home, bool low_latency = false);
@@ -61,6 +82,8 @@ public:
     get_writer(dest_id)->write(trigger_time, data);
   }
 
+  bool release_page();
+
 protected:
   cache::bank state_bank_;
 
@@ -89,6 +112,8 @@ protected:
   void on_write_to(const event_ptr &event);
 
   void on_write_to_band(const event_ptr &event);
+
+  [[maybe_unused]] int get_observer_recv_timeout() const;
 
   std::function<rx::observable<event_ptr>(rx::observable<event_ptr>)> timer(int64_t nanotime) {
     auto writer = get_writer(master_cmd_location_->uid);
@@ -183,6 +208,7 @@ private:
   int64_t checkin_time_ = INT64_MIN;
   int64_t trading_day_ = 0;
   int32_t timer_usage_count_ = 0;
+  yijinjing::practice::cleaner cleaner_;
   std::unordered_map<int, int64_t> timer_checkpoints_ = {};
   void checkin();
 

@@ -9,7 +9,7 @@ reader::~reader() { journals_.clear(); }
 
 void reader::join(const data::location_ptr &location, uint32_t dest_id, const int64_t from_time) {
   auto key = static_cast<uint64_t>(location->uid) << 32u | static_cast<uint64_t>(dest_id);
-  auto result = journals_.try_emplace(key, location, dest_id, false, lazy_);
+  auto result = journals_.try_emplace(key, location, dest_id, false, lazy_, low_latency_, bus_);
   if (result.second) {
     journals_.at(key).seek_to_time(from_time);
   }
@@ -74,4 +74,13 @@ void reader::sort() {
     }
   }
 }
+
+bool reader::release_page() {
+  bool result = false;
+  for (auto &iter : journals_) {
+    result |= iter.second.release_page();
+  }
+  return result;
+}
+
 } // namespace kungfu::yijinjing::journal

@@ -23,10 +23,10 @@ master::master(location_ptr home, bool low_latency)
     : hero(std::make_shared<io_device_master>(home, low_latency)), start_time_(time::now_in_nano()), last_check_(0),
       session_builder_(get_io_device()), cached_(get_locator()) {
 
-  for (const auto &app_location : cached_.get_all<Location>()) {
+  for (const auto &app_location : cached_.get_all(Location{})) {
     add_location(start_time_, location::make_shared(app_location, get_locator()));
   }
-  for (const auto &config : cached_.get_all<Config>()) {
+  for (const auto &config : cached_.get_all(Config{})) {
     try_add_location(start_time_, location::make_shared(config, get_locator()));
   }
 
@@ -138,6 +138,9 @@ void master::register_worker(const event_ptr &event) {
   require_write_to(event->gen_time(), app_location->uid, master_cmd_location->uid);
 
   write_time_reset(event->gen_time(), app_cmd_writer);
+  cached_.ensure_cached_storage(app_location, location::PUBLIC);
+  cached_.ensure_cached_storage(app_location, location::SYNC);
+  cached_.restore(app_location, app_cmd_writer);
 
   app_cmd_writer->mark(time::now_in_nano(), RequestStart::tag);
   write_locations(event->gen_time(), app_cmd_writer);
@@ -185,6 +188,7 @@ void master::react() {
   events_ | is(Location::tag) | $$(on_new_location(event));
   events_ | is(Register::tag) | $$(register_app(event));
   events_ | is(Ping::tag) | $$(pong(event));
+  events_ | is(CacheReset::tag) | $$(cached_.cache_reset(event->data<CacheReset>(), event->source(), event->dest()));
   events_ | instanceof <journal::frame>() | $$(feed(event));
 }
 
@@ -234,6 +238,7 @@ void master::feed(const event_ptr &event) {
   }
 
   session_builder_.update_session(std::dynamic_pointer_cast<journal::frame>(event));
+  cached_.feed(event);
 }
 
 void master::pong(const event_ptr &) { get_io_device()->get_publisher()->publish("{}"); }

@@ -32,6 +32,13 @@ public:
     });
   }
 
+  void clear() {
+    boost::hana::for_each(longfist::StateDataTypes, [&](auto it) {
+      auto type = boost::hana::second(it);
+      state_map_[type].clear();
+    });
+  }
+
   template <typename DataType>
   const std::unordered_map<uint64_t, state<DataType>> &operator[](const boost::hana::basic_type<DataType> &type) const {
     return state_map_[type];
@@ -61,6 +68,13 @@ public:
       for (const auto &element : state_map_[type]) {
         writer->write(0, element.second.data);
       }
+    });
+  }
+
+  void clear() {
+    boost::hana::for_each(types_, [&](auto it) {
+      auto type = boost::hana::second(it);
+      state_map_[type].clear();
     });
   }
 

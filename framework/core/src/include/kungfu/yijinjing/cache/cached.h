@@ -7,7 +7,6 @@
 #include <kungfu/yijinjing/cache/runtime.h>
 #include <kungfu/yijinjing/io.h>
 #include <kungfu/yijinjing/log.h>
-#include <kungfu/yijinjing/practice/apprentice.h>
 
 namespace kungfu::yijinjing::cache {
 
@@ -83,31 +82,33 @@ public:
 
   ~cached();
 
-  template <typename DataType> std::vector<DataType> get_all() { return profile_.get_all(DataType{}); }
+  template <typename DataType> std::vector<DataType> get_all(const DataType &) { return profile_.get_all(DataType{}); }
 
-  void restore(const yijinjing::data::location_ptr location);
+  void restore(const yijinjing::data::location_ptr &location, yijinjing::journal::writer_ptr &writer);
+
+  void clear_cache_shift(const yijinjing::data::location_ptr &location);
+
+  void make_cache_shift(const yijinjing::data::location_ptr &location);
+
+  void ensure_cached_storage(const yijinjing::data::location_ptr &location, uint32_t dest);
+
+  void cache_reset(const yijinjing::types::CacheReset &cache_reset, uint32_t source_id, uint32_t dest_id);
+
+  void feed(const event_ptr &event);
 
 private:
   yijinjing::cache::profile profile_;
+  std::unordered_map<uint32_t, yijinjing::data::location_ptr> locations_ = {};
   ProfileStateBank profile_bank_ = ProfileStateBank(longfist::ProfileDataTypes);
   std::unordered_map<uint32_t, yijinjing::cache::shift> app_cache_shift_ = {};
   yijinjing::cache::bank feed_bank_;
 
   static constexpr auto profile_get_all = [](auto &profile, auto &receiver) {
     boost::hana::for_each(longfist::ProfileDataTypes, [&](auto it) {
-      auto type = boost::hana::second(it);
-      using DataType = typename decltype(+type)::type;
-      int get_all_count = 0;
-      while (get_all_count++ < 10) {
-        try {
-          for (const auto &data : profile.get_all(DataType{})) {
-            auto s = state(0, 0, 0, data);
-            receiver << s;
-          }
-          break;
-        } catch (const std::exception &e) {
-          SPDLOG_ERROR("Unexpected exception by profile_get_all {}", e.what());
-        }
+      using DataType = typename decltype(+boost::hana::second(it))::type;
+      for (const auto &data : profile.get_all(DataType{})) {
+        auto s = state(0, 0, 0, data);
+        receiver << s;
       }
     });
   };

@@ -6,7 +6,6 @@
 #include <kungfu/yijinjing/time.h>
 
 using namespace kungfu::rx;
-using namespace kungfu::yijinjing::practice;
 using namespace kungfu::longfist;
 using namespace kungfu::longfist::enums;
 using namespace kungfu::longfist::types;
@@ -26,41 +25,72 @@ cached::cached(locator_ptr locator) : profile_(locator) {
 
 cached::~cached() {}
 
-void cached::restore(location_ptr location) {}
+void cached::restore(const location_ptr &location, journal::writer_ptr &writer) {
+  if (app_cache_shift_.find(location->uid) == app_cache_shift_.end()) {
+    make_cache_shift(location);
+  }
+
+  try {
+    app_cache_shift_.at(location->uid) >> writer;
+  } catch (const std::exception &ex) {
+    SPDLOG_ERROR("failed to write cache {} {} {}", location->uid, location->uname, ex.what());
+  }
+
+  try {
+    profile_get_all(profile_, profile_bank_);
+    profile_bank_ >> writer;
+  } catch (const std::exception &ex) {
+    SPDLOG_ERROR("failed to write profile info {} {} {}", location->uid, location->uname, ex.what());
+  }
+}
+
+void cached::clear_cache_shift(const location_ptr &location) {
+  uint32_t location_uid = location->uid;
+  if (app_cache_shift_.find(location_uid) == app_cache_shift_.end()) {
+    SPDLOG_INFO("no location_uid {} in app_cache_shift_, no need to clear cache", location->uname);
+    return;
+  }
+
+  // clear storage_map_ memory, for ensure_storage working fine next time
+  app_cache_shift_.erase(location_uid);
+}
+
+void cached::make_cache_shift(const location_ptr &location) {
+  locations_.emplace(location->uid, location);
+  app_cache_shift_.emplace(location->uid, location);
+}
+
+void cached::ensure_cached_storage(const location_ptr &location, uint32_t dest) {
+  make_cache_shift(location);
+  app_cache_shift_.at(location->uid).ensure_storage(dest);
+}
+
+void cached::cache_reset(const CacheReset &cache_reset, uint32_t source_id, uint32_t dest_id) {
+  auto msg_type = cache_reset.msg_type;
+  boost::hana::for_each(StateDataTypes, [&](auto it) {
+    using DataType = typename decltype(+boost::hana::second(it))::type;
+    if (DataType::tag == msg_type) {
+      if (app_cache_shift_.find(source_id) != app_cache_shift_.end()) {
+        app_cache_shift_[source_id] -= typed_event_ptr<DataType>(event);
+      }
+      if (app_cache_shift_.find(dest_id) != app_cache_shift_.end()) {
+        app_cache_shift_[dest_id] /= typed_event_ptr<DataType>(event);
+      }
+    }
+  });
+}
+
+void cached::feed(const event_ptr &event) {
+  if (event->msg_type() != Instrument::tag and get_location(event->source())->category == category::MD) {
+    return;
+  }
+  feed_state_data(event, feed_bank_);
+  feed_profile_data(event, profile_bank_);
+}
 
 // void cached::on_react() {
 //   events_ | is(Location::tag) | $$(on_location(event));
 //   events_ | is(Register::tag) | $$(register_triggger_clear_cache_shift(event->data<Register>()));
-//   events_ | is(Register::tag) | $$(register_trigger_listen_public(event->gen_time(), event->data<Register>()));
-//   // events_ | is(RequestCached::tag) | $([&](const event_ptr &event) {
-//   //   auto source_id = event->source();
-
-//   //   SPDLOG_INFO("get RequestCached from {}", get_location_uname(source_id));
-
-//   //   if (locations_.find(source_id) == locations_.end()) {
-//   //     SPDLOG_ERROR("no location {} in locations_", get_location_uname(source_id));
-//   //     return;
-//   //   }
-
-//   //   app_cache_shift_.try_emplace(source_id, locations_.at(source_id));
-//   //   auto cached_writer = get_writer(source_id);
-
-//   //   try {
-//   //     app_cache_shift_.at(source_id) >> cached_writer;
-//   //   } catch (const std::exception &ex) {
-//   //     SPDLOG_ERROR("failed to write cache {} {} {}", source_id, get_location_uname(source_id), ex.what());
-//   //   }
-
-//   //   try {
-//   //     profile_get_all(profile_, profile_bank_);
-//   //     profile_bank_ >> cached_writer;
-//   //   } catch (const std::exception &ex) {
-//   //     SPDLOG_ERROR("failed to write profile info {} {} {}", source_id, get_location_uname(source_id), ex.what());
-//   //   }
-
-//   //   mark_request_cached_done(source_id);
-//   // });
-// }
 
 // void cached::on_start() {
 //   events_ | is(Channel::tag) | $$(inspect_channel(event->gen_time(), event->data<Channel>()));
@@ -157,22 +187,6 @@ void cached::restore(location_ptr location) {}
 //   }
 // }
 
-// void cached::make_cache_shift(uint32_t source_id, uint32_t dest_id) {
-//   if (not has_location(source_id)) {
-//     SPDLOG_ERROR("no source {} in locations_", get_location_uname(source_id));
-//     return;
-//   }
-
-//   if (not is_location_live(source_id)) {
-//     SPDLOG_ERROR("no source {} in registry_", get_location_uname(source_id));
-//     return;
-//   }
-
-//   const location_ptr &location = get_location(source_id);
-//   app_cache_shift_.emplace(source_id, location);
-//   ensure_cached_storage(source_id, dest_id);
-// }
-
 // void cached::register_trigger_listen_public(int64_t gen_time, const Register &register_data) {
 //   auto app_uid = register_data.location_uid;
 //   auto app_location = get_location(app_uid);
@@ -186,36 +200,6 @@ void cached::restore(location_ptr location) {}
 //   reader_->join(app_location, location::SYNC, gen_time);
 //   make_cache_shift(app_uid, location::SYNC);
 //   SPDLOG_INFO("resume {} connection from {}", get_location_uname(app_uid), time::strftime(gen_time));
-// }
-
-// void cached::register_triggger_clear_cache_shift(const Register &register_data) {
-//   uint32_t location_uid = register_data.location_uid;
-//   if (app_cache_shift_.find(location_uid) == app_cache_shift_.end()) {
-//     SPDLOG_INFO("no location_uid {} in app_cache_shift_, no need to clear cache", get_location_uname(location_uid));
-//     return;
-//   }
-
-//   // clear storage_map_ memory, for ensure_storage working fine next time
-//   app_cache_shift_.erase(location_uid);
-// }
-
-// void cached::on_cache_reset(const event_ptr &event) {
-//   auto msg_type = event->data<CacheReset>().msg_type;
-//   boost::hana::for_each(StateDataTypes, [&](auto it) {
-//     using DataType = typename decltype(+boost::hana::second(it))::type;
-//     if (DataType::tag == msg_type) {
-//       app_cache_shift_[event->source()] -= typed_event_ptr<DataType>(event);
-//       app_cache_shift_[event->dest()] /= typed_event_ptr<DataType>(event);
-//     }
-//   });
-// }
-
-// void cached::ensure_cached_storage(uint32_t source_id, uint32_t dest_id) {
-//   if (app_cache_shift_.find(source_id) == app_cache_shift_.end()) {
-//     SPDLOG_ERROR("no source {} in app_cache_shift_", get_location_uname(source_id));
-//     return;
-//   }
-//   app_cache_shift_.at(source_id).ensure_storage(dest_id);
 // }
 
 // void cached::feed(const event_ptr &event) {

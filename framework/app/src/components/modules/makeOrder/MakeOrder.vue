@@ -103,7 +103,7 @@ const {
 
 const { getValidatorByOrderInputKey } = useTradeLimit();
 
-let price_precision = 0;
+let pricePrecision = 0;
 const makeOrderInstrumentType = ref<InstrumentTypeEnum>(
   InstrumentTypeEnum.unknown,
 );
@@ -127,7 +127,7 @@ const configSettings = computed(() => {
     makeOrderInstrumentType.value,
     side,
     +formState.value.price_type,
-    price_precision,
+    pricePrecision,
   );
 });
 
@@ -240,9 +240,9 @@ watch(
     triggerOrderBook(instrumentResolved.value);
 
     const { instrumentId, exchangeId } = instrumentResolved.value;
-    const {price_tick,price_precision : precision } =  getPriceTiskAndPrecision(instrumentId, exchangeId ,1)
+    const { price_tick, price_precision } =  getPriceTiskAndPrecision(instrumentId, exchangeId ,1)
 
-    price_precision = precision
+    pricePrecision = price_precision
     formSteps.limit_price =price_tick
 
     makeOrderInstrumentType.value = instrumentResolved.value.instrumentType;

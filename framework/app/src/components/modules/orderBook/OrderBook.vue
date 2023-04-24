@@ -28,7 +28,7 @@ const currentInstrument = ref<KungfuApi.InstrumentResolved | undefined>();
 const { getQuoteByInstrument, getLastPricePercent } = useQuote();
 const { triggerOrderBookUpdate } = useTriggerMakeOrder();
 const app = getCurrentInstance();
-let price_precision = 0;
+let pricePrecision = 0;
 const quoteData = computed(() => {
   if (!currentInstrument.value) {
     return null;
@@ -136,7 +136,7 @@ function dealQuoteAskPidPrices(
           (window.watcher?.ledger?.Instrument[currentInstrument.value.ukey] ||
             {}) as KungfuApi.Instrument
         ).price_tick ?? 0.001;
-      price_precision = countDecimalPlaces(price_tick);
+      pricePrecision = countDecimalPlaces(price_tick);
 
       const target_price_tick = type === 'ask' ? +price_tick : -price_tick;
 
@@ -204,7 +204,10 @@ function toLedgalPriceVolume(num: number | bigint) {
         ></div>
         <div class="price">
           {{
-            dealKfPrice(toLedgalPriceVolume(askPrices[9 - index]), price_precision)
+            dealKfPrice(
+              toLedgalPriceVolume(askPrices[9 - index]),
+              pricePrecision,
+            )
           }}
         </div>
         <div
@@ -244,7 +247,7 @@ function toLedgalPriceVolume(num: number | bigint) {
           {{
             dealKfPrice(
               getQuoteByInstrument(currentInstrument)?.last_price,
-              price_precision,
+              pricePrecision,
             )
           }}
         </div>
@@ -271,7 +274,9 @@ function toLedgalPriceVolume(num: number | bigint) {
           {{ dealKfNumber(toLedgalPriceVolume(bidVolume[index])) }}
         </div>
         <div class="price">
-          {{ dealKfPrice(toLedgalPriceVolume(bidPrices[index]), price_precision) }}
+          {{
+            dealKfPrice(toLedgalPriceVolume(bidPrices[index]), pricePrecision)
+          }}
         </div>
         <div
           class="sell volume"

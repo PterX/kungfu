@@ -285,7 +285,7 @@ class ExtensionExecutor:
             ctx.strategy = load_module(
                 ctx, ctx.path, loader.config["kungfuConfig"]["key"], Strategy
             )
-        if kfj.MODES[ctx.mode] == lf.enums.mode.BACKTEST:
+        if kfj.MODES[ctx.mode] == lf.enums.mode.BACKTEST and ctx.backtest:
             ctx.logger.debug(f"ctx.backtest: {ctx.backtest}")
             if ctx.backtest.endswith(".json"):
                 with open(ctx.backtest, "r", encoding="utf-8") as json_file:
@@ -294,10 +294,10 @@ class ExtensionExecutor:
                 backtest_para = json.loads(ctx.backtest)
 
             begin_time_stamp = kft.strptimes(
-                backtest_para["begin_time"], ("%F %T", "%F %T.%N", "%Y%m%d", "%Y-%m-%d")
+                ctx.begin if ctx.begin else backtest_para["begin_time"], ("%F %T", "%F %T.%N", "%Y%m%d", "%Y-%m-%d")
             )
             end_time_stamp = kft.strptimes(
-                backtest_para["end_time"], ("%F %T", "%F %T.%N", "%Y%m%d", "%Y-%m-%d")
+                ctx.end if ctx.end else backtest_para["end_time"], ("%F %T", "%F %T.%N", "%Y%m%d", "%Y-%m-%d")
             )
             matcher = load_matcher(ctx, ctx.matcher)
             if matcher:

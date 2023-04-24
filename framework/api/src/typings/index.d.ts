@@ -729,7 +729,6 @@ declare namespace KungfuApi {
     source: number;
     dest: number;
     uid_key: string;
-    decimal_places?: number; //成交价格限定位数
   }
 
   export interface TradeResolved extends Trade {

@@ -15,7 +15,7 @@ import {
   initFormStateByConfig,
   transformSearchInstrumentResultToInstrument,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
-import { getPriceTiskAndPrecision } from '@kungfu-trader/kungfu-js-api/utils/accounting';
+import { useActiveInstruments } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import KfConfigSettingsForm from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfConfigSettingsForm.vue';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 const { t } = VueI18n.global;
@@ -44,6 +44,8 @@ const props = withDefaults(
     primaryKeyAvoidRepeatCompareExtra: '',
   },
 );
+
+const { getPriceTiskAndPrecision } = useActiveInstruments();
 
 const configSettings = ref<KungfuApi.KfConfigItem[]>(
   props.payload.config?.settings || [],
@@ -170,14 +172,14 @@ function handleFormStateChange(formState) {
     );
     if (instrumentResolved) {
       const { instrumentId, exchangeId } = instrumentResolved;
-      const { price_tick, precision } = getPriceTiskAndPrecision(
+      const { price_tick, price_precision } = getPriceTiskAndPrecision(
         instrumentId,
         exchangeId,
         1,
       );
       configSettings.value.map((item) => {
         if (priceDecimal.includes(item.key)) {
-          item.precision = precision;
+          item.price_precision = price_precision;
           formSteps.value[item.key] = price_tick;
         }
         return item;

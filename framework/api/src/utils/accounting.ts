@@ -4,8 +4,6 @@ import {
   InstrumentTypeEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 
-import { countDecimalPlaces } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
-
 interface AccountingUsage {
   intrumentType: InstrumentTypeEnum;
   getTradeAmount: (
@@ -31,19 +29,6 @@ export const getInstrumentDefaultValue = (
   key: keyof typeof AccountingInstrumentDefaultValue,
 ) => {
   return value || AccountingInstrumentDefaultValue[key];
-};
-
-export const getPriceTiskAndPrecision = (
-  instrumentId: string,
-  exchangeId: string,
-  tisk = 0.001,
-) => {
-  const ukey = hashInstrumentUKey(instrumentId, exchangeId);
-  const price_tick =
-    (window.watcher.ledger.Instrument[ukey] as KungfuApi.Instrument)
-      ?.price_tick || tisk;
-  const precision = countDecimalPlaces(price_tick);
-  return { price_tick, precision };
 };
 
 class BaseAccountingUsage implements AccountingUsage {

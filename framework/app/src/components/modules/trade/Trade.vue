@@ -5,7 +5,7 @@ import {
   dealOffset,
   delayMilliSeconds,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
-import { getPriceTiskAndPrecision } from '@kungfu-trader/kungfu-js-api/utils/accounting';
+import { useActiveInstruments } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 
 import {
   messagePrompt,
@@ -48,6 +48,7 @@ import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 
 const { t } = VueI18n.global;
 const app = getCurrentInstance();
+const { getPriceTiskAndPrecision } = useActiveInstruments();
 const { handleBodySizeChange } = useDashboardBodySize();
 const trades = ref<KungfuApi.TradeResolved[]>([]);
 const allTrades = ref<KungfuApi.TradeResolved[]>([]);
@@ -110,7 +111,7 @@ onMounted(() => {
 
         const tempAllTrades = toRaw(
           tradesResolved.map((item) => {
-            const { precision } = getPriceTiskAndPrecision(
+            const { price_precision } = getPriceTiskAndPrecision(
               item.instrument_id,
               item.exchange_id,
               0.001,
@@ -121,7 +122,7 @@ onMounted(() => {
                 item,
                 watcher.ledger.OrderStat,
                 false,
-                precision,
+                price_precision,
               ),
             );
           }),
@@ -286,7 +287,7 @@ function handleShowTradingDataDetail({
             </span>
           </template>
           <template v-else-if="column.dataIndex === 'price'">
-            {{ dealKfPrice(item.price, item.precision) }}
+            {{ dealKfPrice(item.price, item.price_precision) }}
           </template>
           <template v-else-if="column.dataIndex === 'source_uname'">
             <span :class="[`color-${item.source_resolved_data.color}`]">

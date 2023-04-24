@@ -8,6 +8,7 @@ import {
   hashInstrumentUKey,
   kfRequestMarketData,
 } from '@kungfu-trader/kungfu-js-api/kungfu';
+
 import { setKfConfig } from '@kungfu-trader/kungfu-js-api/kungfu/store';
 import {
   BrokerStateStatusTypes,
@@ -49,6 +50,7 @@ import {
   isUpdateVersionLogicEnable,
   isCheckVersionLogicEnable,
   kfLogger,
+  countDecimalPlaces,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { BasketVolumeType } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import { writeCsvWithUTF8Bom } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
@@ -1485,10 +1487,22 @@ export const useActiveInstruments = () => {
     return CurrencyEnum.Unknown;
   };
 
+  const getPriceTiskAndPrecision = (
+    instrumentId: string,
+    exchangeId: string,
+    defaultTick = 0.001,
+  ) => {
+    const instrument = getInstrumentByIdsWithWatcher(instrumentId, exchangeId);
+    const price_tick = instrument?.price_tick || defaultTick;
+    const price_precision = countDecimalPlaces(price_tick);
+    return { price_tick, price_precision };
+  };
+
   return {
     getInstrumentByIds,
     getInstrumentByIdsWithWatcher,
     getInstrumentCurrencyByIds,
+    getPriceTiskAndPrecision,
   };
 };
 

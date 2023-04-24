@@ -7,7 +7,7 @@ import {
   delayMilliSeconds,
   getProcessIdByKfLocation,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
-import { getPriceTiskAndPrecision } from '@kungfu-trader/kungfu-js-api/utils/accounting';
+import { useActiveInstruments } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import {
   useDownloadHistoryTradingData,
   useTableSearchKeyword,
@@ -61,6 +61,8 @@ import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 const { t } = VueI18n.global;
 const { success, error } = messagePrompt();
 const app = getCurrentInstance();
+const { getPriceTiskAndPrecision } = useActiveInstruments();
+
 const { handleBodySizeChange } = useDashboardBodySize();
 
 const { processStatusData } = useProcessStatusDetailData();
@@ -130,7 +132,7 @@ onMounted(() => {
 
         if (unfinishedOrder.value) {
           const tempAllOrders = ordersResolved.map((item) => {
-            const { precision } = getPriceTiskAndPrecision(
+            const { price_precision } = getPriceTiskAndPrecision(
               item.instrument_id,
               item.exchange_id,
               0.001,
@@ -142,7 +144,7 @@ onMounted(() => {
                 item,
                 watcher.ledger.OrderStat,
                 false,
-                precision,
+                price_precision,
               ),
             );
           });
@@ -592,7 +594,7 @@ function testOrderSourceIsOnline(order: KungfuApi.OrderResolved) {
               </span>
             </template>
             <template v-else-if="column.dataIndex === 'limit_price'">
-              {{ dealKfPrice(item.limit_price, item.precision) }}
+              {{ dealKfPrice(item.limit_price, item.price_precision) }}
             </template>
             <template v-else-if="column.dataIndex === 'volume_left'">
               <span

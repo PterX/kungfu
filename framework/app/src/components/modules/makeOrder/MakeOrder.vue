@@ -16,7 +16,7 @@ import {
   confirmModal,
   messagePrompt,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
-import {getPriceTiskAndPrecision} from '@kungfu-trader/kungfu-js-api/utils/accounting';
+import { useActiveInstruments} from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import { getConfigSettings, LABEL_COL, WRAPPER_COL } from './config';
 import {
   dealOrderPlaceVNode,
@@ -62,6 +62,7 @@ import {
 const { t } = VueI18n.global;
 const { error } = messagePrompt();
 
+const {getPriceTiskAndPrecision} = useActiveInstruments();
 const { instrumentKeyAccountsMap, uiExtConfigs } = storeToRefs(
   useGlobalStore(),
 );
@@ -102,7 +103,7 @@ const {
 
 const { getValidatorByOrderInputKey } = useTradeLimit();
 
-let precision = 0;
+let price_precision = 0;
 const makeOrderInstrumentType = ref<InstrumentTypeEnum>(
   InstrumentTypeEnum.unknown,
 );
@@ -126,7 +127,7 @@ const configSettings = computed(() => {
     makeOrderInstrumentType.value,
     side,
     +formState.value.price_type,
-    precision,
+    price_precision,
   );
 });
 
@@ -239,9 +240,9 @@ watch(
     triggerOrderBook(instrumentResolved.value);
 
     const { instrumentId, exchangeId } = instrumentResolved.value;
-    const {price_tick,precision : precisionNumber } =  getPriceTiskAndPrecision(instrumentId, exchangeId ,1)
+    const {price_tick,price_precision : precision } =  getPriceTiskAndPrecision(instrumentId, exchangeId ,1)
 
-    precision = precisionNumber
+    price_precision = precision
     formSteps.limit_price =price_tick
 
     makeOrderInstrumentType.value = instrumentResolved.value.instrumentType;

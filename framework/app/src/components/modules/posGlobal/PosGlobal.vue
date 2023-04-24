@@ -23,7 +23,6 @@ import {
   dealKfPrice,
   dealCurrency,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
-import { getPriceTiskAndPrecision } from '@kungfu-trader/kungfu-js-api/utils/accounting';
 
 import {
   LedgerCategoryEnum,
@@ -71,7 +70,8 @@ const {
 } = useCurrentGlobalKfLocation(window.watcher);
 const { instruments } = useInstruments();
 const { triggerOrderBook, triggerMakeOrder } = useTriggerMakeOrder();
-const { getInstrumentCurrencyByIds } = useActiveInstruments();
+const { getInstrumentCurrencyByIds, getPriceTiskAndPrecision } =
+  useActiveInstruments();
 const { globalSetting } = storeToRefs(useGlobalStore());
 
 onMounted(() => {
@@ -88,13 +88,13 @@ onMounted(() => {
 
           pos.value = toRaw(
             buildGlobalPositions(positions).map((position) => {
-              const { precision } = getPriceTiskAndPrecision(
+              const { price_precision } = getPriceTiskAndPrecision(
                 position.instrument_id,
                 position.exchange_id,
                 0.001,
               );
 
-              return dealPosition(window.watcher, position, precision);
+              return dealPosition(window.watcher, position, price_precision);
             }),
           );
         });
@@ -277,18 +277,18 @@ function tiggerOrderBookAndMakeOrder(record: KungfuApi.Position) {
           </template>
           <template v-else-if="column.dataIndex === 'avg_open_price'">
             <KfBlinkNum
-              :num="dealKfPrice(item.avg_open_price, item.precision)"
+              :num="dealKfPrice(item.avg_open_price, item.price_precision)"
             ></KfBlinkNum>
           </template>
           <template v-else-if="column.dataIndex === 'last_price'">
             <KfBlinkNum
-              :num="dealKfPrice(item.last_price, item.precision)"
+              :num="dealKfPrice(item.last_price, item.price_precision)"
             ></KfBlinkNum>
           </template>
           <template v-else-if="column.dataIndex === 'unrealized_pnl'">
             <KfBlinkNum
               mode="compare-zero"
-              :num="dealAssetPrice(item.unrealized_pnl, item.precision)"
+              :num="dealAssetPrice(item.unrealized_pnl, item.price_precision)"
             ></KfBlinkNum>
           </template>
         </template>

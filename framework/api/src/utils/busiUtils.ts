@@ -1403,7 +1403,7 @@ export const dealKfNumber = (
 
 export const dealKfPrice = (
   preNumber: bigint | number | undefined | null | unknown,
-  precision?: number,
+  price_precision?: number,
 ): string => {
   const afterNumber = dealKfNumber(preNumber);
 
@@ -1411,12 +1411,12 @@ export const dealKfPrice = (
     return afterNumber;
   }
 
-  return Number(afterNumber).toFixed(precision || 3);
+  return Number(afterNumber).toFixed(price_precision || 3);
 };
 
 export const dealAssetPrice = (
   preNumber: bigint | number | undefined | unknown,
-  precision?: number,
+  price_precision?: number,
 ): string => {
   const afterNumber = dealKfNumber(preNumber);
 
@@ -1424,7 +1424,7 @@ export const dealAssetPrice = (
     return afterNumber;
   }
 
-  return Number(afterNumber).toFixed(precision || 3);
+  return Number(afterNumber).toFixed(price_precision || 3);
 };
 
 export const sum = (list: number[]): number => {

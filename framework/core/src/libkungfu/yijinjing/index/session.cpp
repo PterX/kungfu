@@ -57,10 +57,12 @@ int64_t session_finder::find_last_active_time(const data::location_ptr &source_l
 }
 
 session_builder::session_builder(const io_device_ptr &io_device) : session_finder(io_device) {
+  std::lock_guard<std::mutex> lock(update_session_mutex_);
   if (not session_storage_->sync_schema_simulate().empty()) {
     session_storage_->sync_schema();
   }
   session_storage_->pragma.journal_mode(sqlite_orm::journal_mode::WAL);
+  session_storage_->pragma.synchronous(0);
 }
 
 int64_t session_builder::find_last_active_time(const data::location_ptr &source_location) {

@@ -4,7 +4,7 @@
 #include <condition_variable>
 #include <kungfu/common.h>
 
-namespace kungfu::yijinjing {
+namespace kungfu::yijinjing::journal {
 
 class bus {
 public:

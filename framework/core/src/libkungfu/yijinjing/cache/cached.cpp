@@ -3,6 +3,7 @@
 #include <kungfu/common.h>
 #include <kungfu/longfist/longfist.h>
 #include <kungfu/yijinjing/cache/cached.h>
+#include <kungfu/yijinjing/practice/hero.h>
 #include <kungfu/yijinjing/time.h>
 
 using namespace kungfu::rx;
@@ -10,6 +11,7 @@ using namespace kungfu::longfist;
 using namespace kungfu::longfist::enums;
 using namespace kungfu::longfist::types;
 using namespace kungfu::yijinjing;
+using namespace kungfu::yijinjing::practice;
 using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::cache;
 
@@ -23,9 +25,19 @@ cached::cached(locator_ptr locator) : profile_(locator) {
   profile_get_all(profile_, profile_bank_);
 }
 
-cached::~cached() {}
+cached::~cached() {
+
+  {
+    std::lock_guard<std::mutex> lock(feed_mutex_);
+    m_quit_ = true;
+  }
+
+  feed_worker_.join();
+}
 
 void cached::restore(const location_ptr &location, journal::writer_ptr &writer) {
+  // std::lock_guard<std::mutex> lock(db_mutex_);
+
   if (app_cache_shift_.find(location->uid) == app_cache_shift_.end()) {
     make_cache_shift(location);
   }
@@ -61,31 +73,59 @@ void cached::make_cache_shift(const location_ptr &location) {
 }
 
 void cached::ensure_cached_storage(const location_ptr &location, uint32_t dest) {
+  std::lock_guard<std::mutex> lock(db_mutex_);
   make_cache_shift(location);
   app_cache_shift_.at(location->uid).ensure_storage(dest);
 }
 
-void cached::cache_reset(const CacheReset &cache_reset, uint32_t source_id, uint32_t dest_id) {
+void cached::cache_reset(const event_ptr &event) {
+  std::lock_guard<std::mutex> lock(db_mutex_);
+  auto cache_reset = event->data<CacheReset>();
   auto msg_type = cache_reset.msg_type;
   boost::hana::for_each(StateDataTypes, [&](auto it) {
     using DataType = typename decltype(+boost::hana::second(it))::type;
     if (DataType::tag == msg_type) {
-      if (app_cache_shift_.find(source_id) != app_cache_shift_.end()) {
-        app_cache_shift_[source_id] -= typed_event_ptr<DataType>(event);
+      if (app_cache_shift_.find(event->source()) != app_cache_shift_.end()) {
+        app_cache_shift_[event->source()] -= typed_event_ptr<DataType>(event);
       }
-      if (app_cache_shift_.find(dest_id) != app_cache_shift_.end()) {
-        app_cache_shift_[dest_id] /= typed_event_ptr<DataType>(event);
+      if (app_cache_shift_.find(event->dest()) != app_cache_shift_.end()) {
+        app_cache_shift_[event->dest()] /= typed_event_ptr<DataType>(event);
       }
     }
   });
 }
-
 void cached::feed(const event_ptr &event) {
-  if (event->msg_type() != Instrument::tag and get_location(event->source())->category == category::MD) {
-    return;
-  }
+  std::lock_guard<std::mutex> lock(feed_mutex_);
   feed_state_data(event, feed_bank_);
   feed_profile_data(event, profile_bank_);
+}
+
+void cached::run_feeds_worker() { feed_worker_ = std::thread(&cached::do_store_feeds, this); }
+
+void cached::do_store_feeds() {
+  while (true) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+    store_cached_feeds();
+    store_profile_feeds();
+
+    if (m_quit_) {
+      break;
+    }
+  }
+}
+
+void cached::store_cached_feeds() {
+  feed_mutex_.lock();
+  yijinjing::cache::bank tmp_feed_bank = feed_bank_;
+  feed_bank_.clear();
+  feed_mutex_.unlock();
+}
+
+void cached::store_profile_feeds() {
+  feed_mutex_.lock();
+  ProfileStateBank tmp_profile_bank = profile_bank_;
+  profile_bank_.clear();
+  feed_mutex_.unlock();
 }
 
 // void cached::on_react() {

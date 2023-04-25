@@ -46,7 +46,7 @@ public:
 
   bool is_low_latency() const;
 
-  const bus_ptr &get_bus() const;
+  const yijinjing::journal::bus_ptr &get_bus() const;
 
   void signal_stop();
 
@@ -186,46 +186,15 @@ protected:
 
   virtual void on_frame() = 0;
 
-  static constexpr auto feed_profile_data = [](const event_ptr &event, auto &receiver) {
-    boost::hana::for_each(longfist::ProfileDataTypes, [&](auto it) {
-      using DataType = typename decltype(+boost::hana::second(it))::type;
-      if (DataType::tag == event->msg_type()) {
-        receiver << typed_event_ptr<DataType>(event);
-      }
-    });
-  };
-
-  static constexpr auto feed_state_data = [](const event_ptr &event, auto &receiver) {
-    boost::hana::for_each(longfist::StateDataTypes, [&](auto it) {
-      using DataType = typename decltype(+boost::hana::second(it))::type;
-      if (DataType::tag == event->msg_type()) {
-        receiver << typed_event_ptr<DataType>(event);
-      }
-    });
-  };
-
-  static constexpr auto feed_trading_data = [](const event_ptr &event, auto &receiver) {
-    boost::hana::for_each(longfist::TradingDataTypes, [&](auto it) {
-      using DataType = typename decltype(+boost::hana::second(it))::type;
-      if (DataType::tag == event->msg_type()) {
-        receiver << typed_event_ptr<DataType>(event);
-      }
-    });
-  };
-
 private:
   yijinjing::io_device_ptr io_device_;
   rx::composite_subscription cs_;
   int64_t now_;
 
   std::unordered_map<uint64_t, longfist::types::Band> bands_ = {};
-  mutable std::mutex bands_mutex_;
   std::unordered_map<uint64_t, longfist::types::Channel> channels_ = {};
-  mutable std::mutex channels_mutex_;
   std::unordered_map<uint32_t, yijinjing::data::location_ptr> locations_ = {};
-  mutable std::mutex locations_mutex_;
   std::unordered_map<uint32_t, longfist::types::Register> registry_ = {};
-  mutable std::mutex registry_mutex_;
 
   volatile bool continual_ = true;
   volatile bool live_ = false;

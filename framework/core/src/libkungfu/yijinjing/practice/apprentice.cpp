@@ -5,6 +5,7 @@
 //
 
 #include <kungfu/common.h>
+#include <kungfu/yijinjing/cache/cached.h>
 #include <kungfu/yijinjing/practice/apprentice.h>
 #include <kungfu/yijinjing/util/os.h>
 #include <nng/nng.h>
@@ -15,6 +16,7 @@ using namespace kungfu::longfist::types;
 using namespace kungfu::longfist::enums;
 using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
+using namespace kungfu::yijinjing::cache;
 using namespace std::chrono;
 namespace fs = std::filesystem;
 
@@ -133,7 +135,7 @@ void apprentice::react() {
   events_ | is(Channel::tag) | $$(register_channel(event->gen_time(), event->data<Channel>()));
   events_ | is(Band::tag) | $$(register_band(event->gen_time(), event->data<Band>()));
   events_ | is(RequestStop::tag) | to(get_home_uid()) | $$(signal_stop());
-  events_ | take_until(events_ | is(RequestStart::tag)) | $$(feed_state_data(event, state_bank_));
+  events_ | take_until(events_ | is(RequestStart::tag)) | $$(cached::feed_state_data(event, state_bank_));
 
   SPDLOG_TRACE("building reactive event handlers");
   on_react();

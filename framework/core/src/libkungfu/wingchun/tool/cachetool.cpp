@@ -1,6 +1,6 @@
 #include <kungfu/wingchun/common.h>
 #include <kungfu/wingchun/tool/cachetool.h>
-#include <kungfu/yijinjing/bus.h>
+#include <kungfu/yijinjing/journal/bus.h>
 #include <kungfu/yijinjing/journal/assemble.h>
 #include <kungfu/yijinjing/log.h>
 
@@ -85,8 +85,8 @@ void CacheTool::init(bool overwrite) {
     SPDLOG_INFO("cacheTool ready to write to: {}", cache_location_->uname);
   }
   writers_[location::PUBLIC] = std::make_shared<yijinjing::journal::writer>(
-      cache_location_, location::PUBLIC, true, publisher_, false, std::make_shared<yijinjing::bus>(false));
-  reader_ = std::make_shared<yijinjing::journal::reader>(true, false, std::make_shared<yijinjing::bus>(false));
+      cache_location_, location::PUBLIC, true, publisher_, false, std::make_shared<yijinjing::journal::bus>(false));
+  reader_ = std::make_shared<yijinjing::journal::reader>(true, false, std::make_shared<yijinjing::journal::bus>(false));
   reader_->join(cache_location_, location::PUBLIC, begin_time_);
   KUNGFU_SETUP_LOGGER(cache_location_, cache_location_->name);
 }
@@ -105,7 +105,7 @@ void CacheTool::valid_dest(uint32_t dest_id, int64_t gen_time) {
 
   if (writers_.find(dest_id) == writers_.end()) {
     writers_[dest_id] = std::make_shared<writer>(cache_location_, dest_id, true, publisher_, false,
-                                                 std::make_shared<yijinjing::bus>(false));
+                                                 std::make_shared<yijinjing::journal::bus>(false));
     join(dest_id, gen_time);
   }
 }

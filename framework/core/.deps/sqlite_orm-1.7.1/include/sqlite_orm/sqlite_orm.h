@@ -11320,7 +11320,8 @@ namespace sqlite_orm {
                 return this->get_pragma<sqlite_orm::journal_mode>("journal_mode");
             }
 
-            void journal_mode(sqlite_orm::journal_mode value) {
+            void 
+            journal_mode(sqlite_orm::journal_mode value) {
                 this->_journal_mode = -1;
                 this->set_pragma("journal_mode", value);
                 this->_journal_mode = static_cast<decltype(this->_journal_mode)>(value);

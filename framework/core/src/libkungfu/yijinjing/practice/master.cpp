@@ -34,16 +34,14 @@ master::master(location_ptr home, bool low_latency)
   session_builder_.open_session(master_home_location_, start_time_);
   writers_.emplace(location::PUBLIC, io_device->open_writer(location::PUBLIC));
   get_writer(location::PUBLIC)->mark(start_time_, SessionStart::tag);
+
+  cached_.run_feeds_worker();
 }
 
 void master::on_exit() {
   notify_deregister_on_exit();
   mark_session_end_on_exit();
   notify_master_deregister_on_exit();
-
-  for (auto &work : register_workers_) {
-    work.join();
-  }
 }
 
 void master::notify_deregister_on_exit() {
@@ -92,10 +90,6 @@ void master::mark_session_end_on_exit() {
 void master::on_notify() { get_io_device()->get_publisher()->notify(); }
 
 void master::register_app(const event_ptr &event) {
-  register_workers_.emplace_back([this, event]() { register_worker(event); });
-}
-
-void master::register_worker(const event_ptr &event) {
   auto io_device = std::dynamic_pointer_cast<io_device_master>(get_io_device());
   auto home = io_device->get_home();
 
@@ -114,33 +108,33 @@ void master::register_worker(const event_ptr &event) {
 
   auto now = time::now_in_nano();
   auto uid_str = fmt::format("{:08x}", app_location->uid);
-  SPDLOG_INFO("registering location {} uname {}", uid_str, app_location->uname);
+  SPDLOG_INFO("registering location {} uname {} uid {}", uid_str, app_location->uname, app_location->uid);
   auto master_cmd_location = location::make_shared(mode::LIVE, category::SYSTEM, "master", uid_str, home->locator);
   try_add_location(event->gen_time(), master_cmd_location);
 
-  register_mutex_.try_lock();
   auto app_cmd_writer = get_io_device()->open_writer_at(master_cmd_location, app_location->uid);
   writers_.emplace(app_location->uid, app_cmd_writer);
   reader_->join(app_location, location::PUBLIC, now);
   reader_->join(app_location, location::SYNC, now);
   reader_->join(app_location, master_cmd_location->uid, now);
-  register_mutex_.unlock();
-
-  session_builder_.open_session(app_location, event->gen_time());
-  app_cmd_writer->mark(event->gen_time(), SessionStart::tag);
 
   auto public_writer = get_writer(location::PUBLIC);
   public_writer->write(event->gen_time(), *std::dynamic_pointer_cast<Location>(app_location));
   public_writer->write(event->gen_time(), register_data);
 
+  // have to be after register sent;
   require_write_to(event->gen_time(), app_location->uid, location::PUBLIC);
   require_write_to(event->gen_time(), app_location->uid, location::SYNC);
   require_write_to(event->gen_time(), app_location->uid, master_cmd_location->uid);
+
+  session_builder_.open_session(app_location, event->gen_time());
+  app_cmd_writer->mark(event->gen_time(), SessionStart::tag);
 
   write_time_reset(event->gen_time(), app_cmd_writer);
   cached_.ensure_cached_storage(app_location, location::PUBLIC);
   cached_.ensure_cached_storage(app_location, location::SYNC);
   cached_.restore(app_location, app_cmd_writer);
+
 
   app_cmd_writer->mark(time::now_in_nano(), RequestStart::tag);
   write_locations(event->gen_time(), app_cmd_writer);
@@ -188,7 +182,7 @@ void master::react() {
   events_ | is(Location::tag) | $$(on_new_location(event));
   events_ | is(Register::tag) | $$(register_app(event));
   events_ | is(Ping::tag) | $$(pong(event));
-  events_ | is(CacheReset::tag) | $$(cached_.cache_reset(event->data<CacheReset>(), event->source(), event->dest()));
+  events_ | is(CacheReset::tag) | $([&](const event_ptr &event) { cached_.cache_reset(event); });
   events_ | instanceof <journal::frame>() | $$(feed(event));
 }
 
@@ -238,7 +232,11 @@ void master::feed(const event_ptr &event) {
   }
 
   session_builder_.update_session(std::dynamic_pointer_cast<journal::frame>(event));
-  cached_.feed(event);
+
+  if (event->msg_type() == Instrument::tag or get_location(event->source())->category != category::MD) {
+    cached_.feed(event);
+    return;
+  }
 }
 
 void master::pong(const event_ptr &) { get_io_device()->get_publisher()->publish("{}"); }
@@ -264,6 +262,7 @@ void master::on_request_write_to_band(const event_ptr &event) {
   }
   reader_->join(get_location(app_uid), request.location_uid, trigger_time);
   require_write_to_band(trigger_time, app_uid, target_location);
+  cached_.ensure_cached_storage(get_location(app_uid), request.location_uid);
 
   Band band = {};
   band.source_id = app_uid;
@@ -282,6 +281,8 @@ void master::on_request_write_to(const event_ptr &event) {
   }
   reader_->join(get_location(app_uid), request.dest_id, trigger_time);
   require_write_to(trigger_time, app_uid, request.dest_id);
+  cached_.ensure_cached_storage(get_location(app_uid), request.dest_id);
+
   if (is_location_live(request.dest_id) and has_writer(request.dest_id)) {
     require_read_from(0, request.dest_id, app_uid, trigger_time);
   }
@@ -303,6 +304,8 @@ void master::on_request_read_from(const event_ptr &event) {
   reader_->join(get_location(request.source_id), app_uid, trigger_time);
   require_write_to(trigger_time, request.source_id, app_uid);
   require_read_from(trigger_time, app_uid, request.source_id, request.from_time);
+  cached_.ensure_cached_storage(get_location(request.source_id), app_uid);
+
   Channel channel = {};
   channel.source_id = request.source_id;
   channel.dest_id = app_uid;
@@ -324,6 +327,7 @@ void master::on_channel_request(const event_ptr &event) {
   const Channel &channel = event->data<Channel>();
   auto trigger_time = event->gen_time();
   if (is_location_live(channel.source_id) and not has_channel(channel.source_id, channel.dest_id)) {
+    cached_.ensure_cached_storage(get_location(channel.source_id), channel.dest_id);
     reader_->join(get_location(channel.source_id), channel.dest_id, trigger_time);
     require_write_to(trigger_time, channel.source_id, channel.dest_id);
     register_channel(trigger_time, channel);

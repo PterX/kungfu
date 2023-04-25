@@ -1,7 +1,7 @@
-#include <kungfu/yijinjing/bus.h>
+#include <kungfu/yijinjing/journal/bus.h>
 #include <kungfu/yijinjing/time.h>
 
-namespace kungfu::yijinjing {
+namespace kungfu::yijinjing::journal {
 
 void bus::on_load_page() {
   SPDLOG_TRACE("on_load_page notify all");

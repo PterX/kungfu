@@ -223,7 +223,7 @@ void master::try_add_location(int64_t trigger_time, const location_ptr &app_loca
 
   if (not has_location(app_location->uid)) {
     add_location(trigger_time, app_location);
-    cached_.feed_profile<Location>(dynamic_cast<Location &>(*app_location));
+    cached_.feed_profile(dynamic_cast<Location &>(*app_location));
   }
 }
 

@@ -44,13 +44,16 @@
         </div>
         <TimeSlider
           ref="timeSlider"
-          v-model:time-range="currentTimeRangeData.range"
-          :limit-time-range="limitTimeRange"
-          :is-external-update="isExternalUpdate"
+          v-model:current-time="currentTime"
+          :now-time="nowTime"
+          :begin-time="beginTime"
+          :end-time="endTime"
+          :is-time-continue="timeContinue"
           :nol-range="nolRange"
           :step="60"
           stick
           class="kf-journal-time-slider"
+          @time-continue-update="onTimeContinueUpdate"
         ></TimeSlider>
         <ExportJournal @export-journal-data="onExportJournalData" />
       </div>
@@ -73,10 +76,15 @@
             :current-session="currentSession"
             :current-location="currentLocation"
             :current-time-range-data="currentTimeRangeData"
+            :begin-time="beginTime"
+            :end-time="endTime"
+            :current-time="currentTime"
+            :is-time-continue="timeContinue"
             :location-map="SourceAndDestNameMap"
             :is-external-update="isExternalUpdate"
             @change-time-range="onChangeTimeRange"
             @external-update="onExternalUpdate"
+            @updateCurrentTime="onUpdateCurrentTime"
           />
           <OrdersDashboard
             v-show="isCurrentMenuItem('visual')"
@@ -139,6 +147,9 @@ type LocationRseolved = KungfuApi.KfLocation & {
   uid: number;
 };
 const { t } = VueI18n.global;
+const beginTime = ref<bigint>(BigInt(new Date().getTime()) * 1000000n);
+const endTime = ref<bigint>(0n);
+const timeContinue = ref(true);
 const isExternalUpdate = ref(false);
 const currentLocation = getCurrentLocation();
 const timeSlider = ref();
@@ -156,13 +167,25 @@ const runningSessions = computed(() => {
     (item) => item.status === SessionStatusEnum.Running,
   );
 });
+
+const nowTime = ref(BigInt(new Date().getTime()) * 1000000n);
+const currentTime = ref(BigInt(new Date().getTime()) * 1000000n);
+
+watchEffect(() => {
+  const updateNowTime = () => {
+    nowTime.value = BigInt(new Date().getTime()) * 1000000n;
+    setTimeout(updateNowTime, 1000);
+  };
+
+  updateNowTime();
+});
 const currentSessionKey = ref('');
 const currentSessionId = ref(-1);
 const currentTimeRangeData = ref<{ range: [bigint, bigint]; reload: boolean }>({
   range: [0n, 0n],
   reload: true,
 });
-const limitTimeRange = ref<[bigint, bigint]>([0n, 0n]);
+// const limitTimeRange = ref<[bigint, bigint]>([0n, 0n]);
 
 const currentSession = computed(() => {
   if (currentSessionKey.value && Object.keys(sessionsMap.value).length) {
@@ -217,7 +240,13 @@ const exportFileName = computed(() => {
 const sessionColumns = getSessionColumns();
 
 watchEffect(() => {
-  console.log('sessions', sessions.value, sessionsMap.value, currentLocation);
+  console.log(
+    'sessions',
+    sessions.value,
+    sessionsMap.value,
+    currentLocation,
+    currentTime.value,
+  );
 });
 watch(
   () => sessions.value,
@@ -247,7 +276,12 @@ watch(
   () => currentSession.value,
   (newSession) => {
     if (!newSession) return;
-    console.log('loadnewSession', currentSession.value);
+    console.log(
+      'loadnewSession',
+      currentSession.value,
+      currentTimeRangeData.value,
+    );
+    timeContinue.value = true;
     // allsessions.value = getAllLocation();
     // console.log('allLocation', allLocation.value);
     // nextTick(() => {
@@ -256,19 +290,25 @@ watch(
     // });
 
     const { begin_time, end_time } = newSession;
+    beginTime.value = begin_time;
+    endTime.value = end_time ?? 0n;
 
-    limitTimeRange.value = [
-      begin_time,
-      end_time ? end_time : BigInt(new Date().getTime()) * 1000000n,
-    ];
+    // limitTimeRange.value = [
+    //   begin_time,
+    //   end_time ? end_time : BigInt(new Date().getTime()) * 1000000n,
+    // ];
 
-    currentTimeRangeData.value = {
-      range: limitTimeRange.value,
-      reload: true,
-    };
+    // currentTimeRangeData.value = {
+    //   range: limitTimeRange.value,
+    //   reload: true,
+    // };
   },
 );
 let nolRange: [bigint, bigint] = [0n, 0n];
+
+const onTimeContinueUpdate = (value: boolean) => {
+  timeContinue.value = value;
+};
 
 const onChangeTimeRange = (range: [bigint, bigint]) => {
   isExternalUpdate.value = true;
@@ -279,6 +319,13 @@ const onChangeTimeRange = (range: [bigint, bigint]) => {
 const onExternalUpdate = (value: boolean) => {
   isExternalUpdate.value = value;
 };
+
+const onUpdateCurrentTime = (value: bigint) => {
+  currentTime.value = value;
+  // timeContinue.value = false;
+  console.log('onUpdateCurrentTime', currentTime.value);
+};
+
 const dealsessionsToMap = (sessions: Record<string, LocationRseolved>) => {
   const SourceAndDestNameMap: Record<string, LocationRseolved> = {};
   Object.values(sessions).forEach((item) => {
@@ -383,16 +430,16 @@ const startCheckSessionsStatus = () => {
         sessionsMap.value[currentKey].status = SessionStatusEnum.Finished;
       }
 
-      if (`${session.begin_time}` === currentSessionKey.value) {
-        limitTimeRange.value = [
-          session.begin_time,
-          currentEndTime || BigInt(new Date().getTime()) * 1000000n,
-        ];
+      // if (`${session.begin_time}` === currentSessionKey.value) {
+      //   limitTimeRange.value = [
+      //     session.begin_time,
+      //     currentEndTime || BigInt(new Date().getTime()) * 1000000n,
+      //   ];
 
-        currentTimeRangeData.value.reload = !timeSlider.value?.sticking.some(
-          (item) => item,
-        );
-      }
+      // currentTimeRangeData.value.reload = !timeSlider.value?.sticking.some(
+      //   (item) => item,
+      // );
+      // }
     });
   }, 1000);
 };
@@ -436,6 +483,11 @@ const dealRowClassName = (row) => {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-align: center;
+  :deep(.ant-slider-track .ant-slider-step) {
+    border-color: #fff !important;
+    color: #fff !important;
+    background-color: #fff !important;
+  }
 
   .ant-layout {
     height: 100%;

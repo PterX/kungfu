@@ -1,8 +1,9 @@
 <template>
   <div class="kf-time-slider__wrap">
+    <div class="arrow arrow-left"></div>
     <div class="kf-time-slider-time">
       <a-input-group v-if="timeInputData[0].inputting" compact>
-        <a-input
+        <!-- <a-input
           v-model:value="timeInputData[0].value"
           @press-enter="handleConfirmTimeInput(0)"
         />
@@ -15,18 +16,13 @@
           <template #icon>
             <check-outlined />
           </template>
-        </a-button>
+        </a-button> -->
       </a-input-group>
-      <span
-        v-else
-        class="kf-time-slider-text"
-        style="text-align: end"
-        @dblclick="handleDbClickTimeText(0)"
-      >
+      <span v-else class="kf-time-slider-text" style="text-align: end">
         {{ timeStrs[0] }}
       </span>
     </div>
-    <a-slider
+    <!-- <a-slider
       ref="slider"
       v-model:value="currentTimeRange"
       v-dragging="{ onMouseDown: handleMouseDown, onMouseUp: handleMouseUp }"
@@ -39,6 +35,23 @@
       :max="limitRangeResolved[1]"
       :step="nano2millionSecond(step)"
       range
+      :tip-formatter="tipFormatter"
+      @after-change="onAfterChange"
+      @mousedown="handleMouseDown"
+      @mouseup="handleMouseUp"
+    /> -->
+    <a-slider
+      ref="slider"
+      v-model:value="curTime"
+      v-dragging="{ onMouseDown: handleMouseDown, onMouseUp: handleMouseUp }"
+      class="kf-time-slider"
+      :class="{
+        'kf-time-slider-handler-focus-1': false,
+        'kf-time-slider-handler-focus-2': true,
+      }"
+      :min="nano2millionSecond(props.beginTime)"
+      :max="nano2millionSecond(props.nowTime)"
+      :step="nano2millionSecond(step)"
       :tip-formatter="tipFormatter"
       @after-change="onAfterChange"
       @mousedown="handleMouseDown"
@@ -70,11 +83,12 @@
         {{ timeStrs[1] }}
       </span>
     </div>
+    <div class="arrow arrow-right"></div>
   </div>
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import { onMounted, onUnmounted, ref, watch } from 'vue';
 
 import { CheckOutlined, CloseOutlined } from '@ant-design/icons-vue';
 import { dealKfTime } from '@kungfu-trader/kungfu-js-api/kungfu';
@@ -89,9 +103,12 @@ type DoubleArray<T> = [T, T];
 //  a: 从父组件传递过来的，父组件是Journal.vue
 const props = withDefaults(
   defineProps<{
-    timeRange: DoubleArray<bigint>; // 当前只支持纳秒级别的时间
-    limitTimeRange: DoubleArray<bigint>; // 当前只支持纳秒级别的时间
-    isExternalUpdate: boolean;
+    currentTime: bigint; // 当前只支持纳秒级别的时间
+    // limitTimeRange: DoubleArray<bigint>;
+    nowTime: bigint;
+    beginTime: bigint;
+    endTime: bigint;
+    isTimeContinue: boolean;
     nolRange: DoubleArray<bigint>;
     step: number;
     stick: boolean;
@@ -102,19 +119,18 @@ const props = withDefaults(
 );
 
 const emit = defineEmits<{
-  (e: 'update:timeRange', value: DoubleArray<bigint>): void;
-  (e: 'externalUpdate', value: boolean): void;
+  (e: 'update:currentTime', value: bigint): void;
+  (e: 'timeContinueUpdate', value: boolean): void;
 }>();
-
 const SCALE = 1000000;
 const BIGINT_SCALE = BigInt(SCALE);
 
 const isDragging = ref<boolean>(false);
 const slider = ref();
-const sticking = ref<DoubleArray<boolean>>([
-  props.timeRange[0] === props.limitTimeRange[0],
-  props.timeRange[0] === props.limitTimeRange[0],
-]);
+// const sticking = ref<DoubleArray<boolean>>([
+//   props.currentTime === props.limitTimeRange[0],
+//   props.currentTime === props.limitTimeRange[0],
+// ]);
 const timeInputData = ref<DoubleArray<{ inputting: boolean; value: string }>>([
   { inputting: false, value: '' },
   { inputting: false, value: '' },
@@ -127,6 +143,20 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener('mouseup', globalMouseUp);
 });
+// const onSingleSliderChange = (value: number) => {
+//   if (value === nano2millionSecond(props.currentTime)) return;
+//   console.log('onSingleSliderChange', currentTimeRange, value);
+
+//   if (props.stick) {
+//     sticking.value[1] = value === limitRangeResolved.value[1];
+//   }
+//   emit('update:currentTime', [
+//     dealUpdateTime(currentTimeRange.value[0]),
+//     dealUpdateTime(value),
+//   ]);
+// };
+
+// const time = BigInt(new Date().getTime()) * 1000000n;
 
 const handleMouseDown = () => {
   isDragging.value = true;
@@ -157,7 +187,7 @@ const customDealKftime = (time: bigint) => {
 };
 
 const str2millionTime = (timeStr: string) => {
-  timeStr = timeStr.replaceAll(' ', '');
+  // timeStr = timeStr.replaceAll(' ', '');
   return new Promise<number>((resolve, reject) => {
     const timeRegx = /(\d{2}):(\d{2}):(\d{2})\.?(\d{3})?/;
     if (!timeRegx.test(timeStr))
@@ -176,107 +206,144 @@ const million2nanoSecond = (number: number) => {
   return BigInt(number * SCALE);
 };
 
-const currentTimeRange = ref<DoubleArray<number>>([
-  nano2millionSecond(props.timeRange[0]),
-  nano2millionSecond(props.timeRange[1]),
-]);
+const curTime = ref(nano2millionSecond(props.nowTime));
 
-const limitRangeResolved = ref<DoubleArray<number>>([
-  nano2millionSecond(props.limitTimeRange[0]),
-  nano2millionSecond(props.limitTimeRange[1]),
-]);
+// const limitRangeResolved = ref<DoubleArray<number>>([
+//   nano2millionSecond(props.limitTimeRange[0]),
+//   nano2millionSecond(props.limitTimeRange[1]),
+// ]);
 
-watch(
-  () => props.nolRange,
-  () => {
-    if (props.isExternalUpdate) {
-      console.log('llllll', {
-        currentTimeRange: currentTimeRange.value,
-        nolRange: props.nolRange,
-      });
-      onAfterChange([
-        nano2millionSecond(props.nolRange[0]),
-        nano2millionSecond(props.nolRange[1]),
-      ]);
-    }
-  },
-);
+// watch(
+//   () => props.nolRange,
+//   () => {
+//     if (props.isTimeContinue) {
+//       console.log('llllll', {
+//         curTime: curTime.value,
+//         nolRange: props.nolRange,
+//       });
+//       onAfterChange(nano2millionSecond(props.nolRange[1]));
+//     }
+//   },
+// );
 // watch(
 //   () => currentTimeRange.value,
 //   () => {
-//     console.log('externalUpdate', props.isExternalUpdate);
+//     console.log('externalUpdate', props.isTimeContinue);
 //     emit('externalUpdate', false);
 //   },
 // );
 
+// watch(
+//   () => props.limitTimeRange,
+//   (newLimitRange) => {
+//     limitRangeResolved.value = [
+//       nano2millionSecond(newLimitRange[0]),
+//       nano2millionSecond(newLimitRange[1]),
+//     ];
+//   },
+// );
+const timeStrs = ref([
+  customDealKftime(props.beginTime),
+  customDealKftime(props.nowTime),
+]);
+
 watch(
-  () => props.timeRange,
-  (newRange) => {
-    currentTimeRange.value = [
-      nano2millionSecond(newRange[0]),
-      nano2millionSecond(newRange[1]),
-    ];
+  () => props.nowTime,
+  () => {
+    console.log(
+      'nowTime',
+      props.currentTime,
+      curTime.value,
+      props.isTimeContinue,
+    );
+    if (props.isTimeContinue) {
+      timeStrs.value = [
+        customDealKftime(props.beginTime),
+        customDealKftime(props.endTime || props.nowTime),
+      ];
+    } else {
+      timeStrs.value = [
+        customDealKftime(props.beginTime),
+        customDealKftime(props.currentTime),
+      ];
+    }
   },
 );
-
 watch(
-  () => props.limitTimeRange,
-  (newLimitRange) => {
-    limitRangeResolved.value = [
-      nano2millionSecond(newLimitRange[0]),
-      nano2millionSecond(newLimitRange[1]),
-    ];
-    if (props.stick && !isDragging.value) {
-      if (sticking.value[0]) {
-        currentTimeRange.value[0] = limitRangeResolved.value[0];
-      }
-
-      if (sticking.value[1]) {
-        currentTimeRange.value[1] = limitRangeResolved.value[1];
-      }
-
-      if (sticking.value.some((item) => item)) {
-        emit('update:timeRange', [
-          dealUpdateTime(currentTimeRange.value[0]),
-          dealUpdateTime(currentTimeRange.value[1]),
-        ]);
-      }
+  () => props.beginTime,
+  () => {
+    if (props.isTimeContinue) {
+      timeStrs.value = [
+        customDealKftime(props.beginTime),
+        customDealKftime(props.endTime || props.nowTime),
+      ];
+    } else {
+      timeStrs.value = [
+        customDealKftime(props.beginTime),
+        customDealKftime(props.currentTime),
+      ];
+    }
+  },
+);
+watch(
+  () => props.isTimeContinue,
+  (newTimeContinue) => {
+    console.log('newTimeContinue', newTimeContinue);
+    if (newTimeContinue) {
+      timeStrs.value = [
+        customDealKftime(props.beginTime),
+        customDealKftime(props.endTime || props.nowTime),
+      ];
+    } else {
+      timeStrs.value = [
+        customDealKftime(props.beginTime),
+        customDealKftime(props.currentTime),
+      ];
     }
   },
 );
 
-const timeStrs = computed(() => {
-  return [
-    customDealKftime(props.timeRange[0]),
-    customDealKftime(props.timeRange[1]),
-  ];
-});
+watch(
+  () => props.currentTime,
+  () => {
+    curTime.value = nano2millionSecond(props.currentTime);
+  },
+);
+
+// const timeStrs = computed(() => {
+//   return [
+//     customDealKftime(props.currentTime[0]),
+//     customDealKftime(props.currentTime[1]),
+//   ];
+// });
 
 const tipFormatter = (num: number) => {
   return customDealKftime(BigInt(num * SCALE));
 };
 
 const dealUpdateTime = (time: number) => {
-  if (time === limitRangeResolved.value[0]) return props.limitTimeRange[0];
-  if (time === limitRangeResolved.value[1]) return props.limitTimeRange[1];
+  // if (time === limitRangeResolved.value[0]) return props.limitTimeRange[0];
+  // if (time === limitRangeResolved.value[1]) return props.limitTimeRange[1];
   return million2nanoSecond(time);
 };
 
-const onAfterChange = (value: DoubleArray<number>) => {
+const onAfterChange = (value: number) => {
   if (
-    value[0] === nano2millionSecond(props.timeRange[0]) &&
-    value[1] === nano2millionSecond(props.timeRange[1])
-  )
-    return;
-
-  if (props.stick) {
-    sticking.value[0] = value[0] === limitRangeResolved.value[0];
-    sticking.value[1] = value[1] === limitRangeResolved.value[1];
+    // value[0] === nano2millionSecond(props.currentTime[0]) &&
+    value === nano2millionSecond(props.nowTime)
+  ) {
+    emit('timeContinueUpdate', true);
+    // return;
+  } else {
+    emit('timeContinueUpdate', false);
   }
-  emit('update:timeRange', [
-    dealUpdateTime(value[0]),
-    dealUpdateTime(value[1]),
-  ]);
+
+  // if (props.stick) {
+  //   // sticking.value[0] = value[0] === limitRangeResolved.value[0];
+  //   sticking.value[1] = value === limitRangeResolved.value[1];
+  // }
+  console.log('onAfterChange', value);
+  emit('update:currentTime', dealUpdateTime(value));
 };
 
 const resetInputData = (index: 0 | 1) => {
@@ -296,8 +363,8 @@ const handleDbClickTimeText = (index: 0 | 1) => {
 const handleConfirmTimeInput = (index: 0 | 1) => {
   str2millionTime(timeInputData.value[index].value)
     .then((resolvedTime) => {
-      currentTimeRange.value[index] = resolvedTime;
-      onAfterChange(currentTimeRange.value);
+      curTime.value = resolvedTime;
+      onAfterChange(curTime.value);
       resetInputData(index);
     })
     .catch((err) => {
@@ -305,12 +372,17 @@ const handleConfirmTimeInput = (index: 0 | 1) => {
     });
 };
 
-defineExpose({
-  sticking,
-});
+// defineExpose({
+//   sticking,
+// });
 </script>
 
 <style lang="less">
+:deep(.ant-slider-track .ant-slider-step) {
+  border-color: #fff !important;
+  color: #fff !important;
+  background-color: #fff !important;
+}
 .kf-time-slider__wrap {
   display: flex;
   align-items: center;
@@ -354,6 +426,41 @@ defineExpose({
     .ant-slider-handle-2 {
       border-color: #faad14;
     }
+  }
+  .arrow {
+    display: inline-block;
+    position: relative;
+    width: 21px;
+    height: 21px;
+    background-color: #faad14;
+    border-radius: 50%;
+    cursor: pointer;
+  }
+
+  .arrow-left::before,
+  .arrow-right::before {
+    content: '';
+    display: block;
+    position: absolute;
+    width: 0;
+    height: 0;
+    border-style: solid;
+    transform: translateY(-50%);
+    top: 50%;
+  }
+
+  .arrow-left::before {
+    border-width: 6px 10px 6px 0;
+    border-color: transparent #ffffff transparent transparent;
+    left: 50%;
+    transform: translateX(-50%) translateY(-50%);
+  }
+
+  .arrow-right::before {
+    border-width: 6px 0 6px 10px;
+    border-color: transparent transparent transparent #ffffff;
+    right: 50%;
+    transform: translateX(50%) translateY(-50%);
   }
 }
 </style>

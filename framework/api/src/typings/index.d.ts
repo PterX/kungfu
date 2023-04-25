@@ -993,12 +993,13 @@ declare namespace KungfuApi {
     seekToTime(): void;
     next(): void;
     dataAvailable(): boolean;
-    seekToTime(nanotime: bigint): void;
   }
   export interface Tracer {
     currentFrame(): Frame<'func'>;
     dataAvailable(): boolean;
-    next(): Tracer;
+    next(): void;
+    seekToTime(nanotime: bigint): void;
+    now(): bigint;
   }
 
   export interface Longfist {

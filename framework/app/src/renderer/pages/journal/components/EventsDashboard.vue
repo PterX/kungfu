@@ -95,7 +95,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, computed, watch, shallowRef, watchEffect } from 'vue';
+import { ref, computed, watch, shallowRef } from 'vue';
 import { Empty } from 'ant-design-vue';
 import { longfist, tracer } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { getFrameColumns } from '../config';
@@ -104,12 +104,16 @@ import { createFiltersEnumMap, FiltersEnum } from '../utils/filterUtils';
 import KfTradingDataTable from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfTradingDataTable.vue';
 import FrameFilters from './FrameFilters.vue';
 import { useJournalStore } from '../store/journalStore';
-import { SessionStatusEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
+// import { SessionStatusEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 
 const props = withDefaults(
   defineProps<{
     currentSession: KungfuApi.SessionResolved | null;
     currentLocation: KungfuApi.KfLocation | null;
+    beginTime: bigint;
+    endTime: bigint;
+    currentTime: bigint;
+    isTimeContinue: boolean;
     locationMap: Record<string, string>;
     isExternalUpdate: boolean;
     currentTimeRangeData: {
@@ -123,11 +127,12 @@ const props = withDefaults(
 const emit = defineEmits<{
   (e: 'changeTimeRange', range: [bigint, bigint]): void;
   (e: 'externalUpdate', value: boolean): void;
+  (e: 'updateCurrentTime', value: bigint): void;
 }>();
 
-watchEffect(() => {
-  console.log('locations', props.locationMap);
-});
+// watchEffect(() => {
+//   console.log('locations', props.locationMap);
+// });
 
 type dataResolvedType = {
   children?: dataResolvedType;
@@ -135,14 +140,13 @@ type dataResolvedType = {
   title: string;
 }[];
 
-const isFrameCache = ref(false);
 const cacheFrameDataList = shallowRef<KungfuApi.FrameResolved[]>([]);
 
 const journalStore = useJournalStore();
 const frameColumns = getFrameColumns();
 const simpleImage = Empty.PRESENTED_IMAGE_SIMPLE;
 const loadingJournal = ref(false);
-
+const dataChangeByCurrentTime = ref(false);
 const currentFramesId = ref<number>(-1);
 const frameFilter = ref();
 let tracerFrame: KungfuApi.Tracer | null = null;
@@ -152,132 +156,35 @@ const writeEvent = ref(true);
 const frameDataList = shallowRef<KungfuApi.FrameResolved[]>([]);
 const frameFiltersReg = ref(createFiltersEnumMap(/.*/));
 const msgMap = ref<string[]>([]);
-// let promiseQueue: (() => Promise<void>)[] = [];
-
-// const processQueue = async () => {
-//   while (promiseQueue.length > 0) {
-//     const promiseFn = promiseQueue.shift();
-//     if (promiseFn) {
-//       await promiseFn();
-//     }
-//   }
-// };
-
-// const addToQueue = (promiseFn: () => Promise<void>) => {
-//   promiseQueue.push(promiseFn);
-//   if (promiseQueue.length === 1) {
-//     processQueue();
-//   }
-// };
-// const wrappedLoadFrameData = (...args: Parameters<typeof loadFrameData>) => {
-//   // eslint-disable-next-line no-async-promise-executor
-//   return new Promise<void>(async (resolve) => {
-//     await loadFrameData(...args);
-//     resolve();
-//   });
-// };
 
 const frameDataListResolved = computed(() => {
   let newRrameList: KungfuApi.FrameResolved[] = [];
-  if (frameDataList.value.length <= 0) {
-    newRrameList = [];
-  } else {
-    newRrameList = frameDataList.value.filter((item) => {
-      // return Object.keys(frameFiltersReg.value).every((filterKey) => {
-      //   if (frameFiltersReg.value[filterKey]) {
-      //     const curReg = frameFiltersReg.value[filterKey as FiltersEnum];
-      //     switch (filterKey) {
-      //       case FiltersEnum.DEST:
-      //         return curReg.test(item.dest + '');
-      //       case FiltersEnum.SOURCE:
-      //         return curReg.test(item.source + '');
-      //       case FiltersEnum.MSG_TYPE:
-      //         return curReg.test(item.msgType + '');
-      //     }
 
-      //     return true;
-      //   } else {
-      //     return true;
-      //   }
-      // });
-      if (msgMap.value.length === 0) {
-        return true;
-      }
-      return msgMap.value.includes(longfist.msgTypes[item.msgType]);
-    });
+  newRrameList = frameDataList.value.filter((item) => {
+    // if (msgMap.value.length === 0) {
+    //   return true;
+    // }
+    // return msgMap.value.includes(longfist.msgTypes[item.msgType]);
+    return true;
+  });
+
+  if (newRrameList.length <= 0) return [];
+  console.log('newRrameList', newRrameList, newRrameList.length);
+
+  if (newRrameList.length >= 10000) {
+    emit('changeTimeRange', [
+      newRrameList[0].genTime,
+      newRrameList[newRrameList.length - 1].genTime,
+    ]);
   }
-
-  if (isFrameCache.value && cacheFrameDataList.value.length > 0) {
-    // eslint-disable-next-line vue/no-side-effects-in-computed-properties
-    cacheFrameDataList.value = [...cacheFrameDataList.value, ...newRrameList];
-    if (cacheFrameDataList.value[0] === undefined)
-      return cacheFrameDataList.value;
-    if (cacheFrameDataList.value.length >= 9999) {
-      if (cacheFrameDataList.value[0].genTime === lastReaderArgs.startTime) {
-        // eslint-disable-next-line vue/no-side-effects-in-computed-properties
-        cacheFrameDataList.value = cacheFrameDataList.value.slice(
-          cacheFrameDataList.value.length - 10000,
-          cacheFrameDataList.value.length,
-        );
-        // eslint-disable-next-line vue/no-side-effects-in-computed-properties
-        lastReaderArgs.endTime =
-          cacheFrameDataList.value[cacheFrameDataList.value.length - 1].genTime;
-      }
-      if (
-        cacheFrameDataList.value[cacheFrameDataList.value.length - 1]
-          .genTime === lastReaderArgs.endTime
-      ) {
-        // eslint-disable-next-line vue/no-side-effects-in-computed-properties
-        cacheFrameDataList.value = cacheFrameDataList.value.slice(0, 10000);
-        // eslint-disable-next-line vue/no-side-effects-in-computed-properties
-        lastReaderArgs.startTime = cacheFrameDataList.value[0].genTime;
-      }
-
-      console.log('进入', total, [
-        cacheFrameDataList.value[0].genTime,
-        cacheFrameDataList.value[cacheFrameDataList.value.length - 1].genTime,
-      ]);
-      emit('changeTimeRange', [
-        cacheFrameDataList.value[0].genTime,
-        cacheFrameDataList.value[cacheFrameDataList.value.length - 1].genTime,
-      ]);
-    }
-    return cacheFrameDataList.value;
-  } else {
-    // eslint-disable-next-line vue/no-side-effects-in-computed-properties
-    cacheFrameDataList.value = newRrameList;
-    if (cacheFrameDataList.value.length >= 9999) {
-      if (cacheFrameDataList.value[0].genTime === lastReaderArgs.startTime) {
-        // eslint-disable-next-line vue/no-side-effects-in-computed-properties
-        cacheFrameDataList.value = cacheFrameDataList.value.slice(
-          cacheFrameDataList.value.length - 10000,
-          cacheFrameDataList.value.length,
-        );
-        // eslint-disable-next-line vue/no-side-effects-in-computed-properties
-        lastReaderArgs.endTime =
-          cacheFrameDataList.value[cacheFrameDataList.value.length - 1].genTime;
-      }
-      if (
-        cacheFrameDataList.value[cacheFrameDataList.value.length - 1]
-          .genTime === lastReaderArgs.endTime
-      ) {
-        // eslint-disable-next-line vue/no-side-effects-in-computed-properties
-        cacheFrameDataList.value = cacheFrameDataList.value.slice(0, 10000);
-        // eslint-disable-next-line vue/no-side-effects-in-computed-properties
-        lastReaderArgs.startTime = cacheFrameDataList.value[0].genTime;
-      }
-
-      console.log('进入', total, [
-        cacheFrameDataList.value[0].genTime,
-        cacheFrameDataList.value[cacheFrameDataList.value.length - 1].genTime,
-      ]);
-      emit('changeTimeRange', [
-        cacheFrameDataList.value[0].genTime,
-        cacheFrameDataList.value[cacheFrameDataList.value.length - 1].genTime,
-      ]);
-    }
-    return cacheFrameDataList.value;
+  if (
+    !props.currentTime ||
+    props.currentTime === 0n ||
+    props.currentTime > newRrameList[0].genTime
+  ) {
+    emit('updateCurrentTime', newRrameList[0].genTime);
   }
+  return newRrameList;
 });
 
 const framesMap = shallowRef<Record<string, KungfuApi.FrameResolved>>({});
@@ -330,76 +237,108 @@ const currentRowDataResolved = computed(() => {
 
 watch(
   () => props.currentSession,
-  (newSession, oldSession) => {
+  async (newSession, oldSession) => {
+    console.log('currentSessionLoad', props.currentSession);
     if (newSession && newSession !== oldSession) {
       isLoading = false;
-      cacheId = 0;
       msgMap.value = [];
+      framesMap.value = {};
 
-      loadFrameData(
+      loadingJournal.value = true;
+
+      tracerFrame = tracer(
+        props.currentSession as KungfuApi.KfLocation,
+        readEvent.value,
+        writeEvent.value,
+        newSession.begin_time,
+        newSession.end_time,
+      );
+
+      await loadFrameData(
         newSession,
         newSession.begin_time,
         newSession.end_time,
         false,
       );
+      dataChangeByCurrentTime.value = true;
     }
   },
 );
-
-watchEffect(() => {
-  console.log('变化', props.isExternalUpdate);
-});
 
 watch(
-  () => props.currentTimeRangeData,
-  (newRangeData) => {
-    if (props.isExternalUpdate && (total >= 9999 || !sliceable.value)) {
-      emit('externalUpdate', false);
-
-      total = 0;
-      isLoading = false;
-      console.log('退出', {
-        total,
-        isLoading,
-        isExternalUpdate: props.isExternalUpdate,
-      });
-    }
-    console.log('newRangeData', {
-      newRangeData,
-      isLoading: isLoading,
-      isExternalUpdate: props.isExternalUpdate,
-      total: total,
-    });
-    if (props.currentSession) {
-      if (newRangeData.range[0] && newRangeData.range[1]) {
-        if (!props.isExternalUpdate && total >= 10000) {
-          total = 0;
-        }
-        if (newRangeData.reload) {
-          cacheId = 0;
-        }
-        if (!props.isExternalUpdate && total < 9999)
-          loadFrameData(
-            props.currentSession as KungfuApi.SessionResolved,
-            newRangeData.range[0],
-            newRangeData.range[1],
-            !newRangeData.reload,
-          );
-      }
+  () => props.currentTime,
+  async () => {
+    if (dataChangeByCurrentTime.value && props.currentSession) {
+      console.log(
+        'currentTimeLoad',
+        props.currentTime,
+        tracerFrame?.currentFrame().genTime(),
+        tracerFrame?.seekToTime(props.currentTime),
+        tracerFrame?.currentFrame().genTime(),
+      );
+      await loadFrameData(
+        props.currentSession as KungfuApi.SessionResolved,
+        props.currentSession.begin_time,
+        props.currentSession.end_time,
+        false,
+      );
     }
   },
-  { deep: true },
 );
+// watchEffect(() => {
+//   console.log('变化', props.isExternalUpdate);
+// });
+
+// watch(
+//   () => props.currentTimeRangeData,
+//   (newRangeData) => {
+//     if (props.isExternalUpdate && (total >= 9999 || !sliceable.value)) {
+//       emit('externalUpdate', false);
+
+//       total = 0;
+//       isLoading = false;
+//       console.log('退出', {
+//         total,
+//         isLoading,
+//         isExternalUpdate: props.isExternalUpdate,
+//       });
+//     }
+//     console.log('newRangeData', {
+//       newRangeData,
+//       isLoading: isLoading,
+//       isExternalUpdate: props.isExternalUpdate,
+//       total: total,
+//     });
+//     if (props.currentSession) {
+//       if (newRangeData.range[0] && newRangeData.range[1]) {
+//         if (!props.isExternalUpdate && total >= 10000) {
+//           total = 0;
+//         }
+//         if (newRangeData.reload) {
+//           cacheId = 0;
+//         }
+//         if (!props.isExternalUpdate && total < 9999)
+//           loadFrameData(
+//             props.currentSession as KungfuApi.SessionResolved,
+//             newRangeData.range[0],
+//             newRangeData.range[1],
+//             !newRangeData.reload,
+//           );
+//       }
+//     }
+//   },
+//   { deep: true },
+// );
 
 // let journalReader: KungfuApi.AssembleReader | null = null;
-let lastReaderArgs = {
-  sessionId: 0,
-  startTime: 0n,
-  endTime: 0n,
-};
+// let lastReaderArgs = {
+//   sessionId: 0,
+//   startTime: 0n,
+//   endTime: 0n,
+// };
 
-const EVERY_COUNT = 10;
-const LIMIT_COUNT = 1000;
+// const EVERY_COUNT = 10;
+// const LIMIT_COUNT = 1000;
 
 // const checkReaderArgs = (args: {
 //   sessionId: number;
@@ -431,23 +370,18 @@ const getDataResolved = (data: object): dataResolvedType | null => {
   }
   return null;
 };
-let cacheId = 0;
-let total = 0;
+
 let isLoading = false;
-let count;
-framesMap.value = {};
 const loadFrameData = (
   session: KungfuApi.SessionResolved,
   startTime: bigint,
   endTime: bigint,
   checking = false,
-  turn?: KungfuApi.Tracer | null,
-  record = true,
+  oldTracerFrame?: KungfuApi.Tracer | null,
 ) => {
-  if (isLoading && !turn) return;
+  if (isLoading && !oldTracerFrame) return;
   isLoading = true;
-  count = 0;
-  console.log(record, 'record');
+
   if (!readEvent.value && !writeEvent.value) {
     frameDataList.value = [];
     cacheFrameDataList.value = [];
@@ -456,39 +390,9 @@ const loadFrameData = (
   // const sessionId = session.index;
   // if (!checkReaderArgs({ sessionId, startTime, endTime }) && !turn) return;
 
-  if (!turn) {
-    if (!checking) {
-      loadingJournal.value = true;
-      if (session.status === SessionStatusEnum.Running) {
-        tracerFrame = tracer(
-          props.currentSession as KungfuApi.KfLocation,
-          readEvent.value,
-          writeEvent.value,
-          startTime,
-          0n,
-        );
-      } else {
-        tracerFrame = tracer(
-          props.currentSession as KungfuApi.KfLocation,
-          readEvent.value,
-          writeEvent.value,
-          startTime,
-          endTime,
-        );
-      }
-    }
-  } else {
-    tracerFrame = turn;
-  }
-
-  if (checking) {
-    total = cacheId;
-  } else {
-    total = 0;
-    framesMap.value = {};
-  }
-
   const curFramesMap = {};
+  let count = 0;
+  let newTotal = 0;
   const runner = async (): Promise<KungfuApi.FrameResolved[]> => {
     if (!tracerFrame) return Promise.resolve([]);
     let frame: KungfuApi.Frame<'func'> = tracerFrame.currentFrame();
@@ -508,7 +412,7 @@ const loadFrameData = (
           dataResolved[0].children = dataChildren;
         }
         const curFrameData: KungfuApi.Frame = {
-          id: total,
+          id: newTotal,
           dataLength: frame.dataLength(),
           genTime: frame.genTime(),
           triggerTime: frame.triggerTime(),
@@ -527,28 +431,15 @@ const loadFrameData = (
         const curFrameDataResolved = dealFrame(curFrameData);
         curFramesMap[curFrameDataResolved.id] = curFrameDataResolved;
         framesMap.value[curFrameDataResolved.id] = curFrameDataResolved;
-        // frameFilter.value?.addOption(FiltersEnum.DEST, [
-        //   {
-        //     label: curFrameDataResolved.destName,
-        //     value: curFrameDataResolved.dest + '',
-        //   },
-        // ]);
-        // frameFilter.value?.addOption(FiltersEnum.SOURCE, [
-        //   {
-        //     label: curFrameDataResolved.sourceName,
-        //     value: curFrameDataResolved.source + '',
-        //   },
-        // ]);
-        if (record) {
-          frameFilter.value?.addOption(FiltersEnum.MSG_TYPE, [
-            {
-              label: curFrameDataResolved.stringMsgType,
-              value: curFrameDataResolved.msgType + '',
-            },
-          ]);
-        }
+        frameFilter.value?.addOption(FiltersEnum.MSG_TYPE, [
+          {
+            label: curFrameDataResolved.stringMsgType,
+            value: curFrameDataResolved.msgType + '',
+          },
+        ]);
+
         console.log('traceReader', {
-          total,
+          newTotal,
           curFrameData,
           dataChildren,
           frameFilter: frameFilter.value,
@@ -564,22 +455,16 @@ const loadFrameData = (
           ],
           isLoading,
         });
-        ++total;
+        // tracerFrame.next();
+        ++newTotal;
         ++count;
       }
     }
-    if (
-      count < 999 ||
-      (total - cacheId >= 1000 &&
-        session.status === SessionStatusEnum.Running) ||
-      !tracerFrame.dataAvailable() ||
-      total > 9999
-    ) {
-      count = 0;
+    if (!tracerFrame.dataAvailable() || newTotal > 9999) {
       console.log('结束', {
         checking,
         count,
-        total,
+
         tracerFrame,
         dataAvailable: tracerFrame.dataAvailable(),
         curFramesMap,
@@ -588,8 +473,7 @@ const loadFrameData = (
       sliceable.value = tracerFrame.dataAvailable();
       return Object.values(curFramesMap);
     } else {
-      if (session.status === SessionStatusEnum.Finished || count >= 1000)
-        count = 0;
+      count = 0;
       console.log('继续', count, tracerFrame, tracerFrame.dataAvailable());
       return new Promise<KungfuApi.FrameResolved[]>((resolve) => {
         requestAnimationFrame(async () => {
@@ -601,21 +485,19 @@ const loadFrameData = (
   };
 
   return runner().then((res) => {
-    cacheId = total;
+    loadingJournal.value = false;
+    if (res.length <= 0) return;
     if (checking) {
-      if (res.length > 0) {
-        isFrameCache.value = true;
-        frameDataList.value = res;
-      }
-
+      frameDataList.value.push(...res);
+      currentFramesId.value = frameDataList.value[0]?.id;
       journalStore.setCurrentSessionFrames(res, false);
     } else {
-      isFrameCache.value = false;
+      // isFrameCache.value = false;
       frameDataList.value = res;
 
       currentFramesId.value = frameDataList.value[0]?.id;
-      isFrameCache.value = false;
-      cacheFrameDataList.value = [];
+      // isFrameCache.value = false;
+      // cacheFrameDataList.value = [];
 
       journalStore.setCurrentSessionFrames(res, true);
     }
@@ -625,13 +507,8 @@ const loadFrameData = (
       frameDataListResolved.value,
       msgMap.value,
       checking,
-
-      [{ total, cacheId, count }, [startTime, endTime]],
     );
-    loadingJournal.value = false;
-    if (total >= LIMIT_COUNT && total < 9999 && tracerFrame?.dataAvailable()) {
-      loadFrameData(session, startTime, endTime, true, tracerFrame, record);
-    }
+
     // if (total < 10000)
     isLoading = false;
     // return sleep(1000).then(() => {
@@ -655,7 +532,6 @@ const onFiltersApply = (
 ) => {
   readEvent.value = read;
   writeEvent.value = write;
-  total = 0;
   isLoading = false;
   msgMap.value = filtersFormState[FiltersEnum.MSG_TYPE];
   Object.keys(filtersFormState).forEach((key) => {
@@ -672,8 +548,6 @@ const onFiltersApply = (
     props.currentSession as KungfuApi.SessionResolved,
     props.currentTimeRangeData.range[0],
     props.currentTimeRangeData.range[1],
-    false,
-    null,
     false,
   );
 

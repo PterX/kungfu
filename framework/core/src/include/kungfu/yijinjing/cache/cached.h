@@ -22,7 +22,7 @@ public:
 
   template <typename DataType> std::vector<DataType> get_all(const DataType &) { return profile_.get_all(DataType{}); }
 
-  void restore(const yijinjing::data::location_ptr &location, yijinjing::journal::writer_ptr &writer);
+  void restore(const yijinjing::data::location_ptr &location, const yijinjing::journal::writer_ptr &writer);
 
   void clear_cache_shift(const yijinjing::data::location_ptr &location);
 
@@ -33,6 +33,13 @@ public:
   void cache_reset(const event_ptr &event);
 
   void feed(const event_ptr &event);
+
+  template <typename DataType>
+  std::enable_if_t<longfist::is_profile_data(DataType::type_name)> feed_profile(const DataType &data) {
+    std::lock_guard<std::mutex> lock(feed_mutex_);
+    auto s = state(0, 0, 0, data);
+    profile_bank_ << s;
+  }
 
   void run_feeds_worker();
 
@@ -77,15 +84,21 @@ private:
   yijinjing::cache::bank feed_bank_;
   std::thread feed_worker_;
   std::mutex feed_mutex_;
-  std::mutex db_mutex_;
+  std::mutex cache_store_mutex_;
+  std::mutex profile_store_mutex_;
   bool m_quit_ = false;
 
   static constexpr auto profile_get_all = [](auto &profile, auto &receiver) {
     boost::hana::for_each(longfist::ProfileDataTypes, [&](auto it) {
       using DataType = typename decltype(+boost::hana::second(it))::type;
-      for (const auto &data : profile.get_all(DataType{})) {
-        auto s = state(0, 0, 0, data);
-        receiver << s;
+      try {
+
+        for (const auto &data : profile.get_all(DataType{})) {
+          auto s = state(0, 0, 0, data);
+          receiver << s;
+        }
+      } catch (const std::exception &e) {
+        SPDLOG_ERROR("Unexpected exception by profile_get_all {}", e.what());
       }
     });
   };

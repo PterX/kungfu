@@ -124,9 +124,7 @@ writer_ptr hero::get_writer(uint32_t dest_id) const {
 
 [[maybe_unused]] const WriterMap &hero::get_writers() const { return writers_; }
 
-bool hero::has_location(uint32_t uid) const {
-  return locations_.find(uid) != locations_.end();
-}
+bool hero::has_location(uint32_t uid) const { return locations_.find(uid) != locations_.end(); }
 
 location_ptr hero::get_location(uint32_t uid) const {
   if (not has_location(uid)) {
@@ -150,17 +148,13 @@ std::string hero::get_location_uname(uint32_t uid) const {
   return get_location(uid)->uname;
 }
 
-bool hero::is_location_live(uint32_t uid) const {
-  return registry_.find(uid) != registry_.end();
-}
+bool hero::is_location_live(uint32_t uid) const { return registry_.find(uid) != registry_.end(); }
 
 bool hero::has_channel(uint32_t source, uint32_t dest) const {
   return has_channel(make_source_dest_hash(source, dest));
 }
 
-bool hero::has_channel(uint64_t hash) const {
-  return channels_.find(hash) != channels_.end();
-}
+bool hero::has_channel(uint64_t hash) const { return channels_.find(hash) != channels_.end(); }
 
 [[maybe_unused]] const longfist::types::Channel &hero::get_channel(uint32_t source, uint32_t dest) const {
   return get_channel(make_source_dest_hash(source, dest));
@@ -175,19 +169,13 @@ const Channel &hero::get_channel(uint64_t hash) const {
   return channels_;
 }
 
-const std::unordered_map<uint32_t, longfist::types::Register> &hero::get_registry() const {
-  return registry_;
-}
+const std::unordered_map<uint32_t, longfist::types::Register> &hero::get_registry() const { return registry_; }
 
-const std::unordered_map<uint32_t, yijinjing::data::location_ptr> &hero::get_locations() const {
-  return locations_;
-}
+const std::unordered_map<uint32_t, yijinjing::data::location_ptr> &hero::get_locations() const { return locations_; }
 
 bool hero::has_band(uint32_t source, uint32_t dest) const { return has_band(make_source_dest_hash(source, dest)); }
 
-bool hero::has_band(uint64_t hash) const {
-  return bands_.find(hash) != bands_.end();
-}
+bool hero::has_band(uint64_t hash) const { return bands_.find(hash) != bands_.end(); }
 
 const longfist::types::Band &hero::get_band(uint32_t source, uint32_t dest) const {
   return get_band(make_source_dest_hash(source, dest));
@@ -198,9 +186,7 @@ const longfist::types::Band &hero::get_band(uint64_t hash) const {
   return bands_.at(hash);
 }
 
-const std::unordered_map<uint64_t, longfist::types::Band> &hero::get_bands() const {
-  return bands_;
-}
+const std::unordered_map<uint64_t, longfist::types::Band> &hero::get_bands() const { return bands_; }
 
 void hero::on_notify() {}
 
@@ -245,17 +231,13 @@ bool hero::check_location_live(uint32_t source_id, uint32_t dest_id) const {
   return true;
 }
 
-void hero::add_location(int64_t, const location_ptr &location) {
-  locations_.try_emplace(location->uid, location);
-}
+void hero::add_location(int64_t, const location_ptr &location) { locations_.try_emplace(location->uid, location); }
 
 void hero::add_location(int64_t trigger_time, const Location &location) {
   add_location(trigger_time, data::location::make_shared(location, get_locator()));
 }
 
-void hero::remove_location(int64_t trigger_time, uint32_t location_uid) {
-  locations_.erase(location_uid);
-}
+void hero::remove_location(int64_t trigger_time, uint32_t location_uid) { locations_.erase(location_uid); }
 
 void hero::register_location(int64_t, const Register &register_data) {
   uint32_t location_uid = register_data.location_uid;

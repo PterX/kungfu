@@ -135,8 +135,9 @@ void master::register_app(const event_ptr &event) {
   cached_.ensure_cached_storage(app_location, location::SYNC);
   cached_.restore(app_location, app_cmd_writer);
 
-
   app_cmd_writer->mark(time::now_in_nano(), RequestStart::tag);
+
+  // have to be at this position, for triggering strategy(other) prepare
   write_locations(event->gen_time(), app_cmd_writer);
   write_registries(event->gen_time(), app_cmd_writer);
   write_channels(event->gen_time(), app_cmd_writer);
@@ -219,8 +220,10 @@ void master::handle_timer_tasks() {
 }
 
 void master::try_add_location(int64_t trigger_time, const location_ptr &app_location) {
+
   if (not has_location(app_location->uid)) {
     add_location(trigger_time, app_location);
+    cached_.feed_profile<Location>(dynamic_cast<Location &>(*app_location));
   }
 }
 

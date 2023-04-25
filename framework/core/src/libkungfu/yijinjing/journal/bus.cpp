@@ -10,4 +10,4 @@ void bus::on_load_page() {
 
 void bus::notify_all() { cv_.notify_all(); }
 
-} // namespace kungfu::yijinjing
+} // namespace kungfu::yijinjing::journal

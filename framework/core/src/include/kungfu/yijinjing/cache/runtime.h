@@ -32,6 +32,18 @@ public:
     });
   }
 
+  void operator=(bank &another_bank) {
+    clear();
+    boost::hana::for_each(longfist::StateDataTypes, [&](auto it) {
+      auto type = boost::hana::second(it);
+      for (const auto &element : another_bank[type]) {
+        auto &target_map = state_map_[type];
+        auto &state = element.second;
+        target_map.insert_or_assign(state.data.uid(), state);
+      }
+    });
+  }
+
   void clear() {
     boost::hana::for_each(longfist::StateDataTypes, [&](auto it) {
       auto type = boost::hana::second(it);
@@ -67,6 +79,18 @@ public:
       auto type = boost::hana::second(it);
       for (const auto &element : state_map_[type]) {
         writer->write(0, element.second.data);
+      }
+    });
+  }
+
+  void operator=(bank &another_bank) {
+    clear();
+    boost::hana::for_each(types_, [&](auto it) {
+      auto type = boost::hana::second(it);
+      for (const auto &element : another_bank[type]) {
+        auto &target_map = state_map_[type];
+        auto &state = element.second;
+        target_map.insert_or_assign(state.data.uid(), state);
       }
     });
   }

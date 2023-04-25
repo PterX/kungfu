@@ -27,6 +27,6 @@ private:
 
 DECLARE_PTR(bus);
 
-} // namespace kungfu::yijinjing
+} // namespace kungfu::yijinjing::journal
 
 #endif // KUNGFU_BUS_H

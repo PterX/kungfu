@@ -1,7 +1,7 @@
 #include <kungfu/wingchun/common.h>
 #include <kungfu/wingchun/tool/cachetool.h>
-#include <kungfu/yijinjing/journal/bus.h>
 #include <kungfu/yijinjing/journal/assemble.h>
+#include <kungfu/yijinjing/journal/bus.h>
 #include <kungfu/yijinjing/log.h>
 
 using kungfu::yijinjing::time;

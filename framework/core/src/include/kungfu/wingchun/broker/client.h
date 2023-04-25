@@ -312,12 +312,7 @@ private:
   EnrollmentMap enrolled_op_locations_ = {};
 };
 
-template <typename DataType>
-static constexpr auto is_md_datatype_v =
-    std::is_same_v<DataType, longfist::types::Quote> or std::is_same_v<DataType, longfist::types::Entrust> or
-    std::is_same_v<DataType, longfist::types::Transaction> or std::is_same_v<DataType, longfist::types::Tree>;
-
-template <typename DataType, std::enable_if_t<is_md_datatype_v<DataType>>...>
+template <typename DataType, std::enable_if_t<longfist::is_market_data(DataType::type_name)>...>
 static constexpr auto is_own(const Client &broker_client) {
   return rx::filter([&](const event_ptr &event) {
     if (event->msg_type() == DataType::tag) {

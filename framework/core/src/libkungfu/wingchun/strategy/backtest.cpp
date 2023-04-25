@@ -22,7 +22,7 @@ using kungfu::yijinjing::nanomsg::nanomsg_json;
 
 namespace kungfu::wingchun::strategy {
 
-BacktestContext::BacktestContext(apprentice &app, const rx::connectable_observable<event_ptr> &events,
+BacktestContext::BacktestContext(practice::apprentice &app, const rx::connectable_observable<event_ptr> &events,
                                  Matcher_ptr matcher)
     : Context(app, events), broker_client_(app_), bookkeeper_(app_, broker_client_), matcher_(std::move(matcher)) {
   log::copy_log_settings(app_.get_home(), app_.get_home()->name);
@@ -257,5 +257,4 @@ void BacktestContext::update_strategy_state(StrategyStateUpdate &state_update) {
 yijinjing::journal::writer_ptr BacktestContext::get_writer(const std::string &source, const std::string &account) {
   return app_.get_writer(location::PUBLIC);
 }
-
 } // namespace kungfu::wingchun::strategy

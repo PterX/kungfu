@@ -50,11 +50,8 @@ void cached::restore(const location_ptr &location, const journal::writer_ptr &wr
   }
 
   try {
-    profile_store_mutex_.lock();
     feed_mutex_.lock();
-    profile_get_all(profile_, profile_bank_);
-    profile_bank_ >> writer;
-    profile_store_mutex_.unlock();
+    profile_bank_ >> writer; // no need to reget from database; only memory
     feed_mutex_.unlock();
   } catch (const std::exception &ex) {
     SPDLOG_ERROR("failed to write profile info {} {} {}", location->uid, location->uname, ex.what());
@@ -161,7 +158,6 @@ void cached::store_cached_feeds() {
 void cached::store_profile_feeds() {
   feed_mutex_.lock();
   ProfileStateBank tmp_profile_bank = profile_bank_;
-  profile_bank_.clear();
   feed_mutex_.unlock();
 
   boost::hana::for_each(ProfileDataTypes, [&](auto it) {
@@ -183,7 +179,7 @@ void cached::store_profile_feeds() {
           break;
         }
 
-        iter = feed_map.erase(iter);
+        iter++;
       }
     }
   });

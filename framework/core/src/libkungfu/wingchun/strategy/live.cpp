@@ -35,18 +35,6 @@ void LiveContext::on_start() {
 bool LiveContext::is_started() const { return started_; }
 
 void LiveContext::prepare(const event_ptr &event) {
-  SPDLOG_INFO("============================================");
-  SPDLOG_INFO("============================================");
-  SPDLOG_INFO("============================================");
-
-  boost::hana::for_each(longfist::StateDataTypes, [&](auto it) {
-    using DataType = typename decltype(+boost::hana::second(it))::type;
-    if (event->msg_type() == DataType::tag) {
-      const DataType &data = event->data<DataType>();
-      SPDLOG_INFO("prepare data type {}, data: {}", DataType::type_name.c_str(), data.to_string());
-    }
-  });
-
   if (event->msg_type() == Position::tag) {
     const Position &position = event->data<Position>();
     if (position.holder_uid == app_.get_home_uid()) {

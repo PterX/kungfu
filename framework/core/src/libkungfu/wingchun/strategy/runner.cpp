@@ -80,20 +80,6 @@ void Runner::inspect_channel(const event_ptr &event) {
 }
 
 void Runner::on_start() {
-
-  events_ | $([&](const event_ptr &event) {
-    SPDLOG_INFO("---------------------------------------------------");
-
-    boost::hana::for_each(longfist::StateDataTypes, [&](auto it) {
-      using DataType = typename decltype(+boost::hana::second(it))::type;
-      if (event->msg_type() == DataType::tag) {
-        const DataType &data = event->data<DataType>();
-        SPDLOG_INFO("prepare data type {}, data: {}", DataType::type_name.c_str(), data.to_string());
-      }
-    });
-    SPDLOG_INFO("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
-  });
-
   enable(*context_);
   context_->get_bookkeeper().add_book_listener(std::make_shared<BookListener>(*this));
   pre_start();

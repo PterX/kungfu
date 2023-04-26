@@ -62,7 +62,7 @@ import {
 const { t } = VueI18n.global;
 const { error } = messagePrompt();
 
-const {getPriceTiskAndPrecision} = useActiveInstruments();
+const { getPriceTickAndPrecision } = useActiveInstruments();
 const { instrumentKeyAccountsMap, uiExtConfigs } = storeToRefs(
   useGlobalStore(),
 );
@@ -240,10 +240,10 @@ watch(
     triggerOrderBook(instrumentResolved.value);
 
     const { instrumentId, exchangeId } = instrumentResolved.value;
-    const { price_tick, price_precision } =  getPriceTiskAndPrecision(instrumentId, exchangeId ,1)
+    const { price_tick, price_precision } = getPriceTickAndPrecision(instrumentId, exchangeId, 1);
 
-    pricePrecision = price_precision
-    formSteps.limit_price =price_tick
+    pricePrecision = price_precision;
+    formSteps.limit_price = price_tick;
 
     makeOrderInstrumentType.value = instrumentResolved.value.instrumentType;
   },

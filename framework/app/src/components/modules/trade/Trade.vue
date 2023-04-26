@@ -48,7 +48,7 @@ import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 
 const { t } = VueI18n.global;
 const app = getCurrentInstance();
-const { getPriceTiskAndPrecision } = useActiveInstruments();
+const { getPriceTickAndPrecision } = useActiveInstruments();
 const { handleBodySizeChange } = useDashboardBodySize();
 const trades = ref<KungfuApi.TradeResolved[]>([]);
 const allTrades = ref<KungfuApi.TradeResolved[]>([]);
@@ -111,7 +111,7 @@ onMounted(() => {
 
         const tempAllTrades = toRaw(
           tradesResolved.map((item) => {
-            const { price_precision } = getPriceTiskAndPrecision(
+            const { price_precision } = getPriceTickAndPrecision(
               item.instrument_id,
               item.exchange_id,
               0.001,

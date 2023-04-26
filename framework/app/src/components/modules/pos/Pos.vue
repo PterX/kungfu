@@ -63,7 +63,7 @@ const {
 const { handleDownload } = useDownloadHistoryTradingData();
 const { triggerOrderBook, triggerMakeOrder } = useTriggerMakeOrder();
 const { instruments } = useInstruments();
-const { getInstrumentCurrencyByIds, getPriceTiskAndPrecision } =
+const { getInstrumentCurrencyByIds, getPriceTickAndPrecision } =
   useActiveInstruments();
 const { globalSetting } = storeToRefs(useGlobalStore());
 
@@ -98,7 +98,7 @@ onMounted(() => {
 
         pos.value = toRaw(
           positions.reverse().map((item) => {
-            const { price_precision } = getPriceTiskAndPrecision(
+            const { price_precision } = getPriceTickAndPrecision(
               item.instrument_id,
               item.exchange_id,
               0.001,

@@ -1486,7 +1486,7 @@ export const useActiveInstruments = () => {
     return CurrencyEnum.Unknown;
   };
 
-  const getPriceTiskAndPrecision = (
+  const getPriceTickAndPrecision = (
     instrumentId: string,
     exchangeId: string,
     defaultTick = 0.001,
@@ -1501,7 +1501,7 @@ export const useActiveInstruments = () => {
     getInstrumentByIds,
     getInstrumentByIdsWithWatcher,
     getInstrumentCurrencyByIds,
-    getPriceTiskAndPrecision,
+    getPriceTickAndPrecision,
   };
 };
 

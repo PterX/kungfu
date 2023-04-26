@@ -45,7 +45,7 @@ const props = withDefaults(
   },
 );
 
-const { getPriceTiskAndPrecision } = useActiveInstruments();
+const { getPriceTickAndPrecision } = useActiveInstruments();
 
 const configSettings = ref<KungfuApi.KfConfigItem[]>(
   props.payload.config?.settings || [],
@@ -172,7 +172,7 @@ function handleFormStateChange(formState) {
     );
     if (instrumentResolved) {
       const { instrumentId, exchangeId } = instrumentResolved;
-      const { price_tick, price_precision } = getPriceTiskAndPrecision(
+      const { price_tick, price_precision } = getPriceTickAndPrecision(
         instrumentId,
         exchangeId,
         1,

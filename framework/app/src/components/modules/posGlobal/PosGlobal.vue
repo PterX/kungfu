@@ -70,7 +70,7 @@ const {
 } = useCurrentGlobalKfLocation(window.watcher);
 const { instruments } = useInstruments();
 const { triggerOrderBook, triggerMakeOrder } = useTriggerMakeOrder();
-const { getInstrumentCurrencyByIds, getPriceTiskAndPrecision } =
+const { getInstrumentCurrencyByIds, getPriceTickAndPrecision } =
   useActiveInstruments();
 const { globalSetting } = storeToRefs(useGlobalStore());
 
@@ -88,7 +88,7 @@ onMounted(() => {
 
           pos.value = toRaw(
             buildGlobalPositions(positions).map((position) => {
-              const { price_precision } = getPriceTiskAndPrecision(
+              const { price_precision } = getPriceTickAndPrecision(
                 position.instrument_id,
                 position.exchange_id,
                 0.001,

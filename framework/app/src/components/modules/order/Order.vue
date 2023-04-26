@@ -61,7 +61,7 @@ import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 const { t } = VueI18n.global;
 const { success, error } = messagePrompt();
 const app = getCurrentInstance();
-const { getPriceTiskAndPrecision } = useActiveInstruments();
+const { getPriceTickAndPrecision } = useActiveInstruments();
 
 const { handleBodySizeChange } = useDashboardBodySize();
 
@@ -132,7 +132,7 @@ onMounted(() => {
 
         if (unfinishedOrder.value) {
           const tempAllOrders = ordersResolved.map((item) => {
-            const { price_precision } = getPriceTiskAndPrecision(
+            const { price_precision } = getPriceTickAndPrecision(
               item.instrument_id,
               item.exchange_id,
               0.001,

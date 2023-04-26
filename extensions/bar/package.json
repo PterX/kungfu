@@ -70,7 +70,7 @@
           {
             "key": "source",
             "name": "bar.source",
-            "type": "md&operator",
+            "type": "md",
             "tip": "bar.source_tip",
             "required": true
           },

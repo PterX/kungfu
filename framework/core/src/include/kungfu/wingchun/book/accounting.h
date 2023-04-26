@@ -8,6 +8,9 @@
 #define WINGCHUN_ACCOUNTING_H
 
 #include <kungfu/wingchun/book/book.h>
+#include <kungfu/longfist/enums.h>
+
+using namespace kungfu::longfist::enums;
 
 namespace kungfu::wingchun::book {
 class AccountingMethod {
@@ -28,7 +31,7 @@ public:
 
   virtual void update_position(Book_ptr &book, longfist::types::Position &position) = 0;
 
-  static void setup_defaults(Bookkeeper &bookkeeper);
+  static void setup_defaults(Bookkeeper &bookkeeper, longfist::enums::AccountingMethodType accountingMethodTyp);
 };
 DECLARE_PTR(AccountingMethod)
 } // namespace kungfu::wingchun::book

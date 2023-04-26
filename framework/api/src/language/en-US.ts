@@ -314,6 +314,7 @@ export default {
     CNH: 'CNH',
     SGD: 'SGD',
     MYR: 'MYR',
+    CEN: 'CEN',
 
     master: 'master',
     ledger: 'ledger',
@@ -769,8 +770,8 @@ export default {
   kungfu: 'Kungfu',
 
   system_prompt: 'System Prompt',
-  computer_performance_done: 'Performance detecting done ✓',
-  computer_performance_detecting: 'Performance detecting...',
+  computer_performance_done: 'Computer performance detecting done ✓',
+  computer_performance_detecting: 'Computer performance detecting...',
   archive_done: 'Kungfu archive done',
   archive_loading: 'Kungfu archive loading...',
   environment_done: 'Kungfu environment done ✓',

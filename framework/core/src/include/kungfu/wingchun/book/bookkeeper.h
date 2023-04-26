@@ -148,6 +148,7 @@ private:
   void update_position_guard(const longfist::types::PositionEnd &position_end);
 
   Book_ptr get_book_replica(uint32_t location_uid);
+  longfist::enums::AccountingMethodType get_accounting_method_type();
 };
 } // namespace kungfu::wingchun::book
 #endif // WINGCHUN_BOOKKEEPER_H

@@ -5,6 +5,8 @@
 //
 
 #include <kungfu/wingchun/book/bookkeeper.h>
+#define ACCOUNTING_METHOD_ENV "KF_ACCOUNTING_METHOD"
+#define DEFAULT_ACCOUNTING_METHOD_NAME "default"
 
 using namespace kungfu::rx;
 using namespace kungfu::longfist::enums;
@@ -16,8 +18,53 @@ using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::util;
 
 namespace kungfu::wingchun::book {
+
+namespace fs = std::filesystem;
+namespace es = longfist::enums;
+
+fs::path get_default_root() {
+  char *kf_home = std::getenv("KF_HOME");
+  if (kf_home != nullptr) {
+    return fs::path{kf_home};
+  }
+#ifdef _WINDOWS
+  auto appdata = std::getenv("APPDATA");
+  auto root = fs::path(appdata);
+#elif __APPLE__
+  auto user_home = std::getenv("HOME");
+  auto root = fs::path(user_home) / "Library" / "Application Support";
+#elif __linux__
+  auto user_home = std::getenv("HOME");
+  auto root = fs::path(user_home) / ".config";
+#endif // _WINDOWS
+  return root / "kungfu" / "home";
+}
+
+std::string get_runtime_dir() {
+  auto runtime_dir = std::getenv("KF_RUNTIME_DIR");
+  if (runtime_dir != nullptr) {
+    return runtime_dir;
+  }
+  return (get_default_root() / "runtime").string();
+}
+
+longfist::enums::AccountingMethodType Bookkeeper::get_accounting_method_type() {
+//   auto name = locator->has_env(ACCOUNTING_METHOD_ENV) ? locator->get_env(ACCOUNTING_METHOD_ENV)
+//                                                       : DEFAULT_ACCOUNTING_METHOD_NAME;
+// 
+//   if (name == "default") {
+//     return longfist::enums::AccountingMethodType::Default;
+//   } else if (name == "longshort") {
+//     return longfist::enums::AccountingMethodType::Outside;
+//   }
+  auto is_outside = std::getenv("IS_OUTSIDE_ACCOUNTING_TYPE");
+  SPDLOG_INFO("Bookkeeper: get_accounting_method_type get_runtime_dir = {},is_outside={}", get_runtime_dir(),
+              is_outside);
+  return longfist::enums::AccountingMethodType::Default;
+}
+
 Bookkeeper::Bookkeeper(apprentice &app, broker::Client &broker_client) : app_(app), broker_client_(broker_client) {
-  book::AccountingMethod::setup_defaults(*this);
+  book::AccountingMethod::setup_defaults(*this, get_accounting_method_type());
 }
 
 bool Bookkeeper::has_book(uint32_t location_uid) { return books_.find(location_uid) != books_.end(); }

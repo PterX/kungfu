@@ -101,7 +101,7 @@ void Book::update(int64_t update_time) {
   asset.market_value = 0;
   asset.unrealized_pnl = 0;
   asset.dynamic_equity = asset.avail;
-
+  SPDLOG_DEBUG("market_value--update asset.market_value={}, update_time={}", asset.market_value, update_time);
   double margin = 0;
   bool is_stock_acct = true;
   double short_market_value = 0;
@@ -116,18 +116,32 @@ void Book::update(int64_t update_time) {
     auto is_future = position.instrument_type == InstrumentType::Future;
 
     double db_exchage_rate = 1.0;
+    double db_contract_multiplier = 1.0;
     auto hashed_instrument_key = hash_instrument(position.exchange_id, position.instrument_id);
     if (instruments.find(hashed_instrument_key) != instruments.end()) {
       auto &instrument = instruments.at(hashed_instrument_key);
       db_exchage_rate = is_equal(instrument.exchange_rate, 0.0) ? 1.0 : instrument.exchange_rate;
+      db_contract_multiplier = instrument.contract_multiplier;
     }
 
-    auto position_market_value =
-        position.volume * (position.last_price > 0 ? position.last_price : position.avg_open_price) * db_exchage_rate;
+    double position_market_value = 0;
+    if (is_future) {
+      position_market_value = position.volume *
+                              (position.last_price > 0 ? position.last_price : position.avg_open_price) *
+                              db_exchage_rate * db_contract_multiplier;
+    } else {
+      position_market_value =
+          position.volume * (position.last_price > 0 ? position.last_price : position.avg_open_price) * db_exchage_rate;
+    }
+
     margin += position.margin;
 
     if (!(is_stock and position.direction == Direction::Short)) {
       asset.market_value += position_market_value;
+      SPDLOG_DEBUG("market_value--update update_position asset.market_value={}, "
+                   "position_market_value={},instrument_id={},volume={},direction={}",
+                  asset.market_value, position_market_value, position.instrument_id,
+                  position.volume, (int) position.direction);
       asset.unrealized_pnl += position.unrealized_pnl * db_exchage_rate;
     }
     if (is_stock) {

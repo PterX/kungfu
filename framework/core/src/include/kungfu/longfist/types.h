@@ -308,6 +308,7 @@ KF_DEFINE_PACK_TYPE(                                              //
 
     (int32_t, contract_multiplier), // 合约乘数
     (double, price_tick),           // 最小变动价位
+    (double, quantity_unit),        // 最小数量单位
 
     (kungfu::array<char, DATE_LEN>, open_date),   // 上市日
     (kungfu::array<char, DATE_LEN>, create_date), // 创建日

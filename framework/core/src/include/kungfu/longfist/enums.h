@@ -430,7 +430,7 @@ NLOHMANN_JSON_SERIALIZE_ENUM(OrderStatus, {
 inline std::ostream &operator<<(std::ostream &os, OrderStatus t) { return os << int8_t(t); }
 
 // 币种枚举
-enum class CurrencyType : int8_t { Unknown = 0, CNY, HKD, USD, JPY, GBP, EUR, CNH, SGD, MYR };
+enum class CurrencyType : int8_t { Unknown = 0, CNY, HKD, USD, JPY, GBP, EUR, CNH, SGD, MYR, CEN };
 
 NLOHMANN_JSON_SERIALIZE_ENUM(CurrencyType, {
                                                {CurrencyType::Unknown, "Unknown"},
@@ -443,6 +443,7 @@ NLOHMANN_JSON_SERIALIZE_ENUM(CurrencyType, {
                                                {CurrencyType::CNH, "CNH"},
                                                {CurrencyType::SGD, "SGD"},
                                                {CurrencyType::MYR, "MYR"},
+                                               {CurrencyType::CEN, "CEN"},
                                            })
 
 inline std::ostream &operator<<(std::ostream &os, CurrencyType t) { return os << int8_t(t); }
@@ -599,6 +600,8 @@ template <typename T, typename U> [[maybe_unused]] inline T sub_data_bitwise(con
 enum class PageStatus : int8_t { Normal, PreOpen };
 
 inline std::ostream &operator<<(std::ostream &os, PageStatus t) { return os << int8_t(t); }
+
+enum class AccountingMethodType : int8_t { Default = 0, Outside = 1};
 
 } // namespace kungfu::longfist::enums
 #endif // KUNGFU_LONGFIST_ENUM_H

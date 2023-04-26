@@ -56,17 +56,17 @@ uintptr_t load_mmap_buffer(const std::string &path, size_t size, bool is_writing
   bool is_whip = is_writing || !lazy;
   int fd = open(path.c_str(), (is_whip ? O_RDWR : O_RDONLY) | O_CREAT, (mode_t)0600);
   if (fd < 0) {
-    throw journal_error("failed to open file for page " + path);
+    throw journal_error("failed to open file for page " + path + ", errno: " + strerror(errno));
   }
 
   if (is_whip) {
     if (lseek(fd, size - 1, SEEK_SET) == -1) {
       close(fd);
-      throw journal_error("failed to stretch for page " + path);
+      throw journal_error("failed to stretch for page " + path + ", errno: " + strerror(errno));
     }
     if (write(fd, "", 1) == -1) {
       close(fd);
-      throw journal_error("unable to write for page " + path);
+      throw journal_error("unable to write for page " + path + ", errno: " + strerror(errno));
     }
   }
 

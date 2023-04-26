@@ -13,9 +13,7 @@ import { useModalVisible } from '@kungfu-trader/kungfu-app/src/renderer/assets/m
 import {
   buildIdByKeysFromKfConfigSettings,
   initFormStateByConfig,
-  transformSearchInstrumentResultToInstrument,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
-import { useActiveInstruments } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import KfConfigSettingsForm from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfConfigSettingsForm.vue';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 const { t } = VueI18n.global;
@@ -45,15 +43,11 @@ const props = withDefaults(
   },
 );
 
-const { getPriceTickAndPrecision } = useActiveInstruments();
-
 const configSettings = ref<KungfuApi.KfConfigItem[]>(
   props.payload.config?.settings || [],
 );
 
 const formSteps = ref({});
-
-const priceDecimal = ['price', 'level_diff'];
 
 defineEmits<{
   (
@@ -159,40 +153,13 @@ function handleCancel(): void {
 }
 
 function handleFormStateChange(formState) {
-  const instrumentKey = configSettings.value.reduce((acc, item) => {
-    if (item.type === 'instrument') {
-      acc = item.key;
-    }
-    return acc;
-  }, '');
-
-  if (formState[instrumentKey]) {
-    const instrumentResolved = transformSearchInstrumentResultToInstrument(
-      formState[instrumentKey],
-    );
-    if (instrumentResolved) {
-      const { instrumentId, exchangeId } = instrumentResolved;
-      const { price_tick, price_precision } = getPriceTickAndPrecision(
-        instrumentId,
-        exchangeId,
-        1,
-      );
-      configSettings.value.map((item) => {
-        if (priceDecimal.includes(item.key)) {
-          item.precision = price_precision;
-          formSteps.value[item.key] = price_tick;
-        }
-        return item;
-      });
-    }
-  }
-
   if (app?.proxy) {
     app?.proxy.$globalBus.next({
       tag: 'input:currentConfigModal',
       category: props.payload.config.category,
       extKey: props.payload.config.key,
       formState: toRaw(formState),
+      configSettings: configSettings.value,
     });
   }
 }

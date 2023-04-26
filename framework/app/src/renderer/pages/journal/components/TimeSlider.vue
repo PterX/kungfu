@@ -250,12 +250,12 @@ const timeStrs = ref([
 watch(
   () => props.nowTime,
   () => {
-    console.log(
-      'nowTime',
-      props.currentTime,
-      curTime.value,
-      props.isTimeContinue,
-    );
+    // console.log(
+    //   'nowTime',
+    //   props.currentTime,
+    //   curTime.value,
+    //   props.isTimeContinue,
+    // );
     if (props.isTimeContinue) {
       timeStrs.value = [
         customDealKftime(props.beginTime),
@@ -288,7 +288,7 @@ watch(
 watch(
   () => props.isTimeContinue,
   (newTimeContinue) => {
-    console.log('newTimeContinue', newTimeContinue);
+    // console.log('newTimeContinue', newTimeContinue);
     if (newTimeContinue) {
       timeStrs.value = [
         customDealKftime(props.beginTime),

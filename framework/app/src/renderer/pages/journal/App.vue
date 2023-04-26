@@ -240,13 +240,13 @@ const exportFileName = computed(() => {
 const sessionColumns = getSessionColumns();
 
 watchEffect(() => {
-  console.log(
-    'sessions',
-    sessions.value,
-    sessionsMap.value,
-    currentLocation,
-    currentTime.value,
-  );
+  // console.log(
+  //   'sessions',
+  //   sessions.value,
+  //   sessionsMap.value,
+  //   currentLocation,
+  //   currentTime.value,
+  // );
 });
 watch(
   () => sessions.value,
@@ -254,11 +254,11 @@ watch(
     journalStore.setSessions(sessions.value);
     allLocations.value = io.getAllLocations();
     SourceAndDestNameMap.value = dealsessionsToMap(allLocations.value);
-    console.log(
-      'SourceAndDestNameMap',
-      SourceAndDestNameMap.value,
-      sessionsMap.value,
-    );
+    // console.log(
+    //   'SourceAndDestNameMap',
+    //   SourceAndDestNameMap.value,
+    //   sessionsMap.value,
+    // );
   },
   {
     deep: true,
@@ -276,11 +276,11 @@ watch(
   () => currentSession.value,
   (newSession) => {
     if (!newSession) return;
-    console.log(
-      'loadnewSession',
-      currentSession.value,
-      currentTimeRangeData.value,
-    );
+    // console.log(
+    //   'loadnewSession',
+    //   currentSession.value,
+    //   currentTimeRangeData.value,
+    // );
     timeContinue.value = true;
     // allsessions.value = getAllLocation();
     // console.log('allLocation', allLocation.value);
@@ -313,7 +313,7 @@ const onTimeContinueUpdate = (value: boolean) => {
 const onChangeTimeRange = (range: [bigint, bigint]) => {
   isExternalUpdate.value = true;
   nolRange = range;
-  console.log('onChangeTimeRange', range, nolRange);
+  // console.log('onChangeTimeRange', range, nolRange);
 };
 
 const onExternalUpdate = (value: boolean) => {
@@ -322,8 +322,8 @@ const onExternalUpdate = (value: boolean) => {
 
 const onUpdateCurrentTime = (value: bigint) => {
   currentTime.value = value;
-  // timeContinue.value = false;
-  console.log('onUpdateCurrentTime', currentTime.value);
+  timeContinue.value = false;
+  // console.log('onUpdateCurrentTime', currentTime.value);
 };
 
 const dealsessionsToMap = (sessions: Record<string, LocationRseolved>) => {
@@ -374,21 +374,21 @@ const getMdSessions = () => {
 
 const loadSessions = (gotSessions?: KungfuApi.Session[]) => {
   const currentSessions = gotSessions ?? getSessions();
-  console.log(
-    'getsessions',
-    sessionStore.getAllSessions(),
-    io.getAllLocations(),
-    currentLocation,
-    currentSessions,
-  );
-  console.log(
-    'allsession',
-    sessionStore.getAllSessions(),
-    io.getAllLocations(),
-  );
+  // console.log(
+  //   'getsessions',
+  //   sessionStore.getAllSessions(),
+  //   io.getAllLocations(),
+  //   currentLocation,
+  //   currentSessions,
+  // );
+  // console.log(
+  //   'allsession',
+  //   sessionStore.getAllSessions(),
+  //   io.getAllLocations(),
+  // );
   if (currentSessions?.length) {
     sessionsMap.value = dealSessionsToMap(currentSessions.reverse());
-    console.log('sessionsMap', sessionsMap.value);
+    // console.log('sessionsMap', sessionsMap.value);
     nextTick(() => {
       if (!gotSessions && sessions.value.length) {
         const { index, begin_time } = sessions.value[0];

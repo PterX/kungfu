@@ -152,6 +152,7 @@ export enum SideEnum {
   SurplusStockTransfer,
   GuaranteeStockTransferIn,
   GuaranteeStockTransferOut,
+  Unknown = 99,
 }
 
 export type SideTypes = keyof typeof SideEnum;

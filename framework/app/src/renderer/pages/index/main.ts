@@ -124,12 +124,6 @@ app.config.globalProperties.$tradingDataSubject = tradingDataSubject;
 
 app.use(VueI18n);
 
-mergeExtLanguages().then(() =>
-  useComponents(app, router).then(() => {
-    app.mount('#app');
-  }),
-);
-
 const globalStore = useGlobalStore();
 const __BYPASS_ARCHIVE__ = false;
 let appMounted = false;
@@ -223,27 +217,33 @@ const initStartAll = () => {
   }
 };
 
-if (!booleanProcessEnv(process.env.RELOAD_AFTER_CRASHED)) {
-  initStartAll();
-} else {
-  isAllMainProcessRunning().then((res) => {
-    if (res) {
-      startGetProcessStatus(
-        (res: {
-          processStatus: Pm2ProcessStatusData;
-          processStatusWithDetail: Pm2ProcessStatusDetailData;
-        }) => {
-          const { processStatus, processStatusWithDetail } = res;
-          globalStore.setProcessStatus(processStatus);
-          globalStore.setProcessStatusWithDetail(processStatusWithDetail);
-        },
-      );
+mergeExtLanguages().then(() =>
+  useComponents(app, router).then(() => {
+    app.mount('#app');
+
+    if (!booleanProcessEnv(process.env.RELOAD_AFTER_CRASHED)) {
+      initStartAll();
     } else {
-      KillAll().finally(() => {
-        initStartAll();
+      isAllMainProcessRunning().then((res) => {
+        if (res) {
+          startGetProcessStatus(
+            (res: {
+              processStatus: Pm2ProcessStatusData;
+              processStatusWithDetail: Pm2ProcessStatusDetailData;
+            }) => {
+              const { processStatus, processStatusWithDetail } = res;
+              globalStore.setProcessStatus(processStatus);
+              globalStore.setProcessStatusWithDetail(processStatusWithDetail);
+            },
+          );
+        } else {
+          KillAll().finally(() => {
+            initStartAll();
+          });
+        }
       });
     }
-  });
-}
+  }),
+);
 
 triggerStartStep(1000);

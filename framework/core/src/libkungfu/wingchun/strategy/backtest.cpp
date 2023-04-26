@@ -257,4 +257,5 @@ void BacktestContext::update_strategy_state(StrategyStateUpdate &state_update) {
 yijinjing::journal::writer_ptr BacktestContext::get_writer(const std::string &source, const std::string &account) {
   return app_.get_writer(location::PUBLIC);
 }
+
 } // namespace kungfu::wingchun::strategy

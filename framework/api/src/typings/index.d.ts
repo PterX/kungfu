@@ -177,7 +177,7 @@ declare namespace KungfuApi {
     required?: boolean;
     max?: number;
     min?: number;
-    price_precision?: number;
+    precision?: number;
     disabled?: boolean;
     primary?: boolean;
     options?: KfSelectOption[];

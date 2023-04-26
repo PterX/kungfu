@@ -159,16 +159,16 @@ function handleCancel(): void {
 }
 
 function handleFormStateChange(formState) {
-  const ticker = configSettings.value.reduce((acc, item) => {
+  const instrumentKey = configSettings.value.reduce((acc, item) => {
     if (item.type === 'instrument') {
       acc = item.key;
     }
     return acc;
   }, '');
-  console.log('ticker', ticker, formState, configSettings);
-  if (formState[ticker]) {
+
+  if (formState[instrumentKey]) {
     const instrumentResolved = transformSearchInstrumentResultToInstrument(
-      formState[ticker],
+      formState[instrumentKey],
     );
     if (instrumentResolved) {
       const { instrumentId, exchangeId } = instrumentResolved;
@@ -179,7 +179,7 @@ function handleFormStateChange(formState) {
       );
       configSettings.value.map((item) => {
         if (priceDecimal.includes(item.key)) {
-          item.price_precision = price_precision;
+          item.precision = price_precision;
           formSteps.value[item.key] = price_tick;
         }
         return item;

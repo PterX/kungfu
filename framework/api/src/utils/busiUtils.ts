@@ -1220,7 +1220,7 @@ export const buildIdByKeysFromKfConfigSettings = (
   return keys
     .map((key) => kfConfigState[key])
     .filter((value) => value !== undefined)
-    .join('_');
+    .join('-');
 };
 
 const startProcessByKfLocation = async (
@@ -2332,6 +2332,7 @@ export const fromProcessArgsToKfConfigItems = (
 export const getTaskListFromProcessStatusData = (
   taskPrefixs: string[],
   psDetail: Pm2ProcessStatusDetailData,
+  sorter?: (a: Pm2ProcessStatusDetail, b: Pm2ProcessStatusDetail) => number,
 ): Pm2ProcessStatusDetail[] => {
   return Object.keys(psDetail)
     .filter((processId) => {
@@ -2342,11 +2343,15 @@ export const getTaskListFromProcessStatusData = (
       );
     })
     .map((processId) => psDetail[processId])
-    .sort((a, b) => {
-      const aCreateTime = +(a.name?.toKfName() || 0);
-      const bCreateTime = +(b.name?.toKfName() || 0);
-      return aCreateTime - bCreateTime;
-    });
+    .sort(
+      sorter
+        ? sorter
+        : (a, b) => {
+            const aCreateTime = +(a.name?.toKfName() || 0);
+            const bCreateTime = +(b.name?.toKfName() || 0);
+            return aCreateTime - bCreateTime;
+          },
+    );
 };
 
 export function dealTradingTaskName(

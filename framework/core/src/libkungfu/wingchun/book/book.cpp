@@ -140,8 +140,8 @@ void Book::update(int64_t update_time) {
       asset.market_value += position_market_value;
       SPDLOG_DEBUG("market_value--update update_position asset.market_value={}, "
                    "position_market_value={},instrument_id={},volume={},direction={}",
-                  asset.market_value, position_market_value, position.instrument_id,
-                  position.volume, (int) position.direction);
+                   asset.market_value, position_market_value, position.instrument_id, position.volume,
+                   (int)position.direction);
       asset.unrealized_pnl += position.unrealized_pnl * db_exchage_rate;
     }
     if (is_stock) {

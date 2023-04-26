@@ -49,14 +49,14 @@ std::string get_runtime_dir() {
 }
 
 longfist::enums::AccountingMethodType Bookkeeper::get_accounting_method_type() {
-//   auto name = locator->has_env(ACCOUNTING_METHOD_ENV) ? locator->get_env(ACCOUNTING_METHOD_ENV)
-//                                                       : DEFAULT_ACCOUNTING_METHOD_NAME;
-// 
-//   if (name == "default") {
-//     return longfist::enums::AccountingMethodType::Default;
-//   } else if (name == "longshort") {
-//     return longfist::enums::AccountingMethodType::Outside;
-//   }
+  //   auto name = locator->has_env(ACCOUNTING_METHOD_ENV) ? locator->get_env(ACCOUNTING_METHOD_ENV)
+  //                                                       : DEFAULT_ACCOUNTING_METHOD_NAME;
+  //
+  //   if (name == "default") {
+  //     return longfist::enums::AccountingMethodType::Default;
+  //   } else if (name == "longshort") {
+  //     return longfist::enums::AccountingMethodType::Outside;
+  //   }
   auto is_outside = std::getenv("IS_OUTSIDE_ACCOUNTING_TYPE");
   SPDLOG_INFO("Bookkeeper: get_accounting_method_type get_runtime_dir = {},is_outside={}", get_runtime_dir(),
               is_outside);

@@ -105,7 +105,8 @@ public:
                     (int)position.direction);
 
       } else {
-        SPDLOG_DEBUG("OutsideStockAccountingMethod: apply_quote  Direction::Short instrument_id= {}", position.instrument_id);
+        SPDLOG_DEBUG("OutsideStockAccountingMethod: apply_quote  Direction::Short instrument_id= {}",
+                     position.instrument_id);
       }
 
       update_position(book, position);
@@ -149,7 +150,7 @@ public:
             book->get_frozen_price(order.order_id) * order.volume_left * cd_mr.exchange_rate * cd_mr.margin_ratio;
         asset.frozen_cash -= frozen;
         asset.avail += frozen;
-      }else if (order.side == Side::Sell) {
+      } else if (order.side == Side::Sell) {
         position.frozen_total = std::max(position.frozen_total - order.volume_left, VOLUME_ZERO);
         position.frozen_yesterday = std::max(position.frozen_yesterday - order.volume_left, VOLUME_ZERO);
       }
@@ -280,8 +281,7 @@ protected:
 
     SPDLOG_INFO("market_value-- apply_sell stock asset.market_value={}, "
                 "trade_amt={},instrument_id={},volume={},direction={}",
-                book->asset.market_value, trade_amt, position.instrument_id, position.volume,
-                (int)position.direction);
+                book->asset.market_value, trade_amt, position.instrument_id, position.volume, (int)position.direction);
   }
 
   virtual double calculate_commission(const Trade &trade) { return trade.commission; }
@@ -289,7 +289,7 @@ protected:
   virtual double calculate_tax(const Trade &trade) { return trade.tax; }
 
   static outside_contract_discount_and_margin_ratio get_instr_conversion_margin_rate(const Book_ptr &book,
-                                                                             const Position &position) {
+                                                                                     const Position &position) {
     const char *exchange_id = position.exchange_id;
     const char *instrument_id = position.instrument_id;
     uint32_t hashed_instrument_key = hash_instrument(exchange_id, instrument_id);
@@ -297,8 +297,8 @@ protected:
 
     if (book->instruments.find(hashed_instrument_key) == book->instruments.end()) {
       cd_mr.contract_multiplier = DEFAULT_OUTSIDE_STOCK_CONTRACT_MULTIPLIER;
-      cd_mr.margin_ratio =
-          position.direction == Direction::Long ? DEFAULT_OUTSIDE_STOCK_LONG_MARGIN_RATIO : DEFAULT_OUTSIDE_STOCK_SHORT_MARGIN_RATIO;
+      cd_mr.margin_ratio = position.direction == Direction::Long ? DEFAULT_OUTSIDE_STOCK_LONG_MARGIN_RATIO
+                                                                 : DEFAULT_OUTSIDE_STOCK_SHORT_MARGIN_RATIO;
       cd_mr.long_margin_ratio = DEFAULT_OUTSIDE_STOCK_LONG_MARGIN_RATIO;
       cd_mr.short_margin_ratio = DEFAULT_OUTSIDE_STOCK_SHORT_MARGIN_RATIO;
       cd_mr.conversion_rate = DEFAULT_OUTSIDE_STOCK_CONVERSION_RATE;
@@ -315,8 +315,8 @@ protected:
       cd_mr.exchange_rate = is_equal(instrument.exchange_rate, 0.0) ? 1.0 : instrument.exchange_rate;
     } catch (std::exception &ex) {
       SPDLOG_ERROR("Exception for instrument_id {}: {}", instrument_id, ex.what());
-      cd_mr.margin_ratio =
-          position.direction == Direction::Long ? DEFAULT_OUTSIDE_STOCK_LONG_MARGIN_RATIO : DEFAULT_OUTSIDE_STOCK_SHORT_MARGIN_RATIO;
+      cd_mr.margin_ratio = position.direction == Direction::Long ? DEFAULT_OUTSIDE_STOCK_LONG_MARGIN_RATIO
+                                                                 : DEFAULT_OUTSIDE_STOCK_SHORT_MARGIN_RATIO;
       cd_mr.long_margin_ratio = DEFAULT_OUTSIDE_STOCK_LONG_MARGIN_RATIO;
       cd_mr.short_margin_ratio = DEFAULT_OUTSIDE_STOCK_SHORT_MARGIN_RATIO;
       cd_mr.conversion_rate = DEFAULT_OUTSIDE_STOCK_CONVERSION_RATE;

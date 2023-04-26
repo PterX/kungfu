@@ -7,8 +7,8 @@
 #ifndef WINGCHUN_ACCOUNTING_H
 #define WINGCHUN_ACCOUNTING_H
 
-#include <kungfu/wingchun/book/book.h>
 #include <kungfu/longfist/enums.h>
+#include <kungfu/wingchun/book/book.h>
 
 using namespace kungfu::longfist::enums;
 

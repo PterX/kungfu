@@ -67,10 +67,10 @@ public:
   void apply_quote(Book_ptr &book, const Quote &quote) override {
     SPDLOG_DEBUG("OutsideFutureAccountingMethod: apply_quote");
     auto apply = [&](Position &position) {
-//       if (position.volume == 0) {
-//           // todo
-//         return;
-//       }
+      //       if (position.volume == 0) {
+      //           // todo
+      //         return;
+      //       }
       auto cm_mr =
           get_instrument_contract_multiplier_and_margin_ratio(book, quote.exchange_id, quote.instrument_id, position);
 
@@ -88,15 +88,14 @@ public:
         if (is_valid_price(position.last_price)) {
           double price_change = quote.last_price - position.last_price;
           position.last_price = quote.last_price;
-          double market_value_change =
-              (position.direction == Direction::Long ? 1 : -1) * price_change * cm_mr
-              .exchange_rate * position.volume * cm_mr.contract_multiplier;
+          double market_value_change = (position.direction == Direction::Long ? 1 : -1) * price_change *
+                                       cm_mr.exchange_rate * position.volume * cm_mr.contract_multiplier;
           book->asset.market_value += market_value_change;
 
           SPDLOG_DEBUG("market_value-- apply_quote asset.market_value={}, "
-                      "market_value_change={},instrument_id={},volume={},direction={}",
-                      book->asset.market_value, market_value_change, position.instrument_id, position.volume,
-                      (int)position.direction);
+                       "market_value_change={},instrument_id={},volume={},direction={}",
+                       book->asset.market_value, market_value_change, position.instrument_id, position.volume,
+                       (int)position.direction);
         }
 
         position.last_price = quote.last_price;
@@ -130,7 +129,7 @@ public:
       book->asset.frozen_cash += frozen_margin;
       book->asset.frozen_margin += frozen_margin;
     }
-    
+
     if (offset == Offset::Close or offset == Offset::CloseYesterday) {
       position.frozen_total += input.volume;
       if (position.yesterday_volume - position.frozen_yesterday >= input.volume) {
@@ -139,7 +138,7 @@ public:
         position.frozen_yesterday = position.yesterday_volume;
       }
     }
-    
+
     if (offset == Offset::CloseToday) {
       position.frozen_total += input.volume;
     }
@@ -165,7 +164,8 @@ public:
     if (offset == Offset::Open) {
       auto frozen_margin =
           cm_mr.contract_multiplier * order.frozen_price * cm_mr.exchange_rate * order.volume_left * cm_mr.margin_ratio;
-      SPDLOG_DEBUG("OutsideFutureAccountingMethod: apply_order Offset::Open instrument_id={}, avail={}, frozen_margin={}",
+      SPDLOG_DEBUG(
+          "OutsideFutureAccountingMethod: apply_order Offset::Open instrument_id={}, avail={}, frozen_margin={}",
           order.instrument_id, book->asset.avail, frozen_margin);
 
       book->asset.avail += frozen_margin;
@@ -181,9 +181,8 @@ public:
                   "frozen_market_value={},instrument_id={},volume={},direction={}",
                   book->asset.market_value, frozen_market_value, position.instrument_id, position.volume,
                   (int)position.direction);
-
     }
-    
+
     if (offset == Offset::Close or offset == Offset::CloseYesterday) {
       position.frozen_total = std::max(position.frozen_total - order.volume_left, VOLUME_ZERO);
       position.frozen_yesterday = std::max(position.frozen_yesterday - order.volume_left, VOLUME_ZERO);
@@ -206,9 +205,8 @@ public:
     auto direction = get_direction(trade.instrument_type, trade.side, offset);
     auto &position = book->get_position(direction, trade.exchange_id, trade.instrument_id);
 
-    SPDLOG_DEBUG(
-        "OutsideFutureAccountingMethod: apply_trade Offset::Open instrument_id={}, offset={}",
-                trade.instrument_id, (int)offset);
+    SPDLOG_DEBUG("OutsideFutureAccountingMethod: apply_trade Offset::Open instrument_id={}, offset={}",
+                 trade.instrument_id, (int)offset);
 
     if (offset == Offset::Open) {
       apply_open(book, position, trade);

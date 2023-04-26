@@ -30,6 +30,7 @@ import { getKfGlobalSettingsValue } from '../config/globalSettings';
 import { Observable } from 'rxjs';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { Pm2StartOptions } from '../typings/global';
+import { KfHookKeeper } from '../hooks';
 const { t } = VueI18n.global;
 
 process.env.PM2_HOME = path.resolve(os.homedir(), '.pm2');
@@ -401,6 +402,12 @@ export const startProcess = async (
   options: Pm2StartOptions,
 ): Promise<Proc | void> => {
   const extDirs = await flattenExtensionModuleDirs(EXTENSION_DIRS);
+  options = await (globalThis.HookKeeper as KfHookKeeper)
+    .getHooks()
+    .resolveStartOptions.trigger(
+      { category: '*', group: '*', name: '*' } as KungfuApi.DerivedKfLocation,
+      options,
+    );
   const optionsResolved: Pm2StartOptions = {
     name: options.name,
     args: options.args, //有问题吗？

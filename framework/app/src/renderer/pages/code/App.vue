@@ -56,6 +56,7 @@ onMounted(() => {
   currentNode.code_id = urlParmObj.id;
   currentNode.file_path = decodeURI(urlParmObj.filePath);
   store.setCurrentCode(currentNode);
+  store.getKungfuConfig();
   bindCloseWindowEvent();
   nextTick(() => {
     removeLoadingMask();

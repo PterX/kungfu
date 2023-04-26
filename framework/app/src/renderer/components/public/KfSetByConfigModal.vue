@@ -47,8 +47,6 @@ const configSettings = ref<KungfuApi.KfConfigItem[]>(
   props.payload.config?.settings || [],
 );
 
-const formSteps = ref({});
-
 defineEmits<{
   (
     e: 'confirm',
@@ -189,7 +187,6 @@ function handleFormStateChange(formState) {
       :primary-key-avoid-repeat-compare-extra="
         primaryKeyAvoidRepeatCompareExtra
       "
-      :steps="formSteps"
       @update:form-state="handleFormStateChange"
     ></KfConfigSettingsForm>
   </a-modal>

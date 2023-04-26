@@ -177,6 +177,7 @@ declare namespace KungfuApi {
     required?: boolean;
     max?: number;
     min?: number;
+    step?: number;
     precision?: number;
     disabled?: boolean;
     primary?: boolean;

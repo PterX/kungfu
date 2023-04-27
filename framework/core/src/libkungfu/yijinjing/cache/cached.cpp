@@ -236,9 +236,7 @@ void cached::store_profile_feeds() {
         const auto &s = iter->second;
         profile_store_mutex_.lock();
         try {
-          profile_store_mutex_.lock();
           profile_ << s;
-          profile_store_mutex_.unlock();
           SPDLOG_TRACE("cache [profile] {} data {}", DataType::type_name.c_str(), s.data.to_string());
           iter++;
         } catch (const std::exception &e) {

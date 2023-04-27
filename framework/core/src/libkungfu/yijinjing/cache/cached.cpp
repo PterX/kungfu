@@ -20,13 +20,13 @@ using namespace kungfu::yijinjing::cache;
 
 namespace kungfu::yijinjing::cache {
 
-cached::cached(locator_ptr locator) : profile_(locator) {
+cached::cached(const yijinjing::io_device_ptr &io_device, bool bypass_cached)
+    : session_builder_(io_device), profile_(io_device->get_locator()), bypass_cached_(bypass_cached) {
   profile_.setup();
   profile_get_all(profile_, profile_bank_);
 }
 
 cached::~cached() {
-
   {
     std::lock_guard<std::mutex> lock(feed_mutex_);
     m_quit_ = true;
@@ -35,30 +35,52 @@ cached::~cached() {
   feed_worker_.join();
 }
 
-void cached::restore(const location_ptr &location, const journal::writer_ptr &writer) {
+void cached::restore_profile(const yijinjing::data::location_ptr &location,
+                             const yijinjing::journal::writer_ptr &writer) {
+  if (not bypass_cached_) {
+    try {
+      profile_store_mutex_.lock();
+      feed_mutex_.lock();
+      // for config from user interface
+      profile_get_by_type<Config>(profile_, profile_bank_);
+      profile_store_mutex_.unlock();
+      feed_mutex_.unlock();
+    } catch (const std::exception &ex) {
+      SPDLOG_ERROR("failed to drain profile db into profile band {} {} {}", location->uid, location->uname, ex.what());
+    }
+  }
 
-  if (app_cache_shift_.find(location->uid) == app_cache_shift_.end()) {
-    make_cache_shift(location);
+  feed_mutex_.lock();
+  profile_bank_ >> writer;
+  feed_mutex_.unlock();
+}
+
+void cached::restore_cache(const yijinjing::data::location_ptr &location,
+                           const yijinjing::journal::writer_ptr &writer) {
+  if (bypass_cached_) {
+    return;
   }
 
   try {
+    make_cache_shift(location);
     cache_store_mutex_.lock();
     app_cache_shift_.at(location->uid) >> writer;
     cache_store_mutex_.unlock();
   } catch (const std::exception &ex) {
     SPDLOG_ERROR("failed to write cache {} {} {}", location->uid, location->uname, ex.what());
   }
+}
 
-  try {
-    feed_mutex_.lock();
-    profile_bank_ >> writer; // no need to reget from database; only memory
-    feed_mutex_.unlock();
-  } catch (const std::exception &ex) {
-    SPDLOG_ERROR("failed to write profile info {} {} {}", location->uid, location->uname, ex.what());
-  }
+void cached::restore(const location_ptr &location, const journal::writer_ptr &writer) {
+  restore_profile(location, writer);
+  restore_cache(location, writer);
 }
 
 void cached::clear_cache_shift(const location_ptr &location) {
+  if (bypass_cached_) {
+    return;
+  }
+
   uint32_t location_uid = location->uid;
   if (app_cache_shift_.find(location_uid) == app_cache_shift_.end()) {
     SPDLOG_INFO("no location_uid {} in app_cache_shift_, no need to clear cache", location->uname);
@@ -70,17 +92,29 @@ void cached::clear_cache_shift(const location_ptr &location) {
 }
 
 void cached::make_cache_shift(const location_ptr &location) {
+  if (bypass_cached_) {
+    return;
+  }
+
   locations_.emplace(location->uid, location);
   app_cache_shift_.emplace(location->uid, location);
 }
 
 void cached::ensure_cached_storage(const location_ptr &location, uint32_t dest) {
+  if (bypass_cached_) {
+    return;
+  }
+
   std::lock_guard<std::mutex> lock(cache_store_mutex_);
   make_cache_shift(location);
   app_cache_shift_.at(location->uid).ensure_storage(dest);
 }
 
 void cached::cache_reset(const event_ptr &event) {
+  if (bypass_cached_) {
+    return;
+  }
+
   std::lock_guard<std::mutex> lock(cache_store_mutex_);
   auto cache_reset = event->data<CacheReset>();
   auto msg_type = cache_reset.msg_type;
@@ -98,8 +132,11 @@ void cached::cache_reset(const event_ptr &event) {
 }
 
 void cached::feed(const event_ptr &event) {
-  feed_state_data(event, feed_bank_);
   feed_profile_data(event, profile_bank_);
+
+  if (not bypass_cached_) {
+    feed_state_data(event, feed_bank_);
+  }
 }
 
 void cached::run_feeds_worker() { feed_worker_ = std::thread(&cached::do_store_feeds, this); }
@@ -118,6 +155,10 @@ void cached::do_store_feeds() {
 }
 
 void cached::store_cached_feeds() {
+  if (bypass_cached_) {
+    return;
+  }
+
   feed_mutex_.lock();
   yijinjing::cache::bank tmp_feed_bank = feed_bank_;
   feed_bank_.clear();
@@ -138,7 +179,9 @@ void cached::store_cached_feeds() {
         auto dest_id = s.dest;
         if (app_cache_shift_.find(source_id) != app_cache_shift_.end()) {
           try {
+            cache_store_mutex_.lock();
             app_cache_shift_.at(source_id) << s;
+            cache_store_mutex_.unlock();
             SPDLOG_TRACE("cache [feed] source {} dest {} {} data {}", source_id, dest_id, DataType::type_name.c_str(),
                          s.data.to_string());
           } catch (const std::exception &e) {
@@ -156,6 +199,8 @@ void cached::store_cached_feeds() {
 }
 
 void cached::store_profile_feeds() {
+  // there are important info like locations in profile, every app register need these info, so do not clear profile
+  // bank;
   feed_mutex_.lock();
   ProfileStateBank tmp_profile_bank = profile_bank_;
   feed_mutex_.unlock();
@@ -172,17 +217,53 @@ void cached::store_profile_feeds() {
       while (iter != feed_map.end()) {
         const auto &s = iter->second;
         try {
+          profile_store_mutex_.lock();
           profile_ << s;
+          profile_store_mutex_.unlock();
           SPDLOG_TRACE("cache [profile] {} data {}", DataType::type_name.c_str(), s.data.to_string());
         } catch (const std::exception &e) {
           SPDLOG_ERROR("Unexpected exception by handle_profile_feeds {}", e.what());
           break;
         }
-
         iter++;
       }
     }
   });
+}
+
+void cached::open_session(const location_ptr &location, int64_t open_time) {
+  if (bypass_cached_) {
+    return;
+  }
+
+  session_builder_.open_session(location, open_time);
+}
+
+void cached::close_session(const location_ptr &location, int64_t close_time) {
+  if (bypass_cached_) {
+    return;
+  }
+
+  session_builder_.close_session(location, close_time);
+}
+
+index::SessionMap &cached::close_all_sessions(int64_t close_time) {
+  return session_builder_.close_all_sessions(close_time);
+}
+
+int64_t cached::find_last_active_time(const location_ptr &location) {
+  if (bypass_cached_) {
+    return yijinjing::time::now_in_nano();
+  }
+
+  return session_builder_.find_last_active_time(location);
+}
+
+void cached::update_session(const journal::frame_ptr &frame) {
+  if (bypass_cached_) {
+    return;
+  }
+  session_builder_.update_session(frame);
 }
 
 } // namespace kungfu::yijinjing::cache

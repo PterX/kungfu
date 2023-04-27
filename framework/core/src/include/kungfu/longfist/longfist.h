@@ -193,15 +193,13 @@ constexpr auto TradingDataTypes = boost::hana::make_map( //
 );
 
 constexpr auto MARKET_DATA_TYPES = boost::hana::make_map( //
-    TYPE_PAIR(Quote),                                //
+    TYPE_PAIR(Quote),                                     //
     TYPE_PAIR(Tree),                                      //
     TYPE_PAIR(Entrust),                                   //
     TYPE_PAIR(Transaction)                                //
 );
 
-constexpr auto is_profile_data = [](auto type) {
-  return boost::hana::contains(ProfileDataTypes, type);
-};
+constexpr auto is_profile_data = [](auto type) { return boost::hana::contains(ProfileDataTypes, type); };
 
 constexpr auto is_market_data = [](auto type) { return boost::hana::contains(MARKET_DATA_TYPES, type); };
 

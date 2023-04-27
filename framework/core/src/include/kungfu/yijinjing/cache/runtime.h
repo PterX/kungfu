@@ -38,7 +38,7 @@ public:
       auto type = boost::hana::second(it);
       for (const auto &element : another_bank[type]) {
         auto &target_map = state_map_[type];
-        auto &state = element.second;
+        auto state = element.second;
         target_map.insert_or_assign(state.data.uid(), state);
       }
     });
@@ -89,7 +89,7 @@ public:
       auto type = boost::hana::second(it);
       for (const auto &element : another_bank[type]) {
         auto &target_map = state_map_[type];
-        auto &state = element.second;
+        auto state = element.second;
         target_map.insert_or_assign(state.data.uid(), state);
       }
     });

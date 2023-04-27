@@ -5,6 +5,7 @@
 
 #include <kungfu/yijinjing/cache/profile.h>
 #include <kungfu/yijinjing/cache/runtime.h>
+#include <kungfu/yijinjing/index/session.h>
 #include <kungfu/yijinjing/io.h>
 #include <kungfu/yijinjing/log.h>
 
@@ -16,11 +17,15 @@ typedef yijinjing::cache::typed_bank<ProfileDataTypesType, ProfileStateMapType> 
 
 class cached {
 public:
-  explicit cached(yijinjing::data::locator_ptr locator);
+  explicit cached(const yijinjing::io_device_ptr &io_device, bool bypass_cached = false);
 
   ~cached();
 
   template <typename DataType> std::vector<DataType> get_all(const DataType &) { return profile_.get_all(DataType{}); }
+
+  void restore_profile(const yijinjing::data::location_ptr &location, const yijinjing::journal::writer_ptr &writer);
+
+  void restore_cache(const yijinjing::data::location_ptr &location, const yijinjing::journal::writer_ptr &writer);
 
   void restore(const yijinjing::data::location_ptr &location, const yijinjing::journal::writer_ptr &writer);
 
@@ -48,6 +53,16 @@ public:
   void store_cached_feeds();
 
   void store_profile_feeds();
+
+  void open_session(const data::location_ptr &location, int64_t open_time);
+
+  void close_session(const data::location_ptr &location, int64_t close_time);
+
+  yijinjing::index::SessionMap &close_all_sessions(int64_t close_time);
+
+  int64_t find_last_active_time(const data::location_ptr &source_location);
+
+  void update_session(const journal::frame_ptr &frame);
 
   static constexpr auto feed_profile_data = [](const event_ptr &event, auto &receiver) {
     boost::hana::for_each(longfist::ProfileDataTypes, [&](auto it) {
@@ -77,11 +92,13 @@ public:
   };
 
 private:
-  yijinjing::cache::profile profile_;
+  index::session_builder session_builder_;
   std::unordered_map<uint32_t, yijinjing::data::location_ptr> locations_ = {};
+  yijinjing::cache::profile profile_;
   ProfileStateBank profile_bank_ = ProfileStateBank(longfist::ProfileDataTypes);
   std::unordered_map<uint32_t, yijinjing::cache::shift> app_cache_shift_ = {};
   yijinjing::cache::bank feed_bank_;
+  const bool bypass_cached_;
   std::thread feed_worker_;
   std::mutex feed_mutex_;
   std::mutex cache_store_mutex_;
@@ -101,6 +118,18 @@ private:
         SPDLOG_ERROR("Unexpected exception by profile_get_all {}", e.what());
       }
     });
+  };
+
+  template <typename DataType>
+  static constexpr auto profile_get_by_type = [](auto& profile, auto&receiver) {
+    try {
+        for (const auto &data : profile.get_all(DataType{})) {
+          auto s = state(0, 0, 0, data);
+          receiver << s;
+        }
+      } catch (const std::exception &e) {
+        SPDLOG_ERROR("Unexpected exception by profile_get_all {}", e.what());
+      }
   };
 };
 

@@ -22,44 +22,15 @@ namespace kungfu::wingchun::book {
 namespace fs = std::filesystem;
 namespace es = longfist::enums;
 
-fs::path get_default_root() {
-  char *kf_home = std::getenv("KF_HOME");
-  if (kf_home != nullptr) {
-    return fs::path{kf_home};
-  }
-#ifdef _WINDOWS
-  auto appdata = std::getenv("APPDATA");
-  auto root = fs::path(appdata);
-#elif __APPLE__
-  auto user_home = std::getenv("HOME");
-  auto root = fs::path(user_home) / "Library" / "Application Support";
-#elif __linux__
-  auto user_home = std::getenv("HOME");
-  auto root = fs::path(user_home) / ".config";
-#endif // _WINDOWS
-  return root / "kungfu" / "home";
-}
-
-std::string get_runtime_dir() {
-  auto runtime_dir = std::getenv("KF_RUNTIME_DIR");
-  if (runtime_dir != nullptr) {
-    return runtime_dir;
-  }
-  return (get_default_root() / "runtime").string();
-}
-
 longfist::enums::AccountingMethodType Bookkeeper::get_accounting_method_type() {
-  //   auto name = locator->has_env(ACCOUNTING_METHOD_ENV) ? locator->get_env(ACCOUNTING_METHOD_ENV)
-  //                                                       : DEFAULT_ACCOUNTING_METHOD_NAME;
-  //
-  //   if (name == "default") {
-  //     return longfist::enums::AccountingMethodType::Default;
-  //   } else if (name == "longshort") {
-  //     return longfist::enums::AccountingMethodType::Outside;
-  //   }
+  SPDLOG_INFO("Bookkeeper: get_accounting_method_type begin");
   auto is_outside = std::getenv("IS_OUTSIDE_ACCOUNTING_TYPE");
-  SPDLOG_INFO("Bookkeeper: get_accounting_method_type get_runtime_dir = {},is_outside={}", get_runtime_dir(),
-              is_outside);
+  SPDLOG_INFO("Bookkeeper: get_accounting_method_type IS_OUTSIDE_ACCOUNTING_TYPE={}", is_outside);
+  if (is_outside == "1") {
+    SPDLOG_INFO("Bookkeeper: get_accounting_method_type 1");
+    return longfist::enums::AccountingMethodType::Outside;
+  }
+  SPDLOG_INFO("Bookkeeper: get_accounting_method_type end");
   return longfist::enums::AccountingMethodType::Default;
 }
 

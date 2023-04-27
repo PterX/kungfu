@@ -124,16 +124,15 @@ void Book::update(int64_t update_time) {
       db_contract_multiplier = instrument.contract_multiplier;
     }
 
-    double position_market_value = 0;
-    if (is_future) {
+    auto position_market_value =
+        position.volume * (position.last_price > 0 ? position.last_price : position.avg_open_price) * db_exchage_rate;
+
+    if (std::getenv("IS_OUTSIDE_ACCOUNTING_TYPE") == "1" && is_future) {
+      // 场外交易，期货市值计算：持仓数量*最新价*汇率*乘数
       position_market_value = position.volume *
                               (position.last_price > 0 ? position.last_price : position.avg_open_price) *
                               db_exchage_rate * db_contract_multiplier;
-    } else {
-      position_market_value =
-          position.volume * (position.last_price > 0 ? position.last_price : position.avg_open_price) * db_exchage_rate;
     }
-
     margin += position.margin;
 
     if (!(is_stock and position.direction == Direction::Short)) {

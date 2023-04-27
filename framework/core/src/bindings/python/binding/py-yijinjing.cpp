@@ -5,7 +5,6 @@
 #include <pybind11/stl.h>
 
 #include <kungfu/longfist/longfist.h>
-#include <kungfu/yijinjing/cache/cached.h>
 #include <kungfu/yijinjing/cache/profile.h>
 #include <kungfu/yijinjing/index/session.h>
 #include <kungfu/yijinjing/io.h>
@@ -121,8 +120,6 @@ public:
   void on_interval_check(int64_t nanotime) override {
     PYBIND11_OVERLOAD_PURE(void, master, on_interval_check, nanotime);
   }
-
-  int64_t acquire_trading_day() override { PYBIND11_OVERLOAD_PURE(int64_t, master, acquire_trading_day); }
 };
 
 class PyApprentice : public apprentice {
@@ -130,10 +127,6 @@ public:
   using apprentice::apprentice;
 
   void on_exit() override { PYBIND11_OVERLOAD_PURE(void, apprentice, on_exit); }
-
-  void on_trading_day(const event_ptr &event, int64_t daytime) override {
-    PYBIND11_OVERLOAD(void, apprentice, on_trading_day, event, daytime);
-  }
 };
 
 template <typename DataType> DataType event_to_data(const event &e) { return e.data<DataType>(); }
@@ -368,8 +361,6 @@ void bind(pybind11::module &&m) {
       .def("on_exit", &master::on_exit)
       .def("on_register", &master::on_register)
       .def("on_interval_check", &master::on_interval_check)
-      .def("acquire_trading_day", &master::acquire_trading_day)
-      .def("publish_trading_day", &master::publish_trading_day)
       .def("deregister_app", &master::deregister_app);
 
   py::class_<apprentice, PyApprentice, apprentice_ptr>(m, "apprentice")
@@ -379,19 +370,8 @@ void bind(pybind11::module &&m) {
       .def_property_readonly("live", &apprentice::is_live)
       .def("set_begin_time", &apprentice::set_begin_time)
       .def("set_end_time", &apprentice::set_end_time)
-      .def("on_trading_day", &apprentice::on_trading_day)
       .def("run", &apprentice::run)
       .def("setup", &apprentice::setup)
       .def("step", &apprentice::step);
-
-  py::class_<cached, kungfu::yijinjing::practice::apprentice, std::shared_ptr<cached>>(m, "cached")
-      .def(py::init<yijinjing::data::locator_ptr, longfist::enums::mode, bool>())
-      .def_property_readonly("io_device", &cached::get_io_device)
-      .def_property_readonly("usable", &cached::is_usable)
-      .def("set_begin_time", &cached::set_begin_time)
-      .def("set_end_time", &cached::set_end_time)
-      .def("now", &cached::now)
-      .def("run", &cached::run)
-      .def("on_exit", &cached::on_exit);
 }
 } // namespace kungfu::yijinjing

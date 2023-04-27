@@ -19,8 +19,7 @@
     "build": "kfs strategy build",
     "package": "kfs strategy package",
     "format": "node ../../framework/core/.gyp/run-format-cpp.js src",
-    "master": "kfc -l debug run -c system -g master -n master",
-    "cached": "kfc -l debug run -c system -g service -n cached"
+    "master": "kfc -l debug run -c system -g master -n master"
   },
   "devDependencies": {
     "@kungfu-trader/kungfu-sdk": "^2.6.0-alpha.12"

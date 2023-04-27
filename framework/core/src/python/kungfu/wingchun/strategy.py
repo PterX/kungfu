@@ -56,9 +56,7 @@ class Strategy(wc.Strategy):
         self._post_start = getattr(self._module, "post_start", lambda ctx: None)
         self._pre_stop = getattr(self._module, "pre_stop", lambda ctx: None)
         self._post_stop = getattr(self._module, "post_stop", lambda ctx: None)
-        self._on_trading_day = getattr(
-            self._module, "on_trading_day", lambda ctx, trading_day: None
-        )
+
         self._on_quote = getattr(
             self._module, "on_quote", lambda ctx, quote, location: None
         )
@@ -303,10 +301,6 @@ class Strategy(wc.Strategy):
 
     def on_req_history_trade_error(self, wc_context, error, location):
         self.__call_proxy(self._on_req_history_trade_error, self.ctx, error, location)
-
-    def on_trading_day(self, wc_context, daytime):
-        self.ctx.trading_day = kft.to_datetime(daytime)
-        self.__call_proxy(self._on_trading_day, self.ctx, daytime)
 
     def on_position_sync_reset(self, wc_context, old_book, new_book):
         self.__call_proxy(self._on_position_sync_reset, self.ctx, old_book, new_book)

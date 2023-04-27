@@ -95,8 +95,6 @@ void TraderVendor::clean_orders() {
   }
 }
 
-void TraderVendor::on_trading_day(const event_ptr &event, int64_t daytime) { service_->on_trading_day(event, daytime); }
-
 [[maybe_unused]] const std::string &Trader::get_account_id() const { return get_home()->name; }
 
 yijinjing::journal::writer_ptr Trader::get_asset_writer() const {

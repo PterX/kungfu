@@ -5,6 +5,7 @@
 //
 
 #include <kungfu/common.h>
+#include <kungfu/yijinjing/cache/cached.h>
 #include <kungfu/yijinjing/practice/apprentice.h>
 #include <kungfu/yijinjing/util/os.h>
 #include <nng/nng.h>
@@ -15,13 +16,14 @@ using namespace kungfu::longfist::types;
 using namespace kungfu::longfist::enums;
 using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
+using namespace kungfu::yijinjing::cache;
 using namespace std::chrono;
 namespace fs = std::filesystem;
 
 namespace kungfu::yijinjing::practice {
 
 apprentice::apprentice(location_ptr home, bool low_latency)
-    : hero(std::make_shared<io_device_client>(home, low_latency)), trading_day_(time::today_start()), cleaner_(*this) {}
+    : hero(std::make_shared<io_device_client>(home, low_latency)), cleaner_(*this) {}
 
 bool apprentice::is_started() const { return started_; }
 
@@ -32,8 +34,6 @@ uint32_t apprentice::get_master_commands_uid() const { return master_cmd_locatio
 int64_t apprentice::get_checkin_time() const { return checkin_time_; }
 
 int64_t apprentice::get_last_active_time() const { return last_active_time_; }
-
-int64_t apprentice::get_trading_day() const { return trading_day_; }
 
 const cache::bank &apprentice::get_state_bank() const { return state_bank_; }
 
@@ -82,37 +82,6 @@ uint32_t apprentice::request_band(const std::string &band_name) {
   return band_location->uid;
 }
 
-void apprentice::request_cached_reader_writer() {
-  if (get_io_device()->get_home()->mode == mode::LIVE) {
-    if (writers_.find(master_cmd_location_->uid) == writers_.end()) {
-      SPDLOG_ERROR("no writer for {}", get_location_uname(master_cmd_location_->uid));
-      return;
-    }
-
-    if (get_live_home_uid() != cached_home_location_->uid) {
-      if (registry_.find(cached_home_location_->uid) == registry_.end()) {
-        SPDLOG_ERROR("no register in registry_ {}", get_location_uname(master_cmd_location_->uid));
-        return;
-      }
-
-      request_write_to(now(), cached_home_location_->uid);
-      request_read_from(now(), cached_home_location_->uid, now());
-
-    } else {
-      // At cached case, pass the restore, start directly
-      auto writer = get_writer(master_cmd_location_->uid);
-      RequestCachedDone &rcd = writer->open_data<RequestCachedDone>();
-      rcd.dest_id = get_io_device()->get_live_home()->uid;
-      writer->close_data();
-    }
-  }
-}
-
-void apprentice::request_cached(uint32_t source_id) {
-  auto writer = get_writer(source_id);
-  writer->mark(now(), RequestCached::tag);
-}
-
 void apprentice::add_timer(int64_t nanotime, const std::function<void(const event_ptr &)> &callback) {
   events_ | timer(nanotime) |
       $([&, callback](const event_ptr &event) {
@@ -144,8 +113,6 @@ void apprentice::add_time_interval(int64_t duration, const std::function<void(co
   });
 }
 
-void apprentice::on_trading_day(const event_ptr &event, int64_t daytime) {}
-
 bool apprentice::release_page() {
   bool result = false;
   result |= reader_->release_page();
@@ -161,16 +128,14 @@ void apprentice::react() {
   events_ | is(Register::tag) | $$(on_register(event->trigger_time(), event->data<Register>()));
   events_ | is(Deregister::tag) | $$(on_deregister(event));
   events_ | is(RequestReadFrom::tag) | $$(on_read_from(event));
-  events_ | is(CachedReadyToRead::tag) | $$(on_cached_ready_to_read());
   events_ | is(RequestReadFromPublic::tag) | $$(on_read_from_public(event));
   events_ | is(RequestReadFromSync::tag) | $$(on_read_from_sync(event));
   events_ | is(RequestWriteTo::tag) | $$(on_write_to(event));
   events_ | is(RequestWriteToBand::tag) | $$(on_write_to_band(event));
   events_ | is(Channel::tag) | $$(register_channel(event->gen_time(), event->data<Channel>()));
   events_ | is(Band::tag) | $$(register_band(event->gen_time(), event->data<Band>()));
-  events_ | is(TradingDay::tag) | $$(on_trading_day(event, event->data<TradingDay>().timestamp));
   events_ | is(RequestStop::tag) | to(get_home_uid()) | $$(signal_stop());
-  events_ | take_until(events_ | is(RequestStart::tag)) | $$(feed_state_data(event, state_bank_));
+  events_ | take_until(events_ | is(RequestStart::tag)) | $$(cached::feed_state_data(event, state_bank_));
 
   SPDLOG_TRACE("building reactive event handlers");
   on_react();
@@ -203,19 +168,6 @@ void apprentice::react() {
       checkin_time_ = data.checkin_time;
       reader_->join(master_cmd_location_, get_live_home_uid(), event->gen_time());
     });
-
-    auto cached_register_event = events_ | is(Register::tag) | filter([&](const event_ptr &event) {
-                                   auto register_data = event->data<Register>();
-                                   return register_data.location_uid == cached_home_location_->uid;
-                                 }) |
-                                 filter([&](const event_ptr &event) {
-                                   if (writers_.find(master_cmd_location_->uid) != writers_.end()) {
-                                     return true;
-                                   }
-                                   return false;
-                                 }) |
-                                 first();
-    cached_register_event | $$(request_cached_reader_writer());
 
     checkin();
     expect_start();
@@ -278,8 +230,6 @@ void apprentice::on_write_to_band(const event_ptr &event) {
     writers_.emplace(dest_id, get_io_device()->open_writer(dest_id));
   }
 }
-
-void apprentice::on_cached_ready_to_read() { request_cached(cached_home_location_->uid); }
 
 [[maybe_unused]] int apprentice::get_observer_recv_timeout() const {
   return get_io_device()->get_observer()->get_recv_timeout();

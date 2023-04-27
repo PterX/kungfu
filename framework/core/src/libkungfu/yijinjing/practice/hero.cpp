@@ -31,7 +31,6 @@ hero::hero(io_device_ptr io_device)
     : begin_time_(time::now_in_nano()), end_time_(INT64_MAX),
       master_home_location_(make_system_location("master", "master", io_device->get_locator())),
       master_cmd_location_(make_system_location("master", encode(io_device), io_device->get_locator())),
-      cached_home_location_(make_system_location("service", "cached", io_device->get_locator())),
       ledger_home_location_(make_system_location("service", "ledger", io_device->get_locator())),
       io_device_(std::move(io_device)), now_(0) {
 
@@ -42,7 +41,6 @@ hero::hero(io_device_ptr io_device)
   add_location(0, get_io_device()->get_home());
   add_location(0, master_home_location_);
   add_location(0, master_cmd_location_);
-  add_location(0, cached_home_location_);
   add_location(0, ledger_home_location_);
   reader_ = io_device_->open_reader_to_subscribe();
 }
@@ -257,7 +255,7 @@ void hero::deregister_location(int64_t, const uint32_t location_uid) {
 }
 
 void hero::register_channel(int64_t, const Channel &channel) {
-  [[maybe_unused]] uint64_t channel_uid = make_source_dest_hash(channel.source_id, channel.dest_id);
+  uint64_t channel_uid = make_source_dest_hash(channel.source_id, channel.dest_id);
   auto result = channels_.try_emplace(channel_uid, channel);
   if (result.second) {
     auto source_uname = get_location_uname(channel.source_id);

@@ -898,7 +898,6 @@ export const SystemProcessName: Record<
 > = {
   master: { name: t('tradingConfig.master') },
   ledger: { name: t('tradingConfig.ledger') },
-  cached: { name: t('tradingConfig.cached') },
   archive: { name: t('tradingConfig.archive') },
 };
 

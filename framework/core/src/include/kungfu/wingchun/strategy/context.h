@@ -197,12 +197,6 @@ public:
   virtual uint64_t cancel_order(uint64_t order_id) = 0;
 
   /**
-   * Get current trading day.
-   * @return current trading day
-   */
-  virtual int64_t get_trading_day() const = 0;
-
-  /**
    * Tells whether the book is held.
    * If book is held, all traded positions will be recovered from ledger.
    * If book is not held, ledger will use the information collected in pre_start to build a fresh book.

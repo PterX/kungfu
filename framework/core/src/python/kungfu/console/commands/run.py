@@ -80,7 +80,6 @@ def run(
     cheatsheet = {
         "master": registry["system"]["master"]["master"],
         "ledger": registry["system"]["service"]["ledger"],
-        "cached": registry["system"]["service"]["cached"],
     }
 
     if not category and not reference:

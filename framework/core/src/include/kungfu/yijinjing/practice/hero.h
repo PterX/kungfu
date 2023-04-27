@@ -46,7 +46,7 @@ public:
 
   bool is_low_latency() const;
 
-  const bus_ptr &get_bus() const;
+  const yijinjing::journal::bus_ptr &get_bus() const;
 
   void signal_stop();
 
@@ -138,15 +138,11 @@ protected:
   int64_t end_time_;
   yijinjing::journal::reader_ptr reader_;
   WriterMap writers_ = {};
-  std::unordered_map<uint64_t, longfist::types::Band> bands_ = {};
-  std::unordered_map<uint64_t, longfist::types::Channel> channels_ = {};
-  std::unordered_map<uint32_t, yijinjing::data::location_ptr> locations_ = {};
-  std::unordered_map<uint32_t, longfist::types::Register> registry_ = {};
+
   rx::connectable_observable<event_ptr> events_ = {};
 
   const yijinjing::data::location_ptr master_home_location_;
   const yijinjing::data::location_ptr master_cmd_location_;
-  const yijinjing::data::location_ptr cached_home_location_;
   const yijinjing::data::location_ptr ledger_home_location_;
 
   static uint64_t make_source_dest_hash(uint32_t source_id, uint32_t dest_id);
@@ -190,37 +186,16 @@ protected:
 
   virtual void on_frame() = 0;
 
-  static constexpr auto feed_profile_data = [](const event_ptr &event, auto &receiver) {
-    boost::hana::for_each(longfist::ProfileDataTypes, [&](auto it) {
-      using DataType = typename decltype(+boost::hana::second(it))::type;
-      if (DataType::tag == event->msg_type()) {
-        receiver << typed_event_ptr<DataType>(event);
-      }
-    });
-  };
-
-  static constexpr auto feed_state_data = [](const event_ptr &event, auto &receiver) {
-    boost::hana::for_each(longfist::StateDataTypes, [&](auto it) {
-      using DataType = typename decltype(+boost::hana::second(it))::type;
-      if (DataType::tag == event->msg_type()) {
-        receiver << typed_event_ptr<DataType>(event);
-      }
-    });
-  };
-
-  static constexpr auto feed_trading_data = [](const event_ptr &event, auto &receiver) {
-    boost::hana::for_each(longfist::TradingDataTypes, [&](auto it) {
-      using DataType = typename decltype(+boost::hana::second(it))::type;
-      if (DataType::tag == event->msg_type()) {
-        receiver << typed_event_ptr<DataType>(event);
-      }
-    });
-  };
-
 private:
   yijinjing::io_device_ptr io_device_;
   rx::composite_subscription cs_;
   int64_t now_;
+
+  std::unordered_map<uint64_t, longfist::types::Band> bands_ = {};
+  std::unordered_map<uint64_t, longfist::types::Channel> channels_ = {};
+  std::unordered_map<uint32_t, yijinjing::data::location_ptr> locations_ = {};
+  std::unordered_map<uint32_t, longfist::types::Register> registry_ = {};
+
   volatile bool continual_ = true;
   volatile bool live_ = false;
 

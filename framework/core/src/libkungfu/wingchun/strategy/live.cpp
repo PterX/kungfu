@@ -35,7 +35,6 @@ void LiveContext::on_start() {
 bool LiveContext::is_started() const { return started_; }
 
 void LiveContext::prepare(const event_ptr &event) {
-
   if (event->msg_type() == Position::tag) {
     const Position &position = event->data<Position>();
     if (position.holder_uid == app_.get_home_uid()) {
@@ -366,8 +365,6 @@ const location_map &LiveContext::list_md() const { return md_locations_; }
 const location_map &LiveContext::list_op() const { return op_locations_; }
 
 const location_map &LiveContext::list_accounts() const { return td_locations_; }
-
-int64_t LiveContext::get_trading_day() const { return app_.get_trading_day(); }
 
 broker::Client &LiveContext::get_broker_client() { return broker_client_; }
 

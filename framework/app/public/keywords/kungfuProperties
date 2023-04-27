@@ -47,7 +47,6 @@ Error
 Filled
 PartialFilledNotActive
 PartialFilledActive
-trading_day
 rcv_time
 data_time
 instrument_id

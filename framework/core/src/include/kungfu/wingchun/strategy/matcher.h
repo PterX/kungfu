@@ -25,10 +25,6 @@ public:
   Matcher() = default;
   virtual ~Matcher() = default;
 
-  // 交易日切换回调
-  //@param daytime 交易日
-  virtual void on_trading_day(int64_t daytime){};
-
   // 行情数据更新回调
   //@param quote             行情数据
   virtual void on_quote(const longfist::types::Quote &quote){};

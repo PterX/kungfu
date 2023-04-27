@@ -56,6 +56,7 @@ public:
 
 private:
   SessionMap live_sessions_ = {};
+  std::mutex update_session_mutex_;
 };
 } // namespace kungfu::yijinjing::index
 

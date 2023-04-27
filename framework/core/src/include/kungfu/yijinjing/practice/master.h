@@ -53,7 +53,6 @@ protected:
 private:
   int64_t start_time_;
   int64_t last_check_;
-  index::session_builder session_builder_;
   yijinjing::cache::cached cached_;
 
   std::unordered_map<uint32_t, uint32_t> app_cmd_locations_ = {};

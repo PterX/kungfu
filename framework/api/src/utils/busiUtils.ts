@@ -1447,6 +1447,7 @@ export const dealKfNumber = (
 
 export const dealKfPrice = (
   preNumber: bigint | number | undefined | null | unknown,
+  pricePrecision?: number,
 ): string => {
   const afterNumber = dealKfNumber(preNumber);
 
@@ -1454,11 +1455,12 @@ export const dealKfPrice = (
     return afterNumber;
   }
 
-  return Number(afterNumber).toFixed(4);
+  return Number(afterNumber).toFixed(pricePrecision || 3);
 };
 
 export const dealAssetPrice = (
   preNumber: bigint | number | undefined | unknown,
+  pricePrecision?: number,
 ): string => {
   const afterNumber = dealKfNumber(preNumber);
 
@@ -1466,7 +1468,7 @@ export const dealAssetPrice = (
     return afterNumber;
   }
 
-  return Number(afterNumber).toFixed(2);
+  return Number(afterNumber).toFixed(pricePrecision || 3);
 };
 
 export const sum = (list: number[]): number => {
@@ -2434,3 +2436,16 @@ export const buildIfWatcherLiveObservable = (watcher: KungfuApi.Watcher) => {
     }, 1000);
   });
 };
+
+export function countDecimalPlaces(num: number) {
+  const match = String(num).match(/(?:\.(\d+))?$/);
+  if (!match) {
+    return 0;
+  }
+  return match[1] ? match[1].length : 0;
+}
+
+export function roundToDecimalPlaces(num: number, precision: number) {
+  const multiplier = Math.pow(10, precision);
+  return Math.round(num * multiplier) / multiplier;
+}

@@ -93,7 +93,6 @@ const props = withDefaults(
         trigger: string;
       }
     >;
-    steps?: Record<string, number>;
     passPrimaryKeySpecialWordsVerify?: boolean;
     isPrimaryDisabled?: boolean;
     willReplaceWholeFormState?: boolean;
@@ -111,7 +110,6 @@ const props = withDefaults(
     labelCol: 6,
     wrapperCol: 14,
     rules: () => ({}),
-    steps: () => ({}),
     passPrimaryKeySpecialWordsVerify: false,
     isPrimaryDisabled: false,
     willReplaceWholeFormState: false,
@@ -1140,7 +1138,7 @@ defineExpose({
         :min="item.min ?? -Infinity"
         :formatter="(val) => Math.floor(val)"
         :parser="(val) => Math.floor(Number(val))"
-        :step="steps[item.key] || 1"
+        :step="item.step || 1"
         :disabled="
           (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
           item.disabled
@@ -1151,8 +1149,8 @@ defineExpose({
         v-model:value="formState[item.key]"
         :max="item.max ?? Infinity"
         :min="item.min ?? -Infinity"
-        :precision="item.precision ?? 4"
-        :step="steps[item.key] || 0.0001"
+        :precision="item.precision || 3"
+        :step="item.step || 0.001"
         :disabled="
           (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
           item.disabled
@@ -1163,8 +1161,8 @@ defineExpose({
         v-model:value="formState[item.key]"
         :max="item.max ?? Infinity"
         :min="item.min ?? -Infinity"
-        :precision="item.precision ?? 2"
-        :step="steps[item.key] || 0.01"
+        :precision="item.precision || 2"
+        :step="item.step || 0.01"
         :formatter="formatterPercentNumber"
         :parser="parserPercentString"
         :disabled="
@@ -1357,8 +1355,8 @@ defineExpose({
       <a-select
         v-else-if="item.type === 'instrument'"
         :ref="item.key"
-        class="instrument-select"
         v-model:value="formState[item.key]"
+        class="instrument-select"
         :disabled="
           (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
           item.disabled
@@ -1854,7 +1852,6 @@ defineExpose({
                     :label-col="labelCol"
                     :wrapper-col="wrapperCol"
                     :rules="rules"
-                    :steps="steps"
                     :pass-primary-key-special-words-verify="
                       passPrimaryKeySpecialWordsVerify
                     "
@@ -1918,7 +1915,6 @@ defineExpose({
                 :label-col="labelCol"
                 :wrapper-col="wrapperCol"
                 :rules="rules"
-                :steps="steps"
                 :pass-primary-key-special-words-verify="
                   passPrimaryKeySpecialWordsVerify
                 "

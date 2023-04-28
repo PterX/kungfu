@@ -20,7 +20,9 @@ void cleaner::do_clean() {
     std::unique_lock lk(cv_mutex_);
     app_.get_bus()->get_cv().wait(lk, [&]() { return app_.release_page() && app_.is_live(); });
     lk.unlock();
-    if (not cleaning_worker_alive_) {
+
+    std::lock_guard<std::mutex> lock(quite_mutex_);
+    if (not m_quit_) {
       break;
     }
   }
@@ -29,8 +31,14 @@ void cleaner::do_clean() {
 bool cleaner::is_cleaner_worker_required() const { return app_.get_bus()->is_on_load_page_required(); }
 
 cleaner::~cleaner() {
-  cleaning_worker_alive_ = false;
-  cleaning_worker_.join();
+  {
+    std::lock_guard<std::mutex> lock(quite_mutex_);
+    m_quit_ = true;
+  }
+
+  if (cleaning_worker_.joinable()) {
+    cleaning_worker_.join();
+  }
 }
 
 } // namespace kungfu::yijinjing::practice

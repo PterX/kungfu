@@ -27,7 +27,8 @@ private:
   yijinjing::practice::apprentice &app_;
   std::thread cleaning_worker_;
   std::mutex cv_mutex_;
-  bool cleaning_worker_alive_ = true;
+  std::mutex quite_mutex_;
+  bool m_quit_ = true;
 
   void do_clean();
 

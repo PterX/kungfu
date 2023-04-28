@@ -8,6 +8,7 @@ import {
   hashInstrumentUKey,
   kfRequestMarketData,
 } from '@kungfu-trader/kungfu-js-api/kungfu';
+
 import { setKfConfig } from '@kungfu-trader/kungfu-js-api/kungfu/store';
 import {
   BrokerStateStatusTypes,
@@ -49,6 +50,7 @@ import {
   isUpdateVersionLogicEnable,
   isCheckVersionLogicEnable,
   kfLogger,
+  countDecimalPlaces,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { BasketVolumeType } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import { writeCsvWithUTF8Bom } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
@@ -1422,6 +1424,19 @@ export const useDealInstruments = (): void => {
   };
 };
 
+export const hashInstrumentUKeyResolved = (
+  instrumentId: string,
+  exchangeId: string,
+) => {
+  if (!window.ukeyCacheMap) window.ukeyCacheMap = new Map<string, string>();
+  const ukeyCacheMap = window.ukeyCacheMap;
+  const cacheKey = `${instrumentId}_${exchangeId}`;
+  if (!ukeyCacheMap.has(cacheKey))
+    ukeyCacheMap.set(cacheKey, hashInstrumentUKey(instrumentId, exchangeId));
+
+  return ukeyCacheMap.get(cacheKey) || '';
+};
+
 export const useActiveInstruments = () => {
   const { instrumentsMap } = useGlobalStore();
 
@@ -1430,7 +1445,7 @@ export const useActiveInstruments = () => {
     exchangeId: string,
     forceConvert = false,
   ) => {
-    const ukey = hashInstrumentUKey(instrumentId, exchangeId);
+    const ukey = hashInstrumentUKeyResolved(instrumentId, exchangeId);
     const instrumentResolved = instrumentsMap[ukey];
 
     if (instrumentResolved) {
@@ -1456,18 +1471,10 @@ export const useActiveInstruments = () => {
     instrumentId: string,
     exchangeId: string,
   ) => {
-    const ukey = hashInstrumentUKey(instrumentId, exchangeId);
+    const ukey = hashInstrumentUKeyResolved(instrumentId, exchangeId);
     const watcher = window.watcher as KungfuApi.Watcher;
     const instrument = watcher.ledger.Instrument[ukey];
     if (instrument) return instrument;
-
-    const instruments = watcher.ledger.Instrument.filter(
-      'instrument_id',
-      instrumentId,
-    )
-      .filter('exchange_id', exchangeId)
-      .list();
-    if (instruments.length) return instruments[0];
 
     return null;
   };
@@ -1484,10 +1491,22 @@ export const useActiveInstruments = () => {
     return CurrencyEnum.Unknown;
   };
 
+  const getPriceTickAndPrecision = (
+    instrumentId: string,
+    exchangeId: string,
+    defaultTick = 0.001,
+  ) => {
+    const instrument = getInstrumentByIdsWithWatcher(instrumentId, exchangeId);
+    const price_tick = instrument?.price_tick || defaultTick;
+    const price_precision = countDecimalPlaces(price_tick);
+    return { price_tick, price_precision };
+  };
+
   return {
     getInstrumentByIds,
     getInstrumentByIdsWithWatcher,
     getInstrumentCurrencyByIds,
+    getPriceTickAndPrecision,
   };
 };
 

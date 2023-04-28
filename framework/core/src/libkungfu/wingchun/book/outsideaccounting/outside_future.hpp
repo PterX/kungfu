@@ -32,7 +32,6 @@ public:
   OutsideFutureAccountingMethod() = default;
 
   void apply_trading_day(Book_ptr &book, int64_t trading_day) override {
-    SPDLOG_DEBUG("OutsideFutureAccountingMethod: apply_trading_day");
     auto apply = [&](PositionMap &positions) {
       for (auto &pair : positions) {
         auto &position = pair.second;
@@ -65,12 +64,10 @@ public:
   }
 
   void apply_quote(Book_ptr &book, const Quote &quote) override {
-    SPDLOG_DEBUG("OutsideFutureAccountingMethod: apply_quote");
     auto apply = [&](Position &position) {
-      //       if (position.volume == 0) {
-      //           // todo
-      //         return;
-      //       }
+      if (position.volume == 0) {
+        return;
+      }
       auto cm_mr =
           get_instrument_contract_multiplier_and_margin_ratio(book, quote.exchange_id, quote.instrument_id, position);
 
@@ -91,8 +88,7 @@ public:
           double market_value_change = (position.direction == Direction::Long ? 1 : -1) * price_change *
                                        cm_mr.exchange_rate * position.volume * cm_mr.contract_multiplier;
           book->asset.market_value += market_value_change;
-
-          SPDLOG_DEBUG("market_value-- apply_quote asset.market_value={}, "
+          SPDLOG_TRACE("market_value-- apply_quote asset.market_value={}, "
                        "market_value_change={},instrument_id={},volume={},direction={}",
                        book->asset.market_value, market_value_change, position.instrument_id, position.volume,
                        (int)position.direction);
@@ -113,10 +109,11 @@ public:
   }
 
   void apply_order_input(Book_ptr &book, const OrderInput &input) override {
-    SPDLOG_DEBUG("OutsideFutureAccountingMethod: apply_order_input");
     auto offset = get_offset(book, input);
     auto direction = get_direction(input.instrument_type, input.side, offset);
     auto &position = book->get_position(direction, input.exchange_id, input.instrument_id);
+    SPDLOG_TRACE("OutsideFutureAccountingMethod: apply_order_input instrument_id={},volume={},direction={}",
+                 position.instrument_id, position.volume, (int)position.direction);
 
     auto cm_mr =
         get_instrument_contract_multiplier_and_margin_ratio(book, input.exchange_id, input.instrument_id, position);
@@ -147,7 +144,6 @@ public:
   }
 
   void apply_order(Book_ptr &book, const Order &order) override {
-    SPDLOG_DEBUG("OutsideFutureAccountingMethod: apply_order");
     if (book->orders.find(order.order_id) == book->orders.end()) {
       book->orders.insert_or_assign(order.order_id, order);
     }
@@ -164,7 +160,7 @@ public:
     if (offset == Offset::Open) {
       auto frozen_margin =
           cm_mr.contract_multiplier * order.frozen_price * cm_mr.exchange_rate * order.volume_left * cm_mr.margin_ratio;
-      SPDLOG_DEBUG(
+      SPDLOG_TRACE(
           "OutsideFutureAccountingMethod: apply_order Offset::Open instrument_id={}, avail={}, frozen_margin={}",
           order.instrument_id, book->asset.avail, frozen_margin);
 
@@ -172,15 +168,13 @@ public:
       book->asset.frozen_cash -= frozen_margin;
       book->asset.frozen_margin -= frozen_margin;
 
-      // add by marsjliu
       auto frozen_market_value =
           cm_mr.contract_multiplier * order.frozen_price * cm_mr.exchange_rate * order.volume_left;
       book->asset.market_value += frozen_market_value;
-
-      SPDLOG_INFO("market_value-- apply_order asset.market_value={}, "
-                  "frozen_market_value={},instrument_id={},volume={},direction={}",
-                  book->asset.market_value, frozen_market_value, position.instrument_id, position.volume,
-                  (int)position.direction);
+      SPDLOG_TRACE("market_value-- apply_order asset.market_value={}, "
+                   "frozen_market_value={},instrument_id={},volume={},direction={}",
+                   book->asset.market_value, frozen_market_value, position.instrument_id, position.volume,
+                   (int)position.direction);
     }
 
     if (offset == Offset::Close or offset == Offset::CloseYesterday) {
@@ -196,7 +190,6 @@ public:
   }
 
   void apply_trade(Book_ptr &book, const Trade &trade) override {
-    SPDLOG_DEBUG("OutsideFutureAccountingMethod: apply_trade");
     if (book->trades.find(trade.trade_id) == book->trades.end()) {
       book->trades.emplace(trade.trade_id, trade);
     }
@@ -204,15 +197,13 @@ public:
     auto offset = get_offset(book, trade);
     auto direction = get_direction(trade.instrument_type, trade.side, offset);
     auto &position = book->get_position(direction, trade.exchange_id, trade.instrument_id);
-
-    SPDLOG_DEBUG("OutsideFutureAccountingMethod: apply_trade Offset::Open instrument_id={}, offset={}",
+    SPDLOG_TRACE("OutsideFutureAccountingMethod: apply_trade Offset::Open instrument_id={}, offset={}",
                  trade.instrument_id, (int)offset);
 
     if (offset == Offset::Open) {
       apply_open(book, position, trade);
     }
     if (offset == Offset::Close or offset == Offset::CloseToday or offset == Offset::CloseYesterday) {
-      // the extra offset is for merge position situation
       apply_close(book, position, trade);
     }
   }
@@ -269,11 +260,10 @@ private:
     // todo add by marsjliu
     auto trade_market_value = contract_multiplier * position.last_price * cm_mr.exchange_rate * trade.volume;
     book->asset.market_value += trade_market_value;
-
-    SPDLOG_INFO("market_value-- apply_open asset.market_value={}, "
-                "trade_market_value={},instrument_id={},volume={},direction={}",
-                book->asset.market_value, trade_market_value, position.instrument_id, position.volume,
-                (int)position.direction);
+    SPDLOG_TRACE("market_value-- apply_open asset.market_value={}, "
+                 "trade_market_value={},instrument_id={},volume={},direction={}",
+                 book->asset.market_value, trade_market_value, position.instrument_id, position.volume,
+                 (int)position.direction);
 
     auto commission = calculate_commission(book, trade, position, 0) * cm_mr.exchange_rate;
     book->asset.avail -= commission;
@@ -308,13 +298,12 @@ private:
     position.realized_pnl += realized_pnl;
     update_position(book, position);
 
-    // todo add by marsjliu
     auto trade_market_value = contract_multiplier * trade.price * cm_mr.exchange_rate * trade.volume;
     book->asset.market_value -= trade_market_value;
-    SPDLOG_INFO("market_value-- apply_close asset.market_value={}, "
-                "trade_market_value={},instrument_id={},volume={},direction={}",
-                book->asset.market_value, trade_market_value, position.instrument_id, position.volume,
-                (int)position.direction);
+    SPDLOG_TRACE("market_value-- apply_close asset.market_value={}, "
+                 "trade_market_value={},instrument_id={},volume={},direction={}",
+                 book->asset.market_value, trade_market_value, position.instrument_id, position.volume,
+                 (int)position.direction);
 
     auto commission = calculate_commission(book, trade, position, close_today_volume) * cm_mr.exchange_rate;
     book->asset.realized_pnl += realized_pnl * cm_mr.exchange_rate;

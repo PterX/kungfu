@@ -23,14 +23,14 @@ namespace fs = std::filesystem;
 namespace es = longfist::enums;
 
 longfist::enums::AccountingMethodType Bookkeeper::get_accounting_method_type() {
-  SPDLOG_INFO("Bookkeeper: get_accounting_method_type begin");
+  SPDLOG_TRACE("Bookkeeper: get_accounting_method_type begin");
   auto is_outside = std::getenv("IS_OUTSIDE_ACCOUNTING_TYPE");
-  SPDLOG_INFO("Bookkeeper: get_accounting_method_type IS_OUTSIDE_ACCOUNTING_TYPE={}", is_outside);
+  SPDLOG_TRACE("Bookkeeper: get_accounting_method_type IS_OUTSIDE_ACCOUNTING_TYPE={}", is_outside);
   if (is_outside == "1") {
-    SPDLOG_INFO("Bookkeeper: get_accounting_method_type 1");
+    SPDLOG_TRACE("Bookkeeper: get_accounting_method_type 1");
     return longfist::enums::AccountingMethodType::Outside;
   }
-  SPDLOG_INFO("Bookkeeper: get_accounting_method_type end");
+  SPDLOG_TRACE("Bookkeeper: get_accounting_method_type end");
   return longfist::enums::AccountingMethodType::Default;
 }
 

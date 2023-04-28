@@ -127,7 +127,8 @@ void Book::update(int64_t update_time) {
     auto position_market_value =
         position.volume * (position.last_price > 0 ? position.last_price : position.avg_open_price) * db_exchage_rate;
 
-    if (std::getenv("IS_OUTSIDE_ACCOUNTING_TYPE") == "1" && is_future) {
+    std::string is_outside = std::getenv("IS_OUTSIDE_ACCOUNTING_TYPE");
+    if (is_outside == "1" && is_future) {
       // 场外交易，期货市值计算：持仓数量*最新价*汇率*乘数
       position_market_value = position.volume *
                               (position.last_price > 0 ? position.last_price : position.avg_open_price) *

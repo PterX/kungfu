@@ -192,16 +192,16 @@ constexpr auto TradingDataTypes = boost::hana::make_map( //
     TYPE_PAIR(BasketOrder)                               //
 );
 
-constexpr auto MARKET_DATA_TYPES = boost::hana::make_map( //
-    TYPE_PAIR(Quote),                                     //
-    TYPE_PAIR(Tree),                                      //
-    TYPE_PAIR(Entrust),                                   //
-    TYPE_PAIR(Transaction)                                //
+constexpr auto MarketDataTypes = boost::hana::make_map( //
+    TYPE_PAIR(Quote),                                   //
+    TYPE_PAIR(Tree),                                    //
+    TYPE_PAIR(Entrust),                                 //
+    TYPE_PAIR(Transaction)                              //
 );
 
 constexpr auto is_profile_data = [](auto type) { return boost::hana::contains(ProfileDataTypes, type); };
 
-constexpr auto is_market_data = [](auto type) { return boost::hana::contains(MARKET_DATA_TYPES, type); };
+constexpr auto is_market_data = [](auto type) { return boost::hana::contains(MarketDataTypes, type); };
 
 const auto build_data_set = [](auto types) {
   std::unordered_set<int32_t> s;

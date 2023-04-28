@@ -200,13 +200,11 @@ constexpr auto MARKET_DATA_TYPES = boost::hana::make_map( //
 );
 
 constexpr auto is_profile_data = [](auto type) {
-  using DataType = decltype(type);
-  return boost::hana::contains(ProfileDataTypes, static_cast<DataType>(type));
+  return boost::hana::contains(ProfileDataTypes, type);
 };
 
 constexpr auto is_market_data = [](auto type) {
-  using DataType = decltype(type);
-  return boost::hana::contains(MARKET_DATA_TYPES, static_cast<DataType>(type));
+  return boost::hana::contains(MARKET_DATA_TYPES, type);
 };
 
 const auto build_data_set = [](auto types) {

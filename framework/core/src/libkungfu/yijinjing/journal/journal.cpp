@@ -41,7 +41,7 @@ void journal::load_page(int page_id) {
   if (page_.get() == nullptr or page_->get_page_id() != page_id) {
 
     if (page_.get() != nullptr && bus_->is_on_load_page_required()) {
-      passed_page_collector_.push_back(std::move(page_));
+      passed_page_collector_.push(std::move(page_));
       bus_->on_load_page();
     }
     page_ = page::load(location_, dest_id_, page_id, is_writing_, lazy_);
@@ -72,7 +72,7 @@ bool journal::release_page() {
     if (page_ptr.get() != nullptr) {
       page_ptr.reset();
     };
-    passed_page_collector_.pop_back();
+    passed_page_collector_.pop();
   }
 
   return true;

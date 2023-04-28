@@ -19,7 +19,7 @@ class cleaner {
 public:
   explicit cleaner(yijinjing::practice::apprentice &app);
 
-  virtual ~cleaner() = default;
+  virtual ~cleaner();
 
   void on_react();
 
@@ -119,8 +119,9 @@ protected:
     auto writer = get_writer(master_cmd_location_->uid);
     int32_t timer_usage_count = timer_usage_count_;
     int64_t duration_ns = nanotime - now();
-    longfist::types::TimeRequest &r = writer->open_data<longfist::types::TimeRequest>(0);
+    longfist::types::TimeRequest &r = writer->open_data<longfist::types::TimeRequest>(now());
     r.id = timer_usage_count;
+    r.base_time = now();
     r.duration = duration_ns;
     r.repeat = 1;
     writer->close_data();
@@ -140,8 +141,9 @@ protected:
     auto duration_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(d).count();
     auto writer = get_writer(master_cmd_location_->uid);
     int32_t timer_usage_count = timer_usage_count_;
-    longfist::types::TimeRequest &r = writer->open_data<longfist::types::TimeRequest>(0);
+    longfist::types::TimeRequest &r = writer->open_data<longfist::types::TimeRequest>(now());
     r.id = timer_usage_count;
+    r.base_time = now();
     r.duration = duration_ns;
     r.repeat = 1;
     writer->close_data();
@@ -152,8 +154,9 @@ protected:
                if (event->msg_type() == longfist::types::Time::tag &&
                    event->gen_time() > timer_checkpoints_[timer_usage_count] + duration_ns) {
                  auto writer = get_writer(master_cmd_location_->uid);
-                 longfist::types::TimeRequest &r = writer->open_data<longfist::types::TimeRequest>(0);
+                 longfist::types::TimeRequest &r = writer->open_data<longfist::types::TimeRequest>(now());
                  r.id = timer_usage_count;
+                 r.base_time = now();
                  r.duration = duration_ns;
                  r.repeat = 1;
                  writer->close_data();
@@ -171,8 +174,9 @@ protected:
     auto duration_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(d).count();
     auto writer = get_writer(master_cmd_location_->uid);
     int32_t timer_usage_count = timer_usage_count_;
-    longfist::types::TimeRequest &r = writer->open_data<longfist::types::TimeRequest>(0);
+    longfist::types::TimeRequest &r = writer->open_data<longfist::types::TimeRequest>(now());
     r.id = timer_usage_count;
+    r.base_time = now();
     r.duration = duration_ns;
     r.repeat = 1;
     writer->close_data();
@@ -182,8 +186,9 @@ protected:
       return (src | rx::filter([&, duration_ns, timer_usage_count](const event_ptr &event) {
                 if (event->msg_type() != longfist::types::Time::tag) {
                   auto writer = get_writer(master_cmd_location_->uid);
-                  longfist::types::TimeRequest &r = writer->open_data<longfist::types::TimeRequest>(0);
+                  longfist::types::TimeRequest &r = writer->open_data<longfist::types::TimeRequest>(now());
                   r.id = timer_usage_count;
+                  r.base_time = now();
                   r.duration = duration_ns;
                   r.repeat = 1;
                   writer->close_data();

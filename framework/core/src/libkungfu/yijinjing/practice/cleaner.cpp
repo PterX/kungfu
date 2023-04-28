@@ -13,7 +13,6 @@ void cleaner::on_react() {
     return;
   }
   cleaning_worker_ = std::thread(&cleaner::do_clean, this);
-  cleaning_worker_.detach();
 }
 
 void cleaner::do_clean() {
@@ -21,9 +20,17 @@ void cleaner::do_clean() {
     std::unique_lock lk(cv_mutex_);
     app_.get_bus()->get_cv().wait(lk, [&]() { return app_.release_page() && app_.is_live(); });
     lk.unlock();
+    if (not cleaning_worker_alive_) {
+      break;
+    }
   }
 }
 
 bool cleaner::is_cleaner_worker_required() const { return app_.get_bus()->is_on_load_page_required(); }
+
+cleaner::~cleaner() {
+  cleaning_worker_alive_ = false;
+  cleaning_worker_.join();
+}
 
 } // namespace kungfu::yijinjing::practice

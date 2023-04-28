@@ -97,7 +97,7 @@ void Ledger::refresh_account_book(int64_t trigger_time, uint32_t account_uid) {
   subscribe_positions(book->long_positions);
   subscribe_positions(book->short_positions);
   broker_client_.try_renew(trigger_time, md_location);
-  book->update(trigger_time, bookkeeper_.get_accounting_method_type());
+  book->update(trigger_time);
 }
 
 OrderStat &Ledger::get_order_stat(uint64_t order_id, const event_ptr &event) {
@@ -197,7 +197,7 @@ void Ledger::rebuild_positions(int64_t trigger_time, uint32_t strategy_uid) {
     rebuild_book(tmp_book->long_positions);
     rebuild_book(tmp_book->short_positions);
   }
-  strategy_book->update(trigger_time, bookkeeper_.get_accounting_method_type());
+  strategy_book->update(trigger_time);
 }
 
 void Ledger::write_book_reset(int64_t trigger_time, uint32_t book_uid) {

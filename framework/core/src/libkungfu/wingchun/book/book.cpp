@@ -4,6 +4,7 @@
 // Created by qlu on 2019-10-14.
 //
 
+#include <kungfu/wingchun/book/accounting.h>
 #include <kungfu/wingchun/book/book.h>
 
 #include <utility>
@@ -95,7 +96,7 @@ Position &Book::get_position(Direction direction, const char *exchange_id, const
   return position;
 }
 
-void Book::update(int64_t update_time, longfist::enums::AccountingMethodType accountingMethodTyp) {
+void Book::update(int64_t update_time) {
   asset.update_time = update_time;
   asset.margin = 0;
   asset.market_value = 0;
@@ -126,7 +127,7 @@ void Book::update(int64_t update_time, longfist::enums::AccountingMethodType acc
     auto position_market_value =
         position.volume * (position.last_price > 0 ? position.last_price : position.avg_open_price) * db_exchage_rate;
 
-    if (accountingMethodTyp == longfist::enums::AccountingMethodType::Outside && is_future) {
+    if (book::AccountingMethod::accounting_method_type == longfist::enums::AccountingMethodType::Outside && is_future) {
       position_market_value = position.volume *
                               (position.last_price > 0 ? position.last_price : position.avg_open_price) *
                               db_exchage_rate * db_contract_multiplier;

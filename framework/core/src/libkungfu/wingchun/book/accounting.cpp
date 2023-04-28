@@ -15,8 +15,18 @@
 using namespace kungfu::wingchun;
 
 namespace kungfu::wingchun::book {
-void AccountingMethod::setup_defaults(Bookkeeper &bookkeeper,
-                                      longfist::enums::AccountingMethodType accountingMethodType) {
+longfist::enums::AccountingMethodType AccountingMethod::accounting_method_type =
+    longfist::enums::AccountingMethodType::Default;
+
+void AccountingMethod::setup_defaults(Bookkeeper &bookkeeper) {
+  std::string is_outside = std::getenv("IS_OUTSIDE_ACCOUNTING_TYPE");
+  SPDLOG_INFO("AccountingMethod::setup_defaults IS_OUTSIDE_ACCOUNTING_TYPE = {}", is_outside);
+  if (is_outside == "1") {
+    accounting_method_type = longfist::enums::AccountingMethodType::Outside;
+  } else {
+    accounting_method_type = longfist::enums::AccountingMethodType::Default;
+  }
+
   auto bond_accounting_method = std::make_shared<BondAccountingMethod>();
   auto repo_accounting_method = std::make_shared<RepoAccountingMethod>();
   auto crypto_accounting_method = std::make_shared<CryptoAccountingMethod>();
@@ -27,7 +37,7 @@ void AccountingMethod::setup_defaults(Bookkeeper &bookkeeper,
   bookkeeper.set_accounting_method(InstrumentType::CryptoFuture, crypto_accounting_method);
   bookkeeper.set_accounting_method(InstrumentType::CryptoUFuture, crypto_accounting_method);
 
-  if (accountingMethodType == longfist::enums::AccountingMethodType::Outside) {
+  if (accounting_method_type == longfist::enums::AccountingMethodType::Outside) {
     auto outside_stock_accounting_method = std::make_shared<OutsideStockAccountingMethod>();
     auto outside_future_accounting_method = std::make_shared<OutsideFutureAccountingMethod>();
 

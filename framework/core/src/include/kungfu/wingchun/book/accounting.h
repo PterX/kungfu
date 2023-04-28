@@ -31,8 +31,9 @@ public:
 
   virtual void update_position(Book_ptr &book, longfist::types::Position &position) = 0;
 
-  static void setup_defaults(Bookkeeper &bookkeeper, longfist::enums::AccountingMethodType accountingMethodTyp =
-                                                         longfist::enums::AccountingMethodType::Default);
+  static void setup_defaults(Bookkeeper &bookkeeper);
+
+  static longfist::enums::AccountingMethodType accounting_method_type;
 };
 DECLARE_PTR(AccountingMethod)
 } // namespace kungfu::wingchun::book

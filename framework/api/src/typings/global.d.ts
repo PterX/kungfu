@@ -106,9 +106,10 @@ export interface RootConfigJSON {
       update?: Writeable<AllPublishOptions>;
     };
   };
-  boardFilter?: Record<string, boolean>;
   appConfig?: {
     showHelp?: boolean;
+
+    boardFilter?: Record<string, boolean>;
 
     kfConfigInitValue?: Record<string, KungfuApi.KfConfigValue>;
 

@@ -1,4 +1,4 @@
-import '@kungfu-trader/kungfu-js-api/setEnv';
+import '@kungfu-trader/kungfu-js-api/setGlobalEnv';
 import dayjs from 'dayjs';
 
 process.env.APP_ID = dayjs().format('MMDDHHmmss');

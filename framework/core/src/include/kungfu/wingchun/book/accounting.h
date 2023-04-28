@@ -13,6 +13,15 @@
 using namespace kungfu::longfist::enums;
 
 namespace kungfu::wingchun::book {
+static constexpr longfist::enums::AccountingMethodType get_accounting_method_type() {
+  std::string is_outside = std::getenv("IS_OUTSIDE_ACCOUNTING_TYPE");
+  SPDLOG_INFO("AccountingMethod::setup_defaults IS_OUTSIDE_ACCOUNTING_TYPE = {}", is_outside);
+  if (is_outside == "1") {
+    return longfist::enums::AccountingMethodType::Outside;
+  }
+  return longfist::enums::AccountingMethodType::Default;
+}
+
 class AccountingMethod {
 public:
   AccountingMethod() = default;
@@ -33,8 +42,10 @@ public:
 
   static void setup_defaults(Bookkeeper &bookkeeper);
 
-  static longfist::enums::AccountingMethodType accounting_method_type;
+  static const longfist::enums::AccountingMethodType accounting_method_type = get_accounting_method_type();
 };
+// longfist::enums::AccountingMethodType AccountingMethod::accounting_method_type = get_accounting_method_type();
+
 DECLARE_PTR(AccountingMethod)
 } // namespace kungfu::wingchun::book
 #endif // WINGCHUN_ACCOUNTING_H

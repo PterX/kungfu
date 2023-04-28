@@ -5,6 +5,7 @@ import App from '@kungfu-trader/kungfu-app/src/renderer/pages/journal/App.vue';
 
 import store from './store';
 import VueVirtualScroller from 'vue-virtual-scroller';
+import { dragging } from './directives';
 import 'vue-virtual-scroller/dist/vue-virtual-scroller.css';
 import {
   Button,
@@ -49,4 +50,5 @@ app
   .use(VueVirtualScroller);
 
 app.use(VueI18n);
+app.directive('dragging', dragging);
 app.mount('#app');

@@ -166,6 +166,7 @@ async function createWindow(
       createWindow(true);
     });
   });
+  setMenu();
 }
 
 // 防止重开逻辑
@@ -276,6 +277,23 @@ function setMenu() {
   const isShowHelp = !(rootPackageJson?.appConfig?.showHelp === false); // 如果没有显示设置为 false，则显示
 
   const template: MenuItemConstructorOptions[] = [
+    //mac全屏鼠标触摸屏幕顶显示关闭按钮，取消全屏按钮，最小化按钮
+
+    {
+      label: t('File'),
+      submenu: [
+        {
+          label: t('close'),
+          accelerator: 'CommandOrControl+W',
+          click: () => {
+            const focusedWin = BrowserWindow.getFocusedWindow();
+            if (focusedWin) {
+              focusedWin.close();
+            }
+          },
+        },
+      ],
+    },
     {
       label: t('KungFu'),
       submenu: applicationOptions,

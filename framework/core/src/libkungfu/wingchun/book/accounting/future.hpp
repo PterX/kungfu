@@ -33,39 +33,6 @@ class FutureAccountingMethod : public AccountingMethod {
 public:
   FutureAccountingMethod() = default;
 
-  void apply_trading_day(Book_ptr &book, int64_t trading_day) override {
-    auto apply = [&](PositionMap &positions) {
-      for (auto &pair : positions) {
-        auto &position = pair.second;
-        auto margin_pre = position.margin;
-        if (not is_valid_price(position.settlement_price)) {
-          if (is_valid_price(position.last_price)) {
-            position.settlement_price = position.last_price;
-          } else {
-            position.settlement_price = position.avg_open_price;
-          }
-        }
-
-        auto cm_mr = get_instrument_contract_multiplier_and_margin_ratio(book, position.exchange_id,
-                                                                         position.instrument_id, position);
-
-        position.margin = cm_mr.contract_multiplier * position.settlement_price * position.volume * cm_mr.margin_ratio;
-
-        book->asset.avail -= position.margin - margin_pre;
-        position.pre_settlement_price = position.settlement_price;
-        position.last_price = position.settlement_price;
-        position.settlement_price = 0;
-        position.yesterday_volume = position.volume;
-        position.trading_day = time::strftime(trading_day, KUNGFU_TRADING_DAY_FORMAT).c_str();
-
-        update_position(book, position);
-      }
-    };
-
-    apply(book->long_positions);
-    apply(book->short_positions);
-  }
-
   void apply_quote(Book_ptr &book, const Quote &quote) override {
     auto apply = [&](Position &position) {
       auto cm_mr =

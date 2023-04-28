@@ -277,6 +277,10 @@ export const Side: Record<SideEnum, KungfuApi.KfTradeValueCommonData> = {
     name: t('tradingConfig.guarantee_stock_redeem'),
     color: 'green',
   },
+  [SideEnum.Unknown]: {
+    name: t('tradingConfig.unknown'),
+    color: 'default',
+  },
 };
 
 export const OrderStatus: Record<
@@ -894,7 +898,6 @@ export const SystemProcessName: Record<
 > = {
   master: { name: t('tradingConfig.master') },
   ledger: { name: t('tradingConfig.ledger') },
-  cached: { name: t('tradingConfig.cached') },
   archive: { name: t('tradingConfig.archive') },
 };
 

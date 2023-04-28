@@ -7,7 +7,6 @@
 #ifndef YIJINJING_ASSEMBLE_H
 #define YIJINJING_ASSEMBLE_H
 
-#include <kungfu/yijinjing/bus.h>
 #include <kungfu/yijinjing/journal/journal.h>
 
 namespace kungfu::yijinjing::journal {

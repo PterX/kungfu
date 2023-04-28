@@ -152,6 +152,7 @@ export enum SideEnum {
   SurplusStockTransfer,
   GuaranteeStockTransferIn,
   GuaranteeStockTransferOut,
+  Unknown = 99,
 }
 
 export type SideTypes = keyof typeof SideEnum;
@@ -265,8 +266,6 @@ export enum FrameMsgTypeEnum {
   Pong = 10009,
   RequestStop = 10024,
   RequestStart = 10025,
-  CachedReadyToRead = 10060,
-  RequestCached = 10061,
   NewOrderSingle = 353,
   CancelOrder = 354,
   CancelAllOrder = 355,
@@ -296,10 +295,8 @@ export enum FrameMsgTypeEnum {
   RequestReadFromPublic = 10022,
   RequestReadFromSync = 10031,
   RequestWriteTo = 10023,
-  TradingDay = 10027,
   Channel = 10028,
   ChannelRequest = 10029,
-  RequestCachedDone = 10062,
   TimeRequest = 10004,
   TimeReset = 10100,
   Instrument = 209,

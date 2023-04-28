@@ -41,13 +41,6 @@ void Runner::set_matcher(const Matcher_ptr &matcher) { matcher_ = matcher; }
 
 void Runner::on_exit() { post_stop(); }
 
-void Runner::on_trading_day(const event_ptr &event, int64_t daytime) {
-  if (context_) {
-    context_->get_bookkeeper().on_trading_day(daytime);
-  }
-  invoke(&Strategy::on_trading_day, daytime);
-}
-
 void Runner::react() {
   context_ = make_context();
   context_->set_arguments(arguments_);

@@ -57,7 +57,6 @@ import {
   startArchiveMakeTask,
   startGetProcessStatus,
   startLedger,
-  startCacheD,
   startMaster,
   isAllMainProcessRunning,
   KillAll,
@@ -124,12 +123,6 @@ app.config.globalProperties.$globalBus = globalBus;
 app.config.globalProperties.$tradingDataSubject = tradingDataSubject;
 
 app.use(VueI18n);
-
-mergeExtLanguages().then(() =>
-  useComponents(app, router).then(() => {
-    app.mount('#app');
-  }),
-);
 
 const globalStore = useGlobalStore();
 const __BYPASS_ARCHIVE__ = false;
@@ -198,9 +191,7 @@ const initStartAll = () => {
     const watcherIsLiveObervable = buildIfWatcherLiveObservable(window.watcher);
     watcherIsLiveObervable.pipe(first()).subscribe(() => {
       console.log('watcher is live');
-      delayMilliSeconds(2000)
-        .then(() => startCacheD(false))
-        .then(() => delayMilliSeconds(2000))
+      delayMilliSeconds(1000)
         .then(() => startLedger(false))
         .then(() => postStartAll())
         .then(() => delayMilliSeconds(1000))
@@ -226,27 +217,33 @@ const initStartAll = () => {
   }
 };
 
-if (!booleanProcessEnv(process.env.RELOAD_AFTER_CRASHED)) {
-  initStartAll();
-} else {
-  isAllMainProcessRunning().then((res) => {
-    if (res) {
-      startGetProcessStatus(
-        (res: {
-          processStatus: Pm2ProcessStatusData;
-          processStatusWithDetail: Pm2ProcessStatusDetailData;
-        }) => {
-          const { processStatus, processStatusWithDetail } = res;
-          globalStore.setProcessStatus(processStatus);
-          globalStore.setProcessStatusWithDetail(processStatusWithDetail);
-        },
-      );
+mergeExtLanguages().then(() =>
+  useComponents(app, router).then(() => {
+    app.mount('#app');
+
+    if (!booleanProcessEnv(process.env.RELOAD_AFTER_CRASHED)) {
+      initStartAll();
     } else {
-      KillAll().finally(() => {
-        initStartAll();
+      isAllMainProcessRunning().then((res) => {
+        if (res) {
+          startGetProcessStatus(
+            (res: {
+              processStatus: Pm2ProcessStatusData;
+              processStatusWithDetail: Pm2ProcessStatusDetailData;
+            }) => {
+              const { processStatus, processStatusWithDetail } = res;
+              globalStore.setProcessStatus(processStatus);
+              globalStore.setProcessStatusWithDetail(processStatusWithDetail);
+            },
+          );
+        } else {
+          KillAll().finally(() => {
+            initStartAll();
+          });
+        }
       });
     }
-  });
-}
+  }),
+);
 
 triggerStartStep(1000);

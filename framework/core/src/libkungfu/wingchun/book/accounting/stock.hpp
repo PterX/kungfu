@@ -42,41 +42,6 @@ public:
 
   StockAccountingMethod() = default;
 
-  void apply_trading_day(Book_ptr &book, int64_t trading_day) override {
-
-    auto apply = [&](PositionMap &positions) {
-      for (auto &pair : positions) {
-        auto &position = pair.second;
-        [[maybe_unused]] auto margin_pre = position.margin;
-        if (is_valid_price(position.close_price)) {
-          position.pre_close_price = position.close_price;
-        } else if (is_valid_price(position.last_price)) {
-          position.pre_close_price = position.last_price;
-        }
-        // collateral; security
-        auto cd_mr = get_instr_conversion_margin_rate(book, position);
-        auto margin_ratio =
-            (position.direction == Direction::Long ? cd_mr.long_margin_ratio : cd_mr.short_margin_ratio);
-
-        if (position.direction == Direction::Short) {
-          position.margin = position.pre_close_price * cd_mr.exchange_rate * position.volume * margin_ratio;
-        }
-
-        position.yesterday_volume = position.volume;
-        position.close_price = 0;
-        position.update_time = trading_day;
-        position.frozen_total = 0;
-        position.frozen_yesterday = 0;
-        position.trading_day = time::strftime(trading_day, KUNGFU_TRADING_DAY_FORMAT).c_str();
-
-        update_position(book, position);
-      }
-    };
-
-    apply(book->long_positions);
-    apply(book->short_positions);
-  }
-
   virtual void apply_quote(Book_ptr &book, const Quote &quote) override {
     static int counter = 0;
     auto apply = [&](Position &position) {

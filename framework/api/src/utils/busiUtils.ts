@@ -66,7 +66,6 @@ import {
   Pm2ProcessStatusData,
   Pm2ProcessStatusDetail,
   Pm2ProcessStatusDetailData,
-  startCacheD,
   startExtDaemon,
   startLedger,
   startMaster,
@@ -1030,9 +1029,7 @@ const getSystemKfLocationProcessId = (processId: string) => {
       name: processId,
       mode: 'live',
     };
-  } else if (
-    ['ledger', 'archive', 'cached', 'dzxy'].indexOf(processId) !== -1
-  ) {
+  } else if (['ledger', 'archive', 'dzxy'].indexOf(processId) !== -1) {
     return {
       category: 'system',
       group: 'service',
@@ -1220,7 +1217,7 @@ export const buildIdByKeysFromKfConfigSettings = (
   return keys
     .map((key) => kfConfigState[key])
     .filter((value) => value !== undefined)
-    .join('_');
+    .join('-');
 };
 
 const startProcessByKfLocation = async (
@@ -1241,8 +1238,6 @@ const startProcessByKfLocation = async (
         return startMaster(isForce);
       } else if (kfLocation.name === 'ledger') {
         return startLedger(isForce);
-      } else if (kfLocation.name === 'cached') {
-        return startCacheD(isForce);
       }
       break;
     case 'td':
@@ -1447,6 +1442,7 @@ export const dealKfNumber = (
 
 export const dealKfPrice = (
   preNumber: bigint | number | undefined | null | unknown,
+  pricePrecision?: number,
 ): string => {
   const afterNumber = dealKfNumber(preNumber);
 
@@ -1454,11 +1450,12 @@ export const dealKfPrice = (
     return afterNumber;
   }
 
-  return Number(afterNumber).toFixed(4);
+  return Number(afterNumber).toFixed(pricePrecision || 3);
 };
 
 export const dealAssetPrice = (
   preNumber: bigint | number | undefined | unknown,
+  pricePrecision?: number,
 ): string => {
   const afterNumber = dealKfNumber(preNumber);
 
@@ -1466,7 +1463,7 @@ export const dealAssetPrice = (
     return afterNumber;
   }
 
-  return Number(afterNumber).toFixed(2);
+  return Number(afterNumber).toFixed(pricePrecision || 3);
 };
 
 export const sum = (list: number[]): number => {
@@ -2332,6 +2329,7 @@ export const fromProcessArgsToKfConfigItems = (
 export const getTaskListFromProcessStatusData = (
   taskPrefixs: string[],
   psDetail: Pm2ProcessStatusDetailData,
+  sorter?: (a: Pm2ProcessStatusDetail, b: Pm2ProcessStatusDetail) => number,
 ): Pm2ProcessStatusDetail[] => {
   return Object.keys(psDetail)
     .filter((processId) => {
@@ -2342,11 +2340,15 @@ export const getTaskListFromProcessStatusData = (
       );
     })
     .map((processId) => psDetail[processId])
-    .sort((a, b) => {
-      const aCreateTime = +(a.name?.toKfName() || 0);
-      const bCreateTime = +(b.name?.toKfName() || 0);
-      return aCreateTime - bCreateTime;
-    });
+    .sort(
+      sorter
+        ? sorter
+        : (a, b) => {
+            const aCreateTime = +(a.name?.toKfName() || 0);
+            const bCreateTime = +(b.name?.toKfName() || 0);
+            return aCreateTime - bCreateTime;
+          },
+    );
 };
 
 export function dealTradingTaskName(
@@ -2429,3 +2431,16 @@ export const buildIfWatcherLiveObservable = (watcher: KungfuApi.Watcher) => {
     }, 1000);
   });
 };
+
+export function countDecimalPlaces(num: number) {
+  const match = String(num).match(/(?:\.(\d+))?$/);
+  if (!match) {
+    return 0;
+  }
+  return match[1] ? match[1].length : 0;
+}
+
+export function roundToDecimalPlaces(num: number, precision: number) {
+  const multiplier = Math.pow(10, precision);
+  return Math.round(num * multiplier) / multiplier;
+}

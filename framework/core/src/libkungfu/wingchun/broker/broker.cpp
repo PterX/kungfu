@@ -26,8 +26,6 @@ void BrokerVendor::on_start() {
       $$(notify_broker_state());
 }
 
-void BrokerVendor::on_active() { get_service()->on_active(); }
-
 void BrokerVendor::on_exit() {
   auto service = get_service();
   service->on_exit();
@@ -42,11 +40,7 @@ BrokerService::BrokerService(BrokerVendor &vendor) : vendor_(vendor), state_(Bro
 
 void BrokerService::on_start() {}
 
-void BrokerService::on_active() {}
-
 void BrokerService::on_exit() {}
-
-void BrokerService::on_trading_day(const event_ptr &event, int64_t daytime) {}
 
 int64_t BrokerService::now() const { return vendor_.now(); }
 

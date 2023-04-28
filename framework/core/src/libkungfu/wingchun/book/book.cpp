@@ -84,7 +84,6 @@ Position &Book::get_position(Direction direction, const char *exchange_id, const
   auto pair = positions.try_emplace(position_id);
   auto &position = pair.first->second;
   if (pair.second) {
-    position.trading_day = asset.trading_day;
     position.instrument_id = instrument_id;
     position.exchange_id = exchange_id;
     position.instrument_type = get_instrument_type(position.exchange_id, position.instrument_id);

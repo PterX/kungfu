@@ -30,7 +30,7 @@ void from_json(const nlohmann::json &j, TDConfiguration &c) {
   j.at("self_deal_detect").get_to(c.self_deal_detect);
 }
 
-TraderXTP::TraderXTP(broker::BrokerVendor &vendor) : Trader(vendor), session_id_(0), request_id_(0), trading_day_("") {
+TraderXTP::TraderXTP(broker::BrokerVendor &vendor) : Trader(vendor), session_id_(0), request_id_(0) {
   KUNGFU_SETUP_LOG();
 }
 
@@ -73,10 +73,6 @@ void TraderXTP::on_exit() {
   }
 }
 
-void TraderXTP::on_trading_day(const event_ptr &event, int64_t daytime) {
-  trading_day_ = yijinjing::time::strftime(daytime, KUNGFU_TRADING_DAY_FORMAT);
-}
-
 bool TraderXTP::insert_order(const event_ptr &event) {
   const OrderInput &input = event->data<OrderInput>();
   SPDLOG_DEBUG("OrderInput: {}", input.to_string());
@@ -91,8 +87,6 @@ bool TraderXTP::insert_order(const event_ptr &event) {
   auto writer = get_writer(event->source());
   Order &order = writer->open_data<Order>(event->gen_time());
   order_from_input(input, order);
-  strncpy(order.trading_day, trading_day_.c_str(), DATE_LEN);
-  //  order.external_order_id = order_xtp_id;
   strncpy(order.external_order_id, std::to_string(order_xtp_id).c_str(), EXTERNAL_ID_LEN);
   order.insert_time = nano;
   order.update_time = nano;
@@ -160,7 +154,7 @@ void TraderXTP::OnOrderEvent(XTPOrderInfo *order_info, XTPRI *error_info, uint64
   SPDLOG_DEBUG("XTPOrderInfo: {}", to_string(*order_info));
 
   if (map_xtp_to_kf_order_id_.find(order_info->order_xtp_id) == map_xtp_to_kf_order_id_.end()) {
-    SPDLOG_ERROR("unrecognized order_xtp_id {}@{}", order_info->order_xtp_id, trading_day_);
+    SPDLOG_ERROR("unrecognized order_xtp_id {}", order_info->order_xtp_id);
     return;
   }
   auto is_error = error_info != nullptr and error_info->error_id != 0;
@@ -213,7 +207,6 @@ void TraderXTP::OnTradeEvent(XTPTradeReport *trade_info, uint64_t session_id) {
   trade.trade_id = writer->current_frame_uid();
   trade.order_id = order_id;
   trade.trade_time = yijinjing::time::now_in_nano();
-  strcpy(trade.trading_day, trading_day_.c_str());
   trade.instrument_type = get_instrument_type(trade.exchange_id, trade.instrument_id);
   writer->close_data();
   order_state.data.volume_left -= trade.volume;
@@ -258,7 +251,6 @@ void TraderXTP::OnQueryPosition(XTPQueryStkPositionRsp *position, XTPRI *error_i
   stock_pos.holder_uid = get_home()->uid;
   stock_pos.instrument_type = get_instrument_type(stock_pos.exchange_id, stock_pos.instrument_id);
   stock_pos.direction = Direction::Long;
-  strncpy(stock_pos.trading_day, this->trading_day_.c_str(), DATE_LEN);
   stock_pos.update_time = yijinjing::time::now_in_nano();
   writer->close_data();
   if (is_last) {
@@ -286,7 +278,6 @@ void TraderXTP::OnQueryAsset(XTPQueryAssetRsp *asset, XTPRI *error_info, int req
     if (error_info == nullptr || error_info->error_id == 0) {
       from_xtp(*asset, account);
     }
-    strncpy(account.trading_day, this->trading_day_.c_str(), DATE_LEN);
     account.holder_uid = get_home()->uid;
     account.update_time = yijinjing::time::now_in_nano();
     writer->close_data();
@@ -351,7 +342,6 @@ void TraderXTP::OnQueryOrder(XTPQueryOrderRsp *order_info, XTPRI *error_info, in
     strncpy(history_order.error_msg, error_info->error_msg, ERROR_MSG_LEN);
   }
 
-  strncpy(history_order.trading_day, trading_day_.c_str(), DATE_LEN);
   from_xtp(*order_info, history_order);
   history_order.order_id = writer->current_frame_uid();
   history_order.is_last = is_last;
@@ -403,7 +393,6 @@ void TraderXTP::OnQueryTrade(XTPQueryTradeRsp *trade_info, XTPRI *error_info, in
   history_trade.trade_id = writer->current_frame_uid();
   history_trade.is_last = is_last;
   history_trade.trade_time = yijinjing::time::now_in_nano();
-  strncpy(history_trade.trading_day, trading_day_.c_str(), DATE_LEN);
   history_trade.instrument_type = get_instrument_type(history_trade.exchange_id, history_trade.instrument_id);
   writer->close_data();
 }

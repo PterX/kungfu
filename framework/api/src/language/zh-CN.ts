@@ -315,7 +315,6 @@ export default {
 
     master: '主控进程',
     ledger: '计算服务',
-    cached: '存储服务',
     archive: '归档服务',
 
     place_order: '下单',
@@ -742,18 +741,14 @@ export default {
   ledger_interrupt: '计算服务 ledger 中断',
   ledger_desc: '计算服务负责持仓跟资金计算, 请重启功夫交易系统',
 
-  cached_interrupt: '存储服务 cached 中断',
-  cached_desc:
-    '存储服务负责数据落地, 存储服务断开不影响交易, 可等交易完成后重启功夫系统',
-
   state_interrupt_msg: '{state} 已断开',
   state_interrupt_desc: '{state} 已断开, 可能会导致交易中断, 请检查',
 
   kungfu: '功夫交易系统',
 
   system_prompt: '系统提示',
-  computer_performance_done: '电脑性能检测已完成 ✓',
-  computer_performance_detecting: '电脑性能检测中...',
+  computer_performance_done: '性能检测已完成 ✓',
+  computer_performance_detecting: '性能检测中...',
   archive_done: '功夫归档完成 ✓',
   archive_loading: '功夫归档中...',
   environment_done: '功夫环境准备完成 ✓',

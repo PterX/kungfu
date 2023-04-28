@@ -93,11 +93,11 @@ function getKungfuTradeValueCommonDataByExtType(
 </script>
 <template>
   <a-modal
+    v-model:visible="modalVisible"
     class="kf-set-source-modal"
     :width="500"
-    v-model:visible="modalVisible"
     :title="modalTitle"
-    :destroyOnClose="true"
+    :destroy-on-close="true"
     @cancel="closeModal"
     @ok="handleConfirm"
   >

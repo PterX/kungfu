@@ -20,7 +20,7 @@ yjj = kungfu.__binding__.yijinjing
 
 @kfc.command(help_priority=2)
 @click.option("-b", "--begin", type=str, required=True, help="begin time")
-@click.option("-e", "--end", type=str, required=True, help="begin time")
+@click.option("-e", "--end", type=str, required=True, help="end time")
 @click.option(
     "-c",
     "--category",

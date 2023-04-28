@@ -157,6 +157,7 @@ function handleFormStateChange(formState) {
       category: props.payload.config.category,
       extKey: props.payload.config.key,
       formState: toRaw(formState),
+      configSettings: configSettings.value,
     });
   }
 }

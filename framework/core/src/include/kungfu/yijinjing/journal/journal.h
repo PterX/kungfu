@@ -5,7 +5,7 @@
 
 #include <kungfu/common.h>
 #include <kungfu/longfist/longfist.h>
-#include <kungfu/yijinjing/bus.h>
+#include <kungfu/yijinjing/journal/bus.h>
 #include <kungfu/yijinjing/journal/common.h>
 #include <kungfu/yijinjing/journal/frame.h>
 #include <kungfu/yijinjing/journal/page.h>
@@ -223,7 +223,7 @@ public:
 private:
   const uint64_t frame_id_base_;
   journal journal_;
-  std::mutex writer_mtx_ = {};
+  std::mutex writer_mutex_ = {};
   publisher_ptr publisher_;
   size_t size_to_write_;
   int64_t last_gen_time_;

@@ -8,7 +8,6 @@ import functools
 import traceback
 
 from kungfu.wingchun import default_commissions
-from kungfu.wingchun.calendar import Calendar
 
 lf = kungfu.__binding__.longfist
 yjj = kungfu.__binding__.yijinjing
@@ -42,11 +41,6 @@ class Master(yjj.master):
         self.ctx.master = self
         self.ctx.apprentices = {}
 
-        self.ctx.calendar = Calendar(ctx)
-        self.ctx.trading_day = ctx.calendar.trading_day
-
-        self.ctx.master = self
-
         self.profile = yjj.profile(ctx.runtime_locator)
         self.commissions = {}
         for commission in self.profile.get_all(lf.types.Commission()):
@@ -72,9 +66,6 @@ class Master(yjj.master):
             commission.close_today_ratio = default.close_today_ratio
             commission.min_commission = default.min_commission
             self.profile.set(commission)
-
-    def acquire_trading_day(self):
-        return self.ctx.calendar.trading_day_ns
 
     def on_register(self, event, register_data):
         pid = register_data.pid
@@ -177,11 +168,3 @@ def health_check(ctx):
             ctx.logger.warn(f'cleaning up stale app {app["uname"]} with pid {pid}')
             ctx.master.deregister_app(yjj.now_in_nano(), app["register"].__uid__)
             del ctx.apprentices[pid]
-
-
-@task
-def switch_trading_day(ctx):
-    trading_day = ctx.calendar.trading_day
-    if ctx.trading_day < trading_day:
-        ctx.trading_day = trading_day
-        ctx.master.publish_trading_day()

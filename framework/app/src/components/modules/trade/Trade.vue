@@ -5,6 +5,8 @@ import {
   dealOffset,
   delayMilliSeconds,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { useActiveInstruments } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
+
 import {
   messagePrompt,
   useDashboardBodySize,
@@ -46,8 +48,8 @@ import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 
 const { t } = VueI18n.global;
 const app = getCurrentInstance();
+const { getPriceTickAndPrecision } = useActiveInstruments();
 const { handleBodySizeChange } = useDashboardBodySize();
-
 const trades = ref<KungfuApi.TradeResolved[]>([]);
 const allTrades = ref<KungfuApi.TradeResolved[]>([]);
 const { searchKeyword, tableData } =
@@ -108,9 +110,22 @@ onMounted(() => {
           ) as KungfuApi.Trade[];
 
         const tempAllTrades = toRaw(
-          tradesResolved.map((item) =>
-            toRaw(dealTrade(watcher, item, watcher.ledger.OrderStat)),
-          ),
+          tradesResolved.map((item) => {
+            const { price_precision } = getPriceTickAndPrecision(
+              item.instrument_id,
+              item.exchange_id,
+              0.001,
+            );
+            return toRaw(
+              dealTrade(
+                watcher,
+                item,
+                watcher.ledger.OrderStat,
+                false,
+                price_precision,
+              ),
+            );
+          }),
         );
         allTrades.value = tempAllTrades;
         trades.value = tempAllTrades.slice(0, 2000);
@@ -196,7 +211,7 @@ function handleShowTradingDataDetail({
 <template>
   <div class="kf-trades__warp kf-translateZ">
     <KfDashboard @boardSizeChange="handleBodySizeChange">
-      <template v-slot:title>
+      <template #title>
         <span v-if="currentGlobalKfLocation">
           <a-tag
             v-if="currentCategoryData"
@@ -204,12 +219,12 @@ function handleShowTradingDataDetail({
           >
             {{ currentCategoryData?.name }}
           </a-tag>
-          <span class="name" v-if="currentGlobalKfLocation">
+          <span v-if="currentGlobalKfLocation" class="name">
             {{ getCurrentGlobalKfLocationId(currentGlobalKfLocation) }}
           </span>
         </span>
       </template>
-      <template v-slot:header>
+      <template #header>
         <KfDashboardItem>
           <a-input-search
             v-model:value="searchKeyword"
@@ -248,12 +263,12 @@ function handleShowTradingDataDetail({
       </template>
       <KfTradingDataTable
         :columns="columns"
-        :dataSource="tableData"
-        keyField="trade_id"
+        :data-source="tableData"
+        key-field="trade_id"
         @rightClickRow="handleShowTradingDataDetail"
       >
         <template
-          v-slot:default="{
+          #default="{
             item,
             column,
           }: {
@@ -272,7 +287,7 @@ function handleShowTradingDataDetail({
             </span>
           </template>
           <template v-else-if="column.dataIndex === 'price'">
-            {{ dealKfPrice(item.price) }}
+            {{ dealKfPrice(item.price, item.price_precision) }}
           </template>
           <template v-else-if="column.dataIndex === 'source_uname'">
             <span :class="[`color-${item.source_resolved_data.color}`]">
@@ -291,7 +306,7 @@ function handleShowTradingDataDetail({
       v-if="statisticModalVisible"
       v-model:visible="statisticModalVisible"
       :trades="allTrades"
-      :historyDate="historyDate"
+      :history-date="historyDate"
     ></TradeStatisticModal>
   </div>
 </template>

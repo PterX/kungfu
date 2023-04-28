@@ -95,7 +95,7 @@ Position &Book::get_position(Direction direction, const char *exchange_id, const
   return position;
 }
 
-void Book::update(int64_t update_time) {
+void Book::update(int64_t update_time, longfist::enums::AccountingMethodType accountingMethodTyp) {
   asset.update_time = update_time;
   asset.margin = 0;
   asset.market_value = 0;
@@ -126,8 +126,7 @@ void Book::update(int64_t update_time) {
     auto position_market_value =
         position.volume * (position.last_price > 0 ? position.last_price : position.avg_open_price) * db_exchage_rate;
 
-    std::string is_outside = std::getenv("IS_OUTSIDE_ACCOUNTING_TYPE");
-    if (is_outside == "1" && is_future) {
+    if (accountingMethodTyp == longfist::enums::AccountingMethodType::Outside && is_future) {
       position_market_value = position.volume *
                               (position.last_price > 0 ? position.last_price : position.avg_open_price) *
                               db_exchage_rate * db_contract_multiplier;

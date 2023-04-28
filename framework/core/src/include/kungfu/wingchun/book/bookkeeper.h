@@ -64,6 +64,8 @@ public:
 
   void try_update_position_end(const longfist::types::PositionEnd &position_end);
 
+  longfist::enums::AccountingMethodType get_accounting_method_type();
+
   template <typename TradingData, typename ApplyMethod = void (AccountingMethod::*)(Book_ptr, const TradingData &)>
   void update_book(const event_ptr &event, ApplyMethod method) {
     update_book(event->gen_time(), event->source(), event->dest(), event->data<TradingData>(), method);
@@ -84,7 +86,7 @@ public:
       (accounting_method.*method)(book, data);
       position.update_time = update_time;
       book->replace(data);
-      book->update(update_time);
+      book->update(update_time, get_accounting_method_type());
     };
     apply_and_update(source);
     if (dest != yijinjing::data::location::PUBLIC) {
@@ -148,7 +150,6 @@ private:
   void update_position_guard(const longfist::types::PositionEnd &position_end);
 
   Book_ptr get_book_replica(uint32_t location_uid);
-  longfist::enums::AccountingMethodType get_accounting_method_type();
 };
 } // namespace kungfu::wingchun::book
 #endif // WINGCHUN_BOOKKEEPER_H

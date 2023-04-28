@@ -40,7 +40,8 @@ public:
 
   virtual void update_position(Book_ptr &book, longfist::types::Position &position) = 0;
 
-  static void setup_defaults(Bookkeeper &bookkeeper);
+  static void setup_defaults(Bookkeeper &bookkeeper,
+                             const longfist::enums::AccountingMethodType accounting_method_type);
 };
 
 DECLARE_PTR(AccountingMethod)

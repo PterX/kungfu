@@ -42,7 +42,6 @@ public:
   OutsideStockAccountingMethod() = default;
 
   virtual void apply_trading_day(Book_ptr &book, int64_t trading_day) override {
-    SPDLOG_TRACE("OutsideStockAccountingMethod: apply_trading_day");
     auto apply = [&](PositionMap &positions) {
       for (auto &pair : positions) {
         auto &position = pair.second;
@@ -97,11 +96,6 @@ public:
       if (position.direction == Direction::Long) {
         asset.market_value += market_value_change;
         asset.unrealized_pnl += market_value_change;
-        SPDLOG_TRACE("market_value-- apply_quote stock asset.market_value={}, "
-                     "market_value_change={},instrument_id={},volume={},direction={}",
-                     book->asset.market_value, market_value_change, position.instrument_id, position.volume,
-                     (int)position.direction);
-
       } else {
         SPDLOG_DEBUG("OutsideStockAccountingMethod: apply_quote  Direction::Short instrument_id= {}",
                      position.instrument_id);
@@ -120,8 +114,6 @@ public:
 
   virtual void apply_order_input(Book_ptr &book, const OrderInput &input) override {
     auto &position = book->get_position_for(input);
-    SPDLOG_TRACE("OutsideStockAccountingMethod: apply_order_input instrument_id={},volume={},direction={}",
-                 position.instrument_id, position.volume, (int)position.direction);
     auto cd_mr = get_instr_conversion_margin_rate(book, position);
     // Offset: Close
     if (input.side == Side::Sell) {
@@ -141,8 +133,6 @@ public:
   virtual void apply_order(Book_ptr &book, const Order &order) override {
     if (is_final_status(order.status)) {
       auto &position = book->get_position_for(order);
-      SPDLOG_TRACE("OutsideStockAccountingMethod: apply_order instrument_id={},volume={},direction={}",
-                   position.instrument_id, position.volume, (int)position.direction);
       auto cd_mr = get_instr_conversion_margin_rate(book, position);
       auto &asset = book->asset;
       if (order.side == Side::Buy) {
@@ -241,10 +231,6 @@ protected:
     asset.unrealized_pnl += unrealized_pnl_change * cd_mr.exchange_rate;
     double position_market_value_change = trade.volume * position.last_price * cd_mr.exchange_rate;
     asset.market_value += position_market_value_change;
-    SPDLOG_TRACE("market_value-- apply_buy stock asset.market_value={}, "
-                 "position_market_value_change={},instrument_id={},volume={},direction={}",
-                 book->asset.market_value, position_market_value_change, position.instrument_id, position.volume,
-                 (int)position.direction);
   }
 
   virtual void apply_sell(Book_ptr &book, const Trade &trade) {
@@ -275,9 +261,6 @@ protected:
     asset.market_value -= trade_amt;
     asset.intraday_fee += commission + tax;
     asset.accumulated_fee += commission + tax;
-    SPDLOG_TRACE("market_value-- apply_sell stock asset.market_value={}, "
-                 "trade_amt={},instrument_id={},volume={},direction={}",
-                 book->asset.market_value, trade_amt, position.instrument_id, position.volume, (int)position.direction);
   }
 
   virtual double calculate_commission(const Trade &trade) { return trade.commission; }

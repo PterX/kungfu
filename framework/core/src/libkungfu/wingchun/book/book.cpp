@@ -101,7 +101,6 @@ void Book::update(int64_t update_time) {
   asset.market_value = 0;
   asset.unrealized_pnl = 0;
   asset.dynamic_equity = asset.avail;
-  SPDLOG_TRACE("market_value--update asset.market_value={}, update_time={}", asset.market_value, update_time);
   double margin = 0;
   bool is_stock_acct = true;
   double short_market_value = 0;
@@ -138,10 +137,6 @@ void Book::update(int64_t update_time) {
 
     if (!(is_stock and position.direction == Direction::Short)) {
       asset.market_value += position_market_value;
-      SPDLOG_TRACE("market_value--update update_position asset.market_value={}, "
-                   "position_market_value={},instrument_id={},volume={},direction={}",
-                   asset.market_value, position_market_value, position.instrument_id, position.volume,
-                   (int)position.direction);
       asset.unrealized_pnl += position.unrealized_pnl * db_exchage_rate;
     }
     if (is_stock) {

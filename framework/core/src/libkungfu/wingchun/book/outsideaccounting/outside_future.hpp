@@ -88,10 +88,6 @@ public:
           double market_value_change = (position.direction == Direction::Long ? 1 : -1) * price_change *
                                        cm_mr.exchange_rate * position.volume * cm_mr.contract_multiplier;
           book->asset.market_value += market_value_change;
-          SPDLOG_TRACE("market_value-- apply_quote asset.market_value={}, "
-                       "market_value_change={},instrument_id={},volume={},direction={}",
-                       book->asset.market_value, market_value_change, position.instrument_id, position.volume,
-                       (int)position.direction);
         }
 
         position.last_price = quote.last_price;
@@ -112,9 +108,6 @@ public:
     auto offset = get_offset(book, input);
     auto direction = get_direction(input.instrument_type, input.side, offset);
     auto &position = book->get_position(direction, input.exchange_id, input.instrument_id);
-    SPDLOG_TRACE("OutsideFutureAccountingMethod: apply_order_input instrument_id={},volume={},direction={}",
-                 position.instrument_id, position.volume, (int)position.direction);
-
     auto cm_mr =
         get_instrument_contract_multiplier_and_margin_ratio(book, input.exchange_id, input.instrument_id, position);
 
@@ -160,10 +153,6 @@ public:
     if (offset == Offset::Open) {
       auto frozen_margin =
           cm_mr.contract_multiplier * order.frozen_price * cm_mr.exchange_rate * order.volume_left * cm_mr.margin_ratio;
-      SPDLOG_TRACE(
-          "OutsideFutureAccountingMethod: apply_order Offset::Open instrument_id={}, avail={}, frozen_margin={}",
-          order.instrument_id, book->asset.avail, frozen_margin);
-
       book->asset.avail += frozen_margin;
       book->asset.frozen_cash -= frozen_margin;
       book->asset.frozen_margin -= frozen_margin;
@@ -171,10 +160,6 @@ public:
       auto frozen_market_value =
           cm_mr.contract_multiplier * order.frozen_price * cm_mr.exchange_rate * order.volume_left;
       book->asset.market_value += frozen_market_value;
-      SPDLOG_TRACE("market_value-- apply_order asset.market_value={}, "
-                   "frozen_market_value={},instrument_id={},volume={},direction={}",
-                   book->asset.market_value, frozen_market_value, position.instrument_id, position.volume,
-                   (int)position.direction);
     }
 
     if (offset == Offset::Close or offset == Offset::CloseYesterday) {
@@ -260,10 +245,6 @@ private:
     // todo add by marsjliu
     auto trade_market_value = contract_multiplier * position.last_price * cm_mr.exchange_rate * trade.volume;
     book->asset.market_value += trade_market_value;
-    SPDLOG_TRACE("market_value-- apply_open asset.market_value={}, "
-                 "trade_market_value={},instrument_id={},volume={},direction={}",
-                 book->asset.market_value, trade_market_value, position.instrument_id, position.volume,
-                 (int)position.direction);
 
     auto commission = calculate_commission(book, trade, position, 0) * cm_mr.exchange_rate;
     book->asset.avail -= commission;
@@ -300,10 +281,6 @@ private:
 
     auto trade_market_value = contract_multiplier * trade.price * cm_mr.exchange_rate * trade.volume;
     book->asset.market_value -= trade_market_value;
-    SPDLOG_TRACE("market_value-- apply_close asset.market_value={}, "
-                 "trade_market_value={},instrument_id={},volume={},direction={}",
-                 book->asset.market_value, trade_market_value, position.instrument_id, position.volume,
-                 (int)position.direction);
 
     auto commission = calculate_commission(book, trade, position, close_today_volume) * cm_mr.exchange_rate;
     book->asset.realized_pnl += realized_pnl * cm_mr.exchange_rate;

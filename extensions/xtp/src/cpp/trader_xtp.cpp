@@ -41,32 +41,6 @@ TraderXTP::~TraderXTP() {
 }
 
 void TraderXTP::on_start() {
-  std::vector<std::thread> threads{};
-  for (int i = 0; i < 4; ++i) {
-    threads.push_back(std::thread([&]() {
-      int j = 1e4;
-      while (--j > 0) {
-        auto &data = get_writer(location::PUBLIC)->open_data<HistoryOrder>();
-        data.order_id = get_writer(location::PUBLIC)->current_frame_uid();
-        SPDLOG_DEBUG("HistoryOrder: {}", data.to_string());
-        get_writer(location::PUBLIC)->close_data();
-        // if (i % 2 == 0) {
-        //   std::this_thread::sleep_for(std::chrono::milliseconds(1));
-        // }
-        // SPDLOG_DEBUG("HistoryOrder: {}", data.to_string());
-      }
-      SPDLOG_WARN("over: {}", std::this_thread::get_id());
-    }));
-  }
-
-  for (auto &t : threads) {
-    t.join();
-    SPDLOG_WARN("join: {}", t.get_id());
-  }
-
-  request_deregister();
-  return;
-
   TDConfiguration config = nlohmann::json::parse(get_config());
   if (config.client_id < 1 or config.client_id > 99) {
     SPDLOG_ERROR("client_id must between 1 and 99");

@@ -5,8 +5,6 @@
 //
 
 #include <kungfu/wingchun/book/bookkeeper.h>
-#define ACCOUNTING_METHOD_ENV "KF_ACCOUNTING_METHOD"
-#define DEFAULT_ACCOUNTING_METHOD_NAME "default"
 
 using namespace kungfu::rx;
 using namespace kungfu::longfist::enums;
@@ -18,10 +16,6 @@ using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::util;
 
 namespace kungfu::wingchun::book {
-
-namespace fs = std::filesystem;
-namespace es = longfist::enums;
-
 Bookkeeper::Bookkeeper(apprentice &app, broker::Client &broker_client) : app_(app), broker_client_(broker_client) {
   book::AccountingMethod::setup_defaults(*this);
 }

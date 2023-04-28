@@ -39,8 +39,8 @@ public:
 
   void feed(const event_ptr &event);
 
-  template <typename DataType, std::enable_if_t<longfist::is_profile_data(DataType::type_name)>...>
-  void feed_profile(const DataType &data) {
+  template <typename DataType>
+  std::enable_if_t<longfist::is_profile_data<DataType>()> feed_profile(const DataType &data) {
     std::lock_guard<std::mutex> lock(feed_mutex_);
     auto s = state(0, 0, 0, data);
     profile_feed_bank_ << s;

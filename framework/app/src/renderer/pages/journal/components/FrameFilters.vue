@@ -1,5 +1,4 @@
 <template>
-  <!-- <a-checkbox-group v-model:value="checkedList" :options="plainOptions" /> -->
   <a-form
     ref="formRef"
     class="kf-config-form"
@@ -59,7 +58,6 @@ import { useFrameFilters } from '../utils/filterUtils';
 
 const { t } = VueI18n.global;
 
-const msgTypes = ref<Record<number, string>>(longfist.msgTypes);
 const props = withDefaults(
   defineProps<{
     locationMap: Record<string, string>;
@@ -78,55 +76,18 @@ const emit = defineEmits<{
 }>();
 const read = ref(true);
 const write = ref(true);
-// const plainOptions = ref(['Apple', 'Orange']);
-// const checkedList = ref(['Apple', 'Orange']);
-// watchEffect(() => {
-//   console.log('checkedList', checkedList);
-// });
-// watch(
-//   () => checkedList,
-//   () => {
-//     console.log('checkedList', checkedList);
-//   },
-// );
 
 const formRef = ref();
 const formLabelMap = {
-  // [FiltersEnum.SOURCE]: t('journalConfig.source'),
-  // [FiltersEnum.DEST]: t('journalConfig.dest'),
   [FiltersEnum.MSG_TYPE]: t('journalConfig.msg_type'),
 };
-const options3 = ref([
-  { label: 'td/sim/1/live', value: '2764285673' },
-  { label: 'system/service/cached/live', value: '2999745424' },
-]);
-console.log(options3.value);
-// const optionsMap = ref<string[]>([]);
 
-// let tracerFrame: KungfuApi.Tracer | null = null;
-const {
-  filtersFormState,
-  filtersOptions,
-  // optionSorter,
-  // addFilterOption,
-} = useFrameFilters();
+const { filtersFormState, filtersOptions } = useFrameFilters();
 
 watch(
   () => props.locationMap,
   () => {
     let msg: Record<number, string> = longfist.msgTypes;
-    filtersOptions.DEST = Object.entries(props.locationMap).map(
-      ([key, value]) => ({
-        label: value as string,
-        value: key,
-      }),
-    );
-    filtersOptions.SOURCE = Object.entries(props.locationMap).map(
-      ([key, value]) => ({
-        label: value as string,
-        value: key,
-      }),
-    );
     filtersOptions.MSG_TYPE = Object.entries(msg).map(([key, value]) => ({
       label: value,
       value: key,
@@ -140,7 +101,13 @@ const addOption = (
     label: string;
     value: string;
   }[],
+  clear = false,
 ) => {
+  if (clear) {
+    filtersFormState.DEST = [];
+    filtersFormState.SOURCE = [];
+    filtersFormState.MSG_TYPE = [];
+  }
   if (filterEnum === FiltersEnum.MSG_TYPE) {
     filtersFormState.MSG_TYPE.push(
       ...options.reduce((pre, item) => {
@@ -154,110 +121,8 @@ const addOption = (
         return pre;
       }, [] as string[]),
     );
-    //options[0]push进filtersOptions.MSG_TYPE中，如果已经存在相同元素不要添加
-    // if (!filtersOptions.MSG_TYPE) {
-    //   optionsMap.value = [];
-    // } else if (
-    //   !optionsMap.value.includes(options[0].value) &&
-    //   options[0].label !== undefined &&
-    //   options[0].value !== undefined
-    // ) {
-    //   optionsMap.value.push(options[0].value);
-    //   filtersOptions.MSG_TYPE.push(options[0]);
-    // }
   }
-  // if (filterEnum === FiltersEnum.SOURCE) {
-  //   filtersFormState.SOURCE.push(
-  //     ...options.reduce((pre, item) => {
-  //       if (!filtersFormState.SOURCE.includes(item.label)) {
-  //         pre.push(item.label);
-  //       }
-
-  //       return pre;
-  //     }, [] as string[]),
-  //   );
-  // if (!filtersOptions.SOURCE) {
-  //   optionsMap.value = [];
-  // } else if (
-  //   !optionsMap.value.includes(options[0].value) &&
-  //   options[0].label !== undefined &&
-  //   options[0].value !== undefined
-  // ) {
-  //   optionsMap.value.push(options[0].value);
-  //   filtersOptions.SOURCE.push(options[0]);
-  // }
-  // }
-
-  // if (filterEnum === FiltersEnum.DEST) {
-  //   filtersFormState.DEST.push(
-  //     ...options.reduce((pre, item) => {
-  //       if (!filtersFormState.DEST.includes(item.label)) {
-  //         pre.push(item.label);
-  //       }
-
-  //       return pre;
-  //     }, [] as string[]),
-  //   );
-  // if (!filtersOptions.DEST) {
-  //   optionsMap.value = [];
-  // } else if (
-  //   !optionsMap.value.includes(options[0].value) &&
-  //   options[0].label !== undefined &&
-  //   options[0].value !== undefined
-  // ) {
-  //   optionsMap.value.push(options[0].value);
-  //   filtersOptions.DEST.push(options[0]);
-  // }
-  // }
-  // filtersOptions.MSG_TYPE = filtersFormState.MSG_TYPE.map(
-  //   (item) => ({
-  //     label: item,
-  //     value: item,
-  //   }),
-  // );
-  // filtersOptions.SOURCE = filtersFormState.SOURCE.map((item) => ({
-  //   label: item,
-  //   value: item,
-  // }));
-  // filtersOptions.DEST = filtersFormState.DEST.map((item) => ({
-  //   label: item,
-  //   value: item,
-  // }));
-
-  // addFilterOption(filterEnum, options);
 };
-
-// const handleFilterOption = (
-//   inputValue: string,
-//   option: {
-//     key: string;
-//     value: string;
-//   },
-// ) => {
-//   const reg = new RegExp(`.*${inputValue}.*`, 'i');
-//   return reg.test(option.key);
-// };
-
-// if (read.value) {
-//   tracerFrame = tracer(
-//     props.currentLocation as KungfuApi.KfLocation,
-//     true,
-//     false,
-//     props.currentTimeRange[0],
-//     props.currentTimeRange[1],
-//   );
-// }
-// if (write.value) {
-//   tracerFrame = tracer(
-//     props.currentLocation as KungfuApi.KfLocation,
-//     false,
-//     true,
-//     props.currentTimeRange[0],
-//     props.currentTimeRange[1],
-//   );
-// }
-// console.log(tracerFrame);
-
 const handleApplyFilters = () => {
   console.log('过滤', filtersFormState, read.value, write.value);
   emit('applyFilters', filtersFormState, read.value, write.value);

@@ -1,6 +1,5 @@
 <template>
   <div class="kf-visual-container">
-    <!-- 搜索框和搜索按钮 -->
     <div class="kf-visual-search">
       <a-input-search
         v-model:value="searchKey"
@@ -12,9 +11,7 @@
       />
     </div>
 
-    <!-- 图表容器 -->
     <div ref="chartsContainer" class="kf-visual-charts-container">
-      <!-- 图表位置 -->
       <div
         v-for="key in Object.keys(allOptions)"
         :key="key"
@@ -31,10 +28,8 @@
 import { dealKfTime } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { dealKfPrice } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { computed, reactive, ref } from 'vue';
-// import { assemble } from '@kungfu-trader/kungfu-js-api/kungfu';
 import KfTradingCharts from '../../../components/public/KfTradingCharts.vue';
 import { useDealJournalDatas } from '../utils';
-// import {  FiltersEnum } from '../utils/filterUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 
 const { t } = VueI18n.global;
@@ -92,22 +87,18 @@ const allOptions = computed(() => {
         orders: [],
       };
 
-      // 处理 quotes
       const quotesDiff = quotes.length - prevData.quotes.length;
       const newQuotes = quotesDiff > 0 ? quotes.slice(-quotesDiff) : quotes;
 
-      // 处理 trades
       const tradesDiff = trades.length - prevData.trades.length;
       const newTrades = tradesDiff > 0 ? trades.slice(-tradesDiff) : trades;
 
-      // 处理 orders
       const ordersDiff = orders.length - prevData.orders.length;
       const newOrders = ordersDiff > 0 ? orders.slice(-ordersDiff) : orders;
 
       const timestampMap = new Map();
       let timeTemp: string[] = [];
       let timeTemp2: string[] = [];
-      //将quotes所有的时间戳格式化后放到一个数组里面
       quotes.forEach((item) => {
         if (item) {
           const timestampKey = 'data_time';
@@ -159,7 +150,6 @@ const allOptions = computed(() => {
       processData(newTrades, 'trade');
       processData(newOrders, 'order');
 
-      // 将 Map 对象转换为数组
       const allData = Array.from(timestampMap.values());
       allData.sort((a, b) => {
         return a[0] > b[0] ? 1 : -1;
@@ -299,13 +289,12 @@ function getOption(
         t('journalConfig.order_node'),
       ],
     },
-    // ...其他配置
     dataZoom: [
       {
         type: 'slider',
         xAxisIndex: 0,
         start: 0,
-        end: (100 * 100) / xAxis.length, // 调整 end 值，使初始展示的数据数量约为100条
+        end: (100 * 100) / xAxis.length,
       },
     ],
     xAxis: {
@@ -343,7 +332,7 @@ function getOption(
             show: true,
             formatter: '{b}',
             position: 'top',
-            fontWeight: 'bold', // 设置标签字体加粗
+            fontWeight: 'bold',
             color: 'red',
           },
         },
@@ -364,9 +353,9 @@ function getOption(
           label: {
             show: true,
             formatter: '{b}',
-            position: 'top', // 设置 markPoint 标签位置
-            fontWeight: 'bold', // 设置标签字体加粗
-            color: 'rgb(191, 191, 61)', // 设置标签字体颜色
+            position: 'top',
+            fontWeight: 'bold',
+            color: 'rgb(191, 191, 61)',
           },
         },
         itemStyle: {
@@ -384,9 +373,9 @@ function getOption(
           label: {
             show: true,
             formatter: '{b}',
-            position: 'top', // 设置 markPoint 标签位置
-            fontWeight: 'bold', // 设置标签字体加粗
-            color: 'rgb(104, 187, 196)', // 设置标签字体颜色
+            position: 'top',
+            fontWeight: 'bold',
+            color: 'rgb(104, 187, 196)',
           },
         },
         itemStyle: {
@@ -429,6 +418,6 @@ function getOption(
 }
 
 button {
-  color: black; /* 设置搜索按钮字体颜色为黑色 */
+  color: black;
 }
 </style>

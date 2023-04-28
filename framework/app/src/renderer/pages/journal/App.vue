@@ -135,11 +135,6 @@ import EventsDashBoard from './components/EventsDashboard.vue';
 import OrdersDashboard from './components/OrdersDashboard.vue';
 import { useJournalStore } from './store/journalStore';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
-// import { getAllLocation } from '@kungfu-trader/kungfu-js-api/kungfu/store';
-// import {
-//   KfModeEnum,
-//   KfCategoryEnum,
-// } from '@kungfu-trader/kungfu-js-api/typings/enums';
 
 type LocationRseolved = KungfuApi.KfLocation & {
   uname: string;
@@ -148,7 +143,6 @@ type LocationRseolved = KungfuApi.KfLocation & {
 const { t } = VueI18n.global;
 const beginTime = ref<bigint>(BigInt(new Date().getTime()) * 1000000n);
 const endTime = ref<bigint>(0n);
-// const timeContinue = ref(true);
 const isExternalUpdate = ref(false);
 const currentLocation = getCurrentLocation();
 const timeSlider = ref();
@@ -184,7 +178,6 @@ const currentTimeRangeData = ref<{ range: [bigint, bigint]; reload: boolean }>({
   range: [0n, 0n],
   reload: true,
 });
-// const limitTimeRange = ref<[bigint, bigint]>([0n, 0n]);
 
 const currentSession = computed(() => {
   if (currentSessionKey.value && Object.keys(sessionsMap.value).length) {
@@ -238,26 +231,12 @@ const exportFileName = computed(() => {
 
 const sessionColumns = getSessionColumns();
 
-watchEffect(() => {
-  // console.log(
-  //   'sessions',
-  //   sessions.value,
-  //   sessionsMap.value,
-  //   currentLocation,
-  //   currentTime.value,
-  // );
-});
 watch(
   () => sessions.value,
   () => {
     journalStore.setSessions(sessions.value);
     allLocations.value = io.getAllLocations();
     SourceAndDestNameMap.value = dealsessionsToMap(allLocations.value);
-    // console.log(
-    //   'SourceAndDestNameMap',
-    //   SourceAndDestNameMap.value,
-    //   sessionsMap.value,
-    // );
   },
   {
     deep: true,
@@ -275,46 +254,17 @@ watch(
   () => currentSession.value,
   (newSession) => {
     if (!newSession) return;
-    // console.log(
-    //   'loadnewSession',
-    //   currentSession.value,
-    //   currentTimeRangeData.value,
-    // );
-
-    // timeContinue.value = true;
-
-    // allsessions.value = getAllLocation();
-    // console.log('allLocation', allLocation.value);
-    // nextTick(() => {
-    //   SourceAndDestNameMap.value = dealsessionsToMap(allLocation.value);
-    //   console.log('SourceAndDestNameMap', SourceAndDestNameMap.value);
-    // });
 
     const { begin_time, end_time } = newSession;
     beginTime.value = begin_time;
     endTime.value = end_time ?? 0n;
-
-    // limitTimeRange.value = [
-    //   begin_time,
-    //   end_time ? end_time : BigInt(new Date().getTime()) * 1000000n,
-    // ];
-
-    // currentTimeRangeData.value = {
-    //   range: limitTimeRange.value,
-    //   reload: true,
-    // };
   },
 );
 let nolRange: [bigint, bigint] = [0n, 0n];
 
-const onTimeContinueUpdate = (value: boolean) => {
-  // timeContinue.value = value;
-};
-
 const onChangeTimeRange = (range: [bigint, bigint]) => {
   isExternalUpdate.value = true;
   nolRange = range;
-  // console.log('onChangeTimeRange', range, nolRange);
 };
 
 const onExternalUpdate = (value: boolean) => {
@@ -323,8 +273,6 @@ const onExternalUpdate = (value: boolean) => {
 
 const onUpdateCurrentTime = (value: bigint) => {
   currentTime.value = value;
-  // timeContinue.value = false;
-  // console.log('onUpdateCurrentTime', currentTime.value);
 };
 
 const dealsessionsToMap = (sessions: Record<string, LocationRseolved>) => {
@@ -375,21 +323,8 @@ const getMdSessions = () => {
 
 const loadSessions = (gotSessions?: KungfuApi.Session[]) => {
   const currentSessions = gotSessions ?? getSessions();
-  // console.log(
-  //   'getsessions',
-  //   sessionStore.getAllSessions(),
-  //   io.getAllLocations(),
-  //   currentLocation,
-  //   currentSessions,
-  // );
-  // console.log(
-  //   'allsession',
-  //   sessionStore.getAllSessions(),
-  //   io.getAllLocations(),
-  // );
   if (currentSessions?.length) {
     sessionsMap.value = dealSessionsToMap(currentSessions.reverse());
-    // console.log('sessionsMap', sessionsMap.value);
     nextTick(() => {
       if (!gotSessions && sessions.value.length) {
         const { index, begin_time } = sessions.value[0];
@@ -430,17 +365,6 @@ const startCheckSessionsStatus = () => {
         );
         sessionsMap.value[currentKey].status = SessionStatusEnum.Finished;
       }
-
-      // if (`${session.begin_time}` === currentSessionKey.value) {
-      //   limitTimeRange.value = [
-      //     session.begin_time,
-      //     currentEndTime || BigInt(new Date().getTime()) * 1000000n,
-      //   ];
-
-      // currentTimeRangeData.value.reload = !timeSlider.value?.sticking.some(
-      //   (item) => item,
-      // );
-      // }
     });
   }, 1000);
 };

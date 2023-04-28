@@ -199,9 +199,15 @@ constexpr auto MARKET_DATA_TYPES = boost::hana::make_map( //
     TYPE_PAIR(Transaction)                                //
 );
 
-constexpr auto is_profile_data = [](auto type) { return boost::hana::contains(ProfileDataTypes, type); };
+constexpr auto is_profile_data = [](auto &type) {
+  using DataType = decltype(type);
+  return boost::hana::contains(ProfileDataTypes, static_cast<DataType>(type));
+};
 
-constexpr auto is_market_data = [](auto type) { return boost::hana::contains(MARKET_DATA_TYPES, type); };
+constexpr auto is_market_data = [](auto &type) {
+  using DataType = decltype(type);
+  return boost::hana::contains(MARKET_DATA_TYPES, static_cast<DataType>(type));
+};
 
 const auto build_data_set = [](auto types) {
   std::unordered_set<int32_t> s;

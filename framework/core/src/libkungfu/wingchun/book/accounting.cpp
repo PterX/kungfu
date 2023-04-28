@@ -15,7 +15,8 @@
 using namespace kungfu::wingchun;
 
 namespace kungfu::wingchun::book {
-void AccountingMethod::setup_defaults(Bookkeeper &bookkeeper) {
+void AccountingMethod::setup_defaults(Bookkeeper &bookkeeper, const longfist::enums::AccountingMethodType accounting_method_type) {
+
   auto bond_accounting_method = std::make_shared<BondAccountingMethod>();
   auto repo_accounting_method = std::make_shared<RepoAccountingMethod>();
   auto crypto_accounting_method = std::make_shared<CryptoAccountingMethod>();

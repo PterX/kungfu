@@ -114,6 +114,7 @@ private:
   yijinjing::practice::apprentice &app_;
   broker::Client &broker_client_;
 
+  const longfist::enums::AccountingMethodType account_method_type_;
   std::mutex update_book_mutex_;
   bool positions_guarded_ = false;
   CommissionMap commissions_ = {};

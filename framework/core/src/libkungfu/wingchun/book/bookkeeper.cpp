@@ -16,8 +16,8 @@ using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::util;
 
 namespace kungfu::wingchun::book {
-Bookkeeper::Bookkeeper(apprentice &app, broker::Client &broker_client) : app_(app), broker_client_(broker_client) {
-  book::AccountingMethod::setup_defaults(*this);
+Bookkeeper::Bookkeeper(apprentice &app, broker::Client &broker_client) : app_(app), broker_client_(broker_client), account_method_type_(book::get_accounting_method_type()) {
+  book::AccountingMethod::setup_defaults(*this, account_method_type_);
 }
 
 bool Bookkeeper::has_book(uint32_t location_uid) { return books_.find(location_uid) != books_.end(); }

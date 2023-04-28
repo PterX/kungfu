@@ -312,6 +312,7 @@ export default {
     CNH: 'CNH',
     SGD: 'SGD',
     MYR: 'MYR',
+    CEN: 'CEN',
 
     master: '主控进程',
     ledger: '计算服务',

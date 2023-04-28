@@ -314,6 +314,7 @@ export default {
     CNH: 'CNH',
     SGD: 'SGD',
     MYR: 'MYR',
+    CEN: 'CEN',
 
     master: 'master',
     ledger: 'ledger',

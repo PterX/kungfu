@@ -102,6 +102,7 @@ export interface RootConfigJSON {
   kungfuCraft?: {
     appTitle?: string;
     productName?: string;
+    env?: Record<string, string>;
     autoUpdate?: {
       update?: Writeable<AllPublishOptions>;
     };

@@ -28,7 +28,7 @@ private:
   std::thread cleaning_worker_;
   std::mutex cv_mutex_;
   std::mutex quite_mutex_;
-  bool m_quit_ = true;
+  bool m_quit_ = false;
 
   void do_clean();
 

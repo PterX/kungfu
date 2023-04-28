@@ -26,8 +26,8 @@ struct outside_contract_discount_and_margin_ratio {
   double long_margin_ratio;
   double short_margin_ratio;
   double margin_ratio;
-  double conversion_rate; // For collateral/avail_margin calculation
-  double exchange_rate;   // »ãÂÊ
+  double conversion_rate;
+  double exchange_rate;
 };
 class OutsideStockAccountingMethod : public AccountingMethod {
 public:
@@ -158,7 +158,6 @@ public:
   }
 
   virtual void update_position(Book_ptr &book, Position &position) override {
-    // auto cd_mr = get_instr_conversion_margin_rate(book, position);
     if (position.last_price > 0) {
       double price_change = position.last_price - position.avg_open_price;
       position.unrealized_pnl =

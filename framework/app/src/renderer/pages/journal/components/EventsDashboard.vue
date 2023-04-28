@@ -95,7 +95,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, computed, watch, shallowRef } from 'vue';
+import { ref, computed, watch, shallowRef, nextTick } from 'vue';
 import { Empty } from 'ant-design-vue';
 import { longfist, tracer } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { getFrameColumns } from '../config';
@@ -104,6 +104,9 @@ import { createFiltersEnumMap, FiltersEnum } from '../utils/filterUtils';
 import KfTradingDataTable from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfTradingDataTable.vue';
 import FrameFilters from './FrameFilters.vue';
 import { useJournalStore } from '../store/journalStore';
+import dayjs from 'dayjs';
+import _ from 'lodash';
+import { debounce } from 'lodash';
 // import { SessionStatusEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 
 const props = withDefaults(
@@ -112,8 +115,9 @@ const props = withDefaults(
     currentLocation: KungfuApi.KfLocation | null;
     beginTime: bigint;
     endTime: bigint;
+    nowTime: bigint;
     currentTime: bigint;
-    isTimeContinue: boolean;
+
     locationMap: Record<string, string>;
     isExternalUpdate: boolean;
     currentTimeRangeData: {
@@ -135,7 +139,7 @@ type dataResolvedType = {
   title: string;
 }[];
 
-const cacheFrameDataList = shallowRef<KungfuApi.FrameResolved[]>([]);
+// const cacheFrameDataList = shallowRef<KungfuApi.FrameResolved[]>([]);
 
 const journalStore = useJournalStore();
 const frameColumns = getFrameColumns();
@@ -150,45 +154,31 @@ const readEvent = ref(true);
 const writeEvent = ref(true);
 const frameDataList = shallowRef<KungfuApi.FrameResolved[]>([]);
 const frameFiltersReg = ref(createFiltersEnumMap(/.*/));
-const msgMap = ref<string[]>([]);
+// eslint-disable-next-line @typescript-eslint/ban-types
+const msgMap = new Map<string, boolean>();
 const isfilter = ref(false);
-// const stopLoading = ref(false);
+const stopLoading = ref(false);
 
 const frameDataListResolved = computed(() => {
-  // console.log('frameDataListResolved', isfilter.value);
-  let newRrameList: KungfuApi.FrameResolved[] = [];
+  if (frameDataList.value.length <= 0) {
+    return [];
+  }
 
-  if (isfilter.value) {
-    newRrameList = frameDataList.value.filter((item) => {
-      if (msgMap.value.length === 0) {
-        return true;
-      }
-
-      return msgMap.value.includes(longfist.msgTypes[item.msgType]);
+  if (frameDataList.value.length <= 10000) {
+    stopLoading.value = true;
+    isfilter.value = false;
+    console.log('stopLoading', {
+      stopLoading: stopLoading.value,
+      frameList: frameDataList.value,
+      frameDataListResolved: frameDataListResolved.value,
     });
+    return frameDataList.value;
   } else {
-    newRrameList = frameDataList.value.filter((item) => {
-      return true;
-    });
+    clearTimeout(timer);
+    stopLoading.value = false;
+    isfilter.value = false;
+    return frameDataList.value.slice(0, 10000);
   }
-  // eslint-disable-next-line vue/no-side-effects-in-computed-properties
-  isfilter.value = false;
-
-  if (newRrameList.length <= 0) return [];
-  if (
-    !props.currentTime ||
-    props.currentTime === 0n ||
-    props.currentTime > newRrameList[0].genTime
-  ) {
-    emit('updateCurrentTime', newRrameList[0].genTime);
-  }
-  // if (newRrameList.length <= 10000) {
-  //   stopLoading.value = true;
-  // } else {
-  //   stopLoading.value = false;
-  // }
-
-  return newRrameList;
 });
 
 const framesMap = shallowRef<Record<string, KungfuApi.FrameResolved>>({});
@@ -232,34 +222,41 @@ const currentRowDataResolved = computed(() => {
 
   return null;
 });
+let timer;
+async function loadFrameDataWithAnimationFrame() {
+  await loadFrameData(props.currentSession as KungfuApi.SessionResolved, true);
 
-// async function loadFrameDataWithAnimationFrame() {
-//   if (!stopLoading.value) {
-//     return;
-//   }
+  if (stopLoading.value) {
+    console.log('loadFrameDataWithAnimationFrame', {
+      stopLoading: stopLoading.value,
+      frameList: frameDataList.value,
+      frameDataListResolved: frameDataListResolved.value,
+      dataAvailable: tracerFrame?.dataAvailable(),
+    });
+    console.log('循环发送', frameDataListResolved.value);
 
-//   await loadFrameData(props.currentSession as KungfuApi.SessionResolved, true); // 请将/*参数列表*/替换为实际参数
-
-//   if (stopLoading.value) {
-//     console.log(
-//       'loadFrameDataWithAnimationFrame',
-//       stopLoading.value,
-//       frameDataList.value.length,
-//     );
-//     setTimeout(() => {
-//       requestAnimationFrame(loadFrameDataWithAnimationFrame);
-//     }, 10000);
-//   }
-// }
+    timer = setTimeout(async () => {
+      nextTick(() => {});
+    }, 10000);
+  }
+}
 // watch(
 //   () => stopLoading.value,
 //   (newVal) => {
+//     console.log('stopLoading改变了', stopLoading.value);
 //     if (frameDataList.value.length >= 10000) {
+//       clearTimeout(timer);
 //       return;
 //     }
 //     if (!newVal) {
 //       return;
 //     } else {
+//       console.log('waatch loadFrameDataWithAnimationFrame', {
+//         stopLoading: stopLoading.value,
+//         frameList: frameDataList.value,
+//         frameDataListResolved: frameDataListResolved.value,
+//         dataAvailable: tracerFrame?.dataAvailable(),
+//       });
 //       loadFrameDataWithAnimationFrame();
 //     }
 //   },
@@ -270,11 +267,12 @@ watch(
   async (newSession, oldSession) => {
     // console.log('currentSessionLoad', props.currentSession);
     if (newSession && newSession !== oldSession) {
-      isLoading = false;
-      msgMap.value = [];
+      dataChangeByCurrentTime.value = false;
+      msgMap.clear();
       framesMap.value = {};
-
-      loadingJournal.value = true;
+      clearTimeout(timer);
+      stopLoading.value = false;
+      frameDataList.value = [];
 
       tracerFrame = tracer(
         props.currentSession as KungfuApi.KfLocation,
@@ -290,31 +288,77 @@ watch(
         // newSession.end_time,
         false,
       );
+
       dataChangeByCurrentTime.value = true;
+
+      console.log('触发updateCurrentTime', ff(props.beginTime));
+
+      emit('updateCurrentTime', props.beginTime);
     }
   },
 );
-
+function ff(time) {
+  return dayjs
+    .unix(Number(BigInt(time) / BigInt(1e9)))
+    .format('YYYY-MM-DD HH:mm:ss');
+}
+let timeGoOn = ref(false);
 watch(
   () => props.currentTime,
   async () => {
     if (dataChangeByCurrentTime.value && props.currentSession) {
-      console.log('currentTimeLoad', {
-        currentTime: props.currentTime,
-        tracerFrame1: tracerFrame?.currentFrame(),
-        genTime1: tracerFrame?.currentFrame().genTime(),
-        seekToTime: tracerFrame?.seekToTime(props.currentTime),
-        tracerFrame2: tracerFrame?.currentFrame(),
-        genTime2: tracerFrame?.currentFrame().genTime(),
-      });
-      await loadFrameData(
-        props.currentSession as KungfuApi.SessionResolved,
-        // props.currentSession.begin_time,
-        // props.currentSession.end_time,
+      clearTimeout(timer);
+      stopLoading.value = false;
+
+      await doLoad();
+      console.log(
+        '触发updateCurrentTime',
+        ff(props.currentTime),
+        frameDataListResolved.value.length,
+        isfilter.value,
       );
+      emit('updateCurrentTime', props.currentTime);
+      // if (!isfilter.value) {
+      //   nextTick(() => {
+      //     if (frameDataListResolved.value.length < 10000) {
+      //     }
+      //   });
+      // }
     }
   },
 );
+const debouncedCallback = debounce(() => {
+  if (timeGoOn.value) {
+    console.log('timeGoOn', timeGoOn.value);
+
+    loadFrameData(props.currentSession as KungfuApi.SessionResolved, true);
+  }
+}, 5000); // 5 秒的防抖延迟
+
+watch(
+  () => props.nowTime,
+  () => {
+    debouncedCallback();
+  },
+);
+let timer1: any = null;
+
+const doLoad = () => {
+  if (timer1 === null) {
+    console.log('currentTimeLoad', {
+      currentTime: ff(props.currentTime),
+      tracerFrame1: tracerFrame?.currentFrame(),
+      genTime1: ff(tracerFrame?.currentFrame().genTime()),
+      seekToTime: tracerFrame?.seekToTime(props.currentTime),
+      tracerFrame2: tracerFrame?.currentFrame(),
+      genTime2: ff(tracerFrame?.currentFrame().genTime()),
+    });
+    loadFrameData(props.currentSession as KungfuApi.SessionResolved);
+    timer1 = setTimeout(() => {
+      timer1 = null;
+    }, 500);
+  }
+};
 
 const getDataResolved = (data: object): dataResolvedType | null => {
   if (data !== null) {
@@ -330,27 +374,28 @@ const getDataResolved = (data: object): dataResolvedType | null => {
   return null;
 };
 
-let isLoading = false;
+const setLoadingJournal = async (value: boolean) => {
+  loadingJournal.value = value;
+  await nextTick();
+};
+
+// let isLoading = false;
 const loadFrameData = (
   session: KungfuApi.SessionResolved,
-  // startTime: bigint,
-  // endTime: bigint,
   checking = false,
   record = true,
 ) => {
-  if (isLoading) return;
-  isLoading = true;
-
   if (!readEvent.value && !writeEvent.value) {
     frameDataList.value = [];
-    cacheFrameDataList.value = [];
     return;
   }
-
+  // loadingJournal.value = true;
+  setLoadingJournal(true);
+  console.time('loadFrameData');
   const curFramesMap = {};
   let count = 0;
   let newTotal = 0;
-  const runner = async (): Promise<KungfuApi.FrameResolved[]> => {
+  const drain = async (): Promise<KungfuApi.FrameResolved[]> => {
     if (!tracerFrame) return Promise.resolve([]);
     let frame: KungfuApi.Frame<'func'> = tracerFrame.currentFrame();
 
@@ -362,6 +407,20 @@ const loadFrameData = (
           { children: [], key: 'root-start', title: '{' },
           { key: 'root-end', title: '}' },
         ];
+        const msgType = frame.msgType();
+        const stringMsgType = longfist.msgTypes[msgType];
+        if (isfilter.value) {
+          if (msgMap.size > 0) {
+            if (!msgMap.has(stringMsgType)) {
+              tracerFrame.next();
+              continue;
+            }
+          }
+        } else if (Number(frame.msgType()) >= 10000) {
+          tracerFrame.next();
+
+          continue;
+        }
         const data = frame.data();
         const dataChildren = getDataResolved(data);
         if (dataChildren !== undefined && dataChildren !== null) {
@@ -373,8 +432,8 @@ const loadFrameData = (
           dataLength: frame.dataLength(),
           genTime: frame.genTime(),
           triggerTime: frame.triggerTime(),
-          msgType: frame.msgType(),
-          stringMsgType: longfist.msgTypes[frame.msgType()],
+          msgType: msgType,
+          stringMsgType: stringMsgType,
           source: frame.source(),
           dest: frame.dest(),
           data: data,
@@ -386,8 +445,11 @@ const loadFrameData = (
         curFrameData.sourceName = props.locationMap[curFrameData.source];
         curFrameData.sourceToDest = `${curFrameData.sourceName} -> ${curFrameData.destName}`;
         const curFrameDataResolved = dealFrame(curFrameData);
+
         curFramesMap[curFrameDataResolved.id] = curFrameDataResolved;
         framesMap.value[curFrameDataResolved.id] = curFrameDataResolved;
+        ++newTotal;
+        ++count;
         if (record) {
           frameFilter.value?.addOption(FiltersEnum.MSG_TYPE, [
             {
@@ -415,19 +477,9 @@ const loadFrameData = (
         //   isLoading,
         // });
         tracerFrame.next();
-        ++newTotal;
-        ++count;
       }
     }
     if (!tracerFrame.dataAvailable() || newTotal > 9999) {
-      // console.log('结束', {
-      //   count,
-
-      //   tracerFrame,
-      //   dataAvailable: tracerFrame.dataAvailable(),
-      //   curFramesMap,
-      //   isLoading,
-      // });
       sliceable.value = tracerFrame.dataAvailable();
       return Object.values(curFramesMap);
     } else {
@@ -435,16 +487,18 @@ const loadFrameData = (
       // console.log('继续', tracerFrame.dataAvailable());
       return new Promise<KungfuApi.FrameResolved[]>((resolve) => {
         requestAnimationFrame(async () => {
-          const res = await runner();
+          const res = await drain();
           resolve(res);
         });
       });
     }
   };
 
-  return runner().then((res) => {
+  return drain().then((res) => {
     loadingJournal.value = false;
-    if (res.length <= 0) return;
+    if (res.length <= 0) {
+      console.log('返回数据为空');
+    }
     if (checking) {
       frameDataList.value.push(...res);
       currentFramesId.value = frameDataList.value[0]?.id;
@@ -456,15 +510,27 @@ const loadFrameData = (
 
       journalStore.setCurrentSessionFrames(res, true);
     }
-    // console.log(
-    //   'journalthen',
-    //   res,
-    //   frameDataListResolved.value,
-    //   msgMap.value,
-    //   checking,
-    // );
+    console.log('journalthen', res, frameDataListResolved.value, {
+      isfilter: isfilter.value,
+      msgMap: msgMap,
+      checking: checking,
+    });
 
-    isLoading = false;
+    if (
+      !dataChangeByCurrentTime.value &&
+      !isfilter.value &&
+      frameDataList.value.length < 10000
+    ) {
+      timeGoOn.value = true;
+      console.log('timeGoOn11111', timeGoOn.value);
+    } else {
+      console.log('timeGoOn11111', timeGoOn.value);
+
+      timeGoOn.value = false;
+    }
+    console.timeEnd('loadFrameData');
+
+    // isLoading = false;
   });
 };
 
@@ -480,8 +546,14 @@ const onFiltersApply = async (
 ) => {
   readEvent.value = read;
   writeEvent.value = write;
-  isLoading = false;
-  msgMap.value = filtersFormState[FiltersEnum.MSG_TYPE];
+  msgMap.clear();
+  filtersFormState[FiltersEnum.MSG_TYPE].forEach((item) => {
+    if (Number.isNaN(Number(item))) {
+      msgMap.set(item, true);
+    } else {
+      msgMap.set(longfist.msgTypes[Number(item)], true);
+    }
+  });
   Object.keys(filtersFormState).forEach((key) => {
     frameFiltersReg.value[key] = new RegExp(
       `^${
@@ -493,20 +565,21 @@ const onFiltersApply = async (
     );
   });
   isfilter.value = true;
-  // await loadFrameData(
-  //   props.currentSession as KungfuApi.SessionResolved,
-  //   false,
-  //   false,
-  // );
+  tracerFrame?.seekToTime(props.currentTime);
+  frameDataList.value = [];
+  await loadFrameData(
+    props.currentSession as KungfuApi.SessionResolved,
+    false,
+    false,
+  );
 
-  // console.log(
-  //   '过滤onFiltersApply',
-  //   filtersFormState,
-  //   [props.currentTimeRangeData.range[0], props.currentTimeRangeData.range[1]],
-  //   frameDataListResolved.value.length,
-  //   read,
-  //   write,
-  // );
+  console.log(
+    '过滤onFiltersApply',
+    filtersFormState,
+    frameDataListResolved.value.length,
+    read,
+    write,
+  );
 };
 
 const dealTagBackgroudColor = (color: string) => {

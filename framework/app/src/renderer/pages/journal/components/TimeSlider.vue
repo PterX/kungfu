@@ -1,6 +1,10 @@
 <template>
   <div class="kf-time-slider__wrap">
-    <div class="arrow arrow-left"></div>
+    <!-- <div class="arrow arrow-left" @click="handleTimeBack()"></div> -->
+    <backward-outlined
+      class="forward-icon"
+      @click="handleTimeBack()"
+    ></backward-outlined>
     <div class="kf-time-slider-time">
       <a-input-group v-if="timeInputData[0].inputting" compact>
         <!-- <a-input
@@ -83,7 +87,11 @@
         {{ timeStrs[1] }}
       </span>
     </div>
-    <div class="arrow arrow-right"></div>
+    <!-- <div class="arrow arrow-right" @click="handleTimeForward()"></div> -->
+    <forward-outlined
+      class="forward-icon"
+      @click="handleTimeForward()"
+    ></forward-outlined>
   </div>
 </template>
 
@@ -94,6 +102,9 @@ import { CheckOutlined, CloseOutlined } from '@ant-design/icons-vue';
 import { dealKfTime } from '@kungfu-trader/kungfu-js-api/kungfu';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { messagePrompt } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
+import { ForwardOutlined, BackwardOutlined } from '@ant-design/icons-vue';
+
+import dayjs from 'dayjs';
 
 const { t } = VueI18n.global;
 
@@ -108,7 +119,7 @@ const props = withDefaults(
     nowTime: bigint;
     beginTime: bigint;
     endTime: bigint;
-    isTimeContinue: boolean;
+    // isTimeContinue: boolean;
     nolRange: DoubleArray<bigint>;
     step: number;
     stick: boolean;
@@ -120,10 +131,13 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   (e: 'update:currentTime', value: bigint): void;
-  (e: 'timeContinueUpdate', value: boolean): void;
+  // (e: 'timeContinueUpdate', value: boolean): void;
 }>();
 const SCALE = 1000000;
 const BIGINT_SCALE = BigInt(SCALE);
+//10秒是多少纳秒
+const TEN_SECOND = BigInt(10 * SCALE);
+const goStep = BigInt(10000000000);
 
 const isDragging = ref<boolean>(false);
 const slider = ref();
@@ -172,6 +186,29 @@ const globalMouseUp = () => {
   }
 };
 
+function ff(time) {
+  return dayjs
+    .unix(Number(BigInt(time) / BigInt(1e9)))
+    .format('YYYY-MM-DD HH:mm:ss');
+}
+const handleTimeBack = () => {
+  console.log(
+    'handleTimeBack',
+    ff(props.currentTime),
+    ff(props.currentTime - TEN_SECOND),
+  );
+  curTime.value = nano2millionSecond(props.currentTime - TEN_SECOND);
+  onAfterChange(curTime.value);
+};
+const handleTimeForward = () => {
+  console.log(
+    'handleTimeForward',
+    ff(props.currentTime),
+    ff(props.currentTime - TEN_SECOND),
+  );
+  curTime.value = nano2millionSecond(props.currentTime + TEN_SECOND);
+  onAfterChange(curTime.value);
+};
 const nano2millionSecond = (number: bigint | number) => {
   if (typeof number === 'bigint') {
     return Number(number / BIGINT_SCALE);
@@ -256,52 +293,64 @@ watch(
     //   curTime.value,
     //   props.isTimeContinue,
     // );
-    if (props.isTimeContinue) {
-      timeStrs.value = [
-        customDealKftime(props.beginTime),
-        customDealKftime(props.endTime || props.nowTime),
-      ];
-    } else {
-      timeStrs.value = [
-        customDealKftime(props.beginTime),
-        customDealKftime(props.currentTime),
-      ];
-    }
+    // if (props.isTimeContinue) {
+    //   timeStrs.value = [
+    //     customDealKftime(props.beginTime),
+    //     customDealKftime(props.endTime || props.nowTime),
+    //   ];
+    // } else {
+    //   timeStrs.value = [
+    //     customDealKftime(props.beginTime),
+    //     customDealKftime(props.currentTime),
+    //   ];
+    // }
+    timeStrs.value = [
+      customDealKftime(props.beginTime),
+      customDealKftime(props.endTime || props.nowTime),
+    ];
   },
 );
 watch(
   () => props.beginTime,
   () => {
-    if (props.isTimeContinue) {
-      timeStrs.value = [
-        customDealKftime(props.beginTime),
-        customDealKftime(props.endTime || props.nowTime),
-      ];
-    } else {
-      timeStrs.value = [
-        customDealKftime(props.beginTime),
-        customDealKftime(props.currentTime),
-      ];
-    }
+    // if (props.isTimeContinue) {
+    //   timeStrs.value = [
+    //     customDealKftime(props.beginTime),
+    //     customDealKftime(props.endTime || props.nowTime),
+    //   ];
+    // } else {
+    //   timeStrs.value = [
+    //     customDealKftime(props.beginTime),
+    //     customDealKftime(props.currentTime),
+    //   ];
+    // }
+    timeStrs.value = [
+      customDealKftime(props.beginTime),
+      customDealKftime(props.endTime || props.nowTime),
+    ];
   },
 );
-watch(
-  () => props.isTimeContinue,
-  (newTimeContinue) => {
-    // console.log('newTimeContinue', newTimeContinue);
-    if (newTimeContinue) {
-      timeStrs.value = [
-        customDealKftime(props.beginTime),
-        customDealKftime(props.endTime || props.nowTime),
-      ];
-    } else {
-      timeStrs.value = [
-        customDealKftime(props.beginTime),
-        customDealKftime(props.currentTime),
-      ];
-    }
-  },
-);
+// watch(
+//   () => props.isTimeContinue,
+//   (newTimeContinue) => {
+//     // console.log('newTimeContinue', newTimeContinue);
+//     // if (newTimeContinue) {
+//     //   timeStrs.value = [
+//     //     customDealKftime(props.beginTime),
+//     //     customDealKftime(props.endTime || props.nowTime),
+//     //   ];
+//     // } else {
+//     //   timeStrs.value = [
+//     //     customDealKftime(props.beginTime),
+//     //     customDealKftime(props.currentTime),
+//     //   ];
+//     // }
+//     timeStrs.value = [
+//       customDealKftime(props.beginTime),
+//       customDealKftime(props.currentTime),
+//     ];
+//   },
+// );
 
 watch(
   () => props.currentTime,
@@ -332,10 +381,10 @@ const onAfterChange = (value: number) => {
     // value[0] === nano2millionSecond(props.currentTime[0]) &&
     value === nano2millionSecond(props.nowTime)
   ) {
-    emit('timeContinueUpdate', true);
+    // emit('timeContinueUpdate', true);
     // return;
   } else {
-    emit('timeContinueUpdate', false);
+    // emit('timeContinueUpdate', false);
   }
 
   // if (props.stick) {
@@ -427,40 +476,15 @@ const handleConfirmTimeInput = (index: 0 | 1) => {
       border-color: #faad14;
     }
   }
-  .arrow {
-    display: inline-block;
-    position: relative;
-    width: 21px;
-    height: 21px;
-    background-color: #faad14;
-    border-radius: 50%;
-    cursor: pointer;
+
+  .forward-icon {
+    font-size: 26px; /* 改变图标大小 */
+    color: #fff; /* 设置初始颜色 */
+    transition: color 0.3s; /* 平滑过渡 */
   }
 
-  .arrow-left::before,
-  .arrow-right::before {
-    content: '';
-    display: block;
-    position: absolute;
-    width: 0;
-    height: 0;
-    border-style: solid;
-    transform: translateY(-50%);
-    top: 50%;
-  }
-
-  .arrow-left::before {
-    border-width: 6px 10px 6px 0;
-    border-color: transparent #ffffff transparent transparent;
-    left: 50%;
-    transform: translateX(-50%) translateY(-50%);
-  }
-
-  .arrow-right::before {
-    border-width: 6px 0 6px 10px;
-    border-color: transparent transparent transparent #ffffff;
-    right: 50%;
-    transform: translateX(50%) translateY(-50%);
+  .forward-icon:hover {
+    color: #faad14; /* 鼠标悬停时的颜色 */
   }
 }
 </style>

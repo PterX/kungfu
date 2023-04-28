@@ -30,14 +30,11 @@
 <script lang="ts" setup>
 import { dealKfTime } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { dealKfPrice } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
-import { computed, reactive, ref, watch } from 'vue';
+import { computed, reactive, ref } from 'vue';
 // import { assemble } from '@kungfu-trader/kungfu-js-api/kungfu';
 import KfTradingCharts from '../../../components/public/KfTradingCharts.vue';
 import { useDealJournalDatas } from '../utils';
-import { SessionStatusEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
-import { dealFrame } from '../utils';
 // import {  FiltersEnum } from '../utils/filterUtils';
-import { useJournalStore } from '../store/journalStore';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 
 const { t } = VueI18n.global;
@@ -45,7 +42,6 @@ const props = withDefaults(
   defineProps<{
     sessions: KungfuApi.SessionResolved[];
     currentSession: KungfuApi.SessionResolved | null;
-    mdSession: KungfuApi.SessionResolved | null;
     currentTimeRangeData: {
       range: [bigint, bigint];
       reload: boolean;
@@ -54,7 +50,6 @@ const props = withDefaults(
   {},
 );
 
-let mdSessionBeginTime = props.mdSession ? props.mdSession.begin_time : 0n;
 const searchKey = ref<string>('');
 const chartRefs: { [key: string]: HTMLElement } = reactive({});
 const chartsContainer = ref<HTMLElement | null>(null);
@@ -75,108 +70,6 @@ const scrollToKey = () => {
   const targetPosition =
     target.offsetTop - (chartsContainer.value?.offsetTop || 0);
   chartsContainer.value!.scrollTop = targetPosition;
-};
-
-// watch(
-//   () => props.mdSession,
-//   (newSession, oldSession) => {
-//     if (newSession && newSession !== oldSession) {
-//       console.log('loadmdSession>>>', newSession);
-//       loadFrameData(newSession, newSession.begin_time, newSession.end_time);
-//     }
-//   },
-// );
-watch(
-  () => props.currentSession,
-  (newSession, oldSession) => {
-    if (newSession && newSession !== oldSession) {
-      mdSessionBeginTime = changeMdSessionSrartTime(newSession);
-      loadFrameData(
-        props.mdSession?.index as number,
-        mdSessionBeginTime,
-        props.mdSession?.end_time as bigint,
-        newSession.index === props.mdSession?.index,
-      );
-    }
-  },
-);
-const changeMdSessionSrartTime = (session: KungfuApi.SessionResolved) => {
-  //与session的session_id_resolved相同的session中，begin_time最小的那个
-  const minBeginTime = props.sessions
-    .filter((item) => item.session_id_resolved === session.session_id_resolved)
-    .reduce((pre, cur) => {
-      return pre.begin_time < cur.begin_time ? pre : cur;
-    }).begin_time;
-  return minBeginTime;
-};
-const journalStore = useJournalStore();
-const EVERY_COUNT = 20;
-const LIMIT_COUNT = 1000;
-let journalReader: KungfuApi.AssembleReader | null = null;
-// const framesMap = shallowRef<Record<string, KungfuApi.FrameResolved>>({});
-const loadFrameData = (
-  session: KungfuApi.SessionResolved | number,
-  startTime: bigint,
-  endTime: bigint,
-  checking = false,
-) => {
-  if (!session) return;
-  const sessionId = typeof session === 'number' ? session : session?.index;
-
-  if (!checking) {
-    if (sessionId === SessionStatusEnum.Running) {
-      // journalReader = assemble.getReader(sessionId, startTime);
-    } else {
-      // journalReader = assemble.getReader(sessionId, startTime, endTime);
-    }
-  }
-
-  let total = 0;
-  const curFramesMap = {};
-  return new Promise<KungfuApi.FrameResolved[]>((resolve, _) => {
-    const runner = () => {
-      setTimeout(() => {
-        if (!journalReader) return resolve([]);
-        let count = 0;
-        journalReader.run((frame) => {
-          if (frame) {
-            const curFrameData: KungfuApi.Frame = {
-              id: total,
-              dataLength: frame.dataLength(),
-              genTime: frame.genTime(),
-              triggerTime: frame.triggerTime(),
-              msgType: frame.msgType(),
-              source: frame.source(),
-              dest: frame.dest(),
-              data: frame.data(),
-            };
-            const curFrameDataResolved = dealFrame(curFrameData);
-
-            curFramesMap[curFrameDataResolved.id] = curFrameDataResolved;
-
-            ++total;
-            ++count;
-          }
-        }, EVERY_COUNT);
-
-        if (count < EVERY_COUNT || total >= LIMIT_COUNT) {
-          resolve(Object.values(curFramesMap));
-        } else {
-          runner();
-        }
-      });
-    };
-
-    runner();
-  }).then((res) => {
-    if (checking) {
-      journalStore.setMdSessionFrames(res, false);
-    } else {
-      journalStore.setMdSessionFrames(res, true);
-    }
-    // console.log('mdjournal', res);
-    if (total >= LIMIT_COUNT) loadFrameData(session, startTime, endTime, true);
-  });
 };
 
 const { allTradingDatas, mdQuotoDatas } = useDealJournalDatas();
@@ -290,24 +183,6 @@ const allOptions = computed(() => {
         newData = [];
       }
 
-      // console.log('data;quotes;trades;orders', {
-      //   allData,
-      //   timeTemp: timeTemp.sort((a, b) => {
-      //     return a > b ? 1 : -1;
-      //   }),
-      //   timeTemp2: timeTemp2.sort((a, b) => {
-      //     return a > b ? 1 : -1;
-      //   }),
-      //   oldnew: { oldOptionData, newData },
-      //   allTradingDatas,
-      //   ll: { quotes, trades, orders },
-      //   new: {
-      //     newQuotes,
-      //     newTrades,
-      //     newOrders,
-      //   },
-      // });
-
       return {
         ...options,
         [key]: getOption(key, oldOptionData, newData, reset),
@@ -321,52 +196,9 @@ const allOptions = computed(() => {
   for (const key in allTradingDatas.value) {
     previousAllTradingDatas.set(key, allTradingDatas.value[key]);
   }
-  // console.log(
-  //   'previousAllTradingDatas',
-  //   previousAllTradingDatas,
-  //   resolvedOptions,
-  // );
 
   return resolvedOptions;
 });
-
-// const upColor = '#ec0000';
-// const upBorderColor = '#8A0000';
-// const downColor = '#00da3c';
-// const downBorderColor = '#008F28';
-
-// const getMarkPoint = (data: {
-//   Trade: KungfuApi.Trade[];
-//   Order: KungfuApi.Order[];
-// }) => {
-//   const markPoint = {
-//     label: {
-//       formatter: function (param) {
-//         return param;
-//       },
-//     },
-//     data: Object.keys(data)
-//       .map((type) => {
-//         const timeKey = type === 'Order' ? 'update_time' : 'trade_time';
-//         const priceKey = type === 'Order' ? 'limit_price' : 'price';
-
-//         return data[type].map((item) => ({
-//           name: 'Mark',
-//           coord: [
-//             dealKfTime(BigInt(item[timeKey])),
-//             dealKfPrice(item[priceKey]),
-//           ],
-//           value: type,
-//           itemStyle: {
-//             color: 'rgb(41,60,85)',
-//           },
-//         }));
-//       })
-//       .flat(),
-//   };
-//   // console.log('markPoint',markPoint);
-//   return markPoint;
-// };
 
 function getXAxisData(oldData, newData) {
   if (newData.length <= 0) {
@@ -565,15 +397,6 @@ function getOption(
   };
   return option;
 }
-// watchEffect(() => {
-//   console.log(
-//     'allOptions;allTradingDatas;mdQ>>>',
-//     allOptions.value,
-//     allTradingDatas.value,
-//     mdQuotoDatas.value,
-//     Object.keys(allOptions),
-//   );
-// });
 </script>
 
 <style lang="less">

@@ -48,7 +48,6 @@
           :now-time="nowTime"
           :begin-time="beginTime"
           :end-time="endTime"
-          :is-time-continue="timeContinue"
           :nol-range="nolRange"
           :step="60"
           stick
@@ -78,13 +77,13 @@
             :current-time-range-data="currentTimeRangeData"
             :begin-time="beginTime"
             :end-time="endTime"
+            :now-time="nowTime"
             :current-time="currentTime"
-            :is-time-continue="timeContinue"
             :location-map="SourceAndDestNameMap"
             :is-external-update="isExternalUpdate"
             @change-time-range="onChangeTimeRange"
             @external-update="onExternalUpdate"
-            @updateCurrentTime="onUpdateCurrentTime"
+            @update-current-time="onUpdateCurrentTime"
           />
           <OrdersDashboard
             v-show="isCurrentMenuItem('visual')"
@@ -149,7 +148,7 @@ type LocationRseolved = KungfuApi.KfLocation & {
 const { t } = VueI18n.global;
 const beginTime = ref<bigint>(BigInt(new Date().getTime()) * 1000000n);
 const endTime = ref<bigint>(0n);
-const timeContinue = ref(true);
+// const timeContinue = ref(true);
 const isExternalUpdate = ref(false);
 const currentLocation = getCurrentLocation();
 const timeSlider = ref();
@@ -281,7 +280,9 @@ watch(
     //   currentSession.value,
     //   currentTimeRangeData.value,
     // );
-    timeContinue.value = true;
+
+    // timeContinue.value = true;
+
     // allsessions.value = getAllLocation();
     // console.log('allLocation', allLocation.value);
     // nextTick(() => {
@@ -307,7 +308,7 @@ watch(
 let nolRange: [bigint, bigint] = [0n, 0n];
 
 const onTimeContinueUpdate = (value: boolean) => {
-  timeContinue.value = value;
+  // timeContinue.value = value;
 };
 
 const onChangeTimeRange = (range: [bigint, bigint]) => {
@@ -322,7 +323,7 @@ const onExternalUpdate = (value: boolean) => {
 
 const onUpdateCurrentTime = (value: bigint) => {
   currentTime.value = value;
-  timeContinue.value = false;
+  // timeContinue.value = false;
   // console.log('onUpdateCurrentTime', currentTime.value);
 };
 

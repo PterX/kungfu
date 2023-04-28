@@ -22,7 +22,7 @@ void cleaner::do_clean() {
     lk.unlock();
 
     std::lock_guard<std::mutex> lock(quite_mutex_);
-    if (not m_quit_) {
+    if (m_quit_) {
       break;
     }
   }

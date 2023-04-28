@@ -61,6 +61,7 @@ private:
   page_ptr pre_page_;
   page_ptr page_;
   std::vector<page_ptr> passed_page_collector_;
+  std::recursive_mutex passed_page_collector_mtx_;
   frame_ptr frame_;
   uint64_t page_frame_nb_;
 

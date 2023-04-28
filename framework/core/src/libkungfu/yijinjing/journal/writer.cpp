@@ -27,13 +27,13 @@ uint64_t writer::current_frame_uid() {
 }
 
 frame_ptr writer::open_frame(int64_t trigger_time, int32_t msg_type, uint32_t data_length) {
-  assert(sizeof(frame_header) + data_length + sizeof(frame_header) <= journal_.page_->get_page_size());
   int64_t start_time = time::now_in_nano();
   while (not writer_mtx_.try_lock()) {
     if (time::now_in_nano() - start_time > 30 * time_unit::NANOSECONDS_PER_SECOND) {
       throw journal_error("Can not lock writer for " + journal_.location_->uname);
     }
   }
+  assert(sizeof(frame_header) + data_length + sizeof(frame_header) <= journal_.page_->get_page_size());
   if (journal_.current_frame()->address() + sizeof(frame_header) + data_length >= journal_.page_->address_border()) {
     close_page(trigger_time);
   }
@@ -104,11 +104,8 @@ void writer::mark(int64_t trigger_time, int32_t msg_type) {
 void writer::close_data() { close_frame(size_to_write_); }
 
 void writer::close_page(int64_t trigger_time) {
-  page_ptr last_page = journal_.page_;
-  journal_.load_next_page();
-
   frame last_page_frame;
-  last_page_frame.set_address(last_page->last_frame_address());
+  last_page_frame.set_address(journal_.page_->last_frame_address());
   last_page_frame.move_to_next();
   last_page_frame.set_header_length();
   last_page_frame.set_trigger_time(trigger_time);
@@ -117,7 +114,8 @@ void writer::close_page(int64_t trigger_time) {
   last_page_frame.set_dest(journal_.dest_id_);
   last_page_frame.set_gen_time(time::now_in_nano());
   last_page_frame.set_data_length(0);
-  last_page->set_last_frame_position(last_page_frame.address() - last_page->address());
+  journal_.page_->set_last_frame_position(last_page_frame.address() - journal_.page_->address());
+  journal_.load_next_page();
 }
 
 bool writer::release_page() { return journal_.release_page(); }

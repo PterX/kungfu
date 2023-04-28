@@ -272,6 +272,7 @@ KF_DEFINE_PACK_TYPE(                                    //
 KF_DEFINE_PACK_TYPE(                         //
     TimeRequest, 10004, PK(id), PERPETUAL(), //
     (int32_t, id),                           //
+    (int64_t, base_time),                    //
     (int64_t, duration),                     //
     (int64_t, repeat)                        //
 );

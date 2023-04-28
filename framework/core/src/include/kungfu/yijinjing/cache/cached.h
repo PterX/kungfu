@@ -124,15 +124,15 @@ private:
   };
 
   template <typename DataType>
-  static constexpr auto profile_get_by_type = [](auto& profile, auto&receiver) {
+  static constexpr auto profile_get_by_type = [](auto &profile, auto &receiver) {
     try {
-        for (const auto &data : profile.get_all(DataType{})) {
-          auto s = state(0, 0, 0, data);
-          receiver << s;
-        }
-      } catch (const std::exception &e) {
-        SPDLOG_ERROR("Unexpected exception by profile_get_all {}", e.what());
+      for (const auto &data : profile.get_all(DataType{})) {
+        auto s = state(0, 0, 0, data);
+        receiver << s;
       }
+    } catch (const std::exception &e) {
+      SPDLOG_ERROR("Unexpected exception by profile_get_all {}", e.what());
+    }
   };
 };
 

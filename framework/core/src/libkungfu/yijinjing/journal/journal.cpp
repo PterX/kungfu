@@ -41,7 +41,8 @@ void journal::load_page(int page_id) {
   if (page_.get() == nullptr or page_->get_page_id() != page_id) {
 
     if (page_.get() != nullptr && bus_->is_on_load_page_required()) {
-      passed_page_collector_.push(std::move(page_));
+      std::lock_guard<std::recursive_mutex> lk(passed_page_collector_mtx_);
+      passed_page_collector_.push_back(std::move(page_));
       bus_->on_load_page();
     }
     page_ = page::load(location_, dest_id_, page_id, is_writing_, lazy_);
@@ -63,17 +64,25 @@ void journal::try_load_next_extra_page() {
 }
 
 bool journal::release_page() {
-  if (passed_page_collector_.empty()) {
-    return false;
+  static thread_local std::vector<page_ptr> queue_release_page{};
+  {
+    std::lock_guard<std::recursive_mutex> lk(passed_page_collector_mtx_);
+    if (passed_page_collector_.empty()) {
+      return false;
+    }
+
+    for (auto &page : passed_page_collector_) {
+      queue_release_page.push_back(std::move(page));
+    }
+    passed_page_collector_.clear();
   }
 
-  while (!passed_page_collector_.empty()) {
-    auto &page_ptr = passed_page_collector_.back();
-    if (page_ptr.get() != nullptr) {
-      page_ptr.reset();
-    };
-    passed_page_collector_.pop();
+  for (auto &page : queue_release_page) {
+    if (page != nullptr) {
+      page.reset();
+    }
   }
+  queue_release_page.clear();
 
   return true;
 }

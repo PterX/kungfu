@@ -81,9 +81,7 @@
           />
           <OrdersDashboard
             v-show="isCurrentMenuItem('visual')"
-            :sessions="sessions"
             :current-session="currentSession"
-            :md-session="mdSession"
           />
         </div>
       </div>

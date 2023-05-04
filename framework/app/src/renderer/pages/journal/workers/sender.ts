@@ -7,10 +7,14 @@ export class WorkerSender<T> {
     this.worker = worker;
     this.limit = limit;
   }
-
   sendData(type: string, data: T[], info?: Record<string, any>) {
     const len = data.length;
-    if (!len) return;
+    if (!len) {
+      const sendData = this._createSendData(type, [], true, info);
+
+      this.worker.postMessage(sendData);
+      return;
+    }
     const times = Math.ceil(len / this.limit);
 
     for (let i = 1, s = 0; i <= times; i++, s += this.limit) {

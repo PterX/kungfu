@@ -235,7 +235,7 @@ export const writeCsvByStream = <T>(
   });
 };
 
-export const useDealJournalDatas = () => {
+export const useDealJournalDatas = (clear = false) => {
   type DataWrapper<T> = {
     data: Record<string, T[]>;
     isInit: boolean;
@@ -307,6 +307,10 @@ export const useDealJournalDatas = () => {
     curData: T[],
     isInit: boolean,
   ) => {
+    if (curData.length === 0) {
+      exsitedData = {};
+      return;
+    }
     const resolvedCurData = groupDataByInstrAndExcId(curData);
     if (isInit) {
       Object.keys(resolvedCurData).forEach((key) => {
@@ -318,18 +322,33 @@ export const useDealJournalDatas = () => {
       });
     }
   };
-
   dataReceiver.onEnd<KungfuApi.Quote>('send-quotes', ({ data, info }) => {
+    if (data.length === 0) {
+      quotes.data = {};
+      quotes.isInit = true;
+      return;
+    }
     dealUpdateData(quotes.data, data, info?.isInit);
     quotes.isInit = info?.isInit;
+    console.log('req-send-quotes', data, info?.isInit, quotes);
   });
 
   dataReceiver.onEnd<KungfuApi.Trade>('send-trades', ({ data, info }) => {
+    if (data.length === 0) {
+      trades.data = {};
+      trades.isInit = true;
+      return;
+    }
     dealUpdateData(trades.data, data, info?.isInit);
     trades.isInit = info?.isInit;
   });
 
   dataReceiver.onEnd<KungfuApi.Order>('send-orders', ({ data, info }) => {
+    if (data.length === 0) {
+      orders.data = {};
+      orders.isInit = true;
+      return;
+    }
     dealUpdateData(orders.data, data, info?.isInit);
     orders.isInit = info?.isInit;
   });
@@ -337,6 +356,7 @@ export const useDealJournalDatas = () => {
     dealUpdateData(mdQuotes.data, data, info?.isInit);
     mdQuotes.isInit = info?.isInit;
   });
+
   const clearTradingData = () => {
     quotes.data = {};
     quotes.isInit = true;
@@ -345,8 +365,12 @@ export const useDealJournalDatas = () => {
     trades.data = {};
     trades.isInit = true;
   };
+  if (clear) {
+    clearTradingData();
+  }
 
   const allTradingDatas = computed(() => {
+    console.log('datas', { quotes, orders, trades });
     const keys = Array.from(
       new Set([
         ...Object.keys(quotes.data),

@@ -3588,10 +3588,10 @@ ansi-styles@^4.0.0, ansi-styles@^4.1.0:
   dependencies:
     color-convert "^2.0.1"
 
-ant-design-vue@^3.2.16:
-  version "3.2.17"
-  resolved "https://registry.npmmirror.com/ant-design-vue/-/ant-design-vue-3.2.17.tgz#5e6ec321820b8e5807e250daf488feeef2551e07"
-  integrity sha512-fUHC1PRF3/UTDu7WjaKq2awyqET2mGfEytNOjfbUrvq5Q4AzNghzJlCWh1saCuA+VjnRRBCYu34StZ44cDmbFg==
+ant-design-vue@^3.2.9:
+  version "3.2.19"
+  resolved "https://registry.npmmirror.com/ant-design-vue/-/ant-design-vue-3.2.19.tgz#b8f7c2ed81def0b8636fbd53608afb6db9db5831"
+  integrity sha512-weizTa70qNhyj8tOoplTcpt85OkVHpnreK2skdTmORFAGDGvF15zyoqCNg2tByzn2xxf2DloQQvZYKlN/i0CGw==
   dependencies:
     "@ant-design/colors" "^6.0.0"
     "@ant-design/icons-vue" "^6.1.0"
@@ -10419,7 +10419,7 @@ rx-lite@*, rx-lite@^4.0.8:
 
 rxjs@^7.5.0, rxjs@^7.5.2, rxjs@^7.5.4, rxjs@^7.5.5:
   version "7.8.0"
-  resolved "https://registry.npmmirror.com/rxjs/-/rxjs-7.8.0.tgz#90a938862a82888ff4c7359811a595e14e1e09a4"
+  resolved "https://registry.yarnpkg.com/rxjs/-/rxjs-7.8.0.tgz#90a938862a82888ff4c7359811a595e14e1e09a4"
   integrity sha512-F2+gxDshqmIub1KdvZkaEfGDwLNpPvk9Fs6LD/MyQxNgMds/WH9OdDDXOmxUZpME+iSK3rQCctkL0DYyytUqMg==
   dependencies:
     tslib "^2.1.0"

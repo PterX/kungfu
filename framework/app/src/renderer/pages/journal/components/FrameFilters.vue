@@ -7,6 +7,14 @@
     :scroll-to-first-error="true"
     layout="inline"
   >
+    <a-form-item>
+      <a-checkbox v-model:checked="read">
+        {{ $t('journalConfig.read_event') }}
+      </a-checkbox>
+      <a-checkbox v-model:checked="write">
+        {{ $t('journalConfig.write_event') }}
+      </a-checkbox>
+    </a-form-item>
     <a-form-item
       v-for="item in Object.keys(formLabelMap)"
       :key="item"
@@ -16,16 +24,15 @@
     >
       <a-select
         v-model:value="filtersFormState[item]"
+        :options="filtersOptions[item]"
         mode="multiple"
         :max-tag-count="2"
         show-search
         :placeholder="$t('keyword_input')"
-        :filter-option="handleFilterOption"
-        :filter-sort="optionSorter"
         allow-clear
       >
         <a-select-option
-          v-for="option in filtersOptionsResolved[item]"
+          v-for="option in filtersOptions[item]"
           :key="option.label"
           :value="option.value"
         >
@@ -43,30 +50,49 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+import { longfist } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { FiltersEnum } from '../utils/filterUtils';
 import { useFrameFilters } from '../utils/filterUtils';
 
 const { t } = VueI18n.global;
 
+const props = withDefaults(
+  defineProps<{
+    locationMap: Record<string, string>;
+    currentLocation: KungfuApi.KfLocation | null;
+  }>(),
+  {},
+);
 const emit = defineEmits<{
-  (e: 'applyFilters', frameFiltersMap: Record<FiltersEnum, string[]>): void;
+  (
+    e: 'applyFilters',
+    frameFiltersMap: Record<FiltersEnum, string[]>,
+    read: boolean,
+    write: boolean,
+  ): void;
 }>();
+const read = ref(true);
+const write = ref(true);
 
 const formRef = ref();
 const formLabelMap = {
-  [FiltersEnum.SOURCE]: t('journalConfig.source'),
-  [FiltersEnum.DEST]: t('journalConfig.dest'),
   [FiltersEnum.MSG_TYPE]: t('journalConfig.msg_type'),
 };
 
-const {
-  filtersFormState,
-  filtersOptionsResolved,
-  optionSorter,
-  addFilterOption,
-} = useFrameFilters();
+const { filtersFormState, filtersOptions } = useFrameFilters();
+
+watch(
+  () => props.locationMap,
+  () => {
+    let msg: Record<number, string> = longfist.msgTypes;
+    filtersOptions.MSG_TYPE = Object.entries(msg).map(([key, value]) => ({
+      label: value,
+      value: key,
+    }));
+  },
+);
 
 const addOption = (
   filterEnum: FiltersEnum,
@@ -74,35 +100,31 @@ const addOption = (
     label: string;
     value: string;
   }[],
+  clear = false,
 ) => {
+  if (clear) {
+    filtersFormState.DEST = [];
+    filtersFormState.SOURCE = [];
+    filtersFormState.MSG_TYPE = [];
+  }
   if (filterEnum === FiltersEnum.MSG_TYPE) {
     filtersFormState.MSG_TYPE.push(
       ...options.reduce((pre, item) => {
-        if (filtersFormState.MSG_TYPE.indexOf(item.value) === -1) {
-          pre.push(item.value);
+        if (
+          !filtersFormState.MSG_TYPE.includes(item.label) &&
+          Number(item.value) <= 10000
+        ) {
+          pre.push(item.label);
         }
 
         return pre;
       }, [] as string[]),
     );
   }
-
-  addFilterOption(filterEnum, options);
 };
-
-const handleFilterOption = (
-  inputValue: string,
-  option: {
-    key: string;
-    value: string;
-  },
-) => {
-  const reg = new RegExp(`.*${inputValue}.*`, 'i');
-  return reg.test(option.key);
-};
-
 const handleApplyFilters = () => {
-  emit('applyFilters', filtersFormState);
+  console.log('过滤', filtersFormState, read.value, write.value);
+  emit('applyFilters', filtersFormState, read.value, write.value);
 };
 
 defineExpose({

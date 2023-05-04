@@ -22,6 +22,7 @@ declare global {
     fileId: number;
     testCase: Record<string, any>;
     pm2: any;
+    ukeyCacheMap?: Map<string, string>;
   }
 
   namespace NodeJS {
@@ -101,13 +102,15 @@ export interface RootConfigJSON {
   kungfuCraft?: {
     appTitle?: string;
     productName?: string;
+    env?: Record<string, string>;
     autoUpdate?: {
       update?: Writeable<AllPublishOptions>;
     };
   };
-  boardFilter?: Record<string, boolean>;
   appConfig?: {
     showHelp?: boolean;
+
+    boardFilter?: Record<string, boolean>;
 
     kfConfigInitValue?: Record<string, KungfuApi.KfConfigValue>;
 

@@ -22,6 +22,7 @@ export const getConfigSettings = (
   sideEnum?: SideEnum,
   priceType?: PriceTypeEnum,
   pricePrecision?: number,
+  step?: number,
 ): KungfuApi.KfConfigItem[] => {
   const defaultSettings: KungfuApi.KfConfigItem[] = [
     category === 'td'
@@ -84,6 +85,7 @@ export const getConfigSettings = (
       type: 'float',
       min: 0,
       precision: pricePrecision || 3,
+      step: step || 1,
       required: priceType !== PriceTypeEnum.Market ? true : false,
     },
     {

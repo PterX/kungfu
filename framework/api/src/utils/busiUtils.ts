@@ -1436,12 +1436,14 @@ export const dealDateToNanotimeRange = (
 export const dealKfNumber = (
   preNumber: bigint | number | undefined | unknown,
 ): string | number | bigint | unknown => {
-  if (preNumber === undefined) return '--';
-  if (preNumber === null) return '--';
-
-  if (Number.isNaN(Number(preNumber))) {
+  if (
+    preNumber === undefined ||
+    preNumber === null ||
+    preNumber === Infinity ||
+    Number.isNaN(Number(preNumber))
+  )
     return '--';
-  }
+
   return preNumber;
 };
 
@@ -2437,8 +2439,12 @@ export const buildIfWatcherLiveObservable = (watcher: KungfuApi.Watcher) => {
   });
 };
 
-export function countDecimalPlaces(num: number) {
-  const match = String(num).match(/(?:\.(\d+))?$/);
+export function countDecimalPlaces(num) {
+  const normalNum = Number(num).toFixed(10);
+  const numStr = String(normalNum)
+    .replace(/(\.\d*?[1-9])0+$/, '$1')
+    .replace(/\.0+$/, '');
+  const match = numStr.match(/(?:\.(\d+))?$/);
   if (!match) {
     return 0;
   }

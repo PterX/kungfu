@@ -453,14 +453,6 @@ declare namespace KungfuApi {
 
     credit: number; //信贷额度
     collateral_ratio: number; //担保比例
-
-    position_rate?: number; //持仓百分比比例(总市值/总资产)
-    normal_avail?: number; //保证金占用
-    long_avail?: number; //保证金占用(多)
-    short_avail?: number; //保证金占用(空)
-    used_mergin?: number; //可开仓本金
-    used_long_mergin?: number; //可开仓本金(多)
-    used_short_mergin?: number; //可开仓本金(空)
   }
 
   export interface Instrument {

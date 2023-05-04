@@ -37,10 +37,6 @@ const props = withDefaults(
   defineProps<{
     sessions: KungfuApi.SessionResolved[];
     currentSession: KungfuApi.SessionResolved | null;
-    currentTimeRangeData: {
-      range: [bigint, bigint];
-      reload: boolean;
-    };
   }>(),
   {},
 );

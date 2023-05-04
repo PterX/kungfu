@@ -12,7 +12,6 @@
         ref="frameFilter"
         :location-map="locationMap"
         :current-location="currentLocation"
-        :current-time-range="currentTimeRangeData.range"
         @apply-filters="onFiltersApply"
       ></FrameFilters>
     </div>
@@ -122,17 +121,11 @@ const props = withDefaults(
     currentTime: bigint;
 
     locationMap: Record<string, string>;
-    isExternalUpdate: boolean;
-    currentTimeRangeData: {
-      range: [bigint, bigint];
-      reload: boolean;
-    };
   }>(),
   {},
 );
 
 const emit = defineEmits<{
-  (e: 'externalUpdate', value: boolean): void;
   (e: 'updateCurrentTime', value: bigint): void;
 }>();
 

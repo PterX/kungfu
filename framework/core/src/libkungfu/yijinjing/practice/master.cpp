@@ -358,9 +358,8 @@ void master::on_time_request(const event_ptr &event) {
   const TimeRequest &request = event->data<TimeRequest>();
   timer_tasks_.try_emplace(event->source());
   auto &app_tasks = timer_tasks_.at(event->source());
-  app_tasks.try_emplace(request.id);
-  auto &task = app_tasks.at(request.id);
-  task.checkpoint = time::now_in_nano() + request.duration;
+  auto &task = app_tasks.try_emplace(request.id).first->second;
+  task.checkpoint = request.base_time + request.duration;
   task.duration = request.duration;
   task.repeat_count = 0;
   task.repeat_limit = request.repeat;

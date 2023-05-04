@@ -345,4 +345,5 @@ export enum CurrencyEnum {
   CNH, // 离岸人民币
   SGD, // 新加坡元
   MYR, // 马来西亚吉特
+  CEN, // 美分
 }

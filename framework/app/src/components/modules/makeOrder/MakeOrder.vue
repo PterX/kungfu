@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
 import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
 import KfConfigSettingsForm from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfConfigSettingsForm.vue';
@@ -9,6 +9,7 @@ import {
   confirmModal,
   messagePrompt,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
+import { useActiveInstruments } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import { getConfigSettings, LABEL_COL, WRAPPER_COL } from './config';
 import {
   dealOrderPlaceVNode,
@@ -54,6 +55,7 @@ import {
 const { t } = VueI18n.global;
 const { error } = messagePrompt();
 
+const { getPriceTickAndPrecision } = useActiveInstruments();
 const { instrumentKeyAccountsMap, uiExtConfigs } = storeToRefs(
   useGlobalStore(),
 );
@@ -94,6 +96,8 @@ const {
 
 const { getValidatorByOrderInputKey } = useTradeLimit();
 
+let pricePrecision = 0;
+let step = 1;
 const makeOrderInstrumentType = ref<InstrumentTypeEnum>(
   InstrumentTypeEnum.unknown,
 );
@@ -117,6 +121,8 @@ const configSettings = computed(() => {
     makeOrderInstrumentType.value,
     side,
     +formState.value.price_type,
+    pricePrecision,
+    step,
   );
 });
 
@@ -139,13 +145,9 @@ const rules = computed(() => {
     },
   };
 });
-
 const isShowConfirmModal = ref<boolean>(false);
 const curOrderVolume = ref<number>(0);
 const curOrderType = ref<InstrumentTypeEnum>(InstrumentTypeEnum.unknown);
-const formSteps = reactive<
-  Partial<Record<keyof KungfuApi.MakeOrderInput, number>>
->({});
 const currentPercent = ref<number>(0);
 const percentList = [10, 20, 50, 80, 100];
 
@@ -230,10 +232,19 @@ watch(
     triggerOrderBook(instrumentResolved.value);
 
     const { instrumentId, exchangeId } = instrumentResolved.value;
-    const instrumentUKey = hashInstrumentUKey(instrumentId, exchangeId);
-    formSteps.limit_price =
-      (window.watcher.ledger.Instrument[instrumentUKey] as KungfuApi.Instrument)
-        ?.price_tick || 1;
+    const { price_tick, price_precision } = getPriceTickAndPrecision(
+      instrumentId,
+      exchangeId,
+      1,
+    );
+    step = price_tick;
+    pricePrecision = price_precision;
+    const limitPriceIndex = configSettings.value.findIndex((configItem) => {
+      return configItem.key === 'limit_price';
+    });
+    if (limitPriceIndex) {
+      configSettings.value[limitPriceIndex].step = step;
+    }
 
     makeOrderInstrumentType.value = instrumentResolved.value.instrumentType;
   },
@@ -718,7 +729,6 @@ watch(
               :label-col="LABEL_COL"
               :wrapper-col="WRAPPER_COL"
               :rules="rules"
-              :steps="formSteps"
             ></KfConfigSettingsForm>
             <div class="percent-group__wrap">
               <a-col :span="LABEL_COL + WRAPPER_COL">

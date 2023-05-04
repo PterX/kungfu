@@ -847,10 +847,11 @@ export const openReadmeModal = (title: string, readmePath: string) => {
 export const useBoardFilter = () => {
   const rootPackageJson = readRootPackageJsonSync();
   const boardFilter: Record<string, boolean | undefined> | undefined =
-    rootPackageJson?.boardFilter;
+    rootPackageJson?.appConfig?.boardFilter;
 
   const getBoard = <T>(boardName: string, ifTrue: T, ifFalse: T): T => {
-    return boardFilter ? (boardFilter[boardName] ? ifTrue : ifFalse) : ifTrue;
+    const isBoardShow = boardFilter?.[boardName] ?? true;
+    return isBoardShow ? ifTrue : ifFalse;
   };
 
   return {

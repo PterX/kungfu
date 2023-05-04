@@ -23,6 +23,7 @@ import {
   dealKfPrice,
   dealCurrency,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+
 import {
   LedgerCategoryEnum,
   OffsetEnum,
@@ -69,7 +70,8 @@ const {
 } = useCurrentGlobalKfLocation(window.watcher);
 const { instruments } = useInstruments();
 const { triggerOrderBook, triggerMakeOrder } = useTriggerMakeOrder();
-const { getInstrumentCurrencyByIds } = useActiveInstruments();
+const { getInstrumentCurrencyByIds, getPriceTickAndPrecision } =
+  useActiveInstruments();
 const { globalSetting } = storeToRefs(useGlobalStore());
 
 onMounted(() => {
@@ -85,9 +87,15 @@ onMounted(() => {
             .list();
 
           pos.value = toRaw(
-            buildGlobalPositions(positions).map((position) =>
-              dealPosition(window.watcher, position),
-            ),
+            buildGlobalPositions(positions).map((position) => {
+              const { price_precision } = getPriceTickAndPrecision(
+                position.instrument_id,
+                position.exchange_id,
+                0.001,
+              );
+
+              return dealPosition(window.watcher, position, price_precision);
+            }),
           );
         });
       },
@@ -203,7 +211,7 @@ function tiggerOrderBookAndMakeOrder(record: KungfuApi.Position) {
 <template>
   <div class="kf-position-global__warp kf-translateZ">
     <KfDashboard @boardSizeChange="handleBodySizeChange">
-      <template v-slot:header>
+      <template #header>
         <KfDashboardItem>
           <a-input-search
             v-model:value="searchKeyword"
@@ -222,7 +230,7 @@ function tiggerOrderBookAndMakeOrder(record: KungfuApi.Position) {
         @clickCell="handleClickRow"
       >
         <template
-          v-slot:default="{
+          #default="{
             column,
             item,
           }: {
@@ -268,15 +276,19 @@ function tiggerOrderBookAndMakeOrder(record: KungfuApi.Position) {
             <KfBlinkNum :num="Number(item.volume).toFixed(0)"></KfBlinkNum>
           </template>
           <template v-else-if="column.dataIndex === 'avg_open_price'">
-            <KfBlinkNum :num="dealKfPrice(item.avg_open_price)"></KfBlinkNum>
+            <KfBlinkNum
+              :num="dealKfPrice(item.avg_open_price, item.price_precision)"
+            ></KfBlinkNum>
           </template>
           <template v-else-if="column.dataIndex === 'last_price'">
-            <KfBlinkNum :num="dealKfPrice(item.last_price)"></KfBlinkNum>
+            <KfBlinkNum
+              :num="dealKfPrice(item.last_price, item.price_precision)"
+            ></KfBlinkNum>
           </template>
           <template v-else-if="column.dataIndex === 'unrealized_pnl'">
             <KfBlinkNum
               mode="compare-zero"
-              :num="dealAssetPrice(item.unrealized_pnl)"
+              :num="dealAssetPrice(item.unrealized_pnl, item.price_precision)"
             ></KfBlinkNum>
           </template>
         </template>

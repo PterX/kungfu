@@ -62,7 +62,6 @@ const props = withDefaults(
   defineProps<{
     locationMap: Record<string, string>;
     currentLocation: KungfuApi.KfLocation | null;
-    currentTimeRange: [bigint, bigint];
   }>(),
   {},
 );

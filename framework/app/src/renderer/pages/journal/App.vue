@@ -48,11 +48,9 @@
           :now-time="nowTime"
           :begin-time="beginTime"
           :end-time="endTime"
-          :nol-range="nolRange"
           :step="60"
           stick
           class="kf-journal-time-slider"
-          @time-continue-update="onTimeContinueUpdate"
         ></TimeSlider>
         <ExportJournal @export-journal-data="onExportJournalData" />
       </div>
@@ -74,15 +72,11 @@
             ref="eventDashBoard"
             :current-session="currentSession"
             :current-location="currentLocation"
-            :current-time-range-data="currentTimeRangeData"
             :begin-time="beginTime"
             :end-time="endTime"
             :now-time="nowTime"
             :current-time="currentTime"
             :location-map="SourceAndDestNameMap"
-            :is-external-update="isExternalUpdate"
-            @change-time-range="onChangeTimeRange"
-            @external-update="onExternalUpdate"
             @update-current-time="onUpdateCurrentTime"
           />
           <OrdersDashboard
@@ -90,7 +84,6 @@
             :sessions="sessions"
             :current-session="currentSession"
             :md-session="mdSession"
-            :current-time-range-data="currentTimeRangeData"
           />
         </div>
       </div>
@@ -143,7 +136,6 @@ type LocationRseolved = KungfuApi.KfLocation & {
 const { t } = VueI18n.global;
 const beginTime = ref<bigint>(BigInt(new Date().getTime()) * 1000000n);
 const endTime = ref<bigint>(0n);
-const isExternalUpdate = ref(false);
 const currentLocation = getCurrentLocation();
 const timeSlider = ref();
 const eventDashBoard = ref();
@@ -174,10 +166,6 @@ watchEffect(() => {
 });
 const currentSessionKey = ref('');
 const currentSessionId = ref(-1);
-const currentTimeRangeData = ref<{ range: [bigint, bigint]; reload: boolean }>({
-  range: [0n, 0n],
-  reload: true,
-});
 
 const currentSession = computed(() => {
   if (currentSessionKey.value && Object.keys(sessionsMap.value).length) {
@@ -260,16 +248,6 @@ watch(
     endTime.value = end_time ?? 0n;
   },
 );
-let nolRange: [bigint, bigint] = [0n, 0n];
-
-const onChangeTimeRange = (range: [bigint, bigint]) => {
-  isExternalUpdate.value = true;
-  nolRange = range;
-};
-
-const onExternalUpdate = (value: boolean) => {
-  isExternalUpdate.value = value;
-};
 
 const onUpdateCurrentTime = (value: bigint) => {
   currentTime.value = value;

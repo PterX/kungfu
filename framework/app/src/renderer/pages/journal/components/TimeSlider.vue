@@ -89,7 +89,6 @@ const props = withDefaults(
     nowTime: bigint;
     beginTime: bigint;
     endTime: bigint;
-    nolRange: DoubleArray<bigint>;
     step: number;
     stick: boolean;
   }>(),

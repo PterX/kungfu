@@ -97,6 +97,7 @@ const {
 const { getValidatorByOrderInputKey } = useTradeLimit();
 
 let pricePrecision = 0;
+let step = 1;
 const makeOrderInstrumentType = ref<InstrumentTypeEnum>(
   InstrumentTypeEnum.unknown,
 );
@@ -121,6 +122,7 @@ const configSettings = computed(() => {
     side,
     +formState.value.price_type,
     pricePrecision,
+    step
   );
 });
 
@@ -235,13 +237,14 @@ watch(
       exchangeId,
       1,
     );
-
+    step = price_tick;
     pricePrecision = price_precision;
     const limitPriceIndex = configSettings.value.findIndex((configItem) => {
       return configItem.key === 'limit_price';
     });
-    if (limitPriceIndex)
-      configSettings.value[limitPriceIndex].step = price_tick;
+    if (limitPriceIndex) {
+      configSettings.value[limitPriceIndex].step = step;
+    }
 
     makeOrderInstrumentType.value = instrumentResolved.value.instrumentType;
   },

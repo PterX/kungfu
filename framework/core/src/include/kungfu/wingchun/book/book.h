@@ -105,9 +105,7 @@ struct Book {
                : get_position(longfist::enums::Direction::Long, data.exchange_id, data.instrument_id);
   }
 
-  void
-  update(int64_t update_time,
-         longfist::enums::AccountingMethodType accounting_method_type = longfist::enums::AccountingMethodType::Default);
+  void update(int64_t update_time, longfist::enums::AccountingMethodType accounting_method_type);
 
   void replace(const longfist::types::OrderInput &input);
 

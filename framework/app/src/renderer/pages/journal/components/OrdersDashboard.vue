@@ -27,7 +27,7 @@
 <script lang="ts" setup>
 import { dealKfTime } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { dealKfPrice } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
-import { computed, reactive, ref } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 import KfTradingCharts from '../../../components/public/KfTradingCharts.vue';
 import { useDealJournalDatas } from '../utils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
@@ -35,7 +35,6 @@ import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 const { t } = VueI18n.global;
 const props = withDefaults(
   defineProps<{
-    sessions: KungfuApi.SessionResolved[];
     currentSession: KungfuApi.SessionResolved | null;
   }>(),
   {},
@@ -63,7 +62,7 @@ const scrollToKey = () => {
   chartsContainer.value!.scrollTop = targetPosition;
 };
 
-const { allTradingDatas, mdQuotoDatas } = useDealJournalDatas();
+let { allTradingDatas, mdQuotoDatas } = useDealJournalDatas();
 
 const previousAllTradingDatas = new Map();
 let oldOptionData: string[] = [];
@@ -185,6 +184,17 @@ const allOptions = computed(() => {
 
   return resolvedOptions;
 });
+
+watch(
+  () => props.currentSession,
+  (newSession, oldSession) => {
+    if (newSession && newSession !== oldSession) {
+      // let { allTradingDatas: tradingDatas } = useDealJournalDatas();
+      // allTradingDatas = tradingDatas;
+      previousAllTradingDatas.clear();
+    }
+  },
+);
 
 function getXAxisData(oldData, newData) {
   if (newData.length <= 0) {

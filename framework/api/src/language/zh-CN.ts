@@ -564,6 +564,8 @@ export default {
     Event: '事件',
 
     Visual: '视图',
+
+    please_input_instrument_id: '请输入标的名称',
   },
 
   tradeConfig: {

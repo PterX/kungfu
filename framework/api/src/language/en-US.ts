@@ -548,6 +548,18 @@ export default {
     loading_journal: 'Loading journal...',
 
     input_time_format_error: 'The inputed time format error',
+
+    undefined_instrument_id: 'Undefined instrument_id',
+
+    read_event: 'Read event',
+
+    write_event: 'Write event',
+
+    Event: 'Event',
+
+    Visual: 'Visual',
+
+    please_input_instrument_id: 'Please input instrument_id',
   },
 
   tradeConfig: {

@@ -122,7 +122,7 @@ const configSettings = computed(() => {
     side,
     +formState.value.price_type,
     pricePrecision,
-    step
+    step,
   );
 });
 

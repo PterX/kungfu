@@ -47,8 +47,6 @@ import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { ForwardOutlined, BackwardOutlined } from '@ant-design/icons-vue';
 import { SessionStatusEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 
-const { t } = VueI18n.global;
-
 const props = withDefaults(
   defineProps<{
     currentSession: KungfuApi.SessionResolved | null;

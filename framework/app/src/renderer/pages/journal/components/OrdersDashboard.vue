@@ -67,14 +67,19 @@ let { allTradingDatas, mdQuotoDatas } = useDealJournalDatas();
 const previousAllTradingDatas = new Map();
 let oldOptionData: string[] = [];
 const allOptions = computed(() => {
+  console.log('allTradingDatas', allTradingDatas.value);
   const resolvedOptions = Object.keys(allTradingDatas.value).reduce(
     (options, key) => {
       let { quotes, trades, orders } = allTradingDatas.value[key];
-      if (quotes.length === 0 && mdQuotoDatas.value[key]) {
-        quotes = mdQuotoDatas.value[key].mdQuotes;
-      }
+      // if (quotes.length === 0 && mdQuotoDatas.value[key]) {
+      //   quotes = mdQuotoDatas.value[key].mdQuotes;
+      // }
+      // if (quotes.length === 0) {
+      //   return { ...options };
+      // }
+      let hasQuotes = true;
       if (quotes.length === 0) {
-        return { ...options };
+        hasQuotes = false;
       }
       const prevData = previousAllTradingDatas.get(key) || {
         quotes: [],
@@ -92,15 +97,17 @@ const allOptions = computed(() => {
       const newOrders = ordersDiff > 0 ? orders.slice(-ordersDiff) : orders;
 
       const timestampMap = new Map();
+      const tradesMap = new Map();
+      // const ordersMap = new Map();
       let timeTemp: string[] = [];
-      let timeTemp2: string[] = [];
-      quotes.forEach((item) => {
-        if (item) {
-          const timestampKey = 'data_time';
-          const time = dealKfTime(BigInt(item[timestampKey]));
-          timeTemp2.push(time);
-        }
-      });
+      // let timeTemp2: Record<string, []> = { traade: [], order: [] };
+      // quotes.forEach((item) => {
+      //   if (item) {
+      //     const timestampKey = 'data_time';
+      //     const time = dealKfTime(BigInt(item[timestampKey]));
+      //     timeTemp2.push(time);
+      //   }
+      // });
       const processData = (data, type) => {
         data.forEach((item) => {
           if (!item) return;
@@ -125,7 +132,7 @@ const allOptions = computed(() => {
             const timestampInSeconds = timestamp.slice(0, -4);
             const price = dealKfPrice(item[priceKey]);
             const key = `${timestampInSeconds}`;
-            if (timestampMap.has(key)) {
+            if (timestampMap.has(key) && hasQuotes) {
               const currentData = timestampMap.get(key);
               if (currentData.length === 2 && type !== 'quote') {
                 currentData.push(price);
@@ -134,16 +141,25 @@ const allOptions = computed(() => {
                 currentData[2] = price;
                 currentData[3] = `${currentData[3]}And${type}`;
               }
-            } else if (type === 'quote') {
+            } else if (type === 'quote' && hasQuotes) {
               timestampMap.set(key, [timestampInSeconds, price]);
+            } else if (type === 'trade' && !hasQuotes) {
+              tradesMap.set(key, [timestampInSeconds, price, type]);
+            } else if (type === 'order' && !hasQuotes) {
+              // timestampMap.set(key, [timestampInSeconds, price, type]);
             }
           }
         });
       };
 
-      processData(newQuotes, 'quote');
-      processData(newTrades, 'trade');
-      processData(newOrders, 'order');
+      if (hasQuotes) {
+        processData(newQuotes, 'quote');
+        processData(newTrades, 'trade');
+        processData(newOrders, 'order');
+      } else {
+        processData(newTrades, 'trade');
+        processData(newOrders, 'order');
+      }
 
       const allData = Array.from(timestampMap.values());
       allData.sort((a, b) => {
@@ -167,6 +183,7 @@ const allOptions = computed(() => {
       } else {
         newData = [];
       }
+      // console.log('aaaaaaa', options, { key, oldOptionData, newData, reset });
 
       return {
         ...options,
@@ -181,6 +198,7 @@ const allOptions = computed(() => {
   for (const key in allTradingDatas.value) {
     previousAllTradingDatas.set(key, allTradingDatas.value[key]);
   }
+  console.log('allOptions', resolvedOptions);
 
   return resolvedOptions;
 });

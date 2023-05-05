@@ -20,16 +20,17 @@
       :key="item"
       :name="item"
       class="kf-form-item__warp"
-      :label="formLabelMap[item]"
     >
       <a-select
         v-model:value="filtersFormState[item]"
         :options="filtersOptions[item]"
+        :filter-option="filterOption"
         mode="multiple"
         :max-tag-count="2"
         show-search
         :placeholder="$t('keyword_input')"
         allow-clear
+        @blur="handleApplyFilters"
       >
         <a-select-option
           v-for="option in filtersOptions[item]"
@@ -39,12 +40,6 @@
           {{ option.label }}
         </a-select-option>
       </a-select>
-    </a-form-item>
-
-    <a-form-item>
-      <a-button @click="handleApplyFilters">
-        {{ $t('journalConfig.apply_filters') }}
-      </a-button>
     </a-form-item>
   </a-form>
 </template>
@@ -75,10 +70,31 @@ const emit = defineEmits<{
 }>();
 const read = ref(true);
 const write = ref(true);
+watch(
+  () => read.value,
+  (newVal, oldVal) => {
+    console.log('read', newVal, oldVal);
+    if (newVal !== oldVal) {
+      handleApplyFilters();
+    }
+  },
+);
+watch(
+  () => write.value,
+  (newVal, oldVal) => {
+    if (newVal !== oldVal) {
+      handleApplyFilters();
+    }
+  },
+);
 
 const formRef = ref();
 const formLabelMap = {
   [FiltersEnum.MSG_TYPE]: t('journalConfig.msg_type'),
+};
+const filterOption = (input: string, option: any) => {
+  console.log('filterOption', input, option);
+  return option.label.toLowerCase().indexOf(input.toLowerCase()) >= 0;
 };
 
 const { filtersFormState, filtersOptions } = useFrameFilters();
@@ -91,51 +107,26 @@ watch(
       label: value,
       value: key,
     }));
+
+    Object.entries(msg).forEach(([key, value]) => {
+      if (Number(key) <= 10000) {
+        filtersFormState.MSG_TYPE.push(key);
+      }
+    });
   },
 );
 
-const addOption = (
-  filterEnum: FiltersEnum,
-  options: {
-    label: string;
-    value: string;
-  }[],
-  clear = false,
-) => {
-  if (clear) {
-    filtersFormState.DEST = [];
-    filtersFormState.SOURCE = [];
-    filtersFormState.MSG_TYPE = [];
-  }
-  if (filterEnum === FiltersEnum.MSG_TYPE) {
-    filtersFormState.MSG_TYPE.push(
-      ...options.reduce((pre, item) => {
-        if (
-          !filtersFormState.MSG_TYPE.includes(item.label) &&
-          Number(item.value) <= 10000
-        ) {
-          pre.push(item.label);
-        }
-
-        return pre;
-      }, [] as string[]),
-    );
-  }
-};
 const handleApplyFilters = () => {
   console.log('过滤', filtersFormState, read.value, write.value);
   emit('applyFilters', filtersFormState, read.value, write.value);
 };
-
-defineExpose({
-  addOption,
-});
 </script>
 
 <style lang="less">
 .kf-form-item__warp {
   .ant-select {
     min-width: 160px;
+    margin-right: 0;
   }
 }
 </style>

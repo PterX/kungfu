@@ -13,6 +13,7 @@ import {
   Drawer,
   Empty,
   Input,
+  InputNumber,
   Layout,
   Spin,
   Slider,
@@ -35,6 +36,7 @@ app
   .use(Button)
   .use(Checkbox)
   .use(Input)
+  .use(InputNumber)
   .use(Spin)
   .use(Drawer)
   .use(Empty)

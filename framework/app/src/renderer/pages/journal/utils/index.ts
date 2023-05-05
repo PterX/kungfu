@@ -307,49 +307,33 @@ export const useDealJournalDatas = (clear = false) => {
     curData: T[],
     isInit: boolean,
   ) => {
-    if (curData.length === 0) {
-      exsitedData = {};
-      return;
-    }
     const resolvedCurData = groupDataByInstrAndExcId(curData);
     if (isInit) {
+      exsitedData = {};
       Object.keys(resolvedCurData).forEach((key) => {
         exsitedData[key] = resolvedCurData[key];
       });
+      console.log('dealUpdateData', { resolvedCurData, curData, exsitedData });
     } else {
       Object.keys(resolvedCurData).forEach((key) => {
         exsitedData[key].push(...resolvedCurData[key]);
       });
     }
+    return exsitedData;
   };
   dataReceiver.onEnd<KungfuApi.Quote>('send-quotes', ({ data, info }) => {
-    if (data.length === 0) {
-      quotes.data = {};
-      quotes.isInit = true;
-      return;
-    }
-    dealUpdateData(quotes.data, data, info?.isInit);
+    quotes.data = dealUpdateData(quotes.data, data, info?.isInit);
     quotes.isInit = info?.isInit;
     console.log('req-send-quotes', data, info?.isInit, quotes);
   });
 
   dataReceiver.onEnd<KungfuApi.Trade>('send-trades', ({ data, info }) => {
-    if (data.length === 0) {
-      trades.data = {};
-      trades.isInit = true;
-      return;
-    }
-    dealUpdateData(trades.data, data, info?.isInit);
+    trades.data = dealUpdateData(trades.data, data, info?.isInit);
     trades.isInit = info?.isInit;
   });
 
   dataReceiver.onEnd<KungfuApi.Order>('send-orders', ({ data, info }) => {
-    if (data.length === 0) {
-      orders.data = {};
-      orders.isInit = true;
-      return;
-    }
-    dealUpdateData(orders.data, data, info?.isInit);
+    orders.data = dealUpdateData(orders.data, data, info?.isInit);
     orders.isInit = info?.isInit;
   });
   dataReceiver.onEnd<KungfuApi.Quote>('send-md-quotes', ({ data, info }) => {
@@ -370,7 +354,6 @@ export const useDealJournalDatas = (clear = false) => {
   }
 
   const allTradingDatas = computed(() => {
-    console.log('datas', { quotes, orders, trades });
     const keys = Array.from(
       new Set([
         ...Object.keys(quotes.data),
@@ -378,7 +361,7 @@ export const useDealJournalDatas = (clear = false) => {
         ...Object.keys(trades.data),
       ]),
     );
-
+    console.log('datas', { quotes, orders, trades }, keys);
     return keys.reduce(
       (datas, key) => {
         return {

@@ -12,7 +12,6 @@
 
 namespace kungfu::longfist::types {
 static constexpr int INSTRUMENT_ID_LEN = 32;
-static constexpr int ACCOUNT_ID_LEN = 32;
 static constexpr int PRODUCT_ID_LEN = 128;
 static constexpr int DATE_LEN = 9;
 static constexpr int EXCHANGE_ID_LEN = 16;
@@ -32,9 +31,6 @@ KF_DEFINE_MARK_TYPE(RequestStop, 10024);
 KF_DEFINE_MARK_TYPE(RequestStart, 10025);
 KF_DEFINE_MARK_TYPE(CachedReadyToRead, 10060);
 KF_DEFINE_MARK_TYPE(RequestCached, 10061);
-KF_DEFINE_MARK_TYPE(NewOrderSingle, 353);
-KF_DEFINE_MARK_TYPE(CancelOrder, 354);
-KF_DEFINE_MARK_TYPE(CancelAllOrder, 355);
 KF_DEFINE_MARK_TYPE(OperatorStateRequest, 398);
 KF_DEFINE_MARK_TYPE(BrokerStateRequest, 399);
 KF_DEFINE_MARK_TYPE(ResetBookRequest, 400);
@@ -45,7 +41,6 @@ KF_DEFINE_MARK_TYPE(AssetSync, 404);
 KF_DEFINE_MARK_TYPE(PositionSync, 405);
 KF_DEFINE_MARK_TYPE(KeepPositionsRequest, 406);
 KF_DEFINE_MARK_TYPE(RebuildPositionsRequest, 407);
-KF_DEFINE_MARK_TYPE(OrderTradeRequest, 408);
 
 KF_DEFINE_PACK_TYPE(                                           //
     frame_header, 0, PK(gen_time), TIMESTAMP(gen_time),        //
@@ -245,7 +240,7 @@ KF_DEFINE_PACK_TYPE(                                  //
 );
 
 KF_DEFINE_DATA_TYPE(                        //
-    Basket, 100040, PK(id), PERPETUAL(),    //
+    Basket, 214, PK(id), PERPETUAL(),       //
     (uint32_t, id),                         //
     (std::string, name),                    //
     (enums::BasketVolumeType, volume_type), // 比例/数量
@@ -253,15 +248,15 @@ KF_DEFINE_DATA_TYPE(                        //
     (enums::BasketType, type)               // 类型: Custom 或 ETF
 );
 
-KF_DEFINE_PACK_TYPE(                                                                   //
-    BasketInstrument, 100041, PK(basket_uid, instrument_id, exchange_id), PERPETUAL(), //
-    (uint32_t, basket_uid),                                                            //
-    (kungfu::array<char, INSTRUMENT_ID_LEN>, instrument_id),                           // 合约ID
-    (kungfu::array<char, EXCHANGE_ID_LEN>, exchange_id),                               // 交易所ID
-    (enums::InstrumentType, instrument_type),                                          // 合约类型
-    (enums::Direction, direction),                                                     // 方向
-    (int64_t, volume),                                                                 // 数量
-    (double, rate)                                                                     // 比例, volume比例
+KF_DEFINE_PACK_TYPE(                                                                //
+    BasketInstrument, 217, PK(basket_uid, instrument_id, exchange_id), PERPETUAL(), //
+    (uint32_t, basket_uid),                                                         //
+    (kungfu::array<char, INSTRUMENT_ID_LEN>, instrument_id),                        // 合约ID
+    (kungfu::array<char, EXCHANGE_ID_LEN>, exchange_id),                            // 交易所ID
+    (enums::InstrumentType, instrument_type),                                       // 合约类型
+    (enums::Direction, direction),                                                  // 方向
+    (int64_t, volume),                                                              // 数量
+    (double, rate)                                                                  // 比例, volume比例
 );
 
 KF_DEFINE_PACK_TYPE(                                    //
@@ -284,7 +279,7 @@ KF_DEFINE_PACK_TYPE(                                                           /
 );
 
 KF_DEFINE_PACK_TYPE(                                             //
-    Commission, 10006, PK(product_id, exchange_id), PERPETUAL(), //
+    Commission, 218, PK(product_id, exchange_id), PERPETUAL(), //
     (kungfu::array<char, PRODUCT_ID_LEN>, product_id),           // 品种
     (kungfu::array<char, EXCHANGE_ID_LEN>, exchange_id),         // 交易所
 

@@ -43,7 +43,6 @@
 import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 
 import { dealKfTime } from '@kungfu-trader/kungfu-js-api/kungfu';
-import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { ForwardOutlined, BackwardOutlined } from '@ant-design/icons-vue';
 import { SessionStatusEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 

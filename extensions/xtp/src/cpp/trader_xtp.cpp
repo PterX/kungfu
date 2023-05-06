@@ -250,7 +250,7 @@ void TraderXTP::OnQueryPosition(XTPQueryStkPositionRsp *position, XTPRI *error_i
     return;
   }
 
-  SPDLOG_INFO("OnQueryPosition: {}", to_string(*position));
+  SPDLOG_TRACE("OnQueryPosition: {}", to_string(*position));
   auto writer = get_position_writer();
   Position &stock_pos = writer->open_data<Position>(0);
   if (error_info == nullptr || error_info->error_id == 0) {
@@ -436,9 +436,11 @@ void TraderXTP::on_recover() {
 }
 
 bool TraderXTP::req_order_trade() {
+  bool b_has_not_final_order = false;
   for (auto &pair : orders_) {
     SPDLOG_DEBUG("order: {}", pair.second.data.to_string());
     if (not is_final_status(pair.second.data.status)) {
+      b_has_not_final_order = true;
       uint64_t order_id = pair.first;
       uint64_t order_xtp_id = map_kf_to_xtp_order_id_.at(order_id);
       int ret = api_->QueryOrderByXTPID(order_xtp_id, session_id_, ++request_id_);
@@ -452,6 +454,10 @@ bool TraderXTP::req_order_trade() {
                      order_id, order_xtp_id, api_->GetApiLastError()->error_id, api_->GetApiLastError()->error_msg);
       }
     }
+  }
+
+  if (not b_has_not_final_order) {
+    update_broker_state(BrokerState::Ready);
   }
   return true;
 }

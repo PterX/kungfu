@@ -561,6 +561,10 @@ export default {
     Visual: 'Visual',
 
     please_input_instrument_id: 'Please input instrument_id',
+
+    time_range: 'Time range',
+
+    please_input_time: 'Please input time',
   },
 
   tradeConfig: {

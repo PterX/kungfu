@@ -567,6 +567,10 @@ export default {
     Visual: '视图',
 
     please_input_instrument_id: '请输入标的名称',
+
+    time_range: '时间范围',
+
+    please_input_time: '请输入时间',
   },
 
   tradeConfig: {

@@ -5,23 +5,7 @@
       @click="handleTimeBack()"
     ></backward-outlined>
     <div class="kf-time-slider-time">
-      <a-input-group v-if="timeInputData[0].inputting" compact>
-        <!-- <a-input
-          v-model:value="timeInputData[0].value"
-          @press-enter="handleConfirmTimeInput(0)"
-        />
-        <a-button type="normal" @click="resetInputData(0)">
-          <template #icon>
-            <close-outlined />
-          </template>
-        </a-button>
-        <a-button type="primary" @click="handleConfirmTimeInput(0)">
-          <template #icon>
-            <check-outlined />
-          </template>
-        </a-button> -->
-      </a-input-group>
-      <span v-else class="kf-time-slider-text" style="text-align: end">
+      <span class="kf-time-slider-text" style="text-align: end">
         {{ timeStrs[0] }}
       </span>
     </div>
@@ -34,6 +18,7 @@
         'kf-time-slider-handler-focus-1': false,
         'kf-time-slider-handler-focus-2': true,
       }"
+      :tooltip-visible="toolTipVisable"
       :min="nano2millionSecond(props.beginTime)"
       :max="nano2millionSecond(props.nowTime)"
       :step="nano2millionSecond(step)"
@@ -43,23 +28,7 @@
       @mouseup="handleMouseUp"
     />
     <div class="kf-time-slider-time">
-      <a-input-group v-if="timeInputData[1].inputting" compact>
-        <a-input
-          v-model:value="timeInputData[1].value"
-          @press-enter="handleConfirmTimeInput(0)"
-        />
-        <a-button type="normal" @click="resetInputData(1)">
-          <template #icon>
-            <close-outlined />
-          </template>
-        </a-button>
-        <a-button type="primary" @click="handleConfirmTimeInput(1)">
-          <template #icon>
-            <check-outlined />
-          </template>
-        </a-button>
-      </a-input-group>
-      <span v-else class="kf-time-slider-text" style="text-align: start">
+      <span class="kf-time-slider-text" style="text-align: start">
         {{ timeStrs[1] }}
       </span>
     </div>
@@ -71,20 +40,15 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, onUnmounted, ref, watch } from 'vue';
+import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 
-import { CheckOutlined, CloseOutlined } from '@ant-design/icons-vue';
 import { dealKfTime } from '@kungfu-trader/kungfu-js-api/kungfu';
-import VueI18n from '@kungfu-trader/kungfu-js-api/language';
-import { messagePrompt } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import { ForwardOutlined, BackwardOutlined } from '@ant-design/icons-vue';
-
-const { t } = VueI18n.global;
-
-type DoubleArray<T> = [T, T];
+import { SessionStatusEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 
 const props = withDefaults(
   defineProps<{
+    currentSession: KungfuApi.SessionResolved | null;
     currentTime: bigint; // 当前只支持纳秒级别的时间
     nowTime: bigint;
     beginTime: bigint;
@@ -100,18 +64,20 @@ const props = withDefaults(
 const emit = defineEmits<{
   (e: 'update:currentTime', value: bigint): void;
 }>();
+const toolTipVisable = ref(false);
 const SCALE = 1000000;
 const BIGINT_SCALE = BigInt(SCALE);
 const TEN_SECOND = BigInt(10000000000);
 const isDragging = ref<boolean>(false);
 const slider = ref();
-const timeInputData = ref<DoubleArray<{ inputting: boolean; value: string }>>([
-  { inputting: false, value: '' },
-  { inputting: false, value: '' },
-]);
 
 onMounted(() => {
   window.addEventListener('mouseup', globalMouseUp);
+  nextTick(() => {
+    setTimeout(() => {
+      toolTipVisable.value = true;
+    }, 2000);
+  });
 });
 
 onUnmounted(() => {
@@ -133,10 +99,29 @@ const globalMouseUp = () => {
 };
 
 const handleTimeBack = () => {
+  if (props.currentTime - TEN_SECOND < props.beginTime) {
+    curTime.value = nano2millionSecond(props.beginTime);
+    onAfterChange(curTime.value);
+    return;
+  }
   curTime.value = nano2millionSecond(props.currentTime - TEN_SECOND);
   onAfterChange(curTime.value);
 };
 const handleTimeForward = () => {
+  if (props.currentSession?.status === SessionStatusEnum.Finished) {
+    if (props.currentTime + TEN_SECOND > props.endTime) {
+      curTime.value = nano2millionSecond(props.endTime);
+      onAfterChange(curTime.value);
+      return;
+    }
+  } else {
+    if (props.currentTime + TEN_SECOND > props.nowTime) {
+      curTime.value = nano2millionSecond(props.nowTime);
+      onAfterChange(curTime.value);
+      return;
+    }
+  }
+
   curTime.value = nano2millionSecond(props.currentTime + TEN_SECOND);
   onAfterChange(curTime.value);
 };
@@ -152,21 +137,6 @@ const kfTimeCached = new Map();
 const customDealKftime = (time: bigint) => {
   if (!kfTimeCached.has(time)) kfTimeCached.set(time, dealKfTime(time));
   return kfTimeCached.get(time);
-};
-
-const str2millionTime = (timeStr: string) => {
-  return new Promise<number>((resolve, reject) => {
-    const timeRegx = /(\d{2}):(\d{2}):(\d{2})\.?(\d{3})?/;
-    if (!timeRegx.test(timeStr))
-      reject(t('journalConfig.input_time_format_error'));
-    const [h, m, s, ms] = timeStr.match(timeRegx)?.slice(1) as string[];
-    const date = new Date();
-    date.setHours(+h);
-    date.setMinutes(+m);
-    date.setSeconds(+s);
-    date.setMilliseconds(+ms || 0);
-    resolve(date.getTime());
-  });
 };
 
 const million2nanoSecond = (number: number) => {
@@ -207,7 +177,7 @@ watch(
 );
 
 const tipFormatter = (num: number) => {
-  return customDealKftime(BigInt(num * SCALE));
+  return dealKfTime(BigInt(num * SCALE));
 };
 
 const dealUpdateTime = (time: number) => {
@@ -216,32 +186,6 @@ const dealUpdateTime = (time: number) => {
 
 const onAfterChange = (value: number) => {
   emit('update:currentTime', dealUpdateTime(value));
-};
-
-const resetInputData = (index: 0 | 1) => {
-  timeInputData.value[index] = {
-    inputting: false,
-    value: '',
-  };
-};
-
-// const handleDbClickTimeText = (index: 0 | 1) => {
-//   timeInputData.value[index] = {
-//     inputting: true,
-//     value: timeStrs.value[index],
-//   };
-// };
-
-const handleConfirmTimeInput = (index: 0 | 1) => {
-  str2millionTime(timeInputData.value[index].value)
-    .then((resolvedTime) => {
-      curTime.value = resolvedTime;
-      onAfterChange(curTime.value);
-      resetInputData(index);
-    })
-    .catch((err) => {
-      messagePrompt().error(err);
-    });
 };
 </script>
 
@@ -298,8 +242,8 @@ const handleConfirmTimeInput = (index: 0 | 1) => {
   }
 
   .forward-icon {
-    font-size: 26px;
-    color: #fff;
+    font-size: 18px;
+    color: #ffffffd9;
     transition: color 0.3s;
   }
 

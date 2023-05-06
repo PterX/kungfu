@@ -968,7 +968,6 @@ declare namespace KungfuApi {
     sourceName?: string;
     sourceToDest?: string;
     dataResolved?: unknown[];
-    // destName: FunctionOrData<T, string>;
   }
 
   export interface FrameResolved extends Frame {

@@ -45,6 +45,7 @@
         <TimeSlider
           ref="timeSlider"
           v-model:current-time="currentTime"
+          :current-session="currentSession"
           :now-time="nowTime"
           :begin-time="beginTime"
           :end-time="endTime"
@@ -79,10 +80,10 @@
             :location-map="SourceAndDestNameMap"
             @update-current-time="onUpdateCurrentTime"
           />
-          <OrdersDashboard
+          <!-- <OrdersDashboard
             v-show="isCurrentMenuItem('visual')"
             :current-session="currentSession"
-          />
+          /> -->
         </div>
       </div>
     </div>
@@ -117,13 +118,13 @@ import { setTimerPromiseTask } from '@kungfu-trader/kungfu-js-api/utils/busiUtil
 import { SessionStatusEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
   UnorderedListOutlined,
-  LineChartOutlined,
+  // LineChartOutlined,
 } from '@ant-design/icons-vue';
 import KfTradingDataTable from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfTradingDataTable.vue';
 import TimeSlider from './components/TimeSlider.vue';
 import ExportJournal from './components/ExportJournal.vue';
 import EventsDashBoard from './components/EventsDashboard.vue';
-import OrdersDashboard from './components/OrdersDashboard.vue';
+// import OrdersDashboard from './components/OrdersDashboard.vue';
 import { useJournalStore } from './store/journalStore';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 
@@ -192,11 +193,11 @@ const menus = [
     title: t('journalConfig.Event'),
     icon: UnorderedListOutlined,
   },
-  {
-    key: 'visual',
-    title: t('journalConfig.Visual'),
-    icon: LineChartOutlined,
-  },
+  // {
+  //   key: 'visual',
+  //   title: t('journalConfig.Visual'),
+  //   icon: LineChartOutlined,
+  // },
 ];
 
 const isCurrentMenuItem = (key: 'event' | 'visual') =>

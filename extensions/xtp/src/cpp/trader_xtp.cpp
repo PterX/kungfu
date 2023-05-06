@@ -58,8 +58,9 @@ void TraderXTP::on_start() {
     enable_self_detect();
   }
   if (session_id_ > 0) {
-    update_broker_state(BrokerState::Ready);
+    //    update_broker_state(BrokerState::Ready);
     SPDLOG_INFO("Login successfully");
+    req_order_trade();
   } else {
     update_broker_state(BrokerState::LoginFailed);
     SPDLOG_ERROR("Login failed [{}]: {}", api_->GetApiLastError()->error_id, api_->GetApiLastError()->error_msg);
@@ -249,7 +250,7 @@ void TraderXTP::OnQueryPosition(XTPQueryStkPositionRsp *position, XTPRI *error_i
     return;
   }
 
-  SPDLOG_INFO("OnQueryPosition: {}", to_string(*position));
+  SPDLOG_TRACE("OnQueryPosition: {}", to_string(*position));
   auto writer = get_position_writer();
   Position &stock_pos = writer->open_data<Position>(0);
   if (error_info == nullptr || error_info->error_id == 0) {
@@ -338,6 +339,10 @@ void TraderXTP::OnQueryOrder(XTPQueryOrderRsp *order_info, XTPRI *error_info, in
   SPDLOG_DEBUG("XTPQueryOrderRsp: {}", to_string(*order_info));
   if (map_request_location_.find(request_id) == map_request_location_.end()) {
     // TD重连收到推送当做普通下单委托响应处理
+    if (is_last) {
+      req_order_over_ = true;
+      try_ready();
+    }
     return OnOrderEvent(order_info, error_info, request_id);
   }
 
@@ -386,6 +391,10 @@ void TraderXTP::OnQueryTrade(XTPQueryTradeRsp *trade_info, XTPRI *error_info, in
   SPDLOG_DEBUG("XTPQueryTradeRsp: {}", to_string(*trade_info));
   if (map_request_location_.find(request_id) == map_request_location_.end()) {
     // TD重连收到推送当做普通交易成交回报推送处理
+    if (is_last) {
+      req_trade_over_ = true;
+      try_ready();
+    }
     return OnTradeEvent(trade_info, session_id);
   }
 
@@ -427,9 +436,11 @@ void TraderXTP::on_recover() {
 }
 
 bool TraderXTP::req_order_trade() {
+  bool b_has_not_final_order = false;
   for (auto &pair : orders_) {
     SPDLOG_DEBUG("order: {}", pair.second.data.to_string());
     if (not is_final_status(pair.second.data.status)) {
+      b_has_not_final_order = true;
       uint64_t order_id = pair.first;
       uint64_t order_xtp_id = map_kf_to_xtp_order_id_.at(order_id);
       int ret = api_->QueryOrderByXTPID(order_xtp_id, session_id_, ++request_id_);
@@ -444,7 +455,22 @@ bool TraderXTP::req_order_trade() {
       }
     }
   }
+
+  if (not b_has_not_final_order) {
+    update_broker_state(BrokerState::Ready);
+  }
   return true;
+}
+
+void TraderXTP::try_ready() {
+  if (BrokerState::Ready == get_state()) {
+    return;
+  }
+
+  SPDLOG_DEBUG("req_order_over_: {}, req_trade_over_: {}", req_order_over_, req_trade_over_);
+  if (req_order_over_ and req_trade_over_) {
+    update_broker_state(BrokerState::Ready);
+  }
 }
 
 } // namespace kungfu::wingchun::xtp

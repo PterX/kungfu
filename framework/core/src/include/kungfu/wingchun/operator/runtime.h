@@ -64,7 +64,7 @@ public:
    * @param key key of data to be published
    * @param value value of data to be published
    */
-  virtual void publish_synthetic_data(const std::string &key, const std::string &value) override;
+  void publish_synthetic_data(const std::string &key, const std::string &value) override;
 
   /**
    * Get current trading day.
@@ -106,10 +106,6 @@ public:
   void check_dependency_state(const event_ptr &event);
 
 protected:
-  // those 3 member maybe shared with BacktestContext
-  yijinjing::practice::apprentice &app_;
-  const rx::connectable_observable<event_ptr> &events_;
-
   const yijinjing::data::location_ptr &
   find_location(const std::string &source, longfist::enums::category c,
                 std::unordered_map<std::string, yijinjing::data::location_ptr> &locations);

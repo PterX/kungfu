@@ -10,7 +10,7 @@
 namespace kungfu::wingchun::op {
 class Context : public std::enable_shared_from_this<Context> {
 public:
-  Context() = default;
+  Context(yijinjing::practice::apprentice &app, const rx::connectable_observable<event_ptr> &events);
 
   virtual ~Context() = default;
 
@@ -91,6 +91,9 @@ public:
 
 protected:
   virtual void on_start(){};
+
+  yijinjing::practice::apprentice &app_;
+  const rx::connectable_observable<event_ptr> &events_;
 
 private:
   friend void enable(Context &context) { context.on_start(); }

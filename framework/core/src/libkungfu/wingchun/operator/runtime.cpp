@@ -18,7 +18,7 @@ using namespace kungfu::yijinjing::util;
 namespace kungfu::wingchun::op {
 
 LiveContext::LiveContext(apprentice &app, const rx::connectable_observable<event_ptr> &events)
-    : app_(app), events_(events), broker_client_(app_) {
+    : Context(app, events), broker_client_(app_) {
   log::copy_log_settings(app_.get_home(), app_.get_home()->name);
 }
 

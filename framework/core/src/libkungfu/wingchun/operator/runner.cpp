@@ -17,9 +17,10 @@ Runner::Runner(locator_ptr locator, const std::string &group, const std::string 
 LiveContext_ptr Runner::get_context() const { return context_; }
 
 LiveContext_ptr Runner::make_context() {
-  if (get_home()->mode == mode::LIVE) {
-    return std::make_shared<LiveContext>(*this, events_);
+  if (get_home()->mode == mode::BACKTEST) {
+    // return std::make_shared<BacktestContext>(*this, events_);
   }
+  return std::make_shared<LiveContext>(*this, events_);
 }
 
 void Runner::add_operator(const Operator_ptr &op) { operators_.push_back(op); }

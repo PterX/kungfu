@@ -65,9 +65,6 @@ class TraderSim(wc.Trader):
             )
             self.ctx.req_account = getattr(impl, "req_account", lambda ctx: False)
             self.ctx.req_position = getattr(impl, "req_position", lambda ctx: False)
-            self.ctx.req_order_trade = getattr(
-                impl, "req_order_trade", lambda ctx: False
-            )
 
         self.update_broker_state(lf.enums.BrokerState.Ready)
 
@@ -229,9 +226,4 @@ class TraderSim(wc.Trader):
     def req_position(self):
         if self.match_mode == MatchMode.Custom:
             return self.ctx.req_position(self.ctx)
-        return False
-
-    def req_order_trade(self):
-        if self.match_mode == MatchMode.Custom:
-            return self.ctx.req_order_trade(self.ctx)
         return False

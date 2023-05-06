@@ -53,17 +53,6 @@ Napi::Value Frame::Data(const Napi::CallbackInfo &info) {
   return result;
 }
 
-Napi::Value Frame::DataToString(const Napi::CallbackInfo &info) {
-  std::string data_string = "";
-  boost::hana::for_each(longfist::AllDataTypes, [&](auto it) {
-    using DataType = typename decltype(+boost::hana::second(it))::type;
-    if (frame_->msg_type() == DataType::tag) {
-      data_string = frame_->data<DataType>().to_string();
-    }
-  });
-  return Napi::String::New(info.Env(), data_string);
-}
-
 void Frame::Init(Napi::Env env, Napi::Object exports) {
   Napi::HandleScope scope(env);
 
@@ -75,8 +64,7 @@ void Frame::Init(Napi::Env env, Napi::Object exports) {
                                         InstanceMethod("msgType", &Frame::MsgType),          //
                                         InstanceMethod("source", &Frame::Source),            //
                                         InstanceMethod("dest", &Frame::Dest),                //
-                                        InstanceMethod("data", &Frame::Data),                //
-                                        InstanceMethod("dataToString", &Frame::DataToString) //
+                                        InstanceMethod("data", &Frame::Data)                //
                                     });
 
   constructor = Napi::Persistent(func);

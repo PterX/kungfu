@@ -20,7 +20,7 @@
       }"
       :tooltip-visible="toolTipVisable"
       :min="nano2millionSecond(props.beginTime)"
-      :max="nano2millionSecond(props.nowTime)"
+      :max="maxTime"
       :step="nano2millionSecond(step)"
       :tip-formatter="tipFormatter"
       @after-change="onAfterChange"
@@ -40,7 +40,7 @@
 </template>
 
 <script lang="ts" setup>
-import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 
 import { dealKfTime } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { ForwardOutlined, BackwardOutlined } from '@ant-design/icons-vue';
@@ -70,6 +70,17 @@ const BIGINT_SCALE = BigInt(SCALE);
 const TEN_SECOND = BigInt(10000000000);
 const isDragging = ref<boolean>(false);
 const slider = ref();
+
+// const minTime = computed(() => {
+//   nano2millionSecond(props.beginTime);
+// });
+const maxTime = computed(() => {
+  if (props.currentSession?.status === SessionStatusEnum.Finished) {
+    return nano2millionSecond(props.endTime);
+  } else {
+    return nano2millionSecond(props.nowTime);
+  }
+});
 
 onMounted(() => {
   window.addEventListener('mouseup', globalMouseUp);
@@ -177,6 +188,13 @@ watch(
 );
 
 const tipFormatter = (num: number) => {
+  console.log(
+    'step',
+    num,
+    props.step,
+    nano2millionSecond(props.step),
+    num < maxTime.value,
+  );
   return dealKfTime(BigInt(num * SCALE));
 };
 

@@ -104,8 +104,11 @@ void writer::mark(int64_t trigger_time, int32_t msg_type) {
 void writer::close_data() { close_frame(size_to_write_); }
 
 void writer::close_page(int64_t trigger_time) {
+  page_ptr last_page = journal_.page_;
+  journal_.load_next_page();
+
   frame last_page_frame;
-  last_page_frame.set_address(journal_.page_->last_frame_address());
+  last_page_frame.set_address(last_page->last_frame_address());
   last_page_frame.move_to_next();
   last_page_frame.set_header_length();
   last_page_frame.set_trigger_time(trigger_time);
@@ -114,8 +117,7 @@ void writer::close_page(int64_t trigger_time) {
   last_page_frame.set_dest(journal_.dest_id_);
   last_page_frame.set_gen_time(time::now_in_nano());
   last_page_frame.set_data_length(0);
-  journal_.page_->set_last_frame_position(last_page_frame.address() - journal_.page_->address());
-  journal_.load_next_page();
+  last_page->set_last_frame_position(last_page_frame.address() - last_page->address());
 }
 
 bool writer::release_page() { return journal_.release_page(); }

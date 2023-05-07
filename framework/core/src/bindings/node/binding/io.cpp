@@ -104,6 +104,7 @@ locator_ptr IODevice::ExtractRuntimeLocatorByIndex(const Napi::CallbackInfo &inf
 
 void IODevice::Init(Napi::Env env, Napi::Object exports) {
   Napi::HandleScope scope(env);
+  env.AddCleanupHook(cleanup);
 
   Napi::Function func = DefineClass(env, "IODevice",
                                     {

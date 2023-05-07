@@ -34,6 +34,7 @@ public:
 
 private:
   static Napi::FunctionReference constructor;
+  static void cleanup() { DataTable::constructor.Reset(); }
 };
 } // namespace kungfu::node
 #endif // KUNGFU_NODE_DATA_TABLE_H

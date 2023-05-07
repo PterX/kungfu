@@ -49,6 +49,7 @@ Napi::Value History::SelectPeriod(const Napi::CallbackInfo &info) {
 
 void History::Init(Napi::Env env, Napi::Object exports) {
   Napi::HandleScope scope(env);
+  env.AddCleanupHook(cleanup);
 
   Napi::Function func = DefineClass(env, "History", {InstanceMethod("selectPeriod", &History::SelectPeriod)});
 

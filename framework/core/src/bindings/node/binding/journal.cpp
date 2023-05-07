@@ -53,18 +53,32 @@ Napi::Value Frame::Data(const Napi::CallbackInfo &info) {
   return result;
 }
 
+Napi::Value Frame::DataAsString(const Napi::CallbackInfo &info) {
+  std::string result = "";
+  // have to be AllDataTypes, for data size is not 0
+  boost::hana::for_each(longfist::AllDataTypes, [&](auto it) {
+    using DataType = typename decltype(+boost::hana::second(it))::type;
+    if (frame_->msg_type() == DataType::tag) {
+      result = frame_->data<DataType>().to_string();
+    }
+  });
+  return Napi::String::New(info.Env(), result);
+}
+
 void Frame::Init(Napi::Env env, Napi::Object exports) {
   Napi::HandleScope scope(env);
+  env.AddCleanupHook(cleanup);
 
   Napi::Function func = DefineClass(env, "Frame",
                                     {
-                                        InstanceMethod("dataLength", &Frame::DataLength),   //
-                                        InstanceMethod("genTime", &Frame::GenTime),         //
-                                        InstanceMethod("triggerTime", &Frame::TriggerTime), //
-                                        InstanceMethod("msgType", &Frame::MsgType),         //
-                                        InstanceMethod("source", &Frame::Source),           //
-                                        InstanceMethod("dest", &Frame::Dest),               //
-                                        InstanceMethod("data", &Frame::Data)                //
+                                        InstanceMethod("dataLength", &Frame::DataLength),    //
+                                        InstanceMethod("genTime", &Frame::GenTime),          //
+                                        InstanceMethod("triggerTime", &Frame::TriggerTime),  //
+                                        InstanceMethod("msgType", &Frame::MsgType),          //
+                                        InstanceMethod("source", &Frame::Source),            //
+                                        InstanceMethod("dest", &Frame::Dest),                //
+                                        InstanceMethod("data", &Frame::Data),                //
+                                        InstanceMethod("dataAsString", &Frame::DataAsString) //
                                     });
 
   constructor = Napi::Persistent(func);
@@ -122,6 +136,7 @@ Napi::Value Reader::Disjoin(const Napi::CallbackInfo &info) {
 
 void Reader::Init(Napi::Env env, Napi::Object exports) {
   Napi::HandleScope scope(env);
+  env.AddCleanupHook(cleanup);
 
   Napi::Function func = DefineClass(env, "Reader",
                                     {
@@ -174,6 +189,7 @@ Napi::Value Assemble::Next(const Napi::CallbackInfo &info) {
 
 void Assemble::Init(Napi::Env env, Napi::Object exports) {
   Napi::HandleScope scope(env);
+  env.AddCleanupHook(cleanup);
 
   Napi::Function func = DefineClass(env, "Assemble",
                                     {

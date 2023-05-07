@@ -14,9 +14,14 @@ using namespace kungfu::longfist::enums;
 
 namespace kungfu::wingchun::book {
 static const longfist::enums::AccountingMethodType get_accounting_method_type() {
-  std::string is_outside = std::getenv("IS_OUTSIDE_ACCOUNTING_TYPE");
+  char *is_outside = std::getenv("IS_OUTSIDE_ACCOUNTING_TYPE");
+  if (is_outside == nullptr) {
+    SPDLOG_INFO("AccountingMethod::setup_defaults IS_OUTSIDE_ACCOUNTING_TYPE is unset, use DEFAULT");
+    return longfist::enums::AccountingMethodType::Default;
+  }
+
   SPDLOG_INFO("AccountingMethod::setup_defaults IS_OUTSIDE_ACCOUNTING_TYPE = {}", is_outside);
-  if (is_outside == "1") {
+  if (std::string(is_outside) == "1") {
     return longfist::enums::AccountingMethodType::Outside;
   }
   return longfist::enums::AccountingMethodType::Default;

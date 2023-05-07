@@ -114,6 +114,8 @@ protected:
 
 private:
   static Napi::FunctionReference constructor;
+  static void cleanup() { Watcher::constructor.Reset(); }
+
   uv_work_t uv_work_ = {};
   bool uv_work_live_ = false;
   WatcherAutoClient broker_client_;

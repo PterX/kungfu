@@ -41,6 +41,9 @@ private:
   yijinjing::cache::profile profile_;
 
   static Napi::FunctionReference constructor;
+  static void cleanup() {
+    CommissionStore::constructor.Reset();
+  }
 
   longfist::types::Commission ExtractCommission(const Napi::CallbackInfo &info);
 

@@ -32,6 +32,9 @@ private:
   yijinjing::cache::profile profile_;
 
   static Napi::FunctionReference constructor;
+  static void cleanup() {
+    BasketStore::constructor.Reset();
+  }
 
   friend class Watcher;
 };

@@ -40,6 +40,8 @@ public:
   static yijinjing::data::locator_ptr ExtractRuntimeLocatorByIndex(const Napi::CallbackInfo &info, int index);
 
   static Napi::FunctionReference constructor;
+
+  static void cleanup() { IODevice::constructor.Reset(); }
 };
 } // namespace kungfu::node
 

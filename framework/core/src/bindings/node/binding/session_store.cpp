@@ -36,6 +36,7 @@ Napi::Value SessionStore::GetSessionsForLocation(const Napi::CallbackInfo &info)
 
 void SessionStore::Init(Napi::Env env, Napi::Object exports) {
   Napi::HandleScope scope(env);
+  env.AddCleanupHook(cleanup);
 
   Napi::Function func = DefineClass(env, "SessionStore",
                                     {

@@ -78,9 +78,10 @@ bool journal::release_page() {
   }
 
   for (auto &page : queue_release_page) {
-    if (page != nullptr) {
-      page.reset();
+    while (page.use_count() > 1) {
+      std::this_thread::sleep_for(std::chrono::microseconds(1));
     }
+    page.reset();
   }
   queue_release_page.clear();
 

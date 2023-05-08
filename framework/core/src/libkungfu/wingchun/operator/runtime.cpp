@@ -22,8 +22,8 @@ LiveContext::LiveContext(apprentice &app, const rx::connectable_observable<event
   log::copy_log_settings(app_.get_home(), app_.get_home()->name);
 }
 
-void LiveContext::on_start() { 
-  broker_client_.on_start(events_); 
+void LiveContext::on_start() {
+  broker_client_.on_start(events_);
   auto start_events = events_ | skip_until(events_ | filter([&](auto e) { return started_; }));
   start_events | is(Deregister::tag) | $$(check_dependency_state(event));
   start_events | is(OperatorStateUpdate::tag) | $$(check_dependency_state(event));
@@ -54,8 +54,7 @@ void LiveContext::prepare(const event_ptr &event) {
     broker_states_requested_ = true;
   }
 
-  if (not broker_client_.enrolled_md_ready() or
-      not broker_client_.enrolled_operator_ready()) {
+  if (not broker_client_.enrolled_md_ready() or not broker_client_.enrolled_operator_ready()) {
     return;
   }
   started_ = true;
@@ -63,7 +62,6 @@ void LiveContext::prepare(const event_ptr &event) {
   OperatorStateUpdate state_update;
   state_update.state = OperatorState::Ready;
   update_operator_state(state_update);
-
 }
 
 const std::string LiveContext::get_config() const {

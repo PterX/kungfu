@@ -11,8 +11,7 @@ using namespace kungfu::yijinjing::practice;
 
 namespace kungfu::wingchun::op {
 Runner::Runner(locator_ptr locator, const std::string &group, const std::string &name, mode m, bool low_latency)
-    : apprentice(location::make_shared(m, category::OPERATOR, group, name, std::move(locator)), low_latency)
-      {}
+    : apprentice(location::make_shared(m, category::OPERATOR, group, name, std::move(locator)), low_latency) {}
 
 Context_ptr Runner::get_context() const { return context_; }
 
@@ -86,37 +85,37 @@ void Runner::pre_stop() { invoke(&Operator::pre_stop); }
 void Runner::post_stop() { invoke(&Operator::post_stop); }
 
 // void Runner::prepare(const event_ptr &event) {
-  // auto ledger_uid = ledger_home_location_->uid;
-  // if (not has_writer(ledger_uid)) {
-  //   SPDLOG_INFO("not hast ledger writer");
-  //   return;
-  // }
-  // auto writer = get_writer(ledger_uid);
+// auto ledger_uid = ledger_home_location_->uid;
+// if (not has_writer(ledger_uid)) {
+//   SPDLOG_INFO("not hast ledger writer");
+//   return;
+// }
+// auto writer = get_writer(ledger_uid);
 
-  // auto connected_test = [&](const auto &locations) {
-  //   for (const auto &pair : locations) {
-  //     if (not context_->get_broker_client().is_connected(pair.second->uid)) {
-  //       return false;
-  //     }
-  //   }
-  //   return true;
-  // };
-  // if (not broker_states_requested_ and connected_test(context_->list_md()) and connected_test(context_->list_op())) {
+// auto connected_test = [&](const auto &locations) {
+//   for (const auto &pair : locations) {
+//     if (not context_->get_broker_client().is_connected(pair.second->uid)) {
+//       return false;
+//     }
+//   }
+//   return true;
+// };
+// if (not broker_states_requested_ and connected_test(context_->list_md()) and connected_test(context_->list_op())) {
 
-  //   writer->mark(now(), BrokerStateRequest::tag);
-  //   writer->mark(now(), OperatorStateRequest::tag);
-  //   broker_states_requested_ = true;
-  // }
+//   writer->mark(now(), BrokerStateRequest::tag);
+//   writer->mark(now(), OperatorStateRequest::tag);
+//   broker_states_requested_ = true;
+// }
 
-  // if (not context_->get_broker_client().enrolled_md_ready() or
-  //     not context_->get_broker_client().enrolled_operator_ready()) {
-  //   return;
-  // }
-  // started_ = true;
+// if (not context_->get_broker_client().enrolled_md_ready() or
+//     not context_->get_broker_client().enrolled_operator_ready()) {
+//   return;
+// }
+// started_ = true;
 
-  // OperatorStateUpdate state_update;
-  // state_update.state = OperatorState::Ready;
-  // context_->update_operator_state(state_update);
-  //// post_start();
+// OperatorStateUpdate state_update;
+// state_update.state = OperatorState::Ready;
+// context_->update_operator_state(state_update);
+//// post_start();
 // }
 } // namespace kungfu::wingchun::op

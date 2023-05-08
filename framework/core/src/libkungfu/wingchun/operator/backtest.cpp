@@ -21,38 +21,34 @@ void BacktestContext::on_start() { broker_client_.on_start(events_); }
 
 bool BacktestContext::is_started() const { return true; }
 
-const std::string BacktestContext::get_config() const {
-}
+const std::string BacktestContext::get_config() const {}
 
 int64_t BacktestContext::now() const { return app_.now(); }
 
-void BacktestContext::add_timer(int64_t nanotime, const std::function<void(event_ptr)> &callback) {
-}
+void BacktestContext::add_timer(int64_t nanotime, const std::function<void(event_ptr)> &callback) {}
 
 void BacktestContext::add_time_interval(int64_t duration, const std::function<void(event_ptr)> &callback) {
   app_.add_time_interval(duration, callback);
 }
 
 void BacktestContext::subscribe(const std::string &source, const std::vector<std::string> &instrument_ids,
-                            const std::string &exchange_ids) {
-}
+                                const std::string &exchange_ids) {}
 
 void BacktestContext::subscribe_all(const std::string &source, uint8_t market_type, uint64_t instrument_type,
-                                uint64_t data_type) {
-//   broker_client_.subscribe_all(find_md_location(source), market_type, instrument_type, data_type);
+                                    uint64_t data_type) {
+  //   broker_client_.subscribe_all(find_md_location(source), market_type, instrument_type, data_type);
 }
 
-void BacktestContext::subscribe_operator(const std::string &group, const std::string &name) {
-}
+void BacktestContext::subscribe_operator(const std::string &group, const std::string &name) {}
 
 void BacktestContext::publish_synthetic_data(const std::string &key, const std::string &value) {
-//   auto writer = app_.get_writer(location::PUBLIC);
-//   auto current_time = now();
-//   SyntheticData synthetic_data;
-//   synthetic_data.update_time = current_time;
-//   synthetic_data.key = key;
-//   synthetic_data.value = value;
-//   writer->write(current_time, synthetic_data);
+  //   auto writer = app_.get_writer(location::PUBLIC);
+  //   auto current_time = now();
+  //   SyntheticData synthetic_data;
+  //   synthetic_data.update_time = current_time;
+  //   synthetic_data.key = key;
+  //   synthetic_data.value = value;
+  //   writer->write(current_time, synthetic_data);
 }
 
 // const location_map &BacktestContext::list_md() const { return md_locations_; }
@@ -81,9 +77,8 @@ broker::Client &BacktestContext::get_broker_client() { return broker_client_; }
 //   return locations.at(source);
 // }
 
-void BacktestContext::req_deregister() { }
+void BacktestContext::req_deregister() {}
 
-void BacktestContext::update_operator_state(OperatorStateUpdate &state_update) {
-}
+void BacktestContext::update_operator_state(OperatorStateUpdate &state_update) {}
 
-}
+} // namespace kungfu::wingchun::op

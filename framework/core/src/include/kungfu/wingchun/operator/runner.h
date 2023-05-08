@@ -2,9 +2,9 @@
 #ifndef WINGCHUN_OPERATOR_RUNNER_H
 #define WINGCHUN_OPERATOR_RUNNER_H
 
+#include <kungfu/wingchun/operator/backtest.h>
 #include <kungfu/wingchun/operator/operator.h>
 #include <kungfu/wingchun/operator/runtime.h>
-#include <kungfu/wingchun/operator/backtest.h>
 #include <kungfu/yijinjing/practice/apprentice.h>
 
 namespace kungfu::wingchun::op {

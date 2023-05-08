@@ -91,7 +91,6 @@ public:
    */
   void update_operator_state(longfist::types::OperatorStateUpdate &state_update) override;
 
-
   /**
    * Get broker client.
    * @return broker client reference
@@ -101,11 +100,10 @@ public:
 protected:
   virtual void on_start() override;
 
-  void prepare(const event_ptr &event) override {};
+  void prepare(const event_ptr &event) override{};
 
 private:
   broker::PassiveClient broker_client_;
-
 };
 } // namespace kungfu::wingchun::op
 

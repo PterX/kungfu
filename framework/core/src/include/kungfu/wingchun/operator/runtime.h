@@ -111,7 +111,6 @@ public:
 
   void check_dependency_state(const event_ptr &event);
 
-
 protected:
   const yijinjing::data::location_ptr &
   find_location(const std::string &source, longfist::enums::category c,

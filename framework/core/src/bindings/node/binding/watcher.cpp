@@ -119,7 +119,7 @@ Watcher::Watcher(const Napi::CallbackInfo &info)
       update_state(state_ref_),                                                                   //
       update_ledger(ledger_ref_),                                                                 //
       publish(*this, state_ref_),                                                                 //
-      reset_cache(*this, ledger_ref_) {                                                           //
+      reset_cache(*this, ledger_ref_), loop_(uv_default_loop()) {                                 //
 
   serialize::InitStateMap(info, state_ref_, "state");
   serialize::InitStateMap(info, ledger_ref_, "ledger");
@@ -348,30 +348,30 @@ Napi::Value Watcher::RequestMarketData(const Napi::CallbackInfo &info) {
 
 void Watcher::Init(Napi::Env env, Napi::Object exports) {
   Napi::HandleScope scope(env);
-  env.AddCleanupHook(cleanup);
+  env.AddCleanupHook(cleanup_constructor);
 
   Napi::Function func =
       DefineClass(env, "Watcher",
                   {
-                      InstanceMethod("now", &Watcher::Now),                             //
-                      InstanceMethod("isUsable", &Watcher::IsUsable),                   //
-                      InstanceMethod("isLive", &Watcher::IsLive),                       //
-                      InstanceMethod("isStarted", &Watcher::IsStarted),                 //
-                      InstanceMethod("requestStop", &Watcher::RequestStop),             //
-                      InstanceMethod("hasLocation", &Watcher::HasLocation),             //
-                      InstanceMethod("getLocation", &Watcher::GetLocation),             //
-                      InstanceMethod("getLocationUID", &Watcher::GetLocationUID),       //
-                      InstanceMethod("getInstrumentType", &Watcher::GetInstrumentType), //
-                      InstanceMethod("publishState", &Watcher::PublishState),           //
-                      InstanceMethod("isReadyToInteract", &Watcher::IsReadyToInteract), //
-                      InstanceMethod("issueBlockMessage", &Watcher::IssueBlockMessage), //
-                      InstanceMethod("issueOrder", &Watcher::IssueOrder),               //
-                      InstanceMethod("issueBasketOrder", &Watcher::IssueBasketOrder),   //
-                      InstanceMethod("cancelOrder", &Watcher::CancelOrder),             //
-                      InstanceMethod("requestMarketData", &Watcher::RequestMarketData), //
-                      InstanceMethod("start", &Watcher::Start),                         //
-                      InstanceMethod("sync", &Watcher::Sync),                           //
-                      InstanceMethod("quit", &Watcher::Quit),
+                      InstanceMethod("now", &Watcher::Now),                                             //
+                      InstanceMethod("isUsable", &Watcher::IsUsable),                                   //
+                      InstanceMethod("isLive", &Watcher::IsLive),                                       //
+                      InstanceMethod("isStarted", &Watcher::IsStarted),                                 //
+                      InstanceMethod("requestStop", &Watcher::RequestStop),                             //
+                      InstanceMethod("hasLocation", &Watcher::HasLocation),                             //
+                      InstanceMethod("getLocation", &Watcher::GetLocation),                             //
+                      InstanceMethod("getLocationUID", &Watcher::GetLocationUID),                       //
+                      InstanceMethod("getInstrumentType", &Watcher::GetInstrumentType),                 //
+                      InstanceMethod("publishState", &Watcher::PublishState),                           //
+                      InstanceMethod("isReadyToInteract", &Watcher::IsReadyToInteract),                 //
+                      InstanceMethod("issueBlockMessage", &Watcher::IssueBlockMessage),                 //
+                      InstanceMethod("issueOrder", &Watcher::IssueOrder),                               //
+                      InstanceMethod("issueBasketOrder", &Watcher::IssueBasketOrder),                   //
+                      InstanceMethod("cancelOrder", &Watcher::CancelOrder),                             //
+                      InstanceMethod("requestMarketData", &Watcher::RequestMarketData),                 //
+                      InstanceMethod("start", &Watcher::Start),                                         //
+                      InstanceMethod("sync", &Watcher::Sync),                                           //
+                      InstanceMethod("quit", &Watcher::Quit),                                           //
                       InstanceAccessor("state", &Watcher::GetState, &Watcher::NoSet),                   //
                       InstanceAccessor("ledger", &Watcher::GetLedger, &Watcher::NoSet),                 //
                       InstanceAccessor("appStates", &Watcher::GetAppStates, &Watcher::NoSet),           //
@@ -658,11 +658,19 @@ void Watcher::StartWorker() {
   };
   auto after = [](uv_work_t *req, int status) {
     SPDLOG_INFO("Watcher uv loop completed");
-    // have to wait for master down totally
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     auto watcher = static_cast<Watcher *>(req->data);
     // have to be at this position, for deleting old journal securitily
     auto &info = *static_cast<Napi::CallbackInfo *>(req->data);
+    Napi::HandleScope scope(info.Env());
+
+    if (watcher->quit_) {
+      SPDLOG_INFO("watcher quit");
+      return;
+    } else {
+      // have to wait for master down totally
+      std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    }
+
     watcher->AfterMasterDown(info);
     watcher->set_begin_time(time::now_in_nano());
     SPDLOG_INFO("Restart watcher uv loop");
@@ -670,12 +678,16 @@ void Watcher::StartWorker() {
     // so, once master deregistered, the uv logic in watcher need to be restarte.
     watcher->StartWorker();
   };
-  uv_queue_work(uv_default_loop(), &uv_work_, worker, after);
+
+  uv_queue_work(loop_, &uv_work_, worker, after);
 }
 
 void Watcher::CancelWorker() { uv_work_live_ = false; }
 
-void Watcher::Quit(const Napi::CallbackInfo &info) { uv_work_live_ = false; }
+void Watcher::Quit(const Napi::CallbackInfo &info) {
+  quit_ = true;
+  uv_work_live_ = false;
+}
 
 void Watcher::AfterMasterDown(const Napi::CallbackInfo &info) {
   SPDLOG_INFO("after master down");

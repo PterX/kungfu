@@ -39,6 +39,7 @@ private:
 
   static Napi::FunctionReference constructor;
   static void cleanup() {
+    SPDLOG_INFO("ConfigStore reset");
     ConfigStore::constructor.Reset();
   }
 

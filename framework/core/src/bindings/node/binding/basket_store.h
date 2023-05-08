@@ -33,6 +33,7 @@ private:
 
   static Napi::FunctionReference constructor;
   static void cleanup() {
+    SPDLOG_INFO("BasketStore reset");
     BasketStore::constructor.Reset();
   }
 

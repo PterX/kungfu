@@ -30,7 +30,11 @@ public:
 
   [[nodiscard]] yijinjing::journal::frame_ptr current_frame() const;
 
+  [[nodiscard]] uint64_t current_frame_id() const { return reader_->current_frame_id(); }
+
   [[nodiscard]] yijinjing::journal::page_ptr current_page() const { return reader_->current_page(); };
+
+  [[nodiscard]] uint32_t current_page_id() const { return reader_->current_page_id(); }
 
   [[nodiscard]] LocationMap &get_all_locations() { return locations_; }
 

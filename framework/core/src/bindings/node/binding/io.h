@@ -41,7 +41,10 @@ public:
 
   static Napi::FunctionReference constructor;
 
-  static void cleanup() { IODevice::constructor.Reset(); }
+  static void cleanup() {
+    SPDLOG_INFO("IODevice reset");
+    IODevice::constructor.Reset();
+  }
 };
 } // namespace kungfu::node
 

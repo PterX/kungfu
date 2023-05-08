@@ -8,6 +8,7 @@
 #define KUNGFU_NODE_DATA_TABLE_H
 
 #include "common.h"
+#include <kungfu/common.h>
 
 namespace kungfu::node {
 class DataTable : public Napi::ObjectWrap<DataTable> {
@@ -34,7 +35,10 @@ public:
 
 private:
   static Napi::FunctionReference constructor;
-  static void cleanup() { DataTable::constructor.Reset(); }
+  static void cleanup() {
+    SPDLOG_INFO("DataTable reset");
+    DataTable::constructor.Reset();
+  }
 };
 } // namespace kungfu::node
 #endif // KUNGFU_NODE_DATA_TABLE_H

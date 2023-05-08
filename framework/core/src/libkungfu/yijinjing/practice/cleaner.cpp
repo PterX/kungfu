@@ -12,13 +12,26 @@ void cleaner::on_react() {
   if (not is_cleaner_worker_required()) {
     return;
   }
-  cleaning_worker_ = std::thread(&cleaner::do_clean, this);
+  SPDLOG_INFO("using page cleaner");
+  if (not cleaning_worker_.joinable()) {
+    cleaning_worker_ = std::thread(&cleaner::do_clean, this);
+  }
 }
 
 void cleaner::do_clean() {
   while (true) {
     std::unique_lock lk(cv_mutex_);
-    app_.get_bus()->get_cv().wait(lk, [&]() { return app_.release_page() && app_.is_live(); });
+    app_.get_bus()->get_cv().wait(lk, [&]() {
+      quite_mutex_.lock();
+      if (m_quit_) {
+        quite_mutex_.unlock();
+        app_.release_page();
+        return true;
+      }
+      quite_mutex_.unlock();
+
+      return app_.release_page() && app_.is_live();
+    });
     lk.unlock();
 
     std::lock_guard<std::mutex> lock(quite_mutex_);
@@ -31,13 +44,15 @@ void cleaner::do_clean() {
 bool cleaner::is_cleaner_worker_required() const { return app_.get_bus()->is_on_load_page_required(); }
 
 cleaner::~cleaner() {
-  {
-    std::lock_guard<std::mutex> lock(quite_mutex_);
-    m_quit_ = true;
-  }
+
+  quite_mutex_.lock();
+  m_quit_ = true;
+  quite_mutex_.unlock();
+  app_.get_bus()->notify_all();
 
   if (cleaning_worker_.joinable()) {
     cleaning_worker_.join();
+    SPDLOG_INFO("~cleaner cleaning_worker_ joined");
   }
 }
 

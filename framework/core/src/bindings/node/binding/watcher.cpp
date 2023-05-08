@@ -102,18 +102,18 @@ void WatcherAutoClient::connect(const event_ptr &event, const longfist::types::R
 void WatcherAutoClient::connect(const event_ptr &event, const longfist::types::Band &band) { return; }
 
 Watcher::Watcher(const Napi::CallbackInfo &info)
-    : ObjectWrap(info),                                                                   //
-      apprentice(GetWatcherLocation(info), true),                                         //
-      bypass_accounting_(GetBool(info, 3)),                                               //
-      bypass_trading_data_(GetBool(info, 4)),                                             //
-      refresh_trading_data_before_sync_(GetBool(info, 5)),                                //
-      milliseconds_sleep_after_step_(GetMillisecondsSleepAfterStep(info)),                //
-      broker_client_(*this, bypass_trading_data_),                                        //
-      bookkeeper_(*this, broker_client_), basketorder_engine_(*this),                     //
-      state_ref_(Napi::ObjectReference::New(Napi::Object::New(info.Env()), 1)),           //
-      ledger_ref_(Napi::ObjectReference::New(Napi::Object::New(info.Env()), 1)),          //
-      app_states_ref_(Napi::ObjectReference::New(Napi::Object::New(info.Env()), 1)),      //
-      strategy_states_ref_(Napi::ObjectReference::New(Napi::Object::New(info.Env()), 1)), //
+    : ObjectWrap(info),                                                                           //
+      apprentice(GetWatcherLocation(info), true),                                                 //
+      bypass_accounting_(GetBool(info, 3)),                                                       //
+      bypass_trading_data_(GetBool(info, 4)),                                                     //
+      refresh_trading_data_before_sync_(GetBool(info, 5)),                                        //
+      milliseconds_sleep_after_step_(GetMillisecondsSleepAfterStep(info)),                        //
+      broker_client_(*this, bypass_trading_data_),                                                //
+      bookkeeper_(*this, broker_client_), basketorder_engine_(*this),                             //
+      state_ref_(Napi::ObjectReference::New(Napi::Object::New(info.Env()), 1)),                   //
+      ledger_ref_(Napi::ObjectReference::New(Napi::Object::New(info.Env()), 1)),                  //
+      app_states_ref_(Napi::ObjectReference::New(Napi::Object::New(info.Env()), 1)),              //
+      strategy_states_ref_(Napi::ObjectReference::New(Napi::Object::New(info.Env()), 1)),         //
 
       config_ref_(Napi::ObjectReference::New(ConfigStore::NewInstance({info[0]}).ToObject(), 1)), //
       update_state(state_ref_),                                                                   //
@@ -348,7 +348,7 @@ Napi::Value Watcher::RequestMarketData(const Napi::CallbackInfo &info) {
 
 void Watcher::Init(Napi::Env env, Napi::Object exports) {
   Napi::HandleScope scope(env);
-  env.AddCleanupHook(cleanup_constructor);
+  env.AddCleanupHook(cleanup);
 
   Napi::Function func =
       DefineClass(env, "Watcher",

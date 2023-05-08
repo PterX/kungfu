@@ -15,7 +15,7 @@ public:
 
   ~Runner() override = default;
 
-  [[nodiscard]] LiveContext_ptr get_context() const;
+  [[nodiscard]] Context_ptr get_context() const;
 
   void add_operator(const Operator_ptr &op);
 
@@ -46,7 +46,7 @@ private:
   //   bool positions_set_;
   bool started_;
   std::vector<Operator_ptr> operators_ = {};
-  LiveContext_ptr context_;
+  Context_ptr context_;
 
   void prepare(const event_ptr &event);
 

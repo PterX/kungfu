@@ -11,6 +11,12 @@ public:
   explicit BacktestContext(yijinjing::practice::apprentice &app, const rx::connectable_observable<event_ptr> &events);
 
   /**
+   * checked_ is strated started.
+   * @return current time in nano seconds
+   */
+  virtual bool is_started() const override;
+
+  /**
    * Get current time in nano seconds.
    * @return current time in nano seconds
    */
@@ -85,8 +91,17 @@ public:
    */
   void update_operator_state(longfist::types::OperatorStateUpdate &state_update) override;
 
+
+  /**
+   * Get broker client.
+   * @return broker client reference
+   */
+  broker::Client &get_broker_client() override;
+
 protected:
   virtual void on_start() override;
+
+  void prepare(const event_ptr &event) override {};
 
 private:
   broker::PassiveClient broker_client_;

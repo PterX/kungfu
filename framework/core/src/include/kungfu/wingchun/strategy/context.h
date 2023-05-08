@@ -251,8 +251,6 @@ public:
   // TODO make itfriend funciton
   void set_arguments(const std::string &arguments) { arguments_ = arguments; }
 
-  void set_started(bool started) { started_ = started; }
-
   /**
    *
    * @param source td source id

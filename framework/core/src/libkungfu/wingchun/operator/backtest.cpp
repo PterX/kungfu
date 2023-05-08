@@ -19,6 +19,8 @@ BacktestContext::BacktestContext(apprentice &app, const rx::connectable_observab
 
 void BacktestContext::on_start() { broker_client_.on_start(events_); }
 
+bool BacktestContext::is_started() const { return true; }
+
 const std::string BacktestContext::get_config() const {
 }
 
@@ -59,6 +61,7 @@ void BacktestContext::publish_synthetic_data(const std::string &key, const std::
 
 int64_t BacktestContext::get_trading_day() const { return app_.get_trading_day(); }
 
+broker::Client &BacktestContext::get_broker_client() { return broker_client_; }
 
 // const location_ptr &BacktestContext::find_md_location(const std::string &source) {
 //   return find_location(source, category::MD, market_data_);

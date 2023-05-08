@@ -11,6 +11,12 @@ public:
   explicit LiveContext(yijinjing::practice::apprentice &app, const rx::connectable_observable<event_ptr> &events);
 
   /**
+   * checked_ is strated started.
+   * @return current time in nano seconds
+   */
+  virtual bool is_started() const override;
+
+  /**
    * Get current time in nano seconds.
    * @return current time in nano seconds
    */
@@ -101,9 +107,10 @@ public:
    * Get broker client.
    * @return broker client reference
    */
-  broker::PassiveClient &get_broker_client();
+  broker::Client &get_broker_client();
 
   void check_dependency_state(const event_ptr &event);
+
 
 protected:
   const yijinjing::data::location_ptr &
@@ -114,6 +121,8 @@ protected:
 
   void on_start() override;
 
+  void prepare(const event_ptr &event) override;
+
 private:
   broker::PassiveClient broker_client_;
   yijinjing::data::location_map md_locations_ = {};
@@ -121,6 +130,7 @@ private:
   std::unordered_map<std::string, yijinjing::data::location_ptr> market_data_ = {};
   std::unordered_map<std::string, yijinjing::data::location_ptr> operator_data_ = {};
   longfist::enums::OperatorState state_;
+  bool started_{false};
 };
 
 DECLARE_PTR(LiveContext)

@@ -15,6 +15,12 @@ public:
   virtual ~Context() = default;
 
   /**
+   * checked_ is strated started.
+   * @return current time in nano seconds
+   */
+  virtual bool is_started() const = 0;
+
+  /**
    * Get current time in nano seconds.
    * @return current time in nano seconds
    */
@@ -89,14 +95,22 @@ public:
    */
   virtual void update_operator_state(longfist::types::OperatorStateUpdate &state_update) {}
 
-protected:
-  virtual void on_start(){};
+  /**
+   * Get broker client.
+   * @return broker client reference
+   */
+  virtual broker::Client &get_broker_client() = 0;
 
+protected:
   yijinjing::practice::apprentice &app_;
   const rx::connectable_observable<event_ptr> &events_;
 
+  virtual void on_start(){};
+  virtual void prepare(const event_ptr &event) = 0;
+
 private:
   friend void enable(Context &context) { context.on_start(); }
+  friend void prepare(const event_ptr &event, Context &context) { context.prepare(event); }
 };
 } // namespace kungfu::wingchun::op
 

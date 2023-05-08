@@ -78,6 +78,7 @@ bool journal::release_page() {
   }
 
   for (auto &page : queue_release_page) {
+    // wait for the main thread to release shared_ptr<page>, or page would close in the main thread
     while (page.use_count() > 1) {
       std::this_thread::sleep_for(std::chrono::microseconds(1));
     }

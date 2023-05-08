@@ -41,14 +41,8 @@ protected:
   virtual void post_stop();
 
 private:
-  //   bool positions_requested_ = false;
-  bool broker_states_requested_ = false;
-  //   bool positions_set_;
-  bool started_;
   std::vector<Operator_ptr> operators_ = {};
   Context_ptr context_;
-
-  void prepare(const event_ptr &event);
 
   template <typename OnMethod = void (Operator::*)(Context_ptr &)> void invoke(OnMethod method) {
     auto context = std::dynamic_pointer_cast<Context>(context_);

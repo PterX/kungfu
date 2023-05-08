@@ -131,6 +131,7 @@ private:
   std::unordered_map<std::string, yijinjing::data::location_ptr> operator_data_ = {};
   longfist::enums::OperatorState state_;
   bool started_{false};
+  bool broker_states_requested_{false};
 };
 
 DECLARE_PTR(LiveContext)

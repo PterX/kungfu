@@ -11,8 +11,8 @@ using namespace kungfu::yijinjing::practice;
 
 namespace kungfu::wingchun::op {
 Runner::Runner(locator_ptr locator, const std::string &group, const std::string &name, mode m, bool low_latency)
-    : apprentice(location::make_shared(m, category::OPERATOR, group, name, std::move(locator)), low_latency),
-      started_(m == mode::BACKTEST) {}
+    : apprentice(location::make_shared(m, category::OPERATOR, group, name, std::move(locator)), low_latency)
+      {}
 
 Context_ptr Runner::get_context() const { return context_; }
 
@@ -49,9 +49,13 @@ void Runner::on_start() {
   //   start_events | is(OperatorStateUpdate::tag) | $$(context_->check_dependency_state(event));
   //   start_events | is(OperatorStateUpdate::tag) | $$(context_->check_dependency_state(event));
   // }
-
-  events_ | take_until(events_ | filter([&](auto e) { return started_; })) | $$(prepare(event));
-  post_start();
+  events_ | take_until(events_ | filter([&](auto e) { return context_->is_started(); })) |
+      $$(prepare(event, *context_));
+  if (context_->is_started()) {
+    post_start();
+  } else {
+    events_ | filter([&](auto e) { return context_->is_started(); }) | first() | $$(post_start());
+  }
 }
 
 void Runner::on_active() {
@@ -63,10 +67,6 @@ void Runner::on_active() {
 void Runner::pre_start() { invoke(&Operator::pre_start); }
 
 void Runner::post_start() {
-  if (not started_) {
-    return;
-  }
-
   events_ | is_own<Quote>(context_->get_broker_client()) |
       $$(invoke(&Operator::on_quote, event->data<Quote>(), get_location(event->source())));
   events_ | is_own<Entrust>(context_->get_broker_client()) |
@@ -85,7 +85,7 @@ void Runner::pre_stop() { invoke(&Operator::pre_stop); }
 
 void Runner::post_stop() { invoke(&Operator::post_stop); }
 
-void Runner::prepare(const event_ptr &event) {
+// void Runner::prepare(const event_ptr &event) {
   // auto ledger_uid = ledger_home_location_->uid;
   // if (not has_writer(ledger_uid)) {
   //   SPDLOG_INFO("not hast ledger writer");
@@ -118,5 +118,5 @@ void Runner::prepare(const event_ptr &event) {
   // state_update.state = OperatorState::Ready;
   // context_->update_operator_state(state_update);
   //// post_start();
-}
+// }
 } // namespace kungfu::wingchun::op

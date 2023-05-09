@@ -130,6 +130,7 @@ import { UpOutlined, DownOutlined } from '@ant-design/icons-vue';
 import { longfist, tracer } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { getFrameColumns } from '../config';
 import { dealFrame } from '../utils';
+// import { MsgType } from '@kungfu-trader/kungfu-app/src/typings/enums';
 import { FiltersEnum } from '../utils/filterUtils';
 import KfTradingDataTable from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfTradingDataTable.vue';
 import { dealKfTime } from '@kungfu-trader/kungfu-js-api/kungfu';
@@ -455,6 +456,8 @@ const loadFrameData = (
           genTime: frame.genTime(),
           triggerTime: frame.triggerTime(),
           msgType: msgType,
+          currentFrameId: tracerFrame.currentFrameId(),
+          currentPageId: tracerFrame.currentPageId(),
           stringMsgType: stringMsgType,
           source: frame.source(),
           dest: frame.dest(),
@@ -466,7 +469,8 @@ const loadFrameData = (
         curFrameData.destName = props.locationMap[curFrameData.dest];
         curFrameData.sourceName = props.locationMap[curFrameData.source];
         curFrameData.sourceToDest = `${curFrameData.sourceName} -> ${curFrameData.destName}`;
-        const curFrameDataResolved = dealFrame(curFrameData);
+        const curFrameDataResolved: KungfuApi.FrameResolved =
+          dealFrame(curFrameData);
 
         curFramesMap[curFrameDataResolved.id] = curFrameDataResolved;
         framesMap.value[curFrameDataResolved.id] = curFrameDataResolved;

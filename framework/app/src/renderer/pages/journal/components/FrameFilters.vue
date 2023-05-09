@@ -109,7 +109,7 @@ watch(
     }));
 
     Object.entries(msg).forEach(([key, value]) => {
-      if (Number(key) <= 10000) {
+      if (Number(key) > 100 && Number(key) < 10000) {
         filtersFormState.MSG_TYPE.push(key);
       }
     });

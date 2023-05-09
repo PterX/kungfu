@@ -531,7 +531,10 @@ export default {
     source: '源头',
     gen_time: '生成时间',
     trigger_time: '触发时间',
+    current_page_id: '当前页',
+    current_frame_id: '当前帧',
     msg_type: '消息类型',
+    msg_details: '消息详情',
 
     filters: '过滤器',
     apply_filters: '应用过滤',

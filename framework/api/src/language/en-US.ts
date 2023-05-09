@@ -539,7 +539,10 @@ export default {
     source: 'source',
     gen_time: 'gen_time',
     trigger_time: 'trigger_time',
+    current_page_id: 'currentPageId',
+    current_frame_id: 'currentFrameId',
     msg_type: 'msg_type',
+    msg_details: 'msg_details',
 
     export: 'Export',
     export_file_path: 'export_file_path',

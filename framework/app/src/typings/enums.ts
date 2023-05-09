@@ -12,3 +12,11 @@ export enum KfLayoutTargetDirectionClassName {
   left = 'drag-over-left',
   right = 'drag-over-right',
 }
+
+export enum MsgType {
+  Position = 205,
+  Quote = 101,
+  Order = 203,
+  OrderInput = 201,
+  Trade = 204,
+}

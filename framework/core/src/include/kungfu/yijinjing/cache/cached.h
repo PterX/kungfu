@@ -5,9 +5,9 @@
 
 #include <kungfu/yijinjing/cache/profile.h>
 #include <kungfu/yijinjing/cache/runtime.h>
+#include <kungfu/yijinjing/index/session.h>
 #include <kungfu/yijinjing/io.h>
 #include <kungfu/yijinjing/log.h>
-#include <kungfu/yijinjing/practice/apprentice.h>
 
 namespace kungfu::yijinjing::cache {
 
@@ -15,68 +15,125 @@ using ProfileDataTypesType = decltype(longfist::ProfileDataTypes);
 using ProfileStateMapType = decltype(longfist::build_state_map(longfist::ProfileDataTypes));
 typedef yijinjing::cache::typed_bank<ProfileDataTypesType, ProfileStateMapType> ProfileStateBank;
 
-class cached : public yijinjing::practice::apprentice {
+class cached {
 public:
-  explicit cached(yijinjing::data::locator_ptr locator, longfist::enums::mode m, bool low_latency = false);
+  explicit cached(const yijinjing::io_device_ptr &io_device, bool bypass_cached = false);
 
-protected:
-  void on_start() override;
+  ~cached();
 
-  void on_react() override;
+  template <typename DataType> std::vector<DataType> get_all(const DataType &) { return profile_.get_all(DataType{}); }
 
-  void on_frame() override;
+  void restore_profile(const yijinjing::data::location_ptr &location, const yijinjing::journal::writer_ptr &writer);
 
-  void on_active() override;
+  void restore_states(const yijinjing::data::location_ptr &location, const yijinjing::journal::writer_ptr &writer);
 
-  void on_notify() override;
+  void restore(const yijinjing::data::location_ptr &location, const yijinjing::journal::writer_ptr &writer);
 
-  static constexpr auto profile_get_all = [](auto &profile, auto &receiver) {
+  void clear_cache_shift(const yijinjing::data::location_ptr &location);
+
+  void make_cache_shift(const yijinjing::data::location_ptr &location);
+
+  void ensure_cached_storage(const yijinjing::data::location_ptr &location, uint32_t dest);
+
+  void cache_reset(const event_ptr &event);
+
+  void feed(const event_ptr &event);
+
+  template <typename DataType>
+  std::enable_if_t<longfist::is_profile_data<DataType>()> feed_profile(const DataType &data) {
+    std::lock_guard<std::mutex> lock(feed_mutex_);
+    auto s = state(0, 0, 0, data);
+    profile_feed_bank_ << s;
+  }
+
+  void run_store_workers();
+
+  void do_store_states_feeds();
+
+  void do_store_profile_feeds();
+
+  void store_states_feeds();
+
+  void store_profile_feeds();
+
+  void open_session(const data::location_ptr &location, int64_t open_time);
+
+  void close_session(const data::location_ptr &location, int64_t close_time);
+
+  yijinjing::index::SessionMap &close_all_sessions(int64_t close_time);
+
+  int64_t find_last_active_time(const data::location_ptr &source_location);
+
+  void update_session(const journal::frame_ptr &frame);
+
+  static constexpr auto feed_profile_data = [](const event_ptr &event, auto &receiver) {
     boost::hana::for_each(longfist::ProfileDataTypes, [&](auto it) {
-      auto type = boost::hana::second(it);
-      using DataType = typename decltype(+type)::type;
-      int get_all_count = 0;
-      while (get_all_count++ < 10) {
-        try {
-          for (const auto &data : profile.get_all(DataType{})) {
-            auto s = state(0, 0, 0, data);
-            receiver << s;
-          }
-          break;
-        } catch (const std::exception &e) {
-          SPDLOG_ERROR("Unexpected exception by profile_get_all {}", e.what());
-        }
+      using DataType = typename decltype(+boost::hana::second(it))::type;
+      if (DataType::tag == event->msg_type()) {
+        receiver << typed_event_ptr<DataType>(event);
+      }
+    });
+  };
+
+  static constexpr auto feed_state_data = [](const event_ptr &event, auto &receiver) {
+    boost::hana::for_each(longfist::StateDataTypes, [&](auto it) {
+      using DataType = typename decltype(+boost::hana::second(it))::type;
+      if (DataType::tag == event->msg_type()) {
+        receiver << typed_event_ptr<DataType>(event);
+      }
+    });
+  };
+
+  static constexpr auto feed_trading_data = [](const event_ptr &event, auto &receiver) {
+    boost::hana::for_each(longfist::TradingDataTypes, [&](auto it) {
+      using DataType = typename decltype(+boost::hana::second(it))::type;
+      if (DataType::tag == event->msg_type()) {
+        receiver << typed_event_ptr<DataType>(event);
       }
     });
   };
 
 private:
-  std::unordered_map<uint32_t, yijinjing::cache::shift> app_cache_shift_ = {};
-  yijinjing::cache::bank feed_bank_;
+  index::session_builder session_builder_;
+  std::unordered_map<uint32_t, yijinjing::data::location_ptr> locations_ = {};
   yijinjing::cache::profile profile_;
-  ProfileStateBank profile_bank_ = ProfileStateBank(longfist::ProfileDataTypes);
-  const int store_volume_every_loop_;
+  ProfileStateBank profile_feed_bank_ = ProfileStateBank(longfist::ProfileDataTypes);
+  std::unordered_map<uint32_t, yijinjing::cache::shift> app_states_shift_ = {};
+  yijinjing::cache::bank states_feed_bank_;
+  const bool bypass_cached_;
+  std::thread store_states_worker_;
+  std::thread store_profile_worker_;
+  std::mutex feed_mutex_;
+  std::mutex states_store_mutex_;
+  std::mutex profile_store_mutex_;
+  bool m_quit_ = false;
 
-  void on_location(const event_ptr &event);
+  static constexpr auto profile_get_all = [](auto &profile, auto &receiver) {
+    boost::hana::for_each(longfist::ProfileDataTypes, [&](auto it) {
+      using DataType = typename decltype(+boost::hana::second(it))::type;
+      try {
 
-  void handle_cached_feeds(int store_volume_every_loop);
+        for (const auto &data : profile.get_all(DataType{})) {
+          auto s = state(0, 0, 0, data);
+          receiver << s;
+        }
+      } catch (const std::exception &e) {
+        SPDLOG_ERROR("Unexpected exception by profile_get_all {}", e.what());
+      }
+    });
+  };
 
-  void handle_profile_feeds(int store_volume_every_loop);
-
-  void mark_request_cached_done(uint32_t dest_id);
-
-  void inspect_channel(int64_t trigger_time, const longfist::types::Channel &channel);
-
-  void make_cache_shift(uint32_t source_id, uint32_t dest_id);
-
-  void register_triggger_clear_cache_shift(const longfist::types::Register &deregister_data);
-
-  void register_trigger_listen_public(int64_t trigger_time, const longfist::types::Register &register_data);
-
-  void on_cache_reset(const event_ptr &event);
-
-  void ensure_cached_storage(uint32_t source_id, uint32_t dest_id);
-
-  void feed(const event_ptr &event);
+  template <typename DataType>
+  static constexpr auto profile_get_by_type = [](auto &profile, auto &receiver) {
+    try {
+      for (const auto &data : profile.get_all(DataType{})) {
+        auto s = state(0, 0, 0, data);
+        receiver << s;
+      }
+    } catch (const std::exception &e) {
+      SPDLOG_ERROR("Unexpected exception by profile_get_all {}", e.what());
+    }
+  };
 };
 
 } // namespace kungfu::yijinjing::cache

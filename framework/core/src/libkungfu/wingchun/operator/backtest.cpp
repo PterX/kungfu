@@ -51,11 +51,9 @@ void BacktestContext::publish_synthetic_data(const std::string &key, const std::
   //   writer->write(current_time, synthetic_data);
 }
 
-// const location_map &BacktestContext::list_md() const { return md_locations_; }
+// const location_map &BacktestContext::list？_md() const { return md_locations_; }
 
 // const location_map &BacktestContext::list_op() const { return op_locations_; }
-
-int64_t BacktestContext::get_trading_day() const { return app_.get_trading_day(); }
 
 broker::Client &BacktestContext::get_broker_client() { return broker_client_; }
 

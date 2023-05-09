@@ -130,8 +130,6 @@ const location_map &LiveContext::list_md() const { return md_locations_; }
 
 const location_map &LiveContext::list_op() const { return op_locations_; }
 
-int64_t LiveContext::get_trading_day() const { return app_.get_trading_day(); }
-
 broker::Client &LiveContext::get_broker_client() { return broker_client_; }
 
 void LiveContext::check_dependency_state(const event_ptr &event) {

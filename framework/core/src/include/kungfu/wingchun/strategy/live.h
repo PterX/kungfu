@@ -169,12 +169,6 @@ public:
   uint64_t cancel_order(uint64_t order_id) override;
 
   /**
-   * Get current trading day.
-   * @return current trading day
-   */
-  int64_t get_trading_day() const override;
-
-  /**
    * Get subscribed MD locations.
    * @return subscribed MD locations
    */

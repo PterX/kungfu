@@ -3,14 +3,15 @@
 #include <kungfu/common.h>
 #include <kungfu/longfist/longfist.h>
 #include <kungfu/yijinjing/cache/cached.h>
+#include <kungfu/yijinjing/practice/hero.h>
 #include <kungfu/yijinjing/time.h>
 
 using namespace kungfu::rx;
-using namespace kungfu::yijinjing::practice;
 using namespace kungfu::longfist;
 using namespace kungfu::longfist::enums;
 using namespace kungfu::longfist::types;
 using namespace kungfu::yijinjing;
+using namespace kungfu::yijinjing::practice;
 using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::cache;
 
@@ -19,104 +20,194 @@ using namespace kungfu::yijinjing::cache;
 
 namespace kungfu::yijinjing::cache {
 
-cached::cached(locator_ptr locator, mode m, bool low_latency)
-    : apprentice(location::make_shared(m, category::SYSTEM, "service", "cached", std::move(locator)), low_latency),
-      profile_(get_locator()),
-      store_volume_every_loop_(low_latency ? LOW_LATENCY_STORE_VOLUME_BY_INTERVAL : DEFAULT_STORE_VOLUME_BY_INTERVAL) {
+cached::cached(const yijinjing::io_device_ptr &io_device, bool bypass_cached)
+    : session_builder_(io_device), profile_(io_device->get_locator()), bypass_cached_(bypass_cached) {
   profile_.setup();
-  profile_get_all(profile_, profile_bank_);
+  profile_get_all(profile_, profile_feed_bank_);
 }
 
-void cached::on_react() {
-  events_ | is(Location::tag) | $$(on_location(event));
-  events_ | is(Register::tag) | $$(register_triggger_clear_cache_shift(event->data<Register>()));
-  events_ | is(Register::tag) | $$(register_trigger_listen_public(event->gen_time(), event->data<Register>()));
-  events_ | is(RequestCached::tag) | $([&](const event_ptr &event) {
-    auto source_id = event->source();
+cached::~cached() {
+  {
+    std::lock_guard<std::mutex> lock(feed_mutex_);
+    m_quit_ = true;
+  }
 
-    SPDLOG_INFO("get RequestCached from {}", get_location_uname(source_id));
+  if (store_states_worker_.joinable()) {
+    store_states_worker_.join();
+  }
 
-    if (locations_.find(source_id) == locations_.end()) {
-      SPDLOG_ERROR("no location {} in locations_", get_location_uname(source_id));
-      return;
-    }
+  if (store_profile_worker_.joinable()) {
+    store_profile_worker_.join();
+  }
+}
 
-    app_cache_shift_.try_emplace(source_id, locations_.at(source_id));
-    auto cached_writer = get_writer(source_id);
-
+void cached::restore_profile(const yijinjing::data::location_ptr &location,
+                             const yijinjing::journal::writer_ptr &writer) {
+  if (not bypass_cached_) {
+    feed_mutex_.lock();
+    profile_store_mutex_.lock();
     try {
-      app_cache_shift_.at(source_id) >> cached_writer;
+      // for config from user interface
+      profile_get_all(profile_, profile_feed_bank_);
     } catch (const std::exception &ex) {
-      SPDLOG_ERROR("failed to write cache {} {} {}", source_id, get_location_uname(source_id), ex.what());
+      SPDLOG_ERROR("failed to drain profile db into profile band {} {} {}", location->uid, location->uname, ex.what());
     }
+    feed_mutex_.unlock();
+    profile_store_mutex_.unlock();
+  }
 
-    try {
-      profile_get_all(profile_, profile_bank_);
-      profile_bank_ >> cached_writer;
-    } catch (const std::exception &ex) {
-      SPDLOG_ERROR("failed to write profile info {} {} {}", source_id, get_location_uname(source_id), ex.what());
+  feed_mutex_.lock();
+  profile_feed_bank_ >> writer;
+  feed_mutex_.unlock();
+}
+
+void cached::restore_states(const yijinjing::data::location_ptr &location,
+                            const yijinjing::journal::writer_ptr &writer) {
+  if (bypass_cached_) {
+    return;
+  }
+
+  states_store_mutex_.lock();
+  try {
+    make_cache_shift(location);
+    app_states_shift_.at(location->uid) >> writer;
+  } catch (const std::exception &ex) {
+    SPDLOG_ERROR("failed to write cache {} {} {}", location->uid, location->uname, ex.what());
+  }
+  states_store_mutex_.unlock();
+}
+
+void cached::restore(const location_ptr &location, const journal::writer_ptr &writer) {
+  restore_profile(location, writer);
+  restore_states(location, writer);
+}
+
+void cached::clear_cache_shift(const location_ptr &location) {
+  if (bypass_cached_) {
+    return;
+  }
+
+  uint32_t location_uid = location->uid;
+  if (app_states_shift_.find(location_uid) == app_states_shift_.end()) {
+    SPDLOG_INFO("no location_uid {} in app_states_shift_, no need to clear cache", location->uname);
+    return;
+  }
+
+  // clear storage_map_ memory, for ensure_storage working fine next time
+  app_states_shift_.erase(location_uid);
+}
+
+void cached::make_cache_shift(const location_ptr &location) {
+  if (bypass_cached_) {
+    return;
+  }
+
+  locations_.emplace(location->uid, location);
+  app_states_shift_.emplace(location->uid, location);
+}
+
+void cached::ensure_cached_storage(const location_ptr &location, uint32_t dest) {
+  if (bypass_cached_) {
+    return;
+  }
+
+  std::lock_guard<std::mutex> lock(states_store_mutex_);
+  make_cache_shift(location);
+  app_states_shift_.at(location->uid).ensure_storage(dest);
+}
+
+void cached::cache_reset(const event_ptr &event) {
+  if (bypass_cached_) {
+    return;
+  }
+
+  std::lock_guard<std::mutex> lock(states_store_mutex_);
+  auto cache_reset = event->data<CacheReset>();
+  auto msg_type = cache_reset.msg_type;
+  boost::hana::for_each(StateDataTypes, [&](auto it) {
+    using DataType = typename decltype(+boost::hana::second(it))::type;
+    if (DataType::tag == msg_type) {
+      if (app_states_shift_.find(event->source()) != app_states_shift_.end()) {
+        app_states_shift_[event->source()] -= typed_event_ptr<DataType>(event);
+      }
+      if (app_states_shift_.find(event->dest()) != app_states_shift_.end()) {
+        app_states_shift_[event->dest()] /= typed_event_ptr<DataType>(event);
+      }
     }
-
-    mark_request_cached_done(source_id);
   });
 }
 
-void cached::on_start() {
-  events_ | is(Channel::tag) | $$(inspect_channel(event->gen_time(), event->data<Channel>()));
-  events_ | is(CacheReset::tag) | $$(on_cache_reset(event));
-  events_ | instanceof <journal::frame>() | filter([&](const event_ptr &event) {
-                         auto source_id = event->source();
-                         return source_id != master_home_location_->uid and source_id != master_cmd_location_->uid;
-                       }) | $$(feed(event));
+void cached::feed(const event_ptr &event) {
+  std::lock_guard<std::mutex> lock(feed_mutex_);
+  feed_profile_data(event, profile_feed_bank_);
+
+  if (not bypass_cached_) {
+    feed_state_data(event, states_feed_bank_);
+  }
 }
 
-void cached::on_frame() {}
+void cached::run_store_workers() {
+  if (bypass_cached_)
+    return;
 
-void cached::on_active() {
-  handle_cached_feeds(store_volume_every_loop_);
-  handle_profile_feeds(store_volume_every_loop_);
+  store_profile_worker_ = std::thread(&cached::do_store_profile_feeds, this);
+  store_states_worker_ = std::thread(&cached::do_store_states_feeds, this);
 }
 
-void cached::on_notify() {
-  SPDLOG_TRACE("cached::on_notify");
-  handle_cached_feeds(LOW_LATENCY_STORE_VOLUME_BY_INTERVAL);
+void cached::do_store_states_feeds() {
+  while (true) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+    store_states_feeds();
+
+    std::lock_guard<std::mutex> lock(feed_mutex_);
+    if (m_quit_) {
+      break;
+    }
+  }
 }
 
-void cached::mark_request_cached_done(uint32_t dest_id) {
-  auto writer = get_writer(master_cmd_location_->uid);
-  RequestCachedDone &rcd = writer->open_data<RequestCachedDone>();
-  rcd.dest_id = dest_id;
-  writer->close_data();
+void cached::do_store_profile_feeds() {
+  while (true) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+    store_profile_feeds();
+
+    std::lock_guard<std::mutex> lock(feed_mutex_);
+    if (m_quit_) {
+      break;
+    }
+  }
 }
 
-void cached::handle_cached_feeds(int store_volume_every_loop) {
-  int stored_controller = 0;
+void cached::store_states_feeds() {
+  feed_mutex_.lock();
+  yijinjing::cache::bank tmp_feed_bank = states_feed_bank_;
+  states_feed_bank_.clear();
+  feed_mutex_.unlock();
+
   boost::hana::for_each(StateDataTypes, [&](auto it) {
     using DataType = typename decltype(+boost::hana::second(it))::type;
     auto hana_type = boost::hana::type_c<DataType>;
 
     using FeedMap = std::unordered_map<uint64_t, state<DataType>>;
-    auto &feed_map = const_cast<FeedMap &>(feed_bank_[hana_type]);
+    auto &feed_map = const_cast<FeedMap &>(tmp_feed_bank[hana_type]);
 
     if (feed_map.size() != 0) {
       auto iter = feed_map.begin();
-      while (iter != feed_map.end() and stored_controller <= store_volume_every_loop) {
+      while (iter != feed_map.end()) {
         auto &s = iter->second;
         auto source_id = s.source;
         auto dest_id = s.dest;
-        if (app_cache_shift_.find(source_id) != app_cache_shift_.end()) {
+        if (app_states_shift_.find(source_id) != app_states_shift_.end()) {
+          states_store_mutex_.lock();
           try {
-            app_cache_shift_.at(source_id) << s;
-            SPDLOG_TRACE("cache [feed] source {} dest {} {} data {}", get_location_uname(source_id),
-                         get_location_uname(dest_id), DataType::type_name.c_str(), s.data.to_string());
+            app_states_shift_.at(source_id) << s;
+            SPDLOG_TRACE("cache [feed] source {} dest {} {} data {}", source_id, dest_id, DataType::type_name.c_str(),
+                         s.data.to_string());
+            iter++;
           } catch (const std::exception &e) {
             SPDLOG_ERROR("Unexpected exception by handle_cached_feeds {}", e.what());
-            stored_controller++;
-            break;
           }
-
-          iter = feed_map.erase(iter);
-          stored_controller++;
+          states_store_mutex_.unlock();
         } else {
           iter++;
         }
@@ -125,111 +216,71 @@ void cached::handle_cached_feeds(int store_volume_every_loop) {
   });
 }
 
-void cached::handle_profile_feeds(int store_volume_every_loop) {
-  int stored_controller = 0;
+void cached::store_profile_feeds() {
+  // there are important info like locations in profile, every app register need these info, so do not clear profile
+  // bank;
+  feed_mutex_.lock();
+  ProfileStateBank tmp_profile_bank = profile_feed_bank_;
+  feed_mutex_.unlock();
+
   boost::hana::for_each(ProfileDataTypes, [&](auto it) {
     using DataType = typename decltype(+boost::hana::second(it))::type;
     auto hana_type = boost::hana::type_c<DataType>;
 
     using FeedMap = std::unordered_map<uint64_t, state<DataType>>;
-    auto &feed_map = const_cast<FeedMap &>(profile_bank_[hana_type]);
+    auto &feed_map = const_cast<FeedMap &>(profile_feed_bank_[hana_type]);
 
     if (feed_map.size() != 0) {
       auto iter = feed_map.begin();
-      while (iter != feed_map.end() and stored_controller <= store_volume_every_loop) {
+      while (iter != feed_map.end()) {
         const auto &s = iter->second;
+        profile_store_mutex_.lock();
         try {
           profile_ << s;
           SPDLOG_TRACE("cache [profile] {} data {}", DataType::type_name.c_str(), s.data.to_string());
+          iter++;
         } catch (const std::exception &e) {
           SPDLOG_ERROR("Unexpected exception by handle_profile_feeds {}", e.what());
-          stored_controller++;
-          break;
         }
-
-        iter = feed_map.erase(iter);
-        stored_controller++;
+        profile_store_mutex_.unlock();
       }
     }
   });
 }
 
-void cached::on_location(const event_ptr &event) { profile_bank_ << typed_event_ptr<Location>(event); }
-
-void cached::inspect_channel(int64_t trigger_time, const Channel &channel) {
-  if (channel.source_id != get_live_home_uid() and channel.dest_id != get_live_home_uid()) {
-    reader_->join(get_location(channel.source_id), channel.dest_id, trigger_time);
-    make_cache_shift(channel.source_id, channel.dest_id);
-  }
-}
-
-void cached::make_cache_shift(uint32_t source_id, uint32_t dest_id) {
-  if (locations_.find(source_id) == locations_.end()) {
-    SPDLOG_ERROR("no source {} in locations_", get_location_uname(source_id));
+void cached::open_session(const location_ptr &location, int64_t open_time) {
+  if (bypass_cached_) {
     return;
   }
 
-  if (not is_location_live(source_id)) {
-    SPDLOG_ERROR("no source {} in registry_", get_location_uname(source_id));
+  session_builder_.open_session(location, open_time);
+}
+
+void cached::close_session(const location_ptr &location, int64_t close_time) {
+  if (bypass_cached_) {
     return;
   }
 
-  const location_ptr &location = locations_.at(source_id);
-  app_cache_shift_.emplace(source_id, location);
-  ensure_cached_storage(source_id, dest_id);
+  session_builder_.close_session(location, close_time);
 }
 
-void cached::register_trigger_listen_public(int64_t gen_time, const Register &register_data) {
-  auto app_uid = register_data.location_uid;
-  auto app_location = get_location(app_uid);
+index::SessionMap &cached::close_all_sessions(int64_t close_time) {
+  return session_builder_.close_all_sessions(close_time);
+}
 
-  if (app_location->category != category::TD) {
-    return;
+int64_t cached::find_last_active_time(const location_ptr &location) {
+  if (bypass_cached_) {
+    return yijinjing::time::now_in_nano();
   }
 
-  reader_->join(app_location, location::PUBLIC, gen_time);
-  make_cache_shift(app_uid, location::PUBLIC);
-  reader_->join(app_location, location::SYNC, gen_time);
-  make_cache_shift(app_uid, location::SYNC);
-  SPDLOG_INFO("resume {} connection from {}", get_location_uname(app_uid), time::strftime(gen_time));
+  return session_builder_.find_last_active_time(location);
 }
 
-void cached::register_triggger_clear_cache_shift(const Register &register_data) {
-  uint32_t location_uid = register_data.location_uid;
-  if (app_cache_shift_.find(location_uid) == app_cache_shift_.end()) {
-    SPDLOG_INFO("no location_uid {} in app_cache_shift_, no need to clear cache", get_location_uname(location_uid));
+void cached::update_session(const journal::frame_ptr &frame) {
+  if (bypass_cached_) {
     return;
   }
-
-  // clear storage_map_ memory, for ensure_storage working fine next time
-  app_cache_shift_.erase(location_uid);
-}
-
-void cached::on_cache_reset(const event_ptr &event) {
-  auto msg_type = event->data<CacheReset>().msg_type;
-  boost::hana::for_each(StateDataTypes, [&](auto it) {
-    using DataType = typename decltype(+boost::hana::second(it))::type;
-    if (DataType::tag == msg_type) {
-      app_cache_shift_[event->source()] -= typed_event_ptr<DataType>(event);
-      app_cache_shift_[event->dest()] /= typed_event_ptr<DataType>(event);
-    }
-  });
-}
-
-void cached::ensure_cached_storage(uint32_t source_id, uint32_t dest_id) {
-  if (app_cache_shift_.find(source_id) == app_cache_shift_.end()) {
-    SPDLOG_ERROR("no source {} in app_cache_shift_", get_location_uname(source_id));
-    return;
-  }
-  app_cache_shift_.at(source_id).ensure_storage(dest_id);
-}
-
-void cached::feed(const event_ptr &event) {
-  if (event->msg_type() != Instrument::tag and get_location(event->source())->category == category::MD) {
-    return;
-  }
-  feed_state_data(event, feed_bank_);
-  feed_profile_data(event, profile_bank_);
+  session_builder_.update_session(frame);
 }
 
 } // namespace kungfu::yijinjing::cache

@@ -7,6 +7,7 @@ import {
   isTdStrategyCategory,
   getIdByKfLocation,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+
 import {
   useDownloadHistoryTradingData,
   useTableSearchKeyword,
@@ -62,7 +63,8 @@ const {
 const { handleDownload } = useDownloadHistoryTradingData();
 const { triggerOrderBook, triggerMakeOrder } = useTriggerMakeOrder();
 const { instruments } = useInstruments();
-const { getInstrumentCurrencyByIds } = useActiveInstruments();
+const { getInstrumentCurrencyByIds, getPriceTickAndPrecision } =
+  useActiveInstruments();
 const { globalSetting } = storeToRefs(useGlobalStore());
 
 const columns = computed(() => {
@@ -95,7 +97,15 @@ onMounted(() => {
           ) as KungfuApi.Position[];
 
         pos.value = toRaw(
-          positions.reverse().map((item) => dealPosition(watcher, item)),
+          positions.reverse().map((item) => {
+            const { price_precision } = getPriceTickAndPrecision(
+              item.instrument_id,
+              item.exchange_id,
+              0.001,
+            );
+
+            return dealPosition(watcher, item, price_precision);
+          }),
         );
       },
     );
@@ -151,7 +161,7 @@ function dealLocationUIDResolved(holderUID: number): string {
 <template>
   <div class="kf-position__warp kf-translateZ">
     <KfDashboard @boardSizeChange="handleBodySizeChange">
-      <template v-slot:title>
+      <template #title>
         <span v-if="currentGlobalKfLocation">
           <a-tag
             v-if="currentCategoryData"
@@ -159,12 +169,12 @@ function dealLocationUIDResolved(holderUID: number): string {
           >
             {{ currentCategoryData?.name }}
           </a-tag>
-          <span class="name" v-if="currentGlobalKfLocation">
+          <span v-if="currentGlobalKfLocation" class="name">
             {{ getCurrentGlobalKfLocationId(currentGlobalKfLocation) }}
           </span>
         </span>
       </template>
-      <template v-slot:header>
+      <template #header>
         <KfDashboardItem>
           <a-input-search
             v-model:value="searchKeyword"
@@ -185,12 +195,12 @@ function dealLocationUIDResolved(holderUID: number): string {
       </template>
       <KfTradingDataTable
         :columns="columns"
-        :dataSource="tableData"
-        keyField="uid_key"
+        :data-source="tableData"
+        key-field="uid_key"
         @clickCell="handleClickRow"
       >
         <template
-          v-slot:default="{
+          #default="{
             item,
             column,
           }: {
@@ -235,15 +245,19 @@ function dealLocationUIDResolved(holderUID: number): string {
             <KfBlinkNum :num="Number(item.volume).toFixed(0)"></KfBlinkNum>
           </template>
           <template v-else-if="column.dataIndex === 'avg_open_price'">
-            <KfBlinkNum :num="dealKfPrice(item.avg_open_price)"></KfBlinkNum>
+            <KfBlinkNum
+              :num="dealKfPrice(item.avg_open_price, item.price_precision)"
+            ></KfBlinkNum>
           </template>
           <template v-else-if="column.dataIndex === 'last_price'">
-            <KfBlinkNum :num="dealKfPrice(item.last_price)"></KfBlinkNum>
+            <KfBlinkNum
+              :num="dealKfPrice(item.last_price, item.price_precision)"
+            ></KfBlinkNum>
           </template>
           <template v-else-if="column.dataIndex === 'unrealized_pnl'">
             <KfBlinkNum
               mode="compare-zero"
-              :num="dealAssetPrice(item.unrealized_pnl)"
+              :num="dealAssetPrice(item.unrealized_pnl, item.price_precision)"
             ></KfBlinkNum>
           </template>
         </template>

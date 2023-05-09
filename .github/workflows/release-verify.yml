@@ -18,7 +18,6 @@ jobs:
       build-runner-macos: macos-12-xl
       builder-container: docker.io/kungfutrader/kungfu-builder-centos:v1.2.2
       use-pipenv: true
-      use-poetry: true
       build-timeout-minutes: 150
       max-build-attempts: 3
       enable-linux: true

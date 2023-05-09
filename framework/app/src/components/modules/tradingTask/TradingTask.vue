@@ -60,6 +60,7 @@ const { processStatusData, processStatusDetailData, getStrategyStatusName } =
 const { globalFormState } = storeToRefs(useGlobalStore());
 const tradingTaskPropsInject = inject(
   BuiltinComponentInjectKeysMap.TradingTask,
+  {},
 );
 
 const { handleOpenSetTradingTaskModal } = useTradingTask();

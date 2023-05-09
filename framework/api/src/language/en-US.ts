@@ -317,7 +317,6 @@ export default {
 
     master: 'master',
     ledger: 'ledger',
-    cached: 'cached',
     archive: 'archive',
 
     place_order: 'Place Order',
@@ -757,10 +756,6 @@ export default {
   ledger_interrupt: 'ledger interrupted',
   ledger_desc:
     'Accounting services are responsible for position and capital calculations, please restart the application',
-
-  cached_interrupt: 'cached interrupted',
-  cached_desc:
-    'The storage service is responsible for data landing. The storage service disconnection does not affect transactions, please restart the application after the transaction',
 
   state_interrupt_msg: '{state} has been disconnected',
   state_interrupt_desc:

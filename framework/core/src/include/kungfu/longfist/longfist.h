@@ -25,9 +25,6 @@ constexpr auto AllTypes = boost::hana::make_map( //
     TYPE_PAIR(Pong),                             //
     TYPE_PAIR(RequestStop),                      //
     TYPE_PAIR(RequestStart),                     //
-    TYPE_PAIR(RequestCached),                    //
-    TYPE_PAIR(CachedReadyToRead),                //
-    TYPE_PAIR(RequestCachedDone),                //
     TYPE_PAIR(CustomSubscribe),                  //
     TYPE_PAIR(NewOrderSingle),                   //
     TYPE_PAIR(CancelOrder),                      //
@@ -64,7 +61,6 @@ constexpr auto AllTypes = boost::hana::make_map( //
     TYPE_PAIR(Band),                             //
     TYPE_PAIR(Basket),                           //
     TYPE_PAIR(BasketInstrument),                 //
-    TYPE_PAIR(TradingDay),                       //
     TYPE_PAIR(Channel),                          //
     TYPE_PAIR(ChannelRequest),                   //
     TYPE_PAIR(TimeRequest),                      //
@@ -120,7 +116,6 @@ constexpr auto AllTypes = boost::hana::make_map( //
     TYPE_PAIR(Band),                                                  //
     TYPE_PAIR(Basket),                                                //
     TYPE_PAIR(BasketInstrument),                                      //
-    TYPE_PAIR(TradingDay),                                            //
     TYPE_PAIR(Channel),                                               //
     TYPE_PAIR(ChannelRequest),                                        //
     TYPE_PAIR(TimeRequest),                                           //
@@ -196,6 +191,19 @@ constexpr auto TradingDataTypes = boost::hana::make_map( //
     TYPE_PAIR(OrderStat),                                //
     TYPE_PAIR(BasketOrder)                               //
 );
+
+constexpr auto MarketDataTypes = boost::hana::make_map( //
+    TYPE_PAIR(Quote),                                   //
+    TYPE_PAIR(Tree),                                    //
+    TYPE_PAIR(Entrust),                                 //
+    TYPE_PAIR(Transaction)                              //
+);
+
+template <typename T> constexpr bool is_in_types(auto types) { return boost::hana::contains(types, T::type_name); }
+
+template <typename DataType> constexpr bool is_profile_data() { return is_in_types<DataType>(ProfileDataTypes); };
+
+template <typename DataType> constexpr bool is_market_data() { return is_in_types<DataType>(MarketDataTypes); };
 
 const auto build_data_set = [](auto types) {
   std::unordered_set<int32_t> s;

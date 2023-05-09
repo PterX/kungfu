@@ -22,8 +22,6 @@ public:
     return longfist::enums::AccountType::Stock;
   }
 
-  void on_trading_day(const event_ptr &event, int64_t daytime) override;
-
   void on_start() override;
 
   void on_exit() override;
@@ -207,7 +205,6 @@ private:
   XTP::API::TraderApi *api_{};
   uint64_t session_id_;
   int request_id_;
-  std::string trading_day_;
   std::unordered_map<uint64_t, uint64_t> map_kf_to_xtp_order_id_;
   std::unordered_map<uint64_t, uint64_t> map_xtp_to_kf_order_id_;
   std::unordered_map<uint64_t, uint64_t> map_request_location_;

@@ -11,6 +11,8 @@
 #include "kungfu/yijinjing/cache/ringqueue.h"
 #include <sstream>
 
+#include <kungfu/yijinjing/cache/cached.h>
+
 using namespace kungfu::rx;
 using namespace kungfu::longfist;
 using namespace kungfu::longfist::enums;
@@ -228,10 +230,6 @@ Napi::Value Watcher::GetAppStates(const Napi::CallbackInfo &info) { return app_s
 
 Napi::Value Watcher::GetStrategyStates(const Napi::CallbackInfo &info) { return strategy_states_ref_.Value(); }
 
-Napi::Value Watcher::GetTradingDay(const Napi::CallbackInfo &info) {
-  return Napi::String::New(ledger_ref_.Env(), time::strftime(get_trading_day(), KUNGFU_TRADING_DAY_FORMAT));
-}
-
 Napi::Value Watcher::Now(const Napi::CallbackInfo &info) {
   return Napi::BigInt::New(ledger_ref_.Env(), time::now_in_nano());
 }
@@ -375,7 +373,6 @@ void Watcher::Init(Napi::Env env, Napi::Object exports) {
                       InstanceAccessor("ledger", &Watcher::GetLedger, &Watcher::NoSet),                 //
                       InstanceAccessor("appStates", &Watcher::GetAppStates, &Watcher::NoSet),           //
                       InstanceAccessor("strategyStates", &Watcher::GetStrategyStates, &Watcher::NoSet), //
-                      InstanceAccessor("tradingDay", &Watcher::GetTradingDay, &Watcher::NoSet),         //
                   });
 
   constructor = Napi::Persistent(func);
@@ -392,7 +389,7 @@ void Watcher::on_react() {
   before_start_events | is(Instrument::tag) | $$(Feed(event, event->data<Instrument>()));
   // bookkeeper restore, only Instrument and Commission,
   // for hidden pos && asset
-  before_start_events | is(Instrument::tag, Commission::tag) | $$(feed_state_data(event, state_bank_));
+  before_start_events | is(Instrument::tag, Commission::tag) | $$(cached::feed_state_data(event, state_bank_));
 }
 
 void Watcher::on_start() {
@@ -402,11 +399,12 @@ void Watcher::on_start() {
 
   if (not bypass_trading_data_) {
     // for receive runtime data
-    events_ | is(Quote::tag) | is_subscribed(subscribed_instruments_) | $$(feed_state_data(event, data_bank_));
+    events_ | is(Quote::tag) | is_subscribed(subscribed_instruments_) | $$(cached::feed_state_data(event, data_bank_));
     events_ | is(Instrument::tag) | $$(Feed(event, event->data<Instrument>()));
-    events_ | skip_while(while_is(Quote::tag)) | is_trading_data() | $$(feed_trading_data(event, trading_bank_));
+    events_ | skip_while(while_is(Quote::tag)) | is_trading_data() |
+        $$(cached::feed_trading_data(event, trading_bank_));
     events_ | skip_while(while_is(Quote::tag, Instrument::tag)) | skip_while(while_is_trading_data) |
-        $$(feed_state_data(event, data_bank_));
+        $$(cached::feed_state_data(event, data_bank_));
   }
 
   if (not bypass_accounting_ and not bypass_trading_data_) {
@@ -579,10 +577,6 @@ location_ptr Watcher::FindLocation(const Napi::CallbackInfo &info) {
 
 void Watcher::InspectChannel(int64_t trigger_time, const Channel &channel) {
   if (bypass_trading_data_) {
-    return;
-  }
-
-  if (channel.source_id == cached_home_location_->uid or channel.dest_id == cached_home_location_->uid) {
     return;
   }
 

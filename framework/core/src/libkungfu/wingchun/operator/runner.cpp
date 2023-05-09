@@ -26,8 +26,6 @@ void Runner::add_operator(const Operator_ptr &op) { operators_.push_back(op); }
 
 void Runner::on_exit() { post_stop(); }
 
-void Runner::on_trading_day(const event_ptr &event, int64_t daytime) { invoke(&Operator::on_trading_day, daytime); }
-
 void Runner::on_react() { context_ = make_context(); }
 
 void Runner::on_start() {

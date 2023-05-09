@@ -30,6 +30,7 @@ import { getKfGlobalSettingsValue } from '../config/globalSettings';
 import { Observable } from 'rxjs';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { Pm2StartOptions } from '../typings/global';
+import { KfHookKeeper } from '../hooks';
 const { t } = VueI18n.global;
 
 process.env.PM2_HOME = path.resolve(os.homedir(), '.pm2');
@@ -401,6 +402,12 @@ export const startProcess = async (
   options: Pm2StartOptions,
 ): Promise<Proc | void> => {
   const extDirs = await flattenExtensionModuleDirs(EXTENSION_DIRS);
+  options = await (globalThis.HookKeeper as KfHookKeeper)
+    .getHooks()
+    .resolveStartOptions.trigger(
+      { category: '*', group: '*', name: '*' } as KungfuApi.DerivedKfLocation,
+      options,
+    );
   const optionsResolved: Pm2StartOptions = {
     name: options.name,
     args: options.args, //有问题吗？
@@ -444,7 +451,6 @@ export const startProcess = async (
       BY_PASS_RESTORE: '',
     },
   };
-
   return pm2Start(optionsResolved).catch((err) => {
     kfLogger.error(err);
   });
@@ -696,8 +702,7 @@ export async function isAllMainProcessRunning() {
 
   return (
     getIfProcessRunning(processStatus, 'master') &&
-    getIfProcessRunning(processStatus, 'ledger') &&
-    getIfProcessRunning(processStatus, 'cached')
+    getIfProcessRunning(processStatus, 'ledger')
   );
 }
 
@@ -742,22 +747,6 @@ export const startLedger = async (force = false): Promise<void> => {
   try {
     await preStartProcess(processName, force);
     const args = buildArgs('run -c system -g service -n ledger');
-    await startProcess({
-      name: processName,
-      args,
-      force,
-    });
-  } catch (err: unknown) {
-    kfLogger.error((<Error>err).message);
-  }
-};
-
-export const startCacheD = async (force = false): Promise<void> => {
-  const processName = 'cached';
-
-  try {
-    await preStartProcess(processName, force);
-    const args = buildArgs('run -c system -g service -n cached');
     await startProcess({
       name: processName,
       args,

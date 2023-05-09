@@ -100,7 +100,6 @@ class TraderSim(wc.Trader):
             order.external_order_id = str(order.order_id)
             order.insert_time = event.gen_time
             order.update_time = event.gen_time
-            order.trading_day = kft.strfnow("%Y%m%d")
             # 增加repo不可以买入的限制
             if (
                 wc.utils.get_instrument_type(
@@ -169,6 +168,8 @@ class TraderSim(wc.Trader):
             if volume_traded > 0 and self.match_mode != MatchMode.Multiple:
                 trade = lf.types.Trade()
                 trade.trade_id = writer.current_frame_uid()
+                trade.external_order_id = order.external_order_id
+                trade.external_trade_id = str(trade.trade_id)
                 trade.order_id = order.order_id
                 trade.volume = volume_traded
                 trade.price = order.limit_price
@@ -178,12 +179,13 @@ class TraderSim(wc.Trader):
                 trade.instrument_type = order.instrument_type
                 trade.exchange_id = order.exchange_id
                 trade.trade_time = yjj.now_in_nano()
-                trade.trading_day = kft.strfnow("%Y%m%d")
                 writer.write(event.gen_time, trade)
             elif volume_traded > 0 and self.match_mode == MatchMode.Multiple:
                 while volume_traded > 0:
                     trade = lf.types.Trade()
                     trade.trade_id = writer.current_frame_uid()
+                    trade.external_order_id = order.external_order_id
+                    trade.external_trade_id = str(trade.trade_id)
                     trade.order_id = order.order_id
                     trade.volume = min_vol
                     trade.price = order.limit_price
@@ -193,7 +195,6 @@ class TraderSim(wc.Trader):
                     trade.instrument_type = order.instrument_type
                     trade.exchange_id = order.exchange_id
                     trade.trade_time = yjj.now_in_nano()
-                    trade.trading_day = kft.strfnow("%Y%m%d")
                     writer.write(event.gen_time, trade)
                     volume_traded -= trade.volume
                     self.logger.debug(f"trade.trade_id: {trade.trade_id}")

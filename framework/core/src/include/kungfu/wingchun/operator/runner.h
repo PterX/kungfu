@@ -21,8 +21,6 @@ public:
 
   void on_exit() override;
 
-  void on_trading_day(const event_ptr &event, int64_t daytime) override;
-
 protected:
   void on_react() override;
 

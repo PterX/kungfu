@@ -22,7 +22,7 @@ using kungfu::yijinjing::nanomsg::nanomsg_json;
 
 namespace kungfu::wingchun::strategy {
 
-BacktestContext::BacktestContext(apprentice &app, const rx::connectable_observable<event_ptr> &events,
+BacktestContext::BacktestContext(practice::apprentice &app, const rx::connectable_observable<event_ptr> &events,
                                  Matcher_ptr matcher)
     : Context(app, events), broker_client_(app_), bookkeeper_(app_, broker_client_), matcher_(std::move(matcher)) {
   log::copy_log_settings(app_.get_home(), app_.get_home()->name);
@@ -232,8 +232,6 @@ uint64_t BacktestContext::cancel_order(uint64_t order_id) {
   writer->close_data(now());
   return action.order_action_id;
 }
-
-int64_t BacktestContext::get_trading_day() const { return time::calendar_day_start(now()); }
 
 broker::Client &BacktestContext::get_broker_client() { return broker_client_; }
 

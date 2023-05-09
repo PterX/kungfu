@@ -33,8 +33,6 @@ protected:
 
   void on_start() override;
 
-  void on_active() override;
-
 private:
   void notify_broker_state();
 };
@@ -49,11 +47,7 @@ public:
 
   virtual void on_start();
 
-  virtual void on_active();
-
   virtual void on_exit();
-
-  virtual void on_trading_day(const event_ptr &event, int64_t daytime);
 
   [[nodiscard]] int64_t now() const;
 

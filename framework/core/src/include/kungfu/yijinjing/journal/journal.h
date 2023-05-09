@@ -29,7 +29,11 @@ public:
 
   [[nodiscard]] frame_ptr &current_frame() { return frame_; }
 
+  [[nodiscard]] uint64_t current_frame_id() const { return page_frame_nb_; }
+
   [[nodiscard]] page_ptr &current_page() { return page_; }
+
+  [[nodiscard]] uint32_t current_page_id() { return page_->get_page_id(); }
 
   [[nodiscard]] const data::location_ptr &get_location() const { return location_; }
 
@@ -61,6 +65,7 @@ private:
   page_ptr pre_page_;
   page_ptr page_;
   std::vector<page_ptr> passed_page_collector_;
+  std::recursive_mutex passed_page_collector_mtx_;
   frame_ptr frame_;
   uint64_t page_frame_nb_;
 
@@ -97,7 +102,11 @@ public:
 
   [[nodiscard]] frame_ptr current_frame() const { return current_->current_frame(); }
 
+  [[nodiscard]] uint64_t current_frame_id() const { return current_->current_frame_id(); }
+
   [[nodiscard]] page_ptr current_page() const { return current_->current_page(); }
+
+  [[nodiscard]] uint32_t current_page_id() const { return current_->current_page_id(); }
 
   [[maybe_unused]] [[nodiscard]] const JournalMap &get_journals() const { return journals_; }
 

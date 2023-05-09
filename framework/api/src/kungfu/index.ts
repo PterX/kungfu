@@ -33,7 +33,13 @@ export const kf = kungfu();
 
 kfLogger.info('Load kungfu node');
 
-export const assemble = kf.Assemble([KF_RUNTIME_DIR]);
+export const tracer = (
+  kflocation: KungfuApi.KfLocation,
+  read: boolean,
+  write: boolean,
+  startTime: bigint,
+  endTime: bigint,
+) => kf.tracer(kflocation, KF_RUNTIME_DIR, read, write, startTime, endTime);
 export const configStore = kf.ConfigStore(KF_RUNTIME_DIR);
 export const riskSettingStore = kf.RiskSettingStore(KF_RUNTIME_DIR);
 export const history = kf.History(KF_RUNTIME_DIR);

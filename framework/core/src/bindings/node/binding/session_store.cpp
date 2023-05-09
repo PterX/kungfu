@@ -16,10 +16,7 @@ SessionStore::SessionStore(const Napi::CallbackInfo &info)
           IODevice::ExtractLocation(info, 0, IODevice::ExtractRuntimeLocatorByIndex(info, 1)), false, true)) //
       {};
 
-SessionStore::~SessionStore() {
-  SPDLOG_INFO("SessionStore destructor");
-  io_device_.reset();
-}
+SessionStore::~SessionStore() { io_device_.reset(); }
 
 Napi::Value SessionStore::GetAllSessions(const Napi::CallbackInfo &info) {
   auto session_finder = std::make_shared<yijinjing::index::session_finder>(io_device_);
@@ -36,6 +33,7 @@ Napi::Value SessionStore::GetSessionsForLocation(const Napi::CallbackInfo &info)
 
 void SessionStore::Init(Napi::Env env, Napi::Object exports) {
   Napi::HandleScope scope(env);
+  env.AddCleanupHook(cleanup);
 
   Napi::Function func = DefineClass(env, "SessionStore",
                                     {

@@ -28,10 +28,14 @@ public:
   void NoSet(const Napi::CallbackInfo &info, const Napi::Value &value);
 
 private:
-  static Napi::FunctionReference constructor;
-
   Napi::ObjectReference types_ref_;
   Napi::ObjectReference msg_types_ref_;
+
+  static Napi::FunctionReference constructor;
+  static void cleanup() {
+    SPDLOG_INFO("Longfist reset");
+    Longfist::constructor.Reset();
+  }
 };
 } // namespace kungfu::node
 

@@ -50,7 +50,7 @@ void tracer::seek_to_time(int64_t nano_time) {
     }
   }
 
-  reader_->seek_to_time(begin_time_);
+  reader_->seek_to_time(nano_time);
 }
 
 frame_ptr tracer::current_frame() const {

@@ -314,6 +314,7 @@ export default {
     CNH: 'CNH',
     SGD: 'SGD',
     MYR: 'MYR',
+    CEN: 'CEN',
 
     master: 'master',
     ledger: 'ledger',
@@ -548,6 +549,22 @@ export default {
     loading_journal: 'Loading journal...',
 
     input_time_format_error: 'The inputed time format error',
+
+    undefined_instrument_id: 'Undefined instrument_id',
+
+    read_event: 'Read event',
+
+    write_event: 'Write event',
+
+    Event: 'Event',
+
+    Visual: 'Visual',
+
+    please_input_instrument_id: 'Please input instrument_id',
+
+    time_range: 'Time range',
+
+    please_input_time: 'Please input time',
   },
 
   tradeConfig: {

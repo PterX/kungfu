@@ -27,13 +27,13 @@ uint64_t writer::current_frame_uid() {
 }
 
 frame_ptr writer::open_frame(int64_t trigger_time, int32_t msg_type, uint32_t data_length) {
-  assert(sizeof(frame_header) + data_length + sizeof(frame_header) <= journal_.page_->get_page_size());
   int64_t start_time = time::now_in_nano();
   while (not writer_mtx_.try_lock()) {
     if (time::now_in_nano() - start_time > 30 * time_unit::NANOSECONDS_PER_SECOND) {
       throw journal_error("Can not lock writer for " + journal_.location_->uname);
     }
   }
+  assert(sizeof(frame_header) + data_length + sizeof(frame_header) <= journal_.page_->get_page_size());
   if (journal_.current_frame()->address() + sizeof(frame_header) + data_length >= journal_.page_->address_border()) {
     close_page(trigger_time);
   }
@@ -105,6 +105,9 @@ void writer::close_data() { close_frame(size_to_write_); }
 
 void writer::close_page(int64_t trigger_time) {
   page_ptr last_page = journal_.page_;
+
+  // must load_next_page before mark PageEnd::tag,
+  // or reader of other process may read next page before it created
   journal_.load_next_page();
 
   frame last_page_frame;

@@ -30,6 +30,10 @@ public:
 
   [[nodiscard]] Napi::Value CurrentFrame(const Napi::CallbackInfo &info);
 
+  [[nodiscard]] Napi::Value CurrentFrameId(const Napi::CallbackInfo &info);
+
+  [[nodiscard]] Napi::Value CurrentPageId(const Napi::CallbackInfo &info);
+
   Napi::Value Now(const Napi::CallbackInfo &info);
 
   void SeekToTime(const Napi::CallbackInfo &info);
@@ -42,6 +46,10 @@ public:
 
 private:
   static Napi::FunctionReference constructor;
+  static void cleanup() {
+    SPDLOG_INFO("Tracer reset");
+    Tracer::constructor.Reset();
+  }
 };
 
 class Frame : public Napi::ObjectWrap<Frame> {
@@ -62,6 +70,8 @@ public:
 
   Napi::Value Data(const Napi::CallbackInfo &info);
 
+  Napi::Value DataAsString(const Napi::CallbackInfo &info);
+
   static void Init(Napi::Env env, Napi::Object exports);
 
   static Napi::Value NewInstance(Napi::Value arg);
@@ -69,6 +79,10 @@ public:
 private:
   yijinjing::journal::frame_ptr frame_;
   static Napi::FunctionReference constructor;
+  static void cleanup() {
+    SPDLOG_INFO("Frame reset");
+    Frame::constructor.Reset();
+  }
 
   void SetFrame(yijinjing::journal::frame_ptr frame);
 
@@ -102,6 +116,10 @@ public:
 private:
   yijinjing::io_device_ptr io_device_;
   static Napi::FunctionReference constructor;
+  static void cleanup() {
+    SPDLOG_INFO("Reader reset");
+    Reader::constructor.Reset();
+  }
 };
 
 class Assemble : public Napi::ObjectWrap<Assemble>, public yijinjing::journal::assemble {
@@ -120,6 +138,10 @@ public:
 
 private:
   static Napi::FunctionReference constructor;
+  static void cleanup() {
+    SPDLOG_INFO("Assemble reset");
+    Assemble::constructor.Reset();
+  }
 };
 } // namespace kungfu::node
 #endif // KUNGFU_NODE_JOURNAL_H

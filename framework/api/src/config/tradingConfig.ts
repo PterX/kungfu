@@ -979,4 +979,5 @@ export const Currency: Record<CurrencyEnum, KungfuApi.KfTradeValueCommonData> =
     [CurrencyEnum.CNH]: { name: t('tradingConfig.CNH') },
     [CurrencyEnum.SGD]: { name: t('tradingConfig.SGD') },
     [CurrencyEnum.MYR]: { name: t('tradingConfig.MYR') },
+    [CurrencyEnum.CEN]: { name: t('tradingConfig.CEN') },
   };

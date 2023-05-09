@@ -67,6 +67,10 @@ export const watcher = ((): KungfuApi.Watcher | null => {
   );
 })();
 
+process.on('exit', () => {
+  watcher && watcher.quit();
+});
+
 export const startWatcher = () => {
   if (watcher === null) return;
   watcher.start();

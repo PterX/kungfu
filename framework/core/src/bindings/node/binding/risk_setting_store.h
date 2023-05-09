@@ -45,8 +45,6 @@ private:
     SPDLOG_INFO("RiskSettingStore reset");
     RiskSettingStore::constructor.Reset();
   }
-
-  friend class Watcher;
 };
 } // namespace kungfu::node
 

@@ -2428,12 +2428,13 @@ export const isCheckVersionLogicEnable = () => {
 };
 
 export const buildIfWatcherLiveObservable = (watcher: KungfuApi.Watcher) => {
+  let timer; // for ui refresh
   return new Observable<boolean>((sub) => {
-    const timer = setTimerPromiseTask(async () => {
+    timer = setTimerPromiseTask(async () => {
       if (watcher.isLive()) {
         sub.next(true);
         sub.complete();
-        timer.clearLoop();
+        timer && timer.clearLoop();
       }
     }, 1000);
   });

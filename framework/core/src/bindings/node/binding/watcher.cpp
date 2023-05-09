@@ -128,7 +128,6 @@ Watcher::Watcher(const Napi::CallbackInfo &info)
   auto config_store = ConfigStore::Unwrap(config_ref_.Value());
 
   bool sync_schema = not get_io_device()->is_usable();
-  SPDLOG_INFO("sync_schema {}", sync_schema);
   if (sync_schema) {
     config_store->profile_.setup();
   }

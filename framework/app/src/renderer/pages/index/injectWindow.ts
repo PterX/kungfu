@@ -5,7 +5,7 @@ import {
   basketStore,
   commissionStore,
   configStore,
-  getWatcherId,
+  getRendererProcessId,
   kf,
   riskSettingStore,
 } from '@kungfu-trader/kungfu-js-api/kungfu';
@@ -22,6 +22,6 @@ window.commissionStore = commissionStore;
 
 window.testCase = {};
 window.testCase.crashTheWatcher = () => {
-  const id = getWatcherId();
+  const id = getRendererProcessId();
   return kf.watcher(KF_RUNTIME_DIR, kf.formatStringToHashHex(id), false, false);
 };

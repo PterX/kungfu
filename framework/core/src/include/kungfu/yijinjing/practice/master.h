@@ -47,6 +47,8 @@ public:
 
   [[maybe_unused]] void deregister_app(int64_t trigger_time, uint32_t app_location_uid);
 
+  void on_request_deregister(const event_ptr &event);
+
 protected:
   void react() final;
 

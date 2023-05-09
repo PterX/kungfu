@@ -40,8 +40,6 @@ private:
     SPDLOG_INFO("BasketInstrumentStore reset");
     BasketInstrumentStore::constructor.Reset();
   }
-
-  friend class Watcher;
 };
 } // namespace kungfu::node
 

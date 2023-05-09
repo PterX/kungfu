@@ -385,7 +385,7 @@ function isNumberInputType(type: string): boolean {
 }
 
 const SpecialWordsReg = new RegExp(
-  "[`~!@#$^&*()=|{}';',\\[\\]<>《》/?~！@#￥……&*（）——|{}【】‘；：”“'。，、？]",
+  "[`~!@#$^&*()=|{}';',\\[\\]<>《》?~！@#￥……&*（）——|{}【】‘；”“'。，、？_]",
 );
 function primaryKeyValidator(_rule: RuleObject, value: string): Promise<void> {
   const combineValue: string = getCombineValueByPrimaryKeys(
@@ -393,7 +393,6 @@ function primaryKeyValidator(_rule: RuleObject, value: string): Promise<void> {
     formState.value,
     props.primaryKeyAvoidRepeatCompareExtra,
   );
-
   if (
     props.primaryKeyAvoidRepeatCompareTarget
       .map((item): string => item.toLowerCase())
@@ -1149,8 +1148,8 @@ defineExpose({
         v-model:value="formState[item.key]"
         :max="item.max ?? Infinity"
         :min="item.min ?? -Infinity"
-        :precision="item.precision || 3"
-        :step="item.step || 0.001"
+        :precision="item.precision ?? 3"
+        :step="item.step ?? 0.001"
         :disabled="
           (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
           item.disabled

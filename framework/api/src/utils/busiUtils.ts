@@ -1218,7 +1218,7 @@ export const buildIdByKeysFromKfConfigSettings = (
   keys: string[],
 ) => {
   return keys
-    .map((key) => kfConfigState[key])
+    .map((key) => replaceNonAlphaNumericWithSpace(kfConfigState[key]))
     .filter((value) => value !== undefined)
     .join('-');
 };
@@ -1457,7 +1457,7 @@ export const dealKfPrice = (
     return afterNumber;
   }
 
-  return Number(afterNumber).toFixed(pricePrecision || 3);
+  return Number(afterNumber).toFixed(pricePrecision ?? 3);
 };
 
 export const dealAssetPrice = (
@@ -1470,7 +1470,7 @@ export const dealAssetPrice = (
     return afterNumber;
   }
 
-  return Number(afterNumber).toFixed(pricePrecision || 3);
+  return Number(afterNumber).toFixed(pricePrecision ?? 3);
 };
 
 export const sum = (list: number[]): number => {
@@ -1918,15 +1918,40 @@ export const getPrimaryKeys = (
 ): string[] => {
   return settings.filter((item) => item.primary).map((item) => item.key);
 };
+export const replaceNonAlphaNumericWithSpace = (str: string) => {
+  return str.replace(/[^a-zA-Z0-9]+/g, '');
+};
+const concatPrimaryKey = (arr: string[]) => {
+  if (arr.length === 0) return '';
+
+  let result = arr[0];
+
+  if (arr.length > 1) {
+    result += '_' + arr[1];
+  }
+
+  if (arr.length > 2) {
+    for (let i = 2; i < arr.length; i++) {
+      result += '-' + arr[i];
+    }
+  }
+
+  return result;
+};
 
 export const getCombineValueByPrimaryKeys = (
   primaryKeys: string[],
   formState: Record<string, KungfuApi.KfConfigValue>,
   extraValue = '',
 ) => {
-  return [extraValue || '', ...primaryKeys.map((key) => formState[key])]
-    .filter((item) => item !== '')
-    .join('_');
+  return concatPrimaryKey(
+    [
+      extraValue || '',
+      ...primaryKeys.map((key) =>
+        replaceNonAlphaNumericWithSpace(formState[key]),
+      ),
+    ].filter((item) => item !== ''),
+  );
 };
 
 export const transformSearchInstrumentResultToInstrument = (
@@ -2428,12 +2453,13 @@ export const isCheckVersionLogicEnable = () => {
 };
 
 export const buildIfWatcherLiveObservable = (watcher: KungfuApi.Watcher) => {
+  let timer; // for ui refresh
   return new Observable<boolean>((sub) => {
-    const timer = setTimerPromiseTask(async () => {
+    timer = setTimerPromiseTask(async () => {
       if (watcher.isLive()) {
         sub.next(true);
         sub.complete();
-        timer.clearLoop();
+        timer && timer.clearLoop();
       }
     }, 1000);
   });

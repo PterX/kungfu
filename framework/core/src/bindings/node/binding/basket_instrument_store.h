@@ -37,9 +37,9 @@ private:
 
   static Napi::FunctionReference constructor;
   static void cleanup() {
+    SPDLOG_INFO("BasketInstrumentStore reset");
     BasketInstrumentStore::constructor.Reset();
   }
-
 
   friend class Watcher;
 };

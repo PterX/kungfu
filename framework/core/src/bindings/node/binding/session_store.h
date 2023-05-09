@@ -42,7 +42,10 @@ private:
   }
 
   static Napi::FunctionReference constructor;
-  static void cleanup() { SessionStore::constructor.Reset(); }
+  static void cleanup() {
+    SPDLOG_INFO("SessionStore reset");
+    SessionStore::constructor.Reset();
+  }
 };
 
 } // namespace kungfu::node

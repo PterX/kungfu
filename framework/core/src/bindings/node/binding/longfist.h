@@ -32,8 +32,10 @@ private:
   Napi::ObjectReference msg_types_ref_;
 
   static Napi::FunctionReference constructor;
-  static void cleanup() { Longfist::constructor.Reset(); }
-
+  static void cleanup() {
+    SPDLOG_INFO("Longfist reset");
+    Longfist::constructor.Reset();
+  }
 };
 } // namespace kungfu::node
 

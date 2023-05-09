@@ -114,10 +114,17 @@ protected:
 
 private:
   static Napi::FunctionReference constructor;
-  static void cleanup() { Watcher::constructor.Reset(); }
+  static void cleanup() {
+    SPDLOG_INFO("Watcher reset");
+    Watcher::constructor.Reset();
+  }
 
   uv_work_t uv_work_ = {};
+  uv_loop_t *loop_;
+
   bool uv_work_live_ = false;
+  bool quit_ = false;
+
   WatcherAutoClient broker_client_;
   wingchun::book::Bookkeeper bookkeeper_;
   wingchun::basketorder::BasketOrderEngine basketorder_engine_;

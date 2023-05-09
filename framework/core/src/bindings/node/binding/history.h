@@ -30,7 +30,10 @@ private:
   yijinjing::data::location_ptr ledger_location_;
   yijinjing::cache::profile profile_;
   static Napi::FunctionReference constructor;
-  static void cleanup() { History::constructor.Reset(); }
+  static void cleanup() {
+    SPDLOG_INFO("History reset");
+    History::constructor.Reset();
+  }
 };
 } // namespace kungfu::node
 

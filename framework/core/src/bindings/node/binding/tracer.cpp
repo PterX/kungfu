@@ -33,6 +33,14 @@ Napi::Value Tracer::CurrentFrame(const Napi::CallbackInfo &info) {
   return frame;
 }
 
+Napi::Value Tracer::CurrentFrameId(const Napi::CallbackInfo &info) {
+  return Napi::BigInt::New(info.Env(), current_frame_id());
+}
+
+Napi::Value Tracer::CurrentPageId(const Napi::CallbackInfo &info) {
+  return Napi::Number::New(info.Env(), current_page_id());
+}
+
 Napi::Value Tracer::Now(const Napi::CallbackInfo &info) { return Napi::BigInt::New(info.Env(), time::now_in_nano()); }
 
 void Tracer::SeekToTime(const Napi::CallbackInfo &info) {
@@ -52,11 +60,13 @@ void Tracer::Init(Napi::Env env, Napi::Object exports) {
 
   Napi::Function func = DefineClass(env, "Tracer",
                                     {
-                                        InstanceMethod("currentFrame", &Tracer::CurrentFrame),   //
-                                        InstanceMethod("dataAvailable", &Tracer::DataAvailable), //
-                                        InstanceMethod("next", &Tracer::Next),                   //
-                                        InstanceMethod("now", &Tracer::Now),                     //
-                                        InstanceMethod("seekToTime", &Tracer::SeekToTime),       //
+                                        InstanceMethod("currentFrame", &Tracer::CurrentFrame),     //
+                                        InstanceMethod("currentFrameId", &Tracer::CurrentFrameId), //
+                                        InstanceMethod("currentPageId", &Tracer::CurrentPageId),   //
+                                        InstanceMethod("dataAvailable", &Tracer::DataAvailable),   //
+                                        InstanceMethod("next", &Tracer::Next),                     //
+                                        InstanceMethod("now", &Tracer::Now),                       //
+                                        InstanceMethod("seekToTime", &Tracer::SeekToTime),         //
                                     });
   constructor = Napi::Persistent(func);
   constructor.SuppressDestruct();

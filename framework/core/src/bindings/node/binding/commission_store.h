@@ -42,12 +42,11 @@ private:
 
   static Napi::FunctionReference constructor;
   static void cleanup() {
+    SPDLOG_INFO("CommissionStore reset");
     CommissionStore::constructor.Reset();
   }
 
   longfist::types::Commission ExtractCommission(const Napi::CallbackInfo &info);
-
-  friend class Watcher;
 };
 } // namespace kungfu::node
 

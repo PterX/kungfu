@@ -85,7 +85,7 @@ Napi::Value BasketInstrumentStore::SetBasketInstrument(const Napi::CallbackInfo 
 void BasketInstrumentStore::Init(Napi::Env env, Napi::Object exports) {
   Napi::HandleScope scope(env);
   env.AddCleanupHook(cleanup);
-  
+
   Napi::Function func =
       DefineClass(env, "BasketInstrumentStore",
                   {

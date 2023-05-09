@@ -52,6 +52,7 @@ import {
 import {
   showTradingDataDetail,
   useCurrentGlobalKfLocation,
+  useDealDataWithCaches,
   useProcessStatusDetailData,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import StatisticModal from './OrderStatisticModal.vue';
@@ -66,6 +67,10 @@ const { getPriceTickAndPrecision } = useActiveInstruments();
 const { handleBodySizeChange } = useDashboardBodySize();
 
 const { processStatusData } = useProcessStatusDetailData();
+const { dealerResolved, clearCaches } = useDealDataWithCaches<
+  KungfuApi.Order,
+  KungfuApi.OrderResolved
+>(['uid_key', 'update_time']);
 const orders = ref<KungfuApi.OrderResolved[]>([]);
 const allOrders = ref<KungfuApi.OrderResolved[]>([]);
 const { searchKeyword, tableData } =
@@ -139,12 +144,14 @@ onMounted(() => {
             );
 
             return toRaw(
-              dealOrder(
-                watcher,
-                item,
-                watcher.ledger.OrderStat,
-                false,
-                price_precision,
+              dealerResolved(item, () =>
+                dealOrder(
+                  watcher,
+                  item,
+                  watcher.ledger.OrderStat,
+                  false,
+                  price_precision,
+                ),
               ),
             );
           });
@@ -205,9 +212,11 @@ watch(currentGlobalKfLocation, () => {
   historyDate.value = undefined;
   allOrders.value = [];
   orders.value = [];
+  clearCaches();
 });
 
 watch(historyDate, async (newDate) => {
+  clearCaches();
   if (!newDate) {
     return;
   }

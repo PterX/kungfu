@@ -8,6 +8,7 @@
 #include <kungfu/longfist/longfist.h>
 #include <kungfu/yijinjing/practice/master.h>
 #include <kungfu/yijinjing/time.h>
+#include <kungfu/yijinjing/util/os.h>
 
 using namespace kungfu::rx;
 using namespace kungfu::longfist;
@@ -142,10 +143,14 @@ void master::register_app(const event_ptr &event) {
   on_register(event, register_data);
 }
 
-[[maybe_unused]] void master::deregister_app(int64_t trigger_time, uint32_t app_location_uid) {
+void master::deregister_app(int64_t trigger_time, uint32_t app_location_uid) {
+  if (not is_location_live(app_location_uid)) {
+    SPDLOG_ERROR("location {} has already been deregistered", get_location_uname(app_location_uid));
+    return;
+  }
+
   auto location = get_location(app_location_uid);
   SPDLOG_INFO("app {} gone", location->uname);
-
   session_builder_.close_session(location, trigger_time);
   get_writer(app_location_uid)->mark(trigger_time, SessionEnd::tag);
   deregister_channel(app_location_uid);
@@ -156,6 +161,13 @@ void master::register_app(const event_ptr &event) {
   writers_.erase(app_location_uid);
   timer_tasks_.erase(app_location_uid);
   get_writer(location::PUBLIC)->write(trigger_time, location->to<Deregister>());
+}
+
+void master::on_request_deregister(const event_ptr &event) {
+  auto dest = event->dest();
+  auto source = event->source();
+  SPDLOG_INFO("deregister_app from {} to {}", get_location_uname(source), get_location_uname(dest));
+  deregister_app(event->trigger_time(), source);
 }
 
 [[maybe_unused]] void master::publish_trading_day() { write_trading_day(0, get_writer(location::PUBLIC)); }
@@ -185,6 +197,9 @@ void master::react() {
   events_ | is(RequestCachedDone::tag) | $$(on_request_cached_done(event));
   events_ | is(Ping::tag) | $$(pong(event));
   events_ | instanceof <journal::frame>() | $$(feed(event));
+
+  // have to be at bottom of react, for avoid event still required after reader disjoin
+  events_ | is(RequestDeregister::tag) | $$(on_request_deregister(event));
 }
 
 void master::on_active() {

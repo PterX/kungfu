@@ -41,9 +41,10 @@ private:
   yijinjing::cache::profile profile_;
 
   static Napi::FunctionReference constructor;
-  static void cleanup() {RiskSettingStore::constructor.Reset();}
-
-  friend class Watcher;
+  static void cleanup() {
+    SPDLOG_INFO("RiskSettingStore reset");
+    RiskSettingStore::constructor.Reset();
+  }
 };
 } // namespace kungfu::node
 

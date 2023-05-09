@@ -144,6 +144,11 @@ void master::register_app(const event_ptr &event) {
 }
 
 void master::deregister_app(int64_t trigger_time, uint32_t app_location_uid) {
+  if (not is_location_live(app_location_uid)) {
+    SPDLOG_ERROR("location {} has already been deregistered", get_location_uname(app_location_uid));
+    return;
+  }
+
   auto location = get_location(app_location_uid);
   SPDLOG_INFO("app {} gone", location->uname);
   session_builder_.close_session(location, trigger_time);

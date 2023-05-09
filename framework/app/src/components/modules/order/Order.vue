@@ -151,7 +151,7 @@ onMounted(() => {
                   watcher.ledger.OrderStat,
                   false,
                   price_precision,
-                )
+                ),
               ),
             );
           });

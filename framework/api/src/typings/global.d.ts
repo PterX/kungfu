@@ -116,6 +116,10 @@ export interface RootConfigJSON {
 
     T0T1?: T0T1Config;
 
+    defaultExtension?: {
+      Td?: string;
+    };
+
     makeOrder?: {
       priceTypeFilter?: Record<string, boolean>;
       offsetFilter?: Record<string, boolean>;

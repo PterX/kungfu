@@ -1457,7 +1457,7 @@ export const dealKfPrice = (
     return afterNumber;
   }
 
-  return Number(afterNumber).toFixed(pricePrecision || 3);
+  return Number(afterNumber).toFixed(pricePrecision ?? 3);
 };
 
 export const dealAssetPrice = (
@@ -1470,7 +1470,7 @@ export const dealAssetPrice = (
     return afterNumber;
   }
 
-  return Number(afterNumber).toFixed(pricePrecision || 3);
+  return Number(afterNumber).toFixed(pricePrecision ?? 3);
 };
 
 export const sum = (list: number[]): number => {

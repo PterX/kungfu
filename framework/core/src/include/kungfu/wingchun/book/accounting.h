@@ -21,7 +21,8 @@ static const longfist::enums::AccountingMethodType get_accounting_method_type() 
   }
 
   SPDLOG_INFO("AccountingMethod::setup_defaults IS_OUTSIDE_ACCOUNTING_TYPE = {}", is_outside);
-  if (std::string(is_outside) == "1") {
+  std::string yes_str = "1";
+  if (strcmp(is_outside, yes_str.c_str()) == 0) {
     return longfist::enums::AccountingMethodType::Outside;
   }
   return longfist::enums::AccountingMethodType::Default;

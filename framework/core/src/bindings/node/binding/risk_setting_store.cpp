@@ -135,6 +135,7 @@ Napi::Value RiskSettingStore::RemoveRiskSetting(const Napi::CallbackInfo &info) 
 
 void RiskSettingStore::Init(Napi::Env env, Napi::Object exports) {
   Napi::HandleScope scope(env);
+  env.AddCleanupHook(cleanup);
 
   Napi::Function func = DefineClass(env, "RiskSettingStore",
                                     {

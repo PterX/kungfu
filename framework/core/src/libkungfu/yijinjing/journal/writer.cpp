@@ -105,6 +105,9 @@ void writer::close_data() { close_frame(size_to_write_); }
 
 void writer::close_page(int64_t trigger_time) {
   page_ptr last_page = journal_.page_;
+
+  // must load_next_page before mark PageEnd::tag,
+  // or reader of other process may read next page before it created
   journal_.load_next_page();
 
   frame last_page_frame;

@@ -41,6 +41,10 @@ private:
   yijinjing::cache::profile profile_;
 
   static Napi::FunctionReference constructor;
+  static void cleanup() {
+    SPDLOG_INFO("CommissionStore reset");
+    CommissionStore::constructor.Reset();
+  }
 
   longfist::types::Commission ExtractCommission(const Napi::CallbackInfo &info);
 

@@ -244,6 +244,7 @@ watch(
     });
     if (limitPriceIndex) {
       configSettings.value[limitPriceIndex].step = step;
+      configSettings.value[limitPriceIndex].precision = pricePrecision;
     }
 
     makeOrderInstrumentType.value = instrumentResolved.value.instrumentType;

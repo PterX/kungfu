@@ -16,6 +16,8 @@ import {
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import { useExtConfigsRelated } from '../../assets/methods/actionsUtils';
 import VueI18n, { useLanguage } from '@kungfu-trader/kungfu-js-api/language';
+import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
+
 const { t } = VueI18n.global;
 
 const props = withDefaults(
@@ -66,6 +68,14 @@ const modalTitle = computed(() => {
 onMounted(() => {
   if (selectedExtension.value === '') {
     if (availExtensionList.value.length) {
+      const packageJSON = readRootPackageJsonSync();
+      const extension = packageJSON.appConfig?.defaultExtension?.Td;
+      for (let i = 0; i < availExtensionList.value.length; i++) {
+        if (availExtensionList.value[i].name === extension) {
+          selectedExtension.value = availExtensionList.value[i].key;
+          return;
+        }
+      }
       selectedExtension.value = availExtensionList.value[0].key;
     }
   }

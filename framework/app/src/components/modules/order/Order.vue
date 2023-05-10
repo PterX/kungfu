@@ -165,9 +165,19 @@ onMounted(() => {
         let finishedOrdersCount = 0;
         const { totalOrders, ordersForTable } = ordersResolved.reduce(
           (preOrders, curOrder) => {
+            const { price_precision } = getPriceTickAndPrecision(
+              curOrder.instrument_id,
+              curOrder.exchange_id,
+              0.001,
+            );
+
             const orderResolved = toRaw(
-              dealerResolved(curOrder, () =>
-                dealOrder(watcher, curOrder, watcher.ledger.OrderStat),
+              dealOrder(
+                watcher,
+                curOrder,
+                watcher.ledger.OrderStat,
+                false,
+                price_precision,
               ),
             );
             preOrders.totalOrders.push(orderResolved);
@@ -241,13 +251,23 @@ watch(historyDate, async (newDate) => {
         ) as KungfuApi.Order[];
 
       const tempAllOrders = toRaw(
-        orderResolved.map((item) =>
-          toRaw(
-            dealerResolved(item, () =>
-              dealOrder(window.watcher, item, tradingData.OrderStat, true),
+        orderResolved.map((item) => {
+          const { price_precision } = getPriceTickAndPrecision(
+            item.instrument_id,
+            item.exchange_id,
+            0.001,
+          );
+
+          return toRaw(
+            dealOrder(
+              window.watcher,
+              item,
+              tradingData.OrderStat,
+              true,
+              price_precision,
             ),
-          ),
-        ),
+          );
+        }),
       );
       allOrders.value = tempAllOrders;
       orders.value = tempAllOrders;

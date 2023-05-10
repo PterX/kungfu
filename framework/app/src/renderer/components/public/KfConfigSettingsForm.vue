@@ -1148,8 +1148,8 @@ defineExpose({
         v-model:value="formState[item.key]"
         :max="item.max ?? Infinity"
         :min="item.min ?? -Infinity"
-        :precision="item.precision || 3"
-        :step="item.step || 0.001"
+        :precision="item.precision ?? 3"
+        :step="item.step ?? 0.001"
         :disabled="
           (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
           item.disabled

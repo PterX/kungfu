@@ -101,6 +101,8 @@ public:
 
   void AfterMasterDown(const Napi::CallbackInfo &info);
 
+  void RequestDeregister();
+
 protected:
   const bool bypass_accounting_;
   const bool bypass_trading_data_;
@@ -120,8 +122,6 @@ private:
   }
 
   uv_work_t uv_work_ = {};
-  uv_loop_t *loop_;
-
   bool uv_work_live_ = false;
   bool quit_ = false;
 
@@ -352,7 +352,7 @@ private:
 
       auto trigger_time = yijinjing::time::now_in_nano();
       auto account_writer = get_writer(account_location->uid);
-      auto master_cmd_writer = get_writer(get_master_commands_uid());
+      auto master_cmd_writer = get_writer(get_master_command_uid());
       Instruction instruction = {};
       serialize::JsGet{}(instruction_object, instruction);
 

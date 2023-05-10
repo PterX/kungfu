@@ -66,7 +66,7 @@ void cached::on_start() {
   events_ | is(CacheReset::tag) | $$(on_cache_reset(event));
   events_ | instanceof <journal::frame>() | filter([&](const event_ptr &event) {
                          auto source_id = event->source();
-                         return source_id != master_home_location_->uid and source_id != master_cmd_location_->uid;
+                         return source_id != master_home_location_->uid and source_id != get_master_command_uid();
                        }) | $$(feed(event));
 }
 
@@ -83,7 +83,7 @@ void cached::on_notify() {
 }
 
 void cached::mark_request_cached_done(uint32_t dest_id) {
-  auto writer = get_writer(master_cmd_location_->uid);
+  auto writer = get_writer(get_master_command_uid());
   RequestCachedDone &rcd = writer->open_data<RequestCachedDone>();
   rcd.dest_id = dest_id;
   writer->close_data();

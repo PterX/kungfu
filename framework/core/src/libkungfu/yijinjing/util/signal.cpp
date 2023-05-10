@@ -140,4 +140,7 @@ void handle_os_signals(void *hero) {
     signal(s, kf_os_signal_handler);
   }
 }
+
+void reset_hero_instance() { hero_instance = nullptr; }
+
 } // namespace kungfu::yijinjing::os

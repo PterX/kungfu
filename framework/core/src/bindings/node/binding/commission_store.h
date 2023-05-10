@@ -47,8 +47,6 @@ private:
   }
 
   longfist::types::Commission ExtractCommission(const Napi::CallbackInfo &info);
-
-  friend class Watcher;
 };
 } // namespace kungfu::node
 

@@ -116,6 +116,7 @@ onMounted(() => {
               item.exchange_id,
               0.001,
             );
+
             return toRaw(
               dealTrade(
                 watcher,
@@ -179,9 +180,23 @@ watch(historyDate, async (newDate) => {
         ) as KungfuApi.Trade[];
 
       const tempAllTrades = toRaw(
-        tradesResolved.map((item) =>
-          toRaw(dealTrade(window.watcher, item, tradingData.OrderStat, true)),
-        ),
+        tradesResolved.map((item) => {
+          const { price_precision } = getPriceTickAndPrecision(
+            item.instrument_id,
+            item.exchange_id,
+            0.001,
+          );
+
+          return toRaw(
+            dealTrade(
+              window.watcher,
+              item,
+              tradingData.OrderStat,
+              true,
+              price_precision,
+            ),
+          );
+        }),
       );
 
       trades.value = tempAllTrades;

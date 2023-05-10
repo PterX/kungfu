@@ -58,11 +58,11 @@ export function getCurrentNodeLocation(): KungfuApi.KfLocation {
     mode: 'live',
     category: 'system',
     group: 'node',
-    name: getWatcherId(),
+    name: getRendererProcessId(),
   };
 }
 
-export function getWatcherId(): string {
+export function getRendererProcessId(): string {
   const watcherId = [
     process.env.APP_TYPE,
     process.env.UI_EXT_TYPE,
@@ -72,7 +72,7 @@ export function getWatcherId(): string {
   ]
     .filter((str) => !!str)
     .join('-');
-  kfLogger.info(`WatcherId ${watcherId}`);
+  kfLogger.info(`Renderer ProcessId ${watcherId}`);
   return watcherId;
 }
 

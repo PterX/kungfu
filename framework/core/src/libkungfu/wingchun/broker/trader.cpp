@@ -62,7 +62,7 @@ BrokerService_ptr TraderVendor::get_service() { return service_; }
 
 void TraderVendor::clean_orders() {
   std::set<uint32_t> strategy_uids = {};
-  auto master_cmd_writer = get_writer(get_master_commands_uid());
+  auto master_cmd_writer = get_writer(get_master_command_uid());
   for (auto &pair : state_bank_[boost::hana::type_c<Order>]) {
     auto &order_state = pair.second;
     auto &order = const_cast<Order &>(order_state.data);

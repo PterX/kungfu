@@ -36,7 +36,13 @@ addFileSync('', ARCHIVE_DIR, 'folder');
 export const BASE_DB_DIR = path.join(SYSTEM_DIR, 'etc', 'kungfu', 'db', 'live');
 
 //RENDERER_LOG_DIR
-export const RENDERER_LOG_DIR = path.join(SYSTEM_DIR, 'node', 'renderer-app', 'log', 'live');
+export const RENDERER_LOG_DIR = path.join(
+  SYSTEM_DIR,
+  'node',
+  'renderer-app',
+  'log',
+  'live',
+);
 
 //================== others start =================================
 

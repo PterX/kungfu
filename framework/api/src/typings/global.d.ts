@@ -102,17 +102,23 @@ export interface RootConfigJSON {
   kungfuCraft?: {
     appTitle?: string;
     productName?: string;
+    env?: Record<string, string>;
     autoUpdate?: {
       update?: Writeable<AllPublishOptions>;
     };
   };
-  boardFilter?: Record<string, boolean>;
   appConfig?: {
     showHelp?: boolean;
+
+    boardFilter?: Record<string, boolean>;
 
     kfConfigInitValue?: Record<string, KungfuApi.KfConfigValue>;
 
     T0T1?: T0T1Config;
+
+    defaultExtension?: {
+      Td?: string;
+    };
 
     makeOrder?: {
       priceTypeFilter?: Record<string, boolean>;

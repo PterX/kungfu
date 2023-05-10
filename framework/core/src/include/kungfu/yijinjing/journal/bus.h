@@ -18,11 +18,11 @@ public:
 
   bool is_on_load_page_required() const { return on_load_page_required_; }
 
+  void notify_all();
+
 private:
   std::condition_variable cv_;
   const bool on_load_page_required_;
-
-  void notify_all();
 };
 
 DECLARE_PTR(bus);

@@ -94,6 +94,7 @@ Napi::Value ConfigStore::RemoveConfig(const Napi::CallbackInfo &info) {
 
 void ConfigStore::Init(Napi::Env env, Napi::Object exports) {
   Napi::HandleScope scope(env);
+  env.AddCleanupHook(cleanup);
 
   Napi::Function func = DefineClass(env, "ConfigStore",
                                     {

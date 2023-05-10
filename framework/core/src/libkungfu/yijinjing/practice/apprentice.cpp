@@ -29,7 +29,7 @@ bool apprentice::is_started() const { return started_; }
 
 void apprentice::pause() { started_ = false; }
 
-uint32_t apprentice::get_master_commands_uid() const { return master_cmd_location_->uid; }
+uint32_t apprentice::get_master_command_uid() const { return master_cmd_location_->uid; }
 
 int64_t apprentice::get_checkin_time() const { return checkin_time_; }
 
@@ -39,19 +39,19 @@ const cache::bank &apprentice::get_state_bank() const { return state_bank_; }
 
 void apprentice::request_read_from(int64_t trigger_time, uint32_t source_id, int64_t from_time) {
   if (get_io_device()->get_home()->mode == mode::LIVE) {
-    require_read_from(trigger_time, master_cmd_location_->uid, source_id, from_time);
+    require_read_from(trigger_time, get_master_command_uid(), source_id, from_time);
   }
 }
 
 void apprentice::request_read_from_public(int64_t trigger_time, uint32_t source_id, int64_t from_time) {
   if (get_io_device()->get_home()->mode == mode::LIVE) {
-    require_read_from_public(trigger_time, master_cmd_location_->uid, source_id, from_time);
+    require_read_from_public(trigger_time, get_master_command_uid(), source_id, from_time);
   }
 }
 
 void apprentice::request_read_from_sync(int64_t trigger_time, uint32_t source_id, int64_t from_time) {
   if (get_io_device()->get_home()->mode == mode::LIVE) {
-    require_read_from_sync(trigger_time, master_cmd_location_->uid, source_id, from_time);
+    require_read_from_sync(trigger_time, get_master_command_uid(), source_id, from_time);
   }
 }
 
@@ -64,13 +64,13 @@ void apprentice::request_read_from_source_to_dest(int64_t trigger_time, const lo
 
 void apprentice::request_write_to(int64_t trigger_time, uint32_t dest_id) {
   if (get_io_device()->get_home()->mode == mode::LIVE) {
-    require_write_to(trigger_time, master_cmd_location_->uid, dest_id);
+    require_write_to(trigger_time, get_master_command_uid(), dest_id);
   }
 }
 
 void apprentice::request_write_to_band(int64_t trigger_time, const location_ptr &location) {
   if (get_io_device()->get_home()->mode == mode::LIVE) {
-    require_write_to_band(trigger_time, master_cmd_location_->uid, location);
+    require_write_to_band(trigger_time, get_master_command_uid(), location);
   }
 }
 
@@ -168,7 +168,6 @@ void apprentice::react() {
       checkin_time_ = data.checkin_time;
       reader_->join(master_cmd_location_, get_live_home_uid(), event->gen_time());
     });
-
     checkin();
     expect_start();
   }

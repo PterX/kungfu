@@ -33,7 +33,13 @@ export const kf = kungfu();
 
 kfLogger.info('Load kungfu node');
 
-export const assemble = kf.Assemble([KF_RUNTIME_DIR]);
+export const tracer = (
+  kflocation: KungfuApi.KfLocation,
+  read: boolean,
+  write: boolean,
+  startTime: bigint,
+  endTime: bigint,
+) => kf.tracer(kflocation, KF_RUNTIME_DIR, read, write, startTime, endTime);
 export const configStore = kf.ConfigStore(KF_RUNTIME_DIR);
 export const riskSettingStore = kf.RiskSettingStore(KF_RUNTIME_DIR);
 export const history = kf.History(KF_RUNTIME_DIR);
@@ -52,11 +58,11 @@ export function getCurrentNodeLocation(): KungfuApi.KfLocation {
     mode: 'live',
     category: 'system',
     group: 'node',
-    name: getWatcherId(),
+    name: getRendererProcessId(),
   };
 }
 
-export function getWatcherId(): string {
+export function getRendererProcessId(): string {
   const watcherId = [
     process.env.APP_TYPE,
     process.env.UI_EXT_TYPE,
@@ -66,7 +72,7 @@ export function getWatcherId(): string {
   ]
     .filter((str) => !!str)
     .join('-');
-  kfLogger.info(`WatcherId ${watcherId}`);
+  kfLogger.info(`Renderer ProcessId ${watcherId}`);
   return watcherId;
 }
 

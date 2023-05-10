@@ -369,6 +369,7 @@ declare namespace KungfuApi {
       name: string,
       mode: string,
     ): KungfuApi.KfConfig | false;
+    getAllLocation();
   }
 
   export interface HistoryStore {
@@ -950,18 +951,22 @@ declare namespace KungfuApi {
     msgType: FunctionOrData<T, FrameMsgTypeEnum>; // to enum
     source: FunctionOrData<T, number>;
     dest: FunctionOrData<T, number>;
-    data: FunctionOrData<T, string>;
-    // destName: FunctionOrData<T, string>;
+    data: FunctionOrData<T, object>;
+    stringMsgType?: string;
+    destName?: string;
+    sourceName?: string;
+    sourceToDest?: string;
+    dataResolved?: unknown[];
   }
 
   export interface FrameResolved extends Frame {
     genTimeResolved: string;
     triggerTimeResolved: string;
     msgTypeResolved: KfTradeValueCommonData;
-    destResolved: string;
-    sourceResolved: string;
-    sourceToDest: string;
-    dataResolved: unknown[];
+    destResolved?: string;
+    sourceResolved?: string;
+    sourceToDest?: string | undefined;
+    dataResolved?: unknown[];
   }
 
   export interface AssembleReader {
@@ -980,7 +985,13 @@ declare namespace KungfuApi {
     seekToTime(): void;
     next(): void;
     dataAvailable(): boolean;
+  }
+  export interface Tracer {
+    currentFrame(): Frame<'func'>;
+    dataAvailable(): boolean;
+    next(): void;
     seekToTime(nanotime: bigint): void;
+    now(): bigint;
   }
 
   export interface Longfist {
@@ -1006,7 +1017,10 @@ declare namespace KungfuApi {
   }
 
   export interface IODevice {
-    getAllLocations(): Record<string, KfLocation>;
+    getAllLocations(): Record<
+      string,
+      KfLocation & { uname: string; uid: number }
+    >;
   }
 
   export interface SessionStore {
@@ -1026,6 +1040,14 @@ declare namespace KungfuApi {
     IODevice(location: KfLocation, kfHome: string): IODevice;
     Longfist(): Longfist;
     Assemble(kfHome: string[]): Assemble;
+    tracer(
+      location: KfLocation,
+      kfHome: string,
+      home: boolean,
+      write: boolean,
+      startTime: bigint,
+      endTime: bigint,
+    ): Tracer;
     watcher(
       kfHome: string,
       hashedId: string,

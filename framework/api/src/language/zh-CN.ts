@@ -249,6 +249,8 @@ export default {
     INE: '能源中心',
 
     HK: '港股',
+    SHHK: '沪港通',
+    SZHK: '深港通',
     HKFUT: '港期',
     US: '美股',
     USFUT: '美期',

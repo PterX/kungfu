@@ -71,7 +71,7 @@ public:
       auto cm_mr =
           get_instrument_contract_multiplier_and_margin_ratio(book, quote.exchange_id, quote.instrument_id, position);
 
-      // ´Ë´¦½ö¼ÆËã½áËã¼Û£¬µ«ĞèÒª¸ù¾İÊµÊ±ĞĞÇé±ä»¯
+      // æ­¤å¤„ä»…è®¡ç®—ç»“ç®—ä»·ï¼Œä½†éœ€è¦æ ¹æ®å®æ—¶è¡Œæƒ…å˜åŒ–
       if (is_valid_price(quote.settlement_price)) {
         auto margin_pre = position.margin;
         position.margin = cm_mr.contract_multiplier * position.settlement_price * cm_mr.exchange_rate *
@@ -193,7 +193,7 @@ public:
     }
   }
 
-  //< ¸üĞÂ¸¡¶¯Ó¯¿÷
+  //< æ›´æ–°æµ®åŠ¨ç›ˆäº
   void update_position(Book_ptr &book, Position &position) override {
     if (position.last_price > 0) {
       auto cm_mr = get_instrument_contract_multiplier_and_margin_ratio(book, position.exchange_id,
@@ -218,7 +218,7 @@ public:
 
       auto multiplier = cm_mr.contract_multiplier * (position.direction == Direction::Long ? 1 : -1);
       auto price_diff = position.last_price - position.avg_open_price;
-      // ¸¡¶¯Ó¯¿÷
+      // æµ®åŠ¨ç›ˆäº
       position.unrealized_pnl = (price_diff * position.volume) * multiplier - cost;
     }
   }

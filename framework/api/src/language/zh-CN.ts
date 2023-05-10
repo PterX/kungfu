@@ -39,6 +39,7 @@ export default {
   open_resources_directory: '打开功夫资源目录 (KF_HOME)',
   open_install_directory: '打开功夫安装目录',
   open_basic_configuration: '打开功夫基础配置DB',
+  open_renderer_app_log: '打开客户端底层日志',
   browsing_log: '浏览日志文件',
 
   clear_journal: '清理journal',

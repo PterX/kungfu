@@ -37,6 +37,7 @@ import {
 import {
   BASE_DB_DIR,
   KF_HOME,
+  RENDERER_LOG_DIR,
 } from '@kungfu-trader/kungfu-js-api/config/pathConfig';
 import {
   initKfConfig,
@@ -341,9 +342,18 @@ function setMenu() {
             shell.showItemInFolder(path.join(BASE_DB_DIR, 'config.db')),
         },
         {
+          label: t('open_renderer_app_log'),
+          click: () => shell.openPath(RENDERER_LOG_DIR),
+        },
+        {
           label: t('browsing_log'),
           accelerator: 'CommandOrControl+L',
           click: () => MainWindow && openLogFile(MainWindow),
+        },
+        {
+          label: t('view_all_journal'),
+          accelerator: 'CommandOrControl+J',
+          click: () => MainWindow && viewAllJournal(MainWindow),
         },
       ],
     },
@@ -366,11 +376,6 @@ function setMenu() {
           label: t('export_all_transaction_data'),
           accelerator: 'CommandOrControl+E',
           click: () => MainWindow && exportAllTradingData(MainWindow),
-        },
-        {
-          label: t('view_all_journal'),
-          accelerator: 'CommandOrControl+J',
-          click: () => MainWindow && viewAllJournal(MainWindow),
         },
       ],
     },

@@ -30,10 +30,13 @@ addFileSync('', LOG_DIR, 'folder');
 export const ARCHIVE_DIR = path.join(KF_HOME, 'archive');
 addFileSync('', ARCHIVE_DIR, 'folder');
 
-//================= global db start ==============================
+//================= special item start ==============================
 
 //BASE_DB_DIR strategys, accounts, tasks
 export const BASE_DB_DIR = path.join(SYSTEM_DIR, 'etc', 'kungfu', 'db', 'live');
+
+//RENDERER_LOG_DIR
+export const RENDERER_LOG_DIR = path.join(SYSTEM_DIR, 'node', 'renderer-app', 'log', 'live');
 
 //================== others start =================================
 

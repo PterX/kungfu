@@ -72,7 +72,7 @@ export function getRendererProcessId(): string {
   ]
     .filter((str) => !!str)
     .join('-');
-  kfLogger.info(`WatcherId ${watcherId}`);
+  kfLogger.info(`Renderer ProcessId ${watcherId}`);
   return watcherId;
 }
 

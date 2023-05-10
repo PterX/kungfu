@@ -251,6 +251,8 @@ export default {
     INE: 'INE',
 
     HK: 'HK',
+    SHHK: 'SHHK',
+    SZHK: 'SZHK',
     HKFUT: 'HKFUT',
     US: 'US',
     USFUT: 'USFUT',

@@ -4,13 +4,13 @@
 // Created by Keren Dong on 2020/4/4.
 //
 
-#include "accounting/bond.hpp"
-#include "accounting/crypto.hpp"
-#include "accounting/future.hpp"
-#include "accounting/repo.hpp"
-#include "accounting/stock.hpp"
-#include "outsideaccounting/outside_future.hpp"
-#include "outsideaccounting/outside_stock.hpp"
+#include "accounting/default/bond.hpp"
+#include "accounting/default/crypto.hpp"
+#include "accounting/default/future.hpp"
+#include "accounting/default/repo.hpp"
+#include "accounting/default/stock.hpp"
+#include "accounting/otc/future.hpp"
+#include "accounting/otc/stock.hpp"
 
 using namespace kungfu::wingchun;
 

@@ -27,17 +27,17 @@ void AccountingMethod::setup_defaults(Bookkeeper &bookkeeper,
   bookkeeper.set_accounting_method(InstrumentType::CryptoFuture, crypto_accounting_method);
   bookkeeper.set_accounting_method(InstrumentType::CryptoUFuture, crypto_accounting_method);
 
-  if (accounting_method_type == longfist::enums::AccountingMethodType::Outside) {
-    auto outside_stock_accounting_method = std::make_shared<OutsideStockAccountingMethod>();
-    auto outside_future_accounting_method = std::make_shared<OutsideFutureAccountingMethod>();
+  if (accounting_method_type == longfist::enums::AccountingMethodType::OTC) {
+    auto otc_stock_accounting_method = std::make_shared<OtcStockAccountingMethod>();
+    auto otc_future_accounting_method = std::make_shared<OtcFutureAccountingMethod>();
 
-    bookkeeper.set_accounting_method(InstrumentType::Stock, outside_stock_accounting_method);
-    bookkeeper.set_accounting_method(InstrumentType::Fund, outside_stock_accounting_method);
-    bookkeeper.set_accounting_method(InstrumentType::TechStock, outside_stock_accounting_method);
-    bookkeeper.set_accounting_method(InstrumentType::Index, outside_stock_accounting_method);
-    bookkeeper.set_accounting_method(InstrumentType::Unknown, outside_stock_accounting_method);
-    bookkeeper.set_accounting_method(InstrumentType::StockOption, outside_future_accounting_method);
-    bookkeeper.set_accounting_method(InstrumentType::Future, outside_future_accounting_method);
+    bookkeeper.set_accounting_method(InstrumentType::Stock, otc_stock_accounting_method);
+    bookkeeper.set_accounting_method(InstrumentType::Fund, otc_stock_accounting_method);
+    bookkeeper.set_accounting_method(InstrumentType::TechStock, otc_stock_accounting_method);
+    bookkeeper.set_accounting_method(InstrumentType::Index, otc_stock_accounting_method);
+    bookkeeper.set_accounting_method(InstrumentType::Unknown, otc_stock_accounting_method);
+    bookkeeper.set_accounting_method(InstrumentType::StockOption, otc_future_accounting_method);
+    bookkeeper.set_accounting_method(InstrumentType::Future, otc_future_accounting_method);
   } else {
     auto stock_accounting_method = std::make_shared<StockAccountingMethod>();
     auto future_accounting_method = std::make_shared<FutureAccountingMethod>();

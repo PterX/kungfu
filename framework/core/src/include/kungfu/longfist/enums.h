@@ -601,7 +601,7 @@ enum class PageStatus : int8_t { Normal, PreOpen };
 
 inline std::ostream &operator<<(std::ostream &os, PageStatus t) { return os << int8_t(t); }
 
-enum class AccountingMethodType : int8_t { Default = 0, Outside = 1 };
+enum class AccountingMethodType : int8_t { Default = 0, OTC = 1 };
 
 } // namespace kungfu::longfist::enums
 #endif // KUNGFU_LONGFIST_ENUM_H

@@ -96,8 +96,16 @@ protected:
 
   void prepare(const event_ptr &event) override{};
 
+  yijinjing::data::location_ptr find_md_location(const std::string &source);
+
+  yijinjing::data::location_ptr find_op_location(const std::string &group, const std::string &name);
+
 private:
   broker::PassiveClient broker_client_;
+  std::multimap<int64_t, std::function<void(event_ptr)>> pre_timer_callbacks_ = {};
+  std::multimap<int64_t, std::function<void(event_ptr)>> timer_callbacks_ = {};
+
+  void on_timer_check();
 };
 } // namespace kungfu::wingchun::op
 

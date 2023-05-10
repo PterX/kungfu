@@ -28,7 +28,7 @@ protected:
 
   void on_active() override;
 
-  virtual LiveContext_ptr make_context();
+  virtual Context_ptr make_context();
 
   virtual void pre_start();
 

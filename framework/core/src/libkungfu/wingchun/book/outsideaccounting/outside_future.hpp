@@ -39,7 +39,6 @@ public:
       auto cm_mr =
           get_instrument_contract_multiplier_and_margin_ratio(book, quote.exchange_id, quote.instrument_id, position);
 
-      // �˴����������ۣ�����Ҫ����ʵʱ����仯
       if (is_valid_price(quote.settlement_price)) {
         auto margin_pre = position.margin;
         position.margin = cm_mr.contract_multiplier * position.settlement_price * cm_mr.exchange_rate *
@@ -161,7 +160,6 @@ public:
     }
   }
 
-  //< ���¸���ӯ��
   void update_position(Book_ptr &book, Position &position) override {
     if (position.last_price > 0) {
       auto cm_mr = get_instrument_contract_multiplier_and_margin_ratio(book, position.exchange_id,
@@ -186,7 +184,6 @@ public:
 
       auto multiplier = cm_mr.contract_multiplier * (position.direction == Direction::Long ? 1 : -1);
       auto price_diff = position.last_price - position.avg_open_price;
-      // ����ӯ��
       position.unrealized_pnl = (price_diff * position.volume) * multiplier - cost;
     }
   }

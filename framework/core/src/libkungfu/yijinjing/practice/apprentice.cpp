@@ -168,7 +168,6 @@ void apprentice::react() {
       checkin_time_ = data.checkin_time;
       reader_->join(master_cmd_location_, get_live_home_uid(), event->gen_time());
     });
-
     checkin();
     expect_start();
   }

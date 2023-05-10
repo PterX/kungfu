@@ -136,7 +136,7 @@ protected:
     auto duration_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(d).count();
     auto writer = get_writer(get_master_command_uid());
     int32_t timer_usage_count = timer_usage_count_;
-    longfist::types::TimeRequest &r = writer->open_data<longfist::types::TimeRequest>(data::location::PUBLIC);
+    longfist::types::TimeRequest &r = writer->open_data<longfist::types::TimeRequest>(now());
     r.id = timer_usage_count;
     r.base_time = now();
     r.duration = duration_ns;

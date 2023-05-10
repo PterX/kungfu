@@ -155,7 +155,6 @@ void master::deregister_app(int64_t trigger_time, uint32_t app_location_uid) {
 
   auto location = get_location(app_location_uid);
   SPDLOG_INFO("app {} gone", location->uname);
-
   cached_.close_session(location, trigger_time);
   get_writer(app_location_uid)->mark(trigger_time, SessionEnd::tag);
   deregister_channel(app_location_uid);

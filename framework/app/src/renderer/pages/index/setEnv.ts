@@ -5,4 +5,12 @@ process.env.APP_ID = 'app';
 process.env.RELOAD_AFTER_CRASHED = process.argv.includes('reloadAfterCrashed')
   ? 'true'
   : 'false';
+
+if (
+  localStorage.getItem('page-reloaded') === '1' ||
+  process.env.RELOAD_AFTER_CRASHED === 'true'
+) {
+  process.env.RELOAD_AFTER_CRASHED = 'true';
+  localStorage.setItem('page-reloaded', '');
+}
 console.log('RELOAD_AFTER_CRASHED', process.env.RELOAD_AFTER_CRASHED);

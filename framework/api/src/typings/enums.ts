@@ -266,9 +266,6 @@ export enum FrameMsgTypeEnum {
   Pong = 10009,
   RequestStop = 10024,
   RequestStart = 10025,
-  NewOrderSingle = 353,
-  CancelOrder = 354,
-  CancelAllOrder = 355,
   ResetBookRequest = 400,
   MirrorPositionsRequest = 401,
   AssetRequest = 402,
@@ -341,4 +338,5 @@ export enum CurrencyEnum {
   CNH, // 离岸人民币
   SGD, // 新加坡元
   MYR, // 马来西亚吉特
+  CEN, // 美分
 }

@@ -50,6 +50,7 @@ hero::~hero() {
   reader_.reset();
   io_device_.reset();
   ensure_sqlite_shutdown();
+  os::reset_hero_instance();
 }
 
 bool hero::is_usable() { return io_device_->is_usable(); }

@@ -39,6 +39,7 @@ export default {
   open_resources_directory: '打开功夫资源目录 (KF_HOME)',
   open_install_directory: '打开功夫安装目录',
   open_basic_configuration: '打开功夫基础配置DB',
+  open_renderer_app_log: '打开客户端底层日志',
   browsing_log: '浏览日志文件',
 
   clear_journal: '清理journal',
@@ -312,6 +313,7 @@ export default {
     CNH: 'CNH',
     SGD: 'SGD',
     MYR: 'MYR',
+    CEN: 'CEN',
 
     master: '主控进程',
     ledger: '计算服务',
@@ -543,6 +545,32 @@ export default {
     loading_journal: '正在加载 journal',
 
     input_time_format_error: '输入时间格式有误',
+
+    search_instrument_id: '搜索标的',
+
+    stock_price: '股价',
+
+    trade_node: '成交节点',
+
+    order_node: '下单节点',
+
+    input_instrument_id: '请输入标的名称',
+
+    undefined_instrument_id: '找不到对应的标的',
+
+    read_event: '输入事件',
+
+    write_event: '输出事件',
+
+    Event: '事件',
+
+    Visual: '视图',
+
+    please_input_instrument_id: '请输入标的名称',
+
+    time_range: '时间范围',
+
+    please_input_time: '请输入时间',
   },
 
   tradeConfig: {
@@ -690,7 +718,7 @@ export default {
     downloaded: '下载完成, 等待安装',
     to_install: '现在安装',
     warning_before_install:
-      '安装会清理当日交易数并退出功夫 (如有需要请提前备份), 确定现在安装吗? (建议盘后进行)',
+      '安装会清理当日交易数据并退出功夫 (如有需要请提前备份), 确定现在安装吗? (建议盘后进行)',
   },
 
   风控: '风控',
@@ -761,7 +789,7 @@ export default {
   closing: '结束交易进程中, 请勿关闭...',
 
   computer_performance_abnormal:
-    '电脑性能过低, 继续启动可能会导致系统进程奔溃, 建议使用8核及以上的 CPU 运行系统',
+    '电脑性能过低, 继续启动可能会导致系统进程崩溃, 建议使用8核及以上的 CPU 运行系统',
 
   quit_confirm: '退出应用会结束所有交易进程, 确认退出吗?',
   restart_process: '功夫图形进程中断, 该中断不会影响交易, 是否重启图形进程？',

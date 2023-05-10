@@ -73,3 +73,7 @@ export const getStrategyKfLocation = (strategyId: string) => {
     mode: 'live',
   };
 };
+
+export const getAllLocation = (): Record<string, KungfuApi.KfConfig> => {
+  return configStore.getAllLocation();
+};

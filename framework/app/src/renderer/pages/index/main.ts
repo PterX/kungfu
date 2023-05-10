@@ -76,6 +76,7 @@ import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import zhCN from 'ant-design-vue/es/locale/zh_CN';
 import enUS from 'ant-design-vue/es/locale/en_US';
 import { first } from 'rxjs';
+import { getCurrentWebContents } from '@electron/remote';
 
 const app = createApp(App);
 
@@ -247,3 +248,10 @@ mergeExtLanguages().then(() =>
 );
 
 triggerStartStep(1000);
+
+const webContents = getCurrentWebContents();
+webContents.on('devtools-reload-page', () => {
+  console.warn('devtools-reload-page');
+  window.watcher && window.watcher.quit();
+  localStorage.setItem('page-reloaded', '1');
+});

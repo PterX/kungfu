@@ -16,12 +16,15 @@ tracer::tracer(const location_ptr location, bool in, bool out, int64_t begin, in
       begin_time_(begin), end_time_(end == 0 ? INT64_MAX : end) {
 
   if (in) {
-    auto uid_str = fmt::format("{:08x}", home_->uid);
-    auto master_cmd_location = location::make_shared(mode::LIVE, category::SYSTEM, "master", uid_str, get_locator());
     auto master_home_location = location::make_shared(mode::LIVE, category::SYSTEM, "master", "master", get_locator());
 
-    reader_->join(master_cmd_location, home_->uid, begin_time_);
-    reader_for_in_->join(master_cmd_location, home_->uid, begin_time_);
+    if (location->uid != master_home_location->uid) {
+      auto uid_str = fmt::format("{:08x}", home_->uid);
+      auto master_cmd_location = location::make_shared(mode::LIVE, category::SYSTEM, "master", uid_str, get_locator());
+      reader_->join(master_cmd_location, home_->uid, begin_time_);
+      reader_for_in_->join(master_cmd_location, home_->uid, begin_time_);
+    }
+
     reader_->join(master_home_location, location::PUBLIC, begin_time_);
     reader_for_in_->join(master_home_location, location::PUBLIC, begin_time_);
   }
@@ -50,7 +53,7 @@ void tracer::seek_to_time(int64_t nano_time) {
     }
   }
 
-  reader_->seek_to_time(begin_time_);
+  reader_->seek_to_time(nano_time);
 }
 
 frame_ptr tracer::current_frame() const {

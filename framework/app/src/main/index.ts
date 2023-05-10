@@ -343,6 +343,7 @@ function setMenu() {
         },
         {
           label: t('open_renderer_app_log'),
+          accelerator: 'CommandOrControl+Shift+L',
           click: () => shell.openPath(RENDERER_LOG_DIR),
         },
         {

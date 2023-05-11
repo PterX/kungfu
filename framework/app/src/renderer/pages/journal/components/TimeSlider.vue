@@ -224,7 +224,7 @@ const onAfterChange = (value: number) => {
 };
 </script>
 
-<style lang="less" scoped>
+<style lang="less">
 .kf-time-slider__wrap {
   display: flex;
   align-items: center;

@@ -81,6 +81,8 @@ void master::mark_session_end_on_exit() {
       SPDLOG_WARN("no writer {} {}", session.location_uid, get_location_uname(session.location_uid));
     }
   }
+
+  // have to use new now, ensuring later than all messages
   session_builder_.close_all_sessions(time::now_in_nano());
 }
 

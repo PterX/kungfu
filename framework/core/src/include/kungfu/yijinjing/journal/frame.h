@@ -7,6 +7,7 @@
 
 namespace kungfu::yijinjing::journal {
 
+
 /**
  * Basic memory unit,
  * holds header / data / errorMsg (if needs)

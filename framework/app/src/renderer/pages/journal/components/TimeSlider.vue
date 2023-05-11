@@ -11,6 +11,7 @@
     </div>
     <a-slider
       ref="slider"
+      :key="sliderKey"
       v-model:value="curTime"
       v-dragging="{ onMouseDown: handleMouseDown, onMouseUp: handleMouseUp }"
       class="kf-time-slider"
@@ -20,7 +21,7 @@
       }"
       :tooltip-visible="toolTipVisable"
       :min="nano2millionSecond(props.beginTime)"
-      :max="nano2millionSecond(props.nowTime)"
+      :max="maxTime"
       :step="nano2millionSecond(step)"
       :tip-formatter="tipFormatter"
       @after-change="onAfterChange"
@@ -40,7 +41,7 @@
 </template>
 
 <script lang="ts" setup>
-import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 
 import { dealKfTime } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { ForwardOutlined, BackwardOutlined } from '@ant-design/icons-vue';
@@ -65,24 +66,41 @@ const emit = defineEmits<{
   (e: 'update:currentTime', value: bigint): void;
 }>();
 const toolTipVisable = ref(false);
+
 const SCALE = 1000000;
 const BIGINT_SCALE = BigInt(SCALE);
 const TEN_SECOND = BigInt(10000000000);
-const isDragging = ref<boolean>(false);
+const isDragging = ref(false);
 const slider = ref();
+const sliderKey = ref(0);
+const endTimeChange = ref(true);
+const maxTime = computed(() => {
+  if (props.currentSession?.status === SessionStatusEnum.Finished) {
+    return nano2millionSecond(props.endTime);
+  } else {
+    return nano2millionSecond(props.nowTime);
+  }
+});
 
 onMounted(() => {
+  window.addEventListener('resize', handleResize);
   window.addEventListener('mouseup', globalMouseUp);
+
   nextTick(() => {
     setTimeout(() => {
       toolTipVisable.value = true;
-    }, 2000);
+    }, 500);
   });
 });
 
 onUnmounted(() => {
   window.removeEventListener('mouseup', globalMouseUp);
+  window.removeEventListener('resize', handleResize);
 });
+
+const handleResize = () => {
+  sliderKey.value++;
+};
 
 const handleMouseDown = () => {
   isDragging.value = true;
@@ -153,10 +171,28 @@ const timeStrs = ref([
 watch(
   () => props.nowTime,
   () => {
-    timeStrs.value = [
-      customDealKftime(props.beginTime),
-      customDealKftime(props.endTime || props.nowTime),
-    ];
+    if (endTimeChange.value) {
+      timeStrs.value = [
+        customDealKftime(props.beginTime),
+        customDealKftime(props.endTime || props.nowTime),
+      ];
+    }
+  },
+);
+watch(
+  () => props.currentSession?.status,
+  (newSession) => {
+    if (newSession === SessionStatusEnum.Finished) {
+      endTimeChange.value = false;
+      timeStrs.value = [
+        customDealKftime(props.beginTime),
+        customDealKftime(
+          (props.currentSession as KungfuApi.SessionResolved).end_time,
+        ),
+      ];
+    } else {
+      endTimeChange.value = true;
+    }
   },
 );
 watch(
@@ -189,12 +225,7 @@ const onAfterChange = (value: number) => {
 };
 </script>
 
-<style lang="less">
-:deep(.ant-slider-track .ant-slider-step) {
-  border-color: #fff !important;
-  color: #fff !important;
-  background-color: #fff !important;
-}
+<style lang="less" scoped>
 .kf-time-slider__wrap {
   display: flex;
   align-items: center;
@@ -231,13 +262,14 @@ const onAfterChange = (value: number) => {
 
   .kf-time-slider-handler-focus-1 {
     .ant-slider-handle-1 {
-      border-color: #faad14;
+      // border-color: #faad14;
+      border-color: aqua;
     }
   }
 
   .kf-time-slider-handler-focus-2 {
     .ant-slider-handle-2 {
-      border-color: #faad14;
+      border-color: aqua;
     }
   }
 

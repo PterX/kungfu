@@ -50,7 +50,6 @@
           :begin-time="beginTime"
           :end-time="endTime"
           :step="60"
-          stick
           class="kf-journal-time-slider"
         ></TimeSlider>
         <ExportJournal @export-journal-data="onExportJournalData" />

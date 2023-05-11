@@ -22,7 +22,7 @@
       :tooltip-visible="toolTipVisable"
       :min="nano2millionSecond(props.beginTime)"
       :max="maxTime"
-      :step="nano2millionSecond(step)"
+      :step="nano2millionSecond(props.step)"
       :tip-formatter="tipFormatter"
       @after-change="onAfterChange"
       @mousedown="handleMouseDown"
@@ -55,7 +55,6 @@ const props = withDefaults(
     beginTime: bigint;
     endTime: bigint;
     step: number;
-    stick: boolean;
   }>(),
   {
     step: 10000000, // step 为纳秒级别， 默认为10毫秒

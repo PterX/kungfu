@@ -23,6 +23,7 @@ import {
   Modal,
   Form,
   Select,
+  TreeSelect,
   Menu,
   Tag,
 } from 'ant-design-vue';
@@ -45,6 +46,7 @@ app
   .use(Tree)
   .use(Modal)
   .use(Select)
+  .use(TreeSelect)
   .use(Form)
   .use(Menu)
   .use(Slider)

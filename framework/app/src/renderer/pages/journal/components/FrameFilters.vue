@@ -21,12 +21,12 @@
       :name="item"
       class="kf-form-item__warp"
     >
-      <a-select
+      <a-tree-select
         v-model:value="filtersFormState[item]"
-        :options="filtersOptions[item]"
-        :filter-option="filterOption"
-        mode="multiple"
+        :tree-data="filtersOptions[item]"
+        treeNodeFilterProp="title"
         :max-tag-count="2"
+        tree-checkable
         show-search
         :placeholder="$t('keyword_input')"
         allow-clear
@@ -34,46 +34,129 @@
       >
         <a-select-option
           v-for="option in filtersOptions[item]"
-          :key="option.label"
-          :value="option.value"
+          :key="option.value"
+          :value="option.title"
         >
-          {{ option.label }}
+          {{ option.title }}
         </a-select-option>
-      </a-select>
+      </a-tree-select>
     </a-form-item>
   </a-form>
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { onMounted, ref, watch } from 'vue';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { longfist } from '@kungfu-trader/kungfu-js-api/kungfu';
-import { FiltersEnum } from '../utils/filterUtils';
+import { FiltersEnum, msgTypeRange } from '../utils/filterUtils';
 import { useFrameFilters } from '../utils/filterUtils';
 
 const { t } = VueI18n.global;
 
-const props = withDefaults(
-  defineProps<{
-    locationMap: Record<string, string>;
-    currentLocation: KungfuApi.KfLocation | null;
-  }>(),
-  {},
-);
+type TreeSelectProps = {
+  title?: string;
+  value?: string;
+  children?: TreeSelectProps[];
+};
+const filtersOptions = ref<Record<string, TreeSelectProps[]>>({
+  MSG_TYPE: [
+    {
+      title: t('journalConfig.account_info'),
+      value: '0-1',
+      children: [],
+    },
+    {
+      title: t('journalConfig.trade_related'),
+      value: '0-2',
+      children: [],
+    },
+    {
+      title: t('journalConfig.query_related'),
+      value: '0-3',
+      children: [],
+    },
+    {
+      title: t('journalConfig.market_related'),
+      value: '0-4',
+      children: [],
+    },
+    {
+      title: t('journalConfig.market_subscription_related'),
+      value: '0-5',
+      children: [],
+    },
+    {
+      title: t('journalConfig.operator_related'),
+      value: '0-6',
+      children: [],
+    },
+    {
+      title: t('journalConfig.strategy_related'),
+      value: '0-7',
+      children: [],
+    },
+    {
+      title: t('journalConfig.system_related'),
+      value: '0-8',
+      children: [],
+    },
+  ],
+});
 const emit = defineEmits<{
   (
     e: 'applyFilters',
-    frameFiltersMap: Record<FiltersEnum, string[]>,
+    frameFiltersMap: Record<string, string[]>,
     read: boolean,
     write: boolean,
   ): void;
 }>();
 const read = ref(true);
 const write = ref(true);
+
+onMounted(() => {
+  let msg: Record<number, string> = longfist.msgTypes;
+
+  Object.entries(msg).forEach(([key, value]) => {
+    let numericKey = Number(key);
+    let messageTypeRange;
+
+    if (numericKey > 100 && numericKey < 200) {
+      messageTypeRange = msgTypeRange.ACCOUNT_INFO;
+    } else if (numericKey > 200 && numericKey < 300) {
+      messageTypeRange = msgTypeRange.TRADE_RELATED;
+    } else if (numericKey > 300 && numericKey < 400) {
+      messageTypeRange = msgTypeRange.QUERY_RELATED;
+    } else if (numericKey > 400 && numericKey < 500) {
+      messageTypeRange = msgTypeRange.MARKET_RELATED;
+    } else if (numericKey > 500 && numericKey < 600) {
+      messageTypeRange = msgTypeRange.MARKET_SUBSCRIPTION_RELATED;
+    } else if (numericKey > 600 && numericKey < 700) {
+      messageTypeRange = msgTypeRange.OPERATOR_RELATED;
+    } else if (numericKey > 700 && numericKey < 10000) {
+      messageTypeRange = msgTypeRange.STRATEGY_RELATED;
+    } else if (numericKey > 10000) {
+      messageTypeRange = msgTypeRange.SYSTEM_RELATED;
+    }
+
+    if (messageTypeRange !== undefined) {
+      let messageObj = {
+        title: `${msg[key]}`,
+        value: key,
+      };
+
+      (
+        filtersOptions.value.MSG_TYPE[messageTypeRange]
+          .children as TreeSelectProps[]
+      ).push(messageObj);
+      if (messageTypeRange !== msgTypeRange.SYSTEM_RELATED) {
+        filtersFormState.MSG_TYPE.push(key);
+      }
+    }
+  });
+});
 watch(
   () => read.value,
   (newVal, oldVal) => {
-    console.log('read', newVal, oldVal);
     if (newVal !== oldVal) {
       handleApplyFilters();
     }
@@ -92,32 +175,10 @@ const formRef = ref();
 const formLabelMap = {
   [FiltersEnum.MSG_TYPE]: t('journalConfig.msg_type'),
 };
-const filterOption = (input: string, option: any) => {
-  console.log('filterOption', input, option);
-  return option.label.toLowerCase().indexOf(input.toLowerCase()) >= 0;
-};
 
-const { filtersFormState, filtersOptions } = useFrameFilters();
-
-watch(
-  () => props.locationMap,
-  () => {
-    let msg: Record<number, string> = longfist.msgTypes;
-    filtersOptions.MSG_TYPE = Object.entries(msg).map(([key, value]) => ({
-      label: value,
-      value: key,
-    }));
-
-    Object.entries(msg).forEach(([key, value]) => {
-      if (Number(key) > 100 && Number(key) < 10000) {
-        filtersFormState.MSG_TYPE.push(key);
-      }
-    });
-  },
-);
+const { filtersFormState } = useFrameFilters();
 
 const handleApplyFilters = () => {
-  console.log('过滤', filtersFormState, read.value, write.value);
   emit('applyFilters', filtersFormState, read.value, write.value);
 };
 </script>

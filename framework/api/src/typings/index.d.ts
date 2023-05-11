@@ -959,10 +959,12 @@ declare namespace KungfuApi {
     dataLength: FunctionOrData<T, number>;
     genTime: FunctionOrData<T, bigint>;
     triggerTime: FunctionOrData<T, bigint>;
+    dataAsString: Frame<'func', string>;
+    dataAsString?: Frame<'data', string>;
     msgType: FunctionOrData<T, FrameMsgTypeEnum>; // to enum
     source: FunctionOrData<T, number>;
     dest: FunctionOrData<T, number>;
-    data: FunctionOrData<T, object>;
+    data: FunctionOrData<T, object | string>;
     currentFrameId: bigint;
     currentPageId: number;
     pageId?: FunctionOrData<T, number>;

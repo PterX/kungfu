@@ -75,15 +75,18 @@ export const getFrameColumns = (): KfTradingDataTableHeaderConfig[] => [
     type: 'string',
     name: t('journalConfig.current_frame_id'),
     dataIndex: 'currentFrameId',
+    align: 'right',
     sorter: buildStrSorter('currentFrameId'),
-    width: 160,
+
+    width: 60,
   },
   {
     type: 'string',
     name: t('journalConfig.current_page_id'),
     dataIndex: 'currentPageId',
+    align: 'right',
     sorter: buildStrSorter('currentPageId'),
-    width: 160,
+    width: 60,
   },
   {
     type: 'string',
@@ -95,6 +98,6 @@ export const getFrameColumns = (): KfTradingDataTableHeaderConfig[] => [
     type: 'string',
     name: t('journalConfig.msg_details'),
     dataIndex: 'msgDetails',
-    width: 160,
+    width: 1600,
   },
 ];

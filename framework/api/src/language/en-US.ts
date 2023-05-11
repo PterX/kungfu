@@ -568,6 +568,22 @@ export default {
     time_range: 'Time range',
 
     please_input_time: 'Please input time',
+
+    account_info: 'Account info',
+
+    trade_related: 'Trade related',
+
+    query_related: 'Query related',
+
+    market_related: 'Market related',
+
+    market_subscription_related: 'Market subscription related',
+
+    operator_related: 'Operator related',
+
+    strategy_related: 'Strategy related',
+
+    system_related: 'System related',
   },
 
   tradeConfig: {

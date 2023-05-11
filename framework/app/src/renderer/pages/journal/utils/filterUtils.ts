@@ -7,6 +7,17 @@ export enum FiltersEnum {
   MSG_TYPE = 'MSG_TYPE',
 }
 
+export enum msgTypeRange {
+  ACCOUNT_INFO = 0,
+  TRADE_RELATED,
+  QUERY_RELATED,
+  MARKET_RELATED,
+  MARKET_SUBSCRIPTION_RELATED,
+  OPERATOR_RELATED,
+  STRATEGY_RELATED,
+  SYSTEM_RELATED,
+}
+
 export const createFiltersEnumMap = <T>(
   initalValue: T | (() => T),
 ): Record<FiltersEnum, T> => {
@@ -23,14 +34,19 @@ export const useFrameFilters = () => {
     label: string;
     value: string;
   };
+  // type TreeSelectProps = {
+  //   title?: string;
+  //   value?: string;
+  //   children?: TreeSelectProps[];
+  // };
 
   type FilterOptionMap = Record<FiltersEnum, OptionItem[]>;
 
   type FilterOptionresolvedMap = Record<FiltersEnum, OptionItem[]>;
 
-  const filtersFormState = reactive<Record<FiltersEnum, string[]>>(
-    createFiltersEnumMap(() => []),
-  );
+  const filtersFormState = reactive<Record<string, string[]>>({
+    MSG_TYPE: [],
+  });
 
   const filtersOptions = reactive<FilterOptionMap>(
     createFiltersEnumMap<OptionItem[]>(() => []),

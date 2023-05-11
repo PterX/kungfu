@@ -126,7 +126,7 @@ void Book::update(int64_t update_time, longfist::enums::AccountingMethodType acc
     auto position_market_value =
         position.volume * (position.last_price > 0 ? position.last_price : position.avg_open_price) * db_exchage_rate;
 
-    if (accounting_method_type == longfist::enums::AccountingMethodType::Outside && is_future) {
+    if (accounting_method_type == longfist::enums::AccountingMethodType::OTC && is_future) {
       position_market_value = position.volume *
                               (position.last_price > 0 ? position.last_price : position.avg_open_price) *
                               db_exchage_rate * db_contract_multiplier;

@@ -253,8 +253,8 @@ location_ptr BacktestContext::find_md_location(const std::string &source) {
 
 location_ptr BacktestContext::find_op_location(const std::string &group, const std::string &name) {
   uint32_t cache_uid = hash_backtest_cache(name, app_.get_begin_time(), app_.get_end_time());
-  auto cache_location =
-      location::make_shared(mode::BACKTEST, category::OPERATOR, group, fmt::format("{:08x}", cache_uid), app_.get_locator());
+  auto cache_location = location::make_shared(mode::BACKTEST, category::OPERATOR, group,
+                                              fmt::format("{:08x}", cache_uid), app_.get_locator());
   return cache_location;
 }
 

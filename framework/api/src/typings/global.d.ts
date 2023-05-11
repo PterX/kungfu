@@ -17,6 +17,7 @@ declare global {
     basketStore: KungfuApi.BasketStore;
     basketInstrumentStore: KungfuApi.BasketInstrumentStore;
     configStore: KungfuApi.ConfigStore;
+    sessionStore: KungfuApi.SessionStore;
     riskSettingStore: KungfuApi.RiskSettingStore;
     commissionStore: KungfuApi.CommissionStore;
     fileId: number;

@@ -18,7 +18,7 @@ BacktestContext::BacktestContext(apprentice &app, const rx::connectable_observab
   KUNGFU_SETUP_LOGGER(app_.get_home(), app_.get_home()->name);
 }
 
-void BacktestContext::on_start() { 
+void BacktestContext::on_start() {
   broker_client_.on_start(events_);
   events_ | $$(on_timer_check());
 }
@@ -103,13 +103,13 @@ void BacktestContext::subscribe_operator(const std::string &group, const std::st
 }
 
 void BacktestContext::publish_synthetic_data(const std::string &key, const std::string &value) {
-    auto writer = app_.get_writer(location::PUBLIC);
-    auto current_time = now();
-    SyntheticData synthetic_data;
-    synthetic_data.update_time = current_time;
-    synthetic_data.key = key;
-    synthetic_data.value = value;
-    writer->write(current_time, synthetic_data);
+  auto writer = app_.get_writer(location::PUBLIC);
+  auto current_time = now();
+  SyntheticData synthetic_data;
+  synthetic_data.update_time = current_time;
+  synthetic_data.key = key;
+  synthetic_data.value = value;
+  writer->write(current_time, synthetic_data);
 }
 
 broker::Client &BacktestContext::get_broker_client() { return broker_client_; }
@@ -121,11 +121,10 @@ location_ptr BacktestContext::find_md_location(const std::string &source) {
   return cache_location;
 }
 
-
 location_ptr BacktestContext::find_op_location(const std::string &group, const std::string &name) {
   uint32_t cache_uid = hash_backtest_cache(name, app_.get_begin_time(), app_.get_end_time());
-  auto cache_location =
-      location::make_shared(mode::BACKTEST, category::OPERATOR, group, fmt::format("{:08x}", cache_uid), app_.get_locator());
+  auto cache_location = location::make_shared(mode::BACKTEST, category::OPERATOR, group,
+                                              fmt::format("{:08x}", cache_uid), app_.get_locator());
   return cache_location;
 }
 

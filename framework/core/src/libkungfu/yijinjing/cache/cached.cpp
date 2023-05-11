@@ -217,7 +217,8 @@ void cached::store_states_feeds() {
 }
 
 void cached::store_profile_feeds() {
-  // there are important info like locations in profile, every app register need these info, so do not clear profile bank;
+  // there are important info like locations in profile, every app register need these info, so do not clear profile
+  // bank;
   feed_mutex_.lock();
   ProfileStateBank tmp_profile_bank = profile_feed_bank_;
   feed_mutex_.unlock();

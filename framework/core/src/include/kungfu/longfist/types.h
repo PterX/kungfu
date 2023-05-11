@@ -43,9 +43,9 @@ KF_DEFINE_MARK_TYPE(MirrorPositionsRequest, 10402);
 KF_DEFINE_MARK_TYPE(KeepPositionsRequest, 10403);
 KF_DEFINE_MARK_TYPE(RebuildPositionsRequest, 10404);
 
-KF_DEFINE_PACK_TYPE(                              //
-    Asset, 101, PK(holder_uid), PERPETUAL(),      //
-    (int64_t, update_time),                       // 更新时间
+KF_DEFINE_PACK_TYPE(                         //
+    Asset, 101, PK(holder_uid), PERPETUAL(), //
+    (int64_t, update_time),                  // 更新时间
 
     (uint32_t, holder_uid),                   //
     (enums::LedgerCategory, ledger_category), //
@@ -212,7 +212,7 @@ KF_DEFINE_PACK_TYPE(                                 //
     (kungfu::array<char, EXTERNAL_ID_LEN>, external_order_id), // 柜台订单id
     (kungfu::array<char, EXTERNAL_ID_LEN>, external_trade_id), // 柜台成交编号id
 
-    (int64_t, trade_time),                        // 成交时间
+    (int64_t, trade_time), // 成交时间
 
     (kungfu::array<char, INSTRUMENT_ID_LEN>, instrument_id), // 合约ID
     (kungfu::array<char, EXCHANGE_ID_LEN>, exchange_id),     // 交易所ID
@@ -358,7 +358,7 @@ KF_DEFINE_PACK_TYPE(                                        //
     (kungfu::array<char, EXTERNAL_ID_LEN>, external_order_id), // 柜台订单id
     (kungfu::array<char, EXTERNAL_ID_LEN>, external_trade_id), // 柜台成交编号id
 
-    (int64_t, trade_time),                        // 成交时间
+    (int64_t, trade_time), // 成交时间
 
     (kungfu::array<char, INSTRUMENT_ID_LEN>, instrument_id), // 合约ID
     (kungfu::array<char, EXCHANGE_ID_LEN>, exchange_id),     // 交易所ID

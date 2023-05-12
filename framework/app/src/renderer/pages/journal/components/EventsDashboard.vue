@@ -67,9 +67,6 @@
                 backgroundColor: dealTagBackgroudColor(
                   item.msgTypeResolved.color || 'rgb(158, 158, 158)',
                 ),
-                border: `1px solid ${
-                  item.msgTypeResolved.color || 'rgb(158, 158, 158)'
-                }`,
               }"
             >
               {{ item.stringMsgType }}
@@ -399,6 +396,7 @@ watch(
     if (newSession && newSession !== oldSession) {
       dataChangeByCurrentTime.value = false;
       framesMap.value = {};
+      frameDataList.value = [];
       tracerFrame = tracer(
         props.currentSession as KungfuApi.KfLocation,
         readEvent.value,
@@ -422,6 +420,7 @@ watch(
   async () => {
     if (dataChangeByCurrentTime.value && props.currentSession) {
       resetToTop.value?.();
+      frameDataList.value = [];
       await doLoad();
       emit('updateCurrentTime', props.currentTime);
     }
@@ -546,9 +545,10 @@ const loadFrameData = async (
         curFrameData.sourceToDest = `${curFrameData.sourceName} -> ${curFrameData.destName}`;
 
         const curFrameDataResolved = dealFrame(curFrameData);
+        const { msgDetails, ...restFrameData } = curFrameDataResolved;
 
         curFramesMap[curFrameDataResolved.id] = curFrameDataResolved;
-        framesMap.value[curFrameDataResolved.id] = curFrameDataResolved;
+        framesMap.value[curFrameDataResolved.id] = restFrameData;
 
         tempFrames.push(curFrameDataResolved);
         if (tempFrames.length === FRAME_LIST_SPLIT) {
@@ -611,6 +611,7 @@ const onFiltersApply = async (
       msgMap.set(longfist.msgTypes[Number(item)], true);
     }
   });
+  frameDataList.value = [];
   tracerFrame = tracer(
     props.currentSession as KungfuApi.KfLocation,
     readEvent.value,
@@ -620,7 +621,7 @@ const onFiltersApply = async (
   );
   setLoadingJournal(true);
   tracerFrame?.seekToTime(props.currentTime);
-
+  resetToTop.value?.();
   await loadFrameData(props.currentSession as KungfuApi.SessionResolved);
 };
 

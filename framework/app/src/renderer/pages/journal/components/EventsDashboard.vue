@@ -63,7 +63,7 @@
           <template v-if="column.dataIndex === 'stringMsgType'">
             <a-tag
               :style="{
-                color: item.msgTypeResolved.color || 'rgb(158, 158, 158)',
+                color: '#ffffffd9',
                 backgroundColor: dealTagBackgroudColor(
                   item.msgTypeResolved.color || 'rgb(158, 158, 158)',
                 ),
@@ -463,6 +463,7 @@ const loadFrameData = async (
   session: KungfuApi.SessionResolved,
   checking = false,
 ) => {
+  console.log('frameColumns', frameColumns);
   if (!readEvent.value && !writeEvent.value) {
     frameDataList.value = [];
     return;
@@ -518,11 +519,6 @@ const loadFrameData = async (
           if (!dataResolved[0].children) dataResolved[0].children = [];
           dataResolved[0].children = dataChildren;
         }
-        console.log(
-          'dataResolve',
-          dataResolved,
-          frame.dataAsString(dataResolved),
-        );
         const curFrameData: KungfuApi.Frame = {
           id: newTotal,
           dataLength: frame.dataLength(),
@@ -532,7 +528,7 @@ const loadFrameData = async (
           currentFrameId: tracerFrame.currentFrameId(),
           currentPageId: tracerFrame.currentPageId(),
           stringMsgType: stringMsgType,
-          msgDetails: msgDetailsArray.includes(msgType)
+          msgDetails: msgDetailsArray.includes(Number(msgType))
             ? frame.dataAsString().slice(1, -1)
             : '',
           source: frame.source(),
@@ -540,6 +536,7 @@ const loadFrameData = async (
           data: frame.dataAsString() as string,
           dataResolved: dataResolved,
         };
+        console.log('stringMsgType', stringMsgType, msgType);
 
         curFrameData.destName =
           curFrameData.dest === props.currentSession?.location_uid
@@ -633,10 +630,10 @@ const onFiltersApply = async (
 const dealTagBackgroudColor = (colorStr: string) => {
   if (!colorStr || colorStr === 'default') return '';
   let color = colorMap[colorStr];
-  if (color.indexOf('rgb') !== -1 && color.indexOf('rgba') === -1) {
-    const rgba = color.substring(4, color.length - 1) + ', 0.3';
-    return `rgba(${rgba})`;
-  }
+  // if (color.indexOf('rgb') !== -1 && color.indexOf('rgba') === -1) {
+  //   const rgba = color.substring(4, color.length - 1) + ', 0.3';
+  //   return `rgba(${rgba})`;
+  // }
   return color;
 };
 

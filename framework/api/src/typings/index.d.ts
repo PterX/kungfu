@@ -967,6 +967,7 @@ declare namespace KungfuApi {
     data: FunctionOrData<T, object | string>;
     currentFrameId: bigint;
     currentPageId: number;
+    msgDetails: string;
     pageId?: FunctionOrData<T, number>;
     stringMsgType?: string;
     destName?: string;

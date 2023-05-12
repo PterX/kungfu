@@ -79,22 +79,22 @@ export const getMsgResolved = (
   if (num > 100 && num < 200) {
     return {
       name: '账户信息',
-      color: 'red',
+      color: 'blue',
     };
   } else if (num > 200 && num < 300) {
     return {
       name: '交易相关',
-      color: 'blue',
+      color: '#FAAD14',
     };
   } else if (num > 300 && num < 400) {
     return {
       name: '查询相关',
-      color: 'green',
+      color: 'default',
     };
   } else if (num > 400 && num < 500) {
     return {
       name: '行情相关',
-      color: 'yellow',
+      color: 'green',
     };
   } else if (num > 500 && num < 600) {
     return {
@@ -104,12 +104,7 @@ export const getMsgResolved = (
   } else if (num > 600 && num < 700) {
     return {
       name: '算子相关',
-      color: 'orange',
-    };
-  } else if (num > 700 && num < 10000) {
-    return {
-      name: '策略相关',
-      color: 'pink',
+      color: 'default',
     };
   } else {
     return {

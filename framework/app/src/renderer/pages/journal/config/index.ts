@@ -69,7 +69,7 @@ export const getFrameColumns = (): KfTradingDataTableHeaderConfig[] => [
     name: `${t('journalConfig.source')} → ${t('journalConfig.dest')}`,
     dataIndex: 'sourceToDest',
     sorter: buildStrSorter('sourceToDest'),
-    width: 400,
+    width: 300,
   },
   {
     type: 'string',
@@ -98,6 +98,6 @@ export const getFrameColumns = (): KfTradingDataTableHeaderConfig[] => [
     type: 'string',
     name: t('journalConfig.msg_details'),
     dataIndex: 'msgDetails',
-    width: 1600,
+    width: 2000,
   },
 ];

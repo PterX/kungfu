@@ -3,7 +3,7 @@ const fse = require('fs-extra');
 const { parseTypeAttrs, parseTypename } = require('./parseTypes');
 const { parseEnums } = require('./parseEnums');
 const { parseBindings } = require('./parseBindings');
-const { getAppDir } = require('./utils');
+const { getAppDir } = require('../utils');
 
 const enums = parseEnums();
 const bindings = parseBindings();

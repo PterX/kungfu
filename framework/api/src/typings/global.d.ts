@@ -119,7 +119,8 @@ export interface RootConfigJSON {
     T0T1?: T0T1Config;
 
     defaultExtension?: {
-      Td?: string;
+      td?: string;
+      md?: string;
     };
 
     makeOrder?: {

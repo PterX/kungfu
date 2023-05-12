@@ -21,7 +21,7 @@ const CopyPlugin = require('copy-webpack-plugin');
 const fse = require('fs-extra');
 const {
   generateCodeKeyWords,
-} = require('@kungfu-trader/kungfu-js-api/toolkit/generateCodeKeyWords');
+} = require('@kungfu-trader/kungfu-js-api/toolkit/codeEditor/generateCodeKeyWords');
 
 const appDir = getAppDir();
 const { getKungfuBuildInfo, getPagesConfig, isProduction } = toolkit.utils;

@@ -113,7 +113,6 @@
             :tree-data="framesMap[currentFramesId].dataResolved"
             :selectable="true"
             default-expand-all
-            @click="handleTreeClick"
           >
             <template #title="{ title }">
               <span class="tree-node-title">{{ title }}</span>
@@ -289,9 +288,9 @@ const handleScrollToBottom = async () => {
   await loadFrameData(props.currentSession as KungfuApi.SessionResolved, true);
 };
 
-const handleTreeClick = (e: any) => {
-  console.log('handleTreeClick', e);
-};
+// const handleTreeClick = (e: any) => {
+//   console.log('handleTreeClick', e);
+// };
 
 const handleStartTimeClick = () => {
   inputStartTime.value = dealKfTime(props.currentTime);
@@ -463,7 +462,6 @@ const loadFrameData = async (
   session: KungfuApi.SessionResolved,
   checking = false,
 ) => {
-  console.log('frameColumns', frameColumns);
   if (!readEvent.value && !writeEvent.value) {
     frameDataList.value = [];
     return;
@@ -536,7 +534,6 @@ const loadFrameData = async (
           data: frame.dataAsString() as string,
           dataResolved: dataResolved,
         };
-        console.log('stringMsgType', stringMsgType, msgType);
 
         curFrameData.destName =
           curFrameData.dest === props.currentSession?.location_uid
@@ -630,10 +627,6 @@ const onFiltersApply = async (
 const dealTagBackgroudColor = (colorStr: string) => {
   if (!colorStr || colorStr === 'default') return '';
   let color = colorMap[colorStr];
-  // if (color.indexOf('rgb') !== -1 && color.indexOf('rgba') === -1) {
-  //   const rgba = color.substring(4, color.length - 1) + ', 0.3';
-  //   return `rgba(${rgba})`;
-  // }
   return color;
 };
 

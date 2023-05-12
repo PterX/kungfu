@@ -176,16 +176,6 @@ function getHeaderWidth(column: KfTradingDataTableHeaderConfig): string {
     return headerWidthByCalc.toString();
   }
 }
-function getOverflow(column: KfTradingDataTableHeaderConfig): string {
-  console.log('column.overflow ', column.overflow || 'hidden', column);
-  return column.overflow || 'hidden';
-}
-function getAlign(
-  column: KfTradingDataTableHeaderConfig,
-): 'right' | 'left' | 'center' {
-  console.log('column.align', column.align || 'left', column);
-  return column.align || 'left';
-}
 
 const emitOnScrollToTop = throttle(
   () => app && app.emit('onScrollToTop'),
@@ -364,9 +354,6 @@ defineExpose({
         :title="column.name"
         :style="{
           'max-width': getHeaderWidth(column),
-          'text-overflow': getOverflow(column), // 这里假设你的 column 对象有一个 overflow 属性
-          overflow: 'hidden',
-          'text-align': getAlign(column), // 这里假设你的 column 对象有一个 align 属性
         }"
         @click.stop="handleSort(column.dataIndex, column.sorter)"
       >
@@ -433,6 +420,10 @@ defineExpose({
                 'max-width': getHeaderWidth(column),
                 height: tableCellHeight,
                 lineHeight: tableCellHeight,
+                'text-overflow': column.overflow ? 'ellipsis' : 'clip',
+                'white-space': column.wrap ? 'normal' : 'nowrap',
+                overflow: 'hidden',
+                'text-align': column.align || 'left',
               }"
               :title="item[column.dataIndex]"
               @click.stop="handleClickCell($event, item, column)"

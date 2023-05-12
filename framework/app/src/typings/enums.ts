@@ -14,9 +14,9 @@ export enum KfLayoutTargetDirectionClassName {
 }
 
 export enum MsgType {
-  Position = 205,
-  Quote = 101,
-  Order = 203,
+  Position = 103,
+  Quote = 401,
+  Order = 202,
   OrderInput = 201,
-  Trade = 204,
+  Trade = 203,
 }

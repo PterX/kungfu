@@ -91,13 +91,8 @@ const filtersOptions = ref<Record<string, TreeSelectProps[]>>({
       children: [],
     },
     {
-      title: t('journalConfig.strategy_related'),
-      value: '0-7',
-      children: [],
-    },
-    {
       title: t('journalConfig.system_related'),
-      value: '0-8',
+      value: '0-7',
       children: [],
     },
   ],
@@ -132,8 +127,6 @@ onMounted(() => {
       messageTypeRange = msgTypeRange.MARKET_SUBSCRIPTION_RELATED;
     } else if (numericKey > 600 && numericKey < 700) {
       messageTypeRange = msgTypeRange.OPERATOR_RELATED;
-    } else if (numericKey > 700 && numericKey < 10000) {
-      messageTypeRange = msgTypeRange.STRATEGY_RELATED;
     } else if (numericKey > 10000) {
       messageTypeRange = msgTypeRange.SYSTEM_RELATED;
     }

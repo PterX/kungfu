@@ -28,7 +28,6 @@ const { getKungfuBuildInfo, getPagesConfig, isProduction } = toolkit.utils;
 const { pyVersion } = getKungfuBuildInfo();
 const publicDir = path.join(appDir, 'public');
 
-
 generateCodeKeyWords();
 
 const webpackConfig = (argv) => {

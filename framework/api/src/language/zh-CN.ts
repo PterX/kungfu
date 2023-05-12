@@ -534,7 +534,10 @@ export default {
     source: '源头',
     gen_time: '生成时间',
     trigger_time: '触发时间',
+    current_page_id: '页',
+    current_frame_id: '帧',
     msg_type: '消息类型',
+    msg_details: '消息详情',
 
     filters: '过滤器',
     apply_filters: '应用过滤',
@@ -574,6 +577,22 @@ export default {
     time_range: '时间范围',
 
     please_input_time: '请输入时间',
+
+    account_info: '账户信息',
+
+    trade_related: '交易相关',
+
+    query_related: '查询相关',
+
+    market_related: '行情相关',
+
+    market_subscription_related: '行情订阅相关',
+
+    operator_related: '算子相关',
+
+    strategy_related: '策略相关',
+
+    system_related: '系统相关',
   },
 
   tradeConfig: {

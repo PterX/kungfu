@@ -15,7 +15,7 @@ import {
   getProcessIdByKfLocation,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import {
-  JournalFrameMsgType,
+  // JournalFrameMsgType,
   KfCategory,
 } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import {
@@ -27,6 +27,7 @@ import {
 // const consoleError = (error, ...datas) => {
 //   console.log(...(datas.length ? ['datas: ', ...datas, '\n', error] : error));
 // };
+const MSG_NUM = 10000;
 
 export const getAbs = <T extends number | bigint>(num: T): T =>
   num < 0 ? (-num as T) : num;
@@ -72,10 +73,62 @@ export const dealCategory = (
   return KfCategory[KfCategoryEnum[category]];
 };
 
+export const getMsgResolved = (
+  num: number,
+): KungfuApi.KfTradeValueCommonData => {
+  if (num > 100 && num < 200) {
+    return {
+      name: '账户信息',
+      color: 'red',
+    };
+  } else if (num > 200 && num < 300) {
+    return {
+      name: '交易相关',
+      color: 'blue',
+    };
+  } else if (num > 300 && num < 400) {
+    return {
+      name: '查询相关',
+      color: 'green',
+    };
+  } else if (num > 400 && num < 500) {
+    return {
+      name: '行情相关',
+      color: 'yellow',
+    };
+  } else if (num > 500 && num < 600) {
+    return {
+      name: '行情订阅相关',
+      color: 'purple',
+    };
+  } else if (num > 600 && num < 700) {
+    return {
+      name: '算子相关',
+      color: 'orange',
+    };
+  } else if (num > 700 && num < 10000) {
+    return {
+      name: '策略相关',
+      color: 'pink',
+    };
+  } else {
+    return {
+      name: '其他',
+      color: 'default',
+    };
+  }
+};
+
 export const dealFrameMsgType = (
   msgType: FrameMsgTypeEnum,
-): KungfuApi.KfTradeValueCommonData =>
-  JournalFrameMsgType[+msgType] || { name: msgType, color: 'default' };
+): KungfuApi.KfTradeValueCommonData => {
+  const msgTypeId = Number(msgType);
+  if (msgTypeId > MSG_NUM) {
+    return getMsgResolved(msgTypeId);
+  } else {
+    return getMsgResolved(msgTypeId % MSG_NUM);
+  }
+};
 
 export const dealDestOrSource = (
   type: 'source' | 'dest',

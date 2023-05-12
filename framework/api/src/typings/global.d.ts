@@ -17,6 +17,7 @@ declare global {
     basketStore: KungfuApi.BasketStore;
     basketInstrumentStore: KungfuApi.BasketInstrumentStore;
     configStore: KungfuApi.ConfigStore;
+    sessionStore: KungfuApi.SessionStore;
     riskSettingStore: KungfuApi.RiskSettingStore;
     commissionStore: KungfuApi.CommissionStore;
     fileId: number;
@@ -70,6 +71,7 @@ declare module 'tail' {
 }
 
 declare module globalThis {
+  const __runtimeDir: string;
   const __publicResources: string;
   const __kfResourcesPath: string;
   const pm2: any;
@@ -117,7 +119,8 @@ export interface RootConfigJSON {
     T0T1?: T0T1Config;
 
     defaultExtension?: {
-      Td?: string;
+      td?: string;
+      md?: string;
     };
 
     makeOrder?: {

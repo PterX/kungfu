@@ -39,32 +39,30 @@ master::master(location_ptr home, bool low_latency)
 
 void master::on_exit() {
   notify_deregister_on_exit();
-  mark_session_end_on_exit();
   notify_master_deregister_on_exit();
+  mark_session_end_on_exit();
 }
 
 void master::notify_deregister_on_exit() {
-  auto now = time::now_in_nano();
-  auto &live_sessions = session_builder_.close_all_sessions(now);
+  auto &live_sessions = session_builder_.get_all_sessions();
   for (auto &iter : live_sessions) {
     auto &session = iter.second;
     auto location_from_session = location::make_shared(session, get_locator());
     if (session.location_uid != master_home_location_->uid) {
-      get_writer(location::PUBLIC)->write(now, location_from_session->to<Deregister>());
+      get_writer(location::PUBLIC)->write(time::now_in_nano(), location_from_session->to<Deregister>());
     }
   }
 }
 
 // after finished sending deregisters of other processes, then tell everyone master down
 void master::notify_master_deregister_on_exit() {
-  auto now = time::now_in_nano();
-  auto &live_sessions = session_builder_.close_all_sessions(now);
+  auto &live_sessions = session_builder_.get_all_sessions();
   for (auto &iter : live_sessions) {
     auto &session = iter.second;
 
     if (has_writer(session.location_uid)) {
       auto writer = get_writer(session.location_uid);
-      writer->write(now, master_home_location_->to<Deregister>());
+      writer->write(time::now_in_nano(), master_home_location_->to<Deregister>());
     } else {
       SPDLOG_WARN("no writer {} {}", session.location_uid, get_location_uname(session.location_uid));
     }
@@ -72,18 +70,20 @@ void master::notify_master_deregister_on_exit() {
 }
 
 void master::mark_session_end_on_exit() {
-  auto now = time::now_in_nano();
-  get_writer(location::PUBLIC)->mark(now, SessionEnd::tag);
-  auto &live_sessions = session_builder_.close_all_sessions(now);
+  get_writer(location::PUBLIC)->mark(time::now_in_nano(), SessionEnd::tag);
+  auto &live_sessions = session_builder_.get_all_sessions();
   for (auto &iter : live_sessions) {
     auto &session = iter.second;
     if (has_writer(session.location_uid)) {
       auto writer = get_writer(session.location_uid);
-      writer->mark(now, SessionEnd::tag);
+      writer->mark(time::now_in_nano(), SessionEnd::tag);
     } else {
       SPDLOG_WARN("no writer {} {}", session.location_uid, get_location_uname(session.location_uid));
     }
   }
+
+  // have to use new now, ensuring later than all messages
+  session_builder_.close_all_sessions(time::now_in_nano());
 }
 
 void master::on_notify() { get_io_device()->get_publisher()->notify(); }
@@ -151,7 +151,6 @@ void master::deregister_app(int64_t trigger_time, uint32_t app_location_uid) {
 
   auto location = get_location(app_location_uid);
   SPDLOG_INFO("app {} gone", location->uname);
-  session_builder_.close_session(location, trigger_time);
   get_writer(app_location_uid)->mark(trigger_time, SessionEnd::tag);
   deregister_channel(app_location_uid);
   deregister_band(app_location_uid);
@@ -161,6 +160,7 @@ void master::deregister_app(int64_t trigger_time, uint32_t app_location_uid) {
   writers_.erase(app_location_uid);
   timer_tasks_.erase(app_location_uid);
   get_writer(location::PUBLIC)->write(trigger_time, location->to<Deregister>());
+  session_builder_.close_session(location, time::now_in_nano());
 }
 
 void master::on_request_deregister(const event_ptr &event) {

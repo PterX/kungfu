@@ -44,6 +44,7 @@ interface ExtraOrderInput {
 interface KfTradingDataTableHeaderConfig {
   name: string;
   dataIndex: string;
+  align?: 'left' | 'right' | 'center';
   width?: number;
   flex?: number;
   type?:

@@ -63,13 +63,10 @@
           <template v-if="column.dataIndex === 'stringMsgType'">
             <a-tag
               :style="{
-                color: item.msgTypeResolved.color || 'rgb(158, 158, 158)',
+                color: '#ffffffd9',
                 backgroundColor: dealTagBackgroudColor(
                   item.msgTypeResolved.color || 'rgb(158, 158, 158)',
                 ),
-                border: `1px solid ${
-                  item.msgTypeResolved.color || 'rgb(158, 158, 158)'
-                }`,
               }"
             >
               {{ item.stringMsgType }}
@@ -113,7 +110,6 @@
             :tree-data="framesMap[currentFramesId].dataResolved"
             :selectable="true"
             default-expand-all
-            @click="handleTreeClick"
           >
             <template #title="{ title }">
               <span class="tree-node-title">{{ title }}</span>
@@ -135,7 +131,7 @@ import { UpOutlined, DownOutlined } from '@ant-design/icons-vue';
 import { longfist, tracer } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { getFrameColumns } from '../config';
 import { dealFrame } from '../utils';
-// import { MsgType } from '@kungfu-trader/kungfu-app/src/typings/enums';
+import { MsgType } from '@kungfu-trader/kungfu-app/src/typings/enums';
 import { FiltersEnum } from '../utils/filterUtils';
 import KfTradingDataTable from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfTradingDataTable.vue';
 import { dealKfTime } from '@kungfu-trader/kungfu-js-api/kungfu';
@@ -173,6 +169,13 @@ const MAX_TRADING_MESSAGE_TYPE = 10000;
 const SCALE = 1000000;
 const HUNDRED_MILLISECONDS = 100000000;
 const DEFAULT_LIST_SIZE = 10000;
+const msgDetailsArray = [
+  MsgType.Order,
+  MsgType.OrderInput,
+  MsgType.Position,
+  MsgType.Quote,
+  MsgType.Trade,
+];
 
 const inputRef = ref<HTMLInputElement>({} as HTMLInputElement);
 const journalStore = useJournalStore();
@@ -195,13 +198,10 @@ const dataStartTime = ref<[bigint, bigint]>([
 const isEditingStartTime = ref(false);
 const inputStartTime = ref<string>('');
 const colorMap = {
-  red: 'rgb(245, 34, 45)',
   blue: 'rgb(24, 144, 255)',
   green: 'rgb(82, 196, 26)',
-  yellow: 'rgb(250, 219, 20)',
+  '#FAAD14': 'rgb(250, 173, 20)',
   purple: 'rgb(83, 29, 171)',
-  orange: 'rgb(255, 153, 0)',
-  pink: 'rgb(255, 192, 203)',
 };
 
 const frameDataListResolved = computed(() => {
@@ -285,9 +285,9 @@ const handleScrollToBottom = async () => {
   await loadFrameData(props.currentSession as KungfuApi.SessionResolved, true);
 };
 
-const handleTreeClick = (e: any) => {
-  console.log('handleTreeClick', e);
-};
+// const handleTreeClick = (e: any) => {
+//   console.log('handleTreeClick', e);
+// };
 
 const handleStartTimeClick = () => {
   inputStartTime.value = dealKfTime(props.currentTime);
@@ -396,6 +396,7 @@ watch(
     if (newSession && newSession !== oldSession) {
       dataChangeByCurrentTime.value = false;
       framesMap.value = {};
+      frameDataList.value = [];
       tracerFrame = tracer(
         props.currentSession as KungfuApi.KfLocation,
         readEvent.value,
@@ -403,6 +404,7 @@ watch(
         newSession.begin_time,
         newSession.end_time,
       );
+      frameDataList.value = [];
 
       // await loadFrameData(newSession, false);
 
@@ -418,6 +420,7 @@ watch(
   async () => {
     if (dataChangeByCurrentTime.value && props.currentSession) {
       resetToTop.value?.();
+      frameDataList.value = [];
       await doLoad();
       emit('updateCurrentTime', props.currentTime);
     }
@@ -468,7 +471,7 @@ const loadFrameData = async (
   setLoadingJournal(true);
   const curFramesMap = {};
   let count = 0;
-  let newTotal = 0;
+  let newTotal = frameDataList.value.length;
   const drain = async (): Promise<KungfuApi.FrameResolved[]> => {
     if (!tracerFrame) return Promise.resolve([]);
     let frame: KungfuApi.Frame<'func'> = tracerFrame.currentFrame();
@@ -522,6 +525,9 @@ const loadFrameData = async (
           currentFrameId: tracerFrame.currentFrameId(),
           currentPageId: tracerFrame.currentPageId(),
           stringMsgType: stringMsgType,
+          msgDetails: msgDetailsArray.includes(Number(msgType))
+            ? frame.dataAsString().slice(1, -1)
+            : '',
           source: frame.source(),
           dest: frame.dest(),
           data: frame.dataAsString() as string,
@@ -539,9 +545,10 @@ const loadFrameData = async (
         curFrameData.sourceToDest = `${curFrameData.sourceName} -> ${curFrameData.destName}`;
 
         const curFrameDataResolved = dealFrame(curFrameData);
+        const { msgDetails, ...restFrameData } = curFrameDataResolved;
 
         curFramesMap[curFrameDataResolved.id] = curFrameDataResolved;
-        framesMap.value[curFrameDataResolved.id] = curFrameDataResolved;
+        framesMap.value[curFrameDataResolved.id] = restFrameData;
 
         tempFrames.push(curFrameDataResolved);
         if (tempFrames.length === FRAME_LIST_SPLIT) {
@@ -604,6 +611,7 @@ const onFiltersApply = async (
       msgMap.set(longfist.msgTypes[Number(item)], true);
     }
   });
+  frameDataList.value = [];
   tracerFrame = tracer(
     props.currentSession as KungfuApi.KfLocation,
     readEvent.value,
@@ -613,17 +621,13 @@ const onFiltersApply = async (
   );
   setLoadingJournal(true);
   tracerFrame?.seekToTime(props.currentTime);
-
+  resetToTop.value?.();
   await loadFrameData(props.currentSession as KungfuApi.SessionResolved);
 };
 
 const dealTagBackgroudColor = (colorStr: string) => {
   if (!colorStr || colorStr === 'default') return '';
   let color = colorMap[colorStr];
-  if (color.indexOf('rgb') !== -1 && color.indexOf('rgba') === -1) {
-    const rgba = color.substring(4, color.length - 1) + ', 0.3';
-    return `rgba(${rgba})`;
-  }
   return color;
 };
 

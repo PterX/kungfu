@@ -420,6 +420,10 @@ defineExpose({
                 'max-width': getHeaderWidth(column),
                 height: tableCellHeight,
                 lineHeight: tableCellHeight,
+                'text-overflow': column.overflow ? 'ellipsis' : 'clip',
+                'white-space': column.wrap ? 'normal' : 'nowrap',
+                overflow: 'hidden',
+                'text-align': column.align || 'left',
               }"
               :title="item[column.dataIndex]"
               @click.stop="handleClickCell($event, item, column)"

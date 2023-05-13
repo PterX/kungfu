@@ -41,7 +41,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 
 import { dealKfTime } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { ForwardOutlined, BackwardOutlined } from '@ant-design/icons-vue';
@@ -64,8 +64,8 @@ const props = withDefaults(
 const emit = defineEmits<{
   (e: 'update:currentTime', value: bigint): void;
 }>();
-const toolTipVisable = ref(false);
-
+const toolTipVisable = ref(true);
+const handleElement = ref<HTMLElement | null>(null);
 const SCALE = 1000000;
 const BIGINT_SCALE = BigInt(SCALE);
 const TEN_SECOND = BigInt(10000000000);
@@ -84,12 +84,6 @@ const maxTime = computed(() => {
 onMounted(() => {
   window.addEventListener('resize', handleResize);
   window.addEventListener('mouseup', globalMouseUp);
-
-  nextTick(() => {
-    setTimeout(() => {
-      toolTipVisable.value = true;
-    }, 500);
-  });
 });
 
 onUnmounted(() => {
@@ -170,6 +164,18 @@ const timeStrs = ref([
 watch(
   () => props.nowTime,
   () => {
+    handleElement.value = slider.value.$el.querySelector('.ant-slider-handle');
+
+    if (handleElement.value) {
+      const handleRect = handleElement.value.getBoundingClientRect();
+      const tooltipElement: HTMLElement | null = document.querySelector(
+        '.ant-tooltip.ant-slider-tooltip.ant-tooltip-placement-top',
+      );
+
+      if (tooltipElement) {
+        tooltipElement.style.left = `${handleRect.left - 37.2}px`;
+      }
+    }
     if (endTimeChange.value) {
       timeStrs.value = [
         customDealKftime(props.beginTime),

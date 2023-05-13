@@ -457,10 +457,6 @@ const getDataResolved = (data: object): dataResolvedType | null => {
   return null;
 };
 
-const setLoadingJournal = (value: boolean) => {
-  loadingJournal.value = value;
-};
-
 const loadFrameData = async (
   session: KungfuApi.SessionResolved,
   checking = false,

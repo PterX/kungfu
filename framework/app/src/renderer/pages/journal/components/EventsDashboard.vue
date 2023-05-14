@@ -186,7 +186,6 @@ const dataChangeByCurrentTime = ref(false);
 const currentFramesId = ref<number>(-1);
 const frameFilter = ref();
 let tracerFrame: KungfuApi.Tracer | null = null;
-const sliceable = ref(true);
 const readEvent = ref(true);
 const writeEvent = ref(true);
 const frameDataList = shallowRef<KungfuApi.FrameResolved[]>([]);
@@ -211,12 +210,14 @@ const frameDataListResolved = computed(() => {
     } else {
       dataStartTime.value = [props.currentTime, props.endTime];
     }
+    loadingJournal.value = false;
     return [];
   }
   dataStartTime.value = [
     props.currentTime,
     frameDataList.value[frameDataList.value.length - 1].genTime,
   ];
+  loadingJournal.value = false;
   return frameDataList.value;
 });
 
@@ -273,14 +274,14 @@ onMounted(() => {
 });
 
 const handleScrollToTop = () => {
-  // setLoadingJournal(true);
+  // loadingJournal.value = true;
   // tracerFrame?.seekToTime(props.currentTime);
-  // setLoadingJournal(false);
+  // loadingJournal.value = false;
   // loadFrameData(props.currentSession as KungfuApi.SessionResolved);
 };
 
 const handleScrollToBottom = async () => {
-  setLoadingJournal(true);
+  loadingJournal.value = true;
   tracerFrame?.seekToTime(dataStartTime.value[1]);
   await loadFrameData(props.currentSession as KungfuApi.SessionResolved, true);
 };
@@ -392,8 +393,8 @@ const decreaseTimestamp = () => {
 
 watch(
   () => props.currentSession,
-  async (newSession, oldSession) => {
-    if (newSession && newSession !== oldSession) {
+  (newSession) => {
+    if (newSession) {
       dataChangeByCurrentTime.value = false;
       framesMap.value = {};
       frameDataList.value = [];
@@ -406,12 +407,13 @@ watch(
       );
       frameDataList.value = [];
 
-      // await loadFrameData(newSession, false);
-
       dataChangeByCurrentTime.value = true;
 
       emit('updateCurrentTime', props.beginTime);
     }
+  },
+  {
+    deep: true,
   },
 );
 
@@ -430,7 +432,7 @@ let timer1: any = null;
 
 const doLoad = () => {
   if (timer1 === null) {
-    setLoadingJournal(true);
+    loadingJournal.value = true;
     tracerFrame?.seekToTime(props.currentTime);
     loadFrameData(props.currentSession as KungfuApi.SessionResolved);
     timer1 = setTimeout(() => {
@@ -453,10 +455,6 @@ const getDataResolved = (data: object): dataResolvedType | null => {
   return null;
 };
 
-const setLoadingJournal = (value: boolean) => {
-  loadingJournal.value = value;
-};
-
 const loadFrameData = async (
   session: KungfuApi.SessionResolved,
   checking = false,
@@ -468,7 +466,7 @@ const loadFrameData = async (
   if (!checking) {
     frameDataList.value = [];
   }
-  setLoadingJournal(true);
+  loadingJournal.value = true;
   const curFramesMap = {};
   let count = 0;
   let newTotal = frameDataList.value.length;
@@ -561,7 +559,6 @@ const loadFrameData = async (
         tracerFrame.next();
       }
     }
-    setLoadingJournal(false);
     if (count < 99) {
       frameDataList.value = [...frameDataList.value, ...tempFrames];
     }
@@ -571,7 +568,6 @@ const loadFrameData = async (
       !tracerFrame.dataAvailable() ||
       newTotal >= DEFAULT_LIST_SIZE
     ) {
-      sliceable.value = tracerFrame.dataAvailable();
       return Object.values(curFramesMap);
     } else {
       count = 0;
@@ -585,7 +581,7 @@ const loadFrameData = async (
   };
 
   return drain().then((res) => {
-    setLoadingJournal(false);
+    loadingJournal.value = false;
     currentFramesId.value = frameDataList.value[0]?.id;
     journalStore.setCurrentSessionFrames(res, true);
   });
@@ -619,7 +615,7 @@ const onFiltersApply = async (
     props.currentSession?.begin_time as bigint,
     props.currentSession?.end_time as bigint,
   );
-  setLoadingJournal(true);
+  loadingJournal.value = true;
   tracerFrame?.seekToTime(props.currentTime);
   resetToTop.value?.();
   await loadFrameData(props.currentSession as KungfuApi.SessionResolved);

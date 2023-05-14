@@ -241,7 +241,14 @@ watch(
 
   (newSession) => {
     if (!newSession) return;
-
+    if (currentSessionId.value !== newSession.location_uid) {
+      currentSessionId.value = newSession.location_uid;
+    } else if (
+      beginTime.value === newSession.begin_time &&
+      newSession.status === SessionStatusEnum.Finished
+    ) {
+      currentTime.value = newSession.begin_time;
+    }
     const { begin_time, end_time } = newSession;
     beginTime.value = begin_time;
     endTime.value = end_time ?? 0n;

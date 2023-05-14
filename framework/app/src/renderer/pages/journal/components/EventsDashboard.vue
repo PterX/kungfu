@@ -64,9 +64,6 @@
             <a-tag
               :style="{
                 color: '#ffffffd9',
-                'text-align': 'center',
-                height: '22px',
-                width: '130px',
                 backgroundColor: dealTagBackgroudColor(
                   item.msgTypeResolved.color || 'rgb(158, 158, 158)',
                 ),
@@ -396,8 +393,8 @@ const decreaseTimestamp = () => {
 
 watch(
   () => props.currentSession,
-  async (newSession, oldSession) => {
-    if (newSession && newSession !== oldSession) {
+  (newSession) => {
+    if (newSession) {
       dataChangeByCurrentTime.value = false;
       framesMap.value = {};
       frameDataList.value = [];
@@ -410,12 +407,13 @@ watch(
       );
       frameDataList.value = [];
 
-      // await loadFrameData(newSession, false);
-
       dataChangeByCurrentTime.value = true;
 
       emit('updateCurrentTime', props.beginTime);
     }
+  },
+  {
+    deep: true,
   },
 );
 

@@ -11,6 +11,12 @@ public:
   explicit LiveContext(yijinjing::practice::apprentice &app, const rx::connectable_observable<event_ptr> &events);
 
   /**
+   * checked_ is strated started.
+   * @return current time in nano seconds
+   */
+  virtual bool is_started() const override;
+
+  /**
    * Get current time in nano seconds.
    * @return current time in nano seconds
    */
@@ -64,7 +70,7 @@ public:
    * @param key key of data to be published
    * @param value value of data to be published
    */
-  virtual void publish_synthetic_data(const std::string &key, const std::string &value) override;
+  void publish_synthetic_data(const std::string &key, const std::string &value) override;
 
   /**
    * request deregister.
@@ -95,15 +101,11 @@ public:
    * Get broker client.
    * @return broker client reference
    */
-  broker::PassiveClient &get_broker_client();
+  broker::Client &get_broker_client();
 
   void check_dependency_state(const event_ptr &event);
 
 protected:
-  // those 3 member maybe shared with BacktestContext
-  yijinjing::practice::apprentice &app_;
-  const rx::connectable_observable<event_ptr> &events_;
-
   const yijinjing::data::location_ptr &
   find_location(const std::string &source, longfist::enums::category c,
                 std::unordered_map<std::string, yijinjing::data::location_ptr> &locations);
@@ -112,6 +114,8 @@ protected:
 
   void on_start() override;
 
+  void prepare(const event_ptr &event) override;
+
 private:
   broker::PassiveClient broker_client_;
   yijinjing::data::location_map md_locations_ = {};
@@ -119,6 +123,8 @@ private:
   std::unordered_map<std::string, yijinjing::data::location_ptr> market_data_ = {};
   std::unordered_map<std::string, yijinjing::data::location_ptr> operator_data_ = {};
   longfist::enums::OperatorState state_;
+  bool started_{false};
+  bool broker_states_requested_{false};
 };
 
 DECLARE_PTR(LiveContext)

@@ -133,7 +133,6 @@ void Client::sync(int64_t trigger_time, const yijinjing::data::location_ptr &td_
   auto writer = app_.get_writer(td_location->uid);
   writer->mark(trigger_time, AssetRequest::tag);
   writer->mark(trigger_time, PositionRequest::tag);
-  writer->mark(trigger_time, OrderTradeRequest::tag);
 }
 
 [[maybe_unused]] bool Client::try_sync(int64_t trigger_time, const location_ptr &td_location) {

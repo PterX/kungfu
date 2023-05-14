@@ -217,6 +217,8 @@ protected:
 
   yijinjing::data::location_ptr find_md_location(const std::string &source);
 
+  yijinjing::data::location_ptr find_op_location(const std::string &group, const std::string &name);
+
 private:
   broker::PassiveClient broker_client_;
   book::Bookkeeper bookkeeper_;
@@ -225,11 +227,6 @@ private:
   std::multimap<int64_t, std::function<void(event_ptr)>> timer_callbacks_ = {};
 
   void on_timer_check();
-
-  template <typename TradingData, typename OnMethod = void (Matcher::*)(int64_t, const TradingData &)>
-  void invoke(OnMethod method, int64_t gen_time, const TradingData &data) {
-    matcher_->*method(gen_time, data);
-  }
 };
 
 DECLARE_PTR(BacktestContext)

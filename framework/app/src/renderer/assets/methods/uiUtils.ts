@@ -32,6 +32,7 @@ import {
   removeArchiveBeforeToday,
   isKfColor,
   isHexOrRgbColor,
+  removeTodayArchive,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
 import { ExchangeIds } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
@@ -305,7 +306,7 @@ const removeJournalBeforeStartAll = (): Promise<void> => {
   if (needClearJournal) {
     localStorage.setItem('needClearJournal', '0');
     kfLogger.info('Clear Journal Done', needClearJournal);
-    return removeJournal(KF_HOME);
+    return removeTodayArchive(ARCHIVE_DIR).then(() => removeJournal(KF_HOME));
   } else {
     return Promise.resolve();
   }
@@ -381,7 +382,6 @@ export const openNewBrowserWindow = (
     process.env.APP_TYPE === 'renderer' && process.env.NODE_ENV !== 'production'
       ? `http://localhost:9090/${name}.html${params}`
       : `file://${folderName}/${name}.html${params}`;
-
   return new Promise((resolve, reject) => {
     const win = new BrowserWindow({
       ...(getNewWindowLocation() || {}),
@@ -848,10 +848,11 @@ export const openReadmeModal = (title: string, readmePath: string) => {
 export const useBoardFilter = () => {
   const rootPackageJson = readRootPackageJsonSync();
   const boardFilter: Record<string, boolean | undefined> | undefined =
-    rootPackageJson?.boardFilter;
+    rootPackageJson?.appConfig?.boardFilter;
 
   const getBoard = <T>(boardName: string, ifTrue: T, ifFalse: T): T => {
-    return boardFilter ? (boardFilter[boardName] ? ifTrue : ifFalse) : ifTrue;
+    const isBoardShow = boardFilter?.[boardName] ?? true;
+    return isBoardShow ? ifTrue : ifFalse;
   };
 
   return {

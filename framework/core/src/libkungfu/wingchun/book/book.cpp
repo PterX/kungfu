@@ -94,13 +94,12 @@ Position &Book::get_position(Direction direction, const char *exchange_id, const
   return position;
 }
 
-void Book::update(int64_t update_time) {
+void Book::update(int64_t update_time, longfist::enums::AccountingMethodType accounting_method_type) {
   asset.update_time = update_time;
   asset.margin = 0;
   asset.market_value = 0;
   asset.unrealized_pnl = 0;
   asset.dynamic_equity = asset.avail;
-
   double margin = 0;
   bool is_stock_acct = true;
   double short_market_value = 0;
@@ -115,14 +114,22 @@ void Book::update(int64_t update_time) {
     auto is_future = position.instrument_type == InstrumentType::Future;
 
     double db_exchage_rate = 1.0;
+    double db_contract_multiplier = 1.0;
     auto hashed_instrument_key = hash_instrument(position.exchange_id, position.instrument_id);
     if (instruments.find(hashed_instrument_key) != instruments.end()) {
       auto &instrument = instruments.at(hashed_instrument_key);
       db_exchage_rate = is_equal(instrument.exchange_rate, 0.0) ? 1.0 : instrument.exchange_rate;
+      db_contract_multiplier = instrument.contract_multiplier;
     }
 
     auto position_market_value =
         position.volume * (position.last_price > 0 ? position.last_price : position.avg_open_price) * db_exchage_rate;
+
+    if (accounting_method_type == longfist::enums::AccountingMethodType::Outside && is_future) {
+      position_market_value = position.volume *
+                              (position.last_price > 0 ? position.last_price : position.avg_open_price) *
+                              db_exchage_rate * db_contract_multiplier;
+    }
     margin += position.margin;
 
     if (!(is_stock and position.direction == Direction::Short)) {

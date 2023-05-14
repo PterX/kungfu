@@ -25,10 +25,8 @@ constexpr auto AllTypes = boost::hana::make_map( //
     TYPE_PAIR(Pong),                             //
     TYPE_PAIR(RequestStop),                      //
     TYPE_PAIR(RequestStart),                     //
+    TYPE_PAIR(RequestDeregister),                //
     TYPE_PAIR(CustomSubscribe),                  //
-    TYPE_PAIR(NewOrderSingle),                   //
-    TYPE_PAIR(CancelOrder),                      //
-    TYPE_PAIR(CancelAllOrder),                   //
     TYPE_PAIR(OperatorStateRequest),             //
     TYPE_PAIR(BrokerStateRequest),               //
     TYPE_PAIR(ResetBookRequest),                 //
@@ -37,7 +35,6 @@ constexpr auto AllTypes = boost::hana::make_map( //
     TYPE_PAIR(AssetSync),                        //
     TYPE_PAIR(PositionRequest),                  //
     TYPE_PAIR(PositionSync),                     //
-    TYPE_PAIR(OrderTradeRequest),                //
     TYPE_PAIR(KeepPositionsRequest),             //
     TYPE_PAIR(RebuildPositionsRequest),          //
     TYPE_PAIR(Config),                           //

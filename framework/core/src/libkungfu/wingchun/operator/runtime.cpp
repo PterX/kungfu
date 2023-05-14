@@ -18,11 +18,51 @@ using namespace kungfu::yijinjing::util;
 namespace kungfu::wingchun::op {
 
 LiveContext::LiveContext(apprentice &app, const rx::connectable_observable<event_ptr> &events)
-    : app_(app), events_(events), broker_client_(app_) {
+    : Context(app, events), broker_client_(app_) {
   log::copy_log_settings(app_.get_home(), app_.get_home()->name);
 }
 
-void LiveContext::on_start() { broker_client_.on_start(events_); }
+void LiveContext::on_start() {
+  broker_client_.on_start(events_);
+  auto start_events = events_ | skip_until(events_ | filter([&](auto e) { return started_; }));
+  start_events | is(Deregister::tag) | $$(check_dependency_state(event));
+  start_events | is(OperatorStateUpdate::tag) | $$(check_dependency_state(event));
+  start_events | is(OperatorStateUpdate::tag) | $$(check_dependency_state(event));
+}
+
+bool LiveContext::is_started() const { return started_; }
+
+void LiveContext::prepare(const event_ptr &event) {
+  auto ledger_uid = app_.get_ledger_home_location()->uid;
+  if (not app_.has_writer(ledger_uid)) {
+    SPDLOG_INFO("ledger writer not found");
+    return;
+  }
+  auto writer = app_.get_writer(ledger_uid);
+
+  auto connected_test = [&](const auto &locations) {
+    for (const auto &pair : locations) {
+      if (not broker_client_.is_connected(pair.second->uid)) {
+        return false;
+      }
+    }
+    return true;
+  };
+  if (not broker_states_requested_ and connected_test(list_md()) and connected_test(list_op())) {
+    writer->mark(now(), BrokerStateRequest::tag);
+    writer->mark(now(), OperatorStateRequest::tag);
+    broker_states_requested_ = true;
+  }
+
+  if (not broker_client_.enrolled_md_ready() or not broker_client_.enrolled_operator_ready()) {
+    return;
+  }
+  started_ = true;
+
+  OperatorStateUpdate state_update;
+  state_update.state = OperatorState::Ready;
+  update_operator_state(state_update);
+}
 
 const std::string LiveContext::get_config() const {
   auto &config_map = app_.get_state_bank()[boost::hana::type_c<Config>];
@@ -90,7 +130,7 @@ const location_map &LiveContext::list_md() const { return md_locations_; }
 
 const location_map &LiveContext::list_op() const { return op_locations_; }
 
-broker::PassiveClient &LiveContext::get_broker_client() { return broker_client_; }
+broker::Client &LiveContext::get_broker_client() { return broker_client_; }
 
 void LiveContext::check_dependency_state(const event_ptr &event) {
   bool all_dependency_ready = true;

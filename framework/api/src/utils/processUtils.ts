@@ -539,15 +539,16 @@ export function startProcessGetStatusUntilStop(
   options: Pm2StartOptions,
   cb?: (processStatus: Pm2ProcessStatusTypes) => void,
 ) {
+  let timer;
   return new Promise((resolve) => {
     startProcess({ ...options }).then(() => {
-      const timer = startGetProcessStatusByName(
+      timer = startGetProcessStatusByName(
         options.name,
         (res: ProcessDescription[]) => {
           const status = res[0]?.pm2_env?.status as Pm2ProcessStatusTypes;
           cb && cb(status);
           if (status !== 'online') {
-            timer.clearLoop();
+            timer && timer.clearLoop();
             resolve(status);
           }
         },

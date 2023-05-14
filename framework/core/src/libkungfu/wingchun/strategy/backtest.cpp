@@ -112,7 +112,14 @@ void BacktestContext::subscribe_all(const std::string &source, uint8_t market_ty
 }
 
 void BacktestContext::subscribe_operator(const std::string &group, const std::string &name) {
-  // not implemented
+  auto op_location = find_op_location(group, name);
+  if (op_location->locator->list_page_id(op_location, location::PUBLIC).empty()) {
+    throw wingchun_error(fmt::format("op public journal {} not exists", op_location->uname));
+  }
+  SPDLOG_INFO("subscribe op={}/{} in: {}", group, name, op_location->uname);
+  add_location(app_, op_location);
+  app_.get_reader()->join(op_location, location::PUBLIC, std::max(app_.get_begin_time(), app_.now()));
+  broker_client_.enroll_operator(op_location);
 }
 
 uint64_t BacktestContext::insert_block_message(const std::string &source, const std::string &account,
@@ -241,6 +248,13 @@ location_ptr BacktestContext::find_md_location(const std::string &source) {
   uint32_t cache_uid = hash_backtest_cache(source, app_.get_begin_time(), app_.get_end_time());
   auto cache_location =
       location::make_shared(mode::BACKTEST, category::MD, source, fmt::format("{:08x}", cache_uid), app_.get_locator());
+  return cache_location;
+}
+
+location_ptr BacktestContext::find_op_location(const std::string &group, const std::string &name) {
+  uint32_t cache_uid = hash_backtest_cache(name, app_.get_begin_time(), app_.get_end_time());
+  auto cache_location = location::make_shared(mode::BACKTEST, category::OPERATOR, group,
+                                              fmt::format("{:08x}", cache_uid), app_.get_locator());
   return cache_location;
 }
 

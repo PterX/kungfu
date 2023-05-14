@@ -71,7 +71,7 @@ export const getFrameColumns = (): KfTradingDataTableHeaderConfig[] => [
     dataIndex: 'sourceToDest',
     overflow: 'ellipsis',
     sorter: buildStrSorter('sourceToDest'),
-    width: 250,
+    width: 270,
   },
   {
     type: 'string',

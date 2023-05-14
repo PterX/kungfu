@@ -25,6 +25,7 @@
         v-model:value="filtersFormState[item]"
         :tree-data="filtersOptions[item]"
         treeNodeFilterProp="title"
+        style="width: 495px"
         :max-tag-count="2"
         tree-checkable
         show-search

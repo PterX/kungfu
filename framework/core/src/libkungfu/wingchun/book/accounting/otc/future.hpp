@@ -16,20 +16,20 @@ using namespace kungfu::yijinjing::data;
 
 namespace kungfu::wingchun::book {
 
-#define DEFAULT_OUTSIDE_INSTRUMENT_CONTRACT_MULTIPLIER 10
-#define DEFAULT_OUTSIDE_INSTRUMENT_LONG_MARGIN_RATIO 0.1
-#define DEFAULT_OUTSIDE_INSTRUMENT_SHORT_MARGIN_RATIO 0.1
-#define DEFAULT_OUTSIDE_INSTRUMENT_EXCHANGE_RATE 1.0
+#define DEFAULT_OTC_INSTRUMENT_CONTRACT_MULTIPLIER 10
+#define DEFAULT_OTC_INSTRUMENT_LONG_MARGIN_RATIO 0.1
+#define DEFAULT_OTC_INSTRUMENT_SHORT_MARGIN_RATIO 0.1
+#define DEFAULT_OTC_INSTRUMENT_EXCHANGE_RATE 1.0
 
-struct outside_contract_multiplier_and_margin_ratio {
+struct otc_contract_multiplier_and_margin_ratio {
   int32_t contract_multiplier;
   double margin_ratio;
   double exchange_rate;
 };
 
-class OutsideFutureAccountingMethod : public AccountingMethod {
+class OtcFutureAccountingMethod : public AccountingMethod {
 public:
-  OutsideFutureAccountingMethod() = default;
+  OtcFutureAccountingMethod() = default;
 
   void apply_trading_day(Book_ptr &book, int64_t trading_day) override {
     auto apply = [&](PositionMap &positions) {
@@ -71,7 +71,7 @@ public:
       auto cm_mr =
           get_instrument_contract_multiplier_and_margin_ratio(book, quote.exchange_id, quote.instrument_id, position);
 
-      // ´Ë´¦½ö¼ÆËã½áËã¼Û£¬µ«ÐèÒª¸ù¾ÝÊµÊ±ÐÐÇé±ä»¯
+      // æ­¤å¤„ä»…è®¡ç®—ç»“ç®—ä»·ï¼Œä½†éœ€è¦æ ¹æ®å®žæ—¶è¡Œæƒ…å˜åŒ–
       if (is_valid_price(quote.settlement_price)) {
         auto margin_pre = position.margin;
         position.margin = cm_mr.contract_multiplier * position.settlement_price * cm_mr.exchange_rate *
@@ -182,8 +182,8 @@ public:
     auto offset = get_offset(book, trade);
     auto direction = get_direction(trade.instrument_type, trade.side, offset);
     auto &position = book->get_position(direction, trade.exchange_id, trade.instrument_id);
-    SPDLOG_TRACE("OutsideFutureAccountingMethod: apply_trade Offset::Open instrument_id={}, offset={}",
-                 trade.instrument_id, (int)offset);
+    SPDLOG_TRACE("OtcFutureAccountingMethod: apply_trade Offset::Open instrument_id={}, offset={}", trade.instrument_id,
+                 (int)offset);
 
     if (offset == Offset::Open) {
       apply_open(book, position, trade);
@@ -193,7 +193,7 @@ public:
     }
   }
 
-  //< ¸üÐÂ¸¡¶¯Ó¯¿÷
+  //< æ›´æ–°æµ®åŠ¨ç›ˆäº
   void update_position(Book_ptr &book, Position &position) override {
     if (position.last_price > 0) {
       auto cm_mr = get_instrument_contract_multiplier_and_margin_ratio(book, position.exchange_id,
@@ -218,7 +218,7 @@ public:
 
       auto multiplier = cm_mr.contract_multiplier * (position.direction == Direction::Long ? 1 : -1);
       auto price_diff = position.last_price - position.avg_open_price;
-      // ¸¡¶¯Ó¯¿÷
+      // æµ®åŠ¨ç›ˆäº
       position.unrealized_pnl = (price_diff * position.volume) * multiplier - cost;
     }
   }
@@ -356,17 +356,17 @@ private:
     }
   }
 
-  static outside_contract_multiplier_and_margin_ratio
+  static otc_contract_multiplier_and_margin_ratio
   get_instrument_contract_multiplier_and_margin_ratio(Book_ptr &book, const char *exchange_id,
                                                       const char *instrument_id, const Position &position) {
     auto hashed_instrument_key = hash_instrument(exchange_id, instrument_id);
-    outside_contract_multiplier_and_margin_ratio cm_mr = {};
+    otc_contract_multiplier_and_margin_ratio cm_mr = {};
     if (book->instruments.find(hashed_instrument_key) == book->instruments.end()) {
       SPDLOG_WARN("instrument information missing for {}@{}", instrument_id, exchange_id);
-      cm_mr.contract_multiplier = DEFAULT_OUTSIDE_INSTRUMENT_CONTRACT_MULTIPLIER;
-      cm_mr.margin_ratio = position.direction == Direction::Long ? DEFAULT_OUTSIDE_INSTRUMENT_LONG_MARGIN_RATIO
-                                                                 : DEFAULT_OUTSIDE_INSTRUMENT_SHORT_MARGIN_RATIO;
-      cm_mr.exchange_rate = DEFAULT_OUTSIDE_INSTRUMENT_EXCHANGE_RATE;
+      cm_mr.contract_multiplier = DEFAULT_OTC_INSTRUMENT_CONTRACT_MULTIPLIER;
+      cm_mr.margin_ratio = position.direction == Direction::Long ? DEFAULT_OTC_INSTRUMENT_LONG_MARGIN_RATIO
+                                                                 : DEFAULT_OTC_INSTRUMENT_SHORT_MARGIN_RATIO;
+      cm_mr.exchange_rate = DEFAULT_OTC_INSTRUMENT_EXCHANGE_RATE;
       return cm_mr;
     }
 

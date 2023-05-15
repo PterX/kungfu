@@ -250,6 +250,8 @@ export default {
     INE: 'INE',
 
     HK: 'HK',
+    SHHK: 'SHHK',
+    SZHK: 'SZHK',
     HKFUT: 'HKFUT',
     US: 'US',
     USFUT: 'USFUT',
@@ -539,7 +541,10 @@ export default {
     source: 'source',
     gen_time: 'gen_time',
     trigger_time: 'trigger_time',
+    current_page_id: 'currentPageId',
+    current_frame_id: 'currentFrameId',
     msg_type: 'msg_type',
+    msg_details: 'msg_details',
 
     export: 'Export',
     export_file_path: 'export_file_path',
@@ -565,6 +570,22 @@ export default {
     time_range: 'Time range',
 
     please_input_time: 'Please input time',
+
+    account_info: 'Account info',
+
+    trade_related: 'Trade related',
+
+    query_related: 'Query related',
+
+    market_related: 'Market related',
+
+    market_subscription_related: 'Market subscription related',
+
+    operator_related: 'Operator related',
+
+    strategy_related: 'Strategy related',
+
+    system_related: 'System related',
   },
 
   tradeConfig: {

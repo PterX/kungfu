@@ -1019,10 +1019,16 @@ declare namespace KungfuApi {
     dataLength: FunctionOrData<T, number>;
     genTime: FunctionOrData<T, bigint>;
     triggerTime: FunctionOrData<T, bigint>;
+    dataAsString: Frame<'func', string>;
+    dataAsString?: Frame<'data', string>;
     msgType: FunctionOrData<T, FrameMsgTypeEnum>; // to enum
     source: FunctionOrData<T, number>;
     dest: FunctionOrData<T, number>;
-    data: FunctionOrData<T, object>;
+    data: FunctionOrData<T, object | string>;
+    currentFrameId: bigint;
+    currentPageId: number;
+    msgDetails?: string;
+    pageId?: FunctionOrData<T, number>;
     stringMsgType?: string;
     destName?: string;
     sourceName?: string;
@@ -1038,6 +1044,8 @@ declare namespace KungfuApi {
     sourceResolved?: string;
     sourceToDest?: string | undefined;
     dataResolved?: unknown[];
+    currentFrameId: bigint;
+    currentPageId: number;
   }
 
   export interface AssembleReader {
@@ -1059,6 +1067,8 @@ declare namespace KungfuApi {
   }
   export interface Tracer {
     currentFrame(): Frame<'func'>;
+    currentFrameId(): bigint;
+    currentPageId(): number;
     dataAvailable(): boolean;
     next(): void;
     seekToTime(nanotime: bigint): void;

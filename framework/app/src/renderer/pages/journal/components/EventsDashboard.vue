@@ -2,41 +2,43 @@
   <div class="kf-journal-events__wrap">
     <div class="kf-journal-filters-bar">
       <div class="kf-journal-bar-title">
-        <span>{{ `${$t('journalConfig.time_range')}:` }}</span>
-        <template v-if="isEditingStartTime">
-          <a-input
-            ref="inputRef"
-            type="text"
-            v-model:value="inputStartTime"
-            @blur="handleStartTimeBlur"
-            @keyup.enter="handleStartTimeEnter"
-            autofocus
-            :placeholder="$t('journalConfig.please_input_time')"
-            style="width: 110px"
-          />
-          <a-button type="normal" @mousedown.prevent @click="increaseTimestamp">
-            <template #icon>
-              <up-outlined />
-            </template>
-          </a-button>
-          <a-button type="normal" @mousedown.prevent @click="decreaseTimestamp">
-            <template #icon>
-              <down-outlined />
-            </template>
-          </a-button>
-        </template>
-        <template v-else>
-          <span @click="handleStartTimeClick" @mouseover="handleStartTimeClick">
-            {{ ` ${dealKfTime(dataStartTime[0])}` }}
-          </span>
-        </template>
+        <span>{{ `${$t('journalConfig.time_range')}: ` }}</span>
+        <a-button
+          class="kf-time-btn__decrease"
+          type="normal"
+          @mousedown.prevent
+          @click="decreaseTimestamp"
+        >
+          <template #icon>
+            <minus-outlined />
+          </template>
+        </a-button>
+        <a-input
+          ref="inputRef"
+          type="text"
+          size="large"
+          v-model:value="inputStartTime"
+          @blur="handleStartTimeBlur"
+          @keyup.enter="handleStartTimeEnter"
+          autofocus
+          :placeholder="$t('journalConfig.please_input_time')"
+          style="width: 128px"
+        />
+        <a-button
+          class="kf-time-btn__increase"
+          type="normal"
+          @mousedown.prevent
+          @click="increaseTimestamp"
+        >
+          <template #icon>
+            <plus-outlined />
+          </template>
+        </a-button>
         <span>{{ ` - ${dealKfTime(dataStartTime[1])}` }}</span>
       </div>
 
       <FrameFilters
         ref="frameFilter"
-        :location-map="locationMap"
-        :current-location="currentLocation"
         @apply-filters="onFiltersApply"
       ></FrameFilters>
     </div>
@@ -47,8 +49,11 @@
         key-field="id"
         :resizable="false"
         :custom-row-class="dealRowClassName"
+        @resetScrollTop="resetToTop = $event"
         @click-cell="handleOpenFrameDetail"
         @click-row="handleOpenFrameDetail"
+        @onScrollToTop="handleScrollToTop"
+        @onScrollToBottom="handleScrollToBottom"
       >
         <template
           #default="{
@@ -62,13 +67,10 @@
           <template v-if="column.dataIndex === 'stringMsgType'">
             <a-tag
               :style="{
-                color: item.msgTypeResolved.color || 'rgb(158, 158, 158)',
+                color: '#ffffffd9',
                 backgroundColor: dealTagBackgroudColor(
                   item.msgTypeResolved.color || 'rgb(158, 158, 158)',
                 ),
-                border: `1px solid ${
-                  item.msgTypeResolved.color || 'rgb(158, 158, 158)'
-                }`,
               }"
             >
               {{ item.stringMsgType }}
@@ -112,8 +114,11 @@
             :tree-data="framesMap[currentFramesId].dataResolved"
             :selectable="true"
             default-expand-all
-            @click="handleTreeClick"
-          ></a-tree>
+          >
+            <template #title="{ title }">
+              <span class="tree-node-title">{{ title }}</span>
+            </template>
+          </a-tree>
         </a-card>
       </template>
       <template v-else>
@@ -124,20 +129,19 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, computed, watch, shallowRef, nextTick } from 'vue';
+import { ref, computed, watch, shallowRef, onMounted } from 'vue';
 import { Empty } from 'ant-design-vue';
-import { UpOutlined, DownOutlined } from '@ant-design/icons-vue';
+import { PlusOutlined, MinusOutlined } from '@ant-design/icons-vue';
 import { longfist, tracer } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { getFrameColumns } from '../config';
 import { dealFrame } from '../utils';
+import { MsgType } from '@kungfu-trader/kungfu-app/src/typings/enums';
 import { FiltersEnum } from '../utils/filterUtils';
 import KfTradingDataTable from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfTradingDataTable.vue';
 import { dealKfTime } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { SessionStatusEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import FrameFilters from './FrameFilters.vue';
 import { useJournalStore } from '../store/journalStore';
-
-// import { debounce } from 'lodash';
 
 const props = withDefaults(
   defineProps<{
@@ -162,6 +166,21 @@ type dataResolvedType = {
   key: string;
   title: string;
 }[];
+
+const FRAME_LIST_SPLIT = 1000;
+const MIS_TRADIND_MESSAGE_TYPE = 100;
+const MAX_TRADING_MESSAGE_TYPE = 10000;
+const SCALE = 1000000;
+const HUNDRED_MILLISECONDS = 100000000;
+const DEFAULT_LIST_SIZE = 10000;
+const msgDetailsArray = [
+  MsgType.Order,
+  MsgType.OrderInput,
+  MsgType.Position,
+  MsgType.Quote,
+  MsgType.Trade,
+];
+
 const inputRef = ref<HTMLInputElement>({} as HTMLInputElement);
 const journalStore = useJournalStore();
 const frameColumns = getFrameColumns();
@@ -171,7 +190,6 @@ const dataChangeByCurrentTime = ref(false);
 const currentFramesId = ref<number>(-1);
 const frameFilter = ref();
 let tracerFrame: KungfuApi.Tracer | null = null;
-const sliceable = ref(true);
 const readEvent = ref(true);
 const writeEvent = ref(true);
 const frameDataList = shallowRef<KungfuApi.FrameResolved[]>([]);
@@ -180,8 +198,13 @@ const dataStartTime = ref<[bigint, bigint]>([
   props.currentTime,
   props.beginTime,
 ]);
-const isEditingStartTime = ref(false);
-const inputStartTime = ref<string>('');
+const inputStartTime = ref<string>(dealKfTime(props.currentTime));
+const colorMap = {
+  blue: 'rgb(24, 144, 255)',
+  green: 'rgb(82, 196, 26)',
+  '#FAAD14': 'rgb(250, 173, 20)',
+  purple: 'rgb(83, 29, 171)',
+};
 
 const frameDataListResolved = computed(() => {
   if (frameDataList.value.length <= 0) {
@@ -190,19 +213,15 @@ const frameDataListResolved = computed(() => {
     } else {
       dataStartTime.value = [props.currentTime, props.endTime];
     }
+    loadingJournal.value = false;
     return [];
   }
-
-  if (frameDataList.value.length <= 10000) {
-    // eslint-disable-next-line vue/no-side-effects-in-computed-properties
-    dataStartTime.value = [
-      props.currentTime,
-      frameDataList.value[frameDataList.value.length - 1].genTime,
-    ];
-    return frameDataList.value;
-  } else {
-    return frameDataList.value.slice(0, 10000);
-  }
+  dataStartTime.value = [
+    props.currentTime,
+    frameDataList.value[frameDataList.value.length - 1].genTime,
+  ];
+  loadingJournal.value = false;
+  return frameDataList.value;
 });
 
 const framesMap = shallowRef<Record<string, KungfuApi.FrameResolved>>({});
@@ -242,23 +261,35 @@ const currentRowDataResolved = computed(() => {
   return null;
 });
 
-const handleTreeClick = (e: any) => {
-  console.log('handleTreeClick', e);
-};
-const handleStartTimeClick = () => {
-  inputStartTime.value = dealKfTime(props.currentTime);
-  isEditingStartTime.value = true;
-  nextTick(() => {
-    inputRef.value.focus();
+const resetToTop = ref<(() => void) | null>(null);
+
+onMounted(() => {
+  const msg: Record<number, string> = longfist.msgTypes;
+
+  Object.entries(msg).forEach(([key, value]) => {
+    if (
+      Number(key) > MIS_TRADIND_MESSAGE_TYPE &&
+      Number(key) < MAX_TRADING_MESSAGE_TYPE
+    ) {
+      msgMap.set(value, true);
+    }
   });
+});
+
+const handleScrollToTop = () => {
+  //TODO on scroll to top event;
+};
+
+const handleScrollToBottom = async () => {
+  loadingJournal.value = true;
+  tracerFrame?.seekToTime(dataStartTime.value[1]);
+  await loadFrameData(props.currentSession as KungfuApi.SessionResolved, true);
 };
 
 const handleStartTimeBlur = () => {
-  isEditingStartTime.value = false;
   validateAndUpdateStartTime();
 };
 const handleStartTimeEnter = () => {
-  isEditingStartTime.value = false;
   validateAndUpdateStartTime();
 };
 
@@ -275,7 +306,7 @@ const convertToTimestamp = (timeStr) => {
       : [fullSeconds, '000'];
     const currentTime = new Date();
     currentTime.setHours(+hours, +minutes, +seconds, +milliseconds);
-    return BigInt(currentTime.getTime()) * BigInt(1000000);
+    return BigInt(currentTime.getTime()) * BigInt(SCALE);
   }
 };
 const validateAndUpdateStartTime = async () => {
@@ -290,6 +321,8 @@ const validateAndUpdateStartTime = async () => {
       await emit('updateCurrentTime', dataStartTime.value[0]);
     }
   }
+
+  inputStartTime.value = dealKfTime(dataStartTime.value[0]);
 };
 
 const increaseTimestamp = () => {
@@ -299,7 +332,7 @@ const increaseTimestamp = () => {
       const lengthDifference = 19 - inputStartTime.value.length;
       const scaleFactor = BigInt(Math.pow(10, lengthDifference));
       const currentTimestamp = BigInt(inputStartTime.value) * scaleFactor;
-      const newTimestamp = currentTimestamp + BigInt(1000000);
+      const newTimestamp = currentTimestamp + BigInt(HUNDRED_MILLISECONDS);
       inputStartTime.value = newTimestamp.toString();
     } else {
       const [hours, minutes, fullSeconds] = inputStartTime.value.split(':');
@@ -309,13 +342,15 @@ const increaseTimestamp = () => {
       const currentTime = new Date();
       currentTime.setHours(+hours, +minutes, +seconds, +milliseconds);
       inputStartTime.value = dealKfTime(
-        BigInt(currentTime.getTime()) * BigInt(1000000) + BigInt(1000000),
+        BigInt(currentTime.getTime()) * BigInt(SCALE) +
+          BigInt(HUNDRED_MILLISECONDS),
       );
     }
   } else {
     inputStartTime.value = '';
   }
   inputRef.value.focus();
+  validateAndUpdateStartTime();
 };
 
 const decreaseTimestamp = () => {
@@ -325,7 +360,7 @@ const decreaseTimestamp = () => {
       const lengthDifference = 19 - inputStartTime.value.length;
       const scaleFactor = BigInt(Math.pow(10, lengthDifference));
       const currentTimestamp = BigInt(inputStartTime.value) * scaleFactor;
-      const newTimestamp = currentTimestamp - BigInt(1000000);
+      const newTimestamp = currentTimestamp - BigInt(HUNDRED_MILLISECONDS);
       inputStartTime.value = newTimestamp.toString();
     } else {
       const [hours, minutes, fullSeconds] = inputStartTime.value.split(':');
@@ -335,23 +370,24 @@ const decreaseTimestamp = () => {
       const currentTime = new Date();
       currentTime.setHours(+hours, +minutes, +seconds, +milliseconds);
       inputStartTime.value = dealKfTime(
-        BigInt(currentTime.getTime()) * BigInt(1000000) - BigInt(1000000),
+        BigInt(currentTime.getTime()) * BigInt(SCALE) -
+          BigInt(HUNDRED_MILLISECONDS),
       );
     }
   } else {
     inputStartTime.value = '';
   }
   inputRef.value.focus();
+  validateAndUpdateStartTime();
 };
 
 watch(
   () => props.currentSession,
-  async (newSession, oldSession) => {
-    if (newSession && newSession !== oldSession) {
+  (newSession) => {
+    if (newSession) {
       dataChangeByCurrentTime.value = false;
       framesMap.value = {};
       frameDataList.value = [];
-
       tracerFrame = tracer(
         props.currentSession as KungfuApi.KfLocation,
         readEvent.value,
@@ -359,20 +395,26 @@ watch(
         newSession.begin_time,
         newSession.end_time,
       );
-
-      await loadFrameData(newSession, false);
+      frameDataList.value = [];
 
       dataChangeByCurrentTime.value = true;
 
       emit('updateCurrentTime', props.beginTime);
     }
   },
+  {
+    deep: true,
+  },
 );
 
 watch(
   () => props.currentTime,
   async () => {
+    inputStartTime.value = dealKfTime(props.currentTime);
+
     if (dataChangeByCurrentTime.value && props.currentSession) {
+      resetToTop.value?.();
+      frameDataList.value = [];
       await doLoad();
       emit('updateCurrentTime', props.currentTime);
     }
@@ -382,9 +424,8 @@ let timer1: any = null;
 
 const doLoad = () => {
   if (timer1 === null) {
-    setLoadingJournal(true);
+    loadingJournal.value = true;
     tracerFrame?.seekToTime(props.currentTime);
-    setLoadingJournal(false);
     loadFrameData(props.currentSession as KungfuApi.SessionResolved);
     timer1 = setTimeout(() => {
       timer1 = null;
@@ -406,12 +447,7 @@ const getDataResolved = (data: object): dataResolvedType | null => {
   return null;
 };
 
-const setLoadingJournal = async (value: boolean) => {
-  loadingJournal.value = value;
-  await nextTick();
-};
-
-const loadFrameData = (
+const loadFrameData = async (
   session: KungfuApi.SessionResolved,
   checking = false,
 ) => {
@@ -419,14 +455,23 @@ const loadFrameData = (
     frameDataList.value = [];
     return;
   }
+  if (!checking) {
+    frameDataList.value = [];
+  }
+  loadingJournal.value = true;
   const curFramesMap = {};
   let count = 0;
-  let newTotal = 0;
+  let newTotal = frameDataList.value.length;
   const drain = async (): Promise<KungfuApi.FrameResolved[]> => {
     if (!tracerFrame) return Promise.resolve([]);
     let frame: KungfuApi.Frame<'func'> = tracerFrame.currentFrame();
+    let tempFrames: KungfuApi.FrameResolved[] = [];
 
-    while (count < 1000 && tracerFrame && tracerFrame.dataAvailable()) {
+    while (
+      count < FRAME_LIST_SPLIT &&
+      tracerFrame &&
+      tracerFrame.dataAvailable()
+    ) {
       frame = tracerFrame.currentFrame();
 
       if (frame) {
@@ -435,6 +480,7 @@ const loadFrameData = (
           { key: 'root-end', title: '}' },
         ];
         const msgType = frame.msgType();
+
         const stringMsgType = longfist.msgTypes[msgType];
 
         if (msgMap.size > 0) {
@@ -444,7 +490,7 @@ const loadFrameData = (
           }
         }
         const data = frame.data();
-        const dataChildren = getDataResolved(data);
+        const dataChildren = getDataResolved(data as object);
         if (dataChildren !== undefined && dataChildren !== null) {
           if (!dataResolved[0].children) dataResolved[0].children = [];
           dataResolved[0].children = dataChildren;
@@ -455,28 +501,54 @@ const loadFrameData = (
           genTime: frame.genTime(),
           triggerTime: frame.triggerTime(),
           msgType: msgType,
+          currentFrameId: tracerFrame.currentFrameId(),
+          currentPageId: tracerFrame.currentPageId(),
           stringMsgType: stringMsgType,
+          msgDetails: msgDetailsArray.includes(Number(msgType))
+            ? frame.dataAsString().slice(1, -1)
+            : '',
           source: frame.source(),
           dest: frame.dest(),
-          data: data,
-
+          data: frame.dataAsString() as string,
           dataResolved: dataResolved,
         };
 
-        curFrameData.destName = props.locationMap[curFrameData.dest];
-        curFrameData.sourceName = props.locationMap[curFrameData.source];
+        curFrameData.destName =
+          curFrameData.dest === props.currentSession?.location_uid
+            ? 'self'
+            : props.locationMap[curFrameData.dest];
+        curFrameData.sourceName =
+          curFrameData.source === props.currentSession?.location_uid
+            ? 'self'
+            : props.locationMap[curFrameData.source];
         curFrameData.sourceToDest = `${curFrameData.sourceName} -> ${curFrameData.destName}`;
+
         const curFrameDataResolved = dealFrame(curFrameData);
+        const { msgDetails, ...restFrameData } = curFrameDataResolved;
 
         curFramesMap[curFrameDataResolved.id] = curFrameDataResolved;
-        framesMap.value[curFrameDataResolved.id] = curFrameDataResolved;
+        framesMap.value[curFrameDataResolved.id] = restFrameData;
+
+        tempFrames.push(curFrameDataResolved);
+        if (tempFrames.length === FRAME_LIST_SPLIT) {
+          frameDataList.value = [...frameDataList.value, ...tempFrames];
+          tempFrames = [];
+        }
+
         ++newTotal;
         ++count;
         tracerFrame.next();
       }
     }
-    if (!tracerFrame.dataAvailable() || newTotal > 9999) {
-      sliceable.value = tracerFrame.dataAvailable();
+    if (count < 99) {
+      frameDataList.value = [...frameDataList.value, ...tempFrames];
+    }
+
+    if (
+      checking ||
+      !tracerFrame.dataAvailable() ||
+      newTotal >= DEFAULT_LIST_SIZE
+    ) {
       return Object.values(curFramesMap);
     } else {
       count = 0;
@@ -490,17 +562,9 @@ const loadFrameData = (
   };
 
   return drain().then((res) => {
-    if (checking) {
-      frameDataList.value.push(...res);
-      currentFramesId.value = frameDataList.value[0]?.id;
-      journalStore.setCurrentSessionFrames(res, false);
-    } else {
-      frameDataList.value = res;
-      currentFramesId.value = frameDataList.value[0]?.id;
-      journalStore.setCurrentSessionFrames(res, true);
-    }
-
-    // console.log('then', res, frameDataListResolved.value);
+    loadingJournal.value = false;
+    currentFramesId.value = frameDataList.value[0]?.id;
+    journalStore.setCurrentSessionFrames(res, true);
   });
 };
 
@@ -524,6 +588,7 @@ const onFiltersApply = async (
       msgMap.set(longfist.msgTypes[Number(item)], true);
     }
   });
+  frameDataList.value = [];
   tracerFrame = tracer(
     props.currentSession as KungfuApi.KfLocation,
     readEvent.value,
@@ -531,19 +596,15 @@ const onFiltersApply = async (
     props.currentSession?.begin_time as bigint,
     props.currentSession?.end_time as bigint,
   );
-  setLoadingJournal(true);
+  loadingJournal.value = true;
   tracerFrame?.seekToTime(props.currentTime);
-  setLoadingJournal(false);
-  frameDataList.value = [];
-  await loadFrameData(props.currentSession as KungfuApi.SessionResolved, false);
+  resetToTop.value?.();
+  await loadFrameData(props.currentSession as KungfuApi.SessionResolved);
 };
 
-const dealTagBackgroudColor = (color: string) => {
-  if (!color) return '';
-  if (color.indexOf('rgb') !== -1 && color.indexOf('rgba') === -1) {
-    const rgba = color.substring(4, color.length - 1) + ', 0.3';
-    return `rgba(${rgba})`;
-  }
+const dealTagBackgroudColor = (colorStr: string) => {
+  if (!colorStr || colorStr === 'default') return '';
+  let color = colorMap[colorStr];
   return color;
 };
 
@@ -573,11 +634,9 @@ defineExpose({
   }
 
   .kf-journal-filters-bar {
-    flex: 0 40px;
-    height: 40px;
     background-color: #1d1d1d;
     padding: 4px 16px;
-    margin-bottom: 2px;
+    margin-bottom: 4px;
     overflow-x: overlay;
     display: flex;
     align-items: center;
@@ -589,13 +648,33 @@ defineExpose({
     }
 
     .kf-journal-bar-title {
+      height: 32px;
       white-space: nowrap;
       font-size: 14px;
       margin-right: 16px;
+      display: flex;
+      align-items: center;
+
+      button {
+        height: 100%;
+
+        &.kf-time-btn__increase {
+          margin-right: 8px;
+        }
+
+        &.kf-time-btn__decrease {
+          margin-left: 8px;
+        }
+      }
+
+      input {
+        height: 100%;
+      }
     }
 
     .ant-form-inline {
       flex-wrap: nowrap;
+      justify-content: space-between;
     }
   }
 
@@ -610,5 +689,13 @@ defineExpose({
   .ant-tree-switcher-noop {
     display: none;
   }
+}
+
+.tree-node-title {
+  display: inline-block;
+  white-space: normal;
+  word-break: break-word;
+  max-width: 300px;
+  user-select: text;
 }
 </style>

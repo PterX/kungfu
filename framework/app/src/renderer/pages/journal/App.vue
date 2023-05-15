@@ -50,7 +50,6 @@
           :begin-time="beginTime"
           :end-time="endTime"
           :step="60"
-          stick
           class="kf-journal-time-slider"
         ></TimeSlider>
         <ExportJournal @export-journal-data="onExportJournalData" />
@@ -239,12 +238,23 @@ watch(
 
 watch(
   () => currentSession.value,
+
   (newSession) => {
     if (!newSession) return;
-
+    if (currentSessionId.value !== newSession.location_uid) {
+      currentSessionId.value = newSession.location_uid;
+    } else if (
+      beginTime.value === newSession.begin_time &&
+      newSession.status === SessionStatusEnum.Finished
+    ) {
+      currentTime.value = newSession.begin_time;
+    }
     const { begin_time, end_time } = newSession;
     beginTime.value = begin_time;
     endTime.value = end_time ?? 0n;
+  },
+  {
+    deep: true,
   },
 );
 
@@ -385,11 +395,36 @@ const dealRowClassName = (row) => {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-align: center;
-  :deep(.ant-slider-track .ant-slider-step) {
-    border-color: #fff !important;
-    color: #fff !important;
-    background-color: #fff !important;
+  .ant-tooltip {
+    // 你的样式
+    color: #6d0d0d !important;
+    position: absolute !important;
+    top: 100px !important;
+    left: 100px !important;
   }
+  // :deep(.ant-slider-track .ant-slider-step) {
+  //   border-color: #fff !important;
+  //   color: #fff !important;
+  //   background-color: #fff !important;
+  // }
+  // :deep(.ant-slider-ant-tooltip-open.ant-slider-handle) {
+  //   border-color: aqua !important;
+  //   background-color: aqua !important;
+  //   position: relative !important;
+  //   width: 100px !important;
+  // }
+  // :deep(.ant-tooltip) {
+  //   position: absolute !important;
+  //   top: 100px !important;
+  //   left: 100px !important;
+  // }
+  // /deep/ .ant-tooltip {
+  //   // 你的样式
+  //   color: #6d0d0d !important;
+  //   position: absolute !important;
+  //   top: 100px !important;
+  //   left: 100px !important;
+  // }
 
   .ant-layout {
     height: 100%;
@@ -445,6 +480,14 @@ const dealRowClassName = (row) => {
         .kf-journal-time-slider {
           max-width: 560px;
           flex: 0 1 560px;
+
+          .ant-tooltip {
+            // 你的样式
+            color: #6d0d0d !important;
+            position: absolute !important;
+            top: 100px !important;
+            left: 100px !important;
+          }
         }
       }
 

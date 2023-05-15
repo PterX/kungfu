@@ -352,7 +352,7 @@ void hero::produce(const rx::subscriber<event_ptr> &sb) {
   }
 }
 
-void hero::is_live_and_wait(const bool lazy, const bool notify) {
+void hero::deal_notice(bool lazy, bool notify) {
   if (not lazy and io_device_->get_home()->mode == mode::LIVE and io_device_->get_observer()->wait()) {
     const std::string &notice = io_device_->get_observer()->get_notice();
     now_ = time::now_in_nano();
@@ -365,9 +365,9 @@ void hero::is_live_and_wait(const bool lazy, const bool notify) {
 }
 
 bool hero::drain(const rx::subscriber<event_ptr> &sb) {
-  is_live_and_wait(false, true);
+  deal_notice(false, true);
   while (live_ and reader_->data_available()) {
-    is_live_and_wait(io_device_->is_lazy(), false);
+    deal_notice(io_device_->is_lazy(), false);
     if (reader_->current_frame()->gen_time() <= end_time_) {
       int64_t frame_time = reader_->current_frame()->gen_time();
       if (frame_time > now_) {

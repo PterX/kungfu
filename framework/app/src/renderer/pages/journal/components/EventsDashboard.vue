@@ -313,10 +313,14 @@ const validateAndUpdateStartTime = async () => {
   const timeRegex = /^(\d{10,19}|(\d{2}:\d{2}:\d{2}(\.\d{3})?))$/;
   if (timeRegex.test(inputStartTime.value)) {
     const newStartTime = convertToTimestamp(inputStartTime.value);
-    dataStartTime.value[0] =
-      newStartTime <= props.nowTime && newStartTime >= props.beginTime
-        ? newStartTime
-        : props.currentTime;
+    console.log('newStartTime', newStartTime);
+    if (newStartTime >= props.nowTime) {
+      dataStartTime.value[0] = props.nowTime;
+    } else if (newStartTime <= props.beginTime) {
+      dataStartTime.value[0] = props.beginTime;
+    } else {
+      dataStartTime.value[0] = newStartTime;
+    }
     if (dataStartTime.value[0] !== props.currentTime) {
       await emit('updateCurrentTime', dataStartTime.value[0]);
     }
@@ -325,14 +329,17 @@ const validateAndUpdateStartTime = async () => {
   inputStartTime.value = dealKfTime(dataStartTime.value[0]);
 };
 
-const increaseTimestamp = () => {
+const modifyTimestamp = (isIncrease) => {
   const timeRegex = /^(\d{10,19}|(\d{2}:\d{2}:\d{2}(\.\d{3})?))$/;
   if (timeRegex.test(inputStartTime.value)) {
     if (/^\d{10,19}$/.test(inputStartTime.value)) {
       const lengthDifference = 19 - inputStartTime.value.length;
       const scaleFactor = BigInt(Math.pow(10, lengthDifference));
       const currentTimestamp = BigInt(inputStartTime.value) * scaleFactor;
-      const newTimestamp = currentTimestamp + BigInt(HUNDRED_MILLISECONDS);
+      const adjustment =
+        BigInt(HUNDRED_MILLISECONDS) * BigInt(isIncrease ? 1 : -1);
+      console.log('adjustment', adjustment);
+      const newTimestamp = currentTimestamp + adjustment;
       inputStartTime.value = newTimestamp.toString();
     } else {
       const [hours, minutes, fullSeconds] = inputStartTime.value.split(':');
@@ -341,9 +348,10 @@ const increaseTimestamp = () => {
         : [fullSeconds, '000'];
       const currentTime = new Date();
       currentTime.setHours(+hours, +minutes, +seconds, +milliseconds);
+      const adjustment =
+        BigInt(HUNDRED_MILLISECONDS) * BigInt(isIncrease ? 1 : -1);
       inputStartTime.value = dealKfTime(
-        BigInt(currentTime.getTime()) * BigInt(SCALE) +
-          BigInt(HUNDRED_MILLISECONDS),
+        BigInt(currentTime.getTime()) * BigInt(SCALE) + adjustment,
       );
     }
   } else {
@@ -353,33 +361,8 @@ const increaseTimestamp = () => {
   validateAndUpdateStartTime();
 };
 
-const decreaseTimestamp = () => {
-  const timeRegex = /^(\d{10,19}|(\d{2}:\d{2}:\d{2}(\.\d{3})?))$/;
-  if (timeRegex.test(inputStartTime.value)) {
-    if (/^\d{10,19}$/.test(inputStartTime.value)) {
-      const lengthDifference = 19 - inputStartTime.value.length;
-      const scaleFactor = BigInt(Math.pow(10, lengthDifference));
-      const currentTimestamp = BigInt(inputStartTime.value) * scaleFactor;
-      const newTimestamp = currentTimestamp - BigInt(HUNDRED_MILLISECONDS);
-      inputStartTime.value = newTimestamp.toString();
-    } else {
-      const [hours, minutes, fullSeconds] = inputStartTime.value.split(':');
-      const [seconds, milliseconds] = fullSeconds.includes('.')
-        ? fullSeconds.split('.')
-        : [fullSeconds, '000'];
-      const currentTime = new Date();
-      currentTime.setHours(+hours, +minutes, +seconds, +milliseconds);
-      inputStartTime.value = dealKfTime(
-        BigInt(currentTime.getTime()) * BigInt(SCALE) -
-          BigInt(HUNDRED_MILLISECONDS),
-      );
-    }
-  } else {
-    inputStartTime.value = '';
-  }
-  inputRef.value.focus();
-  validateAndUpdateStartTime();
-};
+const increaseTimestamp = () => modifyTimestamp(true);
+const decreaseTimestamp = () => modifyTimestamp(false);
 
 watch(
   () => props.currentSession,

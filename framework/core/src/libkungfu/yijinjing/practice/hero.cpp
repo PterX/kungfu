@@ -352,7 +352,7 @@ void hero::produce(const rx::subscriber<event_ptr> &sb) {
   }
 }
 
-void hero::deal_notice(bool lazy, bool notify) {
+bool hero::deal_notice(bool lazy, bool notify) {
   if (not lazy and io_device_->get_home()->mode == mode::LIVE and io_device_->get_observer()->wait()) {
     const std::string &notice = io_device_->get_observer()->get_notice();
     now_ = time::now_in_nano();

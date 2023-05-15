@@ -199,6 +199,8 @@ private:
 
   bool drain(const rx::subscriber<event_ptr> &sb);
 
+  bool is_live_and_wait(const bool lazy, const bool notify);
+
   template <typename T>
   std::enable_if_t<T::reflect> do_require_read_from(yijinjing::journal::writer_ptr &&writer, int64_t trigger_time,
                                                     uint32_t dest_id, uint32_t source_id, int64_t from_time) {

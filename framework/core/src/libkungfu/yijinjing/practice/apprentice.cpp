@@ -283,6 +283,28 @@ void apprentice::on_cached_ready_to_read() { request_cached(cached_home_location
   return get_io_device()->get_observer()->get_recv_timeout();
 }
 
+void apprentice::reader_join(uint32_t source_id, uint32_t dest_id, int64_t from_time) {
+
+  if (not has_location(source_id)) {
+    SPDLOG_ERROR("no location {}", source_id);
+    return;
+  }
+
+  reader_->join(get_location(source_id), dest_id, from_time);
+
+  if (not has_writer(get_master_command_uid())) {
+    SPDLOG_ERROR("no master cmd writer");
+    return;
+  }
+
+  auto writer = get_writer(get_master_command_uid());
+  auto &request = writer->open_data<RequestReadFromOthers>(now());
+  request.source_id = source_id;
+  request.dest_id = dest_id;
+  request.from_time = from_time;
+  writer->close_data();
+}
+
 void apprentice::checkin() {
   auto now = time::now_in_nano();
   nlohmann::json request;

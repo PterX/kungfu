@@ -66,11 +66,10 @@ void Runner::on_react() { events_ | is(Channel::tag) | $$(inspect_channel(event)
 void Runner::inspect_channel(const event_ptr &event) {
   auto channel = event->data<Channel>();
   if (has_location(channel.source_id) and has_location(channel.dest_id)) {
-    auto source_location = get_location(channel.source_id);
     auto dest_location = get_location(channel.dest_id);
     if (ledger_home_location_->uid == channel.source_id and dest_location->category == category::TD and
         context_->get_broker_client().should_connect_td(dest_location)) {
-      reader_->join(source_location, channel.dest_id, event->gen_time());
+      reader_join(channel.source_id, channel.dest_id, event->gen_time());
     }
   }
 }

@@ -179,6 +179,7 @@ void master::react() {
   events_ | is(RequestReadFrom::tag) | $$(check_cached_ready_to_read(event));
   events_ | is(RequestReadFromPublic::tag) | $$(on_request_read_from_public(event));
   events_ | is(RequestReadFromSync::tag) | $$(on_request_read_from_sync(event));
+  events_ | is(RequestReadFromOthers::tag) | $$(on_request_read_from_others(event));
   // for watcher request stop master in widnows
   events_ | is(RequestStop::tag) | filter([&](const event_ptr &event) {
     auto dest = event->dest();
@@ -340,6 +341,19 @@ void master::on_request_read_from_public(const event_ptr &event) {
 void master::on_request_read_from_sync(const event_ptr &event) {
   const RequestReadFromSync &request = event->data<RequestReadFromSync>();
   require_read_from_sync(event->gen_time(), event->source(), request.source_id, request.from_time);
+}
+
+void master::on_request_read_from_others(const event_ptr &event) {
+  const RequestReadFromOthers &request = event->data<RequestReadFromOthers>();
+  auto source = event->source();
+  if (has_writer(source)) {
+    auto writer = get_writer(source);
+    RequestReadFromOthers response = {};
+    response.source_id = request.source_id;
+    response.dest_id = request.dest_id;
+    response.from_time = request.from_time;
+    writer->write(now(), response);
+  }
 }
 
 void master::on_request_cached_done(const event_ptr &event) {

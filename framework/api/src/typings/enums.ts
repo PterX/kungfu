@@ -76,7 +76,18 @@ export enum PriceLevelEnum {
 
 export type PriceLevelTypes = keyof typeof PriceLevelEnum;
 
+export type TdMdExtTypes = InstrumentTypes;
+
 export type StrategyExtTypes = 'trade' | 'default' | 'unknown';
+
+export type SystemExtTypes = 'service';
+
+export type KfExtConfigTypes = TdMdExtTypes | StrategyExtTypes | SystemExtTypes;
+
+export enum ExtRunForEnvTypesEnum {
+  Ui = 'ui',
+  Cli = 'cli',
+}
 
 export enum HedgeFlagEnum {
   Speculation,
@@ -197,7 +208,6 @@ export enum KfCategoryEnum {
   strategy,
   system,
   operator,
-  daemon,
 }
 
 export type KfCategoryTypes = keyof typeof KfCategoryEnum;
@@ -210,7 +220,7 @@ export type KfUIExtLocatorTypes =
   | 'make_order'
   | 'trading_task_view';
 
-export type KfExtConfigTypes = 'form' | '';
+export type KfExhibitConfigTypes = 'form' | '';
 
 export enum KfModeEnum {
   live,

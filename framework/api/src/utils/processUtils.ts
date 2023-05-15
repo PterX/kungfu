@@ -1035,7 +1035,7 @@ export const startDzxy = () => {
   });
 };
 
-export const startExtDaemon = (name: string, cwd: string, script: string) => {
+export const startExtService = (name: string, cwd: string, script: string) => {
   return startProcess({
     name,
     args: '',
@@ -1045,7 +1045,7 @@ export const startExtDaemon = (name: string, cwd: string, script: string) => {
     force: true,
     watch: process.env.NODE_ENV === 'production' ? false : true,
     env: {
-      KFC_AS_VARIANT: 'node',
+      KFC_AS_VARIANT: script.endsWith('.js') ? 'node' : '',
     },
     kill_timeout: 500,
   }).catch((err) => {

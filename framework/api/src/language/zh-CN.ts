@@ -143,7 +143,6 @@ export default {
     ready: '就绪',
 
     system: '系统服务',
-    daemon: '后台服务',
     md: '行情源',
     td: '交易账户 ',
     strategy: '策略',

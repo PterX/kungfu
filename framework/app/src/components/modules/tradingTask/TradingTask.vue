@@ -140,7 +140,7 @@ function handleSwitchProcessStatusResolved(
   }
 
   const extKey = taskLocation.group;
-  const extConfig: KungfuApi.KfExtConfig = (extConfigs.value['strategy'] || {})[
+  const extConfig: KungfuApi.KfStrategyExtConfig = (extConfigs.value['strategy'] || {})[
     extKey
   ];
 

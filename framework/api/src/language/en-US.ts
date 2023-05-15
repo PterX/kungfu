@@ -144,7 +144,6 @@ export default {
     ready: 'Ready',
 
     system: 'System',
-    daemon: 'Daemon',
     md: 'Md',
     td: 'Td',
     strategy: 'Strategy',

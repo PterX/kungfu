@@ -52,7 +52,7 @@ const setStrategyModalVisible = ref<boolean>(false);
 const setStrategyConfigPayload = ref<KungfuApi.SetKfConfigPayload>({
   type: 'add',
   title: t('strategyConfig.strategy'),
-  config: {} as KungfuApi.KfExtConfig,
+  config: {} as KungfuApi.KfStrategyExtConfig,
 });
 
 const { strategy } = toRefs(useAllKfConfigData());

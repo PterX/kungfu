@@ -146,8 +146,6 @@ void Client::sync(int64_t trigger_time, const yijinjing::data::location_ptr &td_
 void Client::on_start(const rx::connectable_observable<event_ptr> &events) {
   events | is(Register::tag) | $$(connect(event, event->data<Register>()));
   events | is(Band::tag) | $$(connect(event, event->data<Band>()));
-  // events | is(BrokerStateUpdate::tag) | $$(update_broker_state(event, event->data<BrokerStateUpdate>()));
-  // events | is(OperatorStateUpdate::tag) | $$(update_operator_state(event, event->data<OperatorStateUpdate>()));
   events | is(BrokerStateUpdate::tag) | $$(update_app_state(event, event->data<BrokerStateUpdate>()));
   events | is(OperatorStateUpdate::tag) | $$(update_app_state(event, event->data<OperatorStateUpdate>()));
   events | is(Deregister::tag) | $$(on_deregister(event->data<Deregister>()));

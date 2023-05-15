@@ -43,6 +43,7 @@ service_command_context = kfc.pass_context("low_latency")
 @click.option("-g", "--group", type=str, help="group")
 @click.option("-n", "--name", type=str, help="name")
 @click.option("-x", "--low-latency", is_flag=True, help="run in low latency mode")
+@click.option("-p", "--bypass-cached", is_flag=True, help="run in bypass cached mode")
 @click.argument("reference", type=str, required=False)
 @click.option("-a", "--arguments", type=str, required=False)
 @click.option("-v", "--vendor", type=str, required=False)
@@ -58,6 +59,7 @@ def run(
     group,
     name,
     low_latency,
+    bypass_cached,
     reference,
     arguments,
     vendor,
@@ -71,6 +73,7 @@ def run(
     ctx.group = group
     ctx.name = name
     ctx.low_latency = low_latency
+    ctx.bypass_cached = bypass_cached
     ctx.path = reference
     ctx.arguments = arguments
     ctx.vendor = vendor

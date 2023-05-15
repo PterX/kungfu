@@ -20,9 +20,9 @@ using namespace kungfu::yijinjing::journal;
 
 namespace kungfu::yijinjing::practice {
 
-master::master(location_ptr home, bool low_latency)
+master::master(location_ptr home, bool low_latency, bool bypass_cached)
     : hero(std::make_shared<io_device_master>(home, low_latency)), start_time_(time::now_in_nano()), last_check_(0),
-      cached_(get_io_device(), false) {
+      cached_(get_io_device(), bypass_cached) {
 
   for (const auto &app_location : cached_.get_all(Location{})) {
     add_location(start_time_, location::make_shared(app_location, get_locator()));

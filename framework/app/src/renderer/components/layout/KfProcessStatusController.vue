@@ -229,7 +229,10 @@ onMounted(() => {
                   class="process-id info-item"
                   v-if="config.category === 'system'"
                 >
-                  {{ (SystemProcessName[config.name] || {}).name || '' }}
+                  {{
+                    (SystemProcessName[config.name] || { name: config.name })
+                      .name || ''
+                  }}
                 </div>
                 <div
                   class="process-id info-item"

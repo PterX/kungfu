@@ -2,34 +2,38 @@
   <div class="kf-journal-events__wrap">
     <div class="kf-journal-filters-bar">
       <div class="kf-journal-bar-title">
-        <span>{{ `${$t('journalConfig.time_range')}:` }}</span>
-        <template v-if="isEditingStartTime">
-          <a-input
-            ref="inputRef"
-            type="text"
-            v-model:value="inputStartTime"
-            @blur="handleStartTimeBlur"
-            @keyup.enter="handleStartTimeEnter"
-            autofocus
-            :placeholder="$t('journalConfig.please_input_time')"
-            style="width: 110px"
-          />
-          <a-button type="normal" @mousedown.prevent @click="increaseTimestamp">
-            <template #icon>
-              <up-outlined />
-            </template>
-          </a-button>
-          <a-button type="normal" @mousedown.prevent @click="decreaseTimestamp">
-            <template #icon>
-              <down-outlined />
-            </template>
-          </a-button>
-        </template>
-        <template v-else>
-          <span @click="handleStartTimeClick" @mouseover="handleStartTimeClick">
-            {{ ` ${dealKfTime(dataStartTime[0])}` }}
-          </span>
-        </template>
+        <span>{{ `${$t('journalConfig.time_range')}: ` }}</span>
+        <a-button
+          class="kf-time-btn__decrease"
+          type="normal"
+          @mousedown.prevent
+          @click="decreaseTimestamp"
+        >
+          <template #icon>
+            <minus-outlined />
+          </template>
+        </a-button>
+        <a-input
+          ref="inputRef"
+          type="text"
+          size="large"
+          v-model:value="inputStartTime"
+          @blur="handleStartTimeBlur"
+          @keyup.enter="handleStartTimeEnter"
+          autofocus
+          :placeholder="$t('journalConfig.please_input_time')"
+          style="width: 128px"
+        />
+        <a-button
+          class="kf-time-btn__increase"
+          type="normal"
+          @mousedown.prevent
+          @click="increaseTimestamp"
+        >
+          <template #icon>
+            <plus-outlined />
+          </template>
+        </a-button>
         <span>{{ ` - ${dealKfTime(dataStartTime[1])}` }}</span>
       </div>
 
@@ -125,9 +129,9 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, computed, watch, shallowRef, nextTick, onMounted } from 'vue';
+import { ref, computed, watch, shallowRef, onMounted } from 'vue';
 import { Empty } from 'ant-design-vue';
-import { UpOutlined, DownOutlined } from '@ant-design/icons-vue';
+import { PlusOutlined, MinusOutlined } from '@ant-design/icons-vue';
 import { longfist, tracer } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { getFrameColumns } from '../config';
 import { dealFrame } from '../utils';
@@ -163,7 +167,7 @@ type dataResolvedType = {
   title: string;
 }[];
 
-const FRAME_LIST_SPLIT = 100;
+const FRAME_LIST_SPLIT = 1000;
 const MIS_TRADIND_MESSAGE_TYPE = 100;
 const MAX_TRADING_MESSAGE_TYPE = 10000;
 const SCALE = 1000000;
@@ -194,8 +198,7 @@ const dataStartTime = ref<[bigint, bigint]>([
   props.currentTime,
   props.beginTime,
 ]);
-const isEditingStartTime = ref(false);
-const inputStartTime = ref<string>('');
+const inputStartTime = ref<string>(dealKfTime(props.currentTime));
 const colorMap = {
   blue: 'rgb(24, 144, 255)',
   green: 'rgb(82, 196, 26)',
@@ -274,10 +277,7 @@ onMounted(() => {
 });
 
 const handleScrollToTop = () => {
-  // loadingJournal.value = true;
-  // tracerFrame?.seekToTime(props.currentTime);
-  // loadingJournal.value = false;
-  // loadFrameData(props.currentSession as KungfuApi.SessionResolved);
+  //TODO on scroll to top event;
 };
 
 const handleScrollToBottom = async () => {
@@ -286,24 +286,10 @@ const handleScrollToBottom = async () => {
   await loadFrameData(props.currentSession as KungfuApi.SessionResolved, true);
 };
 
-// const handleTreeClick = (e: any) => {
-//   console.log('handleTreeClick', e);
-// };
-
-const handleStartTimeClick = () => {
-  inputStartTime.value = dealKfTime(props.currentTime);
-  isEditingStartTime.value = true;
-  nextTick(() => {
-    inputRef.value.focus();
-  });
-};
-
 const handleStartTimeBlur = () => {
-  isEditingStartTime.value = false;
   validateAndUpdateStartTime();
 };
 const handleStartTimeEnter = () => {
-  isEditingStartTime.value = false;
   validateAndUpdateStartTime();
 };
 
@@ -327,24 +313,33 @@ const validateAndUpdateStartTime = async () => {
   const timeRegex = /^(\d{10,19}|(\d{2}:\d{2}:\d{2}(\.\d{3})?))$/;
   if (timeRegex.test(inputStartTime.value)) {
     const newStartTime = convertToTimestamp(inputStartTime.value);
-    dataStartTime.value[0] =
-      newStartTime <= props.nowTime && newStartTime >= props.beginTime
-        ? newStartTime
-        : props.currentTime;
+    console.log('newStartTime', newStartTime);
+    if (newStartTime >= props.nowTime) {
+      dataStartTime.value[0] = props.nowTime;
+    } else if (newStartTime <= props.beginTime) {
+      dataStartTime.value[0] = props.beginTime;
+    } else {
+      dataStartTime.value[0] = newStartTime;
+    }
     if (dataStartTime.value[0] !== props.currentTime) {
       await emit('updateCurrentTime', dataStartTime.value[0]);
     }
   }
+
+  inputStartTime.value = dealKfTime(dataStartTime.value[0]);
 };
 
-const increaseTimestamp = () => {
+const modifyTimestamp = (isIncrease) => {
   const timeRegex = /^(\d{10,19}|(\d{2}:\d{2}:\d{2}(\.\d{3})?))$/;
   if (timeRegex.test(inputStartTime.value)) {
     if (/^\d{10,19}$/.test(inputStartTime.value)) {
       const lengthDifference = 19 - inputStartTime.value.length;
       const scaleFactor = BigInt(Math.pow(10, lengthDifference));
       const currentTimestamp = BigInt(inputStartTime.value) * scaleFactor;
-      const newTimestamp = currentTimestamp + BigInt(HUNDRED_MILLISECONDS);
+      const adjustment =
+        BigInt(HUNDRED_MILLISECONDS) * BigInt(isIncrease ? 1 : -1);
+      console.log('adjustment', adjustment);
+      const newTimestamp = currentTimestamp + adjustment;
       inputStartTime.value = newTimestamp.toString();
     } else {
       const [hours, minutes, fullSeconds] = inputStartTime.value.split(':');
@@ -353,43 +348,21 @@ const increaseTimestamp = () => {
         : [fullSeconds, '000'];
       const currentTime = new Date();
       currentTime.setHours(+hours, +minutes, +seconds, +milliseconds);
+      const adjustment =
+        BigInt(HUNDRED_MILLISECONDS) * BigInt(isIncrease ? 1 : -1);
       inputStartTime.value = dealKfTime(
-        BigInt(currentTime.getTime()) * BigInt(SCALE) +
-          BigInt(HUNDRED_MILLISECONDS),
+        BigInt(currentTime.getTime()) * BigInt(SCALE) + adjustment,
       );
     }
   } else {
     inputStartTime.value = '';
   }
   inputRef.value.focus();
+  validateAndUpdateStartTime();
 };
 
-const decreaseTimestamp = () => {
-  const timeRegex = /^(\d{10,19}|(\d{2}:\d{2}:\d{2}(\.\d{3})?))$/;
-  if (timeRegex.test(inputStartTime.value)) {
-    if (/^\d{10,19}$/.test(inputStartTime.value)) {
-      const lengthDifference = 19 - inputStartTime.value.length;
-      const scaleFactor = BigInt(Math.pow(10, lengthDifference));
-      const currentTimestamp = BigInt(inputStartTime.value) * scaleFactor;
-      const newTimestamp = currentTimestamp - BigInt(HUNDRED_MILLISECONDS);
-      inputStartTime.value = newTimestamp.toString();
-    } else {
-      const [hours, minutes, fullSeconds] = inputStartTime.value.split(':');
-      const [seconds, milliseconds] = fullSeconds.includes('.')
-        ? fullSeconds.split('.')
-        : [fullSeconds, '000'];
-      const currentTime = new Date();
-      currentTime.setHours(+hours, +minutes, +seconds, +milliseconds);
-      inputStartTime.value = dealKfTime(
-        BigInt(currentTime.getTime()) * BigInt(SCALE) -
-          BigInt(HUNDRED_MILLISECONDS),
-      );
-    }
-  } else {
-    inputStartTime.value = '';
-  }
-  inputRef.value.focus();
-};
+const increaseTimestamp = () => modifyTimestamp(true);
+const decreaseTimestamp = () => modifyTimestamp(false);
 
 watch(
   () => props.currentSession,
@@ -420,6 +393,8 @@ watch(
 watch(
   () => props.currentTime,
   async () => {
+    inputStartTime.value = dealKfTime(props.currentTime);
+
     if (dataChangeByCurrentTime.value && props.currentSession) {
       resetToTop.value?.();
       frameDataList.value = [];
@@ -498,17 +473,6 @@ const loadFrameData = async (
           }
         }
         const data = frame.data();
-        // if (msgType === MsgType.Position) {
-        //   console.log('position', frame.data());
-        // } else if (msgType === MsgType.Order) {
-        //   console.log('Order', frame.data());
-        // } else if (msgType === MsgType.OrderInput) {
-        //   console.log('OrderInput', frame.data());
-        // } else if (msgType === MsgType.Quote) {
-        //   console.log('Quote', frame.data());
-        // } else if (msgType === MsgType.Trade) {
-        //   console.log('Trade', frame.data());
-        // }
         const dataChildren = getDataResolved(data as object);
         if (dataChildren !== undefined && dataChildren !== null) {
           if (!dataResolved[0].children) dataResolved[0].children = [];
@@ -653,11 +617,9 @@ defineExpose({
   }
 
   .kf-journal-filters-bar {
-    flex: 0 40px;
-    height: 40px;
     background-color: #1d1d1d;
     padding: 4px 16px;
-    margin-bottom: 2px;
+    margin-bottom: 4px;
     overflow-x: overlay;
     display: flex;
     align-items: center;
@@ -669,13 +631,33 @@ defineExpose({
     }
 
     .kf-journal-bar-title {
+      height: 32px;
       white-space: nowrap;
       font-size: 14px;
       margin-right: 16px;
+      display: flex;
+      align-items: center;
+
+      button {
+        height: 100%;
+
+        &.kf-time-btn__increase {
+          margin-right: 8px;
+        }
+
+        &.kf-time-btn__decrease {
+          margin-left: 8px;
+        }
+      }
+
+      input {
+        height: 100%;
+      }
     }
 
     .ant-form-inline {
       flex-wrap: nowrap;
+      justify-content: space-between;
     }
   }
 

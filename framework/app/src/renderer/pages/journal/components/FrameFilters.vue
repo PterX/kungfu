@@ -25,8 +25,8 @@
         v-model:value="filtersFormState[item]"
         :tree-data="filtersOptions[item]"
         treeNodeFilterProp="title"
-        style="width: 495px"
-        :max-tag-count="2"
+        style="width: 396px"
+        :max-tag-count="7"
         tree-checkable
         show-search
         :placeholder="$t('keyword_input')"
@@ -178,10 +178,16 @@ const handleApplyFilters = () => {
 </script>
 
 <style lang="less">
-.kf-form-item__warp {
-  .ant-select {
-    min-width: 160px;
-    margin-right: 0;
+.ant-form-inline {
+  .ant-form-item {
+    &.kf-form-item__warp {
+      margin-right: 0px;
+
+      .ant-select {
+        min-width: 160px;
+        margin-right: 0;
+      }
+    }
   }
 }
 </style>

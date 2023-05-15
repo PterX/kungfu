@@ -281,6 +281,7 @@ void TraderXTP::OnQueryAsset(XTPQueryAssetRsp *asset, XTPRI *error_info, int req
     }
     account.holder_uid = get_home()->uid;
     account.update_time = yijinjing::time::now_in_nano();
+    SPDLOG_TRACE("Asset: {}", account.to_string());
     writer->close_data();
     enable_asset_sync();
   }

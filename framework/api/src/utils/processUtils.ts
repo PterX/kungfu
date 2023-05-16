@@ -1059,9 +1059,12 @@ export const startExtService = async (
     } else {
       const extDirs = await flattenExtensionModuleDirs(EXTENSION_DIRS);
       const args = buildArgs(
-        `-X "${extDirs
-          .map((dir) => dealSpaceInPath(path.dirname(dir)))
-          .join(path.delimiter)}" run -c system -g service -n "${name}"`,
+        `-X "${
+          cwd ||
+          extDirs
+            .map((dir) => dealSpaceInPath(path.dirname(dir)))
+            .join(path.delimiter)
+        }" run -c system -g service -n "${name}"`,
       );
       return {
         name: processName,
@@ -1078,6 +1081,7 @@ export const startExtService = async (
     location,
     options,
   );
+  console.log(options);
 
   return startProcess(options).catch((err) => {
     kfLogger.error(err);

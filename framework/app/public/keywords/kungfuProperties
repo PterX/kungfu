@@ -245,6 +245,7 @@ RequestWriteTo
 Channel
 ChannelRequest
 Band
+RequestReadFromOthers
 TimeRequest
 TimeReset
 TradingDay

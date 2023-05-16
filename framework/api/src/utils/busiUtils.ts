@@ -1236,7 +1236,7 @@ export const getConfigValue = (kfConfig: KungfuApi.KfConfig) => {
   return JSON.parse(kfConfig.value || '{}');
 };
 
-export const buildIdByKeysFromKfConfigSettings = (
+export const buildIdByPrimaryKeysFromKfConfigSettings = (
   kfConfigState: Record<string, KungfuApi.KfConfigValue>,
   keys: string[],
 ) => {
@@ -1941,8 +1941,14 @@ export const getPrimaryKeys = (
 ): string[] => {
   return settings.filter((item) => item.primary).map((item) => item.key);
 };
-export const replaceNonAlphaNumericWithSpace = (str: string) => {
-  return str.replace(/[^a-zA-Z0-9]+/g, '');
+export const replaceNonAlphaNumericWithSpace = (
+  value: KungfuApi.KfConfigValue,
+) => {
+  if (typeof value === 'string') {
+    return value.replace(/[^a-zA-Z0-9]+/g, '');
+  } else {
+    return value;
+  }
 };
 const concatPrimaryKey = (arr: string[]) => {
   if (arr.length === 0) return '';

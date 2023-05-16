@@ -158,7 +158,7 @@ void cached::on_location(const event_ptr &event) { profile_bank_ << typed_event_
 
 void cached::inspect_channel(int64_t trigger_time, const Channel &channel) {
   if (channel.source_id != get_live_home_uid() and channel.dest_id != get_live_home_uid()) {
-    reader_->join(get_location(channel.source_id), channel.dest_id, trigger_time);
+    reader_join(channel.source_id, channel.dest_id, trigger_time);
     make_cache_shift(channel.source_id, channel.dest_id);
   }
 }
@@ -187,9 +187,9 @@ void cached::register_trigger_listen_public(int64_t gen_time, const Register &re
     return;
   }
 
-  reader_->join(app_location, location::PUBLIC, gen_time);
+  reader_join(app_uid, location::PUBLIC, gen_time);
   make_cache_shift(app_uid, location::PUBLIC);
-  reader_->join(app_location, location::SYNC, gen_time);
+  reader_join(app_uid, location::SYNC, gen_time);
   make_cache_shift(app_uid, location::SYNC);
   SPDLOG_INFO("resume {} connection from {}", get_location_uname(app_uid), time::strftime(gen_time));
 }

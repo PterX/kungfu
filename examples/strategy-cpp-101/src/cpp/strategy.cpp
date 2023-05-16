@@ -51,26 +51,26 @@ public:
     }
   }
 
-  void on_quote(Context_ptr & context, const Quote &quote, const location_ptr &location) override {
+  void on_quote(Context_ptr & context, const Quote &quote, const location_ptr &location, uint32_t dest) override {
     SPDLOG_INFO("on quote: {} i {} location->uid {}", quote.last_price, i, location->location_uid);
   }
 
-  void on_synthetic_data(Context_ptr & context, const SyntheticData &synthetic_data, const location_ptr &location)
-      override {
+  void on_synthetic_data(Context_ptr & context, const SyntheticData &synthetic_data, const location_ptr &location,
+                         uint32_t dest) override {
     SPDLOG_INFO("on_synthetic_data: {} ", synthetic_data.to_string());
   }
 
   void on_broker_state_change(Context_ptr & context, const BrokerStateUpdate &broker_state_update,
-                              const location_ptr &location) override {
+                              const location_ptr &location, uint32_t dest) override {
     SPDLOG_INFO("on broker state changed: {}", broker_state_update.to_string());
   };
 
   void on_operator_state_change(Context_ptr & context, const OperatorStateUpdate &operator_state_update,
-                                const location_ptr &location) override {
+                                const location_ptr &location, uint32_t dest) override {
     SPDLOG_INFO("on operator state changed: {}", operator_state_update.to_string());
   };
 
-  void on_tree(Context_ptr & context, const Tree &tree, const location_ptr &location) override {
+  void on_tree(Context_ptr & context, const Tree &tree, const location_ptr &location, uint32_t dest) override {
     SPDLOG_INFO("on tree: {}", tree.to_string());
   }
 };

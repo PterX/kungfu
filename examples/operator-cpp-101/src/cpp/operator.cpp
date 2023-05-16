@@ -21,7 +21,7 @@ public:
 
   void post_start(Context_ptr & context) override { SPDLOG_INFO("operator started"); }
 
-  void on_quote(Context_ptr & context, const Quote &quote, const location_ptr &location) override {
+  void on_quote(Context_ptr & context, const Quote &quote, const location_ptr &location, uint32_t dest) override {
     i++;
     std::string key = "price";
     std::string value = fmt::format("{}", quote.last_price);
@@ -30,12 +30,12 @@ public:
   }
 
   void on_broker_state_change(Context_ptr & context, const BrokerStateUpdate &broker_state_update,
-                              const location_ptr &location) override {
+                              const location_ptr &location, uint32_t dest) override {
     SPDLOG_WARN("on broker state changed: {}", broker_state_update.to_string());
   };
 
   void on_operator_state_change(Context_ptr & context, const OperatorStateUpdate &operator_state_update,
-                                const location_ptr &location) override {
+                                const location_ptr &location, uint32_t dest) override {
     SPDLOG_WARN("on operator state changed: {}", operator_state_update.to_string());
   };
 };

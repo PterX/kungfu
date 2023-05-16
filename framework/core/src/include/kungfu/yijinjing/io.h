@@ -22,6 +22,8 @@ public:
 
   bool is_usable() override { return publisher_ and observer_ and publisher_->is_usable() and observer_->is_usable(); }
 
+  bool is_lazy() { return lazy_; }
+
   void setup() override {
     publisher_->setup();
     observer_->setup();

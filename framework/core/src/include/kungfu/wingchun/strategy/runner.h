@@ -73,22 +73,24 @@ private:
     }
   }
 
-  template <typename TradingData, typename OnMethod = void (Strategy::*)(Context_ptr &, const TradingData &,
-                                                                         const kungfu::yijinjing::data::location_ptr &)>
-  void invoke(OnMethod method, const TradingData &data, const kungfu::yijinjing::data::location_ptr &location) {
+  template <typename TradingData,
+            typename OnMethod = void (Strategy::*)(Context_ptr &, const TradingData &,
+                                                   const kungfu::yijinjing::data::location_ptr &, uint32_t)>
+  void invoke(OnMethod method, const TradingData &data, const kungfu::yijinjing::data::location_ptr &location,
+              uint32_t dest) {
     auto context = std::dynamic_pointer_cast<Context>(context_);
     for (const auto &strategy : strategies_) {
-      (*strategy.*method)(context, data, location);
+      (*strategy.*method)(context, data, location, dest);
     }
   }
 
   template <typename OnMethod = void (Strategy::*)(Context_ptr &, uint32_t, const std::vector<uint8_t> &, uint32_t,
-                                                   const kungfu::yijinjing::data::location_ptr &)>
+                                                   const kungfu::yijinjing::data::location_ptr &, uint32_t)>
   void invoke(OnMethod method, uint32_t msg_type, const std::vector<uint8_t> &data, uint32_t length,
-              const kungfu::yijinjing::data::location_ptr &location) {
+              const kungfu::yijinjing::data::location_ptr &location, uint32_t dest) {
     auto context = std::dynamic_pointer_cast<Context>(context_);
     for (const auto &strategy : strategies_) {
-      (*strategy.*method)(context, msg_type, data, length, location);
+      (*strategy.*method)(context, msg_type, data, length, location, dest);
     }
   }
 

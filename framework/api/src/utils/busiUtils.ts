@@ -1299,11 +1299,13 @@ const startProcessByKfLocation = async (
         return startLedger(isForce);
       } else if (kfLocation.name === 'cached') {
         return startCacheD(isForce);
-      } else if (KfDefaultSystemProcess.indexOf(kfLocation.name) === -1) {
+      } else if (
+        kfLocation.group === 'service' &&
+        KfDefaultSystemProcess.indexOf(kfLocation.name) === -1
+      ) {
         startExtService(
-          getProcessIdByKfLocation(kfLocation),
-          kfLocation['cwd'] || '',
-          kfLocation['script'] || '',
+          getIdByKfLocation(kfLocation),
+          kfLocation as KungfuApi.KfExtServiceLocation,
         );
       }
       break;

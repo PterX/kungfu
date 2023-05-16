@@ -1035,20 +1035,51 @@ export const startDzxy = () => {
   });
 };
 
-export const startExtService = (name: string, cwd: string, script: string) => {
-  return startProcess({
-    name,
-    args: '',
-    cwd,
-    script,
-    interpreter: path.join(KFC_DIR, kfcName),
-    force: true,
-    watch: process.env.NODE_ENV === 'production' ? false : true,
-    env: {
-      KFC_AS_VARIANT: script.endsWith('.js') ? 'node' : '',
-    },
-    kill_timeout: 500,
-  }).catch((err) => {
+export const startExtService = async (
+  processName: string,
+  location: KungfuApi.KfExtServiceLocation,
+) => {
+  const { name, cwd, script } = location;
+
+  const getExtServicePm2Options = async (): Promise<Pm2StartOptions> => {
+    if (script.endsWith('.js')) {
+      return {
+        name: processName,
+        args: '',
+        cwd,
+        script,
+        interpreter: path.join(KFC_DIR, kfcName),
+        force: true,
+        watch: process.env.NODE_ENV === 'production' ? false : true,
+        env: {
+          KFC_AS_VARIANT: 'node',
+        },
+        kill_timeout: 500,
+      };
+    } else {
+      const extDirs = await flattenExtensionModuleDirs(EXTENSION_DIRS);
+      const args = buildArgs(
+        `-X "${extDirs
+          .map((dir) => dealSpaceInPath(path.dirname(dir)))
+          .join(path.delimiter)}" run -c system -g service -n "${name}"`,
+      );
+      return {
+        name: processName,
+        cwd,
+        script: `${dealSpaceInPath(path.join(KFC_DIR, kfcName))}`,
+        args,
+        force: true,
+      };
+    }
+  };
+
+  let options = await getExtServicePm2Options();
+  options = await globalThis.HookKeeper.getHooks().resolveStartOptions.trigger(
+    location,
+    options,
+  );
+
+  return startProcess(options).catch((err) => {
     kfLogger.error(err);
   });
 };

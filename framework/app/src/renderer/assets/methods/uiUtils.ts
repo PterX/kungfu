@@ -352,7 +352,7 @@ export const postStartAll = async (): Promise<(void | Proc)[]> => {
   return loopToRunProcess<void | Proc>(
     availExtServices.map((item) => {
       return () =>
-        startExtService(getProcessIdByKfLocation(item), item.cwd, item.script)
+        startExtService(getProcessIdByKfLocation(item), item)
           .then((res) => {
             return res;
           })

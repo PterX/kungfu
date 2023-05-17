@@ -366,8 +366,9 @@ void hero::deal_notice(bool lazy, bool notify, const rx::subscriber<event_ptr> &
 
 bool hero::drain(const rx::subscriber<event_ptr> &sb) {
   deal_notice(false, true, sb);
+  bool is_lazy = io_device_->is_lazy();  
   while (live_ and reader_->data_available()) {
-    deal_notice(io_device_->is_lazy(), false, sb);
+    deal_notice(is_lazy, false, sb);
     if (reader_->current_frame()->gen_time() <= end_time_) {
       int64_t frame_time = reader_->current_frame()->gen_time();
       if (frame_time > now_) {

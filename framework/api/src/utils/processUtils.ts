@@ -1036,15 +1036,15 @@ export const startDzxy = () => {
 };
 
 export const startExtService = async (
-  processName: string,
   location: KungfuApi.KfExtServiceLocation,
 ) => {
   const { name, cwd, script } = location;
+  const processId = getProcessIdByKfLocation(location);
 
   const getExtServicePm2Options = async (): Promise<Pm2StartOptions> => {
     if (script.endsWith('.js')) {
       return {
-        name: processName,
+        name: processId,
         args: '',
         cwd,
         script,
@@ -1067,7 +1067,7 @@ export const startExtService = async (
         }" run -c system -g service -n "${name}"`,
       );
       return {
-        name: processName,
+        name: processId,
         cwd,
         script: `${dealSpaceInPath(path.join(KFC_DIR, kfcName))}`,
         args,
@@ -1081,7 +1081,6 @@ export const startExtService = async (
     location,
     options,
   );
-  console.log(options);
 
   return startProcess(options).catch((err) => {
     kfLogger.error(err);

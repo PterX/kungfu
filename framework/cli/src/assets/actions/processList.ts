@@ -544,7 +544,7 @@ export const switchProcess = async (
           })
           .catch((err: Error) => kfLogger.error(err));
       } else {
-        if (!isTargetExtService) {
+        if (isTargetExtService) {
           switchProcessExceptMaster();
           break;
         }

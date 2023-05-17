@@ -419,7 +419,7 @@ export const startAllExtServices = async () => {
   return loopToRunProcess<void | Proc>(
     availExtServices.map((item) => {
       return () =>
-        startExtService(getProcessIdByKfLocation(item), item)
+        startExtService(item)
           .then((res) => {
             return res;
           })

@@ -1304,7 +1304,6 @@ const startProcessByKfLocation = async (
         KfDefaultSystemProcess.indexOf(kfLocation.name) === -1
       ) {
         startExtService(
-          getIdByKfLocation(kfLocation),
           kfLocation as KungfuApi.KfExtServiceLocation,
         );
       }

@@ -9,7 +9,7 @@ import {
 
 export const watcher = ((): KungfuApi.Watcher | null => {
   if (process.env.APP_TYPE !== 'renderer') {
-    if (process.env.APP_TYPE !== 'daemon') {
+    if (process.env.APP_TYPE !== 'service') {
       if (process.env.APP_TYPE !== 'cli') {
         return null;
       }

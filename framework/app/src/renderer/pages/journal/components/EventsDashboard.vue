@@ -401,10 +401,11 @@ watch(
 
     if (dataChangeByCurrentTime.value && props.currentSession) {
       resetToTop.value?.();
-      frameDataList.value = [];
+      // frameDataList.value = [];
       if (isLoadFrameData.value) {
         drainContinue.value = false;
       }
+      frameDataList.value = [];
       setloading(true);
       delayMilliSeconds(0).then(() => {
         doLoad();
@@ -464,7 +465,7 @@ const loadFrameData = async (
       count < FRAME_LIST_SPLIT &&
       tracerFrame &&
       tracerFrame.dataAvailable() &&
-      drainContinue &&
+      drainContinue.value &&
       (frameDataList.value.length < DEFAULT_LIST_SIZE ||
         (checking && dataContinueCount < FRAME_LIST_SPLIT))
     ) {

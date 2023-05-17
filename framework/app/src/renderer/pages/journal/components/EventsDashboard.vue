@@ -283,7 +283,6 @@ const handleScrollToTop = () => {
 };
 
 const handleScrollToBottom = () => {
-  setloading(true);
   delayMilliSeconds(0).then(async () => {
     tracerFrame?.seekToTime(dataStartTime.value[1]);
     await loadFrameData(
@@ -398,7 +397,6 @@ watch(
 watch(
   () => props.currentTime,
   () => {
-    console.log('guolu');
     inputStartTime.value = dealKfTime(props.currentTime);
 
     if (dataChangeByCurrentTime.value && props.currentSession) {
@@ -544,14 +542,6 @@ const loadFrameData = async (
         frameDataList.value = [...frameDataList.value, ...tempFrames];
       }
     } else {
-      console.log(
-        'drainContinue',
-        drainContinue.value,
-        count,
-        newTotal,
-        frameDataList.value.length,
-        frameDataList.value,
-      );
       frameDataList.value = [];
     }
 

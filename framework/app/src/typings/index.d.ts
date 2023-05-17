@@ -93,7 +93,9 @@ interface BuiltinComponentPropsMap {
       a: Pm2ProcessStatusDetail,
       b: Pm2ProcessStatusDetail,
     ) => number;
-    strategyFilter?: (strategyExtConfig: KungfuApi.KfExtConfig) => boolean;
+    strategyFilter?: (
+      strategyExtConfig: KungfuApi.KfStrategyExtConfig,
+    ) => boolean;
   };
 }
 

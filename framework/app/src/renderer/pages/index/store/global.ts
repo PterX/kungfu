@@ -85,7 +85,13 @@ export const useGlobalStore = defineStore('global', {
       boardsMap: {},
       dragedContentData: null,
       isBoardDragging: false,
-      extConfigs: toRaw<KungfuApi.KfExtConfigs>({}),
+      extConfigs: toRaw<KungfuApi.KfExtConfigs>({
+        td: {},
+        md: {},
+        strategy: {},
+        operator: {},
+        system: {},
+      }),
       uiExtConfigs: toRaw<KungfuApi.KfUIExtConfigs>({}),
 
       tdList: [],
@@ -261,7 +267,6 @@ export const useGlobalStore = defineStore('global', {
         strategy: this.strategyList,
         system: [],
         operator: [],
-        daemon: [],
       };
 
       const targetKfConfigs: KungfuApi.KfConfig[] =
@@ -318,9 +323,9 @@ export const useGlobalStore = defineStore('global', {
 
     setKfUIExtConfigs() {
       return getKfUIExtensionConfig().then(
-        (KfExtConfig: KungfuApi.KfUIExtConfigs) => {
-          this.uiExtConfigs = toRaw(KfExtConfig);
-          return KfExtConfig;
+        (kfUiExtConfig: KungfuApi.KfUIExtConfigs) => {
+          this.uiExtConfigs = toRaw(kfUiExtConfig);
+          return kfUiExtConfig;
         },
       );
     },

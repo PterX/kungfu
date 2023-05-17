@@ -37,7 +37,7 @@ import {
   buildExtTypeMap,
   dealCategory,
   dealAssetsByHolderUID,
-  getAvailDaemonList,
+  getAvailExtServiceList,
   getStrategyStateStatusName,
   isBrokerStateReady,
   dealKfNumber,
@@ -1752,7 +1752,13 @@ export const useAllKfConfigData = (): Record<
 > => {
   const allKfConfigData: Record<KfCategoryTypes, KungfuApi.KfLocation[]> =
     reactive({
-      system: ref<(KungfuApi.KfConfig | KungfuApi.KfExtraLocation)[]>([
+      system: ref<
+        (
+          | KungfuApi.KfConfig
+          | KungfuApi.KfExtraLocation
+          | KungfuApi.KfExtServiceLocation
+        )[]
+      >([
         ...(process.env.NODE_ENV === 'development'
           ? [
               {
@@ -1791,7 +1797,6 @@ export const useAllKfConfigData = (): Record<
         },
       ]),
 
-      daemon: [],
       md: [],
       td: [],
       strategy: [],
@@ -1808,8 +1813,8 @@ export const useAllKfConfigData = (): Record<
     allKfConfigData.strategy = strategyList as unknown as KungfuApi.KfConfig[];
     allKfConfigData.operator = operatorList as unknown as KungfuApi.KfConfig[];
 
-    getAvailDaemonList().then((daemonList) => {
-      allKfConfigData.daemon = daemonList;
+    getAvailExtServiceList().then((extServiceList) => {
+      allKfConfigData.system.push(...extServiceList);
     });
   });
 

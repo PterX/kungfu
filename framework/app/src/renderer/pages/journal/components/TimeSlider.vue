@@ -13,7 +13,6 @@
       ref="slider"
       :key="sliderKey"
       v-model:value="curTime"
-      v-dragging="{ onMouseDown: handleMouseDown, onMouseUp: handleMouseUp }"
       class="kf-time-slider"
       :class="{
         'kf-time-slider-handler-focus-1': false,
@@ -25,8 +24,6 @@
       :step="nano2millionSecond(props.step)"
       :tip-formatter="tipFormatter"
       @after-change="onAfterChange"
-      @mousedown="handleMouseDown"
-      @mouseup="handleMouseUp"
     />
     <div class="kf-time-slider-time">
       <span class="kf-time-slider-text" style="text-align: start">
@@ -69,7 +66,6 @@ const handleElement = ref<HTMLElement | null>(null);
 const SCALE = 1000000;
 const BIGINT_SCALE = BigInt(SCALE);
 const TEN_SECOND = BigInt(10000000000);
-const isDragging = ref(false);
 const slider = ref();
 const sliderKey = ref(0);
 const endTimeChange = ref(true);
@@ -83,30 +79,14 @@ const maxTime = computed(() => {
 
 onMounted(() => {
   window.addEventListener('resize', handleResize);
-  window.addEventListener('mouseup', globalMouseUp);
 });
 
 onUnmounted(() => {
-  window.removeEventListener('mouseup', globalMouseUp);
   window.removeEventListener('resize', handleResize);
 });
 
 const handleResize = () => {
   sliderKey.value++;
-};
-
-const handleMouseDown = () => {
-  isDragging.value = true;
-};
-
-const handleMouseUp = () => {
-  isDragging.value = false;
-};
-
-const globalMouseUp = () => {
-  if (isDragging.value) {
-    isDragging.value = false;
-  }
 };
 
 const handleTimeBack = () => {

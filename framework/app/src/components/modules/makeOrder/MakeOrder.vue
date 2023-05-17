@@ -626,7 +626,7 @@ function closeModalConditions(
 
 const { handleOpenSetTradingTaskModal } = useTradingTask();
 async function handleOpenTradingTaskConfigModal(
-  kfExtConfig: KungfuApi.KfExtConfig,
+  kfExtConfig: KungfuApi.KfStrategyExtConfig,
 ) {
   try {
     if (!currentGlobalKfLocation.value) return;

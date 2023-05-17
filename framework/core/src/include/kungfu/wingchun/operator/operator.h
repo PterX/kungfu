@@ -53,19 +53,19 @@ public:
   // 断开回调
   //@param deregister     断开数据
   virtual void on_deregister(Context_ptr &context, const longfist::types::Deregister &deregister,
-                             const kungfu::yijinjing::data::location_ptr &location, uint32_t dest){};
+                             const kungfu::yijinjing::data::location_ptr &location){};
 
   // 客户端状态变化回调
   //@param broker_state_update     状态变化
   virtual void on_broker_state_change(Context_ptr &context,
                                       const longfist::types::BrokerStateUpdate &broker_state_update,
-                                      const kungfu::yijinjing::data::location_ptr &location, uint32_t dest){};
+                                      const kungfu::yijinjing::data::location_ptr &location){};
 
   // 订阅的其他算子器状态变化回调
   //@param operator_state_update     状态变化
   virtual void on_operator_state_change(Context_ptr &context,
                                         const longfist::types::OperatorStateUpdate &operator_state_update,
-                                        const kungfu::yijinjing::data::location_ptr &location, uint32_t dest){};
+                                        const kungfu::yijinjing::data::location_ptr &location){};
 };
 
 DECLARE_PTR(Operator)

@@ -398,4 +398,8 @@ void RuntimeContext::send_instrument_keys() {
 
 void RuntimeContext::set_started(bool started) { started_ = started; }
 
+yijinjing::data::location_ptr RuntimeContext::get_location(uint32_t location_uid) {
+  return app_.get_location(location_uid);
+}
+
 } // namespace kungfu::wingchun::strategy

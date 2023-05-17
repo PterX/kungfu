@@ -95,19 +95,18 @@ public:
   }
 
   void on_deregister(strategy::Context_ptr &context, const Deregister &deregister,
-                     const kungfu::yijinjing::data::location_ptr &location, uint32_t dest) override {
-    PYBIND11_OVERLOAD(void, strategy::Strategy, on_deregister, context, deregister, location, dest);
+                     const kungfu::yijinjing::data::location_ptr &location) override {
+    PYBIND11_OVERLOAD(void, strategy::Strategy, on_deregister, context, deregister, location);
   }
 
   void on_broker_state_change(strategy::Context_ptr &context, const BrokerStateUpdate &brokerStateUpdate,
-                              const kungfu::yijinjing::data::location_ptr &location, uint32_t dest) override {
-    PYBIND11_OVERLOAD(void, strategy::Strategy, on_broker_state_change, context, brokerStateUpdate, location, dest);
+                              const kungfu::yijinjing::data::location_ptr &location) override {
+    PYBIND11_OVERLOAD(void, strategy::Strategy, on_broker_state_change, context, brokerStateUpdate, location);
   }
 
   void on_operator_state_change(strategy::Context_ptr &context, const OperatorStateUpdate &operator_state_update,
-                                const kungfu::yijinjing::data::location_ptr &location, uint32_t dest) override {
-    PYBIND11_OVERLOAD(void, strategy::Strategy, on_operator_state_change, context, operator_state_update, location,
-                      dest);
+                                const kungfu::yijinjing::data::location_ptr &location) override {
+    PYBIND11_OVERLOAD(void, strategy::Strategy, on_operator_state_change, context, operator_state_update, location);
   }
 
   void on_history_order(strategy::Context_ptr &context, const HistoryOrder &history_order,

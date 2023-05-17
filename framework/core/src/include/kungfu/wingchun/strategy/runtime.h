@@ -245,6 +245,8 @@ public:
 
   void set_started(bool started);
 
+  yijinjing::data::location_ptr get_location(uint32_t location_uid) override;
+
 protected:
   yijinjing::practice::apprentice &app_;
   const rx::connectable_observable<event_ptr> &events_;

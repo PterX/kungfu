@@ -90,17 +90,17 @@ class Strategy(wc.Strategy):
             self._module, "on_trade", lambda ctx, trade, location, dest: None
         )
         self._on_deregister = getattr(
-            self._module, "on_deregister", lambda ctx, deregister, location, dest: None
+            self._module, "on_deregister", lambda ctx, deregister, location: None
         )
         self._on_broker_state_change = getattr(
             self._module,
             "on_broker_state_change",
-            lambda ctx, broker_state_update, location, dest: None,
+            lambda ctx, broker_state_update, location: None,
         )
         self._on_operator_state_change = getattr(
             self._module,
             "on_operator_state_change",
-            lambda ctx, operator_state_update, location, dest: None,
+            lambda ctx, operator_state_update, location: None,
         )
         self._on_history_order = getattr(
             self._module,
@@ -284,23 +284,20 @@ class Strategy(wc.Strategy):
     def on_trade(self, wc_context, trade, location, dest):
         self.__call_proxy(self._on_trade, self.ctx, trade, location, dest)
 
-    def on_deregister(self, wc_context, deregister, location, dest):
-        self.__call_proxy(self._on_deregister, self.ctx, deregister, location, dest)
+    def on_deregister(self, wc_context, deregister, location):
+        self.__call_proxy(self._on_deregister, self.ctx, deregister, location)
 
-    def on_broker_state_change(self, wc_context, broker_state_update, location, dest):
+    def on_broker_state_change(self, wc_context, broker_state_update, location):
         self.__call_proxy(
-            self._on_broker_state_change, self.ctx, broker_state_update, location, dest
+            self._on_broker_state_change, self.ctx, broker_state_update, location
         )
 
-    def on_operator_state_change(
-        self, wc_context, operator_state_update, location, dest
-    ):
+    def on_operator_state_change(self, wc_context, operator_state_update, location):
         self.__call_proxy(
             self._on_operator_state_change,
             self.ctx,
             operator_state_update,
             location,
-            dest,
         )
 
     def on_history_order(self, wc_context, history_order, location, dest):

@@ -86,6 +86,8 @@ Session &session_builder::open_session(const location_ptr &source_location, int6
 
 void session_builder::close_session(const location_ptr &source_location, int64_t time) {
   if (live_sessions_.find(source_location->uid) == live_sessions_.end()) {
+    SPDLOG_WARN("no location {} [{:08x}] {} in live_sessions_", source_location->uid, source_location->uid,
+                source_location->uname);
     return;
   }
 

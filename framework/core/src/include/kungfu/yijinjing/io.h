@@ -24,6 +24,8 @@ public:
 
   bool is_lazy() { return lazy_; }
 
+  bool is_low_latency() { return low_latency_; }
+
   void setup() override {
     publisher_->setup();
     observer_->setup();

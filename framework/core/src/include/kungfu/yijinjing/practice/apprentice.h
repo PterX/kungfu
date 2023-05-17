@@ -116,6 +116,8 @@ protected:
 
   [[maybe_unused]] int get_observer_recv_timeout() const;
 
+  void reader_join(uint32_t source_id, uint32_t dest_id, int64_t from_time);
+
   std::function<rx::observable<event_ptr>(rx::observable<event_ptr>)> timer(int64_t nanotime) {
     auto writer = get_writer(get_master_command_uid());
     int32_t timer_usage_count = timer_usage_count_;

@@ -57,7 +57,7 @@ void apprentice::request_read_from_sync(int64_t trigger_time, uint32_t source_id
 void apprentice::request_read_from_source_to_dest(int64_t trigger_time, const location_ptr &source_location,
                                                   uint32_t dest_id) {
   if (get_io_device()->get_home()->mode == mode::LIVE) {
-    reader_->join(source_location, dest_id, trigger_time);
+    reader_join(source_location->uid, dest_id, trigger_time);
   }
 }
 
@@ -281,6 +281,28 @@ void apprentice::on_cached_ready_to_read() { request_cached(cached_home_location
 
 [[maybe_unused]] int apprentice::get_observer_recv_timeout() const {
   return get_io_device()->get_observer()->get_recv_timeout();
+}
+
+void apprentice::reader_join(uint32_t source_id, uint32_t dest_id, int64_t from_time) {
+
+  if (not has_location(source_id)) {
+    SPDLOG_ERROR("no location {}", source_id);
+    return;
+  }
+
+  reader_->join(get_location(source_id), dest_id, from_time);
+
+  if (not has_writer(get_master_command_uid())) {
+    SPDLOG_ERROR("no master cmd writer");
+    return;
+  }
+
+  auto writer = get_writer(get_master_command_uid());
+  auto &request = writer->open_data<RequestReadFromOthers>(now());
+  request.source_id = source_id;
+  request.dest_id = dest_id;
+  request.from_time = from_time;
+  writer->close_data();
 }
 
 void apprentice::checkin() {

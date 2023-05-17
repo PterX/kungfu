@@ -139,9 +139,11 @@ import { MsgType } from '@kungfu-trader/kungfu-app/src/typings/enums';
 import { FiltersEnum } from '../utils/filterUtils';
 import KfTradingDataTable from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfTradingDataTable.vue';
 import { dealKfTime } from '@kungfu-trader/kungfu-js-api/kungfu';
+import { delayMilliSeconds } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { SessionStatusEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import FrameFilters from './FrameFilters.vue';
 import { useJournalStore } from '../store/journalStore';
+import { debounce } from 'lodash';
 
 const props = withDefaults(
   defineProps<{
@@ -167,7 +169,7 @@ type dataResolvedType = {
   title: string;
 }[];
 
-const FRAME_LIST_SPLIT = 1000;
+const FRAME_LIST_SPLIT = 100;
 const MIS_TRADIND_MESSAGE_TYPE = 100;
 const MAX_TRADING_MESSAGE_TYPE = 10000;
 const SCALE = 1000000;
@@ -213,17 +215,15 @@ const frameDataListResolved = computed(() => {
     } else {
       dataStartTime.value = [props.currentTime, props.endTime];
     }
-    loadingJournal.value = false;
     return [];
   }
   dataStartTime.value = [
     props.currentTime,
     frameDataList.value[frameDataList.value.length - 1].genTime,
   ];
-  loadingJournal.value = false;
+  setloading(false);
   return frameDataList.value;
 });
-
 const framesMap = shallowRef<Record<string, KungfuApi.FrameResolved>>({});
 
 const visible = ref(false);
@@ -280,10 +280,15 @@ const handleScrollToTop = () => {
   //TODO on scroll to top event;
 };
 
-const handleScrollToBottom = async () => {
-  loadingJournal.value = true;
-  tracerFrame?.seekToTime(dataStartTime.value[1]);
-  await loadFrameData(props.currentSession as KungfuApi.SessionResolved, true);
+const handleScrollToBottom = () => {
+  setloading(true);
+  delayMilliSeconds(0).then(async () => {
+    tracerFrame?.seekToTime(dataStartTime.value[1]);
+    await loadFrameData(
+      props.currentSession as KungfuApi.SessionResolved,
+      true,
+    );
+  });
 };
 
 const handleStartTimeBlur = () => {
@@ -313,10 +318,13 @@ const validateAndUpdateStartTime = async () => {
   const timeRegex = /^(\d{10,19}|(\d{2}:\d{2}:\d{2}(\.\d{3})?))$/;
   if (timeRegex.test(inputStartTime.value)) {
     const newStartTime = convertToTimestamp(inputStartTime.value);
-    dataStartTime.value[0] =
-      newStartTime <= props.nowTime && newStartTime >= props.beginTime
-        ? newStartTime
-        : props.currentTime;
+    if (newStartTime >= props.nowTime) {
+      dataStartTime.value[0] = props.nowTime;
+    } else if (newStartTime <= props.beginTime) {
+      dataStartTime.value[0] = props.beginTime;
+    } else {
+      dataStartTime.value[0] = newStartTime;
+    }
     if (dataStartTime.value[0] !== props.currentTime) {
       await emit('updateCurrentTime', dataStartTime.value[0]);
     }
@@ -325,14 +333,16 @@ const validateAndUpdateStartTime = async () => {
   inputStartTime.value = dealKfTime(dataStartTime.value[0]);
 };
 
-const increaseTimestamp = () => {
+const modifyTimestamp = (isIncrease) => {
   const timeRegex = /^(\d{10,19}|(\d{2}:\d{2}:\d{2}(\.\d{3})?))$/;
   if (timeRegex.test(inputStartTime.value)) {
     if (/^\d{10,19}$/.test(inputStartTime.value)) {
       const lengthDifference = 19 - inputStartTime.value.length;
       const scaleFactor = BigInt(Math.pow(10, lengthDifference));
       const currentTimestamp = BigInt(inputStartTime.value) * scaleFactor;
-      const newTimestamp = currentTimestamp + BigInt(HUNDRED_MILLISECONDS);
+      const adjustment =
+        BigInt(HUNDRED_MILLISECONDS) * BigInt(isIncrease ? 1 : -1);
+      const newTimestamp = currentTimestamp + adjustment;
       inputStartTime.value = newTimestamp.toString();
     } else {
       const [hours, minutes, fullSeconds] = inputStartTime.value.split(':');
@@ -341,9 +351,10 @@ const increaseTimestamp = () => {
         : [fullSeconds, '000'];
       const currentTime = new Date();
       currentTime.setHours(+hours, +minutes, +seconds, +milliseconds);
+      const adjustment =
+        BigInt(HUNDRED_MILLISECONDS) * BigInt(isIncrease ? 1 : -1);
       inputStartTime.value = dealKfTime(
-        BigInt(currentTime.getTime()) * BigInt(SCALE) +
-          BigInt(HUNDRED_MILLISECONDS),
+        BigInt(currentTime.getTime()) * BigInt(SCALE) + adjustment,
       );
     }
   } else {
@@ -353,33 +364,8 @@ const increaseTimestamp = () => {
   validateAndUpdateStartTime();
 };
 
-const decreaseTimestamp = () => {
-  const timeRegex = /^(\d{10,19}|(\d{2}:\d{2}:\d{2}(\.\d{3})?))$/;
-  if (timeRegex.test(inputStartTime.value)) {
-    if (/^\d{10,19}$/.test(inputStartTime.value)) {
-      const lengthDifference = 19 - inputStartTime.value.length;
-      const scaleFactor = BigInt(Math.pow(10, lengthDifference));
-      const currentTimestamp = BigInt(inputStartTime.value) * scaleFactor;
-      const newTimestamp = currentTimestamp - BigInt(HUNDRED_MILLISECONDS);
-      inputStartTime.value = newTimestamp.toString();
-    } else {
-      const [hours, minutes, fullSeconds] = inputStartTime.value.split(':');
-      const [seconds, milliseconds] = fullSeconds.includes('.')
-        ? fullSeconds.split('.')
-        : [fullSeconds, '000'];
-      const currentTime = new Date();
-      currentTime.setHours(+hours, +minutes, +seconds, +milliseconds);
-      inputStartTime.value = dealKfTime(
-        BigInt(currentTime.getTime()) * BigInt(SCALE) -
-          BigInt(HUNDRED_MILLISECONDS),
-      );
-    }
-  } else {
-    inputStartTime.value = '';
-  }
-  inputRef.value.focus();
-  validateAndUpdateStartTime();
-};
+const increaseTimestamp = () => modifyTimestamp(true);
+const decreaseTimestamp = () => modifyTimestamp(false);
 
 watch(
   () => props.currentSession,
@@ -409,29 +395,26 @@ watch(
 
 watch(
   () => props.currentTime,
-  async () => {
+  () => {
     inputStartTime.value = dealKfTime(props.currentTime);
 
     if (dataChangeByCurrentTime.value && props.currentSession) {
       resetToTop.value?.();
       frameDataList.value = [];
-      await doLoad();
+      setloading(true);
+      delayMilliSeconds(0).then(() => {
+        doLoad();
+      });
+
       emit('updateCurrentTime', props.currentTime);
     }
   },
 );
-let timer1: any = null;
 
-const doLoad = () => {
-  if (timer1 === null) {
-    loadingJournal.value = true;
-    tracerFrame?.seekToTime(props.currentTime);
-    loadFrameData(props.currentSession as KungfuApi.SessionResolved);
-    timer1 = setTimeout(() => {
-      timer1 = null;
-    }, 500);
-  }
-};
+const doLoad = debounce(() => {
+  tracerFrame?.seekToTime(props.currentTime);
+  loadFrameData(props.currentSession as KungfuApi.SessionResolved);
+}, 500);
 
 const getDataResolved = (data: object): dataResolvedType | null => {
   if (data !== null) {
@@ -447,6 +430,10 @@ const getDataResolved = (data: object): dataResolvedType | null => {
   return null;
 };
 
+const setloading = (value: boolean) => {
+  loadingJournal.value = value;
+};
+
 const loadFrameData = async (
   session: KungfuApi.SessionResolved,
   checking = false,
@@ -455,10 +442,10 @@ const loadFrameData = async (
     frameDataList.value = [];
     return;
   }
+  let dranContinue = 0;
   if (!checking) {
     frameDataList.value = [];
   }
-  loadingJournal.value = true;
   const curFramesMap = {};
   let count = 0;
   let newTotal = frameDataList.value.length;
@@ -468,9 +455,11 @@ const loadFrameData = async (
     let tempFrames: KungfuApi.FrameResolved[] = [];
 
     while (
-      count < FRAME_LIST_SPLIT &&
-      tracerFrame &&
-      tracerFrame.dataAvailable()
+      (count < FRAME_LIST_SPLIT &&
+        tracerFrame &&
+        tracerFrame.dataAvailable() &&
+        frameDataList.value.length < DEFAULT_LIST_SIZE) ||
+      (checking && dranContinue < FRAME_LIST_SPLIT)
     ) {
       frame = tracerFrame.currentFrame();
 
@@ -539,14 +528,16 @@ const loadFrameData = async (
         ++count;
         tracerFrame.next();
       }
+      dranContinue++;
     }
-    if (count < 99) {
+    if (count < FRAME_LIST_SPLIT - 1) {
       frameDataList.value = [...frameDataList.value, ...tempFrames];
     }
 
     if (
       checking ||
       !tracerFrame.dataAvailable() ||
+      frameDataList.value.length >= DEFAULT_LIST_SIZE ||
       newTotal >= DEFAULT_LIST_SIZE
     ) {
       return Object.values(curFramesMap);
@@ -562,7 +553,7 @@ const loadFrameData = async (
   };
 
   return drain().then((res) => {
-    loadingJournal.value = false;
+    setloading(false);
     currentFramesId.value = frameDataList.value[0]?.id;
     journalStore.setCurrentSessionFrames(res, true);
   });
@@ -589,17 +580,19 @@ const onFiltersApply = async (
     }
   });
   frameDataList.value = [];
-  tracerFrame = tracer(
-    props.currentSession as KungfuApi.KfLocation,
-    readEvent.value,
-    writeEvent.value,
-    props.currentSession?.begin_time as bigint,
-    props.currentSession?.end_time as bigint,
-  );
-  loadingJournal.value = true;
-  tracerFrame?.seekToTime(props.currentTime);
-  resetToTop.value?.();
-  await loadFrameData(props.currentSession as KungfuApi.SessionResolved);
+  setloading(true);
+  delayMilliSeconds(0).then(() => {
+    tracerFrame = tracer(
+      props.currentSession as KungfuApi.KfLocation,
+      readEvent.value,
+      writeEvent.value,
+      props.currentSession?.begin_time as bigint,
+      props.currentSession?.end_time as bigint,
+    );
+    tracerFrame?.seekToTime(props.currentTime);
+    resetToTop.value?.();
+    loadFrameData(props.currentSession as KungfuApi.SessionResolved);
+  });
 };
 
 const dealTagBackgroudColor = (colorStr: string) => {

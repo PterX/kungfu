@@ -177,14 +177,11 @@ function getHeaderWidth(column: KfTradingDataTableHeaderConfig): string {
   }
 }
 
-const emitOnScrollToTop = throttle(
-  () => app && app.emit('onScrollToTop'),
-  1000,
-);
+const emitOnScrollToTop = throttle(() => app && app.emit('onScrollToTop'), 500);
 
 const emitOnScrollToBottom = throttle(
   () => app && app.emit('onScrollToBottom'),
-  1000,
+  500,
 );
 
 function handleScroll(e: Event): void {

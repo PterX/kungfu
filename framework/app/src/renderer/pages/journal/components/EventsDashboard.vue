@@ -183,6 +183,8 @@ const msgDetailsArray = [
   MsgType.Trade,
 ];
 
+const isLoadFrameData = ref(false);
+const drainContinue = ref(true);
 const inputRef = ref<HTMLInputElement>({} as HTMLInputElement);
 const journalStore = useJournalStore();
 const frameColumns = getFrameColumns();
@@ -396,11 +398,15 @@ watch(
 watch(
   () => props.currentTime,
   () => {
+    console.log('guolu');
     inputStartTime.value = dealKfTime(props.currentTime);
 
     if (dataChangeByCurrentTime.value && props.currentSession) {
       resetToTop.value?.();
       frameDataList.value = [];
+      if (isLoadFrameData.value) {
+        drainContinue.value = false;
+      }
       setloading(true);
       delayMilliSeconds(0).then(() => {
         doLoad();
@@ -440,26 +446,29 @@ const loadFrameData = async (
 ) => {
   if (!readEvent.value && !writeEvent.value) {
     frameDataList.value = [];
+    setloading(false);
     return;
   }
-  let dranContinue = 0;
+  let dataContinueCount = 0;
   if (!checking) {
     frameDataList.value = [];
   }
   const curFramesMap = {};
   let count = 0;
   let newTotal = frameDataList.value.length;
+  isLoadFrameData.value = true;
   const drain = async (): Promise<KungfuApi.FrameResolved[]> => {
     if (!tracerFrame) return Promise.resolve([]);
     let frame: KungfuApi.Frame<'func'> = tracerFrame.currentFrame();
     let tempFrames: KungfuApi.FrameResolved[] = [];
 
     while (
-      (count < FRAME_LIST_SPLIT &&
-        tracerFrame &&
-        tracerFrame.dataAvailable() &&
-        frameDataList.value.length < DEFAULT_LIST_SIZE) ||
-      (checking && dranContinue < FRAME_LIST_SPLIT)
+      count < FRAME_LIST_SPLIT &&
+      tracerFrame &&
+      tracerFrame.dataAvailable() &&
+      drainContinue &&
+      (frameDataList.value.length < DEFAULT_LIST_SIZE ||
+        (checking && dataContinueCount < FRAME_LIST_SPLIT))
     ) {
       frame = tracerFrame.currentFrame();
 
@@ -528,15 +537,28 @@ const loadFrameData = async (
         ++count;
         tracerFrame.next();
       }
-      dranContinue++;
+      dataContinueCount++;
     }
-    if (count < FRAME_LIST_SPLIT - 1) {
-      frameDataList.value = [...frameDataList.value, ...tempFrames];
+    if (drainContinue.value) {
+      if (count < FRAME_LIST_SPLIT - 1) {
+        frameDataList.value = [...frameDataList.value, ...tempFrames];
+      }
+    } else {
+      console.log(
+        'drainContinue',
+        drainContinue.value,
+        count,
+        newTotal,
+        frameDataList.value.length,
+        frameDataList.value,
+      );
+      frameDataList.value = [];
     }
 
     if (
       checking ||
       !tracerFrame.dataAvailable() ||
+      !drainContinue.value ||
       frameDataList.value.length >= DEFAULT_LIST_SIZE ||
       newTotal >= DEFAULT_LIST_SIZE
     ) {
@@ -553,7 +575,11 @@ const loadFrameData = async (
   };
 
   return drain().then((res) => {
-    setloading(false);
+    if (drainContinue.value) {
+      setloading(false);
+    }
+    isLoadFrameData.value = false;
+    drainContinue.value = true;
     currentFramesId.value = frameDataList.value[0]?.id;
     journalStore.setCurrentSessionFrames(res, true);
   });
@@ -569,6 +595,10 @@ const onFiltersApply = async (
   read: boolean,
   write: boolean,
 ) => {
+  if (isLoadFrameData.value) {
+    drainContinue.value = false;
+    await delayMilliSeconds(0);
+  }
   readEvent.value = read;
   writeEvent.value = write;
   msgMap.clear();

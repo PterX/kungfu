@@ -22,6 +22,7 @@
       class="kf-form-item__warp"
     >
       <a-tree-select
+        ref="treeSelectRef"
         v-model:value="filtersFormState[item]"
         :tree-data="filtersOptions[item]"
         treeNodeFilterProp="title"
@@ -106,6 +107,7 @@ const emit = defineEmits<{
     write: boolean,
   ): void;
 }>();
+const treeSelectRef = ref();
 const read = ref(true);
 const write = ref(true);
 
@@ -171,6 +173,10 @@ const formLabelMap = {
 };
 
 const { filtersFormState } = useFrameFilters();
+// const handleMouseOver = () => {
+//   console.log('handleMouseOver', treeSelectRef.value);
+//   if (treeSelectRef.value && treeSelectRef.value[0] ) treeSelectRef.value.focus();
+// };
 
 const handleApplyFilters = () => {
   emit('applyFilters', filtersFormState, read.value, write.value);

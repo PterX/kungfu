@@ -402,4 +402,6 @@ yijinjing::data::location_ptr RuntimeContext::get_location(uint32_t location_uid
   return app_.get_location(location_uid);
 }
 
+uint32_t RuntimeContext::get_home_uid() const { return app_.get_home_uid(); }
+
 } // namespace kungfu::wingchun::strategy

@@ -57,7 +57,7 @@ void apprentice::request_read_from_sync(int64_t trigger_time, uint32_t source_id
 void apprentice::request_read_from_source_to_dest(int64_t trigger_time, const location_ptr &source_location,
                                                   uint32_t dest_id) {
   if (get_io_device()->get_home()->mode == mode::LIVE) {
-    reader_join(source_location-., dest_id, trigger_time);
+    reader_join(source_location->uid, dest_id, trigger_time);
   }
 }
 

@@ -353,6 +353,8 @@ hold_positions
 is_book_held
 is_positions_mirrored
 update_strategy_state
+is_bypass_accounting
+bypass_accounting
 on_tree
 on_order
 on_order_action_error
@@ -487,8 +489,6 @@ Repo
 Crypto
 CryptoFuture
 CryptoUFuture
-Warrant
-Iopt
 InstrumentType
 Cancel
 Trade

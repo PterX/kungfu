@@ -74,6 +74,15 @@ private:
       (*op.*method)(context, data, location, dest);
     }
   };
+
+  template <typename TradingData, typename OnMethod = void (Operator::*)(Context_ptr &, const TradingData &,
+                                                                         const kungfu::yijinjing::data::location_ptr &)>
+  void invoke(OnMethod method, const TradingData &data, const kungfu::yijinjing::data::location_ptr &location) {
+    auto context = std::dynamic_pointer_cast<Context>(context_);
+    for (const auto &op : operators_) {
+      (*op.*method)(context, data, location);
+    }
+  };
 };
 
 static const int64_t NANO_MILLISECOND = int64_t(1000000);

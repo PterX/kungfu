@@ -35,13 +35,11 @@ void Runner::on_start() {
   pre_start();
   // TODO add skip_until for broker_states_requested_ == true later
   events_ | is_own<Deregister>(context_->get_broker_client()) |
-      $$(invoke(&Operator::on_deregister, event->data<Deregister>(), get_location(event->source()), event->source()));
+      $$(invoke(&Operator::on_deregister, event->data<Deregister>(), get_location(event->source())));
   events_ | is_own<BrokerStateUpdate>(context_->get_broker_client()) |
-      $$(invoke(&Operator::on_broker_state_change, event->data<BrokerStateUpdate>(), get_location(event->source()),
-                event->source()));
+      $$(invoke(&Operator::on_broker_state_change, event->data<BrokerStateUpdate>(), get_location(event->source())));
   events_ | is_own<OperatorStateUpdate>(context_->get_broker_client()) |
-      $$(invoke(&Operator::on_operator_state_change, event->data<OperatorStateUpdate>(), get_location(event->source()),
-                event->source()));
+      $$(invoke(&Operator::on_operator_state_change, event->data<OperatorStateUpdate>(), get_location(event->source())));
 
   if (get_home()->mode == mode::LIVE) {
     auto start_events = events_ | skip_until(events_ | filter([&](auto e) { return started_; }));

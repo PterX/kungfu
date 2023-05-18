@@ -21,9 +21,7 @@ public:
     SPDLOG_INFO("arguments: {}", context->arguments());
     context->add_account("sim", "fill");
     context->subscribe("sim", {"600000"}, {"SSE"});
-    // context->subscribe_operator("bar", "my-bar");
     SPDLOG_INFO("is_bypass_accounting: {}", context->is_bypass_accounting());
-    //    context->bypass_accounting();
     SPDLOG_INFO("is_bypass_accounting: {}", context->is_bypass_accounting());
   }
 
@@ -61,48 +59,19 @@ public:
     for (const auto &loc : l3) {
       SPDLOG_INFO("l3 : {}", loc.to_string());
     }
-
-    //    auto fn = [&](int i) {
-    //      int count = 0;
-    //      std::this_thread::sleep_for(std::chrono::seconds(1));
-    //      SPDLOG_INFO("thread");
-    //      while (count++ < 10000) {
-    //        context->insert_order("000001", "SZE", "sim", "fill", i, i * 100, PriceType::Limit, Side::Buy,
-    //        Offset::Open);
-    //      }
-    //    };
-    //
-    //    static std::vector<std::thread> threads{};
-    //    for (int idx = 0; idx < 32; ++idx) {
-    //      threads.push_back(std::move(std::thread(fn, idx)));
-    //    }
-    //
-    //    for (auto &t : threads) {
-    //      t.join();
-    //    }
   }
 
   void on_quote(Context_ptr &context, const Quote &quote, const location_ptr &location, uint32_t dest) override {
     SPDLOG_INFO("on quote: {} i {} location->uid {}", quote.last_price, i, location->location_uid);
   }
 
+  void on_tree(Context_ptr &context, const Tree &tree, const location_ptr &location, uint32_t dest) override {
+    SPDLOG_INFO("on tree: {}", tree.to_string());
+  }
+
   void on_synthetic_data(Context_ptr &context, const SyntheticData &synthetic_data, const location_ptr &location,
                          uint32_t dest) override {
     SPDLOG_INFO("on_synthetic_data: {} ", synthetic_data.to_string());
-  }
-
-  void on_broker_state_change(Context_ptr &context, const BrokerStateUpdate &broker_state_update,
-                              const location_ptr &location, uint32_t dest) override {
-    SPDLOG_INFO("on broker state changed: {}", broker_state_update.to_string());
-  };
-
-  void on_operator_state_change(Context_ptr &context, const OperatorStateUpdate &operator_state_update,
-                                const location_ptr &location, uint32_t dest) override {
-    SPDLOG_INFO("on operator state changed: {}", operator_state_update.to_string());
-  };
-
-  void on_tree(Context_ptr &context, const Tree &tree, const location_ptr &location, uint32_t dest) override {
-    SPDLOG_INFO("on tree: {}", tree.to_string());
   }
 
   void on_order(Context_ptr &context, const Order &order, const location_ptr &location) override {
@@ -111,6 +80,16 @@ public:
       SPDLOG_INFO("Order: {}", order.to_string());
     }
   }
+
+  void on_broker_state_change(Context_ptr &context, const BrokerStateUpdate &broker_state_update,
+                              const location_ptr &location) override {
+    SPDLOG_INFO("on broker state changed: {}", broker_state_update.to_string());
+  };
+
+  void on_operator_state_change(Context_ptr &context, const OperatorStateUpdate &operator_state_update,
+                                const location_ptr &location) override {
+    SPDLOG_INFO("on operator state changed: {}", operator_state_update.to_string());
+  };
 };
 
 int main(int argc, char **argv) {

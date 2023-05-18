@@ -64,6 +64,15 @@ private:
     }
   };
 
+  template <typename TradingData, typename OnMethod = void (Operator::*)(Context_ptr &, const TradingData &,
+                                                                         const kungfu::yijinjing::data::location_ptr &)>
+  void invoke(OnMethod method, const TradingData &data, const kungfu::yijinjing::data::location_ptr &location) {
+    auto context = std::dynamic_pointer_cast<Context>(context_);
+    for (const auto &op : operators_) {
+      (*op.*method)(context, data, location);
+    }
+  };
+
   template <typename TradingData,
             typename OnMethod = void (Operator::*)(Context_ptr &, const TradingData &,
                                                    const kungfu::yijinjing::data::location_ptr &, uint32_t)>

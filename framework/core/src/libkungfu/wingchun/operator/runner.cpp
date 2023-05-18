@@ -39,7 +39,8 @@ void Runner::on_start() {
   events_ | is_own<BrokerStateUpdate>(context_->get_broker_client()) |
       $$(invoke(&Operator::on_broker_state_change, event->data<BrokerStateUpdate>(), get_location(event->source())));
   events_ | is_own<OperatorStateUpdate>(context_->get_broker_client()) |
-      $$(invoke(&Operator::on_operator_state_change, event->data<OperatorStateUpdate>(), get_location(event->source())));
+      $$(invoke(&Operator::on_operator_state_change, event->data<OperatorStateUpdate>(),
+                get_location(event->source())));
 
   if (get_home()->mode == mode::LIVE) {
     auto start_events = events_ | skip_until(events_ | filter([&](auto e) { return started_; }));
@@ -66,15 +67,15 @@ void Runner::post_start() {
   }
 
   events_ | is_own<Quote>(context_->get_broker_client()) |
-      $$(invoke(&Operator::on_quote, event->data<Quote>(), get_location(event->source()), event->source()));
+      $$(invoke(&Operator::on_quote, event->data<Quote>(), get_location(event->source()), event->dest()));
   events_ | is_own<Entrust>(context_->get_broker_client()) |
-      $$(invoke(&Operator::on_entrust, event->data<Entrust>(), get_location(event->source()), event->source()));
+      $$(invoke(&Operator::on_entrust, event->data<Entrust>(), get_location(event->source()), event->dest()));
   events_ | is_own<Transaction>(context_->get_broker_client()) |
-      $$(invoke(&Operator::on_transaction, event->data<Transaction>(), get_location(event->source()), event->source()));
+      $$(invoke(&Operator::on_transaction, event->data<Transaction>(), get_location(event->source()), event->dest()));
 
   events_ | is(SyntheticData::tag) |
       $$(invoke(&Operator::on_synthetic_data, event->data<SyntheticData>(), get_location(event->source()),
-                event->source()));
+                event->dest()));
 
   invoke(&Operator::post_start);
   SPDLOG_INFO("operator {} started", get_io_device()->get_home()->name);

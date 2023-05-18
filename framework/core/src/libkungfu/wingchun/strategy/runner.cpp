@@ -87,7 +87,8 @@ void Runner::on_start() {
   events_ | is_own<BrokerStateUpdate>(context_->get_broker_client()) |
       $$(invoke(&Strategy::on_broker_state_change, event->data<BrokerStateUpdate>(), get_location(event->source())));
   events_ | is_own<OperatorStateUpdate>(context_->get_broker_client()) |
-      $$(invoke(&Strategy::on_operator_state_change, event->data<OperatorStateUpdate>(), get_location(event->source())));
+      $$(invoke(&Strategy::on_operator_state_change, event->data<OperatorStateUpdate>(),
+                get_location(event->source())));
   events_ | take_until(events_ | filter([&](auto e) { return started_; })) | $$(prepare(event));
   post_start();
 }
@@ -120,7 +121,6 @@ void Runner::post_start() {
   events_ | is(OrderActionError::tag) |
       $$(invoke(&Strategy::on_order_action_error, event->data<OrderActionError>(), get_location(event->source()),
                 event->dest()));
-
   invoke(&Strategy::post_start);
   SPDLOG_INFO("strategy {} started", get_io_device()->get_home()->name);
 }

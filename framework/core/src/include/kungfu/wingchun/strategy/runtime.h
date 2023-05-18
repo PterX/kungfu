@@ -21,6 +21,12 @@ public:
   int64_t now() const override;
 
   /**
+   * Get location_uid of current process
+   * @return location_uid
+   */
+  uint32_t get_home_uid() const override;
+
+  /**
    * Add one shot timer callback.
    * @param nanotime when to call in nano seconds
    * @param callback callback function
@@ -244,6 +250,8 @@ public:
   void set_arguments(const std::string &argument) { arguments_ = argument; }
 
   void set_started(bool started);
+
+  yijinjing::data::location_ptr get_location(uint32_t location_uid) override;
 
 protected:
   yijinjing::practice::apprentice &app_;

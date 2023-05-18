@@ -306,7 +306,8 @@ declare namespace KungfuApi {
   }
 
   export interface KfCustomExtConfig extends KfExtConfigBase<string> {
-    category: string;
+    type: string[];
+    settings: KfConfigItem[];
   }
   export interface KfSystemExtConfigs {
     [name: string]: KfSystemExtConfig;

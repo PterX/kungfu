@@ -305,6 +305,9 @@ declare namespace KungfuApi {
     settings?: KfConfigItem[];
   }
 
+  export interface KfCustomExtConfig extends KfExtConfigBase<string> {
+    category: string;
+  }
   export interface KfSystemExtConfigs {
     [name: string]: KfSystemExtConfig;
   }
@@ -319,7 +322,8 @@ declare namespace KungfuApi {
     | KfMdExtConfig
     | KfStrategyExtConfig
     | KfOperatorExtConfig
-    | KfSystemExtConfig;
+    | KfSystemExtConfig
+    | KfCustomExtConfig;
 
   export type KfExtConfigs = {
     td: Record<string, KfTdExtConfig>;

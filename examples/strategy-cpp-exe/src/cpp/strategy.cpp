@@ -74,7 +74,7 @@ public:
     SPDLOG_INFO("on_synthetic_data: {} ", synthetic_data.to_string());
   }
 
-  void on_order(Context_ptr &context, const Order &order, const location_ptr &location) override {
+  void on_order(Context_ptr &context, const Order &order, const location_ptr &location, uint32_t dest) override {
     static int count = 0;
     if (count++ % 1000 == 0) {
       SPDLOG_INFO("Order: {}", order.to_string());

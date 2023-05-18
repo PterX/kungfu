@@ -29,7 +29,7 @@ const prodConfig = {
     new webpack.DefinePlugin({
       __git_commit_version: `"${gitCommitVersion.toString()}"`,
       __python_version: `"${pyVersion.toString()}"`,
-      'process.env.APP_TYPE': '"daemon"',
+      'process.env.APP_TYPE': '"service"',
       'process.env.LANG_ENV': '"en-US"',
       __build_timestamp: `"${buildTimeStamp.toString()}"`,
       __resources: '',
@@ -42,7 +42,7 @@ const devConfig = {
     new webpack.DefinePlugin({
       __git_commit_version: `"${gitCommitVersion.toString()}"`,
       __python_version: `"${pyVersion.toString()}"`,
-      'process.env.APP_TYPE': '"daemon"',
+      'process.env.APP_TYPE': '"service"',
       'process.env.LANG_ENV': '"en-US"',
       __build_timestamp: `"${buildTimeStamp.toString()}"`,
       __resources: `"${path.join(appDir, 'public').replace(/\\/g, '\\\\')}"`,

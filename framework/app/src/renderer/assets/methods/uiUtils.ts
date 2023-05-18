@@ -24,7 +24,7 @@ import {
   kfLogger,
   removeJournal,
   removeDB,
-  getAvailDaemonList,
+  getAvailExtServiceList,
   getKfExtensionLanguage,
   loopToRunProcess,
   resolveInstrumentValue,
@@ -44,7 +44,7 @@ import {
   KfUIExtLocatorTypes,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import path from 'path';
-import { startExtDaemon } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
+import { startExtService } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
 import { checkIfCpusNumSafe } from '@kungfu-trader/kungfu-js-api/utils/osUtils';
 import { Proc } from 'pm2';
 import { VueNode } from 'ant-design-vue/lib/_util/type';
@@ -348,11 +348,11 @@ export const checkCpusNumAndConfirmModal = (): Promise<boolean> => {
 };
 
 export const postStartAll = async (): Promise<(void | Proc)[]> => {
-  const availDaemons = await getAvailDaemonList();
+  const availExtServices = await getAvailExtServiceList();
   return loopToRunProcess<void | Proc>(
-    availDaemons.map((item) => {
+    availExtServices.map((item) => {
       return () =>
-        startExtDaemon(getProcessIdByKfLocation(item), item.cwd, item.script)
+        startExtService(item)
           .then((res) => {
             return res;
           })

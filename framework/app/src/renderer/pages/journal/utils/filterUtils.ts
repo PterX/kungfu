@@ -52,7 +52,6 @@ export const useFrameFilters = () => {
   );
 
   const filtersOptionsResolved = computed<FilterOptionresolvedMap>(() => {
-    console.log('filtersOptions', filtersOptions);
     return Object.keys(filtersOptions).reduce<FilterOptionresolvedMap>(
       (pre, item) => {
         pre[item] = Object.values(filtersOptions[item]) as OptionItem[];

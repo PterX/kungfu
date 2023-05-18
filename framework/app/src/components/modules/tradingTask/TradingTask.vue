@@ -140,9 +140,9 @@ function handleSwitchProcessStatusResolved(
   }
 
   const extKey = taskLocation.group;
-  const extConfig: KungfuApi.KfExtConfig = (extConfigs.value['strategy'] || {})[
-    extKey
-  ];
+  const extConfig: KungfuApi.KfStrategyExtConfig = (extConfigs.value[
+    'strategy'
+  ] || {})[extKey];
 
   if (!extConfig) {
     error(`${extKey} ${t('tradingTaskConfig.plugin_inexistence')}`);

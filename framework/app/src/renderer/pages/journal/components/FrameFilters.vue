@@ -27,7 +27,7 @@
         :tree-data="filtersOptions[item]"
         treeNodeFilterProp="title"
         style="width: 396px"
-        :max-tag-count="7"
+        :max-tag-count="5"
         tree-checkable
         show-search
         :placeholder="$t('keyword_input')"

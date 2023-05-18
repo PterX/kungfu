@@ -79,10 +79,6 @@
             :location-map="SourceAndDestNameMap"
             @update-current-time="onUpdateCurrentTime"
           />
-          <!-- <OrdersDashboard
-            v-show="isCurrentMenuItem('visual')"
-            :current-session="currentSession"
-          /> -->
         </div>
       </div>
     </div>
@@ -117,13 +113,11 @@ import { setTimerPromiseTask } from '@kungfu-trader/kungfu-js-api/utils/busiUtil
 import { SessionStatusEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
   UnorderedListOutlined,
-  // LineChartOutlined,
 } from '@ant-design/icons-vue';
 import KfTradingDataTable from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfTradingDataTable.vue';
 import TimeSlider from './components/TimeSlider.vue';
 import ExportJournal from './components/ExportJournal.vue';
 import EventsDashBoard from './components/EventsDashboard.vue';
-// import OrdersDashboard from './components/OrdersDashboard.vue';
 import { useJournalStore } from './store/journalStore';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 
@@ -280,6 +274,7 @@ const ransformObject = (obj: Record<string, LocationRseolved>) => {
     }
   }
   output['0'] = 'public';
+  output['1'] = 'sync';
 
   return output;
 };

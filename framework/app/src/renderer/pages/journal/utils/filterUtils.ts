@@ -1,3 +1,4 @@
+import { longfist } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { OptionProps } from 'ant-design-vue/lib/select';
 import { computed, reactive } from 'vue';
 
@@ -33,11 +34,6 @@ export const useFrameFilters = () => {
     label: string;
     value: string;
   };
-  // type TreeSelectProps = {
-  //   title?: string;
-  //   value?: string;
-  //   children?: TreeSelectProps[];
-  // };
 
   type FilterOptionMap = Record<FiltersEnum, OptionItem[]>;
 
@@ -88,5 +84,41 @@ export const useFrameFilters = () => {
     filtersOptionsResolved,
     optionSorter,
     addFilterOption,
+  };
+};
+
+export const MIS_TRADIND_MESSAGE_TYPE = 100;
+export const MAX_TRADING_MESSAGE_TYPE = 10000;
+
+export const useMsgTypesMap = () => {
+  const msgTypesMap = new Map<string, boolean>();
+
+  const init = () => {
+    const msg: Record<number, string> = longfist.msgTypes;
+    Object.entries(msg).forEach(([key, value]) => {
+      if (
+        Number(key) > MIS_TRADIND_MESSAGE_TYPE &&
+        Number(key) < MAX_TRADING_MESSAGE_TYPE
+      ) {
+        msgTypesMap.set(value, true);
+      }
+    });
+  };
+
+  const reset = (msgTypes: string[]) => {
+    msgTypesMap.clear();
+    msgTypes.forEach((item) => {
+      if (Number.isNaN(Number(item))) {
+        msgTypesMap.set(item, true);
+      } else {
+        msgTypesMap.set(longfist.msgTypes[Number(item)], true);
+      }
+    });
+  };
+
+  return {
+    msgTypesMap,
+    init,
+    reset,
   };
 };

@@ -389,7 +389,7 @@ watch(
 
 const initLoad = debounce(async () => {
   isLoadingFrames && (requestBreakLoadingDataWhile = true);
-  await delayMilliSeconds(0);
+  await delayMilliSeconds(0); // wait for while looping and break while working
   frameDataList.value = [];
   loadingJournal.value = true;
   await delayMilliSeconds(0);

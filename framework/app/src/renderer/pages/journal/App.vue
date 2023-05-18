@@ -111,9 +111,7 @@ import {
 } from './utils';
 import { setTimerPromiseTask } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { SessionStatusEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
-import {
-  UnorderedListOutlined,
-} from '@ant-design/icons-vue';
+import { UnorderedListOutlined } from '@ant-design/icons-vue';
 import KfTradingDataTable from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfTradingDataTable.vue';
 import TimeSlider from './components/TimeSlider.vue';
 import ExportJournal from './components/ExportJournal.vue';

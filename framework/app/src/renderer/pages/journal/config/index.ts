@@ -81,7 +81,7 @@ export const getFrameColumns = (): KfTradingDataTableHeaderConfig[] => [
     overflow: 'ellipsis',
     sorter: buildStrSorter('currentFrameId'),
 
-    width: 50,
+    width: 70,
   },
   {
     type: 'string',
@@ -90,7 +90,7 @@ export const getFrameColumns = (): KfTradingDataTableHeaderConfig[] => [
     align: 'right',
     overflow: 'ellipsis',
     sorter: buildStrSorter('currentPageId'),
-    width: 30,
+    width: 50,
   },
   {
     type: 'string',

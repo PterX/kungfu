@@ -173,11 +173,16 @@ const SCALE = 1000000;
 const HUNDRED_MILLISECONDS = 100000000;
 const DEFAULT_LIST_SIZE = 10000;
 const msgDetailsArray = [
+  MsgType.Asset,
+  MsgType.AssetMargin,
+  MsgType.Position,
   MsgType.Order,
   MsgType.OrderInput,
-  MsgType.Position,
-  MsgType.Quote,
   MsgType.Trade,
+  MsgType.OrderAction,
+  MsgType.OrderActionError,
+  MsgType.BlockMessage,
+  MsgType.Quote,
 ];
 
 const inputRef = ref<HTMLInputElement>({} as HTMLInputElement);
@@ -387,6 +392,15 @@ watch(
   },
 );
 
+watch(
+  () => loadingJournal.value,
+  (newIsLoading, oldIsLoading) => {
+    if (!newIsLoading && oldIsLoading) {
+      resetToTop.value?.();
+    }
+  },
+);
+
 const initLoad = debounce(async () => {
   isLoadingFrames && (requestBreakLoadingDataWhile = true);
   await delayMilliSeconds(0); // wait for while looping and break while working
@@ -395,7 +409,6 @@ const initLoad = debounce(async () => {
   await delayMilliSeconds(0);
   currentTracer?.seekToTime(props.currentTime);
   await loadFrameData();
-  resetToTop.value?.();
   requestBreakLoadingDataWhile = false;
 }, 500);
 
@@ -517,6 +530,7 @@ const loadFrameData = async (loadmore = false) => {
   isLoadingFrames = true;
   return drain().then((_: KungfuApi.FrameResolved[]) => {
     isLoadingFrames = false;
+    requestBreakLoadingDataWhile = false;
     currentFramesId.value = frameDataList.value[0]?.id;
   });
 };

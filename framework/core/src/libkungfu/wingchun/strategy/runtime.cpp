@@ -155,8 +155,6 @@ uint64_t RuntimeContext::insert_order(const std::string &instrument_id, const st
   input.parent_id = parent_id;
   input.is_swap = is_swap;
   input.insert_time = insert_time;
-  OrderInput input_copy{};
-  memcpy(&input_copy, &input, sizeof(OrderInput));
   writer->close_data();
   if (not is_bypass_accounting()) {
     bookkeeper_.on_order_input(app_.now(), app_.get_home_uid(), account_location_uid, input);
@@ -272,8 +270,8 @@ uint64_t RuntimeContext::insert_basket_order(uint64_t basket_id, const std::stri
   input.calculation_mode =
       input.volume == VOLUME_ZERO ? BasketOrderCalculationMode::Dynamic : BasketOrderCalculationMode::Static;
   writer->close_data();
-  basketorder_engine_.insert_basket_order(app_.now(), input_copy);
-  return input_copy.order_id;
+  basketorder_engine_.insert_basket_order(app_.now(), input);
+  return input.order_id;
 }
 
 uint64_t RuntimeContext::cancel_order(uint64_t order_id) {
@@ -402,5 +400,11 @@ void RuntimeContext::send_instrument_keys() {
 }
 
 void RuntimeContext::set_started(bool started) { started_ = started; }
+
+yijinjing::data::location_ptr RuntimeContext::get_location(uint32_t location_uid) {
+  return app_.get_location(location_uid);
+}
+
+uint32_t RuntimeContext::get_home_uid() const { return app_.get_home_uid(); }
 
 } // namespace kungfu::wingchun::strategy

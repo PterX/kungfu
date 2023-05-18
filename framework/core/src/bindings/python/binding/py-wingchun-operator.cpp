@@ -66,18 +66,18 @@ public:
   }
 
   void on_deregister(op::Context_ptr &context, const Deregister &deregister,
-                     const kungfu::yijinjing::data::location_ptr &location, uint32_t dest) override {
-    PYBIND11_OVERLOAD(void, op::Operator, on_deregister, context, deregister, location, dest);
+                     const kungfu::yijinjing::data::location_ptr &location) override {
+    PYBIND11_OVERLOAD(void, op::Operator, on_deregister, context, deregister, location);
   }
 
   void on_broker_state_change(op::Context_ptr &context, const BrokerStateUpdate &broker_state_update,
-                              const kungfu::yijinjing::data::location_ptr &location, uint32_t dest) override {
-    PYBIND11_OVERLOAD(void, op::Operator, on_broker_state_change, context, broker_state_update, location, dest);
+                              const kungfu::yijinjing::data::location_ptr &location) override {
+    PYBIND11_OVERLOAD(void, op::Operator, on_broker_state_change, context, broker_state_update, location);
   }
 
   void on_operator_state_change(op::Context_ptr &context, const OperatorStateUpdate &operator_state_update,
-                                const kungfu::yijinjing::data::location_ptr &location, uint32_t dest) override {
-    PYBIND11_OVERLOAD(void, op::Operator, on_operator_state_change, context, operator_state_update, location, dest);
+                                const kungfu::yijinjing::data::location_ptr &location) override {
+    PYBIND11_OVERLOAD(void, op::Operator, on_operator_state_change, context, operator_state_update, location);
   }
 };
 

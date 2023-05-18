@@ -92,12 +92,12 @@ public:
   }
 
   void on_broker_state_change(Context_ptr &context, const BrokerStateUpdate &broker_state_update,
-                              const location_ptr &location, uint32_t dest) override {
+                              const location_ptr &location) override {
     SPDLOG_INFO("on broker state changed: {}", broker_state_update.to_string());
   };
 
   void on_operator_state_change(Context_ptr &context, const OperatorStateUpdate &operator_state_update,
-                                const location_ptr &location, uint32_t dest) override {
+                                const location_ptr &location) override {
     SPDLOG_INFO("on operator state changed: {}", operator_state_update.to_string());
   };
 
@@ -105,7 +105,7 @@ public:
     SPDLOG_INFO("on tree: {}", tree.to_string());
   }
 
-  void on_order(Context_ptr &context, const Order &order, const location_ptr &location) override {
+  void on_order(Context_ptr &context, const Order &order, const location_ptr &location, uint32_t dest) override {
     static int count = 0;
     if (count++ % 1000 == 0) {
       SPDLOG_INFO("Order: {}", order.to_string());

@@ -129,6 +129,10 @@ location_ptr hero::get_location(uint32_t uid) const {
     SPDLOG_ERROR("no location {} in locations_", uid);
   }
 
+  if (location::PUBLIC == uid or location::SYNC == uid) {
+    return nullptr;
+  }
+
   assert(has_location(uid));
   return locations_.at(uid);
 }

@@ -200,8 +200,6 @@ enum class InstrumentType : int8_t {
   Crypto,        // 数字货币
   CryptoFuture,  // 数字货币期货
   CryptoUFuture, // 数字货币期货U本位
-  Warrant,
-  Iopt
 };
 
 NLOHMANN_JSON_SERIALIZE_ENUM(InstrumentType, {
@@ -217,8 +215,6 @@ NLOHMANN_JSON_SERIALIZE_ENUM(InstrumentType, {
                                                  {InstrumentType::Crypto, "Crypto"},
                                                  {InstrumentType::CryptoFuture, "CryptoFuture"},
                                                  {InstrumentType::CryptoUFuture, "CryptoUFuture"},
-                                                 {InstrumentType::Warrant, "Warrant"},
-                                                 {InstrumentType::Iopt, "Iopt"},
                                              })
 
 inline std::ostream &operator<<(std::ostream &os, InstrumentType t) { return os << int8_t(t); }

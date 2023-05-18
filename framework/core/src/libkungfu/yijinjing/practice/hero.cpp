@@ -352,17 +352,25 @@ void hero::produce(const rx::subscriber<event_ptr> &sb) {
   }
 }
 
-bool hero::drain(const rx::subscriber<event_ptr> &sb) {
-  if (io_device_->get_home()->mode == mode::LIVE and io_device_->get_observer()->wait()) {
+void hero::deal_notice(bool bypass, bool notify, const rx::subscriber<event_ptr> &sb) {
+  if (not bypass and io_device_->get_home()->mode == mode::LIVE and io_device_->get_observer()->wait()) {
     const std::string &notice = io_device_->get_observer()->get_notice();
     now_ = time::now_in_nano();
     if (notice.length() > 2) {
       sb.on_next(std::make_shared<nanomsg_json>(notice));
-    } else {
+    } else if (notify) {
       on_notify();
     }
   }
+}
+
+bool hero::drain(const rx::subscriber<event_ptr> &sb) {
+  deal_notice(false, true, sb);
+  bool is_lazy = io_device_->is_lazy();
+  bool is_low_latency = io_device_->is_low_latency();
+  bool bypass = is_lazy or !is_low_latency;
   while (live_ and reader_->data_available()) {
+    deal_notice(bypass, false, sb);
     if (reader_->current_frame()->gen_time() <= end_time_) {
       int64_t frame_time = reader_->current_frame()->gen_time();
       if (frame_time > now_) {

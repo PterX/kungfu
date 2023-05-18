@@ -30,7 +30,7 @@ public:
     //   auto &book = pair.second;
     //   SPDLOG_INFO("book asset: {}", book->asset.to_string());
     // }
-    auto l_ptr = location::make_shared(mode::LIVE, category::MD, "sim", "sim", {});
+    auto l_ptr = location::make_shared(mode::LIVE, category::MD, "sim", "sim", std::make_shared<locator>());
     kungfu::yijinjing::journal::assemble asb(l_ptr, location::PUBLIC, AssembleMode::All);
     auto headers = asb.read_headers(Location{});
     for (const auto &head : headers) {
@@ -76,7 +76,7 @@ public:
   void on_custom_data(Context_ptr & context, uint32_t msg_type, const std::vector<uint8_t> &data, uint32_t length,
                       const kungfu::yijinjing::data::location_ptr &location) override {
     SPDLOG_WARN("on_custom_data msg_type: {}", msg_type);
-    SPDLOG_WARN("on_custom_data data: {}", data.data());
+    SPDLOG_WARN("on_custom_data data: {}", reinterpret_cast<const char *>(data.data()));
     SPDLOG_WARN("on_custom_data length: {}", length);
   }
 };

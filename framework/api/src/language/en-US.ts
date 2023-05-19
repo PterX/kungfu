@@ -584,6 +584,10 @@ export default {
     strategy_related: 'Strategy related',
 
     system_related: 'System related',
+
+    select_channel: 'Filter channels',
+
+    selete_msg_type: 'Filter MsgType',
   },
 
   tradeConfig: {

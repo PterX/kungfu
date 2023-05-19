@@ -2,6 +2,8 @@ import { longfist } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { OptionProps } from 'ant-design-vue/lib/select';
 import { computed, reactive } from 'vue';
 
+export type ChannelRecords = Record<string, [number, number]>;
+
 export enum FiltersEnum {
   DEST = 'DEST',
   SOURCE = 'SOURCE',

@@ -592,6 +592,10 @@ export default {
     strategy_related: '策略相关',
 
     system_related: '系统相关',
+
+    select_channel: '过滤数据信道',
+
+    selete_msg_type: '过滤消息类型',
   },
 
   tradeConfig: {

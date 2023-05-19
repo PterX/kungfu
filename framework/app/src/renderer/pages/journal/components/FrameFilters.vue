@@ -1,19 +1,33 @@
 <template>
   <a-form
     ref="formRef"
-    class="kf-config-form"
+    class="kf-config-form journal-tool-frame-filters__form"
     :model="filtersFormState"
     :colon="false"
     :scroll-to-first-error="true"
     layout="inline"
   >
     <a-form-item>
-      <a-checkbox v-model:checked="read">
+      <a-checkbox v-model:checked="read" @change="handleApplyFilters">
         {{ $t('journalConfig.read_event') }}
       </a-checkbox>
-      <a-checkbox v-model:checked="write">
+      <a-checkbox v-model:checked="write" @change="handleApplyFilters">
         {{ $t('journalConfig.write_event') }}
       </a-checkbox>
+    </a-form-item>
+    <a-form-item>
+      <a-select
+        v-model:value="seletedChannels"
+        mode="multiple"
+        :max-tag-count="2"
+        style="width: 396px"
+        :placeholder="$t('journalConfig.select_channel')"
+        :options="Object.keys(channels).map((item) => ({ value: item }))"
+        @blur="handleApplyFilters"
+        @deselect="handleApplyFilters"
+        :virtual="false"
+        >
+      ></a-select>
     </a-form-item>
     <a-form-item
       v-for="item in Object.keys(formLabelMap)"
@@ -26,11 +40,11 @@
         v-model:value="filtersFormState[item]"
         :tree-data="filtersOptions[item]"
         treeNodeFilterProp="title"
-        style="width: 396px"
+        style="width: 596px"
         :max-tag-count="5"
         tree-checkable
         show-search
-        :placeholder="$t('keyword_input')"
+        :placeholder="$t('journalConfig.selete_msg_type')"
         allow-clear
         @blur="handleApplyFilters"
       >
@@ -47,11 +61,16 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { longfist } from '@kungfu-trader/kungfu-js-api/kungfu';
-import { FiltersEnum, msgTypeRange } from '../utils/filterUtils';
+import {
+  FiltersEnum,
+  msgTypeRange,
+  ChannelRecords,
+} from '../utils/filterUtils';
 import { useFrameFilters } from '../utils/filterUtils';
+import { debounce } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 
 const { t } = VueI18n.global;
 
@@ -60,6 +79,7 @@ type TreeSelectProps = {
   value?: string;
   children?: TreeSelectProps[];
 };
+
 const filtersOptions = ref<Record<string, TreeSelectProps[]>>({
   MSG_TYPE: [
     {
@@ -99,17 +119,33 @@ const filtersOptions = ref<Record<string, TreeSelectProps[]>>({
     },
   ],
 });
+
+const props = withDefaults(
+  defineProps<{
+    channels: ChannelRecords;
+    selectedChannels: string[];
+  }>(),
+  {
+    channels: () => ({} as ChannelRecords),
+    selectedChannels: () => []
+  },
+);
+
 const emit = defineEmits<{
   (
     e: 'applyFilters',
     frameFiltersMap: Record<string, string[]>,
     read: boolean,
     write: boolean,
+    seletedChannels: string[],
   ): void;
 }>();
+
 const treeSelectRef = ref();
 const read = ref(true);
 const write = ref(true);
+const seletedChannels = ref<string[]>([]);
+const channels = computed<ChannelRecords>(() => props.channels);
 
 onMounted(() => {
   let msg: Record<number, string> = longfist.msgTypes;
@@ -150,22 +186,6 @@ onMounted(() => {
     }
   });
 });
-watch(
-  () => read.value,
-  (newVal, oldVal) => {
-    if (newVal !== oldVal) {
-      handleApplyFilters();
-    }
-  },
-);
-watch(
-  () => write.value,
-  (newVal, oldVal) => {
-    if (newVal !== oldVal) {
-      handleApplyFilters();
-    }
-  },
-);
 
 const formRef = ref();
 const formLabelMap = {
@@ -173,19 +193,39 @@ const formLabelMap = {
 };
 
 const { filtersFormState } = useFrameFilters();
-// const handleMouseOver = () => {
-//   console.log('handleMouseOver', treeSelectRef.value);
-//   if (treeSelectRef.value && treeSelectRef.value[0] ) treeSelectRef.value.focus();
-// };
 
-const handleApplyFilters = () => {
-  emit('applyFilters', filtersFormState, read.value, write.value);
-};
+watch(() => props.selectedChannels, (newValue, oldValue) => {
+  if (oldValue.length && !newValue.length) {
+    seletedChannels.value = [];
+  }
+ })
+
+const handleApplyFilters = debounce(() => {
+  emit(
+    'applyFilters',
+    filtersFormState,
+    read.value,
+    write.value,
+    seletedChannels.value,
+  );
+}, 200);
 </script>
 
 <style lang="less">
-.ant-form-inline {
+.ant-form-inline.kf-config-form.journal-tool-frame-filters__form {
+  flex: 1;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+
   .ant-form-item {
+    margin-right: 0px;
+    margin-left: 16px;
+    margin-bottom: 8px;
+
+    &:last-child {
+      margin-bottom: 0px;
+    }
+
     &.kf-form-item__warp {
       margin-right: 0px;
 

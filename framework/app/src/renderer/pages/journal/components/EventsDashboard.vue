@@ -40,6 +40,8 @@
       <FrameFilters
         ref="frameFilter"
         @apply-filters="onFiltersApply"
+        :channels="channels"
+        :selected-channels="afterFilterChannels"
       ></FrameFilters>
     </div>
     <div class="kf-journal-frame__wrap">
@@ -49,7 +51,7 @@
         key-field="id"
         :resizable="false"
         :custom-row-class="dealRowClassName"
-        @resetScrollTop="resetToTop = $event"
+        @resetScrollTop="setResetToTopObject($event)"
         @click-cell="handleOpenFrameDetail"
         @click-row="handleOpenFrameDetail"
         @onScrollToTop="handleScrollToTop"
@@ -136,7 +138,11 @@ import { longfist, tracer } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { getFrameColumns } from '../config';
 import { dealFrame } from '../utils';
 import { MsgType } from '@kungfu-trader/kungfu-app/src/typings/enums';
-import { FiltersEnum, useMsgTypesMap } from '../utils/filterUtils';
+import {
+  FiltersEnum,
+  useMsgTypesMap,
+  ChannelRecords,
+} from '../utils/filterUtils';
 import KfTradingDataTable from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfTradingDataTable.vue';
 import { dealKfTime } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { delayMilliSeconds } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
@@ -147,7 +153,6 @@ import { debounce } from 'lodash';
 const props = withDefaults(
   defineProps<{
     currentSession: KungfuApi.SessionResolved | null;
-    currentLocation: KungfuApi.KfLocation | null;
     beginTime: bigint;
     endTime: bigint;
     nowTime: bigint;
@@ -171,7 +176,7 @@ type dataResolvedType = {
 const FRAME_LIST_SPLIT = 100;
 const SCALE = 1000000;
 const HUNDRED_MILLISECONDS = 100000000;
-const DEFAULT_LIST_SIZE = 10000;
+const DEFAULT_LIST_SIZE = 5000;
 const msgDetailsArray = [
   MsgType.Asset,
   MsgType.AssetMargin,
@@ -190,7 +195,7 @@ const frameColumns = getFrameColumns();
 const simpleImage = Empty.PRESENTED_IMAGE_SIMPLE;
 const loadingJournal = ref(false);
 const dataChangeByCurrentTime = ref(false);
-const currentFramesId = ref<number>(-1);
+const currentFramesId = ref<string>('');
 const frameFilter = ref();
 let currentTracer: KungfuApi.Tracer | null = null;
 const readEvent = ref(true);
@@ -199,6 +204,8 @@ const frameDataList = shallowRef<KungfuApi.FrameResolved[]>([]);
 const msgTypesMapManager = useMsgTypesMap();
 let requestBreakLoadingDataWhile = false;
 let isLoadingFrames = false;
+const channels = ref<ChannelRecords>({} as ChannelRecords);
+const afterFilterChannels = ref<string[]>([]);
 
 const dataStartTime = ref<[bigint, bigint]>([
   props.currentTime,
@@ -270,6 +277,10 @@ const currentRowDataResolved = computed(() => {
 
 const resetToTop = ref<(() => void) | null>(null);
 
+const setResetToTopObject = (e: (() => void) | undefined) => {
+  e && (resetToTop.value = e);
+};
+
 onMounted(() => {
   msgTypesMapManager.init();
 });
@@ -279,8 +290,9 @@ const handleScrollToTop = () => {
 };
 
 const handleScrollToBottom = async () => {
+  if (!props.currentSession) return;
   await delayMilliSeconds(0);
-  await loadFrameData(true);
+  await loadFrameData(props.currentSession.session_id_origin, true);
 };
 
 const handleStartTimeBlur = () => {
@@ -365,6 +377,8 @@ watch(
     if (newSession) {
       dataChangeByCurrentTime.value = false;
       framesMap.value = {};
+      afterFilterChannels.value = [];
+      channels.value = {};
       currentTracer = tracer(
         props.currentSession as KungfuApi.KfLocation,
         readEvent.value,
@@ -402,15 +416,16 @@ watch(
 );
 
 const initLoad = debounce(async () => {
+  if (!props.currentSession) return;
   isLoadingFrames && (requestBreakLoadingDataWhile = true);
+  loadingJournal.value = true;
   await delayMilliSeconds(0); // wait for while looping and break while working
   frameDataList.value = [];
-  loadingJournal.value = true;
-  await delayMilliSeconds(0);
   currentTracer?.seekToTime(props.currentTime);
-  await loadFrameData();
+  await loadFrameData(props.currentSession.session_id_origin);
   requestBreakLoadingDataWhile = false;
-}, 500);
+  loadingJournal.value = false;
+}, 100);
 
 const getDataResolved = (data: object): dataResolvedType | null => {
   if (data !== null) {
@@ -426,19 +441,24 @@ const getDataResolved = (data: object): dataResolvedType | null => {
   return null;
 };
 
-const loadFrameData = async (loadmore = false) => {
-  let newTotal = frameDataList.value.length;
-  const drain = async (): Promise<KungfuApi.FrameResolved[]> => {
+const loadFrameData = async (currentSessionId: string, loadmore = false) => {
+  const drain = async (
+    sessionId: string,
+  ): Promise<KungfuApi.FrameResolved[]> => {
     if (!currentTracer) return Promise.resolve([]);
     let frame: KungfuApi.Frame<'func'> = currentTracer.currentFrame();
     let tempFrames: KungfuApi.FrameResolved[] = [];
+    let loadCount = 0; // sometimes not enough data in journal, so use this count forbidden long time while
 
     while (
       tempFrames.length < FRAME_LIST_SPLIT &&
       currentTracer &&
       currentTracer.dataAvailable() &&
-      !requestBreakLoadingDataWhile
+      !requestBreakLoadingDataWhile &&
+      props.currentSession &&
+      sessionId === props.currentSession.session_id_origin
     ) {
+      loadCount++;
       frame = currentTracer.currentFrame();
       if (!frame) {
         break;
@@ -465,20 +485,24 @@ const loadFrameData = async (loadmore = false) => {
         if (!dataResolved[0].children) dataResolved[0].children = [];
         dataResolved[0].children = dataChildren;
       }
+      const source = frame.source();
+      const dest = frame.dest();
+      const pageId = currentTracer.currentPageId();
+      const frameId = currentTracer.currentFrameId();
       const curFrameData: KungfuApi.Frame = {
-        id: newTotal,
+        id: `${source}_${dest}_${pageId}_${frameId}`,
         dataLength: frame.dataLength(),
         genTime: frame.genTime(),
         triggerTime: frame.triggerTime(),
         msgType: msgType,
-        currentFrameId: currentTracer.currentFrameId(),
-        currentPageId: currentTracer.currentPageId(),
+        currentFrameId: frameId,
+        currentPageId: pageId,
         stringMsgType: stringMsgType,
         msgDetails: msgDetailsArray.includes(Number(msgType))
           ? frame.dataAsString().slice(1, -1)
           : '',
-        source: frame.source(),
-        dest: frame.dest(),
+        source,
+        dest,
         data: frame.dataAsString() as string,
         dataResolved: dataResolved,
       };
@@ -493,16 +517,46 @@ const loadFrameData = async (loadmore = false) => {
           : props.locationMap[curFrameData.source];
       curFrameData.sourceToDest = `${curFrameData.sourceName} -> ${curFrameData.destName}`;
 
-      const curFrameDataResolved = dealFrame(curFrameData);
-      const { msgDetails, ...restFrameData } = curFrameDataResolved;
-      framesMap.value[curFrameDataResolved.id] = restFrameData;
-      tempFrames.push(curFrameDataResolved);
       currentTracer.next();
-      ++newTotal;
+
+      if (!channels.value[curFrameData.sourceToDest]) {
+        channels.value = {
+          ...channels.value,
+          ...{
+            [curFrameData.sourceToDest]: [
+              curFrameData.source,
+              curFrameData.dest,
+            ],
+          },
+        };
+      }
+
+      if (
+        afterFilterChannels.value.length === 0 ||
+        afterFilterChannels.value.includes(curFrameData.sourceToDest)
+      ) {
+        const curFrameDataResolved = dealFrame(curFrameData);
+        const { msgDetails, ...restFrameData } = curFrameDataResolved;
+        framesMap.value[curFrameDataResolved.id] = restFrameData;
+        tempFrames.push(curFrameDataResolved);
+      } else {
+        continue; // for future code
+      }
     }
 
-    loadingJournal.value && (loadingJournal.value = false);
-    if (requestBreakLoadingDataWhile) {
+    props.currentSession &&
+      sessionId === props.currentSession.session_id_origin &&
+      !requestBreakLoadingDataWhile &&
+      loadingJournal.value &&
+      (loadingJournal.value = false);
+
+    if (
+      requestBreakLoadingDataWhile ||
+      !(
+        props.currentSession &&
+        sessionId === props.currentSession.session_id_origin
+      )
+    ) {
       frameDataList.value = [];
       return [];
     } else {
@@ -513,14 +567,14 @@ const loadFrameData = async (loadmore = false) => {
     if (
       !currentTracer.dataAvailable() ||
       frameDataList.value.length >= DEFAULT_LIST_SIZE ||
-      newTotal >= DEFAULT_LIST_SIZE ||
+      loadCount >= DEFAULT_LIST_SIZE ||
       loadmore
     ) {
       return frameDataList.value;
     } else {
       return new Promise<KungfuApi.FrameResolved[]>((resolve) => {
         requestAnimationFrame(async () => {
-          const frames = await drain();
+          const frames = await drain(sessionId);
           resolve(frames);
         });
       });
@@ -528,7 +582,7 @@ const loadFrameData = async (loadmore = false) => {
   };
 
   isLoadingFrames = true;
-  return drain().then((_: KungfuApi.FrameResolved[]) => {
+  return drain(currentSessionId).then((_: KungfuApi.FrameResolved[]) => {
     isLoadingFrames = false;
     requestBreakLoadingDataWhile = false;
     currentFramesId.value = frameDataList.value[0]?.id;
@@ -544,9 +598,11 @@ const onFiltersApply = async (
   filtersFormState: Record<FiltersEnum, string[]>,
   read: boolean,
   write: boolean,
+  seletedChannels: string[],
 ) => {
   readEvent.value = read;
   writeEvent.value = write;
+  afterFilterChannels.value = seletedChannels;
   msgTypesMapManager.reset(filtersFormState[FiltersEnum.MSG_TYPE]);
   currentTracer = tracer(
     props.currentSession as KungfuApi.KfLocation,
@@ -590,6 +646,7 @@ defineExpose({
   }
 
   .kf-journal-filters-bar {
+    width: 100%;
     background-color: #1d1d1d;
     padding: 4px 16px;
     margin-bottom: 4px;
@@ -604,6 +661,7 @@ defineExpose({
     }
 
     .kf-journal-bar-title {
+      width: 450px;
       height: 32px;
       white-space: nowrap;
       font-size: 14px;
@@ -626,11 +684,6 @@ defineExpose({
       input {
         height: 100%;
       }
-    }
-
-    .ant-form-inline {
-      flex-wrap: nowrap;
-      justify-content: space-between;
     }
   }
 

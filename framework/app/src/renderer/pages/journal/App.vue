@@ -71,7 +71,6 @@
             v-show="isCurrentMenuItem('event')"
             ref="eventDashBoard"
             :current-session="currentSession"
-            :current-location="currentLocation"
             :begin-time="beginTime"
             :end-time="endTime"
             :now-time="nowTime"
@@ -389,35 +388,11 @@ const dealRowClassName = (row) => {
   -moz-osx-font-smoothing: grayscale;
   text-align: center;
   .ant-tooltip {
-    // 你的样式
     color: #6d0d0d !important;
     position: absolute !important;
     top: 100px !important;
     left: 100px !important;
   }
-  // :deep(.ant-slider-track .ant-slider-step) {
-  //   border-color: #fff !important;
-  //   color: #fff !important;
-  //   background-color: #fff !important;
-  // }
-  // :deep(.ant-slider-ant-tooltip-open.ant-slider-handle) {
-  //   border-color: aqua !important;
-  //   background-color: aqua !important;
-  //   position: relative !important;
-  //   width: 100px !important;
-  // }
-  // :deep(.ant-tooltip) {
-  //   position: absolute !important;
-  //   top: 100px !important;
-  //   left: 100px !important;
-  // }
-  // /deep/ .ant-tooltip {
-  //   // 你的样式
-  //   color: #6d0d0d !important;
-  //   position: absolute !important;
-  //   top: 100px !important;
-  //   left: 100px !important;
-  // }
 
   .ant-layout {
     height: 100%;

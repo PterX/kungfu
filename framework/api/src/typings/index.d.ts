@@ -1012,10 +1012,11 @@ declare namespace KungfuApi {
     begin_time_resolved: string;
     end_time_resolved: string;
     status: SessionStatusEnum;
+    session_id_origin: string;
   }
 
   export interface Frame<T extends 'func' | 'data' = 'data'> {
-    id: number;
+    id: string;
     dataLength: FunctionOrData<T, number>;
     genTime: FunctionOrData<T, bigint>;
     triggerTime: FunctionOrData<T, bigint>;

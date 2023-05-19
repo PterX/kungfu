@@ -38,6 +38,7 @@ export const dealSession = (
     begin_time_resolved: dealKfTime(getAbs<bigint>(session.begin_time)),
     end_time_resolved: dealKfTime(getAbs<bigint>(session.end_time)),
     status: getSessionStatus(session),
+    session_id_origin: `${getProcessIdByKfLocation(session)}_${session.index}`,
   };
 };
 

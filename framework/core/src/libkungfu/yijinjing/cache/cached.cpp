@@ -66,7 +66,7 @@ void cached::on_start() {
   events_ | is(CacheReset::tag) | $$(on_cache_reset(event));
   events_ | instanceof <journal::frame>() | filter([&](const event_ptr &event) {
                          auto source_id = event->source();
-                         return source_id != master_home_location_->uid and source_id != master_cmd_location_->uid;
+                         return source_id != master_home_location_->uid and source_id != get_master_command_uid();
                        }) | $$(feed(event));
 }
 
@@ -83,7 +83,7 @@ void cached::on_notify() {
 }
 
 void cached::mark_request_cached_done(uint32_t dest_id) {
-  auto writer = get_writer(master_cmd_location_->uid);
+  auto writer = get_writer(get_master_command_uid());
   RequestCachedDone &rcd = writer->open_data<RequestCachedDone>();
   rcd.dest_id = dest_id;
   writer->close_data();
@@ -158,7 +158,7 @@ void cached::on_location(const event_ptr &event) { profile_bank_ << typed_event_
 
 void cached::inspect_channel(int64_t trigger_time, const Channel &channel) {
   if (channel.source_id != get_live_home_uid() and channel.dest_id != get_live_home_uid()) {
-    reader_->join(get_location(channel.source_id), channel.dest_id, trigger_time);
+    reader_join(channel.source_id, channel.dest_id, trigger_time);
     make_cache_shift(channel.source_id, channel.dest_id);
   }
 }
@@ -187,9 +187,9 @@ void cached::register_trigger_listen_public(int64_t gen_time, const Register &re
     return;
   }
 
-  reader_->join(app_location, location::PUBLIC, gen_time);
+  reader_join(app_uid, location::PUBLIC, gen_time);
   make_cache_shift(app_uid, location::PUBLIC);
-  reader_->join(app_location, location::SYNC, gen_time);
+  reader_join(app_uid, location::SYNC, gen_time);
   make_cache_shift(app_uid, location::SYNC);
   SPDLOG_INFO("resume {} connection from {}", get_location_uname(app_uid), time::strftime(gen_time));
 }

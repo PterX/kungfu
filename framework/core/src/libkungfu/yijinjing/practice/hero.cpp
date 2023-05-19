@@ -53,6 +53,7 @@ hero::~hero() {
   reader_.reset();
   io_device_.reset();
   ensure_sqlite_shutdown();
+  os::reset_hero_instance();
 }
 
 bool hero::is_usable() { return io_device_->is_usable(); }
@@ -129,6 +130,10 @@ location_ptr hero::get_location(uint32_t uid) const {
     SPDLOG_ERROR("no location {} in locations_", uid);
   }
 
+  if (location::PUBLIC == uid or location::SYNC == uid) {
+    return nullptr;
+  }
+
   assert(has_location(uid));
   return locations_.at(uid);
 }
@@ -194,9 +199,9 @@ void hero::on_exit() { SPDLOG_INFO("default on_exit"); }
 
 location_ptr hero::get_ledger_home_location() const { return ledger_home_location_; }
 
-[[maybe_unused]] location_ptr hero::get_master_home_location() const { return master_home_location_; }
+location_ptr hero::get_master_home_location() const { return master_home_location_; }
 
-[[maybe_unused]] location_ptr hero::get_master_cmd_location() const { return master_cmd_location_; }
+location_ptr hero::get_master_cmd_location() const { return master_cmd_location_; }
 
 const rx::connectable_observable<event_ptr> &hero::get_events() const { return events_; }
 
@@ -351,17 +356,23 @@ void hero::produce(const rx::subscriber<event_ptr> &sb) {
   }
 }
 
-bool hero::drain(const rx::subscriber<event_ptr> &sb) {
-  if (io_device_->get_home()->mode == mode::LIVE and io_device_->get_observer()->wait()) {
+void hero::deal_notice(bool bypass, bool notify, const rx::subscriber<event_ptr> &sb) {
+  if (not bypass and io_device_->get_home()->mode == mode::LIVE and io_device_->get_observer()->wait()) {
     const std::string &notice = io_device_->get_observer()->get_notice();
     now_ = time::now_in_nano();
     if (notice.length() > 2) {
       sb.on_next(std::make_shared<nanomsg_json>(notice));
-    } else {
+    } else if (notify) {
       on_notify();
     }
   }
+}
+
+bool hero::drain(const rx::subscriber<event_ptr> &sb) {
+  deal_notice(false, true, sb);
+  bool bypass = io_device_->is_lazy() or not io_device_->is_low_latency();
   while (live_ and reader_->data_available()) {
+    deal_notice(bypass, false, sb);
     if (reader_->current_frame()->gen_time() <= end_time_) {
       int64_t frame_time = reader_->current_frame()->gen_time();
       if (frame_time > now_) {

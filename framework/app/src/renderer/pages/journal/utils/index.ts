@@ -15,7 +15,7 @@ import {
   getProcessIdByKfLocation,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import {
-  JournalFrameMsgType,
+  // JournalFrameMsgType,
   KfCategory,
 } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import {
@@ -24,9 +24,10 @@ import {
   KfCategoryTypes,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 
-const consoleError = (error, ...datas) => {
-  console.log(...(datas.length ? ['datas: ', ...datas, '\n', error] : error));
-};
+// const consoleError = (error, ...datas) => {
+//   console.log(...(datas.length ? ['datas: ', ...datas, '\n', error] : error));
+// };
+const MSG_NUM = 10000;
 
 export const getAbs = <T extends number | bigint>(num: T): T =>
   num < 0 ? (-num as T) : num;
@@ -72,10 +73,57 @@ export const dealCategory = (
   return KfCategory[KfCategoryEnum[category]];
 };
 
+export const getMsgResolved = (
+  num: number,
+): KungfuApi.KfTradeValueCommonData => {
+  if (num > 100 && num < 200) {
+    return {
+      name: '账户信息',
+      color: 'blue',
+    };
+  } else if (num > 200 && num < 300) {
+    return {
+      name: '交易相关',
+      color: '#FAAD14',
+    };
+  } else if (num > 300 && num < 400) {
+    return {
+      name: '查询相关',
+      color: 'default',
+    };
+  } else if (num > 400 && num < 500) {
+    return {
+      name: '行情相关',
+      color: 'green',
+    };
+  } else if (num > 500 && num < 600) {
+    return {
+      name: '行情订阅相关',
+      color: 'purple',
+    };
+  } else if (num > 600 && num < 700) {
+    return {
+      name: '算子相关',
+      color: 'default',
+    };
+  } else {
+    return {
+      name: '其他',
+      color: 'default',
+    };
+  }
+};
+
 export const dealFrameMsgType = (
   msgType: FrameMsgTypeEnum,
-): KungfuApi.KfTradeValueCommonData =>
-  JournalFrameMsgType[+msgType] || { name: msgType, color: 'default' };
+): KungfuApi.KfTradeValueCommonData => {
+  const msgTypeId = Number(msgType);
+  if (msgTypeId > MSG_NUM) {
+    return getMsgResolved(msgTypeId);
+  } else {
+    return getMsgResolved(msgTypeId % MSG_NUM);
+  }
+};
 
 export const dealDestOrSource = (
   type: 'source' | 'dest',
@@ -90,66 +138,66 @@ export const dealDestOrSource = (
   return locationId + '';
 };
 
-export const dealFrameSourceToDest = (
-  sourceResolved: string,
-  destResolved: string,
-) => {
-  return `${sourceResolved} → ${destResolved}`;
-};
+// export const dealFrameSourceToDest = (
+//   sourceResolved: string,
+//   destResolved: string,
+// ) => {
+//   return `${sourceResolved} → ${destResolved}`;
+// };
 
-const dealFrameData = (data: string): unknown[] => {
-  try {
-    const object = JSON.parse(data);
-    const formatToTreeData = (obj: unknown) => {
-      if (typeof obj === 'string') {
-        if (obj.indexOf('{') !== -1 || obj.indexOf('[') !== -1) {
-          try {
-            obj = JSON.parse(obj);
-          } catch (error) {
-            consoleError(error, obj);
-          }
-        }
-      }
+// const dealFrameData = (data: string): unknown[] => {
+//   try {
+//     const object = JSON.parse(data);
+//     const formatToTreeData = (obj: unknown) => {
+//       if (typeof obj === 'string') {
+//         if (obj.indexOf('{') !== -1 || obj.indexOf('[') !== -1) {
+//           try {
+//             obj = JSON.parse(obj);
+//           } catch (error) {
+//             consoleError(error, obj);
+//           }
+//         }
+//       }
 
-      if (typeof obj !== 'object' || obj === null) return [];
-      if (!Object.keys(obj).length) return [];
+//       if (typeof obj !== 'object' || obj === null) return [];
+//       if (!Object.keys(obj).length) return [];
 
-      const dealKeyOrValue = (value) => {
-        if (typeof value === 'boolean' || !Number.isNaN(+value)) return value;
+//       const dealKeyOrValue = (value) => {
+//         if (typeof value === 'boolean' || !Number.isNaN(+value)) return value;
 
-        return `"${value}"`;
-      };
+//         return `"${value}"`;
+//       };
 
-      const obj1 = obj; // to fix ts error
+//       const obj1 = obj; // to fix ts error
 
-      return Object.keys(obj).map((key) => {
-        const children = formatToTreeData(obj1[key]);
-        return {
-          title: children?.length
-            ? `${key} : ${Array.isArray(obj1[key]) ? '[' : '{'}`
-            : `${dealKeyOrValue(key)} : ${dealKeyOrValue(obj1[key])},`,
-          key,
-          ...(children?.length
-            ? {
-                children: [
-                  ...children,
-                  { title: Array.isArray(obj1[key]) ? ']' : '}' },
-                ],
-              }
-            : {}),
-        };
-      });
-    };
+//       return Object.keys(obj).map((key) => {
+//         const children = formatToTreeData(obj1[key]);
+//         return {
+//           title: children?.length
+//             ? `${key} : ${Array.isArray(obj1[key]) ? '[' : '{'}`
+//             : `${dealKeyOrValue(key)} : ${dealKeyOrValue(obj1[key])},`,
+//           key,
+//           ...(children?.length
+//             ? {
+//                 children: [
+//                   ...children,
+//                   { title: Array.isArray(obj1[key]) ? ']' : '}' },
+//                 ],
+//               }
+//             : {}),
+//         };
+//       });
+//     };
 
-    return [
-      { title: '{', key: 'root-start', children: formatToTreeData(object) },
-      { title: '}', key: 'root-end' },
-    ];
-  } catch (error) {
-    consoleError(error, data);
-    return [{ title: 'null', key: 'root' }];
-  }
-};
+//     return [
+//       { title: '{', key: 'root-start', children: formatToTreeData(object) },
+//       { title: '}', key: 'root-end' },
+//     ];
+//   } catch (error) {
+//     consoleError(error, data);
+//     return [{ title: 'null', key: 'root' }];
+//   }
+// };
 
 export const dealFrame = (frame: KungfuApi.Frame): KungfuApi.FrameResolved => {
   return {
@@ -157,11 +205,11 @@ export const dealFrame = (frame: KungfuApi.Frame): KungfuApi.FrameResolved => {
     genTimeResolved: dealKfTime(frame.genTime, true),
     triggerTimeResolved: dealKfTime(frame.triggerTime, true),
     msgTypeResolved: dealFrameMsgType(frame.msgType),
-    destResolved: 'TODO',
-    sourceResolved: 'TODO',
+    // destResolved: 'TODO',
+    // sourceResolved: 'TODO',
     // sourceToDest: dealFrameSourceToDest(frame.sourceName, frame.destName),
-    sourceToDest: 'TODO',
-    dataResolved: dealFrameData(frame.data),
+    // sourceToDest: 'TODO',
+    // dataResolved: dealFrameData(frame.data),
   };
 };
 
@@ -235,12 +283,16 @@ export const writeCsvByStream = <T>(
   });
 };
 
-export const useDealJournalDatas = () => {
+export const useDealJournalDatas = (clear = false) => {
   type DataWrapper<T> = {
     data: Record<string, T[]>;
     isInit: boolean;
   };
 
+  const mdQuotes = reactive<DataWrapper<KungfuApi.Quote>>({
+    data: {},
+    isInit: true,
+  });
   const quotes = reactive<DataWrapper<KungfuApi.Quote>>({
     data: {},
     isInit: true,
@@ -256,7 +308,6 @@ export const useDealJournalDatas = () => {
 
   const journalStore = useJournalStore();
   const journalState = storeToRefs(journalStore);
-
   const worker = window.workers.dealJournalDatas;
   const dataSender = new WorkerSender<KungfuApi.FrameResolved>(worker, 200);
   const dataReceiver = new WorkerReceiver('send', worker);
@@ -264,8 +315,19 @@ export const useDealJournalDatas = () => {
   watch(
     () => journalState.lastUpdateSessionFrames.value,
     (frames) => {
+      if (frames[0] === undefined) return;
+      // console.log('frames', frames, journalState.isSessionFramesInit.value);
       dataSender.sendData('send-events', frames, {
         isInit: journalState.isSessionFramesInit.value,
+      });
+    },
+  );
+
+  watch(
+    () => journalState.mdLastUpdateSessionFrames.value,
+    (frames) => {
+      dataSender.sendData('send-md-events', frames, {
+        isInit: journalState.isMdSessionFramesInit.value,
       });
     },
   );
@@ -295,33 +357,49 @@ export const useDealJournalDatas = () => {
   ) => {
     const resolvedCurData = groupDataByInstrAndExcId(curData);
     if (isInit) {
+      exsitedData = {};
       Object.keys(resolvedCurData).forEach((key) => {
         exsitedData[key] = resolvedCurData[key];
       });
+      console.log('dealUpdateData', { resolvedCurData, curData, exsitedData });
     } else {
       Object.keys(resolvedCurData).forEach((key) => {
         exsitedData[key].push(...resolvedCurData[key]);
       });
     }
+    return exsitedData;
   };
-
   dataReceiver.onEnd<KungfuApi.Quote>('send-quotes', ({ data, info }) => {
-    console.log('quote', data, info);
-    dealUpdateData(quotes.data, data, info?.isInit);
+    quotes.data = dealUpdateData(quotes.data, data, info?.isInit);
     quotes.isInit = info?.isInit;
+    console.log('req-send-quotes', data, info?.isInit, quotes);
   });
 
   dataReceiver.onEnd<KungfuApi.Trade>('send-trades', ({ data, info }) => {
-    console.log('trade', data, info);
-    dealUpdateData(trades.data, data, info?.isInit);
+    trades.data = dealUpdateData(trades.data, data, info?.isInit);
     trades.isInit = info?.isInit;
   });
 
   dataReceiver.onEnd<KungfuApi.Order>('send-orders', ({ data, info }) => {
-    console.log('order', data, info);
-    dealUpdateData(orders.data, data, info?.isInit);
+    orders.data = dealUpdateData(orders.data, data, info?.isInit);
     orders.isInit = info?.isInit;
   });
+  dataReceiver.onEnd<KungfuApi.Quote>('send-md-quotes', ({ data, info }) => {
+    dealUpdateData(mdQuotes.data, data, info?.isInit);
+    mdQuotes.isInit = info?.isInit;
+  });
+
+  const clearTradingData = () => {
+    quotes.data = {};
+    quotes.isInit = true;
+    orders.data = {};
+    orders.isInit = true;
+    trades.data = {};
+    trades.isInit = true;
+  };
+  if (clear) {
+    clearTradingData();
+  }
 
   const allTradingDatas = computed(() => {
     const keys = Array.from(
@@ -331,7 +409,7 @@ export const useDealJournalDatas = () => {
         ...Object.keys(trades.data),
       ]),
     );
-
+    console.log('datas', { quotes, orders, trades }, keys);
     return keys.reduce(
       (datas, key) => {
         return {
@@ -353,11 +431,33 @@ export const useDealJournalDatas = () => {
       >,
     );
   });
+  const mdQuotoDatas = computed(() => {
+    const keys = Array.from(new Set([...Object.keys(mdQuotes.data)]));
+
+    return keys.reduce(
+      (datas, key) => {
+        return {
+          ...datas,
+          [key]: {
+            mdQuotes: mdQuotes.data[key] ?? [],
+          },
+        };
+      },
+      {} as Record<
+        string,
+        {
+          mdQuotes: KungfuApi.Quote[];
+        }
+      >,
+    );
+  });
 
   return {
     quotes,
     orders,
     trades,
     allTradingDatas,
+    mdQuotoDatas,
+    clearTradingData,
   };
 };

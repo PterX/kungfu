@@ -1,93 +1,57 @@
 <template>
   <div class="kf-time-slider__wrap">
+    <backward-outlined
+      class="forward-icon"
+      @click="handleTimeBack()"
+    ></backward-outlined>
     <div class="kf-time-slider-time">
-      <a-input-group v-if="timeInputData[0].inputting" compact>
-        <a-input
-          v-model:value="timeInputData[0].value"
-          @press-enter="handleConfirmTimeInput(0)"
-        />
-        <a-button type="normal" @click="resetInputData(0)">
-          <template #icon>
-            <close-outlined />
-          </template>
-        </a-button>
-        <a-button type="primary" @click="handleConfirmTimeInput(0)">
-          <template #icon>
-            <check-outlined />
-          </template>
-        </a-button>
-      </a-input-group>
-      <span
-        v-else
-        class="kf-time-slider-text"
-        style="text-align: end"
-        @dblclick="handleDbClickTimeText(0)"
-      >
+      <span class="kf-time-slider-text" style="text-align: end">
         {{ timeStrs[0] }}
       </span>
     </div>
     <a-slider
       ref="slider"
-      v-model:value="currentTimeRange"
+      :key="sliderKey"
+      v-model:value="curTime"
       class="kf-time-slider"
       :class="{
-        'kf-time-slider-handler-focus-1': sticking[0],
-        'kf-time-slider-handler-focus-2': sticking[1],
+        'kf-time-slider-handler-focus-1': false,
+        'kf-time-slider-handler-focus-2': true,
       }"
-      :min="limitRangeResolved[0]"
-      :max="limitRangeResolved[1]"
-      :step="nano2millionSecond(step)"
-      range
+      :tooltip-visible="toolTipVisable"
+      :min="nano2millionSecond(props.beginTime)"
+      :max="maxTime"
+      :step="nano2millionSecond(props.step)"
       :tip-formatter="tipFormatter"
       @after-change="onAfterChange"
     />
     <div class="kf-time-slider-time">
-      <a-input-group v-if="timeInputData[1].inputting" compact>
-        <a-input
-          v-model:value="timeInputData[1].value"
-          @press-enter="handleConfirmTimeInput(0)"
-        />
-        <a-button type="normal" @click="resetInputData(1)">
-          <template #icon>
-            <close-outlined />
-          </template>
-        </a-button>
-        <a-button type="primary" @click="handleConfirmTimeInput(1)">
-          <template #icon>
-            <check-outlined />
-          </template>
-        </a-button>
-      </a-input-group>
-      <span
-        v-else
-        class="kf-time-slider-text"
-        style="text-align: start"
-        @dblclick="handleDbClickTimeText(1)"
-      >
+      <span class="kf-time-slider-text" style="text-align: start">
         {{ timeStrs[1] }}
       </span>
     </div>
+    <forward-outlined
+      class="forward-icon"
+      @click="handleTimeForward()"
+    ></forward-outlined>
   </div>
 </template>
 
 <script lang="ts" setup>
-import { computed, ref, watch } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 
-import { CheckOutlined, CloseOutlined } from '@ant-design/icons-vue';
 import { dealKfTime } from '@kungfu-trader/kungfu-js-api/kungfu';
-import VueI18n from '@kungfu-trader/kungfu-js-api/language';
-import { messagePrompt } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
-
-const { t } = VueI18n.global;
-
-type DoubleArray<T> = [T, T];
+import { ForwardOutlined, BackwardOutlined } from '@ant-design/icons-vue';
+import { SessionStatusEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 
 const props = withDefaults(
   defineProps<{
-    timeRange: DoubleArray<bigint>; // 当前只支持纳秒级别的时间
-    limitTimeRange: DoubleArray<bigint>; // 当前只支持纳秒级别的时间
+    currentSession: KungfuApi.SessionResolved | null;
+    currentTime: bigint; // 当前只支持纳秒级别的时间
+    nowTime: bigint;
+    beginTime: bigint;
+    endTime: bigint;
     step: number;
-    stick: boolean;
   }>(),
   {
     step: 10000000, // step 为纳秒级别， 默认为10毫秒
@@ -95,22 +59,63 @@ const props = withDefaults(
 );
 
 const emit = defineEmits<{
-  (e: 'update:timeRange', value: DoubleArray<bigint>): void;
+  (e: 'update:currentTime', value: bigint): void;
 }>();
-
+const toolTipVisable = ref(true);
+const handleElement = ref<HTMLElement | null>(null);
 const SCALE = 1000000;
 const BIGINT_SCALE = BigInt(SCALE);
-
+const TEN_SECOND = BigInt(10000000000);
 const slider = ref();
-const sticking = ref<DoubleArray<boolean>>([
-  props.timeRange[0] === props.limitTimeRange[0],
-  props.timeRange[0] === props.limitTimeRange[0],
-]);
-const timeInputData = ref<DoubleArray<{ inputting: boolean; value: string }>>([
-  { inputting: false, value: '' },
-  { inputting: false, value: '' },
-]);
+const sliderKey = ref(0);
+const endTimeChange = ref(true);
+const maxTime = computed(() => {
+  if (props.currentSession?.status === SessionStatusEnum.Finished) {
+    return nano2millionSecond(props.endTime);
+  } else {
+    return nano2millionSecond(props.nowTime);
+  }
+});
 
+onMounted(() => {
+  window.addEventListener('resize', handleResize);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize);
+});
+
+const handleResize = () => {
+  sliderKey.value++;
+};
+
+const handleTimeBack = () => {
+  if (props.currentTime - TEN_SECOND < props.beginTime) {
+    curTime.value = nano2millionSecond(props.beginTime);
+    onAfterChange(curTime.value);
+    return;
+  }
+  curTime.value = nano2millionSecond(props.currentTime - TEN_SECOND);
+  onAfterChange(curTime.value);
+};
+const handleTimeForward = () => {
+  if (props.currentSession?.status === SessionStatusEnum.Finished) {
+    if (props.currentTime + TEN_SECOND > props.endTime) {
+      curTime.value = nano2millionSecond(props.endTime);
+      onAfterChange(curTime.value);
+      return;
+    }
+  } else {
+    if (props.currentTime + TEN_SECOND > props.nowTime) {
+      curTime.value = nano2millionSecond(props.nowTime);
+      onAfterChange(curTime.value);
+      return;
+    }
+  }
+
+  curTime.value = nano2millionSecond(props.currentTime + TEN_SECOND);
+  onAfterChange(curTime.value);
+};
 const nano2millionSecond = (number: bigint | number) => {
   if (typeof number === 'bigint') {
     return Number(number / BIGINT_SCALE);
@@ -125,137 +130,84 @@ const customDealKftime = (time: bigint) => {
   return kfTimeCached.get(time);
 };
 
-const str2millionTime = (timeStr: string) => {
-  timeStr = timeStr.replaceAll(' ', '');
-  return new Promise<number>((resolve, reject) => {
-    const timeRegx = /(\d{2}):(\d{2}):(\d{2})\.?(\d{3})?/;
-    if (!timeRegx.test(timeStr))
-      reject(t('journalConfig.input_time_format_error'));
-    const [h, m, s, ms] = timeStr.match(timeRegx)?.slice(1) as string[];
-    const date = new Date();
-    date.setHours(+h);
-    date.setMinutes(+m);
-    date.setSeconds(+s);
-    date.setMilliseconds(+ms || 0);
-    resolve(date.getTime());
-  });
-};
-
 const million2nanoSecond = (number: number) => {
   return BigInt(number * SCALE);
 };
 
-const currentTimeRange = ref<DoubleArray<number>>([
-  nano2millionSecond(props.timeRange[0]),
-  nano2millionSecond(props.timeRange[1]),
-]);
+const curTime = ref(nano2millionSecond(props.nowTime));
 
-const limitRangeResolved = ref<DoubleArray<number>>([
-  nano2millionSecond(props.limitTimeRange[0]),
-  nano2millionSecond(props.limitTimeRange[1]),
+const timeStrs = ref([
+  customDealKftime(props.beginTime),
+  customDealKftime(props.nowTime),
 ]);
 
 watch(
-  () => props.timeRange,
-  (newRange) => {
-    currentTimeRange.value = [
-      nano2millionSecond(newRange[0]),
-      nano2millionSecond(newRange[1]),
-    ];
-  },
-);
+  () => props.nowTime,
+  () => {
+    handleElement.value = slider.value.$el.querySelector('.ant-slider-handle');
 
-watch(
-  () => props.limitTimeRange,
-  (newLimitRange) => {
-    limitRangeResolved.value = [
-      nano2millionSecond(newLimitRange[0]),
-      nano2millionSecond(newLimitRange[1]),
-    ];
+    if (handleElement.value) {
+      const handleRect = handleElement.value.getBoundingClientRect();
+      const tooltipElement: HTMLElement | null = document.querySelector(
+        '.ant-tooltip.ant-slider-tooltip.ant-tooltip-placement-top',
+      );
 
-    if (props.stick) {
-      if (sticking.value[0]) {
-        currentTimeRange.value[0] = limitRangeResolved.value[0];
+      if (tooltipElement) {
+        tooltipElement.style.left = `${handleRect.left - 37.2}px`;
       }
-
-      if (sticking.value[1]) {
-        currentTimeRange.value[1] = limitRangeResolved.value[1];
-      }
-
-      if (sticking.value.some((item) => item)) {
-        emit('update:timeRange', [
-          dealUpdateTime(currentTimeRange.value[0]),
-          dealUpdateTime(currentTimeRange.value[1]),
-        ]);
-      }
+    }
+    if (endTimeChange.value) {
+      timeStrs.value = [
+        customDealKftime(props.beginTime),
+        customDealKftime(props.endTime || props.nowTime),
+      ];
     }
   },
 );
+watch(
+  () => props.currentSession?.status,
+  (newSession) => {
+    if (newSession === SessionStatusEnum.Finished) {
+      endTimeChange.value = false;
+      timeStrs.value = [
+        customDealKftime(props.beginTime),
+        customDealKftime(
+          (props.currentSession as KungfuApi.SessionResolved).end_time,
+        ),
+      ];
+    } else {
+      endTimeChange.value = true;
+    }
+  },
+);
+watch(
+  () => props.beginTime,
+  () => {
+    timeStrs.value = [
+      customDealKftime(props.beginTime),
+      customDealKftime(props.endTime || props.nowTime),
+    ];
+  },
+);
 
-const timeStrs = computed(() => {
-  return [
-    customDealKftime(props.timeRange[0]),
-    customDealKftime(props.timeRange[1]),
-  ];
-});
+watch(
+  () => props.currentTime,
+  () => {
+    curTime.value = nano2millionSecond(props.currentTime);
+  },
+);
 
 const tipFormatter = (num: number) => {
-  return customDealKftime(BigInt(num * SCALE));
+  return dealKfTime(BigInt(num * SCALE));
 };
 
 const dealUpdateTime = (time: number) => {
-  if (time === limitRangeResolved.value[0]) return props.limitTimeRange[0];
-  if (time === limitRangeResolved.value[1]) return props.limitTimeRange[1];
   return million2nanoSecond(time);
 };
 
-const onAfterChange = (value: DoubleArray<number>) => {
-  if (
-    value[0] === nano2millionSecond(props.timeRange[0]) &&
-    value[1] === nano2millionSecond(props.timeRange[1])
-  )
-    return;
-
-  if (props.stick) {
-    sticking.value[0] = value[0] === limitRangeResolved.value[0];
-    sticking.value[1] = value[1] === limitRangeResolved.value[1];
-  }
-
-  emit('update:timeRange', [
-    dealUpdateTime(value[0]),
-    dealUpdateTime(value[1]),
-  ]);
+const onAfterChange = (value: number) => {
+  emit('update:currentTime', dealUpdateTime(value));
 };
-
-const resetInputData = (index: 0 | 1) => {
-  timeInputData.value[index] = {
-    inputting: false,
-    value: '',
-  };
-};
-
-const handleDbClickTimeText = (index: 0 | 1) => {
-  timeInputData.value[index] = {
-    inputting: true,
-    value: timeStrs.value[index],
-  };
-};
-
-const handleConfirmTimeInput = (index: 0 | 1) => {
-  str2millionTime(timeInputData.value[index].value)
-    .then((resolvedTime) => {
-      currentTimeRange.value[index] = resolvedTime;
-      onAfterChange(currentTimeRange.value);
-      resetInputData(index);
-    })
-    .catch((err) => {
-      messagePrompt().error(err);
-    });
-};
-
-defineExpose({
-  sticking,
-});
 </script>
 
 <style lang="less">
@@ -265,9 +217,9 @@ defineExpose({
   justify-content: space-between;
 
   .kf-time-slider-time {
-    width: 160px;
+    width: 100px;
     margin: 0 16px;
-    flex: 0 0 160px;
+    flex: 0 0 100px;
     font-size: 14px;
 
     .ant-input-group-compact {
@@ -289,19 +241,31 @@ defineExpose({
   }
 
   .kf-time-slider {
+    min-width: 360px;
     flex: 1;
   }
 
   .kf-time-slider-handler-focus-1 {
     .ant-slider-handle-1 {
-      border-color: #faad14;
+      // border-color: #faad14;
+      border-color: aqua;
     }
   }
 
   .kf-time-slider-handler-focus-2 {
     .ant-slider-handle-2 {
-      border-color: #faad14;
+      border-color: aqua;
     }
+  }
+
+  .forward-icon {
+    font-size: 18px;
+    color: #ffffffd9;
+    transition: color 0.3s;
+  }
+
+  .forward-icon:hover {
+    color: #faad14;
   }
 }
 </style>

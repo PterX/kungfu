@@ -21,8 +21,10 @@ declare namespace KungfuApi {
     StrategyStateStatusEnum,
     StrategyStateStatusTypes,
     InstrumentTypeEnum,
-    InstrumentTypes,
+    TdMdExtTypes,
     StrategyExtTypes,
+    SystemExtTypes,
+    ExtRunForEnvTypesEnum,
     PriceTypeEnum,
     SideEnum,
     OffsetEnum,
@@ -40,7 +42,7 @@ declare namespace KungfuApi {
     KfModeTypes,
     OrderActionFlagEnum,
     OrderInputKeyEnum,
-    KfExtConfigTypes,
+    KfExhibitConfigTypes,
     FrameMsgTypeEnum,
     BasketVolumeTypeEnum,
     PriceLevelEnum,
@@ -177,6 +179,7 @@ declare namespace KungfuApi {
     required?: boolean;
     max?: number;
     min?: number;
+    step?: number;
     precision?: number;
     disabled?: boolean;
     primary?: boolean;
@@ -186,7 +189,7 @@ declare namespace KungfuApi {
     template?: KfConfigItemTemplate[];
     search?: KfConfigItemSearch;
     importMode?: 'reset' | 'add';
-    disableDateRange?: number; //时间范围选择器不可选的日期范围
+    disableDateRange?: number; // 时间范围选择器不可选的日期范围
 
     // ---- some ui releated ----;
     noDivider?: boolean;
@@ -215,7 +218,6 @@ declare namespace KungfuApi {
             entry: string;
             page: string;
           };
-      daemon?: Record<string, string>;
       script?: string;
     };
     cli_config?: {
@@ -227,20 +229,35 @@ declare namespace KungfuApi {
           entry: string;
         }
       >;
-      daemon?: Record<string, string>;
       script?: string;
     };
-    config?: Record<
-      string,
-      {
-        type?:
-          | InstrumentTypes[]
-          | InstrumentTypes
-          | StrategyExtTypes[]
-          | StrategyExtTypes;
+    config?: {
+      td?: {
+        type?: TdMdExtTypes[] | TdMdExtTypes;
         settings: KfConfigItem[];
-      }
-    >;
+      };
+      md?: {
+        type?: TdMdExtTypes[] | TdMdExtTypes;
+        settings: KfConfigItem[];
+      };
+      strategy?: {
+        type?: StrategyExtTypes[] | StrategyExtTypes;
+        settings: KfConfigItem[];
+      };
+      operator?: {
+        type?: StrategyExtTypes[] | StrategyExtTypes;
+        settings: KfConfigItem[];
+      };
+      system?: Record<
+        string,
+        {
+          type?: SystemExtTypes[] | SystemExtTypes;
+          for: ExtRunForEnvTypesEnum[] | ExtRunForEnvTypesEnum;
+          script: string;
+          settings?: KfConfigItem[];
+        }
+      >;
+    };
     language: {
       'zh-CN': Record<string, string>;
       'en-US': Record<string, string>;
@@ -249,22 +266,73 @@ declare namespace KungfuApi {
   }
 
   interface KfExhibitConfig {
-    type: KfExtConfigTypes;
+    type: KfExhibitConfigTypes;
     config: KfExhibitConfigItem[];
   }
 
   export type KfExhibitConfigs = Record<string, KfExhibitConfig>;
 
-  interface KfExtConfig {
+  interface KfExtConfigBase<C extends KfCategoryTypes> {
     name: string;
-    category: string;
+    category: C;
     key: string;
     extPath: string;
-    type: InstrumentTypes[] | StrategyExtTypes[];
+  }
+  export interface KfTdExtConfig extends KfExtConfigBase<'td' | 'tdGroup'> {
+    type: TdMdExtTypes[];
     settings: KfConfigItem[];
   }
 
-  export type KfExtConfigs = Record<string, Record<string, KfExtConfig>>;
+  export interface KfMdExtConfig extends KfExtConfigBase<'md'> {
+    type: TdMdExtTypes[];
+    settings: KfConfigItem[];
+  }
+
+  export interface KfStrategyExtConfig extends KfExtConfigBase<'strategy'> {
+    type: StrategyExtTypes[];
+    settings: KfConfigItem[];
+  }
+
+  export interface KfOperatorExtConfig extends KfExtConfigBase<'operator'> {
+    type: StrategyExtTypes[];
+    settings: KfConfigItem[];
+  }
+
+  export interface KfSystemExtConfig extends KfExtConfigBase<'system'> {
+    type?: SystemExtTypes[];
+    for: ExtRunForEnvTypesEnum[];
+    script: string;
+    settings?: KfConfigItem[];
+  }
+
+  export interface KfCustomExtConfig extends KfExtConfigBase<string> {
+    type: string[];
+    settings: KfConfigItem[];
+  }
+  export interface KfSystemExtConfigs {
+    [name: string]: KfSystemExtConfig;
+  }
+
+  export type KfAddableExtConfig =
+    | KfTdExtConfig
+    | KfMdExtConfig
+    | KfStrategyExtConfig;
+
+  export type KfExtConfig =
+    | KfTdExtConfig
+    | KfMdExtConfig
+    | KfStrategyExtConfig
+    | KfOperatorExtConfig
+    | KfSystemExtConfig
+    | KfCustomExtConfig;
+
+  export type KfExtConfigs = {
+    td: Record<string, KfTdExtConfig>;
+    md: Record<string, KfMdExtConfig>;
+    strategy: Record<string, KfStrategyExtConfig>;
+    operator: Record<string, KfOperatorExtConfig>;
+    system: Record<string, KfSystemExtConfig>;
+  };
 
   export type KfUIExtConfigs = Record<
     string,
@@ -282,7 +350,6 @@ declare namespace KungfuApi {
             page: string;
           }
         | null;
-      daemon: Record<string, string>;
       script: string;
     }
   >;
@@ -293,7 +360,6 @@ declare namespace KungfuApi {
       name: string;
       extPath: string;
       exhibit: KfExhibitConfig;
-      daemon: Record<string, string>;
       components: Record<
         string,
         {
@@ -368,6 +434,7 @@ declare namespace KungfuApi {
       name: string,
       mode: string,
     ): KungfuApi.KfConfig | false;
+    getAllLocation();
   }
 
   export interface HistoryStore {
@@ -534,6 +601,7 @@ declare namespace KungfuApi {
     latency_system: string;
     latency_network: string;
     avg_price: number;
+    price_precision?: number;
   }
 
   export interface OrderInput {
@@ -674,6 +742,7 @@ declare namespace KungfuApi {
     closable_volume: bigint;
     account_id_resolved: string;
     instrument_id_resolved: string;
+    price_precision?: number;
   }
 
   export interface Quote {
@@ -746,6 +815,7 @@ declare namespace KungfuApi {
     trade_time_resolved: string;
     kf_time_resovlved: string;
     latency_trade: string;
+    price_precision?: number;
   }
 
   export interface TradingData {
@@ -954,21 +1024,33 @@ declare namespace KungfuApi {
     dataLength: FunctionOrData<T, number>;
     genTime: FunctionOrData<T, bigint>;
     triggerTime: FunctionOrData<T, bigint>;
+    dataAsString: Frame<'func', string>;
+    dataAsString?: Frame<'data', string>;
     msgType: FunctionOrData<T, FrameMsgTypeEnum>; // to enum
     source: FunctionOrData<T, number>;
     dest: FunctionOrData<T, number>;
-    data: FunctionOrData<T, string>;
-    // destName: FunctionOrData<T, string>;
+    data: FunctionOrData<T, object | string>;
+    currentFrameId: bigint;
+    currentPageId: number;
+    msgDetails?: string;
+    pageId?: FunctionOrData<T, number>;
+    stringMsgType?: string;
+    destName?: string;
+    sourceName?: string;
+    sourceToDest?: string;
+    dataResolved?: unknown[];
   }
 
   export interface FrameResolved extends Frame {
     genTimeResolved: string;
     triggerTimeResolved: string;
     msgTypeResolved: KfTradeValueCommonData;
-    destResolved: string;
-    sourceResolved: string;
-    sourceToDest: string;
-    dataResolved: unknown[];
+    destResolved?: string;
+    sourceResolved?: string;
+    sourceToDest?: string | undefined;
+    dataResolved?: unknown[];
+    currentFrameId: bigint;
+    currentPageId: number;
   }
 
   export interface AssembleReader {
@@ -987,6 +1069,15 @@ declare namespace KungfuApi {
     seekToTime(): void;
     next(): void;
     dataAvailable(): boolean;
+  }
+  export interface Tracer {
+    currentFrame(): Frame<'func'>;
+    currentFrameId(): bigint;
+    currentPageId(): number;
+    dataAvailable(): boolean;
+    next(): void;
+    seekToTime(nanotime: bigint): void;
+    now(): bigint;
   }
 
   export interface Longfist {
@@ -1012,7 +1103,10 @@ declare namespace KungfuApi {
   }
 
   export interface IODevice {
-    getAllLocations(): Record<string, KfLocation>;
+    getAllLocations(): Record<
+      string,
+      KfLocation & { uname: string; uid: number }
+    >;
   }
 
   export interface SessionStore {
@@ -1032,6 +1126,14 @@ declare namespace KungfuApi {
     IODevice(location: KfLocation, kfHome: string): IODevice;
     Longfist(): Longfist;
     Assemble(kfHome: string[]): Assemble;
+    tracer(
+      location: KfLocation,
+      kfHome: string,
+      home: boolean,
+      write: boolean,
+      startTime: bigint,
+      endTime: bigint,
+    ): Tracer;
     watcher(
       kfHome: string,
       hashedId: string,
@@ -1102,7 +1204,9 @@ declare namespace KungfuApi {
     [prop: string]: any;
   }
 
-  export interface KfDaemonLocation extends KfExtraLocation {
+  export interface KfExtServiceLocation extends KfExtraLocation {
+    category: 'system';
+    group: 'service';
     cwd: string;
     script: string;
   }
@@ -1111,7 +1215,7 @@ declare namespace KungfuApi {
     | KfLocation
     | KfExtraLocation
     | KfConfig
-    | KfDaemonLocation;
+    | KfExtServiceLocation;
 
   export type ScheduleTaskMode = 'restart' | 'start' | 'stop';
 

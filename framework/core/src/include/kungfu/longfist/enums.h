@@ -200,8 +200,6 @@ enum class InstrumentType : int8_t {
   Crypto,        // 数字货币
   CryptoFuture,  // 数字货币期货
   CryptoUFuture, // 数字货币期货U本位
-  Warrant,
-  Iopt
 };
 
 NLOHMANN_JSON_SERIALIZE_ENUM(InstrumentType, {
@@ -217,8 +215,6 @@ NLOHMANN_JSON_SERIALIZE_ENUM(InstrumentType, {
                                                  {InstrumentType::Crypto, "Crypto"},
                                                  {InstrumentType::CryptoFuture, "CryptoFuture"},
                                                  {InstrumentType::CryptoUFuture, "CryptoUFuture"},
-                                                 {InstrumentType::Warrant, "Warrant"},
-                                                 {InstrumentType::Iopt, "Iopt"},
                                              })
 
 inline std::ostream &operator<<(std::ostream &os, InstrumentType t) { return os << int8_t(t); }
@@ -430,7 +426,7 @@ NLOHMANN_JSON_SERIALIZE_ENUM(OrderStatus, {
 inline std::ostream &operator<<(std::ostream &os, OrderStatus t) { return os << int8_t(t); }
 
 // 币种枚举
-enum class CurrencyType : int8_t { Unknown = 0, CNY, HKD, USD, JPY, GBP, EUR, CNH, SGD, MYR };
+enum class CurrencyType : int8_t { Unknown = 0, CNY, HKD, USD, JPY, GBP, EUR, CNH, SGD, MYR, CEN };
 
 NLOHMANN_JSON_SERIALIZE_ENUM(CurrencyType, {
                                                {CurrencyType::Unknown, "Unknown"},
@@ -443,6 +439,7 @@ NLOHMANN_JSON_SERIALIZE_ENUM(CurrencyType, {
                                                {CurrencyType::CNH, "CNH"},
                                                {CurrencyType::SGD, "SGD"},
                                                {CurrencyType::MYR, "MYR"},
+                                               {CurrencyType::CEN, "CEN"},
                                            })
 
 inline std::ostream &operator<<(std::ostream &os, CurrencyType t) { return os << int8_t(t); }
@@ -599,6 +596,8 @@ template <typename T, typename U> [[maybe_unused]] inline T sub_data_bitwise(con
 enum class PageStatus : int8_t { Normal, PreOpen };
 
 inline std::ostream &operator<<(std::ostream &os, PageStatus t) { return os << int8_t(t); }
+
+enum class AccountingMethodType : int8_t { Default = 0, OTC = 1 };
 
 } // namespace kungfu::longfist::enums
 #endif // KUNGFU_LONGFIST_ENUM_H

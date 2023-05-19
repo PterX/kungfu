@@ -77,6 +77,7 @@ import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import zhCN from 'ant-design-vue/es/locale/zh_CN';
 import enUS from 'ant-design-vue/es/locale/en_US';
 import { first } from 'rxjs';
+import { getCurrentWebContents } from '@electron/remote';
 
 const app = createApp(App);
 
@@ -124,12 +125,6 @@ app.config.globalProperties.$globalBus = globalBus;
 app.config.globalProperties.$tradingDataSubject = tradingDataSubject;
 
 app.use(VueI18n);
-
-mergeExtLanguages().then(() =>
-  useComponents(app, router).then(() => {
-    app.mount('#app');
-  }),
-);
 
 const globalStore = useGlobalStore();
 const __BYPASS_ARCHIVE__ = false;
@@ -226,27 +221,40 @@ const initStartAll = () => {
   }
 };
 
-if (!booleanProcessEnv(process.env.RELOAD_AFTER_CRASHED)) {
-  initStartAll();
-} else {
-  isAllMainProcessRunning().then((res) => {
-    if (res) {
-      startGetProcessStatus(
-        (res: {
-          processStatus: Pm2ProcessStatusData;
-          processStatusWithDetail: Pm2ProcessStatusDetailData;
-        }) => {
-          const { processStatus, processStatusWithDetail } = res;
-          globalStore.setProcessStatus(processStatus);
-          globalStore.setProcessStatusWithDetail(processStatusWithDetail);
-        },
-      );
+mergeExtLanguages().then(() =>
+  useComponents(app, router).then(() => {
+    app.mount('#app');
+
+    if (!booleanProcessEnv(process.env.RELOAD_AFTER_CRASHED)) {
+      initStartAll();
     } else {
-      KillAll().finally(() => {
-        initStartAll();
+      isAllMainProcessRunning().then((res) => {
+        if (res) {
+          startGetProcessStatus(
+            (res: {
+              processStatus: Pm2ProcessStatusData;
+              processStatusWithDetail: Pm2ProcessStatusDetailData;
+            }) => {
+              const { processStatus, processStatusWithDetail } = res;
+              globalStore.setProcessStatus(processStatus);
+              globalStore.setProcessStatusWithDetail(processStatusWithDetail);
+            },
+          );
+        } else {
+          KillAll().finally(() => {
+            initStartAll();
+          });
+        }
       });
     }
-  });
-}
+  }),
+);
 
 triggerStartStep(1000);
+
+const webContents = getCurrentWebContents();
+webContents.on('devtools-reload-page', () => {
+  console.warn('devtools-reload-page');
+  window.watcher && window.watcher.quit();
+  localStorage.setItem('page-reloaded', '1');
+});

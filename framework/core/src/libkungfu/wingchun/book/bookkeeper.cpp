@@ -16,8 +16,9 @@ using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::util;
 
 namespace kungfu::wingchun::book {
-Bookkeeper::Bookkeeper(apprentice &app, broker::Client &broker_client) : app_(app), broker_client_(broker_client) {
-  book::AccountingMethod::setup_defaults(*this);
+Bookkeeper::Bookkeeper(apprentice &app, broker::Client &broker_client)
+    : app_(app), broker_client_(broker_client), account_method_type_(book::get_accounting_method_type()) {
+  book::AccountingMethod::setup_defaults(*this, account_method_type_);
 }
 
 bool Bookkeeper::has_book(uint32_t location_uid) { return books_.find(location_uid) != books_.end(); }
@@ -71,7 +72,7 @@ void Bookkeeper::on_start(const rx::connectable_observable<event_ptr> &events) {
 }
 
 void Bookkeeper::try_update_position_end(const PositionEnd &position_end) {
-  get_book(position_end.holder_uid)->update(app_.now());
+  get_book(position_end.holder_uid)->update(app_.now(), account_method_type_);
 }
 
 void Bookkeeper::on_order_input(int64_t update_time, uint32_t source, uint32_t dest, const OrderInput &input) {
@@ -106,7 +107,7 @@ void Bookkeeper::restore(const cache::bank &state_bank) {
     }
     auto book = get_book(asset.holder_uid);
     book->asset = asset;
-    book->update(app_.now());
+    book->update(app_.now(), account_method_type_);
   }
   for (auto &pair : state_bank[boost::hana::type_c<AssetMargin>]) {
     auto &state = pair.second;
@@ -116,7 +117,7 @@ void Bookkeeper::restore(const cache::bank &state_bank) {
     }
     auto book = get_book(asset_margin.holder_uid);
     book->asset_margin = asset_margin;
-    book->update(app_.now());
+    book->update(app_.now(), account_method_type_);
   }
 }
 
@@ -179,7 +180,7 @@ void Bookkeeper::update_book(const event_ptr &event, const Quote &quote) {
     auto has_short_position = book->has_short_position_for(quote);
     if (has_long_position or has_short_position) {
       accounting_method->apply_quote(book, quote);
-      book->update(event->gen_time());
+      book->update(event->gen_time(), account_method_type_);
     }
     if (has_long_position) {
       book->get_position_for(Direction::Long, quote).update_time = event->gen_time();
@@ -442,6 +443,6 @@ void Bookkeeper::mirror_positions(int64_t trigger_time, uint32_t strategy_uid) {
       copy_positions(book->short_positions);
     }
   }
-  strategy_book->update(trigger_time);
+  strategy_book->update(trigger_time, account_method_type_);
 }
 } // namespace kungfu::wingchun::book

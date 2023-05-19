@@ -97,7 +97,7 @@ void Ledger::refresh_account_book(int64_t trigger_time, uint32_t account_uid) {
   subscribe_positions(book->long_positions);
   subscribe_positions(book->short_positions);
   broker_client_.try_renew(trigger_time, md_location);
-  book->update(trigger_time);
+  book->update(trigger_time, bookkeeper_.get_accounting_method_type());
 }
 
 OrderStat &Ledger::get_order_stat(uint64_t order_id, const event_ptr &event) {
@@ -164,7 +164,7 @@ void Ledger::inspect_channel(int64_t trigger_time, const Channel &channel) {
     return;
   }
   if (channel.source_id != get_live_home_uid() and channel.dest_id != get_live_home_uid()) {
-    reader_->join(source_location, channel.dest_id, trigger_time);
+    reader_join(channel.source_id, channel.dest_id, trigger_time);
   }
   if (channel.dest_id == get_live_home_uid() and has_writer(channel.source_id) and is_from_account) {
     write_book_reset(trigger_time, channel.source_id);
@@ -197,7 +197,7 @@ void Ledger::rebuild_positions(int64_t trigger_time, uint32_t strategy_uid) {
     rebuild_book(tmp_book->long_positions);
     rebuild_book(tmp_book->short_positions);
   }
-  strategy_book->update(trigger_time);
+  strategy_book->update(trigger_time, bookkeeper_.get_accounting_method_type());
 }
 
 void Ledger::write_book_reset(int64_t trigger_time, uint32_t book_uid) {

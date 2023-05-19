@@ -1,4 +1,4 @@
-import { getWatcherId, kf } from './index';
+import { getRendererProcessId, kf } from './index';
 import { KF_RUNTIME_DIR } from '../config/pathConfig';
 import { getKfGlobalSettingsValue } from '@kungfu-trader/kungfu-js-api/config/globalSettings';
 import {
@@ -9,7 +9,7 @@ import {
 
 export const watcher = ((): KungfuApi.Watcher | null => {
   if (process.env.APP_TYPE !== 'renderer') {
-    if (process.env.APP_TYPE !== 'daemon') {
+    if (process.env.APP_TYPE !== 'service') {
       if (process.env.APP_TYPE !== 'cli') {
         return null;
       }
@@ -58,7 +58,7 @@ export const watcher = ((): KungfuApi.Watcher | null => {
 
   return kf.watcher(
     KF_RUNTIME_DIR,
-    getWatcherId(),
+    getRendererProcessId(),
     !!bypassRestore,
     !!bypassAccounting,
     !!bypassTradingData,

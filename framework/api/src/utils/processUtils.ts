@@ -30,6 +30,7 @@ import { getKfGlobalSettingsValue } from '../config/globalSettings';
 import { Observable } from 'rxjs';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { Pm2StartOptions } from '../typings/global';
+import { KfHookKeeper } from '../hooks';
 const { t } = VueI18n.global;
 
 process.env.PM2_HOME = path.resolve(os.homedir(), '.pm2');
@@ -401,6 +402,12 @@ export const startProcess = async (
   options: Pm2StartOptions,
 ): Promise<Proc | void> => {
   const extDirs = await flattenExtensionModuleDirs(EXTENSION_DIRS);
+  options = await (globalThis.HookKeeper as KfHookKeeper)
+    .getHooks()
+    .resolveStartOptions.trigger(
+      { category: '*', group: '*', name: '*' } as KungfuApi.DerivedKfLocation,
+      options,
+    );
   const optionsResolved: Pm2StartOptions = {
     name: options.name,
     args: options.args, //有问题吗？
@@ -444,7 +451,6 @@ export const startProcess = async (
       BY_PASS_RESTORE: '',
     },
   };
-
   return pm2Start(optionsResolved).catch((err) => {
     kfLogger.error(err);
   });
@@ -533,15 +539,16 @@ export function startProcessGetStatusUntilStop(
   options: Pm2StartOptions,
   cb?: (processStatus: Pm2ProcessStatusTypes) => void,
 ) {
+  let timer;
   return new Promise((resolve) => {
     startProcess({ ...options }).then(() => {
-      const timer = startGetProcessStatusByName(
+      timer = startGetProcessStatusByName(
         options.name,
         (res: ProcessDescription[]) => {
           const status = res[0]?.pm2_env?.status as Pm2ProcessStatusTypes;
           cb && cb(status);
           if (status !== 'online') {
-            timer.clearLoop();
+            timer && timer.clearLoop();
             resolve(status);
           }
         },
@@ -1028,20 +1035,54 @@ export const startDzxy = () => {
   });
 };
 
-export const startExtDaemon = (name: string, cwd: string, script: string) => {
-  return startProcess({
-    name,
-    args: '',
-    cwd,
-    script,
-    interpreter: path.join(KFC_DIR, kfcName),
-    force: true,
-    watch: process.env.NODE_ENV === 'production' ? false : true,
-    env: {
-      KFC_AS_VARIANT: 'node',
-    },
-    kill_timeout: 500,
-  }).catch((err) => {
+export const startExtService = async (
+  location: KungfuApi.KfExtServiceLocation,
+) => {
+  const { name, cwd, script } = location;
+  const processId = getProcessIdByKfLocation(location);
+
+  const getExtServicePm2Options = async (): Promise<Pm2StartOptions> => {
+    if (script.endsWith('.js')) {
+      return {
+        name: processId,
+        args: '',
+        cwd,
+        script,
+        interpreter: path.join(KFC_DIR, kfcName),
+        force: true,
+        watch: process.env.NODE_ENV === 'production' ? false : true,
+        env: {
+          KFC_AS_VARIANT: 'node',
+        },
+        kill_timeout: 500,
+      };
+    } else {
+      const extDirs = await flattenExtensionModuleDirs(EXTENSION_DIRS);
+      const args = buildArgs(
+        `-X "${
+          cwd ||
+          extDirs
+            .map((dir) => dealSpaceInPath(path.dirname(dir)))
+            .join(path.delimiter)
+        }" run -c system -g service -n "${name}"`,
+      );
+      return {
+        name: processId,
+        cwd,
+        script: `${dealSpaceInPath(path.join(KFC_DIR, kfcName))}`,
+        args,
+        force: true,
+      };
+    }
+  };
+
+  let options = await getExtServicePm2Options();
+  options = await globalThis.HookKeeper.getHooks().resolveStartOptions.trigger(
+    location,
+    options,
+  );
+
+  return startProcess(options).catch((err) => {
     kfLogger.error(err);
   });
 };

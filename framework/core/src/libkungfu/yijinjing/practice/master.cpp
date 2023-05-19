@@ -8,6 +8,7 @@
 #include <kungfu/longfist/longfist.h>
 #include <kungfu/yijinjing/practice/master.h>
 #include <kungfu/yijinjing/time.h>
+#include <kungfu/yijinjing/util/os.h>
 
 using namespace kungfu::rx;
 using namespace kungfu::longfist;
@@ -38,32 +39,30 @@ master::master(location_ptr home, bool low_latency)
 
 void master::on_exit() {
   notify_deregister_on_exit();
-  mark_session_end_on_exit();
   notify_master_deregister_on_exit();
+  mark_session_end_on_exit();
 }
 
 void master::notify_deregister_on_exit() {
-  auto now = time::now_in_nano();
-  auto &live_sessions = session_builder_.close_all_sessions(now);
+  auto &live_sessions = session_builder_.get_all_sessions();
   for (auto &iter : live_sessions) {
     auto &session = iter.second;
     auto location_from_session = location::make_shared(session, get_locator());
     if (session.location_uid != master_home_location_->uid) {
-      get_writer(location::PUBLIC)->write(now, location_from_session->to<Deregister>());
+      get_writer(location::PUBLIC)->write(time::now_in_nano(), location_from_session->to<Deregister>());
     }
   }
 }
 
 // after finished sending deregisters of other processes, then tell everyone master down
 void master::notify_master_deregister_on_exit() {
-  auto now = time::now_in_nano();
-  auto &live_sessions = session_builder_.close_all_sessions(now);
+  auto &live_sessions = session_builder_.get_all_sessions();
   for (auto &iter : live_sessions) {
     auto &session = iter.second;
 
     if (has_writer(session.location_uid)) {
       auto writer = get_writer(session.location_uid);
-      writer->write(now, master_home_location_->to<Deregister>());
+      writer->write(time::now_in_nano(), master_home_location_->to<Deregister>());
     } else {
       SPDLOG_WARN("no writer {} {}", session.location_uid, get_location_uname(session.location_uid));
     }
@@ -71,18 +70,20 @@ void master::notify_master_deregister_on_exit() {
 }
 
 void master::mark_session_end_on_exit() {
-  auto now = time::now_in_nano();
-  get_writer(location::PUBLIC)->mark(now, SessionEnd::tag);
-  auto &live_sessions = session_builder_.close_all_sessions(now);
+  get_writer(location::PUBLIC)->mark(time::now_in_nano(), SessionEnd::tag);
+  auto &live_sessions = session_builder_.get_all_sessions();
   for (auto &iter : live_sessions) {
     auto &session = iter.second;
     if (has_writer(session.location_uid)) {
       auto writer = get_writer(session.location_uid);
-      writer->mark(now, SessionEnd::tag);
+      writer->mark(time::now_in_nano(), SessionEnd::tag);
     } else {
       SPDLOG_WARN("no writer {} {}", session.location_uid, get_location_uname(session.location_uid));
     }
   }
+
+  // have to use new now, ensuring later than all messages
+  session_builder_.close_all_sessions(time::now_in_nano());
 }
 
 void master::on_notify() { get_io_device()->get_publisher()->notify(); }
@@ -148,11 +149,14 @@ void master::register_app(const event_ptr &event) {
   on_register(event, register_data);
 }
 
-[[maybe_unused]] void master::deregister_app(int64_t trigger_time, uint32_t app_location_uid) {
+void master::deregister_app(int64_t trigger_time, uint32_t app_location_uid) {
+  if (not is_location_live(app_location_uid)) {
+    SPDLOG_ERROR("location {} has already been deregistered", get_location_uname(app_location_uid));
+    return;
+  }
+
   auto location = get_location(app_location_uid);
   SPDLOG_INFO("app {} gone", location->uname);
-
-  session_builder_.close_session(location, trigger_time);
   get_writer(app_location_uid)->mark(trigger_time, SessionEnd::tag);
   deregister_channel(app_location_uid);
   deregister_band(app_location_uid);
@@ -162,6 +166,14 @@ void master::register_app(const event_ptr &event) {
   writers_.erase(app_location_uid);
   timer_tasks_.erase(app_location_uid);
   get_writer(location::PUBLIC)->write(trigger_time, location->to<Deregister>());
+  session_builder_.close_session(location, time::now_in_nano());
+}
+
+void master::on_request_deregister(const event_ptr &event) {
+  auto dest = event->dest();
+  auto source = event->source();
+  SPDLOG_INFO("deregister_app from {} to {}", get_location_uname(source), get_location_uname(dest));
+  deregister_app(event->trigger_time(), source);
 }
 
 [[maybe_unused]] void master::publish_trading_day() { write_trading_day(0, get_writer(location::PUBLIC)); }
@@ -173,6 +185,7 @@ void master::react() {
   events_ | is(RequestReadFrom::tag) | $$(check_cached_ready_to_read(event));
   events_ | is(RequestReadFromPublic::tag) | $$(on_request_read_from_public(event));
   events_ | is(RequestReadFromSync::tag) | $$(on_request_read_from_sync(event));
+  events_ | is(RequestReadFromOthers::tag) | $$(on_request_read_from_others(event));
   // for watcher request stop master in widnows
   events_ | is(RequestStop::tag) | filter([&](const event_ptr &event) {
     auto dest = event->dest();
@@ -192,6 +205,9 @@ void master::react() {
   events_ | is(RequestCachedDone::tag) | $$(on_request_cached_done(event));
   events_ | is(Ping::tag) | $$(pong(event));
   events_ | instanceof <journal::frame>() | $$(feed(event));
+
+  // have to be at bottom of react, for avoid event still required after reader disjoin
+  events_ | is(RequestDeregister::tag) | $$(on_request_deregister(event));
 }
 
 void master::on_active() {
@@ -335,6 +351,19 @@ void master::on_request_read_from_sync(const event_ptr &event) {
   require_read_from_sync(event->gen_time(), event->source(), request.source_id, request.from_time);
 }
 
+void master::on_request_read_from_others(const event_ptr &event) {
+  const RequestReadFromOthers &request = event->data<RequestReadFromOthers>();
+  auto source = event->source();
+  if (has_writer(source)) {
+    auto writer = get_writer(source);
+    RequestReadFromOthers response = {};
+    response.source_id = request.source_id;
+    response.dest_id = request.dest_id;
+    response.from_time = request.from_time;
+    writer->write(now(), response);
+  }
+}
+
 void master::on_request_cached_done(const event_ptr &event) {
   auto request_cached_done_data = event->data<RequestCachedDone>();
   auto app_uid = request_cached_done_data.dest_id;
@@ -366,9 +395,8 @@ void master::on_time_request(const event_ptr &event) {
   const TimeRequest &request = event->data<TimeRequest>();
   timer_tasks_.try_emplace(event->source());
   auto &app_tasks = timer_tasks_.at(event->source());
-  app_tasks.try_emplace(request.id);
-  auto &task = app_tasks.at(request.id);
-  task.checkpoint = time::now_in_nano() + request.duration;
+  auto &task = app_tasks.try_emplace(request.id).first->second;
+  task.checkpoint = request.base_time + request.duration;
   task.duration = request.duration;
   task.repeat_count = 0;
   task.repeat_limit = request.repeat;

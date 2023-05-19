@@ -17,17 +17,19 @@ declare global {
     basketStore: KungfuApi.BasketStore;
     basketInstrumentStore: KungfuApi.BasketInstrumentStore;
     configStore: KungfuApi.ConfigStore;
+    sessionStore: KungfuApi.SessionStore;
     riskSettingStore: KungfuApi.RiskSettingStore;
     commissionStore: KungfuApi.CommissionStore;
     fileId: number;
     testCase: Record<string, any>;
     pm2: any;
+    ukeyCacheMap?: Map<string, string>;
   }
 
   namespace NodeJS {
     interface ProcessEnv {
       LANG_ENV: 'zh-CN' | 'en-US' | 'zh-HK' | undefined;
-      APP_TYPE: 'cli' | 'renderer' | 'main' | 'daemon';
+      APP_TYPE: 'cli' | 'renderer' | 'main' | 'service';
       UI_EXT_TYPE: 'component' | 'script';
       APP_ID: string;
       EXTENSION_DIRS: string;
@@ -69,6 +71,7 @@ declare module 'tail' {
 }
 
 declare module globalThis {
+  const __runtimeDir: string;
   const __publicResources: string;
   const __kfResourcesPath: string;
   const pm2: any;
@@ -101,17 +104,24 @@ export interface RootConfigJSON {
   kungfuCraft?: {
     appTitle?: string;
     productName?: string;
+    env?: Record<string, string>;
     autoUpdate?: {
       update?: Writeable<AllPublishOptions>;
     };
   };
-  boardFilter?: Record<string, boolean>;
   appConfig?: {
     showHelp?: boolean;
+
+    boardFilter?: Record<string, boolean>;
 
     kfConfigInitValue?: Record<string, KungfuApi.KfConfigValue>;
 
     T0T1?: T0T1Config;
+
+    defaultExtension?: {
+      td?: string;
+      md?: string;
+    };
 
     makeOrder?: {
       priceTypeFilter?: Record<string, boolean>;

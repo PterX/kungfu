@@ -19,30 +19,76 @@ public:
   void pre_start(Context_ptr &context) override {
     SPDLOG_INFO("preparing strategy");
     SPDLOG_INFO("arguments: {}", context->arguments());
-    context->add_account("sim", "123456");
+    context->add_account("sim", "fill");
     context->subscribe("sim", {"600000"}, {"SSE"});
+    SPDLOG_INFO("is_bypass_accounting: {}", context->is_bypass_accounting());
+    SPDLOG_INFO("is_bypass_accounting: {}", context->is_bypass_accounting());
   }
 
   void post_start(Context_ptr &context) override {
     SPDLOG_INFO("strategy started");
     auto &runtime = dynamic_cast<RuntimeContext &>(*context);
     auto &bookkeeper = runtime.get_bookkeeper();
-    auto &books = bookkeeper.get_books();
-    for (const auto &pair : books) {
-      auto &book = pair.second;
+    const auto &books = bookkeeper.get_books();
+    SPDLOG_INFO("books.size(): {}", books.size());
+    for (const auto &book_pair : books) {
+      const auto &book = book_pair.second;
       SPDLOG_INFO("book asset: {}", book->asset.to_string());
+      SPDLOG_INFO("long_positions.size(): {}", book->long_positions.size());
+      for (const auto &position_pair : book->long_positions) {
+        auto &position = position_pair.second;
+        SPDLOG_INFO("Position: {}", position.to_string());
+      }
+    }
+
+    auto l_ptr = location::make_shared(mode::LIVE, category::MD, "sim", "sim", std::make_shared<locator>());
+    kungfu::yijinjing::journal::assemble asb(l_ptr, location::PUBLIC, AssembleMode::All);
+    auto headers = asb.read_headers(Location{});
+    for (const auto &head : headers) {
+      SPDLOG_INFO("head: {}", head.to_string());
+    }
+    kungfu::yijinjing::journal::assemble asb2(l_ptr, location::PUBLIC, AssembleMode::All);
+    auto locations = asb2.read_bytes<Location>();
+    SPDLOG_INFO("locations.length: {}", locations.size());
+    for (const auto &loc : locations) {
+      SPDLOG_INFO("locaton byte: {}", std::string(loc.second.begin(), loc.second.end()));
+    }
+    kungfu::yijinjing::journal::assemble asb3(l_ptr, location::PUBLIC, AssembleMode::All);
+    auto l3 = asb3.read_all<Location>();
+    SPDLOG_INFO("locations.length: {}", l3.size());
+    for (const auto &loc : l3) {
+      SPDLOG_INFO("l3 : {}", loc.to_string());
     }
   }
 
-  void on_quote(Context_ptr &context, const Quote &quote, const location_ptr &location) override {
-    SPDLOG_INFO("on quote: {}", quote.to_string());
-    context->insert_order(quote.instrument_id, quote.exchange_id, "sim", "123456", quote.last_price, 200,
-                          PriceType::Limit, Side::Buy, Offset::Open);
+  void on_quote(Context_ptr &context, const Quote &quote, const location_ptr &location, uint32_t dest) override {
+    SPDLOG_INFO("on quote: {} i {} location->uid {}", quote.last_price, i, location->location_uid);
+  }
+
+  void on_tree(Context_ptr &context, const Tree &tree, const location_ptr &location, uint32_t dest) override {
+    SPDLOG_INFO("on tree: {}", tree.to_string());
+  }
+
+  void on_synthetic_data(Context_ptr &context, const SyntheticData &synthetic_data, const location_ptr &location,
+                         uint32_t dest) override {
+    SPDLOG_INFO("on_synthetic_data: {} ", synthetic_data.to_string());
+  }
+
+  void on_order(Context_ptr &context, const Order &order, const location_ptr &location, uint32_t dest) override {
+    static int count = 0;
+    if (count++ % 1000 == 0) {
+      SPDLOG_INFO("Order: {}", order.to_string());
+    }
   }
 
   void on_broker_state_change(Context_ptr &context, const BrokerStateUpdate &broker_state_update,
                               const location_ptr &location) override {
     SPDLOG_INFO("on broker state changed: {}", broker_state_update.to_string());
+  };
+
+  void on_operator_state_change(Context_ptr &context, const OperatorStateUpdate &operator_state_update,
+                                const location_ptr &location) override {
+    SPDLOG_INFO("on operator state changed: {}", operator_state_update.to_string());
   };
 };
 

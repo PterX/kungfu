@@ -28,6 +28,12 @@ public:
   virtual int64_t now() const = 0;
 
   /**
+   * Get location_uid of current process
+   * @return location_uid
+   */
+  virtual uint32_t get_home_uid() const = 0;
+
+  /**
    * Add one shot timer callback.
    * @param nanotime when to call in nano seconds
    * @param callback callback function
@@ -213,6 +219,17 @@ public:
   void hold_positions();
 
   /**
+   * Call to skip bookkeeper calculation
+   */
+  void bypass_accounting();
+
+  /**
+   * Tells whether skip bookkeeper
+   * @return true to skip bookkeeper, false to using bookkeeper
+   */
+  bool is_bypass_accounting() const;
+
+  /**
    * request deregister.
    * @return void
    */
@@ -239,9 +256,17 @@ public:
    */
   virtual yijinjing::journal::writer_ptr get_writer(const std::string &source, const std::string &account) = 0;
 
+  /**
+   *
+   * @param location_uid
+   * @return location_ptr of location_uid
+   */
+  virtual yijinjing::data::location_ptr get_location(uint32_t location_uid) = 0;
+
 private:
   bool book_held_ = false;
   bool positions_mirrored_ = true;
+  bool bypass_accounting_ = false;
 };
 } // namespace kungfu::wingchun::strategy
 

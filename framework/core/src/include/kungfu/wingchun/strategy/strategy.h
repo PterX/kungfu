@@ -35,71 +35,72 @@ public:
   // @param quote             行情数据
   // @param location          数据来源
   virtual void on_quote(Context_ptr &context, const longfist::types::Quote &quote,
-                        const kungfu::yijinjing::data::location_ptr &location){};
+                        const kungfu::yijinjing::data::location_ptr &location, uint32_t dest){};
 
   // 行情数据更新回调
   // @param tree              行情数据
   // @param location          数据来源
   virtual void on_tree(Context_ptr &context, const longfist::types::Tree &tree,
-                       const kungfu::yijinjing::data::location_ptr &location){};
+                       const kungfu::yijinjing::data::location_ptr &location, uint32_t dest){};
 
   // 逐笔委托更新回调
   // @param entrust           逐笔委托数据
   // @param location          数据来源
   virtual void on_entrust(Context_ptr &context, const longfist::types::Entrust &entrust,
-                          const kungfu::yijinjing::data::location_ptr &location){};
+                          const kungfu::yijinjing::data::location_ptr &location, uint32_t dest){};
 
   // 逐笔成交更新回调
   // @param transaction       逐笔成交数据
   // @param location          数据来源
   virtual void on_transaction(Context_ptr &context, const longfist::types::Transaction &transaction,
-                              const kungfu::yijinjing::data::location_ptr &location){};
+                              const kungfu::yijinjing::data::location_ptr &location, uint32_t dest){};
 
   // Operator publish 的 synthetic_data 回调
   //@param synthetic_data   Operator publish 的 synthetic_data
   virtual void on_synthetic_data(Context_ptr &context, const longfist::types::SyntheticData &synthetic_data,
-                                 const kungfu::yijinjing::data::location_ptr &location){};
+                                 const kungfu::yijinjing::data::location_ptr &location, uint32_t dest){};
 
   // 订单信息更新回调
   // @param order             订单信息数据
   // @param location          数据来源
   virtual void on_order(Context_ptr &context, const longfist::types::Order &order,
-                        const kungfu::yijinjing::data::location_ptr &location){};
+                        const kungfu::yijinjing::data::location_ptr &location, uint32_t dest){};
 
   // 订单操作错误回调
   // @param order             订单信息数据
   // @param location          数据来源
   virtual void on_order_action_error(Context_ptr &context, const longfist::types::OrderActionError &error,
-                                     const kungfu::yijinjing::data::location_ptr &location){};
+                                     const kungfu::yijinjing::data::location_ptr &location, uint32_t dest){};
 
   // 订单成交回报回调
   // @param trade             订单成交数据
   // @param location          数据来源
   virtual void on_trade(Context_ptr &context, const longfist::types::Trade &trade,
-                        const kungfu::yijinjing::data::location_ptr &location){};
+                        const kungfu::yijinjing::data::location_ptr &location, uint32_t dest){};
 
   // 历史订单回报回调
   // @param history_order     历史订单数据
   // @param location          数据来源
   virtual void on_history_order(Context_ptr &context, const longfist::types::HistoryOrder &history_order,
-                                const kungfu::yijinjing::data::location_ptr &location){};
+                                const kungfu::yijinjing::data::location_ptr &location, uint32_t dest){};
 
   // 历史订单成交回报回调
   // @param history_order     历史订单成交数据
   // @param location          数据来源
   virtual void on_history_trade(Context_ptr &context, const longfist::types::HistoryTrade &history_trade,
-                                const kungfu::yijinjing::data::location_ptr &location){};
+                                const kungfu::yijinjing::data::location_ptr &location, uint32_t dest){};
+
   // 历史订单查询报错回调
   // @param error              报错信息
   // @param location          数据来源
   virtual void on_req_history_order_error(Context_ptr &context, const longfist::types::RequestHistoryOrderError &error,
-                                          const kungfu::yijinjing::data::location_ptr &location){};
+                                          const kungfu::yijinjing::data::location_ptr &location, uint32_t dest){};
 
   // 历史成交查询报错回调
   // @param error              报错信息
   // @param location          数据来源
   virtual void on_req_history_trade_error(Context_ptr &context, const longfist::types::RequestHistoryTradeError &error,
-                                          const kungfu::yijinjing::data::location_ptr &location){};
+                                          const kungfu::yijinjing::data::location_ptr &location, uint32_t dest){};
 
   // 同步柜台资金持仓信息回调
   // @param old_book          更新前本地维护的旧数据
@@ -148,7 +149,7 @@ public:
    * @param location 数据来源
    */
   virtual void on_custom_data(Context_ptr &context, uint32_t msg_type, const std::vector<uint8_t> &data,
-                              uint32_t length, const kungfu::yijinjing::data::location_ptr &location){};
+                              uint32_t length, const kungfu::yijinjing::data::location_ptr &location, uint32_t dest){};
 };
 
 DECLARE_PTR(Strategy)

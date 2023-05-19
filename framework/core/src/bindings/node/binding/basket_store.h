@@ -32,8 +32,10 @@ private:
   yijinjing::cache::profile profile_;
 
   static Napi::FunctionReference constructor;
-
-  friend class Watcher;
+  static void cleanup() {
+    SPDLOG_INFO("BasketStore reset");
+    BasketStore::constructor.Reset();
+  }
 };
 } // namespace kungfu::node
 

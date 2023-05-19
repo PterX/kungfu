@@ -40,7 +40,6 @@ void TraderVendor::on_start() {
   events_ | is(BlockMessage::tag) | $$(service_->insert_block_message(event));
   events_ | is(OrderAction::tag) | $$(service_->cancel_order(event));
   events_ | is(AssetRequest::tag) | $$(service_->req_account());
-  events_ | is(OrderTradeRequest::tag) | $$(service_->req_order_trade());
   events_ | is(Deregister::tag) | $$(service_->on_strategy_exit(event));
   events_ | is(PositionRequest::tag) | $$(service_->req_position());
   events_ | is(RequestHistoryOrder::tag) | $$(service_->req_history_order(event));
@@ -63,7 +62,7 @@ BrokerService_ptr TraderVendor::get_service() { return service_; }
 
 void TraderVendor::clean_orders() {
   std::set<uint32_t> strategy_uids = {};
-  auto master_cmd_writer = get_writer(get_master_commands_uid());
+  auto master_cmd_writer = get_writer(get_master_command_uid());
   for (auto &pair : state_bank_[boost::hana::type_c<Order>]) {
     auto &order_state = pair.second;
     auto &order = const_cast<Order &>(order_state.data);
@@ -280,8 +279,9 @@ void Trader::deal_write_frame() {
 void Trader::deal_read_frame() {
   // write a Lost Order to journal when read an OrderInput whose order_id not in orders_
   assemble asb_read(get_home(), get_home_uid(), AssembleMode::Read);
-  asb_read.disjoin(get_vendor().get_ledger_home_location()->location_uid);
-  asb_read.seek_to_time(time::today_start()); // recover from today
+  asb_read.disjoin(get_vendor().get_ledger_home_location()->location_uid); // ledger
+  asb_read.disjoin(get_vendor().get_master_home_location()->location_uid); // master
+  asb_read.seek_to_time(time::today_start());                              // recover from today
   SPDLOG_DEBUG("before assemble read");
   int64_t count = 0;
   while (asb_read.data_available()) {

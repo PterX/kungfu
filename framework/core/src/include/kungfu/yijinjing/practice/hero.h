@@ -123,9 +123,9 @@ public:
 
   yijinjing::data::location_ptr get_ledger_home_location() const;
 
-  [[maybe_unused]] yijinjing::data::location_ptr get_master_home_location() const;
+  yijinjing::data::location_ptr get_master_home_location() const;
 
-  [[maybe_unused]] yijinjing::data::location_ptr get_master_cmd_location() const;
+  yijinjing::data::location_ptr get_master_cmd_location() const;
 
   const rx::connectable_observable<event_ptr> &get_events() const;
 
@@ -223,6 +223,8 @@ private:
   void produce(const rx::subscriber<event_ptr> &sb);
 
   bool drain(const rx::subscriber<event_ptr> &sb);
+
+  void deal_notice(bool bypass, bool notify, const rx::subscriber<event_ptr> &sb);
 
   template <typename T>
   std::enable_if_t<T::reflect> do_require_read_from(yijinjing::journal::writer_ptr &&writer, int64_t trigger_time,

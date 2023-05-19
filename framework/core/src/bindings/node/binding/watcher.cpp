@@ -8,7 +8,7 @@
 #include "commission_store.h"
 #include "config_store.h"
 #include "history.h"
-#include "kungfu/yijinjing/cache/ringqueue.h"
+#include <kungfu/yijinjing/util/os.h>
 #include <sstream>
 
 using namespace kungfu::rx;
@@ -159,11 +159,11 @@ Watcher::Watcher(const Napi::CallbackInfo &info)
 Watcher::~Watcher() {
   SPDLOG_INFO("~Watcher");
   uv_work_.data = nullptr;
-  strategy_states_ref_.Unref();
-  config_ref_.Unref();
-  app_states_ref_.Unref();
-  ledger_ref_.Unref();
-  state_ref_.Unref();
+  strategy_states_ref_.Reset();
+  config_ref_.Reset();
+  app_states_ref_.Reset();
+  ledger_ref_.Reset();
+  state_ref_.Reset();
   SPDLOG_INFO("~Watcher Done");
 }
 
@@ -247,10 +247,10 @@ Napi::Value Watcher::RequestStop(const Napi::CallbackInfo &info) {
 
   // stop master
   if (app_location->category == category::SYSTEM && app_location->group == "master") {
-    if (not has_writer(master_cmd_location_->uid)) {
+    if (not has_writer(get_master_command_uid())) {
       return Napi::Boolean::New(info.Env(), false);
     }
-    get_writer(master_cmd_location_->uid)->mark(now(), RequestStop::tag);
+    get_writer(get_master_command_uid())->mark(now(), RequestStop::tag);
     return Napi::Boolean::New(info.Env(), true);
   }
 
@@ -348,29 +348,30 @@ Napi::Value Watcher::RequestMarketData(const Napi::CallbackInfo &info) {
 
 void Watcher::Init(Napi::Env env, Napi::Object exports) {
   Napi::HandleScope scope(env);
+  env.AddCleanupHook(cleanup);
 
   Napi::Function func =
       DefineClass(env, "Watcher",
                   {
-                      InstanceMethod("now", &Watcher::Now),                             //
-                      InstanceMethod("isUsable", &Watcher::IsUsable),                   //
-                      InstanceMethod("isLive", &Watcher::IsLive),                       //
-                      InstanceMethod("isStarted", &Watcher::IsStarted),                 //
-                      InstanceMethod("requestStop", &Watcher::RequestStop),             //
-                      InstanceMethod("hasLocation", &Watcher::HasLocation),             //
-                      InstanceMethod("getLocation", &Watcher::GetLocation),             //
-                      InstanceMethod("getLocationUID", &Watcher::GetLocationUID),       //
-                      InstanceMethod("getInstrumentType", &Watcher::GetInstrumentType), //
-                      InstanceMethod("publishState", &Watcher::PublishState),           //
-                      InstanceMethod("isReadyToInteract", &Watcher::IsReadyToInteract), //
-                      InstanceMethod("issueBlockMessage", &Watcher::IssueBlockMessage), //
-                      InstanceMethod("issueOrder", &Watcher::IssueOrder),               //
-                      InstanceMethod("issueBasketOrder", &Watcher::IssueBasketOrder),   //
-                      InstanceMethod("cancelOrder", &Watcher::CancelOrder),             //
-                      InstanceMethod("requestMarketData", &Watcher::RequestMarketData), //
-                      InstanceMethod("start", &Watcher::Start),                         //
-                      InstanceMethod("sync", &Watcher::Sync),                           //
-                      InstanceMethod("quit", &Watcher::Quit),
+                      InstanceMethod("now", &Watcher::Now),                                             //
+                      InstanceMethod("isUsable", &Watcher::IsUsable),                                   //
+                      InstanceMethod("isLive", &Watcher::IsLive),                                       //
+                      InstanceMethod("isStarted", &Watcher::IsStarted),                                 //
+                      InstanceMethod("requestStop", &Watcher::RequestStop),                             //
+                      InstanceMethod("hasLocation", &Watcher::HasLocation),                             //
+                      InstanceMethod("getLocation", &Watcher::GetLocation),                             //
+                      InstanceMethod("getLocationUID", &Watcher::GetLocationUID),                       //
+                      InstanceMethod("getInstrumentType", &Watcher::GetInstrumentType),                 //
+                      InstanceMethod("publishState", &Watcher::PublishState),                           //
+                      InstanceMethod("isReadyToInteract", &Watcher::IsReadyToInteract),                 //
+                      InstanceMethod("issueBlockMessage", &Watcher::IssueBlockMessage),                 //
+                      InstanceMethod("issueOrder", &Watcher::IssueOrder),                               //
+                      InstanceMethod("issueBasketOrder", &Watcher::IssueBasketOrder),                   //
+                      InstanceMethod("cancelOrder", &Watcher::CancelOrder),                             //
+                      InstanceMethod("requestMarketData", &Watcher::RequestMarketData),                 //
+                      InstanceMethod("start", &Watcher::Start),                                         //
+                      InstanceMethod("sync", &Watcher::Sync),                                           //
+                      InstanceMethod("quit", &Watcher::Quit),                                           //
                       InstanceAccessor("state", &Watcher::GetState, &Watcher::NoSet),                   //
                       InstanceAccessor("ledger", &Watcher::GetLedger, &Watcher::NoSet),                 //
                       InstanceAccessor("appStates", &Watcher::GetAppStates, &Watcher::NoSet),           //
@@ -587,7 +588,7 @@ void Watcher::InspectChannel(int64_t trigger_time, const Channel &channel) {
   }
 
   if (channel.source_id != get_live_home_uid() and channel.dest_id != get_live_home_uid()) {
-    reader_->join(get_location(channel.source_id), channel.dest_id, trigger_time);
+    reader_join(channel.source_id, channel.dest_id, trigger_time);
   }
 }
 
@@ -657,11 +658,19 @@ void Watcher::StartWorker() {
   };
   auto after = [](uv_work_t *req, int status) {
     SPDLOG_INFO("Watcher uv loop completed");
-    // have to wait for master down totally
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-    auto watcher = static_cast<Watcher *>(req->data);
     // have to be at this position, for deleting old journal securitily
     auto &info = *static_cast<Napi::CallbackInfo *>(req->data);
+    Napi::HandleScope scope(info.Env());
+
+    auto watcher = static_cast<Watcher *>(req->data);
+    if (watcher->quit_) {
+      SPDLOG_INFO("watcher quit");
+      return;
+    } else {
+      // have to wait for master down totally
+      std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    }
+
     watcher->AfterMasterDown(info);
     watcher->set_begin_time(time::now_in_nano());
     SPDLOG_INFO("Restart watcher uv loop");
@@ -669,17 +678,33 @@ void Watcher::StartWorker() {
     // so, once master deregistered, the uv logic in watcher need to be restarte.
     watcher->StartWorker();
   };
+
   uv_queue_work(uv_default_loop(), &uv_work_, worker, after);
 }
 
 void Watcher::CancelWorker() { uv_work_live_ = false; }
 
-void Watcher::Quit(const Napi::CallbackInfo &info) { uv_work_live_ = false; }
+void Watcher::Quit(const Napi::CallbackInfo &info) {
+  RequestDeregister();
+  quit_ = true;
+  uv_work_live_ = false;
+}
+
+void Watcher::RequestDeregister() {
+  if (not has_writer(get_master_command_uid())) {
+    SPDLOG_WARN("no master cmd writer");
+    return;
+  }
+
+  auto writer = get_writer(get_master_command_uid());
+  writer->mark(now(), RequestDeregister::tag);
+  SPDLOG_INFO("RequestDeregister");
+}
 
 void Watcher::AfterMasterDown(const Napi::CallbackInfo &info) {
   SPDLOG_INFO("after master down");
   Napi::HandleScope scope(info.Env());
-  reader_->disjoin(master_cmd_location_->uid);
+  reader_->disjoin(get_master_command_uid());
   writers_.clear();
   serialize::InitTradingDataInStateMap(ledger_ref_, "ledger");
 }

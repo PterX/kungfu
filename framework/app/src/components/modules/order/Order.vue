@@ -7,6 +7,7 @@ import {
   delayMilliSeconds,
   getProcessIdByKfLocation,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { useActiveInstruments } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import {
   useDownloadHistoryTradingData,
   useTableSearchKeyword,
@@ -51,6 +52,7 @@ import {
 import {
   showTradingDataDetail,
   useCurrentGlobalKfLocation,
+  useDealDataWithCaches,
   useProcessStatusDetailData,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import StatisticModal from './OrderStatisticModal.vue';
@@ -60,9 +62,15 @@ import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 const { t } = VueI18n.global;
 const { success, error } = messagePrompt();
 const app = getCurrentInstance();
+const { getPriceTickAndPrecision } = useActiveInstruments();
+
 const { handleBodySizeChange } = useDashboardBodySize();
 
 const { processStatusData } = useProcessStatusDetailData();
+const { dealerResolved, clearCaches } = useDealDataWithCaches<
+  KungfuApi.Order,
+  KungfuApi.OrderResolved
+>(['uid_key', 'update_time']);
 const orders = ref<KungfuApi.OrderResolved[]>([]);
 const allOrders = ref<KungfuApi.OrderResolved[]>([]);
 const { searchKeyword, tableData } =
@@ -128,9 +136,25 @@ onMounted(() => {
           ) as KungfuApi.Order[];
 
         if (unfinishedOrder.value) {
-          const tempAllOrders = ordersResolved.map((item) =>
-            toRaw(dealOrder(watcher, item, watcher.ledger.OrderStat)),
-          );
+          const tempAllOrders = ordersResolved.map((item) => {
+            const { price_precision } = getPriceTickAndPrecision(
+              item.instrument_id,
+              item.exchange_id,
+              0.001,
+            );
+
+            return toRaw(
+              dealerResolved(item, () =>
+                dealOrder(
+                  watcher,
+                  item,
+                  watcher.ledger.OrderStat,
+                  false,
+                  price_precision,
+                ),
+              ),
+            );
+          });
           allOrders.value = tempAllOrders;
           orders.value = toRaw(
             tempAllOrders.filter((item) => !isFinishedOrderStatus(item.status)),
@@ -141,8 +165,20 @@ onMounted(() => {
         let finishedOrdersCount = 0;
         const { totalOrders, ordersForTable } = ordersResolved.reduce(
           (preOrders, curOrder) => {
+            const { price_precision } = getPriceTickAndPrecision(
+              curOrder.instrument_id,
+              curOrder.exchange_id,
+              0.001,
+            );
+
             const orderResolved = toRaw(
-              dealOrder(watcher, curOrder, watcher.ledger.OrderStat),
+              dealOrder(
+                watcher,
+                curOrder,
+                watcher.ledger.OrderStat,
+                false,
+                price_precision,
+              ),
             );
             preOrders.totalOrders.push(orderResolved);
             if (isFinishedOrderStatus(curOrder.status)) {
@@ -176,9 +212,11 @@ watch(currentGlobalKfLocation, () => {
   historyDate.value = undefined;
   allOrders.value = [];
   orders.value = [];
+  clearCaches();
 });
 
 watch(historyDate, async (newDate) => {
+  clearCaches();
   if (!newDate) {
     return;
   }
@@ -213,9 +251,23 @@ watch(historyDate, async (newDate) => {
         ) as KungfuApi.Order[];
 
       const tempAllOrders = toRaw(
-        orderResolved.map((item) =>
-          toRaw(dealOrder(window.watcher, item, tradingData.OrderStat, true)),
-        ),
+        orderResolved.map((item) => {
+          const { price_precision } = getPriceTickAndPrecision(
+            item.instrument_id,
+            item.exchange_id,
+            0.001,
+          );
+
+          return toRaw(
+            dealOrder(
+              window.watcher,
+              item,
+              tradingData.OrderStat,
+              true,
+              price_precision,
+            ),
+          );
+        }),
       );
       allOrders.value = tempAllOrders;
       orders.value = tempAllOrders;
@@ -452,7 +504,7 @@ function testOrderSourceIsOnline(order: KungfuApi.OrderResolved) {
 <template>
   <div class="kf-orders__warp kf-translateZ">
     <KfDashboard @boardSizeChange="handleBodySizeChange">
-      <template v-slot:title>
+      <template #title>
         <span v-if="currentGlobalKfLocation">
           <a-tag
             v-if="currentCategoryData"
@@ -460,14 +512,14 @@ function testOrderSourceIsOnline(order: KungfuApi.OrderResolved) {
           >
             {{ currentCategoryData?.name }}
           </a-tag>
-          <span class="name" v-if="currentGlobalKfLocation">
+          <span v-if="currentGlobalKfLocation" class="name">
             {{ getCurrentGlobalKfLocationId(currentGlobalKfLocation) }}
           </span>
         </span>
       </template>
-      <template v-slot:header>
+      <template #header>
         <KfDashboardItem>
-          <a-checkbox size="small" v-model:checked="unfinishedOrder">
+          <a-checkbox v-model:checked="unfinishedOrder" size="small">
             {{ $t('orderConfig.checkbox_text') }}
           </a-checkbox>
         </KfDashboardItem>
@@ -518,14 +570,15 @@ function testOrderSourceIsOnline(order: KungfuApi.OrderResolved) {
           </a-button>
         </KfDashboardItem>
       </template>
-      <div class="kf-table__warp" ref="tableRef">
-        <div class="kf-adjust-order-mask__warp" v-if="adjustOrderMaskVisible">
+      <div ref="tableRef" class="kf-table__warp">
+        <div v-if="adjustOrderMaskVisible" class="kf-adjust-order-mask__warp">
           <div
             class="kf-adjust-order-mask"
             @click.stop="handleClickAdjustOrderMask"
           ></div>
           <a-input-number
             v-if="adjustOrderConfig.clientWidth !== 0"
+            v-model:value="adjustOrderForm.price"
             class="adjust-order-item price"
             :style="{
               width: adjustOrderConfig.clientWidth + 'px',
@@ -533,10 +586,10 @@ function testOrderSourceIsOnline(order: KungfuApi.OrderResolved) {
               top: adjustOrderConfig.offsetTop + 'px',
               left: adjustOrderConfig.offsetLeft + 'px',
             }"
-            v-model:value="adjustOrderForm.price"
           ></a-input-number>
           <a-input-number
             v-if="adjustOrderConfig.clientWidth !== 0"
+            v-model:value="adjustOrderForm.volume"
             class="adjust-order-item order"
             :style="{
               width: adjustOrderConfig.clientWidth + 'px',
@@ -547,18 +600,17 @@ function testOrderSourceIsOnline(order: KungfuApi.OrderResolved) {
                 adjustOrderConfig.clientWidth +
                 'px',
             }"
-            v-model:value="adjustOrderForm.volume"
           ></a-input-number>
         </div>
         <KfTradingDataTable
           :columns="columns"
-          :dataSource="tableData"
-          keyField="uid_key"
+          :data-source="tableData"
+          key-field="uid_key"
           @clickCell="handleAdjustOrder"
           @rightClickRow="handleShowTradingDataDetail"
         >
           <template
-            v-slot:default="{
+            #default="{
               item,
               column,
             }: {
@@ -577,7 +629,7 @@ function testOrderSourceIsOnline(order: KungfuApi.OrderResolved) {
               </span>
             </template>
             <template v-else-if="column.dataIndex === 'limit_price'">
-              {{ dealKfPrice(item.limit_price) }}
+              {{ dealKfPrice(item.limit_price, item.price_precision) }}
             </template>
             <template v-else-if="column.dataIndex === 'volume_left'">
               <span
@@ -604,9 +656,9 @@ function testOrderSourceIsOnline(order: KungfuApi.OrderResolved) {
             </template>
             <template v-else-if="column.dataIndex === 'actions'">
               <CloseOutlined
+                v-if="!isFinishedOrderStatus(item.status)"
                 class="kf-hover"
                 @click="handleCancelOrder(item)"
-                v-if="!isFinishedOrderStatus(item.status)"
               />
             </template>
           </template>

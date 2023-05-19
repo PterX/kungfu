@@ -49,6 +49,8 @@ public:
 
   [[maybe_unused]] void deregister_app(int64_t trigger_time, uint32_t app_location_uid);
 
+  void on_request_deregister(const event_ptr &event);
+
 protected:
   void react() final;
 
@@ -86,6 +88,8 @@ private:
   void on_request_read_from_public(const event_ptr &event);
 
   void on_request_read_from_sync(const event_ptr &event);
+
+  void on_request_read_from_others(const event_ptr &event);
 
   void on_channel_request(const event_ptr &event);
 

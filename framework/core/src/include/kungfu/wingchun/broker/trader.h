@@ -64,8 +64,6 @@ public:
 
   virtual bool req_account() = 0;
 
-  virtual bool req_order_trade() = 0;
-
   virtual bool req_history_order(const event_ptr &event) { return true; }
 
   virtual bool req_history_trade(const event_ptr &event) { return true; }

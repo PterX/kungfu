@@ -74,7 +74,7 @@ public:
 
   void post_start(Context_ptr & context) override { SPDLOG_INFO("operator started"); }
 
-  void on_quote(Context_ptr & context, const Quote &quote, const location_ptr &location) override {
+  void on_quote(Context_ptr & context, const Quote &quote, const location_ptr &location, uint32_t dest) override {
     auto instrument_key = kungfu::wingchun::hash_instrument(quote.instrument_id, quote.exchange_id);
     auto pair = bars_.try_emplace(instrument_key);
     auto &bar = pair.first->second;

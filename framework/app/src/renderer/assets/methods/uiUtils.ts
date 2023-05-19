@@ -9,6 +9,9 @@ import {
   Component,
   App,
   h,
+  InjectionKey,
+  inject,
+  provide,
 } from 'vue';
 import {
   ARCHIVE_DIR,
@@ -21,7 +24,7 @@ import {
   kfLogger,
   removeJournal,
   removeDB,
-  getAvailDaemonList,
+  getAvailExtServiceList,
   getKfExtensionLanguage,
   loopToRunProcess,
   resolveInstrumentValue,
@@ -29,6 +32,7 @@ import {
   removeArchiveBeforeToday,
   isKfColor,
   isHexOrRgbColor,
+  removeTodayArchive,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
 import { ExchangeIds } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
@@ -40,7 +44,7 @@ import {
   KfUIExtLocatorTypes,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import path from 'path';
-import { startExtDaemon } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
+import { startExtService } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
 import { checkIfCpusNumSafe } from '@kungfu-trader/kungfu-js-api/utils/osUtils';
 import { Proc } from 'pm2';
 import { VueNode } from 'ant-design-vue/lib/_util/type';
@@ -302,7 +306,7 @@ const removeJournalBeforeStartAll = (): Promise<void> => {
   if (needClearJournal) {
     localStorage.setItem('needClearJournal', '0');
     kfLogger.info('Clear Journal Done', needClearJournal);
-    return removeJournal(KF_HOME);
+    return removeTodayArchive(ARCHIVE_DIR).then(() => removeJournal(KF_HOME));
   } else {
     return Promise.resolve();
   }
@@ -344,11 +348,11 @@ export const checkCpusNumAndConfirmModal = (): Promise<boolean> => {
 };
 
 export const postStartAll = async (): Promise<(void | Proc)[]> => {
-  const availDaemons = await getAvailDaemonList();
+  const availExtServices = await getAvailExtServiceList();
   return loopToRunProcess<void | Proc>(
-    availDaemons.map((item) => {
+    availExtServices.map((item) => {
       return () =>
-        startExtDaemon(getProcessIdByKfLocation(item), item.cwd, item.script)
+        startExtService(item)
           .then((res) => {
             return res;
           })
@@ -378,7 +382,6 @@ export const openNewBrowserWindow = (
     process.env.APP_TYPE === 'renderer' && process.env.NODE_ENV !== 'production'
       ? `http://localhost:9090/${name}.html${params}`
       : `file://${folderName}/${name}.html${params}`;
-
   return new Promise((resolve, reject) => {
     const win = new BrowserWindow({
       ...(getNewWindowLocation() || {}),
@@ -429,7 +432,11 @@ function getNewWindowLocation(): { x: number; y: number } | null {
 export const openLogView = (
   logPath: string,
 ): Promise<Electron.BrowserWindow> => {
-  return openNewBrowserWindow(__dirname, 'logview', `?logPath=${logPath}`);
+  return openNewBrowserWindow(
+    globalThis.__runtimeDir,
+    'logview',
+    `?logPath=${logPath}`,
+  );
 };
 
 export const openCodeView = (
@@ -438,7 +445,7 @@ export const openCodeView = (
   isEntryFilenameEditable: boolean,
 ): Promise<Electron.BrowserWindow> => {
   return openNewBrowserWindow(
-    __dirname,
+    globalThis.__runtimeDir,
     'code',
     `?id=${id}&filePath=${filePath}&isEntryFilenameEditable=${isEntryFilenameEditable}`,
   );
@@ -449,7 +456,7 @@ export const openJournalView = (
   locationUid: string,
 ): Promise<Electron.BrowserWindow> => {
   return openNewBrowserWindow(
-    __dirname,
+    globalThis.__runtimeDir,
     'journal',
     `?processId=${processId}&locationUid=${locationUid}`,
     {
@@ -845,10 +852,11 @@ export const openReadmeModal = (title: string, readmePath: string) => {
 export const useBoardFilter = () => {
   const rootPackageJson = readRootPackageJsonSync();
   const boardFilter: Record<string, boolean | undefined> | undefined =
-    rootPackageJson?.boardFilter;
+    rootPackageJson?.appConfig?.boardFilter;
 
   const getBoard = <T>(boardName: string, ifTrue: T, ifFalse: T): T => {
-    return boardFilter ? (boardFilter[boardName] ? ifTrue : ifFalse) : ifTrue;
+    const isBoardShow = boardFilter?.[boardName] ?? true;
+    return isBoardShow ? ifTrue : ifFalse;
   };
 
   return {
@@ -871,4 +879,16 @@ export const dealKungfuColorToStyleColor = (
   color: KungfuApi.AntInKungfuColorTypes,
 ) => {
   return isKfColor(color) ? '' : color;
+};
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const vueProvideBaseOnParent = <T extends { [x: string]: any }>(
+  key: InjectionKey<T> | string,
+  value: T,
+) => {
+  const parentProvide = inject(key);
+  if (!parentProvide) return provide(key, value);
+  if (typeof parentProvide !== 'object' || typeof value !== 'object')
+    return provide(key, value);
+  return provide(key, Object.assign(parentProvide, value));
 };

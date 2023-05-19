@@ -7,6 +7,7 @@
 #include <kungfu/common.h>
 #include <kungfu/yijinjing/practice/apprentice.h>
 #include <kungfu/yijinjing/util/os.h>
+#include <nng/nng.h>
 
 using namespace kungfu::rx;
 using namespace kungfu::longfist;
@@ -25,7 +26,7 @@ bool apprentice::is_started() const { return started_; }
 
 void apprentice::pause() { started_ = false; }
 
-uint32_t apprentice::get_master_commands_uid() const { return master_cmd_location_->uid; }
+uint32_t apprentice::get_master_command_uid() const { return master_cmd_location_->uid; }
 
 int64_t apprentice::get_checkin_time() const { return checkin_time_; }
 
@@ -37,38 +38,38 @@ const cache::bank &apprentice::get_state_bank() const { return state_bank_; }
 
 void apprentice::request_read_from(int64_t trigger_time, uint32_t source_id, int64_t from_time) {
   if (get_io_device()->get_home()->mode == mode::LIVE) {
-    require_read_from(trigger_time, master_cmd_location_->uid, source_id, from_time);
+    require_read_from(trigger_time, get_master_command_uid(), source_id, from_time);
   }
 }
 
 void apprentice::request_read_from_public(int64_t trigger_time, uint32_t source_id, int64_t from_time) {
   if (get_io_device()->get_home()->mode == mode::LIVE) {
-    require_read_from_public(trigger_time, master_cmd_location_->uid, source_id, from_time);
+    require_read_from_public(trigger_time, get_master_command_uid(), source_id, from_time);
   }
 }
 
 void apprentice::request_read_from_sync(int64_t trigger_time, uint32_t source_id, int64_t from_time) {
   if (get_io_device()->get_home()->mode == mode::LIVE) {
-    require_read_from_sync(trigger_time, master_cmd_location_->uid, source_id, from_time);
+    require_read_from_sync(trigger_time, get_master_command_uid(), source_id, from_time);
   }
 }
 
 void apprentice::request_read_from_source_to_dest(int64_t trigger_time, const location_ptr &source_location,
                                                   uint32_t dest_id) {
   if (get_io_device()->get_home()->mode == mode::LIVE) {
-    reader_->join(source_location, dest_id, trigger_time);
+    reader_join(source_location->uid, dest_id, trigger_time);
   }
 }
 
 void apprentice::request_write_to(int64_t trigger_time, uint32_t dest_id) {
   if (get_io_device()->get_home()->mode == mode::LIVE) {
-    require_write_to(trigger_time, master_cmd_location_->uid, dest_id);
+    require_write_to(trigger_time, get_master_command_uid(), dest_id);
   }
 }
 
 void apprentice::request_write_to_band(int64_t trigger_time, const location_ptr &location) {
   if (get_io_device()->get_home()->mode == mode::LIVE) {
-    require_write_to_band(trigger_time, master_cmd_location_->uid, location);
+    require_write_to_band(trigger_time, get_master_command_uid(), location);
   }
 }
 
@@ -82,14 +83,14 @@ uint32_t apprentice::request_band(const std::string &band_name) {
 
 void apprentice::request_cached_reader_writer() {
   if (get_io_device()->get_home()->mode == mode::LIVE) {
-    if (writers_.find(master_cmd_location_->uid) == writers_.end()) {
-      SPDLOG_ERROR("no writer for {}", get_location_uname(master_cmd_location_->uid));
+    if (writers_.find(get_master_command_uid()) == writers_.end()) {
+      SPDLOG_ERROR("no writer for {}", get_location_uname(get_master_command_uid()));
       return;
     }
 
     if (get_live_home_uid() != cached_home_location_->uid) {
       if (registry_.find(cached_home_location_->uid) == registry_.end()) {
-        SPDLOG_ERROR("no register in registry_ {}", get_location_uname(master_cmd_location_->uid));
+        SPDLOG_ERROR("no register in registry_ {}", get_location_uname(get_master_command_uid()));
         return;
       }
 
@@ -98,7 +99,7 @@ void apprentice::request_cached_reader_writer() {
 
     } else {
       // At cached case, pass the restore, start directly
-      auto writer = get_writer(master_cmd_location_->uid);
+      auto writer = get_writer(get_master_command_uid());
       RequestCachedDone &rcd = writer->open_data<RequestCachedDone>();
       rcd.dest_id = get_io_device()->get_live_home()->uid;
       writer->close_data();
@@ -208,7 +209,7 @@ void apprentice::react() {
                                    return register_data.location_uid == cached_home_location_->uid;
                                  }) |
                                  filter([&](const event_ptr &event) {
-                                   if (writers_.find(master_cmd_location_->uid) != writers_.end()) {
+                                   if (writers_.find(get_master_command_uid()) != writers_.end()) {
                                      return true;
                                    }
                                    return false;
@@ -290,6 +291,28 @@ void apprentice::on_cached_ready_to_read() { request_cached(cached_home_location
   return get_io_device()->get_observer()->get_recv_timeout();
 }
 
+void apprentice::reader_join(uint32_t source_id, uint32_t dest_id, int64_t from_time) {
+
+  if (not has_location(source_id)) {
+    SPDLOG_ERROR("no location {}", source_id);
+    return;
+  }
+
+  reader_->join(get_location(source_id), dest_id, from_time);
+
+  if (not has_writer(get_master_command_uid())) {
+    SPDLOG_ERROR("no master cmd writer");
+    return;
+  }
+
+  auto writer = get_writer(get_master_command_uid());
+  auto &request = writer->open_data<RequestReadFromOthers>(now());
+  request.source_id = source_id;
+  request.dest_id = dest_id;
+  request.from_time = from_time;
+  writer->close_data();
+}
+
 void apprentice::checkin() {
   auto now = time::now_in_nano();
   nlohmann::json request;
@@ -311,7 +334,7 @@ void apprentice::checkin() {
   data["last_active_time"] = now;
   request["data"] = data;
 
-  get_io_device()->get_publisher()->publish(request.dump());
+  get_io_device()->get_publisher()->publish(request.dump(), 0);
 }
 
 void apprentice::expect_start() {
@@ -345,6 +368,7 @@ yijinjing::journal::writer_ptr &apprentice::get_thread_writer() {
     int64_t nano = now();
     SPDLOG_DEBUG("dest_id: {}, now: {}", dest_id, time::strftime(nano));
 
+    // join channel in subthread will crash, so tell master to ask myself to join
     auto now = time::now_in_nano();
     nlohmann::json request;
     request["msg_type"] = JoinChannel::tag;

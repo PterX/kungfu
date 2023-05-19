@@ -6,10 +6,11 @@ import {
 import {
   delayMilliSeconds,
   deleteNNFiles,
-  getAvailCliDaemonList,
+  getAvailCliExtServiceList,
   getKfExtensionConfig,
   getProcessIdByKfLocation,
   getTaskListFromProcessStatusData,
+  isExtService,
   kfLogger,
   removeArchiveBeforeToday,
   removeJournal,
@@ -37,7 +38,7 @@ import { Widgets } from 'blessed';
 import {
   dealStatus,
   getCategoryName,
-  startAllExtDaemons,
+  startAllExtServices,
 } from '../methods/utils';
 import { dealProcessName } from '../methods/utils';
 import {
@@ -46,20 +47,22 @@ import {
 } from '@kungfu-trader/kungfu-js-api/config/pathConfig';
 import { globalState } from './globalState';
 
-export const mdTdStrategyDaemonObservable = () => {
+export const mdTdStrategyExtServiceObservable = () => {
   return new Observable<
-    Record<KfCategoryTypes, KungfuApi.KfConfig[] | KungfuApi.KfDaemonLocation[]>
+    Record<KfCategoryTypes, KungfuApi.KfConfig[]> & {
+      extService: KungfuApi.KfExtServiceLocation[];
+    }
   >((observer) => {
-    Promise.all([getAllKfConfigOriginData(), getAvailCliDaemonList()]).then(
+    Promise.all([getAllKfConfigOriginData(), getAvailCliExtServiceList()]).then(
       (
         allConfigs: [
           Record<KfCategoryTypes, KungfuApi.KfConfig[]>,
-          KungfuApi.KfDaemonLocation[],
+          KungfuApi.KfExtServiceLocation[],
         ],
       ) => {
         observer.next({
           ...allConfigs[0],
-          daemon: allConfigs[1].map((item) => ({
+          extService: allConfigs[1].map((item) => ({
             ...item,
             location_uid: 0,
             value: '',
@@ -102,17 +105,44 @@ export const getExtConfigObservable = () => {
 
 export const specificProcessListObserver = (kfLocation: KungfuApi.KfConfig) =>
   combineLatest(
+    mdTdStrategyExtServiceObservable(),
     processStatusDataObservable(),
     appStatesObservable(),
     (
+      mdTdStrategyExtService: Record<KfCategoryTypes, KungfuApi.KfConfig[]> & {
+        extService: KungfuApi.KfExtServiceLocation[];
+      },
       ps: {
         processStatus: Pm2ProcessStatusData;
         processStatusWithDetail: Pm2ProcessStatusDetailData;
       },
       appStates: Record<string, BrokerStateStatusTypes>,
     ): ProcessListItem[] => {
+      const { extService } = mdTdStrategyExtService;
       const { processStatus, processStatusWithDetail } = ps;
       const processId = getProcessIdByKfLocation(kfLocation);
+
+      const extServiceList: ProcessListItem[] = extService.map((item) => {
+        const processId = getProcessIdByKfLocation(item);
+        const prefixProps =
+          globalThis.HookKeeper.getHooks().prefix.trigger(item);
+        const prefix =
+          prefixProps.prefixType === 'text' ? prefixProps.prefix : '';
+        return {
+          processId,
+          processName: prefix + (dealProcessName(processId) || processId),
+          typeName: getCategoryName(item.category as KfCategoryTypes),
+          category: item.category,
+          group: item.group,
+          name: item.name,
+          value: JSON.parse(item.value || '{}'),
+          status: processStatus[processId] || '--',
+          statusName: dealStatus(processStatus[processId] || '--'),
+          monit: processStatusWithDetail[processId]?.monit,
+          script: item.script,
+          cwd: item.cwd,
+        };
+      });
 
       return [
         {
@@ -163,6 +193,7 @@ export const specificProcessListObserver = (kfLocation: KungfuApi.KfConfig) =>
           statusName: dealStatus(processStatus['dzxy'] || '--'),
           monit: processStatusWithDetail['dzxy']?.monit,
         },
+        ...extServiceList,
         {
           processId,
           processName: processId,
@@ -181,15 +212,14 @@ export const specificProcessListObserver = (kfLocation: KungfuApi.KfConfig) =>
 
 export const processListObservable = () =>
   combineLatest(
-    mdTdStrategyDaemonObservable(),
+    mdTdStrategyExtServiceObservable(),
     processStatusDataObservable(),
     appStatesObservable(),
     getExtConfigObservable(),
     (
-      mdTdStrategyDaemon: Record<
-        KfCategoryTypes,
-        KungfuApi.KfConfig[] | KungfuApi.KfDaemonLocation[]
-      >,
+      mdTdStrategyExtService: Record<KfCategoryTypes, KungfuApi.KfConfig[]> & {
+        extService: KungfuApi.KfExtServiceLocation[];
+      },
       ps: {
         processStatus: Pm2ProcessStatusData;
         processStatusWithDetail: Pm2ProcessStatusDetailData;
@@ -197,7 +227,7 @@ export const processListObservable = () =>
       appStates: Record<string, BrokerStateStatusTypes>,
       extConfigs: KungfuApi.KfExtConfigs,
     ): ProcessListItem[] => {
-      const { md, operator, td, strategy, daemon } = mdTdStrategyDaemon;
+      const { md, operator, td, strategy, extService } = mdTdStrategyExtService;
       const { processStatus, processStatusWithDetail } = ps;
 
       const mdList: ProcessListItem[] = md.map((item) => {
@@ -292,7 +322,7 @@ export const processListObservable = () =>
         };
       });
 
-      const daemonList: ProcessListItem[] = daemon.map((item) => {
+      const extServiceList: ProcessListItem[] = extService.map((item) => {
         const processId = getProcessIdByKfLocation(item);
         const prefixProps =
           globalThis.HookKeeper.getHooks().prefix.trigger(item);
@@ -411,7 +441,7 @@ export const processListObservable = () =>
           statusName: dealStatus(processStatus['dzxy'] || '--'),
           monit: processStatusWithDetail['dzxy']?.monit,
         },
-        ...daemonList,
+        ...extServiceList,
         ...mdList,
         ...operatorList,
         ...tdList,
@@ -432,6 +462,64 @@ export const switchProcess = async (
   const status = proc.status !== '--';
   const startOrStop = status ? 'Stop' : 'Start';
   const { category, group, name, value, cwd, script } = proc;
+  const isTargetExtService = isExtService({
+    category,
+    group,
+    name,
+    mode: 'live',
+  });
+
+  const switchProcessExceptMaster = () => {
+    if (!watcher) {
+      messageBoard.log('Watcher is NULL', 2, (err) => {
+        if (err) {
+          console.error(err);
+        }
+      });
+      return;
+    }
+
+    if (!watcher.isLive()) {
+      messageBoard.log(
+        'Start master first, If did, Please wait...',
+        2,
+        (err) => {
+          if (err) {
+            console.error(err);
+          }
+        },
+      );
+      return;
+    }
+
+    swithKfLocationResolved(
+      watcher,
+      {
+        category,
+        group,
+        name,
+        value: JSON.stringify(value),
+        status,
+        cwd,
+        script,
+      },
+      messageBoard,
+    )
+      .then(() => {
+        messageBoard.log('Please wait...', 2, (err) => {
+          if (err) {
+            console.error(err);
+          }
+        });
+      })
+      .catch((err) => {
+        messageBoard.log(err.message, 2, (err) => {
+          if (err) {
+            console.error(err);
+          }
+        });
+      });
+  };
 
   switch (category) {
     case 'system':
@@ -456,6 +544,11 @@ export const switchProcess = async (
           })
           .catch((err: Error) => kfLogger.error(err));
       } else {
+        if (isTargetExtService) {
+          switchProcessExceptMaster();
+          break;
+        }
+
         if (status) {
           messageBoard.log('Stop master first', 2, (err) => {
             if (err) {
@@ -475,60 +568,11 @@ export const switchProcess = async (
         }
       }
       break;
-    case 'daemon':
     case 'md':
     case 'operator':
     case 'td':
     case 'strategy':
-      if (!watcher) {
-        messageBoard.log('Watcher is NULL', 2, (err) => {
-          if (err) {
-            console.error(err);
-          }
-        });
-        return;
-      }
-
-      if (!watcher.isLive()) {
-        messageBoard.log(
-          'Start master first, If did, Please wait...',
-          2,
-          (err) => {
-            if (err) {
-              console.error(err);
-            }
-          },
-        );
-        return;
-      }
-
-      swithKfLocationResolved(
-        watcher,
-        {
-          category,
-          group,
-          name,
-          value: JSON.stringify(value),
-          status,
-          cwd,
-          script,
-        },
-        messageBoard,
-      )
-        .then(() => {
-          messageBoard.log('Please wait...', 2, (err) => {
-            if (err) {
-              console.error(err);
-            }
-          });
-        })
-        .catch((err) => {
-          messageBoard.log(err.message, 2, (err) => {
-            if (err) {
-              console.error(err);
-            }
-          });
-        });
+      switchProcessExceptMaster();
   }
 };
 
@@ -538,15 +582,18 @@ function swithKfLocationResolved(
   messageBoard: Widgets.MessageElement,
 ) {
   const { category, group, name, value, status, cwd, script } = data;
-  const kfConfig: KungfuApi.KfConfig | KungfuApi.KfDaemonLocation = {
+  const targetLocation = {
     category,
     group,
     name,
-    value: value,
-    location_uid: 0,
     mode: 'live',
-    cwd,
-    script,
+  };
+  const isTargetExtService = isExtService(targetLocation);
+  const kfConfig: KungfuApi.KfConfig | KungfuApi.KfExtServiceLocation = {
+    ...targetLocation,
+    value,
+    location_uid: 0,
+    ...(isTargetExtService ? { cwd, script } : {}),
   };
 
   // task dealing logic
@@ -605,6 +652,6 @@ const switchMaster = async (status: boolean): Promise<void> => {
     await delayMilliSeconds(1000);
     await startDzxy();
     await delayMilliSeconds(1000);
-    await startAllExtDaemons();
+    await startAllExtServices();
   }
 };

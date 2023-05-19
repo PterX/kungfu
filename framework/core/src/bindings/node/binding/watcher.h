@@ -101,6 +101,8 @@ public:
 
   void AfterMasterDown(const Napi::CallbackInfo &info);
 
+  void RequestDeregister();
+
 protected:
   const bool bypass_accounting_;
   const bool bypass_trading_data_;
@@ -114,8 +116,15 @@ protected:
 
 private:
   static Napi::FunctionReference constructor;
+  static void cleanup() {
+    SPDLOG_INFO("Watcher reset");
+    Watcher::constructor.Reset();
+  }
+
   uv_work_t uv_work_ = {};
   bool uv_work_live_ = false;
+  bool quit_ = false;
+
   WatcherAutoClient broker_client_;
   wingchun::book::Bookkeeper bookkeeper_;
   wingchun::basketorder::BasketOrderEngine basketorder_engine_;
@@ -343,7 +352,7 @@ private:
 
       auto trigger_time = yijinjing::time::now_in_nano();
       auto account_writer = get_writer(account_location->uid);
-      auto master_cmd_writer = get_writer(get_master_commands_uid());
+      auto master_cmd_writer = get_writer(get_master_command_uid());
       Instruction instruction = {};
       serialize::JsGet{}(instruction_object, instruction);
 

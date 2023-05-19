@@ -19,7 +19,7 @@ class cleaner {
 public:
   explicit cleaner(yijinjing::practice::apprentice &app);
 
-  virtual ~cleaner() = default;
+  virtual ~cleaner();
 
   void on_react();
 
@@ -27,7 +27,8 @@ private:
   yijinjing::practice::apprentice &app_;
   std::thread cleaning_worker_;
   std::mutex cv_mutex_;
-  bool cleaning_worker_alive_ = true;
+  std::mutex quite_mutex_;
+  bool m_quit_ = false;
 
   void do_clean();
 
@@ -42,7 +43,7 @@ public:
 
   void pause();
 
-  uint32_t get_master_commands_uid() const;
+  uint32_t get_master_command_uid() const;
 
   int64_t get_last_active_time() const;
 
@@ -119,12 +120,15 @@ protected:
 
   [[maybe_unused]] int get_observer_recv_timeout() const;
 
+  void reader_join(uint32_t source_id, uint32_t dest_id, int64_t from_time);
+
   std::function<rx::observable<event_ptr>(rx::observable<event_ptr>)> timer(int64_t nanotime) {
-    auto writer = get_writer(master_cmd_location_->uid);
+    auto writer = get_writer(get_master_command_uid());
     int32_t timer_usage_count = timer_usage_count_;
     int64_t duration_ns = nanotime - now();
-    longfist::types::TimeRequest &r = writer->open_data<longfist::types::TimeRequest>(0);
+    longfist::types::TimeRequest &r = writer->open_data<longfist::types::TimeRequest>(now());
     r.id = timer_usage_count;
+    r.base_time = now();
     r.duration = duration_ns;
     r.repeat = 1;
     writer->close_data();
@@ -142,10 +146,11 @@ protected:
   template <typename Duration, typename Enabled = rx::is_duration<Duration>>
   std::function<rx::observable<event_ptr>(rx::observable<event_ptr>)> time_interval(Duration &&d) {
     auto duration_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(d).count();
-    auto writer = get_writer(master_cmd_location_->uid);
+    auto writer = get_writer(get_master_command_uid());
     int32_t timer_usage_count = timer_usage_count_;
-    longfist::types::TimeRequest &r = writer->open_data<longfist::types::TimeRequest>(0);
+    longfist::types::TimeRequest &r = writer->open_data<longfist::types::TimeRequest>(now());
     r.id = timer_usage_count;
+    r.base_time = now();
     r.duration = duration_ns;
     r.repeat = 1;
     writer->close_data();
@@ -155,9 +160,10 @@ protected:
       return events_ | rx::filter([&, duration_ns, timer_usage_count](const event_ptr &event) {
                if (event->msg_type() == longfist::types::Time::tag &&
                    event->gen_time() > timer_checkpoints_[timer_usage_count] + duration_ns) {
-                 auto writer = get_writer(master_cmd_location_->uid);
-                 longfist::types::TimeRequest &r = writer->open_data<longfist::types::TimeRequest>(0);
+                 auto writer = get_writer(get_master_command_uid());
+                 longfist::types::TimeRequest &r = writer->open_data<longfist::types::TimeRequest>(now());
                  r.id = timer_usage_count;
+                 r.base_time = now();
                  r.duration = duration_ns;
                  r.repeat = 1;
                  writer->close_data();
@@ -173,10 +179,11 @@ protected:
   template <typename Duration, typename Enabled = rx::is_duration<Duration>>
   std::function<rx::observable<event_ptr>(rx::observable<event_ptr>)> timeout(Duration &&d) {
     auto duration_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(d).count();
-    auto writer = get_writer(master_cmd_location_->uid);
+    auto writer = get_writer(get_master_command_uid());
     int32_t timer_usage_count = timer_usage_count_;
-    longfist::types::TimeRequest &r = writer->open_data<longfist::types::TimeRequest>(0);
+    longfist::types::TimeRequest &r = writer->open_data<longfist::types::TimeRequest>(now());
     r.id = timer_usage_count;
+    r.base_time = now();
     r.duration = duration_ns;
     r.repeat = 1;
     writer->close_data();
@@ -185,9 +192,10 @@ protected:
     return [&, duration_ns, timer_usage_count](const rx::observable<event_ptr> &src) {
       return (src | rx::filter([&, duration_ns, timer_usage_count](const event_ptr &event) {
                 if (event->msg_type() != longfist::types::Time::tag) {
-                  auto writer = get_writer(master_cmd_location_->uid);
-                  longfist::types::TimeRequest &r = writer->open_data<longfist::types::TimeRequest>(0);
+                  auto writer = get_writer(get_master_command_uid());
+                  longfist::types::TimeRequest &r = writer->open_data<longfist::types::TimeRequest>(now());
                   r.id = timer_usage_count;
+                  r.base_time = now();
                   r.duration = duration_ns;
                   r.repeat = 1;
                   writer->close_data();

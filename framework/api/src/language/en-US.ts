@@ -39,6 +39,7 @@ export default {
   open_resources_directory: 'Open Kungfu Resources directory (KF_HOME)',
   open_install_directory: 'Open Kungfu installation directory',
   open_basic_configuration: 'Open Kungfu basic configuration DB',
+  open_renderer_app_log: 'Open Application log',
   browsing_log: 'Browsing log files',
 
   clear_journal: 'Clear journal',
@@ -143,7 +144,6 @@ export default {
     ready: 'Ready',
 
     system: 'System',
-    daemon: 'Daemon',
     md: 'Md',
     td: 'Td',
     strategy: 'Strategy',
@@ -233,8 +233,6 @@ export default {
     tech_stock: 'TechStock',
     index: 'Index',
     repo: 'Repo',
-    warrant: 'Warrant',
-    iopt: 'Iopt',
     crypto: 'Crypto',
     crypto_future: 'CryptoFuture',
     crypto_ufuture: 'CryptoUFuture',
@@ -250,6 +248,8 @@ export default {
     INE: 'INE',
 
     HK: 'HK',
+    SHHK: 'SHHK',
+    SZHK: 'SZHK',
     HKFUT: 'HKFUT',
     US: 'US',
     USFUT: 'USFUT',
@@ -314,6 +314,7 @@ export default {
     CNH: 'CNH',
     SGD: 'SGD',
     MYR: 'MYR',
+    CEN: 'CEN',
 
     master: 'master',
     ledger: 'ledger',
@@ -538,7 +539,10 @@ export default {
     source: 'source',
     gen_time: 'gen_time',
     trigger_time: 'trigger_time',
+    current_page_id: 'currentPageId',
+    current_frame_id: 'currentFrameId',
     msg_type: 'msg_type',
+    msg_details: 'msg_details',
 
     export: 'Export',
     export_file_path: 'export_file_path',
@@ -548,6 +552,38 @@ export default {
     loading_journal: 'Loading journal...',
 
     input_time_format_error: 'The inputed time format error',
+
+    undefined_instrument_id: 'Undefined instrument_id',
+
+    read_event: 'Read event',
+
+    write_event: 'Write event',
+
+    Event: 'Event',
+
+    Visual: 'Visual',
+
+    please_input_instrument_id: 'Please input instrument_id',
+
+    time_range: 'Time range',
+
+    please_input_time: 'Please input time',
+
+    account_info: 'Account info',
+
+    trade_related: 'Trade related',
+
+    query_related: 'Query related',
+
+    market_related: 'Market related',
+
+    market_subscription_related: 'Market subscription related',
+
+    operator_related: 'Operator related',
+
+    strategy_related: 'Strategy related',
+
+    system_related: 'System related',
   },
 
   tradeConfig: {
@@ -769,8 +805,8 @@ export default {
   kungfu: 'Kungfu',
 
   system_prompt: 'System Prompt',
-  computer_performance_done: 'Computer performance detecting done ✓',
-  computer_performance_detecting: 'Computer performance detecting...',
+  computer_performance_done: 'Performance detecting done ✓',
+  computer_performance_detecting: 'Performance detecting...',
   archive_done: 'Kungfu archive done',
   archive_loading: 'Kungfu archive loading...',
   environment_done: 'Kungfu environment done ✓',

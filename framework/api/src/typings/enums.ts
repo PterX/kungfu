@@ -76,7 +76,18 @@ export enum PriceLevelEnum {
 
 export type PriceLevelTypes = keyof typeof PriceLevelEnum;
 
+export type TdMdExtTypes = InstrumentTypes;
+
 export type StrategyExtTypes = 'trade' | 'default' | 'unknown';
+
+export type SystemExtTypes = 'service';
+
+export type KfExtConfigTypes = TdMdExtTypes | StrategyExtTypes | SystemExtTypes;
+
+export enum ExtRunForEnvTypesEnum {
+  Ui = 'ui',
+  Cli = 'cli',
+}
 
 export enum HedgeFlagEnum {
   Speculation,
@@ -152,6 +163,7 @@ export enum SideEnum {
   SurplusStockTransfer,
   GuaranteeStockTransferIn,
   GuaranteeStockTransferOut,
+  Unknown = 99,
 }
 
 export type SideTypes = keyof typeof SideEnum;
@@ -196,7 +208,6 @@ export enum KfCategoryEnum {
   strategy,
   system,
   operator,
-  daemon,
 }
 
 export type KfCategoryTypes = keyof typeof KfCategoryEnum;
@@ -209,7 +220,7 @@ export type KfUIExtLocatorTypes =
   | 'make_order'
   | 'trading_task_view';
 
-export type KfExtConfigTypes = 'form' | '';
+export type KfExhibitConfigTypes = 'form' | '';
 
 export enum KfModeEnum {
   live,
@@ -257,75 +268,82 @@ export enum SessionStatusEnum {
 }
 
 export enum FrameMsgTypeEnum {
-  PageEnd = 10000,
-  SessionStart = 10001,
-  SessionEnd = 10002,
-  Time = 10003,
-  Ping = 10008,
-  Pong = 10009,
-  RequestStop = 10024,
-  RequestStart = 10025,
-  CachedReadyToRead = 10060,
-  RequestCached = 10061,
-  NewOrderSingle = 353,
-  CancelOrder = 354,
-  CancelAllOrder = 355,
-  ResetBookRequest = 400,
-  MirrorPositionsRequest = 401,
-  AssetRequest = 402,
-  PositionRequest = 403,
-  AssetSync = 404,
-  PositionSync = 405,
-  KeepPositionsRequest = 406,
-  RebuildPositionsRequest = 407,
-  InstrumentEnd = 802,
-  Config = 10005,
-  TimeValue = 20000,
-  TimeKeyValue = 20001,
-  StrategyStateUpdate = 20002,
-  OperatorStateUpdate = 20003,
-  Commission = 10006,
-  RiskSetting = 10007,
-  Session = 10010,
-  Location = 10026,
-  Register = 10011,
-  Deregister = 10012,
-  CacheReset = 10013,
-  BrokerStateUpdate = 10014,
-  RequestReadFrom = 10021,
-  RequestReadFromPublic = 10022,
-  RequestReadFromSync = 10031,
-  RequestWriteTo = 10023,
-  TradingDay = 10027,
-  Channel = 10028,
-  ChannelRequest = 10029,
-  RequestCachedDone = 10062,
-  TimeRequest = 10004,
-  TimeReset = 10100,
-  Instrument = 209,
-  InstrumentKey = 210,
-  CustomSubscribe = 303,
-  Quote = 101,
-  Entrust = 102,
-  Transaction = 103,
+  Asset = 101,
+  AssetMargin = 102,
+  Position = 103,
+  PositionEnd = 104,
   OrderInput = 201,
-  BlockMessage = 207,
-  OrderAction = 202,
-  OrderActionError = 216,
-  Order = 203,
-  HistoryOrder = 212,
-  Trade = 204,
-  HistoryTrade = 213,
-  Position = 205,
-  PositionEnd = 800,
-  Asset = 206,
-  AssetMargin = 211,
-  OrderStat = 215,
-  SyntheticData = 301,
-  RequestHistoryOrder = 10029,
-  RequestHistoryTrade = 10030,
-  RequestHistoryOrderError = 10031,
-  RequestHistoryTradeError = 10032,
+  Order = 202,
+  Trade = 203,
+  OrderAction = 204,
+  OrderActionError = 205,
+  BlockMessage = 206,
+  OrderStat = 207,
+  BasketOrder = 208,
+  RequestHistoryOrder = 301,
+  RequestHistoryTrade = 302,
+  HistoryOrder = 303,
+  HistoryTrade = 304,
+  RequestHistoryOrderError = 305,
+  RequestHistoryTradeError = 306,
+  AssetRequest = 351,
+  PositionRequest = 352,
+  AssetSync = 353,
+  PositionSync = 354,
+  Quote = 401,
+  Entrust = 402,
+  Transaction = 403,
+  Tree = 404,
+  InstrumentKey = 501,
+  CustomSubscribe = 502,
+  SyntheticData = 601,
+  frame_header = 10001,
+  page_header = 10002,
+  PageEnd = 10051,
+  Time = 10052,
+  Ping = 10053,
+  Pong = 10054,
+  Register = 10101,
+  Deregister = 10102,
+  Session = 10103,
+  StrategyStateUpdate = 10104,
+  OperatorStateUpdate = 10105,
+  BrokerStateUpdate = 10106,
+  SessionStart = 10151,
+  SessionEnd = 10152,
+  RequestStart = 10153,
+  RequestStop = 10154,
+  RequestDeregister = 10155,
+  OperatorStateRequest = 10190,
+  BrokerStateRequest = 10191,
+  Config = 10201,
+  RiskSetting = 10202,
+  Commission = 10203,
+  Instrument = 10204,
+  Location = 10205,
+  Basket = 10206,
+  BasketInstrument = 10207,
+  CacheReset = 10208,
+  RequestCachedDone = 10209,
+  CachedReadyToRead = 10251,
+  RequestCached = 10252,
+  RequestReadFrom = 10301,
+  RequestReadFromPublic = 10302,
+  RequestReadFromSync = 10303,
+  RequestWriteTo = 10304,
+  Channel = 10305,
+  ChannelRequest = 10306,
+  RequestWriteToBand = 10307,
+  Band = 10308,
+  ResetBookRequest = 10401,
+  MirrorPositionsRequest = 10402,
+  KeepPositionsRequest = 10403,
+  RebuildPositionsRequest = 10404,
+  TimeRequest = 10501,
+  TimeReset = 10502,
+  TradingDay = 10503,
+  TimeValue = 10601,
+  TimeKeyValue = 10602,
 }
 
 export enum AddOperatorTypeEnum {
@@ -344,4 +362,5 @@ export enum CurrencyEnum {
   CNH, // 离岸人民币
   SGD, // 新加坡元
   MYR, // 马来西亚吉特
+  CEN, // 美分
 }

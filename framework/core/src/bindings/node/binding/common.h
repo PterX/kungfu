@@ -54,5 +54,12 @@ inline bool GetBool(const Napi::CallbackInfo &info, int i) {
   return info[i].As<Napi::Boolean>().Value();
 }
 
+inline bool GetNumber(const Napi::CallbackInfo &info, int i) {
+  if (not IsValid(info, i, &Napi::Value::IsNumber)) {
+    throw Napi::Error::New(info.Env(), "Invalid number argument index: " + std::to_string(i));
+  }
+  return info[i].As<Napi::Number>().Int32Value();
+}
+
 } // namespace kungfu::node
 #endif // KUNGFU_NODE_COMMON_H

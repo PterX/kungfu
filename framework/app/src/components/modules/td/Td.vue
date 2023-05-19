@@ -77,7 +77,7 @@ const setTdModalVisible = ref<boolean>(false);
 const setTdConfigPayload = ref<KungfuApi.SetKfConfigPayload>({
   type: 'add',
   title: t('Td'),
-  config: {} as KungfuApi.KfExtConfig,
+  config: {} as KungfuApi.KfTdExtConfig,
 });
 
 const currentSelectedSourceId = ref<string>('');
@@ -112,7 +112,7 @@ const tdGroupNames = computed(() => {
 const addTdGroupConfigPayload = ref<KungfuApi.SetKfConfigPayload>({
   type: 'add',
   title: t('tdConfig.account_group'),
-  config: {} as KungfuApi.KfExtConfig,
+  config: {} as KungfuApi.KfTdExtConfig,
 });
 
 const { searchKeyword, tableData } = useTableSearchKeyword<
@@ -223,7 +223,7 @@ async function handleOpenSetTdModal(
   selectedSource: string,
   tdConfig?: KungfuApi.KfConfig,
 ) {
-  const extConfig: KungfuApi.KfExtConfig = (extConfigs.value['td'] || {})[
+  const extConfig: KungfuApi.KfTdExtConfig = (extConfigs.value['td'] || {})[
     selectedSource
   ];
 
@@ -371,7 +371,7 @@ function handleRemoveTd(item: KungfuApi.KfConfig) {
 <template>
   <div class="kf-td__warp kf-translateZ">
     <KfDashboard @boardSizeChange="handleBodySizeChange">
-      <template v-slot:header>
+      <template #header>
         <KfDashboardItem>
           <a-input-search
             v-model:value="searchKeyword"
@@ -408,10 +408,10 @@ function handleRemoveTd(item: KungfuApi.KfConfig) {
         size="small"
         :pagination="false"
         :scroll="{ y: dashboardBodyHeight - 4 }"
-        :rowClassName="dealRowClassName"
-        :customRow="customRow"
-        :defaultExpandAllRows="true"
-        :emptyText="$t('empty_text')"
+        :row-class-name="dealRowClassName"
+        :custom-row="customRow"
+        :default-expand-all-rows="true"
+        :empty-text="$t('empty_text')"
       >
         <template
           #bodyCell="{
@@ -467,7 +467,7 @@ function handleRemoveTd(item: KungfuApi.KfConfig) {
           <template v-else-if="column.dataIndex === 'stateStatus'">
             <KfProcessStatus
               v-if="record.category === 'td'"
-              :statusName="getProcessStatusName(record)"
+              :status-name="getProcessStatusName(record)"
             ></KfProcessStatus>
           </template>
           <template v-else-if="column.dataIndex === 'processStatus'">
@@ -592,7 +592,7 @@ function handleRemoveTd(item: KungfuApi.KfConfig) {
             ></KfBlinkNum>
           </template>
           <template v-else-if="column.dataIndex === 'actions'">
-            <div class="kf-actions__warp" v-if="record.category === 'td'">
+            <div v-if="record.category === 'td'" class="kf-actions__warp">
               <BankOutlined
                 style="font-size: 12px"
                 @click.stop="handleOpenJournalView(record)"
@@ -616,7 +616,7 @@ function handleRemoveTd(item: KungfuApi.KfConfig) {
                 @click.stop="handleRemoveTd(record as KungfuApi.KfConfig)"
               />
             </div>
-            <div class="kf-actions__warp" v-if="record.category === 'tdGroup'">
+            <div v-if="record.category === 'tdGroup'" class="kf-actions__warp">
               <SettingOutlined
                 style="font-size: 12px"
                 @click.stop="setTdGroupModalVisble = true"
@@ -633,15 +633,15 @@ function handleRemoveTd(item: KungfuApi.KfConfig) {
     <KfSetExtensionModal
       v-if="setSourceModalVisible"
       v-model:visible="setSourceModalVisible"
-      extensionType="td"
+      extension-type="td"
       @confirm="handleOpenSetTdModal('add', $event)"
     ></KfSetExtensionModal>
     <KfSetByConfigModal
       v-if="setTdModalVisible"
       v-model:visible="setTdModalVisible"
       :payload="setTdConfigPayload"
-      :primaryKeyAvoidRepeatCompareTarget="tdIdList"
-      :primaryKeyAvoidRepeatCompareExtra="currentSelectedSourceId"
+      :primary-key-avoid-repeat-compare-target="tdIdList"
+      :primary-key-avoid-repeat-compare-extra="currentSelectedSourceId"
       @confirm="
         handleConfirmAddUpdateKfConfig($event, 'td', currentSelectedSourceId)
       "
@@ -650,7 +650,7 @@ function handleRemoveTd(item: KungfuApi.KfConfig) {
       v-if="addTdGroupModalVisble"
       v-model:visible="addTdGroupModalVisble"
       :payload="addTdGroupConfigPayload"
-      :primaryKeyAvoidRepeatCompareTarget="tdGroupNames"
+      :primary-key-avoid-repeat-compare-target="tdGroupNames"
       @confirm="({ formState }) => handleConfirmAddUpdateTdGroup(formState)"
     ></KfSetByConfigModal>
     <SetTdGroupModal

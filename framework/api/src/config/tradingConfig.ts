@@ -33,6 +33,14 @@ import { Pm2ProcessStatusTypes } from '../utils/processUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 const { t } = VueI18n.global;
 
+export const KfDefaultSystemProcess = [
+  'archive',
+  'master',
+  'cached',
+  'ledger',
+  'dzxy',
+];
+
 export const Pm2ProcessStatus: Record<
   Pm2ProcessStatusTypes,
   KungfuApi.KfTradeValueCommonData
@@ -154,11 +162,6 @@ export const KfCategory: Record<
     color: 'red',
     level: 100,
   },
-  [KfCategoryEnum.daemon]: {
-    name: t('tradingConfig.daemon'),
-    color: 'purple',
-    level: 90,
-  },
   [KfCategoryEnum.md]: {
     name: t('tradingConfig.md'),
     color: 'orange',
@@ -276,6 +279,10 @@ export const Side: Record<SideEnum, KungfuApi.KfTradeValueCommonData> = {
   [SideEnum.GuaranteeStockTransferOut]: {
     name: t('tradingConfig.guarantee_stock_redeem'),
     color: 'green',
+  },
+  [SideEnum.Unknown]: {
+    name: t('tradingConfig.unknown'),
+    color: 'default',
   },
 };
 
@@ -680,6 +687,14 @@ export const ExchangeIds: Record<string, KungfuApi.KfTradeValueCommonData> = {
     name: t('tradingConfig.HK'),
     color: InstrumentType[InstrumentTypeEnum.stock].color,
   },
+  SHHK: {
+    name: t('tradingConfig.SHHK'),
+    color: InstrumentType[InstrumentTypeEnum.stock].color,
+  },
+  SZHK: {
+    name: t('tradingConfig.SZHK'),
+    color: InstrumentType[InstrumentTypeEnum.stock].color,
+  },
   HKFUT: {
     name: t('tradingConfig.HKFUT'),
     color: InstrumentType[InstrumentTypeEnum.future].color,
@@ -975,4 +990,5 @@ export const Currency: Record<CurrencyEnum, KungfuApi.KfTradeValueCommonData> =
     [CurrencyEnum.CNH]: { name: t('tradingConfig.CNH') },
     [CurrencyEnum.SGD]: { name: t('tradingConfig.SGD') },
     [CurrencyEnum.MYR]: { name: t('tradingConfig.MYR') },
+    [CurrencyEnum.CEN]: { name: t('tradingConfig.CEN') },
   };

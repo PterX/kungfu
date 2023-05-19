@@ -8,6 +8,7 @@ import {
   hashInstrumentUKey,
   kfRequestMarketData,
 } from '@kungfu-trader/kungfu-js-api/kungfu';
+
 import { setKfConfig } from '@kungfu-trader/kungfu-js-api/kungfu/store';
 import {
   BrokerStateStatusTypes,
@@ -36,7 +37,7 @@ import {
   buildExtTypeMap,
   dealCategory,
   dealAssetsByHolderUID,
-  getAvailDaemonList,
+  getAvailExtServiceList,
   getStrategyStateStatusName,
   isBrokerStateReady,
   dealKfNumber,
@@ -49,6 +50,7 @@ import {
   isUpdateVersionLogicEnable,
   isCheckVersionLogicEnable,
   kfLogger,
+  countDecimalPlaces,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { BasketVolumeType } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import { writeCsvWithUTF8Bom } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
@@ -1422,6 +1424,19 @@ export const useDealInstruments = (): void => {
   };
 };
 
+export const hashInstrumentUKeyResolved = (
+  instrumentId: string,
+  exchangeId: string,
+) => {
+  if (!window.ukeyCacheMap) window.ukeyCacheMap = new Map<string, string>();
+  const ukeyCacheMap = window.ukeyCacheMap;
+  const cacheKey = `${instrumentId}_${exchangeId}`;
+  if (!ukeyCacheMap.has(cacheKey))
+    ukeyCacheMap.set(cacheKey, hashInstrumentUKey(instrumentId, exchangeId));
+
+  return ukeyCacheMap.get(cacheKey) || '';
+};
+
 export const useActiveInstruments = () => {
   const { instrumentsMap } = useGlobalStore();
 
@@ -1430,7 +1445,7 @@ export const useActiveInstruments = () => {
     exchangeId: string,
     forceConvert = false,
   ) => {
-    const ukey = hashInstrumentUKey(instrumentId, exchangeId);
+    const ukey = hashInstrumentUKeyResolved(instrumentId, exchangeId);
     const instrumentResolved = instrumentsMap[ukey];
 
     if (instrumentResolved) {
@@ -1456,18 +1471,10 @@ export const useActiveInstruments = () => {
     instrumentId: string,
     exchangeId: string,
   ) => {
-    const ukey = hashInstrumentUKey(instrumentId, exchangeId);
+    const ukey = hashInstrumentUKeyResolved(instrumentId, exchangeId);
     const watcher = window.watcher as KungfuApi.Watcher;
     const instrument = watcher.ledger.Instrument[ukey];
     if (instrument) return instrument;
-
-    const instruments = watcher.ledger.Instrument.filter(
-      'instrument_id',
-      instrumentId,
-    )
-      .filter('exchange_id', exchangeId)
-      .list();
-    if (instruments.length) return instruments[0];
 
     return null;
   };
@@ -1484,10 +1491,22 @@ export const useActiveInstruments = () => {
     return CurrencyEnum.Unknown;
   };
 
+  const getPriceTickAndPrecision = (
+    instrumentId: string,
+    exchangeId: string,
+    defaultTick = 0.001,
+  ) => {
+    const instrument = getInstrumentByIdsWithWatcher(instrumentId, exchangeId);
+    const price_tick = instrument?.price_tick || defaultTick;
+    const price_precision = countDecimalPlaces(price_tick);
+    return { price_tick, price_precision };
+  };
+
   return {
     getInstrumentByIds,
     getInstrumentByIdsWithWatcher,
     getInstrumentCurrencyByIds,
+    getPriceTickAndPrecision,
   };
 };
 
@@ -1733,7 +1752,13 @@ export const useAllKfConfigData = (): Record<
 > => {
   const allKfConfigData: Record<KfCategoryTypes, KungfuApi.KfLocation[]> =
     reactive({
-      system: ref<(KungfuApi.KfConfig | KungfuApi.KfExtraLocation)[]>([
+      system: ref<
+        (
+          | KungfuApi.KfConfig
+          | KungfuApi.KfExtraLocation
+          | KungfuApi.KfExtServiceLocation
+        )[]
+      >([
         ...(process.env.NODE_ENV === 'development'
           ? [
               {
@@ -1772,7 +1797,6 @@ export const useAllKfConfigData = (): Record<
         },
       ]),
 
-      daemon: [],
       md: [],
       td: [],
       strategy: [],
@@ -1789,8 +1813,8 @@ export const useAllKfConfigData = (): Record<
     allKfConfigData.strategy = strategyList as unknown as KungfuApi.KfConfig[];
     allKfConfigData.operator = operatorList as unknown as KungfuApi.KfConfig[];
 
-    getAvailDaemonList().then((daemonList) => {
-      allKfConfigData.daemon = daemonList;
+    getAvailExtServiceList().then((extServiceList) => {
+      allKfConfigData.system.push(...extServiceList);
     });
   });
 
@@ -2500,5 +2524,32 @@ export const useBasket = () => {
     buildBasketOptionValue,
     parseBasketOptionValue,
     updateBasketData,
+  };
+};
+
+export const useDealDataWithCaches = <T, U>(keys: Array<keyof T>) => {
+  const caches = new Map<string, U>();
+
+  const dealerResolved = (data: T, dealer: () => U): U => {
+    const curKey = keys.map((key) => data[key]).join('_');
+    if (caches.has(curKey)) {
+      const value = caches.get(curKey);
+      if (value) {
+        return value;
+      }
+    }
+
+    const value = dealer();
+    caches.set(curKey, value);
+    return value;
+  };
+
+  const clearCaches = () => {
+    caches.clear();
+  };
+
+  return {
+    dealerResolved,
+    clearCaches,
   };
 };

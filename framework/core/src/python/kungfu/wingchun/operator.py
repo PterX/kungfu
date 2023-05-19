@@ -59,7 +59,9 @@ class Operator(wc.Operator):
             self._module, "on_entrust", lambda ctx, entrust, location, dest_id: None
         )
         self._on_transaction = getattr(
-            self._module, "on_transaction", lambda ctx, transaction, location, dest_id: None
+            self._module,
+            "on_transaction",
+            lambda ctx, transaction, location, dest_id: None,
         )
         self._on_synthetic_data = getattr(
             self._module,
@@ -132,10 +134,14 @@ class Operator(wc.Operator):
         self.__call_proxy(self._on_entrust, self.ctx, entrust, location, dest_id)
 
     def on_transaction(self, wc_context, transaction, location, dest_id):
-        self.__call_proxy(self._on_transaction, self.ctx, transaction, location, dest_id)
+        self.__call_proxy(
+            self._on_transaction, self.ctx, transaction, location, dest_id
+        )
 
     def on_synthetic_data(self, wc_context, synthetic_data, location, dest_id):
-        self.__call_proxy(self._on_synthetic_data, self.ctx, synthetic_data, location, dest_id)
+        self.__call_proxy(
+            self._on_synthetic_data, self.ctx, synthetic_data, location, dest_id
+        )
 
     def on_deregister(self, wc_context, deregister, location):
         self.__call_proxy(self._on_deregister, self.ctx, deregister, location)

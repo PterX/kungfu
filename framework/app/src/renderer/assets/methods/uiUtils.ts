@@ -432,7 +432,11 @@ function getNewWindowLocation(): { x: number; y: number } | null {
 export const openLogView = (
   logPath: string,
 ): Promise<Electron.BrowserWindow> => {
-  return openNewBrowserWindow(__dirname, 'logview', `?logPath=${logPath}`);
+  return openNewBrowserWindow(
+    globalThis.__runtimeDir,
+    'logview',
+    `?logPath=${logPath}`,
+  );
 };
 
 export const openCodeView = (
@@ -441,7 +445,7 @@ export const openCodeView = (
   isEntryFilenameEditable: boolean,
 ): Promise<Electron.BrowserWindow> => {
   return openNewBrowserWindow(
-    __dirname,
+    globalThis.__runtimeDir,
     'code',
     `?id=${id}&filePath=${filePath}&isEntryFilenameEditable=${isEntryFilenameEditable}`,
   );
@@ -452,7 +456,7 @@ export const openJournalView = (
   locationUid: string,
 ): Promise<Electron.BrowserWindow> => {
   return openNewBrowserWindow(
-    __dirname,
+    globalThis.__runtimeDir,
     'journal',
     `?processId=${processId}&locationUid=${locationUid}`,
     {

@@ -7,11 +7,10 @@
 
 #include "serialize_xtp.h"
 
-// struct buffer_XTPOrderInfo {
-//   XTPOrderInfo order_info;
-//   uint64_t session_id;
-//   XTPRI error_info;
-// };
+static constexpr int32_t kXTPOrderInfoType_ = 12340001;
+static constexpr int32_t kXTPTradeReportType_ = 12340002;
+static constexpr int32_t kQueryXTPOrderInfoType_ = 12340003;
+static constexpr int32_t kQueryXTPTradeReportType_ = 12340004;
 
 struct buffer_XTPTradeReport {
   XTPQueryTradeRsp trade_info;

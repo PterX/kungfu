@@ -2,7 +2,7 @@ import { SessionStatusEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import fse from 'fs-extra';
 import path from 'path';
 import { format } from '@fast-csv/format';
-import { dealKfTime } from '@kungfu-trader/kungfu-js-api/kungfu';
+import { dealKfTime, longfist } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { parseURIParams } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import {
   getIdByKfLocation,
@@ -117,23 +117,36 @@ export const dealFrameMsgType = (
 
 export const dealDestOrSource = (
   type: 'source' | 'dest',
-  frameData: KungfuApi.Frame,
+  frame: KungfuApi.Frame,
   sessionMap: Record<number, KungfuApi.KfLocation>,
 ) => {
-  const locationResolved = getSessionLocationById(sessionMap, frameData[type]);
+  const locationResolved = getSessionLocationById(sessionMap, frame[type]);
   const locationId = locationResolved
     ? getIdByKfLocation(locationResolved as KungfuApi.KfLocation)
-    : frameData[type];
+    : frame[type];
 
   return locationId + '';
 };
 
-export const dealFrame = (frame: KungfuApi.Frame): KungfuApi.FrameResolved => {
+export const dealFrame = (
+  frame: KungfuApi.Frame,
+  session: KungfuApi.SessionResolved,
+  locationNameMap: Record<string, string>,
+): KungfuApi.FrameResolved => {
+  const { source, dest, pageId, frameId } = frame;
   return {
     ...frame,
+    id: `${source}_${dest}_${pageId}_${frameId}`,
     genTimeResolved: dealKfTime(frame.genTime, true),
     triggerTimeResolved: dealKfTime(frame.triggerTime, true),
     msgTypeResolved: dealFrameMsgType(frame.msgType),
+    sourceToDest: getSourceToDest(
+      source,
+      dest,
+      session.location_uid,
+      locationNameMap,
+    ),
+    msgTypeName: longfist.msgTypes[+frame.msgType],
   };
 };
 
@@ -205,4 +218,45 @@ export const writeCsvByStream = <T>(
       resolve(true);
     });
   });
+};
+
+export const getSourceToDest = (
+  source: number,
+  dest: number,
+  currentLocationUid: number,
+  locationMap: Record<string, string>,
+): string => {
+  const sourceLocationName = locationMap[source + ''];
+  const destLocationName = locationMap[dest + ''];
+  if (source === currentLocationUid) {
+    return `self -> ${destLocationName}`;
+  } else if (dest === currentLocationUid) {
+    return `${sourceLocationName} -> self`;
+  } else {
+    return `${sourceLocationName} -> ${destLocationName}`;
+  }
+};
+
+export interface FrameHeaderForShow {
+  DataLength: number;
+  GenTime: string;
+  TriggerTime: string;
+  MsgType: string;
+  PageId: number;
+  FrameId: number;
+  SourceToDest: string;
+}
+
+export const buildFrameHeaderForShow = (
+  frame: KungfuApi.FrameResolved,
+): FrameHeaderForShow => {
+  return {
+    DataLength: frame.dataLength,
+    GenTime: frame.genTimeResolved,
+    TriggerTime: frame.triggerTimeResolved,
+    MsgType: frame.msgTypeName || frame.msgType,
+    PageId: frame.pageId,
+    FrameId: frame.frameId,
+    SourceToDest: frame.sourceToDest || `${frame.source} -> ${frame.dest}`,
+  };
 };

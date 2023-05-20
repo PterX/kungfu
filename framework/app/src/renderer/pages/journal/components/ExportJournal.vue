@@ -124,7 +124,6 @@ const handleConfirmExport = () => {
           }
 
           const headers = Object.keys(exportData[0]).filter((item, _, arr) => {
-            if (item === 'dataResolved') return false;
             if (item === 'data') return true;
             if (item.indexOf('Resolved') !== -1) return true;
             return arr.indexOf(`${item}Resolved`) === -1;

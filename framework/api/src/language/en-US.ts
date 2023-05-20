@@ -539,8 +539,8 @@ export default {
     source: 'source',
     gen_time: 'gen_time',
     trigger_time: 'trigger_time',
-    current_page_id: 'currentPageId',
-    current_frame_id: 'currentFrameId',
+    page_id: 'PageId',
+    frame_id: 'FrameId',
     msg_type: 'msg_type',
     msg_details: 'msg_details',
 

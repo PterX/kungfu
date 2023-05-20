@@ -335,6 +335,7 @@ export enum FrameMsgTypeEnum {
   ChannelRequest = 10306,
   RequestWriteToBand = 10307,
   Band = 10308,
+  RequestReadFromOthers = 10309,
   ResetBookRequest = 10401,
   MirrorPositionsRequest = 10402,
   KeepPositionsRequest = 10403,

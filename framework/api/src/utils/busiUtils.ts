@@ -32,6 +32,7 @@ import {
   T0InstrumentTypes,
   T0ExchangeIds,
   PriceLevel,
+  InstrumentMinOrderVolume,
 } from '../config/tradingConfig';
 import {
   KfCategoryEnum,
@@ -57,13 +58,14 @@ import {
   StrategyStateStatusEnum,
   UnderweightEnum,
   PriceLevelEnum,
+  CurrencyEnum,
+  HistoryDateEnum,
 } from '../typings/enums';
 import {
   graceDeleteProcess,
   Pm2ProcessStatusData,
   Pm2ProcessStatusDetail,
   Pm2ProcessStatusDetailData,
-  startCacheD,
   startExtDaemon,
   startLedger,
   startMaster,
@@ -82,7 +84,11 @@ import minimist from 'minimist';
 import VueI18n, { useLanguage } from '../language';
 import { unlinkSync } from 'fs-extra';
 import { T0T1Config } from '../typings/global';
+import { getKfGlobalSettingsValue } from '../config/globalSettings';
+import { Currency } from '../config/tradingConfig';
 const { t } = VueI18n.global;
+import { Observable } from 'rxjs';
+
 interface SourceAccountId {
   source: string;
   id: string;
@@ -309,6 +315,39 @@ export const loopToRunProcess = async <T>(
   return resList;
 };
 
+export const getResultUntilValuable = <T>(
+  getter: (...args) => T | false,
+  timeout = 5000,
+): Promise<T> => {
+  return new Promise((resolve, reject) => {
+    let count = 0;
+    const getterResolved = () => {
+      setTimeout(() => {
+        try {
+          const result = getter();
+          if (result) {
+            resolve(result);
+          } else {
+            if (++count * 16 > timeout) {
+              reject(new Error('GetResultUntilValuable Timeout'));
+            } else {
+              getterResolved();
+            }
+          }
+        } catch (err) {
+          if (++count * 16 > timeout) {
+            reject(err);
+          } else {
+            getterResolved();
+          }
+        }
+      }, 16);
+    };
+
+    getterResolved();
+  });
+};
+
 export const delayMilliSeconds = (miliSeconds: number): Promise<void> => {
   return new Promise((resolve) => {
     const timer = setTimeout(() => {
@@ -348,6 +387,39 @@ export const buildObjectFromArray = <T>(
     }
     return item1;
   }, {} as Record<string | number, T | T[keyof T] | undefined>);
+};
+
+export const mergeObject = (
+  targetObj: Record<string, KungfuApi.KfConfigValue>,
+  sourceObj: Record<string, KungfuApi.KfConfigValue>,
+) => {
+  if (typeof targetObj !== 'object' || typeof sourceObj !== 'object')
+    return targetObj;
+
+  const allKeys = Array.from(
+    new Set([...Object.keys(targetObj), ...Object.keys(sourceObj)]),
+  );
+
+  allKeys.forEach((key) => {
+    if (key in targetObj) {
+      if (key in sourceObj) {
+        if (
+          typeof targetObj[key] === 'object' &&
+          typeof sourceObj[key] === 'object'
+        ) {
+          targetObj[key] = mergeObject(targetObj[key], sourceObj[key]);
+        } else {
+          targetObj[key] = sourceObj[key];
+        }
+      }
+    } else {
+      if (key in sourceObj) {
+        targetObj[key] = sourceObj[key];
+      }
+    }
+  });
+
+  return targetObj;
 };
 
 export const getInstrumentTypeData = (
@@ -812,15 +884,38 @@ export const removeArchiveBeforeToday = (
   const todayArchive = `KFA-${year}-${dealDateDayOrMonth(
     month,
   )}-${dealDateDayOrMonth(day)}.zip`;
-  return removeTargetFilesInFolder(targetFolder, ['.zip'], [todayArchive]);
+  return removeTargetFilesInFolder(targetFolder, ['.zip'], [todayArchive]).then(
+    (res) => {
+      res.errors.forEach((err) => kfLogger.error(err));
+    },
+  );
+};
+
+export const removeTodayArchive = (targetFolder: string): Promise<void> => {
+  const today = dayjs();
+  const year = today.year();
+  const month = today.month() + 1;
+  const day = today.date();
+  const todayArchive = `KFA-${year}-${dealDateDayOrMonth(
+    month,
+  )}-${dealDateDayOrMonth(day)}.zip`;
+  return removeTargetFilesInFolder(targetFolder, [todayArchive]).then((res) => {
+    res.errors.forEach((err) => kfLogger.error(err));
+  });
 };
 
 export const removeJournal = (targetFolder: string): Promise<void> => {
-  return removeTargetFilesInFolder(targetFolder, ['.journal']);
+  return removeTargetFilesInFolder(targetFolder, ['.journal']).then((res) => {
+    res.errors.forEach((err) => kfLogger.error(err));
+  });
 };
 
 export const removeDB = (targetFolder: string): Promise<void> => {
-  return removeTargetFilesInFolder(targetFolder, ['.db'], ['config.db']);
+  return removeTargetFilesInFolder(targetFolder, ['.db'], ['config.db']).then(
+    (res) => {
+      res.errors.forEach((err) => kfLogger.error(err));
+    },
+  );
 };
 
 export const getProcessIdByKfLocation = (
@@ -957,9 +1052,7 @@ const getSystemKfLocationProcessId = (processId: string) => {
       name: processId,
       mode: 'live',
     };
-  } else if (
-    ['ledger', 'archive', 'cached', 'dzxy'].indexOf(processId) !== -1
-  ) {
+  } else if (['ledger', 'archive', 'dzxy'].indexOf(processId) !== -1) {
     return {
       category: 'system',
       group: 'service',
@@ -1107,7 +1200,7 @@ export const getPropertyFromProcessStatusDetailDataByKfLocation = (
   };
 };
 
-export class KfNumList<T> {
+export class KfFixedList<T> {
   list: T[];
   limit: number;
 
@@ -1145,9 +1238,9 @@ export const buildIdByKeysFromKfConfigSettings = (
   keys: string[],
 ) => {
   return keys
-    .map((key) => kfConfigState[key])
+    .map((key) => replaceNonAlphaNumericWithSpace(kfConfigState[key]))
     .filter((value) => value !== undefined)
-    .join('_');
+    .join('-');
 };
 
 const startProcessByKfLocation = async (
@@ -1168,8 +1261,6 @@ const startProcessByKfLocation = async (
         return startMaster(isForce);
       } else if (kfLocation.name === 'ledger') {
         return startLedger(isForce);
-      } else if (kfLocation.name === 'cached') {
-        return startCacheD(isForce);
       }
       break;
     case 'td':
@@ -1325,20 +1416,58 @@ export const isKfColor = (color: string) => color.startsWith('kf-color');
 export const isHexOrRgbColor = (color: string) =>
   color.startsWith('#') || color.startsWith('rgb') || color.startsWith('rgba');
 
+export const dealMillionSencond2NanoSecond = (ms: number | bigint) =>
+  BigInt(ms) * 1000000n;
+
+export const dealDateToNanotimeRange = (
+  date: string | number,
+  dateType = HistoryDateEnum.naturalDate,
+): {
+  from: bigint;
+  to: bigint;
+} | null => {
+  const day = dayjs(date);
+  if (!day.isValid()) return null;
+
+  const dayOfWeek = day.day();
+  const isTradingDay = dateType === HistoryDateEnum.tradingDate;
+
+  const startTime = (
+    isTradingDay
+      ? day.add(dayOfWeek === 1 ? -3 : -1, 'day').hour(15) // last trading day 15:00
+      : day.hour(0)
+  )
+    .minute(0)
+    .second(0);
+  const from = dealMillionSencond2NanoSecond(startTime.valueOf());
+  const endTime = (isTradingDay ? day.hour(15) : day.add(1, 'day').hour(0))
+    .minute(0)
+    .second(0);
+  const to = dealMillionSencond2NanoSecond(endTime.valueOf());
+
+  return {
+    from,
+    to,
+  };
+};
+
 export const dealKfNumber = (
   preNumber: bigint | number | undefined | unknown,
 ): string | number | bigint | unknown => {
-  if (preNumber === undefined) return '--';
-  if (preNumber === null) return '--';
-
-  if (Number.isNaN(Number(preNumber))) {
+  if (
+    preNumber === undefined ||
+    preNumber === null ||
+    preNumber === Infinity ||
+    Number.isNaN(Number(preNumber))
+  )
     return '--';
-  }
+
   return preNumber;
 };
 
 export const dealKfPrice = (
   preNumber: bigint | number | undefined | null | unknown,
+  pricePrecision?: number,
 ): string => {
   const afterNumber = dealKfNumber(preNumber);
 
@@ -1346,11 +1475,12 @@ export const dealKfPrice = (
     return afterNumber;
   }
 
-  return Number(afterNumber).toFixed(4);
+  return Number(afterNumber).toFixed(pricePrecision ?? 3);
 };
 
 export const dealAssetPrice = (
   preNumber: bigint | number | undefined | unknown,
+  pricePrecision?: number,
 ): string => {
   const afterNumber = dealKfNumber(preNumber);
 
@@ -1358,12 +1488,24 @@ export const dealAssetPrice = (
     return afterNumber;
   }
 
-  return Number(afterNumber).toFixed(2);
+  return Number(afterNumber).toFixed(pricePrecision ?? 3);
 };
 
 export const sum = (list: number[]): number => {
   if (!list.length) return 0;
   return list.reduce((accumlator, a) => accumlator + +a);
+};
+
+export const dealVolumeByInstrumentType = (
+  volume: number,
+  instrumentType: InstrumentTypeEnum,
+) => {
+  const minOrderVolume = InstrumentMinOrderVolume[instrumentType] || 1;
+  const orderVolume = Math.max(volume, minOrderVolume);
+
+  if (instrumentType === InstrumentTypeEnum.techstock) return orderVolume;
+
+  return ~~(orderVolume / minOrderVolume) * minOrderVolume;
 };
 
 export const dealSide = (
@@ -1463,6 +1605,10 @@ export const dealIsSwap = (isSwap: boolean) => {
 
 export const dealUnderweightType = (underweightType: UnderweightEnum) => {
   return UnderweightType[+underweightType as UnderweightEnum];
+};
+
+export const dealCurrency = (currency: CurrencyEnum | number) => {
+  return Currency[+currency as CurrencyEnum];
 };
 
 export const getKfCategoryData = (
@@ -1790,15 +1936,40 @@ export const getPrimaryKeys = (
 ): string[] => {
   return settings.filter((item) => item.primary).map((item) => item.key);
 };
+export const replaceNonAlphaNumericWithSpace = (str: string) => {
+  return str.replace(/[^a-zA-Z0-9]+/g, '');
+};
+const concatPrimaryKey = (arr: string[]) => {
+  if (arr.length === 0) return '';
+
+  let result = arr[0];
+
+  if (arr.length > 1) {
+    result += '_' + arr[1];
+  }
+
+  if (arr.length > 2) {
+    for (let i = 2; i < arr.length; i++) {
+      result += '-' + arr[i];
+    }
+  }
+
+  return result;
+};
 
 export const getCombineValueByPrimaryKeys = (
   primaryKeys: string[],
   formState: Record<string, KungfuApi.KfConfigValue>,
   extraValue = '',
 ) => {
-  return [extraValue || '', ...primaryKeys.map((key) => formState[key])]
-    .filter((item) => item !== '')
-    .join('_');
+  return concatPrimaryKey(
+    [
+      extraValue || '',
+      ...primaryKeys.map((key) =>
+        replaceNonAlphaNumericWithSpace(formState[key]),
+      ),
+    ].filter((item) => item !== ''),
+  );
 };
 
 export const transformSearchInstrumentResultToInstrument = (
@@ -1885,15 +2056,47 @@ export const KfConfigValueArrayType = [
   'instrumentsCsv',
   'table',
   'csvTable',
+  'rangePicker',
 ];
 
-export const initFormTimePicker = (initValue?: string) => {
-  if (typeof initValue !== 'string') return null;
+export const KfConfigValueTimeType = [
+  'rangePicker',
+  'dateTimePicker',
+  'datePicker',
+  'timePicker',
+];
 
-  if (initValue === 'now') {
-    return dayjs().format('YYYY-MM-DD HH:mm:ss');
-  } else if (/\d{2}:\d{2}:\d{2}/.test(initValue)) {
-    return dayjs(initValue, 'HH:mm:ss').format('YYYY-MM-DD HH:mm:ss');
+export const initFormTimePicker = (initValue?: string | string[]) => {
+  if (typeof initValue !== 'string' && !Array.isArray(initValue)) return null;
+
+  if (typeof initValue === 'string') {
+    let parsedValue: dayjs.Dayjs | null = null;
+
+    if (initValue === 'now') {
+      parsedValue = dayjs();
+    } else if (/^\d{2}:\d{2}:\d{2}$/.test(initValue)) {
+      parsedValue = dayjs(initValue, 'HH:mm:ss');
+      if (parsedValue) return parsedValue.format('YYYY-MM-DD HH:mm:ss');
+    } else if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(initValue)) {
+      parsedValue = dayjs(initValue, 'YYYY-MM-DD HH:mm:ss');
+      if (parsedValue) return parsedValue.format('YYYY-MM-DD HH:mm:ss');
+    } else if (/^\d{4}-\d{2}-\d{2}$/.test(initValue)) {
+      parsedValue = dayjs(initValue, 'YYYY-MM-DD');
+      if (parsedValue) return parsedValue.format('YYYY-MM-DD');
+    }
+  } else if (Array.isArray(initValue)) {
+    let parsedStartValue: dayjs.Dayjs | null = null;
+    let parsedEndValue: dayjs.Dayjs | null = null;
+    const [start, end] = initValue;
+    parsedStartValue = dayjs(start, 'YYYY-MM-DD HH:mm:ss');
+    parsedEndValue = dayjs(end, 'YYYY-MM-DD HH:mm:ss');
+
+    if (parsedStartValue && parsedEndValue) {
+      return [
+        parsedStartValue.format('YYYY-MM-DD HH:mm:ss'),
+        parsedEndValue.format('YYYY-MM-DD HH:mm:ss'),
+      ];
+    }
   }
 
   return null;
@@ -1910,6 +2113,7 @@ export const initFormStateByConfig = (
     const isBoolean = KfConfigValueBooleanType.includes(type);
     const isNumber = KfConfigValueNumberType.includes(type);
     const isArray = KfConfigValueArrayType.includes(type);
+    const isTime = KfConfigValueTimeType.includes(type);
 
     let defaultValue;
 
@@ -1918,7 +2122,7 @@ export const initFormStateByConfig = (
         ? false
         : isNumber
         ? 0
-        : type === 'timePicker'
+        : isTime
         ? null
         : isArray
         ? []
@@ -1959,8 +2163,8 @@ export const initFormStateByConfig = (
           defaultValue = [];
         }
       }
-    } else if (item.type === 'timePicker') {
-      defaultValue = initFormTimePicker(item?.default);
+    } else if (KfConfigValueTimeType.includes(type)) {
+      defaultValue = initFormTimePicker(defaultValue);
     }
 
     formState[item.key] = defaultValue;
@@ -2106,6 +2310,8 @@ export const dealByConfigItemType = (
       return dealDirection(+value as DirectionEnum).name;
     case 'priceType':
       return dealPriceType(+value as PriceTypeEnum).name;
+    case 'priceLevel':
+      return dealPriceLevel(+value as PriceLevelEnum).name;
     case 'hedgeFlag':
       return dealHedgeFlag(+value as HedgeFlagEnum).name;
     case 'volumeCondition':
@@ -2173,6 +2379,7 @@ export const fromProcessArgsToKfConfigItems = (
 export const getTaskListFromProcessStatusData = (
   taskPrefixs: string[],
   psDetail: Pm2ProcessStatusDetailData,
+  sorter?: (a: Pm2ProcessStatusDetail, b: Pm2ProcessStatusDetail) => number,
 ): Pm2ProcessStatusDetail[] => {
   return Object.keys(psDetail)
     .filter((processId) => {
@@ -2183,11 +2390,15 @@ export const getTaskListFromProcessStatusData = (
       );
     })
     .map((processId) => psDetail[processId])
-    .sort((a, b) => {
-      const aCreateTime = +(a.name?.toKfName() || 0);
-      const bCreateTime = +(b.name?.toKfName() || 0);
-      return aCreateTime - bCreateTime;
-    });
+    .sort(
+      sorter
+        ? sorter
+        : (a, b) => {
+            const aCreateTime = +(a.name?.toKfName() || 0);
+            const bCreateTime = +(b.name?.toKfName() || 0);
+            return aCreateTime - bCreateTime;
+          },
+    );
 };
 
 export function dealTradingTaskName(
@@ -2247,3 +2458,44 @@ export const dealCmdPath = (pathname: string) => {
   }
   return pathname;
 };
+
+export const isUpdateVersionLogicEnable = () => {
+  const packageJson = readRootPackageJsonSync();
+  return !!packageJson?.kungfuCraft?.autoUpdate?.update;
+};
+
+export const isCheckVersionLogicEnable = () => {
+  const updateVersionLogicEnable = isUpdateVersionLogicEnable();
+  const globalSetting = getKfGlobalSettingsValue();
+  return updateVersionLogicEnable && !!globalSetting?.update?.isCheckVersion;
+};
+
+export const buildIfWatcherLiveObservable = (watcher: KungfuApi.Watcher) => {
+  let timer; // for ui refresh
+  return new Observable<boolean>((sub) => {
+    timer = setTimerPromiseTask(async () => {
+      if (watcher.isLive()) {
+        sub.next(true);
+        sub.complete();
+        timer && timer.clearLoop();
+      }
+    }, 1000);
+  });
+};
+
+export function countDecimalPlaces(num) {
+  const normalNum = Number(num).toFixed(10);
+  const numStr = String(normalNum)
+    .replace(/(\.\d*?[1-9])0+$/, '$1')
+    .replace(/\.0+$/, '');
+  const match = numStr.match(/(?:\.(\d+))?$/);
+  if (!match) {
+    return 0;
+  }
+  return match[1] ? match[1].length : 0;
+}
+
+export function roundToDecimalPlaces(num: number, precision: number) {
+  const multiplier = Math.pow(10, precision);
+  return Math.round(num * multiplier) / multiplier;
+}

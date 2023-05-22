@@ -21,6 +21,10 @@ public:
 
   bool is_usable() override { return publisher_ and observer_ and publisher_->is_usable() and observer_->is_usable(); }
 
+  bool is_lazy() { return lazy_; }
+
+  bool is_low_latency() { return low_latency_; }
+
   void setup() override {
     publisher_->setup();
     observer_->setup();
@@ -37,10 +41,11 @@ public:
   [[nodiscard]] bool is_cleaner_required() const {
     return low_latency_ && lazy_ && home_->mode == kungfu::longfist::enums::mode::LIVE;
   }
+  const journal::bus_ptr &get_bus() const { return bus_; }
 
   journal::reader_ptr open_reader_to_subscribe();
 
-  journal::reader_ptr open_reader(const data::location_ptr &location, uint32_t dest_id);
+  [[maybe_unused]] journal::reader_ptr open_reader(const data::location_ptr &location, uint32_t dest_id);
 
   journal::writer_ptr open_writer(uint32_t dest_id);
 
@@ -60,6 +65,7 @@ protected:
   nanomsg::url_factory_ptr url_factory_;
   publisher_ptr publisher_;
   observer_ptr observer_;
+  journal::bus_ptr bus_;
 };
 
 DECLARE_PTR(io_device)
@@ -86,9 +92,9 @@ class io_device_console : public io_device {
 public:
   io_device_console(data::location_ptr home, int32_t console_width, int32_t console_height);
 
-  void trace(int64_t begin_time, int64_t end_time, bool in, bool out, std::string csv);
+  [[maybe_unused]] void trace(int64_t begin_time, int64_t end_time, bool in, bool out, std::string csv);
 
-  void show(int64_t begin_time, int64_t end_time, bool in, bool out, std::string csv);
+  [[maybe_unused]] void show(int64_t begin_time, int64_t end_time, bool in, bool out, std::string csv);
 
 private:
   int32_t console_width_;

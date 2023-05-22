@@ -45,11 +45,7 @@ exports.build = () => {
 
 exports.package = async () => {
   const buildDir = ensureDir(process.cwd().toString(), 'build');
-  try {
-    await require('@kungfu-trader/kungfu-app').electronBuild(buildDir);
-  } catch (err) {
-    console.warn(err);
-  }
+  await require('@kungfu-trader/kungfu-app').electronBuild(buildDir);
 };
 
 exports.dev = async (withWebpack) => {

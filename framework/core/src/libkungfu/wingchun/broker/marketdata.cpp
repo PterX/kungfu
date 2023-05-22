@@ -8,6 +8,7 @@
 
 using namespace kungfu::rx;
 using namespace kungfu::longfist::types;
+using namespace kungfu::longfist::enums;
 using namespace kungfu::yijinjing::practice;
 using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
@@ -29,7 +30,7 @@ void MarketDataVendor::on_start() {
   events_ | is(CustomSubscribe::tag) | $$(service_->subscribe_custom(event->data<CustomSubscribe>()));
   events_ | is(InstrumentKey::tag) | $$(service_->add_instrument_key(event->data<InstrumentKey>()));
   events_ | is(Band::tag) | $$(service_->on_band(event));
-  events_ | instanceof <journal::frame>() | $$(service_->on_custom_event(event));
+  events_ | is_custom() | $$(service_->on_custom_event(event));
   service_->on_start();
 
   add_time_interval(time_unit::NANOSECONDS_PER_SECOND, [&](auto e) { service_->try_subscribe(); });
@@ -37,15 +38,11 @@ void MarketDataVendor::on_start() {
 
 BrokerService_ptr MarketDataVendor::get_service() { return service_; }
 
-void MarketDataVendor::on_trading_day(const event_ptr &event, int64_t daytime) {
-  service_->on_trading_day(event, daytime);
-}
-
-bool MarketData::has_instrument(const std::string &instrument_id) const {
+[[maybe_unused]] bool MarketData::has_instrument(const std::string &instrument_id) const {
   return instruments_.find(instrument_id) != instruments_.end();
 }
 
-const Instrument &MarketData::get_instrument(const std::string &instrument_id) const {
+[[maybe_unused]] const Instrument &MarketData::get_instrument(const std::string &instrument_id) const {
   return instruments_.at(instrument_id);
 }
 

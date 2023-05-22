@@ -7,7 +7,7 @@
 #ifndef KUNGFU_MASTER_H
 #define KUNGFU_MASTER_H
 
-#include <kungfu/yijinjing/cache/profile.h>
+#include <kungfu/yijinjing/cache/cached.h>
 #include <kungfu/yijinjing/io.h>
 #include <kungfu/yijinjing/journal/common.h>
 #include <kungfu/yijinjing/practice/hero.h>
@@ -23,7 +23,7 @@ struct timer_task {
 
 class master : public hero {
 public:
-  explicit master(yijinjing::data::location_ptr home, bool low_latency = false);
+  explicit master(yijinjing::data::location_ptr home, bool low_latency = false, bool bypass_cached = false);
 
   void on_exit() override;
 
@@ -39,24 +39,23 @@ public:
 
   virtual void on_interval_check(int64_t nanotime) = 0;
 
-  virtual int64_t acquire_trading_day() = 0;
-
-  void publish_trading_day();
-
   void register_app(const event_ptr &event);
 
-  void deregister_app(int64_t trigger_time, uint32_t app_location_uid);
+  [[maybe_unused]] void deregister_app(int64_t trigger_time, uint32_t app_location_uid);
+
+  void on_request_deregister(const event_ptr &event);
 
 protected:
   void react() final;
 
   void on_active() final;
 
+  void on_frame() final;
+
 private:
   int64_t start_time_;
   int64_t last_check_;
-  index::session_builder session_builder_;
-  cache::profile profile_;
+  yijinjing::cache::cached cached_;
 
   std::unordered_map<uint32_t, uint32_t> app_cmd_locations_ = {};
   std::unordered_map<uint32_t, std::unordered_map<int32_t, timer_task>> timer_tasks_ = {};
@@ -64,8 +63,6 @@ private:
   void handle_timer_tasks();
 
   void try_add_location(int64_t trigger_time, const data::location_ptr &app_location);
-
-  void check_cached_ready_to_read(const event_ptr &event);
 
   void feed(const event_ptr &event);
 
@@ -89,9 +86,7 @@ private:
 
   void on_new_location(const event_ptr &event);
 
-  void write_time_reset(int64_t trigger_time, const journal::writer_ptr &writer);
-
-  void write_trading_day(int64_t trigger_time, const journal::writer_ptr &writer);
+  static void write_time_reset(int64_t trigger_time, const journal::writer_ptr &writer);
 
   void write_locations(int64_t trigger_time, const journal::writer_ptr &writer);
 

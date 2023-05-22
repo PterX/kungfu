@@ -66,9 +66,52 @@ export function viewAllJournal(mainWindow: BrowserWindow): void {
   sendMsgToMainWindow(mainWindow, 'view-all-journal');
 }
 
-function sendMsgToMainWindow(mainWindow: BrowserWindow, msg: string): void {
+export function foundNewVersion(
+  mainWindow: BrowserWindow,
+  newVersion: string,
+): void {
+  sendMsgToMainWindow(mainWindow, 'auto-update-find-new-version', {
+    newVersion,
+  });
+}
+
+export function startDownloadNewVersion(mainWindow: BrowserWindow): void {
+  sendMsgToMainWindow(mainWindow, 'auto-update-start-download');
+}
+
+export function downloadProcessUpdate(
+  mainWindow: BrowserWindow,
+  process: number,
+): void {
+  sendMsgToMainWindow(
+    mainWindow,
+    'auto-update-download-process',
+    { process },
+    { slient: true },
+  );
+}
+
+export function updateNotAvailable(mainWindow: BrowserWindow): void {
+  sendMsgToMainWindow(mainWindow, 'auto-update-up-to-date', { slient: true });
+}
+
+export function sendUpdatingError(
+  mainWindow: BrowserWindow,
+  error: Error,
+): void {
+  sendMsgToMainWindow(mainWindow, 'auto-update-error', { error });
+}
+
+function sendMsgToMainWindow(
+  mainWindow: BrowserWindow,
+  msg: string,
+  payload: object = {},
+  options?: {
+    slient?: boolean;
+  },
+): void {
   if (mainWindow && !mainWindow.isDestroyed() && mainWindow.webContents) {
-    mainWindow.webContents.send('main-process-messages', msg);
-    mainWindow.focus();
+    mainWindow.webContents.send('main-process-messages', msg, payload);
+    !options?.slient && mainWindow.focus();
   }
 }

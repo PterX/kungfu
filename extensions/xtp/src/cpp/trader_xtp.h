@@ -18,9 +18,9 @@ public:
 
   ~TraderXTP() override;
 
-  [[nodiscard]] AccountType get_account_type() const override { return AccountType::Stock; }
-
-  void on_trading_day(const event_ptr &event, int64_t daytime) override;
+  [[nodiscard]] longfist::enums::AccountType get_account_type() const override {
+    return longfist::enums::AccountType::Stock;
+  }
 
   void on_start() override;
 
@@ -37,6 +37,8 @@ public:
   bool req_history_order(const event_ptr &event) override;
 
   bool req_history_trade(const event_ptr &event) override;
+
+  void on_recover() override;
 
   /// 当客户端的某个连接与交易后台通信连接断开时，该方法被调用。
   ///@param reason 错误原因，请与错误代码表对应
@@ -201,12 +203,17 @@ private:
   XTP::API::TraderApi *api_{};
   uint64_t session_id_;
   int request_id_;
-  std::string trading_day_;
-  std::unordered_map<uint64_t, uint64_t> inbound_orders_;
-  std::unordered_map<uint64_t, uint64_t> outbound_orders_;
+  std::unordered_map<uint64_t, uint64_t> map_kf_to_xtp_order_id_;
+  std::unordered_map<uint64_t, uint64_t> map_xtp_to_kf_order_id_;
   std::unordered_map<uint64_t, uint64_t> map_request_location_;
+  std::unordered_map<uint64_t, std::set<std::string>> map_xtp_order_id_to_xtp_trader_ids_;
 
   yijinjing::journal::writer_ptr get_history_writer(uint64_t request_id);
+
+  bool req_order_trade();
+  void try_ready();
+  bool req_order_over_{false};
+  bool req_trade_over_{false};
 };
 } // namespace kungfu::wingchun::xtp
 #endif // KUNGFU_XTP_EXT_TRADER_H

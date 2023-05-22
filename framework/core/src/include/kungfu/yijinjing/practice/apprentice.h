@@ -19,11 +19,20 @@ class cleaner {
 public:
   explicit cleaner(yijinjing::practice::apprentice &app);
 
+  virtual ~cleaner();
+
+  void on_react();
+
 private:
   yijinjing::practice::apprentice &app_;
-  std::thread cleaning_thread_;
+  std::thread cleaning_worker_;
+  std::mutex cv_mutex_;
+  std::mutex quite_mutex_;
+  bool m_quit_ = false;
 
   void do_clean();
+
+  bool is_cleaner_worker_required() const;
 };
 
 class apprentice : public hero {
@@ -34,13 +43,11 @@ public:
 
   void pause();
 
-  uint32_t get_master_commands_uid() const;
+  uint32_t get_master_command_uid() const;
 
   int64_t get_last_active_time() const;
 
   int64_t get_checkin_time() const;
-
-  int64_t get_trading_day() const;
 
   const cache::bank &get_state_bank() const;
 
@@ -59,29 +66,29 @@ public:
 
   uint32_t request_band(const std::string &band_name);
 
-  void request_cached_reader_writer();
-
-  void request_cached(uint32_t source_id);
-
   void add_timer(int64_t nanotime, const std::function<void(const event_ptr &)> &callback);
 
   void add_time_interval(int64_t nanotime, const std::function<void(const event_ptr &)> &callback);
-
-  virtual void on_trading_day(const event_ptr &event, int64_t daytime);
 
   template <typename DataType>
   void write_to(int64_t trigger_time, DataType &data, uint32_t dest_id = yijinjing::data::location::PUBLIC) {
     get_writer(dest_id)->write(trigger_time, data);
   }
 
-  void release_page();
+  bool release_page();
 
 protected:
   cache::bank state_bank_;
 
+  friend void add_location(yijinjing::practice::apprentice &app, const yijinjing::data::location_ptr &location) {
+    app.add_location(app.now(), location);
+  }
+
   void react() override;
 
   void on_active() override;
+
+  void on_frame() override;
 
   virtual void on_react();
 
@@ -92,8 +99,6 @@ protected:
   void on_deregister(const event_ptr &event);
 
   void on_read_from(const event_ptr &event);
-
-  void on_cached_ready_to_read();
 
   void on_read_from_public(const event_ptr &event);
 
@@ -106,11 +111,12 @@ protected:
   [[maybe_unused]] int get_observer_recv_timeout() const;
 
   std::function<rx::observable<event_ptr>(rx::observable<event_ptr>)> timer(int64_t nanotime) {
-    auto writer = get_writer(master_cmd_location_->uid);
+    auto writer = get_writer(get_master_command_uid());
     int32_t timer_usage_count = timer_usage_count_;
     int64_t duration_ns = nanotime - now();
-    longfist::types::TimeRequest &r = writer->open_data<longfist::types::TimeRequest>(0);
+    longfist::types::TimeRequest &r = writer->open_data<longfist::types::TimeRequest>(now());
     r.id = timer_usage_count;
+    r.base_time = now();
     r.duration = duration_ns;
     r.repeat = 1;
     writer->close_data();
@@ -128,10 +134,11 @@ protected:
   template <typename Duration, typename Enabled = rx::is_duration<Duration>>
   std::function<rx::observable<event_ptr>(rx::observable<event_ptr>)> time_interval(Duration &&d) {
     auto duration_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(d).count();
-    auto writer = get_writer(master_cmd_location_->uid);
+    auto writer = get_writer(get_master_command_uid());
     int32_t timer_usage_count = timer_usage_count_;
-    longfist::types::TimeRequest &r = writer->open_data<longfist::types::TimeRequest>(0);
+    longfist::types::TimeRequest &r = writer->open_data<longfist::types::TimeRequest>(now());
     r.id = timer_usage_count;
+    r.base_time = now();
     r.duration = duration_ns;
     r.repeat = 1;
     writer->close_data();
@@ -141,9 +148,10 @@ protected:
       return events_ | rx::filter([&, duration_ns, timer_usage_count](const event_ptr &event) {
                if (event->msg_type() == longfist::types::Time::tag &&
                    event->gen_time() > timer_checkpoints_[timer_usage_count] + duration_ns) {
-                 auto writer = get_writer(master_cmd_location_->uid);
-                 longfist::types::TimeRequest &r = writer->open_data<longfist::types::TimeRequest>(0);
+                 auto writer = get_writer(get_master_command_uid());
+                 longfist::types::TimeRequest &r = writer->open_data<longfist::types::TimeRequest>(now());
                  r.id = timer_usage_count;
+                 r.base_time = now();
                  r.duration = duration_ns;
                  r.repeat = 1;
                  writer->close_data();
@@ -159,10 +167,11 @@ protected:
   template <typename Duration, typename Enabled = rx::is_duration<Duration>>
   std::function<rx::observable<event_ptr>(rx::observable<event_ptr>)> timeout(Duration &&d) {
     auto duration_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(d).count();
-    auto writer = get_writer(master_cmd_location_->uid);
+    auto writer = get_writer(get_master_command_uid());
     int32_t timer_usage_count = timer_usage_count_;
-    longfist::types::TimeRequest &r = writer->open_data<longfist::types::TimeRequest>(0);
+    longfist::types::TimeRequest &r = writer->open_data<longfist::types::TimeRequest>(now());
     r.id = timer_usage_count;
+    r.base_time = now();
     r.duration = duration_ns;
     r.repeat = 1;
     writer->close_data();
@@ -171,9 +180,10 @@ protected:
     return [&, duration_ns, timer_usage_count](const rx::observable<event_ptr> &src) {
       return (src | rx::filter([&, duration_ns, timer_usage_count](const event_ptr &event) {
                 if (event->msg_type() != longfist::types::Time::tag) {
-                  auto writer = get_writer(master_cmd_location_->uid);
-                  longfist::types::TimeRequest &r = writer->open_data<longfist::types::TimeRequest>(0);
+                  auto writer = get_writer(get_master_command_uid());
+                  longfist::types::TimeRequest &r = writer->open_data<longfist::types::TimeRequest>(now());
                   r.id = timer_usage_count;
+                  r.base_time = now();
                   r.duration = duration_ns;
                   r.repeat = 1;
                   writer->close_data();
@@ -196,7 +206,6 @@ private:
   bool started_ = false;
   int64_t last_active_time_ = INT64_MIN;
   int64_t checkin_time_ = INT64_MIN;
-  int64_t trading_day_ = 0;
   int32_t timer_usage_count_ = 0;
   yijinjing::practice::cleaner cleaner_;
   std::unordered_map<int, int64_t> timer_checkpoints_ = {};

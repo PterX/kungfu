@@ -44,8 +44,6 @@ public:
   void set_accounting_method(longfist::enums::InstrumentType instrument_type,
                              const AccountingMethod_ptr &accounting_method);
 
-  void on_trading_day(int64_t daytime);
-
   void on_start(const rx::connectable_observable<event_ptr> &events);
 
   void on_order_input(int64_t update_time, uint32_t source, uint32_t dest, const longfist::types::OrderInput &input);
@@ -64,6 +62,8 @@ public:
 
   void try_update_position_end(const longfist::types::PositionEnd &position_end);
 
+  longfist::enums::AccountingMethodType get_accounting_method_type() { return account_method_type_; }
+
   template <typename TradingData, typename ApplyMethod = void (AccountingMethod::*)(Book_ptr, const TradingData &)>
   void update_book(const event_ptr &event, ApplyMethod method) {
     update_book(event->gen_time(), event->source(), event->dest(), event->data<TradingData>(), method);
@@ -71,6 +71,8 @@ public:
 
   template <typename TradingData, typename ApplyMethod = void (AccountingMethod::*)(Book_ptr, const TradingData &)>
   void update_book(int64_t update_time, uint32_t source, uint32_t dest, const TradingData &data, ApplyMethod method) {
+    std::lock_guard<std::mutex> lock(update_book_mutex_);
+
     if (accounting_methods_.find(data.instrument_type) == accounting_methods_.end()) {
       SPDLOG_WARN("accounting method not found for {}: {}", data.type_name.c_str(), data.to_string());
       return;
@@ -82,7 +84,7 @@ public:
       (accounting_method.*method)(book, data);
       position.update_time = update_time;
       book->replace(data);
-      book->update(update_time);
+      book->update(update_time, account_method_type_);
     };
     apply_and_update(source);
     if (dest != yijinjing::data::location::PUBLIC) {
@@ -112,6 +114,8 @@ private:
   yijinjing::practice::apprentice &app_;
   broker::Client &broker_client_;
 
+  const longfist::enums::AccountingMethodType account_method_type_;
+  std::mutex update_book_mutex_;
   bool positions_guarded_ = false;
   CommissionMap commissions_ = {};
   InstrumentMap instruments_ = {};

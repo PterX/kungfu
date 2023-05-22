@@ -1,6 +1,5 @@
 #include <kungfu/wingchun/extension.h>
 #include <kungfu/wingchun/strategy/context.h>
-#include <kungfu/wingchun/strategy/runtime.h>
 #include <kungfu/wingchun/strategy/strategy.h>
 #include <kungfu/yijinjing/journal/assemble.h>
 
@@ -16,8 +15,8 @@ public:
 
   void pre_start(Context_ptr & context) override {
     SPDLOG_INFO("preparing strategy");
-    SPDLOG_INFO("arguments: {}", context->arguments());
-    context->add_account("sim", "123456");
+    SPDLOG_INFO("arguments: {}", context->get_arguments());
+    context->add_account("sim", "fill");
     context->subscribe("sim", {"600000"}, {"SSE"});
     // context->subscribe_operator("bar", "my-bar");
   }
@@ -31,26 +30,28 @@ public:
     //   auto &book = pair.second;
     //   SPDLOG_INFO("book asset: {}", book->asset.to_string());
     // }
+    auto l_ptr = location::make_shared(mode::LIVE, category::MD, "sim", "sim", std::make_shared<locator>());
+    kungfu::yijinjing::journal::assemble asb(l_ptr, location::PUBLIC, AssembleMode::All);
+    auto headers = asb.read_headers(Location{});
+    for (const auto &head : headers) {
+      SPDLOG_INFO("head: {}", head.to_string());
+    }
+    kungfu::yijinjing::journal::assemble asb2(l_ptr, location::PUBLIC, AssembleMode::All);
+    auto locations = asb2.read_bytes<Location>();
+    SPDLOG_INFO("locations.length: {}", locations.size());
+    for (const auto &loc : locations) {
+      SPDLOG_INFO("locaton byte: {}", std::string(loc.second.begin(), loc.second.end()));
+    }
+    kungfu::yijinjing::journal::assemble asb3(l_ptr, location::PUBLIC, AssembleMode::All);
+    auto l3 = asb3.read_all<Location>();
+    SPDLOG_INFO("locations.length: {}", l3.size());
+    for (const auto &loc : l3) {
+      SPDLOG_INFO("l3 : {}", loc.to_string());
+    }
   }
 
   void on_quote(Context_ptr & context, const Quote &quote, const location_ptr &location) override {
     SPDLOG_INFO("on quote: {} i {} location->uid {}", quote.last_price, i, location->location_uid);
-    // i++;
-    // if (i == 5) {
-    //   std::shared_ptr<kungfu::yijinjing::journal::assemble> p_assemble =
-    //       std::make_shared<kungfu::yijinjing::journal::assemble>(std::vector<locator_ptr>{});
-    //   std::shared_ptr<kungfu::yijinjing::journal::frame_reader> r = p_assemble->get_reader(location);
-    //   auto f = r->current_frame();
-    //   SPDLOG_INFO("f source {} dest {} data {}", f->source(), f->dest(), f->data_as_string());
-    //   while (true) {
-    //     auto f = r->next_frame();
-    //     if (!f) {
-    //       SPDLOG_INFO("f null");
-    //       break;
-    //     }
-    //     SPDLOG_INFO("f source {} dest {} data {}", f->source(), f->dest(), f->data_as_string());
-    //   }
-    // }
   }
 
   void on_synthetic_data(Context_ptr & context, const SyntheticData &synthetic_data, const location_ptr &location)
@@ -70,5 +71,12 @@ public:
 
   void on_tree(Context_ptr & context, const Tree &tree, const location_ptr &location) override {
     SPDLOG_INFO("on tree: {}", tree.to_string());
+  }
+
+  void on_custom_data(Context_ptr & context, uint32_t msg_type, const std::vector<uint8_t> &data, uint32_t length,
+                      const kungfu::yijinjing::data::location_ptr &location) override {
+    SPDLOG_WARN("on_custom_data msg_type: {}", msg_type);
+    SPDLOG_WARN("on_custom_data data: {}", reinterpret_cast<const char *>(data.data()));
+    SPDLOG_WARN("on_custom_data length: {}", length);
   }
 };

@@ -29,8 +29,6 @@ public:
 
   void on_exit() override;
 
-  void on_trading_day(const event_ptr &event, int64_t daytime) override;
-
   book::Bookkeeper &get_bookkeeper();
 
 protected:
@@ -63,7 +61,7 @@ private:
 
   void inspect_channel(int64_t trigger_time, const longfist::types::Channel &channel);
 
-  void keep_positions(int64_t trigger_time, uint32_t strategy_uid);
+  void keep_positions([[maybe_unused]] int64_t trigger_time, uint32_t strategy_uid);
 
   void rebuild_positions(int64_t trigger_time, uint32_t strategy_uid);
 

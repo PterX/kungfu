@@ -1,7 +1,9 @@
 import path from 'path';
 import fse from 'fs-extra';
+import fsPromise from 'fs/promises';
 import * as csv from 'fast-csv';
 import { FormatterRow, ParserOptionsArgs } from 'fast-csv';
+import stream from 'stream';
 import findRoot from 'find-root';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { RootConfigJSON } from '../typings/global';
@@ -73,6 +75,58 @@ export const readCSV = <T>(
       .on('error', (err) => {
         reject(err);
       });
+  });
+};
+
+export const createWriteCsvStream = (
+  filePath: string,
+  transform?: (row: KungfuApi.TradingDataTypes) => FormatterRow,
+) => {
+  const csvStream = csv.format({ headers: true, transform });
+  const fileWriteStream = fse.createWriteStream(path.normalize(filePath));
+  // 解决Excel导出乱码的问题
+  fileWriteStream.write(Buffer.from('\xEF\xBB\xBF', 'binary'));
+  csvStream
+    .on('data', (chunk) => {
+      fileWriteStream.write(chunk);
+    })
+    .on('end', () => {
+      fileWriteStream.end();
+    });
+  return csvStream;
+};
+
+export const writeCsvWithUTF8Bom = (
+  filePath: string,
+  rows: KungfuApi.TradingDataTypes[],
+  transform = (row: KungfuApi.TradingDataTypes) => row as FormatterRow,
+) => {
+  filePath = path.normalize(filePath);
+  return new Promise<void>((resolve, reject) => {
+    const csvStream = csv.format({ headers: true, transform });
+    const outStream = new stream.PassThrough();
+    const buffers: Uint8Array[] = [];
+    csvStream
+      .pipe(outStream)
+      .on('data', (chunk) => {
+        buffers.push(chunk);
+      })
+      .on('end', () => {
+        // 解决Excel导出乱码的问题
+        const dataBuffer = Buffer.concat([
+          Buffer.from('\xEF\xBB\xBF', 'binary'),
+          Buffer.concat(buffers),
+        ]);
+        fse.writeFileSync(filePath, dataBuffer);
+        resolve();
+      })
+      .on('error', function (err) {
+        reject(err);
+      });
+    rows.forEach(function (row) {
+      csvStream.write(row);
+    });
+    csvStream.end();
   });
 };
 
@@ -150,12 +204,16 @@ export const listDirSync = (filePath: string): string[] => {
   return fse.readdirSync(filePath);
 };
 
-export const removeTargetFilesInFolder = (
+export const removeTargetFilesInFolder = async (
   targetFolder: string,
   includes: string[],
   filters: string[] = [],
-): Promise<void> => {
-  const iterator = (folder: string) => {
+): Promise<{ successes: string[]; errors: string[] }> => {
+  const results: { successes: string[]; errors: string[] } = {
+    successes: [],
+    errors: [],
+  };
+  const iterator = async (folder: string) => {
     const items = listDirSync(folder);
 
     if (!items) return;
@@ -163,7 +221,7 @@ export const removeTargetFilesInFolder = (
     const folders = items.filter((f: string) => {
       const stat = fse.statSync(path.join(folder, f));
 
-      if (stat.isDirectory()) return true;
+      if (stat.isDirectory() && !filters.includes(f)) return true;
       return false;
     });
 
@@ -174,22 +232,31 @@ export const removeTargetFilesInFolder = (
       return false;
     });
 
-    files.forEach((f: string) => {
-      includes.forEach((n: string) => {
+    for (const f of files) {
+      for (const n of includes) {
         if (f.includes(n) && !filters.includes(f)) {
-          fse.removeSync(path.join(folder, f));
+          try {
+            const targetFile = path.join(folder, f);
+            await fsPromise.rm(targetFile);
+            results.successes.push(targetFile);
+          } catch (error) {
+            if (error instanceof Error) {
+              console.error(error);
+              results.errors.push(error.message);
+            }
+          }
         }
-      });
-    });
+      }
+    }
 
-    folders.forEach((f: string) => {
-      iterator(path.join(folder, f));
-    });
+    for (const f of folders) {
+      await iterator(path.join(folder, f));
+    }
   };
 
-  iterator(targetFolder);
+  await iterator(targetFolder);
 
-  return Promise.resolve();
+  return results;
 };
 
 export const findPackageRoot = () => {

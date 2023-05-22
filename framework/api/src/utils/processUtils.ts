@@ -5,7 +5,7 @@ import fkill from 'fkill';
 import { Proc, ProcessDescription, StartOptions } from 'pm2';
 import pm2 from './pm2Custom';
 import { getUserLocale } from 'get-user-locale';
-import psList, { ProcessDescriptor } from 'ps-list';
+import find from 'find-process';
 
 import {
   kfLogger,
@@ -17,6 +17,7 @@ import {
   getIfProcessDeleted,
   delayMilliSeconds,
   isTdMdOperatorStrategy,
+  deleteNNFiles,
 } from '../utils/busiUtils';
 import {
   buildProcessLogPath,
@@ -29,6 +30,7 @@ import { getKfGlobalSettingsValue } from '../config/globalSettings';
 import { Observable } from 'rxjs';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { Pm2StartOptions } from '../typings/global';
+import { KfHookKeeper } from '../hooks';
 const { t } = VueI18n.global;
 
 process.env.PM2_HOME = path.resolve(os.homedir(), '.pm2');
@@ -37,29 +39,82 @@ const isWin = os.platform() === 'win32';
 const isLinux = os.platform() === 'linux';
 const locale = getUserLocale().replace(/-/g, '_');
 
-export const findProcessByKeywords = (tasks: string[]): Promise<number[]> => {
-  return psList().then((processes: ProcessDescriptor[]) => {
-    return processes
-      .filter((item) => {
-        const name = item.name;
-        const afterFiler = tasks.filter((task) =>
-          name.toLowerCase().includes(task.toLowerCase()),
-        );
-        return afterFiler.length;
-      })
-      .map((item) => item.pid);
+interface FindProcessResult {
+  pid: number;
+  ppid?: number;
+  uid?: number;
+  gid?: number;
+  name: string;
+  cmd?: string;
+  username?: string;
+}
+
+export const findProcessByKeyword = (
+  processName: string,
+): Promise<FindProcessResult[]> => {
+  const userid = os.userInfo().uid;
+  return find('name', processName, true).then((processList) => {
+    return processList.filter((item) => {
+      return item.uid ? item.uid == userid : true;
+    });
   });
 };
 
+export const findProcessByKeywordsByFindProcess = (
+  tasks: string[],
+): Promise<FindProcessResult[]> => {
+  return Promise.all(tasks.map((key) => findProcessByKeyword(key))).then(
+    (results) => {
+      return results.reduce((pre, processList) => {
+        pre = [...pre, ...processList];
+        return pre;
+      }, []);
+    },
+  );
+};
+
+/***
+ * tasklist is only used on windows, and working for find process by current user
+ * but the performance of tasklist actually is a issue
+ *  ***/
+
+// export const findProcessByKeywordsByTaskList = (
+//   tasks: string[],
+// ): Promise<FindProcessResult[]> => {
+//   const username = os.userInfo().username;
+//   const tasklist = require('tasklist');
+//   return tasklist({ verbose: true }).then((processList) => {
+//     return processList
+//       .filter((item) => tasks.indexOf(item.imageName) !== -1)
+//       .filter((item) => (item.username || '').split('\\')[1] == username)
+//       .map((item) => {
+//         return {
+//           pid: item.pid,
+//           name: item.imageName,
+//           username: item.username,
+//         };
+//       });
+//   });
+// };
+
+export const findProcessByKeywords = (
+  tasks: string[],
+): Promise<FindProcessResult[]> => {
+  return findProcessByKeywordsByFindProcess(tasks);
+};
+
 export const forceKill = (tasks: string[]): Promise<void> => {
-  return findProcessByKeywords(tasks).then((pids) => {
+  return findProcessByKeywords(tasks).then((processList) => {
+    const pids = processList.map((item) => item.pid);
+
+    kfLogger.info('Target to force kill processList ', processList);
     return fkill(pids, {
       force: true,
       tree: isWin ? true : false,
       ignoreCase: true,
       silent: process.env.NODE_ENV === 'development' ? true : false,
     }).catch((err) => {
-      console.warn((<Error>err).message);
+      kfLogger.warn((<Error>err).message);
     });
   });
 };
@@ -80,6 +135,33 @@ export const killKungfu = () => {
 };
 
 export const killExtra = () => forceKill([kfcName, 'pm2']);
+
+export function KillAll(): Promise<void> {
+  //不需要加killdaemon
+  return new Promise((resolve) => {
+    pm2Kill()
+      .catch((err) => kfLogger.error(err))
+      .finally(() => {
+        killKfc()
+          .catch((err) => kfLogger.error(err))
+          .finally(() => {
+            killKungfu()
+              .catch((err) => kfLogger.error(err))
+              .finally(() => {
+                killExtra()
+                  .catch((err) => kfLogger.error(err))
+                  .finally(() => {
+                    deleteNNFiles()
+                      .catch((err) => kfLogger.error(err))
+                      .finally(() => {
+                        resolve();
+                      });
+                  });
+              });
+          });
+      });
+  });
+}
 
 //===================== pm2 start =======================
 
@@ -320,6 +402,12 @@ export const startProcess = async (
   options: Pm2StartOptions,
 ): Promise<Proc | void> => {
   const extDirs = await flattenExtensionModuleDirs(EXTENSION_DIRS);
+  options = await (globalThis.HookKeeper as KfHookKeeper)
+    .getHooks()
+    .resolveStartOptions.trigger(
+      { category: '*', group: '*', name: '*' } as KungfuApi.DerivedKfLocation,
+      options,
+    );
   const optionsResolved: Pm2StartOptions = {
     name: options.name,
     args: options.args, //有问题吗？
@@ -363,7 +451,6 @@ export const startProcess = async (
       BY_PASS_RESTORE: '',
     },
   };
-
   return pm2Start(optionsResolved).catch((err) => {
     kfLogger.error(err);
   });
@@ -452,15 +539,16 @@ export function startProcessGetStatusUntilStop(
   options: Pm2StartOptions,
   cb?: (processStatus: Pm2ProcessStatusTypes) => void,
 ) {
+  let timer;
   return new Promise((resolve) => {
     startProcess({ ...options }).then(() => {
-      const timer = startGetProcessStatusByName(
+      timer = startGetProcessStatusByName(
         options.name,
         (res: ProcessDescription[]) => {
           const status = res[0]?.pm2_env?.status as Pm2ProcessStatusTypes;
           cb && cb(status);
           if (status !== 'online') {
-            timer.clearLoop();
+            timer && timer.clearLoop();
             resolve(status);
           }
         },
@@ -610,6 +698,15 @@ function startGetProcessStatusByName(
 
 //================ business related start ===============
 
+export async function isAllMainProcessRunning() {
+  const { processStatus } = await listProcessStatus();
+
+  return (
+    getIfProcessRunning(processStatus, 'master') &&
+    getIfProcessRunning(processStatus, 'ledger')
+  );
+}
+
 export function startArchiveMakeTask(
   cb?: (processStatus: Pm2ProcessStatusTypes) => void,
 ) {
@@ -651,22 +748,6 @@ export const startLedger = async (force = false): Promise<void> => {
   try {
     await preStartProcess(processName, force);
     const args = buildArgs('run -c system -g service -n ledger');
-    await startProcess({
-      name: processName,
-      args,
-      force,
-    });
-  } catch (err: unknown) {
-    kfLogger.error((<Error>err).message);
-  }
-};
-
-export const startCacheD = async (force = false): Promise<void> => {
-  const processName = 'cached';
-
-  try {
-    await preStartProcess(processName, force);
-    const args = buildArgs('run -c system -g service -n cached');
     await startProcess({
       name: processName,
       args,
@@ -889,8 +970,11 @@ export const startStrategyOperator = async (
 
   //因为pm2环境残留，在反复切换本地python跟内置python时，会出现本地python启动失败，所以需要先pm2 kill
   try {
-    kfLogger.info(`Clear existed ${category} ${strategyOperatorIdResolved}`);
-    await deleteProcess(strategyOperatorIdResolved);
+    const { processStatus } = await listProcessStatus();
+    if (!getIfProcessDeleted(processStatus, strategyOperatorIdResolved)) {
+      kfLogger.info(`Clear existed ${category} ${strategyOperatorIdResolved}`);
+      await deleteProcess(strategyOperatorIdResolved);
+    }
   } catch (err) {
     kfLogger.warn(err);
   }

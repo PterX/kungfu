@@ -7,6 +7,14 @@ declare const __resources: string;
 type AnyFunction = (...args: unknown[]) => unknown;
 type AnyPromiseFunction = (...args: unknown[]) => Promise<unknown>;
 
+declare module 'tasklist' {
+  function tasklist(options: {
+    verbose: boolean;
+  }): Promise<{ pid: number; imageName: string; username: string }[]>;
+
+  export = tasklist;
+}
+
 declare namespace KungfuApi {
   import {
     BrokerStateStatusEnum,
@@ -38,9 +46,17 @@ declare namespace KungfuApi {
     PriceLevelEnum,
     BasketOrderStatusEnum,
     SessionStatusEnum,
+    CurrencyEnum,
   } from './enums';
   import { Dayjs } from 'dayjs';
   import { Row } from 'fast-csv';
+
+  export type VCDepsVersionTypes =
+    | '2008'
+    | '2010'
+    | '2012'
+    | '2013'
+    | '2015-2022';
 
   export type AntInKungfuColorTypes =
     | 'default'
@@ -80,6 +96,9 @@ declare namespace KungfuApi {
     | 'files' // string[]
     | 'folder' // string
     | 'table' // any[]
+    | 'rangePicker' //string[]
+    | 'dateTimePicker' //string
+    | 'datePicker' //string
     | 'timePicker' //string
     | 'select'
     | 'radio'
@@ -158,6 +177,8 @@ declare namespace KungfuApi {
     required?: boolean;
     max?: number;
     min?: number;
+    step?: number;
+    precision?: number;
     disabled?: boolean;
     primary?: boolean;
     options?: KfSelectOption[];
@@ -165,9 +186,12 @@ declare namespace KungfuApi {
     headers?: KfConfigItemHeader[];
     template?: KfConfigItemTemplate[];
     search?: KfConfigItemSearch;
+    importMode?: 'reset' | 'add';
+    disableDateRange?: number; // 时间范围选择器不可选的日期范围
 
     // ---- some ui releated ----;
     noDivider?: boolean;
+    wrap?: string;
   }
 
   export interface KfExhibitConfigItem {
@@ -318,7 +342,7 @@ declare namespace KungfuApi {
     messageForSearch: string;
   }
 
-  export class KfNumList<T> {
+  export class KfFixedList<T> {
     list: T[];
     limit: number;
     insert(item: T): void;
@@ -345,6 +369,7 @@ declare namespace KungfuApi {
       name: string,
       mode: string,
     ): KungfuApi.KfConfig | false;
+    getAllLocation();
   }
 
   export interface HistoryStore {
@@ -368,7 +393,9 @@ declare namespace KungfuApi {
 
   export interface BasketInstrumentStore {
     getAllBasketInstrument(): BasketInstrument[] | false;
-    setAllBasketInstrument(basketInstruments: BasketInstrument[]): boolean;
+    setAllBasketInstruments(basketInstruments: BasketInstrument[]): boolean;
+    setBasketInstrument(basketInstrument: BasketInstrument): boolean;
+    removeAllBasketInstruments(): boolean;
   }
 
   export interface DataTable<T> {
@@ -381,8 +408,6 @@ declare namespace KungfuApi {
 
   export interface Asset {
     update_time: bigint; //更新时间
-    trading_day: string; //交易日
-
     holder_uid: number;
     ledger_category: LedgerCategoryEnum;
 
@@ -405,8 +430,6 @@ declare namespace KungfuApi {
 
   export interface AssetMargin {
     update_time: bigint; //更新时间
-    trading_day: string; //交易日
-
     holder_uid: number;
     ledger_category: LedgerCategoryEnum;
 
@@ -451,6 +474,7 @@ declare namespace KungfuApi {
     short_margin_ratio: number; //空头保证金率
 
     exchange_rate: number; // 利率
+    currency_type: CurrencyEnum; // 币种
 
     uid_key: string;
     ukey: string;
@@ -458,12 +482,11 @@ declare namespace KungfuApi {
 
   export interface Order {
     order_id: bigint; //订单ID
-    external_id: bigint; //外部委托ID
+    external_order_id: string; //外部委托ID
     parent_id: bigint; //母单号
     insert_time: bigint; //订单写入时间
     update_time: bigint; //订单更新时间
 
-    trading_day: string; //交易日
     instrument_id: string; //合约ID
     exchange_id: string; //交易所ID
 
@@ -508,6 +531,7 @@ declare namespace KungfuApi {
     latency_system: string;
     latency_network: string;
     avg_price: number;
+    price_precision?: number;
   }
 
   export interface OrderInput {
@@ -544,6 +568,7 @@ declare namespace KungfuApi {
     match_number: bigint; // 成交约定号
     is_specific: boolean; // 是否受限股份
     insert_time: bigint;
+    block_id: bigint;
   }
 
   export interface BasketOrderInput {
@@ -610,8 +635,6 @@ declare namespace KungfuApi {
 
   export interface Position {
     update_time: bigint; //更新时间
-    trading_day: string; //交易日
-
     instrument_id: string; //合约ID
     exchange_id: string; //交易所ID
 
@@ -647,11 +670,10 @@ declare namespace KungfuApi {
     closable_volume: bigint;
     account_id_resolved: string;
     instrument_id_resolved: string;
+    price_precision?: number;
   }
 
   export interface Quote {
-    trading_day: string; //交易日
-
     data_time: bigint; //数据生成时间
 
     instrument_id: string; //合约ID
@@ -684,10 +706,9 @@ declare namespace KungfuApi {
   export interface Trade {
     trade_id: bigint; //成交ID
     order_id: bigint; //订单ID
-    external_id: bigint; //外部委托ID
+    external_order_id: string; //外部委托ID
+    external_trade_id: string; //外部委托ID
     trade_time: bigint; //成交时间
-
-    trading_day: string; //交易日
 
     instrument_id: string; //合约ID
     exchange_id: string; //交易所ID
@@ -718,6 +739,7 @@ declare namespace KungfuApi {
     trade_time_resolved: string;
     kf_time_resovlved: string;
     latency_trade: string;
+    price_precision?: number;
   }
 
   export interface TradingData {
@@ -927,22 +949,24 @@ declare namespace KungfuApi {
     genTime: FunctionOrData<T, bigint>;
     triggerTime: FunctionOrData<T, bigint>;
     msgType: FunctionOrData<T, FrameMsgTypeEnum>; // to enum
-    stringMsgType: FunctionOrData<T, number>; // to enum
     source: FunctionOrData<T, number>;
     dest: FunctionOrData<T, number>;
-    data: FunctionOrData<T, string>;
-    sourceName: FunctionOrData<T, string>;
-    destName: FunctionOrData<T, string>;
+    data: FunctionOrData<T, object>;
+    stringMsgType?: string;
+    destName?: string;
+    sourceName?: string;
+    sourceToDest?: string;
+    dataResolved?: unknown[];
   }
 
   export interface FrameResolved extends Frame {
     genTimeResolved: string;
     triggerTimeResolved: string;
     msgTypeResolved: KfTradeValueCommonData;
-    destResolved: string;
-    sourceResolved: string;
-    sourceToDest: string;
-    dataResolved: unknown[];
+    destResolved?: string;
+    sourceResolved?: string;
+    sourceToDest?: string | undefined;
+    dataResolved?: unknown[];
   }
 
   export interface AssembleReader {
@@ -962,34 +986,68 @@ declare namespace KungfuApi {
     next(): void;
     dataAvailable(): boolean;
   }
+  export interface Tracer {
+    currentFrame(): Frame<'func'>;
+    dataAvailable(): boolean;
+    next(): void;
+    seekToTime(nanotime: bigint): void;
+    now(): bigint;
+  }
 
   export interface Longfist {
-    Asset(): Asset;
-    AssetMargin(): AssetMargin;
-    Instrument(): Instrument;
-    Order(): Order;
-    OrderInput(): OrderInput;
-    OrderAction(): OrderAction;
-    OrderStat(): OrderStat;
-    Position(): Position;
-    Quote(): Quote;
-    Trade(): Trade;
-    Commission(): Commission;
-    RiskSetting(): RiskSettingOrigin;
-    Basket(): Basket;
-    BasketInstrument(): BasketInstrument;
-    BasketOrder(): BasketOrder;
+    types: {
+      Asset(): Asset;
+      AssetMargin(): AssetMargin;
+      Instrument(): Instrument;
+      Order(): Order;
+      OrderInput(): OrderInput;
+      OrderAction(): OrderAction;
+      OrderStat(): OrderStat;
+      Position(): Position;
+      Quote(): Quote;
+      Trade(): Trade;
+      Commission(): Commission;
+      RiskSetting(): RiskSettingOrigin;
+      Basket(): Basket;
+      BasketInstrument(): BasketInstrument;
+      BasketOrder(): BasketOrder;
+    };
+
+    msgTypes: Record<number, string>;
+  }
+
+  export interface IODevice {
+    getAllLocations(): Record<
+      string,
+      KfLocation & { uname: string; uid: number }
+    >;
+  }
+
+  export interface SessionStore {
+    getAllSessions(): Session[];
+    getSessionsForLocation(kfLocation: KfLocation): Session[];
   }
 
   export interface Kungfu {
+    shutdown(): void;
     ConfigStore(kfHome: string): ConfigStore;
     RiskSettingStore(kfHome: string): RiskSettingStore;
     CommissionStore(kfHome: string): CommissionStore;
     BasketStore(kfHome: string): BasketStore;
     BasketInstrumentStore(kfHome: string): BasketInstrumentStore;
+    SessionStore(location: KfLocation, kfHome: string): SessionStore;
     History(kfHome: string): HistoryStore;
-    longfist: Longfist;
+    IODevice(location: KfLocation, kfHome: string): IODevice;
+    Longfist(): Longfist;
     Assemble(kfHome: string[]): Assemble;
+    tracer(
+      location: KfLocation,
+      kfHome: string,
+      home: boolean,
+      write: boolean,
+      startTime: bigint,
+      endTime: bigint,
+    ): Tracer;
     watcher(
       kfHome: string,
       hashedId: string,
@@ -1027,6 +1085,10 @@ declare namespace KungfuApi {
   export interface KfLocationBase {
     group: string;
     name: string;
+  }
+
+  export interface KfLocationGroup extends KfLocation {
+    children?: KfLocation[];
   }
 
   export interface KfLocation extends KfLocationBase {
@@ -1091,10 +1153,10 @@ declare module '@kungfu-trader/kungfu-core' {
 declare namespace Code {
   import { Stats } from 'fs-extra';
   import { SpaceTabSettingEnum, SpaceSizeSettingEnum } from './enums';
-  export interface Strategy {
-    strategy_id: string;
+
+  export interface CodeInfo {
+    code_id: string;
     file_path: string;
-    add_time: number;
   }
 
   export interface FileProps {
@@ -1156,6 +1218,7 @@ declare namespace KfEvent {
   export interface MainProcessEvent {
     tag: 'main';
     name: string;
+    payload?: object;
   }
 
   export interface TradingDataUpdateEvent {

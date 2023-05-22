@@ -9,6 +9,7 @@
 
 using namespace kungfu::longfist;
 using namespace kungfu::longfist::types;
+using namespace kungfu::longfist::enums;
 using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
 
@@ -16,7 +17,7 @@ namespace kungfu::node {
 Napi::FunctionReference CommissionStore::constructor = {};
 
 CommissionStore::CommissionStore(const Napi::CallbackInfo &info)
-    : ObjectWrap(info), locator_(ExtractRuntimeLocatorByInfo0(info)), profile_(locator_) {}
+    : ObjectWrap(info), locator_(IODevice::ExtractRuntimeLocatorByIndex(info, 0)), profile_(locator_) {}
 
 Napi::Value CommissionStore::SetCommission(const Napi::CallbackInfo &info) {
   try {
@@ -97,6 +98,7 @@ Napi::Value CommissionStore::RemoveCommission(const Napi::CallbackInfo &info) {
 
 void CommissionStore::Init(Napi::Env env, Napi::Object exports) {
   Napi::HandleScope scope(env);
+  env.AddCleanupHook(cleanup);
 
   Napi::Function func = DefineClass(env, "CommissionStore",
                                     {

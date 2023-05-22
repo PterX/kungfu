@@ -55,6 +55,7 @@ decltype(__pfnDliNotifyHook2) __pfnDliNotifyHook2 = load_exe_hook;
 #include "journal.h"
 #include "longfist.h"
 #include "risk_setting_store.h"
+#include "session_store.h"
 #include "watcher.h"
 
 using namespace kungfu::longfist;
@@ -71,7 +72,7 @@ uint32_t Hash32(const Napi::CallbackInfo &info) {
     throw Napi::Error::New(info.Env(), "Invalid argument");
   }
   auto arg = info[0].ToString().Utf8Value();
-  return hash_32((const unsigned char *)(arg.c_str()), arg.length());
+  return hash_32(reinterpret_cast<const unsigned char *>(arg.c_str()), arg.length());
 }
 
 Napi::Value Hash(const Napi::CallbackInfo &info) { return Napi::Number::New(info.Env(), Hash32(info)); }
@@ -100,7 +101,6 @@ Napi::Value ParseTime(const Napi::CallbackInfo &info) {
 void Shutdown(const Napi::CallbackInfo &info) { ensure_sqlite_shutdown(); }
 
 Napi::Object InitAll(Napi::Env env, Napi::Object exports) {
-
   ensure_sqlite_initilize();
   Longfist::Init(env, exports);
   History::Init(env, exports);
@@ -109,12 +109,14 @@ Napi::Object InitAll(Napi::Env env, Napi::Object exports) {
   CommissionStore::Init(env, exports);
   BasketStore::Init(env, exports);
   BasketInstrumentStore::Init(env, exports);
+  SessionStore::Init(env, exports);
   Frame::Init(env, exports);
   Reader::Init(env, exports);
   Assemble::Init(env, exports);
   IODevice::Init(env, exports);
   DataTable::Init(env, exports);
   Watcher::Init(env, exports);
+  Tracer::Init(env, exports);
   exports.Set("hash", Napi::Function::New(env, Hash));
   exports.Set("formatStringToHashHex", Napi::Function::New(env, FormatStringToHashHex));
   exports.Set("formatTime", Napi::Function::New(env, FormatTime));

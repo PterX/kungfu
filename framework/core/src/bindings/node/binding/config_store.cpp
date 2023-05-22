@@ -9,6 +9,7 @@
 
 using namespace kungfu::longfist;
 using namespace kungfu::longfist::types;
+using namespace kungfu::longfist::enums;
 using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
 
@@ -16,11 +17,11 @@ namespace kungfu::node {
 Napi::FunctionReference ConfigStore::constructor = {};
 
 ConfigStore::ConfigStore(const Napi::CallbackInfo &info)
-    : ObjectWrap(info), locator_(ExtractRuntimeLocatorByInfo0(info)), profile_(locator_) {}
+    : ObjectWrap(info), locator_(IODevice::ExtractRuntimeLocatorByIndex(info, 0)), profile_(locator_) {}
 
 inline Config getConfigFromJs(const Napi::CallbackInfo &info, const locator_ptr &locator) {
   Config query = {};
-  auto config_location = ExtractLocation(info, 0, locator);
+  auto config_location = IODevice::ExtractLocation(info, 0, locator);
   if (config_location) {
     query.location_uid = config_location->uid;
     query.category = config_location->category;
@@ -93,6 +94,7 @@ Napi::Value ConfigStore::RemoveConfig(const Napi::CallbackInfo &info) {
 
 void ConfigStore::Init(Napi::Env env, Napi::Object exports) {
   Napi::HandleScope scope(env);
+  env.AddCleanupHook(cleanup);
 
   Napi::Function func = DefineClass(env, "ConfigStore",
                                     {

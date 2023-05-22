@@ -1,5 +1,10 @@
 import { StartOptions } from 'pm2';
 import { I18n } from 'vue-i18n';
+import {
+  GithubOptions,
+  S3Options,
+  GenericServerOptions,
+} from 'builder-util-runtime';
 import { KfHookKeeper } from '../hooks';
 import { InstrumentTypeEnum, InstrumentTypes } from './enums';
 
@@ -17,6 +22,7 @@ declare global {
     fileId: number;
     testCase: Record<string, any>;
     pm2: any;
+    ukeyCacheMap?: Map<string, string>;
   }
 
   namespace NodeJS {
@@ -36,6 +42,7 @@ declare global {
       BY_PASS_TRADINGDATA: boolean;
       REFRESH_LEDGER_BEFORE_SYNC: boolean;
       MILLISECONDS_SLEEP_AFTER_STEP: number;
+      PM2_DEBUG: boolean;
     }
 
     interface Process {
@@ -82,16 +89,36 @@ export interface T0T1Config {
   };
 }
 
+export type AllPublishOptions =
+  | GithubOptions
+  | S3Options
+  | GenericServerOptions;
+
+type Writeable<T> = { -readonly [P in keyof T]: T[P] };
+
 export interface RootConfigJSON {
+  name?: string;
+  version?: string;
   kungfuCraft?: {
     appTitle?: string;
     productName?: string;
+    env?: Record<string, string>;
+    autoUpdate?: {
+      update?: Writeable<AllPublishOptions>;
+    };
   };
-  boardFilter?: Record<string, boolean>;
   appConfig?: {
     showHelp?: boolean;
 
+    boardFilter?: Record<string, boolean>;
+
+    kfConfigInitValue?: Record<string, KungfuApi.KfConfigValue>;
+
     T0T1?: T0T1Config;
+
+    defaultExtension?: {
+      Td?: string;
+    };
 
     makeOrder?: {
       priceTypeFilter?: Record<string, boolean>;

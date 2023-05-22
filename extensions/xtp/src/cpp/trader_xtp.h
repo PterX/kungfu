@@ -239,14 +239,17 @@ private:
   std::unordered_map<uint64_t, std::unordered_set<std::string>> map_xtp_order_id_to_xtp_trader_ids_{};
   std::unordered_map<uint64_t, std::vector<XTPTradeReport>> map_xtp_order_id_to_XTPTradeReports_{};
   std::unordered_map<uint64_t, int64_t> map_xtp_order_id_to_traded_volume_{};
+  std::unordered_map<uint64_t, std::queue<uint64_t>> map_xtp_order_id_to_action_ids_{};
 
   yijinjing::journal::writer_ptr get_history_writer(uint64_t request_id);
 
+  bool custom_OnCancelOrderError(const event_ptr &event);
   bool custom_OnOrderEvent(const event_ptr &event);
   bool custom_OnTradeEvent(const event_ptr &event);
   bool custom_OnQueryOrder(const event_ptr &event);
   bool custom_OnQueryTrade(const event_ptr &event);
 
+  bool custom_OnCancelOrderError(const XTPOrderCancelInfo &cancel_info, const XTPRI &error_info, uint64_t session_id);
   bool custom_OnOrderEvent(const XTPOrderInfo &order_info, const XTPRI &error_info, uint64_t session_id);
   bool custom_OnTradeEvent(const XTPTradeReport &trade_info, uint64_t session_id);
   bool custom_OnQueryOrder(const XTPOrderInfo &order_info, const XTPRI &error_info, int request_id, bool is_last,
@@ -254,7 +257,7 @@ private:
   bool custom_OnQueryTrade(const XTPTradeReport &trade_info, const XTPRI &error_info, int request_id, bool is_last,
                            uint64_t session_id);
   void try_deal_XTPTradeReport(uint64_t xtp_order_id);
-  bool generate_real_time_external_order(const XTPOrderInfo &order_info);
+  bool generate_external_order(const XTPOrderInfo &order_info);
 
   void add_XTPTradeReport(const XTPTradeReport &trade_info);
   bool has_dealt_trade(uint64_t xtp_order_id, const std::string &exec_id);
@@ -262,6 +265,9 @@ private:
 
   void add_traded_volume(uint64_t order_xtp_id, int64_t trade_volume);
   int64_t get_traded_volume(uint64_t order_xtp_id);
+
+  void add_action_id(uint64_t xtp_order_id, int64_t action_id);
+  uint64_t get_action_id(uint64_t xtp_order_id);
 
   bool req_order_trade();
   void try_ready();

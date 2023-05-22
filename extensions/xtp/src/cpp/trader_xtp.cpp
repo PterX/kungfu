@@ -10,6 +10,7 @@
 
 namespace kungfu::wingchun::xtp {
 using namespace kungfu::yijinjing::data;
+using namespace kungfu::yijinjing;
 
 TraderXTP::TraderXTP(broker::BrokerVendor &vendor) : Trader(vendor) { KUNGFU_SETUP_LOG(); }
 
@@ -105,6 +106,7 @@ bool TraderXTP::cancel_order(const event_ptr &event) {
     return false;
   }
   uint64_t order_xtp_id = order_id_iter->second;
+  add_action_id(order_xtp_id, action.order_action_id);
   auto xtp_action_id = api_->CancelOrder(order_xtp_id, session_id_);
   auto success = xtp_action_id != 0;
   if (not success) {
@@ -117,7 +119,7 @@ bool TraderXTP::cancel_order(const event_ptr &event) {
 
 bool TraderXTP::req_position() {
   SPDLOG_INFO("req_position");
-  return api_->QueryPosition(nullptr, this->session_id_, get_request_id()) == 0;
+  return api_->QueryPosition(nullptr, session_id_, get_request_id()) == 0;
 }
 
 bool TraderXTP::req_account() {
@@ -139,22 +141,20 @@ void TraderXTP::OnOrderEvent(XTPOrderInfo *order_info, XTPRI *error_info, uint64
   }
   SPDLOG_DEBUG("XTPOrderInfo: {}", to_string(*order_info));
 
-  auto frame = get_thread_writer()->open_frame(now(), kXTPOrderInfoType, sizeof(buffer_XTPOrderInfo));
-  auto *bf_order_info =
-      const_cast<buffer_XTPOrderInfo *>(reinterpret_cast<const buffer_XTPOrderInfo *>(frame->data_address()));
-  memcpy(&bf_order_info->order_info, order_info, sizeof(XTPOrderInfo));
-  bf_order_info->session_id = session_id;
+  auto &bf_order_info = get_thread_writer()->open_custom_data<BufferXTPOrderInfo>(kXTPOrderInfoType, now());
+  memcpy(&bf_order_info.order_info, order_info, sizeof(XTPOrderInfo));
+  bf_order_info.session_id = session_id;
   if (error_info != nullptr) {
-    memcpy(&bf_order_info->error_info, error_info, sizeof(XTPRI));
+    memcpy(&bf_order_info.error_info, error_info, sizeof(XTPRI));
   } else {
-    memset(&bf_order_info->error_info, 0, sizeof(XTPRI));
+    memset(&bf_order_info.error_info, 0, sizeof(XTPRI));
   }
-  SPDLOG_DEBUG("buffer_XTPOrderInfo: {}", to_string(*bf_order_info));
-  get_thread_writer()->close_frame(sizeof(buffer_XTPOrderInfo));
+  SPDLOG_DEBUG("BufferXTPOrderInfo: {}", to_string(bf_order_info));
+  get_thread_writer()->close_data();
 }
 
 bool TraderXTP::custom_OnOrderEvent(const event_ptr &event) {
-  const auto *bf_order_info = reinterpret_cast<const buffer_XTPOrderInfo *>(event->data_address());
+  const auto *bf_order_info = reinterpret_cast<const BufferXTPOrderInfo *>(event->data_address());
   return custom_OnOrderEvent(bf_order_info->order_info, bf_order_info->error_info, bf_order_info->session_id);
 }
 
@@ -165,13 +165,13 @@ bool TraderXTP::custom_OnOrderEvent(const XTPOrderInfo &order_info, const XTPRI 
   auto order_xtp_id_iter = map_xtp_to_kf_order_id_.find(order_info.order_xtp_id);
   if (order_xtp_id_iter == map_xtp_to_kf_order_id_.end()) {
     SPDLOG_WARN("unrecognized order_xtp_id {}@{}", order_info.order_xtp_id, trading_day_);
-    return generate_real_time_external_order(order_info);
+    return generate_external_order(order_info);
   }
 
   uint64_t kf_order_id = order_xtp_id_iter->second;
   auto order_state_iter = orders_.find(kf_order_id);
   if (order_state_iter == orders_.end()) {
-    return generate_real_time_external_order(order_info);
+    return generate_external_order(order_info);
   }
 
   auto &order_state = order_state_iter->second;
@@ -192,9 +192,16 @@ bool TraderXTP::custom_OnOrderEvent(const XTPOrderInfo &order_info, const XTPRI 
   return true;
 }
 
-bool TraderXTP::generate_real_time_external_order(const XTPOrderInfo &order_info) {
+bool TraderXTP::generate_external_order(const XTPOrderInfo &order_info) {
   SPDLOG_DEBUG("XTPOrderInfo: {}", to_string(order_info));
-  if (not config_.sync_external_order) {
+  static const std::unordered_set<int> set_cancel_enum = {
+      XTP_ORDER_SUBMIT_STATUS_TYPE::XTP_ORDER_SUBMIT_STATUS_CANCEL_SUBMITTED, //
+      XTP_ORDER_SUBMIT_STATUS_TYPE::XTP_ORDER_SUBMIT_STATUS_CANCEL_REJECTED,  //
+      XTP_ORDER_SUBMIT_STATUS_TYPE::XTP_ORDER_SUBMIT_STATUS_CANCEL_ACCEPTED   //
+  };
+
+  if (not config_.sync_external_order or
+      set_cancel_enum.find(order_info.order_submit_status) != set_cancel_enum.end()) {
     return false;
   }
   auto writer = get_writer(location::PUBLIC);
@@ -220,13 +227,11 @@ void TraderXTP::OnTradeEvent(XTPTradeReport *trade_info, uint64_t session_id) {
   }
   SPDLOG_DEBUG("XTPTradeReport: {}", to_string(*trade_info));
 
-  auto frame = get_thread_writer()->open_frame(now(), kXTPTradeReportType, sizeof(buffer_XTPOrderInfo));
-  auto *bf_trade_info =
-      const_cast<buffer_XTPTradeReport *>(reinterpret_cast<const buffer_XTPTradeReport *>(frame->data_address()));
-  memcpy(&bf_trade_info->trade_info, trade_info, sizeof(XTPTradeReport));
-  bf_trade_info->session_id = session_id;
-  SPDLOG_DEBUG("buffer_XTPOrderInfo: {}", to_string(*bf_trade_info));
-  get_thread_writer()->close_frame(sizeof(buffer_XTPOrderInfo));
+  auto &bf_trade_info = get_thread_writer()->open_custom_data<BufferXTPTradeReport>(kXTPTradeReportType, now());
+  memcpy(&bf_trade_info.trade_info, trade_info, sizeof(XTPTradeReport));
+  bf_trade_info.session_id = session_id;
+  SPDLOG_DEBUG("BufferXTPOrderInfo: {}", to_string(bf_trade_info));
+  get_thread_writer()->close_data();
 }
 
 bool TraderXTP::custom_OnTradeEvent(const XTPTradeReport &trade_info, uint64_t session_id) {
@@ -283,7 +288,7 @@ bool TraderXTP::custom_OnTradeEvent(const XTPTradeReport &trade_info, uint64_t s
 }
 
 bool TraderXTP::custom_OnTradeEvent(const event_ptr &event) {
-  const auto *bf_trade_info = reinterpret_cast<const buffer_XTPTradeReport *>(event->data_address());
+  const auto *bf_trade_info = reinterpret_cast<const BufferXTPTradeReport *>(event->data_address());
   return custom_OnTradeEvent(bf_trade_info->trade_info, bf_trade_info->session_id);
 }
 
@@ -292,12 +297,67 @@ void TraderXTP::OnCancelOrderError(XTPOrderCancelInfo *cancel_info, XTPRI *error
     SPDLOG_ERROR("XTPOrderCancelInfo is nullptr");
     return;
   }
-  if (nullptr == error_info) {
-    SPDLOG_ERROR("XTPRI is nullptr");
-    return;
+  SPDLOG_DEBUG("XTPOrderCancelInfo: {}", to_string(*cancel_info));
+
+  auto &bf_order_cancel_info =
+      get_thread_writer()->open_custom_data<BufferXTPOrderCancelInfo>(kCancelOrderErrorType, now());
+  memcpy(&bf_order_cancel_info.cancel_info, cancel_info, sizeof(XTPOrderCancelInfo));
+  bf_order_cancel_info.session_id = session_id;
+  if (error_info != nullptr) {
+    memcpy(&bf_order_cancel_info.error_info, error_info, sizeof(XTPRI));
+  } else {
+    memset(&bf_order_cancel_info.error_info, 0, sizeof(XTPRI));
   }
-  SPDLOG_ERROR("cancel order error, cancel_info: {}, error_id: {}, error_msg: {}, session_id: {}",
-               to_string(*cancel_info), error_info->error_id, error_info->error_msg, session_id);
+  SPDLOG_DEBUG("BufferXTPOrderInfo: {}", to_string(bf_order_cancel_info));
+  get_thread_writer()->close_data();
+
+  //  if (nullptr == error_info) {
+  //    SPDLOG_ERROR("XTPRI is nullptr");
+  //    return;
+  //  }
+  //  SPDLOG_ERROR("cancel order error, cancel_info: {}, error_id: {}, error_msg: {}, session_id: {}",
+  //               to_string(*cancel_info), error_info->error_id, error_info->error_msg, session_id);
+}
+
+bool TraderXTP::custom_OnCancelOrderError(const event_ptr &event) {
+  const auto &bf_order_cancel_info = event->custom_data<BufferXTPOrderCancelInfo>();
+  return custom_OnCancelOrderError(bf_order_cancel_info.cancel_info, bf_order_cancel_info.error_info,
+                                   bf_order_cancel_info.session_id);
+}
+
+bool TraderXTP::custom_OnCancelOrderError(const XTPOrderCancelInfo &cancel_info, const XTPRI &error_info,
+                                          uint64_t session_id) {
+  SPDLOG_DEBUG("XTPOrderCancelInfo: {}", to_string(cancel_info));
+  SPDLOG_DEBUG("session_id: {}, XTPRI: {}", session_id, to_string(error_info));
+  auto order_xtp_id_iter = map_xtp_to_kf_order_id_.find(cancel_info.order_xtp_id);
+  if (order_xtp_id_iter == map_xtp_to_kf_order_id_.end()) {
+    SPDLOG_WARN("order_xtp_id: {} not in map_xtp_to_kf_order_id_", cancel_info.order_xtp_id);
+    return false;
+  }
+
+  auto order_state_iter = orders_.find(order_xtp_id_iter->second);
+  if (order_state_iter == orders_.end()) {
+    SPDLOG_WARN("kf_order_id not in orders_", order_xtp_id_iter->second);
+    return false;
+  }
+
+  auto order_state = order_state_iter->second;
+  if (not has_writer(order_state.dest)) {
+    SPDLOG_DEBUG("order dest: {} is not live, do not write data", get_vendor().get_location_uname(order_state.dest));
+    return false;
+  }
+
+  OrderActionError &error = get_writer(order_state.dest)->open_data<OrderActionError>(now());
+  error.order_id = order_state.data.order_id; // 订单ID
+  std::string str_external_order_id = std::to_string(cancel_info.order_xtp_id);
+  strncpy(error.external_order_id, str_external_order_id.c_str(), str_external_order_id.length());
+  error.order_action_id = get_action_id(cancel_info.order_xtp_id);              // 订单操作ID,
+  error.error_id = error_info.error_id;                                         // 错误ID
+  strncpy(error.error_msg, error_info.error_msg, strlen(error_info.error_msg)); // 错误信息
+  error.insert_time = time::now_in_nano();                                      // 写入时间
+  SPDLOG_DEBUG("OrderActionError: {}", error.to_string());
+  get_writer(order_state.dest)->close_data();
+  return true;
 }
 
 void TraderXTP::OnQueryPosition(XTPQueryStkPositionRsp *position, XTPRI *error_info, int request_id, bool is_last,
@@ -318,16 +378,16 @@ void TraderXTP::OnQueryPosition(XTPQueryStkPositionRsp *position, XTPRI *error_i
   if (error_info == nullptr || error_info->error_id == 0) {
     from_xtp(*position, stock_pos);
   }
-  stock_pos.holder_uid = get_home()->uid;
+  stock_pos.holder_uid = get_home_uid();
   stock_pos.instrument_type = get_instrument_type(stock_pos.exchange_id, stock_pos.instrument_id);
   stock_pos.direction = Direction::Long;
-  strncpy(stock_pos.trading_day, this->trading_day_.c_str(), DATE_LEN);
+  strncpy(stock_pos.trading_day, trading_day_.c_str(), DATE_LEN);
   stock_pos.update_time = yijinjing::time::now_in_nano();
   SPDLOG_TRACE("Position: {}", stock_pos.to_string());
   writer->close_data();
   if (is_last) {
     PositionEnd &end = writer->open_data<PositionEnd>(0);
-    end.holder_uid = get_home()->uid;
+    end.holder_uid = get_home_uid();
     writer->close_data();
     enable_positions_sync();
   }
@@ -344,14 +404,14 @@ void TraderXTP::OnQueryAsset(XTPQueryAssetRsp *asset, XTPRI *error_info, int req
     return;
   }
   if (error_info == nullptr || error_info->error_id == 0 || error_info->error_id == 11000350) {
-    SPDLOG_INFO("OnQueryAsset: {}", to_string(*asset));
+    SPDLOG_TRACE("OnQueryAsset: {}", to_string(*asset));
     auto writer = get_asset_writer();
     Asset &account = writer->open_data<Asset>(0);
     if (error_info == nullptr || error_info->error_id == 0) {
       from_xtp(*asset, account);
     }
-    strncpy(account.trading_day, this->trading_day_.c_str(), DATE_LEN);
-    account.holder_uid = get_home()->uid;
+    strncpy(account.trading_day, trading_day_.c_str(), DATE_LEN);
+    account.holder_uid = get_home_uid();
     account.update_time = yijinjing::time::now_in_nano();
     writer->close_data();
     enable_asset_sync();
@@ -383,28 +443,26 @@ bool TraderXTP::req_history_trade(const event_ptr &event) {
 void TraderXTP::OnQueryOrder(XTPQueryOrderRsp *order_info, XTPRI *error_info, int request_id, bool is_last,
                              uint64_t session_id) {
   SPDLOG_DEBUG("request_id: {}, is_last: {}, session_id: {}", request_id, is_last, session_id);
-  auto frame = get_thread_writer()->open_frame(now(), kQueryXTPOrderInfoType, sizeof(buffer_XTPOrderInfo));
-  auto *bf_order_info =
-      const_cast<buffer_XTPOrderInfo *>(reinterpret_cast<const buffer_XTPOrderInfo *>(frame->data_address()));
+  auto &bf_order_info = get_thread_writer()->open_custom_data<BufferXTPOrderInfo>(kQueryXTPOrderInfoType, now());
   if (order_info != nullptr) {
-    memcpy(&bf_order_info->order_info, order_info, sizeof(XTPOrderInfo));
+    memcpy(&bf_order_info.order_info, order_info, sizeof(XTPOrderInfo));
   } else {
-    memset(&bf_order_info->order_info, 0, sizeof(XTPOrderInfo));
+    memset(&bf_order_info.order_info, 0, sizeof(XTPOrderInfo));
   }
   if (error_info != nullptr) {
-    memcpy(&bf_order_info->error_info, error_info, sizeof(XTPRI));
+    memcpy(&bf_order_info.error_info, error_info, sizeof(XTPRI));
   } else {
-    memset(&bf_order_info->error_info, 0, sizeof(XTPRI));
+    memset(&bf_order_info.error_info, 0, sizeof(XTPRI));
   }
-  bf_order_info->session_id = session_id;
-  bf_order_info->request_id = request_id;
-  bf_order_info->is_last = is_last;
-  SPDLOG_DEBUG("buffer_XTPOrderInfo: {}", to_string(*bf_order_info));
-  get_thread_writer()->close_frame(sizeof(buffer_XTPOrderInfo));
+  bf_order_info.session_id = session_id;
+  bf_order_info.request_id = request_id;
+  bf_order_info.is_last = is_last;
+  SPDLOG_DEBUG("BufferXTPOrderInfo: {}", to_string(bf_order_info));
+  get_thread_writer()->close_frame(sizeof(BufferXTPOrderInfo));
 }
 
 bool TraderXTP::custom_OnQueryOrder(const event_ptr &event) {
-  const auto *bf_order_info = reinterpret_cast<const buffer_XTPOrderInfo *>(event->data_address());
+  const auto *bf_order_info = reinterpret_cast<const BufferXTPOrderInfo *>(event->data_address());
   return custom_OnQueryOrder(bf_order_info->order_info, bf_order_info->error_info, bf_order_info->request_id,
                              bf_order_info->is_last, bf_order_info->session_id);
 }
@@ -466,28 +524,26 @@ yijinjing::journal::writer_ptr TraderXTP::get_history_writer(uint64_t request_id
 void TraderXTP::OnQueryTrade(XTPQueryTradeRsp *trade_info, XTPRI *error_info, int request_id, bool is_last,
                              uint64_t session_id) {
   SPDLOG_DEBUG("request_id: {}, is_last: {}, session_id: {}", request_id, is_last, session_id);
-  auto frame = get_thread_writer()->open_frame(now(), kQueryXTPTradeReportType, sizeof(buffer_XTPTradeReport));
-  auto *bf_trade_info =
-      const_cast<buffer_XTPTradeReport *>(reinterpret_cast<const buffer_XTPTradeReport *>(frame->data_address()));
+  auto &bf_trade_info = get_thread_writer()->open_custom_data<BufferXTPTradeReport>(kQueryXTPTradeReportType, now());
   if (trade_info != nullptr) {
-    memcpy(&bf_trade_info->trade_info, trade_info, sizeof(XTPOrderInfo));
+    memcpy(&bf_trade_info.trade_info, trade_info, sizeof(XTPOrderInfo));
   } else {
-    memset(&bf_trade_info->trade_info, 0, sizeof(XTPOrderInfo));
+    memset(&bf_trade_info.trade_info, 0, sizeof(XTPOrderInfo));
   }
   if (error_info != nullptr) {
-    memcpy(&bf_trade_info->error_info, error_info, sizeof(XTPRI));
+    memcpy(&bf_trade_info.error_info, error_info, sizeof(XTPRI));
   } else {
-    memset(&bf_trade_info->error_info, 0, sizeof(XTPRI));
+    memset(&bf_trade_info.error_info, 0, sizeof(XTPRI));
   }
-  bf_trade_info->session_id = session_id;
-  bf_trade_info->request_id = request_id;
-  bf_trade_info->is_last = is_last;
-  SPDLOG_DEBUG("buffer_XTPTradeReport: {}", to_string(*bf_trade_info));
-  get_thread_writer()->close_frame(sizeof(buffer_XTPOrderInfo));
+  bf_trade_info.session_id = session_id;
+  bf_trade_info.request_id = request_id;
+  bf_trade_info.is_last = is_last;
+  SPDLOG_DEBUG("BufferXTPTradeReport: {}", to_string(bf_trade_info));
+  get_thread_writer()->close_data();
 }
 
 bool TraderXTP::custom_OnQueryTrade(const event_ptr &event) {
-  const auto *bf_trade_info = reinterpret_cast<const buffer_XTPTradeReport *>(event->data_address());
+  const auto *bf_trade_info = reinterpret_cast<const BufferXTPTradeReport *>(event->data_address());
   return custom_OnQueryTrade(bf_trade_info->trade_info, bf_trade_info->error_info, bf_trade_info->request_id,
                              bf_trade_info->is_last, bf_trade_info->session_id);
 }
@@ -618,6 +674,8 @@ bool TraderXTP::on_custom_event(const event_ptr &event) {
     return custom_OnQueryOrder(event);
   case kQueryXTPTradeReportType:
     return custom_OnQueryTrade(event);
+  case kCancelOrderErrorType:
+    return custom_OnCancelOrderError(event);
   default:
     SPDLOG_ERROR("unrecognized msg_type: {}", event->msg_type());
     return false;
@@ -630,6 +688,17 @@ void TraderXTP::add_traded_volume(uint64_t order_xtp_id, int64_t trade_volume) {
 
 int64_t TraderXTP::get_traded_volume(uint64_t order_xtp_id) {
   return map_xtp_order_id_to_traded_volume_.try_emplace(order_xtp_id).first->second;
+}
+
+void TraderXTP::add_action_id(uint64_t xtp_order_id, int64_t action_id) {
+  map_xtp_order_id_to_action_ids_.try_emplace(xtp_order_id).first->second.push(action_id);
+}
+
+uint64_t TraderXTP::get_action_id(uint64_t xtp_order_id) {
+  auto &action_ids = map_xtp_order_id_to_action_ids_.try_emplace(xtp_order_id).first->second;
+  uint64_t action_id = action_ids.front();
+  action_ids.pop();
+  return action_id;
 }
 
 } // namespace kungfu::wingchun::xtp

@@ -174,6 +174,11 @@ public:
     return const_cast<T &>(frame->template data<T>());
   }
 
+  template <typename T> T &open_custom_data(int32_t msg_type, int64_t trigger_time = 0) {
+    auto frame = open_frame(trigger_time, msg_type, sizeof(T));
+    return const_cast<T &>(*reinterpret_cast<const T *>(frame->data_address()));
+  }
+
   void close_data();
 
   template <typename T>

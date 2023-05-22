@@ -11,8 +11,9 @@ static constexpr int32_t kXTPOrderInfoType = 12340001;
 static constexpr int32_t kXTPTradeReportType = 12340002;
 static constexpr int32_t kQueryXTPOrderInfoType = 12340003;
 static constexpr int32_t kQueryXTPTradeReportType = 12340004;
+static constexpr int32_t kCancelOrderErrorType = 12340005;
 
-struct buffer_XTPTradeReport {
+struct BufferXTPTradeReport {
   XTPQueryTradeRsp trade_info;
   XTPRI error_info;
   int request_id;
@@ -20,7 +21,7 @@ struct buffer_XTPTradeReport {
   uint64_t session_id;
 };
 
-struct buffer_XTPOrderInfo {
+struct BufferXTPOrderInfo {
   XTPOrderInfo order_info;
   XTPRI error_info;
   int request_id;
@@ -28,9 +29,16 @@ struct buffer_XTPOrderInfo {
   uint64_t session_id;
 };
 
+struct BufferXTPOrderCancelInfo {
+  XTPOrderCancelInfo cancel_info;
+  XTPRI error_info;
+  uint64_t session_id;
+};
+
 namespace nlohmann {
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(buffer_XTPTradeReport, trade_info, session_id, error_info, request_id, is_last);
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(buffer_XTPOrderInfo, order_info, session_id, error_info, request_id, is_last);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(BufferXTPTradeReport, trade_info, session_id, error_info, request_id, is_last);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(BufferXTPOrderInfo, order_info, session_id, error_info, request_id, is_last);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(BufferXTPOrderCancelInfo, cancel_info, error_info, session_id);
 
 } // namespace nlohmann
 

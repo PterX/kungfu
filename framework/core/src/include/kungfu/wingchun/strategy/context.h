@@ -17,9 +17,15 @@
 namespace kungfu::wingchun::strategy {
 class Context : public std::enable_shared_from_this<Context> {
 public:
-  Context() = default;
+  Context(yijinjing::practice::apprentice &app, const rx::connectable_observable<event_ptr> &events);
 
   virtual ~Context() = default;
+
+  /**
+   * checked_ is strated started.
+   * @return current time in nano seconds
+   */
+  virtual bool is_started() const = 0;
 
   /**
    * Get current time in nano seconds.
@@ -100,8 +106,18 @@ public:
                                 const std::string &source, const std::string &account, double limit_price,
                                 int64_t volume, longfist::enums::PriceType type, longfist::enums::Side side,
                                 longfist::enums::Offset offset,
-                                longfist::enums::HedgeFlag hedge_flag = HedgeFlag::Speculation, bool is_swap = false,
-                                uint64_t block_id = 0, uint64_t parent_id = 0) = 0;
+                                longfist::enums::HedgeFlag hedge_flag = longfist::enums::HedgeFlag::Speculation,
+                                bool is_swap = false, uint64_t block_id = 0, uint64_t parent_id = 0) = 0;
+
+  /**
+   * Insert Order
+   * @param source
+   * @param account
+   * @param order_input
+   * @return
+   */
+  virtual uint64_t insert_order_input(const std::string &source, const std::string &account,
+                                      longfist::types::OrderInput &order_input) = 0;
 
   /**
    * Insert Batch Orders
@@ -134,9 +150,20 @@ public:
    * @return
    */
   virtual std::vector<uint64_t> insert_array_orders(const std::string &source, const std::string &account,
-                                                    std::vector<longfist::types::OrderInput> order_inputs) = 0;
+                                                    std::vector<longfist::types::OrderInput> &order_inputs) = 0;
 
   /**
+   * Get broker client.
+   * @return broker client reference
+   */
+  virtual broker::Client &get_broker_client() = 0;
+
+  /**
+   * Get bookkeeper.
+   * @return bookkeeper reference
+   */
+  virtual book::Bookkeeper &get_bookkeeper() = 0;
+  /*
    * Insert Basket Orders
    * @param basket_id
    * @param source
@@ -147,7 +174,7 @@ public:
    * @param volume_mode
    * @param total_volume
    */
-  virtual uint64_t insert_basket_order(uint64_t basket_id, const std::string &source, const std::string account,
+  virtual uint64_t insert_basket_order(uint64_t basket_id, const std::string &source, const std::string &account,
                                        longfist::enums::Side side, longfist::enums::PriceType price_type,
                                        longfist::enums::PriceLevel price_level, double price_offset = 0,
                                        int64_t volume = 0) = 0;
@@ -168,12 +195,6 @@ public:
    * @return order action ID
    */
   virtual uint64_t cancel_order(uint64_t order_id) = 0;
-
-  /**
-   * Get current trading day.
-   * @return current trading day
-   */
-  virtual int64_t get_trading_day() const = 0;
 
   /**
    * Tells whether the book is held.
@@ -206,25 +227,50 @@ public:
    * request deregister.
    * @return void
    */
-  virtual void req_deregister() {}
+  virtual void req_deregister(){};
 
   /**
    * Update Strategy State
    * @param state StrategyState
    * @param infos vector<string>, info_a, info_b, info_c.
    */
-  virtual void update_strategy_state(longfist::types::StrategyStateUpdate &state_update) {}
+  virtual void update_strategy_state(longfist::types::StrategyStateUpdate &state_update){};
 
   /**
    * Get arguments kfc run -a
    * @return string of arguments
    */
-  virtual std::string arguments() { return {}; }
+  const std::string &get_arguments() { return arguments_; };
+
+  // TODO make itfriend funciton
+  void set_arguments(const std::string &arguments) { arguments_ = arguments; }
+
+  /**
+   *
+   * @param source td source id
+   * @param account td account id
+   * @return writer to related td
+   */
+  virtual yijinjing::journal::writer_ptr get_writer(const std::string &source, const std::string &account) = 0;
+
+protected:
+  yijinjing::practice::apprentice &app_;
+  const rx::connectable_observable<event_ptr> &events_;
+  std::string arguments_;
+  bool started_{false};
+
+  virtual void on_start() {}
+
+  virtual void prepare(const event_ptr &event) = 0;
 
 private:
   bool book_held_ = false;
   bool positions_mirrored_ = true;
+
+  friend void enable(Context &context) { context.on_start(); }
+  friend void prepare(const event_ptr &event, Context &context) { context.prepare(event); }
 };
+
 } // namespace kungfu::wingchun::strategy
 
 #endif // WINGCHUN_CONTEXT_H

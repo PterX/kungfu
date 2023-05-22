@@ -22,7 +22,7 @@ namespace kungfu::node {
 Napi::FunctionReference History::constructor = {};
 
 History::History(const Napi::CallbackInfo &info)
-    : ObjectWrap(info), locator_(ExtractRuntimeLocatorByInfo0(info)),
+    : ObjectWrap(info), locator_(IODevice::ExtractRuntimeLocatorByIndex(info, 0)),
       ledger_location_(location::make_shared(mode::LIVE, category::SYSTEM, "service", "ledger", locator_)),
       profile_(locator_) {}
 
@@ -49,6 +49,7 @@ Napi::Value History::SelectPeriod(const Napi::CallbackInfo &info) {
 
 void History::Init(Napi::Env env, Napi::Object exports) {
   Napi::HandleScope scope(env);
+  env.AddCleanupHook(cleanup);
 
   Napi::Function func = DefineClass(env, "History", {InstanceMethod("selectPeriod", &History::SelectPeriod)});
 

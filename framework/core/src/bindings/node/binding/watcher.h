@@ -65,8 +65,6 @@ public:
 
   Napi::Value GetStrategyStates(const Napi::CallbackInfo &info);
 
-  Napi::Value GetTradingDay(const Napi::CallbackInfo &info);
-
   Napi::Value Now(const Napi::CallbackInfo &info);
 
   Napi::Value IsUsable(const Napi::CallbackInfo &info);
@@ -99,6 +97,10 @@ public:
 
   void Quit(const Napi::CallbackInfo &info);
 
+  void AfterMasterDown(const Napi::CallbackInfo &info);
+
+  void RequestDeregister();
+
 protected:
   const bool bypass_accounting_;
   const bool bypass_trading_data_;
@@ -112,8 +114,15 @@ protected:
 
 private:
   static Napi::FunctionReference constructor;
+  static void cleanup() {
+    SPDLOG_INFO("Watcher reset");
+    Watcher::constructor.Reset();
+  }
+
   uv_work_t uv_work_ = {};
   bool uv_work_live_ = false;
+  bool quit_ = false;
+
   WatcherAutoClient broker_client_;
   wingchun::book::Bookkeeper bookkeeper_;
   wingchun::basketorder::BasketOrderEngine basketorder_engine_;
@@ -133,6 +142,9 @@ private:
   std::unordered_map<uint32_t, int> location_uid_states_map_ = {};
   std::unordered_map<uint32_t, longfist::types::StrategyStateUpdate> location_uid_strategy_states_map_ = {};
   std::unordered_set<uint32_t> feeded_instruments_ = {};
+
+  typedef kungfu::longfist::enums::mode mode;
+  typedef kungfu::longfist::enums::category category;
 
   static constexpr auto bypass = [](yijinjing::practice::apprentice *app, bool bypass_quotes) {
     return rx::filter([&](const event_ptr &event) {
@@ -200,7 +212,7 @@ private:
 
   void SyncLedger();
 
-  void TryRefreshTradingData(const Napi::CallbackInfo &info);
+  void TryRefreshTradingData();
 
   void SyncTradingData();
 
@@ -215,8 +227,6 @@ private:
   void StartWorker();
 
   void CancelWorker();
-
-  void AfterMasterDown();
 
   void refresh_books();
 
@@ -243,11 +253,14 @@ private:
       auto &oppsite_position = book->get_oppsite_position_for(data);
       state<kungfu::longfist::types::Position> cache_state_position(source, dest, event->gen_time(), position);
       feed_state_data_bank(cache_state_position, data_bank_);
+
       state<kungfu::longfist::types::Position> cache_state_oppsite_position(source, dest, event->gen_time(),
                                                                             oppsite_position);
       feed_state_data_bank(cache_state_oppsite_position, data_bank_);
+
       state<kungfu::longfist::types::Asset> cache_state_asset(source, dest, event->gen_time(), book->asset);
       feed_state_data_bank(cache_state_asset, data_bank_);
+
       state<kungfu::longfist::types::AssetMargin> cache_state_asset_margin(source, dest, event->gen_time(),
                                                                            book->asset_margin);
       feed_state_data_bank(cache_state_asset_margin, data_bank_);
@@ -311,7 +324,7 @@ private:
     auto &target_map = const_cast<DataTypeMap &>(data_bank_[type]);
     auto iter = target_map.begin();
     while (iter != target_map.end() and target_map.size() > 0) {
-      auto &state = iter->second;
+      const auto &state = iter->second;
       update_ledger(state.update_time, state.source, state.dest, state.data);
       iter = target_map.erase(iter);
     }
@@ -330,19 +343,14 @@ private:
   template <typename Instruction, typename IdPtrType = uint64_t Instruction::*>
   Napi::Value InteractWithTD(const Napi::CallbackInfo &info, const Napi::Object &instruction_object, IdPtrType id_ptr) {
     try {
-      using namespace kungfu::rx;
-      using namespace kungfu::longfist::types;
-      using namespace kungfu::yijinjing;
-      using namespace kungfu::yijinjing::data;
-
-      auto account_location = ExtractLocation(info, 1, get_locator());
+      auto account_location = IODevice::ExtractLocation(info, 1, get_locator());
       if (not is_location_live(account_location->uid) or not has_writer(account_location->uid)) {
         return Napi::BigInt::New(info.Env(), std::uint64_t(0));
       }
 
-      auto trigger_time = time::now_in_nano();
+      auto trigger_time = yijinjing::time::now_in_nano();
       auto account_writer = get_writer(account_location->uid);
-      auto master_cmd_writer = get_writer(get_master_commands_uid());
+      auto master_cmd_writer = get_writer(get_master_command_uid());
       Instruction instruction = {};
       serialize::JsGet{}(instruction_object, instruction);
 
@@ -353,7 +361,7 @@ private:
         return Napi::BigInt::New(info.Env(), instruction.*id_ptr);
       }
 
-      auto strategy_location = ExtractLocation(info, 2, get_locator());
+      auto strategy_location = IODevice::ExtractLocation(info, 2, get_locator());
 
       if (not strategy_location) {
         return Napi::BigInt::New(info.Env(), std::uint64_t(0));
@@ -361,7 +369,8 @@ private:
 
       if (not has_location(strategy_location->uid)) {
         add_location(trigger_time, strategy_location);
-        master_cmd_writer->write(trigger_time, *std::dynamic_pointer_cast<Location>(strategy_location));
+        master_cmd_writer->write(trigger_time,
+                                 *std::dynamic_pointer_cast<longfist::types::Location>(strategy_location));
       }
 
       if (has_channel(account_location->uid, strategy_location->uid)) {
@@ -369,18 +378,20 @@ private:
         return Napi::BigInt::New(info.Env(), id);
       }
 
-      ChannelRequest request = {};
+      longfist::types::ChannelRequest request = {};
       request.dest_id = strategy_location->uid;
       request.source_id = ledger_home_location_->uid;
       master_cmd_writer->write(trigger_time, request);
       request.source_id = account_location->uid;
       master_cmd_writer->write(trigger_time, request);
 
-      events_ | is(Channel::tag) | filter([account_location, strategy_location](const event_ptr &event) {
-        const Channel &channel = event->data<Channel>();
-        return channel.source_id == account_location->uid and channel.dest_id == strategy_location->uid;
-      }) | first() |
-          $([this, trigger_time, instruction, id_ptr, account_location, strategy_location](auto event) {
+      events_ | rx::is(longfist::types::Channel::tag) |
+          rx::filter([account_location, strategy_location](const event_ptr &event) {
+            const longfist::types::Channel &channel = event->data<longfist::types::Channel>();
+            return channel.source_id == account_location->uid and channel.dest_id == strategy_location->uid;
+          }) |
+          rx::first() |
+          rx::$([this, trigger_time, instruction, id_ptr, account_location, strategy_location](auto event) {
             // TODO: async make order / order action
             WriteInstruction(trigger_time, instruction, id_ptr, account_location, strategy_location);
           });

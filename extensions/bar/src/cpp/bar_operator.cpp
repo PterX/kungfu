@@ -1,7 +1,6 @@
 #include <kungfu/wingchun/extension.h>
 #include <kungfu/wingchun/operator/context.h>
 #include <kungfu/wingchun/operator/operator.h>
-#include <kungfu/wingchun/operator/runtime.h>
 
 #include <iostream>
 
@@ -54,15 +53,21 @@ public:
 
   void pre_start(Context_ptr & context) override {
     SPDLOG_INFO("preparing operator");
-    nlohmann::json j_obj = nlohmann::json::parse(context->get_config());
-    std::string source = j_obj["source"];
-    auto j_instruments = j_obj["instruments"];
-    time_interval_ = j_obj["period"].get<int>() * kungfu::yijinjing::time_unit::NANOSECONDS_PER_SECOND;
-    std::vector<std::string> instruments;
-    for (auto it = j_instruments.begin(); it != j_instruments.end(); ++it) {
-      auto [exchange, instrument_id] = parse_exchange_instrument_id(it.value());
-      SPDLOG_INFO("exchange: {}, instrument_id: {}", exchange, instrument_id);
-      context->subscribe(source, {instrument_id}, exchange);
+    try {
+      nlohmann::json j_obj = nlohmann::json::parse(context->get_config());
+      SPDLOG_INFO("preparing operator");
+      std::string source = j_obj["source"];
+      auto j_instruments = j_obj["instruments"];
+      time_interval_ = j_obj["period"].get<int>() * kungfu::yijinjing::time_unit::NANOSECONDS_PER_SECOND;
+      std::vector<std::string> instruments;
+      for (auto it = j_instruments.begin(); it != j_instruments.end(); ++it) {
+        auto [exchange, instrument_id] = parse_exchange_instrument_id(it.value());
+        SPDLOG_INFO("exchange: {}, instrument_id: {}", exchange, instrument_id);
+        context->subscribe(source, {instrument_id}, exchange);
+      }
+    } catch (std::exception &e) {
+      SPDLOG_ERROR("failed to parse config: {}", e.what());
+      exit(1);
     }
   }
 

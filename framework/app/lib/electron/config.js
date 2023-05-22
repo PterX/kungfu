@@ -1,5 +1,6 @@
 const path = require('path');
 const fse = require('fs-extra');
+const os = require('os');
 const kungfuCore = require('@kungfu-trader/kungfu-core/package.json');
 const {
   getAppDir,
@@ -9,8 +10,9 @@ const {
   findPackageRoot,
 } = require('@kungfu-trader/kungfu-js-api/toolkit/utils');
 
+const isWindows = os.platform() === 'win32';
 const appDir = getAppDir();
-
+const vsDepsDir = path.join(appDir, 'public', 'vsDeps');
 const kfcDir = getKfcDir();
 const coreDir = getCoreDir();
 const extensionDirs = getExtensionDirs(true);
@@ -93,12 +95,11 @@ module.exports = {
   generateUpdatesFilesForAllChannels: true,
   electronVersion:
     kungfuCore.devDependencies.electron || kungfuCore.dependencies.electron,
-  publish: [
-    {
-      provider: 'generic',
-      url: 'https://www.kungfu-trader.com',
-    },
-  ],
+  publish: {
+    provider: 'generic',
+    url: 'www.kungfu-trader.com',
+    channel: 'kungfu-update-${channel}',
+  },
   npmRebuild: false,
   files: [
     'dist/app/**/*',
@@ -128,6 +129,14 @@ module.exports = {
       to: 'kfc',
       filter: ['!**/btdata'],
     },
+    ...(isWindows // 只在 windows 下拷贝 vs 依赖到 kfc
+      ? [
+          {
+            from: vsDepsDir,
+            to: 'kfc',
+          },
+        ]
+      : []),
     {
       from: `${coreDir}/build/python/dist`,
       to: 'app/dist/public/python',
@@ -240,5 +249,6 @@ module.exports = {
     if (process.env.CI && process.platform === 'win32') {
       fse.removeSync(path.join(result.outDir, 'win-unpacked'));
     }
+    return result.artifactPaths;
   },
 };

@@ -72,6 +72,7 @@ def find_sessions(ctx):
             "group",
             "name",
             "begin_time",
+            "update_time",
             "end_time",
             "closed",
             "duration",
@@ -91,6 +92,7 @@ def find_sessions(ctx):
             session.group,
             session.name,
             session.begin_time,
+            session.update_time,
             session.end_time,
             session.end_time != 0,
             abs(session.update_time) - session.begin_time,
@@ -145,7 +147,7 @@ def show_journal(ctx, session_id, io_type, csv):
     )
     io_device.show(
         session["begin_time"],
-        session["begin_time"] + session["duration"],
+        session["end_time"],
         show_in,
         show_out,
         csv,
@@ -158,7 +160,7 @@ def trace_journal(ctx, session_id, io_type, csv):
     )
     io_device.trace(
         session["begin_time"],
-        session["begin_time"] + session["duration"],
+        session["end_time"],
         show_in,
         show_out,
         csv,

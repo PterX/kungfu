@@ -1,11 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
-#include <assert.h>
 #include <chrono>
 #include <ctime>
 #include <fmt/format.h>
 #include <regex>
-#include <sstream>
 
 #include <kungfu/common.h>
 #include <kungfu/yijinjing/time.h>
@@ -13,8 +11,35 @@
 using namespace std::chrono;
 
 namespace kungfu::yijinjing {
+
+#ifdef __linux__
+
+// Make sure to use clock_gettime instead of syscall to have better performance
+// https://stackoverflow.com/questions/70444744/c-linux-fastest-way-to-measure-time-faster-than-stdchrono-benchmark-incl
+// https://github.com/gcc-mirror/gcc/blob/releases/gcc-11.3.0/libstdc%2B%2B-v3/src/c%2B%2B11/chrono.cc
+
+inline int64_t get_clock_count(clockid_t clk_id) {
+  timespec ts;
+  clock_gettime(clk_id, &ts);
+  return ts.tv_sec * time_unit::NANOSECONDS_PER_SECOND + ts.tv_nsec;
+}
+
+inline int64_t system_clock_count() { return get_clock_count(CLOCK_REALTIME); }
+
+inline int64_t steady_clock_count() { return get_clock_count(CLOCK_MONOTONIC); }
+
+#else
+
+#define NOW_SINCE_EPOCH(clock) clock::now().time_since_epoch()
+
+inline int64_t system_clock_count() { return duration_cast<nanoseconds>(NOW_SINCE_EPOCH(system_clock)).count(); }
+
+inline int64_t steady_clock_count() { return NOW_SINCE_EPOCH(steady_clock).count(); }
+
+#endif
+
 int64_t time::now_in_nano() {
-  auto duration = steady_clock::now().time_since_epoch().count() - get_instance().base_.steady_clock_count;
+  auto duration = steady_clock_count() - get_instance().base_.steady_clock_count;
   return get_instance().base_.system_clock_count + duration;
 }
 
@@ -22,7 +47,7 @@ uint32_t time::nano_hashed(int64_t nano_time) {
   return kungfu::hash_32((const unsigned char *)&nano_time, sizeof(nano_time));
 }
 
-int64_t time::next_minute(int64_t nanotime) {
+[[maybe_unused]] int64_t time::next_minute(int64_t nanotime) {
   return nanotime - nanotime % time_unit::NANOSECONDS_PER_MINUTE + time_unit::NANOSECONDS_PER_MINUTE;
 }
 
@@ -62,7 +87,7 @@ int64_t time::strptime(const std::string &time_string, const std::string &format
   }
 
   std::tm result = {};
-  std::istringstream iss(time_string);
+  std::istringstream iss(normal_timestr);
   iss >> std::get_time(&result, normal_format.c_str());
   std::time_t parsed_time = std::mktime(&result);
   auto tp_system = system_clock::from_time_t(parsed_time);
@@ -124,10 +149,8 @@ void time::reset(int64_t system_clock_count, int64_t steady_clock_count) {
  * start_time_steady_ sample: 867884767983511
  */
 time::time() : base_() {
-  auto system_clock_now = system_clock::now();
-  auto steady_clock_now = steady_clock::now();
-  base_.system_clock_count = duration_cast<nanoseconds>(system_clock_now.time_since_epoch()).count();
-  base_.steady_clock_count = steady_clock_now.time_since_epoch().count();
+  base_.system_clock_count = system_clock_count();
+  base_.steady_clock_count = steady_clock_count();
 }
 
 const time &time::get_instance() {

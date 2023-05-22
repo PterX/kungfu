@@ -3,6 +3,8 @@ import { ExchangeIds } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import {
   dealKfNumber,
   dealKfPrice,
+  countDecimalPlaces,
+  // roundToDecimalPlaces,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { useTriggerMakeOrder } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import {
@@ -14,16 +16,19 @@ import {
 } from 'vue';
 import KfBlinkNum from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfBlinkNum.vue';
 import {
-  InstrumentTypeEnum,
   SideEnum,
+  InstrumentTypeEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import { useQuote } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
+import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+const { t } = VueI18n.global;
 
 const currentInstrument = ref<KungfuApi.InstrumentResolved | undefined>();
 const { getQuoteByInstrument, getLastPricePercent } = useQuote();
 const { triggerOrderBookUpdate } = useTriggerMakeOrder();
 const app = getCurrentInstance();
+let pricePrecision = 0;
 const quoteData = computed(() => {
   if (!currentInstrument.value) {
     return null;
@@ -64,6 +69,14 @@ const bidPrices = computed(() => {
   }
 
   return dealQuoteAskPidPrices(quoteData.value, 'bid');
+});
+
+const limitPrices = computed(() => {
+  if (!quoteData.value) {
+    return [];
+  }
+
+  return [quoteData.value.upper_limit_price, quoteData.value.lower_limit_price];
 });
 
 const askVolume = computed(() => {
@@ -118,11 +131,12 @@ function dealQuoteAskPidPrices(
 ) {
   if (quoteData.instrument_type === InstrumentTypeEnum.future) {
     if (currentInstrument.value) {
-      const price_tick =
+      let price_tick =
         (
           (window.watcher?.ledger?.Instrument[currentInstrument.value.ukey] ||
             {}) as KungfuApi.Instrument
-        ).price_tick ?? 0;
+        ).price_tick ?? 0.001;
+      pricePrecision = countDecimalPlaces(price_tick);
 
       const target_price_tick = type === 'ask' ? +price_tick : -price_tick;
 
@@ -165,7 +179,20 @@ function toLedgalPriceVolume(num: number | bigint) {
 <template>
   <div class="kf-order-book__warp">
     <div class="level-book">
-      <div class="level-row" v-for="(_item, index) in Array(10)" :key="index">
+      <div class="level-row">
+        <div class="left_warp"></div>
+        <div class="price">
+          {{
+            limitPrices[0] !== 0 && limitPrices[0] !== undefined
+              ? dealKfPrice(toLedgalPriceVolume(limitPrices[0]))
+              : '--'
+          }}
+        </div>
+        <div class="limit_price_name">
+          {{ t('tradingConfig.up_limit_price') }}
+        </div>
+      </div>
+      <div v-for="(_item, index) in Array(10)" :key="index" class="level-row">
         <div
           class="buy volume"
           @click="
@@ -176,7 +203,12 @@ function toLedgalPriceVolume(num: number | bigint) {
           "
         ></div>
         <div class="price">
-          {{ dealKfPrice(toLedgalPriceVolume(askPrices[9 - index])) }}
+          {{
+            dealKfPrice(
+              toLedgalPriceVolume(askPrices[9 - index]),
+              pricePrecision,
+            )
+          }}
         </div>
         <div
           class="sell volume"
@@ -212,7 +244,12 @@ function toLedgalPriceVolume(num: number | bigint) {
       </div>
       <div class="price info-item">
         <div class="main">
-          {{ dealKfPrice(getQuoteByInstrument(currentInstrument)?.last_price) }}
+          {{
+            dealKfPrice(
+              getQuoteByInstrument(currentInstrument)?.last_price,
+              pricePrecision,
+            )
+          }}
         </div>
         <div class="sub">
           <KfBlinkNum
@@ -224,7 +261,7 @@ function toLedgalPriceVolume(num: number | bigint) {
       </div>
     </div>
     <div class="level-book">
-      <div class="level-row" v-for="(_item, index) in Array(10)" :key="index">
+      <div v-for="(_item, index) in Array(10)" :key="index" class="level-row">
         <div
           class="buy volume"
           @click="
@@ -237,7 +274,9 @@ function toLedgalPriceVolume(num: number | bigint) {
           {{ dealKfNumber(toLedgalPriceVolume(bidVolume[index])) }}
         </div>
         <div class="price">
-          {{ dealKfPrice(toLedgalPriceVolume(bidPrices[index])) }}
+          {{
+            dealKfPrice(toLedgalPriceVolume(bidPrices[index]), pricePrecision)
+          }}
         </div>
         <div
           class="sell volume"
@@ -248,6 +287,19 @@ function toLedgalPriceVolume(num: number | bigint) {
             )
           "
         ></div>
+      </div>
+      <div class="level-row">
+        <div class="left_warp"></div>
+        <div class="price">
+          {{
+            limitPrices[1] !== 0 && limitPrices[1] !== undefined
+              ? dealKfPrice(toLedgalPriceVolume(limitPrices[1]))
+              : '--'
+          }}
+        </div>
+        <div class="limit_price_name">
+          {{ t('tradingConfig.low_limit_price') }}
+        </div>
       </div>
     </div>
   </div>
@@ -273,7 +325,9 @@ function toLedgalPriceVolume(num: number | bigint) {
       justify-content: space-between;
 
       .price,
-      .volume {
+      .volume,
+      .left_warp,
+      .limit_price_name {
         flex: 1;
         padding-right: 8px;
         align-items: center;

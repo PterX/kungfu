@@ -32,3 +32,11 @@ build/
 build-*/
 cmake-build-debug/
 dist/
+
+# Debug related
+debug-example/
+
+# assemble demo result
+*.csv
+*.xls
+*.xlsx

@@ -20,6 +20,11 @@ inline bool IsValid(const Napi::CallbackInfo &info, int i, MemberPtr ptr) {
   return info.Length() > i and not info[i].IsEmpty() and not info[i].IsUndefined() and (info[i].*ptr)();
 }
 
+template <typename MemberPtr = bool (Napi::Value::*)() const>
+inline bool IsValid(const Napi::Array &info, int i, MemberPtr ptr) {
+  return info.Length() > i and not info[i].IsEmpty() and not info[i].IsUndefined() and (info[i].*ptr)();
+}
+
 inline int64_t TryParseTime(const Napi::CallbackInfo &info, int i) {
   typedef yijinjing::time time;
   if (IsValid(info, i, &Napi::Value::IsString)) {
@@ -34,12 +39,27 @@ inline int64_t GetBigInt(const Napi::Value &value) {
     return value.ToNumber().Int32Value();
   }
   if (value.IsBigInt()) {
-    bool lossless = {};
+    bool lossless;
     return value.As<Napi::BigInt>().Int64Value(&lossless);
   }
   return INT64_MAX;
 }
 
 inline int64_t GetBigInt(const Napi::CallbackInfo &info, int i) { return GetBigInt(info[i]); }
+
+inline bool GetBool(const Napi::CallbackInfo &info, int i) {
+  if (not IsValid(info, i, &Napi::Value::IsBoolean)) {
+    throw Napi::Error::New(info.Env(), "Invalid bool argument index: " + std::to_string(i));
+  }
+  return info[i].As<Napi::Boolean>().Value();
+}
+
+inline bool GetNumber(const Napi::CallbackInfo &info, int i) {
+  if (not IsValid(info, i, &Napi::Value::IsNumber)) {
+    throw Napi::Error::New(info.Env(), "Invalid number argument index: " + std::to_string(i));
+  }
+  return info[i].As<Napi::Number>().Int32Value();
+}
+
 } // namespace kungfu::node
 #endif // KUNGFU_NODE_COMMON_H

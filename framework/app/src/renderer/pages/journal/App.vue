@@ -43,9 +43,14 @@
           {{ currentSessionTitle }}
         </div>
         <TimeSlider
-          v-model:time-range="currentTimeRangeData.range"
-          :limit-time-range="limitTimeRange"
+          ref="timeSlider"
+          v-model:current-time="currentTime"
+          :current-session="currentSession"
+          :now-time="nowTime"
+          :begin-time="beginTime"
+          :end-time="endTime"
           :step="60"
+          stick
           class="kf-journal-time-slider"
         ></TimeSlider>
         <ExportJournal @export-journal-data="onExportJournalData" />
@@ -67,9 +72,18 @@
             v-show="isCurrentMenuItem('event')"
             ref="eventDashBoard"
             :current-session="currentSession"
-            :current-time-range-data="currentTimeRangeData"
+            :current-location="currentLocation"
+            :begin-time="beginTime"
+            :end-time="endTime"
+            :now-time="nowTime"
+            :current-time="currentTime"
+            :location-map="SourceAndDestNameMap"
+            @update-current-time="onUpdateCurrentTime"
           />
-          <OrdersDashboard v-show="isCurrentMenuItem('visual')" />
+          <!-- <OrdersDashboard
+            v-show="isCurrentMenuItem('visual')"
+            :current-session="currentSession"
+          /> -->
         </div>
       </div>
     </div>
@@ -77,10 +91,23 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, computed, toRaw, watch, nextTick } from 'vue';
-import { assemble, dealKfTime } from '@kungfu-trader/kungfu-js-api/kungfu';
+import {
+  onMounted,
+  ref,
+  computed,
+  toRaw,
+  watch,
+  nextTick,
+  watchEffect,
+} from 'vue';
+import {
+  dealKfTime,
+  sessionStore,
+  io,
+} from '@kungfu-trader/kungfu-js-api/kungfu';
 import { getSessionColumns, SessionStatus } from './config';
 import { removeLoadingMask } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
+
 import {
   getCurrentLocation,
   dealCategory,
@@ -91,20 +118,31 @@ import { setTimerPromiseTask } from '@kungfu-trader/kungfu-js-api/utils/busiUtil
 import { SessionStatusEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
   UnorderedListOutlined,
-  LineChartOutlined,
+  // LineChartOutlined,
 } from '@ant-design/icons-vue';
 import KfTradingDataTable from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfTradingDataTable.vue';
 import TimeSlider from './components/TimeSlider.vue';
 import ExportJournal from './components/ExportJournal.vue';
 import EventsDashBoard from './components/EventsDashboard.vue';
-import OrdersDashboard from './components/OrdersDashboard.vue';
+// import OrdersDashboard from './components/OrdersDashboard.vue';
 import { useJournalStore } from './store/journalStore';
+import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 
+type LocationRseolved = KungfuApi.KfLocation & {
+  uname: string;
+  uid: number;
+};
+const { t } = VueI18n.global;
+const beginTime = ref<bigint>(BigInt(new Date().getTime()) * 1000000n);
+const endTime = ref<bigint>(0n);
 const currentLocation = getCurrentLocation();
+const timeSlider = ref();
 const eventDashBoard = ref();
+const mdSession = ref();
 const journalStore = useJournalStore();
-
+const allLocations = ref<Record<string, LocationRseolved>>({});
 const sessionsMap = ref<Record<string, KungfuApi.SessionResolved>>({});
+const SourceAndDestNameMap = ref<Record<string, string>>({});
 const sessions = computed(() => {
   return Object.values(sessionsMap.value);
 });
@@ -114,13 +152,19 @@ const runningSessions = computed(() => {
   );
 });
 
+const nowTime = ref(BigInt(new Date().getTime()) * 1000000n);
+const currentTime = ref(BigInt(new Date().getTime()) * 1000000n);
+
+watchEffect(() => {
+  const updateNowTime = () => {
+    nowTime.value = BigInt(new Date().getTime()) * 1000000n;
+    setTimeout(updateNowTime, 1000);
+  };
+
+  updateNowTime();
+});
 const currentSessionKey = ref('');
 const currentSessionId = ref(-1);
-const currentTimeRangeData = ref<{ range: [bigint, bigint]; reload: boolean }>({
-  range: [0n, 0n],
-  reload: true,
-});
-const limitTimeRange = ref<[bigint, bigint]>([0n, 0n]);
 
 const currentSession = computed(() => {
   if (currentSessionKey.value && Object.keys(sessionsMap.value).length) {
@@ -146,14 +190,14 @@ const currentMenuList = ref<('event' | 'visual')[]>(['event']);
 const menus = [
   {
     key: 'event',
-    title: 'Event',
+    title: t('journalConfig.Event'),
     icon: UnorderedListOutlined,
   },
-  {
-    key: 'visual',
-    title: 'Visual',
-    icon: LineChartOutlined,
-  },
+  // {
+  //   key: 'visual',
+  //   title: t('journalConfig.Visual'),
+  //   icon: LineChartOutlined,
+  // },
 ];
 
 const isCurrentMenuItem = (key: 'event' | 'visual') =>
@@ -178,9 +222,18 @@ watch(
   () => sessions.value,
   () => {
     journalStore.setSessions(sessions.value);
+    allLocations.value = io.getAllLocations();
+    SourceAndDestNameMap.value = dealsessionsToMap(allLocations.value);
   },
   {
     deep: true,
+  },
+);
+
+watch(
+  () => mdSession.value?.end_time,
+  () => {
+    getMdSessions();
   },
 );
 
@@ -190,30 +243,65 @@ watch(
     if (!newSession) return;
 
     const { begin_time, end_time } = newSession;
-
-    limitTimeRange.value = [
-      begin_time,
-      end_time ? end_time : BigInt(new Date().getTime()) * 1000000n,
-    ];
-
-    currentTimeRangeData.value = {
-      range: limitTimeRange.value,
-      reload: true,
-    };
+    beginTime.value = begin_time;
+    endTime.value = end_time ?? 0n;
   },
 );
 
-const getSessions = () =>
-  currentLocation
-    ? assemble.getSessions(currentLocation)
-    : assemble.getSessions();
+const onUpdateCurrentTime = (value: bigint) => {
+  currentTime.value = value;
+};
+
+const dealsessionsToMap = (sessions: Record<string, LocationRseolved>) => {
+  const SourceAndDestNameMap: Record<string, LocationRseolved> = {};
+  Object.values(sessions).forEach((item) => {
+    SourceAndDestNameMap[item.uid] = item;
+  });
+  return ransformObject(SourceAndDestNameMap);
+};
+const ransformObject = (obj: Record<string, LocationRseolved>) => {
+  const output: Record<string, string> = {};
+
+  for (const key in obj) {
+    // eslint-disable-next-line no-prototype-builtins
+    if (obj.hasOwnProperty(key)) {
+      const item = obj[key];
+      output[key] = `${item.category}/${item.group}/${item.name}/${item.mode}`;
+    }
+  }
+  output['0'] = 'public';
+
+  return output;
+};
+
+const getSessions = () => {
+  return currentLocation
+    ? sessionStore.getSessionsForLocation(currentLocation)
+    : sessionStore.getAllSessions();
+};
+
+const getMdSessions = () => {
+  const sessions = sessionStore.getAllSessions();
+  if (!sessions) {
+    mdSession.value = null;
+    return null;
+  }
+  const mdSessions = sessions.filter((item) => item.name === 'sim');
+  const mdRuningSessions = mdSessions.filter(
+    (item) => item.end_time === BigInt(0),
+  );
+  if (mdRuningSessions.length) {
+    mdSession.value = mdRuningSessions[mdRuningSessions.length - 1];
+    return mdRuningSessions[mdRuningSessions.length - 1];
+  }
+  mdSession.value = mdSessions[0];
+  return mdSession.value;
+};
 
 const loadSessions = (gotSessions?: KungfuApi.Session[]) => {
   const currentSessions = gotSessions ?? getSessions();
-
   if (currentSessions?.length) {
     sessionsMap.value = dealSessionsToMap(currentSessions.reverse());
-
     nextTick(() => {
       if (!gotSessions && sessions.value.length) {
         const { index, begin_time } = sessions.value[0];
@@ -237,9 +325,9 @@ const startCheckSessionsStatus = () => {
       }
       return map;
     }, {});
-
     if (hasNewSession) {
       loadSessions(currentSessions);
+      getMdSessions();
       return;
     }
 
@@ -254,13 +342,6 @@ const startCheckSessionsStatus = () => {
         );
         sessionsMap.value[currentKey].status = SessionStatusEnum.Finished;
       }
-
-      if (`${session.begin_time}` === currentSessionKey.value) {
-        limitTimeRange.value = [
-          session.begin_time,
-          currentEndTime || BigInt(new Date().getTime()) * 1000000n,
-        ];
-      }
     });
   }, 1000);
 };
@@ -269,6 +350,7 @@ onMounted(() => {
   loadSessions();
   removeLoadingMask();
   startCheckSessionsStatus();
+  getMdSessions();
 });
 
 const handleSelectSession = ({ row }) => {
@@ -303,6 +385,11 @@ const dealRowClassName = (row) => {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-align: center;
+  :deep(.ant-slider-track .ant-slider-step) {
+    border-color: #fff !important;
+    color: #fff !important;
+    background-color: #fff !important;
+  }
 
   .ant-layout {
     height: 100%;

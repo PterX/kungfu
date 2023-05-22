@@ -11,6 +11,7 @@
 
 using namespace kungfu::longfist;
 using namespace kungfu::longfist::types;
+using namespace kungfu::longfist::enums;
 using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::journal;
@@ -30,10 +31,6 @@ namespace kungfu::wingchun::pybind {
 class PyAccountingMethod : public AccountingMethod {
 public:
   using AccountingMethod::AccountingMethod;
-
-  void apply_trading_day(Book_ptr &book, int64_t trading_day) override {
-    PYBIND11_OVERLOAD_PURE(void, AccountingMethod, apply_trading_day, book, trading_day);
-  }
 
   void apply_quote(Book_ptr &book, const Quote &quote) override {
     PYBIND11_OVERLOAD_PURE(void, AccountingMethod, apply_quote, book, quote);
@@ -99,7 +96,6 @@ void bind_book(pybind11::module &m) {
 
   py::class_<AccountingMethod, PyAccountingMethod, AccountingMethod_ptr>(m, "AccountingMethod")
       .def(py::init<>())
-      .def("apply_trading_day", &AccountingMethod::apply_trading_day)
       .def("apply_quote", &AccountingMethod::apply_quote)
       .def("apply_order_input", &AccountingMethod::apply_order_input)
       .def("apply_order", &AccountingMethod::apply_order)
@@ -109,7 +105,6 @@ void bind_book(pybind11::module &m) {
       .def("has_book", &Bookkeeper::has_book)
       .def("get_book", &Bookkeeper::get_book)
       .def("get_books", &Bookkeeper::get_books)
-      .def("set_accounting_method", &Bookkeeper::set_accounting_method)
-      .def("on_trading_day", &Bookkeeper::on_trading_day);
+      .def("set_accounting_method", &Bookkeeper::set_accounting_method);
 }
 } // namespace kungfu::wingchun::pybind

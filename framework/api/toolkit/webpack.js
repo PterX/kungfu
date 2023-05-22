@@ -13,6 +13,12 @@ module.exports = {
         minimize: true,
         minimizer: [new TerserPlugin()],
       },
+      cache: {
+        type: 'filesystem',
+        buildDependencies: {
+          config: [__filename],
+        },
+      },
       module: {
         rules: [
           ...(argv.passTJSLoader

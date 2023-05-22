@@ -123,6 +123,11 @@ function handleRemoveStrategy(record: KungfuApi.KfConfig) {
       error(err.message || t('operation_failed'));
     });
 }
+function handleOpenCodeViewResolved(record: KungfuApi.KfConfig) {
+  const processId = getProcessIdByKfLocation(record);
+  const filePath = getConfigValue(record).file_path;
+  return handleOpenCodeView(processId, filePath, false);
+}
 </script>
 
 <template>
@@ -225,7 +230,7 @@ function handleRemoveStrategy(record: KungfuApi.KfConfig) {
               />
               <FormOutlined
                 style="font-size: 12px"
-                @click.stop="handleOpenCodeView(record)"
+                @click.stop="handleOpenCodeViewResolved(record)"
               />
               <SettingOutlined
                 style="font-size: 12px"

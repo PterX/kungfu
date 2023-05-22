@@ -38,6 +38,10 @@ private:
   yijinjing::cache::profile profile_;
 
   static Napi::FunctionReference constructor;
+  static void cleanup() {
+    SPDLOG_INFO("ConfigStore reset");
+    ConfigStore::constructor.Reset();
+  }
 
   friend class Watcher;
 };

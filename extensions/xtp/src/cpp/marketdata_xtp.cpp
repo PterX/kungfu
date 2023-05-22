@@ -3,6 +3,7 @@
 //
 
 #include "marketdata_xtp.h"
+#include "serialize_xtp.h"
 #include "type_convert.h"
 
 using namespace kungfu::yijinjing;
@@ -159,8 +160,8 @@ void MarketDataXTP::OnQueryAllTickers(XTPQSI *ticker_info, XTPRI *error_info, bo
 
   Instrument &instrument = get_writer(0)->open_data<Instrument>(0);
   from_xtp(ticker_info, instrument);
-  get_writer(0)->close_data();
   SPDLOG_TRACE("instrument {}", instrument.to_string());
+  get_writer(0)->close_data();
 }
 
 void MarketDataXTP::OnDepthMarketData(XTPMD *market_data, int64_t *bid1_qty, int32_t bid1_count, int32_t max_bid1_count,
@@ -203,7 +204,7 @@ void MarketDataXTP::OnQueryAllTickersFullInfo(XTPQFI *ticker_info, XTPRI *error_
 
   memcpy(instrument.product_id, ticker_info->ticker_name, strlen(ticker_info->ticker_name));
   instrument.instrument_type = get_instrument_type(instrument.exchange_id, instrument.instrument_id);
-  get_writer(0)->close_data();
   SPDLOG_TRACE("instrument {}", instrument.to_string());
+  get_writer(0)->close_data();
 }
 } // namespace kungfu::wingchun::xtp

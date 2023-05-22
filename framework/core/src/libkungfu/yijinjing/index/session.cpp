@@ -40,24 +40,29 @@ int64_t session_finder::find_last_active_time(const data::location_ptr &source_l
   return sessions.empty() ? INT64_MIN : sessions.front().end_time;
 }
 
-SessionVector session_finder::find_sessions(int64_t from, int64_t to) {
+[[maybe_unused]] SessionVector session_finder::find_sessions(int64_t from, int64_t to) {
   auto bt = &Session::begin_time;
-  auto range = where(greater_or_equal(bt, from) and lesser_or_equal(bt, to));
+  auto ut = &Session::update_time;
+  auto range = where(greater_or_equal(ut, from) and lesser_or_equal(ut, to));
   return session_storage_->get_all<Session>(range, order_by(bt));
 }
 
-SessionVector session_finder::find_sessions_for(const location_ptr &source_location, int64_t from, int64_t to) {
+[[maybe_unused]] SessionVector session_finder::find_sessions_for(const location_ptr &source_location, int64_t from,
+                                                                 int64_t to) {
   auto bt = &Session::begin_time;
+  auto ut = &Session::update_time;
   auto match_uid = eq(&Session::location_uid, source_location->uid);
-  auto range = where(match_uid and greater_or_equal(bt, from) and lesser_or_equal(bt, to));
+  auto range = where(match_uid and greater_or_equal(ut, from) and lesser_or_equal(ut, to));
   return session_storage_->get_all<Session>(range, order_by(bt));
 }
 
 session_builder::session_builder(const io_device_ptr &io_device) : session_finder(io_device) {
+  std::lock_guard<std::mutex> lock(update_session_mutex_);
   if (not session_storage_->sync_schema_simulate().empty()) {
     session_storage_->sync_schema();
   }
   session_storage_->pragma.journal_mode(sqlite_orm::journal_mode::WAL);
+  session_storage_->pragma.synchronous(0);
 }
 
 int64_t session_builder::find_last_active_time(const data::location_ptr &source_location) {
@@ -65,6 +70,7 @@ int64_t session_builder::find_last_active_time(const data::location_ptr &source_
 }
 
 Session &session_builder::open_session(const location_ptr &source_location, int64_t time) {
+  std::lock_guard<std::mutex> lock(update_session_mutex_);
   auto pair = live_sessions_.try_emplace(source_location->uid);
   auto &session = pair.first->second;
   if (pair.second) {
@@ -82,6 +88,7 @@ Session &session_builder::open_session(const location_ptr &source_location, int6
 }
 
 void session_builder::close_session(const location_ptr &source_location, int64_t time) {
+  std::lock_guard<std::mutex> lock(update_session_mutex_);
   if (live_sessions_.find(source_location->uid) == live_sessions_.end()) {
     return;
   }
@@ -93,6 +100,7 @@ void session_builder::close_session(const location_ptr &source_location, int64_t
 }
 
 SessionMap &session_builder::close_all_sessions(int64_t time) {
+  std::lock_guard<std::mutex> lock(update_session_mutex_);
   for (auto &pair : live_sessions_) {
     auto &session = pair.second;
     session.end_time = time;
@@ -103,6 +111,7 @@ SessionMap &session_builder::close_all_sessions(int64_t time) {
 }
 
 void session_builder::update_session(const frame_ptr &frame) {
+  std::lock_guard<std::mutex> lock(update_session_mutex_);
   if (live_sessions_.find(frame->source()) == live_sessions_.end()) {
     return;
   }
@@ -112,9 +121,12 @@ void session_builder::update_session(const frame_ptr &frame) {
   session.data_size += frame->frame_length();
 }
 
-void session_builder::rebuild_index_db() {
+[[maybe_unused]] void session_builder::rebuild_index_db() {
+  std::lock_guard<std::mutex> lock(update_session_mutex_);
+  SPDLOG_INFO("rebuild_index_db");
   std::unordered_map<std::string, location_ptr> formatstr_to_locations = {};
   auto locator = io_device_->get_locator();
+  SPDLOG_INFO("Locator: root {} mode {}", locator->get_root(), int(locator->get_dir_mode()));
   auto reader = io_device_->open_reader_to_subscribe();
   for (const auto &location : locator->list_locations("*", "*", "*", "*")) {
     SPDLOG_TRACE("investigating journal for [{:08x}] {}", location->uid, location->uname);
@@ -160,7 +172,29 @@ void session_builder::rebuild_index_db() {
     reader->next();
   }
   for (const auto &pair : live_sessions_) {
-    session_storage_->replace(pair.second);
+    auto session = pair.second;
+    if (session.end_time == 0) {
+      session.end_time =
+          session.update_time == session.begin_time ? yijinjing::time::now_in_nano() : session.update_time;
+    }
+    session_storage_->replace(session);
+  }
+}
+
+[[maybe_unused]] void session_builder::update_index_db() {
+  std::lock_guard<std::mutex> lock(update_session_mutex_);
+  SPDLOG_INFO("update_index_db");
+  auto locator = io_device_->get_locator();
+  SPDLOG_INFO("Locator: root {} mode {}", locator->get_root(), int(locator->get_dir_mode()));
+  auto sessions = session_storage_->get_all<Session>();
+  for (int i = 0; i < sessions.size(); i++) {
+    auto &session = sessions[i];
+    session.end_time = session.end_time == 0                           //
+                           ? session.update_time == session.begin_time //
+                                 ? yijinjing::time::now_in_nano()
+                                 : session.update_time //
+                           : session.end_time;
+    session_storage_->replace(session);
   }
 }
 } // namespace kungfu::yijinjing::index

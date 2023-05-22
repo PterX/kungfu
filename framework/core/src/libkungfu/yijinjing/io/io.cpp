@@ -2,6 +2,7 @@
 
 #include <kungfu/common.h>
 #include <kungfu/yijinjing/io.h>
+#include <kungfu/yijinjing/journal/bus.h>
 #include <kungfu/yijinjing/log.h>
 #include <kungfu/yijinjing/time.h>
 
@@ -56,7 +57,9 @@ public:
 
   int notify() override { return low_latency_ ? 0 : publish("{}"); }
 
-  int publish(const std::string &json_message) override { return socket_.send(json_message); }
+  int publish(const std::string &json_message, int flags = NNG_FLAG_NONBLOCK) override {
+    return socket_.send(json_message, flags);
+  }
 };
 
 class nanomsg_publisher_master : public nanomsg_publisher {
@@ -143,7 +146,8 @@ public:
 };
 
 io_device::io_device(data::location_ptr home, const bool low_latency, const bool lazy)
-    : home_(std::move(home)), low_latency_(low_latency), lazy_(lazy) {
+    : home_(std::move(home)), low_latency_(low_latency), lazy_(lazy),
+      bus_(std::make_shared<bus>(is_cleaner_required())) {
   if (spdlog::default_logger()->name().empty()) {
     yijinjing::log::setup_log(home_, home_->name);
   }
@@ -153,22 +157,20 @@ io_device::io_device(data::location_ptr home, const bool low_latency, const bool
   url_factory_ = std::make_shared<ipc_url_factory>();
 }
 
-reader_ptr io_device::open_reader_to_subscribe() {
-  return std::make_shared<reader>(lazy_, low_latency_, is_cleaner_required());
-}
+reader_ptr io_device::open_reader_to_subscribe() { return std::make_shared<reader>(lazy_, low_latency_, bus_); }
 
 reader_ptr io_device::open_reader(const data::location_ptr &location, uint32_t dest_id) {
-  auto r = std::make_shared<reader>(lazy_, low_latency_, is_cleaner_required());
+  auto r = std::make_shared<reader>(lazy_, low_latency_, bus_);
   r->join(location, dest_id, 0);
   return r;
 }
 
 writer_ptr io_device::open_writer(uint32_t dest_id) {
-  return std::make_shared<writer>(home_, dest_id, lazy_, publisher_, low_latency_, is_cleaner_required());
+  return std::make_shared<writer>(home_, dest_id, lazy_, publisher_, low_latency_, bus_);
 }
 
 writer_ptr io_device::open_writer_at(const data::location_ptr &location, uint32_t dest_id) {
-  return std::make_shared<writer>(location, dest_id, lazy_, publisher_, low_latency_, is_cleaner_required());
+  return std::make_shared<writer>(location, dest_id, lazy_, publisher_, low_latency_, bus_);
 }
 
 io_device_master::io_device_master(data::location_ptr home, bool low_latency)

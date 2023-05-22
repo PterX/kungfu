@@ -10,9 +10,15 @@
 namespace kungfu::wingchun::op {
 class Context : public std::enable_shared_from_this<Context> {
 public:
-  Context() = default;
+  Context(yijinjing::practice::apprentice &app, const rx::connectable_observable<event_ptr> &events);
 
   virtual ~Context() = default;
+
+  /**
+   * checked_ is strated started.
+   * @return current time in nano seconds
+   */
+  virtual bool is_started() const = 0;
 
   /**
    * Get current time in nano seconds.
@@ -24,7 +30,7 @@ public:
    * Get config from database.
    * @return  config of current location_uid
    */
-  virtual const std::string &get_config() const = 0;
+  virtual const std::string get_config() const = 0;
 
   /**
    * Add one shot timer callback.
@@ -71,12 +77,6 @@ public:
   virtual void publish_synthetic_data(const std::string &key, const std::string &value) = 0;
 
   /**
-   * Get current trading day.
-   * @return current trading day
-   */
-  virtual int64_t get_trading_day() const = 0;
-
-  /**
    * request deregister.
    * @return void
    */
@@ -89,11 +89,22 @@ public:
    */
   virtual void update_operator_state(longfist::types::OperatorStateUpdate &state_update) {}
 
+  /**
+   * Get broker client.
+   * @return broker client reference
+   */
+  virtual broker::Client &get_broker_client() = 0;
+
 protected:
+  yijinjing::practice::apprentice &app_;
+  const rx::connectable_observable<event_ptr> &events_;
+
   virtual void on_start(){};
+  virtual void prepare(const event_ptr &event) = 0;
 
 private:
   friend void enable(Context &context) { context.on_start(); }
+  friend void prepare(const event_ptr &event, Context &context) { context.prepare(event); }
 };
 } // namespace kungfu::wingchun::op
 

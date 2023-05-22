@@ -1,3 +1,6 @@
+// 由于前端 app 的渲染进程是由 main 进程启动，c++ 中通过 std::getenv 的方式只能获取进程启动时就带有的 env
+// 所以需要在渲染进程启动前就挂载以下的环境变量，也就是在 main 进程中挂载
+import '@kungfu-trader/kungfu-js-api/setGlobalEnv';
 import {
   BrowserWindow,
   screen,
@@ -16,7 +19,10 @@ import {
   showKungfuInfo,
   openUrl,
 } from '@kungfu-trader/kungfu-app/src/main/utils';
-import { kfLogger } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import {
+  kfLogger,
+  isUpdateVersionLogicEnable,
+} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { killExtra } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
 import {
   clearDB,
@@ -31,6 +37,7 @@ import {
 import {
   BASE_DB_DIR,
   KF_HOME,
+  RENDERER_LOG_DIR,
 } from '@kungfu-trader/kungfu-js-api/config/pathConfig';
 import {
   initKfConfig,
@@ -38,6 +45,7 @@ import {
 } from '@kungfu-trader/kungfu-js-api/config';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
+import { handleUpdateKungfu } from './autoUpdater';
 const { t } = VueI18n.global;
 
 let MainWindow: BrowserWindow | null = null;
@@ -103,6 +111,8 @@ async function createWindow(
     if (reloadBySchedule) {
       SecheduleReloading = false;
     }
+
+    isUpdateVersionLogicEnable() && handleUpdateKungfu(MainWindow);
   });
 
   MainWindow.on('close', (e) => {
@@ -157,6 +167,7 @@ async function createWindow(
       createWindow(true);
     });
   });
+  setMenu();
 }
 
 // 防止重开逻辑
@@ -267,6 +278,23 @@ function setMenu() {
   const isShowHelp = !(rootPackageJson?.appConfig?.showHelp === false); // 如果没有显示设置为 false，则显示
 
   const template: MenuItemConstructorOptions[] = [
+    //mac全屏鼠标触摸屏幕顶显示关闭按钮，取消全屏按钮，最小化按钮
+
+    {
+      label: t('File'),
+      submenu: [
+        {
+          label: t('close'),
+          accelerator: 'CommandOrControl+W',
+          click: () => {
+            const focusedWin = BrowserWindow.getFocusedWindow();
+            if (focusedWin) {
+              focusedWin.close();
+            }
+          },
+        },
+      ],
+    },
     {
       label: t('KungFu'),
       submenu: applicationOptions,
@@ -314,9 +342,19 @@ function setMenu() {
             shell.showItemInFolder(path.join(BASE_DB_DIR, 'config.db')),
         },
         {
+          label: t('open_renderer_app_log'),
+          accelerator: 'CommandOrControl+Shift+L',
+          click: () => shell.openPath(RENDERER_LOG_DIR),
+        },
+        {
           label: t('browsing_log'),
           accelerator: 'CommandOrControl+L',
           click: () => MainWindow && openLogFile(MainWindow),
+        },
+        {
+          label: t('view_all_journal'),
+          accelerator: 'CommandOrControl+J',
+          click: () => MainWindow && viewAllJournal(MainWindow),
         },
       ],
     },
@@ -340,11 +378,6 @@ function setMenu() {
           accelerator: 'CommandOrControl+E',
           click: () => MainWindow && exportAllTradingData(MainWindow),
         },
-        {
-          label: t('view_all_journal'),
-          accelerator: 'CommandOrControl+J',
-          click: () => MainWindow && viewAllJournal(MainWindow),
-        },
       ],
     },
     ...(isShowHelp
@@ -358,17 +391,19 @@ function setMenu() {
               },
               {
                 label: t('user_manual'),
-                click: () => openUrl('https://www.kungfu-trader.com/manual/'),
+                click: () =>
+                  openUrl('https://docs.kungfu-trader.com/latest/index.html'),
               },
               {
                 label: t('API_documentation'),
-                click: () => openUrl('https://www.kungfu-trader.com/api-doc/'),
-              },
-              {
-                label: t('Kungfu_forum'),
                 click: () =>
-                  openUrl('https://www.kungfu-trader.com/community/'),
+                  openUrl('https://docs.kungfu-trader.com/latest/07-api.html'),
               },
+              // {
+              //   label: t('Kungfu_forum'),
+              //   click: () =>
+              //     openUrl('https://www.kungfu-trader.com/community/'),
+              // },
             ],
           },
         ]

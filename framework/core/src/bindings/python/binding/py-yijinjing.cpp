@@ -5,7 +5,6 @@
 #include <pybind11/stl.h>
 
 #include <kungfu/longfist/longfist.h>
-#include <kungfu/yijinjing/cache/cached.h>
 #include <kungfu/yijinjing/cache/profile.h>
 #include <kungfu/yijinjing/index/session.h>
 #include <kungfu/yijinjing/io.h>
@@ -20,7 +19,6 @@
 #include <kungfu/yijinjing/util/util.h>
 
 using namespace kungfu::longfist;
-using namespace kungfu::longfist::types;
 using namespace kungfu::longfist::types;
 using namespace kungfu::longfist::enums;
 using namespace kungfu::yijinjing::cache;
@@ -74,39 +72,39 @@ class PyLocator : public locator {
 
 class PyEvent : public event {
 public:
-  [[nodiscard]] int64_t gen_time() const override { PYBIND11_OVERLOAD_PURE(int64_t, event, gen_time, ) }
+  [[nodiscard]] int64_t gen_time() const override { PYBIND11_OVERLOAD_PURE(int64_t, event, gen_time); }
 
-  [[nodiscard]] int64_t trigger_time() const override { PYBIND11_OVERLOAD_PURE(int64_t, event, trigger_time, ) }
+  [[nodiscard]] int64_t trigger_time() const override { PYBIND11_OVERLOAD_PURE(int64_t, event, trigger_time); }
 
-  [[nodiscard]] int32_t msg_type() const override { PYBIND11_OVERLOAD_PURE(int64_t, event, msg_type, ) }
+  [[nodiscard]] int32_t msg_type() const override { PYBIND11_OVERLOAD_PURE(int64_t, event, msg_type); }
 
-  [[nodiscard]] uint32_t source() const override { PYBIND11_OVERLOAD_PURE(int64_t, event, source, ) }
+  [[nodiscard]] uint32_t source() const override { PYBIND11_OVERLOAD_PURE(int64_t, event, source); }
 
-  [[nodiscard]] uint32_t dest() const override { PYBIND11_OVERLOAD_PURE(int64_t, event, dest, ) }
+  [[nodiscard]] uint32_t dest() const override { PYBIND11_OVERLOAD_PURE(int64_t, event, dest); }
 };
 
 class PyPublisher : public publisher {
 public:
-  int notify() override { PYBIND11_OVERLOAD_PURE(int, publisher, notify, ) }
+  int notify() override { PYBIND11_OVERLOAD_PURE(int, publisher, notify); }
 
-  int publish(const std::string &json_message) override {
-    PYBIND11_OVERLOAD_PURE(int, publisher, publish, json_message)
+  int publish(const std::string &json_message, int flags = NNG_FLAG_NONBLOCK) override {
+    PYBIND11_OVERLOAD_PURE(int, publisher, publish, json_message, flags);
   }
 };
 
 class PyObserver : public observer {
 public:
-  bool wait() override { PYBIND11_OVERLOAD_PURE(bool, observer, wait, ) }
+  bool wait() override { PYBIND11_OVERLOAD_PURE(bool, observer, wait); }
 
-  const std::string &get_notice() override { PYBIND11_OVERLOAD_PURE(const std::string &, observer, get_notice, ) }
+  const std::string &get_notice() override { PYBIND11_OVERLOAD_PURE(const std::string &, observer, get_notice); }
 };
 
 class PySink : public sink {
 public:
   void put(const data::location_ptr &location, uint32_t dest_id, const frame_ptr &frame) override {
-    PYBIND11_OVERLOAD_PURE(void, sink, put, location, dest_id, frame)
+    PYBIND11_OVERLOAD_PURE(void, sink, put, location, dest_id, frame);
   }
-  void close() override { PYBIND11_OVERLOAD(void, sink, close, ); }
+  void close() override { PYBIND11_OVERLOAD(void, sink, close); }
 };
 
 class PyMaster : public master {
@@ -122,8 +120,6 @@ public:
   void on_interval_check(int64_t nanotime) override {
     PYBIND11_OVERLOAD_PURE(void, master, on_interval_check, nanotime);
   }
-
-  int64_t acquire_trading_day() override { PYBIND11_OVERLOAD_PURE(int64_t, master, acquire_trading_day); }
 };
 
 class PyApprentice : public apprentice {
@@ -131,10 +127,6 @@ public:
   using apprentice::apprentice;
 
   void on_exit() override { PYBIND11_OVERLOAD_PURE(void, apprentice, on_exit); }
-
-  void on_trading_day(const event_ptr &event, int64_t daytime) override {
-    PYBIND11_OVERLOAD(void, apprentice, on_trading_day, event, daytime);
-  }
 };
 
 template <typename DataType> DataType event_to_data(const event &e) { return e.data<DataType>(); }
@@ -207,6 +199,8 @@ void bind(pybind11::module &&m) {
   py::class_<locator, PyLocator, locator_ptr>(m, "locator")
       .def(py::init())
       .def(py::init<const std::string &>())
+      .def(py::init<mode, const std::vector<std::string> &>(), py::arg("mode"),
+           py::arg("tags") = std::vector<std::string>{})
       .def("has_env", &locator::has_env)
       .def("get_env", &locator::get_env)
       .def("layout_dir", &locator::layout_dir)
@@ -248,12 +242,15 @@ void bind(pybind11::module &&m) {
       .def("disjoin", &reader::disjoin)
       .def("disjoin_channel", &reader::disjoin_channel);
 
+  py::class_<bus, bus_ptr>(m, "bus").def("on_load_page", &bus::on_load_page);
+
   auto writer_class = py::class_<writer, writer_ptr>(m, "writer");
-  writer_class.def(py::init<const data::location_ptr &, uint32_t, bool, publisher_ptr, bool, bool>())
+  writer_class.def(py::init<const data::location_ptr &, uint32_t, bool, publisher_ptr, bool, const bus_ptr &>())
       .def("current_frame_uid", &writer::current_frame_uid)
       .def("copy_frame", &writer::copy_frame)
       .def("mark", &writer::mark)
-      .def("mark_at", &writer::mark_at);
+      .def("mark_at", &writer::mark_at)
+      .def("write_bytes", &writer::write_bytes);
   boost::hana::for_each(AllDataTypes, [&](auto type) {
     using DataType = typename decltype(+boost::hana::second(type))::type;
     writer_class.def("write", py::overload_cast<int64_t, const DataType &, int32_t>(&writer::write<DataType>),
@@ -265,6 +262,7 @@ void bind(pybind11::module &&m) {
   py::class_<sink, PySink, sink_ptr>(m, "sink")
       .def(py::init())
       .def_property_readonly("publisher", &sink::get_publisher)
+      .def_property_readonly("bus", &sink::get_bus)
       .def("put", &sink::put)
       .def("close", &sink::close);
 
@@ -274,18 +272,42 @@ void bind(pybind11::module &&m) {
       .def(py::init<data::locator_ptr>())
       .def("put", &copy_sink::put);
 
-  py::class_<assemble, assemble_ptr>(m, "assemble")
+  auto assemble_class = py::class_<assemble, assemble_ptr>(m, "assemble");
+  assemble_class
       .def(py::init<const std::vector<data::locator_ptr> &, const std::string &, const std::string &,
                     const std::string &, const std::string &>(),
            py::arg("locators"), py::arg("mode") = "*", py::arg("category") = "*", py::arg("group") = "*",
            py::arg("name") = "*")
+      .def(py::init<const data::location_ptr &, uint32_t, uint32_t, int64_t>(), py::arg("source_location"),
+           py::arg("dest_id"), py::arg("assemble_mode") = longfist::enums::AssembleMode::Channel,
+           py::arg("from_time") = 0)
+      .def("read_headers", (std::vector<frame_header>(assemble::*)(int32_t, int64_t)) & assemble::read_headers,
+           py::arg("msg_type"), py::arg("end_time") = INT64_MAX, py::return_value_policy::move)
+      .def(
+          "read_bytes",
+          (std::vector<std::pair<longfist::types::frame_header, std::vector<uint8_t>>>(assemble::*)(int32_t, int64_t)) &
+              assemble::read_bytes,
+          py::arg("msg_type"), py::arg("end_time") = INT64_MAX, py::return_value_policy::move)
       .def("__plus__", &assemble::operator+)
       .def("__rshift__", &assemble::operator>>);
+  boost::hana::for_each(AllDataTypes, [&](auto type) {
+    using DataType = typename decltype(+boost::hana::second(type))::type;
+    assemble_class.def("read_all", py::overload_cast<const DataType &, int64_t>(&assemble::read_all<DataType>),
+                       py::arg("data"), py::arg("end_time") = INT64_MAX, py::return_value_policy::move);
+    assemble_class.def("read_header_data",
+                       py::overload_cast<const DataType &, int64_t>(&assemble::read_header_data<DataType>),
+                       py::arg("data"), py::arg("end_time") = INT64_MAX, py::return_value_policy::move);
+    assemble_class.def("read_headers", py::overload_cast<const DataType &, int64_t>(&assemble::read_headers<DataType>),
+                       py::arg("data") = DataType{}, py::arg("end_time") = INT64_MAX, py::return_value_policy::move);
+    assemble_class.def("read_bytes", py::overload_cast<const DataType &, int64_t>(&assemble::read_bytes<DataType>),
+                       py::arg("data") = DataType{}, py::arg("end_time") = INT64_MAX, py::return_value_policy::move);
+  });
 
   py::class_<io_device, io_device_ptr>(m, "io_device")
       .def(py::init<location_ptr, bool, bool>(), py::arg("home"), py::arg("low_latency") = false,
            py::arg("lazy") = true)
       .def_property_readonly("publisher", &io_device::get_publisher)
+      .def_property_readonly("bus", &io_device::get_bus)
       .def_property_readonly("observer", &io_device::get_observer)
       .def_property_readonly("home", &io_device::get_home)
       .def_property_readonly("live_home", &io_device::get_live_home)
@@ -314,7 +336,8 @@ void bind(pybind11::module &&m) {
 
   py::class_<session_builder, session_finder, std::shared_ptr<session_builder>>(m, "session_builder")
       .def(py::init<io_device_ptr>())
-      .def("rebuild_index_db", &session_builder::rebuild_index_db);
+      .def("rebuild_index_db", &session_builder::rebuild_index_db)
+      .def("update_index_db", &session_builder::update_index_db);
 
   auto profile_class = py::class_<profile, std::shared_ptr<profile>>(m, "profile");
   profile_class.def(py::init<const locator_ptr &>());
@@ -327,7 +350,8 @@ void bind(pybind11::module &&m) {
   });
 
   py::class_<master, PyMaster>(m, "master")
-      .def(py::init<location_ptr, bool>(), py::arg("home"), py::arg("low_latency") = false)
+      .def(py::init<location_ptr, bool, bool>(), py::arg("home"), py::arg("low_latency") = false,
+           py::arg("bypass_cached") = false)
       .def_property_readonly("io_device", &master::get_io_device)
       .def_property_readonly("home", &master::get_home)
       .def_property_readonly("live", &master::is_live)
@@ -338,8 +362,6 @@ void bind(pybind11::module &&m) {
       .def("on_exit", &master::on_exit)
       .def("on_register", &master::on_register)
       .def("on_interval_check", &master::on_interval_check)
-      .def("acquire_trading_day", &master::acquire_trading_day)
-      .def("publish_trading_day", &master::publish_trading_day)
       .def("deregister_app", &master::deregister_app);
 
   py::class_<apprentice, PyApprentice, apprentice_ptr>(m, "apprentice")
@@ -349,19 +371,8 @@ void bind(pybind11::module &&m) {
       .def_property_readonly("live", &apprentice::is_live)
       .def("set_begin_time", &apprentice::set_begin_time)
       .def("set_end_time", &apprentice::set_end_time)
-      .def("on_trading_day", &apprentice::on_trading_day)
       .def("run", &apprentice::run)
       .def("setup", &apprentice::setup)
       .def("step", &apprentice::step);
-
-  py::class_<cached, kungfu::yijinjing::practice::apprentice, std::shared_ptr<cached>>(m, "cached")
-      .def(py::init<yijinjing::data::locator_ptr, longfist::enums::mode, bool>())
-      .def_property_readonly("io_device", &cached::get_io_device)
-      .def_property_readonly("usable", &cached::is_usable)
-      .def("set_begin_time", &cached::set_begin_time)
-      .def("set_end_time", &cached::set_end_time)
-      .def("now", &cached::now)
-      .def("run", &cached::run)
-      .def("on_exit", &cached::on_exit);
 }
 } // namespace kungfu::yijinjing

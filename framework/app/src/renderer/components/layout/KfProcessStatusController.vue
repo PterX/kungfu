@@ -65,7 +65,6 @@ let isClosingWindow = false;
 let isRestartSystem = 0;
 let hasAlertMasterStop = false;
 let hasAlertLedgerStop = false;
-let hasAlertCacheDStop = false;
 
 const getNotificationType = (flag: number) => {
   return flag ? 'warning' : 'error';
@@ -80,19 +79,6 @@ watch(processStatusData, (newPSD, oldPSD) => {
       notification[getNotificationType(isRestartSystem)]({
         message: t('master_interrupt'),
         description: t('master_desc'),
-        duration: 8,
-        placement: 'bottomRight',
-      });
-      isRestartSystem && isRestartSystem++;
-    }
-  }
-
-  if (newPSD.cached !== 'online' && oldPSD.cached === 'online') {
-    if (isRestartSystem || !hasAlertCacheDStop) {
-      hasAlertCacheDStop = true;
-      notification[getNotificationType(isRestartSystem)]({
-        message: t('cached_interrupt'),
-        description: t('cached_desc'),
         duration: 8,
         placement: 'bottomRight',
       });
@@ -145,8 +131,7 @@ watch(appStates, (newAppStates, oldAppStates) => {
 const mainStatusWell = computed(() => {
   const masterIsLive = processStatusData.value['master'] === 'online';
   const ledgerIsLive = processStatusData.value['ledger'] === 'online';
-  const cachedIsLive = processStatusData.value['cached'] === 'online';
-  return masterIsLive && ledgerIsLive && cachedIsLive;
+  return masterIsLive && ledgerIsLive;
 });
 
 function handleOpenProcessControllerBoard(): void {
@@ -332,12 +317,8 @@ onMounted(() => {
 @import '@kungfu-trader/kungfu-app/src/renderer/assets/less/variables.less';
 
 .kf-process-status-controller__warp {
-  float: right;
-  height: 100%;
-  padding: 0 8px;
   display: flex;
   align-items: center;
-  cursor: pointer;
 
   &.some-process-error {
     .title {
@@ -348,21 +329,6 @@ onMounted(() => {
     .anticon {
       color: lighten(@red2-base, 10%);
     }
-  }
-
-  &:hover {
-    background: @item-active-bg;
-    color: @primary-color;
-  }
-
-  .title {
-    font-size: 12px;
-    font-weight: bold;
-    color: @primary-color;
-  }
-
-  .anticon {
-    color: @primary-color;
   }
 }
 

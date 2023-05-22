@@ -152,6 +152,7 @@ export enum SideEnum {
   SurplusStockTransfer,
   GuaranteeStockTransferIn,
   GuaranteeStockTransferOut,
+  Unknown = 99,
 }
 
 export type SideTypes = keyof typeof SideEnum;
@@ -265,11 +266,6 @@ export enum FrameMsgTypeEnum {
   Pong = 10009,
   RequestStop = 10024,
   RequestStart = 10025,
-  CachedReadyToRead = 10060,
-  RequestCached = 10061,
-  NewOrderSingle = 353,
-  CancelOrder = 354,
-  CancelAllOrder = 355,
   ResetBookRequest = 400,
   MirrorPositionsRequest = 401,
   AssetRequest = 402,
@@ -279,9 +275,6 @@ export enum FrameMsgTypeEnum {
   KeepPositionsRequest = 406,
   RebuildPositionsRequest = 407,
   InstrumentEnd = 802,
-  AlgoOrderInput = 20010,
-  AlgoOrderReport = 20011,
-  AlgoOrderModify = 20012,
   Config = 10005,
   TimeValue = 20000,
   TimeKeyValue = 20001,
@@ -299,10 +292,8 @@ export enum FrameMsgTypeEnum {
   RequestReadFromPublic = 10022,
   RequestReadFromSync = 10031,
   RequestWriteTo = 10023,
-  TradingDay = 10027,
   Channel = 10028,
   ChannelRequest = 10029,
-  RequestCachedDone = 10062,
   TimeRequest = 10004,
   TimeReset = 10100,
   Instrument = 209,
@@ -334,4 +325,18 @@ export enum FrameMsgTypeEnum {
 export enum AddOperatorTypeEnum {
   File,
   Extension,
+}
+
+export enum CurrencyEnum {
+  Unknown,
+  CNY, // 人民币
+  HKD, // 港币
+  USD, // 美元
+  JPY, // 日元
+  GBP, // 英镑
+  EUR, // 欧元
+  CNH, // 离岸人民币
+  SGD, // 新加坡元
+  MYR, // 马来西亚吉特
+  CEN, // 美分
 }

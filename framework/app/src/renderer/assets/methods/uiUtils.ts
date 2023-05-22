@@ -9,6 +9,9 @@ import {
   Component,
   App,
   h,
+  InjectionKey,
+  inject,
+  provide,
 } from 'vue';
 import {
   ARCHIVE_DIR,
@@ -29,18 +32,20 @@ import {
   removeArchiveBeforeToday,
   isKfColor,
   isHexOrRgbColor,
+  removeTodayArchive,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
 import { ExchangeIds } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import { BrowserWindow, getCurrentWindow, dialog } from '@electron/remote';
 import { ipcRenderer } from 'electron';
-import { message, Modal } from 'ant-design-vue';
+import { message, Modal, ModalFuncProps } from 'ant-design-vue';
 import {
   InstrumentTypes,
   KfUIExtLocatorTypes,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import path from 'path';
 import { startExtDaemon } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
+import { checkIfCpusNumSafe } from '@kungfu-trader/kungfu-js-api/utils/osUtils';
 import { Proc } from 'pm2';
 import { VueNode } from 'ant-design-vue/lib/_util/type';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
@@ -48,7 +53,6 @@ const { t } = VueI18n.global;
 import fse from 'fs-extra';
 import md from 'markdown-it';
 import { Router } from 'vue-router';
-import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
 
 // this utils file is only for ui components
 
@@ -236,12 +240,19 @@ export const useWritableTableSearchKeyword = <T>(
   keys: string[],
 ): {
   searchKeyword: Ref<string>;
-  tableData: Ref<{ data: T; index: number }[]>;
+  tableData: Ref<{ data: T; index: number; id: string }[]>;
 } => {
+  let id = 0;
+  const idCachedMap = new WeakMap();
   const searchKeyword = ref<string>('');
-  const tableData = ref<{ data: T; index: number }[]>([]) as Ref<
-    { data: T; index: number }[]
+  const tableData = ref<{ data: T; index: number; id: string }[]>([]) as Ref<
+    { data: T; index: number; id: string }[]
   >;
+
+  const generateItemId = (item: object) => {
+    if (!idCachedMap.has(item)) idCachedMap.set(item, `${id++}`);
+    return idCachedMap.get(item) as string;
+  };
 
   watch(
     () => ({ keyword: searchKeyword.value, list: targetList.value }),
@@ -249,7 +260,11 @@ export const useWritableTableSearchKeyword = <T>(
       const { keyword, list } = newValue;
       tableData.value =
         list
-          ?.map((item, index) => ({ data: toRaw(item), index }))
+          ?.map((item, index) => ({
+            data: toRaw(item),
+            index,
+            id: generateItemId(item as unknown as object),
+          }))
           .filter((item: { data: T; index: number }) => {
             const combinedValue = keys
               .map(
@@ -291,7 +306,7 @@ const removeJournalBeforeStartAll = (): Promise<void> => {
   if (needClearJournal) {
     localStorage.setItem('needClearJournal', '0');
     kfLogger.info('Clear Journal Done', needClearJournal);
-    return removeJournal(KF_HOME);
+    return removeTodayArchive(ARCHIVE_DIR).then(() => removeJournal(KF_HOME));
   } else {
     return Promise.resolve();
   }
@@ -318,6 +333,18 @@ export const preStartAll = async (): Promise<(void | Proc)[]> => {
     removeDBBeforeStartAll(),
     removeArchiveBeforeStartAll(),
   ]);
+};
+
+export const checkCpusNumAndConfirmModal = (): Promise<boolean> => {
+  return checkIfCpusNumSafe().then((flag) => {
+    if (flag) return Promise.resolve(true);
+
+    return confirmModalByCustomArgs(
+      t('system_prompt'),
+      t('computer_performance_abnormal'),
+      { zIndex: 1001 },
+    );
+  });
 };
 
 export const postStartAll = async (): Promise<(void | Proc)[]> => {
@@ -355,7 +382,6 @@ export const openNewBrowserWindow = (
     process.env.APP_TYPE === 'renderer' && process.env.NODE_ENV !== 'production'
       ? `http://localhost:9090/${name}.html${params}`
       : `file://${folderName}/${name}.html${params}`;
-
   return new Promise((resolve, reject) => {
     const win = new BrowserWindow({
       ...(getNewWindowLocation() || {}),
@@ -410,9 +436,15 @@ export const openLogView = (
 };
 
 export const openCodeView = (
-  processId: string,
+  id: string,
+  filePath: string,
+  isEntryFilenameEditable: boolean,
 ): Promise<Electron.BrowserWindow> => {
-  return openNewBrowserWindow(__dirname, 'code', `?processId=${processId}`);
+  return openNewBrowserWindow(
+    __dirname,
+    'code',
+    `?id=${id}&filePath=${filePath}&isEntryFilenameEditable=${isEntryFilenameEditable}`,
+  );
 };
 
 export const openJournalView = (
@@ -464,11 +496,12 @@ export const parseURIParams = (): Record<string, string> => {
 export const useIpcListener = (): void => {
   const app = getCurrentInstance();
   ipcRenderer.removeAllListeners('main-process-messages');
-  ipcRenderer.on('main-process-messages', (_event, args) => {
+  ipcRenderer.on('main-process-messages', (_event, name, payload) => {
     if (app?.proxy) {
       app?.proxy.$globalBus.next({
         tag: 'main',
-        name: args,
+        name,
+        payload,
       } as KfEvent.MainProcessEvent);
     }
   });
@@ -493,10 +526,10 @@ export const messagePrompt = (): {
     message.success(msg);
   };
   const error = (msg: string = t('operation_failed')): void => {
-    message.error(msg);
+    message.error(msg, 5);
   };
   const warning = (msg: string): void => {
-    message.warning(msg);
+    message.warning(msg, 5);
   };
   return {
     success,
@@ -536,10 +569,12 @@ export const handleOpenLogviewByFile =
   };
 
 export const handleOpenCodeView = (
-  config: KungfuApi.KfConfig | KungfuApi.KfLocation,
+  id: string,
+  filePath: string,
+  isEntryFilenameEditable: boolean,
 ): Promise<Electron.BrowserWindow> => {
   const openMessage = message.loading(t('open_code_editor'));
-  return openCodeView(getProcessIdByKfLocation(config)).finally(() => {
+  return openCodeView(id, filePath, isEntryFilenameEditable).finally(() => {
     openMessage();
   });
 };
@@ -678,7 +713,6 @@ export const useTriggerMakeOrder = (): {
         tag: 'orderbook',
         instrument,
       });
-      useGlobalStore().setOrderBookCurrentInstrument(instrument);
     }
   };
 
@@ -763,6 +797,29 @@ export const confirmModal = (
   });
 };
 
+export const confirmModalByCustomArgs = (
+  title: string,
+  content: VueNode | (() => VueNode) | string,
+  args: ModalFuncProps = {},
+): Promise<boolean> => {
+  return new Promise((resolve) => {
+    Modal.confirm({
+      title,
+      content,
+      ...args,
+      okText: args?.okText || t('confirm'),
+      cancelText: args?.cancelText || t('cancel'),
+      zIndex: args?.zIndex || 1000,
+      onOk: () => {
+        resolve(true);
+      },
+      onCancel: () => {
+        resolve(false);
+      },
+    });
+  });
+};
+
 const markdown = md();
 
 export const openReadmeModal = (title: string, readmePath: string) => {
@@ -791,10 +848,11 @@ export const openReadmeModal = (title: string, readmePath: string) => {
 export const useBoardFilter = () => {
   const rootPackageJson = readRootPackageJsonSync();
   const boardFilter: Record<string, boolean | undefined> | undefined =
-    rootPackageJson?.boardFilter;
+    rootPackageJson?.appConfig?.boardFilter;
 
   const getBoard = <T>(boardName: string, ifTrue: T, ifFalse: T): T => {
-    return boardFilter ? (boardFilter[boardName] ? ifTrue : ifFalse) : ifTrue;
+    const isBoardShow = boardFilter?.[boardName] ?? true;
+    return isBoardShow ? ifTrue : ifFalse;
   };
 
   return {
@@ -817,4 +875,16 @@ export const dealKungfuColorToStyleColor = (
   color: KungfuApi.AntInKungfuColorTypes,
 ) => {
   return isKfColor(color) ? '' : color;
+};
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const vueProvideBaseOnParent = <T extends { [x: string]: any }>(
+  key: InjectionKey<T> | string,
+  value: T,
+) => {
+  const parentProvide = inject(key);
+  if (!parentProvide) return provide(key, value);
+  if (typeof parentProvide !== 'object' || typeof value !== 'object')
+    return provide(key, value);
+  return provide(key, Object.assign(parentProvide, value));
 };

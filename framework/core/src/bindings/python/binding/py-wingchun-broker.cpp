@@ -10,6 +10,7 @@
 
 using namespace kungfu::longfist;
 using namespace kungfu::longfist::types;
+using namespace kungfu::longfist::enums;
 using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::journal;
@@ -41,7 +42,7 @@ public:
     PYBIND11_OVERLOAD_PURE(bool, MarketData, unsubscribe, instruments);
   }
 
-  void on_start() override { PYBIND11_OVERLOAD(void, MarketData, on_start, ); }
+  void on_start() override { PYBIND11_OVERLOAD(void, MarketData, on_start); }
 };
 
 class PyTrader : public Trader {
@@ -49,7 +50,7 @@ public:
   using Trader::Trader;
 
   [[nodiscard]] AccountType get_account_type() const override {
-    PYBIND11_OVERLOAD_PURE(const AccountType, Trader, get_account_type, );
+    PYBIND11_OVERLOAD_PURE(const AccountType, Trader, get_account_type);
   }
 
   bool insert_block_message(const kungfu::event_ptr &event) override {
@@ -68,17 +69,19 @@ public:
     PYBIND11_OVERLOAD_PURE(bool, Trader, cancel_order, event);
   }
 
-  bool req_position() override { PYBIND11_OVERLOAD_PURE(bool, Trader, req_position, ); }
+  bool req_position() override { PYBIND11_OVERLOAD_PURE(bool, Trader, req_position); }
 
-  bool req_account() override { PYBIND11_OVERLOAD_PURE(bool, Trader, req_account, ); }
+  bool req_account() override { PYBIND11_OVERLOAD_PURE(bool, Trader, req_account); }
 
   bool req_history_order(const event_ptr &event) override { PYBIND11_OVERLOAD(bool, Trader, req_history_order, event); }
 
   bool req_history_trade(const event_ptr &event) override { PYBIND11_OVERLOAD(bool, Trader, req_history_trade, event); }
 
-  void on_start() override { PYBIND11_OVERLOAD(void, Trader, on_start, ); }
+  void on_recover() override { PYBIND11_OVERLOAD_PURE(void, Trader, on_recover); }
 
-  void on_exit() override { PYBIND11_OVERLOAD(void, Trader, on_exit, ); }
+  void on_start() override { PYBIND11_OVERLOAD(void, Trader, on_start); }
+
+  void on_exit() override { PYBIND11_OVERLOAD(void, Trader, on_exit); }
 };
 
 void bind_broker(pybind11::module &m) {
@@ -96,6 +99,7 @@ void bind_broker(pybind11::module &m) {
       .def("on_start", &MarketData::on_start)
       .def("now", &MarketData::now)
       .def("get_writer", &MarketData::get_writer)
+      .def("has_writer", &MarketData::has_writer)
       .def("add_timer", &MarketData::add_timer)
       .def("add_time_interval", &MarketData::add_time_interval)
       .def("update_broker_state", &MarketData::update_broker_state)
@@ -110,10 +114,13 @@ void bind_broker(pybind11::module &m) {
       .def_property_readonly("config", &Trader::get_config)
       .def_property_readonly("home", &Trader::get_home)
       .def_property_readonly("order_inputs", &Trader::get_order_inputs)
+      .def_property_readonly("orders", &Trader::get_orders)
       .def("clear_order_inputs", &Trader::clear_order_inputs)
       .def("on_start", &Trader::on_start)
+      .def("on_recover", &Trader::on_recover)
       .def("now", &Trader::now)
       .def("get_writer", &Trader::get_writer)
+      .def("has_writer", &Trader::has_writer)
       .def("get_asset_writer", &Trader::get_asset_writer)
       .def("get_position_writer", &Trader::get_position_writer)
       .def("enable_asset_sync", &Trader::enable_asset_sync)
@@ -128,7 +135,10 @@ void bind_broker(pybind11::module &m) {
       .def("insert_batch_orders", &Trader::insert_batch_orders)
       .def("cancel_order", &Trader::cancel_order)
       .def("req_history_order", &Trader::req_history_order)
-      .def("req_history_trade", &Trader::req_history_trade);
+      .def("req_history_trade", &Trader::req_history_trade)
+      .def("enable_self_detect", &Trader::enable_self_detect)
+      .def("req_account", &Trader::req_account)
+      .def("req_position", &Trader::req_position);
 
   py::class_<MarketDataVendor, BrokerVendor, std::shared_ptr<MarketDataVendor>>(m, "MarketDataVendor")
       .def(py::init<locator_ptr, const std::string &, const std::string &, bool>())

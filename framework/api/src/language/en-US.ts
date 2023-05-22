@@ -39,6 +39,7 @@ export default {
   open_resources_directory: 'Open Kungfu Resources directory (KF_HOME)',
   open_install_directory: 'Open Kungfu installation directory',
   open_basic_configuration: 'Open Kungfu basic configuration DB',
+  open_renderer_app_log: 'Open Application log',
   browsing_log: 'Browsing log files',
 
   clear_journal: 'Clear journal',
@@ -76,7 +77,9 @@ export default {
   add_config_modal:
     '{category} ID unique in the system. {changeTypeName} cannot be modified after it succeeds.',
   update_config_modal: 'Confirm {key} configurations',
-  database_locked: 'The database is occupied now, please wait and retry.',
+  database_locked: 'Detect there are some trading, database has been used',
+  export_database_locked:
+    'Detect there are some trading, should make sure the trading data be saved, suggest do this after closing quotation.',
 
   MakeOrder: 'Order Dashboard',
   FutureArbitrage: 'Future Arbitrage',
@@ -93,12 +96,13 @@ export default {
   PosGlobal: 'Positon Global',
   Pos: 'Positon',
 
+  please_wait: 'Please wait...',
+  please_wait_and_retry: 'Please wait and retry',
+
   select_broker_ext: 'Select a broker api',
   select_operator_ext: 'Select a operator ext',
   select_trade_task: 'Select trade task',
   select_plugin_type: 'Select extension type',
-
-  please_wait: '请稍后',
 
   baseConfig: {
     main_panel: 'HOME',
@@ -111,6 +115,10 @@ export default {
     csv_template: 'Download Csv Template',
     add_csv_desc: 'csv headers are {header}',
     clear: 'Clear',
+    total: 'Total {sum} pieces of data',
+    import_successed: 'Import Successed',
+    import_failed: 'Import Failed',
+    csv_format_error: 'Csv format error, please check and retry',
   },
 
   tradingConfig: {
@@ -245,6 +253,37 @@ export default {
     HK: 'HK',
     HKFUT: 'HKFUT',
     US: 'US',
+    USFUT: 'USFUT',
+    SGX: 'SGX',
+    SGXFUT: 'SGXFUT',
+    EUR: 'EUR',
+    EURFUT: 'EURFUT',
+    LON: 'LON',
+    LONFUT: 'LONFUT',
+    AEX: 'AEX',
+    AEXFUT: 'AEXFUT',
+    AUX: 'AUX',
+    AUXFUT: 'AUXFUT',
+    HEXS: 'HEXS',
+    HEXSFUT: 'HEXSFUT',
+    IDX: 'IDX',
+    IDXFUT: 'IDXFUT',
+    KORC: 'KORC',
+    LME: 'LME',
+    MYS: 'MYS',
+    MYSFUT: 'MYSFUT',
+    ABB: 'ABB',
+    PRX: 'PRX',
+    PRXFUT: 'PRXFUT',
+    SIX: 'SIX',
+    SIXFUT: 'SIXFUT',
+    TAX: 'TAX',
+    TAXFUT: 'TAXFUT',
+    JP: 'JP',
+    JPFUT: 'JPFUT',
+    TSE: 'TSE',
+    TSEFUT: 'TSEFUT',
+    XETRA: 'XETRA',
     GLFX: 'GLFX',
     IPE: 'IPE',
     CBOT: 'CBOT',
@@ -267,9 +306,19 @@ export default {
     SPD: 'SPD',
     IPS: 'IPS',
 
+    CNY: 'CNY',
+    HKD: 'HKD',
+    USD: 'USD',
+    JPY: 'JPY',
+    GBP: 'GBP',
+    EURO: 'EUR',
+    CNH: 'CNH',
+    SGD: 'SGD',
+    MYR: 'MYR',
+    CEN: 'CEN',
+
     master: 'master',
     ledger: 'ledger',
-    cached: 'cached',
     archive: 'archive',
 
     place_order: 'Place Order',
@@ -303,7 +352,8 @@ export default {
       'The order input volume is {volume}, the current closable {direction} position is {closable_volume}, the excess is {open_volume}\nclick “Take excess to open”, will close {direction} {closable_volume}, open {direction} {open_volume}\nclick “Orignal plan”, will continue close {direction} {volume}',
     start_process: 'please start {process} first',
     place_confirm: 'Place Order Confirm',
-    close_all: 'Close All?',
+    continue_close_rate:
+      'Exceed the close warning value ({rate}%), if you want to continue to make order?',
     Continue: 'Continue',
     original_plan: 'Orignal plan',
     beyond_to_open: 'Take excess to open',
@@ -338,7 +388,7 @@ export default {
     confirm: 'confirm',
 
     entrust_statistical: 'Entrust Statistical',
-    statistical_desc: 'Real-time (latest {count} pieces of data)',
+    statistical_desc: 'Real-time',
     entrust_statistical_number: 'Entrust Statistical Number',
     entrust_statistical_price: 'Entrust Statistical Price',
     average_withdrawal_ratio:
@@ -497,6 +547,24 @@ export default {
     export_success: 'Export success',
 
     loading_journal: 'Loading journal...',
+
+    input_time_format_error: 'The inputed time format error',
+
+    undefined_instrument_id: 'Undefined instrument_id',
+
+    read_event: 'Read event',
+
+    write_event: 'Write event',
+
+    Event: 'Event',
+
+    Visual: 'Visual',
+
+    please_input_instrument_id: 'Please input instrument_id',
+
+    time_range: 'Time range',
+
+    please_input_time: 'Please input time',
   },
 
   tradeConfig: {
@@ -514,7 +582,7 @@ export default {
     statistical: 'Transaction Statistical',
     statistical_count: 'Statistics of transaction quantity',
     statistical_price: 'Transaction price statistics',
-    statistical_desc: 'Real-time (latest 500 pieces of data)',
+    statistical_desc: 'Real-time',
     average_trade_latency: 'Average transaction delay(μs)',
     max_trade_latency: 'Max transaction delay(μs)',
     min_trade_latency: 'Min transaction delay(μs)',
@@ -599,6 +667,11 @@ export default {
     python_path_desc:
       'local python path is required to be selected, and kungfu*.whl should be installed in this path',
 
+    currency: 'Currency',
+    instrument_currency: 'Instrument Currency',
+    instrument_currency_desc:
+      'If open, will show the instrument currency type after instrument name in Position board',
+
     trade: 'Trade',
     sound: 'Traded Sound',
     use_sound: 'Enable the system traded prompt sound',
@@ -625,11 +698,25 @@ export default {
     comission: 'Comission',
     varieties: 'Varieties',
     add_comission: 'Add',
+    save_comission: 'Save',
     exchange_id: 'Exchange ID',
     open: 'Open',
     close_today: 'Close Today',
     close_yesterday: 'Close Yesterday',
     min: 'Min',
+
+    update: 'Upgrade Version',
+    is_check_version: 'Check Version',
+    is_check_version_desc: 'Check the client version when start kungfu',
+    current_version: 'Current version',
+    already_latest_version: 'Already latest version',
+    new_version: 'New version',
+    start_download: 'Start Download',
+    find_new_version: 'Found new version: {version}\nIf you want download now?',
+    downloaded: 'Download finished, wait to install',
+    to_install: 'To install',
+    warning_before_install:
+      "Installing will clean today's trading data and quit Kungfu (If you need, make a backup at first), sure install now? (suggest install when today's trade end)",
   },
 
   风控: 'Risk Setting',
@@ -667,8 +754,13 @@ export default {
       'This location already exists file or folder {name}, please select a different name',
     empty_input: 'File or folder name must be provided',
     illegal_character: 'The name cannot contain \\/:*?" <>|',
+    delate_folder_confirm: 'Are you sure to delete folder?',
+    delate_file_confirm: 'Are you sure to delete file?',
     delate_confirm: 'Are you sure to delete {value}?',
     cannot_delate_entry: 'Cannot delete the entry',
+    current: 'current',
+    operator: 'operator',
+    strategy: 'strategy',
   },
 
   logview: {
@@ -683,10 +775,6 @@ export default {
   ledger_desc:
     'Accounting services are responsible for position and capital calculations, please restart the application',
 
-  cached_interrupt: 'cached interrupted',
-  cached_desc:
-    'The storage service is responsible for data landing. The storage service disconnection does not affect transactions, please restart the application after the transaction',
-
   state_interrupt_msg: '{state} has been disconnected',
   state_interrupt_desc:
     '{state} has been disconnected, transaction may be interrupted. Please check',
@@ -694,6 +782,8 @@ export default {
   kungfu: 'Kungfu',
 
   system_prompt: 'System Prompt',
+  computer_performance_done: 'Performance detecting done ✓',
+  computer_performance_detecting: 'Performance detecting...',
   archive_done: 'Kungfu archive done',
   archive_loading: 'Kungfu archive loading...',
   environment_done: 'Kungfu environment done ✓',
@@ -704,6 +794,9 @@ export default {
   saving_data_loading: 'Saving data loading ...',
   end_all_transactions: 'End all transactions ✓',
   closing: 'End the transaction process, Please do not close...',
+
+  computer_performance_abnormal:
+    'Computer performance is too low, continue start maybe make system process crash, suggest use the CPU core num more than 8.',
 
   quit_confirm:
     'Exiting the application ends all transactions, Confirm to exit?',

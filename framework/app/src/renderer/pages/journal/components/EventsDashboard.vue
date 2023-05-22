@@ -409,6 +409,7 @@ const initLoad = debounce(async () => {
   // wait for while looping and break while working
   await delayMilliSeconds(0);
   frameDataList.value = [];
+  await nextTick();
   currentTracer?.seekToTime(props.currentTime);
   await loadFrameData(sessionIdOrigin);
   requestBreakLoadingDataWhile = false;
@@ -416,6 +417,7 @@ const initLoad = debounce(async () => {
 }, 100);
 
 const loadFrameData = async (currentSessionId: string, loadmore = false) => {
+  console.warn('loadFrameData, loadmore', loadmore);
   const drain = async (
     sessionId: string,
   ): Promise<KungfuApi.FrameResolved[]> => {
@@ -438,7 +440,7 @@ const loadFrameData = async (currentSessionId: string, loadmore = false) => {
       }
 
       const msgType = frame.msgType();
-      if (selectedMsgTypes.value.length > 0 && selectedMsgTypesMap[msgType]) {
+      if (selectedMsgTypes.value.length > 0 && !selectedMsgTypesMap.value[msgType]) {
         currentTracer.next();
         continue;
       }

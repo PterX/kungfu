@@ -1,6 +1,6 @@
-import { longfist } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { computed, onMounted, reactive, ref } from 'vue';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+import { msgTypes } from './index';
 const { t } = VueI18n.global;
 
 export type ChannelRecords = Record<string, [number, number]>;
@@ -38,7 +38,6 @@ export const createFiltersEnumMap = <T>(
 };
 
 const initMsgTypeMaps = () => {
-  const msgTypes: Record<number, string> = longfist.msgTypes;
   const msgTypesFilterOptions: TreeSelectProps[] = [
     {
       title: t('journalConfig.account_info'),

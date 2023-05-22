@@ -5,6 +5,7 @@ import { format } from '@fast-csv/format';
 import { dealKfTime, longfist } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { parseURIParams } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import {
+  deepClone,
   getIdByKfLocation,
   getKfLocationByProcessId,
   getProcessIdByKfLocation,
@@ -12,7 +13,6 @@ import {
 import { KfCategory } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import {
   KfCategoryEnum,
-  FrameMsgTypeEnum,
   KfCategoryTypes,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 
@@ -105,13 +105,12 @@ export const getMsgResolved = (
 };
 
 export const dealFrameMsgType = (
-  msgType: FrameMsgTypeEnum,
+  msgType: number,
 ): KungfuApi.KfTradeValueCommonData => {
-  const msgTypeId = Number(msgType);
-  if (msgTypeId > MSG_NUM) {
-    return getMsgResolved(msgTypeId);
+  if (msgType > MSG_NUM) {
+    return getMsgResolved(msgType);
   } else {
-    return getMsgResolved(msgTypeId % MSG_NUM);
+    return getMsgResolved(msgType % MSG_NUM);
   }
 };
 
@@ -254,9 +253,17 @@ export const buildFrameHeaderForShow = (
     DataLength: frame.dataLength,
     GenTime: frame.genTimeResolved,
     TriggerTime: frame.triggerTimeResolved,
-    MsgType: frame.msgTypeName || frame.msgType,
+    MsgType: frame.msgTypeName,
     PageId: frame.pageId,
     FrameId: frame.frameId,
     SourceToDest: frame.sourceToDest || `${frame.source} -> ${frame.dest}`,
   };
 };
+
+export const msgTypes = deepClone(longfist.msgTypes);
+export const MsgTypes = ((): Record<string, number> => {
+  return Object.keys(msgTypes).reduce((acc, key) => {
+    acc[msgTypes[key]] = +key;
+    return acc;
+  }, {} as Record<string, number>);
+})();

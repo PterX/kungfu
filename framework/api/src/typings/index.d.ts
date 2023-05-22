@@ -43,7 +43,6 @@ declare namespace KungfuApi {
     OrderActionFlagEnum,
     OrderInputKeyEnum,
     KfExhibitConfigTypes,
-    FrameMsgTypeEnum,
     BasketVolumeTypeEnum,
     PriceLevelEnum,
     BasketOrderStatusEnum,
@@ -1031,7 +1030,7 @@ declare namespace KungfuApi {
     genTime: bigint;
     triggerTime: bigint;
     dataAsString: string;
-    msgType: FrameMsgTypeEnum;
+    msgType: number;
     source: number;
     dest: number;
     data: unknown;

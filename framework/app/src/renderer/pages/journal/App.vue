@@ -93,6 +93,7 @@ import {
   watch,
   nextTick,
   watchEffect,
+  getCurrentInstance,
 } from 'vue';
 import {
   dealKfTime,
@@ -144,6 +145,7 @@ const runningSessions = computed(() => {
 
 const nowTime = ref(BigInt(new Date().getTime()) * 1000000n);
 const currentTime = ref(BigInt(new Date().getTime()) * 1000000n);
+const app = getCurrentInstance();
 
 watchEffect(() => {
   const updateNowTime = () => {
@@ -183,11 +185,6 @@ const menus = [
     title: t('journalConfig.Event'),
     icon: UnorderedListOutlined,
   },
-  // {
-  //   key: 'visual',
-  //   title: t('journalConfig.Visual'),
-  //   icon: LineChartOutlined,
-  // },
 ];
 
 const isCurrentMenuItem = (key: 'event' | 'visual') =>
@@ -353,6 +350,14 @@ onMounted(() => {
   removeLoadingMask();
   startCheckSessionsStatus();
   getMdSessions();
+
+  window.addEventListener('resize', () => {
+    app?.proxy &&
+      app?.proxy.$globalBus.next({
+        tag: 'resize',
+      } as KfEvent.ResizeEvent);
+  });
+
 });
 
 const handleSelectSession = ({ row }) => {

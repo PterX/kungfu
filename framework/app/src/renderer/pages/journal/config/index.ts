@@ -96,7 +96,7 @@ export const getFrameColumns = (): KfTradingDataTableHeaderConfig[] => [
     type: 'string',
     name: t('journalConfig.msg_type'),
     dataIndex: 'msgTypeName',
-    width: 166,
+    width: 190,
   },
   {
     type: 'string',

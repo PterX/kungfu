@@ -140,7 +140,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, computed, watch, shallowRef, nextTick } from 'vue';
+import { ref, computed, watch, shallowRef, nextTick, onMounted, getCurrentInstance, onBeforeUnmount } from 'vue';
 import { Empty } from 'ant-design-vue';
 import { PlusOutlined, MinusOutlined } from '@ant-design/icons-vue';
 import { tracer } from '@kungfu-trader/kungfu-js-api/kungfu';
@@ -154,6 +154,7 @@ import { SessionStatusEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import FrameFilters from './FrameFilters.vue';
 import { debounce } from 'lodash';
 import { delayMilliSeconds } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { filter } from 'rxjs';
 
 const props = withDefaults(
   defineProps<{
@@ -171,6 +172,24 @@ const props = withDefaults(
 const emit = defineEmits<{
   (e: 'updateCurrentTime', value: bigint): void;
 }>();
+
+const app = getCurrentInstance();
+const dashboardVisible = ref<boolean>(true);
+onMounted(() => {
+  if (app?.proxy) {
+      const subscription = app?.proxy.$globalBus
+        .pipe(filter((e: KfEvent.KfBusEvent) => e.tag === 'resize'))
+        .subscribe(async() => {
+          dashboardVisible.value = false;
+          await nextTick();
+          dashboardVisible.value = true;
+        });
+
+      onBeforeUnmount(() => {
+        subscription.unsubscribe();
+      });
+    }
+});
 
 const FRAME_LIST_SPLIT = 200;
 const SCALE = 1000000;
@@ -423,17 +442,20 @@ const loadFrameData = async (currentSessionId: string, loadmore = false) => {
   ): Promise<KungfuApi.FrameResolved[]> => {
     if (!currentTracer) return Promise.resolve([]);
     let tempFrames: KungfuApi.FrameResolved[] = [];
-    let loadCount = 0; // sometimes not enough data in journal, so use this count forbidden long time while
+    let tempCount = 0; // sometimes not enough data in journal, so use this count forbidden long time while
+    let totalCount = 0;
 
     while (
       tempFrames.length < FRAME_LIST_SPLIT &&
+      tempCount < FRAME_LIST_SPLIT &&
       currentTracer &&
       currentTracer.dataAvailable() &&
       !requestBreakLoadingDataWhile &&
       props.currentSession &&
       sessionId === props.currentSession.session_id_origin
     ) {
-      loadCount++;
+      tempCount++;
+      totalCount++;
       const frame = currentTracer.currentFrame();
       if (!frame) {
         break;
@@ -511,19 +533,20 @@ const loadFrameData = async (currentSessionId: string, loadmore = false) => {
       return [];
     } else {
       frameDataList.value = [...frameDataList.value, ...tempFrames];
-      tempFrames = [];
     }
 
     if (
       !currentTracer.dataAvailable() ||
       frameDataList.value.length >= DEFAULT_LIST_SIZE ||
-      loadCount >= DEFAULT_LIST_SIZE ||
+      totalCount >= DEFAULT_LIST_SIZE ||
       loadmore
     ) {
       return frameDataList.value;
     } else {
       return new Promise<KungfuApi.FrameResolved[]>((resolve) => {
         requestAnimationFrame(async () => {
+          tempFrames = [];
+          tempCount = 0;
           const frames = await drain(sessionId);
           resolve(frames);
         });
@@ -534,6 +557,7 @@ const loadFrameData = async (currentSessionId: string, loadmore = false) => {
   isLoadingFrames = true;
   return drain(currentSessionId).then((_: KungfuApi.FrameResolved[]) => {
     isLoadingFrames = false;
+    firstSplitFramesLoading.value = false;
     requestBreakLoadingDataWhile = false;
     currentFramesId.value = frameDataList.value[0]?.id;
   });

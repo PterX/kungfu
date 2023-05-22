@@ -26,7 +26,6 @@
         :placeholder="$t('journalConfig.select_channel')"
         :options="Object.keys(channels).map((item) => ({ value: item }))"
         @blur="handleApplyFilters"
-        @deselect="handleApplyFilters"
       >
         >
       </a-select>
@@ -43,7 +42,6 @@
         :placeholder="$t('journalConfig.selete_msg_type')"
         allow-clear
         @blur="handleApplyFilters"
-        @deselect="handleApplyFilters"
       >
         <a-select-option
           v-for="option in msgTypesFilterOptions"

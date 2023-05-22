@@ -200,10 +200,15 @@ bool TraderXTP::generate_external_order(const XTPOrderInfo &order_info) {
       XTP_ORDER_SUBMIT_STATUS_TYPE::XTP_ORDER_SUBMIT_STATUS_CANCEL_ACCEPTED   //
   };
 
-  if (not config_.sync_external_order or
-      set_cancel_enum.find(order_info.order_submit_status) != set_cancel_enum.end()) {
+  if (not config_.sync_external_order) {
     return false;
   }
+
+  if (set_cancel_enum.find(order_info.order_submit_status) != set_cancel_enum.end()) {
+    SPDLOG_DEBUG("this XTPOrderInfo is xtp cancel order, do not generate kungfu Order");
+    return false;
+  }
+
   auto writer = get_writer(location::PUBLIC);
   auto nano = yijinjing::time::now_in_nano();
   Order &order = writer->open_data<Order>(now());

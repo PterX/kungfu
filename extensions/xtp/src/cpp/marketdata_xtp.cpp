@@ -33,9 +33,7 @@ void from_json(const nlohmann::json &j, MDConfiguration &c) {
   c.buffer_size = j.value("buffer_size", 64);
 }
 
-MarketDataXTP::MarketDataXTP(broker::BrokerVendor &vendor) : MarketData(vendor), api_(nullptr) { //
-  KUNGFU_SETUP_LOG();
-}
+MarketDataXTP::MarketDataXTP(broker::BrokerVendor &vendor) : MarketData(vendor), api_(nullptr) { KUNGFU_SETUP_LOG(); }
 
 MarketDataXTP::~MarketDataXTP() {
   if (api_ != nullptr) {

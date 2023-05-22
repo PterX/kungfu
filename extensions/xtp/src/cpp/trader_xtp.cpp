@@ -140,7 +140,7 @@ void TraderXTP::OnOrderEvent(XTPOrderInfo *order_info, XTPRI *error_info, uint64
   }
   SPDLOG_DEBUG("XTPOrderInfo: {}", to_string(*order_info));
 
-  auto frame = get_thread_writer()->open_frame(now(), kXTPOrderInfoType_, sizeof(buffer_XTPOrderInfo));
+  auto frame = get_thread_writer()->open_frame(now(), kXTPOrderInfoType, sizeof(buffer_XTPOrderInfo));
   auto *bf_order_info =
       const_cast<buffer_XTPOrderInfo *>(reinterpret_cast<const buffer_XTPOrderInfo *>(frame->data_address()));
   memcpy(&bf_order_info->order_info, order_info, sizeof(XTPOrderInfo));
@@ -221,7 +221,7 @@ void TraderXTP::OnTradeEvent(XTPTradeReport *trade_info, uint64_t session_id) {
   }
   SPDLOG_DEBUG("XTPTradeReport: {}", to_string(*trade_info));
 
-  auto frame = get_thread_writer()->open_frame(now(), kXTPTradeReportType_, sizeof(buffer_XTPOrderInfo));
+  auto frame = get_thread_writer()->open_frame(now(), kXTPTradeReportType, sizeof(buffer_XTPOrderInfo));
   auto *bf_trade_info =
       const_cast<buffer_XTPTradeReport *>(reinterpret_cast<const buffer_XTPTradeReport *>(frame->data_address()));
   memcpy(&bf_trade_info->trade_info, trade_info, sizeof(XTPTradeReport));
@@ -261,8 +261,8 @@ bool TraderXTP::custom_OnTradeEvent(const XTPTradeReport &trade_info, uint64_t s
   trade.trade_id = writer->current_frame_uid();
   trade.order_id = order_id;
   strcpy(trade.trading_day, trading_day_.c_str());
-  SPDLOG_DEBUG("Trade: {}", trade.to_string());
   add_traded_volume(trade_info.order_xtp_id, trade.volume);
+  SPDLOG_DEBUG("Trade: {}", trade.to_string());
   writer->close_data();
 
   if (not is_final_status(order_state.data.status)) {
@@ -308,7 +308,7 @@ void TraderXTP::OnQueryPosition(XTPQueryStkPositionRsp *position, XTPRI *error_i
     return;
   }
 
-  SPDLOG_TRACE("OnQueryPosition: {}", to_string(*position));
+  SPDLOG_TRACE("XTPQueryStkPositionRsp: {}", to_string(*position));
   auto writer = get_position_writer();
   Position &stock_pos = writer->open_data<Position>(0);
   if (error_info == nullptr || error_info->error_id == 0) {
@@ -319,6 +319,7 @@ void TraderXTP::OnQueryPosition(XTPQueryStkPositionRsp *position, XTPRI *error_i
   stock_pos.direction = Direction::Long;
   strncpy(stock_pos.trading_day, this->trading_day_.c_str(), DATE_LEN);
   stock_pos.update_time = yijinjing::time::now_in_nano();
+  SPDLOG_TRACE("Position: {}", stock_pos.to_string());
   writer->close_data();
   if (is_last) {
     PositionEnd &end = writer->open_data<PositionEnd>(0);
@@ -378,16 +379,14 @@ bool TraderXTP::req_history_trade(const event_ptr &event) {
 void TraderXTP::OnQueryOrder(XTPQueryOrderRsp *order_info, XTPRI *error_info, int request_id, bool is_last,
                              uint64_t session_id) {
   SPDLOG_DEBUG("request_id: {}, is_last: {}, session_id: {}", request_id, is_last, session_id);
-  if (order_info == nullptr) {
-    SPDLOG_ERROR("XTPQueryOrderRsp is nullptr");
-    return;
-  }
-  SPDLOG_DEBUG("XTPQueryOrderRsp: {}", to_string(*order_info));
-
-  auto frame = get_thread_writer()->open_frame(now(), kQueryXTPOrderInfoType_, sizeof(buffer_XTPOrderInfo));
+  auto frame = get_thread_writer()->open_frame(now(), kQueryXTPOrderInfoType, sizeof(buffer_XTPOrderInfo));
   auto *bf_order_info =
       const_cast<buffer_XTPOrderInfo *>(reinterpret_cast<const buffer_XTPOrderInfo *>(frame->data_address()));
-  memcpy(&bf_order_info->order_info, order_info, sizeof(XTPOrderInfo));
+  if (order_info != nullptr) {
+    memcpy(&bf_order_info->order_info, order_info, sizeof(XTPOrderInfo));
+  } else {
+    memset(&bf_order_info->order_info, 0, sizeof(XTPOrderInfo));
+  }
   if (error_info != nullptr) {
     memcpy(&bf_order_info->error_info, error_info, sizeof(XTPRI));
   } else {
@@ -398,52 +397,6 @@ void TraderXTP::OnQueryOrder(XTPQueryOrderRsp *order_info, XTPRI *error_info, in
   bf_order_info->is_last = is_last;
   SPDLOG_DEBUG("buffer_XTPOrderInfo: {}", to_string(*bf_order_info));
   get_thread_writer()->close_frame(sizeof(buffer_XTPOrderInfo));
-  return;
-
-  // TD重连查询收到nullptr
-  if (order_info == nullptr and map_request_location_.find(request_id) == map_request_location_.end()) {
-    SPDLOG_ERROR("XTPQueryOrderRsp is nullptr");
-    return;
-  }
-
-  // 查询历史流水收到nullptr
-  if (order_info == nullptr and map_request_location_.find(request_id) != map_request_location_.end()) {
-    SPDLOG_WARN("XTPQueryOrderRsp* order_info == nullptr, no data returned!");
-    auto writer = get_history_writer(request_id);
-    HistoryOrder &history_order = writer->open_data<HistoryOrder>();
-    history_order.is_last = true;
-    strncpy(history_order.error_msg, "返回数据为空, 可能代表无历史Order数据", ERROR_MSG_LEN);
-    writer->close_data();
-    return;
-  }
-
-  SPDLOG_DEBUG("XTPQueryOrderRsp: {}", to_string(*order_info));
-  if (map_request_location_.find(request_id) == map_request_location_.end()) {
-    // TD重连收到推送当做普通下单委托响应处理
-    if (is_last) {
-      req_order_over_ = true;
-      try_ready();
-    }
-    return OnOrderEvent(order_info, error_info, request_id);
-  }
-
-  auto writer = get_history_writer(request_id);
-  HistoryOrder &history_order = writer->open_data<HistoryOrder>();
-
-  auto is_error = error_info != nullptr and error_info->error_id != 0;
-  if (is_error) {
-    SPDLOG_ERROR("OnQueryOrder False , error_code : {}, error_msg : {}", error_info->error_id, error_info->error_msg);
-    history_order.error_id = error_info->error_id;
-    strncpy(history_order.error_msg, error_info->error_msg, ERROR_MSG_LEN);
-  }
-
-  strncpy(history_order.trading_day, trading_day_.c_str(), DATE_LEN);
-  from_xtp(*order_info, history_order);
-  history_order.order_id = writer->current_frame_uid();
-  history_order.is_last = is_last;
-  history_order.insert_time = yijinjing::time::now_in_nano();
-  history_order.update_time = history_order.insert_time;
-  writer->close_data();
 }
 
 bool TraderXTP::custom_OnQueryOrder(const event_ptr &event) {
@@ -477,7 +430,7 @@ bool TraderXTP::custom_OnQueryOrder(const XTPOrderInfo &order_info, const XTPRI 
       req_order_over_ = true;
       try_ready();
     }
-    return custom_OnOrderEvent(order_info, error_info, request_id);
+    return order_info.order_xtp_id != 0 and custom_OnOrderEvent(order_info, error_info, request_id);
   }
 
   auto writer = get_history_writer(request_id);
@@ -506,8 +459,8 @@ yijinjing::journal::writer_ptr TraderXTP::get_history_writer(uint64_t request_id
 
 void TraderXTP::OnQueryTrade(XTPQueryTradeRsp *trade_info, XTPRI *error_info, int request_id, bool is_last,
                              uint64_t session_id) {
-
-  auto frame = get_thread_writer()->open_frame(now(), kQueryXTPTradeReportType_, sizeof(buffer_XTPTradeReport));
+  SPDLOG_DEBUG("request_id: {}, is_last: {}, session_id: {}", request_id, is_last, session_id);
+  auto frame = get_thread_writer()->open_frame(now(), kQueryXTPTradeReportType, sizeof(buffer_XTPTradeReport));
   auto *bf_trade_info =
       const_cast<buffer_XTPTradeReport *>(reinterpret_cast<const buffer_XTPTradeReport *>(frame->data_address()));
   if (trade_info != nullptr) {
@@ -523,55 +476,8 @@ void TraderXTP::OnQueryTrade(XTPQueryTradeRsp *trade_info, XTPRI *error_info, in
   bf_trade_info->session_id = session_id;
   bf_trade_info->request_id = request_id;
   bf_trade_info->is_last = is_last;
-  get_thread_writer()->close_frame(sizeof(buffer_XTPOrderInfo));
   SPDLOG_DEBUG("buffer_XTPTradeReport: {}", to_string(*bf_trade_info));
-
-  return;
-
-  // TD重连查询收到nullptr
-  if (trade_info == nullptr and map_request_location_.find(request_id) == map_request_location_.end()) {
-    SPDLOG_ERROR("XTPQueryTradeRsp is nullptr");
-    return;
-  }
-
-  // 查询历史流水收到nullptr
-  if (trade_info == nullptr and map_request_location_.find(request_id) != map_request_location_.end()) {
-    SPDLOG_WARN("XTPQueryTradeRsp* trade_info == nullptr, no data returned!");
-    auto writer = get_history_writer(request_id);
-    HistoryTrade &history_trade = writer->open_data<HistoryTrade>(now());
-    history_trade.is_last = true;
-    strncpy(history_trade.error_msg, "返回数据为空,可能代表无历史Trade数据", ERROR_MSG_LEN);
-    writer->close_data();
-    return;
-  }
-
-  SPDLOG_DEBUG("XTPQueryTradeRsp: {}", to_string(*trade_info));
-  if (map_request_location_.find(request_id) == map_request_location_.end()) {
-    // TD重连收到推送当做普通交易成交回报推送处理
-    if (is_last) {
-      req_trade_over_ = true;
-      try_ready();
-    }
-    return OnTradeEvent(trade_info, session_id);
-  }
-
-  auto writer = get_history_writer(request_id);
-  HistoryTrade &history_trade = writer->open_data<HistoryTrade>(now());
-
-  auto is_error = error_info != nullptr and error_info->error_id != 0;
-  if (is_error) {
-    SPDLOG_ERROR("OnQueryTrade False , error_code : {}, error_msg : {}", error_info->error_id, error_info->error_msg);
-    history_trade.error_id = error_info->error_id;
-    strncpy(history_trade.error_msg, error_info->error_msg, ERROR_MSG_LEN);
-  }
-
-  from_xtp(*trade_info, history_trade);
-  history_trade.trade_id = writer->current_frame_uid();
-  history_trade.is_last = is_last;
-  history_trade.trade_time = yijinjing::time::now_in_nano();
-  strncpy(history_trade.trading_day, trading_day_.c_str(), DATE_LEN);
-  history_trade.instrument_type = get_instrument_type(history_trade.exchange_id, history_trade.instrument_id);
-  writer->close_data();
+  get_thread_writer()->close_frame(sizeof(buffer_XTPOrderInfo));
 }
 
 bool TraderXTP::custom_OnQueryTrade(const event_ptr &event) {
@@ -586,7 +492,7 @@ bool TraderXTP::custom_OnQueryTrade(const XTPTradeReport &trade_info, const XTPR
   SPDLOG_DEBUG("XTPRI: {}", to_string(error_info));
   SPDLOG_DEBUG("request_id: {}, is_last: {}", request_id, is_last);
 
-  // 查询历史流水收到nullptr
+  // 查询历史流水收到nullptr, 经过journal走一圈后表现形式为 order_xtp_id == 0
   if (trade_info.order_xtp_id == 0 and is_last and
       map_request_location_.find(request_id) != map_request_location_.end()) {
     SPDLOG_WARN("XTPQueryTradeRsp* trade_info == nullptr, no data returned!");
@@ -601,17 +507,16 @@ bool TraderXTP::custom_OnQueryTrade(const XTPTradeReport &trade_info, const XTPR
   if (map_request_location_.find(request_id) == map_request_location_.end()) {
     // TD重连收到推送当做普通交易成交回报推送处理
     if (is_last) {
-      req_order_over_ = true;
+      req_trade_over_ = true;
       try_ready();
     }
-    return custom_OnTradeEvent(trade_info, session_id);
+    return trade_info.order_xtp_id != 0 and custom_OnTradeEvent(trade_info, session_id);
   }
 
   auto writer = get_history_writer(request_id);
   HistoryTrade &history_trade = writer->open_data<HistoryTrade>(now());
 
-  auto is_error = error_info.error_id != 0;
-  if (is_error) {
+  if (error_info.error_id != 0) {
     SPDLOG_ERROR("OnQueryTrade False , error_code : {}, error_msg : {}", error_info.error_id, error_info.error_msg);
     history_trade.error_id = error_info.error_id;
     strncpy(history_trade.error_msg, error_info.error_msg, ERROR_MSG_LEN);
@@ -623,8 +528,8 @@ bool TraderXTP::custom_OnQueryTrade(const XTPTradeReport &trade_info, const XTPR
   history_trade.trade_time = yijinjing::time::now_in_nano();
   strncpy(history_trade.trading_day, trading_day_.c_str(), DATE_LEN);
   history_trade.instrument_type = get_instrument_type(history_trade.exchange_id, history_trade.instrument_id);
-  writer->close_data();
   SPDLOG_DEBUG("HistoryTrade: {}", history_trade.to_string());
+  writer->close_data();
   return false;
 }
 
@@ -647,26 +552,6 @@ void TraderXTP::on_recover() {
 }
 
 bool TraderXTP::req_order_trade() {
-  bool b_has_not_final_order = false;
-  for (auto &pair : orders_) {
-    SPDLOG_DEBUG("order: {}", pair.second.data.to_string());
-    if (not is_final_status(pair.second.data.status)) {
-      b_has_not_final_order = true;
-      uint64_t order_id = pair.first;
-      uint64_t order_xtp_id = map_kf_to_xtp_order_id_.at(order_id);
-      int ret = api_->QueryOrderByXTPID(order_xtp_id, session_id_, ++request_id_);
-      if (ret != 0) {
-        SPDLOG_ERROR("查询上次关闭前未完成委托的 委托状态 order_id: {}, order_xtp_id: {} 失败, 错误信息为 [{}]:{}",
-                     order_id, order_xtp_id, api_->GetApiLastError()->error_id, api_->GetApiLastError()->error_msg);
-      }
-      ret = api_->QueryTradesByXTPID(order_xtp_id, session_id_, ++request_id_);
-      if (ret != 0) {
-        SPDLOG_ERROR("查询上次关闭前未完成委托的 成交信息 order_id: {}, order_xtp_id: {} 失败,  错误信息为 [{}]:{}",
-                     order_id, order_xtp_id, api_->GetApiLastError()->error_id, api_->GetApiLastError()->error_msg);
-      }
-    }
-  }
-
   XTPQueryOrderReq query_order_param{};
   int ret = api_->QueryOrders(&query_order_param, session_id_, get_request_id());
   if (0 != ret) {
@@ -679,9 +564,6 @@ bool TraderXTP::req_order_trade() {
     SPDLOG_ERROR("QueryTrades False ： {}", ret);
   }
 
-  //  if (not b_has_not_final_order) {
-  //    update_broker_state(BrokerState::Ready);
-  //  }
   return true;
 }
 
@@ -720,13 +602,13 @@ void TraderXTP::add_dealt_trade(uint64_t xtp_order_id, const std::string &exec_i
 bool TraderXTP::on_custom_event(const event_ptr &event) {
   SPDLOG_DEBUG("msg_type: {}", event->msg_type());
   switch (event->msg_type()) {
-  case kXTPOrderInfoType_:
+  case kXTPOrderInfoType:
     return custom_OnOrderEvent(event);
-  case kXTPTradeReportType_:
+  case kXTPTradeReportType:
     return custom_OnTradeEvent(event);
-  case kQueryXTPOrderInfoType_:
+  case kQueryXTPOrderInfoType:
     return custom_OnQueryOrder(event);
-  case kQueryXTPTradeReportType_:
+  case kQueryXTPTradeReportType:
     return custom_OnQueryTrade(event);
   default:
     SPDLOG_ERROR("unrecognized msg_type: {}", event->msg_type());

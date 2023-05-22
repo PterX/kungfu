@@ -232,6 +232,7 @@ private:
   int request_id_{};
   int get_request_id() { return ++request_id_; }
   std::string trading_day_{};
+
   std::unordered_map<uint64_t, uint64_t> map_kf_to_xtp_order_id_{};
   std::unordered_map<uint64_t, uint64_t> map_xtp_to_kf_order_id_{};
   std::unordered_map<uint64_t, uint64_t> map_request_location_{};
@@ -240,8 +241,6 @@ private:
   std::unordered_map<uint64_t, int64_t> map_xtp_order_id_to_traded_volume_{};
 
   yijinjing::journal::writer_ptr get_history_writer(uint64_t request_id);
-
-  void try_deal_XTPTradeReport(uint64_t xtp_order_id);
 
   bool custom_OnOrderEvent(const event_ptr &event);
   bool custom_OnTradeEvent(const event_ptr &event);
@@ -254,7 +253,7 @@ private:
                            uint64_t session_id);
   bool custom_OnQueryTrade(const XTPTradeReport &trade_info, const XTPRI &error_info, int request_id, bool is_last,
                            uint64_t session_id);
-
+  void try_deal_XTPTradeReport(uint64_t xtp_order_id);
   bool generate_real_time_external_order(const XTPOrderInfo &order_info);
 
   void add_XTPTradeReport(const XTPTradeReport &trade_info);

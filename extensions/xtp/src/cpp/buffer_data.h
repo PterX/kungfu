@@ -7,10 +7,10 @@
 
 #include "serialize_xtp.h"
 
-static constexpr int32_t kXTPOrderInfoType_ = 12340001;
-static constexpr int32_t kXTPTradeReportType_ = 12340002;
-static constexpr int32_t kQueryXTPOrderInfoType_ = 12340003;
-static constexpr int32_t kQueryXTPTradeReportType_ = 12340004;
+static constexpr int32_t kXTPOrderInfoType = 12340001;
+static constexpr int32_t kXTPTradeReportType = 12340002;
+static constexpr int32_t kQueryXTPOrderInfoType = 12340003;
+static constexpr int32_t kQueryXTPTradeReportType = 12340004;
 
 struct buffer_XTPTradeReport {
   XTPQueryTradeRsp trade_info;
@@ -29,7 +29,7 @@ struct buffer_XTPOrderInfo {
 };
 
 namespace nlohmann {
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(buffer_XTPTradeReport, trade_info, session_id);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(buffer_XTPTradeReport, trade_info, session_id, error_info, request_id, is_last);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(buffer_XTPOrderInfo, order_info, session_id, error_info, request_id, is_last);
 
 } // namespace nlohmann

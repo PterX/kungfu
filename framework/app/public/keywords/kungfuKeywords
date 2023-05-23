@@ -50,6 +50,13 @@ libnode
 longfist
 yijinjing
 wingchun
+length
+header_length
+version
+page_header_length
+page_size
+frame_header_length
+status
 holder_uid
 ledger_category
 initial_equity
@@ -109,7 +116,6 @@ insert_time
 volume_left
 tax
 commission
-status
 error_id
 error_msg
 trade_id
@@ -167,12 +173,6 @@ market_type
 tag_a
 tag_b
 tag_c
-length
-header_length
-version
-page_header_length
-page_size
-frame_header_length
 location_uid
 pid
 last_active_time
@@ -207,6 +207,8 @@ basket_uid
 base_time
 duration
 system_clock_count
+frame_header
+page_header
 Asset
 AssetMargin
 Position
@@ -230,8 +232,6 @@ Entrust
 Transaction
 Tree
 InstrumentKey
-frame_header
-page_header
 BrokerStateUpdate
 Commission
 Instrument

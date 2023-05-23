@@ -1,5 +1,5 @@
 <template>
-  <div class="kf-journal-events__wrap">
+  <div class="kf-journal-events__wrap" v-if="contentVisible">
     <div class="kf-journal-filters-bar">
       <div class="kf-journal-bar-title">
         <span>{{ `${$t('journalConfig.time_range')}: ` }}</span>
@@ -47,7 +47,7 @@
         :selected-channels="selectedChannels"
       ></FrameFilters>
     </div>
-    <div class="kf-journal-frame__wrap">
+    <div class="kf-journal-frame__wrap" v-if="useResizeFlag">
       <KfTradingDataTable
         :data-source="frameDataList"
         :columns="frameColumns"
@@ -145,7 +145,7 @@ import { Empty } from 'ant-design-vue';
 import { PlusOutlined, MinusOutlined } from '@ant-design/icons-vue';
 import { tracer } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { getFrameColumns } from '../config';
-import { dealFrame, buildFrameHeaderForShow } from '../utils';
+import { dealFrame, buildFrameHeaderForShow, useResizeFlag } from '../utils';
 import { MsgType } from '@kungfu-trader/kungfu-app/src/typings/enums';
 import { useMsgTypesMap, ChannelRecords } from '../utils/filterUtils';
 import KfTradingDataTable from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfTradingDataTable.vue';
@@ -156,6 +156,7 @@ import {
   delayMilliSeconds,
   debounce,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+const { contentVisible} = useResizeFlag();
 
 const props = withDefaults(
   defineProps<{
@@ -580,6 +581,7 @@ const onFiltersApply = async (
     props.currentSession?.begin_time as bigint,
     props.currentSession?.end_time as bigint,
   );
+  console.warn("on filter")
   initLoad();
 };
 

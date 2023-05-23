@@ -280,7 +280,7 @@ const handleScrollToBottom = debounce(async () => {
   if (isLoadingFrames) return;
   await delayMilliSeconds(0);
   await loadFrameData(props.currentSession.session_id_origin, true);
-}, 25);
+}, 50);
 
 const handleStartTimeBlur = () => {
   validateAndUpdateStartTime();
@@ -407,7 +407,7 @@ const init = debounce(() => {
     );
   }
   initLoad();
-}, 100);
+}, 50);
 
 const initLoad = debounce(async () => {
   console.warn('initLoad');
@@ -423,7 +423,7 @@ const initLoad = debounce(async () => {
   await loadFrameData(sessionIdOrigin);
   requestBreakLoadingDataWhile = false;
   firstSplitFramesLoading.value = false;
-}, 100);
+}, 50);
 
 const loadFrameData = async (currentSessionId: string, loadmore = false) => {
   console.warn('loadFrameData, loadmore', loadmore);

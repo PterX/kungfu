@@ -97,7 +97,7 @@ const { formState, msgTypesFilterOptions } = useFrameFilters(
   props.selectedMsgTypes,
 );
 
-const applyFilters = () => { 
+const applyFilters = () => {
   emit(
     'applyFilters',
     formState.read,
@@ -105,10 +105,9 @@ const applyFilters = () => {
     formState.selectedChannels,
     formState.selectedMsgTypes,
   );
-}
+};
 
 const handleApplyFilters = debounce(applyFilters, 100);
-
 
 const resetFilters = () => {
   formState.read = true;
@@ -121,7 +120,6 @@ const resetFilters = () => {
 defineExpose({
   resetFilters,
 });
-
 </script>
 
 <style lang="less">

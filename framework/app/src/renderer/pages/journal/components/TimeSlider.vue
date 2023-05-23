@@ -120,7 +120,6 @@ const million2nanoSecond = (number: number) => {
   return BigInt(number * SCALE);
 };
 
-
 const timeStrs = ref([
   customDealKftime(props.beginTime),
   customDealKftime(props.nowTime),
@@ -184,9 +183,9 @@ watch(
 
 const curTime = ref(nano2millionSecond(props.nowTime));
 
-onMounted(() => { 
+onMounted(() => {
   curTime.value = nano2millionSecond(props.currentTime);
-})
+});
 
 const tipFormatter = (num: number) => {
   return dealKfTime(BigInt(num * SCALE));

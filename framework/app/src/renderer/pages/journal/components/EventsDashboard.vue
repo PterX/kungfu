@@ -152,7 +152,10 @@ import KfTradingDataTable from '@kungfu-trader/kungfu-app/src/renderer/component
 import { dealKfTime } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { SessionStatusEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import FrameFilters from './FrameFilters.vue';
-import { delayMilliSeconds, debounce } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import {
+  delayMilliSeconds,
+  debounce,
+} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 
 const props = withDefaults(
   defineProps<{
@@ -387,12 +390,12 @@ watch(
   },
 );
 
-onMounted(() => { 
+onMounted(() => {
   init();
-})
+});
 
-const init = debounce(() => { 
-  console.warn('init')
+const init = debounce(() => {
+  console.warn('init');
   if (!props.currentSession) return;
   if (!currentTracer) {
     currentTracer = tracer(
@@ -404,7 +407,7 @@ const init = debounce(() => {
     );
   }
   initLoad();
-}, 100)
+}, 100);
 
 const initLoad = debounce(async () => {
   console.warn('initLoad');

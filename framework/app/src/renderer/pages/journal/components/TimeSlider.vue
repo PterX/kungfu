@@ -1,5 +1,5 @@
 <template>
-  <div class="kf-time-slider__wrap">
+  <div class="kf-time-slider__wrap" v-if="contentVisible">
     <backward-outlined
       class="forward-icon"
       @click="handleTimeBack()"
@@ -42,6 +42,7 @@ import { computed, onMounted, ref, watch } from 'vue';
 import { dealKfTime } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { ForwardOutlined, BackwardOutlined } from '@ant-design/icons-vue';
 import { SessionStatusEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
+import { useResizeFlag } from '../utils';
 
 const props = withDefaults(
   defineProps<{
@@ -74,6 +75,8 @@ const maxTime = computed(() => {
     return nano2millionSecond(props.nowTime);
   }
 });
+
+const { contentVisible } = useResizeFlag();
 
 const handleTimeBack = () => {
   if (props.currentTime - TEN_SECOND < props.beginTime) {

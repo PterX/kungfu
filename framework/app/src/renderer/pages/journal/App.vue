@@ -1,6 +1,6 @@
 <template>
   <a-layout>
-    <div class="kf-journal-view__wrap" v-if="contentVisible">
+    <div class="kf-journal-view__wrap">
       <div class="kf-journal-session__wrap">
         <KfTradingDataTable
           :data-source="sessions"
@@ -93,7 +93,6 @@ import {
   nextTick,
   watchEffect,
   getCurrentInstance,
-  onBeforeUnmount,
 } from 'vue';
 import {
   dealKfTime,
@@ -118,7 +117,6 @@ import ExportJournal from './components/ExportJournal.vue';
 import EventsDashBoard from './components/EventsDashboard.vue';
 import { useJournalStore } from './store/journalStore';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
-import { filter } from 'rxjs';
 
 type LocationRseolved = KungfuApi.KfLocation & {
   uname: string;
@@ -134,23 +132,6 @@ const journalStore = useJournalStore();
 const allLocations = ref<Record<string, LocationRseolved>>({});
 
 const app = getCurrentInstance();
-const contentVisible = ref<boolean>(true);
-onMounted(() => {
-  if (app?.proxy) {
-    const subscription = app?.proxy.$globalBus
-      .pipe(filter((e: KfEvent.KfBusEvent) => e.tag === 'resize'))
-      .subscribe(async () => {
-        contentVisible.value = false;
-        await nextTick();
-        contentVisible.value = true;
-      });
-
-    onBeforeUnmount(() => {
-      subscription.unsubscribe();
-    });
-  }
-});
-
 const sessionsMap = ref<Record<string, KungfuApi.SessionResolved>>({});
 const SourceAndDestNameMap = ref<Record<string, string>>({});
 const sessions = computed(() => {

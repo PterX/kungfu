@@ -15,6 +15,14 @@ import {
   KfCategoryEnum,
   KfCategoryTypes,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
+import {
+  getCurrentInstance,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+} from 'vue';
+import { filter } from 'rxjs';
 
 const MSG_NUM = 10000;
 
@@ -267,3 +275,27 @@ export const MsgTypes = ((): Record<string, number> => {
     return acc;
   }, {} as Record<string, number>);
 })();
+
+export const useResizeFlag = () => {
+  const app = getCurrentInstance();
+  const contentVisible = ref<boolean>(true);
+  onMounted(() => {
+    if (app?.proxy) {
+      const subscription = app?.proxy.$globalBus
+        .pipe(filter((e: KfEvent.KfBusEvent) => e.tag === 'resize'))
+        .subscribe(async () => {
+          contentVisible.value = false;
+          await nextTick();
+          contentVisible.value = true;
+        });
+
+      onBeforeUnmount(() => {
+        subscription.unsubscribe();
+      });
+    }
+  });
+
+  return {
+    contentVisible,
+  };
+};

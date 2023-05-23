@@ -595,9 +595,31 @@ template <typename T, typename U> [[maybe_unused]] inline T sub_data_bitwise(con
 
 enum class PageStatus : int8_t { Normal, PreOpen };
 
+NLOHMANN_JSON_SERIALIZE_ENUM(PageStatus, {
+                                             {PageStatus::Normal, "Normal"},
+                                             {PageStatus::PreOpen, "PreOpen"},
+                                         })
+
 inline std::ostream &operator<<(std::ostream &os, PageStatus t) { return os << int8_t(t); }
 
 enum class AccountingMethodType : int8_t { Default = 0, OTC = 1 };
+
+NLOHMANN_JSON_SERIALIZE_ENUM(AccountingMethodType, {
+                                                       {AccountingMethodType::Default, "Default"},
+                                                       {AccountingMethodType::OTC, "OTC"},
+                                                   })
+
+inline std::ostream &operator<<(std::ostream &os, AccountingMethodType t) { return os << int8_t(t); }
+
+enum class FrameDataType : int8_t { Raw, Json, Unknown };
+
+NLOHMANN_JSON_SERIALIZE_ENUM(FrameDataType, {
+                                                {FrameDataType::Raw, "Raw"},
+                                                {FrameDataType::Json, "Json"},
+                                                {FrameDataType::Unknown, "Unknown"},
+                                            })
+
+inline std::ostream &operator<<(std::ostream &os, FrameDataType t) { return os << int8_t(t); }
 
 } // namespace kungfu::longfist::enums
 #endif // KUNGFU_LONGFIST_ENUM_H

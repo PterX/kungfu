@@ -6,6 +6,7 @@
 
 #include <kungfu/common.h>
 #include <kungfu/longfist/longfist.h>
+#include <kungfu/yijinjing/journal/frame.h>
 #include <kungfu/yijinjing/practice/master.h>
 #include <kungfu/yijinjing/time.h>
 #include <kungfu/yijinjing/util/os.h>
@@ -88,19 +89,11 @@ void master::mark_session_end_on_exit() {
 
 void master::on_notify() { get_io_device()->get_publisher()->notify(); }
 
-void master::on_join_channel(const event_ptr &event) {
-  auto join_channel = event->data_as_string();
-  JoinChannel join_channel_data(join_channel.c_str(), join_channel.length());
-  get_writer(join_channel_data.location_uid)->write(now(), join_channel_data);
-}
-
 void master::register_app(const event_ptr &event) {
   auto io_device = std::dynamic_pointer_cast<io_device_master>(get_io_device());
   auto home = io_device->get_home();
 
-  auto request_json = event->data<nlohmann::json>();
   auto request_data = event->data_as_string();
-
   Register register_data(request_data.c_str(), request_data.length());
 
   auto app_location = location::make_shared(register_data, home->locator);
@@ -201,7 +194,6 @@ void master::react() {
   events_ | is(TimeRequest::tag) | $$(on_time_request(event));
   events_ | is(Location::tag) | $$(on_new_location(event));
   events_ | is(Register::tag) | $$(register_app(event));
-  events_ | is(JoinChannel::tag) | $$(on_join_channel(event));
   events_ | is(RequestCachedDone::tag) | $$(on_request_cached_done(event));
   events_ | is(Ping::tag) | $$(pong(event));
   events_ | instanceof <journal::frame>() | $$(feed(event));
@@ -352,15 +344,16 @@ void master::on_request_read_from_sync(const event_ptr &event) {
 }
 
 void master::on_request_read_from_others(const event_ptr &event) {
-  const RequestReadFromOthers &request = event->data<RequestReadFromOthers>();
+  RequestReadFromOthers request{};
+  if (event->data_type() == int8_t(FrameDataType::Json)) {
+    const std::string msg = event->data_as_string();
+    request = RequestReadFromOthers(msg.c_str(), msg.length());
+  } else {
+    request = event->data<RequestReadFromOthers>();
+  }
   auto source = event->source();
   if (has_writer(source)) {
-    auto writer = get_writer(source);
-    RequestReadFromOthers response = {};
-    response.source_id = request.source_id;
-    response.dest_id = request.dest_id;
-    response.from_time = request.from_time;
-    writer->write(now(), response);
+    get_writer(source)->write(now(), request);
   }
 }
 

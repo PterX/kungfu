@@ -100,7 +100,7 @@ protected:
 
   virtual void on_start();
 
-  void on_join_channel(const event_ptr &event);
+  void on_request_read_from_others(const event_ptr &event);
 
   void on_register(int64_t trigger_time, const longfist::types::Register &register_data);
 

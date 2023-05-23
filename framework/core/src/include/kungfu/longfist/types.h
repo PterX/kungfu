@@ -38,10 +38,10 @@ KF_DEFINE_MARK_TYPE(OperatorStateRequest, 10190);
 KF_DEFINE_MARK_TYPE(BrokerStateRequest, 10191);
 KF_DEFINE_MARK_TYPE(CachedReadyToRead, 10251);
 KF_DEFINE_MARK_TYPE(RequestCached, 10252);
-KF_DEFINE_MARK_TYPE(ResetBookRequest, 10401);
-KF_DEFINE_MARK_TYPE(MirrorPositionsRequest, 10402);
-KF_DEFINE_MARK_TYPE(KeepPositionsRequest, 10403);
-KF_DEFINE_MARK_TYPE(RebuildPositionsRequest, 10404);
+KF_DEFINE_MARK_TYPE(ResetBookRequest, 10451);
+KF_DEFINE_MARK_TYPE(MirrorPositionsRequest, 10452);
+KF_DEFINE_MARK_TYPE(KeepPositionsRequest, 10453);
+KF_DEFINE_MARK_TYPE(RebuildPositionsRequest, 10454);
 
 KF_DEFINE_PACK_TYPE(                              //
     Asset, 101, PK(holder_uid), PERPETUAL(),      //
@@ -590,7 +590,9 @@ KF_DEFINE_PACK_TYPE(                                           //
     /** source of this frame */                                //
     (uint32_t, source),                                        //
     /** dest of this frame */                                  //
-    (uint32_t, dest)                                           //
+    (uint32_t, dest),                                          //
+    /** json or raw struct */                                  //
+    (enums::FrameDataType, data_type)                          //
 );
 
 KF_DEFINE_PACK_TYPE(                              //
@@ -823,14 +825,6 @@ KF_DEFINE_PACK_TYPE(                                                   //
     (uint32_t, source_id),                                             //
     (uint32_t, dest_id),                                               //
     (int64_t, from_time)                                               //
-);
-
-KF_DEFINE_PACK_TYPE(                                                       //
-    JoinChannel, 10310, PK(location_uid, source_id, dest_id), PERPETUAL(), //
-    (uint32_t, location_uid),                                              //
-    (uint32_t, source_id),                                                 //
-    (uint32_t, dest_id),                                                   //
-    (int64_t, join_time)                                                   //
 );
 
 KF_DEFINE_PACK_TYPE(                         //

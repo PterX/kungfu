@@ -246,7 +246,6 @@ Channel
 ChannelRequest
 Band
 RequestReadFromOthers
-JoinChannel
 TimeRequest
 TimeReset
 TradingDay
@@ -430,3 +429,7 @@ PreOpen
 PageStatus
 Default
 AccountingMethodType
+Raw
+Json
+Unknown
+FrameDataType

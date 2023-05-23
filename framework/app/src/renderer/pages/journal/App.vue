@@ -1,6 +1,6 @@
 <template>
   <a-layout>
-    <div class="kf-journal-view__wrap">
+    <div class="kf-journal-view__wrap" v-if="contentVisible">
       <div class="kf-journal-session__wrap">
         <KfTradingDataTable
           :data-source="sessions"
@@ -43,7 +43,6 @@
           {{ currentSessionTitle }}
         </div>
         <TimeSlider
-          ref="timeSlider"
           v-model:current-time="currentTime"
           :current-session="currentSession"
           :now-time="nowTime"
@@ -71,7 +70,6 @@
             v-show="isCurrentMenuItem('event')"
             ref="eventDashBoard"
             :current-session="currentSession"
-            :current-location="currentLocation"
             :begin-time="beginTime"
             :end-time="endTime"
             :now-time="nowTime"
@@ -79,10 +77,6 @@
             :location-map="SourceAndDestNameMap"
             @update-current-time="onUpdateCurrentTime"
           />
-          <!-- <OrdersDashboard
-            v-show="isCurrentMenuItem('visual')"
-            :current-session="currentSession"
-          /> -->
         </div>
       </div>
     </div>
@@ -98,6 +92,8 @@ import {
   watch,
   nextTick,
   watchEffect,
+  getCurrentInstance,
+  onBeforeUnmount,
 } from 'vue';
 import {
   dealKfTime,
@@ -115,17 +111,14 @@ import {
 } from './utils';
 import { setTimerPromiseTask } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { SessionStatusEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
-import {
-  UnorderedListOutlined,
-  // LineChartOutlined,
-} from '@ant-design/icons-vue';
+import { UnorderedListOutlined } from '@ant-design/icons-vue';
 import KfTradingDataTable from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfTradingDataTable.vue';
 import TimeSlider from './components/TimeSlider.vue';
 import ExportJournal from './components/ExportJournal.vue';
 import EventsDashBoard from './components/EventsDashboard.vue';
-// import OrdersDashboard from './components/OrdersDashboard.vue';
 import { useJournalStore } from './store/journalStore';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+import { filter } from 'rxjs';
 
 type LocationRseolved = KungfuApi.KfLocation & {
   uname: string;
@@ -135,11 +128,29 @@ const { t } = VueI18n.global;
 const beginTime = ref<bigint>(BigInt(new Date().getTime()) * 1000000n);
 const endTime = ref<bigint>(0n);
 const currentLocation = getCurrentLocation();
-const timeSlider = ref();
 const eventDashBoard = ref();
 const mdSession = ref();
 const journalStore = useJournalStore();
 const allLocations = ref<Record<string, LocationRseolved>>({});
+
+const app = getCurrentInstance();
+const contentVisible = ref<boolean>(true);
+onMounted(() => {
+  if (app?.proxy) {
+    const subscription = app?.proxy.$globalBus
+      .pipe(filter((e: KfEvent.KfBusEvent) => e.tag === 'resize'))
+      .subscribe(async () => {
+        contentVisible.value = false;
+        await nextTick();
+        contentVisible.value = true;
+      });
+
+    onBeforeUnmount(() => {
+      subscription.unsubscribe();
+    });
+  }
+});
+
 const sessionsMap = ref<Record<string, KungfuApi.SessionResolved>>({});
 const SourceAndDestNameMap = ref<Record<string, string>>({});
 const sessions = computed(() => {
@@ -192,11 +203,6 @@ const menus = [
     title: t('journalConfig.Event'),
     icon: UnorderedListOutlined,
   },
-  // {
-  //   key: 'visual',
-  //   title: t('journalConfig.Visual'),
-  //   icon: LineChartOutlined,
-  // },
 ];
 
 const isCurrentMenuItem = (key: 'event' | 'visual') =>
@@ -238,7 +244,6 @@ watch(
 
 watch(
   () => currentSession.value,
-
   (newSession) => {
     if (!newSession) return;
     if (currentSessionId.value !== newSession.location_uid) {
@@ -280,6 +285,7 @@ const ransformObject = (obj: Record<string, LocationRseolved>) => {
     }
   }
   output['0'] = 'public';
+  output['1'] = 'sync';
 
   return output;
 };
@@ -361,6 +367,13 @@ onMounted(() => {
   removeLoadingMask();
   startCheckSessionsStatus();
   getMdSessions();
+
+  window.addEventListener('resize', () => {
+    app?.proxy &&
+      app?.proxy.$globalBus.next({
+        tag: 'resize',
+      } as KfEvent.ResizeEvent);
+  });
 });
 
 const handleSelectSession = ({ row }) => {
@@ -396,35 +409,11 @@ const dealRowClassName = (row) => {
   -moz-osx-font-smoothing: grayscale;
   text-align: center;
   .ant-tooltip {
-    // 你的样式
     color: #6d0d0d !important;
     position: absolute !important;
     top: 100px !important;
     left: 100px !important;
   }
-  // :deep(.ant-slider-track .ant-slider-step) {
-  //   border-color: #fff !important;
-  //   color: #fff !important;
-  //   background-color: #fff !important;
-  // }
-  // :deep(.ant-slider-ant-tooltip-open.ant-slider-handle) {
-  //   border-color: aqua !important;
-  //   background-color: aqua !important;
-  //   position: relative !important;
-  //   width: 100px !important;
-  // }
-  // :deep(.ant-tooltip) {
-  //   position: absolute !important;
-  //   top: 100px !important;
-  //   left: 100px !important;
-  // }
-  // /deep/ .ant-tooltip {
-  //   // 你的样式
-  //   color: #6d0d0d !important;
-  //   position: absolute !important;
-  //   top: 100px !important;
-  //   left: 100px !important;
-  // }
 
   .ant-layout {
     height: 100%;

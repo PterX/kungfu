@@ -11,7 +11,6 @@
     </div>
     <a-slider
       ref="slider"
-      :key="sliderKey"
       v-model:value="curTime"
       class="kf-time-slider"
       :class="{
@@ -38,7 +37,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 
 import { dealKfTime } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { ForwardOutlined, BackwardOutlined } from '@ant-design/icons-vue';
@@ -67,7 +66,6 @@ const SCALE = 1000000;
 const BIGINT_SCALE = BigInt(SCALE);
 const TEN_SECOND = BigInt(10000000000);
 const slider = ref();
-const sliderKey = ref(0);
 const endTimeChange = ref(true);
 const maxTime = computed(() => {
   if (props.currentSession?.status === SessionStatusEnum.Finished) {
@@ -76,18 +74,6 @@ const maxTime = computed(() => {
     return nano2millionSecond(props.nowTime);
   }
 });
-
-onMounted(() => {
-  window.addEventListener('resize', handleResize);
-});
-
-onUnmounted(() => {
-  window.removeEventListener('resize', handleResize);
-});
-
-const handleResize = () => {
-  sliderKey.value++;
-};
 
 const handleTimeBack = () => {
   if (props.currentTime - TEN_SECOND < props.beginTime) {
@@ -133,8 +119,6 @@ const customDealKftime = (time: bigint) => {
 const million2nanoSecond = (number: number) => {
   return BigInt(number * SCALE);
 };
-
-const curTime = ref(nano2millionSecond(props.nowTime));
 
 const timeStrs = ref([
   customDealKftime(props.beginTime),
@@ -196,6 +180,12 @@ watch(
     curTime.value = nano2millionSecond(props.currentTime);
   },
 );
+
+const curTime = ref(nano2millionSecond(props.nowTime));
+
+onMounted(() => {
+  curTime.value = nano2millionSecond(props.currentTime);
+});
 
 const tipFormatter = (num: number) => {
   return dealKfTime(BigInt(num * SCALE));

@@ -140,7 +140,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, computed, watch, shallowRef, nextTick, onMounted, getCurrentInstance, onBeforeUnmount } from 'vue';
+import { ref, computed, watch, shallowRef, nextTick, onMounted } from 'vue';
 import { Empty } from 'ant-design-vue';
 import { PlusOutlined, MinusOutlined } from '@ant-design/icons-vue';
 import { tracer } from '@kungfu-trader/kungfu-js-api/kungfu';
@@ -152,9 +152,7 @@ import KfTradingDataTable from '@kungfu-trader/kungfu-app/src/renderer/component
 import { dealKfTime } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { SessionStatusEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import FrameFilters from './FrameFilters.vue';
-import { debounce } from 'lodash';
-import { delayMilliSeconds } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
-import { filter } from 'rxjs';
+import { delayMilliSeconds, debounce } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 
 const props = withDefaults(
   defineProps<{
@@ -172,24 +170,6 @@ const props = withDefaults(
 const emit = defineEmits<{
   (e: 'updateCurrentTime', value: bigint): void;
 }>();
-
-const app = getCurrentInstance();
-const dashboardVisible = ref<boolean>(true);
-onMounted(() => {
-  if (app?.proxy) {
-      const subscription = app?.proxy.$globalBus
-        .pipe(filter((e: KfEvent.KfBusEvent) => e.tag === 'resize'))
-        .subscribe(async() => {
-          dashboardVisible.value = false;
-          await nextTick();
-          dashboardVisible.value = true;
-        });
-
-      onBeforeUnmount(() => {
-        subscription.unsubscribe();
-      });
-    }
-});
 
 const FRAME_LIST_SPLIT = 200;
 const SCALE = 1000000;
@@ -212,7 +192,6 @@ const inputRef = ref<HTMLInputElement>({} as HTMLInputElement);
 const frameColumns = getFrameColumns();
 const simpleImage = Empty.PRESENTED_IMAGE_SIMPLE;
 const firstSplitFramesLoading = ref(false);
-const dataChangeByCurrentTime = ref(false);
 const currentFramesId = ref<string>('');
 const frameFilter = ref();
 let currentTracer: KungfuApi.Tracer | null = null;
@@ -293,7 +272,7 @@ const handleScrollToTop = () => {
 };
 
 const handleScrollToBottom = debounce(async () => {
-  console.log('scrolling to bottom');
+  console.warn('scrolling to bottom');
   if (!props.currentSession) return;
   if (isLoadingFrames) return;
   await delayMilliSeconds(0);
@@ -380,17 +359,8 @@ watch(
   () => props.currentSession,
   (newSession) => {
     if (newSession) {
-      dataChangeByCurrentTime.value = false;
       channels.value = {};
       frameFilter.value?.resetFilters();
-      currentTracer = tracer(
-        props.currentSession as KungfuApi.KfLocation,
-        readEvent.value,
-        writeEvent.value,
-        newSession.begin_time,
-        newSession.end_time,
-      );
-      dataChangeByCurrentTime.value = true;
       emit('updateCurrentTime', props.beginTime);
     }
   },
@@ -401,12 +371,10 @@ watch(
 
 watch(
   () => props.currentTime,
-  () => {
+  (newVal, oldVal) => {
+    if (newVal === oldVal) return;
     inputStartTime.value = dealKfTime(props.currentTime);
-    if (dataChangeByCurrentTime.value && props.currentSession) {
-      initLoad();
-      emit('updateCurrentTime', props.currentTime);
-    }
+    init();
   },
 );
 
@@ -418,6 +386,25 @@ watch(
     }
   },
 );
+
+onMounted(() => { 
+  init();
+})
+
+const init = debounce(() => { 
+  console.warn('init')
+  if (!props.currentSession) return;
+  if (!currentTracer) {
+    currentTracer = tracer(
+      props.currentSession as KungfuApi.KfLocation,
+      readEvent.value,
+      writeEvent.value,
+      props.currentSession.begin_time,
+      props.currentSession.end_time,
+    );
+  }
+  initLoad();
+}, 100)
 
 const initLoad = debounce(async () => {
   console.warn('initLoad');
@@ -462,7 +449,10 @@ const loadFrameData = async (currentSessionId: string, loadmore = false) => {
       }
 
       const msgType = frame.msgType();
-      if (selectedMsgTypes.value.length > 0 && !selectedMsgTypesMap.value[msgType]) {
+      if (
+        selectedMsgTypes.value.length > 0 &&
+        !selectedMsgTypesMap.value[msgType]
+      ) {
         currentTracer.next();
         continue;
       }

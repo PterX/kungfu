@@ -28,9 +28,9 @@ import {
   Tag,
 } from 'ant-design-vue';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+import globalBus from '@kungfu-trader/kungfu-js-api/utils/globalBus';
 
 const app = createApp(App);
-
 app
   .use(store)
   .use(Layout)
@@ -55,4 +55,5 @@ app
 
 app.use(VueI18n);
 app.directive('dragging', dragging);
+app.config.globalProperties.$globalBus = globalBus;
 app.mount('#app');

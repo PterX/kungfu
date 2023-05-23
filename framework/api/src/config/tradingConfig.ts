@@ -597,7 +597,7 @@ export const T0InstrumentTypes = [
   InstrumentTypeEnum.stockoption,
 ];
 
-export const T0ExchangeIds = ['US', 'HK'];
+export const T0ExchangeIds = ['US', 'HK', 'SHHK', 'SZHK'];
 
 export const AbleSubscribeInstrumentTypesBySourceType: Record<
   InstrumentTypes,

@@ -43,6 +43,36 @@ KF_DEFINE_MARK_TYPE(MirrorPositionsRequest, 10452);
 KF_DEFINE_MARK_TYPE(KeepPositionsRequest, 10453);
 KF_DEFINE_MARK_TYPE(RebuildPositionsRequest, 10454);
 
+KF_DEFINE_PACK_TYPE(                                           //
+    frame_header, 0, PK(gen_time), TIMESTAMP(gen_time),    //
+    /** total frame length (including header and data body) */ //
+    (volatile uint32_t, length),                               //
+    /** header length */                                       //
+    (uint32_t, header_length),                                 //
+    /** generate time of the frame data */                     //
+    (int64_t, gen_time),                                       //
+    /** trigger time for this frame, use for latency stats */  //
+    (int64_t, trigger_time),                                   //
+    /** msg type of the data in frame */                       //
+    (volatile int32_t, msg_type),                              //
+    /** source of this frame */                                //
+    (uint32_t, source),                                        //
+    /** dest of this frame */                                  //
+    (uint32_t, dest),                                          //
+    /** json or raw struct */                                  //
+    (enums::FrameDataType, data_type)                          //
+);
+
+KF_DEFINE_PACK_TYPE(                              //
+    page_header, 1, PK(version), PERPETUAL(), //
+    (uint32_t, version),                          //
+    (uint32_t, page_header_length),               //
+    (uint32_t, page_size),                        //
+    (uint32_t, frame_header_length),              //
+    (longfist::enums::PageStatus, status),        // 0 close 1 preopen 2 open 3 flushing
+    (uint64_t, last_frame_position)               //
+);
+
 KF_DEFINE_PACK_TYPE(                              //
     Asset, 101, PK(holder_uid), PERPETUAL(),      //
     (int64_t, update_time),                       // 更新时间
@@ -573,36 +603,6 @@ KF_DEFINE_DATA_TYPE(                                     //
     (std::string, tag_b),                                //
     (std::string, tag_c),                                //
     (std::string, value)                                 //
-);
-
-KF_DEFINE_PACK_TYPE(                                           //
-    frame_header, 10001, PK(gen_time), TIMESTAMP(gen_time),    //
-    /** total frame length (including header and data body) */ //
-    (volatile uint32_t, length),                               //
-    /** header length */                                       //
-    (uint32_t, header_length),                                 //
-    /** generate time of the frame data */                     //
-    (int64_t, gen_time),                                       //
-    /** trigger time for this frame, use for latency stats */  //
-    (int64_t, trigger_time),                                   //
-    /** msg type of the data in frame */                       //
-    (volatile int32_t, msg_type),                              //
-    /** source of this frame */                                //
-    (uint32_t, source),                                        //
-    /** dest of this frame */                                  //
-    (uint32_t, dest),                                          //
-    /** json or raw struct */                                  //
-    (enums::FrameDataType, data_type)                          //
-);
-
-KF_DEFINE_PACK_TYPE(                              //
-    page_header, 10002, PK(version), PERPETUAL(), //
-    (uint32_t, version),                          //
-    (uint32_t, page_header_length),               //
-    (uint32_t, page_size),                        //
-    (uint32_t, frame_header_length),              //
-    (longfist::enums::PageStatus, status),        // 0 close 1 preopen 2 open 3 flushing
-    (uint64_t, last_frame_position)               //
 );
 
 KF_DEFINE_DATA_TYPE(                                //

@@ -727,27 +727,27 @@ KF_DEFINE_PACK_TYPE(                                                //
     (kungfu::array<char, EXCHANGE_ID_LEN>, exchange_id),            // 交易所ID
     (enums::InstrumentType, instrument_type),                       // 合约类型
 
-    (kungfu::array<int8_t, PRODUCT_ID_LEN>, product_id),            // 产品ID (品种)
+    (kungfu::array<int8_t, PRODUCT_ID_LEN>, product_id), // 产品ID (品种)
 
-    (int32_t, contract_multiplier),                                 // 合约乘数
-    (double, price_tick),                                           // 最小变动价位
-    (double, quantity_unit),                                        // 最小数量单位
+    (int32_t, contract_multiplier), // 合约乘数
+    (double, price_tick),           // 最小变动价位
+    (double, quantity_unit),        // 最小数量单位
 
-    (kungfu::array<char, DATE_LEN>, open_date),                     // 上市日
-    (kungfu::array<char, DATE_LEN>, create_date),                   // 创建日
-    (kungfu::array<char, DATE_LEN>, expire_date),                   // 到期日
+    (kungfu::array<char, DATE_LEN>, open_date),   // 上市日
+    (kungfu::array<char, DATE_LEN>, create_date), // 创建日
+    (kungfu::array<char, DATE_LEN>, expire_date), // 到期日
 
-    (int, delivery_year),                                           // 交割年份
-    (int, delivery_month),                                          // 交割月
+    (int, delivery_year),  // 交割年份
+    (int, delivery_month), // 交割月
 
-    (bool, is_trading),                                             // 当前是否交易
-    (bool, force_update_ratio),                                     // 两融柜台折算率及保证金率
+    (bool, is_trading),         // 当前是否交易
+    (bool, force_update_ratio), // 两融柜台折算率及保证金率
 
-    (double, long_margin_ratio),                                    // 多头保证金率
-    (double, short_margin_ratio),                                   // 空头保证金率
-    (double, conversion_rate),                                      // 担保品折扣率
-    (double, exchange_rate),                                        // 汇率
-    (enums::Currency, currency)                                     // 币种
+    (double, long_margin_ratio),  // 多头保证金率
+    (double, short_margin_ratio), // 空头保证金率
+    (double, conversion_rate),    // 担保品折扣率
+    (double, exchange_rate),      // 汇率
+    (enums::Currency, currency)   // 币种
 );
 
 KF_DEFINE_DATA_TYPE(                                //

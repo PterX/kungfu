@@ -6,9 +6,10 @@ import glob from 'glob';
 import os from 'os';
 import {
   buildProcessLogPath,
+  buildRuntimeChildDirByType,
   EXTENSION_DIRS,
   KF_HOME,
-  KF_RUNTIME_DIR,
+  RuntimeChildDirTypes,
 } from '../config/pathConfig';
 import {
   InstrumentType,
@@ -2234,17 +2235,22 @@ export function isCriticalLog(line: string): boolean {
 }
 
 export const removeNoDefaultStrategyFolders = async (): Promise<void> => {
-  const strategyDir = path.join(KF_RUNTIME_DIR, 'strategy');
-  const filedirList: string[] = (await listDir(strategyDir)) || [];
-  filedirList.map((fileOrFolder) => {
-    const fullPath = path.join(strategyDir, fileOrFolder);
-    if (fileOrFolder === 'default') {
-      if (fse.statSync(fullPath).isDirectory()) {
-        return Promise.resolve();
+  const strategyDirs = RuntimeChildDirTypes.map((type) =>
+    path.join(buildRuntimeChildDirByType(type), 'strategy'),
+  );
+  for (const strategyDir of strategyDirs) {
+    if (!fse.pathExists(strategyDir)) continue;
+    const filedirList: string[] = (await listDir(strategyDir)) || [];
+    filedirList.map((fileOrFolder) => {
+      const fullPath = path.join(strategyDir, fileOrFolder);
+      if (fileOrFolder === 'default') {
+        if (fse.statSync(fullPath).isDirectory()) {
+          return Promise.resolve();
+        }
       }
-    }
-    return fse.remove(fullPath);
-  });
+      return fse.remove(fullPath);
+    });
+  }
 };
 
 // 处理下单时输入数据

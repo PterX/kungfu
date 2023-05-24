@@ -25,6 +25,7 @@ import {
   KFC_DIR,
   KF_HOME,
   KF_RUNTIME_DIR,
+  buildRuntimeChildDirByType,
 } from '../config/pathConfig';
 import { getKfGlobalSettingsValue } from '../config/globalSettings';
 import { Observable } from 'rxjs';
@@ -793,7 +794,7 @@ export const startMd = async (
       .join(path.delimiter)}" run -c md -g "${sourceId}" -n "${sourceId}"`,
   );
   const cwd = dealSpaceInPath(
-    path.join(KF_RUNTIME_DIR, 'md', sourceId, sourceId),
+    path.join(buildRuntimeChildDirByType('resouces'), 'md', sourceId, sourceId),
   );
   await fse.ensureDir(cwd);
   const options =
@@ -829,7 +830,9 @@ export const startTd = async (
       .map((dir) => dealSpaceInPath(path.dirname(dir)))
       .join(path.delimiter)}" run -c td -g "${source}" -n "${id}"`,
   );
-  const cwd = dealSpaceInPath(path.join(KF_RUNTIME_DIR, 'td', source, id));
+  const cwd = dealSpaceInPath(
+    path.join(buildRuntimeChildDirByType('resouces'), 'td', source, id),
+  );
   await fse.ensureDir(cwd);
   const fullProcessId = `td_${accountId}`;
   const options =
@@ -893,7 +896,7 @@ export const startOperatorByExt = async (
       .join(path.delimiter)}" run -c operator -g "${group}" -n "${name}"`,
   );
   const cwd = dealSpaceInPath(
-    path.join(KF_RUNTIME_DIR, 'operator', group, name),
+    path.join(buildRuntimeChildDirByType('resouces'), 'operator', group, name),
   );
   await fse.ensureDir(cwd);
   const fullProcessId = `operator_${group}_${name}`;

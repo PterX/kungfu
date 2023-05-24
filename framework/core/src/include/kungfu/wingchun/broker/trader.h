@@ -19,7 +19,8 @@ FORWARD_DECLARE_CLASS_PTR(Trader)
 
 class TraderVendor : public BrokerVendor {
 public:
-  TraderVendor(locator_ptr locator, const std::string &group, const std::string &name, bool low_latency);
+  TraderVendor(locator_ptr locator, const std::string &group, const std::string &name, bool low_latency,
+               const std::string &arguments = {});
 
   void set_service(Trader_ptr service);
 
@@ -124,12 +125,19 @@ private:
   bool sync_position_ = false;
 
   void handle_asset_sync();
+
   void handle_position_sync();
+
   void handle_order_input(const event_ptr &event);
+
   void handle_batch_order_tag(const event_ptr &event);
+
   bool has_self_deal_risk(const event_ptr &event);
+
   void recover();
+
   void deal_write_frame();
+
   void deal_read_frame();
 };
 } // namespace kungfu::wingchun::broker

@@ -28,12 +28,18 @@ public:
 
   void on_exit() override;
 
+  std::string get_arguments() const { return arguments_; }
+
+  void set_arguments(const std::string &argiments) { arguments_ = argiments; }
+
 protected:
   virtual BrokerService_ptr get_service() = 0;
 
   void on_start() override;
 
 private:
+  std::string arguments_{};
+
   void notify_broker_state();
 };
 

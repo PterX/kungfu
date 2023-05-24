@@ -141,11 +141,15 @@ void bind_broker(pybind11::module &m) {
       .def("req_position", &Trader::req_position);
 
   py::class_<MarketDataVendor, BrokerVendor, std::shared_ptr<MarketDataVendor>>(m, "MarketDataVendor")
-      .def(py::init<locator_ptr, const std::string &, const std::string &, bool>())
-      .def("set_service", &MarketDataVendor::set_service);
+      .def(py::init<locator_ptr, const std::string &, const std::string &, bool, const std::string &>())
+      .def("set_service", &MarketDataVendor::set_service)
+      .def("get_arguments", &MarketDataVendor::get_arguments)
+      .def("set_arguments", &MarketDataVendor::set_arguments);
 
   py::class_<TraderVendor, BrokerVendor, std::shared_ptr<TraderVendor>>(m, "TraderVendor")
-      .def(py::init<locator_ptr, const std::string &, const std::string &, bool>())
-      .def("set_service", &TraderVendor::set_service);
+      .def(py::init<locator_ptr, const std::string &, const std::string &, bool, const std::string &>())
+      .def("set_service", &TraderVendor::set_service)
+      .def("get_arguments", &TraderVendor::get_arguments)
+      .def("set_arguments", &TraderVendor::set_arguments);
 }
 } // namespace kungfu::wingchun::pybind

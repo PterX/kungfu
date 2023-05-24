@@ -12,7 +12,10 @@ namespace kungfu::wingchun::xtp {
 using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing;
 
-TraderXTP::TraderXTP(broker::BrokerVendor &vendor) : Trader(vendor) { KUNGFU_SETUP_LOG(); }
+TraderXTP::TraderXTP(broker::BrokerVendor &vendor) : Trader(vendor) {
+  KUNGFU_SETUP_LOG();
+  SPDLOG_DEBUG("arguments: {}", get_vendor().get_arguments());
+}
 
 TraderXTP::~TraderXTP() {
   if (api_ != nullptr) {

@@ -1495,9 +1495,19 @@ export const dealKfNumber = (
     preNumber === undefined ||
     preNumber === null ||
     preNumber === Infinity ||
+    preNumber === -Infinity ||
     Number.isNaN(Number(preNumber))
-  )
+  ) {
     return '--';
+  }
+
+  if (
+    typeof preNumber === 'string' &&
+    preNumber !== '' &&
+    Math.abs(Number(preNumber)) === 0
+  ) {
+    return preNumber.replace(/^-/, '');
+  }
 
   return preNumber;
 };

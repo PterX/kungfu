@@ -77,10 +77,10 @@ std::string locator::get_env(const std::string &name) const { return std::getenv
 
 std::string locator::layout_dir(const location_ptr &location, es::layout layout) const {
   auto dir = root_ /                                     //
+             es::get_layout_name(layout) /               //
              es::get_category_name(location->category) / //
              location->group /                           //
              location->name /                            //
-             es::get_layout_name(layout) /               //
              es::get_mode_name(location->mode);
   if (not fs::exists(dir)) {
     fs::create_directories(dir);
@@ -99,10 +99,10 @@ std::string locator::layout_file(const location_ptr &location, es::layout layout
   auto db_file = layout_file(location, sqlite_layout, name);
   if (not fs::exists(db_file)) {
     auto system_db_file = root_ /                                     //
+                          es::get_layout_name(sqlite_layout) /        //
                           es::get_category_name(location->category) / //
                           location->group /                           //
                           location->name /                            //
-                          es::get_layout_name(sqlite_layout) /        //
                           es::get_mode_name(location->mode);
     fs::copy(system_db_file, db_file);
   }

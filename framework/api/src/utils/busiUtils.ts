@@ -1490,7 +1490,7 @@ export const dealDateToNanotimeRange = (
 
 export const dealKfNumber = (
   preNumber: bigint | number | undefined | unknown,
-): string | number | bigint | unknown => {
+): string | number | bigint => {
   if (
     preNumber === undefined ||
     preNumber === null ||
@@ -1501,15 +1501,7 @@ export const dealKfNumber = (
     return '--';
   }
 
-  if (
-    typeof preNumber === 'string' &&
-    preNumber !== '' &&
-    Math.abs(Number(preNumber)) === 0
-  ) {
-    return preNumber.replace(/^-/, '');
-  }
-
-  return preNumber;
+  return Number(preNumber) || 0;
 };
 
 export const dealKfPrice = (

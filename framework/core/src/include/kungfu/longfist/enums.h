@@ -426,23 +426,23 @@ NLOHMANN_JSON_SERIALIZE_ENUM(OrderStatus, {
 inline std::ostream &operator<<(std::ostream &os, OrderStatus t) { return os << int8_t(t); }
 
 // 币种枚举
-enum class CurrencyType : int8_t { Unknown = 0, CNY, HKD, USD, JPY, GBP, EUR, CNH, SGD, MYR, CEN };
+enum class Currency : int8_t { Unknown = 0, CNY, HKD, USD, JPY, GBP, EUR, CNH, SGD, MYR, CEN };
 
-NLOHMANN_JSON_SERIALIZE_ENUM(CurrencyType, {
-                                               {CurrencyType::Unknown, "Unknown"},
-                                               {CurrencyType::CNY, "CNY"},
-                                               {CurrencyType::HKD, "HKD"},
-                                               {CurrencyType::USD, "USD"},
-                                               {CurrencyType::JPY, "JPY"},
-                                               {CurrencyType::GBP, "GBP"},
-                                               {CurrencyType::EUR, "EUR"},
-                                               {CurrencyType::CNH, "CNH"},
-                                               {CurrencyType::SGD, "SGD"},
-                                               {CurrencyType::MYR, "MYR"},
-                                               {CurrencyType::CEN, "CEN"},
-                                           })
+NLOHMANN_JSON_SERIALIZE_ENUM(Currency, {
+                                           {Currency::Unknown, "Unknown"},
+                                           {Currency::CNY, "CNY"},
+                                           {Currency::HKD, "HKD"},
+                                           {Currency::USD, "USD"},
+                                           {Currency::JPY, "JPY"},
+                                           {Currency::GBP, "GBP"},
+                                           {Currency::EUR, "EUR"},
+                                           {Currency::CNH, "CNH"},
+                                           {Currency::SGD, "SGD"},
+                                           {Currency::MYR, "MYR"},
+                                           {Currency::CEN, "CEN"},
+                                       })
 
-inline std::ostream &operator<<(std::ostream &os, CurrencyType t) { return os << int8_t(t); }
+inline std::ostream &operator<<(std::ostream &os, Currency t) { return os << int8_t(t); }
 
 enum class BasketOrderStatus : int8_t { Unknown, Pending, PartialFilledNotActive, PartialFilledActive, Filled };
 

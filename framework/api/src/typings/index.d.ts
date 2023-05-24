@@ -542,7 +542,7 @@ declare namespace KungfuApi {
     short_margin_ratio: number; //空头保证金率
 
     exchange_rate: number; // 利率
-    currency_type: CurrencyEnum; // 币种
+    currency: CurrencyEnum; // 币种
 
     uid_key: string;
     ukey: string;

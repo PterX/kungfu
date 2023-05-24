@@ -130,7 +130,7 @@ static constexpr auto g = [](const std::string &pattern) { return fmt::format("(
 
 std::vector<location_ptr> locator::list_locations(const std::string &category, const std::string &group,
                                                   const std::string &name, const std::string &mode) const {
-  fs::path search_path = root_ / g(category) / g(group) / g(name) / "journal" / g(mode);
+  fs::path search_path = root_ / "journal" / g(category) / g(group) / g(name) / g(mode);
   std::string pattern = std::regex_replace(search_path.string(), std::regex("\\\\"), "\\\\");
   std::regex search_regex(pattern);
   std::vector<location_ptr> result = {};

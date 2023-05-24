@@ -98,10 +98,10 @@ class Locator(yjj.locator):
     def list_location_dest(self, location):
         search_path = os.path.join(
             self._root,
+            "journal",
             lf.enums.get_category_name(location.category),
             location.group,
             location.name,
-            "journal",
             lf.enums.get_mode_name(location.mode),
             "*.journal",
         )

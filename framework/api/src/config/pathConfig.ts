@@ -16,10 +16,10 @@ export const KF_RUNTIME_DIR = path.join(KF_HOME, 'runtime');
 addFileSync('', KF_RUNTIME_DIR, 'folder');
 
 export const RuntimeChildDirTypes: Array<
-  'log' | 'db' | 'journal' | 'resouces'
-> = ['log', 'db', 'journal', 'resouces'];
+  'log' | 'db' | 'journal' | 'resources'
+> = ['log', 'db', 'journal', 'resources'];
 export const buildRuntimeChildDirByType = (
-  type: 'log' | 'db' | 'journal' | 'resouces',
+  type: 'log' | 'db' | 'journal' | 'resources',
 ) => {
   const targetDir = path.join(KF_RUNTIME_DIR, type);
   addFileSync('', targetDir, 'folder');
@@ -75,7 +75,7 @@ export const buildProcessLogPath = (processId: string) => {
 
 //================== others end ===================================
 
-//================== config & resouces start =================================
+//================== config & resources start =================================
 
 export const KUNGFU_RESOURCES_DIR = globalThis.__publicResources;
 
@@ -117,7 +117,7 @@ addFileSync('', KF_SCHEDULE_TASKS_JSON_PATH, 'file');
 
 export const PY_WHL_DIR = path.join(KUNGFU_RESOURCES_DIR, 'python');
 
-//================== config & resouces end ===================================
+//================== config & resources end ===================================
 
 //================== cli start ====================================
 // process.env.CLI_DIR = path.dirname(xxxx/dzxy.js);

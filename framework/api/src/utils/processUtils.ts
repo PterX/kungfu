@@ -794,7 +794,12 @@ export const startMd = async (
       .join(path.delimiter)}" run -c md -g "${sourceId}" -n "${sourceId}"`,
   );
   const cwd = dealSpaceInPath(
-    path.join(buildRuntimeChildDirByType('resouces'), 'md', sourceId, sourceId),
+    path.join(
+      buildRuntimeChildDirByType('resources'),
+      'md',
+      sourceId,
+      sourceId,
+    ),
   );
   await fse.ensureDir(cwd);
   const options =
@@ -831,7 +836,7 @@ export const startTd = async (
       .join(path.delimiter)}" run -c td -g "${source}" -n "${id}"`,
   );
   const cwd = dealSpaceInPath(
-    path.join(buildRuntimeChildDirByType('resouces'), 'td', source, id),
+    path.join(buildRuntimeChildDirByType('resources'), 'td', source, id),
   );
   await fse.ensureDir(cwd);
   const fullProcessId = `td_${accountId}`;
@@ -896,7 +901,7 @@ export const startOperatorByExt = async (
       .join(path.delimiter)}" run -c operator -g "${group}" -n "${name}"`,
   );
   const cwd = dealSpaceInPath(
-    path.join(buildRuntimeChildDirByType('resouces'), 'operator', group, name),
+    path.join(buildRuntimeChildDirByType('resources'), 'operator', group, name),
   );
   await fse.ensureDir(cwd);
   const fullProcessId = `operator_${group}_${name}`;

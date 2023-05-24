@@ -1494,6 +1494,8 @@ export const dealKfNumber = (
   if (
     preNumber === undefined ||
     preNumber === null ||
+    preNumber === Infinity ||
+    preNumber === -Infinity ||
     Number.isNaN(Number(preNumber))
   ) {
     return '--';

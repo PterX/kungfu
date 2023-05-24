@@ -6,6 +6,7 @@
 
 #include <kungfu/common.h>
 #include <kungfu/longfist/longfist.h>
+#include <kungfu/yijinjing/journal/frame.h>
 #include <kungfu/yijinjing/practice/master.h>
 #include <kungfu/yijinjing/time.h>
 #include <kungfu/yijinjing/util/os.h>
@@ -92,9 +93,7 @@ void master::register_app(const event_ptr &event) {
   auto io_device = std::dynamic_pointer_cast<io_device_master>(get_io_device());
   auto home = io_device->get_home();
 
-  auto request_json = event->data<nlohmann::json>();
   auto request_data = event->data_as_string();
-
   Register register_data(request_data.c_str(), request_data.length());
 
   auto app_location = location::make_shared(register_data, home->locator);
@@ -223,6 +222,7 @@ void master::handle_timer_tasks() {
       auto &task = it->second;
       if (task.checkpoint <= now) {
         get_writer(app_id)->mark(0, Time::tag);
+        SPDLOG_DEBUG("app_id:{} , location: {}", app_id, get_location_uname(app_id));
         task.checkpoint += task.duration;
         task.repeat_count++;
         if (task.repeat_count >= task.repeat_limit) {
@@ -344,15 +344,16 @@ void master::on_request_read_from_sync(const event_ptr &event) {
 }
 
 void master::on_request_read_from_others(const event_ptr &event) {
-  const RequestReadFromOthers &request = event->data<RequestReadFromOthers>();
+  RequestReadFromOthers request{};
+  if (event->data_type() == int8_t(FrameDataType::Json)) {
+    const std::string msg = event->data_as_string();
+    request = RequestReadFromOthers(msg.c_str(), msg.length());
+  } else {
+    request = event->data<RequestReadFromOthers>();
+  }
   auto source = event->source();
   if (has_writer(source)) {
-    auto writer = get_writer(source);
-    RequestReadFromOthers response = {};
-    response.source_id = request.source_id;
-    response.dest_id = request.dest_id;
-    response.from_time = request.from_time;
-    writer->write(now(), response);
+    get_writer(source)->write(now(), request);
   }
 }
 

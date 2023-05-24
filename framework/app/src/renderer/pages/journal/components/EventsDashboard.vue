@@ -156,7 +156,7 @@ import {
   delayMilliSeconds,
   debounce,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
-const { contentVisible} = useResizeFlag();
+const { contentVisible } = useResizeFlag();
 
 const props = withDefaults(
   defineProps<{
@@ -581,7 +581,7 @@ const onFiltersApply = async (
     props.currentSession?.begin_time as bigint,
     props.currentSession?.end_time as bigint,
   );
-  console.warn("on filter")
+  console.warn('on filter');
   initLoad();
 };
 

@@ -473,6 +473,9 @@ SZSE
 HKEx
 MarketType
 Snapshot
+Entrust
+Transaction
+Tree
 SubscribeDataType
 Stock
 Future
@@ -610,3 +613,7 @@ PreOpen
 PageStatus
 Default
 AccountingMethodType
+Raw
+Json
+Unknown
+FrameDataType

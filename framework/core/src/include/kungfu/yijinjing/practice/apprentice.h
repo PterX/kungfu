@@ -85,6 +85,8 @@ public:
 
   bool release_page();
 
+  yijinjing::journal::writer_ptr &get_thread_writer();
+
 protected:
   cache::bank state_bank_;
 
@@ -97,6 +99,8 @@ protected:
   virtual void on_react();
 
   virtual void on_start();
+
+  void on_request_read_from_others(const event_ptr &event);
 
   void on_register(int64_t trigger_time, const longfist::types::Register &register_data);
 
@@ -218,6 +222,8 @@ private:
   int32_t timer_usage_count_ = 0;
   yijinjing::practice::cleaner cleaner_;
   std::unordered_map<int, int64_t> timer_checkpoints_ = {};
+  inline static thread_local yijinjing::journal::writer_ptr thread_writer_;
+
   void checkin();
 
   void expect_start();

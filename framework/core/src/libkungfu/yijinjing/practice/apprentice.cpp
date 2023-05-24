@@ -158,6 +158,7 @@ void apprentice::react() {
   events_ | is(TimeReset::tag) | first() | $$(reset_time(event->data<TimeReset>()));
   events_ | is(Location::tag) | $$(add_location(event->gen_time(), event->data<Location>()));
   events_ | is(Register::tag) | $$(on_register(event->trigger_time(), event->data<Register>()));
+  events_ | is(RequestReadFromOthers::tag) | $$(on_request_read_from_others(event));
   events_ | is(Deregister::tag) | $$(on_deregister(event));
   events_ | is(RequestReadFrom::tag) | $$(on_read_from(event));
   events_ | is(CachedReadyToRead::tag) | $$(on_cached_ready_to_read());
@@ -240,6 +241,13 @@ void apprentice::on_frame() {}
 void apprentice::on_react() {}
 
 void apprentice::on_start() {}
+
+void apprentice::on_request_read_from_others(const event_ptr &event) {
+  const auto &request = event->data<RequestReadFromOthers>();
+  if (has_location(request.source_id)) {
+    reader_->join(get_location(request.source_id), request.dest_id, request.from_time);
+  }
+}
 
 void apprentice::on_register(int64_t trigger_time, const Register &register_data) {
   register_location(trigger_time, register_data);
@@ -352,4 +360,34 @@ void apprentice::expect_start() {
 void apprentice::reset_time(const longfist::types::TimeReset &time_reset) {
   time::reset(time_reset.system_clock_count, time_reset.steady_clock_count);
 }
+
+yijinjing::journal::writer_ptr &apprentice::get_thread_writer() {
+  if (not thread_writer_) {
+    uint32_t dest_id = kungfu::yijinjing::util::get_thread_id();
+    thread_writer_ = get_io_device()->open_writer(dest_id);
+    int64_t nano = now();
+
+    /// join channel in sub-thread will crash, so tell master to ask myself to join
+    /// do not use writer because of multi-thread concurrency issues
+    auto now = time::now_in_nano();
+    nlohmann::json request;
+    request["msg_type"] = RequestReadFromOthers::tag;
+    request["gen_time"] = now;
+    request["trigger_time"] = now;
+    request["source"] = get_home_uid();
+    request["dest"] = master_home_location_->uid;
+    request["data_type"] = int8_t(FrameDataType::Json);
+
+    nlohmann::json data;
+    data["source_id"] = get_home_uid();
+    data["dest_id"] = dest_id;
+    data["from_time"] = nano;
+    request["data"] = data;
+
+    SPDLOG_TRACE("RequestReadFromOthers: {}", request.dump());
+    get_io_device()->get_publisher()->publish(request.dump());
+  }
+  return thread_writer_;
+}
+
 } // namespace kungfu::yijinjing::practice

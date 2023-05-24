@@ -58,6 +58,7 @@ constexpr auto AllTypes = boost::hana::make_map( //
     TYPE_PAIR(RequestReadFromSync),              //
     TYPE_PAIR(RequestWriteTo),                   //
     TYPE_PAIR(RequestWriteToBand),               //
+    TYPE_PAIR(RequestReadFromOthers),            //
     TYPE_PAIR(Band),                             //
     TYPE_PAIR(Basket),                           //
     TYPE_PAIR(BasketInstrument),                 //
@@ -115,6 +116,7 @@ constexpr auto AllTypes = boost::hana::make_map( //
     TYPE_PAIR(RequestReadFromSync),                                   //
     TYPE_PAIR(RequestWriteTo),                                        //
     TYPE_PAIR(RequestWriteToBand),                                    //
+    TYPE_PAIR(RequestReadFromOthers),                                 //
     TYPE_PAIR(Band),                                                  //
     TYPE_PAIR(Basket),                                                //
     TYPE_PAIR(BasketInstrument),                                      //

@@ -44,7 +44,7 @@ KF_DEFINE_MARK_TYPE(KeepPositionsRequest, 10453);
 KF_DEFINE_MARK_TYPE(RebuildPositionsRequest, 10454);
 
 KF_DEFINE_PACK_TYPE(                                           //
-    frame_header, 0, PK(gen_time), TIMESTAMP(gen_time),    //
+    frame_header, 0, PK(gen_time), TIMESTAMP(gen_time),        //
     /** total frame length (including header and data body) */ //
     (volatile uint32_t, length),                               //
     /** header length */                                       //
@@ -63,14 +63,14 @@ KF_DEFINE_PACK_TYPE(                                           //
     (enums::FrameDataType, data_type)                          //
 );
 
-KF_DEFINE_PACK_TYPE(                              //
+KF_DEFINE_PACK_TYPE(                          //
     page_header, 1, PK(version), PERPETUAL(), //
-    (uint32_t, version),                          //
-    (uint32_t, page_header_length),               //
-    (uint32_t, page_size),                        //
-    (uint32_t, frame_header_length),              //
-    (longfist::enums::PageStatus, status),        // 0 close 1 preopen 2 open 3 flushing
-    (uint64_t, last_frame_position)               //
+    (uint32_t, version),                      //
+    (uint32_t, page_header_length),           //
+    (uint32_t, page_size),                    //
+    (uint32_t, frame_header_length),          //
+    (longfist::enums::PageStatus, status),    // 0 close 1 preopen 2 open 3 flushing
+    (uint64_t, last_frame_position)           //
 );
 
 KF_DEFINE_PACK_TYPE(                              //

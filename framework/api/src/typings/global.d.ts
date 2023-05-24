@@ -11,7 +11,6 @@ import { InstrumentTypeEnum, InstrumentTypes } from './enums';
 declare global {
   interface Window {
     watcher: Watcher | null;
-    assemble: Assemble;
     kungfu: Kungfu;
     workers: Record<string, WebpackWorker>;
     basketStore: KungfuApi.BasketStore;

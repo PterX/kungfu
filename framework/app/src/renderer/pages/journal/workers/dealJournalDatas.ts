@@ -1,6 +1,6 @@
 import { WorkerReceiver } from './receiver';
 import { WorkerSender } from './sender';
-import { FrameMsgTypeEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
+import { MsgTypes } from '../utils';
 
 const dataReceiver = new WorkerReceiver('send');
 const dataSender = new WorkerSender(self, 200);
@@ -24,13 +24,13 @@ dataReceiver.onEnd<KungfuApi.FrameResolved>('send-events', ({ data, info }) => {
   data.forEach((item) => {
     const resolvedData = jsonParse(JSON.stringify(item.data));
     switch (item.msgType) {
-      case FrameMsgTypeEnum.Quote:
+      case MsgTypes['Quote']:
         quotes.push(resolvedData);
         break;
-      case FrameMsgTypeEnum.Order:
+      case MsgTypes['Order']:
         orders.push(resolvedData);
         break;
-      case FrameMsgTypeEnum.Trade:
+      case MsgTypes['Trade']:
         trades.push(resolvedData);
         break;
     }
@@ -48,7 +48,7 @@ dataReceiver.onEnd<KungfuApi.FrameResolved>(
     data.forEach((item) => {
       const resolvedData = jsonParse(JSON.stringify(item.data));
       switch (item.msgType) {
-        case FrameMsgTypeEnum.Quote:
+        case MsgTypes['Quote']:
           quotes.push(resolvedData);
           break;
       }

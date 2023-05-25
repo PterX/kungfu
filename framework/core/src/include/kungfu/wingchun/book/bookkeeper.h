@@ -62,6 +62,8 @@ public:
 
   void mirror_positions(int64_t trigger_time, uint32_t strategy_uid);
 
+  void mirror_instrument_factors(int64_t trigger_time, uint32_t strategy_uid);
+
   void try_update_position_end(const longfist::types::PositionEnd &position_end);
 
   longfist::enums::AccountingMethodType get_accounting_method_type() { return account_method_type_; }
@@ -132,6 +134,8 @@ private:
   Book_ptr make_book(uint32_t location_uid);
 
   void update_instrument(const longfist::types::Instrument &instrument);
+
+  void update_instrument_factor(const longfist::types::InstrumentFactor &instrument_factor);
 
   void try_update_asset(const longfist::types::Asset &asset);
 

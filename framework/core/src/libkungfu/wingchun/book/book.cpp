@@ -167,4 +167,11 @@ void Book::replace(const Order &order) { orders.insert_or_assign(order.order_id,
 
 void Book::replace(const Trade &trade) { trades.insert_or_assign(trade.trade_id, trade); }
 
+void Book::replace(const longfist::types::InstrumentFactor &instrument_factor) {
+  /*SPDLOG_INFO("update_instrument_factor --- holder_uid={}, instrument_id={}, exchange_id={}",
+              instrument_factor.holder_uid, instrument_factor.instrument_id, instrument_factor.exchange_id);*/
+  auto instrument_factor_id = hash_instrument(instrument_factor.exchange_id, instrument_factor.instrument_id);
+  instrument_factors.insert_or_assign(instrument_factor_id, instrument_factor);
+}
+
 } // namespace kungfu::wingchun::book

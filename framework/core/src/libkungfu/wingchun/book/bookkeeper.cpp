@@ -57,6 +57,7 @@ void Bookkeeper::on_start(const rx::connectable_observable<event_ptr> &events) {
   on_trading_day(app_.get_trading_day());
 
   events | is(Instrument::tag) | $$(update_instrument(event->data<Instrument>()));
+  events | is(InstrumentFactor::tag) | $$(update_instrument_factor(event->data<InstrumentFactor>()));
   events | is_own<Quote>(broker_client_) | $$(update_book(event, event->data<Quote>()));
   events | is(InstrumentKey::tag) | $$(update_book(event, event->data<InstrumentKey>()));
   events | is(OrderInput::tag) | $$(update_book<OrderInput>(event, &AccountingMethod::apply_order_input));
@@ -119,6 +120,17 @@ void Bookkeeper::restore(const cache::bank &state_bank) {
     book->asset_margin = asset_margin;
     book->update(app_.now(), account_method_type_);
   }
+
+  for (auto &pair : state_bank[boost::hana::type_c<InstrumentFactor>]) {
+    auto &state = pair.second;
+    auto &instrument_factor = state.data;
+    if (not app_.has_location(instrument_factor.holder_uid)) {
+      continue;
+    }
+    auto book = get_book(instrument_factor.holder_uid);
+    book->instrument_factors[hash_instrument(instrument_factor.exchange_id, instrument_factor.instrument_id)] =
+        instrument_factor;
+  }
 }
 
 void Bookkeeper::guard_positions() { positions_guarded_ = true; }
@@ -158,6 +170,15 @@ void Bookkeeper::update_instrument(const longfist::types::Instrument &instrument
       } else {
         memcpy(&inserted_inst, &instrument, sizeof(longfist::types::Instrument));
       }
+    }
+  }
+}
+
+void Bookkeeper::update_instrument_factor(const longfist::types::InstrumentFactor &instrument_factor) {
+  for (auto &bk_pair : books_) {
+    auto &book = bk_pair.second;
+    if (book->asset.holder_uid == instrument_factor.holder_uid) {
+      book->replace(instrument_factor);
     }
   }
 }
@@ -441,6 +462,23 @@ void Bookkeeper::mirror_positions(int64_t trigger_time, uint32_t strategy_uid) {
     if (book->asset.ledger_category == LedgerCategory::Account and app_.has_channel(strategy_uid, holder_uid)) {
       copy_positions(book->long_positions);
       copy_positions(book->short_positions);
+    }
+  }
+  strategy_book->update(trigger_time, account_method_type_);
+}
+
+void Bookkeeper::mirror_instrument_factors(int64_t trigger_time, uint32_t strategy_uid) {
+  //SPDLOG_INFO("mirror_instrument_factors begin");
+  auto strategy_book = get_book(strategy_uid);
+  strategy_book->instrument_factors.clear();
+
+  for (const auto &pair : get_books()) {
+    auto &book = pair.second;
+    auto holder_uid = book->asset.holder_uid;
+    if (book->asset.ledger_category == LedgerCategory::Account and app_.has_channel(strategy_uid, holder_uid)) {
+      strategy_book->instrument_factors = book->instrument_factors;
+      //SPDLOG_INFO("mirror_instrument_factors - size ={}, book size={}, holder_uid={}",
+      //            strategy_book->instrument_factors.size(), book->instrument_factors.size(), holder_uid);
     }
   }
   strategy_book->update(trigger_time, account_method_type_);

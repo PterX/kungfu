@@ -48,6 +48,7 @@ protected:
 
 private:
   bool positions_requested_ = false;
+  bool instrument_factors_requested_ = false;
   bool broker_states_requested_ = false;
   bool positions_set_;
   bool started_;

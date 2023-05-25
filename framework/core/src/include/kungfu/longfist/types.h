@@ -42,6 +42,7 @@ KF_DEFINE_MARK_TYPE(ResetBookRequest, 10451);
 KF_DEFINE_MARK_TYPE(MirrorPositionsRequest, 10452);
 KF_DEFINE_MARK_TYPE(KeepPositionsRequest, 10453);
 KF_DEFINE_MARK_TYPE(RebuildPositionsRequest, 10454);
+KF_DEFINE_MARK_TYPE(MirrorInstrumentFactorsRequest, 10455);
 
 KF_DEFINE_PACK_TYPE(                                           //
     frame_header, 0, PK(gen_time), TIMESTAMP(gen_time),        //
@@ -185,11 +186,6 @@ KF_DEFINE_PACK_TYPE(                                                            
     (double, short_margin_ratio),                                                   // 空头保证金率
     (double, conversion_rate),                                                      // 担保品折扣率
     (double, exchange_rate)                                                         // 汇率
-);
-
-KF_DEFINE_PACK_TYPE(                                       //
-    InstrumentFactorEnd, 106, PK(holder_uid), PERPETUAL(), //
-    (uint32_t, holder_uid)                                 //
 );
 
 KF_DEFINE_PACK_TYPE(                                       //

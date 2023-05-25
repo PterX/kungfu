@@ -158,6 +158,11 @@ void Runner::prepare(const event_ptr &event) {
     broker_states_requested_ = true;
   }
 
+  if (not instrument_factors_requested_) {
+    writer->mark(now(), MirrorInstrumentFactorsRequest::tag);
+    instrument_factors_requested_ = true;
+  }
+
   auto ready_test = [&](const auto &locations) {
     for (const auto &pair : locations) {
       if (not context_->get_broker_client().is_ready(pair.second->uid)) {

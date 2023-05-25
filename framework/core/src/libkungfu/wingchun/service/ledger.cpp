@@ -46,6 +46,8 @@ void Ledger::on_start() {
   events_ | is(KeepPositionsRequest::tag) | $$(keep_positions(event->gen_time(), event->source()));
   events_ | is(RebuildPositionsRequest::tag) | $$(rebuild_positions(event->gen_time(), event->source()));
   events_ | is(MirrorPositionsRequest::tag) | $$(bookkeeper_.mirror_positions(event->gen_time(), event->source()));
+  events_ | is(MirrorInstrumentFactorsRequest::tag) |
+      $$(bookkeeper_.mirror_instrument_factors(event->gen_time(), event->source()));
   events_ | is(BrokerStateRequest::tag) | $$(write_app_state(event->gen_time(), event->source(), broker_states_));
   events_ | is(OperatorStateRequest::tag) | $$(write_app_state(event->gen_time(), event->source(), operator_states_));
   events_ | is(AssetRequest::tag) | $$(write_book_reset(event->gen_time(), event->source()));
@@ -207,6 +209,8 @@ void Ledger::write_book_reset(int64_t trigger_time, uint32_t book_uid) {
   writer->open_data<CacheReset>(trigger_time).msg_type = Asset::tag;
   writer->close_data();
   writer->open_data<CacheReset>(trigger_time).msg_type = AssetMargin::tag;
+  writer->close_data();
+  writer->open_data<CacheReset>(trigger_time).msg_type = InstrumentFactor::tag;
   writer->close_data();
   writer->mark(trigger_time, ResetBookRequest::tag);
 }

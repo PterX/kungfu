@@ -225,7 +225,8 @@ void cached::ensure_cached_storage(uint32_t source_id, uint32_t dest_id) {
 }
 
 void cached::feed(const event_ptr &event) {
-  if (event->msg_type() != Instrument::tag and get_location(event->source())->category == category::MD) {
+  if (event->msg_type() != Instrument::tag and event->msg_type() != InstrumentFactor::tag and
+      get_location(event->source())->category == category::MD) {
     return;
   }
   feed_state_data(event, feed_bank_);

@@ -161,7 +161,6 @@ void MarketDataXTP::OnQueryAllTickers(XTPQSI *ticker_info, XTPRI *error_info, bo
 
   Instrument &instrument = get_writer(0)->open_data<Instrument>(0);
   from_xtp(ticker_info, instrument);
-  SPDLOG_TRACE("instrument {}", instrument.to_string());
   get_writer(0)->close_data();
 }
 

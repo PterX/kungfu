@@ -294,7 +294,7 @@ bool PassiveClient::is_custom_subscribed_all(uint32_t md_location_uid,
         break;
       }
       if ((it.data_type == SubscribeDataType::All or (uint64_t(it.data_type) & uint64_t(data_type)) != 0) and
-          (custom_exchange.empty() || custom_exchange.compare(exchange_id) == 0) and
+          (custom_exchange.empty() || custom_exchange == exchange_id) and
           (it.instrument_type == SubscribeInstrumentType::All or
            (uint64_t(custom_type) & uint64_t(it.instrument_type)) != 0)) {
         /// using & operator because it.instrument_type maybe InstrumentType::Stock | InstrumentType::Future
@@ -318,20 +318,11 @@ bool PassiveClient::enrolled_md_ready() const {
 bool PassiveClient::is_all_subscribed(uint32_t md_location_uid) const {
   if (should_connect_md(app_.get_location(md_location_uid))) {
     const auto &custom_sub = custom_subs_.at(md_location_uid);
-    //    for (auto it : custom_sub) {
-    //      if (it.market_type == MarketType::All and it.instrument_type == SubscribeInstrumentType::All and
-    //          it.data_type == SubscribeDataType::All) {
-    //        return true;
-    //      }
-    //    }
-    if (std::any_of(custom_sub.begin(), custom_sub.end(), [](const auto &it) {
-          return it.market_type == MarketType::All and it.instrument_type == SubscribeInstrumentType::All and
-                 it.data_type == SubscribeDataType::All;
-        })) {
-      return true;
-    }
+    return std::any_of(custom_sub.begin(), custom_sub.end(), [](const auto &it) {
+      return it.market_type == MarketType::All and it.instrument_type == SubscribeInstrumentType::All and
+             it.data_type == SubscribeDataType::All;
+    });
   }
-
   return false;
 }
 

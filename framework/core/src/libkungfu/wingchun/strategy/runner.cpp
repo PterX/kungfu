@@ -40,6 +40,8 @@ void Runner::on_trading_day(const event_ptr &event, int64_t daytime) {
 void Runner::react() {
   context_ = make_context();
   context_->set_arguments(arguments_);
+  enable(*context_);
+  context_->get_bookkeeper().add_book_listener(std::make_shared<BookListener>(*this));
 
   auto start_events = events_ | skip_until(events_ | filter([&](auto e) { return started_; }));
   start_events | is_own<Quote>(context_->get_broker_client()) |
@@ -78,8 +80,6 @@ void Runner::inspect_channel(const event_ptr &event) {
 }
 
 void Runner::on_start() {
-  enable(*context_);
-  context_->get_bookkeeper().add_book_listener(std::make_shared<BookListener>(*this));
   pre_start();
   // TODO add skip_until for broker_states_requested_ == true later
   events_ | is_own<Deregister>(context_->get_broker_client()) |
@@ -144,12 +144,8 @@ void Runner::prepare(const event_ptr &event) {
   auto writer = get_writer(ledger_uid);
 
   auto connected_test = [&](const auto &locations) {
-    for (const auto &pair : locations) {
-      if (not context_->get_broker_client().is_connected(pair.second->uid)) {
-        return false;
-      }
-    }
-    return true;
+    return std::all_of(locations.begin(), locations.end(),
+                       [&](const auto &it) { return context_->get_broker_client().is_connected(it.second->uid); });
   };
   if (not broker_states_requested_ and connected_test(context_->list_accounts()) and
       connected_test(context_->list_md()) and connected_test(context_->list_op())) {
@@ -164,12 +160,8 @@ void Runner::prepare(const event_ptr &event) {
   }
 
   auto ready_test = [&](const auto &locations) {
-    for (const auto &pair : locations) {
-      if (not context_->get_broker_client().is_ready(pair.second->uid)) {
-        return false;
-      }
-    }
-    return true;
+    return std::all_of(locations.begin(), locations.end(),
+                       [&](const auto &it) { return context_->get_broker_client().is_ready(it.second->uid); });
   };
   if (not ready_test(context_->list_accounts()) or not ready_test(context_->list_md()) or
       not ready_test(context_->list_op())) {

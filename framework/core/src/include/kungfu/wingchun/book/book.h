@@ -38,11 +38,11 @@ typedef std::unordered_map<uint32_t, longfist::types::InstrumentFactor> Instrume
 struct Book {
   const CommissionMap &commissions;
   const InstrumentMap &instruments;
+  InstrumentFactorMap instrument_factors = {};
   longfist::types::Asset asset = {};
   longfist::types::AssetMargin asset_margin = {};
   PositionMap long_positions = {};
   PositionMap short_positions = {};
-  InstrumentFactorMap instrument_factors = {};
   OrderInputMap order_inputs = {};
   OrderMap orders = {};
   TradeMap trades = {};
@@ -122,8 +122,6 @@ struct Book {
   [[nodiscard]] const InstrumentMap &get_instruments() const { return instruments; }
 
   [[nodiscard]] const CommissionMap &get_commissions() const { return commissions; }
-
-  [[nodiscard]] const InstrumentFactorMap &get_instrument_factors() const { return instrument_factors; }
 };
 } // namespace kungfu::wingchun::book
 

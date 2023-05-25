@@ -46,8 +46,6 @@ void Ledger::on_start() {
   events_ | is(KeepPositionsRequest::tag) | $$(keep_positions(event->gen_time(), event->source()));
   events_ | is(RebuildPositionsRequest::tag) | $$(rebuild_positions(event->gen_time(), event->source()));
   events_ | is(MirrorPositionsRequest::tag) | $$(bookkeeper_.mirror_positions(event->gen_time(), event->source()));
-  events_ | is(MirrorInstrumentFactorsRequest::tag) |
-      $$(bookkeeper_.mirror_instrument_factors(event->gen_time(), event->source()));
   events_ | is(BrokerStateRequest::tag) | $$(write_app_state(event->gen_time(), event->source(), broker_states_));
   events_ | is(OperatorStateRequest::tag) | $$(write_app_state(event->gen_time(), event->source(), operator_states_));
   events_ | is(AssetRequest::tag) | $$(write_book_reset(event->gen_time(), event->source()));
@@ -220,15 +218,16 @@ void Ledger::write_strategy_data(int64_t trigger_time, uint32_t strategy_uid) {
   for (const auto &pair : bookkeeper_.get_books()) {
     auto &book = pair.second;
     auto &asset = book->asset;
-    // auto &asset_margin = book->asset_margin;
+    auto &asset_margin = book->asset_margin;
     auto book_uid = asset.holder_uid;
     bool has_account = asset.ledger_category == LedgerCategory::Account and has_channel(book_uid, strategy_uid);
     bool is_strategy = asset.ledger_category == LedgerCategory::Strategy and book_uid == strategy_uid;
     if (has_account or is_strategy) {
       write_positions(trigger_time, strategy_uid, book->long_positions);
       write_positions(trigger_time, strategy_uid, book->short_positions);
+      write_instrument_factors(trigger_time, strategy_uid, book->instrument_factors);
       writer->write(trigger_time, asset);
-      writer->write(trigger_time, book->asset_margin);
+      writer->write(trigger_time, asset_margin);
     }
   }
   writer->open_data<PositionEnd>(trigger_time).holder_uid = strategy_uid;
@@ -241,6 +240,13 @@ void Ledger::write_positions(int64_t trigger_time, uint32_t dest, book::Position
     if (pair.second.volume > 0) {
       writer->write_as(trigger_time, pair.second, get_home_uid(), pair.second.holder_uid);
     }
+  }
+}
+
+void Ledger::write_instrument_factors(int64_t trigger_time, uint32_t dest, book::InstrumentFactorMap& instrument_factors) {
+  auto writer = get_writer(dest);
+  for (const auto &pair : instrument_factors) {
+    writer->write_as(trigger_time, pair.second, get_home_uid(), pair.second.holder_uid);
   }
 }
 

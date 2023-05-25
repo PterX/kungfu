@@ -42,7 +42,6 @@ KF_DEFINE_MARK_TYPE(ResetBookRequest, 10451);
 KF_DEFINE_MARK_TYPE(MirrorPositionsRequest, 10452);
 KF_DEFINE_MARK_TYPE(KeepPositionsRequest, 10453);
 KF_DEFINE_MARK_TYPE(RebuildPositionsRequest, 10454);
-KF_DEFINE_MARK_TYPE(MirrorInstrumentFactorsRequest, 10455);
 
 KF_DEFINE_PACK_TYPE(                                           //
     frame_header, 0, PK(gen_time), TIMESTAMP(gen_time),        //
@@ -172,20 +171,6 @@ KF_DEFINE_PACK_TYPE(                                                            
 KF_DEFINE_PACK_TYPE(                               //
     PositionEnd, 104, PK(holder_uid), PERPETUAL(), //
     (uint32_t, holder_uid)                         //
-);
-
-KF_DEFINE_PACK_TYPE(                                                                //
-    InstrumentFactor, 105, PK(instrument_id, exchange_id, holder_uid), PERPETUAL(), //
-    (kungfu::array<char, INSTRUMENT_ID_LEN>, instrument_id),                        // 合约ID
-    (kungfu::array<char, EXCHANGE_ID_LEN>, exchange_id),                            // 交易所ID
-    (enums::InstrumentType, instrument_type),                                       // 合约类型
-    (kungfu::array<int8_t, PRODUCT_ID_LEN>, product_id),                            // 产品ID (品种)
-    (uint32_t, holder_uid),                                                         // 持仓账户
-    (bool, is_trading),                                                             // 当前是否交易
-    (double, long_margin_ratio),                                                    // 多头保证金率
-    (double, short_margin_ratio),                                                   // 空头保证金率
-    (double, conversion_rate),                                                      // 担保品折扣率
-    (double, exchange_rate)                                                         // 汇率
 );
 
 KF_DEFINE_PACK_TYPE(                                       //
@@ -735,15 +720,21 @@ KF_DEFINE_PACK_TYPE(                                                //
 
     (int, delivery_year),  // 交割年份
     (int, delivery_month), // 交割月
-
-    (bool, is_trading),         // 当前是否交易
-    (bool, force_update_ratio), // 两融柜台折算率及保证金率
-
-    (double, long_margin_ratio),  // 多头保证金率
-    (double, short_margin_ratio), // 空头保证金率
-    (double, conversion_rate),    // 担保品折扣率
-    (double, exchange_rate),      // 汇率
     (enums::Currency, currency)   // 币种
+);
+
+KF_DEFINE_PACK_TYPE(                                                                //
+    InstrumentFactor, 105, PK(instrument_id, exchange_id, holder_uid), PERPETUAL(), //
+    (kungfu::array<char, INSTRUMENT_ID_LEN>, instrument_id),                        // 合约ID
+    (kungfu::array<char, EXCHANGE_ID_LEN>, exchange_id),                            // 交易所ID
+    (enums::InstrumentType, instrument_type),                                       // 合约类型
+    (kungfu::array<int8_t, PRODUCT_ID_LEN>, product_id),                            // 产品ID (品种)
+    (uint32_t, holder_uid),                                                         // 持仓账户
+    (bool, is_trading),                                                             // 当前是否交易
+    (double, long_margin_ratio),                                                    // 多头保证金率
+    (double, short_margin_ratio),                                                   // 空头保证金率
+    (double, conversion_rate),                                                      // 担保品折扣率
+    (double, exchange_rate)                                                         // 汇率
 );
 
 KF_DEFINE_DATA_TYPE(                                //

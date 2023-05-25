@@ -154,11 +154,6 @@ void Runner::prepare(const event_ptr &event) {
     broker_states_requested_ = true;
   }
 
-  if (not instrument_factors_requested_) {
-    writer->mark(now(), MirrorInstrumentFactorsRequest::tag);
-    instrument_factors_requested_ = true;
-  }
-
   auto ready_test = [&](const auto &locations) {
     return std::all_of(locations.begin(), locations.end(),
                        [&](const auto &it) { return context_->get_broker_client().is_ready(it.second->uid); });

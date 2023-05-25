@@ -151,33 +151,15 @@ Book_ptr Bookkeeper::make_book(uint32_t location_uid) {
 }
 
 void Bookkeeper::update_instrument(const longfist::types::Instrument &instrument) {
-  auto pair = instruments_.try_emplace(hash_instrument(instrument.exchange_id, instrument.instrument_id), instrument);
-  if (not pair.second) {
-    auto &inserted_inst = pair.first->second;
-    if (instrument.force_update_ratio) {
-      inserted_inst.long_margin_ratio = instrument.long_margin_ratio;
-      inserted_inst.short_margin_ratio = instrument.short_margin_ratio;
-      inserted_inst.conversion_rate = instrument.conversion_rate;
-    } else {
-      if (inserted_inst.force_update_ratio) {
-        double long_margin_ratio = inserted_inst.long_margin_ratio;
-        double short_margin_ratio = inserted_inst.short_margin_ratio;
-        double conversion_rate = inserted_inst.conversion_rate;
-        memcpy(&inserted_inst, &instrument, sizeof(longfist::types::Instrument));
-        inserted_inst.long_margin_ratio = long_margin_ratio;
-        inserted_inst.short_margin_ratio = short_margin_ratio;
-        inserted_inst.conversion_rate = conversion_rate;
-      } else {
-        memcpy(&inserted_inst, &instrument, sizeof(longfist::types::Instrument));
-      }
-    }
-  }
+  auto hashed_instrument_key = hash_instrument(instrument.exchange_id, instrument.instrument_id);
+  instruments_.insert_or_assign(hashed_instrument_key, instrument);
 }
 
 void Bookkeeper::update_instrument_factor(const longfist::types::InstrumentFactor &instrument_factor) {
   for (auto &bk_pair : books_) {
     auto &book = bk_pair.second;
-    if (book->asset.holder_uid == instrument_factor.holder_uid) {
+    auto location = app_.get_location(book->asset.holder_uid);
+    if (location->category != category::TD or book->asset.holder_uid == instrument_factor.holder_uid) {
       book->replace(instrument_factor);
     }
   }
@@ -467,20 +449,4 @@ void Bookkeeper::mirror_positions(int64_t trigger_time, uint32_t strategy_uid) {
   strategy_book->update(trigger_time, account_method_type_);
 }
 
-void Bookkeeper::mirror_instrument_factors(int64_t trigger_time, uint32_t strategy_uid) {
-  //SPDLOG_INFO("mirror_instrument_factors begin");
-  auto strategy_book = get_book(strategy_uid);
-  strategy_book->instrument_factors.clear();
-
-  for (const auto &pair : get_books()) {
-    auto &book = pair.second;
-    auto holder_uid = book->asset.holder_uid;
-    if (book->asset.ledger_category == LedgerCategory::Account and app_.has_channel(strategy_uid, holder_uid)) {
-      strategy_book->instrument_factors = book->instrument_factors;
-      //SPDLOG_INFO("mirror_instrument_factors - size ={}, book size={}, holder_uid={}",
-      //            strategy_book->instrument_factors.size(), book->instrument_factors.size(), holder_uid);
-    }
-  }
-  strategy_book->update(trigger_time, account_method_type_);
-}
 } // namespace kungfu::wingchun::book

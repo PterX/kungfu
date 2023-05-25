@@ -62,8 +62,6 @@ public:
 
   void mirror_positions(int64_t trigger_time, uint32_t strategy_uid);
 
-  void mirror_instrument_factors(int64_t trigger_time, uint32_t strategy_uid);
-
   void try_update_position_end(const longfist::types::PositionEnd &position_end);
 
   longfist::enums::AccountingMethodType get_accounting_method_type() { return account_method_type_; }

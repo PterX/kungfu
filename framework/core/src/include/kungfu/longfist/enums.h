@@ -426,23 +426,23 @@ NLOHMANN_JSON_SERIALIZE_ENUM(OrderStatus, {
 inline std::ostream &operator<<(std::ostream &os, OrderStatus t) { return os << int8_t(t); }
 
 // 币种枚举
-enum class CurrencyType : int8_t { Unknown = 0, CNY, HKD, USD, JPY, GBP, EUR, CNH, SGD, MYR, CEN };
+enum class Currency : int8_t { Unknown = 0, CNY, HKD, USD, JPY, GBP, EUR, CNH, SGD, MYR, CEN };
 
-NLOHMANN_JSON_SERIALIZE_ENUM(CurrencyType, {
-                                               {CurrencyType::Unknown, "Unknown"},
-                                               {CurrencyType::CNY, "CNY"},
-                                               {CurrencyType::HKD, "HKD"},
-                                               {CurrencyType::USD, "USD"},
-                                               {CurrencyType::JPY, "JPY"},
-                                               {CurrencyType::GBP, "GBP"},
-                                               {CurrencyType::EUR, "EUR"},
-                                               {CurrencyType::CNH, "CNH"},
-                                               {CurrencyType::SGD, "SGD"},
-                                               {CurrencyType::MYR, "MYR"},
-                                               {CurrencyType::CEN, "CEN"},
-                                           })
+NLOHMANN_JSON_SERIALIZE_ENUM(Currency, {
+                                           {Currency::Unknown, "Unknown"},
+                                           {Currency::CNY, "CNY"},
+                                           {Currency::HKD, "HKD"},
+                                           {Currency::USD, "USD"},
+                                           {Currency::JPY, "JPY"},
+                                           {Currency::GBP, "GBP"},
+                                           {Currency::EUR, "EUR"},
+                                           {Currency::CNH, "CNH"},
+                                           {Currency::SGD, "SGD"},
+                                           {Currency::MYR, "MYR"},
+                                           {Currency::CEN, "CEN"},
+                                       })
 
-inline std::ostream &operator<<(std::ostream &os, CurrencyType t) { return os << int8_t(t); }
+inline std::ostream &operator<<(std::ostream &os, Currency t) { return os << int8_t(t); }
 
 enum class BasketOrderStatus : int8_t { Unknown, Pending, PartialFilledNotActive, PartialFilledActive, Filled };
 
@@ -595,9 +595,31 @@ template <typename T, typename U> [[maybe_unused]] inline T sub_data_bitwise(con
 
 enum class PageStatus : int8_t { Normal, PreOpen };
 
+NLOHMANN_JSON_SERIALIZE_ENUM(PageStatus, {
+                                             {PageStatus::Normal, "Normal"},
+                                             {PageStatus::PreOpen, "PreOpen"},
+                                         })
+
 inline std::ostream &operator<<(std::ostream &os, PageStatus t) { return os << int8_t(t); }
 
 enum class AccountingMethodType : int8_t { Default = 0, OTC = 1 };
+
+NLOHMANN_JSON_SERIALIZE_ENUM(AccountingMethodType, {
+                                                       {AccountingMethodType::Default, "Default"},
+                                                       {AccountingMethodType::OTC, "OTC"},
+                                                   })
+
+inline std::ostream &operator<<(std::ostream &os, AccountingMethodType t) { return os << int8_t(t); }
+
+enum class FrameDataType : int8_t { Raw, Json, Unknown };
+
+NLOHMANN_JSON_SERIALIZE_ENUM(FrameDataType, {
+                                                {FrameDataType::Raw, "Raw"},
+                                                {FrameDataType::Json, "Json"},
+                                                {FrameDataType::Unknown, "Unknown"},
+                                            })
+
+inline std::ostream &operator<<(std::ostream &os, FrameDataType t) { return os << int8_t(t); }
 
 } // namespace kungfu::longfist::enums
 #endif // KUNGFU_LONGFIST_ENUM_H

@@ -43,7 +43,6 @@ declare namespace KungfuApi {
     OrderActionFlagEnum,
     OrderInputKeyEnum,
     KfExhibitConfigTypes,
-    FrameMsgTypeEnum,
     BasketVolumeTypeEnum,
     PriceLevelEnum,
     BasketOrderStatusEnum,
@@ -543,7 +542,7 @@ declare namespace KungfuApi {
     short_margin_ratio: number; //空头保证金率
 
     exchange_rate: number; // 利率
-    currency_type: CurrencyEnum; // 币种
+    currency: CurrencyEnum; // 币种
 
     uid_key: string;
     ukey: string;
@@ -1017,62 +1016,45 @@ declare namespace KungfuApi {
     begin_time_resolved: string;
     end_time_resolved: string;
     status: SessionStatusEnum;
+    session_id_origin: string;
   }
 
-  export interface Frame<T extends 'func' | 'data' = 'data'> {
-    id: number;
-    dataLength: FunctionOrData<T, number>;
-    genTime: FunctionOrData<T, bigint>;
-    triggerTime: FunctionOrData<T, bigint>;
-    dataAsString: Frame<'func', string>;
-    dataAsString?: Frame<'data', string>;
-    msgType: FunctionOrData<T, FrameMsgTypeEnum>; // to enum
-    source: FunctionOrData<T, number>;
-    dest: FunctionOrData<T, number>;
-    data: FunctionOrData<T, object | string>;
-    currentFrameId: bigint;
-    currentPageId: number;
-    msgDetails?: string;
-    pageId?: FunctionOrData<T, number>;
-    stringMsgType?: string;
-    destName?: string;
-    sourceName?: string;
-    sourceToDest?: string;
-    dataResolved?: unknown[];
+  export interface FrameBuilder {
+    msgType: () => number;
+    dest: () => number;
+    source: () => number;
+    dataLength: () => number;
+    genTime: () => bigint;
+    triggerTime: () => bigint;
+    dataAsString: () => string;
+    data: () => unknown;
+  }
+
+  export interface Frame {
+    dataLength: number;
+    genTime: bigint;
+    triggerTime: bigint;
+    dataAsString: string;
+    msgType: number;
+    source: number;
+    dest: number;
+    data: unknown;
+    frameId: number;
+    pageId: number;
   }
 
   export interface FrameResolved extends Frame {
+    id: string;
+    msgTypeName: string;
+    sourceToDest: string;
     genTimeResolved: string;
     triggerTimeResolved: string;
     msgTypeResolved: KfTradeValueCommonData;
-    destResolved?: string;
-    sourceResolved?: string;
-    sourceToDest?: string | undefined;
-    dataResolved?: unknown[];
-    currentFrameId: bigint;
-    currentPageId: number;
   }
 
-  export interface AssembleReader {
-    run: (cb: (frame: Frame<'func'>) => void, num: number) => void;
-    next: () => Frame<'func'> | null;
-    currentFrame: () => Frame<'func'>;
-  }
-
-  export interface Assemble {
-    getReader(
-      arg: number,
-      startTime?: bigint,
-      endTime?: bigint,
-    ): AssembleReader;
-    getSessions(kfLocation?: KfLocation): Session[] | undefined;
-    seekToTime(): void;
-    next(): void;
-    dataAvailable(): boolean;
-  }
   export interface Tracer {
-    currentFrame(): Frame<'func'>;
-    currentFrameId(): bigint;
+    currentFrame(): FrameBuilder;
+    currentFrameId(): number;
     currentPageId(): number;
     dataAvailable(): boolean;
     next(): void;
@@ -1125,7 +1107,6 @@ declare namespace KungfuApi {
     History(kfHome: string): HistoryStore;
     IODevice(location: KfLocation, kfHome: string): IODevice;
     Longfist(): Longfist;
-    Assemble(kfHome: string[]): Assemble;
     tracer(
       location: KfLocation,
       kfHome: string,

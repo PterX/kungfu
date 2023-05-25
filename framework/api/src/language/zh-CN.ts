@@ -533,8 +533,8 @@ export default {
     source: '源头',
     gen_time: '生成时间',
     trigger_time: '触发时间',
-    current_page_id: '页',
-    current_frame_id: '帧',
+    page_id: '页',
+    frame_id: '帧',
     msg_type: '消息类型',
     msg_details: '消息详情',
 
@@ -592,6 +592,10 @@ export default {
     strategy_related: '策略相关',
 
     system_related: '系统相关',
+
+    select_channel: '过滤数据信道',
+
+    selete_msg_type: '过滤消息类型',
   },
 
   tradeConfig: {

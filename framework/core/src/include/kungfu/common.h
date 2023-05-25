@@ -414,6 +414,8 @@ struct event {
 
   [[nodiscard]] virtual std::string to_string() const = 0;
 
+  [[nodiscard]] virtual int8_t data_type() const = 0;
+
   /**
    * Using auto with the return mess up the reference with the undlerying memory address, DO NOT USE it.
    * @tparam T
@@ -427,6 +429,8 @@ struct event {
   std::enable_if_t<not size_fixed_v<T> and not std::is_same_v<T, nlohmann::json>, const T> data() const {
     return T(data_as_bytes(), data_length());
   }
+
+  template <class T> const T &custom_data() const { return *(reinterpret_cast<const T *>(data_address())); }
 };
 
 DECLARE_PTR(event)

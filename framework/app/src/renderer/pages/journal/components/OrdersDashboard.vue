@@ -62,7 +62,7 @@ const scrollToKey = () => {
   chartsContainer.value!.scrollTop = targetPosition;
 };
 
-let { allTradingDatas, mdQuotoDatas } = useDealJournalDatas();
+let { allTradingDatas } = useDealJournalDatas();
 
 const previousAllTradingDatas = new Map();
 let oldOptionData: string[] = [];

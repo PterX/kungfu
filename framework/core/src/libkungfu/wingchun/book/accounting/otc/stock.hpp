@@ -26,7 +26,6 @@ struct otc_contract_discount_and_margin_ratio {
   double long_margin_ratio;
   double short_margin_ratio;
   double margin_ratio;
-  double conversion_rate;
   double exchange_rate;
 };
 class OtcStockAccountingMethod : public AccountingMethod {
@@ -279,7 +278,6 @@ protected:
                                                                  : DEFAULT_OTC_STOCK_SHORT_MARGIN_RATIO;
       cd_mr.long_margin_ratio = DEFAULT_OTC_STOCK_LONG_MARGIN_RATIO;
       cd_mr.short_margin_ratio = DEFAULT_OTC_STOCK_SHORT_MARGIN_RATIO;
-      cd_mr.conversion_rate = DEFAULT_OTC_STOCK_CONVERSION_RATE;
       cd_mr.exchange_rate = OTC_DEFAULT_STOCK_EXCHANGE_RATE;
       return cd_mr;
     }
@@ -289,7 +287,6 @@ protected:
       cd_mr.margin_ratio = margin_ratio(instrument, position);
       cd_mr.long_margin_ratio = instrument.long_margin_ratio;
       cd_mr.short_margin_ratio = instrument.short_margin_ratio;
-      cd_mr.conversion_rate = instrument.conversion_rate;
       cd_mr.exchange_rate = is_equal(instrument.exchange_rate, 0.0) ? 1.0 : instrument.exchange_rate;
     } catch (std::exception &ex) {
       SPDLOG_ERROR("Exception for instrument_id {}: {}", instrument_id, ex.what());
@@ -297,7 +294,6 @@ protected:
                                                                  : DEFAULT_OTC_STOCK_SHORT_MARGIN_RATIO;
       cd_mr.long_margin_ratio = DEFAULT_OTC_STOCK_LONG_MARGIN_RATIO;
       cd_mr.short_margin_ratio = DEFAULT_OTC_STOCK_SHORT_MARGIN_RATIO;
-      cd_mr.conversion_rate = DEFAULT_OTC_STOCK_CONVERSION_RATE;
       cd_mr.exchange_rate = OTC_DEFAULT_STOCK_EXCHANGE_RATE;
     }
     return cd_mr;

@@ -243,7 +243,8 @@ void Ledger::write_positions(int64_t trigger_time, uint32_t dest, book::Position
   }
 }
 
-void Ledger::write_instrument_factors(int64_t trigger_time, uint32_t dest, book::InstrumentFactorMap& instrument_factors) {
+void Ledger::write_instrument_factors(int64_t trigger_time, uint32_t dest,
+                                      book::InstrumentFactorMap &instrument_factors) {
   auto writer = get_writer(dest);
   for (const auto &pair : instrument_factors) {
     writer->write(trigger_time, pair.second);

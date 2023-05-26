@@ -1,7 +1,9 @@
 import os from 'os';
 import path from 'path';
+import fse from 'fs-extra';
+import { addFileSync } from './../utils/fileUtils';
 
-const getHomePath = (): string => {
+const getDefaultHomePath = (): string => {
   switch (os.platform()) {
     case 'darwin':
       return path.join(
@@ -17,6 +19,29 @@ const getHomePath = (): string => {
     default:
       throw new Error(`Unsupported platform ${os.platform()}`);
   }
+};
+
+export const KF_APP_CONFIG_DIR = path.join(
+  process.env.APP_INSTALL_DIR,
+  'app',
+  'config',
+);
+addFileSync('', KF_APP_CONFIG_DIR, 'folder');
+
+const getHomePath = (): string => {
+  const defaultHomePath = getDefaultHomePath();
+  const kfConfigJsonPath = path.join(KF_APP_CONFIG_DIR, 'kfConfig.json');
+  if (fse.existsSync(kfConfigJsonPath)) {
+    const kfConfigJson = fse.readJSONSync(kfConfigJsonPath) as Record<
+      string,
+      Record<string, KungfuApi.KfConfigValue>
+    >;
+    if (kfConfigJson.system.customKfHomePath) {
+      return kfConfigJson.system.customKfHomePath;
+    }
+  }
+
+  return defaultHomePath;
 };
 
 if (process.env.APP_TYPE === 'main' || process.env.APP_TYPE === 'renderer') {

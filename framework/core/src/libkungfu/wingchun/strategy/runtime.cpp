@@ -28,6 +28,14 @@ RuntimeContext::RuntimeContext(apprentice &app, const rx::connectable_observable
 }
 
 void RuntimeContext::on_start() {
+  SPDLOG_DEBUG("arguments_: {}", arguments_);
+  if (not arguments_.empty()) {
+    auto config = nlohmann::json::parse(arguments_);
+    if (config.value<bool>("bypass_accounting", false)) {
+      bypass_accounting();
+    }
+  }
+
   broker_client_.on_start(events_);
   if (not is_bypass_accounting()) {
     bookkeeper_.on_start(events_);

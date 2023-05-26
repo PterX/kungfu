@@ -36,6 +36,7 @@ asset_margin
 long_positions
 short_positions
 trades
+instrument_factors
 mode
 category
 group
@@ -99,6 +100,11 @@ pre_close_price
 settlement_price
 pre_settlement_price
 close_pnl
+product_id
+is_trading
+long_margin_ratio
+short_margin_ratio
+conversion_rate
 order_id
 parent_id
 limit_price
@@ -182,7 +188,6 @@ frame_count
 info_a
 info_b
 info_c
-product_id
 open_ratio
 close_ratio
 close_today_ratio
@@ -194,11 +199,7 @@ create_date
 expire_date
 delivery_year
 delivery_month
-is_trading
 force_update_ratio
-long_margin_ratio
-short_margin_ratio
-conversion_rate
 exchange_rate
 id
 volume_type
@@ -213,6 +214,7 @@ Asset
 AssetMargin
 Position
 PositionEnd
+InstrumentFactor
 OrderInput
 Order
 Trade
@@ -322,6 +324,8 @@ enable_self_detect
 req_account
 req_position
 set_service
+get_arguments
+set_arguments
 set_begin_time
 set_end_time
 setup
@@ -473,9 +477,6 @@ SZSE
 HKEx
 MarketType
 Snapshot
-Entrust
-Transaction
-Tree
 SubscribeDataType
 Stock
 Future

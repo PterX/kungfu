@@ -57,6 +57,8 @@ enable_self_detect
 req_account
 req_position
 set_service
+get_arguments
+set_arguments
 set_begin_time
 set_end_time
 setup

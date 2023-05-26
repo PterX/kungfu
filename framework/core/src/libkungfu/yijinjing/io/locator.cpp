@@ -60,7 +60,7 @@ std::string get_root_dir(es::mode m, const std::vector<std::string> &tags) {
     }
     auto home_dir_path = get_default_root() / iter->second.second;
     home_dir_path /= std::accumulate(tags.begin(), tags.end(), fs::path{},
-                                     [&](const fs::path &p, const std::string &tag) { return p / tag; });
+                                     [](const fs::path &p, const std::string &tag) { return p / tag; });
     return home_dir_path.string();
   }
 }

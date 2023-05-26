@@ -164,19 +164,18 @@ inline void from_xtp(const XTP_ORDER_STATUS_TYPE &xtp_order_status, OrderStatus 
   }
 }
 
-inline void from_xtp(XTPQSI *ticker_info, Instrument &quote) {
-  strcpy(quote.instrument_id, ticker_info->ticker);
+inline void from_xtp(XTPQSI *ticker_info, Instrument &instrument) {
+  strcpy(instrument.instrument_id, ticker_info->ticker);
   if (ticker_info->exchange_id == 1) {
-    quote.exchange_id = EXCHANGE_SSE;
+    instrument.exchange_id = EXCHANGE_SSE;
   } else if (ticker_info->exchange_id == 2) {
-    quote.exchange_id = EXCHANGE_SZE;
+    instrument.exchange_id = EXCHANGE_SZE;
   } else {
-    quote.exchange_id = "false_id";
+    instrument.exchange_id = "unknown";
   }
-  memcpy(quote.product_id, ticker_info->ticker_name, strlen(ticker_info->ticker_name));
-  quote.instrument_type = get_instrument_type(quote.exchange_id, quote.instrument_id);
-  quote.is_trading = true;
-  quote.price_tick = ticker_info->price_tick;
+  memcpy(instrument.product_id, ticker_info->ticker_name, strlen(ticker_info->ticker_name));
+  instrument.instrument_type = get_instrument_type(instrument.exchange_id, instrument.instrument_id);
+  instrument.price_tick = ticker_info->price_tick;
 }
 
 inline void from_xtp(const XTP_SIDE_TYPE &xtp_side, Side &side) {

@@ -364,21 +364,25 @@ private:
     if (book->instruments.find(hashed_instrument_key) == book->instruments.end()) {
       SPDLOG_WARN("instrument information missing for {}@{}", instrument_id, exchange_id);
       cm_mr.contract_multiplier = DEFAULT_OTC_INSTRUMENT_CONTRACT_MULTIPLIER;
+    } else {
+      auto &instrument = book->instruments.at(hashed_instrument_key);
+      cm_mr.contract_multiplier = instrument.contract_multiplier;
+    }
+
+    if (book->instrument_factors.find(hashed_instrument_key) == book->instrument_factors.end()) {
       cm_mr.margin_ratio = position.direction == Direction::Long ? DEFAULT_OTC_INSTRUMENT_LONG_MARGIN_RATIO
                                                                  : DEFAULT_OTC_INSTRUMENT_SHORT_MARGIN_RATIO;
       cm_mr.exchange_rate = DEFAULT_OTC_INSTRUMENT_EXCHANGE_RATE;
-      return cm_mr;
+    } else {
+      auto &factor = book->instrument_factors.at(hashed_instrument_key);
+      cm_mr.margin_ratio = margin_ratio(factor, position);
+      cm_mr.exchange_rate = is_equal(factor.exchange_rate, 0.0) ? 1.0 : factor.exchange_rate;
     }
-
-    auto &instrument = book->instruments.at(hashed_instrument_key);
-    cm_mr.contract_multiplier = instrument.contract_multiplier;
-    cm_mr.margin_ratio = margin_ratio(instrument, position);
-    cm_mr.exchange_rate = is_equal(instrument.exchange_rate, 0.0) ? 1.0 : instrument.exchange_rate;
     return cm_mr;
   }
 
-  static double margin_ratio(const Instrument &instrument, const Position &position) {
-    return position.direction == Direction::Long ? instrument.long_margin_ratio : instrument.short_margin_ratio;
+  static double margin_ratio(const InstrumentFactor &factor, const Position &position) {
+    return position.direction == Direction::Long ? factor.long_margin_ratio : factor.short_margin_ratio;
   }
 
   static bool able_long_short_position_merge(const char *exchange_id) {

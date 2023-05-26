@@ -12,7 +12,10 @@ namespace kungfu::wingchun::xtp {
 using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing;
 
-TraderXTP::TraderXTP(broker::BrokerVendor &vendor) : Trader(vendor) { KUNGFU_SETUP_LOG(); }
+TraderXTP::TraderXTP(broker::BrokerVendor &vendor) : Trader(vendor) {
+  KUNGFU_SETUP_LOG();
+  SPDLOG_DEBUG("arguments: {}", get_vendor().get_arguments());
+}
 
 TraderXTP::~TraderXTP() {
   if (api_ != nullptr) {
@@ -78,8 +81,8 @@ bool TraderXTP::insert_order(const event_ptr &event) {
   order.update_time = nano;
 
   if (success) {
-    map_kf_to_xtp_order_id_.emplace(input.order_id, order_xtp_id);
-    map_xtp_to_kf_order_id_.emplace(order_xtp_id, input.order_id);
+    map_kf_to_xtp_order_id_.emplace(uint64_t(input.order_id), order_xtp_id);
+    map_xtp_to_kf_order_id_.emplace(order_xtp_id, uint64_t(input.order_id));
   } else {
     auto error_info = api_->GetApiLastError();
     order.error_id = error_info->error_id;
@@ -217,8 +220,8 @@ bool TraderXTP::generate_external_order(const XTPOrderInfo &order_info) {
   order.insert_time = nano;
   order.update_time = nano;
   orders_.emplace(order.uid(), state<Order>(get_home_uid(), location::PUBLIC, nano, order));
-  map_kf_to_xtp_order_id_.emplace(order.order_id, order_info.order_xtp_id);
-  map_xtp_to_kf_order_id_.emplace(order_info.order_xtp_id, order.order_id);
+  map_kf_to_xtp_order_id_.emplace(uint64_t(order.order_id), order_info.order_xtp_id);
+  map_xtp_to_kf_order_id_.emplace(order_info.order_xtp_id, uint64_t(order.order_id));
   SPDLOG_DEBUG("Order: {}", order.to_string());
   writer->close_data();
   try_deal_XTPTradeReport(order_info.order_xtp_id);

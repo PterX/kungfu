@@ -230,7 +230,7 @@ class ExtensionExecutor:
         module = importlib.import_module(ctx.group)
         self.ctx.logger.info(f"loading {ctx.group} from {loader.extension_dir}")
         vendor = vendor_builder(
-            ctx.runtime_locator, ctx.group, ctx.name, ctx.low_latency
+            ctx.runtime_locator, ctx.group, ctx.name, ctx.low_latency, ctx.arguments
         )
         service_builder = getattr(module, ctx.category)
         self.ctx.logger.debug(f"loaded service builder")
@@ -369,8 +369,6 @@ def load_runner(ctx):
         sys.path.append(ctx.extension_path)
         module = importlib.import_module(ctx.vendor)
         runner_vendor = getattr(module, "Runner")
-        if ctx.arguments is None:
-            ctx.arguments = ""
         runner = runner_vendor(
             ctx.runtime_locator,
             ctx.group,

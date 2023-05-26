@@ -683,39 +683,32 @@ protected:
     uint32_t hashed_instrument_key = hash_instrument(exchange_id, instrument_id);
     contract_discount_and_margin_ratio cd_mr = {};
 
-    // typedef std::unordered_map<uint32_t, longfist::types::Instrument> InstrumentMap;
-    if (book->instruments.find(hashed_instrument_key) == book->instruments.end()) {
-      // SPDLOG_INFO("instrument information missing for {}@{}", instrument_id, exchange_id);
-      cd_mr.contract_multiplier = DEFAULT_STOCK_CONTRACT_MULTIPLIER;
-      cd_mr.margin_ratio =
-          position.direction == Direction::Long ? DEFAULT_STOCK_LONG_MARGIN_RATIO : DEFAULT_STOCK_SHORT_MARGIN_RATIO;
-      cd_mr.long_margin_ratio = DEFAULT_STOCK_LONG_MARGIN_RATIO;
-      cd_mr.short_margin_ratio = DEFAULT_STOCK_SHORT_MARGIN_RATIO;
-      cd_mr.conversion_rate = DEFAULT_STOCK_CONVERSION_RATE;
-      cd_mr.exchange_rate = DEFAULT_STOCK_EXCHANGE_RATE;
-      // longfist::types::Instrument instrument = {};
-      // strcpy(instrument.instrument_id, position.instrument_id);
-      // strcpy(instrument.exchange_id, position.exchange_id);
-      // // InstrumentType
-      // instrument.instrument_type = get_instrument_type(instrument.exchange_id, instrument.instrument_id);
-      // instrument.contract_multiplier = 1;
-      // instrument.long_margin_ratio = cd_mr.long_margin_ratio;
-      // instrument.short_margin_ratio = cd_mr.short_margin_ratio;
-      // instrument.conversion_rate = cd_mr.conversion_rate;
-      // instruments is defined with "const InstrumentMap &instruments;"
-      // book->instruments.emplace(hash_instrument(exchange_id, instrument_id), instrument);
-      return cd_mr;
-    }
     try {
-      auto &instrument = book->instruments.at(hashed_instrument_key);
-      cd_mr.contract_multiplier = instrument.contract_multiplier;
-      cd_mr.margin_ratio = margin_ratio(instrument, position);
-      cd_mr.long_margin_ratio = instrument.long_margin_ratio;
-      cd_mr.short_margin_ratio = instrument.short_margin_ratio;
-      cd_mr.conversion_rate = instrument.conversion_rate;
-      cd_mr.exchange_rate = is_equal(instrument.exchange_rate, 0.0) ? 1.0 : instrument.exchange_rate;
+      if (book->instruments.find(hashed_instrument_key) == book->instruments.end()) {
+        cd_mr.contract_multiplier = DEFAULT_STOCK_CONTRACT_MULTIPLIER;
+      } else {
+        auto &instrument = book->instruments.at(hashed_instrument_key);
+        cd_mr.contract_multiplier = instrument.contract_multiplier;
+      }
+
+      if (book->instrument_factors.find(hashed_instrument_key) == book->instrument_factors.end()) {
+        cd_mr.margin_ratio =
+            position.direction == Direction::Long ? DEFAULT_STOCK_LONG_MARGIN_RATIO : DEFAULT_STOCK_SHORT_MARGIN_RATIO;
+        cd_mr.long_margin_ratio = DEFAULT_STOCK_LONG_MARGIN_RATIO;
+        cd_mr.short_margin_ratio = DEFAULT_STOCK_SHORT_MARGIN_RATIO;
+        cd_mr.conversion_rate = DEFAULT_STOCK_CONVERSION_RATE;
+        cd_mr.exchange_rate = DEFAULT_STOCK_EXCHANGE_RATE;
+      } else {
+        auto &factor = book->instrument_factors.at(hashed_instrument_key);
+        cd_mr.margin_ratio = margin_ratio(factor, position);
+        cd_mr.long_margin_ratio = factor.long_margin_ratio;
+        cd_mr.short_margin_ratio = factor.short_margin_ratio;
+        cd_mr.conversion_rate = factor.conversion_rate;
+        cd_mr.exchange_rate = is_equal(factor.exchange_rate, 0.0) ? 1.0 : factor.exchange_rate;
+      }
     } catch (std::exception &ex) {
       SPDLOG_ERROR("Exception for instrument_id {}: {}", instrument_id, ex.what());
+      cd_mr.contract_multiplier = DEFAULT_STOCK_CONTRACT_MULTIPLIER;
       cd_mr.margin_ratio =
           position.direction == Direction::Long ? DEFAULT_STOCK_LONG_MARGIN_RATIO : DEFAULT_STOCK_SHORT_MARGIN_RATIO;
       cd_mr.long_margin_ratio = DEFAULT_STOCK_LONG_MARGIN_RATIO;
@@ -736,8 +729,8 @@ protected:
     asset_margin.collateral_ratio = (std::min)(asset_margin.collateral_ratio, MAX_COLLATERAL_RATIO);
   }
 
-  static double margin_ratio(const Instrument &instrument, const Position &position) {
-    return position.direction == Direction::Long ? instrument.long_margin_ratio : instrument.short_margin_ratio;
+  static double margin_ratio(const InstrumentFactor &factor, const Position &position) {
+    return position.direction == Direction::Long ? factor.long_margin_ratio : factor.short_margin_ratio;
   }
   [[maybe_unused]] static double roundn(double value, int n = AMOUT_PRECISION) {
     double x = pow(10.0, (double)n);

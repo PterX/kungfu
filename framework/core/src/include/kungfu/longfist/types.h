@@ -718,9 +718,9 @@ KF_DEFINE_PACK_TYPE(                                                //
     (kungfu::array<char, DATE_LEN>, create_date), // 创建日
     (kungfu::array<char, DATE_LEN>, expire_date), // 到期日
 
-    (int, delivery_year),  // 交割年份
-    (int, delivery_month), // 交割月
-    (enums::Currency, currency)   // 币种
+    (int, delivery_year),       // 交割年份
+    (int, delivery_month),      // 交割月
+    (enums::Currency, currency) // 币种
 );
 
 KF_DEFINE_PACK_TYPE(                                                                //

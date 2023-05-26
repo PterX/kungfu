@@ -1495,10 +1495,13 @@ export const useActiveInstruments = () => {
     instrumentId: string,
     exchangeId: string,
     defaultTick = 0.001,
+    defaultPrecision = 0.001,
   ) => {
     const instrument = getInstrumentByIdsWithWatcher(instrumentId, exchangeId);
     const price_tick = instrument?.price_tick || defaultTick;
-    const price_precision = countDecimalPlaces(price_tick);
+    const price_precision = countDecimalPlaces(
+      instrument?.price_tick || defaultPrecision,
+    );
     return { price_tick, price_precision };
   };
 

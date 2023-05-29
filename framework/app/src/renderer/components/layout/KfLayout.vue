@@ -24,7 +24,7 @@ const menuSelectedKeys = ref<string[]>(['main']);
 const { uiExtConfigs } = useExtConfigsRelated();
 const { isLanguageKeyAvailable } = useLanguage();
 
-const isAdmainLogin = ref<boolean>(false);
+const isExtSidebarShow = ref<Record<string, boolean>>({});
 
 const sidebarFooterComponentConfigs = computed(() => {
   return Object.keys(uiExtConfigs.value)
@@ -67,8 +67,8 @@ const busSubscription = globalBus.subscribe((data: KfEvent.KfBusEvent) => {
     }
   }
 
-  if (data.tag === 'show-or-hide-admain-sidebar') {
-    isAdmainLogin.value = data.key;
+  if (data.tag === 'show-or-hide-extension-sidebar') {
+    isExtSidebarShow.value[data.key || ''] = data.target;
   }
 });
 
@@ -102,7 +102,7 @@ function handleToPage(pathname: string) {
           </a-menu-item>
           <template v-for="config in sidebarComponentConfigs">
             <a-menu-item
-              v-if="config.key !== 'DBAdmin' || isAdmainLogin"
+              v-if="isExtSidebarShow[config.key] !== false"
               :key="config.key"
               @click="handleToPage(`/${config.key}`)"
             >

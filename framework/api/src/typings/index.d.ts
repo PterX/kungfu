@@ -1026,11 +1026,10 @@ declare namespace KungfuApi {
   }
 
   export interface SessionResolved extends Session {
-    session_id_resolved: string;
-    begin_time_resolved: string;
-    end_time_resolved: string;
+    sessionName: string;
+    beginTimeResolved: string;
+    endTimeResolved: string;
     status: SessionStatusEnum;
-    session_id_origin: string;
   }
 
   export interface FrameBuilder {

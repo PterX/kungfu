@@ -133,6 +133,8 @@ private:
 
   void update_instrument(const longfist::types::Instrument &instrument);
 
+  void update_instrument_factor(const longfist::types::InstrumentFactor &instrument_factor);
+
   void try_update_asset(const longfist::types::Asset &asset);
 
   void try_update_asset_margin(const longfist::types::AssetMargin &asset_margin);

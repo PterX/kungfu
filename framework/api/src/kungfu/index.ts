@@ -680,6 +680,20 @@ export const hashInstrumentFactorUKey = (
   return hashUkey(instrumentId, exchangeId, accountUid);
 };
 
+export const hashInstrumentFactorUKey = (
+  instrumentId: string,
+  exchangeId: string,
+  holderUID: number,
+): string => {
+  return (
+    BigInt(kf.hash(instrumentId)) ^
+    BigInt(kf.hash(exchangeId)) ^
+    BigInt(kf.hash(holderUID))
+  )
+    .toString(16)
+    .padStart(16, '0');
+};
+
 export const dealOrder = (
   watcher: KungfuApi.Watcher,
   order: KungfuApi.Order,

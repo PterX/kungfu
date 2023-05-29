@@ -528,6 +528,7 @@ declare namespace KungfuApi {
 
     contract_multiplier: number; //合约乘数
     price_tick: number; //最小变动价位
+    quantity_unit: number; //最小变动价位
 
     open_date: string; //上市日
     create_date: string; //创建日
@@ -535,17 +536,28 @@ declare namespace KungfuApi {
 
     delivery_year: number; //交割年份
     delivery_month: number; //交割月
+    currency: CurrencyEnum; // 币种
+
+    uid_key: string;
+    ukey: string;
+  }
+
+  export interface InstrumentFactor {
+    instrument_id: string; //合约ID
+    exchange_id: string; //交易所ID
+    instrument_type: InstrumentTypeEnum; //合约类型
+
+    product_id: number[]; //产品ID commit by JC
+
+    holder_uid: number;
 
     is_trading: boolean; //当前是否交易
 
     long_margin_ratio: number; //多头保证金率
     short_margin_ratio: number; //空头保证金率
 
+    conversion_rate: number; // 担保品折扣率
     exchange_rate: number; // 利率
-    currency: CurrencyEnum; // 币种
-
-    uid_key: string;
-    ukey: string;
   }
 
   export interface Order {
@@ -821,6 +833,7 @@ declare namespace KungfuApi {
     Asset: DataTable<Asset>;
     AssetMargin: DataTable<AssetMargin>;
     Instrument: DataTable<Instrument>;
+    InstrumentFactor: DataTable<InstrumentFactor>;
     Order: DataTable<Order>;
     OrderInput: DataTable<OrderInput>;
     OrderStat: DataTable<OrderStat>;
@@ -965,7 +978,7 @@ declare namespace KungfuApi {
     sync(): void;
     isReadyToInteract(kfLocation: KfLocation | KfConfig): boolean;
     requestStop(kfLocation: KfLocation | KfConfig): void;
-    getLocationUID(kfLocation: KfLocation | KfConfig): string;
+    getLocationUID(kfLocation: KfLocation | KfConfig): number;
     getLocation(hashedKey: string | number): KfLocation;
     hasLocation(hashedKey: string | number): KfLocation;
     getInstrumentType(
@@ -1127,7 +1140,7 @@ declare namespace KungfuApi {
     shutdown(): void;
     formatStringToHashHex(id: string): string;
     formatTime(nano: bigint, format: string): string;
-    hash(str: string): string;
+    hash(str: string | number): string;
   }
 
   export interface InstrumentResolved {
@@ -1147,6 +1160,7 @@ declare namespace KungfuApi {
     price: number;
     volume: number;
     direction: DirectionEnum;
+    accountUid: number;
   }
 
   export interface KfLocationBase {

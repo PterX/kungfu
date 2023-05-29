@@ -1933,6 +1933,7 @@ export const dealTradingDataMethodsMap: Record<
   Asset: dealLedgerTradingData,
   AssetMargin: dealLedgerTradingData,
   Instrument: dealDefaultTradingData,
+  InstrumentFactor: dealDefaultTradingData,
   Order: dealOrderTradingData,
   OrderInput: dealOrderTradingData,
   OrderStat: dealDefaultTradingData,

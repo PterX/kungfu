@@ -1632,7 +1632,7 @@ export const useCurrentGlobalKfLocation = (
     KungfuApi.KfLocation | KungfuApi.KfLocationGroup | KungfuApi.KfConfig | null
   >;
   currentCategoryData: ComputedRef<KungfuApi.KfTradeValueCommonData | null>;
-  currentUID: ComputedRef<string>;
+  currentUID: ComputedRef<number>;
   setCurrentGlobalKfLocation(
     kfConfig:
       | KungfuApi.KfLocation
@@ -1717,11 +1717,11 @@ export const useCurrentGlobalKfLocation = (
 
   const currentUID = computed(() => {
     if (!watcher) {
-      return '';
+      return 0;
     }
 
     if (!currentGlobalKfLocation.value) {
-      return '';
+      return 0;
     }
 
     return watcher.getLocationUID(currentGlobalKfLocation.value);
@@ -2219,12 +2219,15 @@ export const useMakeOrderInfo = (
   const currentTradeAmount = computed(() => {
     const { volume } = formState.value;
 
-    if (instrumentResolved.value) {
+    if (instrumentResolved.value && currentAccountLocation.value) {
       const instrumentForAccounting: KungfuApi.InstrumentForAccounting = {
         ...instrumentResolved.value,
         price: currentPrice.value ?? 0,
         volume,
         direction: currentFormDirection.value || DirectionEnum.Long,
+        accountUid: (window.watcher as KungfuApi.Watcher).getLocationUID(
+          currentAccountLocation.value,
+        ),
       };
       if (instrumentResolved.value.instrumentType in TradeAccountingUsageMap) {
         return dealTradeAmount(

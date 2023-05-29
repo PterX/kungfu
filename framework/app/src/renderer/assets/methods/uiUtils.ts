@@ -453,12 +453,12 @@ export const openCodeView = (
 
 export const openJournalView = (
   processId: string,
-  locationUid: string,
+  locationUID: string,
 ): Promise<Electron.BrowserWindow> => {
   return openNewBrowserWindow(
     globalThis.__runtimeDir,
     'journal',
-    `?processId=${processId}&locationUid=${locationUid}`,
+    `?processId=${processId}&locationUID=${locationUID}`,
     {
       width: 1280,
       height: 960,
@@ -589,8 +589,8 @@ export const handleOpenJournalView = (
 ): Promise<Electron.BrowserWindow> => {
   const hideloading = message.loading(t('open_journal_dashboard'));
   const processId = config ? getProcessIdByKfLocation(config) : '';
-  const locationUid = config ? getKfLocationUID(config) || '' : '';
-  return openJournalView(processId, locationUid).finally(() => {
+  const locationUID = config ? getKfLocationUID(config) || '' : '';
+  return openJournalView(processId, locationUID).finally(() => {
     hideloading();
   });
 };

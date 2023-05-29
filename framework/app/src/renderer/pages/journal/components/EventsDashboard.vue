@@ -17,7 +17,7 @@
           ref="inputRef"
           type="text"
           size="large"
-          v-model:value="inputStartTime"
+          v-model:value="currentStartTimeInput"
           @blur="handleStartTimeBlur"
           @keyup.enter="handleStartTimeEnter"
           autofocus
@@ -34,7 +34,7 @@
             <plus-outlined />
           </template>
         </a-button>
-        <span>{{ ` - ${dealKfTime(dataStartTime[1])}` }}</span>
+        <span>{{ ` - ${dealKfTime(loadedLastFrameTime)}` }}</span>
       </div>
 
       <FrameFilters
@@ -49,7 +49,7 @@
     </div>
     <div class="kf-journal-frame__wrap" v-if="useResizeFlag">
       <KfTradingDataTable
-        :data-source="frameDataList"
+        :data-source="currentFrameList"
         :columns="frameColumns"
         key-field="id"
         :resizable="false"
@@ -140,45 +140,47 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, computed, watch, shallowRef, nextTick, onMounted } from 'vue';
+import { ref, computed, watch, nextTick, onMounted } from 'vue';
+import { storeToRefs } from 'pinia';
 import { Empty } from 'ant-design-vue';
 import { PlusOutlined, MinusOutlined } from '@ant-design/icons-vue';
 import { tracer } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { getFrameColumns } from '../config';
-import { dealFrame, buildFrameHeaderForShow, useResizeFlag } from '../utils';
+import {
+  dealFrame,
+  buildFrameHeaderForShow,
+  useResizeFlag,
+  getSourceDestMap,
+  useNow,
+} from '../utils';
 import { MsgType } from '@kungfu-trader/kungfu-app/src/typings/enums';
 import { useMsgTypesMap, ChannelRecords } from '../utils/filterUtils';
 import KfTradingDataTable from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfTradingDataTable.vue';
 import { dealKfTime } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { SessionStatusEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import FrameFilters from './FrameFilters.vue';
+import { useJournalStore } from '../store/journalStore';
 import {
   delayMilliSeconds,
   debounce,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 const { contentVisible } = useResizeFlag();
-
-const props = withDefaults(
-  defineProps<{
-    currentSession: KungfuApi.SessionResolved | null;
-    beginTime: bigint;
-    endTime: bigint;
-    nowTime: bigint;
-    currentTime: bigint;
-
-    locationMap: Record<string, string>;
-  }>(),
-  {},
-);
-
-const emit = defineEmits<{
-  (e: 'updateCurrentTime', value: bigint): void;
-}>();
+const {
+  currentSession,
+  currentTime,
+  currentSessionBeginTime,
+  currentSessionEndTime,
+  currentFrameList,
+} = storeToRefs(useJournalStore());
+const { setCurrentFrameList, setCurrentTime, setCurrentLastFrameTime } =
+  useJournalStore();
+const sourceDestMap = getSourceDestMap();
+const { now } = useNow();
 
 const FRAME_LIST_SPLIT = 200;
 const SCALE = 1000000;
 const HUNDRED_MILLISECONDS = 100000000;
-const DEFAULT_LIST_SIZE = 2000;
+const DEFAULT_LIST_SIZE = 10000;
 const SHOW_DETAIL_MSG_TYPES = {
   [MsgType.Asset]: true,
   [MsgType.AssetMargin]: true,
@@ -200,7 +202,6 @@ const currentFramesId = ref<string>('');
 const frameFilter = ref();
 let currentTracer: KungfuApi.Tracer | null = null;
 
-const frameDataList = shallowRef<KungfuApi.FrameResolved[]>([]);
 let requestBreakLoadingDataWhile = false;
 let isLoadingFrames = false;
 
@@ -211,11 +212,7 @@ const { selectedMsgTypes, selectedMsgTypesMap } = useMsgTypesMap();
 const readEvent = ref(true);
 const writeEvent = ref(true);
 
-const dataStartTime = ref<[bigint, bigint]>([
-  props.currentTime,
-  props.beginTime,
-]);
-const inputStartTime = ref<string>(dealKfTime(props.currentTime));
+const currentStartTimeInput = ref<string>(dealKfTime(currentTime.value));
 const colorMap = {
   blue: 'rgb(24, 144, 255)',
   green: 'rgb(82, 196, 26)',
@@ -223,22 +220,20 @@ const colorMap = {
   purple: 'rgb(83, 29, 171)',
 };
 
-watch(
-  () => frameDataList.value.length,
-  (len) => {
-    if (len === 0) {
-      if (props.currentSession?.status === SessionStatusEnum.Running) {
-        dataStartTime.value = [props.currentTime, props.nowTime];
-      } else {
-        dataStartTime.value = [props.currentTime, props.endTime];
-      }
-      return;
-    }
+const loadedLastFrameTime = computed(() => {
+  if (currentFrameList.value.length) {
+    return currentFrameList.value[currentFrameList.value.length - 1].genTime;
+  } else if (currentSession.value?.status === SessionStatusEnum.Running) {
+    return now.value;
+  } else {
+    return currentSessionEndTime.value;
+  }
+});
 
-    dataStartTime.value = [
-      props.currentTime,
-      frameDataList.value[frameDataList.value.length - 1].genTime,
-    ];
+watch(
+  () => loadedLastFrameTime.value,
+  (nano) => {
+    setCurrentLastFrameTime(nano);
   },
 );
 
@@ -277,10 +272,10 @@ const handleScrollToTop = () => {
 
 const handleScrollToBottom = debounce(async () => {
   console.warn('scrolling to bottom');
-  if (!props.currentSession) return;
+  if (!currentSession.value) return;
   if (isLoadingFrames) return;
   await delayMilliSeconds(0);
-  await loadFrameData(props.currentSession.session_id_origin, true);
+  await loadFrameData(currentSession.value.index, true);
 }, 50);
 
 const handleStartTimeBlur = () => {
@@ -308,36 +303,33 @@ const convertToTimestamp = (timeStr) => {
 };
 const validateAndUpdateStartTime = async () => {
   const timeRegex = /^(\d{10,19}|(\d{2}:\d{2}:\d{2}(\.\d{3})?))$/;
-  if (timeRegex.test(inputStartTime.value)) {
-    const newStartTime = convertToTimestamp(inputStartTime.value);
-    if (newStartTime >= props.nowTime) {
-      dataStartTime.value[0] = props.nowTime;
-    } else if (newStartTime <= props.beginTime) {
-      dataStartTime.value[0] = props.beginTime;
-    } else {
-      dataStartTime.value[0] = newStartTime;
+  if (timeRegex.test(currentStartTimeInput.value)) {
+    const newStartTime = convertToTimestamp(currentStartTimeInput.value);
+    if (newStartTime >= now.value) {
+      currentStartTimeInput.value = dealKfTime(now.value);
+    } else if (newStartTime <= currentSessionBeginTime.value) {
+      currentStartTimeInput.value = dealKfTime(currentSessionBeginTime.value);
     }
-    if (dataStartTime.value[0] !== props.currentTime) {
-      await emit('updateCurrentTime', dataStartTime.value[0]);
-    }
-  }
 
-  inputStartTime.value = dealKfTime(dataStartTime.value[0]);
+    setCurrentTime(newStartTime);
+  }
 };
 
 const modifyTimestamp = (isIncrease) => {
   const timeRegex = /^(\d{10,19}|(\d{2}:\d{2}:\d{2}(\.\d{3})?))$/;
-  if (timeRegex.test(inputStartTime.value)) {
-    if (/^\d{10,19}$/.test(inputStartTime.value)) {
-      const lengthDifference = 19 - inputStartTime.value.length;
+  if (timeRegex.test(currentStartTimeInput.value)) {
+    if (/^\d{10,19}$/.test(currentStartTimeInput.value)) {
+      const lengthDifference = 19 - currentStartTimeInput.value.length;
       const scaleFactor = BigInt(Math.pow(10, lengthDifference));
-      const currentTimestamp = BigInt(inputStartTime.value) * scaleFactor;
+      const currentTimestamp =
+        BigInt(currentStartTimeInput.value) * scaleFactor;
       const adjustment =
         BigInt(HUNDRED_MILLISECONDS) * BigInt(isIncrease ? 1 : -1);
       const newTimestamp = currentTimestamp + adjustment;
-      inputStartTime.value = newTimestamp.toString();
+      currentStartTimeInput.value = newTimestamp.toString();
     } else {
-      const [hours, minutes, fullSeconds] = inputStartTime.value.split(':');
+      const [hours, minutes, fullSeconds] =
+        currentStartTimeInput.value.split(':');
       const [seconds, milliseconds] = fullSeconds.includes('.')
         ? fullSeconds.split('.')
         : [fullSeconds, '000'];
@@ -345,12 +337,12 @@ const modifyTimestamp = (isIncrease) => {
       currentTime.setHours(+hours, +minutes, +seconds, +milliseconds);
       const adjustment =
         BigInt(HUNDRED_MILLISECONDS) * BigInt(isIncrease ? 1 : -1);
-      inputStartTime.value = dealKfTime(
+      currentStartTimeInput.value = dealKfTime(
         BigInt(currentTime.getTime()) * BigInt(SCALE) + adjustment,
       );
     }
   } else {
-    inputStartTime.value = '';
+    currentStartTimeInput.value = '';
   }
   inputRef.value.focus();
   validateAndUpdateStartTime();
@@ -360,12 +352,11 @@ const increaseTimestamp = () => modifyTimestamp(true);
 const decreaseTimestamp = () => modifyTimestamp(false);
 
 watch(
-  () => props.currentSession,
+  () => currentSession.value,
   (newSession) => {
     if (newSession) {
       channels.value = {};
       frameFilter.value?.resetFilters();
-      emit('updateCurrentTime', props.beginTime);
     }
   },
   {
@@ -374,12 +365,12 @@ watch(
 );
 
 watch(
-  () => props.currentTime,
-  (newVal, oldVal) => {
+  () => currentTime.value,
+  debounce((newVal, oldVal) => {
     if (newVal === oldVal) return;
-    inputStartTime.value = dealKfTime(props.currentTime);
+    currentStartTimeInput.value = dealKfTime(currentTime.value);
     init();
-  },
+  }, 100),
 );
 
 watch(
@@ -397,14 +388,14 @@ onMounted(() => {
 
 const init = debounce(() => {
   console.warn('init');
-  if (!props.currentSession) return;
+  if (!currentSession.value) return;
   if (!currentTracer) {
     currentTracer = tracer(
-      props.currentSession as KungfuApi.KfLocation,
+      currentSession.value as KungfuApi.KfLocation,
       readEvent.value,
       writeEvent.value,
-      props.currentSession.begin_time,
-      props.currentSession.end_time,
+      currentSession.value.begin_time,
+      currentSession.value.end_time,
     );
   }
   initLoad();
@@ -412,24 +403,24 @@ const init = debounce(() => {
 
 const initLoad = debounce(async () => {
   console.warn('initLoad');
-  if (!props.currentSession) return;
-  const sessionIdOrigin = props.currentSession.session_id_origin;
+  if (!currentSession.value) return;
+  const sessionIdOrigin = currentSession.value.index;
   isLoadingFrames && (requestBreakLoadingDataWhile = true);
   firstSplitFramesLoading.value = true;
   // wait for while looping and break while working
   await delayMilliSeconds(0);
-  frameDataList.value = [];
+  setCurrentFrameList([]);
   await nextTick();
-  currentTracer?.seekToTime(props.currentTime);
+  currentTracer?.seekToTime(currentTime.value);
   await loadFrameData(sessionIdOrigin);
   requestBreakLoadingDataWhile = false;
   firstSplitFramesLoading.value = false;
 }, 50);
 
-const loadFrameData = async (currentSessionId: string, loadmore = false) => {
+const loadFrameData = async (currentSessionId: number, loadmore = false) => {
   console.warn('loadFrameData, loadmore', loadmore);
   const drain = async (
-    sessionId: string,
+    sessionId: number,
   ): Promise<KungfuApi.FrameResolved[]> => {
     if (!currentTracer) return Promise.resolve([]);
     let tempFrames: KungfuApi.FrameResolved[] = [];
@@ -442,8 +433,8 @@ const loadFrameData = async (currentSessionId: string, loadmore = false) => {
       currentTracer &&
       currentTracer.dataAvailable() &&
       !requestBreakLoadingDataWhile &&
-      props.currentSession &&
-      sessionId === props.currentSession.session_id_origin
+      currentSession.value &&
+      sessionId === currentSession.value.index
     ) {
       tempCount++;
       totalCount++;
@@ -479,8 +470,8 @@ const loadFrameData = async (currentSessionId: string, loadmore = false) => {
       };
       const curFrameDataResolved = dealFrame(
         curFrameData,
-        props.currentSession,
-        props.locationMap,
+        currentSession.value,
+        sourceDestMap,
       );
 
       currentTracer.next();
@@ -508,8 +499,8 @@ const loadFrameData = async (currentSessionId: string, loadmore = false) => {
     }
 
     if (
-      props.currentSession &&
-      sessionId === props.currentSession.session_id_origin &&
+      currentSession.value &&
+      sessionId === currentSession.value.index &&
       !requestBreakLoadingDataWhile &&
       firstSplitFramesLoading.value
     ) {
@@ -518,24 +509,21 @@ const loadFrameData = async (currentSessionId: string, loadmore = false) => {
 
     if (
       requestBreakLoadingDataWhile ||
-      !(
-        props.currentSession &&
-        sessionId === props.currentSession.session_id_origin
-      )
+      !(currentSession.value && sessionId === currentSession.value.index)
     ) {
-      frameDataList.value = [];
+      setCurrentFrameList([]);
       return [];
     } else {
-      frameDataList.value = [...frameDataList.value, ...tempFrames];
+      setCurrentFrameList([...currentFrameList.value, ...tempFrames]);
     }
 
     if (
       !currentTracer.dataAvailable() ||
-      frameDataList.value.length >= DEFAULT_LIST_SIZE ||
+      currentFrameList.value.length >= DEFAULT_LIST_SIZE ||
       totalCount >= DEFAULT_LIST_SIZE ||
       loadmore
     ) {
-      return frameDataList.value;
+      return currentFrameList.value;
     } else {
       return new Promise<KungfuApi.FrameResolved[]>((resolve) => {
         requestAnimationFrame(async () => {
@@ -553,7 +541,7 @@ const loadFrameData = async (currentSessionId: string, loadmore = false) => {
     isLoadingFrames = false;
     firstSplitFramesLoading.value = false;
     requestBreakLoadingDataWhile = false;
-    currentFramesId.value = frameDataList.value[0]?.id;
+    currentFramesId.value = currentFrameList.value[0]?.id;
   });
 };
 
@@ -575,11 +563,11 @@ const onFiltersApply = async (
   selectedChannels.value = afterFilterChannels;
   selectedMsgTypes.value = afterFilterMsgTypes;
   currentTracer = tracer(
-    props.currentSession as KungfuApi.KfLocation,
+    currentSession.value as KungfuApi.KfLocation,
     readEvent.value,
     writeEvent.value,
-    props.currentSession?.begin_time as bigint,
-    props.currentSession?.end_time as bigint,
+    currentSession.value?.begin_time as bigint,
+    currentSession.value?.end_time as bigint,
   );
   console.warn('on filter');
   initLoad();
@@ -594,10 +582,6 @@ const dealTagBackgroudColor = (colorStr: string) => {
 const dealRowClassName = (row) => {
   return row.id === currentFramesId.value ? 'kf-current-table-select' : '';
 };
-
-defineExpose({
-  frameDataList,
-});
 </script>
 
 <style lang="less">

@@ -100,11 +100,6 @@ pre_close_price
 settlement_price
 pre_settlement_price
 close_pnl
-product_id
-is_trading
-long_margin_ratio
-short_margin_ratio
-conversion_rate
 order_id
 parent_id
 limit_price
@@ -188,6 +183,7 @@ frame_count
 info_a
 info_b
 info_c
+product_id
 open_ratio
 close_ratio
 close_today_ratio
@@ -199,8 +195,10 @@ create_date
 expire_date
 delivery_year
 delivery_month
-force_update_ratio
-exchange_rate
+is_trading
+long_margin_ratio
+short_margin_ratio
+conversion_rate
 id
 volume_type
 total_amount
@@ -214,7 +212,6 @@ Asset
 AssetMargin
 Position
 PositionEnd
-InstrumentFactor
 OrderInput
 Order
 Trade
@@ -237,6 +234,7 @@ InstrumentKey
 BrokerStateUpdate
 Commission
 Instrument
+InstrumentFactor
 BasketInstrument
 CacheReset
 RequestCachedDone
@@ -477,6 +475,9 @@ SZSE
 HKEx
 MarketType
 Snapshot
+Entrust
+Transaction
+Tree
 SubscribeDataType
 Stock
 Future

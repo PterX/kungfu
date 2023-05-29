@@ -358,7 +358,6 @@ protected:
     position.volume += trade.volume;
     // The market value is calculated in Book::update()
     if (not position.last_price) {
-      // SPDLOG_INFO("position.last_price set to {} for {} ", trade.price, position.instrument_id);
       position.last_price = trade.price;
     }
     position.last_price = position.last_price > 0 ? position.last_price : position.avg_open_price;
@@ -488,7 +487,6 @@ protected:
     auto &position = book->get_position_for(trade);
     auto cd_mr = get_instr_conversion_margin_rate(book, position);
     if (not position.last_price) {
-      // SPDLOG_INFO("position.last_price: 0, set to {} ", trade.price);
       position.last_price = trade.price;
     }
     auto &asset_margin = book->asset_margin;

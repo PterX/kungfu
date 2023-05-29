@@ -2225,7 +2225,7 @@ export const useMakeOrderInfo = (
         price: currentPrice.value ?? 0,
         volume,
         direction: currentFormDirection.value || DirectionEnum.Long,
-        accountUid: (window.watcher as KungfuApi.Watcher).getLocationUID(
+        accountUID: (window.watcher as KungfuApi.Watcher).getLocationUID(
           currentAccountLocation.value,
         ),
       };

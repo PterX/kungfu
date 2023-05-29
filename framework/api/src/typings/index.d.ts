@@ -1160,7 +1160,7 @@ declare namespace KungfuApi {
     price: number;
     volume: number;
     direction: DirectionEnum;
-    accountUid: number;
+    accountUID: number;
   }
 
   export interface KfLocationBase {

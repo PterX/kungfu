@@ -675,23 +675,9 @@ export const hashInstrumentUKey = (
 export const hashInstrumentFactorUKey = (
   instrumentId: string,
   exchangeId: string,
-  accountUid: number,
+  accountUID: number,
 ): string => {
-  return hashUkey(instrumentId, exchangeId, accountUid);
-};
-
-export const hashInstrumentFactorUKey = (
-  instrumentId: string,
-  exchangeId: string,
-  holderUID: number,
-): string => {
-  return (
-    BigInt(kf.hash(instrumentId)) ^
-    BigInt(kf.hash(exchangeId)) ^
-    BigInt(kf.hash(holderUID))
-  )
-    .toString(16)
-    .padStart(16, '0');
+  return hashUkey(instrumentId, exchangeId, accountUID);
 };
 
 export const dealOrder = (

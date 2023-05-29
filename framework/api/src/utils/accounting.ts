@@ -60,9 +60,9 @@ class BaseAccountingUsage implements AccountingUsage {
     watcher: KungfuApi.Watcher,
     instrumentId: string,
     exchangeId: string,
-    accountUid: number,
+    accountUID: number,
   ) {
-    const ukey = hashInstrumentFactorUKey(instrumentId, exchangeId, accountUid);
+    const ukey = hashInstrumentFactorUKey(instrumentId, exchangeId, accountUID);
     return watcher.ledger.InstrumentFactor[
       ukey
     ] as KungfuApi.InstrumentFactor | null;
@@ -111,14 +111,14 @@ class StockAccountingUsage extends BaseAccountingUsage {
   ) {
     if (!instrumentForAccounting) return null;
 
-    const { instrumentId, exchangeId, accountUid } = instrumentForAccounting;
+    const { instrumentId, exchangeId, accountUID } = instrumentForAccounting;
     return calcTradeAmountOnlyWithExchangeRate(
       instrumentForAccounting,
       this.getInstrumentFactorInWatcher(
         watcher,
         instrumentId,
         exchangeId,
-        accountUid,
+        accountUID,
       ),
     );
   }
@@ -135,14 +135,14 @@ class BondAccountingUsage extends BaseAccountingUsage {
   ) {
     if (!instrumentForAccounting) return null;
 
-    const { instrumentId, exchangeId, accountUid } = instrumentForAccounting;
+    const { instrumentId, exchangeId, accountUID } = instrumentForAccounting;
     return calcTradeAmountOnlyWithExchangeRate(
       instrumentForAccounting,
       this.getInstrumentFactorInWatcher(
         watcher,
         instrumentId,
         exchangeId,
-        accountUid,
+        accountUID,
       ),
     );
   }
@@ -159,7 +159,7 @@ class FutureAccountingUsage extends BaseAccountingUsage {
   ) {
     if (!instrumentForAccounting) return null;
 
-    const { price, volume, direction, instrumentId, exchangeId, accountUid } =
+    const { price, volume, direction, instrumentId, exchangeId, accountUID } =
       instrumentForAccounting;
 
     const instrument = this.getInstrumentInWatcher(
@@ -172,7 +172,7 @@ class FutureAccountingUsage extends BaseAccountingUsage {
       watcher,
       instrumentId,
       exchangeId,
-      accountUid,
+      accountUID,
     );
 
     const { contract_multiplier } = instrument || {};
@@ -211,14 +211,14 @@ class RepoAccountingUsage extends BaseAccountingUsage {
     watcher: KungfuApi.Watcher,
     instrumentForAccounting: KungfuApi.InstrumentForAccounting,
   ) {
-    const { volume, instrumentId, exchangeId, accountUid } =
+    const { volume, instrumentId, exchangeId, accountUID } =
       instrumentForAccounting;
 
     const instrumentFactor = this.getInstrumentFactorInWatcher(
       watcher,
       instrumentId,
       exchangeId,
-      accountUid,
+      accountUID,
     );
 
     const { exchange_rate } = instrumentFactor || {};

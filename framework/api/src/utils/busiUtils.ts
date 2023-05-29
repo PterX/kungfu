@@ -67,6 +67,7 @@ import {
   graceDeleteProcess,
   Pm2ProcessStatusData,
   Pm2ProcessStatusDetail,
+  Pm2ProcessStatusDetailResolved,
   Pm2ProcessStatusDetailData,
   startCacheD,
   startExtService,
@@ -1933,6 +1934,7 @@ export const dealTradingDataMethodsMap: Record<
   Asset: dealLedgerTradingData,
   AssetMargin: dealLedgerTradingData,
   Instrument: dealDefaultTradingData,
+  InstrumentFactor: dealDefaultTradingData,
   Order: dealOrderTradingData,
   OrderInput: dealOrderTradingData,
   OrderStat: dealDefaultTradingData,
@@ -2102,6 +2104,7 @@ export const KfConfigValueArrayType = [
   'table',
   'csvTable',
   'rangePicker',
+  'multiSelect',
 ];
 
 export const KfConfigValueTimeType = [
@@ -2425,7 +2428,7 @@ export const getTaskListFromProcessStatusData = (
   taskPrefixs: string[],
   psDetail: Pm2ProcessStatusDetailData,
   sorter?: (a: Pm2ProcessStatusDetail, b: Pm2ProcessStatusDetail) => number,
-): Pm2ProcessStatusDetail[] => {
+): Pm2ProcessStatusDetailResolved[] => {
   return Object.keys(psDetail)
     .filter((processId) => {
       return (

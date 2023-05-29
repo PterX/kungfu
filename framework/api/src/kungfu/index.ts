@@ -658,27 +658,26 @@ export const makeOrderByBasketTrade = (
   );
 };
 
+export const hashUkey = (...args: Array<string | number>) => {
+  return args
+    .reduce<bigint>((pre, cur) => pre ^ BigInt(kf.hash(cur)), 0n)
+    .toString(16)
+    .padStart(16, '0');
+};
+
 export const hashInstrumentUKey = (
   instrumentId: string,
   exchangeId: string,
 ): string => {
-  return (BigInt(kf.hash(instrumentId)) ^ BigInt(kf.hash(exchangeId)))
-    .toString(16)
-    .padStart(16, '0');
+  return hashUkey(instrumentId, exchangeId);
 };
 
 export const hashInstrumentFactorUKey = (
   instrumentId: string,
   exchangeId: string,
-  holderUID: number,
+  accountUID: number,
 ): string => {
-  return (
-    BigInt(kf.hash(instrumentId)) ^
-    BigInt(kf.hash(exchangeId)) ^
-    BigInt(kf.hash(holderUID))
-  )
-    .toString(16)
-    .padStart(16, '0');
+  return hashUkey(instrumentId, exchangeId, accountUID);
 };
 
 export const dealOrder = (

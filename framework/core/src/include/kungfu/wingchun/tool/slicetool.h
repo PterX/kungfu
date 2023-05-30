@@ -3,11 +3,12 @@
 #define KUNGFU_TOOL_SLICE_TOOL_H
 
 #include <kungfu/common.h>
-#include <tuple>
 #include <kungfu/longfist/longfist.h>
 #include <kungfu/wingchun/tool/sliceindexer.h>
 #include <kungfu/yijinjing/common.h>
 #include <kungfu/yijinjing/journal/journal.h>
+#include <kungfu/yijinjing/practice/hero.h>
+#include <tuple>
 
 namespace kungfu::wingchun::tool {
 
@@ -27,11 +28,7 @@ public:
 
   virtual void run(){};
 
-  // template <typename DataType, std::enable_if_t<std::is_same_v<DataType, longfist::types::Quote> or
-  //                                               std::is_same_v<DataType, longfist::types::Entrust> or
-  //                                               std::is_same_v<DataType, longfist::types::Transaction> or
-  //                                               std::is_same_v<DataType, longfist::types::Tree>>...>
-  template <typename DataType>
+  template <typename DataType, std::enable_if_t<longfist::is_market_data<DataType>()>...>
   void write_at(int64_t gen_time, int64_t trigger_time, uint32_t dest_id, const DataType &data) {
     valid_time(gen_time, trigger_time);
     auto md_location = find_md_slice_location(gen_time, data.instrument_id, data.exchange_id, DataType::tag);
@@ -39,13 +36,13 @@ public:
     writer->write_at(gen_time, trigger_time, data);
   }
 
-  // template <typename DataType, std::enable_if_t<std::is_same_v<DataType, longfist::types::SyntheticData>>...>
-  // void write_at(int64_t gen_time, int64_t trigger_time, uint32_t dest_id, const DataType &data) {
-  //   valid_time(gen_time, trigger_time);
-  //   auto op_location = find_operator_slice_location(gen_time);
-  //   auto writer = get_writer(op_location, dest_id);
-  //   writer->write_at(gen_time, trigger_time, data);
-  // }
+  template <typename DataType, std::enable_if_t<std::is_same_v<DataType, longfist::types::SyntheticData>>...>
+  void write_at(int64_t gen_time, int64_t trigger_time, uint32_t dest_id, const DataType &data) {
+    valid_time(gen_time, trigger_time);
+    auto op_location = find_operator_slice_location(gen_time);
+    auto writer = get_writer(op_location, dest_id);
+    writer->write_at(gen_time, trigger_time, data);
+  }
 
   yijinjing::data::location_ptr find_md_slice_location(int64_t nano_time, const std::string &instrument_id,
                                                        const std::string &exchange_id, int32_t data_type) const;
@@ -65,7 +62,7 @@ protected:
   SliceIndexer_ptr indexer_;
   bool overwrite_;
   yijinjing::publisher_ptr publisher_;
-  mutable std::map<std::tuple<std::string, uint32_t>, yijinjing::practice::WriterMap> writer_maps_;
+  std::map<std::tuple<std::string, uint32_t>, yijinjing::practice::WriterMap> writer_maps_;
   yijinjing::journal::reader_ptr reader_;
   mutable int64_t last_gen_time_;
   mutable int64_t last_read_gen_time_;
@@ -82,10 +79,10 @@ protected:
 
   yijinjing::journal::writer_ptr get_writer(const yijinjing::data::location_ptr &location, uint32_t dest_id);
 
-  // void init(bool overwrite);
-
-  void valid_time(int64_t gen_time, int64_t trigger_time) const ;
+  void valid_time(int64_t gen_time, int64_t trigger_time) const;
 };
+
+DECLARE_PTR(SliceTool);
 
 } // namespace kungfu::wingchun::tool
 

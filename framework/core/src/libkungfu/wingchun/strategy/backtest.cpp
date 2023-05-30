@@ -18,13 +18,14 @@ using namespace kungfu::longfist::enums;
 using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::util;
+using namespace kungfu::wingchun::tool;
 using kungfu::yijinjing::nanomsg::nanomsg_json;
 
 namespace kungfu::wingchun::strategy {
 
 BacktestContext::BacktestContext(practice::apprentice &app, const rx::connectable_observable<event_ptr> &events,
-                                 Matcher_ptr matcher)
-    : Context(app, events), broker_client_(app_), bookkeeper_(app_, broker_client_), matcher_(std::move(matcher)) {
+                                 Matcher_ptr matcher, SliceIndexer_ptr from_indexer, SliceIndexer_ptr to_indexer)
+    : Context(app, events), broker_client_(app_), bookkeeper_(app_, broker_client_), matcher_(std::move(matcher)), from_indexer_(from_indexer), slice_tool_(std::make_shared<SliceTool>(category::OPERATOR, app.get_home()->group, app.get_home()->name  , std::move(to_indexer)))  {
   log::copy_log_settings(app_.get_home(), app_.get_home()->name);
 }
 
@@ -86,7 +87,7 @@ void BacktestContext::on_timer_check() {
 void BacktestContext::add_account(const std::string &source, const std::string &account) {}
 
 void BacktestContext::subscribe(const std::string &source, const std::vector<std::string> &instrument_ids,
-                                const std::string &exchange_ids) {
+                                const std::string &exchange_id) {
   auto md_location = find_md_location(source);
   if (md_location->locator->list_page_id(md_location, location::PUBLIC).empty()) {
     throw wingchun_error(fmt::format("md public journal {} not exists", md_location->uname));
@@ -95,7 +96,7 @@ void BacktestContext::subscribe(const std::string &source, const std::vector<std
   add_location(app_, md_location);
   app_.get_reader()->join(md_location, location::PUBLIC, std::max(app_.get_begin_time(), app_.now()));
   for (const auto &instrument_id : instrument_ids) {
-    broker_client_.subscribe(md_location, exchange_ids, instrument_id);
+    broker_client_.subscribe(md_location, exchange_id,  instrument_id);
   }
 }
 

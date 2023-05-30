@@ -65,6 +65,7 @@ public:
   void try_update_position_end(const longfist::types::PositionEnd &position_end);
 
   longfist::enums::AccountingMethodType get_accounting_method_type() { return account_method_type_; }
+  InstrumentMap get_instruments() { return instruments_; }
 
   template <typename TradingData, typename ApplyMethod = void (AccountingMethod::*)(Book_ptr, const TradingData &)>
   void update_book(const event_ptr &event, ApplyMethod method) {

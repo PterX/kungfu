@@ -411,9 +411,16 @@ exports.format = () => {
 
 function updatePackageJson(packageJson) {
   const config = packageJson.kungfuConfig || { key: 'KungfuTraderStrategy' };
+  const module_name =
+    packageJson.name.split('/').length === 2
+      ? packageJson.name.split('/')[1]
+      : packageJson.name;
   packageJson.binary = {
-    module_name: config.key,
+    module_name,
     module_path: `dist/${config.key}`,
+    remote_path: '{module_name}/v{major}/v{version}',
+    package_name:
+      '{module_name}-v{version}-{platform}-{arch}-{configuration}.tar.gz',
     host: 'localhost',
   };
   packageJson.main = 'package.json';

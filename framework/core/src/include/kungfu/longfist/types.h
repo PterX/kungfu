@@ -173,18 +173,18 @@ KF_DEFINE_PACK_TYPE(                               //
     (uint32_t, holder_uid)                         //
 );
 
-KF_DEFINE_PACK_TYPE(                                                                //
-    InstrumentFactor, 105, PK(instrument_id, exchange_id, holder_uid), PERPETUAL(), //
-    (kungfu::array<char, INSTRUMENT_ID_LEN>, instrument_id),                        // 合约ID
-    (kungfu::array<char, EXCHANGE_ID_LEN>, exchange_id),                            // 交易所ID
-    (enums::InstrumentType, instrument_type),                                       // 合约类型
-    (kungfu::array<int8_t, PRODUCT_ID_LEN>, product_id),                            // 产品ID (品种)
-    (uint32_t, holder_uid),                                                         // 持仓账户
-    (bool, is_trading),                                                             // 当前是否交易
-    (double, long_margin_ratio),                                                    // 多头保证金率
-    (double, short_margin_ratio),                                                   // 空头保证金率
-    (double, conversion_rate),                                                      // 担保品折扣率
-    (double, exchange_rate)                                                         // 汇率
+KF_DEFINE_PACK_TYPE(                                                               //
+    InstrumentFactor, 105, PK(instrument_id, exchange_id, source_id), PERPETUAL(), //
+    (kungfu::array<char, INSTRUMENT_ID_LEN>, instrument_id),                       // 合约ID
+    (kungfu::array<char, EXCHANGE_ID_LEN>, exchange_id),                           // 交易所ID
+    (enums::InstrumentType, instrument_type),                                      // 合约类型
+    (kungfu::array<int8_t, PRODUCT_ID_LEN>, product_id),                           // 产品ID (品种)
+    (uint32_t, source_id),                                                         // 持仓账户
+    (bool, is_trading),                                                            // 当前是否交易
+    (double, long_margin_ratio),                                                   // 多头保证金率
+    (double, short_margin_ratio),                                                  // 空头保证金率
+    (double, conversion_rate),                                                     // 担保品折扣率
+    (double, exchange_rate)                                                        // 汇率
 );
 
 KF_DEFINE_PACK_TYPE(                                       //

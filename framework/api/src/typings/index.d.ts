@@ -550,7 +550,7 @@ declare namespace KungfuApi {
 
     product_id: number[]; //产品ID commit by JC
 
-    holder_uid: number;
+    source_id: number;
 
     is_trading: boolean; //当前是否交易
 

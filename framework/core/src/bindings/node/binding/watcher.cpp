@@ -733,36 +733,29 @@ void Watcher::UpdateBook(const event_ptr &event, const Quote &quote) {
       continue;
     }
 
-    bool has_long_position_for_quote = book->has_long_position_for(quote);
-    bool has_short_position_for_quote = book->has_short_position_for(quote);
+    auto apply = [&](auto &position) { UpdateBook(event, position); };
 
-    if (has_long_position_for_quote) {
-      UpdateBook(event, book->get_position_for(Direction::Long, quote));
-    }
-    if (has_short_position_for_quote) {
-      UpdateBook(event, book->get_position_for(Direction::Short, quote));
-    }
+    book->apply_long_position_for(quote, apply);
+    book->apply_short_position_for(quote, apply);
 
-    if (has_short_position_for_quote or has_long_position_for_quote) {
-      state<Asset> cache_state_asset(ledger_uid, holder_uid, event->gen_time(), book->asset);
-      feed_state_data_bank(cache_state_asset, data_bank_);
-      state<AssetMargin> cache_state_asset_margin(ledger_uid, holder_uid, event->gen_time(), book->asset_margin);
-      feed_state_data_bank(cache_state_asset_margin, data_bank_);
-    }
+    state<Asset> cache_state_asset(ledger_uid, holder_uid, event->gen_time(), book->asset);
+    feed_state_data_bank(cache_state_asset, data_bank_);
+    state<AssetMargin> cache_state_asset_margin(ledger_uid, holder_uid, event->gen_time(), book->asset_margin);
+    feed_state_data_bank(cache_state_asset_margin, data_bank_);
   }
 }
 
 void Watcher::UpdateBook(const event_ptr &event, const Position &position) {
   auto book = bookkeeper_.get_book(position.holder_uid);
-  auto &book_position = book->get_position_for(position.direction, position);
-  auto &book_oppsite_position = book->get_oppsite_position_for(position.direction, position);
-  // TODO fix this source, dest, should not be holder_uid to dest
-  state<Position> cache_state_position(position.holder_uid, event->dest(), event->gen_time(), book_position);
-  feed_state_data_bank(cache_state_position, data_bank_);
-  // TODO fix this source, dest, should not be holder_uid to dest
-  state<Position> cache_state_oppsite_position(book_oppsite_position.holder_uid, event->dest(), event->gen_time(),
-                                               book_oppsite_position);
-  feed_state_data_bank(cache_state_oppsite_position, data_bank_);
+
+  auto apply = [&](auto &position) {
+    state<Position> cache_state_position(position.holder_uid, event->dest(), event->gen_time(), position);
+    feed_state_data_bank(cache_state_position, data_bank_);
+  };
+
+  book->apply_position(position.source_id, position.direction, position.exchange_id, position.instrument_id, apply);
+  book->apply_opposite_position(position.source_id, position.direction, position.exchange_id, position.instrument_id,
+                                apply);
 }
 
 Watcher::BookListener::BookListener(Watcher &watcher) : watcher_(watcher) {}

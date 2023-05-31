@@ -130,10 +130,10 @@ KF_DEFINE_PACK_TYPE(                               //
     (double, collateral_ratio) // 担保比例
 );
 
-KF_DEFINE_PACK_TYPE(                                                                   //
-    Position, 103, PK(holder_uid, instrument_id, exchange_id, direction), PERPETUAL(), //
-    (int64_t, update_time),                                                            // 更新时间
-    (kungfu::array<char, DATE_LEN>, trading_day),                                      // 交易日
+KF_DEFINE_PACK_TYPE(                                                                              //
+    Position, 103, PK(holder_uid, instrument_id, exchange_id, direction, source_id), PERPETUAL(), //
+    (int64_t, update_time),                                                                       // 更新时间
+    (kungfu::array<char, DATE_LEN>, trading_day),                                                 // 交易日
 
     (kungfu::array<char, INSTRUMENT_ID_LEN>, instrument_id), // 合约ID
     (enums::InstrumentType, instrument_type),                // 合约类型
@@ -164,8 +164,10 @@ KF_DEFINE_PACK_TYPE(                                                            
     (double, position_pnl), // 持仓盈亏(期货)
     (double, close_pnl),    // 平仓盈亏(期货) ***
 
-    (double, realized_pnl),  // 已实现盈亏
-    (double, unrealized_pnl) // 未实现盈亏
+    (double, realized_pnl),   // 已实现盈亏
+    (double, unrealized_pnl), // 未实现盈亏
+
+    (uint32_t, source_id) // 来源账户
 );
 
 KF_DEFINE_PACK_TYPE(                               //

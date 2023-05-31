@@ -26,6 +26,10 @@ double Book::get_frozen_price(uint64_t order_id) {
   return 0;
 }
 
+void Book::add_source_location(uint32_t source_id, const location_ptr &location) {
+  source_locations.try_emplace(source_id, location);
+}
+
 void Book::ensure_position(const InstrumentKey &instrument_key) {
   if (is_shortable(instrument_key.instrument_type)) {
     [[maybe_unused]] const auto &short_position = get_position_for(Direction::Short, instrument_key);
@@ -91,6 +95,26 @@ Position &Book::get_position(Direction direction, const char *exchange_id, const
     position.holder_uid = asset.holder_uid;
     position.ledger_category = asset.ledger_category;
     position.direction = direction;
+  }
+  return position;
+}
+
+Position &Book::ensure_position_of(uint32_t source_id, Direction direction, const char *exchange_id,
+                                   const char *instrument_id) {
+  assert(asset.holder_uid != 0);
+  PositionMap &positions = direction == Direction::Long ? long_positions : short_positions;
+  auto position_id = hash_instrument(source_id, exchange_id, instrument_id);
+  auto pair = positions.try_emplace(position_id);
+  auto &position = pair.first->second;
+  if (pair.second) {
+    position.trading_day = asset.trading_day;
+    position.instrument_id = instrument_id;
+    position.exchange_id = exchange_id;
+    position.instrument_type = get_instrument_type(position.exchange_id, position.instrument_id);
+    position.holder_uid = asset.holder_uid;
+    position.ledger_category = asset.ledger_category;
+    position.direction = direction;
+    position.source_id = source_id;
   }
   return position;
 }

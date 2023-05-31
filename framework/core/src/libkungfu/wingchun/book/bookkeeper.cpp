@@ -60,7 +60,8 @@ void Bookkeeper::on_start(const rx::connectable_observable<event_ptr> &events) {
   events | is(InstrumentFactor::tag) | $$(update_instrument_factor(event->data<InstrumentFactor>()));
   events | is_own<Quote>(broker_client_) | $$(update_book(event, event->data<Quote>()));
   events | is(InstrumentKey::tag) | $$(update_book(event, event->data<InstrumentKey>()));
-  events | is(OrderInput::tag) | $$(update_book<OrderInput>(event, &AccountingMethod::apply_order_input));
+  events | is(OrderInput::tag) |
+      $$(on_order_input(event->gen_time(), event->source(), event->dest(), event->data<OrderInput>()));
   events | is(Order::tag) | $$(update_book<Order>(event, &AccountingMethod::apply_order));
   events | is(Trade::tag) | $$(update_book<Trade>(event, &AccountingMethod::apply_trade));
   events | fork<Asset>(location::SYNC, &Bookkeeper::try_update_asset_replica, &Bookkeeper::try_update_asset);
@@ -77,7 +78,7 @@ void Bookkeeper::try_update_position_end(const PositionEnd &position_end) {
 }
 
 void Bookkeeper::on_order_input(int64_t update_time, uint32_t source, uint32_t dest, const OrderInput &input) {
-  update_book<OrderInput>(update_time, source, dest, input, &AccountingMethod::apply_order_input);
+  update_book<OrderInput>(update_time, dest, source, input, &AccountingMethod::apply_order_input);
 }
 
 void Bookkeeper::restore(const cache::bank &state_bank) {

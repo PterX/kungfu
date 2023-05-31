@@ -23,7 +23,7 @@ namespace kungfu::wingchun::book {
 #define DEFAULT_INSTRUMENT_SHORT_MARGIN_RATIO 0.1
 #define DEFAULT_INSTRUMENT_EXCHANGE_RATE 1.0
 
-struct contract_multiplier_and_margin_ratio {
+struct future_contract_multiplier_and_margin_ratio {
   int32_t contract_multiplier;
   double margin_ratio;
   double exchange_rate;
@@ -34,42 +34,38 @@ public:
   FutureAccountingMethod() = default;
 
   void apply_trading_day(Book_ptr &book, int64_t trading_day) override {
-    auto apply = [&](PositionMap &positions) {
-      for (auto &pair : positions) {
-        auto &position = pair.second;
-        auto margin_pre = position.margin;
-        if (not is_valid_price(position.settlement_price)) {
-          if (is_valid_price(position.last_price)) {
-            position.settlement_price = position.last_price;
-          } else {
-            position.settlement_price = position.avg_open_price;
-          }
+    auto apply = [&](auto &position) {
+      auto margin_pre = position.margin;
+      if (not is_valid_price(position.settlement_price)) {
+        if (is_valid_price(position.last_price)) {
+          position.settlement_price = position.last_price;
+        } else {
+          position.settlement_price = position.avg_open_price;
         }
-
-        auto cm_mr = get_instrument_contract_multiplier_and_margin_ratio(book, position.exchange_id,
-                                                                         position.instrument_id, position);
-
-        position.margin = cm_mr.contract_multiplier * position.settlement_price * position.volume * cm_mr.margin_ratio;
-
-        book->asset.avail -= position.margin - margin_pre;
-        position.pre_settlement_price = position.settlement_price;
-        position.last_price = position.settlement_price;
-        position.settlement_price = 0;
-        position.yesterday_volume = position.volume;
-        position.trading_day = time::strftime(trading_day, KUNGFU_TRADING_DAY_FORMAT).c_str();
-
-        update_position(book, position);
       }
+
+      auto cm_mr = get_instrument_contract_multiplier_and_margin_ratio(book, position.source_id, position.direction,
+                                                                       position.exchange_id, position.instrument_id);
+
+      position.margin = cm_mr.contract_multiplier * position.settlement_price * position.volume * cm_mr.margin_ratio;
+      book->asset.avail -= position.margin - margin_pre;
+      position.pre_settlement_price = position.settlement_price;
+      position.last_price = position.settlement_price;
+      position.settlement_price = 0;
+      position.yesterday_volume = position.volume;
+      position.trading_day = time::strftime(trading_day, KUNGFU_TRADING_DAY_FORMAT).c_str();
+
+      update_position(book, position);
     };
 
-    apply(book->long_positions);
-    apply(book->short_positions);
+    book->apply_long_positions(apply);
+    book->apply_short_positions(apply);
   }
 
   void apply_quote(Book_ptr &book, const Quote &quote) override {
-    auto apply = [&](Position &position) {
-      auto cm_mr =
-          get_instrument_contract_multiplier_and_margin_ratio(book, quote.exchange_id, quote.instrument_id, position);
+    auto apply = [&](auto &position) {
+      auto cm_mr = get_instrument_contract_multiplier_and_margin_ratio(book, position.source_id, position.direction,
+                                                                       position.exchange_id, position.instrument_id);
 
       // 此处仅计算结算价，但需要根据实时行情变化
       if (is_valid_price(quote.settlement_price)) {
@@ -92,93 +88,100 @@ public:
       update_position(book, position);
     };
 
-    apply(book->get_position_for(Direction::Long, quote));
-    apply(book->get_position_for(Direction::Short, quote));
+    book->apply_long_position_for(quote, apply);
+    book->apply_short_position_for(quote, apply);
   }
 
-  void apply_order_input(Book_ptr &book, const OrderInput &input) override {
-    auto offset = get_offset(book, input);
-    auto direction = get_direction(input.instrument_type, input.side, offset);
-    auto &position = book->get_position(direction, input.exchange_id, input.instrument_id);
+  void apply_order_input(Book_ptr &book, uint32_t account_id, const OrderInput &input) override {
+    auto offset = get_offset(book, account_id, input);
 
-    auto cm_mr =
-        get_instrument_contract_multiplier_and_margin_ratio(book, input.exchange_id, input.instrument_id, position);
+    auto apply = [&](auto &position) {
+      auto cm_mr = get_instrument_contract_multiplier_and_margin_ratio(book, position.source_id, position.direction,
+                                                                       input.exchange_id, input.instrument_id);
 
-    if (offset == Offset::Open) {
-      auto frozen_margin =
-          cm_mr.contract_multiplier * input.frozen_price * cm_mr.exchange_rate * input.volume * cm_mr.margin_ratio;
+      if (offset == Offset::Open) {
+        auto frozen_margin =
+            cm_mr.contract_multiplier * input.frozen_price * cm_mr.exchange_rate * input.volume * cm_mr.margin_ratio;
 
-      book->asset.avail -= frozen_margin;
-      book->asset.frozen_cash += frozen_margin;
-      book->asset.frozen_margin += frozen_margin;
-    }
-
-    if (offset == Offset::Close or offset == Offset::CloseYesterday) {
-      position.frozen_total += input.volume;
-      if (position.yesterday_volume - position.frozen_yesterday >= input.volume) {
-        position.frozen_yesterday += input.volume;
-      } else {
-        position.frozen_yesterday = position.yesterday_volume;
+        book->asset.avail -= frozen_margin;
+        book->asset.frozen_cash += frozen_margin;
+        book->asset.frozen_margin += frozen_margin;
       }
-    }
 
-    if (offset == Offset::CloseToday) {
-      position.frozen_total += input.volume;
-    }
+      if (offset == Offset::Close or offset == Offset::CloseYesterday) {
+        position.frozen_total += input.volume;
+        if (position.yesterday_volume - position.frozen_yesterday >= input.volume) {
+          position.frozen_yesterday += input.volume;
+        } else {
+          position.frozen_yesterday = position.yesterday_volume;
+        }
+      }
 
-    update_position(book, position);
+      if (offset == Offset::CloseToday) {
+        position.frozen_total += input.volume;
+      }
+
+      update_position(book, position);
+    };
+
+    auto direction = get_direction(input.instrument_type, input.side, offset);
+    book->apply_position(account_id, direction, input.exchange_id, input.instrument_id, apply);
   }
 
-  void apply_order(Book_ptr &book, const Order &order) override {
+  void apply_order(Book_ptr &book, uint32_t account_id, const Order &order) override {
     if (not is_final_status(order.status))
       return;
 
-    auto offset = get_offset(book, order);
+    auto offset = get_offset(book, account_id, order);
+    auto apply = [&](auto &position) {
+      auto cm_mr = get_instrument_contract_multiplier_and_margin_ratio(book, position.source_id, position.direction,
+                                                                       order.exchange_id, order.instrument_id);
+
+      if (offset == Offset::Open) {
+        auto frozen_margin = cm_mr.contract_multiplier * order.frozen_price * cm_mr.exchange_rate * order.volume_left *
+                             cm_mr.margin_ratio;
+
+        book->asset.avail += frozen_margin;
+        book->asset.frozen_cash -= frozen_margin;
+        book->asset.frozen_margin -= frozen_margin;
+      }
+
+      if (offset == Offset::Close or offset == Offset::CloseYesterday) {
+        position.frozen_total = std::max(position.frozen_total - order.volume_left, VOLUME_ZERO);
+        position.frozen_yesterday = std::max(position.frozen_yesterday - order.volume_left, VOLUME_ZERO);
+      }
+
+      if (offset == Offset::CloseToday and position.frozen_total >= order.volume_left) {
+        position.frozen_total -= order.volume_left;
+      }
+
+      update_position(book, position);
+    };
+
     auto direction = get_direction(order.instrument_type, order.side, offset);
-    auto &position = book->get_position(direction, order.exchange_id, order.instrument_id);
-    auto cm_mr =
-        get_instrument_contract_multiplier_and_margin_ratio(book, order.exchange_id, order.instrument_id, position);
-
-    if (offset == Offset::Open) {
-      auto frozen_margin =
-          cm_mr.contract_multiplier * order.frozen_price * cm_mr.exchange_rate * order.volume_left * cm_mr.margin_ratio;
-
-      book->asset.avail += frozen_margin;
-      book->asset.frozen_cash -= frozen_margin;
-      book->asset.frozen_margin -= frozen_margin;
-    }
-
-    if (offset == Offset::Close or offset == Offset::CloseYesterday) {
-      position.frozen_total = std::max(position.frozen_total - order.volume_left, VOLUME_ZERO);
-      position.frozen_yesterday = std::max(position.frozen_yesterday - order.volume_left, VOLUME_ZERO);
-    }
-
-    if (offset == Offset::CloseToday and position.frozen_total >= order.volume_left) {
-      position.frozen_total -= order.volume_left;
-    }
-
-    update_position(book, position);
+    book->apply_position(account_id, direction, order.exchange_id, order.instrument_id, apply);
   }
 
-  void apply_trade(Book_ptr &book, const Trade &trade) override {
-    auto offset = get_offset(book, trade);
-    auto direction = get_direction(trade.instrument_type, trade.side, offset);
-    auto &position = book->get_position(direction, trade.exchange_id, trade.instrument_id);
+  void apply_trade(Book_ptr &book, uint32_t account_id, const Trade &trade) override {
+    auto offset = get_offset(book, account_id, trade);
+    auto apply = [&](auto &position) {
+      if (offset == Offset::Open) {
+        apply_open(book, position, trade);
+      }
+      if (offset == Offset::Close or offset == Offset::CloseToday or offset == Offset::CloseYesterday) {
+        apply_close(book, position, trade);
+      }
+    };
 
-    if (offset == Offset::Open) {
-      apply_open(book, position, trade);
-    }
-    if (offset == Offset::Close or offset == Offset::CloseToday or offset == Offset::CloseYesterday) {
-      // the extra offset is for merge position situation
-      apply_close(book, position, trade);
-    }
+    auto direction = get_direction(trade.instrument_type, trade.side, offset);
+    book->apply_position(account_id, direction, trade.exchange_id, trade.instrument_id, apply);
   }
 
   void update_position(Book_ptr &book, Position &position) override {
     if (position.last_price > 0) {
 
-      auto cm_mr = get_instrument_contract_multiplier_and_margin_ratio(book, position.exchange_id,
-                                                                       position.instrument_id, position);
+      auto cm_mr = get_instrument_contract_multiplier_and_margin_ratio(book, position.source_id, position.direction,
+                                                                       position.exchange_id, position.instrument_id);
 
       auto contract_multiplier = cm_mr.contract_multiplier;
       auto product_key = yijinjing::util::hash_str_32(get_instrument_product(position.instrument_id));
@@ -208,9 +211,8 @@ public:
 
 private:
   void apply_open(Book_ptr &book, Position &position, const Trade &trade) {
-    auto cm_mr =
-        get_instrument_contract_multiplier_and_margin_ratio(book, trade.exchange_id, trade.instrument_id, position);
-
+    auto cm_mr = get_instrument_contract_multiplier_and_margin_ratio(book, position.source_id, position.direction,
+                                                                     trade.exchange_id, trade.instrument_id);
     auto contract_multiplier = cm_mr.contract_multiplier;
     auto margin_ratio_by_pos = cm_mr.margin_ratio;
     auto margin = contract_multiplier * trade.price * cm_mr.exchange_rate * trade.volume * margin_ratio_by_pos;
@@ -235,8 +237,8 @@ private:
   }
 
   void apply_close(Book_ptr &book, Position &position, const Trade &trade) {
-    auto cm_mr =
-        get_instrument_contract_multiplier_and_margin_ratio(book, trade.exchange_id, trade.instrument_id, position);
+    auto cm_mr = get_instrument_contract_multiplier_and_margin_ratio(book, position.source_id, position.direction,
+                                                                     trade.exchange_id, trade.instrument_id);
     auto contract_multiplier = cm_mr.contract_multiplier;
     auto margin = contract_multiplier * trade.price * cm_mr.exchange_rate * trade.volume * cm_mr.margin_ratio;
     auto delta_margin = std::min(position.margin, margin);
@@ -268,35 +270,46 @@ private:
   }
 
   template <typename TradingData>
-  [[nodiscard]] bool need_to_merge_long_short_positions(Book_ptr &book, const TradingData &trading_data) const {
+  [[nodiscard]] bool need_to_merge_long_short_positions(Book_ptr &book, uint32_t account_id,
+                                                        const TradingData &trading_data) const {
     if (not able_long_short_position_merge(trading_data.exchange_id))
       return false;
 
-    const auto &oppsite_position = book->get_oppsite_position_for(trading_data);
-    if (oppsite_position.volume > 0)
-      return true;
-    return false;
+    auto flag = false;
+    auto apply = [&](auto &position) {
+      if (position.volume > 0) {
+        flag = true;
+      }
+    };
+    book->apply_opposite_position_for(account_id, trading_data, apply);
+    return flag;
   }
 
   template <typename TradingData>
-  [[nodiscard]] bool need_to_open_oppsite(Book_ptr &book, const TradingData &trading_data) const {
+  [[nodiscard]] bool need_to_open_opposite(Book_ptr &book, uint32_t account_id, const TradingData &trading_data) const {
     if (not able_long_short_position_merge(trading_data.exchange_id))
       return false;
 
-    const auto &position = book->get_position_for(trading_data);
-    if (position.volume <= 0 && trading_data.offset != Offset::Open)
-      return true;
-    return false;
+    auto flag = false;
+    auto apply = [&](auto &position) {
+      if (position.volume <= 0 && trading_data.offset != Offset::Open) {
+        flag = true;
+      }
+    };
+
+    book->apply_position_for(account_id, trading_data, apply);
+    return flag;
   }
 
   template <typename TradingData>
-  [[nodiscard]] longfist::enums::Offset get_offset(Book_ptr &book, const TradingData &trading_data) const {
+  [[nodiscard]] longfist::enums::Offset get_offset(Book_ptr &book, uint32_t account_id,
+                                                   const TradingData &trading_data) const {
     auto offset = trading_data.offset;
-    if (need_to_merge_long_short_positions(book, trading_data) && offset == Offset::Open) {
+    if (need_to_merge_long_short_positions(book, account_id, trading_data) && offset == Offset::Open) {
       return Offset::Close;
     }
 
-    if (need_to_open_oppsite(book, trading_data) && offset != Offset::Open) {
+    if (need_to_open_opposite(book, account_id, trading_data) && offset != Offset::Open) {
       return Offset::Open;
     }
 
@@ -305,8 +318,8 @@ private:
 
   static double calculate_commission(Book_ptr &book, const Trade &trade, const Position &position,
                                      double close_today_volume) {
-    auto cm_mr =
-        get_instrument_contract_multiplier_and_margin_ratio(book, trade.exchange_id, trade.instrument_id, position);
+    auto cm_mr = get_instrument_contract_multiplier_and_margin_ratio(book, position.source_id, position.direction,
+                                                                     trade.exchange_id, trade.instrument_id);
 
     auto contract_multiplier = cm_mr.contract_multiplier;
     auto product_key = yijinjing::util::hash_str_32(get_instrument_product(trade.instrument_id));
@@ -333,11 +346,12 @@ private:
     }
   }
 
-  static contract_multiplier_and_margin_ratio
-  get_instrument_contract_multiplier_and_margin_ratio(Book_ptr &book, const char *exchange_id,
-                                                      const char *instrument_id, const Position &position) {
+  static future_contract_multiplier_and_margin_ratio
+  get_instrument_contract_multiplier_and_margin_ratio(Book_ptr &book, uint32_t account_id,
+                                                      longfist::enums::Direction direction, const char *exchange_id,
+                                                      const char *instrument_id) {
     auto hashed_instrument_key = hash_instrument(exchange_id, instrument_id);
-    contract_multiplier_and_margin_ratio cm_mr = {};
+    future_contract_multiplier_and_margin_ratio cm_mr = {};
     if (book->instruments.find(hashed_instrument_key) == book->instruments.end()) {
       SPDLOG_WARN("instrument information missing for {}@{}", instrument_id, exchange_id);
       cm_mr.contract_multiplier = DEFAULT_INSTRUMENT_CONTRACT_MULTIPLIER;
@@ -348,18 +362,14 @@ private:
 
     if (book->instrument_factors.find(hashed_instrument_key) == book->instrument_factors.end()) {
       cm_mr.exchange_rate = DEFAULT_INSTRUMENT_EXCHANGE_RATE;
-      cm_mr.margin_ratio = position.direction == Direction::Long ? DEFAULT_INSTRUMENT_LONG_MARGIN_RATIO
-                                                                 : DEFAULT_INSTRUMENT_SHORT_MARGIN_RATIO;
+      cm_mr.margin_ratio =
+          direction == Direction::Long ? DEFAULT_INSTRUMENT_LONG_MARGIN_RATIO : DEFAULT_INSTRUMENT_SHORT_MARGIN_RATIO;
     } else {
       auto &factor = book->instrument_factors.at(hashed_instrument_key);
-      cm_mr.margin_ratio = margin_ratio(factor, position);
+      cm_mr.margin_ratio = direction == Direction::Long ? factor.long_margin_ratio : factor.short_margin_ratio;
       cm_mr.exchange_rate = is_equal(factor.exchange_rate, 0.0) ? 1.0 : factor.exchange_rate;
     }
     return cm_mr;
-  }
-
-  static double margin_ratio(const InstrumentFactor &factor, const Position &position) {
-    return position.direction == Direction::Long ? factor.long_margin_ratio : factor.short_margin_ratio;
   }
 
   static bool able_long_short_position_merge(const char *exchange_id) {

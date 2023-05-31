@@ -553,6 +553,10 @@ inline int32_t hash_instrument(const longfist::types::Order &order) {
   return instrument_key;
 }
 
+inline uint32_t hash_instrument(uint32_t source_id, const char *exchange_id, const char *instrument_id) {
+  return source_id ^ yijinjing::util::hash_str_32(exchange_id) ^ yijinjing::util::hash_str_32(instrument_id);
+}
+
 inline uint32_t hash_basket_instrument(uint32_t basket_uid, const char *exchange_id, const char *instrument_id) {
   return basket_uid ^ yijinjing::util::hash_str_32(instrument_id) ^ yijinjing::util::hash_str_32(exchange_id);
 }

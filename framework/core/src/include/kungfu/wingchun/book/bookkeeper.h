@@ -72,7 +72,8 @@ public:
   }
 
   template <typename TradingData, typename ApplyMethod = void (AccountingMethod::*)(Book_ptr, const TradingData &)>
-  void update_book(int64_t update_time, uint32_t source, uint32_t dest, const TradingData &data, ApplyMethod method) {
+  void update_book(int64_t update_time, uint32_t account_id, uint32_t dest, const TradingData &data,
+                   ApplyMethod method) {
     std::lock_guard<std::mutex> lock(update_book_mutex_);
 
     if (accounting_methods_.find(data.instrument_type) == accounting_methods_.end()) {
@@ -82,14 +83,16 @@ public:
     AccountingMethod &accounting_method = *accounting_methods_.at(data.instrument_type);
     auto apply_and_update = [&](uint32_t book_uid) {
       auto book = get_book(book_uid);
-      auto &position = book->get_position_for(data);
-      (accounting_method.*method)(book, data);
-      position.update_time = update_time;
+      (accounting_method.*method)(book, account_id, data);
+
+      auto apply = [&](auto &position) { position.update_time = update_time; };
+      auto direction = get_direction(data.instrument_type, data.side, data.offset);
+      book->apply_position(account_id, direction, data.exchange_id, data.instrument_id, apply);
       book->replace(data);
       book->update(update_time, account_method_type_);
     };
-    apply_and_update(source);
-    if (dest != yijinjing::data::location::PUBLIC) {
+    apply_and_update(account_id);
+    if (dest != yijinjing::data::location::PUBLIC and dest != yijinjing::data::location::SYNC) {
       apply_and_update(dest);
     }
   }

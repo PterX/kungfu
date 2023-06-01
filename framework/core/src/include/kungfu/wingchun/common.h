@@ -542,6 +542,13 @@ inline longfist::enums::Direction get_direction(longfist::enums::InstrumentType 
                                    (int)side, (int)offset));
 }
 
+inline longfist::enums::Direction get_opposite_direction(longfist::enums::InstrumentType instrument_type,
+                                                         longfist::enums::Side side, longfist::enums::Offset offset) {
+  auto direction = get_direction(instrument_type, side, offset);
+  return direction == longfist::enums::Direction::Long ? longfist::enums::Direction::Short
+                                                       : longfist::enums::Direction::Long;
+}
+
 inline uint32_t hash_instrument(const char *exchange_id, const char *instrument_id) {
   return yijinjing::util::hash_str_32(instrument_id) ^ yijinjing::util::hash_str_32(exchange_id);
 }

@@ -275,14 +275,8 @@ private:
     if (not able_long_short_position_merge(trading_data.exchange_id))
       return false;
 
-    auto flag = false;
-    auto apply = [&](auto &position) {
-      if (position.volume > 0) {
-        flag = true;
-      }
-    };
-    book->apply_opposite_position_for(account_id, trading_data, apply);
-    return flag;
+    auto &position = book->get_opposite_position_for(account_id, trading_data);
+    return position.volume > 0;
   }
 
   template <typename TradingData>
@@ -290,15 +284,8 @@ private:
     if (not able_long_short_position_merge(trading_data.exchange_id))
       return false;
 
-    auto flag = false;
-    auto apply = [&](auto &position) {
-      if (position.volume <= 0 && trading_data.offset != Offset::Open) {
-        flag = true;
-      }
-    };
-
-    book->apply_position_for(account_id, trading_data, apply);
-    return flag;
+    auto &position = book->get_position_for(account_id, trading_data);
+    return position.volume <= 0 && trading_data.offset != Offset::Open;
   }
 
   template <typename TradingData>

@@ -266,12 +266,10 @@ void Bookkeeper::try_sync_book_replica(uint32_t location_uid) {
     bool changed = false;
     for (auto &source_pair : position_map) {
       auto &position = source_pair.second;
-      auto apply = [&](auto &target_position) {
-        changed |= position.volume != target_position.volume;                     // 数量
-        changed |= position.yesterday_volume != target_position.yesterday_volume; // 昨仓数量
-      };
-      target_book->apply_position(position.source_id, position.direction, position.exchange_id, position.instrument_id,
-                                  apply);
+      auto &target_position = target_book->get_position(position.source_id, position.direction, position.exchange_id,
+                                                        position.instrument_id);
+      changed |= position.volume != target_position.volume;                     // 数量
+      changed |= position.yesterday_volume != target_position.yesterday_volume; // 昨仓数量
     }
     return changed;
   };
@@ -375,15 +373,12 @@ void Bookkeeper::mirror_positions(int64_t trigger_time, uint32_t strategy_uid) {
   strategy_book->apply_long_positions(reset_positions);
 
   auto copy_positions = [&](auto &position) {
-    auto apply = [&](auto &strategy_position) {
-      longfist::copy(strategy_position, position);
-      strategy_position.holder_uid = strategy_uid;
-      strategy_position.ledger_category = LedgerCategory::Strategy;
-      strategy_position.update_time = trigger_time;
-    };
-
-    strategy_book->apply_position(position.source_id, position.direction, position.exchange_id, position.instrument_id,
-                                  apply);
+    auto &strategy_position = strategy_book->get_position(position.source_id, position.direction, position.exchange_id,
+                                                          position.instrument_id);
+    longfist::copy(strategy_position, position);
+    strategy_position.holder_uid = strategy_uid;
+    strategy_position.ledger_category = LedgerCategory::Strategy;
+    strategy_position.update_time = trigger_time;
   };
 
   for (const auto &pair : get_books()) {

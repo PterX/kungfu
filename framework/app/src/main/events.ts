@@ -62,6 +62,10 @@ export function exportAllTradingData(mainWindow: BrowserWindow): void {
   sendMsgToMainWindow(mainWindow, 'export-all-trading-data');
 }
 
+export function exportAllInstrumentData(mainWindow: BrowserWindow): void {
+  sendMsgToMainWindow(mainWindow, 'export-all-instrument-data');
+}
+
 export function viewAllJournal(mainWindow: BrowserWindow): void {
   sendMsgToMainWindow(mainWindow, 'view-all-journal');
 }

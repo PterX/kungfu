@@ -692,6 +692,37 @@ export const useDealExportHistoryTradingData = (): {
   };
 };
 
+export const handleExportInstrumentWhitelists = async (): Promise<void> => {
+  const { filePaths } = await dialog.showOpenDialog({
+    properties: ['openDirectory', 'createDirectory', 'promptToCreate'],
+  });
+  if (!filePaths[0]) return;
+
+  const dateResolved = dayjs(Date.now()).format('YYYYMMDD');
+  const targetFolder = path.join(
+    filePaths[0],
+    `instrument-${dateResolved}.csv`,
+  );
+  const instrumentSortKey = getTradingDataSortKey('Instrument');
+  const instrument = (
+    window.watcher as KungfuApi.Watcher
+  ).ledger.Instrument.sort(instrumentSortKey);
+  const dealTradingDataItemResolved = (
+    isShowOriginData = false,
+  ): ((item: KungfuApi.TradingDataTypes) => Row) => {
+    return (item) =>
+      dealTradingDataItem(item, window.watcher, isShowOriginData) as Row;
+  };
+  writeCsvWithUTF8Bom(targetFolder, instrument, dealTradingDataItemResolved())
+    .then(() => {
+      shell.showItemInFolder(targetFolder);
+      success();
+    })
+    .catch((err: Error) => {
+      error(err.message);
+    });
+};
+
 export const showTradingDataDetail = (
   item: KungfuApi.TradingDataTypes,
   typename: string,

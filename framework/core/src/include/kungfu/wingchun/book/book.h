@@ -56,19 +56,40 @@ struct Book {
 
   void add_source_location(uint32_t source_id, const yijinjing::data::location_ptr &location);
 
-  void ensure_position(const longfist::types::InstrumentKey &instrument_key);
+  void ensure_position_for(const longfist::types::InstrumentKey &instrument_key);
 
   template <typename ApplyMethod>
   void apply_position(uint32_t source_id, longfist::enums::Direction direction, const char *exchange_id,
                       const char *instrument_id, ApplyMethod method) {
-    auto &position = ensure_position_of(source_id, direction, exchange_id, instrument_id);
+    auto &position = get_position(source_id, direction, exchange_id, instrument_id);
     method(position);
+  }
+
+  template <typename ApplyMethod>
+  void apply_position_pure(uint32_t source_id, longfist::enums::Direction direction, const char *exchange_id,
+                           const char *instrument_id, ApplyMethod method) {
+    PositionMap &positions = direction == longfist::enums::Direction::Long ? long_positions : short_positions;
+    auto position_id = hash_instrument(source_id, exchange_id, instrument_id);
+    if (positions.find(position_id) != positions.end()) {
+      method(positions.at(position_id));
+    }
   }
 
   template <typename ApplyMethod>
   void apply_opposite_position(uint32_t source_id, longfist::enums::Direction direction, const char *exchange_id,
                                const char *instrument_id, ApplyMethod method) {
-    auto &positions = direction == longfist::enums::Direction::Long ? short_positions : long_positions;
+
+    auto direction_resolved = direction == longfist::enums::Direction::Long ? longfist::enums::Direction::Short
+                                                                            : longfist::enums::Direction::Long;
+    auto &position = get_position(source_id, direction_resolved, exchange_id, instrument_id);
+    method(position);
+  }
+
+  template <typename ApplyMethod>
+  void apply_opposite_position_pure(uint32_t source_id, longfist::enums::Direction direction, const char *exchange_id,
+                                    const char *instrument_id, ApplyMethod method) {
+
+    PositionMap &positions = direction == longfist::enums::Direction::Long ? short_positions : long_positions;
     auto position_id = hash_instrument(source_id, exchange_id, instrument_id);
     if (positions.find(position_id) != positions.end()) {
       method(positions.at(position_id));
@@ -76,7 +97,17 @@ struct Book {
   }
 
   template <typename TradingData, typename ApplyMethod>
-  void apply_long_position_for(const TradingData &data, ApplyMethod method) {
+  std::enable_if_t<std::is_same_v<TradingData, longfist::types::Quote>> apply_long_position_for(const TradingData &data,
+                                                                                                ApplyMethod method) {
+    for (auto &source : source_locations) {
+      auto source_id = source.first;
+      apply_position_pure(source_id, longfist::enums::Direction::Long, data.exchange_id, data.instrument_id, method);
+    }
+  }
+
+  template <typename TradingData, typename ApplyMethod>
+  std::enable_if_t<not std::is_same_v<TradingData, longfist::types::Quote>>
+  apply_long_position_for(const TradingData &data, ApplyMethod method) {
     for (auto &source : source_locations) {
       auto source_id = source.first;
       apply_position(source_id, longfist::enums::Direction::Long, data.exchange_id, data.instrument_id, method);
@@ -91,7 +122,17 @@ struct Book {
   }
 
   template <typename TradingData, typename ApplyMethod>
-  void apply_short_position_for(const TradingData &data, ApplyMethod method) {
+  std::enable_if_t<std::is_same_v<TradingData, longfist::types::Quote>>
+  apply_short_position_for(const TradingData &data, ApplyMethod method) {
+    for (auto &source : source_locations) {
+      auto source_id = source.first;
+      apply_position_pure(source_id, longfist::enums::Direction::Short, data.exchange_id, data.instrument_id, method);
+    }
+  }
+
+  template <typename TradingData, typename ApplyMethod>
+  std::enable_if_t<not std::is_same_v<TradingData, longfist::types::Quote>>
+  apply_short_position_for(const TradingData &data, ApplyMethod method) {
     for (auto &source : source_locations) {
       auto source_id = source.first;
       apply_position(source_id, longfist::enums::Direction::Short, data.exchange_id, data.instrument_id, method);
@@ -151,63 +192,43 @@ struct Book {
     apply_opposite_position(source_id, direction, data.exchange_id, data.instrument_id, method);
   }
 
-  [[nodiscard]] bool has_long_position(const char *exchange_id, const char *instrument_id) const;
+  [[nodiscard]] bool has_long_position(uint32_t source_id, const char *exchange_id, const char *instrument_id) const;
 
-  [[nodiscard]] bool has_long_position_volume(const char *exchange_id, const char *instrument_id) const;
+  [[nodiscard]] bool has_short_position(uint32_t source_id, const char *exchange_id, const char *instrument_id) const;
 
-  [[nodiscard]] bool has_short_position(const char *exchange_id, const char *instrument_id) const;
+  [[nodiscard]] bool has_position(uint32_t source_id, const char *exchange_id, const char *instrument_id) const;
 
-  [[nodiscard]] bool has_short_position_volume(const char *exchange_id, const char *instrument_id) const;
+  [[nodiscard]] longfist::types::Position &get_long_position(uint32_t source_id, const char *exchange_id,
+                                                             const char *instrument_id);
 
-  [[nodiscard]] bool has_position(const char *exchange_id, const char *instrument_id) const;
+  [[nodiscard]] longfist::types::Position &get_short_position(uint32_t source_id, const char *exchange_id,
+                                                              const char *instrument_id);
 
-  [[nodiscard]] longfist::types::Position &get_long_position(const char *exchange_id, const char *instrument_id);
-
-  [[nodiscard]] longfist::types::Position &get_short_position(const char *exchange_id, const char *instrument_id);
-
-  [[nodiscard]] longfist::types::Position &get_position(longfist::enums::Direction direction, const char *exchange_id,
-                                                        const char *instrument_id);
-
-  [[nodiscard]] longfist::types::Position &ensure_position_of(uint32_t source_id, longfist::enums::Direction direction,
-                                                              const char *exchange_id, const char *instrument_id);
-
-  template <typename TradingData> [[nodiscard]] bool has_position_for(const TradingData &data) const {
-    return has_position(data.exchange_id, data.instrument_id);
-  }
-
-  template <typename TradingData> [[nodiscard]] bool has_long_position_for(const TradingData &data) const {
-    return has_long_position_volume(data.exchange_id, data.instrument_id);
-  }
-
-  template <typename TradingData> [[nodiscard]] bool has_short_position_for(const TradingData &data) const {
-    return has_short_position_volume(data.exchange_id, data.instrument_id);
-  }
+  [[nodiscard]] longfist::types::Position &get_position(uint32_t source_id, longfist::enums::Direction direction,
+                                                        const char *exchange_id, const char *instrument_id);
 
   template <typename TradingData>
-  [[nodiscard]] longfist::types::Position &get_position_for(longfist::enums::Direction direction,
-                                                            const TradingData &data) {
-    return get_position(direction, data.exchange_id, data.instrument_id);
+  [[nodiscard]] PositionMap get_position_for(longfist::enums::Direction direction, const TradingData &data) {
+    PositionMap positions = {};
+    auto apply = [&](auto &position) {
+      auto position_id = hash_instrument(position.source_id, position.exchange_id, position.instrument_id);
+      positions.try_emplace(position_id, position);
+    };
+
+    apply_position_for(direction, data, apply);
+    return positions;
   }
 
-  template <typename TradingData>
-  [[nodiscard]] longfist::types::Position &get_opposite_position_for(longfist::enums::Direction direction,
-                                                                     const TradingData &data) {
-    return direction == longfist::enums::Direction::Long
-               ? get_position(longfist::enums::Direction::Short, data.exchange_id, data.instrument_id)
-               : get_position(longfist::enums::Direction::Long, data.exchange_id, data.instrument_id);
-  }
-
-  template <typename TradingData> [[nodiscard]] longfist::types::Position &get_position_for(const TradingData &data) {
+  template <typename TradingData> [[nodiscard]] PositionMap get_position_for(const TradingData &data) {
+    PositionMap positions = {};
     auto direction = get_direction(data.instrument_type, data.side, data.offset);
-    return get_position(direction, data.exchange_id, data.instrument_id);
-  }
+    auto apply = [&](auto &position) {
+      auto position_id = hash_instrument(position.source_id, position.exchange_id, position.instrument_id);
+      positions.try_emplace(position_id, position);
+    };
 
-  template <typename TradingData>
-  [[nodiscard]] longfist::types::Position &get_opposite_position_for(const TradingData &data) {
-    auto direction = get_direction(data.instrument_type, data.side, data.offset);
-    return direction == longfist::enums::Direction::Long
-               ? get_position(longfist::enums::Direction::Short, data.exchange_id, data.instrument_id)
-               : get_position(longfist::enums::Direction::Long, data.exchange_id, data.instrument_id);
+    apply_position_for(direction, data, apply);
+    return positions;
   }
 
   void update(int64_t update_time, longfist::enums::AccountingMethodType accounting_method_type);

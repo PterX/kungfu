@@ -30,77 +30,37 @@ void Book::add_source_location(uint32_t source_id, const location_ptr &location)
   source_locations.try_emplace(source_id, location);
 }
 
-void Book::ensure_position(const InstrumentKey &instrument_key) {
-  if (is_shortable(instrument_key.instrument_type)) {
-    [[maybe_unused]] const auto &short_position = get_position_for(Direction::Short, instrument_key);
-    assert(short_position.volume >= 0);
-  }
-  [[maybe_unused]] auto &long_position = get_position_for(Direction::Long, instrument_key);
-  assert(long_position.volume >= 0);
+void Book::ensure_position_for(const InstrumentKey &instrument_key) {
+  auto apply = [&](auto &position) { assert(position.volume >= 0); };
+  apply_short_position_for(instrument_key, apply);
+  apply_long_position_for(instrument_key, apply);
 }
 
-bool Book::has_long_position(const char *exchange_id, const char *instrument_id) const {
-  auto position_id = hash_instrument(exchange_id, instrument_id);
+bool Book::has_long_position(uint32_t source_id, const char *exchange_id, const char *instrument_id) const {
+  auto position_id = hash_instrument(source_id, exchange_id, instrument_id);
   return long_positions.find(position_id) != long_positions.end();
 }
 
-bool Book::has_long_position_volume(const char *exchange_id, const char *instrument_id) const {
-  auto position_id = hash_instrument(exchange_id, instrument_id);
-  if (long_positions.find(position_id) == long_positions.end()) {
-    return false;
-  }
-
-  auto &position = long_positions.at(position_id);
-  return position.volume != 0;
-}
-
-bool Book::has_short_position(const char *exchange_id, const char *instrument_id) const {
-  auto position_id = hash_instrument(exchange_id, instrument_id);
+bool Book::has_short_position(uint32_t source_id, const char *exchange_id, const char *instrument_id) const {
+  auto position_id = hash_instrument(source_id, exchange_id, instrument_id);
   return short_positions.find(position_id) != short_positions.end();
 }
 
-bool Book::has_short_position_volume(const char *exchange_id, const char *instrument_id) const {
-  auto position_id = hash_instrument(exchange_id, instrument_id);
-  if (short_positions.find(position_id) == short_positions.end()) {
-    return false;
-  }
-
-  auto &position = short_positions.at(position_id);
-  return position.volume != 0;
+bool Book::has_position(uint32_t source_id, const char *exchange_id, const char *instrument_id) const {
+  return has_long_position(source_id, exchange_id, instrument_id) or
+         has_short_position(source_id, exchange_id, instrument_id);
 }
 
-bool Book::has_position(const char *exchange_id, const char *instrument_id) const {
-  return has_long_position(exchange_id, instrument_id) or has_short_position(exchange_id, instrument_id);
+Position &Book::get_long_position(uint32_t source_id, const char *exchange_id, const char *instrument_id) {
+  return get_position(source_id, Direction::Long, exchange_id, instrument_id);
 }
 
-Position &Book::get_long_position(const char *exchange_id, const char *instrument_id) {
-  return get_position(Direction::Long, exchange_id, instrument_id);
+Position &Book::get_short_position(uint32_t source_id, const char *exchange_id, const char *instrument_id) {
+  return get_position(source_id, Direction::Short, exchange_id, instrument_id);
 }
 
-Position &Book::get_short_position(const char *exchange_id, const char *instrument_id) {
-  return get_position(Direction::Short, exchange_id, instrument_id);
-}
-
-Position &Book::get_position(Direction direction, const char *exchange_id, const char *instrument_id) {
-  assert(asset.holder_uid != 0);
-  PositionMap &positions = direction == Direction::Long ? long_positions : short_positions;
-  auto position_id = hash_instrument(exchange_id, instrument_id);
-  auto pair = positions.try_emplace(position_id);
-  auto &position = pair.first->second;
-  if (pair.second) {
-    position.trading_day = asset.trading_day;
-    position.instrument_id = instrument_id;
-    position.exchange_id = exchange_id;
-    position.instrument_type = get_instrument_type(position.exchange_id, position.instrument_id);
-    position.holder_uid = asset.holder_uid;
-    position.ledger_category = asset.ledger_category;
-    position.direction = direction;
-  }
-  return position;
-}
-
-Position &Book::ensure_position_of(uint32_t source_id, Direction direction, const char *exchange_id,
-                                   const char *instrument_id) {
+Position &Book::get_position(uint32_t source_id, Direction direction, const char *exchange_id,
+                             const char *instrument_id) {
   assert(asset.holder_uid != 0);
   PositionMap &positions = direction == Direction::Long ? long_positions : short_positions;
   auto position_id = hash_instrument(source_id, exchange_id, instrument_id);
@@ -128,6 +88,7 @@ void Book::update(int64_t update_time, longfist::enums::AccountingMethodType acc
   double margin = 0;
   bool is_stock_acct = true;
   double short_market_value = 0;
+
   auto update_position = [&](Position &position) {
     auto is_stock =
         position.instrument_type == InstrumentType::Stock or position.instrument_type == InstrumentType::Bond or
@@ -177,12 +138,9 @@ void Book::update(int64_t update_time, longfist::enums::AccountingMethodType acc
     }
   };
 
-  for (auto &pair : long_positions) {
-    update_position(pair.second);
-  }
-  for (auto &pair : short_positions) {
-    update_position(pair.second);
-  }
+  apply_long_positions(update_position);
+  apply_short_positions(update_position);
+
   if (not is_stock_acct) {
     asset.margin = margin;
   }

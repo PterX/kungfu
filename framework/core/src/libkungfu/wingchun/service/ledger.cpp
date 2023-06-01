@@ -181,21 +181,19 @@ void Ledger::keep_positions([[maybe_unused]] int64_t trigger_time, uint32_t stra
 
 void Ledger::rebuild_positions(int64_t trigger_time, uint32_t strategy_uid) {
   auto strategy_book = bookkeeper_.get_book(strategy_uid);
-  auto rebuild_book = [&](const auto &positions) {
-    for (const auto &pair : positions) {
-      auto &position = pair.second;
-      if (strategy_book->has_position_for(position)) {
-        auto &strategy_position = strategy_book->get_position_for(position.direction, position);
-        longfist::copy(strategy_position, position);
-        strategy_position.update_time = trigger_time;
-      }
-    }
+  auto rebuild_book = [&](auto &from_position) {
+    auto apply = [&](auto &to_position) {
+      longfist::copy(to_position, from_position);
+      to_position.update_time = trigger_time;
+    };
+    strategy_book->apply_position(from_position.source_id, from_position.direction, from_position.exchange_id,
+                                  from_position.instrument_id, apply);
   };
 
   if (tmp_books_.find(strategy_uid) != tmp_books_.end()) {
-    auto tmp_book = tmp_books_.at(strategy_uid);
-    rebuild_book(tmp_book->long_positions);
-    rebuild_book(tmp_book->short_positions);
+    auto &tmp_book = tmp_books_.at(strategy_uid);
+    tmp_book->apply_long_positions(rebuild_book);
+    tmp_book->apply_short_positions(rebuild_book);
   }
   strategy_book->update(trigger_time, bookkeeper_.get_accounting_method_type());
 }

@@ -776,19 +776,16 @@ void Watcher::BookListener::on_asset_margin_sync_reset(const AssetMargin &old_as
 }
 
 void Watcher::BookListener::on_position_sync_reset(const book::Book &old_book, const book::Book &new_book) {
-  auto update_position = [&](book::PositionMap &position_map) {
-    for (auto &pair : position_map) {
-      auto &position = pair.second;
-      state<Position> cache_state(watcher_.ledger_home_location_->uid, position.holder_uid, position.update_time,
-                                  position);
-      watcher_.feed_state_data_bank(cache_state, watcher_.data_bank_);
-    }
+  auto update_position = [&](auto &position) {
+    state<Position> cache_state(watcher_.ledger_home_location_->uid, position.holder_uid, position.update_time,
+                                position);
+    watcher_.feed_state_data_bank(cache_state, watcher_.data_bank_);
   };
 
   for (auto &pair : watcher_.bookkeeper_.get_books()) {
     auto &book = pair.second;
-    update_position(book->long_positions);
-    update_position(book->short_positions);
+    book->apply_long_positions(update_position);
+    book->apply_short_positions(update_position);
   }
 }
 

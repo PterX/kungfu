@@ -23,6 +23,7 @@ const project = require('./project');
 const pypackages = '__pypackages__';
 const kungfulibs = '__kungfulibs__';
 const kungfuLibDirPattern = `${kungfulibs}/*/*`;
+const webpackBuildCaches = 'node_modules/.cache/webpack';
 const cwd = process.cwd().toString();
 
 const spawnOptsShell = {
@@ -315,6 +316,7 @@ exports.clean = (keepLibs = true) => {
     rm(pypackages);
     rm(kungfulibs);
   }
+  rm(webpackBuildCaches);
 };
 
 exports.configure = () => {

@@ -21,7 +21,7 @@ import {
   useDealInstruments,
   usePreStartAndQuitApp,
   useSubscibeInstrumentAtEntry,
-  handleExportInstrumentData,
+  handleExportInstrumentWhitelists,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 
 import { useGlobalStore } from './store/global';
@@ -107,7 +107,7 @@ const busSubscription = globalBus.subscribe((data: KfEvent.KfBusEvent) => {
         } as KfEvent.ExportTradingDataEvent);
         break;
       case 'export-all-instrument-data':
-        handleExportInstrumentData();
+        handleExportInstrumentWhitelists();
         break;
       case 'view-all-journal':
         handleOpenJournalView();

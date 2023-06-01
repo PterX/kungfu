@@ -692,7 +692,7 @@ export const useDealExportHistoryTradingData = (): {
   };
 };
 
-export const handleExportInstrumentData = async (): Promise<void> => {
+export const handleExportInstrumentWhitelists = async (): Promise<void> => {
   const { filePaths } = await dialog.showOpenDialog({
     properties: ['openDirectory', 'createDirectory', 'promptToCreate'],
   });
@@ -703,9 +703,10 @@ export const handleExportInstrumentData = async (): Promise<void> => {
     filePaths[0],
     `instrument-${dateResolved}.csv`,
   );
+  const instrumentSortKey = getTradingDataSortKey('Instrument');
   const instrument = (
     window.watcher as KungfuApi.Watcher
-  ).ledger.Instrument.sort('');
+  ).ledger.Instrument.sort(instrumentSortKey);
   const dealTradingDataItemResolved = (
     isShowOriginData = false,
   ): ((item: KungfuApi.TradingDataTypes) => Row) => {

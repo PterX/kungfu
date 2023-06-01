@@ -1785,6 +1785,8 @@ export const getTradingDataSortKey = (
       return 'insert_time';
     case 'Position':
       return 'instrument_id';
+    case 'Instrument':
+      return 'instrument_id';
     default:
       return '';
   }

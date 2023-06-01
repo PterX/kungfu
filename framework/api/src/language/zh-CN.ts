@@ -46,7 +46,7 @@ export default {
   clear_DB: '清理DB',
   reset_main_panel: '重置主面板',
   export_all_transaction_data: '导出所有交易数据',
-  export_all_instrument_data: '导出标的白名单',
+  export_instrument_whitelists: '导出标的白名单',
   view_all_journal: '查看所有journal',
 
   website: '官网',

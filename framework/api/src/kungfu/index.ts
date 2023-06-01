@@ -93,7 +93,6 @@ export const dealTradingDataItem = (
   isShowOrigin = false,
 ): Record<string, string | number | bigint> => {
   const itemResolved = { ...item } as Record<string, string | number | bigint>;
-  console.log(itemResolved);
   const instrument_type =
     'instrument_type' in item
       ? item.instrument_type

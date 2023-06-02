@@ -309,14 +309,14 @@ exports.installBatch = async (
 };
 
 exports.clean = (keepLibs = true) => {
-  fse.removeSync(path.join(process.cwd().toString(), 'build'));
-  fse.removeSync(path.join(process.cwd().toString(), 'dist'));
+  const rm = (p) => fse.existsSync(p) && fse.removeSync(p);
+  rm(path.join(process.cwd().toString(), 'build'));
+  rm(path.join(process.cwd().toString(), 'dist'));
+  rm(path.join(process.cwd().toString(), webpackBuildCaches));
   if (!keepLibs) {
-    const rm = (p) => fse.existsSync(p) && fse.removeSync(p);
     rm(pypackages);
     rm(kungfulibs);
   }
-  rm(webpackBuildCaches);
 };
 
 exports.configure = () => {

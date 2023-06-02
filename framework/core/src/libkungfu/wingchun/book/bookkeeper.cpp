@@ -126,10 +126,10 @@ void Bookkeeper::restore(const cache::bank &state_bank) {
   for (auto &pair : state_bank[boost::hana::type_c<InstrumentFactor>]) {
     auto &state = pair.second;
     auto &instrument_factor = state.data;
-    if (not app_.has_location(instrument_factor.holder_uid)) {
+    if (not app_.has_location(instrument_factor.source_id)) {
       continue;
     }
-    auto book = get_book(instrument_factor.holder_uid);
+    auto book = get_book(instrument_factor.source_id);
     book->instrument_factors[hash_instrument(instrument_factor.exchange_id, instrument_factor.instrument_id)] =
         instrument_factor;
   }
@@ -161,7 +161,7 @@ void Bookkeeper::update_instrument_factor(const longfist::types::InstrumentFacto
   for (auto &bk_pair : books_) {
     auto &book = bk_pair.second;
     auto location = app_.get_location(book->asset.holder_uid);
-    if (location->category != category::TD or book->asset.holder_uid == instrument_factor.holder_uid) {
+    if (location->category != category::TD or book->asset.holder_uid == instrument_factor.source_id) {
       book->replace(instrument_factor);
     }
   }

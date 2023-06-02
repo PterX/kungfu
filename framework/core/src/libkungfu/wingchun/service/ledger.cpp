@@ -6,6 +6,7 @@
 
 #include <kungfu/common.h>
 #include <kungfu/longfist/longfist.h>
+#include <kungfu/wingchun/common.h>
 #include <kungfu/wingchun/service/ledger.h>
 #include <kungfu/yijinjing/time.h>
 
@@ -132,6 +133,25 @@ void Ledger::update_order_stat(const event_ptr &event, const Order &data) {
   }
 }
 
+double Ledger::translate_by_price_tick(const char *exchange_id, const char *instrument_id, double price) {
+  auto hashed_instrument_key = hash_instrument(exchange_id, instrument_id);
+  auto instruments = bookkeeper_.get_instruments();
+  if (instruments.find(hashed_instrument_key) != instruments.end()) {
+    double price_tick = instruments[hashed_instrument_key].price_tick;
+    if (is_valid_price(price_tick)) {
+      if (price_tick >= 1) {
+        price_tick = 1;
+      }
+
+      uint64_t tick = 1 / price_tick;
+      uint64_t uPrice = (uint64_t)(std::abs(price) * tick + price_tick * 0.5);
+      return (double)uPrice / tick;
+    }
+  }
+
+  return int(price * 10000) / 10000.0;
+}
+
 void Ledger::update_order_stat(const event_ptr &event, const Trade &data) {
   write_book(event->gen_time(), event->source(), event->dest(), data);
   auto &stat = get_order_stat(data.order_id, event);
@@ -140,7 +160,8 @@ void Ledger::update_order_stat(const event_ptr &event, const Trade &data) {
     stat.total_price += data.price * double(data.volume);
     stat.total_volume += double(data.volume);
     if (stat.total_volume > 0) {
-      stat.avg_price = int((stat.total_price / stat.total_volume) * 10000) / 10000.0;
+      stat.avg_price =
+          translate_by_price_tick(data.exchange_id, data.instrument_id, stat.total_price / stat.total_volume);
     }
     write_to(event->gen_time(), stat, event->source());
   }

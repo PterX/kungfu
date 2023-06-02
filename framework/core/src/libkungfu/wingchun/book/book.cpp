@@ -26,8 +26,8 @@ double Book::get_frozen_price(uint64_t order_id) {
   return 0;
 }
 
-void Book::add_source_location(uint32_t source_id, const location_ptr &location) {
-  source_locations.try_emplace(source_id, location);
+void Book::add_source_id(uint32_t source_id) {
+  source_ids.insert(source_id);
 }
 
 void Book::ensure_position_for(const InstrumentKey &instrument_key) {
@@ -76,6 +76,7 @@ Position &Book::get_position(uint32_t source_id, Direction direction, const char
     position.direction = direction;
     position.source_id = source_id;
   }
+  add_source_id(source_id);
   return position;
 }
 

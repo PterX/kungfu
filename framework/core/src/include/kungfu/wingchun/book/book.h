@@ -35,8 +35,6 @@ typedef std::unordered_map<uint64_t, longfist::types::Trade> TradeMap;
 // key = hash_instrument(exchange_id, instrument_id)
 typedef std::unordered_map<uint32_t, longfist::types::InstrumentFactor> InstrumentFactorMap;
 
-typedef std::unordered_map<uint32_t, yijinjing::data::location_ptr> PositionSourceLocationMap;
-
 struct Book {
   const CommissionMap &commissions;
   const InstrumentMap &instruments;
@@ -45,7 +43,7 @@ struct Book {
   longfist::types::AssetMargin asset_margin = {};
   PositionMap long_positions = {};
   PositionMap short_positions = {};
-  PositionSourceLocationMap source_locations = {};
+  std::set<uint32_t> source_ids = {};
   OrderInputMap order_inputs = {};
   OrderMap orders = {};
   TradeMap trades = {};
@@ -54,7 +52,7 @@ struct Book {
 
   double get_frozen_price(uint64_t order_id);
 
-  void add_source_location(uint32_t source_id, const yijinjing::data::location_ptr &location);
+  void add_source_id(uint32_t source_id);
 
   void ensure_position_for(const longfist::types::InstrumentKey &instrument_key);
 
@@ -99,8 +97,7 @@ struct Book {
   template <typename TradingData, typename ApplyMethod>
   std::enable_if_t<std::is_same_v<TradingData, longfist::types::Quote>> apply_long_position_for(const TradingData &data,
                                                                                                 ApplyMethod method) {
-    for (auto &source : source_locations) {
-      auto source_id = source.first;
+    for (const auto &source_id : source_ids) {
       apply_position_pure(source_id, longfist::enums::Direction::Long, data.exchange_id, data.instrument_id, method);
     }
   }
@@ -108,8 +105,7 @@ struct Book {
   template <typename TradingData, typename ApplyMethod>
   std::enable_if_t<not std::is_same_v<TradingData, longfist::types::Quote>>
   apply_long_position_for(const TradingData &data, ApplyMethod method) {
-    for (auto &source : source_locations) {
-      auto source_id = source.first;
+    for (const auto &source_id : source_ids) {
       apply_position(source_id, longfist::enums::Direction::Long, data.exchange_id, data.instrument_id, method);
     }
   }
@@ -124,8 +120,7 @@ struct Book {
   template <typename TradingData, typename ApplyMethod>
   std::enable_if_t<std::is_same_v<TradingData, longfist::types::Quote>>
   apply_short_position_for(const TradingData &data, ApplyMethod method) {
-    for (auto &source : source_locations) {
-      auto source_id = source.first;
+    for (const auto &source_id : source_ids) {
       apply_position_pure(source_id, longfist::enums::Direction::Short, data.exchange_id, data.instrument_id, method);
     }
   }
@@ -133,8 +128,7 @@ struct Book {
   template <typename TradingData, typename ApplyMethod>
   std::enable_if_t<not std::is_same_v<TradingData, longfist::types::Quote>>
   apply_short_position_for(const TradingData &data, ApplyMethod method) {
-    for (auto &source : source_locations) {
-      auto source_id = source.first;
+    for (const auto &source_id : source_ids) {
       apply_position(source_id, longfist::enums::Direction::Short, data.exchange_id, data.instrument_id, method);
     }
   }
@@ -148,8 +142,7 @@ struct Book {
 
   template <typename TradingData, typename ApplyMethod>
   void apply_position_for(longfist::enums::Direction direction, const TradingData &data, ApplyMethod method) {
-    for (auto &source : source_locations) {
-      auto source_id = source.first;
+    for (const auto &source_id : source_ids) {
       apply_position(source_id, direction, data.exchange_id, data.instrument_id, method);
     }
   }
@@ -157,8 +150,7 @@ struct Book {
   template <typename TradingData, typename ApplyMethod>
   void apply_position_for(const TradingData &data, ApplyMethod method) {
     auto direction = get_direction(data.instrument_type, data.side, data.offset);
-    for (auto &source : source_locations) {
-      auto source_id = source.first;
+    for (const auto &source_id : source_ids) {
       apply_position(source_id, direction, data.exchange_id, data.instrument_id, method);
     }
   }
@@ -171,8 +163,7 @@ struct Book {
 
   template <typename TradingData, typename ApplyMethod>
   void apply_opposite_position_for(longfist::enums::Direction direction, const TradingData &data, ApplyMethod method) {
-    for (auto &source : source_locations) {
-      auto source_id = source.first;
+    for (const auto &source_id : source_ids) {
       apply_opposite_position(source_id, direction, data.exchange_id, data.instrument_id, method);
     }
   }
@@ -180,8 +171,7 @@ struct Book {
   template <typename TradingData, typename ApplyMethod>
   void apply_opposite_position_for(const TradingData &data, ApplyMethod method) {
     auto direction = get_direction(data.instrument_type, data.side, data.offset);
-    for (auto &source : source_locations) {
-      auto source_id = source.first;
+    for (const auto &source_id : source_ids) {
       apply_opposite_position(source_id, direction, data.exchange_id, data.instrument_id, method);
     }
   }

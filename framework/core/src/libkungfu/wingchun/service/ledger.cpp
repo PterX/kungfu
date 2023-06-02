@@ -145,7 +145,7 @@ void Ledger::update_order_stat(const event_ptr &event, const Trade &data) {
     write_to(event->gen_time(), stat, event->source());
   }
 }
-
+  
 void Ledger::update_account_book(int64_t trigger_time, uint32_t account_uid) {
   refresh_account_book(trigger_time, account_uid);
   auto writer = get_writer(account_uid);

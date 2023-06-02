@@ -33,7 +33,7 @@ Book_ptr Bookkeeper::get_book(uint32_t location_uid) {
 }
 
 const BookMap &Bookkeeper::get_books() const { return books_; }
-
+ 
 void Bookkeeper::set_accounting_method(InstrumentType instrument_type, const AccountingMethod_ptr &accounting_method) {
   accounting_methods_.emplace(instrument_type, accounting_method);
 }
@@ -100,6 +100,7 @@ void Bookkeeper::restore(const cache::bank &state_bank) {
     auto is_long = position.direction == longfist::enums::Direction::Long;
     auto &positions = is_long ? book->long_positions : book->short_positions;
     positions[hash_instrument(position.exchange_id, position.instrument_id)] = position;
+    book->add_source_id(position.source_id);
   }
   for (auto &pair : state_bank[boost::hana::type_c<Asset>]) {
     auto &state = pair.second;
@@ -379,6 +380,7 @@ void Bookkeeper::mirror_positions(int64_t trigger_time, uint32_t strategy_uid) {
     strategy_position.holder_uid = strategy_uid;
     strategy_position.ledger_category = LedgerCategory::Strategy;
     strategy_position.update_time = trigger_time;
+    strategy_position.source_id = position.source_id;
   };
 
   for (const auto &pair : get_books()) {
@@ -387,6 +389,7 @@ void Bookkeeper::mirror_positions(int64_t trigger_time, uint32_t strategy_uid) {
     if (book->asset.ledger_category == LedgerCategory::Account and app_.has_channel(strategy_uid, holder_uid)) {
       book->apply_long_positions(copy_positions);
       book->apply_short_positions(copy_positions);
+      book->add_source_id(holder_uid);
     }
   }
   strategy_book->update(trigger_time, account_method_type_);

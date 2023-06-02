@@ -100,6 +100,7 @@ pre_close_price
 settlement_price
 pre_settlement_price
 close_pnl
+unrealized_pnl
 order_id
 parent_id
 limit_price
@@ -475,9 +476,6 @@ SZSE
 HKEx
 MarketType
 Snapshot
-Entrust
-Transaction
-Tree
 SubscribeDataType
 Stock
 Future

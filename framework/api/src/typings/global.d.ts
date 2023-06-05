@@ -31,7 +31,6 @@ declare global {
       APP_TYPE: 'cli' | 'renderer' | 'main' | 'service';
       UI_EXT_TYPE: 'component' | 'script';
       APP_ID: string;
-      APP_INSTALL_DIR: string;
       EXTENSION_DIRS: string;
       KFC_DIR: string;
       ELECTRON_RUN_AS_NODE: boolean;

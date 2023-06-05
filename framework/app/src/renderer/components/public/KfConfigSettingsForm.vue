@@ -69,6 +69,7 @@ import {
   dealKungfuColorToClassname,
   dealKungfuColorToStyleColor,
 } from '../../assets/methods/uiUtils';
+import { KF_HOME } from '@kungfu-trader/kungfu-js-api/config/pathConfig';
 
 const { t } = VueI18n.global;
 
@@ -794,6 +795,31 @@ function handleSelectFile(targetKey: string): void {
     })
     .then((res) => {
       const { filePaths } = res;
+      if (filePaths.length) {
+        formState.value[targetKey] = filePaths[0];
+        formRef.value.validateFields([targetKey]); //手动进行再次验证, 因数据放在span中, 改变数据后无法触发验证
+      }
+    });
+}
+
+function handleSelectDirectory(
+  target: KungfuApi.KfConfigItem,
+  type?: string,
+): void {
+  const targetKey = target.key;
+  if (type === 'default') {
+    formState.value[targetKey] = target.default;
+    formRef.value.validateFields([targetKey]);
+    return;
+  }
+  dialog
+    .showOpenDialog({
+      defaultPath: formState.value[targetKey] || KF_HOME,
+      properties: ['openDirectory', 'createDirectory', 'promptToCreate'],
+    })
+    .then((res) => {
+      const { filePaths } = res;
+
       if (filePaths.length) {
         formState.value[targetKey] = filePaths[0];
         formRef.value.validateFields([targetKey]); //手动进行再次验证, 因数据放在span中, 改变数据后无法触发验证
@@ -1539,6 +1565,36 @@ defineExpose({
           @click="handleSelectFile(item.key)"
         >
           <template #icon><DashOutlined /></template>
+        </a-button>
+        <div
+          v-if="formState[item.key]"
+          class="file-path"
+          :title="(formState[item.key] || '').toString()"
+        >
+          <span class="name">{{ formState[item.key] }}</span>
+        </div>
+      </div>
+      <div
+        v-else-if="item.type === 'directory'"
+        class="kf-form-item__warp file"
+      >
+        <a-button
+          size="small"
+          :disabled="
+            (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
+            item.disabled
+          "
+          @click="handleSelectDirectory(item)"
+        >
+          <template #icon><DashOutlined /></template>
+        </a-button>
+        <a-button
+          v-if="item.default"
+          size="small"
+          style="margin-left: 4px"
+          @click="handleSelectDirectory(item, 'default')"
+        >
+          {{ $t('globalSettingConfig.reset_order') }}
         </a-button>
         <div
           v-if="formState[item.key]"

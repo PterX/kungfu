@@ -23,7 +23,7 @@ if (process.env.NODE_ENV === 'development') {
 
 globalThis.__runtimeDir = globalThis.__runtimeDir || path.resolve(__dirname);
 
-const getDefaultHomePath = (): string => {
+export const getDefaultHomePath = (): string => {
   switch (os.platform()) {
     case 'darwin':
       return path.join(
@@ -56,8 +56,8 @@ const getHomePath = (): string => {
       string,
       Record<string, KungfuApi.KfConfigValue>
     >;
-    if (kfConfigJson.system.customKfHomePath) {
-      return kfConfigJson.system.customKfHomePath;
+    if (kfConfigJson.system.homePath) {
+      return kfConfigJson.system.homePath;
     }
   }
 

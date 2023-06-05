@@ -76,6 +76,7 @@ declare module globalThis {
   const pm2: any;
   const HookKeeper: KfHookKeeper;
   const i18n: I18n;
+  const rootPackageJson: RootConfigJSON;
 }
 
 export interface Pm2StartOptions extends StartOptions {

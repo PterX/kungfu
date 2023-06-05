@@ -491,7 +491,9 @@ export const useDealExportHistoryTradingData = (): {
       const orderStatSortKey = getTradingDataSortKey('OrderStat');
       const orderStat = tradingData.OrderStat.sort(orderStatSortKey);
       const positionSortKey = getTradingDataSortKey('Position');
-      const positions = tradingData.Position.sort(positionSortKey);
+      const positions = (
+        window.watcher as KungfuApi.Watcher
+      ).ledger.Position.sort(positionSortKey);
       const assetSortKey = getTradingDataSortKey('Asset');
       const assets = tradingData.Asset.sort(assetSortKey);
       const orderInputSortKey = getTradingDataSortKey('OrderInput');
@@ -577,22 +579,28 @@ export const useDealExportHistoryTradingData = (): {
       tradingData: KungfuApi.TradingData;
     } | null = null;
 
-    try {
-      historyData = await getKungfuHistoryData(
-        date,
-        dateType,
-        tradingDataType,
-        currentKfLocation,
-      );
-    } catch (err) {
-      if (err instanceof Error) {
-        if (err.message === 'database_locked') {
-          error(t('export_database_locked'));
+    if ((tradingDataType as KungfuApi.TradingDataTypeName) === 'Position') {
+      historyData = {
+        tradingData: (window.watcher as KungfuApi.Watcher).ledger,
+      };
+    } else {
+      try {
+        historyData = await getKungfuHistoryData(
+          date,
+          dateType,
+          tradingDataType,
+          currentKfLocation,
+        );
+      } catch (err) {
+        if (err instanceof Error) {
+          if (err.message === 'database_locked') {
+            error(t('export_database_locked'));
+          } else {
+            console.error(err);
+          }
         } else {
           console.error(err);
         }
-      } else {
-        console.error(err);
       }
     }
 
@@ -1112,7 +1120,7 @@ export const useSubscibeInstrumentAtEntry = (
     useGlobalStore();
 
   const app = getCurrentInstance();
-  const SUBSCRIBE_INSTRUMENTS_LIMIT = 50;
+  // const SUBSCRIBE_INSTRUMENTS_LIMIT = 50;
 
   const getCurrentPositionsForSub = (watcher: KungfuApi.Watcher) => {
     if (!currentGlobalKfLocation.value) return [];
@@ -1124,21 +1132,26 @@ export const useSubscibeInstrumentAtEntry = (
       'position',
     ) as KungfuApi.Position[];
 
-    return positions
-      .reverse()
-      .slice(0, SUBSCRIBE_INSTRUMENTS_LIMIT)
-      .map((item: KungfuApi.Position): KungfuApi.InstrumentForSub => {
-        const uidKey = hashInstrumentUKey(item.instrument_id, item.exchange_id);
-        return {
-          uidKey,
-          exchangeId: item.exchange_id,
-          instrumentId: item.instrument_id,
-          instrumentType: item.instrument_type,
-          instrumentName: '',
-          ukey: uidKey,
-          id: uidKey,
-        };
-      });
+    return (
+      positions
+        .reverse()
+        // .slice(0, SUBSCRIBE_INSTRUMENTS_LIMIT)
+        .map((item: KungfuApi.Position): KungfuApi.InstrumentForSub => {
+          const uidKey = hashInstrumentUKey(
+            item.instrument_id,
+            item.exchange_id,
+          );
+          return {
+            uidKey,
+            exchangeId: item.exchange_id,
+            instrumentId: item.instrument_id,
+            instrumentType: item.instrument_type,
+            instrumentName: '',
+            ukey: uidKey,
+            id: uidKey,
+          };
+        })
+    );
   };
 
   const subscribeInstrumentsByCurPosAndProcessIds = (
@@ -1455,19 +1468,6 @@ export const useDealInstruments = (): void => {
   };
 };
 
-export const hashInstrumentUKeyResolved = (
-  instrumentId: string,
-  exchangeId: string,
-) => {
-  if (!window.ukeyCacheMap) window.ukeyCacheMap = new Map<string, string>();
-  const ukeyCacheMap = window.ukeyCacheMap;
-  const cacheKey = `${instrumentId}_${exchangeId}`;
-  if (!ukeyCacheMap.has(cacheKey))
-    ukeyCacheMap.set(cacheKey, hashInstrumentUKey(instrumentId, exchangeId));
-
-  return ukeyCacheMap.get(cacheKey) || '';
-};
-
 export const useActiveInstruments = () => {
   const { instrumentsMap } = useGlobalStore();
 
@@ -1476,7 +1476,7 @@ export const useActiveInstruments = () => {
     exchangeId: string,
     forceConvert = false,
   ) => {
-    const ukey = hashInstrumentUKeyResolved(instrumentId, exchangeId);
+    const ukey = hashInstrumentUKey(instrumentId, exchangeId);
     const instrumentResolved = instrumentsMap[ukey];
 
     if (instrumentResolved) {
@@ -1502,7 +1502,7 @@ export const useActiveInstruments = () => {
     instrumentId: string,
     exchangeId: string,
   ) => {
-    const ukey = hashInstrumentUKeyResolved(instrumentId, exchangeId);
+    const ukey = hashInstrumentUKey(instrumentId, exchangeId);
     const watcher = window.watcher as KungfuApi.Watcher;
     const instrument = watcher.ledger.Instrument[ukey];
     if (instrument) return instrument;
@@ -2567,7 +2567,7 @@ export const useBasket = () => {
 export const useDealDataWithCaches = <T, U>(keys: Array<keyof T>) => {
   const caches = new Map<string, U>();
 
-  const dealerResolved = (data: T, dealer: () => U): U => {
+  const getDealerWithCache = (data: T, dealer: () => U): U => {
     const curKey = keys.map((key) => data[key]).join('_');
     if (caches.has(curKey)) {
       const value = caches.get(curKey);
@@ -2585,8 +2585,12 @@ export const useDealDataWithCaches = <T, U>(keys: Array<keyof T>) => {
     caches.clear();
   };
 
+  onBeforeUnmount(() => {
+    caches.clear();
+  });
+
   return {
-    dealerResolved,
+    getDealerWithCache,
     clearCaches,
   };
 };

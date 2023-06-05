@@ -41,7 +41,8 @@ import {
   getInstrumentByInstrumentPair,
   useCurrentGlobalKfLocation,
   useInstruments,
-  useActiveInstruments,
+  useDealDataWithCaches,
+useActiveInstruments,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 
 const app = getCurrentInstance();
@@ -63,8 +64,12 @@ const {
 const { handleDownload } = useDownloadHistoryTradingData();
 const { triggerOrderBook, triggerMakeOrder } = useTriggerMakeOrder();
 const { instruments } = useInstruments();
-const { getInstrumentCurrencyByIds, getPriceTickAndPrecision } =
+const { getPriceTickAndPrecision } =
   useActiveInstruments();
+const { getDealerWithCache } = useDealDataWithCaches<
+  KungfuApi.Position,
+  KungfuApi.PositionResolved
+>(['uid_key', 'update_time']);
 const { globalSetting } = storeToRefs(useGlobalStore());
 
 const columns = computed(() => {
@@ -104,7 +109,7 @@ onMounted(() => {
               0.001,
             );
 
-            return dealPosition(watcher, item, price_precision);
+            return getDealerWithCache(item, () => dealPosition(watcher, item, price_precision))
           }),
         );
       },
@@ -215,14 +220,7 @@ function dealLocationUIDResolved(holderUID: number): string {
                 v-if="globalSetting?.currency?.instrumentCurrency"
                 style="color: #faad14"
               >
-                {{
-                  dealCurrency(
-                    getInstrumentCurrencyByIds(
-                      item.instrument_id,
-                      item.exchange_id,
-                    ),
-                  ).name
-                }}
+                {{ dealCurrency(item.currency).name }}
               </span>
             </span>
           </template>

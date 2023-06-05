@@ -83,4 +83,13 @@ bool reader::release_page() {
   return result;
 }
 
+reader::reader(const reader &other) : lazy_(other.lazy_), low_latency_(other.low_latency_), bus_(other.bus_) {
+  for (auto &j : other.journals_) {
+    journals_.emplace(j.first, j.second);
+    if (other.current_->get_source() == j.second.get_source() and other.current_->get_dest() == j.second.get_dest()) {
+      current_ = &(journals_.find(j.first)->second);
+    }
+  }
+}
+
 } // namespace kungfu::yijinjing::journal

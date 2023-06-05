@@ -16,8 +16,8 @@ public:
   void pre_start(Context_ptr & context) override {
     SPDLOG_INFO("preparing strategy");
     SPDLOG_INFO("arguments: {}", context->get_arguments());
-    context->add_account("sim", "fill");
-    context->subscribe("sim", {"600000"}, {"SSE"});
+    //    context->add_account("sim", "fill");
+    //    context->subscribe("sim", {"600000"}, {"SSE"});
     // context->subscribe_operator("bar", "my-bar");
   }
 
@@ -32,10 +32,19 @@ public:
     // }
     auto l_ptr = location::make_shared(mode::LIVE, category::MD, "sim", "sim", std::make_shared<locator>());
     kungfu::yijinjing::journal::assemble asb(l_ptr, location::PUBLIC, AssembleMode::All);
+    SPDLOG_DEBUG("before copy");
+    kungfu::yijinjing::journal::assemble asb_copy = asb;
+    SPDLOG_DEBUG("after copy");
     auto headers = asb.read_headers(Location{});
     for (const auto &head : headers) {
       SPDLOG_INFO("head: {}", head.to_string());
     }
+    auto headers_copy = asb_copy.read_headers(Location{});
+    for (const auto &head : headers_copy) {
+      SPDLOG_INFO("head_copy: {}", head.to_string());
+    }
+
+//    context->req_deregister();
     kungfu::yijinjing::journal::assemble asb2(l_ptr, location::PUBLIC, AssembleMode::All);
     auto locations = asb2.read_bytes<Location>();
     SPDLOG_INFO("locations.length: {}", locations.size());

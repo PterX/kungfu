@@ -23,7 +23,10 @@ public:
   journal(data::location_ptr location, uint32_t dest_id, bool is_writing, bool lazy, bool low_latency,
           const bus_ptr &bus)
       : location_(std::move(location)), dest_id_(dest_id), is_writing_(is_writing), lazy_(lazy),
-        low_latency_(low_latency), bus_(bus), frame_(std::shared_ptr<frame>(new frame())), page_frame_nb_(0u) {}
+        low_latency_(low_latency), bus_(bus), frame_(std::shared_ptr<frame>(new frame())), page_frame_nb_(0u),
+        replica_(false) {}
+
+  journal(const journal &other);
 
   ~journal();
 
@@ -68,6 +71,7 @@ private:
   std::recursive_mutex passed_page_collector_mtx_;
   frame_ptr frame_;
   uint64_t page_frame_nb_;
+  bool replica_{false};
 
   void load_page(int page_id);
 
@@ -85,6 +89,8 @@ class reader {
 public:
   explicit reader(bool lazy, bool low_latency, const bus_ptr &bus)
       : lazy_(lazy), low_latency_(low_latency), bus_(bus), current_(nullptr){};
+
+  reader(const reader &other);
 
   ~reader();
 

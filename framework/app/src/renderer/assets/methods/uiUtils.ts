@@ -252,6 +252,42 @@ export const useTreeTableSearchKeyword = <T extends { children?: T[] }>(
   };
 };
 
+export const useTableSearchKeywordList = <T>(
+  targetList: Ref<T[]> | ComputedRef<T[]>,
+  searchObjects: {
+    key: string;
+    value: string;
+  }[],
+): { [K in string]: Ref<string> } & {
+  tableData: ComputedRef<T[]>;
+} => {
+  const searchKeywords: Record<string, Ref<string>> = {};
+
+  searchObjects.forEach((searchObject) => {
+    searchKeywords[searchObject.key] = ref('');
+  });
+
+  const tableData = computed(() => {
+    return targetList.value
+      .filter((item: T) => {
+        return searchObjects.every(({ key, value }) => {
+          const itemValue = (item as Record<string, unknown>)[value] as
+            | string
+            | number;
+          const keyword = searchKeywords[key].value;
+          if (keyword === '') {
+            return true;
+          }
+          return new RegExp(keyword, 'ig').test(itemValue.toString());
+        });
+      })
+      .map((item) => toRaw(item));
+  });
+  return { ...searchKeywords, tableData } as { [K in string]: Ref<string> } & {
+    tableData: ComputedRef<T[]>;
+  };
+};
+
 export const useTableSearchKeyword = <T>(
   targetList: Ref<T[]> | ComputedRef<T[]>,
   keys: string[],

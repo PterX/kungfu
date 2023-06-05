@@ -26,6 +26,7 @@ import {
   HistoryDateEnum,
   LedgerCategoryEnum,
   InstrumentTypeEnum,
+  CurrencyEnum,
 } from '../typings/enums';
 import { ExchangeIds } from '../config/tradingConfig';
 
@@ -658,11 +659,20 @@ export const makeOrderByBasketTrade = (
   );
 };
 
+const ukeyCacheMap = new Map<string, string>();
 export const hashUkey = (...args: Array<string | number>) => {
-  return args
-    .reduce<bigint>((pre, cur) => pre ^ BigInt(kf.hash(`${cur}`)), 0n)
-    .toString(16)
-    .padStart(16, '0');
+  const strArgs = args.map((arg) => `${arg}`);
+  const cacheKey = strArgs.join('_');
+  if (!ukeyCacheMap.has(cacheKey))
+    ukeyCacheMap.set(
+      cacheKey,
+      strArgs
+        .reduce<bigint>((pre, cur) => pre ^ BigInt(kf.hash(`${cur}`)), 0n)
+        .toString(16)
+        .padStart(16, '0'),
+    );
+
+  return ukeyCacheMap.get(cacheKey) || '';
 };
 
 export const hashInstrumentUKey = (
@@ -772,8 +782,13 @@ export const dealPosition = (
       ? `${holderLocation.group}_${holderLocation.name}`
       : '--';
   const closable_volume = getPosClosableVolume(pos);
+  const ukey = hashInstrumentUKey(pos.instrument_id, pos.exchange_id);
+  const currency =
+    ((watcher.ledger.Instrument[ukey] as KungfuApi.Instrument) || null)
+      ?.currency || CurrencyEnum.Unknown;
   return {
     ...pos,
+    currency,
     closable_volume,
     uid_key: pos.uid_key,
     account_id_resolved,

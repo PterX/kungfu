@@ -61,10 +61,10 @@ int64_t DayIndexer::get_md_slice_end_time(int64_t nano_time, const std::string &
 location_ptr DayIndexer::find_operator_slice_location(int64_t nano_time, const std::string &group,
                                                       const std::string &name) const {
   auto slice_end_time = std::to_string(get_operator_slice_end_time(nano_time, group, name));
-  std::string dir_name = fmt::format("{}", slice_end_time);
+  std::string dir_name = fmt::format("{}_{}_{}", slice_end_time, group, name);
   std::vector<std::string> tags = {dir_name};
   auto slice_locator = std::make_shared<locator>(mode::DATA, tags);
-  auto slice_location = location::make_shared(mode::DATA, category::MD, group, name, slice_locator);
+  auto slice_location = location::make_shared(mode::DATA, category::OPERATOR, group, name, slice_locator);
   return slice_location;
 }
 int64_t DayIndexer::get_operator_slice_end_time(int64_t nano_time, const std::string &group,
@@ -73,7 +73,8 @@ int64_t DayIndexer::get_operator_slice_end_time(int64_t nano_time, const std::st
 }
 
 int64_t DayIndexer::end_of_day(int64_t nano_time) const {
-  return nano_time - (nano_time % time_unit::NANOSECONDS_PER_MINUTE) + time_unit::NANOSECONDS_PER_MINUTE;
+  // TODO 
+  return nano_time - (nano_time % time_unit::NANOSECONDS_PER_HOUR) + time_unit::NANOSECONDS_PER_HOUR;
   // return time::calendar_day_start(nano_time) + time_unit::NANOSECONDS_PER_DAY;
 }
 } // namespace kungfu::wingchun::tool

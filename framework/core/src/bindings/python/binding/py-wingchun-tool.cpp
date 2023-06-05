@@ -58,7 +58,7 @@ void bind_tool(pybind11::module &m) {
   class PySliceIndexer : public SliceIndexer {
   public:
     using SliceIndexer::SliceIndexer; // Inherit constructors
-    virtual yijinjing::data::location_ptr find_md_slice_location(int64_t nano_time, const std::string &group,
+    yijinjing::data::location_ptr find_md_slice_location(int64_t nano_time, const std::string &group,
                                                                  const std::string &name,
                                                                  const std::string &instrument_id,
                                                                  const std::string &exchange_id,
@@ -67,20 +67,20 @@ void bind_tool(pybind11::module &m) {
                         instrument_id, exchange_id, data_type);
     }
 
-    virtual int64_t get_md_slice_end_time(int64_t nano_time, const std::string &group, const std::string &name,
+    int64_t get_md_slice_end_time(int64_t nano_time, const std::string &group, const std::string &name,
                                           const std::string &instrument_id, const std::string &exchange_id,
                                           int32_t data_type) const override {
       PYBIND11_OVERLOAD(int64_t, SliceIndexer, get_md_slice_end_time, nano_time, group, name, instrument_id,
                         exchange_id, data_type);
     }
 
-    virtual yijinjing::data::location_ptr find_operator_slice_location(int64_t nano_time, const std::string &group,
+    yijinjing::data::location_ptr find_operator_slice_location(int64_t nano_time, const std::string &group,
                                                                        const std::string &name) const override {
       PYBIND11_OVERLOAD(yijinjing::data::location_ptr, SliceIndexer, find_operator_slice_location, nano_time, group,
                         name);
     }
 
-    virtual int64_t get_operator_slice_end_time(int64_t nano_time, const std::string &group,
+    int64_t get_operator_slice_end_time(int64_t nano_time, const std::string &group,
                                                 const std::string &name) const override {
       PYBIND11_OVERLOAD(int64_t, SliceIndexer, get_operator_slice_end_time, nano_time, group, name);
     }
@@ -90,10 +90,16 @@ void bind_tool(pybind11::module &m) {
       .def(py::init<int64_t, int64_t>(), py::arg("begin_time"), py::arg("end_time"))
       .def("get_begin_time", &SliceIndexer::get_begin_time)
       .def("get_end_time", &SliceIndexer::get_end_time)
-      .def("find_md_slice_location", &SliceIndexer::find_md_slice_location)
+     //  .def("find_md_slice_location", &SliceIndexer::find_md_slice_location)
       .def("get_md_slice_end_time", &SliceIndexer::get_md_slice_end_time)
       .def("find_operator_slice_location", &SliceIndexer::find_operator_slice_location)
       .def("get_operator_slice_end_time", &SliceIndexer::get_operator_slice_end_time);
+
+  py::class_<NameTimeHashingIndexer ,SliceIndexer, std::shared_ptr<NameTimeHashingIndexer>>(m, "NameTimeHashingIndexer")
+      .def(py::init<int64_t, int64_t>(), py::arg("begin_time"), py::arg("end_time"));
+
+  py::class_<DayIndexer ,SliceIndexer, std::shared_ptr<DayIndexer>>(m, "DayIndexer")
+      .def(py::init<int64_t, int64_t>(), py::arg("begin_time"), py::arg("end_time"));
 
     auto slice_tool_class = py::class_<SliceTool, std::shared_ptr<SliceTool>>(m, "SliceTool")
                                 .def(py::init<category, std::string, std::string, SliceIndexer_ptr>(),

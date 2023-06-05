@@ -15,17 +15,17 @@ public:
 
   virtual yijinjing::data::location_ptr
   find_md_slice_location(int64_t nano_time, const std::string &group, const std::string &name,
-                         const std::string &instrument_id, const std::string &exchange_id, int32_t data_type) const = 0;
+                         const std::string &instrument_id, const std::string &exchange_id, int32_t data_type) const {};
 
   virtual int64_t get_md_slice_end_time(int64_t nano_time, const std::string &group, const std::string &name,
                                         const std::string &instrument_id, const std::string &exchange_id,
-                                        int32_t data_type) const = 0;
+                                        int32_t data_type) const {} ;
 
   virtual yijinjing::data::location_ptr find_operator_slice_location(int64_t nano_time, const std::string &group,
-                                                                     const std::string &name) const = 0;
+                                                                     const std::string &name) const {};
 
   virtual int64_t get_operator_slice_end_time(int64_t nano_time, const std::string &group,
-                                              const std::string &name) const = 0;
+                                              const std::string &name) const {};
 
 private:
   int64_t begin_time_;

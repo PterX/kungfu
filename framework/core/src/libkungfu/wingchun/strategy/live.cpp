@@ -441,6 +441,8 @@ yijinjing::journal::writer_ptr LiveContext::get_writer(const std::string &source
   return app_.get_writer(get_td_location_uid(source, account));
 }
 
+yijinjing::journal::reader_ptr LiveContext::get_reader() { return app_.get_reader(); }
+
 void LiveContext::ensure_connect() {
   if (not is_started()) {
     return;

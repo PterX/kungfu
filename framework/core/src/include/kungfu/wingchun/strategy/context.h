@@ -253,6 +253,8 @@ public:
    */
   virtual yijinjing::journal::writer_ptr get_writer(const std::string &source, const std::string &account) = 0;
 
+  virtual yijinjing::journal::reader_ptr get_reader() = 0;
+
 protected:
   yijinjing::practice::apprentice &app_;
   const rx::connectable_observable<event_ptr> &events_;

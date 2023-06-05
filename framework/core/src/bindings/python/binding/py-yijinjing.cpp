@@ -233,6 +233,7 @@ void bind(pybind11::module &&m) {
       .def("get_notice", &observer::get_notice);
 
   py::class_<reader, reader_ptr>(m, "reader")
+      .def(py::init<const reader &>())
       .def("subscribe", &reader::join)
       .def("current_frame", &reader::current_frame)
       .def("seek_to_time", &reader::seek_to_time)
@@ -281,6 +282,7 @@ void bind(pybind11::module &&m) {
       .def(py::init<const data::location_ptr &, uint32_t, uint32_t, int64_t>(), py::arg("source_location"),
            py::arg("dest_id"), py::arg("assemble_mode") = longfist::enums::AssembleMode::Channel,
            py::arg("from_time") = 0)
+      .def(py::init<const assemble &>())
       .def("read_headers", (std::vector<frame_header>(assemble::*)(int32_t, int64_t)) & assemble::read_headers,
            py::arg("msg_type"), py::arg("end_time") = INT64_MAX, py::return_value_policy::move)
       .def(

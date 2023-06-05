@@ -17,7 +17,7 @@ public:
     SPDLOG_INFO("preparing strategy");
     SPDLOG_INFO("arguments: {}", context->get_arguments());
     //    context->add_account("sim", "fill");
-    //    context->subscribe("sim", {"600000"}, {"SSE"});
+    context->subscribe("sim", {"600000"}, {"SSE"});
     // context->subscribe_operator("bar", "my-bar");
   }
 
@@ -44,7 +44,7 @@ public:
       SPDLOG_INFO("head_copy: {}", head.to_string());
     }
 
-//    context->req_deregister();
+    //    context->req_deregister();
     kungfu::yijinjing::journal::assemble asb2(l_ptr, location::PUBLIC, AssembleMode::All);
     auto locations = asb2.read_bytes<Location>();
     SPDLOG_INFO("locations.length: {}", locations.size());
@@ -60,7 +60,23 @@ public:
   }
 
   void on_quote(Context_ptr & context, const Quote &quote, const location_ptr &location) override {
-    SPDLOG_INFO("on quote: {} i {} location->uid {}", quote.last_price, i, location->location_uid);
+    //    SPDLOG_INFO("on quote: {} i {} location->uid {}", quote.last_price, i, location->location_uid);
+    SPDLOG_INFO("Quote: {}", quote.to_string());
+    kungfu::yijinjing::journal::reader reader_copy(*context->get_reader());
+
+    static bool test = true;
+    if (test) {
+      std::this_thread::sleep_for(std::chrono::seconds(10));
+    }
+    int64_t now = kungfu::yijinjing::time::now_in_nano();
+    while (reader_copy.data_available() and reader_copy.current_frame()->gen_time() < now and test) {
+      if (reader_copy.current_frame()->msg_type() == Quote::tag) {
+        const auto &q = reader_copy.current_frame()->data<Quote>();
+        SPDLOG_WARN("Quote: {}", q.to_string());
+      }
+      reader_copy.next();
+    }
+    test = false;
   }
 
   void on_synthetic_data(Context_ptr & context, const SyntheticData &synthetic_data, const location_ptr &location)

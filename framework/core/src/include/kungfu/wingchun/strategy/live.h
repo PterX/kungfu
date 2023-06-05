@@ -235,6 +235,8 @@ public:
    */
   yijinjing::journal::writer_ptr get_writer(const std::string &source, const std::string &account) override;
 
+  yijinjing::journal::reader_ptr get_reader() override;
+
 protected:
   virtual void on_start() override;
 

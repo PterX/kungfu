@@ -173,11 +173,15 @@ onMounted(() => {
 
             const orderResolved = toRaw(
               getDealerWithCache(curOrder, () =>
-                dealOrder(watcher, curOrder, watcher.ledger.OrderStat,
-                false,
-                price_precision,
-              ),)
-            )
+                dealOrder(
+                  watcher,
+                  curOrder,
+                  watcher.ledger.OrderStat,
+                  false,
+                  price_precision,
+                ),
+              ),
+            );
             preOrders.totalOrders.push(orderResolved);
             if (isFinishedOrderStatus(curOrder.status)) {
               if (finishedOrdersCount < 500) {
@@ -258,7 +262,14 @@ watch(historyDate, async (newDate) => {
 
           return toRaw(
             getDealerWithCache(item, () =>
-              dealOrder(window.watcher, item, tradingData.OrderStat, true,price_precision))
+              dealOrder(
+                window.watcher,
+                item,
+                tradingData.OrderStat,
+                true,
+                price_precision,
+              ),
+            ),
           );
         }),
       );

@@ -42,7 +42,7 @@ import {
   useCurrentGlobalKfLocation,
   useInstruments,
   useDealDataWithCaches,
-useActiveInstruments,
+  useActiveInstruments,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 
 const app = getCurrentInstance();
@@ -64,8 +64,7 @@ const {
 const { handleDownload } = useDownloadHistoryTradingData();
 const { triggerOrderBook, triggerMakeOrder } = useTriggerMakeOrder();
 const { instruments } = useInstruments();
-const { getPriceTickAndPrecision } =
-  useActiveInstruments();
+const { getPriceTickAndPrecision } = useActiveInstruments();
 const { getDealerWithCache } = useDealDataWithCaches<
   KungfuApi.Position,
   KungfuApi.PositionResolved
@@ -109,7 +108,9 @@ onMounted(() => {
               0.001,
             );
 
-            return getDealerWithCache(item, () => dealPosition(watcher, item, price_precision))
+            return getDealerWithCache(item, () =>
+              dealPosition(watcher, item, price_precision),
+            );
           }),
         );
       },

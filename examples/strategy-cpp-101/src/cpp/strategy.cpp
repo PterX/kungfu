@@ -18,6 +18,7 @@ public:
     SPDLOG_INFO("arguments: {}", context->get_arguments());
     //    context->add_account("sim", "fill");
     context->subscribe("sim", {"600000"}, {"SSE"});
+    context->subscribe("xtp", {"600009"}, {"SSE"});
     // context->subscribe_operator("bar", "my-bar");
   }
 
@@ -62,21 +63,36 @@ public:
   void on_quote(Context_ptr & context, const Quote &quote, const location_ptr &location) override {
     //    SPDLOG_INFO("on quote: {} i {} location->uid {}", quote.last_price, i, location->location_uid);
     SPDLOG_INFO("Quote: {}", quote.to_string());
-    kungfu::yijinjing::journal::reader reader_copy(*context->get_reader());
 
     static bool test = true;
     if (test) {
+      kungfu::yijinjing::journal::reader reader_copy1(*context->get_reader());
+      kungfu::yijinjing::journal::reader reader_copy2(*context->get_reader());
       std::this_thread::sleep_for(std::chrono::seconds(10));
-    }
-    int64_t now = kungfu::yijinjing::time::now_in_nano();
-    while (reader_copy.data_available() and reader_copy.current_frame()->gen_time() < now and test) {
-      if (reader_copy.current_frame()->msg_type() == Quote::tag) {
-        const auto &q = reader_copy.current_frame()->data<Quote>();
-        SPDLOG_WARN("Quote: {}", q.to_string());
+      int64_t now = kungfu::yijinjing::time::now_in_nano();
+      while (reader_copy1.data_available() and reader_copy1.current_frame()->gen_time() < now) {
+        SPDLOG_DEBUG("1 source: {}, dest: {}, msg_type: {}", reader_copy1.current_frame()->source(),
+                     reader_copy1.current_frame()->dest(), reader_copy1.current_frame()->msg_type());
+//        if (reader_copy1.current_frame()->msg_type() == Quote::tag) {
+//          const auto &q = reader_copy1.current_frame()->data<Quote>();
+//          SPDLOG_WARN("Quote: {}", q.to_string());
+//        }
+        reader_copy1.next();
       }
-      reader_copy.next();
+      test = false;
+
+      auto l_ptr = location::make_shared(mode::LIVE, category::MD, "xtp", "xtp", std::make_shared<locator>());
+      reader_copy2.keep_only(l_ptr->location_uid, 0);
+      while (reader_copy2.data_available() and reader_copy2.current_frame()->gen_time() < now) {
+        SPDLOG_DEBUG("2 source: {}, dest: {}, msg_type: {}", reader_copy2.current_frame()->source(),
+                     reader_copy2.current_frame()->dest(), reader_copy2.current_frame()->msg_type());
+//        if (reader_copy2.current_frame()->msg_type() == Quote::tag) {
+//          const auto &q = reader_copy2.current_frame()->data<Quote>();
+//          SPDLOG_WARN("Quote: {}", q.to_string());
+//        }
+        reader_copy2.next();
+      }
     }
-    test = false;
   }
 
   void on_synthetic_data(Context_ptr & context, const SyntheticData &synthetic_data, const location_ptr &location)

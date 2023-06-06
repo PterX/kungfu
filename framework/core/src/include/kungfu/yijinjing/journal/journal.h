@@ -106,6 +106,8 @@ public:
 
   void disjoin_channel(uint32_t location_uid, uint32_t dest_id);
 
+  void keep_only(uint32_t location_uid, uint32_t dest_id);
+
   [[nodiscard]] frame_ptr current_frame() const { return current_->current_frame(); }
 
   [[nodiscard]] uint64_t current_frame_id() const { return current_->current_frame_id(); }

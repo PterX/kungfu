@@ -92,4 +92,17 @@ reader::reader(const reader &other) : lazy_(other.lazy_), low_latency_(other.low
   }
 }
 
+void reader::keep_only(uint32_t location_uid, uint32_t dest_id) {
+  auto key = static_cast<uint64_t>(location_uid) << 32u | static_cast<uint64_t>(dest_id);
+  for (auto it = journals_.begin(); it != journals_.end();) {
+    if (it->first == key) {
+      it++;
+    } else {
+      it = journals_.erase(it);
+    }
+  }
+  current_ = nullptr;
+  sort();
+}
+
 } // namespace kungfu::yijinjing::journal

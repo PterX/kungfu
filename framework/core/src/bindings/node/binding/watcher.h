@@ -256,7 +256,7 @@ private:
         state<kungfu::longfist::types::Position> cache_state_position(source, dest, event->gen_time(), position);
         feed_state_data_bank(cache_state_position, data_bank_);
       };
-
+      
       book->apply_position_for(data, apply);
       book->apply_opposite_position_for(data, apply);
 
@@ -267,6 +267,7 @@ private:
                                                                            book->asset_margin);
       feed_state_data_bank(cache_state_asset_margin, data_bank_);
     };
+
     update(event->source(), event->dest());
     update(event->dest(), event->source());
   }
@@ -327,6 +328,14 @@ private:
     auto iter = target_map.begin();
     while (iter != target_map.end() and target_map.size() > 0) {
       const auto &state = iter->second;
+
+
+      if (DataType::tag == longfist::types::Position::tag) {
+        SPDLOG_INFO("------------------------------------");
+        SPDLOG_INFO("data.uid {} data {}", state.data.uid(), state.data.to_string());
+      };
+      SPDLOG_INFO("------------------------------------");
+
       update_ledger(state.update_time, state.source, state.dest, state.data);
       iter = target_map.erase(iter);
     }

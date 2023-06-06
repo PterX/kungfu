@@ -15,8 +15,6 @@
 
 namespace kungfu::wingchun::service {
 
-// key = hash_instrument(exchange_id, instrument_id)
-
 class Ledger : public yijinjing::practice::apprentice {
   typedef std::unordered_map<uint32_t, longfist::types::BrokerStateUpdate> BrokerStateMap;
   typedef std::unordered_map<uint32_t, longfist::types::OperatorStateUpdate> OperatorStateMap;

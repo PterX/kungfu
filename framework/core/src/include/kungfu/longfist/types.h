@@ -131,7 +131,7 @@ KF_DEFINE_PACK_TYPE(                               //
 );
 
 KF_DEFINE_PACK_TYPE(                                                                              //
-    Position, 103, PK(holder_uid, instrument_id, exchange_id, direction, source_id), PERPETUAL(), //
+    Position, 103, PK(holder_uid, instrument_id, exchange_id, source_op_id, direction), PERPETUAL(), //
     (int64_t, update_time),                                                                       // 更新时间
     (kungfu::array<char, DATE_LEN>, trading_day),                                                 // 交易日
 
@@ -167,7 +167,8 @@ KF_DEFINE_PACK_TYPE(                                                            
     (double, realized_pnl),   // 已实现盈亏
     (double, unrealized_pnl), // 未实现盈亏
 
-    (uint32_t, source_id) // 来源账户
+    (uint32_t, source_id), // 来源账户
+    (uint64_t, source_op_id) // 来源账户 xor holder_uid
 );
 
 KF_DEFINE_PACK_TYPE(                               //

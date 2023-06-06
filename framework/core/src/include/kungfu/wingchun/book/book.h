@@ -20,7 +20,7 @@ typedef std::unordered_map<uint32_t, longfist::types::Commission> CommissionMap;
 // key = hash_instrument(exchange_id, instrument_id)
 typedef std::unordered_map<uint32_t, longfist::types::Instrument> InstrumentMap;
 
-// key = hash_instrument(exchange_id, instrument_id)
+// key = hash_instrument(source_id, exchange_id, instrument_id)
 typedef std::unordered_map<uint32_t, longfist::types::Position> PositionMap;
 
 // key = order_id
@@ -209,30 +209,6 @@ struct Book {
     return get_position(source_id, direction, data.exchange_id, data.instrument_id);
   }
 
-  // template <typename TradingData>
-  // [[nodiscard]] PositionMap get_position_for(longfist::enums::Direction direction, const TradingData &data) {
-  //   PositionMap positions = {};
-  //   auto apply = [&](auto &position) {
-  //     auto position_id = hash_instrument(position.source_id, position.exchange_id, position.instrument_id);
-  //     positions.try_emplace(position_id, position);
-  //   };
-
-  //   apply_position_for(direction, data, apply);
-  //   return positions;
-  // }
-
-  // template <typename TradingData> [[nodiscard]] PositionMap get_position_for(const TradingData &data) {
-  //   PositionMap positions = {};
-  //   auto direction = get_direction(data.instrument_type, data.side, data.offset);
-  //   auto apply = [&](auto &position) {
-  //     auto position_id = hash_instrument(position.source_id, position.exchange_id, position.instrument_id);
-  //     positions.try_emplace(position_id, position);
-  //   };
-
-  //   apply_position_for(direction, data, apply);
-  //   return positions;
-  // }
-
   void update(int64_t update_time, longfist::enums::AccountingMethodType accounting_method_type);
 
   void replace(const longfist::types::OrderInput &input);
@@ -246,6 +222,10 @@ struct Book {
   [[nodiscard]] const InstrumentMap &get_instruments() const { return instruments; }
 
   [[nodiscard]] const CommissionMap &get_commissions() const { return commissions; }
+
+  uint64_t source_op_id(uint32_t holder_uid, uint32_t source_id) {
+    return static_cast<uint64_t>(holder_uid) << 32u | static_cast<uint64_t>(source_id);
+  }
 };
 } // namespace kungfu::wingchun::book
 

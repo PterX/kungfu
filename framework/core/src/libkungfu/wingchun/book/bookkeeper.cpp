@@ -93,13 +93,14 @@ void Bookkeeper::restore(const cache::bank &state_bank) {
   for (auto &pair : state_bank[boost::hana::type_c<Position>]) {
     auto &state = pair.second;
     auto &position = state.data;
-    if (not app_.has_location(position.holder_uid)) {
+    if (not app_.has_location(position.holder_uid) or not app_.has_location(position.source_id)) {
       continue;
     }
     auto book = get_book(position.holder_uid);
     auto is_long = position.direction == longfist::enums::Direction::Long;
     auto &positions = is_long ? book->long_positions : book->short_positions;
-    positions[hash_instrument(position.exchange_id, position.instrument_id)] = position;
+    positions[hash_instrument(position.source_id, position.exchange_id, position.instrument_id)] = position;
+    positions[hash_instrument(position.source_id, position.exchange_id, position.instrument_id)].source_op_id = book->source_op_id(position.holder_uid, position.source_id);
     book->add_source_id(position.source_id);
   }
   for (auto &pair : state_bank[boost::hana::type_c<Asset>]) {

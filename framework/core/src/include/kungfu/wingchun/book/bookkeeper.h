@@ -82,10 +82,11 @@ public:
       return;
     }
     AccountingMethod &accounting_method = *accounting_methods_.at(data.instrument_type);
-    auto apply_and_update = [&](uint32_t book_uid) {
+    auto apply_and_update = [&](uint32_t book_uid, bool is_td = false) {
       auto book = get_book(book_uid);
-      (accounting_method.*method)(book, account_id, data);
+      book->add_source_id(account_id);
 
+      (accounting_method.*method)(book, account_id, data);
       auto apply = [&](auto &position) { position.update_time = update_time; };
       auto direction = get_direction(data.instrument_type, data.side, data.offset);
       book->apply_position(account_id, direction, data.exchange_id, data.instrument_id, apply);

@@ -38,6 +38,7 @@ export default {
 
   open_resources_directory: 'Open Kungfu Resources directory (KF_HOME)',
   open_install_directory: 'Open Kungfu installation directory',
+  open_system_config_directory: 'Open Kungfu system config directory',
   open_basic_configuration: 'Open Kungfu basic configuration DB',
   open_renderer_app_log: 'Open Application log',
   browsing_log: 'Browsing log files',

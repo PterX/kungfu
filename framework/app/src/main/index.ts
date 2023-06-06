@@ -38,6 +38,7 @@ import {
   BASE_DB_DIR,
   KF_HOME,
   RENDERER_LOG_DIR,
+  KF_CONFIG_DIR,
 } from '@kungfu-trader/kungfu-js-api/config/pathConfig';
 import {
   initKfConfig,
@@ -333,9 +334,14 @@ function setMenu() {
           click: () => shell.showItemInFolder(KF_HOME),
         },
         {
+          label: t('open_system_config_directory'),
+          click: () => shell.showItemInFolder(KF_CONFIG_DIR),
+        },
+        {
           label: t('open_install_directory'),
           click: () => shell.showItemInFolder(app.getAppPath()),
         },
+
         {
           label: t('open_basic_configuration'),
           click: () =>

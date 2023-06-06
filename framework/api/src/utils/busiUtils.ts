@@ -807,6 +807,14 @@ export const isTdMd = (category: KfCategoryTypes) => {
   return false;
 };
 
+export const isTd = (category: KfCategoryTypes) => { 
+  if (category === 'td') { 
+    return true;
+  }
+
+  return false;
+}
+
 export const isOperator = (category: KfCategoryTypes) => {
   if (category === 'operator') {
     return true;

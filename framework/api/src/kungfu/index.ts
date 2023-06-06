@@ -24,7 +24,6 @@ import {
 } from '../utils/busiUtils';
 import {
   HistoryDateEnum,
-  LedgerCategoryEnum,
   InstrumentTypeEnum,
   CurrencyEnum,
 } from '../typings/enums';
@@ -776,11 +775,7 @@ export const dealPosition = (
   pos: KungfuApi.Position,
   pricePrecision = 3,
 ): KungfuApi.PositionResolved => {
-  const holderLocation = watcher.getLocation(pos.holder_uid);
-  const account_id_resolved =
-    pos.ledger_category === LedgerCategoryEnum.td
-      ? `${holderLocation.group}_${holderLocation.name}`
-      : '--';
+  const account_id_resolved = getIdByKfLocation(watcher.getLocation(pos.source_id));
   const closable_volume = getPosClosableVolume(pos);
   const ukey = hashInstrumentUKey(pos.instrument_id, pos.exchange_id);
   const currency =

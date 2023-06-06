@@ -726,6 +726,7 @@ declare namespace KungfuApi {
     instrument_type: InstrumentTypeEnum; //合约类型
 
     holder_uid: number;
+    source_id: number;
     ledger_category: LedgerCategoryEnum;
 
     direction: DirectionEnum; //持仓方向

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import path from 'path';
+import os from 'os';
 import { dialog } from '@electron/remote';
 import {
   DeleteOutlined,
@@ -69,7 +70,6 @@ import {
   dealKungfuColorToClassname,
   dealKungfuColorToStyleColor,
 } from '../../assets/methods/uiUtils';
-import { KF_HOME } from '@kungfu-trader/kungfu-js-api/config/pathConfig';
 
 const { t } = VueI18n.global;
 
@@ -804,7 +804,7 @@ function handleSelectFile(targetKey: string): void {
 
 function handleSelectDirectory(
   target: KungfuApi.KfConfigItem,
-  type?: string,
+  type?: 'default',
 ): void {
   const targetKey = target.key;
   if (type === 'default') {
@@ -814,7 +814,7 @@ function handleSelectDirectory(
   }
   dialog
     .showOpenDialog({
-      defaultPath: formState.value[targetKey] || KF_HOME,
+      defaultPath: formState.value[targetKey] || os.homedir(),
       properties: ['openDirectory', 'createDirectory', 'promptToCreate'],
     })
     .then((res) => {
@@ -1591,7 +1591,7 @@ defineExpose({
         <a-button
           v-if="item.default"
           size="small"
-          style="margin-left: 4px"
+          style="margin-left: 4px; vertical-align: middle"
           @click="handleSelectDirectory(item, 'default')"
         >
           {{ $t('globalSettingConfig.reset_order') }}

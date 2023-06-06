@@ -95,6 +95,7 @@ declare namespace KungfuApi {
     | 'password'
     | 'file' // string
     | 'files' // string[]
+    | 'directory' // string
     | 'folder' // string
     | 'table' // any[]
     | 'rangePicker' //string[]
@@ -751,6 +752,7 @@ declare namespace KungfuApi {
   }
 
   export interface PositionResolved extends Position {
+    currency: CurrencyEnum;
     closable_volume: bigint;
     account_id_resolved: string;
     instrument_id_resolved: string;

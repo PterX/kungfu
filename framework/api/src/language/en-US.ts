@@ -38,6 +38,7 @@ export default {
 
   open_resources_directory: 'Open Kungfu Resources directory (KF_HOME)',
   open_install_directory: 'Open Kungfu installation directory',
+  open_system_config_directory: 'Open Kungfu system config directory',
   open_basic_configuration: 'Open Kungfu basic configuration DB',
   open_renderer_app_log: 'Open Application log',
   browsing_log: 'Browsing log files',
@@ -660,6 +661,10 @@ export default {
   globalSettingConfig: {
     global_setting_title: 'Global Setting',
     system: 'System',
+    home_path: 'Select local home path',
+    home_path_desc:
+      'Kung Fu will take the selected home path as the root directory, and will take effect after modifying and restarting Kung Fu',
+    reset_order: 'Reset',
     log_level: 'Log Level',
     for_all_log: 'For all Log',
 

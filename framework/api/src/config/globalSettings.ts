@@ -17,6 +17,7 @@ import {
 } from '@kungfu-trader/kungfu-js-api/language';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
+import { getDefaultHomePath } from './homePathConfig';
 const { t } = VueI18n.global;
 const numCPUs = os.cpus() ? os.cpus().length : 1;
 
@@ -32,11 +33,20 @@ const __python_version_resolved = __python_version
 
 const packageJson = readRootPackageJsonSync();
 
+const defaultHomePath = getDefaultHomePath();
+
 export const getKfGlobalSettings = (): KfSystemConfig[] => [
   {
     key: 'system',
     name: t('globalSettingConfig.system'),
     config: [
+      {
+        key: 'homePath',
+        name: t('globalSettingConfig.home_path'),
+        tip: t('globalSettingConfig.home_path_desc'),
+        default: defaultHomePath,
+        type: 'directory',
+      },
       {
         key: 'logLevel',
         name: t('globalSettingConfig.log_level'),

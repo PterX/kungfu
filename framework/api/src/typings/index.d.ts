@@ -95,6 +95,7 @@ declare namespace KungfuApi {
     | 'password'
     | 'file' // string
     | 'files' // string[]
+    | 'directory' // string
     | 'folder' // string
     | 'table' // any[]
     | 'rangePicker' //string[]

@@ -204,6 +204,90 @@ export const useModalVisible = (
   };
 };
 
+export const useTreeTableSearchKeyword = <T extends { children?: T[] }>(
+  targetList: Ref<T[]> | ComputedRef<T[]>,
+  keys: string[],
+): {
+  searchKeyword: Ref<string>;
+  tableData: Ref<T[]>;
+} => {
+  const searchKeyword = ref<string>('');
+  function searchTree<T extends { children?: T[] }>(
+    tree: T[],
+    keys: string[],
+    searchKeyword: string,
+  ): T[] {
+    return tree
+      .filter((item) => {
+        const combinedValue = keys
+          .map((key: string) => {
+            const keyWord = (item as Record<string, unknown>)[
+              key
+            ] as unknown as string | number;
+            return keyWord ? keyWord.toString() : '';
+          })
+          .join('_');
+        const isMatch = new RegExp(searchKeyword, 'ig').test(combinedValue);
+        if (isMatch) return true;
+        const childMatch =
+          item.children && item.children.length > 0
+            ? searchTree(item.children, keys, searchKeyword).length > 0
+            : false;
+
+        return childMatch;
+      })
+      .map((item) => ({
+        ...item,
+        children: searchTree(item.children || [], keys, searchKeyword),
+      }));
+  }
+
+  const tableData = computed(() => {
+    return searchTree<T>(targetList.value, keys, searchKeyword.value);
+  });
+
+  return {
+    searchKeyword,
+    tableData,
+  };
+};
+
+export const useTableSearchKeywordList = <T>(
+  targetList: Ref<T[]> | ComputedRef<T[]>,
+  searchObjects: {
+    key: string;
+    value: string;
+  }[],
+): { [K in string]: Ref<string> } & {
+  tableData: ComputedRef<T[]>;
+} => {
+  const searchKeywords: Record<string, Ref<string>> = {};
+
+  searchObjects.forEach((searchObject) => {
+    searchKeywords[searchObject.key] = ref('');
+  });
+
+  const tableData = computed(() => {
+    return targetList.value
+      .filter((item: T) => {
+        return searchObjects.every(({ key, value }) => {
+          const itemValue = (item as Record<string, unknown>)[value] as
+            | string
+            | number;
+          const keyword = searchKeywords[key].value;
+          if (keyword === '') {
+            return true;
+          }
+          return new RegExp(keyword, 'ig').test(itemValue.toString());
+        });
+      })
+      .map((item) => toRaw(item));
+  });
+  return { ...searchKeywords, tableData } as { [K in string]: Ref<string> } & {
+    tableData: ComputedRef<T[]>;
+  };
+};
+
 export const useTableSearchKeyword = <T>(
   targetList: Ref<T[]> | ComputedRef<T[]>,
   keys: string[],
@@ -453,12 +537,12 @@ export const openCodeView = (
 
 export const openJournalView = (
   processId: string,
-  locationUid: string,
+  locationUID: string,
 ): Promise<Electron.BrowserWindow> => {
   return openNewBrowserWindow(
     globalThis.__runtimeDir,
     'journal',
-    `?processId=${processId}&locationUid=${locationUid}`,
+    `?processId=${processId}&locationUID=${locationUID}`,
     {
       width: 1280,
       height: 960,
@@ -589,8 +673,8 @@ export const handleOpenJournalView = (
 ): Promise<Electron.BrowserWindow> => {
   const hideloading = message.loading(t('open_journal_dashboard'));
   const processId = config ? getProcessIdByKfLocation(config) : '';
-  const locationUid = config ? getKfLocationUID(config) || '' : '';
-  return openJournalView(processId, locationUid).finally(() => {
+  const locationUID = config ? getKfLocationUID(config) || '' : '';
+  return openJournalView(processId, locationUID).finally(() => {
     hideloading();
   });
 };

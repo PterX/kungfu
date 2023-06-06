@@ -187,10 +187,9 @@ void cached::register_trigger_listen_public(int64_t gen_time, const Register &re
     return;
   }
 
-  reader_join(app_uid, location::PUBLIC, gen_time);
+  // only public no sync
+  reader_->join(app_location, location::PUBLIC, gen_time);
   make_cache_shift(app_uid, location::PUBLIC);
-  reader_join(app_uid, location::SYNC, gen_time);
-  make_cache_shift(app_uid, location::SYNC);
   SPDLOG_INFO("resume {} connection from {}", get_location_uname(app_uid), time::strftime(gen_time));
 }
 

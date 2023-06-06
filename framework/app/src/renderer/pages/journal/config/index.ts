@@ -12,33 +12,40 @@ const buildStrSorter =
   (dataIndex: keyof TableDataType) => (a: TableDataType, b: TableDataType) =>
     a[dataIndex].toString().localeCompare(b[dataIndex].toString());
 
-export const getSessionColumns = (): KfTradingDataTableHeaderConfig[] => [
+export const getSessionColumns = (): AntTableColumn[] => [
   {
-    type: 'string',
-    name: t('journalConfig.session_id'),
-    dataIndex: 'session_id_resolved',
-    width: 224,
-    sorter: buildStrSorter('session_id_resolved'),
+    title: t('journalConfig.session_id'),
+    dataIndex: 'sessionName',
+    align: 'left',
+    width: 240,
+    sorter: {
+      compare: buildStrSorter('sessionName'),
+    },
+    fixed: 'left',
   },
   {
-    type: 'string',
-    name: t('journalConfig.begin_time'),
-    dataIndex: 'begin_time_resolved',
+    title: t('journalConfig.begin_time'),
+    dataIndex: 'beginTimeResolved',
+    align: 'left',
     width: 160,
-    sorter: buildSorter('begin_time'),
+    sorter: {
+      compare: buildSorter('begin_time'),
+    },
+    fixed: 'left',
   },
   {
-    type: 'string',
-    name: t('journalConfig.end_time'),
-    dataIndex: 'end_time_resolved',
-    sorter: buildStrSorter('end_time'),
+    title: t('journalConfig.end_time'),
+    dataIndex: 'endTimeResolved',
     width: 160,
+    align: 'left',
+    sorter: { compare: buildStrSorter('end_time') },
+    fixed: 'left',
   },
   {
-    type: 'string',
-    name: t('journalConfig.status'),
+    title: t('journalConfig.status'),
     dataIndex: 'status',
-    width: 100,
+    align: 'left',
+    fixed: 'right',
   },
 ];
 

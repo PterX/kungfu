@@ -2,13 +2,17 @@ import { SessionStatusEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import fse from 'fs-extra';
 import path from 'path';
 import { format } from '@fast-csv/format';
-import { dealKfTime, longfist } from '@kungfu-trader/kungfu-js-api/kungfu';
+import {
+  dealKfTime,
+  io,
+  longfist,
+  sessionStore,
+} from '@kungfu-trader/kungfu-js-api/kungfu';
 import { parseURIParams } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import {
   deepClone,
   getIdByKfLocation,
   getKfLocationByProcessId,
-  getProcessIdByKfLocation,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { KfCategory } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import {
@@ -42,11 +46,10 @@ export const dealSession = (
   ] as KfCategoryTypes;
   return {
     ...session,
-    session_id_resolved: getProcessIdByKfLocation(session),
-    begin_time_resolved: dealKfTime(getAbs<bigint>(session.begin_time)),
-    end_time_resolved: dealKfTime(getAbs<bigint>(session.end_time)),
+    sessionName: getIdByKfLocation(session),
+    beginTimeResolved: dealKfTime(getAbs<bigint>(session.begin_time)),
+    endTimeResolved: dealKfTime(getAbs<bigint>(session.end_time)),
     status: getSessionStatus(session),
-    session_id_origin: `${getProcessIdByKfLocation(session)}_${session.index}`,
   };
 };
 
@@ -55,6 +58,14 @@ export const dealSessionsToMap = (sessions: KungfuApi.Session[]) => {
     sessionsMap[`${cur.begin_time}`] = dealSession(cur);
     return sessionsMap;
   }, {} as Record<string, KungfuApi.SessionResolved>);
+};
+
+export const getAllSessions = (currentLocation: LocationRseolved | null) => {
+  if (currentLocation === null) {
+    return sessionStore.getAllSessions();
+  } else {
+    return sessionStore.getSessionsForLocation(currentLocation);
+  }
 };
 
 export const getSessionLocationById = (
@@ -157,19 +168,19 @@ export const dealFrame = (
   };
 };
 
-export const getCurrentLocation = () => {
+export const getCurrentLocation = (): LocationRseolved | null => {
   const location = getKfLocationByProcessId(
     decodeURI(parseURIParams().processId) || '',
   );
-  const location_uid = +(decodeURI(parseURIParams().locationUid) || '');
-
-  if (!location || !location_uid) {
+  const uid = +(decodeURI(parseURIParams().locationUID) || '');
+  if (!location || !uid) {
     return null;
   }
 
   return {
     ...location,
-    location_uid,
+    uid,
+    uname: '',
   };
 };
 
@@ -299,3 +310,52 @@ export const useResizeFlag = () => {
     contentVisible,
   };
 };
+
+export type LocationRseolved = KungfuApi.KfLocation & {
+  uname: string;
+  uid: number;
+};
+
+export const resolveLocations = (obj: Record<string, LocationRseolved>) => {
+  const output: Record<string, string> = {};
+
+  for (const key in obj) {
+    // eslint-disable-next-line no-prototype-builtins
+    if (obj.hasOwnProperty(key)) {
+      const item = obj[key];
+      output[key] = `${item.category}/${item.group}/${item.name}/${item.mode}`;
+    }
+  }
+  output['0'] = 'public';
+  output['1'] = 'sync';
+
+  return output;
+};
+
+export const getSourceDestMap = () => {
+  const locations = Object.values(io.getAllLocations());
+  const locationsMap = locations.reduce((pre, cur) => {
+    pre[cur.uid] = cur;
+    return pre;
+  }, {} as Record<string, LocationRseolved>);
+  return resolveLocations(locationsMap);
+};
+
+export const useNow = () => {
+  const now = ref(getNowInNano());
+  let timer: NodeJS.Timeout;
+
+  const updateNowTime = () => {
+    now.value = getNowInNano();
+    clearTimeout(timer);
+    timer = setTimeout(updateNowTime, 1000);
+  };
+  onMounted(() => {
+    updateNowTime();
+  });
+  return {
+    now,
+  };
+};
+
+export const getNowInNano = () => BigInt(new Date().getTime()) * 1000000n;

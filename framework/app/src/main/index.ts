@@ -28,6 +28,7 @@ import {
   clearDB,
   clearJournal,
   exportAllTradingData,
+  exportInstrumentWhitelists,
   viewAllJournal,
   openLogFile,
   openSettingDialog,
@@ -383,6 +384,10 @@ function setMenu() {
           label: t('export_all_transaction_data'),
           accelerator: 'CommandOrControl+E',
           click: () => MainWindow && exportAllTradingData(MainWindow),
+        },
+        {
+          label: t('export_instrument_whitelists'),
+          click: () => MainWindow && exportInstrumentWhitelists(MainWindow),
         },
       ],
     },

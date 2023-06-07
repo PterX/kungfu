@@ -284,13 +284,14 @@ class ExtensionExecutor:
             ctx.strategy = load_module(
                 ctx, ctx.path, loader.config["kungfuConfig"]["key"], Strategy
             )
-        if kfj.MODES[ctx.mode] == lf.enums.mode.BACKTEST and ctx.backtest:
-            ctx.logger.debug(f"ctx.backtest: {ctx.backtest}")
-            if ctx.backtest.endswith(".json"):
-                with open(ctx.backtest, "r", encoding="utf-8") as json_file:
-                    backtest_para = json.load(json_file)
-            else:
-                backtest_para = json.loads(ctx.backtest)
+        if kfj.MODES[ctx.mode] == lf.enums.mode.BACKTEST:
+            ctx.logger.debug(f"--backtest arguments: {ctx.backtest}")
+            if ctx.backtest:
+                if ctx.backtest.endswith(".json"):
+                    with open(ctx.backtest, "r", encoding="utf-8") as json_file:
+                        backtest_para = json.load(json_file)
+                else:
+                    backtest_para = json.loads(ctx.backtest)
 
             begin_time_stamp = kft.strptimes(
                 ctx.begin if ctx.begin else backtest_para["begin_time"],

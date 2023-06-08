@@ -79,7 +79,7 @@ bool journal::release_page() {
 
   {
     // Only one lock at a time to prevent deadlock
-    std::lock_guard<std::recursive_mutex> lk1(replica_passed_page_collector_mtx_);
+    std::lock_guard<std::recursive_mutex> lk(replica_passed_page_collector_mtx_);
 
     // replica of journal, move page to replica_passed_page_collector_
     if (replica_) {
@@ -103,7 +103,7 @@ bool journal::release_page() {
 
   for (auto &page : queue_release_page) {
     // wait for the main thread to release shared_ptr<page>, or page would close in the main thread
-    while (page.use_count() > 1 and not replica_) {
+    while (page.use_count() > 1) {
       std::this_thread::sleep_for(std::chrono::microseconds(1));
     }
     page.reset();

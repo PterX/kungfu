@@ -2,6 +2,7 @@
 
 #include <kungfu/common.h>
 #include <kungfu/yijinjing/journal/page.h>
+#include <kungfu/yijinjing/time.h>
 #include <kungfu/yijinjing/util/os.h>
 
 namespace kungfu::yijinjing::journal {
@@ -16,9 +17,12 @@ page::page(data::location_ptr location, uint32_t dest_id, const uint32_t page_id
 
 page::~page() {
   SPDLOG_TRACE("release page {}/{:08x}.{}.journal", location_->uname, dest_id_, page_id_);
+  auto nano1 = time::now_in_nano();
   if (not os::release_mmap_buffer(address(), size_, lazy_)) {
     SPDLOG_ERROR("can not release page {}/{:08x}.{}.journal", location_->uname, dest_id_, page_id_);
   }
+  auto nano2 = time::now_in_nano();
+  SPDLOG_DEBUG("time used to release_mmap_buffer: {}", nano2 - nano1);
 }
 
 void page::flush() {

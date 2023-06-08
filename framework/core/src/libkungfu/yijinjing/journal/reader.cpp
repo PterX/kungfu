@@ -105,4 +105,20 @@ void reader::keep_only(uint32_t location_uid, uint32_t dest_id) {
   sort();
 }
 
+journal reader::get_journal(const data::location_ptr &location, uint32_t dest_id) {
+  return get_journal_ref(location, dest_id);
+}
+
+journal &reader::get_journal_ref(const data::location_ptr &location, uint32_t dest_id) {
+  auto key = static_cast<uint64_t>(location->uid) << 32u | static_cast<uint64_t>(dest_id);
+  auto iter = journals_.find(key);
+  if (iter != journals_.end()) {
+    return iter->second;
+  }
+
+  auto result = journals_.try_emplace(key, location, dest_id, false, lazy_, low_latency_, bus_);
+  result.first->second.seek_to_time(time::now_in_nano());
+  return result.first->second;
+}
+
 } // namespace kungfu::yijinjing::journal

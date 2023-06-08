@@ -72,6 +72,8 @@ private:
   frame_ptr frame_;
   uint64_t page_frame_nb_;
   bool replica_{false};
+  inline static std::vector<page_ptr> replica_passed_page_collector_{};
+  inline static std::recursive_mutex replica_passed_page_collector_mtx_{};
 
   void load_page(int page_id);
 
@@ -117,6 +119,10 @@ public:
   [[nodiscard]] uint32_t current_page_id() const { return current_->current_page_id(); }
 
   [[maybe_unused]] [[nodiscard]] const JournalMap &get_journals() const { return journals_; }
+
+  journal get_journal(const data::location_ptr &location, uint32_t dest_id);
+
+  journal &get_journal_ref(const data::location_ptr &location, uint32_t dest_id);
 
   bool data_available();
 

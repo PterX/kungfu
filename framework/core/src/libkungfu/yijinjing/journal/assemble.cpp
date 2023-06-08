@@ -261,18 +261,6 @@ void assemble::disjoin_channel(uint32_t location_uid, uint32_t dest_id) {
   }
 }
 
-assemble::assemble(const assemble &other)
-    : mode_(other.mode_), category_(other.category_), group_(other.group_), name_(other.name_),
-      publisher_(other.publisher_), from_time_(other.from_time_) {
-  for (auto &l : other.locators_) {
-    locators_.push_back(l);
-  }
-  for (const auto &r : other.readers_) {
-    readers_.push_back(std::make_shared<reader>(*r));
-  }
-  current_reader_ = std::make_shared<reader>(*other.current_reader_);
-}
-
 void assemble::move_to_time(int64_t nano_time) {
   while (data_available() and current_frame()->trigger_time() < nano_time) {
     next();

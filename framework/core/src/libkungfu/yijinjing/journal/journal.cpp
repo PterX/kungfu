@@ -8,7 +8,7 @@
 namespace kungfu::yijinjing::journal {
 
 journal::~journal() {
-  if (page_.get() != nullptr) {
+  if (not replica_ and page_) {
     page_.reset();
   }
   release_page();
@@ -75,6 +75,29 @@ bool journal::release_page() {
       queue_release_page.push_back(std::move(page));
     }
     passed_page_collector_.clear();
+  }
+
+  // Only one lock at a time to prevent deadlock
+  std::lock_guard<std::recursive_mutex> lk1(replica_passed_page_collector_mtx_);
+  {
+    // replica of journal, move page to replica_passed_page_collector_
+    if (replica_) {
+      for (auto &page : queue_release_page) {
+        replica_passed_page_collector_.push_back(std::move(page));
+      }
+      queue_release_page.clear();
+      if (page_) {
+        replica_passed_page_collector_.push_back(std::move(page_));
+      }
+      return true;
+    }
+
+    // origin journal run to here, means that process is closing or release-thread do cleaning work,
+    // release the page in replica_passed_page_collector_
+    for (auto &page : replica_passed_page_collector_) {
+      page.reset();
+    }
+    replica_passed_page_collector_.clear();
   }
 
   for (auto &page : queue_release_page) {

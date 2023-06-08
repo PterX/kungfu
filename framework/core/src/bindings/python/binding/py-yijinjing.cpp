@@ -282,7 +282,6 @@ void bind(pybind11::module &&m) {
       .def(py::init<const data::location_ptr &, uint32_t, uint32_t, int64_t>(), py::arg("source_location"),
            py::arg("dest_id"), py::arg("assemble_mode") = longfist::enums::AssembleMode::Channel,
            py::arg("from_time") = 0)
-      .def(py::init<const assemble &>())
       .def("read_headers", (std::vector<frame_header>(assemble::*)(int32_t, int64_t)) & assemble::read_headers,
            py::arg("msg_type"), py::arg("end_time") = INT64_MAX, py::return_value_policy::move)
       .def(

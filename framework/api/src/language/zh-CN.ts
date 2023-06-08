@@ -782,7 +782,7 @@ export default {
   environment_done: '功夫环境准备完成 ✓',
   environment_loading: '功夫环境准备中...',
   extra_resources_done: '插件资源加载就绪 ✓',
-  extra_resouces_loading: '插件资源加载中...',
+  extra_resources_loading: '插件资源加载中...',
   saving_data_done: '保存数据完成 ✓',
   saving_data_loading: '保存数据中...',
   end_all_transactions: '结束所有交易进程 ✓',

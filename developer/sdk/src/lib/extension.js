@@ -23,6 +23,7 @@ const project = require('./project');
 const pypackages = '__pypackages__';
 const kungfulibs = '__kungfulibs__';
 const kungfuLibDirPattern = `${kungfulibs}/*/*`;
+const webpackBuildCaches = 'node_modules/.cache/webpack';
 const cwd = process.cwd().toString();
 
 const spawnOptsShell = {
@@ -308,10 +309,11 @@ exports.installBatch = async (
 };
 
 exports.clean = (keepLibs = true) => {
-  fse.removeSync(path.join(process.cwd().toString(), 'build'));
-  fse.removeSync(path.join(process.cwd().toString(), 'dist'));
+  const rm = (p) => fse.existsSync(p) && fse.removeSync(p);
+  rm(path.join(process.cwd().toString(), 'build'));
+  rm(path.join(process.cwd().toString(), 'dist'));
+  rm(path.join(process.cwd().toString(), webpackBuildCaches));
   if (!keepLibs) {
-    const rm = (p) => fse.existsSync(p) && fse.removeSync(p);
     rm(pypackages);
     rm(kungfulibs);
   }

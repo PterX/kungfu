@@ -789,7 +789,7 @@ export default {
   environment_done: 'Kungfu environment done ✓',
   environment_loading: 'Kungfu environment loading...',
   extra_resources_done: 'Extra resources done ✓',
-  extra_resouces_loading: 'Extra resources loading...',
+  extra_resources_loading: 'Extra resources loading...',
   saving_data_done: 'Saving data done ✓',
   saving_data_loading: 'Saving data loading ...',
   end_all_transactions: 'End all transactions ✓',

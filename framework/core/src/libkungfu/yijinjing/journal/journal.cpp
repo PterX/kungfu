@@ -77,9 +77,10 @@ bool journal::release_page() {
     passed_page_collector_.clear();
   }
 
-  // Only one lock at a time to prevent deadlock
-  std::lock_guard<std::recursive_mutex> lk1(replica_passed_page_collector_mtx_);
   {
+    // Only one lock at a time to prevent deadlock
+    std::lock_guard<std::recursive_mutex> lk1(replica_passed_page_collector_mtx_);
+
     // replica of journal, move page to replica_passed_page_collector_
     if (replica_) {
       for (auto &page : queue_release_page) {

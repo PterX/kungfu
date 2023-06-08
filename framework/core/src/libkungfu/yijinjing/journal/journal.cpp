@@ -77,33 +77,9 @@ bool journal::release_page() {
     passed_page_collector_.clear();
   }
 
-  {
-    // Only one lock at a time to prevent deadlock
-    std::lock_guard<std::recursive_mutex> lk(replica_passed_page_collector_mtx_);
-
-    // replica of journal, move page to replica_passed_page_collector_
-    if (replica_) {
-      for (auto &page : queue_release_page) {
-        replica_passed_page_collector_.push_back(std::move(page));
-      }
-      queue_release_page.clear();
-      if (page_) {
-        replica_passed_page_collector_.push_back(std::move(page_));
-      }
-      return true;
-    }
-
-    // origin journal run to here, means that process is closing or release-thread do cleaning work,
-    // release the page in replica_passed_page_collector_
-    for (auto &page : replica_passed_page_collector_) {
-      page.reset();
-    }
-    replica_passed_page_collector_.clear();
-  }
-
   for (auto &page : queue_release_page) {
     // wait for the main thread to release shared_ptr<page>, or page would close in the main thread
-    while (page.use_count() > 1) {
+    while (page.use_count() > 1 and not replica_) {
       std::this_thread::sleep_for(std::chrono::microseconds(1));
     }
     page.reset();

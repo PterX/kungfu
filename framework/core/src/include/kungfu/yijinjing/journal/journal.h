@@ -72,8 +72,6 @@ private:
   frame_ptr frame_;
   uint64_t page_frame_nb_;
   bool replica_{false};
-  inline static std::vector<page_ptr> replica_passed_page_collector_{};
-  inline static std::recursive_mutex replica_passed_page_collector_mtx_{};
 
   void load_page(int page_id);
 
@@ -142,6 +140,8 @@ private:
   bus_ptr bus_;
   journal *current_;
   JournalMap journals_;
+  std::vector<journal> replica_journals_{};
+  std::recursive_mutex mtx_{};
 };
 
 class writer {

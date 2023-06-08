@@ -5,7 +5,10 @@
 #include <kungfu/yijinjing/time.h>
 
 namespace kungfu::yijinjing::journal {
-reader::~reader() { journals_.clear(); }
+reader::~reader() {
+  release_page();
+  journals_.clear();
+}
 
 void reader::join(const data::location_ptr &location, uint32_t dest_id, const int64_t from_time) {
   auto key = static_cast<uint64_t>(location->uid) << 32u | static_cast<uint64_t>(dest_id);
@@ -80,6 +83,8 @@ bool reader::release_page() {
   for (auto &iter : journals_) {
     result |= iter.second.release_page();
   }
+  std::lock_guard<std::recursive_mutex> lk(mtx_);
+  replica_journals_.clear();
   return result;
 }
 
@@ -106,7 +111,9 @@ void reader::keep_only(uint32_t location_uid, uint32_t dest_id) {
 }
 
 journal reader::get_journal(const data::location_ptr &location, uint32_t dest_id) {
-  return get_journal_ref(location, dest_id);
+  std::lock_guard<std::recursive_mutex> lk(mtx_);
+  replica_journals_.push_back(get_journal_ref(location, dest_id));
+  return replica_journals_.back();
 }
 
 journal &reader::get_journal_ref(const data::location_ptr &location, uint32_t dest_id) {

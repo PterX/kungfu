@@ -18,7 +18,7 @@ public:
     SPDLOG_INFO("arguments: {}", context->get_arguments());
     //    context->add_account("sim", "fill");
     context->subscribe("sim", {"600000"}, {"SSE"});
-    //    context->subscribe("xtp", {"600009"}, {"SSE"});
+    context->subscribe("xtp", {"600009"}, {"SSE"});
     // context->subscribe_operator("bar", "my-bar");
   }
 

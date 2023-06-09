@@ -354,7 +354,8 @@ void master::on_channel_request(const event_ptr &event) {
 }
 
 void master::on_time_request(const event_ptr &event) {
-  const TimeRequest &request = event->data<TimeRequest>();
+  auto request_data = event->data_as_string();
+  TimeRequest request(request_data.c_str(), request_data.length());
   timer_tasks_.try_emplace(event->source());
   auto &app_tasks = timer_tasks_.at(event->source());
   auto &task = app_tasks.try_emplace(request.id).first->second;

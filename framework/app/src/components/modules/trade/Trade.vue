@@ -199,7 +199,6 @@ watch(historyDate, async (newDate) => {
       );
 
       trades.value = tempAllTrades;
-      console.log(trades.value, '`````````````');
       allTrades.value = tempAllTrades;
     })
     .catch((err) => {

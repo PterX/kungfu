@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import {
-  dealKfPrice,
   dealSide,
   dealOffset,
   delayMilliSeconds,
@@ -200,6 +199,7 @@ watch(historyDate, async (newDate) => {
       );
 
       trades.value = tempAllTrades;
+      console.log(trades.value, '`````````````');
       allTrades.value = tempAllTrades;
     })
     .catch((err) => {
@@ -300,9 +300,6 @@ function handleShowTradingDataDetail({
             <span :class="`color-${dealOffset(item.offset).color}`">
               {{ dealOffset(item.offset).name }}
             </span>
-          </template>
-          <template v-else-if="column.dataIndex === 'price'">
-            {{ dealKfPrice(item.price, item.price_precision) }}
           </template>
           <template v-else-if="column.dataIndex === 'source_uname'">
             <span :class="[`color-${item.source_resolved_data.color}`]">

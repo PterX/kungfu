@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import {
-  dealKfPrice,
   dealSide,
   dealOffset,
   getIdByKfLocation,
@@ -631,9 +630,6 @@ function testOrderSourceIsOnline(order: KungfuApi.OrderResolved) {
               <span :class="`color-${dealOffset(item.offset).color}`">
                 {{ dealOffset(item.offset).name }}
               </span>
-            </template>
-            <template v-else-if="column.dataIndex === 'limit_price'">
-              {{ dealKfPrice(item.limit_price, item.price_precision) }}
             </template>
             <template v-else-if="column.dataIndex === 'volume_left'">
               <span

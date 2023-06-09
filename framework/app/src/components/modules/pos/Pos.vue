@@ -1,7 +1,5 @@
 <script setup lang="ts">
 import {
-  dealKfPrice,
-  dealAssetPrice,
   dealDirection,
   dealCurrency,
   isTdStrategyCategory,
@@ -242,22 +240,6 @@ function dealLocationUIDResolved(holderUID: number): string {
           </template>
           <template v-else-if="column.dataIndex === 'volume'">
             <KfBlinkNum :num="Number(item.volume).toFixed(0)"></KfBlinkNum>
-          </template>
-          <template v-else-if="column.dataIndex === 'avg_open_price'">
-            <KfBlinkNum
-              :num="dealKfPrice(item.avg_open_price, item.price_precision)"
-            ></KfBlinkNum>
-          </template>
-          <template v-else-if="column.dataIndex === 'last_price'">
-            <KfBlinkNum
-              :num="dealKfPrice(item.last_price, item.price_precision)"
-            ></KfBlinkNum>
-          </template>
-          <template v-else-if="column.dataIndex === 'unrealized_pnl'">
-            <KfBlinkNum
-              mode="compare-zero"
-              :num="dealAssetPrice(item.unrealized_pnl, item.price_precision)"
-            ></KfBlinkNum>
           </template>
         </template>
       </KfTradingDataTable>

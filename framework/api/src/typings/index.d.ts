@@ -615,6 +615,7 @@ declare namespace KungfuApi {
     latency_network: string;
     avg_price: number;
     price_precision?: number;
+    limit_price_resolved: number | string;
   }
 
   export interface OrderInput {
@@ -757,6 +758,9 @@ declare namespace KungfuApi {
     account_id_resolved: string;
     instrument_id_resolved: string;
     price_precision?: number;
+    last_price_resolved: number | string;
+    avg_open_price_resolved: number | string;
+    unrealized_pnl_resolved: number | string;
   }
 
   export interface Quote {
@@ -830,6 +834,7 @@ declare namespace KungfuApi {
     kf_time_resovlved: string;
     latency_trade: string;
     price_precision?: number;
+    price_resolved: number | string;
   }
 
   export interface TradingData {

@@ -18,6 +18,7 @@
         'kf-time-slider-handler-focus-2': true,
       }"
       :tooltip-visible="toolTipVisable"
+      :get-tooltip-popup-container="getTooltipPopupContainer"
       :min="nano2millionSecond(currentSessionBeginTime)"
       :max="maxTime"
       :step="nano2millionSecond(props.step)"
@@ -37,7 +38,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, ref, watch } from 'vue';
+import { computed, ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import { dealKfTime } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { ForwardOutlined, BackwardOutlined } from '@ant-design/icons-vue';
@@ -72,7 +73,6 @@ const onAfterChange = (milliseconds: number) => {
 };
 
 const toolTipVisable = ref(true);
-const handleElement = ref<HTMLElement | null>(null);
 const SCALE = 1000000;
 const BIGINT_SCALE = BigInt(SCALE);
 const TEN_SECOND = BigInt(10000000000);
@@ -119,27 +119,11 @@ const million2nanoSecond = (number: number) => {
   return BigInt(number * SCALE);
 };
 
-watch(
-  () => now.value,
-  () => {
-    handleElement.value = slider.value.$el.querySelector('.ant-slider-handle');
-
-    if (handleElement.value) {
-      const handleRect = handleElement.value.getBoundingClientRect();
-      const tooltipElement: HTMLElement | null = document.querySelector(
-        '.ant-tooltip.ant-slider-tooltip.ant-tooltip-placement-top',
-      );
-
-      if (tooltipElement) {
-        tooltipElement.style.left = `${handleRect.left - 37.2}px`;
-      }
-    }
-  },
-);
-
 const tipFormatter = (num: number) => {
   return dealKfTime(BigInt(num * SCALE));
 };
+
+const getTooltipPopupContainer = (trigger: HTMLElement): HTMLElement => trigger;
 </script>
 
 <style lang="less">

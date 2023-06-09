@@ -38,6 +38,7 @@ export default {
 
   open_resources_directory: '打开功夫资源目录 (KF_HOME)',
   open_install_directory: '打开功夫安装目录',
+  open_system_config_directory: '打开系统设置文件目录',
   open_basic_configuration: '打开功夫基础配置DB',
   open_renderer_app_log: '打开客户端底层日志',
   browsing_log: '浏览日志文件',
@@ -667,6 +668,9 @@ export default {
   globalSettingConfig: {
     global_setting_title: '全局设置',
     system: '系统',
+    home_path: '选择本地Home路径',
+    home_path_desc: '功夫将会以选择的home路径为根目录，修改后重启功夫生效',
+    reset_order: '重置',
     log_level: '全局日志级别',
     for_all_log: '对系统内所有日志级别的设置',
 

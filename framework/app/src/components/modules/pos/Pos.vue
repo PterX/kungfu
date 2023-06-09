@@ -1,7 +1,5 @@
 <script setup lang="ts">
 import {
-  dealKfPrice,
-  dealAssetPrice,
   dealDirection,
   dealCurrency,
   isTdStrategyCategory,
@@ -243,20 +241,16 @@ function dealLocationUIDResolved(holderUID: number): string {
           <template v-else-if="column.dataIndex === 'volume'">
             <KfBlinkNum :num="Number(item.volume).toFixed(0)"></KfBlinkNum>
           </template>
-          <template v-else-if="column.dataIndex === 'avg_open_price'">
-            <KfBlinkNum
-              :num="dealKfPrice(item.avg_open_price, item.price_precision)"
-            ></KfBlinkNum>
+          <template v-else-if="column.dataIndex === 'avg_open_price_resolved'">
+            <KfBlinkNum :num="item.avg_open_price_resolved"></KfBlinkNum>
           </template>
-          <template v-else-if="column.dataIndex === 'last_price'">
-            <KfBlinkNum
-              :num="dealKfPrice(item.last_price, item.price_precision)"
-            ></KfBlinkNum>
+          <template v-else-if="column.dataIndex === 'last_price_resolved'">
+            <KfBlinkNum :num="item.last_price_resolved"></KfBlinkNum>
           </template>
-          <template v-else-if="column.dataIndex === 'unrealized_pnl'">
+          <template v-else-if="column.dataIndex === 'unrealized_pnl_resolved'">
             <KfBlinkNum
               mode="compare-zero"
-              :num="dealAssetPrice(item.unrealized_pnl, item.price_precision)"
+              :num="item.unrealized_pnl_resolved"
             ></KfBlinkNum>
           </template>
         </template>

@@ -192,7 +192,8 @@ void bind_strategy(pybind11::module &m) {
       .def("is_positions_mirrored", &strategy::Context::is_positions_mirrored)
       .def("req_deregister", &strategy::Context::req_deregister)
       .def("update_strategy_state", &strategy::Context::update_strategy_state)
-      .def("get_writer", &strategy::Context::get_writer);
+      .def("get_writer", &strategy::Context::get_writer)
+      .def("get_reader", &strategy::Context::get_reader);
 
   py::class_<strategy::Matcher, std::shared_ptr<strategy::Matcher>>(m, "Matcher");
 

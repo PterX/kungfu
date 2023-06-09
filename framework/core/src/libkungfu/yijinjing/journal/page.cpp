@@ -2,6 +2,7 @@
 
 #include <kungfu/common.h>
 #include <kungfu/yijinjing/journal/page.h>
+#include <kungfu/yijinjing/time.h>
 #include <kungfu/yijinjing/util/os.h>
 
 namespace kungfu::yijinjing::journal {

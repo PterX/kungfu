@@ -272,4 +272,6 @@ yijinjing::journal::writer_ptr BacktestContext::get_writer(const std::string &so
   return app_.get_writer(location::PUBLIC);
 }
 
+journal::reader_ptr BacktestContext::get_reader() { return app_.get_reader(); }
+
 } // namespace kungfu::wingchun::strategy

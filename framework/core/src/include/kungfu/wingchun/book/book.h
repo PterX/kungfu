@@ -32,7 +32,7 @@ typedef std::unordered_map<uint64_t, longfist::types::Order> OrderMap;
 // key = trade_id
 typedef std::unordered_map<uint64_t, longfist::types::Trade> TradeMap;
 
-// key = hash_instrument(exchange_id, instrument_id)
+// key = hash_instrument(source_id, exchange_id, instrument_id)
 typedef std::unordered_map<uint32_t, longfist::types::InstrumentFactor> InstrumentFactorMap;
 
 struct Book {

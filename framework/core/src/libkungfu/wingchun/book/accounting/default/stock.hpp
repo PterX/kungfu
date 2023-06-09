@@ -649,8 +649,9 @@ protected:
         auto &instrument = book->instruments.at(hashed_instrument_key);
         cd_mr.contract_multiplier = instrument.contract_multiplier;
       }
-
-      if (book->instrument_factors.find(hashed_instrument_key) == book->instrument_factors.end()) {
+      
+      auto hashed_instrument_factor_key = hash_instrument(account_id, exchange_id, instrument_id);
+      if (book->instrument_factors.find(hashed_instrument_factor_key) == book->instrument_factors.end()) {
         cd_mr.margin_ratio =
             direction == Direction::Long ? DEFAULT_STOCK_LONG_MARGIN_RATIO : DEFAULT_STOCK_SHORT_MARGIN_RATIO;
         cd_mr.long_margin_ratio = DEFAULT_STOCK_LONG_MARGIN_RATIO;
@@ -658,7 +659,7 @@ protected:
         cd_mr.conversion_rate = DEFAULT_STOCK_CONVERSION_RATE;
         cd_mr.exchange_rate = DEFAULT_STOCK_EXCHANGE_RATE;
       } else {
-        auto &factor = book->instrument_factors.at(hashed_instrument_key);
+        auto &factor = book->instrument_factors.at(hashed_instrument_factor_key);
         cd_mr.margin_ratio = direction == Direction::Long ? factor.long_margin_ratio : factor.short_margin_ratio;
         cd_mr.long_margin_ratio = factor.long_margin_ratio;
         cd_mr.short_margin_ratio = factor.short_margin_ratio;

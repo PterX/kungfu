@@ -103,7 +103,7 @@ void Book::update(int64_t update_time, longfist::enums::AccountingMethodType acc
 
     double db_exchage_rate = 1.0;
     double db_contract_multiplier = 1.0;
-    auto hashed_instrument_key = hash_instrument(position.exchange_id, position.instrument_id);
+    auto hashed_instrument_key = hash_instrument(position.source_id, position.exchange_id, position.instrument_id);
     if (instrument_factors.find(hashed_instrument_key) != instrument_factors.end()) {
       auto &instrument_factor = instrument_factors.at(hashed_instrument_key);
       db_exchage_rate = is_equal(instrument_factor.exchange_rate, 0.0) ? 1.0 : instrument_factor.exchange_rate;
@@ -156,7 +156,7 @@ void Book::replace(const Order &order) { orders.insert_or_assign(order.order_id,
 void Book::replace(const Trade &trade) { trades.insert_or_assign(trade.trade_id, trade); }
 
 void Book::replace(const longfist::types::InstrumentFactor &instrument_factor) {
-  auto instrument_factor_id = hash_instrument(instrument_factor.exchange_id, instrument_factor.instrument_id);
+  auto instrument_factor_id = hash_instrument(instrument_factor.source_id, instrument_factor.exchange_id, instrument_factor.instrument_id);
   instrument_factors.insert_or_assign(instrument_factor_id, instrument_factor);
 }
 

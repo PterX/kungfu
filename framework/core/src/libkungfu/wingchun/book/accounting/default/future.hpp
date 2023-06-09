@@ -347,12 +347,13 @@ private:
       cm_mr.contract_multiplier = instrument.contract_multiplier;
     }
 
-    if (book->instrument_factors.find(hashed_instrument_key) == book->instrument_factors.end()) {
+    auto hashed_instrument_factor_key = hash_instrument(account_id, exchange_id, instrument_id);
+    if (book->instrument_factors.find(hashed_instrument_factor_key) == book->instrument_factors.end()) {
       cm_mr.exchange_rate = DEFAULT_INSTRUMENT_EXCHANGE_RATE;
       cm_mr.margin_ratio =
           direction == Direction::Long ? DEFAULT_INSTRUMENT_LONG_MARGIN_RATIO : DEFAULT_INSTRUMENT_SHORT_MARGIN_RATIO;
     } else {
-      auto &factor = book->instrument_factors.at(hashed_instrument_key);
+      auto &factor = book->instrument_factors.at(hashed_instrument_factor_key);
       cm_mr.margin_ratio = direction == Direction::Long ? factor.long_margin_ratio : factor.short_margin_ratio;
       cm_mr.exchange_rate = is_equal(factor.exchange_rate, 0.0) ? 1.0 : factor.exchange_rate;
     }

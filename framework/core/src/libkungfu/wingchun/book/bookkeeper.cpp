@@ -130,9 +130,7 @@ void Bookkeeper::restore(const cache::bank &state_bank) {
     if (not app_.has_location(instrument_factor.source_id)) {
       continue;
     }
-    auto book = get_book(instrument_factor.source_id);
-    book->instrument_factors[hash_instrument(instrument_factor.exchange_id, instrument_factor.instrument_id)] =
-        instrument_factor;
+    update_instrument_factor(instrument_factor);
   }
 }
 

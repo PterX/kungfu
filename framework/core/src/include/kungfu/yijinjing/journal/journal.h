@@ -118,8 +118,6 @@ public:
 
   [[maybe_unused]] [[nodiscard]] const JournalMap &get_journals() const { return journals_; }
 
-  journal get_journal(const data::location_ptr &location, uint32_t dest_id);
-
   journal &get_journal_ref(const data::location_ptr &location, uint32_t dest_id);
 
   bool data_available();

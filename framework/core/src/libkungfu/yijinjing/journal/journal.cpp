@@ -8,7 +8,7 @@
 namespace kungfu::yijinjing::journal {
 
 journal::~journal() {
-  if (not replica_ and page_) {
+  if (page_) {
     page_.reset();
   }
   release_page();

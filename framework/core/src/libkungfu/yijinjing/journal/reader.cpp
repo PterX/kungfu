@@ -110,12 +110,6 @@ void reader::keep_only(uint32_t location_uid, uint32_t dest_id) {
   sort();
 }
 
-journal reader::get_journal(const data::location_ptr &location, uint32_t dest_id) {
-  std::lock_guard<std::recursive_mutex> lk(mtx_);
-  replica_journals_.push_back(get_journal_ref(location, dest_id));
-  return replica_journals_.back();
-}
-
 journal &reader::get_journal_ref(const data::location_ptr &location, uint32_t dest_id) {
   auto key = static_cast<uint64_t>(location->uid) << 32u | static_cast<uint64_t>(dest_id);
   auto iter = journals_.find(key);

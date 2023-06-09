@@ -273,6 +273,18 @@ function tiggerOrderBookAndMakeOrder(record: KungfuApi.Position) {
           <template v-else-if="column.dataIndex === 'volume'">
             <KfBlinkNum :num="Number(item.volume).toFixed(0)"></KfBlinkNum>
           </template>
+          <template v-else-if="column.dataIndex === 'avg_open_price_resolved'">
+            <KfBlinkNum :num="item.avg_open_price_resolved"></KfBlinkNum>
+          </template>
+          <template v-else-if="column.dataIndex === 'last_price_resolved'">
+            <KfBlinkNum :num="item.last_price_resolved"></KfBlinkNum>
+          </template>
+          <template v-else-if="column.dataIndex === 'unrealized_pnl_resolved'">
+            <KfBlinkNum
+              mode="compare-zero"
+              :num="item.unrealized_pnl_resolved"
+            ></KfBlinkNum>
+          </template>
         </template>
       </KfTradingDataTable>
     </KfDashboard>

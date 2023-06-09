@@ -56,7 +56,7 @@ export const getColumns = (
       {
         type: 'number',
         name: t('tradeConfig.price'),
-        dataIndex: 'price',
+        dataIndex: 'price_resolved',
         width: 120,
         sorter: buildSorter('price'),
       },

@@ -73,9 +73,9 @@ public:
       kungfu::yijinjing::journal::reader reader_copy2(*context->get_reader());
 
       std::this_thread::sleep_for(std::chrono::seconds(10));
-      auto j1 = context->get_reader()->get_journal(l_ptr, 0);
+      auto j1 = context->get_reader()->get_journal_ref(l_ptr, 0);
       SPDLOG_INFO("j1: {}", j1.get_source());
-      auto j2 = context->get_reader()->get_journal(l_ptr, 0);
+      auto j2 = context->get_reader()->get_journal_ref(l_ptr, 0);
       int64_t now = kungfu::yijinjing::time::now_in_nano();
 
       while (j1.current_frame()->has_data() and j1.current_frame()->gen_time() < now) {

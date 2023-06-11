@@ -11,6 +11,7 @@ from kungfu.console.commands import kfc, PrioritizedCommandGroup
 from kungfu.yijinjing import time as kft
 from kungfu.yijinjing.log import find_logger
 from kungfu.yijinjing import journal as kfj
+from kungfu.wingchun import sliceindexer
 
 
 lf = kungfu.__binding__.longfist
@@ -38,13 +39,14 @@ yjj = kungfu.__binding__.yijinjing
 @kfc.pass_context()
 def slicetool(ctx, begin, end, category, group, name, tool_path, index_path):
     location = yjj.location(
-        kfj.MODES["backtest"],
+        kfj.MODES["data"],
         kfj.CATEGORIES[category],
         group,
         name,
         ctx.backtest_locator,
     )
     logger = find_logger(location, ctx.log_level)
+    ctx.logger = logger
     begin_time_stamp = kft.strptimes(begin)
     end_time_stamp = kft.strptimes(end)
     tool_path = Path(tool_path)
@@ -56,9 +58,8 @@ def slicetool(ctx, begin, end, category, group, name, tool_path, index_path):
     module = importlib.import_module(module_name)
 
     if index_path:
-        indexer = None
+        indexer = sliceindexer.SliceIndexer(ctx, begin_time_stamp, end_time_stamp, index_path)
     else:
-        #TODO
         # indexer = wc.DayIndexer(begin_time_stamp, end_time_stamp)
         indexer = wc.NameTimeHashingIndexer(begin_time_stamp, end_time_stamp)
 

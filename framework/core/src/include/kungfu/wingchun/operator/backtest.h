@@ -98,10 +98,6 @@ protected:
 
   void prepare(const event_ptr &event) override{};
 
-  yijinjing::data::location_ptr find_md_location(const std::string &source);
-
-  yijinjing::data::location_ptr find_op_location(const std::string &group, const std::string &name);
-
 private:
   broker::PassiveClient broker_client_;
   tool::SliceIndexer_ptr from_indexer_;

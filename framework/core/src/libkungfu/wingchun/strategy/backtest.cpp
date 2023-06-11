@@ -37,6 +37,7 @@ void BacktestContext::on_start() {
   events_ | is_own<Quote>(get_broker_client()) | $$(matcher_->on_quote(event->data<Quote>()));
   events_ | is_own<Entrust>(get_broker_client()) | $$(matcher_->on_entrust(event->data<Entrust>()));
   events_ | is_own<Transaction>(get_broker_client()) | $$(matcher_->on_transaction(event->data<Transaction>()));
+  events_ | is_own<Tree>(get_broker_client()) | $$(matcher_->on_tree(event->data<Tree>()));
   events_ | is(OrderInput::tag) | $$(matcher_->on_order_input(event->data<OrderInput>()));
   events_ | is(OrderAction::tag) | $$(matcher_->on_order_action(event->data<OrderAction>()));
   events_ | $$(on_timer_check());
@@ -88,39 +89,57 @@ void BacktestContext::add_account(const std::string &source, const std::string &
 
 void BacktestContext::subscribe(const std::string &source, const std::vector<std::string> &instrument_ids,
                                 const std::string &exchange_id) {
-  auto md_location = find_md_location(source);
-  if (md_location->locator->list_page_id(md_location, location::PUBLIC).empty()) {
-    throw wingchun_error(fmt::format("md public journal {} not exists", md_location->uname));
-  }
-  SPDLOG_INFO("subscribe source={} in: {}", source, md_location->uname);
-  add_location(app_, md_location);
-  app_.get_reader()->join(md_location, location::PUBLIC, std::max(app_.get_begin_time(), app_.now()));
-  for (const auto &instrument_id : instrument_ids) {
-    broker_client_.subscribe(md_location, exchange_id,  instrument_id);
+  for (auto data_type : {Quote::tag, Tree::tag, Entrust::tag, Transaction::tag}) {
+    for (const auto &instrument_id : instrument_ids) {
+      int64_t slice_begin_time = app_.now();
+      do {
+        auto md_location = from_indexer_->find_md_slice_location(slice_begin_time, source, source, instrument_id,
+                                                                 exchange_id, data_type);
+        if (md_location->locator->list_page_id(md_location, location::PUBLIC).empty()) {
+          SPDLOG_WARN("md public journal in locator={}, location={} not exists", md_location->locator->get_root(),
+                      md_location->uname);
+          continue;
+        }
+        SPDLOG_TRACE("subscribed md public locator={}, location={}", md_location->locator->get_root(),
+                     md_location->uname);
+        add_location(app_, md_location);
+        app_.get_reader()->join(md_location, location::PUBLIC, slice_begin_time);
+        broker_client_.subscribe(md_location, exchange_id, instrument_id);
+      } while ((slice_begin_time = 1 + from_indexer_->get_md_slice_end_time(slice_begin_time, source, source,
+                                                                            instrument_id, exchange_id, data_type)) <
+               app_.get_end_time());
+    }
   }
 }
 
 void BacktestContext::subscribe_all(const std::string &source, uint8_t market_type, uint64_t instrument_type,
                                     uint64_t data_type) {
-  auto md_location = find_md_location(source);
-  if (md_location->locator->list_page_id(md_location, location::PUBLIC).empty()) {
-    throw wingchun_error(fmt::format("md public journal {} not exists", md_location->uname));
-  }
-  SPDLOG_INFO("subscribe source={} in: {}", source, md_location->uname);
-  add_location(app_, md_location);
-  app_.get_reader()->join(md_location, location::PUBLIC, std::max(app_.get_begin_time(), app_.now()));
-  broker_client_.subscribe_all(find_md_location(source), market_type, instrument_type, data_type);
+  // auto md_location = find_md_location(source);
+  // if (md_location->locator->list_page_id(md_location, location::PUBLIC).empty()) {
+  //   throw wingchun_error(fmt::format("md public journal {} not exists", md_location->uname));
+  // }
+  // SPDLOG_INFO("subscribe source={} in: {}", source, md_location->uname);
+  // add_location(app_, md_location);
+  // app_.get_reader()->join(md_location, location::PUBLIC, std::max(app_.get_begin_time(), app_.now()));
+  // broker_client_.subscribe_all(find_md_location(source), market_type, instrument_type, data_type);
 }
 
 void BacktestContext::subscribe_operator(const std::string &group, const std::string &name) {
-  auto op_location = find_op_location(group, name);
-  if (op_location->locator->list_page_id(op_location, location::PUBLIC).empty()) {
-    throw wingchun_error(fmt::format("op public journal {} not exists", op_location->uname));
-  }
-  SPDLOG_INFO("subscribe op={}/{} in: {}", group, name, op_location->uname);
-  add_location(app_, op_location);
-  app_.get_reader()->join(op_location, location::PUBLIC, std::max(app_.get_begin_time(), app_.now()));
-  broker_client_.enroll_operator(op_location);
+  int64_t slice_begin_time = app_.now();
+  do {
+    auto op_location = from_indexer_->find_operator_slice_location(slice_begin_time, group, name);
+    if (op_location->locator->list_page_id(op_location, location::PUBLIC).empty()) {
+      SPDLOG_WARN("operator public journal in locator={}, location={} not exists", op_location->locator->get_root(),
+                  op_location->uname);
+      continue;
+    }
+    SPDLOG_TRACE("subscribed operator public locator={}, location={}", op_location->locator->get_root(),
+                 op_location->uname);
+    add_location(app_, op_location);
+    app_.get_reader()->join(op_location, location::PUBLIC, slice_begin_time);
+    broker_client_.enroll_operator(op_location);
+  } while ((slice_begin_time = 1 + from_indexer_->get_operator_slice_end_time(slice_begin_time, group, name)) <
+           app_.get_end_time());
 }
 
 uint64_t BacktestContext::insert_block_message(const std::string &source, const std::string &account,
@@ -245,19 +264,19 @@ broker::Client &BacktestContext::get_broker_client() { return broker_client_; }
 
 book::Bookkeeper &BacktestContext::get_bookkeeper() { return bookkeeper_; }
 
-location_ptr BacktestContext::find_md_location(const std::string &source) {
-  uint32_t cache_uid = hash_backtest_cache(source, app_.get_begin_time(), app_.get_end_time());
-  auto cache_location =
-      location::make_shared(mode::BACKTEST, category::MD, source, fmt::format("{:08x}", cache_uid), app_.get_locator());
-  return cache_location;
-}
+// location_ptr BacktestContext::find_md_location(const std::string &source) {
+//   uint32_t cache_uid = hash_backtest_cache(source, app_.get_begin_time(), app_.get_end_time());
+//   auto cache_location =
+//       location::make_shared(mode::BACKTEST, category::MD, source, fmt::format("{:08x}", cache_uid), app_.get_locator());
+//   return cache_location;
+// }
 
-location_ptr BacktestContext::find_op_location(const std::string &group, const std::string &name) {
-  uint32_t cache_uid = hash_backtest_cache(name, app_.get_begin_time(), app_.get_end_time());
-  auto cache_location = location::make_shared(mode::BACKTEST, category::OPERATOR, group,
-                                              fmt::format("{:08x}", cache_uid), app_.get_locator());
-  return cache_location;
-}
+// location_ptr BacktestContext::find_op_location(const std::string &group, const std::string &name) {
+//   uint32_t cache_uid = hash_backtest_cache(name, app_.get_begin_time(), app_.get_end_time());
+//   auto cache_location = location::make_shared(mode::BACKTEST, category::OPERATOR, group,
+//                                               fmt::format("{:08x}", cache_uid), app_.get_locator());
+//   return cache_location;
+// }
 
 void BacktestContext::req_history_order(const std::string &source, const std::string &account, uint32_t query_num) {}
 

@@ -315,6 +315,7 @@ get_account_type
 insert_block_message
 insert_order
 insert_batch_orders
+on_time_key_value
 cancel_order
 req_history_order
 req_history_trade

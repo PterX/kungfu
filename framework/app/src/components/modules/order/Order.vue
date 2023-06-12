@@ -66,7 +66,7 @@ const { getPriceTickAndPrecision } = useActiveInstruments();
 const { handleBodySizeChange } = useDashboardBodySize();
 
 const { processStatusData } = useProcessStatusDetailData();
-const { getDealerWithCache, clearCaches } = useDealDataWithCaches<
+const { dealDataWithCache, clearCaches } = useDealDataWithCaches<
   KungfuApi.Order,
   KungfuApi.OrderResolved
 >(['uid_key', 'update_time']);
@@ -143,7 +143,7 @@ onMounted(() => {
             );
 
             return toRaw(
-              getDealerWithCache(item, () =>
+              dealDataWithCache(item, () =>
                 dealOrder(
                   watcher,
                   item,
@@ -171,7 +171,7 @@ onMounted(() => {
             );
 
             const orderResolved = toRaw(
-              getDealerWithCache(curOrder, () =>
+              dealDataWithCache(curOrder, () =>
                 dealOrder(
                   watcher,
                   curOrder,
@@ -260,7 +260,7 @@ watch(historyDate, async (newDate) => {
           );
 
           return toRaw(
-            getDealerWithCache(item, () =>
+            dealDataWithCache(item, () =>
               dealOrder(
                 window.watcher,
                 item,

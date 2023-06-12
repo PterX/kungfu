@@ -2039,6 +2039,10 @@ export const useCurrentPositionList = () => {
   const { currentGlobalKfLocation } = useCurrentGlobalKfLocation(
     window.watcher,
   );
+  const { dealDataWithCache } = useDealDataWithCaches<
+    KungfuApi.Position,
+    KungfuApi.PositionResolved
+  >(['uid_key', 'update_time']);
   const currentPositionList = ref<KungfuApi.PositionResolved[]>([]);
 
   onMounted(() => {
@@ -2060,7 +2064,9 @@ export const useCurrentPositionList = () => {
           currentPositionList.value = toRaw(
             currentPositions
               .reverse()
-              .map((item) => dealPosition(watcher, item)),
+              .map((item) =>
+                dealDataWithCache(item, () => dealPosition(watcher, item)),
+              ),
           );
         },
       );

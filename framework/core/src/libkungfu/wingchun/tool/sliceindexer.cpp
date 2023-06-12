@@ -52,6 +52,7 @@ location_ptr DayIndexer::find_md_slice_location(int64_t nano_time, const std::st
   auto slice_location = location::make_shared(mode::DATA, category::MD, group, name, slice_locator);
   return slice_location;
 }
+
 int64_t DayIndexer::get_md_slice_end_time(int64_t nano_time, const std::string &group, const std::string &name,
                                           const std::string &instrument_id, const std::string &exchange_id,
                                           int32_t data_type) const {

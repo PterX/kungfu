@@ -43,7 +43,6 @@ import {
   dealKfNumber,
   dealKfPrice,
   transformSearchInstrumentResultToInstrument,
-  booleanProcessEnv,
   isShotable,
   isT0,
   getTradingDataSortKey,
@@ -51,7 +50,9 @@ import {
   isCheckVersionLogicEnable,
   kfLogger,
   countDecimalPlaces,
+  buildTradingDataHeaders,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { BasketVolumeType } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import { writeCsvWithUTF8Bom } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
 import {
@@ -533,31 +534,37 @@ export const useDealExportHistoryTradingData = (): {
         writeCsvWithUTF8Bom(
           ordersFilename,
           orders,
+          buildTradingDataHeaders('Order', orders),
           dealTradingDataItemResolved(),
         ),
         writeCsvWithUTF8Bom(
           tradesFilename,
           trades,
+          buildTradingDataHeaders('Trade', trades),
           dealTradingDataItemResolved(),
         ),
         writeCsvWithUTF8Bom(
           orderStatFilename,
           orderStat,
+          buildTradingDataHeaders('OrderStat', orderStat),
           dealTradingDataItemResolved(true),
         ),
         writeCsvWithUTF8Bom(
           posFilename,
           positions,
+          buildTradingDataHeaders('Position', positions),
           dealTradingDataItemResolved(),
         ),
         writeCsvWithUTF8Bom(
           assetFilename,
           assets,
+          buildTradingDataHeaders('Asset', assets),
           dealTradingDataItemResolved(),
         ),
         writeCsvWithUTF8Bom(
           orderInputsFilename,
           orderInputs,
+          buildTradingDataHeaders('OrderInput', orderInputs),
           dealTradingDataItemResolved(),
         ),
       ])
@@ -647,6 +654,7 @@ export const useDealExportHistoryTradingData = (): {
     return writeCsvWithUTF8Bom(
       filename,
       exportDatas,
+      buildTradingDataHeaders(tradingDataType, exportDatas),
       dealTradingDataItemResolved(),
     )
       .then(() => {
@@ -721,7 +729,12 @@ export const handleExportInstrumentWhitelists = async (): Promise<void> => {
     return (item) =>
       dealTradingDataItem(item, window.watcher, isShowOriginData) as Row;
   };
-  writeCsvWithUTF8Bom(targetFolder, instrument, dealTradingDataItemResolved())
+  writeCsvWithUTF8Bom(
+    targetFolder,
+    instrument,
+    buildTradingDataHeaders('Instrument', instrument),
+    dealTradingDataItemResolved(),
+  )
     .then(() => {
       shell.showItemInFolder(targetFolder);
       success();
@@ -1262,6 +1275,10 @@ export const useQuote = (): {
   getQuoteByInstrument(
     instrument: KungfuApi.InstrumentResolved | undefined,
   ): KungfuApi.Quote | null;
+  getQuoteByPosition(
+    posiiton: KungfuApi.Position | undefined,
+  ): KungfuApi.Quote | null;
+  getPositionLastPrice: (pos: KungfuApi.Position) => number;
   getLastPricePercent(
     instrument: KungfuApi.InstrumentResolved | undefined,
   ): string;
@@ -1299,6 +1316,44 @@ export const useQuote = (): {
     const { ukey } = instrument;
     const quote = quotes.value[ukey] as KungfuApi.Quote | undefined;
     return quote || null;
+  };
+
+  const getQuoteByPosition = (
+    position: KungfuApi.Position | undefined,
+  ): KungfuApi.Quote | null => {
+    if (!position) {
+      return null;
+    }
+
+    const ukey = hashInstrumentUKey(
+      position.instrument_id,
+      position.exchange_id,
+    );
+
+    const instrumentResolved: KungfuApi.InstrumentResolved = {
+      instrumentId: position.instrument_id,
+      exchangeId: position.exchange_id,
+      instrumentName: '',
+      instrumentType: position.instrument_type,
+      ukey,
+      id: position.uid_key,
+    };
+
+    return getQuoteByInstrument(instrumentResolved);
+  };
+
+  const getPositionLastPrice = (pos: KungfuApi.Position) => {
+    // 有行情时，根据 quote 和 position 更新时间取最新 last_price,
+    // 若 position 没有 last_price, 则取 quote 的 last_price
+    const quote = getQuoteByPosition(pos);
+    if (quote) {
+      return (
+        (quote.data_time > pos.update_time
+          ? quote.last_price
+          : pos.last_price || quote.last_price) || 0
+      );
+    }
+    return pos.last_price || 0;
   };
 
   const getLastPricePercent = (
@@ -1397,6 +1452,8 @@ export const useQuote = (): {
   return {
     quotes,
     getQuoteByInstrument,
+    getQuoteByPosition,
+    getPositionLastPrice,
     getLastPricePercent,
     getPreClosePrice,
     isInstrumentUpLimit,
@@ -2067,6 +2124,7 @@ export const useMakeOrderInfo = (
   const { currentGlobalKfLocation } = useCurrentGlobalKfLocation(
     window.watcher,
   );
+  const { getPositionLastPrice } = useQuote();
   const { currentPositionList } = useCurrentPositionList();
   const { getAssetsByKfConfig } = useAssets();
 
@@ -2241,7 +2299,9 @@ export const useMakeOrderInfo = (
     if (price_type === PriceTypeEnum.Limit) {
       return limit_price as number;
     } else if (price_type === PriceTypeEnum.Market) {
-      return currentPosition.value?.last_price ?? null;
+      if (currentPosition.value) {
+        return getPositionLastPrice(currentPosition.value) || null;
+      }
     }
 
     return null;
@@ -2567,7 +2627,7 @@ export const useBasket = () => {
 export const useDealDataWithCaches = <T, U>(keys: Array<keyof T>) => {
   const caches = new Map<string, U>();
 
-  const getDealerWithCache = (data: T, dealer: () => U): U => {
+  const dealDataWithCache = (data: T, dealer: () => U): U => {
     const curKey = keys.map((key) => data[key]).join('_');
     if (caches.has(curKey)) {
       const value = caches.get(curKey);
@@ -2590,7 +2650,7 @@ export const useDealDataWithCaches = <T, U>(keys: Array<keyof T>) => {
   });
 
   return {
-    getDealerWithCache,
+    dealDataWithCache,
     clearCaches,
   };
 };

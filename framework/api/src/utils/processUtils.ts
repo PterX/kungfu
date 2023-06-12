@@ -28,13 +28,13 @@ import {
 } from '../config/pathConfig';
 import { getKfGlobalSettingsValue } from '../config/globalSettings';
 import { Observable } from 'rxjs';
+import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { Pm2StartOptions } from '../typings/global';
 import { KfHookKeeper } from '../hooks';
 const { t } = VueI18n.global;
 
 process.env.PM2_HOME = path.resolve(os.homedir(), '.pm2');
-const numCPUs = os.cpus() ? os.cpus().length : 1;
 const isWin = os.platform() === 'win32';
 const isLinux = os.platform() === 'linux';
 const locale = getUserLocale().replace(/-/g, '_');
@@ -659,7 +659,7 @@ function buildProcessStatus(pList: ProcessDescription[]): Pm2ProcessStatusData {
 function getRocketParams(args: string, ifRocket: boolean) {
   let rocket = ifRocket ? '-x' : '';
 
-  if (numCPUs <= 4) {
+  if (!booleanProcessEnv(process.env.IF_CPUS_NUM_SAFE)) {
     rocket = '';
   }
 

@@ -15,7 +15,7 @@ import {
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
 import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
 import KfTradingDataTable from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfTradingDataTable.vue';
-import { DownloadOutlined } from '@ant-design/icons-vue';
+import { DownloadOutlined, ReloadOutlined } from '@ant-design/icons-vue';
 
 import {
   computed,
@@ -42,7 +42,11 @@ import {
   useDealDataWithCaches,
   useActiveInstruments,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
+import { messagePrompt } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
+import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 
+const { t } = VueI18n.global;
+const { success, error } = messagePrompt();
 const app = getCurrentInstance();
 const { handleBodySizeChange } = useDashboardBodySize();
 
@@ -63,7 +67,7 @@ const { handleDownload } = useDownloadHistoryTradingData();
 const { triggerOrderBook, triggerMakeOrder } = useTriggerMakeOrder();
 const { instruments } = useInstruments();
 const { getPriceTickAndPrecision } = useActiveInstruments();
-const { getDealerWithCache } = useDealDataWithCaches<
+const { dealDataWithCache } = useDealDataWithCaches<
   KungfuApi.Position,
   KungfuApi.PositionResolved
 >(['uid_key', 'update_time']);
@@ -106,7 +110,7 @@ onMounted(() => {
               0.001,
             );
 
-            return getDealerWithCache(item, () =>
+            return dealDataWithCache(item, () =>
               dealPosition(watcher, item, price_precision),
             );
           }),
@@ -161,6 +165,15 @@ function handleClickRow(data: {
 function dealLocationUIDResolved(holderUID: number): string {
   return getIdByKfLocation(window.watcher.getLocation(holderUID));
 }
+
+function handleRequestPosition() {
+  const res = window.watcher.requestPosition(window.watcher);
+  if (res) {
+    success(t('operation_success'));
+  } else {
+    error(t('operation_failed'));
+  }
+}
 </script>
 <template>
   <div class="kf-position__warp kf-translateZ">
@@ -185,6 +198,13 @@ function dealLocationUIDResolved(holderUID: number): string {
             :placeholder="$t('keyword_input')"
             style="width: 120px"
           />
+        </KfDashboardItem>
+        <KfDashboardItem>
+          <a-button size="small" @click="handleRequestPosition">
+            <template #icon>
+              <ReloadOutlined style="font-size: 14px" />
+            </template>
+          </a-button>
         </KfDashboardItem>
         <KfDashboardItem>
           <a-button

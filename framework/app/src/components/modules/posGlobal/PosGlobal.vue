@@ -34,6 +34,7 @@ import {
   useInstruments,
   useActiveInstruments,
   useQuote,
+  useDealDataWithCaches,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import {
   dealPosition,
@@ -72,6 +73,10 @@ const { getPositionLastPrice } = useQuote();
 const { triggerOrderBook, triggerMakeOrder } = useTriggerMakeOrder();
 const { getInstrumentCurrencyByIds, getPriceTickAndPrecision } =
   useActiveInstruments();
+const { dealDataWithCache } = useDealDataWithCaches<
+  KungfuApi.Position,
+  KungfuApi.PositionResolved
+>(['uid_key', 'update_time']);
 const { globalSetting } = storeToRefs(useGlobalStore());
 
 onMounted(() => {
@@ -94,7 +99,9 @@ onMounted(() => {
                 0.001,
               );
 
-              return dealPosition(window.watcher, position, price_precision);
+              return dealDataWithCache(position, () =>
+                dealPosition(watcher, position, price_precision),
+              );
             }),
           );
         });
@@ -118,8 +125,13 @@ function buildGlobalPositions(
       posStat[id] = pos;
     } else {
       const prePosStat = posStat[id];
-      const { avg_open_price, volume, yesterday_volume, unrealized_pnl } =
-        prePosStat;
+      const {
+        avg_open_price,
+        volume,
+        yesterday_volume,
+        unrealized_pnl,
+        update_time,
+      } = prePosStat;
       posStat[id] = {
         ...prePosStat,
         uid_key: pos.uid_key,
@@ -131,6 +143,8 @@ function buildGlobalPositions(
             pos.avg_open_price * Number(pos.volume)) /
           (Number(volume) + Number(pos.volume)),
         unrealized_pnl: unrealized_pnl + pos.unrealized_pnl,
+        update_time:
+          update_time > pos.update_time ? update_time : pos.update_time,
       };
     }
     return posStat;
@@ -182,7 +196,7 @@ function handleClickRow(data: {
   tiggerOrderBookAndMakeOrder(data.row);
 }
 
-function tiggerOrderBookAndMakeOrder(record: KungfuApi.Position) {
+function tiggerOrderBookAndMakeOrder(record: KungfuApi.PositionResolved) {
   const { instrument_id, instrument_type, exchange_id } = record;
   const ensuredInstrument: KungfuApi.InstrumentResolved =
     getInstrumentByInstrumentPair(

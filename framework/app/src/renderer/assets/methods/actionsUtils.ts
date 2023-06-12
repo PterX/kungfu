@@ -43,7 +43,6 @@ import {
   dealKfNumber,
   dealKfPrice,
   transformSearchInstrumentResultToInstrument,
-  booleanProcessEnv,
   isShotable,
   isT0,
   getTradingDataSortKey,
@@ -51,7 +50,9 @@ import {
   isCheckVersionLogicEnable,
   kfLogger,
   countDecimalPlaces,
+  buildTradingDataHeaders,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { BasketVolumeType } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import { writeCsvWithUTF8Bom } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
 import {
@@ -533,31 +534,37 @@ export const useDealExportHistoryTradingData = (): {
         writeCsvWithUTF8Bom(
           ordersFilename,
           orders,
+          buildTradingDataHeaders('Order', orders),
           dealTradingDataItemResolved(),
         ),
         writeCsvWithUTF8Bom(
           tradesFilename,
           trades,
+          buildTradingDataHeaders('Trade', trades),
           dealTradingDataItemResolved(),
         ),
         writeCsvWithUTF8Bom(
           orderStatFilename,
           orderStat,
+          buildTradingDataHeaders('OrderStat', orderStat),
           dealTradingDataItemResolved(true),
         ),
         writeCsvWithUTF8Bom(
           posFilename,
           positions,
+          buildTradingDataHeaders('Position', positions),
           dealTradingDataItemResolved(),
         ),
         writeCsvWithUTF8Bom(
           assetFilename,
           assets,
+          buildTradingDataHeaders('Asset', assets),
           dealTradingDataItemResolved(),
         ),
         writeCsvWithUTF8Bom(
           orderInputsFilename,
           orderInputs,
+          buildTradingDataHeaders('OrderInput', orderInputs),
           dealTradingDataItemResolved(),
         ),
       ])
@@ -647,6 +654,7 @@ export const useDealExportHistoryTradingData = (): {
     return writeCsvWithUTF8Bom(
       filename,
       exportDatas,
+      buildTradingDataHeaders(tradingDataType, exportDatas),
       dealTradingDataItemResolved(),
     )
       .then(() => {
@@ -721,7 +729,12 @@ export const handleExportInstrumentWhitelists = async (): Promise<void> => {
     return (item) =>
       dealTradingDataItem(item, window.watcher, isShowOriginData) as Row;
   };
-  writeCsvWithUTF8Bom(targetFolder, instrument, dealTradingDataItemResolved())
+  writeCsvWithUTF8Bom(
+    targetFolder,
+    instrument,
+    buildTradingDataHeaders('Instrument', instrument),
+    dealTradingDataItemResolved(),
+  )
     .then(() => {
       shell.showItemInFolder(targetFolder);
       success();
@@ -2121,6 +2134,7 @@ export const useMakeOrderInfo = (
   const { currentGlobalKfLocation } = useCurrentGlobalKfLocation(
     window.watcher,
   );
+  const { getPositionLastPrice } = useQuote();
   const { currentPositionList } = useCurrentPositionList();
   const { getAssetsByKfConfig } = useAssets();
 
@@ -2295,7 +2309,9 @@ export const useMakeOrderInfo = (
     if (price_type === PriceTypeEnum.Limit) {
       return limit_price as number;
     } else if (price_type === PriceTypeEnum.Market) {
-      return currentPosition.value?.last_price ?? null;
+      if (currentPosition.value) {
+        return getPositionLastPrice(currentPosition.value) || null;
+      }
     }
 
     return null;
@@ -2621,7 +2637,7 @@ export const useBasket = () => {
 export const useDealDataWithCaches = <T, U>(keys: Array<keyof T>) => {
   const caches = new Map<string, U>();
 
-  const getDealerWithCache = (data: T, dealer: () => U): U => {
+  const dealDataWithCache = (data: T, dealer: () => U): U => {
     const curKey = keys.map((key) => data[key]).join('_');
     if (caches.has(curKey)) {
       const value = caches.get(curKey);
@@ -2644,7 +2660,7 @@ export const useDealDataWithCaches = <T, U>(keys: Array<keyof T>) => {
   });
 
   return {
-    getDealerWithCache,
+    dealDataWithCache,
     clearCaches,
   };
 };

@@ -947,3 +947,22 @@ export const Currency: Record<CurrencyEnum, KungfuApi.KfTradeValueCommonData> =
     [CurrencyEnum.MYR]: { name: t('tradingConfig.MYR') },
     [CurrencyEnum.CEN]: { name: t('tradingConfig.CEN') },
   };
+
+export const ExportTradingDataColumnsToFilter: Record<
+  KungfuApi.TradingDataTypeName,
+  string[]
+> = {
+  Position: ['dest', 'source'],
+  Trade: [],
+  Order: [],
+  Instrument: ['dest', 'source'],
+  AssetMargin: ['dest', 'source'],
+  Asset: ['dest', 'source'],
+  OrderInput: [],
+  OrderStat: ['dest', 'source'],
+  Quote: [],
+  Basket: ['dest', 'source'],
+  BasketInstrument: ['dest', 'source'],
+  BasketOrder: [],
+  InstrumentFactor: ['dest', 'source'],
+};

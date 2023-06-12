@@ -647,6 +647,14 @@ declare namespace KungfuApi {
     uid_key: string;
   }
 
+  export interface TimeKeyValue {
+    key: string;
+    update_time: bigint;
+    tag_a: string;
+    tag_b: string;
+    tag_c: string;
+    value: string;
+  }
   export interface BlockMessage {
     opponent_seat: number; // 对方手席位号
     match_number: bigint; // 成交约定号
@@ -998,6 +1006,7 @@ declare namespace KungfuApi {
       exchangeId: string,
       instrumentId: string,
     ): boolean;
+    requestPosition(): boolean;
     cancelOrder(
       orderAction: OrderAction,
       tdLocation: KfLocation,
@@ -1012,6 +1021,7 @@ declare namespace KungfuApi {
       blockMessage: BlockMessage,
       tdLocation: KfLocation,
     ): bigint;
+    issueCustomData(message: TimeKeyValue, targetLocation: KfLocation): boolean;
     issueBasketOrder(basketOrder: BasketOrder, tdLocation: KfLocation): bigint;
     quit(): void;
     now(): bigint;

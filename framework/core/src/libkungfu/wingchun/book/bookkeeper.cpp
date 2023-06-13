@@ -16,8 +16,9 @@ using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::util;
 
 namespace kungfu::wingchun::book {
-Bookkeeper::Bookkeeper(apprentice &app, broker::Client &broker_client)
-    : app_(app), broker_client_(broker_client), account_method_type_(book::get_accounting_method_type()) {
+Bookkeeper::Bookkeeper(apprentice &app, broker::Client &broker_client, bool bypass_quote)
+    : app_(app), broker_client_(broker_client), bypass_quote_(bypass_quote),
+      account_method_type_(book::get_accounting_method_type()) {
   book::AccountingMethod::setup_defaults(*this, account_method_type_);
 }
 
@@ -33,7 +34,7 @@ Book_ptr Bookkeeper::get_book(uint32_t location_uid) {
 }
 
 const BookMap &Bookkeeper::get_books() const { return books_; }
- 
+
 void Bookkeeper::set_accounting_method(InstrumentType instrument_type, const AccountingMethod_ptr &accounting_method) {
   accounting_methods_.emplace(instrument_type, accounting_method);
 }
@@ -58,7 +59,7 @@ void Bookkeeper::on_start(const rx::connectable_observable<event_ptr> &events) {
 
   events | is(Instrument::tag) | $$(update_instrument(event->data<Instrument>()));
   events | is(InstrumentFactor::tag) | $$(update_instrument_factor(event->data<InstrumentFactor>()));
-  events | is_own<Quote>(broker_client_) | $$(update_book(event, event->data<Quote>()));
+  events | is_own<Quote>(broker_client_) | $$(try_update_book(event, event->data<Quote>()));
   events | is(InstrumentKey::tag) | $$(update_book(event, event->data<InstrumentKey>()));
   events | is(OrderInput::tag) |
       $$(on_order_input(event->gen_time(), event->source(), event->dest(), event->data<OrderInput>()));
@@ -71,7 +72,23 @@ void Bookkeeper::on_start(const rx::connectable_observable<event_ptr> &events) {
   events | fork<PositionEnd>(location::SYNC, &Bookkeeper::update_position_guard, &Bookkeeper::try_update_position_end);
   events | is(TradingDay::tag) | $$(on_trading_day(event->data<TradingDay>().timestamp));
   events | is(ResetBookRequest::tag) | $$(drop_book(event->source()));
+
+  if (bypass_quote_) {
+    app_.add_time_interval(yijinjing::time_unit::NANOSECONDS_PER_SECOND * 15,
+                           [&](auto e) { batch_update_book_by_quote(); });
+  }
 }
+
+void Bookkeeper::batch_update_book_by_quote() {
+  SPDLOG_DEBUG("batch_update_book_by_quote");
+
+  for (const auto &iter : quotes_) {
+    const auto &state_quote = iter.second;
+    update_book(state_quote.update_time, state_quote.data);
+  }
+}
+
+std::mutex &Bookkeeper::get_update_book_mutex() { return update_book_mutex_; }
 
 void Bookkeeper::try_update_position_end(const PositionEnd &position_end) {
   get_book(position_end.holder_uid)->update(app_.now(), account_method_type_);
@@ -100,7 +117,8 @@ void Bookkeeper::restore(const cache::bank &state_bank) {
     auto is_long = position.direction == longfist::enums::Direction::Long;
     auto &positions = is_long ? book->long_positions : book->short_positions;
     positions[hash_instrument(position.source_id, position.exchange_id, position.instrument_id)] = position;
-    positions[hash_instrument(position.source_id, position.exchange_id, position.instrument_id)].source_op_id = book->source_op_id(position.holder_uid, position.source_id);
+    positions[hash_instrument(position.source_id, position.exchange_id, position.instrument_id)].source_op_id =
+        book->source_op_id(position.holder_uid, position.source_id);
     book->add_source_id(position.source_id);
   }
   for (auto &pair : state_bank[boost::hana::type_c<Asset>]) {
@@ -172,20 +190,33 @@ void Bookkeeper::update_book(const event_ptr &event, const InstrumentKey &instru
   get_book(event->source())->ensure_position_for(instrument_key);
 }
 
-void Bookkeeper::update_book(const event_ptr &event, const Quote &quote) {
+void Bookkeeper::try_update_book(const event_ptr &event, const Quote &quote) {
+  if (bypass_quote_) {
+    state<Quote> state_quote(event->source(), event->dest(), event->gen_time(), quote);
+    auto hashed_instrument_key = hash_instrument(quote.exchange_id, quote.instrument_id);
+    quotes_.insert_or_assign(hashed_instrument_key, state_quote);
+    return;
+  }
+
+  update_book(event->gen_time(), quote);
+}
+
+void Bookkeeper::update_book(int64_t trigger_time, const Quote &quote) {
   std::lock_guard<std::mutex> lock(update_book_mutex_);
   if (accounting_methods_.find(quote.instrument_type) == accounting_methods_.end()) {
     return;
   }
   auto accounting_method = accounting_methods_.at(quote.instrument_type);
-  auto apply = [&](auto &position) { position.update_time = event->gen_time(); };
+  auto apply = [&](auto &position) { position.update_time = trigger_time; };
 
   for (auto &item : books_) {
     auto &book = item.second;
-    accounting_method->apply_quote(book, quote);
+    if (book->has_short_position_for(quote) or book->has_long_position_for(quote)) {
+      accounting_method->apply_quote(book, quote);
+      book->update(trigger_time, account_method_type_);
+    }
     book->apply_long_position_for(quote, apply);
     book->apply_short_position_for(quote, apply);
-    book->update(event->gen_time(), account_method_type_);
   }
 }
 

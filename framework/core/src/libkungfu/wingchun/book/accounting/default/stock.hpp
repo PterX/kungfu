@@ -649,7 +649,7 @@ protected:
         auto &instrument = book->instruments.at(hashed_instrument_key);
         cd_mr.contract_multiplier = instrument.contract_multiplier;
       }
-      
+
       auto hashed_instrument_factor_key = hash_instrument(account_id, exchange_id, instrument_id);
       if (book->instrument_factors.find(hashed_instrument_factor_key) == book->instrument_factors.end()) {
         cd_mr.margin_ratio =

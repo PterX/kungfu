@@ -49,7 +49,7 @@ export const getColumns = (
       {
         type: 'number',
         name: t('orderConfig.limit_price'),
-        dataIndex: 'limit_price',
+        dataIndex: 'limit_price_resolved',
         width: 120,
         sorter: buildSorter('limit_price'),
       },

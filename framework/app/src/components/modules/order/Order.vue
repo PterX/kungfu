@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import {
-  dealKfPrice,
   dealSide,
   dealOffset,
   getIdByKfLocation,
@@ -67,7 +66,7 @@ const { getPriceTickAndPrecision } = useActiveInstruments();
 const { handleBodySizeChange } = useDashboardBodySize();
 
 const { processStatusData } = useProcessStatusDetailData();
-const { getDealerWithCache, clearCaches } = useDealDataWithCaches<
+const { dealDataWithCache, clearCaches } = useDealDataWithCaches<
   KungfuApi.Order,
   KungfuApi.OrderResolved
 >(['uid_key', 'update_time']);
@@ -144,7 +143,7 @@ onMounted(() => {
             );
 
             return toRaw(
-              getDealerWithCache(item, () =>
+              dealDataWithCache(item, () =>
                 dealOrder(
                   watcher,
                   item,
@@ -172,7 +171,7 @@ onMounted(() => {
             );
 
             const orderResolved = toRaw(
-              getDealerWithCache(curOrder, () =>
+              dealDataWithCache(curOrder, () =>
                 dealOrder(
                   watcher,
                   curOrder,
@@ -261,7 +260,7 @@ watch(historyDate, async (newDate) => {
           );
 
           return toRaw(
-            getDealerWithCache(item, () =>
+            dealDataWithCache(item, () =>
               dealOrder(
                 window.watcher,
                 item,
@@ -631,9 +630,6 @@ function testOrderSourceIsOnline(order: KungfuApi.OrderResolved) {
               <span :class="`color-${dealOffset(item.offset).color}`">
                 {{ dealOffset(item.offset).name }}
               </span>
-            </template>
-            <template v-else-if="column.dataIndex === 'limit_price'">
-              {{ dealKfPrice(item.limit_price, item.price_precision) }}
             </template>
             <template v-else-if="column.dataIndex === 'volume_left'">
               <span

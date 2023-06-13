@@ -48,6 +48,7 @@ export default {
   reset_main_panel: 'Reset main panel',
   export_all_transaction_data: 'Export all transaction data',
   export_instrument_whitelists: 'Export instrument whitelists',
+  view_all_journal: 'View all journal',
 
   website: 'Website',
   user_manual: 'User manual',
@@ -829,7 +830,7 @@ export default {
   closing: 'End the transaction process, Please do not close...',
 
   computer_performance_abnormal:
-    'Computer performance is too low, continue start maybe make system process crash, suggest use the CPU core num more than 8.',
+    'Computer performance is too low, will open the pass accounting option (you can reopen it in global system settings, but that maybe make system crash), suggest use the CPU core num more than 8.',
 
   quit_confirm:
     'Exiting the application ends all transactions, Confirm to exit?',

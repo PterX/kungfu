@@ -18,6 +18,7 @@ import {
   showCrashMessageBox,
   showKungfuInfo,
   openUrl,
+  destoryAllWindows,
 } from '@kungfu-trader/kungfu-app/src/main/utils';
 import {
   kfLogger,
@@ -48,6 +49,7 @@ import {
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
 import { handleUpdateKungfu } from './autoUpdater';
+import globalStorage from '@kungfu-trader/kungfu-js-api/utils/globalStorage';
 const { t } = VueI18n.global;
 
 let MainWindow: BrowserWindow | null = null;
@@ -68,7 +70,7 @@ async function createWindow(
 ) {
   if (reloadAfterCrashed) {
     CrashedReloading = true;
-    MainWindow && MainWindow.close();
+    destoryAllWindows();
   }
 
   if (reloadBySchedule) {
@@ -115,6 +117,7 @@ async function createWindow(
     }
 
     isUpdateVersionLogicEnable() && handleUpdateKungfu(MainWindow);
+    globalStorage.setItem('ifNotFirstRunning', true);
   });
 
   MainWindow.on('close', (e) => {

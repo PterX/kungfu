@@ -12,6 +12,7 @@ get_instrument_type = wc.utils.get_instrument_type
 is_valid_price = wc.utils.is_valid_price
 hash_instrument = wc.utils.hash_instrument
 
+
 def is_final_status(order_status):
     return int(order_status) in AllFinalOrderStatus
 

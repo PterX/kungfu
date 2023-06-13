@@ -26,9 +26,7 @@ double Book::get_frozen_price(uint64_t order_id) {
   return 0;
 }
 
-void Book::add_source_id(uint32_t source_id) {
-  source_ids.insert(source_id);
-}
+void Book::add_source_id(uint32_t source_id) { source_ids.insert(source_id); }
 
 void Book::ensure_position_for(const InstrumentKey &instrument_key) {
   auto apply = [&](auto &position) { assert(position.volume >= 0); };
@@ -79,6 +77,17 @@ Position &Book::get_position(uint32_t source_id, Direction direction, const char
   }
   add_source_id(source_id);
   return position;
+}
+
+bool Book::has_position(uint32_t source_id, longfist::enums::Direction direction, const char *exchange_id,
+                        const char *instrument_id) {
+  PositionMap &positions = direction == Direction::Long ? long_positions : short_positions;
+  auto position_id = hash_instrument(source_id, exchange_id, instrument_id);
+  if (positions.find(position_id) == positions.end()) {
+    return false;
+  }
+
+  return true;
 }
 
 void Book::update(int64_t update_time, longfist::enums::AccountingMethodType accounting_method_type) {
@@ -156,7 +165,8 @@ void Book::replace(const Order &order) { orders.insert_or_assign(order.order_id,
 void Book::replace(const Trade &trade) { trades.insert_or_assign(trade.trade_id, trade); }
 
 void Book::replace(const longfist::types::InstrumentFactor &instrument_factor) {
-  auto instrument_factor_id = hash_instrument(instrument_factor.source_id, instrument_factor.exchange_id, instrument_factor.instrument_id);
+  auto instrument_factor_id =
+      hash_instrument(instrument_factor.source_id, instrument_factor.exchange_id, instrument_factor.instrument_id);
   instrument_factors.insert_or_assign(instrument_factor_id, instrument_factor);
 }
 

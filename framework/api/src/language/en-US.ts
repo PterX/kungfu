@@ -48,6 +48,7 @@ export default {
   reset_main_panel: 'Reset main panel',
   export_all_transaction_data: 'Export all transaction data',
   export_instrument_whitelists: 'Export instrument whitelists',
+  view_all_journal: 'View all journal',
 
   website: 'Website',
   user_manual: 'User manual',

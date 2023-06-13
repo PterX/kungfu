@@ -69,7 +69,7 @@ public:
   void try_update_position_end(const longfist::types::PositionEnd &position_end);
 
   longfist::enums::AccountingMethodType get_accounting_method_type() { return account_method_type_; }
-  
+
   InstrumentMap get_instruments() { return instruments_; }
 
   std::mutex &get_update_book_mutex();

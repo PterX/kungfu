@@ -112,19 +112,19 @@ bool WatcherAutoClient::should_connect_system(const yijinjing::data::location_pt
 }
 
 Watcher::Watcher(const Napi::CallbackInfo &info)
-    : ObjectWrap(info),                                                                   //
-      apprentice(GetWatcherLocation(info), true),                                         //
-      bypass_quote_(GetBool(info, 3)),                                               //
-      bypass_trading_data_(GetBool(info, 4)),                                             //
-      refresh_trading_data_before_sync_(GetBool(info, 5)),                                //
-      milliseconds_sleep_after_step_(GetMillisecondsSleepAfterStep(info)),                //
-      broker_client_(*this, bypass_trading_data_),                                        //
+    : ObjectWrap(info),                                                                           //
+      apprentice(GetWatcherLocation(info), true),                                                 //
+      bypass_quote_(GetBool(info, 3)),                                                            //
+      bypass_trading_data_(GetBool(info, 4)),                                                     //
+      refresh_trading_data_before_sync_(GetBool(info, 5)),                                        //
+      milliseconds_sleep_after_step_(GetMillisecondsSleepAfterStep(info)),                        //
+      broker_client_(*this, bypass_trading_data_),                                                //
       bookkeeper_(*this, broker_client_, bypass_quote_),                                          //
-      basketorder_engine_(*this),                     //
-      state_ref_(Napi::ObjectReference::New(Napi::Object::New(info.Env()), 1)),           //
-      ledger_ref_(Napi::ObjectReference::New(Napi::Object::New(info.Env()), 1)),          //
-      app_states_ref_(Napi::ObjectReference::New(Napi::Object::New(info.Env()), 1)),      //
-      strategy_states_ref_(Napi::ObjectReference::New(Napi::Object::New(info.Env()), 1)), //
+      basketorder_engine_(*this),                                                                 //
+      state_ref_(Napi::ObjectReference::New(Napi::Object::New(info.Env()), 1)),                   //
+      ledger_ref_(Napi::ObjectReference::New(Napi::Object::New(info.Env()), 1)),                  //
+      app_states_ref_(Napi::ObjectReference::New(Napi::Object::New(info.Env()), 1)),              //
+      strategy_states_ref_(Napi::ObjectReference::New(Napi::Object::New(info.Env()), 1)),         //
       config_ref_(Napi::ObjectReference::New(ConfigStore::NewInstance({info[0]}).ToObject(), 1)), //
       update_state(state_ref_),                                                                   //
       update_ledger(ledger_ref_),                                                                 //

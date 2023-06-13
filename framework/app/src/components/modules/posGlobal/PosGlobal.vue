@@ -33,6 +33,7 @@ import {
   useCurrentGlobalKfLocation,
   useInstruments,
   useActiveInstruments,
+  useQuote,
   useDealDataWithCaches,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import {
@@ -68,6 +69,7 @@ const {
   setCurrentGlobalKfLocation,
 } = useCurrentGlobalKfLocation(window.watcher);
 const { instruments } = useInstruments();
+const { getPositionLastPrice } = useQuote();
 const { triggerOrderBook, triggerMakeOrder } = useTriggerMakeOrder();
 const { getInstrumentCurrencyByIds, getPriceTickAndPrecision } =
   useActiveInstruments();
@@ -291,7 +293,9 @@ function tiggerOrderBookAndMakeOrder(record: KungfuApi.PositionResolved) {
             <KfBlinkNum :num="item.avg_open_price_resolved"></KfBlinkNum>
           </template>
           <template v-else-if="column.dataIndex === 'last_price_resolved'">
-            <KfBlinkNum :num="item.last_price_resolved"></KfBlinkNum>
+            <KfBlinkNum
+              :num="getPositionLastPrice(item, 'last_price_resolved')"
+            ></KfBlinkNum>
           </template>
           <template v-else-if="column.dataIndex === 'unrealized_pnl_resolved'">
             <KfBlinkNum

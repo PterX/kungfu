@@ -41,6 +41,7 @@ import {
   useInstruments,
   useDealDataWithCaches,
   useActiveInstruments,
+  useQuote,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import { messagePrompt } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
@@ -66,6 +67,7 @@ const {
 const { handleDownload } = useDownloadHistoryTradingData();
 const { triggerOrderBook, triggerMakeOrder } = useTriggerMakeOrder();
 const { instruments } = useInstruments();
+const { getPositionLastPrice } = useQuote();
 const { getPriceTickAndPrecision } = useActiveInstruments();
 const { dealDataWithCache } = useDealDataWithCaches<
   KungfuApi.Position,
@@ -265,7 +267,9 @@ function handleRequestPosition() {
             <KfBlinkNum :num="item.avg_open_price_resolved"></KfBlinkNum>
           </template>
           <template v-else-if="column.dataIndex === 'last_price_resolved'">
-            <KfBlinkNum :num="item.last_price_resolved"></KfBlinkNum>
+            <KfBlinkNum
+              :num="getPositionLastPrice(item, 'last_price_resolved')"
+            ></KfBlinkNum>
           </template>
           <template v-else-if="column.dataIndex === 'unrealized_pnl_resolved'">
             <KfBlinkNum

@@ -1270,7 +1270,12 @@ export const useQuote = (): {
   getQuoteByPosition(
     posiiton: KungfuApi.Position | undefined,
   ): KungfuApi.Quote | null;
-  getPositionLastPrice: (pos: KungfuApi.Position) => number;
+  getPositionLastPrice: <
+    T extends KungfuApi.Position | KungfuApi.PositionResolved,
+  >(
+    pos: T,
+    lastPriceKey?: keyof T,
+  ) => number;
   getLastPricePercent(
     instrument: KungfuApi.InstrumentResolved | undefined,
   ): string;
@@ -1334,18 +1339,23 @@ export const useQuote = (): {
     return getQuoteByInstrument(instrumentResolved);
   };
 
-  const getPositionLastPrice = (pos: KungfuApi.Position) => {
-    // 有行情时，根据 quote 和 position 更新时间取最新 last_price,
+  const getPositionLastPrice = <
+    T extends KungfuApi.Position | KungfuApi.PositionResolved,
+  >(
+    pos: T,
+    lastPriceKey: keyof T = 'last_price',
+  ) => {
+    //有行情时，根据 quote 和 position 更新时间取最新 last_price,
     // 若 position 没有 last_price, 则取 quote 的 last_price
     const quote = getQuoteByPosition(pos);
     if (quote) {
       return (
         (quote.data_time > pos.update_time
           ? quote.last_price
-          : pos.last_price || quote.last_price) || 0
+          : Number(pos[lastPriceKey]) || quote.last_price) || 0
       );
     }
-    return pos.last_price || 0;
+    return Number(pos[lastPriceKey]) || 0;
   };
 
   const getLastPricePercent = (

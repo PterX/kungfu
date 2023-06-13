@@ -114,17 +114,17 @@ bool WatcherAutoClient::should_connect_system(const yijinjing::data::location_pt
 Watcher::Watcher(const Napi::CallbackInfo &info)
     : ObjectWrap(info),                                                                   //
       apprentice(GetWatcherLocation(info), true),                                         //
-      bypass_accounting_(GetBool(info, 3)),                                               //
+      bypass_quote_(GetBool(info, 3)),                                               //
       bypass_trading_data_(GetBool(info, 4)),                                             //
       refresh_trading_data_before_sync_(GetBool(info, 5)),                                //
       milliseconds_sleep_after_step_(GetMillisecondsSleepAfterStep(info)),                //
       broker_client_(*this, bypass_trading_data_),                                        //
-      bookkeeper_(*this, broker_client_), basketorder_engine_(*this),                     //
+      bookkeeper_(*this, broker_client_, bypass_quote_),                                          //
+      basketorder_engine_(*this),                     //
       state_ref_(Napi::ObjectReference::New(Napi::Object::New(info.Env()), 1)),           //
       ledger_ref_(Napi::ObjectReference::New(Napi::Object::New(info.Env()), 1)),          //
       app_states_ref_(Napi::ObjectReference::New(Napi::Object::New(info.Env()), 1)),      //
       strategy_states_ref_(Napi::ObjectReference::New(Napi::Object::New(info.Env()), 1)), //
-
       config_ref_(Napi::ObjectReference::New(ConfigStore::NewInstance({info[0]}).ToObject(), 1)), //
       update_state(state_ref_),                                                                   //
       update_ledger(ledger_ref_),                                                                 //
@@ -436,12 +436,15 @@ void Watcher::on_start() {
         $$(feed_state_data(event, data_bank_));
   }
 
-  if (not bypass_accounting_ and not bypass_trading_data_) {
+  if (not bypass_trading_data_) {
     bookkeeper_.on_start(events_);
     bookkeeper_.guard_positions();
     bookkeeper_.add_book_listener(std::make_shared<BookListener>(*this));
 
-    events_ | is(Quote::tag) | is_subscribed(subscribed_instruments_) | $$(UpdateBook(event, event->data<Quote>()));
+    if (not bypass_quote_) {
+      events_ | is(Quote::tag) | is_subscribed(subscribed_instruments_) | $$(UpdateBook(event, event->data<Quote>()));
+    }
+
     events_ | is(OrderInput::tag) | $$(UpdateBook(event, event->data<OrderInput>()));
     events_ | is(Order::tag) | $$(UpdateBook(event, event->data<Order>()));
     events_ | is(Order::tag) | $$(UpdateBasketOrder(event->trigger_time(), event->data<Order>()));
@@ -750,6 +753,9 @@ void Watcher::UpdateAsset(const event_ptr &event, uint32_t book_uid) {
 }
 
 void Watcher::UpdateBook(const event_ptr &event, const Quote &quote) {
+  auto &mutex = bookkeeper_.get_update_book_mutex();
+  std::lock_guard<std::mutex> lock(mutex);
+
   auto ledger_uid = ledger_home_location_->uid;
   for (const auto &item : bookkeeper_.get_books()) {
     auto &book = item.second;
@@ -779,6 +785,9 @@ void Watcher::UpdateBook(const event_ptr &event, const Quote &quote) {
 }
 
 void Watcher::UpdateBook(const event_ptr &event, const Position &position) {
+  auto &mutex = bookkeeper_.get_update_book_mutex();
+  std::lock_guard<std::mutex> lock(mutex);
+
   auto book = bookkeeper_.get_book(position.holder_uid);
   auto &book_position = book->get_position_for(position.direction, position);
   auto &book_oppsite_position = book->get_oppsite_position_for(position.direction, position);

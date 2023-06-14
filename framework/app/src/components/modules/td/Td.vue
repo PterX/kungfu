@@ -11,6 +11,7 @@ import Icon, {
   SettingOutlined,
   DeleteOutlined,
   BankOutlined,
+  ReloadOutlined,
 } from '@ant-design/icons-vue';
 
 import { categoryRegisterConfig, getColumns } from './config';
@@ -366,6 +367,15 @@ function handleRemoveTd(item: KungfuApi.KfConfig) {
       error(err.message || t('operation_failed'));
     });
 }
+
+function handleRequestPosition() {
+  const res = window.watcher.requestPosition(window.watcher);
+  if (res) {
+    success(t('operation_success'));
+  } else {
+    error(t('operation_failed'));
+  }
+}
 </script>
 
 <template>
@@ -384,6 +394,13 @@ function handleRemoveTd(item: KungfuApi.KfConfig) {
             :checked="allProcessOnline"
             @click="handleSwitchAllProcessStatus"
           ></a-switch>
+        </KfDashboardItem>
+        <KfDashboardItem>
+          <a-button size="small" @click="handleRequestPosition">
+            <template #icon>
+              <ReloadOutlined style="font-size: 14px" />
+            </template>
+          </a-button>
         </KfDashboardItem>
         <KfDashboardItem>
           <a-button size="small" @click="handleOpenAddTdGroupDialog('add')">

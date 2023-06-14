@@ -227,11 +227,13 @@ bool AutoClient::should_connect_md(uint32_t md_location_uid) const { return true
 
 bool AutoClient::should_connect_td(uint32_t td_location_uid) const { return true; }
 
-bool AutoClient::should_connect_strategy(const location_ptr &stg_location) const { return true; }
-
 bool AutoClient::should_connect_operator(const location_ptr &op_location) const { return true; }
 
 bool AutoClient::should_connect_operator(uint32_t op_location_uid) const { return true; }
+
+bool AutoClient::should_connect_strategy(const location_ptr &strategy_location) const { return true; }
+
+bool AutoClient::should_connect_system(const location_ptr &system_location) const { return false; }
 
 SilentAutoClient::SilentAutoClient(practice::apprentice &app) : AutoClient(app) {}
 
@@ -385,8 +387,6 @@ bool PassiveClient::should_connect_td(uint32_t td_location_uid) const {
   return enrolled_td_locations_.find(td_location_uid) != enrolled_td_locations_.end();
 }
 
-bool PassiveClient::should_connect_strategy(const location_ptr &stg_location) const { return false; }
-
 bool PassiveClient::should_connect_operator(const location_ptr &op_location) const {
   return enrolled_op_locations_.find(op_location->uid) != enrolled_op_locations_.end();
 }
@@ -394,4 +394,8 @@ bool PassiveClient::should_connect_operator(const location_ptr &op_location) con
 bool PassiveClient::should_connect_operator(uint32_t op_location_uid) const {
   return enrolled_op_locations_.find(op_location_uid) != enrolled_op_locations_.end();
 }
+
+bool PassiveClient::should_connect_strategy(const location_ptr &strategy_location) const { return false; }
+
+bool PassiveClient::should_connect_system(const location_ptr &system_location) const { return false; };
 } // namespace kungfu::wingchun::broker

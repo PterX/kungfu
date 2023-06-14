@@ -38,6 +38,7 @@ export default {
 
   open_resources_directory: '打开功夫资源目录 (KF_HOME)',
   open_install_directory: '打开功夫安装目录',
+  open_system_config_directory: '打开系统设置文件目录',
   open_basic_configuration: '打开功夫基础配置DB',
   open_renderer_app_log: '打开客户端底层日志',
   browsing_log: '浏览日志文件',
@@ -667,6 +668,9 @@ export default {
   globalSettingConfig: {
     global_setting_title: '全局设置',
     system: '系统',
+    home_path: '选择本地Home路径',
+    home_path_desc: '功夫将会以选择的home路径为根目录，修改后重启功夫生效',
+    reset_order: '重置',
     log_level: '全局日志级别',
     for_all_log: '对系统内所有日志级别的设置',
 
@@ -819,7 +823,7 @@ export default {
   closing: '结束交易进程中, 请勿关闭...',
 
   computer_performance_abnormal:
-    '电脑性能过低, 继续启动可能会导致系统进程崩溃, 建议使用8核及以上的 CPU 运行系统',
+    '电脑性能过低, 将默认开启跳过 UI 计算选项 (可在全局系统设置里打开, 开启可能会导致系统进程崩溃), 建议使用8核及以上的 CPU 运行系统',
 
   quit_confirm: '退出应用会结束所有交易进程, 确认退出吗?',
   restart_process: '功夫图形进程中断, 该中断不会影响交易, 是否重启图形进程？',

@@ -38,6 +38,7 @@ export default {
 
   open_resources_directory: 'Open Kungfu Resources directory (KF_HOME)',
   open_install_directory: 'Open Kungfu installation directory',
+  open_system_config_directory: 'Open Kungfu system config directory',
   open_basic_configuration: 'Open Kungfu basic configuration DB',
   open_renderer_app_log: 'Open Application log',
   browsing_log: 'Browsing log files',
@@ -47,6 +48,7 @@ export default {
   reset_main_panel: 'Reset main panel',
   export_all_transaction_data: 'Export all transaction data',
   export_instrument_whitelists: 'Export instrument whitelists',
+  view_all_journal: 'View all journal',
 
   website: 'Website',
   user_manual: 'User manual',
@@ -660,6 +662,10 @@ export default {
   globalSettingConfig: {
     global_setting_title: 'Global Setting',
     system: 'System',
+    home_path: 'Select local home path',
+    home_path_desc:
+      'Kung Fu will take the selected home path as the root directory, and will take effect after modifying and restarting Kung Fu',
+    reset_order: 'Reset',
     log_level: 'Log Level',
     for_all_log: 'For all Log',
 
@@ -824,7 +830,7 @@ export default {
   closing: 'End the transaction process, Please do not close...',
 
   computer_performance_abnormal:
-    'Computer performance is too low, continue start maybe make system process crash, suggest use the CPU core num more than 8.',
+    'Computer performance is too low, will open the pass accounting option (you can reopen it in global system settings, but that maybe make system crash), suggest use the CPU core num more than 8.',
 
   quit_confirm:
     'Exiting the application ends all transactions, Confirm to exit?',

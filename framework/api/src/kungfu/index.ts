@@ -2,10 +2,12 @@ import dayjs from 'dayjs';
 import { kungfu } from '@kungfu-trader/kungfu-core';
 import { KF_RUNTIME_DIR } from '../config/pathConfig';
 import {
+  dealAssetPrice,
   dealDirection,
   dealHedgeFlag,
   dealInstrumentType,
   dealIsSwap,
+  dealKfPrice,
   dealLocationUID,
   dealOffset,
   dealOrderStat,
@@ -725,6 +727,7 @@ export const dealOrder = (
     latency_network: latencyData.latencyNetwork,
     avg_price: latencyData.avg_price,
     price_precision: pricePrecision,
+    limit_price_resolved: dealKfPrice(order.limit_price, pricePrecision),
   };
 };
 
@@ -759,6 +762,7 @@ export const dealTrade = (
     kf_time_resovlved: dealKfTime(latencyData.trade_time, isHistory),
     latency_trade: latencyData.latencyTrade,
     price_precision: pricePrecision,
+    price_resolved: dealKfPrice(trade.price, pricePrecision),
   };
 };
 
@@ -790,11 +794,14 @@ export const dealPosition = (
     ...pos,
     currency,
     closable_volume,
-    uid_key: pos.uid_key,
+    uid_key: pos.uid_key, // 隐式属性，...pos 并不能结构
     account_id_resolved,
     instrument_id_resolved: `${pos.instrument_id} ${
       ExchangeIds[pos.exchange_id]?.name ?? ''
     }`,
     price_precision: pricePrecision,
+    last_price_resolved: dealKfPrice(pos.last_price, pricePrecision),
+    avg_open_price_resolved: dealKfPrice(pos.avg_open_price, pricePrecision),
+    unrealized_pnl_resolved: dealAssetPrice(pos.unrealized_pnl, pricePrecision),
   };
 };

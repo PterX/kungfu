@@ -215,12 +215,6 @@ const dealRowClassName = (row) => {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-align: center;
-  .ant-tooltip {
-    color: #6d0d0d !important;
-    position: absolute !important;
-    top: 100px !important;
-    left: 100px !important;
-  }
 
   .ant-layout {
     height: 100%;
@@ -259,14 +253,6 @@ const dealRowClassName = (row) => {
 
         .kf-journal-time-slider {
           flex: 0 1 560px;
-
-          .ant-tooltip {
-            // 你的样式
-            color: #6d0d0d !important;
-            position: absolute !important;
-            top: 100px !important;
-            left: 100px !important;
-          }
         }
       }
 

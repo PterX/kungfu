@@ -32,7 +32,8 @@ public:
 
   void on_entrust(Context_ptr & context, const Entrust &entrust, const location_ptr &location, uint32_t dest) {}
 
-  void on_transaction(Context_ptr & context, const Transaction &transaction, const location_ptr &location, uint32_t dest) {}
+  void on_transaction(Context_ptr & context, const Transaction &transaction, const location_ptr &location,
+                      uint32_t dest) {}
 
   void on_order(Context_ptr & context, const Order &order, const location_ptr &location, uint32_t dest) override {
     SPDLOG_INFO("on order: {} location->name {}", order.to_string(), location->uname);

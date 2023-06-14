@@ -260,7 +260,7 @@ void master::feed(const event_ptr &event) {
   if (get_location(event->source())->category == category::MD) {
     return;
   }
-  
+
   cached_.feed(event);
 }
 

@@ -112,19 +112,19 @@ bool WatcherAutoClient::should_connect_system(const yijinjing::data::location_pt
 }
 
 Watcher::Watcher(const Napi::CallbackInfo &info)
-    : ObjectWrap(info),                                                                   //
-      apprentice(GetWatcherLocation(info), true),                                         //
-      bypass_accounting_(GetBool(info, 3)),                                               //
-      bypass_trading_data_(GetBool(info, 4)),                                             //
-      refresh_trading_data_before_sync_(GetBool(info, 5)),                                //
-      milliseconds_sleep_after_step_(GetMillisecondsSleepAfterStep(info)),                //
-      broker_client_(*this, bypass_trading_data_),                                        //
-      bookkeeper_(*this, broker_client_), basketorder_engine_(*this),                     //
-      state_ref_(Napi::ObjectReference::New(Napi::Object::New(info.Env()), 1)),           //
-      ledger_ref_(Napi::ObjectReference::New(Napi::Object::New(info.Env()), 1)),          //
-      app_states_ref_(Napi::ObjectReference::New(Napi::Object::New(info.Env()), 1)),      //
-      strategy_states_ref_(Napi::ObjectReference::New(Napi::Object::New(info.Env()), 1)), //
-
+    : ObjectWrap(info),                                                                           //
+      apprentice(GetWatcherLocation(info), true),                                                 //
+      bypass_quote_(GetBool(info, 3)),                                                            //
+      bypass_trading_data_(GetBool(info, 4)),                                                     //
+      refresh_trading_data_before_sync_(GetBool(info, 5)),                                        //
+      milliseconds_sleep_after_step_(GetMillisecondsSleepAfterStep(info)),                        //
+      broker_client_(*this, bypass_trading_data_),                                                //
+      bookkeeper_(*this, broker_client_, bypass_quote_),                                          //
+      basketorder_engine_(*this),                                                                 //
+      state_ref_(Napi::ObjectReference::New(Napi::Object::New(info.Env()), 1)),                   //
+      ledger_ref_(Napi::ObjectReference::New(Napi::Object::New(info.Env()), 1)),                  //
+      app_states_ref_(Napi::ObjectReference::New(Napi::Object::New(info.Env()), 1)),              //
+      strategy_states_ref_(Napi::ObjectReference::New(Napi::Object::New(info.Env()), 1)),         //
       config_ref_(Napi::ObjectReference::New(ConfigStore::NewInstance({info[0]}).ToObject(), 1)), //
       update_state(state_ref_),                                                                   //
       update_ledger(ledger_ref_),                                                                 //
@@ -418,7 +418,6 @@ void Watcher::on_react() {
   auto before_start_events = events_ | take_until(events_ | is(RequestStart::tag));
   before_start_events | is(Instrument::tag) | $$(Feed(event, event->data<Instrument>()));
   // bookkeeper restore, only Instrument and Commission,
-  // for hidden pos && asset
   before_start_events | is(Instrument::tag, Commission::tag) | $$(feed_state_data(event, state_bank_));
 }
 
@@ -431,21 +430,22 @@ void Watcher::on_start() {
     // for receive runtime data
     events_ | is(Quote::tag) | is_subscribed(subscribed_instruments_) | $$(feed_state_data(event, data_bank_));
     events_ | is(Instrument::tag) | $$(Feed(event, event->data<Instrument>()));
-    events_ | skip_while(while_is(Quote::tag)) | is_trading_data() | $$(feed_trading_data(event, trading_bank_));
-    events_ | skip_while(while_is(Quote::tag, Instrument::tag)) | skip_while(while_is_trading_data) |
-        $$(feed_state_data(event, data_bank_));
+    events_ | skip_while(while_is(Quote::tag, Instrument::tag)) | $$(feed_state_data(event, data_bank_));
   }
 
-  if (not bypass_accounting_ and not bypass_trading_data_) {
+  if (not bypass_trading_data_) {
     bookkeeper_.on_start(events_);
     bookkeeper_.guard_positions();
     bookkeeper_.add_book_listener(std::make_shared<BookListener>(*this));
 
-    events_ | is(Quote::tag) | is_subscribed(subscribed_instruments_) | $$(UpdateBook(event, event->data<Quote>()));
-    events_ | is(OrderInput::tag) | $$(UpdateBook(event, event->data<OrderInput>()));
+    if (not bypass_quote_) {
+      events_ | is(Quote::tag) | is_subscribed(subscribed_instruments_) | $$(UpdateBook(event, event->data<Quote>()));
+    }
+
+    // events_ | is(OrderInput::tag) | $$(UpdateBook(event, event->data<OrderInput>()));
     events_ | is(Order::tag) | $$(UpdateBook(event, event->data<Order>()));
     events_ | is(Order::tag) | $$(UpdateBasketOrder(event->trigger_time(), event->data<Order>()));
-    events_ | is(Trade::tag) | $$(UpdateBook(event, event->data<Trade>()));
+    // events_ | is(Trade::tag) | $$(UpdateBook(event, event->data<Trade>()));
     events_ | is(Position::tag) | $$(UpdateBook(event, event->data<Position>()));
     events_ | is(PositionEnd::tag) | $$(UpdateAsset(event, event->data<PositionEnd>().holder_uid));
     refresh_books();
@@ -519,7 +519,12 @@ void Watcher::Sync(const Napi::CallbackInfo &info) {
 }
 
 void Watcher::SyncLedger() {
-  boost::hana::for_each(StateDataTypes, [&](auto it) { UpdateLedger(+boost::hana::second(it)); });
+  boost::hana::for_each(StateDataTypes, [&](auto it) {
+    if (boost::hana::contains(longfist::TradingDataTypes, boost::hana::first(it))) {
+      return;
+    }
+    UpdateLedger(+boost::hana::second(it));
+  });
 }
 
 void Watcher::TryRefreshTradingData() {

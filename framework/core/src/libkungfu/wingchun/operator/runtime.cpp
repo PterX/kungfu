@@ -190,4 +190,10 @@ void LiveContext::update_operator_state(OperatorStateUpdate &state_update) {
   writer->write(state_update.update_time, state_update);
 }
 
+yijinjing::data::location_ptr LiveContext::get_location(uint32_t location_uid) {
+  return app_.get_location(location_uid);
+}
+
+uint32_t LiveContext::get_home_uid() const { return app_.get_home_uid(); }
+
 } // namespace kungfu::wingchun::op

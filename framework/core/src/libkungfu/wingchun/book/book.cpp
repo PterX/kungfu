@@ -116,16 +116,20 @@ void Book::update(int64_t update_time, longfist::enums::AccountingMethodType acc
     double db_exchage_rate = 1.0;
     double db_contract_multiplier = 1.0;
     auto hashed_instrument_key = hash_instrument(position.exchange_id, position.instrument_id);
+    if (instrument_factors.find(hashed_instrument_key) != instrument_factors.end()) {
+      auto &instrument_factor = instrument_factors.at(hashed_instrument_key);
+      db_exchage_rate = is_equal(instrument_factor.exchange_rate, 0.0) ? 1.0 : instrument_factor.exchange_rate;
+    }
+
     if (instruments.find(hashed_instrument_key) != instruments.end()) {
       auto &instrument = instruments.at(hashed_instrument_key);
-      db_exchage_rate = is_equal(instrument.exchange_rate, 0.0) ? 1.0 : instrument.exchange_rate;
       db_contract_multiplier = instrument.contract_multiplier;
     }
 
     auto position_market_value =
         position.volume * (position.last_price > 0 ? position.last_price : position.avg_open_price) * db_exchage_rate;
 
-    if (accounting_method_type == longfist::enums::AccountingMethodType::Outside && is_future) {
+    if (accounting_method_type == longfist::enums::AccountingMethodType::OTC && is_future) {
       position_market_value = position.volume *
                               (position.last_price > 0 ? position.last_price : position.avg_open_price) *
                               db_exchage_rate * db_contract_multiplier;
@@ -165,5 +169,10 @@ void Book::replace(const OrderInput &input) { order_inputs.insert_or_assign(inpu
 void Book::replace(const Order &order) { orders.insert_or_assign(order.order_id, order); }
 
 void Book::replace(const Trade &trade) { trades.insert_or_assign(trade.trade_id, trade); }
+
+void Book::replace(const longfist::types::InstrumentFactor &instrument_factor) {
+  auto instrument_factor_id = hash_instrument(instrument_factor.exchange_id, instrument_factor.instrument_id);
+  instrument_factors.insert_or_assign(instrument_factor_id, instrument_factor);
+}
 
 } // namespace kungfu::wingchun::book

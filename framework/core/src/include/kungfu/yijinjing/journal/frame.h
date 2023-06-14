@@ -46,6 +46,8 @@ struct frame : event {
 
   [[nodiscard]] std::string to_string() const override { return std::string(reinterpret_cast<char *>(address())); }
 
+  [[nodiscard]] int8_t data_type() const override { return int8_t(header_->data_type); }
+
   template <typename T> size_t copy_data(const T &data) {
     size_t length = sizeof(T);
     memcpy(const_cast<void *>(data_address()), &data, length);

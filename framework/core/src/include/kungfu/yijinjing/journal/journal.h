@@ -153,6 +153,8 @@ public:
 
   [[nodiscard]] const journal &get_journal() const { return journal_; }
 
+  [[nodiscard]] const page_ptr get_current_page() const { return journal_.page_; }
+
   uint64_t current_frame_uid();
 
   frame_ptr open_frame(int64_t trigger_time, int32_t msg_type, uint32_t length);
@@ -185,6 +187,11 @@ public:
   template <typename T> std::enable_if_t<size_fixed_v<T>, T &> open_data(int64_t trigger_time = 0) {
     auto frame = open_frame(trigger_time, T::tag, sizeof(T));
     return const_cast<T &>(frame->template data<T>());
+  }
+
+  template <typename T> T &open_custom_data(int32_t msg_type, int64_t trigger_time = 0) {
+    auto frame = open_frame(trigger_time, msg_type, sizeof(T));
+    return const_cast<T &>(*reinterpret_cast<const T *>(frame->data_address()));
   }
 
   void close_data(int64_t gen_time = time::now_in_nano());

@@ -2,7 +2,10 @@ import path from 'path';
 import dayjs from 'dayjs';
 
 import { addFileSync } from '../utils/fileUtils';
-import { KF_HOME_BASE_DIR_RESOLVE } from '../config/homePathConfig';
+import {
+  KF_APP_CONFIG_DIR,
+  KF_HOME_BASE_DIR_RESOLVE,
+} from '../config/homePathConfig';
 
 addFileSync('', KF_HOME_BASE_DIR_RESOLVE, 'folder');
 export const KF_HOME_BASE_DIR = KF_HOME_BASE_DIR_RESOLVE;
@@ -79,7 +82,7 @@ export const buildProcessLogPath = (processId: string) => {
 
 export const KUNGFU_RESOURCES_DIR = globalThis.__publicResources;
 
-export const KF_CONFIG_DIR = path.join(KF_HOME, 'config');
+export const KF_CONFIG_DIR = KF_APP_CONFIG_DIR;
 
 export const KF_CONFIG_DEFAULT_PATH = path.join(
   KUNGFU_RESOURCES_DIR,

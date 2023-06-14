@@ -18,8 +18,11 @@ using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::journal;
 
 namespace kungfu::wingchun::broker {
-TraderVendor::TraderVendor(locator_ptr locator, const std::string &group, const std::string &name, bool low_latency)
-    : BrokerVendor(location::make_shared(mode::LIVE, category::TD, group, name, std::move(locator)), low_latency) {}
+TraderVendor::TraderVendor(locator_ptr locator, const std::string &group, const std::string &name, bool low_latency,
+                           const std::string &arguments)
+    : BrokerVendor(location::make_shared(mode::LIVE, category::TD, group, name, std::move(locator)), low_latency) {
+  set_arguments(arguments);
+}
 
 void TraderVendor::set_service(Trader_ptr service) { service_ = std::move(service); }
 
@@ -41,6 +44,7 @@ void TraderVendor::on_start() {
   events_ | is(OrderAction::tag) | $$(service_->cancel_order(event));
   events_ | is(AssetRequest::tag) | $$(service_->req_account());
   events_ | is(Deregister::tag) | $$(service_->on_strategy_exit(event));
+  events_ | is(TimeKeyValue::tag) | $$(service_->on_time_key_value(event));
   events_ | is(PositionRequest::tag) | $$(service_->req_position());
   events_ | is(RequestHistoryOrder::tag) | $$(service_->req_history_order(event));
   events_ | is(RequestHistoryTrade::tag) | $$(service_->req_history_trade(event));
@@ -52,7 +56,6 @@ void TraderVendor::on_start() {
     return event->msg_type() == BatchOrderBegin::tag or event->msg_type() == BatchOrderEnd::tag;
   }) | $$(service_->handle_batch_order_tag(event));
 
-  //  clean_orders();
   service_->recover();
   service_->on_recover();
   service_->on_start();
@@ -146,10 +149,10 @@ bool Trader::has_self_deal_risk(const event_ptr &event) {
   static std::string str_ex_instrument;
   str_ex_instrument = input.exchange_id.to_string() + input.instrument_id.to_string();
   auto risk_check = [&]() -> bool {
-    auto iter = map_ex_instrument_to_order_ids_.find(str_ex_instrument);
+    auto iter = map_exchange_instrument_to_order_ids_.find(str_ex_instrument);
 
     /// 没有相同的标的, 判定为不存在风险
-    if (iter == map_ex_instrument_to_order_ids_.end()) {
+    if (iter == map_exchange_instrument_to_order_ids_.end()) {
       return false;
     }
 
@@ -188,7 +191,7 @@ bool Trader::has_self_deal_risk(const event_ptr &event) {
   if (risk_check()) {
     return true;
   }
-  map_ex_instrument_to_order_ids_.try_emplace(str_ex_instrument).first->second.emplace(input.order_id);
+  map_exchange_instrument_to_order_ids_.try_emplace(str_ex_instrument).first->second.emplace(input.order_id);
   return false;
 }
 
@@ -249,7 +252,7 @@ void Trader::deal_write_frame() {
     if (frame->msg_type() == Order::tag) {
       const Order &order = frame->data<Order>();
       orders_.insert_or_assign(order.order_id, state<Order>(frame->source(), frame->dest(), frame->gen_time(), order));
-      map_ex_instrument_to_order_ids_.try_emplace(order.exchange_id.to_string() + order.instrument_id.to_string())
+      map_exchange_instrument_to_order_ids_.try_emplace(order.exchange_id.to_string() + order.instrument_id.to_string())
           .first->second.emplace(order.order_id);
     } else if (frame->msg_type() == Trade::tag) {
       const Trade &trade = frame->data<Trade>();

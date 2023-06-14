@@ -77,6 +77,8 @@ public:
 
   bool release_page();
 
+  yijinjing::journal::writer_ptr &get_thread_writer();
+
 protected:
   cache::bank state_bank_;
 
@@ -93,6 +95,8 @@ protected:
   virtual void on_react();
 
   virtual void on_start();
+
+  void on_request_read_from_others(const event_ptr &event);
 
   void on_register(int64_t trigger_time, const longfist::types::Register &register_data);
 
@@ -121,6 +125,8 @@ protected:
     request["data"] = nlohmann::json::parse(data.to_string());
     return request.dump();
   }
+
+  void reader_join(uint32_t source_id, uint32_t dest_id, int64_t from_time);
 
   std::function<rx::observable<event_ptr>(rx::observable<event_ptr>)> timer(int64_t nanotime) {
     int32_t timer_usage_count = timer_usage_count_;
@@ -216,6 +222,8 @@ private:
   int32_t timer_usage_count_ = 0;
   yijinjing::practice::cleaner cleaner_;
   std::unordered_map<int, int64_t> timer_checkpoints_ = {};
+  inline static thread_local yijinjing::journal::writer_ptr thread_writer_;
+
   void checkin();
 
   void expect_start();

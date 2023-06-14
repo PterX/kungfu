@@ -135,4 +135,9 @@ void BacktestContext::req_deregister() {}
 
 void BacktestContext::update_operator_state(OperatorStateUpdate &state_update) {}
 
+yijinjing::data::location_ptr BacktestContext::get_location(uint32_t location_uid) {
+  return app_.get_location(location_uid);
+}
+
+uint32_t BacktestContext::get_home_uid() const { return app_.get_home_uid(); }
 } // namespace kungfu::wingchun::op

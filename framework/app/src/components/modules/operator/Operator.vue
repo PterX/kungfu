@@ -80,7 +80,7 @@ const currentSelectedExtKey = ref<string>('');
 const setOperatorConfigPayload = ref<KungfuApi.SetKfConfigPayload>({
   type: 'add',
   title: t('operatorConfig.operator'),
-  config: {} as KungfuApi.KfExtConfig,
+  config: {} as KungfuApi.KfOperatorExtConfig,
 });
 
 const getPrefixByLocation = (kfLocation: KungfuApi.KfLocation) =>
@@ -145,9 +145,9 @@ async function handleConfirmSetOperatorExtDialog(
   selectedOperatorExtKey: string,
   operatorConfig?: KungfuApi.KfConfig,
 ) {
-  const extConfig: KungfuApi.KfExtConfig = (extConfigs.value['operator'] || {})[
-    selectedOperatorExtKey
-  ];
+  const extConfig: KungfuApi.KfOperatorExtConfig = (extConfigs.value[
+    'operator'
+  ] || {})[selectedOperatorExtKey];
 
   if (!extConfig) {
     error(

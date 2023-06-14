@@ -11,6 +11,7 @@ reader::~reader() {
 }
 
 void reader::join(const data::location_ptr &location, uint32_t dest_id, const int64_t from_time) {
+  SPDLOG_TRACE("join: {}, dest_id: {}", location->to_string(), dest_id);
   auto key = static_cast<uint64_t>(location->uid) << 32u | static_cast<uint64_t>(dest_id);
   auto result = journals_.try_emplace(key, location, dest_id, false, lazy_, low_latency_, bus_);
   if (result.second) {

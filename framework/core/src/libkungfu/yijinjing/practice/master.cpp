@@ -6,6 +6,7 @@
 
 #include <kungfu/common.h>
 #include <kungfu/longfist/longfist.h>
+#include <kungfu/yijinjing/journal/frame.h>
 #include <kungfu/yijinjing/practice/master.h>
 #include <kungfu/yijinjing/time.h>
 #include <kungfu/yijinjing/util/os.h>
@@ -41,32 +42,30 @@ master::master(location_ptr home, bool low_latency, bool bypass_cached)
 
 void master::on_exit() {
   notify_deregister_on_exit();
-  mark_session_end_on_exit();
   notify_master_deregister_on_exit();
+  mark_session_end_on_exit();
 }
 
 void master::notify_deregister_on_exit() {
-  auto now = time::now_in_nano();
-  auto &live_sessions = cached_.close_all_sessions(now);
+  auto &live_sessions = cached_.get_all_sessions();
   for (auto &iter : live_sessions) {
     auto &session = iter.second;
     auto location_from_session = location::make_shared(session, get_locator());
     if (session.location_uid != master_home_location_->uid) {
-      get_writer(location::PUBLIC)->write(now, location_from_session->to<Deregister>());
+      get_writer(location::PUBLIC)->write(time::now_in_nano(), location_from_session->to<Deregister>());
     }
   }
 }
 
 // after finished sending deregisters of other processes, then tell everyone master down
 void master::notify_master_deregister_on_exit() {
-  auto now = time::now_in_nano();
-  auto &live_sessions = cached_.close_all_sessions(now);
+  auto &live_sessions = cached_.get_all_sessions();
   for (auto &iter : live_sessions) {
     auto &session = iter.second;
 
     if (has_writer(session.location_uid)) {
       auto writer = get_writer(session.location_uid);
-      writer->write(now, master_home_location_->to<Deregister>());
+      writer->write(time::now_in_nano(), master_home_location_->to<Deregister>());
     } else {
       SPDLOG_WARN("no writer {} {}", session.location_uid, get_location_uname(session.location_uid));
     }
@@ -74,18 +73,20 @@ void master::notify_master_deregister_on_exit() {
 }
 
 void master::mark_session_end_on_exit() {
-  auto now = time::now_in_nano();
-  get_writer(location::PUBLIC)->mark(now, SessionEnd::tag);
-  auto &live_sessions = cached_.close_all_sessions(now);
+  get_writer(location::PUBLIC)->mark(time::now_in_nano(), SessionEnd::tag);
+  auto &live_sessions = cached_.get_all_sessions();
   for (auto &iter : live_sessions) {
     auto &session = iter.second;
     if (has_writer(session.location_uid)) {
       auto writer = get_writer(session.location_uid);
-      writer->mark(now, SessionEnd::tag);
+      writer->mark(time::now_in_nano(), SessionEnd::tag);
     } else {
       SPDLOG_WARN("no writer {} {}", session.location_uid, get_location_uname(session.location_uid));
     }
   }
+
+  // have to use new now, ensuring later than all messages
+  cached_.close_all_sessions(time::now_in_nano());
 }
 
 void master::on_notify() { get_io_device()->get_publisher()->notify(); }
@@ -94,7 +95,6 @@ void master::register_app(const event_ptr &event) {
   auto io_device = std::dynamic_pointer_cast<io_device_master>(get_io_device());
   auto home = io_device->get_home();
 
-  auto request_json = event->data<nlohmann::json>();
   auto request_data = event->data_as_string();
   Register register_data(request_data.c_str(), request_data.length());
 
@@ -155,7 +155,6 @@ void master::deregister_app(int64_t trigger_time, uint32_t app_location_uid) {
 
   auto location = get_location(app_location_uid);
   SPDLOG_INFO("app {} gone", location->uname);
-  cached_.close_session(location, trigger_time);
   get_writer(app_location_uid)->mark(trigger_time, SessionEnd::tag);
   deregister_channel(app_location_uid);
   deregister_band(app_location_uid);
@@ -164,6 +163,7 @@ void master::deregister_app(int64_t trigger_time, uint32_t app_location_uid) {
   writers_.erase(app_location_uid);
   timer_tasks_.erase(app_location_uid);
   get_writer(location::PUBLIC)->write(trigger_time, location->to<Deregister>());
+  cached_.close_session(location, time::now_in_nano());
 }
 
 void master::on_request_deregister(const event_ptr &event) {
@@ -179,6 +179,7 @@ void master::react() {
   events_ | is(RequestReadFrom::tag) | $$(on_request_read_from(event));
   events_ | is(RequestReadFromPublic::tag) | $$(on_request_read_from_public(event));
   events_ | is(RequestReadFromSync::tag) | $$(on_request_read_from_sync(event));
+  events_ | is(RequestReadFromOthers::tag) | $$(on_request_read_from_others(event));
   // for watcher request stop master in widnows
   events_ | is(RequestStop::tag) | filter([&](const event_ptr &event) {
     auto dest = event->dest();
@@ -222,6 +223,7 @@ void master::handle_timer_tasks() {
       auto &task = it->second;
       if (task.checkpoint <= now) {
         get_writer(app_id)->mark(0, Time::tag);
+        SPDLOG_DEBUG("app_id:{} , location: {}", app_id, get_location_uname(app_id));
         task.checkpoint += task.duration;
         task.repeat_count++;
         if (task.repeat_count >= task.repeat_limit) {
@@ -249,12 +251,17 @@ void master::feed(const event_ptr &event) {
     return;
   }
 
-  cached_.update_session(std::dynamic_pointer_cast<journal::frame>(event));
-
-  if (event->msg_type() == Instrument::tag or get_location(event->source())->category != category::MD) {
-    cached_.feed(event);
+  if (event->dest() == location::SYNC) {
     return;
   }
+
+  cached_.update_session(std::dynamic_pointer_cast<journal::frame>(event));
+
+  if (get_location(event->source())->category == category::MD) {
+    return;
+  }
+  
+  cached_.feed(event);
 }
 
 void master::pong(const event_ptr &) { get_io_device()->get_publisher()->publish("{}"); }
@@ -339,6 +346,20 @@ void master::on_request_read_from_public(const event_ptr &event) {
 void master::on_request_read_from_sync(const event_ptr &event) {
   const RequestReadFromSync &request = event->data<RequestReadFromSync>();
   require_read_from_sync(event->gen_time(), event->source(), request.source_id, request.from_time);
+}
+
+void master::on_request_read_from_others(const event_ptr &event) {
+  RequestReadFromOthers request{};
+  if (event->data_type() == int8_t(FrameDataType::Json)) {
+    const std::string msg = event->data_as_string();
+    request = RequestReadFromOthers(msg.c_str(), msg.length());
+  } else {
+    request = event->data<RequestReadFromOthers>();
+  }
+  auto source = event->source();
+  if (has_writer(source)) {
+    get_writer(source)->write(now(), request);
+  }
 }
 
 void master::on_channel_request(const event_ptr &event) {

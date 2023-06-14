@@ -56,7 +56,7 @@ export const getColumns = (
       {
         type: 'number',
         name: t('tradeConfig.price'),
-        dataIndex: 'price',
+        dataIndex: 'price_resolved',
         width: 120,
         sorter: buildSorter('price'),
       },
@@ -105,12 +105,12 @@ export const statisColums: KfTradingDataTableHeaderConfig[] = [
   },
   {
     name: '',
-    dataIndex: 'side',
+    dataIndex: 'sideName',
     width: 40,
   },
   {
     name: '',
-    dataIndex: 'offset',
+    dataIndex: 'offsetName',
     width: 40,
   },
   {

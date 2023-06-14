@@ -44,8 +44,11 @@ interface ExtraOrderInput {
 interface KfTradingDataTableHeaderConfig {
   name: string;
   dataIndex: string;
+  align?: 'left' | 'right' | 'center';
   width?: number;
   flex?: number;
+  overflow?: 'visible' | 'hidden' | 'ellipsis' | 'clip';
+  wrap?: boolean;
   type?:
     | 'number'
     | 'string'
@@ -90,7 +93,9 @@ interface BuiltinComponentPropsMap {
       a: Pm2ProcessStatusDetail,
       b: Pm2ProcessStatusDetail,
     ) => number;
-    strategyFilter?: (strategyExtConfig: KungfuApi.KfExtConfig) => boolean;
+    strategyFilter?: (
+      strategyExtConfig: KungfuApi.KfStrategyExtConfig,
+    ) => boolean;
   };
 }
 

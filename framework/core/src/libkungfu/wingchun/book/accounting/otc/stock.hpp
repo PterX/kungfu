@@ -21,25 +21,23 @@ using namespace kungfu::yijinjing::data;
 
 namespace kungfu::wingchun::book {
 
-struct outside_contract_discount_and_margin_ratio {
+struct otc_contract_discount_and_margin_ratio {
   int32_t contract_multiplier;
   double long_margin_ratio;
   double short_margin_ratio;
   double margin_ratio;
-  double conversion_rate;
   double exchange_rate;
 };
-class OutsideStockAccountingMethod : public AccountingMethod {
+class OtcStockAccountingMethod : public AccountingMethod {
 public:
-  static constexpr int DEFAULT_OUTSIDE_STOCK_CONTRACT_MULTIPLIER = 1;
-  static constexpr float DEFAULT_OUTSIDE_STOCK_LONG_MARGIN_RATIO = 1.0;
-  static constexpr float DEFAULT_OUTSIDE_STOCK_SHORT_MARGIN_RATIO = 0.6;
-  static constexpr float DEFAULT_OUTSIDE_STOCK_CONVERSION_RATE = 0.7;
-  static constexpr int OUTSIDE_AMOUT_PRECISION = 3;
-  static constexpr double OUTSIDE_MAX_COLLATERAL_RATIO = 1000.0;
-  static constexpr double OUTSIDE_DEFAULT_STOCK_EXCHANGE_RATE = 1.0;
+  static constexpr int DEFAULT_OTC_STOCK_CONTRACT_MULTIPLIER = 1;
+  static constexpr float DEFAULT_OTC_STOCK_LONG_MARGIN_RATIO = 1.0;
+  static constexpr float DEFAULT_OTC_STOCK_SHORT_MARGIN_RATIO = 0.6;
+  static constexpr int OTC_AMOUT_PRECISION = 3;
+  static constexpr double OTC_MAX_COLLATERAL_RATIO = 1000.0;
+  static constexpr double OTC_DEFAULT_STOCK_EXCHANGE_RATE = 1.0;
 
-  OutsideStockAccountingMethod() = default;
+  OtcStockAccountingMethod() = default;
 
   virtual void apply_quote(Book_ptr &book, const Quote &quote) override {
     static int counter = 0;
@@ -63,7 +61,7 @@ public:
         asset.market_value += market_value_change;
         asset.unrealized_pnl += market_value_change;
       } else {
-        SPDLOG_DEBUG("OutsideStockAccountingMethod: apply_quote  Direction::Short instrument_id= {}",
+        SPDLOG_DEBUG("OtcStockAccountingMethod: apply_quote  Direction::Short instrument_id= {}",
                      position.instrument_id);
       }
 
@@ -232,47 +230,41 @@ protected:
 
   virtual double calculate_tax(const Trade &trade) { return trade.tax; }
 
-  static outside_contract_discount_and_margin_ratio get_instr_conversion_margin_rate(const Book_ptr &book,
-                                                                                     const Position &position) {
+  static otc_contract_discount_and_margin_ratio get_instr_conversion_margin_rate(const Book_ptr &book,
+                                                                                 const Position &position) {
     const char *exchange_id = position.exchange_id;
     const char *instrument_id = position.instrument_id;
     uint32_t hashed_instrument_key = hash_instrument(exchange_id, instrument_id);
-    outside_contract_discount_and_margin_ratio cd_mr = {};
+    otc_contract_discount_and_margin_ratio cd_mr = {};
 
     if (book->instruments.find(hashed_instrument_key) == book->instruments.end()) {
-      cd_mr.contract_multiplier = DEFAULT_OUTSIDE_STOCK_CONTRACT_MULTIPLIER;
-      cd_mr.margin_ratio = position.direction == Direction::Long ? DEFAULT_OUTSIDE_STOCK_LONG_MARGIN_RATIO
-                                                                 : DEFAULT_OUTSIDE_STOCK_SHORT_MARGIN_RATIO;
-      cd_mr.long_margin_ratio = DEFAULT_OUTSIDE_STOCK_LONG_MARGIN_RATIO;
-      cd_mr.short_margin_ratio = DEFAULT_OUTSIDE_STOCK_SHORT_MARGIN_RATIO;
-      cd_mr.conversion_rate = DEFAULT_OUTSIDE_STOCK_CONVERSION_RATE;
-      cd_mr.exchange_rate = OUTSIDE_DEFAULT_STOCK_EXCHANGE_RATE;
-      return cd_mr;
-    }
-    try {
+      cd_mr.contract_multiplier = DEFAULT_OTC_STOCK_CONTRACT_MULTIPLIER;
+    } else {
       auto &instrument = book->instruments.at(hashed_instrument_key);
       cd_mr.contract_multiplier = instrument.contract_multiplier;
-      cd_mr.margin_ratio = margin_ratio(instrument, position);
-      cd_mr.long_margin_ratio = instrument.long_margin_ratio;
-      cd_mr.short_margin_ratio = instrument.short_margin_ratio;
-      cd_mr.conversion_rate = instrument.conversion_rate;
-      cd_mr.exchange_rate = is_equal(instrument.exchange_rate, 0.0) ? 1.0 : instrument.exchange_rate;
-    } catch (std::exception &ex) {
-      SPDLOG_ERROR("Exception for instrument_id {}: {}", instrument_id, ex.what());
-      cd_mr.margin_ratio = position.direction == Direction::Long ? DEFAULT_OUTSIDE_STOCK_LONG_MARGIN_RATIO
-                                                                 : DEFAULT_OUTSIDE_STOCK_SHORT_MARGIN_RATIO;
-      cd_mr.long_margin_ratio = DEFAULT_OUTSIDE_STOCK_LONG_MARGIN_RATIO;
-      cd_mr.short_margin_ratio = DEFAULT_OUTSIDE_STOCK_SHORT_MARGIN_RATIO;
-      cd_mr.conversion_rate = DEFAULT_OUTSIDE_STOCK_CONVERSION_RATE;
-      cd_mr.exchange_rate = OUTSIDE_DEFAULT_STOCK_EXCHANGE_RATE;
     }
+
+    if (book->instrument_factors.find(hashed_instrument_key) == book->instrument_factors.end()) {
+      cd_mr.margin_ratio = position.direction == Direction::Long ? DEFAULT_OTC_STOCK_LONG_MARGIN_RATIO
+                                                                 : DEFAULT_OTC_STOCK_SHORT_MARGIN_RATIO;
+      cd_mr.long_margin_ratio = DEFAULT_OTC_STOCK_LONG_MARGIN_RATIO;
+      cd_mr.short_margin_ratio = DEFAULT_OTC_STOCK_SHORT_MARGIN_RATIO;
+      cd_mr.exchange_rate = OTC_DEFAULT_STOCK_EXCHANGE_RATE;
+    } else {
+      auto &factor = book->instrument_factors.at(hashed_instrument_key);
+      cd_mr.margin_ratio = margin_ratio(factor, position);
+      cd_mr.long_margin_ratio = factor.long_margin_ratio;
+      cd_mr.short_margin_ratio = factor.short_margin_ratio;
+      cd_mr.exchange_rate = is_equal(factor.exchange_rate, 0.0) ? 1.0 : factor.exchange_rate;
+    }
+
     return cd_mr;
   }
 
-  static double margin_ratio(const Instrument &instrument, const Position &position) {
-    return position.direction == Direction::Long ? instrument.long_margin_ratio : instrument.short_margin_ratio;
+  static double margin_ratio(const InstrumentFactor &factor, const Position &position) {
+    return position.direction == Direction::Long ? factor.long_margin_ratio : factor.short_margin_ratio;
   }
-  [[maybe_unused]] static double roundn(double value, int n = OUTSIDE_AMOUT_PRECISION) {
+  [[maybe_unused]] static double roundn(double value, int n = OTC_AMOUT_PRECISION) {
     double x = pow(10.0, (double)n);
     double round_val = round(value * x) / x;
     return round_val;

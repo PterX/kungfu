@@ -1,4 +1,7 @@
-import { hashInstrumentUKey } from '@kungfu-trader/kungfu-js-api/kungfu';
+import {
+  hashInstrumentFactorUKey,
+  hashInstrumentUKey,
+} from '@kungfu-trader/kungfu-js-api/kungfu';
 import {
   DirectionEnum,
   InstrumentTypeEnum,
@@ -52,6 +55,18 @@ class BaseAccountingUsage implements AccountingUsage {
     const ukey = hashInstrumentUKey(instrumentId, exchangeId);
     return watcher.ledger.Instrument[ukey] as KungfuApi.Instrument | null;
   }
+
+  getInstrumentFactorInWatcher(
+    watcher: KungfuApi.Watcher,
+    instrumentId: string,
+    exchangeId: string,
+    accountUID: number,
+  ) {
+    const ukey = hashInstrumentFactorUKey(instrumentId, exchangeId, accountUID);
+    return watcher.ledger.InstrumentFactor[
+      ukey
+    ] as KungfuApi.InstrumentFactor | null;
+  }
 }
 
 function calcTradeAmountWithNoting(
@@ -76,10 +91,10 @@ class DefaultAccountingUsage extends BaseAccountingUsage {
 
 function calcTradeAmountOnlyWithExchangeRate(
   instrumentForAccounting: KungfuApi.InstrumentForAccounting,
-  instrument: KungfuApi.Instrument | null,
+  instrumentFactor: KungfuApi.InstrumentFactor | null,
 ) {
   const { price, volume } = instrumentForAccounting;
-  const { exchange_rate } = instrument || {};
+  const { exchange_rate } = instrumentFactor || {};
   return (
     price * volume * getInstrumentDefaultValue(exchange_rate, 'exchange_rate')
   );
@@ -96,10 +111,15 @@ class StockAccountingUsage extends BaseAccountingUsage {
   ) {
     if (!instrumentForAccounting) return null;
 
-    const { instrumentId, exchangeId } = instrumentForAccounting;
+    const { instrumentId, exchangeId, accountUID } = instrumentForAccounting;
     return calcTradeAmountOnlyWithExchangeRate(
       instrumentForAccounting,
-      this.getInstrumentInWatcher(watcher, instrumentId, exchangeId),
+      this.getInstrumentFactorInWatcher(
+        watcher,
+        instrumentId,
+        exchangeId,
+        accountUID,
+      ),
     );
   }
 }
@@ -115,10 +135,15 @@ class BondAccountingUsage extends BaseAccountingUsage {
   ) {
     if (!instrumentForAccounting) return null;
 
-    const { instrumentId, exchangeId } = instrumentForAccounting;
+    const { instrumentId, exchangeId, accountUID } = instrumentForAccounting;
     return calcTradeAmountOnlyWithExchangeRate(
       instrumentForAccounting,
-      this.getInstrumentInWatcher(watcher, instrumentId, exchangeId),
+      this.getInstrumentFactorInWatcher(
+        watcher,
+        instrumentId,
+        exchangeId,
+        accountUID,
+      ),
     );
   }
 }
@@ -134,7 +159,7 @@ class FutureAccountingUsage extends BaseAccountingUsage {
   ) {
     if (!instrumentForAccounting) return null;
 
-    const { price, volume, direction, instrumentId, exchangeId } =
+    const { price, volume, direction, instrumentId, exchangeId, accountUID } =
       instrumentForAccounting;
 
     const instrument = this.getInstrumentInWatcher(
@@ -143,12 +168,17 @@ class FutureAccountingUsage extends BaseAccountingUsage {
       exchangeId,
     );
 
-    const {
-      contract_multiplier,
-      long_margin_ratio,
-      short_margin_ratio,
-      exchange_rate,
-    } = instrument || {};
+    const instrumentFactor = this.getInstrumentFactorInWatcher(
+      watcher,
+      instrumentId,
+      exchangeId,
+      accountUID,
+    );
+
+    const { contract_multiplier } = instrument || {};
+
+    const { long_margin_ratio, short_margin_ratio, exchange_rate } =
+      instrumentFactor || {};
 
     if (direction === DirectionEnum.Long) {
       return (
@@ -181,15 +211,17 @@ class RepoAccountingUsage extends BaseAccountingUsage {
     watcher: KungfuApi.Watcher,
     instrumentForAccounting: KungfuApi.InstrumentForAccounting,
   ) {
-    const { volume, instrumentId, exchangeId } = instrumentForAccounting;
+    const { volume, instrumentId, exchangeId, accountUID } =
+      instrumentForAccounting;
 
-    const instrument = this.getInstrumentInWatcher(
+    const instrumentFactor = this.getInstrumentFactorInWatcher(
       watcher,
       instrumentId,
       exchangeId,
+      accountUID,
     );
 
-    const { exchange_rate } = instrument || {};
+    const { exchange_rate } = instrumentFactor || {};
     return volume * getInstrumentDefaultValue(exchange_rate, 'exchange_rate');
   }
 }

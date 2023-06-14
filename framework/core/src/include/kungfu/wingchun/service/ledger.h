@@ -65,6 +65,8 @@ private:
 
   void rebuild_positions(int64_t trigger_time, uint32_t strategy_uid);
 
+  double translate_by_price_tick(const char *exchange_id, const char *instrument_id, double price);
+
   template <typename AppStateMap, typename AppStateUpdate>
   void update_app_state_map(uint32_t location_uid, const AppStateUpdate &state_update, AppStateMap &app_states) {
     app_states.insert_or_assign(location_uid, state_update);
@@ -97,6 +99,9 @@ private:
   void write_strategy_data(int64_t trigger_time, uint32_t strategy_uid);
 
   void write_positions(int64_t trigger_time, uint32_t dest, book::PositionMap &positions);
+
+  void write_instrument_factors(int64_t trigger_time, uint32_t strategy_uid,
+                                book::InstrumentFactorMap &instrument_factors);
 
   void request_asset_sync(int64_t trigger_time);
 

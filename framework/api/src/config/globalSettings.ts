@@ -1,5 +1,4 @@
 import fse from 'fs-extra';
-import os from 'os';
 import {
   OrderInputKeyEnum,
   SpaceSizeSettingEnum,
@@ -17,8 +16,10 @@ import {
 } from '@kungfu-trader/kungfu-js-api/language';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
+import { getDefaultHomePath } from './homePathConfig';
+import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 const { t } = VueI18n.global;
-const numCPUs = os.cpus() ? os.cpus().length : 1;
+const ifCpusNumSafe = booleanProcessEnv(process.env.IF_CPUS_NUM_SAFE);
 
 export interface KfSystemConfig {
   key: string;
@@ -32,11 +33,20 @@ const __python_version_resolved = __python_version
 
 const packageJson = readRootPackageJsonSync();
 
+const defaultHomePath = getDefaultHomePath();
+
 export const getKfGlobalSettings = (): KfSystemConfig[] => [
   {
     key: 'system',
     name: t('globalSettingConfig.system'),
     config: [
+      {
+        key: 'homePath',
+        name: t('globalSettingConfig.home_path'),
+        tip: t('globalSettingConfig.home_path_desc'),
+        default: defaultHomePath,
+        type: 'directory',
+      },
       {
         key: 'logLevel',
         name: t('globalSettingConfig.log_level'),
@@ -85,14 +95,14 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
         name: t('globalSettingConfig.rocket_model'),
         tip: t('globalSettingConfig.rocket_model_desc'),
         default: false,
-        disabled: numCPUs <= 4,
+        disabled: !ifCpusNumSafe,
         type: 'bool',
       },
       {
         key: 'bypassAccounting',
         name: t('globalSettingConfig.bypass_accounting'),
         tip: t('globalSettingConfig.bypass_accounting_desc'),
-        default: false,
+        default: !ifCpusNumSafe,
         type: 'bool',
       },
       {

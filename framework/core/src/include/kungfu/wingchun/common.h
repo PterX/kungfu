@@ -28,7 +28,9 @@
 #define EXCHANGE_HB "HB"
 
 // 全市场exchange id定义
-#define EXCHANGE_HK "HK"               // 港股: 4（香港交易所）
+#define EXCHANGE_HK "HK" // 港股: 4（香港交易所）
+#define EXCHANGE_SHHK "SHHK"
+#define EXCHANGE_SZHK "SZHK"
 #define EXCHANGE_HK_FUTURE "HKFUT"     // 港股期货: 5（香港交易所）
 #define EXCHANGE_US "US"               // 美股: 29（纳斯达克交易所）
 #define EXCHANGE_US_FUTURE "USFUT"     // 美期: 29（纳斯达克交易所）
@@ -340,7 +342,8 @@ inline longfist::enums::InstrumentType get_instrument_type(const std::string &ex
     return longfist::enums::InstrumentType::Future;
   } else if (string_equals(exchange_id, EXCHANGE_BINANCE) || string_equals(exchange_id, EXCHANGE_HB)) {
     return longfist::enums::InstrumentType::Crypto;
-  } else if (string_equals(exchange_id, EXCHANGE_HK)) {
+  } else if (string_equals(exchange_id, EXCHANGE_HK) || string_equals(exchange_id, EXCHANGE_SHHK) ||
+             string_equals(exchange_id, EXCHANGE_SZHK)) {
     return get_instrument_type_by_exchange_hk(instrument_id);
   } else if (string_equals(exchange_id, EXCHANGE_HK_FUTURE) || string_equals(exchange_id, EXCHANGE_US_FUTURE) ||
              string_equals(exchange_id, EXCHANGE_SGX_FUTURE) || string_equals(exchange_id, EXCHANGE_LON_FUTURE) ||

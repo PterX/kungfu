@@ -58,7 +58,7 @@ void apprentice::request_read_from_sync(int64_t trigger_time, uint32_t source_id
 void apprentice::request_read_from_source_to_dest(int64_t trigger_time, const location_ptr &source_location,
                                                   uint32_t dest_id) {
   if (get_io_device()->get_home()->mode == mode::LIVE) {
-    reader_->join(source_location, dest_id, trigger_time);
+    reader_join(source_location->uid, dest_id, trigger_time);
   }
 }
 
@@ -126,6 +126,7 @@ void apprentice::react() {
   events_ | is(TimeReset::tag) | first() | $$(reset_time(event->data<TimeReset>()));
   events_ | is(Location::tag) | $$(add_location(event->gen_time(), event->data<Location>()));
   events_ | is(Register::tag) | $$(on_register(event->trigger_time(), event->data<Register>()));
+  events_ | is(RequestReadFromOthers::tag) | $$(on_request_read_from_others(event));
   events_ | is(Deregister::tag) | $$(on_deregister(event));
   events_ | is(RequestReadFrom::tag) | $$(on_read_from(event));
   events_ | is(RequestReadFromPublic::tag) | $$(on_read_from_public(event));
@@ -194,6 +195,13 @@ void apprentice::on_react() {}
 
 void apprentice::on_start() {}
 
+void apprentice::on_request_read_from_others(const event_ptr &event) {
+  const auto &request = event->data<RequestReadFromOthers>();
+  if (has_location(request.source_id)) {
+    reader_->join(get_location(request.source_id), request.dest_id, request.from_time);
+  }
+}
+
 void apprentice::on_register(int64_t trigger_time, const Register &register_data) {
   register_location(trigger_time, register_data);
 }
@@ -232,6 +240,28 @@ void apprentice::on_write_to_band(const event_ptr &event) {
 
 [[maybe_unused]] int apprentice::get_observer_recv_timeout() const {
   return get_io_device()->get_observer()->get_recv_timeout();
+}
+
+void apprentice::reader_join(uint32_t source_id, uint32_t dest_id, int64_t from_time) {
+
+  if (not has_location(source_id)) {
+    SPDLOG_ERROR("no location {}", source_id);
+    return;
+  }
+
+  reader_->join(get_location(source_id), dest_id, from_time);
+
+  if (not has_writer(get_master_command_uid())) {
+    SPDLOG_ERROR("no master cmd writer");
+    return;
+  }
+
+  auto writer = get_writer(get_master_command_uid());
+  auto &request = writer->open_data<RequestReadFromOthers>(now());
+  request.source_id = source_id;
+  request.dest_id = dest_id;
+  request.from_time = from_time;
+  writer->close_data();
 }
 
 void apprentice::checkin() {
@@ -281,4 +311,34 @@ void apprentice::expect_start() {
 void apprentice::reset_time(const longfist::types::TimeReset &time_reset) {
   time::reset(time_reset.system_clock_count, time_reset.steady_clock_count);
 }
+
+yijinjing::journal::writer_ptr &apprentice::get_thread_writer() {
+  if (not thread_writer_) {
+    uint32_t dest_id = kungfu::yijinjing::util::get_thread_id();
+    thread_writer_ = get_io_device()->open_writer(dest_id);
+    int64_t nano = now();
+
+    /// join channel in sub-thread will crash, so tell master to ask myself to join
+    /// do not use writer because of multi-thread concurrency issues
+    auto now = time::now_in_nano();
+    nlohmann::json request;
+    request["msg_type"] = RequestReadFromOthers::tag;
+    request["gen_time"] = now;
+    request["trigger_time"] = now;
+    request["source"] = get_home_uid();
+    request["dest"] = master_home_location_->uid;
+    request["data_type"] = int8_t(FrameDataType::Json);
+
+    nlohmann::json data;
+    data["source_id"] = get_home_uid();
+    data["dest_id"] = dest_id;
+    data["from_time"] = nano;
+    request["data"] = data;
+
+    SPDLOG_TRACE("RequestReadFromOthers: {}", request.dump());
+    get_io_device()->get_publisher()->publish(request.dump());
+  }
+  return thread_writer_;
+}
+
 } // namespace kungfu::yijinjing::practice

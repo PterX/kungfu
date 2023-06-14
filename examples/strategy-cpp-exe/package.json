@@ -1,11 +1,7 @@
 {
   "name": "@kungfu-trader/examples-strategy-cpp-exe",
   "author": "kungfu-trader",
-<<<<<<< HEAD
   "version": "2.5.1-alpha.38",
-=======
-  "version": "2.4.70-alpha.5",
->>>>>>> f01e81fa5582bd2b444cadff5ae5b48c86844701
   "description": "KungFu Strategy 101 - C++ Demo",
   "license": "Apache-2.0",
   "private": true,

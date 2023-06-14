@@ -257,14 +257,19 @@ export const useTableSearchKeywordList = <T>(
   searchObjects: {
     key: string;
     value: string;
+    type?: 'string' | 'array';
   }[],
-): { [K in string]: Ref<string> } & {
+): { [K in string]: Ref<string | string[]> } & {
   tableData: ComputedRef<T[]>;
 } => {
-  const searchKeywords: Record<string, Ref<string>> = {};
+  const searchKeywords: Record<string, Ref<string | string[]>> = {};
 
   searchObjects.forEach((searchObject) => {
-    searchKeywords[searchObject.key] = ref('');
+    if (searchObject.type && searchObject.type === 'array') {
+      searchKeywords[searchObject.key] = ref([]);
+    } else {
+      searchKeywords[searchObject.key] = ref('');
+    }
   });
 
   const tableData = computed(() => {
@@ -275,15 +280,24 @@ export const useTableSearchKeywordList = <T>(
             | string
             | number;
           const keyword = searchKeywords[key].value;
-          if (keyword === '') {
-            return true;
+          if (Array.isArray(keyword)) {
+            if (keyword.length === 0) {
+              return true;
+            }
+            return keyword.includes(itemValue.toString());
+          } else {
+            if (keyword === '') {
+              return true;
+            }
+            return new RegExp(keyword, 'ig').test(itemValue.toString());
           }
-          return new RegExp(keyword, 'ig').test(itemValue.toString());
         });
       })
       .map((item) => toRaw(item));
   });
-  return { ...searchKeywords, tableData } as { [K in string]: Ref<string> } & {
+  return { ...searchKeywords, tableData } as {
+    [K in string]: Ref<string | string[]>;
+  } & {
     tableData: ComputedRef<T[]>;
   };
 };

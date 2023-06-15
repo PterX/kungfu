@@ -1145,6 +1145,7 @@ export const useSubscibeInstrumentAtEntry = (
 
     return positions
       .reverse()
+      .slice(0, 128) // default subscribe 128 tickers, then subscribe by clicking position or manually subscribing
       .map((item: KungfuApi.Position): KungfuApi.InstrumentForSub => {
         const uidKey = hashInstrumentUKey(item.instrument_id, item.exchange_id);
         return {
@@ -1869,14 +1870,6 @@ export const useAllKfConfigData = (): Record<
           category: 'system',
           group: 'master',
           name: 'master',
-          mode: 'live',
-          value: '',
-        },
-        {
-          location_uid: 0,
-          category: 'system',
-          group: 'service',
-          name: 'cached',
           mode: 'live',
           value: '',
         },

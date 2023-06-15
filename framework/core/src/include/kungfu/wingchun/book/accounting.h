@@ -34,8 +34,6 @@ public:
 
   virtual ~AccountingMethod() = default;
 
-  virtual void apply_trading_day(Book_ptr &book, int64_t trading_day) = 0;
-
   virtual void apply_quote(Book_ptr &book, const longfist::types::Quote &quote) = 0;
 
   virtual void apply_order_input(Book_ptr &book, uint32_t account_id, const longfist::types::OrderInput &input) = 0;

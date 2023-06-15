@@ -49,9 +49,7 @@ class Operator(wc.Operator):
         self._post_start = getattr(self._module, "post_start", lambda ctx: None)
         self._pre_stop = getattr(self._module, "pre_stop", lambda ctx: None)
         self._post_stop = getattr(self._module, "post_stop", lambda ctx: None)
-        self._on_trading_day = getattr(
-            self._module, "on_trading_day", lambda ctx, trading_day: None
-        )
+
         self._on_quote = getattr(
             self._module, "on_quote", lambda ctx, quote, location, dest_id: None
         )
@@ -155,7 +153,3 @@ class Operator(wc.Operator):
         self.__call_proxy(
             self._on_operator_state_change, self.ctx, operator_state_update, location
         )
-
-    def on_trading_day(self, wc_context, daytime):
-        self.ctx.trading_day = kft.to_datetime(daytime)
-        self.__call_proxy(self._on_trading_day, self.ctx, daytime)

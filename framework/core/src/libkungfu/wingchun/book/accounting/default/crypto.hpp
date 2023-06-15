@@ -38,8 +38,6 @@ public:
 
   CryptoAccountingMethod() = default;
 
-  virtual void apply_trading_day(Book_ptr &book, int64_t trading_day) override {}
-
   virtual void apply_quote(Book_ptr &book, const Quote &quote) override {}
 
   virtual void apply_order_input(Book_ptr &book, uint32_t account_id, const OrderInput &input) override {}

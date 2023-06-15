@@ -17,14 +17,54 @@ using namespace kungfu::yijinjing::util;
 
 namespace kungfu::wingchun::op {
 
-RuntimeContext::RuntimeContext(apprentice &app, const rx::connectable_observable<event_ptr> &events)
-    : app_(app), events_(events), broker_client_(app_) {
+LiveContext::LiveContext(apprentice &app, const rx::connectable_observable<event_ptr> &events)
+    : Context(app, events), broker_client_(app_) {
   log::copy_log_settings(app_.get_home(), app_.get_home()->name);
 }
 
-void RuntimeContext::on_start() { broker_client_.on_start(events_); }
+void LiveContext::on_start() {
+  broker_client_.on_start(events_);
+  auto start_events = events_ | skip_until(events_ | filter([&](auto e) { return started_; }));
+  start_events | is(Deregister::tag) | $$(check_dependency_state(event));
+  start_events | is(OperatorStateUpdate::tag) | $$(check_dependency_state(event));
+  start_events | is(OperatorStateUpdate::tag) | $$(check_dependency_state(event));
+}
 
-const std::string RuntimeContext::get_config() const {
+bool LiveContext::is_started() const { return started_; }
+
+void LiveContext::prepare(const event_ptr &event) {
+  auto ledger_uid = app_.get_ledger_home_location()->uid;
+  if (not app_.has_writer(ledger_uid)) {
+    SPDLOG_INFO("ledger writer not found");
+    return;
+  }
+  auto writer = app_.get_writer(ledger_uid);
+
+  auto connected_test = [&](const auto &locations) {
+    for (const auto &pair : locations) {
+      if (not broker_client_.is_connected(pair.second->uid)) {
+        return false;
+      }
+    }
+    return true;
+  };
+  if (not broker_states_requested_ and connected_test(list_md()) and connected_test(list_op())) {
+    writer->mark(now(), BrokerStateRequest::tag);
+    writer->mark(now(), OperatorStateRequest::tag);
+    broker_states_requested_ = true;
+  }
+
+  if (not broker_client_.enrolled_md_ready() or not broker_client_.enrolled_operator_ready()) {
+    return;
+  }
+  started_ = true;
+
+  OperatorStateUpdate state_update;
+  state_update.state = OperatorState::Ready;
+  update_operator_state(state_update);
+}
+
+const std::string LiveContext::get_config() const {
   auto &config_map = app_.get_state_bank()[boost::hana::type_c<Config>];
   if (config_map.find(app_.get_home_uid()) == config_map.end()) {
     return "{}";
@@ -33,18 +73,18 @@ const std::string RuntimeContext::get_config() const {
   return config_obj.data.value;
 }
 
-int64_t RuntimeContext::now() const { return app_.now(); }
+int64_t LiveContext::now() const { return app_.now(); }
 
-void RuntimeContext::add_timer(int64_t nanotime, const std::function<void(event_ptr)> &callback) {
+void LiveContext::add_timer(int64_t nanotime, const std::function<void(event_ptr)> &callback) {
   app_.add_timer(nanotime, callback);
 }
 
-void RuntimeContext::add_time_interval(int64_t duration, const std::function<void(event_ptr)> &callback) {
+void LiveContext::add_time_interval(int64_t duration, const std::function<void(event_ptr)> &callback) {
   app_.add_time_interval(duration, callback);
 }
 
-void RuntimeContext::subscribe(const std::string &source, const std::vector<std::string> &instrument_ids,
-                               const std::string &exchange_ids) {
+void LiveContext::subscribe(const std::string &source, const std::vector<std::string> &instrument_ids,
+                            const std::string &exchange_ids) {
   auto md_location = find_md_location(source);
   for (const auto &instrument_id : instrument_ids) {
     broker_client_.subscribe(md_location, exchange_ids, instrument_id);
@@ -52,12 +92,12 @@ void RuntimeContext::subscribe(const std::string &source, const std::vector<std:
   md_locations_.emplace(md_location->uid, md_location);
 }
 
-void RuntimeContext::subscribe_all(const std::string &source, uint8_t market_type, uint64_t instrument_type,
-                                   uint64_t data_type) {
+void LiveContext::subscribe_all(const std::string &source, uint8_t market_type, uint64_t instrument_type,
+                                uint64_t data_type) {
   broker_client_.subscribe_all(find_md_location(source), market_type, instrument_type, data_type);
 }
 
-void RuntimeContext::subscribe_operator(const std::string &group, const std::string &name) {
+void LiveContext::subscribe_operator(const std::string &group, const std::string &name) {
   uint32_t hashed_op = hash_operator(group, name);
 
   if (op_locations_.find(hashed_op) != op_locations_.end()) {
@@ -76,7 +116,7 @@ void RuntimeContext::subscribe_operator(const std::string &group, const std::str
   broker_client_.enroll_operator(operator_location);
 }
 
-void RuntimeContext::publish_synthetic_data(const std::string &key, const std::string &value) {
+void LiveContext::publish_synthetic_data(const std::string &key, const std::string &value) {
   auto writer = app_.get_writer(location::PUBLIC);
   auto current_time = now();
   SyntheticData synthetic_data;
@@ -86,15 +126,13 @@ void RuntimeContext::publish_synthetic_data(const std::string &key, const std::s
   writer->write(current_time, synthetic_data);
 }
 
-const location_map &RuntimeContext::list_md() const { return md_locations_; }
+const location_map &LiveContext::list_md() const { return md_locations_; }
 
-const location_map &RuntimeContext::list_op() const { return op_locations_; }
+const location_map &LiveContext::list_op() const { return op_locations_; }
 
-int64_t RuntimeContext::get_trading_day() const { return app_.get_trading_day(); }
+broker::Client &LiveContext::get_broker_client() { return broker_client_; }
 
-broker::PassiveClient &RuntimeContext::get_broker_client() { return broker_client_; }
-
-void RuntimeContext::check_dependency_state(const event_ptr &event) {
+void LiveContext::check_dependency_state(const event_ptr &event) {
   bool all_dependency_ready = true;
   if (event->msg_type() == BrokerStateUpdate::tag) {
     if (event->data<BrokerStateUpdate>().state == BrokerState::Ready and state_ == OperatorState::Ready)
@@ -124,13 +162,13 @@ void RuntimeContext::check_dependency_state(const event_ptr &event) {
   SPDLOG_DEBUG("checked dependency, all dependency ready={}, ", all_dependency_ready);
 }
 
-const location_ptr &RuntimeContext::find_md_location(const std::string &source) {
+const location_ptr &LiveContext::find_md_location(const std::string &source) {
   return find_location(source, category::MD, market_data_);
 }
 
 const location_ptr &
-RuntimeContext::find_location(const std::string &source, category c,
-                              std::unordered_map<std::string, yijinjing::data::location_ptr> &locations) {
+LiveContext::find_location(const std::string &source, category c,
+                           std::unordered_map<std::string, yijinjing::data::location_ptr> &locations) {
   if (locations.find(source) == locations.end()) {
     auto home_locator = app_.get_locator();
     auto source_location = location::make_shared(mode::LIVE, c, source, source, home_locator);
@@ -142,14 +180,20 @@ RuntimeContext::find_location(const std::string &source, category c,
   return locations.at(source);
 }
 
-void RuntimeContext::req_deregister() { app_.request_deregister(); }
+void LiveContext::req_deregister() { app_.request_deregister(); }
 
-void RuntimeContext::update_operator_state(OperatorStateUpdate &state_update) {
+void LiveContext::update_operator_state(OperatorStateUpdate &state_update) {
   state_ = state_update.state;
   auto writer = app_.get_writer(location::PUBLIC);
   state_update.update_time = now();
   state_update.location_uid = app_.get_home_uid();
   writer->write(state_update.update_time, state_update);
 }
+
+yijinjing::data::location_ptr LiveContext::get_location(uint32_t location_uid) {
+  return app_.get_location(location_uid);
+}
+
+uint32_t LiveContext::get_home_uid() const { return app_.get_home_uid(); }
 
 } // namespace kungfu::wingchun::op

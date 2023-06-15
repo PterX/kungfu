@@ -46,8 +46,6 @@ public:
   void set_accounting_method(longfist::enums::InstrumentType instrument_type,
                              const AccountingMethod_ptr &accounting_method);
 
-  void on_trading_day(int64_t daytime);
-
   void on_start(const rx::connectable_observable<event_ptr> &events);
 
   void on_order_input(int64_t update_time, uint32_t source, uint32_t dest, const longfist::types::OrderInput &input);

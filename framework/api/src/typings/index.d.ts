@@ -474,8 +474,6 @@ declare namespace KungfuApi {
 
   export interface Asset {
     update_time: bigint; //更新时间
-    trading_day: string; //交易日
-
     holder_uid: number;
     ledger_category: LedgerCategoryEnum;
 
@@ -498,8 +496,6 @@ declare namespace KungfuApi {
 
   export interface AssetMargin {
     update_time: bigint; //更新时间
-    trading_day: string; //交易日
-
     holder_uid: number;
     ledger_category: LedgerCategoryEnum;
 
@@ -569,7 +565,6 @@ declare namespace KungfuApi {
     insert_time: bigint; //订单写入时间
     update_time: bigint; //订单更新时间
 
-    trading_day: string; //交易日
     instrument_id: string; //合约ID
     exchange_id: string; //交易所ID
 
@@ -727,8 +722,6 @@ declare namespace KungfuApi {
 
   export interface Position {
     update_time: bigint; //更新时间
-    trading_day: string; //交易日
-
     instrument_id: string; //合约ID
     exchange_id: string; //交易所ID
 
@@ -773,8 +766,6 @@ declare namespace KungfuApi {
   }
 
   export interface Quote {
-    trading_day: string; //交易日
-
     data_time: bigint; //数据生成时间
 
     instrument_id: string; //合约ID
@@ -810,8 +801,6 @@ declare namespace KungfuApi {
     external_order_id: string; //外部委托ID
     external_trade_id: string; //外部委托ID
     trade_time: bigint; //成交时间
-
-    trading_day: string; //交易日
 
     instrument_id: string; //合约ID
     exchange_id: string; //交易所ID

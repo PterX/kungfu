@@ -31,34 +31,6 @@ class OtcFutureAccountingMethod : public AccountingMethod {
 public:
   OtcFutureAccountingMethod() = default;
 
-  void apply_trading_day(Book_ptr &book, int64_t trading_day) override {
-    auto apply = [&](auto &position) {
-      auto margin_pre = position.margin;
-      if (not is_valid_price(position.settlement_price)) {
-        if (is_valid_price(position.last_price)) {
-          position.settlement_price = position.last_price;
-        } else {
-          position.settlement_price = position.avg_open_price;
-        }
-      }
-
-      auto cm_mr = get_instrument_contract_multiplier_and_margin_ratio(book, position.source_id, position.direction,
-                                                                       position.exchange_id, position.instrument_id);
-      position.margin = cm_mr.contract_multiplier * position.settlement_price * position.volume * cm_mr.margin_ratio;
-      book->asset.avail -= (position.direction == Direction::Long ? 1 : -1) * (position.margin - margin_pre);
-      position.pre_settlement_price = position.settlement_price;
-      position.last_price = position.settlement_price;
-      position.settlement_price = 0;
-      position.yesterday_volume = position.volume;
-      position.trading_day = time::strftime(trading_day, KUNGFU_TRADING_DAY_FORMAT).c_str();
-
-      update_position(book, position);
-    };
-
-    book->apply_long_positions(apply);
-    book->apply_short_positions(apply);
-  }
-
   void apply_quote(Book_ptr &book, const Quote &quote) override {
     auto apply = [&](auto &position) {
       auto cm_mr = get_instrument_contract_multiplier_and_margin_ratio(book, position.source_id, position.direction,
@@ -181,7 +153,6 @@ public:
     book->apply_position(account_id, direction, trade.exchange_id, trade.instrument_id, apply);
   }
 
-  //< 更新浮动盈亏
   void update_position(Book_ptr &book, Position &position) override {
     if (position.last_price > 0) {
       auto cm_mr = get_instrument_contract_multiplier_and_margin_ratio(book, position.source_id, position.direction,
@@ -206,7 +177,6 @@ public:
 
       auto multiplier = cm_mr.contract_multiplier * (position.direction == Direction::Long ? 1 : -1);
       auto price_diff = position.last_price - position.avg_open_price;
-      // 浮动盈亏
       position.unrealized_pnl = (price_diff * position.volume) * multiplier - cost;
     }
   }

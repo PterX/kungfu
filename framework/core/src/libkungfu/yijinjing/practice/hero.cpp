@@ -32,7 +32,6 @@ hero::hero(io_device_ptr io_device)
     : begin_time_(time::now_in_nano()), end_time_(INT64_MAX),
       master_home_location_(make_system_location("master", "master", io_device->get_locator())),
       master_cmd_location_(make_system_location("master", encode(io_device), io_device->get_locator())),
-      cached_home_location_(make_system_location("service", "cached", io_device->get_locator())),
       ledger_home_location_(make_system_location("service", "ledger", io_device->get_locator())),
       io_device_(std::move(io_device)), now_(0) {
 
@@ -43,7 +42,6 @@ hero::hero(io_device_ptr io_device)
   add_location(0, get_io_device()->get_home());
   add_location(0, master_home_location_);
   add_location(0, master_cmd_location_);
-  add_location(0, cached_home_location_);
   add_location(0, ledger_home_location_);
   reader_ = io_device_->open_reader_to_subscribe();
 }
@@ -61,6 +59,7 @@ bool hero::is_usable() { return io_device_->is_usable(); }
 void hero::setup() {
   io_device_->setup();
   events_ = observable<>::create<event_ptr>([this](auto &s) { delegate_produce(this, s); }) | holdon();
+  now_ = get_begin_time();
   react();
   live_ = true;
 }
@@ -94,7 +93,11 @@ void hero::set_now(int64_t now) { now_ = now; }
 
 void hero::set_begin_time(int64_t begin_time) { begin_time_ = begin_time; }
 
+int64_t hero::get_begin_time() const { return begin_time_; }
+
 void hero::set_end_time(int64_t end_time) { end_time_ = end_time; }
+
+int64_t hero::get_end_time() const { return end_time_; }
 
 const locator_ptr &hero::get_locator() const { return io_device_->get_locator(); }
 
@@ -172,13 +175,15 @@ const Channel &hero::get_channel(uint64_t hash) const {
   return channels_;
 }
 
-[[maybe_unused]] bool hero::has_band(uint32_t source, uint32_t dest) const {
-  return has_band(make_source_dest_hash(source, dest));
-}
+const std::unordered_map<uint32_t, longfist::types::Register> &hero::get_registry() const { return registry_; }
+
+const std::unordered_map<uint32_t, yijinjing::data::location_ptr> &hero::get_locations() const { return locations_; }
+
+bool hero::has_band(uint32_t source, uint32_t dest) const { return has_band(make_source_dest_hash(source, dest)); }
 
 bool hero::has_band(uint64_t hash) const { return bands_.find(hash) != bands_.end(); }
 
-[[maybe_unused]] const longfist::types::Band &hero::get_band(uint32_t source, uint32_t dest) const {
+const longfist::types::Band &hero::get_band(uint32_t source, uint32_t dest) const {
   return get_band(make_source_dest_hash(source, dest));
 }
 
@@ -187,11 +192,7 @@ const longfist::types::Band &hero::get_band(uint64_t hash) const {
   return bands_.at(hash);
 }
 
-[[maybe_unused]] const std::unordered_map<uint64_t, longfist::types::Band> &hero::get_bands() const { return bands_; }
-
-const std::unordered_map<uint32_t, longfist::types::Register> &hero::get_registry() const { return registry_; }
-
-const std::unordered_map<uint32_t, yijinjing::data::location_ptr> &hero::get_locations() const { return locations_; }
+const std::unordered_map<uint64_t, longfist::types::Band> &hero::get_bands() const { return bands_; }
 
 void hero::on_notify() {}
 
@@ -202,8 +203,6 @@ location_ptr hero::get_ledger_home_location() const { return ledger_home_locatio
 location_ptr hero::get_master_home_location() const { return master_home_location_; }
 
 location_ptr hero::get_master_cmd_location() const { return master_cmd_location_; }
-
-location_ptr hero::get_cached_home_location() const { return cached_home_location_; }
 
 const rx::connectable_observable<event_ptr> &hero::get_events() const { return events_; }
 
@@ -262,7 +261,7 @@ void hero::deregister_location(int64_t, const uint32_t location_uid) {
 }
 
 void hero::register_channel(int64_t, const Channel &channel) {
-  [[maybe_unused]] uint64_t channel_uid = make_source_dest_hash(channel.source_id, channel.dest_id);
+  uint64_t channel_uid = make_source_dest_hash(channel.source_id, channel.dest_id);
   auto result = channels_.try_emplace(channel_uid, channel);
   if (result.second) {
     auto source_uname = get_location_uname(channel.source_id);
@@ -372,6 +371,8 @@ void hero::deal_notice(bool bypass, bool notify, const rx::subscriber<event_ptr>
 
 bool hero::drain(const rx::subscriber<event_ptr> &sb) {
   deal_notice(false, true, sb);
+  bool is_lazy = io_device_->is_lazy();
+  bool is_low_latency = io_device_->is_low_latency();
   bool bypass = io_device_->is_lazy() or not io_device_->is_low_latency();
   while (live_ and reader_->data_available()) {
     deal_notice(bypass, false, sb);
@@ -389,7 +390,7 @@ bool hero::drain(const rx::subscriber<event_ptr> &sb) {
     }
   }
   if (get_io_device()->get_home()->mode != mode::LIVE and not reader_->data_available()) {
-    SPDLOG_INFO("reached journal end {}", time::strftime(reader_->current_frame()->gen_time()));
+    SPDLOG_INFO("reached journal end {}", time::strftime(now()));
     return false;
   }
   return true;

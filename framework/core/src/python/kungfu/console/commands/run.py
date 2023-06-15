@@ -26,19 +26,54 @@ service_command_context = kfc.pass_context("low_latency")
     type=click.Choice(kfj.CATEGORIES.keys()),
     help="category",
 )
+@click.option(
+    "-B",
+    "--backtest",
+    type=str,
+    help="backetst parameter",
+)
+@click.option(
+    "-M",
+    "--matcher",
+    type=str,
+    help="path to matcher dll",
+)
+@click.option("-b", "--begin", type=str, required=False, help="begin time")
+@click.option("-e", "--end", type=str, required=False, help="end time")
 @click.option("-g", "--group", type=str, help="group")
 @click.option("-n", "--name", type=str, help="name")
 @click.option("-x", "--low-latency", is_flag=True, help="run in low latency mode")
+@click.option("-p", "--bypass-cached", is_flag=True, help="run in bypass cached mode")
 @click.argument("reference", type=str, required=False)
 @click.option("-a", "--arguments", type=str, required=False)
 @click.option("-v", "--vendor", type=str, required=False)
 @kfc.pass_context()
-def run(ctx, mode, category, group, name, low_latency, reference, arguments, vendor):
+def run(
+    ctx,
+    mode,
+    category,
+    backtest,
+    matcher,
+    begin,
+    end,
+    group,
+    name,
+    low_latency,
+    bypass_cached,
+    reference,
+    arguments,
+    vendor,
+):
     ctx.mode = mode
     ctx.category = category
+    ctx.backtest = backtest
+    ctx.matcher = matcher
+    ctx.begin = begin
+    ctx.end = end
     ctx.group = group
     ctx.name = name
     ctx.low_latency = low_latency
+    ctx.bypass_cached = bypass_cached
     ctx.path = reference
     ctx.arguments = arguments
     ctx.vendor = vendor
@@ -51,7 +86,6 @@ def run(ctx, mode, category, group, name, low_latency, reference, arguments, ven
     cheatsheet = {
         "master": registry["system"]["master"]["master"],
         "ledger": registry["system"]["service"]["ledger"],
-        "cached": registry["system"]["service"]["cached"],
     }
 
     if not category and not reference:

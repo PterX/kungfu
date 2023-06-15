@@ -33,35 +33,6 @@ class FutureAccountingMethod : public AccountingMethod {
 public:
   FutureAccountingMethod() = default;
 
-  void apply_trading_day(Book_ptr &book, int64_t trading_day) override {
-    auto apply = [&](auto &position) {
-      auto margin_pre = position.margin;
-      if (not is_valid_price(position.settlement_price)) {
-        if (is_valid_price(position.last_price)) {
-          position.settlement_price = position.last_price;
-        } else {
-          position.settlement_price = position.avg_open_price;
-        }
-      }
-
-      auto cm_mr = get_instrument_contract_multiplier_and_margin_ratio(book, position.source_id, position.direction,
-                                                                       position.exchange_id, position.instrument_id);
-
-      position.margin = cm_mr.contract_multiplier * position.settlement_price * position.volume * cm_mr.margin_ratio;
-      book->asset.avail -= position.margin - margin_pre;
-      position.pre_settlement_price = position.settlement_price;
-      position.last_price = position.settlement_price;
-      position.settlement_price = 0;
-      position.yesterday_volume = position.volume;
-      position.trading_day = time::strftime(trading_day, KUNGFU_TRADING_DAY_FORMAT).c_str();
-
-      update_position(book, position);
-    };
-
-    book->apply_long_positions(apply);
-    book->apply_short_positions(apply);
-  }
-
   void apply_quote(Book_ptr &book, const Quote &quote) override {
     auto apply = [&](auto &position) {
       auto cm_mr = get_instrument_contract_multiplier_and_margin_ratio(book, position.source_id, position.direction,
@@ -311,7 +282,8 @@ private:
     auto contract_multiplier = cm_mr.contract_multiplier;
     auto product_key = yijinjing::util::hash_str_32(get_instrument_product(trade.instrument_id));
     if (book->commissions.find(product_key) == book->commissions.end()) {
-      SPDLOG_WARN("commission information missing for {}@{}", trade.instrument_id, trade.exchange_id);
+      // TODO comment temporarliy for backtest without commisions
+      // SPDLOG_WARN("commission information missing for {}@{}", trade.instrument_id, trade.exchange_id);
       return 0;
     }
     const auto &commission = book->commissions.at(product_key);
@@ -340,7 +312,8 @@ private:
     auto hashed_instrument_key = hash_instrument(exchange_id, instrument_id);
     future_contract_multiplier_and_margin_ratio cm_mr = {};
     if (book->instruments.find(hashed_instrument_key) == book->instruments.end()) {
-      SPDLOG_WARN("instrument information missing for {}@{}", instrument_id, exchange_id);
+      // TODO comment tempoorarly for backtest without commisions
+      // SPDLOG_WARN("instrument information missing for {}@{}", instrument_id, exchange_id);
       cm_mr.contract_multiplier = DEFAULT_INSTRUMENT_CONTRACT_MULTIPLIER;
     } else {
       auto &instrument = book->instruments.at(hashed_instrument_key);

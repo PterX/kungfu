@@ -194,7 +194,7 @@ onBeforeUnmount(() => {
         },
         extraResourcesLoading: {
           done: $t('extra_resources_done'),
-          loading: $t('extra_resouces_loading'),
+          loading: $t('extra_resources_loading'),
         },
       }"
     ></KfSystemPrepareModal>

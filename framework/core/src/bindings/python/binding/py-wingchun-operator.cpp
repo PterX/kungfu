@@ -23,10 +23,6 @@ namespace kungfu::wingchun::pybind {
 class PyOpRunner : public op::Runner {
 public:
   using op::Runner::Runner;
-
-  void on_trading_day(const event_ptr &event, int64_t daytime) override {
-    PYBIND11_OVERLOAD(void, op::Runner, on_trading_day, event, daytime);
-  }
 };
 
 class PyOperator : public op::Operator {
@@ -40,10 +36,6 @@ public:
   void pre_stop(op::Context_ptr &context) override { PYBIND11_OVERLOAD(void, op::Operator, pre_stop, context); }
 
   void post_stop(op::Context_ptr &context) override { PYBIND11_OVERLOAD(void, op::Operator, post_stop, context); }
-
-  void on_trading_day(op::Context_ptr &context, int64_t daytime) override {
-    PYBIND11_OVERLOAD(void, op::Operator, on_trading_day, context, daytime);
-  }
 
   void on_quote(op::Context_ptr &context, const Quote &quote, const kungfu::yijinjing::data::location_ptr &location,
                 uint32_t dest) override {
@@ -93,12 +85,10 @@ void bind_operator(pybind11::module &m) {
       .def("run", &op::Runner::run)
       .def("setup", &op::Runner::setup)
       .def("step", &op::Runner::step)
-      .def("on_trading_day", &op::Runner::on_trading_day)
       .def("on_exit", &op::Runner::on_exit)
       .def("add_operator", &op::Runner::add_operator);
 
   py::class_<op::Context, std::shared_ptr<op::Context>>(m, "OpContext")
-      .def_property_readonly("trading_day", &op::Context::get_trading_day)
       .def_property_readonly("config", &op::Context::get_config)
       .def("now", &op::Context::now)
       .def("add_timer", &op::Context::add_timer)
@@ -111,7 +101,7 @@ void bind_operator(pybind11::module &m) {
       .def("req_deregister", &op::Context::req_deregister)
       .def("update_operator_state", &op::Context::update_operator_state);
 
-  py::class_<op::RuntimeContext, op::Context, op::RuntimeContext_ptr>(m, "OpRuntimeContext");
+  py::class_<op::LiveContext, op::Context, op::LiveContext_ptr>(m, "OpLiveContext");
 
   py::class_<op::Operator, PyOperator, op::Operator_ptr>(m, "Operator")
       .def(py::init())
@@ -119,7 +109,6 @@ void bind_operator(pybind11::module &m) {
       .def("post_start", &op::Operator::post_start)
       .def("pre_stop", &op::Operator::pre_stop)
       .def("post_stop", &op::Operator::post_stop)
-      .def("on_trading_day", &op::Operator::on_trading_day)
       .def("on_quote", &op::Operator::on_quote)
       .def("on_entrust", &op::Operator::on_entrust)
       .def("on_transaction", &op::Operator::on_transaction)
@@ -127,7 +116,5 @@ void bind_operator(pybind11::module &m) {
       .def("on_deregister ", &op::Operator::on_deregister)
       .def("on_broker_state_change ", &op::Operator::on_broker_state_change)
       .def("on_operator_state_change ", &op::Operator::on_operator_state_change);
-
-  ;
 }
 } // namespace kungfu::wingchun::pybind

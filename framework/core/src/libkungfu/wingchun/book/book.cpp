@@ -65,7 +65,6 @@ Position &Book::get_position(uint32_t source_id, Direction direction, const char
   auto pair = positions.try_emplace(position_id);
   auto &position = pair.first->second;
   if (pair.second) {
-    position.trading_day = asset.trading_day;
     position.instrument_id = instrument_id;
     position.exchange_id = exchange_id;
     position.instrument_type = get_instrument_type(position.exchange_id, position.instrument_id);
@@ -99,8 +98,7 @@ void Book::update(int64_t update_time, longfist::enums::AccountingMethodType acc
   double margin = 0;
   bool is_stock_acct = true;
   double short_market_value = 0;
-
-  auto update_position = [&](Position &position) {
+  auto update_position = [&](const Position &position) {
     auto is_stock =
         position.instrument_type == InstrumentType::Stock or position.instrument_type == InstrumentType::Bond or
         position.instrument_type == InstrumentType::Fund or position.instrument_type == InstrumentType::StockOption or

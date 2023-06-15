@@ -5,7 +5,7 @@
 
 #include <kungfu/common.h>
 #include <kungfu/longfist/longfist.h>
-#include <kungfu/yijinjing/bus.h>
+#include <kungfu/yijinjing/journal/bus.h>
 #include <kungfu/yijinjing/journal/common.h>
 #include <kungfu/yijinjing/journal/frame.h>
 #include <kungfu/yijinjing/journal/page.h>
@@ -23,7 +23,10 @@ public:
   journal(data::location_ptr location, uint32_t dest_id, bool is_writing, bool lazy, bool low_latency,
           const bus_ptr &bus)
       : location_(std::move(location)), dest_id_(dest_id), is_writing_(is_writing), lazy_(lazy),
-        low_latency_(low_latency), bus_(bus), frame_(std::shared_ptr<frame>(new frame())), page_frame_nb_(0u) {}
+        low_latency_(low_latency), bus_(bus), frame_(std::shared_ptr<frame>(new frame())), page_frame_nb_(0u),
+        replica_(false) {}
+
+  journal(const journal &other);
 
   ~journal();
 
@@ -68,6 +71,7 @@ private:
   std::recursive_mutex passed_page_collector_mtx_;
   frame_ptr frame_;
   uint64_t page_frame_nb_;
+  bool replica_{false};
 
   void load_page(int page_id);
 
@@ -86,6 +90,8 @@ public:
   explicit reader(bool lazy, bool low_latency, const bus_ptr &bus)
       : lazy_(lazy), low_latency_(low_latency), bus_(bus), current_(nullptr){};
 
+  reader(const reader &other);
+
   ~reader();
 
   /**
@@ -100,6 +106,8 @@ public:
 
   void disjoin_channel(uint32_t location_uid, uint32_t dest_id);
 
+  void keep_only(uint32_t location_uid, uint32_t dest_id);
+
   [[nodiscard]] frame_ptr current_frame() const { return current_->current_frame(); }
 
   [[nodiscard]] uint64_t current_frame_id() const { return current_->current_frame_id(); }
@@ -109,6 +117,8 @@ public:
   [[nodiscard]] uint32_t current_page_id() const { return current_->current_page_id(); }
 
   [[maybe_unused]] [[nodiscard]] const JournalMap &get_journals() const { return journals_; }
+
+  journal &get_journal_ref(const data::location_ptr &location, uint32_t dest_id);
 
   bool data_available();
 
@@ -128,6 +138,8 @@ private:
   bus_ptr bus_;
   journal *current_;
   JournalMap journals_;
+  std::vector<journal> replica_journals_{};
+  std::recursive_mutex mtx_{};
 };
 
 class writer {
@@ -160,6 +172,9 @@ public:
   [[maybe_unused]] void write_bytes(int64_t trigger_time, int32_t msg_type, const std::vector<uint8_t> &data,
                                     uint32_t length);
 
+  void write_raw_at_as(int64_t gen_time, int64_t trigger_time, uint32_t source, uint32_t dest, int32_t msg_type,
+                       uintptr_t data, uint32_t length);
+
   bool release_page();
 
   /**
@@ -179,7 +194,7 @@ public:
     return const_cast<T &>(*reinterpret_cast<const T *>(frame->data_address()));
   }
 
-  void close_data();
+  void close_data(int64_t gen_time = time::now_in_nano());
 
   template <typename T>
   std::enable_if_t<size_fixed_v<T>> write(int64_t trigger_time, const T &data, int32_t msg_type = T::tag) {
@@ -236,9 +251,10 @@ public:
 private:
   const uint64_t frame_id_base_;
   journal journal_;
-  std::mutex writer_mtx_ = {};
+  std::mutex writer_mutex_ = {};
   publisher_ptr publisher_;
   size_t size_to_write_;
+  int64_t last_gen_time_;
   uint32_t writer_start_time_32int_;
 
   void close_page(int64_t trigger_time);

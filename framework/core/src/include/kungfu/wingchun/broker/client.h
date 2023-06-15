@@ -176,7 +176,8 @@ private:
     };
     if constexpr (std::is_same<AppState, longfist::enums::BrokerState>::value) {
       if (app_location->category == longfist::enums::category::MD) {
-        switch_broker_state(category::MD, ready_md_locations_, [&]() { renew(event->gen_time(), app_location); });
+        switch_broker_state(longfist::enums::category::MD, ready_md_locations_,
+                            [&]() { renew(event->gen_time(), app_location); });
         broker_states_.emplace(app_location->uid, state_value);
       }
       if (app_location->category == longfist::enums::category::TD) {
@@ -317,12 +318,7 @@ private:
   EnrollmentMap enrolled_op_locations_ = {};
 };
 
-template <typename DataType>
-static constexpr auto is_md_datatype_v =
-    std::is_same_v<DataType, longfist::types::Quote> or std::is_same_v<DataType, longfist::types::Entrust> or
-    std::is_same_v<DataType, longfist::types::Transaction> or std::is_same_v<DataType, longfist::types::Tree>;
-
-template <typename DataType, std::enable_if_t<is_md_datatype_v<DataType>>...>
+template <typename DataType, std::enable_if_t<longfist::is_market_data<DataType>()>...>
 static constexpr auto is_own(const Client &broker_client) {
   return rx::filter([&](const event_ptr &event) {
     if (event->msg_type() == DataType::tag) {

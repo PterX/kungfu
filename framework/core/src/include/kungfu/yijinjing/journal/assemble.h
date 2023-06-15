@@ -7,10 +7,21 @@
 #ifndef YIJINJING_ASSEMBLE_H
 #define YIJINJING_ASSEMBLE_H
 
-#include <kungfu/yijinjing/bus.h>
 #include <kungfu/yijinjing/journal/journal.h>
 
 namespace kungfu::yijinjing::journal {
+struct noop_publisher : public publisher {
+  noop_publisher() = default;
+  bool is_usable() override { return true; }
+  void setup() override {}
+  int notify() override { return 0; }
+  int publish(const std::string &json_message, int flags = NNG_FLAG_NONBLOCK) override { return 0; }
+};
+
+struct assemble_exception : std::runtime_error {
+  explicit assemble_exception(const std::string &msg) : std::runtime_error(msg){};
+};
+
 class sink {
 public:
   sink();
@@ -126,6 +137,8 @@ public:
   }
 
   [[maybe_unused]] void seek_to_time(int64_t nano_time);
+
+  [[maybe_unused]] void move_to_time(int64_t nano_time);
 
   [[maybe_unused]] [[nodiscard]] const std::vector<reader_ptr> &get_readers() const { return readers_; }
 

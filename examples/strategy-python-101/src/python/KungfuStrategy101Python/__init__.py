@@ -12,6 +12,8 @@ def pre_start(context):
     context.log.info("pre start")
     context.add_account(source, "123456")
     context.subscribe(source, ["600000"], exchange)
+    context.subscribe(source, ["600001"], exchange)
+    context.subscribe(source, ["600002"], exchange)
     # context.subscribe_operator("bar", "my-bar")
 
 

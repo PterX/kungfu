@@ -90,9 +90,13 @@ inline static uint32_t find_page_size(const data::location_ptr &location, uint32
   }
   if ((location->category == longfist::enums::category::TD ||
        location->category == longfist::enums::category::STRATEGY ||
-       location->category == longfist::enums::category::OPERATOR || location->group == "service") &&
+       location->category == longfist::enums::category::OPERATOR ||
+       location->category == longfist::enums::category::SYSTEM) &&
       dest_id != 0) {
     return 16 * MB;
+  }
+  if (location->mode == longfist::enums::mode::BACKTEST) {
+    return 128 * MB;
   }
   return MB;
 }

@@ -21,21 +21,23 @@ using namespace kungfu::yijinjing::journal;
 
 namespace kungfu::yijinjing::practice {
 
-master::master(location_ptr home, bool low_latency)
+master::master(location_ptr home, bool low_latency, bool bypass_cached)
     : hero(std::make_shared<io_device_master>(home, low_latency)), start_time_(time::now_in_nano()), last_check_(0),
-      session_builder_(get_io_device()), profile_(get_locator()) {
-  profile_.setup();
-  for (const auto &app_location : profile_.get_all(Location{})) {
+      cached_(get_io_device(), bypass_cached) {
+
+  for (const auto &app_location : cached_.get_all(Location{})) {
     add_location(start_time_, location::make_shared(app_location, get_locator()));
   }
-  for (const auto &config : profile_.get_all(Config{})) {
+  for (const auto &config : cached_.get_all(Config{})) {
     try_add_location(start_time_, location::make_shared(config, get_locator()));
   }
 
   auto io_device = std::dynamic_pointer_cast<io_device_master>(get_io_device());
-  session_builder_.open_session(master_home_location_, start_time_);
+  cached_.open_session(master_home_location_, start_time_);
   writers_.emplace(location::PUBLIC, io_device->open_writer(location::PUBLIC));
   get_writer(location::PUBLIC)->mark(start_time_, SessionStart::tag);
+
+  cached_.run_store_workers();
 }
 
 void master::on_exit() {
@@ -45,7 +47,7 @@ void master::on_exit() {
 }
 
 void master::notify_deregister_on_exit() {
-  auto &live_sessions = session_builder_.get_all_sessions();
+  auto &live_sessions = cached_.get_all_sessions();
   for (auto &iter : live_sessions) {
     auto &session = iter.second;
     auto location_from_session = location::make_shared(session, get_locator());
@@ -57,7 +59,7 @@ void master::notify_deregister_on_exit() {
 
 // after finished sending deregisters of other processes, then tell everyone master down
 void master::notify_master_deregister_on_exit() {
-  auto &live_sessions = session_builder_.get_all_sessions();
+  auto &live_sessions = cached_.get_all_sessions();
   for (auto &iter : live_sessions) {
     auto &session = iter.second;
 
@@ -72,7 +74,7 @@ void master::notify_master_deregister_on_exit() {
 
 void master::mark_session_end_on_exit() {
   get_writer(location::PUBLIC)->mark(time::now_in_nano(), SessionEnd::tag);
-  auto &live_sessions = session_builder_.get_all_sessions();
+  auto &live_sessions = cached_.get_all_sessions();
   for (auto &iter : live_sessions) {
     auto &session = iter.second;
     if (has_writer(session.location_uid)) {
@@ -84,7 +86,7 @@ void master::mark_session_end_on_exit() {
   }
 
   // have to use new now, ensuring later than all messages
-  session_builder_.close_all_sessions(time::now_in_nano());
+  cached_.close_all_sessions(time::now_in_nano());
 }
 
 void master::on_notify() { get_io_device()->get_publisher()->notify(); }
@@ -97,47 +99,50 @@ void master::register_app(const event_ptr &event) {
   Register register_data(request_data.c_str(), request_data.length());
 
   auto app_location = location::make_shared(register_data, home->locator);
-
   if (is_location_live(app_location->uid)) {
     SPDLOG_ERROR("location {} has already been registered live", app_location->uname);
     return;
   }
+  register_data.last_active_time = cached_.find_last_active_time(app_location);
+  register_location(event->gen_time(), register_data);
+  try_add_location(event->gen_time(), app_location);
 
   auto now = time::now_in_nano();
   auto uid_str = fmt::format("{:08x}", app_location->uid);
-  SPDLOG_INFO("registering location {} uname {}", uid_str, app_location->uname);
+  SPDLOG_INFO("registering location {} uname {} uid {}", uid_str, app_location->uname, app_location->uid);
   auto master_cmd_location = location::make_shared(mode::LIVE, category::SYSTEM, "master", uid_str, home->locator);
-  auto public_writer = get_writer(location::PUBLIC);
-  auto app_cmd_writer = get_io_device()->open_writer_at(master_cmd_location, app_location->uid);
-
-  try_add_location(event->gen_time(), app_location);
   try_add_location(event->gen_time(), master_cmd_location);
 
-  register_data.last_active_time = session_builder_.find_last_active_time(app_location);
-  register_location(event->gen_time(), register_data);
-
+  auto app_cmd_writer = get_io_device()->open_writer_at(master_cmd_location, app_location->uid);
   writers_.emplace(app_location->uid, app_cmd_writer);
   reader_->join(app_location, location::PUBLIC, now);
   reader_->join(app_location, location::SYNC, now);
   reader_->join(app_location, master_cmd_location->uid, now);
 
-  session_builder_.open_session(app_location, event->gen_time());
-  app_cmd_writer->mark(event->gen_time(), SessionStart::tag);
-
+  auto public_writer = get_writer(location::PUBLIC);
   public_writer->write(event->gen_time(), *std::dynamic_pointer_cast<Location>(app_location));
   public_writer->write(event->gen_time(), register_data);
 
+  // have to be after register sent;
   require_write_to(event->gen_time(), app_location->uid, location::PUBLIC);
   require_write_to(event->gen_time(), app_location->uid, location::SYNC);
   require_write_to(event->gen_time(), app_location->uid, master_cmd_location->uid);
 
-  write_time_reset(event->gen_time(), app_cmd_writer);
-  write_trading_day(event->gen_time(), app_cmd_writer);
+  cached_.open_session(app_location, event->gen_time());
+  app_cmd_writer->mark(event->gen_time(), SessionStart::tag);
 
-  // tell others alive locations
+  write_time_reset(event->gen_time(), app_cmd_writer);
+  cached_.ensure_cached_storage(app_location, location::PUBLIC);
+  cached_.ensure_cached_storage(app_location, location::SYNC);
+  cached_.restore(app_location, app_cmd_writer);
+
+  app_cmd_writer->mark(time::now_in_nano(), RequestStart::tag);
+
+  // have to be at this position, for triggering strategy(other) prepare
   write_locations(event->gen_time(), app_cmd_writer);
-  // tell the registing app the their self and cached process started
   write_registries(event->gen_time(), app_cmd_writer);
+  write_channels(event->gen_time(), app_cmd_writer);
+  write_bands(event->gen_time(), app_cmd_writer);
 
   on_register(event, register_data);
 }
@@ -154,12 +159,11 @@ void master::deregister_app(int64_t trigger_time, uint32_t app_location_uid) {
   deregister_channel(app_location_uid);
   deregister_band(app_location_uid);
   deregister_location(trigger_time, app_location_uid);
-  registry_.erase(app_location_uid);
   reader_->disjoin(app_location_uid);
   writers_.erase(app_location_uid);
   timer_tasks_.erase(app_location_uid);
   get_writer(location::PUBLIC)->write(trigger_time, location->to<Deregister>());
-  session_builder_.close_session(location, time::now_in_nano());
+  cached_.close_session(location, time::now_in_nano());
 }
 
 void master::on_request_deregister(const event_ptr &event) {
@@ -169,13 +173,10 @@ void master::on_request_deregister(const event_ptr &event) {
   deregister_app(event->trigger_time(), source);
 }
 
-[[maybe_unused]] void master::publish_trading_day() { write_trading_day(0, get_writer(location::PUBLIC)); }
-
 void master::react() {
   events_ | is(RequestWriteTo::tag) | $$(on_request_write_to(event));
   events_ | is(RequestWriteToBand::tag) | $$(on_request_write_to_band(event));
   events_ | is(RequestReadFrom::tag) | $$(on_request_read_from(event));
-  events_ | is(RequestReadFrom::tag) | $$(check_cached_ready_to_read(event));
   events_ | is(RequestReadFromPublic::tag) | $$(on_request_read_from_public(event));
   events_ | is(RequestReadFromSync::tag) | $$(on_request_read_from_sync(event));
   events_ | is(RequestReadFromOthers::tag) | $$(on_request_read_from_others(event));
@@ -194,8 +195,8 @@ void master::react() {
   events_ | is(TimeRequest::tag) | $$(on_time_request(event));
   events_ | is(Location::tag) | $$(on_new_location(event));
   events_ | is(Register::tag) | $$(register_app(event));
-  events_ | is(RequestCachedDone::tag) | $$(on_request_cached_done(event));
   events_ | is(Ping::tag) | $$(pong(event));
+  events_ | is(CacheReset::tag) | $([&](const event_ptr &event) { cached_.cache_reset(event); });
   events_ | instanceof <journal::frame>() | $$(feed(event));
 
   // have to be at bottom of react, for avoid event still required after reader disjoin
@@ -236,23 +237,10 @@ void master::handle_timer_tasks() {
 }
 
 void master::try_add_location(int64_t trigger_time, const location_ptr &app_location) {
+
   if (not has_location(app_location->uid)) {
     add_location(trigger_time, app_location);
-  }
-}
-
-void master::check_cached_ready_to_read(const event_ptr &event) {
-  const RequestReadFrom &request = event->data<RequestReadFrom>();
-  auto app_uid = event->source();
-  auto read_from_source_id = request.source_id;
-
-  if (read_from_source_id == cached_home_location_->uid) {
-    if (has_writer(app_uid)) {
-      auto app_cmd_writer = get_writer(app_uid);
-      app_cmd_writer->mark(now(), CachedReadyToRead::tag);
-    } else {
-      SPDLOG_WARN("no writer {} {}", app_uid, get_location_uname(app_uid));
-    }
+    cached_.feed_profile(dynamic_cast<Location &>(*app_location));
   }
 }
 
@@ -263,7 +251,17 @@ void master::feed(const event_ptr &event) {
     return;
   }
 
-  session_builder_.update_session(std::dynamic_pointer_cast<journal::frame>(event));
+  if (event->dest() == location::SYNC) {
+    return;
+  }
+
+  cached_.update_session(std::dynamic_pointer_cast<journal::frame>(event));
+
+  if (get_location(event->source())->category == category::MD) {
+    return;
+  }
+  
+  cached_.feed(event);
 }
 
 void master::pong(const event_ptr &) { get_io_device()->get_publisher()->publish("{}"); }
@@ -283,11 +281,14 @@ void master::on_request_write_to_band(const event_ptr &event) {
   try_add_location(now(), target_location);
   get_writer(location::PUBLIC)->write(now(), dynamic_cast<Location &>(*target_location));
 
-  SPDLOG_INFO("on_request_write_to_band for {} to {}, dirname {}", get_location_uname(app_uid), request.name, dirname);
+  SPDLOG_DEBUG("on_request_write_to_band for {} to {}, dirname {}", get_location_uname(app_uid), request.name, dirname);
+  if (not is_location_live(app_uid)) {
+    return;
+  }
+
   reader_->join(get_location(app_uid), request.location_uid, trigger_time);
   require_write_to_band(trigger_time, app_uid, target_location);
-  auto app_cmd_writer = get_writer(app_uid);
-
+  cached_.ensure_cached_storage(get_location(app_uid), request.location_uid);
   Band band = {};
   band.source_id = app_uid;
   band.dest_id = target_location->location_uid;
@@ -299,12 +300,14 @@ void master::on_request_write_to(const event_ptr &event) {
   const RequestWriteTo &request = event->data<RequestWriteTo>();
   auto trigger_time = event->gen_time();
   auto app_uid = event->source();
-  SPDLOG_INFO("on_request_write_to for {} to {}", get_location_uname(app_uid), get_location_uname(request.dest_id));
+  SPDLOG_DEBUG("on_request_write_to for {} to {}", get_location_uname(app_uid), get_location_uname(request.dest_id));
   if (not is_location_live(app_uid)) {
     return;
   }
   reader_->join(get_location(app_uid), request.dest_id, trigger_time);
   require_write_to(trigger_time, app_uid, request.dest_id);
+  cached_.ensure_cached_storage(get_location(app_uid), request.dest_id);
+
   if (is_location_live(request.dest_id) and has_writer(request.dest_id)) {
     require_read_from(0, request.dest_id, app_uid, trigger_time);
   }
@@ -319,13 +322,15 @@ void master::on_request_read_from(const event_ptr &event) {
   const RequestReadFrom &request = event->data<RequestReadFrom>();
   auto trigger_time = event->gen_time();
   auto app_uid = event->source();
-  SPDLOG_INFO("on_request_read_from for {} to {}", get_location_uname(app_uid), get_location_uname(request.source_id));
+  SPDLOG_DEBUG("on_request_read_from for {} to {}", get_location_uname(app_uid), get_location_uname(request.source_id));
   if (not check_location_live(request.source_id, app_uid)) {
     return;
   }
   reader_->join(get_location(request.source_id), app_uid, trigger_time);
   require_write_to(trigger_time, request.source_id, app_uid);
   require_read_from(trigger_time, app_uid, request.source_id, request.from_time);
+  cached_.ensure_cached_storage(get_location(request.source_id), app_uid);
+
   Channel channel = {};
   channel.source_id = request.source_id;
   channel.dest_id = app_uid;
@@ -357,26 +362,11 @@ void master::on_request_read_from_others(const event_ptr &event) {
   }
 }
 
-void master::on_request_cached_done(const event_ptr &event) {
-  auto request_cached_done_data = event->data<RequestCachedDone>();
-  auto app_uid = request_cached_done_data.dest_id;
-
-  if (has_writer(app_uid)) {
-    auto app_cmd_writer = get_writer(app_uid);
-    app_cmd_writer->mark(now(), RequestStart::tag);
-    write_locations(event->gen_time(), app_cmd_writer);
-    write_registries(event->gen_time(), app_cmd_writer);
-    write_channels(event->gen_time(), app_cmd_writer);
-    write_bands(event->gen_time(), app_cmd_writer);
-  } else {
-    SPDLOG_WARN("no writer {} {}", app_uid, get_location_uname(app_uid));
-  }
-}
-
 void master::on_channel_request(const event_ptr &event) {
   const Channel &channel = event->data<Channel>();
   auto trigger_time = event->gen_time();
   if (is_location_live(channel.source_id) and not has_channel(channel.source_id, channel.dest_id)) {
+    cached_.ensure_cached_storage(get_location(channel.source_id), channel.dest_id);
     reader_->join(get_location(channel.source_id), channel.dest_id, trigger_time);
     require_write_to(trigger_time, channel.source_id, channel.dest_id);
     register_channel(trigger_time, channel);
@@ -385,7 +375,8 @@ void master::on_channel_request(const event_ptr &event) {
 }
 
 void master::on_time_request(const event_ptr &event) {
-  const TimeRequest &request = event->data<TimeRequest>();
+  auto request_data = event->data_as_string();
+  TimeRequest request(request_data.c_str(), request_data.length());
   timer_tasks_.try_emplace(event->source());
   auto &app_tasks = timer_tasks_.at(event->source());
   auto &task = app_tasks.try_emplace(request.id).first->second;
@@ -409,32 +400,26 @@ void master::write_time_reset(int64_t, const writer_ptr &writer) {
   writer->close_data();
 }
 
-void master::write_trading_day(int64_t, const writer_ptr &writer) {
-  TradingDay &trading_day = writer->open_data<TradingDay>();
-  trading_day.timestamp = acquire_trading_day();
-  writer->close_data();
-}
-
 void master::write_registries(int64_t trigger_time, const writer_ptr &writer) {
-  for (const auto &item : registry_) {
+  for (const auto &item : get_registry()) {
     writer->write(trigger_time, item.second);
   }
 }
 
 void master::write_locations(int64_t trigger_time, const writer_ptr &writer) {
-  for (const auto &item : locations_) {
+  for (const auto &item : get_locations()) {
     writer->write(trigger_time, dynamic_cast<Location &>(*item.second));
   }
 }
 
 void master::write_channels(int64_t trigger_time, const writer_ptr &writer) {
-  for (const auto &item : channels_) {
+  for (const auto &item : get_channels()) {
     writer->write(trigger_time, item.second);
   }
 }
 
 void master::write_bands(int64_t trigger_time, const writer_ptr &writer) {
-  for (const auto &item : bands_) {
+  for (const auto &item : get_bands()) {
     writer->write(trigger_time, item.second);
   }
 }

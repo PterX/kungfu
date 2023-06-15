@@ -9,23 +9,12 @@
 #include <kungfu/yijinjing/common.h>
 #include <kungfu/yijinjing/io.h>
 #include <kungfu/yijinjing/journal/assemble.h>
+#include <kungfu/yijinjing/journal/bus.h>
 #include <kungfu/yijinjing/time.h>
 
 namespace kungfu::yijinjing::journal {
 using namespace longfist::enums;
 using namespace longfist::types;
-
-struct noop_publisher : public publisher {
-  noop_publisher() = default;
-  bool is_usable() override { return true; }
-  void setup() override {}
-  int notify() override { return 0; }
-  int publish(const std::string &json_message, int flags = NNG_FLAG_NONBLOCK) override { return 0; }
-};
-
-struct assemble_exception : std::runtime_error {
-  explicit assemble_exception(const std::string &msg) : std::runtime_error(msg){};
-};
 
 sink::sink() : publisher_(std::make_shared<noop_publisher>()), bus_(std::make_shared<bus>(false)) {}
 
@@ -179,7 +168,7 @@ assemble::assemble(const data::location_ptr &source_location, uint32_t dest_id, 
   from_time_ = from_time;
   locators_.clear();
   readers_.clear();
-  data::locator &l = *source_location->locator;
+  data::locator_ptr l = source_location->locator;
   locators_.push_back(source_location->locator);
   readers_.push_back(std::make_shared<reader>(true, false, std::make_shared<bus>(false)));
   auto reader = readers_.front();
@@ -191,7 +180,7 @@ assemble::assemble(const data::location_ptr &source_location, uint32_t dest_id, 
 
   // join all journal dest of location
   if (assemble_mode & AssembleMode::Write) {
-    for (auto dest : l.list_location_dest(source_location)) {
+    for (auto dest : l->list_location_dest(source_location)) {
       reader->join(source_location, dest, from_time);
     }
   }
@@ -202,8 +191,8 @@ assemble::assemble(const data::location_ptr &source_location, uint32_t dest_id, 
   bool b_sync = assemble_mode & AssembleMode::Sync;
   bool b_all = assemble_mode & AssembleMode::All;
   if (b_read or b_public or b_all) {
-    for (auto &location : l.list_locations("*", "*", "*", "*")) {
-      for (auto dest : l.list_location_dest(location)) {
+    for (auto &location : l->list_locations("*", "*", "*", "*")) {
+      for (auto dest : l->list_location_dest(location)) {
         if (b_all) {
           reader->join(location, dest, from_time);
         } else if (b_read and dest == dest_id) {
@@ -269,6 +258,12 @@ void assemble::disjoin(uint32_t location_uid) {
 void assemble::disjoin_channel(uint32_t location_uid, uint32_t dest_id) {
   for (auto &reader : readers_) {
     reader->disjoin_channel(location_uid, dest_id);
+  }
+}
+
+void assemble::move_to_time(int64_t nano_time) {
+  while (data_available() and current_frame()->trigger_time() < nano_time) {
+    next();
   }
 }
 

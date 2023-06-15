@@ -6,9 +6,10 @@ import glob from 'glob';
 import os from 'os';
 import {
   buildProcessLogPath,
+  buildRuntimeChildDirByType,
   EXTENSION_DIRS,
   KF_HOME,
-  KF_RUNTIME_DIR,
+  RuntimeChildDirTypes,
 } from '../config/pathConfig';
 import {
   InstrumentType,
@@ -70,7 +71,6 @@ import {
   Pm2ProcessStatusDetail,
   Pm2ProcessStatusDetailResolved,
   Pm2ProcessStatusDetailData,
-  startCacheD,
   startExtService,
   startLedger,
   startMaster,
@@ -1091,9 +1091,7 @@ const getSystemKfLocationProcessId = (processId: string) => {
       name: processId,
       mode: 'live',
     };
-  } else if (
-    ['ledger', 'archive', 'cached', 'dzxy'].indexOf(processId) !== -1
-  ) {
+  } else if (['ledger', 'archive', 'dzxy'].indexOf(processId) !== -1) {
     return {
       category: 'system',
       group: 'service',
@@ -1307,8 +1305,6 @@ const startProcessByKfLocation = async (
         return startMaster(isForce);
       } else if (kfLocation.name === 'ledger') {
         return startLedger(isForce);
-      } else if (kfLocation.name === 'cached') {
-        return startCacheD(isForce);
       } else if (
         kfLocation.group === 'service' &&
         KfDefaultSystemProcess.indexOf(kfLocation.name) === -1
@@ -2283,17 +2279,22 @@ export function isCriticalLog(line: string): boolean {
 }
 
 export const removeNoDefaultStrategyFolders = async (): Promise<void> => {
-  const strategyDir = path.join(KF_RUNTIME_DIR, 'strategy');
-  const filedirList: string[] = (await listDir(strategyDir)) || [];
-  filedirList.map((fileOrFolder) => {
-    const fullPath = path.join(strategyDir, fileOrFolder);
-    if (fileOrFolder === 'default') {
-      if (fse.statSync(fullPath).isDirectory()) {
-        return Promise.resolve();
+  const strategyDirs = RuntimeChildDirTypes.map((type) =>
+    path.join(buildRuntimeChildDirByType(type), 'strategy'),
+  );
+  for (const strategyDir of strategyDirs) {
+    if (!fse.pathExists(strategyDir)) continue;
+    const filedirList: string[] = (await listDir(strategyDir)) || [];
+    filedirList.map((fileOrFolder) => {
+      const fullPath = path.join(strategyDir, fileOrFolder);
+      if (fileOrFolder === 'default') {
+        if (fse.statSync(fullPath).isDirectory()) {
+          return Promise.resolve();
+        }
       }
-    }
-    return fse.remove(fullPath);
-  });
+      return fse.remove(fullPath);
+    });
+  }
 };
 
 // 处理下单时输入数据

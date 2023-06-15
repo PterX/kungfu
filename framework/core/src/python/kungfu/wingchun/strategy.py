@@ -9,6 +9,7 @@ import os
 import sys
 
 from kungfu.yijinjing import time as kft
+from kungfu.yijinjing import journal as kfj
 from kungfu.wingchun import constants
 from kungfu.wingchun import utils
 from kungfu.wingchun.constants import *
@@ -19,12 +20,12 @@ yjj = kungfu.__binding__.yijinjing
 
 
 class Runner(wc.Runner):
-    def __init__(self, ctx, mode):
+    def __init__(self, ctx, locator, mode):
         if ctx.arguments is None:
             ctx.arguments = ""
         wc.Runner.__init__(
             self,
-            ctx.runtime_locator,
+            locator,
             ctx.group,
             ctx.name,
             mode,
@@ -55,9 +56,7 @@ class Strategy(wc.Strategy):
         self._post_start = getattr(self._module, "post_start", lambda ctx: None)
         self._pre_stop = getattr(self._module, "pre_stop", lambda ctx: None)
         self._post_stop = getattr(self._module, "post_stop", lambda ctx: None)
-        self._on_trading_day = getattr(
-            self._module, "on_trading_day", lambda ctx, trading_day: None
-        )
+
         self._on_quote = getattr(
             self._module, "on_quote", lambda ctx, quote, location, dest: None
         )
@@ -152,14 +151,18 @@ class Strategy(wc.Strategy):
 
     def __init_book(self):
         location = yjj.location(
-            lf.enums.mode.LIVE,
+            kfj.MODES[self.ctx.mode],
             lf.enums.category.STRATEGY,
             self.ctx.group,
             self.ctx.name,
-            self.ctx.runtime_locator,
+            self.ctx.runtime_locator
+            if kfj.MODES[self.ctx.mode] != lf.enums.mode.BACKTEST
+            else self.ctx.backtest_locator,
         )
+
         self.ctx.book = self.ctx.wc_context.bookkeeper.get_book(location.uid)
-        self.ctx.basketorder_engine = self.ctx.wc_context.basketorder_engine
+        if kfj.MODES[self.ctx.mode] != lf.enums.mode.BACKTEST:
+            self.ctx.basketorder_engine = self.ctx.wc_context.basketorder_engine
 
     def __add_timer(self, nanotime, callback):
         def wrap_callback(event):
@@ -245,7 +248,6 @@ class Strategy(wc.Strategy):
         self.ctx.hold_positions = wc_context.hold_positions
         self.ctx.get_account_book = self.__get_account_book
         self.ctx.req_deregister = wc_context.req_deregister
-        self.ctx.get_writer = wc_context.get_writer
         self.ctx.buy = functools.partial(self.__async_insert_order, Side.Buy)
         self.ctx.sell = functools.partial(self.__async_insert_order, Side.Sell)
         self.__init_book()
@@ -321,10 +323,6 @@ class Strategy(wc.Strategy):
         self.__call_proxy(
             self._on_req_history_trade_error, self.ctx, error, location, dest
         )
-
-    def on_trading_day(self, wc_context, daytime):
-        self.ctx.trading_day = kft.to_datetime(daytime)
-        self.__call_proxy(self._on_trading_day, self.ctx, daytime)
 
     def on_position_sync_reset(self, wc_context, old_book, new_book):
         self.__call_proxy(self._on_position_sync_reset, self.ctx, old_book, new_book)

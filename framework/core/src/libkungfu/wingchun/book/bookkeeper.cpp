@@ -39,23 +39,8 @@ void Bookkeeper::set_accounting_method(InstrumentType instrument_type, const Acc
   accounting_methods_.emplace(instrument_type, accounting_method);
 }
 
-void Bookkeeper::on_trading_day(int64_t daytime) {
-  auto trading_day = time::strftime(daytime, KUNGFU_TRADING_DAY_FORMAT);
-  for (const auto &book_pair : books_) {
-    const auto &book = book_pair.second;
-    strcpy(book->asset.trading_day, trading_day.c_str());
-    for (auto &pos_pair : book->long_positions) {
-      pos_pair.second.trading_day = book->asset.trading_day;
-    }
-    for (auto &pos_pair : book->short_positions) {
-      pos_pair.second.trading_day = book->asset.trading_day;
-    }
-  }
-}
-
 void Bookkeeper::on_start(const rx::connectable_observable<event_ptr> &events) {
   restore(app_.get_state_bank());
-  on_trading_day(app_.get_trading_day());
 
   events | is(Instrument::tag) | $$(update_instrument(event->data<Instrument>()));
   events | is(InstrumentFactor::tag) | $$(update_instrument_factor(event->data<InstrumentFactor>()));
@@ -70,7 +55,6 @@ void Bookkeeper::on_start(const rx::connectable_observable<event_ptr> &events) {
                              &Bookkeeper::try_update_asset_margin);
   events | fork<Position>(location::SYNC, &Bookkeeper::try_update_position_replica, &Bookkeeper::try_update_position);
   events | fork<PositionEnd>(location::SYNC, &Bookkeeper::update_position_guard, &Bookkeeper::try_update_position_end);
-  events | is(TradingDay::tag) | $$(on_trading_day(event->data<TradingDay>().timestamp));
   events | is(ResetBookRequest::tag) | $$(drop_book(event->source()));
 
   if (bypass_quote_) {
@@ -86,6 +70,7 @@ void Bookkeeper::batch_update_book_by_quote() {
     const auto &state_quote = iter.second;
     update_book(state_quote.update_time, state_quote.data);
   }
+  quotes_.clear();
 }
 
 std::mutex &Bookkeeper::get_update_book_mutex() { return update_book_mutex_; }
@@ -160,12 +145,10 @@ Book_ptr Bookkeeper::make_book(uint32_t location_uid) {
   auto &asset = book->asset;
   asset.holder_uid = location_uid;
   asset.ledger_category = location->category == category::TD ? LedgerCategory::Account : LedgerCategory::Strategy;
-  strcpy(asset.trading_day, time::strftime(app_.get_trading_day(), KUNGFU_TRADING_DAY_FORMAT).c_str());
   auto &asset_margin = book->asset_margin;
   asset_margin.holder_uid = location_uid;
   asset_margin.ledger_category =
       location->category == category::TD ? LedgerCategory::Account : LedgerCategory::Strategy;
-  strcpy(asset_margin.trading_day, time::strftime(app_.get_trading_day(), KUNGFU_TRADING_DAY_FORMAT).c_str());
   return book;
 }
 

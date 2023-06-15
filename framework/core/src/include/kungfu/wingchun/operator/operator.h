@@ -22,10 +22,6 @@ public:
 
   virtual void post_stop(Context_ptr &context){};
 
-  // 交易日切换回调
-  //@param daytime 交易日
-  virtual void on_trading_day(Context_ptr &context, int64_t daytime){};
-
   // 行情数据更新回调
   //@param quote             行情数据
   virtual void on_quote(Context_ptr &context, const longfist::types::Quote &quote,

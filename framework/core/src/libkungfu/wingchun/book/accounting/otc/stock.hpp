@@ -39,35 +39,6 @@ public:
 
   OtcStockAccountingMethod() = default;
 
-  virtual void apply_trading_day(Book_ptr &book, int64_t trading_day) override {
-    auto apply = [&](auto &position) {
-      if (is_valid_price(position.close_price)) {
-        position.pre_close_price = position.close_price;
-      } else if (is_valid_price(position.last_price)) {
-        position.pre_close_price = position.last_price;
-      }
-      auto cd_mr = get_instrument_conversion_margin_rate(book, position.source_id, position.direction,
-                                                         position.exchange_id, position.instrument_id);
-      auto margin_ratio = (position.direction == Direction::Long ? cd_mr.long_margin_ratio : cd_mr.short_margin_ratio);
-
-      if (position.direction == Direction::Short) {
-        position.margin = position.pre_close_price * cd_mr.exchange_rate * position.volume * margin_ratio;
-      }
-
-      position.yesterday_volume = position.volume;
-      position.close_price = 0;
-      position.update_time = trading_day;
-      position.frozen_total = 0;
-      position.frozen_yesterday = 0;
-      position.trading_day = time::strftime(trading_day, KUNGFU_TRADING_DAY_FORMAT).c_str();
-
-      update_position(book, position);
-    };
-
-    book->apply_long_positions(apply);
-    book->apply_short_positions(apply);
-  }
-
   virtual void apply_quote(Book_ptr &book, const Quote &quote) override {
     auto apply = [&](auto &position) {
       if (not is_valid_price(quote.last_price) or not position.volume) {

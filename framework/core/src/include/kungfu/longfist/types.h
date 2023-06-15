@@ -73,10 +73,9 @@ KF_DEFINE_PACK_TYPE(                          //
     (uint64_t, last_frame_position)           //
 );
 
-KF_DEFINE_PACK_TYPE(                              //
-    Asset, 101, PK(holder_uid), PERPETUAL(),      //
-    (int64_t, update_time),                       // 更新时间
-    (kungfu::array<char, DATE_LEN>, trading_day), // 交易日
+KF_DEFINE_PACK_TYPE(                         //
+    Asset, 101, PK(holder_uid), PERPETUAL(), //
+    (int64_t, update_time),                  // 更新时间
 
     (uint32_t, holder_uid),                   //
     (enums::LedgerCategory, ledger_category), //
@@ -101,13 +100,29 @@ KF_DEFINE_PACK_TYPE(                              //
     (double, frozen_fee),    // 冻结手续费(期货)
 
     (double, position_pnl), // 持仓盈亏(期货)
-    (double, close_pnl)     // 平仓盈亏(期货)
+    (double, close_pnl),    // 平仓盈亏(期货)
+
+    (double, total_asset),  // 总资产
+    (double, avail_margin), // 可用保证金
+    (double, cash_margin),  // 融资占用保证金
+    (double, short_margin), // 融券占用保证金
+                            //    (double, margin),       // 总占用保证金
+
+    (double, cash_debt),  // 融资负债
+    (double, short_cash), // 融券卖出金额
+
+    (double, short_market_value),  // 融券卖出证券市值
+    (double, margin_market_value), // 融资买入证券市值
+    (double, margin_interest),     // 融资融券利息
+    (double, settlement),          // 融资融券清算资金
+
+    (double, credit),          // 信贷额度
+    (double, collateral_ratio) // 担保比例
 );
 
 KF_DEFINE_PACK_TYPE(                               //
     AssetMargin, 102, PK(holder_uid), PERPETUAL(), //
     (int64_t, update_time),                        // 更新时间
-    (kungfu::array<char, DATE_LEN>, trading_day),  // 交易日
 
     (uint32_t, holder_uid),                   //
     (enums::LedgerCategory, ledger_category), //
@@ -226,8 +241,6 @@ KF_DEFINE_PACK_TYPE(                                           //
     (int64_t, insert_time), // 订单写入时间
     (int64_t, update_time), // 订单更新时间
 
-    (kungfu::array<char, DATE_LEN>, trading_day), // 交易日
-
     (kungfu::array<char, INSTRUMENT_ID_LEN>, instrument_id), // 合约ID
     (kungfu::array<char, EXCHANGE_ID_LEN>, exchange_id),     // 交易所ID
 
@@ -264,8 +277,7 @@ KF_DEFINE_PACK_TYPE(                                 //
     (kungfu::array<char, EXTERNAL_ID_LEN>, external_order_id), // 柜台订单id
     (kungfu::array<char, EXTERNAL_ID_LEN>, external_trade_id), // 柜台成交编号id
 
-    (int64_t, trade_time),                        // 成交时间
-    (kungfu::array<char, DATE_LEN>, trading_day), // 交易日
+    (int64_t, trade_time), // 成交时间
 
     (kungfu::array<char, INSTRUMENT_ID_LEN>, instrument_id), // 合约ID
     (kungfu::array<char, EXCHANGE_ID_LEN>, exchange_id),     // 交易所ID
@@ -371,8 +383,6 @@ KF_DEFINE_PACK_TYPE(                                           //
     (int64_t, insert_time), // 订单写入时间
     (int64_t, update_time), // 订单更新时间
 
-    (kungfu::array<char, DATE_LEN>, trading_day), // 交易日
-
     (kungfu::array<char, INSTRUMENT_ID_LEN>, instrument_id), // 合约ID
     (kungfu::array<char, EXCHANGE_ID_LEN>, exchange_id),     // 交易所ID
 
@@ -413,8 +423,7 @@ KF_DEFINE_PACK_TYPE(                                        //
     (kungfu::array<char, EXTERNAL_ID_LEN>, external_order_id), // 柜台订单id
     (kungfu::array<char, EXTERNAL_ID_LEN>, external_trade_id), // 柜台成交编号id
 
-    (int64_t, trade_time),                        // 成交时间
-    (kungfu::array<char, DATE_LEN>, trading_day), // 交易日
+    (int64_t, trade_time), // 成交时间
 
     (kungfu::array<char, INSTRUMENT_ID_LEN>, instrument_id), // 合约ID
     (kungfu::array<char, EXCHANGE_ID_LEN>, exchange_id),     // 交易所ID
@@ -455,7 +464,6 @@ KF_DEFINE_PACK_TYPE(                                                         //
 
 KF_DEFINE_PACK_TYPE(                                         //
     Quote, 401, PK(instrument_id, exchange_id), PERPETUAL(), //
-    (kungfu::array<char, DATE_LEN>, trading_day),            // 交易日
 
     (int64_t, data_time), // 数据生成时间
 
@@ -508,7 +516,6 @@ KF_DEFINE_PACK_TYPE(                                         //
 
 KF_DEFINE_PACK_TYPE(                                                    //
     Entrust, 402, PK(instrument_id, exchange_id), TIMESTAMP(data_time), //
-    (kungfu::array<char, DATE_LEN>, trading_day),                       // 交易日
 
     (int64_t, data_time), // 数据生成时间
 
@@ -530,7 +537,6 @@ KF_DEFINE_PACK_TYPE(                                                    //
 
 KF_DEFINE_PACK_TYPE(                                                        //
     Transaction, 403, PK(instrument_id, exchange_id), TIMESTAMP(data_time), //
-    (kungfu::array<char, DATE_LEN>, trading_day),                           // 交易日
 
     (int64_t, data_time), // 数据生成时间
 
@@ -555,7 +561,6 @@ KF_DEFINE_PACK_TYPE(                                                        //
 
 KF_DEFINE_PACK_TYPE(                                        //
     Tree, 404, PK(instrument_id, exchange_id), PERPETUAL(), //
-    (kungfu::array<char, DATE_LEN>, trading_day),           // 交易日
 
     (int64_t, data_time), // 数据生成时间
 

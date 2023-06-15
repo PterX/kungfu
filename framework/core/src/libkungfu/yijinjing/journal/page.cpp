@@ -2,6 +2,7 @@
 
 #include <kungfu/common.h>
 #include <kungfu/yijinjing/journal/page.h>
+#include <kungfu/yijinjing/time.h>
 #include <kungfu/yijinjing/util/os.h>
 
 namespace kungfu::yijinjing::journal {
@@ -38,7 +39,7 @@ page_ptr page::load(const data::location_ptr &location, uint32_t dest_id, uint32
   std::string path = get_page_path(location, dest_id, page_id);
   uintptr_t address = os::load_mmap_buffer(path, page_size, is_writing, lazy);
 
-  if (address < 0) {
+  if (address == 0) {
     throw journal_error("unable to load page for " + path);
   }
 
@@ -95,7 +96,7 @@ page_ptr page::load_header_and_1st_frame_header(const data::location_ptr &locati
   std::string path = get_page_path(location, dest_id, page_id);
   uintptr_t address = os::load_mmap_buffer(path, sliced_page_size, is_writing, lazy);
 
-  if (address < 0) {
+  if (address == 0) {
     throw journal_error("unable to load page for " + path);
   }
 
@@ -137,7 +138,7 @@ uint32_t page::find_page_id(const data::location_ptr &location, uint32_t dest_id
   }
   for (int i = static_cast<int>(page_ids.size()) - 1; i >= 0; i--) {
     auto loaded_page = page::load_header_and_1st_frame_header(location, dest_id, page_ids[i], false, true);
-    auto &loaded_page_header = loaded_page->header_;
+    const auto &loaded_page_header = loaded_page->header_;
     if (loaded_page_header->status != longfist::enums::PageStatus::PreOpen && loaded_page->begin_time() < time) {
       return page_ids[i];
     }

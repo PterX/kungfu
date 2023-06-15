@@ -60,10 +60,10 @@ enum class ZoneTimeType : char {
 struct LocalTimeInfo {
   time_t seconds = 0;
 
-  [[maybe_unused]] bool has_summer_day = false;
+  bool has_summer_day = false;
   bool is_summer_day = false;
 
-  [[maybe_unused]] ZoneTimeType zone_time_type = ZoneTimeType::BST;
+  ZoneTimeType zone_time_type = ZoneTimeType::BST;
 };
 
 namespace TimeUtil {

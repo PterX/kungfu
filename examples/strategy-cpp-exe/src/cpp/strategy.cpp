@@ -1,7 +1,7 @@
 // #include <kungfu/wingchun/extension.h>
 #include <kungfu/wingchun/strategy/context.h>
+#include <kungfu/wingchun/strategy/live.h>
 #include <kungfu/wingchun/strategy/runner.h>
-#include <kungfu/wingchun/strategy/runtime.h>
 #include <kungfu/wingchun/strategy/strategy.h>
 #include <kungfu/yijinjing/journal/assemble.h>
 
@@ -18,7 +18,7 @@ public:
 
   void pre_start(Context_ptr &context) override {
     SPDLOG_INFO("preparing strategy");
-    SPDLOG_INFO("arguments: {}", context->arguments());
+    SPDLOG_INFO("arguments: {}", context->get_arguments());
     context->add_account("sim", "fill");
     context->subscribe("sim", {"600000"}, {"SSE"});
     SPDLOG_INFO("is_bypass_accounting: {}", context->is_bypass_accounting());
@@ -63,6 +63,22 @@ public:
 
   void on_quote(Context_ptr &context, const Quote &quote, const location_ptr &location, uint32_t dest) override {
     SPDLOG_INFO("on quote: {} i {} location->uid {}", quote.last_price, i, location->location_uid);
+    // i++;
+    // if (i == 5) {
+    //   std::shared_ptr<kungfu::yijinjing::journal::assemble> p_assemble =
+    //       std::make_shared<kungfu::yijinjing::journal::assemble>(std::vector<locator_ptr>{});
+    //   std::shared_ptr<kungfu::yijinjing::journal::frame_reader> r = p_assemble->get_reader(location);
+    //   auto f = r->current_frame();
+    //   SPDLOG_INFO("f source {} dest {} data {}", f->source(), f->dest(), f->data_as_string());
+    //   while (true) {
+    //     auto f = r->next_frame();
+    //     if (!f) {
+    //       SPDLOG_INFO("f null");
+    //       break;
+    //     }
+    //     SPDLOG_INFO("f source {} dest {} data {}", f->source(), f->dest(), f->data_as_string());
+    //   }
+    // }
   }
 
   void on_tree(Context_ptr &context, const Tree &tree, const location_ptr &location, uint32_t dest) override {
@@ -94,7 +110,7 @@ public:
 
 int main(int argc, char **argv) {
   SPDLOG_INFO("runner1 add strategy1");
-  Runner runner(std::make_shared<locator>(), "CppStrategy", "demo01exe", mode::LIVE, false);
+  Runner runner(std::make_shared<locator>(), "CppStrategy", "demo01exe", mode::LIVE, false, "cppExeTest");
   SPDLOG_INFO("runner");
   runner.add_strategy(std::make_shared<KungfuStrategy101>());
   SPDLOG_INFO("add_strategy");

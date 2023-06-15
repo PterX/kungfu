@@ -192,7 +192,7 @@ static constexpr auto instanceof
 
 static constexpr auto is_custom = []() {
   return filter([](const event_ptr &event) {
-    return longfist::AllTypesTags.find(event->msg_type()) == longfist::AllTypesTags.end();
+    return event->msg_type() > 0 and longfist::AllTypesTags.find(event->msg_type()) == longfist::AllTypesTags.end();
   });
 };
 

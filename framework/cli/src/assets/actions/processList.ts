@@ -27,7 +27,6 @@ import {
   startMaster,
   startLedger,
   startDzxy,
-  startCacheD,
   processStatusDataObservable,
   Pm2ProcessStatusDetail,
 } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
@@ -156,18 +155,6 @@ export const specificProcessListObserver = (kfLocation: KungfuApi.KfConfig) =>
           status: processStatus['master'] || '--',
           statusName: dealStatus(processStatus['master'] || '--'),
           monit: processStatusWithDetail['master']?.monit,
-        },
-        {
-          processId: 'cached',
-          processName: 'CACHED',
-          typeName: colors.bgMagenta('Sys'),
-          category: 'system',
-          group: 'service',
-          name: 'cached',
-          value: {},
-          status: processStatus['cached'] || '--',
-          statusName: dealStatus(processStatus['cached'] || '--'),
-          monit: processStatusWithDetail['cached']?.monit,
         },
         {
           processId: 'ledger',
@@ -406,18 +393,6 @@ export const processListObservable = () =>
           monit: processStatusWithDetail['master']?.monit,
         },
         {
-          processId: 'cached',
-          processName: 'CACHED',
-          typeName: colors.bgMagenta('Sys'),
-          category: 'system',
-          group: 'service',
-          name: 'cached',
-          value: {},
-          status: processStatus['cached'] || '--',
-          statusName: dealStatus(processStatus['cached'] || '--'),
-          monit: processStatusWithDetail['cached']?.monit,
-        },
-        {
           processId: 'ledger',
           processName: 'LEDGER',
           typeName: colors.bgMagenta('Sys'),
@@ -646,8 +621,6 @@ const switchMaster = async (status: boolean): Promise<void> => {
     await removeArchiveBeforeToday(ARCHIVE_DIR);
     await startMaster(false);
     await delayMilliSeconds(1000);
-    await startCacheD(false);
-    await delayMilliSeconds(2000);
     await startLedger(false);
     await delayMilliSeconds(1000);
     await startDzxy();

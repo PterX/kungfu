@@ -85,6 +85,7 @@ margin_market_value
 margin_interest
 settlement
 credit
+trading_day
 instrument_id
 instrument_type
 exchange_id
@@ -100,8 +101,9 @@ close_price
 pre_close_price
 settlement_price
 pre_settlement_price
-product_id
+unrealized_pnl
 source_id
+product_id
 is_trading
 long_margin_ratio
 short_margin_ratio

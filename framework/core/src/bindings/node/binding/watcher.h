@@ -254,14 +254,14 @@ private:
       }
       auto location = get_location(source);
       auto book = bookkeeper_.get_book(source);
-      auto &position = book->get_position_for(data);
-      auto &oppsite_position = book->get_oppsite_position_for(data);
-      state<kungfu::longfist::types::Position> cache_state_position(source, dest, event->gen_time(), position);
-      feed_state_data_bank(cache_state_position, data_bank_);
 
-      state<kungfu::longfist::types::Position> cache_state_oppsite_position(source, dest, event->gen_time(),
-                                                                            oppsite_position);
-      feed_state_data_bank(cache_state_oppsite_position, data_bank_);
+      auto apply = [&](auto &position) {
+        state<kungfu::longfist::types::Position> cache_state_position(source, dest, event->gen_time(), position);
+        feed_state_data_bank(cache_state_position, data_bank_);
+      };
+
+      book->apply_position_for(data, apply);
+      book->apply_opposite_position_for(data, apply);
 
       state<kungfu::longfist::types::Asset> cache_state_asset(source, dest, event->gen_time(), book->asset);
       feed_state_data_bank(cache_state_asset, data_bank_);
@@ -270,6 +270,7 @@ private:
                                                                            book->asset_margin);
       feed_state_data_bank(cache_state_asset_margin, data_bank_);
     };
+
     update(event->source(), event->dest());
     update(event->dest(), event->source());
   }
@@ -289,7 +290,7 @@ private:
   template <typename TradingData>
   std::enable_if_t<std::is_same_v<TradingData, longfist::types::OrderInput>> UpdateBook(uint32_t source, uint32_t dest,
                                                                                         const TradingData &data) {
-    bookkeeper_.on_order_input(now(), source, dest, data);
+    bookkeeper_.on_order_input(now(), dest, source, data);
     state<kungfu::longfist::types::OrderInput> cache_state_order_input(source, dest, now(), data);
     data_bank_ << cache_state_order_input;
   }
@@ -330,6 +331,13 @@ private:
     auto iter = target_map.begin();
     while (iter != target_map.end() and target_map.size() > 0) {
       const auto &state = iter->second;
+
+      if (DataType::tag == longfist::types::Position::tag) {
+        SPDLOG_INFO("------------------------------------");
+        SPDLOG_INFO("data.uid {} data {}", state.data.uid(), state.data.to_string());
+      };
+      SPDLOG_INFO("------------------------------------");
+
       update_ledger(state.update_time, state.source, state.dest, state.data);
       iter = target_map.erase(iter);
     }

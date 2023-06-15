@@ -496,7 +496,7 @@ export default {
 
   posGlobalConfig: {
     instrument_id: '标的',
-    account_id_resolved: '持有账户',
+    account_id_resolved: '账户',
     yesterday_volume: '昨',
     today_volume: '今',
     sum_volume: '总',

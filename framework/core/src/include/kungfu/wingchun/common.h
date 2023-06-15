@@ -542,6 +542,13 @@ inline longfist::enums::Direction get_direction(longfist::enums::InstrumentType 
                                    (int)side, (int)offset));
 }
 
+inline longfist::enums::Direction get_opposite_direction(longfist::enums::InstrumentType instrument_type,
+                                                         longfist::enums::Side side, longfist::enums::Offset offset) {
+  auto direction = get_direction(instrument_type, side, offset);
+  return direction == longfist::enums::Direction::Long ? longfist::enums::Direction::Short
+                                                       : longfist::enums::Direction::Long;
+}
+
 inline uint32_t hash_instrument(const char *exchange_id, const char *instrument_id) {
   return yijinjing::util::hash_str_32(instrument_id) ^ yijinjing::util::hash_str_32(exchange_id);
 }
@@ -551,6 +558,10 @@ inline int32_t hash_instrument(const longfist::types::Order &order) {
       get_direction(order.instrument_type, order.side, order.offset) == longfist::enums::Direction::Short ? -1 : 1;
   int32_t instrument_key = hash_instrument(order.exchange_id, order.instrument_id) * flag;
   return instrument_key;
+}
+
+inline uint32_t hash_instrument(uint32_t source_id, const char *exchange_id, const char *instrument_id) {
+  return source_id ^ yijinjing::util::hash_str_32(exchange_id) ^ yijinjing::util::hash_str_32(instrument_id);
 }
 
 inline uint32_t hash_basket_instrument(uint32_t basket_uid, const char *exchange_id, const char *instrument_id) {

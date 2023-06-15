@@ -46,13 +46,15 @@ public:
 
   void close_session(const data::location_ptr &source_location, int64_t time);
 
-  SessionMap &close_all_sessions(int64_t time);
+  void close_all_sessions(int64_t time);
 
   void update_session(const journal::frame_ptr &frame);
 
   [[maybe_unused]] void rebuild_index_db();
 
   [[maybe_unused]] void update_index_db();
+
+  SessionMap &get_all_sessions();
 
 private:
   SessionMap live_sessions_ = {};

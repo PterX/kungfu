@@ -11,6 +11,7 @@
 #include <kungfu/yijinjing/practice/hero.h>
 #include <kungfu/yijinjing/time.h>
 #include <kungfu/yijinjing/util/os.h>
+#include <kungfu/yijinjing/util/util.h>
 
 using namespace kungfu::rx;
 using namespace kungfu::longfist::enums;
@@ -130,6 +131,10 @@ bool hero::has_location(uint32_t uid) const { return locations_.find(uid) != loc
 location_ptr hero::get_location(uint32_t uid) const {
   if (not has_location(uid)) {
     SPDLOG_ERROR("no location {} in locations_", uid);
+  }
+
+  if (location::PUBLIC == uid or location::SYNC == uid) {
+    return nullptr;
   }
 
   assert(has_location(uid));
@@ -368,7 +373,7 @@ bool hero::drain(const rx::subscriber<event_ptr> &sb) {
   deal_notice(false, true, sb);
   bool is_lazy = io_device_->is_lazy();
   bool is_low_latency = io_device_->is_low_latency();
-  bool bypass = is_lazy or !is_low_latency;
+  bool bypass = io_device_->is_lazy() or not io_device_->is_low_latency();
   while (live_ and reader_->data_available()) {
     deal_notice(bypass, false, sb);
     if (reader_->current_frame()->gen_time() <= end_time_) {
@@ -401,4 +406,5 @@ void hero::delegate_produce(hero *instance, const rx::subscriber<event_ptr> &sub
   instance->produce(subscriber);
 #endif
 }
+
 } // namespace kungfu::yijinjing::practice

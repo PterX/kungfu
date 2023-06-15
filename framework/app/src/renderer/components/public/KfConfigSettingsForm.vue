@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import path from 'path';
+import os from 'os';
 import { dialog } from '@electron/remote';
 import {
   DeleteOutlined,
@@ -385,7 +386,7 @@ function isNumberInputType(type: string): boolean {
 }
 
 const SpecialWordsReg = new RegExp(
-  "[`~!@#$^&*()=|{}';',\\[\\]<>《》?~！@#￥……&*（）——|{}【】‘；”“'。，、？_]",
+  "[`~!@#$^&*()=|{}';'\\[\\]<>《》?~！@#￥……&*（）——|{}【】‘；”“'。，、？_]",
 );
 function primaryKeyValidator(_rule: RuleObject, value: string): Promise<void> {
   const combineValue: string = getCombineValueByPrimaryKeys(
@@ -777,7 +778,7 @@ function handleDownloadCsvTemplate(
                 filePaths[0],
                 template.name || t('settingsFormConfig.csv_template') + '.csv',
               );
-              return writeCsvWithUTF8Bom(filePath, template.data || []);
+              return writeCsvWithUTF8Bom(filePath, template.data || [], true);
             }),
           ).then(() => {
             messagePrompt().success();
@@ -794,6 +795,31 @@ function handleSelectFile(targetKey: string): void {
     })
     .then((res) => {
       const { filePaths } = res;
+      if (filePaths.length) {
+        formState.value[targetKey] = filePaths[0];
+        formRef.value.validateFields([targetKey]); //手动进行再次验证, 因数据放在span中, 改变数据后无法触发验证
+      }
+    });
+}
+
+function handleSelectDirectory(
+  target: KungfuApi.KfConfigItem,
+  type?: 'default',
+): void {
+  const targetKey = target.key;
+  if (type === 'default') {
+    formState.value[targetKey] = target.default;
+    formRef.value.validateFields([targetKey]);
+    return;
+  }
+  dialog
+    .showOpenDialog({
+      defaultPath: formState.value[targetKey] || os.homedir(),
+      properties: ['openDirectory', 'createDirectory', 'promptToCreate'],
+    })
+    .then((res) => {
+      const { filePaths } = res;
+
       if (filePaths.length) {
         formState.value[targetKey] = filePaths[0];
         formRef.value.validateFields([targetKey]); //手动进行再次验证, 因数据放在span中, 改变数据后无法触发验证
@@ -1352,6 +1378,51 @@ defineExpose({
         </a-select-option>
       </a-select>
       <a-select
+        v-else-if="item.type === 'multiSelect'"
+        v-model:value="formState[item.key]"
+        mode="multiple"
+        :filter-option="
+          (inputValue, option) =>
+            option.key.toLowerCase().indexOf(inputValue.toLowerCase()) > -1
+        "
+        allow-clear
+        show-search
+        :disabled="
+          (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
+          item.disabled
+        "
+      >
+        <a-select-option
+          v-for="option in item.options"
+          :key="option.label"
+          :value="option.value"
+        >
+          <a-tag
+            v-if="option.type === 'tag'"
+            :color="dealKungfuColorToStyleColor(option.color || 'default')"
+          >
+            {{
+              isLanguageKeyAvailable(option.label + '')
+                ? $t(option.label + '')
+                : option.label
+            }}
+          </a-tag>
+          <span
+            v-else
+            :class="dealKungfuColorToClassname(option.color || 'text')"
+            :style="{
+              color: dealKungfuColorToStyleColor(option.color || 'text'),
+            }"
+          >
+            {{
+              isLanguageKeyAvailable(option.label + '')
+                ? $t(option.label + '')
+                : option.label
+            }}
+          </span>
+        </a-select-option>
+      </a-select>
+      <a-select
         v-else-if="item.type === 'instrument'"
         :ref="item.key"
         v-model:value="formState[item.key]"
@@ -1539,6 +1610,36 @@ defineExpose({
           @click="handleSelectFile(item.key)"
         >
           <template #icon><DashOutlined /></template>
+        </a-button>
+        <div
+          v-if="formState[item.key]"
+          class="file-path"
+          :title="(formState[item.key] || '').toString()"
+        >
+          <span class="name">{{ formState[item.key] }}</span>
+        </div>
+      </div>
+      <div
+        v-else-if="item.type === 'directory'"
+        class="kf-form-item__warp file"
+      >
+        <a-button
+          size="small"
+          :disabled="
+            (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
+            item.disabled
+          "
+          @click="handleSelectDirectory(item)"
+        >
+          <template #icon><DashOutlined /></template>
+        </a-button>
+        <a-button
+          v-if="item.default"
+          size="small"
+          style="margin-left: 4px; vertical-align: middle"
+          @click="handleSelectDirectory(item, 'default')"
+        >
+          {{ $t('globalSettingConfig.reset_order') }}
         </a-button>
         <div
           v-if="formState[item.key]"

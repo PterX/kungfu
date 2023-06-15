@@ -138,6 +138,8 @@ public:
 
   [[maybe_unused]] void seek_to_time(int64_t nano_time);
 
+  [[maybe_unused]] void move_to_time(int64_t nano_time);
+
   [[maybe_unused]] [[nodiscard]] const std::vector<reader_ptr> &get_readers() const { return readers_; }
 
   void disjoin(uint32_t location_uid);

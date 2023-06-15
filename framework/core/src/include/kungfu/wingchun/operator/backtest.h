@@ -17,6 +17,12 @@ public:
   virtual bool is_started() const override;
 
   /**
+   * Get location_uid of current process
+   * @return location_uid
+   */
+  uint32_t get_home_uid() const override;
+
+  /**
    * Get current time in nano seconds.
    * @return current time in nano seconds
    */
@@ -90,6 +96,8 @@ public:
    * @return broker client reference
    */
   broker::Client &get_broker_client() override;
+
+  yijinjing::data::location_ptr get_location(uint32_t location_uid) override;
 
 protected:
   virtual void on_start() override;

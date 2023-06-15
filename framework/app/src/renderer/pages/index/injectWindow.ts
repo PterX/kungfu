@@ -5,6 +5,7 @@ import {
   basketStore,
   commissionStore,
   configStore,
+  sessionStore,
   getRendererProcessId,
   kf,
   riskSettingStore,
@@ -19,6 +20,7 @@ window.basketInstrumentStore = basketInstrumentStore;
 window.configStore = configStore;
 window.riskSettingStore = riskSettingStore;
 window.commissionStore = commissionStore;
+window.sessionStore = sessionStore;
 
 window.testCase = {};
 window.testCase.crashTheWatcher = () => {

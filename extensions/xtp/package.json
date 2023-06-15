@@ -4,7 +4,7 @@
     "name": "Kungfu Trader",
     "email": "info@kungfu.link"
   },
-  "version": "2.6.1-alpha.0",
+  "version": "2.6.1-alpha.1",
   "description": "Kungfu Extension - XTP Demo",
   "license": "Apache-2.0",
   "main": "package.json",
@@ -29,10 +29,10 @@
     "package": "kfs project package"
   },
   "dependencies": {
-    "@kungfu-trader/kungfu-core": "^2.6.1-alpha.0"
+    "@kungfu-trader/kungfu-core": "^2.6.1-alpha.1"
   },
   "devDependencies": {
-    "@kungfu-trader/kungfu-sdk": "^2.6.1-alpha.0"
+    "@kungfu-trader/kungfu-sdk": "^2.6.1-alpha.1"
   },
   "kungfuDependencies": {
     "xtp": "v2.2.32.2"
@@ -82,7 +82,10 @@
         "protocol": "协议",
         "protocol_tip": "请选择协议, tcp 或者 udp",
         "buffer_size": "缓冲区大小",
-        "buffer_size_tip": "请填写 缓冲区大小(mb)"
+        "buffer_size_tip": "请填写 缓冲区大小(mb)",
+        "sync_external_order": "同步外部订单",
+        "sync_external_order_msg": "是否同步外部订单",
+        "sync_external_order_tip": "若开启则同步用户在其他交易软件的订单"
       },
       "en-US": {
         "account_name": "account name",
@@ -106,7 +109,10 @@
         "protocol": "protocol",
         "protocol_tip": "Please select protocol, tcp or udp",
         "buffer_size": "buffer size",
-        "buffer_size_tip": "Please enter buffer size(mb)"
+        "buffer_size_tip": "Please enter buffer size(mb)",
+        "sync_external_order": "sync external order",
+        "sync_external_order_msg": "Whether open sync_external_order",
+        "sync_external_order_tip": "If enabled, it synchronizes users' orders in other trading software"
       }
     },
     "config": {
@@ -163,6 +169,23 @@
             "type": "int",
             "required": true,
             "tip": "xtp.client_id_tip"
+          },
+          {
+            "key": "self_deal_detect",
+            "name": "xtp.self_deal_detect",
+            "type": "bool",
+            "required": true,
+            "default": false,
+            "tip": "xtp.self_deal_detect_tip"
+          },
+          {
+            "key": "sync_external_order",
+            "name": "xtp.sync_external_order",
+            "type": "bool",
+            "errMsg": "xtp.sync_external_order_msg",
+            "required": false,
+            "default": false,
+            "tip": "xtp.sync_external_order_tip"
           }
         ]
       },

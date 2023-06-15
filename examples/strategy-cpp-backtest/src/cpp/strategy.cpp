@@ -22,7 +22,7 @@ public:
 
   void post_start(Context_ptr & context) override { SPDLOG_INFO("strategy started"); }
 
-  void on_quote(Context_ptr & context, const Quote &quote, const location_ptr &location) override {
+  void on_quote(Context_ptr & context, const Quote &quote, const location_ptr &location, uint32_t dest) override {
     SPDLOG_INFO("on quote: {} ", quote.to_string());
     // context->insert_order(quote.instrument_id, quote.exchange_id, "SSE", "123456", quote.ask_price[0] + 5, 100,
     //                       PriceType::Limit, Side::ShortSell, Offset::Open);
@@ -30,15 +30,16 @@ public:
                           PriceType::Limit, Side::Buy, Offset::Open);
   }
 
-  void on_entrust(Context_ptr & context, const Entrust &entrust, const location_ptr &location) {}
+  void on_entrust(Context_ptr & context, const Entrust &entrust, const location_ptr &location, uint32_t dest) {}
 
-  void on_transaction(Context_ptr & context, const Transaction &transaction, const location_ptr &location) {}
+  void on_transaction(Context_ptr & context, const Transaction &transaction, const location_ptr &location,
+                      uint32_t dest) {}
 
-  void on_order(Context_ptr & context, const Order &order, const location_ptr &location) override {
+  void on_order(Context_ptr & context, const Order &order, const location_ptr &location, uint32_t dest) override {
     SPDLOG_INFO("on order: {} location->name {}", order.to_string(), location->uname);
   }
 
-  void on_trade(Context_ptr & context, const Trade &trade, const location_ptr &location) override {
+  void on_trade(Context_ptr & context, const Trade &trade, const location_ptr &location, uint32_t dest) override {
     SPDLOG_INFO("on trade: {} location->name {}", trade.to_string(), location->uname);
   }
 };

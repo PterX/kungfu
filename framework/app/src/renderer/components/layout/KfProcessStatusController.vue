@@ -46,7 +46,6 @@ const handleSwitchProcessStatus = handleSwitchProcessStatusGenerator();
 const processControllerBoardVisible = ref<boolean>(false);
 const categoryList: KfCategoryTypes[] = [
   'system',
-  'daemon',
   'td',
   'md',
   'operator',
@@ -201,8 +200,9 @@ onMounted(() => {
         <template v-if="allKfConfigData[category].length">
           <div class="kf-config-list">
             <div
-              class="kf-config-item"
               v-for="config in allKfConfigData[category]"
+              :key="config"
+              class="kf-config-item"
             >
               <div class="process-info">
                 <div class="category info-item">
@@ -214,7 +214,10 @@ onMounted(() => {
                   class="process-id info-item"
                   v-if="config.category === 'system'"
                 >
-                  {{ (SystemProcessName[config.name] || {}).name || '' }}
+                  {{
+                    (SystemProcessName[config.name] || { name: config.name })
+                      .name || ''
+                  }}
                 </div>
                 <div
                   class="process-id info-item"

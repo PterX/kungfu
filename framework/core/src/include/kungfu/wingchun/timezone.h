@@ -88,6 +88,8 @@ translate_GMTime_to_localdate_by_exchange_id(time_t lTime, const std::string &ex
   static const std::unordered_map<std::string, LocationTimeType> location_time_exchange_id_map = {
       {EXCHANGE_US, LocationTimeType::AmericaEastern},           //
       {EXCHANGE_HK, LocationTimeType::Beijing},                  //
+      {EXCHANGE_SHHK, LocationTimeType::Beijing},                //
+      {EXCHANGE_SZHK, LocationTimeType::Beijing},                //
       {EXCHANGE_SSE, LocationTimeType::Beijing},                 //
       {EXCHANGE_SZE, LocationTimeType::Beijing},                 //
       {EXCHANGE_BSE, LocationTimeType::Beijing},                 //

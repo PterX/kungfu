@@ -264,9 +264,9 @@ void cached::close_session(const location_ptr &location, int64_t close_time) {
   session_builder_.close_session(location, close_time);
 }
 
-index::SessionMap &cached::close_all_sessions(int64_t close_time) {
-  return session_builder_.close_all_sessions(close_time);
-}
+void cached::close_all_sessions(int64_t close_time) { return session_builder_.close_all_sessions(close_time); }
+
+index::SessionMap &cached::get_all_sessions() { return session_builder_.get_all_sessions(); }
 
 int64_t cached::find_last_active_time(const location_ptr &location) {
   if (bypass_cached_) {

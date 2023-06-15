@@ -1,15 +1,17 @@
 import { getRendererProcessId, kf } from './index';
-import { KF_RUNTIME_DIR } from '../config/pathConfig';
+import { KF_RUNTIME_DIR } from '@kungfu-trader/kungfu-js-api/config/pathConfig';
 import { getKfGlobalSettingsValue } from '@kungfu-trader/kungfu-js-api/config/globalSettings';
 import {
-  booleanProcessEnv,
   kfLogger,
   setTimerPromiseTask,
-} from '../utils/busiUtils';
+  // statTime,
+  // statTimeEnd,
+} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 
 export const watcher = ((): KungfuApi.Watcher | null => {
   if (process.env.APP_TYPE !== 'renderer') {
-    if (process.env.APP_TYPE !== 'daemon') {
+    if (process.env.APP_TYPE !== 'service') {
       if (process.env.APP_TYPE !== 'cli') {
         return null;
       }

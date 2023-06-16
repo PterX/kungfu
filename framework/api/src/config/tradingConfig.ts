@@ -402,6 +402,15 @@ export const PriceType: Record<
   [PriceTypeEnum.Fok]: {
     name: t('tradingConfig.Fok'),
   },
+  [PriceTypeEnum.EnhancedLimit]: {
+    name: t('tradingConfig.EnhancedLimit'),
+  },
+  [PriceTypeEnum.AtAuctionLimit]: {
+    name: t('tradingConfig.AtAuctionLimit'),
+  },
+  [PriceTypeEnum.AtAuction]: {
+    name: t('tradingConfig.AtAuction'),
+  },
   [PriceTypeEnum.Unknown]: { name: t('tradingConfig.unknown') },
 };
 

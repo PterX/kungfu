@@ -1,7 +1,6 @@
 import os from 'os';
 import path from 'path';
 import fse from 'fs-extra';
-import { addFileSync } from './../utils/fileUtils';
 
 if (process.env.APP_TYPE === 'main' || process.env.APP_TYPE === 'renderer') {
   // globalThis.__kfResourcesPath 是一个容易出错的问题, 需要每个调用pathconfig的进程都需要注册这个值
@@ -41,16 +40,17 @@ export const getDefaultHomePath = (): string => {
   }
 };
 
-export const KF_APP_CONFIG_DIR = path.join(
-  globalThis.__kfResourcesPath,
-  'app',
-  'config',
-);
-addFileSync('', KF_APP_CONFIG_DIR, 'folder');
+export const KF_APP_RUNTIME_DIR =
+  process.env.KF_APP_RUNTIME_DIR ||
+  path.join(globalThis.__kfResourcesPath, 'app');
 
 const getHomePath = (): string => {
   const defaultHomePath = getDefaultHomePath();
-  const kfConfigJsonPath = path.join(KF_APP_CONFIG_DIR, 'kfConfig.json');
+  const kfConfigJsonPath = path.join(
+    KF_APP_RUNTIME_DIR,
+    'config',
+    'kfConfig.json',
+  );
   if (fse.existsSync(kfConfigJsonPath)) {
     const kfConfigJson = fse.readJSONSync(kfConfigJsonPath) as Record<
       string,

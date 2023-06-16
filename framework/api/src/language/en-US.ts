@@ -211,6 +211,9 @@ export default {
     Reverse_best: 'ReverseBest',
     Fak: 'Fak',
     Fok: 'Fok',
+    EnhancedLimit: 'EnhancedLimit',
+    AtAuctionLimit: 'AtAuctionLimit',
+    AtAuction: 'AtAuction',
 
     speculation: 'Speculation',
     hedge: 'Hedge',

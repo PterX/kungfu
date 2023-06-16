@@ -27,6 +27,12 @@ public:
   virtual bool is_started() const override;
 
   /**
+   * Get location_uid of current process
+   * @return location_uid
+   */
+  uint32_t get_home_uid() const override;
+
+  /**
    * Add one shot timer callback.
    * @param nanotime when to call in nano seconds
    * @param callback callback function
@@ -227,13 +233,7 @@ public:
    */
   void update_strategy_state(longfist::types::StrategyStateUpdate &state_update) override;
 
-  /**
-   *
-   * @param source td source id
-   * @param account td account id
-   * @return writer to related td
-   */
-  yijinjing::journal::writer_ptr get_writer(const std::string &source, const std::string &account) override;
+  yijinjing::data::location_ptr get_location(uint32_t location_uid) override;
 
 protected:
   virtual void on_start() override;

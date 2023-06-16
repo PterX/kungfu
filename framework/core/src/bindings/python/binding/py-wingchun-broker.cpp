@@ -61,6 +61,10 @@ public:
     PYBIND11_OVERLOAD_PURE(bool, Trader, insert_order, event);
   }
 
+  void on_time_key_value(const kungfu::event_ptr &event) override {
+    PYBIND11_OVERLOAD_PURE(void, Trader, on_time_key_value, event);
+  }
+
   bool insert_batch_orders(const kungfu::event_ptr &event) override {
     PYBIND11_OVERLOAD(bool, Trader, insert_batch_orders, event);
   }
@@ -133,6 +137,7 @@ void bind_broker(pybind11::module &m) {
       .def("insert_block_message", &Trader::insert_block_message)
       .def("insert_order", &Trader::insert_order)
       .def("insert_batch_orders", &Trader::insert_batch_orders)
+      .def("on_time_key_value", &Trader::on_time_key_value)
       .def("cancel_order", &Trader::cancel_order)
       .def("req_history_order", &Trader::req_history_order)
       .def("req_history_trade", &Trader::req_history_trade)
@@ -141,11 +146,15 @@ void bind_broker(pybind11::module &m) {
       .def("req_position", &Trader::req_position);
 
   py::class_<MarketDataVendor, BrokerVendor, std::shared_ptr<MarketDataVendor>>(m, "MarketDataVendor")
-      .def(py::init<locator_ptr, const std::string &, const std::string &, bool>())
-      .def("set_service", &MarketDataVendor::set_service);
+      .def(py::init<locator_ptr, const std::string &, const std::string &, bool, const std::string &>())
+      .def("set_service", &MarketDataVendor::set_service)
+      .def("get_arguments", &MarketDataVendor::get_arguments)
+      .def("set_arguments", &MarketDataVendor::set_arguments);
 
   py::class_<TraderVendor, BrokerVendor, std::shared_ptr<TraderVendor>>(m, "TraderVendor")
-      .def(py::init<locator_ptr, const std::string &, const std::string &, bool>())
-      .def("set_service", &TraderVendor::set_service);
+      .def(py::init<locator_ptr, const std::string &, const std::string &, bool, const std::string &>())
+      .def("set_service", &TraderVendor::set_service)
+      .def("get_arguments", &TraderVendor::get_arguments)
+      .def("set_arguments", &TraderVendor::set_arguments);
 }
 } // namespace kungfu::wingchun::pybind

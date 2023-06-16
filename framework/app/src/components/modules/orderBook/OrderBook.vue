@@ -3,8 +3,6 @@ import { ExchangeIds } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import {
   dealKfNumber,
   dealKfPrice,
-  countDecimalPlaces,
-  // roundToDecimalPlaces,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { useTriggerMakeOrder } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import {
@@ -28,7 +26,6 @@ const currentInstrument = ref<KungfuApi.InstrumentResolved | undefined>();
 const { getQuoteByInstrument, getLastPricePercent } = useQuote();
 const { triggerOrderBookUpdate } = useTriggerMakeOrder();
 const app = getCurrentInstance();
-let pricePrecision = 0;
 const quoteData = computed(() => {
   if (!currentInstrument.value) {
     return null;
@@ -136,7 +133,6 @@ function dealQuoteAskPidPrices(
           (window.watcher?.ledger?.Instrument[currentInstrument.value.ukey] ||
             {}) as KungfuApi.Instrument
         ).price_tick ?? 0.001;
-      pricePrecision = countDecimalPlaces(price_tick);
 
       const target_price_tick = type === 'ask' ? +price_tick : -price_tick;
 
@@ -203,12 +199,7 @@ function toLedgalPriceVolume(num: number | bigint) {
           "
         ></div>
         <div class="price">
-          {{
-            dealKfPrice(
-              toLedgalPriceVolume(askPrices[9 - index]),
-              pricePrecision,
-            )
-          }}
+          {{ dealKfPrice(toLedgalPriceVolume(askPrices[9 - index])) }}
         </div>
         <div
           class="sell volume"
@@ -244,12 +235,7 @@ function toLedgalPriceVolume(num: number | bigint) {
       </div>
       <div class="price info-item">
         <div class="main">
-          {{
-            dealKfPrice(
-              getQuoteByInstrument(currentInstrument)?.last_price,
-              pricePrecision,
-            )
-          }}
+          {{ dealKfPrice(getQuoteByInstrument(currentInstrument)?.last_price) }}
         </div>
         <div class="sub">
           <KfBlinkNum
@@ -274,9 +260,7 @@ function toLedgalPriceVolume(num: number | bigint) {
           {{ dealKfNumber(toLedgalPriceVolume(bidVolume[index])) }}
         </div>
         <div class="price">
-          {{
-            dealKfPrice(toLedgalPriceVolume(bidPrices[index]), pricePrecision)
-          }}
+          {{ dealKfPrice(toLedgalPriceVolume(bidPrices[index])) }}
         </div>
         <div
           class="sell volume"

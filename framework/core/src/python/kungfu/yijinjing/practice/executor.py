@@ -231,7 +231,7 @@ class ExtensionExecutor:
         module = importlib.import_module(ctx.group)
         self.ctx.logger.info(f"loading {ctx.group} from {loader.extension_dir}")
         vendor = vendor_builder(
-            ctx.runtime_locator, ctx.group, ctx.name, ctx.low_latency
+            ctx.runtime_locator, ctx.group, ctx.name, ctx.low_latency, ctx.arguments
         )
         service_builder = getattr(module, ctx.category)
         self.ctx.logger.debug(f"loaded service builder")
@@ -284,13 +284,14 @@ class ExtensionExecutor:
             ctx.strategy = load_module(
                 ctx, ctx.path, loader.config["kungfuConfig"]["key"], Strategy
             )
-        if kfj.MODES[ctx.mode] == lf.enums.mode.BACKTEST and ctx.backtest:
-            ctx.logger.debug(f"ctx.backtest: {ctx.backtest}")
-            if ctx.backtest.endswith(".json"):
-                with open(ctx.backtest, "r", encoding="utf-8") as json_file:
-                    backtest_para = json.load(json_file)
-            else:
-                backtest_para = json.loads(ctx.backtest)
+        if kfj.MODES[ctx.mode] == lf.enums.mode.BACKTEST:
+            ctx.logger.debug(f"--backtest arguments: {ctx.backtest}")
+            if ctx.backtest:
+                if ctx.backtest.endswith(".json"):
+                    with open(ctx.backtest, "r", encoding="utf-8") as json_file:
+                        backtest_para = json.load(json_file)
+                else:
+                    backtest_para = json.loads(ctx.backtest)
 
             begin_time_stamp = kft.strptimes(
                 ctx.begin if ctx.begin else backtest_para["begin_time"],
@@ -413,8 +414,6 @@ def load_runner(ctx, locator):
         sys.path.append(ctx.extension_path)
         module = importlib.import_module(ctx.vendor)
         runner_vendor = getattr(module, "Runner")
-        if ctx.arguments is None:
-            ctx.arguments = ""
         runner = runner_vendor(
             locator,
             ctx.group,

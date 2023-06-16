@@ -23,6 +23,7 @@ const project = require('./project');
 const pypackages = '__pypackages__';
 const kungfulibs = '__kungfulibs__';
 const kungfuLibDirPattern = `${kungfulibs}/*/*`;
+const webpackBuildCaches = 'node_modules/.cache/webpack';
 const cwd = process.cwd().toString();
 
 const spawnOptsShell = {
@@ -308,10 +309,12 @@ exports.installBatch = async (
 };
 
 exports.clean = (keepLibs = true) => {
-  fse.removeSync(path.join(process.cwd().toString(), 'build'));
-  fse.removeSync(path.join(process.cwd().toString(), 'dist'));
+  const rm = (p) => fse.existsSync(p) && fse.removeSync(p);
+  rm(path.join(process.cwd().toString(), 'build'));
+  rm(path.join(process.cwd().toString(), 'dist'));
+  rm(path.join(process.cwd().toString(), webpackBuildCaches));
+
   if (!keepLibs) {
-    const rm = (p) => fse.existsSync(p) && fse.removeSync(p);
     rm(pypackages);
     rm(kungfulibs);
   }
@@ -409,9 +412,16 @@ exports.format = () => {
 
 function updatePackageJson(packageJson) {
   const config = packageJson.kungfuConfig || { key: 'KungfuTraderStrategy' };
+  const module_name =
+    packageJson.name.split('/').length === 2
+      ? packageJson.name.split('/')[1]
+      : packageJson.name;
   packageJson.binary = {
-    module_name: config.key,
+    module_name,
     module_path: `dist/${config.key}`,
+    remote_path: '{module_name}/v{major}/v{version}',
+    package_name:
+      '{module_name}-v{version}-{platform}-{arch}-{configuration}.tar.gz',
     host: 'localhost',
   };
   packageJson.main = 'package.json';

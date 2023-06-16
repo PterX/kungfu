@@ -2,10 +2,12 @@ import dayjs from 'dayjs';
 import { kungfu } from '@kungfu-trader/kungfu-core';
 import { KF_RUNTIME_DIR } from '../config/pathConfig';
 import {
+  dealAssetPrice,
   dealDirection,
   dealHedgeFlag,
   dealInstrumentType,
   dealIsSwap,
+  dealKfPrice,
   dealLocationUID,
   dealOffset,
   dealOrderStat,
@@ -24,8 +26,8 @@ import {
 } from '../utils/busiUtils';
 import {
   HistoryDateEnum,
-  LedgerCategoryEnum,
   InstrumentTypeEnum,
+  CurrencyEnum,
 } from '../typings/enums';
 import { ExchangeIds } from '../config/tradingConfig';
 
@@ -658,13 +660,35 @@ export const makeOrderByBasketTrade = (
   );
 };
 
+const ukeyCacheMap = new Map<string, string>();
+export const hashUkey = (...args: Array<string | number>) => {
+  const strArgs = args.map((arg) => `${arg}`);
+  const cacheKey = strArgs.join('_');
+  if (!ukeyCacheMap.has(cacheKey))
+    ukeyCacheMap.set(
+      cacheKey,
+      strArgs
+        .reduce<bigint>((pre, cur) => pre ^ BigInt(kf.hash(`${cur}`)), 0n)
+        .toString(16)
+        .padStart(16, '0'),
+    );
+
+  return ukeyCacheMap.get(cacheKey) || '';
+};
+
 export const hashInstrumentUKey = (
   instrumentId: string,
   exchangeId: string,
 ): string => {
-  return (BigInt(kf.hash(instrumentId)) ^ BigInt(kf.hash(exchangeId)))
-    .toString(16)
-    .padStart(16, '0');
+  return hashUkey(instrumentId, exchangeId);
+};
+
+export const hashInstrumentFactorUKey = (
+  instrumentId: string,
+  exchangeId: string,
+  accountUID: number,
+): string => {
+  return hashUkey(instrumentId, exchangeId, accountUID);
 };
 
 export const dealOrder = (
@@ -702,6 +726,7 @@ export const dealOrder = (
     latency_network: latencyData.latencyNetwork,
     avg_price: latencyData.avg_price,
     price_precision: pricePrecision,
+    limit_price_resolved: dealKfPrice(order.limit_price, pricePrecision),
   };
 };
 
@@ -736,6 +761,7 @@ export const dealTrade = (
     kf_time_resovlved: dealKfTime(latencyData.trade_time, isHistory),
     latency_trade: latencyData.latencyTrade,
     price_precision: pricePrecision,
+    price_resolved: dealKfPrice(trade.price, pricePrecision),
   };
 };
 
@@ -753,20 +779,26 @@ export const dealPosition = (
   pos: KungfuApi.Position,
   pricePrecision = 3,
 ): KungfuApi.PositionResolved => {
-  const holderLocation = watcher.getLocation(pos.holder_uid);
-  const account_id_resolved =
-    pos.ledger_category === LedgerCategoryEnum.td
-      ? `${holderLocation.group}_${holderLocation.name}`
-      : '--';
+  const account_id_resolved = getIdByKfLocation(
+    watcher.getLocation(pos.source_id),
+  );
   const closable_volume = getPosClosableVolume(pos);
+  const ukey = hashInstrumentUKey(pos.instrument_id, pos.exchange_id);
+  const currency =
+    ((watcher.ledger.Instrument[ukey] as KungfuApi.Instrument) || null)
+      ?.currency || CurrencyEnum.Unknown;
   return {
     ...pos,
+    currency,
     closable_volume,
-    uid_key: pos.uid_key,
+    uid_key: pos.uid_key, // 隐式属性，...pos 并不能结构
     account_id_resolved,
     instrument_id_resolved: `${pos.instrument_id} ${
       ExchangeIds[pos.exchange_id]?.name ?? ''
     }`,
     price_precision: pricePrecision,
+    last_price_resolved: dealKfPrice(pos.last_price, pricePrecision),
+    avg_open_price_resolved: dealKfPrice(pos.avg_open_price, pricePrecision),
+    unrealized_pnl_resolved: dealAssetPrice(pos.unrealized_pnl, pricePrecision),
   };
 };

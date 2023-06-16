@@ -95,6 +95,7 @@ using namespace boost::hana::literals;
 #define MAKE_KEY_IMPL_2(k1, k2) HANA_STR(#k1), HANA_STR(#k2)
 #define MAKE_KEY_IMPL_3(k1, k2, k3) HANA_STR(#k1), HANA_STR(#k2), HANA_STR(#k3)
 #define MAKE_KEY_IMPL_4(k1, k2, k3, k4) HANA_STR(#k1), HANA_STR(#k2), HANA_STR(#k3), HANA_STR(#k4)
+#define MAKE_KEY_IMPL_5(k1, k2, k3, k4, k5) HANA_STR(#k1), HANA_STR(#k2), HANA_STR(#k3), HANA_STR(#k4), HANA_STR(#k5)
 
 #define PK(...) boost::hana::make_tuple(MAKE_KEY(BOOST_HANA_PP_NARG(__VA_ARGS__), __VA_ARGS__))
 
@@ -414,6 +415,8 @@ struct event {
 
   [[nodiscard]] virtual std::string to_string() const = 0;
 
+  [[nodiscard]] virtual int8_t data_type() const = 0;
+
   /**
    * Using auto with the return mess up the reference with the undlerying memory address, DO NOT USE it.
    * @tparam T
@@ -427,6 +430,8 @@ struct event {
   std::enable_if_t<not size_fixed_v<T> and not std::is_same_v<T, nlohmann::json>, const T> data() const {
     return T(data_as_bytes(), data_length());
   }
+
+  template <class T> const T &custom_data() const { return *(reinterpret_cast<const T *>(data_address())); }
 };
 
 DECLARE_PTR(event)

@@ -9,9 +9,10 @@ import {
 } from '../typings/enums';
 import {
   buildProcessLogPath,
-  KF_RUNTIME_DIR,
+  buildRuntimeChildDirByType,
   KF_SUBSCRIBED_INSTRUMENTS_JSON_PATH,
   KF_TD_GROUP_JSON_PATH,
+  RuntimeChildDirTypes,
 } from '../config/pathConfig';
 import { pathExists, remove } from 'fs-extra';
 import {
@@ -61,7 +62,6 @@ export const getAllKfConfigOriginData = (): Promise<
       system: allConfigResolved.filter((config: KungfuApi.KfConfig) => {
         return config.category === 'system';
       }),
-      daemon: [],
     };
   });
 };
@@ -102,24 +102,30 @@ export const ensureRemoveLocation = (
 
 export function removeKfLocation(
   kfLocation: KungfuApi.KfLocation,
-): Promise<void> {
-  const targetDir = path.resolve(
-    KF_RUNTIME_DIR,
-    kfLocation.category,
-    kfLocation.group,
-    kfLocation.name,
+): Promise<void[]> {
+  const targetDirs = RuntimeChildDirTypes.map((type) =>
+    path.resolve(
+      buildRuntimeChildDirByType(type),
+      kfLocation.category,
+      kfLocation.group,
+      kfLocation.name,
+    ),
   );
 
-  return pathExists(targetDir).then((isExisted: boolean): Promise<void> => {
-    if (isExisted) {
-      return remove(targetDir).catch((err) => {
-        console.warn(err);
-      });
-    }
+  return Promise.all(
+    targetDirs.map((targetDir) => {
+      pathExists(targetDir).then((isExisted: boolean) => {
+        if (isExisted) {
+          return remove(targetDir).catch((err) => {
+            console.warn(err);
+          });
+        }
 
-    console.warn(`Location Dir ${targetDir} is not existed`);
-    return Promise.resolve();
-  });
+        console.warn(`Location Dir ${targetDir} is not existed`);
+        return Promise.resolve();
+      });
+    }),
+  );
 }
 
 export function removeLog(kfLocation: KungfuApi.KfLocation): Promise<void> {

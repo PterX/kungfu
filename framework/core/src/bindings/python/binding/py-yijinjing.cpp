@@ -233,6 +233,7 @@ void bind(pybind11::module &&m) {
       .def("get_notice", &observer::get_notice);
 
   py::class_<reader, reader_ptr>(m, "reader")
+      .def(py::init<const reader &>())
       .def("subscribe", &reader::join)
       .def("current_frame", &reader::current_frame)
       .def("seek_to_time", &reader::seek_to_time)

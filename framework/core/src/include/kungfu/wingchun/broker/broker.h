@@ -28,12 +28,18 @@ public:
 
   void on_exit() override;
 
+  std::string get_arguments() const { return arguments_; }
+
+  void set_arguments(const std::string &argiments) { arguments_ = argiments; }
+
 protected:
   virtual BrokerService_ptr get_service() = 0;
 
   void on_start() override;
 
 private:
+  std::string arguments_{};
+
   void notify_broker_state();
 };
 
@@ -68,6 +74,8 @@ public:
   [[nodiscard]] yijinjing::journal::writer_ptr get_writer(uint32_t dest_id) const;
 
   [[nodiscard]] bool has_writer(uint32_t dest_id) const;
+
+  [[nodiscard]] yijinjing::journal::writer_ptr &get_thread_writer();
 
   template <typename DataType> void write_to(DataType &data, uint32_t dest_id = yijinjing::data::location::PUBLIC) {
     vendor_.write_to(now(), data, dest_id);

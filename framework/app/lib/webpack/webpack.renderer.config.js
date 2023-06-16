@@ -19,11 +19,16 @@ const {
 } = require('@kungfu-trader/kungfu-js-api/toolkit/utils');
 const CopyPlugin = require('copy-webpack-plugin');
 const fse = require('fs-extra');
+const {
+  generateCodeKeyWords,
+} = require('@kungfu-trader/kungfu-js-api/toolkit/codeEditor/generateCodeKeyWords');
 
 const appDir = getAppDir();
 const { getKungfuBuildInfo, getPagesConfig, isProduction } = toolkit.utils;
 const { pyVersion } = getKungfuBuildInfo();
 const publicDir = path.join(appDir, 'public');
+
+generateCodeKeyWords();
 
 const webpackConfig = (argv) => {
   const pagesConfig = getPagesConfig(argv);

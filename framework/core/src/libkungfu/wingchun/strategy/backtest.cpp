@@ -268,8 +268,9 @@ void BacktestContext::update_strategy_state(StrategyStateUpdate &state_update) {
   // not implemented
 }
 
-yijinjing::journal::writer_ptr BacktestContext::get_writer(const std::string &source, const std::string &account) {
-  return app_.get_writer(location::PUBLIC);
+yijinjing::data::location_ptr BacktestContext::get_location(uint32_t location_uid) {
+  return app_.get_location(location_uid);
 }
 
+uint32_t BacktestContext::get_home_uid() const { return app_.get_home_uid(); }
 } // namespace kungfu::wingchun::strategy

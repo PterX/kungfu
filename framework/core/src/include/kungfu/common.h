@@ -403,6 +403,8 @@ struct event {
 
   [[nodiscard]] virtual uint32_t source() const = 0;
 
+  [[nodiscard]] virtual uint32_t initial_source() const = 0;
+
   [[nodiscard]] virtual uint32_t dest() const = 0;
 
   [[nodiscard]] virtual uint32_t data_length() const = 0;

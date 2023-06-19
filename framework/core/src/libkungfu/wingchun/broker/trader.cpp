@@ -24,11 +24,15 @@ TraderVendor::TraderVendor(locator_ptr locator, const std::string &group, const 
   set_arguments(arguments);
 }
 
-void TraderVendor::set_service(Trader_ptr service) { service_ = std::move(service); }
+void TraderVendor::set_service(Trader_ptr service) {
+  service_ = std::move(service);
+  service_->on_arguments(get_arguments());
+}
 
 void TraderVendor::react() {
-  events_ | skip_until(events_ | is(RequestStart::tag)) | is(OrderInput::tag) | $$(service_->handle_order_input(event));
-  events_ | skip_until(events_ | is(RequestStart::tag)) | is_custom() | $$(service_->on_custom_event(event));
+  auto transaction_events_ = events_ | skip_until(events_ | is(RequestStart::tag));
+  transaction_events_ | is(OrderInput::tag) | $$(service_->handle_order_input(event));
+  transaction_events_ | is_custom() | $$(service_->on_custom_event(event));
   apprentice::react();
 }
 
@@ -40,6 +44,8 @@ void TraderVendor::on_react() {
 void TraderVendor::on_start() {
   BrokerVendor::on_start();
 
+  events_ | is(BatchOrderBegin::tag) | $$(service_->handle_batch_begin_tag(event));
+  events_ | is(BatchOrderEnd::tag) | $$(service_->handle_batch_end_tag(event));
   events_ | is(BlockMessage::tag) | $$(service_->insert_block_message(event));
   events_ | is(OrderAction::tag) | $$(service_->cancel_order(event));
   events_ | is(AssetRequest::tag) | $$(service_->req_account());
@@ -51,10 +57,6 @@ void TraderVendor::on_start() {
   events_ | is(AssetSync::tag) | $$(service_->handle_asset_sync());
   events_ | is(PositionSync::tag) | $$(service_->handle_position_sync());
   events_ | is(Band::tag) | $$(service_->on_band(event));
-
-  events_ | filter([&](const event_ptr &event) {
-    return event->msg_type() == BatchOrderBegin::tag or event->msg_type() == BatchOrderEnd::tag;
-  }) | $$(service_->handle_batch_order_tag(event));
 
   service_->recover();
   service_->on_recover();
@@ -141,86 +143,26 @@ void Trader::handle_position_sync() {
   }
 }
 
-bool Trader::has_self_deal_risk(const event_ptr &event) {
-  if (not self_deal_detect_) {
-    return false;
-  }
-  const OrderInput &input = event->data<OrderInput>();
-  static std::string str_ex_instrument;
-  str_ex_instrument = input.exchange_id.to_string() + input.instrument_id.to_string();
-  auto risk_check = [&]() -> bool {
-    auto iter = map_exchange_instrument_to_order_ids_.find(str_ex_instrument);
-
-    /// 没有相同的标的, 判定为不存在风险
-    if (iter == map_exchange_instrument_to_order_ids_.end()) {
-      return false;
-    }
-
-    /// 存在相同标的, 遍历每一个order_id, 判断是否存在自成交风险
-    return std::any_of(iter->second.begin(), iter->second.end(), [&](const auto order_id) -> bool {
-      const auto order_iter = orders_.find(order_id);
-
-      /// 只接收到了OrderInput, 没有生成相应的order, 判定为不存在风险
-      if (order_iter == orders_.end()) {
-        return false;
-      }
-
-      const Order &order = order_iter->second.data;
-
-      /// 方向相同或者是委托完结, 判定为不存在风险
-      if (order.side == input.side or is_final_status(order.status)) {
-        return false;
-      }
-
-      /// 存在反方向未完成委托, 且当前委托是市价, 判定为存在风险
-      if (input.price_type != PriceType::Limit) {
-        return true;
-      }
-
-      /// 限价, 判断买卖方向和价格
-      if (input.side == Side::Buy and input.limit_price < order.limit_price) {
-        return false; /// 新委托买价低于已存在卖价, 判定为不存在风险
-      } else if (input.side == Side::Sell and input.limit_price > order.limit_price) {
-        return false; /// 新委托卖价高于已存在买价, 判定为不存在风险
-      } else {
-        return true; /// 新委托买价大于等于已存在卖价, 或 新委托卖价小于等于已存在买价, 判定为存在风险
-      }
-    });
-  };
-
-  if (risk_check()) {
-    return true;
-  }
-  map_exchange_instrument_to_order_ids_.try_emplace(str_ex_instrument).first->second.emplace(input.order_id);
-  return false;
-}
-
 void Trader::handle_order_input(const event_ptr &event) {
-  if (has_self_deal_risk(event)) {
-    Order &order = get_writer(event->source())->open_data<Order>();
-    order_from_input(event->data<OrderInput>(), order);
-    order.status = OrderStatus::Error;
-    strncpy(order.error_msg, "该委托存在自成交风险,已拒绝下单", ERROR_MSG_LEN);
-    order.insert_time = event->gen_time();
-    order.update_time = event->gen_time();
-    get_writer(event->source())->close_data();
+  if (risk_uid_ != 0 and event->initial_source() != risk_uid_) {
+    SPDLOG_DEBUG("{}:{} Unchecked OrderInput", risk_uid_, get_vendor().get_location_uname(risk_uid_),
+                 event->data<OrderInput>().to_string());
     return;
   }
 
   /// try_emplace default insert false to map, means not batch mode
   if (batch_status_.try_emplace(event->source()).first->second) {
-    const OrderInput &input = event->data<OrderInput>();
-    order_inputs_.try_emplace(event->source()).first->second.push_back(input);
+    order_inputs_.try_emplace(event->source()).first->second.push_back(event->data<OrderInput>());
   } else {
     insert_order(event);
   }
 }
 
-void Trader::handle_batch_order_tag(const event_ptr &event) {
-  if (event->msg_type() == BatchOrderBegin::tag) {
-    batch_status_.insert_or_assign(event->source(), true);
-  } else if (event->msg_type() == BatchOrderEnd::tag) {
-    batch_status_.insert_or_assign(event->source(), false);
+void Trader::handle_batch_begin_tag(const event_ptr &event) { batch_status_.insert_or_assign(event->source(), true); }
+
+void Trader::handle_batch_end_tag(const event_ptr &event) {
+  batch_status_.insert_or_assign(event->source(), false);
+  if (not order_inputs_.try_emplace(event->source()).first->second.empty()) {
     insert_batch_orders(event);
     clear_order_inputs(event->source());
   }
@@ -230,8 +172,6 @@ bool Trader::insert_block_message(const event_ptr &event) {
   const BlockMessage &msg = event->data<BlockMessage>();
   return block_messages_.try_emplace(msg.block_id, msg).second;
 }
-
-void Trader::enable_self_detect() { self_deal_detect_ = true; }
 
 void Trader::recover() {
   if (disable_recover_) {
@@ -252,8 +192,6 @@ void Trader::deal_write_frame() {
     if (frame->msg_type() == Order::tag) {
       const Order &order = frame->data<Order>();
       orders_.insert_or_assign(order.order_id, state<Order>(frame->source(), frame->dest(), frame->gen_time(), order));
-      map_exchange_instrument_to_order_ids_.try_emplace(order.exchange_id.to_string() + order.instrument_id.to_string())
-          .first->second.emplace(order.order_id);
     } else if (frame->msg_type() == Trade::tag) {
       const Trade &trade = frame->data<Trade>();
       trades_.insert_or_assign(trade.trade_id, state<Trade>(frame->source(), frame->dest(), frame->gen_time(), trade));
@@ -308,5 +246,13 @@ void Trader::deal_read_frame() {
 void Trader::clear_order_inputs(uint64_t location_uid) { order_inputs_.erase(location_uid); }
 
 [[maybe_unused]] void Trader::disable_recover() { disable_recover_ = true; }
+
+void Trader::on_arguments(const std::string &argument) {
+  auto config = nlohmann::json::parse(argument);
+  const auto risk_name = config.value<std::string>("risk_name", "");
+  if (not risk_name.empty()) {
+    risk_uid_ = location(get_home()->mode, category::STRATEGY, "service", risk_name, get_home()->locator).location_uid;
+  }
+}
 
 } // namespace kungfu::wingchun::broker

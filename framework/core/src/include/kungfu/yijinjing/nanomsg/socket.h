@@ -158,6 +158,8 @@ struct nanomsg_json : event {
 
   [[nodiscard]] uint32_t source() const override { return get_meta<uint32_t>("source", 0); }
 
+  [[nodiscard]] uint32_t initial_source() const override { return get_meta<uint32_t>("initial_source", 0); }
+
   [[nodiscard]] uint32_t dest() const override { return get_meta<uint32_t>("dest", 0); }
 
   [[nodiscard]] uint32_t data_length() const override { return binding_.size(); }

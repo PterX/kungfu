@@ -53,6 +53,7 @@ yijinjing
 wingchun
 length
 header_length
+data_type
 version
 page_header_length
 page_size
@@ -145,7 +146,6 @@ price_level
 price_offset
 dest_id
 is_last
-data_type
 is_withdraw
 close_today_volume
 data_time
@@ -319,7 +319,6 @@ on_time_key_value
 cancel_order
 req_history_order
 req_history_trade
-enable_self_detect
 req_account
 req_position
 set_service

@@ -80,6 +80,8 @@ public:
 
   [[nodiscard]] uint32_t source() const override { PYBIND11_OVERLOAD_PURE(int64_t, event, source); }
 
+  [[nodiscard]] uint32_t initial_source() const override { PYBIND11_OVERLOAD_PURE(int64_t, event, initial_source); }
+
   [[nodiscard]] uint32_t dest() const override { PYBIND11_OVERLOAD_PURE(int64_t, event, dest); }
 };
 

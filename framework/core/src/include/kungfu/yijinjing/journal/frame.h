@@ -32,6 +32,8 @@ struct frame : event {
 
   [[nodiscard]] uint32_t source() const override { return header_->source; }
 
+  [[nodiscard]] uint32_t initial_source() const override { return header_->initial_source; }
+
   [[nodiscard]] uint32_t dest() const override { return header_->dest; }
 
   [[nodiscard]] const void *data_address() const override {
@@ -76,6 +78,8 @@ private:
   void set_msg_type(int32_t msg_type) { header_->msg_type = msg_type; }
 
   void set_source(uint32_t source) { header_->source = source; }
+
+  void set_initial_source(uint32_t initial_source) { header_->initial_source = initial_source; }
 
   void set_dest(uint32_t dest) { header_->dest = dest; }
 

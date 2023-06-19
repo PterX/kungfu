@@ -60,7 +60,9 @@ KF_DEFINE_PACK_TYPE(                                           //
     /** dest of this frame */                                  //
     (uint32_t, dest),                                          //
     /** json or raw struct */                                  //
-    (enums::FrameDataType, data_type)                          //
+    (enums::FrameDataType, data_type),                         //
+    /** the real writer of this frame */                       //
+    (uint32_t, initial_source)                                 //
 );
 
 KF_DEFINE_PACK_TYPE(                          //

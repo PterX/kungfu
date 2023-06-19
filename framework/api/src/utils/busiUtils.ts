@@ -598,8 +598,8 @@ const getKfExtensionConfigByCategory = (
                           settings: item?.settings || [],
                         },
                       }),
-                      {} as KungfuApi.KfSystemExtConfig,
-                    ) || [],
+                      {} as KungfuApi.KfSystemExtConfigs,
+                    ) || {},
                 };
                 break;
             }
@@ -739,8 +739,10 @@ export const getAvailExtServiceList = async (): Promise<
   KungfuApi.KfExtServiceLocation[]
 > => {
   const kfExtConfigs: KungfuApi.KfExtConfigs = await getKfExtensionConfig();
-  const kfSystemExtConfigsMap = (kfExtConfigs['system'] ||
-    {}) as KungfuApi.KfSystemExtConfigs;
+  const kfSystemExtConfigsMap = (kfExtConfigs['system'] || {}) as Record<
+    string,
+    KungfuApi.KfSystemExtConfigs
+  >;
   return Object.values(kfSystemExtConfigsMap)
     .filter((item) => Object.keys(item).length)
     .reduce((extServiceList, item) => {
@@ -768,8 +770,10 @@ export const getAvailCliExtServiceList = async (): Promise<
   KungfuApi.KfExtServiceLocation[]
 > => {
   const kfExtConfigs: KungfuApi.KfExtConfigs = await getKfExtensionConfig();
-  const kfSystemExtConfigsMap = (kfExtConfigs['system'] ||
-    {}) as KungfuApi.KfSystemExtConfigs;
+  const kfSystemExtConfigsMap = (kfExtConfigs['system'] || {}) as Record<
+    string,
+    KungfuApi.KfSystemExtConfigs
+  >;
   return Object.values(kfSystemExtConfigsMap)
     .filter((item) => Object.keys(item).length)
     .reduce((extServiceList, item) => {

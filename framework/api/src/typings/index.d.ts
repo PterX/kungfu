@@ -332,7 +332,7 @@ declare namespace KungfuApi {
     md: Record<string, KfMdExtConfig>;
     strategy: Record<string, KfStrategyExtConfig>;
     operator: Record<string, KfOperatorExtConfig>;
-    system: Record<string, KfSystemExtConfig>;
+    system: Record<string, KfSystemExtConfigs>;
   };
 
   export type KfUIExtConfigs = Record<

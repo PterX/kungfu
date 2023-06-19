@@ -38,7 +38,7 @@ void TraderXTP::on_start() {
   api_->SetSoftwareKey(config_.software_key.c_str());
   session_id_ = api_->Login(config_.td_ip.c_str(), config_.td_port, config_.account_id.c_str(),
                             config_.password.c_str(), XTP_PROTOCOL_TCP);
-  risk_uid_ = location(get_home()->mode, category::STRATEGY, "service", "risk", get_home()->locator).location_uid;
+  //  risk_uid_ = location(get_home()->mode, category::SYSTEM, "service", "risk", get_home()->locator).location_uid;
   if (session_id_ > 0) {
     SPDLOG_INFO("Login successfully");
     req_order_trade();

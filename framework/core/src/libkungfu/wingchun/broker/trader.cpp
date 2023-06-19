@@ -21,6 +21,7 @@ namespace kungfu::wingchun::broker {
 TraderVendor::TraderVendor(locator_ptr locator, const std::string &group, const std::string &name, bool low_latency,
                            const std::string &arguments)
     : BrokerVendor(location::make_shared(mode::LIVE, category::TD, group, name, std::move(locator)), low_latency) {
+  KUNGFU_SETUP_LOG();
   set_arguments(arguments);
 }
 
@@ -145,7 +146,7 @@ void Trader::handle_position_sync() {
 
 void Trader::handle_order_input(const event_ptr &event) {
   if (risk_uid_ != 0 and event->initial_source() != risk_uid_) {
-    SPDLOG_DEBUG("{}:{} Unchecked OrderInput", risk_uid_, get_vendor().get_location_uname(risk_uid_),
+    SPDLOG_DEBUG("{}:{} Unchecked OrderInput: {}", risk_uid_, get_vendor().get_location_uname(risk_uid_),
                  event->data<OrderInput>().to_string());
     return;
   }
@@ -248,6 +249,10 @@ void Trader::clear_order_inputs(uint64_t location_uid) { order_inputs_.erase(loc
 [[maybe_unused]] void Trader::disable_recover() { disable_recover_ = true; }
 
 void Trader::on_arguments(const std::string &argument) {
+  SPDLOG_DEBUG("argument: {}", argument);
+  if (argument.empty()) {
+    return;
+  }
   auto config = nlohmann::json::parse(argument);
   const auto risk_name = config.value<std::string>("risk_name", "");
   if (not risk_name.empty()) {

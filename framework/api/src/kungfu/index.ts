@@ -199,7 +199,7 @@ export const dealTradingDataItem = (
   }
 
   if ('currency' in item) {
-    itemResolved.currency = dealCurrency(1).name;
+    itemResolved.currency = dealCurrency(item.currency).name;
   }
   return itemResolved;
 };

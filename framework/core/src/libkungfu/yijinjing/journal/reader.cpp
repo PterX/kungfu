@@ -12,7 +12,7 @@ reader::~reader() {
 
 void reader::join(const data::location_ptr &location, uint32_t dest_id, const int64_t from_time) {
   SPDLOG_TRACE("join: {}, dest_id: {}", location->to_string(), dest_id);
-  auto key = static_cast<uint64_t>(location->uid) << 32u | static_cast<uint64_t>(dest_id);
+  auto key = journal_key(location, dest_id);
   auto result = journals_.try_emplace(key, location, dest_id, false, lazy_, low_latency_, bus_);
   if (result.second) {
     journals_.at(key).seek_to_time(from_time);
@@ -24,7 +24,7 @@ void reader::join(const data::location_ptr &location, uint32_t dest_id, const in
 
 void reader::disjoin(const uint32_t location_uid) {
   for (auto it = journals_.begin(); it != journals_.end();) {
-    if (it->first >> 32u xor location_uid) {
+    if (it->first.location_uid != location_uid) {
       it++;
     } else {
       it = journals_.erase(it);
@@ -35,13 +35,12 @@ void reader::disjoin(const uint32_t location_uid) {
 }
 
 void reader::disjoin_channel(uint32_t location_uid, uint32_t dest_id) {
-  auto key = static_cast<uint64_t>(location_uid) << 32u | static_cast<uint64_t>(dest_id);
+  // auto key = static_cast<uint64_t>(location_uid) << 32u | static_cast<uint64_t>(dest_id);
   for (auto it = journals_.begin(); it != journals_.end();) {
-    if (it->first != key) {
-      it++;
+    if (it->first.location_uid == location_uid && it->first.dest_id == dest_id) {
+      it = journals_.erase(it);
     } else {
-      journals_.erase(it);
-      break; // only one journal erased
+      it++;
     }
   }
   current_ = nullptr;
@@ -99,9 +98,8 @@ reader::reader(const reader &other) : lazy_(other.lazy_), low_latency_(other.low
 }
 
 void reader::keep_only(uint32_t location_uid, uint32_t dest_id) {
-  auto key = static_cast<uint64_t>(location_uid) << 32u | static_cast<uint64_t>(dest_id);
   for (auto it = journals_.begin(); it != journals_.end();) {
-    if (it->first == key) {
+    if (it->first.location_uid == location_uid && it->first.dest_id == dest_id) {
       it++;
     } else {
       it = journals_.erase(it);
@@ -112,7 +110,7 @@ void reader::keep_only(uint32_t location_uid, uint32_t dest_id) {
 }
 
 journal &reader::get_journal_ref(const data::location_ptr &location, uint32_t dest_id) {
-  auto key = static_cast<uint64_t>(location->uid) << 32u | static_cast<uint64_t>(dest_id);
+  auto key = journal_key(location, dest_id);
   auto iter = journals_.find(key);
   if (iter != journals_.end()) {
     return iter->second;

@@ -893,10 +893,16 @@ export const buildExtTypeMap = (
   return extTypeMap;
 };
 
-export const getExtConfigList = <T extends KfCategoryTypes>(
+export const getExtConfigList = (
   extConfigs: KungfuApi.KfExtConfigs,
-  category: T,
-): KungfuApi.KfExtConfigs[T][string][] => {
+  category: KfCategoryTypes,
+): KungfuApi.KfExtConfig[] => {
+  if (category === 'system') {
+    return Object.values(extConfigs[category] || {})
+      .map((item) => Object.values(item))
+      .flat();
+  }
+
   return Object.values(extConfigs[category] || {});
 };
 

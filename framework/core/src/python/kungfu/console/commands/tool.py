@@ -73,4 +73,3 @@ def tool(ctx, begin, end, category, group, name, tool_path):
             end_time_stamp,
             ctx.backtest_locator,
         )
-

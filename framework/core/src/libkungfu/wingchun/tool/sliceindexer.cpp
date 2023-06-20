@@ -10,9 +10,9 @@ using namespace kungfu::yijinjing::journal;
 namespace fs = std::filesystem;
 
 namespace kungfu::wingchun::tool {
-location_ptr SliceIndexer::find_md_slice_location(int64_t nano_time, const std::string &group,
-                                                            const std::string &name, const std::string &instrument_id,
-                                                            const std::string &exchange_id, int32_t data_type) const {
+location_ptr SliceIndexer::find_md_slice_location(int64_t nano_time, const std::string &group, const std::string &name,
+                                                  const std::string &instrument_id, const std::string &exchange_id,
+                                                  int32_t data_type) const {
   auto slice_locator = std::make_shared<locator>(mode::BACKTEST);
   uint32_t cache_uid = hash_backtest_cache(name, get_begin_time(), get_end_time());
   auto slice_location =
@@ -20,14 +20,14 @@ location_ptr SliceIndexer::find_md_slice_location(int64_t nano_time, const std::
   return slice_location;
 }
 
-int64_t  SliceIndexer::get_md_slice_end_time(int64_t nano_time, const std::string &group,
-                                                      const std::string &name, const std::string &instrument_id,
-                                                      const std::string &exchange_id, int32_t data_type) const {
+int64_t SliceIndexer::get_md_slice_end_time(int64_t nano_time, const std::string &group, const std::string &name,
+                                            const std::string &instrument_id, const std::string &exchange_id,
+                                            int32_t data_type) const {
   return get_end_time();
 }
 
 location_ptr SliceIndexer::find_operator_slice_location(int64_t nano_time, const std::string &group,
-                                                                  const std::string &name) const {
+                                                        const std::string &name) const {
   auto slice_locator = std::make_shared<locator>(mode::BACKTEST);
   uint32_t cache_uid = hash_backtest_cache(name, get_begin_time(), get_end_time());
   auto slice_location =
@@ -36,7 +36,7 @@ location_ptr SliceIndexer::find_operator_slice_location(int64_t nano_time, const
 }
 
 int64_t SliceIndexer::get_operator_slice_end_time(int64_t nano_time, const std::string &group,
-                                                            const std::string &name) const {
+                                                  const std::string &name) const {
   return get_end_time();
 }
 
@@ -74,7 +74,7 @@ int64_t DayIndexer::get_operator_slice_end_time(int64_t nano_time, const std::st
 }
 
 int64_t DayIndexer::end_of_day(int64_t nano_time) const {
-  // TODO 
+  // TODO
   return nano_time - (nano_time % time_unit::NANOSECONDS_PER_HOUR) + time_unit::NANOSECONDS_PER_HOUR;
   // return time::calendar_day_start(nano_time) + time_unit::NANOSECONDS_PER_DAY;
 }

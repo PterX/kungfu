@@ -25,7 +25,10 @@ namespace kungfu::wingchun::strategy {
 
 BacktestContext::BacktestContext(practice::apprentice &app, const rx::connectable_observable<event_ptr> &events,
                                  Matcher_ptr matcher, SliceIndexer_ptr from_indexer, SliceIndexer_ptr to_indexer)
-    : Context(app, events), broker_client_(app_), bookkeeper_(app_, broker_client_), matcher_(std::move(matcher)), from_indexer_(from_indexer), slice_tool_(std::make_shared<SliceTool>(category::OPERATOR, app.get_home()->group, app.get_home()->name  , std::move(to_indexer)))  {
+    : Context(app, events), broker_client_(app_), bookkeeper_(app_, broker_client_), matcher_(std::move(matcher)),
+      from_indexer_(from_indexer),
+      slice_tool_(std::make_shared<SliceTool>(category::OPERATOR, app.get_home()->group, app.get_home()->name,
+                                              std::move(to_indexer))) {
   log::copy_log_settings(app_.get_home(), app_.get_home()->name);
 }
 
@@ -267,7 +270,8 @@ book::Bookkeeper &BacktestContext::get_bookkeeper() { return bookkeeper_; }
 // location_ptr BacktestContext::find_md_location(const std::string &source) {
 //   uint32_t cache_uid = hash_backtest_cache(source, app_.get_begin_time(), app_.get_end_time());
 //   auto cache_location =
-//       location::make_shared(mode::BACKTEST, category::MD, source, fmt::format("{:08x}", cache_uid), app_.get_locator());
+//       location::make_shared(mode::BACKTEST, category::MD, source, fmt::format("{:08x}", cache_uid),
+//       app_.get_locator());
 //   return cache_location;
 // }
 

@@ -286,7 +286,6 @@ class ExtensionExecutor:
                 ctx, ctx.path, loader.config["kungfuConfig"]["key"], Strategy
             )
         if kfj.MODES[ctx.mode] == lf.enums.mode.BACKTEST:
-
             matcher = load_matcher(ctx, ctx.matcher)
             if matcher:
                 ctx.runner.set_matcher(matcher)
@@ -296,7 +295,9 @@ class ExtensionExecutor:
             begin_time_stamp, end_time_stamp = self.parse_begin_end(ctx)
             ctx.runner.set_begin_time(begin_time_stamp)
             ctx.runner.set_end_time(end_time_stamp)
-            from_indexer, to_indexer = self.parse_from_to_indexer(ctx, begin_time_stamp, end_time_stamp)
+            from_indexer, to_indexer = self.parse_from_to_indexer(
+                ctx, begin_time_stamp, end_time_stamp
+            )
             ctx.runner.set_from_indexer(from_indexer)
             ctx.runner.set_to_indexer(to_indexer)
         ctx.runner.add_strategy(ctx.strategy)
@@ -350,8 +351,10 @@ class ExtensionExecutor:
         if kfj.MODES[ctx.mode] == lf.enums.mode.BACKTEST:
             begin_time_stamp, end_time_stamp = self.parse_begin_end(ctx)
             ctx.op_runner.set_begin_time(begin_time_stamp)
-            ctx.op_runner.set_end_time(end_time_stamp) 
-            from_indexer, to_indexer = self.parse_from_to_indexer(ctx, begin_time_stamp, end_time_stamp)
+            ctx.op_runner.set_end_time(end_time_stamp)
+            from_indexer, to_indexer = self.parse_from_to_indexer(
+                ctx, begin_time_stamp, end_time_stamp
+            )
             ctx.op_runner.set_from_indexer(from_indexer)
             ctx.op_runner.set_to_indexer(to_indexer)
         # ctx.runner = self.load_runner(ctx)
@@ -384,8 +387,6 @@ class ExtensionExecutor:
         if ctx.to_indexer:
             to_indexer = SliceIndexer(ctx, begin, end, ctx.to_indexer)
         return from_indexer, to_indexer
-            
-        
 
 
 class RegistryJSONEncoder(json.JSONEncoder):

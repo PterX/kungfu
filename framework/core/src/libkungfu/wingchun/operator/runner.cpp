@@ -36,7 +36,6 @@ void Runner::set_from_indexer(const tool::SliceIndexer_ptr &indexer) { from_inde
 
 void Runner::set_to_indexer(const tool::SliceIndexer_ptr &indexer) { to_indexer_ = indexer; }
 
-
 void Runner::on_exit() { post_stop(); }
 
 void Runner::on_react() { context_ = make_context(); }

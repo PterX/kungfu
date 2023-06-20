@@ -10,7 +10,8 @@
 namespace kungfu::wingchun::op {
 class BacktestContext : public Context {
 public:
-  explicit BacktestContext(yijinjing::practice::apprentice &app, const rx::connectable_observable<event_ptr> &events, tool::SliceIndexer_ptr from_indexer, tool::SliceIndexer_ptr to_indexer);
+  explicit BacktestContext(yijinjing::practice::apprentice &app, const rx::connectable_observable<event_ptr> &events,
+                           tool::SliceIndexer_ptr from_indexer, tool::SliceIndexer_ptr to_indexer);
 
   /**
    * checked_ is strated started.

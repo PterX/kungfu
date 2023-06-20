@@ -1,8 +1,8 @@
 #ifndef KUNGFU_TOOL_SLICE_INDEXER_H
 #define KUNGFU_TOOL_SLICE_INDEXER_H
 #include <kungfu/common.h>
-#include <kungfu/yijinjing/common.h>
 #include <kungfu/longfist/types.h>
+#include <kungfu/yijinjing/common.h>
 
 namespace kungfu::wingchun::tool {
 class SliceIndexer {
@@ -14,19 +14,20 @@ public:
 
   int64_t get_end_time() const { return end_time_; }
 
-  virtual yijinjing::data::location_ptr
-  find_md_slice_location(int64_t nano_time, const std::string &group, const std::string &name,
-                         const std::string &instrument_id, const std::string &exchange_id, int32_t data_type) const;
+  virtual yijinjing::data::location_ptr find_md_slice_location(int64_t nano_time, const std::string &group,
+                                                               const std::string &name,
+                                                               const std::string &instrument_id,
+                                                               const std::string &exchange_id, int32_t data_type) const;
 
   virtual int64_t get_md_slice_end_time(int64_t nano_time, const std::string &group, const std::string &name,
                                         const std::string &instrument_id, const std::string &exchange_id,
-                                        int32_t data_type) const ;
+                                        int32_t data_type) const;
 
   virtual yijinjing::data::location_ptr find_operator_slice_location(int64_t nano_time, const std::string &group,
                                                                      const std::string &name) const;
 
   virtual int64_t get_operator_slice_end_time(int64_t nano_time, const std::string &group,
-                                              const std::string &name) const ;
+                                              const std::string &name) const;
 
 private:
   int64_t begin_time_;

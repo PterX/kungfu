@@ -12,7 +12,6 @@
 #include <kungfu/wingchun/tool/sliceindexer.h>
 #include <kungfu/wingchun/tool/slicetool.h>
 
-
 namespace kungfu::wingchun::strategy {
 class BacktestContext : public Context {
 public:

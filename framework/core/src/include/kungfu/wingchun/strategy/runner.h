@@ -27,9 +27,9 @@ public:
 
   void set_matcher(const Matcher_ptr &matcher);
 
-  void set_from_indexer(const tool::SliceIndexer_ptr & indexer);
+  void set_from_indexer(const tool::SliceIndexer_ptr &indexer);
 
-  void set_to_indexer(const tool::SliceIndexer_ptr & indexer);
+  void set_to_indexer(const tool::SliceIndexer_ptr &indexer);
 
   void on_exit() override;
 

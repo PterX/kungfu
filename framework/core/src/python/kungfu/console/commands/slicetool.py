@@ -34,7 +34,11 @@ yjj = kungfu.__binding__.yijinjing
     "-t", "--tool_path", type=str, required=True, help="path to tool dynamic library"
 )
 @click.option(
-    "-i", "--index_path", type=str, required=False, help="path to indexer dynamic library"
+    "-i",
+    "--indexr_path",
+    type=str,
+    required=False,
+    help="path to indexer dynamic library",
 )
 @kfc.pass_context()
 def slicetool(ctx, begin, end, category, group, name, tool_path, index_path):
@@ -58,22 +62,16 @@ def slicetool(ctx, begin, end, category, group, name, tool_path, index_path):
     module = importlib.import_module(module_name)
 
     if index_path:
-        indexer = sliceindexer.SliceIndexer(ctx, begin_time_stamp, end_time_stamp, index_path)
+        indexer = sliceindexer.SliceIndexer(
+            ctx, begin_time_stamp, end_time_stamp, index_path
+        )
     else:
         # indexer = wc.DayIndexer(begin_time_stamp, end_time_stamp)
         indexer = wc.SliceIndexer(begin_time_stamp, end_time_stamp)
 
-    
-
     if not tool_path.suffix.endswith("py"):
         slice_tool_builder = getattr(module, "slice_tool")
-        tool = slice_tool_builder(
-            kfj.CATEGORIES[category],
-            group,
-            name,
-            indexer
-        )
+        tool = slice_tool_builder(kfj.CATEGORIES[category], group, name, indexer)
         tool.run()
     else:
         raise NotImplementedError("sliceTool for python not implemented.")
-        

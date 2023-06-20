@@ -16,8 +16,8 @@ namespace kungfu::wingchun::tool {
 SliceTool::SliceTool(longfist::enums::category c, std::string group, std::string name, SliceIndexer_ptr indexer,
                      bool overwrite)
     : category_(c), group_(std::move(group)), name_(std::move(name)), indexer_(std::move(indexer)),
-      overwrite_(overwrite), last_read_gen_time_(indexer_->get_begin_time()),last_gen_time_(indexer_->get_begin_time()),
-      publisher_(std::make_shared<noop_publisher>()),
+      overwrite_(overwrite), last_read_gen_time_(indexer_->get_begin_time()),
+      last_gen_time_(indexer_->get_begin_time()), publisher_(std::make_shared<noop_publisher>()),
       reader_(std::make_shared<reader>(true, false, std::make_shared<bus>(false))) {
   if (indexer_->get_end_time() < indexer_->get_begin_time() or indexer_->get_begin_time() < 0) {
     throw wingchun_error(fmt::format("invalid time interval: begin_time={} later than end_time={}",

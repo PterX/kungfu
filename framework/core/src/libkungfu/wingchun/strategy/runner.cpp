@@ -30,7 +30,8 @@ Context_ptr Runner::make_context() {
       SPDLOG_WARN("Runner in backtest mode not specified Matcher, Default Quote-based Matcher used.");
     }
     set_runner(*matcher_, this);
-    return std::make_shared<BacktestContext>(*this, events_, std::move(matcher_), std::move(from_indexer_), std::move(to_indexer_));
+    return std::make_shared<BacktestContext>(*this, events_, std::move(matcher_), std::move(from_indexer_),
+                                             std::move(to_indexer_));
   }
   return std::make_shared<LiveContext>(*this, events_);
 }

@@ -372,6 +372,11 @@ declare namespace KungfuApi {
     }
   >;
 
+  export interface KfAllExtConfigs extends KfExtConfigs {
+    ui: KfUIExtConfigs;
+    cli: KfCliExtConfigs;
+  }
+
   export type KfExtLanguages = {
     'zh-CN': Record<string, Record<string, string>>;
     'en-US': Record<string, Record<string, string>>;

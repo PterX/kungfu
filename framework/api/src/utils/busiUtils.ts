@@ -687,6 +687,19 @@ export const getKfCliExtensionConfig =
     return getKfCliExtensionConfigByExtKey(kfExtConfigList);
   };
 
+export const getAllExtensions =
+  async (): Promise<KungfuApi.KfAllExtConfigs> => {
+    const kfExtConfigList = await getKfExtConfigList();
+    const extConfigs = getKfExtensionConfigByCategory(kfExtConfigList);
+    const uiExtConfigs = getKfUIExtensionConfigByExtKey(kfExtConfigList);
+    const cliExtConfigs = getKfCliExtensionConfigByExtKey(kfExtConfigList);
+    return {
+      ...extConfigs,
+      ui: uiExtConfigs,
+      cli: cliExtConfigs,
+    };
+  };
+
 export const getExhibitConfig =
   async (): Promise<KungfuApi.KfExhibitConfigs> => {
     const KfExtConfig: KungfuApi.KfUIExtConfigs =

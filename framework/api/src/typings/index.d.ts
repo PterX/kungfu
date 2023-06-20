@@ -317,7 +317,8 @@ declare namespace KungfuApi {
   export type KfAddableExtConfig =
     | KfTdExtConfig
     | KfMdExtConfig
-    | KfStrategyExtConfig;
+    | KfStrategyExtConfig
+    | KfOperatorExtConfig;
 
   export type KfExtConfig =
     | KfTdExtConfig

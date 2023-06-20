@@ -58,8 +58,8 @@ public:
   explicit assemble(const std::vector<data::locator_ptr> &locators, const std::string &mode = "*",
                     const std::string &category = "*", const std::string &group = "*", const std::string &name = "*");
 
-  explicit assemble(const std::string &mode = "*", const std::string &category = "*", const std::string &group = "*",
-                    const std::string &name = "*");
+  explicit assemble(const data::locator_ptr &locator, const std::string &mode = "*", const std::string &category = "*",
+                    const std::string &group = "*", const std::string &name = "*");
 
   explicit assemble(const data::location_ptr &source_location, uint32_t dest_id,
                     uint32_t assemble_mode = longfist::enums::AssembleMode::Channel, int64_t from_time = 0);

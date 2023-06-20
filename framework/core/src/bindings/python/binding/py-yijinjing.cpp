@@ -356,6 +356,7 @@ void bind(pybind11::module &&m) {
       .def_property_readonly("io_device", &master::get_io_device)
       .def_property_readonly("home", &master::get_home)
       .def_property_readonly("live", &master::is_live)
+      .def_property_readonly("no_daemon", &master::is_no_daemon)
       .def("now", &master::now)
       .def("run", &master::run)
       .def("setup", &master::setup)

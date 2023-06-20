@@ -1347,7 +1347,7 @@ export const switchKfLocation = (
   watcher: KungfuApi.Watcher | null,
   kfLocation: KungfuApi.DerivedKfLocation,
   targetStatus: boolean,
-  force?: boolean,
+  force = false,
 ): Promise<void | Proc> => {
   if (!watcher) return Promise.reject(new Error('Watcher is NULL'));
 

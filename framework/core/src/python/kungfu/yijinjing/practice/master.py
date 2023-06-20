@@ -97,6 +97,9 @@ class Master(yjj.master):
             self.ctx.logger.error("task error [%s] %s", exc_type, err_msg)
 
     def on_exit(self):
+        if self.no_daemon:
+            return
+
         yjj.master.on_exit(self)
         for app in self.get_live_processes():
             self.ctx.logger.info(

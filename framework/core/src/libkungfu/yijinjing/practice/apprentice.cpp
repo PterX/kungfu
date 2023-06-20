@@ -123,6 +123,16 @@ bool apprentice::release_page() {
 }
 
 void apprentice::react() {
+  events_ | $([&](const event_ptr& event) {
+    boost::hana::for_each(AllTypes, [&](auto it) {
+      using DataType = typename decltype(+boost::hana::second(it))::type;
+      if (DataType::tag == event->msg_type()) {
+        SPDLOG_INFO("---- type {} source {} dest {}", DataType::type_name.c_str(), get_location_uname(event->source()), get_location_uname(event->dest()));
+      }
+    });
+  });
+
+
   events_ | is(TimeReset::tag) | first() | $$(reset_time(event->data<TimeReset>()));
   events_ | is(Location::tag) | $$(add_location(event->gen_time(), event->data<Location>()));
   events_ | is(Register::tag) | $$(on_register(event->trigger_time(), event->data<Register>()));
@@ -164,10 +174,12 @@ void apprentice::react() {
             });
 
     self_register_event | $([&](const event_ptr &event) {
+      SPDLOG_INFO("self register");
       auto data = event->data<Register>();
       last_active_time_ = data.last_active_time;
       checkin_time_ = data.checkin_time;
-      reader_->join(master_cmd_location_, get_live_home_uid(), event->gen_time());
+      SPDLOG_INFO("master_cmd_location_ uid {}, home uid {}", master_cmd_location_->uid, get_live_home_uid());
+      reader_->join(master_cmd_location_, get_live_home_uid(), begin_time_);
     });
     checkin();
     expect_start();
@@ -180,7 +192,7 @@ void apprentice::react() {
     // dest_id 0 should be configurable TODO
     std::string journal_dir = get_locator()->layout_dir(get_home(), layout::JOURNAL);
     fs::remove_all(journal_dir);
-    writers_.emplace(location::PUBLIC, get_io_device()->open_writer(location::PUBLIC));
+    writers_.insert_or_assign(location::PUBLIC, get_io_device()->open_writer(location::PUBLIC));
     reader_->join(get_home(), location::PUBLIC, begin_time_);
     started_ = true;
     on_start();
@@ -203,11 +215,13 @@ void apprentice::on_request_read_from_others(const event_ptr &event) {
 }
 
 void apprentice::on_register(int64_t trigger_time, const Register &register_data) {
+  SPDLOG_INFO("++++ on_register location {} {}", get_location_uname(register_data.location_uid), register_data.name);
   register_location(trigger_time, register_data);
 }
 
 void apprentice::on_deregister(const event_ptr &event) {
   uint32_t location_uid = event->data<Deregister>().location_uid;
+  SPDLOG_INFO("---- deregister location {}", get_location_uname(location_uid));
   if (location_uid == get_live_home_uid()) {
     return;
   }
@@ -226,15 +240,16 @@ void apprentice::on_read_from_sync(const event_ptr &event) { do_read_from<Reques
 
 void apprentice::on_write_to(const event_ptr &event) {
   auto dest_id = event->data<RequestWriteTo>().dest_id;
+  SPDLOG_INFO("on_write_to {} {} -> {} {}, target_id {} {}", event->source(), get_location_uname(event->source()), event->dest(), get_location_uname(event->dest()), dest_id, get_location_uname(dest_id));
   if (writers_.find(dest_id) == writers_.end()) {
-    writers_.emplace(dest_id, get_io_device()->open_writer(dest_id));
+    writers_.insert_or_assign(dest_id, get_io_device()->open_writer(dest_id));
   }
 }
 
 void apprentice::on_write_to_band(const event_ptr &event) {
   auto dest_id = event->data<RequestWriteToBand>().location_uid;
   if (writers_.find(dest_id) == writers_.end()) {
-    writers_.emplace(dest_id, get_io_device()->open_writer(dest_id));
+    writers_.insert_or_assign(dest_id, get_io_device()->open_writer(dest_id));
   }
 }
 

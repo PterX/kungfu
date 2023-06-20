@@ -395,6 +395,10 @@ private:
         return Napi::BigInt::New(info.Env(), std::uint64_t(0));
       }
 
+      if (not has_writer(get_master_command_uid())) {
+        return Napi::BigInt::New(info.Env(), std::uint64_t(0));
+      }
+
       auto trigger_time = yijinjing::time::now_in_nano();
       auto account_writer = get_writer(account_location->uid);
       auto master_cmd_writer = get_writer(get_master_command_uid());

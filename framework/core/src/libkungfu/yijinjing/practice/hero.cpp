@@ -328,6 +328,8 @@ void hero::require_write_to(int64_t trigger_time, uint32_t source_id, uint32_t d
   if (not check_location_exists(source_id, dest_id)) {
     return;
   }
+  SPDLOG_INFO("require_write_to source_id {} {} ->>>> dest_id {} {}", source_id, get_location_uname(source_id), dest_id,
+              get_location_uname(dest_id));
   auto writer = get_writer(source_id);
   RequestWriteTo &msg = writer->open_data<RequestWriteTo>(trigger_time);
   msg.dest_id = dest_id;
@@ -371,9 +373,7 @@ void hero::deal_notice(bool bypass, bool notify, const rx::subscriber<event_ptr>
 
 bool hero::drain(const rx::subscriber<event_ptr> &sb) {
   deal_notice(false, true, sb);
-  bool is_lazy = io_device_->is_lazy();
-  bool is_low_latency = io_device_->is_low_latency();
-  bool bypass = io_device_->is_lazy() or not io_device_->is_low_latency();
+  bool bypass = io_device_->is_lazy() or io_device_->is_low_latency();
   while (live_ and reader_->data_available()) {
     deal_notice(bypass, false, sb);
     if (reader_->current_frame()->gen_time() <= end_time_) {

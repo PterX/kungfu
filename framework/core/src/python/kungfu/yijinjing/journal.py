@@ -14,10 +14,10 @@ types = lf.types
 def collect_journal_locations(ctx):
     search_path = os.path.join(
         ctx.runtime_dir,
+        "journal",
         ctx.category,
         ctx.group,
         ctx.name,
-        "journal",
         ctx.mode,
         "*.journal",
     )

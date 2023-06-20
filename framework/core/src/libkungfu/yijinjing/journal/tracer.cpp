@@ -14,15 +14,28 @@ tracer::tracer(const location_ptr location, bool in, bool out, int64_t begin, in
     : home_(location), reader_(std::make_shared<reader>(true, false, std::make_shared<bus>(false))),
       reader_for_in_(std::make_shared<reader>(true, false, std::make_shared<bus>(false))), in_(in), out_(out),
       begin_time_(begin), end_time_(end == 0 ? INT64_MAX : end) {
-
+  auto master_home_location = location::make_shared(mode::LIVE, category::SYSTEM, "master", "master", get_locator());
+  auto is_master = master_home_location->uid == home_->uid;
   if (in) {
-    auto master_home_location = location::make_shared(mode::LIVE, category::SYSTEM, "master", "master", get_locator());
-
-    if (location->uid != master_home_location->uid) {
+    if (not is_master) {
       auto uid_str = fmt::format("{:08x}", home_->uid);
       auto master_cmd_location = location::make_shared(mode::LIVE, category::SYSTEM, "master", uid_str, get_locator());
       reader_->join(master_cmd_location, home_->uid, begin_time_);
       reader_for_in_->join(master_cmd_location, home_->uid, begin_time_);
+    } else {
+      for (auto target_location : get_locator()->list_locations("*", "*", "*", "*")) {
+        if (target_location->category == category::SYSTEM and target_location->group == "master") { 
+          continue;
+        }
+        for (auto dest_id : get_locator()->list_location_dest(target_location)) {
+          auto uid_str = fmt::format("{:08x}", target_location->uid);
+          auto master_cmd_location = location::make_shared(mode::LIVE, category::SYSTEM, "master", uid_str, get_locator());
+          if (dest_id == master_cmd_location->uid) {
+            reader_->join(target_location, dest_id, begin_time_);
+            reader_for_in_->join(target_location, dest_id, begin_time_);
+          }
+        }
+      }
     }
 
     reader_->join(master_home_location, location::PUBLIC, begin_time_);
@@ -32,6 +45,15 @@ tracer::tracer(const location_ptr location, bool in, bool out, int64_t begin, in
   if (out) {
     for (auto dest_id : get_locator()->list_location_dest(home_)) {
       reader_->join(home_, dest_id, begin_time_);
+    }
+
+    if (is_master) {
+      for (auto master_cmd_location : get_locator()->list_locations("system", "master", "*", "*")) {
+        SPDLOG_INFO("master_cmd_location: {}", master_cmd_location->uname);
+        for (auto dest_id : get_locator()->list_location_dest(master_cmd_location)) {
+          reader_->join(master_cmd_location, dest_id, begin_time_);
+        }
+      }
     }
   }
 

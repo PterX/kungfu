@@ -122,4 +122,17 @@
     });                                                                                                                \
   };                                                                                                                   \
   class ToolType : public kungfu::wingchun::tool::CacheTool
+
+
+
+  #define KUNGFU_MAIN_SLICE_TOOL(SliceToolType)                                                                                     \
+  class SliceToolType;                                                                                                      \
+  PYBIND11_MODULE(KUNGFU_MODULE_NAME, m) {                                                                             \
+    m.def("slice_tool", [&](kungfu::longfist::enums::category category, std::string group, std::string name, SliceIndexer_ptr indexer) {            \
+      return std::static_pointer_cast<kungfu::wingchun::tool::SliceTool>(                                              \
+          std::make_shared<SliceToolType>(category, group, name, indexer, true));                     \
+    });                                                                                                                \
+  };                                                                                                                   \
+  class SliceToolType : public kungfu::wingchun::tool::SliceTool                                                      
+
 #endif // KUNGFU_EXTENSION_H

@@ -4,11 +4,13 @@
 #define WINGCHUN_OPERATOR_BACKTEST_H
 
 #include <kungfu/wingchun/operator/context.h>
+#include <kungfu/wingchun/tool/sliceindexer.h>
+#include <kungfu/wingchun/tool/slicetool.h>
 
 namespace kungfu::wingchun::op {
 class BacktestContext : public Context {
 public:
-  explicit BacktestContext(yijinjing::practice::apprentice &app, const rx::connectable_observable<event_ptr> &events);
+  explicit BacktestContext(yijinjing::practice::apprentice &app, const rx::connectable_observable<event_ptr> &events, tool::SliceIndexer_ptr from_indexer, tool::SliceIndexer_ptr to_indexer);
 
   /**
    * checked_ is strated started.
@@ -52,10 +54,10 @@ public:
    * Subscribe market data.
    * @param source MD group
    * @param instrument_ids instrument IDs
-   * @param exchange_ids exchange IDs
+   * @param exchange_id exchange ID
    */
   void subscribe(const std::string &source, const std::vector<std::string> &instrument_ids,
-                 const std::string &exchange_ids) override;
+                 const std::string &exchange_id) override;
 
   /**
    * Subscribe all from given MD
@@ -104,12 +106,10 @@ protected:
 
   void prepare(const event_ptr &event) override{};
 
-  yijinjing::data::location_ptr find_md_location(const std::string &source);
-
-  yijinjing::data::location_ptr find_op_location(const std::string &group, const std::string &name);
-
 private:
   broker::PassiveClient broker_client_;
+  tool::SliceIndexer_ptr from_indexer_;
+  tool::SliceTool_ptr slice_tool_;
   std::multimap<int64_t, std::function<void(event_ptr)>> pre_timer_callbacks_ = {};
   std::multimap<int64_t, std::function<void(event_ptr)>> timer_callbacks_ = {};
 

@@ -11,6 +11,7 @@ from kungfu.console.commands import kfc, PrioritizedCommandGroup
 from kungfu.yijinjing import time as kft
 from kungfu.yijinjing.log import find_logger
 from kungfu.yijinjing import journal as kfj
+from kungfu.wingchun import sliceindexer
 
 
 lf = kungfu.__binding__.longfist
@@ -32,16 +33,20 @@ yjj = kungfu.__binding__.yijinjing
 @click.option(
     "-t", "--tool_path", type=str, required=True, help="path to tool dynamic library"
 )
+@click.option(
+    "-i", "--index_path", type=str, required=False, help="path to indexer dynamic library"
+)
 @kfc.pass_context()
-def tool(ctx, begin, end, category, group, name, tool_path):
+def slicetool(ctx, begin, end, category, group, name, tool_path, index_path):
     location = yjj.location(
-        kfj.MODES["backtest"],
+        kfj.MODES["data"],
         kfj.CATEGORIES[category],
         group,
         name,
         ctx.backtest_locator,
     )
     logger = find_logger(location, ctx.log_level)
+    ctx.logger = logger
     begin_time_stamp = kft.strptimes(begin)
     end_time_stamp = kft.strptimes(end)
     tool_path = Path(tool_path)
@@ -52,25 +57,23 @@ def tool(ctx, begin, end, category, group, name, tool_path):
     logger.debug(f"loading module from {tool_path}")
     module = importlib.import_module(module_name)
 
+    if index_path:
+        indexer = sliceindexer.SliceIndexer(ctx, begin_time_stamp, end_time_stamp, index_path)
+    else:
+        # indexer = wc.DayIndexer(begin_time_stamp, end_time_stamp)
+        indexer = wc.SliceIndexer(begin_time_stamp, end_time_stamp)
+
+    
+
     if not tool_path.suffix.endswith("py"):
-        tool_builder = getattr(module, "tool")
-        tool = tool_builder(
+        slice_tool_builder = getattr(module, "slice_tool")
+        tool = slice_tool_builder(
             kfj.CATEGORIES[category],
             group,
             name,
-            begin_time_stamp,
-            end_time_stamp,
-            ctx.backtest_locator,
+            indexer
         )
         tool.run()
     else:
-        tool_func = getattr(module, "run")
-        tool_func(
-            kfj.CATEGORIES[category],
-            group,
-            name,
-            begin_time_stamp,
-            end_time_stamp,
-            ctx.backtest_locator,
-        )
-
+        raise NotImplementedError("sliceTool for python not implemented.")
+        

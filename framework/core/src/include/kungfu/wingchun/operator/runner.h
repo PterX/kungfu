@@ -4,7 +4,7 @@
 
 #include <kungfu/wingchun/operator/backtest.h>
 #include <kungfu/wingchun/operator/operator.h>
-#include <kungfu/wingchun/operator/runtime.h>
+#include <kungfu/wingchun/operator/live.h>
 #include <kungfu/yijinjing/practice/apprentice.h>
 
 namespace kungfu::wingchun::op {
@@ -18,6 +18,10 @@ public:
   [[nodiscard]] Context_ptr get_context() const;
 
   void add_operator(const Operator_ptr &op);
+
+  void set_from_indexer(const tool::SliceIndexer_ptr & indexer);
+
+  void set_to_indexer(const tool::SliceIndexer_ptr & indexer);
 
   void on_exit() override;
 
@@ -41,6 +45,8 @@ protected:
 private:
   std::vector<Operator_ptr> operators_ = {};
   Context_ptr context_;
+  tool::SliceIndexer_ptr  from_indexer_;
+  tool::SliceIndexer_ptr  to_indexer_;
 
   template <typename OnMethod = void (Operator::*)(Context_ptr &)> void invoke(OnMethod method) {
     auto context = std::dynamic_pointer_cast<Context>(context_);

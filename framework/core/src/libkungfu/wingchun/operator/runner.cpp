@@ -17,12 +17,25 @@ Context_ptr Runner::get_context() const { return context_; }
 
 Context_ptr Runner::make_context() {
   if (get_home()->mode == mode::BACKTEST) {
-    return std::make_shared<BacktestContext>(*this, events_);
+    if (not from_indexer_) {
+      from_indexer_ = std::make_shared<tool::SliceIndexer>(get_begin_time(), get_end_time());
+      SPDLOG_WARN("Runner in backtest mode not specified from_indexer, Default NameHashingIndexer used.");
+    }
+    if (not to_indexer_) {
+      to_indexer_ = std::make_shared<tool::SliceIndexer>(get_begin_time(), get_end_time());
+      SPDLOG_WARN("Runner in backtest mode not specified to_indexer, Default NameHashingIndexer used.");
+    }
+    return std::make_shared<BacktestContext>(*this, events_, std::move(from_indexer_), std::move(to_indexer_));
   }
   return std::make_shared<LiveContext>(*this, events_);
 }
 
 void Runner::add_operator(const Operator_ptr &op) { operators_.push_back(op); }
+
+void Runner::set_from_indexer(const tool::SliceIndexer_ptr &indexer) { from_indexer_ = indexer; }
+
+void Runner::set_to_indexer(const tool::SliceIndexer_ptr &indexer) { to_indexer_ = indexer; }
+
 
 void Runner::on_exit() { post_stop(); }
 
@@ -31,7 +44,6 @@ void Runner::on_react() { context_ = make_context(); }
 void Runner::on_start() {
   enable(*context_);
   pre_start();
-  // TODO add skip_until for broker_states_requested_ == true later
   events_ | is_own<Deregister>(context_->get_broker_client()) |
       $$(invoke(&Operator::on_deregister, event->data<Deregister>(), get_location(event->source())));
   events_ | is_own<BrokerStateUpdate>(context_->get_broker_client()) |
@@ -64,6 +76,8 @@ void Runner::post_start() {
       $$(invoke(&Operator::on_entrust, event->data<Entrust>(), get_location(event->source()), event->dest()));
   events_ | is_own<Transaction>(context_->get_broker_client()) |
       $$(invoke(&Operator::on_transaction, event->data<Transaction>(), get_location(event->source()), event->dest()));
+  events_ | is_own<Tree>(context_->get_broker_client()) |
+      $$(invoke(&Operator::on_tree, event->data<Tree>(), get_location(event->source()), event->dest()));
 
   events_ | is(SyntheticData::tag) |
       $$(invoke(&Operator::on_synthetic_data, event->data<SyntheticData>(), get_location(event->source()),
@@ -76,5 +90,4 @@ void Runner::post_start() {
 void Runner::pre_stop() { invoke(&Operator::pre_stop); }
 
 void Runner::post_stop() { invoke(&Operator::post_stop); }
-
 } // namespace kungfu::wingchun::op

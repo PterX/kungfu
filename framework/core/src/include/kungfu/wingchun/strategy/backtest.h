@@ -9,12 +9,15 @@
 
 #include <kungfu/wingchun/strategy/context.h>
 #include <kungfu/wingchun/strategy/matcher.h>
+#include <kungfu/wingchun/tool/sliceindexer.h>
+#include <kungfu/wingchun/tool/slicetool.h>
+
 
 namespace kungfu::wingchun::strategy {
 class BacktestContext : public Context {
 public:
   explicit BacktestContext(yijinjing::practice::apprentice &app, const rx::connectable_observable<event_ptr> &events,
-                           Matcher_ptr matcher);
+                           Matcher_ptr matcher, tool::SliceIndexer_ptr from_indexer, tool::SliceIndexer_ptr to_indexer);
 
   /**
    * checked_ is strated started.
@@ -215,14 +218,16 @@ protected:
 
   virtual void prepare(const event_ptr &event) override;
 
-  yijinjing::data::location_ptr find_md_location(const std::string &source);
+  // yijinjing::data::location_ptr find_md_location(const std::string &source);
 
-  yijinjing::data::location_ptr find_op_location(const std::string &group, const std::string &name);
+  // yijinjing::data::location_ptr find_op_location(const std::string &group, const std::string &name);
 
 private:
   broker::PassiveClient broker_client_;
   book::Bookkeeper bookkeeper_;
   Matcher_ptr matcher_;
+  tool::SliceIndexer_ptr from_indexer_;
+  tool::SliceTool_ptr slice_tool_;
   std::multimap<int64_t, std::function<void(event_ptr)>> pre_timer_callbacks_ = {};
   std::multimap<int64_t, std::function<void(event_ptr)>> timer_callbacks_ = {};
 

@@ -27,6 +27,10 @@ public:
 
   void set_matcher(const Matcher_ptr &matcher);
 
+  void set_from_indexer(const tool::SliceIndexer_ptr & indexer);
+
+  void set_to_indexer(const tool::SliceIndexer_ptr & indexer);
+
   void on_exit() override;
 
 protected:
@@ -52,6 +56,8 @@ private:
   std::vector<Strategy_ptr> strategies_ = {};
   Context_ptr context_;
   Matcher_ptr matcher_;
+  tool::SliceIndexer_ptr from_indexer_;
+  tool::SliceIndexer_ptr to_indexer_;
   const std::string arguments_;
 
   void inspect_channel(const event_ptr &event);

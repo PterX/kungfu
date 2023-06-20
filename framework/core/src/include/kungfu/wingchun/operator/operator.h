@@ -37,6 +37,12 @@ public:
   virtual void on_transaction(Context_ptr &context, const longfist::types::Transaction &transaction,
                               const kungfu::yijinjing::data::location_ptr &location, uint32_t dest){};
 
+  // 行情数据更新回调
+  // @param tree              行情数据
+  // @param location          数据来源
+  virtual void on_tree(Context_ptr &context, const longfist::types::Tree &tree,
+                       const kungfu::yijinjing::data::location_ptr &location){};                         
+
   // 用于做行情转录时的任意类型行情事件回调, 考虑不提供python binding
   //@param event md发布的任意类型行情事件
   virtual void on_event(Context_ptr &context, const event_ptr &event){};

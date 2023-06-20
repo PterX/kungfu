@@ -90,13 +90,10 @@ void bind_tool(pybind11::module &m) {
       .def(py::init<int64_t, int64_t>(), py::arg("begin_time"), py::arg("end_time"))
       .def("get_begin_time", &SliceIndexer::get_begin_time)
       .def("get_end_time", &SliceIndexer::get_end_time)
-     //  .def("find_md_slice_location", &SliceIndexer::find_md_slice_location)
+      .def("find_md_slice_location", &SliceIndexer::find_md_slice_location)
       .def("get_md_slice_end_time", &SliceIndexer::get_md_slice_end_time)
       .def("find_operator_slice_location", &SliceIndexer::find_operator_slice_location)
       .def("get_operator_slice_end_time", &SliceIndexer::get_operator_slice_end_time);
-
-  py::class_<NameTimeHashingIndexer ,SliceIndexer, std::shared_ptr<NameTimeHashingIndexer>>(m, "NameTimeHashingIndexer")
-      .def(py::init<int64_t, int64_t>(), py::arg("begin_time"), py::arg("end_time"));
 
   py::class_<DayIndexer ,SliceIndexer, std::shared_ptr<DayIndexer>>(m, "DayIndexer")
       .def(py::init<int64_t, int64_t>(), py::arg("begin_time"), py::arg("end_time"));

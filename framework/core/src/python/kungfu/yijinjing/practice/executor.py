@@ -377,8 +377,8 @@ class ExtensionExecutor:
         return begin_time_stamp, end_time_stamp
 
     def parse_from_to_indexer(self, ctx, begin, end):
-        from_indexer = wc.NameTimeHashingIndexer(begin, end)
-        to_indexer = wc.NameTimeHashingIndexer(begin, end)
+        from_indexer = wc.SliceIndexer(begin, end)
+        to_indexer = wc.SliceIndexer(begin, end)
         if ctx.from_indexer:
             from_indexer = SliceIndexer(ctx, begin, end, ctx.from_indexer)
         if ctx.to_indexer:

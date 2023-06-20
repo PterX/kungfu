@@ -61,7 +61,7 @@ def slicetool(ctx, begin, end, category, group, name, tool_path, index_path):
         indexer = sliceindexer.SliceIndexer(ctx, begin_time_stamp, end_time_stamp, index_path)
     else:
         # indexer = wc.DayIndexer(begin_time_stamp, end_time_stamp)
-        indexer = wc.NameTimeHashingIndexer(begin_time_stamp, end_time_stamp)
+        indexer = wc.SliceIndexer(begin_time_stamp, end_time_stamp)
 
     
 

@@ -371,7 +371,7 @@ void hero::deal_notice(bool low_latency_master, bool notify, const rx::subscribe
 
 bool hero::drain(const rx::subscriber<event_ptr> &sb) {
   deal_notice(true, true, sb);
-  bool low_latency_master = not io_device_->is_lazy() and io_device_->is_low_latency();
+  const bool low_latency_master = not io_device_->is_lazy() and io_device_->is_low_latency();
   while (live_ and reader_->data_available()) {
     deal_notice(low_latency_master, false, sb);
     if (reader_->current_frame()->gen_time() <= end_time_) {

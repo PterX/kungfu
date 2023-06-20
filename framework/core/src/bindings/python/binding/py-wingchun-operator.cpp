@@ -52,8 +52,8 @@ public:
     PYBIND11_OVERLOAD(void, op::Operator, on_transaction, context, transaction, location, dest);
   }
 
-  void on_tree(op::Context_ptr &context, const Tree &tree,
-               const kungfu::yijinjing::data::location_ptr &location, uint32_t dest) override {
+  void on_tree(op::Context_ptr &context, const Tree &tree, const kungfu::yijinjing::data::location_ptr &location,
+               uint32_t dest) override {
     PYBIND11_OVERLOAD(void, op::Operator, on_tree, context, tree, location, dest);
   }
 

@@ -74,7 +74,6 @@ int64_t DayIndexer::get_operator_slice_end_time(int64_t nano_time, const std::st
 }
 
 int64_t DayIndexer::end_of_day(int64_t nano_time) const {
-  // TODO
   return nano_time - (nano_time % time_unit::NANOSECONDS_PER_HOUR) + time_unit::NANOSECONDS_PER_HOUR;
   // return time::calendar_day_start(nano_time) + time_unit::NANOSECONDS_PER_DAY;
 }

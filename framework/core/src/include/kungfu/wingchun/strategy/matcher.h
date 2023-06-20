@@ -37,6 +37,11 @@ public:
   //@param transaction       逐笔成交数据
   virtual void on_transaction(const longfist::types::Transaction &transaction){};
 
+  // 行情数据更新回调
+  // @param tree              行情数据
+  // @param location          数据来源
+  virtual void on_tree(const longfist::types::Tree &tree){};
+
   // 订单信息更新回调
   //@param order             订单信息数据
   virtual void on_order_input(const longfist::types::OrderInput &order_input){};

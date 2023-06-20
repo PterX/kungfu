@@ -335,42 +335,40 @@ declare namespace KungfuApi {
     system: Record<string, KfSystemExtConfig>;
   };
 
-  export type KfUIExtConfigs = Record<
-    string,
-    {
-      name: string;
-      extPath: string;
-      position: KfUIExtLocatorTypes;
-      exhibit: KfExhibitConfig;
-      components:
-        | {
-            index: string;
-          }
-        | {
-            entry: string;
-            page: string;
-          }
-        | null;
-      script: string;
-    }
-  >;
-
-  export type KfCliExtConfigs = Record<
-    string,
-    {
-      name: string;
-      extPath: string;
-      exhibit: KfExhibitConfig;
-      components: Record<
-        string,
-        {
-          position: 'index' | 'dzxy';
-          entry: string;
+  export interface KfUIExtConfig {
+    name: string;
+    extPath: string;
+    position: KfUIExtLocatorTypes;
+    exhibit: KfExhibitConfig;
+    components:
+      | {
+          index: string;
         }
-      > | null;
-      script: string;
-    }
-  >;
+      | {
+          entry: string;
+          page: string;
+        }
+      | null;
+    script: string;
+  }
+
+  export type KfUIExtConfigs = Record<string, KfUIExtConfig>;
+
+  export interface KfCliExtConfig {
+    name: string;
+    extPath: string;
+    exhibit: KfExhibitConfig;
+    components: Record<
+      string,
+      {
+        position: 'index' | 'dzxy';
+        entry: string;
+      }
+    > | null;
+    script: string;
+  }
+
+  export type KfCliExtConfigs = Record<string, KfCliExtConfig>;
 
   export interface KfAllExtConfigs extends KfExtConfigs {
     ui: KfUIExtConfigs;

@@ -707,6 +707,8 @@ KF_DEFINE_DATA_TYPE(                                   //
     (std::string, group),                              //
     (std::string, name),                               //
     (enums::mode, mode),                               //
+    (bool, risk_check),                                //
+    (enums::SelfDealCheckType, self_deal_check_type),  //
     (std::string, value)                               //
 );
 

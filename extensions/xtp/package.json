@@ -171,14 +171,6 @@
             "tip": "xtp.client_id_tip"
           },
           {
-            "key": "self_deal_detect",
-            "name": "xtp.self_deal_detect",
-            "type": "bool",
-            "required": true,
-            "default": false,
-            "tip": "xtp.self_deal_detect_tip"
-          },
-          {
             "key": "sync_external_order",
             "name": "xtp.sync_external_order",
             "type": "bool",

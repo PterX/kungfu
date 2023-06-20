@@ -357,8 +357,8 @@ void hero::produce(const rx::subscriber<event_ptr> &sb) {
   }
 }
 
-void hero::deal_notice(bool bypass, bool notify, const rx::subscriber<event_ptr> &sb) {
-  if (not bypass and io_device_->get_home()->mode == mode::LIVE and io_device_->get_observer()->wait()) {
+void hero::deal_notice(bool low_latency_master, bool notify, const rx::subscriber<event_ptr> &sb) {
+  if (low_latency_master and io_device_->get_home()->mode == mode::LIVE and io_device_->get_observer()->wait()) {
     const std::string &notice = io_device_->get_observer()->get_notice();
     now_ = time::now_in_nano();
     if (notice.length() > 2) {
@@ -370,12 +370,10 @@ void hero::deal_notice(bool bypass, bool notify, const rx::subscriber<event_ptr>
 }
 
 bool hero::drain(const rx::subscriber<event_ptr> &sb) {
-  deal_notice(false, true, sb);
-  bool is_lazy = io_device_->is_lazy();
-  bool is_low_latency = io_device_->is_low_latency();
-  bool bypass = io_device_->is_lazy() or not io_device_->is_low_latency();
+  deal_notice(true, true, sb);
+  const bool low_latency_master = not io_device_->is_lazy() and io_device_->is_low_latency();
   while (live_ and reader_->data_available()) {
-    deal_notice(bypass, false, sb);
+    deal_notice(low_latency_master, false, sb);
     if (reader_->current_frame()->gen_time() <= end_time_) {
       int64_t frame_time = reader_->current_frame()->gen_time();
       if (frame_time > now_) {

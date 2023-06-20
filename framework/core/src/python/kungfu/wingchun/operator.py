@@ -61,6 +61,11 @@ class Operator(wc.Operator):
             "on_transaction",
             lambda ctx, transaction, location, dest_id: None,
         )
+
+        self._on_tree = getattr(
+            self._module, "on_tree", lambda ctx, tree, location: None
+        )
+
         self._on_synthetic_data = getattr(
             self._module,
             "on_synthetic_data",
@@ -135,6 +140,9 @@ class Operator(wc.Operator):
         self.__call_proxy(
             self._on_transaction, self.ctx, transaction, location, dest_id
         )
+
+    def on_tree(self, wc_context, tree, location, dest_id):
+        self.__call_proxy(self._on_transaction, self.ctx, tree, location)
 
     def on_synthetic_data(self, wc_context, synthetic_data, location, dest_id):
         self.__call_proxy(

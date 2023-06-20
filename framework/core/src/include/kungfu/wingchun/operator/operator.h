@@ -40,9 +40,8 @@ public:
   // 行情数据更新回调
   // @param tree              行情数据
   // @param location          数据来源
-  // TODO
   virtual void on_tree(Context_ptr &context, const longfist::types::Tree &tree,
-                       const kungfu::yijinjing::data::location_ptr &location){};
+                       const kungfu::yijinjing::data::location_ptr &location, uint32_t dest){};
 
   // 用于做行情转录时的任意类型行情事件回调, 考虑不提供python binding
   //@param event md发布的任意类型行情事件

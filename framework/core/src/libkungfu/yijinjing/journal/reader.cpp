@@ -98,9 +98,8 @@ reader::reader(const reader &other) : lazy_(other.lazy_), low_latency_(other.low
 }
 
 void reader::keep_only(uint32_t location_uid, uint32_t dest_id) {
-  auto key = static_cast<uint64_t>(location_uid) << 32u | static_cast<uint64_t>(dest_id);
   for (auto it = journals_.begin(); it != journals_.end();) {
-    if (it->first == key) {
+    if (it->first.location_uid == location_uid && it->first.dest_id == dest_id) {
       it++;
     } else {
       it = journals_.erase(it);
@@ -111,7 +110,7 @@ void reader::keep_only(uint32_t location_uid, uint32_t dest_id) {
 }
 
 journal &reader::get_journal_ref(const data::location_ptr &location, uint32_t dest_id) {
-  auto key = static_cast<uint64_t>(location->uid) << 32u | static_cast<uint64_t>(dest_id);
+  auto key = journal_key(location, dest_id);
   auto iter = journals_.find(key);
   if (iter != journals_.end()) {
     return iter->second;

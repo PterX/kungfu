@@ -1,9 +1,5 @@
 {
-<<<<<<< HEAD
   "version": "2.6.1-alpha.2",
-=======
-  "version": "2.5.1-alpha.43",
->>>>>>> 56b8ea0998b3b6d79bce074eccfdd409e2f7f534
   "packages": [
     "framework/*",
     "developer/*",

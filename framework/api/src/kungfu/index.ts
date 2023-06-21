@@ -3,6 +3,7 @@ import { kungfu } from '@kungfu-trader/kungfu-core';
 import { KF_RUNTIME_DIR } from '../config/pathConfig';
 import {
   dealAssetPrice,
+  dealCurrency,
   dealDirection,
   dealHedgeFlag,
   dealInstrumentType,
@@ -196,6 +197,9 @@ export const dealTradingDataItem = (
     itemResolved.holder_uid = dealLocationUID(watcher, item.holder_uid);
   }
 
+  if ('currency' in item) {
+    itemResolved.currency = dealCurrency(item.currency).name;
+  }
   return itemResolved;
 };
 

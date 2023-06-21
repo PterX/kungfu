@@ -372,7 +372,7 @@ void hero::deal_notice(bool bypass, bool notify, const rx::subscriber<event_ptr>
 
 bool hero::drain(const rx::subscriber<event_ptr> &sb) {
   deal_notice(false, true, sb);
-  bool bypass = io_device_->is_lazy() or not io_device_->is_low_latency();
+  bool bypass = io_device_->is_lazy() or io_device_->is_low_latency();
   while (live_ and reader_->data_available()) {
     deal_notice(bypass, false, sb);
     if (reader_->current_frame()->gen_time() <= end_time_) {

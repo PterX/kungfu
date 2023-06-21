@@ -123,7 +123,9 @@ bool apprentice::release_page() {
 }
 
 void apprentice::react() {
-  events_ | is(TimeReset::tag) | first() | $$(reset_time(event->data<TimeReset>()));
+  if (get_home()->mode == mode::LIVE or get_home()->mode == mode::REPLAY) {
+    events_ | is(TimeReset::tag) | first() | $$(reset_time(event->data<TimeReset>()));
+  }
   events_ | is(Location::tag) | $$(add_location(event->gen_time(), event->data<Location>()));
   events_ | is(Register::tag) | $$(on_register(event->trigger_time(), event->data<Register>()));
   events_ | is(RequestReadFromOthers::tag) | $$(on_request_read_from_others(event));

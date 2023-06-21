@@ -543,6 +543,9 @@ ForwardBest
 ReverseBest
 Fak
 Fok
+EnhancedLimit
+AtAuctionLimit
+AtAuction
 PriceType
 Lastest
 Sell5

@@ -23,26 +23,22 @@ using namespace kungfu::yijinjing::journal;
 namespace kungfu::yijinjing::practice {
 
 master::master(location_ptr home, bool low_latency, bool bypass_cached, bool no_daemon)
-    : hero(std::make_shared<io_device_master>(home, low_latency)), start_time_(time::now_in_nano()), last_check_(0),
+    : hero(std::make_shared<io_device_master>(home, low_latency)), last_check_(0),
       cached_(get_io_device(), bypass_cached), no_daemon_(true) {
 
   for (const auto &app_location : cached_.get_all(Location{})) {
-    add_location(start_time_, location::make_shared(app_location, get_locator()));
+    add_location(begin_time_, location::make_shared(app_location, get_locator()));
   }
   for (const auto &config : cached_.get_all(Config{})) {
-    try_add_location(start_time_, location::make_shared(config, get_locator()));
+    try_add_location(begin_time_, location::make_shared(config, get_locator()));
   }
 
   auto io_device = std::dynamic_pointer_cast<io_device_master>(get_io_device());
-  cached_.open_session(master_home_location_, start_time_);
+  cached_.open_session(master_home_location_, begin_time_);
   writers_.insert_or_assign(location::PUBLIC, io_device->open_writer(location::PUBLIC));
-  get_writer(location::PUBLIC)->mark(start_time_, SessionStart::tag);
+  get_writer(location::PUBLIC)->mark(begin_time_, SessionStart::tag);
 
   cached_.run_store_workers();
-
-  if (no_daemon_) {
-    recover_registries();
-  }
 }
 
 void master::recover_registries() {
@@ -54,14 +50,15 @@ void master::recover_registries() {
     switch (frame->msg_type()) {
     case Location::tag: {
       auto &app_location = frame->data<Location>();
-      add_location(start_time_, location::make_shared(app_location, get_locator()));
+      try_add_location(begin_time_, location::make_shared(app_location, get_locator()));
     } break;
     case Register::tag: {
       auto register_data = frame->data<Register>();
       auto app_location = location::make_shared(register_data, get_locator());
       auto uid_str = fmt::format("{:08x}", app_location->uid);
       auto master_cmd_location = location::make_shared(mode::LIVE, category::SYSTEM, "master", uid_str, get_locator());
-      add_location(begin_time_, master_cmd_location);
+      register_location(begin_time_, register_data);
+      try_add_location(begin_time_, master_cmd_location);
       auto app_cmd_writer = get_io_device()->open_writer_at(master_cmd_location, app_location->uid);
       writers_.insert_or_assign(app_location->uid, app_cmd_writer);
       reader_->join(app_location, location::PUBLIC, begin_time_);
@@ -69,7 +66,6 @@ void master::recover_registries() {
       reader_->join(app_location, master_cmd_location->uid, begin_time_);
       cached_.ensure_cached_storage(app_location, location::PUBLIC);
       cached_.ensure_cached_storage(app_location, location::SYNC);
-      SPDLOG_INFO("========= registed location {} master_cmd_location {}", app_location->uname, master_cmd_location->uname);
     } break;
     case Channel::tag: {
       auto &channel = frame->data<Channel>();
@@ -91,14 +87,25 @@ void master::recover_registries() {
       writers_.erase(app_location_uid);
       timer_tasks_.erase(app_location_uid);
     } break;
- 
     }
     a.next();
   }
+
+  // copy the registry_, for avoid deregister_location erasing register cause coredump;
+  auto registries = get_registry();
+  for (const auto &iter : registries) {
+    const auto &register_data = iter.second;
+    on_register(begin_time_, register_data);
+  }
+
   SPDLOG_INFO("recover registries done");
 }
 
 void master::on_exit() {
+  if (no_daemon_) {
+    return;
+  }
+
   notify_deregister_on_exit();
   notify_master_deregister_on_exit();
   mark_session_end_on_exit();
@@ -172,8 +179,8 @@ void master::register_app(const event_ptr &event) {
   try_add_location(event->gen_time(), master_cmd_location);
 
   auto app_cmd_writer = get_io_device()->open_writer_at(master_cmd_location, app_location->uid);
-  write_time_reset(event->gen_time(), app_cmd_writer);
   writers_.insert_or_assign(app_location->uid, app_cmd_writer);
+  write_time_reset(event->gen_time(), app_cmd_writer);
   reader_->join(app_location, location::PUBLIC, now);
   reader_->join(app_location, location::SYNC, now);
   reader_->join(app_location, master_cmd_location->uid, now);
@@ -202,7 +209,7 @@ void master::register_app(const event_ptr &event) {
   write_channels(event->gen_time(), app_cmd_writer);
   write_bands(event->gen_time(), app_cmd_writer);
 
-  on_register(event, register_data);
+  on_register(event->gen_time(), register_data);
 }
 
 void master::deregister_app(int64_t trigger_time, uint32_t app_location_uid) {
@@ -234,6 +241,12 @@ void master::on_request_deregister(const event_ptr &event) {
 }
 
 bool master::is_no_daemon() { return no_daemon_; }
+
+void master::pre_setup() {
+  if (no_daemon_) {
+    recover_registries();
+  }
+}
 
 void master::react() {
   events_ | is(RequestWriteTo::tag) | $$(on_request_write_to(event));

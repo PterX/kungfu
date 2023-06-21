@@ -24,12 +24,13 @@ tracer::tracer(const location_ptr location, bool in, bool out, int64_t begin, in
       reader_for_in_->join(master_cmd_location, home_->uid, begin_time_);
     } else {
       for (auto target_location : get_locator()->list_locations("*", "*", "*", "*")) {
-        if (target_location->category == category::SYSTEM and target_location->group == "master") { 
+        if (target_location->category == category::SYSTEM and target_location->group == "master") {
           continue;
         }
         for (auto dest_id : get_locator()->list_location_dest(target_location)) {
           auto uid_str = fmt::format("{:08x}", target_location->uid);
-          auto master_cmd_location = location::make_shared(mode::LIVE, category::SYSTEM, "master", uid_str, get_locator());
+          auto master_cmd_location =
+              location::make_shared(mode::LIVE, category::SYSTEM, "master", uid_str, get_locator());
           if (dest_id == master_cmd_location->uid) {
             reader_->join(target_location, dest_id, begin_time_);
             reader_for_in_->join(target_location, dest_id, begin_time_);

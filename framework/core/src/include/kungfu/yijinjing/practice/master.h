@@ -23,7 +23,8 @@ struct timer_task {
 
 class master : public hero {
 public:
-  explicit master(yijinjing::data::location_ptr home, bool low_latency = false, bool bypass_cached = false, bool no_daemon = false);
+  explicit master(yijinjing::data::location_ptr home, bool low_latency = false, bool bypass_cached = false,
+                  bool no_daemon = false);
 
   void on_exit() override;
 
@@ -35,7 +36,9 @@ public:
 
   void on_notify() override;
 
-  virtual void on_register(const event_ptr &event, const longfist::types::Register &register_data) = 0;
+  virtual void on_register(int64_t gen_time, const longfist::types::Register &register_data) = 0;
+
+  virtual bool check_register(int64_t gen_time, const longfist::types::Register &register_data) = 0;
 
   virtual void on_interval_check(int64_t nanotime) = 0;
 
@@ -48,6 +51,8 @@ public:
   bool is_no_daemon();
 
 protected:
+  void pre_setup() override;
+
   void react() final;
 
   void on_active() final;
@@ -55,7 +60,6 @@ protected:
   void on_frame() final;
 
 private:
-  int64_t start_time_;
   int64_t last_check_;
   yijinjing::cache::cached cached_;
   const bool no_daemon_;

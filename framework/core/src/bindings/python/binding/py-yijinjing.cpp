@@ -113,8 +113,12 @@ public:
 
   void on_exit() override { PYBIND11_OVERLOAD(void, master, on_exit); }
 
-  void on_register(const event_ptr &event, const Register &register_data) override {
-    PYBIND11_OVERLOAD_PURE(void, master, on_register, event, register_data);
+  void on_register(int64_t gen_time, const Register &register_data) override {
+    PYBIND11_OVERLOAD_PURE(void, master, on_register, gen_time, register_data);
+  }
+
+  bool check_register(int64_t gen_time, const Register &register_data) override {
+    PYBIND11_OVERLOAD_PURE(bool, master, check_register, gen_time, register_data);
   }
 
   void on_interval_check(int64_t nanotime) override {
@@ -363,6 +367,7 @@ void bind(pybind11::module &&m) {
       .def("step", &master::step)
       .def("on_exit", &master::on_exit)
       .def("on_register", &master::on_register)
+      .def("check_register", &master::check_register)
       .def("on_interval_check", &master::on_interval_check)
       .def("deregister_app", &master::deregister_app);
 

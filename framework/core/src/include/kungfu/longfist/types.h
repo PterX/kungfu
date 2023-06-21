@@ -622,7 +622,7 @@ KF_DEFINE_DATA_TYPE(                                     //
     (int64_t, update_time),                              //
     (std::string, key),                                  //
     (std::string, tag_a),                                //
-    (std::string, tag_b),                               //
+    (std::string, tag_b),                                //
     (std::string, tag_c),                                //
     (std::string, value)                                 //
 );

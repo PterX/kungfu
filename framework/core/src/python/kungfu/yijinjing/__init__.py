@@ -54,7 +54,7 @@ JOURNAL_PAGE_PATTERN = re.compile(JOURNAL_PAGE_REGEX)
 
 LOG_REGEX = "{}{}{}{}{}{}{}{}{}{}{}".format(
     r"log",
-    os_sep, 
+    os_sep,
     r"(.*)",
     os_sep,  # category
     r"(.*)",

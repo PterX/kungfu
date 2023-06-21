@@ -196,8 +196,6 @@ void Client::on_deregister(const longfist::types::Deregister &deregister_data) {
   auto app_uid = deregister_data.location_uid;
   auto app_location = app_.get_location(app_uid);
 
-  SPDLOG_INFO("========= get deregister in on_deregister {} {}", app_uid, app_location->uname);
-
   if (app_location->category == category::MD or app_location->category == category::TD) {
     broker_states_.emplace(app_uid, BrokerState::DisConnected);
     ready_md_locations_.erase(app_uid);

@@ -331,13 +331,6 @@ private:
     auto iter = target_map.begin();
     while (iter != target_map.end() and target_map.size() > 0) {
       const auto &state = iter->second;
-
-      if (DataType::tag == longfist::types::Position::tag) {
-        SPDLOG_INFO("------------------------------------");
-        SPDLOG_INFO("data.uid {} data {}", state.data.uid(), state.data.to_string());
-      };
-      SPDLOG_INFO("------------------------------------");
-
       update_ledger(state.update_time, state.source, state.dest, state.data);
       iter = target_map.erase(iter);
     }

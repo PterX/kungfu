@@ -60,8 +60,6 @@ void journal::try_load_next_extra_page() {
   if (lazy_ || is_writing_ || !low_latency_) {
     return;
   }
-  // TODO reverse after dev
-  return;
   pre_page_ = page::load(location_, dest_id_, page_->get_page_id() + 1, false, lazy_, true);
 }
 

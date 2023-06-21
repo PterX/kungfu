@@ -25,6 +25,14 @@ Context_ptr Runner::get_context() const { return context_; }
 
 Context_ptr Runner::make_context() {
   if (get_home()->mode == mode::BACKTEST) {
+    if (not from_indexer_) {
+      from_indexer_ = std::make_shared<tool::SliceIndexer>(get_begin_time(), get_end_time());
+      SPDLOG_WARN("Runner in backtest mode not specified from_indexer, Default NameHashingIndexer used.");
+    }
+    if (not to_indexer_) {
+      to_indexer_ = std::make_shared<tool::SliceIndexer>(get_begin_time(), get_end_time());
+      SPDLOG_WARN("Runner in backtest mode not specified to_indexer, Default NameHashingIndexer used.");
+    }
     if (not matcher_) {
       matcher_ = std::make_shared<BasicMatcher>();
       SPDLOG_WARN("Runner in backtest mode not specified Matcher, Default Quote-based Matcher used.");

@@ -27,7 +27,7 @@ BacktestContext::BacktestContext(practice::apprentice &app, const rx::connectabl
                                  Matcher_ptr matcher, SliceIndexer_ptr from_indexer, SliceIndexer_ptr to_indexer)
     : Context(app, events), broker_client_(app_), bookkeeper_(app_, broker_client_), matcher_(std::move(matcher)),
       from_indexer_(from_indexer),
-      slice_tool_(std::make_shared<SliceTool>(category::OPERATOR, app.get_home()->group, app.get_home()->name,
+      slice_tool_(std::make_shared<SliceTool>(category::STRATEGY, app.get_home()->group, app.get_home()->name,
                                               std::move(to_indexer))) {
   log::copy_log_settings(app_.get_home(), app_.get_home()->name);
 }
@@ -117,6 +117,7 @@ void BacktestContext::subscribe(const std::string &source, const std::vector<std
 
 void BacktestContext::subscribe_all(const std::string &source, uint8_t market_type, uint64_t instrument_type,
                                     uint64_t data_type) {
+  throw wingchun_error(fmt::format("not support subscribe_all in backtest mode"));
   // auto md_location = find_md_location(source);
   // if (md_location->locator->list_page_id(md_location, location::PUBLIC).empty()) {
   //   throw wingchun_error(fmt::format("md public journal {} not exists", md_location->uname));
@@ -266,21 +267,6 @@ uint64_t BacktestContext::cancel_order(uint64_t order_id) {
 broker::Client &BacktestContext::get_broker_client() { return broker_client_; }
 
 book::Bookkeeper &BacktestContext::get_bookkeeper() { return bookkeeper_; }
-
-// location_ptr BacktestContext::find_md_location(const std::string &source) {
-//   uint32_t cache_uid = hash_backtest_cache(source, app_.get_begin_time(), app_.get_end_time());
-//   auto cache_location =
-//       location::make_shared(mode::BACKTEST, category::MD, source, fmt::format("{:08x}", cache_uid),
-//       app_.get_locator());
-//   return cache_location;
-// }
-
-// location_ptr BacktestContext::find_op_location(const std::string &group, const std::string &name) {
-//   uint32_t cache_uid = hash_backtest_cache(name, app_.get_begin_time(), app_.get_end_time());
-//   auto cache_location = location::make_shared(mode::BACKTEST, category::OPERATOR, group,
-//                                               fmt::format("{:08x}", cache_uid), app_.get_locator());
-//   return cache_location;
-// }
 
 void BacktestContext::req_history_order(const std::string &source, const std::string &account, uint32_t query_num) {}
 

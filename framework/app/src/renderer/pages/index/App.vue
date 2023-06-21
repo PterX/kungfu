@@ -106,7 +106,7 @@ const busSubscription = globalBus.subscribe((data: KfEvent.KfBusEvent) => {
           tradingDataType: 'all',
         } as KfEvent.ExportTradingDataEvent);
         break;
-      case 'export-all-instrument-data':
+      case 'export-instrument-whitelists':
         handleExportInstrumentWhitelists();
         break;
       case 'view-all-journal':

@@ -211,6 +211,9 @@ export default {
     Reverse_best: 'ReverseBest',
     Fak: 'Fak',
     Fok: 'Fok',
+    EnhancedLimit: 'EnhancedLimit',
+    AtAuctionLimit: 'AtAuctionLimit',
+    AtAuction: 'AtAuction',
 
     speculation: 'Speculation',
     hedge: 'Hedge',
@@ -360,6 +363,8 @@ export default {
     Continue: 'Continue',
     original_plan: 'Orignal plan',
     beyond_to_open: 'Take excess to open',
+    reach: 'Reach',
+    above: 'Above',
   },
 
   orderConfig: {

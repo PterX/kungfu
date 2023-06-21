@@ -210,6 +210,9 @@ export default {
       '[ReverseBest] 上海最优五档即时成交剩余转限价, 深圳对手方最优价格申报, 不需要报价',
     Fak: '[Fak] 深圳即时成交剩余撤销',
     Fok: '[Fok] 深圳市价全额成交或者撤销',
+    EnhancedLimit: '[EnhancedLimit] 增强限价盘',
+    AtAuctionLimit: '[AtAuctionLimit] 竞价限价盘',
+    AtAuction: '[AtAuction] 竞价盘',
 
     speculation: '投机',
     hedge: '套保',
@@ -354,10 +357,12 @@ export default {
       '下单量为 {volume}, 当前标的可平 {direction} 仓为 {closable_volume}, 超出数量为 {open_volume}\n点击 “超出部分反向开仓”, 将会 平 {direction} {closable_volume}, 开{direction} {open_volume}\n点击“按原方案下单”, 将会继续平 {direction} {volume}',
     start_process: '请先启动{process}交易进程',
     place_confirm: '下单确认',
-    continue_close_rate: '超过平仓阈值 ({rate}%), 是否继续下单?',
+    continue_close_rate: '{relationship} 平仓阈值 ({rate}%), 是否继续下单?',
     Continue: '继续下单',
     original_plan: '按原方案下单',
     beyond_to_open: '超出部分反向开仓',
+    reach: '达到',
+    above: '超过',
   },
 
   orderConfig: {
@@ -712,7 +717,7 @@ export default {
     fat_finger_threshold: '乌龙指阈值',
     set_fat_finger: '设置乌龙指触发阈值(百分比)',
     close_threshold: '平仓阈值',
-    set_close_threshold: '设置平仓阈值(百分比)',
+    set_close_threshold: '设置平仓阈值(百分比); 设置为 0% 时, 则视作关闭此项',
     trade_limit: '交易限制',
     set_trade_limit: '设置交易限制',
     order_input_key: '限制属性',

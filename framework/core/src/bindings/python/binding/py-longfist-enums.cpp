@@ -143,6 +143,9 @@ void bind_enums(py::module &m) {
       .value("Limit", PriceType::Limit)
       .value("ForwardBest", PriceType::ForwardBest)
       .value("ReverseBest", PriceType::ReverseBest)
+      .value("EnhancedLimit", PriceType::EnhancedLimit)
+      .value("AtAuctionLimit", PriceType::AtAuctionLimit)
+      .value("AtAuction", PriceType::AtAuction)
       .export_values()
       .def("__eq__", [](const PriceType &a, int b) { return static_cast<int>(a) == b; });
 

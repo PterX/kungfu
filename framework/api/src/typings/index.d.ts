@@ -317,7 +317,8 @@ declare namespace KungfuApi {
   export type KfAddableExtConfig =
     | KfTdExtConfig
     | KfMdExtConfig
-    | KfStrategyExtConfig;
+    | KfStrategyExtConfig
+    | KfOperatorExtConfig;
 
   export type KfExtConfig =
     | KfTdExtConfig
@@ -332,7 +333,7 @@ declare namespace KungfuApi {
     md: Record<string, KfMdExtConfig>;
     strategy: Record<string, KfStrategyExtConfig>;
     operator: Record<string, KfOperatorExtConfig>;
-    system: Record<string, KfSystemExtConfig>;
+    system: Record<string, KfSystemExtConfigs>;
   };
 
   export type KfUIExtConfigs = Record<

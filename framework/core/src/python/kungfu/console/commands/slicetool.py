@@ -61,9 +61,9 @@ def slicetool(ctx, begin, end, category, group, name, tool_path, indexer_path):
     logger.debug(f"loading module from {tool_path}")
     module = importlib.import_module(module_name)
 
-    if index_path:
+    if indexer_path:
         indexer = sliceindexer.SliceIndexer(
-            ctx, begin_time_stamp, end_time_stamp, index_path
+            ctx, begin_time_stamp, end_time_stamp, indexer_path
         )
     else:
         # indexer = wc.DayIndexer(begin_time_stamp, end_time_stamp)

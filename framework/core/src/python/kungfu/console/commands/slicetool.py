@@ -35,13 +35,13 @@ yjj = kungfu.__binding__.yijinjing
 )
 @click.option(
     "-i",
-    "--indexr_path",
+    "--indexer_path",
     type=str,
     required=False,
     help="path to indexer dynamic library",
 )
 @kfc.pass_context()
-def slicetool(ctx, begin, end, category, group, name, tool_path, index_path):
+def slicetool(ctx, begin, end, category, group, name, tool_path, indexer_path):
     location = yjj.location(
         kfj.MODES["data"],
         kfj.CATEGORIES[category],

@@ -439,7 +439,7 @@ struct event {
 
   template <class T> const T socket_data() const {
     if (is_json()) {
-      return T(data_as_bytes(), data_length());
+      return T(data_as_string()); // use T(data_as_bytes(), data_length()) will crash, have no idea about the reason
     }
     return *(reinterpret_cast<const T *>(data_address()));
   }

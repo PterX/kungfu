@@ -180,6 +180,8 @@ struct nanomsg_json : event {
 
   [[nodiscard]] int8_t data_type() const override { return get_meta<int8_t>("data_type", 0); }
 
+  [[nodiscard]] bool is_json() const override { return data_type() == longfist::enums::FrameDataType::Json; }
+
 private:
   const nlohmann::json binding_;
   const std::string msg_;

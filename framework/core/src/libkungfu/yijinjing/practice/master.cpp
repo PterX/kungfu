@@ -350,7 +350,7 @@ void master::on_request_read_from_sync(const event_ptr &event) {
 
 void master::on_request_read_from_others(const event_ptr &event) {
   RequestReadFromOthers request{};
-  if (event->data_type() == int8_t(FrameDataType::Json)) {
+  if (event->is_json()) {
     const std::string msg = event->data_as_string();
     request = RequestReadFromOthers(msg.c_str(), msg.length());
   } else {
@@ -375,6 +375,9 @@ void master::on_channel_request(const event_ptr &event) {
 }
 
 void master::on_time_request(const event_ptr &event) {
+  if (not event->is_json()) {
+    return;
+  }
   auto request_data = event->data_as_string();
   TimeRequest request(request_data.c_str(), request_data.length());
   timer_tasks_.try_emplace(event->source());

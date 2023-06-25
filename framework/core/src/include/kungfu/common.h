@@ -419,6 +419,8 @@ struct event {
 
   [[nodiscard]] virtual int8_t data_type() const = 0;
 
+  [[nodiscard]] virtual bool is_json() const = 0;
+
   /**
    * Using auto with the return mess up the reference with the undlerying memory address, DO NOT USE it.
    * @tparam T
@@ -434,6 +436,13 @@ struct event {
   }
 
   template <class T> const T &custom_data() const { return *(reinterpret_cast<const T *>(data_address())); }
+
+  template <class T> const T socket_data() const {
+    if (is_json()) {
+      return T(data_as_bytes(), data_length());
+    }
+    return *(reinterpret_cast<const T *>(data_address()));
+  }
 };
 
 DECLARE_PTR(event)

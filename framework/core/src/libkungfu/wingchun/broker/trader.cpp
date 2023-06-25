@@ -40,6 +40,7 @@ void TraderVendor::react() {
 void TraderVendor::on_react() {
   events_ | is(ResetBookRequest::tag) |
       $([&](const event_ptr &event) { get_writer(location::PUBLIC)->mark(now(), ResetBookRequest::tag); });
+  events_ | is(RiskSetting::tag) | $$(service_->on_risk_setting(event));
 }
 
 void TraderVendor::on_start() {
@@ -222,7 +223,6 @@ void Trader::deal_read_frame() {
   asb_read.disjoin(get_vendor().get_ledger_home_location()->location_uid); // ledger
   asb_read.disjoin(get_vendor().get_master_home_location()->location_uid); // master
   asb_read.seek_to_time(time::today_start());                              // recover from today
-  SPDLOG_DEBUG("before assemble read");
   int64_t count = 0;
   while (asb_read.data_available()) {
     const auto &frame = asb_read.current_frame();
@@ -241,22 +241,22 @@ void Trader::deal_read_frame() {
     asb_read.next();
     ++count;
   }
-  SPDLOG_DEBUG("after assemble read, count: {}", count);
 }
 
 void Trader::clear_order_inputs(uint64_t location_uid) { order_inputs_.erase(location_uid); }
 
 [[maybe_unused]] void Trader::disable_recover() { disable_recover_ = true; }
 
-void Trader::on_arguments(const std::string &argument) {
-  SPDLOG_DEBUG("argument: {}", argument);
-  if (argument.empty()) {
-    return;
-  }
-  auto config = nlohmann::json::parse(argument);
-  const auto risk_name = config.value<std::string>("risk_name", "");
-  if (not risk_name.empty()) {
-    risk_uid_ = location(get_home()->mode, category::STRATEGY, "service", risk_name, get_home()->locator).location_uid;
+void Trader::on_risk_setting(const event_ptr &event) {
+  const auto &risk_setting = event->data<RiskSetting>();
+  SPDLOG_DEBUG("RiskSetting: {}", risk_setting.to_string());
+  if (risk_setting.risk_check and risk_setting.location_uid == get_home_uid()) {
+    // let process crash if value is not a json
+    auto config = nlohmann::json::parse(risk_setting.value);
+    const auto risk_name = config.value<std::string>("risk_name", "risk");
+    if (not risk_name.empty()) {
+      risk_uid_ = location(get_home()->mode, category::SYSTEM, "service", risk_name, get_home()->locator).location_uid;
+    }
   }
 }
 

@@ -50,6 +50,8 @@ struct frame : event {
 
   [[nodiscard]] int8_t data_type() const override { return int8_t(header_->data_type); }
 
+  [[nodiscard]] bool is_json() const override { return data_type() == longfist::enums::FrameDataType::Json; }
+
   template <typename T> size_t copy_data(const T &data) {
     size_t length = sizeof(T);
     memcpy(const_cast<void *>(data_address()), &data, length);
@@ -76,6 +78,8 @@ private:
   void set_trigger_time(int64_t trigger_time) { header_->trigger_time = trigger_time; }
 
   void set_msg_type(int32_t msg_type) { header_->msg_type = msg_type; }
+
+  void set_msg_type(longfist::enums::FrameDataType data_type) { header_->data_type = data_type; }
 
   void set_source(uint32_t source) { header_->source = source; }
 

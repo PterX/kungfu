@@ -621,6 +621,10 @@ NLOHMANN_JSON_SERIALIZE_ENUM(FrameDataType, {
 
 inline std::ostream &operator<<(std::ostream &os, FrameDataType t) { return os << int8_t(t); }
 
+inline bool operator==(int8_t type, FrameDataType t) { return type == int8_t(t); }
+
+inline bool operator==(FrameDataType t, int8_t type) { return type == int8_t(t); }
+
 enum class SelfDealCheckType : int8_t { No, AccountInternal, AccountInteractive };
 
 NLOHMANN_JSON_SERIALIZE_ENUM(SelfDealCheckType, {

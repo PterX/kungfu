@@ -375,9 +375,6 @@ void master::on_channel_request(const event_ptr &event) {
 }
 
 void master::on_time_request(const event_ptr &event) {
-  if (not event->is_json()) {
-    return;
-  }
   auto request_data = event->data_as_string();
   TimeRequest request(request_data.c_str(), request_data.length());
   timer_tasks_.try_emplace(event->source());

@@ -436,13 +436,6 @@ struct event {
   }
 
   template <class T> const T &custom_data() const { return *(reinterpret_cast<const T *>(data_address())); }
-
-  template <class T> const T socket_data() const {
-    if (is_json()) {
-      return T(data_as_string()); // use T(data_as_bytes(), data_length()) will crash, have no idea about the reason
-    }
-    return *(reinterpret_cast<const T *>(data_address()));
-  }
 };
 
 DECLARE_PTR(event)

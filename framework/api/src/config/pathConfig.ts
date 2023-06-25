@@ -3,7 +3,7 @@ import dayjs from 'dayjs';
 
 import { addFileSync } from '../utils/fileUtils';
 import {
-  KF_APP_CONFIG_DIR,
+  KF_APP_RUNTIME_DIR,
   KF_HOME_BASE_DIR_RESOLVE,
 } from '../config/homePathConfig';
 
@@ -82,13 +82,14 @@ export const buildProcessLogPath = (processId: string) => {
 
 export const KUNGFU_RESOURCES_DIR = globalThis.__publicResources;
 
-export const KF_CONFIG_DIR = KF_APP_CONFIG_DIR;
-
 export const KF_CONFIG_DEFAULT_PATH = path.join(
   KUNGFU_RESOURCES_DIR,
   'config',
   'kfConfig.json',
 );
+
+export const KF_CONFIG_DIR = path.join(KF_APP_RUNTIME_DIR, 'config');
+addFileSync('', KF_CONFIG_DIR, 'folder');
 
 export const KF_CONFIG_PATH = path.join(KF_CONFIG_DIR, 'kfConfig.json');
 

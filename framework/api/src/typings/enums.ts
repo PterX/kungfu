@@ -106,6 +106,9 @@ export enum PriceTypeEnum {
   ReverseBest,
   Fak,
   Fok,
+  EnhancedLimit,
+  AtAuctionLimit,
+  AtAuction,
   Unknown,
 }
 

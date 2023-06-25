@@ -19,7 +19,6 @@ struct TDConfiguration {
   std::string software_key;
   std::string td_ip;
   int td_port;
-  //  bool self_deal_detect;
   bool sync_external_order;
 };
 
@@ -30,7 +29,6 @@ inline void from_json(const nlohmann::json &j, TDConfiguration &c) {
   j.at("software_key").get_to(c.software_key);
   j.at("td_ip").get_to(c.td_ip);
   j.at("td_port").get_to(c.td_port);
-  //  j.at("self_deal_detect").get_to(c.self_deal_detect);
   c.sync_external_order = j.value<bool>("sync_external_order", false);
 }
 

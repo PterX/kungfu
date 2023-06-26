@@ -137,13 +137,20 @@ protected:
     r.base_time = now();
     r.duration = duration_ns;
     r.repeat = 1;
+    r.location_uid = get_home_uid();
     get_io_device()->get_publisher()->publish(make_nano_msg(get_home_uid(), get_master_command_uid(), r));
     timer_checkpoints_[timer_usage_count] = now();
+    timer_requests_.insert_or_assign(timer_usage_count, r);
     timer_usage_count_++;
     return [&, duration_ns, timer_usage_count](const rx::observable<event_ptr> &src) {
       return events_ | rx::filter([&, duration_ns, timer_usage_count](const event_ptr &event) {
-               return (event->msg_type() == longfist::types::Time::tag &&
-                       event->gen_time() > timer_checkpoints_[timer_usage_count] + duration_ns);
+               if (event->msg_type() == longfist::types::Time::tag &&
+                   event->gen_time() > timer_checkpoints_[timer_usage_count] + duration_ns) {
+                 timer_requests_.erase(timer_usage_count);
+                 return true;
+               } else {
+                 return false;
+               };
              }) |
              rx::first();
     };
@@ -158,8 +165,10 @@ protected:
     r.base_time = now();
     r.duration = duration_ns;
     r.repeat = 1;
+    r.location_uid = get_home_uid();
     get_io_device()->get_publisher()->publish(make_nano_msg(get_home_uid(), get_master_command_uid(), r));
     timer_checkpoints_[timer_usage_count] = now();
+    timer_requests_.insert_or_assign(timer_usage_count, r);
     timer_usage_count_++;
     return [&, duration_ns, timer_usage_count](const rx::observable<event_ptr> &src) {
       return events_ | rx::filter([&, duration_ns, timer_usage_count](const event_ptr &event) {
@@ -170,8 +179,10 @@ protected:
                  r.base_time = now();
                  r.duration = duration_ns;
                  r.repeat = 1;
+                 r.location_uid = get_home_uid();
                  get_io_device()->get_publisher()->publish(make_nano_msg(get_home_uid(), get_master_command_uid(), r));
                  timer_checkpoints_[timer_usage_count] = now();
+                 timer_requests_.insert_or_assign(timer_usage_count, r);
                  return true;
                } else {
                  return false;
@@ -189,8 +200,10 @@ protected:
     r.base_time = now();
     r.duration = duration_ns;
     r.repeat = 1;
+    r.location_uid = get_home_uid();
     get_io_device()->get_publisher()->publish(make_nano_msg(get_home_uid(), get_master_command_uid(), r));
     timer_checkpoints_[timer_usage_count] = now();
+    timer_requests_.insert_or_assign(timer_usage_count, r);
     timer_usage_count_++;
     return [&, duration_ns, timer_usage_count](const rx::observable<event_ptr> &src) {
       return (src | rx::filter([&, duration_ns, timer_usage_count](const event_ptr &event) {
@@ -200,8 +213,10 @@ protected:
                   r.base_time = now();
                   r.duration = duration_ns;
                   r.repeat = 1;
+                  r.location_uid = get_home_uid();
                   get_io_device()->get_publisher()->publish(make_nano_msg(get_home_uid(), get_master_command_uid(), r));
                   timer_checkpoints_[timer_usage_count] = now();
+                  timer_requests_.insert_or_assign(timer_usage_count, r);
                   return true;
                 } else {
                   return false;
@@ -209,8 +224,10 @@ protected:
               }))
           .merge(events_ | rx::filter([&, duration_ns, timer_usage_count](const event_ptr &event) {
                    if (event->gen_time() > timer_checkpoints_[timer_usage_count] + duration_ns) {
+                     timer_requests_.erase(timer_usage_count);
                      throw rx::timeout_error("timeout");
                    }
+                   timer_requests_.erase(timer_usage_count);
                    return false;
                  }));
     };
@@ -223,11 +240,14 @@ private:
   int32_t timer_usage_count_ = 0;
   yijinjing::practice::cleaner cleaner_;
   std::unordered_map<int, int64_t> timer_checkpoints_ = {};
+  std::unordered_map<int, longfist::types::TimeRequest> timer_requests_ = {};
   inline static thread_local yijinjing::journal::writer_ptr thread_writer_;
 
   void checkin();
 
   void expect_start();
+
+  void on_master_start();
 
   template <typename DataType> void do_read_from(const event_ptr &event, uint32_t dest_id) {
     const DataType &request = event->data<DataType>();

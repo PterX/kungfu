@@ -850,7 +850,8 @@ KF_DEFINE_PACK_TYPE(                         //
     (int32_t, id),                           //
     (int64_t, base_time),                    //
     (int64_t, duration),                     //
-    (int64_t, repeat)                        //
+    (int64_t, repeat),                       //
+    (uint32_t, location_uid)                 //
 );
 
 KF_DEFINE_PACK_TYPE(                                                           //

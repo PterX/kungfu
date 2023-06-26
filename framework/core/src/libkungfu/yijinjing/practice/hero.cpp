@@ -64,6 +64,8 @@ void hero::setup() {
   live_ = true;
 }
 
+void hero::pre_setup() { return; }
+
 void hero::step() {
   continual_ = false;
   events_.connect(cs_);
@@ -72,6 +74,7 @@ void hero::step() {
 void hero::run() {
   SPDLOG_INFO("[{:08x}] {} running", get_home_uid(), get_home_uname());
   SPDLOG_TRACE("from {} until {}", time::strftime(begin_time_), time::strftime(end_time_));
+  pre_setup();
   setup();
   continual_ = true;
   events_.connect(cs_);
@@ -247,10 +250,7 @@ void hero::remove_location(int64_t trigger_time, uint32_t location_uid) { locati
 
 void hero::register_location(int64_t, const Register &register_data) {
   uint32_t location_uid = register_data.location_uid;
-  auto result = registry_.try_emplace(location_uid, register_data);
-  if (result.second) {
-    SPDLOG_TRACE("location [{:08x}] {} up", location_uid, get_location_uname(location_uid));
-  }
+  registry_.insert_or_assign(location_uid, register_data);
 }
 
 void hero::deregister_location(int64_t, const uint32_t location_uid) {

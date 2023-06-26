@@ -47,7 +47,7 @@ void cached::restore_profile(const yijinjing::data::location_ptr &location,
     feed_mutex_.lock();
     profile_store_mutex_.lock();
     try {
-      // for config from user interface
+      // for config, basket, instruemnts .etc. from user interface
       profile_get_all(profile_, profile_feed_bank_);
     } catch (const std::exception &ex) {
       SPDLOG_ERROR("failed to drain profile db into profile band {} {} {}", location->uid, location->uname, ex.what());
@@ -221,6 +221,18 @@ void cached::store_profile_feeds() {
   // bank;
   feed_mutex_.lock();
   ProfileStateBank tmp_profile_bank = profile_feed_bank_;
+  // for avoid no requirement storeing profile data, except DataType "Location";
+  boost::hana::for_each(ProfileDataTypes, [&](auto it) {
+    using DataType = typename decltype(+boost::hana::second(it))::type;
+    if (DataType::tag == Location::tag) {
+      return;
+    }
+
+    auto hana_type = boost::hana::type_c<DataType>;
+    using FeedMap = std::unordered_map<uint64_t, state<DataType>>;
+    auto &feed_map = const_cast<FeedMap &>(profile_feed_bank_[hana_type]);
+    feed_map.clear();
+  });
   feed_mutex_.unlock();
 
   boost::hana::for_each(ProfileDataTypes, [&](auto it) {
@@ -228,7 +240,7 @@ void cached::store_profile_feeds() {
     auto hana_type = boost::hana::type_c<DataType>;
 
     using FeedMap = std::unordered_map<uint64_t, state<DataType>>;
-    auto &feed_map = const_cast<FeedMap &>(profile_feed_bank_[hana_type]);
+    auto &feed_map = const_cast<FeedMap &>(tmp_profile_bank[hana_type]);
 
     if (feed_map.size() != 0) {
       auto iter = feed_map.begin();

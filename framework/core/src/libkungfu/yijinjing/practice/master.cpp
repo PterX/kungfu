@@ -24,7 +24,7 @@ namespace kungfu::yijinjing::practice {
 
 master::master(location_ptr home, bool low_latency, bool bypass_cached, bool no_daemon)
     : hero(std::make_shared<io_device_master>(home, low_latency)), last_check_(0),
-      cached_(get_io_device(), bypass_cached), no_daemon_(true) {
+      cached_(get_io_device(), bypass_cached), no_daemon_(false) {
 
   for (const auto &app_location : cached_.get_all(Location{})) {
     add_location(begin_time_, location::make_shared(app_location, get_locator()));

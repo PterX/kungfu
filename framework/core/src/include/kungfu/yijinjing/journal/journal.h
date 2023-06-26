@@ -16,8 +16,20 @@ namespace kungfu::yijinjing::journal {
 /**
  * Journal class, the abstraction of continuous memory access
  */
+struct journal_key {
+  journal_key(uint32_t locator_uid, uint32_t location_uid, uint32_t dest_id)
+      : locator_uid(locator_uid), location_uid(location_uid), dest_id(dest_id) {}
+  journal_key(const data::location_ptr &location, uint32_t dest_id)
+      : locator_uid(util::hash_str_32(location->locator->get_root())), location_uid(location->uid), dest_id(dest_id) {}
+  bool operator<(const journal_key &rhs) const {
+    return std::tie(locator_uid, location_uid, dest_id) < std::tie(rhs.locator_uid, rhs.location_uid, rhs.dest_id);
+  }
+  uint32_t locator_uid;
+  uint32_t location_uid;
+  uint32_t dest_id;
+};
 
-typedef std::unordered_map<uint64_t, journal> JournalMap;
+typedef std::map<journal_key, journal> JournalMap;
 class journal {
 public:
   journal(data::location_ptr location, uint32_t dest_id, bool is_writing, bool lazy, bool low_latency,
@@ -116,7 +128,7 @@ public:
 
   [[nodiscard]] uint32_t current_page_id() const { return current_->current_page_id(); }
 
-  [[maybe_unused]] [[nodiscard]] const JournalMap &get_journals() const { return journals_; }
+  [[nodiscard]] const JournalMap &get_journals() const { return journals_; }
 
   journal &get_journal_ref(const data::location_ptr &location, uint32_t dest_id);
 

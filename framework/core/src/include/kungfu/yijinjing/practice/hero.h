@@ -180,6 +180,8 @@ protected:
   void require_write_to_band(int64_t trigger_time, uint32_t source_id,
                              const yijinjing::data::location_ptr &location) const;
 
+  virtual void pre_setup();
+
   virtual void react() = 0;
 
   virtual void on_active() = 0;

@@ -17,6 +17,7 @@ from kungfu.yijinjing import time as kft
 from kungfu.yijinjing.practice.master import Master
 from kungfu.yijinjing.practice.coloop import KungfuEventLoop
 from kungfu.wingchun.strategy import Runner, Strategy
+from kungfu.wingchun.sliceindexer import SliceIndexer
 from kungfu.wingchun.operator import OpRunner, Operator
 
 from collections import deque
@@ -285,27 +286,20 @@ class ExtensionExecutor:
                 ctx, ctx.path, loader.config["kungfuConfig"]["key"], Strategy
             )
         if kfj.MODES[ctx.mode] == lf.enums.mode.BACKTEST:
-            ctx.logger.debug(f"--backtest arguments: {ctx.backtest}")
-            if ctx.backtest:
-                if ctx.backtest.endswith(".json"):
-                    with open(ctx.backtest, "r", encoding="utf-8") as json_file:
-                        backtest_para = json.load(json_file)
-                else:
-                    backtest_para = json.loads(ctx.backtest)
-
-            begin_time_stamp = kft.strptimes(
-                ctx.begin if ctx.begin else backtest_para["begin_time"],
-                ("%F %T", "%F %T.%N", "%Y%m%d", "%Y-%m-%d"),
-            )
-            end_time_stamp = kft.strptimes(
-                ctx.end if ctx.end else backtest_para["end_time"],
-                ("%F %T", "%F %T.%N", "%Y%m%d", "%Y-%m-%d"),
-            )
             matcher = load_matcher(ctx, ctx.matcher)
             if matcher:
                 ctx.runner.set_matcher(matcher)
+            # indexer = load_indexer(ctx, ctx.indexer)
+            # if indexer:
+            #     ctx.runner.set_indexer(indexer)
+            begin_time_stamp, end_time_stamp = self.parse_begin_end(ctx)
             ctx.runner.set_begin_time(begin_time_stamp)
             ctx.runner.set_end_time(end_time_stamp)
+            from_indexer, to_indexer = self.parse_from_to_indexer(
+                ctx, begin_time_stamp, end_time_stamp
+            )
+            ctx.runner.set_from_indexer(from_indexer)
+            ctx.runner.set_to_indexer(to_indexer)
         ctx.runner.add_strategy(ctx.strategy)
         if kfj.MODES[ctx.mode] == lf.enums.mode.LIVE:
             ctx.loop = KungfuEventLoop(ctx, ctx.runner)
@@ -354,9 +348,45 @@ class ExtensionExecutor:
                 ctx, ctx.path, loader.config["kungfuConfig"]["key"], Operator
             )
         ctx.op_runner = OpRunner(ctx, kfj.MODES[ctx.mode])
+        if kfj.MODES[ctx.mode] == lf.enums.mode.BACKTEST:
+            begin_time_stamp, end_time_stamp = self.parse_begin_end(ctx)
+            ctx.op_runner.set_begin_time(begin_time_stamp)
+            ctx.op_runner.set_end_time(end_time_stamp)
+            from_indexer, to_indexer = self.parse_from_to_indexer(
+                ctx, begin_time_stamp, end_time_stamp
+            )
+            ctx.op_runner.set_from_indexer(from_indexer)
+            ctx.op_runner.set_to_indexer(to_indexer)
         # ctx.runner = self.load_runner(ctx)
         ctx.op_runner.add_operator(ctx.operator)
         ctx.op_runner.run()
+
+    def parse_begin_end(self, ctx):
+        ctx.logger.debug(f"ctx.backtest: {ctx.backtest}")
+        if ctx.backtest and ctx.backtest.endswith(".json"):
+            with open(ctx.backtest, "r", encoding="utf-8") as json_file:
+                backtest_para = json.load(json_file)
+        elif ctx.backtest:
+            backtest_para = json.loads(ctx.backtest)
+
+        begin_time_stamp = kft.strptimes(
+            ctx.begin if ctx.begin else backtest_para["begin_time"],
+            ("%F %T", "%F %T.%N", "%Y%m%d", "%Y-%m-%d"),
+        )
+        end_time_stamp = kft.strptimes(
+            ctx.end if ctx.end else backtest_para["end_time"],
+            ("%F %T", "%F %T.%N", "%Y%m%d", "%Y-%m-%d"),
+        )
+        return begin_time_stamp, end_time_stamp
+
+    def parse_from_to_indexer(self, ctx, begin, end):
+        from_indexer = wc.SliceIndexer(begin, end)
+        to_indexer = wc.SliceIndexer(begin, end)
+        if ctx.from_indexer:
+            from_indexer = SliceIndexer(ctx, begin, end, ctx.from_indexer)
+        if ctx.to_indexer:
+            to_indexer = SliceIndexer(ctx, begin, end, ctx.to_indexer)
+        return from_indexer, to_indexer
 
 
 class RegistryJSONEncoder(json.JSONEncoder):

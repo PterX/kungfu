@@ -262,8 +262,6 @@ private:
   yijinjing::data::location_map op_locations_ = {};
   std::unordered_map<uint32_t, uint32_t> account_location_ids_ = {};
   std::unordered_map<std::string, yijinjing::data::location_ptr> market_data_ = {};
-
-  friend void enable(LiveContext &context) { context.on_start(); }
 };
 
 DECLARE_PTR(LiveContext)

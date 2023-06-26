@@ -327,6 +327,8 @@ get_arguments
 set_arguments
 set_begin_time
 set_end_time
+set_from_indexer
+set_to_indexer
 setup
 step
 on_exit
@@ -342,6 +344,7 @@ post_stop
 on_quote
 on_entrust
 on_transaction
+on_tree
 on_synthetic_data
 on_deregister
 on_broker_state_change
@@ -359,7 +362,6 @@ is_positions_mirrored
 update_strategy_state
 is_bypass_accounting
 bypass_accounting
-on_tree
 on_order
 on_order_action_error
 on_trade
@@ -378,6 +380,10 @@ current_frame
 next
 data_available
 join
+find_md_slice_location
+get_md_slice_end_time
+find_operator_slice_location
+get_operator_slice_end_time
 hash_instrument
 is_valid_price
 is_final_status
@@ -540,6 +546,9 @@ ForwardBest
 ReverseBest
 Fak
 Fok
+EnhancedLimit
+AtAuctionLimit
+AtAuction
 PriceType
 Lastest
 Sell5

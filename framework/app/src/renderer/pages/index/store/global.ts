@@ -77,6 +77,8 @@ interface GlobalState {
     side?: SideEnum;
     offset?: OffsetEnum;
   };
+
+  tdFilter: ((td: KungfuApi.KfConfig[]) => KungfuApi.KfConfig[]) | null;
 }
 
 export const useGlobalStore = defineStore('global', {
@@ -93,7 +95,7 @@ export const useGlobalStore = defineStore('global', {
         system: {},
       }),
       uiExtConfigs: toRaw<KungfuApi.KfUIExtConfigs>({}),
-
+      tdFilter: null,
       tdList: [],
       tdGroupList: [],
       mdList: [],
@@ -201,7 +203,11 @@ export const useGlobalStore = defineStore('global', {
 
     setKfConfigList() {
       return getAllKfConfigOriginData().then((res) => {
-        const { md, td, strategy, operator } = res;
+        const { md, strategy, operator } = res;
+        let { td } = res;
+        if (this.tdFilter) {
+          td = this.tdFilter(td);
+        }
         this.mdList = md;
         this.tdList = td;
         this.strategyList = strategy;
@@ -328,6 +334,10 @@ export const useGlobalStore = defineStore('global', {
           return kfUiExtConfig;
         },
       );
+    },
+
+    setTdFilter(tdFilter: (tds: KungfuApi.KfConfig[]) => KungfuApi.KfConfig[]) {
+      this.tdFilter = tdFilter;
     },
 
     markIsBoardDragging(status: boolean) {

@@ -64,6 +64,8 @@ void hero::setup() {
   live_ = true;
 }
 
+void hero::pre_setup() { return; }
+
 void hero::step() {
   continual_ = false;
   events_.connect(cs_);
@@ -72,6 +74,7 @@ void hero::step() {
 void hero::run() {
   SPDLOG_INFO("[{:08x}] {} running", get_home_uid(), get_home_uname());
   SPDLOG_TRACE("from {} until {}", time::strftime(begin_time_), time::strftime(end_time_));
+  pre_setup();
   setup();
   continual_ = true;
   events_.connect(cs_);
@@ -247,10 +250,7 @@ void hero::remove_location(int64_t trigger_time, uint32_t location_uid) { locati
 
 void hero::register_location(int64_t, const Register &register_data) {
   uint32_t location_uid = register_data.location_uid;
-  auto result = registry_.try_emplace(location_uid, register_data);
-  if (result.second) {
-    SPDLOG_TRACE("location [{:08x}] {} up", location_uid, get_location_uname(location_uid));
-  }
+  registry_.insert_or_assign(location_uid, register_data);
 }
 
 void hero::deregister_location(int64_t, const uint32_t location_uid) {
@@ -357,8 +357,8 @@ void hero::produce(const rx::subscriber<event_ptr> &sb) {
   }
 }
 
-void hero::deal_notice(bool bypass, bool notify, const rx::subscriber<event_ptr> &sb) {
-  if (not bypass and io_device_->get_home()->mode == mode::LIVE and io_device_->get_observer()->wait()) {
+void hero::deal_notice(bool low_latency_master, bool notify, const rx::subscriber<event_ptr> &sb) {
+  if (low_latency_master and io_device_->get_home()->mode == mode::LIVE and io_device_->get_observer()->wait()) {
     const std::string &notice = io_device_->get_observer()->get_notice();
     now_ = time::now_in_nano();
     if (notice.length() > 2) {
@@ -370,12 +370,10 @@ void hero::deal_notice(bool bypass, bool notify, const rx::subscriber<event_ptr>
 }
 
 bool hero::drain(const rx::subscriber<event_ptr> &sb) {
-  deal_notice(false, true, sb);
-  bool is_lazy = io_device_->is_lazy();
-  bool is_low_latency = io_device_->is_low_latency();
-  bool bypass = io_device_->is_lazy() or not io_device_->is_low_latency();
+  deal_notice(true, true, sb);
+  bool low_latency_master = not io_device_->is_lazy() and io_device_->is_low_latency();
   while (live_ and reader_->data_available()) {
-    deal_notice(bypass, false, sb);
+    deal_notice(low_latency_master, false, sb);
     if (reader_->current_frame()->gen_time() <= end_time_) {
       int64_t frame_time = reader_->current_frame()->gen_time();
       if (frame_time > now_) {

@@ -598,8 +598,8 @@ const getKfExtensionConfigByCategory = (
                           settings: item?.settings || [],
                         },
                       }),
-                      {} as KungfuApi.KfSystemExtConfig,
-                    ) || [],
+                      {} as KungfuApi.KfSystemExtConfigs,
+                    ) || {},
                 };
                 break;
             }
@@ -739,8 +739,10 @@ export const getAvailExtServiceList = async (): Promise<
   KungfuApi.KfExtServiceLocation[]
 > => {
   const kfExtConfigs: KungfuApi.KfExtConfigs = await getKfExtensionConfig();
-  const kfSystemExtConfigsMap = (kfExtConfigs['system'] ||
-    {}) as KungfuApi.KfSystemExtConfigs;
+  const kfSystemExtConfigsMap = (kfExtConfigs['system'] || {}) as Record<
+    string,
+    KungfuApi.KfSystemExtConfigs
+  >;
   return Object.values(kfSystemExtConfigsMap)
     .filter((item) => Object.keys(item).length)
     .reduce((extServiceList, item) => {
@@ -768,8 +770,10 @@ export const getAvailCliExtServiceList = async (): Promise<
   KungfuApi.KfExtServiceLocation[]
 > => {
   const kfExtConfigs: KungfuApi.KfExtConfigs = await getKfExtensionConfig();
-  const kfSystemExtConfigsMap = (kfExtConfigs['system'] ||
-    {}) as KungfuApi.KfSystemExtConfigs;
+  const kfSystemExtConfigsMap = (kfExtConfigs['system'] || {}) as Record<
+    string,
+    KungfuApi.KfSystemExtConfigs
+  >;
   return Object.values(kfSystemExtConfigsMap)
     .filter((item) => Object.keys(item).length)
     .reduce((extServiceList, item) => {
@@ -897,10 +901,16 @@ export const buildExtTypeMap = (
   return extTypeMap;
 };
 
-export const getExtConfigList = <T extends KfCategoryTypes>(
+export const getExtConfigList = (
   extConfigs: KungfuApi.KfExtConfigs,
-  category: T,
-): KungfuApi.KfExtConfigs[T][string][] => {
+  category: KfCategoryTypes,
+): KungfuApi.KfExtConfig[] => {
+  if (category === 'system') {
+    return Object.values(extConfigs[category] || {})
+      .map((item) => Object.values(item))
+      .flat();
+  }
+
   return Object.values(extConfigs[category] || {});
 };
 
@@ -1347,7 +1357,7 @@ export const switchKfLocation = (
   watcher: KungfuApi.Watcher | null,
   kfLocation: KungfuApi.DerivedKfLocation,
   targetStatus: boolean,
-  force?: boolean,
+  force = false,
 ): Promise<void | Proc> => {
   if (!watcher) return Promise.reject(new Error('Watcher is NULL'));
 

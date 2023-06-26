@@ -56,10 +56,10 @@ public:
    * Subscribe market data.
    * @param source MD group
    * @param instrument_ids instrument IDs
-   * @param exchange_ids exchange IDs
+   * @param exchange_id exchange ID
    */
   virtual void subscribe(const std::string &source, const std::vector<std::string> &instrument_ids,
-                         const std::string &exchange_ids) = 0;
+                         const std::string &exchange_id) = 0;
 
   /**
    * Subscribe all from given MD
@@ -113,10 +113,12 @@ protected:
   const rx::connectable_observable<event_ptr> &events_;
 
   virtual void on_start(){};
+
   virtual void prepare(const event_ptr &event) = 0;
 
 private:
   friend void enable(Context &context) { context.on_start(); }
+
   friend void prepare(const event_ptr &event, Context &context) { context.prepare(event); }
 };
 } // namespace kungfu::wingchun::op

@@ -403,6 +403,8 @@ struct event {
 
   [[nodiscard]] virtual uint32_t source() const = 0;
 
+  [[nodiscard]] virtual uint32_t initial_source() const = 0;
+
   [[nodiscard]] virtual uint32_t dest() const = 0;
 
   [[nodiscard]] virtual uint32_t data_length() const = 0;
@@ -416,6 +418,8 @@ struct event {
   [[nodiscard]] virtual std::string to_string() const = 0;
 
   [[nodiscard]] virtual int8_t data_type() const = 0;
+
+  [[nodiscard]] virtual bool is_json() const = 0;
 
   /**
    * Using auto with the return mess up the reference with the undlerying memory address, DO NOT USE it.

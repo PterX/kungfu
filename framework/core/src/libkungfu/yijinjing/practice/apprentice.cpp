@@ -83,34 +83,12 @@ uint32_t apprentice::request_band(const std::string &band_name) {
 }
 
 void apprentice::add_timer(int64_t nanotime, const std::function<void(const event_ptr &)> &callback) {
-  events_ | timer(nanotime) |
-      $([&, callback](const event_ptr &event) {
-        // try {
-        callback(event);
-        // } catch (const std::exception &e) {
-        //   SPDLOG_ERROR("Unexpected exception by timer {}", e.what());
-        // }
-      }
-        // [&](std::exception_ptr e) {
-        //   try {
-        //     std::rethrow_exception(e);
-        //   } catch (const rx::empty_error &ex) {
-        //     SPDLOG_WARN("{}", ex.what());
-        //   } catch (const std::exception &ex) {
-        //     SPDLOG_WARN("Unexpected exception by timer{}", ex.what());
-        //   }
-        // }
-      );
+  events_ | timer(nanotime) | $([&, callback](const event_ptr &event) { callback(event); });
 }
 
 void apprentice::add_time_interval(int64_t duration, const std::function<void(const event_ptr &)> &callback) {
-  events_ | time_interval(std::chrono::nanoseconds(duration)) | $([&, callback](const event_ptr &event) {
-    // try {
-    callback(event);
-    // } catch (const std::exception &e) {
-    //   SPDLOG_ERROR("Unexpected exception by time_interval {}", e.what());
-    // }
-  });
+  events_ | time_interval(std::chrono::nanoseconds(duration)) |
+      $([&, callback](const event_ptr &event) { callback(event); });
 }
 
 bool apprentice::release_page() {
@@ -123,7 +101,9 @@ bool apprentice::release_page() {
 }
 
 void apprentice::react() {
-  events_ | is(TimeReset::tag) | first() | $$(reset_time(event->data<TimeReset>()));
+  if (get_home()->mode == mode::LIVE or get_home()->mode == mode::REPLAY) {
+    events_ | is(TimeReset::tag) | first() | $$(reset_time(event->data<TimeReset>()));
+  }
   events_ | is(Location::tag) | $$(add_location(event->gen_time(), event->data<Location>()));
   events_ | is(Register::tag) | $$(on_register(event->trigger_time(), event->data<Register>()));
   events_ | is(RequestReadFromOthers::tag) | $$(on_request_read_from_others(event));
@@ -137,6 +117,11 @@ void apprentice::react() {
   events_ | is(Band::tag) | $$(register_band(event->gen_time(), event->data<Band>()));
   events_ | is(RequestStop::tag) | to(get_home_uid()) | $$(signal_stop());
   events_ | take_until(events_ | is(RequestStart::tag)) | $$(cached::feed_state_data(event, state_bank_));
+
+  auto master_start_event = events_ | is(SessionStart::tag) | filter([&](const event_ptr &event) {
+                              return event->source() == master_home_location_->uid && event->dest() == location::PUBLIC;
+                            });
+  master_start_event | $$(on_master_start());
 
   SPDLOG_TRACE("building reactive event handlers");
   on_react();
@@ -167,7 +152,7 @@ void apprentice::react() {
       auto data = event->data<Register>();
       last_active_time_ = data.last_active_time;
       checkin_time_ = data.checkin_time;
-      reader_->join(master_cmd_location_, get_live_home_uid(), event->gen_time());
+      reader_->join(master_cmd_location_, get_live_home_uid(), begin_time_);
     });
     checkin();
     expect_start();
@@ -180,7 +165,7 @@ void apprentice::react() {
     // dest_id 0 should be configurable TODO
     std::string journal_dir = get_locator()->layout_dir(get_home(), layout::JOURNAL);
     fs::remove_all(journal_dir);
-    writers_.emplace(location::PUBLIC, get_io_device()->open_writer(location::PUBLIC));
+    writers_.insert_or_assign(location::PUBLIC, get_io_device()->open_writer(location::PUBLIC));
     reader_->join(get_home(), location::PUBLIC, begin_time_);
     started_ = true;
     on_start();
@@ -227,14 +212,14 @@ void apprentice::on_read_from_sync(const event_ptr &event) { do_read_from<Reques
 void apprentice::on_write_to(const event_ptr &event) {
   auto dest_id = event->data<RequestWriteTo>().dest_id;
   if (writers_.find(dest_id) == writers_.end()) {
-    writers_.emplace(dest_id, get_io_device()->open_writer(dest_id));
+    writers_.insert_or_assign(dest_id, get_io_device()->open_writer(dest_id));
   }
 }
 
 void apprentice::on_write_to_band(const event_ptr &event) {
   auto dest_id = event->data<RequestWriteToBand>().location_uid;
   if (writers_.find(dest_id) == writers_.end()) {
-    writers_.emplace(dest_id, get_io_device()->open_writer(dest_id));
+    writers_.insert_or_assign(dest_id, get_io_device()->open_writer(dest_id));
   }
 }
 
@@ -290,22 +275,24 @@ void apprentice::checkin() {
 
 void apprentice::expect_start() {
   reader_->join(master_home_location_, location::PUBLIC, begin_time_);
-  events_ | is(RequestStart::tag) | first() |
-      $([&](const event_ptr &event) {
-        started_ = true;
-        SPDLOG_INFO("ready to start");
-        on_start();
-      }
-        // [&](const std::exception_ptr &e) {
-        //   try {
-        //     std::rethrow_exception(e);
-        //   } catch (const rx::empty_error &ex) {
-        //     SPDLOG_WARN("Unexpected rx empty {}", ex.what());
-        //   } catch (const std::exception &ex) {
-        //     SPDLOG_WARN("Unexpected exception before start {}", ex.what());
-        //   }
-        // }
-      );
+  events_ | is(RequestStart::tag) | first() | $([&](const event_ptr &event) {
+    started_ = true;
+    SPDLOG_INFO("ready to start");
+    on_start();
+  });
+}
+
+void apprentice::on_master_start() {
+  SPDLOG_INFO("master start, do some recoveries");
+  const auto publisher = get_io_device()->get_publisher();
+  while (not publisher->is_usable()) {
+    continue;
+  }
+
+  for (const auto &iter : timer_requests_) {
+    auto &r = iter.second;
+    publisher->publish(make_nano_msg(get_home_uid(), get_master_command_uid(), r));
+  }
 }
 
 void apprentice::reset_time(const longfist::types::TimeReset &time_reset) {

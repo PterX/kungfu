@@ -53,6 +53,7 @@ yijinjing
 wingchun
 length
 header_length
+data_type
 version
 page_header_length
 page_size
@@ -145,7 +146,6 @@ price_level
 price_offset
 dest_id
 is_last
-data_type
 is_withdraw
 close_today_volume
 data_time
@@ -190,6 +190,8 @@ frame_count
 info_a
 info_b
 info_c
+risk_check
+self_deal_check_type
 open_ratio
 close_ratio
 close_today_ratio
@@ -319,7 +321,6 @@ on_time_key_value
 cancel_order
 req_history_order
 req_history_trade
-enable_self_detect
 req_account
 req_position
 set_service
@@ -327,6 +328,8 @@ get_arguments
 set_arguments
 set_begin_time
 set_end_time
+set_from_indexer
+set_to_indexer
 setup
 step
 on_exit
@@ -342,6 +345,7 @@ post_stop
 on_quote
 on_entrust
 on_transaction
+on_tree
 on_synthetic_data
 on_deregister
 on_broker_state_change
@@ -359,7 +363,6 @@ is_positions_mirrored
 update_strategy_state
 is_bypass_accounting
 bypass_accounting
-on_tree
 on_order
 on_order_action_error
 on_trade
@@ -378,6 +381,10 @@ current_frame
 next
 data_available
 join
+find_md_slice_location
+get_md_slice_end_time
+find_operator_slice_location
+get_operator_slice_end_time
 hash_instrument
 is_valid_price
 is_final_status
@@ -478,6 +485,9 @@ SZSE
 HKEx
 MarketType
 Snapshot
+Entrust
+Transaction
+Tree
 SubscribeDataType
 Stock
 Future
@@ -540,6 +550,9 @@ ForwardBest
 ReverseBest
 Fak
 Fok
+EnhancedLimit
+AtAuctionLimit
+AtAuction
 PriceType
 Lastest
 Sell5
@@ -619,3 +632,7 @@ Raw
 Json
 Unknown
 FrameDataType
+No
+AccountInternal
+AccountInteractive
+SelfDealCheckType

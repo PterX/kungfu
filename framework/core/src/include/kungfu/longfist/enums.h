@@ -322,11 +322,14 @@ inline std::ostream &operator<<(std::ostream &os, OrderActionFlag t) { return os
 enum class PriceType : int8_t {
   Limit, // 限价,证券通用
   Any, // 市价，证券通用，对于股票上海为最优五档剩余撤销，深圳为即时成交剩余撤销，建议客户采用
-  FakBest5,    // 上海深圳最优五档即时成交剩余撤销，不需要报价
-  ForwardBest, // 深圳本方方最优价格申报, 不需要报价
-  ReverseBest, // 上海最优五档即时成交剩余转限价, 深圳对手方最优价格申报，不需要报价
-  Fak,         // 深圳即时成交剩余撤销，不需要报价
-  Fok,         // 深圳市价全额成交或者撤销，不需要报价
+  FakBest5,       // 上海深圳最优五档即时成交剩余撤销，不需要报价
+  ForwardBest,    // 深圳本方方最优价格申报, 不需要报价
+  ReverseBest,    // 上海最优五档即时成交剩余转限价, 深圳对手方最优价格申报，不需要报价
+  Fak,            // 深圳即时成交剩余撤销，不需要报价
+  Fok,            // 深圳市价全额成交或者撤销，不需要报价
+  EnhancedLimit,  // 增强限价盘-港股
+  AtAuctionLimit, // 竞价限价盘-港股
+  AtAuction,      // 竞价限价盘-港股| 期货
   Unknown
 };
 
@@ -338,6 +341,9 @@ NLOHMANN_JSON_SERIALIZE_ENUM(PriceType, {
                                             {PriceType::ReverseBest, "ReverseBest"},
                                             {PriceType::Fak, "Fak"},
                                             {PriceType::Fok, "Fok"},
+                                            {PriceType::EnhancedLimit, "EnhancedLimit"},
+                                            {PriceType::AtAuctionLimit, "AtAuctionLimit"},
+                                            {PriceType::AtAuction, "AtAuction"},
                                             {PriceType::Unknown, "Unknown"},
                                         })
 
@@ -620,6 +626,20 @@ NLOHMANN_JSON_SERIALIZE_ENUM(FrameDataType, {
                                             })
 
 inline std::ostream &operator<<(std::ostream &os, FrameDataType t) { return os << int8_t(t); }
+
+inline bool operator==(int8_t type, FrameDataType t) { return type == int8_t(t); }
+
+inline bool operator==(FrameDataType t, int8_t type) { return type == int8_t(t); }
+
+enum class SelfDealCheckType : int8_t { No, AccountInternal, AccountInteractive };
+
+NLOHMANN_JSON_SERIALIZE_ENUM(SelfDealCheckType, {
+                                                    {SelfDealCheckType::No, "No"},
+                                                    {SelfDealCheckType::AccountInternal, "AccountInternal"},
+                                                    {SelfDealCheckType::AccountInteractive, "AccountInteractive"},
+                                                })
+
+inline std::ostream &operator<<(std::ostream &os, SelfDealCheckType t) { return os << int8_t(t); }
 
 } // namespace kungfu::longfist::enums
 #endif // KUNGFU_LONGFIST_ENUM_H

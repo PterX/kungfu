@@ -25,12 +25,21 @@ Context_ptr Runner::get_context() const { return context_; }
 
 Context_ptr Runner::make_context() {
   if (get_home()->mode == mode::BACKTEST) {
+    if (not from_indexer_) {
+      from_indexer_ = std::make_shared<tool::SliceIndexer>(get_begin_time(), get_end_time());
+      SPDLOG_WARN("Runner in backtest mode not specified from_indexer, Default NameHashingIndexer used.");
+    }
+    if (not to_indexer_) {
+      to_indexer_ = std::make_shared<tool::SliceIndexer>(get_begin_time(), get_end_time());
+      SPDLOG_WARN("Runner in backtest mode not specified to_indexer, Default NameHashingIndexer used.");
+    }
     if (not matcher_) {
       matcher_ = std::make_shared<BasicMatcher>();
       SPDLOG_WARN("Runner in backtest mode not specified Matcher, Default Quote-based Matcher used.");
     }
     set_runner(*matcher_, this);
-    return std::make_shared<BacktestContext>(*this, events_, matcher_);
+    return std::make_shared<BacktestContext>(*this, events_, std::move(matcher_), std::move(from_indexer_),
+                                             std::move(to_indexer_));
   }
   return std::make_shared<LiveContext>(*this, events_);
 }
@@ -39,11 +48,15 @@ void Runner::add_strategy(const Strategy_ptr &strategy) { strategies_.push_back(
 
 void Runner::set_matcher(const Matcher_ptr &matcher) { matcher_ = matcher; }
 
+void Runner::set_from_indexer(const tool::SliceIndexer_ptr &indexer) { from_indexer_ = indexer; }
+
+void Runner::set_to_indexer(const tool::SliceIndexer_ptr &indexer) { to_indexer_ = indexer; }
+
 void Runner::on_exit() { post_stop(); }
 
 void Runner::react() {
   context_ = make_context();
-  context_->set_arguments(arguments_);
+  set_arguments(*context_, arguments_);
   enable(*context_);
   context_->get_bookkeeper().add_book_listener(std::make_shared<BookListener>(*this));
 

@@ -176,9 +176,12 @@ const makeOrderData = computed(() => {
 });
 
 const availTradingTaskExtensionList = computed(() => {
-  return getExtConfigList(extConfigs.value, 'strategy').filter(
-    (item) => uiExtConfigs.value[item.key]?.position === 'make_order',
-  );
+  return (
+    getExtConfigList(
+      extConfigs.value,
+      'strategy',
+    ) as KungfuApi.KfStrategyExtConfig[]
+  ).filter((item) => uiExtConfigs.value[item.key]?.position === 'make_order');
 });
 
 const getResolvedOffset = (
@@ -586,20 +589,24 @@ async function handleMakeOrder(): Promise<void> {
 function showCloseModal(
   makeOrderInput: KungfuApi.MakeOrderInput,
 ): Promise<boolean> {
-  if (!currentPosition.value) return Promise.resolve(true);
+  if (!currentPosition.value || globalSetting.value?.trade?.close === 0)
+    return Promise.resolve(true);
 
   const closeRange = +globalSetting.value?.trade?.close || 100;
 
-  if (
-    closeModalConditions(
-      closeRange,
-      makeOrderInput,
-      Number(currentPosition.value?.volume || 0),
-    )
-  ) {
+  const { result, relationship } = closeModalConditions(
+    closeRange,
+    makeOrderInput,
+    Number(currentPosition.value?.volume || 0),
+  );
+
+  if (result) {
     return confirmModal(
       t('prompt'),
-      t('tradingConfig.continue_close_rate', { rate: closeRange + '' }),
+      t('tradingConfig.continue_close_rate', {
+        rate: closeRange + '',
+        relationship,
+      }),
     );
   }
 
@@ -611,15 +618,34 @@ function closeModalConditions(
   closeRange: number,
   orderInput: KungfuApi.MakeOrderInput,
   positionVolume: number,
-): boolean {
+): {
+  result: boolean;
+  relationship?: string;
+} {
   const makeOrderInput = dealStockOffset(orderInput);
   const { offset } = makeOrderInput;
 
   if (offset === OffsetEnum.Open) {
-    return false;
+    return { result: false };
   }
 
-  return makeOrderInput.volume >= positionVolume * (closeRange / 100);
+  const positionVolumeResolved = positionVolume * (closeRange / 100);
+
+  if (makeOrderInput.volume === positionVolumeResolved) {
+    return {
+      result: true,
+      relationship: t('tradingConfig.reach'),
+    };
+  } else if (makeOrderInput.volume > positionVolumeResolved) {
+    return {
+      result: true,
+      relationship: t('tradingConfig.above'),
+    };
+  } else {
+    return {
+      result: false,
+    };
+  }
 }
 
 const { handleOpenSetTradingTaskModal } = useTradingTask();

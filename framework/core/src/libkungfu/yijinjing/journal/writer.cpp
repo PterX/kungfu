@@ -42,6 +42,7 @@ frame_ptr writer::open_frame(int64_t trigger_time, int32_t msg_type, uint32_t da
   frame->set_trigger_time(trigger_time);
   frame->set_msg_type(msg_type);
   frame->set_source(journal_.location_->uid);
+  frame->set_initial_source(journal_.location_->uid);
   frame->set_dest(journal_.dest_id_);
   size_to_write_ = data_length;
   return frame;

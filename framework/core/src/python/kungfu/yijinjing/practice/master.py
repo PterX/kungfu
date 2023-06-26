@@ -70,10 +70,6 @@ class Master(yjj.master):
 
     def on_register(self, gen_time, register_data):
         pid = register_data.pid
-        self.ctx.logger.info(f"{pid}")
-        self.ctx.logger.info(
-            f"{pid} {register_data.category} {register_data.group} {register_data.name}"
-        )
         category = lf.enums.get_category_name(register_data.category)
         mode = lf.enums.get_mode_name(register_data.mode)
         uname = f"{category}/{register_data.group}/{register_data.name}/{mode}"
@@ -94,10 +90,6 @@ class Master(yjj.master):
 
     def check_register(self, gen_time, register_data):
         pid = register_data.pid
-        self.ctx.logger.info(f"{pid}")
-        self.ctx.logger.info(
-            f"{pid} {register_data.category} {register_data.group} {register_data.name}"
-        )
         category = lf.enums.get_category_name(register_data.category)
         mode = lf.enums.get_mode_name(register_data.mode)
         uname = f"{category}/{register_data.group}/{register_data.name}/{mode}"

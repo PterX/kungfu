@@ -36,9 +36,8 @@ master::master(location_ptr home, bool low_latency, bool bypass_cached, bool no_
   auto io_device = std::dynamic_pointer_cast<io_device_master>(get_io_device());
   cached_.open_session(master_home_location_, begin_time_);
   writers_.insert_or_assign(location::PUBLIC, io_device->open_writer(location::PUBLIC));
-  get_writer(location::PUBLIC)->mark(begin_time_, SessionStart::tag);
-
   cached_.run_store_workers();
+  get_writer(location::PUBLIC)->mark(begin_time_, SessionStart::tag);
 }
 
 void master::recover_registries() {
@@ -298,7 +297,6 @@ void master::handle_timer_tasks() {
       auto &task = it->second;
       if (task.checkpoint <= now) {
         get_writer(app_id)->mark(0, Time::tag);
-        SPDLOG_TRACE("app_id:{} , location: {}", app_id, get_location_uname(app_id));
         task.checkpoint += task.duration;
         task.repeat_count++;
         if (task.repeat_count >= task.repeat_limit) {
@@ -450,6 +448,7 @@ void master::on_channel_request(const event_ptr &event) {
 
 void master::on_time_request(const event_ptr &event) {
   auto request_data = event->data_as_string();
+  SPDLOG_INFO("on_time_request ======== {}", request_data.c_str());
   TimeRequest request(request_data.c_str(), request_data.length());
   timer_tasks_.try_emplace(event->source());
   auto &app_tasks = timer_tasks_.at(event->source());

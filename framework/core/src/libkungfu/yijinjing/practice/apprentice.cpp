@@ -83,16 +83,12 @@ uint32_t apprentice::request_band(const std::string &band_name) {
 }
 
 void apprentice::add_timer(int64_t nanotime, const std::function<void(const event_ptr &)> &callback) {
-  events_ | timer(nanotime) |
-      $([&, callback](const event_ptr &event) {
-        callback(event);
-      });
+  events_ | timer(nanotime) | $([&, callback](const event_ptr &event) { callback(event); });
 }
 
 void apprentice::add_time_interval(int64_t duration, const std::function<void(const event_ptr &)> &callback) {
-  events_ | time_interval(std::chrono::nanoseconds(duration)) | $([&, callback](const event_ptr &event) {
-    callback(event);
-  });
+  events_ | time_interval(std::chrono::nanoseconds(duration)) |
+      $([&, callback](const event_ptr &event) { callback(event); });
 }
 
 bool apprentice::release_page() {
@@ -279,12 +275,11 @@ void apprentice::checkin() {
 
 void apprentice::expect_start() {
   reader_->join(master_home_location_, location::PUBLIC, begin_time_);
-  events_ | is(RequestStart::tag) | first() |
-      $([&](const event_ptr &event) {
-        started_ = true;
-        SPDLOG_INFO("ready to start");
-        on_start();
-      });
+  events_ | is(RequestStart::tag) | first() | $([&](const event_ptr &event) {
+    started_ = true;
+    SPDLOG_INFO("ready to start");
+    on_start();
+  });
 }
 
 void apprentice::on_master_start() {

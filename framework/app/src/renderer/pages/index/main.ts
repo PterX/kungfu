@@ -28,6 +28,8 @@ import {
   Spin,
   Skeleton,
   Tree,
+  List,
+  Badge,
   Statistic,
   Row,
   Col,
@@ -109,6 +111,8 @@ app
   .use(Spin)
   .use(Skeleton)
   .use(Tree)
+  .use(List)
+  .use(Badge)
 
   .use(Statistic)
   .use(Divider)

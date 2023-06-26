@@ -259,7 +259,6 @@ public:
    */
   const std::string &get_arguments() { return arguments_; };
 
-
   /**
    *
    * @param location_uid

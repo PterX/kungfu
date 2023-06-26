@@ -56,7 +56,7 @@ void Runner::on_exit() { post_stop(); }
 
 void Runner::react() {
   context_ = make_context();
-  context_->set_arguments(arguments_);
+  set_arguments(*context_, arguments_);
   enable(*context_);
   context_->get_bookkeeper().add_book_listener(std::make_shared<BookListener>(*this));
 

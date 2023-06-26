@@ -33,7 +33,10 @@ def run_tasks(*args, **kwargs):
 class Master(yjj.master):
     def __init__(self, ctx):
         yjj.master.__init__(
-            self, ctx.location, ctx.low_latency, ctx.bypass_cached,
+            self,
+            ctx.location,
+            ctx.low_latency,
+            ctx.bypass_cached,
         )
         self.ctx = ctx
         self.ctx.master = self

@@ -10,14 +10,14 @@ yjj = kungfu.__binding__.yijinjing
 os_sep = re.escape(os.sep)
 
 LAYOUT_LOCATION_REGEX = "{}{}{}{}{}{}{}{}{}{}{}".format(
+    r"layout",
+    os_sep,  # layout
     r"(.*)",
     os_sep,  # category
     r"(.*)",
     os_sep,  # group
     r"(.*)",
     os_sep,  # name
-    r"(.*)",
-    os_sep,  # layout
     r"(.*)",
     os_sep,  # mode
     r"(.*)",  # filename
@@ -25,27 +25,27 @@ LAYOUT_LOCATION_REGEX = "{}{}{}{}{}{}{}{}{}{}{}".format(
 LAYOUT_LOCATION_PATTERN = re.compile(LAYOUT_LOCATION_REGEX)
 
 JOURNAL_LOCATION_REGEX = "{}{}{}{}{}{}{}{}{}".format(
+    r"journal",
+    os_sep,
     r"(.*)",
     os_sep,  # category
     r"(.*)",
     os_sep,  # group
     r"(.*)",
     os_sep,  # name
-    r"journal",
-    os_sep,
     r"(.*)",  # mode
 )
 JOURNAL_LOCATION_PATTERN = re.compile(JOURNAL_LOCATION_REGEX)
 
 JOURNAL_PAGE_REGEX = "{}{}{}{}{}{}{}{}{}{}{}".format(
+    r"journal",
+    os_sep,  # mode
     r"(.*)",
     os_sep,  # category
     r"(.*)",
     os_sep,  # group
     r"(.*)",
     os_sep,  # name
-    r"journal",
-    os_sep,  # mode
     r"(.*)",
     os_sep,  # mode
     r"(\w+).(\d+).journal",  # hash + page_id
@@ -53,14 +53,14 @@ JOURNAL_PAGE_REGEX = "{}{}{}{}{}{}{}{}{}{}{}".format(
 JOURNAL_PAGE_PATTERN = re.compile(JOURNAL_PAGE_REGEX)
 
 LOG_REGEX = "{}{}{}{}{}{}{}{}{}{}{}".format(
+    r"log",
+    os_sep,
     r"(.*)",
     os_sep,  # category
     r"(.*)",
     os_sep,  # group
     r"(.*)",
     os_sep,  # name
-    r"log",
-    os_sep,  # mode
     r"(.*)",
     os_sep,  # mode
     r"(\w+)_(\d+-\d+-\d+).log",  # log_name + date

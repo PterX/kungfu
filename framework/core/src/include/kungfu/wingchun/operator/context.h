@@ -118,7 +118,7 @@ protected:
 
 private:
   friend void enable(Context &context) { context.on_start(); }
-  
+
   friend void prepare(const event_ptr &event, Context &context) { context.prepare(event); }
 };
 } // namespace kungfu::wingchun::op

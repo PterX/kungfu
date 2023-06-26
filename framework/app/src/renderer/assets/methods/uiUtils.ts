@@ -912,6 +912,25 @@ export const confirmModalByCustomArgs = (
 };
 
 const markdown = md();
+export const compileMd2Html = (content: string): string => {
+  try {
+    return (
+      '<div class="kf-markdown__wrap">' + markdown.render(content) + '</div>'
+    );
+  } catch (error) {
+    console.error(error);
+    return '';
+  }
+};
+
+export const compileMdFile2Html = (filePath: string): string => {
+  if (fse.existsSync(filePath)) {
+    const buffer = fse.readFileSync(filePath);
+    return compileMd2Html(buffer.toString());
+  }
+
+  return '';
+};
 
 export const openReadmeModal = (title: string, readmePath: string) => {
   if (fse.existsSync(readmePath)) {
@@ -919,7 +938,7 @@ export const openReadmeModal = (title: string, readmePath: string) => {
       const str = buffer.toString();
       const mdHtml = markdown.render(str);
       const content = h('div', {
-        class: 'kf-modal-markdown__wrap',
+        class: 'kf-markdown__wrap',
         innerHTML: mdHtml,
       });
       return Modal.confirm({

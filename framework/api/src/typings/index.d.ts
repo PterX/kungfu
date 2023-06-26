@@ -207,7 +207,12 @@ declare namespace KungfuApi {
   export interface KfExtOriginConfig {
     key: string;
     name: string;
+    version: string;
+    mainRepoVersion: string;
+    description: string;
     extPath: string;
+    readmePath: string;
+    releaseNotePath: string;
     ui_config?: {
       position: KfUIExtLocatorTypes;
       exhibit?: KfExhibitConfig;
@@ -277,7 +282,12 @@ declare namespace KungfuApi {
     name: string;
     category: C;
     key: string;
+    version: string;
+    mainRepoVersion: string;
+    description: string;
     extPath: string;
+    readmePath: string;
+    releaseNotePath: string;
   }
   export interface KfTdExtConfig extends KfExtConfigBase<'td' | 'tdGroup'> {
     type: TdMdExtTypes[];
@@ -332,12 +342,17 @@ declare namespace KungfuApi {
     md: Record<string, KfMdExtConfig>;
     strategy: Record<string, KfStrategyExtConfig>;
     operator: Record<string, KfOperatorExtConfig>;
-    system: Record<string, KfSystemExtConfig>;
+    system: Record<string, KfSystemExtConfigs>;
   };
 
   export interface KfUIExtConfig {
     name: string;
+    version: string;
+    mainRepoVersion: string;
+    description: string;
     extPath: string;
+    readmePath: string;
+    releaseNotePath: string;
     position: KfUIExtLocatorTypes;
     exhibit: KfExhibitConfig;
     components:
@@ -356,7 +371,12 @@ declare namespace KungfuApi {
 
   export interface KfCliExtConfig {
     name: string;
+    version: string;
+    mainRepoVersion: string;
+    description: string;
     extPath: string;
+    readmePath: string;
+    releaseNotePath: string;
     exhibit: KfExhibitConfig;
     components: Record<
       string,
@@ -374,6 +394,8 @@ declare namespace KungfuApi {
     ui: KfUIExtConfigs;
     cli: KfCliExtConfigs;
   }
+
+  export type KfAllExtConfig = KfExtConfig | KfUIExtConfig | KfCliExtConfig;
 
   export type KfExtLanguages = {
     'zh-CN': Record<string, Record<string, string>>;

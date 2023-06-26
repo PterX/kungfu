@@ -218,7 +218,8 @@ export type KfUIExtLocatorTypes =
   | 'board'
   | 'global_setting'
   | 'make_order'
-  | 'trading_task_view';
+  | 'trading_task_view'
+  | 'extension_mananger_use';
 
 export type KfExhibitConfigTypes = 'form' | '';
 

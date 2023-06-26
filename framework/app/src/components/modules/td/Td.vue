@@ -277,6 +277,11 @@ function handleOpenAddTdGroupDialog(type: KungfuApi.ModalChangeType) {
     category: 'tdGroup',
     key: 'TdGroup',
     extPath: '',
+    version: '',
+    mainRepoVersion: '',
+    description: '',
+    readmePath: '',
+    releaseNotePath: '',
     settings: [
       {
         key: 'td_group_name',

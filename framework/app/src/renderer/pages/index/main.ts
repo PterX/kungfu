@@ -36,6 +36,8 @@ import {
   Dropdown,
   Progress,
   Popover,
+  Breadcrumb,
+  Badge,
 } from 'ant-design-vue';
 
 import {
@@ -114,6 +116,8 @@ app
   .use(Dropdown)
   .use(Progress)
   .use(Popover)
+  .use(Breadcrumb)
+  .use(Badge)
   .use(VueVirtualScroller);
 
 app.config.globalProperties.$antLocalesMap = {

@@ -1,4 +1,5 @@
 import path from 'path';
+import semver from 'semver';
 import dayjs from 'dayjs';
 import fse, { Stats } from 'fs-extra';
 import log4js from 'log4js';
@@ -509,6 +510,13 @@ export const flattenExtensionModuleDirs = async (
   return extensionModuleDirs;
 };
 
+export const getMainRepoVersionByExtVersion = (version: string) => {
+  if (!version) return '';
+  const semVer = semver.parse(version);
+  if (!semVer) return '';
+  return `${semVer.major + 1}.${semVer.minor + 4}`;
+};
+
 const getKfExtConfigList = async (): Promise<KungfuApi.KfExtOriginConfig[]> => {
   const extModuleDirs = await flattenExtensionModuleDirs(EXTENSION_DIRS);
   const packageJSONPaths = extModuleDirs.map((item) =>
@@ -517,10 +525,18 @@ const getKfExtConfigList = async (): Promise<KungfuApi.KfExtOriginConfig[]> => {
   return await Promise.all(
     packageJSONPaths.map((item) => {
       return fse.readJSON(item).then((jsonConfig) => {
+        const extPath = path.dirname(item);
         return {
           ...(jsonConfig.kungfuConfig || {}),
-          extPath: path.dirname(item),
-        };
+          version: jsonConfig.version || '',
+          mainRepoVersion: getMainRepoVersionByExtVersion(
+            jsonConfig.version || '',
+          ),
+          description: jsonConfig.description || '',
+          extPath,
+          readmePath: path.join(extPath, 'README.md'),
+          releaseNotePath: path.join(extPath, 'RELEASENOTE.md'),
+        } as KungfuApi.KfExtOriginConfig;
       });
     }),
   ).then((configList: KungfuApi.KfExtOriginConfig[]) => {
@@ -546,9 +562,16 @@ const getKfExtensionConfigByCategory = (
     .filter((item) => !!item.config)
     .reduce(
       (configByCategory, extConfig: KungfuApi.KfExtOriginConfig) => {
-        const extKey = extConfig.key;
-        const extName = extConfig.name;
-        const extPath = extConfig.extPath;
+        const {
+          key: extKey,
+          name: extName,
+          extPath,
+          readmePath,
+          releaseNotePath,
+          version,
+          mainRepoVersion,
+          description,
+        } = extConfig;
         (Object.keys(extConfig['config'] || {}) as KfCategoryTypes[]).forEach(
           (category: KfCategoryTypes) => {
             const extConfigByCategory = extConfig['config'] || {};
@@ -558,6 +581,11 @@ const getKfExtensionConfigByCategory = (
                 [extKey]: {
                   name: extName,
                   extPath,
+                  readmePath,
+                  releaseNotePath,
+                  version,
+                  mainRepoVersion,
+                  description,
                   category,
                   key: extKey,
                   type: resolveTypesInExtConfig(
@@ -590,6 +618,11 @@ const getKfExtensionConfigByCategory = (
                         [name]: {
                           name: name || extName,
                           extPath,
+                          readmePath,
+                          releaseNotePath,
+                          version,
+                          mainRepoVersion,
+                          description,
                           category,
                           key: extKey,
                           type: resolveTypesInExtConfig(item?.type || []),
@@ -598,7 +631,7 @@ const getKfExtensionConfigByCategory = (
                           settings: item?.settings || [],
                         },
                       }),
-                      {} as KungfuApi.KfSystemExtConfig,
+                      {} as KungfuApi.KfSystemExtConfigs,
                     ) || [],
                 };
                 break;
@@ -623,10 +656,17 @@ const getKfUIExtensionConfigByExtKey = (
   return extConfigs
     .filter((item) => !!item.ui_config)
     .reduce((configByExtraKey, extConfig) => {
-      const extKey = extConfig.key;
-      const extName = extConfig.name;
-      const extPath = extConfig.extPath;
-      const uiConfig = extConfig['ui_config'];
+      const {
+        key: extKey,
+        name: extName,
+        extPath,
+        ui_config: uiConfig,
+        readmePath,
+        releaseNotePath,
+        version,
+        mainRepoVersion,
+        description,
+      } = extConfig;
       const position = uiConfig?.position || '';
       const exhibit = uiConfig?.exhibit || ({} as KungfuApi.KfExhibitConfig);
       const components = uiConfig?.components || null;
@@ -635,6 +675,11 @@ const getKfUIExtensionConfigByExtKey = (
       configByExtraKey[extKey] = {
         name: extName,
         extPath,
+        readmePath,
+        releaseNotePath,
+        version,
+        mainRepoVersion,
+        description,
         position,
         exhibit,
         components,
@@ -650,10 +695,17 @@ const getKfCliExtensionConfigByExtKey = (
   return extConfigs
     .filter((item) => !!item.cli_config)
     .reduce((configByExtraKey, extConfig) => {
-      const extKey = extConfig.key;
-      const extName = extConfig.name;
-      const extPath = extConfig.extPath;
-      const cliConfig = extConfig['cli_config'];
+      const {
+        key: extKey,
+        name: extName,
+        extPath,
+        cli_config: cliConfig,
+        readmePath,
+        releaseNotePath,
+        version,
+        mainRepoVersion,
+        description,
+      } = extConfig;
       const exhibit = cliConfig?.exhibit || ({} as KungfuApi.KfExhibitConfig);
       const components = cliConfig?.components || null;
       const script = cliConfig?.script || '';
@@ -661,6 +713,11 @@ const getKfCliExtensionConfigByExtKey = (
       configByExtraKey[extKey] = {
         name: extName,
         extPath,
+        readmePath,
+        releaseNotePath,
+        version,
+        mainRepoVersion,
+        description,
         exhibit,
         components,
         script,
@@ -752,11 +809,12 @@ export const getAvailExtServiceList = async (): Promise<
   KungfuApi.KfExtServiceLocation[]
 > => {
   const kfExtConfigs: KungfuApi.KfExtConfigs = await getKfExtensionConfig();
-  const kfSystemExtConfigsMap = (kfExtConfigs['system'] ||
-    {}) as KungfuApi.KfSystemExtConfigs;
+  const kfSystemExtConfigsMap = kfExtConfigs['system'] || {};
   return Object.values(kfSystemExtConfigsMap)
     .filter((item) => Object.keys(item).length)
     .reduce((extServiceList, item) => {
+      if (!Object.keys(item).length) return extServiceList;
+
       extServiceList = [
         ...extServiceList,
         ...Object.values(item)
@@ -781,11 +839,12 @@ export const getAvailCliExtServiceList = async (): Promise<
   KungfuApi.KfExtServiceLocation[]
 > => {
   const kfExtConfigs: KungfuApi.KfExtConfigs = await getKfExtensionConfig();
-  const kfSystemExtConfigsMap = (kfExtConfigs['system'] ||
-    {}) as KungfuApi.KfSystemExtConfigs;
+  const kfSystemExtConfigsMap = kfExtConfigs['system'] || {};
   return Object.values(kfSystemExtConfigsMap)
     .filter((item) => Object.keys(item).length)
     .reduce((extServiceList, item) => {
+      if (!Object.keys(item).length) return extServiceList;
+
       extServiceList = [
         ...extServiceList,
         ...Object.values(item)
@@ -910,11 +969,19 @@ export const buildExtTypeMap = (
   return extTypeMap;
 };
 
+export type GetExtConfigType<T extends KfCategoryTypes> = T extends 'system'
+  ? KungfuApi.KfSystemExtConfig[]
+  : KungfuApi.KfExtConfigs[Exclude<T, 'system'>][string][];
 export const getExtConfigList = <T extends KfCategoryTypes>(
   extConfigs: KungfuApi.KfExtConfigs,
   category: T,
-): KungfuApi.KfExtConfigs[T][string][] => {
-  return Object.values(extConfigs[category] || {});
+): GetExtConfigType<T> => {
+  if (category === 'system')
+    return Object.values(extConfigs[category] || {})
+      .map((item) => Object.values(item))
+      .flat() as GetExtConfigType<T>;
+
+  return Object.values(extConfigs[category] || {}) as GetExtConfigType<T>;
 };
 
 export const statTime = (name: string) => {

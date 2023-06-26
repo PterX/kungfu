@@ -83,14 +83,15 @@ function handleToPage(pathname: string) {
 }
 </script>
 <template>
-  <a-layout>
+  <a-layout class="kf-layout">
     <a-layout>
-      <a-layout-sider width="64px">
+      <a-layout-sider class="kf-layout-sider" width="64px">
         <div class="kf-header-logo">
           <img :src="logoPath" />
         </div>
         <a-menu
           v-model:selectedKeys="menuSelectedKeys"
+          class="kf-layout-menu"
           mode="vertical"
           style="width: 64px"
         >
@@ -146,7 +147,7 @@ function handleToPage(pathname: string) {
         </a-layout-content>
       </a-layout>
     </a-layout>
-    <a-layout-footer>
+    <a-layout-footer class="kf-layout-footer">
       <KfProcessStatusController
         class="kf-footer-box__warp"
       ></KfProcessStatusController>
@@ -172,10 +173,10 @@ function handleToPage(pathname: string) {
 <style lang="less">
 @import '@kungfu-trader/kungfu-app/src/renderer/assets/less/variables.less';
 
-.ant-layout {
+.kf-layout {
   height: 100%;
 
-  .ant-layout-sider {
+  .kf-layout-sider {
     .ant-layout-sider-children {
       display: flex;
       flex-direction: column;
@@ -197,7 +198,7 @@ function handleToPage(pathname: string) {
         }
       }
 
-      .ant-menu.ant-menu-root.ant-menu-vertical {
+      .kf-layout-menu.ant-menu-root.ant-menu-vertical {
         position: absolute;
         top: 40%;
         transform: translateY(-50%);
@@ -242,7 +243,7 @@ function handleToPage(pathname: string) {
     }
   }
 
-  .ant-layout-footer {
+  .kf-layout-footer {
     height: @layout-footer-height;
     line-height: @layout-footer-height;
     padding: 0 8px 0 0;

@@ -43,9 +43,12 @@ const app = getCurrentInstance();
 const { extConfigs } = useExtConfigsRelated();
 const selectedExtension = ref<string>('');
 const availExtensionList = computed(() => {
-  return getExtConfigList(extConfigs.value, props.extensionType).filter(
-    (extConfig) => props.extFilter(extConfig),
-  );
+  return (
+    getExtConfigList(
+      extConfigs.value,
+      props.extensionType,
+    ) as KungfuApi.KfExtConfig[]
+  ).filter((extConfig) => props.extFilter(extConfig));
 });
 
 const { modalVisible, closeModal } = useModalVisible(props.visible);
@@ -69,9 +72,10 @@ onMounted(() => {
   if (selectedExtension.value === '') {
     if (availExtensionList.value.length) {
       const packageJSON = readRootPackageJsonSync();
-      let  extension = '';
+      let extension = '';
       if (packageJSON.appConfig?.defaultExtension) {
-        extension = packageJSON.appConfig?.defaultExtension[props.extensionType]; 
+        extension =
+          packageJSON.appConfig?.defaultExtension[props.extensionType];
       }
       for (let i = 0; i < availExtensionList.value.length; i++) {
         if (availExtensionList.value[i].key === extension) {

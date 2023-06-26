@@ -42,8 +42,9 @@ class PyLocator : public locator {
     PYBIND11_OVERLOAD(std::string, locator, get_env, name);
   }
 
-  [[nodiscard]] std::string layout_dir(const location_ptr &location, layout l) const override {
-    PYBIND11_OVERLOAD(std::string, locator, layout_dir, location, l);
+  [[nodiscard]] std::string layout_dir(const location_ptr &location, layout l,
+                                       bool create_not_exist = true) const override {
+    PYBIND11_OVERLOAD(std::string, locator, layout_dir, location, l, create_not_exist);
   }
 
   [[nodiscard]] std::string layout_file(const location_ptr &location, layout l,

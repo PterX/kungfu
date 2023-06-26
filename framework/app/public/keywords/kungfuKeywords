@@ -53,6 +53,7 @@ yijinjing
 wingchun
 length
 header_length
+data_type
 version
 page_header_length
 page_size
@@ -145,7 +146,6 @@ price_level
 price_offset
 dest_id
 is_last
-data_type
 is_withdraw
 close_today_volume
 data_time
@@ -190,6 +190,8 @@ frame_count
 info_a
 info_b
 info_c
+risk_check
+self_deal_check_type
 open_ratio
 close_ratio
 close_today_ratio
@@ -319,7 +321,6 @@ on_time_key_value
 cancel_order
 req_history_order
 req_history_trade
-enable_self_detect
 req_account
 req_position
 set_service
@@ -484,6 +485,9 @@ SZSE
 HKEx
 MarketType
 Snapshot
+Entrust
+Transaction
+Tree
 SubscribeDataType
 Stock
 Future
@@ -628,3 +632,7 @@ Raw
 Json
 Unknown
 FrameDataType
+No
+AccountInternal
+AccountInteractive
+SelfDealCheckType

@@ -75,6 +75,8 @@ public:
 
   virtual void on_time_key_value(const event_ptr &event) { return; }
 
+  void on_risk_setting(const event_ptr &event);
+
   /// 此函数自动发送一个空的AssetMargin数据. 两融柜台需要发送一个存有数据的AssetMargin, 请override此函数取消写入.
   /// 并且在使用writer写入完AssetMargin之后调用enable_asset_margin_sync()函数.
   /// 非两融柜台想要取消日志输出请override此函数.
@@ -100,8 +102,6 @@ public:
 
   OrderMap &get_orders() { return orders_; }
 
-  void enable_self_detect();
-
   [[maybe_unused]] void disable_recover();
 
   virtual void on_recover(){};
@@ -110,14 +110,13 @@ protected:
   OrderMap orders_ = {};
   OrderActionMap actions_ = {};
   TradeMap trades_ = {};
-  bool self_deal_detect_ = false;
+  uint32_t risk_uid_{0};
   bool disable_recover_ = false;
   std::unordered_map<uint64_t, kungfu::longfist::types::BlockMessage> block_messages_ = {}; // <block_id, batch_flag>
   /// <strategy_uid, OrderInput>, a batch OrderInputs for a strategy
   std::unordered_map<uint64_t, std::vector<longfist::types::OrderInput>> order_inputs_ = {};
   /// <strategy_uid, batch_flag>, true mean batch mode for this strategy
   std::unordered_map<uint64_t, bool> batch_status_{};
-  std::unordered_map<std::string, std::unordered_set<uint64_t>> map_exchange_instrument_to_order_ids_{};
 
 private:
   bool sync_asset_ = false;
@@ -130,9 +129,9 @@ private:
 
   void handle_order_input(const event_ptr &event);
 
-  void handle_batch_order_tag(const event_ptr &event);
+  void handle_batch_begin_tag(const event_ptr &event);
 
-  bool has_self_deal_risk(const event_ptr &event);
+  void handle_batch_end_tag(const event_ptr &event);
 
   void recover();
 

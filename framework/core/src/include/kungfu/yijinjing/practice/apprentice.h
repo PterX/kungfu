@@ -117,6 +117,7 @@ protected:
   template <class DataType> std::string make_nano_msg(uint32_t source, uint32_t dest, const DataType &data) const {
     auto now = time::now_in_nano();
     nlohmann::json request;
+    request["data_type"] = int8_t(longfist::enums::FrameDataType::Json);
     request["msg_type"] = DataType::tag;
     request["gen_time"] = now;
     request["trigger_time"] = now;

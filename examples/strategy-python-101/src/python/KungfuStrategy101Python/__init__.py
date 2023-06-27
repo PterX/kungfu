@@ -14,10 +14,11 @@ def pre_start(context):
     context.subscribe(source, ["600000"], exchange)
     context.subscribe(source, ["600001"], exchange)
     context.subscribe(source, ["600002"], exchange)
-    # context.subscribe_operator("bar", "my-bar")
+    # context.subscribe_operator("bar", "mybar")
+    # context.subscribe_operator("default", "op1")
 
 
-def on_quote(context, quote, location):
+def on_quote(context, quote, location, dest):
     side = random.choice([Side.Buy, Side.Sell])
     side = Side.Buy
     price = quote.ask_price[0] if side == Side.Buy else quote.bid_price[0]
@@ -27,14 +28,14 @@ def on_quote(context, quote, location):
     )
 
 
-def on_synthetic_data(context, synthetic_dataa, location):
+def on_synthetic_data(context, synthetic_dataa, location, dest):
     context.log.info("on_synthetic_data: {}".format(synthetic_dataa))
 
 
-def on_order(context, order, location):
+def on_order(context, order, location, dest):
     if order.error_id != 0:
         context.log.info(f"order error {order.error_msg}")
 
 
-def on_trade(context, trade, location):
+def on_trade(context, trade, location, dest):
     context.log.info(f"traded")

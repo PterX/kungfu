@@ -75,14 +75,14 @@ bool locator::has_env(const std::string &name) const { return std::getenv(name.c
 
 std::string locator::get_env(const std::string &name) const { return std::getenv(name.c_str()); }
 
-std::string locator::layout_dir(const location_ptr &location, es::layout layout) const {
+std::string locator::layout_dir(const location_ptr &location, es::layout layout, bool create_not_exist) const {
   auto dir = root_ /                                     //
              es::get_layout_name(layout) /               //
              es::get_category_name(location->category) / //
              location->group /                           //
              location->name /                            //
              es::get_mode_name(location->mode);
-  if (not fs::exists(dir)) {
+  if (create_not_exist && not fs::exists(dir)) {
     fs::create_directories(dir);
   }
   return dir.string();
@@ -112,7 +112,10 @@ std::string locator::layout_file(const location_ptr &location, es::layout layout
 std::vector<uint32_t> locator::list_page_id(const location_ptr &location, uint32_t dest_id) const {
   std::vector<uint32_t> result = {};
   auto dest_id_str = fmt::format("{:08x}", dest_id);
-  auto dir = fs::path(layout_dir(location, es::layout::JOURNAL));
+  auto dir = fs::path(layout_dir(location, es::layout::JOURNAL, false));
+  if (not fs::exists(dir)) {
+    return {};
+  }
   for (auto &it : fs::recursive_directory_iterator(dir)) {
     auto basename = it.path().stem();
     if (it.is_regular_file() and it.path().extension() == ".journal" and basename.stem() == dest_id_str) {

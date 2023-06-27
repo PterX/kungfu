@@ -11,6 +11,7 @@
 #include <kungfu/yijinjing/practice/hero.h>
 #include <kungfu/yijinjing/time.h>
 #include <kungfu/yijinjing/util/os.h>
+#include <kungfu/yijinjing/util/util.h>
 
 using namespace kungfu::rx;
 using namespace kungfu::longfist::enums;
@@ -130,6 +131,10 @@ bool hero::has_location(uint32_t uid) const { return locations_.find(uid) != loc
 location_ptr hero::get_location(uint32_t uid) const {
   if (not has_location(uid)) {
     SPDLOG_ERROR("no location {} in locations_", uid);
+  }
+
+  if (location::PUBLIC == uid or location::SYNC == uid) {
+    return nullptr;
   }
 
   assert(has_location(uid));
@@ -352,8 +357,8 @@ void hero::produce(const rx::subscriber<event_ptr> &sb) {
   }
 }
 
-void hero::deal_notice(bool bypass, bool notify, const rx::subscriber<event_ptr> &sb) {
-  if (not bypass and io_device_->get_home()->mode == mode::LIVE and io_device_->get_observer()->wait()) {
+void hero::deal_notice(bool low_latency_master, bool notify, const rx::subscriber<event_ptr> &sb) {
+  if (low_latency_master and io_device_->get_home()->mode == mode::LIVE and io_device_->get_observer()->wait()) {
     const std::string &notice = io_device_->get_observer()->get_notice();
     now_ = time::now_in_nano();
     if (notice.length() > 2) {
@@ -365,12 +370,10 @@ void hero::deal_notice(bool bypass, bool notify, const rx::subscriber<event_ptr>
 }
 
 bool hero::drain(const rx::subscriber<event_ptr> &sb) {
-  deal_notice(false, true, sb);
-  bool is_lazy = io_device_->is_lazy();
-  bool is_low_latency = io_device_->is_low_latency();
-  bool bypass = is_lazy or !is_low_latency;
+  deal_notice(true, true, sb);
+  const bool low_latency_master = not io_device_->is_lazy() and io_device_->is_low_latency();
   while (live_ and reader_->data_available()) {
-    deal_notice(bypass, false, sb);
+    deal_notice(low_latency_master, false, sb);
     if (reader_->current_frame()->gen_time() <= end_time_) {
       int64_t frame_time = reader_->current_frame()->gen_time();
       if (frame_time > now_) {
@@ -401,4 +404,5 @@ void hero::delegate_produce(hero *instance, const rx::subscriber<event_ptr> &sub
   instance->produce(subscriber);
 #endif
 }
+
 } // namespace kungfu::yijinjing::practice

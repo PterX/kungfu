@@ -32,7 +32,7 @@ private:
 
   void do_clean();
 
-  bool is_cleaner_worker_required() const;
+  [[nodiscard]] bool is_cleaner_worker_required() const;
 };
 
 class apprentice : public hero {
@@ -77,6 +77,8 @@ public:
 
   bool release_page();
 
+  yijinjing::journal::writer_ptr &get_thread_writer();
+
 protected:
   cache::bank state_bank_;
 
@@ -94,6 +96,8 @@ protected:
 
   virtual void on_start();
 
+  void on_request_read_from_others(const event_ptr &event);
+
   void on_register(int64_t trigger_time, const longfist::types::Register &register_data);
 
   void on_deregister(const event_ptr &event);
@@ -110,16 +114,29 @@ protected:
 
   [[maybe_unused]] int get_observer_recv_timeout() const;
 
+  template <class DataType> std::string make_nano_msg(uint32_t source, uint32_t dest, const DataType &data) const {
+    auto now = time::now_in_nano();
+    nlohmann::json request;
+    request["msg_type"] = DataType::tag;
+    request["gen_time"] = now;
+    request["trigger_time"] = now;
+    request["source"] = source;
+    request["dest"] = dest;
+    request["data"] = nlohmann::json::parse(data.to_string());
+    return request.dump();
+  }
+
+  void reader_join(uint32_t source_id, uint32_t dest_id, int64_t from_time);
+
   std::function<rx::observable<event_ptr>(rx::observable<event_ptr>)> timer(int64_t nanotime) {
-    auto writer = get_writer(get_master_command_uid());
     int32_t timer_usage_count = timer_usage_count_;
     int64_t duration_ns = nanotime - now();
-    longfist::types::TimeRequest &r = writer->open_data<longfist::types::TimeRequest>(now());
+    longfist::types::TimeRequest r{};
     r.id = timer_usage_count;
     r.base_time = now();
     r.duration = duration_ns;
     r.repeat = 1;
-    writer->close_data();
+    get_io_device()->get_publisher()->publish(make_nano_msg(get_home_uid(), get_master_command_uid(), r));
     timer_checkpoints_[timer_usage_count] = now();
     timer_usage_count_++;
     return [&, duration_ns, timer_usage_count](const rx::observable<event_ptr> &src) {
@@ -134,27 +151,25 @@ protected:
   template <typename Duration, typename Enabled = rx::is_duration<Duration>>
   std::function<rx::observable<event_ptr>(rx::observable<event_ptr>)> time_interval(Duration &&d) {
     auto duration_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(d).count();
-    auto writer = get_writer(get_master_command_uid());
     int32_t timer_usage_count = timer_usage_count_;
-    longfist::types::TimeRequest &r = writer->open_data<longfist::types::TimeRequest>(now());
+    longfist::types::TimeRequest r{};
     r.id = timer_usage_count;
     r.base_time = now();
     r.duration = duration_ns;
     r.repeat = 1;
-    writer->close_data();
+    get_io_device()->get_publisher()->publish(make_nano_msg(get_home_uid(), get_master_command_uid(), r));
     timer_checkpoints_[timer_usage_count] = now();
     timer_usage_count_++;
     return [&, duration_ns, timer_usage_count](const rx::observable<event_ptr> &src) {
       return events_ | rx::filter([&, duration_ns, timer_usage_count](const event_ptr &event) {
                if (event->msg_type() == longfist::types::Time::tag &&
                    event->gen_time() > timer_checkpoints_[timer_usage_count] + duration_ns) {
-                 auto writer = get_writer(get_master_command_uid());
-                 longfist::types::TimeRequest &r = writer->open_data<longfist::types::TimeRequest>(now());
+                 longfist::types::TimeRequest r{};
                  r.id = timer_usage_count;
                  r.base_time = now();
                  r.duration = duration_ns;
                  r.repeat = 1;
-                 writer->close_data();
+                 get_io_device()->get_publisher()->publish(make_nano_msg(get_home_uid(), get_master_command_uid(), r));
                  timer_checkpoints_[timer_usage_count] = now();
                  return true;
                } else {
@@ -167,26 +182,24 @@ protected:
   template <typename Duration, typename Enabled = rx::is_duration<Duration>>
   std::function<rx::observable<event_ptr>(rx::observable<event_ptr>)> timeout(Duration &&d) {
     auto duration_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(d).count();
-    auto writer = get_writer(get_master_command_uid());
     int32_t timer_usage_count = timer_usage_count_;
-    longfist::types::TimeRequest &r = writer->open_data<longfist::types::TimeRequest>(now());
+    longfist::types::TimeRequest r{};
     r.id = timer_usage_count;
     r.base_time = now();
     r.duration = duration_ns;
     r.repeat = 1;
-    writer->close_data();
+    get_io_device()->get_publisher()->publish(make_nano_msg(get_home_uid(), get_master_command_uid(), r));
     timer_checkpoints_[timer_usage_count] = now();
     timer_usage_count_++;
     return [&, duration_ns, timer_usage_count](const rx::observable<event_ptr> &src) {
       return (src | rx::filter([&, duration_ns, timer_usage_count](const event_ptr &event) {
                 if (event->msg_type() != longfist::types::Time::tag) {
-                  auto writer = get_writer(get_master_command_uid());
-                  longfist::types::TimeRequest &r = writer->open_data<longfist::types::TimeRequest>(now());
+                  longfist::types::TimeRequest r{};
                   r.id = timer_usage_count;
                   r.base_time = now();
                   r.duration = duration_ns;
                   r.repeat = 1;
-                  writer->close_data();
+                  get_io_device()->get_publisher()->publish(make_nano_msg(get_home_uid(), get_master_command_uid(), r));
                   timer_checkpoints_[timer_usage_count] = now();
                   return true;
                 } else {
@@ -209,6 +222,8 @@ private:
   int32_t timer_usage_count_ = 0;
   yijinjing::practice::cleaner cleaner_;
   std::unordered_map<int, int64_t> timer_checkpoints_ = {};
+  inline static thread_local yijinjing::journal::writer_ptr thread_writer_;
+
   void checkin();
 
   void expect_start();

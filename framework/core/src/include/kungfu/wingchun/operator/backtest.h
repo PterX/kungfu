@@ -4,17 +4,26 @@
 #define WINGCHUN_OPERATOR_BACKTEST_H
 
 #include <kungfu/wingchun/operator/context.h>
+#include <kungfu/wingchun/tool/sliceindexer.h>
+#include <kungfu/wingchun/tool/slicetool.h>
 
 namespace kungfu::wingchun::op {
 class BacktestContext : public Context {
 public:
-  explicit BacktestContext(yijinjing::practice::apprentice &app, const rx::connectable_observable<event_ptr> &events);
+  explicit BacktestContext(yijinjing::practice::apprentice &app, const rx::connectable_observable<event_ptr> &events,
+                           tool::SliceIndexer_ptr from_indexer, tool::SliceIndexer_ptr to_indexer);
 
   /**
    * checked_ is strated started.
    * @return current time in nano seconds
    */
   virtual bool is_started() const override;
+
+  /**
+   * Get location_uid of current process
+   * @return location_uid
+   */
+  uint32_t get_home_uid() const override;
 
   /**
    * Get current time in nano seconds.
@@ -46,10 +55,10 @@ public:
    * Subscribe market data.
    * @param source MD group
    * @param instrument_ids instrument IDs
-   * @param exchange_ids exchange IDs
+   * @param exchange_id exchange ID
    */
   void subscribe(const std::string &source, const std::vector<std::string> &instrument_ids,
-                 const std::string &exchange_ids) override;
+                 const std::string &exchange_id) override;
 
   /**
    * Subscribe all from given MD
@@ -91,17 +100,17 @@ public:
    */
   broker::Client &get_broker_client() override;
 
+  yijinjing::data::location_ptr get_location(uint32_t location_uid) override;
+
 protected:
   virtual void on_start() override;
 
   void prepare(const event_ptr &event) override{};
 
-  yijinjing::data::location_ptr find_md_location(const std::string &source);
-
-  yijinjing::data::location_ptr find_op_location(const std::string &group, const std::string &name);
-
 private:
   broker::PassiveClient broker_client_;
+  tool::SliceIndexer_ptr from_indexer_;
+  tool::SliceTool_ptr slice_tool_;
   std::multimap<int64_t, std::function<void(event_ptr)>> pre_timer_callbacks_ = {};
   std::multimap<int64_t, std::function<void(event_ptr)>> timer_callbacks_ = {};
 

@@ -37,24 +37,29 @@ public:
 
   void post_stop(op::Context_ptr &context) override { PYBIND11_OVERLOAD(void, op::Operator, post_stop, context); }
 
-  void on_quote(op::Context_ptr &context, const Quote &quote,
-                const kungfu::yijinjing::data::location_ptr &location) override {
-    PYBIND11_OVERLOAD(void, op::Operator, on_quote, context, quote, location);
+  void on_quote(op::Context_ptr &context, const Quote &quote, const kungfu::yijinjing::data::location_ptr &location,
+                uint32_t dest) override {
+    PYBIND11_OVERLOAD(void, op::Operator, on_quote, context, quote, location, dest);
   }
 
   void on_entrust(op::Context_ptr &context, const Entrust &entrust,
-                  const kungfu::yijinjing::data::location_ptr &location) override {
-    PYBIND11_OVERLOAD(void, op::Operator, on_entrust, context, entrust, location);
+                  const kungfu::yijinjing::data::location_ptr &location, uint32_t dest) override {
+    PYBIND11_OVERLOAD(void, op::Operator, on_entrust, context, entrust, location, dest);
   }
 
   void on_transaction(op::Context_ptr &context, const Transaction &transaction,
-                      const kungfu::yijinjing::data::location_ptr &location) override {
-    PYBIND11_OVERLOAD(void, op::Operator, on_transaction, context, transaction, location);
+                      const kungfu::yijinjing::data::location_ptr &location, uint32_t dest) override {
+    PYBIND11_OVERLOAD(void, op::Operator, on_transaction, context, transaction, location, dest);
+  }
+
+  void on_tree(op::Context_ptr &context, const Tree &tree, const kungfu::yijinjing::data::location_ptr &location,
+               uint32_t dest) override {
+    PYBIND11_OVERLOAD(void, op::Operator, on_tree, context, tree, location, dest);
   }
 
   void on_synthetic_data(op::Context_ptr &context, const SyntheticData &synthetic_data,
-                         const kungfu::yijinjing::data::location_ptr &location) override {
-    PYBIND11_OVERLOAD(void, op::Operator, on_synthetic_data, context, synthetic_data, location);
+                         const kungfu::yijinjing::data::location_ptr &location, uint32_t dest) override {
+    PYBIND11_OVERLOAD(void, op::Operator, on_synthetic_data, context, synthetic_data, location, dest);
   }
 
   void on_deregister(op::Context_ptr &context, const Deregister &deregister,
@@ -81,6 +86,8 @@ void bind_operator(pybind11::module &m) {
       .def_property_readonly("context", &op::Runner::get_context)
       .def("set_begin_time", &op::Runner::set_begin_time)
       .def("set_end_time", &op::Runner::set_end_time)
+      .def("set_from_indexer", &op::Runner::set_from_indexer)
+      .def("set_to_indexer", &op::Runner::set_to_indexer)
       .def("now", &op::Runner::now)
       .def("run", &op::Runner::run)
       .def("setup", &op::Runner::setup)
@@ -112,6 +119,7 @@ void bind_operator(pybind11::module &m) {
       .def("on_quote", &op::Operator::on_quote)
       .def("on_entrust", &op::Operator::on_entrust)
       .def("on_transaction", &op::Operator::on_transaction)
+      .def("on_tree", &op::Operator::on_tree)
       .def("on_synthetic_data", &op::Operator::on_synthetic_data)
       .def("on_deregister ", &op::Operator::on_deregister)
       .def("on_broker_state_change ", &op::Operator::on_broker_state_change)

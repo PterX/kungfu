@@ -56,12 +56,10 @@ const { t } = VueI18n.global;
 const { error } = messagePrompt();
 
 const { getPriceTickAndPrecision } = useActiveInstruments();
-const { instrumentKeyAccountsMap, uiExtConfigs } = storeToRefs(
+const { instrumentKeyAccountsMap, uiExtConfigs, globalSetting } = storeToRefs(
   useGlobalStore(),
 );
 const { isLanguageKeyAvailable } = useLanguage();
-const { globalSetting } = storeToRefs(useGlobalStore());
-
 const { handleBodySizeChange } = useDashboardBodySize();
 const formState = ref(
   initFormStateByConfig(getConfigSettings('td', InstrumentTypeEnum.future), {}),
@@ -626,7 +624,7 @@ function closeModalConditions(
 
 const { handleOpenSetTradingTaskModal } = useTradingTask();
 async function handleOpenTradingTaskConfigModal(
-  kfExtConfig: KungfuApi.KfExtConfig,
+  kfExtConfig: KungfuApi.KfStrategyExtConfig,
 ) {
   try {
     if (!currentGlobalKfLocation.value) return;

@@ -5,10 +5,14 @@
 #include <kungfu/yijinjing/time.h>
 
 namespace kungfu::yijinjing::journal {
-reader::~reader() { journals_.clear(); }
+reader::~reader() {
+  release_page();
+  journals_.clear();
+}
 
 void reader::join(const data::location_ptr &location, uint32_t dest_id, const int64_t from_time) {
-  auto key = static_cast<uint64_t>(location->uid) << 32u | static_cast<uint64_t>(dest_id);
+  SPDLOG_TRACE("join: {}, dest_id: {}", location->to_string(), dest_id);
+  auto key = journal_key(location, dest_id);
   auto result = journals_.try_emplace(key, location, dest_id, false, lazy_, low_latency_, bus_);
   if (result.second) {
     journals_.at(key).seek_to_time(from_time);
@@ -20,7 +24,7 @@ void reader::join(const data::location_ptr &location, uint32_t dest_id, const in
 
 void reader::disjoin(const uint32_t location_uid) {
   for (auto it = journals_.begin(); it != journals_.end();) {
-    if (it->first >> 32u xor location_uid) {
+    if (it->first.location_uid != location_uid) {
       it++;
     } else {
       it = journals_.erase(it);
@@ -31,13 +35,12 @@ void reader::disjoin(const uint32_t location_uid) {
 }
 
 void reader::disjoin_channel(uint32_t location_uid, uint32_t dest_id) {
-  auto key = static_cast<uint64_t>(location_uid) << 32u | static_cast<uint64_t>(dest_id);
+  // auto key = static_cast<uint64_t>(location_uid) << 32u | static_cast<uint64_t>(dest_id);
   for (auto it = journals_.begin(); it != journals_.end();) {
-    if (it->first != key) {
-      it++;
+    if (it->first.location_uid == location_uid && it->first.dest_id == dest_id) {
+      it = journals_.erase(it);
     } else {
-      journals_.erase(it);
-      break; // only one journal erased
+      it++;
     }
   }
   current_ = nullptr;
@@ -80,7 +83,42 @@ bool reader::release_page() {
   for (auto &iter : journals_) {
     result |= iter.second.release_page();
   }
+  std::lock_guard<std::recursive_mutex> lk(mtx_);
+  replica_journals_.clear();
   return result;
+}
+
+reader::reader(const reader &other) : lazy_(other.lazy_), low_latency_(other.low_latency_), bus_(other.bus_) {
+  for (auto &j : other.journals_) {
+    journals_.emplace(j.first, j.second);
+    if (other.current_->get_source() == j.second.get_source() and other.current_->get_dest() == j.second.get_dest()) {
+      current_ = &(journals_.find(j.first)->second);
+    }
+  }
+}
+
+void reader::keep_only(uint32_t location_uid, uint32_t dest_id) {
+  for (auto it = journals_.begin(); it != journals_.end();) {
+    if (it->first.location_uid == location_uid && it->first.dest_id == dest_id) {
+      it++;
+    } else {
+      it = journals_.erase(it);
+    }
+  }
+  current_ = nullptr;
+  sort();
+}
+
+journal &reader::get_journal_ref(const data::location_ptr &location, uint32_t dest_id) {
+  auto key = journal_key(location, dest_id);
+  auto iter = journals_.find(key);
+  if (iter != journals_.end()) {
+    return iter->second;
+  }
+
+  auto result = journals_.try_emplace(key, location, dest_id, false, lazy_, low_latency_, bus_);
+  result.first->second.seek_to_time(time::now_in_nano());
+  return result.first->second;
 }
 
 } // namespace kungfu::yijinjing::journal

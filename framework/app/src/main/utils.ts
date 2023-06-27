@@ -25,7 +25,7 @@ export function openUrl(url: string): void {
 
 export function showKungfuInfo(): void {
   const version = packageJSON.version;
-  const electronVersion = packageJSON.devDependencies.electron;
+  const electronVersion = packageJSON.dependencies.electron;
   const info =
     `Version: ${version}\n` +
     `electron: ${electronVersion} \n` +
@@ -115,4 +115,12 @@ export function showCrashMessageBox(): Promise<boolean> {
         return false;
       }
     });
+}
+
+export function destoryAllWindows() {
+  const windows = BrowserWindow.getAllWindows();
+
+  windows.forEach((window) => {
+    window.destroy();
+  });
 }

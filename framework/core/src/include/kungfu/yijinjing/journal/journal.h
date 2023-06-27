@@ -16,14 +16,29 @@ namespace kungfu::yijinjing::journal {
 /**
  * Journal class, the abstraction of continuous memory access
  */
+struct journal_key {
+  journal_key(uint32_t locator_uid, uint32_t location_uid, uint32_t dest_id)
+      : locator_uid(locator_uid), location_uid(location_uid), dest_id(dest_id) {}
+  journal_key(const data::location_ptr &location, uint32_t dest_id)
+      : locator_uid(util::hash_str_32(location->locator->get_root())), location_uid(location->uid), dest_id(dest_id) {}
+  bool operator<(const journal_key &rhs) const {
+    return std::tie(locator_uid, location_uid, dest_id) < std::tie(rhs.locator_uid, rhs.location_uid, rhs.dest_id);
+  }
+  uint32_t locator_uid;
+  uint32_t location_uid;
+  uint32_t dest_id;
+};
 
-typedef std::unordered_map<uint64_t, journal> JournalMap;
+typedef std::map<journal_key, journal> JournalMap;
 class journal {
 public:
   journal(data::location_ptr location, uint32_t dest_id, bool is_writing, bool lazy, bool low_latency,
           const bus_ptr &bus)
       : location_(std::move(location)), dest_id_(dest_id), is_writing_(is_writing), lazy_(lazy),
-        low_latency_(low_latency), bus_(bus), frame_(std::shared_ptr<frame>(new frame())), page_frame_nb_(0u) {}
+        low_latency_(low_latency), bus_(bus), frame_(std::shared_ptr<frame>(new frame())), page_frame_nb_(0u),
+        replica_(false) {}
+
+  journal(const journal &other);
 
   ~journal();
 
@@ -68,6 +83,7 @@ private:
   std::recursive_mutex passed_page_collector_mtx_;
   frame_ptr frame_;
   uint64_t page_frame_nb_;
+  bool replica_{false};
 
   void load_page(int page_id);
 
@@ -86,6 +102,8 @@ public:
   explicit reader(bool lazy, bool low_latency, const bus_ptr &bus)
       : lazy_(lazy), low_latency_(low_latency), bus_(bus), current_(nullptr){};
 
+  reader(const reader &other);
+
   ~reader();
 
   /**
@@ -100,6 +118,8 @@ public:
 
   void disjoin_channel(uint32_t location_uid, uint32_t dest_id);
 
+  void keep_only(uint32_t location_uid, uint32_t dest_id);
+
   [[nodiscard]] frame_ptr current_frame() const { return current_->current_frame(); }
 
   [[nodiscard]] uint64_t current_frame_id() const { return current_->current_frame_id(); }
@@ -108,7 +128,9 @@ public:
 
   [[nodiscard]] uint32_t current_page_id() const { return current_->current_page_id(); }
 
-  [[maybe_unused]] [[nodiscard]] const JournalMap &get_journals() const { return journals_; }
+  [[nodiscard]] const JournalMap &get_journals() const { return journals_; }
+
+  journal &get_journal_ref(const data::location_ptr &location, uint32_t dest_id);
 
   bool data_available();
 
@@ -128,6 +150,8 @@ private:
   bus_ptr bus_;
   journal *current_;
   JournalMap journals_;
+  std::vector<journal> replica_journals_{};
+  std::recursive_mutex mtx_{};
 };
 
 class writer {
@@ -140,6 +164,8 @@ public:
   [[maybe_unused]] [[nodiscard]] uint32_t get_dest() const { return journal_.dest_id_; }
 
   [[nodiscard]] const journal &get_journal() const { return journal_; }
+
+  [[nodiscard]] const page_ptr get_current_page() const { return journal_.page_; }
 
   uint64_t current_frame_uid();
 
@@ -173,6 +199,11 @@ public:
   template <typename T> std::enable_if_t<size_fixed_v<T>, T &> open_data(int64_t trigger_time = 0) {
     auto frame = open_frame(trigger_time, T::tag, sizeof(T));
     return const_cast<T &>(frame->template data<T>());
+  }
+
+  template <typename T> T &open_custom_data(int32_t msg_type, int64_t trigger_time = 0) {
+    auto frame = open_frame(trigger_time, msg_type, sizeof(T));
+    return const_cast<T &>(*reinterpret_cast<const T *>(frame->data_address()));
   }
 
   void close_data(int64_t gen_time = time::now_in_nano());

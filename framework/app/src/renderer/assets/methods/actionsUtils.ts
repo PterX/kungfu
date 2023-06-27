@@ -23,7 +23,6 @@ import {
   SideEnum,
   StrategyExtTypes,
   OrderInputKeyEnum,
-  LedgerCategoryEnum,
   CurrencyEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
@@ -37,13 +36,12 @@ import {
   buildExtTypeMap,
   dealCategory,
   dealAssetsByHolderUID,
-  getAvailDaemonList,
+  getAvailExtServiceList,
   getStrategyStateStatusName,
   isBrokerStateReady,
   dealKfNumber,
   dealKfPrice,
   transformSearchInstrumentResultToInstrument,
-  booleanProcessEnv,
   isShotable,
   isT0,
   getTradingDataSortKey,
@@ -51,7 +49,9 @@ import {
   isCheckVersionLogicEnable,
   kfLogger,
   countDecimalPlaces,
+  buildTradingDataHeaders,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { BasketVolumeType } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import { writeCsvWithUTF8Bom } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
 import {
@@ -491,7 +491,9 @@ export const useDealExportHistoryTradingData = (): {
       const orderStatSortKey = getTradingDataSortKey('OrderStat');
       const orderStat = tradingData.OrderStat.sort(orderStatSortKey);
       const positionSortKey = getTradingDataSortKey('Position');
-      const positions = tradingData.Position.sort(positionSortKey);
+      const positions = (
+        window.watcher as KungfuApi.Watcher
+      ).ledger.Position.sort(positionSortKey);
       const assetSortKey = getTradingDataSortKey('Asset');
       const assets = tradingData.Asset.sort(assetSortKey);
       const orderInputSortKey = getTradingDataSortKey('OrderInput');
@@ -531,31 +533,37 @@ export const useDealExportHistoryTradingData = (): {
         writeCsvWithUTF8Bom(
           ordersFilename,
           orders,
+          buildTradingDataHeaders('Order', orders),
           dealTradingDataItemResolved(),
         ),
         writeCsvWithUTF8Bom(
           tradesFilename,
           trades,
+          buildTradingDataHeaders('Trade', trades),
           dealTradingDataItemResolved(),
         ),
         writeCsvWithUTF8Bom(
           orderStatFilename,
           orderStat,
+          buildTradingDataHeaders('OrderStat', orderStat),
           dealTradingDataItemResolved(true),
         ),
         writeCsvWithUTF8Bom(
           posFilename,
           positions,
+          buildTradingDataHeaders('Position', positions),
           dealTradingDataItemResolved(),
         ),
         writeCsvWithUTF8Bom(
           assetFilename,
           assets,
+          buildTradingDataHeaders('Asset', assets),
           dealTradingDataItemResolved(),
         ),
         writeCsvWithUTF8Bom(
           orderInputsFilename,
           orderInputs,
+          buildTradingDataHeaders('OrderInput', orderInputs),
           dealTradingDataItemResolved(),
         ),
       ])
@@ -577,22 +585,28 @@ export const useDealExportHistoryTradingData = (): {
       tradingData: KungfuApi.TradingData;
     } | null = null;
 
-    try {
-      historyData = await getKungfuHistoryData(
-        date,
-        dateType,
-        tradingDataType,
-        currentKfLocation,
-      );
-    } catch (err) {
-      if (err instanceof Error) {
-        if (err.message === 'database_locked') {
-          error(t('export_database_locked'));
+    if ((tradingDataType as KungfuApi.TradingDataTypeName) === 'Position') {
+      historyData = {
+        tradingData: (window.watcher as KungfuApi.Watcher).ledger,
+      };
+    } else {
+      try {
+        historyData = await getKungfuHistoryData(
+          date,
+          dateType,
+          tradingDataType,
+          currentKfLocation,
+        );
+      } catch (err) {
+        if (err instanceof Error) {
+          if (err.message === 'database_locked') {
+            error(t('export_database_locked'));
+          } else {
+            console.error(err);
+          }
         } else {
           console.error(err);
         }
-      } else {
-        console.error(err);
       }
     }
 
@@ -639,6 +653,7 @@ export const useDealExportHistoryTradingData = (): {
     return writeCsvWithUTF8Bom(
       filename,
       exportDatas,
+      buildTradingDataHeaders(tradingDataType, exportDatas),
       dealTradingDataItemResolved(),
     )
       .then(() => {
@@ -690,6 +705,42 @@ export const useDealExportHistoryTradingData = (): {
     exportEventData,
     handleConfirmExportDate,
   };
+};
+
+export const handleExportInstrumentWhitelists = async (): Promise<void> => {
+  const { filePaths } = await dialog.showOpenDialog({
+    properties: ['openDirectory', 'createDirectory', 'promptToCreate'],
+  });
+  if (!filePaths[0]) return;
+
+  const dateResolved = dayjs(Date.now()).format('YYYYMMDD');
+  const targetFolder = path.join(
+    filePaths[0],
+    `instrument-${dateResolved}.csv`,
+  );
+  const instrumentSortKey = getTradingDataSortKey('Instrument');
+  const instrument = (
+    window.watcher as KungfuApi.Watcher
+  ).ledger.Instrument.sort(instrumentSortKey);
+  const dealTradingDataItemResolved = (
+    isShowOriginData = false,
+  ): ((item: KungfuApi.TradingDataTypes) => Row) => {
+    return (item) =>
+      dealTradingDataItem(item, window.watcher, isShowOriginData) as Row;
+  };
+  writeCsvWithUTF8Bom(
+    targetFolder,
+    instrument,
+    buildTradingDataHeaders('Instrument', instrument),
+    dealTradingDataItemResolved(),
+  )
+    .then(() => {
+      shell.showItemInFolder(targetFolder);
+      success();
+    })
+    .catch((err: Error) => {
+      error(err.message);
+    });
 };
 
 export const showTradingDataDetail = (
@@ -1081,7 +1132,6 @@ export const useSubscibeInstrumentAtEntry = (
     useGlobalStore();
 
   const app = getCurrentInstance();
-  const SUBSCRIBE_INSTRUMENTS_LIMIT = 50;
 
   const getCurrentPositionsForSub = (watcher: KungfuApi.Watcher) => {
     if (!currentGlobalKfLocation.value) return [];
@@ -1095,7 +1145,7 @@ export const useSubscibeInstrumentAtEntry = (
 
     return positions
       .reverse()
-      .slice(0, SUBSCRIBE_INSTRUMENTS_LIMIT)
+      .slice(0, 128) // default subscribe 128 tickers, then subscribe by clicking position or manually subscribing
       .map((item: KungfuApi.Position): KungfuApi.InstrumentForSub => {
         const uidKey = hashInstrumentUKey(item.instrument_id, item.exchange_id);
         return {
@@ -1144,7 +1194,7 @@ export const useSubscibeInstrumentAtEntry = (
   onMounted(() => {
     if (app?.proxy) {
       const subscription = app.proxy.$tradingDataSubject
-        .pipe(throttleTime(3000))
+        .pipe(throttleTime(30000))
         .subscribe((watcher: KungfuApi.Watcher) => {
           const instrumentsForSub = customInstrumentsForSubGetter
             ? customInstrumentsForSubGetter(watcher)
@@ -1218,6 +1268,15 @@ export const useQuote = (): {
   getQuoteByInstrument(
     instrument: KungfuApi.InstrumentResolved | undefined,
   ): KungfuApi.Quote | null;
+  getQuoteByPosition(
+    posiiton: KungfuApi.Position | undefined,
+  ): KungfuApi.Quote | null;
+  getPositionLastPrice: <
+    T extends KungfuApi.Position | KungfuApi.PositionResolved,
+  >(
+    pos: T,
+    lastPriceKey?: keyof T,
+  ) => number;
   getLastPricePercent(
     instrument: KungfuApi.InstrumentResolved | undefined,
   ): string;
@@ -1255,6 +1314,49 @@ export const useQuote = (): {
     const { ukey } = instrument;
     const quote = quotes.value[ukey] as KungfuApi.Quote | undefined;
     return quote || null;
+  };
+
+  const getQuoteByPosition = (
+    position: KungfuApi.Position | undefined,
+  ): KungfuApi.Quote | null => {
+    if (!position) {
+      return null;
+    }
+
+    const ukey = hashInstrumentUKey(
+      position.instrument_id,
+      position.exchange_id,
+    );
+
+    const instrumentResolved: KungfuApi.InstrumentResolved = {
+      instrumentId: position.instrument_id,
+      exchangeId: position.exchange_id,
+      instrumentName: '',
+      instrumentType: position.instrument_type,
+      ukey,
+      id: position.uid_key,
+    };
+
+    return getQuoteByInstrument(instrumentResolved);
+  };
+
+  const getPositionLastPrice = <
+    T extends KungfuApi.Position | KungfuApi.PositionResolved,
+  >(
+    pos: T,
+    lastPriceKey: keyof T = 'last_price',
+  ) => {
+    //有行情时，根据 quote 和 position 更新时间取最新 last_price,
+    // 若 position 没有 last_price, 则取 quote 的 last_price
+    const quote = getQuoteByPosition(pos);
+    if (quote) {
+      return (
+        (quote.data_time > pos.update_time
+          ? quote.last_price
+          : Number(pos[lastPriceKey]) || quote.last_price) || 0
+      );
+    }
+    return Number(pos[lastPriceKey]) || 0;
   };
 
   const getLastPricePercent = (
@@ -1353,6 +1455,8 @@ export const useQuote = (): {
   return {
     quotes,
     getQuoteByInstrument,
+    getQuoteByPosition,
+    getPositionLastPrice,
     getLastPricePercent,
     getPreClosePrice,
     isInstrumentUpLimit,
@@ -1424,19 +1528,6 @@ export const useDealInstruments = (): void => {
   };
 };
 
-export const hashInstrumentUKeyResolved = (
-  instrumentId: string,
-  exchangeId: string,
-) => {
-  if (!window.ukeyCacheMap) window.ukeyCacheMap = new Map<string, string>();
-  const ukeyCacheMap = window.ukeyCacheMap;
-  const cacheKey = `${instrumentId}_${exchangeId}`;
-  if (!ukeyCacheMap.has(cacheKey))
-    ukeyCacheMap.set(cacheKey, hashInstrumentUKey(instrumentId, exchangeId));
-
-  return ukeyCacheMap.get(cacheKey) || '';
-};
-
 export const useActiveInstruments = () => {
   const { instrumentsMap } = useGlobalStore();
 
@@ -1445,7 +1536,7 @@ export const useActiveInstruments = () => {
     exchangeId: string,
     forceConvert = false,
   ) => {
-    const ukey = hashInstrumentUKeyResolved(instrumentId, exchangeId);
+    const ukey = hashInstrumentUKey(instrumentId, exchangeId);
     const instrumentResolved = instrumentsMap[ukey];
 
     if (instrumentResolved) {
@@ -1471,7 +1562,7 @@ export const useActiveInstruments = () => {
     instrumentId: string,
     exchangeId: string,
   ) => {
-    const ukey = hashInstrumentUKeyResolved(instrumentId, exchangeId);
+    const ukey = hashInstrumentUKey(instrumentId, exchangeId);
     const watcher = window.watcher as KungfuApi.Watcher;
     const instrument = watcher.ledger.Instrument[ukey];
     if (instrument) return instrument;
@@ -1485,7 +1576,7 @@ export const useActiveInstruments = () => {
   ) => {
     const instrument = getInstrumentByIdsWithWatcher(instrumentId, exchangeId);
     if (instrument) {
-      return instrument.currency_type;
+      return instrument.currency;
     }
 
     return CurrencyEnum.Unknown;
@@ -1495,10 +1586,13 @@ export const useActiveInstruments = () => {
     instrumentId: string,
     exchangeId: string,
     defaultTick = 0.001,
+    defaultPrecision = 0.001,
   ) => {
     const instrument = getInstrumentByIdsWithWatcher(instrumentId, exchangeId);
     const price_tick = instrument?.price_tick || defaultTick;
-    const price_precision = countDecimalPlaces(price_tick);
+    const price_precision = countDecimalPlaces(
+      instrument?.price_tick || defaultPrecision,
+    );
     return { price_tick, price_precision };
   };
 
@@ -1629,7 +1723,7 @@ export const useCurrentGlobalKfLocation = (
     KungfuApi.KfLocation | KungfuApi.KfLocationGroup | KungfuApi.KfConfig | null
   >;
   currentCategoryData: ComputedRef<KungfuApi.KfTradeValueCommonData | null>;
-  currentUID: ComputedRef<string>;
+  currentUID: ComputedRef<number>;
   setCurrentGlobalKfLocation(
     kfConfig:
       | KungfuApi.KfLocation
@@ -1714,11 +1808,11 @@ export const useCurrentGlobalKfLocation = (
 
   const currentUID = computed(() => {
     if (!watcher) {
-      return '';
+      return 0;
     }
 
     if (!currentGlobalKfLocation.value) {
-      return '';
+      return 0;
     }
 
     return watcher.getLocationUID(currentGlobalKfLocation.value);
@@ -1752,7 +1846,13 @@ export const useAllKfConfigData = (): Record<
 > => {
   const allKfConfigData: Record<KfCategoryTypes, KungfuApi.KfLocation[]> =
     reactive({
-      system: ref<(KungfuApi.KfConfig | KungfuApi.KfExtraLocation)[]>([
+      system: ref<
+        (
+          | KungfuApi.KfConfig
+          | KungfuApi.KfExtraLocation
+          | KungfuApi.KfExtServiceLocation
+        )[]
+      >([
         ...(process.env.NODE_ENV === 'development'
           ? [
               {
@@ -1783,7 +1883,6 @@ export const useAllKfConfigData = (): Record<
         },
       ]),
 
-      daemon: [],
       md: [],
       td: [],
       strategy: [],
@@ -1800,8 +1899,8 @@ export const useAllKfConfigData = (): Record<
     allKfConfigData.strategy = strategyList as unknown as KungfuApi.KfConfig[];
     allKfConfigData.operator = operatorList as unknown as KungfuApi.KfConfig[];
 
-    getAvailDaemonList().then((daemonList) => {
-      allKfConfigData.daemon = daemonList;
+    getAvailExtServiceList().then((extServiceList) => {
+      allKfConfigData.system.push(...extServiceList);
     });
   });
 
@@ -1922,65 +2021,20 @@ export const playSound = (type: 'ding' | 'warn' = 'ding'): void => {
 
 export const useCurrentPositionList = () => {
   const app = getCurrentInstance();
-  type PosStat = Record<string, KungfuApi.Position>;
 
   const { currentGlobalKfLocation } = useCurrentGlobalKfLocation(
     window.watcher,
   );
+  const { dealDataWithCache } = useDealDataWithCaches<
+    KungfuApi.Position,
+    KungfuApi.PositionResolved
+  >(['uid_key', 'update_time']);
   const currentPositionList = ref<KungfuApi.PositionResolved[]>([]);
-  const allPositionMap = ref<PosStat>({});
-
-  function buildPrositionMapKey(
-    exchangeId: string,
-    instrumentId: string,
-    direction: DirectionEnum,
-  ) {
-    return `${exchangeId}_${instrumentId}_${direction}`;
-  }
-
-  function buildGlobalPositions(positions: KungfuApi.Position[]): PosStat {
-    return positions.reduce((posStat, pos) => {
-      const id = buildPrositionMapKey(
-        pos.exchange_id,
-        pos.instrument_id,
-        pos.direction,
-      );
-      if (!posStat[id]) {
-        posStat[id] = pos;
-      } else {
-        const prePosStat = posStat[id];
-        const { avg_open_price, volume, yesterday_volume, unrealized_pnl } =
-          prePosStat;
-        posStat[id] = {
-          ...prePosStat,
-          uid_key: pos.uid_key,
-          yesterday_volume: yesterday_volume + pos.yesterday_volume,
-          volume: volume + pos.volume,
-
-          avg_open_price:
-            (avg_open_price * Number(volume) +
-              pos.avg_open_price * Number(pos.volume)) /
-            (Number(pos.volume) + Number(pos.volume)),
-          unrealized_pnl: unrealized_pnl + pos.unrealized_pnl,
-        };
-      }
-      return posStat;
-    }, {} as PosStat);
-  }
 
   onMounted(() => {
     if (app?.proxy) {
       const subscription = app.proxy.$tradingDataSubject.subscribe(
         (watcher: KungfuApi.Watcher) => {
-          const allPositions = watcher.ledger.Position.nofilter(
-            'volume',
-            BigInt(0),
-          )
-            .filter('ledger_category', LedgerCategoryEnum.td)
-            .list();
-
-          allPositionMap.value = toRaw(buildGlobalPositions(allPositions));
-
           if (currentGlobalKfLocation.value === null) {
             return;
           }
@@ -1996,7 +2050,9 @@ export const useCurrentPositionList = () => {
           currentPositionList.value = toRaw(
             currentPositions
               .reverse()
-              .map((item) => dealPosition(watcher, item)),
+              .map((item) =>
+                dealDataWithCache(item, () => dealPosition(watcher, item)),
+              ),
           );
         },
       );
@@ -2008,8 +2064,6 @@ export const useCurrentPositionList = () => {
   });
 
   return {
-    allPositionMap,
-    buildPrositionMapKey,
     currentPositionList,
   };
 };
@@ -2020,6 +2074,7 @@ export const useMakeOrderInfo = (
   const { currentGlobalKfLocation } = useCurrentGlobalKfLocation(
     window.watcher,
   );
+  const { getPositionLastPrice } = useQuote();
   const { currentPositionList } = useCurrentPositionList();
   const { getAssetsByKfConfig } = useAssets();
 
@@ -2194,7 +2249,9 @@ export const useMakeOrderInfo = (
     if (price_type === PriceTypeEnum.Limit) {
       return limit_price as number;
     } else if (price_type === PriceTypeEnum.Market) {
-      return currentPosition.value?.last_price ?? null;
+      if (currentPosition.value) {
+        return getPositionLastPrice(currentPosition.value) || null;
+      }
     }
 
     return null;
@@ -2203,12 +2260,15 @@ export const useMakeOrderInfo = (
   const currentTradeAmount = computed(() => {
     const { volume } = formState.value;
 
-    if (instrumentResolved.value) {
+    if (instrumentResolved.value && currentAccountLocation.value) {
       const instrumentForAccounting: KungfuApi.InstrumentForAccounting = {
         ...instrumentResolved.value,
         price: currentPrice.value ?? 0,
         volume,
         direction: currentFormDirection.value || DirectionEnum.Long,
+        accountUID: (window.watcher as KungfuApi.Watcher).getLocationUID(
+          currentAccountLocation.value,
+        ),
       };
       if (instrumentResolved.value.instrumentType in TradeAccountingUsageMap) {
         return dealTradeAmount(
@@ -2517,7 +2577,7 @@ export const useBasket = () => {
 export const useDealDataWithCaches = <T, U>(keys: Array<keyof T>) => {
   const caches = new Map<string, U>();
 
-  const dealerResolved = (data: T, dealer: () => U): U => {
+  const dealDataWithCache = (data: T, dealer: () => U): U => {
     const curKey = keys.map((key) => data[key]).join('_');
     if (caches.has(curKey)) {
       const value = caches.get(curKey);
@@ -2535,8 +2595,12 @@ export const useDealDataWithCaches = <T, U>(keys: Array<keyof T>) => {
     caches.clear();
   };
 
+  onBeforeUnmount(() => {
+    caches.clear();
+  });
+
   return {
-    dealerResolved,
+    dealDataWithCache,
     clearCaches,
   };
 };

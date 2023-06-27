@@ -36,6 +36,8 @@ import {
   Dropdown,
   Progress,
   Popover,
+  Breadcrumb,
+  Badge,
 } from 'ant-design-vue';
 
 import {
@@ -46,10 +48,10 @@ import {
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
 import {
-  booleanProcessEnv,
   delayMilliSeconds,
   buildIfWatcherLiveObservable,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   Pm2ProcessStatusDetailData,
   Pm2ProcessStatusData,
@@ -114,6 +116,8 @@ app
   .use(Dropdown)
   .use(Progress)
   .use(Popover)
+  .use(Breadcrumb)
+  .use(Badge)
   .use(VueVirtualScroller);
 
 app.config.globalProperties.$antLocalesMap = {

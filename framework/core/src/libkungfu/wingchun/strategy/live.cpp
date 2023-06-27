@@ -18,6 +18,7 @@ using namespace kungfu::longfist::enums;
 using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::util;
+using namespace kungfu::yijinjing::journal;
 
 namespace kungfu::wingchun::strategy {
 
@@ -27,8 +28,18 @@ LiveContext::LiveContext(apprentice &app, const rx::connectable_observable<event
 }
 
 void LiveContext::on_start() {
+  SPDLOG_DEBUG("arguments_: {}", arguments_);
+  if (not arguments_.empty()) {
+    auto config = nlohmann::json::parse(arguments_);
+    if (config.value<bool>("bypass_accounting", false)) {
+      bypass_accounting();
+    }
+  }
+
   broker_client_.on_start(events_);
-  bookkeeper_.on_start(events_);
+  if (not is_bypass_accounting()) {
+    bookkeeper_.on_start(events_);
+  }
   basketorder_engine_.on_start(events_);
 }
 
@@ -49,12 +60,8 @@ void LiveContext::prepare(const event_ptr &event) {
   auto writer = app_.get_writer(ledger_uid);
 
   auto connected_test = [&](const auto &locations) {
-    for (const auto &pair : locations) {
-      if (not get_broker_client().is_connected(pair.second->uid)) {
-        return false;
-      }
-    }
-    return true;
+    return std::all_of(locations.begin(), locations.end(),
+                       [&](const auto &it) { return get_broker_client().is_connected(it.second->uid); });
   };
   if (not broker_states_requested_ and connected_test(list_accounts()) and connected_test(list_md()) and
       connected_test(list_op())) {
@@ -64,12 +71,8 @@ void LiveContext::prepare(const event_ptr &event) {
   }
 
   auto ready_test = [&](const auto &locations) {
-    for (const auto &pair : locations) {
-      if (not get_broker_client().is_ready(pair.second->uid)) {
-        return false;
-      }
-    }
-    return true;
+    return std::all_of(locations.begin(), locations.end(),
+                       [&](const auto &it) { return get_broker_client().is_ready(it.second->uid); });
   };
   if (not ready_test(list_accounts()) or not ready_test(list_md()) or not ready_test(list_op())) {
     return;
@@ -136,7 +139,6 @@ void LiveContext::add_account(const std::string &source, const std::string &acco
   account_location_ids_.emplace(hashed_account, account_location->uid);
 
   broker_client_.enroll_account(account_location);
-  //  ensure_connect();
 }
 
 void LiveContext::subscribe(const std::string &source, const std::vector<std::string> &instrument_ids,
@@ -211,6 +213,7 @@ uint64_t LiveContext::insert_order(const std::string &instrument_id, const std::
     return 0;
   }
   auto writer = app_.get_writer(account_location_uid);
+  page_ptr page = writer->get_current_page(); // prevent that page released after close_data before on_order_input
   OrderInput &input = writer->open_data<OrderInput>(app_.now());
   input.order_id = writer->current_frame_uid();
   strcpy(input.instrument_id, instrument_id.c_str());
@@ -227,11 +230,11 @@ uint64_t LiveContext::insert_order(const std::string &instrument_id, const std::
   input.parent_id = parent_id;
   input.is_swap = is_swap;
   input.insert_time = insert_time;
-  OrderInput input_copy{};
-  memcpy(&input_copy, &input, sizeof(OrderInput));
   writer->close_data();
-  bookkeeper_.on_order_input(app_.now(), app_.get_home_uid(), account_location_uid, input_copy);
-  return input_copy.order_id;
+  if (not is_bypass_accounting()) {
+    bookkeeper_.on_order_input(app_.now(), app_.get_home_uid(), account_location_uid, input);
+  }
+  return input.order_id;
 }
 
 uint64_t LiveContext::insert_order_input(const std::string &source, const std::string &account,
@@ -250,14 +253,14 @@ uint64_t LiveContext::insert_order_input(const std::string &source, const std::s
   }
   auto writer = app_.get_writer(account_location_uid);
   OrderInput &input = writer->open_data<OrderInput>(app_.now());
+  order_input.order_id = order_input.order_id == 0 ? writer->current_frame_uid() : order_input.order_id;
+  order_input.insert_time = time::now_in_nano();
   memcpy(&input, &order_input, sizeof(input));
-  input.order_id = input.order_id == 0 ? writer->current_frame_uid() : input.order_id;
-  input.insert_time = time::now_in_nano();
-  OrderInput input_copy{};
-  memcpy(&input_copy, &input, sizeof(OrderInput));
   writer->close_data();
-  bookkeeper_.on_order_input(app_.now(), app_.get_home_uid(), account_location_uid, input);
-  return input_copy.order_id;
+  if (not is_bypass_accounting()) {
+    bookkeeper_.on_order_input(app_.now(), app_.get_home_uid(), account_location_uid, order_input);
+  }
+  return order_input.order_id;
 }
 
 std::vector<uint64_t>
@@ -328,6 +331,7 @@ uint64_t LiveContext::insert_basket_order(uint64_t basket_id, const std::string 
   }
 
   auto writer = app_.get_writer(account_location_uid);
+  page_ptr page = writer->get_current_page(); // prevent that page released between close_data and insert_basket_order
   BasketOrder &input = writer->open_data<BasketOrder>(app_.now());
   input.order_id = writer->current_frame_uid();
   input.parent_id = basket_id;
@@ -341,11 +345,9 @@ uint64_t LiveContext::insert_basket_order(uint64_t basket_id, const std::string 
   input.insert_time = insert_time;
   input.calculation_mode =
       input.volume == VOLUME_ZERO ? BasketOrderCalculationMode::Dynamic : BasketOrderCalculationMode::Static;
-  BasketOrder input_copy{};
-  memcpy(&input_copy, &input, sizeof(BasketOrder));
   writer->close_data();
-  basketorder_engine_.insert_basket_order(app_.now(), input_copy);
-  return input_copy.order_id;
+  basketorder_engine_.insert_basket_order(app_.now(), input);
+  return input.order_id;
 }
 
 uint64_t LiveContext::cancel_order(uint64_t order_id) {
@@ -437,10 +439,6 @@ void LiveContext::update_strategy_state(StrategyStateUpdate &state_update) {
   writer->write(state_update.update_time, state_update);
 }
 
-yijinjing::journal::writer_ptr LiveContext::get_writer(const std::string &source, const std::string &account) {
-  return app_.get_writer(get_td_location_uid(source, account));
-}
-
 void LiveContext::ensure_connect() {
   if (not is_started()) {
     return;
@@ -467,4 +465,11 @@ void LiveContext::send_instrument_keys() {
     broker_client_.try_renew(app_.now(), pair.second);
   }
 }
+
+yijinjing::data::location_ptr LiveContext::get_location(uint32_t location_uid) {
+  return app_.get_location(location_uid);
+}
+
+uint32_t LiveContext::get_home_uid() const { return app_.get_home_uid(); }
+
 } // namespace kungfu::wingchun::strategy

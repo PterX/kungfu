@@ -23,6 +23,12 @@ public:
   int64_t now() const override;
 
   /**
+   * Get location_uid of current process
+   * @return location_uid
+   */
+  uint32_t get_home_uid() const override;
+
+  /**
    * Get config from database.
    * @return config of current location_uid
    */
@@ -46,10 +52,10 @@ public:
    * Subscribe market data.
    * @param source MD group
    * @param instrument_ids instrument IDs
-   * @param exchange_ids exchange IDs
+   * @param exchange_id exchange ID
    */
   void subscribe(const std::string &source, const std::vector<std::string> &instrument_ids,
-                 const std::string &exchange_ids) override;
+                 const std::string &exchange_id) override;
 
   /**
    * Subscribe all from given MD
@@ -101,9 +107,11 @@ public:
    * Get broker client.
    * @return broker client reference
    */
-  broker::Client &get_broker_client();
+  broker::Client &get_broker_client() override;
 
   void check_dependency_state(const event_ptr &event);
+
+  yijinjing::data::location_ptr get_location(uint32_t location_uid) override;
 
 protected:
   const yijinjing::data::location_ptr &

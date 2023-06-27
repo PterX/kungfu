@@ -54,12 +54,17 @@ export const getColumns = (
   },
 ];
 
-export const setStrategyConfig: KungfuApi.KfExtConfig = {
+export const setStrategyConfig: KungfuApi.KfStrategyExtConfig = {
   type: [],
   name: t('strategyConfig.strategy'),
   category: 'strategy',
   key: 'default',
   extPath: '',
+  version: '',
+  mainRepoVersion: '',
+  description: '',
+  readmePath: '',
+  releaseNotePath: '',
   settings: [
     {
       key: 'strategy_id',

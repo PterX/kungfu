@@ -38,6 +38,18 @@ service_command_context = kfc.pass_context("low_latency")
     type=str,
     help="path to matcher dll",
 )
+@click.option(
+    "-F",
+    "--from_indexer",
+    type=str,
+    help="path to from_indexer .py",
+)
+@click.option(
+    "-T",
+    "--to_indexer",
+    type=str,
+    help="path to to_indexer .py",
+)
 @click.option("-b", "--begin", type=str, required=False, help="begin time")
 @click.option("-e", "--end", type=str, required=False, help="end time")
 @click.option("-g", "--group", type=str, help="group")
@@ -54,6 +66,8 @@ def run(
     category,
     backtest,
     matcher,
+    from_indexer,
+    to_indexer,
     begin,
     end,
     group,
@@ -68,6 +82,8 @@ def run(
     ctx.category = category
     ctx.backtest = backtest
     ctx.matcher = matcher
+    ctx.from_indexer = from_indexer
+    ctx.to_indexer = to_indexer
     ctx.begin = begin
     ctx.end = end
     ctx.group = group
@@ -77,6 +93,9 @@ def run(
     ctx.path = reference
     ctx.arguments = arguments
     ctx.vendor = vendor
+
+    if ctx.arguments is None:
+        ctx.arguments = ""
 
     registry = ExecutorRegistry(ctx)
 

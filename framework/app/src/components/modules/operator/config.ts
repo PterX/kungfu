@@ -57,12 +57,17 @@ export const addOperatorConfig: KungfuApi.KfConfigItem = {
   ],
 };
 
-export const setOperatorConfig: KungfuApi.KfExtConfig = {
+export const setOperatorConfig: KungfuApi.KfOperatorExtConfig = {
   type: [],
   name: t('operatorConfig.operator'),
   category: 'operator',
   key: 'default',
   extPath: '',
+  version: '',
+  mainRepoVersion: '',
+  description: '',
+  readmePath: '',
+  releaseNotePath: '',
   settings: [
     {
       key: 'operator_id',

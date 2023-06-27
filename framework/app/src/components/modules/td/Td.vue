@@ -11,6 +11,7 @@ import Icon, {
   SettingOutlined,
   DeleteOutlined,
   BankOutlined,
+  ReloadOutlined,
 } from '@ant-design/icons-vue';
 
 import { categoryRegisterConfig, getColumns } from './config';
@@ -77,7 +78,7 @@ const setTdModalVisible = ref<boolean>(false);
 const setTdConfigPayload = ref<KungfuApi.SetKfConfigPayload>({
   type: 'add',
   title: t('Td'),
-  config: {} as KungfuApi.KfExtConfig,
+  config: {} as KungfuApi.KfTdExtConfig,
 });
 
 const currentSelectedSourceId = ref<string>('');
@@ -112,7 +113,7 @@ const tdGroupNames = computed(() => {
 const addTdGroupConfigPayload = ref<KungfuApi.SetKfConfigPayload>({
   type: 'add',
   title: t('tdConfig.account_group'),
-  config: {} as KungfuApi.KfExtConfig,
+  config: {} as KungfuApi.KfTdExtConfig,
 });
 
 const { searchKeyword, tableData } = useTableSearchKeyword<
@@ -223,7 +224,7 @@ async function handleOpenSetTdModal(
   selectedSource: string,
   tdConfig?: KungfuApi.KfConfig,
 ) {
-  const extConfig: KungfuApi.KfExtConfig = (extConfigs.value['td'] || {})[
+  const extConfig: KungfuApi.KfTdExtConfig = (extConfigs.value['td'] || {})[
     selectedSource
   ];
 
@@ -276,6 +277,11 @@ function handleOpenAddTdGroupDialog(type: KungfuApi.ModalChangeType) {
     category: 'tdGroup',
     key: 'TdGroup',
     extPath: '',
+    version: '',
+    mainRepoVersion: '',
+    description: '',
+    readmePath: '',
+    releaseNotePath: '',
     settings: [
       {
         key: 'td_group_name',
@@ -366,6 +372,15 @@ function handleRemoveTd(item: KungfuApi.KfConfig) {
       error(err.message || t('operation_failed'));
     });
 }
+
+function handleRequestPosition() {
+  const res = window.watcher.requestPosition(window.watcher);
+  if (res) {
+    success(t('operation_success'));
+  } else {
+    error(t('operation_failed'));
+  }
+}
 </script>
 
 <template>
@@ -384,6 +399,13 @@ function handleRemoveTd(item: KungfuApi.KfConfig) {
             :checked="allProcessOnline"
             @click="handleSwitchAllProcessStatus"
           ></a-switch>
+        </KfDashboardItem>
+        <KfDashboardItem>
+          <a-button size="small" @click="handleRequestPosition">
+            <template #icon>
+              <ReloadOutlined style="font-size: 14px" />
+            </template>
+          </a-button>
         </KfDashboardItem>
         <KfDashboardItem>
           <a-button size="small" @click="handleOpenAddTdGroupDialog('add')">

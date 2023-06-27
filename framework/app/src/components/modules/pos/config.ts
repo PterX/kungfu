@@ -1,5 +1,5 @@
 import { DealTradingTableHooks } from '@kungfu-trader/kungfu-js-api/hooks/dealTradingTableHook';
-import { isTdStrategyCategory } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { isTd } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 const { t } = VueI18n.global;
 
@@ -26,7 +26,7 @@ export const getColumns = (
         sorter: buildStrSorter('instrument_id_resolved'),
         width: 140,
       },
-      ...(isTdStrategyCategory(kfLocation.category)
+      ...(isTd(kfLocation.category)
         ? []
         : [
             {
@@ -86,21 +86,21 @@ export const getColumns = (
       {
         type: 'number',
         name: t('posGlobalConfig.avg_open_price'),
-        dataIndex: 'avg_open_price',
+        dataIndex: 'avg_open_price_resolved',
         flex: 1.2,
         sorter: buildSorter('avg_open_price'),
       },
       {
         type: 'number',
         name: t('posGlobalConfig.last_price'),
-        dataIndex: 'last_price',
+        dataIndex: 'last_price_resolved',
         flex: 1.5,
         sorter: buildSorter('last_price'),
       },
       {
         type: 'number',
         name: t('posGlobalConfig.unrealized_pnl'),
-        dataIndex: 'unrealized_pnl',
+        dataIndex: 'unrealized_pnl_resolved',
         flex: 1.5,
         sorter: buildSorter('unrealized_pnl'),
       },

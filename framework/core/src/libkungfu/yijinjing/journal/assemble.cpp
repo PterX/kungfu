@@ -261,4 +261,10 @@ void assemble::disjoin_channel(uint32_t location_uid, uint32_t dest_id) {
   }
 }
 
+void assemble::move_to_time(int64_t nano_time) {
+  while (data_available() and current_frame()->trigger_time() < nano_time) {
+    next();
+  }
+}
+
 } // namespace kungfu::yijinjing::journal

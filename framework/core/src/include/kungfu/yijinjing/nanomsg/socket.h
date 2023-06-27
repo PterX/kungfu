@@ -176,6 +176,8 @@ struct nanomsg_json : event {
 
   [[nodiscard]] std::string to_string() const override { return msg_; }
 
+  [[nodiscard]] int8_t data_type() const override { return get_meta<int8_t>("data_type", 0); }
+
 private:
   const nlohmann::json binding_;
   const std::string msg_;

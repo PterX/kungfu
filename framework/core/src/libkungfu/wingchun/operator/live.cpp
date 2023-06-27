@@ -2,7 +2,7 @@
 
 #include <fmt/format.h>
 
-#include <kungfu/wingchun/operator/runtime.h>
+#include <kungfu/wingchun/operator/live.h>
 #include <kungfu/yijinjing/log.h>
 #include <kungfu/yijinjing/time.h>
 
@@ -84,10 +84,10 @@ void LiveContext::add_time_interval(int64_t duration, const std::function<void(e
 }
 
 void LiveContext::subscribe(const std::string &source, const std::vector<std::string> &instrument_ids,
-                            const std::string &exchange_ids) {
+                            const std::string &exchange_id) {
   auto md_location = find_md_location(source);
   for (const auto &instrument_id : instrument_ids) {
-    broker_client_.subscribe(md_location, exchange_ids, instrument_id);
+    broker_client_.subscribe(md_location, exchange_id, instrument_id);
   }
   md_locations_.emplace(md_location->uid, md_location);
 }
@@ -189,5 +189,11 @@ void LiveContext::update_operator_state(OperatorStateUpdate &state_update) {
   state_update.location_uid = app_.get_home_uid();
   writer->write(state_update.update_time, state_update);
 }
+
+yijinjing::data::location_ptr LiveContext::get_location(uint32_t location_uid) {
+  return app_.get_location(location_uid);
+}
+
+uint32_t LiveContext::get_home_uid() const { return app_.get_home_uid(); }
 
 } // namespace kungfu::wingchun::op

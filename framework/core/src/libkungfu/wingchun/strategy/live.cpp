@@ -48,6 +48,7 @@ bool LiveContext::is_started() const { return started_; }
 void LiveContext::prepare(const event_ptr &event) {
   if (event->msg_type() == Position::tag) {
     const Position &position = event->data<Position>();
+    SPDLOG_INFO("Position: {}", position.to_string());
     if (position.holder_uid == app_.get_home_uid()) {
       get_broker_client().subscribe(position.exchange_id, position.instrument_id);
     }
@@ -103,6 +104,7 @@ void LiveContext::prepare(const event_ptr &event) {
   }
   if (event->msg_type() == PositionEnd::tag and event->source() == ledger_uid) {
     positions_set_ = true;
+    return;
   }
   if (not positions_set_) {
     return;

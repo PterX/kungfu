@@ -56,6 +56,7 @@ void Bookkeeper::on_start(const rx::connectable_observable<event_ptr> &events) {
   events | fork<Position>(location::SYNC, &Bookkeeper::try_update_position_replica, &Bookkeeper::try_update_position);
   events | fork<PositionEnd>(location::SYNC, &Bookkeeper::update_position_guard, &Bookkeeper::try_update_position_end);
   events | is(ResetBookRequest::tag) | $$(drop_book(event->source()));
+  events | is(Channel::tag) | $$(inspect_channel(event));
 
   if (bypass_quote_) {
     app_.add_time_interval(yijinjing::time_unit::NANOSECONDS_PER_SECOND * 15,
@@ -170,7 +171,9 @@ void Bookkeeper::update_instrument_factor(const longfist::types::InstrumentFacto
 void Bookkeeper::update_book(const event_ptr &event, const InstrumentKey &instrument_key) {
   std::lock_guard<std::mutex> lock(update_book_mutex_);
   broker_client_.subscribe(instrument_key);
-  get_book(event->source())->ensure_position_for(instrument_key);
+  auto book = get_book(event->source());
+  book->add_source_id(event->source());
+  book->ensure_position_for(instrument_key);
 }
 
 void Bookkeeper::try_update_book(const event_ptr &event, const Quote &quote) {
@@ -373,7 +376,11 @@ void Bookkeeper::add_book_listener(const BookListener_ptr &book_listener) { book
 
 void Bookkeeper::mirror_positions(int64_t trigger_time, uint32_t strategy_uid) {
   auto strategy_book = get_book(strategy_uid);
-
+  SPDLOG_INFO("long_positions: {}, short_positions: {}", strategy_book->long_positions.size(),
+              strategy_book->short_positions.size());
+  for (const auto &pair : strategy_book->long_positions) {
+    SPDLOG_INFO("Position: {}", pair.second.to_string());
+  }
   auto reset_positions = [trigger_time](auto &position) {
     position.volume = 0;
     position.yesterday_volume = 0;
@@ -387,13 +394,16 @@ void Bookkeeper::mirror_positions(int64_t trigger_time, uint32_t strategy_uid) {
   strategy_book->apply_long_positions(reset_positions);
 
   auto copy_positions = [&](auto &position) {
-    auto &strategy_position = strategy_book->get_position(position.source_id, position.direction, position.exchange_id,
-                                                          position.instrument_id);
-    longfist::copy(strategy_position, position);
-    strategy_position.holder_uid = strategy_uid;
-    strategy_position.ledger_category = LedgerCategory::Strategy;
-    strategy_position.update_time = trigger_time;
-    strategy_position.source_id = position.source_id;
+    if (strategy_book->has_position(position.source_id, position.direction, position.exchange_id,
+                                    position.instrument_id)) {
+      auto &strategy_position = strategy_book->get_position(position.source_id, position.direction,
+                                                            position.exchange_id, position.instrument_id);
+      longfist::copy(strategy_position, position);
+      strategy_position.holder_uid = strategy_uid;
+      strategy_position.ledger_category = LedgerCategory::Strategy;
+      strategy_position.update_time = trigger_time;
+      strategy_position.source_id = position.source_id;
+    }
   };
 
   for (const auto &pair : get_books()) {
@@ -402,10 +412,19 @@ void Bookkeeper::mirror_positions(int64_t trigger_time, uint32_t strategy_uid) {
     if (book->asset.ledger_category == LedgerCategory::Account and app_.has_channel(strategy_uid, holder_uid)) {
       book->apply_long_positions(copy_positions);
       book->apply_short_positions(copy_positions);
-      book->add_source_id(holder_uid);
+      //      book->add_source_id(holder_uid);
     }
   }
   strategy_book->update(trigger_time, account_method_type_);
+}
+
+void Bookkeeper::inspect_channel(const event_ptr &event) {
+  const Channel &channel = event->data<Channel>();
+  if (app_.get_location(channel.source_id)->category != category::TD and
+      app_.get_location(channel.dest_id)->category == category::TD) {
+    get_book(channel.source_id)->add_source_id(channel.source_id);
+    get_book(channel.source_id)->add_source_id(channel.dest_id);
+  }
 }
 
 } // namespace kungfu::wingchun::book

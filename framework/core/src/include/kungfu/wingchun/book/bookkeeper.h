@@ -167,6 +167,8 @@ private:
   void update_position_guard(const longfist::types::PositionEnd &position_end);
 
   Book_ptr get_book_replica(uint32_t location_uid);
+
+  void inspect_channel(const event_ptr &event);
 };
 } // namespace kungfu::wingchun::book
 #endif // WINGCHUN_BOOKKEEPER_H

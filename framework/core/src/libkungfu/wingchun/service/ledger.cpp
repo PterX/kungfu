@@ -239,6 +239,7 @@ void Ledger::write_strategy_data(int64_t trigger_time, uint32_t strategy_uid) {
     bool has_account = asset.ledger_category == LedgerCategory::Account and has_channel(book_uid, strategy_uid);
     bool is_strategy = location->category == category::STRATEGY and book_uid == strategy_uid;
     bool is_system = location->category == category::SYSTEM;
+    SPDLOG_INFO("has_account: {}, is_strategy:{},  is_system", has_account, is_strategy, is_system);
     if (has_account or is_strategy or is_system) {
       write_positions(trigger_time, strategy_uid, book->long_positions);
       write_positions(trigger_time, strategy_uid, book->short_positions);

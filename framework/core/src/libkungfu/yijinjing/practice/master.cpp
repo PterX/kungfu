@@ -179,7 +179,6 @@ void master::register_app(const event_ptr &event) {
 
   auto app_cmd_writer = get_io_device()->open_writer_at(master_cmd_location, app_location->uid);
   writers_.insert_or_assign(app_location->uid, app_cmd_writer);
-  write_time_reset(event->gen_time(), app_cmd_writer);
   reader_->join(app_location, location::PUBLIC, now);
   reader_->join(app_location, location::SYNC, now);
   reader_->join(app_location, master_cmd_location->uid, now);
@@ -187,6 +186,9 @@ void master::register_app(const event_ptr &event) {
   auto public_writer = get_writer(location::PUBLIC);
   public_writer->write(event->gen_time(), *std::dynamic_pointer_cast<Location>(app_location));
   public_writer->write(event->gen_time(), register_data);
+
+  // have to be after register sent;
+  write_time_reset(event->gen_time(), app_cmd_writer);
 
   // have to be after register sent;
   require_write_to(event->gen_time(), app_location->uid, location::PUBLIC);

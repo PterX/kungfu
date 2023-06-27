@@ -154,8 +154,8 @@ void apprentice::react() {
       checkin_time_ = data.checkin_time;
       reader_->join(master_cmd_location_, get_live_home_uid(), begin_time_);
     });
-    checkin();
     expect_start();
+    checkin();
   }
   if (get_io_device()->get_home()->mode == mode::REPLAY) {
     reader_->join(master_cmd_location_, get_live_home_uid(), begin_time_);

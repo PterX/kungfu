@@ -37,6 +37,7 @@ class Master(yjj.master):
             ctx.location,
             ctx.low_latency,
             ctx.bypass_cached,
+            ctx.daemon,
         )
         self.ctx = ctx
         self.ctx.master = self
@@ -113,7 +114,7 @@ class Master(yjj.master):
 
     def on_exit(self):
         yjj.master.on_exit(self)
-        if self.no_daemon:
+        if not self.daemon:
             return
 
         for app in self.get_live_processes():

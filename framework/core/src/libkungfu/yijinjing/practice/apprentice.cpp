@@ -286,7 +286,6 @@ void apprentice::on_master_start() {
   SPDLOG_INFO("master start, do some recoveries");
   const auto publisher = get_io_device()->get_publisher();
   while (not publisher->is_usable()) {
-    continue;
   }
 
   for (const auto &iter : timer_requests_) {

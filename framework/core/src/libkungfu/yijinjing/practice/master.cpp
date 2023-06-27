@@ -22,9 +22,9 @@ using namespace kungfu::yijinjing::journal;
 
 namespace kungfu::yijinjing::practice {
 
-master::master(location_ptr home, bool low_latency, bool bypass_cached, bool no_daemon)
+master::master(location_ptr home, bool low_latency, bool bypass_cached, bool daemon)
     : hero(std::make_shared<io_device_master>(home, low_latency)), last_check_(0),
-      cached_(get_io_device(), bypass_cached), no_daemon_(false) {
+      cached_(get_io_device(), bypass_cached), daemon_(daemon) {
 
   for (const auto &app_location : cached_.get_all(Location{})) {
     add_location(begin_time_, location::make_shared(app_location, get_locator()));
@@ -101,7 +101,7 @@ void master::recover_registries() {
 }
 
 void master::on_exit() {
-  if (no_daemon_) {
+  if (not daemon_) {
     return;
   }
 
@@ -239,10 +239,10 @@ void master::on_request_deregister(const event_ptr &event) {
   deregister_app(event->trigger_time(), source);
 }
 
-bool master::is_no_daemon() { return no_daemon_; }
+bool master::is_daemon() { return daemon_; }
 
 void master::pre_setup() {
-  if (no_daemon_) {
+  if (not daemon_) {
     recover_registries();
   }
 }

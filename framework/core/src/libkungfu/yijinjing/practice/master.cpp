@@ -186,7 +186,7 @@ void master::register_app(const event_ptr &event) {
   auto public_writer = get_writer(location::PUBLIC);
   public_writer->write(event->gen_time(), *std::dynamic_pointer_cast<Location>(app_location));
   public_writer->write(event->gen_time(), register_data);
-  
+
   // have to be after register sent;
   write_time_reset(event->gen_time(), app_cmd_writer);
 

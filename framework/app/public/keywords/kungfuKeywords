@@ -29,6 +29,7 @@ bus
 observer
 live_home
 live
+no_daemon
 update_time
 data
 asset
@@ -209,6 +210,7 @@ total_amount
 basket_uid
 base_time
 duration
+repeat
 system_clock_count
 frame_header
 page_header
@@ -457,6 +459,7 @@ get
 get_all
 remove
 on_register
+check_register
 on_interval_check
 deregister_app
 LIVE
@@ -485,9 +488,6 @@ SZSE
 HKEx
 MarketType
 Snapshot
-Entrust
-Transaction
-Tree
 SubscribeDataType
 Stock
 Future

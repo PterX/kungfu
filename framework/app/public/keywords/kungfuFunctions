@@ -188,5 +188,6 @@ get
 get_all
 remove
 on_register
+check_register
 on_interval_check
 deregister_app

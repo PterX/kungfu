@@ -29,6 +29,7 @@ bus
 observer
 live_home
 live
+no_daemon
 update_time
 data
 asset
@@ -209,6 +210,7 @@ total_amount
 basket_uid
 base_time
 duration
+repeat
 system_clock_count
 frame_header
 page_header
@@ -293,9 +295,6 @@ SZSE
 HKEx
 MarketType
 Snapshot
-Entrust
-Transaction
-Tree
 SubscribeDataType
 Stock
 Future

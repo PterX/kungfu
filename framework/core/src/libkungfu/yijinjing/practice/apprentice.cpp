@@ -154,8 +154,8 @@ void apprentice::react() {
       checkin_time_ = data.checkin_time;
       reader_->join(master_cmd_location_, get_live_home_uid(), begin_time_);
     });
-    checkin();
     expect_start();
+    checkin();
   }
   if (get_io_device()->get_home()->mode == mode::REPLAY) {
     reader_->join(master_cmd_location_, get_live_home_uid(), begin_time_);
@@ -286,7 +286,6 @@ void apprentice::on_master_start() {
   SPDLOG_INFO("master start, do some recoveries");
   const auto publisher = get_io_device()->get_publisher();
   while (not publisher->is_usable()) {
-    continue;
   }
 
   for (const auto &iter : timer_requests_) {

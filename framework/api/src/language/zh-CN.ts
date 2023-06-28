@@ -146,7 +146,7 @@ export default {
 
     system: '系统服务',
     md: '行情源',
-    td: '交易账户 ',
+    td: '交易账户',
     strategy: '策略',
     operator: '算子',
 

@@ -38,6 +38,8 @@ import {
   Popover,
   Breadcrumb,
   Badge,
+  Typography,
+  BackTop,
 } from 'ant-design-vue';
 
 import {
@@ -118,6 +120,8 @@ app
   .use(Popover)
   .use(Breadcrumb)
   .use(Badge)
+  .use(Typography)
+  .use(BackTop)
   .use(VueVirtualScroller);
 
 app.config.globalProperties.$antLocalesMap = {

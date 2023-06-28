@@ -251,26 +251,19 @@ void apprentice::reader_join(uint32_t source_id, uint32_t dest_id, int64_t from_
 
 void apprentice::checkin() {
   auto now = time::now_in_nano();
-  nlohmann::json request;
-  request["msg_type"] = Register::tag;
-  request["gen_time"] = now;
-  request["trigger_time"] = now;
-  request["source"] = get_home_uid();
-  request["dest"] = master_home_location_->uid;
+  auto home = get_home();
+  Register register_data{};
+  register_data.mode = home->mode;
+  register_data.category = home->category;
+  register_data.group = home->group;
+  register_data.name = home->name;
+  register_data.location_uid = home->uid;
+  register_data.pid = GETPID();
+  register_data.checkin_time = now;
+  register_data.last_active_time = now;
 
-  auto home = get_io_device()->get_home();
-  nlohmann::json data;
-  data["mode"] = home->mode;
-  data["category"] = home->category;
-  data["group"] = home->group;
-  data["name"] = home->name;
-  data["location_uid"] = home->uid;
-  data["pid"] = GETPID();
-  data["checkin_time"] = now;
-  data["last_active_time"] = now;
-  request["data"] = data;
-
-  get_io_device()->get_publisher()->publish(request.dump(), 0);
+  get_io_device()->get_publisher()->publish(make_nano_msg(get_home_uid(), master_home_location_->uid, register_data),
+                                            0);
 }
 
 void apprentice::expect_start() {
@@ -302,27 +295,15 @@ yijinjing::journal::writer_ptr &apprentice::get_thread_writer() {
   if (not thread_writer_) {
     uint32_t dest_id = kungfu::yijinjing::util::get_thread_id();
     thread_writer_ = get_io_device()->open_writer(dest_id);
-    int64_t nano = now();
 
     /// join channel in sub-thread will crash, so tell master to ask myself to join
     /// do not use writer because of multi-thread concurrency issues
-    auto now = time::now_in_nano();
-    nlohmann::json request;
-    request["msg_type"] = RequestReadFromOthers::tag;
-    request["gen_time"] = now;
-    request["trigger_time"] = now;
-    request["source"] = get_home_uid();
-    request["dest"] = master_home_location_->uid;
-    request["data_type"] = int8_t(FrameDataType::Json);
-
-    nlohmann::json data;
-    data["source_id"] = get_home_uid();
-    data["dest_id"] = dest_id;
-    data["from_time"] = nano;
-    request["data"] = data;
-
-    SPDLOG_TRACE("RequestReadFromOthers: {}", request.dump());
-    get_io_device()->get_publisher()->publish(request.dump());
+    RequestReadFromOthers request{};
+    request.source_id = get_home_uid();
+    request.dest_id = dest_id;
+    request.from_time = now();
+    SPDLOG_TRACE("RequestReadFromOthers: {}", request.to_string());
+    get_io_device()->get_publisher()->publish(make_nano_msg(get_home_uid(), master_home_location_->uid, request));
   }
   return thread_writer_;
 }

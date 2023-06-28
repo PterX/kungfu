@@ -18,6 +18,10 @@ export const addFileSync = (
   else targetPath = path.join(parentDir, filename);
   targetPath = path.normalize(targetPath);
 
+  if (isDiskRootDirectory(targetPath)) {
+    return;
+  }
+
   if (type === 'folder') {
     fse.ensureDirSync(targetPath);
   } else {
@@ -298,4 +302,11 @@ export const readRootPackageJsonSync = (): RootConfigJSON => {
   }
 
   return {};
+};
+
+export const isDiskRootDirectory = (dirPath: string): boolean => {
+  const absolutePath = path.resolve(dirPath);
+  const rootDirectory = path.parse(absolutePath).root;
+
+  return absolutePath === rootDirectory;
 };

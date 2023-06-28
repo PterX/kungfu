@@ -673,7 +673,7 @@ export const hashUkey = (...args: Array<string | number>) => {
     ukeyCacheMap.set(
       cacheKey,
       strArgs
-        .reduce<bigint>((pre, cur) => pre ^ BigInt(kf.hash(`${cur}`)), 0n)
+        .reduce<bigint>((pre, cur) => pre ^ BigInt(kf.hash(cur)), 0n)
         .toString(16)
         .padStart(16, '0'),
     );

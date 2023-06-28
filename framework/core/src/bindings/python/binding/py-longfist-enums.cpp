@@ -295,5 +295,12 @@ void bind_enums(py::module &m) {
       .def_readonly_static("Public", &AssembleMode::Public)
       .def_readonly_static("Sync", &AssembleMode::Sync)
       .def_readonly_static("All", &AssembleMode::All);
+
+  py::enum_<FrameDataType>(m_enums, "FrameDataType", py::arithmetic())
+      .value("Raw", FrameDataType::Raw)
+      .value("Json", FrameDataType::Json)
+      .value("Unknown", FrameDataType::Unknown)
+      .export_values()
+      .def("__eq__", [](const FrameDataType &a, int b) { return static_cast<int>(a) == b; });
 }
 } // namespace kungfu::longfist::pybind

@@ -29,6 +29,7 @@ get_book
 get_books
 set_accounting_method
 on_trading_day
+get_location
 on_start
 now
 get_writer
@@ -39,6 +40,7 @@ update_broker_state
 subscribe
 subscribe_all
 unsubscribe
+get_vendor
 clear_order_inputs
 on_recover
 get_asset_writer

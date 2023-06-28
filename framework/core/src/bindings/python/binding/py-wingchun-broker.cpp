@@ -92,7 +92,8 @@ void bind_broker(pybind11::module &m) {
   py::class_<BrokerVendor, PyBrokerVendor, std::shared_ptr<BrokerVendor>>(m, "BrokerVendor")
       .def(py::init<location_ptr, bool>())
       .def_property_readonly("home", &BrokerVendor::get_home)
-      .def("run", &BrokerVendor::run);
+      .def("run", &BrokerVendor::run)
+      .def("get_location", &BrokerVendor::get_location);
 
   py::class_<MarketData, PyMarketData, std::shared_ptr<MarketData>>(m, "MarketData")
       .def(py::init<BrokerVendor &>())
@@ -109,7 +110,8 @@ void bind_broker(pybind11::module &m) {
       .def("update_broker_state", &MarketData::update_broker_state)
       .def("subscribe", &MarketData::subscribe)
       .def("subscribe_all", &MarketData::subscribe_all)
-      .def("unsubscribe", &MarketData::unsubscribe);
+      .def("unsubscribe", &MarketData::unsubscribe)
+      .def("get_vendor", &MarketData::get_vendor);
 
   py::class_<Trader, PyTrader, std::shared_ptr<Trader>>(m, "Trader")
       .def(py::init<BrokerVendor &>())
@@ -143,7 +145,8 @@ void bind_broker(pybind11::module &m) {
       .def("req_history_trade", &Trader::req_history_trade)
       .def("enable_self_detect", &Trader::enable_self_detect)
       .def("req_account", &Trader::req_account)
-      .def("req_position", &Trader::req_position);
+      .def("req_position", &Trader::req_position)
+      .def("get_vendor", &Trader::get_vendor);
 
   py::class_<MarketDataVendor, BrokerVendor, std::shared_ptr<MarketDataVendor>>(m, "MarketDataVendor")
       .def(py::init<locator_ptr, const std::string &, const std::string &, bool, const std::string &>())

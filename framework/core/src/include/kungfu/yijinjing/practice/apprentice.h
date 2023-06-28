@@ -120,6 +120,19 @@ protected:
 
   [[maybe_unused]] int get_observer_recv_timeout() const;
 
+  template <class DataType> std::string make_nano_msg(uint32_t source, uint32_t dest, const DataType &data) const {
+    auto now = time::now_in_nano();
+    nlohmann::json request;
+    request["data_type"] = int8_t(longfist::enums::FrameDataType::Json);
+    request["msg_type"] = DataType::tag;
+    request["gen_time"] = now;
+    request["trigger_time"] = now;
+    request["source"] = source;
+    request["dest"] = dest;
+    request["data"] = nlohmann::json::parse(data.to_string());
+    return request.dump();
+  }
+
   void reader_join(uint32_t source_id, uint32_t dest_id, int64_t from_time);
 
   std::function<rx::observable<event_ptr>(rx::observable<event_ptr>)> timer(int64_t nanotime) {

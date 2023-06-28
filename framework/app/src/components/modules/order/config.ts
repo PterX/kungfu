@@ -65,7 +65,7 @@ export const getColumns = (
       {
         type: 'number',
         name: t('orderConfig.avg_price'),
-        dataIndex: 'avg_price',
+        dataIndex: 'avg_price_resolved',
         width: 120,
         sorter: buildSorter('avg_price'),
       },

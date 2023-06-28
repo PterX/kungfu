@@ -627,5 +627,9 @@ NLOHMANN_JSON_SERIALIZE_ENUM(FrameDataType, {
 
 inline std::ostream &operator<<(std::ostream &os, FrameDataType t) { return os << int8_t(t); }
 
+inline bool operator==(int8_t type, FrameDataType t) { return type == int8_t(t); }
+
+inline bool operator==(FrameDataType t, int8_t type) { return type == int8_t(t); }
+
 } // namespace kungfu::longfist::enums
 #endif // KUNGFU_LONGFIST_ENUM_H

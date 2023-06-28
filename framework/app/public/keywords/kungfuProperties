@@ -289,8 +289,8 @@ SZSE
 HKEx
 MarketType
 Snapshot
-    Entrust
-    Transaction
+Entrust
+Transaction
 Tree
 SubscribeDataType
 Stock

@@ -79,11 +79,6 @@ uint32_t Hash32(const Napi::CallbackInfo &info) {
     return hash<decltype(arg)>{}(arg);
   }
 
-  if (IsValid(info, 0, &Napi::Value::IsBigInt)) {
-    auto arg = reinterpret_cast<const int64_t>(GetBigInt(info, 0));
-    return hash<decltype(arg)>{}(arg);
-  }
-
   throw Napi::Error::New(info.Env(), "Invalid argument");
 }
 

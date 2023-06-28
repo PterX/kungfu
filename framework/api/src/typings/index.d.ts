@@ -616,7 +616,8 @@ declare namespace KungfuApi {
     latency_network: string;
     avg_price: number;
     price_precision?: number;
-    limit_price_resolved: number | string;
+    avg_price_resolved: string;
+    limit_price_resolved: string;
   }
 
   export interface OrderInput {

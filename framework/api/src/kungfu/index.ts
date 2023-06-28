@@ -731,6 +731,7 @@ export const dealOrder = (
     latency_network: latencyData.latencyNetwork,
     avg_price: latencyData.avg_price,
     price_precision: pricePrecision,
+    avg_price_resolved: dealKfPrice(latencyData.avg_price, pricePrecision),
     limit_price_resolved: dealKfPrice(order.limit_price, pricePrecision),
   };
 };

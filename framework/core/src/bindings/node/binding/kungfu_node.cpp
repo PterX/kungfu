@@ -75,7 +75,7 @@ uint32_t Hash32(const Napi::CallbackInfo &info) {
   }
 
   if (IsValid(info, 0, &Napi::Value::IsNumber)) {
-    auto arg = reinterpret_cast<const int32_t>(info[0].ToNumber().Int32Value());
+    auto arg = static_cast<const int32_t>(info[0].ToNumber().Int32Value());
     return hash<decltype(arg)>{}(arg);
   }
 

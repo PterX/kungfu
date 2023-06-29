@@ -42,8 +42,8 @@ decltype(__pfnDliNotifyHook2) __pfnDliNotifyHook2 = load_exe_hook;
 
 #endif // _MSC_VER
 
-#include <kungfu/yijinjing/io.h>
 #include <kungfu/common.h>
+#include <kungfu/yijinjing/io.h>
 #include <kungfu/yijinjing/util/util.h>
 
 #include "basket_instrument_store.h"
@@ -82,10 +82,7 @@ uint32_t Hash32(const Napi::CallbackInfo &info) {
   throw Napi::Error::New(info.Env(), "Invalid argument");
 }
 
-Napi::Value Hash(const Napi::CallbackInfo &info) { 
-  return Napi::Number::New(info.Env(), Hash32(info)); 
-  
-}
+Napi::Value Hash(const Napi::CallbackInfo &info) { return Napi::Number::New(info.Env(), Hash32(info)); }
 
 Napi::Value FormatStringToHashHex(const Napi::CallbackInfo &info) {
   return Napi::String::New(info.Env(), fmt::format("{:08x}", Hash32(info)));

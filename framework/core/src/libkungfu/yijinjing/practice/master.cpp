@@ -449,7 +449,7 @@ void master::on_channel_request(const event_ptr &event) {
 }
 
 void master::on_time_request(const event_ptr &event) {
-  if(not is_location_live(event->dest())){
+  if (not is_location_live(event->source())) {
     return;
   }
   auto request_data = event->data_as_string();

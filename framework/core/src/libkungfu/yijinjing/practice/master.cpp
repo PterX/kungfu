@@ -455,8 +455,7 @@ void master::on_time_request(const event_ptr &event) {
   auto request_data = event->data_as_string();
   SPDLOG_INFO("on_time_request ======== {}", request_data.c_str());
   TimeRequest request(request_data.c_str(), request_data.length());
-  timer_tasks_.try_emplace(event->source());
-  auto &app_tasks = timer_tasks_.at(event->source());
+  auto &app_tasks = timer_tasks_.try_emplace(event->source()).first->second;
   auto &task = app_tasks.try_emplace(request.id).first->second;
   task.checkpoint = request.base_time + request.duration;
   task.duration = request.duration;

@@ -29,7 +29,7 @@ bus
 observer
 live_home
 live
-no_daemon
+daemon
 update_time
 data
 asset
@@ -295,6 +295,9 @@ SZSE
 HKEx
 MarketType
 Snapshot
+Entrust
+Transaction
+Tree
 SubscribeDataType
 Stock
 Future

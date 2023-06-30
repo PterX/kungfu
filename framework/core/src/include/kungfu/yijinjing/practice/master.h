@@ -24,7 +24,7 @@ struct timer_task {
 class master : public hero {
 public:
   explicit master(yijinjing::data::location_ptr home, bool low_latency = false, bool bypass_cached = false,
-                  bool no_daemon = false);
+                  bool daemon = true);
 
   void on_exit() override;
 
@@ -48,7 +48,7 @@ public:
 
   void on_request_deregister(const event_ptr &event);
 
-  bool is_no_daemon();
+  bool is_daemon();
 
 protected:
   void pre_setup() override;
@@ -62,7 +62,7 @@ protected:
 private:
   int64_t last_check_;
   yijinjing::cache::cached cached_;
-  const bool no_daemon_;
+  const bool daemon_;
 
   std::unordered_map<uint32_t, uint32_t> app_cmd_locations_ = {};
   std::unordered_map<uint32_t, std::unordered_map<int32_t, timer_task>> timer_tasks_ = {};
@@ -74,8 +74,6 @@ private:
   void feed(const event_ptr &event);
 
   void pong(const event_ptr &event);
-
-  void on_request_cached_done(const event_ptr &event);
 
   void on_request_write_to_band(const event_ptr &event);
 

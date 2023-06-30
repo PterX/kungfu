@@ -22,9 +22,9 @@ using namespace kungfu::yijinjing::journal;
 
 namespace kungfu::yijinjing::practice {
 
-master::master(location_ptr home, bool low_latency, bool bypass_cached, bool no_daemon)
+master::master(location_ptr home, bool low_latency, bool bypass_cached, bool daemon)
     : hero(std::make_shared<io_device_master>(home, low_latency)), last_check_(0),
-      cached_(get_io_device(), bypass_cached), no_daemon_(false) {
+      cached_(get_io_device(), bypass_cached), daemon_(daemon) {
 
   for (const auto &app_location : cached_.get_all(Location{})) {
     add_location(begin_time_, location::make_shared(app_location, get_locator()));
@@ -101,7 +101,7 @@ void master::recover_registries() {
 }
 
 void master::on_exit() {
-  if (no_daemon_) {
+  if (not daemon_) {
     return;
   }
 
@@ -179,7 +179,6 @@ void master::register_app(const event_ptr &event) {
 
   auto app_cmd_writer = get_io_device()->open_writer_at(master_cmd_location, app_location->uid);
   writers_.insert_or_assign(app_location->uid, app_cmd_writer);
-  write_time_reset(event->gen_time(), app_cmd_writer);
   reader_->join(app_location, location::PUBLIC, now);
   reader_->join(app_location, location::SYNC, now);
   reader_->join(app_location, master_cmd_location->uid, now);
@@ -187,6 +186,9 @@ void master::register_app(const event_ptr &event) {
   auto public_writer = get_writer(location::PUBLIC);
   public_writer->write(event->gen_time(), *std::dynamic_pointer_cast<Location>(app_location));
   public_writer->write(event->gen_time(), register_data);
+
+  // have to be after register sent;
+  write_time_reset(event->gen_time(), app_cmd_writer);
 
   // have to be after register sent;
   require_write_to(event->gen_time(), app_location->uid, location::PUBLIC);
@@ -239,10 +241,10 @@ void master::on_request_deregister(const event_ptr &event) {
   deregister_app(event->trigger_time(), source);
 }
 
-bool master::is_no_daemon() { return no_daemon_; }
+bool master::is_daemon() { return daemon_; }
 
 void master::pre_setup() {
-  if (no_daemon_) {
+  if (not daemon_) {
     recover_registries();
   }
 }
@@ -447,11 +449,13 @@ void master::on_channel_request(const event_ptr &event) {
 }
 
 void master::on_time_request(const event_ptr &event) {
+  if (not is_location_live(event->source())) {
+    return;
+  }
   auto request_data = event->data_as_string();
   SPDLOG_INFO("on_time_request ======== {}", request_data.c_str());
   TimeRequest request(request_data.c_str(), request_data.length());
-  timer_tasks_.try_emplace(event->source());
-  auto &app_tasks = timer_tasks_.at(event->source());
+  auto &app_tasks = timer_tasks_.try_emplace(event->source()).first->second;
   auto &task = app_tasks.try_emplace(request.id).first->second;
   task.checkpoint = request.base_time + request.duration;
   task.duration = request.duration;

@@ -29,6 +29,7 @@ import {
 import { storeToRefs } from 'pinia';
 import { getColumns } from './config';
 import KfBlinkNum from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfBlinkNum.vue';
+import { dealKfPrice } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { dealPosition } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
 import {
@@ -268,7 +269,12 @@ function handleRequestPosition() {
           </template>
           <template v-else-if="column.dataIndex === 'last_price_resolved'">
             <KfBlinkNum
-              :num="getPositionLastPrice(item, 'last_price_resolved')"
+              :num="
+                dealKfPrice(
+                  getPositionLastPrice(item, 'last_price_resolved'),
+                  item.price_precision,
+                )
+              "
             ></KfBlinkNum>
           </template>
           <template v-else-if="column.dataIndex === 'unrealized_pnl_resolved'">

@@ -53,7 +53,7 @@ public:
 protected:
   void pre_setup() override;
 
-  void react() final;
+  void react() override;
 
   void on_active() final;
 

@@ -163,9 +163,12 @@ class ServiceLoader(dict):
                 self.ctx.runtime_locator,
             )
             self.ctx.logger = find_logger(self.ctx.location, self.ctx.log_level)
-            service(
-                self.ctx.runtime_locator, kfj.MODES[self.ctx.mode], low_latency
-            ).run()
+            if "is_python_service" in dir(service) and service.is_python_service:
+                service(self.ctx).run()
+            else:
+                service(
+                    self.ctx.runtime_locator, kfj.MODES[self.ctx.mode], low_latency
+                ).run()
 
         return run
 

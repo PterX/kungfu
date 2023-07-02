@@ -40,8 +40,17 @@ yjj = kungfu.__binding__.yijinjing
     required=False,
     help="path to indexer dynamic library",
 )
+@click.option(
+    "-a",
+    "--arguments",
+    type=str,
+    required=False,
+    help="arguments passed to SliceTool::get_arguments",
+)
 @kfc.pass_context()
-def slicetool(ctx, begin, end, category, group, name, tool_path, indexer_path):
+def slicetool(
+    ctx, begin, end, category, group, name, tool_path, indexer_path, arguments
+):
     location = yjj.location(
         kfj.MODES["data"],
         kfj.CATEGORIES[category],
@@ -71,7 +80,9 @@ def slicetool(ctx, begin, end, category, group, name, tool_path, indexer_path):
 
     if not tool_path.suffix.endswith("py"):
         slice_tool_builder = getattr(module, "slice_tool")
-        tool = slice_tool_builder(kfj.CATEGORIES[category], group, name, indexer)
+        tool = slice_tool_builder(
+            kfj.CATEGORIES[category], group, name, indexer, arguments
+        )
         tool.run()
     else:
         raise NotImplementedError("sliceTool for python not implemented.")

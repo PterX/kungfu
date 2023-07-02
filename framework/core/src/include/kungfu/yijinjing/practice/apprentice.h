@@ -121,6 +121,7 @@ protected:
     request["msg_type"] = DataType::tag;
     request["gen_time"] = now;
     request["trigger_time"] = now;
+    request["initial_source"] = get_home_uid();
     request["source"] = source;
     request["dest"] = dest;
     request["data"] = nlohmann::json::parse(data.to_string());

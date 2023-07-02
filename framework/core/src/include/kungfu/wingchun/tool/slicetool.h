@@ -16,13 +16,15 @@ class SliceTool {
 
 public:
   SliceTool(longfist::enums::category category, std::string group, std::string name, SliceIndexer_ptr indexer,
-            bool overwrite = true);
+            bool overwrite = true, std::string arguments = "");
 
   virtual ~SliceTool() = default;
 
   int64_t get_begin_time() const { return indexer_->get_begin_time(); }
 
   int64_t get_end_time() const { return indexer_->get_end_time(); }
+
+  std::string get_arguments() const { return arguments_; }
 
   //   yijinjing::data::location_ptr get_location() const { return cache_location_; }
 
@@ -66,6 +68,7 @@ protected:
   yijinjing::journal::reader_ptr reader_;
   mutable int64_t last_gen_time_;
   mutable int64_t last_read_gen_time_;
+  const std::string arguments_;
 
   void next();
 

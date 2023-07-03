@@ -674,7 +674,8 @@ export default {
     global_setting_title: '全局设置',
     system: '系统',
     home_path: '选择本地Home路径',
-    home_path_desc: '功夫将会以选择的home路径为根目录，修改后重启功夫生效',
+    home_path_desc:
+      '功夫将会以选择的home路径为根目录, 目录路径不可以包含中文, 且路径不建议太长 (过长会导致进程无法启动), 修改后重启功夫生效',
     reset_order: '重置',
     log_level: '全局日志级别',
     for_all_log: '对系统内所有日志级别的设置',

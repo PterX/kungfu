@@ -656,6 +656,10 @@ declare namespace KungfuApi {
     tag_b: string;
     tag_c: string;
     value: string;
+
+    source: number;
+    dest: number;
+    uid_key: string;
   }
   export interface BlockMessage {
     opponent_seat: number; // 对方手席位号

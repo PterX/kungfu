@@ -395,26 +395,38 @@ NLOHMANN_JSON_SERIALIZE_ENUM(VolumeCondition, {
 
 inline std::ostream &operator<<(std::ostream &os, VolumeCondition t) { return os << int8_t(t); }
 
-enum class TimeCondition : int8_t { IOC, GFD, GTC };
+enum class TimeCondition : int8_t { ///
+  IOC,                              /// 立即完成，否则撤销
+  GFD,                              /// 当日有效
+  GTC,                              /// 撤销前有效
+  GFS,                              /// 本节有效
+  GTD,                              /// 指定日期前有效
+  GFA                               /// 集合竞价有效
+};
 
 NLOHMANN_JSON_SERIALIZE_ENUM(TimeCondition, {
                                                 {TimeCondition::IOC, "IOC"},
                                                 {TimeCondition::GFD, "GFD"},
                                                 {TimeCondition::GTC, "GTC"},
+                                                {TimeCondition::GFS, "GFS"},
+                                                {TimeCondition::GTD, "GTD"},
+                                                {TimeCondition::GFA, "GFA"},
                                             })
 
 inline std::ostream &operator<<(std::ostream &os, TimeCondition t) { return os << int8_t(t); }
 
 enum class OrderStatus : int8_t {
   Unknown,
-  Submitted,
-  Pending,
-  Cancelled,
-  Error,
-  Filled,
-  PartialFilledNotActive,
-  PartialFilledActive,
-  Lost
+  Submitted,              // 已提交
+  Pending,                // 等待中
+  Cancelled,              // 已撤单
+  Error,                  // 错误
+  Filled,                 // 已成交
+  PartialFilledNotActive, // 部成部撤
+  PartialFilledActive,    // 部成交易中
+  Lost,                   // 丢失
+  Parked,                 // 预埋单
+  Withdrawing             // 待撤
 };
 
 NLOHMANN_JSON_SERIALIZE_ENUM(OrderStatus, {
@@ -427,6 +439,8 @@ NLOHMANN_JSON_SERIALIZE_ENUM(OrderStatus, {
                                               {OrderStatus::PartialFilledNotActive, "PartialFilledNotActive"},
                                               {OrderStatus::PartialFilledActive, "PartialFilledActive"},
                                               {OrderStatus::Lost, "Lost"},
+                                              {OrderStatus::Parked, "Parked"},
+                                              {OrderStatus::Withdrawing, "Withdrawing"},
                                           })
 
 inline std::ostream &operator<<(std::ostream &os, OrderStatus t) { return os << int8_t(t); }
@@ -630,6 +644,47 @@ inline std::ostream &operator<<(std::ostream &os, FrameDataType t) { return os <
 inline bool operator==(int8_t type, FrameDataType t) { return type == int8_t(t); }
 
 inline bool operator==(FrameDataType t, int8_t type) { return type == int8_t(t); }
+
+enum class OrderTriggerType : int8_t { ///
+  Immediately,                         /// 立即
+  Touch,                               /// 止损
+  TouchProfit,                         /// 止赢
+  ParkedOrder,                         /// 预埋单
+  LastPriceGreaterThanStopPrice,       /// 最新价大于条件价
+  LastPriceGreaterEqualStopPrice,      /// 最新价大于等于条件价
+  LastPriceLesserThanStopPrice,        /// 最新价小于条件价
+  LastPriceLesserEqualStopPrice,       /// 最新价小于等于条件价
+  AskPriceGreaterThanStopPrice,        /// 卖一价大于条件价
+  AskPriceGreaterEqualStopPrice,       /// 卖一价大于等于条件价
+  AskPriceLesserThanStopPrice,         /// 卖一价小于条件价
+  AskPriceLesserEqualStopPrice,        /// 卖一价小于等于条件价
+  BidPriceGreaterThanStopPrice,        /// 买一价大于条件价
+  BidPriceGreaterEqualStopPrice,       /// 买一价大于等于条件价
+  BidPriceLesserThanStopPrice,         /// 买一价小于条件价
+  BidPriceLesserEqualStopPrice         /// 买一价小于等于条件价
+};
+
+NLOHMANN_JSON_SERIALIZE_ENUM(OrderTriggerType,
+                             {
+                                 {OrderTriggerType::Immediately, "Immediately"},
+                                 {OrderTriggerType::Touch, "Touch"},
+                                 {OrderTriggerType::TouchProfit, "TouchProfit"},
+                                 {OrderTriggerType::ParkedOrder, "ParkedOrder"},
+                                 {OrderTriggerType::LastPriceGreaterThanStopPrice, "LastPriceGreaterThanStopPrice"},
+                                 {OrderTriggerType::LastPriceGreaterEqualStopPrice, "LastPriceGreaterEqualStopPrice"},
+                                 {OrderTriggerType::LastPriceLesserThanStopPrice, "LastPriceLesserThanStopPrice"},
+                                 {OrderTriggerType::LastPriceLesserEqualStopPrice, "LastPriceLesserEqualStopPrice"},
+                                 {OrderTriggerType::AskPriceGreaterThanStopPrice, "AskPriceGreaterThanStopPrice"},
+                                 {OrderTriggerType::AskPriceGreaterEqualStopPrice, "AskPriceGreaterEqualStopPrice"},
+                                 {OrderTriggerType::AskPriceLesserThanStopPrice, "AskPriceLesserThanStopPrice"},
+                                 {OrderTriggerType::AskPriceLesserEqualStopPrice, "AskPriceLesserEqualStopPrice"},
+                                 {OrderTriggerType::BidPriceGreaterThanStopPrice, "BidPriceGreaterThanStopPrice"},
+                                 {OrderTriggerType::BidPriceGreaterEqualStopPrice, "BidPriceGreaterEqualStopPrice"},
+                                 {OrderTriggerType::BidPriceLesserThanStopPrice, "BidPriceLesserThanStopPrice"},
+                                 {OrderTriggerType::BidPriceLesserEqualStopPrice, "BidPriceLesserEqualStopPrice"},
+                             })
+
+inline std::ostream &operator<<(std::ostream &os, OrderTriggerType t) { return os << int8_t(t); }
 
 } // namespace kungfu::longfist::enums
 #endif // KUNGFU_LONGFIST_ENUM_H

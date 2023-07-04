@@ -348,6 +348,16 @@ KF_DEFINE_PACK_TYPE(                                        //
     (enums::BasketOrderCalculationMode, calculation_mode) // 计算方式
 );
 
+KF_DEFINE_DATA_TYPE(                                              //
+    OrderInputTrigger, 209, PK(block_id), TIMESTAMP(insert_time), //
+    (uint64_t, trigger_id),                                       // 触发器id
+    (enums::OrderTriggerType, trigger_type),                      // 触发条件类型
+    (enums::TimeCondition, time_condition),                       // 有效期类型
+    (double, stop_price),                                         // 条件触发价格
+    (int64_t, insert_time),                                       // 写入时间
+    (std::string, value)                                          // 预留其他的字段
+);
+
 KF_DEFINE_PACK_TYPE(                                                     //
     RequestHistoryOrder, 301, PK(trigger_time), TIMESTAMP(trigger_time), //
     (uint64_t, trigger_time),                                            // 触发时间

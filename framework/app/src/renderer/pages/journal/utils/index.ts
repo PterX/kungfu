@@ -1,32 +1,34 @@
-import { SessionStatusEnum } from './../../../../../../api/src/typings/enums';
-import { WorkerReceiver } from './../workers/receiver';
-import { storeToRefs } from 'pinia';
-import { useJournalStore } from './../store/journalStore';
-import { WorkerSender } from './../workers/sender';
-import { watch, reactive, computed } from 'vue';
+import { SessionStatusEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import fse from 'fs-extra';
 import path from 'path';
 import { format } from '@fast-csv/format';
-import { dealKfTime } from '@kungfu-trader/kungfu-js-api/kungfu';
+import {
+  dealKfTime,
+  io,
+  longfist,
+  sessionStore,
+} from '@kungfu-trader/kungfu-js-api/kungfu';
 import { parseURIParams } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import {
+  deepClone,
   getIdByKfLocation,
   getKfLocationByProcessId,
-  getProcessIdByKfLocation,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
-import {
-  JournalFrameMsgType,
-  KfCategory,
-} from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
+import { KfCategory } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import {
   KfCategoryEnum,
-  FrameMsgTypeEnum,
   KfCategoryTypes,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
+import {
+  getCurrentInstance,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+} from 'vue';
+import { filter } from 'rxjs';
 
-const consoleError = (error, ...datas) => {
-  console.log(...(datas.length ? ['datas: ', ...datas, '\n', error] : error));
-};
+const MSG_NUM = 10000;
 
 export const getAbs = <T extends number | bigint>(num: T): T =>
   num < 0 ? (-num as T) : num;
@@ -44,9 +46,9 @@ export const dealSession = (
   ] as KfCategoryTypes;
   return {
     ...session,
-    session_id_resolved: getProcessIdByKfLocation(session),
-    begin_time_resolved: dealKfTime(getAbs<bigint>(session.begin_time)),
-    end_time_resolved: dealKfTime(getAbs<bigint>(session.end_time)),
+    sessionName: getIdByKfLocation(session),
+    beginTimeResolved: dealKfTime(getAbs<bigint>(session.begin_time)),
+    endTimeResolved: dealKfTime(getAbs<bigint>(session.end_time)),
     status: getSessionStatus(session),
   };
 };
@@ -56,6 +58,14 @@ export const dealSessionsToMap = (sessions: KungfuApi.Session[]) => {
     sessionsMap[`${cur.begin_time}`] = dealSession(cur);
     return sessionsMap;
   }, {} as Record<string, KungfuApi.SessionResolved>);
+};
+
+export const getAllSessions = (currentLocation: LocationRseolved | null) => {
+  if (currentLocation === null) {
+    return sessionStore.getAllSessions();
+  } else {
+    return sessionStore.getSessionsForLocation(currentLocation);
+  }
 };
 
 export const getSessionLocationById = (
@@ -72,111 +82,105 @@ export const dealCategory = (
   return KfCategory[KfCategoryEnum[category]];
 };
 
+export const getMsgResolved = (
+  num: number,
+): KungfuApi.KfTradeValueCommonData => {
+  if (num > 100 && num < 200) {
+    return {
+      name: '账户信息',
+      color: 'blue',
+    };
+  } else if (num > 200 && num < 300) {
+    return {
+      name: '交易相关',
+      color: '#FAAD14',
+    };
+  } else if (num > 300 && num < 400) {
+    return {
+      name: '查询相关',
+      color: 'default',
+    };
+  } else if (num > 400 && num < 500) {
+    return {
+      name: '行情相关',
+      color: 'green',
+    };
+  } else if (num > 500 && num < 600) {
+    return {
+      name: '行情订阅相关',
+      color: 'purple',
+    };
+  } else if (num > 600 && num < 700) {
+    return {
+      name: '算子相关',
+      color: 'default',
+    };
+  } else {
+    return {
+      name: '其他',
+      color: 'default',
+    };
+  }
+};
+
 export const dealFrameMsgType = (
-  msgType: FrameMsgTypeEnum,
-): KungfuApi.KfTradeValueCommonData =>
-  JournalFrameMsgType[+msgType] || { name: msgType, color: 'default' };
+  msgType: number,
+): KungfuApi.KfTradeValueCommonData => {
+  if (msgType > MSG_NUM) {
+    return getMsgResolved(msgType);
+  } else {
+    return getMsgResolved(msgType % MSG_NUM);
+  }
+};
 
 export const dealDestOrSource = (
   type: 'source' | 'dest',
-  frameData: KungfuApi.Frame,
+  frame: KungfuApi.Frame,
   sessionMap: Record<number, KungfuApi.KfLocation>,
 ) => {
-  const locationResolved = getSessionLocationById(sessionMap, frameData[type]);
+  const locationResolved = getSessionLocationById(sessionMap, frame[type]);
   const locationId = locationResolved
     ? getIdByKfLocation(locationResolved as KungfuApi.KfLocation)
-    : frameData[type];
+    : frame[type];
 
   return locationId + '';
 };
 
-export const dealFrameSourceToDest = (
-  sourceResolved: string,
-  destResolved: string,
-) => {
-  return `${sourceResolved} → ${destResolved}`;
-};
-
-const dealFrameData = (data: string): unknown[] => {
-  try {
-    const object = JSON.parse(data);
-    const formatToTreeData = (obj: unknown) => {
-      if (typeof obj === 'string') {
-        if (obj.indexOf('{') !== -1 || obj.indexOf('[') !== -1) {
-          try {
-            obj = JSON.parse(obj);
-          } catch (error) {
-            consoleError(error, obj);
-          }
-        }
-      }
-
-      if (typeof obj !== 'object' || obj === null) return [];
-      if (!Object.keys(obj).length) return [];
-
-      const dealKeyOrValue = (value) => {
-        if (typeof value === 'boolean' || !Number.isNaN(+value)) return value;
-
-        return `"${value}"`;
-      };
-
-      const obj1 = obj; // to fix ts error
-
-      return Object.keys(obj).map((key) => {
-        const children = formatToTreeData(obj1[key]);
-        return {
-          title: children?.length
-            ? `${key} : ${Array.isArray(obj1[key]) ? '[' : '{'}`
-            : `${dealKeyOrValue(key)} : ${dealKeyOrValue(obj1[key])},`,
-          key,
-          ...(children?.length
-            ? {
-                children: [
-                  ...children,
-                  { title: Array.isArray(obj1[key]) ? ']' : '}' },
-                ],
-              }
-            : {}),
-        };
-      });
-    };
-
-    return [
-      { title: '{', key: 'root-start', children: formatToTreeData(object) },
-      { title: '}', key: 'root-end' },
-    ];
-  } catch (error) {
-    consoleError(error, data);
-    return [{ title: 'null', key: 'root' }];
-  }
-};
-
-export const dealFrame = (frame: KungfuApi.Frame): KungfuApi.FrameResolved => {
+export const dealFrame = (
+  frame: KungfuApi.Frame,
+  session: KungfuApi.SessionResolved,
+  locationNameMap: Record<string, string>,
+): KungfuApi.FrameResolved => {
+  const { source, dest, pageId, frameId } = frame;
   return {
     ...frame,
+    id: `${source}_${dest}_${pageId}_${frameId}`,
     genTimeResolved: dealKfTime(frame.genTime, true),
     triggerTimeResolved: dealKfTime(frame.triggerTime, true),
     msgTypeResolved: dealFrameMsgType(frame.msgType),
-    destResolved: frame.destName,
-    sourceResolved: frame.sourceName,
-    sourceToDest: dealFrameSourceToDest(frame.sourceName, frame.destName),
-    dataResolved: dealFrameData(frame.data),
+    sourceToDest: getSourceToDest(
+      source,
+      dest,
+      session.location_uid,
+      locationNameMap,
+    ),
+    msgTypeName: longfist.msgTypes[+frame.msgType],
   };
 };
 
-export const getCurrentLocation = () => {
+export const getCurrentLocation = (): LocationRseolved | null => {
   const location = getKfLocationByProcessId(
     decodeURI(parseURIParams().processId) || '',
   );
-  const location_uid = +(decodeURI(parseURIParams().locationUid) || '');
-
-  if (!location || !location_uid) {
+  const uid = +(decodeURI(parseURIParams().locationUID) || '');
+  if (!location || !uid) {
     return null;
   }
 
   return {
     ...location,
-    location_uid,
+    uid,
+    uname: '',
   };
 };
 
@@ -234,129 +238,124 @@ export const writeCsvByStream = <T>(
   });
 };
 
-export const useDealJournalDatas = () => {
-  type DataWrapper<T> = {
-    data: Record<string, T[]>;
-    isInit: boolean;
+export const getSourceToDest = (
+  source: number,
+  dest: number,
+  currentLocationUid: number,
+  locationMap: Record<string, string>,
+): string => {
+  const sourceLocationName = locationMap[source + ''];
+  const destLocationName = locationMap[dest + ''];
+  if (source === currentLocationUid) {
+    return `self -> ${destLocationName}`;
+  } else if (dest === currentLocationUid) {
+    return `${sourceLocationName} -> self`;
+  } else {
+    return `${sourceLocationName} -> ${destLocationName}`;
+  }
+};
+
+export interface FrameHeaderForShow {
+  DataLength: number;
+  GenTime: string;
+  TriggerTime: string;
+  MsgType: string;
+  PageId: number;
+  FrameId: number;
+  SourceToDest: string;
+}
+
+export const buildFrameHeaderForShow = (
+  frame: KungfuApi.FrameResolved,
+): FrameHeaderForShow => {
+  return {
+    DataLength: frame.dataLength,
+    GenTime: frame.genTimeResolved,
+    TriggerTime: frame.triggerTimeResolved,
+    MsgType: frame.msgTypeName,
+    PageId: frame.pageId,
+    FrameId: frame.frameId,
+    SourceToDest: frame.sourceToDest || `${frame.source} -> ${frame.dest}`,
   };
+};
 
-  const quotes = reactive<DataWrapper<KungfuApi.Quote>>({
-    data: {},
-    isInit: true,
-  });
-  const orders = reactive<DataWrapper<KungfuApi.Order>>({
-    data: {},
-    isInit: true,
-  });
-  const trades = reactive<DataWrapper<KungfuApi.Trade>>({
-    data: {},
-    isInit: true,
-  });
+export const msgTypes = deepClone(longfist.msgTypes);
+export const MsgTypes = ((): Record<string, number> => {
+  return Object.keys(msgTypes).reduce((acc, key) => {
+    acc[msgTypes[key]] = +key;
+    return acc;
+  }, {} as Record<string, number>);
+})();
 
-  const journalStore = useJournalStore();
-  const journalState = storeToRefs(journalStore);
+export const useResizeFlag = () => {
+  const app = getCurrentInstance();
+  const contentVisible = ref<boolean>(true);
+  onMounted(() => {
+    if (app?.proxy) {
+      const subscription = app?.proxy.$globalBus
+        .pipe(filter((e: KfEvent.KfBusEvent) => e.tag === 'resize'))
+        .subscribe(async () => {
+          contentVisible.value = false;
+          await nextTick();
+          contentVisible.value = true;
+        });
 
-  const worker = window.workers.dealJournalDatas;
-  const dataSender = new WorkerSender<KungfuApi.FrameResolved>(worker, 200);
-  const dataReceiver = new WorkerReceiver('send', worker);
-
-  watch(
-    () => journalState.lastUpdateSessionFrames.value,
-    (frames) => {
-      dataSender.sendData('send-events', frames, {
-        isInit: journalState.isSessionFramesInit.value,
-      });
-    },
-  );
-
-  const groupDataByInstrAndExcId = <
-    T extends KungfuApi.Trade | KungfuApi.Quote | KungfuApi.Order,
-  >(
-    data: T[],
-  ): Record<string, T[]> => {
-    return data.reduce((data, cur) => {
-      const key = `${cur.exchange_id}_${cur.instrument_id}`;
-      if (key in data && Array.isArray(data[key])) {
-        data[key].push(cur);
-      } else {
-        data[key] = [cur];
-      }
-      return data;
-    }, {} as Record<string, T[]>);
-  };
-
-  const dealUpdateData = <
-    T extends KungfuApi.Trade | KungfuApi.Quote | KungfuApi.Order,
-  >(
-    exsitedData: Record<string, T[]>,
-    curData: T[],
-    isInit: boolean,
-  ) => {
-    const resolvedCurData = groupDataByInstrAndExcId(curData);
-    if (isInit) {
-      Object.keys(resolvedCurData).forEach((key) => {
-        exsitedData[key] = resolvedCurData[key];
-      });
-    } else {
-      Object.keys(resolvedCurData).forEach((key) => {
-        exsitedData[key].push(...resolvedCurData[key]);
+      onBeforeUnmount(() => {
+        subscription.unsubscribe();
       });
     }
-  };
-
-  dataReceiver.onEnd<KungfuApi.Quote>('send-quotes', ({ data, info }) => {
-    console.log('quote', data, info);
-    dealUpdateData(quotes.data, data, info?.isInit);
-    quotes.isInit = info?.isInit;
-  });
-
-  dataReceiver.onEnd<KungfuApi.Trade>('send-trades', ({ data, info }) => {
-    console.log('trade', data, info);
-    dealUpdateData(trades.data, data, info?.isInit);
-    trades.isInit = info?.isInit;
-  });
-
-  dataReceiver.onEnd<KungfuApi.Order>('send-orders', ({ data, info }) => {
-    console.log('order', data, info);
-    dealUpdateData(orders.data, data, info?.isInit);
-    orders.isInit = info?.isInit;
-  });
-
-  const allTradingDatas = computed(() => {
-    const keys = Array.from(
-      new Set([
-        ...Object.keys(quotes.data),
-        ...Object.keys(orders.data),
-        ...Object.keys(trades.data),
-      ]),
-    );
-
-    return keys.reduce(
-      (datas, key) => {
-        return {
-          ...datas,
-          [key]: {
-            quotes: quotes.data[key] ?? [],
-            trades: trades.data[key] ?? [],
-            orders: orders.data[key] ?? [],
-          },
-        };
-      },
-      {} as Record<
-        string,
-        {
-          quotes: KungfuApi.Quote[];
-          orders: KungfuApi.Order[];
-          trades: KungfuApi.Trade[];
-        }
-      >,
-    );
   });
 
   return {
-    quotes,
-    orders,
-    trades,
-    allTradingDatas,
+    contentVisible,
   };
 };
+
+export type LocationRseolved = KungfuApi.KfLocation & {
+  uname: string;
+  uid: number;
+};
+
+export const resolveLocations = (obj: Record<string, LocationRseolved>) => {
+  const output: Record<string, string> = {};
+
+  for (const key in obj) {
+    // eslint-disable-next-line no-prototype-builtins
+    if (obj.hasOwnProperty(key)) {
+      const item = obj[key];
+      output[key] = `${item.category}/${item.group}/${item.name}/${item.mode}`;
+    }
+  }
+  output['0'] = 'public';
+  output['1'] = 'sync';
+
+  return output;
+};
+
+export const getSourceDestMap = () => {
+  const locations = Object.values(io.getAllLocations());
+  const locationsMap = locations.reduce((pre, cur) => {
+    pre[cur.uid] = cur;
+    return pre;
+  }, {} as Record<string, LocationRseolved>);
+  return resolveLocations(locationsMap);
+};
+
+export const useNow = () => {
+  const now = ref(getNowInNano());
+  let timer: NodeJS.Timeout;
+
+  const updateNowTime = () => {
+    now.value = getNowInNano();
+    clearTimeout(timer);
+    timer = setTimeout(updateNowTime, 1000);
+  };
+  onMounted(() => {
+    updateNowTime();
+  });
+  return {
+    now,
+  };
+};
+
+export const getNowInNano = () => BigInt(new Date().getTime()) * 1000000n;

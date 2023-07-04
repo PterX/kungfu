@@ -41,16 +41,20 @@ public:
 
   virtual int64_t acquire_trading_day() = 0;
 
-  void publish_trading_day();
+  [[maybe_unused]] void publish_trading_day();
 
   void register_app(const event_ptr &event);
 
-  void deregister_app(int64_t trigger_time, uint32_t app_location_uid);
+  [[maybe_unused]] void deregister_app(int64_t trigger_time, uint32_t app_location_uid);
+
+  void on_request_deregister(const event_ptr &event);
 
 protected:
   void react() final;
 
   void on_active() final;
+
+  void on_frame() final;
 
 private:
   int64_t start_time_;
@@ -82,6 +86,8 @@ private:
   void on_request_read_from_public(const event_ptr &event);
 
   void on_request_read_from_sync(const event_ptr &event);
+
+  void on_request_read_from_others(const event_ptr &event);
 
   void on_channel_request(const event_ptr &event);
 

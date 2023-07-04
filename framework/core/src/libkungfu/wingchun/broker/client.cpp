@@ -8,6 +8,7 @@
 
 using namespace kungfu::rx;
 using namespace kungfu::longfist::types;
+using namespace kungfu::longfist::enums;
 using namespace kungfu::yijinjing::practice;
 using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
@@ -134,7 +135,7 @@ void Client::sync(int64_t trigger_time, const yijinjing::data::location_ptr &td_
   writer->mark(trigger_time, PositionRequest::tag);
 }
 
-bool Client::try_sync(int64_t trigger_time, const location_ptr &td_location) {
+[[maybe_unused]] bool Client::try_sync(int64_t trigger_time, const location_ptr &td_location) {
   if (ready_td_locations_.find(td_location->uid) == ready_td_locations_.end()) {
     return false;
   }
@@ -145,8 +146,6 @@ bool Client::try_sync(int64_t trigger_time, const location_ptr &td_location) {
 void Client::on_start(const rx::connectable_observable<event_ptr> &events) {
   events | is(Register::tag) | $$(connect(event, event->data<Register>()));
   events | is(Band::tag) | $$(connect(event, event->data<Band>()));
-  // events | is(BrokerStateUpdate::tag) | $$(update_broker_state(event, event->data<BrokerStateUpdate>()));
-  // events | is(OperatorStateUpdate::tag) | $$(update_operator_state(event, event->data<OperatorStateUpdate>()));
   events | is(BrokerStateUpdate::tag) | $$(update_app_state(event, event->data<BrokerStateUpdate>()));
   events | is(OperatorStateUpdate::tag) | $$(update_app_state(event, event->data<OperatorStateUpdate>()));
   events | is(Deregister::tag) | $$(on_deregister(event->data<Deregister>()));
@@ -228,11 +227,13 @@ bool AutoClient::should_connect_md(uint32_t md_location_uid) const { return true
 
 bool AutoClient::should_connect_td(uint32_t td_location_uid) const { return true; }
 
-bool AutoClient::should_connect_strategy(const location_ptr &stg_location) const { return true; }
-
 bool AutoClient::should_connect_operator(const location_ptr &op_location) const { return true; }
 
 bool AutoClient::should_connect_operator(uint32_t op_location_uid) const { return true; }
+
+bool AutoClient::should_connect_strategy(const location_ptr &strategy_location) const { return true; }
+
+bool AutoClient::should_connect_system(const location_ptr &system_location) const { return false; }
 
 SilentAutoClient::SilentAutoClient(practice::apprentice &app) : AutoClient(app) {}
 
@@ -240,7 +241,7 @@ SilentAutoClient::SilentAutoClient(practice::apprentice &app) : AutoClient(app) 
 //   return false;
 // }
 
-void SilentAutoClient::renew(int64_t trigger_time, const location_ptr &md_location){};
+void SilentAutoClient::renew(int64_t trigger_time, const location_ptr &md_location) {}
 
 void SilentAutoClient::sync(int64_t trigger_time, const location_ptr &td_location) {}
 
@@ -256,7 +257,7 @@ bool PassiveClient::is_custom_subscribed_all(uint32_t md_location_uid,
                                              kungfu::longfist::enums::SubscribeDataType data_type,
                                              const std::string &exchange_id, InstrumentType kf_instrument_type) const {
   if (should_connect_md(app_.get_location(md_location_uid)) and enrolled_md_locations_.at(md_location_uid)) {
-    auto &custom_sub = custom_subs_.at(md_location_uid);
+    const auto &custom_sub = custom_subs_.at(md_location_uid);
 
     SubscribeInstrumentType custom_type = instrument_type_to_subscribe_instrument_type(kf_instrument_type);
 
@@ -295,7 +296,7 @@ bool PassiveClient::is_custom_subscribed_all(uint32_t md_location_uid,
         break;
       }
       if ((it.data_type == SubscribeDataType::All or (uint64_t(it.data_type) & uint64_t(data_type)) != 0) and
-          (custom_exchange.empty() || custom_exchange.compare(exchange_id) == 0) and
+          (custom_exchange.empty() || custom_exchange == exchange_id) and
           (it.instrument_type == SubscribeInstrumentType::All or
            (uint64_t(custom_type) & uint64_t(it.instrument_type)) != 0)) {
         /// using & operator because it.instrument_type maybe InstrumentType::Stock | InstrumentType::Future
@@ -318,15 +319,12 @@ bool PassiveClient::enrolled_md_ready() const {
 
 bool PassiveClient::is_all_subscribed(uint32_t md_location_uid) const {
   if (should_connect_md(app_.get_location(md_location_uid))) {
-    auto &custom_sub = custom_subs_.at(md_location_uid);
-    for (auto it : custom_sub) {
-      if (it.market_type == MarketType::All and it.instrument_type == SubscribeInstrumentType::All and
-          it.data_type == SubscribeDataType::All) {
-        return true;
-      }
-    }
+    const auto &custom_sub = custom_subs_.at(md_location_uid);
+    return std::any_of(custom_sub.begin(), custom_sub.end(), [](const auto &it) {
+      return it.market_type == MarketType::All and it.instrument_type == SubscribeInstrumentType::All and
+             it.data_type == SubscribeDataType::All;
+    });
   }
-
   return false;
 }
 
@@ -353,7 +351,7 @@ void PassiveClient::subscribe_all(const location_ptr &md_location, uint8_t marke
 
 void PassiveClient::renew(int64_t trigger_time, const location_ptr &md_location) {
   if (is_custom_subscribed(md_location->uid)) {
-    auto &custrom_sub = custom_subs_.at(md_location->uid);
+    const auto &custrom_sub = custom_subs_.at(md_location->uid);
     for (auto it : custrom_sub) {
       auto writer = app_.get_writer(md_location->uid);
       writer->write(trigger_time, it);
@@ -389,8 +387,6 @@ bool PassiveClient::should_connect_td(uint32_t td_location_uid) const {
   return enrolled_td_locations_.find(td_location_uid) != enrolled_td_locations_.end();
 }
 
-bool PassiveClient::should_connect_strategy(const location_ptr &stg_location) const { return false; }
-
 bool PassiveClient::should_connect_operator(const location_ptr &op_location) const {
   return enrolled_op_locations_.find(op_location->uid) != enrolled_op_locations_.end();
 }
@@ -398,4 +394,8 @@ bool PassiveClient::should_connect_operator(const location_ptr &op_location) con
 bool PassiveClient::should_connect_operator(uint32_t op_location_uid) const {
   return enrolled_op_locations_.find(op_location_uid) != enrolled_op_locations_.end();
 }
+
+bool PassiveClient::should_connect_strategy(const location_ptr &strategy_location) const { return false; }
+
+bool PassiveClient::should_connect_system(const location_ptr &system_location) const { return false; };
 } // namespace kungfu::wingchun::broker

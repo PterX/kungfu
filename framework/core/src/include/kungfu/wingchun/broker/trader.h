@@ -19,7 +19,8 @@ FORWARD_DECLARE_CLASS_PTR(Trader)
 
 class TraderVendor : public BrokerVendor {
 public:
-  TraderVendor(locator_ptr locator, const std::string &group, const std::string &name, bool low_latency);
+  TraderVendor(locator_ptr locator, const std::string &group, const std::string &name, bool low_latency,
+               const std::string &arguments = {});
 
   void set_service(Trader_ptr service);
 
@@ -72,14 +73,16 @@ public:
 
   virtual bool on_custom_event(const event_ptr &event) { return true; }
 
-  virtual void on_band(const event_ptr &event) {}
+  virtual void on_band(const event_ptr &event) { return; }
+
+  virtual void on_time_key_value(const event_ptr &event) { return; }
 
   /// 此函数自动发送一个空的AssetMargin数据. 两融柜台需要发送一个存有数据的AssetMargin, 请override此函数取消写入.
   /// 并且在使用writer写入完AssetMargin之后调用enable_asset_margin_sync()函数.
   /// 非两融柜台想要取消日志输出请override此函数.
   virtual bool write_default_asset_margin();
 
-  [[nodiscard]] const std::string &get_account_id() const;
+  [[maybe_unused]] [[nodiscard]] const std::string &get_account_id() const;
 
   [[nodiscard]] yijinjing::journal::writer_ptr get_asset_writer() const;
 
@@ -93,19 +96,30 @@ public:
 
   void enable_positions_sync();
 
-  void clear_order_inputs(const uint64_t location_uid) { order_inputs_.erase(location_uid); }
+  void clear_order_inputs(uint64_t location_uid);
 
   std::unordered_map<uint64_t, std::vector<longfist::types::OrderInput>> &get_order_inputs() { return order_inputs_; }
+
+  OrderMap &get_orders() { return orders_; }
+
+  void enable_self_detect();
+
+  [[maybe_unused]] void disable_recover();
+
+  virtual void on_recover(){};
 
 protected:
   OrderMap orders_ = {};
   OrderActionMap actions_ = {};
   TradeMap trades_ = {};
+  bool self_deal_detect_ = false;
+  bool disable_recover_ = false;
   std::unordered_map<uint64_t, kungfu::longfist::types::BlockMessage> block_messages_ = {}; // <block_id, batch_flag>
   /// <strategy_uid, OrderInput>, a batch OrderInputs for a strategy
   std::unordered_map<uint64_t, std::vector<longfist::types::OrderInput>> order_inputs_ = {};
   /// <strategy_uid, batch_flag>, true mean batch mode for this strategy
   std::unordered_map<uint64_t, bool> batch_status_{};
+  std::unordered_map<std::string, std::unordered_set<uint64_t>> map_exchange_instrument_to_order_ids_{};
 
 private:
   bool sync_asset_ = false;
@@ -113,9 +127,20 @@ private:
   bool sync_position_ = false;
 
   void handle_asset_sync();
+
   void handle_position_sync();
+
   void handle_order_input(const event_ptr &event);
+
   void handle_batch_order_tag(const event_ptr &event);
+
+  bool has_self_deal_risk(const event_ptr &event);
+
+  void recover();
+
+  void deal_write_frame();
+
+  void deal_read_frame();
 };
 } // namespace kungfu::wingchun::broker
 

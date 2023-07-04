@@ -4,7 +4,8 @@ set(CMAKE_CXX_STANDARD 20)
 
 ############################################################
 
-# set the global compile options. some of which may replaced by target_compiles_options at rumtime.
+# Set the global compile options.
+# Some of the options may be override by target_compiles_options later in sub-projects.
 if (UNIX)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC") # set -fPIC for nng
   set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
@@ -12,6 +13,8 @@ if (UNIX)
   set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE})
   set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE})
   set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
+  set(COMPILER_OPTIMIZE_ON_OPTIONS "-O3")
+  set(COMPILER_OPTIMIZE_OFF_OPTIONS "-O0")
 endif ()
 if (UNIX AND NOT APPLE)
   set(KFC_INSTALL_RPATH
@@ -27,10 +30,10 @@ if (APPLE)
       "@loader_path/../../"
       "@executable_path/../../../../Resources/kfc"
       )
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-value")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations -Wno-unqualified-std-cast-call -Wno-unused-value")
   set(CMAKE_INSTALL_RPATH "${KFC_INSTALL_RPATH}")
   set(CMAKE_MACOSX_RPATH ON)
-  set(CONAN_DISABLE_CHECK_COMPILER on)
+  set(CONAN_DISABLE_CHECK_COMPILER ON)
 endif ()
 if (MSVC)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP /utf-8 /permissive- /bigobj /W0 /Zc:__cplusplus")
@@ -41,6 +44,8 @@ if (MSVC)
   add_compile_definitions(HAVE_SNPRINTF)
   add_compile_definitions(V8_DEPRECATION_WARNINGS=1)
   add_compile_definitions(_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING)
+  set(COMPILER_OPTIMIZE_ON_OPTIONS "/O2")
+  set(COMPILER_OPTIMIZE_OFF_OPTIONS "/Od")
 endif ()
 
 if (${CMAKE_CXX_COMPILER_ID} MATCHES GNU)
@@ -65,13 +70,3 @@ macro(add_library_object OBJ_NAME SRC_FILES COMPILER_OPTIMIZE_OPTIONS OUTPUT_DIR
     target_compile_options(${OBJ_NAME} PRIVATE $<$<CONFIG:Release>:${COMPILER_OPTIMIZE_OPTIONS}>)
   endif ()
 endmacro()
-
-if (UNIX)
-  set(COMPILER_OPTIMIZE_ON_OPTIONS "-O3")
-  set(COMPILER_OPTIMIZE_OFF_OPTIONS "-O0")
-endif ()
-
-if (MSVC)
-  set(COMPILER_OPTIMIZE_ON_OPTIONS "/O2")
-  set(COMPILER_OPTIMIZE_OFF_OPTIONS "/Od")
-endif ()

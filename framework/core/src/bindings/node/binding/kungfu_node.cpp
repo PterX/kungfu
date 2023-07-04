@@ -42,6 +42,7 @@ decltype(__pfnDliNotifyHook2) __pfnDliNotifyHook2 = load_exe_hook;
 
 #endif // _MSC_VER
 
+#include <kungfu/common.h>
 #include <kungfu/yijinjing/io.h>
 #include <kungfu/yijinjing/util/util.h>
 
@@ -55,6 +56,7 @@ decltype(__pfnDliNotifyHook2) __pfnDliNotifyHook2 = load_exe_hook;
 #include "journal.h"
 #include "longfist.h"
 #include "risk_setting_store.h"
+#include "session_store.h"
 #include "watcher.h"
 
 using namespace kungfu::longfist;
@@ -67,11 +69,17 @@ using namespace kungfu::node;
 namespace kungfu::node {
 
 uint32_t Hash32(const Napi::CallbackInfo &info) {
-  if (not IsValid(info, 0, &Napi::Value::IsString)) {
-    throw Napi::Error::New(info.Env(), "Invalid argument");
+  if (IsValid(info, 0, &Napi::Value::IsString)) {
+    auto arg = info[0].ToString().Utf8Value();
+    return hash_32(reinterpret_cast<const unsigned char *>(arg.c_str()), arg.length());
   }
-  auto arg = info[0].ToString().Utf8Value();
-  return hash_32((const unsigned char *)(arg.c_str()), arg.length());
+
+  if (IsValid(info, 0, &Napi::Value::IsNumber)) {
+    auto arg = static_cast<const int32_t>(info[0].ToNumber().Int32Value());
+    return hash<decltype(arg)>{}(arg);
+  }
+
+  throw Napi::Error::New(info.Env(), "Invalid argument");
 }
 
 Napi::Value Hash(const Napi::CallbackInfo &info) { return Napi::Number::New(info.Env(), Hash32(info)); }
@@ -100,7 +108,6 @@ Napi::Value ParseTime(const Napi::CallbackInfo &info) {
 void Shutdown(const Napi::CallbackInfo &info) { ensure_sqlite_shutdown(); }
 
 Napi::Object InitAll(Napi::Env env, Napi::Object exports) {
-
   ensure_sqlite_initilize();
   Longfist::Init(env, exports);
   History::Init(env, exports);
@@ -109,12 +116,14 @@ Napi::Object InitAll(Napi::Env env, Napi::Object exports) {
   CommissionStore::Init(env, exports);
   BasketStore::Init(env, exports);
   BasketInstrumentStore::Init(env, exports);
+  SessionStore::Init(env, exports);
   Frame::Init(env, exports);
   Reader::Init(env, exports);
   Assemble::Init(env, exports);
   IODevice::Init(env, exports);
   DataTable::Init(env, exports);
   Watcher::Init(env, exports);
+  Tracer::Init(env, exports);
   exports.Set("hash", Napi::Function::New(env, Hash));
   exports.Set("formatStringToHashHex", Napi::Function::New(env, FormatStringToHashHex));
   exports.Set("formatTime", Napi::Function::New(env, FormatTime));

@@ -17,11 +17,11 @@ namespace kungfu::node {
 Napi::FunctionReference RiskSettingStore::constructor = {};
 
 RiskSettingStore::RiskSettingStore(const Napi::CallbackInfo &info)
-    : ObjectWrap(info), locator_(ExtractRuntimeLocatorByInfo0(info)), profile_(locator_) {}
+    : ObjectWrap(info), locator_(IODevice::ExtractRuntimeLocatorByIndex(info, 0)), profile_(locator_) {}
 
 inline RiskSetting getConfigFromJs(const Napi::CallbackInfo &info, const locator_ptr &locator) {
   RiskSetting query = {};
-  auto config_location = ExtractLocation(info, 0, locator);
+  auto config_location = IODevice::ExtractLocation(info, 0, locator);
   if (config_location) {
     query.location_uid = config_location->uid;
     query.category = config_location->category;
@@ -135,6 +135,7 @@ Napi::Value RiskSettingStore::RemoveRiskSetting(const Napi::CallbackInfo &info) 
 
 void RiskSettingStore::Init(Napi::Env env, Napi::Object exports) {
   Napi::HandleScope scope(env);
+  env.AddCleanupHook(cleanup);
 
   Napi::Function func = DefineClass(env, "RiskSettingStore",
                                     {

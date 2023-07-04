@@ -13,12 +13,29 @@
 namespace kungfu::node {
 class Longfist : public Napi::ObjectWrap<Longfist> {
 public:
-  static void Init(Napi::Env env, Napi::Object exports);
-
-private:
   explicit Longfist(const Napi::CallbackInfo &info);
 
-  static Napi::ObjectReference constructor;
+  static void Init(Napi::Env env, Napi::Object exports);
+
+  Napi::Value GetMsgTypes(const Napi::CallbackInfo &info);
+
+  void InitMsgTypes(const Napi::CallbackInfo &info);
+
+  Napi::Value GetTypes(const Napi::CallbackInfo &info);
+
+  void InitTypes(const Napi::CallbackInfo &info);
+
+  void NoSet(const Napi::CallbackInfo &info, const Napi::Value &value);
+
+private:
+  Napi::ObjectReference types_ref_;
+  Napi::ObjectReference msg_types_ref_;
+
+  static Napi::FunctionReference constructor;
+  static void cleanup() {
+    SPDLOG_INFO("Longfist reset");
+    Longfist::constructor.Reset();
+  }
 };
 } // namespace kungfu::node
 

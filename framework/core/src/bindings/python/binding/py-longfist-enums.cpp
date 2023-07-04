@@ -125,6 +125,7 @@ void bind_enums(py::module &m) {
       .value("Filled", OrderStatus::Filled)
       .value("PartialFilledNotActive", OrderStatus::PartialFilledNotActive)
       .value("PartialFilledActive", OrderStatus::PartialFilledActive)
+      .value("Lost", OrderStatus::Lost)
       .export_values()
       .def("__eq__", [](const OrderStatus &a, int b) { return static_cast<int>(a) == b; });
 
@@ -142,6 +143,9 @@ void bind_enums(py::module &m) {
       .value("Limit", PriceType::Limit)
       .value("ForwardBest", PriceType::ForwardBest)
       .value("ReverseBest", PriceType::ReverseBest)
+      .value("EnhancedLimit", PriceType::EnhancedLimit)
+      .value("AtAuctionLimit", PriceType::AtAuctionLimit)
+      .value("AtAuction", PriceType::AtAuction)
       .export_values()
       .def("__eq__", [](const PriceType &a, int b) { return static_cast<int>(a) == b; });
 
@@ -262,6 +266,7 @@ void bind_enums(py::module &m) {
       .value("Snapshot", SubscribeDataType::Snapshot)
       .value("Transaction", SubscribeDataType::Transaction)
       .value("Entrust", SubscribeDataType::Entrust)
+      .value("Tree", SubscribeDataType::Tree)
       .export_values()
       .def("__eq__", [](const SubscribeDataType &a, uint64_t b) { return static_cast<uint64_t>(a) == b; })
       .def("__or__", py::overload_cast<const SubscribeDataType &, const SubscribeDataType &>(
@@ -281,5 +286,21 @@ void bind_enums(py::module &m) {
       .def("__eq__", [](const SubscribeInstrumentType &a, int b) { return static_cast<int>(a) == b; })
       .def("__or__", py::overload_cast<const SubscribeInstrumentType &, const SubscribeInstrumentType &>(
                          &sub_data_bitwise<SubscribeInstrumentType, uint64_t>));
+
+  py::class_<AssembleMode>(m_enums, "AssembleMode")
+      .def(py::init<>())
+      .def_readonly_static("Channel", &AssembleMode::Channel)
+      .def_readonly_static("Write", &AssembleMode::Write)
+      .def_readonly_static("Read", &AssembleMode::Read)
+      .def_readonly_static("Public", &AssembleMode::Public)
+      .def_readonly_static("Sync", &AssembleMode::Sync)
+      .def_readonly_static("All", &AssembleMode::All);
+
+  py::enum_<FrameDataType>(m_enums, "FrameDataType", py::arithmetic())
+      .value("Raw", FrameDataType::Raw)
+      .value("Json", FrameDataType::Json)
+      .value("Unknown", FrameDataType::Unknown)
+      .export_values()
+      .def("__eq__", [](const FrameDataType &a, int b) { return static_cast<int>(a) == b; });
 }
 } // namespace kungfu::longfist::pybind

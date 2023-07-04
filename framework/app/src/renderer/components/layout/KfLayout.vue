@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { SlidersOutlined, SettingOutlined } from '@ant-design/icons-vue';
 import KfProcessStatusController from '@kungfu-trader/kungfu-app/src/renderer/components/layout/KfProcessStatusController.vue';
+import KfUpdateController from '@kungfu-trader/kungfu-app/src/renderer/components/layout/KfUpdateController.vue';
 import { computed, getCurrentInstance, onBeforeUnmount, ref } from 'vue';
 import { useExtConfigsRelated } from '../../assets/methods/actionsUtils';
+import { isUpdateVersionLogicEnable } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import globalBus from '@kungfu-trader/kungfu-js-api/utils/globalBus';
 import KfGlobalSettingModal from '../public/KfGlobalSettingModal.vue';
 import { useLanguage } from '@kungfu-trader/kungfu-js-api/language';
@@ -21,6 +23,8 @@ const menuSelectedKeys = ref<string[]>(['main']);
 
 const { uiExtConfigs } = useExtConfigsRelated();
 const { isLanguageKeyAvailable } = useLanguage();
+
+const isExtSidebarShow = ref<Record<string, boolean>>({});
 
 const sidebarFooterComponentConfigs = computed(() => {
   return Object.keys(uiExtConfigs.value)
@@ -62,6 +66,10 @@ const busSubscription = globalBus.subscribe((data: KfEvent.KfBusEvent) => {
         globalSettingModalVisible.value = true;
     }
   }
+
+  if (data.tag === 'show-or-hide-extension-sidebar') {
+    isExtSidebarShow.value[data.key || ''] = data.target;
+  }
 });
 
 onBeforeUnmount(() => {
@@ -92,22 +100,24 @@ function handleToPage(pathname: string) {
             </template>
             <span>{{ $t('baseConfig.main_panel') }}</span>
           </a-menu-item>
-          <a-menu-item
-            v-for="config in sidebarComponentConfigs"
-            :key="config.key"
-            @click="handleToPage(`/${config.key}`)"
-          >
-            <template #icon>
-              <component :is="config.key"></component>
-            </template>
-            <span>
-              {{
-                isLanguageKeyAvailable(config.name)
-                  ? $t(config.name)
-                  : config.name
-              }}
-            </span>
-          </a-menu-item>
+          <template v-for="config in sidebarComponentConfigs">
+            <a-menu-item
+              v-if="isExtSidebarShow[config.key] !== false"
+              :key="config.key"
+              @click="handleToPage(`/${config.key}`)"
+            >
+              <template #icon>
+                <component :is="config.key"></component>
+              </template>
+              <span>
+                {{
+                  isLanguageKeyAvailable(config.name)
+                    ? $t(config.name)
+                    : config.name
+                }}
+              </span>
+            </a-menu-item>
+          </template>
         </a-menu>
         <div class="kf-sidebar-footer__warp">
           <div
@@ -137,7 +147,13 @@ function handleToPage(pathname: string) {
       </a-layout>
     </a-layout>
     <a-layout-footer>
-      <KfProcessStatusController></KfProcessStatusController>
+      <KfProcessStatusController
+        class="kf-footer-box__warp"
+      ></KfProcessStatusController>
+      <KfUpdateController
+        v-if="isUpdateVersionLogicEnable()"
+        class="kf-footer-box__warp"
+      ></KfUpdateController>
       <div
         v-for="config in footerComponentConfigs"
         :key="config.key"
@@ -234,7 +250,16 @@ function handleToPage(pathname: string) {
     .kf-footer-box__warp {
       float: right;
       height: 100%;
-      margin-right: 8px;
+      padding: 0 8px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: bold;
+      font-size: 12px;
+      color: @primary-color;
+
+      &:hover {
+        background: @item-active-bg;
+      }
     }
   }
 }

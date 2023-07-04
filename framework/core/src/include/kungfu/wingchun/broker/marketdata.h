@@ -19,7 +19,8 @@ FORWARD_DECLARE_CLASS_PTR(MarketData)
 
 class MarketDataVendor : public BrokerVendor {
 public:
-  MarketDataVendor(locator_ptr locator, const std::string &group, const std::string &name, bool low_latency);
+  MarketDataVendor(locator_ptr locator, const std::string &group, const std::string &name, bool low_latency,
+                   const std::string &arguments = {});
 
   void set_service(MarketData_ptr service);
 
@@ -55,9 +56,10 @@ public:
   virtual void on_band(const event_ptr &event) {}
 
 protected:
-  [[nodiscard]] bool has_instrument(const std::string &instrument_id) const;
+  [[maybe_unused]] [[nodiscard]] bool has_instrument(const std::string &instrument_id) const;
 
-  [[nodiscard]] const longfist::types::Instrument &get_instrument(const std::string &instrument_id) const;
+  [[maybe_unused]] [[nodiscard]] const longfist::types::Instrument &
+  get_instrument(const std::string &instrument_id) const;
 
   void update_instrument(longfist::types::Instrument instrument);
 

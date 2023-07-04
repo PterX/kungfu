@@ -49,7 +49,7 @@ export const getColumns = (
       {
         type: 'number',
         name: t('orderConfig.limit_price'),
-        dataIndex: 'limit_price',
+        dataIndex: 'limit_price_resolved',
         width: 120,
         sorter: buildSorter('limit_price'),
       },
@@ -65,7 +65,7 @@ export const getColumns = (
       {
         type: 'number',
         name: t('orderConfig.avg_price'),
-        dataIndex: 'avg_price',
+        dataIndex: 'avg_price_resolved',
         width: 120,
         sorter: buildSorter('avg_price'),
       },
@@ -121,33 +121,35 @@ export const getColumns = (
           ]),
     ]);
 
-export const statisColums: AntTableColumns = [
+export const statisColums: KfTradingDataTableHeaderConfig[] = [
   {
-    title: t('tradingConfig.instrument'),
+    name: t('tradingConfig.instrument'),
     dataIndex: 'instrumentId_exchangeId',
   },
   {
-    title: '',
-    dataIndex: 'side',
+    name: '',
+    dataIndex: 'sideName',
+    width: 40,
   },
   {
-    title: '',
-    dataIndex: 'offset',
+    name: '',
+    dataIndex: 'offsetName',
+    width: 40,
   },
   {
-    title: t('orderConfig.mean'),
+    name: t('orderConfig.mean'),
     dataIndex: 'mean',
   },
   {
-    title: t('orderConfig.max'),
+    name: t('orderConfig.max'),
     dataIndex: 'max',
   },
   {
-    title: t('orderConfig.min'),
+    name: t('orderConfig.min'),
     dataIndex: 'min',
   },
   {
-    title: `${t('orderConfig.volume')}(${t('orderConfig.completed')}/${t(
+    name: `${t('orderConfig.volume')}(${t('orderConfig.completed')}/${t(
       'orderConfig.all',
     )})`,
     dataIndex: 'volume',

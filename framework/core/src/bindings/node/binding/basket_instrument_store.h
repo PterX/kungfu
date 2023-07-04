@@ -17,9 +17,13 @@ public:
 
   ~BasketInstrumentStore() override = default;
 
-  Napi::Value SetAllBasketInstrument(const Napi::CallbackInfo &info);
+  Napi::Value SetAllBasketInstruments(const Napi::CallbackInfo &info);
 
   Napi::Value GetAllBasketInstrument(const Napi::CallbackInfo &info);
+
+  Napi::Value RemoveAllBasketInstruments(const Napi::CallbackInfo &info);
+
+  Napi::Value SetBasketInstrument(const Napi::CallbackInfo &info);
 
   static void Init(Napi::Env env, Napi::Object exports);
 
@@ -32,8 +36,10 @@ private:
   yijinjing::cache::profile profile_;
 
   static Napi::FunctionReference constructor;
-
-  friend class Watcher;
+  static void cleanup() {
+    SPDLOG_INFO("BasketInstrumentStore reset");
+    BasketInstrumentStore::constructor.Reset();
+  }
 };
 } // namespace kungfu::node
 

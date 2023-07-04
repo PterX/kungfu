@@ -28,6 +28,12 @@ public:
   virtual int64_t now() const = 0;
 
   /**
+   * Get location_uid of current process
+   * @return location_uid
+   */
+  virtual uint32_t get_home_uid() const = 0;
+
+  /**
    * Add one shot timer callback.
    * @param nanotime when to call in nano seconds
    * @param callback callback function
@@ -100,8 +106,18 @@ public:
                                 const std::string &source, const std::string &account, double limit_price,
                                 int64_t volume, longfist::enums::PriceType type, longfist::enums::Side side,
                                 longfist::enums::Offset offset,
-                                longfist::enums::HedgeFlag hedge_flag = HedgeFlag::Speculation, bool is_swap = false,
-                                uint64_t block_id = 0, uint64_t parent_id = 0) = 0;
+                                longfist::enums::HedgeFlag hedge_flag = longfist::enums::HedgeFlag::Speculation,
+                                bool is_swap = false, uint64_t block_id = 0, uint64_t parent_id = 0) = 0;
+
+  /**
+   * Insert Order
+   * @param source
+   * @param account
+   * @param order_input
+   * @return
+   */
+  virtual uint64_t insert_order_input(const std::string &source, const std::string &account,
+                                      longfist::types::OrderInput &order_input) = 0;
 
   /**
    * Insert Batch Orders
@@ -134,7 +150,7 @@ public:
    * @return
    */
   virtual std::vector<uint64_t> insert_array_orders(const std::string &source, const std::string &account,
-                                                    std::vector<longfist::types::OrderInput> order_inputs) = 0;
+                                                    std::vector<longfist::types::OrderInput> &order_inputs) = 0;
 
   /**
    * Insert Basket Orders
@@ -147,7 +163,7 @@ public:
    * @param volume_mode
    * @param total_volume
    */
-  virtual uint64_t insert_basket_order(uint64_t basket_id, const std::string &source, const std::string account,
+  virtual uint64_t insert_basket_order(uint64_t basket_id, const std::string &source, const std::string &account,
                                        longfist::enums::Side side, longfist::enums::PriceType price_type,
                                        longfist::enums::PriceLevel price_level, double price_offset = 0,
                                        int64_t volume = 0) = 0;
@@ -203,27 +219,54 @@ public:
   void hold_positions();
 
   /**
+   * Call to skip bookkeeper calculation
+   */
+  void bypass_accounting();
+
+  /**
+   * Tells whether skip bookkeeper
+   * @return true to skip bookkeeper, false to using bookkeeper
+   */
+  bool is_bypass_accounting() const;
+
+  /**
    * request deregister.
    * @return void
    */
-  virtual void req_deregister() {}
+  virtual void req_deregister(){};
 
   /**
    * Update Strategy State
    * @param state StrategyState
    * @param infos vector<string>, info_a, info_b, info_c.
    */
-  virtual void update_strategy_state(longfist::types::StrategyStateUpdate &state_update) {}
+  virtual void update_strategy_state(longfist::types::StrategyStateUpdate &state_update){};
 
   /**
    * Get arguments kfc run -a
    * @return string of arguments
    */
-  virtual std::string arguments() { return {}; }
+  virtual std::string arguments() { return {}; };
+
+  /**
+   *
+   * @param source td source id
+   * @param account td account id
+   * @return writer to related td
+   */
+  virtual yijinjing::journal::writer_ptr get_writer(const std::string &source, const std::string &account) = 0;
+
+  /**
+   *
+   * @param location_uid
+   * @return location_ptr of location_uid
+   */
+  virtual yijinjing::data::location_ptr get_location(uint32_t location_uid) = 0;
 
 private:
   bool book_held_ = false;
   bool positions_mirrored_ = true;
+  bool bypass_accounting_ = false;
 };
 } // namespace kungfu::wingchun::strategy
 

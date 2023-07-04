@@ -11,6 +11,7 @@
 
 using namespace kungfu::longfist;
 using namespace kungfu::longfist::types;
+using namespace kungfu::longfist::enums;
 using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::journal;
@@ -72,6 +73,7 @@ void bind_book(pybind11::module &m) {
       .def_readonly("order_inputs", &Book::order_inputs, py::return_value_policy::reference)
       .def_readonly("orders", &Book::orders, py::return_value_policy::reference)
       .def_readonly("trades", &Book::trades, py::return_value_policy::reference)
+      .def_readonly("instrument_factors", &Book::instrument_factors, py::return_value_policy::reference)
       .def_property_readonly("instruments", &Book::get_instruments)
       .def_property_readonly("commissions", &Book::get_commissions)
       .def("update", &Book::update)

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import path from 'path';
+import os from 'os';
 import { dialog } from '@electron/remote';
 import {
   DeleteOutlined,
@@ -59,7 +60,7 @@ import {
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
   readCSV,
-  writeCSV,
+  writeCsvWithUTF8Bom,
 } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
 import { hashInstrumentUKey } from '@kungfu-trader/kungfu-js-api/kungfu';
 import {
@@ -76,6 +77,7 @@ const props = withDefaults(
   defineProps<{
     formState: Record<string, KungfuApi.KfConfigValue>;
     configSettings: KungfuApi.KfConfigItem[];
+    tdList?: KungfuApi.KfLocation[] | null;
     changeType?: KungfuApi.ModalChangeType;
     primaryKeyAvoidRepeatCompareExtra?: string;
     primaryKeyAvoidRepeatCompareTarget?: string[];
@@ -92,13 +94,14 @@ const props = withDefaults(
         trigger: string;
       }
     >;
-    steps?: Record<string, number>;
     passPrimaryKeySpecialWordsVerify?: boolean;
     isPrimaryDisabled?: boolean;
+    willReplaceWholeFormState?: boolean;
   }>(),
   {
     formState: () => ({}),
     configSettings: () => [],
+    tdList: () => null,
     changeType: 'add',
     primaryKeyAvoidRepeatCompareTarget: () => [],
     primaryKeyAvoidRepeatCompareExtra: '',
@@ -108,9 +111,9 @@ const props = withDefaults(
     labelCol: 6,
     wrapperCol: 14,
     rules: () => ({}),
-    steps: () => ({}),
     passPrimaryKeySpecialWordsVerify: false,
     isPrimaryDisabled: false,
+    willReplaceWholeFormState: false,
   },
 );
 
@@ -139,7 +142,11 @@ type TablesSearchRelated = Record<
   {
     searchKeyword: Ref<string>;
     tableData: Ref<
-      { data: Record<string, KungfuApi.KfConfigValue>; index: number }[]
+      {
+        data: Record<string, KungfuApi.KfConfigValue>;
+        index: number;
+        id: string;
+      }[]
     >;
   }
 >;
@@ -147,11 +154,12 @@ type TablesSearchRelated = Record<
 const app = getCurrentInstance();
 const formRef = ref();
 
-const formState = reactive(props.formState);
+const formState = ref(props.formState);
 const { td, md, operator, strategy } = toRefs(useAllKfConfigData());
 const { basketList, buildBasketOptionValue } = useBasket();
 const { isLanguageKeyAvailable } = useLanguage();
 
+const spinning = ref(false);
 const primaryKeys = ref<string[]>(getPrimaryKeys(props.configSettings || []));
 const sideRadiosList = ref<string[]>(Object.keys(Side).slice(0, 2));
 const customerFormItemTips = reactive<Record<string, string>>({});
@@ -174,7 +182,7 @@ watch(
 
     const rowFormState = toRaw(props.formState);
     Object.keys(rowFormState).forEach(
-      (key) => (formState[key] = rowFormState[key]),
+      (key) => (formState.value[key] = rowFormState[key]),
     );
   },
 );
@@ -203,7 +211,7 @@ const instrumentOptionsReactiveData = reactive<{
 const instrumentsInFrom = computed(() =>
   Object.keys(instrumentKeys.value).map((key) => ({
     key,
-    value: formState[key],
+    value: formState.value[key],
   })),
 );
 watch(instrumentsInFrom, (insts) => {
@@ -222,13 +230,28 @@ watch(instrumentsInFrom, (insts) => {
   });
 });
 
-watch(formState, (newVal) => {
-  app && app.emit('update:formState', newVal);
-});
-
-if ('instrument' in formState && 'side' in formState) {
+if (props.willReplaceWholeFormState) {
   watch(
-    () => formState.instrument,
+    () => props.formState,
+    (newVal) => {
+      formState.value = newVal;
+    },
+  );
+}
+
+watch(
+  () => formState.value,
+  (newVal) => {
+    app && app.emit('update:formState', newVal);
+  },
+  {
+    deep: true,
+  },
+);
+
+if ('instrument' in formState.value && 'side' in formState.value) {
+  watch(
+    () => formState.value.instrument,
     (newInstrument: string) => {
       if (newInstrument) {
         const instrumentResolved =
@@ -263,11 +286,12 @@ function getInstrumentsSearchRelated(
         updateSearchInstrumnetOptions,
       } = useInstruments();
 
-      updateSearchInstrumnetOptions(instrumentKeys[key], formState[key]).then(
-        (options) => {
-          instrumentOptionsReactiveData.data[key] = options;
-        },
-      );
+      updateSearchInstrumnetOptions(
+        instrumentKeys[key],
+        formState.value[key],
+      ).then((options) => {
+        instrumentOptionsReactiveData.data[key] = options;
+      });
 
       item1[key] = {
         searchInstrumnetOptions,
@@ -280,7 +304,7 @@ function getInstrumentsSearchRelated(
         handleSearchInstrumentBlur: () => {
           updateSearchInstrumnetOptions(
             instrumentKeys[key],
-            formState[key],
+            formState.value[key],
           ).then((options) => {
             instrumentOptionsReactiveData.data[key] = options;
           });
@@ -296,7 +320,7 @@ function getTablesSearchRelated(
   tableKeys: Record<string, KungfuApi.KfConfigItem>,
 ): TablesSearchRelated {
   return Object.keys(tableKeys).reduce((tablesSearchRelated, key) => {
-    const targetList = ref(formState[key]);
+    const targetList = ref(formState.value[key]);
     const keys =
       tableKeys[key].search?.keys ||
       tableKeys[key].headers?.map((header) => header.title) ||
@@ -362,15 +386,14 @@ function isNumberInputType(type: string): boolean {
 }
 
 const SpecialWordsReg = new RegExp(
-  "[`~!@#$^&*()=|{}';',\\[\\]<>《》/?~！@#￥……&*（）——|{}【】‘；：”“'。，、？]",
+  "[`~!@#$^&*()=|{}';'\\[\\]<>《》?~！@#￥……&*（）——|{}【】‘；”“'。，、？_]",
 );
 function primaryKeyValidator(_rule: RuleObject, value: string): Promise<void> {
   const combineValue: string = getCombineValueByPrimaryKeys(
     primaryKeys.value,
-    formState,
+    formState.value,
     props.primaryKeyAvoidRepeatCompareExtra,
   );
-
   if (
     props.primaryKeyAvoidRepeatCompareTarget
       .map((item): string => item.toLowerCase())
@@ -498,17 +521,21 @@ function instrumentsCsvCallback(
     fail: `${failedLength}`,
     value: t('tradingConfig.instrument'),
   });
-  formState[targetKey] = resolvedInstruments.map((item) =>
+  formState.value[targetKey] = resolvedInstruments.map((item) =>
     buildInstrumentSelectOptionValue(item),
   );
+  return Promise.resolve();
 }
 
 function handleClearInstrumentsCsv(targetKey: string) {
-  formState[targetKey] = [];
+  formState.value[targetKey] = [];
   customerFormItemTips[targetKey] = '';
 }
 
-function csvTableCallback(columns: KungfuApi.KfConfigItem[]) {
+function csvTableCallback(
+  columns: KungfuApi.KfConfigItem[],
+  mode?: 'reset' | 'add',
+) {
   return function (
     data: Record<string, KungfuApi.KfConfigValue>[],
     errRows: {
@@ -517,38 +544,57 @@ function csvTableCallback(columns: KungfuApi.KfConfigItem[]) {
     }[],
     targetKey: string,
   ) {
-    if (errRows.length) {
-      console.warn('Csv resolve error rows:', errRows);
-    }
-    if (data.length) {
-      const headers = Object.keys(data[0]);
-      const isInstrumentHeader =
-        headers.includes('instrument_id') && headers.includes('exchange_id');
-      const instrumentColumnConfig = columns.find(
-        (item) => item.type === 'instrument',
-      );
-      const shouldResolveInstrument =
-        isInstrumentHeader && instrumentColumnConfig;
-      if (shouldResolveInstrument) {
-        const { getInstrumentByIds } = useActiveInstruments();
-
-        data.forEach((item) => {
-          const instrument = getInstrumentByIds(
-            item.instrument_id,
-            `${item.exchange_id}`.toUpperCase(),
-            true,
-          ) as KungfuApi.InstrumentResolved;
-
-          formState[targetKey].push({
-            ...item,
-            [instrumentColumnConfig.key]:
-              buildInstrumentSelectOptionValue(instrument),
-          });
-        });
-      } else {
-        formState[targetKey].push(...data);
+    return new Promise<void>((resolve) => {
+      if (errRows.length) {
+        console.warn('Csv resolve error rows:', errRows);
+        messagePrompt().error(
+          `${t('settingsFormConfig.import_failed')}: ${t(
+            'settingsFormConfig.csv_format_error',
+          )}`,
+        );
+        return resolve();
       }
-    }
+
+      if (data.length) {
+        if (mode === 'reset') {
+          formState.value[targetKey].length = 0;
+        }
+
+        const headers = Object.keys(data[0]);
+        const isInstrumentHeader =
+          headers.includes('instrument_id') && headers.includes('exchange_id');
+        const instrumentColumnConfig = columns.find(
+          (item) => item.type === 'instrument',
+        );
+        const shouldResolveInstrument =
+          isInstrumentHeader && instrumentColumnConfig;
+        nextTick(() => {
+          if (shouldResolveInstrument) {
+            const { getInstrumentByIds } = useActiveInstruments();
+
+            data.forEach((item) => {
+              const instrument = getInstrumentByIds(
+                item.instrument_id,
+                `${item.exchange_id}`.toUpperCase(),
+                true,
+              ) as KungfuApi.InstrumentResolved;
+
+              formState.value[targetKey].push({
+                ...item,
+                [instrumentColumnConfig.key]:
+                  buildInstrumentSelectOptionValue(instrument),
+              });
+            });
+          } else {
+            formState.value[targetKey].push(...data);
+          }
+          messagePrompt().success();
+          resolve();
+        });
+      }
+
+      resolve();
+    });
   };
 }
 
@@ -678,7 +724,7 @@ function handleSelectCsv<T>(
       data: (string | number | boolean)[];
     }[],
     targetKey: string,
-  ) => void,
+  ) => Promise<void>,
 ): void {
   dialog
     .showOpenDialog({
@@ -688,17 +734,28 @@ function handleSelectCsv<T>(
     .then((res) => {
       const { filePaths } = res;
       if (filePaths.length) {
+        spinning.value = true;
         readCSV<T>(filePaths[0], true, {
           validator: buildCsvHeadersValidator(headers),
           transformer: buildCsvHeadersTransformer(headers),
         })
           .then(({ resRows, errRows }) => {
-            callback && callback(resRows, errRows, targetKey);
+            if (callback) return callback(resRows, errRows, targetKey);
+
+            return Promise.resolve();
           })
           .catch((err) => {
+            messagePrompt().error(
+              `${t('settingsFormConfig.import_failed')}: ${t(
+                'settingsFormConfig.csv_format_error',
+              )}`,
+            );
             if (err instanceof Error) {
               console.error(err);
             }
+          })
+          .finally(() => {
+            spinning.value = false;
           });
       }
     });
@@ -721,7 +778,7 @@ function handleDownloadCsvTemplate(
                 filePaths[0],
                 template.name || t('settingsFormConfig.csv_template') + '.csv',
               );
-              return writeCSV(filePath, template.data || []);
+              return writeCsvWithUTF8Bom(filePath, template.data || [], true);
             }),
           ).then(() => {
             messagePrompt().success();
@@ -739,7 +796,32 @@ function handleSelectFile(targetKey: string): void {
     .then((res) => {
       const { filePaths } = res;
       if (filePaths.length) {
-        formState[targetKey] = filePaths[0];
+        formState.value[targetKey] = filePaths[0];
+        formRef.value.validateFields([targetKey]); //手动进行再次验证, 因数据放在span中, 改变数据后无法触发验证
+      }
+    });
+}
+
+function handleSelectDirectory(
+  target: KungfuApi.KfConfigItem,
+  type?: 'default',
+): void {
+  const targetKey = target.key;
+  if (type === 'default') {
+    formState.value[targetKey] = target.default;
+    formRef.value.validateFields([targetKey]);
+    return;
+  }
+  dialog
+    .showOpenDialog({
+      defaultPath: formState.value[targetKey] || os.homedir(),
+      properties: ['openDirectory', 'createDirectory', 'promptToCreate'],
+    })
+    .then((res) => {
+      const { filePaths } = res;
+
+      if (filePaths.length) {
+        formState.value[targetKey] = filePaths[0];
         formRef.value.validateFields([targetKey]); //手动进行再次验证, 因数据放在span中, 改变数据后无法触发验证
       }
     });
@@ -753,37 +835,167 @@ function handleSelectFiles(targetKey: string): void {
     .then((res) => {
       const { filePaths } = res;
       if (filePaths.length) {
-        (formState[targetKey] as string[]).push(filePaths[0]);
+        (formState.value[targetKey] as string[]).push(filePaths[0]);
         formRef.value.validateFields([targetKey]); //手动进行再次验证, 因数据放在span中, 改变数据后无法触发验证
       }
     });
 }
 
 function handleRemoveFile(key: string, filename: string): void {
-  const index = (formState[key] as string[]).indexOf(filename);
+  const index = (formState.value[key] as string[]).indexOf(filename);
   if (index !== -1) {
-    (formState[key] as string[]).splice(index, 1);
+    (formState.value[key] as string[]).splice(index, 1);
   }
 }
 
+function onOpenRangePickerChange(open: boolean, key: string) {
+  if (open) {
+    formState.value[key] = null;
+  }
+}
+
+function onRangePickerCalendarChange(val: Dayjs[], key: string) {
+  if (val) {
+    formState.value[key] = val.map((d) => {
+      if (d) {
+        return d.format('YYYY-MM-DD HH:mm:ss');
+      } else if (val[0]) {
+        return val[0].format('YYYY-MM-DD HH:mm:ss');
+      } else if (val[1]) {
+        return val[1].format('YYYY-MM-DD HH:mm:ss');
+      } else {
+        return dayjs().format('YYYY-MM-DD HH:mm:ss');
+      }
+    });
+  }
+}
+
+function disabledEndDate(currentDate: Dayjs, key: string, timeInterval = 1) {
+  if (!formState.value[key] || !formState.value[key][0]) {
+    return false;
+  }
+  let endTime;
+  const startTime = dayjs(formState.value[key][0]);
+  const hour = startTime.hour();
+  const minute = startTime.minute();
+  if (hour === 0 && minute === 0) {
+    endTime = startTime.add(timeInterval, 'day');
+  } else {
+    endTime = startTime.add(timeInterval + 1, 'day');
+  }
+
+  return (
+    currentDate &&
+    (currentDate.valueOf() <= startTime.valueOf() ||
+      currentDate.valueOf() >= endTime.valueOf())
+  );
+}
+
+function disabledEndTime(
+  currentDate: Dayjs,
+  type: string,
+  key: string,
+  timeInterval = 1,
+) {
+  if (!formState.value[key] || !formState.value[key][0]) {
+    return {};
+  }
+  if (type === 'start') {
+    return {};
+  }
+
+  const startTime = dayjs(formState.value[key][0]);
+  const endTime = startTime.add(timeInterval, 'day');
+
+  const disabledHours = () => {
+    const hours: number[] = [];
+
+    if (currentDate.isSame(startTime, 'day')) {
+      for (let i = 0; i <= startTime.hour(); i++) {
+        hours.push(i);
+      }
+    }
+
+    if (currentDate.isSame(endTime, 'day')) {
+      for (let i = endTime.hour() + 1; i < 24; i++) {
+        hours.push(i);
+      }
+    }
+
+    return hours;
+  };
+
+  const disabledMinutes = (selectedHour) => {
+    const minutes: number[] = [];
+
+    if (
+      currentDate.isSame(startTime, 'day') &&
+      selectedHour === startTime.hour()
+    ) {
+      for (let i = 0; i <= startTime.minute(); i++) {
+        minutes.push(i);
+      }
+    }
+
+    if (currentDate.isSame(endTime, 'day') && selectedHour === endTime.hour()) {
+      for (let i = endTime.minute() + 1; i < 60; i++) {
+        minutes.push(i);
+      }
+    }
+
+    return minutes;
+  };
+
+  return {
+    disabledHours,
+    disabledMinutes,
+  };
+}
+
+function handleRangePickerChange(date: Dayjs[], key: string) {
+  if (date) {
+    formState.value[key] = date.map((d) =>
+      dayjs(d).toString() === 'Invalid Date'
+        ? null
+        : dayjs(d).format('YYYY-MM-DD HH:mm:ss'),
+    );
+  } else {
+    formState.value[key] = null;
+  }
+}
+
+function handleDateTimePickerChange(date: Dayjs, key: string) {
+  formState.value[key] =
+    dayjs(date).toString() === 'Invalid Date'
+      ? null
+      : dayjs(date).format('YYYY-MM-DD HH:mm:ss');
+}
+
+function handleDatePickerChange(date: Dayjs, key: string) {
+  formState.value[key] =
+    dayjs(date).toString() === 'Invalid Date'
+      ? null
+      : dayjs(date).format('YYYY-MM-DD');
+}
+
 function handleTimePickerChange(date: Dayjs, key: string) {
-  formState[key] =
+  formState.value[key] =
     dayjs(date).toString() === 'Invalid Date'
       ? null
       : dayjs(date).format('YYYY-MM-DD HH:mm:ss');
 }
 
 function handleInstrumentSelected(val: string, key: string) {
-  if (!formState[key].includes(val)) {
-    formState[key].push(val);
+  if (!formState.value[key].includes(val)) {
+    formState.value[key].push(val);
     formRef.value.validateFields([key]); //手动进行再次验证, 因数据放在span中, 改变数据后无法触发验证
   }
 }
 
 function handleInstrumentDeselected(val: string, key: string) {
-  const index = formState[key].indexOf(val);
+  const index = formState.value[key].indexOf(val);
   if (index !== -1) {
-    formState[key].splice(index, 1);
+    formState.value[key].splice(index, 1);
     formRef.value.validateFields([key]); //手动进行再次验证, 因数据放在span中, 改变数据后无法触发验证
   }
 }
@@ -805,18 +1017,27 @@ function parserPercentString(value: string): number {
 }
 
 function handleAddItemIntoTableRows(item: KungfuApi.KfConfigItem) {
-  const targetState = formState[item.key];
+  const targetState = formState.value[item.key];
   const tmp = initFormStateByConfig(item.columns || [], {});
   if (targetState instanceof Array) {
-    targetState.push(tmp);
+    targetState.unshift(tmp);
   }
 }
 
 function handleRemoveItemIntoTableRows(item, index) {
-  const targetState = formState[item.key];
+  const targetState = formState.value[item.key];
   if (targetState instanceof Array) {
     targetState.splice(index, 1);
   }
+}
+
+function calcTableItemHeight(
+  layout: 'horizontal' | 'vertical' | 'inline',
+  noDivider: boolean,
+) {
+  const baseHeight = layout === 'vertical' ? 52 : 32;
+  const dividerHeight = noDivider ? 8 : 25;
+  return baseHeight + dividerHeight;
 }
 
 defineExpose({
@@ -826,15 +1047,15 @@ defineExpose({
 </script>
 <template>
   <a-form
-    class="kf-config-form"
     ref="formRef"
+    class="kf-config-form"
     :model="formState"
-    :labelCol="layout === 'inline' ? null : { span: labelCol }"
+    :label-col="layout === 'inline' ? null : { span: labelCol }"
     :label-wrap="labelWrap"
-    :wrapperCol="layout === 'inline' ? null : { span: wrapperCol }"
-    :labelAlign="labelAlign"
+    :wrapper-col="layout === 'inline' ? null : { span: wrapperCol }"
+    :label-align="labelAlign"
     :colon="false"
-    :scrollToFirstError="true"
+    :scroll-to-first-error="true"
     :layout="layout"
   >
     <a-form-item
@@ -929,7 +1150,7 @@ defineExpose({
       ></a-input>
       <a-input-password
         v-else-if="item.type === 'password'"
-        v-model:value="formState[item.key]"
+        v-model:value.trim="formState[item.key]"
         :disabled="
           (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
           item.disabled
@@ -942,7 +1163,7 @@ defineExpose({
         :min="item.min ?? -Infinity"
         :formatter="(val) => Math.floor(val)"
         :parser="(val) => Math.floor(Number(val))"
-        :step="steps[item.key] || 1"
+        :step="item.step || 1"
         :disabled="
           (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
           item.disabled
@@ -953,8 +1174,8 @@ defineExpose({
         v-model:value="formState[item.key]"
         :max="item.max ?? Infinity"
         :min="item.min ?? -Infinity"
-        :precision="4"
-        :step="steps[item.key] || 0.0001"
+        :precision="item.precision ?? 3"
+        :step="item.step ?? 0.001"
         :disabled="
           (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
           item.disabled
@@ -965,8 +1186,8 @@ defineExpose({
         v-model:value="formState[item.key]"
         :max="item.max ?? Infinity"
         :min="item.min ?? -Infinity"
-        :precision="2"
-        :step="steps[item.key] || 0.01"
+        :precision="item.precision || 2"
+        :step="item.step || 0.01"
         :formatter="formatterPercentNumber"
         :parser="parserPercentString"
         :disabled="
@@ -1157,15 +1378,60 @@ defineExpose({
         </a-select-option>
       </a-select>
       <a-select
+        v-else-if="item.type === 'multiSelect'"
+        v-model:value="formState[item.key]"
+        mode="multiple"
+        :filter-option="
+          (inputValue, option) =>
+            option.key.toLowerCase().indexOf(inputValue.toLowerCase()) > -1
+        "
+        allow-clear
+        show-search
+        :disabled="
+          (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
+          item.disabled
+        "
+      >
+        <a-select-option
+          v-for="option in item.options"
+          :key="option.label"
+          :value="option.value"
+        >
+          <a-tag
+            v-if="option.type === 'tag'"
+            :color="dealKungfuColorToStyleColor(option.color || 'default')"
+          >
+            {{
+              isLanguageKeyAvailable(option.label + '')
+                ? $t(option.label + '')
+                : option.label
+            }}
+          </a-tag>
+          <span
+            v-else
+            :class="dealKungfuColorToClassname(option.color || 'text')"
+            :style="{
+              color: dealKungfuColorToStyleColor(option.color || 'text'),
+            }"
+          >
+            {{
+              isLanguageKeyAvailable(option.label + '')
+                ? $t(option.label + '')
+                : option.label
+            }}
+          </span>
+        </a-select-option>
+      </a-select>
+      <a-select
         v-else-if="item.type === 'instrument'"
         :ref="item.key"
+        v-model:value="formState[item.key]"
         class="instrument-select"
         :disabled="
           (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
           item.disabled
         "
         show-search
-        v-model:value="formState[item.key]"
         :filter-option="false"
         :options="instrumentOptionsReactiveData.data[item.key]"
         @search="instrumentsSearchRelated[item.key].handleSearchInstrument"
@@ -1199,7 +1465,7 @@ defineExpose({
         "
       >
         <a-select-option
-          v-for="config in td"
+          v-for="config in tdList ? tdList : td"
           :key="getIdByKfLocation(config)"
           :value="getIdByKfLocation(config)"
         >
@@ -1326,9 +1592,9 @@ defineExpose({
         </a-select-option>
       </a-select>
       <a-switch
-        size="small"
         v-else-if="item.type === 'bool'"
         v-model:checked="formState[item.key]"
+        size="small"
         :disabled="
           (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
           item.disabled
@@ -1344,6 +1610,36 @@ defineExpose({
           @click="handleSelectFile(item.key)"
         >
           <template #icon><DashOutlined /></template>
+        </a-button>
+        <div
+          v-if="formState[item.key]"
+          class="file-path"
+          :title="(formState[item.key] || '').toString()"
+        >
+          <span class="name">{{ formState[item.key] }}</span>
+        </div>
+      </div>
+      <div
+        v-else-if="item.type === 'directory'"
+        class="kf-form-item__warp file"
+      >
+        <a-button
+          size="small"
+          :disabled="
+            (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
+            item.disabled
+          "
+          @click="handleSelectDirectory(item)"
+        >
+          <template #icon><DashOutlined /></template>
+        </a-button>
+        <a-button
+          v-if="item.default"
+          size="small"
+          style="margin-left: 4px; vertical-align: middle"
+          @click="handleSelectDirectory(item, 'default')"
+        >
+          {{ $t('globalSettingConfig.reset_order') }}
         </a-button>
         <div
           v-if="formState[item.key]"
@@ -1455,6 +1751,68 @@ defineExpose({
           </div>
         </template>
       </div>
+      <a-range-picker
+        v-else-if="item.type === 'rangePicker'"
+        :disabled="
+          (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
+          item.disabled
+        "
+        :disabled-date="
+          (currentDate) =>
+            disabledEndDate(currentDate, item.key, item.disableDateRange)
+        "
+        :disabled-time="
+          (currentDate, type) =>
+            disabledEndTime(currentDate, type, item.key, item.disableDateRange)
+        "
+        :show-time="{
+          hideDisabledOptions: true,
+          defaultValue: [
+            dayjs('00:00:00', 'HH:mm:ss'),
+            dayjs('11:59:59', 'HH:mm:ss'),
+          ],
+        }"
+        :value="Array.isArray(formState[item.key]) ? formState[item.key].map((item: string) => dayjs(item)) : null"
+        @open-change="
+          onOpenRangePickerChange($event as unknown as boolean, item.key)
+        "
+        @calendar-change="
+          onRangePickerCalendarChange($event as unknown as Dayjs[], item.key)
+        "
+        @change="
+          handleRangePickerChange($event as unknown as Dayjs[], item.key)
+        "
+      ></a-range-picker>
+      <a-date-picker
+        v-else-if="item.type === 'dateTimePicker'"
+        :disabled="
+          (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
+          item.disabled
+        "
+        format="YYYY-MM-DD HH:mm:ss"
+        :show-time="{ defaultValue: dayjs('00:00:00', 'HH:mm:ss') }"
+        :value="
+          formState[item.key] == null || formState[item.key] == ''
+            ? null
+            : dayjs(formState[item.key])
+        "
+        @change="
+          handleDateTimePickerChange($event as unknown as Dayjs, item.key)
+        "
+      ></a-date-picker>
+      <a-date-picker
+        v-else-if="item.type === 'datePicker'"
+        :disabled="
+          (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
+          item.disabled
+        "
+        :value="
+          formState[item.key] == null || formState[item.key] == ''
+            ? null
+            : dayjs(formState[item.key])
+        "
+        @change="handleDatePickerChange($event as unknown as Dayjs, item.key)"
+      ></a-date-picker>
       <a-time-picker
         v-else-if="item.type === 'timePicker'"
         :disabled="
@@ -1481,7 +1839,7 @@ defineExpose({
                 handleSelectCsv<Record<string, KungfuApi.KfConfigValue>>(
                   item.key,
                   item.headers || [],
-                  csvTableCallback(item.columns || []),
+                  csvTableCallback(item.columns || [], item.importMode),
                 )
               "
             >
@@ -1526,120 +1884,177 @@ defineExpose({
               <PlusOutlined @click.stop="handleAddItemIntoTableRows(item)" />
             </template>
           </a-button>
+          <div
+            v-if="item.type === 'csvTable' && !!item.search"
+            class="table-in-config-setting-total"
+          >
+            {{
+              $t('settingsFormConfig.total', {
+                sum: formState[item.key]?.length ?? 0,
+              })
+            }}
+          </div>
         </div>
         <template v-if="!!item.search">
-          <div
-            v-for="(_item, index) in tablesSearchRelated[item.key].tableData
-              .value"
-            :key="`${index}_${
+          <RecycleScroller
+            v-if="
+              tablesSearchRelated[item.key].tableData.value &&
               tablesSearchRelated[item.key].tableData.value.length
-            }`"
+            "
+            :style="{
+              maxHeight: `${
+                calcTableItemHeight(layout, !!item.noDivider) * 10
+              }px`,
+              overflowY: 'overlay',
+            }"
+            :items="tablesSearchRelated[item.key].tableData.value"
+            :item-size="calcTableItemHeight(layout, !!item.noDivider)"
+            key-field="id"
+            :buffer="0"
+          >
+            <template
+              #default="{
+                item: _item,
+                index,
+              }: {
+                item: {
+                  data: Record<string, KungfuApi.KfConfigValue>,
+                  index: number,
+                  id: string,
+                },
+                index: number,
+              }"
+            >
+              <div
+                class="table-in-config-setting-row"
+                :style="{
+                  paddingBottom: item.noDivider ? '8px' : '',
+                }"
+              >
+                <div class="table-in-config-setting-row-from__wrap">
+                  <KfConfigSettingsForm
+                    v-model:formState="_item.data"
+                    :style="{
+                      flexWrap: item.wrap || '',
+                      overflowX: item.wrap === 'nowrap' ? 'overlay' : '',
+                    }"
+                    :config-settings="item.columns || []"
+                    :change-type="changeType"
+                    :primary-key-avoid-repeat-compare-extra="
+                      primaryKeyAvoidRepeatCompareExtra
+                    "
+                    :primary-key-avoid-repeat-compare-target="
+                      primaryKeyAvoidRepeatCompareTarget
+                    "
+                    layout="inline"
+                    :label-align="labelAlign"
+                    :label-wrap="labelWrap"
+                    :label-col="labelCol"
+                    :wrapper-col="wrapperCol"
+                    :rules="rules"
+                    :pass-primary-key-special-words-verify="
+                      passPrimaryKeySpecialWordsVerify
+                    "
+                    :is-primary-disabled="isPrimaryDisabled"
+                    :will-replace-whole-form-state="true"
+                  ></KfConfigSettingsForm>
+                  <div class="table-in-config-setting-row-buttons__wrap">
+                    <a-button
+                      size="small"
+                      :disabled="
+                        (changeType === 'update' &&
+                          item.primary &&
+                          !isPrimaryDisabled) ||
+                        item.disabled
+                      "
+                    >
+                      <template #icon>
+                        <DeleteOutlined
+                          @click="
+                            handleRemoveItemIntoTableRows(item, _item.index)
+                          "
+                        />
+                      </template>
+                    </a-button>
+                  </div>
+                </div>
+                <div
+                  v-if="
+                    index !==
+                      tablesSearchRelated[item.key].tableData.value.length -
+                        1 && !item.noDivider
+                  "
+                  class="table-in-config-setting-row-divider"
+                >
+                  <a-divider></a-divider>
+                </div>
+              </div>
+            </template>
+          </RecycleScroller>
+        </template>
+        <template v-else>
+          <div
+            v-for="(_item, index) in formState[item.key]"
+            :key="`${index}_${formState[item.key].length}`"
             class="table-in-config-setting-row"
           >
-            <a-button
-              size="small"
-              :disabled="
-                (changeType === 'update' &&
-                  item.primary &&
-                  !isPrimaryDisabled) ||
-                item.disabled
-              "
-            >
-              <template #icon>
-                <DeleteOutlined
-                  @click="
-                    handleRemoveItemIntoTableRows(
-                      item,
-                      tablesSearchRelated[item.key].tableData.value[index]
-                        .index,
-                    )
+            <div class="table-in-config-setting-row-from__wrap">
+              <KfConfigSettingsForm
+                v-model:formState="formState[item.key][index]"
+                :config-settings="item.columns || []"
+                :change-type="changeType"
+                :primary-key-avoid-repeat-compare-extra="
+                  primaryKeyAvoidRepeatCompareExtra
+                "
+                :primary-key-avoid-repeat-compare-target="
+                  primaryKeyAvoidRepeatCompareTarget
+                "
+                layout="inline"
+                :label-align="labelAlign"
+                :label-wrap="labelWrap"
+                :label-col="labelCol"
+                :wrapper-col="wrapperCol"
+                :rules="rules"
+                :pass-primary-key-special-words-verify="
+                  passPrimaryKeySpecialWordsVerify
+                "
+                :is-primary-disabled="isPrimaryDisabled"
+              ></KfConfigSettingsForm>
+              <div class="table-in-config-setting-row-buttons__wrap">
+                <a-button
+                  size="small"
+                  :disabled="
+                    (changeType === 'update' &&
+                      item.primary &&
+                      !isPrimaryDisabled) ||
+                    item.disabled
                   "
-                />
-              </template>
-            </a-button>
-            <KfConfigSettingsForm
-              v-model:formState="
-                tablesSearchRelated[item.key].tableData.value[index].data
-              "
-              :configSettings="item.columns || []"
-              :changeType="changeType"
-              :primaryKeyAvoidRepeatCompareExtra="
-                primaryKeyAvoidRepeatCompareExtra
-              "
-              :primaryKeyAvoidRepeatCompareTarget="
-                primaryKeyAvoidRepeatCompareTarget
-              "
-              layout="inline"
-              :labelAlign="labelAlign"
-              :labelWrap="labelWrap"
-              :labelCol="labelCol"
-              :wrapperCol="wrapperCol"
-              :rules="rules"
-              :steps="steps"
-              :passPrimaryKeySpecialWordsVerify="
-                passPrimaryKeySpecialWordsVerify
-              "
-              :isPrimaryDisabled="isPrimaryDisabled"
-            ></KfConfigSettingsForm>
-            <a-divider
+                >
+                  <template #icon>
+                    <DeleteOutlined
+                      @click="handleRemoveItemIntoTableRows(item, index)"
+                    />
+                  </template>
+                </a-button>
+              </div>
+            </div>
+            <div
               v-if="
                 index !==
                   tablesSearchRelated[item.key].tableData.value.length - 1 &&
                 !item.noDivider
               "
-            ></a-divider>
-          </div>
-        </template>
-        <template v-else>
-          <div
-            class="table-in-config-setting-row"
-            v-for="(_item, index) in formState[item.key]"
-            :key="`${index}_${formState[item.key].length}`"
-          >
-            <a-button
-              size="small"
-              :disabled="
-                (changeType === 'update' &&
-                  item.primary &&
-                  !isPrimaryDisabled) ||
-                item.disabled
-              "
+              class="table-in-config-setting-row-divider"
             >
-              <template #icon>
-                <DeleteOutlined
-                  @click="handleRemoveItemIntoTableRows(item, index)"
-                />
-              </template>
-            </a-button>
-            <KfConfigSettingsForm
-              v-model:formState="formState[item.key][index]"
-              :configSettings="item.columns || []"
-              :changeType="changeType"
-              :primaryKeyAvoidRepeatCompareExtra="
-                primaryKeyAvoidRepeatCompareExtra
-              "
-              :primaryKeyAvoidRepeatCompareTarget="
-                primaryKeyAvoidRepeatCompareTarget
-              "
-              layout="inline"
-              :labelAlign="labelAlign"
-              :labelWrap="labelWrap"
-              :labelCol="labelCol"
-              :wrapperCol="wrapperCol"
-              :rules="rules"
-              :steps="steps"
-              :passPrimaryKeySpecialWordsVerify="
-                passPrimaryKeySpecialWordsVerify
-              "
-              :isPrimaryDisabled="isPrimaryDisabled"
-            ></KfConfigSettingsForm>
-            <a-divider
-              v-if="index !== formState[item.key].length - 1 && !item.noDivider"
-            ></a-divider>
+              <a-divider></a-divider>
+            </div>
           </div>
         </template>
       </div>
     </a-form-item>
+    <Teleport to="body">
+      <a-spin class="kf-config-setting-form-spin" :spinning="spinning"></a-spin>
+    </Teleport>
   </a-form>
 </template>
 <script lang="ts">
@@ -1724,37 +2139,58 @@ export default defineComponent({
           height: 32px;
         }
       }
+
+      .table-in-config-setting-total {
+        display: flex;
+        align-items: center;
+        margin-left: 16px;
+      }
     }
 
     .table-in-config-setting-row {
-      margin-top: 8px;
+      padding-right: 12px;
 
-      > .ant-btn {
-        float: right;
-      }
+      .table-in-config-setting-row-from__wrap {
+        display: flex;
+        justify-content: space-between;
 
-      .ant-form {
-        padding-right: 60px;
-        box-sizing: border-box;
+        .ant-form::-webkit-scrollbar {
+          height: 4px;
+        }
 
-        &.ant-form-inline {
-          .ant-row.ant-form-item {
-            margin-bottom: 4px;
+        .ant-form {
+          box-sizing: border-box;
 
-            .ant-select {
-              min-width: 120px;
+          &.ant-form-inline {
+            .ant-row.ant-form-item {
+              margin-bottom: 4px;
+
+              .ant-select {
+                min-width: 120px;
+              }
+            }
+
+            .ant-form-item-label > label,
+            .global-setting-item .label {
+              font-size: 12px;
             }
           }
+        }
 
-          .ant-form-item-label > label,
-          .global-setting-item .label {
-            font-size: 12px;
-          }
+        .table-in-config-setting-row-buttons__wrap {
+          display: flex;
+          padding-left: 24px;
         }
       }
 
-      .ant-divider-horizontal {
-        margin: 12px 0;
+      .table-in-config-setting-row-divider {
+        width: 100%;
+        min-width: 100%;
+        padding: 12px 0;
+
+        .ant-divider-horizontal {
+          margin: 0;
+        }
       }
     }
   }
@@ -1777,5 +2213,9 @@ export default defineComponent({
     overflow: inherit;
     white-space: normal;
   }
+}
+
+.kf-config-setting-form-spin {
+  z-index: 9999;
 }
 </style>

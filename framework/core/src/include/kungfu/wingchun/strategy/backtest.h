@@ -13,7 +13,7 @@ namespace kungfu::wingchun::strategy {
 class BacktestContext : public Context {
 public:
   BacktestContext() = default;
-  ~BacktestContext() = default;
+  ~BacktestContext() override = default;
 
   /**
    * Get current time in nano seconds.
@@ -55,8 +55,8 @@ public:
    * Subscribe all from given MD
    * @param source MD group
    */
-  void subscribe_all(const std::string &source, uint8_t market_type = 0, uint64_t instrument_type = 0,
-                     uint64_t data_type = 0) override;
+  void subscribe_all(const std::string &source, uint8_t market_type, uint64_t instrument_type,
+                     uint64_t data_type) override;
 
   /**
    * Insert order.
@@ -73,8 +73,8 @@ public:
   uint64_t insert_order(const std::string &instrument_id, const std::string &exchange_id, const std::string &source,
                         const std::string &account, double limit_price, int64_t volume, longfist::enums::PriceType type,
                         longfist::enums::Side side, longfist::enums::Offset offset,
-                        longfist::enums::HedgeFlag hedge_flag = HedgeFlag::Speculation, bool is_swap = false,
-                        uint64_t block_id = 0, uint64_t parent_id = 0) override;
+                        longfist::enums::HedgeFlag hedge_flag, bool is_swap, uint64_t block_id,
+                        uint64_t parent_id) override;
 
   /**
    * Cancel order.

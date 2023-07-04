@@ -46,7 +46,6 @@ const handleSwitchProcessStatus = handleSwitchProcessStatusGenerator();
 const processControllerBoardVisible = ref<boolean>(false);
 const categoryList: KfCategoryTypes[] = [
   'system',
-  'daemon',
   'td',
   'md',
   'operator',
@@ -216,8 +215,9 @@ onMounted(() => {
         <template v-if="allKfConfigData[category].length">
           <div class="kf-config-list">
             <div
-              class="kf-config-item"
               v-for="config in allKfConfigData[category]"
+              :key="config"
+              class="kf-config-item"
             >
               <div class="process-info">
                 <div class="category info-item">
@@ -229,7 +229,10 @@ onMounted(() => {
                   class="process-id info-item"
                   v-if="config.category === 'system'"
                 >
-                  {{ (SystemProcessName[config.name] || {}).name || '' }}
+                  {{
+                    (SystemProcessName[config.name] || { name: config.name })
+                      .name || ''
+                  }}
                 </div>
                 <div
                   class="process-id info-item"
@@ -332,12 +335,8 @@ onMounted(() => {
 @import '@kungfu-trader/kungfu-app/src/renderer/assets/less/variables.less';
 
 .kf-process-status-controller__warp {
-  float: right;
-  height: 100%;
-  padding: 0 8px;
   display: flex;
   align-items: center;
-  cursor: pointer;
 
   &.some-process-error {
     .title {
@@ -348,21 +347,6 @@ onMounted(() => {
     .anticon {
       color: lighten(@red2-base, 10%);
     }
-  }
-
-  &:hover {
-    background: @item-active-bg;
-    color: @primary-color;
-  }
-
-  .title {
-    font-size: 12px;
-    font-weight: bold;
-    color: @primary-color;
-  }
-
-  .anticon {
-    color: @primary-color;
   }
 }
 

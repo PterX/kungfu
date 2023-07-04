@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
 import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
 import KfConfigSettingsForm from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfConfigSettingsForm.vue';
@@ -9,6 +9,7 @@ import {
   confirmModal,
   messagePrompt,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
+import { useActiveInstruments } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import { getConfigSettings, LABEL_COL, WRAPPER_COL } from './config';
 import {
   dealOrderPlaceVNode,
@@ -34,6 +35,7 @@ import {
   useTradeLimit,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import {
+  dealVolumeByInstrumentType,
   getExtConfigList,
   getIdByKfLocation,
   getProcessIdByKfLocation,
@@ -53,12 +55,11 @@ import {
 const { t } = VueI18n.global;
 const { error } = messagePrompt();
 
-const { instrumentKeyAccountsMap, uiExtConfigs } = storeToRefs(
+const { getPriceTickAndPrecision } = useActiveInstruments();
+const { instrumentKeyAccountsMap, uiExtConfigs, globalSetting } = storeToRefs(
   useGlobalStore(),
 );
 const { isLanguageKeyAvailable } = useLanguage();
-const { globalSetting } = storeToRefs(useGlobalStore());
-
 const { handleBodySizeChange } = useDashboardBodySize();
 const formState = ref(
   initFormStateByConfig(getConfigSettings('td', InstrumentTypeEnum.future), {}),
@@ -93,9 +94,18 @@ const {
 
 const { getValidatorByOrderInputKey } = useTradeLimit();
 
+let pricePrecision = 0;
+let step = 1;
 const makeOrderInstrumentType = ref<InstrumentTypeEnum>(
   InstrumentTypeEnum.unknown,
 );
+
+const tdList = computed<KungfuApi.KfLocation[] | null | undefined>(() => {
+  return currentGlobalKfLocation.value &&
+    'children' in currentGlobalKfLocation.value
+    ? currentGlobalKfLocation.value.children
+    : null;
+});
 
 const configSettings = computed(() => {
   if (!currentGlobalKfLocation.value) {
@@ -109,6 +119,8 @@ const configSettings = computed(() => {
     makeOrderInstrumentType.value,
     side,
     +formState.value.price_type,
+    pricePrecision,
+    step,
   );
 });
 
@@ -131,13 +143,9 @@ const rules = computed(() => {
     },
   };
 });
-
 const isShowConfirmModal = ref<boolean>(false);
 const curOrderVolume = ref<number>(0);
 const curOrderType = ref<InstrumentTypeEnum>(InstrumentTypeEnum.unknown);
-const formSteps = reactive<
-  Partial<Record<keyof KungfuApi.MakeOrderInput, number>>
->({});
 const currentPercent = ref<number>(0);
 const percentList = [10, 20, 50, 80, 100];
 
@@ -168,9 +176,12 @@ const makeOrderData = computed(() => {
 });
 
 const availTradingTaskExtensionList = computed(() => {
-  return getExtConfigList(extConfigs.value, 'strategy').filter(
-    (item) => uiExtConfigs.value[item.key]?.position === 'make_order',
-  );
+  return (
+    getExtConfigList(
+      extConfigs.value,
+      'strategy',
+    ) as KungfuApi.KfStrategyExtConfig[]
+  ).filter((item) => uiExtConfigs.value[item.key]?.position === 'make_order');
 });
 
 const getResolvedOffset = (
@@ -222,10 +233,20 @@ watch(
     triggerOrderBook(instrumentResolved.value);
 
     const { instrumentId, exchangeId } = instrumentResolved.value;
-    const instrumentUKey = hashInstrumentUKey(instrumentId, exchangeId);
-    formSteps.limit_price =
-      (window.watcher.ledger.Instrument[instrumentUKey] as KungfuApi.Instrument)
-        ?.price_tick || 1;
+    const { price_tick, price_precision } = getPriceTickAndPrecision(
+      instrumentId,
+      exchangeId,
+      1,
+    );
+    step = price_tick;
+    pricePrecision = price_precision;
+    const limitPriceIndex = configSettings.value.findIndex((configItem) => {
+      return configItem.key === 'limit_price';
+    });
+    if (limitPriceIndex) {
+      configSettings.value[limitPriceIndex].step = step;
+      configSettings.value[limitPriceIndex].precision = pricePrecision;
+    }
 
     makeOrderInstrumentType.value = instrumentResolved.value.instrumentType;
   },
@@ -568,20 +589,24 @@ async function handleMakeOrder(): Promise<void> {
 function showCloseModal(
   makeOrderInput: KungfuApi.MakeOrderInput,
 ): Promise<boolean> {
-  if (!currentPosition.value) return Promise.resolve(true);
+  if (!currentPosition.value || globalSetting.value?.trade?.close === 0)
+    return Promise.resolve(true);
 
   const closeRange = +globalSetting.value?.trade?.close || 100;
 
-  if (
-    closeModalConditions(
-      closeRange,
-      makeOrderInput,
-      Number(currentPosition.value?.volume || 0),
-    )
-  ) {
+  const { result, relationship } = closeModalConditions(
+    closeRange,
+    makeOrderInput,
+    Number(currentPosition.value?.volume || 0),
+  );
+
+  if (result) {
     return confirmModal(
       t('prompt'),
-      t('tradingConfig.continue_close_rate', { rate: closeRange + '' }),
+      t('tradingConfig.continue_close_rate', {
+        rate: closeRange + '',
+        relationship,
+      }),
     );
   }
 
@@ -593,20 +618,39 @@ function closeModalConditions(
   closeRange: number,
   orderInput: KungfuApi.MakeOrderInput,
   positionVolume: number,
-): boolean {
+): {
+  result: boolean;
+  relationship?: string;
+} {
   const makeOrderInput = dealStockOffset(orderInput);
   const { offset } = makeOrderInput;
 
   if (offset === OffsetEnum.Open) {
-    return false;
+    return { result: false };
   }
 
-  return makeOrderInput.volume >= positionVolume * (closeRange / 100);
+  const positionVolumeResolved = positionVolume * (closeRange / 100);
+
+  if (makeOrderInput.volume === positionVolumeResolved) {
+    return {
+      result: true,
+      relationship: t('tradingConfig.reach'),
+    };
+  } else if (makeOrderInput.volume > positionVolumeResolved) {
+    return {
+      result: true,
+      relationship: t('tradingConfig.above'),
+    };
+  } else {
+    return {
+      result: false,
+    };
+  }
 }
 
 const { handleOpenSetTradingTaskModal } = useTradingTask();
 async function handleOpenTradingTaskConfigModal(
-  kfExtConfig: KungfuApi.KfExtConfig,
+  kfExtConfig: KungfuApi.KfStrategyExtConfig,
 ) {
   try {
     if (!currentGlobalKfLocation.value) return;
@@ -655,10 +699,13 @@ const handlePercentChange = (target: number) => {
     targetVolume = Number(availPosVolume) * targetPercent;
   }
 
-  formState.value.volume = ~~targetVolume;
-  if (targetVolume) {
+  formState.value.volume = dealVolumeByInstrumentType(
+    ~~targetVolume,
+    instrumentResolved.value?.instrumentType,
+  );
+  if (formState.value.volume) {
     currentPercent.value = target;
-    lastPercentSetVolume = ~~targetVolume;
+    lastPercentSetVolume = formState.value.volume;
   }
 };
 
@@ -702,11 +749,11 @@ watch(
               ref="formRef"
               v-model:formState="formState"
               :configSettings="configSettings"
+              :tdList="tdList"
               changeType="add"
               :label-col="LABEL_COL"
               :wrapper-col="WRAPPER_COL"
               :rules="rules"
-              :steps="formSteps"
             ></KfConfigSettingsForm>
             <div class="percent-group__wrap">
               <a-col :span="LABEL_COL + WRAPPER_COL">

@@ -14,9 +14,11 @@ using namespace kungfu::yijinjing::practice;
 using namespace kungfu::rx;
 using namespace kungfu::longfist;
 using namespace kungfu::longfist::types;
+using namespace kungfu::longfist::enums;
 using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::util;
+using namespace kungfu::yijinjing::journal;
 
 namespace kungfu::wingchun::strategy {
 
@@ -26,8 +28,18 @@ RuntimeContext::RuntimeContext(apprentice &app, const rx::connectable_observable
 }
 
 void RuntimeContext::on_start() {
+  SPDLOG_DEBUG("arguments_: {}", arguments_);
+  if (not arguments_.empty()) {
+    auto config = nlohmann::json::parse(arguments_);
+    if (config.value<bool>("bypass_accounting", false)) {
+      bypass_accounting();
+    }
+  }
+
   broker_client_.on_start(events_);
-  bookkeeper_.on_start(events_);
+  if (not is_bypass_accounting()) {
+    bookkeeper_.on_start(events_);
+  }
   basketorder_engine_.on_start(events_);
 }
 
@@ -59,6 +71,7 @@ void RuntimeContext::add_account(const std::string &source, const std::string &a
   account_location_ids_.emplace(hashed_account, account_location->uid);
 
   broker_client_.enroll_account(account_location);
+  //  ensure_connect();
 }
 
 void RuntimeContext::subscribe(const std::string &source, const std::vector<std::string> &instrument_ids,
@@ -68,11 +81,15 @@ void RuntimeContext::subscribe(const std::string &source, const std::vector<std:
     broker_client_.subscribe(md_location, exchange_ids, instrument_id);
   }
   md_locations_.emplace(md_location->uid, md_location);
+  ensure_connect();
+  send_instrument_keys();
 }
 
 void RuntimeContext::subscribe_all(const std::string &source, uint8_t market_type, uint64_t instrument_type,
                                    uint64_t data_type) {
   broker_client_.subscribe_all(find_md_location(source), market_type, instrument_type, data_type);
+  ensure_connect();
+  send_instrument_keys();
 }
 
 void RuntimeContext::subscribe_operator(const std::string &group, const std::string &name) {
@@ -107,8 +124,9 @@ uint64_t RuntimeContext::insert_block_message(const std::string &source, const s
   msg.match_number = match_number;
   msg.is_specific = is_specific;
   msg.block_id = writer->current_frame_uid();
+  uint64_t block_id = msg.block_id;
   writer->close_data();
-  return msg.block_id;
+  return block_id;
 }
 
 uint64_t RuntimeContext::insert_order(const std::string &instrument_id, const std::string &exchange_id,
@@ -128,6 +146,7 @@ uint64_t RuntimeContext::insert_order(const std::string &instrument_id, const st
     return 0;
   }
   auto writer = app_.get_writer(account_location_uid);
+  page_ptr page = writer->get_current_page(); // prevent that page released after close_data before on_order_input
   OrderInput &input = writer->open_data<OrderInput>(app_.now());
   input.order_id = writer->current_frame_uid();
   strcpy(input.instrument_id, instrument_id.c_str());
@@ -145,8 +164,36 @@ uint64_t RuntimeContext::insert_order(const std::string &instrument_id, const st
   input.is_swap = is_swap;
   input.insert_time = insert_time;
   writer->close_data();
-  bookkeeper_.on_order_input(app_.now(), app_.get_home_uid(), account_location_uid, input);
+  if (not is_bypass_accounting()) {
+    bookkeeper_.on_order_input(app_.now(), app_.get_home_uid(), account_location_uid, input);
+  }
   return input.order_id;
+}
+
+uint64_t RuntimeContext::insert_order_input(const std::string &source, const std::string &account,
+                                            longfist::types::OrderInput &order_input) {
+
+  auto account_location_uid = get_td_location_uid(source, account);
+  if (not broker_client_.is_ready(account_location_uid)) {
+    SPDLOG_ERROR("account {} not ready", td_locations_.at(account_location_uid)->uname);
+    return 0;
+  }
+  order_input.instrument_type = get_instrument_type(order_input.exchange_id, order_input.instrument_id);
+  if (order_input.instrument_type == InstrumentType::Unknown) {
+    SPDLOG_ERROR("unsupported instrument type {} of {}.{}", str_from_instrument_type(order_input.instrument_type),
+                 order_input.instrument_id, order_input.exchange_id);
+    return 0;
+  }
+  auto writer = app_.get_writer(account_location_uid);
+  OrderInput &input = writer->open_data<OrderInput>(app_.now());
+  order_input.order_id = order_input.order_id == 0 ? writer->current_frame_uid() : order_input.order_id;
+  order_input.insert_time = time::now_in_nano();
+  memcpy(&input, &order_input, sizeof(input));
+  writer->close_data();
+  if (not is_bypass_accounting()) {
+    bookkeeper_.on_order_input(app_.now(), app_.get_home_uid(), account_location_uid, order_input);
+  }
+  return order_input.order_id;
 }
 
 std::vector<uint64_t> RuntimeContext::insert_batch_orders(
@@ -186,7 +233,7 @@ std::vector<uint64_t> RuntimeContext::insert_batch_orders(
 }
 
 std::vector<uint64_t> RuntimeContext::insert_array_orders(const std::string &source, const std::string &account,
-                                                          std::vector<longfist::types::OrderInput> order_inputs) {
+                                                          std::vector<longfist::types::OrderInput> &order_inputs) {
   std::vector<uint64_t> order_ids{};
   auto account_location_uid = get_td_location_uid(source, account);
   auto writer = app_.get_writer(account_location_uid);
@@ -204,7 +251,7 @@ std::vector<uint64_t> RuntimeContext::insert_array_orders(const std::string &sou
   return order_ids;
 }
 
-uint64_t RuntimeContext::insert_basket_order(uint64_t basket_id, const std::string &source, const std::string account,
+uint64_t RuntimeContext::insert_basket_order(uint64_t basket_id, const std::string &source, const std::string &account,
                                              longfist::enums::Side side, longfist::enums::PriceType price_type,
                                              longfist::enums::PriceLevel price_level, double price_offset,
                                              int64_t volume) {
@@ -216,6 +263,7 @@ uint64_t RuntimeContext::insert_basket_order(uint64_t basket_id, const std::stri
   }
 
   auto writer = app_.get_writer(account_location_uid);
+  page_ptr page = writer->get_current_page(); // prevent that page released between close_data and insert_basket_order
   BasketOrder &input = writer->open_data<BasketOrder>(app_.now());
   input.order_id = writer->current_frame_uid();
   input.parent_id = basket_id;
@@ -229,7 +277,6 @@ uint64_t RuntimeContext::insert_basket_order(uint64_t basket_id, const std::stri
   input.insert_time = insert_time;
   input.calculation_mode =
       input.volume == VOLUME_ZERO ? BasketOrderCalculationMode::Dynamic : BasketOrderCalculationMode::Static;
-
   writer->close_data();
   basketorder_engine_.insert_basket_order(app_.now(), input);
   return input.order_id;
@@ -249,8 +296,9 @@ uint64_t RuntimeContext::cancel_order(uint64_t order_id) {
   action.order_id = order_id;
   action.action_flag = OrderActionFlag::Cancel;
 
+  uint64_t order_action_id = action.order_action_id;
   writer->close_data();
-  return action.order_action_id;
+  return order_action_id;
 }
 
 const location_map &RuntimeContext::list_md() const { return md_locations_; }
@@ -267,7 +315,7 @@ book::Bookkeeper &RuntimeContext::get_bookkeeper() { return bookkeeper_; }
 
 basketorder::BasketOrderEngine &RuntimeContext::get_basketorder_engine() { return basketorder_engine_; }
 
-uint32_t RuntimeContext::lookup_account_location_id(const std::string &account) const {
+[[maybe_unused]] uint32_t RuntimeContext::lookup_account_location_id(const std::string &account) const {
   return account_location_ids_.at(hash_str_32(account));
 }
 
@@ -327,5 +375,44 @@ void RuntimeContext::update_strategy_state(StrategyStateUpdate &state_update) {
 }
 
 std::string RuntimeContext::arguments() { return arguments_; }
+
+yijinjing::journal::writer_ptr RuntimeContext::get_writer(const std::string &source, const std::string &account) {
+  return app_.get_writer(get_td_location_uid(source, account));
+}
+
+void RuntimeContext::ensure_connect() {
+  if (not started_) {
+    return;
+  }
+
+  const event_ptr &e = app_.get_reader()->current_frame();
+  for (const auto &pair : app_.get_registry()) {
+    SPDLOG_DEBUG("Register: {}", pair.second.to_string());
+    broker_client_.connect(e, pair.second);
+  }
+
+  for (const auto &pair : app_.get_bands()) {
+    SPDLOG_DEBUG("Band: {}", pair.second.to_string());
+    broker_client_.connect(e, pair.second);
+  }
+}
+
+void RuntimeContext::send_instrument_keys() {
+  if (not started_) {
+    return;
+  }
+  for (const auto &pair : app_.get_locations()) {
+    SPDLOG_DEBUG("Location: {}", pair.second->to_string());
+    broker_client_.try_renew(app_.now(), pair.second);
+  }
+}
+
+void RuntimeContext::set_started(bool started) { started_ = started; }
+
+yijinjing::data::location_ptr RuntimeContext::get_location(uint32_t location_uid) {
+  return app_.get_location(location_uid);
+}
+
+uint32_t RuntimeContext::get_home_uid() const { return app_.get_home_uid(); }
 
 } // namespace kungfu::wingchun::strategy

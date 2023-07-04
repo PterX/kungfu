@@ -1,11 +1,10 @@
 import path from 'path';
 import fse from 'fs-extra';
+import fsPromise from 'fs/promises';
 import * as csv from 'fast-csv';
 import { FormatterRow, ParserOptionsArgs } from 'fast-csv';
 import findRoot from 'find-root';
-import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { RootConfigJSON } from '../typings/global';
-const { t } = VueI18n.global;
 
 //添加文件
 export const addFileSync = (
@@ -18,6 +17,10 @@ export const addFileSync = (
   if (!parentDir) targetPath = filename;
   else targetPath = path.join(parentDir, filename);
   targetPath = path.normalize(targetPath);
+
+  if (isDiskRootDirectory(targetPath)) {
+    return;
+  }
 
   if (type === 'folder') {
     fse.ensureDirSync(targetPath);
@@ -76,6 +79,70 @@ export const readCSV = <T>(
   });
 };
 
+/**
+ * 返回的 `stream` 通过 `'finished'` 事件判断写入`csv`结束：
+ * ```
+ * csvStream.on('finished', () => {
+ *   ...
+ * });
+ * ```
+ */
+export const createWriteCsvStream = (
+  filePath: string,
+  headers: boolean | string[],
+  transform?: (row: KungfuApi.TradingDataTypes) => FormatterRow,
+): csv.CsvFormatterStream<KungfuApi.TradingDataTypes, csv.FormatterRow> => {
+  const csvStream = csv.format({ headers, transform });
+  const fileWriteStream = fse.createWriteStream(path.normalize(filePath));
+  // 解决Excel导出乱码的问题
+  fileWriteStream.write(Buffer.from('\xEF\xBB\xBF', 'binary'));
+  csvStream
+    .on('data', (chunk) => {
+      fileWriteStream.write(chunk);
+    })
+    .on('end', () => {
+      fileWriteStream.end(() => {
+        fileWriteStream.close((err) => {
+          if (!err) {
+            csvStream.emit('finished');
+          } else {
+            console.error(err);
+          }
+        });
+      });
+    });
+  fileWriteStream.on('error', (err) => {
+    csvStream.emit('error', err);
+  });
+  return csvStream;
+};
+
+export const writeCsvWithUTF8Bom = (
+  filePath: string,
+  rows: KungfuApi.TradingDataTypes[],
+  headers: boolean | string[],
+  transform = (row: KungfuApi.TradingDataTypes) => row as FormatterRow,
+) => {
+  filePath = path.normalize(filePath);
+  return new Promise<void>((resolve, reject) => {
+    const csvStream = createWriteCsvStream(filePath, headers, transform);
+
+    csvStream.on('finished', () => {
+      resolve();
+    });
+
+    csvStream.on('error', (err) => {
+      console.error(err);
+      reject(err);
+    });
+
+    rows.forEach((row) => {
+      csvStream.write(row);
+    });
+    csvStream.end();
+  });
+};
+
 export const writeCSV = (
   filePath: string,
   data: KungfuApi.TradingDataTypes[],
@@ -99,7 +166,8 @@ export const writeCSV = (
 
 //获取文件内容
 export const getFileContent = (targetPath: string): Promise<string> => {
-  if (!targetPath) throw new Error(t('文件路径不存在'));
+  if (!targetPath || !fse.existsSync(targetPath))
+    throw new Error(`${targetPath} not existed!`);
   targetPath = path.normalize(targetPath);
   return new Promise((resolve, reject): void => {
     const file = fse.createReadStream(targetPath);
@@ -150,12 +218,16 @@ export const listDirSync = (filePath: string): string[] => {
   return fse.readdirSync(filePath);
 };
 
-export const removeTargetFilesInFolder = (
+export const removeTargetFilesInFolder = async (
   targetFolder: string,
   includes: string[],
   filters: string[] = [],
-): Promise<void> => {
-  const iterator = (folder: string) => {
+): Promise<{ successes: string[]; errors: string[] }> => {
+  const results: { successes: string[]; errors: string[] } = {
+    successes: [],
+    errors: [],
+  };
+  const iterator = async (folder: string) => {
     const items = listDirSync(folder);
 
     if (!items) return;
@@ -163,7 +235,7 @@ export const removeTargetFilesInFolder = (
     const folders = items.filter((f: string) => {
       const stat = fse.statSync(path.join(folder, f));
 
-      if (stat.isDirectory()) return true;
+      if (stat.isDirectory() && !filters.includes(f)) return true;
       return false;
     });
 
@@ -174,30 +246,38 @@ export const removeTargetFilesInFolder = (
       return false;
     });
 
-    files.forEach((f: string) => {
-      includes.forEach((n: string) => {
+    for (const f of files) {
+      for (const n of includes) {
         if (f.includes(n) && !filters.includes(f)) {
-          fse.removeSync(path.join(folder, f));
+          try {
+            const targetFile = path.join(folder, f);
+            await fsPromise.rm(targetFile);
+            results.successes.push(targetFile);
+          } catch (error) {
+            if (error instanceof Error) {
+              console.error(error);
+              results.errors.push(error.message);
+            }
+          }
         }
-      });
-    });
+      }
+    }
 
-    folders.forEach((f: string) => {
-      iterator(path.join(folder, f));
-    });
+    for (const f of folders) {
+      await iterator(path.join(folder, f));
+    }
   };
 
-  iterator(targetFolder);
+  await iterator(targetFolder);
 
-  return Promise.resolve();
+  return results;
 };
 
 export const findPackageRoot = () => {
-  const cwd = process.cwd().toString();
-  const dirname = path.resolve(__dirname);
   let searchPath = '';
+  const cwd = process.cwd().toString();
   if (process.env.NODE_ENV === 'production') {
-    searchPath = dirname;
+    searchPath = globalThis.__runtimeDir;
   } else {
     searchPath = cwd;
   }
@@ -208,11 +288,13 @@ export const findPackageRoot = () => {
 };
 
 export const readRootPackageJsonSync = (): RootConfigJSON => {
+  if (globalThis.rootPackageJson) return globalThis.rootPackageJson;
   const rootDir = findPackageRoot();
   const packageJsonPath = path.join(rootDir, 'package.json');
   if (fse.existsSync(packageJsonPath)) {
     try {
-      return fse.readJSONSync(packageJsonPath);
+      globalThis.rootPackageJson = fse.readJSONSync(packageJsonPath);
+      return globalThis.rootPackageJson;
     } catch (err) {
       console.error(err);
       return {};
@@ -220,4 +302,11 @@ export const readRootPackageJsonSync = (): RootConfigJSON => {
   }
 
   return {};
+};
+
+export const isDiskRootDirectory = (dirPath: string): boolean => {
+  const absolutePath = path.resolve(dirPath);
+  const rootDirectory = path.parse(absolutePath).root;
+
+  return absolutePath === rootDirectory;
 };

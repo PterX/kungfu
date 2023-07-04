@@ -3,6 +3,12 @@ const path = require('path');
 const { spawnSync } = require('child_process');
 const { shell } = require('@kungfu-trader/kungfu-core');
 const { customResolve } = require('../utils');
+const {
+  getAppDir,
+  getCliDir,
+  getSdkDir,
+  getJsApi,
+} = require('@kungfu-trader/kungfu-js-api/toolkit/utils');
 
 const ensureDir = (cwd, ...dirNames) => {
   const targetDir = path.join(cwd, ...dirNames);
@@ -11,13 +17,6 @@ const ensureDir = (cwd, ...dirNames) => {
 };
 
 exports.build = () => {
-  const {
-    getAppDir,
-    getCliDir,
-    getSdkDir,
-    getJsApi,
-  } = require('@kungfu-trader/kungfu-js-api/toolkit/utils');
-
   const appDistDir = path.join(getAppDir(), 'dist', 'app');
   const publicDir = path.join(getAppDir(), 'public');
   const cliDistDir = path.join(getCliDir(), 'dist', 'cli');
@@ -45,16 +44,15 @@ exports.build = () => {
 
 exports.package = async () => {
   const buildDir = ensureDir(process.cwd().toString(), 'build');
-  try {
-    await require('@kungfu-trader/kungfu-app').electronBuild(buildDir);
-  } catch (err) {
-    console.warn(err);
-  }
+  await require('@kungfu-trader/kungfu-app').electronBuild(buildDir);
 };
 
 exports.dev = async (withWebpack) => {
   shell.verifyElectron();
   try {
+    const appDir = getAppDir();
+    const nodemodulesDir = path.join(appDir, 'node_modules');
+    fse.removeSync(nodemodulesDir);
     await require('@kungfu-trader/kungfu-app').devRun(
       ensureDir(process.cwd().toString(), 'dist'),
       'app',

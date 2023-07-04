@@ -5,6 +5,8 @@
 #include <kungfu/yijinjing/util/os.h>
 
 namespace kungfu::yijinjing::journal {
+using namespace longfist::types;
+
 page::page(data::location_ptr location, uint32_t dest_id, const uint32_t page_id, const size_t size, const bool lazy,
            const bool is_writing, uintptr_t address)
     : location_(std::move(location)), dest_id_(dest_id), page_id_(page_id), lazy_(lazy), size_(size),
@@ -13,12 +15,14 @@ page::page(data::location_ptr location, uint32_t dest_id, const uint32_t page_id
 }
 
 page::~page() {
+  SPDLOG_TRACE("release page {}/{:08x}.{}.journal", location_->uname, dest_id_, page_id_);
   if (not os::release_mmap_buffer(address(), size_, lazy_)) {
     SPDLOG_ERROR("can not release page {}/{:08x}.{}.journal", location_->uname, dest_id_, page_id_);
   }
 }
 
 void page::flush() {
+  SPDLOG_TRACE("flush page {}/{:08x}.{}.journal", location_->uname, dest_id_, page_id_);
   if (not os::flush_mmap_buffer(address(), size_, lazy_)) {
     SPDLOG_ERROR("can not flush page {}/{:08x}.{}.journal", location_->uname, dest_id_, page_id_);
   }
@@ -53,9 +57,9 @@ page_ptr page::load(const data::location_ptr &location, uint32_t dest_id, uint32
 
   if (pre_open && is_virgin_page) {
     header->status = longfist::enums::PageStatus::PreOpen;
-    uintptr_t first_frame_address = address + header->page_header_length;
-    uint32_t body_size = page_size - header->page_header_length;
-    memset(reinterpret_cast<void *>(first_frame_address), 0, body_size); // warm up
+    // uintptr_t first_frame_address = address + header->page_header_length;
+    // uint32_t body_size = page_size - header->page_header_length;
+    // memset(reinterpret_cast<void *>(first_frame_address), 0, body_size); // warm up
   } else if (is_writing) {
     header->status = longfist::enums::PageStatus::Normal;
   }

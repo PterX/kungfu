@@ -1,33 +1,53 @@
 <template>
-  <div class="kf-time-slider__wrap">
+  <div class="kf-time-slider__wrap" v-if="contentVisible">
+    <backward-outlined
+      class="forward-icon"
+      @click="handleTimeBack()"
+    ></backward-outlined>
     <div class="kf-time-slider-time">
-      {{ startAndEndTimeStr[0] }}
+      <span class="kf-time-slider-text" style="text-align: end">
+        {{ timeRange[0] }}
+      </span>
     </div>
     <a-slider
-      :ref="slider"
-      v-model:value="currentTimeRange"
+      ref="slider"
+      :value="currentTimeResolved"
       class="kf-time-slider"
-      :min="limitRangeResolved[0]"
-      :max="limitRangeResolved[1]"
-      :step="nano2millionSecond(step)"
-      range
+      :class="{
+        'kf-time-slider-handler-focus-1': false,
+        'kf-time-slider-handler-focus-2': true,
+      }"
+      :tooltip-visible="toolTipVisable"
+      :get-tooltip-popup-container="getTooltipPopupContainer"
+      :min="nano2millionSecond(currentSessionBeginTime)"
+      :max="maxTime"
+      :step="nano2millionSecond(props.step)"
       :tip-formatter="tipFormatter"
-      @after-change="onAfterChange"
+      @change="onAfterChange"
     />
     <div class="kf-time-slider-time">
-      {{ startAndEndTimeStr[1] }}
+      <span class="kf-time-slider-text" style="text-align: start">
+        {{ timeRange[1] }}
+      </span>
     </div>
+    <forward-outlined
+      class="forward-icon"
+      @click="handleTimeForward()"
+    ></forward-outlined>
   </div>
 </template>
 
 <script lang="ts" setup>
+import { computed, ref } from 'vue';
+import { storeToRefs } from 'pinia';
 import { dealKfTime } from '@kungfu-trader/kungfu-js-api/kungfu';
-import { computed, ref, watch } from 'vue';
+import { ForwardOutlined, BackwardOutlined } from '@ant-design/icons-vue';
+import { SessionStatusEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
+import { useNow, useResizeFlag } from '../utils';
+import { useJournalStore } from '../store/journalStore';
 
 const props = withDefaults(
   defineProps<{
-    timeRange: [bigint, bigint]; // 当前只支持纳秒级别的时间
-    limitTimeRange: [bigint, bigint]; // 当前只支持纳秒级别的时间
     step: number;
   }>(),
   {
@@ -35,14 +55,57 @@ const props = withDefaults(
   },
 );
 
-const emit = defineEmits<{
-  (e: 'update:timeRange', value: [bigint, bigint]): void;
-}>();
+const { contentVisible } = useResizeFlag();
+const {
+  currentSession,
+  currentTime,
+  currentSessionBeginTime,
+  currentSessionEndTime,
+  currentLoadedLastestFrameGenTime,
+} = storeToRefs(useJournalStore());
+const { setCurrentTime } = useJournalStore();
+const { now } = useNow();
+const currentTimeResolved = computed(() => {
+  return nano2millionSecond(currentTime.value);
+});
+const onAfterChange = (milliseconds: number) => {
+  setCurrentTime(million2nanoSecond(milliseconds));
+};
 
-const slider = ref();
-
+const toolTipVisable = ref(true);
 const SCALE = 1000000;
 const BIGINT_SCALE = BigInt(SCALE);
+const TEN_SECOND = BigInt(10000000000);
+const slider = ref();
+const currentSessionEndTimeResolved = computed(() => {
+  if (currentSession.value?.status === SessionStatusEnum.Finished) {
+    return currentSessionEndTime.value;
+  } else {
+    return now.value;
+  }
+});
+const maxTime = computed(() => {
+  return nano2millionSecond(currentSessionEndTimeResolved.value);
+});
+
+const timeRange = computed(() => {
+  return [
+    dealKfTime(currentSessionBeginTime.value, false),
+    dealKfTime(currentSessionEndTimeResolved.value, false),
+  ];
+});
+
+const handleTimeBack = () => {
+  if (currentTime.value - TEN_SECOND < currentSessionBeginTime.value) {
+    setCurrentTime(currentSessionBeginTime.value);
+    return;
+  }
+  setCurrentTime(currentTime.value - TEN_SECOND);
+};
+
+const handleTimeForward = () => {
+  setCurrentTime(currentLoadedLastestFrameGenTime.value);
+};
 
 const nano2millionSecond = (number: bigint | number) => {
   if (typeof number === 'bigint') {
@@ -56,63 +119,11 @@ const million2nanoSecond = (number: number) => {
   return BigInt(number * SCALE);
 };
 
-const currentTimeRange = ref<[number, number]>([
-  nano2millionSecond(props.timeRange[0]),
-  nano2millionSecond(props.timeRange[1]),
-]);
-
-watch(
-  () => props.timeRange,
-  (newRange) => {
-    currentTimeRange.value = [
-      nano2millionSecond(newRange[0]),
-      nano2millionSecond(newRange[1]),
-    ];
-  },
-);
-
-const limitRangeResolved = computed(() => {
-  const resolvedRange = [
-    nano2millionSecond(props.limitTimeRange[0]),
-    nano2millionSecond(props.limitTimeRange[1]),
-  ];
-
-  return resolvedRange;
-});
-
-const startAndEndTimeStr = computed(() => {
-  return [dealKfTime(props.timeRange[0]), dealKfTime(props.timeRange[1])];
-});
-
-// const marks = computed(() => {
-//   return {
-//     [currentTimeRange.value[0]]: startAndEndTimeStr.value[0],
-//     [currentTimeRange.value[1]]: startAndEndTimeStr.value[1],
-//   };
-// });
-
 const tipFormatter = (num: number) => {
   return dealKfTime(BigInt(num * SCALE));
 };
 
-const dealUpdateTime = (time: number) => {
-  if (time === limitRangeResolved.value[0]) return props.limitTimeRange[0];
-  if (time === limitRangeResolved.value[1]) return props.limitTimeRange[1];
-  return million2nanoSecond(time);
-};
-
-const onAfterChange = (value: [number, number]) => {
-  if (
-    value[0] === nano2millionSecond(props.timeRange[0]) &&
-    value[1] === nano2millionSecond(props.timeRange[1])
-  )
-    return;
-
-  emit('update:timeRange', [
-    dealUpdateTime(value[0]),
-    dealUpdateTime(value[1]),
-  ]);
-};
+const getTooltipPopupContainer = (trigger: HTMLElement): HTMLElement => trigger;
 </script>
 
 <style lang="less">
@@ -122,14 +133,55 @@ const onAfterChange = (value: [number, number]) => {
   justify-content: space-between;
 
   .kf-time-slider-time {
-    font-size: 14px;
     width: 100px;
     margin: 0 16px;
     flex: 0 0 100px;
+    font-size: 14px;
+
+    .ant-input-group-compact {
+      display: flex;
+
+      input {
+        width: 112px;
+      }
+
+      button {
+        width: 24px;
+      }
+    }
+
+    .kf-time-slider-text {
+      display: block;
+      width: 100%;
+    }
   }
 
   .kf-time-slider {
+    min-width: 360px;
     flex: 1;
+  }
+
+  .kf-time-slider-handler-focus-1 {
+    .ant-slider-handle-1 {
+      // border-color: #faad14;
+      border-color: aqua;
+    }
+  }
+
+  .kf-time-slider-handler-focus-2 {
+    .ant-slider-handle-2 {
+      border-color: aqua;
+    }
+  }
+
+  .forward-icon {
+    font-size: 18px;
+    color: #ffffffd9;
+    transition: color 0.3s;
+  }
+
+  .forward-icon:hover {
+    color: #faad14;
   }
 }
 </style>

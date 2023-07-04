@@ -4,8 +4,7 @@
 // Created by Keren Dong on 2019-06-10.
 //
 
-#include <signal.h>
-
+#include <csignal>
 #include <kungfu/common.h>
 #include <kungfu/yijinjing/practice/hero.h>
 #include <kungfu/yijinjing/util/stacktrace.h>
@@ -123,7 +122,7 @@ void kf_os_signal_handler(int signum) {
   }
 }
 
-void disable_os_signals_handler() { signals_handler_enabled = false; }
+[[maybe_unused]] void disable_os_signals_handler() { signals_handler_enabled = false; }
 
 void handle_os_signals(void *hero) {
   if (hero_instance != nullptr) {
@@ -141,4 +140,7 @@ void handle_os_signals(void *hero) {
     signal(s, kf_os_signal_handler);
   }
 }
+
+void reset_hero_instance() { hero_instance = nullptr; }
+
 } // namespace kungfu::yijinjing::os

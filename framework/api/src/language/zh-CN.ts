@@ -38,13 +38,16 @@ export default {
 
   open_resources_directory: '打开功夫资源目录 (KF_HOME)',
   open_install_directory: '打开功夫安装目录',
+  open_system_config_directory: '打开系统设置文件目录',
   open_basic_configuration: '打开功夫基础配置DB',
+  open_renderer_app_log: '打开客户端底层日志',
   browsing_log: '浏览日志文件',
 
   clear_journal: '清理journal',
   clear_DB: '清理DB',
   reset_main_panel: '重置主面板',
   export_all_transaction_data: '导出所有交易数据',
+  export_instrument_whitelists: '导出标的白名单',
   view_all_journal: '查看所有journal',
 
   website: '官网',
@@ -77,7 +80,9 @@ export default {
   add_config_modal:
     '{category}ID系统唯一, {changeTypeName} 成功后不可修改, 确认 {key}',
   update_config_modal: '确认{key} 相关配置',
-  database_locked: '当前数据库被其他进程占用, 请稍后再试',
+  database_locked: '检测到当前有交易进行, 数据库被占用',
+  export_database_locked:
+    '检测到当前有交易进行, 为不影响交易数据落地, 建议收盘后尝试进行此操作',
 
   MakeOrder: '下单面板',
   FutureArbitrage: '套利指令',
@@ -100,6 +105,7 @@ export default {
   select_plugin_type: '选择插件类型',
 
   please_wait: '请稍后',
+  please_wait_and_retry: '请稍后重试',
 
   baseConfig: {
     main_panel: '主面板',
@@ -112,6 +118,10 @@ export default {
     csv_template: '下载 csv 模板',
     add_csv_desc: 'csv 表头为 {header}',
     clear: '清除',
+    total: '共计 {sum} 条数据',
+    import_successed: '导入成功',
+    import_failed: '导入失败',
+    csv_format_error: 'csv 格式错误, 请检查后重试',
   },
 
   tradingConfig: {
@@ -135,7 +145,6 @@ export default {
     ready: '就绪',
 
     system: '系统服务',
-    daemon: '后台服务',
     md: '行情源',
     td: '交易账户 ',
     strategy: '策略',
@@ -201,6 +210,9 @@ export default {
       '[ReverseBest] 上海最优五档即时成交剩余转限价, 深圳对手方最优价格申报, 不需要报价',
     Fak: '[Fak] 深圳即时成交剩余撤销',
     Fok: '[Fok] 深圳市价全额成交或者撤销',
+    EnhancedLimit: '[EnhancedLimit] 增强限价盘',
+    AtAuctionLimit: '[AtAuctionLimit] 竞价限价盘',
+    AtAuction: '[AtAuction] 竞价盘',
 
     speculation: '投机',
     hedge: '套保',
@@ -241,9 +253,42 @@ export default {
     INE: '能源中心',
 
     HK: '港股',
+    SHHK: '沪港通',
+    SZHK: '深港通',
     HKFUT: '港期',
     US: '美股',
-    GLFX: '全球外汇',
+    USFUT: '美期',
+    SGX: '新股',
+    SGXFUT: '新期',
+    EUR: '欧股',
+    EURFUT: '欧期',
+    LON: '英股',
+    LONFUT: '英期',
+    AEX: '荷股',
+    AEXFUT: '荷期',
+    AUX: '澳股',
+    AUXFUT: '澳期',
+    HEXS: '新股',
+    HEXSFUT: '新期',
+    IDX: '印尼股',
+    IDXFUT: '印尼期',
+    KORC: '韩碳所',
+    LME: '伦金所',
+    MYS: '马来股',
+    MYSFUT: '马来期',
+    ABB: '美布告',
+    PRX: '法股',
+    PRXFUT: '法期',
+    SIX: '瑞股',
+    SIXFUT: '瑞期',
+    TAX: '泰股',
+    TAXFUT: '泰期',
+    JP: '日股',
+    JPFUT: '日期',
+    TSE: '多股',
+    TSEFUT: '多期',
+    XETRA: 'XETRA',
+    GLFX: '外汇',
     IPE: 'IPE',
     CBOT: 'CBOT',
     CEC: 'CEC',
@@ -264,6 +309,17 @@ export default {
     SPC: '郑商所 跨品种 SPC',
     SPD: '大商所 跨期 SPD',
     IPS: '大商所 跨品种 IPS',
+
+    CNY: 'CNY',
+    HKD: 'HKD',
+    USD: 'USD',
+    JPY: 'JPY',
+    GBP: 'GBP',
+    EURO: 'EUR',
+    CNH: 'CNH',
+    SGD: 'SGD',
+    MYR: 'MYR',
+    CEN: 'CEN',
 
     master: '主控进程',
     ledger: '计算服务',
@@ -301,10 +357,12 @@ export default {
       '下单量为 {volume}, 当前标的可平 {direction} 仓为 {closable_volume}, 超出数量为 {open_volume}\n点击 “超出部分反向开仓”, 将会 平 {direction} {closable_volume}, 开{direction} {open_volume}\n点击“按原方案下单”, 将会继续平 {direction} {volume}',
     start_process: '请先启动{process}交易进程',
     place_confirm: '下单确认',
-    continue_close_rate: '超过平仓阈值 ({rate}%), 是否继续下单?',
+    continue_close_rate: '{relationship} 平仓阈值 ({rate}%), 是否继续下单?',
     Continue: '继续下单',
     original_plan: '按原方案下单',
     beyond_to_open: '超出部分反向开仓',
+    reach: '达到',
+    above: '超过',
   },
 
   orderConfig: {
@@ -336,7 +394,7 @@ export default {
     confirm: '确认',
 
     entrust_statistical: '委托统计',
-    statistical_desc: '实时(最新{count}条数据)',
+    statistical_desc: '实时',
     entrust_statistical_number: '委托统计数量',
     entrust_statistical_price: '委托价统计',
     average_withdrawal_ratio: '平均撤单比 (仅统计 部成部撤 和 全部撤单)',
@@ -482,7 +540,10 @@ export default {
     source: '源头',
     gen_time: '生成时间',
     trigger_time: '触发时间',
+    page_id: '页',
+    frame_id: '帧',
     msg_type: '消息类型',
+    msg_details: '消息详情',
 
     filters: '过滤器',
     apply_filters: '应用过滤',
@@ -494,6 +555,54 @@ export default {
     directroy_be_valued: '导出目录不能为空',
 
     loading_journal: '正在加载 journal',
+
+    input_time_format_error: '输入时间格式有误',
+
+    search_instrument_id: '搜索标的',
+
+    stock_price: '股价',
+
+    trade_node: '成交节点',
+
+    order_node: '下单节点',
+
+    input_instrument_id: '请输入标的名称',
+
+    undefined_instrument_id: '找不到对应的标的',
+
+    read_event: '输入事件',
+
+    write_event: '输出事件',
+
+    Event: '事件',
+
+    Visual: '视图',
+
+    please_input_instrument_id: '请输入标的名称',
+
+    time_range: '时间范围',
+
+    please_input_time: '请输入时间',
+
+    account_info: '账户信息',
+
+    trade_related: '交易相关',
+
+    query_related: '查询相关',
+
+    market_related: '行情相关',
+
+    market_subscription_related: '行情订阅相关',
+
+    operator_related: '算子相关',
+
+    strategy_related: '策略相关',
+
+    system_related: '系统相关',
+
+    select_channel: '过滤数据信道',
+
+    selete_msg_type: '过滤消息类型',
   },
 
   tradeConfig: {
@@ -511,7 +620,7 @@ export default {
     statistical: '成交统计',
     statistical_count: '统计成交数量',
     statistical_price: '成交价统计',
-    statistical_desc: '实时(最新500条数据)',
+    statistical_desc: '实时',
     average_trade_latency: '平均成交延迟(μs)',
     max_trade_latency: '最大成交延迟(μs)',
     min_trade_latency: '最小成交延迟(μs)',
@@ -564,6 +673,10 @@ export default {
   globalSettingConfig: {
     global_setting_title: '全局设置',
     system: '系统',
+    home_path: '选择本地Home路径',
+    home_path_desc:
+      '功夫将会以选择的home路径为根目录, 目录路径不可以包含中文, 且路径不建议太长 (过长会导致进程无法启动), 修改后重启功夫生效',
+    reset_order: '重置',
     log_level: '全局日志级别',
     for_all_log: '对系统内所有日志级别的设置',
 
@@ -595,13 +708,17 @@ export default {
     python_path_desc:
       '功夫将会以选择的python路径运行策略, 同时需要保证 kungfu*.whl 已经通过 pip安装',
 
+    currency: '币种',
+    instrument_currency: '标的币种',
+    instrument_currency_desc: '打开时，会在持仓面板的标的列展示标的币种',
+
     trade: '交易',
     sound: '成交提示音',
     use_sound: '启用成交提示音',
     fat_finger_threshold: '乌龙指阈值',
     set_fat_finger: '设置乌龙指触发阈值(百分比)',
     close_threshold: '平仓阈值',
-    set_close_threshold: '设置平仓阈值(百分比)',
+    set_close_threshold: '设置平仓阈值(百分比); 设置为 0% 时, 则视作关闭此项',
     trade_limit: '交易限制',
     set_trade_limit: '设置交易限制',
     order_input_key: '限制属性',
@@ -619,11 +736,25 @@ export default {
     comission: '期货手续费',
     varieties: '品种',
     add_comission: '添加',
+    save_comission: '保存',
     exchange_id: '交易所',
     open: '开仓',
     close_today: '平今',
     close_yesterday: '平昨',
     min: '最小',
+
+    update: '版本更新',
+    is_check_version: '检测更新',
+    is_check_version_desc: '启动功夫时, 是否检测更新',
+    current_version: '当前版本',
+    already_latest_version: '已是最新版本',
+    new_version: '新版本',
+    start_download: '开始下载',
+    find_new_version: '发现新版本: {version}\n是否现在下载安装包? ',
+    downloaded: '下载完成, 等待安装',
+    to_install: '现在安装',
+    warning_before_install:
+      '安装会清理当日交易数据并退出功夫 (如有需要请提前备份), 确定现在安装吗? (建议盘后进行)',
   },
 
   风控: '风控',
@@ -659,8 +790,9 @@ export default {
     name_repeat: '此位置已存在文件或文件夹 {name}, 请选择其他名称！',
     empty_input: '必须提供文件或文件夹名称！',
     illegal_character: '名称不能包含\\/:*?"<>|',
-    delate_confirm: '确认删除 {value} 吗？',
+    delete_confirm: '确认删除{value}吗？',
     cannot_delate_entry: '不可删除入口文件',
+    current: '当前',
   },
 
   logview: {
@@ -683,6 +815,8 @@ export default {
   kungfu: '功夫交易系统',
 
   system_prompt: '系统提示',
+  computer_performance_done: '性能检测已完成 ✓',
+  computer_performance_detecting: '性能检测中...',
   archive_done: '功夫归档完成 ✓',
   archive_loading: '功夫归档中...',
   environment_done: '功夫环境准备完成 ✓',
@@ -693,6 +827,9 @@ export default {
   saving_data_loading: '保存数据中...',
   end_all_transactions: '结束所有交易进程 ✓',
   closing: '结束交易进程中, 请勿关闭...',
+
+  computer_performance_abnormal:
+    '电脑性能过低, 将默认开启跳过 UI 计算选项 (可在全局系统设置里打开, 开启可能会导致系统进程崩溃), 建议使用8核及以上的 CPU 运行系统',
 
   quit_confirm: '退出应用会结束所有交易进程, 确认退出吗?',
   restart_process: '功夫图形进程中断, 该中断不会影响交易, 是否重启图形进程？',

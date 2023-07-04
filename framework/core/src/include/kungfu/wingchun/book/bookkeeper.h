@@ -15,6 +15,8 @@ namespace kungfu::wingchun::book {
 // key = location_uid
 typedef std::unordered_map<uint32_t, Book_ptr> BookMap;
 
+typedef std::unordered_map<uint32_t, kungfu::state<longfist::types::Quote>> QuoteMap;
+
 typedef std::unordered_map<longfist::enums::InstrumentType, AccountingMethod_ptr> AccountingMethodMap;
 
 FORWARD_DECLARE_CLASS_PTR(Context)
@@ -29,7 +31,7 @@ DECLARE_PTR(BookListener)
 
 class Bookkeeper {
 public:
-  explicit Bookkeeper(yijinjing::practice::apprentice &app, broker::Client &broker_client);
+  explicit Bookkeeper(yijinjing::practice::apprentice &app, broker::Client &broker_client, bool bypass_quote = false);
 
   virtual ~Bookkeeper() = default;
 
@@ -56,13 +58,21 @@ public:
 
   void update_book(const event_ptr &event, const longfist::types::InstrumentKey &instrument_key);
 
-  void update_book(const event_ptr &event, const longfist::types::Quote &quote);
+  void try_update_book(const event_ptr &event, const longfist::types::Quote &quote);
+
+  void update_book(int64_t trigger_time, const longfist::types::Quote &quote);
 
   void add_book_listener(const BookListener_ptr &book_listener);
 
   void mirror_positions(int64_t trigger_time, uint32_t strategy_uid);
 
   void try_update_position_end(const longfist::types::PositionEnd &position_end);
+
+  longfist::enums::AccountingMethodType get_accounting_method_type() { return account_method_type_; }
+
+  InstrumentMap get_instruments() { return instruments_; }
+
+  std::mutex &get_update_book_mutex();
 
   template <typename TradingData, typename ApplyMethod = void (AccountingMethod::*)(Book_ptr, const TradingData &)>
   void update_book(const event_ptr &event, ApplyMethod method) {
@@ -71,6 +81,8 @@ public:
 
   template <typename TradingData, typename ApplyMethod = void (AccountingMethod::*)(Book_ptr, const TradingData &)>
   void update_book(int64_t update_time, uint32_t source, uint32_t dest, const TradingData &data, ApplyMethod method) {
+    std::lock_guard<std::mutex> lock(update_book_mutex_);
+
     if (accounting_methods_.find(data.instrument_type) == accounting_methods_.end()) {
       SPDLOG_WARN("accounting method not found for {}: {}", data.type_name.c_str(), data.to_string());
       return;
@@ -82,7 +94,7 @@ public:
       (accounting_method.*method)(book, data);
       position.update_time = update_time;
       book->replace(data);
-      book->update(update_time);
+      book->update(update_time, account_method_type_);
     };
     apply_and_update(source);
     if (dest != yijinjing::data::location::PUBLIC) {
@@ -111,7 +123,11 @@ public:
 private:
   yijinjing::practice::apprentice &app_;
   broker::Client &broker_client_;
+  const bool bypass_quote_;
+  QuoteMap quotes_;
 
+  const longfist::enums::AccountingMethodType account_method_type_;
+  std::mutex update_book_mutex_;
   bool positions_guarded_ = false;
   CommissionMap commissions_ = {};
   InstrumentMap instruments_ = {};
@@ -125,7 +141,11 @@ private:
 
   Book_ptr make_book(uint32_t location_uid);
 
+  void batch_update_book_by_quote();
+
   void update_instrument(const longfist::types::Instrument &instrument);
+
+  void update_instrument_factor(const longfist::types::InstrumentFactor &instrument_factor);
 
   void try_update_asset(const longfist::types::Asset &asset);
 

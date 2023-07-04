@@ -5,13 +5,13 @@ import { getTradingDataSortKey } from '@kungfu-trader/kungfu-js-api/utils/busiUt
 const { t } = VueI18n.global;
 
 const buildSorter =
-  (dataIndex: keyof KungfuApi.Position) =>
-  (a: KungfuApi.Position, b: KungfuApi.Position) =>
+  (dataIndex: keyof KungfuApi.PositionResolved) =>
+  (a: KungfuApi.PositionResolved, b: KungfuApi.PositionResolved) =>
     (+Number(a[dataIndex]) || 0) - (+Number(b[dataIndex]) || 0);
 
 const buildStrSorter =
-  (dataIndex: keyof KungfuApi.Position) =>
-  (a: KungfuApi.Position, b: KungfuApi.Position) =>
+  (dataIndex: keyof KungfuApi.PositionResolved) =>
+  (a: KungfuApi.PositionResolved, b: KungfuApi.PositionResolved) =>
     a[dataIndex].toString().localeCompare(b[dataIndex].toString());
 
 export const getColumns = (): KfTradingDataTableHeaderConfig[] => [
@@ -55,21 +55,21 @@ export const getColumns = (): KfTradingDataTableHeaderConfig[] => [
   {
     type: 'number',
     name: t('posGlobalConfig.avg_open_price'),
-    dataIndex: 'avg_open_price',
+    dataIndex: 'avg_open_price_resolved',
     width: 110,
     sorter: buildSorter('avg_open_price'),
   },
   {
     type: 'number',
     name: t('posGlobalConfig.last_price'),
-    dataIndex: 'last_price',
+    dataIndex: 'last_price_resolved',
     width: 110,
     sorter: buildSorter('last_price'),
   },
   {
     type: 'number',
     name: t('posGlobalConfig.unrealized_pnl'),
-    dataIndex: 'unrealized_pnl',
+    dataIndex: 'unrealized_pnl_resolved',
     width: 110,
     sorter: buildSorter('unrealized_pnl'),
   },
@@ -104,12 +104,14 @@ export const categoryRegisterConfig: DealTradingDataGetter = {
   },
   position: {
     getter(watcher, position, kfLocation) {
-      const { group, name } = kfLocation;
+      const { group, name, direction } =
+        kfLocation as KungfuApi.KfExtraLocation;
       return position
         .nofilter('volume', BigInt(0))
         .filter('ledger_category', LedgerCategoryEnum.td)
         .filter('exchange_id', group)
         .filter('instrument_id', name)
+        .filter('direction', direction)
         .sort(positionSortKey)
         .reverse();
     },

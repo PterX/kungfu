@@ -4,7 +4,7 @@ import { computed, reactive, Ref, ref, watch, nextTick } from 'vue';
 import {
   debounce,
   isCriticalLog,
-  KfNumList,
+  KfFixedList,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { Tail } from 'tail';
 import { messagePrompt, parseURIParams } from './uiUtils';
@@ -21,7 +21,13 @@ export function preDealLogMessage(line: string): string {
   if (line.indexOf('[') === 21) {
     line = line.slice(21);
   }
-  line = line.replace(/</g, '[').replace(/>/g, ']');
+  line = line.replace(/&/g, '&amp;');
+  line = line.replace(/</g, '&lt;');
+  line = line.replace(/>/g, '&gt;');
+  line = line.replace(/"/g, '&quot;');
+  line = line.replace(/'/g, '&#39;');
+  line = line.replace(/`/g, '&#96;');
+  line = line.replace(/\//g, '&#x2F;');
   return line;
 }
 
@@ -54,7 +60,7 @@ export const useLogInit = (
   logPath: string,
   nLines = 10000,
 ): {
-  logList: KungfuApi.KfNumList<KungfuApi.KfLogData>;
+  logList: KungfuApi.KfFixedList<KungfuApi.KfLogData>;
   scrollToBottomChecked: Ref<boolean>;
   scrollerTableRef: Ref;
   scrollToBottom: () => void;
@@ -62,8 +68,8 @@ export const useLogInit = (
   clearLogState: () => void;
 } => {
   let LogTail: Tail | null = null;
-  const logList = reactive<KungfuApi.KfNumList<KungfuApi.KfLogData>>(
-    new KfNumList(nLines),
+  const logList = reactive<KungfuApi.KfFixedList<KungfuApi.KfLogData>>(
+    new KfFixedList(nLines),
   );
   const scrollerTableRef = ref();
   const scrollToBottomChecked = ref<boolean>(false);
@@ -119,7 +125,7 @@ export const useLogInit = (
 };
 
 export const useLogSearch = (
-  logList: KungfuApi.KfNumList<KungfuApi.KfLogData>,
+  logList: KungfuApi.KfFixedList<KungfuApi.KfLogData>,
   scrollerTableRef: Ref,
   contentSize: Ref<{
     width: number;
@@ -168,14 +174,14 @@ export const useLogSearch = (
     if (searchKeywordReg.value === null) return '';
     if (currentPointer) {
       return dealLogMessage(
-        item.messageOrigin.replace(
+        preDealLogMessage(item.messageOrigin).replace(
           searchKeywordReg.value,
           `<font class="search-keyword current-search-pointer">${searchKeyword.value}</font>`,
         ),
       );
     } else {
       return dealLogMessage(
-        item.messageOrigin.replace(
+        preDealLogMessage(item.messageOrigin).replace(
           searchKeywordReg.value,
           `<font class="search-keyword">${searchKeyword.value}</font>`,
         ),

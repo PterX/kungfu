@@ -7,7 +7,7 @@
 #ifndef YIJINJING_ASSEMBLE_H
 #define YIJINJING_ASSEMBLE_H
 
-#include <kungfu/yijinjing/journal/frame_reader.h>
+#include <kungfu/yijinjing/bus.h>
 #include <kungfu/yijinjing/journal/journal.h>
 
 namespace kungfu::yijinjing::journal {
@@ -18,19 +18,21 @@ public:
   virtual void put(const data::location_ptr &location, uint32_t dest_id, const frame_ptr &frame) = 0;
   virtual void close(){};
   [[nodiscard]] publisher_ptr get_publisher();
+  [[nodiscard]] bus_ptr get_bus();
 
 private:
   publisher_ptr publisher_;
+  bus_ptr bus_;
 };
 DECLARE_PTR(sink)
 
-class null_sink : public sink {
+class [[maybe_unused]] null_sink : public sink {
 public:
   null_sink() = default;
   void put(const data::location_ptr &location, uint32_t dest_id, const frame_ptr &frame) override{};
 };
 
-class copy_sink : public sink {
+class [[maybe_unused]] copy_sink : public sink {
 public:
   explicit copy_sink(data::locator_ptr locator);
   void put(const data::location_ptr &location, uint32_t dest_id, const frame_ptr &frame) override;
@@ -55,6 +57,10 @@ public:
 
   assemble operator+(assemble &other);
 
+  assemble &operator+=(const assemble &other);
+
+  assemble &operator-=(const assemble &other);
+
   void operator>>(const sink_ptr &sink);
 
   bool data_available();
@@ -63,11 +69,10 @@ public:
 
   frame_ptr current_frame();
 
-  std::vector<kungfu::longfist::types::Session> get_sessions(const kungfu::yijinjing::data::location_ptr &pl = nullptr);
+  page_ptr current_page();
 
-  std::shared_ptr<frame_reader> get_reader(const kungfu::yijinjing::data::location_ptr &pl);
-
-  template <typename T> std::vector<T> read_all(int32_t msg_type, int64_t end_time = INT64_MAX) {
+  template <typename T>
+  [[maybe_unused]] std::vector<T> read_all(int32_t msg_type = T::tag, int64_t end_time = INT64_MAX) {
     std::vector<T> v{};
     while (data_available() and current_frame()->gen_time() < end_time) {
       if (current_frame()->msg_type() == msg_type) {
@@ -78,9 +83,55 @@ public:
     return v;
   }
 
+  template <typename T> [[maybe_unused]] std::vector<T> read_all(const T &, int64_t end_time = INT64_MAX) {
+    return read_all<T>(T::tag, end_time);
+  }
+
+  template <typename T>
+  std::vector<std::pair<longfist::types::frame_header, T>> read_header_data(int32_t msg_type = T::tag,
+                                                                            int64_t end_time = INT64_MAX) {
+    std::vector<std::pair<longfist::types::frame_header, T>> v{};
+    while (data_available() and current_frame()->gen_time() < end_time) {
+      if (current_frame()->msg_type() == msg_type) {
+        v.emplace_back(*reinterpret_cast<longfist::types::frame_header *>(current_frame()->address()),
+                       current_frame()->template data<T>());
+      }
+      next();
+    }
+    return v;
+  }
+
+  template <typename T>
+  [[maybe_unused]] std::vector<std::pair<longfist::types::frame_header, T>>
+  read_header_data(const T &, int64_t end_time = INT64_MAX) {
+    return read_header_data<T>(T::tag, end_time);
+  }
+
+  std::vector<std::pair<longfist::types::frame_header, std::vector<uint8_t>>> read_bytes(int32_t msg_type,
+                                                                                         int64_t end_time = INT64_MAX);
+
+  template <typename T>
+  [[maybe_unused]] std::vector<std::pair<longfist::types::frame_header, std::vector<uint8_t>>>
+  read_bytes(const T & = {}, int64_t end_time = INT64_MAX) {
+    return read_bytes(T::tag, end_time);
+  }
+
+  [[maybe_unused]] std::vector<longfist::types::frame_header> read_headers(int32_t msg_type,
+                                                                           int64_t end_time = INT64_MAX);
+
+  template <typename T>
+  [[maybe_unused]] std::vector<longfist::types::frame_header> read_headers(const T & = {},
+                                                                           int64_t end_time = INT64_MAX) {
+    return read_headers(T::tag, end_time);
+  }
+
   [[maybe_unused]] void seek_to_time(int64_t nano_time);
 
-  [[nodiscard]] const std::vector<reader_ptr> &get_readers() const { return readers_; }
+  [[maybe_unused]] [[nodiscard]] const std::vector<reader_ptr> &get_readers() const { return readers_; }
+
+  void disjoin(uint32_t location_uid);
+
+  void disjoin_channel(uint32_t location_uid, uint32_t dest_id);
 
 protected:
   std::vector<reader_ptr> readers_ = {};
@@ -93,6 +144,7 @@ private:
   const std::string &name_;
   publisher_ptr publisher_;
   std::vector<data::locator_ptr> locators_ = {};
+  int64_t from_time_ = 0;
 
   void sort();
 };

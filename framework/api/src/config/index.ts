@@ -5,11 +5,29 @@ import {
   KF_INSTRUMENTS_DEFAULT_PATH,
   KF_INSTRUMENTS_PATH,
 } from './pathConfig';
+import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
+import { mergeObject } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import globalStorage from '@kungfu-trader/kungfu-js-api/utils/globalStorage';
 
 export const initKfConfig = () => {
   if (!fse.existsSync(KF_CONFIG_PATH)) {
     ensureFileSync(KF_CONFIG_PATH);
-    const kfConfigJSON = fse.readJsonSync(KF_CONFIG_DEFAULT_PATH);
+    let kfConfigJSON = fse.readJsonSync(KF_CONFIG_DEFAULT_PATH);
+    const kfConfigInitValue =
+      readRootPackageJsonSync()?.appConfig?.kfConfigInitValue;
+    if (kfConfigInitValue && typeof kfConfigInitValue === 'object') {
+      kfConfigJSON = mergeObject(kfConfigJSON, kfConfigInitValue);
+    }
+
+    if (
+      !globalStorage.getItem('ifNotFirstRunning') &&
+      !booleanProcessEnv(process.env.IF_CPUS_NUM_SAFE)
+    ) {
+      if (!kfConfigJSON.performance) kfConfigJSON.performance = {};
+      kfConfigJSON.performance.bypassAccounting = true;
+    }
+
     fse.outputJsonSync(KF_CONFIG_PATH, kfConfigJSON);
   }
 };

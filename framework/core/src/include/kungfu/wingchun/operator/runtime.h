@@ -20,7 +20,7 @@ public:
    * Get config from database.
    * @return config of current location_uid
    */
-  const std::string &get_config() const override;
+  const std::string get_config() const override;
 
   /**
    * Add one shot timer callback.
@@ -124,7 +124,7 @@ private:
   yijinjing::data::location_map op_locations_ = {};
   std::unordered_map<std::string, yijinjing::data::location_ptr> market_data_ = {};
   std::unordered_map<std::string, yijinjing::data::location_ptr> operator_data_ = {};
-  longfist::types::OperatorState state_;
+  longfist::enums::OperatorState state_;
 };
 
 DECLARE_PTR(RuntimeContext)

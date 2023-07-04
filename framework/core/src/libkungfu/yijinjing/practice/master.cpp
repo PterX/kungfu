@@ -6,12 +6,15 @@
 
 #include <kungfu/common.h>
 #include <kungfu/longfist/longfist.h>
+#include <kungfu/yijinjing/journal/frame.h>
 #include <kungfu/yijinjing/practice/master.h>
 #include <kungfu/yijinjing/time.h>
+#include <kungfu/yijinjing/util/os.h>
 
 using namespace kungfu::rx;
 using namespace kungfu::longfist;
 using namespace kungfu::longfist::types;
+using namespace kungfu::longfist::enums;
 using namespace kungfu::yijinjing::cache;
 using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::journal;
@@ -37,32 +40,30 @@ master::master(location_ptr home, bool low_latency)
 
 void master::on_exit() {
   notify_deregister_on_exit();
-  mark_session_end_on_exit();
   notify_master_deregister_on_exit();
+  mark_session_end_on_exit();
 }
 
 void master::notify_deregister_on_exit() {
-  auto now = time::now_in_nano();
-  auto &live_sessions = session_builder_.close_all_sessions(now);
+  auto &live_sessions = session_builder_.get_all_sessions();
   for (auto &iter : live_sessions) {
     auto &session = iter.second;
     auto location_from_session = location::make_shared(session, get_locator());
     if (session.location_uid != master_home_location_->uid) {
-      get_writer(location::PUBLIC)->write(now, location_from_session->to<Deregister>());
+      get_writer(location::PUBLIC)->write(time::now_in_nano(), location_from_session->to<Deregister>());
     }
   }
 }
 
 // after finished sending deregisters of other processes, then tell everyone master down
 void master::notify_master_deregister_on_exit() {
-  auto now = time::now_in_nano();
-  auto &live_sessions = session_builder_.close_all_sessions(now);
+  auto &live_sessions = session_builder_.get_all_sessions();
   for (auto &iter : live_sessions) {
     auto &session = iter.second;
 
     if (has_writer(session.location_uid)) {
       auto writer = get_writer(session.location_uid);
-      writer->write(now, master_home_location_->to<Deregister>());
+      writer->write(time::now_in_nano(), master_home_location_->to<Deregister>());
     } else {
       SPDLOG_WARN("no writer {} {}", session.location_uid, get_location_uname(session.location_uid));
     }
@@ -70,18 +71,20 @@ void master::notify_master_deregister_on_exit() {
 }
 
 void master::mark_session_end_on_exit() {
-  auto now = time::now_in_nano();
-  get_writer(location::PUBLIC)->mark(now, SessionEnd::tag);
-  auto &live_sessions = session_builder_.close_all_sessions(now);
+  get_writer(location::PUBLIC)->mark(time::now_in_nano(), SessionEnd::tag);
+  auto &live_sessions = session_builder_.get_all_sessions();
   for (auto &iter : live_sessions) {
     auto &session = iter.second;
     if (has_writer(session.location_uid)) {
       auto writer = get_writer(session.location_uid);
-      writer->mark(now, SessionEnd::tag);
+      writer->mark(time::now_in_nano(), SessionEnd::tag);
     } else {
       SPDLOG_WARN("no writer {} {}", session.location_uid, get_location_uname(session.location_uid));
     }
   }
+
+  // have to use new now, ensuring later than all messages
+  session_builder_.close_all_sessions(time::now_in_nano());
 }
 
 void master::on_notify() { get_io_device()->get_publisher()->notify(); }
@@ -90,9 +93,7 @@ void master::register_app(const event_ptr &event) {
   auto io_device = std::dynamic_pointer_cast<io_device_master>(get_io_device());
   auto home = io_device->get_home();
 
-  auto request_json = event->data<nlohmann::json>();
   auto request_data = event->data_as_string();
-
   Register register_data(request_data.c_str(), request_data.length());
 
   auto app_location = location::make_shared(register_data, home->locator);
@@ -142,10 +143,13 @@ void master::register_app(const event_ptr &event) {
 }
 
 void master::deregister_app(int64_t trigger_time, uint32_t app_location_uid) {
+  if (not is_location_live(app_location_uid)) {
+    SPDLOG_ERROR("location {} has already been deregistered", get_location_uname(app_location_uid));
+    return;
+  }
+
   auto location = get_location(app_location_uid);
   SPDLOG_INFO("app {} gone", location->uname);
-
-  session_builder_.close_session(location, trigger_time);
   get_writer(app_location_uid)->mark(trigger_time, SessionEnd::tag);
   deregister_channel(app_location_uid);
   deregister_band(app_location_uid);
@@ -155,9 +159,17 @@ void master::deregister_app(int64_t trigger_time, uint32_t app_location_uid) {
   writers_.erase(app_location_uid);
   timer_tasks_.erase(app_location_uid);
   get_writer(location::PUBLIC)->write(trigger_time, location->to<Deregister>());
+  session_builder_.close_session(location, time::now_in_nano());
 }
 
-void master::publish_trading_day() { write_trading_day(0, get_writer(location::PUBLIC)); }
+void master::on_request_deregister(const event_ptr &event) {
+  auto dest = event->dest();
+  auto source = event->source();
+  SPDLOG_INFO("deregister_app from {} to {}", get_location_uname(source), get_location_uname(dest));
+  deregister_app(event->trigger_time(), source);
+}
+
+[[maybe_unused]] void master::publish_trading_day() { write_trading_day(0, get_writer(location::PUBLIC)); }
 
 void master::react() {
   events_ | is(RequestWriteTo::tag) | $$(on_request_write_to(event));
@@ -166,6 +178,7 @@ void master::react() {
   events_ | is(RequestReadFrom::tag) | $$(check_cached_ready_to_read(event));
   events_ | is(RequestReadFromPublic::tag) | $$(on_request_read_from_public(event));
   events_ | is(RequestReadFromSync::tag) | $$(on_request_read_from_sync(event));
+  events_ | is(RequestReadFromOthers::tag) | $$(on_request_read_from_others(event));
   // for watcher request stop master in widnows
   events_ | is(RequestStop::tag) | filter([&](const event_ptr &event) {
     auto dest = event->dest();
@@ -184,6 +197,9 @@ void master::react() {
   events_ | is(RequestCachedDone::tag) | $$(on_request_cached_done(event));
   events_ | is(Ping::tag) | $$(pong(event));
   events_ | instanceof <journal::frame>() | $$(feed(event));
+
+  // have to be at bottom of react, for avoid event still required after reader disjoin
+  events_ | is(RequestDeregister::tag) | $$(on_request_deregister(event));
 }
 
 void master::on_active() {
@@ -192,8 +208,10 @@ void master::on_active() {
     on_interval_check(now);
     last_check_ = now;
   }
-  handle_timer_tasks();
+  on_frame();
 }
+
+void master::on_frame() { handle_timer_tasks(); }
 
 void master::handle_timer_tasks() {
   auto now = time::now_in_nano();
@@ -204,6 +222,7 @@ void master::handle_timer_tasks() {
       auto &task = it->second;
       if (task.checkpoint <= now) {
         get_writer(app_id)->mark(0, Time::tag);
+        SPDLOG_DEBUG("app_id:{} , location: {}", app_id, get_location_uname(app_id));
         task.checkpoint += task.duration;
         task.repeat_count++;
         if (task.repeat_count >= task.repeat_limit) {
@@ -240,14 +259,14 @@ void master::check_cached_ready_to_read(const event_ptr &event) {
 void master::feed(const event_ptr &event) {
   handle_timer_tasks();
 
-  if (registry_.find(event->source()) == registry_.end()) {
+  if (!is_location_live(event->source())) {
     return;
   }
 
   session_builder_.update_session(std::dynamic_pointer_cast<journal::frame>(event));
 }
 
-void master::pong(const event_ptr &event) { get_io_device()->get_publisher()->publish("{}"); }
+void master::pong(const event_ptr &) { get_io_device()->get_publisher()->publish("{}"); }
 
 void master::on_request_write_to_band(const event_ptr &event) {
   const RequestWriteToBand &request = event->data<RequestWriteToBand>();
@@ -257,11 +276,14 @@ void master::on_request_write_to_band(const event_ptr &event) {
   auto home = io_device->get_home();
   auto target_location = location::make_shared(request, home->locator);
 
+  // layout have to be journal, for locator::list_locations
+  auto dirname = home->locator->layout_dir(target_location, enums::layout::JOURNAL);
+
   // notify others band location, but it represents a simulation location, no register, only location
   try_add_location(now(), target_location);
   get_writer(location::PUBLIC)->write(now(), dynamic_cast<Location &>(*target_location));
 
-  SPDLOG_INFO("on_request_write_to_band for {} to {}", get_location_uname(app_uid), request.name);
+  SPDLOG_INFO("on_request_write_to_band for {} to {}, dirname {}", get_location_uname(app_uid), request.name, dirname);
   reader_->join(get_location(app_uid), request.location_uid, trigger_time);
   require_write_to_band(trigger_time, app_uid, target_location);
   auto app_cmd_writer = get_writer(app_uid);
@@ -321,6 +343,20 @@ void master::on_request_read_from_sync(const event_ptr &event) {
   require_read_from_sync(event->gen_time(), event->source(), request.source_id, request.from_time);
 }
 
+void master::on_request_read_from_others(const event_ptr &event) {
+  RequestReadFromOthers request{};
+  if (event->data_type() == int8_t(FrameDataType::Json)) {
+    const std::string msg = event->data_as_string();
+    request = RequestReadFromOthers(msg.c_str(), msg.length());
+  } else {
+    request = event->data<RequestReadFromOthers>();
+  }
+  auto source = event->source();
+  if (has_writer(source)) {
+    get_writer(source)->write(now(), request);
+  }
+}
+
 void master::on_request_cached_done(const event_ptr &event) {
   auto request_cached_done_data = event->data<RequestCachedDone>();
   auto app_uid = request_cached_done_data.dest_id;
@@ -352,9 +388,8 @@ void master::on_time_request(const event_ptr &event) {
   const TimeRequest &request = event->data<TimeRequest>();
   timer_tasks_.try_emplace(event->source());
   auto &app_tasks = timer_tasks_.at(event->source());
-  app_tasks.try_emplace(request.id);
-  auto &task = app_tasks.at(request.id);
-  task.checkpoint = time::now_in_nano() + request.duration;
+  auto &task = app_tasks.try_emplace(request.id).first->second;
+  task.checkpoint = request.base_time + request.duration;
   task.duration = request.duration;
   task.repeat_count = 0;
   task.repeat_limit = request.repeat;
@@ -366,7 +401,7 @@ void master::on_new_location(const event_ptr &event) {
   get_writer(location::PUBLIC)->write(event->gen_time(), location);
 }
 
-void master::write_time_reset(int64_t trigger_time, const writer_ptr &writer) {
+void master::write_time_reset(int64_t, const writer_ptr &writer) {
   auto time_base = time::get_base();
   TimeReset &time_reset = writer->open_data<TimeReset>();
   time_reset.system_clock_count = time_base.system_clock_count;
@@ -374,7 +409,7 @@ void master::write_time_reset(int64_t trigger_time, const writer_ptr &writer) {
   writer->close_data();
 }
 
-void master::write_trading_day(int64_t trigger_time, const writer_ptr &writer) {
+void master::write_trading_day(int64_t, const writer_ptr &writer) {
   TradingDay &trading_day = writer->open_data<TradingDay>();
   trading_day.timestamp = acquire_trading_day();
   writer->close_data();

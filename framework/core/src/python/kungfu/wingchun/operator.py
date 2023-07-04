@@ -1,7 +1,7 @@
 #  SPDX-License-Identifier: Apache-2.0
 
 import asyncio
-import importlib
+import importlib.util
 import inspect
 import functools
 import kungfu
@@ -41,8 +41,10 @@ class Operator(wc.Operator):
     def __init_operator(self, path):
         operator_dir = os.path.dirname(path)
         name_no_ext = os.path.split(os.path.basename(path))
-        sys.path.append(os.path.relpath(operator_dir))
-        self._module = importlib.import_module(os.path.splitext(name_no_ext[1])[0])
+        module_name = os.path.splitext(name_no_ext[1])[0]
+        module_spec = importlib.util.spec_from_file_location(module_name, path)
+        self._module = importlib.util.module_from_spec(module_spec)
+        module_spec.loader.exec_module(self._module)
         self._pre_start = getattr(self._module, "pre_start", lambda ctx: None)
         self._post_start = getattr(self._module, "post_start", lambda ctx: None)
         self._pre_stop = getattr(self._module, "pre_stop", lambda ctx: None)
@@ -51,18 +53,20 @@ class Operator(wc.Operator):
             self._module, "on_trading_day", lambda ctx, trading_day: None
         )
         self._on_quote = getattr(
-            self._module, "on_quote", lambda ctx, quote, location: None
+            self._module, "on_quote", lambda ctx, quote, location, dest_id: None
         )
         self._on_entrust = getattr(
-            self._module, "on_entrust", lambda ctx, entrust, location: None
+            self._module, "on_entrust", lambda ctx, entrust, location, dest_id: None
         )
         self._on_transaction = getattr(
-            self._module, "on_transaction", lambda ctx, transaction, location: None
+            self._module,
+            "on_transaction",
+            lambda ctx, transaction, location, dest_id: None,
         )
         self._on_synthetic_data = getattr(
             self._module,
             "on_synthetic_data",
-            lambda ctx, synthetic_data, location: None,
+            lambda ctx, synthetic_data, location, dest_id: None,
         )
         self._on_deregister = getattr(
             self._module, "on_deregister", lambda ctx, deregister, location: None
@@ -123,17 +127,21 @@ class Operator(wc.Operator):
     def post_stop(self, wc_context):
         self.__call_proxy(self._post_stop, self.ctx)
 
-    def on_quote(self, wc_context, quote, location):
-        self.__call_proxy(self._on_quote, self.ctx, quote, location)
+    def on_quote(self, wc_context, quote, location, dest_id):
+        self.__call_proxy(self._on_quote, self.ctx, quote, location, dest_id)
 
-    def on_entrust(self, wc_context, entrust, location):
-        self.__call_proxy(self._on_entrust, self.ctx, entrust, location)
+    def on_entrust(self, wc_context, entrust, location, dest_id):
+        self.__call_proxy(self._on_entrust, self.ctx, entrust, location, dest_id)
 
-    def on_transaction(self, wc_context, transaction, location):
-        self.__call_proxy(self._on_transaction, self.ctx, transaction, location)
+    def on_transaction(self, wc_context, transaction, location, dest_id):
+        self.__call_proxy(
+            self._on_transaction, self.ctx, transaction, location, dest_id
+        )
 
-    def on_synthetic_data(self, wc_context, synthetic_data, location):
-        self.__call_proxy(self._on_synthetic_data, self.ctx, synthetic_data, location)
+    def on_synthetic_data(self, wc_context, synthetic_data, location, dest_id):
+        self.__call_proxy(
+            self._on_synthetic_data, self.ctx, synthetic_data, location, dest_id
+        )
 
     def on_deregister(self, wc_context, deregister, location):
         self.__call_proxy(self._on_deregister, self.ctx, deregister, location)

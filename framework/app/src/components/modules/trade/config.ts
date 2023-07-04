@@ -56,7 +56,7 @@ export const getColumns = (
       {
         type: 'number',
         name: t('tradeConfig.price'),
-        dataIndex: 'price',
+        dataIndex: 'price_resolved',
         width: 120,
         sorter: buildSorter('price'),
       },
@@ -98,33 +98,35 @@ export const getColumns = (
           ]),
     ]);
 
-export const statisColums: AntTableColumns = [
+export const statisColums: KfTradingDataTableHeaderConfig[] = [
   {
-    title: t('tradeConfig.instrument_id'),
+    name: t('tradeConfig.instrument_id'),
     dataIndex: 'instrumentId_exchangeId',
   },
   {
-    title: '',
-    dataIndex: 'side',
+    name: '',
+    dataIndex: 'sideName',
+    width: 40,
   },
   {
-    title: '',
-    dataIndex: 'offset',
+    name: '',
+    dataIndex: 'offsetName',
+    width: 40,
   },
   {
-    title: t('tradeConfig.mean_price'),
+    name: t('tradeConfig.mean_price'),
     dataIndex: 'mean',
   },
   {
-    title: t('tradeConfig.max_price'),
+    name: t('tradeConfig.max_price'),
     dataIndex: 'max',
   },
   {
-    title: t('tradeConfig.min_price'),
+    name: t('tradeConfig.min_price'),
     dataIndex: 'min',
   },
   {
-    title: t('tradeConfig.volume'),
+    name: t('tradeConfig.volume'),
     dataIndex: 'volume',
   },
 ];

@@ -10,6 +10,7 @@ using namespace kungfu::yijinjing::practice;
 using namespace kungfu::rx;
 using namespace kungfu::longfist;
 using namespace kungfu::longfist::types;
+using namespace kungfu::longfist::enums;
 using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::util;
@@ -23,8 +24,11 @@ RuntimeContext::RuntimeContext(apprentice &app, const rx::connectable_observable
 
 void RuntimeContext::on_start() { broker_client_.on_start(events_); }
 
-const std::string &RuntimeContext::get_config() const {
+const std::string RuntimeContext::get_config() const {
   auto &config_map = app_.get_state_bank()[boost::hana::type_c<Config>];
+  if (config_map.find(app_.get_home_uid()) == config_map.end()) {
+    return "{}";
+  }
   auto &config_obj = config_map.at(app_.get_home_uid());
   return config_obj.data.value;
 }

@@ -23,6 +23,7 @@ const project = require('./project');
 const pypackages = '__pypackages__';
 const kungfulibs = '__kungfulibs__';
 const kungfuLibDirPattern = `${kungfulibs}/*/*`;
+const webpackBuildCaches = 'node_modules/.cache/webpack';
 const cwd = process.cwd().toString();
 
 const spawnOptsShell = {
@@ -59,6 +60,7 @@ function detectPlatform() {
   }
   return osName;
 }
+
 exports.detectPlatform = detectPlatform;
 
 function hasSourceFor(packageJson, language) {
@@ -81,6 +83,12 @@ function generateCMakeFiles(projectName, kungfuBuild) {
     exe: 'add_executable',
     'bind/python': 'pybind11_add_module',
     'bind/node': 'add_library',
+  };
+
+  const targetLinkTypes = {
+    exe: '',
+    'bind/python': 'SHARED',
+    'bind/node': 'SHARED',
   };
 
   kungfuBuild = kungfuBuild || { cpp: { target: 'bind/python' } };
@@ -107,6 +115,7 @@ function generateCMakeFiles(projectName, kungfuBuild) {
       sources: cppSources,
       extraSource: extraSources[kungfuBuild.cpp.target],
       makeTarget: targetMakers[kungfuBuild.cpp.target],
+      makeTargetLinkType: targetLinkTypes[kungfuBuild.cpp.target],
       targetLinks: (cppLinks || ['']).join(' '),
     },
     (err, str) => {
@@ -302,11 +311,12 @@ exports.installBatch = async (
 exports.clean = (keepLibs = true) => {
   fse.removeSync(path.join(process.cwd().toString(), 'build'));
   fse.removeSync(path.join(process.cwd().toString(), 'dist'));
+  const rm = (p) => fse.existsSync(p) && fse.removeSync(p);
   if (!keepLibs) {
-    const rm = (p) => fse.existsSync(p) && fse.removeSync(p);
     rm(pypackages);
     rm(kungfulibs);
   }
+  rm(webpackBuildCaches);
 };
 
 exports.configure = () => {
@@ -361,14 +371,14 @@ exports.compile = () => {
   const cwd = process.cwd().toString(); // 这一步避免在打包中process.cwd()被替换
   const packageJsonPath = path.join(cwd, 'package.json');
   const readmePath = path.join(cwd, 'README.md');
-  fse.copyFile(packageJsonPath, path.join(outputDir, 'package.json'));
+  fse.copySync(packageJsonPath, path.join(outputDir, 'package.json'));
   if (fse.existsSync(readmePath)) {
-    fse.copyFile(readmePath, path.join(outputDir, 'README.md'));
+    fse.copySync(readmePath, path.join(outputDir, 'README.md'));
   }
 
   const copyOutput = (pattern) => {
     glob.sync(pattern).forEach((p) => {
-      fse.copyFile(p, path.join(outputDir, path.basename(p)));
+      fse.copySync(p, path.join(outputDir, path.basename(p)));
     });
   };
 
@@ -401,9 +411,16 @@ exports.format = () => {
 
 function updatePackageJson(packageJson) {
   const config = packageJson.kungfuConfig || { key: 'KungfuTraderStrategy' };
+  const module_name =
+    packageJson.name.split('/').length === 2
+      ? packageJson.name.split('/')[1]
+      : packageJson.name;
   packageJson.binary = {
-    module_name: config.key,
+    module_name,
     module_path: `dist/${config.key}`,
+    remote_path: '{module_name}/v{major}/v{version}',
+    package_name:
+      '{module_name}-v{version}-{platform}-{arch}-{configuration}.tar.gz',
     host: 'localhost',
   };
   packageJson.main = 'package.json';

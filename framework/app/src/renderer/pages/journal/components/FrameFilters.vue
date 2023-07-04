@@ -1,119 +1,150 @@
 <template>
   <a-form
-    ref="formRef"
-    class="kf-config-form"
-    :model="filtersFormState"
+    class="kf-config-form journal-tool-frame-filters__form"
+    :model="formState"
     :colon="false"
     :scroll-to-first-error="true"
     layout="inline"
   >
-    <a-form-item
-      v-for="item in Object.keys(formLabelMap)"
-      :key="item"
-      :name="item"
-      class="kf-form-item__warp"
-      :label="formLabelMap[item]"
-    >
+    <a-form-item>
+      <a-checkbox v-model:checked="formState.read" @change="handleApplyFilters">
+        {{ $t('journalConfig.read_event') }}
+      </a-checkbox>
+      <a-checkbox
+        v-model:checked="formState.write"
+        @change="handleApplyFilters"
+      >
+        {{ $t('journalConfig.write_event') }}
+      </a-checkbox>
+    </a-form-item>
+    <a-form-item>
       <a-select
-        v-model:value="filtersFormState[item]"
+        v-model:value="formState.selectedChannels"
         mode="multiple"
         :max-tag-count="2"
-        show-search
-        :placeholder="$t('keyword_input')"
-        :filter-option="handleFilterOption"
-        :filter-sort="optionSorter"
-        allow-clear
+        style="width: 396px"
+        :placeholder="$t('journalConfig.select_channel')"
+        :options="Object.keys(channels).map((item) => ({ value: item }))"
+        @blur="handleApplyFilters"
       >
-        <a-select-option
-          v-for="option in filtersOptionsResolved[item]"
-          :key="option.label"
-          :value="option.value"
         >
-          {{ option.label }}
-        </a-select-option>
       </a-select>
     </a-form-item>
-
     <a-form-item>
-      <a-button @click="handleApplyFilters">
-        {{ $t('journalConfig.apply_filters') }}
-      </a-button>
+      <a-tree-select
+        v-model:value="formState.selectedMsgTypes"
+        :tree-data="msgTypesFilterOptions"
+        treeNodeFilterProp="title"
+        style="width: 596px"
+        :max-tag-count="5"
+        tree-checkable
+        show-search
+        :placeholder="$t('journalConfig.selete_msg_type')"
+        allow-clear
+        @blur="handleApplyFilters"
+      >
+        <a-select-option
+          v-for="option in msgTypesFilterOptions"
+          :key="option.value"
+          :value="option.title"
+        >
+          {{ option.title }}
+        </a-select-option>
+      </a-tree-select>
     </a-form-item>
   </a-form>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
-import VueI18n from '@kungfu-trader/kungfu-js-api/language';
-import { FiltersEnum } from '../utils/filterUtils';
+import { computed } from 'vue';
+import { ChannelRecords } from '../utils/filterUtils';
 import { useFrameFilters } from '../utils/filterUtils';
+import { debounce } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 
-const { t } = VueI18n.global;
+const props = withDefaults(
+  defineProps<{
+    write: boolean;
+    read: boolean;
+    selectedChannels: string[];
+    selectedMsgTypes: number[];
+    channels: ChannelRecords;
+  }>(),
+  {
+    write: true,
+    read: true,
+    channels: () => ({} as ChannelRecords),
+    selectedChannels: () => [],
+    selectedMsgTypes: () => [],
+  },
+);
 
 const emit = defineEmits<{
-  (e: 'applyFilters', frameFiltersMap: Record<FiltersEnum, string[]>): void;
+  (
+    e: 'applyFilters',
+    read: boolean,
+    write: boolean,
+    selectedChannels: string[],
+    selectedMsgTypes: number[],
+  ): void;
 }>();
 
-const formRef = ref();
-const formLabelMap = {
-  [FiltersEnum.SOURCE]: t('journalConfig.source'),
-  [FiltersEnum.DEST]: t('journalConfig.dest'),
-  [FiltersEnum.MSG_TYPE]: t('journalConfig.msg_type'),
+const channels = computed<ChannelRecords>(() => props.channels);
+
+const { formState, msgTypesFilterOptions } = useFrameFilters(
+  props.read,
+  props.write,
+  props.selectedChannels,
+  props.selectedMsgTypes,
+);
+
+const applyFilters = () => {
+  emit(
+    'applyFilters',
+    formState.read,
+    formState.write,
+    formState.selectedChannels,
+    formState.selectedMsgTypes,
+  );
 };
 
-const {
-  filtersFormState,
-  filtersOptionsResolved,
-  optionSorter,
-  addFilterOption,
-} = useFrameFilters();
+const handleApplyFilters = debounce(applyFilters, 100);
 
-const addOption = (
-  filterEnum: FiltersEnum,
-  options: {
-    label: string;
-    value: string;
-  }[],
-) => {
-  if (filterEnum === FiltersEnum.MSG_TYPE) {
-    filtersFormState.MSG_TYPE.push(
-      ...options.reduce((pre, item) => {
-        if (filtersFormState.MSG_TYPE.indexOf(item.value) === -1) {
-          pre.push(item.value);
-        }
-
-        return pre;
-      }, [] as string[]),
-    );
-  }
-
-  addFilterOption(filterEnum, options);
-};
-
-const handleFilterOption = (
-  inputValue: string,
-  option: {
-    key: string;
-    value: string;
-  },
-) => {
-  const reg = new RegExp(`.*${inputValue}.*`, 'i');
-  return reg.test(option.key);
-};
-
-const handleApplyFilters = () => {
-  emit('applyFilters', filtersFormState);
+const resetFilters = () => {
+  formState.read = true;
+  formState.write = true;
+  formState.selectedChannels = [];
+  formState.selectedMsgTypes = [];
+  applyFilters();
 };
 
 defineExpose({
-  addOption,
+  resetFilters,
 });
 </script>
 
 <style lang="less">
-.kf-form-item__warp {
-  .ant-select {
-    min-width: 160px;
+.ant-form-inline.kf-config-form.journal-tool-frame-filters__form {
+  flex: 1;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+
+  .ant-form-item {
+    margin-right: 0px;
+    margin-left: 16px;
+    margin-bottom: 8px;
+
+    &:last-child {
+      margin-bottom: 0px;
+    }
+
+    &.kf-form-item__warp {
+      margin-right: 0px;
+
+      .ant-select {
+        min-width: 160px;
+        margin-right: 0;
+      }
+    }
   }
 }
 </style>

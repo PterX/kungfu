@@ -2,7 +2,10 @@ import path from 'path';
 import dayjs from 'dayjs';
 
 import { addFileSync } from '../utils/fileUtils';
-import { KF_HOME_BASE_DIR_RESOLVE } from '../config/homePathConfig';
+import {
+  KF_APP_RUNTIME_DIR,
+  KF_HOME_BASE_DIR_RESOLVE,
+} from '../config/homePathConfig';
 
 addFileSync('', KF_HOME_BASE_DIR_RESOLVE, 'folder');
 export const KF_HOME_BASE_DIR = KF_HOME_BASE_DIR_RESOLVE;
@@ -30,10 +33,19 @@ addFileSync('', LOG_DIR, 'folder');
 export const ARCHIVE_DIR = path.join(KF_HOME, 'archive');
 addFileSync('', ARCHIVE_DIR, 'folder');
 
-//================= global db start ==============================
+//================= special item start ==============================
 
 //BASE_DB_DIR strategys, accounts, tasks
 export const BASE_DB_DIR = path.join(SYSTEM_DIR, 'etc', 'kungfu', 'db', 'live');
+
+//RENDERER_LOG_DIR
+export const RENDERER_LOG_DIR = path.join(
+  SYSTEM_DIR,
+  'node',
+  'renderer-app',
+  'log',
+  'live',
+);
 
 //================== others start =================================
 
@@ -51,13 +63,14 @@ export const buildProcessLogPath = (processId: string) => {
 
 export const KUNGFU_RESOURCES_DIR = globalThis.__publicResources;
 
-export const KF_CONFIG_DIR = path.join(KF_HOME, 'config');
-
 export const KF_CONFIG_DEFAULT_PATH = path.join(
   KUNGFU_RESOURCES_DIR,
   'config',
   'kfConfig.json',
 );
+
+export const KF_CONFIG_DIR = path.join(KF_APP_RUNTIME_DIR, 'config');
+addFileSync('', KF_CONFIG_DIR, 'folder');
 
 export const KF_CONFIG_PATH = path.join(KF_CONFIG_DIR, 'kfConfig.json');
 

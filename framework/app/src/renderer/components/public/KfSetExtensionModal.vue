@@ -16,13 +16,15 @@ import {
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import { useExtConfigsRelated } from '../../assets/methods/actionsUtils';
 import VueI18n, { useLanguage } from '@kungfu-trader/kungfu-js-api/language';
+import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
+
 const { t } = VueI18n.global;
 
 const props = withDefaults(
   defineProps<{
     visible: boolean;
     extensionType: KfCategoryTypes;
-    extFilter: (extConfig: KungfuApi.KfExtConfig) => boolean;
+    extFilter?: (extConfig: KungfuApi.KfExtConfig) => boolean;
   }>(),
   {
     visible: false,
@@ -66,6 +68,18 @@ const modalTitle = computed(() => {
 onMounted(() => {
   if (selectedExtension.value === '') {
     if (availExtensionList.value.length) {
+      const packageJSON = readRootPackageJsonSync();
+      let extension = '';
+      if (packageJSON.appConfig?.defaultExtension) {
+        extension =
+          packageJSON.appConfig?.defaultExtension[props.extensionType];
+      }
+      for (let i = 0; i < availExtensionList.value.length; i++) {
+        if (availExtensionList.value[i].key === extension) {
+          selectedExtension.value = availExtensionList.value[i].key;
+          return;
+        }
+      }
       selectedExtension.value = availExtensionList.value[0].key;
     }
   }
@@ -93,11 +107,11 @@ function getKungfuTradeValueCommonDataByExtType(
 </script>
 <template>
   <a-modal
+    v-model:visible="modalVisible"
     class="kf-set-source-modal"
     :width="500"
-    v-model:visible="modalVisible"
     :title="modalTitle"
-    :destroyOnClose="true"
+    :destroy-on-close="true"
     @cancel="closeModal"
     @ok="handleConfirm"
   >

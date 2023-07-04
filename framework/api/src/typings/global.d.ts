@@ -1,32 +1,43 @@
 import { StartOptions } from 'pm2';
 import { I18n } from 'vue-i18n';
+import {
+  GithubOptions,
+  S3Options,
+  GenericServerOptions,
+} from 'builder-util-runtime';
 import { KfHookKeeper } from '../hooks';
+import { GlobalStorage } from '../utils/globalStorage';
 import { InstrumentTypeEnum, InstrumentTypes } from './enums';
 
 declare global {
   interface Window {
     watcher: Watcher | null;
-    assemble: Assemble;
     kungfu: Kungfu;
     workers: Record<string, WebpackWorker>;
     basketStore: KungfuApi.BasketStore;
     basketInstrumentStore: KungfuApi.BasketInstrumentStore;
     configStore: KungfuApi.ConfigStore;
+    sessionStore: KungfuApi.SessionStore;
     riskSettingStore: KungfuApi.RiskSettingStore;
     commissionStore: KungfuApi.CommissionStore;
     fileId: number;
     testCase: Record<string, any>;
     pm2: any;
+    ukeyCacheMap?: Map<string, string>;
   }
 
   namespace NodeJS {
     interface ProcessEnv {
       LANG_ENV: 'zh-CN' | 'en-US' | 'zh-HK' | undefined;
-      APP_TYPE: 'cli' | 'renderer' | 'main' | 'daemon';
+      APP_TYPE: 'cli' | 'renderer' | 'main' | 'service';
       UI_EXT_TYPE: 'component' | 'script';
       APP_ID: string;
       EXTENSION_DIRS: string;
       KFC_DIR: string;
+      KF_APP_RUNTIME_DIR: string;
+      KF_CONFIG_DIR: string;
+      CPUS_NUM: number;
+      IF_CPUS_NUM_SAFE: boolean;
       ELECTRON_RUN_AS_NODE: boolean;
       ELECTRON_ENABLE_STACK_DUMPING: boolean;
       RELOAD_AFTER_CRASHED: 'true' | 'false' | undefined; // 需要作为pm2 env参数传递，为了统一识别，用string
@@ -36,6 +47,7 @@ declare global {
       BY_PASS_TRADINGDATA: boolean;
       REFRESH_LEDGER_BEFORE_SYNC: boolean;
       MILLISECONDS_SLEEP_AFTER_STEP: number;
+      PM2_DEBUG: boolean;
     }
 
     interface Process {
@@ -63,11 +75,14 @@ declare module 'tail' {
 }
 
 declare module globalThis {
+  const __runtimeDir: string;
   const __publicResources: string;
   const __kfResourcesPath: string;
   const pm2: any;
   const HookKeeper: KfHookKeeper;
   const i18n: I18n;
+  const globalStorage: GlobalStorage;
+  const rootPackageJson: RootConfigJSON;
 }
 
 export interface Pm2StartOptions extends StartOptions {
@@ -82,16 +97,37 @@ export interface T0T1Config {
   };
 }
 
+export type AllPublishOptions =
+  | GithubOptions
+  | S3Options
+  | GenericServerOptions;
+
+type Writeable<T> = { -readonly [P in keyof T]: T[P] };
+
 export interface RootConfigJSON {
+  name?: string;
+  version?: string;
   kungfuCraft?: {
     appTitle?: string;
     productName?: string;
+    env?: Record<string, string>;
+    autoUpdate?: {
+      update?: Writeable<AllPublishOptions>;
+    };
   };
-  boardFilter?: Record<string, boolean>;
   appConfig?: {
     showHelp?: boolean;
 
+    boardFilter?: Record<string, boolean>;
+
+    kfConfigInitValue?: Record<string, KungfuApi.KfConfigValue>;
+
     T0T1?: T0T1Config;
+
+    defaultExtension?: {
+      td?: string;
+      md?: string;
+    };
 
     makeOrder?: {
       priceTypeFilter?: Record<string, boolean>;
@@ -99,4 +135,8 @@ export interface RootConfigJSON {
       ableHedgeFlag?: boolean;
     };
   };
+}
+
+export interface GlobalStorageData {
+  ifNotFirstRunning?: boolean;
 }

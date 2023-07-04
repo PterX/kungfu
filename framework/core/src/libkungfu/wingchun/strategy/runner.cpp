@@ -20,6 +20,8 @@ Runner::Runner(locator_ptr locator, const std::string &group, const std::string 
     : apprentice(location::make_shared(m, category::STRATEGY, group, name, std::move(locator)), low_latency),
       positions_set_(m == mode::BACKTEST), started_(m == mode::BACKTEST), arguments_(arguments) {}
 
+Runner::~Runner() { context_.reset(); }
+
 RuntimeContext_ptr Runner::get_context() const { return context_; }
 
 RuntimeContext_ptr Runner::make_context() { return std::make_shared<RuntimeContext>(*this, events_); }
@@ -38,20 +40,29 @@ void Runner::on_trading_day(const event_ptr &event, int64_t daytime) {
 void Runner::react() {
   context_ = make_context();
   context_->set_arguments(arguments_);
+  enable(*context_);
+  context_->get_bookkeeper().add_book_listener(std::make_shared<BookListener>(*this));
 
   auto start_events = events_ | skip_until(events_ | filter([&](auto e) { return started_; }));
   start_events | is_own<Quote>(context_->get_broker_client()) |
-      $$(invoke(&Strategy::on_quote, event->data<Quote>(), get_location(event->source())));
+      $$(invoke(&Strategy::on_quote, event->data<Quote>(), get_location(event->source()), event->dest()));
   start_events | is_own<Tree>(context_->get_broker_client()) |
-      $$(invoke(&Strategy::on_tree, event->data<Tree>(), get_location(event->source())));
+      $$(invoke(&Strategy::on_tree, event->data<Tree>(), get_location(event->source()), event->dest()));
   start_events | is_own<Entrust>(context_->get_broker_client()) |
-      $$(invoke(&Strategy::on_entrust, event->data<Entrust>(), get_location(event->source())));
+      $$(invoke(&Strategy::on_entrust, event->data<Entrust>(), get_location(event->source()), event->dest()));
   start_events | is_own<Transaction>(context_->get_broker_client()) |
-      $$(invoke(&Strategy::on_transaction, event->data<Transaction>(), get_location(event->source())));
-  start_events | is(Order::tag) | $$(invoke(&Strategy::on_order, event->data<Order>(), get_location(event->source())));
-  start_events | is(Trade::tag) | $$(invoke(&Strategy::on_trade, event->data<Trade>(), get_location(event->source())));
+      $$(invoke(&Strategy::on_transaction, event->data<Transaction>(), get_location(event->source()), event->dest()));
+  start_events | is(Order::tag) |
+      $$(invoke(&Strategy::on_order, event->data<Order>(), get_location(event->source()), event->dest()));
+  start_events | is(Trade::tag) |
+      $$(invoke(&Strategy::on_trade, event->data<Trade>(), get_location(event->source()), event->dest()));
   start_events | is(SyntheticData::tag) |
-      $$(invoke(&Strategy::on_synthetic_data, event->data<SyntheticData>(), get_location(event->source())));
+      $$(invoke(&Strategy::on_synthetic_data, event->data<SyntheticData>(), get_location(event->source()),
+                event->dest()));
+  start_events | is_custom() |
+      $$(invoke(&Strategy::on_custom_data, event->msg_type(),
+                {event->data_as_bytes(), event->data_as_bytes() + event->data_length()}, event->data_length(),
+                get_location(event->source()), event->dest()));
   apprentice::react();
 }
 
@@ -60,18 +71,15 @@ void Runner::on_react() { events_ | is(Channel::tag) | $$(inspect_channel(event)
 void Runner::inspect_channel(const event_ptr &event) {
   auto channel = event->data<Channel>();
   if (has_location(channel.source_id) and has_location(channel.dest_id)) {
-    auto source_location = get_location(channel.source_id);
     auto dest_location = get_location(channel.dest_id);
     if (ledger_home_location_->uid == channel.source_id and dest_location->category == category::TD and
         context_->get_broker_client().should_connect_td(dest_location)) {
-      reader_->join(source_location, channel.dest_id, event->gen_time());
+      reader_join(channel.source_id, channel.dest_id, event->gen_time());
     }
   }
 }
 
 void Runner::on_start() {
-  enable(*context_);
-  context_->get_bookkeeper().add_book_listener(std::make_shared<BookListener>(*this));
   pre_start();
   // TODO add skip_until for broker_states_requested_ == true later
   events_ | is_own<Deregister>(context_->get_broker_client()) |
@@ -99,23 +107,20 @@ void Runner::post_start() {
   }
 
   events_ | is(HistoryOrder::tag) |
-      $$(invoke(&Strategy::on_history_order, event->data<HistoryOrder>(), get_location(event->source())));
+      $$(invoke(&Strategy::on_history_order, event->data<HistoryOrder>(), get_location(event->source()),
+                event->dest()));
   events_ | is(HistoryTrade::tag) |
-      $$(invoke(&Strategy::on_history_trade, event->data<HistoryTrade>(), get_location(event->source())));
+      $$(invoke(&Strategy::on_history_trade, event->data<HistoryTrade>(), get_location(event->source()),
+                event->dest()));
   events_ | is(RequestHistoryOrderError::tag) |
       $$(invoke(&Strategy::on_req_history_order_error, event->data<RequestHistoryOrderError>(),
-                get_location(event->source())));
+                get_location(event->source()), event->dest()));
   events_ | is(RequestHistoryTradeError::tag) |
       $$(invoke(&Strategy::on_req_history_trade_error, event->data<RequestHistoryTradeError>(),
-                get_location(event->source())));
+                get_location(event->source()), event->dest()));
   events_ | is(OrderActionError::tag) |
-      $$(invoke(&Strategy::on_order_action_error, event->data<OrderActionError>(), get_location(event->source())));
-  events_ | is_own<Deregister>(context_->get_broker_client()) |
-      $$(invoke(&Strategy::on_deregister, event->data<Deregister>(), get_location(event->source())));
-  events_ | is_own<BrokerStateUpdate>(context_->get_broker_client()) |
-      $$(invoke(&Strategy::on_broker_state_change, event->data<BrokerStateUpdate>(),
-                get_location(event->data<BrokerStateUpdate>().location_uid)));
-
+      $$(invoke(&Strategy::on_order_action_error, event->data<OrderActionError>(), get_location(event->source()),
+                event->dest()));
   invoke(&Strategy::post_start);
   SPDLOG_INFO("strategy {} started", get_io_device()->get_home()->name);
 }
@@ -138,13 +143,9 @@ void Runner::prepare(const event_ptr &event) {
   }
   auto writer = get_writer(ledger_uid);
 
-  auto connected_test = [&](auto &locations) {
-    for (const auto &pair : locations) {
-      if (not context_->get_broker_client().is_connected(pair.second->uid)) {
-        return false;
-      }
-    }
-    return true;
+  auto connected_test = [&](const auto &locations) {
+    return std::all_of(locations.begin(), locations.end(),
+                       [&](const auto &it) { return context_->get_broker_client().is_connected(it.second->uid); });
   };
   if (not broker_states_requested_ and connected_test(context_->list_accounts()) and
       connected_test(context_->list_md()) and connected_test(context_->list_op())) {
@@ -153,13 +154,9 @@ void Runner::prepare(const event_ptr &event) {
     broker_states_requested_ = true;
   }
 
-  auto ready_test = [&](auto &locations) {
-    for (const auto &pair : locations) {
-      if (not context_->get_broker_client().is_ready(pair.second->uid)) {
-        return false;
-      }
-    }
-    return true;
+  auto ready_test = [&](const auto &locations) {
+    return std::all_of(locations.begin(), locations.end(),
+                       [&](const auto &it) { return context_->get_broker_client().is_ready(it.second->uid); });
   };
   if (not ready_test(context_->list_accounts()) or not ready_test(context_->list_md()) or
       not ready_test(context_->list_op())) {
@@ -197,6 +194,7 @@ void Runner::prepare(const event_ptr &event) {
   }
   context_->get_bookkeeper().guard_positions();
   started_ = true;
+  context_->set_started(true);
   post_start();
 }
 

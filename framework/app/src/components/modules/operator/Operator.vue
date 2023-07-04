@@ -6,6 +6,7 @@ import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/p
 import AddOperatorModal from './AddOperatorModal.vue';
 import KfSetByConfigModal from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfSetByConfigModal.vue';
 import KfSetExtensionModal from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfSetExtensionModal.vue';
+import KfProcessStatus from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfProcessStatus.vue';
 import Icon, {
   FileTextOutlined,
   SettingOutlined,
@@ -79,7 +80,7 @@ const currentSelectedExtKey = ref<string>('');
 const setOperatorConfigPayload = ref<KungfuApi.SetKfConfigPayload>({
   type: 'add',
   title: t('operatorConfig.operator'),
-  config: {} as KungfuApi.KfExtConfig,
+  config: {} as KungfuApi.KfOperatorExtConfig,
 });
 
 const getPrefixByLocation = (kfLocation: KungfuApi.KfLocation) =>
@@ -144,9 +145,9 @@ async function handleConfirmSetOperatorExtDialog(
   selectedOperatorExtKey: string,
   operatorConfig?: KungfuApi.KfConfig,
 ) {
-  const extConfig: KungfuApi.KfExtConfig = (extConfigs.value['operator'] || {})[
-    selectedOperatorExtKey
-  ];
+  const extConfig: KungfuApi.KfOperatorExtConfig = (extConfigs.value[
+    'operator'
+  ] || {})[selectedOperatorExtKey];
 
   if (!extConfig) {
     error(
@@ -207,6 +208,12 @@ function handleRemoveOperator(record: KungfuApi.KfConfig) {
     .catch((err) => {
       error(err.message || t('operation_failed'));
     });
+}
+
+function handleOpenCodeViewResolved(record: KungfuApi.KfConfig) {
+  const processId = getProcessIdByKfLocation(record);
+  const filePath = getConfigValue(record).file_path;
+  return handleOpenCodeView(processId, filePath, false);
 }
 </script>
 
@@ -302,7 +309,7 @@ function handleRemoveOperator(record: KungfuApi.KfConfig) {
               />
               <FormOutlined
                 style="font-size: 12px"
-                @click.stop="handleOpenCodeView(record)"
+                @click.stop="handleOpenCodeViewResolved(record)"
               />
               <SettingOutlined
                 style="font-size: 12px"

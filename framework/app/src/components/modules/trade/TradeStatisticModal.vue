@@ -1,5 +1,9 @@
 <script setup lang="ts">
-import { useModalVisible } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
+import KfTradingDataTable from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfTradingDataTable.vue';
+import {
+  useModalVisible,
+  useTableSearchKeyword,
+} from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import { computed } from 'vue';
 import { Stats } from 'fast-stats';
 import {
@@ -89,8 +93,10 @@ const priceVolumeStats = computed(() => {
 
   const priceVolumeDataResolved: Array<{
     instrumentId_exchangeId: string;
-    side: KungfuApi.KfTradeValueCommonData;
-    offset: KungfuApi.KfTradeValueCommonData;
+    sideName: string;
+    sideColor: KungfuApi.AntInKungfuColorTypes;
+    offsetName: string;
+    offsetColor: KungfuApi.AntInKungfuColorTypes;
     mean: string;
     min: string;
     max: string;
@@ -104,10 +110,15 @@ const priceVolumeStats = computed(() => {
       );
       const volumeSum = priceVolumeData[id].volume.reduce((a, b) => a + b);
       const range = priceStats.range();
+      const sideReolved = dealSide(+side);
+      const offsetResolved = dealOffset(+offset);
       return {
+        id,
         instrumentId_exchangeId: `${instrumentId}_${exchangeId}`,
-        side: dealSide(+side),
-        offset: dealOffset(+offset),
+        sideName: sideReolved.name,
+        sideColor: sideReolved.color || 'default',
+        offsetName: offsetResolved.name,
+        offsetColor: offsetResolved.color || 'default',
         mean: Number(priceSum / volumeSum).toFixed(2),
         min: range[0].toFixed(2),
         max: range[1].toFixed(2),
@@ -120,6 +131,16 @@ const priceVolumeStats = computed(() => {
 
   return priceVolumeDataResolved;
 });
+
+const { searchKeyword, tableData } = useTableSearchKeyword(priceVolumeStats, [
+  'instrumentId_exchangeId',
+  'sideName',
+  'offsetName',
+  'mean',
+  'min',
+  'max',
+  'volume',
+]);
 </script>
 <template>
   <a-modal
@@ -144,27 +165,36 @@ const priceVolumeStats = computed(() => {
       </a-col>
     </a-row>
     <a-row style="margin-bottom: 30px" class="limit-price-stats-row">
-      <div class="title">{{ $t('tradeConfig.statistical_price') }}</div>
-      <a-table
-        v-if="priceVolumeStats"
-        size="small"
-        :dataSource="priceVolumeStats"
-        :columns="statisColums"
-        :pagination="false"
-      >
-        <template #bodyCell="{ column, record }">
-          <template v-if="column.dataIndex === 'side'">
-            <span :class="`color-${record.side.color}`">
-              {{ record.side.name }}
-            </span>
+      <div class="title">
+        <span>{{ $t('tradeConfig.statistical_price') }}</span>
+        <a-input-search
+          v-model:value="searchKeyword"
+          :placeholder="$t('keyword_input')"
+          style="width: 120px"
+          size="small"
+        />
+      </div>
+      <div class="table" style="height: 260px">
+        <KfTradingDataTable
+          v-if="priceVolumeStats"
+          key-field="id"
+          :data-source="tableData"
+          :columns="statisColums"
+        >
+          <template #default="{ column, item }">
+            <template v-if="column.dataIndex === 'sideName'">
+              <span :class="`color-${item.sideColor}`">
+                {{ item.sideName }}
+              </span>
+            </template>
+            <template v-else-if="column.dataIndex === 'offsetName'">
+              <span :class="`color-${item.offsetColor}`">
+                {{ item.offsetName }}
+              </span>
+            </template>
           </template>
-          <template v-else-if="column.dataIndex === 'offset'">
-            <span :class="`color-${record.offset.color}`">
-              {{ record.offset.name }}
-            </span>
-          </template>
-        </template>
-      </a-table>
+        </KfTradingDataTable>
+      </div>
     </a-row>
     <a-row style="margin-bottom: 30px">
       <a-col :span="8">
@@ -175,13 +205,13 @@ const priceVolumeStats = computed(() => {
       </a-col>
       <a-col :span="8">
         <a-statistic
-          :title="$t('tradeConfig.max_trade_latency')"
+          :title="$t('tradeConfig.min_trade_latency')"
           :value="tradeLatencyStats.min"
         ></a-statistic>
       </a-col>
       <a-col :span="8">
         <a-statistic
-          :title="$t('tradeConfig.min_trade_latency')"
+          :title="$t('tradeConfig.max_trade_latency')"
           :value="tradeLatencyStats.max"
         ></a-statistic>
       </a-col>
@@ -196,6 +226,9 @@ const priceVolumeStats = computed(() => {
       font-size: 12px;
       color: rgba(255, 255, 255, 0.45);
       margin-bottom: 8px;
+
+      display: flex;
+      justify-content: space-between;
     }
   }
 }

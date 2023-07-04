@@ -28,12 +28,18 @@ public:
 
   void on_exit() override;
 
+  std::string get_arguments() const { return arguments_; }
+
+  void set_arguments(const std::string &argiments) { arguments_ = argiments; }
+
 protected:
   virtual BrokerService_ptr get_service() = 0;
 
   void on_start() override;
 
 private:
+  std::string arguments_{};
+
   void notify_broker_state();
 };
 
@@ -57,19 +63,21 @@ public:
 
   [[nodiscard]] std::string get_runtime_folder();
 
-  [[nodiscard]] const std::string &get_config();
+  [[nodiscard]] const std::string get_config() const;
 
-  [[nodiscard]] const std::string &get_risk_setting();
+  [[maybe_unused]] [[nodiscard]] const std::string &get_risk_setting() const;
 
   [[nodiscard]] const yijinjing::data::location_ptr &get_home() const;
 
   [[nodiscard]] uint32_t get_home_uid() const;
 
-  [[nodiscard]] const yijinjing::io_device_ptr get_io_device() const;
+  [[nodiscard]] yijinjing::io_device_ptr get_io_device() const;
 
   [[nodiscard]] yijinjing::journal::writer_ptr get_writer(uint32_t dest_id) const;
 
   [[nodiscard]] bool has_writer(uint32_t dest_id) const;
+
+  [[nodiscard]] yijinjing::journal::writer_ptr &get_thread_writer();
 
   template <typename DataType> void write_to(DataType &data, uint32_t dest_id = yijinjing::data::location::PUBLIC) {
     vendor_.write_to(now(), data, dest_id);
@@ -77,9 +85,9 @@ public:
 
   [[nodiscard]] const yijinjing::cache::bank &get_state_bank() const;
 
-  [[nodiscard]] bool check_if_stored_instruments(const std::string &trading_day) const;
+  [[maybe_unused]] [[nodiscard]] bool check_if_stored_instruments(const std::string &trading_day) const;
 
-  void record_stored_instruments_trading_day(const std::string &trading_day);
+  [[maybe_unused]] void record_stored_instruments_trading_day(const std::string &trading_day) const;
 
   void add_timer(int64_t nanotime, const std::function<void(const event_ptr &)> &callback);
 
@@ -87,11 +95,11 @@ public:
 
   void update_broker_state(BrokerState state);
 
-  void request_deregister() { vendor_.request_deregister(); }
+  [[maybe_unused]] void request_deregister() { vendor_.request_deregister(); }
 
-  BrokerVendor &get_vendor() { return vendor_; }
+  [[maybe_unused]] [[nodiscard]] BrokerVendor &get_vendor() const { return vendor_; }
 
-  uint32_t request_band(const std::string &band_name) { return vendor_.request_band(band_name); }
+  [[maybe_unused]] uint32_t request_band(const std::string &band_name) { return vendor_.request_band(band_name); }
 
 protected:
   volatile BrokerState state_;

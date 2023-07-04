@@ -5,14 +5,13 @@ import {
   onBeforeUnmount,
   onMounted,
   ref,
-  watch,
   nextTick,
   toRaw,
 } from 'vue';
 import { useModalVisible } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 
 import {
-  buildIdByKeysFromKfConfigSettings,
+  buildIdByPrimaryKeysFromKfConfigSettings,
   initFormStateByConfig,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import KfConfigSettingsForm from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfConfigSettingsForm.vue';
@@ -79,17 +78,6 @@ const titleResolved = computed(() => {
   return `${props.payload.title}`;
 });
 
-watch(formState.value, (val) => {
-  if (app?.proxy) {
-    app?.proxy.$globalBus.next({
-      tag: 'input:currentConfigModal',
-      category: props.payload.config.category,
-      extKey: props.payload.config.key,
-      formState: toRaw(val),
-    });
-  }
-});
-
 onMounted(() => {
   nextTick().then(() => {
     if (app?.proxy) {
@@ -137,7 +125,7 @@ function handleConfirm(): void {
         .filter((item) => item.primary)
         .map((item) => item.key);
 
-      const idByPrimaryKeys = buildIdByKeysFromKfConfigSettings(
+      const idByPrimaryKeys = buildIdByPrimaryKeysFromKfConfigSettings(
         formState.value,
         primaryKeys,
       );
@@ -160,6 +148,18 @@ function handleConfirm(): void {
 function handleCancel(): void {
   app && app.emit('close');
   closeModal();
+}
+
+function handleFormStateChange(formState) {
+  if (app?.proxy) {
+    app?.proxy.$globalBus.next({
+      tag: 'input:currentConfigModal',
+      category: props.payload.config.category,
+      extKey: props.payload.config.key,
+      formState: toRaw(formState),
+      configSettings: configSettings.value,
+    });
+  }
 }
 </script>
 <template>
@@ -187,6 +187,7 @@ function handleCancel(): void {
       :primary-key-avoid-repeat-compare-extra="
         primaryKeyAvoidRepeatCompareExtra
       "
+      @update:form-state="handleFormStateChange"
     ></KfConfigSettingsForm>
   </a-modal>
 </template>

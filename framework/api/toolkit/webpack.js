@@ -9,9 +9,18 @@ module.exports = {
     return {
       devtool: 'eval-source-map',
       mode: production ? 'production' : 'development',
+      experiments: {
+        topLevelAwait: true,
+      },
       optimization: {
         minimize: true,
         minimizer: [new TerserPlugin()],
+      },
+      cache: {
+        type: 'filesystem',
+        buildDependencies: {
+          config: [__filename],
+        },
       },
       module: {
         rules: [

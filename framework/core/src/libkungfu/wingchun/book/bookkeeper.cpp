@@ -16,8 +16,10 @@ using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::util;
 
 namespace kungfu::wingchun::book {
-Bookkeeper::Bookkeeper(apprentice &app, broker::Client &broker_client) : app_(app), broker_client_(broker_client) {
-  book::AccountingMethod::setup_defaults(*this);
+Bookkeeper::Bookkeeper(apprentice &app, broker::Client &broker_client, bool bypass_quote)
+    : app_(app), broker_client_(broker_client), bypass_quote_(bypass_quote),
+      account_method_type_(book::get_accounting_method_type()) {
+  book::AccountingMethod::setup_defaults(*this, account_method_type_);
 }
 
 bool Bookkeeper::has_book(uint32_t location_uid) { return books_.find(location_uid) != books_.end(); }
@@ -39,8 +41,8 @@ void Bookkeeper::set_accounting_method(InstrumentType instrument_type, const Acc
 
 void Bookkeeper::on_trading_day(int64_t daytime) {
   auto trading_day = time::strftime(daytime, KUNGFU_TRADING_DAY_FORMAT);
-  for (auto &book_pair : books_) {
-    auto &book = book_pair.second;
+  for (const auto &book_pair : books_) {
+    const auto &book = book_pair.second;
     strcpy(book->asset.trading_day, trading_day.c_str());
     for (auto &pos_pair : book->long_positions) {
       pos_pair.second.trading_day = book->asset.trading_day;
@@ -56,7 +58,8 @@ void Bookkeeper::on_start(const rx::connectable_observable<event_ptr> &events) {
   on_trading_day(app_.get_trading_day());
 
   events | is(Instrument::tag) | $$(update_instrument(event->data<Instrument>()));
-  events | is_own<Quote>(broker_client_) | $$(update_book(event, event->data<Quote>()));
+  events | is(InstrumentFactor::tag) | $$(update_instrument_factor(event->data<InstrumentFactor>()));
+  events | is_own<Quote>(broker_client_) | $$(try_update_book(event, event->data<Quote>()));
   events | is(InstrumentKey::tag) | $$(update_book(event, event->data<InstrumentKey>()));
   events | is(OrderInput::tag) | $$(update_book<OrderInput>(event, &AccountingMethod::apply_order_input));
   events | is(Order::tag) | $$(update_book<Order>(event, &AccountingMethod::apply_order));
@@ -68,10 +71,27 @@ void Bookkeeper::on_start(const rx::connectable_observable<event_ptr> &events) {
   events | fork<PositionEnd>(location::SYNC, &Bookkeeper::update_position_guard, &Bookkeeper::try_update_position_end);
   events | is(TradingDay::tag) | $$(on_trading_day(event->data<TradingDay>().timestamp));
   events | is(ResetBookRequest::tag) | $$(drop_book(event->source()));
+
+  if (bypass_quote_) {
+    app_.add_time_interval(yijinjing::time_unit::NANOSECONDS_PER_SECOND * 15,
+                           [&](auto e) { batch_update_book_by_quote(); });
+  }
 }
 
+void Bookkeeper::batch_update_book_by_quote() {
+  SPDLOG_DEBUG("batch_update_book_by_quote");
+
+  for (const auto &iter : quotes_) {
+    const auto &state_quote = iter.second;
+    update_book(state_quote.update_time, state_quote.data);
+  }
+  quotes_.clear();
+}
+
+std::mutex &Bookkeeper::get_update_book_mutex() { return update_book_mutex_; }
+
 void Bookkeeper::try_update_position_end(const PositionEnd &position_end) {
-  get_book(position_end.holder_uid)->update(app_.now());
+  get_book(position_end.holder_uid)->update(app_.now(), account_method_type_);
 }
 
 void Bookkeeper::on_order_input(int64_t update_time, uint32_t source, uint32_t dest, const OrderInput &input) {
@@ -106,7 +126,7 @@ void Bookkeeper::restore(const cache::bank &state_bank) {
     }
     auto book = get_book(asset.holder_uid);
     book->asset = asset;
-    book->update(app_.now());
+    book->update(app_.now(), account_method_type_);
   }
   for (auto &pair : state_bank[boost::hana::type_c<AssetMargin>]) {
     auto &state = pair.second;
@@ -116,7 +136,18 @@ void Bookkeeper::restore(const cache::bank &state_bank) {
     }
     auto book = get_book(asset_margin.holder_uid);
     book->asset_margin = asset_margin;
-    book->update(app_.now());
+    book->update(app_.now(), account_method_type_);
+  }
+
+  for (auto &pair : state_bank[boost::hana::type_c<InstrumentFactor>]) {
+    auto &state = pair.second;
+    auto &instrument_factor = state.data;
+    if (not app_.has_location(instrument_factor.source_id)) {
+      continue;
+    }
+    auto book = get_book(instrument_factor.source_id);
+    book->instrument_factors[hash_instrument(instrument_factor.exchange_id, instrument_factor.instrument_id)] =
+        instrument_factor;
   }
 }
 
@@ -138,35 +169,39 @@ Book_ptr Bookkeeper::make_book(uint32_t location_uid) {
 }
 
 void Bookkeeper::update_instrument(const longfist::types::Instrument &instrument) {
-  auto pair = instruments_.try_emplace(hash_instrument(instrument.exchange_id, instrument.instrument_id), instrument);
-  if (not pair.second) {
-    auto &inserted_inst = pair.first->second;
-    if (instrument.force_update_ratio) {
-      inserted_inst.long_margin_ratio = instrument.long_margin_ratio;
-      inserted_inst.short_margin_ratio = instrument.short_margin_ratio;
-      inserted_inst.conversion_rate = instrument.conversion_rate;
-    } else {
-      if (inserted_inst.force_update_ratio) {
-        double long_margin_ratio = inserted_inst.long_margin_ratio;
-        double short_margin_ratio = inserted_inst.short_margin_ratio;
-        double conversion_rate = inserted_inst.conversion_rate;
-        memcpy(&inserted_inst, &instrument, sizeof(longfist::types::Instrument));
-        inserted_inst.long_margin_ratio = long_margin_ratio;
-        inserted_inst.short_margin_ratio = short_margin_ratio;
-        inserted_inst.conversion_rate = conversion_rate;
-      } else {
-        memcpy(&inserted_inst, &instrument, sizeof(longfist::types::Instrument));
-      }
+  auto hashed_instrument_key = hash_instrument(instrument.exchange_id, instrument.instrument_id);
+  instruments_.insert_or_assign(hashed_instrument_key, instrument);
+}
+
+void Bookkeeper::update_instrument_factor(const longfist::types::InstrumentFactor &instrument_factor) {
+  for (auto &bk_pair : books_) {
+    auto &book = bk_pair.second;
+    auto location = app_.get_location(book->asset.holder_uid);
+    if (location->category != category::TD or book->asset.holder_uid == instrument_factor.source_id) {
+      book->replace(instrument_factor);
     }
   }
 }
 
 void Bookkeeper::update_book(const event_ptr &event, const InstrumentKey &instrument_key) {
+  std::lock_guard<std::mutex> lock(update_book_mutex_);
   broker_client_.subscribe(instrument_key);
   get_book(event->source())->ensure_position(instrument_key);
 }
 
-void Bookkeeper::update_book(const event_ptr &event, const Quote &quote) {
+void Bookkeeper::try_update_book(const event_ptr &event, const Quote &quote) {
+  if (bypass_quote_) {
+    state<Quote> state_quote(event->source(), event->dest(), event->gen_time(), quote);
+    auto hashed_instrument_key = hash_instrument(quote.exchange_id, quote.instrument_id);
+    quotes_.insert_or_assign(hashed_instrument_key, state_quote);
+    return;
+  }
+
+  update_book(event->gen_time(), quote);
+}
+
+void Bookkeeper::update_book(int64_t trigger_time, const Quote &quote) {
+  std::lock_guard<std::mutex> lock(update_book_mutex_);
   if (accounting_methods_.find(quote.instrument_type) == accounting_methods_.end()) {
     return;
   }
@@ -177,13 +212,13 @@ void Bookkeeper::update_book(const event_ptr &event, const Quote &quote) {
     auto has_short_position = book->has_short_position_for(quote);
     if (has_long_position or has_short_position) {
       accounting_method->apply_quote(book, quote);
-      book->update(event->gen_time());
+      book->update(trigger_time, account_method_type_);
     }
     if (has_long_position) {
-      book->get_position_for(Direction::Long, quote).update_time = event->gen_time();
+      book->get_position_for(Direction::Long, quote).update_time = trigger_time;
     }
     if (has_short_position) {
-      book->get_position_for(Direction::Short, quote).update_time = event->gen_time();
+      book->get_position_for(Direction::Short, quote).update_time = trigger_time;
     }
   }
 }
@@ -236,15 +271,15 @@ void Bookkeeper::try_sync_book_replica(uint32_t location_uid) {
   bool asset_changed = false;
   bool asset_margin_changed = false;
 
-  auto fun_asset_compare = [](const Asset &old_asset, const Asset &new_asset) {
+  auto asset_compare = [](const Asset &old_asset, const Asset &new_asset) {
     bool changed = false;
     changed |= old_asset.avail != new_asset.avail;   // 可用资金
     changed |= old_asset.margin != new_asset.margin; // 保证金(期货)
     return changed;
   };
-  asset_changed |= fun_asset_compare(old_book->asset, new_book->asset);
+  asset_changed |= asset_compare(old_book->asset, new_book->asset);
 
-  auto fun_asset_margin_compare = [](const AssetMargin &old_asset_margin, const AssetMargin &new_asset_margin) {
+  auto asset_margin_compare = [](const AssetMargin &old_asset_margin, const AssetMargin &new_asset_margin) {
     bool changed = false;
     changed |= old_asset_margin.total_asset != new_asset_margin.total_asset;   // 总资产
     changed |= old_asset_margin.avail_margin != new_asset_margin.avail_margin; // 可用保证金
@@ -255,13 +290,13 @@ void Bookkeeper::try_sync_book_replica(uint32_t location_uid) {
     changed |= old_asset_margin.short_cash != new_asset_margin.short_cash;     // 融券卖出金额
     return changed;
   };
-  asset_margin_changed |= fun_asset_margin_compare(old_book->asset_margin, new_book->asset_margin);
+  asset_margin_changed |= asset_margin_compare(old_book->asset_margin, new_book->asset_margin);
 
-  auto fun_position_compare = [](const PositionMap &source_map, Book_ptr &target_book) {
+  auto position_compare = [](const PositionMap &source_map, Book_ptr &target_book) {
     bool changed = false;
     for (auto &source_pair : source_map) {
       auto &source_position = source_pair.second;
-      auto &target_position = target_book->get_position_for(source_position.direction, source_position);
+      const auto &target_position = target_book->get_position_for(source_position.direction, source_position);
       changed |= source_position.volume != target_position.volume;                     // 数量
       changed |= source_position.yesterday_volume != target_position.yesterday_volume; // 昨仓数量
     }
@@ -269,11 +304,11 @@ void Bookkeeper::try_sync_book_replica(uint32_t location_uid) {
   };
 
   /// 用new_book的position去检测old_book的position,new有old无会加上
-  position_changed |= fun_position_compare(new_book->long_positions, old_book);
-  position_changed |= fun_position_compare(new_book->short_positions, old_book);
+  position_changed |= position_compare(new_book->long_positions, old_book);
+  position_changed |= position_compare(new_book->short_positions, old_book);
   /// 用old_book的position去检测new_book的position，old有new无会设置为0删掉
-  position_changed |= fun_position_compare(old_book->long_positions, new_book);
-  position_changed |= fun_position_compare(old_book->short_positions, new_book);
+  position_changed |= position_compare(old_book->long_positions, new_book);
+  position_changed |= position_compare(old_book->short_positions, new_book);
 
   /// position_changed更新book也会修改asset信息, on_asset_sync_reset仅在asset改变而position不改变的情况下调用
   if (asset_changed and not position_changed) {
@@ -281,15 +316,6 @@ void Bookkeeper::try_sync_book_replica(uint32_t location_uid) {
     longfist::copy(old_asset, old_book->asset);       // old_asset拷贝一份用于回调返回
     longfist::copy(old_book->asset, new_book->asset); // new_asset替换掉old_asset
 
-    /// 现在暂时只修改td的信息, 不要去修改策略的信息
-    //      for (auto &bk_pair : books_) {
-    //        auto &st_book = bk_pair.second;
-    //        if (st_book->asset.ledger_category == LedgerCategory::Strategy and
-    //            app_.has_channel(st_book->asset.holder_uid, location_uid)) {
-    //          /// 用新的asset替换原来策略的, 再修改holder_uid和ledger_category
-    //          copy_asset(st_book->asset, new_book->asset);
-    //        }
-    //      }
     for (auto &book_listener : book_listeners_) {
       book_listener->on_asset_sync_reset(old_asset, new_book->asset);
     }
@@ -302,15 +328,6 @@ void Bookkeeper::try_sync_book_replica(uint32_t location_uid) {
     longfist::copy(old_asset_margin, old_book->asset_margin);       // old_asset_margin拷贝一份用于回调返回
     longfist::copy(old_book->asset_margin, new_book->asset_margin); // new_asset_margin替换掉old_asset_margin
 
-    /// 现在暂时只修改td的信息, 不要去修改策略的信息
-    //      for (auto &bk_pair : books_) {
-    //        auto &st_book = bk_pair.second;
-    //        if (st_book->asset.ledger_category == LedgerCategory::Strategy and
-    //            app_.has_channel(st_book->asset.holder_uid, location_uid)) {
-    //          /// 用新的asset_margin替换原来策略的, 再修改holder_uid和ledger_category
-    //          copy_asset(st_book->asset_margin, new_book->asset_margin);
-    //        }
-    //      }
     for (auto &book_listener : book_listeners_) {
       book_listener->on_asset_margin_sync_reset(old_asset_margin, new_book->asset_margin);
     }
@@ -321,18 +338,6 @@ void Bookkeeper::try_sync_book_replica(uint32_t location_uid) {
     /// 先进行td_book的替换, 否则下面mirror_position还是只会拿到旧的数据
     books_.erase(location_uid);
     books_.insert_or_assign(location_uid, new_book);
-
-    /// 现在暂时只修改td的信息, 不要去修改策略的信息
-    // 重置策略的book, 并把所有和其相关的td的position数据mirror一份过来
-    //      for (auto &bk_pair : books_) {
-    //        auto &st_book = bk_pair.second;
-    //        if (st_book->asset.ledger_category == LedgerCategory::Strategy and
-    //            app_.has_channel(location_uid, st_book->asset.holder_uid)) {
-    //          copy_asset(st_book->asset, new_book->asset);
-    //          copy_asset(st_book->asset_margin, new_book->asset_margin);
-    //          mirror_positions(app_.now(), st_book->asset.holder_uid);
-    //        }
-    //      }
 
     /// 删除了watcher重新计算一遍的逻辑, 这里更新完了以后再调用回调, watcher那边获得的数据是更新完之后的
     for (auto &book_listener : book_listeners_) {
@@ -440,6 +445,7 @@ void Bookkeeper::mirror_positions(int64_t trigger_time, uint32_t strategy_uid) {
       copy_positions(book->short_positions);
     }
   }
-  strategy_book->update(trigger_time);
+  strategy_book->update(trigger_time, account_method_type_);
 }
+
 } // namespace kungfu::wingchun::book

@@ -37,12 +37,19 @@ class TraderSim(wc.Trader):
         self.match_mode = None
         self.logger = find_logger(self.home)
         self.map_block_msg = {}
+        self.enable_self_detect()
+
+    def on_recover(self):
+        pass
 
     def on_start(self):
         config = json.loads(self.config)
         self.match_mode = config.get("match_mode", MatchMode.Custom)
 
         self.ctx.orders = {}
+
+        for k, v in self.orders.items():
+            self.ctx.orders[k] = v.data
 
         if self.match_mode == MatchMode.Custom:
             path = config.get("path")
@@ -87,6 +94,7 @@ class TraderSim(wc.Trader):
             writer = self.get_writer(event.source)
             # order_input = event.OrderInput()
             order = wc.utils.order_from_input(order_input)
+            order.external_order_id = str(order.order_id)
             order.insert_time = event.gen_time
             order.update_time = event.gen_time
             order.trading_day = kft.strfnow("%Y%m%d")
@@ -158,6 +166,8 @@ class TraderSim(wc.Trader):
             if volume_traded > 0 and self.match_mode != MatchMode.Multiple:
                 trade = lf.types.Trade()
                 trade.trade_id = writer.current_frame_uid()
+                trade.external_order_id = order.external_order_id
+                trade.external_trade_id = str(trade.trade_id)
                 trade.order_id = order.order_id
                 trade.volume = volume_traded
                 trade.price = order.limit_price
@@ -173,6 +183,8 @@ class TraderSim(wc.Trader):
                 while volume_traded > 0:
                     trade = lf.types.Trade()
                     trade.trade_id = writer.current_frame_uid()
+                    trade.external_order_id = order.external_order_id
+                    trade.external_trade_id = str(trade.trade_id)
                     trade.order_id = order.order_id
                     trade.volume = min_vol
                     trade.price = order.limit_price
@@ -215,3 +227,12 @@ class TraderSim(wc.Trader):
         if self.match_mode == MatchMode.Custom:
             return self.ctx.req_position(self.ctx)
         return False
+
+    def req_order_trade(self):
+        if self.match_mode == MatchMode.Custom:
+            return self.ctx.req_order_trade(self.ctx)
+        return False
+
+    def on_time_key_value(self, event):
+        time_key_value = event.TimeKeyValue()
+        self.logger.info(f"accept time_key_value {time_key_value}")

@@ -28,6 +28,8 @@ import {
   Spin,
   Skeleton,
   Tree,
+  List,
+  Badge,
   Statistic,
   Row,
   Col,
@@ -35,18 +37,21 @@ import {
   Divider,
   Dropdown,
   Progress,
+  Popover,
 } from 'ant-design-vue';
 
 import {
   postStartAll,
   preStartAll,
   mergeExtLanguages,
+  checkCpusNumAndConfirmModal,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
 import {
-  booleanProcessEnv,
   delayMilliSeconds,
+  buildIfWatcherLiveObservable,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   Pm2ProcessStatusDetailData,
   Pm2ProcessStatusData,
@@ -56,6 +61,8 @@ import {
   startLedger,
   startCacheD,
   startMaster,
+  isAllMainProcessRunning,
+  KillAll,
 } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
 
 import {
@@ -65,12 +72,14 @@ import {
 
 import VueVirtualScroller from 'vue-virtual-scroller';
 import 'vue-virtual-scroller/dist/vue-virtual-scroller.css';
-import { useComponenets } from './useComponents';
+import { useComponents } from './useComponents';
 import globalBus from '@kungfu-trader/kungfu-js-api/utils/globalBus';
 
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import zhCN from 'ant-design-vue/es/locale/zh_CN';
 import enUS from 'ant-design-vue/es/locale/en_US';
+import { first } from 'rxjs';
+import { getCurrentWebContents } from '@electron/remote';
 
 const app = createApp(App);
 
@@ -102,11 +111,14 @@ app
   .use(Spin)
   .use(Skeleton)
   .use(Tree)
+  .use(List)
+  .use(Badge)
 
   .use(Statistic)
   .use(Divider)
   .use(Dropdown)
   .use(Progress)
+  .use(Popover)
   .use(VueVirtualScroller);
 
 app.config.globalProperties.$antLocalesMap = {
@@ -118,56 +130,74 @@ app.config.globalProperties.$tradingDataSubject = tradingDataSubject;
 
 app.use(VueI18n);
 
-mergeExtLanguages().then(() =>
-  useComponenets(app, router).then(() => {
-    app.mount('#app');
-  }),
-);
-
 const globalStore = useGlobalStore();
 const __BYPASS_ARCHIVE__ = false;
+let appMounted = false;
 
-if (!booleanProcessEnv(process.env.RELOAD_AFTER_CRASHED)) {
-  preStartAll()
-    .then(async () => {
-      if (__BYPASS_ARCHIVE__) {
-        globalBus.next({
-          tag: 'processStatus',
-          name: 'archive',
-          status: 'online',
+globalBus.subscribe((data) => {
+  if (data.tag === 'appMounted') {
+    appMounted = true;
+  }
+});
+
+const initStartAll = () => {
+  const start = () => {
+    preStartAll()
+      .then(() => checkCpusNumAndConfirmModal())
+      .then((res) => {
+        return delayMilliSeconds(2000).then(() => {
+          globalBus.next({
+            tag: 'preStartCheck',
+            name: 'cpusNum',
+            status: res,
+          });
         });
-        await delayMilliSeconds(2000);
-        globalBus.next({
-          tag: 'processStatus',
-          name: 'archive',
-          status: 'stopped',
-        });
-        return;
-      } else {
-        return startArchiveMakeTask((archiveStatus: Pm2ProcessStatusTypes) => {
+      })
+      .then(async () => {
+        if (__BYPASS_ARCHIVE__) {
           globalBus.next({
             tag: 'processStatus',
             name: 'archive',
-            status: archiveStatus,
+            status: 'online',
           });
-        });
-      }
-    })
-    .then(() => startMaster(false))
-    .catch((err) => console.error(err.message))
-    .finally(() => {
-      startGetProcessStatus(
-        (res: {
-          processStatus: Pm2ProcessStatusData;
-          processStatusWithDetail: Pm2ProcessStatusDetailData;
-        }) => {
-          const { processStatus, processStatusWithDetail } = res;
-          globalStore.setProcessStatus(processStatus);
-          globalStore.setProcessStatusWithDetail(processStatusWithDetail);
-        },
-      );
+          await delayMilliSeconds(2000);
+          globalBus.next({
+            tag: 'processStatus',
+            name: 'archive',
+            status: 'stopped',
+          });
+          return;
+        } else {
+          return startArchiveMakeTask(
+            (archiveStatus: Pm2ProcessStatusTypes) => {
+              globalBus.next({
+                tag: 'processStatus',
+                name: 'archive',
+                status: archiveStatus,
+              });
+            },
+          );
+        }
+      })
+      .then(() => startMaster(false))
+      .catch((err) => console.error(err.message))
+      .finally(() => {
+        startGetProcessStatus(
+          (res: {
+            processStatus: Pm2ProcessStatusData;
+            processStatusWithDetail: Pm2ProcessStatusDetailData;
+          }) => {
+            const { processStatus, processStatusWithDetail } = res;
+            globalStore.setProcessStatus(processStatus);
+            globalStore.setProcessStatusWithDetail(processStatusWithDetail);
+          },
+        );
+      });
 
-      delayMilliSeconds(1000)
+    const watcherIsLiveObervable = buildIfWatcherLiveObservable(window.watcher);
+    watcherIsLiveObervable.pipe(first()).subscribe(() => {
+      console.log('watcher is live');
+      delayMilliSeconds(2000)
         .then(() => startCacheD(false))
         .then(() => delayMilliSeconds(2000))
         .then(() => startLedger(false))
@@ -182,17 +212,53 @@ if (!booleanProcessEnv(process.env.RELOAD_AFTER_CRASHED)) {
         })
         .catch((err) => console.error(err.message));
     });
-} else {
-  startGetProcessStatus(
-    (res: {
-      processStatus: Pm2ProcessStatusData;
-      processStatusWithDetail: Pm2ProcessStatusDetailData;
-    }) => {
-      const { processStatus, processStatusWithDetail } = res;
-      globalStore.setProcessStatus(processStatus);
-      globalStore.setProcessStatusWithDetail(processStatusWithDetail);
-    },
-  );
-}
+  };
+
+  if (appMounted) {
+    start();
+  } else {
+    globalBus.subscribe((data) => {
+      if (data.tag === 'appMounted') {
+        start();
+      }
+    });
+  }
+};
+
+mergeExtLanguages().then(() =>
+  useComponents(app, router).then(() => {
+    app.mount('#app');
+
+    if (!booleanProcessEnv(process.env.RELOAD_AFTER_CRASHED)) {
+      initStartAll();
+    } else {
+      isAllMainProcessRunning().then((res) => {
+        if (res) {
+          startGetProcessStatus(
+            (res: {
+              processStatus: Pm2ProcessStatusData;
+              processStatusWithDetail: Pm2ProcessStatusDetailData;
+            }) => {
+              const { processStatus, processStatusWithDetail } = res;
+              globalStore.setProcessStatus(processStatus);
+              globalStore.setProcessStatusWithDetail(processStatusWithDetail);
+            },
+          );
+        } else {
+          KillAll().finally(() => {
+            initStartAll();
+          });
+        }
+      });
+    }
+  }),
+);
 
 triggerStartStep(1000);
+
+const webContents = getCurrentWebContents();
+webContents.on('devtools-reload-page', () => {
+  console.warn('devtools-reload-page');
+  window.watcher && window.watcher.quit();
+  localStorage.setItem('page-reloaded', '1');
+});

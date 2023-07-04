@@ -13,7 +13,6 @@
 #include <kungfu/yijinjing/log.h>
 #include <kungfu/yijinjing/practice/apprentice.h>
 
-using namespace kungfu::longfist::enums;
 namespace kungfu::wingchun::broker {
 /**
  * Policy interface to decide the time point to resume when connecting to a broker.
@@ -37,7 +36,7 @@ struct StatelessResumePolicy : public ResumePolicy {
 /**
  * Always resume from the last unread frame, is intended to be used by system services that needs continuity.
  */
-struct ContinuousResumePolicy : public ResumePolicy {
+struct [[maybe_unused]] ContinuousResumePolicy : public ResumePolicy {
   [[nodiscard]] int64_t get_resume_time(const yijinjing::practice::apprentice &app,
                                         const longfist::types::Register &broker) const override;
 };
@@ -46,7 +45,7 @@ struct ContinuousResumePolicy : public ResumePolicy {
  * Resumes from the last unread frame, or the start of today if the last unread frame was before it.
  * This policy ensures the client does not look back data before today, is intended to be used by strategies.
  */
-struct IntradayResumePolicy : public ResumePolicy {
+struct [[maybe_unused]] IntradayResumePolicy : public ResumePolicy {
   [[nodiscard]] int64_t get_resume_time(const yijinjing::practice::apprentice &app,
                                         const longfist::types::Register &broker) const override;
 };
@@ -87,9 +86,9 @@ public:
   [[nodiscard]] virtual bool is_custom_subscribed_all(uint32_t md_location_uid,
                                                       kungfu::longfist::enums::SubscribeDataType data_type,
                                                       const std::string &exchange_id,
-                                                      InstrumentType kf_instrument_type) const = 0;
+                                                      longfist::enums::InstrumentType kf_instrument_type) const = 0;
 
-  [[nodiscard]] virtual bool is_all_subscribed(uint32_t md_location_uid) const = 0;
+  [[maybe_unused]] [[nodiscard]] virtual bool is_all_subscribed(uint32_t md_location_uid) const = 0;
 
   [[nodiscard]] virtual bool is_subscribed(const std::string &exchange_id, const std::string &instrument_id) const;
 
@@ -110,7 +109,7 @@ public:
 
   virtual void sync(int64_t trigger_time, const yijinjing::data::location_ptr &td_location);
 
-  virtual bool try_sync(int64_t trigger_time, const yijinjing::data::location_ptr &td_location);
+  [[maybe_unused]] virtual bool try_sync(int64_t trigger_time, const yijinjing::data::location_ptr &td_location);
 
   virtual void on_start(const rx::connectable_observable<event_ptr> &events);
 
@@ -122,13 +121,17 @@ public:
 
   [[nodiscard]] virtual bool should_connect_td(uint32_t td_location_uid) const = 0;
 
-  [[nodiscard]] virtual bool should_connect_strategy(const yijinjing::data::location_ptr &stg_location) const = 0;
-
   [[nodiscard]] virtual bool should_connect_operator(const yijinjing::data::location_ptr &op_location) const = 0;
 
   [[nodiscard]] virtual bool should_connect_operator(uint32_t op_location_uid) const = 0;
 
-  kungfu::yijinjing::data::location_ptr get_location(uint32_t uid) const { return app_.get_location(uid); }
+  [[nodiscard]] virtual bool should_connect_strategy(const yijinjing::data::location_ptr &strategy_location) const = 0;
+
+  [[nodiscard]] virtual bool should_connect_system(const yijinjing::data::location_ptr &system_location) const = 0;
+
+  [[nodiscard]] kungfu::yijinjing::data::location_ptr get_location(uint32_t uid) const {
+    return app_.get_location(uid);
+  }
 
 protected:
   yijinjing::practice::apprentice &app_;
@@ -171,17 +174,17 @@ private:
         SPDLOG_INFO("{} reset, state {}", app_location->uname, static_cast<int>(state_value));
       }
     };
-    if constexpr (std::is_same<AppState, BrokerState>::value) {
-      if (app_location->category == category::MD) {
+    if constexpr (std::is_same<AppState, longfist::enums::BrokerState>::value) {
+      if (app_location->category == longfist::enums::category::MD) {
         switch_broker_state(category::MD, ready_md_locations_, [&]() { renew(event->gen_time(), app_location); });
         broker_states_.emplace(app_location->uid, state_value);
       }
-      if (app_location->category == category::TD) {
+      if (app_location->category == longfist::enums::category::TD) {
         switch_broker_state(category::TD, ready_td_locations_, [&]() { sync(event->gen_time(), app_location); });
         broker_states_.emplace(app_location->uid, state_value);
       }
     }
-    if constexpr (std::is_same<AppState, OperatorState>::value) {
+    if constexpr (std::is_same<AppState, longfist::enums::OperatorState>::value) {
       if (app_location->category == category::OPERATOR) {
         switch_broker_state(category::OPERATOR, ready_op_locations_, [&]() {});
 
@@ -209,7 +212,7 @@ public:
   [[nodiscard]] bool is_custom_subscribed_all(uint32_t md_location_uid,
                                               kungfu::longfist::enums::SubscribeDataType data_type,
                                               const std::string &exchange_id,
-                                              InstrumentType kf_instrument_type) const override;
+                                              longfist::enums::InstrumentType kf_instrument_type) const override;
 
   [[nodiscard]] bool is_all_subscribed(uint32_t md_location) const override;
 
@@ -222,11 +225,13 @@ protected:
 
   [[nodiscard]] bool should_connect_td(uint32_t td_location_uid) const override;
 
-  [[nodiscard]] bool should_connect_strategy(const yijinjing::data::location_ptr &stg_location) const override;
-
   [[nodiscard]] bool should_connect_operator(const yijinjing::data::location_ptr &op_location) const override;
 
   [[nodiscard]] bool should_connect_operator(uint32_t op_location_uid) const override;
+
+  [[nodiscard]] bool should_connect_strategy(const yijinjing::data::location_ptr &strategy_location) const override;
+
+  [[nodiscard]] bool should_connect_system(const yijinjing::data::location_ptr &system_location) const override;
 
 private:
   StatelessResumePolicy resume_policy_ = {};
@@ -265,7 +270,7 @@ public:
   [[nodiscard]] bool is_custom_subscribed_all(uint32_t md_location_uid,
                                               kungfu::longfist::enums::SubscribeDataType data_type,
                                               const std::string &exchange_id,
-                                              InstrumentType kf_instrument_type) const override;
+                                              longfist::enums::InstrumentType kf_instrument_type) const override;
 
   [[nodiscard]] bool is_all_subscribed(uint32_t md_location) const override;
 
@@ -290,17 +295,19 @@ public:
 protected:
   [[nodiscard]] bool should_connect_md(const yijinjing::data::location_ptr &md_location) const override;
 
-  [[nodiscard]] bool should_connect_td(const yijinjing::data::location_ptr &md_location) const override;
+  [[nodiscard]] bool should_connect_td(const yijinjing::data::location_ptr &td_location) const override;
 
   [[nodiscard]] bool should_connect_md(uint32_t md_location_uid) const override;
 
   [[nodiscard]] bool should_connect_td(uint32_t td_location_uid) const override;
 
-  [[nodiscard]] bool should_connect_strategy(const yijinjing::data::location_ptr &stg_location) const override;
-
   [[nodiscard]] bool should_connect_operator(const yijinjing::data::location_ptr &op_location) const override;
 
   [[nodiscard]] bool should_connect_operator(uint32_t op_location_uid) const override;
+
+  [[nodiscard]] bool should_connect_strategy(const yijinjing::data::location_ptr &strategy_location) const override;
+
+  [[nodiscard]] bool should_connect_system(const yijinjing::data::location_ptr &system_location) const override;
 
 private:
   FromNowResumePolicy resume_policy_ = {};
@@ -326,8 +333,7 @@ static constexpr auto is_own(const Client &broker_client) {
                                                     kungfu::longfist::enums::SubscribeDataType::Snapshot,
                                                     data.exchange_id, data.instrument_type)) ||
             (std::is_same_v<DataType, longfist::types::Tree> &&
-             broker_client.is_custom_subscribed_all(event->source(),
-                                                    kungfu::longfist::enums::SubscribeDataType::Snapshot,
+             broker_client.is_custom_subscribed_all(event->source(), kungfu::longfist::enums::SubscribeDataType::Tree,
                                                     data.exchange_id, data.instrument_type)) ||
             (std::is_same_v<DataType, longfist::types::Transaction> &&
              broker_client.is_custom_subscribed_all(event->source(),
@@ -346,7 +352,7 @@ static constexpr auto is_own(const Client &broker_client) {
     }
     return false;
   });
-};
+}
 
 template <typename DataType, std::enable_if_t<std::is_same_v<DataType, longfist::types::Register> or
                                               std::is_same_v<DataType, longfist::types::Deregister>>...>
@@ -359,7 +365,7 @@ static constexpr auto is_own(const Client &broker_client) {
     }
     return false;
   });
-};
+}
 
 template <typename DataType, std::enable_if_t<std::is_same_v<DataType, longfist::types::BrokerStateUpdate>>...>
 static constexpr auto is_own(const Client &broker_client) {
@@ -381,7 +387,7 @@ static constexpr auto is_own(const Client &broker_client) {
     }
     return false;
   });
-};
+}
 
 } // namespace kungfu::wingchun::broker
 

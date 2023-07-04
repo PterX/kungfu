@@ -6,6 +6,7 @@
 
 #include <kungfu/common.h>
 #include <kungfu/longfist/longfist.h>
+#include <kungfu/wingchun/common.h>
 #include <kungfu/wingchun/service/ledger.h>
 #include <kungfu/yijinjing/time.h>
 
@@ -21,7 +22,7 @@ using namespace kungfu::yijinjing::cache;
 namespace kungfu::wingchun::service {
 Ledger::Ledger(locator_ptr locator, mode m, bool low_latency)
     : apprentice(location::make_shared(m, category::SYSTEM, "service", "ledger", std::move(locator)), low_latency),
-      broker_client_(*this), bookkeeper_(*this, broker_client_) {}
+      broker_client_(*this), bookkeeper_(*this, broker_client_, true) {}
 
 void Ledger::on_exit() {}
 
@@ -50,14 +51,14 @@ void Ledger::on_start() {
   events_ | is(OperatorStateRequest::tag) | $$(write_app_state(event->gen_time(), event->source(), operator_states_));
   events_ | is(AssetRequest::tag) | $$(write_book_reset(event->gen_time(), event->source()));
   events_ | is(PositionRequest::tag) | $$(write_strategy_data(event->gen_time(), event->source()));
-  events_ | is(PositionEnd::tag) | $$(update_account_book(event->gen_time(), event->data<PositionEnd>().holder_uid););
+  events_ | is(PositionEnd::tag) | $$(update_account_book(event->gen_time(), event->data<PositionEnd>().holder_uid));
 
   add_time_interval(time_unit::NANOSECONDS_PER_MINUTE, [&](auto e) { request_asset_sync(e->gen_time()); });
   add_time_interval(time_unit::NANOSECONDS_PER_MINUTE, [&](auto e) { request_position_sync(e->gen_time()); });
   refresh_books();
 }
 
-void Ledger::on_deregister(const Deregister &deregister) {
+void Ledger::on_deregister([[maybe_unused]] const Deregister &deregister) {
   uint32_t location_uid = deregister.location_uid;
   if (broker_states_.find(location_uid) != broker_states_.end()) {
     // broker_states_[location_uid].state = BrokerState::DisConnected;
@@ -97,7 +98,7 @@ void Ledger::refresh_account_book(int64_t trigger_time, uint32_t account_uid) {
   subscribe_positions(book->long_positions);
   subscribe_positions(book->short_positions);
   broker_client_.try_renew(trigger_time, md_location);
-  book->update(trigger_time);
+  book->update(trigger_time, bookkeeper_.get_accounting_method_type());
 }
 
 OrderStat &Ledger::get_order_stat(uint64_t order_id, const event_ptr &event) {
@@ -132,15 +133,35 @@ void Ledger::update_order_stat(const event_ptr &event, const Order &data) {
   }
 }
 
+double Ledger::translate_by_price_tick(const char *exchange_id, const char *instrument_id, double price) {
+  auto hashed_instrument_key = hash_instrument(exchange_id, instrument_id);
+  auto instruments = bookkeeper_.get_instruments();
+  if (instruments.find(hashed_instrument_key) != instruments.end()) {
+    double price_tick = instruments[hashed_instrument_key].price_tick;
+    if (is_valid_price(price_tick)) {
+      if (price_tick >= 1) {
+        price_tick = 1;
+      }
+
+      uint64_t tick = 1 / price_tick;
+      uint64_t uPrice = (uint64_t)(std::abs(price) * tick + price_tick * 0.5);
+      return (double)uPrice / tick;
+    }
+  }
+
+  return int(price * 10000) / 10000.0;
+}
+
 void Ledger::update_order_stat(const event_ptr &event, const Trade &data) {
   write_book(event->gen_time(), event->source(), event->dest(), data);
   auto &stat = get_order_stat(data.order_id, event);
-  if (stat.trade_time == 0) {
+  if (stat.trade_time < event->gen_time()) {
     stat.trade_time = event->gen_time();
-    stat.total_price += data.price * data.volume;
-    stat.total_volume += data.volume;
+    stat.total_price += data.price * double(data.volume);
+    stat.total_volume += double(data.volume);
     if (stat.total_volume > 0) {
-      stat.avg_price = int((stat.total_price / stat.total_volume) * 10000) / 10000.0;
+      stat.avg_price =
+          translate_by_price_tick(data.exchange_id, data.instrument_id, stat.total_price / stat.total_volume);
     }
     write_to(event->gen_time(), stat, event->source());
   }
@@ -164,14 +185,14 @@ void Ledger::inspect_channel(int64_t trigger_time, const Channel &channel) {
     return;
   }
   if (channel.source_id != get_live_home_uid() and channel.dest_id != get_live_home_uid()) {
-    reader_->join(source_location, channel.dest_id, trigger_time);
+    reader_join(channel.source_id, channel.dest_id, trigger_time);
   }
   if (channel.dest_id == get_live_home_uid() and has_writer(channel.source_id) and is_from_account) {
     write_book_reset(trigger_time, channel.source_id);
   }
 }
 
-void Ledger::keep_positions(int64_t trigger_time, uint32_t strategy_uid) {
+void Ledger::keep_positions([[maybe_unused]] int64_t trigger_time, uint32_t strategy_uid) {
   if (bookkeeper_.has_book(strategy_uid)) {
     auto strategy_book = bookkeeper_.get_book(strategy_uid);
     tmp_books_.insert_or_assign(strategy_uid, strategy_book);
@@ -181,7 +202,7 @@ void Ledger::keep_positions(int64_t trigger_time, uint32_t strategy_uid) {
 
 void Ledger::rebuild_positions(int64_t trigger_time, uint32_t strategy_uid) {
   auto strategy_book = bookkeeper_.get_book(strategy_uid);
-  auto rebuild_book = [&](auto &positions) {
+  auto rebuild_book = [&](const auto &positions) {
     for (const auto &pair : positions) {
       auto &position = pair.second;
       if (strategy_book->has_position_for(position)) {
@@ -197,7 +218,7 @@ void Ledger::rebuild_positions(int64_t trigger_time, uint32_t strategy_uid) {
     rebuild_book(tmp_book->long_positions);
     rebuild_book(tmp_book->short_positions);
   }
-  strategy_book->update(trigger_time);
+  strategy_book->update(trigger_time, bookkeeper_.get_accounting_method_type());
 }
 
 void Ledger::write_book_reset(int64_t trigger_time, uint32_t book_uid) {
@@ -208,10 +229,18 @@ void Ledger::write_book_reset(int64_t trigger_time, uint32_t book_uid) {
   writer->close_data();
   writer->open_data<CacheReset>(trigger_time).msg_type = AssetMargin::tag;
   writer->close_data();
+  writer->open_data<CacheReset>(trigger_time).msg_type = InstrumentFactor::tag;
+  writer->close_data();
   writer->mark(trigger_time, ResetBookRequest::tag);
 }
 
 void Ledger::write_strategy_data(int64_t trigger_time, uint32_t strategy_uid) {
+  if (not has_writer(strategy_uid) or not has_location(strategy_uid)) {
+    SPDLOG_WARN("write_strategy_data not found writer or location for target {}", strategy_uid);
+    return;
+  }
+
+  auto location = get_location(strategy_uid);
   auto writer = get_writer(strategy_uid);
   for (const auto &pair : bookkeeper_.get_books()) {
     auto &book = pair.second;
@@ -219,16 +248,18 @@ void Ledger::write_strategy_data(int64_t trigger_time, uint32_t strategy_uid) {
     auto &asset_margin = book->asset_margin;
     auto book_uid = asset.holder_uid;
     bool has_account = asset.ledger_category == LedgerCategory::Account and has_channel(book_uid, strategy_uid);
-    bool is_strategy = asset.ledger_category == LedgerCategory::Strategy and book_uid == strategy_uid;
-    if (has_account or is_strategy) {
+    bool is_strategy = location->category == category::STRATEGY and book_uid == strategy_uid;
+    bool is_system = location->category == category::SYSTEM;
+    if (has_account or is_strategy or is_system) {
       write_positions(trigger_time, strategy_uid, book->long_positions);
       write_positions(trigger_time, strategy_uid, book->short_positions);
+      writer->open_data<PositionEnd>(trigger_time).holder_uid = book_uid;
+      writer->close_data();
+      write_instrument_factors(trigger_time, strategy_uid, book->instrument_factors);
       writer->write(trigger_time, asset);
       writer->write(trigger_time, asset_margin);
     }
   }
-  writer->open_data<PositionEnd>(trigger_time).holder_uid = strategy_uid;
-  writer->close_data();
 }
 
 void Ledger::write_positions(int64_t trigger_time, uint32_t dest, book::PositionMap &positions) {
@@ -237,6 +268,14 @@ void Ledger::write_positions(int64_t trigger_time, uint32_t dest, book::Position
     if (pair.second.volume > 0) {
       writer->write_as(trigger_time, pair.second, get_home_uid(), pair.second.holder_uid);
     }
+  }
+}
+
+void Ledger::write_instrument_factors(int64_t trigger_time, uint32_t dest,
+                                      book::InstrumentFactorMap &instrument_factors) {
+  auto writer = get_writer(dest);
+  for (const auto &pair : instrument_factors) {
+    writer->write(trigger_time, pair.second);
   }
 }
 

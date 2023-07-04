@@ -15,10 +15,10 @@ namespace kungfu::yijinjing::data {
 namespace fs = std::filesystem;
 namespace es = longfist::enums;
 
-std::string get_runtime_dir() {
-  auto runtime_dir = std::getenv("KF_RUNTIME_DIR");
-  if (runtime_dir != nullptr) {
-    return runtime_dir;
+fs::path get_default_root() {
+  char *kf_home = std::getenv("KF_HOME");
+  if (kf_home != nullptr) {
+    return fs::path{kf_home};
   }
 #ifdef _WINDOWS
   auto appdata = std::getenv("APPDATA");
@@ -30,10 +30,46 @@ std::string get_runtime_dir() {
   auto user_home = std::getenv("HOME");
   auto root = fs::path(user_home) / ".config";
 #endif // _WINDOWS
-  return (root / "kungfu" / "home" / "runtime").string();
+  return root / "kungfu" / "home";
 }
 
-locator::locator() : root_(get_runtime_dir()) {}
+std::string get_runtime_dir() {
+  auto runtime_dir = std::getenv("KF_RUNTIME_DIR");
+  if (runtime_dir != nullptr) {
+    return runtime_dir;
+  }
+  return (get_default_root() / "runtime").string();
+}
+
+std::string get_root_dir(es::mode m, const std::vector<std::string> &tags) {
+  static const std::unordered_map<es::mode, std::pair<std::string, std::string>> map_env = {
+      {es::mode::LIVE, std::pair("KF_RUNTIME_DIR", "runtime")},
+      {es::mode::BACKTEST, std::pair("KF_BACKTEST_DIR", "backtest")},
+      {es::mode::DATA, std::pair("KF_DATASET_DIR", "dataset")},
+      {es::mode::REPLAY, std::pair("KF_REPLAY_DIR", "replay")},
+  };
+
+  auto iter = map_env.find(m);
+  if (iter == map_env.end()) {
+    SPDLOG_WARN("unrecognized mode: {}, init root_ as mode::LIVE", m);
+    return get_runtime_dir();
+  } else {
+    auto dir_path = std::getenv(iter->second.first.c_str());
+    if (dir_path != nullptr) {
+      return dir_path;
+    }
+    auto home_dir_path = get_default_root() / iter->second.second;
+    home_dir_path /= std::accumulate(tags.begin(), tags.end(), fs::path{},
+                                     [](const fs::path &p, const std::string &tag) { return p / tag; });
+    return home_dir_path.string();
+  }
+}
+
+locator::locator() : root_(get_runtime_dir()), dir_mode_(es::mode::LIVE) {}
+
+locator::locator(es::mode m, const std::vector<std::string> &tags) : dir_mode_(m) {
+  root_ = get_root_dir(dir_mode_, tags);
+}
 
 bool locator::has_env(const std::string &name) const { return std::getenv(name.c_str()) != nullptr; }
 
@@ -57,7 +93,8 @@ std::string locator::layout_file(const location_ptr &location, es::layout layout
   return path.string();
 }
 
-std::string locator::default_to_system_db(const location_ptr &location, const std::string &name) const {
+[[maybe_unused]] std::string locator::default_to_system_db(const location_ptr &location,
+                                                           const std::string &name) const {
   auto sqlite_layout = es::layout::SQLITE;
   auto db_file = layout_file(location, sqlite_layout, name);
   if (not fs::exists(db_file)) {
@@ -121,7 +158,7 @@ std::vector<uint32_t> locator::list_location_dest(const location_ptr &location) 
       set.emplace(std::stoul(basename.stem(), nullptr, 16));
     }
   }
-  return std::vector<uint32_t>(set.begin(), set.end());
+  return std::vector<uint32_t>{set.begin(), set.end()};
 }
 
 std::vector<uint32_t> locator::list_location_dest_by_db(const location_ptr &location) const {
@@ -133,6 +170,10 @@ std::vector<uint32_t> locator::list_location_dest_by_db(const location_ptr &loca
       set.emplace(std::stoul(basename.stem(), nullptr, 16));
     }
   }
-  return std::vector<uint32_t>(set.begin(), set.end());
+  return std::vector<uint32_t>{set.begin(), set.end()};
+}
+
+bool locator::operator==(const locator &another) const {
+  return dir_mode_ == another.dir_mode_ and root_.string() == another.root_.string();
 }
 } // namespace kungfu::yijinjing::data

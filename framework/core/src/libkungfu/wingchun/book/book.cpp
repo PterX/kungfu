@@ -10,6 +10,7 @@
 
 using namespace kungfu::rx;
 using namespace kungfu::longfist::types;
+using namespace kungfu::longfist::enums;
 using namespace kungfu::yijinjing::practice;
 using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
@@ -27,10 +28,10 @@ double Book::get_frozen_price(uint64_t order_id) {
 
 void Book::ensure_position(const InstrumentKey &instrument_key) {
   if (is_shortable(instrument_key.instrument_type)) {
-    auto &short_position = get_position_for(Direction::Short, instrument_key);
+    [[maybe_unused]] const auto &short_position = get_position_for(Direction::Short, instrument_key);
     assert(short_position.volume >= 0);
   }
-  auto &long_position = get_position_for(Direction::Long, instrument_key);
+  [[maybe_unused]] auto &long_position = get_position_for(Direction::Long, instrument_key);
   assert(long_position.volume >= 0);
 }
 
@@ -94,13 +95,12 @@ Position &Book::get_position(Direction direction, const char *exchange_id, const
   return position;
 }
 
-void Book::update(int64_t update_time) {
+void Book::update(int64_t update_time, longfist::enums::AccountingMethodType accounting_method_type) {
   asset.update_time = update_time;
   asset.margin = 0;
   asset.market_value = 0;
   asset.unrealized_pnl = 0;
   asset.dynamic_equity = asset.avail;
-
   double margin = 0;
   bool is_stock_acct = true;
   double short_market_value = 0;
@@ -113,13 +113,33 @@ void Book::update(int64_t update_time) {
     if (!is_stock)
       is_stock_acct = false;
     auto is_future = position.instrument_type == InstrumentType::Future;
+
+    double db_exchage_rate = 1.0;
+    double db_contract_multiplier = 1.0;
+    auto hashed_instrument_key = hash_instrument(position.exchange_id, position.instrument_id);
+    if (instrument_factors.find(hashed_instrument_key) != instrument_factors.end()) {
+      auto &instrument_factor = instrument_factors.at(hashed_instrument_key);
+      db_exchage_rate = is_equal(instrument_factor.exchange_rate, 0.0) ? 1.0 : instrument_factor.exchange_rate;
+    }
+
+    if (instruments.find(hashed_instrument_key) != instruments.end()) {
+      auto &instrument = instruments.at(hashed_instrument_key);
+      db_contract_multiplier = instrument.contract_multiplier;
+    }
+
     auto position_market_value =
-        position.volume * (position.last_price > 0 ? position.last_price : position.avg_open_price);
+        position.volume * (position.last_price > 0 ? position.last_price : position.avg_open_price) * db_exchage_rate;
+
+    if (accounting_method_type == longfist::enums::AccountingMethodType::OTC && is_future) {
+      position_market_value = position.volume *
+                              (position.last_price > 0 ? position.last_price : position.avg_open_price) *
+                              db_exchage_rate * db_contract_multiplier;
+    }
     margin += position.margin;
 
     if (!(is_stock and position.direction == Direction::Short)) {
       asset.market_value += position_market_value;
-      asset.unrealized_pnl += position.unrealized_pnl;
+      asset.unrealized_pnl += position.unrealized_pnl * db_exchage_rate;
     }
     if (is_stock) {
       if (position.direction == Direction::Long) {
@@ -129,7 +149,7 @@ void Book::update(int64_t update_time) {
       }
 
     } else if (is_future) {
-      asset.dynamic_equity += position.margin + position.position_pnl;
+      asset.dynamic_equity += position.margin + position.position_pnl * db_exchage_rate;
     }
   };
 
@@ -150,5 +170,10 @@ void Book::replace(const OrderInput &input) { order_inputs.insert_or_assign(inpu
 void Book::replace(const Order &order) { orders.insert_or_assign(order.order_id, order); }
 
 void Book::replace(const Trade &trade) { trades.insert_or_assign(trade.trade_id, trade); }
+
+void Book::replace(const longfist::types::InstrumentFactor &instrument_factor) {
+  auto instrument_factor_id = hash_instrument(instrument_factor.exchange_id, instrument_factor.instrument_id);
+  instrument_factors.insert_or_assign(instrument_factor_id, instrument_factor);
+}
 
 } // namespace kungfu::wingchun::book

@@ -23,17 +23,18 @@ void BasketOrderEngine::on_start(const rx::connectable_observable<event_ptr> &ev
 }
 
 void BasketOrderEngine::restore(const cache::bank &state_bank) {
-  for (auto &pair : state_bank[boost::hana::type_c<BasketOrder>]) {
+  for (const auto &pair : state_bank[boost::hana::type_c<BasketOrder>]) {
     auto basketorder_state = pair.second;
     make_basket_order_state(basketorder_state.update_time, basketorder_state.data);
   }
 
-  for (auto &pair : state_bank[boost::hana::type_c<Order>]) {
+  for (const auto &pair : state_bank[boost::hana::type_c<Order>]) {
     auto order_state = pair.second;
     try_update_basket_order(order_state.update_time, order_state.data);
   }
 
   for (auto &pair : state_bank[boost::hana::type_c<Basket>]) {
+    SPDLOG_INFO("restore basket {}", pair.second.data.to_string());
     update_basket(pair.second.data);
   }
 
@@ -73,9 +74,9 @@ void BasketOrderEngine::update_basket_order(int64_t trigger_time, const longfist
   }
 }
 
-bool BasketOrderEngine::try_update_basket_order(int64_t trigger_time, const longfist::types::Order &order) {
+bool BasketOrderEngine::try_update_basket_order(int64_t, const longfist::types::Order &order) {
   if (order.parent_id == (uint64_t)0) {
-    SPDLOG_DEBUG("not a basket order");
+    SPDLOG_TRACE("not a basket order");
     return false;
   }
 

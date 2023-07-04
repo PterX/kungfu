@@ -23,6 +23,7 @@
 namespace kungfu::node {
 constexpr uint64_t ID_TRANC = 0x00000000FFFFFFFF;
 constexpr uint32_t PAGE_ID_MASK = 0x80000000;
+constexpr uint32_t TRANSFER_TRADING_DATA_LIMIT = 2000;
 
 class WatcherAutoClient : public wingchun::broker::SilentAutoClient {
 public:
@@ -32,6 +33,7 @@ public:
 
   void connect(const event_ptr &event, const longfist::types::Register &register_data) override;
   void connect(const event_ptr &event, const longfist::types::Band &band) override;
+  bool should_connect_system(const yijinjing::data::location_ptr &system_location) const override;
 
 private:
   bool bypass_trading_data_;
@@ -77,9 +79,13 @@ public:
 
   Napi::Value RequestStop(const Napi::CallbackInfo &info);
 
+  Napi::Value RequestPosition(const Napi::CallbackInfo &info);
+
   Napi::Value PublishState(const Napi::CallbackInfo &info);
 
   Napi::Value IsReadyToInteract(const Napi::CallbackInfo &info);
+
+  Napi::Value IssueCustomData(const Napi::CallbackInfo &info);
 
   Napi::Value IssueBlockMessage(const Napi::CallbackInfo &info);
 
@@ -99,8 +105,12 @@ public:
 
   void Quit(const Napi::CallbackInfo &info);
 
+  void AfterMasterDown(const Napi::CallbackInfo &info);
+
+  void RequestDeregister();
+
 protected:
-  const bool bypass_accounting_;
+  const bool bypass_quote_;
   const bool bypass_trading_data_;
   const bool refresh_trading_data_before_sync_;
   const int milliseconds_sleep_after_step_;
@@ -112,8 +122,15 @@ protected:
 
 private:
   static Napi::FunctionReference constructor;
+  static void cleanup() {
+    SPDLOG_INFO("Watcher reset");
+    Watcher::constructor.Reset();
+  }
+
   uv_work_t uv_work_ = {};
   bool uv_work_live_ = false;
+  bool quit_ = false;
+
   WatcherAutoClient broker_client_;
   wingchun::book::Bookkeeper bookkeeper_;
   wingchun::basketorder::BasketOrderEngine basketorder_engine_;
@@ -127,12 +144,14 @@ private:
   serialize::JsPublishState publish;
   serialize::JsResetCache reset_cache;
   yijinjing::cache::bank data_bank_;
-  yijinjing::cache::trading_bank trading_bank_;
   std::vector<kungfu::state<longfist::types::CacheReset>> reset_cache_states_;
   InstrumentKeyMap subscribed_instruments_ = {};
   std::unordered_map<uint32_t, int> location_uid_states_map_ = {};
   std::unordered_map<uint32_t, longfist::types::StrategyStateUpdate> location_uid_strategy_states_map_ = {};
   std::unordered_set<uint32_t> feeded_instruments_ = {};
+
+  typedef kungfu::longfist::enums::mode mode;
+  typedef kungfu::longfist::enums::category category;
 
   static constexpr auto bypass = [](yijinjing::practice::apprentice *app, bool bypass_quotes) {
     return rx::filter([&](const event_ptr &event) {
@@ -200,7 +219,7 @@ private:
 
   void SyncLedger();
 
-  void TryRefreshTradingData(const Napi::CallbackInfo &info);
+  void TryRefreshTradingData();
 
   void SyncTradingData();
 
@@ -215,8 +234,6 @@ private:
   void StartWorker();
 
   void CancelWorker();
-
-  void AfterMasterDown();
 
   void refresh_books();
 
@@ -243,11 +260,14 @@ private:
       auto &oppsite_position = book->get_oppsite_position_for(data);
       state<kungfu::longfist::types::Position> cache_state_position(source, dest, event->gen_time(), position);
       feed_state_data_bank(cache_state_position, data_bank_);
+
       state<kungfu::longfist::types::Position> cache_state_oppsite_position(source, dest, event->gen_time(),
                                                                             oppsite_position);
       feed_state_data_bank(cache_state_oppsite_position, data_bank_);
+
       state<kungfu::longfist::types::Asset> cache_state_asset(source, dest, event->gen_time(), book->asset);
       feed_state_data_bank(cache_state_asset, data_bank_);
+
       state<kungfu::longfist::types::AssetMargin> cache_state_asset_margin(source, dest, event->gen_time(),
                                                                            book->asset_margin);
       feed_state_data_bank(cache_state_asset_margin, data_bank_);
@@ -258,13 +278,13 @@ private:
 
   void UpdateBasketOrder(int64_t trigger_time, const longfist::types::Order &order) {
     if (basketorder_engine_.has_basket_order_state(order.parent_id)) {
-      trading_bank_ << basketorder_engine_.get_basket_order(order.parent_id);
+      data_bank_ << basketorder_engine_.get_basket_order(order.parent_id);
     }
   }
 
   void UpdateBasketOrders() {
     for (auto &pair : basketorder_engine_.get_all_basket_order_states()) {
-      trading_bank_ << pair.second->get_state();
+      data_bank_ << pair.second->get_state();
     }
   }
 
@@ -273,7 +293,7 @@ private:
                                                                                         const TradingData &data) {
     bookkeeper_.on_order_input(now(), source, dest, data);
     state<kungfu::longfist::types::OrderInput> cache_state_order_input(source, dest, now(), data);
-    trading_bank_ << cache_state_order_input;
+    data_bank_ << cache_state_order_input;
   }
 
   template <typename TradingData>
@@ -281,7 +301,7 @@ private:
                                                                                          const TradingData &data) {
     basketorder_engine_.insert_basket_order(now(), data);
     state<kungfu::longfist::types::BasketOrder> cache_state_basket_order(source, dest, now(), data);
-    trading_bank_ << cache_state_basket_order;
+    data_bank_ << cache_state_basket_order;
   }
 
   template <typename TradingData>
@@ -311,38 +331,67 @@ private:
     auto &target_map = const_cast<DataTypeMap &>(data_bank_[type]);
     auto iter = target_map.begin();
     while (iter != target_map.end() and target_map.size() > 0) {
-      auto &state = iter->second;
+      const auto &state = iter->second;
       update_ledger(state.update_time, state.source, state.dest, state.data);
       iter = target_map.erase(iter);
     }
   }
 
   template <typename DataType> void UpdateTradingData(const boost::hana::basic_type<DataType> &type) {
-    auto &order_queue = trading_bank_[type];
-    int i = 0;
-    kungfu::state<DataType> *pstate = nullptr;
-    while (i < longfist::TRADING_MAP_RING_SIZE && order_queue.pop(pstate) && pstate != nullptr) {
-      update_ledger(pstate->update_time, pstate->source, pstate->dest, pstate->data);
-      i++;
+    using DataTypeMap = std::unordered_map<uint64_t, state<DataType>>;
+    auto &target_map = const_cast<DataTypeMap &>(data_bank_[type]);
+    auto iter = target_map.begin();
+    auto count = 0;
+    while (iter != target_map.end() and target_map.size() > 0 and count < TRANSFER_TRADING_DATA_LIMIT) {
+      const auto &state = iter->second;
+      update_ledger(state.update_time, state.source, state.dest, state.data);
+      iter = target_map.erase(iter);
+      count++;
+    }
+  }
+
+  template <typename Instruction>
+  Napi::Value InteractWithLocation(const Napi::CallbackInfo &info, const Napi::Object &instruction_object) {
+    try {
+      auto target_location = IODevice::ExtractLocation(info, 1, get_locator());
+
+      if (target_location->category == longfist::enums::category::SYSTEM && target_location->group == "master") {
+        target_location = master_cmd_location_;
+      }
+
+      if (not is_location_live(target_location->uid) or not has_writer(target_location->uid)) {
+        return Napi::Boolean::New(info.Env(), false);
+      }
+
+      auto trigger_time = yijinjing::time::now_in_nano();
+      auto target_writer = get_writer(target_location->uid);
+      Instruction instruction = {};
+      serialize::JsGet{}(instruction_object, instruction);
+
+      if (info.Length() == 2) {
+        target_writer->write(trigger_time, instruction);
+        return Napi::Boolean::New(info.Env(), true);
+      }
+
+      throw Napi::Error::New(info.Env(), "Invalid instruction arguments length");
+    } catch (const std::exception &ex) {
+      throw Napi::Error::New(info.Env(), fmt::format("invalid instruction arguments: {}", ex.what()));
+    } catch (...) {
+      throw Napi::Error::New(info.Env(), "invalid instruction arguments");
     }
   }
 
   template <typename Instruction, typename IdPtrType = uint64_t Instruction::*>
   Napi::Value InteractWithTD(const Napi::CallbackInfo &info, const Napi::Object &instruction_object, IdPtrType id_ptr) {
     try {
-      using namespace kungfu::rx;
-      using namespace kungfu::longfist::types;
-      using namespace kungfu::yijinjing;
-      using namespace kungfu::yijinjing::data;
-
-      auto account_location = ExtractLocation(info, 1, get_locator());
+      auto account_location = IODevice::ExtractLocation(info, 1, get_locator());
       if (not is_location_live(account_location->uid) or not has_writer(account_location->uid)) {
         return Napi::BigInt::New(info.Env(), std::uint64_t(0));
       }
 
-      auto trigger_time = time::now_in_nano();
+      auto trigger_time = yijinjing::time::now_in_nano();
       auto account_writer = get_writer(account_location->uid);
-      auto master_cmd_writer = get_writer(get_master_commands_uid());
+      auto master_cmd_writer = get_writer(get_master_command_uid());
       Instruction instruction = {};
       serialize::JsGet{}(instruction_object, instruction);
 
@@ -353,7 +402,7 @@ private:
         return Napi::BigInt::New(info.Env(), instruction.*id_ptr);
       }
 
-      auto strategy_location = ExtractLocation(info, 2, get_locator());
+      auto strategy_location = IODevice::ExtractLocation(info, 2, get_locator());
 
       if (not strategy_location) {
         return Napi::BigInt::New(info.Env(), std::uint64_t(0));
@@ -361,7 +410,8 @@ private:
 
       if (not has_location(strategy_location->uid)) {
         add_location(trigger_time, strategy_location);
-        master_cmd_writer->write(trigger_time, *std::dynamic_pointer_cast<Location>(strategy_location));
+        master_cmd_writer->write(trigger_time,
+                                 *std::dynamic_pointer_cast<longfist::types::Location>(strategy_location));
       }
 
       if (has_channel(account_location->uid, strategy_location->uid)) {
@@ -369,27 +419,29 @@ private:
         return Napi::BigInt::New(info.Env(), id);
       }
 
-      ChannelRequest request = {};
+      longfist::types::ChannelRequest request = {};
       request.dest_id = strategy_location->uid;
       request.source_id = ledger_home_location_->uid;
       master_cmd_writer->write(trigger_time, request);
       request.source_id = account_location->uid;
       master_cmd_writer->write(trigger_time, request);
 
-      events_ | is(Channel::tag) | filter([account_location, strategy_location](const event_ptr &event) {
-        const Channel &channel = event->data<Channel>();
-        return channel.source_id == account_location->uid and channel.dest_id == strategy_location->uid;
-      }) | first() |
-          $([this, trigger_time, instruction, id_ptr, account_location, strategy_location](auto event) {
+      events_ | rx::is(longfist::types::Channel::tag) |
+          rx::filter([account_location, strategy_location](const event_ptr &event) {
+            const longfist::types::Channel &channel = event->data<longfist::types::Channel>();
+            return channel.source_id == account_location->uid and channel.dest_id == strategy_location->uid;
+          }) |
+          rx::first() |
+          rx::$([this, trigger_time, instruction, id_ptr, account_location, strategy_location](auto event) {
             // TODO: async make order / order action
             WriteInstruction(trigger_time, instruction, id_ptr, account_location, strategy_location);
           });
 
       return Napi::BigInt::New(info.Env(), std::uint64_t(0));
     } catch (const std::exception &ex) {
-      throw Napi::Error::New(info.Env(), fmt::format("invalid order arguments: {}", ex.what()));
+      throw Napi::Error::New(info.Env(), fmt::format("invalid instruction arguments: {}", ex.what()));
     } catch (...) {
-      throw Napi::Error::New(info.Env(), "invalid order arguments");
+      throw Napi::Error::New(info.Env(), "invalid instruction arguments");
     }
   };
 

@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import {
-  dealKfPrice,
-  dealAssetPrice,
   dealDirection,
+  dealCurrency,
   isTdStrategyCategory,
   getIdByKfLocation,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+
 import {
   useDownloadHistoryTradingData,
   useTableSearchKeyword,
@@ -15,7 +15,7 @@ import {
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
 import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
 import KfTradingDataTable from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfTradingDataTable.vue';
-import { DownloadOutlined } from '@ant-design/icons-vue';
+import { DownloadOutlined, ReloadOutlined } from '@ant-design/icons-vue';
 
 import {
   computed,
@@ -26,9 +26,12 @@ import {
   toRaw,
   watch,
 } from 'vue';
+import { storeToRefs } from 'pinia';
 import { getColumns } from './config';
 import KfBlinkNum from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfBlinkNum.vue';
+import { dealKfPrice } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { dealPosition } from '@kungfu-trader/kungfu-js-api/kungfu';
+import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
 import {
   OffsetEnum,
   SideEnum,
@@ -37,8 +40,15 @@ import {
   getInstrumentByInstrumentPair,
   useCurrentGlobalKfLocation,
   useInstruments,
+  useDealDataWithCaches,
+  useActiveInstruments,
+  useQuote,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
+import { messagePrompt } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
+import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 
+const { t } = VueI18n.global;
+const { success, error } = messagePrompt();
 const app = getCurrentInstance();
 const { handleBodySizeChange } = useDashboardBodySize();
 
@@ -58,6 +68,13 @@ const {
 const { handleDownload } = useDownloadHistoryTradingData();
 const { triggerOrderBook, triggerMakeOrder } = useTriggerMakeOrder();
 const { instruments } = useInstruments();
+const { getPositionLastPrice } = useQuote();
+const { getPriceTickAndPrecision } = useActiveInstruments();
+const { dealDataWithCache } = useDealDataWithCaches<
+  KungfuApi.Position,
+  KungfuApi.PositionResolved
+>(['uid_key', 'update_time']);
+const { globalSetting } = storeToRefs(useGlobalStore());
 
 const columns = computed(() => {
   if (currentGlobalKfLocation.value === null) {
@@ -89,7 +106,17 @@ onMounted(() => {
           ) as KungfuApi.Position[];
 
         pos.value = toRaw(
-          positions.reverse().map((item) => dealPosition(watcher, item)),
+          positions.reverse().map((item) => {
+            const { price_precision } = getPriceTickAndPrecision(
+              item.instrument_id,
+              item.exchange_id,
+              0.001,
+            );
+
+            return dealDataWithCache(item, () =>
+              dealPosition(watcher, item, price_precision),
+            );
+          }),
         );
       },
     );
@@ -141,11 +168,20 @@ function handleClickRow(data: {
 function dealLocationUIDResolved(holderUID: number): string {
   return getIdByKfLocation(window.watcher.getLocation(holderUID));
 }
+
+function handleRequestPosition() {
+  const res = window.watcher.requestPosition(window.watcher);
+  if (res) {
+    success(t('operation_success'));
+  } else {
+    error(t('operation_failed'));
+  }
+}
 </script>
 <template>
   <div class="kf-position__warp kf-translateZ">
     <KfDashboard @boardSizeChange="handleBodySizeChange">
-      <template v-slot:title>
+      <template #title>
         <span v-if="currentGlobalKfLocation">
           <a-tag
             v-if="currentCategoryData"
@@ -153,18 +189,25 @@ function dealLocationUIDResolved(holderUID: number): string {
           >
             {{ currentCategoryData?.name }}
           </a-tag>
-          <span class="name" v-if="currentGlobalKfLocation">
+          <span v-if="currentGlobalKfLocation" class="name">
             {{ getCurrentGlobalKfLocationId(currentGlobalKfLocation) }}
           </span>
         </span>
       </template>
-      <template v-slot:header>
+      <template #header>
         <KfDashboardItem>
           <a-input-search
             v-model:value="searchKeyword"
             :placeholder="$t('keyword_input')"
             style="width: 120px"
           />
+        </KfDashboardItem>
+        <KfDashboardItem>
+          <a-button size="small" @click="handleRequestPosition">
+            <template #icon>
+              <ReloadOutlined style="font-size: 14px" />
+            </template>
+          </a-button>
         </KfDashboardItem>
         <KfDashboardItem>
           <a-button
@@ -179,20 +222,31 @@ function dealLocationUIDResolved(holderUID: number): string {
       </template>
       <KfTradingDataTable
         :columns="columns"
-        :dataSource="tableData"
-        keyField="uid_key"
+        :data-source="tableData"
+        key-field="uid_key"
         @clickCell="handleClickRow"
       >
         <template
-          v-slot:default="{
+          #default="{
             item,
             column,
           }: {
-            item: KungfuApi.Position,
+            item: KungfuApi.PositionResolved,
             column: KfTradingDataTableHeaderConfig,
           }"
         >
-          <template v-if="column.dataIndex === 'direction'">
+          <template v-if="column.dataIndex === 'instrument_id_resolved'">
+            <span>
+              {{ item.instrument_id_resolved }}
+              <span
+                v-if="globalSetting?.currency?.instrumentCurrency"
+                style="color: #faad14"
+              >
+                {{ dealCurrency(item.currency).name }}
+              </span>
+            </span>
+          </template>
+          <template v-else-if="column.dataIndex === 'direction'">
             <span :class="`color-${dealDirection(item.direction).color}`">
               {{ dealDirection(item.direction).name }}
             </span>
@@ -210,16 +264,23 @@ function dealLocationUIDResolved(holderUID: number): string {
           <template v-else-if="column.dataIndex === 'volume'">
             <KfBlinkNum :num="Number(item.volume).toFixed(0)"></KfBlinkNum>
           </template>
-          <template v-else-if="column.dataIndex === 'avg_open_price'">
-            <KfBlinkNum :num="dealKfPrice(item.avg_open_price)"></KfBlinkNum>
+          <template v-else-if="column.dataIndex === 'avg_open_price_resolved'">
+            <KfBlinkNum :num="item.avg_open_price_resolved"></KfBlinkNum>
           </template>
-          <template v-else-if="column.dataIndex === 'last_price'">
-            <KfBlinkNum :num="dealKfPrice(item.last_price)"></KfBlinkNum>
+          <template v-else-if="column.dataIndex === 'last_price_resolved'">
+            <KfBlinkNum
+              :num="
+                dealKfPrice(
+                  getPositionLastPrice(item, 'last_price_resolved'),
+                  item.price_precision,
+                )
+              "
+            ></KfBlinkNum>
           </template>
-          <template v-else-if="column.dataIndex === 'unrealized_pnl'">
+          <template v-else-if="column.dataIndex === 'unrealized_pnl_resolved'">
             <KfBlinkNum
               mode="compare-zero"
-              :num="dealAssetPrice(item.unrealized_pnl)"
+              :num="item.unrealized_pnl_resolved"
             ></KfBlinkNum>
           </template>
         </template>

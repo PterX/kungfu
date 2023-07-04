@@ -7,6 +7,7 @@
 #ifndef KUNGFU_SESSION_H
 #define KUNGFU_SESSION_H
 
+#include <kungfu/common.h>
 #include <kungfu/longfist/longfist.h>
 #include <kungfu/yijinjing/cache/backend.h>
 #include <kungfu/yijinjing/io.h>
@@ -25,9 +26,10 @@ public:
 
   virtual int64_t find_last_active_time(const data::location_ptr &source_location);
 
-  SessionVector find_sessions(int64_t from = 0, int64_t to = INT64_MAX);
+  [[maybe_unused]] SessionVector find_sessions(int64_t from = 0, int64_t to = INT64_MAX);
 
-  SessionVector find_sessions_for(const data::location_ptr &source_location, int64_t from = 0, int64_t to = INT64_MAX);
+  [[maybe_unused]] SessionVector find_sessions_for(const data::location_ptr &source_location, int64_t from = 0,
+                                                   int64_t to = INT64_MAX);
 
 protected:
   yijinjing::io_device_ptr io_device_;
@@ -44,11 +46,15 @@ public:
 
   void close_session(const data::location_ptr &source_location, int64_t time);
 
-  SessionMap &close_all_sessions(int64_t time);
+  void close_all_sessions(int64_t time);
 
   void update_session(const journal::frame_ptr &frame);
 
-  void rebuild_index_db();
+  [[maybe_unused]] void rebuild_index_db();
+
+  [[maybe_unused]] void update_index_db();
+
+  SessionMap &get_all_sessions() { return live_sessions_; }
 
 private:
   SessionMap live_sessions_ = {};

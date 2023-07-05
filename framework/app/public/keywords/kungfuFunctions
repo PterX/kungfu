@@ -86,6 +86,7 @@ on_operator_state_change
 add_strategy
 add_account
 insert_order_input
+insert_order_input_trigger
 insert_array_orders
 insert_basket_order
 hold_book

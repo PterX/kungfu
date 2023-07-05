@@ -19,7 +19,7 @@ uint64_t BacktestContext::insert_order(const std::string &instrument_id, const s
                                        const std::string &source, const std::string &account, double limit_price,
                                        int64_t volume, longfist::enums::PriceType type, longfist::enums::Side side,
                                        longfist::enums::Offset offset, longfist::enums::HedgeFlag hedge_flag,
-                                       bool is_swap, uint64_t block_id, uint64_t parent_id) {
+                                       bool is_swap, uint64_t block_id, uint64_t parent_id, uint64_t trigger_id) {
   return 0;
 }
 uint64_t BacktestContext::cancel_order(uint64_t order_id) { return 0; }

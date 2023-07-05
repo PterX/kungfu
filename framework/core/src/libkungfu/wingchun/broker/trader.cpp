@@ -41,6 +41,7 @@ void TraderVendor::on_start() {
   BrokerVendor::on_start();
 
   events_ | is(BlockMessage::tag) | $$(service_->insert_block_message(event));
+  events_ | is(OrderInputTrigger::tag) | $$(service_->insert_order_input_trigger(event));
   events_ | is(OrderAction::tag) | $$(service_->cancel_order(event));
   events_ | is(AssetRequest::tag) | $$(service_->req_account());
   events_ | is(Deregister::tag) | $$(service_->on_strategy_exit(event));
@@ -231,6 +232,11 @@ void Trader::handle_batch_order_tag(const event_ptr &event) {
 bool Trader::insert_block_message(const event_ptr &event) {
   const BlockMessage &msg = event->data<BlockMessage>();
   return block_messages_.try_emplace(msg.block_id, msg).second;
+}
+
+bool Trader::insert_order_input_trigger(const event_ptr &event) {
+  const OrderInputTrigger &trigger = event->data<OrderInputTrigger>();
+  return order_input_triggers_.try_emplace(trigger.trigger_id, trigger).second;
 }
 
 void Trader::enable_self_detect() { self_deal_detect_ = true; }

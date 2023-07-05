@@ -129,10 +129,32 @@ uint64_t RuntimeContext::insert_block_message(const std::string &source, const s
   return block_id;
 }
 
+uint64_t RuntimeContext::insert_order_input_trigger(const std::string &source, const std::string &account,
+                                                    longfist::enums::OrderTriggerType trigger_type,
+                                                    longfist::enums::TimeCondition time_condition, double stop_price,
+                                                    const std::string &value) {
+  auto account_location_uid = get_td_location_uid(source, account);
+  if (not broker_client_.is_ready(account_location_uid)) {
+    SPDLOG_ERROR("account {} not ready", td_locations_.at(account_location_uid)->uname);
+    return 0;
+  }
+  auto writer = app_.get_writer(account_location_uid);
+  OrderInputTrigger trigger{};
+  trigger.trigger_type = trigger_type;
+  trigger.time_condition = time_condition;
+  trigger.stop_price = stop_price;
+  trigger.insert_time = time::now_in_nano();
+  // multiple thread writer->current_frame_uid() may get the same value without lock in open_frame
+  trigger.trigger_id = writer->current_frame_uid() xor get_thread_id();
+  trigger.value = value;
+  writer->write(now(), trigger);
+  return trigger.trigger_id;
+}
+
 uint64_t RuntimeContext::insert_order(const std::string &instrument_id, const std::string &exchange_id,
                                       const std::string &source, const std::string &account, double limit_price,
                                       int64_t volume, PriceType type, Side side, Offset offset, HedgeFlag hedge_flag,
-                                      bool is_swap, uint64_t block_id, uint64_t parent_id) {
+                                      bool is_swap, uint64_t block_id, uint64_t parent_id, uint64_t trigger_id) {
   auto account_location_uid = get_td_location_uid(source, account);
   auto insert_time = time::now_in_nano();
   if (not broker_client_.is_ready(account_location_uid)) {
@@ -160,6 +182,7 @@ uint64_t RuntimeContext::insert_order(const std::string &instrument_id, const st
   input.offset = offset;
   input.hedge_flag = hedge_flag;
   input.block_id = block_id;
+  input.trigger_id = trigger_id;
   input.parent_id = parent_id;
   input.is_swap = is_swap;
   input.insert_time = insert_time;

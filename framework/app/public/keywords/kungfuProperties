@@ -118,6 +118,7 @@ price_type
 volume_condition
 time_condition
 block_id
+trigger_id
 external_order_id
 insert_time
 volume_left
@@ -142,6 +143,8 @@ total_volume
 price_level
 price_offset
 dest_id
+trigger_type
+stop_price
 is_last
 data_type
 is_withdraw
@@ -249,6 +252,7 @@ RequestReadFromOthers
 TimeRequest
 TimeReset
 TradingDay
+OrderInputTrigger
 CustomSubscribe
 SyntheticData
 Register
@@ -378,6 +382,9 @@ VolumeCondition
 IOC
 GFD
 GTC
+GFS
+GTD
+GFA
 TimeCondition
 Submitted
 Pending
@@ -387,6 +394,8 @@ Filled
 PartialFilledNotActive
 PartialFilledActive
 Lost
+Parked
+Withdrawing
 OrderStatus
 Currency
 Pending
@@ -436,3 +445,20 @@ Raw
 Json
 Unknown
 FrameDataType
+Immediately
+Touch
+TouchProfit
+ParkedOrder
+LastPriceGreaterThanStopPrice
+LastPriceGreaterEqualStopPrice
+LastPriceLesserThanStopPrice
+LastPriceLesserEqualStopPrice
+AskPriceGreaterThanStopPrice
+AskPriceGreaterEqualStopPrice
+AskPriceLesserThanStopPrice
+AskPriceLesserEqualStopPrice
+BidPriceGreaterThanStopPrice
+BidPriceGreaterEqualStopPrice
+BidPriceLesserThanStopPrice
+BidPriceLesserEqualStopPrice
+OrderTriggerType

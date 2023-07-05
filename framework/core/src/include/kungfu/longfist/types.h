@@ -34,8 +34,8 @@ KF_DEFINE_MARK_TYPE(SessionEnd, 10152);
 KF_DEFINE_MARK_TYPE(RequestStart, 10153);
 KF_DEFINE_MARK_TYPE(RequestStop, 10154);
 KF_DEFINE_MARK_TYPE(RequestDeregister, 10155);
-KF_DEFINE_MARK_TYPE(OperatorStateRequest, 10190);
-KF_DEFINE_MARK_TYPE(BrokerStateRequest, 10191);
+KF_DEFINE_MARK_TYPE(OperatorStateRequest, 10156);
+KF_DEFINE_MARK_TYPE(BrokerStateRequest, 10157);
 KF_DEFINE_MARK_TYPE(CachedReadyToRead, 10251);
 KF_DEFINE_MARK_TYPE(RequestCached, 10252);
 KF_DEFINE_MARK_TYPE(ResetBookRequest, 10451);
@@ -210,6 +210,7 @@ KF_DEFINE_PACK_TYPE(                                       //
     (enums::VolumeCondition, volume_condition), // 成交量类型
     (enums::TimeCondition, time_condition),     // 成交时间类型
     (uint64_t, block_id),                       // 大宗交易信息id, 非大宗交易则为0
+    (uint64_t, trigger_id),                     // 触发器id, 不需要对应信息时为0
 
     (int64_t, insert_time) // 写入时间
 );
@@ -348,14 +349,14 @@ KF_DEFINE_PACK_TYPE(                                        //
     (enums::BasketOrderCalculationMode, calculation_mode) // 计算方式
 );
 
-KF_DEFINE_DATA_TYPE(                                              //
-    OrderInputTrigger, 209, PK(block_id), TIMESTAMP(insert_time), //
-    (uint64_t, trigger_id),                                       // 触发器id
-    (enums::OrderTriggerType, trigger_type),                      // 触发条件类型
-    (enums::TimeCondition, time_condition),                       // 有效期类型
-    (double, stop_price),                                         // 条件触发价格
-    (int64_t, insert_time),                                       // 写入时间
-    (std::string, value)                                          // 预留其他的字段
+KF_DEFINE_DATA_TYPE(                                                //
+    OrderInputTrigger, 209, PK(trigger_id), TIMESTAMP(insert_time), //
+    (uint64_t, trigger_id),                                         // 触发器id
+    (enums::OrderTriggerType, trigger_type),                        // 触发条件类型
+    (enums::TimeCondition, time_condition),                         // 有效期类型
+    (double, stop_price),                                           // 条件触发价格
+    (int64_t, insert_time),                                         // 写入时间
+    (std::string, value)                                            // 预留其他的字段
 );
 
 KF_DEFINE_PACK_TYPE(                                                     //

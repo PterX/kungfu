@@ -82,6 +82,21 @@ public:
 
   /**
    *
+   * @param source
+   * @param account
+   * @param trigger_type
+   * @param time_condition
+   * @param stop_price
+   * @param value
+   * @return trigger_id
+   */
+  uint64_t insert_order_input_trigger(const std::string &source, const std::string &account,
+                                      longfist::enums::OrderTriggerType trigger_type,
+                                      longfist::enums::TimeCondition time_condition, double stop_price,
+                                      const std::string &value) override;
+
+  /**
+   *
    * @param instrument_id instrument ID
    * @param exchange_id exchange ID
    * @param source source ID
@@ -100,7 +115,8 @@ public:
                         const std::string &account, double limit_price, int64_t volume, longfist::enums::PriceType type,
                         longfist::enums::Side side, longfist::enums::Offset offset,
                         longfist::enums::HedgeFlag hedge_flag = longfist::enums::HedgeFlag::Speculation,
-                        bool is_swap = false, uint64_t block_id = 0, uint64_t parent_id = 0) override;
+                        bool is_swap = false, uint64_t block_id = 0, uint64_t parent_id = 0,
+                        uint64_t trigger_id = 0) override;
 
   /**
    * Insert Order

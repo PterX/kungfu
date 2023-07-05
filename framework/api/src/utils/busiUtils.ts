@@ -2,7 +2,6 @@ import path from 'path';
 import dayjs from 'dayjs';
 import fse, { Stats } from 'fs-extra';
 import log4js from 'log4js';
-import glob from 'glob';
 import os from 'os';
 import {
   buildProcessLogPath,
@@ -84,10 +83,10 @@ import {
   listDir,
   readRootPackageJsonSync,
   removeTargetFilesInFolder,
+  removeTargetFoldersInFolder,
 } from './fileUtils';
 import minimist from 'minimist';
 import VueI18n, { useLanguage } from '../language';
-import { unlinkSync } from 'fs-extra';
 import { T0T1Config } from '../typings/global';
 import { getKfGlobalSettingsValue } from '../config/globalSettings';
 import { Currency } from '../config/tradingConfig';
@@ -1566,7 +1565,7 @@ export const dealVolumeByInstrumentType = (
 
   if (instrumentType === InstrumentTypeEnum.techstock) return orderVolume;
 
-  return ~~(orderVolume / minOrderVolume) * minOrderVolume;
+  return Math.round(orderVolume / minOrderVolume) * minOrderVolume;
 };
 
 export const dealSide = (
@@ -2473,24 +2472,8 @@ export const isBrokerStateReady = (state: BrokerStateStatusTypes) => {
 };
 
 export function deleteNNFiles(rootPathName = KF_HOME) {
-  return new Promise((resolve, reject) => {
-    glob(
-      '**/*.nn',
-      {
-        cwd: rootPathName,
-      },
-      (err: Error | null, files: string[]) => {
-        if (err) {
-          reject(err);
-        }
-
-        files.forEach((file: string) => {
-          unlinkSync(path.join(rootPathName, file));
-        });
-
-        resolve(true);
-      },
-    );
+  return removeTargetFoldersInFolder(rootPathName, ['nn']).then((res) => {
+    res.errors.forEach((err) => kfLogger.error(err));
   });
 }
 

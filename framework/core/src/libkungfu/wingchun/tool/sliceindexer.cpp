@@ -47,7 +47,7 @@ location_ptr DayIndexer::find_md_slice_location(int64_t nano_time, const std::st
       std::to_string(get_md_slice_end_time(nano_time, group, name, instrument_id, exchange_id, data_type));
   std::string dir_name =
       fmt::format("{}_{}_{}@{}", slice_end_time, std::to_string(data_type), instrument_id, exchange_id);
-  std::vector<std::string> tags = {dir_name};
+  std::vector<std::string> tags = {"day_md", dir_name};
   auto slice_locator = std::make_shared<locator>(mode::DATA, tags);
   auto slice_location = location::make_shared(mode::DATA, category::MD, group, name, slice_locator);
   return slice_location;
@@ -63,7 +63,7 @@ location_ptr DayIndexer::find_operator_slice_location(int64_t nano_time, const s
                                                       const std::string &name) const {
   auto slice_end_time = std::to_string(get_operator_slice_end_time(nano_time, group, name));
   std::string dir_name = fmt::format("{}_{}_{}", slice_end_time, group, name);
-  std::vector<std::string> tags = {dir_name};
+  std::vector<std::string> tags = {"day_operator", dir_name};
   auto slice_locator = std::make_shared<locator>(mode::DATA, tags);
   auto slice_location = location::make_shared(mode::DATA, category::OPERATOR, group, name, slice_locator);
   return slice_location;

@@ -20,8 +20,8 @@ import { categoryRegisterConfig, getColumns } from './config';
 import {
   dealDirection,
   dealCurrency,
+  dealKfPrice,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
-
 import {
   LedgerCategoryEnum,
   OffsetEnum,
@@ -296,7 +296,12 @@ function tiggerOrderBookAndMakeOrder(record: KungfuApi.PositionResolved) {
           </template>
           <template v-else-if="column.dataIndex === 'last_price_resolved'">
             <KfBlinkNum
-              :num="getPositionLastPrice(item, 'last_price_resolved')"
+              :num="
+                dealKfPrice(
+                  getPositionLastPrice(item, 'last_price_resolved'),
+                  item.price_precision,
+                )
+              "
             ></KfBlinkNum>
           </template>
           <template v-else-if="column.dataIndex === 'unrealized_pnl_resolved'">

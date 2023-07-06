@@ -442,13 +442,11 @@ void Watcher::on_start() {
       events_ | is(Quote::tag) | is_subscribed(subscribed_instruments_) | $$(UpdateBook(event, event->data<Quote>()));
     }
 
-    // events_ | is(OrderInput::tag) | $$(UpdateBook(event, event->data<OrderInput>()));
     events_ | is(Order::tag) | $$(UpdateBook(event, event->data<Order>()));
     events_ | is(Order::tag) | $$(UpdateBasketOrder(event->trigger_time(), event->data<Order>()));
-    // events_ | is(Trade::tag) | $$(UpdateBook(event, event->data<Trade>()));
     events_ | is(Position::tag) | $$(UpdateBook(event, event->data<Position>()));
     events_ | is(PositionEnd::tag) | $$(UpdateAsset(event, event->data<PositionEnd>().holder_uid));
-    // refresh_books(); this causes large amount of subscribe;
+    refresh_books();
   }
 
   events_ | is(Channel::tag) | $$(InspectChannel(event->gen_time(), event->data<Channel>()));

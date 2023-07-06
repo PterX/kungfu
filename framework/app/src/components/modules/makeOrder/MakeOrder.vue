@@ -26,6 +26,7 @@ import {
   OffsetEnum,
   OrderInputKeyEnum,
   SideEnum,
+  PriceTypeEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
   useCurrentGlobalKfLocation,
@@ -292,6 +293,18 @@ watch(
   },
   {
     deep: true,
+  },
+);
+
+watch(
+  () => formState.value.price_type,
+  (newVal: PriceTypeEnum) => {
+    if (newVal === PriceTypeEnum.AtAuction) {
+      const limitPriceIndex = configSettings.value.findIndex((configItem) => {
+        return configItem.key === 'limit_price';
+      });
+      configSettings.value.splice(limitPriceIndex, 1);
+    }
   },
 );
 

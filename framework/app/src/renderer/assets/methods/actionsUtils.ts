@@ -2264,7 +2264,7 @@ export const useMakeOrderInfo = (
       }
     }
 
-    return null;
+    return limit_price;
   });
 
   const currentTradeAmount = computed(() => {

@@ -218,6 +218,55 @@ export const listDirSync = (filePath: string): string[] => {
   return fse.readdirSync(filePath);
 };
 
+export const removeTargetFoldersInFolder = async (
+  targetFolder: string,
+  includes: string[],
+  filters: string[] = [],
+): Promise<{ successes: string[]; errors: string[] }> => {
+  const results: { successes: string[]; errors: string[] } = {
+    successes: [],
+    errors: [],
+  };
+  const iterator = async (folder: string) => {
+    const items = listDirSync(folder);
+
+    if (!items) return;
+
+    const folders = items.filter((f: string) => {
+      const stat = fse.statSync(path.join(folder, f));
+
+      if (stat.isDirectory() && !filters.includes(f)) return true;
+      return false;
+    });
+
+    for (const f of folders) {
+      if (includes.includes(f)) {
+        try {
+          const targetFolder = path.join(folder, f);
+          console.log(targetFolder);
+          await fsPromise.rm(targetFolder, {
+            force: true,
+            recursive: true,
+            maxRetries: 10,
+          });
+          results.successes.push(targetFolder);
+        } catch (error) {
+          if (error instanceof Error) {
+            console.error(error);
+            results.errors.push(error.message);
+          }
+        }
+      } else {
+        await iterator(path.join(folder, f));
+      }
+    }
+  };
+
+  await iterator(targetFolder);
+
+  return results;
+};
+
 export const removeTargetFilesInFolder = async (
   targetFolder: string,
   includes: string[],

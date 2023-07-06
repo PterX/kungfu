@@ -667,12 +667,11 @@ export const makeOrderByBasketTrade = (
 
 const ukeyCacheMap = new Map<string, string>();
 export const hashUkey = (...args: Array<string | number>) => {
-  const strArgs = args.map((arg) => `${arg}`);
-  const cacheKey = strArgs.join('_');
+  const cacheKey = args.map((arg) => `${arg}`).join('_');
   if (!ukeyCacheMap.has(cacheKey))
     ukeyCacheMap.set(
       cacheKey,
-      strArgs
+      args
         .reduce<bigint>((pre, cur) => pre ^ BigInt(kf.hash(cur)), 0n)
         .toString(16)
         .padStart(16, '0'),

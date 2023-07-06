@@ -85,4 +85,5 @@ def slicetool(
         )
         tool.run()
     else:
-        raise NotImplementedError("sliceTool for python not implemented.")
+        tool_script = getattr(module, "run")
+        tool_script(wc.SliceTool(kfj.CATEGORIES[category], group, name, indexer, arguments))

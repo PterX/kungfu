@@ -52,7 +52,6 @@ on_time_key_value
 cancel_order
 req_history_order
 req_history_trade
-enable_self_detect
 req_account
 req_position
 set_service
@@ -189,5 +188,6 @@ get
 get_all
 remove
 on_register
+check_register
 on_interval_check
 deregister_app

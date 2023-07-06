@@ -23,7 +23,8 @@ struct timer_task {
 
 class master : public hero {
 public:
-  explicit master(yijinjing::data::location_ptr home, bool low_latency = false, bool bypass_cached = false);
+  explicit master(yijinjing::data::location_ptr home, bool low_latency = false, bool bypass_cached = false,
+                  bool daemon = true);
 
   void on_exit() override;
 
@@ -35,7 +36,9 @@ public:
 
   void on_notify() override;
 
-  virtual void on_register(const event_ptr &event, const longfist::types::Register &register_data) = 0;
+  virtual void on_register(int64_t gen_time, const longfist::types::Register &register_data) = 0;
+
+  virtual bool check_register(int64_t gen_time, const longfist::types::Register &register_data) = 0;
 
   virtual void on_interval_check(int64_t nanotime) = 0;
 
@@ -45,17 +48,21 @@ public:
 
   void on_request_deregister(const event_ptr &event);
 
+  bool is_daemon();
+
 protected:
-  void react() final;
+  void pre_setup() override;
+
+  void react() override;
 
   void on_active() final;
 
   void on_frame() final;
 
 private:
-  int64_t start_time_;
   int64_t last_check_;
   yijinjing::cache::cached cached_;
+  const bool daemon_;
 
   std::unordered_map<uint32_t, uint32_t> app_cmd_locations_ = {};
   std::unordered_map<uint32_t, std::unordered_map<int32_t, timer_task>> timer_tasks_ = {};
@@ -67,8 +74,6 @@ private:
   void feed(const event_ptr &event);
 
   void pong(const event_ptr &event);
-
-  void on_request_cached_done(const event_ptr &event);
 
   void on_request_write_to_band(const event_ptr &event);
 
@@ -97,6 +102,8 @@ private:
   void write_channels(int64_t trigger_time, const journal::writer_ptr &writer);
 
   void write_bands(int64_t trigger_time, const journal::writer_ptr &writer);
+
+  void recover_registries();
 };
 } // namespace kungfu::yijinjing::practice
 #endif // KUNGFU_MASTER_H

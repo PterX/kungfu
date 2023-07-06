@@ -331,13 +331,6 @@ private:
     auto iter = target_map.begin();
     while (iter != target_map.end() and target_map.size() > 0) {
       const auto &state = iter->second;
-
-      if (DataType::tag == longfist::types::Position::tag) {
-        SPDLOG_INFO("------------------------------------");
-        SPDLOG_INFO("data.uid {} data {}", state.data.uid(), state.data.to_string());
-      };
-      SPDLOG_INFO("------------------------------------");
-
       update_ledger(state.update_time, state.source, state.dest, state.data);
       iter = target_map.erase(iter);
     }
@@ -392,6 +385,10 @@ private:
     try {
       auto account_location = IODevice::ExtractLocation(info, 1, get_locator());
       if (not is_location_live(account_location->uid) or not has_writer(account_location->uid)) {
+        return Napi::BigInt::New(info.Env(), std::uint64_t(0));
+      }
+
+      if (not has_writer(get_master_command_uid())) {
         return Napi::BigInt::New(info.Env(), std::uint64_t(0));
       }
 

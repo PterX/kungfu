@@ -88,8 +88,8 @@ void bind_tool(pybind11::module &m) {
   // TODO
   py::class_<SliceIndexer, PySliceIndexer, SliceIndexer_ptr>(m, "SliceIndexer")
       .def(py::init<int64_t, int64_t>(), py::arg("begin_time"), py::arg("end_time"))
-      .def("get_begin_time", &SliceIndexer::get_begin_time)
-      .def("get_end_time", &SliceIndexer::get_end_time)
+      .def_property_readonly("begin_time", &SliceIndexer::get_begin_time)
+      .def_property_readonly("end_time", &SliceIndexer::get_end_time)
       .def("find_md_slice_location", &SliceIndexer::find_md_slice_location)
       .def("get_md_slice_end_time", &SliceIndexer::get_md_slice_end_time)
       .def("find_operator_slice_location", &SliceIndexer::find_operator_slice_location)
@@ -101,8 +101,9 @@ void bind_tool(pybind11::module &m) {
   auto slice_tool_class = py::class_<SliceTool, std::shared_ptr<SliceTool>>(m, "SliceTool")
                               .def(py::init<category, std::string, std::string, SliceIndexer_ptr>(),
                                    py::arg("category"), py::arg("group"), py::arg("name"), py::arg("indexer"))
-                              .def("get_begin_time", &SliceTool::get_begin_time)
-                              .def("get_end_time", &SliceTool::get_end_time)
+                              .def_property_readonly("begin_time", &SliceTool::get_begin_time)
+                              .def_property_readonly("end_time", &SliceTool::get_end_time)
+                              .def_property_readonly("arguments", &SliceTool::get_arguments)
                               .def("run", &SliceTool::run);
 
   boost::hana::for_each(boost::hana::insert(MarketDataTypes, TYPE_PAIR(SyntheticData)), [&](auto type) {

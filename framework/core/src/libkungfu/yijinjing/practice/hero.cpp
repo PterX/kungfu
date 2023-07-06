@@ -64,6 +64,8 @@ void hero::setup() {
   live_ = true;
 }
 
+void hero::pre_setup() { return; }
+
 void hero::step() {
   continual_ = false;
   events_.connect(cs_);
@@ -72,6 +74,7 @@ void hero::step() {
 void hero::run() {
   SPDLOG_INFO("[{:08x}] {} running", get_home_uid(), get_home_uname());
   SPDLOG_TRACE("from {} until {}", time::strftime(begin_time_), time::strftime(end_time_));
+  pre_setup();
   setup();
   continual_ = true;
   events_.connect(cs_);
@@ -247,10 +250,7 @@ void hero::remove_location(int64_t trigger_time, uint32_t location_uid) { locati
 
 void hero::register_location(int64_t, const Register &register_data) {
   uint32_t location_uid = register_data.location_uid;
-  auto result = registry_.try_emplace(location_uid, register_data);
-  if (result.second) {
-    SPDLOG_TRACE("location [{:08x}] {} up", location_uid, get_location_uname(location_uid));
-  }
+  registry_.insert_or_assign(location_uid, register_data);
 }
 
 void hero::deregister_location(int64_t, const uint32_t location_uid) {
@@ -267,6 +267,10 @@ void hero::register_channel(int64_t, const Channel &channel) {
     auto source_uname = get_location_uname(channel.source_id);
     auto dest_uname = get_location_uname(channel.dest_id);
     SPDLOG_TRACE("channel [{:08x}] {} -> {} up", channel_uid, source_uname, dest_uname);
+  }
+
+  if (channel.source_id == get_home_uid() and not has_writer(channel.dest_id)) {
+    writers_.insert_or_assign(channel.dest_id, get_io_device()->open_writer(channel.dest_id));
   }
 }
 
@@ -293,6 +297,10 @@ void hero::register_band(int64_t, const Band &band) {
     auto source_uname = get_location_uname(band.source_id);
     auto dest_uname = get_location_uname(band.dest_id);
     SPDLOG_TRACE("band [{:08x}] {} -> {} up", band_uid, source_uname, dest_uname);
+  }
+
+  if (band.source_id == get_home_uid() and not has_writer(band.dest_id)) {
+    writers_.insert_or_assign(band.dest_id, get_io_device()->open_writer(band.dest_id));
   }
 }
 

@@ -193,15 +193,16 @@ void Client::connect(const event_ptr &event, const Band &band) {
 }
 
 void Client::on_deregister(const longfist::types::Deregister &deregister_data) {
-  auto location_uid = deregister_data.location_uid;
-  auto node_location = app_.get_location(location_uid);
-  if (node_location->category == category::MD or node_location->category == category::TD) {
-    broker_states_.emplace(location_uid, BrokerState::DisConnected);
-    ready_md_locations_.erase(location_uid);
-    ready_td_locations_.erase(location_uid);
-  } else if (node_location->category == category::OPERATOR) {
-    operator_states_.emplace(location_uid, OperatorState::DisConnected);
-    ready_op_locations_.erase(location_uid);
+  auto app_uid = deregister_data.location_uid;
+  auto app_location = app_.get_location(app_uid);
+
+  if (app_location->category == category::MD or app_location->category == category::TD) {
+    broker_states_.emplace(app_uid, BrokerState::DisConnected);
+    ready_md_locations_.erase(app_uid);
+    ready_td_locations_.erase(app_uid);
+  } else if (app_location->category == category::OPERATOR) {
+    operator_states_.emplace(app_uid, OperatorState::DisConnected);
+    ready_op_locations_.erase(app_uid);
   }
 }
 

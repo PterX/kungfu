@@ -1115,6 +1115,7 @@ declare namespace KungfuApi {
       Basket(): Basket;
       BasketInstrument(): BasketInstrument;
       BasketOrder(): BasketOrder;
+      TimeKeyValue(): TimeKeyValue;
     };
 
     msgTypes: Record<number, string>;

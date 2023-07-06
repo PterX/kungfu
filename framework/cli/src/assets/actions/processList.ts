@@ -642,6 +642,7 @@ const switchMaster = async (status: boolean): Promise<void> => {
     }
     await deleteNNFiles();
   } else {
+    await deleteNNFiles();
     await removeJournal(KF_HOME);
     await removeArchiveBeforeToday(ARCHIVE_DIR);
     await startMaster(false);

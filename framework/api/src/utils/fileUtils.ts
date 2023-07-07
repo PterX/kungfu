@@ -243,7 +243,6 @@ export const removeTargetFoldersInFolder = async (
       if (includes.includes(f)) {
         try {
           const targetFolder = path.join(folder, f);
-          console.log(targetFolder);
           await fsPromise.rm(targetFolder, {
             force: true,
             recursive: true,

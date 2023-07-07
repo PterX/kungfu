@@ -171,9 +171,7 @@ void Bookkeeper::update_instrument_factor(const longfist::types::InstrumentFacto
 void Bookkeeper::update_book(const event_ptr &event, const InstrumentKey &instrument_key) {
   std::lock_guard<std::mutex> lock(update_book_mutex_);
   broker_client_.subscribe(instrument_key);
-  auto book = get_book(event->source());
-  book->add_source_id(event->source());
-  book->ensure_position_for(instrument_key);
+  get_book(event->source())->ensure_position_for(instrument_key);
 }
 
 void Bookkeeper::try_update_book(const event_ptr &event, const Quote &quote) {

@@ -99,8 +99,9 @@ void bind_tool(pybind11::module &m) {
       .def(py::init<int64_t, int64_t>(), py::arg("begin_time"), py::arg("end_time"));
 
   auto slice_tool_class = py::class_<SliceTool, std::shared_ptr<SliceTool>>(m, "SliceTool")
-                              .def(py::init<category, std::string, std::string, SliceIndexer_ptr>(),
-                                   py::arg("category"), py::arg("group"), py::arg("name"), py::arg("indexer"))
+                              .def(py::init<category, std::string, std::string, SliceIndexer_ptr, bool, std::string>(),
+                                   py::arg("category"), py::arg("group"), py::arg("name"), py::arg("indexer"),
+                                   py::arg("override") = true, py::arg("arguments") = "")
                               .def_property_readonly("begin_time", &SliceTool::get_begin_time)
                               .def_property_readonly("end_time", &SliceTool::get_end_time)
                               .def_property_readonly("arguments", &SliceTool::get_arguments)

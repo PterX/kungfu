@@ -43,8 +43,8 @@ int64_t SliceIndexer::get_operator_slice_end_time(int64_t nano_time, const std::
 location_ptr DayIndexer::find_md_slice_location(int64_t nano_time, const std::string &group, const std::string &name,
                                                 const std::string &instrument_id, const std::string &exchange_id,
                                                 int32_t data_type) const {
-  auto slice_end_time =
-      std::to_string(get_md_slice_end_time(nano_time, group, name, instrument_id, exchange_id, data_type));
+  auto slice_end_time = time::strftime(
+      get_md_slice_end_time(nano_time, group, name, instrument_id, exchange_id, data_type), KUNGFU_DATETIME_FORMAT);
   std::string dir_name =
       fmt::format("{}_{}_{}@{}", slice_end_time, std::to_string(data_type), instrument_id, exchange_id);
   std::vector<std::string> tags = {"day_md", dir_name};
@@ -61,7 +61,7 @@ int64_t DayIndexer::get_md_slice_end_time(int64_t nano_time, const std::string &
 
 location_ptr DayIndexer::find_operator_slice_location(int64_t nano_time, const std::string &group,
                                                       const std::string &name) const {
-  auto slice_end_time = std::to_string(get_operator_slice_end_time(nano_time, group, name));
+  auto slice_end_time = time::strftime(get_operator_slice_end_time(nano_time, group, name), KUNGFU_DATETIME_FORMAT);
   std::string dir_name = fmt::format("{}_{}_{}", slice_end_time, group, name);
   std::vector<std::string> tags = {"day_operator", dir_name};
   auto slice_locator = std::make_shared<locator>(mode::DATA, tags);
@@ -74,6 +74,7 @@ int64_t DayIndexer::get_operator_slice_end_time(int64_t nano_time, const std::st
 }
 
 int64_t DayIndexer::end_of_day(int64_t nano_time) const {
+  // return nano_time - (nano_time % ( 15 * time_unit::NANOSECONDS_PER_SECOND));
   return nano_time - (nano_time % time_unit::NANOSECONDS_PER_HOUR) + time_unit::NANOSECONDS_PER_HOUR;
   // return time::calendar_day_start(nano_time) + time_unit::NANOSECONDS_PER_DAY;
 }

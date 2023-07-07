@@ -80,8 +80,6 @@ protected:
   mutable int64_t last_read_gen_time_;
   const std::string arguments_;
 
-
-
   yijinjing::journal::writer_ptr get_writer(const yijinjing::data::location_ptr &location, uint32_t dest_id);
 
   void valid_time(int64_t gen_time, int64_t trigger_time) const;

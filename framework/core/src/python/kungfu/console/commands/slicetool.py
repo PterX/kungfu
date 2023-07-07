@@ -97,5 +97,7 @@ def slicetool(
     else:
         tool_script = getattr(module, "run")
         tool_script(
-            wc.SliceTool(kfj.CATEGORIES[category], group, name, indexer, override, arguments)
+            wc.SliceTool(
+                kfj.CATEGORIES[category], group, name, indexer, override, arguments
+            )
         )

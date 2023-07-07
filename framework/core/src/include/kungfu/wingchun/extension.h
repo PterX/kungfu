@@ -128,7 +128,7 @@
   class SliceToolType;                                                                                                 \
   PYBIND11_MODULE(KUNGFU_MODULE_NAME, m) {                                                                             \
     m.def("slice_tool", [&](kungfu::longfist::enums::category category, std::string group, std::string name,           \
-                            SliceIndexer_ptr indexer, bool override, std::string argument) {                                          \
+                            SliceIndexer_ptr indexer, bool override, std::string argument) {                           \
       return std::static_pointer_cast<kungfu::wingchun::tool::SliceTool>(std::make_shared<SliceToolType>(              \
           category, std::move(group), std::move(name), indexer, true, std::move(argument)));                           \
     });                                                                                                                \

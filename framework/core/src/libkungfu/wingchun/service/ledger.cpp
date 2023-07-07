@@ -253,13 +253,13 @@ void Ledger::write_strategy_data(int64_t trigger_time, uint32_t strategy_uid) {
     if (has_account or is_strategy or is_system) {
       write_positions(trigger_time, strategy_uid, book->long_positions);
       write_positions(trigger_time, strategy_uid, book->short_positions);
-      writer->open_data<PositionEnd>(trigger_time).holder_uid = book_uid;
-      writer->close_data();
       write_instrument_factors(trigger_time, strategy_uid, book->instrument_factors);
       writer->write(trigger_time, asset);
       writer->write(trigger_time, asset_margin);
     }
   }
+  writer->open_data<PositionEnd>(trigger_time).holder_uid = strategy_uid;
+  writer->close_data();
 }
 
 void Ledger::write_positions(int64_t trigger_time, uint32_t dest, book::PositionMap &positions) {

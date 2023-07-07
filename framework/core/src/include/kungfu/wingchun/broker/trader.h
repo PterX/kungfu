@@ -55,7 +55,7 @@ public:
 
   virtual bool insert_block_message(const event_ptr &event);
 
-  virtual bool insert_order_input_trigger(const event_ptr &event);
+  virtual bool insert_order_trigger(const event_ptr &event) { return true; }
 
   virtual bool insert_order(const event_ptr &event) = 0;
 
@@ -75,9 +75,9 @@ public:
 
   virtual bool on_custom_event(const event_ptr &event) { return true; }
 
-  virtual void on_band(const event_ptr &event) { return; }
+  virtual void on_band(const event_ptr &event) {}
 
-  virtual void on_time_key_value(const event_ptr &event) { return; }
+  virtual void on_time_key_value(const event_ptr &event) {}
 
   /// 此函数自动发送一个空的AssetMargin数据. 两融柜台需要发送一个存有数据的AssetMargin, 请override此函数取消写入.
   /// 并且在使用writer写入完AssetMargin之后调用enable_asset_margin_sync()函数.
@@ -117,7 +117,6 @@ protected:
   bool self_deal_detect_ = false;
   bool disable_recover_ = false;
   std::unordered_map<uint64_t, kungfu::longfist::types::BlockMessage> block_messages_{};
-  std::unordered_map<uint64_t, kungfu::longfist::types::OrderInputTrigger> order_input_triggers_{};
   /// <strategy_uid, OrderInput>, a batch OrderInputs for a strategy
   std::unordered_map<uint64_t, std::vector<longfist::types::OrderInput>> order_inputs_{};
   /// <strategy_uid, batch_flag>, true mean batch mode for this strategy

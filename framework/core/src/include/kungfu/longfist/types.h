@@ -349,14 +349,60 @@ KF_DEFINE_PACK_TYPE(                                        //
     (enums::BasketOrderCalculationMode, calculation_mode) // 计算方式
 );
 
-KF_DEFINE_DATA_TYPE(                                                //
-    OrderInputTrigger, 209, PK(trigger_id), TIMESTAMP(insert_time), //
+KF_DEFINE_PACK_TYPE(                                                //
+    OrderTriggerInput, 209, PK(trigger_id), TIMESTAMP(insert_time), //
     (uint64_t, trigger_id),                                         // 触发器id
-    (enums::OrderTriggerType, trigger_type),                        // 触发条件类型
-    (enums::TimeCondition, time_condition),                         // 有效期类型
-    (double, stop_price),                                           // 条件触发价格
-    (int64_t, insert_time),                                         // 写入时间
-    (std::string, value)                                            // 预留其他的字段
+
+    (kungfu::array<char, INSTRUMENT_ID_LEN>, instrument_id), // 合约代码
+    (kungfu::array<char, EXCHANGE_ID_LEN>, exchange_id),     // 交易所代码
+    (enums::InstrumentType, instrument_type),                // 合约类型
+
+    (double, limit_price),  // 价格
+    (double, frozen_price), // 冻结价格
+    (int64_t, volume),      // 数量
+    (double, stop_price),   // 条件触发价格
+
+    (bool, is_swap),                            // 互换单
+    (enums::Side, side),                        // 买卖方向
+    (enums::Offset, offset),                    // 开平方向
+    (enums::HedgeFlag, hedge_flag),             // 投机套保标识
+    (enums::PriceType, price_type),             // 价格类型
+    (enums::VolumeCondition, volume_condition), // 成交量类型
+    (enums::TimeCondition, time_condition),     // 成交时间类型
+
+    (int64_t, insert_time) // 写入时间
+);
+
+KF_DEFINE_PACK_TYPE(                                           //
+    OrderTrigger, 210, PK(trigger_id), TIMESTAMP(insert_time), //
+    (uint64_t, trigger_id),                                    // 触发器id
+
+    (int64_t, insert_time), // 触发器写入时间
+    (int64_t, update_time), // 触发器更新时间
+
+    (kungfu::array<char, DATE_LEN>, trading_day), // 交易日
+
+    (kungfu::array<char, INSTRUMENT_ID_LEN>, instrument_id), // 合约ID
+    (kungfu::array<char, EXCHANGE_ID_LEN>, exchange_id),     // 交易所ID
+    (enums::InstrumentType, instrument_type),                // 合约类型
+
+    (double, limit_price),  // 价格
+    (double, frozen_price), // 冻结价格, 市价单冻结价格为0
+    (int64_t, volume),      // 数量
+    (double, stop_price),   // 条件触发价格
+
+    (enums::OrderTriggerStatus, status), //  触发器状态
+
+    (int32_t, error_id),                             // 错误ID
+    (kungfu::array<char, ERROR_MSG_LEN>, error_msg), // 错误信息
+
+    (bool, is_swap),                            // 互换单
+    (enums::Side, side),                        // 买卖方向
+    (enums::Offset, offset),                    // 开平方向
+    (enums::HedgeFlag, hedge_flag),             // 投机套保标识
+    (enums::PriceType, price_type),             // 价格类型
+    (enums::VolumeCondition, volume_condition), // 成交量类型
+    (enums::TimeCondition, time_condition)      // 成交时间类型
 );
 
 KF_DEFINE_PACK_TYPE(                                                     //

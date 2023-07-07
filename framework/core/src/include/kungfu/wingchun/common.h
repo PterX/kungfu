@@ -604,6 +604,30 @@ inline void order_from_input(const longfist::types::OrderInput &input, longfist:
   trade.hedge_flag = order.hedge_flag;
 }
 
+inline void order_trigger_from_input(const longfist::types::OrderTriggerInput &input,
+                                     longfist::types::OrderTrigger &trigger) {
+  trigger.trigger_id = input.trigger_id;
+
+  strcpy(trigger.instrument_id, input.instrument_id);
+  strcpy(trigger.exchange_id, input.exchange_id);
+  trigger.instrument_type = input.instrument_type;
+
+  trigger.limit_price = input.limit_price;
+  trigger.frozen_price = input.frozen_price;
+  trigger.volume = input.volume;
+  trigger.stop_price = input.stop_price;
+
+  trigger.status = longfist::enums::OrderTriggerStatus::Send;
+
+  trigger.side = input.side;
+  trigger.offset = input.offset;
+  trigger.is_swap = input.is_swap;
+  trigger.hedge_flag = input.hedge_flag;
+  trigger.price_type = input.price_type;
+  trigger.volume_condition = input.volume_condition;
+  trigger.time_condition = input.time_condition;
+}
+
 } // namespace kungfu::wingchun
 
 #endif // WINGCHUN_COMMON_H

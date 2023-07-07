@@ -97,10 +97,13 @@ public:
    * @param value
    * @return trigger_id
    */
-  virtual uint64_t insert_order_input_trigger(const std::string &source, const std::string &account,
-                                              longfist::enums::OrderTriggerType trigger_type,
-                                              longfist::enums::TimeCondition time_condition, double stop_price = 0,
-                                              const std::string &value = {}) = 0;
+  virtual uint64_t insert_order_trigger(const std::string &instrument_id, const std::string &exchange_id,
+                                        const std::string &source, const std::string &account, double limit_price,
+                                        int64_t volume, longfist::enums::PriceType type, longfist::enums::Side side,
+                                        longfist::enums::Offset offset, longfist::enums::OrderTriggerType trigger_type,
+                                        longfist::enums::TimeCondition time_condition, double stop_price = 0,
+                                        longfist::enums::HedgeFlag hedge_flag = longfist::enums::HedgeFlag::Speculation,
+                                        bool is_swap = false) = 0;
 
   /**
    * Insert order.
@@ -122,8 +125,7 @@ public:
                                 int64_t volume, longfist::enums::PriceType type, longfist::enums::Side side,
                                 longfist::enums::Offset offset,
                                 longfist::enums::HedgeFlag hedge_flag = longfist::enums::HedgeFlag::Speculation,
-                                bool is_swap = false, uint64_t block_id = 0, uint64_t parent_id = 0,
-                                uint64_t trigger_id = 0) = 0;
+                                bool is_swap = false, uint64_t block_id = 0, uint64_t parent_id = 0) = 0;
 
   /**
    * Insert Order

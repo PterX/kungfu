@@ -302,9 +302,9 @@ Napi::Value Watcher::IssueBlockMessage(const Napi::CallbackInfo &info) {
   return InteractWithTD<BlockMessage>(info, info[0].ToObject(), &BlockMessage::block_id);
 }
 
-Napi::Value Watcher::IssueOrderInputTrigger(const Napi::CallbackInfo &info) {
+Napi::Value Watcher::IssueOrderTriggerInput(const Napi::CallbackInfo &info) {
   SPDLOG_INFO("issue order input trigger manually");
-  return InteractWithTD<OrderInputTrigger>(info, info[0].ToObject(), &OrderInputTrigger::trigger_id);
+  return InteractWithTD<OrderTriggerInput>(info, info[0].ToObject(), &OrderTriggerInput::trigger_id);
 }
 
 Napi::Value Watcher::IssueOrder(const Napi::CallbackInfo &info) {
@@ -395,7 +395,7 @@ void Watcher::Init(Napi::Env env, Napi::Object exports) {
                       InstanceMethod("isReadyToInteract", &Watcher::IsReadyToInteract),           //
                       InstanceMethod("issueCustomData", &Watcher::IssueCustomData),               //
                       InstanceMethod("issueBlockMessage", &Watcher::IssueBlockMessage),           //
-                      InstanceMethod("IssueOrderInputTrigger", &Watcher::IssueOrderInputTrigger), //
+                      InstanceMethod("IssueOrderTriggerInput", &Watcher::IssueOrderTriggerInput), //
                       InstanceMethod("issueOrder", &Watcher::IssueOrder),                         //
                       InstanceMethod("issueBasketOrder", &Watcher::IssueBasketOrder),             //
                       InstanceMethod("cancelOrder", &Watcher::CancelOrder),                       //

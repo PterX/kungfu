@@ -129,34 +129,51 @@ uint64_t RuntimeContext::insert_block_message(const std::string &source, const s
   return block_id;
 }
 
-uint64_t RuntimeContext::insert_order_input_trigger(const std::string &source, const std::string &account,
-                                                    longfist::enums::OrderTriggerType trigger_type,
-                                                    longfist::enums::TimeCondition time_condition, double stop_price,
-                                                    const std::string &value) {
+uint64_t RuntimeContext::insert_order_trigger(const std::string &instrument_id, const std::string &exchange_id,
+                                              const std::string &source, const std::string &account, double limit_price,
+                                              int64_t volume, longfist::enums::PriceType type,
+                                              longfist::enums::Side side, longfist::enums::Offset offset,
+                                              longfist::enums::OrderTriggerType trigger_type,
+                                              longfist::enums::TimeCondition time_condition, double stop_price,
+                                              longfist::enums::HedgeFlag hedge_flag, bool is_swap) {
   auto account_location_uid = get_td_location_uid(source, account);
   if (not broker_client_.is_ready(account_location_uid)) {
     SPDLOG_ERROR("account {} not ready", td_locations_.at(account_location_uid)->uname);
     return 0;
   }
+  auto instrument_type = get_instrument_type(exchange_id, instrument_id);
+  if (instrument_type == InstrumentType::Unknown) {
+    SPDLOG_ERROR("unsupported instrument type {} of {}.{}", str_from_instrument_type(instrument_type), instrument_id,
+                 exchange_id);
+    return 0;
+  }
   auto writer = app_.get_writer(account_location_uid);
-  OrderInputTrigger trigger{};
-  trigger.trigger_type = trigger_type;
-  trigger.time_condition = time_condition;
-  trigger.stop_price = stop_price;
-  trigger.insert_time = time::now_in_nano();
-  // multiple thread writer->current_frame_uid() may get the same value without lock in open_frame
-  trigger.trigger_id = writer->current_frame_uid() xor get_thread_id();
-  trigger.value = value;
-  writer->write(now(), trigger);
-  return trigger.trigger_id;
+  page_ptr page = writer->get_current_page(); // prevent that page released after close_data before on_order_input
+  OrderTriggerInput &input = writer->open_data<OrderTriggerInput>(app_.now());
+  input.trigger_id = writer->current_frame_uid();
+  strcpy(input.instrument_id, instrument_id.c_str());
+  strcpy(input.exchange_id, exchange_id.c_str());
+  input.instrument_type = instrument_type;
+  input.limit_price = limit_price;
+  input.frozen_price = limit_price;
+  input.volume = volume;
+  input.stop_price = stop_price;
+  input.price_type = type;
+  input.side = side;
+  input.offset = offset;
+  input.hedge_flag = hedge_flag;
+  input.is_swap = is_swap;
+  input.time_condition = time_condition;
+  input.insert_time = time::now_in_nano();
+  writer->close_data();
+  return input.trigger_id;
 }
 
 uint64_t RuntimeContext::insert_order(const std::string &instrument_id, const std::string &exchange_id,
                                       const std::string &source, const std::string &account, double limit_price,
                                       int64_t volume, PriceType type, Side side, Offset offset, HedgeFlag hedge_flag,
-                                      bool is_swap, uint64_t block_id, uint64_t parent_id, uint64_t trigger_id) {
+                                      bool is_swap, uint64_t block_id, uint64_t parent_id) {
   auto account_location_uid = get_td_location_uid(source, account);
-  auto insert_time = time::now_in_nano();
   if (not broker_client_.is_ready(account_location_uid)) {
     SPDLOG_ERROR("account {} not ready", td_locations_.at(account_location_uid)->uname);
     return 0;
@@ -182,10 +199,9 @@ uint64_t RuntimeContext::insert_order(const std::string &instrument_id, const st
   input.offset = offset;
   input.hedge_flag = hedge_flag;
   input.block_id = block_id;
-  input.trigger_id = trigger_id;
   input.parent_id = parent_id;
   input.is_swap = is_swap;
-  input.insert_time = insert_time;
+  input.insert_time = time::now_in_nano();
   writer->close_data();
   if (not is_bypass_accounting()) {
     bookkeeper_.on_order_input(app_.now(), app_.get_home_uid(), account_location_uid, input);

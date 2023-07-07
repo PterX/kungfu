@@ -181,12 +181,14 @@ void bind_strategy(pybind11::module &m) {
       .def("insert_order", &strategy::Context::insert_order, py::arg("instrument_id"), py::arg("exchange"),
            py::arg("source"), py::arg("account"), py::arg("limit_price"), py::arg("volume"), py::arg("type"),
            py::arg("side"), py::arg("offset") = Offset::Open, py::arg("hedge_flag") = HedgeFlag::Speculation,
-           py::arg("is_swap") = false, py::arg("block_id") = 0, py::arg("parent_id") = 0, py::arg("trigger_id") = 0)
+           py::arg("is_swap") = false, py::arg("block_id") = 0, py::arg("parent_id") = 0)
       .def("insert_block_message", &strategy::Context::insert_block_message, py::arg("source"), py::arg("account"),
            py::arg("opponent_seat"), py::arg("match_number"), py::arg("is_specific") = false)
-      .def("insert_order_input_trigger", &strategy::Context::insert_order_input_trigger, py::arg("source"),
-           py::arg("account"), py::arg("trigger_type"), py::arg("time_condition"), py::arg("stop_price") = 0,
-           py::arg("value") = "")
+      .def("insert_order_trigger", &strategy::Context::insert_order_trigger, py::arg("instrument_id"),
+           py::arg("exchange"), py::arg("source"), py::arg("account"), py::arg("limit_price"), py::arg("volume"),
+           py::arg("type"), py::arg("side"), py::arg("offset") = Offset::Open, py::arg("trigger_type"),
+           py::arg("time_condition"), py::arg("stop_price"), py::arg("hedge_flag") = HedgeFlag::Speculation,
+           py::arg("is_swap") = false)
       .def("insert_batch_orders", &strategy::Context::insert_batch_orders)
       .def("insert_array_orders", &strategy::Context::insert_array_orders)
       .def("insert_basket_order", &strategy::Context::insert_basket_order, py::arg("basket_id"), py::arg("source"),

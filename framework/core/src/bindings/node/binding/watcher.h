@@ -89,7 +89,7 @@ public:
 
   Napi::Value IssueBlockMessage(const Napi::CallbackInfo &info);
 
-  Napi::Value IssueOrderInputTrigger(const Napi::CallbackInfo &info);
+  Napi::Value IssueOrderTriggerInput(const Napi::CallbackInfo &info);
 
   Napi::Value IssueOrder(const Napi::CallbackInfo &info);
 

@@ -425,7 +425,6 @@ enum class OrderStatus : int8_t {
   PartialFilledNotActive, // 部成部撤
   PartialFilledActive,    // 部成交易中
   Lost,                   // 丢失
-  Parked,                 // 预埋单
   Withdrawing             // 待撤
 };
 
@@ -439,7 +438,6 @@ NLOHMANN_JSON_SERIALIZE_ENUM(OrderStatus, {
                                               {OrderStatus::PartialFilledNotActive, "PartialFilledNotActive"},
                                               {OrderStatus::PartialFilledActive, "PartialFilledActive"},
                                               {OrderStatus::Lost, "Lost"},
-                                              {OrderStatus::Parked, "Parked"},
                                               {OrderStatus::Withdrawing, "Withdrawing"},
                                           })
 
@@ -685,6 +683,25 @@ NLOHMANN_JSON_SERIALIZE_ENUM(OrderTriggerType,
                              })
 
 inline std::ostream &operator<<(std::ostream &os, OrderTriggerType t) { return os << int8_t(t); }
+
+enum class OrderTriggerStatus : int8_t {
+  Unknown,
+  NotSend, /// 未发送(已提交到API服务器未触发)
+  Send,    /// 已发送(已触发,此时已生成对应的Order)
+  Deleted, /// 已删除(已删除)
+  Error    /// 错误
+};
+
+NLOHMANN_JSON_SERIALIZE_ENUM(OrderTriggerStatus, {
+                                                     {OrderTriggerStatus::NotSend, "NotSend"},
+                                                     {OrderTriggerStatus::NotSend, "NotSend"},
+                                                     {OrderTriggerStatus::Send, "Send"},
+                                                     {OrderTriggerStatus::Deleted, "Deleted"},
+                                                     {OrderTriggerStatus::Error, "Error"},
+
+                                                 })
+
+inline std::ostream &operator<<(std::ostream &os, OrderTriggerStatus t) { return os << int8_t(t); }
 
 } // namespace kungfu::longfist::enums
 #endif // KUNGFU_LONGFIST_ENUM_H

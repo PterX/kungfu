@@ -143,7 +143,6 @@ total_volume
 price_level
 price_offset
 dest_id
-trigger_type
 stop_price
 is_last
 data_type
@@ -224,6 +223,8 @@ OrderActionError
 BlockMessage
 OrderStat
 BasketOrder
+OrderTriggerInput
+OrderTrigger
 RequestHistoryOrder
 RequestHistoryTrade
 HistoryOrder
@@ -252,7 +253,6 @@ RequestReadFromOthers
 TimeRequest
 TimeReset
 TradingDay
-OrderInputTrigger
 CustomSubscribe
 SyntheticData
 Register
@@ -355,7 +355,7 @@ on_operator_state_change
 add_strategy
 add_account
 insert_order_input
-insert_order_input_trigger
+insert_order_trigger
 insert_array_orders
 insert_basket_order
 hold_book
@@ -584,7 +584,6 @@ Filled
 PartialFilledNotActive
 PartialFilledActive
 Lost
-Parked
 Withdrawing
 OrderStatus
 Currency
@@ -652,3 +651,7 @@ BidPriceGreaterEqualStopPrice
 BidPriceLesserThanStopPrice
 BidPriceLesserEqualStopPrice
 OrderTriggerType
+NotSend
+Send
+Deleted
+OrderTriggerStatus

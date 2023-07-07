@@ -15,6 +15,8 @@ usable
 bookkeeper
 arguments
 basketorder_engine
+begin_time
+end_time
 gen_time
 trigger_time
 source
@@ -185,8 +187,6 @@ tag_c
 location_uid
 pid
 last_active_time
-begin_time
-end_time
 frame_count
 info_a
 info_b
@@ -488,9 +488,6 @@ SZSE
 HKEx
 MarketType
 Snapshot
-Entrust
-Transaction
-Tree
 SubscribeDataType
 Stock
 Future

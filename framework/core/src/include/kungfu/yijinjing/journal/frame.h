@@ -44,7 +44,7 @@ struct frame : event {
     return reinterpret_cast<char *>(address() + header_length());
   }
 
-  [[nodiscard]] std::string data_as_string() const override { return std::string(data_as_bytes()); }
+  [[nodiscard]] std::string data_as_string() const override { return std::string(data_as_bytes(), data_length()); }
 
   [[nodiscard]] std::string to_string() const override { return std::string(reinterpret_cast<char *>(address())); }
 

@@ -629,6 +629,15 @@ KF_DEFINE_DATA_TYPE(                                     //
     (std::string, value)                                 //
 );
 
+KF_DEFINE_DATA_TYPE(                                          //
+    OutputKey, 701, PK(location_uid), TIMESTAMP(update_time), //
+    (uint32_t, location_uid),                                 //
+    (enums::category, category),                              //
+    (enums::mode, mode),                                      //
+    (std::string, group),                                     //
+    (std::string, name)                                       //
+);
+
 KF_DEFINE_DATA_TYPE(                                //
     Register, 10101, PK(location_uid), PERPETUAL(), //
     (uint32_t, location_uid),                       //

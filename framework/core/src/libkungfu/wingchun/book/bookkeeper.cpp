@@ -24,10 +24,7 @@ Bookkeeper::Bookkeeper(apprentice &app, broker::Client &broker_client, bool bypa
 
 bool Bookkeeper::has_book(uint32_t location_uid) { return books_.find(location_uid) != books_.end(); }
 
-void Bookkeeper::drop_book(uint32_t uid) {
-  SPDLOG_INFO("source: {}", app_.get_location_uname(uid));
-  books_.erase(uid);
-}
+void Bookkeeper::drop_book(uint32_t uid) { books_.erase(uid); }
 
 Book_ptr Bookkeeper::get_book(uint32_t location_uid) {
   if (books_.find(location_uid) == books_.end()) {
@@ -172,8 +169,6 @@ void Bookkeeper::update_instrument_factor(const longfist::types::InstrumentFacto
 }
 
 void Bookkeeper::update_book(const event_ptr &event, const InstrumentKey &instrument_key) {
-  SPDLOG_DEBUG("source: {}, dest: {}", app_.get_location_uname(event->source()),
-               app_.get_location_uname(event->dest()));
   std::lock_guard<std::mutex> lock(update_book_mutex_);
   broker_client_.subscribe(instrument_key);
   auto book = get_book(event->source());
@@ -381,11 +376,6 @@ void Bookkeeper::add_book_listener(const BookListener_ptr &book_listener) { book
 
 void Bookkeeper::mirror_positions(int64_t trigger_time, uint32_t strategy_uid) {
   auto strategy_book = get_book(strategy_uid);
-  SPDLOG_INFO("long_positions: {}, short_positions: {}", strategy_book->long_positions.size(),
-              strategy_book->short_positions.size());
-  for (const auto &pair : strategy_book->long_positions) {
-    SPDLOG_INFO("Position: {}", pair.second.to_string());
-  }
   auto reset_positions = [trigger_time](auto &position) {
     position.volume = 0;
     position.yesterday_volume = 0;
@@ -399,8 +389,6 @@ void Bookkeeper::mirror_positions(int64_t trigger_time, uint32_t strategy_uid) {
   strategy_book->apply_long_positions(reset_positions);
 
   auto copy_positions = [&](auto &position) {
-    SPDLOG_INFO("holder: {}, source_id: {}, position: {}", app_.get_location_uname(position.holder_uid),
-                app_.get_location_uname(position.source_id), position.to_string());
     if (strategy_book->has_position(position.source_id, position.direction, position.exchange_id,
                                     position.instrument_id)) {
       auto &strategy_position = strategy_book->get_position(position.source_id, position.direction,
@@ -410,17 +398,12 @@ void Bookkeeper::mirror_positions(int64_t trigger_time, uint32_t strategy_uid) {
       strategy_position.ledger_category = LedgerCategory::Strategy;
       strategy_position.update_time = trigger_time;
       strategy_position.source_id = position.source_id;
-
-      SPDLOG_INFO("holder: {}, source_id: {}, strategy_position: {}",
-                  app_.get_location_uname(strategy_position.holder_uid),
-                  app_.get_location_uname(strategy_position.source_id), strategy_position.to_string());
     }
   };
 
   for (const auto &pair : get_books()) {
     auto &book = pair.second;
     auto holder_uid = book->asset.holder_uid;
-    SPDLOG_INFO("holder: {}", app_.get_location_uname(holder_uid));
     if (book->asset.ledger_category == LedgerCategory::Account and app_.has_channel(strategy_uid, holder_uid)) {
       book->apply_long_positions(copy_positions);
       book->apply_short_positions(copy_positions);

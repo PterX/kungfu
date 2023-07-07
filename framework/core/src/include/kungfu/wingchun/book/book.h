@@ -60,7 +60,6 @@ struct Book {
   void apply_position(uint32_t source_id, longfist::enums::Direction direction, const char *exchange_id,
                       const char *instrument_id, ApplyMethod method) {
     auto &position = get_position(source_id, direction, exchange_id, instrument_id);
-    SPDLOG_INFO("position: {}", position.to_string());
     method(position);
   }
 
@@ -106,9 +105,7 @@ struct Book {
   template <typename TradingData, typename ApplyMethod>
   std::enable_if_t<not std::is_same_v<TradingData, longfist::types::Quote>>
   apply_long_position_for(const TradingData &data, ApplyMethod method) {
-    SPDLOG_INFO("book holder: {}, source_ids size: {}", asset.holder_uid, source_ids.size());
     for (const auto &source_id : source_ids) {
-      SPDLOG_INFO("book holder: {}, source_id: {}", asset.holder_uid, source_id);
       apply_position(source_id, longfist::enums::Direction::Long, data.exchange_id, data.instrument_id, method);
     }
   }

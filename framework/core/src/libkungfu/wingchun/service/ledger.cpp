@@ -170,7 +170,6 @@ void Ledger::update_account_book(int64_t trigger_time, uint32_t account_uid) {
 }
 
 void Ledger::inspect_channel(int64_t trigger_time, const Channel &channel) {
-  SPDLOG_INFO("channel: {} to {}", get_location_uname(channel.source_id), get_location_uname(channel.dest_id));
   auto source_location = get_location(channel.source_id);
   auto is_from_account = source_location->category == category::TD;
 
@@ -232,7 +231,6 @@ void Ledger::write_strategy_data(int64_t trigger_time, uint32_t strategy_uid) {
 
   auto location = get_location(strategy_uid);
   auto writer = get_writer(strategy_uid);
-  SPDLOG_INFO("bookkeeper_.get_books().size(): {}", bookkeeper_.get_books().size());
   for (const auto &pair : bookkeeper_.get_books()) {
     auto &book = pair.second;
     auto &asset = book->asset;
@@ -241,7 +239,6 @@ void Ledger::write_strategy_data(int64_t trigger_time, uint32_t strategy_uid) {
     bool has_account = asset.ledger_category == LedgerCategory::Account and has_channel(book_uid, strategy_uid);
     bool is_strategy = location->category == category::STRATEGY and book_uid == strategy_uid;
     bool is_system = location->category == category::SYSTEM;
-    SPDLOG_INFO("has_account: {}, is_strategy:{},  is_system: {}", has_account, is_strategy, is_system);
     if (has_account or is_strategy or is_system) {
       write_positions(trigger_time, strategy_uid, book->long_positions);
       write_positions(trigger_time, strategy_uid, book->short_positions);
@@ -258,8 +255,6 @@ void Ledger::write_strategy_data(int64_t trigger_time, uint32_t strategy_uid) {
 void Ledger::write_positions(int64_t trigger_time, uint32_t dest, book::PositionMap &positions) {
   auto writer = get_writer(dest);
   for (const auto &pair : positions) {
-    SPDLOG_INFO("holder: {}, source_id: {}, Position: {}", get_location_uname(pair.second.holder_uid),
-                get_location_uname(pair.second.source_id), pair.second.to_string());
     if (pair.second.volume > 0) {
       writer->write_as(trigger_time, pair.second, get_home_uid(), pair.second.holder_uid);
     }

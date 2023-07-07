@@ -79,11 +79,25 @@ void LiveContext::prepare(const event_ptr &event) {
     return;
   }
 
+  auto has_channel = [&](const auto &locations) {
+    return std::all_of(locations.begin(), locations.end(), [&](const auto &it) {
+      return get_broker_client().has_channel(get_home_uid(), it.second->uid) and
+             get_broker_client().has_channel(it.second->uid, get_home_uid());
+    });
+  };
+  if (not has_channel(list_accounts())) {
+    return;
+  }
+
   if (not positions_requested_) {
     if (not is_book_held()) {
       // Start - Let ledger prepare book for strategy
       writer->mark(now(), KeepPositionsRequest::tag);
       writer->mark(now(), ResetBookRequest::tag);
+    }
+
+    for (const auto &td_pair : list_accounts()) {
+      writer->write(now(), td_pair.second->to<OutputKey>());
     }
 
     for (const auto &pair : get_broker_client().get_instrument_keys()) {

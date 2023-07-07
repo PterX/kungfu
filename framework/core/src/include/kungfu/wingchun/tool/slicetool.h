@@ -55,8 +55,6 @@ public:
 
   bool data_available() const;
 
-  int64_t get_last_read_gen_time() const { return last_read_gen_time_; }
-
   void join(const yijinjing::data::location_ptr &location, uint32_t dest_id, const int64_t from_time);
 
   yijinjing::journal::frame_ptr current_frame() const;
@@ -67,6 +65,7 @@ protected:
 
   // void write_raw_at_as(int64_t gen_time, int64_t trigger_time, uint32_t source, uint32_t dest_id, int32_t msg_type,
   //                      uintptr_t data, uint32_t length);
+  int64_t get_last_read_gen_time() const { return last_read_gen_time_; }
 
   longfist::enums::category category_;
   std::string group_;

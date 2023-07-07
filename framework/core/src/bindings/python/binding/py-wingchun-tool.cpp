@@ -105,7 +105,13 @@ void bind_tool(pybind11::module &m) {
                               .def_property_readonly("begin_time", &SliceTool::get_begin_time)
                               .def_property_readonly("end_time", &SliceTool::get_end_time)
                               .def_property_readonly("arguments", &SliceTool::get_arguments)
-                              .def("run", &SliceTool::run);
+                              .def("run", &SliceTool::run)
+                              .def("find_md_slice_location", &SliceTool::find_md_slice_location)
+                              .def("find_operator_slice_location", &SliceTool::find_operator_slice_location)
+                              .def("next", &SliceTool::next)
+                              .def("data_available", &SliceTool::data_available)
+                              .def("current_frame", &SliceTool::current_frame)
+                              .def("join", &SliceTool::join);
 
   boost::hana::for_each(boost::hana::insert(MarketDataTypes, TYPE_PAIR(SyntheticData)), [&](auto type) {
     using DataType = typename decltype(+boost::hana::second(type))::type;

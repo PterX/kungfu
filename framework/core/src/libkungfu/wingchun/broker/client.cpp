@@ -105,6 +105,7 @@ void Client::subscribe(const location_ptr &md_location, const std::string &excha
 }
 
 void Client::renew(int64_t trigger_time, const location_ptr &md_location) {
+  SPDLOG_DEBUG("md_location: {}", md_location->uname);
   auto writer = app_.get_writer(md_location->uid);
   for (const auto &pair : instrument_keys_) {
     auto &instrument_key = pair.second;

@@ -24,7 +24,10 @@ Bookkeeper::Bookkeeper(apprentice &app, broker::Client &broker_client, bool bypa
 
 bool Bookkeeper::has_book(uint32_t location_uid) { return books_.find(location_uid) != books_.end(); }
 
-void Bookkeeper::drop_book(uint32_t uid) { books_.erase(uid); }
+void Bookkeeper::drop_book(uint32_t uid) {
+  SPDLOG_INFO("source: {}", app_.get_location_uname(uid));
+  books_.erase(uid);
+}
 
 Book_ptr Bookkeeper::get_book(uint32_t location_uid) {
   if (books_.find(location_uid) == books_.end()) {
@@ -56,7 +59,7 @@ void Bookkeeper::on_start(const rx::connectable_observable<event_ptr> &events) {
   events | fork<Position>(location::SYNC, &Bookkeeper::try_update_position_replica, &Bookkeeper::try_update_position);
   events | fork<PositionEnd>(location::SYNC, &Bookkeeper::update_position_guard, &Bookkeeper::try_update_position_end);
   events | is(ResetBookRequest::tag) | $$(drop_book(event->source()));
-  events | is(Channel::tag) | $$(inspect_channel(event));
+  events | is(OutputKey::tag) | $$(on_output_key(event));
 
   if (bypass_quote_) {
     app_.add_time_interval(yijinjing::time_unit::NANOSECONDS_PER_SECOND * 15,
@@ -169,6 +172,8 @@ void Bookkeeper::update_instrument_factor(const longfist::types::InstrumentFacto
 }
 
 void Bookkeeper::update_book(const event_ptr &event, const InstrumentKey &instrument_key) {
+  SPDLOG_DEBUG("source: {}, dest: {}", app_.get_location_uname(event->source()),
+               app_.get_location_uname(event->dest()));
   std::lock_guard<std::mutex> lock(update_book_mutex_);
   broker_client_.subscribe(instrument_key);
   auto book = get_book(event->source());
@@ -394,6 +399,8 @@ void Bookkeeper::mirror_positions(int64_t trigger_time, uint32_t strategy_uid) {
   strategy_book->apply_long_positions(reset_positions);
 
   auto copy_positions = [&](auto &position) {
+    SPDLOG_INFO("holder: {}, source_id: {}, position: {}", app_.get_location_uname(position.holder_uid),
+                app_.get_location_uname(position.source_id), position.to_string());
     if (strategy_book->has_position(position.source_id, position.direction, position.exchange_id,
                                     position.instrument_id)) {
       auto &strategy_position = strategy_book->get_position(position.source_id, position.direction,
@@ -403,28 +410,28 @@ void Bookkeeper::mirror_positions(int64_t trigger_time, uint32_t strategy_uid) {
       strategy_position.ledger_category = LedgerCategory::Strategy;
       strategy_position.update_time = trigger_time;
       strategy_position.source_id = position.source_id;
+
+      SPDLOG_INFO("holder: {}, source_id: {}, strategy_position: {}",
+                  app_.get_location_uname(strategy_position.holder_uid),
+                  app_.get_location_uname(strategy_position.source_id), strategy_position.to_string());
     }
   };
 
   for (const auto &pair : get_books()) {
     auto &book = pair.second;
     auto holder_uid = book->asset.holder_uid;
+    SPDLOG_INFO("holder: {}", app_.get_location_uname(holder_uid));
     if (book->asset.ledger_category == LedgerCategory::Account and app_.has_channel(strategy_uid, holder_uid)) {
       book->apply_long_positions(copy_positions);
       book->apply_short_positions(copy_positions);
-      //      book->add_source_id(holder_uid);
     }
   }
   strategy_book->update(trigger_time, account_method_type_);
 }
 
-void Bookkeeper::inspect_channel(const event_ptr &event) {
-  const Channel &channel = event->data<Channel>();
-  if (app_.get_location(channel.source_id)->category != category::TD and
-      app_.get_location(channel.dest_id)->category == category::TD) {
-    get_book(channel.source_id)->add_source_id(channel.source_id);
-    get_book(channel.source_id)->add_source_id(channel.dest_id);
-  }
+void Bookkeeper::on_output_key(const event_ptr &event) {
+  const OutputKey &key = event->data<OutputKey>();
+  get_book(event->source())->add_source_id(key.location_uid);
 }
 
 } // namespace kungfu::wingchun::book

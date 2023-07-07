@@ -168,7 +168,7 @@ private:
 
   Book_ptr get_book_replica(uint32_t location_uid);
 
-  void inspect_channel(const event_ptr &event);
+  void on_output_key(const event_ptr &event);
 };
 } // namespace kungfu::wingchun::book
 #endif // WINGCHUN_BOOKKEEPER_H

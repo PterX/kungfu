@@ -133,6 +133,8 @@ public:
     return app_.get_location(uid);
   }
 
+  [[nodiscard]] bool has_channel(uint32_t source, uint32_t dest) const { return app_.has_channel(source, dest); }
+
 protected:
   yijinjing::practice::apprentice &app_;
 

@@ -257,6 +257,7 @@ TimeReset
 TradingDay
 CustomSubscribe
 SyntheticData
+OutputKey
 Register
 Deregister
 Session

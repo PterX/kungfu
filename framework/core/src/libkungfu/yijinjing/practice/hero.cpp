@@ -160,7 +160,7 @@ std::string hero::get_location_uname(uint32_t uid) const {
 bool hero::is_location_live(uint32_t uid) const { return registry_.find(uid) != registry_.end(); }
 
 bool hero::has_channel(uint32_t source, uint32_t dest) const {
-  return has_channel(make_source_dest_hash(source, dest));
+  return has_channel(make_source_dest_hash(source, dest)) or has_channel(make_source_dest_hash(dest, source));
 }
 
 bool hero::has_channel(uint64_t hash) const { return channels_.find(hash) != channels_.end(); }

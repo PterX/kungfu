@@ -26,10 +26,15 @@ double Book::get_frozen_price(uint64_t order_id) {
   return 0;
 }
 
-void Book::add_source_id(uint32_t source_id) { source_ids.insert(source_id); }
+void Book::add_source_id(uint32_t source_id) {
+  SPDLOG_INFO("book holder: {}, source_id: {}", asset.holder_uid, source_id);
+  source_ids.insert(source_id);
+  SPDLOG_INFO("source_ids.size(): {}", source_ids.size());
+}
 
 void Book::ensure_position_for(const InstrumentKey &instrument_key) {
   auto apply = [&](auto &position) { assert(position.volume >= 0); };
+  SPDLOG_INFO("InstrumentKey: {}", instrument_key.to_string());
   apply_short_position_for(instrument_key, apply);
   apply_long_position_for(instrument_key, apply);
 }

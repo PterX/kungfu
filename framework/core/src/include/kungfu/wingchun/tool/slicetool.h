@@ -51,6 +51,16 @@ public:
 
   yijinjing::data::location_ptr find_operator_slice_location(int64_t nano_time) const;
 
+  void next();
+
+  bool data_available() const;
+
+  int64_t get_last_read_gen_time() const { return last_read_gen_time_; }
+
+  void join(const yijinjing::data::location_ptr &location, uint32_t dest_id, const int64_t from_time);
+
+  yijinjing::journal::frame_ptr current_frame() const;
+
 protected:
   // void write_raw_at(int64_t gen_time, int64_t trigger_time, uint32_t dest_id, int32_t msg_type, uintptr_t data,
   //                   uint32_t length);
@@ -70,15 +80,7 @@ protected:
   mutable int64_t last_read_gen_time_;
   const std::string arguments_;
 
-  void next();
 
-  bool data_available() const;
-
-  int64_t get_last_read_gen_time() const { return last_read_gen_time_; }
-
-  void join(const yijinjing::data::location_ptr &location, uint32_t dest_id, const int64_t from_time);
-
-  yijinjing::journal::frame_ptr current_frame() const;
 
   yijinjing::journal::writer_ptr get_writer(const yijinjing::data::location_ptr &location, uint32_t dest_id);
 

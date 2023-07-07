@@ -44,12 +44,22 @@ yjj = kungfu.__binding__.yijinjing
     "-a",
     "--arguments",
     type=str,
+    default="",
     required=False,
     help="arguments passed to SliceTool::get_arguments",
 )
+@click.option(
+    "-o",
+    "--override",
+    # type=click.Choice([False, True]),
+    type=bool,
+    default=True,
+    required=False,
+    help="do not use it until you really understand what you are doing!",
+)
 @kfc.pass_context()
 def slicetool(
-    ctx, begin, end, category, group, name, tool_path, indexer_path, arguments
+    ctx, begin, end, category, group, name, tool_path, indexer_path, arguments, override
 ):
     location = yjj.location(
         kfj.MODES["data"],
@@ -81,11 +91,11 @@ def slicetool(
     if not tool_path.suffix.endswith("py"):
         slice_tool_builder = getattr(module, "slice_tool")
         tool = slice_tool_builder(
-            kfj.CATEGORIES[category], group, name, indexer, arguments
+            kfj.CATEGORIES[category], group, name, indexer, override, arguments
         )
         tool.run()
     else:
         tool_script = getattr(module, "run")
         tool_script(
-            wc.SliceTool(kfj.CATEGORIES[category], group, name, indexer, arguments)
+            wc.SliceTool(kfj.CATEGORIES[category], group, name, indexer, override, arguments)
         )

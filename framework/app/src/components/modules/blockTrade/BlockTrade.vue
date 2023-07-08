@@ -85,9 +85,7 @@ function handleResetMakeOrderForm() {
 
 watch(
   () => formState.value.instrument,
-  (newVal) => {
-    console.log(newVal, '````````````````````');
-    console.log(formState.value, '````````````````````');
+  () => {
     const instrument = formState.value.instrument.toString();
     const instrumnetResolved =
       transformSearchInstrumentResultToInstrument(instrument);

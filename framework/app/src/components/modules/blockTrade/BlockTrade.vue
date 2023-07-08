@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, ref } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
 import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
 import KfConfigSettingsForm from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfConfigSettingsForm.vue';
@@ -15,6 +15,7 @@ import {
   useCurrentGlobalKfLocation,
   useMakeOrderSubscribe,
   useProcessStatusDetailData,
+  useActiveInstruments,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import {
   confirmModal,
@@ -27,6 +28,7 @@ import { HedgeFlagEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 
 const { t } = VueI18n.global;
 const { error } = messagePrompt();
+const { getPriceTickAndPrecision } = useActiveInstruments();
 
 const { handleBodySizeChange } = useDashboardBodySize();
 
@@ -41,13 +43,15 @@ const {
 } = useCurrentGlobalKfLocation(window.watcher);
 useMakeOrderSubscribe(formState);
 
+let pricePrecision = 0;
+let step = 1;
 const configSettings = computed(() => {
   if (!currentGlobalKfLocation.value) {
     return getConfigSettings();
   }
 
   const { category } = currentGlobalKfLocation.value;
-  return getConfigSettings(category);
+  return getConfigSettings(category, step, pricePrecision);
 });
 
 function numberValidator(_rule: RuleObject, value: string | number) {
@@ -78,6 +82,31 @@ function handleResetMakeOrderForm() {
     formRef.value.clearValidate();
   });
 }
+
+watch(
+  () => formState.value.instrument,
+  () => {
+    const instrument = formState.value.instrument.toString();
+    const instrumnetResolved =
+      transformSearchInstrumentResultToInstrument(instrument);
+    if (instrumnetResolved) {
+      const { instrumentId, exchangeId } = instrumnetResolved;
+      const { price_tick, price_precision } = getPriceTickAndPrecision(
+        instrumentId,
+        exchangeId,
+      );
+      step = price_tick;
+      pricePrecision = price_precision;
+      const limitPriceIndex = configSettings.value.findIndex((configItem) => {
+        return configItem.key === 'limit_price';
+      });
+      if (limitPriceIndex) {
+        configSettings.value[limitPriceIndex].step = step;
+        configSettings.value[limitPriceIndex].precision = pricePrecision;
+      }
+    }
+  },
+);
 
 function handleMakeOrder() {
   formRef.value

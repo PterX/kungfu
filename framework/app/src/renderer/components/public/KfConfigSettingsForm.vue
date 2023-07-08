@@ -26,6 +26,7 @@ import {
   PriceLevel,
   Side,
 } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
+import { SpecialWordsReg } from '@kungfu-trader/kungfu-js-api/config/systemCongfig';
 import {
   getIdByKfLocation,
   transformSearchInstrumentResultToInstrument,
@@ -385,9 +386,6 @@ function isNumberInputType(type: string): boolean {
   return numberInputTypes.includes(type);
 }
 
-const SpecialWordsReg = new RegExp(
-  "[`~!@#$^&*()=|{}';'\\[\\]<>《》?~！@#￥……&*（）——|{}【】‘；”“'。，、？_]",
-);
 function primaryKeyValidator(_rule: RuleObject, value: string): Promise<void> {
   const combineValue: string = getCombineValueByPrimaryKeys(
     primaryKeys.value,

@@ -9,7 +9,7 @@ import {
   KF_HOME,
   KF_RUNTIME_DIR,
 } from '../config/pathConfig';
-import { SpecialWordsRegForShow } from '../config/systemCongfig';
+import { SpecialWordsReg } from '../config/systemCongfig';
 import {
   InstrumentType,
   KfCategory,
@@ -2004,7 +2004,7 @@ export const replaceNonAlphaNumericWithSpace = (
   value: KungfuApi.KfConfigValue,
 ) => {
   if (typeof value === 'string') {
-    return value.replace(SpecialWordsRegForShow, '');
+    return value.replace(SpecialWordsReg, '').replace(/[.:/]/g, '');
   } else {
     return value;
   }

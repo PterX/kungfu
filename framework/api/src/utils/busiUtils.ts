@@ -2301,6 +2301,7 @@ export const removeNoDefaultStrategyFolders = async (): Promise<void> => {
 // 处理下单时输入数据
 export const dealOrderInputItem = (
   inputData: KungfuApi.MakeOrderInput,
+  price_precision?: number,
 ): Record<string, KungfuApi.KfTradeValueCommonData> => {
   const orderInputResolved: Record<string, KungfuApi.KfTradeValueCommonData> =
     {};
@@ -2321,6 +2322,11 @@ export const dealOrderInputItem = (
     } else if (key === 'is_swap') {
       isInstrumnetShotable &&
         (orderInputResolved[key] = dealIsSwap(inputData.is_swap));
+    } else if (key === 'limit_price' && price_precision) {
+      orderInputResolved[key] = {
+        name: dealAssetPrice(inputData[key], price_precision),
+        color: 'default',
+      };
     } else {
       orderInputResolved[key] = {
         name: inputData[key],

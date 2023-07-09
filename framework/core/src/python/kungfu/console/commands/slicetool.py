@@ -50,7 +50,7 @@ yjj = kungfu.__binding__.yijinjing
 )
 @click.option(
     "-o",
-    "--override",
+    "--overwrite",
     # type=click.Choice([False, True]),
     type=bool,
     default=True,
@@ -59,7 +59,7 @@ yjj = kungfu.__binding__.yijinjing
 )
 @kfc.pass_context()
 def slicetool(
-    ctx, begin, end, category, group, name, tool_path, indexer_path, arguments, override
+    ctx, begin, end, category, group, name, tool_path, indexer_path, arguments, overwrite
 ):
     location = yjj.location(
         kfj.MODES["data"],
@@ -91,13 +91,13 @@ def slicetool(
     if not tool_path.suffix.endswith("py"):
         slice_tool_builder = getattr(module, "slice_tool")
         tool = slice_tool_builder(
-            kfj.CATEGORIES[category], group, name, indexer, override, arguments
+            kfj.CATEGORIES[category], group, name, indexer, overwrite, arguments
         )
         tool.run()
     else:
         tool_script = getattr(module, "run")
         tool_script(
             wc.SliceTool(
-                kfj.CATEGORIES[category], group, name, indexer, override, arguments
+                kfj.CATEGORIES[category], group, name, indexer, overwrite, arguments
             )
         )

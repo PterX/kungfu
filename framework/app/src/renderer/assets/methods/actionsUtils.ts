@@ -173,7 +173,7 @@ export const useUpdateVersion = () => {
         }
 
         if (data.name === 'auto-update-download-process') {
-          process.value = Number((+data.payload.process).toFixed(2));
+          process.value = Number((+data.payload.process).kfToFixed(2));
           if (process.value === 100) {
             progressStatus.value = 'success';
             errorMessage.value = '';
@@ -1379,7 +1379,7 @@ export const useQuote = (): {
       return '--';
     }
 
-    return Number(percent * 100).toFixed(2) + '%';
+    return Number(percent * 100).kfToFixed(2) + '%';
   };
 
   const getPreClosePrice = (
@@ -1392,7 +1392,7 @@ export const useQuote = (): {
     }
 
     const { pre_close_price } = quote;
-    return pre_close_price.toFixed(2);
+    return pre_close_price.kfToFixed(2);
   };
 
   const isInstrumentUpLimit = (instrument: KungfuApi.InstrumentResolved) => {
@@ -2471,8 +2471,8 @@ export const useMakeOrderSubscribe = (
             formState.value.instrument = instrumentValue;
             formState.value.offset = +offset;
             formState.value.side = +side;
-            formState.value.volume = +Number(volume).toFixed(0);
-            formState.value.limit_price = +Number(price).toFixed(4);
+            formState.value.volume = +Number(volume).kfToFixed(0);
+            formState.value.limit_price = +Number(price).kfToFixed(4);
             formState.value.instrument_type = +instrumentType;
 
             if (accountId) {
@@ -2497,7 +2497,7 @@ export const useMakeOrderSubscribe = (
             }
 
             if (!!price && !Number.isNaN(price) && +price !== 0) {
-              formState.value.limit_price = +Number(price).toFixed(4);
+              formState.value.limit_price = +Number(price).kfToFixed(4);
             }
 
             const shouldUpdateVolume =
@@ -2510,7 +2510,7 @@ export const useMakeOrderSubscribe = (
               BigInt(volume) !== BigInt(0);
 
             if (shouldUpdateVolume && isNewVolumeValuable) {
-              formState.value.volume = +Number(volume).toFixed(0);
+              formState.value.volume = +Number(volume).kfToFixed(0);
               lastVolume = formState.value.volume;
             }
 

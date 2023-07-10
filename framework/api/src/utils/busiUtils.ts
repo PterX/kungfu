@@ -9,6 +9,7 @@ import {
   KF_HOME,
   KF_RUNTIME_DIR,
 } from '../config/pathConfig';
+import { SpecialWordsReg } from '../config/systemConfig';
 import {
   InstrumentType,
   KfCategory,
@@ -2003,7 +2004,7 @@ export const replaceNonAlphaNumericWithSpace = (
   value: KungfuApi.KfConfigValue,
 ) => {
   if (typeof value === 'string') {
-    return value.replace(/[^a-zA-Z0-9]+/g, '');
+    return value.replace(SpecialWordsReg, '').replace(/[.:/]/g, '');
   } else {
     return value;
   }
@@ -2300,6 +2301,7 @@ export const removeNoDefaultStrategyFolders = async (): Promise<void> => {
 // 处理下单时输入数据
 export const dealOrderInputItem = (
   inputData: KungfuApi.MakeOrderInput,
+  price_precision?: number,
 ): Record<string, KungfuApi.KfTradeValueCommonData> => {
   const orderInputResolved: Record<string, KungfuApi.KfTradeValueCommonData> =
     {};
@@ -2320,6 +2322,11 @@ export const dealOrderInputItem = (
     } else if (key === 'is_swap') {
       isInstrumnetShotable &&
         (orderInputResolved[key] = dealIsSwap(inputData.is_swap));
+    } else if (key === 'limit_price' && price_precision) {
+      orderInputResolved[key] = {
+        name: dealAssetPrice(inputData[key], price_precision),
+        color: 'default',
+      };
     } else {
       orderInputResolved[key] = {
         name: inputData[key],

@@ -56,7 +56,7 @@ const cancelRatioMean = computed(() => {
   }
 
   const stats = new Stats().push(...cancelRatioBuckets);
-  return stats.amean().toFixed(2);
+  return stats.amean().kfToFixed(2);
 });
 
 const systemLatencyStats = computed(() => {
@@ -76,7 +76,7 @@ const systemLatencyStats = computed(() => {
   const stats = new Stats().push(...systemLatencyBuckets);
   const range = stats.range();
   return {
-    mean: stats.amean().toFixed(2),
+    mean: stats.amean().kfToFixed(2),
     min: range[0],
     max: range[1],
   };
@@ -101,7 +101,7 @@ const networkLatencyStats = computed(() => {
   const stats = new Stats().push(...networkLatencyBuckets);
   const range = stats.range();
   return {
-    mean: stats.amean().toFixed(2),
+    mean: stats.amean().kfToFixed(2),
     min: range[0],
     max: range[1],
   };

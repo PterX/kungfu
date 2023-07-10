@@ -110,6 +110,11 @@ declare global {
     toKfName(): string;
   }
 
+  interface Number {
+    kfRound(precision?: number): number;
+    kfToFixed(precision?: number): string;
+  }
+
   interface Array<T> {
     removeRepeat(): Array<T>;
     kfForEach(cb: <T>(t: T, index: number) => void): void;
@@ -168,6 +173,15 @@ String.prototype.parseSourceAccountId = function (): SourceAccountId {
       id: parseList[1],
     };
   }
+};
+
+Number.prototype.kfRound = function (precision?: number) {
+  const temp = 10 ** (precision || 0);
+  return Math.round(Number(this) * temp) / temp;
+};
+
+Number.prototype.kfToFixed = function (precision?: number) {
+  return this.kfRound(precision).toString();
 };
 
 Array.prototype.removeRepeat = function () {
@@ -1244,7 +1258,7 @@ export const getPropertyFromProcessStatusDetailDataByKfLocation = (
   return {
     status,
     cpu: monit.cpu || 0,
-    memory: Number((monit.memory || 0) / (1024 * 1024)).toFixed(2),
+    memory: Number((monit.memory || 0) / (1024 * 1024)).kfToFixed(2),
   };
 };
 
@@ -1536,7 +1550,7 @@ export const dealKfPrice = (
     return afterNumber;
   }
 
-  return Number(afterNumber).toFixed(pricePrecision ?? 3);
+  return Number(afterNumber).kfToFixed(pricePrecision ?? 3);
 };
 
 export const dealAssetPrice = (
@@ -1549,7 +1563,7 @@ export const dealAssetPrice = (
     return afterNumber;
   }
 
-  return Number(afterNumber).toFixed(pricePrecision ?? 3);
+  return Number(afterNumber).kfToFixed(pricePrecision ?? 3);
 };
 
 export const sum = (list: number[]): number => {
@@ -1707,15 +1721,15 @@ export const dealOrderStat = (
   const { insert_time, ack_time, md_time, trade_time } = orderStat;
   const latencyTrade =
     trade_time && ack_time
-      ? Number(Number(trade_time - ack_time) / 1000).toFixed(0)
+      ? Number(Number(trade_time - ack_time) / 1000).kfToFixed(0)
       : '--';
   const latencyNetwork =
     ack_time && insert_time
-      ? Number(Number(ack_time - insert_time) / 1000).toFixed(0)
+      ? Number(Number(ack_time - insert_time) / 1000).kfToFixed(0)
       : '--';
   const latencySystem =
     insert_time && md_time
-      ? Number(Number(insert_time - md_time) / 1000).toFixed(0)
+      ? Number(Number(insert_time - md_time) / 1000).kfToFixed(0)
       : '--';
 
   return {
@@ -2526,7 +2540,7 @@ export const buildIfWatcherLiveObservable = (watcher: KungfuApi.Watcher) => {
 };
 
 export function countDecimalPlaces(num) {
-  const normalNum = Number(num).toFixed(10);
+  const normalNum = Number(num).kfToFixed(10);
   const numStr = String(normalNum)
     .replace(/(\.\d*?[1-9])0+$/, '$1')
     .replace(/\.0+$/, '');

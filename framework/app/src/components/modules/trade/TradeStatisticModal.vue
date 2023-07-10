@@ -53,7 +53,7 @@ const tradeLatencyStats = computed(() => {
   const stats = new Stats().push(...tradeLatencyBuckets);
   const range = stats.range();
   return {
-    mean: stats.amean().toFixed(2),
+    mean: stats.amean().kfToFixed(2),
     min: range[0],
     max: range[1],
   };

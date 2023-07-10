@@ -457,7 +457,7 @@ function dealFatFingerMessage(
   if (SideEnum.Buy == side && price > lastPrice * fatFingerBuyRate) {
     return t('tradingConfig.fat_finger_buy_modal', {
       price: price,
-      warningLine: (lastPrice * fatFingerBuyRate).toFixed(4),
+      warningLine: (lastPrice * fatFingerBuyRate).kfToFixed(4),
       fatFinger: fatFingerRange,
     });
   }
@@ -465,7 +465,7 @@ function dealFatFingerMessage(
   if (SideEnum.Sell == side && price < lastPrice * fatFingerSellRate) {
     return t('tradingConfig.fat_finger_sell_modal', {
       price: price,
-      warningLine: (lastPrice * fatFingerSellRate).toFixed(4),
+      warningLine: (lastPrice * fatFingerSellRate).kfToFixed(4),
       fatFinger: fatFingerRange,
     });
   }

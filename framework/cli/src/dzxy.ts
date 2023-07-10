@@ -289,7 +289,7 @@ function turnBigIntToString<T>(list: T[]) {
   list.forEach((item) => {
     Object.keys(item).forEach((key) => {
       if (typeof item[key] === 'bigint') {
-        item[key] = Number(item[key]).toFixed(0);
+        item[key] = Number(item[key]).kfToFixed(0);
       }
     });
   });

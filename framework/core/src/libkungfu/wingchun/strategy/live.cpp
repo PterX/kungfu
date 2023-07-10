@@ -79,13 +79,13 @@ void LiveContext::prepare(const event_ptr &event) {
     return;
   }
 
-  auto has_channel = [&](const auto &locations) {
+  auto has_td_channel = [&](const auto &locations) {
     return std::all_of(locations.begin(), locations.end(), [&](const auto &it) {
       return get_broker_client().has_channel(get_home_uid(), it.second->uid) and
              get_broker_client().has_channel(it.second->uid, get_home_uid());
     });
   };
-  if (not has_channel(list_accounts())) {
+  if (not has_td_channel(list_accounts())) {
     return;
   }
 

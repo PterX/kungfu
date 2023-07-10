@@ -769,6 +769,7 @@ export default {
   validate: {
     no_special_characters:
       'Cannot contain special characters or Chinese characters',
+    single_characters: 'Must contain numbers and letters',
     no_underscore: 'Cannot contain underscores',
     no_zero_number: 'Cannot contain zero',
     no_negative_number: 'Cannot contain negative',

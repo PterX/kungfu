@@ -26,7 +26,7 @@ import {
   PriceLevel,
   Side,
 } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
-import { SpecialWordsReg } from '@kungfu-trader/kungfu-js-api/config/systemCongfig';
+import { SpecialWordsReg } from '@kungfu-trader/kungfu-js-api/config/systemConfig';
 import {
   getIdByKfLocation,
   transformSearchInstrumentResultToInstrument,

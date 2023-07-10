@@ -9,7 +9,7 @@ import {
   KF_HOME,
   KF_RUNTIME_DIR,
 } from '../config/pathConfig';
-import { SpecialWordsReg } from '../config/systemCongfig';
+import { SpecialWordsReg } from '../config/systemConfig';
 import {
   InstrumentType,
   KfCategory,

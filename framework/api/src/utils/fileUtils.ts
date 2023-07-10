@@ -240,24 +240,23 @@ export const removeTargetFoldersInFolder = async (
     });
 
     for (const f of folders) {
-      for (const n of includes) {
-        if (n === f) {
-          try {
-            const targetFolder = path.join(folder, f);
-            await fsPromise.rm(targetFolder, {
-              force: true,
-              recursive: true,
-            });
-            results.successes.push(targetFolder);
-          } catch (error) {
-            if (error instanceof Error) {
-              console.error(error);
-              results.errors.push(error.message);
-            }
+      if (includes.includes(f)) {
+        try {
+          const targetFolder = path.join(folder, f);
+          await fsPromise.rm(targetFolder, {
+            force: true,
+            recursive: true,
+            maxRetries: 10,
+          });
+          results.successes.push(targetFolder);
+        } catch (error) {
+          if (error instanceof Error) {
+            console.error(error);
+            results.errors.push(error.message);
           }
-        } else {
-          await iterator(path.join(folder, f));
         }
+      } else {
+        await iterator(path.join(folder, f));
       }
     }
   };

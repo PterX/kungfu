@@ -329,7 +329,7 @@ enum class PriceType : int8_t {
   Fok,            // 深圳市价全额成交或者撤销，不需要报价
   EnhancedLimit,  // 增强限价盘-港股
   AtAuctionLimit, // 竞价限价盘-港股
-  AtAuction,      // 竞价限价盘-港股| 期货
+  AtAuction,      // 竞价盘-港股| 期货(竞价盘的价格就是开市价格)
   Unknown
 };
 

@@ -121,6 +121,9 @@ void Ledger::update_order_stat(const event_ptr &event, const Order &data) {
     write_book(event->gen_time(), event->source(), event->dest(), data);
   }
   auto &stat = get_order_stat(data.order_id, event);
+  if (stat.order_id == 0) {
+    stat.order_id = data.order_id;
+  }
   auto inserted = stat.insert_time != 0;
   auto acked = stat.ack_time != 0;
   if (not inserted) {
@@ -155,6 +158,10 @@ double Ledger::translate_by_price_tick(const char *exchange_id, const char *inst
 void Ledger::update_order_stat(const event_ptr &event, const Trade &data) {
   write_book(event->gen_time(), event->source(), event->dest(), data);
   auto &stat = get_order_stat(data.order_id, event);
+  if (stat.order_id == 0) {
+    stat.order_id = data.order_id;
+  }
+
   if (stat.trade_time < event->gen_time()) {
     stat.trade_time = event->gen_time();
     stat.total_price += data.price * double(data.volume);

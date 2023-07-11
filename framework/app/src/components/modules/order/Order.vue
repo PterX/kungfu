@@ -40,6 +40,7 @@ import { getColumns } from './config';
 import {
   dealOrder,
   getKungfuHistoryData,
+  getOrderLatencyDataByOrderStat,
   kfCancelAllOrders,
   kfCancelOrder,
   makeOrderByOrderInput,
@@ -148,7 +149,11 @@ onMounted(() => {
               ...dealDataWithCache(item, () =>
                 dealOrder(watcher, item, false, price_precision),
               ),
-              ...getLatencyData(item, price_precision), // 分离出OrderMedianResolved，解决缓存依赖值变更，但缓存uid_key和update_time不变导致取值错误
+              ...getOrderLatencyDataByOrderStat(
+                item,
+                watcher.ledger.OrderStat,
+                price_precision,
+              ), // 分离出OrderMedianResolved，解决缓存依赖值变更，但缓存uid_key和update_time不变导致取值错误
             });
           });
           allOrders.value = tempAllOrders;
@@ -171,7 +176,11 @@ onMounted(() => {
               ...dealDataWithCache(curOrder, () =>
                 dealOrder(watcher, curOrder, false, price_precision),
               ),
-              ...getLatencyData(curOrder, price_precision),
+              ...getOrderLatencyDataByOrderStat(
+                curOrder,
+                watcher.ledger.OrderStat,
+                price_precision,
+              ),
             });
             preOrders.totalOrders.push(orderResolved);
             if (isFinishedOrderStatus(curOrder.status)) {
@@ -255,7 +264,11 @@ watch(historyDate, async (newDate) => {
             ...dealDataWithCache(item, () =>
               dealOrder(window.watcher, item, true, price_precision),
             ),
-            ...getLatencyData(item, price_precision),
+            ...getOrderLatencyDataByOrderStat(
+              item,
+              window.watcher.ledger.OrderStat,
+              price_precision,
+            ),
           });
         }),
       );
@@ -273,23 +286,6 @@ watch(historyDate, async (newDate) => {
       historyDataLoading.value = false;
     });
 });
-
-function getLatencyData(order, price_precision) {
-  const latencyData = dealOrderStat(
-    window.watcher.ledger.OrderStat,
-    order.uid_key,
-  ) || {
-    latencySystem: '--',
-    latencyNetwork: '--',
-    avg_price: 0,
-  };
-  return {
-    latency_system: latencyData.latencySystem,
-    latency_network: latencyData.latencyNetwork,
-    avg_price: latencyData.avg_price,
-    avg_price_resolved: dealKfPrice(latencyData.avg_price, price_precision),
-  };
-}
 
 function isFinishedOrderStatus(orderStatus: OrderStatusEnum): boolean {
   return !UnfinishedOrderStatus.includes(orderStatus);

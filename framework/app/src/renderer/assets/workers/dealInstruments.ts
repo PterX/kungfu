@@ -1,7 +1,10 @@
 import fse from 'fs-extra';
 import jschardet from 'jschardet';
 import iconv from 'iconv-lite';
-import { KF_INSTRUMENTS_PATH } from '@kungfu-trader/kungfu-js-api/config/pathConfig';
+import {
+  KF_INSTRUMENTS_PATH,
+  KF_SUBSCRIBED_INSTRUMENTS_JSON_PATH,
+} from '@kungfu-trader/kungfu-js-api/config/pathConfig';
 import { InstrumentTypeEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 
 const defaultCharset = 'utf8';
@@ -63,10 +66,33 @@ const resolveInstruments = (
   }, existedInstruments);
 };
 
+const safeReadJsonSync = <T>(path: string, defaultContent: T): T => {
+  try {
+    return fse.readJSONSync(path);
+  } catch (error) {
+    return defaultContent;
+  }
+};
+
+const resolveSubscribedInstruments = (
+  existedInstruments: KungfuApi.InstrumentResolved[],
+  instruments: InstrumentResolvedData,
+) => {
+  return existedInstruments.reduce((existData, item) => {
+    if (instruments[item.ukey]) {
+      existData.push(instruments[item.ukey]);
+    } else {
+      existData.push(item);
+    }
+    return existData;
+  }, [] as KungfuApi.InstrumentResolved[]);
+};
+
 self.addEventListener('message', (e) => {
   const { instruments, tag } = e.data || {};
 
   if (tag === 'req_dealInstruments') {
+    // instruments
     const existedInstruments: InstrumentResolvedData =
       fse.readJSONSync(KF_INSTRUMENTS_PATH);
     const newInstruments: InstrumentResolvedData = resolveInstruments(
@@ -79,6 +105,26 @@ self.addEventListener('message', (e) => {
     }
 
     fse.outputJSONSync(KF_INSTRUMENTS_PATH, newInstruments);
+
+    // subscribed instruments
+    const existedSubscribedInstruments: KungfuApi.InstrumentResolved[] =
+      safeReadJsonSync(
+        KF_SUBSCRIBED_INSTRUMENTS_JSON_PATH,
+        [] as KungfuApi.InstrumentResolved[],
+      );
+    const newSubscribedInstruments: KungfuApi.InstrumentResolved[] =
+      resolveSubscribedInstruments(
+        existedSubscribedInstruments,
+        newInstruments,
+      );
+
+    if (!newSubscribedInstruments.length) return;
+
+    fse.outputJSONSync(
+      KF_SUBSCRIBED_INSTRUMENTS_JSON_PATH,
+      newSubscribedInstruments,
+    );
+
     self.postMessage({
       updateTime: new Date().getTime(),
       instruments: Object.values(newInstruments),

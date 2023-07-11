@@ -256,8 +256,8 @@ void Ledger::write_strategy_data(int64_t trigger_time, uint32_t strategy_uid) {
     auto book_uid = asset.holder_uid;
     bool has_account = asset.ledger_category == LedgerCategory::Account and has_channel(book_uid, strategy_uid);
     bool is_strategy = location->category == category::STRATEGY and book_uid == strategy_uid;
-    bool is_system = location->category == category::SYSTEM;
-    if (has_account or is_strategy or is_system) {
+    bool is_node = location->category == category::SYSTEM and location->group == "node";
+    if (has_account or is_strategy or is_node) {
       write_positions(trigger_time, strategy_uid, book->long_positions);
       write_positions(trigger_time, strategy_uid, book->short_positions);
       write_instrument_factors(trigger_time, strategy_uid, book->instrument_factors);

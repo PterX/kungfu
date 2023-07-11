@@ -95,8 +95,6 @@ const {
 
 const { getValidatorByOrderInputKey } = useTradeLimit();
 
-let pricePrecision = 0;
-let step = 1;
 const makeOrderInstrumentType = ref<InstrumentTypeEnum>(
   InstrumentTypeEnum.unknown,
 );
@@ -111,6 +109,19 @@ const tdList = computed<KungfuApi.KfLocation[] | null | undefined>(() => {
 const configSettings = computed(() => {
   if (!currentGlobalKfLocation.value) {
     return getConfigSettings();
+  }
+
+  let step = 1,
+    pricePrecision = 0;
+  if (instrumentResolved.value) {
+    const { instrumentId, exchangeId } = instrumentResolved.value;
+    const { price_tick, price_precision } = getPriceTickAndPrecision(
+      instrumentId,
+      exchangeId,
+      1,
+    );
+    step = price_tick;
+    pricePrecision = price_precision;
   }
 
   const { category } = currentGlobalKfLocation.value;
@@ -232,22 +243,6 @@ watch(
       [instrumentResolved.value],
     );
     triggerOrderBook(instrumentResolved.value);
-
-    const { instrumentId, exchangeId } = instrumentResolved.value;
-    const { price_tick, price_precision } = getPriceTickAndPrecision(
-      instrumentId,
-      exchangeId,
-      1,
-    );
-    step = price_tick;
-    pricePrecision = price_precision;
-    const limitPriceIndex = configSettings.value.findIndex((configItem) => {
-      return configItem.key === 'limit_price';
-    });
-    if (limitPriceIndex) {
-      configSettings.value[limitPriceIndex].step = step;
-      configSettings.value[limitPriceIndex].precision = pricePrecision;
-    }
 
     makeOrderInstrumentType.value = instrumentResolved.value.instrumentType;
   },
@@ -666,8 +661,6 @@ async function handleOpenTradingTaskConfigModal(
   kfExtConfig: KungfuApi.KfStrategyExtConfig,
 ) {
   try {
-    if (!currentGlobalKfLocation.value) return;
-    await formRef.value.validate();
     const taskInitValue = transformOrderInputToExtConfigForm(
       formState.value,
       configSettings.value,

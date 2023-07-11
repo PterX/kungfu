@@ -114,7 +114,7 @@ export const transformOrderInputToExtConfigForm = (
     const type = configItem.type;
 
     if (type === 'td') {
-      pre[key] = orderInputFormState['account_id'];
+      pre[key] = orderInputFormState['account_id'] || '';
       return pre;
     }
 

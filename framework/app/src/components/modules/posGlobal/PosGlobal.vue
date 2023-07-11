@@ -122,7 +122,7 @@ function buildGlobalPositions(
   const posStatData: PosStat = positions.reduce((posStat, pos) => {
     const id = `${pos.instrument_id}_${pos.exchange_id}_${pos.direction}`;
     if (!posStat[id]) {
-      posStat[id] = Object.assign(pos, { id });
+      posStat[id] = Object.assign({}, pos, { id });
     } else {
       const prePosStat = posStat[id];
       const {

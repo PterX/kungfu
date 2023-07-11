@@ -127,7 +127,7 @@ self.addEventListener('message', (e) => {
 
     self.postMessage({
       updateTime: new Date().getTime(),
-      instruments: Object.values(newInstruments),
+      instruments: newInstruments,
     });
   }
 

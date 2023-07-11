@@ -330,10 +330,11 @@ private:
     using DataTypeMap = std::unordered_map<uint64_t, state<DataType>>;
     auto &target_map = const_cast<DataTypeMap &>(data_bank_[type]);
     auto iter = target_map.begin();
-    while (iter != target_map.end() and target_map.size() > 0) {
+    while (iter != target_map.end()) {
       const auto &state = iter->second;
       update_ledger(state.update_time, state.source, state.dest, state.data);
       iter = target_map.erase(iter);
+      SPDLOG_INFO("Update Ledger map size {} from {} to {} typename {}", target_map.size(), get_location_uname(state.source), get_location_uname(state.dest), DataType::type_name.c_str());
     }
   }
 
@@ -342,7 +343,7 @@ private:
     auto &target_map = const_cast<DataTypeMap &>(data_bank_[type]);
     auto iter = target_map.begin();
     auto count = 0;
-    while (iter != target_map.end() and target_map.size() > 0 and count < TRANSFER_TRADING_DATA_LIMIT) {
+    while (iter != target_map.end() and count < TRANSFER_TRADING_DATA_LIMIT) {
       const auto &state = iter->second;
       update_ledger(state.update_time, state.source, state.dest, state.data);
       iter = target_map.erase(iter);

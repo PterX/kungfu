@@ -93,8 +93,10 @@ self.addEventListener('message', (e) => {
 
   if (tag === 'req_dealInstruments') {
     // instruments
-    const existedInstruments: InstrumentResolvedData =
-      fse.readJSONSync(KF_INSTRUMENTS_PATH);
+    const existedInstruments: InstrumentResolvedData = safeReadJsonSync(
+      KF_INSTRUMENTS_PATH,
+      {} as InstrumentResolvedData,
+    );
     const newInstruments: InstrumentResolvedData = resolveInstruments(
       existedInstruments,
       instruments,

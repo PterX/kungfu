@@ -510,11 +510,26 @@ export const flattenExtensionModuleDirs = async (
   return extensionModuleDirs;
 };
 
-export const getMainRepoVersionByExtVersion = (version: string) => {
-  if (!version) return '';
+export const getMainRepoVersionByExtVersion = (
+  dependencies: Record<string, string>,
+) => {
+  const dependencieKeys = Object.keys(dependencies);
+  if (!dependencieKeys.length) return '';
+  const mainRepoDependencies = [
+    '@kungfu-trader/kungfu-js-api',
+    '@kungfu-trader/kungfu-app',
+    '@kungfu-trader/kungfu-cli',
+    '@kungfu-trader/kungfu-core',
+    '@kungfu-trader/kungfu-toolchain',
+  ];
+  const targetMainRepoDepKey = dependencieKeys.find((item) =>
+    mainRepoDependencies.includes(item),
+  );
+  if (!targetMainRepoDepKey) return '';
+  const version = dependencies[targetMainRepoDepKey];
   const semVer = semver.parse(version);
   if (!semVer) return '';
-  return `${semVer.major + 1}.${semVer.minor + 4}`;
+  return `${semVer.major}.${semVer.minor}`;
 };
 
 const getKfExtConfigList = async (): Promise<KungfuApi.KfExtOriginConfig[]> => {
@@ -530,7 +545,7 @@ const getKfExtConfigList = async (): Promise<KungfuApi.KfExtOriginConfig[]> => {
           ...(jsonConfig.kungfuConfig || {}),
           version: jsonConfig.version || '',
           mainRepoVersion: getMainRepoVersionByExtVersion(
-            jsonConfig.version || '',
+            jsonConfig.dependencies || {},
           ),
           description: jsonConfig.description || '',
           extPath,

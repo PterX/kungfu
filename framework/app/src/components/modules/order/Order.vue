@@ -5,8 +5,6 @@ import {
   getIdByKfLocation,
   delayMilliSeconds,
   getProcessIdByKfLocation,
-  dealOrderStat,
-  dealKfPrice,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { useActiveInstruments } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import {

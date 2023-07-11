@@ -66,6 +66,14 @@ const resolveInstruments = (
   }, existedInstruments);
 };
 
+const safeReadJsonSync = <T>(path: string, defaultContent: T): T => {
+  try {
+    return fse.readJSONSync(path);
+  } catch (error) {
+    return defaultContent;
+  }
+};
+
 const resolveSubscribedInstruments = (
   existedInstruments: KungfuApi.InstrumentResolved[],
   instruments: InstrumentResolvedData,
@@ -85,8 +93,10 @@ self.addEventListener('message', (e) => {
 
   if (tag === 'req_dealInstruments') {
     // instruments
-    const existedInstruments: InstrumentResolvedData =
-      fse.readJSONSync(KF_INSTRUMENTS_PATH);
+    const existedInstruments: InstrumentResolvedData = safeReadJsonSync(
+      KF_INSTRUMENTS_PATH,
+      {} as InstrumentResolvedData,
+    );
     const newInstruments: InstrumentResolvedData = resolveInstruments(
       existedInstruments,
       instruments,
@@ -100,7 +110,10 @@ self.addEventListener('message', (e) => {
 
     // subscribed instruments
     const existedSubscribedInstruments: KungfuApi.InstrumentResolved[] =
-      fse.readJSONSync(KF_SUBSCRIBED_INSTRUMENTS_JSON_PATH);
+      safeReadJsonSync(
+        KF_SUBSCRIBED_INSTRUMENTS_JSON_PATH,
+        [] as KungfuApi.InstrumentResolved[],
+      );
     const newSubscribedInstruments: KungfuApi.InstrumentResolved[] =
       resolveSubscribedInstruments(
         existedSubscribedInstruments,
@@ -116,7 +129,7 @@ self.addEventListener('message', (e) => {
 
     self.postMessage({
       updateTime: new Date().getTime(),
-      instruments: Object.values(newInstruments),
+      instruments: newInstruments,
     });
   }
 

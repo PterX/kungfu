@@ -59,7 +59,16 @@ yjj = kungfu.__binding__.yijinjing
 )
 @kfc.pass_context()
 def slicetool(
-    ctx, begin, end, category, group, name, tool_path, indexer_path, arguments, overwrite
+    ctx,
+    begin,
+    end,
+    category,
+    group,
+    name,
+    tool_path,
+    indexer_path,
+    arguments,
+    overwrite,
 ):
     location = yjj.location(
         kfj.MODES["data"],

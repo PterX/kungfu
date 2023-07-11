@@ -752,7 +752,6 @@ void Watcher::UpdateAsset(const event_ptr &event, uint32_t book_uid) {
 }
 
 void Watcher::UpdateBook(const event_ptr &event, const Quote &quote) {
-  SPDLOG_INFO("update book by quote");
   auto ledger_uid = ledger_home_location_->uid;
   for (const auto &item : bookkeeper_.get_books()) {
     auto &book = item.second;
@@ -782,7 +781,6 @@ void Watcher::UpdateBook(const event_ptr &event, const Quote &quote) {
 }
 
 void Watcher::UpdateBook(const event_ptr &event, const Position &position) {
-  SPDLOG_INFO("update book by position");
   auto book = bookkeeper_.get_book(position.holder_uid);
   auto &book_position = book->get_position_for(position.direction, position);
   auto &book_oppsite_position = book->get_oppsite_position_for(position.direction, position);

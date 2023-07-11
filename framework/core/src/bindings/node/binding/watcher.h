@@ -334,7 +334,6 @@ private:
       const auto &state = iter->second;
       update_ledger(state.update_time, state.source, state.dest, state.data);
       iter = target_map.erase(iter);
-      SPDLOG_INFO("Update Ledger map size {} from {} to {} typename {}", target_map.size(), get_location_uname(state.source), get_location_uname(state.dest), DataType::type_name.c_str());
     }
   }
 

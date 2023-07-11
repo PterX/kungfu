@@ -1523,8 +1523,10 @@ export const useDealInstruments = (): void => {
     dealInstrumentController.value = false;
     if (instrumentsValue.length) {
       existedInstrumentsLength.value = instrumentsValue.length || 0; //refresh old instruments
-      useGlobalStore().setInstruments(instrumentsValue);
-      useGlobalStore().setInstrumentsMap(instruments);
+      const globalStore = useGlobalStore();
+      globalStore.setInstruments(instrumentsValue);
+      globalStore.setInstrumentsMap(instruments);
+      globalStore.setSubscribedInstrumentsByLocal();
     }
   };
 };

@@ -108,6 +108,11 @@ self.addEventListener('message', (e) => {
 
     fse.outputJSONSync(KF_INSTRUMENTS_PATH, newInstruments);
 
+    self.postMessage({
+      updateTime: new Date().getTime(),
+      instruments: newInstruments,
+    });
+
     // subscribed instruments
     const existedSubscribedInstruments: KungfuApi.InstrumentResolved[] =
       safeReadJsonSync(
@@ -126,11 +131,6 @@ self.addEventListener('message', (e) => {
         newSubscribedInstruments,
       );
     }
-
-    self.postMessage({
-      updateTime: new Date().getTime(),
-      instruments: newInstruments,
-    });
   }
 
   if (tag === 'req_instruments') {

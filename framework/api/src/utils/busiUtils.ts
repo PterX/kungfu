@@ -181,7 +181,7 @@ Number.prototype.kfRound = function (precision?: number) {
 };
 
 Number.prototype.kfToFixed = function (precision?: number) {
-  return this.kfRound(precision).toString();
+  return this.kfRound(precision).toFixed(precision);
 };
 
 Array.prototype.removeRepeat = function () {
@@ -2539,7 +2539,10 @@ export const buildIfWatcherLiveObservable = (watcher: KungfuApi.Watcher) => {
   });
 };
 
-export function countDecimalPlaces(num) {
+export function countDecimalPlaces(num: number) {
+  if (String(num).indexOf('e-') !== -1) {
+    return parseInt(String(num).split('e-')[1], 10);
+  }
   const normalNum = Number(num).kfToFixed(10);
   const numStr = String(normalNum)
     .replace(/(\.\d*?[1-9])0+$/, '$1')

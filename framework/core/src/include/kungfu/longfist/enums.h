@@ -309,12 +309,11 @@ NLOHMANN_JSON_SERIALIZE_ENUM(HedgeFlag, {
 
 inline std::ostream &operator<<(std::ostream &os, HedgeFlag t) { return os << int8_t(t); }
 
-enum class OrderActionFlag : int8_t {
-  Cancel,
-};
+enum class OrderActionFlag : int8_t { Cancel, OrderActionFlag };
 
 NLOHMANN_JSON_SERIALIZE_ENUM(OrderActionFlag, {
                                                   {OrderActionFlag::Cancel, "Cancel"},
+                                                  {OrderActionFlag::OrderActionFlag, "OrderActionFlag"},
                                               })
 
 inline std::ostream &operator<<(std::ostream &os, OrderActionFlag t) { return os << int8_t(t); }
@@ -350,7 +349,7 @@ NLOHMANN_JSON_SERIALIZE_ENUM(PriceType, {
 inline std::ostream &operator<<(std::ostream &os, PriceType t) { return os << int8_t(t); }
 
 enum class PriceLevel : int8_t {
-  Lastest, // 最新价
+  Latest, // 最新价
   Sell5,
   Sell4,
   Sell3,
@@ -367,7 +366,7 @@ enum class PriceLevel : int8_t {
 };
 
 NLOHMANN_JSON_SERIALIZE_ENUM(PriceLevel, {
-                                             {PriceLevel::Lastest, "Lastest"},
+                                             {PriceLevel::Latest, "Latest"},
                                              {PriceLevel::Sell5, "Sell5"},
                                              {PriceLevel::Sell4, "Sell4"},
                                              {PriceLevel::Sell3, "Sell3"},
@@ -425,7 +424,7 @@ enum class OrderStatus : int8_t {
   PartialFilledNotActive, // 部成部撤
   PartialFilledActive,    // 部成交易中
   Lost,                   // 丢失
-  Cancelling             // 待撤
+  Cancelling              // 待撤
 };
 
 NLOHMANN_JSON_SERIALIZE_ENUM(OrderStatus, {

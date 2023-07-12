@@ -61,6 +61,8 @@ public:
 
   virtual bool insert_batch_orders(const event_ptr &event) { return true; }
 
+  virtual bool cancel_order_trigger(const event_ptr &event) { return true; }
+
   virtual bool cancel_order(const event_ptr &event) = 0;
 
   virtual bool req_position() = 0;

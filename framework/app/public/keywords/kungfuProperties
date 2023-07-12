@@ -144,6 +144,7 @@ price_level
 price_offset
 dest_id
 stop_price
+order_trigger_action_id
 is_last
 data_type
 is_withdraw
@@ -225,6 +226,8 @@ OrderStat
 BasketOrder
 OrderTriggerInput
 OrderTrigger
+OrderTriggerAction
+OrderTriggerActionError
 RequestHistoryOrder
 RequestHistoryTrade
 HistoryOrder
@@ -293,6 +296,9 @@ SZSE
 HKEx
 MarketType
 Snapshot
+Entrust
+Transaction
+Tree
 SubscribeDataType
 Stock
 Future
@@ -348,6 +354,7 @@ Covered
 HedgeFlag
 Cancel
 OrderActionFlag
+OrderActionFlag
 Limit
 Any
 FakBest5
@@ -359,7 +366,7 @@ EnhancedLimit
 AtAuctionLimit
 AtAuction
 PriceType
-Lastest
+Latest
 Sell5
 Sell4
 Sell3

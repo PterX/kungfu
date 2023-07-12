@@ -321,7 +321,7 @@ uint64_t RuntimeContext::insert_basket_order(uint64_t basket_id, const std::stri
   return input.order_id;
 }
 
-uint64_t RuntimeContext::cancel_order(uint64_t order_id) {
+uint64_t RuntimeContext::cancel_order(uint64_t order_id, OrderActionFlag action_flag) {
   uint32_t account_location_uid = (order_id >> 32u) xor (app_.get_home_uid());
   if (not broker_client_.is_ready(account_location_uid)) {
     SPDLOG_ERROR("invalid order_id {:16x}", order_id);
@@ -333,11 +333,30 @@ uint64_t RuntimeContext::cancel_order(uint64_t order_id) {
 
   action.order_action_id = writer->current_frame_uid();
   action.order_id = order_id;
-  action.action_flag = OrderActionFlag::Cancel;
+  action.action_flag = action_flag;
 
   uint64_t order_action_id = action.order_action_id;
   writer->close_data();
   return order_action_id;
+}
+
+uint64_t RuntimeContext::cancel_order_trigger(uint64_t trigger_id) {
+  uint32_t account_location_uid = (trigger_id >> 32u) xor (app_.get_home_uid());
+  if (not broker_client_.is_ready(account_location_uid)) {
+    SPDLOG_ERROR("invalid order_id {:16x}", trigger_id);
+    return 0;
+  }
+  auto account_location = app_.get_location(account_location_uid);
+  auto writer = app_.get_writer(account_location_uid);
+  OrderTriggerAction &action = writer->open_data<OrderTriggerAction>(0);
+
+  action.order_trigger_action_id = writer->current_frame_uid();
+  action.trigger_id = trigger_id;
+  action.action_flag = OrderActionFlag::Cancel;
+
+  uint64_t order_trigger_action_id = action.order_trigger_action_id;
+  writer->close_data();
+  return order_trigger_action_id;
 }
 
 const location_map &RuntimeContext::list_md() const { return md_locations_; }

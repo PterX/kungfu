@@ -93,6 +93,8 @@ public:
    * @param offset
    * @param trigger_type
    * @param time_condition
+   * @param action_flag
+   * @param order_id
    * @param stop_price
    * @param hedge_flag
    * @param is_swap
@@ -191,7 +193,14 @@ public:
    * @param order_id order ID
    * @return order action ID
    */
-  uint64_t cancel_order(uint64_t order_id) override;
+  uint64_t cancel_order(uint64_t order_id, OrderActionFlag action_flag) override;
+
+  /**
+   * Cancel Order Trigger
+   * @param trigger_id
+   * @return trigger action ID
+   */
+  uint64_t cancel_order_trigger(uint64_t trigger_id) override;
 
   /**
    * Get current trading day.

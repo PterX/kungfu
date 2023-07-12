@@ -22,6 +22,6 @@ uint64_t BacktestContext::insert_order(const std::string &instrument_id, const s
                                        bool is_swap, uint64_t block_id, uint64_t parent_id) {
   return 0;
 }
-uint64_t BacktestContext::cancel_order(uint64_t order_id) { return 0; }
+uint64_t BacktestContext::cancel_order(uint64_t order_id, OrderActionFlag action_flag) { return 0; }
 int64_t BacktestContext::get_trading_day() const { return 0; }
 } // namespace kungfu::wingchun::strategy

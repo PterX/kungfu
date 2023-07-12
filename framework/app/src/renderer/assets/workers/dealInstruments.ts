@@ -102,11 +102,9 @@ self.addEventListener('message', (e) => {
       instruments,
     );
 
-    if (!Object.keys(newInstruments || {}).length) {
-      return;
+    if (Object.keys(newInstruments || {}).length) {
+      fse.outputJSONSync(KF_INSTRUMENTS_PATH, newInstruments);
     }
-
-    fse.outputJSONSync(KF_INSTRUMENTS_PATH, newInstruments);
 
     // subscribed instruments
     const existedSubscribedInstruments: KungfuApi.InstrumentResolved[] =
@@ -120,12 +118,12 @@ self.addEventListener('message', (e) => {
         newInstruments,
       );
 
-    if (!newSubscribedInstruments.length) return;
-
-    fse.outputJSONSync(
-      KF_SUBSCRIBED_INSTRUMENTS_JSON_PATH,
-      newSubscribedInstruments,
-    );
+    if (newSubscribedInstruments.length) {
+      fse.outputJSONSync(
+        KF_SUBSCRIBED_INSTRUMENTS_JSON_PATH,
+        newSubscribedInstruments,
+      );
+    }
 
     self.postMessage({
       updateTime: new Date().getTime(),
@@ -134,8 +132,10 @@ self.addEventListener('message', (e) => {
   }
 
   if (tag === 'req_instruments') {
-    const instruments: InstrumentResolvedData =
-      fse.readJSONSync(KF_INSTRUMENTS_PATH);
+    const instruments: InstrumentResolvedData = safeReadJsonSync(
+      KF_INSTRUMENTS_PATH,
+      {},
+    );
     self.postMessage({
       updateTime: new Date().getTime(),
       instruments,

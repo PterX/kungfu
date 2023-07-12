@@ -18,8 +18,9 @@ void reader::join(const data::location_ptr &location, uint32_t dest_id, const in
     journals_.at(key).seek_to_time(from_time);
   }
   if (current_ == nullptr) {
-    sort(); // do not sort if current_ is set (because we could be in process of reading)
+    sort_without_buffer(); // do not sort if current_ is set (because we could be in process of reading)
   }
+  buffer_built_ = false;
 }
 
 void reader::disjoin(const uint32_t location_uid) {
@@ -31,7 +32,7 @@ void reader::disjoin(const uint32_t location_uid) {
     }
   }
   current_ = nullptr;
-  sort();
+  sort_without_buffer();
 }
 
 void reader::disjoin_channel(uint32_t location_uid, uint32_t dest_id) {
@@ -44,7 +45,7 @@ void reader::disjoin_channel(uint32_t location_uid, uint32_t dest_id) {
     }
   }
   current_ = nullptr;
-  sort();
+  sort_without_buffer();
 }
 
 bool reader::data_available() {
@@ -56,7 +57,7 @@ void reader::seek_to_time(int64_t nanotime) {
   for (auto &pair : journals_) {
     pair.second.seek_to_time(nanotime);
   }
-  sort();
+  sort_without_buffer();
 }
 
 void reader::next() {
@@ -66,7 +67,8 @@ void reader::next() {
   sort();
 }
 
-void reader::sort() {
+void reader::sort_without_buffer() {
+  buffer_built_ = false;
   int64_t min_time = time::now_in_nano();
   for (auto &pair : journals_) {
     auto &journal = pair.second;
@@ -76,6 +78,50 @@ void reader::sort() {
       current_ = &journal;
     }
   }
+}
+
+namespace internal {
+template <class ForwardIt, class UnaryPredicate>
+ForwardIt swap2tail_if(ForwardIt first, ForwardIt last, const UnaryPredicate &p) {
+  first = std::find_if(first, last, p);
+  if (first != last) {
+    for (ForwardIt i = first; ++i != last;) {
+      if (!p(*i))
+        std::iter_swap(first++, i);
+    }
+  }
+  return first;
+}
+} // namespace internal
+
+void reader::sort() {
+  if (not buffer_built_) {
+    build_buffer();
+  }
+  int64_t min_time = time::now_in_nano();
+  auto has_data_iter = internal::swap2tail_if(hasnot_data_journals_buffer_.begin(), hasnot_data_journals_buffer_.end(),
+                                              [](const auto &journal) { return journal->current_frame()->has_data(); });
+  for (auto iter = has_data_iter; iter != hasnot_data_journals_buffer_.end(); ++iter) {
+    has_data_journals_heap_.push(*iter);
+  }
+  hasnot_data_journals_buffer_.erase(has_data_iter, hasnot_data_journals_buffer_.end());
+  if (has_data_journals_heap_.empty()) {
+    return;
+  }
+  auto min_journal = has_data_journals_heap_.top();
+  if (min_journal->current_frame()->gen_time() <= min_time) {
+    current_ = min_journal;
+    has_data_journals_heap_.pop();
+    hasnot_data_journals_buffer_.push_back(current_);
+  }
+}
+
+void reader::build_buffer() {
+  hasnot_data_journals_buffer_.clear();
+  has_data_journals_heap_ = {};
+  std::transform(journals_.begin(), journals_.end(), std::back_inserter(hasnot_data_journals_buffer_),
+                 [](auto &pair) { return std::addressof(pair.second); });
+  buffer_built_ = true;
 }
 
 bool reader::release_page() {
@@ -106,7 +152,7 @@ void reader::keep_only(uint32_t location_uid, uint32_t dest_id) {
     }
   }
   current_ = nullptr;
-  sort();
+  sort_without_buffer();
 }
 
 journal &reader::get_journal_ref(const data::location_ptr &location, uint32_t dest_id) {
@@ -118,6 +164,7 @@ journal &reader::get_journal_ref(const data::location_ptr &location, uint32_t de
 
   auto result = journals_.try_emplace(key, location, dest_id, false, lazy_, low_latency_, bus_);
   result.first->second.seek_to_time(time::now_in_nano());
+  sort_without_buffer();
   return result.first->second;
 }
 

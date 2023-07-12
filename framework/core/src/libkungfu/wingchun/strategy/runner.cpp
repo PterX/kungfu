@@ -162,14 +162,6 @@ void Runner::prepare(const event_ptr &event) {
       not ready_test(context_->list_op())) {
     return;
   }
-  auto has_td_channel = [&](const auto &locations) {
-    return std::all_of(locations.begin(), locations.end(), [&](const auto &it) {
-      return has_channel(get_home_uid(), it.second->uid) and has_channel(it.second->uid, get_home_uid());
-    });
-  };
-  if (not has_td_channel(context_->list_accounts())) {
-    return;
-  }
 
   auto has_td_channel = [&](const auto &locations) {
     return std::all_of(locations.begin(), locations.end(), [&](const auto &it) {

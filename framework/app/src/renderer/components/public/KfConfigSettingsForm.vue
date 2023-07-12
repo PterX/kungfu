@@ -43,6 +43,7 @@ import {
   dealPriceType,
   dealPriceLevel,
   dealSide,
+  replaceNonAlphaNumericWithSpace,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { RuleObject } from 'ant-design-vue/lib/form';
 import {
@@ -392,7 +393,7 @@ function primaryKeyValidator(_rule: RuleObject, value: string): Promise<void> {
     formState.value,
     props.primaryKeyAvoidRepeatCompareExtra,
   );
-  if (!combineValue) {
+  if (!combineValue || !replaceNonAlphaNumericWithSpace(value)) {
     return Promise.reject(
       new Error(
         t('validate.single_characters', {

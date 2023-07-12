@@ -2337,10 +2337,6 @@ export const dealOrderInputItem = (
       isInstrumnetShotable &&
         (orderInputResolved[key] = dealIsSwap(inputData.is_swap));
     } else if (key === 'limit_price' && price_precision) {
-      console.log(
-        dealAssetPrice(inputData[key], price_precision),
-        '````````````````````',
-      );
       orderInputResolved[key] = {
         name: dealAssetPrice(inputData[key], price_precision),
         color: 'default',

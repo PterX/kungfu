@@ -102,9 +102,11 @@ self.addEventListener('message', (e) => {
       instruments,
     );
 
-    if (Object.keys(newInstruments || {}).length) {
-      fse.outputJSONSync(KF_INSTRUMENTS_PATH, newInstruments);
+    if (!Object.keys(newInstruments || {}).length) {
+      return;
     }
+
+    fse.outputJSONSync(KF_INSTRUMENTS_PATH, newInstruments);
 
     // subscribed instruments
     const existedSubscribedInstruments: KungfuApi.InstrumentResolved[] =

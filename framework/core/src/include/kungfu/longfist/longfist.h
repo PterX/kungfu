@@ -89,6 +89,9 @@ constexpr auto AllTypes = boost::hana::make_map( //
     TYPE_PAIR(OrderStat),                        //
     TYPE_PAIR(SyntheticData),                    //
     TYPE_PAIR(BasketOrder),                      //
+    TYPE_PAIR(AlgoOrderInput),                   //
+    TYPE_PAIR(AlgoOrder),                        //
+    TYPE_PAIR(AlgoOrderAction),                  //
     TYPE_PAIR(RequestHistoryOrder),              //
     TYPE_PAIR(RequestHistoryOrderError),         //
     TYPE_PAIR(RequestHistoryTrade),              //
@@ -146,7 +149,10 @@ constexpr auto AllTypes = boost::hana::make_map( //
     TYPE_PAIR(InstrumentFactor),                                      //
     TYPE_PAIR(OrderStat),                                             //
     TYPE_PAIR(SyntheticData),                                         //
-    TYPE_PAIR(BasketOrder)                                            //
+    TYPE_PAIR(BasketOrder),                                           //
+    TYPE_PAIR(AlgoOrderInput),                                        //
+    TYPE_PAIR(AlgoOrder),                                             //
+    TYPE_PAIR(AlgoOrderAction)                                        //
 );
 
 constexpr auto ProfileDataTypes = boost::hana::make_map( //
@@ -187,7 +193,10 @@ constexpr auto StateDataTypes = boost::hana::make_map( //
     TYPE_PAIR(InstrumentFactor),                       //
     TYPE_PAIR(OrderStat),                              //
     TYPE_PAIR(SyntheticData),                          //
-    TYPE_PAIR(BasketOrder)                             //
+    TYPE_PAIR(BasketOrder),                            //
+    TYPE_PAIR(AlgoOrderInput),                         //
+    TYPE_PAIR(AlgoOrder),                              //
+    TYPE_PAIR(AlgoOrderAction)                         //
 );
 
 constexpr auto TradingDataTypes = boost::hana::make_map( //
@@ -196,7 +205,10 @@ constexpr auto TradingDataTypes = boost::hana::make_map( //
     TYPE_PAIR(Order),                                    //
     TYPE_PAIR(Trade),                                    //
     TYPE_PAIR(OrderStat),                                //
-    TYPE_PAIR(BasketOrder)                               //
+    TYPE_PAIR(BasketOrder),                              //
+    TYPE_PAIR(AlgoOrderInput),                           //
+    TYPE_PAIR(AlgoOrder),                                //
+    TYPE_PAIR(AlgoOrderAction)                           //
 );
 
 const auto build_data_set = [](auto types) {

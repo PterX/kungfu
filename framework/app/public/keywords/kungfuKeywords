@@ -583,7 +583,7 @@ Pending
 PartialFilledNotActive
 PartialFilledActive
 Filled
-BasketOrderStatus
+AlgoOrderStatus
 Static
 Dynamic
 BasketOrderCalculationMode

@@ -13,6 +13,8 @@
 namespace kungfu::longfist::types {
 static constexpr int INSTRUMENT_ID_LEN = 32;
 static constexpr int PRODUCT_ID_LEN = 128;
+static constexpr int ALGO_TYPE_ID_LEN = 128;
+static constexpr int ALGO_ID_LEN = 128;
 static constexpr int DATE_LEN = 9;
 static constexpr int EXCHANGE_ID_LEN = 16;
 static constexpr int TRAIDNG_PHASE_CODE_LEN = 8;
@@ -348,6 +350,66 @@ KF_DEFINE_PACK_TYPE(                                        //
     (enums::BasketOrderCalculationMode, calculation_mode) // 计算方式
 );
 
+KF_DEFINE_DATA_TYPE(                                           //
+    AlgoOrderInput, 209, PK(order_id), TIMESTAMP(insert_time), //
+    (uint64_t, order_id),                                      // 算法单ID
+    (int64_t, insert_time),                                    // 下单时间
+    (int64_t, begin_time),                                     // 开始时间
+    (int64_t, end_time),                                       // 结束时间
+
+    (kungfu::array<char, INSTRUMENT_ID_LEN>, instrument_id), // 合约代码
+    (kungfu::array<char, EXCHANGE_ID_LEN>, exchange_id),     // 交易所代码
+    (enums::InstrumentType, instrument_type),                // 合约类型
+    (uint32_t, basket_id),                                   // 篮子单场景, 单标的时非必填
+
+    (enums::Side, side),            // 买卖方向
+    (enums::Offset, offset),        // 开平方向
+    (enums::PriceType, price_type), // 价格类型
+    (int64_t, volume),              // 目标量
+
+    (kungfu::array<char, ALGO_TYPE_ID_LEN>, algo_type_id), // 算法类型
+    (kungfu::array<char, ALGO_ID_LEN>, algo_id),           // 算法id
+
+    (std::string, args) // 自定义参数json的形式
+);
+
+KF_DEFINE_PACK_TYPE(                                           //
+    AlgoOrder, 210, PK(order_id), TIMESTAMP(insert_time),      //
+    (uint64_t, order_id),                                      // 算法单ID
+    (kungfu::array<char, EXTERNAL_ID_LEN>, external_order_id), // 柜台算法单id
+    (int64_t, insert_time),                                    // 下单时间
+    (int64_t, update_time),                                    // 更新时间
+    (int64_t, begin_time),                                     // 开始时间
+    (int64_t, end_time),                                       // 结束时间
+
+    (kungfu::array<char, INSTRUMENT_ID_LEN>, instrument_id), // 合约代码
+    (kungfu::array<char, EXCHANGE_ID_LEN>, exchange_id),     // 交易所代码
+    (enums::InstrumentType, instrument_type),                // 合约类型
+    (uint32_t, basket_id),                                   // 篮子单场景, 单标的时非必填
+
+    (enums::Side, side),            // 买卖方向
+    (enums::Offset, offset),        // 开平方向
+    (enums::PriceType, price_type), // 价格类型
+
+    (int64_t, volume),      // 目标量
+    (int64_t, volume_left), // 剩余数量
+
+    (kungfu::array<char, ALGO_TYPE_ID_LEN>, algo_type_id), // 算法类型
+    (kungfu::array<char, ALGO_ID_LEN>, algo_id),           // 算法id
+
+    (enums::OrderStatus, status),                   // 订单状态
+    (kungfu::array<char, ERROR_MSG_LEN>, error_msg) // 错误信息
+);
+
+KF_DEFINE_PACK_TYPE(                                                        //
+    AlgoOrderAction, 211, PK(algo_order_action_id), TIMESTAMP(insert_time), //
+    (uint64_t, order_id),                                                   // 订单ID
+    (uint64_t, algo_order_action_id),                                       // 订单操作ID
+
+    (enums::OrderActionFlag, action_flag), // 订单操作类型
+    (int64_t, insert_time)                 // 写入时间
+);
+
 KF_DEFINE_PACK_TYPE(                                                     //
     RequestHistoryOrder, 301, PK(trigger_time), TIMESTAMP(trigger_time), //
     (uint64_t, trigger_time),                                            // 触发时间
@@ -601,7 +663,7 @@ KF_DEFINE_PACK_TYPE(                                         //
     (enums::InstrumentType, instrument_type)                 // 合约类型
 );
 
-KF_DEFINE_DATA_TYPE(                                               //
+KF_DEFINE_PACK_TYPE(                                               //
     CustomSubscribe, 502, PK(update_time), TIMESTAMP(update_time), //
     (int64_t, update_time),                                        //
     (enums::MarketType, market_type),                              //

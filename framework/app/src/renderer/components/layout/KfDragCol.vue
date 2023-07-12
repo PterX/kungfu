@@ -156,7 +156,7 @@ export default defineComponent({
         this.paBoundingRect.height
           ? Number(
               (this.upRowHeight * 100) / this.paBoundingRect.height,
-            ).toFixed(3) + '%'
+            ).kfToFixed(3) + '%'
           : this.upRowHeight,
       );
       this.setBoardsMapAttrById(
@@ -165,7 +165,7 @@ export default defineComponent({
         this.paBoundingRect.height
           ? Number(
               (this.bottomRowHeight * 100) / this.paBoundingRect.height,
-            ).toFixed(3) + '%'
+            ).kfToFixed(3) + '%'
           : 0,
       );
 

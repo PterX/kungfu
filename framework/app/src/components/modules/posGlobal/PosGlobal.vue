@@ -122,7 +122,7 @@ function buildGlobalPositions(
   const posStatData: PosStat = positions.reduce((posStat, pos) => {
     const id = `${pos.instrument_id}_${pos.exchange_id}_${pos.direction}`;
     if (!posStat[id]) {
-      posStat[id] = Object.assign(pos, { id });
+      posStat[id] = Object.assign({}, pos, { id, uid_key: pos.uid_key });
     } else {
       const prePosStat = posStat[id];
       const {
@@ -280,16 +280,16 @@ function tiggerOrderBookAndMakeOrder(record: KungfuApi.PositionResolved) {
           </template>
           <template v-else-if="column.dataIndex === 'yesterday_volume'">
             <KfBlinkNum
-              :num="Number(item.yesterday_volume).toFixed(0)"
+              :num="Number(item.yesterday_volume).kfToFixed(0)"
             ></KfBlinkNum>
           </template>
           <template v-else-if="column.dataIndex === 'today_volume'">
             <KfBlinkNum
-              :num="Number(item.volume - item.yesterday_volume).toFixed(0)"
+              :num="Number(item.volume - item.yesterday_volume).kfToFixed(0)"
             ></KfBlinkNum>
           </template>
           <template v-else-if="column.dataIndex === 'volume'">
-            <KfBlinkNum :num="Number(item.volume).toFixed(0)"></KfBlinkNum>
+            <KfBlinkNum :num="Number(item.volume).kfToFixed(0)"></KfBlinkNum>
           </template>
           <template v-else-if="column.dataIndex === 'avg_open_price_resolved'">
             <KfBlinkNum :num="item.avg_open_price_resolved"></KfBlinkNum>

@@ -106,7 +106,7 @@ export const makeOrderConfigKFTypes = [
   'side',
   'offset',
   'hedgeFlag',
-  'pricetype',
+  'priceType',
 ];
 
 export const makeOrderConfigKFKeys = [

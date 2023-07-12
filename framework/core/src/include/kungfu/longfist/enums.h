@@ -407,14 +407,15 @@ inline std::ostream &operator<<(std::ostream &os, TimeCondition t) { return os <
 
 enum class OrderStatus : int8_t {
   Unknown,
-  Submitted,
-  Pending,
-  Cancelled,
-  Error,
-  Filled,
-  PartialFilledNotActive,
-  PartialFilledActive,
-  Lost
+  Submitted,              // 已提交
+  Pending,                // 等待中
+  Cancelled,              // 已撤单
+  Error,                  // 错误
+  Filled,                 // 已成交
+  PartialFilledNotActive, // 部成部撤
+  PartialFilledActive,    // 部成交易中
+  Lost,                   // 丢失
+  Cancelling              // 待撤
 };
 
 NLOHMANN_JSON_SERIALIZE_ENUM(OrderStatus, {
@@ -427,6 +428,7 @@ NLOHMANN_JSON_SERIALIZE_ENUM(OrderStatus, {
                                               {OrderStatus::PartialFilledNotActive, "PartialFilledNotActive"},
                                               {OrderStatus::PartialFilledActive, "PartialFilledActive"},
                                               {OrderStatus::Lost, "Lost"},
+                                              {OrderStatus::Cancelling, "Cancelling"},
                                           })
 
 inline std::ostream &operator<<(std::ostream &os, OrderStatus t) { return os << int8_t(t); }

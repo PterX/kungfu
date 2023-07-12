@@ -26,7 +26,7 @@ import {
   PriceLevel,
   Side,
 } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
-import { SpecialWordsReg } from '@kungfu-trader/kungfu-js-api/config/systemCongfig';
+import { SpecialWordsReg } from '@kungfu-trader/kungfu-js-api/config/systemConfig';
 import {
   getIdByKfLocation,
   transformSearchInstrumentResultToInstrument,
@@ -392,6 +392,15 @@ function primaryKeyValidator(_rule: RuleObject, value: string): Promise<void> {
     formState.value,
     props.primaryKeyAvoidRepeatCompareExtra,
   );
+  if (!combineValue) {
+    return Promise.reject(
+      new Error(
+        t('validate.single_characters', {
+          value: combineValue,
+        }),
+      ),
+    );
+  }
   if (
     props.primaryKeyAvoidRepeatCompareTarget
       .map((item): string => item.toLowerCase())

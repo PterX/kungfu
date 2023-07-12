@@ -417,7 +417,7 @@ void Watcher::on_react() {
   // for receive history data
   auto before_start_events = events_ | take_until(events_ | is(RequestStart::tag));
   before_start_events | is(Instrument::tag) | $$(Feed(event, event->data<Instrument>()));
-  // bookkeeper restore, only Instrument and Commission,
+  // bookkeeper restore, only Instrument and Commission
   before_start_events | is(Instrument::tag, Commission::tag) | $$(feed_state_data(event, state_bank_));
 }
 
@@ -427,16 +427,15 @@ void Watcher::on_start() {
   UpdateBasketOrders(); // refresh basketorders
 
   if (not bypass_trading_data_) {
-    // for receive runtime data
-    events_ | is(Quote::tag) | is_subscribed(subscribed_instruments_) | $$(feed_state_data(event, data_bank_));
-    events_ | is(Instrument::tag) | $$(Feed(event, event->data<Instrument>()));
-    events_ | skip_while(while_is(Quote::tag, Instrument::tag)) | $$(feed_state_data(event, data_bank_));
-  }
-
-  if (not bypass_trading_data_) {
     bookkeeper_.on_start(events_);
     bookkeeper_.guard_positions();
     bookkeeper_.add_book_listener(std::make_shared<BookListener>(*this));
+
+    // for receive runtime data
+    events_ | is(Quote::tag) | is_subscribed(subscribed_instruments_) | $$(feed_state_data(event, data_bank_));
+    events_ | is(Instrument::tag) | $$(Feed(event, event->data<Instrument>()));
+    // position should be always read from bookkeeper in watcher, because of position_guard, instead of feeds;
+    events_ | skip_while(while_is(Quote::tag, Instrument::tag, Position::tag)) | $$(feed_state_data(event, data_bank_));
 
     if (not bypass_quote_) {
       events_ | is(Quote::tag) | is_subscribed(subscribed_instruments_) | $$(UpdateBook(event, event->data<Quote>()));

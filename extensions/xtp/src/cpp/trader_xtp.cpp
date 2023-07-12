@@ -105,14 +105,40 @@ bool TraderXTP::cancel_order(const event_ptr &event) {
     SPDLOG_ERROR("failed to cancel order {}, can't find related xtp order id", action.order_id);
     return false;
   }
+
+  auto order_state_iter = orders_.find(action.order_id);
+  if (order_state_iter == orders_.end()) {
+    SPDLOG_ERROR("order_id {} not in orders_", action.order_id);
+    return false;
+  }
+
+  auto &order_state = order_state_iter->second;
   uint64_t order_xtp_id = order_id_iter->second;
   add_action_id(order_xtp_id, action.order_action_id);
   auto xtp_action_id = api_->CancelOrder(order_xtp_id, session_id_);
   auto success = xtp_action_id != 0;
+
   if (not success) {
     XTPRI *error_info = api_->GetApiLastError();
     SPDLOG_ERROR("failed to cancel order {}, order_xtp_id: {} session_id: {} error_id: {} error_msg: {}",
                  action.order_id, order_xtp_id, session_id_, error_info->error_id, error_info->error_msg);
+    OrderActionError &error = get_writer(event->source())->open_data<OrderActionError>(now());
+    error.order_id = action.order_id; // 订单ID
+    std::string str_external_order_id = std::to_string(order_xtp_id);
+    strncpy(error.external_order_id, str_external_order_id.c_str(), str_external_order_id.length());
+    error.order_action_id = action.order_action_id;                                 // 订单操作ID,
+    error.error_id = xtp_action_id;                                                 // 错误ID
+    strncpy(error.error_msg, error_info->error_msg, strlen(error_info->error_msg)); // 错误信息
+    error.insert_time = time::now_in_nano();                                        // 写入时间
+    SPDLOG_DEBUG("OrderActionError: {}", error.to_string());
+    get_writer(event->source())->close_data();
+    return false;
+  }
+
+  order_state.data.status = OrderStatus::Cancelling;
+  SPDLOG_DEBUG("Order: {}", order_state.data.to_string());
+  if (has_writer(order_state.dest)) {
+    write_to(order_state.data, order_state.dest);
   }
   return success;
 }

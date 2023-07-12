@@ -181,7 +181,7 @@ Number.prototype.kfRound = function (precision?: number) {
 };
 
 Number.prototype.kfToFixed = function (precision?: number) {
-  return this.kfRound(precision).toString();
+  return this.kfRound(precision).toFixed(precision);
 };
 
 Array.prototype.removeRepeat = function () {
@@ -2337,6 +2337,10 @@ export const dealOrderInputItem = (
       isInstrumnetShotable &&
         (orderInputResolved[key] = dealIsSwap(inputData.is_swap));
     } else if (key === 'limit_price' && price_precision) {
+      console.log(
+        dealAssetPrice(inputData[key], price_precision),
+        '````````````````````',
+      );
       orderInputResolved[key] = {
         name: dealAssetPrice(inputData[key], price_precision),
         color: 'default',

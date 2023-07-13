@@ -543,7 +543,7 @@ Hedge
 Covered
 HedgeFlag
 Cancel
-OrderActionFlag
+TriggerCancel
 OrderActionFlag
 Limit
 Any

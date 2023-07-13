@@ -394,7 +394,7 @@ function primaryKeyValidator(_rule: RuleObject, value: string): Promise<void> {
     props.primaryKeyAvoidRepeatCompareExtra,
   );
 
-  if (!combineValue || !replaceNonAlphaNumericWithSpace(value)) {
+  if (!combineValue || replaceNonAlphaNumericWithSpace(value) === '') {
     return Promise.reject(
       new Error(
         t('validate.single_characters', {

@@ -85,7 +85,10 @@ private:
 };
 
 inline static uint32_t find_page_size(const data::location_ptr &location, uint32_t dest_id) {
-  if (location->category == longfist::enums::category::MD && dest_id != 1) {
+  if (location->category == longfist::enums::category::MD && dest_id != data::location::SYNC) {
+    return 128 * MB;
+  }
+  if (location->mode == longfist::enums::mode::BACKTEST || location->mode == longfist::enums::mode::DATA) {
     return 128 * MB;
   }
   if ((location->category == longfist::enums::category::TD ||
@@ -94,9 +97,6 @@ inline static uint32_t find_page_size(const data::location_ptr &location, uint32
        location->category == longfist::enums::category::SYSTEM) &&
       dest_id != 0) {
     return 16 * MB;
-  }
-  if (location->mode == longfist::enums::mode::BACKTEST) {
-    return 128 * MB;
   }
   return MB;
 }

@@ -32,7 +32,6 @@ import {
   LedgerCategoryEnum,
   InstrumentTypeEnum,
   CurrencyEnum,
-  OrderStatusEnum,
 } from '../typings/enums';
 import { ExchangeIds, AllFinishedOrderStatus } from '../config/tradingConfig';
 

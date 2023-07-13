@@ -605,7 +605,7 @@ function showCloseModal(
   const { result, relationship } = closeModalConditions(
     closeRange,
     makeOrderInput,
-    Number(currentPosition.value?.volume || 0),
+    Number(currentPosition.value?.closable_volume || 0),
   );
 
   if (result) {

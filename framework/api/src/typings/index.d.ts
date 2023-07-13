@@ -191,6 +191,7 @@ declare namespace KungfuApi {
     search?: KfConfigItemSearch;
     importMode?: 'reset' | 'add';
     disableDateRange?: number; // 时间范围选择器不可选的日期范围
+    maxlength?: number;
 
     // ---- some ui releated ----;
     noDivider?: boolean;

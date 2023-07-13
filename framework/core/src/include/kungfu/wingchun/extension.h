@@ -127,11 +127,19 @@
   class SliceToolType;                                                                                                 \
   PYBIND11_MODULE(KUNGFU_MODULE_NAME, m) {                                                                             \
     m.def("slice_tool", [&](kungfu::longfist::enums::category category, std::string group, std::string name,           \
-                            SliceIndexer_ptr indexer, bool overwrite, std::string argument) {                           \
+                            SliceIndexer_ptr indexer, bool overwrite, std::string argument) {                          \
       return std::static_pointer_cast<kungfu::wingchun::tool::SliceTool>(std::make_shared<SliceToolType>(              \
-          category, std::move(group), std::move(name), indexer, overwrite, std::move(argument)));                           \
+          category, std::move(group), std::move(name), indexer, overwrite, std::move(argument)));                      \
     });                                                                                                                \
   };                                                                                                                   \
   class SliceToolType : public kungfu::wingchun::tool::SliceTool
+
+#define KUNGFU_MAIN_REPORT(ReportType)                                                                                 \
+  class ReportType;                                                                                                    \
+  PYBIND11_MODULE(KUNGFU_MODULE_NAME, m) {                                                                             \
+    m.def("report",                                                                                                    \
+          [&]() { return std::static_pointer_cast<kungfu::wingchun::tool::Report>(std::make_shared<ReportType>()); }); \
+  };                                                                                                                   \
+  class ReportType : public kungfu::wingchun::tool::Report
 
 #endif // KUNGFU_EXTENSION_H

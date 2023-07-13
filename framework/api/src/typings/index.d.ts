@@ -605,7 +605,7 @@ declare namespace KungfuApi {
     uid_key: string;
   }
 
-  export interface OrderResolved extends Order {
+  export interface OrderResolvedWithoutStat extends Order {
     source_resolved_data: KungfuApi.KfTradeValueCommonData;
     dest_resolved_data: KungfuApi.KfTradeValueCommonData;
     source_uname: string;
@@ -613,12 +613,15 @@ declare namespace KungfuApi {
     status_uname: string;
     status_color: AntInKungfuColorTypes;
     update_time_resolved: string;
+    price_precision?: number;
+    limit_price_resolved: string;
+  }
+
+  export interface OrderResolved extends OrderResolvedWithoutStat {
     latency_system: string;
     latency_network: string;
     avg_price: number;
-    price_precision?: number;
     avg_price_resolved: string;
-    limit_price_resolved: string;
   }
 
   export interface OrderInput {

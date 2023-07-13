@@ -48,6 +48,8 @@ public:
   typedef std::unordered_map<uint64_t, state<longfist::types::Order>> OrderMap;
   typedef std::unordered_map<uint64_t, state<longfist::types::OrderAction>> OrderActionMap;
   typedef std::unordered_map<uint64_t, state<longfist::types::Trade>> TradeMap;
+  typedef std::unordered_map<uint64_t, state<longfist::types::OrderTrigger>> OrderTriggerMap;
+  typedef std::unordered_map<uint64_t, state<longfist::types::OrderTriggerAction>> OrderTriggerActionMap;
 
   explicit Trader(BrokerVendor &vendor) : BrokerService(vendor){};
 
@@ -113,8 +115,10 @@ public:
   virtual void on_recover(){};
 
 protected:
-  OrderMap orders_ = {};
-  OrderActionMap actions_ = {};
+  OrderMap orders_{};
+  OrderActionMap actions_{};
+  OrderTriggerMap triggers_{};
+  OrderTriggerActionMap trigger_actions_{};
   TradeMap trades_ = {};
   bool self_deal_detect_ = false;
   bool disable_recover_ = false;

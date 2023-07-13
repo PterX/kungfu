@@ -2162,16 +2162,17 @@ export const useMakeOrderInfo = (
     if (!positionList.length || !instrument) return null;
 
     const { exchangeId, instrumentId, instrumentType } = instrument;
-    const targetPositionList: KungfuApi.Position[] = positionList.filter(
-      (position) =>
-        position.exchange_id === exchangeId &&
-        position.instrument_id === instrumentId &&
-        position.instrument_type === instrumentType &&
-        position.account_id_resolved ===
-          getIdByKfLocation(
-            currentAccountLocation.value as KungfuApi.KfLocation,
-          ),
-    );
+    const targetPositionList: KungfuApi.PositionResolved[] =
+      positionList.filter(
+        (position) =>
+          position.exchange_id === exchangeId &&
+          position.instrument_id === instrumentId &&
+          position.instrument_type === instrumentType &&
+          position.account_id_resolved ===
+            getIdByKfLocation(
+              currentAccountLocation.value as KungfuApi.KfLocation,
+            ),
+      );
 
     if (targetPositionList && targetPositionList.length) {
       const targetPositionWithLongDirection = targetPositionList.filter(

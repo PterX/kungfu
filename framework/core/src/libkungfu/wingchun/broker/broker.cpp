@@ -46,7 +46,7 @@ int64_t BrokerService::now() const { return vendor_.now(); }
 
 BrokerState BrokerService::get_state() { return state_; }
 
-const std::string BrokerService::get_config() const {
+std::string BrokerService::get_config() const {
   auto &config_map = get_state_bank()[boost::hana::type_c<Config>];
   if (config_map.find(get_home_uid()) == config_map.end()) {
     return "{}";
@@ -55,10 +55,13 @@ const std::string BrokerService::get_config() const {
   return config_obj.data.value;
 }
 
-[[maybe_unused]] const std::string &BrokerService::get_risk_setting() const {
+std::string BrokerService::get_risk_setting() const {
   auto &risk_setting_map = get_state_bank()[boost::hana::type_c<RiskSetting>];
+  if (risk_setting_map.find(get_home_uid()) == risk_setting_map.end()) {
+    return "{}";
+  }
   auto &risk_setting_obj = risk_setting_map.at(get_home_uid());
-  return risk_setting_obj.data.value;
+  return risk_setting_obj.data.to_string();
 }
 
 std::string BrokerService::get_runtime_folder() { return vendor_.get_locator()->layout_dir(get_home(), layout::LOG); }

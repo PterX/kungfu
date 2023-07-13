@@ -265,7 +265,7 @@ private:
   void add_action_id(uint64_t xtp_order_id, int64_t action_id);
   uint64_t get_action_id(uint64_t xtp_order_id);
 
-  bool req_order_trade();
+  void req_order_trade();
   void try_ready();
   bool req_order_over_{false};
   bool req_trade_over_{false};

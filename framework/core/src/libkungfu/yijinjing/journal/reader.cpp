@@ -23,6 +23,13 @@ void reader::join(const data::location_ptr &location, uint32_t dest_id, const in
   buffer_built_ = false;
 }
 
+void reader::disjoin(const data::location_ptr &location, uint32_t dest_id) {
+  auto key = journal_key(location, dest_id);
+  journals_.erase(key);
+  current_ = nullptr;
+  sort_without_buffer();
+}
+
 void reader::disjoin(const uint32_t location_uid) {
   for (auto it = journals_.begin(); it != journals_.end();) {
     if (it->first.location_uid != location_uid) {
@@ -99,12 +106,12 @@ void reader::sort() {
     build_buffer();
   }
   int64_t min_time = time::now_in_nano();
-  auto has_data_iter = internal::swap2tail_if(hasnot_data_journals_buffer_.begin(), hasnot_data_journals_buffer_.end(),
+  auto has_data_iter = internal::swap2tail_if(no_data_journals_buffer_.begin(), no_data_journals_buffer_.end(),
                                               [](const auto &journal) { return journal->current_frame()->has_data(); });
-  for (auto iter = has_data_iter; iter != hasnot_data_journals_buffer_.end(); ++iter) {
+  for (auto iter = has_data_iter; iter != no_data_journals_buffer_.end(); ++iter) {
     has_data_journals_heap_.push(*iter);
   }
-  hasnot_data_journals_buffer_.erase(has_data_iter, hasnot_data_journals_buffer_.end());
+  no_data_journals_buffer_.erase(has_data_iter, no_data_journals_buffer_.end());
   if (has_data_journals_heap_.empty()) {
     return;
   }
@@ -112,14 +119,14 @@ void reader::sort() {
   if (min_journal->current_frame()->gen_time() <= min_time) {
     current_ = min_journal;
     has_data_journals_heap_.pop();
-    hasnot_data_journals_buffer_.push_back(current_);
+    no_data_journals_buffer_.push_back(current_);
   }
 }
 
 void reader::build_buffer() {
-  hasnot_data_journals_buffer_.clear();
+  no_data_journals_buffer_.clear();
   has_data_journals_heap_ = {};
-  std::transform(journals_.begin(), journals_.end(), std::back_inserter(hasnot_data_journals_buffer_),
+  std::transform(journals_.begin(), journals_.end(), std::back_inserter(no_data_journals_buffer_),
                  [](auto &pair) { return std::addressof(pair.second); });
   buffer_built_ = true;
 }

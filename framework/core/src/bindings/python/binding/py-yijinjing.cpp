@@ -247,7 +247,8 @@ void bind(pybind11::module &&m) {
       .def("data_available", &reader::data_available)
       .def("next", &reader::next)
       .def("join", &reader::join)
-      .def("disjoin", &reader::disjoin)
+      .def("disjoin", py::overload_cast<const data::location_ptr &, uint32_t>(&reader::disjoin))
+      .def("disjoin", py::overload_cast<const uint32_t>(&reader::disjoin))
       .def("disjoin_channel", &reader::disjoin_channel);
 
   py::class_<bus, bus_ptr>(m, "bus").def("on_load_page", &bus::on_load_page);

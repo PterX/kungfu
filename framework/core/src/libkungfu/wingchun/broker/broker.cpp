@@ -81,16 +81,12 @@ const cache::bank &BrokerService::get_state_bank() const { return vendor_.get_st
 [[maybe_unused]] bool BrokerService::check_if_stored_instruments(const std::string &trading_day) const {
   SPDLOG_INFO("CHECK_IF_STORED_INSTRUMENTS trading_day {}", trading_day);
   auto &time_key_value_map = get_state_bank()[boost::hana::type_c<TimeKeyValue>];
-  for (const auto &pair : time_key_value_map) {
+  return std::any_of(time_key_value_map.begin(), time_key_value_map.end(), [&](const auto &pair) {
     const TimeKeyValue &timeKeyValue = pair.second.data;
-    if (timeKeyValue.key == "instrument_stored_trading_day" ||
-        timeKeyValue.key == "instrument_stored_trading_day_next_day") {
-      if (timeKeyValue.value == trading_day) {
-        return true;
-      }
-    }
-  }
-  return false;
+    return (timeKeyValue.key == "instrument_stored_trading_day" ||
+            timeKeyValue.key == "instrument_stored_trading_day_next_day") and
+           (timeKeyValue.value == trading_day);
+  });
 }
 
 [[maybe_unused]] void BrokerService::record_stored_instruments_trading_day(const std::string &trading_day) const {

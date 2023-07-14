@@ -151,7 +151,7 @@ void bind_enums(py::module &m) {
       .def("__eq__", [](const PriceType &a, int b) { return static_cast<int>(a) == b; });
 
   py::enum_<PriceLevel>(m_enums, "PriceLevel", py::arithmetic())
-      .value("Lastest", PriceLevel::Lastest)
+      .value("Latest", PriceLevel::Latest)
       .value("Sell5", PriceLevel::Sell5)
       .value("Sell4", PriceLevel::Sell4)
       .value("Sell3", PriceLevel::Sell3)
@@ -206,6 +206,7 @@ void bind_enums(py::module &m) {
 
   py::enum_<OrderActionFlag>(m_enums, "OrderActionFlag", py::arithmetic())
       .value("Cancel", OrderActionFlag::Cancel)
+      .value("TriggerCancel", OrderActionFlag::TriggerCancel)
       .export_values()
       .def("__eq__", [](const OrderActionFlag &a, int b) { return static_cast<int>(a) == b; });
 
@@ -303,5 +304,25 @@ void bind_enums(py::module &m) {
       .value("Unknown", FrameDataType::Unknown)
       .export_values()
       .def("__eq__", [](const FrameDataType &a, int b) { return static_cast<int>(a) == b; });
+
+  py::enum_<OrderTriggerType>(m_enums, "OrderTriggerType", py::arithmetic())
+      .value("Immediately", OrderTriggerType::Immediately)
+      .value("Touch", OrderTriggerType::Touch)
+      .value("TouchProfit", OrderTriggerType::TouchProfit)
+      .value("ParkedOrder", OrderTriggerType::ParkedOrder)
+      .value("LastPriceGreaterThanStopPrice", OrderTriggerType::LastPriceGreaterThanStopPrice)
+      .value("LastPriceGreaterEqualStopPrice", OrderTriggerType::LastPriceGreaterEqualStopPrice)
+      .value("LastPriceLesserThanStopPrice", OrderTriggerType::LastPriceLesserThanStopPrice)
+      .value("LastPriceLesserEqualStopPrice", OrderTriggerType::LastPriceLesserEqualStopPrice)
+      .value("AskPriceGreaterThanStopPrice", OrderTriggerType::AskPriceGreaterThanStopPrice)
+      .value("AskPriceGreaterEqualStopPrice", OrderTriggerType::AskPriceGreaterEqualStopPrice)
+      .value("AskPriceLesserThanStopPrice", OrderTriggerType::AskPriceLesserThanStopPrice)
+      .value("AskPriceLesserEqualStopPrice", OrderTriggerType::AskPriceLesserEqualStopPrice)
+      .value("BidPriceGreaterThanStopPrice", OrderTriggerType::BidPriceGreaterThanStopPrice)
+      .value("BidPriceGreaterEqualStopPrice", OrderTriggerType::BidPriceGreaterEqualStopPrice)
+      .value("BidPriceLesserThanStopPrice", OrderTriggerType::BidPriceLesserThanStopPrice)
+      .value("BidPriceLesserEqualStopPrice", OrderTriggerType::BidPriceLesserEqualStopPrice)
+      .export_values()
+      .def("__eq__", [](const OrderTriggerType &a, int b) { return static_cast<int>(a) == b; });
 }
 } // namespace kungfu::longfist::pybind

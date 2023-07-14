@@ -118,6 +118,7 @@ price_type
 volume_condition
 time_condition
 block_id
+trigger_id
 external_order_id
 insert_time
 volume_left
@@ -142,6 +143,8 @@ total_volume
 price_level
 price_offset
 dest_id
+stop_price
+order_trigger_action_id
 is_last
 data_type
 is_withdraw
@@ -222,6 +225,10 @@ OrderActionError
 BlockMessage
 OrderStat
 BasketOrder
+OrderTriggerInput
+OrderTrigger
+OrderTriggerAction
+OrderTriggerActionError
 RequestHistoryOrder
 RequestHistoryTrade
 HistoryOrder
@@ -352,6 +359,7 @@ on_operator_state_change
 add_strategy
 add_account
 insert_order_input
+insert_order_trigger
 insert_array_orders
 insert_basket_order
 hold_book
@@ -536,6 +544,7 @@ Hedge
 Covered
 HedgeFlag
 Cancel
+TriggerCancel
 OrderActionFlag
 Limit
 Any
@@ -548,7 +557,7 @@ EnhancedLimit
 AtAuctionLimit
 AtAuction
 PriceType
-Lastest
+Latest
 Sell5
 Sell4
 Sell3
@@ -568,6 +577,9 @@ VolumeCondition
 IOC
 GFD
 GTC
+GFS
+GTD
+GFA
 TimeCondition
 Submitted
 Pending
@@ -627,3 +639,24 @@ Raw
 Json
 Unknown
 FrameDataType
+Immediately
+Touch
+TouchProfit
+ParkedOrder
+LastPriceGreaterThanStopPrice
+LastPriceGreaterEqualStopPrice
+LastPriceLesserThanStopPrice
+LastPriceLesserEqualStopPrice
+AskPriceGreaterThanStopPrice
+AskPriceGreaterEqualStopPrice
+AskPriceLesserThanStopPrice
+AskPriceLesserEqualStopPrice
+BidPriceGreaterThanStopPrice
+BidPriceGreaterEqualStopPrice
+BidPriceLesserThanStopPrice
+BidPriceLesserEqualStopPrice
+OrderTriggerType
+NotSend
+Send
+Deleted
+OrderTriggerStatus

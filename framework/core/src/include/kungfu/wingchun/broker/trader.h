@@ -48,6 +48,8 @@ public:
   typedef std::unordered_map<uint64_t, state<longfist::types::Order>> OrderMap;
   typedef std::unordered_map<uint64_t, state<longfist::types::OrderAction>> OrderActionMap;
   typedef std::unordered_map<uint64_t, state<longfist::types::Trade>> TradeMap;
+  typedef std::unordered_map<uint64_t, state<longfist::types::OrderTrigger>> OrderTriggerMap;
+  typedef std::unordered_map<uint64_t, state<longfist::types::OrderTriggerAction>> OrderTriggerActionMap;
 
   explicit Trader(BrokerVendor &vendor) : BrokerService(vendor){};
 
@@ -55,9 +57,13 @@ public:
 
   virtual bool insert_block_message(const event_ptr &event);
 
+  virtual bool insert_order_trigger(const event_ptr &event) { return true; }
+
   virtual bool insert_order(const event_ptr &event) = 0;
 
   virtual bool insert_batch_orders(const event_ptr &event) { return true; }
+
+  virtual bool cancel_order_trigger(const event_ptr &event) { return true; }
 
   virtual bool cancel_order(const event_ptr &event) = 0;
 
@@ -111,14 +117,16 @@ public:
   virtual void on_recover(){};
 
 protected:
-  OrderMap orders_ = {};
-  OrderActionMap actions_ = {};
+  OrderMap orders_{};
+  OrderActionMap actions_{};
+  OrderTriggerMap triggers_{};
+  OrderTriggerActionMap trigger_actions_{};
   TradeMap trades_ = {};
   bool self_deal_detect_ = false;
   bool disable_recover_ = false;
-  std::unordered_map<uint64_t, kungfu::longfist::types::BlockMessage> block_messages_ = {}; // <block_id, batch_flag>
+  std::unordered_map<uint64_t, kungfu::longfist::types::BlockMessage> block_messages_{};
   /// <strategy_uid, OrderInput>, a batch OrderInputs for a strategy
-  std::unordered_map<uint64_t, std::vector<longfist::types::OrderInput>> order_inputs_ = {};
+  std::unordered_map<uint64_t, std::vector<longfist::types::OrderInput>> order_inputs_{};
   /// <strategy_uid, batch_flag>, true mean batch mode for this strategy
   std::unordered_map<uint64_t, bool> batch_status_{};
   std::unordered_map<std::string, std::unordered_set<uint64_t>> map_exchange_instrument_to_order_ids_{};

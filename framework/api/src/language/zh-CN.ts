@@ -134,6 +134,9 @@ export default {
     stopped: '已停止',
     launching: '启动中',
     error: '错误',
+    finished_msg: '当前订单已结束, 无法改单',
+    greater_than_msg: '已成交量大于目标下单量, 无法改单',
+    target_equal_to_close_msg: '已成交量等于目标下单量, 无法改单',
     waiting_restart: '待重启',
 
     pending: '等待中',
@@ -193,6 +196,7 @@ export default {
     guarantee_stock_redeem: '担保品转出',
 
     submitted: '已提交',
+    cancelling: '待撤',
     cancelled: '已撤单',
     filled: '已成交',
     partial_filled_not_active: '部分撤单',

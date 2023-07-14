@@ -301,6 +301,10 @@ export const OrderStatus: Record<
     name: t('tradingConfig.pending'),
     color: 'default',
   },
+  [OrderStatusEnum.Cancelling]: {
+    name: t('tradingConfig.cancelling'),
+    color: 'default',
+  },
   [OrderStatusEnum.Cancelled]: {
     name: t('tradingConfig.cancelled'),
     color: 'default',
@@ -358,6 +362,7 @@ export const UnfinishedOrderStatus = [
   OrderStatusEnum.Pending,
   OrderStatusEnum.Submitted,
   OrderStatusEnum.PartialFilledActive,
+  OrderStatusEnum.Cancelling,
 ];
 
 export const NotTradeAllOrderStatus = [

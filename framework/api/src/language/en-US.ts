@@ -136,6 +136,11 @@ export default {
     stopped: 'Stopped',
     launching: 'Launching',
     error: 'Errored',
+    finished_msg: 'The current order has ended and cannot be changed',
+    greater_than_msg:
+      'The transaction volume is greater than the target order volume and cannot be changed',
+    target_equal_to_close_msg:
+      'The transaction volume equals the target order volume and cannot be changed',
     waiting_restart: 'Stopped',
 
     pending: 'Pending',
@@ -195,6 +200,7 @@ export default {
     guarantee_stock_redeem: 'GuaranteeStockTransferOut',
 
     submitted: 'Submitted',
+    cancelling: 'Cancelling',
     cancelled: 'Cancelled',
     filled: 'Filled',
     partial_filled_not_active: 'PartialFilledNotActive',

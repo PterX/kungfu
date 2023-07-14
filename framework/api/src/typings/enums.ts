@@ -187,6 +187,7 @@ export enum OrderStatusEnum {
   Unknown,
   Submitted,
   Pending,
+  Cancelling,
   Cancelled,
   Error,
   Filled,

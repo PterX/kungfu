@@ -135,7 +135,7 @@ export default {
     launching: '启动中',
     error: '错误',
     finished_msg: '当前订单已结束, 无法改单',
-    greater_than_msg: '已成交量大于目标下单量, 无法改单',
+    close_greater_than_target_msg: '已成交量大于目标下单量, 无法改单',
     target_equal_to_close_msg: '已成交量等于目标下单量, 无法改单',
     waiting_restart: '待重启',
 

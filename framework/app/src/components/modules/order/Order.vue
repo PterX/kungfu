@@ -507,7 +507,9 @@ function handleClickAdjustOrderMask(): void {
             new Error(t('tradingConfig.target_equal_to_close_msg')),
           );
         } else {
-          return Promise.reject(new Error(t('tradingConfig.greater_than_msg')));
+          return Promise.reject(
+            new Error(t('tradingConfig.close_greater_than_target_msg')),
+          );
         }
       })
       .then(() => {
@@ -520,7 +522,7 @@ function handleClickAdjustOrderMask(): void {
         adjustOrderMaskVisible.value = false;
       });
   } else {
-    error(t('tradingConfig.greater_than_msg'));
+    error(t('tradingConfig.close_greater_than_target_msg'));
   }
 }
 
@@ -719,7 +721,10 @@ function testOrderSourceIsOnline(order: KungfuApi.OrderResolved) {
             </template>
             <template v-else-if="column.dataIndex === 'actions'">
               <CloseOutlined
-                v-if="!isFinishedOrderStatus(item.status)"
+                v-if="
+                  !isFinishedOrderStatus(item.status) &&
+                  item.status !== OrderStatusEnum.Cancelling
+                "
                 class="kf-hover"
                 @click="handleCancelOrder(item)"
               />

@@ -63,9 +63,9 @@ public:
 
   [[nodiscard]] std::string get_runtime_folder();
 
-  [[nodiscard]] const std::string get_config() const;
+  [[nodiscard]] std::string get_config() const;
 
-  [[maybe_unused]] [[nodiscard]] const std::string &get_risk_setting() const;
+  [[nodiscard]] std::string get_risk_setting() const;
 
   [[nodiscard]] const yijinjing::data::location_ptr &get_home() const;
 

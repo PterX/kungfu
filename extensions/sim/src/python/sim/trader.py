@@ -224,6 +224,9 @@ class TraderSim(wc.Trader):
         return False
 
     def req_position(self):
+        position_end = lf.types.PositionEnd()
+        position_end.holder_uid = self.home.uid
+
         if self.match_mode == MatchMode.Custom:
             return self.ctx.req_position(self.ctx)
         return False

@@ -58,6 +58,7 @@ void TraderVendor::on_start() {
     return event->msg_type() == BatchOrderBegin::tag or event->msg_type() == BatchOrderEnd::tag;
   }) | $$(service_->handle_batch_order_tag(event));
 
+  service_->on_risk_setting();
   service_->recover();
   service_->on_recover();
   service_->on_start();
@@ -238,10 +239,6 @@ bool Trader::insert_block_message(const event_ptr &event) {
 void Trader::enable_self_detect() { self_deal_detect_ = true; }
 
 void Trader::recover() {
-  if (disable_recover_) {
-    return;
-  }
-
   deal_write_frame();
   deal_read_frame();
 }
@@ -268,17 +265,16 @@ void Trader::deal_write_frame() {
   SPDLOG_DEBUG("after assemble read, count: {}", count);
 
   // set order as Lost which without external_order_id
-  for (auto &pair : orders_) {
+  std::for_each(orders_.begin(), orders_.end(), [&](auto &pair) {
     Order &order = pair.second.data;
-    if (not is_final_status(order.status) and order.external_order_id.to_string().empty()) {
+    if (not is_final_status(order.status) and (disable_recover_ or order.external_order_id.to_string().empty())) {
       order.status = OrderStatus::Lost;
       order.update_time = time::now_in_nano();
-
       if (has_writer(pair.second.dest)) {
         write_to(order, pair.second.dest);
       }
     }
-  }
+  });
 }
 
 void Trader::deal_read_frame() {
@@ -312,5 +308,12 @@ void Trader::deal_read_frame() {
 void Trader::clear_order_inputs(uint64_t location_uid) { order_inputs_.erase(location_uid); }
 
 [[maybe_unused]] void Trader::disable_recover() { disable_recover_ = true; }
+
+void Trader::on_risk_setting() {
+  const std::string msg = get_risk_setting();
+  SPDLOG_DEBUG("RiskSetting: {}", msg);
+  auto risk_setting_data = nlohmann::json::parse(msg);
+  disable_recover_ = risk_setting_data.value<bool>("disable_recover", false);
+}
 
 } // namespace kungfu::wingchun::broker

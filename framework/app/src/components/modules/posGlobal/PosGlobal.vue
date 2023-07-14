@@ -21,6 +21,7 @@ import {
   dealDirection,
   dealCurrency,
   dealKfPrice,
+  isShotable,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import {
   LedgerCategoryEnum,
@@ -122,7 +123,7 @@ function buildGlobalPositions(
   const posStatData: PosStat = positions.reduce((posStat, pos) => {
     const id = `${pos.instrument_id}_${pos.exchange_id}_${pos.direction}`;
     if (!posStat[id]) {
-      posStat[id] = Object.assign(pos, { id });
+      posStat[id] = Object.assign({}, pos, { id, uid_key: pos.uid_key });
     } else {
       const prePosStat = posStat[id];
       const {
@@ -198,6 +199,16 @@ function handleClickRow(data: {
   tiggerOrderBookAndMakeOrder(data.row);
 }
 
+const resolveTriggerOffset = (position: KungfuApi.PositionResolved) => {
+  if (isShotable(position.instrument_type)) {
+    return position.yesterday_volume !== BigInt(0)
+      ? OffsetEnum.CloseYest
+      : OffsetEnum.CloseToday;
+  } else {
+    return OffsetEnum.Close;
+  }
+};
+
 function tiggerOrderBookAndMakeOrder(record: KungfuApi.PositionResolved) {
   const { instrument_id, instrument_type, exchange_id } = record;
   const ensuredInstrument: KungfuApi.InstrumentResolved =
@@ -213,10 +224,7 @@ function tiggerOrderBookAndMakeOrder(record: KungfuApi.PositionResolved) {
   triggerOrderBook(ensuredInstrument);
   const extraOrderInput: ExtraOrderInput = {
     side: record.direction === 0 ? SideEnum.Sell : SideEnum.Buy,
-    offset:
-      record.yesterday_volume !== BigInt(0)
-        ? OffsetEnum.CloseYest
-        : OffsetEnum.CloseToday,
+    offset: resolveTriggerOffset(record),
     volume: getPosClosableVolume(record),
 
     price: record.last_price || 0,

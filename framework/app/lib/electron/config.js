@@ -150,6 +150,7 @@ module.exports = {
         'public/key',
         'public/logo',
         'public/keywords',
+        'public/fonts',
         'public/music',
         'public/language',
         ...(fse.existsSync(defaultInstrumentsJson)

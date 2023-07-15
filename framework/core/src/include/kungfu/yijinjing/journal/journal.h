@@ -19,11 +19,14 @@ namespace kungfu::yijinjing::journal {
 struct journal_key {
   journal_key(uint32_t locator_uid, uint32_t location_uid, uint32_t dest_id)
       : locator_uid(locator_uid), location_uid(location_uid), dest_id(dest_id) {}
+
   journal_key(const data::location_ptr &location, uint32_t dest_id)
       : locator_uid(util::hash_str_32(location->locator->get_root())), location_uid(location->uid), dest_id(dest_id) {}
+
   bool operator<(const journal_key &rhs) const {
     return std::tie(locator_uid, location_uid, dest_id) < std::tie(rhs.locator_uid, rhs.location_uid, rhs.dest_id);
   }
+
   uint32_t locator_uid;
   uint32_t location_uid;
   uint32_t dest_id;
@@ -116,6 +119,8 @@ public:
 
   void disjoin(uint32_t location_uid);
 
+  void disjoin(const data::location_ptr &location, uint32_t dest_id);
+
   void disjoin_channel(uint32_t location_uid, uint32_t dest_id);
 
   void keep_only(uint32_t location_uid, uint32_t dest_id);
@@ -145,12 +150,25 @@ public:
   bool release_page();
 
 private:
+  void sort_without_buffer();
+
+  void build_buffer();
+
+  struct later {
+    bool operator()(journal *const lhs, journal *const rhs) const {
+      return lhs->current_frame()->gen_time() > rhs->current_frame()->gen_time();
+    };
+  };
+
   const bool lazy_;
   const bool low_latency_;
   bus_ptr bus_;
   journal *current_;
   JournalMap journals_;
   std::vector<journal> replica_journals_{};
+  bool buffer_built_{false};
+  std::vector<journal *> no_data_journals_buffer_{};
+  std::priority_queue<journal *, std::vector<journal *>, later> has_data_journals_heap_{};
   std::recursive_mutex mtx_{};
 };
 

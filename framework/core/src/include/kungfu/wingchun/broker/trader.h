@@ -71,11 +71,11 @@ public:
 
   virtual bool on_custom_event(const event_ptr &event) { return true; }
 
-  virtual void on_band(const event_ptr &event) { return; }
+  virtual void on_band(const event_ptr &event) {}
 
-  virtual void on_time_key_value(const event_ptr &event) { return; }
+  virtual void on_time_key_value(const event_ptr &event) {}
 
-  void on_risk_setting(const event_ptr &event);
+  void on_risk_setting();
 
   /// 此函数自动发送一个空的AssetMargin数据. 两融柜台需要发送一个存有数据的AssetMargin, 请override此函数取消写入.
   /// 并且在使用writer写入完AssetMargin之后调用enable_asset_margin_sync()函数.

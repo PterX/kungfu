@@ -40,7 +40,6 @@ void TraderVendor::react() {
 void TraderVendor::on_react() {
   events_ | is(ResetBookRequest::tag) |
       $([&](const event_ptr &event) { get_writer(location::PUBLIC)->mark(now(), ResetBookRequest::tag); });
-  events_ | is(RiskSetting::tag) | $$(service_->on_risk_setting(event));
 }
 
 void TraderVendor::on_start() {
@@ -60,6 +59,7 @@ void TraderVendor::on_start() {
   events_ | is(PositionSync::tag) | $$(service_->handle_position_sync());
   events_ | is(Band::tag) | $$(service_->on_band(event));
 
+  service_->on_risk_setting();
   service_->recover();
   service_->on_recover();
   service_->on_start();
@@ -204,17 +204,16 @@ void Trader::deal_write_frame() {
   SPDLOG_DEBUG("after assemble read, count: {}", count);
 
   // set order as Lost which without external_order_id
-  for (auto &pair : orders_) {
+  std::for_each(orders_.begin(), orders_.end(), [&](auto &pair) {
     Order &order = pair.second.data;
-    if (not is_final_status(order.status) and order.external_order_id.to_string().empty()) {
+    if (not is_final_status(order.status) and (disable_recover_ or order.external_order_id.to_string().empty())) {
       order.status = OrderStatus::Lost;
       order.update_time = time::now_in_nano();
-
       if (has_writer(pair.second.dest)) {
         write_to(order, pair.second.dest);
       }
     }
-  }
+  });
 }
 
 void Trader::deal_read_frame() {
@@ -247,13 +246,16 @@ void Trader::clear_order_inputs(uint64_t location_uid) { order_inputs_.erase(loc
 
 [[maybe_unused]] void Trader::disable_recover() { disable_recover_ = true; }
 
-void Trader::on_risk_setting(const event_ptr &event) {
-  const auto &risk_setting = event->data<RiskSetting>();
-  SPDLOG_DEBUG("RiskSetting: {}", risk_setting.to_string());
-  if (risk_setting.risk_check and risk_setting.location_uid == get_home_uid()) {
+void Trader::on_risk_setting() {
+  const std::string msg = get_risk_setting();
+  SPDLOG_DEBUG("RiskSetting: {}", msg);
+  auto risk_setting_data = nlohmann::json::parse(msg);
+  disable_recover_ = risk_setting_data.value<bool>("disable_recover", false);
+  auto risk_check = risk_setting_data.value<bool>("risk_check", false);
+  if (risk_check) {
     // let process crash if value is not a json
-    auto config = nlohmann::json::parse(risk_setting.value);
-    const auto risk_name = config.value<std::string>("risk_name", "risk");
+    auto config = nlohmann::json::parse(risk_setting_data.value<std::string>("value", "{}"));
+    const auto risk_name = config.value<std::string>("risk_name", "");
     if (not risk_name.empty()) {
       risk_uid_ = location(get_home()->mode, category::SYSTEM, "service", risk_name, get_home()->locator).location_uid;
     }

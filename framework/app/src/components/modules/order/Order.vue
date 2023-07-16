@@ -384,8 +384,8 @@ const adjustOrderForm = ref<{
 });
 const adjustOrder = ref<KungfuApi.OrderResolved | null>(null);
 const tableRef = ref();
-const numberInputRef = ref();
-let priceTick;
+const adjustNumberInputRef = ref();
+const adjustPriceTick = ref<number>();
 
 function handleAdjustOrder(data: {
   event: MouseEvent;
@@ -437,11 +437,11 @@ function handleAdjustOrder(data: {
       order.exchange_id,
     );
 
-    priceTick = price_tick;
+    adjustPriceTick.value = price_tick;
 
     nextTick().then(() => {
-      if (!numberInputRef.value) return;
-      numberInputRef.value.focus();
+      if (!adjustNumberInputRef.value) return;
+      adjustNumberInputRef.value.focus();
     });
   }
 }
@@ -465,29 +465,30 @@ function handleClickAdjustOrderMask(): void {
     return;
   }
 
-  const cur_volue_close = order.volume - order.volume_left;
-  if (+Number(cur_volue_close) === +adjustOrderForm.value.volume) {
+  const curVolueTra = order.volume - order.volume_left;
+  if (+Number(curVolueTra) === +adjustOrderForm.value.volume) {
     if (+order.limit_price === +adjustOrderForm.value.price) {
       adjustOrderMaskVisible.value = false;
-      error(t('tradingConfig.target_equal_to_close_msg'));
+      error(t('tradingConfig.target_equal_to_trade_msg'));
       return;
     }
   }
 
-  if (+adjustOrderForm.value.volume > Number(cur_volue_close)) {
+  if (+adjustOrderForm.value.volume > Number(curVolueTra)) {
+    adjustOrderMaskVisible.value = false;
     kfCancelOrderUtilFinished(window.watcher, order)
       .then(() => {
         if (!testOrderSourceIsOnline(order)) {
           return Promise.reject(new Error(t('tradingConfig.finished_msg')));
         }
-        const volue_close = order.volume - order.volume_left; // 这里必须再计算一次，撤单过程仍可能会有数量变化
-        if (+adjustOrderForm.value.volume > Number(volue_close)) {
+        const volue_trade = order.volume - order.volume_left; // 这里必须再计算一次，撤单过程仍可能会有数量变化
+        if (+adjustOrderForm.value.volume > Number(volue_trade)) {
           const makeOrderInput: KungfuApi.MakeOrderInput = {
             instrument_id: order.instrument_id,
             instrument_type: order.instrument_type,
             exchange_id: order.exchange_id,
             limit_price: +adjustOrderForm.value.price,
-            volume: +(adjustOrderForm.value.volume - Number(volue_close)),
+            volume: +(adjustOrderForm.value.volume - Number(volue_trade)),
             price_type: +order.price_type,
             side: +order.side,
             offset: +order.offset,
@@ -502,13 +503,13 @@ function handleClickAdjustOrderMask(): void {
             kfLocation,
             getIdByKfLocation(window.watcher.getLocation(order.source)),
           );
-        } else if (+adjustOrderForm.value.volume === Number(volue_close)) {
+        } else if (+adjustOrderForm.value.volume === Number(volue_trade)) {
           return Promise.reject(
-            new Error(t('tradingConfig.target_equal_to_close_msg')),
+            new Error(t('tradingConfig.target_equal_to_trade_msg')),
           );
         } else {
           return Promise.reject(
-            new Error(t('tradingConfig.close_greater_than_target_msg')),
+            new Error(t('tradingConfig.trade_greater_than_target_msg')),
           );
         }
       })
@@ -522,7 +523,7 @@ function handleClickAdjustOrderMask(): void {
         adjustOrderMaskVisible.value = false;
       });
   } else {
-    error(t('tradingConfig.close_greater_than_target_msg'));
+    error(t('tradingConfig.trade_greater_than_target_msg'));
   }
 }
 
@@ -627,10 +628,10 @@ function testOrderSourceIsOnline(order: KungfuApi.OrderResolved) {
           ></div>
           <a-input-number
             v-if="adjustOrderConfig.clientWidth !== 0"
-            ref="numberInputRef"
+            ref="adjustNumberInputRef"
             v-model:value="adjustOrderForm.price"
             string-mode
-            :step="priceTick"
+            :step="adjustPriceTick"
             class="adjust-order-item price"
             :style="{
               width: adjustOrderConfig.clientWidth + 'px',

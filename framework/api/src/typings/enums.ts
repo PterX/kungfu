@@ -187,13 +187,13 @@ export enum OrderStatusEnum {
   Unknown,
   Submitted,
   Pending,
-  Cancelling,
   Cancelled,
   Error,
   Filled,
   PartialFilledNotActive,
   PartialFilledActive,
   Lost,
+  Cancelling,
 }
 
 export type OrderStatusTypes = keyof typeof OrderStatusEnum;

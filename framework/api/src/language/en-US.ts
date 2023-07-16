@@ -136,11 +136,12 @@ export default {
     stopped: 'Stopped',
     launching: 'Launching',
     error: 'Errored',
-    finished_msg: 'The current order has ended and cannot be changed',
-    close_greater_than_target_msg:
-      'The transaction volume is greater than the target order volume and cannot be changed',
-    target_equal_to_close_msg:
-      'The transaction volume equals the target order volume and cannot be changed',
+    finished_msg:
+      'The current order {status} and the order change has been cancelled',
+    trade_greater_than_target_msg:
+      'The transaction volume is greater than the target order volume, and the order change is cancelled',
+    target_equal_to_trade_msg:
+      'The transaction volume is equal to the target order volume, and the order change will be cancelled',
     waiting_restart: 'Stopped',
 
     pending: 'Pending',

@@ -646,7 +646,11 @@ void TraderXTP::on_recover() {
   }
 }
 
-bool TraderXTP::req_order_trade() {
+void TraderXTP::req_order_trade() {
+  if (disable_recover_) {
+    return try_ready();
+  }
+
   XTPQueryOrderReq query_order_param{};
   int ret = api_->QueryOrders(&query_order_param, session_id_, get_request_id());
   if (0 != ret) {
@@ -658,8 +662,6 @@ bool TraderXTP::req_order_trade() {
   if (0 != ret) {
     SPDLOG_ERROR("QueryTrades False ： {}", ret);
   }
-
-  return true;
 }
 
 void TraderXTP::try_ready() {
@@ -668,7 +670,7 @@ void TraderXTP::try_ready() {
   }
 
   SPDLOG_DEBUG("req_order_over_: {}, req_trade_over_: {}", req_order_over_, req_trade_over_);
-  if (req_order_over_ and req_trade_over_) {
+  if (disable_recover_ or (req_order_over_ and req_trade_over_)) {
     update_broker_state(BrokerState::Ready);
   }
 }

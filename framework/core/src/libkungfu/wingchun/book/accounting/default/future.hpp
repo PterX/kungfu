@@ -342,7 +342,7 @@ private:
       SPDLOG_WARN("instrument information missing for {}@{}", instrument_id, exchange_id);
       cm_mr.contract_multiplier = DEFAULT_INSTRUMENT_CONTRACT_MULTIPLIER;
     } else {
-      auto &instrument = book->instruments.at(hashed_instrument_key);
+      const auto &instrument = book->instruments.at(hashed_instrument_key);
       cm_mr.contract_multiplier = instrument.contract_multiplier;
     }
 

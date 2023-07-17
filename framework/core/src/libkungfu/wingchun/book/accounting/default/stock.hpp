@@ -685,7 +685,7 @@ protected:
       if (book->instruments.find(hashed_instrument_key) == book->instruments.end()) {
         cd_mr.contract_multiplier = DEFAULT_STOCK_CONTRACT_MULTIPLIER;
       } else {
-        auto &instrument = book->instruments.at(hashed_instrument_key);
+        const auto &instrument = book->instruments.at(hashed_instrument_key);
         cd_mr.contract_multiplier = instrument.contract_multiplier;
       }
 

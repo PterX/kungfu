@@ -1,3 +1,4 @@
+import { UnfinishedOrderStatus } from './../config/tradingConfig';
 import dayjs from 'dayjs';
 import { kungfu } from '@kungfu-trader/kungfu-core';
 import { KF_RUNTIME_DIR } from '../config/pathConfig';
@@ -24,6 +25,7 @@ import {
   kfLogger,
   resolveAccountId,
   resolveClientId,
+  setTimerPromiseTask,
 } from '../utils/busiUtils';
 import {
   HistoryDateEnum,
@@ -31,7 +33,7 @@ import {
   InstrumentTypeEnum,
   CurrencyEnum,
 } from '../typings/enums';
-import { ExchangeIds } from '../config/tradingConfig';
+import { ExchangeIds, AllFinishedOrderStatus } from '../config/tradingConfig';
 
 export const kf = kungfu();
 
@@ -350,6 +352,33 @@ export const kfCancelOrder = (
   return Promise.resolve(
     watcher.cancelOrder(orderAction, sourceLocation, destLocation),
   );
+};
+
+export const kfCancelOrderUtilFinished = (
+  watcher: KungfuApi.Watcher,
+  order: KungfuApi.Order,
+) => {
+  return new Promise<KungfuApi.Order>((resolve, reject) => {
+    if (!UnfinishedOrderStatus.includes(order.status)) return resolve(order);
+
+    kfCancelOrder(watcher, order)
+      .then(() => {
+        const { clearLoop } = setTimerPromiseTask(() => {
+          const targetOrder = (watcher as KungfuApi.Watcher).ledger.Order[
+            order.uid_key
+          ];
+          if (
+            targetOrder &&
+            AllFinishedOrderStatus.includes(targetOrder.status)
+          ) {
+            clearLoop();
+            resolve(targetOrder);
+          }
+          return Promise.resolve();
+        }, 160);
+      })
+      .catch((err) => reject(err));
+  });
 };
 
 export const kfCancelAllOrders = (

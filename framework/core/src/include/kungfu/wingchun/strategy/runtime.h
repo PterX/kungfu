@@ -82,6 +82,33 @@ public:
 
   /**
    *
+   * @param instrument_id
+   * @param exchange_id
+   * @param source
+   * @param account
+   * @param limit_price
+   * @param volume
+   * @param type
+   * @param side
+   * @param offset
+   * @param trigger_type
+   * @param time_condition
+   * @param action_flag
+   * @param order_id
+   * @param stop_price
+   * @param hedge_flag
+   * @param is_swap
+   * @return
+   */
+  uint64_t insert_order_trigger(const std::string &instrument_id, const std::string &exchange_id,
+                                const std::string &source, const std::string &account, double limit_price,
+                                int64_t volume, longfist::enums::PriceType type, longfist::enums::Side side,
+                                longfist::enums::Offset offset, longfist::enums::OrderTriggerType trigger_type,
+                                longfist::enums::TimeCondition time_condition, double stop_price,
+                                longfist::enums::HedgeFlag hedge_flag, bool is_swap) override;
+
+  /**
+   *
    * @param instrument_id instrument ID
    * @param exchange_id exchange ID
    * @param source source ID
@@ -166,7 +193,14 @@ public:
    * @param order_id order ID
    * @return order action ID
    */
-  uint64_t cancel_order(uint64_t order_id) override;
+  uint64_t cancel_order(uint64_t order_id, OrderActionFlag action_flag) override;
+
+  /**
+   * Cancel Order Trigger
+   * @param trigger_id
+   * @return trigger action ID
+   */
+  uint64_t cancel_order_trigger(uint64_t trigger_id) override;
 
   /**
    * Get current trading day.

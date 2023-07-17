@@ -4,7 +4,6 @@ import {
   dealCurrency,
   isTdStrategyCategory,
   getIdByKfLocation,
-  isShotable,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 
 import {
@@ -33,10 +32,7 @@ import KfBlinkNum from '@kungfu-trader/kungfu-app/src/renderer/components/public
 import { dealKfPrice } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { dealPosition } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
-import {
-  OffsetEnum,
-  SideEnum,
-} from '@kungfu-trader/kungfu-js-api/typings/enums';
+import { SideEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
   getInstrumentByInstrumentPair,
   useCurrentGlobalKfLocation,
@@ -47,6 +43,7 @@ import {
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import { messagePrompt } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+import { resolveTriggerOffset } from './utils';
 
 const { t } = VueI18n.global;
 const { success, error } = messagePrompt();
@@ -131,16 +128,6 @@ onMounted(() => {
 watch(currentGlobalKfLocation, () => {
   pos.value = [];
 });
-
-const resolveTriggerOffset = (position: KungfuApi.PositionResolved) => {
-  if (isShotable(position.instrument_type)) {
-    return position.yesterday_volume !== BigInt(0)
-      ? OffsetEnum.CloseYest
-      : OffsetEnum.CloseToday;
-  } else {
-    return OffsetEnum.Close;
-  }
-};
 
 function handleClickRow(data: {
   event: MouseEvent;

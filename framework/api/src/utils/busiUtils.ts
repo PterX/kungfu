@@ -1440,7 +1440,7 @@ export const getOffsetByOffsetFilter = (
   const offsetConfig =
     rootPackageJson?.appConfig?.makeOrder?.offsetFilter ||
     ({} as Record<string, boolean>);
-  return offsetConfig[offsetKey] === true
+  return offsetConfig[offsetKey] !== false
     ? OffsetEnum[offsetKey]
     : defaultOffset;
 };

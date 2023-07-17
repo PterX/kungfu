@@ -48,6 +48,15 @@ export class ResetOptionHook<Method, ValueType> {
     Reflect.set(this.hooks, key, method);
   }
 
+  unregister(kfLocation: KungfuApi.DerivedKfLocation) {
+    const { category, group, name } = kfLocation;
+    const key = `${category}_${group}_${name}`;
+    if (Reflect.has(this.hooks, key)) {
+      Reflect.deleteProperty(this.hooks, key);
+      console.log(`Unregistered hook: ${key}`);
+    }
+  }
+
   trigger(
     kfLocation: KungfuApi.DerivedKfLocation,
     options: ValueType,

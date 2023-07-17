@@ -21,11 +21,9 @@ import {
   dealDirection,
   dealCurrency,
   dealKfPrice,
-  isShotable,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import {
   LedgerCategoryEnum,
-  OffsetEnum,
   SideEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import { ExchangeIds } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
@@ -42,6 +40,7 @@ import {
   getPosClosableVolume,
 } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
+import { resolveTriggerOffset } from '../pos/utils';
 
 globalThis.HookKeeper.getHooks().dealTradingData.register(
   {
@@ -198,16 +197,6 @@ function handleClickRow(data: {
   setCurrentGlobalKfLocation(locationResolved);
   tiggerOrderBookAndMakeOrder(data.row);
 }
-
-const resolveTriggerOffset = (position: KungfuApi.PositionResolved) => {
-  if (isShotable(position.instrument_type)) {
-    return position.yesterday_volume !== BigInt(0)
-      ? OffsetEnum.CloseYest
-      : OffsetEnum.CloseToday;
-  } else {
-    return OffsetEnum.Close;
-  }
-};
 
 function tiggerOrderBookAndMakeOrder(record: KungfuApi.PositionResolved) {
   const { instrument_id, instrument_type, exchange_id } = record;

@@ -2100,6 +2100,12 @@ export const useMakeOrderInfo = (
     () => currentGlobalKfLocation.value?.category === 'td',
   );
 
+  const isCurrentCategoryIsTdOrStrategy = computed(
+    () =>
+      isCurrentCategoryIsTd.value ||
+      currentGlobalKfLocation.value?.category === 'strategy',
+  );
+
   const isAccountOrInstrumentConfirmed = computed(() => {
     if (formState.value?.side === SideEnum.Buy) {
       return isCurrentCategoryIsTd.value ? true : !!formState.value.account_id;
@@ -2118,7 +2124,10 @@ export const useMakeOrderInfo = (
   });
 
   const currentAccountLocation = computed(() => {
-    if (currentGlobalKfLocation.value && isCurrentCategoryIsTd.value) {
+    if (
+      currentGlobalKfLocation.value &&
+      isCurrentCategoryIsTdOrStrategy.value
+    ) {
       return currentGlobalKfLocation.value;
     } else if (formState.value.account_id) {
       const { source, id } = formState.value.account_id.parseSourceAccountId();
@@ -2161,6 +2170,10 @@ export const useMakeOrderInfo = (
     if (!currentAccountLocation.value) return null;
     if (!positionList.length || !instrument) return null;
 
+    const currentAccountLocationUID = (
+      window.watcher as KungfuApi.Watcher
+    ).getLocationUID(currentAccountLocation.value);
+
     const { exchangeId, instrumentId, instrumentType } = instrument;
     const targetPositionList: KungfuApi.PositionResolved[] =
       positionList.filter(
@@ -2168,10 +2181,7 @@ export const useMakeOrderInfo = (
           position.exchange_id === exchangeId &&
           position.instrument_id === instrumentId &&
           position.instrument_type === instrumentType &&
-          position.account_id_resolved ===
-            getIdByKfLocation(
-              currentAccountLocation.value as KungfuApi.KfLocation,
-            ),
+          position.holder_uid === currentAccountLocationUID,
       );
 
     if (targetPositionList && targetPositionList.length) {

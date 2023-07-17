@@ -397,9 +397,10 @@ function handleAdjustOrder(data: {
   let target = event.target as HTMLElement | null;
 
   if (column.dataIndex !== 'limit_price_resolved') {
-    if (column.dataIndex !== 'volume_left') {
-      return;
-    }
+    return;
+    // if (column.dataIndex !== 'volume_left') {
+    //   return;
+    // }
   }
 
   if (!currentGlobalKfLocation.value || !window.watcher) {
@@ -429,7 +430,7 @@ function handleAdjustOrder(data: {
     }
 
     adjustOrderForm.value.price = order.limit_price;
-    adjustOrderForm.value.volume = +Number(order.volume_left);
+    // adjustOrderForm.value.volume = +Number(order.volume_left);
     adjustOrder.value = order;
 
     const { price_tick } = getPriceTickAndPrecision(
@@ -461,6 +462,7 @@ function handleClickAdjustOrderMask(): void {
   }
 
   if (!testOrderSourceIsOnline(order)) {
+    adjustOrderMaskVisible.value = false;
     error(
       t('tradingConfig.finished_msg', {
         status: order.status,
@@ -470,6 +472,7 @@ function handleClickAdjustOrderMask(): void {
   }
 
   if (+order.limit_price === +adjustOrderForm.value.price) {
+    adjustOrderMaskVisible.value = false;
     return;
   }
 

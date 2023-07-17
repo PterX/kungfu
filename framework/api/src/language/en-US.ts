@@ -139,7 +139,7 @@ export default {
     finished_msg:
       'The current order {status} and the order change has been cancelled',
     trade_greater_than_target_msg:
-      'The transaction volume is greater than the target order volume, and the order change is cancelled',
+      'The transaction volume ({volume_trade}) is greater than the target order volume (volume_target), and the order change is cancelled',
     target_equal_to_trade_msg:
       'The transaction volume is equal to the target order volume, and the order change will be cancelled',
     waiting_restart: 'Stopped',

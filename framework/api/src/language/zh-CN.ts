@@ -135,7 +135,8 @@ export default {
     launching: '启动中',
     error: '错误',
     finished_msg: '当前订单 {status}, 改单取消',
-    trade_greater_than_target_msg: '已成交量大于目标下单量, 改单取消',
+    trade_greater_than_target_msg:
+      '已成交量 ({volume_trade}) 大于目标下单量 ({volume_target}), 改单取消',
     target_equal_to_trade_msg: '已成交量等于目标下单量, 改单取消',
     waiting_restart: '待重启',
 

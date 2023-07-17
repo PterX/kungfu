@@ -481,14 +481,14 @@ function handleClickAdjustOrderMask(): void {
         if (!testOrderSourceIsOnline(order)) {
           return Promise.reject(new Error(t('tradingConfig.finished_msg')));
         }
-        const volue_trade = order.volume - order.volume_left; // 这里必须再计算一次，撤单过程仍可能会有数量变化
-        if (+adjustOrderForm.value.volume > Number(volue_trade)) {
+        const volume_trade = order.volume - order.volume_left; // 这里必须再计算一次，撤单过程仍可能会有数量变化
+        if (+adjustOrderForm.value.volume > Number(volume_trade)) {
           const makeOrderInput: KungfuApi.MakeOrderInput = {
             instrument_id: order.instrument_id,
             instrument_type: order.instrument_type,
             exchange_id: order.exchange_id,
             limit_price: +adjustOrderForm.value.price,
-            volume: +(adjustOrderForm.value.volume - Number(volue_trade)),
+            volume: +(adjustOrderForm.value.volume - Number(volume_trade)),
             price_type: +order.price_type,
             side: +order.side,
             offset: +order.offset,
@@ -503,13 +503,18 @@ function handleClickAdjustOrderMask(): void {
             kfLocation,
             getIdByKfLocation(window.watcher.getLocation(order.source)),
           );
-        } else if (+adjustOrderForm.value.volume === Number(volue_trade)) {
+        } else if (+adjustOrderForm.value.volume === Number(volume_trade)) {
           return Promise.reject(
             new Error(t('tradingConfig.target_equal_to_trade_msg')),
           );
         } else {
           return Promise.reject(
-            new Error(t('tradingConfig.trade_greater_than_target_msg')),
+            new Error(
+              t('tradingConfig.trade_greater_than_target_msg', {
+                volume_trade: Number(volume_trade),
+                volume_target: Number(adjustOrderForm.value.volume),
+              }),
+            ),
           );
         }
       })
@@ -523,7 +528,12 @@ function handleClickAdjustOrderMask(): void {
         adjustOrderMaskVisible.value = false;
       });
   } else {
-    error(t('tradingConfig.trade_greater_than_target_msg'));
+    error(
+      t('tradingConfig.trade_greater_than_target_msg', {
+        volume_trade: Number(curVolueTra),
+        volume_target: Number(adjustOrderForm.value.volume),
+      }),
+    );
   }
 }
 

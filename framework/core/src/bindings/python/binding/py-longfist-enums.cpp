@@ -56,6 +56,13 @@ void bind_enums(py::module &m) {
       .export_values()
       .def("__eq__", [](const InstrumentType &a, int b) { return static_cast<int>(a) == b; });
 
+  py::enum_<AccountType>(m_enums, "AccountType", py::arithmetic())
+      .value("Stock", AccountType::Stock)
+      .value("Credit", AccountType::Credit)
+      .value("Future", AccountType::Future)
+      .export_values()
+      .def("__eq__", [](const AccountType &a, int b) { return static_cast<int>(a) == b; });
+
   py::enum_<CommissionRateMode>(m_enums, "CommissionRateMode", py::arithmetic())
       .value("ByAmount", CommissionRateMode::ByAmount)
       .value("ByVolume", CommissionRateMode::ByVolume)
@@ -175,20 +182,20 @@ void bind_enums(py::module &m) {
       .value("PartialFilledActive", BasketOrderStatus::PartialFilledActive)
       .value("Filled", BasketOrderStatus::Filled)
       .export_values()
-      .def("__eq__", [](const BrokerState &a, int b) { return static_cast<int>(a) == b; });
+      .def("__eq__", [](const BasketOrderStatus &a, int b) { return static_cast<int>(a) == b; });
 
   py::enum_<BasketVolumeType>(m_enums, "BasketVolumeType", py::arithmetic())
       .value("Unknown", BasketVolumeType::Unknown)
       .value("Quantity", BasketVolumeType::Quantity)
       .value("Proportion", BasketVolumeType::Proportion)
       .export_values()
-      .def("__eq__", [](const BrokerState &a, int b) { return static_cast<int>(a) == b; });
+      .def("__eq__", [](const BasketVolumeType &a, int b) { return static_cast<int>(a) == b; });
 
   py::enum_<BasketType>(m_enums, "BasketType", py::arithmetic())
       .value("Custom", BasketType::Custom)
       .value("ETF", BasketType::ETF)
       .export_values()
-      .def("__eq__", [](const BrokerState &a, int b) { return static_cast<int>(a) == b; });
+      .def("__eq__", [](const BasketType &a, int b) { return static_cast<int>(a) == b; });
 
   py::enum_<VolumeCondition>(m_enums, "VolumeCondition", py::arithmetic())
       .value("Any", VolumeCondition::Any)
@@ -298,6 +305,18 @@ void bind_enums(py::module &m) {
       .def_readonly_static("Sync", &AssembleMode::Sync)
       .def_readonly_static("All", &AssembleMode::All);
 
+  py::enum_<PageStatus>(m_enums, "PageStatus", py::arithmetic())
+      .value("Normal", PageStatus::Normal)
+      .value("PreOpen", PageStatus::PreOpen)
+      .export_values()
+      .def("__eq__", [](const PageStatus &a, int b) { return static_cast<int>(a) == b; });
+
+  py::enum_<AccountingMethodType>(m_enums, "AccountingMethodType", py::arithmetic())
+      .value("Default", AccountingMethodType::Default)
+      .value("OTC", AccountingMethodType::OTC)
+      .export_values()
+      .def("__eq__", [](const AccountingMethodType &a, int b) { return static_cast<int>(a) == b; });
+
   py::enum_<FrameDataType>(m_enums, "FrameDataType", py::arithmetic())
       .value("Raw", FrameDataType::Raw)
       .value("Json", FrameDataType::Json)
@@ -324,5 +343,14 @@ void bind_enums(py::module &m) {
       .value("BidPriceLesserEqualStopPrice", OrderTriggerType::BidPriceLesserEqualStopPrice)
       .export_values()
       .def("__eq__", [](const OrderTriggerType &a, int b) { return static_cast<int>(a) == b; });
+
+  py::enum_<OrderTriggerStatus>(m_enums, "OrderTriggerStatus", py::arithmetic())
+      .value("Unknown", OrderTriggerStatus::Unknown)
+      .value("NotSend", OrderTriggerStatus::NotSend)
+      .value("Send", OrderTriggerStatus::Send)
+      .value("Deleted", OrderTriggerStatus::Deleted)
+      .value("Error", OrderTriggerStatus::Error)
+      .export_values()
+      .def("__eq__", [](const OrderTriggerStatus &a, int b) { return static_cast<int>(a) == b; });
 }
 } // namespace kungfu::longfist::pybind

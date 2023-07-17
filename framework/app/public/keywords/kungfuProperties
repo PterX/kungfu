@@ -143,6 +143,7 @@ total_volume
 price_level
 price_offset
 dest_id
+external_trigger_id
 stop_price
 order_trigger_action_id
 is_last

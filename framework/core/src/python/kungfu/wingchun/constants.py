@@ -40,6 +40,8 @@ SubscribeInstrumentType = lf.enums.SubscribeInstrumentType
 StrategyState = lf.enums.StrategyState
 OperatorState = lf.enums.OperatorState
 HistoryDataType = lf.enums.HistoryDataType
+OrderTriggerType = lf.enums.OrderTriggerType
+TimeCondition = lf.enums.TimeCondition
 
 BasketVolumeType = lf.enums.BasketVolumeType
 BasketType = lf.enums.BasketType

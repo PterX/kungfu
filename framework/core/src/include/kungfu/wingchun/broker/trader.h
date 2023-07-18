@@ -15,6 +15,7 @@
 
 namespace kungfu::wingchun::broker {
 
+FORWARD_DECLARE_CLASS_PTR(TraderVendor)
 FORWARD_DECLARE_CLASS_PTR(Trader)
 
 class TraderVendor : public BrokerVendor {
@@ -26,6 +27,8 @@ public:
 
   void on_trading_day(const event_ptr &event, int64_t daytime) override;
 
+  BrokerService_ptr get_service() override;
+
 protected:
   void react() override;
 
@@ -33,7 +36,6 @@ protected:
 
   void on_start() override;
 
-  BrokerService_ptr get_service() override;
 
 private:
   Trader_ptr service_ = {};
@@ -62,6 +64,13 @@ public:
   virtual bool insert_order(const event_ptr &event) = 0;
 
   virtual bool insert_batch_orders(const event_ptr &event) { return true; }
+
+  virtual longfist::types::AlgoOrder insert_algo_order(const longfist::types::AlgoOrderInput& algo_order_input) { 
+    longfist::types::AlgoOrder algo_order {};
+    algo_order_from_input(algo_order_input, algo_order);
+    return algo_order;
+  }
+
 
   virtual bool cancel_order_trigger(const event_ptr &event) { return true; }
 

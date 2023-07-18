@@ -632,6 +632,27 @@ inline void order_trigger_from_input(const longfist::types::OrderTriggerInput &i
   trigger.time_condition = input.time_condition;
 }
 
+inline void algo_order_from_input(const longfist::types::AlgoOrderInput &algo_order_input, longfist::types::AlgoOrder &algo_order) {
+  algo_order.order_id = algo_order_input.order_id;
+  algo_order.begin_time = algo_order_input.begin_time;
+  algo_order.end_time = algo_order_input.end_time;
+
+  strcpy(algo_order.instrument_id, algo_order_input.instrument_id);
+  strcpy(algo_order.exchange_id, algo_order_input.exchange_id);
+  algo_order.instrument_type = algo_order_input.instrument_type;
+  algo_order.basket_id = algo_order_input.basket_id;
+
+  algo_order.side = algo_order_input.side;
+  algo_order.offset = algo_order_input.offset;
+  algo_order.price_type = algo_order_input.price_type;
+  algo_order.volume = algo_order_input.volume;
+
+  strcpy(algo_order.algo_type_id, algo_order_input.algo_type_id);
+  strcpy(algo_order.algo_id, algo_order_input.algo_id);
+
+  algo_order.status = longfist::enums::OrderStatus::Pending;
+}
+
 } // namespace kungfu::wingchun
 
 #endif // WINGCHUN_COMMON_H

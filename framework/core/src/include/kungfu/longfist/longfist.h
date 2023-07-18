@@ -222,9 +222,9 @@ constexpr auto TradingDataTypes = boost::hana::make_map( //
     TYPE_PAIR(OrderStat),                                // 207
     TYPE_PAIR(BasketOrder),                              // 208
     TYPE_PAIR(OrderTriggerInput),                        // 209
-    TYPE_PAIR(OrderTrigger),                              // 210
+    TYPE_PAIR(OrderTrigger),                             // 210
     TYPE_PAIR(AlgoOrderInput),                           // 213
-    TYPE_PAIR(AlgoOrder)                               // 214
+    TYPE_PAIR(AlgoOrder)                                 // 214
 );
 
 const auto build_data_set = [](auto types) {

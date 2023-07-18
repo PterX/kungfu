@@ -143,8 +143,9 @@ total_volume
 price_level
 price_offset
 dest_id
-external_trigger_id
 stop_price
+trigger_type
+external_trigger_id
 order_trigger_action_id
 is_last
 data_type
@@ -354,7 +355,7 @@ Arbitrage
 Hedge
 Covered
 HedgeFlag
-Cancel
+Insert
 TriggerCancel
 OrderActionFlag
 Limit

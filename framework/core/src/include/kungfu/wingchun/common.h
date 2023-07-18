@@ -630,6 +630,8 @@ inline void order_trigger_from_input(const longfist::types::OrderTriggerInput &i
   trigger.price_type = input.price_type;
   trigger.volume_condition = input.volume_condition;
   trigger.time_condition = input.time_condition;
+  trigger.trigger_type = input.trigger_type;
+  trigger.action_flag = longfist::enums::OrderActionFlag::Insert;
 }
 
 } // namespace kungfu::wingchun

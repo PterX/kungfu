@@ -260,7 +260,7 @@ public:
    * @param account
    * @param trigger_id
    */
-  void req_trigger(const std::string &source, const std::string &account, uint64_t trigger_id) override;
+  void req_trigger(const std::string &source, const std::string &account) override;
 
   /**
    * request deregister.

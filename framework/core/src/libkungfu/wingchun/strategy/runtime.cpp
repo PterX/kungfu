@@ -424,7 +424,7 @@ void RuntimeContext::req_history_trade(const std::string &source, const std::str
   writer->close_data();
 }
 
-void RuntimeContext::req_trigger(const std::string &source, const std::string &account, uint64_t trigger_id) {
+void RuntimeContext::req_trigger(const std::string &source, const std::string &account) {
   auto account_location_uid = get_td_location_uid(source, account);
   if (not broker_client_.is_ready(account_location_uid)) {
     SPDLOG_ERROR("account {}_{} not ready", source, account);

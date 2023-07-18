@@ -212,7 +212,7 @@ public:
    * @param account
    * @param trigger_id
    */
-  virtual void req_trigger(const std::string &source, const std::string &account, uint64_t trigger_id) = 0;
+  virtual void req_trigger(const std::string &source, const std::string &account) = 0;
 
   /**
    * Cancel order.

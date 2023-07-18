@@ -309,7 +309,7 @@ NLOHMANN_JSON_SERIALIZE_ENUM(HedgeFlag, {
 
 inline std::ostream &operator<<(std::ostream &os, HedgeFlag t) { return os << int8_t(t); }
 
-enum class OrderActionFlag : int8_t { Cancel, TriggerCancel };
+enum class OrderActionFlag : int8_t { Insert, Cancel, TriggerCancel };
 
 NLOHMANN_JSON_SERIALIZE_ENUM(OrderActionFlag, {
                                                   {OrderActionFlag::Cancel, "Cancel"},
@@ -400,7 +400,8 @@ enum class TimeCondition : int8_t { ///
   GTC,                              /// 撤销前有效
   GFS,                              /// 本节有效
   GTD,                              /// 指定日期前有效
-  GFA                               /// 集合竞价有效
+  GFA,                              /// 集合竞价有效
+  Unknown
 };
 
 NLOHMANN_JSON_SERIALIZE_ENUM(TimeCondition, {

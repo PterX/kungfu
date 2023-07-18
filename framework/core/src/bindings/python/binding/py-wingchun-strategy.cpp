@@ -211,6 +211,7 @@ void bind_strategy(pybind11::module &m) {
            py::arg("query_num") = 0)
       .def("req_history_trade", &strategy::Context::req_history_trade, py::arg("source"), py::arg("account"),
            py::arg("query_num") = 0)
+      .def("req_trigger", &strategy::Context::req_trigger)
       .def("hold_book", &strategy::Context::hold_book)
       .def("hold_positions", &strategy::Context::hold_positions)
       .def("is_book_held", &strategy::Context::is_book_held)

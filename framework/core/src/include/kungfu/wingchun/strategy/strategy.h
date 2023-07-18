@@ -66,11 +66,24 @@ public:
   virtual void on_order(Context_ptr &context, const longfist::types::Order &order,
                         const kungfu::yijinjing::data::location_ptr &location, uint32_t dest){};
 
+  // 预埋单或者条件单信息更新回调
+  // @param order_trigger     触发器信息
+  // @param location          数据来源
+  virtual void on_order_trigger(Context_ptr &context, const longfist::types::OrderTrigger &order_trigger,
+                                const kungfu::yijinjing::data::location_ptr &location, uint32_t dest){};
+
   // 订单操作错误回调
   // @param order             订单信息数据
   // @param location          数据来源
   virtual void on_order_action_error(Context_ptr &context, const longfist::types::OrderActionError &error,
                                      const kungfu::yijinjing::data::location_ptr &location, uint32_t dest){};
+
+  // 订单操作错误回调
+  // @param order             订单信息数据
+  // @param location          数据来源
+  virtual void on_order_trigger_action_error(Context_ptr &context,
+                                             const longfist::types::OrderTriggerActionError &error,
+                                             const kungfu::yijinjing::data::location_ptr &location, uint32_t dest){};
 
   // 订单成交回报回调
   // @param trade             订单成交数据

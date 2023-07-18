@@ -134,6 +134,10 @@ export default {
     stopped: '已停止',
     launching: '启动中',
     error: '错误',
+    finished_msg: '当前订单 {status}, 改单取消',
+    trade_greater_than_target_msg:
+      '已成交量 ({volume_trade}) 大于目标下单量 ({volume_target}), 改单取消',
+    target_equal_to_trade_msg: '已成交量等于目标下单量, 改单取消',
     waiting_restart: '待重启',
 
     pending: '等待中',
@@ -193,6 +197,7 @@ export default {
     guarantee_stock_redeem: '担保品转出',
 
     submitted: '已提交',
+    cancelling: '待撤',
     cancelled: '已撤单',
     filled: '已成交',
     partial_filled_not_active: '部分撤单',
@@ -246,6 +251,7 @@ export default {
     SSE: '上交所',
     SZE: '深交所',
     BSE: '北交所',
+    GFEX: '广交所',
     SHFE: '上期所',
     DCE: '大商所',
     CZCE: '郑商所',
@@ -354,7 +360,7 @@ export default {
     fat_finger_sell_modal:
       '卖出价格超出警戒线, 当前价格为 {price}, 警戒线为 {warningLine}, 当前乌龙指阈值为 {fatFinger}%',
     close_apart_open_modal:
-      '下单量为 {volume}, 当前标的可平 {direction} 仓为 {closable_volume}, 超出数量为 {open_volume}\n点击 “超出部分反向开仓”, 将会 平 {direction} {closable_volume}, 开 {direction} {open_volume}\n点击“按原方案下单”, 将会继续平 {direction} {volume}',
+      '下单量为 {volume}, 当前标的可平 {direction} 仓为 {closableVolume}, 超出数量为 {openVolume}\n点击 “超出部分反向开仓”, 将会 平 {direction} {closableVolume}, 开{oppositeDirection} {openVolume}\n点击“按原方案下单”, 将会继续平 {direction} {volume}',
     start_process: '请先启动{process}交易进程',
     place_confirm: '下单确认',
     continue_close_rate: '{relationship} 平仓阈值 ({rate}%), 是否继续下单?',

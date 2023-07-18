@@ -24,7 +24,6 @@ import {
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import {
   LedgerCategoryEnum,
-  OffsetEnum,
   SideEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import { ExchangeIds } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
@@ -41,6 +40,7 @@ import {
   getPosClosableVolume,
 } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
+import { resolveTriggerOffset } from '../pos/utils';
 
 globalThis.HookKeeper.getHooks().dealTradingData.register(
   {
@@ -213,10 +213,7 @@ function tiggerOrderBookAndMakeOrder(record: KungfuApi.PositionResolved) {
   triggerOrderBook(ensuredInstrument);
   const extraOrderInput: ExtraOrderInput = {
     side: record.direction === 0 ? SideEnum.Sell : SideEnum.Buy,
-    offset:
-      record.yesterday_volume !== BigInt(0)
-        ? OffsetEnum.CloseYest
-        : OffsetEnum.CloseToday,
+    offset: resolveTriggerOffset(record),
     volume: getPosClosableVolume(record),
 
     price: record.last_price || 0,

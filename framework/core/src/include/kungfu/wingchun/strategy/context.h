@@ -207,6 +207,14 @@ public:
   virtual void req_history_trade(const std::string &source, const std::string &account, uint32_t query_num = 0) = 0;
 
   /**
+   *
+   * @param source
+   * @param account
+   * @param trigger_id
+   */
+  virtual void req_trigger(const std::string &source, const std::string &account, uint64_t trigger_id) = 0;
+
+  /**
    * Cancel order.
    * @param order_id order ID
    * @return order action ID

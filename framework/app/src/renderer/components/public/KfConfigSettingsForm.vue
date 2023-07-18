@@ -394,7 +394,7 @@ function primaryKeyValidator(_rule: RuleObject, value: string): Promise<void> {
     props.primaryKeyAvoidRepeatCompareExtra,
   );
 
-  if (!combineValue || !replaceNonAlphaNumericWithSpace(value)) {
+  if (!combineValue || replaceNonAlphaNumericWithSpace(value) === '') {
     return Promise.reject(
       new Error(
         t('validate.single_characters', {
@@ -1153,6 +1153,7 @@ defineExpose({
       <a-input
         v-if="item.type === 'str'"
         v-model:value.trim="formState[item.key]"
+        :maxlength="item.maxlength || null"
         :disabled="
           (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
           item.disabled
@@ -1161,6 +1162,7 @@ defineExpose({
       <a-input-password
         v-else-if="item.type === 'password'"
         v-model:value.trim="formState[item.key]"
+        :maxlength="item.maxlength || null"
         :disabled="
           (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
           item.disabled

@@ -81,7 +81,7 @@ public:
    * @param order_id order ID
    * @return order action ID
    */
-  uint64_t cancel_order(uint64_t order_id) override;
+  uint64_t cancel_order(uint64_t order_id, longfist::enums::OrderActionFlag action_flag) override;
 
   /**
    * Get current trading day.

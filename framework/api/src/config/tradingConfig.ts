@@ -301,6 +301,10 @@ export const OrderStatus: Record<
     name: t('tradingConfig.pending'),
     color: 'default',
   },
+  [OrderStatusEnum.Cancelling]: {
+    name: t('tradingConfig.cancelling'),
+    color: 'default',
+  },
   [OrderStatusEnum.Cancelled]: {
     name: t('tradingConfig.cancelled'),
     color: 'default',
@@ -358,6 +362,7 @@ export const UnfinishedOrderStatus = [
   OrderStatusEnum.Pending,
   OrderStatusEnum.Submitted,
   OrderStatusEnum.PartialFilledActive,
+  OrderStatusEnum.Cancelling,
 ];
 
 export const NotTradeAllOrderStatus = [
@@ -371,6 +376,12 @@ export const WellFinishedOrderStatus = [
   OrderStatusEnum.Cancelled,
   OrderStatusEnum.Filled,
   OrderStatusEnum.PartialFilledNotActive,
+];
+
+export const AllFinishedOrderStatus = [
+  ...WellFinishedOrderStatus,
+  OrderStatusEnum.Error,
+  OrderStatusEnum.Lost,
 ];
 
 export const Direction: Record<
@@ -674,6 +685,10 @@ export const ExchangeIds: Record<string, KungfuApi.KfTradeValueCommonData> = {
   SHFE: {
     name: t('tradingConfig.SHFE'),
     color: InstrumentType[InstrumentTypeEnum.future].color,
+  },
+  GFEX: {
+    name: t('tradingConfig.GFEX'),
+    color: InstrumentType[InstrumentTypeEnum.stock].color,
   },
   DCE: {
     name: t('tradingConfig.DCE'),

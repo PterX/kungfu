@@ -123,7 +123,7 @@ void Book::update(int64_t update_time, longfist::enums::AccountingMethodType acc
     }
 
     if (instruments.find(hashed_instrument_key) != instruments.end()) {
-      auto &instrument = instruments.at(hashed_instrument_key);
+      const auto &instrument = instruments.at(hashed_instrument_key);
       db_contract_multiplier = instrument.contract_multiplier;
     }
 

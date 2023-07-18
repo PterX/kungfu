@@ -32,10 +32,7 @@ import KfBlinkNum from '@kungfu-trader/kungfu-app/src/renderer/components/public
 import { dealKfPrice } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { dealPosition } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
-import {
-  OffsetEnum,
-  SideEnum,
-} from '@kungfu-trader/kungfu-js-api/typings/enums';
+import { SideEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
   getInstrumentByInstrumentPair,
   useCurrentGlobalKfLocation,
@@ -46,6 +43,7 @@ import {
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import { messagePrompt } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+import { resolveTriggerOffset } from './utils';
 
 const { t } = VueI18n.global;
 const { success, error } = messagePrompt();
@@ -151,10 +149,7 @@ function handleClickRow(data: {
   triggerOrderBook(ensuredInstrument);
   const extraOrderInput: ExtraOrderInput = {
     side: row.direction === 0 ? SideEnum.Sell : SideEnum.Buy,
-    offset:
-      row.yesterday_volume !== BigInt(0)
-        ? OffsetEnum.CloseYest
-        : OffsetEnum.CloseToday,
+    offset: resolveTriggerOffset(row),
     volume: row.closable_volume,
 
     price: row.last_price || row.avg_open_price || 0,

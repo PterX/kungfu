@@ -89,6 +89,7 @@ insert_order_input
 insert_order_trigger
 insert_array_orders
 insert_basket_order
+cancel_order_trigger
 hold_book
 hold_positions
 is_book_held
@@ -98,7 +99,9 @@ is_bypass_accounting
 bypass_accounting
 on_tree
 on_order
+on_order_trigger
 on_order_action_error
+on_order_trigger_action_error
 on_trade
 on_position_sync_reset
 on_asset_sync_reset

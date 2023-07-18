@@ -41,7 +41,12 @@ import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/file
 import { ExchangeIds } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import { BrowserWindow, getCurrentWindow, dialog } from '@electron/remote';
 import { ipcRenderer } from 'electron';
-import { message, Modal, ModalFuncProps } from 'ant-design-vue';
+import {
+  message,
+  MessageArgsProps,
+  Modal,
+  ModalFuncProps,
+} from 'ant-design-vue';
 import {
   InstrumentTypes,
   KfUIExtLocatorTypes,
@@ -659,14 +664,29 @@ export const messagePrompt = (): {
   error(msg?: string): void;
   warning(msg: string): void;
 } => {
+  const baseConfig: Partial<MessageArgsProps> = {
+    style: {},
+  };
+
+  const buildMessageArgs = (
+    content: string | VueNode,
+    duration = 0,
+  ): MessageArgsProps => {
+    return {
+      ...baseConfig,
+      content,
+      duration,
+    };
+  };
+
   const success = (msg: string = t('operation_success')): void => {
-    message.success(msg);
+    message.success(buildMessageArgs(msg));
   };
   const error = (msg: string = t('operation_failed')): void => {
-    message.error(msg, 5);
+    message.error(buildMessageArgs(msg));
   };
   const warning = (msg: string): void => {
-    message.warning(msg, 5);
+    message.warning(buildMessageArgs(msg));
   };
   return {
     success,

@@ -2258,13 +2258,14 @@ export const useMakeOrderInfo = (
         currentPosition.value;
       const today_volume = volume - yesterday_volume;
       const frozen_today = frozen_total - frozen_yesterday;
+      const shotable_closable_yesterday = yesterday_volume - frozen_yesterday;
       const closable_yesterday = yesterday_volume - frozen_total;
       const closable_today = today_volume - frozen_today;
       const closable_total = volume - frozen_total;
 
       if (isShotable(instrumentType) || isT0(instrumentType, exchangeId)) {
         if (offset === OffsetEnum.CloseYest) {
-          return dealKfNumber(closable_yesterday) + '';
+          return dealKfNumber(shotable_closable_yesterday) + '';
         } else if (offset === OffsetEnum.CloseToday) {
           return dealKfNumber(closable_today) + '';
         } else {

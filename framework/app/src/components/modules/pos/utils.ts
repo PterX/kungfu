@@ -23,14 +23,16 @@ export const getPosClosableVolumeByOffset = (
     isT0(position.instrument_type, position.exchange_id) ||
     isShotable(position.instrument_type);
   const allVolume = position.volume - position.frozen_total,
-    yesterdayVolume = position.yesterday_volume - position.frozen_yesterday,
+    shotableYesterdayVolume =
+      position.yesterday_volume - position.frozen_yesterday,
+    yesterdayVolume = position.yesterday_volume - position.frozen_total,
     todayVolume = allVolume - yesterdayVolume;
 
   switch (offset) {
     case OffsetEnum.Close:
       return isT0OrShotable ? allVolume : yesterdayVolume;
     case OffsetEnum.CloseYest:
-      return yesterdayVolume;
+      return isT0OrShotable ? shotableYesterdayVolume : yesterdayVolume;
     case OffsetEnum.CloseToday:
       return isT0OrShotable ? todayVolume : 0n;
     default:

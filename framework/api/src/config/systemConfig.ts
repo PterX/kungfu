@@ -4,3 +4,5 @@ export const SpecialWordsReg = new RegExp(
     '|([\\u4E00-\\u9FFF]+)', // 中文
   'i',
 );
+
+export const EnterableSpecialWordsReg = new RegExp('[,.:/]+', 'ig');

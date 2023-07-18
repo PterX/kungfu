@@ -84,9 +84,19 @@ public:
     PYBIND11_OVERLOAD(void, strategy::Strategy, on_order, context, order, location, dest);
   }
 
+  void on_order_trigger(strategy::Context_ptr &context, const OrderTrigger &order_trigger,
+                        const kungfu::yijinjing::data::location_ptr &location, uint32_t dest) override {
+    PYBIND11_OVERLOAD(void, strategy::Strategy, on_order_trigger, context, order_trigger, location, dest);
+  }
+
   void on_order_action_error(strategy::Context_ptr &context, const OrderActionError &error,
                              const kungfu::yijinjing::data::location_ptr &location, uint32_t dest) override {
     PYBIND11_OVERLOAD(void, strategy::Strategy, on_order_action_error, context, error, location, dest);
+  }
+
+  void on_order_trigger_action_error(strategy::Context_ptr &context, const OrderTriggerActionError &error,
+                                     const kungfu::yijinjing::data::location_ptr &location, uint32_t dest) override {
+    PYBIND11_OVERLOAD(void, strategy::Strategy, on_order_trigger_action_error, context, error, location, dest);
   }
 
   void on_trade(strategy::Context_ptr &context, const Trade &trade,
@@ -196,6 +206,7 @@ void bind_strategy(pybind11::module &m) {
            py::arg("price_level") = PriceLevel::Latest, py::arg("price_offset") = 0, py::arg("volume") = 0)
       .def("cancel_order", &strategy::Context::cancel_order, py::arg("order_id"),
            py::arg("action_flag") = OrderActionFlag::Cancel)
+      .def("cancel_order_trigger", &strategy::Context::cancel_order_trigger)
       .def("req_history_order", &strategy::Context::req_history_order, py::arg("source"), py::arg("account"),
            py::arg("query_num") = 0)
       .def("req_history_trade", &strategy::Context::req_history_trade, py::arg("source"), py::arg("account"),
@@ -229,7 +240,9 @@ void bind_strategy(pybind11::module &m) {
       .def("on_transaction", &strategy::Strategy::on_transaction)
       .def("on_synthetic_data", &strategy::Strategy::on_synthetic_data)
       .def("on_order", &strategy::Strategy::on_order)
+      .def("on_order_trigger", &strategy::Strategy::on_order_trigger)
       .def("on_order_action_error", &strategy::Strategy::on_order_action_error)
+      .def("on_order_trigger_action_error", &strategy::Strategy::on_order_trigger_action_error)
       .def("on_trade", &strategy::Strategy::on_trade)
       .def("on_position_sync_reset", &strategy::Strategy::on_position_sync_reset)
       .def("on_asset_sync_reset", &strategy::Strategy::on_asset_sync_reset)

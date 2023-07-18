@@ -35,12 +35,12 @@ import {
   useQuote,
   useDealDataWithCaches,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
-import {
-  dealPosition,
-  getPosClosableVolume,
-} from '@kungfu-trader/kungfu-js-api/kungfu';
+import { dealPosition } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
-import { resolveTriggerOffset } from '../pos/utils';
+import {
+  getPosClosableVolumeByOffset,
+  resolveTriggerOffset,
+} from '../pos/utils';
 
 globalThis.HookKeeper.getHooks().dealTradingData.register(
   {
@@ -210,11 +210,12 @@ function tiggerOrderBookAndMakeOrder(record: KungfuApi.PositionResolved) {
       instruments.value,
     );
 
+  const offset = resolveTriggerOffset(record);
   triggerOrderBook(ensuredInstrument);
   const extraOrderInput: ExtraOrderInput = {
     side: record.direction === 0 ? SideEnum.Sell : SideEnum.Buy,
-    offset: resolveTriggerOffset(record),
-    volume: getPosClosableVolume(record),
+    offset,
+    volume: getPosClosableVolumeByOffset(record, offset),
 
     price: record.last_price || 0,
   };

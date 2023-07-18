@@ -80,12 +80,21 @@ class Strategy(wc.Strategy):
         self._on_order = getattr(
             self._module, "on_order", lambda ctx, order, location, dest: None
         )
+        self._on_order_trigger = getattr(
+            self._module,
+            "on_order_trigger",
+            lambda ctx, order_trigger, location, dest: None,
+        )
         self._on_order_action_error = getattr(
             self._module,
             "on_order_action_error",
             lambda ctx, error, location, dest: None,
         )
-
+        self._on_order_trigger_action_error = getattr(
+            self._module,
+            "on_order_trigger_action_error",
+            lambda ctx, error, location, dest: None,
+        )
         self._on_trade = getattr(
             self._module, "on_trade", lambda ctx, trade, location, dest: None
         )
@@ -228,12 +237,14 @@ class Strategy(wc.Strategy):
         self.ctx.subscribe_operator = wc_context.subscribe_operator
         self.ctx.add_account = self.__add_account
         self.ctx.insert_block_message = wc_context.insert_block_message
+        self.ctx.insert_order_trigger = wc_context.insert_order_trigger
         self.ctx.insert_order = wc_context.insert_order
         self.ctx.insert_order_input = wc_context.insert_order_input
         self.ctx.insert_basket_order = wc_context.insert_basket_order
         self.ctx.insert_batch_orders = wc_context.insert_batch_orders
         self.ctx.insert_array_orders = wc_context.insert_array_orders
         self.ctx.cancel_order = wc_context.cancel_order
+        self.ctx.cancel_order_trigger = wc_context.cancel_order_trigger
         self.ctx.req_history_order = wc_context.req_history_order
         self.ctx.req_history_trade = wc_context.req_history_trade
         self.ctx.update_strategy_state = wc_context.update_strategy_state
@@ -280,8 +291,18 @@ class Strategy(wc.Strategy):
     def on_order(self, wc_context, order, location, dest):
         self.__call_proxy(self._on_order, self.ctx, order, location, dest)
 
+    def on_order_trigger(self, wc_context, order_trigger, location, dest):
+        self.__call_proxy(
+            self._on_order_trigger, self.ctx, order_trigger, location, dest
+        )
+
     def on_order_action_error(self, wc_context, error, location, dest):
         self.__call_proxy(self._on_order_action_error, self.ctx, error, location, dest)
+
+    def on_order_trigger_action_error(self, wc_context, error, location, dest):
+        self.__call_proxy(
+            self._on_order_trigger_action_error, self.ctx, error, location, dest
+        )
 
     def on_trade(self, wc_context, trade, location, dest):
         self.__call_proxy(self._on_trade, self.ctx, trade, location, dest)

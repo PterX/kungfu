@@ -102,6 +102,8 @@ public:
     if (quote.data_time >= bar.end_time) {
       context->publish_synthetic_data(fmt::format("{}_{}", bar.instrument_id, time_interval_),
                                       nlohmann::json(bar).dump());
+      SPDLOG_INFO("publish_synthetic_data {} {}", fmt::format("{}_{}", bar.instrument_id, time_interval_),
+                  nlohmann::json(bar).dump());
       bar.start_time = bar.end_time;
       while (bar.start_time + time_interval_ < quote.data_time) {
         bar.start_time += time_interval_;

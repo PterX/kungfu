@@ -2124,6 +2124,22 @@ export const useMakeOrderInfo = (
   });
 
   const currentAccountLocation = computed(() => {
+    if (currentGlobalKfLocation.value && isCurrentCategoryIsTd.value) {
+      return currentGlobalKfLocation.value;
+    } else if (formState.value.account_id) {
+      const { source, id } = formState.value.account_id.parseSourceAccountId();
+      return {
+        category: 'td',
+        group: source,
+        name: id,
+        mode: 'live',
+      } as KungfuApi.KfLocation;
+    } else {
+      return null;
+    }
+  });
+
+  const currentPositionHolderLocation = computed(() => {
     if (
       currentGlobalKfLocation.value &&
       isCurrentCategoryIsTdOrStrategy.value
@@ -2167,12 +2183,12 @@ export const useMakeOrderInfo = (
     instrument: KungfuApi.InstrumentResolved | null,
     direction: DirectionEnum,
   ) => {
-    if (!currentAccountLocation.value) return null;
+    if (!currentPositionHolderLocation.value) return null;
     if (!positionList.length || !instrument) return null;
 
     const currentAccountLocationUID = (
       window.watcher as KungfuApi.Watcher
-    ).getLocationUID(currentAccountLocation.value);
+    ).getLocationUID(currentPositionHolderLocation.value);
 
     const { exchangeId, instrumentId, instrumentType } = instrument;
     const targetPositionList: KungfuApi.PositionResolved[] =

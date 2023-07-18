@@ -25,6 +25,7 @@ KF_DEFINE_MARK_TYPE(AssetRequest, 351);
 KF_DEFINE_MARK_TYPE(PositionRequest, 352);
 KF_DEFINE_MARK_TYPE(AssetSync, 353);
 KF_DEFINE_MARK_TYPE(PositionSync, 354);
+KF_DEFINE_MARK_TYPE(TriggerRequest, 355);
 KF_DEFINE_MARK_TYPE(PageEnd, 10051);
 KF_DEFINE_MARK_TYPE(Time, 10052);
 KF_DEFINE_MARK_TYPE(Ping, 10053);
@@ -348,6 +349,7 @@ KF_DEFINE_PACK_TYPE(                                        //
 KF_DEFINE_PACK_TYPE(                                                //
     OrderTriggerInput, 209, PK(trigger_id), TIMESTAMP(insert_time), //
     (uint64_t, trigger_id),                                         // 触发器id
+    (kungfu::array<char, EXTERNAL_ID_LEN>, external_trigger_id),    // 柜台触发器id
 
     (kungfu::array<char, INSTRUMENT_ID_LEN>, instrument_id), // 合约代码
     (kungfu::array<char, EXCHANGE_ID_LEN>, exchange_id),     // 交易所代码

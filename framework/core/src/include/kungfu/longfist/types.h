@@ -375,6 +375,7 @@ KF_DEFINE_PACK_TYPE(                                                //
 KF_DEFINE_PACK_TYPE(                                             //
     OrderTrigger, 210, PK(trigger_id), TIMESTAMP(insert_time),   //
     (uint64_t, trigger_id),                                      // 触发器id
+    (uint64_t, order_id),                                        // 预埋撤单, 被撤单的order_id
     (kungfu::array<char, EXTERNAL_ID_LEN>, external_trigger_id), // 柜台触发器id
     (kungfu::array<char, EXTERNAL_ID_LEN>, external_order_id),   // 柜台订单id
     (enums::OrderActionFlag, action_flag),                       // 预埋下单 or 预埋撤单

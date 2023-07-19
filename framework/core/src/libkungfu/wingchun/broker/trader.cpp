@@ -6,7 +6,7 @@
 
 #include <kungfu/common.h>
 #include <kungfu/wingchun/broker/trader.h>
-#include <kungfu/yijinjing/journal/assemble.h>
+#include <kungfu/yijinjing/journal/tracer.h>
 #include <kungfu/yijinjing/time.h>
 
 using namespace kungfu::rx;
@@ -148,72 +148,7 @@ void Trader::handle_position_sync() {
   }
 }
 
-bool Trader::has_self_deal_risk(const event_ptr &event) {
-  if (not self_deal_detect_) {
-    return false;
-  }
-  const OrderInput &input = event->data<OrderInput>();
-  static std::string str_ex_instrument;
-  str_ex_instrument = input.exchange_id.to_string() + input.instrument_id.to_string();
-  auto risk_check = [&]() -> bool {
-    auto iter = map_exchange_instrument_to_order_ids_.find(str_ex_instrument);
-
-    /// 没有相同的标的, 判定为不存在风险
-    if (iter == map_exchange_instrument_to_order_ids_.end()) {
-      return false;
-    }
-
-    /// 存在相同标的, 遍历每一个order_id, 判断是否存在自成交风险
-    return std::any_of(iter->second.begin(), iter->second.end(), [&](const auto order_id) -> bool {
-      const auto order_iter = orders_.find(order_id);
-
-      /// 只接收到了OrderInput, 没有生成相应的order, 判定为不存在风险
-      if (order_iter == orders_.end()) {
-        return false;
-      }
-
-      const Order &order = order_iter->second.data;
-
-      /// 方向相同或者是委托完结, 判定为不存在风险
-      if (order.side == input.side or is_final_status(order.status)) {
-        return false;
-      }
-
-      /// 存在反方向未完成委托, 且当前委托是市价, 判定为存在风险
-      if (input.price_type != PriceType::Limit) {
-        return true;
-      }
-
-      /// 限价, 判断买卖方向和价格
-      if (input.side == Side::Buy and input.limit_price < order.limit_price) {
-        return false; /// 新委托买价低于已存在卖价, 判定为不存在风险
-      } else if (input.side == Side::Sell and input.limit_price > order.limit_price) {
-        return false; /// 新委托卖价高于已存在买价, 判定为不存在风险
-      } else {
-        return true; /// 新委托买价大于等于已存在卖价, 或 新委托卖价小于等于已存在买价, 判定为存在风险
-      }
-    });
-  };
-
-  if (risk_check()) {
-    return true;
-  }
-  map_exchange_instrument_to_order_ids_.try_emplace(str_ex_instrument).first->second.emplace(input.order_id);
-  return false;
-}
-
 void Trader::handle_order_input(const event_ptr &event) {
-  if (has_self_deal_risk(event)) {
-    Order &order = get_writer(event->source())->open_data<Order>();
-    order_from_input(event->data<OrderInput>(), order);
-    order.status = OrderStatus::Error;
-    strncpy(order.error_msg, "该委托存在自成交风险,已拒绝下单", ERROR_MSG_LEN);
-    order.insert_time = event->gen_time();
-    order.update_time = event->gen_time();
-    get_writer(event->source())->close_data();
-    return;
-  }
-
   /// try_emplace default insert false to map, means not batch mode
   if (batch_status_.try_emplace(event->source()).first->second) {
     const OrderInput &input = event->data<OrderInput>();
@@ -246,25 +181,22 @@ void Trader::recover() {
 }
 
 void Trader::deal_write_frame() {
-  assemble asb_write(get_home(), location::PUBLIC, AssembleMode::Write);
-  asb_write.seek_to_time(time::today_start()); // recover from today
-  SPDLOG_DEBUG("before assemble read");
+  tracer trc(get_home(), false, true, time::today_start(), time::now_in_nano());
+  SPDLOG_DEBUG("before tracer read");
   int64_t count = 0;
-  while (asb_write.data_available()) {
-    const auto &frame = asb_write.current_frame();
+  while (trc.data_available()) {
+    const auto &frame = trc.current_frame();
     if (frame->msg_type() == Order::tag) {
       const Order &order = frame->data<Order>();
       orders_.insert_or_assign(order.order_id, state<Order>(frame->source(), frame->dest(), frame->gen_time(), order));
-      map_exchange_instrument_to_order_ids_.try_emplace(order.exchange_id.to_string() + order.instrument_id.to_string())
-          .first->second.emplace(order.order_id);
     } else if (frame->msg_type() == Trade::tag) {
       const Trade &trade = frame->data<Trade>();
       trades_.insert_or_assign(trade.trade_id, state<Trade>(frame->source(), frame->dest(), frame->gen_time(), trade));
     }
-    asb_write.next();
+    trc.next();
     ++count;
   }
-  SPDLOG_DEBUG("after assemble read, count: {}", count);
+  SPDLOG_DEBUG("after tracer read, count: {}", count);
 
   // set order as Lost which without external_order_id
   std::for_each(orders_.begin(), orders_.end(), [&](auto &pair) {
@@ -281,14 +213,11 @@ void Trader::deal_write_frame() {
 
 void Trader::deal_read_frame() {
   // write a Lost Order to journal when read an OrderInput whose order_id not in orders_
-  assemble asb_read(get_home(), get_home_uid(), AssembleMode::Read);
-  asb_read.disjoin(get_vendor().get_ledger_home_location()->location_uid); // ledger
-  asb_read.disjoin(get_vendor().get_master_home_location()->location_uid); // master
-  asb_read.seek_to_time(time::today_start());                              // recover from today
-  SPDLOG_DEBUG("before assemble read");
+  tracer trc(get_home(), true, false, time::today_start(), time::now_in_nano());
+  SPDLOG_DEBUG("before tracer read");
   int64_t count = 0;
-  while (asb_read.data_available()) {
-    const auto &frame = asb_read.current_frame();
+  while (trc.data_available()) {
+    const auto &frame = trc.current_frame();
     if (frame->msg_type() == OrderInput::tag) {
       const OrderInput &order_input = frame->data<OrderInput>();
       if (orders_.find(order_input.order_id) == orders_.end()) {
@@ -301,10 +230,10 @@ void Trader::deal_read_frame() {
         }
       }
     }
-    asb_read.next();
+    trc.next();
     ++count;
   }
-  SPDLOG_DEBUG("after assemble read, count: {}", count);
+  SPDLOG_DEBUG("after tracer read, count: {}", count);
 }
 
 void Trader::clear_order_inputs(uint64_t location_uid) { order_inputs_.erase(location_uid); }

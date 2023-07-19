@@ -150,11 +150,9 @@ external_trigger_id
 order_trigger_action_id
 begin_time
 end_time
-basket_id
 algo_type_id
 algo_id
 args
-algo_order_action_id
 is_last
 data_type
 is_withdraw
@@ -374,7 +372,9 @@ insert_order_input
 insert_order_trigger
 insert_array_orders
 insert_basket_order
+insert_algo_order
 cancel_order_trigger
+cancel_algo_order
 hold_book
 hold_positions
 is_book_held
@@ -385,8 +385,10 @@ bypass_accounting
 on_tree
 on_order
 on_order_trigger
+on_algo_order
 on_order_action_error
 on_order_trigger_action_error
+on_algo_order_action_error
 on_trade
 on_position_sync_reset
 on_asset_sync_reset
@@ -502,9 +504,6 @@ SZSE
 HKEx
 MarketType
 Snapshot
-Entrust
-Transaction
-Tree
 SubscribeDataType
 Stock
 Future

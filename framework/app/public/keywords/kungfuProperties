@@ -150,11 +150,9 @@ external_trigger_id
 order_trigger_action_id
 begin_time
 end_time
-basket_id
 algo_type_id
 algo_id
 args
-algo_order_action_id
 is_last
 data_type
 is_withdraw
@@ -309,9 +307,6 @@ SZSE
 HKEx
 MarketType
 Snapshot
-Entrust
-Transaction
-Tree
 SubscribeDataType
 Stock
 Future

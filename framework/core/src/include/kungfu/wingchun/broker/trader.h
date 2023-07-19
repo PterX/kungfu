@@ -160,8 +160,6 @@ private:
 
   void handle_batch_order_tag(const event_ptr &event);
 
-  bool has_self_deal_risk(const event_ptr &event);
-
   void recover();
 
   void deal_write_frame();

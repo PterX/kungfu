@@ -312,6 +312,7 @@ inline std::ostream &operator<<(std::ostream &os, HedgeFlag t) { return os << in
 enum class OrderActionFlag : int8_t { Insert, Cancel, TriggerCancel };
 
 NLOHMANN_JSON_SERIALIZE_ENUM(OrderActionFlag, {
+                                                  {OrderActionFlag::Insert, "Insert"},
                                                   {OrderActionFlag::Cancel, "Cancel"},
                                                   {OrderActionFlag::TriggerCancel, "TriggerCancel"},
                                               })
@@ -698,10 +699,21 @@ NLOHMANN_JSON_SERIALIZE_ENUM(OrderTriggerStatus, {
                                                      {OrderTriggerStatus::Send, "Send"},
                                                      {OrderTriggerStatus::Deleted, "Deleted"},
                                                      {OrderTriggerStatus::Error, "Error"},
-
                                                  })
 
 inline std::ostream &operator<<(std::ostream &os, OrderTriggerStatus t) { return os << int8_t(t); }
+
+enum class ParkedType : int8_t {
+  Server, /// 服务器预埋
+  Local   /// 本地预埋
+};
+
+NLOHMANN_JSON_SERIALIZE_ENUM(ParkedType, {
+                                             {ParkedType::Server, "Server"},
+                                             {ParkedType::Local, "Local"},
+                                         })
+
+inline std::ostream &operator<<(std::ostream &os, ParkedType t) { return os << int8_t(t); }
 
 } // namespace kungfu::longfist::enums
 #endif // KUNGFU_LONGFIST_ENUM_H

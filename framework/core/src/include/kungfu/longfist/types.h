@@ -375,6 +375,7 @@ KF_DEFINE_PACK_TYPE(                                                //
 KF_DEFINE_PACK_TYPE(                                             //
     OrderTrigger, 210, PK(trigger_id), TIMESTAMP(insert_time),   //
     (uint64_t, trigger_id),                                      // 触发器id
+    (uint64_t, order_id),                                        // 预埋撤单, 被撤单的order_id
     (kungfu::array<char, EXTERNAL_ID_LEN>, external_trigger_id), // 柜台触发器id
     (kungfu::array<char, EXTERNAL_ID_LEN>, external_order_id),   // 柜台订单id
     (enums::OrderActionFlag, action_flag),                       // 预埋下单 or 预埋撤单
@@ -424,11 +425,11 @@ KF_DEFINE_PACK_TYPE(                                                            
 KF_DEFINE_PACK_TYPE(                                                                   //
     OrderTriggerActionError, 212, PK(order_trigger_action_id), TIMESTAMP(insert_time), //
     (uint64_t, trigger_id),                                                            // 订单ID
-    (kungfu::array<char, EXTERNAL_ID_LEN>, external_order_id), // 撤单原委托柜台订单id, 新生成撤单委托编号不记录
-    (uint64_t, order_trigger_action_id),                       // 订单操作ID
-    (int32_t, error_id),                                       // 错误ID
-    (kungfu::array<char, ERROR_MSG_LEN>, error_msg), // 错误信息
-    (int64_t, insert_time)                           // 写入时间
+    (kungfu::array<char, EXTERNAL_ID_LEN>, external_trigger_id), // 要删除的预埋单的ParkedId
+    (uint64_t, order_trigger_action_id),                         // 订单操作ID
+    (int32_t, error_id),                                         // 错误ID
+    (kungfu::array<char, ERROR_MSG_LEN>, error_msg),             // 错误信息
+    (int64_t, insert_time)                                       // 写入时间
 );
 
 KF_DEFINE_PACK_TYPE(                                                     //

@@ -635,6 +635,27 @@ inline void order_trigger_from_input(const longfist::types::OrderTriggerInput &i
   trigger.parked_type = input.parked_type;
 }
 
+inline void order_trigger_from_order(const longfist::types::Order &order, longfist::types::OrderTrigger &trigger) {
+  trigger.order_id = order.order_id;
+  strcpy(trigger.instrument_id, order.instrument_id);
+  strcpy(trigger.exchange_id, order.exchange_id);
+  strcpy(trigger.external_order_id, order.external_order_id);
+  trigger.instrument_type = order.instrument_type;
+  trigger.limit_price = order.limit_price;
+  trigger.frozen_price = order.frozen_price;
+  trigger.volume = order.volume;
+  trigger.status = longfist::enums::OrderTriggerStatus::NotSend;
+  trigger.side = order.side;
+  trigger.offset = order.offset;
+  trigger.is_swap = order.is_swap;
+  trigger.hedge_flag = order.hedge_flag;
+  trigger.price_type = order.price_type;
+  trigger.volume_condition = order.volume_condition;
+  trigger.time_condition = order.time_condition;
+  trigger.trigger_type = longfist::enums::OrderTriggerType::ParkedOrder;
+  trigger.action_flag = longfist::enums::OrderActionFlag::TriggerCancel;
+}
+
 } // namespace kungfu::wingchun
 
 #endif // WINGCHUN_COMMON_H

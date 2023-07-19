@@ -551,6 +551,7 @@ Hedge
 Covered
 HedgeFlag
 Insert
+Cancel
 TriggerCancel
 OrderActionFlag
 Limit

@@ -8,6 +8,7 @@
 #define WINGCHUN_TRADER_H
 
 #include <kungfu/longfist/longfist.h>
+#include <kungfu/wingchun/broker/algoorderengine.h>
 #include <kungfu/wingchun/broker/broker.h>
 #include <kungfu/yijinjing/io.h>
 #include <kungfu/yijinjing/log.h>
@@ -36,9 +37,9 @@ protected:
 
   void on_start() override;
 
-
 private:
   Trader_ptr service_ = {};
+  broker::algoorder::AlgoOrderEngine algo_order_engine_;
 
   void clean_orders();
 };
@@ -65,16 +66,17 @@ public:
 
   virtual bool insert_batch_orders(const event_ptr &event) { return true; }
 
-  virtual longfist::types::AlgoOrder insert_algo_order(const longfist::types::AlgoOrderInput& algo_order_input) { 
-    longfist::types::AlgoOrder algo_order {};
+  virtual longfist::types::AlgoOrder insert_algo_order(const longfist::types::AlgoOrderInput &algo_order_input) {
+    longfist::types::AlgoOrder algo_order{};
     algo_order_from_input(algo_order_input, algo_order);
     return algo_order;
   }
 
-
   virtual bool cancel_order_trigger(const event_ptr &event) { return true; }
 
   virtual bool cancel_order(const event_ptr &event) = 0;
+
+  virtual bool cancel_algo_order(const event_ptr &event) { return true; }
 
   virtual bool req_position() = 0;
 

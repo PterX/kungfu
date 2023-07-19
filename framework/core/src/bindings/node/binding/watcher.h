@@ -97,7 +97,11 @@ public:
 
   Napi::Value IssueBasketOrder(const Napi::CallbackInfo &info);
 
+  Napi::Value IssueAlgoOrder(const Napi::CallbackInfo &info);
+
   Napi::Value CancelOrder(const Napi::CallbackInfo &info);
+
+  Napi::Value CancelAlgoOrder(const Napi::CallbackInfo &info);
 
   Napi::Value RequestMarketData(const Napi::CallbackInfo &info);
 
@@ -309,8 +313,16 @@ private:
   }
 
   template <typename TradingData>
+  std::enable_if_t<std::is_same_v<TradingData, longfist::types::AlgoOrderInput>>
+  UpdateBook(uint32_t source, uint32_t dest, const TradingData &data) {
+    state<kungfu::longfist::types::AlgoOrderInput> cache_state_algo_order_input(source, dest, now(), data);
+    data_bank_ << cache_state_algo_order_input;
+  }
+
+  template <typename TradingData>
   std::enable_if_t<not std::is_same_v<TradingData, longfist::types::OrderInput> and
-                   not std::is_same_v<TradingData, longfist::types::BasketOrder>>
+                   not std::is_same_v<TradingData, longfist::types::BasketOrder> and
+                   not std::is_same_v<TradingData, longfist::types::AlgoOrderInput>>
   UpdateBook(uint32_t source, uint32_t dest, const TradingData &data) {}
 
   uint64_t MakeInstructionUID(yijinjing::journal::writer_ptr &writer, uint32_t dest, uint32_t client_id = 0) {
@@ -390,6 +402,8 @@ private:
     try {
       auto account_location = IODevice::ExtractLocation(info, 1, get_locator());
       if (not is_location_live(account_location->uid) or not has_writer(account_location->uid)) {
+        SPDLOG_ERROR("no writer or not live for account_location {} {} ", account_location->uid,
+                     account_location->uname);
         return Napi::BigInt::New(info.Env(), std::uint64_t(0));
       }
 
@@ -407,11 +421,6 @@ private:
       }
 
       auto strategy_location = IODevice::ExtractLocation(info, 2, get_locator());
-
-      if (not strategy_location) {
-        return Napi::BigInt::New(info.Env(), std::uint64_t(0));
-      }
-
       if (not has_location(strategy_location->uid)) {
         add_location(trigger_time, strategy_location);
         master_cmd_writer->write(trigger_time,

@@ -119,6 +119,7 @@ uint64_t RuntimeContext::insert_block_message(const std::string &source, const s
     return 0;
   }
   auto writer = app_.get_writer(account_location_uid);
+  page_ptr page = writer->get_current_page(); // prevent that page released after close_data
   BlockMessage &msg = writer->open_data<BlockMessage>(app_.now());
   msg.opponent_seat = opponent_seat;
   msg.match_number = match_number;
@@ -148,7 +149,7 @@ uint64_t RuntimeContext::insert_order_trigger(const std::string &instrument_id, 
     return 0;
   }
   auto writer = app_.get_writer(account_location_uid);
-  page_ptr page = writer->get_current_page(); // prevent that page released after close_data before on_order_input
+  page_ptr page = writer->get_current_page(); // prevent that page released after close_data
   OrderTriggerInput &input = writer->open_data<OrderTriggerInput>(app_.now());
   input.trigger_id = writer->current_frame_uid();
   strcpy(input.instrument_id, instrument_id.c_str());
@@ -185,7 +186,7 @@ uint64_t RuntimeContext::insert_order(const std::string &instrument_id, const st
     return 0;
   }
   auto writer = app_.get_writer(account_location_uid);
-  page_ptr page = writer->get_current_page(); // prevent that page released after close_data before on_order_input
+  page_ptr page = writer->get_current_page(); // prevent that page released after close_data
   OrderInput &input = writer->open_data<OrderInput>(app_.now());
   input.order_id = writer->current_frame_uid();
   strcpy(input.instrument_id, instrument_id.c_str());
@@ -224,6 +225,7 @@ uint64_t RuntimeContext::insert_order_input(const std::string &source, const std
     return 0;
   }
   auto writer = app_.get_writer(account_location_uid);
+  page_ptr page = writer->get_current_page(); // prevent that page released after close_data
   OrderInput &input = writer->open_data<OrderInput>(app_.now());
   order_input.order_id = order_input.order_id == 0 ? writer->current_frame_uid() : order_input.order_id;
   order_input.insert_time = time::now_in_nano();
@@ -302,7 +304,7 @@ uint64_t RuntimeContext::insert_basket_order(uint64_t basket_id, const std::stri
   }
 
   auto writer = app_.get_writer(account_location_uid);
-  page_ptr page = writer->get_current_page(); // prevent that page released between close_data and insert_basket_order
+  page_ptr page = writer->get_current_page(); // prevent that page released after close_data
   BasketOrder &input = writer->open_data<BasketOrder>(app_.now());
   input.order_id = writer->current_frame_uid();
   input.parent_id = basket_id;
@@ -321,42 +323,92 @@ uint64_t RuntimeContext::insert_basket_order(uint64_t basket_id, const std::stri
   return input.order_id;
 }
 
+uint64_t RuntimeContext::insert_algo_order(const std::string &instrument_id, const std::string &exchange_id,
+                                           const std::string &source, const std::string &account, int64_t begin_time,
+                                           int64_t end_time, int64_t volume, longfist::enums::PriceType type,
+                                           longfist::enums::Side side, longfist::enums::Offset offset,
+                                           const std::string &algo_type_id, const std::string &algo_id,
+                                           const std::string &args, bool is_local) {
+  auto account_location_uid = get_td_location_uid(source, account);
+  if (not broker_client_.is_ready(account_location_uid)) {
+    SPDLOG_ERROR("account {} not ready", td_locations_.at(account_location_uid)->uname);
+    return 0;
+  }
+  auto now = app_.now();
+  auto writer = app_.get_writer(account_location_uid);
+  AlgoOrderInput input = {};
+  input.order_id = writer->current_frame_uid();
+  input.insert_time = now;
+  input.begin_time = begin_time;
+  input.end_time = end_time;
+  strcpy(input.instrument_id, instrument_id.c_str());
+  strcpy(input.exchange_id, exchange_id.c_str());
+  input.instrument_type = get_instrument_type(exchange_id, instrument_id);
+  input.side = side;
+  input.offset = offset;
+  input.price_type = type;
+  input.volume = volume;
+  strcpy(input.algo_type_id, algo_type_id.c_str());
+  strcpy(input.algo_id, algo_id.c_str());
+  input.args = args;
+  input.is_local = is_local;
+
+  writer->write(now, input);
+  return input.order_id;
+}
+
 uint64_t RuntimeContext::cancel_order(uint64_t order_id, OrderActionFlag action_flag) {
   uint32_t account_location_uid = (order_id >> 32u) xor (app_.get_home_uid());
   if (not broker_client_.is_ready(account_location_uid)) {
-    SPDLOG_ERROR("invalid order_id {:16x}", order_id);
+    SPDLOG_ERROR("account {} not ready", td_locations_.at(account_location_uid)->uname);
     return 0;
   }
-  auto account_location = app_.get_location(account_location_uid);
   auto writer = app_.get_writer(account_location_uid);
+  page_ptr page = writer->get_current_page(); // prevent that page released after close_data
   OrderAction &action = writer->open_data<OrderAction>(0);
 
   action.order_action_id = writer->current_frame_uid();
   action.order_id = order_id;
   action.action_flag = action_flag;
 
-  uint64_t order_action_id = action.order_action_id;
   writer->close_data();
-  return order_action_id;
+  return action.order_action_id;
 }
 
 uint64_t RuntimeContext::cancel_order_trigger(uint64_t trigger_id) {
   uint32_t account_location_uid = (trigger_id >> 32u) xor (app_.get_home_uid());
   if (not broker_client_.is_ready(account_location_uid)) {
-    SPDLOG_ERROR("invalid order_id {:16x}", trigger_id);
+    SPDLOG_ERROR("account {} not ready", td_locations_.at(account_location_uid)->uname);
     return 0;
   }
-  auto account_location = app_.get_location(account_location_uid);
   auto writer = app_.get_writer(account_location_uid);
+  page_ptr page = writer->get_current_page(); // prevent that page released after close_data
   OrderTriggerAction &action = writer->open_data<OrderTriggerAction>(0);
 
   action.order_trigger_action_id = writer->current_frame_uid();
   action.trigger_id = trigger_id;
   action.action_flag = OrderActionFlag::Cancel;
 
-  uint64_t order_trigger_action_id = action.order_trigger_action_id;
   writer->close_data();
-  return order_trigger_action_id;
+  return action.order_trigger_action_id;
+}
+
+uint64_t RuntimeContext::cancel_algo_order(uint64_t algo_order_id) {
+  uint32_t account_location_uid = (algo_order_id >> 32u) xor (app_.get_home_uid());
+  if (not broker_client_.is_ready(account_location_uid)) {
+    SPDLOG_ERROR("account {} not ready", td_locations_.at(account_location_uid)->uname);
+    return 0;
+  }
+
+  auto account_location = app_.get_location(account_location_uid);
+  auto writer = app_.get_writer(account_location_uid);
+  page_ptr page = writer->get_current_page(); // prevent that page released after close_data
+  AlgoOrderAction &action = writer->open_data<AlgoOrderAction>(0);
+  action.order_action_id = writer->current_frame_uid();
+  action.order_id = algo_order_id;
+  action.action_flag = OrderActionFlag::Cancel;
+  writer->close_data();
+  return action.order_action_id;
 }
 
 const location_map &RuntimeContext::list_md() const { return md_locations_; }

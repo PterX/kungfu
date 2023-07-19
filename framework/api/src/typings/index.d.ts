@@ -653,6 +653,13 @@ declare namespace KungfuApi {
     uid_key: string;
   }
 
+  export interface OrderAction {
+    order_id: bigint;
+    order_action_id: bigint;
+    action_flag: OrderActionFlagEnum;
+    insert_time: bigint;
+  }
+
   export interface TimeKeyValue {
     key: string;
     update_time: bigint;
@@ -710,6 +717,61 @@ declare namespace KungfuApi {
     progress: number;
   }
 
+  export interface AlgoOrderInput {
+    order_id: bigint;
+    insert_time: bigint;
+    begin_time: bigint;
+    end_time: bigint;
+
+    instrument_id: string;
+    exchange_id: string;
+    instrument_type: InstrumentTypeEnum;
+
+    side: SideEnum;
+    offset: OffsetEnum;
+    price_type: PriceTypeEnum;
+    volume: bigint;
+
+    algo_type_id: string; // 算法类型
+    algo_id: string; // 算法id
+
+    args: string; // 自定义参数json的形式
+    is_local: boolean; // 是否为一个本地算法单
+  }
+
+  export interface AlgoOrder {
+    order_id: bigint; // 算法单ID
+    external_order_id: string; // 柜台算法单id
+    insert_time: bigint; // 下单时间
+    update_time: bigint; // 更新时间
+    begin_time: bigint; // 开始时间
+    end_time: bigint; // 结束时间
+
+    instrument_id: string; // 合约代码
+    exchange_id: string; // 交易所代码
+    instrument_type: InstrumentTypeEnum;
+
+    side: SideEnum;
+    offset: OffsetEnum;
+    price_type: PriceTypeEnum;
+
+    volume: bigint; // 目标量
+    volume_left: bigint; // 剩余数量
+
+    algo_type_id: string; // 算法类型
+    algo_id: string; // 算法id
+
+    status: OrderStatusEnum; // 订单状态
+    error_msg: string; // 错误信息
+  }
+
+  export interface AlgoOrderAction {
+    order_id: bigint;
+    order_action_id: bigint;
+    action_flag: OrderActionFlagEnum;
+    insert_time: bigint;
+  }
+
   export interface OrderStat {
     order_id: bigint;
     md_time: bigint;
@@ -724,15 +786,6 @@ declare namespace KungfuApi {
     source: number;
     dest: number;
     uid_key: string;
-  }
-
-  export interface OrderAction {
-    order_id: bigint;
-    order_action_id: bigint;
-    action_flag: OrderActionFlagEnum;
-    price: number;
-    volume: number;
-    insert_time: bigint;
   }
 
   export interface Position {

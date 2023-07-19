@@ -20,7 +20,8 @@ using namespace kungfu::yijinjing::journal;
 namespace kungfu::wingchun::broker {
 TraderVendor::TraderVendor(locator_ptr locator, const std::string &group, const std::string &name, bool low_latency,
                            const std::string &arguments)
-    : BrokerVendor(location::make_shared(mode::LIVE, category::TD, group, name, std::move(locator)), low_latency) {
+    : BrokerVendor(location::make_shared(mode::LIVE, category::TD, group, name, std::move(locator)), low_latency),
+      algo_order_engine_(*this) {
   set_arguments(arguments);
 }
 
@@ -39,6 +40,7 @@ void TraderVendor::on_react() {
 
 void TraderVendor::on_start() {
   BrokerVendor::on_start();
+  algo_order_engine_.on_start(events_);
 
   events_ | is(BlockMessage::tag) | $$(service_->insert_block_message(event));
   events_ | is(OrderTriggerInput::tag) | $$(service_->insert_order_trigger(event));

@@ -36,7 +36,6 @@ public:
   virtual BrokerService_ptr get_service() = 0;
 
 protected:
-
   void on_start() override;
 
 private:

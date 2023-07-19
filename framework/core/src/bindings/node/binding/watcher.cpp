@@ -339,9 +339,19 @@ Napi::Value Watcher::IssueBasketOrder(const Napi::CallbackInfo &info) {
   return InteractWithTD<BasketOrder>(info, info[0].ToObject(), &BasketOrder::order_id);
 }
 
+Napi::Value Watcher::IssueAlgoOrder(const Napi::CallbackInfo &info) {
+  SPDLOG_INFO("issue algo order manually");
+  return InteractWithTD<AlgoOrderInput>(info, info[0].ToObject(), &AlgoOrderInput::order_id);
+}
+
 Napi::Value Watcher::CancelOrder(const Napi::CallbackInfo &info) {
   SPDLOG_INFO("cancel order manually");
   return InteractWithTD<OrderAction>(info, info[0].ToObject(), &OrderAction::order_action_id);
+}
+
+Napi::Value Watcher::CancelAlgoOrder(const Napi::CallbackInfo &info) {
+  SPDLOG_INFO("cancel algo order manually");
+  return InteractWithTD<AlgoOrderAction>(info, info[0].ToObject(), &AlgoOrderAction::order_action_id);
 }
 
 Napi::Value Watcher::RequestMarketData(const Napi::CallbackInfo &info) {
@@ -404,7 +414,9 @@ void Watcher::Init(Napi::Env env, Napi::Object exports) {
                       InstanceMethod("IssueOrderTrigger", &Watcher::IssueOrderTrigger),           //
                       InstanceMethod("issueOrder", &Watcher::IssueOrder),                         //
                       InstanceMethod("issueBasketOrder", &Watcher::IssueBasketOrder),             //
+                      InstanceMethod("issueAlgoOrder", &Watcher::IssueAlgoOrder),                 //
                       InstanceMethod("cancelOrder", &Watcher::CancelOrder),                       //
+                      InstanceMethod("cancelAlgoOrder", &Watcher::CancelAlgoOrder),               //
                       InstanceMethod("requestMarketData", &Watcher::RequestMarketData),           //
                       InstanceMethod("requestPosition", &Watcher::RequestPosition),               //
                       InstanceMethod("start", &Watcher::Start),                                   //

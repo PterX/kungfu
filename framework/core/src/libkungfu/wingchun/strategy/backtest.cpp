@@ -6,6 +6,8 @@
 
 #include <kungfu/wingchun/strategy/backtest.h>
 
+using namespace kungfu::longfist::enums;
+
 namespace kungfu::wingchun::strategy {
 int64_t BacktestContext::now() const { return 0; }
 void BacktestContext::add_timer(int64_t nanotime, const std::function<void(event_ptr)> &callback) {}

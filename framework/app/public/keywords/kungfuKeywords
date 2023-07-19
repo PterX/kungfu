@@ -146,6 +146,13 @@ dest_id
 external_trigger_id
 stop_price
 order_trigger_action_id
+begin_time
+end_time
+basket_id
+algo_type_id
+algo_id
+args
+algo_order_action_id
 is_last
 data_type
 is_withdraw
@@ -186,8 +193,6 @@ tag_c
 location_uid
 pid
 last_active_time
-begin_time
-end_time
 frame_count
 info_a
 info_b
@@ -230,6 +235,9 @@ OrderTriggerInput
 OrderTrigger
 OrderTriggerAction
 OrderTriggerActionError
+AlgoOrder
+AlgoOrderAction
+AlgoOrderActionError
 RequestHistoryOrder
 RequestHistoryTrade
 HistoryOrder
@@ -241,6 +249,7 @@ Entrust
 Transaction
 Tree
 InstrumentKey
+CustomSubscribe
 BrokerStateUpdate
 Commission
 Instrument
@@ -258,7 +267,7 @@ RequestReadFromOthers
 TimeRequest
 TimeReset
 TradingDay
-CustomSubscribe
+AlgoOrderInput
 SyntheticData
 Register
 Deregister
@@ -597,7 +606,7 @@ Pending
 PartialFilledNotActive
 PartialFilledActive
 Filled
-AlgoOrderStatus
+BasketOrderStatus
 Static
 Dynamic
 BasketOrderCalculationMode

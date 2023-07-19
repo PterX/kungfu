@@ -121,7 +121,7 @@ public:
    * @param hedge_flag hedge_flag, defaults to longfist::enums::HedgeFlag::Speculation
    * @param block_id BlockMessage id
    * @param is_swap boolean
-   * @return
+   * @return order_id
    */
   uint64_t insert_order(const std::string &instrument_id, const std::string &exchange_id, const std::string &source,
                         const std::string &account, double limit_price, int64_t volume, longfist::enums::PriceType type,
@@ -173,7 +173,6 @@ public:
                                             std::vector<longfist::types::OrderInput> &order_inputs) override;
 
   /**
-   * Insert Basket Orders
    * @param basket_id
    * @param source
    * @param account
@@ -182,6 +181,7 @@ public:
    * @param price_offset
    * @param volume_mode
    * @param total_volume
+   * @return basket order id
    */
   uint64_t insert_basket_order(uint64_t basket_id, const std::string &source, const std::string &account,
                                longfist::enums::Side side, longfist::enums::PriceType price_type,
@@ -189,11 +189,36 @@ public:
                                int64_t volume = 0) override;
 
   /**
+   * @param instrument_id instrument ID
+   * @param exchange_id exchange ID
+   * @param source source ID
+   * @param account account ID
+   * @param begin_time algo begin time
+   * @param end_time algo end time
+   * @param volume trade volume
+   * @param type price type
+   * @param side side
+   * @param offset offset, defaults to longfist::enums::Offset::Open
+   * @param algo_type_id algo type id
+   * @param algo_id algo id
+   * @param args json string for algo custom arguments
+   * @param is_local boolean marking local algo order
+   * @return order_id
+   */
+  uint64_t insert_algo_order(const std::string &instrument_id, const std::string &exchange_id,
+                             const std::string &source, const std::string &account, int64_t begin_time,
+                             int64_t end_time, int64_t volume, longfist::enums::PriceType type,
+                             longfist::enums::Side side, longfist::enums::Offset offset,
+                             const std::string &algo_type_id, const std::string &algo_id, const std::string &args,
+                             bool is_local = false) override;
+
+  /**
    * Cancel order.
    * @param order_id order ID
+   * @param action_flag for mark cancel or trigger cancel
    * @return order action ID
    */
-  uint64_t cancel_order(uint64_t order_id, OrderActionFlag action_flag) override;
+  uint64_t cancel_order(uint64_t order_id, longfist::enums::OrderActionFlag action_flag) override;
 
   /**
    * Cancel Order Trigger
@@ -201,6 +226,23 @@ public:
    * @return trigger action ID
    */
   uint64_t cancel_order_trigger(uint64_t trigger_id) override;
+
+  /**
+   * Cancel Algo Order
+   * @param algo_order_id
+   * @return algo order action ID
+   */
+  uint64_t cancel_algo_order(uint64_t algo_order_id) override;
+
+  /**
+   * query history order
+   */
+  void req_history_order(const std::string &source, const std::string &account, uint32_t query_num = 0) override;
+
+  /**
+   * query history trade
+   */
+  void req_history_trade(const std::string &source, const std::string &account, uint32_t query_num = 0) override;
 
   /**
    * Get current trading day.
@@ -243,16 +285,6 @@ public:
    * @return basketorder engine reference
    */
   basketorder::BasketOrderEngine &get_basketorder_engine();
-
-  /**
-   * query history order
-   */
-  void req_history_order(const std::string &source, const std::string &account, uint32_t query_num = 0) override;
-
-  /**
-   * query history trade
-   */
-  void req_history_trade(const std::string &source, const std::string &account, uint32_t query_num = 0) override;
 
   /**
    * request deregister.

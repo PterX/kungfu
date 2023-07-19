@@ -2,30 +2,51 @@
 #define WINGCHUN_ALGO_ORDER_ENGINE_H
 
 #include <kungfu/common.h>
+#include <kungfu/wingchun/broker/broker.h>
 #include <kungfu/wingchun/common.h>
-#include <kungfu/wingchun/broker/trader.h>
 
-namespace kungfu::wingchun::broker {
-  namespace algoorder {
+namespace kungfu::wingchun::broker::algoorder {
 
-    class AlgoOrderEngine {
-        public:
-            explicit AlgoOrderEngine(broker::TraderVendor &vendor);
-            virtual ~AlgoOrderEngine() = default;
+FORWARD_DECLARE_CLASS_PTR(AlgoOrderEngine)
 
-            void on_start(const rx::connectable_observable<event_ptr> &events);
+typedef std::unordered_map<uint64_t, kungfu::state<longfist::types::AlgoOrder>> AlgoOrderMap;
+typedef std::unordered_map<uint64_t, std::unordered_map<uint64_t, longfist::types::Order>> SubOrderMap;
+typedef std::unordered_map<uint64_t, longfist::types::Order> OrderMap;
 
-          private:
-            broker::TraderVendor& vendor_;
+inline bool is_all_order_finished(const OrderMap &orders) {
+  for (auto &iter : orders) {
+    if (not is_final_status(iter.second.status)) {
+      return false;
+    }
+  }
+  return true;
+}
 
-            BrokerService_ptr get_service();
+class AlgoOrderEngine {
+public:
+  explicit AlgoOrderEngine(broker::BrokerVendor &vendor);
+  virtual ~AlgoOrderEngine() = default;
 
-            void update_algo_order(uint32_t source, const longfist::types::AlgoOrderInput &algo_order_input);
-            
-            void update_algo_order(int64_t trigger_time, const longfist::types::Order &order);
-    };
-  } //namespace algoorder
+  void on_start(const rx::connectable_observable<event_ptr> &events);
 
-} // namespace kungfu::wingchun::broker
+  void update_algo_order(const longfist::types::Order &order);
+
+private:
+  broker::BrokerVendor &vendor_;
+  AlgoOrderMap local_algo_orders_;
+  SubOrderMap local_sub_orders_;
+
+  BrokerService_ptr get_service();
+
+  void update_algo_order(const event_ptr &event, const longfist::types::AlgoOrderInput &algo_order_input);
+
+  void cancel_algo_order(const event_ptr &event, const longfist::types::AlgoOrderAction &algo_order_action);
+
+  void try_update_sub_orders(const longfist::types::Order &order);
+
+  bool check_if_all_order_finished(int64_t algo_order_id);
+};
+
+} // namespace kungfu::wingchun::broker::algoorder
 
 #endif // WINGCHUN_ALGO_ORDER_ENGINE_H

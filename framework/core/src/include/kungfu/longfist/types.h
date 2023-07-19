@@ -431,12 +431,11 @@ KF_DEFINE_DATA_TYPE(                                           //
     (uint64_t, order_id),                                      // 算法单ID
     (int64_t, insert_time),                                    // 下单时间
     (int64_t, begin_time),                                     // 开始时间
-    (int64_t, end_time),
+    (int64_t, end_time),                                       // 结束时间
 
     (kungfu::array<char, INSTRUMENT_ID_LEN>, instrument_id), // 合约代码
     (kungfu::array<char, EXCHANGE_ID_LEN>, exchange_id),     // 交易所代码
     (enums::InstrumentType, instrument_type),                // 合约类型
-    (uint32_t, basket_id),                                   // 篮子单场景, 单标的时非必填
 
     (enums::Side, side),            // 买卖方向
     (enums::Offset, offset),        // 开平方向
@@ -446,7 +445,8 @@ KF_DEFINE_DATA_TYPE(                                           //
     (kungfu::array<char, ALGO_TYPE_ID_LEN>, algo_type_id), // 算法类型
     (kungfu::array<char, ALGO_ID_LEN>, algo_id),           // 算法id
 
-    (std::string, args) // 自定义参数json的形式
+    (std::string, args), // 自定义参数json的形式
+    (bool, is_local)     // 是否为一个本地算法单
 );
 
 KF_DEFINE_PACK_TYPE(                                           //
@@ -461,7 +461,6 @@ KF_DEFINE_PACK_TYPE(                                           //
     (kungfu::array<char, INSTRUMENT_ID_LEN>, instrument_id), // 合约代码
     (kungfu::array<char, EXCHANGE_ID_LEN>, exchange_id),     // 交易所代码
     (enums::InstrumentType, instrument_type),                // 合约类型
-    (uint32_t, basket_id),                                   // 篮子单场景, 单标的时非必填
 
     (enums::Side, side),            // 买卖方向
     (enums::Offset, offset),        // 开平方向
@@ -477,23 +476,23 @@ KF_DEFINE_PACK_TYPE(                                           //
     (kungfu::array<char, ERROR_MSG_LEN>, error_msg) // 错误信息
 );
 
-KF_DEFINE_PACK_TYPE(                                                        //
-    AlgoOrderAction, 215, PK(algo_order_action_id), TIMESTAMP(insert_time), //
-    (uint64_t, order_id),                                                   // 订单ID
-    (uint64_t, algo_order_action_id),                                       // 订单操作ID
+KF_DEFINE_PACK_TYPE(                                                   //
+    AlgoOrderAction, 215, PK(order_action_id), TIMESTAMP(insert_time), //
+    (uint64_t, order_id),                                              // 订单ID
+    (uint64_t, order_action_id),                                       // 订单操作ID
 
     (enums::OrderActionFlag, action_flag), // 订单操作类型
     (int64_t, insert_time)                 // 写入时间
 );
 
-KF_DEFINE_PACK_TYPE(                                                             //
-    AlgoOrderActionError, 216, PK(algo_order_action_id), TIMESTAMP(insert_time), //
-    (uint64_t, order_id),                                                        // 订单ID
-    (kungfu::array<char, EXTERNAL_ID_LEN>, external_order_id),                   // 柜台算法单id
-    (uint64_t, algo_order_action_id),                                            // 订单操作ID
-    (int32_t, error_id),                                                         // 错误ID
-    (kungfu::array<char, ERROR_MSG_LEN>, error_msg),                             // 错误信息
-    (int64_t, insert_time)                                                       // 写入时间
+KF_DEFINE_PACK_TYPE(                                                        //
+    AlgoOrderActionError, 216, PK(order_action_id), TIMESTAMP(insert_time), //
+    (uint64_t, order_id),                                                   // 订单ID
+    (kungfu::array<char, EXTERNAL_ID_LEN>, external_order_id),              // 柜台算法单id
+    (uint64_t, order_action_id),                                            // 订单操作ID
+    (int32_t, error_id),                                                    // 错误ID
+    (kungfu::array<char, ERROR_MSG_LEN>, error_msg),                        // 错误信息
+    (int64_t, insert_time)                                                  // 写入时间
 );
 
 KF_DEFINE_PACK_TYPE(                                                     //

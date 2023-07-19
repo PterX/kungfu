@@ -366,7 +366,6 @@ insert_order_trigger
 insert_array_orders
 insert_basket_order
 cancel_order_trigger
-req_trigger
 hold_book
 hold_positions
 is_book_held

@@ -428,8 +428,8 @@ KF_DEFINE_PACK_TYPE(                                                            
     (kungfu::array<char, EXTERNAL_ID_LEN>, external_trigger_id), // 要删除的预埋单的ParkedId
     (uint64_t, order_trigger_action_id),                         // 订单操作ID
     (int32_t, error_id),                                         // 错误ID
-    (kungfu::array<char, ERROR_MSG_LEN>, error_msg), // 错误信息
-    (int64_t, insert_time)                           // 写入时间
+    (kungfu::array<char, ERROR_MSG_LEN>, error_msg),             // 错误信息
+    (int64_t, insert_time)                                       // 写入时间
 );
 
 KF_DEFINE_PACK_TYPE(                                                     //

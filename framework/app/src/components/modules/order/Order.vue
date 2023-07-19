@@ -408,7 +408,10 @@ function handleAdjustOrder(data: {
     return;
   }
 
-  if (!testOrderSourceIsOnline(order)) {
+  if (
+    !testOrderSourceIsOnline(order) ||
+    order.status === OrderStatusEnum.Cancelling
+  ) {
     return;
   }
 

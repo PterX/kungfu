@@ -426,15 +426,6 @@ void RuntimeContext::req_history_trade(const std::string &source, const std::str
   writer->close_data();
 }
 
-void RuntimeContext::req_trigger(const std::string &source, const std::string &account) {
-  auto account_location_uid = get_td_location_uid(source, account);
-  if (not broker_client_.is_ready(account_location_uid)) {
-    SPDLOG_ERROR("account {}_{} not ready", source, account);
-    return;
-  }
-  app_.get_writer(account_location_uid)->mark(time::now_in_nano(), TriggerRequest::tag);
-}
-
 void RuntimeContext::req_deregister() { app_.request_deregister(); }
 
 void RuntimeContext::update_strategy_state(StrategyStateUpdate &state_update) {

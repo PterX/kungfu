@@ -25,7 +25,6 @@ KF_DEFINE_MARK_TYPE(AssetRequest, 351);
 KF_DEFINE_MARK_TYPE(PositionRequest, 352);
 KF_DEFINE_MARK_TYPE(AssetSync, 353);
 KF_DEFINE_MARK_TYPE(PositionSync, 354);
-KF_DEFINE_MARK_TYPE(TriggerRequest, 355);
 KF_DEFINE_MARK_TYPE(PageEnd, 10051);
 KF_DEFINE_MARK_TYPE(Time, 10052);
 KF_DEFINE_MARK_TYPE(Ping, 10053);
@@ -211,7 +210,6 @@ KF_DEFINE_PACK_TYPE(                                       //
     (enums::VolumeCondition, volume_condition), // 成交量类型
     (enums::TimeCondition, time_condition),     // 成交时间类型
     (uint64_t, block_id),                       // 大宗交易信息id, 非大宗交易则为0
-    (uint64_t, trigger_id),                     // 触发器id, 不需要对应信息时为0
 
     (int64_t, insert_time) // 写入时间
 );

@@ -111,7 +111,9 @@ public:
                                         const std::string &source, const std::string &account, double limit_price,
                                         int64_t volume, longfist::enums::PriceType type, longfist::enums::Side side,
                                         longfist::enums::Offset offset, longfist::enums::OrderTriggerType trigger_type,
-                                        longfist::enums::TimeCondition time_condition, double stop_price = 0,
+                                        longfist::enums::TimeCondition time_condition,
+                                        longfist::enums::ParkedType parked_type = longfist::enums::ParkedType::Server,
+                                        double stop_price = 0,
                                         longfist::enums::HedgeFlag hedge_flag = longfist::enums::HedgeFlag::Speculation,
                                         bool is_swap = false) = 0;
 
@@ -253,6 +255,14 @@ public:
    * query history trade
    */
   virtual void req_history_trade(const std::string &source, const std::string &account, uint32_t query_num = 0) = 0;
+
+  /**
+   *
+   * @param source
+   * @param account
+   * @param trigger_id
+   */
+  virtual void req_trigger(const std::string &source, const std::string &account) = 0;
 
   /**
    * Get current trading day.

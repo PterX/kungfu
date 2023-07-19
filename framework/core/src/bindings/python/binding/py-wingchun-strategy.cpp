@@ -197,8 +197,8 @@ void bind_strategy(pybind11::module &m) {
       .def("insert_order_trigger", &strategy::Context::insert_order_trigger, py::arg("instrument_id"),
            py::arg("exchange"), py::arg("source"), py::arg("account"), py::arg("limit_price"), py::arg("volume"),
            py::arg("type"), py::arg("side"), py::arg("offset") = Offset::Open, py::arg("trigger_type"),
-           py::arg("time_condition"), py::arg("stop_price") = 0, py::arg("hedge_flag") = HedgeFlag::Speculation,
-           py::arg("is_swap") = false)
+           py::arg("time_condition"), py::arg("parked_type") = longfist::enums::ParkedType::Server,
+           py::arg("stop_price") = 0, py::arg("hedge_flag") = HedgeFlag::Speculation, py::arg("is_swap") = false)
       .def("insert_batch_orders", &strategy::Context::insert_batch_orders)
       .def("insert_array_orders", &strategy::Context::insert_array_orders)
       .def("insert_basket_order", &strategy::Context::insert_basket_order, py::arg("basket_id"), py::arg("source"),
@@ -216,6 +216,7 @@ void bind_strategy(pybind11::module &m) {
            py::arg("query_num") = 0)
       .def("req_history_trade", &strategy::Context::req_history_trade, py::arg("source"), py::arg("account"),
            py::arg("query_num") = 0)
+      .def("req_trigger", &strategy::Context::req_trigger)
       .def("hold_book", &strategy::Context::hold_book)
       .def("hold_positions", &strategy::Context::hold_positions)
       .def("is_book_held", &strategy::Context::is_book_held)

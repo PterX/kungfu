@@ -352,5 +352,11 @@ void bind_enums(py::module &m) {
       .value("Error", OrderTriggerStatus::Error)
       .export_values()
       .def("__eq__", [](const OrderTriggerStatus &a, int b) { return static_cast<int>(a) == b; });
+
+  py::enum_<ParkedType>(m_enums, "ParkedType", py::arithmetic())
+      .value("Server", ParkedType::Server)
+      .value("Local", ParkedType::Local)
+      .export_values()
+      .def("__eq__", [](const ParkedType &a, int b) { return static_cast<int>(a) == b; });
 }
 } // namespace kungfu::longfist::pybind

@@ -47,14 +47,15 @@ void TraderVendor::on_start() {
   events_ | is(OrderAction::tag) | $$(service_->cancel_order(event));
   events_ | is(OrderTriggerAction::tag) | $$(service_->cancel_order_trigger(event));
   events_ | is(AssetRequest::tag) | $$(service_->req_account());
+  events_ | is(TriggerRequest::tag) | $$(service_->req_trigger());
   events_ | is(Deregister::tag) | $$(service_->on_strategy_exit(event));
-  events_ | is(TimeKeyValue::tag) | $$(service_->on_time_key_value(event));
   events_ | is(PositionRequest::tag) | $$(service_->req_position());
   events_ | is(RequestHistoryOrder::tag) | $$(service_->req_history_order(event));
   events_ | is(RequestHistoryTrade::tag) | $$(service_->req_history_trade(event));
   events_ | is(AssetSync::tag) | $$(service_->handle_asset_sync());
   events_ | is(PositionSync::tag) | $$(service_->handle_position_sync());
   events_ | is(Band::tag) | $$(service_->on_band(event));
+  events_ | is(TimeKeyValue::tag) | $$(service_->on_time_key_value(event));
 
   events_ | filter([&](const event_ptr &event) {
     return event->msg_type() == BatchOrderBegin::tag or event->msg_type() == BatchOrderEnd::tag;

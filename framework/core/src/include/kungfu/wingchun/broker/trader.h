@@ -69,6 +69,11 @@ public:
   virtual longfist::types::AlgoOrder insert_algo_order(const longfist::types::AlgoOrderInput &algo_order_input) {
     longfist::types::AlgoOrder algo_order{};
     algo_order_from_input(algo_order_input, algo_order);
+    if (not algo_order_input.is_local) {
+      algo_order.status = longfist::enums::OrderStatus::Error;
+      std::string error_msg = "Not support Algo Order";
+      strcpy(algo_order.error_msg, error_msg.c_str());
+    }
     return algo_order;
   }
 
@@ -81,6 +86,8 @@ public:
   virtual bool req_position() = 0;
 
   virtual bool req_account() = 0;
+
+  virtual bool req_trigger() { return true; };
 
   virtual bool req_history_order(const event_ptr &event) { return true; }
 

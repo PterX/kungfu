@@ -2124,6 +2124,22 @@ export const useMakeOrderInfo = (
   });
 
   const currentAccountLocation = computed(() => {
+    if (currentGlobalKfLocation.value && isCurrentCategoryIsTd.value) {
+      return currentGlobalKfLocation.value;
+    } else if (formState.value.account_id) {
+      const { source, id } = formState.value.account_id.parseSourceAccountId();
+      return {
+        category: 'td',
+        group: source,
+        name: id,
+        mode: 'live',
+      } as KungfuApi.KfLocation;
+    } else {
+      return null;
+    }
+  });
+
+  const currentPositionHolderLocation = computed(() => {
     if (
       currentGlobalKfLocation.value &&
       isCurrentCategoryIsTdOrStrategy.value
@@ -2167,12 +2183,12 @@ export const useMakeOrderInfo = (
     instrument: KungfuApi.InstrumentResolved | null,
     direction: DirectionEnum,
   ) => {
-    if (!currentAccountLocation.value) return null;
+    if (!currentPositionHolderLocation.value) return null;
     if (!positionList.length || !instrument) return null;
 
     const currentAccountLocationUID = (
       window.watcher as KungfuApi.Watcher
-    ).getLocationUID(currentAccountLocation.value);
+    ).getLocationUID(currentPositionHolderLocation.value);
 
     const { exchangeId, instrumentId, instrumentType } = instrument;
     const targetPositionList: KungfuApi.PositionResolved[] =
@@ -2242,13 +2258,14 @@ export const useMakeOrderInfo = (
         currentPosition.value;
       const today_volume = volume - yesterday_volume;
       const frozen_today = frozen_total - frozen_yesterday;
+      const shotable_closable_yesterday = yesterday_volume - frozen_yesterday;
       const closable_yesterday = yesterday_volume - frozen_total;
       const closable_today = today_volume - frozen_today;
       const closable_total = volume - frozen_total;
 
       if (isShotable(instrumentType) || isT0(instrumentType, exchangeId)) {
         if (offset === OffsetEnum.CloseYest) {
-          return dealKfNumber(closable_yesterday) + '';
+          return dealKfNumber(shotable_closable_yesterday) + '';
         } else if (offset === OffsetEnum.CloseToday) {
           return dealKfNumber(closable_today) + '';
         } else {

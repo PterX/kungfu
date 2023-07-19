@@ -5,6 +5,7 @@ import {
   getIdByKfLocation,
   delayMilliSeconds,
   getProcessIdByKfLocation,
+  debounce,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { useActiveInstruments } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import {
@@ -407,7 +408,10 @@ function handleAdjustOrder(data: {
     return;
   }
 
-  if (!testOrderSourceIsOnline(order)) {
+  if (
+    !testOrderSourceIsOnline(order) ||
+    order.status === OrderStatusEnum.Cancelling
+  ) {
     return;
   }
 
@@ -689,7 +693,7 @@ function testOrderSourceIsOnline(order: KungfuApi.OrderResolved) {
         <div v-if="adjustOrderMaskVisible" class="kf-adjust-order-mask__warp">
           <div
             class="kf-adjust-order-mask"
-            @click.stop="handleClickAdjustOrderMask"
+            @click.stop.once="handleClickAdjustOrderMask"
           ></div>
           <div
             class="adjust-order-wrap"
@@ -710,7 +714,7 @@ function testOrderSourceIsOnline(order: KungfuApi.OrderResolved) {
                 height: adjustOrderConfig.clientHeight + 'px',
               }"
               @keyup.esc="handleCloseAdjustOrderMask"
-              @keyup.enter="handleClickAdjustOrderMask"
+              @keyup.enter="debounce(handleClickAdjustOrderMask, 300)()"
             ></a-input-number>
             <!-- <a-input-number
               v-if="adjustOrderConfig.clientWidth !== 0"

@@ -47,7 +47,6 @@ constexpr auto AllTypes = boost::hana::make_map( //
     TYPE_PAIR(PositionRequest),                  // 352
     TYPE_PAIR(AssetSync),                        // 353
     TYPE_PAIR(PositionSync),                     // 354
-    TYPE_PAIR(TriggerRequest),                   // 355
     TYPE_PAIR(Quote),                            // 401
     TYPE_PAIR(Entrust),                          // 402
     TYPE_PAIR(Transaction),                      // 403

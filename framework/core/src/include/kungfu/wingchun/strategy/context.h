@@ -257,14 +257,6 @@ public:
   virtual void req_history_trade(const std::string &source, const std::string &account, uint32_t query_num = 0) = 0;
 
   /**
-   *
-   * @param source
-   * @param account
-   * @param trigger_id
-   */
-  virtual void req_trigger(const std::string &source, const std::string &account) = 0;
-
-  /**
    * Get current trading day.
    * @return current trading day
    */

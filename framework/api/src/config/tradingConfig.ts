@@ -378,6 +378,11 @@ export const WellFinishedOrderStatus = [
   OrderStatusEnum.PartialFilledNotActive,
 ];
 
+export const WellCancelledOrderStatus = [
+  OrderStatusEnum.Cancelled,
+  OrderStatusEnum.PartialFilledNotActive,
+];
+
 export const AllFinishedOrderStatus = [
   ...WellFinishedOrderStatus,
   OrderStatusEnum.Error,

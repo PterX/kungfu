@@ -245,14 +245,6 @@ public:
   void req_history_trade(const std::string &source, const std::string &account, uint32_t query_num = 0) override;
 
   /**
-   * query trigger latest status
-   * @param source
-   * @param account
-   * @param trigger_id
-   */
-  void req_trigger(const std::string &source, const std::string &account) override;
-
-  /**
    * Get current trading day.
    * @return current trading day
    */

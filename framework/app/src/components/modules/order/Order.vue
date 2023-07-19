@@ -47,7 +47,10 @@ import {
   kfCancelOrderUtilFinished,
 } from '@kungfu-trader/kungfu-js-api/kungfu';
 import type { Dayjs } from 'dayjs';
-import { UnfinishedOrderStatus } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
+import {
+  UnfinishedOrderStatus,
+  WellCancelledOrderStatus,
+} from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import {
   HistoryDateEnum,
   OrderStatusEnum,
@@ -482,7 +485,7 @@ function handleClickAdjustOrderMask(): void {
 
   kfCancelOrderUtilFinished(window.watcher, order)
     .then(() => {
-      if (!testOrderSourceIsOnline(order)) {
+      if (!WellCancelledOrderStatus.includes(order.status)) {
         return Promise.reject(
           new Error(
             t('tradingConfig.finished_msg', {

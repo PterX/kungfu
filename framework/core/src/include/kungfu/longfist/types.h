@@ -392,7 +392,7 @@ KF_DEFINE_PACK_TYPE(                                             //
     (int64_t, volume),      // 数量
     (double, stop_price),   // 条件触发价格
 
-    (enums::OrderTriggerStatus, status), //  触发器状态
+    (enums::OrderStatus, status), //  触发器状态
 
     (int32_t, error_id),                             // 错误ID
     (kungfu::array<char, ERROR_MSG_LEN>, error_msg), // 错误信息

@@ -689,25 +689,6 @@ NLOHMANN_JSON_SERIALIZE_ENUM(OrderTriggerType,
 
 inline std::ostream &operator<<(std::ostream &os, OrderTriggerType t) { return os << int8_t(t); }
 
-enum class OrderTriggerStatus : int8_t {
-  Unknown,
-  NotSend, /// 未发送(已提交到API服务器未触发)
-  Send,    /// 已发送(已触发,此时已生成对应的Order)
-  Deleted, /// 已删除(已删除)
-  Error,   /// 错误
-  Lost     /// 丢失
-};
-
-NLOHMANN_JSON_SERIALIZE_ENUM(OrderTriggerStatus, {
-                                                     {OrderTriggerStatus::NotSend, "NotSend"},
-                                                     {OrderTriggerStatus::NotSend, "NotSend"},
-                                                     {OrderTriggerStatus::Send, "Send"},
-                                                     {OrderTriggerStatus::Deleted, "Deleted"},
-                                                     {OrderTriggerStatus::Error, "Error"},
-                                                 })
-
-inline std::ostream &operator<<(std::ostream &os, OrderTriggerStatus t) { return os << int8_t(t); }
-
 enum class ParkedType : int8_t {
   Server, /// 服务器预埋
   Local   /// 本地预埋

@@ -1018,6 +1018,16 @@ function clearValidate(): void {
   return formRef.value.clearValidate();
 }
 
+function parseNumberBeforeFormat(
+  value: number | string,
+  key: string,
+  parser: (val: string) => number,
+): number {
+  const formattedValue = parser(`${value}`);
+  formState.value[key] = formattedValue;
+  return formattedValue;
+}
+
 function formatterPercentNumber(value: number): string {
   return `${value}%`;
 }
@@ -1173,7 +1183,14 @@ defineExpose({
         v-model:value="formState[item.key]"
         :max="item.max ?? Infinity"
         :min="item.min ?? -Infinity"
-        :formatter="(val) => Math.floor(val)"
+        :formatter="
+          (val) =>
+            Math.floor(
+              parseNumberBeforeFormat(val, item.key, (val) =>
+                Math.floor(Number(val)),
+              ),
+            )
+        "
         :parser="(val) => Math.floor(Number(val))"
         :step="item.step || 1"
         :disabled="
@@ -1188,6 +1205,13 @@ defineExpose({
         :min="item.min ?? -Infinity"
         :precision="item.precision ?? 3"
         :step="item.step ?? 0.001"
+        :formatter="
+          (val) =>
+            parseNumberBeforeFormat(val, item.key, (val) =>
+              Number(val).kfRound(item.precision ?? 3),
+            ).kfToFixed(item.precision ?? 3)
+        "
+        :parser="(val) => Number(val).kfRound(item.precision ?? 3)"
         :disabled="
           (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
           item.disabled
@@ -1200,7 +1224,12 @@ defineExpose({
         :min="item.min ?? -Infinity"
         :precision="item.precision || 2"
         :step="item.step || 0.01"
-        :formatter="formatterPercentNumber"
+        :formatter="
+          (val) =>
+            formatterPercentNumber(
+              parseNumberBeforeFormat(val, item.key, parserPercentString),
+            )
+        "
         :parser="parserPercentString"
         :disabled="
           (changeType === 'update' && item.primary && !isPrimaryDisabled) ||

@@ -61,6 +61,18 @@ public:
     PYBIND11_OVERLOAD_PURE(bool, Trader, insert_order, event);
   }
 
+  bool insert_order_trigger(const event_ptr &event) override {
+    PYBIND11_OVERLOAD_PURE(bool, Trader, insert_order_trigger, event);
+  }
+
+  bool cancel_order_trigger(const event_ptr &event) override {
+    PYBIND11_OVERLOAD_PURE(bool, Trader, cancel_order_trigger, event);
+  }
+
+  bool on_custom_event(const event_ptr &event) override {
+    PYBIND11_OVERLOAD_PURE(bool, Trader, on_custom_event, event);
+  }
+
   void on_time_key_value(const kungfu::event_ptr &event) override {
     PYBIND11_OVERLOAD_PURE(void, Trader, on_time_key_value, event);
   }
@@ -138,9 +150,12 @@ void bind_broker(pybind11::module &m) {
       .def("update_broker_state", &Trader::update_broker_state)
       .def("insert_block_message", &Trader::insert_block_message)
       .def("insert_order", &Trader::insert_order)
+      .def("insert_order_trigger", &Trader::insert_order_trigger)
       .def("insert_batch_orders", &Trader::insert_batch_orders)
       .def("on_time_key_value", &Trader::on_time_key_value)
+      .def("on_custom_event", &Trader::on_custom_event)
       .def("cancel_order", &Trader::cancel_order)
+      .def("cancel_order_trigger", &Trader::cancel_order_trigger)
       .def("req_history_order", &Trader::req_history_order)
       .def("req_history_trade", &Trader::req_history_trade)
       .def("enable_self_detect", &Trader::enable_self_detect)

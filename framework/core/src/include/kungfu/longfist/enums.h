@@ -694,7 +694,8 @@ enum class OrderTriggerStatus : int8_t {
   NotSend, /// 未发送(已提交到API服务器未触发)
   Send,    /// 已发送(已触发,此时已生成对应的Order)
   Deleted, /// 已删除(已删除)
-  Error    /// 错误
+  Error,   /// 错误
+  Lost     /// 丢失
 };
 
 NLOHMANN_JSON_SERIALIZE_ENUM(OrderTriggerStatus, {

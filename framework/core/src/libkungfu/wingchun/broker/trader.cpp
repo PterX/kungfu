@@ -258,6 +258,10 @@ void Trader::deal_write_frame() {
     } else if (frame->msg_type() == Trade::tag) {
       const Trade &trade = frame->data<Trade>();
       trades_.insert_or_assign(trade.trade_id, state<Trade>(frame->source(), frame->dest(), frame->gen_time(), trade));
+    } else if (frame->msg_type() == OrderTrigger::tag) {
+      const OrderTrigger &trigger = frame->data<OrderTrigger>();
+      triggers_.insert_or_assign(trigger.trigger_id,
+                                 state<OrderTrigger>(frame->source(), frame->dest(), frame->gen_time(), trigger));
     }
     asb_write.next();
     ++count;
@@ -290,12 +294,23 @@ void Trader::deal_read_frame() {
     if (frame->msg_type() == OrderInput::tag) {
       const OrderInput &order_input = frame->data<OrderInput>();
       if (orders_.find(order_input.order_id) == orders_.end()) {
-        if (has_writer(frame->dest())) {
-          Order &order = get_writer(frame->dest())->open_data<Order>();
+        if (has_writer(frame->source())) {
+          Order &order = get_writer(frame->source())->open_data<Order>();
           order_from_input(order_input, order);
           order.status = OrderStatus::Lost;
           order.update_time = time::now_in_nano();
-          get_writer(frame->dest())->close_data();
+          get_writer(frame->source())->close_data();
+        }
+      }
+    } else if (frame->msg_type() == OrderTriggerInput::tag) {
+      const OrderTriggerInput &trigger_input = frame->data<OrderTriggerInput>();
+      if (triggers_.find(trigger_input.trigger_id) == triggers_.end()) {
+        if (has_writer(frame->source())) {
+          OrderTrigger &trigger = get_writer(frame->source())->open_data<OrderTrigger>();
+          order_trigger_from_input(trigger_input, trigger);
+          trigger.status = OrderTriggerStatus::Lost;
+          trigger.update_time = time::now_in_nano();
+          get_writer(frame->source())->close_data();
         }
       }
     }

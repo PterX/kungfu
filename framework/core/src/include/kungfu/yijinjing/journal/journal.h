@@ -145,11 +145,11 @@ public:
 
   uint64_t current_frame_uid();
 
-  frame_ptr open_frame(int64_t trigger_time, int32_t msg_type, uint32_t length);
+  virtual frame_ptr open_frame(int64_t trigger_time, int32_t msg_type, uint32_t length);
 
-  void close_frame(size_t data_length, int64_t gen_time = time::now_in_nano());
+  virtual void close_frame(size_t data_length, int64_t gen_time = time::now_in_nano());
 
-  void copy_frame(const frame_ptr &source);
+  virtual void copy_frame(const frame_ptr &source);
 
   void mark(int64_t trigger_time, int32_t msg_type);
 
@@ -233,9 +233,11 @@ public:
     close_frame(size, gen_time);
   }
 
+protected:
+  journal journal_;
+
 private:
   const uint64_t frame_id_base_;
-  journal journal_;
   std::mutex writer_mtx_ = {};
   publisher_ptr publisher_;
   size_t size_to_write_;
@@ -243,5 +245,30 @@ private:
 
   void close_page(int64_t trigger_time);
 };
+
+class hook {
+public:
+  hook() = default;
+
+  virtual ~hook() = default;
+
+  virtual void pre_write(int64_t trigger_time, const frame_ptr &frame) = 0;
+  virtual void post_write(int64_t gen_time, const frame_ptr &frame) = 0;
+};
+
+class hook_writer : public writer {
+public:
+  explicit hook_writer(const data::location_ptr &location, uint32_t dest_id, bool lazy, publisher_ptr publisher,
+                       bool low_latency, const bus_ptr &bus, const hook_ptr &hook)
+      : writer(location, dest_id, lazy, publisher, low_latency, bus), hook_(hook) {}
+
+  frame_ptr open_frame(int64_t trigger_time, int32_t msg_type, uint32_t length) override;
+
+  void close_frame(size_t data_length, int64_t gen_time) override;
+
+private:
+  hook_ptr hook_;
+};
+
 } // namespace kungfu::yijinjing::journal
 #endif // YIJINJING_JOURNAL_H

@@ -8,7 +8,7 @@
 #define WINGCHUN_TRADER_H
 
 #include <kungfu/longfist/longfist.h>
-#include <kungfu/wingchun/broker/algoorderengine.h>
+#include <kungfu/wingchun/broker/algoorder.h>
 #include <kungfu/wingchun/broker/broker.h>
 #include <kungfu/yijinjing/io.h>
 #include <kungfu/yijinjing/log.h>
@@ -18,6 +18,23 @@ namespace kungfu::wingchun::broker {
 
 FORWARD_DECLARE_CLASS_PTR(TraderVendor)
 FORWARD_DECLARE_CLASS_PTR(Trader)
+FORWARD_DECLARE_CLASS_PTR(TraderHook);
+
+class TraderHook : public yijinjing::journal::hook {
+public:
+  TraderHook(TraderVendor &vendor);
+
+  void pre_write(int64_t trigger_time, const yijinjing::journal::frame_ptr &frame) override;
+
+  void post_write(int64_t gen_time, const yijinjing::journal::frame_ptr &frame) override;
+
+private:
+  TraderVendor &vendor_;
+
+  BrokerService_ptr get_service();
+
+  const AlgoOrderService_ptr &get_algo_order_service();
+};
 
 class TraderVendor : public BrokerVendor {
 public:
@@ -30,6 +47,8 @@ public:
 
   BrokerService_ptr get_service() override;
 
+  const AlgoOrderService_ptr &get_algo_order_service();
+
 protected:
   void react() override;
 
@@ -37,9 +56,12 @@ protected:
 
   void on_start() override;
 
+  void on_write_to(const event_ptr &event) override;
+
 private:
   Trader_ptr service_ = {};
-  broker::algoorder::AlgoOrderEngine algo_order_engine_;
+  TraderHook_ptr hook_;
+  AlgoOrderService_ptr algo_order_service_;
 
   void clean_orders();
 };
@@ -66,7 +88,8 @@ public:
 
   virtual bool insert_batch_orders(const event_ptr &event) { return true; }
 
-  virtual longfist::types::AlgoOrder insert_algo_order(const longfist::types::AlgoOrderInput &algo_order_input) {
+  virtual longfist::types::AlgoOrder insert_algo_order(const event_ptr& event) {
+    auto &algo_order_input = event->data<longfist::types::AlgoOrderInput>();
     longfist::types::AlgoOrder algo_order{};
     algo_order_from_input(algo_order_input, algo_order);
     if (not algo_order_input.is_local) {

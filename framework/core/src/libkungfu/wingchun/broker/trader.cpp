@@ -18,10 +18,34 @@ using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::journal;
 
 namespace kungfu::wingchun::broker {
+
+TraderHook::TraderHook(TraderVendor &vendor) : vendor_(vendor) {}
+
+void TraderHook::pre_write(int64_t trigger_time, const frame_ptr &frame) {}
+
+void TraderHook::post_write(int64_t gen_time, const frame_ptr &frame) {
+  switch(frame->msg_type()) {
+    case Order::tag: {
+      const Order &order = frame->data<Order>();
+      get_algo_order_service()->update_algo_order(order);
+      break;
+    }
+  }
+}
+
+BrokerService_ptr TraderHook::get_service() {
+  return vendor_.get_service();
+}
+
+const AlgoOrderService_ptr& TraderHook::get_algo_order_service() {
+  return vendor_.get_algo_order_service();
+}
+
+
 TraderVendor::TraderVendor(locator_ptr locator, const std::string &group, const std::string &name, bool low_latency,
                            const std::string &arguments)
     : BrokerVendor(location::make_shared(mode::LIVE, category::TD, group, name, std::move(locator)), low_latency),
-      algo_order_engine_(*this) {
+      algo_order_service_(std::make_shared<AlgoOrderService>(*this)), hook_(std::make_shared<TraderHook>(*this)) {
   set_arguments(arguments);
 }
 
@@ -40,12 +64,13 @@ void TraderVendor::on_react() {
 
 void TraderVendor::on_start() {
   BrokerVendor::on_start();
-  algo_order_engine_.on_start(events_);
 
   events_ | is(BlockMessage::tag) | $$(service_->insert_block_message(event));
   events_ | is(OrderTriggerInput::tag) | $$(service_->insert_order_trigger(event));
+  events_ | is(AlgoOrderInput::tag) | $$(algo_order_service_->update_algo_order(event, event->data<AlgoOrderInput>()));
   events_ | is(OrderAction::tag) | $$(service_->cancel_order(event));
   events_ | is(OrderTriggerAction::tag) | $$(service_->cancel_order_trigger(event));
+  events_ | is(AlgoOrderAction::tag) | $$(algo_order_service_->cancel_algo_order(event, event->data<AlgoOrderAction>()));
   events_ | is(AssetRequest::tag) | $$(service_->req_account());
   events_ | is(Deregister::tag) | $$(service_->on_strategy_exit(event));
   events_ | is(PositionRequest::tag) | $$(service_->req_position());
@@ -55,10 +80,7 @@ void TraderVendor::on_start() {
   events_ | is(PositionSync::tag) | $$(service_->handle_position_sync());
   events_ | is(Band::tag) | $$(service_->on_band(event));
   events_ | is(TimeKeyValue::tag) | $$(service_->on_time_key_value(event));
-
-  events_ | filter([&](const event_ptr &event) {
-    return event->msg_type() == BatchOrderBegin::tag or event->msg_type() == BatchOrderEnd::tag;
-  }) | $$(service_->handle_batch_order_tag(event));
+  events_ | is(BatchOrderBegin::tag, BatchOrderEnd::tag) | $$(service_->handle_batch_order_tag(event));
 
   service_->on_risk_setting();
   service_->recover();
@@ -66,7 +88,16 @@ void TraderVendor::on_start() {
   service_->on_start();
 }
 
+void TraderVendor::on_write_to(const event_ptr &event) {
+  auto dest_id = event->data<RequestWriteTo>().dest_id;
+  if (writers_.find(dest_id) == writers_.end()) {
+    writers_.emplace(dest_id, get_io_device()->open_hook_writer(dest_id, hook_));
+  }
+}
+
 BrokerService_ptr TraderVendor::get_service() { return service_; }
+
+const AlgoOrderService_ptr& TraderVendor::get_algo_order_service() {return algo_order_service_;};
 
 void TraderVendor::clean_orders() {
   std::set<uint32_t> strategy_uids = {};

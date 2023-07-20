@@ -1,13 +1,13 @@
-#ifndef WINGCHUN_ALGO_ORDER_ENGINE_H
-#define WINGCHUN_ALGO_ORDER_ENGINE_H
+#ifndef WINGCHUN_ALGO_ORDER_SERVICE_H
+#define WINGCHUN_ALGO_ORDER_SERVICE_H
 
 #include <kungfu/common.h>
 #include <kungfu/wingchun/broker/broker.h>
 #include <kungfu/wingchun/common.h>
 
-namespace kungfu::wingchun::broker::algoorder {
+namespace kungfu::wingchun::broker {
 
-FORWARD_DECLARE_CLASS_PTR(AlgoOrderEngine)
+FORWARD_DECLARE_CLASS_PTR(AlgoOrderService)
 
 typedef std::unordered_map<uint64_t, kungfu::state<longfist::types::AlgoOrder>> AlgoOrderMap;
 typedef std::unordered_map<uint64_t, std::unordered_map<uint64_t, longfist::types::Order>> SubOrderMap;
@@ -22,14 +22,16 @@ inline bool is_all_order_finished(const OrderMap &orders) {
   return true;
 }
 
-class AlgoOrderEngine {
+class AlgoOrderService {
 public:
-  explicit AlgoOrderEngine(broker::BrokerVendor &vendor);
-  virtual ~AlgoOrderEngine() = default;
-
-  void on_start(const rx::connectable_observable<event_ptr> &events);
+  explicit AlgoOrderService(broker::BrokerVendor &vendor);
+  virtual ~AlgoOrderService() = default;
 
   void update_algo_order(const longfist::types::Order &order);
+
+  void update_algo_order(const event_ptr &event, const longfist::types::AlgoOrderInput &algo_order_input);
+
+  void cancel_algo_order(const event_ptr &event, const longfist::types::AlgoOrderAction &algo_order_action);
 
 private:
   broker::BrokerVendor &vendor_;
@@ -38,15 +40,11 @@ private:
 
   BrokerService_ptr get_service();
 
-  void update_algo_order(const event_ptr &event, const longfist::types::AlgoOrderInput &algo_order_input);
-
-  void cancel_algo_order(const event_ptr &event, const longfist::types::AlgoOrderAction &algo_order_action);
-
   void try_update_sub_orders(const longfist::types::Order &order);
 
   bool check_if_all_order_finished(int64_t algo_order_id);
 };
 
-} // namespace kungfu::wingchun::broker::algoorder
+} // namespace kungfu::wingchun::broker
 
-#endif // WINGCHUN_ALGO_ORDER_ENGINE_H
+#endif // WINGCHUN_ALGO_ORDER_SERVICE_H

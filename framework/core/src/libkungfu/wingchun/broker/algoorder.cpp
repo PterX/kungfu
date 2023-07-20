@@ -1,4 +1,4 @@
-#include <kungfu/wingchun/broker/algoorderengine.h>
+#include <kungfu/wingchun/broker/algoorder.h>
 #include <kungfu/wingchun/broker/trader.h>
 
 using namespace kungfu::rx;
@@ -11,20 +11,15 @@ using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::util;
 
-namespace kungfu::wingchun::broker::algoorder {
+namespace kungfu::wingchun::broker {
 
-AlgoOrderEngine::AlgoOrderEngine(BrokerVendor &vendor) : vendor_(vendor) {}
+AlgoOrderService::AlgoOrderService(BrokerVendor &vendor) : vendor_(vendor) {}
 
-void AlgoOrderEngine::on_start(const rx::connectable_observable<event_ptr> &events) {
-  events | is(AlgoOrderInput::tag) | $$(update_algo_order(event, event->data<AlgoOrderInput>()));
-  events | is(AlgoOrderAction::tag) | $$(cancel_algo_order(event, event->data<AlgoOrderAction>()));
-}
+BrokerService_ptr AlgoOrderService::get_service() { return vendor_.get_service(); }
 
-BrokerService_ptr AlgoOrderEngine::get_service() { return vendor_.get_service(); }
-
-void AlgoOrderEngine::update_algo_order(const event_ptr &event,
+void AlgoOrderService::update_algo_order(const event_ptr &event,
                                         const longfist::types::AlgoOrderInput &algo_order_input) {
-  auto algo_order = dynamic_cast<Trader &>(*get_service()).insert_algo_order(algo_order_input);
+  auto algo_order = dynamic_cast<Trader &>(*get_service()).insert_algo_order(event);
   vendor_.get_writer(event->source())->write(vendor_.now(), algo_order);
 
   if (algo_order_input.is_local) {
@@ -33,7 +28,7 @@ void AlgoOrderEngine::update_algo_order(const event_ptr &event,
   }
 }
 
-void AlgoOrderEngine::update_algo_order(const longfist::types::Order &order) {
+void AlgoOrderService::update_algo_order(const longfist::types::Order &order) {
   if (order.parent_id == UINT64_ZERO) {
     return;
   }
@@ -66,7 +61,7 @@ void AlgoOrderEngine::update_algo_order(const longfist::types::Order &order) {
   vendor_.get_writer(dest)->write(time::now_in_nano(), target_algo_order);
 }
 
-void AlgoOrderEngine::try_update_sub_orders(const longfist::types::Order &order) {
+void AlgoOrderService::try_update_sub_orders(const longfist::types::Order &order) {
   if (local_sub_orders_.find(order.parent_id) == local_sub_orders_.end()) {
     OrderMap orders;
     local_sub_orders_.emplace(order.parent_id, orders);
@@ -76,7 +71,7 @@ void AlgoOrderEngine::try_update_sub_orders(const longfist::types::Order &order)
   orders.insert_or_assign(order.order_id, order);
 }
 
-bool AlgoOrderEngine::check_if_all_order_finished(int64_t algo_order_id) {
+bool AlgoOrderService::check_if_all_order_finished(int64_t algo_order_id) {
   if (local_sub_orders_.find(algo_order_id) == local_sub_orders_.end()) {
     SPDLOG_ERROR("check_if_all_order_finished no {} in local_sub_orders_", algo_order_id);
     return false;
@@ -85,7 +80,7 @@ bool AlgoOrderEngine::check_if_all_order_finished(int64_t algo_order_id) {
   return is_all_order_finished(orders);
 }
 
-void AlgoOrderEngine::cancel_algo_order(const event_ptr &event,
+void AlgoOrderService::cancel_algo_order(const event_ptr &event,
                                         const longfist::types::AlgoOrderAction &algo_order_action) {
   // no algo order action resolution for local algo order;
   if (local_algo_orders_.find(algo_order_action.order_id) == local_algo_orders_.end()) {
@@ -105,4 +100,4 @@ void AlgoOrderEngine::cancel_algo_order(const event_ptr &event,
   vendor_.get_writer(dest)->write(time::now_in_nano(), algo_order);
 }
 
-} // namespace kungfu::wingchun::broker::algoorder
+} // namespace kungfu::wingchun::broker

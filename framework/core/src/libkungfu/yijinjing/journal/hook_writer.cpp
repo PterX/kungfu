@@ -1,0 +1,20 @@
+// SPDX-License-Identifier: Apache-2.0
+
+#include <kungfu/common.h>
+#include <kungfu/longfist/longfist.h>
+#include <kungfu/yijinjing/common.h>
+#include <kungfu/yijinjing/journal/journal.h>
+
+namespace kungfu::yijinjing::journal {
+
+frame_ptr hook_writer::open_frame(int64_t trigger_time, int32_t msg_type, uint32_t length) {
+  auto frame = writer::open_frame(trigger_time, msg_type, length);
+  hook_->pre_write(trigger_time, frame);
+  return frame;
+}
+
+void hook_writer::close_frame(size_t data_length, int64_t gen_time) {
+  hook_->post_write(gen_time, journal_.current_frame());
+  writer::close_frame(data_length, gen_time);
+}
+} // namespace kungfu::yijinjing::journal

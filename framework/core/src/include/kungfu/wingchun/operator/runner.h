@@ -23,6 +23,10 @@ public:
 
   void set_to_indexer(const tool::SliceIndexer_ptr &indexer);
 
+  void set_report(const tool::Report_ptr &report);
+
+  tool::Report_ptr get_report() const;
+
   void on_exit() override;
 
 protected:
@@ -47,6 +51,7 @@ private:
   Context_ptr context_;
   tool::SliceIndexer_ptr from_indexer_;
   tool::SliceIndexer_ptr to_indexer_;
+  tool::Report_ptr report_;
 
   template <typename OnMethod = void (Operator::*)(Context_ptr &)> void invoke(OnMethod method) {
     auto context = std::dynamic_pointer_cast<Context>(context_);

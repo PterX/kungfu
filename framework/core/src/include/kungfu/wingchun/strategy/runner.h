@@ -31,6 +31,10 @@ public:
 
   void set_to_indexer(const tool::SliceIndexer_ptr &indexer);
 
+  void set_report(const tool::Report_ptr &report);
+
+  tool::Report_ptr get_report() const;
+
   void on_exit() override;
 
 protected:
@@ -58,6 +62,7 @@ private:
   Matcher_ptr matcher_;
   tool::SliceIndexer_ptr from_indexer_;
   tool::SliceIndexer_ptr to_indexer_;
+  tool::Report_ptr report_;
   const std::string arguments_;
 
   void inspect_channel(const event_ptr &event);

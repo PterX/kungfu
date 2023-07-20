@@ -88,6 +88,7 @@ void bind_operator(pybind11::module &m) {
       .def("set_end_time", &op::Runner::set_end_time)
       .def("set_from_indexer", &op::Runner::set_from_indexer)
       .def("set_to_indexer", &op::Runner::set_to_indexer)
+      .def("set_report", &op::Runner::set_report)
       .def("now", &op::Runner::now)
       .def("run", &op::Runner::run)
       .def("setup", &op::Runner::setup)

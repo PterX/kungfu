@@ -104,8 +104,8 @@ public:
                                 const std::string &source, const std::string &account, double limit_price,
                                 int64_t volume, longfist::enums::PriceType type, longfist::enums::Side side,
                                 longfist::enums::Offset offset, longfist::enums::OrderTriggerType trigger_type,
-                                longfist::enums::TimeCondition time_condition, double stop_price,
-                                longfist::enums::HedgeFlag hedge_flag, bool is_swap) override;
+                                longfist::enums::TimeCondition time_condition, longfist::enums::ParkedType parked_type,
+                                double stop_price, longfist::enums::HedgeFlag hedge_flag, bool is_swap) override;
 
   /**
    *
@@ -253,14 +253,6 @@ public:
    * query history trade
    */
   void req_history_trade(const std::string &source, const std::string &account, uint32_t query_num = 0) override;
-
-  /**
-   * query trigger latest status
-   * @param source
-   * @param account
-   * @param trigger_id
-   */
-  void req_trigger(const std::string &source, const std::string &account, uint64_t trigger_id) override;
 
   /**
    * request deregister.

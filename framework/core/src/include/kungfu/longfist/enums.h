@@ -309,9 +309,14 @@ NLOHMANN_JSON_SERIALIZE_ENUM(HedgeFlag, {
 
 inline std::ostream &operator<<(std::ostream &os, HedgeFlag t) { return os << int8_t(t); }
 
-enum class OrderActionFlag : int8_t { Cancel, TriggerCancel };
+enum class OrderActionFlag : int8_t {
+  Insert,       /// 预埋下单
+  Cancel,       /// 普通撤单
+  TriggerCancel /// 预埋撤单
+};
 
 NLOHMANN_JSON_SERIALIZE_ENUM(OrderActionFlag, {
+                                                  {OrderActionFlag::Insert, "Insert"},
                                                   {OrderActionFlag::Cancel, "Cancel"},
                                                   {OrderActionFlag::TriggerCancel, "TriggerCancel"},
                                               })
@@ -400,7 +405,8 @@ enum class TimeCondition : int8_t { ///
   GTC,                              /// 撤销前有效
   GFS,                              /// 本节有效
   GTD,                              /// 指定日期前有效
-  GFA                               /// 集合竞价有效
+  GFA,                              /// 集合竞价有效
+  Unknown
 };
 
 NLOHMANN_JSON_SERIALIZE_ENUM(TimeCondition, {
@@ -697,10 +703,21 @@ NLOHMANN_JSON_SERIALIZE_ENUM(OrderTriggerStatus, {
                                                      {OrderTriggerStatus::Send, "Send"},
                                                      {OrderTriggerStatus::Deleted, "Deleted"},
                                                      {OrderTriggerStatus::Error, "Error"},
-
                                                  })
 
 inline std::ostream &operator<<(std::ostream &os, OrderTriggerStatus t) { return os << int8_t(t); }
+
+enum class ParkedType : int8_t {
+  Server, /// 服务器预埋
+  Local   /// 本地预埋
+};
+
+NLOHMANN_JSON_SERIALIZE_ENUM(ParkedType, {
+                                             {ParkedType::Server, "Server"},
+                                             {ParkedType::Local, "Local"},
+                                         })
+
+inline std::ostream &operator<<(std::ostream &os, ParkedType t) { return os << int8_t(t); }
 
 } // namespace kungfu::longfist::enums
 #endif // KUNGFU_LONGFIST_ENUM_H

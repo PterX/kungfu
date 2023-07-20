@@ -143,8 +143,10 @@ total_volume
 price_level
 price_offset
 dest_id
-external_trigger_id
 stop_price
+trigger_type
+parked_type
+external_trigger_id
 order_trigger_action_id
 is_last
 data_type
@@ -298,9 +300,6 @@ SZSE
 HKEx
 MarketType
 Snapshot
-Entrust
-Transaction
-Tree
 SubscribeDataType
 Stock
 Future
@@ -354,6 +353,7 @@ Arbitrage
 Hedge
 Covered
 HedgeFlag
+Insert
 Cancel
 TriggerCancel
 OrderActionFlag
@@ -471,3 +471,6 @@ NotSend
 Send
 Deleted
 OrderTriggerStatus
+Server
+Local
+ParkedType

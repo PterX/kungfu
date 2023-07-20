@@ -212,7 +212,6 @@ KF_DEFINE_PACK_TYPE(                                       //
     (enums::VolumeCondition, volume_condition), // 成交量类型
     (enums::TimeCondition, time_condition),     // 成交时间类型
     (uint64_t, block_id),                       // 大宗交易信息id, 非大宗交易则为0
-    (uint64_t, trigger_id),                     // 触发器id, 不需要对应信息时为0
 
     (int64_t, insert_time) // 写入时间
 );

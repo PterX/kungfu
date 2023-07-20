@@ -88,7 +88,7 @@ public:
 
   virtual bool insert_batch_orders(const event_ptr &event) { return true; }
 
-  virtual longfist::types::AlgoOrder insert_algo_order(const event_ptr& event) {
+  virtual longfist::types::AlgoOrder insert_algo_order(const event_ptr &event) {
     auto &algo_order_input = event->data<longfist::types::AlgoOrderInput>();
     longfist::types::AlgoOrder algo_order{};
     algo_order_from_input(algo_order_input, algo_order);

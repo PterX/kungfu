@@ -208,6 +208,10 @@ void bind_enums(py::module &m) {
       .value("IOC", TimeCondition::IOC)
       .value("GFD", TimeCondition::GFD)
       .value("GTC", TimeCondition::GTC)
+      .value("GFS", TimeCondition::GFS)
+      .value("GTD", TimeCondition::GTD)
+      .value("GFA", TimeCondition::GFA)
+      .value("Unknown", TimeCondition::Unknown)
       .export_values()
       .def("__eq__", [](const TimeCondition &a, int b) { return static_cast<int>(a) == b; });
 

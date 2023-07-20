@@ -18,7 +18,7 @@ AlgoOrderService::AlgoOrderService(BrokerVendor &vendor) : vendor_(vendor) {}
 BrokerService_ptr AlgoOrderService::get_service() { return vendor_.get_service(); }
 
 void AlgoOrderService::update_algo_order(const event_ptr &event,
-                                        const longfist::types::AlgoOrderInput &algo_order_input) {
+                                         const longfist::types::AlgoOrderInput &algo_order_input) {
   auto algo_order = dynamic_cast<Trader &>(*get_service()).insert_algo_order(event);
   vendor_.get_writer(event->source())->write(vendor_.now(), algo_order);
 
@@ -81,7 +81,7 @@ bool AlgoOrderService::check_if_all_order_finished(int64_t algo_order_id) {
 }
 
 void AlgoOrderService::cancel_algo_order(const event_ptr &event,
-                                        const longfist::types::AlgoOrderAction &algo_order_action) {
+                                         const longfist::types::AlgoOrderAction &algo_order_action) {
   // no algo order action resolution for local algo order;
   if (local_algo_orders_.find(algo_order_action.order_id) == local_algo_orders_.end()) {
     dynamic_cast<Trader &>(*get_service()).cancel_algo_order(event);

@@ -24,23 +24,18 @@ TraderHook::TraderHook(TraderVendor &vendor) : vendor_(vendor) {}
 void TraderHook::pre_write(int64_t trigger_time, const frame_ptr &frame) {}
 
 void TraderHook::post_write(int64_t gen_time, const frame_ptr &frame) {
-  switch(frame->msg_type()) {
-    case Order::tag: {
-      const Order &order = frame->data<Order>();
-      get_algo_order_service()->update_algo_order(order);
-      break;
-    }
+  switch (frame->msg_type()) {
+  case Order::tag: {
+    const Order &order = frame->data<Order>();
+    get_algo_order_service()->update_algo_order(order);
+    break;
+  }
   }
 }
 
-BrokerService_ptr TraderHook::get_service() {
-  return vendor_.get_service();
-}
+BrokerService_ptr TraderHook::get_service() { return vendor_.get_service(); }
 
-const AlgoOrderService_ptr& TraderHook::get_algo_order_service() {
-  return vendor_.get_algo_order_service();
-}
-
+const AlgoOrderService_ptr &TraderHook::get_algo_order_service() { return vendor_.get_algo_order_service(); }
 
 TraderVendor::TraderVendor(locator_ptr locator, const std::string &group, const std::string &name, bool low_latency,
                            const std::string &arguments)
@@ -70,7 +65,8 @@ void TraderVendor::on_start() {
   events_ | is(AlgoOrderInput::tag) | $$(algo_order_service_->update_algo_order(event, event->data<AlgoOrderInput>()));
   events_ | is(OrderAction::tag) | $$(service_->cancel_order(event));
   events_ | is(OrderTriggerAction::tag) | $$(service_->cancel_order_trigger(event));
-  events_ | is(AlgoOrderAction::tag) | $$(algo_order_service_->cancel_algo_order(event, event->data<AlgoOrderAction>()));
+  events_ | is(AlgoOrderAction::tag) |
+      $$(algo_order_service_->cancel_algo_order(event, event->data<AlgoOrderAction>()));
   events_ | is(AssetRequest::tag) | $$(service_->req_account());
   events_ | is(Deregister::tag) | $$(service_->on_strategy_exit(event));
   events_ | is(PositionRequest::tag) | $$(service_->req_position());
@@ -97,7 +93,7 @@ void TraderVendor::on_write_to(const event_ptr &event) {
 
 BrokerService_ptr TraderVendor::get_service() { return service_; }
 
-const AlgoOrderService_ptr& TraderVendor::get_algo_order_service() {return algo_order_service_;};
+const AlgoOrderService_ptr &TraderVendor::get_algo_order_service() { return algo_order_service_; };
 
 void TraderVendor::clean_orders() {
   std::set<uint32_t> strategy_uids = {};
@@ -223,6 +219,10 @@ void Trader::deal_write_frame() {
     } else if (frame->msg_type() == Trade::tag) {
       const Trade &trade = frame->data<Trade>();
       trades_.insert_or_assign(trade.trade_id, state<Trade>(frame->source(), frame->dest(), frame->gen_time(), trade));
+    } else if (frame->msg_type() == OrderTrigger::tag) {
+      const OrderTrigger &trigger = frame->data<OrderTrigger>();
+      triggers_.insert_or_assign(trigger.trigger_id,
+                                 state<OrderTrigger>(frame->source(), frame->dest(), frame->gen_time(), trigger));
     }
     trc.next();
     ++count;
@@ -252,12 +252,23 @@ void Trader::deal_read_frame() {
     if (frame->msg_type() == OrderInput::tag) {
       const OrderInput &order_input = frame->data<OrderInput>();
       if (orders_.find(order_input.order_id) == orders_.end()) {
-        if (has_writer(frame->dest())) {
-          Order &order = get_writer(frame->dest())->open_data<Order>();
+        if (has_writer(frame->source())) {
+          Order &order = get_writer(frame->source())->open_data<Order>();
           order_from_input(order_input, order);
           order.status = OrderStatus::Lost;
           order.update_time = time::now_in_nano();
-          get_writer(frame->dest())->close_data();
+          get_writer(frame->source())->close_data();
+        }
+      }
+    } else if (frame->msg_type() == OrderTriggerInput::tag) {
+      const OrderTriggerInput &trigger_input = frame->data<OrderTriggerInput>();
+      if (triggers_.find(trigger_input.trigger_id) == triggers_.end()) {
+        if (has_writer(frame->source())) {
+          OrderTrigger &trigger = get_writer(frame->source())->open_data<OrderTrigger>();
+          order_trigger_from_input(trigger_input, trigger);
+          trigger.status = OrderTriggerStatus::Lost;
+          trigger.update_time = time::now_in_nano();
+          get_writer(frame->source())->close_data();
         }
       }
     }

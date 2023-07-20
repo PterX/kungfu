@@ -198,7 +198,8 @@ public:
     if (position.last_price > 0) {
       auto cm_mr = get_instrument_contract_multiplier_and_margin_ratio(book, position.exchange_id,
                                                                        position.instrument_id, position);
-      auto product_key = yijinjing::util::hash_str_32(get_instrument_product(position.instrument_id));
+      auto product_key = yijinjing::util::hash_str_32(get_instrument_product(position.instrument_id)) ^
+                         yijinjing::util::hash_str_32(position.exchange_id);
       double cost = 0;
 
       if (book->commissions.find(product_key) != book->commissions.end()) {
@@ -242,7 +243,6 @@ private:
     book->asset.avail += frozen_margin;
     book->asset.frozen_cash -= frozen_margin;
     book->asset.frozen_margin -= frozen_margin;
-    // todo add by marsjliu
     auto trade_market_value = contract_multiplier * position.last_price * cm_mr.exchange_rate * trade.volume;
     book->asset.market_value += trade_market_value;
 

@@ -276,6 +276,18 @@ void Trader::deal_write_frame() {
       }
     }
   });
+
+  // set trigger as Lost which without external_trigger_id
+  std::for_each(triggers_.begin(), triggers_.end(), [&](auto &pair) {
+    OrderTrigger &trigger = pair.second.data;
+    if (not is_final_status(trigger.status) and (disable_recover_ or trigger.external_trigger_id.to_string().empty())) {
+      trigger.status = OrderStatus::Lost;
+      trigger.update_time = time::now_in_nano();
+      if (has_writer(pair.second.dest)) {
+        write_to(trigger, pair.second.dest);
+      }
+    }
+  });
 }
 
 void Trader::deal_read_frame() {
@@ -305,7 +317,7 @@ void Trader::deal_read_frame() {
         if (has_writer(frame->source())) {
           OrderTrigger &trigger = get_writer(frame->source())->open_data<OrderTrigger>();
           order_trigger_from_input(trigger_input, trigger);
-          trigger.status = OrderTriggerStatus::Lost;
+          trigger.status = OrderStatus::Lost;
           trigger.update_time = time::now_in_nano();
           get_writer(frame->source())->close_data();
         }

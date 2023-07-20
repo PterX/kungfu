@@ -348,15 +348,6 @@ void bind_enums(py::module &m) {
       .export_values()
       .def("__eq__", [](const OrderTriggerType &a, int b) { return static_cast<int>(a) == b; });
 
-  py::enum_<OrderTriggerStatus>(m_enums, "OrderTriggerStatus", py::arithmetic())
-      .value("Unknown", OrderTriggerStatus::Unknown)
-      .value("NotSend", OrderTriggerStatus::NotSend)
-      .value("Send", OrderTriggerStatus::Send)
-      .value("Deleted", OrderTriggerStatus::Deleted)
-      .value("Error", OrderTriggerStatus::Error)
-      .export_values()
-      .def("__eq__", [](const OrderTriggerStatus &a, int b) { return static_cast<int>(a) == b; });
-
   py::enum_<ParkedType>(m_enums, "ParkedType", py::arithmetic())
       .value("Server", ParkedType::Server)
       .value("Local", ParkedType::Local)

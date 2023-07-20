@@ -470,10 +470,6 @@ BidPriceGreaterEqualStopPrice
 BidPriceLesserThanStopPrice
 BidPriceLesserEqualStopPrice
 OrderTriggerType
-NotSend
-Send
-Deleted
-OrderTriggerStatus
 Server
 Local
 ParkedType

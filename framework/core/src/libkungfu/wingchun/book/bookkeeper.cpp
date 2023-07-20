@@ -58,6 +58,7 @@ void Bookkeeper::on_start(const rx::connectable_observable<event_ptr> &events) {
   on_trading_day(app_.get_trading_day());
 
   events | is(Instrument::tag) | $$(update_instrument(event->data<Instrument>()));
+  events | is(Commission::tag) | $$(update_commission(event, event->data<Commission>()));
   events | is(InstrumentFactor::tag) | $$(update_instrument_factor(event->data<InstrumentFactor>()));
   events | is_own<Quote>(broker_client_) | $$(try_update_book(event, event->data<Quote>()));
   events | is(InstrumentKey::tag) | $$(update_book(event, event->data<InstrumentKey>()));
@@ -105,7 +106,7 @@ void Bookkeeper::restore(const cache::bank &state_bank) {
   for (auto &pair : state_bank[boost::hana::type_c<Commission>]) {
     auto &state = pair.second;
     auto &commission = state.data;
-    commissions_.emplace(hash_str_32(commission.product_id), commission);
+    commissions_.emplace(hash_str_32(commission.product_id) ^ hash_str_32(commission.exchange_id), commission);
   }
   for (auto &pair : state_bank[boost::hana::type_c<Position>]) {
     auto &state = pair.second;
@@ -171,6 +172,15 @@ Book_ptr Bookkeeper::make_book(uint32_t location_uid) {
 void Bookkeeper::update_instrument(const longfist::types::Instrument &instrument) {
   auto hashed_instrument_key = hash_instrument(instrument.exchange_id, instrument.instrument_id);
   instruments_.insert_or_assign(hashed_instrument_key, instrument);
+}
+
+void Bookkeeper::update_commission(const event_ptr &event, const longfist::types::Commission &commission) {
+  for (auto &bk_pair : books_) {
+    auto &book = bk_pair.second;
+    if (book->asset.holder_uid == event->source()) {
+      book->replace(commission);
+    }
+  }
 }
 
 void Bookkeeper::update_instrument_factor(const longfist::types::InstrumentFactor &instrument_factor) {

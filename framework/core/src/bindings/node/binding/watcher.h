@@ -89,8 +89,6 @@ public:
 
   Napi::Value IssueBlockMessage(const Napi::CallbackInfo &info);
 
-  Napi::Value IssueOrderTriggerInput(const Napi::CallbackInfo &info);
-
   Napi::Value IssueOrderTrigger(const Napi::CallbackInfo &info);
 
   Napi::Value IssueOrder(const Napi::CallbackInfo &info);
@@ -301,6 +299,13 @@ private:
   }
 
   template <typename TradingData>
+  std::enable_if_t<std::is_same_v<TradingData, longfist::types::OrderTriggerInput>>
+  UpdateBook(uint32_t source, uint32_t dest, const TradingData &data) {
+    state<kungfu::longfist::types::OrderTriggerInput> cache_state_order_trigger_input(source, dest, now(), data);
+    data_bank_ << cache_state_order_trigger_input;
+  }
+
+  template <typename TradingData>
   std::enable_if_t<std::is_same_v<TradingData, longfist::types::BasketOrder>> UpdateBook(uint32_t source, uint32_t dest,
                                                                                          const TradingData &data) {
     basketorder_engine_.insert_basket_order(now(), data);
@@ -310,7 +315,8 @@ private:
 
   template <typename TradingData>
   std::enable_if_t<not std::is_same_v<TradingData, longfist::types::OrderInput> and
-                   not std::is_same_v<TradingData, longfist::types::BasketOrder>>
+                   not std::is_same_v<TradingData, longfist::types::BasketOrder> and
+                   not std::is_same_v<TradingData, longfist::types::OrderTriggerInput>>
   UpdateBook(uint32_t source, uint32_t dest, const TradingData &data) {}
 
   uint64_t MakeInstructionUID(yijinjing::journal::writer_ptr &writer, uint32_t dest, uint32_t client_id = 0) {

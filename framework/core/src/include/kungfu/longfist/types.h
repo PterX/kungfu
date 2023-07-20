@@ -25,7 +25,6 @@ KF_DEFINE_MARK_TYPE(AssetRequest, 351);
 KF_DEFINE_MARK_TYPE(PositionRequest, 352);
 KF_DEFINE_MARK_TYPE(AssetSync, 353);
 KF_DEFINE_MARK_TYPE(PositionSync, 354);
-KF_DEFINE_MARK_TYPE(TriggerRequest, 355);
 KF_DEFINE_MARK_TYPE(PageEnd, 10051);
 KF_DEFINE_MARK_TYPE(Time, 10052);
 KF_DEFINE_MARK_TYPE(Ping, 10053);
@@ -211,7 +210,6 @@ KF_DEFINE_PACK_TYPE(                                       //
     (enums::VolumeCondition, volume_condition), // 成交量类型
     (enums::TimeCondition, time_condition),     // 成交时间类型
     (uint64_t, block_id),                       // 大宗交易信息id, 非大宗交易则为0
-    (uint64_t, trigger_id),                     // 触发器id, 不需要对应信息时为0
 
     (int64_t, insert_time) // 写入时间
 );
@@ -349,7 +347,6 @@ KF_DEFINE_PACK_TYPE(                                        //
 KF_DEFINE_PACK_TYPE(                                                //
     OrderTriggerInput, 209, PK(trigger_id), TIMESTAMP(insert_time), //
     (uint64_t, trigger_id),                                         // 触发器id
-    (kungfu::array<char, EXTERNAL_ID_LEN>, external_trigger_id),    // 柜台触发器id
 
     (kungfu::array<char, INSTRUMENT_ID_LEN>, instrument_id), // 合约代码
     (kungfu::array<char, EXCHANGE_ID_LEN>, exchange_id),     // 交易所代码
@@ -367,13 +364,19 @@ KF_DEFINE_PACK_TYPE(                                                //
     (enums::PriceType, price_type),             // 价格类型
     (enums::VolumeCondition, volume_condition), // 成交量类型
     (enums::TimeCondition, time_condition),     // 成交时间类型
+    (enums::OrderTriggerType, trigger_type),    // 条件触发类型
+    (enums::ParkedType, parked_type),           // 本地 or 服务器 埋单
 
     (int64_t, insert_time) // 写入时间
 );
 
-KF_DEFINE_PACK_TYPE(                                           //
-    OrderTrigger, 210, PK(trigger_id), TIMESTAMP(insert_time), //
-    (uint64_t, trigger_id),                                    // 触发器id
+KF_DEFINE_PACK_TYPE(                                             //
+    OrderTrigger, 210, PK(trigger_id), TIMESTAMP(insert_time),   //
+    (uint64_t, trigger_id),                                      // 触发器id
+    (uint64_t, order_id),                                        // 预埋撤单, 被撤单的order_id
+    (kungfu::array<char, EXTERNAL_ID_LEN>, external_trigger_id), // 柜台触发器id
+    (kungfu::array<char, EXTERNAL_ID_LEN>, external_order_id),   // 柜台订单id
+    (enums::OrderActionFlag, action_flag),                       // 预埋下单 or 预埋撤单
 
     (int64_t, insert_time), // 触发器写入时间
     (int64_t, update_time), // 触发器更新时间
@@ -400,7 +403,9 @@ KF_DEFINE_PACK_TYPE(                                           //
     (enums::HedgeFlag, hedge_flag),             // 投机套保标识
     (enums::PriceType, price_type),             // 价格类型
     (enums::VolumeCondition, volume_condition), // 成交量类型
-    (enums::TimeCondition, time_condition)      // 成交时间类型
+    (enums::TimeCondition, time_condition),     // 成交时间类型
+    (enums::OrderTriggerType, trigger_type),    // 条件触发类型
+    (enums::ParkedType, parked_type)            // 本地 or 服务器 埋单
 );
 
 KF_DEFINE_PACK_TYPE(                                                              //
@@ -418,11 +423,11 @@ KF_DEFINE_PACK_TYPE(                                                            
 KF_DEFINE_PACK_TYPE(                                                                   //
     OrderTriggerActionError, 212, PK(order_trigger_action_id), TIMESTAMP(insert_time), //
     (uint64_t, trigger_id),                                                            // 订单ID
-    (kungfu::array<char, EXTERNAL_ID_LEN>, external_order_id), // 撤单原委托柜台订单id, 新生成撤单委托编号不记录
-    (uint64_t, order_trigger_action_id),                       // 订单操作ID
-    (int32_t, error_id),                                       // 错误ID
-    (kungfu::array<char, ERROR_MSG_LEN>, error_msg), // 错误信息
-    (int64_t, insert_time)                           // 写入时间
+    (kungfu::array<char, EXTERNAL_ID_LEN>, external_trigger_id), // 要删除的预埋单的ParkedId
+    (uint64_t, order_trigger_action_id),                         // 订单操作ID
+    (int32_t, error_id),                                         // 错误ID
+    (kungfu::array<char, ERROR_MSG_LEN>, error_msg),             // 错误信息
+    (int64_t, insert_time)                                       // 写入时间
 );
 
 KF_DEFINE_PACK_TYPE(                                                     //

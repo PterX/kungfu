@@ -68,6 +68,13 @@ class TraderSim(wc.Trader):
 
         self.update_broker_state(lf.enums.BrokerState.Ready)
 
+    def insert_order_trigger(self, event):
+        trigger_input = event.OrderTriggerInput()
+        self.logger.info(f"OrderTriggerInput: {trigger_input}")
+        trigger = order = wc.utils.order_trigger_from_input(trigger_input)
+        self.logger.info(f"OrderTrigger: {trigger}")
+        self.get_writer(event.source).write(event.gen_time, trigger)
+
     def insert_block_message(self, event):
         block_msg = event.BlockMessage()
         self.logger.info(f"{block_msg}")

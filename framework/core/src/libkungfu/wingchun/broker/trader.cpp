@@ -26,7 +26,7 @@ bool Trader::insert_algo_order(const event_ptr &event) {
   algo_order_from_input(algo_order_input, algo_order);
   if (not algo_order_input.is_local) {
     algo_order.status = longfist::enums::OrderStatus::Error;
-    std::string error_msg = "Not support Algo Order";
+    std::string error_msg = "Algo not supported";
     strcpy(algo_order.error_msg, error_msg.c_str());
   }
   writer->close_data();
@@ -51,7 +51,7 @@ AlgoOrderService &Trader::get_algo_order_service() {
   return dynamic_cast<TraderVendor &>(get_vendor()).get_algo_order_service();
 }
 
-const AlgoOrderService& Trader::get_algo_order_service() const {
+const AlgoOrderService &Trader::get_algo_order_service() const {
   return dynamic_cast<TraderVendor &>(get_vendor()).get_algo_order_service();
 }
 

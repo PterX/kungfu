@@ -43,7 +43,6 @@ inline bool is_all_order_finished(const Orders &orders) {
 
 class AlgoOrderService {
 public:
-
   explicit AlgoOrderService(TraderVendor &vendor);
   virtual ~AlgoOrderService() = default;
 
@@ -51,8 +50,7 @@ public:
 
   void on_order(const longfist::types::Order &order);
 
-  void on_algo_order(int64_t gen_time, uint32_t source, uint32_t dest,
-                         const longfist::types::AlgoOrder &algo_order);
+  void on_algo_order(int64_t gen_time, uint32_t source, uint32_t dest, const longfist::types::AlgoOrder &algo_order);
 
   void cancel_algo_order(const event_ptr &event, const longfist::types::AlgoOrderAction &algo_order_action);
 
@@ -63,9 +61,12 @@ public:
   void clean_algo_orders(uint32_t source, const longfist::types::AlgoOrderInput &algo_order_input,
                          bool bypass_recover = false);
 
+  void on_active();
+
 private:
   TraderVendor &vendor_;
   AlgoOrderMap local_algo_orders_;
+  AlgoOrderMap waiting_record_local_algo_orders_;
   AlgoOrderInputMap local_algo_order_inputs_;
   AlgoOrderMap algo_orders_;
   SubOrders local_sub_orders_;
@@ -74,14 +75,14 @@ private:
 
   bool check_if_all_order_finished(int64_t algo_order_id);
 
-  Trader& get_service();
+  Trader &get_service();
 };
 
 class TraderWriterHook : public yijinjing::journal::writer_hook {
 public:
   TraderWriterHook(TraderVendor &vendor);
 
-  void on_open_frame(int64_t trigger_time, const yijinjing::journal::frame_ptr &frame) override;
+  void on_open_frame(int64_t trigger_time, const yijinjing::journal::frame_ptr& frame) override;
 
   void on_close_frame(int64_t gen_time, const yijinjing::journal::frame_ptr &frame) override;
 
@@ -94,6 +95,8 @@ private:
 };
 
 class TraderVendor : public BrokerVendor {
+  friend class AlgoOrderService;
+
 public:
   TraderVendor(locator_ptr locator, const std::string &group, const std::string &name, bool low_latency,
                const std::string &arguments = {});
@@ -105,8 +108,10 @@ public:
   BrokerService_ptr get_service() override;
 
   AlgoOrderService &get_algo_order_service();
-  
+
   const AlgoOrderService &get_algo_order_service() const;
+
+  bool is_service_started() const;
 
 protected:
   void react() override;
@@ -117,10 +122,14 @@ protected:
 
   void on_write_to(const event_ptr &event) override;
 
+  void on_active() override;
+
 private:
   Trader_ptr service_ = {};
   AlgoOrderService algo_order_service_;
   TraderWriterHook_ptr hook_;
+
+  bool service_started_ = false;
 };
 
 class Trader : public BrokerService {

@@ -647,7 +647,7 @@ inline void order_trigger_from_order(const longfist::types::Order &order, longfi
   trigger.volume = order.volume;
 
   trigger.status = longfist::enums::OrderStatus::Pending;
-  
+
   trigger.side = order.side;
   trigger.offset = order.offset;
   trigger.is_swap = order.is_swap;

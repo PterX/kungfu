@@ -14,9 +14,12 @@ namespace kungfu::wingchun::broker {
 
 TraderWriterHook::TraderWriterHook(TraderVendor &vendor) : vendor_(vendor) {}
 
-void TraderWriterHook::on_open_frame(int64_t trigger_time, const frame_ptr &frame) {}
+void TraderWriterHook::on_open_frame(int64_t trigger_time, const frame_ptr& frame) {}
 
 void TraderWriterHook::on_close_frame(int64_t gen_time, const frame_ptr &frame) {
+  if (not vendor_.is_service_started()) {
+    return;
+  }
   switch (frame->msg_type()) {
   case Order::tag: {
     const Order &order = frame->data<Order>();
@@ -33,9 +36,7 @@ void TraderWriterHook::on_close_frame(int64_t gen_time, const frame_ptr &frame) 
 
 BrokerService_ptr TraderWriterHook::get_service() { return vendor_.get_service(); }
 
-AlgoOrderService &TraderWriterHook::get_algo_order_service() {
-  return vendor_.get_algo_order_service();
-}
+AlgoOrderService &TraderWriterHook::get_algo_order_service() { return vendor_.get_algo_order_service(); }
 
 TraderVendor::TraderVendor(locator_ptr locator, const std::string &group, const std::string &name, bool low_latency,
                            const std::string &arguments)
@@ -81,6 +82,7 @@ void TraderVendor::on_start() {
   service_->recover();
   service_->on_recover();
   service_->on_start();
+  service_started_ = true;
 }
 
 void TraderVendor::on_write_to(const event_ptr &event) {
@@ -97,5 +99,9 @@ AlgoOrderService &TraderVendor::get_algo_order_service() { return algo_order_ser
 const AlgoOrderService &TraderVendor::get_algo_order_service() const { return algo_order_service_; };
 
 void TraderVendor::on_trading_day(const event_ptr &event, int64_t daytime) { service_->on_trading_day(event, daytime); }
+
+bool TraderVendor::is_service_started() const { return service_started_; }
+
+void TraderVendor::on_active() { algo_order_service_.on_active(); }
 
 } // namespace kungfu::wingchun::broker

@@ -252,7 +252,8 @@ public:
 
   virtual ~writer_hook() = default;
 
-  virtual void on_open_frame(int64_t trigger_time, const frame_ptr &frame) = 0;
+  virtual void on_open_frame(int64_t trigger_time, const frame_ptr& frame) = 0;
+
   virtual void on_close_frame(int64_t gen_time, const frame_ptr &frame) = 0;
 };
 

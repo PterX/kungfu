@@ -31,6 +31,7 @@ PriceLevel = lf.enums.PriceLevel
 VolumeCondition = lf.enums.VolumeCondition
 TimeCondition = lf.enums.TimeCondition
 OrderActionFlag = lf.enums.OrderActionFlag
+OrderTriggerFlag = lf.enums.OrderTriggerFlag
 LedgerCategory = lf.enums.LedgerCategory
 HedgeFlag = lf.enums.HedgeFlag
 CommissionRateMode = lf.enums.CommissionRateMode
@@ -41,7 +42,6 @@ StrategyState = lf.enums.StrategyState
 OperatorState = lf.enums.OperatorState
 HistoryDataType = lf.enums.HistoryDataType
 OrderTriggerType = lf.enums.OrderTriggerType
-TimeCondition = lf.enums.TimeCondition
 
 BasketVolumeType = lf.enums.BasketVolumeType
 BasketType = lf.enums.BasketType

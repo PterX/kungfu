@@ -217,7 +217,6 @@ void bind_enums(py::module &m) {
 
   py::enum_<OrderActionFlag>(m_enums, "OrderActionFlag", py::arithmetic())
       .value("Cancel", OrderActionFlag::Cancel)
-      .value("Insert", OrderActionFlag::Insert)
       .value("TriggerCancel", OrderActionFlag::TriggerCancel)
       .export_values()
       .def("__eq__", [](const OrderActionFlag &a, int b) { return static_cast<int>(a) == b; });
@@ -354,5 +353,11 @@ void bind_enums(py::module &m) {
       .value("Local", ParkedType::Local)
       .export_values()
       .def("__eq__", [](const ParkedType &a, int b) { return static_cast<int>(a) == b; });
+
+  py::enum_<OrderTriggerFlag>(m_enums, "OrderTriggerFlag", py::arithmetic())
+      .value("TriggerInsert", OrderTriggerFlag::TriggerInsert)
+      .value("TriggerCancel", OrderTriggerFlag::TriggerCancel)
+      .export_values()
+      .def("__eq__", [](const OrderTriggerFlag &a, int b) { return static_cast<int>(a) == b; });
 }
 } // namespace kungfu::longfist::pybind

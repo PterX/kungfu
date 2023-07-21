@@ -300,6 +300,9 @@ SZSE
 HKEx
 MarketType
 Snapshot
+Entrust
+Transaction
+Tree
 SubscribeDataType
 Stock
 Future
@@ -353,10 +356,11 @@ Arbitrage
 Hedge
 Covered
 HedgeFlag
-Insert
 Cancel
 TriggerCancel
 OrderActionFlag
+TriggerInsert
+OrderTriggerFlag
 Limit
 Any
 FakBest5

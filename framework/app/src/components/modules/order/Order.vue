@@ -686,7 +686,7 @@ function testOrderSourceIsOnline(order: KungfuApi.OrderResolved) {
         <div v-if="adjustOrderMaskVisible" class="kf-adjust-order-mask__warp">
           <div
             class="kf-adjust-order-mask"
-            @click.stop.once="handleClickAdjustOrderMask"
+            @click.stop.once="handleCloseAdjustOrderMask"
           ></div>
           <div
             class="adjust-order-wrap"
@@ -707,6 +707,7 @@ function testOrderSourceIsOnline(order: KungfuApi.OrderResolved) {
                 height: adjustOrderConfig.clientHeight + 'px',
               }"
               @keyup.esc="handleCloseAdjustOrderMask"
+              @blur="handleCloseAdjustOrderMask"
               @keyup.enter="handleClickAdjustOrderMask"
             ></a-input-number>
             <!-- <a-input-number

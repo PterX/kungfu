@@ -48,6 +48,7 @@ void TraderVendor::on_start() {
   events_ | is(Deregister::tag) | $$(service_->on_strategy_exit(event));
   events_ | is(TimeKeyValue::tag) | $$(service_->on_time_key_value(event));
   events_ | is(PositionRequest::tag) | $$(service_->req_position());
+  events_ | is(OrderTriggerRequest::tag) | $$(service_->req_order_trigger());
   events_ | is(RequestHistoryOrder::tag) | $$(service_->req_history_order(event));
   events_ | is(RequestHistoryTrade::tag) | $$(service_->req_history_trade(event));
   events_ | is(AssetSync::tag) | $$(service_->handle_asset_sync());

@@ -25,6 +25,7 @@ KF_DEFINE_MARK_TYPE(AssetRequest, 351);
 KF_DEFINE_MARK_TYPE(PositionRequest, 352);
 KF_DEFINE_MARK_TYPE(AssetSync, 353);
 KF_DEFINE_MARK_TYPE(PositionSync, 354);
+KF_DEFINE_MARK_TYPE(OrderTriggerRequest, 355);
 KF_DEFINE_MARK_TYPE(PageEnd, 10051);
 KF_DEFINE_MARK_TYPE(Time, 10052);
 KF_DEFINE_MARK_TYPE(Ping, 10053);
@@ -376,7 +377,7 @@ KF_DEFINE_PACK_TYPE(                                             //
     (uint64_t, order_id),                                        // 预埋撤单, 被撤单的order_id
     (kungfu::array<char, EXTERNAL_ID_LEN>, external_trigger_id), // 柜台触发器id
     (kungfu::array<char, EXTERNAL_ID_LEN>, external_order_id),   // 柜台订单id
-    (enums::OrderActionFlag, action_flag),                       // 预埋下单 or 预埋撤单
+    (enums::OrderTriggerFlag, action_flag),                      // 预埋下单 or 预埋撤单
 
     (int64_t, insert_time), // 触发器写入时间
     (int64_t, update_time), // 触发器更新时间

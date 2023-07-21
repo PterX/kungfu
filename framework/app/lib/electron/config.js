@@ -227,16 +227,14 @@ module.exports = {
         target: 'nsis',
         arch: ['x64'],
       },
-      ...(
-        ifZipTargetEnable('win')
-          ? [
-              {
-                target: 'zip',
-                arch: ['x64'],
-              },
-            ]
-          : [],
-      ),
+      ...(ifZipTargetEnable('win')
+        ? [
+            {
+              target: 'zip',
+              arch: ['x64'],
+            },
+          ]
+        : []),
     ],
   },
   linux: {

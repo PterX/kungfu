@@ -353,9 +353,9 @@ Arbitrage
 Hedge
 Covered
 HedgeFlag
-Insert
 Cancel
 TriggerCancel
+Insert
 OrderActionFlag
 Limit
 Any

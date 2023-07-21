@@ -497,6 +497,9 @@ SZSE
 HKEx
 MarketType
 Snapshot
+Entrust
+Transaction
+Tree
 SubscribeDataType
 Stock
 Future
@@ -554,6 +557,8 @@ Cancel
 TriggerCancel
 Insert
 OrderActionFlag
+TriggerInsert
+OrderTriggerFlag
 Limit
 Any
 FakBest5

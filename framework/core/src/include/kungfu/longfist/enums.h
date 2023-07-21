@@ -312,16 +312,26 @@ inline std::ostream &operator<<(std::ostream &os, HedgeFlag t) { return os << in
 enum class OrderActionFlag : int8_t {
   Cancel,        /// 普通撤单
   TriggerCancel, /// 预埋撤单
-  Insert         /// 预埋下单
 };
 
 NLOHMANN_JSON_SERIALIZE_ENUM(OrderActionFlag, {
-                                                  {OrderActionFlag::Insert, "Insert"},
                                                   {OrderActionFlag::Cancel, "Cancel"},
                                                   {OrderActionFlag::TriggerCancel, "TriggerCancel"},
                                               })
 
 inline std::ostream &operator<<(std::ostream &os, OrderActionFlag t) { return os << int8_t(t); }
+
+enum class OrderTriggerFlag : int8_t {
+  TriggerInsert, /// 预埋下单
+  TriggerCancel  /// 预埋撤单
+};
+
+NLOHMANN_JSON_SERIALIZE_ENUM(OrderTriggerFlag, {
+                                                   {OrderTriggerFlag::TriggerInsert, "TriggerInsert"},
+                                                   {OrderTriggerFlag::TriggerCancel, "TriggerCancel"},
+                                               })
+
+inline std::ostream &operator<<(std::ostream &os, OrderTriggerFlag t) { return os << int8_t(t); }
 
 enum class PriceType : int8_t {
   Limit, // 限价,证券通用

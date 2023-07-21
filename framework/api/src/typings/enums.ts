@@ -242,6 +242,8 @@ export enum HistoryDateEnum {
 
 export enum OrderActionFlagEnum {
   Cancel,
+  TriggerCancel,
+  Insert,
 }
 
 export enum FutureArbitrageCodeEnum {

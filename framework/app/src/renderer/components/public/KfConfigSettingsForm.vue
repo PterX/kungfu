@@ -174,6 +174,11 @@ const instrumentsCsvData = reactive<
 const tableKeys = ref<Record<string, KungfuApi.KfConfigItem>>(
   filterTableKeysFromConfigSettings(props.configSettings),
 );
+// 解决 a-input-number ui 上自动 format 之后的值和真是的响应式数据对不上的问题
+const numberKeys = ref<Record<string, KungfuApi.KfConfigItem>>(
+  filterNumberKeysFromConfigSettings(props.configSettings),
+);
+const numbersTyping = ref<Record<string, boolean>>({});
 
 watch(
   () => props.configSettings,
@@ -181,6 +186,10 @@ watch(
     primaryKeys.value = getPrimaryKeys(newVal);
     instrumentKeys.value = filterInstrumentKeysFromConfigSettings(newVal);
     tableKeys.value = filterTableKeysFromConfigSettings(newVal);
+    numberKeys.value = filterNumberKeysFromConfigSettings(newVal);
+    Object.keys(numbersTyping.value).forEach((key) => {
+      if (!(key in numberKeys.value)) delete numbersTyping.value[key];
+    });
 
     const rowFormState = toRaw(props.formState);
     Object.keys(rowFormState).forEach(
@@ -243,7 +252,28 @@ if (props.willReplaceWholeFormState) {
 
 watch(
   () => formState.value,
-  (newVal) => {
+  (newVal, oldVal) => {
+    // 解决 a-input-number ui 上自动 format 之后的值和真是的响应式数据对不上的问题
+    Object.keys(numberKeys.value).forEach((key) => {
+      if (key in oldVal && key in newVal) {
+        if (newVal[key] !== oldVal[key] && !numbersTyping.value[key]) {
+          if (typeof newVal[key] === 'number') {
+            switch (numberKeys.value[key].type) {
+              case 'int':
+                formState.value[key] = Math.floor(newVal[key]);
+                break;
+              case 'float':
+              case 'percent':
+                formState.value[key] = Number(newVal[key]).kfRound(
+                  numberKeys.value[key].precision ?? 3,
+                );
+                break;
+            }
+          }
+        }
+      }
+    });
+
     app && app.emit('update:formState', newVal);
   },
   {
@@ -376,6 +406,17 @@ function filterTableKeysFromConfigSettings(
 ) {
   return configSettings
     .filter((item) => item.type === 'table' || item.type === 'csvTable')
+    .reduce((data, setting) => {
+      data[setting.key.toString()] = setting;
+      return data;
+    }, {} as Record<string, KungfuApi.KfConfigItem>);
+}
+
+function filterNumberKeysFromConfigSettings(
+  configSettings: KungfuApi.KfConfigItem[],
+) {
+  return configSettings
+    .filter((item) => isNumberInputType(item.type))
     .reduce((data, setting) => {
       data[setting.key.toString()] = setting;
       return data;
@@ -1018,16 +1059,6 @@ function clearValidate(): void {
   return formRef.value.clearValidate();
 }
 
-function parseNumberBeforeFormat(
-  value: number | string,
-  key: string,
-  parser: (val: string) => number,
-): number {
-  const formattedValue = parser(`${value}`);
-  formState.value[key] = formattedValue; // a-input-number 通过 formatter 展示的结果没有同步到真实的响应式数据上, 手动赋值
-  return formattedValue;
-}
-
 function formatterPercentNumber(value: number): string {
   return `${value}%`;
 }
@@ -1183,20 +1214,15 @@ defineExpose({
         v-model:value="formState[item.key]"
         :max="item.max ?? Infinity"
         :min="item.min ?? -Infinity"
-        :formatter="
-          (val) =>
-            Math.floor(
-              parseNumberBeforeFormat(val, item.key, (val) =>
-                Math.floor(Number(val)),
-              ),
-            )
-        "
+        :formatter="(val) => Math.floor(val)"
         :parser="(val) => Math.floor(Number(val))"
         :step="item.step || 1"
         :disabled="
           (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
           item.disabled
         "
+        @focus="numbersTyping[item.key] = true"
+        @blur="numbersTyping[item.key] = false"
       ></a-input-number>
       <a-input-number
         v-else-if="item.type === 'float'"
@@ -1205,17 +1231,12 @@ defineExpose({
         :min="item.min ?? -Infinity"
         :precision="item.precision ?? 3"
         :step="item.step ?? 0.001"
-        :formatter="
-          (val) =>
-            parseNumberBeforeFormat(val, item.key, (val) =>
-              Number(val).kfRound(item.precision ?? 3),
-            ).kfToFixed(item.precision ?? 3)
-        "
-        :parser="(val) => Number(val).kfRound(item.precision ?? 3)"
         :disabled="
           (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
           item.disabled
         "
+        @focus="numbersTyping[item.key] = true"
+        @blur="numbersTyping[item.key] = false"
       ></a-input-number>
       <a-input-number
         v-else-if="item.type === 'percent'"
@@ -1224,17 +1245,14 @@ defineExpose({
         :min="item.min ?? -Infinity"
         :precision="item.precision || 2"
         :step="item.step || 0.01"
-        :formatter="
-          (val) =>
-            formatterPercentNumber(
-              parseNumberBeforeFormat(val, item.key, parserPercentString),
-            )
-        "
+        :formatter="formatterPercentNumber"
         :parser="parserPercentString"
         :disabled="
           (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
           item.disabled
         "
+        @focus="numbersTyping[item.key] = true"
+        @blur="numbersTyping[item.key] = false"
       ></a-input-number>
       <a-radio-group
         v-else-if="item.type === 'side'"

@@ -32,6 +32,7 @@ import {
   LedgerCategoryEnum,
   InstrumentTypeEnum,
   CurrencyEnum,
+  OrderActionFlagEnum,
 } from '../typings/enums';
 import { ExchangeIds, AllFinishedOrderStatus } from '../config/tradingConfig';
 
@@ -342,6 +343,7 @@ export const kfCancelOrder = (
 
   const orderAction: KungfuApi.OrderAction = {
     ...longfist.types.OrderAction(),
+    action_flag: OrderActionFlagEnum.Cancel,
     order_id,
   };
 

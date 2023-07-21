@@ -256,7 +256,7 @@ watch(
     // 解决 a-input-number ui 上自动 format 之后的值和真是的响应式数据对不上的问题
     Object.keys(numberKeys.value).forEach((key) => {
       if (key in oldVal && key in newVal) {
-        if (newVal[key] !== oldVal[key] && !numbersTyping.value[key]) {
+        if (!numbersTyping.value[key]) {
           if (typeof newVal[key] === 'number') {
             switch (numberKeys.value[key].type) {
               case 'int':

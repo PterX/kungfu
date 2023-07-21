@@ -23,9 +23,9 @@ FORWARD_DECLARE_CLASS_PTR(reader)
 
 FORWARD_DECLARE_CLASS_PTR(writer)
 
-FORWARD_DECLARE_CLASS_PTR(hook)
+FORWARD_DECLARE_CLASS_PTR(writer_hook)
 
-FORWARD_DECLARE_CLASS_PTR(hook_writer)
+FORWARD_DECLARE_CLASS_PTR(hookable_writer)
 
 class journal_error : public std::runtime_error {
 public:

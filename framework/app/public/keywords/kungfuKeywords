@@ -118,7 +118,6 @@ price_type
 volume_condition
 time_condition
 block_id
-trigger_id
 external_order_id
 insert_time
 volume_left
@@ -143,6 +142,7 @@ total_volume
 price_level
 price_offset
 dest_id
+trigger_id
 stop_price
 trigger_type
 parked_type
@@ -674,7 +674,6 @@ OrderTriggerType
 NotSend
 Send
 Deleted
-OrderTriggerStatus
 Server
 Local
 ParkedType

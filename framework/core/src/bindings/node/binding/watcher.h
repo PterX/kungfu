@@ -295,6 +295,13 @@ private:
   }
 
   template <typename TradingData>
+  std::enable_if_t<std::is_same_v<TradingData, longfist::types::OrderTriggerInput>>
+  UpdateBook(uint32_t source, uint32_t dest, const TradingData &data) {
+    state<kungfu::longfist::types::OrderTriggerInput> cache_state_order_trigger_input(source, dest, now(), data);
+    data_bank_ << cache_state_order_trigger_input;
+  }
+
+  template <typename TradingData>
   std::enable_if_t<std::is_same_v<TradingData, longfist::types::OrderInput>> UpdateBook(uint32_t source, uint32_t dest,
                                                                                         const TradingData &data) {
     bookkeeper_.on_order_input(now(), source, dest, data);
@@ -318,7 +325,8 @@ private:
   }
 
   template <typename TradingData>
-  std::enable_if_t<not std::is_same_v<TradingData, longfist::types::OrderInput> and
+  std::enable_if_t<not std::is_same_v<TradingData, longfist::types::OrderTriggerInput> and
+                   not std::is_same_v<TradingData, longfist::types::OrderInput> and
                    not std::is_same_v<TradingData, longfist::types::BasketOrder> and
                    not std::is_same_v<TradingData, longfist::types::AlgoOrderInput>>
   UpdateBook(uint32_t source, uint32_t dest, const TradingData &data) {}

@@ -19,121 +19,19 @@ using namespace kungfu::yijinjing::journal;
 
 namespace kungfu::wingchun::broker {
 
-TraderHook::TraderHook(TraderVendor &vendor) : vendor_(vendor) {}
-
-void TraderHook::pre_write(int64_t trigger_time, const frame_ptr &frame) {}
-
-void TraderHook::post_write(int64_t gen_time, const frame_ptr &frame) {
-  switch(frame->msg_type()) {
-    case Order::tag: {
-      const Order &order = frame->data<Order>();
-      get_algo_order_service()->update_algo_order(order);
-      break;
-    }
+bool Trader::insert_algo_order(const event_ptr &event) {
+  auto writer = get_writer(event->source());
+  auto &algo_order_input = event->data<longfist::types::AlgoOrderInput>();
+  auto &algo_order = writer->open_data<AlgoOrder>();
+  algo_order_from_input(algo_order_input, algo_order);
+  if (not algo_order_input.is_local) {
+    algo_order.status = longfist::enums::OrderStatus::Error;
+    std::string error_msg = "Not support Algo Order";
+    strcpy(algo_order.error_msg, error_msg.c_str());
   }
+  writer->close_data();
+  return true;
 }
-
-BrokerService_ptr TraderHook::get_service() {
-  return vendor_.get_service();
-}
-
-const AlgoOrderService_ptr& TraderHook::get_algo_order_service() {
-  return vendor_.get_algo_order_service();
-}
-
-
-TraderVendor::TraderVendor(locator_ptr locator, const std::string &group, const std::string &name, bool low_latency,
-                           const std::string &arguments)
-    : BrokerVendor(location::make_shared(mode::LIVE, category::TD, group, name, std::move(locator)), low_latency),
-      algo_order_service_(std::make_shared<AlgoOrderService>(*this)), hook_(std::make_shared<TraderHook>(*this)) {
-  set_arguments(arguments);
-}
-
-void TraderVendor::set_service(Trader_ptr service) { service_ = std::move(service); }
-
-void TraderVendor::react() {
-  events_ | skip_until(events_ | is(RequestStart::tag)) | is(OrderInput::tag) | $$(service_->handle_order_input(event));
-  events_ | skip_until(events_ | is(RequestStart::tag)) | is_custom() | $$(service_->on_custom_event(event));
-  apprentice::react();
-}
-
-void TraderVendor::on_react() {
-  events_ | is(ResetBookRequest::tag) |
-      $([&](const event_ptr &event) { get_writer(location::PUBLIC)->mark(now(), ResetBookRequest::tag); });
-}
-
-void TraderVendor::on_start() {
-  BrokerVendor::on_start();
-
-  events_ | is(BlockMessage::tag) | $$(service_->insert_block_message(event));
-  events_ | is(OrderTriggerInput::tag) | $$(service_->insert_order_trigger(event));
-  events_ | is(AlgoOrderInput::tag) | $$(algo_order_service_->update_algo_order(event, event->data<AlgoOrderInput>()));
-  events_ | is(OrderAction::tag) | $$(service_->cancel_order(event));
-  events_ | is(OrderTriggerAction::tag) | $$(service_->cancel_order_trigger(event));
-  events_ | is(AlgoOrderAction::tag) | $$(algo_order_service_->cancel_algo_order(event, event->data<AlgoOrderAction>()));
-  events_ | is(AssetRequest::tag) | $$(service_->req_account());
-  events_ | is(Deregister::tag) | $$(service_->on_strategy_exit(event));
-  events_ | is(PositionRequest::tag) | $$(service_->req_position());
-  events_ | is(RequestHistoryOrder::tag) | $$(service_->req_history_order(event));
-  events_ | is(RequestHistoryTrade::tag) | $$(service_->req_history_trade(event));
-  events_ | is(AssetSync::tag) | $$(service_->handle_asset_sync());
-  events_ | is(PositionSync::tag) | $$(service_->handle_position_sync());
-  events_ | is(Band::tag) | $$(service_->on_band(event));
-  events_ | is(TimeKeyValue::tag) | $$(service_->on_time_key_value(event));
-  events_ | is(BatchOrderBegin::tag, BatchOrderEnd::tag) | $$(service_->handle_batch_order_tag(event));
-
-  service_->on_risk_setting();
-  service_->recover();
-  service_->on_recover();
-  service_->on_start();
-}
-
-void TraderVendor::on_write_to(const event_ptr &event) {
-  auto dest_id = event->data<RequestWriteTo>().dest_id;
-  if (writers_.find(dest_id) == writers_.end()) {
-    writers_.emplace(dest_id, get_io_device()->open_hook_writer(dest_id, hook_));
-  }
-}
-
-BrokerService_ptr TraderVendor::get_service() { return service_; }
-
-const AlgoOrderService_ptr& TraderVendor::get_algo_order_service() {return algo_order_service_;};
-
-void TraderVendor::clean_orders() {
-  std::set<uint32_t> strategy_uids = {};
-  auto master_cmd_writer = get_writer(get_master_command_uid());
-  for (auto &pair : state_bank_[boost::hana::type_c<Order>]) {
-    auto &order_state = pair.second;
-    auto &order = const_cast<Order &>(order_state.data);
-    auto strategy_uid = order_state.dest;
-    if (order.status == OrderStatus::Submitted or order.status == OrderStatus::Pending or
-        order.status == OrderStatus::PartialFilledActive) {
-
-      order.status = OrderStatus::Lost;
-      order.update_time = time::now_in_nano();
-
-      if (strategy_uid == location::PUBLIC) {
-        write_to(now(), order);
-        continue;
-      }
-
-      strategy_uids.emplace(strategy_uid);
-
-      events_ | is(Channel::tag) | filter([&, strategy_uid](const event_ptr &event) {
-        const Channel &channel = event->data<Channel>();
-        return channel.source_id == get_home_uid() and channel.dest_id == strategy_uid;
-      }) | first() |
-          $([this, order, strategy_uid](auto event) { write_to(now(), order, strategy_uid); });
-    }
-  }
-  for (auto uid : strategy_uids) {
-    if (not has_writer(uid)) {
-      request_write_to(now(), uid);
-    }
-  }
-}
-
-void TraderVendor::on_trading_day(const event_ptr &event, int64_t daytime) { service_->on_trading_day(event, daytime); }
 
 [[maybe_unused]] const std::string &Trader::get_account_id() const { return get_home()->name; }
 
@@ -148,6 +46,16 @@ yijinjing::journal::writer_ptr Trader::get_asset_margin_writer() const {
 yijinjing::journal::writer_ptr Trader::get_position_writer() const {
   return get_writer(sync_position_ ? location::SYNC : location::PUBLIC);
 }
+
+AlgoOrderService &Trader::get_algo_order_service() {
+  return dynamic_cast<TraderVendor &>(get_vendor()).get_algo_order_service();
+}
+
+const AlgoOrderService& Trader::get_algo_order_service() const {
+  return dynamic_cast<TraderVendor &>(get_vendor()).get_algo_order_service();
+}
+
+const AlgoOrderMap &Trader::get_algo_orders() const { return get_algo_order_service().get_algo_orders(); }
 
 void Trader::enable_asset_sync() { sync_asset_ = true; }
 
@@ -166,20 +74,20 @@ bool Trader::write_default_asset_margin() {
   return false;
 }
 
-void Trader::handle_asset_sync() {
+void Trader::on_asset_sync() {
   if (state_ == BrokerState::Ready) {
     req_account();
     write_default_asset_margin();
   }
 }
 
-void Trader::handle_position_sync() {
+void Trader::on_position_sync() {
   if (state_ == BrokerState::Ready) {
     req_position();
   }
 }
 
-void Trader::handle_order_input(const event_ptr &event) {
+void Trader::on_order_input(const event_ptr &event) {
   /// try_emplace default insert false to map, means not batch mode
   if (batch_status_.try_emplace(event->source()).first->second) {
     const OrderInput &input = event->data<OrderInput>();
@@ -189,7 +97,7 @@ void Trader::handle_order_input(const event_ptr &event) {
   }
 }
 
-void Trader::handle_batch_order_tag(const event_ptr &event) {
+void Trader::on_batch_order_tag(const event_ptr &event) {
   if (event->msg_type() == BatchOrderBegin::tag) {
     batch_status_.insert_or_assign(event->source(), true);
   } else if (event->msg_type() == BatchOrderEnd::tag) {
@@ -217,19 +125,36 @@ void Trader::deal_write_frame() {
   int64_t count = 0;
   while (trc.data_available()) {
     const auto &frame = trc.current_frame();
-    if (frame->msg_type() == Order::tag) {
+
+    switch (frame->msg_type()) {
+    case Order::tag: {
       const Order &order = frame->data<Order>();
       orders_.insert_or_assign(order.order_id, state<Order>(frame->source(), frame->dest(), frame->gen_time(), order));
-    } else if (frame->msg_type() == Trade::tag) {
+      break;
+    }
+    case Trade::tag: {
       const Trade &trade = frame->data<Trade>();
       trades_.insert_or_assign(trade.trade_id, state<Trade>(frame->source(), frame->dest(), frame->gen_time(), trade));
+      break;
     }
+    case OrderTrigger::tag: {
+      const OrderTrigger &trigger = frame->data<OrderTrigger>();
+      triggers_.insert_or_assign(trigger.trigger_id,
+                                 state<OrderTrigger>(frame->source(), frame->dest(), frame->gen_time(), trigger));
+      break;
+    }
+    case AlgoOrder::tag: {
+      const AlgoOrder &algo_order = frame->data<AlgoOrder>();
+      get_algo_order_service().update_algo_order(frame->gen_time(), frame->source(), frame->dest(), algo_order);
+      break;
+    }
+    }
+
     trc.next();
     ++count;
   }
   SPDLOG_DEBUG("after tracer read, count: {}", count);
 
-  // set order as Lost which without external_order_id
   std::for_each(orders_.begin(), orders_.end(), [&](auto &pair) {
     Order &order = pair.second.data;
     if (not is_final_status(order.status) and (disable_recover_ or order.external_order_id.to_string().empty())) {
@@ -240,6 +165,19 @@ void Trader::deal_write_frame() {
       }
     }
   });
+
+  std::for_each(triggers_.begin(), triggers_.end(), [&](auto &pair) {
+    OrderTrigger &trigger = pair.second.data;
+    if (not is_final_status(trigger.status) and (disable_recover_ or trigger.external_trigger_id.to_string().empty())) {
+      trigger.status = OrderStatus::Lost;
+      trigger.update_time = time::now_in_nano();
+      if (has_writer(pair.second.dest)) {
+        write_to(trigger, pair.second.dest);
+      }
+    }
+  });
+
+  get_algo_order_service().clean_algo_orders(disable_recover_);
 }
 
 void Trader::deal_read_frame() {
@@ -249,18 +187,41 @@ void Trader::deal_read_frame() {
   int64_t count = 0;
   while (trc.data_available()) {
     const auto &frame = trc.current_frame();
-    if (frame->msg_type() == OrderInput::tag) {
+
+    switch (frame->msg_type()) {
+    case OrderInput::tag: {
       const OrderInput &order_input = frame->data<OrderInput>();
       if (orders_.find(order_input.order_id) == orders_.end()) {
-        if (has_writer(frame->dest())) {
-          Order &order = get_writer(frame->dest())->open_data<Order>();
+        if (has_writer(frame->source())) {
+          Order &order = get_writer(frame->source())->open_data<Order>();
           order_from_input(order_input, order);
           order.status = OrderStatus::Lost;
           order.update_time = time::now_in_nano();
-          get_writer(frame->dest())->close_data();
+          get_writer(frame->source())->close_data();
         }
       }
+      break;
     }
+    case OrderTriggerInput::tag: {
+      const OrderTriggerInput &trigger_input = frame->data<OrderTriggerInput>();
+      if (triggers_.find(trigger_input.trigger_id) == triggers_.end()) {
+        if (has_writer(frame->source())) {
+          OrderTrigger &trigger = get_writer(frame->source())->open_data<OrderTrigger>();
+          order_trigger_from_input(trigger_input, trigger);
+          trigger.status = OrderStatus::Lost;
+          trigger.update_time = time::now_in_nano();
+          get_writer(frame->source())->close_data();
+        }
+      }
+      break;
+    }
+    case AlgoOrderInput::tag: {
+      const auto &algo_order_input = frame->data<AlgoOrderInput>();
+      get_algo_order_service().clean_algo_orders(frame->source(), algo_order_input, disable_recover_);
+      break;
+    }
+    }
+
     trc.next();
     ++count;
   }

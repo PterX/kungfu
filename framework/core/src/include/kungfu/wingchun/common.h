@@ -622,7 +622,7 @@ inline void order_trigger_from_input(const longfist::types::OrderTriggerInput &i
   trigger.volume = input.volume;
   trigger.stop_price = input.stop_price;
 
-  trigger.status = longfist::enums::OrderTriggerStatus::NotSend;
+  trigger.status = longfist::enums::OrderStatus::Pending;
 
   trigger.side = input.side;
   trigger.offset = input.offset;
@@ -645,7 +645,9 @@ inline void order_trigger_from_order(const longfist::types::Order &order, longfi
   trigger.limit_price = order.limit_price;
   trigger.frozen_price = order.frozen_price;
   trigger.volume = order.volume;
-  trigger.status = longfist::enums::OrderTriggerStatus::NotSend;
+
+  trigger.status = longfist::enums::OrderStatus::Pending;
+
   trigger.side = order.side;
   trigger.offset = order.offset;
   trigger.is_swap = order.is_swap;

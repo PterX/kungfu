@@ -8,8 +8,8 @@
 #define WINGCHUN_TRADER_H
 
 #include <kungfu/longfist/longfist.h>
-#include <kungfu/wingchun/broker/algoorder.h>
 #include <kungfu/wingchun/broker/broker.h>
+// #include <kungfu/wingchun/broker/algoorder.h>
 #include <kungfu/yijinjing/io.h>
 #include <kungfu/yijinjing/log.h>
 #include <kungfu/yijinjing/practice/apprentice.h>
@@ -18,22 +18,79 @@ namespace kungfu::wingchun::broker {
 
 FORWARD_DECLARE_CLASS_PTR(TraderVendor)
 FORWARD_DECLARE_CLASS_PTR(Trader)
-FORWARD_DECLARE_CLASS_PTR(TraderHook);
+FORWARD_DECLARE_CLASS_PTR(TraderWriterHook)
+FORWARD_DECLARE_CLASS_PTR(AlgoOrderService)
 
-class TraderHook : public yijinjing::journal::hook {
+typedef std::unordered_map<uint64_t, state<longfist::types::Order>> OrderMap;
+typedef std::unordered_map<uint64_t, state<longfist::types::OrderAction>> OrderActionMap;
+typedef std::unordered_map<uint64_t, state<longfist::types::Trade>> TradeMap;
+typedef std::unordered_map<uint64_t, state<longfist::types::OrderTrigger>> OrderTriggerMap;
+typedef std::unordered_map<uint64_t, state<longfist::types::OrderTriggerAction>> OrderTriggerActionMap;
+
+typedef std::unordered_map<uint64_t, longfist::types::Order> Orders;
+typedef std::unordered_map<uint64_t, Orders> SubOrders;
+typedef std::unordered_map<uint64_t, state<longfist::types::AlgoOrder>> AlgoOrderMap;
+typedef std::unordered_map<uint64_t, state<longfist::types::AlgoOrderInput>> AlgoOrderInputMap;
+
+inline bool is_all_order_finished(const Orders &orders) {
+  for (auto &iter : orders) {
+    if (not is_final_status(iter.second.status)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+class AlgoOrderService {
 public:
-  TraderHook(TraderVendor &vendor);
 
-  void pre_write(int64_t trigger_time, const yijinjing::journal::frame_ptr &frame) override;
+  explicit AlgoOrderService(TraderVendor &vendor);
+  virtual ~AlgoOrderService() = default;
 
-  void post_write(int64_t gen_time, const yijinjing::journal::frame_ptr &frame) override;
+  void on_algo_order_input(const event_ptr &event, const longfist::types::AlgoOrderInput &algo_order_input);
+
+  void update_algo_order(const longfist::types::Order &order);
+
+  void update_algo_order(int64_t gen_time, uint32_t source, uint32_t dest,
+                         const longfist::types::AlgoOrder &algo_order);
+
+  void cancel_algo_order(const event_ptr &event, const longfist::types::AlgoOrderAction &algo_order_action);
+
+  const AlgoOrderMap &get_algo_orders() const;
+
+  void clean_algo_orders(bool bypass_recover = false);
+
+  void clean_algo_orders(uint32_t source, const longfist::types::AlgoOrderInput &algo_order_input,
+                         bool bypass_recover = false);
+
+private:
+  TraderVendor &vendor_;
+  AlgoOrderMap local_algo_orders_;
+  AlgoOrderInputMap local_algo_order_inputs_;
+  AlgoOrderMap algo_orders_;
+  SubOrders local_sub_orders_;
+
+  void try_update_sub_orders(const longfist::types::Order &order);
+
+  bool check_if_all_order_finished(int64_t algo_order_id);
+
+  Trader& get_service();
+};
+
+class TraderWriterHook : public yijinjing::journal::writer_hook {
+public:
+  TraderWriterHook(TraderVendor &vendor);
+
+  void on_open_frame(int64_t trigger_time, const yijinjing::journal::frame_ptr &frame) override;
+
+  void on_close_frame(int64_t gen_time, const yijinjing::journal::frame_ptr &frame) override;
 
 private:
   TraderVendor &vendor_;
 
   BrokerService_ptr get_service();
 
-  const AlgoOrderService_ptr &get_algo_order_service();
+  AlgoOrderService &get_algo_order_service();
 };
 
 class TraderVendor : public BrokerVendor {
@@ -47,7 +104,9 @@ public:
 
   BrokerService_ptr get_service() override;
 
-  const AlgoOrderService_ptr &get_algo_order_service();
+  AlgoOrderService &get_algo_order_service();
+  
+  const AlgoOrderService &get_algo_order_service() const;
 
 protected:
   void react() override;
@@ -60,22 +119,14 @@ protected:
 
 private:
   Trader_ptr service_ = {};
-  TraderHook_ptr hook_;
-  AlgoOrderService_ptr algo_order_service_;
-
-  void clean_orders();
+  AlgoOrderService algo_order_service_;
+  TraderWriterHook_ptr hook_;
 };
 
 class Trader : public BrokerService {
   friend class TraderVendor;
 
 public:
-  typedef std::unordered_map<uint64_t, state<longfist::types::Order>> OrderMap;
-  typedef std::unordered_map<uint64_t, state<longfist::types::OrderAction>> OrderActionMap;
-  typedef std::unordered_map<uint64_t, state<longfist::types::Trade>> TradeMap;
-  typedef std::unordered_map<uint64_t, state<longfist::types::OrderTrigger>> OrderTriggerMap;
-  typedef std::unordered_map<uint64_t, state<longfist::types::OrderTriggerAction>> OrderTriggerActionMap;
-
   explicit Trader(BrokerVendor &vendor) : BrokerService(vendor){};
 
   [[nodiscard]] virtual longfist::enums::AccountType get_account_type() const = 0;
@@ -88,17 +139,7 @@ public:
 
   virtual bool insert_batch_orders(const event_ptr &event) { return true; }
 
-  virtual longfist::types::AlgoOrder insert_algo_order(const event_ptr& event) {
-    auto &algo_order_input = event->data<longfist::types::AlgoOrderInput>();
-    longfist::types::AlgoOrder algo_order{};
-    algo_order_from_input(algo_order_input, algo_order);
-    if (not algo_order_input.is_local) {
-      algo_order.status = longfist::enums::OrderStatus::Error;
-      std::string error_msg = "Not support Algo Order";
-      strcpy(algo_order.error_msg, error_msg.c_str());
-    }
-    return algo_order;
-  }
+  virtual bool insert_algo_order(const event_ptr &event);
 
   virtual bool cancel_order_trigger(const event_ptr &event) { return true; }
 
@@ -136,6 +177,12 @@ public:
   [[nodiscard]] yijinjing::journal::writer_ptr get_asset_margin_writer() const;
 
   [[nodiscard]] yijinjing::journal::writer_ptr get_position_writer() const;
+
+  [[nodiscard]] AlgoOrderService &get_algo_order_service();
+
+  const AlgoOrderService &get_algo_order_service() const;
+
+  [[nodiscard]] const AlgoOrderMap &get_algo_orders() const;
 
   void enable_asset_sync();
 
@@ -175,13 +222,13 @@ private:
   bool sync_asset_margin_ = false;
   bool sync_position_ = false;
 
-  void handle_asset_sync();
+  void on_asset_sync();
 
-  void handle_position_sync();
+  void on_position_sync();
 
-  void handle_order_input(const event_ptr &event);
+  void on_order_input(const event_ptr &event);
 
-  void handle_batch_order_tag(const event_ptr &event);
+  void on_batch_order_tag(const event_ptr &event);
 
   void recover();
 

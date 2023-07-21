@@ -172,12 +172,13 @@ writer_ptr io_device::open_writer_at(const data::location_ptr &location, uint32_
   return std::make_shared<writer>(location, dest_id, lazy_, publisher_, low_latency_, bus_);
 }
 
-writer_ptr io_device::open_hook_writer(uint32_t dest, const hook_ptr &hook) {
-  return std::make_shared<hook_writer>(home_, dest, lazy_, publisher_, low_latency_, bus_, hook);
+writer_ptr io_device::open_hookable_writer(uint32_t dest, const writer_hook_ptr &hook) {
+  return std::make_shared<hookable_writer>(home_, dest, lazy_, publisher_, low_latency_, bus_, hook);
 }
 
-writer_ptr io_device::open_hook_writer_at(const data::location_ptr &location, uint32_t dest_id, const hook_ptr &hook) {
-  return std::make_shared<hook_writer>(location, dest_id, lazy_, publisher_, low_latency_, bus_, hook);
+writer_ptr io_device::open_hookable_writer_at(const data::location_ptr &location, uint32_t dest_id,
+                                              const writer_hook_ptr &hook) {
+  return std::make_shared<hookable_writer>(location, dest_id, lazy_, publisher_, low_latency_, bus_, hook);
 }
 
 io_device_master::io_device_master(data::location_ptr home, bool low_latency)

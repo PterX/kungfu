@@ -98,7 +98,7 @@ public:
 
   [[maybe_unused]] void request_deregister() { vendor_.request_deregister(); }
 
-  [[maybe_unused]] [[nodiscard]] BrokerVendor &get_vendor() const { return vendor_; }
+  [[nodiscard]] BrokerVendor &get_vendor() const { return vendor_; }
 
   [[maybe_unused]] uint32_t request_band(const std::string &band_name) { return vendor_.request_band(band_name); }
 

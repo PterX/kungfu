@@ -246,20 +246,20 @@ private:
   void close_page(int64_t trigger_time);
 };
 
-class hook {
+class writer_hook {
 public:
-  hook() = default;
+  writer_hook() = default;
 
-  virtual ~hook() = default;
+  virtual ~writer_hook() = default;
 
-  virtual void pre_write(int64_t trigger_time, const frame_ptr &frame) = 0;
-  virtual void post_write(int64_t gen_time, const frame_ptr &frame) = 0;
+  virtual void on_open_frame(int64_t trigger_time, const frame_ptr &frame) = 0;
+  virtual void on_close_frame(int64_t gen_time, const frame_ptr &frame) = 0;
 };
 
-class hook_writer : public writer {
+class hookable_writer : public writer {
 public:
-  explicit hook_writer(const data::location_ptr &location, uint32_t dest_id, bool lazy, publisher_ptr publisher,
-                       bool low_latency, const bus_ptr &bus, const hook_ptr &hook)
+  explicit hookable_writer(const data::location_ptr &location, uint32_t dest_id, bool lazy, publisher_ptr publisher,
+                           bool low_latency, const bus_ptr &bus, const writer_hook_ptr &hook)
       : writer(location, dest_id, lazy, publisher, low_latency, bus), hook_(hook) {}
 
   frame_ptr open_frame(int64_t trigger_time, int32_t msg_type, uint32_t length) override;
@@ -267,7 +267,7 @@ public:
   void close_frame(size_t data_length, int64_t gen_time) override;
 
 private:
-  hook_ptr hook_;
+  writer_hook_ptr hook_;
 };
 
 } // namespace kungfu::yijinjing::journal

@@ -5,7 +5,6 @@ import {
   getIdByKfLocation,
   delayMilliSeconds,
   getProcessIdByKfLocation,
-  debounce,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { useActiveInstruments } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import {
@@ -44,13 +43,9 @@ import {
   kfCancelAllOrders,
   kfCancelOrder,
   makeOrderByOrderInput,
-  kfCancelOrderUtilFinished,
 } from '@kungfu-trader/kungfu-js-api/kungfu';
 import type { Dayjs } from 'dayjs';
-import {
-  UnfinishedOrderStatus,
-  WellCancelledOrderStatus,
-} from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
+import { UnfinishedOrderStatus } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import {
   HistoryDateEnum,
   OrderStatusEnum,
@@ -455,6 +450,9 @@ function handleAdjustOrder(data: {
 }
 
 function handleClickAdjustOrderMask(): void {
+  if (!adjustOrderMaskVisible.value) {
+    return;
+  }
   const kfLocation = currentGlobalKfLocation.value;
   if (!kfLocation) {
     error(t('location_error'));
@@ -483,17 +481,9 @@ function handleClickAdjustOrderMask(): void {
     return;
   }
 
-  kfCancelOrderUtilFinished(window.watcher, order)
+  adjustOrderMaskVisible.value = false;
+  kfCancelOrder(window.watcher, order)
     .then(() => {
-      if (!WellCancelledOrderStatus.includes(order.status)) {
-        return Promise.reject(
-          new Error(
-            t('tradingConfig.finished_msg', {
-              status: order.status,
-            }),
-          ),
-        );
-      }
       const makeOrderInput: KungfuApi.MakeOrderInput = {
         instrument_id: order.instrument_id,
         instrument_type: order.instrument_type,
@@ -717,7 +707,7 @@ function testOrderSourceIsOnline(order: KungfuApi.OrderResolved) {
                 height: adjustOrderConfig.clientHeight + 'px',
               }"
               @keyup.esc="handleCloseAdjustOrderMask"
-              @keyup.enter="debounce(handleClickAdjustOrderMask, 300)()"
+              @keyup.enter="handleClickAdjustOrderMask"
             ></a-input-number>
             <!-- <a-input-number
               v-if="adjustOrderConfig.clientWidth !== 0"
@@ -788,10 +778,7 @@ function testOrderSourceIsOnline(order: KungfuApi.OrderResolved) {
             </template>
             <template v-else-if="column.dataIndex === 'actions'">
               <CloseOutlined
-                v-if="
-                  !isFinishedOrderStatus(item.status) &&
-                  item.status !== OrderStatusEnum.Cancelling
-                "
+                v-if="!isFinishedOrderStatus(item.status)"
                 class="kf-hover"
                 @click="handleCancelOrder(item)"
               />

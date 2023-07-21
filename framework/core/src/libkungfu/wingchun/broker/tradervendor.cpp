@@ -20,12 +20,12 @@ void TraderWriterHook::on_close_frame(int64_t gen_time, const frame_ptr &frame) 
   switch (frame->msg_type()) {
   case Order::tag: {
     const Order &order = frame->data<Order>();
-    get_algo_order_service().update_algo_order(order);
+    get_algo_order_service().on_order(order);
     break;
   }
   case AlgoOrder::tag: {
     const AlgoOrder &algo_order = frame->data<AlgoOrder>();
-    get_algo_order_service().update_algo_order(frame->gen_time(), frame->source(), frame->dest(), algo_order);
+    get_algo_order_service().on_algo_order(frame->gen_time(), frame->source(), frame->dest(), algo_order);
     break;
   }
   }

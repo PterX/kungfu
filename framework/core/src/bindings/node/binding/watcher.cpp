@@ -339,6 +339,17 @@ Napi::Value Watcher::IssueAlgoOrder(const Napi::CallbackInfo &info) {
   return InteractWithTD<AlgoOrderInput>(info, info[0].ToObject(), &AlgoOrderInput::order_id);
 }
 
+Napi::Value Watcher::IssueMark(const Napi::CallbackInfo &info) {
+  SPDLOG_INFO("issue mark");
+  uint32_t tag = GetNumber(info, 0);
+  auto account_location = IODevice::ExtractLocation(info, 1, get_locator());
+  if (not has_writer(account_location->location_uid)) {
+    return Napi::Boolean::New(info.Env(), false);
+  }
+  get_writer(account_location->location_uid)->mark(time::now_in_nano(), tag);
+  return Napi::Boolean::New(info.Env(), true);
+}
+
 Napi::Value Watcher::CancelOrder(const Napi::CallbackInfo &info) {
   SPDLOG_INFO("cancel order manually");
   return InteractWithTD<OrderAction>(info, info[0].ToObject(), &OrderAction::order_action_id);
@@ -409,6 +420,7 @@ void Watcher::Init(Napi::Env env, Napi::Object exports) {
                       InstanceMethod("issueOrder", &Watcher::IssueOrder),               //
                       InstanceMethod("issueBasketOrder", &Watcher::IssueBasketOrder),   //
                       InstanceMethod("issueAlgoOrder", &Watcher::IssueAlgoOrder),       //
+                      InstanceMethod("issueMark", &Watcher::IssueMark),                 //
                       InstanceMethod("cancelOrder", &Watcher::CancelOrder),             //
                       InstanceMethod("cancelAlgoOrder", &Watcher::CancelAlgoOrder),     //
                       InstanceMethod("requestMarketData", &Watcher::RequestMarketData), //

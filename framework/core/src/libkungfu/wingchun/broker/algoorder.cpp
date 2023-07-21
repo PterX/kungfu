@@ -23,7 +23,7 @@ void AlgoOrderService::on_algo_order_input(const event_ptr &event,
   }
 }
 
-void AlgoOrderService::update_algo_order(const longfist::types::Order &order) {
+void AlgoOrderService::on_order(const longfist::types::Order &order) {
   if (order.parent_id == UINT64_ZERO) {
     return;
   }
@@ -56,7 +56,7 @@ void AlgoOrderService::update_algo_order(const longfist::types::Order &order) {
   vendor_.get_writer(dest)->write(time::now_in_nano(), target_algo_order);
 }
 
-void AlgoOrderService::update_algo_order(int64_t gen_time, uint32_t source, uint32_t dest,
+void AlgoOrderService::on_algo_order(int64_t gen_time, uint32_t source, uint32_t dest,
                                          const longfist::types::AlgoOrder &algo_order) {
   // this function fullfill all inner write AlgoOrder demand
   state<AlgoOrder> algo_order_state(dest, source, gen_time, algo_order);

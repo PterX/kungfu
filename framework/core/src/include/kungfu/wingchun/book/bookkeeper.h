@@ -145,6 +145,8 @@ private:
 
   void update_instrument(const longfist::types::Instrument &instrument);
 
+  void update_commission(const event_ptr &event, const longfist::types::Commission &commission);
+
   void update_instrument_factor(const longfist::types::InstrumentFactor &instrument_factor);
 
   void try_update_asset(const longfist::types::Asset &asset);

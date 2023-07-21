@@ -97,6 +97,8 @@ public:
 
   Napi::Value IssueAlgoOrder(const Napi::CallbackInfo &info);
 
+  Napi::Value IssueMark(const Napi::CallbackInfo &info);
+
   Napi::Value CancelOrder(const Napi::CallbackInfo &info);
 
   Napi::Value CancelAlgoOrder(const Napi::CallbackInfo &info);

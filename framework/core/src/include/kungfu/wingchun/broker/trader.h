@@ -49,9 +49,9 @@ public:
 
   void on_algo_order_input(const event_ptr &event, const longfist::types::AlgoOrderInput &algo_order_input);
 
-  void update_algo_order(const longfist::types::Order &order);
+  void on_order(const longfist::types::Order &order);
 
-  void update_algo_order(int64_t gen_time, uint32_t source, uint32_t dest,
+  void on_algo_order(int64_t gen_time, uint32_t source, uint32_t dest,
                          const longfist::types::AlgoOrder &algo_order);
 
   void cancel_algo_order(const event_ptr &event, const longfist::types::AlgoOrderAction &algo_order_action);
@@ -150,6 +150,8 @@ public:
   virtual bool req_position() = 0;
 
   virtual bool req_account() = 0;
+
+  virtual bool req_order_trigger() { return true; }
 
   virtual bool req_history_order(const event_ptr &event) { return true; }
 

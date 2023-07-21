@@ -217,6 +217,7 @@ void bind_enums(py::module &m) {
 
   py::enum_<OrderActionFlag>(m_enums, "OrderActionFlag", py::arithmetic())
       .value("Cancel", OrderActionFlag::Cancel)
+      .value("Insert", OrderActionFlag::Insert)
       .value("TriggerCancel", OrderActionFlag::TriggerCancel)
       .export_values()
       .def("__eq__", [](const OrderActionFlag &a, int b) { return static_cast<int>(a) == b; });

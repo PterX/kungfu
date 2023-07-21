@@ -115,7 +115,7 @@ Watcher::Watcher(const Napi::CallbackInfo &info)
     : ObjectWrap(info),                                                                           //
       apprentice(GetWatcherLocation(info), true),                                                 //
       bypass_quote_(GetBool(info, 3)),                                                            //
-      bypass_trading_data_(GetBool(info, 4)),                                                     //
+      bypass_trading_data_(GetBool(info, 4)),                                                   //
       refresh_trading_data_before_sync_(GetBool(info, 5)),                                        //
       milliseconds_sleep_after_step_(GetMillisecondsSleepAfterStep(info)),                        //
       broker_client_(*this, bypass_trading_data_),                                                //

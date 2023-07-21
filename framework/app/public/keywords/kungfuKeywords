@@ -334,9 +334,12 @@ enable_positions_sync
 get_account_type
 insert_block_message
 insert_order
+insert_order_trigger
 insert_batch_orders
 on_time_key_value
+on_custom_event
 cancel_order
+cancel_order_trigger
 req_history_order
 req_history_trade
 enable_self_detect
@@ -369,11 +372,9 @@ on_operator_state_change
 add_strategy
 add_account
 insert_order_input
-insert_order_trigger
 insert_array_orders
 insert_basket_order
 insert_algo_order
-cancel_order_trigger
 cancel_algo_order
 hold_book
 hold_positions
@@ -403,6 +404,9 @@ is_valid_price
 is_final_status
 get_instrument_type
 order_from_input
+trade_from_order
+order_trigger_from_input
+order_trigger_from_order
 now_in_nano
 strftime
 strptime
@@ -504,6 +508,9 @@ SZSE
 HKEx
 MarketType
 Snapshot
+Entrust
+Transaction
+Tree
 SubscribeDataType
 Stock
 Future

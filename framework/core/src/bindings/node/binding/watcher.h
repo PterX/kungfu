@@ -427,6 +427,11 @@ private:
       }
 
       auto strategy_location = IODevice::ExtractLocation(info, 2, get_locator());
+
+      if (not strategy_location) {
+        return Napi::BigInt::New(info.Env(), std::uint64_t(0));
+      }
+
       if (not has_location(strategy_location->uid)) {
         add_location(trigger_time, strategy_location);
         master_cmd_writer->write(trigger_time,

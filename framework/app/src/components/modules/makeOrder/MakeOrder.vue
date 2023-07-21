@@ -711,7 +711,7 @@ const handlePercentChange = (target: number) => {
   }
 
   formState.value.volume = dealVolumeByInstrumentType(
-    Math.round(targetVolume),
+    Math.floor(targetVolume),
     instrumentResolved.value?.instrumentType,
   );
   if (formState.value.volume) {

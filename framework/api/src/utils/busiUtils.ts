@@ -1596,7 +1596,7 @@ export const dealVolumeByInstrumentType = (
 
   if (instrumentType === InstrumentTypeEnum.techstock) return orderVolume;
 
-  return Math.round(orderVolume / minOrderVolume) * minOrderVolume;
+  return Math.floor(orderVolume / minOrderVolume) * minOrderVolume;
 };
 
 export const dealSide = (

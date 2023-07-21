@@ -310,9 +310,9 @@ NLOHMANN_JSON_SERIALIZE_ENUM(HedgeFlag, {
 inline std::ostream &operator<<(std::ostream &os, HedgeFlag t) { return os << int8_t(t); }
 
 enum class OrderActionFlag : int8_t {
-  Insert,       /// 预埋下单
-  Cancel,       /// 普通撤单
-  TriggerCancel /// 预埋撤单
+  Cancel,        /// 普通撤单
+  TriggerCancel, /// 预埋撤单
+  Insert         /// 预埋下单
 };
 
 NLOHMANN_JSON_SERIALIZE_ENUM(OrderActionFlag, {

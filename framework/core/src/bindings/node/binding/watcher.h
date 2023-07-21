@@ -95,6 +95,8 @@ public:
 
   Napi::Value IssueBasketOrder(const Napi::CallbackInfo &info);
 
+  Napi::Value IssueMark(const Napi::CallbackInfo &info);
+
   Napi::Value CancelOrder(const Napi::CallbackInfo &info);
 
   Napi::Value RequestMarketData(const Napi::CallbackInfo &info);

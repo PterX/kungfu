@@ -1024,7 +1024,7 @@ function parseNumberBeforeFormat(
   parser: (val: string) => number,
 ): number {
   const formattedValue = parser(`${value}`);
-  formState.value[key] = formattedValue;
+  formState.value[key] = formattedValue; // a-input-number 通过 formatter 展示的结果没有同步到真实的响应式数据上, 手动赋值
   return formattedValue;
 }
 

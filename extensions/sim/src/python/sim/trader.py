@@ -72,8 +72,8 @@ class TraderSim(wc.Trader):
         trigger_input = event.OrderTriggerInput()
         self.logger.info(f"OrderTriggerInput: {trigger_input}")
         trigger = order = wc.utils.order_trigger_from_input(trigger_input)
-        trigger.inset_time = yjj.now_in_nano()
-        trigger.update_time = trigger.inset_time
+        trigger.insert_time = yjj.now_in_nano()
+        trigger.update_time = trigger.insert_time
         self.logger.info(f"OrderTrigger: {trigger}")
         self.get_writer(event.source).write(event.gen_time, trigger)
 

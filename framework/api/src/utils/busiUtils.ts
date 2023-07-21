@@ -38,6 +38,8 @@ import {
   InstrumentMinOrderVolume,
   KfDefaultSystemProcess,
   ExportTradingDataColumnsToFilter,
+  ParkedType,
+  OrderTriggerStatus,
 } from '../config/tradingConfig';
 import {
   KfCategoryEnum,
@@ -66,6 +68,8 @@ import {
   PriceLevelEnum,
   CurrencyEnum,
   HistoryDateEnum,
+  ParkedTypeEnum,
+  OrderTriggerStatusEnum,
 } from '../typings/enums';
 import {
   graceDeleteProcess,
@@ -1664,6 +1668,18 @@ export const dealTimeCondition = (
   timeCondition: TimeConditionEnum | number,
 ): KungfuApi.KfTradeValueCommonData => {
   return TimeCondition[+timeCondition as TimeConditionEnum];
+};
+
+export const dealParkedType = (
+  parkedType: ParkedTypeEnum | number,
+): KungfuApi.KfTradeValueCommonData => {
+  return ParkedType[+parkedType as ParkedTypeEnum];
+};
+
+export const dealOrderTriggerStatus = (
+  orderTriggerStatus: OrderTriggerStatusEnum | number,
+): KungfuApi.KfTradeValueCommonData => {
+  return OrderTriggerStatus[+orderTriggerStatus as OrderTriggerStatusEnum];
 };
 
 export const dealVolumeCondition = (

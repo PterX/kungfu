@@ -218,7 +218,7 @@ module.exports = {
   mac: {
     icon: icnsLogoPathResolved,
     type: 'distribution',
-    target: ['dmg', ...[ifZipTargetEnable('mac') ? ['zip'] : []]],
+    target: ['dmg', ...(ifZipTargetEnable('mac') ? ['zip'] : [])],
   },
   win: {
     icon: icoLogoPathResolved,
@@ -227,8 +227,8 @@ module.exports = {
         target: 'nsis',
         arch: ['x64'],
       },
-      ...[
-        ifZipTargetEnable('mac')
+      ...(
+        ifZipTargetEnable('win')
           ? [
               {
                 target: 'zip',
@@ -236,12 +236,12 @@ module.exports = {
               },
             ]
           : [],
-      ],
+      ),
     ],
   },
   linux: {
     icon: icnsLogoPathResolved,
-    target: ['rpm', 'appimage', ...[ifZipTargetEnable('mac') ? ['zip'] : []]],
+    target: ['rpm', 'appimage', ...(ifZipTargetEnable('linux') ? ['zip'] : [])],
     executableName: 'Kungfu.app',
   },
   nsis: {

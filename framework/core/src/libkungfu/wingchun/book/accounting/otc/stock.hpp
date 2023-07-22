@@ -97,6 +97,7 @@ public:
         SPDLOG_DEBUG("OtcStockAccountingMethod: apply_quote  Direction::Short instrument_id= {}",
                      position.instrument_id);
       }
+      update_position(book, position);
     };
     apply(book->get_position_for(Direction::Long, quote));
     apply(book->get_position_for(Direction::Short, quote));

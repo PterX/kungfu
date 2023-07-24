@@ -18,6 +18,7 @@ from kungfu.yijinjing.practice.master import Master
 from kungfu.yijinjing.practice.coloop import KungfuEventLoop
 from kungfu.wingchun.strategy import Runner, Strategy
 from kungfu.wingchun.sliceindexer import SliceIndexer
+from kungfu.wingchun.report import Report
 from kungfu.wingchun.operator import OpRunner, Operator
 
 from collections import deque
@@ -303,6 +304,9 @@ class ExtensionExecutor:
             )
             ctx.runner.set_from_indexer(from_indexer)
             ctx.runner.set_to_indexer(to_indexer)
+            report = load_report(ctx, ctx.report)
+            if report:
+                ctx.runner.set_report(report)
         ctx.runner.add_strategy(ctx.strategy)
         if kfj.MODES[ctx.mode] == lf.enums.mode.LIVE:
             ctx.loop = KungfuEventLoop(ctx, ctx.runner)
@@ -360,6 +364,9 @@ class ExtensionExecutor:
             )
             ctx.op_runner.set_from_indexer(from_indexer)
             ctx.op_runner.set_to_indexer(to_indexer)
+            report = load_report(ctx, ctx.report)
+            if report:
+                ctx.op_runner.set_report(report)
         # ctx.runner = self.load_runner(ctx)
         ctx.op_runner.add_operator(ctx.operator)
         ctx.op_runner.run()
@@ -387,6 +394,7 @@ class ExtensionExecutor:
         to_indexer = wc.SliceIndexer(begin, end)
         if ctx.from_indexer:
             from_indexer = SliceIndexer(ctx, begin, end, ctx.from_indexer)
+            # from_indexer = wc.DayIndexer(begin, end)
         if ctx.to_indexer:
             to_indexer = SliceIndexer(ctx, begin, end, ctx.to_indexer)
         return from_indexer, to_indexer
@@ -426,6 +434,30 @@ def load_matcher(ctx, path):
     except Exception as e:
         ctx.logger.debug("load_matcher failed: {}".format(e))
         ctx.logger.warn("matcher path: {} cannot be import by python".format(path))
+        return None
+
+
+def load_report(ctx, path):
+    cls = Report
+    try:
+        if path.endswith(".py") or os.path.isdir(path):
+            return cls(ctx)  # keep strategy alive for pybind11
+        elif path.endswith(".so") or path.endswith(".pyd"):
+            sys.path.append(str(Path(path).parent))
+            lib_name = Path(path).stem.split(".")[0]
+            try:
+                module = importlib.import_module(lib_name)
+                ctx.logger.debug(f"import as cpp {lib_name} success")
+                factory_func = getattr(module, cls.__name__.lower())
+                return factory_func()
+            except Exception as e:
+                ctx.logger.debug(f"fallback to python loader due to: {e}")
+                ctx.report = os.path.join(os.path.dirname(path), lib_name)
+                return cls(ctx)
+        raise FileNotFoundError(f"report path: {path} not found")
+    except Exception as e:
+        ctx.logger.debug("load_report failed: {}".format(e))
+        ctx.logger.critical("report path: {} cannot be imported".format(path))
         return None
 
 

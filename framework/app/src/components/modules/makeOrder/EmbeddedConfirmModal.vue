@@ -52,7 +52,6 @@ const formData = computed<Record<string, KungfuApi.KfTradeValueCommonData>>(
     const results = Object.keys(props.embeddedOrderInput).reduce((pre, key) => {
       if (
         props.embeddedOrderInput[key].name !== '' &&
-        key !== 'price_type' &&
         transKeys.includes(key)
       ) {
         pre[key] = props.embeddedOrderInput[key];

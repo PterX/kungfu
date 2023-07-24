@@ -6,17 +6,34 @@ import {
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 const { t } = VueI18n.global;
 
+const buildSorter =
+  (dataIndex: keyof KungfuApi.OrderTriggerResolved) =>
+  (a: KungfuApi.OrderTriggerResolved, b: KungfuApi.OrderTriggerResolved) =>
+    (+Number(a[dataIndex]) || 0) - (+Number(b[dataIndex]) || 0);
+
+const buildStrSorter =
+  (dataIndex: keyof KungfuApi.OrderTriggerResolved) =>
+  (a: KungfuApi.OrderTriggerResolved, b: KungfuApi.OrderTriggerResolved) =>
+    a[dataIndex].toString().localeCompare(b[dataIndex].toString());
+
 export const getColumns = (): AntTableColumns => [
   {
     title: t('orderConfig.update_time'),
     dataIndex: 'update_time_resolved',
     align: 'left',
+    defaultSortOrder: 'descend',
+    sorter: {
+      compare: buildSorter('update_time'),
+    },
     width: 100,
   },
   {
     title: t('orderConfig.instrument_id'),
     dataIndex: 'instrument_id',
     align: 'left',
+    sorter: {
+      compare: buildStrSorter('instrument_id'),
+    },
     width: 80,
   },
   {
@@ -35,12 +52,18 @@ export const getColumns = (): AntTableColumns => [
     title: t('orderConfig.limit_price'),
     dataIndex: 'limit_price_resolved',
     align: 'right',
+    sorter: {
+      compare: buildSorter('limit_price_resolved'),
+    },
     width: 120,
   },
   {
     title: t('orderConfig.entrust_volume'),
     dataIndex: 'volume',
     align: 'right',
+    sorter: {
+      compare: buildSorter('volume'),
+    },
     width: 120,
   },
   {

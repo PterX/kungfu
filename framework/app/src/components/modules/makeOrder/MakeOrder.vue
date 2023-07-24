@@ -30,6 +30,7 @@ import {
   PriceTypeEnum,
   TimeConditionEnum,
   OrderTriggerParkedTypeEnum,
+  OrderTriggerTypeEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
   useCurrentGlobalKfLocation,
@@ -616,11 +617,9 @@ const embeddedOrderInputResolved = ref<
 >({});
 const embeddedOrderInput = ref<KungfuApi.MakeOrderInput>();
 const embeddedBtnVisible = computed(() => {
-  if (
-    currentGlobalKfLocation.value?.group === 'ctp' ||
-    currentGlobalKfLocation.value?.group === 'rongh' ||
-    currentGlobalKfLocation.value?.group === 'sim'
-  ) {
+  const tdName = currentGlobalKfLocation.value?.group as string;
+  const extConfig = extConfigs.value.td[tdName];
+  if (extConfig && extConfig.orderTrigger[OrderTriggerTypeEnum.MakeOrder]) {
     const { instrument, side } = formState.value;
     if (!instrument) {
       return false;

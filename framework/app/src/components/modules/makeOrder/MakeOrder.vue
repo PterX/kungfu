@@ -47,6 +47,7 @@ import {
   initFormStateByConfig,
   isShotable,
   dealOrderInputItem,
+  transformSearchInstrumentResultToInstrument,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import OrderConfirmModal from './OrderConfirmModal.vue';
 import EmbeddedConfirmModal from './EmbeddedConfirmModal.vue';
@@ -621,9 +622,14 @@ const embeddedBtnVisible = computed(() => {
     currentGlobalKfLocation.value?.group === 'sim'
   ) {
     const { instrument, side } = formState.value;
+    if (!instrument) {
+      return false;
+    }
+    const { instrumentType } = transformSearchInstrumentResultToInstrument(
+      instrument,
+    ) as KungfuApi.InstrumentResolved;
     if (
-      (instrument as KungfuApi.Instrument).instrument_type ===
-        InstrumentTypeEnum.future &&
+      instrumentType === InstrumentTypeEnum.future &&
       side !== SideEnum.Exec
     ) {
       return true;

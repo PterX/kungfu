@@ -1528,28 +1528,3 @@ declare namespace KfEvent {
     | TriggerCloseGlobalSettingModal
     | TriggerSetCurrentConfigModalConfigSettings;
 }
-
-declare namespace OrderTrigger {
-  enum OrderTriggerTypeEnum {
-    CancelOrder,
-    MakeOrder,
-  }
-
-  // 预埋方式
-  enum OrderTriggerParkedTypeEnum {
-    Server,
-    Local,
-  }
-
-  enum OrderTriggerTimeConditionEnum {
-    GFA = TimeConditionEnum.GFA,
-  }
-
-  enum OrderTriggerStatusEnum {
-    Unknown,
-    Pending = OrderStatusEnum.Pending, // 已提交
-    Submitted = OrderStatusEnum.Submitted, // 未触发
-    Filled = OrderStatusEnum.Filled, // 已触发
-    Cancelled = OrderStatusEnum.Cancelled, // 已取消
-  }
-}

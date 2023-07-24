@@ -157,7 +157,6 @@ void bind_broker(pybind11::module &m) {
       .def("cancel_order_trigger", &Trader::cancel_order_trigger)
       .def("req_history_order", &Trader::req_history_order)
       .def("req_history_trade", &Trader::req_history_trade)
-      .def("enable_self_detect", &Trader::enable_self_detect)
       .def("req_account", &Trader::req_account)
       .def("req_position", &Trader::req_position)
       .def("get_vendor", &Trader::get_vendor);

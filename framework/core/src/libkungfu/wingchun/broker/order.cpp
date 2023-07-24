@@ -12,7 +12,8 @@ using namespace kungfu::yijinjing::util;
 
 namespace kungfu::wingchun::broker {
 
-void OrderService::on_order_input(const event_ptr &event, const longfist::types::OrderInput &order_input) {
+void OrderService::on_order_input(const event_ptr &event) {
+  auto &order_input = event->data<OrderInput>();
   // try_emplace default insert false to map, means not batch mode
   if (batch_status_.try_emplace(event->source()).first->second) {
     batch_order_inputs_.try_emplace(event->source()).first->second.push_back(order_input);
@@ -28,16 +29,17 @@ void OrderService::on_order_input(const event_ptr &event, const longfist::types:
   get_service().insert_order(event);
 }
 
+void OrderService::on_order_action(const event_ptr &event) { get_service().cancel_order(event); }
+
 void OrderService::on_order(uint32_t source, uint32_t dest, int64_t gen_time, const Order &order) {
-    state<Order> order_state(source, dest, gen_time, order);
-    orders_.insert_or_assign(order.order_id, order_state);
+  state<Order> order_state(source, dest, gen_time, order);
+  orders_.insert_or_assign(order.order_id, order_state);
 }
 
-void OrderService::on_trade(uint32_t source, uint32_t dest, int64_t gen_time, const Trade& trade) {
-    state<Trade> trade_state(source, dest, gen_time, trade);
-    trades_.insert_or_assign(trade.trade_id, trade_state);
+void OrderService::on_trade(uint32_t source, uint32_t dest, int64_t gen_time, const Trade &trade) {
+  state<Trade> trade_state(source, dest, gen_time, trade);
+  trades_.insert_or_assign(trade.trade_id, trade_state);
 }
-
 
 void OrderService::on_batch_order_tag(const event_ptr &event) {
   if (event->msg_type() == BatchOrderBegin::tag) {
@@ -62,7 +64,7 @@ void OrderService::on_block_message(const longfist::types::BlockMessage &block_m
 void OrderService::clear_batch_order_inputs(uint32_t location_uid) { batch_order_inputs_.erase(location_uid); }
 
 void OrderService::clean_orders(bool bypass_recover) {
-std::for_each(orders_.begin(), orders_.end(), [&](auto &pair) {
+  std::for_each(orders_.begin(), orders_.end(), [&](auto &pair) {
     Order &order = pair.second.data;
     if (not is_final_status(order.status) and (bypass_recover or order.external_order_id.to_string().empty())) {
       order.status = OrderStatus::Lost;
@@ -75,29 +77,27 @@ std::for_each(orders_.begin(), orders_.end(), [&](auto &pair) {
 }
 
 void OrderService::clean_orders(uint32_t source, const OrderInput &order_input, bool bypass_recover) {
-    if (orders_.find(order_input.order_id) != orders_.end()) {
-        return;
-    }
-    if (not vendor_.has_writer(source)) {
-        return;
-    }
-    
-    auto writer = vendor_.get_writer(source);
-    Order &order = writer->open_data<Order>();
-    order_from_input(order_input, order);
-    order.status = OrderStatus::Lost;
-    order.update_time = time::now_in_nano();
-    writer->close_data();
+  if (orders_.find(order_input.order_id) != orders_.end()) {
+    return;
+  }
+  if (not vendor_.has_writer(source)) {
+    return;
+  }
+
+  auto writer = vendor_.get_writer(source);
+  Order &order = writer->open_data<Order>();
+  order_from_input(order_input, order);
+  order.status = OrderStatus::Lost;
+  order.update_time = time::now_in_nano();
+  writer->close_data();
 }
 
-const OrderMap& OrderService::get_orders() const {
-    return orders_;
-}
+const OrderMap &OrderService::get_orders() const { return orders_; }
 
-const TradeMap& OrderService::get_trades() const {
-    return trades_;
-}
+bool OrderService::has_order(uint64_t order_id) const { return orders_.find(order_id) != orders_.end(); }
 
-void OrderService::on_active() {}
+kungfu::state<longfist::types::Order> &OrderService::get_order(uint64_t order_id) { return orders_.at(order_id); }
+
+const TradeMap &OrderService::get_trades() const { return trades_; }
 
 } // namespace kungfu::wingchun::broker

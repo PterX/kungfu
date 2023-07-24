@@ -87,7 +87,6 @@ bool TraderXTP::insert_order(const event_ptr &event) {
     order.status = OrderStatus::Error;
   }
 
-  orders_.emplace(order.uid(), state<Order>(event->dest(), event->source(), nano, order));
   SPDLOG_DEBUG("Order: {}", order.to_string());
   writer->close_data();
   if (not success) {
@@ -106,9 +105,9 @@ bool TraderXTP::cancel_order(const event_ptr &event) {
     return false;
   }
 
-  auto order_state_iter = orders_.find(action.order_id);
-  if (order_state_iter == orders_.end()) {
-    SPDLOG_ERROR("order_id {} not in orders_", action.order_id);
+  auto order_state_iter = get_orders().find(action.order_id);
+  if (order_state_iter == get_orders().end()) {
+    SPDLOG_ERROR("order_id {} not in get_orders()", action.order_id);
     return false;
   }
 
@@ -195,8 +194,8 @@ bool TraderXTP::custom_OnOrderEvent(const XTPOrderInfo &order_info, const XTPRI 
   }
 
   uint64_t kf_order_id = order_xtp_id_iter->second;
-  auto order_state_iter = orders_.find(kf_order_id);
-  if (order_state_iter == orders_.end()) {
+  auto order_state_iter = get_orders().find(kf_order_id);
+  if (order_state_iter == get_orders().end()) {
     return generate_external_order(order_info);
   }
 
@@ -242,7 +241,6 @@ bool TraderXTP::generate_external_order(const XTPOrderInfo &order_info) {
   from_xtp(order_info, order);
   order.insert_time = nano;
   order.update_time = nano;
-  orders_.emplace(order.uid(), state<Order>(get_home_uid(), location::PUBLIC, nano, order));
   map_kf_to_xtp_order_id_.emplace(uint64_t(order.order_id), order_info.order_xtp_id);
   map_xtp_to_kf_order_id_.emplace(order_info.order_xtp_id, uint64_t(order.order_id));
   SPDLOG_DEBUG("Order: {}", order.to_string());
@@ -282,9 +280,9 @@ bool TraderXTP::custom_OnTradeEvent(const XTPTradeReport &trade_info, uint64_t s
   }
 
   uint64_t kf_order_id = order_xtp_id_iter->second;
-  auto order_state_iter = orders_.find(kf_order_id);
-  if (order_state_iter == orders_.end()) {
-    SPDLOG_ERROR("order_id: {} not in orders_", kf_order_id);
+  auto order_state_iter = get_orders().find(kf_order_id);
+  if (order_state_iter == get_orders().end()) {
+    SPDLOG_ERROR("order_id: {} not in get_orders()", kf_order_id);
     return false;
   }
 
@@ -366,9 +364,9 @@ bool TraderXTP::custom_OnCancelOrderError(const XTPOrderCancelInfo &cancel_info,
     return false;
   }
 
-  auto order_state_iter = orders_.find(order_xtp_id_iter->second);
-  if (order_state_iter == orders_.end()) {
-    SPDLOG_WARN("kf_order_id not in orders_", order_xtp_id_iter->second);
+  auto order_state_iter = get_orders().find(order_xtp_id_iter->second);
+  if (order_state_iter == get_orders().end()) {
+    SPDLOG_WARN("kf_order_id not in get_orders()", order_xtp_id_iter->second);
     return false;
   }
 
@@ -629,7 +627,7 @@ bool TraderXTP::custom_OnQueryTrade(const XTPTradeReport &trade_info, const XTPR
 }
 
 void TraderXTP::on_recover() {
-  for (auto &pair : orders_) {
+  for (auto &pair : get_orders()) {
     const std::string str_external_order_id = pair.second.data.external_order_id.to_string();
     if (not str_external_order_id.empty()) {
       uint64_t order_id = pair.first;
@@ -638,7 +636,7 @@ void TraderXTP::on_recover() {
       map_kf_to_xtp_order_id_.emplace(order_id, order_xtp_id);
     }
   }
-  for (auto &pair : trades_) {
+  for (auto &pair : get_trades()) {
     SPDLOG_DEBUG("trade: {}", pair.second.data.to_string());
     uint64_t order_xtp_id = std::stoull(pair.second.data.external_order_id);
     map_xtp_order_id_to_xtp_trader_ids_.try_emplace(order_xtp_id)

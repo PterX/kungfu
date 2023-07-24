@@ -12,14 +12,35 @@ using namespace kungfu::yijinjing::util;
 
 namespace kungfu::wingchun::broker {
 
-void AlgoOrderService::on_algo_order_input(const event_ptr &event,
-                                           const longfist::types::AlgoOrderInput &algo_order_input) {
+void AlgoOrderService::on_algo_order_input(const event_ptr &event) {
+
+  auto &algo_order_input = event->data<AlgoOrderInput>();
   if (algo_order_input.is_local) {
     SPDLOG_INFO("on_algo_order_input algo_order_id {}", algo_order_input.order_id);
     state<AlgoOrderInput> algo_order_input_state(event->source(), event->dest(), event->gen_time(), algo_order_input);
     local_algo_order_inputs_.insert_or_assign(algo_order_input.order_id, algo_order_input_state);
   }
   get_service().insert_algo_order(event);
+}
+
+void AlgoOrderService::on_algo_order_action(const event_ptr &event) {
+  // no algo order action resolution for local algo order;
+  auto &algo_order_action = event->data<AlgoOrderAction>();
+  if (local_algo_orders_.find(algo_order_action.order_id) == local_algo_orders_.end()) {
+    get_service().cancel_algo_order(event);
+    return;
+  }
+
+  auto &algo_order_state = local_algo_orders_.at(algo_order_action.order_id);
+  auto &algo_order = algo_order_state.data;
+  auto dest = algo_order_state.dest;
+  auto algo_order_is_final = is_final_status(algo_order.status);
+  if (algo_order.volume == algo_order.volume_left) {
+    algo_order.status = OrderStatus::Cancelled;
+  } else if (not algo_order_is_final) {
+    algo_order.status = OrderStatus::PartialFilledNotActive;
+  }
+  vendor_.get_writer(dest)->write(time::now_in_nano(), algo_order);
 }
 
 void AlgoOrderService::on_order(const longfist::types::Order &order) {
@@ -122,28 +143,6 @@ int64_t AlgoOrderService::get_volume_traded(uint64_t algo_order_id) {
   return traded_volume;
 }
 
-void AlgoOrderService::cancel_algo_order(const event_ptr &event,
-                                         const longfist::types::AlgoOrderAction &algo_order_action) {
-  // no algo order action resolution for local algo order;
-  if (local_algo_orders_.find(algo_order_action.order_id) == local_algo_orders_.end()) {
-    get_service().cancel_algo_order(event);
-    return;
-  }
-
-  auto &algo_order_state = local_algo_orders_.at(algo_order_action.order_id);
-  auto &algo_order = algo_order_state.data;
-  auto dest = algo_order_state.dest;
-  auto algo_order_is_final = is_final_status(algo_order.status);
-  if (algo_order.volume == algo_order.volume_left) {
-    algo_order.status = OrderStatus::Cancelled;
-  } else if (not algo_order_is_final) {
-    algo_order.status = OrderStatus::PartialFilledNotActive;
-  }
-  vendor_.get_writer(dest)->write(time::now_in_nano(), algo_order);
-}
-
-const AlgoOrderMap &AlgoOrderService::get_algo_orders() const { return algo_orders_; }
-
 void AlgoOrderService::clean_algo_orders(bool bypass_recover) {
   std::for_each(algo_orders_.begin(), algo_orders_.end(), [&](auto &pair) {
     AlgoOrder &algo_order = pair.second.data;
@@ -173,6 +172,16 @@ void AlgoOrderService::clean_algo_orders(uint32_t source, const AlgoOrderInput &
   algo_order.status = OrderStatus::Lost;
   algo_order.update_time = time::now_in_nano();
   vendor_.get_writer(source)->close_data();
+}
+
+const AlgoOrderMap &AlgoOrderService::get_algo_orders() const { return algo_orders_; }
+
+bool AlgoOrderService::has_algo_order(uint64_t algo_order_id) const {
+  return algo_orders_.find(algo_order_id) != algo_orders_.end();
+}
+
+kungfu::state<longfist::types::AlgoOrder> &AlgoOrderService::get_algo_order(uint64_t algo_order_id) {
+  return algo_orders_.at(algo_order_id);
 }
 
 void AlgoOrderService::on_active() {

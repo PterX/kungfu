@@ -61,11 +61,21 @@ const OrderService &Trader::get_order_service() const {
   return dynamic_cast<TraderVendor &>(get_vendor()).get_order_service();
 }
 
-const OrderMap& Trader::get_orders() const { return get_order_service().get_orders(); }
+OrderTriggerService &Trader::get_order_trigger_service() {
+  return dynamic_cast<TraderVendor &>(get_vendor()).get_order_trigger_service();
+}
 
-const TradeMap& Trader::get_trades() const { return get_order_service().get_trades(); }
+const OrderTriggerService &Trader::get_order_trigger_service() const {
+  return dynamic_cast<TraderVendor &>(get_vendor()).get_order_trigger_service();
+}
+
+const OrderMap &Trader::get_orders() const { return get_order_service().get_orders(); }
+
+const TradeMap &Trader::get_trades() const { return get_order_service().get_trades(); }
 
 const AlgoOrderMap &Trader::get_algo_orders() const { return get_algo_order_service().get_algo_orders(); }
+
+const OrderTriggerMap &Trader::get_order_triggers() const { return get_order_trigger_service().get_order_triggers(); }
 
 void Trader::enable_asset_sync() { sync_asset_ = true; }
 
@@ -97,8 +107,6 @@ void Trader::on_position_sync() {
   }
 }
 
-void Trader::enable_self_detect() { self_deal_detect_ = true; }
-
 void Trader::recover() {
   deal_write_frame();
   deal_read_frame();
@@ -124,8 +132,7 @@ void Trader::deal_write_frame() {
     }
     case OrderTrigger::tag: {
       const OrderTrigger &trigger = frame->data<OrderTrigger>();
-      triggers_.insert_or_assign(trigger.trigger_id,
-                                 state<OrderTrigger>(frame->source(), frame->dest(), frame->gen_time(), trigger));
+      get_order_trigger_service().on_order_trigger(frame->source(), frame->dest(), frame->gen_time(), trigger);
       break;
     }
     case AlgoOrder::tag: {
@@ -141,18 +148,7 @@ void Trader::deal_write_frame() {
   SPDLOG_DEBUG("after tracer read, count: {}", count);
 
   get_order_service().clean_orders(disable_recover_);
-
-  std::for_each(triggers_.begin(), triggers_.end(), [&](auto &pair) {
-    OrderTrigger &trigger = pair.second.data;
-    if (not is_final_status(trigger.status) and (disable_recover_ or trigger.external_trigger_id.to_string().empty())) {
-      trigger.status = OrderStatus::Lost;
-      trigger.update_time = time::now_in_nano();
-      if (has_writer(pair.second.dest)) {
-        write_to(trigger, pair.second.dest);
-      }
-    }
-  });
-
+  get_order_trigger_service().clean_order_triggers(disable_recover_);
   get_algo_order_service().clean_algo_orders(disable_recover_);
 }
 
@@ -172,15 +168,7 @@ void Trader::deal_read_frame() {
     }
     case OrderTriggerInput::tag: {
       const OrderTriggerInput &trigger_input = frame->data<OrderTriggerInput>();
-      if (triggers_.find(trigger_input.trigger_id) == triggers_.end()) {
-        if (has_writer(frame->source())) {
-          OrderTrigger &trigger = get_writer(frame->source())->open_data<OrderTrigger>();
-          order_trigger_from_input(trigger_input, trigger);
-          trigger.status = OrderStatus::Lost;
-          trigger.update_time = time::now_in_nano();
-          get_writer(frame->source())->close_data();
-        }
-      }
+      get_order_trigger_service().clean_order_triggers(frame->source(), trigger_input, disable_recover_);
       break;
     }
     case AlgoOrderInput::tag: {

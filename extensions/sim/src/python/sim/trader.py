@@ -37,7 +37,6 @@ class TraderSim(wc.Trader):
         self.match_mode = None
         self.logger = find_logger(self.home)
         self.map_block_msg = {}
-        self.enable_self_detect()
 
     def on_recover(self):
         pass

@@ -99,6 +99,7 @@ const props = withDefaults(
     passPrimaryKeySpecialWordsVerify?: boolean;
     isPrimaryDisabled?: boolean;
     willReplaceWholeFormState?: boolean;
+    formStyle?: Record<string, string>;
   }>(),
   {
     formState: () => ({}),
@@ -116,6 +117,7 @@ const props = withDefaults(
     passPrimaryKeySpecialWordsVerify: false,
     isPrimaryDisabled: false,
     willReplaceWholeFormState: false,
+    formStyle: () => ({}),
   },
 );
 
@@ -1108,6 +1110,7 @@ defineExpose({
     :colon="false"
     :scroll-to-first-error="true"
     :layout="layout"
+    :style="props.formStyle"
   >
     <a-form-item
       v-for="item in configSettings"
@@ -1988,6 +1991,9 @@ defineExpose({
                 class="table-in-config-setting-row"
                 :style="{
                   paddingBottom: item.noDivider ? '8px' : '',
+                  maxHeight: calcTableItemHeight(layout, !!item.noDivider),
+                  height: calcTableItemHeight(layout, !!item.noDivider),
+                  overflowY: 'hidden',
                 }"
               >
                 <div class="table-in-config-setting-row-from__wrap">

@@ -48,6 +48,8 @@ declare namespace KungfuApi {
     BasketOrderStatusEnum,
     SessionStatusEnum,
     CurrencyEnum,
+    ParkedTypeEnum,
+    OrderTriggerStatusEnum,
   } from './enums';
   import { Dayjs } from 'dayjs';
   import { Row } from 'fast-csv';
@@ -402,6 +404,10 @@ declare namespace KungfuApi {
     is_swap: boolean;
     parent_id: bigint;
   }
+  export interface MakeOrderTriggerInput extends MakeOrderInput {
+    parked_type: ParkedTypeEnum;
+    time_condition: TimeConditionEnum;
+  }
 
   export interface KfLogData {
     id: number;
@@ -651,6 +657,60 @@ declare namespace KungfuApi {
     source: number;
     dest: number;
     uid_key: string;
+  }
+
+  export interface OrderTriggerInput extends OrderInput {
+    parked_type: ParkedTypeEnum; // 预埋方式
+  }
+
+  export interface OrderTrigger {
+    order_id: bigint; //订单ID
+    external_order_id: string; //外部委托ID
+
+    insert_time: bigint; //订单写入时间
+    update_time: bigint; //订单更新时间
+
+    trading_day: string; //交易日
+    instrument_id: string; //合约ID
+    exchange_id: string; //交易所ID
+
+    instrument_type: InstrumentTypeEnum; //合约类型
+
+    limit_price: number; //价格
+    frozen_price: number; //冻结价格, 市价单冻结价格为0
+
+    volume: bigint; //数量
+
+    status: OrderTriggerStatusEnum; //订单状态
+
+    error_id: number; //错误ID
+    error_msg: string; //错误信息
+
+    is_swap: boolean;
+
+    side: SideEnum; //买卖方向
+    offset: OffsetEnum; //开平方向
+    hedge_flag: HedgeFlagEnum; //投机套保标识
+    price_type: PriceTypeEnum; //价格类型
+    volume_condition: VolumeConditionEnum; //成交量类型
+    time_condition: TimeConditionEnum; //成交时间类型
+    parked_type: ParkedTypeEnum; // 预埋方式
+
+    source: number;
+    dest: number;
+    uid_key: string;
+  }
+
+  export interface OrderTriggerResolved extends OrderTrigger {
+    update_time_resolved: string;
+    limit_price_resolved: string;
+    dest_uname: string;
+    source_uname: string;
+    status_uname: string;
+    source_resolved_data: KungfuApi.KfTradeValueCommonData;
+    dest_resolved_data: KungfuApi.KfTradeValueCommonData;
+    status_color: AntInKungfuColorTypes;
+    price_precision?: number;
   }
 
   export interface TimeKeyValue {
@@ -1027,6 +1087,11 @@ declare namespace KungfuApi {
       tdLocation: KfLocation,
       strategyLocation?: KfLocation,
     ): bigint;
+    issueOrderTrigger(
+      orderInput: OrderTriggerInput,
+      tdLocation: KfLocation,
+    ): bigint;
+    issueMark(msgType: number, tdLocation: KfLocation): boolean;
     issueBlockMessage(
       blockMessage: BlockMessage,
       tdLocation: KfLocation,

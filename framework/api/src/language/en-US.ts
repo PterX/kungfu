@@ -336,6 +336,7 @@ export default {
     archive: 'archive',
 
     place_order: 'Place Order',
+    embedded_order: 'Embedded Order',
     apart_order: 'Apart Order',
     reset_order: 'Reset',
     account: 'AccountId',

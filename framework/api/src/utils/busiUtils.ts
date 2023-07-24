@@ -68,7 +68,6 @@ import {
   PriceLevelEnum,
   CurrencyEnum,
   HistoryDateEnum,
-  ParkedTypeEnum,
   OrderTriggerStatusEnum,
   OrderTriggerTypeEnum,
   OrderTriggerParkedTypeEnum,
@@ -1728,9 +1727,9 @@ export const dealTimeCondition = (
 };
 
 export const dealParkedType = (
-  parkedType: ParkedTypeEnum | number,
+  parkedType: OrderTriggerParkedTypeEnum | number,
 ): KungfuApi.KfTradeValueCommonData => {
-  return ParkedType[+parkedType as ParkedTypeEnum];
+  return ParkedType[+parkedType as OrderTriggerParkedTypeEnum];
 };
 
 export const dealOrderTriggerStatus = (

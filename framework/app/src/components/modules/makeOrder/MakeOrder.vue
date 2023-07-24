@@ -29,7 +29,7 @@ import {
   SideEnum,
   PriceTypeEnum,
   TimeConditionEnum,
-  ParkedTypeEnum,
+  OrderTriggerParkedTypeEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
   useCurrentGlobalKfLocation,
@@ -677,7 +677,7 @@ async function handleEmbeddedOrder() {
 }
 
 function handleEmbeddedConfirm(data: {
-  parked_type: ParkedTypeEnum;
+  parked_type: OrderTriggerParkedTypeEnum;
   time_condition: TimeConditionEnum;
 }) {
   if (!currentGlobalKfLocation.value) return;

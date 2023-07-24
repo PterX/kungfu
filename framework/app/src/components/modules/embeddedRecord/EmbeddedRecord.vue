@@ -33,7 +33,7 @@ import { getModalSettings } from './config';
 import {
   InstrumentTypeEnum,
   OffsetEnum,
-  ParkedTypeEnum,
+  OrderTriggerParkedTypeEnum,
   SideEnum,
   TimeConditionEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
@@ -188,7 +188,7 @@ function handleConfirmBatchEmbedded(embedded: csvOrderInput[]) {
       price_type: +price_type,
       side: +side,
       offset: getResolvedOffset(+offset, +side, instrumentType),
-      parked_type: ParkedTypeEnum.Server,
+      parked_type: OrderTriggerParkedTypeEnum.Server,
       time_condition: TimeConditionEnum.GFA,
     };
 

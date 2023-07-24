@@ -137,7 +137,8 @@ function handleBatchModal() {
   }
   if (
     currentGlobalKfLocation.value?.group !== 'ctp' &&
-    currentGlobalKfLocation.value?.group !== 'rongh'
+    currentGlobalKfLocation.value?.group !== 'rongh' &&
+    currentGlobalKfLocation.value?.group !== 'sim'
   ) {
     error(t('tradingConfig.embedded_order_td_error'));
     return;
@@ -166,7 +167,7 @@ function handleConfirmBatchEmbedded(embedded: csvOrderInput[]) {
   }
 
   const notFutureRow: number[] = [];
-  const embeddedOrderPromises = embedded.map((item: csvOrderInput, index) => {
+  const embeddedOrderInputs = embedded.map((item: csvOrderInput, index) => {
     const { instrumentType } = transformSearchInstrumentResultToInstrument(
       item.instrument,
     ) as KungfuApi.InstrumentResolved;
@@ -191,11 +192,7 @@ function handleConfirmBatchEmbedded(embedded: csvOrderInput[]) {
       time_condition: TimeConditionEnum.GFA,
     };
 
-    return kfEmbeddedOrder(
-      window.watcher,
-      embeddedOrderInput,
-      currentGlobalKfLocation.value as KungfuApi.KfLocation,
-    );
+    return embeddedOrderInput;
   });
 
   if (notFutureRow.length > 0) {
@@ -205,6 +202,20 @@ function handleConfirmBatchEmbedded(embedded: csvOrderInput[]) {
         rowStr,
       }),
     );
+    return;
+  }
+
+  const embeddedOrderPromises = embeddedOrderInputs.map(
+    (embeddedOrderInput) => {
+      return kfEmbeddedOrder(
+        window.watcher,
+        embeddedOrderInput,
+        currentGlobalKfLocation.value as KungfuApi.KfLocation,
+      );
+    },
+  );
+
+  if (embeddedOrderPromises.length === 0) {
     return;
   }
 
@@ -329,6 +340,10 @@ function handleRequestOrderTrigger() {
       :label-col="4"
       :wrapper-col="17"
       :payload="setBatchEmbeddedConfigPayload"
+      :form-style="{
+        maxHeight: '700px',
+        overflow: 'auto',
+      }"
       @confirm="
         ({ formState }) => handleConfirmBatchEmbedded(formState.embedded)
       "

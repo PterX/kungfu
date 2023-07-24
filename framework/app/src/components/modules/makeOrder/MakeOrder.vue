@@ -614,24 +614,26 @@ const embeddedOrderInputResolved = ref<
   Record<string, KungfuApi.KfTradeValueCommonData>
 >({});
 const embeddedOrderInput = ref<KungfuApi.MakeOrderInput>();
-// const embeddedBtnVisible = computed(() => {
-//   if (
-//     currentGlobalKfLocation.value?.group === 'ctp' ||
-//     currentGlobalKfLocation.value?.group === 'rongh'
-//   ) {
-//     const { instrument, side } = formState.value;
-//     if (
-//       (instrument as KungfuApi.Instrument).instrument_type ===
-//       InstrumentTypeEnum.future && side !== SideEnum.Exec
-//     ) {
-//       return true;
-//     } else {
-//       return false;
-//     }
-//   } else {
-//     return false;
-//   }
-// });
+const embeddedBtnVisible = computed(() => {
+  if (
+    currentGlobalKfLocation.value?.group === 'ctp' ||
+    currentGlobalKfLocation.value?.group === 'rongh' ||
+    currentGlobalKfLocation.value?.group === 'sim'
+  ) {
+    const { instrument, side } = formState.value;
+    if (
+      (instrument as KungfuApi.Instrument).instrument_type ===
+        InstrumentTypeEnum.future &&
+      side !== SideEnum.Exec
+    ) {
+      return true;
+    } else {
+      return false;
+    }
+  } else {
+    return false;
+  }
+});
 
 // 预埋
 async function handleEmbeddedOrder() {
@@ -960,7 +962,11 @@ watch(
           <a-button class="make-order" @click="handleMakeOrder">
             {{ $t('tradingConfig.place_order') }}
           </a-button>
-          <a-button class="make-order" @click="handleEmbeddedOrder">
+          <a-button
+            class="make-order"
+            v-if="embeddedBtnVisible"
+            @click="handleEmbeddedOrder"
+          >
             {{ $t('tradingConfig.embedded_order') }}
           </a-button>
           <a-button @click="handleApartOrder">

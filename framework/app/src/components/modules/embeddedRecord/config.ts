@@ -284,7 +284,7 @@ export const getModalSettings = (): KungfuApi.KfConfigItem[] => {
         {
           key: 'limit_price',
           name: t('orderConfig.limit_price'),
-          type: 'str',
+          type: 'float',
           required: true,
         },
       ],

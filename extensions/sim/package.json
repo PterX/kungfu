@@ -95,7 +95,13 @@
             "errMsg": "sim.match_mode_error",
             "required": true
           }
-        ]
+        ],
+        "embedded": {
+          "parkedType": {
+            "server": true,
+            "local": false
+          }
+        }
       },
       "md": {
         "type": "multi"

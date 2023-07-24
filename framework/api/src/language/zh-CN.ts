@@ -96,6 +96,7 @@ export default {
   Operator: '算子',
   Trade: '成交记录',
   Order: '委托记录',
+  EmbeddedRecord: '预埋单记录',
   PosGlobal: '持仓汇总',
   Pos: '持仓',
 
@@ -234,6 +235,9 @@ export default {
     IOC: 'IOC',
     GFD: 'GFD',
     GTC: 'GTC',
+    GFS: 'GFS',
+    GTD: 'GTD',
+    GFA: '集合竞价',
 
     stock: '股票',
     future: '期货',
@@ -333,6 +337,29 @@ export default {
     archive: '归档服务',
 
     place_order: '下单',
+    embedded_order: '预埋',
+    embedded_order_title: '预埋单确认',
+    server_embedded_label: '服务器预埋单',
+    local_embedded_label: '本地预埋单',
+    order_trigger_status_pending: '已提交',
+    order_trigger_status_submitted: '未触发',
+    order_trigger_status_filled: '已触发',
+    order_trigger_status_cancelled: '已取消',
+    batch: '批量',
+    batch_embedded: '批量预埋单',
+    embedded_order_td_error: '请选择ctp或融杭柜台',
+    embedded_order_not_future: '批量埋单中, 第{rowStr}不是期货, 下单失败',
+    batch_embedded_results: '批量埋单成功 {success} 条, 失败 {error} 条',
+    instrument_id_header_desc:
+      '标的代码, （* 仅可填ctp/融航柜台支持的期货标的）',
+    exchange_id_header_desc:
+      '交易所 ID, 字符串, 可填 SSE(上交所), SZE(深交所), BSE(北交所), SHFE(上期所), DCE(大商所), CZCE(郑商所), CFFEX(中金所), INE(能源中心)',
+    side_header_desc: '买卖, 可填 0买/ 1卖',
+    offset_header_desc: '开平,可填 0开/ 1平 / 2平今 / 3平昨',
+    price_type_header_desc:
+      '0限价/ 1市价/ 2上海深圳最优五档即时成交剩余撤销/ 3深圳本方最优价格申报/ 4上海最优五档即时成交剩余转限价,深圳对手方最优价格申报/ 5深圳即时成交剩余撤销/ 6深圳市价全额成交或者撤销/ 7增强限价盘/ 8竞价限价盘/ 9竞价盘',
+    volume_header_desc: '交易量',
+    limit_price_header_desc: '价格',
     apart_order: '拆单',
     reset_order: '重置',
     account: '账户',
@@ -389,6 +416,9 @@ export default {
     max: '最高委托价',
     min: '最低委托价',
     volume: '成交量',
+    entrust_volume: '委托量',
+    time_condition: '触发时间',
+    parked_type: '预埋方式',
 
     checkbox_text: '未完成委托',
     cancel_all: '全部撤单',

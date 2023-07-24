@@ -632,7 +632,7 @@ inline void order_trigger_from_input(const longfist::types::OrderTriggerInput &i
   trigger.volume_condition = input.volume_condition;
   trigger.time_condition = input.time_condition;
   trigger.trigger_type = input.trigger_type;
-  trigger.action_flag = longfist::enums::OrderActionFlag::Insert;
+  trigger.action_flag = longfist::enums::OrderTriggerFlag::TriggerInsert;
   trigger.parked_type = input.parked_type;
 }
 
@@ -656,7 +656,7 @@ inline void order_trigger_from_order(const longfist::types::Order &order, longfi
   trigger.volume_condition = order.volume_condition;
   trigger.time_condition = order.time_condition;
   trigger.trigger_type = longfist::enums::OrderTriggerType::ParkedOrder;
-  trigger.action_flag = longfist::enums::OrderActionFlag::TriggerCancel;
+  trigger.action_flag = longfist::enums::OrderTriggerFlag::TriggerCancel;
 }
 
 inline void algo_order_from_input(const longfist::types::AlgoOrderInput &algo_order_input,

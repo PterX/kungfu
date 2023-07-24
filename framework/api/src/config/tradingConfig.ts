@@ -25,6 +25,8 @@ import {
   BasketVolumeTypeEnum,
   BasketOrderStatusEnum,
   CurrencyEnum,
+  ParkedTypeEnum,
+  OrderTriggerStatusEnum,
 } from '../typings/enums';
 
 import { Pm2ProcessStatusTypes } from '../utils/processUtils';
@@ -478,6 +480,41 @@ export const TimeCondition: Record<
   [TimeConditionEnum.IOC]: { name: t('tradingConfig.IOC') },
   [TimeConditionEnum.GFD]: { name: t('tradingConfig.GFD') },
   [TimeConditionEnum.GTC]: { name: t('tradingConfig.GTC') },
+  [TimeConditionEnum.GFS]: { name: t('tradingConfig.GFS') },
+  [TimeConditionEnum.GTD]: { name: t('tradingConfig.GTD') },
+  [TimeConditionEnum.GFA]: { name: t('tradingConfig.GFA') },
+  [TimeConditionEnum.Unknown]: { name: t('tradingConfig.unknown') },
+};
+
+export const ParkedType: Record<
+  ParkedTypeEnum,
+  KungfuApi.KfTradeValueCommonData
+> = {
+  [ParkedTypeEnum.Server]: { name: t('tradingConfig.server_embedded_label') },
+  [ParkedTypeEnum.Local]: { name: t('tradingConfig.local_embedded_label') },
+};
+
+export const OrderTriggerStatus: Record<
+  OrderTriggerStatusEnum,
+  KungfuApi.KfTradeValueCommonData
+> = {
+  [OrderTriggerStatusEnum.Unknown]: { name: '' },
+  [OrderTriggerStatusEnum.Pending]: {
+    name: t('tradingConfig.order_trigger_status_pending'),
+    color: 'default',
+  },
+  [OrderTriggerStatusEnum.Submitted]: {
+    name: t('tradingConfig.order_trigger_status_submitted'),
+    color: 'green',
+  },
+  [OrderTriggerStatusEnum.Filled]: {
+    name: t('tradingConfig.order_trigger_status_filled'),
+    color: 'red',
+  },
+  [OrderTriggerStatusEnum.Cancelled]: {
+    name: t('tradingConfig.order_trigger_status_cancelled'),
+    color: 'red',
+  },
 };
 
 export const CommissionMode: Record<

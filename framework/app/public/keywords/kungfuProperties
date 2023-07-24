@@ -360,10 +360,12 @@ Arbitrage
 Hedge
 Covered
 HedgeFlag
-Insert
 Cancel
 TriggerCancel
+Insert
 OrderActionFlag
+TriggerInsert
+OrderTriggerFlag
 Limit
 Any
 FakBest5

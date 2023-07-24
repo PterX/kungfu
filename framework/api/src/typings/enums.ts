@@ -295,10 +295,20 @@ export enum CurrencyEnum {
   CEN, // 美分
 }
 
+// 预埋单类型
+export enum OrderTriggerTypeEnum {
+  CancelOrder,
+  MakeOrder,
+}
+
 // 预埋方式
-export enum ParkedTypeEnum {
+export enum OrderTriggerParkedTypeEnum {
   Server,
   Local,
+}
+
+export enum OrderTriggerTimeConditionEnum {
+  GFA = TimeConditionEnum.GFA,
 }
 
 export enum OrderTriggerStatusEnum {

@@ -48,7 +48,9 @@ declare namespace KungfuApi {
     BasketOrderStatusEnum,
     SessionStatusEnum,
     CurrencyEnum,
-    ParkedTypeEnum,
+    OrderTriggerTypeEnum,
+    OrderTriggerParkedTypeEnum,
+    OrderTriggerTimeConditionEnum,
     OrderTriggerStatusEnum,
   } from './enums';
   import { Dayjs } from 'dayjs';
@@ -238,6 +240,7 @@ declare namespace KungfuApi {
     config?: {
       td?: {
         type?: TdMdExtTypes[] | TdMdExtTypes;
+        orderTrigger?: Record<string, Record<string, Record<string, boolean>>>;
         settings: KfConfigItem[];
       };
       md?: {
@@ -284,6 +287,17 @@ declare namespace KungfuApi {
   }
   export interface KfTdExtConfig extends KfExtConfigBase<'td' | 'tdGroup'> {
     type: TdMdExtTypes[];
+    orderTrigger: Partial<
+      Record<
+        OrderTriggerTypeEnum,
+        Partial<
+          Record<
+            OrderTriggerParkedTypeEnum,
+            Partial<OrderTriggerTimeConditionEnum, boolean>
+          >
+        >
+      >
+    >;
     settings: KfConfigItem[];
   }
 

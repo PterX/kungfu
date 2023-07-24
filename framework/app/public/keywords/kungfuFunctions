@@ -41,7 +41,7 @@ subscribe
 subscribe_all
 unsubscribe
 get_vendor
-clear_order_inputs
+clear_batch_order_inputs
 on_recover
 get_asset_writer
 get_position_writer

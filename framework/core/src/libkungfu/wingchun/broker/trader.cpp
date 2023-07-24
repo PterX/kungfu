@@ -55,6 +55,16 @@ const AlgoOrderService &Trader::get_algo_order_service() const {
   return dynamic_cast<TraderVendor &>(get_vendor()).get_algo_order_service();
 }
 
+OrderService &Trader::get_order_service() { return dynamic_cast<TraderVendor &>(get_vendor()).get_order_service(); }
+
+const OrderService &Trader::get_order_service() const {
+  return dynamic_cast<TraderVendor &>(get_vendor()).get_order_service();
+}
+
+const OrderMap& Trader::get_orders() const { return get_order_service().get_orders(); }
+
+const TradeMap& Trader::get_trades() const { return get_order_service().get_trades(); }
+
 const AlgoOrderMap &Trader::get_algo_orders() const { return get_algo_order_service().get_algo_orders(); }
 
 void Trader::enable_asset_sync() { sync_asset_ = true; }
@@ -87,31 +97,6 @@ void Trader::on_position_sync() {
   }
 }
 
-void Trader::on_order_input(const event_ptr &event) {
-  /// try_emplace default insert false to map, means not batch mode
-  if (batch_status_.try_emplace(event->source()).first->second) {
-    const OrderInput &input = event->data<OrderInput>();
-    order_inputs_.try_emplace(event->source()).first->second.push_back(input);
-  } else {
-    insert_order(event);
-  }
-}
-
-void Trader::on_batch_order_tag(const event_ptr &event) {
-  if (event->msg_type() == BatchOrderBegin::tag) {
-    batch_status_.insert_or_assign(event->source(), true);
-  } else if (event->msg_type() == BatchOrderEnd::tag) {
-    batch_status_.insert_or_assign(event->source(), false);
-    insert_batch_orders(event);
-    clear_order_inputs(event->source());
-  }
-}
-
-bool Trader::insert_block_message(const event_ptr &event) {
-  const BlockMessage &msg = event->data<BlockMessage>();
-  return block_messages_.try_emplace(msg.block_id, msg).second;
-}
-
 void Trader::enable_self_detect() { self_deal_detect_ = true; }
 
 void Trader::recover() {
@@ -129,12 +114,12 @@ void Trader::deal_write_frame() {
     switch (frame->msg_type()) {
     case Order::tag: {
       const Order &order = frame->data<Order>();
-      orders_.insert_or_assign(order.order_id, state<Order>(frame->source(), frame->dest(), frame->gen_time(), order));
+      get_order_service().on_order(frame->source(), frame->dest(), frame->gen_time(), order);
       break;
     }
     case Trade::tag: {
       const Trade &trade = frame->data<Trade>();
-      trades_.insert_or_assign(trade.trade_id, state<Trade>(frame->source(), frame->dest(), frame->gen_time(), trade));
+      get_order_service().on_trade(frame->source(), frame->dest(), frame->gen_time(), trade);
       break;
     }
     case OrderTrigger::tag: {
@@ -155,16 +140,7 @@ void Trader::deal_write_frame() {
   }
   SPDLOG_DEBUG("after tracer read, count: {}", count);
 
-  std::for_each(orders_.begin(), orders_.end(), [&](auto &pair) {
-    Order &order = pair.second.data;
-    if (not is_final_status(order.status) and (disable_recover_ or order.external_order_id.to_string().empty())) {
-      order.status = OrderStatus::Lost;
-      order.update_time = time::now_in_nano();
-      if (has_writer(pair.second.dest)) {
-        write_to(order, pair.second.dest);
-      }
-    }
-  });
+  get_order_service().clean_orders(disable_recover_);
 
   std::for_each(triggers_.begin(), triggers_.end(), [&](auto &pair) {
     OrderTrigger &trigger = pair.second.data;
@@ -191,15 +167,7 @@ void Trader::deal_read_frame() {
     switch (frame->msg_type()) {
     case OrderInput::tag: {
       const OrderInput &order_input = frame->data<OrderInput>();
-      if (orders_.find(order_input.order_id) == orders_.end()) {
-        if (has_writer(frame->source())) {
-          Order &order = get_writer(frame->source())->open_data<Order>();
-          order_from_input(order_input, order);
-          order.status = OrderStatus::Lost;
-          order.update_time = time::now_in_nano();
-          get_writer(frame->source())->close_data();
-        }
-      }
+      get_order_service().clean_orders(frame->source(), order_input, disable_recover_);
       break;
     }
     case OrderTriggerInput::tag: {
@@ -216,7 +184,7 @@ void Trader::deal_read_frame() {
       break;
     }
     case AlgoOrderInput::tag: {
-      const auto &algo_order_input = frame->data<AlgoOrderInput>();
+      const AlgoOrderInput &algo_order_input = frame->data<AlgoOrderInput>();
       get_algo_order_service().clean_algo_orders(frame->source(), algo_order_input, disable_recover_);
       break;
     }
@@ -227,8 +195,6 @@ void Trader::deal_read_frame() {
   }
   SPDLOG_DEBUG("after tracer read, count: {}", count);
 }
-
-void Trader::clear_order_inputs(uint64_t location_uid) { order_inputs_.erase(location_uid); }
 
 [[maybe_unused]] void Trader::disable_recover() { disable_recover_ = true; }
 

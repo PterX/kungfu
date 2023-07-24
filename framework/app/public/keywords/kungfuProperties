@@ -307,9 +307,6 @@ SZSE
 HKEx
 MarketType
 Snapshot
-Entrust
-Transaction
-Tree
 SubscribeDataType
 Stock
 Future
@@ -477,12 +474,6 @@ BidPriceGreaterEqualStopPrice
 BidPriceLesserThanStopPrice
 BidPriceLesserEqualStopPrice
 OrderTriggerType
-<<<<<<< HEAD
-NotSend
-Send
-Deleted
-=======
->>>>>>> 1bd7134dbbcd95c03b37c722473fffe44173ed4b
 Server
 Local
 ParkedType

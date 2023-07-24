@@ -19,6 +19,7 @@ namespace kungfu::wingchun::broker {
 FORWARD_DECLARE_CLASS_PTR(TraderVendor)
 FORWARD_DECLARE_CLASS_PTR(Trader)
 FORWARD_DECLARE_CLASS_PTR(TraderWriterHook)
+FORWARD_DECLARE_CLASS_PTR(BaseService)
 FORWARD_DECLARE_CLASS_PTR(AlgoOrderService)
 
 typedef std::unordered_map<uint64_t, state<longfist::types::Order>> OrderMap;
@@ -29,8 +30,12 @@ typedef std::unordered_map<uint64_t, state<longfist::types::OrderTriggerAction>>
 
 typedef std::unordered_map<uint64_t, longfist::types::Order> Orders;
 typedef std::unordered_map<uint64_t, Orders> SubOrders;
+typedef std::vector<longfist::types::OrderInput> OrderInputs;
+typedef std::unordered_map<uint32_t, OrderInputs> SubOrderInputs;
 typedef std::unordered_map<uint64_t, state<longfist::types::AlgoOrder>> AlgoOrderMap;
 typedef std::unordered_map<uint64_t, state<longfist::types::AlgoOrderInput>> AlgoOrderInputMap;
+
+typedef std::unordered_map<uint64_t, longfist::types::BlockMessage> BlockMessages;
 
 inline bool is_all_order_finished(const Orders &orders) {
   for (auto &iter : orders) {
@@ -41,11 +46,24 @@ inline bool is_all_order_finished(const Orders &orders) {
   return true;
 }
 
-class AlgoOrderService {
+class BaseService {
 public:
-  explicit AlgoOrderService(TraderVendor &vendor);
-  virtual ~AlgoOrderService() = default;
+  explicit BaseService(TraderVendor &vendor) : vendor_(vendor){};
+  virtual ~BaseService() = default;
 
+  virtual void on_recover();
+
+protected:
+  TraderVendor &vendor_;
+  bool recover_done_ = false;
+
+  virtual void on_active() = 0;
+  Trader &get_service();
+};
+
+class AlgoOrderService : public BaseService {
+public:
+  explicit AlgoOrderService(TraderVendor &vendor) : BaseService(vendor) {}
   void on_algo_order_input(const event_ptr &event, const longfist::types::AlgoOrderInput &algo_order_input);
 
   void on_order(const longfist::types::Order &order);
@@ -54,17 +72,16 @@ public:
 
   void cancel_algo_order(const event_ptr &event, const longfist::types::AlgoOrderAction &algo_order_action);
 
-  const AlgoOrderMap &get_algo_orders() const;
-
   void clean_algo_orders(bool bypass_recover = false);
 
   void clean_algo_orders(uint32_t source, const longfist::types::AlgoOrderInput &algo_order_input,
                          bool bypass_recover = false);
 
-  void on_active();
+  const AlgoOrderMap &get_algo_orders() const;
+
+  void on_active() override;
 
 private:
-  TraderVendor &vendor_;
   AlgoOrderMap local_algo_orders_;
   AlgoOrderMap waiting_record_local_algo_orders_;
   AlgoOrderInputMap local_algo_order_inputs_;
@@ -73,18 +90,52 @@ private:
 
   void try_update_sub_orders(const longfist::types::Order &order);
 
-  bool check_if_all_order_finished(int64_t algo_order_id);
+  bool check_if_all_order_finished(uint64_t algo_order_id);
 
-  Trader &get_service();
+  int64_t get_volume_traded(uint64_t algo_order_id);
+};
+
+class OrderService : public BaseService {
+public:
+  explicit OrderService(TraderVendor &vendor) : BaseService(vendor) {}
+
+  void on_order_input(const event_ptr &event, const longfist::types::OrderInput &order_input);
+
+  void on_order(uint32_t source, uint32_t dest, int64_t gen_time, const longfist::types::Order &order);
+
+  void on_trade(uint32_t source, uint32_t dest, int64_t gen_time, const longfist::types::Trade& trade);
+
+  void on_batch_order_tag(const event_ptr &event);
+
+  void on_block_message(const longfist::types::BlockMessage &block_message);
+
+  void clean_orders(bool bypass_recover = false);
+
+  void clean_orders(uint32_t source, const longfist::types::OrderInput &order_input, bool bypass_recover = false);
+
+  const OrderMap& get_orders() const;
+
+  const TradeMap& get_trades() const;
+
+  void on_active() override;
+
+private:
+  OrderMap orders_{};
+  TradeMap trades_{};
+  BlockMessages block_messages_ = {};
+  std::unordered_map<uint32_t, bool> batch_status_{};
+  SubOrderInputs batch_order_inputs_{};
+
+  void clear_batch_order_inputs(uint32_t location_uid);
 };
 
 class TraderWriterHook : public yijinjing::journal::writer_hook {
 public:
   TraderWriterHook(TraderVendor &vendor);
 
-  void on_open_frame(int64_t trigger_time, const yijinjing::journal::frame_ptr& frame) override;
+  void on_open_frame(int64_t trigger_time, yijinjing::journal::frame_ptr frame) override;
 
-  void on_close_frame(int64_t gen_time, const yijinjing::journal::frame_ptr &frame) override;
+  void on_close_frame(int64_t gen_time, yijinjing::journal::frame_ptr frame) override;
 
 private:
   TraderVendor &vendor_;
@@ -92,10 +143,12 @@ private:
   BrokerService_ptr get_service();
 
   AlgoOrderService &get_algo_order_service();
+
+  OrderService &get_order_service();
 };
 
 class TraderVendor : public BrokerVendor {
-  friend class AlgoOrderService;
+  friend class BaseService;
 
 public:
   TraderVendor(locator_ptr locator, const std::string &group, const std::string &name, bool low_latency,
@@ -111,7 +164,11 @@ public:
 
   const AlgoOrderService &get_algo_order_service() const;
 
-  bool is_service_started() const;
+  OrderService &get_order_service();
+
+  const OrderService &get_order_service() const;
+
+  void on_recover();
 
 protected:
   void react() override;
@@ -125,11 +182,10 @@ protected:
   void on_active() override;
 
 private:
-  Trader_ptr service_ = {};
+  Trader_ptr service_{};
   AlgoOrderService algo_order_service_;
+  OrderService order_service_;
   TraderWriterHook_ptr hook_;
-
-  bool service_started_ = false;
 };
 
 class Trader : public BrokerService {
@@ -140,13 +196,15 @@ public:
 
   [[nodiscard]] virtual longfist::enums::AccountType get_account_type() const = 0;
 
-  virtual bool insert_block_message(const event_ptr &event);
-
   virtual bool insert_order_trigger(const event_ptr &event) { return true; }
 
   virtual bool insert_order(const event_ptr &event) = 0;
 
-  virtual bool insert_batch_orders(const event_ptr &event) { return true; }
+  virtual bool insert_block_order(const event_ptr &event, const longfist::types::BlockMessage &block_message) {
+    return true;
+  }
+
+  virtual bool insert_batch_orders(const event_ptr &event, const OrderInputs &order_inputs) { return true; }
 
   virtual bool insert_algo_order(const event_ptr &event);
 
@@ -189,23 +247,25 @@ public:
 
   [[nodiscard]] yijinjing::journal::writer_ptr get_position_writer() const;
 
-  [[nodiscard]] AlgoOrderService &get_algo_order_service();
-
-  const AlgoOrderService &get_algo_order_service() const;
-
-  [[nodiscard]] const AlgoOrderMap &get_algo_orders() const;
-
   void enable_asset_sync();
 
   void enable_asset_margin_sync();
 
   void enable_positions_sync();
 
-  void clear_order_inputs(uint64_t location_uid);
+  [[nodiscard]] AlgoOrderService &get_algo_order_service();
 
-  std::unordered_map<uint64_t, std::vector<longfist::types::OrderInput>> &get_order_inputs() { return order_inputs_; }
+  [[nodiscard]] const AlgoOrderService &get_algo_order_service() const;
 
-  OrderMap &get_orders() { return orders_; }
+  [[nodiscard]] OrderService &get_order_service();
+
+  [[nodiscard]] const OrderService &get_order_service() const;
+
+  [[nodiscard]] const OrderMap &get_orders() const;
+  
+  [[nodiscard]] const TradeMap &get_trades() const;
+
+  [[nodiscard]] const AlgoOrderMap &get_algo_orders() const;
 
   void enable_self_detect();
 
@@ -214,18 +274,12 @@ public:
   virtual void on_recover(){};
 
 protected:
-  OrderMap orders_{};
-  OrderActionMap actions_{};
   OrderTriggerMap triggers_{};
   OrderTriggerActionMap trigger_actions_{};
-  TradeMap trades_ = {};
   bool self_deal_detect_ = false;
   bool disable_recover_ = false;
-  std::unordered_map<uint64_t, kungfu::longfist::types::BlockMessage> block_messages_{};
-  /// <strategy_uid, OrderInput>, a batch OrderInputs for a strategy
-  std::unordered_map<uint64_t, std::vector<longfist::types::OrderInput>> order_inputs_{};
+
   /// <strategy_uid, batch_flag>, true mean batch mode for this strategy
-  std::unordered_map<uint64_t, bool> batch_status_{};
   std::unordered_map<std::string, std::unordered_set<uint64_t>> map_exchange_instrument_to_order_ids_{};
 
 private:
@@ -236,10 +290,6 @@ private:
   void on_asset_sync();
 
   void on_position_sync();
-
-  void on_order_input(const event_ptr &event);
-
-  void on_batch_order_tag(const event_ptr &event);
 
   void recover();
 

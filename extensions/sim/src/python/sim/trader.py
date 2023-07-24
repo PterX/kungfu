@@ -82,13 +82,12 @@ class TraderSim(wc.Trader):
         self.logger.info(f"{block_msg}")
         self.map_block_msg[block_msg.block_id] = block_msg
 
-    def insert_batch_orders(self, event):
+    def insert_batch_orders(self, event, order_inputs):
         self.logger.info(f"insert_batch_orders")
         self.logger.info(f"{self.order_inputs}")
-        for item in self.order_inputs[event.source]:
+        for item in order_inputs[event.source]:
             self.insert_order_(event, item)
 
-        self.clear_order_inputs(event.source)
         self.logger.info(f"{self.order_inputs}")
 
     def insert_order(self, event):

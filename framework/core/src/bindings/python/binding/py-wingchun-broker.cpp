@@ -53,8 +53,8 @@ public:
     PYBIND11_OVERLOAD_PURE(const AccountType, Trader, get_account_type);
   }
 
-  bool insert_block_message(const kungfu::event_ptr &event) override {
-    PYBIND11_OVERLOAD(bool, Trader, insert_block_message, event);
+  bool insert_block_order(const kungfu::event_ptr &event, const BlockMessage &block_message) override {
+    PYBIND11_OVERLOAD(bool, Trader, insert_block_order, event, block_message);
   }
 
   bool insert_order(const kungfu::event_ptr &event) override {
@@ -77,8 +77,8 @@ public:
     PYBIND11_OVERLOAD_PURE(void, Trader, on_time_key_value, event);
   }
 
-  bool insert_batch_orders(const kungfu::event_ptr &event) override {
-    PYBIND11_OVERLOAD(bool, Trader, insert_batch_orders, event);
+  bool insert_batch_orders(const kungfu::event_ptr &event, const OrderInputs &order_inputs) override {
+    PYBIND11_OVERLOAD(bool, Trader, insert_batch_orders, event, order_inputs);
   }
 
   bool cancel_order(const kungfu::event_ptr &event) override {
@@ -131,9 +131,8 @@ void bind_broker(pybind11::module &m) {
       .def_property_readonly("runtime_folder", &Trader::get_runtime_folder)
       .def_property_readonly("config", &Trader::get_config)
       .def_property_readonly("home", &Trader::get_home)
-      .def_property_readonly("order_inputs", &Trader::get_order_inputs)
       .def_property_readonly("orders", &Trader::get_orders)
-      .def("clear_order_inputs", &Trader::clear_order_inputs)
+      .def_property_readonly("algo_orders", &Trader::get_algo_orders)
       .def("on_start", &Trader::on_start)
       .def("on_recover", &Trader::on_recover)
       .def("now", &Trader::now)
@@ -148,8 +147,8 @@ void bind_broker(pybind11::module &m) {
       .def("add_timer", &Trader::add_timer)
       .def("add_time_interval", &Trader::add_time_interval)
       .def("update_broker_state", &Trader::update_broker_state)
-      .def("insert_block_message", &Trader::insert_block_message)
       .def("insert_order", &Trader::insert_order)
+      .def("insert_block_order", &Trader::insert_block_order)
       .def("insert_order_trigger", &Trader::insert_order_trigger)
       .def("insert_batch_orders", &Trader::insert_batch_orders)
       .def("on_time_key_value", &Trader::on_time_key_value)

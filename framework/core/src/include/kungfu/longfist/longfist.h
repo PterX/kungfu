@@ -200,6 +200,8 @@ constexpr auto StateDataTypes = boost::hana::make_map( //
     TYPE_PAIR(OrderTrigger),                           // 210
     TYPE_PAIR(AlgoOrderInput),                         // 213
     TYPE_PAIR(AlgoOrder),                              // 214
+    TYPE_PAIR(AlgoOrderAction),                        // 215
+    TYPE_PAIR(AlgoOrderActionError),                   // 216
     TYPE_PAIR(Quote),                                  // 401
     TYPE_PAIR(Tree),                                   // 404
     TYPE_PAIR(SyntheticData),                          // 601

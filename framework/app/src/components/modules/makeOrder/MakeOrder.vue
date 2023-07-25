@@ -29,7 +29,8 @@ import {
   SideEnum,
   PriceTypeEnum,
   TimeConditionEnum,
-  ParkedTypeEnum,
+  OrderTriggerParkedTypeEnum,
+  OrderTriggerTypeEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
   useCurrentGlobalKfLocation,
@@ -59,6 +60,7 @@ import {
   useMakeOrderInfo,
   useMakeOrderSubscribe,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
+import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
 
 const { t } = VueI18n.global;
 const { error, success } = messagePrompt();
@@ -616,11 +618,14 @@ const embeddedOrderInputResolved = ref<
 >({});
 const embeddedOrderInput = ref<KungfuApi.MakeOrderInput>();
 const embeddedBtnVisible = computed(() => {
-  if (
-    currentGlobalKfLocation.value?.group === 'ctp' ||
-    currentGlobalKfLocation.value?.group === 'rongh' ||
-    currentGlobalKfLocation.value?.group === 'sim'
-  ) {
+  const rootPackageJson = readRootPackageJsonSync();
+  if (rootPackageJson?.appConfig?.orderTrigger === false) {
+    return false;
+  }
+
+  const tdName = currentGlobalKfLocation.value?.group as string;
+  const extConfig = extConfigs.value.td[tdName];
+  if (extConfig && extConfig.orderTrigger[OrderTriggerTypeEnum.MakeOrder]) {
     const { instrument, side } = formState.value;
     if (!instrument) {
       return false;
@@ -677,7 +682,7 @@ async function handleEmbeddedOrder() {
 }
 
 function handleEmbeddedConfirm(data: {
-  parked_type: ParkedTypeEnum;
+  parked_type: OrderTriggerParkedTypeEnum;
   time_condition: TimeConditionEnum;
 }) {
   if (!currentGlobalKfLocation.value) return;

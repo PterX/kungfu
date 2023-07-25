@@ -887,9 +887,15 @@ export const dealOrderTrigger = (
     update_time_resolved: dealKfTime(order.update_time, isHistory),
     price_precision: pricePrecision,
     limit_price_resolved: dealKfPrice(order.limit_price, pricePrecision),
-    time_condition: dealTimeCondition(order.time_condition || 0).name || '--',
-    parked_type: dealParkedType(order.parked_type || 0).name || '--',
-    status: dealOrderTriggerStatus(order.status || 0).name || '--',
+    time_condition: dealTimeCondition(order.time_condition)
+      ? dealTimeCondition(order.time_condition).name
+      : '--',
+    parked_type: dealParkedType(order.parked_type)
+      ? dealParkedType(order.parked_type).name
+      : '--',
+    status: dealOrderTriggerStatus(order.status)
+      ? dealOrderTriggerStatus(order.status).name
+      : '--',
   };
 };
 

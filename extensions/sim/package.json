@@ -96,10 +96,11 @@
             "required": true
           }
         ],
-        "embedded": {
-          "parkedType": {
-            "server": true,
-            "local": false
+        "orderTrigger": {
+          "MakeOrder": {
+            "Server": {
+              "GFA": true
+            }
           }
         }
       },

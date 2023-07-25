@@ -30,6 +30,7 @@ interface AntTableColumn {
   sorter?: boolean | { compare: (a: any, b: any) => number };
   align?: string;
   fixed?: string;
+  defaultSortOrder?: string;
 }
 
 type AntTableColumns = Array<AntTableColumn>;

@@ -176,7 +176,7 @@ const instrumentsCsvData = reactive<
 const tableKeys = ref<Record<string, KungfuApi.KfConfigItem>>(
   filterTableKeysFromConfigSettings(props.configSettings),
 );
-// 解决 a-input-number ui 上自动 format 之后的值和真是的响应式数据对不上的问题
+// 解决 a-input-number ui 上自动 format 之后的值和真实的响应式数据对不上的问题
 const numberKeys = ref<Record<string, KungfuApi.KfConfigItem>>(
   filterNumberKeysFromConfigSettings(props.configSettings),
 );
@@ -255,25 +255,27 @@ if (props.willReplaceWholeFormState) {
 watch(
   () => formState.value,
   (newVal, oldVal) => {
-    // 解决 a-input-number ui 上自动 format 之后的值和真是的响应式数据对不上的问题
-    Object.keys(numberKeys.value).forEach((key) => {
-      if (key in oldVal && key in newVal) {
-        if (!numbersTyping.value[key]) {
-          if (typeof newVal[key] === 'number') {
-            switch (numberKeys.value[key].type) {
-              case 'int':
-                formState.value[key] = Math.floor(newVal[key]);
-                break;
-              case 'float':
-              case 'percent':
-                formState.value[key] = Number(newVal[key]).kfRound(
-                  numberKeys.value[key].precision ?? 3,
-                );
-                break;
+    nextTick(() => {
+      // 解决 a-input-number ui 上自动 format 之后的值和真实的响应式数据对不上的问题
+      Object.keys(numberKeys.value).forEach((key) => {
+        if (key in oldVal && key in newVal) {
+          if (!numbersTyping.value[key]) {
+            if (typeof newVal[key] === 'number') {
+              switch (numberKeys.value[key].type) {
+                case 'int':
+                  formState.value[key] = Math.floor(newVal[key]);
+                  break;
+                case 'float':
+                case 'percent':
+                  formState.value[key] = Number(newVal[key]).kfRound(
+                    numberKeys.value[key].precision ?? 3,
+                  );
+                  break;
+              }
             }
           }
         }
-      }
+      });
     });
 
     app && app.emit('update:formState', newVal);

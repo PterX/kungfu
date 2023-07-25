@@ -347,7 +347,7 @@ export default {
     order_trigger_status_cancelled: '已取消',
     batch: '批量',
     batch_embedded: '批量预埋单',
-    embedded_order_td_error: '请选择ctp或融杭柜台',
+    embedded_order_td_error: '当前柜台 {tdName} 不支持下预埋单, 请联系管理员',
     embedded_order_not_future: '批量埋单中, 第{rowStr}不是期货, 下单失败',
     batch_embedded_results: '批量埋单成功 {success} 条, 失败 {error} 条',
     instrument_id_header_desc:

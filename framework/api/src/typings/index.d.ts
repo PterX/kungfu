@@ -419,7 +419,7 @@ declare namespace KungfuApi {
     parent_id: bigint;
   }
   export interface MakeOrderTriggerInput extends MakeOrderInput {
-    parked_type: ParkedTypeEnum;
+    parked_type: OrderTriggerParkedTypeEnum;
     time_condition: TimeConditionEnum;
   }
 
@@ -681,7 +681,7 @@ declare namespace KungfuApi {
   }
   
   export interface OrderTriggerInput extends OrderInput {
-    parked_type: ParkedTypeEnum; // 预埋方式
+    parked_type: OrderTriggerParkedTypeEnum; // 预埋方式
   }
 
   export interface OrderTrigger {
@@ -715,7 +715,7 @@ declare namespace KungfuApi {
     price_type: PriceTypeEnum; //价格类型
     volume_condition: VolumeConditionEnum; //成交量类型
     time_condition: TimeConditionEnum; //成交时间类型
-    parked_type: ParkedTypeEnum; // 预埋方式
+    parked_type: OrderTriggerParkedTypeEnum; // 预埋方式
 
     source: number;
     dest: number;

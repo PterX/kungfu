@@ -5,7 +5,7 @@ import { orderInputTrans } from './config';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import {
   TimeConditionEnum,
-  ParkedTypeEnum,
+  OrderTriggerParkedTypeEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 
 const { t } = VueI18n.global;
@@ -25,7 +25,7 @@ defineEmits<{
   (
     e: 'confirm',
     volumeList: {
-      parked_type: ParkedTypeEnum;
+      parked_type: OrderTriggerParkedTypeEnum;
       time_condition: TimeConditionEnum;
     },
   ): void;
@@ -36,7 +36,7 @@ defineEmits<{
 const { modalVisible, closeModal } = useModalVisible(props.visible);
 
 const formState = reactive({
-  parked_type: ParkedTypeEnum.Server,
+  parked_type: OrderTriggerParkedTypeEnum.Server,
   time_condition: TimeConditionEnum.GFA,
 });
 const serverEmbeddedRadio = ref([
@@ -52,7 +52,6 @@ const formData = computed<Record<string, KungfuApi.KfTradeValueCommonData>>(
     const results = Object.keys(props.embeddedOrderInput).reduce((pre, key) => {
       if (
         props.embeddedOrderInput[key].name !== '' &&
-        key !== 'price_type' &&
         transKeys.includes(key)
       ) {
         pre[key] = props.embeddedOrderInput[key];
@@ -90,13 +89,13 @@ function handleConfirm() {
         >
           <a-form-item>
             <a-radio-group v-model:value="formState.parked_type">
-              <a-radio :value="ParkedTypeEnum.Server">
+              <a-radio :value="OrderTriggerParkedTypeEnum.Server">
                 {{ t('tradingConfig.server_embedded_label') }}
               </a-radio>
             </a-radio-group>
           </a-form-item>
           <a-form-item
-            v-if="formState.parked_type === ParkedTypeEnum.Server"
+            v-if="formState.parked_type === OrderTriggerParkedTypeEnum.Server"
             style="margin-left: 14px"
           >
             <a-radio-group v-model:value="formState.time_condition">

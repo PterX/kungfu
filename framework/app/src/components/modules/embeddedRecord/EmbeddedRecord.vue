@@ -18,6 +18,7 @@ import {
 
 import {
   useCurrentGlobalKfLocation,
+  useExtConfigsRelated,
   useProcessStatusDetailData,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import { getCurrentInstance, onBeforeUnmount, onMounted, ref } from 'vue';
@@ -33,9 +34,10 @@ import { getModalSettings } from './config';
 import {
   InstrumentTypeEnum,
   OffsetEnum,
-  ParkedTypeEnum,
+  OrderTriggerParkedTypeEnum,
   SideEnum,
   TimeConditionEnum,
+  OrderTriggerTypeEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import { ReloadOutlined } from '@ant-design/icons-vue';
 
@@ -56,6 +58,7 @@ const { error, success } = messagePrompt();
 const { dashboardBodyHeight, handleBodySizeChange } = useDashboardBodySize();
 const { processStatusData } = useProcessStatusDetailData();
 const app = getCurrentInstance();
+const { extConfigs } = useExtConfigsRelated();
 
 const {
   currentGlobalKfLocation,
@@ -135,12 +138,15 @@ function handleBatchModal() {
     error(t('tradingConfig.start_process', { process: tdProcessId }));
     return;
   }
-  if (
-    currentGlobalKfLocation.value?.group !== 'ctp' &&
-    currentGlobalKfLocation.value?.group !== 'rongh' &&
-    currentGlobalKfLocation.value?.group !== 'sim'
-  ) {
-    error(t('tradingConfig.embedded_order_td_error'));
+
+  const tdName = currentGlobalKfLocation.value?.group as string;
+  const extConfig = extConfigs.value.td[tdName];
+  if (extConfig && !extConfig.orderTrigger[OrderTriggerTypeEnum.MakeOrder]) {
+    error(
+      t('tradingConfig.embedded_order_td_error', {
+        tdName,
+      }),
+    );
     return;
   }
 
@@ -188,7 +194,7 @@ function handleConfirmBatchEmbedded(embedded: csvOrderInput[]) {
       price_type: +price_type,
       side: +side,
       offset: getResolvedOffset(+offset, +side, instrumentType),
-      parked_type: ParkedTypeEnum.Server,
+      parked_type: OrderTriggerParkedTypeEnum.Server,
       time_condition: TimeConditionEnum.GFA,
     };
 

@@ -25,7 +25,7 @@ import {
   BasketVolumeTypeEnum,
   BasketOrderStatusEnum,
   CurrencyEnum,
-  ParkedTypeEnum,
+  OrderTriggerParkedTypeEnum,
   OrderTriggerStatusEnum,
 } from '../typings/enums';
 
@@ -487,11 +487,15 @@ export const TimeCondition: Record<
 };
 
 export const ParkedType: Record<
-  ParkedTypeEnum,
+  OrderTriggerParkedTypeEnum,
   KungfuApi.KfTradeValueCommonData
 > = {
-  [ParkedTypeEnum.Server]: { name: t('tradingConfig.server_embedded_label') },
-  [ParkedTypeEnum.Local]: { name: t('tradingConfig.local_embedded_label') },
+  [OrderTriggerParkedTypeEnum.Server]: {
+    name: t('tradingConfig.server_embedded_label'),
+  },
+  [OrderTriggerParkedTypeEnum.Local]: {
+    name: t('tradingConfig.local_embedded_label'),
+  },
 };
 
 export const OrderTriggerStatus: Record<

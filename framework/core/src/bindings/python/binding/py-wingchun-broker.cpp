@@ -181,7 +181,7 @@ void bind_broker(pybind11::module &m) {
       .def("set_service", &MarketDataVendor::set_service)
       .def("get_arguments", &MarketDataVendor::get_arguments)
       .def("set_arguments", &MarketDataVendor::set_arguments);
-      
+
   py::class_<TraderVendor, BrokerVendor, std::shared_ptr<TraderVendor>>(m, "TraderVendor")
       .def(py::init<locator_ptr, const std::string &, const std::string &, bool, const std::string &>())
       .def("set_service", &TraderVendor::set_service)

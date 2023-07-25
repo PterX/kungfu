@@ -190,9 +190,9 @@ private:
   BrokerService_ptr get_service();
 
   OrderService &get_order_service();
-  
+
   OrderTriggerService &get_order_trigger_service();
-  
+
   AlgoOrderService &get_algo_order_service();
 };
 

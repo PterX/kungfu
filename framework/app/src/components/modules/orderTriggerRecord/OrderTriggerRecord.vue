@@ -25,8 +25,8 @@ import { getCurrentInstance, onBeforeUnmount, onMounted, ref } from 'vue';
 import {
   dealOrderTrigger,
   longfist,
-  kfEmbeddedOrder,
-  kfRefreshEmbeddedOrder,
+  kfOrderTrigger,
+  kfRefreshOrderTrigger,
 } from '@kungfu-trader/kungfu-js-api/kungfu';
 import KfSetByConfigModal from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfSetByConfigModal.vue';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
@@ -68,10 +68,10 @@ const {
 const columns = getColumns();
 
 const tableDataResolved = ref<KungfuApi.OrderTriggerResolved[]>([]);
-const batchEmbeddedVisble = ref<boolean>(false);
-const setBatchEmbeddedConfigPayload = ref<KungfuApi.SetKfConfigPayload>({
+const batchOrderTriggerVisble = ref<boolean>(false);
+const batchOrderTriggerConfigPayload = ref<KungfuApi.SetKfConfigPayload>({
   type: 'custom',
-  title: 'embedded',
+  title: 'orderTrigger',
   config: {} as KungfuApi.KfExtConfig,
 });
 
@@ -143,27 +143,29 @@ function handleBatchModal() {
   const extConfig = extConfigs.value.td[tdName];
   if (extConfig && !extConfig.orderTrigger[OrderTriggerTypeEnum.MakeOrder]) {
     error(
-      t('tradingConfig.embedded_order_td_error', {
+      t('tradingConfig.order_trigger_td_error', {
         tdName,
       }),
     );
     return;
   }
 
-  setBatchEmbeddedConfigPayload.value.title = t('tradingConfig.batch_embedded');
-  setBatchEmbeddedConfigPayload.value.config = {
+  batchOrderTriggerConfigPayload.value.title = t(
+    'tradingConfig.batch_order_trigger',
+  );
+  batchOrderTriggerConfigPayload.value.config = {
     type: [],
-    name: t('tradingConfig.batch_embedded'),
-    category: 'embeddedOrder',
-    key: 'embeddedOrder',
+    name: t('tradingConfig.batch_order_trigger'),
+    category: 'orderTrigger',
+    key: 'orderTrigger',
     extPath: '',
     settings: getModalSettings(),
   };
 
-  batchEmbeddedVisble.value = true;
+  batchOrderTriggerVisble.value = true;
 }
 
-function handleConfirmBatchEmbedded(embedded: csvOrderInput[]) {
+function handleConfirmBatchOrderTrigger(csvData: csvOrderInput[]) {
   if (!currentGlobalKfLocation.value) return;
 
   const tdProcessId = getProcessIdByKfLocation(currentGlobalKfLocation.value);
@@ -173,7 +175,7 @@ function handleConfirmBatchEmbedded(embedded: csvOrderInput[]) {
   }
 
   const notFutureRow: number[] = [];
-  const embeddedOrderInputs = embedded.map((item: csvOrderInput, index) => {
+  const orderTriggerInputs = csvData.map((item: csvOrderInput, index) => {
     const { instrumentType } = transformSearchInstrumentResultToInstrument(
       item.instrument,
     ) as KungfuApi.InstrumentResolved;
@@ -184,7 +186,7 @@ function handleConfirmBatchEmbedded(embedded: csvOrderInput[]) {
 
     const { limit_price, volume, price_type, side, offset } = item;
 
-    const embeddedOrderInput: KungfuApi.MakeOrderTriggerInput = {
+    const orderTriggerInput: KungfuApi.MakeOrderTriggerInput = {
       ...longfist.types.OrderInput(),
       instrument_id: item.instrument_id,
       instrument_type: +instrumentType,
@@ -198,43 +200,41 @@ function handleConfirmBatchEmbedded(embedded: csvOrderInput[]) {
       time_condition: TimeConditionEnum.GFA,
     };
 
-    return embeddedOrderInput;
+    return orderTriggerInput;
   });
 
   if (notFutureRow.length > 0) {
     const rowStr = notFutureRow.join(', ');
     error(
-      t('tradingConfig.embedded_order_not_future', {
+      t('tradingConfig.order_trigger_not_future', {
         rowStr,
       }),
     );
     return;
   }
 
-  const embeddedOrderPromises = embeddedOrderInputs.map(
-    (embeddedOrderInput) => {
-      return kfEmbeddedOrder(
-        window.watcher,
-        embeddedOrderInput,
-        currentGlobalKfLocation.value as KungfuApi.KfLocation,
-      );
-    },
-  );
+  const orderTriggerPromises = orderTriggerInputs.map((orderTriggerInput) => {
+    return kfOrderTrigger(
+      window.watcher,
+      orderTriggerInput,
+      currentGlobalKfLocation.value as KungfuApi.KfLocation,
+    );
+  });
 
-  if (embeddedOrderPromises.length === 0) {
+  if (orderTriggerPromises.length === 0) {
     return;
   }
 
-  Promise.allSettled(embeddedOrderPromises).then((results) => {
-    const successEmbeddedOrder = results.filter(
+  Promise.allSettled(orderTriggerPromises).then((results) => {
+    const successOrderTrigger = results.filter(
       (result) => result.status === 'fulfilled',
     );
-    const errEmbeddedOrder =
-      embeddedOrderPromises.length - successEmbeddedOrder.length;
+    const errOrderTrigger =
+      orderTriggerPromises.length - successOrderTrigger.length;
     success(
-      t('tradingConfig.batch_embedded_results', {
-        success: successEmbeddedOrder.length,
-        error: errEmbeddedOrder,
+      t('tradingConfig.batch_order_trigger_results', {
+        success: successOrderTrigger.length,
+        error: errOrderTrigger,
       }),
     );
   });
@@ -248,7 +248,7 @@ function handleRequestOrderTrigger() {
     return false;
   });
 
-  kfRefreshEmbeddedOrder(
+  kfRefreshOrderTrigger(
     window.watcher,
     Number(msgType[0]),
     currentGlobalKfLocation.value as KungfuApi.KfLocation,
@@ -340,18 +340,19 @@ function handleRequestOrderTrigger() {
       </a-table>
     </KfDashboard>
     <KfSetByConfigModal
-      v-if="batchEmbeddedVisble"
-      v-model:visible="batchEmbeddedVisble"
+      v-if="batchOrderTriggerVisble"
+      v-model:visible="batchOrderTriggerVisble"
       :width="1410"
       :label-col="4"
       :wrapper-col="17"
-      :payload="setBatchEmbeddedConfigPayload"
+      :payload="batchOrderTriggerConfigPayload"
       :form-style="{
         maxHeight: '700px',
         overflow: 'auto',
       }"
       @confirm="
-        ({ formState }) => handleConfirmBatchEmbedded(formState.embedded)
+        ({ formState }) =>
+          handleConfirmBatchOrderTrigger(formState.orderTrigger)
       "
     ></KfSetByConfigModal>
   </div>

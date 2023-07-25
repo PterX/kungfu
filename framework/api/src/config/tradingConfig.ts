@@ -491,10 +491,10 @@ export const ParkedType: Record<
   KungfuApi.KfTradeValueCommonData
 > = {
   [OrderTriggerParkedTypeEnum.Server]: {
-    name: t('tradingConfig.server_embedded_label'),
+    name: t('tradingConfig.server_order_trigger_label'),
   },
   [OrderTriggerParkedTypeEnum.Local]: {
-    name: t('tradingConfig.local_embedded_label'),
+    name: t('tradingConfig.local_order_trigger_label'),
   },
 };
 

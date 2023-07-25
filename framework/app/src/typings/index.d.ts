@@ -86,7 +86,7 @@ type BuiltinComponents =
   | 'MakeOrder'
   | 'FutureArbitrage'
   | 'BlockTrade'
-  | 'EmbeddedRecord';
+  | 'OrderTriggerRecord';
 
 interface BuiltinComponentPropsMap {
   TradingTask?: {

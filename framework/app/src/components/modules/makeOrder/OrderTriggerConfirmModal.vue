@@ -14,7 +14,7 @@ const app = getCurrentInstance();
 const props = withDefaults(
   defineProps<{
     visible: boolean;
-    embeddedOrderInput: Record<string, KungfuApi.KfTradeValueCommonData>;
+    orderTriggerInput: Record<string, KungfuApi.KfTradeValueCommonData>;
   }>(),
   {
     visible: false,
@@ -39,7 +39,7 @@ const formState = reactive({
   parked_type: OrderTriggerParkedTypeEnum.Server,
   time_condition: TimeConditionEnum.GFA,
 });
-const serverEmbeddedRadio = ref([
+const serverOrderTriggerRadio = ref([
   {
     label: t('tradingConfig.GFA'),
     value: TimeConditionEnum.GFA,
@@ -49,12 +49,9 @@ const serverEmbeddedRadio = ref([
 const formData = computed<Record<string, KungfuApi.KfTradeValueCommonData>>(
   () => {
     const transKeys = Object.keys(orderInputTrans);
-    const results = Object.keys(props.embeddedOrderInput).reduce((pre, key) => {
-      if (
-        props.embeddedOrderInput[key].name !== '' &&
-        transKeys.includes(key)
-      ) {
-        pre[key] = props.embeddedOrderInput[key];
+    const results = Object.keys(props.orderTriggerInput).reduce((pre, key) => {
+      if (props.orderTriggerInput[key].name !== '' && transKeys.includes(key)) {
+        pre[key] = props.orderTriggerInput[key];
       }
       return pre;
     }, {});
@@ -71,15 +68,15 @@ function handleConfirm() {
 <template>
   <a-modal
     v-model:visible="modalVisible"
-    class="kf-embedded-confirm-modal"
+    class="kf-order-trigger-confirm-modal"
     :width="420"
-    :title="$t('tradingConfig.embedded_order_title')"
+    :title="$t('tradingConfig.order_trigger_title')"
     :destroy-on-close="true"
     @cancel="closeModal"
     @ok="handleConfirm"
   >
-    <div class="embedded-content-wrap">
-      <div class="embedded-order-type">
+    <div class="order-trigger-content-wrap">
+      <div class="order-trigger-type">
         <a-form
           ref="formRef"
           class="kf-config-form"
@@ -90,7 +87,7 @@ function handleConfirm() {
           <a-form-item>
             <a-radio-group v-model:value="formState.parked_type">
               <a-radio :value="OrderTriggerParkedTypeEnum.Server">
-                {{ t('tradingConfig.server_embedded_label') }}
+                {{ t('tradingConfig.server_order_trigger_label') }}
               </a-radio>
             </a-radio-group>
           </a-form-item>
@@ -100,7 +97,7 @@ function handleConfirm() {
           >
             <a-radio-group v-model:value="formState.time_condition">
               <a-radio
-                v-for="item in serverEmbeddedRadio"
+                v-for="item in serverOrderTriggerRadio"
                 :key="item.label"
                 :value="item.value"
               >
@@ -124,11 +121,11 @@ function handleConfirm() {
   </a-modal>
 </template>
 <style lang="less">
-.kf-embedded-confirm-modal {
+.kf-order-trigger-confirm-modal {
   .ant-modal-body {
     padding: 24px;
   }
-  .embedded-content-wrap {
+  .order-trigger-content-wrap {
     .trading-data-detail-row {
       .label,
       .value {

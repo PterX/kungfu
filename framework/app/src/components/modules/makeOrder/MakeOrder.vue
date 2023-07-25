@@ -60,6 +60,7 @@ import {
   useMakeOrderInfo,
   useMakeOrderSubscribe,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
+import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
 
 const { t } = VueI18n.global;
 const { error, success } = messagePrompt();
@@ -617,6 +618,11 @@ const embeddedOrderInputResolved = ref<
 >({});
 const embeddedOrderInput = ref<KungfuApi.MakeOrderInput>();
 const embeddedBtnVisible = computed(() => {
+  const rootPackageJson = readRootPackageJsonSync();
+  if (!rootPackageJson.appConfig?.orderTrigger) {
+    return false;
+  }
+
   const tdName = currentGlobalKfLocation.value?.group as string;
   const extConfig = extConfigs.value.td[tdName];
   if (extConfig && extConfig.orderTrigger[OrderTriggerTypeEnum.MakeOrder]) {

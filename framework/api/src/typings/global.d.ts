@@ -134,6 +134,8 @@ export interface RootConfigJSON {
       offsetFilter?: Record<string, boolean>;
       ableHedgeFlag?: boolean;
     };
+
+    orderTrigger: boolean;
   };
 }
 

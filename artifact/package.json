@@ -32,5 +32,25 @@
   },
   "repository": {
     "url": "https://github.com/kungfu-trader/kungfu.git"
+  },
+  "appConfig": {
+    "boardFilter": {
+      "Pos": true,
+      "PosGlobal": true,
+      "Order": true,
+      "Trade": true,
+      "Td": true,
+      "Md": true,
+      "Strategy": true,
+      "Operator": true,
+      "TradingTask": true,
+      "MarketData": true,
+      "OrderBook": true,
+      "MakeOrder": true,
+      "FutureArbitrage": true,
+      "BlockTrade": true,
+      "EmbeddedRecord": false
+    },
+    "orderTrigger": false
   }
 }

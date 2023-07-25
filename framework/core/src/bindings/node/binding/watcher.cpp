@@ -11,6 +11,8 @@
 #include <kungfu/yijinjing/util/os.h>
 #include <sstream>
 
+#include <kungfu/yijinjing/cache/cached.h>
+
 using namespace kungfu::rx;
 using namespace kungfu::longfist;
 using namespace kungfu::longfist::enums;
@@ -105,7 +107,7 @@ void WatcherAutoClient::connect(const event_ptr &event, const longfist::types::R
 void WatcherAutoClient::connect(const event_ptr &event, const longfist::types::Band &band) { return; }
 
 bool WatcherAutoClient::should_connect_system(const yijinjing::data::location_ptr &system_location) const {
-  if (system_location->group == "service" && system_location->uid != app_.get_cached_home_location()->uid) {
+  if (system_location->group == "service") {
     return true;
   }
   return false;
@@ -237,10 +239,6 @@ Napi::Value Watcher::GetLedger(const Napi::CallbackInfo &info) { return ledger_r
 Napi::Value Watcher::GetAppStates(const Napi::CallbackInfo &info) { return app_states_ref_.Value(); }
 
 Napi::Value Watcher::GetStrategyStates(const Napi::CallbackInfo &info) { return strategy_states_ref_.Value(); }
-
-Napi::Value Watcher::GetTradingDay(const Napi::CallbackInfo &info) {
-  return Napi::String::New(ledger_ref_.Env(), time::strftime(get_trading_day(), KUNGFU_TRADING_DAY_FORMAT));
-}
 
 Napi::Value Watcher::Now(const Napi::CallbackInfo &info) {
   return Napi::BigInt::New(ledger_ref_.Env(), time::now_in_nano());
@@ -432,7 +430,6 @@ void Watcher::Init(Napi::Env env, Napi::Object exports) {
                       InstanceAccessor("ledger", &Watcher::GetLedger, &Watcher::NoSet),                 //
                       InstanceAccessor("appStates", &Watcher::GetAppStates, &Watcher::NoSet),           //
                       InstanceAccessor("strategyStates", &Watcher::GetStrategyStates, &Watcher::NoSet), //
-                      InstanceAccessor("tradingDay", &Watcher::GetTradingDay, &Watcher::NoSet),         //
                   });
 
   constructor = Napi::Persistent(func);
@@ -447,8 +444,8 @@ void Watcher::on_react() {
   // for receive history data
   auto before_start_events = events_ | take_until(events_ | is(RequestStart::tag));
   before_start_events | is(Instrument::tag) | $$(Feed(event, event->data<Instrument>()));
-  // bookkeeper restore, only Instrument and Commission
-  before_start_events | is(Instrument::tag, Commission::tag) | $$(feed_state_data(event, state_bank_));
+  // bookkeeper restore, only Instrument and Commission,
+  before_start_events | is(Instrument::tag, Commission::tag) | $$(cached::feed_state_data(event, state_bank_));
 }
 
 void Watcher::on_start() {
@@ -462,10 +459,11 @@ void Watcher::on_start() {
     bookkeeper_.add_book_listener(std::make_shared<BookListener>(*this));
 
     // for receive runtime data
-    events_ | is(Quote::tag) | is_subscribed(subscribed_instruments_) | $$(feed_state_data(event, data_bank_));
+    events_ | is(Quote::tag) | is_subscribed(subscribed_instruments_) | $$(cached::feed_state_data(event, data_bank_));
     events_ | is(Instrument::tag) | $$(Feed(event, event->data<Instrument>()));
     // position should be always read from bookkeeper in watcher, because of position_guard, instead of feeds;
-    events_ | skip_while(while_is(Quote::tag, Instrument::tag, Position::tag)) | $$(feed_state_data(event, data_bank_));
+    events_ | skip_while(while_is(Quote::tag, Instrument::tag, Position::tag)) |
+        $$(cached::feed_state_data(event, data_bank_));
 
     if (not bypass_quote_) {
       events_ | is(Quote::tag) | is_subscribed(subscribed_instruments_) | $$(UpdateBook(event, event->data<Quote>()));
@@ -641,10 +639,6 @@ void Watcher::InspectChannel(int64_t trigger_time, const Channel &channel) {
     return;
   }
 
-  if (channel.source_id == cached_home_location_->uid or channel.dest_id == cached_home_location_->uid) {
-    return;
-  }
-
   if (channel.source_id != get_live_home_uid() and channel.dest_id != get_live_home_uid()) {
     reader_join(channel.source_id, channel.dest_id, trigger_time);
   }
@@ -791,36 +785,29 @@ void Watcher::UpdateBook(const event_ptr &event, const Quote &quote) {
       continue;
     }
 
-    bool has_long_position_for_quote = book->has_long_position_for(quote);
-    bool has_short_position_for_quote = book->has_short_position_for(quote);
+    auto apply = [&](auto &position) { UpdateBook(event, position); };
 
-    if (has_long_position_for_quote) {
-      UpdateBook(event, book->get_position_for(Direction::Long, quote));
-    }
-    if (has_short_position_for_quote) {
-      UpdateBook(event, book->get_position_for(Direction::Short, quote));
-    }
+    book->apply_long_position_for(quote, apply);
+    book->apply_short_position_for(quote, apply);
 
-    if (has_short_position_for_quote or has_long_position_for_quote) {
-      state<Asset> cache_state_asset(ledger_uid, holder_uid, event->gen_time(), book->asset);
-      feed_state_data_bank(cache_state_asset, data_bank_);
-      state<AssetMargin> cache_state_asset_margin(ledger_uid, holder_uid, event->gen_time(), book->asset_margin);
-      feed_state_data_bank(cache_state_asset_margin, data_bank_);
-    }
+    state<Asset> cache_state_asset(ledger_uid, holder_uid, event->gen_time(), book->asset);
+    feed_state_data_bank(cache_state_asset, data_bank_);
+    state<AssetMargin> cache_state_asset_margin(ledger_uid, holder_uid, event->gen_time(), book->asset_margin);
+    feed_state_data_bank(cache_state_asset_margin, data_bank_);
   }
 }
 
 void Watcher::UpdateBook(const event_ptr &event, const Position &position) {
   auto book = bookkeeper_.get_book(position.holder_uid);
-  auto &book_position = book->get_position_for(position.direction, position);
-  auto &book_oppsite_position = book->get_oppsite_position_for(position.direction, position);
-  // TODO fix this source, dest, should not be holder_uid to dest
-  state<Position> cache_state_position(position.holder_uid, event->dest(), event->gen_time(), book_position);
-  feed_state_data_bank(cache_state_position, data_bank_);
-  // TODO fix this source, dest, should not be holder_uid to dest
-  state<Position> cache_state_oppsite_position(book_oppsite_position.holder_uid, event->dest(), event->gen_time(),
-                                               book_oppsite_position);
-  feed_state_data_bank(cache_state_oppsite_position, data_bank_);
+
+  auto apply = [&](auto &position) {
+    state<Position> cache_state_position(position.holder_uid, event->dest(), event->gen_time(), position);
+    feed_state_data_bank(cache_state_position, data_bank_);
+  };
+
+  book->apply_position(position.source_id, position.direction, position.exchange_id, position.instrument_id, apply);
+  book->apply_opposite_position(position.source_id, position.direction, position.exchange_id, position.instrument_id,
+                                apply);
 }
 
 Watcher::BookListener::BookListener(Watcher &watcher) : watcher_(watcher) {}
@@ -841,19 +828,16 @@ void Watcher::BookListener::on_asset_margin_sync_reset(const AssetMargin &old_as
 }
 
 void Watcher::BookListener::on_position_sync_reset(const book::Book &old_book, const book::Book &new_book) {
-  auto update_position = [&](book::PositionMap &position_map) {
-    for (auto &pair : position_map) {
-      auto &position = pair.second;
-      state<Position> cache_state(watcher_.ledger_home_location_->uid, position.holder_uid, position.update_time,
-                                  position);
-      watcher_.feed_state_data_bank(cache_state, watcher_.data_bank_);
-    }
+  auto update_position = [&](auto &position) {
+    state<Position> cache_state(watcher_.ledger_home_location_->uid, position.holder_uid, position.update_time,
+                                position);
+    watcher_.feed_state_data_bank(cache_state, watcher_.data_bank_);
   };
 
   for (auto &pair : watcher_.bookkeeper_.get_books()) {
     auto &book = pair.second;
-    update_position(book->long_positions);
-    update_position(book->short_positions);
+    book->apply_long_positions(update_position);
+    book->apply_short_positions(update_position);
   }
 }
 

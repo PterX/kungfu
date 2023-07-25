@@ -5,7 +5,6 @@
 #include <pybind11/stl.h>
 
 #include <kungfu/longfist/longfist.h>
-#include <kungfu/yijinjing/cache/cached.h>
 #include <kungfu/yijinjing/cache/profile.h>
 #include <kungfu/yijinjing/index/session.h>
 #include <kungfu/yijinjing/io.h>
@@ -43,8 +42,9 @@ class PyLocator : public locator {
     PYBIND11_OVERLOAD(std::string, locator, get_env, name);
   }
 
-  [[nodiscard]] std::string layout_dir(const location_ptr &location, layout l) const override {
-    PYBIND11_OVERLOAD(std::string, locator, layout_dir, location, l);
+  [[nodiscard]] std::string layout_dir(const location_ptr &location, layout l,
+                                       bool create_not_exist = true) const override {
+    PYBIND11_OVERLOAD(std::string, locator, layout_dir, location, l, create_not_exist);
   }
 
   [[nodiscard]] std::string layout_file(const location_ptr &location, layout l,
@@ -81,6 +81,8 @@ public:
 
   [[nodiscard]] uint32_t source() const override { PYBIND11_OVERLOAD_PURE(int64_t, event, source); }
 
+  [[nodiscard]] uint32_t initial_source() const override { PYBIND11_OVERLOAD_PURE(int64_t, event, initial_source); }
+
   [[nodiscard]] uint32_t dest() const override { PYBIND11_OVERLOAD_PURE(int64_t, event, dest); }
 };
 
@@ -114,15 +116,17 @@ public:
 
   void on_exit() override { PYBIND11_OVERLOAD(void, master, on_exit); }
 
-  void on_register(const event_ptr &event, const Register &register_data) override {
-    PYBIND11_OVERLOAD_PURE(void, master, on_register, event, register_data);
+  void on_register(int64_t gen_time, const Register &register_data) override {
+    PYBIND11_OVERLOAD_PURE(void, master, on_register, gen_time, register_data);
+  }
+
+  bool check_register(int64_t gen_time, const Register &register_data) override {
+    PYBIND11_OVERLOAD_PURE(bool, master, check_register, gen_time, register_data);
   }
 
   void on_interval_check(int64_t nanotime) override {
     PYBIND11_OVERLOAD_PURE(void, master, on_interval_check, nanotime);
   }
-
-  int64_t acquire_trading_day() override { PYBIND11_OVERLOAD_PURE(int64_t, master, acquire_trading_day); }
 };
 
 class PyApprentice : public apprentice {
@@ -130,10 +134,6 @@ public:
   using apprentice::apprentice;
 
   void on_exit() override { PYBIND11_OVERLOAD_PURE(void, apprentice, on_exit); }
-
-  void on_trading_day(const event_ptr &event, int64_t daytime) override {
-    PYBIND11_OVERLOAD(void, apprentice, on_trading_day, event, daytime);
-  }
 };
 
 template <typename DataType> DataType event_to_data(const event &e) { return e.data<DataType>(); }
@@ -240,13 +240,15 @@ void bind(pybind11::module &&m) {
       .def("get_notice", &observer::get_notice);
 
   py::class_<reader, reader_ptr>(m, "reader")
+      .def(py::init<const reader &>())
       .def("subscribe", &reader::join)
       .def("current_frame", &reader::current_frame)
       .def("seek_to_time", &reader::seek_to_time)
       .def("data_available", &reader::data_available)
       .def("next", &reader::next)
       .def("join", &reader::join)
-      .def("disjoin", &reader::disjoin)
+      .def("disjoin", py::overload_cast<const data::location_ptr &, uint32_t>(&reader::disjoin))
+      .def("disjoin", py::overload_cast<const uint32_t>(&reader::disjoin))
       .def("disjoin_channel", &reader::disjoin_channel);
 
   py::class_<bus, bus_ptr>(m, "bus").def("on_load_page", &bus::on_load_page);
@@ -357,19 +359,20 @@ void bind(pybind11::module &&m) {
   });
 
   py::class_<master, PyMaster>(m, "master")
-      .def(py::init<location_ptr, bool>(), py::arg("home"), py::arg("low_latency") = false)
+      .def(py::init<location_ptr, bool, bool, bool>(), py::arg("home"), py::arg("low_latency") = false,
+           py::arg("bypass_cached") = false, py::arg("daemon") = true)
       .def_property_readonly("io_device", &master::get_io_device)
       .def_property_readonly("home", &master::get_home)
       .def_property_readonly("live", &master::is_live)
+      .def_property_readonly("daemon", &master::is_daemon)
       .def("now", &master::now)
       .def("run", &master::run)
       .def("setup", &master::setup)
       .def("step", &master::step)
       .def("on_exit", &master::on_exit)
       .def("on_register", &master::on_register)
+      .def("check_register", &master::check_register)
       .def("on_interval_check", &master::on_interval_check)
-      .def("acquire_trading_day", &master::acquire_trading_day)
-      .def("publish_trading_day", &master::publish_trading_day)
       .def("deregister_app", &master::deregister_app);
 
   py::class_<apprentice, PyApprentice, apprentice_ptr>(m, "apprentice")
@@ -379,19 +382,8 @@ void bind(pybind11::module &&m) {
       .def_property_readonly("live", &apprentice::is_live)
       .def("set_begin_time", &apprentice::set_begin_time)
       .def("set_end_time", &apprentice::set_end_time)
-      .def("on_trading_day", &apprentice::on_trading_day)
       .def("run", &apprentice::run)
       .def("setup", &apprentice::setup)
       .def("step", &apprentice::step);
-
-  py::class_<cached, kungfu::yijinjing::practice::apprentice, std::shared_ptr<cached>>(m, "cached")
-      .def(py::init<yijinjing::data::locator_ptr, longfist::enums::mode, bool>())
-      .def_property_readonly("io_device", &cached::get_io_device)
-      .def_property_readonly("usable", &cached::is_usable)
-      .def("set_begin_time", &cached::set_begin_time)
-      .def("set_end_time", &cached::set_end_time)
-      .def("now", &cached::now)
-      .def("run", &cached::run)
-      .def("on_exit", &cached::on_exit);
 }
 } // namespace kungfu::yijinjing

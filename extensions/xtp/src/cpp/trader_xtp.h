@@ -42,8 +42,6 @@ public:
     return longfist::enums::AccountType::Stock;
   }
 
-  void on_trading_day(const event_ptr &event, int64_t daytime) override;
-
   void on_start() override;
 
   void on_exit() override;

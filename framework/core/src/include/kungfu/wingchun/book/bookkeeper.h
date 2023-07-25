@@ -46,8 +46,6 @@ public:
   void set_accounting_method(longfist::enums::InstrumentType instrument_type,
                              const AccountingMethod_ptr &accounting_method);
 
-  void on_trading_day(int64_t daytime);
-
   void on_start(const rx::connectable_observable<event_ptr> &events);
 
   void on_order_input(int64_t update_time, uint32_t source, uint32_t dest, const longfist::types::OrderInput &input);
@@ -80,7 +78,8 @@ public:
   }
 
   template <typename TradingData, typename ApplyMethod = void (AccountingMethod::*)(Book_ptr, const TradingData &)>
-  void update_book(int64_t update_time, uint32_t source, uint32_t dest, const TradingData &data, ApplyMethod method) {
+  void update_book(int64_t update_time, uint32_t account_id, uint32_t dest, const TradingData &data,
+                   ApplyMethod method) {
     std::lock_guard<std::mutex> lock(update_book_mutex_);
 
     if (accounting_methods_.find(data.instrument_type) == accounting_methods_.end()) {
@@ -88,16 +87,19 @@ public:
       return;
     }
     AccountingMethod &accounting_method = *accounting_methods_.at(data.instrument_type);
-    auto apply_and_update = [&](uint32_t book_uid) {
+    auto apply_and_update = [&](uint32_t book_uid, bool is_td = false) {
       auto book = get_book(book_uid);
-      auto &position = book->get_position_for(data);
-      (accounting_method.*method)(book, data);
-      position.update_time = update_time;
+      book->add_source_id(account_id);
+
+      (accounting_method.*method)(book, account_id, data);
+      auto apply = [&](auto &position) { position.update_time = update_time; };
+      auto direction = get_direction(data.instrument_type, data.side, data.offset);
+      book->apply_position(account_id, direction, data.exchange_id, data.instrument_id, apply);
       book->replace(data);
       book->update(update_time, account_method_type_);
     };
-    apply_and_update(source);
-    if (dest != yijinjing::data::location::PUBLIC) {
+    apply_and_update(account_id);
+    if (dest != yijinjing::data::location::PUBLIC and dest != yijinjing::data::location::SYNC) {
       apply_and_update(dest);
     }
   }
@@ -167,6 +169,8 @@ private:
   void update_position_guard(const longfist::types::PositionEnd &position_end);
 
   Book_ptr get_book_replica(uint32_t location_uid);
+
+  void on_output_key(const event_ptr &event);
 };
 } // namespace kungfu::wingchun::book
 #endif // WINGCHUN_BOOKKEEPER_H

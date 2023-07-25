@@ -26,6 +26,7 @@ import {
   KF_CONFIG_DIR,
   KF_HOME,
   KF_RUNTIME_DIR,
+  buildRuntimeChildDirByType,
 } from '../config/pathConfig';
 import { getKfGlobalSettingsValue } from '../config/globalSettings';
 import { Observable } from 'rxjs';
@@ -709,8 +710,7 @@ export async function isAllMainProcessRunning() {
 
   return (
     getIfProcessRunning(processStatus, 'master') &&
-    getIfProcessRunning(processStatus, 'ledger') &&
-    getIfProcessRunning(processStatus, 'cached')
+    getIfProcessRunning(processStatus, 'ledger')
   );
 }
 
@@ -765,22 +765,6 @@ export const startLedger = async (force = false): Promise<void> => {
   }
 };
 
-export const startCacheD = async (force = false): Promise<void> => {
-  const processName = 'cached';
-
-  try {
-    await preStartProcess(processName, force);
-    const args = buildArgs('run -c system -g service -n cached');
-    await startProcess({
-      name: processName,
-      args,
-      force,
-    });
-  } catch (err: unknown) {
-    kfLogger.error((<Error>err).message);
-  }
-};
-
 async function preStartProcess(
   processName: string,
   force = false,
@@ -816,7 +800,12 @@ export const startMd = async (
       .join(path.delimiter)}" run -c md -g "${sourceId}" -n "${sourceId}"`,
   );
   const cwd = dealSpaceInPath(
-    path.join(KF_RUNTIME_DIR, 'md', sourceId, sourceId),
+    path.join(
+      buildRuntimeChildDirByType('resources'),
+      'md',
+      sourceId,
+      sourceId,
+    ),
   );
   await fse.ensureDir(cwd);
   const options =
@@ -852,7 +841,9 @@ export const startTd = async (
       .map((dir) => dealSpaceInPath(path.dirname(dir)))
       .join(path.delimiter)}" run -c td -g "${source}" -n "${id}"`,
   );
-  const cwd = dealSpaceInPath(path.join(KF_RUNTIME_DIR, 'td', source, id));
+  const cwd = dealSpaceInPath(
+    path.join(buildRuntimeChildDirByType('resources'), 'td', source, id),
+  );
   await fse.ensureDir(cwd);
   const fullProcessId = `td_${accountId}`;
   const options =
@@ -916,7 +907,7 @@ export const startOperatorByExt = async (
       .join(path.delimiter)}" run -c operator -g "${group}" -n "${name}"`,
   );
   const cwd = dealSpaceInPath(
-    path.join(KF_RUNTIME_DIR, 'operator', group, name),
+    path.join(buildRuntimeChildDirByType('resources'), 'operator', group, name),
   );
   await fse.ensureDir(cwd);
   const fullProcessId = `operator_${group}_${name}`;

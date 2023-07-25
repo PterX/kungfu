@@ -55,6 +55,7 @@ constexpr auto AllTypes = boost::hana::make_map( //
     TYPE_PAIR(InstrumentKey),                    // 501
     TYPE_PAIR(CustomSubscribe),                  // 502
     TYPE_PAIR(SyntheticData),                    // 601
+    TYPE_PAIR(OutputKey),                        // 701
     TYPE_PAIR(PageEnd),                          // 10051
     TYPE_PAIR(Time),                             // 10052
     TYPE_PAIR(Ping),                             // 10053
@@ -138,6 +139,7 @@ constexpr auto AllTypes = boost::hana::make_map( //
     TYPE_PAIR(InstrumentKey),                                         // 501
     TYPE_PAIR(CustomSubscribe),                                       // 502
     TYPE_PAIR(SyntheticData),                                         // 601
+    TYPE_PAIR(OutputKey),                                             // 701
     TYPE_PAIR(Register),                                              // 10101
     TYPE_PAIR(Deregister),                                            // 10102
     TYPE_PAIR(StrategyStateUpdate),                                   // 10104
@@ -229,6 +231,19 @@ constexpr auto TradingDataTypes = boost::hana::make_map( //
     TYPE_PAIR(AlgoOrderInput),                           // 213
     TYPE_PAIR(AlgoOrder)                                 // 214
 );
+
+constexpr auto MarketDataTypes = boost::hana::make_map( //
+    TYPE_PAIR(Quote),                                   //
+    TYPE_PAIR(Tree),                                    //
+    TYPE_PAIR(Entrust),                                 //
+    TYPE_PAIR(Transaction)                              //
+);
+
+template <typename T> constexpr bool is_in_types(auto types) { return boost::hana::contains(types, T::type_name); }
+
+template <typename DataType> constexpr bool is_profile_data() { return is_in_types<DataType>(ProfileDataTypes); };
+
+template <typename DataType> constexpr bool is_market_data() { return is_in_types<DataType>(MarketDataTypes); };
 
 const auto build_data_set = [](auto types) {
   std::unordered_set<int32_t> s;

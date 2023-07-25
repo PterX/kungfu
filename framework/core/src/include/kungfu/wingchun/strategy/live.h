@@ -10,15 +10,21 @@
 #include <kungfu/wingchun/strategy/context.h>
 
 namespace kungfu::wingchun::strategy {
-class RuntimeContext : public Context {
+class LiveContext : public Context {
 public:
-  explicit RuntimeContext(yijinjing::practice::apprentice &app, const rx::connectable_observable<event_ptr> &events);
+  explicit LiveContext(yijinjing::practice::apprentice &app, const rx::connectable_observable<event_ptr> &events);
 
   /**
    * Get current time in nano seconds.
    * @return current time in nano seconds
    */
   int64_t now() const override;
+
+  /**
+   * checked_ is strated started.
+   * @return current time in nano seconds
+   */
+  virtual bool is_started() const override;
 
   /**
    * Get location_uid of current process
@@ -45,7 +51,7 @@ public:
    * @param source TD group
    * @param account TD account ID
    */
-  void add_account(const std::string &source, const std::string &account) override;
+  void add_account(const std::string &sourceOperator, const std::string &account) override;
 
   /**
    * Subscribe market data.
@@ -71,6 +77,18 @@ public:
   virtual void subscribe_operator(const std::string &group, const std::string &name) override;
 
   /**
+   * Get broker client.
+   * @return broker client reference
+   */
+  broker::Client &get_broker_client() override;
+
+  /**
+   * Get bookkeeper.
+   * @return bookkeeper reference
+   */
+  book::Bookkeeper &get_bookkeeper() override;
+
+  /**
    * Insert Block Message
    * @param opponent_seat
    * @param match_number
@@ -79,6 +97,39 @@ public:
    */
   uint64_t insert_block_message(const std::string &source, const std::string &account, uint32_t opponent_seat,
                                 uint64_t match_number, bool is_specific = false) override;
+
+  /**
+   *
+   * @param instrument_id instrument ID
+   * @param exchange_id exchange ID
+   * @param source source ID
+   * @param account account ID
+   * @param limit_price limit price
+   * @param volume trade volume
+   * @param type price type
+   * @param side side
+   * @param offset offset, defaults to longfist::enums::Offset::Open
+   * @param hedge_flag hedge_flag, defaults to longfist::enums::HedgeFlag::Speculation
+   * @param block_id BlockMessage id
+   * @param is_swap boolean
+   * @param parent_id parent order id
+   * @return order_id
+   */
+  uint64_t insert_order(const std::string &instrument_id, const std::string &exchange_id, const std::string &source,
+                        const std::string &account, double limit_price, int64_t volume, longfist::enums::PriceType type,
+                        longfist::enums::Side side, longfist::enums::Offset offset,
+                        longfist::enums::HedgeFlag hedge_flag = longfist::enums::HedgeFlag::Speculation,
+                        bool is_swap = false, uint64_t block_id = 0, uint64_t parent_id = 0) override;
+
+  /**
+   * Insert Order
+   * @param source
+   * @param account
+   * @param order_input
+   * @return
+   */
+  virtual uint64_t insert_order_input(const std::string &source, const std::string &account,
+                                      longfist::types::OrderInput &order_input) override;
 
   /**
    *
@@ -105,39 +156,9 @@ public:
                                 int64_t volume, longfist::enums::PriceType type, longfist::enums::Side side,
                                 longfist::enums::Offset offset, longfist::enums::OrderTriggerType trigger_type,
                                 longfist::enums::TimeCondition time_condition, longfist::enums::ParkedType parked_type,
-                                double stop_price, longfist::enums::HedgeFlag hedge_flag, bool is_swap) override;
-
-  /**
-   *
-   * @param instrument_id instrument ID
-   * @param exchange_id exchange ID
-   * @param source source ID
-   * @param account account ID
-   * @param limit_price limit price
-   * @param volume trade volume
-   * @param type price type
-   * @param side side
-   * @param offset offset, defaults to longfist::enums::Offset::Open
-   * @param hedge_flag hedge_flag, defaults to longfist::enums::HedgeFlag::Speculation
-   * @param block_id BlockMessage id
-   * @param is_swap boolean
-   * @return order_id
-   */
-  uint64_t insert_order(const std::string &instrument_id, const std::string &exchange_id, const std::string &source,
-                        const std::string &account, double limit_price, int64_t volume, longfist::enums::PriceType type,
-                        longfist::enums::Side side, longfist::enums::Offset offset,
-                        longfist::enums::HedgeFlag hedge_flag = longfist::enums::HedgeFlag::Speculation,
-                        bool is_swap = false, uint64_t block_id = 0, uint64_t parent_id = 0) override;
-
-  /**
-   * Insert Order
-   * @param source
-   * @param account
-   * @param order_input
-   * @return
-   */
-  virtual uint64_t insert_order_input(const std::string &source, const std::string &account,
-                                      longfist::types::OrderInput &order_input) override;
+                                double stop_price = 0,
+                                longfist::enums::HedgeFlag hedge_flag = longfist::enums::HedgeFlag::Speculation,
+                                bool is_swap = false) override;
 
   /**
    *
@@ -218,7 +239,9 @@ public:
    * @param action_flag for mark cancel or trigger cancel
    * @return order action ID
    */
-  uint64_t cancel_order(uint64_t order_id, longfist::enums::OrderActionFlag action_flag) override;
+  uint64_t
+  cancel_order(uint64_t order_id,
+               longfist::enums::OrderActionFlag action_flag = longfist::enums::OrderActionFlag::Cancel) override;
 
   /**
    * Cancel Order Trigger
@@ -245,12 +268,6 @@ public:
   void req_history_trade(const std::string &source, const std::string &account, uint32_t query_num = 0) override;
 
   /**
-   * Get current trading day.
-   * @return current trading day
-   */
-  int64_t get_trading_day() const override;
-
-  /**
    * Get subscribed MD locations.
    * @return subscribed MD locations
    */
@@ -267,18 +284,6 @@ public:
    * @return enrolled TD locations
    */
   const yijinjing::data::location_map &list_accounts() const;
-
-  /**
-   * Get broker client.
-   * @return broker client reference
-   */
-  broker::Client &get_broker_client();
-
-  /**
-   * Get bookkeeper.
-   * @return bookkeeper reference
-   */
-  book::Bookkeeper &get_bookkeeper();
 
   /**
    * Get basketorder engine.
@@ -299,31 +304,12 @@ public:
    */
   void update_strategy_state(longfist::types::StrategyStateUpdate &state_update) override;
 
-  /**
-   * Get arguments kfc run -a
-   * @return string of arguments
-   */
-  std::string arguments() override;
-
-  /**
-   *
-   * @param source td source id
-   * @param account td account id
-   * @return writer to related td
-   */
-  yijinjing::journal::writer_ptr get_writer(const std::string &source, const std::string &account) override;
-
-  void set_arguments(const std::string &argument) { arguments_ = argument; }
-
-  void set_started(bool started);
-
   yijinjing::data::location_ptr get_location(uint32_t location_uid) override;
 
 protected:
-  yijinjing::practice::apprentice &app_;
-  const rx::connectable_observable<event_ptr> &events_;
+  virtual void on_start() override;
 
-  virtual void on_start();
+  virtual void prepare(const event_ptr &event) override;
 
   [[maybe_unused]] uint32_t lookup_account_location_id(const std::string &account) const;
 
@@ -336,6 +322,9 @@ protected:
   void send_instrument_keys();
 
 private:
+  bool positions_requested_{false};
+  bool broker_states_requested_{false};
+  bool positions_set_{false};
   broker::PassiveClient broker_client_;
   book::Bookkeeper bookkeeper_;
   basketorder::BasketOrderEngine basketorder_engine_;
@@ -344,13 +333,9 @@ private:
   yijinjing::data::location_map op_locations_ = {};
   std::unordered_map<uint32_t, uint32_t> account_location_ids_ = {};
   std::unordered_map<std::string, yijinjing::data::location_ptr> market_data_ = {};
-  std::string arguments_;
-  bool started_ = false;
-
-  friend void enable(RuntimeContext &context) { context.on_start(); }
 };
 
-DECLARE_PTR(RuntimeContext)
+DECLARE_PTR(LiveContext)
 } // namespace kungfu::wingchun::strategy
 
 #endif // WINGCHUN_RUNTIME_H

@@ -32,24 +32,20 @@ class PyAccountingMethod : public AccountingMethod {
 public:
   using AccountingMethod::AccountingMethod;
 
-  void apply_trading_day(Book_ptr &book, int64_t trading_day) override {
-    PYBIND11_OVERLOAD_PURE(void, AccountingMethod, apply_trading_day, book, trading_day);
-  }
-
   void apply_quote(Book_ptr &book, const Quote &quote) override {
     PYBIND11_OVERLOAD_PURE(void, AccountingMethod, apply_quote, book, quote);
   }
 
-  void apply_order_input(Book_ptr &book, const OrderInput &input) override {
-    PYBIND11_OVERLOAD_PURE(void, AccountingMethod, apply_order_input, book, input);
+  void apply_order_input(Book_ptr &book, uint32_t account_id, const OrderInput &input) override {
+    PYBIND11_OVERLOAD_PURE(void, AccountingMethod, apply_order_input, book, account_id, input);
   }
 
-  void apply_order(Book_ptr &book, const Order &order) override {
-    PYBIND11_OVERLOAD_PURE(void, AccountingMethod, apply_order, book, order);
+  void apply_order(Book_ptr &book, uint32_t account_id, const Order &order) override {
+    PYBIND11_OVERLOAD_PURE(void, AccountingMethod, apply_order, book, account_id, order);
   }
 
-  void apply_trade(Book_ptr &book, const Trade &trade) override {
-    PYBIND11_OVERLOAD_PURE(void, AccountingMethod, apply_trade, book, trade);
+  void apply_trade(Book_ptr &book, uint32_t account_id, const Trade &trade) override {
+    PYBIND11_OVERLOAD_PURE(void, AccountingMethod, apply_trade, book, account_id, trade);
   }
 
   void update_position(Book_ptr &book, Position &position) override {
@@ -76,32 +72,32 @@ void bind_book(pybind11::module &m) {
       .def_readonly("instrument_factors", &Book::instrument_factors, py::return_value_policy::reference)
       .def_property_readonly("instruments", &Book::get_instruments)
       .def_property_readonly("commissions", &Book::get_commissions)
-      .def("update", &Book::update)
-      .def("has_long_position", &Book::has_long_position)
-      .def("has_short_position", &Book::has_short_position)
-      .def("has_position", &Book::has_position)
-      .def("get_long_position", &Book::get_long_position)
-      .def("get_short_position", &Book::get_short_position)
-      .def("get_position", &Book::get_position)
-      .def("has_position_for", py::overload_cast<const Quote &>(&Book::has_position_for<Quote>, py::const_))
-      .def("has_position_for", py::overload_cast<const Tree &>(&Book::has_position_for<Tree>, py::const_))
-      .def("has_position_for", py::overload_cast<const OrderInput &>(&Book::has_position_for<OrderInput>, py::const_))
-      .def("has_position_for", py::overload_cast<const Order &>(&Book::has_position_for<Order>, py::const_))
-      .def("has_position_for", py::overload_cast<const Trade &>(&Book::has_position_for<Trade>, py::const_))
-      .def("get_position_for", py::overload_cast<Direction, const Quote &>(&Book::get_position_for<Quote>),
-           py::return_value_policy::reference)
-      .def("get_position_for", py::overload_cast<Direction, const Tree &>(&Book::get_position_for<Tree>),
-           py::return_value_policy::reference)
-      .def("get_position_for", py::overload_cast<const OrderInput &>(&Book::get_position_for<OrderInput>),
-           py::return_value_policy::reference)
-      .def("get_position_for", py::overload_cast<const Order &>(&Book::get_position_for<Order>),
-           py::return_value_policy::reference)
-      .def("get_position_for", py::overload_cast<const Trade &>(&Book::get_position_for<Trade>),
-           py::return_value_policy::reference);
+      .def("update", &Book::update);
+  // TODO
+  // .def("has_long_position", &Book::has_long_position)
+  // .def("has_short_position", &Book::has_short_position)
+  // .def("has_position", &Book::has_position)
+  // .def("get_long_position", &Book::get_long_position)
+  // .def("get_short_position", &Book::get_short_position)
+  // .def("get_position", &Book::get_position)
+  // .def("has_position_for", py::overload_cast<const Quote &>(&Book::has_position_for<Quote>, py::const_))
+  // .def("has_position_for", py::overload_cast<const Tree &>(&Book::has_position_for<Tree>, py::const_))
+  // .def("has_position_for", py::overload_cast<const OrderInput &>(&Book::has_position_for<OrderInput>, py::const_))
+  // .def("has_position_for", py::overload_cast<const Order &>(&Book::has_position_for<Order>, py::const_))
+  // .def("has_position_for", py::overload_cast<const Trade &>(&Book::has_position_for<Trade>, py::const_))
+  // .def("get_position_for", py::overload_cast<Direction, const Quote &>(&Book::get_position_for<Quote>),
+  //      py::return_value_policy::reference)
+  // .def("get_position_for", py::overload_cast<Direction, const Tree &>(&Book::get_position_for<Tree>),
+  //      py::return_value_policy::reference)
+  // .def("get_position_for", py::overload_cast<const OrderInput &>(&Book::get_position_for<OrderInput>),
+  //      py::return_value_policy::reference)
+  // .def("get_position_for", py::overload_cast<const Order &>(&Book::get_position_for<Order>),
+  //      py::return_value_policy::reference)
+  // .def("get_position_for", py::overload_cast<const Trade &>(&Book::get_position_for<Trade>),
+  //      py::return_value_policy::reference);
 
   py::class_<AccountingMethod, PyAccountingMethod, AccountingMethod_ptr>(m, "AccountingMethod")
       .def(py::init<>())
-      .def("apply_trading_day", &AccountingMethod::apply_trading_day)
       .def("apply_quote", &AccountingMethod::apply_quote)
       .def("apply_order_input", &AccountingMethod::apply_order_input)
       .def("apply_order", &AccountingMethod::apply_order)
@@ -111,7 +107,6 @@ void bind_book(pybind11::module &m) {
       .def("has_book", &Bookkeeper::has_book)
       .def("get_book", &Bookkeeper::get_book)
       .def("get_books", &Bookkeeper::get_books)
-      .def("set_accounting_method", &Bookkeeper::set_accounting_method)
-      .def("on_trading_day", &Bookkeeper::on_trading_day);
+      .def("set_accounting_method", &Bookkeeper::set_accounting_method);
 }
 } // namespace kungfu::wingchun::pybind

@@ -14,6 +14,24 @@ namespace kungfu::wingchun::broker {
 
 void OrderService::on_order_input(const event_ptr &event) {
   auto &order_input = event->data<OrderInput>();
+  auto risk_uid = get_service().get_risk_uid();
+  if (risk_uid != 0 and event->initial_source() != risk_uid) {
+    auto dest = event->dest();
+    if (not vendor_.has_writer(dest)) {
+      SPDLOG_ERROR("no writer for {}", vendor_.get_location_uname(dest));
+      return;
+    }
+
+    auto writer = vendor_.get_writer(dest);
+    auto &order = writer->open_data<Order>();
+    order_from_input(order_input, order);
+    std::string error_msg = "Risk uid not match";
+    strncpy(order.error_msg, error_msg.c_str(), ERROR_MSG_LEN);
+    order.status = OrderStatus::Error;
+    writer->close_data();
+    return;
+  }
+
   // try_emplace default insert false to map, means not batch mode
   if (batch_status_.try_emplace(event->source()).first->second) {
     batch_order_inputs_.try_emplace(event->source()).first->second.push_back(order_input);

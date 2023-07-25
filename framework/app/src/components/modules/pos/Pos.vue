@@ -2,7 +2,6 @@
 import {
   dealDirection,
   dealCurrency,
-  isTdStrategyCategory,
   getIdByKfLocation,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 
@@ -155,9 +154,7 @@ function handleClickRow(data: {
     volume: getPosClosableVolumeByOffset(row, offset),
 
     price: row.last_price || row.avg_open_price || 0,
-    accountId: isTdStrategyCategory(currentGlobalKfLocation.value?.category)
-      ? undefined
-      : dealLocationUIDResolved(row.holder_uid),
+    accountId: dealLocationUIDResolved(row.source_id),
   };
   triggerMakeOrder(ensuredInstrument, extraOrderInput);
 }

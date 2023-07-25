@@ -42,6 +42,7 @@ frame_ptr writer::open_frame(int64_t trigger_time, int32_t msg_type, uint32_t da
   frame->set_trigger_time(trigger_time);
   frame->set_msg_type(msg_type);
   frame->set_source(journal_.location_->uid);
+  frame->set_initial_source(journal_.location_->uid);
   frame->set_dest(journal_.dest_id_);
   size_to_write_ = data_length;
   return frame;
@@ -54,6 +55,7 @@ void writer::close_frame(size_t data_length, int64_t gen_time) {
   assert(next_frame_address < journal_.page_->address_border());
   memset(reinterpret_cast<void *>(next_frame_address), 0, sizeof(frame_header));
   frame->set_gen_time(gen_time);
+  last_gen_time_ = gen_time;
   frame->set_data_length(data_length);
   size_to_write_ = 0;
   journal_.page_->set_last_frame_position(frame->address() - journal_.page_->address());
@@ -101,7 +103,16 @@ void writer::mark(int64_t trigger_time, int32_t msg_type) {
   close_frame(length);
 }
 
-void writer::close_data() { close_frame(size_to_write_); }
+void writer::write_raw_at_as(int64_t gen_time, int64_t trigger_time, uint32_t source, uint32_t dest, int32_t msg_type,
+                             uintptr_t data, uint32_t length) {
+  auto frame = open_frame(trigger_time, msg_type, length);
+  frame->set_source(source);
+  frame->set_dest(dest);
+  memcpy(const_cast<void *>(frame->data_address()), reinterpret_cast<void *>(data), length);
+  close_frame(length, gen_time);
+}
+
+void writer::close_data(int64_t gen_time) { close_frame(size_to_write_, gen_time); }
 
 void writer::close_page(int64_t trigger_time) {
   page_ptr last_page = journal_.page_;
@@ -118,7 +129,7 @@ void writer::close_page(int64_t trigger_time) {
   last_page_frame.set_msg_type(longfist::types::PageEnd::tag);
   last_page_frame.set_source(journal_.location_->uid);
   last_page_frame.set_dest(journal_.dest_id_);
-  last_page_frame.set_gen_time(time::now_in_nano());
+  last_page_frame.set_gen_time(last_gen_time_);
   last_page_frame.set_data_length(0);
   last_page->set_last_frame_position(last_page_frame.address() - last_page->address());
 }

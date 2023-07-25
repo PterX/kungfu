@@ -37,7 +37,7 @@ public:
   emitable_logger(std::string name, spdlog::sink_ptr single_sink)
       : spdlog::logger(std::move(name), std::move(single_sink)) {}
 
-  emitable_logger(std::string name, spdlog::sinks_init_list sinks) : spdlog::logger(std::move(name), sinks) {}
+  explicit emitable_logger(std::string name, spdlog::sinks_init_list sinks) : spdlog::logger(std::move(name), sinks) {}
 
   explicit emitable_logger(const logger &other) : spdlog::logger(other) {}
 

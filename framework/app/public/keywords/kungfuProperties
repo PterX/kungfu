@@ -15,11 +15,13 @@ order_trigger_actions
 algo_orders
 algo_order_actions
 context
-trading_day
 io_device
 usable
 bookkeeper
+arguments
 basketorder_engine
+begin_time
+end_time
 gen_time
 trigger_time
 source
@@ -34,6 +36,7 @@ bus
 observer
 live_home
 live
+daemon
 update_time
 data
 asset
@@ -58,6 +61,7 @@ yijinjing
 wingchun
 length
 header_length
+data_type
 version
 page_header_length
 page_size
@@ -78,6 +82,7 @@ frozen_cash
 frozen_margin
 frozen_fee
 position_pnl
+close_pnl
 total_asset
 avail_margin
 cash_margin
@@ -104,9 +109,9 @@ close_price
 pre_close_price
 settlement_price
 pre_settlement_price
-close_pnl
-product_id
+unrealized_pnl
 source_id
+product_id
 is_trading
 long_margin_ratio
 short_margin_ratio
@@ -153,13 +158,10 @@ trigger_type
 parked_type
 external_trigger_id
 order_trigger_action_id
-begin_time
-end_time
 algo_type_id
 algo_id
 args
 is_last
-data_type
 is_withdraw
 close_today_volume
 data_time
@@ -203,6 +205,8 @@ info_a
 info_b
 info_c
 disable_recover
+risk_check
+self_deal_check_type
 open_ratio
 close_ratio
 close_today_ratio
@@ -220,6 +224,7 @@ total_amount
 basket_uid
 base_time
 duration
+repeat
 system_clock_count
 frame_header
 page_header
@@ -274,6 +279,7 @@ TimeReset
 TradingDay
 AlgoOrderInput
 SyntheticData
+OutputKey
 Register
 Deregister
 Session
@@ -483,3 +489,7 @@ OrderTriggerType
 Server
 Local
 ParkedType
+No
+AccountInternal
+AccountInteractive
+SelfDealCheckType

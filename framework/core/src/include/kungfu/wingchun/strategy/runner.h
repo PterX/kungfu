@@ -7,7 +7,9 @@
 #ifndef WINGCHUN_RUNNER_H
 #define WINGCHUN_RUNNER_H
 
-#include <kungfu/wingchun/strategy/runtime.h>
+#include <kungfu/wingchun/strategy/backtest.h>
+#include <kungfu/wingchun/strategy/live.h>
+#include <kungfu/wingchun/strategy/matcher.h>
 #include <kungfu/wingchun/strategy/strategy.h>
 #include <kungfu/yijinjing/practice/apprentice.h>
 
@@ -17,15 +19,19 @@ public:
   Runner(yijinjing::data::locator_ptr locator, const std::string &group, const std::string &name,
          longfist::enums::mode m, bool low_latency, const std::string &arguments = "");
 
-  virtual ~Runner();
+  ~Runner() = default;
 
-  [[nodiscard]] RuntimeContext_ptr get_context() const;
+  [[nodiscard]] Context_ptr get_context() const;
 
   void add_strategy(const Strategy_ptr &strategy);
 
-  void on_exit() override;
+  void set_matcher(const Matcher_ptr &matcher);
 
-  void on_trading_day(const event_ptr &event, int64_t daytime) override;
+  void set_from_indexer(const tool::SliceIndexer_ptr &indexer);
+
+  void set_to_indexer(const tool::SliceIndexer_ptr &indexer);
+
+  void on_exit() override;
 
 protected:
   void react() override;
@@ -36,7 +42,7 @@ protected:
 
   void on_active() override;
 
-  virtual RuntimeContext_ptr make_context();
+  virtual Context_ptr make_context();
 
   virtual void pre_start();
 
@@ -47,15 +53,13 @@ protected:
   virtual void post_stop();
 
 private:
-  bool positions_requested_ = false;
-  bool broker_states_requested_ = false;
-  bool positions_set_;
-  bool started_;
   std::vector<Strategy_ptr> strategies_ = {};
-  RuntimeContext_ptr context_;
+  Context_ptr context_;
+  Matcher_ptr matcher_;
+  tool::SliceIndexer_ptr from_indexer_;
+  tool::SliceIndexer_ptr to_indexer_;
   const std::string arguments_;
 
-  void prepare(const event_ptr &event);
   void inspect_channel(const event_ptr &event);
 
   template <typename OnMethod = void (Strategy::*)(Context_ptr &)> void invoke(OnMethod method) {

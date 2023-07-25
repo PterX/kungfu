@@ -64,7 +64,6 @@ let isClosingWindow = false;
 let isRestartSystem = 0;
 let hasAlertMasterStop = false;
 let hasAlertLedgerStop = false;
-let hasAlertCacheDStop = false;
 
 const getNotificationType = (flag: number) => {
   return flag ? 'warning' : 'error';
@@ -79,19 +78,6 @@ watch(processStatusData, (newPSD, oldPSD) => {
       notification[getNotificationType(isRestartSystem)]({
         message: t('master_interrupt'),
         description: t('master_desc'),
-        duration: 8,
-        placement: 'bottomRight',
-      });
-      isRestartSystem && isRestartSystem++;
-    }
-  }
-
-  if (newPSD.cached !== 'online' && oldPSD.cached === 'online') {
-    if (isRestartSystem || !hasAlertCacheDStop) {
-      hasAlertCacheDStop = true;
-      notification[getNotificationType(isRestartSystem)]({
-        message: t('cached_interrupt'),
-        description: t('cached_desc'),
         duration: 8,
         placement: 'bottomRight',
       });
@@ -144,8 +130,7 @@ watch(appStates, (newAppStates, oldAppStates) => {
 const mainStatusWell = computed(() => {
   const masterIsLive = processStatusData.value['master'] === 'online';
   const ledgerIsLive = processStatusData.value['ledger'] === 'online';
-  const cachedIsLive = processStatusData.value['cached'] === 'online';
-  return masterIsLive && ledgerIsLive && cachedIsLive;
+  return masterIsLive && ledgerIsLive;
 });
 
 function handleOpenProcessControllerBoard(): void {

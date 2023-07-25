@@ -31,7 +31,7 @@ public:
 
   std::string get_arguments() const { return arguments_; }
 
-  void set_arguments(const std::string &argiments) { arguments_ = argiments; }
+  void set_arguments(const std::string &arguments) { arguments_ = arguments; }
 
   virtual BrokerService_ptr get_service() = 0;
 
@@ -55,8 +55,6 @@ public:
   virtual void on_start();
 
   virtual void on_exit();
-
-  virtual void on_trading_day(const event_ptr &event, int64_t daytime);
 
   [[nodiscard]] int64_t now() const;
 
@@ -101,6 +99,8 @@ public:
   [[nodiscard]] BrokerVendor &get_vendor() const { return vendor_; }
 
   [[maybe_unused]] uint32_t request_band(const std::string &band_name) { return vendor_.request_band(band_name); }
+
+  virtual void on_arguments(const std::string &argument) {}
 
 protected:
   volatile BrokerState state_;

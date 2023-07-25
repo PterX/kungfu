@@ -24,10 +24,6 @@ namespace kungfu::wingchun::pybind {
 class PyRunner : public strategy::Runner {
 public:
   using strategy::Runner::Runner;
-
-  void on_trading_day(const event_ptr &event, int64_t daytime) override {
-    PYBIND11_OVERLOAD(void, strategy::Runner, on_trading_day, event, daytime);
-  }
 };
 
 class PyStrategy : public strategy::Strategy {
@@ -48,10 +44,6 @@ public:
 
   void post_stop(strategy::Context_ptr &context) override {
     PYBIND11_OVERLOAD(void, strategy::Strategy, post_stop, context);
-  }
-
-  void on_trading_day(strategy::Context_ptr &context, int64_t daytime) override {
-    PYBIND11_OVERLOAD(void, strategy::Strategy, on_trading_day, context, daytime);
   }
 
   void on_quote(strategy::Context_ptr &context, const Quote &quote,
@@ -168,16 +160,19 @@ void bind_strategy(pybind11::module &m) {
       .def_property_readonly("context", &strategy::Runner::get_context)
       .def("set_begin_time", &strategy::Runner::set_begin_time)
       .def("set_end_time", &strategy::Runner::set_end_time)
+      .def("set_matcher", &strategy::Runner::set_matcher)
+      .def("set_from_indexer", &strategy::Runner::set_from_indexer)
+      .def("set_to_indexer", &strategy::Runner::set_to_indexer)
       .def("now", &strategy::Runner::now)
       .def("run", &strategy::Runner::run)
       .def("setup", &strategy::Runner::setup)
       .def("step", &strategy::Runner::step)
-      .def("on_trading_day", &strategy::Runner::on_trading_day)
       .def("on_exit", &strategy::Runner::on_exit)
       .def("add_strategy", &strategy::Runner::add_strategy);
 
   py::class_<strategy::Context, std::shared_ptr<strategy::Context>>(m, "Context")
-      .def_property_readonly("trading_day", &strategy::Context::get_trading_day)
+      .def_property_readonly("arguments", &strategy::Context::get_arguments)
+      .def_property_readonly("bookkeeper", &strategy::Context::get_bookkeeper, py::return_value_policy::reference)
       .def("now", &strategy::Context::now)
       .def("add_timer", &strategy::Context::add_timer)
       .def("add_time_interval", &strategy::Context::add_time_interval)
@@ -222,14 +217,16 @@ void bind_strategy(pybind11::module &m) {
       .def("is_positions_mirrored", &strategy::Context::is_positions_mirrored)
       .def("req_deregister", &strategy::Context::req_deregister)
       .def("update_strategy_state", &strategy::Context::update_strategy_state)
-      .def("get_writer", &strategy::Context::get_writer)
       .def("is_bypass_accounting", &strategy::Context::is_bypass_accounting)
       .def("bypass_accounting", &strategy::Context::bypass_accounting);
 
-  py::class_<strategy::RuntimeContext, strategy::Context, strategy::RuntimeContext_ptr>(m, "RuntimeContext")
-      .def_property_readonly("bookkeeper", &strategy::RuntimeContext::get_bookkeeper,
-                             py::return_value_policy::reference)
-      .def_property_readonly("basketorder_engine", &strategy::RuntimeContext::get_basketorder_engine,
+  py::class_<strategy::Matcher, std::shared_ptr<strategy::Matcher>>(m, "Matcher");
+
+  // TODO to be pruned. use Context instead
+  py::class_<strategy::LiveContext, strategy::Context, strategy::LiveContext_ptr>(m, "LiveContext")
+      // .def_property_readonly("bookkeeper", &strategy::LiveContext::get_bookkeeper,
+      // py::return_value_policy::reference)
+      .def_property_readonly("basketorder_engine", &strategy::LiveContext::get_basketorder_engine,
                              py::return_value_policy::reference);
 
   py::class_<strategy::Strategy, PyStrategy, strategy::Strategy_ptr>(m, "Strategy")
@@ -238,7 +235,6 @@ void bind_strategy(pybind11::module &m) {
       .def("post_start", &strategy::Strategy::post_start)
       .def("pre_stop", &strategy::Strategy::pre_stop)
       .def("post_stop", &strategy::Strategy::post_stop)
-      .def("on_trading_day", &strategy::Strategy::on_trading_day)
       .def("on_quote", &strategy::Strategy::on_quote)
       .def("on_tree", &strategy::Strategy::on_tree)
       .def("on_entrust", &strategy::Strategy::on_entrust)

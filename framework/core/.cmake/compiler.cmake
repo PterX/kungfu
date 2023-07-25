@@ -49,7 +49,7 @@ if (MSVC)
 endif ()
 
 if (${CMAKE_CXX_COMPILER_ID} MATCHES GNU)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftemplate-backtrace-limit=0 -Wno-address-of-packed-member -Wno-deprecated")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftemplate-backtrace-limit=0 -Wno-address-of-packed-member -Wno-deprecated -Wno-nonnull")
 endif ()
 
 ############################################################

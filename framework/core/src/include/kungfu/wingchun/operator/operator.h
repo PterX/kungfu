@@ -22,10 +22,6 @@ public:
 
   virtual void post_stop(Context_ptr &context){};
 
-  // 交易日切换回调
-  //@param daytime 交易日
-  virtual void on_trading_day(Context_ptr &context, int64_t daytime){};
-
   // 行情数据更新回调
   //@param quote             行情数据
   virtual void on_quote(Context_ptr &context, const longfist::types::Quote &quote,
@@ -40,6 +36,12 @@ public:
   //@param transaction       逐笔成交数据
   virtual void on_transaction(Context_ptr &context, const longfist::types::Transaction &transaction,
                               const kungfu::yijinjing::data::location_ptr &location, uint32_t dest){};
+
+  // 行情数据更新回调
+  // @param tree              行情数据
+  // @param location          数据来源
+  virtual void on_tree(Context_ptr &context, const longfist::types::Tree &tree,
+                       const kungfu::yijinjing::data::location_ptr &location, uint32_t dest){};
 
   // 用于做行情转录时的任意类型行情事件回调, 考虑不提供python binding
   //@param event md发布的任意类型行情事件

@@ -67,8 +67,6 @@ public:
 
   Napi::Value GetStrategyStates(const Napi::CallbackInfo &info);
 
-  Napi::Value GetTradingDay(const Napi::CallbackInfo &info);
-
   Napi::Value Now(const Napi::CallbackInfo &info);
 
   Napi::Value IsUsable(const Napi::CallbackInfo &info);
@@ -264,14 +262,14 @@ private:
       }
       auto location = get_location(source);
       auto book = bookkeeper_.get_book(source);
-      auto &position = book->get_position_for(data);
-      auto &oppsite_position = book->get_oppsite_position_for(data);
-      state<kungfu::longfist::types::Position> cache_state_position(source, dest, event->gen_time(), position);
-      feed_state_data_bank(cache_state_position, data_bank_);
 
-      state<kungfu::longfist::types::Position> cache_state_oppsite_position(source, dest, event->gen_time(),
-                                                                            oppsite_position);
-      feed_state_data_bank(cache_state_oppsite_position, data_bank_);
+      auto apply = [&](auto &position) {
+        state<kungfu::longfist::types::Position> cache_state_position(source, dest, event->gen_time(), position);
+        feed_state_data_bank(cache_state_position, data_bank_);
+      };
+
+      book->apply_position_for(data, apply);
+      book->apply_opposite_position_for(data, apply);
 
       state<kungfu::longfist::types::Asset> cache_state_asset(source, dest, event->gen_time(), book->asset);
       feed_state_data_bank(cache_state_asset, data_bank_);
@@ -280,6 +278,7 @@ private:
                                                                            book->asset_margin);
       feed_state_data_bank(cache_state_asset_margin, data_bank_);
     };
+
     update(event->source(), event->dest());
     update(event->dest(), event->source());
   }
@@ -306,7 +305,7 @@ private:
   template <typename TradingData>
   std::enable_if_t<std::is_same_v<TradingData, longfist::types::OrderInput>> UpdateBook(uint32_t source, uint32_t dest,
                                                                                         const TradingData &data) {
-    bookkeeper_.on_order_input(now(), source, dest, data);
+    bookkeeper_.on_order_input(now(), dest, source, data);
     state<kungfu::longfist::types::OrderInput> cache_state_order_input(source, dest, now(), data);
     data_bank_ << cache_state_order_input;
   }
@@ -412,6 +411,10 @@ private:
       if (not is_location_live(account_location->uid) or not has_writer(account_location->uid)) {
         SPDLOG_ERROR("no writer or not live for account_location {} {} ", account_location->uid,
                      account_location->uname);
+        return Napi::BigInt::New(info.Env(), std::uint64_t(0));
+      }
+
+      if (not has_writer(get_master_command_uid())) {
         return Napi::BigInt::New(info.Env(), std::uint64_t(0));
       }
 

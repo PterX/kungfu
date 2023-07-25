@@ -711,5 +711,15 @@ NLOHMANN_JSON_SERIALIZE_ENUM(ParkedType, {
 
 inline std::ostream &operator<<(std::ostream &os, ParkedType t) { return os << int8_t(t); }
 
+enum class SelfDealCheckType : int8_t { No, AccountInternal, AccountInteractive };
+
+NLOHMANN_JSON_SERIALIZE_ENUM(SelfDealCheckType, {
+                                                    {SelfDealCheckType::No, "No"},
+                                                    {SelfDealCheckType::AccountInternal, "AccountInternal"},
+                                                    {SelfDealCheckType::AccountInteractive, "AccountInteractive"},
+                                                })
+
+inline std::ostream &operator<<(std::ostream &os, SelfDealCheckType t) { return os << int8_t(t); }
+
 } // namespace kungfu::longfist::enums
 #endif // KUNGFU_LONGFIST_ENUM_H

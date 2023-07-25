@@ -133,8 +133,6 @@ OrderTriggerService &TraderVendor::get_order_trigger_service() { return order_tr
 
 const OrderTriggerService &TraderVendor::get_order_trigger_service() const { return order_trigger_service_; }
 
-void TraderVendor::on_trading_day(const event_ptr &event, int64_t daytime) { service_->on_trading_day(event, daytime); }
-
 void TraderVendor::on_active() {
   order_service_.on_active();
   algo_order_service_.on_active();

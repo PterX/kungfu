@@ -17,9 +17,15 @@
 namespace kungfu::wingchun::strategy {
 class Context : public std::enable_shared_from_this<Context> {
 public:
-  Context() = default;
+  Context(yijinjing::practice::apprentice &app, const rx::connectable_observable<event_ptr> &events);
 
   virtual ~Context() = default;
+
+  /**
+   * checked_ is strated started.
+   * @return current time in nano seconds
+   */
+  virtual bool is_started() const = 0;
 
   /**
    * Get current time in nano seconds.
@@ -78,6 +84,18 @@ public:
   virtual void subscribe_operator(const std::string &group, const std::string &name) = 0;
 
   /**
+   * Get broker client.
+   * @return broker client reference
+   */
+  virtual broker::Client &get_broker_client() = 0;
+
+  /**
+   * Get bookkeeper.
+   * @return bookkeeper reference
+   */
+  virtual book::Bookkeeper &get_bookkeeper() = 0;
+
+  /**
    * Insert Block Message
    * @param opponent_seat
    * @param match_number
@@ -86,6 +104,40 @@ public:
    */
   virtual uint64_t insert_block_message(const std::string &source, const std::string &account, uint32_t opponent_seat,
                                         uint64_t match_number, bool is_specific = false) = 0;
+
+  /**
+   * Insert order.
+   * @param instrument_id instrument ID
+   * @param exchange_id exchange ID
+   * @param source source ID
+   * @param account account ID
+   * @param limit_price limit price
+   * @param volume trade volume
+   * @param type price type
+   * @param side side
+   * @param offset offset, defaults to longfist::enums::Offset::Open
+   * @param hedge_flag hedge_flag, defaults to longfist::enums::HedgeFlag::Speculation
+   * @param block_id BlockMessage id
+   * @param is_swap boolean
+   * @param parent_id parent order id
+   * @return
+   */
+  virtual uint64_t insert_order(const std::string &instrument_id, const std::string &exchange_id,
+                                const std::string &source, const std::string &account, double limit_price,
+                                int64_t volume, longfist::enums::PriceType type, longfist::enums::Side side,
+                                longfist::enums::Offset offset,
+                                longfist::enums::HedgeFlag hedge_flag = longfist::enums::HedgeFlag::Speculation,
+                                bool is_swap = false, uint64_t block_id = 0, uint64_t parent_id = 0) = 0;
+
+  /**
+   * Insert Order
+   * @param source
+   * @param account
+   * @param order_input
+   * @return
+   */
+  virtual uint64_t insert_order_input(const std::string &source, const std::string &account,
+                                      longfist::types::OrderInput &order_input) = 0;
 
   /**
    *
@@ -116,38 +168,6 @@ public:
                                         double stop_price = 0,
                                         longfist::enums::HedgeFlag hedge_flag = longfist::enums::HedgeFlag::Speculation,
                                         bool is_swap = false) = 0;
-
-  /**
-   * Insert order.
-   * @param instrument_id instrument ID
-   * @param exchange_id exchange ID
-   * @param source source ID
-   * @param account account ID
-   * @param limit_price limit price
-   * @param volume trade volume
-   * @param type price type
-   * @param side side
-   * @param offset offset, defaults to longfist::enums::Offset::Open
-   * @param hedge_flag hedge_flag, defaults to longfist::enums::HedgeFlag::Speculation
-   * @param block_id BlockMessage id
-   * @return
-   */
-  virtual uint64_t insert_order(const std::string &instrument_id, const std::string &exchange_id,
-                                const std::string &source, const std::string &account, double limit_price,
-                                int64_t volume, longfist::enums::PriceType type, longfist::enums::Side side,
-                                longfist::enums::Offset offset,
-                                longfist::enums::HedgeFlag hedge_flag = longfist::enums::HedgeFlag::Speculation,
-                                bool is_swap = false, uint64_t block_id = 0, uint64_t parent_id = 0) = 0;
-
-  /**
-   * Insert Order
-   * @param source
-   * @param account
-   * @param order_input
-   * @return
-   */
-  virtual uint64_t insert_order_input(const std::string &source, const std::string &account,
-                                      longfist::types::OrderInput &order_input) = 0;
 
   /**
    * Insert Batch Orders
@@ -182,7 +202,7 @@ public:
   virtual std::vector<uint64_t> insert_array_orders(const std::string &source, const std::string &account,
                                                     std::vector<longfist::types::OrderInput> &order_inputs) = 0;
 
-  /**
+  /*
    * Insert Basket Orders
    * @param basket_id
    * @param source
@@ -257,12 +277,6 @@ public:
   virtual void req_history_trade(const std::string &source, const std::string &account, uint32_t query_num = 0) = 0;
 
   /**
-   * Get current trading day.
-   * @return current trading day
-   */
-  virtual int64_t get_trading_day() const = 0;
-
-  /**
    * Tells whether the book is held.
    * If book is held, all traded positions will be recovered from ledger.
    * If book is not held, ledger will use the information collected in pre_start to build a fresh book.
@@ -317,15 +331,7 @@ public:
    * Get arguments kfc run -a
    * @return string of arguments
    */
-  virtual std::string arguments() { return {}; };
-
-  /**
-   *
-   * @param source td source id
-   * @param account td account id
-   * @return writer to related td
-   */
-  virtual yijinjing::journal::writer_ptr get_writer(const std::string &source, const std::string &account) = 0;
+  const std::string &get_arguments() { return arguments_; };
 
   /**
    *
@@ -334,11 +340,28 @@ public:
    */
   virtual yijinjing::data::location_ptr get_location(uint32_t location_uid) = 0;
 
+protected:
+  yijinjing::practice::apprentice &app_;
+  const rx::connectable_observable<event_ptr> &events_;
+  std::string arguments_;
+  bool started_{false};
+
+  virtual void on_start() {}
+
+  virtual void prepare(const event_ptr &event) = 0;
+
 private:
   bool book_held_ = false;
   bool positions_mirrored_ = true;
   bool bypass_accounting_ = false;
+
+  friend void enable(Context &context) { context.on_start(); }
+
+  friend void prepare(const event_ptr &event, Context &context) { context.prepare(event); }
+
+  friend void set_arguments(Context &context, const std::string &arguments) { context.arguments_ = arguments; }
 };
+
 } // namespace kungfu::wingchun::strategy
 
 #endif // WINGCHUN_CONTEXT_H

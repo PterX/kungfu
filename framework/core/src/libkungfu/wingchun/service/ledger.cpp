@@ -26,8 +26,6 @@ Ledger::Ledger(locator_ptr locator, mode m, bool low_latency)
 
 void Ledger::on_exit() {}
 
-void Ledger::on_trading_day(const event_ptr &event, int64_t daytime) { bookkeeper_.on_trading_day(daytime); }
-
 book::Bookkeeper &Ledger::get_bookkeeper() { return bookkeeper_; }
 
 void Ledger::on_start() {
@@ -60,17 +58,11 @@ void Ledger::on_start() {
 
 void Ledger::on_deregister([[maybe_unused]] const Deregister &deregister) {
   uint32_t location_uid = deregister.location_uid;
-  if (broker_states_.find(location_uid) != broker_states_.end()) {
-    // broker_states_[location_uid].state = BrokerState::DisConnected;
-    broker_states_.erase(location_uid);
-    SPDLOG_INFO("deregister location [{:08x}] {}, from broker_states_", location_uid, get_location_uname(location_uid));
-  }
-  if (operator_states_.find(location_uid) != operator_states_.end()) {
-    // operator_states_[location_uid].state = OperatorState::DisConnected;
-    operator_states_.erase(location_uid);
-    SPDLOG_INFO("deregister location [{:08x}] {}, from operatoor_states_", location_uid,
-                get_location_uname(location_uid));
-  }
+  broker_states_.erase(location_uid);
+  SPDLOG_INFO("deregister location [{:08x}] {}, from broker_states_", location_uid, get_location_uname(location_uid));
+  operator_states_.erase(location_uid);
+  SPDLOG_INFO("deregister location [{:08x}] {}, from operatoor_states_", location_uid,
+              get_location_uname(location_uid));
   write_app_state_to_public(broker_states_);
   write_app_state_to_public(operator_states_);
 }
@@ -182,9 +174,6 @@ void Ledger::inspect_channel(int64_t trigger_time, const Channel &channel) {
   auto source_location = get_location(channel.source_id);
   auto is_from_account = source_location->category == category::TD;
 
-  if (channel.source_id == cached_home_location_->uid or channel.dest_id == cached_home_location_->uid) {
-    return;
-  }
   if (channel.source_id != get_live_home_uid() and channel.dest_id != get_live_home_uid()) {
     reader_join(channel.source_id, channel.dest_id, trigger_time);
   }
@@ -203,22 +192,22 @@ void Ledger::keep_positions([[maybe_unused]] int64_t trigger_time, uint32_t stra
 
 void Ledger::rebuild_positions(int64_t trigger_time, uint32_t strategy_uid) {
   auto strategy_book = bookkeeper_.get_book(strategy_uid);
-  auto rebuild_book = [&](const auto &positions) {
-    for (const auto &pair : positions) {
-      auto &position = pair.second;
-      if (strategy_book->has_position_for(position)) {
-        auto &strategy_position = strategy_book->get_position_for(position.direction, position);
-        longfist::copy(strategy_position, position);
-        strategy_position.update_time = trigger_time;
-      }
-    }
+  if (tmp_books_.find(strategy_uid) == tmp_books_.end()) {
+    return;
+  }
+
+  auto rebuild_book = [&](auto &from_position) {
+    auto apply = [&](auto &to_position) {
+      longfist::copy(to_position, from_position);
+      to_position.update_time = trigger_time;
+    };
+    strategy_book->apply_position(from_position.source_id, from_position.direction, from_position.exchange_id,
+                                  from_position.instrument_id, apply);
   };
 
-  if (tmp_books_.find(strategy_uid) != tmp_books_.end()) {
-    auto tmp_book = tmp_books_.at(strategy_uid);
-    rebuild_book(tmp_book->long_positions);
-    rebuild_book(tmp_book->short_positions);
-  }
+  auto &tmp_book = tmp_books_.at(strategy_uid);
+  tmp_book->apply_long_positions(rebuild_book);
+  tmp_book->apply_short_positions(rebuild_book);
   strategy_book->update(trigger_time, bookkeeper_.get_accounting_method_type());
 }
 
@@ -259,6 +248,7 @@ void Ledger::write_strategy_data(int64_t trigger_time, uint32_t strategy_uid) {
       writer->write(trigger_time, asset_margin);
     }
   }
+
   writer->open_data<PositionEnd>(trigger_time).holder_uid = strategy_uid;
   writer->close_data();
 }

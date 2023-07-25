@@ -2,6 +2,7 @@
 
 #include <kungfu/common.h>
 #include <kungfu/yijinjing/io.h>
+#include <kungfu/yijinjing/journal/bus.h>
 #include <kungfu/yijinjing/log.h>
 #include <kungfu/yijinjing/time.h>
 

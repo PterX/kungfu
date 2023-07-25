@@ -20,7 +20,10 @@ MarketDataVendor::MarketDataVendor(locator_ptr locator, const std::string &group
   set_arguments(arguments);
 }
 
-void MarketDataVendor::set_service(MarketData_ptr service) { service_ = std::move(service); }
+void MarketDataVendor::set_service(MarketData_ptr service) {
+  service_ = std::move(service);
+  service_->on_arguments(get_arguments());
+}
 
 void MarketDataVendor::on_react() {
   BrokerVendor::on_react();
@@ -39,10 +42,6 @@ void MarketDataVendor::on_start() {
 }
 
 BrokerService_ptr MarketDataVendor::get_service() { return service_; }
-
-void MarketDataVendor::on_trading_day(const event_ptr &event, int64_t daytime) {
-  service_->on_trading_day(event, daytime);
-}
 
 [[maybe_unused]] bool MarketData::has_instrument(const std::string &instrument_id) const {
   return instruments_.find(instrument_id) != instruments_.end();

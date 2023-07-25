@@ -200,7 +200,6 @@ inline void to_xtp(XTPMarketDataStruct &des, const Quote &ori) {
 
 inline void from_xtp(const XTPMarketDataStruct &ori, Quote &des) {
   des.data_time = nsec_from_xtp_timestamp(ori.data_time);
-  strcpy(des.trading_day, yijinjing::time::strftime(des.data_time, KUNGFU_TRADING_DAY_FORMAT).c_str());
   strcpy(des.instrument_id, ori.ticker);
   from_xtp(ori.exchange_id, des.exchange_id);
 
@@ -261,7 +260,7 @@ inline void from_xtp(const XTPOrderInfo &ori, Order &des) {
   strncpy(des.external_order_id, str_external_order_id.c_str(), str_external_order_id.length());
 }
 
-inline void from_xtp(const XTPQueryOrderRsp &ori, HistoryOrder &des) {
+inline void from_xtp(const XTPOrderInfo &ori, HistoryOrder &des) {
   strcpy(des.instrument_id, ori.ticker);
   from_xtp(ori.market, des.exchange_id);
   from_xtp(ori.price_type, ori.market, des.price_type);
@@ -278,6 +277,8 @@ inline void from_xtp(const XTPQueryOrderRsp &ori, HistoryOrder &des) {
   if (ori.update_time > 0) {
     des.update_time = nsec_from_xtp_timestamp(ori.update_time);
   }
+  std::string str_external_order_id = std::to_string(ori.order_xtp_id);
+  strncpy(des.external_order_id, str_external_order_id.c_str(), str_external_order_id.length());
 }
 
 inline void from_xtp(const XTPTradeReport &ori, Trade &des) {

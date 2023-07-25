@@ -207,8 +207,6 @@ public:
 
   void set_service(Trader_ptr service);
 
-  void on_trading_day(const event_ptr &event, int64_t daytime) override;
-
   BrokerService_ptr get_service() override;
 
   void on_recover();
@@ -337,6 +335,8 @@ public:
 
   [[nodiscard]] const AlgoOrderActionMap &get_algo_order_actions() const;
 
+  [[nodiscard]] uint32_t get_risk_uid() const;
+
   [[maybe_unused]] void disable_recover();
 
   virtual void on_recover(){};
@@ -348,6 +348,7 @@ private:
   bool sync_asset_ = false;
   bool sync_asset_margin_ = false;
   bool sync_position_ = false;
+  uint32_t risk_uid_ = 0;
 
   void on_asset_sync();
 

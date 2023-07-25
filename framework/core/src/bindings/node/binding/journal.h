@@ -9,7 +9,6 @@
 
 #include "common.h"
 #include "operators.h"
-#include <deque>
 
 #include <kungfu/yijinjing/io.h>
 #include <kungfu/yijinjing/journal/assemble.h>

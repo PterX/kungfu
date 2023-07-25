@@ -6,15 +6,27 @@
 #include <kungfu/wingchun/operator/context.h>
 
 namespace kungfu::wingchun::op {
-class RuntimeContext : public Context {
+class LiveContext : public Context {
 public:
-  explicit RuntimeContext(yijinjing::practice::apprentice &app, const rx::connectable_observable<event_ptr> &events);
+  explicit LiveContext(yijinjing::practice::apprentice &app, const rx::connectable_observable<event_ptr> &events);
+
+  /**
+   * checked_ is strated started.
+   * @return current time in nano seconds
+   */
+  virtual bool is_started() const override;
 
   /**
    * Get current time in nano seconds.
    * @return current time in nano seconds
    */
   int64_t now() const override;
+
+  /**
+   * Get location_uid of current process
+   * @return location_uid
+   */
+  uint32_t get_home_uid() const override;
 
   /**
    * Get config from database.
@@ -40,10 +52,10 @@ public:
    * Subscribe market data.
    * @param source MD group
    * @param instrument_ids instrument IDs
-   * @param exchange_ids exchange IDs
+   * @param exchange_id exchange ID
    */
   void subscribe(const std::string &source, const std::vector<std::string> &instrument_ids,
-                 const std::string &exchange_ids) override;
+                 const std::string &exchange_id) override;
 
   /**
    * Subscribe all from given MD
@@ -64,13 +76,7 @@ public:
    * @param key key of data to be published
    * @param value value of data to be published
    */
-  virtual void publish_synthetic_data(const std::string &key, const std::string &value) override;
-
-  /**
-   * Get current trading day.
-   * @return current trading day
-   */
-  int64_t get_trading_day() const override;
+  void publish_synthetic_data(const std::string &key, const std::string &value) override;
 
   /**
    * request deregister.
@@ -101,15 +107,13 @@ public:
    * Get broker client.
    * @return broker client reference
    */
-  broker::PassiveClient &get_broker_client();
+  broker::Client &get_broker_client() override;
 
   void check_dependency_state(const event_ptr &event);
 
-protected:
-  // those 3 member maybe shared with BacktestContext
-  yijinjing::practice::apprentice &app_;
-  const rx::connectable_observable<event_ptr> &events_;
+  yijinjing::data::location_ptr get_location(uint32_t location_uid) override;
 
+protected:
   const yijinjing::data::location_ptr &
   find_location(const std::string &source, longfist::enums::category c,
                 std::unordered_map<std::string, yijinjing::data::location_ptr> &locations);
@@ -118,6 +122,8 @@ protected:
 
   void on_start() override;
 
+  void prepare(const event_ptr &event) override;
+
 private:
   broker::PassiveClient broker_client_;
   yijinjing::data::location_map md_locations_ = {};
@@ -125,9 +131,11 @@ private:
   std::unordered_map<std::string, yijinjing::data::location_ptr> market_data_ = {};
   std::unordered_map<std::string, yijinjing::data::location_ptr> operator_data_ = {};
   longfist::enums::OperatorState state_;
+  bool started_{false};
+  bool broker_states_requested_{false};
 };
 
-DECLARE_PTR(RuntimeContext)
+DECLARE_PTR(LiveContext)
 } // namespace kungfu::wingchun::op
 
 #endif //  WINGCHUN_OPERATOR_RUNTIME_H

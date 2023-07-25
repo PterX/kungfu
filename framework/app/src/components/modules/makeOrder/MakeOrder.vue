@@ -619,7 +619,7 @@ const embeddedOrderInputResolved = ref<
 const embeddedOrderInput = ref<KungfuApi.MakeOrderInput>();
 const embeddedBtnVisible = computed(() => {
   const rootPackageJson = readRootPackageJsonSync();
-  if (!rootPackageJson.appConfig?.orderTrigger) {
+  if (rootPackageJson?.appConfig?.orderTrigger === false) {
     return false;
   }
 

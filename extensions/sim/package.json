@@ -95,7 +95,14 @@
             "errMsg": "sim.match_mode_error",
             "required": true
           }
-        ]
+        ],
+        "orderTrigger": {
+          "MakeOrder": {
+            "Server": {
+              "GFA": true
+            }
+          }
+        }
       },
       "md": {
         "type": "multi"

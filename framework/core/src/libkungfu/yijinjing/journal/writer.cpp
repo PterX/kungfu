@@ -28,7 +28,7 @@ uint64_t writer::current_frame_uid() {
 
 frame_ptr writer::open_frame(int64_t trigger_time, int32_t msg_type, uint32_t data_length) {
   int64_t start_time = time::now_in_nano();
-  while (not writer_mutex_.try_lock()) {
+  while (not writer_mtx_.try_lock()) {
     if (time::now_in_nano() - start_time > 30 * time_unit::NANOSECONDS_PER_SECOND) {
       throw journal_error("Can not lock writer for " + journal_.location_->uname);
     }
@@ -60,7 +60,7 @@ void writer::close_frame(size_t data_length, int64_t gen_time) {
   size_to_write_ = 0;
   journal_.page_->set_last_frame_position(frame->address() - journal_.page_->address());
   journal_.next();
-  writer_mutex_.unlock();
+  writer_mtx_.unlock();
   publisher_->notify();
 }
 

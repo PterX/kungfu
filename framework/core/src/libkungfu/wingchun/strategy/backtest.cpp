@@ -186,7 +186,7 @@ uint64_t BacktestContext::insert_order(const std::string &instrument_id, const s
 }
 
 uint64_t BacktestContext::insert_order_input(const std::string &source, const std::string &account,
-                                             longfist::types::OrderInput &order_input) {
+                                             OrderInput &order_input) {
   auto insert_time = now();
   order_input.instrument_type = get_instrument_type(order_input.exchange_id, order_input.instrument_id);
   if (order_input.instrument_type == InstrumentType::Unknown) {
@@ -205,12 +205,20 @@ uint64_t BacktestContext::insert_order_input(const std::string &source, const st
   return input.order_id;
 }
 
+uint64_t BacktestContext::insert_order_trigger(const std::string &instrument_id, const std::string &exchange_id,
+                                               const std::string &source, const std::string &account,
+                                               double limit_price, int64_t volume, PriceType type, Side side,
+                                               Offset offset, OrderTriggerType trigger_type,
+                                               TimeCondition time_condition, ParkedType parked_type, double stop_price,
+                                               HedgeFlag hedge_flag, bool is_swap) {
+  return {};
+}
+
 std::vector<uint64_t> BacktestContext::insert_batch_orders(
     const std::string &source, const std::string &account, const std::vector<std::string> &instrument_ids,
     const std::vector<std::string> &exchange_ids, std::vector<double> limit_prices, std::vector<int64_t> volumes,
-    std::vector<longfist::enums::PriceType> types, std::vector<longfist::enums::Side> sides,
-    std::vector<longfist::enums::Offset> offsets, std::vector<longfist::enums::HedgeFlag> hedge_flags,
-    std::vector<bool> is_swaps) {
+    std::vector<PriceType> types, std::vector<Side> sides, std::vector<Offset> offsets,
+    std::vector<HedgeFlag> hedge_flags, std::vector<bool> is_swaps) {
   std::vector<uint64_t> order_ids{};
   bool flag = instrument_ids.size() == exchange_ids.size() and //
               instrument_ids.size() == limit_prices.size() and //
@@ -234,7 +242,7 @@ std::vector<uint64_t> BacktestContext::insert_batch_orders(
 }
 
 std::vector<uint64_t> BacktestContext::insert_array_orders(const std::string &source, const std::string &account,
-                                                           std::vector<longfist::types::OrderInput> &order_inputs) {
+                                                           std::vector<OrderInput> &order_inputs) {
   std::vector<uint64_t> order_ids{};
   for (const OrderInput &input : order_inputs) {
     uint64_t order_id =
@@ -246,23 +254,34 @@ std::vector<uint64_t> BacktestContext::insert_array_orders(const std::string &so
 }
 
 uint64_t BacktestContext::insert_basket_order(uint64_t basket_id, const std::string &source, const std::string &account,
-                                              longfist::enums::Side side, longfist::enums::PriceType price_type,
-                                              longfist::enums::PriceLevel price_level, double price_offset,
-                                              int64_t volume) {
+                                              Side side, PriceType price_type, PriceLevel price_level,
+                                              double price_offset, int64_t volume) {
   return {};
 }
 
-uint64_t BacktestContext::cancel_order(uint64_t order_id) {
+uint64_t BacktestContext::insert_algo_order(const std::string &instrument_id, const std::string &exchange_id,
+                                            const std::string &source, const std::string &account, int64_t begin_time,
+                                            int64_t end_time, int64_t volume, PriceType type, Side side, Offset offset,
+                                            const std::string &algo_type_id, const std::string &algo_id,
+                                            const std::string &args, bool is_local) {
+  return {};
+}
+
+uint64_t BacktestContext::cancel_order(uint64_t order_id, OrderActionFlag action_flag) {
   auto writer = app_.get_writer(location::PUBLIC);
   OrderAction &action = writer->open_data<OrderAction>(now());
 
   action.order_action_id = writer->current_frame_uid();
   action.order_id = order_id;
-  action.action_flag = OrderActionFlag::Cancel;
+  action.action_flag = action_flag;
 
   writer->close_data(now());
   return action.order_action_id;
 }
+
+uint64_t BacktestContext::cancel_order_trigger(uint64_t trigger_id) { return {}; }
+
+uint64_t BacktestContext::cancel_algo_order(uint64_t algo_order_id) { return {}; }
 
 broker::Client &BacktestContext::get_broker_client() { return broker_client_; }
 

@@ -71,6 +71,11 @@ void Runner::react() {
       $$(invoke(&Strategy::on_transaction, event->data<Transaction>(), get_location(event->source()), event->dest()));
   start_events | is(Order::tag) |
       $$(invoke(&Strategy::on_order, event->data<Order>(), get_location(event->source()), event->dest()));
+  start_events | is(OrderTrigger::tag) |
+      $$(invoke(&Strategy::on_order_trigger, event->data<OrderTrigger>(), get_location(event->source()),
+                event->dest()));
+  start_events | is(AlgoOrder::tag) |
+      $$(invoke(&Strategy::on_algo_order, event->data<AlgoOrder>(), get_location(event->source()), event->dest()));
   start_events | is(Trade::tag) |
       $$(invoke(&Strategy::on_trade, event->data<Trade>(), get_location(event->source()), event->dest()));
   start_events | is(SyntheticData::tag) |
@@ -142,6 +147,12 @@ void Runner::post_start() {
   events_ | is(OrderActionError::tag) |
       $$(invoke(&Strategy::on_order_action_error, event->data<OrderActionError>(), get_location(event->source()),
                 event->dest()));
+  events_ | is(OrderTriggerActionError::tag) |
+      $$(invoke(&Strategy::on_order_trigger_action_error, event->data<OrderTriggerActionError>(),
+                get_location(event->source()), event->dest()));
+  events_ | is(AlgoOrderActionError::tag) |
+      $$(invoke(&Strategy::on_algo_order_action_error, event->data<AlgoOrderActionError>(),
+                get_location(event->source()), event->dest()));
   invoke(&Strategy::post_start);
   SPDLOG_INFO("strategy {} started", get_io_device()->get_home()->name);
 }

@@ -32,6 +32,7 @@ export const getColumns = (): KfTradingDataTableHeaderConfig[] => [
     name: t('posGlobalConfig.yesterday_volume'),
     dataIndex: 'yesterday_volume',
     width: 80,
+    align: 'right',
     sorter: buildSorter('yesterday_volume'),
   },
   {
@@ -39,6 +40,7 @@ export const getColumns = (): KfTradingDataTableHeaderConfig[] => [
     name: t('posGlobalConfig.today_volume'),
     dataIndex: 'today_volume',
     width: 80,
+    align: 'right',
     sorter: (a: KungfuApi.Position, b: KungfuApi.Position) => {
       const deltaA = a.volume - a.yesterday_volume;
       const deltaB = b.volume - b.yesterday_volume;
@@ -50,6 +52,7 @@ export const getColumns = (): KfTradingDataTableHeaderConfig[] => [
     name: t('posGlobalConfig.sum_volume'),
     dataIndex: 'volume',
     width: 80,
+    align: 'right',
     sorter: buildSorter('volume'),
   },
   {
@@ -57,6 +60,7 @@ export const getColumns = (): KfTradingDataTableHeaderConfig[] => [
     name: t('posGlobalConfig.avg_open_price'),
     dataIndex: 'avg_open_price_resolved',
     width: 110,
+    align: 'right',
     sorter: buildSorter('avg_open_price'),
   },
   {
@@ -64,6 +68,7 @@ export const getColumns = (): KfTradingDataTableHeaderConfig[] => [
     name: t('posGlobalConfig.last_price'),
     dataIndex: 'last_price_resolved',
     width: 110,
+    align: 'right',
     sorter: buildSorter('last_price'),
   },
   {
@@ -71,6 +76,7 @@ export const getColumns = (): KfTradingDataTableHeaderConfig[] => [
     name: t('posGlobalConfig.unrealized_pnl'),
     dataIndex: 'unrealized_pnl_resolved',
     width: 110,
+    align: 'right',
     sorter: buildSorter('unrealized_pnl'),
   },
 ];

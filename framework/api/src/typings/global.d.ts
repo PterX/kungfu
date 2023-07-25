@@ -120,6 +120,8 @@ export interface RootConfigJSON {
 
     boardFilter?: Record<string, boolean>;
 
+    orderTrigger?: boolean;
+
     kfConfigInitValue?: Record<string, KungfuApi.KfConfigValue>;
 
     T0T1?: T0T1Config;

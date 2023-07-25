@@ -29,7 +29,12 @@ void OrderService::on_order_input(const event_ptr &event) {
   get_service().insert_order(event);
 }
 
-void OrderService::on_order_action(const event_ptr &event) { get_service().cancel_order(event); }
+void OrderService::on_order_action(const event_ptr &event) {
+  get_service().cancel_order(event);
+  const auto &order_action = event->data<OrderAction>();
+  state<OrderAction> order_action_state(event->source(), event->dest(), event->gen_time(), order_action);
+  order_actions_.insert_or_assign(order_action.order_id, order_action_state);
+}
 
 void OrderService::on_order(uint32_t source, uint32_t dest, int64_t gen_time, const Order &order) {
   state<Order> order_state(source, dest, gen_time, order);
@@ -97,6 +102,8 @@ const OrderMap &OrderService::get_orders() const { return orders_; }
 bool OrderService::has_order(uint64_t order_id) const { return orders_.find(order_id) != orders_.end(); }
 
 kungfu::state<longfist::types::Order> &OrderService::get_order(uint64_t order_id) { return orders_.at(order_id); }
+
+const OrderActionMap &OrderService::get_order_actions() const { return order_actions_; }
 
 const TradeMap &OrderService::get_trades() const { return trades_; }
 

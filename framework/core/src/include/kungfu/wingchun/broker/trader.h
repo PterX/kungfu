@@ -20,6 +20,8 @@ FORWARD_DECLARE_CLASS_PTR(TraderVendor)
 FORWARD_DECLARE_CLASS_PTR(Trader)
 FORWARD_DECLARE_CLASS_PTR(TraderWriterHook)
 FORWARD_DECLARE_CLASS_PTR(BaseService)
+FORWARD_DECLARE_CLASS_PTR(OrderService)
+FORWARD_DECLARE_CLASS_PTR(OrderTriggerService)
 FORWARD_DECLARE_CLASS_PTR(AlgoOrderService)
 
 typedef std::unordered_map<uint64_t, state<longfist::types::Order>> OrderMap;
@@ -34,6 +36,7 @@ typedef std::vector<longfist::types::OrderInput> OrderInputs;
 typedef std::unordered_map<uint32_t, OrderInputs> SubOrderInputs;
 typedef std::unordered_map<uint64_t, state<longfist::types::AlgoOrder>> AlgoOrderMap;
 typedef std::unordered_map<uint64_t, state<longfist::types::AlgoOrderInput>> AlgoOrderInputMap;
+typedef std::unordered_map<uint64_t, state<longfist::types::AlgoOrderAction>> AlgoOrderActionMap;
 
 typedef std::unordered_map<uint64_t, longfist::types::BlockMessage> BlockMessages;
 
@@ -59,45 +62,6 @@ protected:
   bool recover_done_ = false;
 
   Trader &get_service();
-};
-
-class AlgoOrderService : public BaseService {
-public:
-  explicit AlgoOrderService(TraderVendor &vendor) : BaseService(vendor) {}
-
-  void on_algo_order_input(const event_ptr &event);
-
-  void on_algo_order_action(const event_ptr &event);
-
-  void on_order(const longfist::types::Order &order);
-
-  void on_algo_order(int64_t gen_time, uint32_t source, uint32_t dest, const longfist::types::AlgoOrder &algo_order);
-
-  void clean_algo_orders(bool bypass_recover = false);
-
-  void clean_algo_orders(uint32_t source, const longfist::types::AlgoOrderInput &algo_order_input,
-                         bool bypass_recover = false);
-
-  const AlgoOrderMap &get_algo_orders() const;
-
-  bool has_algo_order(uint64_t algo_order_id) const;
-
-  kungfu::state<longfist::types::AlgoOrder> &get_algo_order(uint64_t algo_order_id);
-
-  void on_active() override;
-
-private:
-  AlgoOrderMap local_algo_orders_;
-  AlgoOrderMap waiting_record_local_algo_orders_;
-  AlgoOrderInputMap local_algo_order_inputs_;
-  AlgoOrderMap algo_orders_;
-  SubOrders local_sub_orders_;
-
-  void try_update_sub_orders(const longfist::types::Order &order);
-
-  bool check_if_all_order_finished(uint64_t algo_order_id);
-
-  int64_t get_volume_traded(uint64_t algo_order_id);
 };
 
 class OrderService : public BaseService {
@@ -128,9 +92,12 @@ public:
 
   const TradeMap &get_trades() const;
 
+  const OrderActionMap &get_order_actions() const;
+
 private:
   OrderMap orders_{};
   TradeMap trades_{};
+  OrderActionMap order_actions_{};
   BlockMessages block_messages_ = {};
   std::unordered_map<uint32_t, bool> batch_status_{};
   SubOrderInputs batch_order_inputs_{};
@@ -160,8 +127,53 @@ public:
 
   kungfu::state<longfist::types::OrderTrigger> &get_order_trigger(uint64_t trigger_id);
 
+  const OrderTriggerActionMap &get_order_trigger_actions() const;
+
 private:
-  OrderTriggerMap triggers_{};
+  OrderTriggerMap order_triggers_{};
+  OrderTriggerActionMap order_trigger_actions_{};
+};
+
+class AlgoOrderService : public BaseService {
+public:
+  explicit AlgoOrderService(TraderVendor &vendor) : BaseService(vendor) {}
+
+  void on_algo_order_input(const event_ptr &event);
+
+  void on_algo_order_action(const event_ptr &event);
+
+  void on_order(const longfist::types::Order &order);
+
+  void on_algo_order(int64_t gen_time, uint32_t source, uint32_t dest, const longfist::types::AlgoOrder &algo_order);
+
+  void clean_algo_orders(bool bypass_recover = false);
+
+  void clean_algo_orders(uint32_t source, const longfist::types::AlgoOrderInput &algo_order_input,
+                         bool bypass_recover = false);
+
+  const AlgoOrderMap &get_algo_orders() const;
+
+  bool has_algo_order(uint64_t algo_order_id) const;
+
+  kungfu::state<longfist::types::AlgoOrder> &get_algo_order(uint64_t algo_order_id);
+
+  const AlgoOrderActionMap &get_algo_order_actions() const;
+
+  void on_active() override;
+
+private:
+  AlgoOrderMap local_algo_orders_;
+  AlgoOrderMap waiting_record_local_algo_orders_;
+  AlgoOrderInputMap local_algo_order_inputs_;
+  AlgoOrderMap algo_orders_;
+  SubOrders local_sub_orders_;
+  AlgoOrderActionMap algo_order_actions_;
+
+  void try_update_sub_orders(const longfist::types::Order &order);
+
+  bool check_if_all_order_finished(uint64_t algo_order_id);
+
+  int64_t get_volume_traded(uint64_t algo_order_id);
 };
 
 class TraderWriterHook : public yijinjing::journal::writer_hook {
@@ -177,15 +189,17 @@ private:
 
   BrokerService_ptr get_service();
 
-  AlgoOrderService &get_algo_order_service();
-
   OrderService &get_order_service();
-
+  
   OrderTriggerService &get_order_trigger_service();
+  
+  AlgoOrderService &get_algo_order_service();
 };
 
 class TraderVendor : public BrokerVendor {
   friend class BaseService;
+  friend class TraderWriterHook;
+  friend class Trader;
 
 public:
   TraderVendor(locator_ptr locator, const std::string &group, const std::string &name, bool low_latency,
@@ -196,18 +210,6 @@ public:
   void on_trading_day(const event_ptr &event, int64_t daytime) override;
 
   BrokerService_ptr get_service() override;
-
-  AlgoOrderService &get_algo_order_service();
-
-  const AlgoOrderService &get_algo_order_service() const;
-
-  OrderService &get_order_service();
-
-  const OrderService &get_order_service() const;
-
-  OrderTriggerService &get_order_trigger_service();
-
-  const OrderTriggerService &get_order_trigger_service() const;
 
   void on_recover();
 
@@ -228,6 +230,18 @@ private:
   OrderService order_service_;
   OrderTriggerService order_trigger_service_;
   TraderWriterHook_ptr hook_;
+
+  OrderService &get_order_service();
+
+  const OrderService &get_order_service() const;
+
+  OrderTriggerService &get_order_trigger_service();
+
+  const OrderTriggerService &get_order_trigger_service() const;
+
+  AlgoOrderService &get_algo_order_service();
+
+  const AlgoOrderService &get_algo_order_service() const;
 };
 
 class Trader : public BrokerService {
@@ -238,9 +252,9 @@ public:
 
   [[nodiscard]] virtual longfist::enums::AccountType get_account_type() const = 0;
 
-  virtual bool insert_order_trigger(const event_ptr &event) { return true; }
-
   virtual bool insert_order(const event_ptr &event) = 0;
+
+  virtual bool insert_order_trigger(const event_ptr &event) { return true; }
 
   virtual bool insert_block_order(const event_ptr &event, const longfist::types::BlockMessage &block_message) {
     return true;
@@ -250,9 +264,9 @@ public:
 
   virtual bool insert_algo_order(const event_ptr &event);
 
-  virtual bool cancel_order_trigger(const event_ptr &event) { return true; }
-
   virtual bool cancel_order(const event_ptr &event) = 0;
+
+  virtual bool cancel_order_trigger(const event_ptr &event) { return true; }
 
   virtual bool cancel_algo_order(const event_ptr &event) { return true; }
 
@@ -260,7 +274,9 @@ public:
 
   virtual bool req_account() = 0;
 
-  virtual bool req_order_trigger() { return true; }
+  virtual bool req_order_trigger(const event_ptr &event) { return true; }
+
+  virtual bool req_algo_order(const event_ptr &event) { return true; }
 
   virtual bool req_history_order(const event_ptr &event) { return true; }
 
@@ -301,7 +317,17 @@ public:
 
   [[nodiscard]] kungfu::state<longfist::types::Order> &get_order(uint64_t order_id);
 
+  [[nodiscard]] const OrderActionMap &get_order_actions() const;
+
   [[nodiscard]] const TradeMap &get_trades() const;
+
+  [[nodiscard]] const OrderTriggerMap &get_order_triggers() const;
+
+  [[nodiscard]] bool has_order_trigger(uint64_t trigger_id) const;
+
+  [[nodiscard]] kungfu::state<longfist::types::OrderTrigger> &get_order_trigger(uint64_t trigger_id);
+
+  [[nodiscard]] const OrderTriggerActionMap &get_order_trigger_actions() const;
 
   [[nodiscard]] const AlgoOrderMap &get_algo_orders() const;
 
@@ -309,11 +335,7 @@ public:
 
   [[nodiscard]] kungfu::state<longfist::types::AlgoOrder> &get_algo_order(uint64_t algo_order_id);
 
-  [[nodiscard]] const OrderTriggerMap &get_order_triggers() const;
-
-  [[nodiscard]] bool has_order_trigger(uint64_t trigger_id) const;
-
-  [[nodiscard]] kungfu::state<longfist::types::OrderTrigger> &get_order_trigger(uint64_t trigger_id);
+  [[nodiscard]] const AlgoOrderActionMap &get_algo_order_actions() const;
 
   [[maybe_unused]] void disable_recover();
 
@@ -337,10 +359,6 @@ private:
 
   void deal_read_frame();
 
-  [[nodiscard]] AlgoOrderService &get_algo_order_service();
-
-  [[nodiscard]] const AlgoOrderService &get_algo_order_service() const;
-
   [[nodiscard]] OrderService &get_order_service();
 
   [[nodiscard]] const OrderService &get_order_service() const;
@@ -348,6 +366,10 @@ private:
   [[nodiscard]] OrderTriggerService &get_order_trigger_service();
 
   [[nodiscard]] const OrderTriggerService &get_order_trigger_service() const;
+
+  [[nodiscard]] AlgoOrderService &get_algo_order_service();
+
+  [[nodiscard]] const AlgoOrderService &get_algo_order_service() const;
 };
 
 } // namespace kungfu::wingchun::broker

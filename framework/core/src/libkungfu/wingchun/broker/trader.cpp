@@ -71,11 +71,39 @@ const OrderTriggerService &Trader::get_order_trigger_service() const {
 
 const OrderMap &Trader::get_orders() const { return get_order_service().get_orders(); }
 
+bool Trader::has_order(uint64_t order_id) const { return get_order_service().has_order(order_id); }
+
+state<Order> &Trader::get_order(uint64_t order_id) { return get_order_service().get_order(order_id); }
+
+const OrderActionMap &Trader::get_order_actions() const { return get_order_service().get_order_actions(); }
+
 const TradeMap &Trader::get_trades() const { return get_order_service().get_trades(); }
+
+const OrderTriggerMap &Trader::get_order_triggers() const { return get_order_trigger_service().get_order_triggers(); }
+
+bool Trader::has_order_trigger(uint64_t trigger_id) const {
+  return get_order_trigger_service().has_order_trigger(trigger_id);
+}
+
+state<OrderTrigger> &Trader::get_order_trigger(uint64_t trigger_id) {
+  return get_order_trigger_service().get_order_trigger(trigger_id);
+}
+
+const OrderTriggerActionMap &Trader::get_order_trigger_actions() const {
+  return get_order_trigger_service().get_order_trigger_actions();
+}
 
 const AlgoOrderMap &Trader::get_algo_orders() const { return get_algo_order_service().get_algo_orders(); }
 
-const OrderTriggerMap &Trader::get_order_triggers() const { return get_order_trigger_service().get_order_triggers(); }
+bool Trader::has_algo_order(uint64_t order_id) const { return get_algo_order_service().has_algo_order(order_id); }
+
+state<AlgoOrder> &Trader::get_algo_order(uint64_t order_id) {
+  return get_algo_order_service().get_algo_order(order_id);
+}
+
+const AlgoOrderActionMap &Trader::get_algo_order_actions() const {
+  return get_algo_order_service().get_algo_order_actions();
+}
 
 void Trader::enable_asset_sync() { sync_asset_ = true; }
 

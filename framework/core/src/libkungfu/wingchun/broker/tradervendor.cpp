@@ -53,6 +53,8 @@ BrokerService_ptr TraderWriterHook::get_service() { return vendor_.get_service()
 
 OrderService &TraderWriterHook::get_order_service() { return vendor_.get_order_service(); }
 
+OrderTriggerService &TraderWriterHook::get_order_trigger_service() { return vendor_.get_order_trigger_service(); }
+
 AlgoOrderService &TraderWriterHook::get_algo_order_service() { return vendor_.get_algo_order_service(); }
 
 // ====================== TraderWriterHook end ======================

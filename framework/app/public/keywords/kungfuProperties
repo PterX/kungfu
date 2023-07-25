@@ -7,8 +7,13 @@ home
 state
 runtime_folder
 config
-order_inputs
 orders
+order_actions
+trades
+order_triggers
+order_trigger_actions
+algo_orders
+algo_order_actions
 context
 trading_day
 io_device
@@ -35,7 +40,7 @@ asset
 asset_margin
 long_positions
 short_positions
-trades
+order_inputs
 instrument_factors
 mode
 category
@@ -362,7 +367,6 @@ Covered
 HedgeFlag
 Cancel
 TriggerCancel
-Insert
 OrderActionFlag
 TriggerInsert
 OrderTriggerFlag

@@ -28,19 +28,21 @@ void AlgoOrderService::on_algo_order_action(const event_ptr &event) {
   auto &algo_order_action = event->data<AlgoOrderAction>();
   if (local_algo_orders_.find(algo_order_action.order_id) == local_algo_orders_.end()) {
     get_service().cancel_algo_order(event);
-    return;
+  } else {
+    auto &algo_order_state = local_algo_orders_.at(algo_order_action.order_id);
+    auto &algo_order = algo_order_state.data;
+    auto dest = algo_order_state.dest;
+    auto algo_order_is_final = is_final_status(algo_order.status);
+    if (algo_order.volume == algo_order.volume_left) {
+      algo_order.status = OrderStatus::Cancelled;
+    } else if (not algo_order_is_final) {
+      algo_order.status = OrderStatus::PartialFilledNotActive;
+    }
+    vendor_.get_writer(dest)->write(time::now_in_nano(), algo_order);
   }
 
-  auto &algo_order_state = local_algo_orders_.at(algo_order_action.order_id);
-  auto &algo_order = algo_order_state.data;
-  auto dest = algo_order_state.dest;
-  auto algo_order_is_final = is_final_status(algo_order.status);
-  if (algo_order.volume == algo_order.volume_left) {
-    algo_order.status = OrderStatus::Cancelled;
-  } else if (not algo_order_is_final) {
-    algo_order.status = OrderStatus::PartialFilledNotActive;
-  }
-  vendor_.get_writer(dest)->write(time::now_in_nano(), algo_order);
+  state<AlgoOrderAction> algo_order_action_state(event->source(), event->dest(), event->gen_time(), algo_order_action);
+  algo_order_actions_.insert_or_assign(algo_order_action.order_id, algo_order_action_state);
 }
 
 void AlgoOrderService::on_order(const longfist::types::Order &order) {
@@ -183,6 +185,8 @@ bool AlgoOrderService::has_algo_order(uint64_t algo_order_id) const {
 kungfu::state<longfist::types::AlgoOrder> &AlgoOrderService::get_algo_order(uint64_t algo_order_id) {
   return algo_orders_.at(algo_order_id);
 }
+
+const AlgoOrderActionMap &AlgoOrderService::get_algo_order_actions() const { return algo_order_actions_; }
 
 void AlgoOrderService::on_active() {
   if (waiting_record_local_algo_orders_.empty()) {

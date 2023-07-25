@@ -105,13 +105,12 @@ bool TraderXTP::cancel_order(const event_ptr &event) {
     return false;
   }
 
-  auto order_state_iter = get_orders().find(action.order_id);
-  if (order_state_iter == get_orders().end()) {
-    SPDLOG_ERROR("order_id {} not in get_orders()", action.order_id);
+  if (not has_order(action.order_id)) {
+    SPDLOG_ERROR("no order_id {} in orders_", action.order_id);
     return false;
   }
 
-  auto &order_state = order_state_iter->second;
+  auto &order_state = get_order(action.order_id);
   uint64_t order_xtp_id = order_id_iter->second;
   add_action_id(order_xtp_id, action.order_action_id);
   auto xtp_action_id = api_->CancelOrder(order_xtp_id, session_id_);
@@ -194,12 +193,11 @@ bool TraderXTP::custom_OnOrderEvent(const XTPOrderInfo &order_info, const XTPRI 
   }
 
   uint64_t kf_order_id = order_xtp_id_iter->second;
-  auto order_state_iter = get_orders().find(kf_order_id);
-  if (order_state_iter == get_orders().end()) {
+  if (not has_order(kf_order_id)) {
     return generate_external_order(order_info);
   }
 
-  auto &order_state = order_state_iter->second;
+  auto &order_state = get_order(kf_order_id);
   if (not has_writer(order_state.dest)) {
     SPDLOG_DEBUG("order dest: {} is not live, do not write data", get_vendor().get_location_uname(order_state.dest));
     return false;
@@ -280,13 +278,12 @@ bool TraderXTP::custom_OnTradeEvent(const XTPTradeReport &trade_info, uint64_t s
   }
 
   uint64_t kf_order_id = order_xtp_id_iter->second;
-  auto order_state_iter = get_orders().find(kf_order_id);
-  if (order_state_iter == get_orders().end()) {
-    SPDLOG_ERROR("order_id: {} not in get_orders()", kf_order_id);
+  if (not has_order(kf_order_id)) {
+    SPDLOG_ERROR("no order_id {} in orders_", kf_order_id);
     return false;
   }
 
-  auto &order_state = order_state_iter->second;
+  auto &order_state = get_order(kf_order_id);
   if (not has_writer(order_state.dest)) {
     SPDLOG_DEBUG("order dest: {} is not live, do not write data", get_vendor().get_location_uname(order_state.dest));
     return false;
@@ -364,13 +361,12 @@ bool TraderXTP::custom_OnCancelOrderError(const XTPOrderCancelInfo &cancel_info,
     return false;
   }
 
-  auto order_state_iter = get_orders().find(order_xtp_id_iter->second);
-  if (order_state_iter == get_orders().end()) {
-    SPDLOG_WARN("kf_order_id not in get_orders()", order_xtp_id_iter->second);
+  if (not has_order(order_xtp_id_iter->second)) {
+    SPDLOG_WARN("no order_id {} in orders_", order_xtp_id_iter->second);
     return false;
   }
 
-  auto order_state = order_state_iter->second;
+  auto order_state = get_order(order_xtp_id_iter->second);
   if (not has_writer(order_state.dest)) {
     SPDLOG_DEBUG("order dest: {} is not live, do not write data", get_vendor().get_location_uname(order_state.dest));
     return false;

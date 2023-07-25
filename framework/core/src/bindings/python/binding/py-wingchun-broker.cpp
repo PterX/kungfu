@@ -53,47 +53,49 @@ public:
     PYBIND11_OVERLOAD_PURE(const AccountType, Trader, get_account_type);
   }
 
-  bool insert_block_order(const kungfu::event_ptr &event, const BlockMessage &block_message) override {
+  bool insert_order(const event_ptr &event) override { PYBIND11_OVERLOAD_PURE(bool, Trader, insert_order, event); }
+
+  bool insert_block_order(const event_ptr &event, const BlockMessage &block_message) override {
     PYBIND11_OVERLOAD(bool, Trader, insert_block_order, event, block_message);
   }
 
-  bool insert_order(const kungfu::event_ptr &event) override {
-    PYBIND11_OVERLOAD_PURE(bool, Trader, insert_order, event);
-  }
-
-  bool insert_order_trigger(const event_ptr &event) override {
-    PYBIND11_OVERLOAD_PURE(bool, Trader, insert_order_trigger, event);
-  }
-
-  bool cancel_order_trigger(const event_ptr &event) override {
-    PYBIND11_OVERLOAD_PURE(bool, Trader, cancel_order_trigger, event);
-  }
-
-  bool on_custom_event(const event_ptr &event) override {
-    PYBIND11_OVERLOAD_PURE(bool, Trader, on_custom_event, event);
-  }
-
-  void on_time_key_value(const kungfu::event_ptr &event) override {
-    PYBIND11_OVERLOAD_PURE(void, Trader, on_time_key_value, event);
-  }
-
-  bool insert_batch_orders(const kungfu::event_ptr &event, const OrderInputs &order_inputs) override {
+  bool insert_batch_orders(const event_ptr &event, const OrderInputs &order_inputs) override {
     PYBIND11_OVERLOAD(bool, Trader, insert_batch_orders, event, order_inputs);
   }
 
-  bool cancel_order(const kungfu::event_ptr &event) override {
-    PYBIND11_OVERLOAD_PURE(bool, Trader, cancel_order, event);
+  bool insert_order_trigger(const event_ptr &event) override {
+    PYBIND11_OVERLOAD(bool, Trader, insert_order_trigger, event);
+  }
+
+  bool insert_algo_order(const event_ptr &event) override { PYBIND11_OVERLOAD(bool, Trader, insert_algo_order, event); }
+
+  bool cancel_order(const event_ptr &event) override { PYBIND11_OVERLOAD_PURE(bool, Trader, cancel_order, event); }
+
+  bool cancel_order_trigger(const event_ptr &event) override {
+    PYBIND11_OVERLOAD(bool, Trader, cancel_order_trigger, event);
+  }
+
+  bool cancel_algo_order(const event_ptr &event) override { PYBIND11_OVERLOAD(bool, Trader, cancel_algo_order, event); }
+
+  bool on_custom_event(const event_ptr &event) override { PYBIND11_OVERLOAD(bool, Trader, on_custom_event, event); }
+
+  void on_time_key_value(const kungfu::event_ptr &event) override {
+    PYBIND11_OVERLOAD(void, Trader, on_time_key_value, event);
   }
 
   bool req_position() override { PYBIND11_OVERLOAD_PURE(bool, Trader, req_position); }
 
   bool req_account() override { PYBIND11_OVERLOAD_PURE(bool, Trader, req_account); }
 
+  bool req_order_trigger(const event_ptr &event) override { PYBIND11_OVERLOAD(bool, Trader, req_order_trigger, event); }
+
+  bool req_algo_order(const event_ptr &event) override { PYBIND11_OVERLOAD(bool, Trader, req_algo_order, event); }
+
   bool req_history_order(const event_ptr &event) override { PYBIND11_OVERLOAD(bool, Trader, req_history_order, event); }
 
   bool req_history_trade(const event_ptr &event) override { PYBIND11_OVERLOAD(bool, Trader, req_history_trade, event); }
 
-  void on_recover() override { PYBIND11_OVERLOAD_PURE(void, Trader, on_recover); }
+  void on_recover() override { PYBIND11_OVERLOAD(void, Trader, on_recover); }
 
   void on_start() override { PYBIND11_OVERLOAD(void, Trader, on_start); }
 
@@ -132,14 +134,27 @@ void bind_broker(pybind11::module &m) {
       .def_property_readonly("config", &Trader::get_config)
       .def_property_readonly("home", &Trader::get_home)
       .def_property_readonly("orders", &Trader::get_orders)
+      .def_property_readonly("order_actions", &Trader::get_order_actions)
+      .def_property_readonly("trades", &Trader::get_trades)
+      .def_property_readonly("order_triggers", &Trader::get_order_triggers)
+      .def_property_readonly("order_trigger_actions", &Trader::get_order_trigger_actions)
       .def_property_readonly("algo_orders", &Trader::get_algo_orders)
+      .def_property_readonly("algo_order_actions", &Trader::get_algo_order_actions)
       .def("on_start", &Trader::on_start)
       .def("on_recover", &Trader::on_recover)
+      .def("on_time_key_value", &Trader::on_time_key_value)
+      .def("on_custom_event", &Trader::on_custom_event)
       .def("now", &Trader::now)
       .def("get_writer", &Trader::get_writer)
       .def("has_writer", &Trader::has_writer)
       .def("get_asset_writer", &Trader::get_asset_writer)
       .def("get_position_writer", &Trader::get_position_writer)
+      .def("has_order", &Trader::has_order)
+      .def("get_order", &Trader::get_order)
+      .def("has_order_trigger", &Trader::has_order_trigger)
+      .def("get_order_trigger", &Trader::get_order_trigger)
+      .def("has_algo_order", &Trader::has_algo_order)
+      .def("get_algo_order", &Trader::get_algo_order)
       .def("enable_asset_sync", &Trader::enable_asset_sync)
       .def("enable_asset_margin_sync", &Trader::enable_asset_margin_sync)
       .def("enable_positions_sync", &Trader::enable_positions_sync)
@@ -150,11 +165,11 @@ void bind_broker(pybind11::module &m) {
       .def("insert_order", &Trader::insert_order)
       .def("insert_block_order", &Trader::insert_block_order)
       .def("insert_order_trigger", &Trader::insert_order_trigger)
+      .def("insert_algo_order", &Trader::insert_algo_order)
       .def("insert_batch_orders", &Trader::insert_batch_orders)
-      .def("on_time_key_value", &Trader::on_time_key_value)
-      .def("on_custom_event", &Trader::on_custom_event)
       .def("cancel_order", &Trader::cancel_order)
       .def("cancel_order_trigger", &Trader::cancel_order_trigger)
+      .def("cancel_algo_order", &Trader::cancel_algo_order)
       .def("req_history_order", &Trader::req_history_order)
       .def("req_history_trade", &Trader::req_history_trade)
       .def("req_account", &Trader::req_account)
@@ -166,7 +181,7 @@ void bind_broker(pybind11::module &m) {
       .def("set_service", &MarketDataVendor::set_service)
       .def("get_arguments", &MarketDataVendor::get_arguments)
       .def("set_arguments", &MarketDataVendor::set_arguments);
-
+      
   py::class_<TraderVendor, BrokerVendor, std::shared_ptr<TraderVendor>>(m, "TraderVendor")
       .def(py::init<locator_ptr, const std::string &, const std::string &, bool, const std::string &>())
       .def("set_service", &TraderVendor::set_service)

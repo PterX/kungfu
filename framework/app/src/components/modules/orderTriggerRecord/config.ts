@@ -95,7 +95,7 @@ export const getColumns = (): AntTableColumns => [
 export const getModalSettings = (): KungfuApi.KfConfigItem[] => {
   return [
     {
-      key: 'embedded',
+      key: 'orderTrigger',
       name: t('tradingConfig.batch'),
       type: 'csvTable',
       importMode: 'reset',

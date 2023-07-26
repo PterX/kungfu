@@ -67,12 +67,14 @@ export default defineComponent({
   overflow: hidden;
 
   .kf-dashboard__header {
-    height: 32px;
+    width: 100%;
+    min-height: 32px;
     line-height: 32px;
     margin-bottom: 4px;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-wrap: wrap;
 
     .title {
       display: flex;
@@ -89,8 +91,9 @@ export default defineComponent({
 
     .header-actions {
       display: flex;
-      justify-content: flex-end;
+      justify-content: flex-start;
       align-items: center;
+      flex-wrap: wrap;
     }
   }
 

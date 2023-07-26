@@ -685,7 +685,7 @@ declare namespace KungfuApi {
 
     insert_time: bigint; //订单写入时间
     update_time: bigint; //订单更新时间
-    
+
     instrument_id: string; //合约ID
     exchange_id: string; //交易所ID
 

@@ -50,10 +50,10 @@ inline bool GetBypassRestore(const Napi::CallbackInfo &info) {
 }
 
 inline int GetMillisecondsSleepAfterStep(const Napi::CallbackInfo &info) {
-  if (not IsValid(info, 6, &Napi::Value::IsNumber)) {
+  if (not IsValid(info, 7, &Napi::Value::IsNumber)) {
     throw Napi::Error::New(info.Env(), "Invalid millisecondsSleepAfterStep argument");
   }
-  return info[6].As<Napi::Number>().Int32Value();
+  return info[7].As<Napi::Number>().Int32Value();
 }
 
 WatcherAutoClient::WatcherAutoClient(yijinjing::practice::apprentice &app, bool bypass_trading_data)
@@ -116,7 +116,8 @@ Watcher::Watcher(const Napi::CallbackInfo &info)
       apprentice(GetWatcherLocation(info), true),                                                 //
       bypass_quote_(GetBool(info, 3)),                                                            //
       bypass_trading_data_(GetBool(info, 4)),                                                     //
-      refresh_trading_data_before_sync_(GetBool(info, 5)),                                        //
+      refresh_trading_data_before_sync_(GetBool(info, 5)),   //
+      bypass_subscribe_position_(GetBool(info, 6)), //
       milliseconds_sleep_after_step_(GetMillisecondsSleepAfterStep(info)),                        //
       broker_client_(*this, bypass_trading_data_),                                                //
       bookkeeper_(*this, broker_client_, bypass_quote_),                                          //
@@ -463,7 +464,10 @@ void Watcher::on_start() {
     events_ | is(Order::tag) | $$(UpdateBasketOrder(event->trigger_time(), event->data<Order>()));
     events_ | is(Position::tag) | $$(UpdateBook(event, event->data<Position>()));
     events_ | is(PositionEnd::tag) | $$(UpdateAsset(event, event->data<PositionEnd>().holder_uid));
-    refresh_books();
+    
+    if (not bypass_subscribe_position_) {
+      refresh_books();
+    }
   }
 
   events_ | is(Channel::tag) | $$(InspectChannel(event->gen_time(), event->data<Channel>()));

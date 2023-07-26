@@ -68,6 +68,13 @@ class ExecutorRegistry:
         ):
             self.executors["system"]["service"].load_service(ctx)
 
+        if (
+            ctx.category == "system"
+            and ctx.group == "service"
+            and ctx.name not in self.executors["system"]["service"]
+        ):
+            self.executors["system"]["service"].load_service(ctx)
+
     def register_extensions(self, root):
         for child in os.listdir(root):
             extension_dir = path.abspath(path.join(root, child))

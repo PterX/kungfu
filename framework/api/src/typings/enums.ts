@@ -318,3 +318,15 @@ export enum OrderTriggerStatusEnum {
   Filled = OrderStatusEnum.Filled, // 已触发
   Cancelled = OrderStatusEnum.Cancelled, // 已取消
 }
+
+export enum FundTransEnum {
+  Pending,
+  Success,
+  Error,
+}
+
+export enum FundTransTypeEnum {
+  BetweenNodes = 'between_nodes',
+  TrancIn = 'tranc_in',
+  TrancOut = 'tranc_out',
+}

@@ -48,6 +48,8 @@ export const watcher = ((): KungfuApi.Watcher | null => {
     false;
   const refreshTradingDataBeforeSync =
     process.env.REFRESH_LEDGER_BEFORE_SYNC ?? false;
+  
+  const bypassSubscribePosition = process.env.BY_PASS_SUBSCRIBE_POSITION ?? false;
 
   const millisecondsSleepAfterStep =
     process.env.MILLISECONDS_SLEEP_AFTER_STEP ?? 100;
@@ -56,6 +58,7 @@ export const watcher = ((): KungfuApi.Watcher | null => {
   kfLogger.info('bypassAccounting', bypassAccounting);
   kfLogger.info('bypassTradingData', bypassTradingData);
   kfLogger.info('refreshTradingDataBeforeSync', refreshTradingDataBeforeSync);
+  kfLogger.info('bypassSubscribePosition', bypassSubscribePosition);
   kfLogger.info('millisecondsSleepAfterStep', millisecondsSleepAfterStep);
 
   return kf.watcher(
@@ -65,6 +68,7 @@ export const watcher = ((): KungfuApi.Watcher | null => {
     !!bypassAccounting,
     !!bypassTradingData,
     !!refreshTradingDataBeforeSync,
+    !!bypassSubscribePosition,
     +millisecondsSleepAfterStep,
   );
 })();

@@ -26,7 +26,6 @@ public:
   explicit yijinjing_error(const std::string &message) : runtime_error(message) {}
 };
 
-
 class resource {
 public:
   virtual bool is_usable() = 0;

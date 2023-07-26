@@ -372,7 +372,8 @@ void hero::deal_notice(bool bypass, bool notify, const rx::subscriber<event_ptr>
   }
 
   auto rc = notify ? io_device_->get_observer()->wait() : io_device_->get_observer()->nonblock_wait();
-  if (not rc) return;
+  if (not rc)
+    return;
 
   const std::string &notice = io_device_->get_observer()->get_notice();
   now_ = time::now_in_nano();

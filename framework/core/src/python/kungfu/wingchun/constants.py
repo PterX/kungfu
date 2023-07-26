@@ -69,8 +69,6 @@ class Exchange:
 
     EXCHANGE_BINANCE = "BINANCE"
     EXCHANGE_HB = "HB"
-
-
 class Region:
     CN = "CN"
     HK = "HK"

@@ -138,6 +138,15 @@ const setFundTransConfigPayload = ref<KungfuApi.SetKfConfigPayload>({
   config: {} as KungfuApi.KfExtConfig,
 });
 
+const isShowFundTransIcon = computed(() => {
+  const extConfig: KungfuApi.KfTdExtConfig = (extConfigs.value['td'] || {})[
+    currentAccout.source
+  ];
+  if (!extConfig || !extConfig.fund_trans) return false;
+
+  return true;
+});
+
 const { searchKeyword, tableData } = useTableSearchKeyword<
   KungfuApi.KfConfig | KungfuApi.KfExtraLocation
 >(td, ['group', 'name']);
@@ -219,6 +228,7 @@ const columns = computed(() => {
       sorter,
       marginSorter,
       isShowAssetMargin.value,
+      isShowUnrealizedPnl.value,
     );
   }
 
@@ -227,7 +237,12 @@ const columns = computed(() => {
     sorter,
     marginSorter,
     isShowAssetMargin.value,
+    isShowUnrealizedPnl.value,
   );
+});
+
+const isShowUnrealizedPnl = computed(() => {
+  return !(globalSetting.value.performance?.bypassSubscribePosition ?? false);
 });
 
 const getPrefixByLocation = (kfLocation: KungfuApi.KfLocation) =>
@@ -326,7 +341,7 @@ function handleOpenSetFundTransModal(type: FundTransTypeEnum) {
   const extConfig: KungfuApi.KfTdExtConfig = (extConfigs.value['td'] || {})[
     currentAccout.source
   ];
-  if (!extConfig.fund_trans) {
+  if (!extConfig || !extConfig.fund_trans) {
     error(
       t('fund_trans.config_error', {
         td: currentAccout.source,
@@ -613,7 +628,11 @@ function handleRequestPosition() {
                             "
             ></a-switch>
           </template>
-          <template v-else-if="column.dataIndex === 'unrealizedPnl'">
+          <template
+            v-else-if="
+              column.dataIndex === 'unrealizedPnl' && isShowUnrealizedPnl
+            "
+          >
             <KfBlinkNum
               v-if="record.category === 'td'"
               mode="compare-zero"
@@ -721,7 +740,7 @@ function handleRequestPosition() {
               ></BankOutlined>
               <!-- TODO -->
               <PayCircleOutlined
-                v-if="record.group === 'itp'"
+                v-if="isShowFundTransIcon"
                 :style="{
                   color: dealDisabledColor(record as KungfuApi.KfConfig),
                 }"

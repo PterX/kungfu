@@ -470,7 +470,7 @@ export default {
   },
 
   fund_trans: {
-    config_error: '{td}柜台资金划转配置文件异常',
+    config_error: '{td} 柜台资金划转配置文件异常',
     modal_title: '柜台间资金划转',
     trans_selection: '请选择资金划转的方向',
     centralized_counter: '集中柜台',
@@ -746,6 +746,9 @@ export default {
     bypass_archive_desc:
       '仅删除上个交易日留下的 journal 与 log 文件, 不再压缩打包, 跳过归档后无法恢复之前的内存数据, 会加快启动速度',
 
+    bypass_subscribe_position: '跳过持仓行情订阅',
+    bypass_subscribe_position_desc:
+      '打开后, 不再默认订阅交易账户持仓的行情更新, 且交易账户列表不再显示浮动盈亏, 市值相关字段使用开仓均价计算, 开启后可减轻机器性能负担, 重启后生效',
     porformance: '性能',
     rocket_model: '开启极速模式',
     rocket_model_desc:

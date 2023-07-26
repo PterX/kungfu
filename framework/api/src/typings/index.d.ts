@@ -295,7 +295,7 @@ declare namespace KungfuApi {
   }
   export interface KfTdExtConfig extends KfExtConfigBase<'td' | 'tdGroup'> {
     type: TdMdExtTypes[];
-    orderTrigger: Partial<
+    order_trigger: Partial<
       Record<
         OrderTriggerTypeEnum,
         Partial<

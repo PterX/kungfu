@@ -20,6 +20,7 @@ import {
   makeOrderByOrderInput,
   hashInstrumentUKey,
   getPosClosableVolume,
+  makeOrderByOrderTriggerInput,
 } from '@kungfu-trader/kungfu-js-api/kungfu';
 import {
   InstrumentTypeEnum,
@@ -27,6 +28,9 @@ import {
   OrderInputKeyEnum,
   SideEnum,
   PriceTypeEnum,
+  TimeConditionEnum,
+  OrderTriggerParkedTypeEnum,
+  OrderTriggerTypeEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
   useCurrentGlobalKfLocation,
@@ -43,8 +47,11 @@ import {
   getProcessIdByKfLocation,
   initFormStateByConfig,
   isShotable,
+  dealOrderInputItem,
+  transformSearchInstrumentResultToInstrument,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import OrderConfirmModal from './OrderConfirmModal.vue';
+import OrderTriggerConfirmModal from './OrderTriggerConfirmModal.vue';
 import VueI18n, { useLanguage } from '@kungfu-trader/kungfu-js-api/language';
 import { useTradingTask } from '../tradingTask/utils';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
@@ -53,9 +60,10 @@ import {
   useMakeOrderInfo,
   useMakeOrderSubscribe,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
+import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
 
 const { t } = VueI18n.global;
-const { error } = messagePrompt();
+const { error, success } = messagePrompt();
 
 const { getPriceTickAndPrecision } = useActiveInstruments();
 const { instrumentKeyAccountsMap, uiExtConfigs, globalSetting } = storeToRefs(
@@ -604,6 +612,110 @@ async function handleMakeOrder(): Promise<void> {
   }
 }
 
+const isShowOrderTriggerConfirmModal = ref<boolean>(false);
+const orderTriggerInputResolved = ref<
+  Record<string, KungfuApi.KfTradeValueCommonData>
+>({});
+const orderTriggerInput = ref<KungfuApi.MakeOrderInput>();
+const orderTriggerBtnVisible = computed(() => {
+  const rootPackageJson = readRootPackageJsonSync();
+  if (rootPackageJson?.appConfig?.orderTrigger === false) {
+    return false;
+  }
+
+  const tdName = currentGlobalKfLocation.value?.group as string;
+  const extConfig = extConfigs.value.td[tdName];
+  if (extConfig && extConfig.orderTrigger[OrderTriggerTypeEnum.MakeOrder]) {
+    const { instrument, side } = formState.value;
+    if (!instrument) {
+      return false;
+    }
+    const { instrumentType } = transformSearchInstrumentResultToInstrument(
+      instrument,
+    ) as KungfuApi.InstrumentResolved;
+    if (
+      instrumentType === InstrumentTypeEnum.future &&
+      side !== SideEnum.Exec
+    ) {
+      return true;
+    } else {
+      return false;
+    }
+  } else {
+    return false;
+  }
+});
+
+// 预埋
+async function handleOrderTrigger() {
+  try {
+    if (!currentGlobalKfLocation.value) return;
+
+    await formRef.value.validate();
+    orderTriggerInput.value = await initOrderInputData();
+
+    const { account_id } = formState.value;
+    const tdProcessId =
+      currentGlobalKfLocation.value?.category === 'td'
+        ? getProcessIdByKfLocation(currentGlobalKfLocation.value)
+        : `td_${account_id.toString()}`;
+
+    if (processStatusData.value[tdProcessId] !== 'online') {
+      error(t('tradingConfig.start_process', { process: tdProcessId }));
+      return;
+    }
+
+    isShowOrderTriggerConfirmModal.value = true;
+    const { price_precision } = getPriceTickAndPrecision(
+      orderTriggerInput.value.instrument_id,
+      orderTriggerInput.value.exchange_id,
+    );
+    orderTriggerInputResolved.value = dealOrderInputItem(
+      orderTriggerInput.value,
+      price_precision,
+    );
+  } catch (e) {
+    if ((<Error>e).message) {
+      error((<Error>e).message);
+    }
+  }
+}
+
+function handleOrderTriggerConfirm(data: {
+  parked_type: OrderTriggerParkedTypeEnum;
+  time_condition: TimeConditionEnum;
+}) {
+  if (!currentGlobalKfLocation.value) return;
+  const orderInput: KungfuApi.MakeOrderTriggerInput = {
+    ...data,
+    ...(orderTriggerInput.value as KungfuApi.MakeOrderInput),
+  };
+
+  const { account_id } = formState.value;
+  const tdProcessId =
+    currentGlobalKfLocation.value?.category === 'td'
+      ? getProcessIdByKfLocation(currentGlobalKfLocation.value)
+      : `td_${account_id.toString()}`;
+
+  if (processStatusData.value[tdProcessId] !== 'online') {
+    error(t('tradingConfig.start_process', { process: tdProcessId }));
+    return;
+  }
+
+  makeOrderByOrderTriggerInput(
+    window.watcher,
+    orderInput,
+    currentGlobalKfLocation.value,
+    tdProcessId.toAccountId(),
+  )
+    .then(() => {
+      success();
+    })
+    .catch((e) => {
+      error((<Error>e).message);
+    });
+}
+
 // 展示平仓弹窗
 function showCloseModal(
   makeOrderInput: KungfuApi.MakeOrderInput,
@@ -861,12 +973,25 @@ watch(
           <a-button class="make-order" @click="handleMakeOrder">
             {{ $t('tradingConfig.place_order') }}
           </a-button>
+          <a-button
+            class="make-order"
+            v-if="orderTriggerBtnVisible"
+            @click="handleOrderTrigger"
+          >
+            {{ $t('tradingConfig.order_trigger') }}
+          </a-button>
           <a-button @click="handleApartOrder">
             {{ $t('tradingConfig.apart_order') }}
           </a-button>
         </div>
       </div>
     </KfDashboard>
+    <OrderTriggerConfirmModal
+      v-if="isShowOrderTriggerConfirmModal"
+      v-model:visible="isShowOrderTriggerConfirmModal"
+      :orderTriggerInput="orderTriggerInputResolved"
+      @confirm="handleOrderTriggerConfirm"
+    ></OrderTriggerConfirmModal>
     <OrderConfirmModal
       v-if="isShowConfirmModal && curOrderType"
       v-model:visible="isShowConfirmModal"

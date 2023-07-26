@@ -96,6 +96,7 @@ export default {
   Operator: 'Operator',
   Trade: 'Trade',
   Order: 'Order',
+  OrderTriggerRecord: 'OrderTriggerRecord',
   PosGlobal: 'Positon Global',
   Pos: 'Positon',
 
@@ -336,6 +337,33 @@ export default {
     archive: 'archive',
 
     place_order: 'Place Order',
+    order_trigger: 'Embedded orders',
+    order_trigger_title: 'Confirmation of embedded orders',
+    server_order_trigger_label: 'Server embedded order',
+    local_order_trigger_label: 'Local embedded order',
+    order_trigger_status_pending: 'Submitted',
+    order_trigger_status_submitted: 'Not triggered',
+    order_trigger_status_filled: 'Triggered',
+    order_trigger_status_cancelled: 'Canceled',
+    batch: 'Batch',
+    batch_order_trigger: 'Batch embedded orders',
+    order_trigger_td_error:
+      'The current counter {tdName} does not support placing embedded orders. Please contact the administrator',
+    order_trigger_not_future:
+      'In batch order burying, {rowStr} is not a futures and failed to place the order',
+    batch_order_trigger_results:
+      'Batch payment succeeded {success}, failed {error}',
+    instrument_id_header_desc:
+      'Target code, (* Only CTP/Ronghang counter can be filled in)',
+    exchange_id_header_desc:
+      'Exchange ID, string, can be filled with SSE (Shanghai Stock Exchange), SZE (Shenzhen Stock Exchange), BSE (Beijing Stock Exchange), SHFE (Shanghai Stock Exchange), DCE (Da Shang Exchange), CZCE (Zheng Shang Exchange), CFFEX (China Securities Exchange), INE (Energy Center)',
+    side_header_desc: 'Buy and sell, can fill in 0 buy/1 sell',
+    offset_header_desc:
+      'Open and close, you can fill in 0 open/1 close/2 close today/3 close yesterday',
+    price_type_header_desc:
+      '0 price limit/1 market price/2 Shanghai Shenzhen optimal five level real-time transaction remaining cancellation/3 Shenzhen local optimal price declaration/4 Shanghai optimal five level real-time transaction remaining conversion to limit price, Shenzhen counterparty optimal price declaration/5 Shenzhen real-time transaction remaining cancellation/6 Shenzhen market price full transaction or cancellation/7 enhanced limit price order/8 bidding limit price order/9 bidding price order',
+    volume_header_desc: 'Volume',
+    limit_price_header_desc: 'Limit price',
     apart_order: 'Apart Order',
     reset_order: 'Reset',
     account: 'AccountId',

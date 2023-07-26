@@ -38,6 +38,8 @@ import {
   InstrumentMinOrderVolume,
   KfDefaultSystemProcess,
   ExportTradingDataColumnsToFilter,
+  ParkedType,
+  OrderTriggerStatus,
 } from '../config/tradingConfig';
 import {
   KfCategoryEnum,
@@ -66,6 +68,10 @@ import {
   PriceLevelEnum,
   CurrencyEnum,
   HistoryDateEnum,
+  OrderTriggerStatusEnum,
+  OrderTriggerTypeEnum,
+  OrderTriggerParkedTypeEnum,
+  OrderTriggerTimeConditionEnum,
 } from '../typings/enums';
 import {
   graceDeleteProcess,
@@ -556,6 +562,46 @@ const resolveTypesInExtConfig = <T extends string>(types: T | T[]): T[] => {
   return typesResolved as T[];
 };
 
+const resolveOrderTriggerConfig = (
+  originConfig: KungfuApi.KfExtOriginConfig['config'],
+) => {
+  if (originConfig) {
+    const orderTriggerOriginConfig = originConfig.td?.orderTrigger || {};
+    const orderTriggerTypesKeys = Object.keys(OrderTriggerTypeEnum);
+    const orderTriggerParkedTypesKeys = Object.keys(OrderTriggerParkedTypeEnum);
+    const orderTriggerTimeConditionKeys = Object.keys(
+      OrderTriggerTimeConditionEnum,
+    );
+    return Object.keys(orderTriggerOriginConfig).reduce((config, key) => {
+      if (orderTriggerTypesKeys.includes(key)) {
+        config[OrderTriggerTypeEnum[key]] = Object.keys(
+          orderTriggerOriginConfig[key] || {},
+        ).reduce((parkedConfig, parkedType) => {
+          if (orderTriggerParkedTypesKeys.includes(parkedType)) {
+            parkedConfig[OrderTriggerParkedTypeEnum[parkedType]] = Object.keys(
+              orderTriggerOriginConfig[key]?.[parkedType] || {},
+            ).reduce((timeConditionConfig, timeCondition) => {
+              if (orderTriggerTimeConditionKeys.includes(timeCondition)) {
+                timeConditionConfig[
+                  OrderTriggerTimeConditionEnum[timeCondition]
+                ] =
+                  !!orderTriggerOriginConfig[key]?.[parkedType]?.[
+                    timeCondition
+                  ];
+              }
+              return timeConditionConfig;
+            }, {});
+          }
+          return parkedConfig;
+        }, {});
+      }
+      return config;
+    }, {} as KungfuApi.KfTdExtConfig['orderTrigger']);
+  }
+
+  return {} as KungfuApi.KfTdExtConfig['orderTrigger'];
+};
+
 const getKfExtensionConfigByCategory = (
   extConfigs: KungfuApi.KfExtOriginConfig[],
 ): KungfuApi.KfExtConfigs => {
@@ -586,7 +632,21 @@ const getKfExtensionConfigByCategory = (
             };
             switch (category) {
               case 'td':
-                buildExtConfig('td');
+                configByCategory[category] = {
+                  ...(configByCategory[category] || {}),
+                  [extKey]: {
+                    name: extName,
+                    extPath,
+                    category,
+                    key: extKey,
+                    type: resolveTypesInExtConfig(
+                      extConfigByCategory[category]?.type || [],
+                    ),
+                    orderTrigger:
+                      resolveOrderTriggerConfig(extConfigByCategory),
+                    settings: extConfigByCategory[category]?.settings || [],
+                  },
+                };
                 break;
               case 'md':
                 buildExtConfig('md');
@@ -1664,6 +1724,18 @@ export const dealTimeCondition = (
   timeCondition: TimeConditionEnum | number,
 ): KungfuApi.KfTradeValueCommonData => {
   return TimeCondition[+timeCondition as TimeConditionEnum];
+};
+
+export const dealParkedType = (
+  parkedType: OrderTriggerParkedTypeEnum | number,
+): KungfuApi.KfTradeValueCommonData => {
+  return ParkedType[+parkedType as OrderTriggerParkedTypeEnum];
+};
+
+export const dealOrderTriggerStatus = (
+  orderTriggerStatus: OrderTriggerStatusEnum | number,
+): KungfuApi.KfTradeValueCommonData => {
+  return OrderTriggerStatus[+orderTriggerStatus as OrderTriggerStatusEnum];
 };
 
 export const dealVolumeCondition = (

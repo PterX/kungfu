@@ -99,6 +99,7 @@ const props = withDefaults(
     passPrimaryKeySpecialWordsVerify?: boolean;
     isPrimaryDisabled?: boolean;
     willReplaceWholeFormState?: boolean;
+    formStyle?: Record<string, string>;
   }>(),
   {
     formState: () => ({}),
@@ -116,6 +117,7 @@ const props = withDefaults(
     passPrimaryKeySpecialWordsVerify: false,
     isPrimaryDisabled: false,
     willReplaceWholeFormState: false,
+    formStyle: () => ({}),
   },
 );
 
@@ -174,7 +176,7 @@ const instrumentsCsvData = reactive<
 const tableKeys = ref<Record<string, KungfuApi.KfConfigItem>>(
   filterTableKeysFromConfigSettings(props.configSettings),
 );
-// 解决 a-input-number ui 上自动 format 之后的值和真是的响应式数据对不上的问题
+// 解决 a-input-number ui 上自动 format 之后的值和真实的响应式数据对不上的问题
 const numberKeys = ref<Record<string, KungfuApi.KfConfigItem>>(
   filterNumberKeysFromConfigSettings(props.configSettings),
 );
@@ -253,25 +255,27 @@ if (props.willReplaceWholeFormState) {
 watch(
   () => formState.value,
   (newVal, oldVal) => {
-    // 解决 a-input-number ui 上自动 format 之后的值和真是的响应式数据对不上的问题
-    Object.keys(numberKeys.value).forEach((key) => {
-      if (key in oldVal && key in newVal) {
-        if (!numbersTyping.value[key]) {
-          if (typeof newVal[key] === 'number') {
-            switch (numberKeys.value[key].type) {
-              case 'int':
-                formState.value[key] = Math.floor(newVal[key]);
-                break;
-              case 'float':
-              case 'percent':
-                formState.value[key] = Number(newVal[key]).kfRound(
-                  numberKeys.value[key].precision ?? 3,
-                );
-                break;
+    nextTick(() => {
+      // 解决 a-input-number ui 上自动 format 之后的值和真实的响应式数据对不上的问题
+      Object.keys(numberKeys.value).forEach((key) => {
+        if (key in oldVal && key in newVal) {
+          if (!numbersTyping.value[key]) {
+            if (typeof newVal[key] === 'number') {
+              switch (numberKeys.value[key].type) {
+                case 'int':
+                  formState.value[key] = Math.floor(newVal[key]);
+                  break;
+                case 'float':
+                case 'percent':
+                  formState.value[key] = Number(newVal[key]).kfRound(
+                    numberKeys.value[key].precision ?? 3,
+                  );
+                  break;
+              }
             }
           }
         }
-      }
+      });
     });
 
     app && app.emit('update:formState', newVal);
@@ -1108,6 +1112,7 @@ defineExpose({
     :colon="false"
     :scroll-to-first-error="true"
     :layout="layout"
+    :style="props.formStyle"
   >
     <a-form-item
       v-for="item in configSettings"
@@ -1988,6 +1993,9 @@ defineExpose({
                 class="table-in-config-setting-row"
                 :style="{
                   paddingBottom: item.noDivider ? '8px' : '',
+                  maxHeight: calcTableItemHeight(layout, !!item.noDivider),
+                  height: calcTableItemHeight(layout, !!item.noDivider),
+                  overflowY: 'hidden',
                 }"
               >
                 <div class="table-in-config-setting-row-from__wrap">

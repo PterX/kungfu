@@ -566,7 +566,7 @@ const resolveOrderTriggerConfig = (
   originConfig: KungfuApi.KfExtOriginConfig['config'],
 ) => {
   if (originConfig) {
-    const orderTriggerOriginConfig = originConfig.td?.orderTrigger || {};
+    const orderTriggerOriginConfig = originConfig.td?.order_trigger || {};
     const orderTriggerTypesKeys = Object.keys(OrderTriggerTypeEnum);
     const orderTriggerParkedTypesKeys = Object.keys(OrderTriggerParkedTypeEnum);
     const orderTriggerTimeConditionKeys = Object.keys(
@@ -596,10 +596,10 @@ const resolveOrderTriggerConfig = (
         }, {});
       }
       return config;
-    }, {} as KungfuApi.KfTdExtConfig['order_trigger']);
+    }, {} as KungfuApi.KfTdExtConfig['orderTrigger']);
   }
 
-  return {} as KungfuApi.KfTdExtConfig['order_trigger'];
+  return {} as KungfuApi.KfTdExtConfig['orderTrigger'];
 };
 
 const getKfExtensionConfigByCategory = (
@@ -642,7 +642,7 @@ const getKfExtensionConfigByCategory = (
                     type: resolveTypesInExtConfig(
                       extConfigByCategory[category]?.type || [],
                     ),
-                    order_trigger:
+                    orderTrigger:
                       resolveOrderTriggerConfig(extConfigByCategory),
                     settings: extConfigByCategory[category]?.settings || [],
                   },

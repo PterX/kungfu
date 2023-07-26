@@ -56,13 +56,13 @@ onMounted(() => {
             const value = JSON.parse(item.value);
             let message: string, status: FundTransEnum;
             if (!value.ret) {
-              message = t('fund_trans.pending');
+              message = t('fundTrans.pending');
               status = FundTransEnum.Pending;
             } else if (value.ret && value.ret < 0) {
-              message = value.message || t('fund_trans.error');
+              message = value.message || t('fundTrans.error');
               status = FundTransEnum.Error;
             } else {
-              message = t('fund_trans.success');
+              message = t('fundTrans.success');
               status = FundTransEnum.Success;
             }
             const result: KungfuApi.TransferRecordResolved = {
@@ -93,9 +93,9 @@ function getTransTypeResolved(
   if (type === 'FundTransBetweenNodes') {
     return 'HTS->HTS';
   } else if (type === 'FundTransIn') {
-    return `${t('fund_trans.centralized_counter')}->HTS`;
+    return `${t('fundTrans.centralized_counter')}->HTS`;
   } else if (type === 'FundTransOut') {
-    return `HTS->${t('fund_trans.centralized_counter')}`;
+    return `HTS->${t('fundTrans.centralized_counter')}`;
   } else {
     return '';
   }
@@ -152,7 +152,7 @@ function getTransTypeResolved(
             </div>
             <div v-if="record.trans_type === 'FundTransIn'">
               <span class="trans-name__txt">
-                {{ t('fund_trans.centralized_counter') }}
+                {{ t('fundTrans.centralized_counter') }}
               </span>
               <ArrowRightOutlined style="margin-right: 8px; font-size: 10px" />
               <span class="trans-name__txt">HTS</span>
@@ -161,7 +161,7 @@ function getTransTypeResolved(
               <span class="trans-name__txt">HTS</span>
               <ArrowRightOutlined style="margin-right: 8px; font-size: 10px" />
               <span class="trans-name__txt">
-                {{ t('fund_trans.centralized_counter') }}
+                {{ t('fundTrans.centralized_counter') }}
               </span>
             </div>
           </template>

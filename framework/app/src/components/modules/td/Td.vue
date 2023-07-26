@@ -142,7 +142,7 @@ const isShowFundTransIcon = computed(() => {
   const extConfig: KungfuApi.KfTdExtConfig = (extConfigs.value['td'] || {})[
     currentAccout.source
   ];
-  if (!extConfig || !extConfig.fund_trans) return false;
+  if (!extConfig || !extConfig.fundTrans) return false;
 
   return true;
 });
@@ -341,22 +341,22 @@ function handleOpenSetFundTransModal(type: FundTransTypeEnum) {
   const extConfig: KungfuApi.KfTdExtConfig = (extConfigs.value['td'] || {})[
     currentAccout.source
   ];
-  if (!extConfig || !extConfig.fund_trans) {
+  if (!extConfig || !extConfig.fundTrans) {
     error(
-      t('fund_trans.config_error', {
+      t('fundTrans.config_error', {
         td: currentAccout.source,
       }),
     );
     return;
   }
 
-  const selectFundTransConfig = extConfig.fund_trans[type];
+  const selectFundTransConfig = extConfig.fundTrans[type];
   currentAccout.transfer_type = type;
   setTdConfigPayload.value.initValue = undefined;
-  setFundTransConfigPayload.value.title = t('fund_trans.modal_title');
+  setFundTransConfigPayload.value.title = t('fundTrans.modal_title');
   setFundTransConfigPayload.value.config = {
     type: [],
-    name: t('fund_trans.modal_title'),
+    name: t('fundTrans.modal_title'),
     category: 'td',
     key: currentAccout.source,
     extPath: '',
@@ -402,7 +402,7 @@ function handleConfirmFundTrans(formState) {
   if (fundTransResult) {
     success();
   } else {
-    error(t('fund_trans.tip_error'));
+    error(t('fundTrans.tip_error'));
   }
 }
 

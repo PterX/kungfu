@@ -242,7 +242,7 @@ declare namespace KungfuApi {
     config?: {
       td?: {
         type?: TdMdExtTypes[] | TdMdExtTypes;
-        orderTrigger?: Record<string, Record<string, Record<string, boolean>>>;
+        order_trigger?: Record<string, Record<string, Record<string, boolean>>>;
         settings: KfConfigItem[];
         fund_trans?: KfExtFundTransConfig | null;
       };
@@ -295,7 +295,7 @@ declare namespace KungfuApi {
   }
   export interface KfTdExtConfig extends KfExtConfigBase<'td' | 'tdGroup'> {
     type: TdMdExtTypes[];
-    order_trigger: Partial<
+    orderTrigger: Partial<
       Record<
         OrderTriggerTypeEnum,
         Partial<
@@ -307,7 +307,7 @@ declare namespace KungfuApi {
       >
     >;
     settings: KfConfigItem[];
-    fund_trans?: KfExtFundTransConfig | null;
+    fundTrans?: KfExtFundTransConfig | null;
   }
 
   export interface KfMdExtConfig extends KfExtConfigBase<'md'> {

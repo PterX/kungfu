@@ -141,7 +141,7 @@ function handleBatchModal() {
 
   const tdName = currentGlobalKfLocation.value?.group as string;
   const extConfig = extConfigs.value.td[tdName];
-  if (extConfig && !extConfig.order_trigger[OrderTriggerTypeEnum.MakeOrder]) {
+  if (extConfig && !extConfig.orderTrigger[OrderTriggerTypeEnum.MakeOrder]) {
     error(
       t('tradingConfig.order_trigger_td_error', {
         tdName,

@@ -553,15 +553,15 @@ export const FundTransType: Record<
   KungfuApi.KfTradeValueCommonData
 > = {
   [FundTransEnum.Error]: {
-    name: t('fund_trans.error'),
+    name: t('fundTrans.error'),
     color: 'red',
   },
   [FundTransEnum.Pending]: {
-    name: t('fund_trans.pending'),
+    name: t('fundTrans.pending'),
     color: 'gray',
   },
   [FundTransEnum.Success]: {
-    name: t('fund_trans.success'),
+    name: t('fundTrans.success'),
     color: 'green',
   },
 };

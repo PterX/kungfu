@@ -35,11 +35,11 @@ const availTransRecordList = ref([
   },
   {
     key: FundTransTypeEnum.TrancIn,
-    name: [t('fund_trans.centralized_counter'), 'HTS'],
+    name: [t('fundTrans.centralized_counter'), 'HTS'],
   },
   {
     key: FundTransTypeEnum.TrancOut,
-    name: ['HTS', t('fund_trans.centralized_counter')],
+    name: ['HTS', t('fundTrans.centralized_counter')],
   },
 ]);
 
@@ -64,7 +64,7 @@ function handleConfirm() {
     v-model:visible="modalVisible"
     class="kf-set-source-modal"
     :width="500"
-    :title="$t('fund_trans.modal_title')"
+    :title="$t('fundTrans.modal_title')"
     :destroy-on-close="true"
     @cancel="closeModal"
     @ok="handleConfirm"
@@ -74,7 +74,7 @@ function handleConfirm() {
         'font-size': '16px',
       }"
     >
-      {{ $t('fund_trans.trans_selection') }}
+      {{ $t('fundTrans.trans_selection') }}
     </p>
     <a-radio-group v-model:value="selectedTransType">
       <a-radio

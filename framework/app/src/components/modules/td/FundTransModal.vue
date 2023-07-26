@@ -5,6 +5,7 @@ import { ArrowRightOutlined } from '@ant-design/icons-vue';
 import { useModalVisible } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import { useLanguage } from '@kungfu-trader/kungfu-js-api/language';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+import { FundTransTypeEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 
 const { t } = VueI18n.global;
 
@@ -18,24 +19,26 @@ const props = withDefaults(
 );
 
 defineEmits<{
-  (e: 'confirm', sourceId: string): void;
+  (e: 'confirm', tansType: FundTransTypeEnum): void;
   (e: 'update:visible', visible: boolean): void;
   (e: 'close'): void;
 }>();
 
 const app = getCurrentInstance();
-const selectedTransType = ref<string>('between_nodes');
+const selectedTransType = ref<FundTransTypeEnum>(
+  FundTransTypeEnum.BetweenNodes,
+);
 const availTransRecordList = ref([
   {
-    key: 'between_nodes',
+    key: FundTransTypeEnum.BetweenNodes,
     name: ['HTS', 'HTS'],
   },
   {
-    key: 'tranc_in',
+    key: FundTransTypeEnum.TrancIn,
     name: [t('fund_trans.centralized_counter'), 'HTS'],
   },
   {
-    key: 'tranc_out',
+    key: FundTransTypeEnum.TrancOut,
     name: ['HTS', t('fund_trans.centralized_counter')],
   },
 ]);

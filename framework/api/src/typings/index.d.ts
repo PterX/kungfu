@@ -285,8 +285,8 @@ declare namespace KungfuApi {
   export type KfExtFundTransConfig = Record<
     FundTransTypeEnum,
     { settings: KfConfigItem[] }
-    >;
-  
+  >;
+
   interface KfExtConfigBase<C extends KfCategoryTypes> {
     name: string;
     category: C;

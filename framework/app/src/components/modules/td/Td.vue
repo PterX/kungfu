@@ -323,7 +323,7 @@ function handleFundTransModeDialog(config: KungfuApi.KfConfig) {
 }
 
 function handleOpenSetFundTransModal(type: FundTransTypeEnum) {
-  const extConfig: KungfuApi.KfExtConfig = (extConfigs.value['td'] || {})[
+  const extConfig: KungfuApi.KfTdExtConfig = (extConfigs.value['td'] || {})[
     currentAccout.source
   ];
   if (!extConfig.fund_trans) {
@@ -771,7 +771,7 @@ function handleRequestPosition() {
     <FundTransModal
       v-if="setFundTransModeModalVisible"
       v-model:visible="setFundTransModeModalVisible"
-      @confirm="handleOpenSetFundTransModal($event)"
+      @confirm="handleOpenSetFundTransModal"
     ></FundTransModal>
     <KfSetByConfigModal
       v-if="setTdModalVisible"

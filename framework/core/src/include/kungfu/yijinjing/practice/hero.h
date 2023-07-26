@@ -147,7 +147,7 @@ protected:
   const yijinjing::data::location_ptr cached_home_location_;
   const yijinjing::data::location_ptr ledger_home_location_;
 
-  yijinjing::journal::writer_ptr master_cmd_writer_{};
+  yijinjing::journal::writer_ptr master_cmd_writer_for_thread_{};
 
   static uint64_t make_source_dest_hash(uint32_t source_id, uint32_t dest_id);
 

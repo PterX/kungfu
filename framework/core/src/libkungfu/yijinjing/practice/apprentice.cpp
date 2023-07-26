@@ -276,7 +276,7 @@ void apprentice::on_write_to(const event_ptr &event) {
   if (writers_.find(dest_id) == writers_.end()) {
     writers_.emplace(dest_id, get_io_device()->open_writer(dest_id));
     if (dest_id == get_master_command_uid()) {
-      master_cmd_writer_ = get_writer(dest_id);
+      master_cmd_writer_for_thread_ = get_writer(dest_id);
     }
   }
 }
@@ -364,15 +364,15 @@ yijinjing::journal::writer_ptr &apprentice::get_thread_writer() {
 
     /// join channel in sub-thread will crash, so tell master to ask myself to join
     /// do not use writer because of multi-thread concurrency issues
-    if (not master_cmd_writer_) {
+    if (not master_cmd_writer_for_thread_) {
       SPDLOG_ERROR("has no writer of master_cmd: {:8x}", get_master_command_uid());
     }
-    RequestReadFromOthers &request = master_cmd_writer_->open_data<RequestReadFromOthers>();
+    RequestReadFromOthers &request = master_cmd_writer_for_thread_->open_data<RequestReadFromOthers>();
     request.source_id = get_home_uid();
     request.dest_id = dest_id;
     request.from_time = now();
     SPDLOG_TRACE("RequestReadFromOthers: {}", request.to_string());
-    master_cmd_writer_->close_data();
+    master_cmd_writer_for_thread_->close_data();
   }
   return thread_writer_;
 }

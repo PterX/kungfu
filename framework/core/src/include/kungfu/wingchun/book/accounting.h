@@ -10,8 +10,6 @@
 #include <kungfu/longfist/enums.h>
 #include <kungfu/wingchun/book/book.h>
 
-using namespace kungfu::longfist::enums;
-
 namespace kungfu::wingchun::book {
 static const longfist::enums::AccountingMethodType get_accounting_method_type() {
   char *is_otc = std::getenv("IS_OTC_ACCOUNTING_TYPE");

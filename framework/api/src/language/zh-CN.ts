@@ -43,16 +43,16 @@ export default {
   open_renderer_app_log: '打开客户端底层日志',
   browsing_log: '浏览日志文件',
 
-  clear_journal: '清理journal',
-  clear_DB: '清理DB',
+  clear_journal: '清理 journal',
+  clear_DB: '清理 DB',
   reset_main_panel: '重置主面板',
   export_all_transaction_data: '导出所有交易数据',
   export_instrument_whitelists: '导出标的白名单',
-  view_all_journal: '查看所有journal',
+  view_all_journal: '查看所有 journal',
 
   website: '官网',
   user_manual: '用户手册',
-  API_documentation: '策略API文档',
+  API_documentation: '策略 API 文档',
   Kungfu_forum: 'Kungfu 论坛',
 
   KungFu: '功夫',
@@ -65,7 +65,7 @@ export default {
   clear: '清理 {content} 完成, 请重启应用',
   open_window: '正在打开窗口',
   open_code_editor: '正在打开代码编辑器',
-  open_journal_dashboard: '正在打开journal面板',
+  open_journal_dashboard: '正在打开 journal 面板',
   open_trading_task_view: '正在打开交易任务视图',
   add_board: '添加面板',
   select_board: '请选择要添加的面板',
@@ -76,9 +76,9 @@ export default {
   trading_day: '交易日',
 
   delete_category:
-    '删除 {category} 所有数据,  如果该 {categoryName} 进程正在运行, 也将停止进程, 确认删除',
+    '删除 {category} 所有数据,  如果该 {categoryName} 进程正在运行, 也将停止进程, 确认是否删除',
   add_config_modal:
-    '{category}ID系统唯一, {changeTypeName} 成功后不可修改, 确认 {key}',
+    '{category} ID 系统唯一, {changeTypeName} 成功后不可修改, 确认是否 {key}',
   update_config_modal: '确认{key} 相关配置',
   database_locked: '检测到当前有交易进行, 数据库被占用',
   export_database_locked:
@@ -96,10 +96,11 @@ export default {
   Operator: '算子',
   Trade: '成交记录',
   Order: '委托记录',
+  EmbeddedRecord: '预埋单记录',
   PosGlobal: '持仓汇总',
   Pos: '持仓',
 
-  select_broker_ext: '选择柜台API',
+  select_broker_ext: '选择柜台 API',
   select_operator_ext: '选择算子插件',
   select_trade_task: '选择交易任务',
   select_plugin_type: '选择插件类型',
@@ -134,6 +135,10 @@ export default {
     stopped: '已停止',
     launching: '启动中',
     error: '错误',
+    finished_msg: '当前订单 {status}, 改单取消',
+    trade_greater_than_target_msg:
+      '已成交量 ({volume_trade}) 大于目标下单量 ({volume_target}), 改单取消',
+    target_equal_to_trade_msg: '已成交量等于目标下单量, 改单取消',
     waiting_restart: '待重启',
 
     pending: '等待中',
@@ -146,7 +151,7 @@ export default {
 
     system: '系统服务',
     md: '行情源',
-    td: '交易账户 ',
+    td: '交易账户',
     strategy: '策略',
     operator: '算子',
 
@@ -193,6 +198,7 @@ export default {
     guarantee_stock_redeem: '担保品转出',
 
     submitted: '已提交',
+    cancelling: '待撤',
     cancelled: '已撤单',
     filled: '已成交',
     partial_filled_not_active: '部分撤单',
@@ -229,6 +235,9 @@ export default {
     IOC: 'IOC',
     GFD: 'GFD',
     GTC: 'GTC',
+    GFS: 'GFS',
+    GTD: 'GTD',
+    GFA: '集合竞价',
 
     stock: '股票',
     future: '期货',
@@ -327,6 +336,29 @@ export default {
     archive: '归档服务',
 
     place_order: '下单',
+    embedded_order: '预埋',
+    embedded_order_title: '预埋单确认',
+    server_embedded_label: '服务器预埋单',
+    local_embedded_label: '本地预埋单',
+    order_trigger_status_pending: '已提交',
+    order_trigger_status_submitted: '未触发',
+    order_trigger_status_filled: '已触发',
+    order_trigger_status_cancelled: '已取消',
+    batch: '批量',
+    batch_embedded: '批量预埋单',
+    embedded_order_td_error: '当前柜台 {tdName} 不支持下预埋单, 请联系管理员',
+    embedded_order_not_future: '批量埋单中, 第{rowStr}不是期货, 下单失败',
+    batch_embedded_results: '批量埋单成功 {success} 条, 失败 {error} 条',
+    instrument_id_header_desc:
+      '标的代码, （* 仅可填ctp/融航柜台支持的期货标的）',
+    exchange_id_header_desc:
+      '交易所 ID, 字符串, 可填 SSE(上交所), SZE(深交所), BSE(北交所), SHFE(上期所), DCE(大商所), CZCE(郑商所), CFFEX(中金所), INE(能源中心)',
+    side_header_desc: '买卖, 可填 0买/ 1卖',
+    offset_header_desc: '开平,可填 0开/ 1平 / 2平今 / 3平昨',
+    price_type_header_desc:
+      '0限价/ 1市价/ 2上海深圳最优五档即时成交剩余撤销/ 3深圳本方最优价格申报/ 4上海最优五档即时成交剩余转限价,深圳对手方最优价格申报/ 5深圳即时成交剩余撤销/ 6深圳市价全额成交或者撤销/ 7增强限价盘/ 8竞价限价盘/ 9竞价盘',
+    volume_header_desc: '交易量',
+    limit_price_header_desc: '价格',
     apart_order: '拆单',
     reset_order: '重置',
     account: '账户',
@@ -354,7 +386,7 @@ export default {
     fat_finger_sell_modal:
       '卖出价格超出警戒线, 当前价格为 {price}, 警戒线为 {warningLine}, 当前乌龙指阈值为 {fatFinger}%',
     close_apart_open_modal:
-      '下单量为 {volume}, 当前标的可平 {direction} 仓为 {closable_volume}, 超出数量为 {open_volume}\n点击 “超出部分反向开仓”, 将会 平 {direction} {closable_volume}, 开{direction} {open_volume}\n点击“按原方案下单”, 将会继续平 {direction} {volume}',
+      '下单量为 {volume}, 当前标的可平 {direction} 仓为 {closableVolume}, 超出数量为 {openVolume}\n点击 “超出部分反向开仓”, 将会 平 {direction} {closableVolume}, 开{oppositeDirection} {openVolume}\n点击“按原方案下单”, 将会继续平 {direction} {volume}',
     start_process: '请先启动{process}交易进程',
     place_confirm: '下单确认',
     continue_close_rate: '{relationship} 平仓阈值 ({rate}%), 是否继续下单?',
@@ -370,8 +402,8 @@ export default {
     instrument_id: '标的',
     limit_price: '委托价',
     order_status: '订单状态',
-    latency_system: '系统延迟μs',
-    latency_network: '网络延迟μs',
+    latency_system: '系统延迟 μs',
+    latency_network: '网络延迟 μs',
     avg_price: '成交均价',
     dest_uname: '下单源',
     source_uname: '目标账户',
@@ -383,6 +415,9 @@ export default {
     max: '最高委托价',
     min: '最低委托价',
     volume: '成交量',
+    entrust_volume: '委托量',
+    time_condition: '触发时间',
+    parked_type: '预埋方式',
 
     checkbox_text: '未完成委托',
     cancel_all: '全部撤单',
@@ -430,7 +465,7 @@ export default {
     sourse_not_found: '配置项不存在, 请检查 {value} package.json',
     need_only_group: '需保证该账户组名称唯一',
     delete_amount_group: '删除账户组 {group}',
-    confirm_delete_group: '不会影响改账户组下账户进程, 确认删除',
+    confirm_delete_group: '不会影响改账户组下账户进程, 确认是否删除',
   },
 
   mdConfig: {
@@ -438,7 +473,7 @@ export default {
     state_status: '状态',
     process_status: '进程',
     actions: '操作',
-    select_counter_api: '选择柜台API',
+    select_counter_api: '选择柜台 API',
     select_trade_task: '选择交易任务',
     select_plugin_type: '选择插件类型',
 
@@ -448,31 +483,31 @@ export default {
 
   strategyConfig: {
     strategy: '策略',
-    strategy_id: '策略ID',
+    strategy_id: '策略 ID',
     strategy_file: '策略文件',
     strategy_path: '策略路径',
     strategy_path_tip:
-      '普通 python 策略选择 .py 文件, 加密 python 策略或cpp策略选择编译后的 .so 或 .pyd 文件',
+      '普通 python 策略选择 .py 文件, 加密 python 策略或 cpp 策略选择编译后的 .so 或 .pyd 文件',
     process_status: '进程',
     unrealized_pnl: '浮动盈亏',
     marked_value: '市值',
     actions: '操作',
-    strategy_tip: '需保证该策略ID唯一',
+    strategy_tip: '需保证该策略 ID 唯一',
 
     add_strategy: '添加',
   },
 
   operatorConfig: {
     operator: '算子',
-    operator_id: '算子ID',
+    operator_id: '算子 ID',
     operator_file: '算子文件',
     operator_path: '算子路径',
     operator_path_tip:
-      '普通 python 算子选择 .py 文件, 加密 python 算子或cpp算子选择编译后的 .so 或 .pyd 文件',
+      '普通 python 算子选择 .py 文件, 加密 python 算子或 cpp 算子选择编译后的 .so 或 .pyd 文件',
     state_status: '状态',
     process_status: '进程',
     actions: '操作',
-    operator_tip: '需保证该算子ID唯一',
+    operator_tip: '需保证该算子 ID 唯一',
 
     add_operator: '添加',
     operator_not_found: '{operator} 算子插件不存在',
@@ -485,19 +520,19 @@ export default {
 
   tradingTaskConfig: {
     tradingTask: '交易任务',
-    task_id: '任务ID',
+    task_id: '任务 ID',
     process_status: '进程',
     args: '参数',
     actions: '操作',
 
     add_task: '添加',
-    illegal_process_id: '不是合法交易任务进程ID',
+    illegal_process_id: '不是合法交易任务进程 ID',
     key_inexistence: '交易任务插件 key 不存在',
     plugin_inexistence: '{key} 交易任务插件不存在',
     configuration_inexistence: '配置项不存在, 请检查',
     delete_task: '删除交易任务',
     delete_task_content:
-      '所有数据, 如果该交易任务正在运行, 也将停止进程, 确认删除',
+      '所有数据, 如果该交易任务正在运行, 也将停止进程, 确认是否删除',
   },
 
   posGlobalConfig: {
@@ -673,43 +708,44 @@ export default {
   globalSettingConfig: {
     global_setting_title: '全局设置',
     system: '系统',
-    home_path: '选择本地Home路径',
-    home_path_desc: '功夫将会以选择的home路径为根目录，修改后重启功夫生效',
+    home_path: '选择本地 Home 路径',
+    home_path_desc:
+      '功夫将会以选择的 home 路径为根目录, 目录路径不可以包含中文, 且路径不建议太长 (过长会导致进程无法启动), 修改后重启功夫生效',
     reset_order: '重置',
     log_level: '全局日志级别',
     for_all_log: '对系统内所有日志级别的设置',
 
     auto_restart_td: '交易进程自动重启',
     auto_restart_td_desc:
-      '交易进程断开时是否自动重启, 如果打开, 则当交易进程出错后, 会尝试重连三次, 如果关闭, 则不会；在重启过程中（重启开始到交易进程就绪）, 策略内查询到的持仓会为0, 需要在策略内通过 on_deregister, on_broker_state_change这两个方法来判断柜台状态是否断开/重启就绪',
+      '交易进程断开时是否自动重启, 如果打开, 则当交易进程出错后, 会尝试重连三次, 如果关闭, 则不会；在重启过程中（重启开始到交易进程就绪）, 策略内查询到的持仓会为0, 需要在策略内通过 on_deregister, on_broker_state_change 这两个方法来判断柜台状态是否断开/重启就绪',
 
     language: '语言',
     select_language_desc: '选择语言, 修改后重启功夫生效',
     bypass_archive: '跳过归档',
     bypass_archive_desc:
-      '仅删除上个交易日留下的journal与log文件, 不再压缩打包, 跳过归档后无法恢复之前的内存数据, 会加快启动速度',
+      '仅删除上个交易日留下的 journal 与 log 文件, 不再压缩打包, 跳过归档后无法恢复之前的内存数据, 会加快启动速度',
 
     porformance: '性能',
     rocket_model: '开启极速模式',
     rocket_model_desc:
       '开启极速模式会极大的降低系统延迟 (只有当 CPU 核数大于 4 时才能开启) , 并会使 CPU 使用效率达到100%, 重启后生效',
-    bypass_accounting: '跳过UI进程计算',
+    bypass_accounting: '跳过 UI 进程计算',
     bypass_accounting_desc:
-      'UI进程不再处理计算逻辑, 完全通过计算进程更新数据, 减轻UI进程性能占用, 重启后生效',
+      'UI 进程不再处理计算逻辑, 完全通过计算进程更新数据, 减轻 UI 进程性能占用, 重启后生效',
     bypass_trading_data: '纯监控模式',
     bypass_trading_data_desc:
-      '该模式下仅可监控进程运行状态, UI进行性能占用达到最低, 重启后生效',
+      '该模式下仅可监控进程运行状态, UI 进行性能占用达到最低, 重启后生效',
     strategy: '策略',
-    use_local_python: '使用本地Python',
+    use_local_python: '使用本地 Python',
     local_python_desc:
-      '使用本地python启动策略, 需要 pip3 install {whl_dir_path} 内 *.whl 文件, 开启后需重启策略, 本地 python3 版本需为 {py_version}',
+      '使用本地 python 启动策略, 需要 pip3 install {whl_dir_path} 内 *.whl 文件, 开启后需重启策略, 本地 python3 版本需为 {py_version}',
     python_path: '选择本地 Python 路径',
     python_path_desc:
-      '功夫将会以选择的python路径运行策略, 同时需要保证 kungfu*.whl 已经通过 pip安装',
+      '功夫将会以选择的 python 路径运行策略, 同时需要保证 kungfu*.whl 已经通过 pip 安装',
 
     currency: '币种',
     instrument_currency: '标的币种',
-    instrument_currency_desc: '打开时，会在持仓面板的标的列展示标的币种',
+    instrument_currency_desc: '打开时,会在持仓面板的标的列展示标的币种',
 
     trade: '交易',
     sound: '成交提示音',
@@ -768,7 +804,8 @@ export default {
   白名单设置警告: '请先为此账户设置标的白名单',
 
   validate: {
-    no_special_characters: '不能含有特殊字符',
+    no_special_characters: '不能含有特殊字符和中文, 且不能以-为首尾字符',
+    single_characters: '必须包含数字和字母',
     no_underline: '不能含有下划线',
     no_zero_number: '请输入非零数字',
     no_negative_number: '请输入非负数',
@@ -782,14 +819,14 @@ export default {
     current_strategy: '当前策略',
     new_file: '新建文件',
     new_folder: '新建文件夹',
-    set_strategy_success: '策略 {file} 文件路径修改成功！',
+    set_strategy_success: '策略 {file} 文件路径修改成功!',
     entry_file: '入口文件',
-    creaate_success: '{file} 创建成功！',
+    creaate_success: '{file} 创建成功!',
 
-    name_repeat: '此位置已存在文件或文件夹 {name}, 请选择其他名称！',
-    empty_input: '必须提供文件或文件夹名称！',
+    name_repeat: '此位置已存在文件或文件夹 {name}, 请选择其他名称!',
+    empty_input: '必须提供文件或文件夹名称!',
     illegal_character: '名称不能包含\\/:*?"<>|',
-    delete_confirm: '确认删除{value}吗？',
+    delete_confirm: '确认删除 {value} 吗?',
     cannot_delate_entry: '不可删除入口文件',
     current: '当前',
   },
@@ -827,7 +864,7 @@ export default {
     '电脑性能过低, 将默认开启跳过 UI 计算选项 (可在全局系统设置里打开, 开启可能会导致系统进程崩溃), 建议使用8核及以上的 CPU 运行系统',
 
   quit_confirm: '退出应用会结束所有交易进程, 确认退出吗?',
-  restart_process: '功夫图形进程中断, 该中断不会影响交易, 是否重启图形进程？',
+  restart_process: '功夫图形进程中断, 该中断不会影响交易, 是否重启图形进程?',
 
   未就绪: '{processId} 还未准备就绪, 请稍后重试',
   系统外: '系统外',
@@ -838,7 +875,7 @@ export default {
   异常: '异常',
   错误: '错误',
   文件路径不存在: '文件路径不存在',
-  策略id不存在: '策略id不存在',
+  策略id不存在: '策略 id 不存在',
 
   可用仓位: '可用仓位',
   可用资金: '可用资金',

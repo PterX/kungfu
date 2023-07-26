@@ -200,7 +200,6 @@ private:
     book->asset.avail += frozen_margin;
     book->asset.frozen_cash -= frozen_margin;
     book->asset.frozen_margin -= frozen_margin;
-    // todo add by marsjliu
     auto trade_market_value = contract_multiplier * position.last_price * cm_mr.exchange_rate * trade.volume;
     book->asset.market_value += trade_market_value;
 
@@ -335,7 +334,7 @@ private:
       SPDLOG_WARN("instrument information missing for {}@{}", instrument_id, exchange_id);
       cm_mr.contract_multiplier = OTC_DEFAULT_INSTRUMENT_CONTRACT_MULTIPLIER;
     } else {
-      auto &instrument = book->instruments.at(hashed_instrument_key);
+      const auto &instrument = book->instruments.at(hashed_instrument_key);
       cm_mr.contract_multiplier = instrument.contract_multiplier;
     }
 

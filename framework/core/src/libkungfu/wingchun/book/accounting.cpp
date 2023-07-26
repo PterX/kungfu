@@ -13,6 +13,7 @@
 #include "accounting/otc/stock.hpp"
 
 using namespace kungfu::wingchun;
+using namespace kungfu::longfist::enums;
 
 namespace kungfu::wingchun::book {
 void AccountingMethod::setup_defaults(Bookkeeper &bookkeeper,

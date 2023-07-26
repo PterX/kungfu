@@ -17,6 +17,7 @@ import {
   dealTrade,
   dealTradingDataItem,
   getKungfuHistoryData,
+  getOrderLatencyDataByOrderStat,
   kfCancelAllOrders,
 } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { watcher } from '@kungfu-trader/kungfu-js-api/kungfu/watcher';
@@ -83,13 +84,13 @@ function resOrders(packet: Pm2PacketMain) {
   const orders = globalThis.HookKeeper.getHooks()
     .dealTradingData.trigger(watcher, kfLocation, watcher.ledger.Order, 'order')
     .slice(0, 10)
-    .map((item) =>
-      dealOrder(
-        watcher as KungfuApi.Watcher,
-        item as KungfuApi.Order,
+    .map((item) => ({
+      ...dealOrder(watcher as KungfuApi.Watcher, item as KungfuApi.Order),
+      ...getOrderLatencyDataByOrderStat(
+        item,
         (watcher as KungfuApi.Watcher).ledger.OrderStat,
       ),
-    );
+    }));
 
   turnBigIntToString(orders);
 
@@ -289,7 +290,7 @@ function turnBigIntToString<T>(list: T[]) {
   list.forEach((item) => {
     Object.keys(item).forEach((key) => {
       if (typeof item[key] === 'bigint') {
-        item[key] = Number(item[key]).toFixed(0);
+        item[key] = Number(item[key]).kfToFixed(0);
       }
     });
   });

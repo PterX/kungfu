@@ -300,6 +300,11 @@ Napi::Value Watcher::IssueBlockMessage(const Napi::CallbackInfo &info) {
   return InteractWithTD<BlockMessage>(info, info[0].ToObject(), &BlockMessage::block_id);
 }
 
+Napi::Value Watcher::IssueOrderTrigger(const Napi::CallbackInfo &info) {
+  SPDLOG_INFO("issue order trigger manually");
+  return InteractWithTD<OrderTriggerInput>(info, info[0].ToObject(), &OrderTriggerInput::trigger_id);
+}
+
 Napi::Value Watcher::IssueOrder(const Napi::CallbackInfo &info) {
   SPDLOG_INFO("issue order manually");
   return InteractWithTD<OrderInput>(info, info[0].ToObject(), &OrderInput::order_id);
@@ -327,9 +332,30 @@ Napi::Value Watcher::IssueBasketOrder(const Napi::CallbackInfo &info) {
   return InteractWithTD<BasketOrder>(info, info[0].ToObject(), &BasketOrder::order_id);
 }
 
+Napi::Value Watcher::IssueAlgoOrder(const Napi::CallbackInfo &info) {
+  SPDLOG_INFO("issue algo order manually");
+  return InteractWithTD<AlgoOrderInput>(info, info[0].ToObject(), &AlgoOrderInput::order_id);
+}
+
+Napi::Value Watcher::IssueMark(const Napi::CallbackInfo &info) {
+  SPDLOG_INFO("issue mark");
+  uint32_t tag = GetNumber(info, 0);
+  auto account_location = IODevice::ExtractLocation(info, 1, get_locator());
+  if (not has_writer(account_location->location_uid)) {
+    return Napi::Boolean::New(info.Env(), false);
+  }
+  get_writer(account_location->location_uid)->mark(time::now_in_nano(), tag);
+  return Napi::Boolean::New(info.Env(), true);
+}
+
 Napi::Value Watcher::CancelOrder(const Napi::CallbackInfo &info) {
   SPDLOG_INFO("cancel order manually");
   return InteractWithTD<OrderAction>(info, info[0].ToObject(), &OrderAction::order_action_id);
+}
+
+Napi::Value Watcher::CancelAlgoOrder(const Napi::CallbackInfo &info) {
+  SPDLOG_INFO("cancel algo order manually");
+  return InteractWithTD<AlgoOrderAction>(info, info[0].ToObject(), &AlgoOrderAction::order_action_id);
 }
 
 Napi::Value Watcher::RequestMarketData(const Napi::CallbackInfo &info) {
@@ -388,9 +414,13 @@ void Watcher::Init(Napi::Env env, Napi::Object exports) {
                       InstanceMethod("isReadyToInteract", &Watcher::IsReadyToInteract), //
                       InstanceMethod("issueCustomData", &Watcher::IssueCustomData),     //
                       InstanceMethod("issueBlockMessage", &Watcher::IssueBlockMessage), //
+                      InstanceMethod("issueOrderTrigger", &Watcher::IssueOrderTrigger), //
                       InstanceMethod("issueOrder", &Watcher::IssueOrder),               //
                       InstanceMethod("issueBasketOrder", &Watcher::IssueBasketOrder),   //
+                      InstanceMethod("issueAlgoOrder", &Watcher::IssueAlgoOrder),       //
+                      InstanceMethod("issueMark", &Watcher::IssueMark),                 //
                       InstanceMethod("cancelOrder", &Watcher::CancelOrder),             //
+                      InstanceMethod("cancelAlgoOrder", &Watcher::CancelAlgoOrder),     //
                       InstanceMethod("requestMarketData", &Watcher::RequestMarketData), //
                       InstanceMethod("requestPosition", &Watcher::RequestPosition),     //
                       InstanceMethod("start", &Watcher::Start),                         //
@@ -424,25 +454,23 @@ void Watcher::on_start() {
   UpdateBasketOrders(); // refresh basketorders
 
   if (not bypass_trading_data_) {
-    // for receive runtime data
-    events_ | is(Quote::tag) | is_subscribed(subscribed_instruments_) | $$(cached::feed_state_data(event, data_bank_));
-    events_ | is(Instrument::tag) | $$(Feed(event, event->data<Instrument>()));
-    events_ | skip_while(while_is(Quote::tag, Instrument::tag)) | $$(cached::feed_state_data(event, data_bank_));
-  }
-
-  if (not bypass_trading_data_) {
     bookkeeper_.on_start(events_);
     bookkeeper_.guard_positions();
     bookkeeper_.add_book_listener(std::make_shared<BookListener>(*this));
+
+    // for receive runtime data
+    events_ | is(Quote::tag) | is_subscribed(subscribed_instruments_) | $$(cached::feed_state_data(event, data_bank_));
+    events_ | is(Instrument::tag) | $$(Feed(event, event->data<Instrument>()));
+    // position should be always read from bookkeeper in watcher, because of position_guard, instead of feeds;
+    events_ | skip_while(while_is(Quote::tag, Instrument::tag, Position::tag)) |
+        $$(cached::feed_state_data(event, data_bank_));
 
     if (not bypass_quote_) {
       events_ | is(Quote::tag) | is_subscribed(subscribed_instruments_) | $$(UpdateBook(event, event->data<Quote>()));
     }
 
-    // events_ | is(OrderInput::tag) | $$(UpdateBook(event, event->data<OrderInput>()));
     events_ | is(Order::tag) | $$(UpdateBook(event, event->data<Order>()));
     events_ | is(Order::tag) | $$(UpdateBasketOrder(event->trigger_time(), event->data<Order>()));
-    // events_ | is(Trade::tag) | $$(UpdateBook(event, event->data<Trade>()));
     events_ | is(Position::tag) | $$(UpdateBook(event, event->data<Position>()));
     events_ | is(PositionEnd::tag) | $$(UpdateAsset(event, event->data<PositionEnd>().holder_uid));
     refresh_books();

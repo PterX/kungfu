@@ -30,22 +30,21 @@ export const AccountingInstrumentDefaultValue = {
 export const getInstrumentDefaultValue = (
   value,
   key: keyof typeof AccountingInstrumentDefaultValue,
+  customDefaultValue?,
 ) => {
-  return value || AccountingInstrumentDefaultValue[key];
+  return value || customDefaultValue || AccountingInstrumentDefaultValue[key];
 };
 
-class BaseAccountingUsage implements AccountingUsage {
+abstract class BaseAccountingUsage implements AccountingUsage {
   intrumentType: InstrumentTypeEnum;
   constructor(intrumentType: InstrumentTypeEnum) {
     this.intrumentType = intrumentType;
   }
 
-  getTradeAmount(
+  abstract getTradeAmount(
     _watcher: KungfuApi.Watcher,
     _instrumentForAccounting: KungfuApi.InstrumentForAccounting,
-  ): number | null {
-    throw Error('have to overwrite this function');
-  }
+  ): number | null;
 
   getInstrumentInWatcher(
     watcher: KungfuApi.Watcher,
@@ -89,14 +88,23 @@ class DefaultAccountingUsage extends BaseAccountingUsage {
   }
 }
 
-function calcTradeAmountOnlyWithExchangeRate(
+function calcTradeAmountForMain(
   instrumentForAccounting: KungfuApi.InstrumentForAccounting,
   instrumentFactor: KungfuApi.InstrumentFactor | null,
 ) {
-  const { price, volume } = instrumentForAccounting;
-  const { exchange_rate } = instrumentFactor || {};
+  const { price, volume, direction } = instrumentForAccounting;
+  const { exchange_rate, long_margin_ratio, short_margin_ratio } =
+    instrumentFactor || {};
+  const marginRatio =
+    direction === DirectionEnum.Long
+      ? getInstrumentDefaultValue(long_margin_ratio, 'long_margin_ratio', 1)
+      : getInstrumentDefaultValue(short_margin_ratio, 'short_margin_ratio', 1);
+
   return (
-    price * volume * getInstrumentDefaultValue(exchange_rate, 'exchange_rate')
+    price *
+    volume *
+    marginRatio *
+    getInstrumentDefaultValue(exchange_rate, 'exchange_rate')
   );
 }
 
@@ -112,7 +120,7 @@ class StockAccountingUsage extends BaseAccountingUsage {
     if (!instrumentForAccounting) return null;
 
     const { instrumentId, exchangeId, accountUID } = instrumentForAccounting;
-    return calcTradeAmountOnlyWithExchangeRate(
+    return calcTradeAmountForMain(
       instrumentForAccounting,
       this.getInstrumentFactorInWatcher(
         watcher,
@@ -136,7 +144,7 @@ class BondAccountingUsage extends BaseAccountingUsage {
     if (!instrumentForAccounting) return null;
 
     const { instrumentId, exchangeId, accountUID } = instrumentForAccounting;
-    return calcTradeAmountOnlyWithExchangeRate(
+    return calcTradeAmountForMain(
       instrumentForAccounting,
       this.getInstrumentFactorInWatcher(
         watcher,

@@ -596,10 +596,10 @@ const resolveOrderTriggerConfig = (
         }, {});
       }
       return config;
-    }, {} as KungfuApi.KfTdExtConfig['orderTrigger']);
+    }, {} as KungfuApi.KfTdExtConfig['order_trigger']);
   }
 
-  return {} as KungfuApi.KfTdExtConfig['orderTrigger'];
+  return {} as KungfuApi.KfTdExtConfig['order_trigger'];
 };
 
 const getKfExtensionConfigByCategory = (
@@ -642,7 +642,7 @@ const getKfExtensionConfigByCategory = (
                     type: resolveTypesInExtConfig(
                       extConfigByCategory[category]?.type || [],
                     ),
-                    orderTrigger:
+                    order_trigger:
                       resolveOrderTriggerConfig(extConfigByCategory),
                     settings: extConfigByCategory[category]?.settings || [],
                   },
@@ -1653,7 +1653,7 @@ export const dealVolumeByInstrumentType = (
 ) => {
   const minOrderVolume = InstrumentMinOrderVolume[instrumentType] || 1;
   const orderVolume = Math.max(volume, minOrderVolume);
-  
+
   if (instrumentType === InstrumentTypeEnum.techstock) return orderVolume;
   return Math.floor(orderVolume / minOrderVolume) * minOrderVolume;
 };

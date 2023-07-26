@@ -26,6 +26,7 @@ export const initKfConfig = () => {
     ) {
       if (!kfConfigJSON.performance) kfConfigJSON.performance = {};
       kfConfigJSON.performance.bypassAccounting = true;
+      kfConfigJSON.performance.bypassSubscribePosition = true;
     }
 
     fse.outputJsonSync(KF_CONFIG_PATH, kfConfigJSON);

@@ -48,8 +48,11 @@ export const watcher = ((): KungfuApi.Watcher | null => {
     false;
   const refreshTradingDataBeforeSync =
     process.env.REFRESH_LEDGER_BEFORE_SYNC ?? false;
-  
-  const bypassSubscribePosition = process.env.BY_PASS_SUBSCRIBE_POSITION ?? false;
+
+  const bypassSubscribePosition =
+    process.env.BY_PASS_SUBSCRIBE_POSITION ??
+    globalSetting?.performance?.bypassSubscribePosition ??
+    false;
 
   const millisecondsSleepAfterStep =
     process.env.MILLISECONDS_SLEEP_AFTER_STEP ?? 100;

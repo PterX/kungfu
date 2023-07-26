@@ -26,6 +26,7 @@ public:
   explicit yijinjing_error(const std::string &message) : runtime_error(message) {}
 };
 
+
 class resource {
 public:
   virtual bool is_usable() = 0;
@@ -49,6 +50,8 @@ public:
   virtual ~observer() = default;
 
   virtual bool wait() = 0;
+
+  virtual bool nonblock_wait() = 0;
 
   [[nodiscard]] virtual int get_recv_timeout() const = 0;
 

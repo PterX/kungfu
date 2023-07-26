@@ -9,6 +9,7 @@ import { makeOrderByBlockMessage } from '@kungfu-trader/kungfu-js-api/kungfu';
 import {
   getProcessIdByKfLocation,
   initFormStateByConfig,
+  isShotable,
   transformSearchInstrumentResultToInstrument,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import {
@@ -24,7 +25,12 @@ import {
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { dealOrderPlaceVNode } from './utils';
-import { HedgeFlagEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
+import {
+  HedgeFlagEnum,
+  InstrumentTypeEnum,
+  OffsetEnum,
+  SideEnum,
+} from '@kungfu-trader/kungfu-js-api/typings/enums';
 
 const { t } = VueI18n.global;
 const { error } = messagePrompt();
@@ -45,6 +51,20 @@ useMakeOrderSubscribe(formState);
 
 let pricePrecision = 0;
 let step = 1;
+
+const getResolvedOffset = (
+  offset: OffsetEnum,
+  side: SideEnum,
+  instrumentType: InstrumentTypeEnum,
+) => {
+  if (isShotable(instrumentType)) {
+    if (offset !== undefined) {
+      return offset;
+    }
+  }
+  return side === 0 ? 0 : 1;
+};
+
 const configSettings = computed(() => {
   if (!currentGlobalKfLocation.value) {
     return getConfigSettings();
@@ -63,10 +83,6 @@ function numberValidator(_rule: RuleObject, value: string | number) {
 }
 
 const rules = {
-  opponent_seat: {
-    validator: numberValidator,
-    trigger: 'change',
-  },
   match_number: {
     validator: numberValidator,
     trigger: 'change',
@@ -144,14 +160,14 @@ function handleMakeOrder() {
         volume: +volume,
         price_type: +price_type,
         side: +side,
-        offset: +(offset !== undefined ? offset : +side === 0 ? 0 : 1),
+        offset: getResolvedOffset(+offset, +side, +instrumentType),
         hedge_flag: HedgeFlagEnum.Speculation,
         is_swap: !!is_swap,
         parent_id: 0n,
       };
 
       const blockMessage: KungfuApi.BlockMessage = {
-        opponent_seat: +opponent_seat || 0,
+        opponent_seat: opponent_seat || '',
         match_number: match_number || '',
         is_specific: !!is_specific,
         insert_time: 0n,

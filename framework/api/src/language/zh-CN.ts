@@ -99,6 +99,7 @@ export default {
   OrderTriggerRecord: '预埋单记录',
   PosGlobal: '持仓汇总',
   Pos: '持仓',
+  TransferRecord: '划转记录',
 
   select_broker_ext: '选择柜台 API',
   select_operator_ext: '选择算子插件',
@@ -468,6 +469,26 @@ export default {
     confirm_delete_group: '不会影响改账户组下账户进程, 确认是否删除',
   },
 
+  fund_trans: {
+    config_error: '{td}柜台资金划转配置文件异常',
+    modal_title: '柜台间资金划转',
+    trans_selection: '请选择资金划转的方向',
+    centralized_counter: '集中柜台',
+    source: '划出节点',
+    target: '划入节点',
+    amount: '发生金额',
+    update_time: '划转时间',
+    tip_error: '划转失败,请联系管理员!',
+    capitalaccountor: '资金账号',
+    trade_password: '交易密码',
+    account: '客户号',
+    trans_type: '划转类型',
+    pending: '等待中',
+    status: '划转状态',
+    success: '成功',
+    error: '失败',
+  },
+
   mdConfig: {
     counter_name: '柜台',
     state_status: '状态',
@@ -804,7 +825,7 @@ export default {
   白名单设置警告: '请先为此账户设置标的白名单',
 
   validate: {
-    no_special_characters: '不能含有特殊字符和中文, 且不能以-为首尾字符',
+    no_special_characters: '不能含有特殊字符和中文',
     single_characters: '必须包含数字和字母',
     no_underline: '不能含有下划线',
     no_zero_number: '请输入非零数字',

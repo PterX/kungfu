@@ -1,3 +1,5 @@
+import { kfLogger } from '../utils/busiUtils';
+
 export interface KfTradingDataTableHeaderConfig {
   name: string;
   dataIndex: string;
@@ -69,7 +71,7 @@ export class TradingTableDealer {
     columns: ColumnsType[],
   ) {
     if (this.columnsDealers.length) {
-      console.log(
+      kfLogger.info(
         `DealTradingTable hook ${this.locationKey} ${this.tradingTableType} trigger getColumns success`,
       );
 
@@ -84,7 +86,7 @@ export class TradingTableDealer {
 
   resolveData<DataType extends TradingDataTypes>(datas: DataType[]) {
     if (this.dataResolvers.length) {
-      console.log(
+      kfLogger.info(
         `DealTradingTable hook ${this.locationKey} ${this.tradingTableType} trigger resolveDatas success`,
       );
 
@@ -115,7 +117,7 @@ export class DealTradingTableHooks {
         get(target: Record<string, TradingTableDealerMap>, prop: string) {
           const locationPairs = prop.split('_');
           if (locationPairs.length != 3) {
-            console.warn(`Invalid hook key: ${prop}`);
+            kfLogger.warn(`Invalid hook key: ${prop}`);
             return DefaultUnkownTrdaingTableDealerMap;
           }
 
@@ -179,7 +181,7 @@ export class DealTradingTableHooks {
           });
 
           Reflect.set(target, prop, exsitedDealerMap);
-          console.log(`DealTradingTable hook ${prop} register success`);
+          kfLogger.info(`DealTradingTable hook ${prop} register success`);
           return true;
         },
       },

@@ -52,6 +52,8 @@ declare namespace KungfuApi {
     OrderTriggerParkedTypeEnum,
     OrderTriggerTimeConditionEnum,
     OrderTriggerStatusEnum,
+    FundTransEnum,
+    FundTransTypeEnum,
   } from './enums';
   import { Dayjs } from 'dayjs';
   import { Row } from 'fast-csv';
@@ -240,8 +242,9 @@ declare namespace KungfuApi {
     config?: {
       td?: {
         type?: TdMdExtTypes[] | TdMdExtTypes;
-        orderTrigger?: Record<string, Record<string, Record<string, boolean>>>;
+        order_trigger?: Record<string, Record<string, Record<string, boolean>>>;
         settings: KfConfigItem[];
+        fund_trans?: KfExtFundTransConfig | null;
       };
       md?: {
         type?: TdMdExtTypes[] | TdMdExtTypes;
@@ -279,6 +282,11 @@ declare namespace KungfuApi {
 
   export type KfExhibitConfigs = Record<string, KfExhibitConfig>;
 
+  export type KfExtFundTransConfig = Record<
+    FundTransTypeEnum,
+    { settings: KfConfigItem[] }
+  >;
+
   interface KfExtConfigBase<C extends KfCategoryTypes> {
     name: string;
     category: C;
@@ -299,6 +307,7 @@ declare namespace KungfuApi {
       >
     >;
     settings: KfConfigItem[];
+    fundTrans?: KfExtFundTransConfig | null;
   }
 
   export interface KfMdExtConfig extends KfExtConfigBase<'md'> {
@@ -739,8 +748,20 @@ declare namespace KungfuApi {
     dest: number;
     uid_key: string;
   }
+
+  export interface TransferRecordResolved {
+    amount: number;
+    source: string;
+    target: string;
+    update_time: bigint;
+    trans_type: string;
+    status: FundTransEnum;
+    ret?: number;
+    message?: string;
+    trans_type_resolved?: string;
+  }
   export interface BlockMessage {
-    opponent_seat: number; // 对方手席位号
+    opponent_seat: string; // 对方手席位号
     match_number: bigint; // 成交约定号
     is_specific: boolean; // 是否受限股份
     insert_time: bigint;
@@ -1242,6 +1263,7 @@ declare namespace KungfuApi {
       bypassAccounting = false,
       bypassTradingData = false,
       refreshTradingDataBeforeSync = false,
+      bypassRefrashBook = false,
       millisecondsSleepAfterStep = 200,
     ): Watcher | null;
     shutdown(): void;

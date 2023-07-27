@@ -99,6 +99,7 @@ export default {
   OrderTriggerRecord: 'OrderTriggerRecord',
   PosGlobal: 'Positon Global',
   Pos: 'Positon',
+  TransferRecord: 'TransferRecord',
 
   please_wait: 'Please wait...',
   please_wait_and_retry: 'Please wait and retry',
@@ -474,6 +475,26 @@ export default {
       'The account process under account group change will not be affected, confirm the deletion',
   },
 
+  fundTrans: {
+    config_error: '{td} abnormal configuration file for counter fund transfer',
+    modal_title: 'Transfer of funds between counters',
+    trans_selection: 'Please select the direction of fund transfer',
+    centralized_counter: 'Centralized counter',
+    source: 'Outline the node',
+    target: 'Into the node',
+    amount: 'Amount incurred',
+    trading_day: 'Transfer time',
+    tip_error: 'Transfer failed, please contact the administrator!',
+    capitalaccountor: 'Fund account',
+    trade_password: 'Transaction password',
+    account: 'Client number',
+    trans_type: 'Transfer type',
+    pending: 'Pending',
+    status: 'Transfer status',
+    success: 'success',
+    error: 'error',
+  },
+
   mdConfig: {
     counter_name: 'counter_name',
     state_status: 'status',
@@ -720,6 +741,9 @@ export default {
     bypass_archive_desc:
       'Archive only delete journal and logs, zip nomore files',
 
+    bypass_subscribe_position: 'Skip position market subscription',
+    bypass_subscribe_position_desc:
+      'After opening, it will no longer default to subscribing to the market updates of trading account positions, and the trading account list will no longer display floating profits and losses. The market value related fields will be calculated using the average opening price. After opening, it can reduce the machine performance burden, and will take effect after restarting',
     porformance: 'Performance',
     rocket_model: 'Open Rocket Model',
     rocket_model_desc:

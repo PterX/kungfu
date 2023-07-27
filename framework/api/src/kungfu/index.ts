@@ -445,9 +445,9 @@ export const kfMakeOrder = (
   }
 };
 
-export const kfEmbeddedOrder = (
+export const kfOrderTrigger = (
   watcher: KungfuApi.Watcher | null,
-  makeEmbeddedOrderInput: KungfuApi.MakeOrderTriggerInput,
+  makeOrderTriggerInput: KungfuApi.MakeOrderTriggerInput,
   tdLocation: KungfuApi.KfLocation,
 ): Promise<bigint> => {
   if (!watcher) {
@@ -466,17 +466,17 @@ export const kfEmbeddedOrder = (
   const now = watcher.now();
   const orderInput: KungfuApi.OrderTriggerInput = {
     ...longfist.types.OrderInput(),
-    ...makeEmbeddedOrderInput,
+    ...makeOrderTriggerInput,
     block_id: BigInt(0),
-    limit_price: makeEmbeddedOrderInput.limit_price || 0,
-    volume: BigInt(makeEmbeddedOrderInput.volume),
+    limit_price: makeOrderTriggerInput.limit_price || 0,
+    volume: BigInt(makeOrderTriggerInput.volume),
     insert_time: now,
   };
 
   return Promise.resolve(watcher.issueOrderTrigger(orderInput, tdLocation));
 };
 
-export const kfRefreshEmbeddedOrder = (
+export const kfRefreshOrderTrigger = (
   watcher: KungfuApi.Watcher | null,
   msgType: number,
   tdLocation: KungfuApi.KfLocation,
@@ -517,7 +517,6 @@ export const kfMakeBlockOrder = async (
     blockMessage = {
       ...blockMessage,
       is_specific: !!blockMessage.is_specific,
-      opponent_seat: +blockMessage.opponent_seat,
       match_number: BigInt(blockMessage.match_number),
       insert_time: watcher.now(),
     };
@@ -548,7 +547,7 @@ export const kfMakeBlockOrder = async (
   }
 };
 
-export const makeOrderByEmbeddedOrderInput = (
+export const makeOrderByOrderTriggerInput = (
   watcher: KungfuApi.Watcher | null,
   orderInput: KungfuApi.MakeOrderTriggerInput,
   kfLocation: KungfuApi.KfLocation,
@@ -561,7 +560,7 @@ export const makeOrderByEmbeddedOrderInput = (
     }
 
     if (kfLocation.category === 'td') {
-      return kfEmbeddedOrder(watcher, orderInput, kfLocation)
+      return kfOrderTrigger(watcher, orderInput, kfLocation)
         .then((order_id) => {
           resolve(order_id);
         })
@@ -574,7 +573,7 @@ export const makeOrderByEmbeddedOrderInput = (
         reject(new Error('下单账户信息错误'));
         return;
       }
-      return kfEmbeddedOrder(watcher, orderInput, tdLocation)
+      return kfOrderTrigger(watcher, orderInput, tdLocation)
         .then((order_id) => {
           resolve(order_id);
         })

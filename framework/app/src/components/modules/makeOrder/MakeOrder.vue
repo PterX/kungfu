@@ -20,7 +20,7 @@ import {
   makeOrderByOrderInput,
   hashInstrumentUKey,
   getPosClosableVolume,
-  makeOrderByEmbeddedOrderInput,
+  makeOrderByOrderTriggerInput,
 } from '@kungfu-trader/kungfu-js-api/kungfu';
 import {
   InstrumentTypeEnum,
@@ -51,7 +51,7 @@ import {
   transformSearchInstrumentResultToInstrument,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import OrderConfirmModal from './OrderConfirmModal.vue';
-import EmbeddedConfirmModal from './EmbeddedConfirmModal.vue';
+import OrderTriggerConfirmModal from './OrderTriggerConfirmModal.vue';
 import VueI18n, { useLanguage } from '@kungfu-trader/kungfu-js-api/language';
 import { useTradingTask } from '../tradingTask/utils';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
@@ -612,12 +612,12 @@ async function handleMakeOrder(): Promise<void> {
   }
 }
 
-const isShowEmbeddedConfirmModal = ref<boolean>(false);
-const embeddedOrderInputResolved = ref<
+const isShowOrderTriggerConfirmModal = ref<boolean>(false);
+const orderTriggerInputResolved = ref<
   Record<string, KungfuApi.KfTradeValueCommonData>
 >({});
-const embeddedOrderInput = ref<KungfuApi.MakeOrderInput>();
-const embeddedBtnVisible = computed(() => {
+const orderTriggerInput = ref<KungfuApi.MakeOrderInput>();
+const orderTriggerBtnVisible = computed(() => {
   const rootPackageJson = readRootPackageJsonSync();
   if (rootPackageJson?.appConfig?.orderTrigger === false) {
     return false;
@@ -647,12 +647,12 @@ const embeddedBtnVisible = computed(() => {
 });
 
 // 预埋
-async function handleEmbeddedOrder() {
+async function handleOrderTrigger() {
   try {
     if (!currentGlobalKfLocation.value) return;
 
     await formRef.value.validate();
-    embeddedOrderInput.value = await initOrderInputData();
+    orderTriggerInput.value = await initOrderInputData();
 
     const { account_id } = formState.value;
     const tdProcessId =
@@ -665,13 +665,13 @@ async function handleEmbeddedOrder() {
       return;
     }
 
-    isShowEmbeddedConfirmModal.value = true;
+    isShowOrderTriggerConfirmModal.value = true;
     const { price_precision } = getPriceTickAndPrecision(
-      embeddedOrderInput.value.instrument_id,
-      embeddedOrderInput.value.exchange_id,
+      orderTriggerInput.value.instrument_id,
+      orderTriggerInput.value.exchange_id,
     );
-    embeddedOrderInputResolved.value = dealOrderInputItem(
-      embeddedOrderInput.value,
+    orderTriggerInputResolved.value = dealOrderInputItem(
+      orderTriggerInput.value,
       price_precision,
     );
   } catch (e) {
@@ -681,14 +681,14 @@ async function handleEmbeddedOrder() {
   }
 }
 
-function handleEmbeddedConfirm(data: {
+function handleOrderTriggerConfirm(data: {
   parked_type: OrderTriggerParkedTypeEnum;
   time_condition: TimeConditionEnum;
 }) {
   if (!currentGlobalKfLocation.value) return;
   const orderInput: KungfuApi.MakeOrderTriggerInput = {
     ...data,
-    ...(embeddedOrderInput.value as KungfuApi.MakeOrderInput),
+    ...(orderTriggerInput.value as KungfuApi.MakeOrderInput),
   };
 
   const { account_id } = formState.value;
@@ -702,7 +702,7 @@ function handleEmbeddedConfirm(data: {
     return;
   }
 
-  makeOrderByEmbeddedOrderInput(
+  makeOrderByOrderTriggerInput(
     window.watcher,
     orderInput,
     currentGlobalKfLocation.value,
@@ -975,10 +975,10 @@ watch(
           </a-button>
           <a-button
             class="make-order"
-            v-if="embeddedBtnVisible"
-            @click="handleEmbeddedOrder"
+            v-if="orderTriggerBtnVisible"
+            @click="handleOrderTrigger"
           >
-            {{ $t('tradingConfig.embedded_order') }}
+            {{ $t('tradingConfig.order_trigger') }}
           </a-button>
           <a-button @click="handleApartOrder">
             {{ $t('tradingConfig.apart_order') }}
@@ -986,12 +986,12 @@ watch(
         </div>
       </div>
     </KfDashboard>
-    <EmbeddedConfirmModal
-      v-if="isShowEmbeddedConfirmModal"
-      v-model:visible="isShowEmbeddedConfirmModal"
-      :embeddedOrderInput="embeddedOrderInputResolved"
-      @confirm="handleEmbeddedConfirm"
-    ></EmbeddedConfirmModal>
+    <OrderTriggerConfirmModal
+      v-if="isShowOrderTriggerConfirmModal"
+      v-model:visible="isShowOrderTriggerConfirmModal"
+      :orderTriggerInput="orderTriggerInputResolved"
+      @confirm="handleOrderTriggerConfirm"
+    ></OrderTriggerConfirmModal>
     <OrderConfirmModal
       v-if="isShowConfirmModal && curOrderType"
       v-model:visible="isShowConfirmModal"

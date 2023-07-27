@@ -153,6 +153,11 @@ function handleBatchModal() {
   setBatchEmbeddedConfigPayload.value.title = t('tradingConfig.batch_embedded');
   setBatchEmbeddedConfigPayload.value.config = {
     type: [],
+    version: '',
+    mainRepoVersion: '',
+    description: '',
+    readmePath: '',
+    releaseNotePath: '',
     name: t('tradingConfig.batch_embedded'),
     category: 'embeddedOrder',
     key: 'embeddedOrder',

@@ -36,7 +36,6 @@ bus
 observer
 live_home
 live
-daemon
 update_time
 data
 asset

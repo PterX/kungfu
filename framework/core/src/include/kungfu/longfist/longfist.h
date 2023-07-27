@@ -32,6 +32,8 @@ constexpr auto AllTypes = boost::hana::make_map( //
     TYPE_PAIR(BasketOrder),                      // 208
     TYPE_PAIR(OrderTriggerInput),                // 209
     TYPE_PAIR(OrderTrigger),                     // 210
+    TYPE_PAIR(OrderTriggerAction),               // 211
+    TYPE_PAIR(OrderTriggerActionError),          // 212
     TYPE_PAIR(BatchOrderBegin),                  // 251
     TYPE_PAIR(BatchOrderEnd),                    // 252
     TYPE_PAIR(RequestHistoryOrder),              // 301
@@ -118,6 +120,8 @@ constexpr auto AllTypes = boost::hana::make_map( //
     TYPE_PAIR(BasketOrder),                                           // 208
     TYPE_PAIR(OrderTriggerInput),                                     // 209
     TYPE_PAIR(OrderTrigger),                                          // 210
+    TYPE_PAIR(OrderTriggerAction),                                    // 211
+    TYPE_PAIR(OrderTriggerActionError),                               // 212
     TYPE_PAIR(RequestHistoryOrder),                                   // 301
     TYPE_PAIR(RequestHistoryTrade),                                   // 302
     TYPE_PAIR(HistoryOrder),                                          // 303
@@ -191,6 +195,8 @@ constexpr auto StateDataTypes = boost::hana::make_map( //
     TYPE_PAIR(BasketOrder),                            // 208
     TYPE_PAIR(OrderTriggerInput),                      // 209
     TYPE_PAIR(OrderTrigger),                           // 210
+    TYPE_PAIR(OrderTriggerAction),                     // 211
+    TYPE_PAIR(OrderTriggerActionError),                // 212
     TYPE_PAIR(Quote),                                  // 401
     TYPE_PAIR(Tree),                                   // 404
     TYPE_PAIR(SyntheticData),                          // 601

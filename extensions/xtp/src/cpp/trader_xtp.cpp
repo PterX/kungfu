@@ -128,7 +128,9 @@ bool TraderXTP::cancel_order(const event_ptr &event) {
     return false;
   }
 
-  order_state.data.status = OrderStatus::Cancelling;
+  if (not is_final_status(order_state.data.status)) {
+    order_state.data.status = OrderStatus::Cancelling;
+  }
   SPDLOG_DEBUG("Order: {}", order_state.data.to_string());
   if (has_writer(order_state.dest)) {
     write_to(order_state.data, order_state.dest);

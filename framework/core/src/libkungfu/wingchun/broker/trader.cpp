@@ -76,9 +76,23 @@ state<Order> &Trader::get_order(uint64_t order_id) { return get_order_service().
 
 const OrderActionMap &Trader::get_order_actions() const { return get_order_service().get_order_actions(); }
 
+bool Trader::has_order_action(uint64_t action_id) const { return get_order_service().has_order_action(action_id); }
+
+kungfu::state<longfist::types::OrderAction> &Trader::get_order_action(uint64_t action_id) {
+  return get_order_service().get_order_action(action_id);
+}
+
 const TradeMap &Trader::get_trades() const { return get_order_service().get_trades(); }
 
 const OrderTriggerMap &Trader::get_order_triggers() const { return get_order_trigger_service().get_order_triggers(); }
+
+bool Trader::has_order_trigger_action(uint64_t action_id) const {
+  return get_order_trigger_service().has_order_trigger_action(action_id);
+}
+
+kungfu::state<longfist::types::OrderTriggerAction> &Trader::get_order_trigger_action(uint64_t action_id) {
+  return get_order_trigger_service().get_order_trigger_action(action_id);
+}
 
 bool Trader::has_order_trigger(uint64_t trigger_id) const {
   return get_order_trigger_service().has_order_trigger(trigger_id);

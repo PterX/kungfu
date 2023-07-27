@@ -59,7 +59,6 @@ service_command_context = kfc.pass_context("low_latency")
 @click.argument("reference", type=str, required=False)
 @click.option("-a", "--arguments", type=str, required=False)
 @click.option("-v", "--vendor", type=str, required=False)
-@click.option("--no-daemon", is_flag=True, help="run in no deamon mode")
 @kfc.pass_context()
 def run(
     ctx,
@@ -78,7 +77,6 @@ def run(
     reference,
     arguments,
     vendor,
-    no_daemon,
 ):
     ctx.mode = mode
     ctx.category = category
@@ -95,7 +93,6 @@ def run(
     ctx.path = reference
     ctx.arguments = arguments
     ctx.vendor = vendor
-    ctx.daemon = not no_daemon
 
     if ctx.arguments is None:
         ctx.arguments = ""

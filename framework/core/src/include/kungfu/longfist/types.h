@@ -301,7 +301,7 @@ KF_DEFINE_PACK_TYPE(                                                    //
 );
 
 KF_DEFINE_PACK_TYPE(                                         //
-    BlockMessage, 207, PK(block_id), TIMESTAMP(insert_time), //
+    BlockMessage, 206, PK(block_id), TIMESTAMP(insert_time), //
     (uint64_t, block_id), // 大宗交易信息id, 用于TD从OrderInput找到此数据
     (kungfu::array<char, OPPONENT_SEAT_LEN>, opponent_seat), // 对手方席号
     (uint64_t, match_number),                                // 成交约定号

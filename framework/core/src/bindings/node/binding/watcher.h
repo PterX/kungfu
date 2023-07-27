@@ -117,7 +117,7 @@ protected:
   const bool bypass_quote_;
   const bool bypass_trading_data_;
   const bool refresh_trading_data_before_sync_;
-  const bool bypass_subscribe_position_;
+  const bool bypass_refresh_book_;
   const int milliseconds_sleep_after_step_;
   std::mutex feed_mutex_;
 

@@ -45,7 +45,7 @@ declare global {
       BY_PASS_RESTORE: boolean;
       BY_PASS_ACCOUNTING: boolean;
       BY_PASS_TRADINGDATA: boolean;
-      BY_PASS_SUBSCRIBE_POSITION: boolean;
+      BY_PASS_REFRASHBOOK: boolean;
       REFRESH_LEDGER_BEFORE_SYNC: boolean;
       MILLISECONDS_SLEEP_AFTER_STEP: number;
       PM2_DEBUG: boolean;

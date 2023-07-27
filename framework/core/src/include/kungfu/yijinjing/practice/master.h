@@ -48,7 +48,6 @@ public:
   void on_request_deregister(const event_ptr &event);
 
 protected:
-
   void react() override;
 
   void on_active() final;

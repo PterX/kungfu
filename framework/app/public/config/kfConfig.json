@@ -3,7 +3,7 @@
     "rocket": false,
     "bypassAccounting": false,
     "bypassTradingData": false,
-    "bypassSubscribePosition": false
+    "bypassRefrashBook": false
   },
   "currency": { "instrumentCurrency": true },
   "strategy": { "python": false },

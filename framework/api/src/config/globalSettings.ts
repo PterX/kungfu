@@ -113,7 +113,7 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
         type: 'bool',
       },
       {
-        key: 'bypassSubscribePosition',
+        key: 'bypassRefrashBook',
         name: t('globalSettingConfig.bypass_subscribe_position'),
         tip: t('globalSettingConfig.bypass_subscribe_position_desc'),
         default: !ifCpusNumSafe,

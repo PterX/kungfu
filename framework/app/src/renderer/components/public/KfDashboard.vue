@@ -80,7 +80,8 @@ export default defineComponent({
       display: flex;
       justify-content: flex-start;
       align-items: center;
-      white-space: nowrap;
+      white-space: break-spaces;
+      word-break: break-all;
 
       .name {
         font-size: 14px;

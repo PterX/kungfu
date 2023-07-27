@@ -116,8 +116,8 @@ Watcher::Watcher(const Napi::CallbackInfo &info)
       apprentice(GetWatcherLocation(info), true),                                                 //
       bypass_quote_(GetBool(info, 3)),                                                            //
       bypass_trading_data_(GetBool(info, 4)),                                                     //
-      refresh_trading_data_before_sync_(GetBool(info, 5)),   //
-      bypass_subscribe_position_(GetBool(info, 6)), //
+      refresh_trading_data_before_sync_(GetBool(info, 5)),                                        //
+      bypass_subscribe_position_(GetBool(info, 6)),                                               //
       milliseconds_sleep_after_step_(GetMillisecondsSleepAfterStep(info)),                        //
       broker_client_(*this, bypass_trading_data_),                                                //
       bookkeeper_(*this, broker_client_, bypass_quote_),                                          //
@@ -464,7 +464,7 @@ void Watcher::on_start() {
     events_ | is(Order::tag) | $$(UpdateBasketOrder(event->trigger_time(), event->data<Order>()));
     events_ | is(Position::tag) | $$(UpdateBook(event, event->data<Position>()));
     events_ | is(PositionEnd::tag) | $$(UpdateAsset(event, event->data<PositionEnd>().holder_uid));
-    
+
     if (not bypass_subscribe_position_) {
       refresh_books();
     }

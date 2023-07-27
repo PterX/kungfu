@@ -10,8 +10,8 @@ yjj = kungfu.__binding__.yijinjing
 
 def find_md_slice_location(ctx, nano_time, group, name, instrument_id, exchange_id, data_type):
 	slice_end = get_md_slice_end_time(ctx, nano_time, group, name, instrument_id, exchange_id, data_type)
-	dir_name = "{}_{}_{}@{}".format(kft.strftime(slice_end), data_type, instrument_id, exchange_id)
-	slice_locator = yjj.locator(lf.enums.mode.DATA, ["month", dir_name])
+	dir_name = "{}_{}@{}".format(data_type, instrument_id, exchange_id)
+	slice_locator = yjj.locator(lf.enums.mode.DATA, ["month_md", "until" + kft.strftime(slice_end, kft.SESSION_DATETIME_FORMAT), dir_name])
 	slice_location = yjj.location(lf.enums.mode.DATA, lf.enums.category.MD, group, name, slice_locator)
 	return slice_location
 
@@ -20,9 +20,9 @@ def get_md_slice_end_time(ctx, nano_time, group, name, instrument_id, exchange_i
 
 def find_operator_slice_location(ctx, nano_time, group, name):
 	slice_end = get_operator_slice_end_time(ctx, nano_time, group, name)
-	dir_name = "{}_{}_{}".format(kft.strftime(slice_end), group, name)
-	slice_locator = yjj.locator(lf.enums.mode.DATA, ["month", dir_name])
-	slice_location = yjj.location(lf.enums.mode.DATA, lf.enums.category.MD, group, name, slice_locator)
+	dir_name = "{}_{}".format(group, name)
+	slice_locator = yjj.locator(lf.enums.mode.DATA, ["month_operator", "until" + kft.strftime(slice_end, kft.SESSION_DATETIME_FORMAT), dir_name])
+	slice_location = yjj.location(lf.enums.mode.DATA, lf.enums.category.OPERATOR, group, name, slice_locator)
 	return slice_location
 
 def get_operator_slice_end_time(ctx, nano_time, group, name):

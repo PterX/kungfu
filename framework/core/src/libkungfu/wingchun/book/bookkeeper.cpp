@@ -43,6 +43,7 @@ void Bookkeeper::on_start(const rx::connectable_observable<event_ptr> &events) {
   restore(app_.get_state_bank());
 
   events | is(Instrument::tag) | $$(update_instrument(event->data<Instrument>()));
+  events | is(Commission::tag) | $$(update_commission(event, event->data<Commission>()));
   events | is(InstrumentFactor::tag) | $$(update_instrument_factor(event->data<InstrumentFactor>()));
   events | is_own<Quote>(broker_client_) | $$(try_update_book(event, event->data<Quote>()));
   events | is(InstrumentKey::tag) | $$(update_book(event, event->data<InstrumentKey>()));
@@ -56,6 +57,7 @@ void Bookkeeper::on_start(const rx::connectable_observable<event_ptr> &events) {
   events | fork<Position>(location::SYNC, &Bookkeeper::try_update_position_replica, &Bookkeeper::try_update_position);
   events | fork<PositionEnd>(location::SYNC, &Bookkeeper::update_position_guard, &Bookkeeper::try_update_position_end);
   events | is(ResetBookRequest::tag) | $$(drop_book(event->source()));
+  events | is(OutputKey::tag) | $$(on_output_key(event));
 
   if (bypass_quote_) {
     app_.add_time_interval(yijinjing::time_unit::NANOSECONDS_PER_SECOND * 15,
@@ -90,7 +92,7 @@ void Bookkeeper::restore(const cache::bank &state_bank) {
   for (auto &pair : state_bank[boost::hana::type_c<Commission>]) {
     auto &state = pair.second;
     auto &commission = state.data;
-    commissions_.emplace(hash_str_32(commission.product_id), commission);
+    commissions_.insert_or_assign(hash_str_32(commission.product_id), commission);
   }
   for (auto &pair : state_bank[boost::hana::type_c<Position>]) {
     auto &state = pair.second;
@@ -155,6 +157,15 @@ Book_ptr Bookkeeper::make_book(uint32_t location_uid) {
 void Bookkeeper::update_instrument(const longfist::types::Instrument &instrument) {
   auto hashed_instrument_key = hash_instrument(instrument.exchange_id, instrument.instrument_id);
   instruments_.insert_or_assign(hashed_instrument_key, instrument);
+}
+
+void Bookkeeper::update_commission(const event_ptr &event, const longfist::types::Commission &commission) {
+  for (auto &bk_pair : books_) {
+    auto &book = bk_pair.second;
+    if (book->asset.holder_uid == event->source()) {
+      book->replace(commission);
+    }
+  }
 }
 
 void Bookkeeper::update_instrument_factor(const longfist::types::InstrumentFactor &instrument_factor) {
@@ -373,7 +384,6 @@ void Bookkeeper::add_book_listener(const BookListener_ptr &book_listener) { book
 
 void Bookkeeper::mirror_positions(int64_t trigger_time, uint32_t strategy_uid) {
   auto strategy_book = get_book(strategy_uid);
-
   auto reset_positions = [trigger_time](auto &position) {
     position.volume = 0;
     position.yesterday_volume = 0;
@@ -387,13 +397,16 @@ void Bookkeeper::mirror_positions(int64_t trigger_time, uint32_t strategy_uid) {
   strategy_book->apply_long_positions(reset_positions);
 
   auto copy_positions = [&](auto &position) {
-    auto &strategy_position = strategy_book->get_position(position.source_id, position.direction, position.exchange_id,
-                                                          position.instrument_id);
-    longfist::copy(strategy_position, position);
-    strategy_position.holder_uid = strategy_uid;
-    strategy_position.ledger_category = LedgerCategory::Strategy;
-    strategy_position.update_time = trigger_time;
-    strategy_position.source_id = position.source_id;
+    if (strategy_book->has_position(position.source_id, position.direction, position.exchange_id,
+                                    position.instrument_id)) {
+      auto &strategy_position = strategy_book->get_position(position.source_id, position.direction,
+                                                            position.exchange_id, position.instrument_id);
+      longfist::copy(strategy_position, position);
+      strategy_position.holder_uid = strategy_uid;
+      strategy_position.ledger_category = LedgerCategory::Strategy;
+      strategy_position.update_time = trigger_time;
+      strategy_position.source_id = position.source_id;
+    }
   };
 
   for (const auto &pair : get_books()) {
@@ -402,10 +415,14 @@ void Bookkeeper::mirror_positions(int64_t trigger_time, uint32_t strategy_uid) {
     if (book->asset.ledger_category == LedgerCategory::Account and app_.has_channel(strategy_uid, holder_uid)) {
       book->apply_long_positions(copy_positions);
       book->apply_short_positions(copy_positions);
-      book->add_source_id(holder_uid);
     }
   }
   strategy_book->update(trigger_time, account_method_type_);
+}
+
+void Bookkeeper::on_output_key(const event_ptr &event) {
+  const OutputKey &key = event->data<OutputKey>();
+  get_book(event->source())->add_source_id(key.location_uid);
 }
 
 } // namespace kungfu::wingchun::book

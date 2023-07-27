@@ -20,7 +20,10 @@ MarketDataVendor::MarketDataVendor(locator_ptr locator, const std::string &group
   set_arguments(arguments);
 }
 
-void MarketDataVendor::set_service(MarketData_ptr service) { service_ = std::move(service); }
+void MarketDataVendor::set_service(MarketData_ptr service) {
+  service_ = std::move(service);
+  service_->on_arguments(get_arguments());
+}
 
 void MarketDataVendor::on_react() {
   BrokerVendor::on_react();

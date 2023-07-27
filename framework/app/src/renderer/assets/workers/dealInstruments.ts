@@ -1,7 +1,10 @@
 import fse from 'fs-extra';
 import jschardet from 'jschardet';
 import iconv from 'iconv-lite';
-import { KF_INSTRUMENTS_PATH } from '@kungfu-trader/kungfu-js-api/config/pathConfig';
+import {
+  KF_INSTRUMENTS_PATH,
+  KF_SUBSCRIBED_INSTRUMENTS_JSON_PATH,
+} from '@kungfu-trader/kungfu-js-api/config/pathConfig';
 import { InstrumentTypeEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 
 const defaultCharset = 'utf8';
@@ -63,12 +66,37 @@ const resolveInstruments = (
   }, existedInstruments);
 };
 
+const safeReadJsonSync = <T>(path: string, defaultContent: T): T => {
+  try {
+    return fse.readJSONSync(path);
+  } catch (error) {
+    return defaultContent;
+  }
+};
+
+const resolveSubscribedInstruments = (
+  existedInstruments: KungfuApi.InstrumentResolved[],
+  instruments: InstrumentResolvedData,
+) => {
+  return existedInstruments.reduce((existData, item) => {
+    if (instruments[item.ukey]) {
+      existData.push(instruments[item.ukey]);
+    } else {
+      existData.push(item);
+    }
+    return existData;
+  }, [] as KungfuApi.InstrumentResolved[]);
+};
+
 self.addEventListener('message', (e) => {
   const { instruments, tag } = e.data || {};
 
   if (tag === 'req_dealInstruments') {
-    const existedInstruments: InstrumentResolvedData =
-      fse.readJSONSync(KF_INSTRUMENTS_PATH);
+    // instruments
+    const existedInstruments: InstrumentResolvedData = safeReadJsonSync(
+      KF_INSTRUMENTS_PATH,
+      {} as InstrumentResolvedData,
+    );
     const newInstruments: InstrumentResolvedData = resolveInstruments(
       existedInstruments,
       instruments,
@@ -79,15 +107,37 @@ self.addEventListener('message', (e) => {
     }
 
     fse.outputJSONSync(KF_INSTRUMENTS_PATH, newInstruments);
+
     self.postMessage({
       updateTime: new Date().getTime(),
-      instruments: Object.values(newInstruments),
+      instruments: newInstruments,
     });
+
+    // subscribed instruments
+    const existedSubscribedInstruments: KungfuApi.InstrumentResolved[] =
+      safeReadJsonSync(
+        KF_SUBSCRIBED_INSTRUMENTS_JSON_PATH,
+        [] as KungfuApi.InstrumentResolved[],
+      );
+    const newSubscribedInstruments: KungfuApi.InstrumentResolved[] =
+      resolveSubscribedInstruments(
+        existedSubscribedInstruments,
+        newInstruments,
+      );
+
+    if (newSubscribedInstruments.length) {
+      fse.outputJSONSync(
+        KF_SUBSCRIBED_INSTRUMENTS_JSON_PATH,
+        newSubscribedInstruments,
+      );
+    }
   }
 
   if (tag === 'req_instruments') {
-    const instruments: InstrumentResolvedData =
-      fse.readJSONSync(KF_INSTRUMENTS_PATH);
+    const instruments: InstrumentResolvedData = safeReadJsonSync(
+      KF_INSTRUMENTS_PATH,
+      {},
+    );
     self.postMessage({
       updateTime: new Date().getTime(),
       instruments,

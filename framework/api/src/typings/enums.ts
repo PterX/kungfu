@@ -106,6 +106,9 @@ export enum PriceTypeEnum {
   ReverseBest,
   Fak,
   Fok,
+  EnhancedLimit,
+  AtAuctionLimit,
+  AtAuction,
   Unknown,
 }
 
@@ -120,9 +123,13 @@ export enum VolumeConditionEnum {
 export type VolumeConditionTypes = keyof typeof VolumeConditionEnum;
 
 export enum TimeConditionEnum {
-  IOC,
-  GFD,
-  GTC,
+  IOC, // 立即完成，否则撤销
+  GFD, // 当日有效
+  GTC, // 撤销前有效
+  GFS, // 本节有效
+  GTD, // 指定日期前有效
+  GFA, // 集合竞价有效
+  Unknown,
 }
 
 export type TimeConditionTypes = keyof typeof TimeConditionEnum;
@@ -190,6 +197,7 @@ export enum OrderStatusEnum {
   PartialFilledNotActive,
   PartialFilledActive,
   Lost,
+  Cancelling,
 }
 
 export type OrderStatusTypes = keyof typeof OrderStatusEnum;
@@ -239,6 +247,7 @@ export enum HistoryDateEnum {
 
 export enum OrderActionFlagEnum {
   Cancel,
+  TriggerCancel,
 }
 
 export enum FutureArbitrageCodeEnum {
@@ -285,4 +294,28 @@ export enum CurrencyEnum {
   SGD, // 新加坡元
   MYR, // 马来西亚吉特
   CEN, // 美分
+}
+
+// 预埋单类型
+export enum OrderTriggerTypeEnum {
+  CancelOrder,
+  MakeOrder,
+}
+
+// 预埋方式
+export enum OrderTriggerParkedTypeEnum {
+  Server,
+  Local,
+}
+
+export enum OrderTriggerTimeConditionEnum {
+  GFA = TimeConditionEnum.GFA,
+}
+
+export enum OrderTriggerStatusEnum {
+  Unknown,
+  Pending = OrderStatusEnum.Pending, // 已提交
+  Submitted = OrderStatusEnum.Submitted, // 未触发
+  Filled = OrderStatusEnum.Filled, // 已触发
+  Cancelled = OrderStatusEnum.Cancelled, // 已取消
 }

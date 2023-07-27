@@ -69,6 +69,10 @@ const busSubscription = globalBus.subscribe((data: KfEvent.KfBusEvent) => {
 
   if (data.tag === 'show-or-hide-extension-sidebar') {
     isExtSidebarShow.value[data.key || ''] = data.target;
+    if (data.target === false) {
+      menuSelectedKeys.value = ['main'];
+      handleToPage('/');
+    }
   }
 });
 

@@ -4,14 +4,15 @@ from pykungfu import longfist as lf
 
 
 class Exchange:
-    SSE = "SSE"
-    SZE = "SZE"
-    SHFE = "SHFE"
-    DCE = "DCE"
-    CZCE = "CZCE"
-    CFFEX = "CFFEX"
-    INE = "INE"
-    BSE = "BSE"
+    SSE = "SSE"  #  上交所
+    SZE = "SZE"  # 深交所
+    SHFE = "SHFE"  # 上期所
+    DCE = "DCE"  # 大商所
+    CZCE = "CZCE"  # 郑商所
+    CFFEX = "CFFEX"  # 中金所
+    INE = "INE"  # 上海能源中心
+    BSE = "BSE"  # 北交所
+    GFEX = "GFEX"  # 广交所
 
 
 class Region:
@@ -31,6 +32,7 @@ PriceLevel = lf.enums.PriceLevel
 VolumeCondition = lf.enums.VolumeCondition
 TimeCondition = lf.enums.TimeCondition
 OrderActionFlag = lf.enums.OrderActionFlag
+OrderTriggerFlag = lf.enums.OrderTriggerFlag
 LedgerCategory = lf.enums.LedgerCategory
 HedgeFlag = lf.enums.HedgeFlag
 CommissionRateMode = lf.enums.CommissionRateMode
@@ -40,6 +42,7 @@ SubscribeInstrumentType = lf.enums.SubscribeInstrumentType
 StrategyState = lf.enums.StrategyState
 OperatorState = lf.enums.OperatorState
 HistoryDataType = lf.enums.HistoryDataType
+OrderTriggerType = lf.enums.OrderTriggerType
 
 BasketVolumeType = lf.enums.BasketVolumeType
 BasketType = lf.enums.BasketType

@@ -37,7 +37,6 @@ class TraderSim(wc.Trader):
         self.match_mode = None
         self.logger = find_logger(self.home)
         self.map_block_msg = {}
-        self.enable_self_detect()
 
     def on_recover(self):
         pass
@@ -68,18 +67,26 @@ class TraderSim(wc.Trader):
 
         self.update_broker_state(lf.enums.BrokerState.Ready)
 
+    def insert_order_trigger(self, event):
+        trigger_input = event.OrderTriggerInput()
+        self.logger.info(f"OrderTriggerInput: {trigger_input}")
+        trigger = order = wc.utils.order_trigger_from_input(trigger_input)
+        trigger.insert_time = yjj.now_in_nano()
+        trigger.update_time = trigger.insert_time
+        self.logger.info(f"OrderTrigger: {trigger}")
+        self.get_writer(event.source).write(event.gen_time, trigger)
+
     def insert_block_message(self, event):
         block_msg = event.BlockMessage()
         self.logger.info(f"{block_msg}")
         self.map_block_msg[block_msg.block_id] = block_msg
 
-    def insert_batch_orders(self, event):
+    def insert_batch_orders(self, event, order_inputs):
         self.logger.info(f"insert_batch_orders")
         self.logger.info(f"{self.order_inputs}")
-        for item in self.order_inputs[event.source]:
+        for item in order_inputs[event.source]:
             self.insert_order_(event, item)
 
-        self.clear_order_inputs(event.source)
         self.logger.info(f"{self.order_inputs}")
 
     def insert_order(self, event):
@@ -221,6 +228,9 @@ class TraderSim(wc.Trader):
         return False
 
     def req_position(self):
+        position_end = lf.types.PositionEnd()
+        position_end.holder_uid = self.home.uid
+
         if self.match_mode == MatchMode.Custom:
             return self.ctx.req_position(self.ctx)
         return False

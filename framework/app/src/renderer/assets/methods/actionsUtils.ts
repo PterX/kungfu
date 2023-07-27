@@ -173,7 +173,7 @@ export const useUpdateVersion = () => {
         }
 
         if (data.name === 'auto-update-download-process') {
-          process.value = Number((+data.payload.process).toFixed(2));
+          process.value = Number((+data.payload.process).kfToFixed(2));
           if (process.value === 100) {
             progressStatus.value = 'success';
             errorMessage.value = '';
@@ -1132,6 +1132,7 @@ export const useSubscibeInstrumentAtEntry = (
     useGlobalStore();
 
   const app = getCurrentInstance();
+  const POSITION_SLICE_NUM = process.env.IF_CPUS_NUM_SAFE ? 128 : 0;
 
   const getCurrentPositionsForSub = (watcher: KungfuApi.Watcher) => {
     if (!currentGlobalKfLocation.value) return [];
@@ -1145,7 +1146,7 @@ export const useSubscibeInstrumentAtEntry = (
 
     return positions
       .reverse()
-      .slice(0, 128) // default subscribe 128 tickers, then subscribe by clicking position or manually subscribing
+      .slice(0, POSITION_SLICE_NUM) // default subscribe POSITION_SLICE_NUM tickers, then subscribe by clicking position or manually subscribing
       .map((item: KungfuApi.Position): KungfuApi.InstrumentForSub => {
         const uidKey = hashInstrumentUKey(item.instrument_id, item.exchange_id);
         return {
@@ -1368,17 +1369,17 @@ export const useQuote = (): {
       return '--';
     }
 
-    const { open_price, last_price } = quote;
-    if (!open_price || !last_price) {
+    const { pre_close_price, last_price } = quote;
+    if (!pre_close_price || !last_price) {
       return '--';
     }
 
-    const percent = (last_price - open_price) / open_price;
+    const percent = (last_price - pre_close_price) / pre_close_price;
     if (percent === Infinity) {
       return '--';
     }
 
-    return Number(percent * 100).toFixed(2) + '%';
+    return Number(percent * 100).kfToFixed(2) + '%';
   };
 
   const getPreClosePrice = (
@@ -1391,7 +1392,7 @@ export const useQuote = (): {
     }
 
     const { pre_close_price } = quote;
-    return pre_close_price.toFixed(2);
+    return pre_close_price.kfToFixed(2);
   };
 
   const isInstrumentUpLimit = (instrument: KungfuApi.InstrumentResolved) => {
@@ -1522,8 +1523,10 @@ export const useDealInstruments = (): void => {
     dealInstrumentController.value = false;
     if (instrumentsValue.length) {
       existedInstrumentsLength.value = instrumentsValue.length || 0; //refresh old instruments
-      useGlobalStore().setInstruments(instrumentsValue);
-      useGlobalStore().setInstrumentsMap(instruments);
+      const globalStore = useGlobalStore();
+      globalStore.setInstruments(instrumentsValue);
+      globalStore.setInstrumentsMap(instruments);
+      globalStore.setSubscribedInstrumentsByLocal();
     }
   };
 };
@@ -2089,6 +2092,12 @@ export const useMakeOrderInfo = (
     () => currentGlobalKfLocation.value?.category === 'td',
   );
 
+  const isCurrentCategoryIsTdOrStrategy = computed(
+    () =>
+      isCurrentCategoryIsTd.value ||
+      currentGlobalKfLocation.value?.category === 'strategy',
+  );
+
   const isAccountOrInstrumentConfirmed = computed(() => {
     if (formState.value?.side === SideEnum.Buy) {
       return isCurrentCategoryIsTd.value ? true : !!formState.value.account_id;
@@ -2108,6 +2117,25 @@ export const useMakeOrderInfo = (
 
   const currentAccountLocation = computed(() => {
     if (currentGlobalKfLocation.value && isCurrentCategoryIsTd.value) {
+      return currentGlobalKfLocation.value;
+    } else if (formState.value.account_id) {
+      const { source, id } = formState.value.account_id.parseSourceAccountId();
+      return {
+        category: 'td',
+        group: source,
+        name: id,
+        mode: 'live',
+      } as KungfuApi.KfLocation;
+    } else {
+      return null;
+    }
+  });
+
+  const currentPositionHolderLocation = computed(() => {
+    if (
+      currentGlobalKfLocation.value &&
+      isCurrentCategoryIsTdOrStrategy.value
+    ) {
       return currentGlobalKfLocation.value;
     } else if (formState.value.account_id) {
       const { source, id } = formState.value.account_id.parseSourceAccountId();
@@ -2147,20 +2175,22 @@ export const useMakeOrderInfo = (
     instrument: KungfuApi.InstrumentResolved | null,
     direction: DirectionEnum,
   ) => {
-    if (!currentAccountLocation.value) return null;
+    if (!currentPositionHolderLocation.value) return null;
     if (!positionList.length || !instrument) return null;
 
+    const currentAccountLocationUID = (
+      window.watcher as KungfuApi.Watcher
+    ).getLocationUID(currentPositionHolderLocation.value);
+
     const { exchangeId, instrumentId, instrumentType } = instrument;
-    const targetPositionList: KungfuApi.Position[] = positionList.filter(
-      (position) =>
-        position.exchange_id === exchangeId &&
-        position.instrument_id === instrumentId &&
-        position.instrument_type === instrumentType &&
-        position.account_id_resolved ===
-          getIdByKfLocation(
-            currentAccountLocation.value as KungfuApi.KfLocation,
-          ),
-    );
+    const targetPositionList: KungfuApi.PositionResolved[] =
+      positionList.filter(
+        (position) =>
+          position.exchange_id === exchangeId &&
+          position.instrument_id === instrumentId &&
+          position.instrument_type === instrumentType &&
+          position.holder_uid === currentAccountLocationUID,
+      );
 
     if (targetPositionList && targetPositionList.length) {
       const targetPositionWithLongDirection = targetPositionList.filter(
@@ -2216,16 +2246,18 @@ export const useMakeOrderInfo = (
     const { offset } = formState.value;
 
     if (currentPosition.value) {
-      const { yesterday_volume, volume, frozen_total } = currentPosition.value;
+      const { yesterday_volume, volume, frozen_total, frozen_yesterday } =
+        currentPosition.value;
       const today_volume = volume - yesterday_volume;
-      const frozen_today = frozen_total - frozen_total;
+      const frozen_today = frozen_total - frozen_yesterday;
+      const shotable_closable_yesterday = yesterday_volume - frozen_yesterday;
       const closable_yesterday = yesterday_volume - frozen_total;
       const closable_today = today_volume - frozen_today;
       const closable_total = volume - frozen_total;
 
       if (isShotable(instrumentType) || isT0(instrumentType, exchangeId)) {
         if (offset === OffsetEnum.CloseYest) {
-          return dealKfNumber(closable_yesterday) + '';
+          return dealKfNumber(shotable_closable_yesterday) + '';
         } else if (offset === OffsetEnum.CloseToday) {
           return dealKfNumber(closable_today) + '';
         } else {
@@ -2254,7 +2286,7 @@ export const useMakeOrderInfo = (
       }
     }
 
-    return null;
+    return limit_price;
   });
 
   const currentTradeAmount = computed(() => {
@@ -2461,8 +2493,8 @@ export const useMakeOrderSubscribe = (
             formState.value.instrument = instrumentValue;
             formState.value.offset = +offset;
             formState.value.side = +side;
-            formState.value.volume = +Number(volume).toFixed(0);
-            formState.value.limit_price = +Number(price).toFixed(4);
+            formState.value.volume = +Number(volume).kfToFixed(0);
+            formState.value.limit_price = +Number(price).kfToFixed(4);
             formState.value.instrument_type = +instrumentType;
 
             if (accountId) {
@@ -2487,7 +2519,7 @@ export const useMakeOrderSubscribe = (
             }
 
             if (!!price && !Number.isNaN(price) && +price !== 0) {
-              formState.value.limit_price = +Number(price).toFixed(4);
+              formState.value.limit_price = +Number(price).kfToFixed(4);
             }
 
             const shouldUpdateVolume =
@@ -2500,7 +2532,7 @@ export const useMakeOrderSubscribe = (
               BigInt(volume) !== BigInt(0);
 
             if (shouldUpdateVolume && isNewVolumeValuable) {
-              formState.value.volume = +Number(volume).toFixed(0);
+              formState.value.volume = +Number(volume).kfToFixed(0);
               lastVolume = formState.value.volume;
             }
 

@@ -99,6 +99,7 @@ void BacktestContext::subscribe(const std::string &source, const std::vector<std
 
 void BacktestContext::subscribe_all(const std::string &source, uint8_t market_type, uint64_t instrument_type,
                                     uint64_t data_type) {
+  throw std::runtime_error("BacktestContext::subscribe_all  not implemented");
   // auto md_location = find_md_location(source);
   // if (md_location->locator->list_page_id(md_location, location::PUBLIC).empty()) {
   //   throw wingchun_error(fmt::format("md public journal {} not exists", md_location->uname));

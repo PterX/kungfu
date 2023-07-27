@@ -152,6 +152,7 @@ module.exports = {
         'public/config',
         'public/key',
         'public/logo',
+        'public/fonts',
         'public/keywords',
         'public/fonts',
         'public/music',

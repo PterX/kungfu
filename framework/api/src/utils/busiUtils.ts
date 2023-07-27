@@ -566,7 +566,7 @@ const resolveOrderTriggerConfig = (
   originConfig: KungfuApi.KfExtOriginConfig['config'],
 ) => {
   if (originConfig) {
-    const orderTriggerOriginConfig = originConfig.td?.orderTrigger || {};
+    const orderTriggerOriginConfig = originConfig.td?.order_trigger || {};
     const orderTriggerTypesKeys = Object.keys(OrderTriggerTypeEnum);
     const orderTriggerParkedTypesKeys = Object.keys(OrderTriggerParkedTypeEnum);
     const orderTriggerTimeConditionKeys = Object.keys(
@@ -645,6 +645,7 @@ const getKfExtensionConfigByCategory = (
                     orderTrigger:
                       resolveOrderTriggerConfig(extConfigByCategory),
                     settings: extConfigByCategory[category]?.settings || [],
+                    fundTrans: extConfigByCategory[category]?.fund_trans || {},
                   },
                 };
                 break;
@@ -1659,7 +1660,6 @@ export const dealVolumeByInstrumentType = (
   const orderVolume = Math.max(volume, minOrderVolume);
 
   if (instrumentType === InstrumentTypeEnum.techstock) return orderVolume;
-
   return Math.floor(orderVolume / minOrderVolume) * minOrderVolume;
 };
 

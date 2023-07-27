@@ -19,6 +19,7 @@ FORWARD_DECLARE_CLASS_PTR(BrokerVendor)
 FORWARD_DECLARE_CLASS_PTR(BrokerService)
 
 class BrokerVendor : public yijinjing::practice::apprentice {
+
 public:
   typedef yijinjing::data::locator_ptr locator_ptr;
   typedef yijinjing::data::location_ptr location_ptr;
@@ -30,11 +31,11 @@ public:
 
   std::string get_arguments() const { return arguments_; }
 
-  void set_arguments(const std::string &argiments) { arguments_ = argiments; }
+  void set_arguments(const std::string &arguments) { arguments_ = arguments; }
 
-protected:
   virtual BrokerService_ptr get_service() = 0;
 
+protected:
   void on_start() override;
 
 private:
@@ -61,9 +62,9 @@ public:
 
   [[nodiscard]] std::string get_runtime_folder();
 
-  [[nodiscard]] const std::string get_config() const;
+  [[nodiscard]] std::string get_config() const;
 
-  [[maybe_unused]] [[nodiscard]] const std::string &get_risk_setting() const;
+  [[nodiscard]] std::string get_risk_setting() const;
 
   [[nodiscard]] const yijinjing::data::location_ptr &get_home() const;
 
@@ -95,9 +96,11 @@ public:
 
   [[maybe_unused]] void request_deregister() { vendor_.request_deregister(); }
 
-  [[maybe_unused]] [[nodiscard]] BrokerVendor &get_vendor() const { return vendor_; }
+  [[nodiscard]] BrokerVendor &get_vendor() const { return vendor_; }
 
   [[maybe_unused]] uint32_t request_band(const std::string &band_name) { return vendor_.request_band(band_name); }
+
+  virtual void on_arguments(const std::string &argument) {}
 
 protected:
   volatile BrokerState state_;

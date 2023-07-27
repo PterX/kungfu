@@ -95,7 +95,9 @@ void Ledger::refresh_account_book(int64_t trigger_time, uint32_t account_uid) {
 
 OrderStat &Ledger::get_order_stat(uint64_t order_id, const event_ptr &event) {
   if (order_stats_.find(order_id) == order_stats_.end()) {
-    order_stats_.try_emplace(order_id, get_home_uid(), event->source(), event->gen_time(), OrderStat());
+    OrderStat order_stat{};
+    order_stat.order_id = order_id;
+    order_stats_.try_emplace(order_id, get_home_uid(), event->source(), event->gen_time(), order_stat);
   }
   return order_stats_.at(order_id).data;
 }
@@ -103,7 +105,6 @@ OrderStat &Ledger::get_order_stat(uint64_t order_id, const event_ptr &event) {
 void Ledger::update_order_stat(const event_ptr &event, const OrderInput &data) {
   write_book(event->gen_time(), event->dest(), event->source(), data);
   auto &stat = get_order_stat(data.order_id, event);
-  stat.order_id = data.order_id;
   stat.md_time = event->trigger_time();
   stat.input_time = event->gen_time();
 }
@@ -125,6 +126,21 @@ void Ledger::update_order_stat(const event_ptr &event, const Order &data) {
   }
 }
 
+void Ledger::update_order_stat(const event_ptr &event, const Trade &data) {
+  write_book(event->gen_time(), event->source(), event->dest(), data);
+  auto &stat = get_order_stat(data.order_id, event);
+  if (stat.trade_time < event->gen_time()) {
+    stat.trade_time = event->gen_time();
+    stat.total_price += data.price * double(data.volume);
+    stat.total_volume += double(data.volume);
+    if (stat.total_volume > 0) {
+      stat.avg_price =
+          translate_by_price_tick(data.exchange_id, data.instrument_id, stat.total_price / stat.total_volume);
+    }
+    write_to(event->gen_time(), stat, event->source());
+  }
+}
+
 double Ledger::translate_by_price_tick(const char *exchange_id, const char *instrument_id, double price) {
   auto hashed_instrument_key = hash_instrument(exchange_id, instrument_id);
   auto instruments = bookkeeper_.get_instruments();
@@ -142,21 +158,6 @@ double Ledger::translate_by_price_tick(const char *exchange_id, const char *inst
   }
 
   return int(price * 10000) / 10000.0;
-}
-
-void Ledger::update_order_stat(const event_ptr &event, const Trade &data) {
-  write_book(event->gen_time(), event->source(), event->dest(), data);
-  auto &stat = get_order_stat(data.order_id, event);
-  if (stat.trade_time < event->gen_time()) {
-    stat.trade_time = event->gen_time();
-    stat.total_price += data.price * double(data.volume);
-    stat.total_volume += double(data.volume);
-    if (stat.total_volume > 0) {
-      stat.avg_price =
-          translate_by_price_tick(data.exchange_id, data.instrument_id, stat.total_price / stat.total_volume);
-    }
-    write_to(event->gen_time(), stat, event->source());
-  }
 }
 
 void Ledger::update_account_book(int64_t trigger_time, uint32_t account_uid) {
@@ -238,17 +239,18 @@ void Ledger::write_strategy_data(int64_t trigger_time, uint32_t strategy_uid) {
     auto book_uid = asset.holder_uid;
     bool has_account = asset.ledger_category == LedgerCategory::Account and has_channel(book_uid, strategy_uid);
     bool is_strategy = location->category == category::STRATEGY and book_uid == strategy_uid;
-    bool is_system = location->category == category::SYSTEM;
-    if (has_account or is_strategy or is_system) {
+    bool is_node = location->category == category::SYSTEM and location->group == "node";
+    if (has_account or is_strategy or is_node) {
       write_positions(trigger_time, strategy_uid, book->long_positions);
       write_positions(trigger_time, strategy_uid, book->short_positions);
-      writer->open_data<PositionEnd>(trigger_time).holder_uid = book_uid;
-      writer->close_data();
       write_instrument_factors(trigger_time, strategy_uid, book->instrument_factors);
       writer->write(trigger_time, asset);
       writer->write(trigger_time, asset_margin);
     }
   }
+
+  writer->open_data<PositionEnd>(trigger_time).holder_uid = strategy_uid;
+  writer->close_data();
 }
 
 void Ledger::write_positions(int64_t trigger_time, uint32_t dest, book::PositionMap &positions) {

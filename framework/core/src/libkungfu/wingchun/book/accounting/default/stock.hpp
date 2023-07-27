@@ -220,6 +220,7 @@ public:
       double price_change = position.last_price - position.avg_open_price;
       position.unrealized_pnl =
           (position.direction == Direction::Long ? price_change : -price_change) * position.volume;
+      position.update_time = yijinjing::time::now_in_nano();
     }
   }
 
@@ -614,7 +615,7 @@ protected:
       if (book->instruments.find(hashed_instrument_key) == book->instruments.end()) {
         cd_mr.contract_multiplier = DEFAULT_STOCK_CONTRACT_MULTIPLIER;
       } else {
-        auto &instrument = book->instruments.at(hashed_instrument_key);
+        const auto &instrument = book->instruments.at(hashed_instrument_key);
         cd_mr.contract_multiplier = instrument.contract_multiplier;
       }
 

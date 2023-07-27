@@ -10,17 +10,15 @@
 #include <kungfu/longfist/enums.h>
 #include <kungfu/wingchun/book/book.h>
 
-using namespace kungfu::longfist::enums;
-
 namespace kungfu::wingchun::book {
 static const longfist::enums::AccountingMethodType get_accounting_method_type() {
   char *is_otc = std::getenv("IS_OTC_ACCOUNTING_TYPE");
   if (is_otc == nullptr) {
-    SPDLOG_INFO("AccountingMethod::setup_defaults IS_OTC_ACCOUNTING_TYPE is unset, use DEFAULT");
+    SPDLOG_DEBUG("AccountingMethod::setup_defaults IS_OTC_ACCOUNTING_TYPE is unset, use DEFAULT");
     return longfist::enums::AccountingMethodType::Default;
   }
 
-  SPDLOG_INFO("AccountingMethod::setup_defaults IS_OTC_ACCOUNTING_TYPE = {}", is_otc);
+  SPDLOG_DEBUG("AccountingMethod::setup_defaults IS_OTC_ACCOUNTING_TYPE = {}", is_otc);
   std::string yes_str = "1";
   if (strcmp(is_otc, yes_str.c_str()) == 0) {
     return longfist::enums::AccountingMethodType::OTC;

@@ -136,6 +136,12 @@ export default {
     stopped: 'Stopped',
     launching: 'Launching',
     error: 'Errored',
+    finished_msg:
+      'The current order {status} and the order change has been cancelled',
+    trade_greater_than_target_msg:
+      'The transaction volume ({volume_trade}) is greater than the target order volume (volume_target), and the order change is cancelled',
+    target_equal_to_trade_msg:
+      'The transaction volume is equal to the target order volume, and the order change will be cancelled',
     waiting_restart: 'Stopped',
 
     pending: 'Pending',
@@ -195,6 +201,7 @@ export default {
     guarantee_stock_redeem: 'GuaranteeStockTransferOut',
 
     submitted: 'Submitted',
+    cancelling: 'Cancelling',
     cancelled: 'Cancelled',
     filled: 'Filled',
     partial_filled_not_active: 'PartialFilledNotActive',
@@ -211,6 +218,9 @@ export default {
     Reverse_best: 'ReverseBest',
     Fak: 'Fak',
     Fok: 'Fok',
+    EnhancedLimit: 'EnhancedLimit',
+    AtAuctionLimit: 'AtAuctionLimit',
+    AtAuction: 'AtAuction',
 
     speculation: 'Speculation',
     hedge: 'Hedge',
@@ -245,6 +255,7 @@ export default {
     SZE: 'SZE',
     BSE: 'BSE',
     SHFE: 'SHFE',
+    GFEX: 'GFEX',
     DCE: 'DCE',
     CZCE: 'CZCE',
     CFFEX: 'CFFEX',
@@ -324,6 +335,7 @@ export default {
     archive: 'archive',
 
     place_order: 'Place Order',
+    embedded_order: 'Embedded Order',
     apart_order: 'Apart Order',
     reset_order: 'Reset',
     account: 'AccountId',
@@ -351,7 +363,7 @@ export default {
     fat_finger_sell_modal:
       'The selling price exceeded the warning line, the current price is {price}, line for {warningLine}, fat finger is {fatFinger}%',
     close_apart_open_modal:
-      'The order input volume is {volume}, the current closable {direction} position is {closable_volume}, the excess is {open_volume}\nclick “Take excess to open”, will close {direction} {closable_volume}, open {direction} {open_volume}\nclick “Orignal plan”, will continue close {direction} {volume}',
+      'The order input volume is {volume}, the current closable {direction} position is {closableVolume}, the excess is {openVolume}\nclick “Take excess to open”, will close {direction} {closableVolume}, open {oppositeDirection} {openVolume}\nclick “Orignal plan”, will continue close {direction} {volume}',
     start_process: 'please start {process} first',
     place_confirm: 'Place Order Confirm',
     continue_close_rate:
@@ -359,6 +371,8 @@ export default {
     Continue: 'Continue',
     original_plan: 'Orignal plan',
     beyond_to_open: 'Take excess to open',
+    reach: 'Reach',
+    above: 'Above',
   },
 
   orderConfig: {
@@ -663,7 +677,7 @@ export default {
     system: 'System',
     home_path: 'Select local home path',
     home_path_desc:
-      'Kung Fu will take the selected home path as the root directory, and will take effect after modifying and restarting Kung Fu',
+      'Kung Fu will take the selected home path as the root directory, and the directory path cannot contain Chinese characters. It is not recommended that the path be too long (which may cause the process to fail to start). After modification, restarting Kung Fu will take effect',
     reset_order: 'Reset',
     log_level: 'Log Level',
     for_all_log: 'For all Log',
@@ -761,7 +775,9 @@ export default {
   白名单设置警告: 'Please set the whitelist for this account first',
 
   validate: {
-    no_special_characters: 'Cannot contain special characters',
+    no_special_characters:
+      'Cannot contain special characters or Chinese characters, and cannot start or end with - characters',
+    single_characters: 'Must contain numbers and letters',
     no_underscore: 'Cannot contain underscores',
     no_zero_number: 'Cannot contain zero',
     no_negative_number: 'Cannot contain negative',

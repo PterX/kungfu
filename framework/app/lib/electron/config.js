@@ -43,6 +43,9 @@ const appLibPackageMergeJson = require(path.join(
 ));
 const appLibPackageJsonPath = path.join(appLibPackageJsonDir, 'package.json');
 
+const ifZipTargetEnable = (platform) =>
+  rootPackageJson?.kungfuCraft?.zipTargetEnable?.[platform] !== false;
+
 fse.writeJsonSync(appLibPackageJsonPath, {
   ...rootPackageJson,
   ...appLibPackageMergeJson,
@@ -150,6 +153,7 @@ module.exports = {
         'public/key',
         'public/logo',
         'public/keywords',
+        'public/fonts',
         'public/music',
         'public/language',
         ...(fse.existsSync(defaultInstrumentsJson)
@@ -214,7 +218,7 @@ module.exports = {
   mac: {
     icon: icnsLogoPathResolved,
     type: 'distribution',
-    target: ['dmg', 'zip'],
+    target: ['dmg', ...(ifZipTargetEnable('mac') ? ['zip'] : [])],
   },
   win: {
     icon: icoLogoPathResolved,
@@ -223,15 +227,19 @@ module.exports = {
         target: 'nsis',
         arch: ['x64'],
       },
-      {
-        target: 'zip',
-        arch: ['x64'],
-      },
+      ...(ifZipTargetEnable('win')
+        ? [
+            {
+              target: 'zip',
+              arch: ['x64'],
+            },
+          ]
+        : []),
     ],
   },
   linux: {
     icon: icnsLogoPathResolved,
-    target: ['rpm', 'appimage', 'zip'],
+    target: ['rpm', 'appimage', ...(ifZipTargetEnable('linux') ? ['zip'] : [])],
     executableName: 'Kungfu.app',
   },
   nsis: {

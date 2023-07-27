@@ -39,10 +39,10 @@ import { getColumns } from './config';
 import {
   dealOrder,
   getKungfuHistoryData,
-  getOrderLatencyDataByOrderStat,
   kfCancelAllOrders,
   kfCancelOrder,
   makeOrderByOrderInput,
+  getOrderLatencyDataByOrderStat,
 } from '@kungfu-trader/kungfu-js-api/kungfu';
 import type { Dayjs } from 'dayjs';
 import { UnfinishedOrderStatus } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';

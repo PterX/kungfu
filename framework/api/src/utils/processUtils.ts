@@ -454,6 +454,7 @@ export const startProcess = async (
       UI_EXT_TYPE: '',
       BY_PASS_ACCOUNTING: '',
       BY_PASS_TRADINGDATA: '',
+      BY_PASS_REFRASHBOOK: '',
       BY_PASS_RESTORE: '',
     },
   };

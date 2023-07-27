@@ -32,6 +32,7 @@ export const useComponents = (
     'FutureArbitrage',
     'BlockTrade',
     'OrderTriggerRecord',
+    'TransferRecord',
   ];
   const components = builtinComponents.filter((componentName) =>
     getBoard(componentName, true, false),

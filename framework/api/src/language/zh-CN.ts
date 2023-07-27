@@ -99,6 +99,7 @@ export default {
   OrderTriggerRecord: '预埋单记录',
   PosGlobal: '持仓汇总',
   Pos: '持仓',
+  TransferRecord: '划转记录',
 
   select_broker_ext: '选择柜台 API',
   select_operator_ext: '选择算子插件',
@@ -468,6 +469,26 @@ export default {
     confirm_delete_group: '不会影响改账户组下账户进程, 确认是否删除',
   },
 
+  fundTrans: {
+    config_error: '{td} 柜台资金划转配置文件异常',
+    modal_title: '柜台间资金划转',
+    trans_selection: '请选择资金划转的方向',
+    centralized_counter: '集中柜台',
+    source: '划出节点',
+    target: '划入节点',
+    amount: '发生金额',
+    update_time: '划转时间',
+    tip_error: '划转失败,请联系管理员!',
+    capitalaccountor: '资金账号',
+    trade_password: '交易密码',
+    account: '客户号',
+    trans_type: '划转类型',
+    pending: '等待中',
+    status: '划转状态',
+    success: '成功',
+    error: '失败',
+  },
+
   mdConfig: {
     counter_name: '柜台',
     state_status: '状态',
@@ -725,6 +746,9 @@ export default {
     bypass_archive_desc:
       '仅删除上个交易日留下的 journal 与 log 文件, 不再压缩打包, 跳过归档后无法恢复之前的内存数据, 会加快启动速度',
 
+    bypass_subscribe_position: '跳过持仓行情订阅',
+    bypass_subscribe_position_desc:
+      '打开后, 不再默认订阅交易账户持仓的行情更新, 且交易账户列表不再显示浮动盈亏, 市值相关字段使用开仓均价计算, 开启后可减轻机器性能负担, 重启后生效',
     porformance: '性能',
     rocket_model: '开启极速模式',
     rocket_model_desc:
@@ -804,7 +828,7 @@ export default {
   白名单设置警告: '请先为此账户设置标的白名单',
 
   validate: {
-    no_special_characters: '不能含有特殊字符和中文, 且不能以-为首尾字符',
+    no_special_characters: '不能含有特殊字符和中文',
     single_characters: '必须包含数字和字母',
     no_underline: '不能含有下划线',
     no_zero_number: '请输入非零数字',

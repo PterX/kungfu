@@ -645,6 +645,7 @@ const getKfExtensionConfigByCategory = (
                     orderTrigger:
                       resolveOrderTriggerConfig(extConfigByCategory),
                     settings: extConfigByCategory[category]?.settings || [],
+                    fundTrans: extConfigByCategory[category]?.fund_trans || {},
                   },
                 };
                 break;

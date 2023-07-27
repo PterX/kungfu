@@ -138,15 +138,6 @@ const setFundTransConfigPayload = ref<KungfuApi.SetKfConfigPayload>({
   config: {} as KungfuApi.KfExtConfig,
 });
 
-const isShowFundTransIcon = computed(() => {
-  const extConfig: KungfuApi.KfTdExtConfig = (extConfigs.value['td'] || {})[
-    currentAccout.source
-  ];
-  if (!extConfig || !extConfig.fundTrans) return false;
-
-  return true;
-});
-
 const { searchKeyword, tableData } = useTableSearchKeyword<
   KungfuApi.KfConfig | KungfuApi.KfExtraLocation
 >(td, ['group', 'name']);
@@ -496,6 +487,17 @@ function handleRequestPosition() {
     error(t('operation_failed'));
   }
 }
+
+function isShowFundTransIcon(location: KungfuApi.KfConfig) {
+  if (!location) return false;
+  const extConfig: KungfuApi.KfTdExtConfig = (extConfigs.value['td'] || {})[
+    location.group
+  ];
+
+  if (!extConfig || JSON.stringify(extConfig.fundTrans) === '{}') return false;
+
+  return true;
+}
 </script>
 
 <template>
@@ -740,7 +742,7 @@ function handleRequestPosition() {
               ></BankOutlined>
               <!-- TODO -->
               <PayCircleOutlined
-                v-if="isShowFundTransIcon"
+                v-if="isShowFundTransIcon(record as KungfuApi.KfConfig)"
                 :style="{
                   color: dealDisabledColor(record as KungfuApi.KfConfig),
                 }"

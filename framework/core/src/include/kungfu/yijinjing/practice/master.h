@@ -23,8 +23,7 @@ struct timer_task {
 
 class master : public hero {
 public:
-  explicit master(yijinjing::data::location_ptr home, bool low_latency = false, bool bypass_cached = false,
-                  bool daemon = true);
+  explicit master(yijinjing::data::location_ptr home, bool low_latency = false, bool bypass_cached = false);
 
   void on_exit() override;
 
@@ -48,10 +47,7 @@ public:
 
   void on_request_deregister(const event_ptr &event);
 
-  bool is_daemon();
-
 protected:
-  void pre_setup() override;
 
   void react() override;
 
@@ -62,7 +58,6 @@ protected:
 private:
   int64_t last_check_;
   yijinjing::cache::cached cached_;
-  const bool daemon_;
 
   std::unordered_map<uint32_t, uint32_t> app_cmd_locations_ = {};
   std::unordered_map<uint32_t, std::unordered_map<int32_t, timer_task>> timer_tasks_ = {};
@@ -102,8 +97,6 @@ private:
   void write_channels(int64_t trigger_time, const journal::writer_ptr &writer);
 
   void write_bands(int64_t trigger_time, const journal::writer_ptr &writer);
-
-  void recover_registries();
 };
 } // namespace kungfu::yijinjing::practice
 #endif // KUNGFU_MASTER_H

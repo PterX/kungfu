@@ -634,6 +634,11 @@ function preSwitchMain(
 
 const switchMaster = async (status: boolean): Promise<void> => {
   if (!status) {
+    globalThis.HookKeeper.getHooks().ClearProcessHook.trigger({
+      category: '*',
+      group: 'SubAccount',
+      name: `*`,
+    });
     await pm2Kill();
     await killKfc();
     await killExtra();

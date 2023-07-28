@@ -1,15 +1,17 @@
+import { kfLogger } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+
 export class ResetOptionHook<Method, ValueType> {
   hookName: string;
   hooks: Record<string, Method>;
-  constructor(name: string) {
-    this.hookName = name;
+  constructor(hookName: string) {
+    this.hookName = hookName;
     this.hooks = new Proxy(
       {},
       {
         get(target: Record<string, Method>, prop: string) {
           const locationPairs = prop.split('_');
           if (locationPairs.length != 3) {
-            console.warn(`Invalid hook key: ${prop}`);
+            kfLogger.warn(`Invalid ${hookName} hook key: ${prop}`);
             return [];
           }
 
@@ -30,11 +32,11 @@ export class ResetOptionHook<Method, ValueType> {
 
         set(target: Record<string, Method>, prop: string, value: Method) {
           if (Reflect.has(target, prop)) {
-            console.warn(`${name} hook ${prop} already exists`);
+            kfLogger.warn(`${name} hook ${prop} already exists`);
             return true;
           }
 
-          console.log(`${name} hook ${prop} register success`);
+          kfLogger.info(`${name} hook ${prop} register success`);
           Reflect.set(target, prop, value);
           return true;
         },
@@ -53,7 +55,7 @@ export class ResetOptionHook<Method, ValueType> {
     const key = `${category}_${group}_${name}`;
     if (Reflect.has(this.hooks, key)) {
       Reflect.deleteProperty(this.hooks, key);
-      console.log(`Unregistered hook: ${key}`);
+      kfLogger.info(`Unregistered ${this.hookName} hook: ${key}`);
     }
   }
 

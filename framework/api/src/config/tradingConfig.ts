@@ -27,6 +27,7 @@ import {
   CurrencyEnum,
   OrderTriggerParkedTypeEnum,
   OrderTriggerStatusEnum,
+  FundTransEnum,
 } from '../typings/enums';
 
 import { Pm2ProcessStatusTypes } from '../utils/processUtils';
@@ -491,10 +492,10 @@ export const ParkedType: Record<
   KungfuApi.KfTradeValueCommonData
 > = {
   [OrderTriggerParkedTypeEnum.Server]: {
-    name: t('tradingConfig.server_embedded_label'),
+    name: t('tradingConfig.server_order_trigger_label'),
   },
   [OrderTriggerParkedTypeEnum.Local]: {
-    name: t('tradingConfig.local_embedded_label'),
+    name: t('tradingConfig.local_order_trigger_label'),
   },
 };
 
@@ -544,6 +545,24 @@ export const BasketVolumeType: Record<
   [BasketVolumeTypeEnum.Proportion]: {
     name: t('tradingConfig.by_proportion'),
     color: 'purple',
+  },
+};
+
+export const FundTransType: Record<
+  FundTransEnum,
+  KungfuApi.KfTradeValueCommonData
+> = {
+  [FundTransEnum.Error]: {
+    name: t('fundTrans.error'),
+    color: 'red',
+  },
+  [FundTransEnum.Pending]: {
+    name: t('fundTrans.pending'),
+    color: 'gray',
+  },
+  [FundTransEnum.Success]: {
+    name: t('fundTrans.success'),
+    color: 'green',
   },
 };
 

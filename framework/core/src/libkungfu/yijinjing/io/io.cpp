@@ -110,6 +110,11 @@ public:
     return rc;
   }
 
+  bool nonblock_wait() override {
+    int rc = socket_.recv(NNG_FLAG_NONBLOCK | NNG_FLAG_ALLOC) == 0;
+    return rc;
+  }
+
   int get_recv_timeout() const override { return DEFAULT_RECV_TIMEOUT; }
 
   const std::string &get_notice() override { return socket_.last_message(); }

@@ -277,8 +277,8 @@ inline void from_xtp(const XTPOrderInfo &ori, HistoryOrder &des) {
   if (ori.update_time > 0) {
     des.update_time = nsec_from_xtp_timestamp(ori.update_time);
   }
-  std::string str_external_order_id = std::to_string(ori.order_xtp_id);
-  strncpy(des.external_order_id, str_external_order_id.c_str(), str_external_order_id.length());
+
+  strncpy(des.external_order_id, std::to_string(ori.order_xtp_id).c_str(), EXTERNAL_ID_LEN);
 }
 
 inline void from_xtp(const XTPTradeReport &ori, Trade &des) {
@@ -309,6 +309,8 @@ inline void from_xtp(const XTPQueryTradeRsp &ori, HistoryTrade &des) {
     des.instrument_type = InstrumentType::Stock;
   }
   des.trade_time = nsec_from_xtp_timestamp(ori.trade_time);
+  strncpy(des.external_order_id, std::to_string(ori.order_xtp_id).c_str(), EXTERNAL_ID_LEN);
+  strncpy(des.external_trade_id, ori.exec_id, XTP_EXEC_ID_LEN);
 }
 
 inline void from_xtp(const XTPQueryStkPositionRsp &ori, Position &des) {

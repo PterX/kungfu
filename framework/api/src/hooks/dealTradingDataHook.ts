@@ -6,7 +6,10 @@ import {
   KfCategoryEnum,
   KfCategoryTypes,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
-import { dealTradingData } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import {
+  dealTradingData,
+  kfLogger,
+} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 
 export interface DealTradingDataGetter {
   category: KfCategoryTypes | string;
@@ -181,7 +184,7 @@ export class DealTradingDataHooks {
         get(target: Record<string, DealTradingDataGetter>, prop: string) {
           const locationPairs = prop.split('_');
           if (locationPairs.length != 3) {
-            console.warn(`Invalid hook key: ${prop}`);
+            kfLogger.warn(`Invalid hook key: ${prop}`);
             return [];
           }
 
@@ -206,11 +209,11 @@ export class DealTradingDataHooks {
           value: DealTradingDataGetter,
         ) {
           if (Reflect.has(target, prop)) {
-            console.warn(`DealTradingData hook ${prop} already exists`);
+            kfLogger.warn(`DealTradingData hook ${prop} already exists`);
             return true;
           }
 
-          console.log(`DealTradingData hook ${prop} register success`);
+          kfLogger.info(`DealTradingData hook ${prop} register success`);
           Reflect.set(target, prop, value);
           return true;
         },
@@ -234,7 +237,7 @@ export class DealTradingDataHooks {
     tradingDataType: 'order' | 'trade' | 'position',
   ) {
     if (!watcher) {
-      console.warn('Watcher is NULL');
+      kfLogger.warn('Watcher is NULL');
       return [];
     }
 

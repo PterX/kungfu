@@ -177,6 +177,7 @@ journal &reader::get_journal_ref(const data::location_ptr &location, uint32_t de
 uint32_t reader::find_page_size(const data::location_ptr &location, uint32_t dest_id) {
   std::vector<uint32_t> page_ids = location->locator->list_page_id(location, dest_id);
   if (page_ids.empty()) {
+    SPDLOG_ERROR("no page for current journal {} -> {}", location->uname, dest_id);
     throw journal_error(fmt::format("no page for current journal {} -> {}", location->uname, dest_id));
   }
 

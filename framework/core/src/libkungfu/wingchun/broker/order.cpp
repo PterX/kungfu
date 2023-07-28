@@ -125,4 +125,12 @@ const OrderActionMap &OrderService::get_order_actions() const { return order_act
 
 const TradeMap &OrderService::get_trades() const { return trades_; }
 
+bool OrderService::has_order_action(uint64_t action_id) const {
+  return order_actions_.find(action_id) != order_actions_.end();
+}
+
+kungfu::state<longfist::types::OrderAction> &OrderService::get_order_action(uint64_t action_id) {
+  return order_actions_.at(action_id);
+}
+
 } // namespace kungfu::wingchun::broker

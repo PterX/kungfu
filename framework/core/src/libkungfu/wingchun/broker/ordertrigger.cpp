@@ -71,4 +71,12 @@ kungfu::state<longfist::types::OrderTrigger> &OrderTriggerService::get_order_tri
 
 const OrderTriggerActionMap &OrderTriggerService::get_order_trigger_actions() const { return order_trigger_actions_; }
 
+bool OrderTriggerService::has_order_trigger_action(uint64_t action_id) const {
+  return order_trigger_actions_.find(action_id) != order_trigger_actions_.end();
+}
+
+kungfu::state<longfist::types::OrderTriggerAction> &OrderTriggerService::get_order_trigger_action(uint64_t action_id) {
+  return order_trigger_actions_.at(action_id);
+}
+
 } // namespace kungfu::wingchun::broker

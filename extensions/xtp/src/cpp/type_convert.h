@@ -277,7 +277,6 @@ inline void from_xtp(const XTPOrderInfo &ori, HistoryOrder &des) {
   if (ori.update_time > 0) {
     des.update_time = nsec_from_xtp_timestamp(ori.update_time);
   }
-
   strncpy(des.external_order_id, std::to_string(ori.order_xtp_id).c_str(), EXTERNAL_ID_LEN);
 }
 

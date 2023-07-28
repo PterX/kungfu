@@ -235,7 +235,6 @@ void Trader::on_risk_setting() {
   SPDLOG_DEBUG("RiskSetting: {}", msg);
   auto risk_setting_data = nlohmann::json::parse(msg);
   disable_recover_ = risk_setting_data.value<bool>("disable_recover", false);
-
   auto risk_check = risk_setting_data.value<bool>("risk_check", false);
   if (risk_check) {
     // let process crash if value is not a json
@@ -245,6 +244,10 @@ void Trader::on_risk_setting() {
       risk_uid_ = location(get_home()->mode, category::SYSTEM, "service", risk_name, get_home()->locator).location_uid;
     }
   }
+}
+
+yijinjing::journal::writer_ptr &Trader::get_thread_writer() {
+  return dynamic_cast<TraderVendor &>(get_vendor()).get_thread_writer();
 }
 
 } // namespace kungfu::wingchun::broker

@@ -31,7 +31,6 @@ live_home
 live
 update_time
 data
-
 asset
 asset_margin
 long_positions
@@ -498,9 +497,6 @@ SZSE
 HKEx
 MarketType
 Snapshot
-Entrust
-Transaction
-Tree
 SubscribeDataType
 Stock
 Future

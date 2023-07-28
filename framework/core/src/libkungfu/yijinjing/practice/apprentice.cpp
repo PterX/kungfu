@@ -237,7 +237,7 @@ void apprentice::reader_join(uint32_t source_id, uint32_t dest_id, int64_t from_
   reader_->join(get_location(source_id), dest_id, from_time);
 
   if (not has_writer(get_master_command_uid())) {
-    SPDLOG_ERROR("no master cmd writer");
+    SPDLOG_ERROR("no master cmd writer {}", get_master_command_uid());
     return;
   }
 

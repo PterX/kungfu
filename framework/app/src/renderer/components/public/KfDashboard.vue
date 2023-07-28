@@ -99,6 +99,10 @@ export default defineComponent({
     .header-actions {
       height: 100%;
 
+      &:only-child {
+        width: 100%;
+      }
+
       display: flex;
       justify-content: flex-end;
       align-items: center;

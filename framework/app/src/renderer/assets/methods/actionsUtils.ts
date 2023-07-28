@@ -1093,11 +1093,7 @@ export const usePreStartAndQuitApp = (): {
                 });
                 break;
               case 'clear-process-before-quit-start':
-                globalThis.HookKeeper.getHooks().ClearProcessHook.trigger({
-                  category: '*',
-                  group: 'SubAccount',
-                  name: `*`,
-                });
+                globalThis.HookKeeper.getHooks().ClearProcessHook.trigger();
                 preQuitSystemLoadingData.quit = 'loading';
                 break;
               case 'clear-process-before-quit-end':

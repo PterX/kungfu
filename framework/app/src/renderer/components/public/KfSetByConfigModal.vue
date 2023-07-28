@@ -68,9 +68,8 @@ defineEmits<{
       configSettings: KungfuApi.KfConfigItem[];
       idByPrimaryKeys: string;
       changeType: KungfuApi.ModalChangeType;
-      resolve?: () => void;
-      reject?: () => void;
     },
+    conform: () => void,
   ): void;
   (e: 'update:visible', visible: boolean): void;
   (e: 'close'): void;
@@ -148,14 +147,16 @@ function handleConfirm(): Promise<void> {
 
         if (props.useFeedback) {
           app &&
-            app.emit('confirmWithFeedback', {
-              formState: formState.value,
-              configSettings: configSettings.value,
-              idByPrimaryKeys,
-              changeType: props.payload.type,
+            app.emit(
+              'confirmWithFeedback',
+              {
+                formState: formState.value,
+                configSettings: configSettings.value,
+                idByPrimaryKeys,
+                changeType: props.payload.type,
+              },
               resolve,
-              reject,
-            });
+            );
         } else {
           app &&
             app.emit('confirm', {
@@ -174,7 +175,7 @@ function handleConfirm(): Promise<void> {
   });
 }
 
-function condirm() {
+function confirm() {
   handleConfirm()
     .then(() => {
       closeModal();
@@ -209,7 +210,7 @@ function handleFormStateChange(formState) {
     :title="titleResolved"
     :destroy-on-close="true"
     @cancel="handleCancel"
-    @ok="condirm"
+    @ok="confirm"
   >
     <KfConfigSettingsForm
       ref="formRef"

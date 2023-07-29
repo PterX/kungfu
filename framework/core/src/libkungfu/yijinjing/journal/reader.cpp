@@ -10,10 +10,11 @@ reader::~reader() {
   journals_.clear();
 }
 
-void reader::join(const data::location_ptr &location, uint32_t dest_id, const int64_t from_time) {
+void reader::join(const data::location_ptr &location, uint32_t dest_id, const int64_t from_time,
+                  longfist::enums::Priority priority) {
   SPDLOG_TRACE("join: {}, dest_id: {}", location->to_string(), dest_id);
   auto key = journal_key(location, dest_id);
-  auto result = journals_.try_emplace(key, location, dest_id, false, lazy_, low_latency_, bus_);
+  auto result = journals_.try_emplace(key, location, dest_id, false, lazy_, low_latency_, bus_, priority);
   if (result.second) {
     journals_.at(key).seek_to_time(from_time);
   }
@@ -80,7 +81,22 @@ void reader::sort_without_buffer() {
   for (auto &pair : journals_) {
     auto &journal = pair.second;
     auto &frame = journal.current_frame();
-    if (frame->has_data() && frame->gen_time() <= min_time) {
+    bool current_has_data = current_ != nullptr && current_->current_frame()->has_data();
+
+    if (not current_has_data && frame->has_data() && frame->gen_time() <= min_time) {
+      min_time = frame->gen_time();
+      current_ = &journal;
+      continue;
+    }
+
+    if (current_has_data && current_->priority_ < journal.priority_ && frame->has_data()) {
+      min_time = frame->gen_time();
+      current_ = &journal;
+      continue;
+    }
+
+    if (current_has_data && current_->priority_ == journal.priority_ && frame->has_data() &&
+        frame->gen_time() <= min_time) {
       min_time = frame->gen_time();
       current_ = &journal;
     }

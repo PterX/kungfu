@@ -101,6 +101,13 @@ void reader::sort_without_buffer() {
       current_ = &journal;
     }
   }
+
+  if (current_ != nullptr and current_->current_frame()->has_data()) {
+    SPDLOG_DEBUG("priority: {}, source: {}, dest: {}", current_->priority_, current_->current_frame()->source(),
+                 current_->current_frame()->dest());
+    SPDLOG_DEBUG("msg_type: {}, data: {}", current_->current_frame()->msg_type(),
+                 current_->current_frame()->data_as_string());
+  }
 }
 
 namespace internal {

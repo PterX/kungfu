@@ -381,8 +381,8 @@ void master::on_time_request(const event_ptr &event) {
   if (not is_location_live(event->source())) {
     return;
   }
-  auto request_data = event->data_as_string();
-  TimeRequest request(request_data.c_str(), request_data.length());
+  const TimeRequest &request = event->data<TimeRequest>();
+  SPDLOG_INFO("TimeRequest: {}", request.to_string());
   auto &app_tasks = timer_tasks_.try_emplace(event->source()).first->second;
   auto &task = app_tasks.try_emplace(request.id).first->second;
   task.checkpoint = request.base_time + request.duration;

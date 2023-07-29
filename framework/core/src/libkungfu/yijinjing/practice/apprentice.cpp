@@ -278,12 +278,11 @@ void apprentice::expect_start() {
 void apprentice::on_master_start() {
   SPDLOG_INFO("master start, do some recoveries");
   const auto publisher = get_io_device()->get_publisher();
-  while (not publisher->is_usable()) {
-  }
+  auto writer = get_writer(get_master_command_uid());
 
   for (const auto &iter : timer_requests_) {
-    auto &r = iter.second;
-    publisher->publish(make_nano_msg(get_home_uid(), get_master_command_uid(), r));
+    const auto &r = iter.second;
+    writer->write(now(), r);
   }
 }
 

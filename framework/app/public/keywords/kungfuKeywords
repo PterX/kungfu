@@ -671,3 +671,7 @@ OrderTriggerType
 Server
 Local
 ParkedType
+Low
+Medium
+High
+Priority

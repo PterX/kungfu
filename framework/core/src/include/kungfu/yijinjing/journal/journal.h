@@ -21,9 +21,10 @@ typedef std::unordered_map<uint64_t, journal> JournalMap;
 class journal {
 public:
   journal(data::location_ptr location, uint32_t dest_id, bool is_writing, bool lazy, bool low_latency,
-          const bus_ptr &bus)
+          const bus_ptr &bus, longfist::enums::Priority priority = longfist::enums::Priority::Low)
       : location_(std::move(location)), dest_id_(dest_id), is_writing_(is_writing), lazy_(lazy),
-        low_latency_(low_latency), bus_(bus), frame_(std::shared_ptr<frame>(new frame())), page_frame_nb_(0u) {}
+        low_latency_(low_latency), bus_(bus), frame_(std::shared_ptr<frame>(new frame())), page_frame_nb_(0u),
+        priority_(priority) {}
 
   ~journal();
 
@@ -68,6 +69,7 @@ private:
   std::recursive_mutex passed_page_collector_mtx_;
   frame_ptr frame_;
   uint64_t page_frame_nb_;
+  longfist::enums::Priority priority_;
 
   void load_page(int page_id);
 
@@ -94,7 +96,8 @@ public:
    * @param dest_id journal dest id
    * @param from_time subscribe events after this time, 0 means from start
    */
-  void join(const data::location_ptr &location, uint32_t dest_id, int64_t from_time);
+  void join(const data::location_ptr &location, uint32_t dest_id, int64_t from_time,
+            longfist::enums::Priority priority = longfist::enums::Priority::Low);
 
   void disjoin(uint32_t location_uid);
 
@@ -141,7 +144,7 @@ public:
 
   [[nodiscard]] const journal &get_journal() const { return journal_; }
 
-  [[nodiscard]] const page_ptr get_current_page() const { return journal_.page_; }
+  [[nodiscard]] page_ptr get_current_page() const { return journal_.page_; }
 
   uint64_t current_frame_uid();
 

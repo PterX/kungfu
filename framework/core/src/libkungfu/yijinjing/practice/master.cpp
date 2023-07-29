@@ -119,7 +119,7 @@ void master::register_app(const event_ptr &event) {
   writers_.emplace(app_location->uid, app_cmd_writer);
   reader_->join(app_location, location::PUBLIC, now);
   reader_->join(app_location, location::SYNC, now);
-  reader_->join(app_location, master_cmd_location->uid, now);
+  reader_->join(app_location, master_cmd_location->uid, now, Priority::High);
 
   session_builder_.open_session(app_location, event->gen_time());
   app_cmd_writer->mark(event->gen_time(), SessionStart::tag);

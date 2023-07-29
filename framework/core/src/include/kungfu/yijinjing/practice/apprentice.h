@@ -175,6 +175,7 @@ protected:
       return events_ | rx::filter([&, duration_ns, timer_usage_count](const event_ptr &event) {
                if (event->msg_type() == longfist::types::Time::tag &&
                    event->gen_time() > timer_checkpoints_[timer_usage_count] + duration_ns) {
+                 auto writer = get_writer(get_master_command_uid());
                  longfist::types::TimeRequest &r = writer->open_data<longfist::types::TimeRequest>(now());
                  r.id = timer_usage_count;
                  r.base_time = now();
@@ -210,6 +211,7 @@ protected:
     return [&, duration_ns, timer_usage_count](const rx::observable<event_ptr> &src) {
       return (src | rx::filter([&, duration_ns, timer_usage_count](const event_ptr &event) {
                 if (event->msg_type() != longfist::types::Time::tag) {
+                  auto writer = get_writer(get_master_command_uid());
                   longfist::types::TimeRequest &r = writer->open_data<longfist::types::TimeRequest>(now());
                   r.id = timer_usage_count;
                   r.base_time = now();

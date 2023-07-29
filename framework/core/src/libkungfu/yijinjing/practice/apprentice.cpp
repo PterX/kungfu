@@ -277,13 +277,13 @@ void apprentice::expect_start() {
 
 void apprentice::on_master_start() {
   SPDLOG_INFO("master start, do some recoveries");
-  const auto publisher = get_io_device()->get_publisher();
-  auto writer = get_writer(get_master_command_uid());
-
-  for (const auto &iter : timer_requests_) {
-    const auto &r = iter.second;
-    writer->write(now(), r);
-  }
+  //  const auto publisher = get_io_device()->get_publisher();
+  //  auto writer = get_writer(get_master_command_uid());
+  //
+  //  for (const auto &iter : timer_requests_) {
+  //    const auto &r = iter.second;
+  //    writer->write(now(), r);
+  //  }
 }
 
 void apprentice::reset_time(const longfist::types::TimeReset &time_reset) {

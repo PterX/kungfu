@@ -4,6 +4,7 @@
 #define WINGCHUN_OPERATOR_BACKTEST_H
 
 #include <kungfu/wingchun/operator/context.h>
+#include <kungfu/wingchun/tool/report.h>
 #include <kungfu/wingchun/tool/sliceindexer.h>
 #include <kungfu/wingchun/tool/slicetool.h>
 
@@ -11,7 +12,8 @@ namespace kungfu::wingchun::op {
 class BacktestContext : public Context {
 public:
   explicit BacktestContext(yijinjing::practice::apprentice &app, const rx::connectable_observable<event_ptr> &events,
-                           tool::SliceIndexer_ptr from_indexer, tool::SliceIndexer_ptr to_indexer);
+                           tool::SliceIndexer_ptr from_indexer, tool::SliceIndexer_ptr to_indexer,
+                           tool::Report_ptr report);
 
   /**
    * checked_ is strated started.
@@ -111,6 +113,7 @@ private:
   broker::PassiveClient broker_client_;
   tool::SliceIndexer_ptr from_indexer_;
   tool::SliceTool_ptr slice_tool_;
+  tool::Report_ptr report_;
   std::multimap<int64_t, std::function<void(event_ptr)>> pre_timer_callbacks_ = {};
   std::multimap<int64_t, std::function<void(event_ptr)>> timer_callbacks_ = {};
 

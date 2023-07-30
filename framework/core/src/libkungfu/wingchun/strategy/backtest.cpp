@@ -24,11 +24,13 @@ using kungfu::yijinjing::nanomsg::nanomsg_json;
 namespace kungfu::wingchun::strategy {
 
 BacktestContext::BacktestContext(practice::apprentice &app, const rx::connectable_observable<event_ptr> &events,
-                                 Matcher_ptr matcher, SliceIndexer_ptr from_indexer, SliceIndexer_ptr to_indexer)
+                                 Matcher_ptr matcher, SliceIndexer_ptr from_indexer, SliceIndexer_ptr to_indexer,
+                                 Report_ptr report)
     : Context(app, events), broker_client_(app_), bookkeeper_(app_, broker_client_), matcher_(std::move(matcher)),
       from_indexer_(from_indexer),
       slice_tool_(std::make_shared<SliceTool>(category::STRATEGY, app.get_home()->group, app.get_home()->name,
-                                              std::move(to_indexer))) {
+                                              std::move(to_indexer))),
+      report_(std::move(report)) {
   log::copy_log_settings(app_.get_home(), app_.get_home()->name);
 }
 
@@ -36,12 +38,20 @@ void BacktestContext::on_start() {
   // auto writer = app_.get_writer(location::PUBLIC);
   // writer->mark_at(app_.get_begin_time(), app_.get_begin_time(), RequestStart::tag);
   // broker_client_.on_start(events_);
-  // bookkeeper_.on_start(events_);
-  events_ | is_own<Quote>(get_broker_client()) | $$(matcher_->on_quote(event->data<Quote>()));
-  events_ | is_own<Entrust>(get_broker_client()) | $$(matcher_->on_entrust(event->data<Entrust>()));
-  events_ | is_own<Transaction>(get_broker_client()) | $$(matcher_->on_transaction(event->data<Transaction>()));
-  events_ | is_own<Tree>(get_broker_client()) | $$(matcher_->on_tree(event->data<Tree>()));
+  bookkeeper_.on_start(events_);
+  events_ | is_own<Quote>(get_broker_client()) |
+      $$(matcher_->on_quote(event->data<Quote>()); report_->on_quote(event->data<Quote>(), now()););
+  events_ | is_own<Entrust>(get_broker_client()) |
+      $$(matcher_->on_entrust(event->data<Entrust>()); report_->on_entrust(event->data<Entrust>(), now()););
+  events_ | is_own<Transaction>(get_broker_client()) |
+      $$(matcher_->on_transaction(event->data<Transaction>());
+         report_->on_transaction(event->data<Transaction>(), now()););
+  events_ | is_own<Tree>(get_broker_client()) |
+      $$(matcher_->on_tree(event->data<Tree>()); report_->on_tree(event->data<Tree>(), now()););
+  events_ | is(SyntheticData::tag) | $$(report_->on_read_synthetic_data(event->data<SyntheticData>(), now()));
   events_ | is(OrderInput::tag) | $$(matcher_->on_order_input(event->data<OrderInput>()));
+  events_ | is(Order::tag) | $$(report_->on_order(event->data<Order>(), now()));
+  events_ | is(Trade::tag) | $$(report_->on_trade(event->data<Trade>(), now()));
   events_ | is(OrderAction::tag) | $$(matcher_->on_order_action(event->data<OrderAction>()));
   events_ | $$(on_timer_check());
 }
@@ -180,7 +190,6 @@ uint64_t BacktestContext::insert_order(const std::string &instrument_id, const s
   input.is_swap = is_swap;
   input.insert_time = insert_time;
   writer->close_data(now());
-  // TODO
   // bookkeeper_.on_order_input(app_.now(), app_.get_home_uid(), account_location_uid, input);
   return input.order_id;
 }
@@ -200,7 +209,6 @@ uint64_t BacktestContext::insert_order_input(const std::string &source, const st
   input.order_id = input.order_id == 0 ? writer->current_frame_uid() : input.order_id;
   input.insert_time = insert_time;
   writer->close_data();
-  // TODO
   // bookkeeper_.on_order_input(app_.now(), app_.get_home_uid(), account_location_uid, input);
   return input.order_id;
 }

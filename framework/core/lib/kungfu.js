@@ -90,7 +90,7 @@ module.exports = function () {
       bypassAccounting = false,
       bypassTradingData = false,
       refreshTradingDataBeforeSync = false,
-      bypassRefrashBook = false,
+      bypassRefreshBook = false,
       millisecondsSleepAfterStep = 200,
     ) {
       return new binding.Watcher(
@@ -100,7 +100,7 @@ module.exports = function () {
         bypassAccounting,
         bypassTradingData,
         refreshTradingDataBeforeSync,
-        bypassRefrashBook,
+        bypassRefreshBook,
         millisecondsSleepAfterStep,
       );
     },

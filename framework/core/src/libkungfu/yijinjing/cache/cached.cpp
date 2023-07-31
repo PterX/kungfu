@@ -19,7 +19,7 @@ using namespace kungfu::yijinjing::cache;
 
 namespace kungfu::yijinjing::cache {
 
-cached::cached(locator_ptr locator, mode m, bool low_latency)
+cached::cached(locator_ptr locator, mode m, bool low_latency, const std::string &arguments)
     : apprentice(location::make_shared(m, category::SYSTEM, "service", "cached", std::move(locator)), low_latency),
       profile_(get_locator()),
       store_volume_every_loop_(low_latency ? LOW_LATENCY_STORE_VOLUME_BY_INTERVAL : DEFAULT_STORE_VOLUME_BY_INTERVAL) {

@@ -118,7 +118,7 @@ void master::register_app(const event_ptr &event) {
   writers_.insert_or_assign(app_location->uid, app_cmd_writer);
   reader_->join(app_location, location::PUBLIC, now);
   reader_->join(app_location, location::SYNC, now);
-  reader_->join(app_location, master_cmd_location->uid, now);
+  reader_->join(app_location, master_cmd_location->uid, now, 0, Priority::High);
 
   auto public_writer = get_writer(location::PUBLIC);
   public_writer->write(event->gen_time(), *std::dynamic_pointer_cast<Location>(app_location));
@@ -382,8 +382,8 @@ void master::on_time_request(const event_ptr &event) {
   if (not is_location_live(event->source())) {
     return;
   }
-  auto request_data = event->data_as_string();
-  TimeRequest request(request_data.c_str(), request_data.length());
+  const TimeRequest &request = event->data<TimeRequest>();
+  SPDLOG_INFO("TimeRequest: {}", request.to_string());
   auto &app_tasks = timer_tasks_.try_emplace(event->source()).first->second;
   auto &task = app_tasks.try_emplace(request.id).first->second;
   task.checkpoint = request.base_time + request.duration;

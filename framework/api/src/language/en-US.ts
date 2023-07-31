@@ -96,8 +96,10 @@ export default {
   Operator: 'Operator',
   Trade: 'Trade',
   Order: 'Order',
+  OrderTriggerRecord: 'OrderTriggerRecord',
   PosGlobal: 'Positon Global',
   Pos: 'Positon',
+  TransferRecord: 'TransferRecord',
 
   please_wait: 'Please wait...',
   please_wait_and_retry: 'Please wait and retry',
@@ -136,6 +138,12 @@ export default {
     stopped: 'Stopped',
     launching: 'Launching',
     error: 'Errored',
+    finished_msg:
+      'The current order {status} and the order change has been cancelled',
+    trade_greater_than_target_msg:
+      'The transaction volume ({volume_trade}) is greater than the target order volume (volume_target), and the order change is cancelled',
+    target_equal_to_trade_msg:
+      'The transaction volume is equal to the target order volume, and the order change will be cancelled',
     waiting_restart: 'Stopped',
 
     pending: 'Pending',
@@ -195,6 +203,7 @@ export default {
     guarantee_stock_redeem: 'GuaranteeStockTransferOut',
 
     submitted: 'Submitted',
+    cancelling: 'Cancelling',
     cancelled: 'Cancelled',
     filled: 'Filled',
     partial_filled_not_active: 'PartialFilledNotActive',
@@ -248,6 +257,7 @@ export default {
     SZE: 'SZE',
     BSE: 'BSE',
     SHFE: 'SHFE',
+    GFEX: 'GFEX',
     DCE: 'DCE',
     CZCE: 'CZCE',
     CFFEX: 'CFFEX',
@@ -327,6 +337,33 @@ export default {
     archive: 'archive',
 
     place_order: 'Place Order',
+    order_trigger: 'Embedded orders',
+    order_trigger_title: 'Confirmation of embedded orders',
+    server_order_trigger_label: 'Server embedded order',
+    local_order_trigger_label: 'Local embedded order',
+    order_trigger_status_pending: 'Submitted',
+    order_trigger_status_submitted: 'Not triggered',
+    order_trigger_status_filled: 'Triggered',
+    order_trigger_status_cancelled: 'Canceled',
+    batch: 'Batch',
+    batch_order_trigger: 'Batch embedded orders',
+    order_trigger_td_error:
+      'The current counter {tdName} does not support placing embedded orders. Please contact the administrator',
+    order_trigger_not_future:
+      'In batch order burying, {rowStr} is not a futures and failed to place the order',
+    batch_order_trigger_results:
+      'Batch payment succeeded {success}, failed {error}',
+    instrument_id_header_desc:
+      'Target code, (* Only CTP/Ronghang counter can be filled in)',
+    exchange_id_header_desc:
+      'Exchange ID, string, can be filled with SSE (Shanghai Stock Exchange), SZE (Shenzhen Stock Exchange), BSE (Beijing Stock Exchange), SHFE (Shanghai Stock Exchange), DCE (Da Shang Exchange), CZCE (Zheng Shang Exchange), CFFEX (China Securities Exchange), INE (Energy Center)',
+    side_header_desc: 'Buy and sell, can fill in 0 buy/1 sell',
+    offset_header_desc:
+      'Open and close, you can fill in 0 open/1 close/2 close today/3 close yesterday',
+    price_type_header_desc:
+      '0 price limit/1 market price/2 Shanghai Shenzhen optimal five level real-time transaction remaining cancellation/3 Shenzhen local optimal price declaration/4 Shanghai optimal five level real-time transaction remaining conversion to limit price, Shenzhen counterparty optimal price declaration/5 Shenzhen real-time transaction remaining cancellation/6 Shenzhen market price full transaction or cancellation/7 enhanced limit price order/8 bidding limit price order/9 bidding price order',
+    volume_header_desc: 'Volume',
+    limit_price_header_desc: 'Limit price',
     apart_order: 'Apart Order',
     reset_order: 'Reset',
     account: 'AccountId',
@@ -354,7 +391,7 @@ export default {
     fat_finger_sell_modal:
       'The selling price exceeded the warning line, the current price is {price}, line for {warningLine}, fat finger is {fatFinger}%',
     close_apart_open_modal:
-      'The order input volume is {volume}, the current closable {direction} position is {closable_volume}, the excess is {open_volume}\nclick “Take excess to open”, will close {direction} {closable_volume}, open {direction} {open_volume}\nclick “Orignal plan”, will continue close {direction} {volume}',
+      'The order input volume is {volume}, the current closable {direction} position is {closableVolume}, the excess is {openVolume}\nclick “Take excess to open”, will close {direction} {closableVolume}, open {oppositeDirection} {openVolume}\nclick “Orignal plan”, will continue close {direction} {volume}',
     start_process: 'please start {process} first',
     place_confirm: 'Place Order Confirm',
     continue_close_rate:
@@ -435,6 +472,26 @@ export default {
     delete_amount_group: 'Deleting account Group {group}',
     confirm_delete_group:
       'The account process under account group change will not be affected, confirm the deletion',
+  },
+
+  fundTrans: {
+    config_error: '{td} abnormal configuration file for counter fund transfer',
+    modal_title: 'Transfer of funds between counters',
+    trans_selection: 'Please select the direction of fund transfer',
+    centralized_counter: 'Centralized counter',
+    source: 'Outline the node',
+    target: 'Into the node',
+    amount: 'Amount incurred',
+    trading_day: 'Transfer time',
+    tip_error: 'Transfer failed, please contact the administrator!',
+    capitalaccountor: 'Fund account',
+    trade_password: 'Transaction password',
+    account: 'Client number',
+    trans_type: 'Transfer type',
+    pending: 'Pending',
+    status: 'Transfer status',
+    success: 'success',
+    error: 'error',
   },
 
   mdConfig: {
@@ -668,7 +725,7 @@ export default {
     system: 'System',
     home_path: 'Select local home path',
     home_path_desc:
-      'Kung Fu will take the selected home path as the root directory, and will take effect after modifying and restarting Kung Fu',
+      'Kung Fu will take the selected home path as the root directory, and the directory path cannot contain Chinese characters. It is not recommended that the path be too long (which may cause the process to fail to start). After modification, restarting Kung Fu will take effect',
     reset_order: 'Reset',
     log_level: 'Log Level',
     for_all_log: 'For all Log',
@@ -683,6 +740,9 @@ export default {
     bypass_archive_desc:
       'Archive only delete journal and logs, zip nomore files',
 
+    bypass_subscribe_position: 'Skip position market subscription',
+    bypass_subscribe_position_desc:
+      'After opening, it will no longer default to subscribing to the market updates of trading account positions, and the trading account list will no longer display floating profits and losses. The market value related fields will be calculated using the average opening price. After opening, it can reduce the machine performance burden, and will take effect after restarting',
     porformance: 'Performance',
     rocket_model: 'Open Rocket Model',
     rocket_model_desc:
@@ -766,7 +826,9 @@ export default {
   白名单设置警告: 'Please set the whitelist for this account first',
 
   validate: {
-    no_special_characters: 'Cannot contain special characters',
+    no_special_characters:
+      'Cannot contain special characters or Chinese characters, and cannot start or end with - characters',
+    single_characters: 'Must contain numbers and letters',
     no_underscore: 'Cannot contain underscores',
     no_zero_number: 'Cannot contain zero',
     no_negative_number: 'Cannot contain negative',

@@ -359,12 +359,11 @@ void bind(pybind11::module &&m) {
   });
 
   py::class_<master, PyMaster>(m, "master")
-      .def(py::init<location_ptr, bool, bool, bool>(), py::arg("home"), py::arg("low_latency") = false,
-           py::arg("bypass_cached") = false, py::arg("daemon") = true)
+      .def(py::init<location_ptr, bool, bool>(), py::arg("home"), py::arg("low_latency") = false,
+           py::arg("bypass_cached") = false)
       .def_property_readonly("io_device", &master::get_io_device)
       .def_property_readonly("home", &master::get_home)
       .def_property_readonly("live", &master::is_live)
-      .def_property_readonly("daemon", &master::is_daemon)
       .def("now", &master::now)
       .def("run", &master::run)
       .def("setup", &master::setup)

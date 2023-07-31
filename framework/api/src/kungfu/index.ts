@@ -1,3 +1,4 @@
+import { UnfinishedOrderStatus } from './../config/tradingConfig';
 import dayjs from 'dayjs';
 import { kungfu } from '@kungfu-trader/kungfu-core';
 import { KF_RUNTIME_DIR } from '../config/pathConfig';
@@ -24,13 +25,17 @@ import {
   kfLogger,
   resolveAccountId,
   resolveClientId,
+  setTimerPromiseTask,
+  dealParkedType,
+  dealOrderTriggerStatus,
 } from '../utils/busiUtils';
 import {
   HistoryDateEnum,
   InstrumentTypeEnum,
   CurrencyEnum,
+  OrderActionFlagEnum,
 } from '../typings/enums';
-import { ExchangeIds } from '../config/tradingConfig';
+import { ExchangeIds, AllFinishedOrderStatus } from '../config/tradingConfig';
 
 export const kf = kungfu();
 
@@ -339,6 +344,7 @@ export const kfCancelOrder = (
 
   const orderAction: KungfuApi.OrderAction = {
     ...longfist.types.OrderAction(),
+    action_flag: OrderActionFlagEnum.Cancel,
     order_id,
   };
 
@@ -349,6 +355,33 @@ export const kfCancelOrder = (
   return Promise.resolve(
     watcher.cancelOrder(orderAction, sourceLocation, destLocation),
   );
+};
+
+export const kfCancelOrderUtilFinished = (
+  watcher: KungfuApi.Watcher,
+  order: KungfuApi.Order,
+) => {
+  return new Promise<KungfuApi.Order>((resolve, reject) => {
+    if (!UnfinishedOrderStatus.includes(order.status)) return resolve(order);
+
+    kfCancelOrder(watcher, order)
+      .then(() => {
+        const { clearLoop } = setTimerPromiseTask(() => {
+          const targetOrder = (watcher as KungfuApi.Watcher).ledger.Order[
+            order.uid_key
+          ];
+          if (
+            targetOrder &&
+            AllFinishedOrderStatus.includes(targetOrder.status)
+          ) {
+            clearLoop();
+            resolve(targetOrder);
+          }
+          return Promise.resolve();
+        }, 160);
+      })
+      .catch((err) => reject(err));
+  });
 };
 
 export const kfCancelAllOrders = (
@@ -412,6 +445,53 @@ export const kfMakeOrder = (
   }
 };
 
+export const kfOrderTrigger = (
+  watcher: KungfuApi.Watcher | null,
+  makeOrderTriggerInput: KungfuApi.MakeOrderTriggerInput,
+  tdLocation: KungfuApi.KfLocation,
+): Promise<bigint> => {
+  if (!watcher) {
+    return Promise.reject(new Error('Watcher is NULL'));
+  }
+
+  if (!watcher.isLive()) {
+    return Promise.reject(new Error(`Watcher is not live`));
+  }
+
+  if (!watcher.isReadyToInteract(tdLocation)) {
+    const accountId = getIdByKfLocation(tdLocation);
+    return Promise.reject(new Error(`Td ${accountId} not ready`));
+  }
+
+  const now = watcher.now();
+  const orderInput: KungfuApi.OrderTriggerInput = {
+    ...longfist.types.OrderInput(),
+    ...makeOrderTriggerInput,
+    block_id: BigInt(0),
+    limit_price: makeOrderTriggerInput.limit_price || 0,
+    volume: BigInt(makeOrderTriggerInput.volume),
+    insert_time: now,
+  };
+
+  return Promise.resolve(watcher.issueOrderTrigger(orderInput, tdLocation));
+};
+
+export const kfRefreshOrderTrigger = (
+  watcher: KungfuApi.Watcher | null,
+  msgType: number,
+  tdLocation: KungfuApi.KfLocation,
+): Promise<boolean> => {
+  if (!watcher) {
+    return Promise.reject(new Error('Watcher is NULL'));
+  }
+
+  if (!watcher.isLive()) {
+    return Promise.reject(new Error(`Watcher is not live`));
+  }
+
+  return Promise.resolve(watcher.issueMark(msgType, tdLocation));
+};
+
 export const kfMakeBlockOrder = async (
   watcher: KungfuApi.Watcher | null,
   blockMessage: KungfuApi.BlockMessage,
@@ -437,7 +517,6 @@ export const kfMakeBlockOrder = async (
     blockMessage = {
       ...blockMessage,
       is_specific: !!blockMessage.is_specific,
-      opponent_seat: +blockMessage.opponent_seat,
       match_number: BigInt(blockMessage.match_number),
       insert_time: watcher.now(),
     };
@@ -466,6 +545,43 @@ export const kfMakeBlockOrder = async (
   } else {
     return Promise.resolve(watcher.issueOrder(orderInput, tdLocation));
   }
+};
+
+export const makeOrderByOrderTriggerInput = (
+  watcher: KungfuApi.Watcher | null,
+  orderInput: KungfuApi.MakeOrderTriggerInput,
+  kfLocation: KungfuApi.KfLocation,
+  accountId: string,
+): Promise<bigint> => {
+  return new Promise((resolve, reject) => {
+    if (!watcher) {
+      reject(new Error(`Watcher is NULL`));
+      return;
+    }
+
+    if (kfLocation.category === 'td') {
+      return kfOrderTrigger(watcher, orderInput, kfLocation)
+        .then((order_id) => {
+          resolve(order_id);
+        })
+        .catch((err) => {
+          reject(err);
+        });
+    } else {
+      const tdLocation = getMdTdKfLocationByProcessId(`td_${accountId || ''}`);
+      if (!tdLocation) {
+        reject(new Error('下单账户信息错误'));
+        return;
+      }
+      return kfOrderTrigger(watcher, orderInput, tdLocation)
+        .then((order_id) => {
+          resolve(order_id);
+        })
+        .catch((err) => {
+          reject(err);
+        });
+    }
+  });
 };
 
 export const makeOrderByOrderInput = (
@@ -666,13 +782,12 @@ export const makeOrderByBasketTrade = (
 
 const ukeyCacheMap = new Map<string, string>();
 export const hashUkey = (...args: Array<string | number>) => {
-  const strArgs = args.map((arg) => `${arg}`);
-  const cacheKey = strArgs.join('_');
+  const cacheKey = args.map((arg) => `${arg}`).join('_');
   if (!ukeyCacheMap.has(cacheKey))
     ukeyCacheMap.set(
       cacheKey,
-      strArgs
-        .reduce<bigint>((pre, cur) => pre ^ BigInt(kf.hash(`${cur}`)), 0n)
+      args
+        .reduce<bigint>((pre, cur) => pre ^ BigInt(kf.hash(cur)), 0n)
         .toString(16)
         .padStart(16, '0'),
     );
@@ -695,24 +810,36 @@ export const hashInstrumentFactorUKey = (
   return hashUkey(instrumentId, exchangeId, accountUID);
 };
 
+export const getOrderLatencyDataByOrderStat = (
+  order: KungfuApi.Order,
+  orderStats: KungfuApi.DataTable<KungfuApi.OrderStat>,
+  price_precision?: number,
+) => {
+  const latencyData = dealOrderStat(orderStats, order.uid_key) || {
+    latencySystem: '--',
+    latencyNetwork: '--',
+    avg_price: 0,
+  };
+  return {
+    latency_system: latencyData.latencySystem,
+    latency_network: latencyData.latencyNetwork,
+    avg_price: latencyData.avg_price,
+    avg_price_resolved: dealKfPrice(latencyData.avg_price, price_precision),
+  };
+};
+
 export const dealOrder = (
   watcher: KungfuApi.Watcher,
   order: KungfuApi.Order,
-  orderStats: KungfuApi.DataTable<KungfuApi.OrderStat>,
   isHistory = false,
   pricePrecision = 3,
-): KungfuApi.OrderResolved => {
+): KungfuApi.OrderResolvedWithoutStat => {
   const sourceResolvedData = resolveAccountId(
     watcher,
     order.source,
     order.dest,
   );
   const destResolvedData = resolveClientId(watcher, order.dest);
-  const latencyData = dealOrderStat(orderStats, order.uid_key) || {
-    latencySystem: '--',
-    latencyNetwork: '--',
-    avg_price: 0,
-  };
   const statusData = dealOrderStatus(order.status, order.error_msg);
   return {
     ...order,
@@ -726,11 +853,47 @@ export const dealOrder = (
     status_uname: statusData.name,
     status_color: statusData.color || 'default',
     update_time_resolved: dealKfTime(order.update_time, isHistory),
-    latency_system: latencyData.latencySystem,
-    latency_network: latencyData.latencyNetwork,
-    avg_price: latencyData.avg_price,
     price_precision: pricePrecision,
     limit_price_resolved: dealKfPrice(order.limit_price, pricePrecision),
+  };
+};
+
+export const dealOrderTrigger = (
+  watcher: KungfuApi.Watcher,
+  order: KungfuApi.OrderTrigger,
+  isHistory = false,
+  pricePrecision = 3,
+): KungfuApi.OrderTriggerResolved => {
+  const sourceResolvedData = resolveAccountId(
+    watcher,
+    order.source,
+    order.dest,
+  );
+  const destResolvedData = resolveClientId(watcher, order.dest);
+  const statusData = dealOrderStatus(order.status, order.error_msg);
+  return {
+    ...order,
+    source: order.source,
+    dest: order.dest,
+    uid_key: order.uid_key,
+    source_resolved_data: sourceResolvedData,
+    dest_resolved_data: destResolvedData,
+    source_uname: sourceResolvedData.name,
+    dest_uname: destResolvedData.name,
+    status_uname: statusData.name,
+    status_color: statusData.color || 'default',
+    update_time_resolved: dealKfTime(order.update_time, isHistory),
+    price_precision: pricePrecision,
+    limit_price_resolved: dealKfPrice(order.limit_price, pricePrecision),
+    time_condition: dealTimeCondition(order.time_condition)
+      ? dealTimeCondition(order.time_condition).name
+      : '--',
+    parked_type: dealParkedType(order.parked_type)
+      ? dealParkedType(order.parked_type).name
+      : '--',
+    status: dealOrderTriggerStatus(order.status)
+      ? dealOrderTriggerStatus(order.status).name
+      : '--',
   };
 };
 

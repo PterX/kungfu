@@ -17,6 +17,7 @@ import {
   ARCHIVE_DIR,
   buildProcessLogPath,
   KF_HOME,
+  KUNGFU_RESOURCES_DIR,
 } from '@kungfu-trader/kungfu-js-api/config/pathConfig';
 import {
   getInstrumentTypeData,
@@ -33,6 +34,7 @@ import {
   isKfColor,
   isHexOrRgbColor,
   removeTodayArchive,
+  deleteNNFiles,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
@@ -51,10 +53,41 @@ import { VueNode } from 'ant-design-vue/lib/_util/type';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 const { t } = VueI18n.global;
 import fse from 'fs-extra';
+import fsPromise from 'fs/promises';
 import md from 'markdown-it';
 import { Router } from 'vue-router';
+import { normalizePath } from '@kungfu-trader/kungfu-js-api/utils/osUtils';
 
 // this utils file is only for ui components
+
+export const loadCustomFont = () => {
+  const fontsDir = path.normalize(path.join(KUNGFU_RESOURCES_DIR, 'fonts'));
+  if (!fse.existsSync(fontsDir)) return Promise.resolve();
+
+  return fse.readdir(fontsDir).then((fontFiles) => {
+    return Promise.all(
+      fontFiles.map((fontFileName) => {
+        const fontName = fontFileName.split('.')[0];
+        const fontFullPath = normalizePath(path.join(fontsDir, fontFileName));
+
+        if (fse.existsSync(fontFullPath)) {
+          return fsPromise.readFile(fontFullPath).then((fontBuffer) => {
+            const font = new FontFace(fontName, fontBuffer);
+            return font.load().then(() => {
+              document.fonts.add(font);
+              return fontName;
+            });
+          });
+        }
+
+        return Promise.resolve('');
+      }),
+    ).then((fontNames) => {
+      const newLoadedFont = fontNames.filter((item) => !!item).join(', ');
+      document.body.style.fontFamily = `${newLoadedFont}, monospace, sans-serif`;
+    });
+  });
+};
 
 export const mergeExtLanguages = async () => {
   const languages = await getKfExtensionLanguage();
@@ -427,6 +460,7 @@ const removeDBBeforeStartAll = (): Promise<void> => {
 
 export const preStartAll = async (): Promise<(void | Proc)[]> => {
   return Promise.all([
+    deleteNNFiles(),
     removeJournalBeforeStartAll(),
     removeDBBeforeStartAll(),
     removeArchiveBeforeStartAll(),

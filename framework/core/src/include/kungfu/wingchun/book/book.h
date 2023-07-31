@@ -36,7 +36,7 @@ typedef std::unordered_map<uint64_t, longfist::types::Trade> TradeMap;
 typedef std::unordered_map<uint32_t, longfist::types::InstrumentFactor> InstrumentFactorMap;
 
 struct Book {
-  const CommissionMap &commissions;
+  CommissionMap &commissions;
   const InstrumentMap &instruments;
   InstrumentFactorMap instrument_factors = {};
   longfist::types::Asset asset = {};
@@ -48,7 +48,7 @@ struct Book {
   OrderMap orders = {};
   TradeMap trades = {};
 
-  Book(const CommissionMap &commissions_ref, const InstrumentMap &instruments_ref);
+  Book(CommissionMap &commissions_ref, const InstrumentMap &instruments_ref);
 
   double get_frozen_price(uint64_t order_id);
 
@@ -235,6 +235,8 @@ struct Book {
   void replace(const longfist::types::Order &order);
 
   void replace(const longfist::types::Trade &trade);
+
+  void replace(const longfist::types::Commission &commission);
 
   void replace(const longfist::types::InstrumentFactor &instrument_factor);
 

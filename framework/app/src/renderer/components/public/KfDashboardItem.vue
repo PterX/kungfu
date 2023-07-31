@@ -9,7 +9,7 @@ export default defineComponent({});
 </script>
 <style lang="less">
 .kf-dashboard-item__warp {
-  padding-left: 8px;
+  padding-right: 8px;
   white-space: nowrap;
   flex-wrap: wrap;
   display: flex;

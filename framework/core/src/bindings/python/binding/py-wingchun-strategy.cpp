@@ -76,9 +76,19 @@ public:
     PYBIND11_OVERLOAD(void, strategy::Strategy, on_order, context, order, location, dest);
   }
 
+  void on_order_trigger(strategy::Context_ptr &context, const OrderTrigger &order_trigger,
+                        const kungfu::yijinjing::data::location_ptr &location, uint32_t dest) override {
+    PYBIND11_OVERLOAD(void, strategy::Strategy, on_order_trigger, context, order_trigger, location, dest);
+  }
+
   void on_order_action_error(strategy::Context_ptr &context, const OrderActionError &error,
                              const kungfu::yijinjing::data::location_ptr &location, uint32_t dest) override {
     PYBIND11_OVERLOAD(void, strategy::Strategy, on_order_action_error, context, error, location, dest);
+  }
+
+  void on_order_trigger_action_error(strategy::Context_ptr &context, const OrderTriggerActionError &error,
+                                     const kungfu::yijinjing::data::location_ptr &location, uint32_t dest) override {
+    PYBIND11_OVERLOAD(void, strategy::Strategy, on_order_trigger_action_error, context, error, location, dest);
   }
 
   void on_trade(strategy::Context_ptr &context, const Trade &trade,
@@ -180,12 +190,24 @@ void bind_strategy(pybind11::module &m) {
            py::arg("is_swap") = false, py::arg("block_id") = 0, py::arg("parent_id") = 0)
       .def("insert_block_message", &strategy::Context::insert_block_message, py::arg("source"), py::arg("account"),
            py::arg("opponent_seat"), py::arg("match_number"), py::arg("is_specific") = false)
+      .def("insert_order_trigger", &strategy::Context::insert_order_trigger, py::arg("instrument_id"),
+           py::arg("exchange"), py::arg("source"), py::arg("account"), py::arg("limit_price"), py::arg("volume"),
+           py::arg("type"), py::arg("side"), py::arg("offset") = Offset::Open, py::arg("trigger_type"),
+           py::arg("time_condition"), py::arg("parked_type") = longfist::enums::ParkedType::Server,
+           py::arg("stop_price") = 0, py::arg("hedge_flag") = HedgeFlag::Speculation, py::arg("is_swap") = false)
       .def("insert_batch_orders", &strategy::Context::insert_batch_orders)
       .def("insert_array_orders", &strategy::Context::insert_array_orders)
       .def("insert_basket_order", &strategy::Context::insert_basket_order, py::arg("basket_id"), py::arg("source"),
            py::arg("account"), py::arg("side"), py::arg("price_type") = PriceType::Limit,
-           py::arg("price_level") = PriceLevel::Lastest, py::arg("price_offset") = 0, py::arg("volume") = 0)
-      .def("cancel_order", &strategy::Context::cancel_order)
+           py::arg("price_level") = PriceLevel::Latest, py::arg("price_offset") = 0, py::arg("volume") = 0)
+      .def("insert_algo_order", &strategy::Context::insert_algo_order, py::arg("instrument_id"), py::arg("exchange_id"),
+           py::arg("source"), py::arg("account"), py::arg("begin_time"), py::arg("end_time"), py::arg("volume"),
+           py::arg("type"), py::arg("side"), py::arg("offset"), py::arg("algo_type_id"), py::arg("algo_id"),
+           py::arg("args"), py::arg("is_local") = false)
+      .def("cancel_order", &strategy::Context::cancel_order, py::arg("order_id"),
+           py::arg("action_flag") = OrderActionFlag::Cancel)
+      .def("cancel_order_trigger", &strategy::Context::cancel_order_trigger)
+      .def("cancel_algo_order", &strategy::Context::cancel_algo_order)
       .def("req_history_order", &strategy::Context::req_history_order, py::arg("source"), py::arg("account"),
            py::arg("query_num") = 0)
       .def("req_history_trade", &strategy::Context::req_history_trade, py::arg("source"), py::arg("account"),
@@ -220,7 +242,11 @@ void bind_strategy(pybind11::module &m) {
       .def("on_transaction", &strategy::Strategy::on_transaction)
       .def("on_synthetic_data", &strategy::Strategy::on_synthetic_data)
       .def("on_order", &strategy::Strategy::on_order)
+      .def("on_order_trigger", &strategy::Strategy::on_order_trigger)
+      .def("on_algo_order", &strategy::Strategy::on_algo_order)
       .def("on_order_action_error", &strategy::Strategy::on_order_action_error)
+      .def("on_order_trigger_action_error", &strategy::Strategy::on_order_trigger_action_error)
+      .def("on_algo_order_action_error", &strategy::Strategy::on_algo_order_action_error)
       .def("on_trade", &strategy::Strategy::on_trade)
       .def("on_position_sync_reset", &strategy::Strategy::on_position_sync_reset)
       .def("on_asset_sync_reset", &strategy::Strategy::on_asset_sync_reset)

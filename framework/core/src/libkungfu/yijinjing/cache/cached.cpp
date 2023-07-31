@@ -147,11 +147,11 @@ void cached::feed(const event_ptr &event) {
 }
 
 void cached::run_store_workers() {
-  if (bypass_cached_)
-    return;
-
   store_profile_worker_ = std::thread(&cached::do_store_profile_feeds, this);
-  store_states_worker_ = std::thread(&cached::do_store_states_feeds, this);
+
+  if (not bypass_cached_) {
+    store_states_worker_ = std::thread(&cached::do_store_states_feeds, this);
+  }
 }
 
 void cached::do_store_states_feeds() {

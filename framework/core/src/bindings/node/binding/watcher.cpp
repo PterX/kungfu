@@ -465,9 +465,7 @@ void Watcher::on_start() {
     events_ | is(Position::tag) | $$(UpdateBook(event, event->data<Position>()));
     events_ | is(PositionEnd::tag) | $$(UpdateAsset(event, event->data<PositionEnd>().holder_uid));
 
-    if (not bypass_refresh_book_) {
-      refresh_books();
-    }
+    refresh_books();
   }
 
   events_ | is(Channel::tag) | $$(InspectChannel(event->gen_time(), event->data<Channel>()));

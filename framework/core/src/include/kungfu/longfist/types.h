@@ -146,10 +146,12 @@ KF_DEFINE_PACK_TYPE(                                                            
 
     (enums::Direction, direction), // 持仓方向
 
-    (int64_t, volume),           // 数量
-    (int64_t, yesterday_volume), // 昨仓数量
-    (int64_t, frozen_total),     // 冻结数量
-    (int64_t, frozen_yesterday), // 冻结昨仓
+    (int64_t, volume),                  // 数量
+    (int64_t, yesterday_volume),        // 昨仓数量
+    (int64_t, frozen_total),            // 冻结数量
+    (int64_t, frozen_yesterday),        // 冻结昨仓
+    (int64_t, static_yesterday_volume), // 固定昨仓数量
+    (int64_t, open_volume),             // 今开数量
 
     (double, last_price), // 最新价
 

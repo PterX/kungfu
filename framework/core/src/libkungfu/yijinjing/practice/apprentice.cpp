@@ -68,17 +68,17 @@ void apprentice::request_write_to(int64_t trigger_time, uint32_t dest_id) {
   }
 }
 
-void apprentice::request_write_to_band(int64_t trigger_time, const location_ptr &location) {
+void apprentice::request_write_to_band(int64_t trigger_time, const location_ptr &location, uint32_t page_size) {
   if (get_io_device()->get_home()->mode == mode::LIVE) {
-    require_write_to_band(trigger_time, get_master_command_uid(), location);
+    require_write_to_band(trigger_time, get_master_command_uid(), location, page_size);
   }
 }
 
-uint32_t apprentice::request_band(const std::string &band_name) {
+uint32_t apprentice::request_band(const std::string &band_name, uint32_t page_size) {
   auto io_device = get_io_device();
   auto home = io_device->get_home();
   auto band_location = location::make_shared(home->mode, home->category, home->group, band_name, get_locator());
-  request_write_to_band(now(), band_location);
+  request_write_to_band(now(), band_location, page_size);
   return band_location->uid;
 }
 
@@ -212,9 +212,11 @@ void apprentice::on_write_to(const event_ptr &event) {
 }
 
 void apprentice::on_write_to_band(const event_ptr &event) {
-  auto dest_id = event->data<RequestWriteToBand>().location_uid;
+  const auto &request = event->data<RequestWriteToBand>();
+  auto dest_id = request.location_uid;
+  auto page_size = request.page_size;
   if (writers_.find(dest_id) == writers_.end()) {
-    writers_.insert_or_assign(dest_id, get_io_device()->open_writer(dest_id));
+    writers_.insert_or_assign(dest_id, get_io_device()->open_writer(dest_id, page_size));
   }
 }
 

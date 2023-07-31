@@ -833,7 +833,7 @@ export const dealOrder = (
   watcher: KungfuApi.Watcher,
   order: KungfuApi.Order,
   isHistory = false,
-  pricePrecision = 3,
+  pricePrecision = 4,
 ): KungfuApi.OrderResolvedWithoutStat => {
   const sourceResolvedData = resolveAccountId(
     watcher,
@@ -863,7 +863,7 @@ export const dealOrderTrigger = (
   watcher: KungfuApi.Watcher,
   order: KungfuApi.OrderTrigger,
   isHistory = false,
-  pricePrecision = 3,
+  pricePrecision = 4,
 ): KungfuApi.OrderTriggerResolved => {
   const sourceResolvedData = resolveAccountId(
     watcher,
@@ -903,7 +903,7 @@ export const dealTrade = (
   trade: KungfuApi.Trade,
   orderStats: KungfuApi.DataTable<KungfuApi.OrderStat>,
   isHistory = false,
-  pricePrecision = 3,
+  pricePrecision = 4,
 ): KungfuApi.TradeResolved => {
   const sourceResolvedData = resolveAccountId(
     watcher,
@@ -945,7 +945,7 @@ export const getPosClosableVolume = (position: KungfuApi.Position): bigint => {
 export const dealPosition = (
   watcher: KungfuApi.Watcher,
   pos: KungfuApi.Position,
-  pricePrecision = 3,
+  pricePrecision = 4,
 ): KungfuApi.PositionResolved => {
   const holderLocation = watcher.getLocation(pos.holder_uid);
   const account_id_resolved =

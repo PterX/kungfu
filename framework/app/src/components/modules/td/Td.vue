@@ -233,7 +233,7 @@ const columns = computed(() => {
 });
 
 const isShowUnrealizedPnl = computed(() => {
-  return !(globalSetting.value.performance?.bypassRefrashBook ?? false);
+  return !(globalSetting.value.performance?.bypassRefreshBook ?? false);
 });
 
 const getPrefixByLocation = (kfLocation: KungfuApi.KfLocation) =>

@@ -152,6 +152,7 @@ void bind_tool(pybind11::module &m) {
   };
   py::class_<Report, PyReport, Report_ptr>(m, "Report")
       .def(py::init<>())
+      .def_property_readonly("bookkeeper", &Report::get_bookkeeper)
       .def("now", &Report::now)
       .def("post_stop", &Report::post_stop)
       .def("on_quote", &Report::on_quote)

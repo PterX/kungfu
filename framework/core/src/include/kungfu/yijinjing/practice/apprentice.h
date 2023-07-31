@@ -62,9 +62,10 @@ public:
 
   void request_write_to(int64_t trigger_time, uint32_t dest_id);
 
-  void request_write_to_band(int64_t trigger_time, const yijinjing::data::location_ptr &location);
+  void request_write_to_band(int64_t trigger_time, const yijinjing::data::location_ptr &location,
+                             uint32_t page_size = 0);
 
-  uint32_t request_band(const std::string &band_name);
+  uint32_t request_band(const std::string &band_name, uint32_t page_size = 0);
 
   void add_timer(int64_t nanotime, const std::function<void(const event_ptr &)> &callback);
 

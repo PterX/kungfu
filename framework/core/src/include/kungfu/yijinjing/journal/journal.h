@@ -36,10 +36,10 @@ typedef std::map<journal_key, journal> JournalMap;
 class journal {
 public:
   journal(data::location_ptr location, uint32_t dest_id, bool is_writing, bool lazy, bool low_latency,
-          const bus_ptr &bus)
+          const bus_ptr &bus, uint32_t page_size)
       : location_(std::move(location)), dest_id_(dest_id), is_writing_(is_writing), lazy_(lazy),
-        low_latency_(low_latency), bus_(bus), frame_(std::shared_ptr<frame>(new frame())), page_frame_nb_(0u),
-        replica_(false) {}
+        low_latency_(low_latency), bus_(bus), page_size_(page_size), frame_(std::shared_ptr<frame>(new frame())),
+        page_frame_nb_(0u), replica_(false) {}
 
   journal(const journal &other);
 
@@ -76,6 +76,7 @@ public:
 private:
   const data::location_ptr location_;
   const uint32_t dest_id_;
+  const uint32_t page_size_;
   const bool is_writing_;
   const bool lazy_;
   const bool low_latency_;
@@ -115,7 +116,7 @@ public:
    * @param dest_id journal dest id
    * @param from_time subscribe events after this time, 0 means from start
    */
-  void join(const data::location_ptr &location, uint32_t dest_id, int64_t from_time);
+  void join(const data::location_ptr &location, uint32_t dest_id, int64_t from_time, uint32_t page_size = 0);
 
   void disjoin(uint32_t location_uid);
 
@@ -170,12 +171,16 @@ private:
   std::vector<journal *> no_data_journals_buffer_{};
   std::priority_queue<journal *, std::vector<journal *>, later> has_data_journals_heap_{};
   std::recursive_mutex mtx_{};
+
+  static uint32_t find_page_size(const data::location_ptr &location, uint32_t dest_id);
 };
 
 class writer {
 public:
   writer(const data::location_ptr &location, uint32_t dest_id, bool lazy, publisher_ptr publisher, bool low_latency,
          const bus_ptr &bus);
+  writer(const data::location_ptr &location, uint32_t dest_id, bool lazy, publisher_ptr publisher, bool low_latency,
+         const bus_ptr &bus, uint32_t page_size);
 
   [[nodiscard]] const data::location_ptr &get_location() const { return journal_.location_; }
 

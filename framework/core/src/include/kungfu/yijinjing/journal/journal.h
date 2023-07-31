@@ -35,11 +35,11 @@ struct journal_key {
 typedef std::map<journal_key, journal> JournalMap;
 class journal {
 public:
-  journal(data::location_ptr location, uint32_t dest_id, bool is_writing, bool lazy,
-          bool low_latency, const bus_ptr &bus, uint32_t page_size)
-      : location_(std::move(location)), dest_id_(dest_id), page_size_(page_size), is_writing_(is_writing), lazy_(lazy),
-        low_latency_(low_latency), bus_(bus), frame_(std::shared_ptr<frame>(new frame())), page_frame_nb_(0u),
-        replica_(false) {}
+  journal(data::location_ptr location, uint32_t dest_id, bool is_writing, bool lazy, bool low_latency,
+          const bus_ptr &bus, uint32_t page_size)
+      : location_(std::move(location)), dest_id_(dest_id), is_writing_(is_writing), lazy_(lazy),
+        low_latency_(low_latency), bus_(bus), page_size_(page_size), frame_(std::shared_ptr<frame>(new frame())),
+        page_frame_nb_(0u), replica_(false) {}
 
   journal(const journal &other);
 
@@ -116,8 +116,7 @@ public:
    * @param dest_id journal dest id
    * @param from_time subscribe events after this time, 0 means from start
    */
-  void join(const data::location_ptr &location, uint32_t dest_id, int64_t from_time,
-            uint32_t page_size = 0);
+  void join(const data::location_ptr &location, uint32_t dest_id, int64_t from_time, uint32_t page_size = 0);
 
   void disjoin(uint32_t location_uid);
 

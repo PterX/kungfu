@@ -63,7 +63,6 @@ public:
 
   static uint32_t find_page_size(const data::location_ptr &location, uint32_t dest_id, uint32_t page_size = 0);
 
-
 private:
   const data::location_ptr location_;
   const uint32_t dest_id_;

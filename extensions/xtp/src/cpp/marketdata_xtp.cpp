@@ -45,7 +45,7 @@ MarketDataXTP::~MarketDataXTP() {
 }
 
 void MarketDataXTP::on_start() {
-  level2_tick_band_uid_ = request_band("market-data-band");
+  level2_tick_band_uid_ = request_band("market-data-band", 1024);
 
   MDConfiguration config = nlohmann::json::parse(get_config());
   if (config.client_id < 1 or config.client_id > 99) {

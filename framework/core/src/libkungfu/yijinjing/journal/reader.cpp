@@ -44,7 +44,6 @@ void reader::disjoin(const uint32_t location_uid) {
 }
 
 void reader::disjoin_channel(uint32_t location_uid, uint32_t dest_id) {
-  // auto key = static_cast<uint64_t>(location_uid) << 32u | static_cast<uint64_t>(dest_id);
   for (auto it = journals_.begin(); it != journals_.end();) {
     if (it->first.location_uid == location_uid && it->first.dest_id == dest_id) {
       it = journals_.erase(it);
@@ -171,7 +170,7 @@ journal &reader::get_journal_ref(const data::location_ptr &location, uint32_t de
   }
 
   SPDLOG_ERROR("no journal found for location: {}, dest_id: {}", location->uname, dest_id);
-  throw journal_error(fmt::format("no journal found for location: {}, dest_id: {} " ,location->uname, dest_id));
+  throw journal_error(fmt::format("no journal found for location: {}, dest_id: {} ", location->uname, dest_id));
 }
 
 uint32_t reader::find_page_size(const data::location_ptr &location, uint32_t dest_id) {

@@ -173,7 +173,7 @@ public:
     auto &position = book->get_position(direction, trade.exchange_id, trade.instrument_id);
 
     if (offset == Offset::Open) {
-      apply_open(book, position, trade);
+      apply_open(dest, book, position, trade);
     }
     if (offset == Offset::Close or offset == Offset::CloseToday or offset == Offset::CloseYesterday) {
       // the extra offset is for merge position situation
@@ -215,7 +215,8 @@ public:
   }
 
 private:
-  void apply_open(Book_ptr &book, Position &position, const Trade &trade) {
+  void apply_open(uint32_t dest, Book_ptr &book, Position &position, const Trade &trade) {
+    auto is_local = dest != location::SYNC and dest != location::PUBLIC;
     auto cm_mr =
         get_instrument_contract_multiplier_and_margin_ratio(book, trade.exchange_id, trade.instrument_id, position);
 
@@ -227,6 +228,16 @@ private:
                               double(position.volume + trade.volume);
     position.volume += trade.volume;
     update_position(book, position);
+
+    if (not is_local) {
+      return;
+    }
+
+    auto frozen_margin = contract_multiplier * book->get_frozen_price(trade.order_id) * cm_mr.exchange_rate *
+                         trade.volume * margin_ratio_by_pos;
+    book->asset.avail += frozen_margin;
+    book->asset.frozen_cash -= frozen_margin;
+    book->asset.frozen_margin -= frozen_margin;
 
     auto commission = calculate_commission(book, trade, position, 0) * cm_mr.exchange_rate;
     book->asset.avail -= commission;
@@ -264,6 +275,10 @@ private:
     }
     position.realized_pnl += realized_pnl;
     update_position(book, position);
+
+    if (not is_local) {
+      return;
+    }
 
     auto commission = calculate_commission(book, trade, position, close_today_volume) * cm_mr.exchange_rate;
     book->asset.realized_pnl += realized_pnl * cm_mr.exchange_rate;

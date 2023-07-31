@@ -243,7 +243,12 @@ private:
       return;
     }
 
-    auto trade_market_value = contract_multiplier * position.last_price * cm_mr.exchange_rate * trade.volume;
+    auto frozen_margin = contract_multiplier * book->get_frozen_price(trade.order_id) * cm_mr.exchange_rate *
+                         trade.volume * margin_ratio_by_pos;
+    book->asset.avail += frozen_margin;
+    book->asset.frozen_cash -= frozen_margin;
+    book->asset.frozen_margin -= frozen_margin;
+
     auto commission = calculate_commission(book, trade, position, 0) * cm_mr.exchange_rate;
     book->asset.avail -= commission;
     book->asset.avail -= margin;

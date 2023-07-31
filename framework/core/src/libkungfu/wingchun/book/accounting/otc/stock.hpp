@@ -130,22 +130,24 @@ public:
       return;
     }
 
-    if (is_final_status(order.status)) {
-      auto &position = book->get_position_for(order);
-      auto cd_mr = get_instr_conversion_margin_rate(book, position);
-      auto &asset = book->asset;
-      if (order.side == Side::Buy) {
-        auto frozen =
-            book->get_frozen_price(order.order_id) * order.volume_left * cd_mr.exchange_rate * cd_mr.margin_ratio;
-        asset.frozen_cash -= frozen;
-        asset.avail += frozen;
-      } else if (order.side == Side::Sell) {
-        position.frozen_total = std::max(position.frozen_total - order.volume_left, VOLUME_ZERO);
-        position.frozen_yesterday = std::max(position.frozen_yesterday - order.volume_left, VOLUME_ZERO);
-      }
-
-      update_position(book, position);
+    if (not is_final_status(order.status)) {
+      return;
     }
+
+    auto &position = book->get_position_for(order);
+    auto cd_mr = get_instr_conversion_margin_rate(book, position);
+    auto &asset = book->asset;
+    if (order.side == Side::Buy) {
+      auto frozen =
+          book->get_frozen_price(order.order_id) * order.volume_left * cd_mr.exchange_rate * cd_mr.margin_ratio;
+      asset.frozen_cash -= frozen;
+      asset.avail += frozen;
+    } else if (order.side == Side::Sell) {
+      position.frozen_total = std::max(position.frozen_total - order.volume_left, VOLUME_ZERO);
+      position.frozen_yesterday = std::max(position.frozen_yesterday - order.volume_left, VOLUME_ZERO);
+    }
+
+    update_position(book, position);
   }
 
   virtual void apply_trade(uint32_t source, uint32_t dest, Book_ptr &book, const Trade &trade) override {
@@ -192,7 +194,6 @@ protected:
     double trade_amt = trade.price * cd_mr.exchange_rate * trade.volume;
     double repay_cash_debt = std::min(position.margin, (trade_amt * cd_mr.margin_ratio - (commission + tax)));
     double cash_delivery = trade_amt * cd_mr.margin_ratio - repay_cash_debt - (commission + tax);
-
     asset.realized_pnl += realized_pnl * cd_mr.exchange_rate;
     asset.avail += cash_delivery;
     asset.intraday_fee += commission + tax;
@@ -222,7 +223,10 @@ protected:
     }
 
     auto &asset = book->asset;
-
+    double frozen_cash_to_release = book->get_frozen_price(trade.order_id) * cd_mr.exchange_rate * trade.volume;
+    asset.frozen_cash -= frozen_cash_to_release;
+    double avail_cash_change = frozen_cash_to_release - trade_amt - (commission + tax);
+    asset.avail += avail_cash_change;
     asset.intraday_fee += commission + tax;
     asset.accumulated_fee += commission + tax;
   }
@@ -265,6 +269,7 @@ protected:
   static double margin_ratio(const InstrumentFactor &factor, const Position &position) {
     return position.direction == Direction::Long ? factor.long_margin_ratio : factor.short_margin_ratio;
   }
+
   [[maybe_unused]] static double roundn(double value, int n = OTC_AMOUT_PRECISION) {
     double x = pow(10.0, (double)n);
     double round_val = round(value * x) / x;

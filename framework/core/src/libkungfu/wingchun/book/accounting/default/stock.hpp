@@ -96,15 +96,10 @@ public:
       auto &asset_margin = book->asset_margin;
 
       if (position.direction == Direction::Long) {
-        // position.margin would not be changed for Long direction, the margin depends on debt.
-        // TODO: As non-margin position and margin position are combined together, need distinguish each volume.
-        // asset_margin.margin_market_value += price_change * position.margin_volume;
-
         asset.market_value += market_value_change; // Asset.market_value means Long positions only.
         asset.unrealized_pnl += market_value_change;
         asset_margin.total_asset += market_value_change;
       } else {
-        // short_margin_ratio as 100% when last_price > avg_open_price;
         double short_margin_change = (quote.last_price < position.avg_open_price)
                                          ? cd_mr.short_margin_ratio * market_value_change
                                          : market_value_change;
@@ -112,7 +107,6 @@ public:
         position.margin += short_margin_change;
         asset_margin.short_margin += short_margin_change;
         asset_margin.short_market_value += market_value_change;
-        // Asset_margin.margin is combined with long_margin and short_margin.
         asset_margin.margin += short_margin_change;
         double avail_margin_change = (price_change && position.direction == Direction::Short)
                                          ? (-cd_mr.conversion_rate * market_value_change - short_margin_change)
@@ -231,7 +225,6 @@ public:
   }
 
   virtual void update_position(Book_ptr &book, Position &position) override {
-    // auto cd_mr = get_instr_conversion_margin_rate(book, position);
     if (position.last_price > 0) {
       double price_change = position.last_price - position.avg_open_price;
       position.unrealized_pnl =
@@ -256,10 +249,6 @@ protected:
     position.volume = std::max(position.volume - trade.volume, VOLUME_ZERO);
     double realized_pnl = (trade.price - position.avg_open_price) * trade.volume;
     position.realized_pnl += realized_pnl;
-
-    double unrealized_pnl_change = (position.last_price - position.avg_open_price) * trade.volume;
-    position.unrealized_pnl -= unrealized_pnl_change;
-
     update_position(book, position);
 
     if (not is_local) {
@@ -268,12 +257,9 @@ protected:
 
     auto &asset = book->asset;
     double trade_amt = trade.price * cd_mr.exchange_rate * trade.volume;
-
     asset.realized_pnl += realized_pnl * cd_mr.exchange_rate;
-
     double repay_cash_debt = std::min(position.margin, (trade_amt - (commission + tax)));
     double cash_delivery = trade_amt - repay_cash_debt - (commission + tax);
-
     asset.avail += cash_delivery;
     asset.intraday_fee += commission + tax;
     asset.accumulated_fee += commission + tax;
@@ -303,6 +289,10 @@ protected:
     }
 
     auto &asset = book->asset;
+    double frozen_cash_to_release = book->get_frozen_price(trade.order_id) * cd_mr.exchange_rate * trade.volume;
+    asset.frozen_cash -= frozen_cash_to_release;
+    double avail_cash_change = frozen_cash_to_release - trade_amt - (commission + tax);
+    asset.avail += avail_cash_change;
     asset.intraday_fee += commission + tax;
     asset.accumulated_fee += commission + tax;
   }
@@ -454,6 +444,7 @@ protected:
   static double margin_ratio(const InstrumentFactor &factor, const Position &position) {
     return position.direction == Direction::Long ? factor.long_margin_ratio : factor.short_margin_ratio;
   }
+
   [[maybe_unused]] static double roundn(double value, int n = AMOUT_PRECISION) {
     double x = pow(10.0, (double)n);
     double round_val = round(value * x) / x;

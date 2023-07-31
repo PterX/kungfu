@@ -8,11 +8,6 @@
 namespace kungfu::yijinjing::journal {
 
 frame_ptr hookable_writer::open_frame(int64_t trigger_time, int32_t msg_type, uint32_t length) {
-  if (not writer_mtx_.try_lock()) {
-    SPDLOG_ERROR("{} -> {} writer is using ", get_location()->uname, get_dest());
-    throw journal_error("writer is using");
-  }
-  writer_mtx_.unlock();
   frame_ptr frame = writer::open_frame(trigger_time, msg_type, length);
   hook_->on_open_frame(trigger_time, frame);
   return frame;

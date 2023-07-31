@@ -317,6 +317,9 @@ SZSE
 HKEx
 MarketType
 Snapshot
+Entrust
+Transaction
+Tree
 SubscribeDataType
 Stock
 Future
@@ -488,6 +491,10 @@ OrderTriggerType
 Server
 Local
 ParkedType
+Low
+Medium
+High
+Priority
 No
 AccountInternal
 AccountInteractive

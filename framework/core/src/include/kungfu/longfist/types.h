@@ -991,7 +991,8 @@ KF_DEFINE_DATA_TYPE(                                          //
     (enums::category, category),                              //
     (enums::mode, mode),                                      //
     (std::string, group),                                     //
-    (std::string, name)                                       //
+    (std::string, name),                                      //
+    (uint32_t, page_size)                                     //
 );
 
 KF_DEFINE_PACK_TYPE(                                  //

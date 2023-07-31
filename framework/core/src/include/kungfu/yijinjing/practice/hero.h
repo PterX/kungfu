@@ -177,8 +177,8 @@ protected:
 
   void require_write_to(int64_t trigger_time, uint32_t source_id, uint32_t dest_id);
 
-  void require_write_to_band(int64_t trigger_time, uint32_t source_id,
-                             const yijinjing::data::location_ptr &location) const;
+  void require_write_to_band(int64_t trigger_time, uint32_t source_id, const yijinjing::data::location_ptr &location,
+                             uint32_t page_size = 0) const;
 
   virtual void pre_setup();
 

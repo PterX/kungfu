@@ -120,7 +120,7 @@ const configSettings = computed(() => {
   }
 
   let step = 1,
-    pricePrecision = 0;
+    pricePrecision = 4;
   if (instrumentResolved.value) {
     const { instrumentId, exchangeId } = instrumentResolved.value;
     const { price_tick, price_precision } = getPriceTickAndPrecision(

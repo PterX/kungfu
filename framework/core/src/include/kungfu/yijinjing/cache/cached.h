@@ -17,7 +17,8 @@ typedef yijinjing::cache::typed_bank<ProfileDataTypesType, ProfileStateMapType> 
 
 class cached : public yijinjing::practice::apprentice {
 public:
-  explicit cached(yijinjing::data::locator_ptr locator, longfist::enums::mode m, bool low_latency = false);
+  explicit cached(yijinjing::data::locator_ptr locator, longfist::enums::mode m, bool low_latency,
+                  const std::string &arguments);
 
 protected:
   void on_start() override;

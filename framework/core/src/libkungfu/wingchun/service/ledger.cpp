@@ -20,9 +20,9 @@ using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::cache;
 
 namespace kungfu::wingchun::service {
-Ledger::Ledger(locator_ptr locator, mode m, bool low_latency)
+Ledger::Ledger(locator_ptr locator, mode m, bool low_latency, const std::string &arguments)
     : apprentice(location::make_shared(m, category::SYSTEM, "service", "ledger", std::move(locator)), low_latency),
-      broker_client_(*this), bookkeeper_(*this, broker_client_, true) {}
+      arguments_(arguments), broker_client_(*this), bookkeeper_(*this, broker_client_, true) {}
 
 void Ledger::on_exit() {}
 
@@ -55,7 +55,20 @@ void Ledger::on_start() {
 
   add_time_interval(time_unit::NANOSECONDS_PER_MINUTE, [&](auto e) { request_asset_sync(e->gen_time()); });
   add_time_interval(time_unit::NANOSECONDS_PER_MINUTE, [&](auto e) { request_position_sync(e->gen_time()); });
-  refresh_books();
+
+  SPDLOG_DEBUG("bypass_refresh_book {}", bypass_refresh_book());
+  if (not bypass_refresh_book()) {
+    refresh_books();
+  }
+}
+
+bool Ledger::bypass_refresh_book() const {
+  if (arguments_.empty()) {
+    return false;
+  }
+
+  auto config = nlohmann::json::parse(arguments_);
+  return config.value<bool>("bypass_refresh_book", false);
 }
 
 void Ledger::on_deregister([[maybe_unused]] const Deregister &deregister) {

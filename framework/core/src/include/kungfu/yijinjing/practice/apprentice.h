@@ -77,8 +77,6 @@ public:
 
   bool release_page();
 
-  yijinjing::journal::writer_ptr &get_thread_writer();
-
 protected:
   cache::bank state_bank_;
 
@@ -242,7 +240,6 @@ private:
   yijinjing::practice::cleaner cleaner_;
   std::unordered_map<int, int64_t> timer_checkpoints_ = {};
   std::unordered_map<int, longfist::types::TimeRequest> timer_requests_ = {};
-  inline static thread_local yijinjing::journal::writer_ptr thread_writer_;
 
   void checkin();
 

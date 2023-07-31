@@ -109,8 +109,9 @@ void master::register_app(const event_ptr &event) {
 
   auto now = time::now_in_nano();
   auto uid_str = fmt::format("{:08x}", app_location->uid);
-  SPDLOG_INFO("registering location {} uname {} uid {}", uid_str, app_location->uname, app_location->uid);
   auto master_cmd_location = location::make_shared(mode::LIVE, category::SYSTEM, "master", uid_str, home->locator);
+  SPDLOG_INFO("registering location {} uname {} uid {}, master_cmd_location {} uid {}", uid_str, app_location->uname,
+              app_location->uid, master_cmd_location->uname, master_cmd_location->uid);
   try_add_location(event->gen_time(), master_cmd_location);
 
   auto app_cmd_writer = get_io_device()->open_writer_at(master_cmd_location, app_location->uid);
@@ -381,7 +382,6 @@ void master::on_time_request(const event_ptr &event) {
     return;
   }
   auto request_data = event->data_as_string();
-  SPDLOG_INFO("on_time_request ======== {}", request_data.c_str());
   TimeRequest request(request_data.c_str(), request_data.length());
   auto &app_tasks = timer_tasks_.try_emplace(event->source()).first->second;
   auto &task = app_tasks.try_emplace(request.id).first->second;

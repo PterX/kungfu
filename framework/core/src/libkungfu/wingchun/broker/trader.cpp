@@ -76,9 +76,23 @@ state<Order> &Trader::get_order(uint64_t order_id) { return get_order_service().
 
 const OrderActionMap &Trader::get_order_actions() const { return get_order_service().get_order_actions(); }
 
+bool Trader::has_order_action(uint64_t action_id) const { return get_order_service().has_order_action(action_id); }
+
+kungfu::state<longfist::types::OrderAction> &Trader::get_order_action(uint64_t action_id) {
+  return get_order_service().get_order_action(action_id);
+}
+
 const TradeMap &Trader::get_trades() const { return get_order_service().get_trades(); }
 
 const OrderTriggerMap &Trader::get_order_triggers() const { return get_order_trigger_service().get_order_triggers(); }
+
+bool Trader::has_order_trigger_action(uint64_t action_id) const {
+  return get_order_trigger_service().has_order_trigger_action(action_id);
+}
+
+kungfu::state<longfist::types::OrderTriggerAction> &Trader::get_order_trigger_action(uint64_t action_id) {
+  return get_order_trigger_service().get_order_trigger_action(action_id);
+}
 
 bool Trader::has_order_trigger(uint64_t trigger_id) const {
   return get_order_trigger_service().has_order_trigger(trigger_id);
@@ -221,7 +235,6 @@ void Trader::on_risk_setting() {
   SPDLOG_DEBUG("RiskSetting: {}", msg);
   auto risk_setting_data = nlohmann::json::parse(msg);
   disable_recover_ = risk_setting_data.value<bool>("disable_recover", false);
-
   auto risk_check = risk_setting_data.value<bool>("risk_check", false);
   if (risk_check) {
     // let process crash if value is not a json
@@ -231,6 +244,10 @@ void Trader::on_risk_setting() {
       risk_uid_ = location(get_home()->mode, category::SYSTEM, "service", risk_name, get_home()->locator).location_uid;
     }
   }
+}
+
+yijinjing::journal::writer_ptr &Trader::get_thread_writer() {
+  return dynamic_cast<TraderVendor &>(get_vendor()).get_thread_writer();
 }
 
 } // namespace kungfu::wingchun::broker

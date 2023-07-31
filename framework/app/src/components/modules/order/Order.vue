@@ -141,7 +141,7 @@ onMounted(() => {
             const { price_precision } = getPriceTickAndPrecision(
               item.instrument_id,
               item.exchange_id,
-              0.001,
+              0.0001,
             );
 
             return toRaw({
@@ -168,7 +168,7 @@ onMounted(() => {
             const { price_precision } = getPriceTickAndPrecision(
               curOrder.instrument_id,
               curOrder.exchange_id,
-              0.001,
+              0.0001,
             );
 
             const orderResolved = toRaw({
@@ -256,7 +256,7 @@ watch(historyDate, async (newDate) => {
           const { price_precision } = getPriceTickAndPrecision(
             item.instrument_id,
             item.exchange_id,
-            0.001,
+            0.0001,
           );
 
           return toRaw({

@@ -108,7 +108,7 @@ onMounted(() => {
             const { price_precision } = getPriceTickAndPrecision(
               item.instrument_id,
               item.exchange_id,
-              0.001,
+              0.0001,
             );
 
             return dealDataWithCache(item, () =>

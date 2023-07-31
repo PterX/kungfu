@@ -1588,8 +1588,8 @@ export const useActiveInstruments = () => {
   const getPriceTickAndPrecision = (
     instrumentId: string,
     exchangeId: string,
-    defaultTick = 0.001,
-    defaultPrecision = 0.001,
+    defaultTick = 0.0001,
+    defaultPrecision = 0.0001,
   ) => {
     const instrument = getInstrumentByIdsWithWatcher(instrumentId, exchangeId);
     const price_tick = instrument?.price_tick || defaultTick;

@@ -187,7 +187,7 @@ double Ledger::translate_by_price_tick(const char *exchange_id, const char *inst
     }
   }
 
-  return int(price * 1000) / 1000.0;
+  return int(price * 10000) / 10000.0;
 }
 
 void Ledger::update_account_book(int64_t trigger_time, uint32_t account_uid) {

@@ -45,6 +45,27 @@ export const getColumns = (
       },
       {
         type: 'number',
+        name: t('posGlobalConfig.static_yesterday_volume'),
+        dataIndex: 'static_yesterday_volume',
+        flex: 1,
+        align: 'right',
+      },
+      {
+        type: 'number',
+        name: t('posGlobalConfig.open_volume'),
+        dataIndex: 'open_volume',
+        flex: 1,
+        align: 'right',
+      },
+      {
+        type: 'number',
+        name: t('posGlobalConfig.today_close_volume'),
+        dataIndex: 'today_close_volume',
+        flex: 1,
+        align: 'right',
+      },
+      {
+        type: 'number',
         name: t('posGlobalConfig.yesterday_volume'),
         dataIndex: 'yesterday_volume',
         flex: 1,

@@ -226,6 +226,34 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
         default: false,
         type: 'bool',
       },
+      {
+        key: 'posTableColumns',
+        name: t('globalSettingConfig.pos_table_columns'),
+        type: 'multiSelect',
+        options: [
+          {
+            value: 'static_yesterday_volume',
+            label: t('posGlobalConfig.static_yesterday_volume'),
+          },
+          {
+            value: 'open_volume',
+            label: t('posGlobalConfig.open_volume'),
+          },
+          {
+            value: 'today_close_volume',
+            label: t('posGlobalConfig.today_close_volume'),
+          },
+          {
+            value: 'yesterday_volume',
+            label: t('posGlobalConfig.yesterday_volume'),
+          },
+          {
+            value: 'closable_volume',
+            label: t('posGlobalConfig.closable_volume'),
+          },
+        ],
+        default: [],
+      },
     ],
   },
   {

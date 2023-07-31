@@ -42,6 +42,7 @@ Context_ptr Runner::make_context() {
       SPDLOG_WARN("Runner in backtest mode not specified.");
     }
     set_runner(*matcher_, this);
+    set_runner(*report_, this);
 
     return std::make_shared<BacktestContext>(*this, events_, std::move(matcher_), std::move(from_indexer_),
                                              std::move(to_indexer_), report_);

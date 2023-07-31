@@ -40,18 +40,18 @@ void BacktestContext::on_start() {
   // broker_client_.on_start(events_);
   bookkeeper_.on_start(events_);
   events_ | is_own<Quote>(get_broker_client()) |
-      $$(matcher_->on_quote(event->data<Quote>()); report_->on_quote(event->data<Quote>(), now()););
+      $$(matcher_->on_quote(event->data<Quote>()); report_->on_quote(event->data<Quote>()););
   events_ | is_own<Entrust>(get_broker_client()) |
-      $$(matcher_->on_entrust(event->data<Entrust>()); report_->on_entrust(event->data<Entrust>(), now()););
+      $$(matcher_->on_entrust(event->data<Entrust>()); report_->on_entrust(event->data<Entrust>()););
   events_ | is_own<Transaction>(get_broker_client()) |
       $$(matcher_->on_transaction(event->data<Transaction>());
-         report_->on_transaction(event->data<Transaction>(), now()););
+         report_->on_transaction(event->data<Transaction>()););
   events_ | is_own<Tree>(get_broker_client()) |
-      $$(matcher_->on_tree(event->data<Tree>()); report_->on_tree(event->data<Tree>(), now()););
-  events_ | is(SyntheticData::tag) | $$(report_->on_read_synthetic_data(event->data<SyntheticData>(), now()));
+      $$(matcher_->on_tree(event->data<Tree>()); report_->on_tree(event->data<Tree>()););
+  events_ | is(SyntheticData::tag) | $$(report_->on_read_synthetic_data(event->data<SyntheticData>()));
   events_ | is(OrderInput::tag) | $$(matcher_->on_order_input(event->data<OrderInput>()));
-  events_ | is(Order::tag) | $$(report_->on_order(event->data<Order>(), now()));
-  events_ | is(Trade::tag) | $$(report_->on_trade(event->data<Trade>(), now()));
+  events_ | is(Order::tag) | $$(report_->on_order(event->data<Order>()));
+  events_ | is(Trade::tag) | $$(report_->on_trade(event->data<Trade>()));
   events_ | is(OrderAction::tag) | $$(matcher_->on_order_action(event->data<OrderAction>()));
   events_ | $$(on_timer_check());
 }

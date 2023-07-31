@@ -3,7 +3,7 @@
 import asyncio
 import importlib.util
 import inspect
-import functools
+from functools import partial
 import kungfu
 import os
 import sys
@@ -25,6 +25,7 @@ class Report(wc.Report):
         ctx.log = ctx.logger
         ctx.strftime = kft.strftime
         ctx.strptime = kft.strptime
+        ctx.now = partial(wc.Report.now, self)
         ctx.constants = constants
         ctx.utils = utils
         self.ctx = ctx
@@ -36,60 +37,56 @@ class Report(wc.Report):
         sys.path.insert(0, os.path.relpath(report_dir))
         module_name = os.path.splitext(name_no_ext[1])[0]
         self._module = import_force(module_name)
-        # module_spec = importlib.util.spec_from_file_location(module_name, path)
-        # self._module = importlib.util.module_from_spec(module_spec)
-        # module_spec.loader.exec_module(self._module)
-        # self._pre_stop = getattr(self._module, "pre_stop", lambda ctx: None)
         self._post_stop = getattr(self._module, "post_stop", lambda ctx: None)
 
-        self._on_quote = getattr(self._module, "on_quote", lambda ctx, quote, now: None)
+        self._on_quote = getattr(self._module, "on_quote", lambda ctx, quote: None)
         self._on_entrust = getattr(
-            self._module, "on_entrust", lambda ctx, entrust, now: None
+            self._module, "on_entrust", lambda ctx, entrust: None
         )
         self._on_transaction = getattr(
             self._module,
             "on_transaction",
-            lambda ctx, transaction, now: None,
+            lambda ctx, transaction: None,
         )
 
-        self._on_tree = getattr(self._module, "on_tree", lambda ctx, tree, now: None)
+        self._on_tree = getattr(self._module, "on_tree", lambda ctx, tree: None)
 
         self._on_read_synthetic_data = getattr(
             self._module,
             "on_read_synthetic_data",
-            lambda ctx, synthetic_data, now: None,
+            lambda ctx, synthetic_data: None,
         )
 
         self._on_write_synthetic_data = getattr(
             self._module,
             "on_write_synthetic_data",
-            lambda ctx, synthetic_data, now: None,
+            lambda ctx, synthetic_data: None,
         )
 
-        self._on_order = getattr(self._module, "on_order", lambda ctx, order, now: None)
+        self._on_order = getattr(self._module, "on_order", lambda ctx, order: None)
 
-        self._on_trade = getattr(self._module, "on_trade", lambda ctx, trade, now: None)
+        self._on_trade = getattr(self._module, "on_trade", lambda ctx, trade: None)
 
-    def on_quote(self, quote, now):
-        self._on_quote(self.ctx, quote, now)
+    def on_quote(self, quote):
+        self._on_quote(self.ctx, quote)
 
-    def on_entrust(self, entrust, now):
-        self._on_entrust(self.ctx, entrust, now)
+    def on_entrust(self, entrust):
+        self._on_entrust(self.ctx, entrust)
 
-    def on_transaction(self, transaction, now):
-        self._on_transaction(self.ctx, transaction, now)
+    def on_transaction(self, transaction):
+        self._on_transaction(self.ctx, transaction)
 
-    def on_tree(self, tree, now):
-        self._on_transaction(self.ctx, tree, now)
+    def on_tree(self, tree):
+        self._on_transaction(self.ctx, tree)
 
-    def on_read_synthetic_data(self, synthetic_data, now):
-        self._on_read_synthetic_data(self.ctx, synthetic_data, now)
+    def on_read_synthetic_data(self, synthetic_data):
+        self._on_read_synthetic_data(self.ctx, synthetic_data)
 
-    def on_write_synthetic_data(self, synthetic_data, now):
-        self._on_write_synthetic_data(self.ctx, synthetic_data, now)
+    def on_write_synthetic_data(self, synthetic_data):
+        self._on_write_synthetic_data(self.ctx, synthetic_data)
 
-    def on_order(self, order, now):
-        self._on_order(self.ctx, order, now)
+    def on_order(self, order):
+        self._on_order(self.ctx, order)
 
-    def on_trade(self, trade, now):
-        self._on_trade(self.ctx, trade, now)
+    def on_trade(self, trade):
+        self._on_trade(self.ctx, trade)

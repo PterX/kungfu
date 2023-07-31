@@ -26,11 +26,11 @@ BacktestContext::BacktestContext(apprentice &app, const rx::connectable_observab
 void BacktestContext::on_start() {
   broker_client_.on_start(events_);
   events_ | $$(on_timer_check());
-  events_ | is_own<Quote>(get_broker_client()) | $$(report_->on_quote(event->data<Quote>(), now()););
-  events_ | is_own<Entrust>(get_broker_client()) | $$(report_->on_entrust(event->data<Entrust>(), now()););
-  events_ | is_own<Transaction>(get_broker_client()) | $$(report_->on_transaction(event->data<Transaction>(), now()););
-  events_ | is_own<Tree>(get_broker_client()) | $$(report_->on_tree(event->data<Tree>(), now()););
-  events_ | is(SyntheticData::tag) | $$(report_->on_read_synthetic_data(event->data<SyntheticData>(), now()));
+  events_ | is_own<Quote>(get_broker_client()) | $$(report_->on_quote(event->data<Quote>()););
+  events_ | is_own<Entrust>(get_broker_client()) | $$(report_->on_entrust(event->data<Entrust>()););
+  events_ | is_own<Transaction>(get_broker_client()) | $$(report_->on_transaction(event->data<Transaction>()););
+  events_ | is_own<Tree>(get_broker_client()) | $$(report_->on_tree(event->data<Tree>()););
+  events_ | is(SyntheticData::tag) | $$(report_->on_read_synthetic_data(event->data<SyntheticData>()));
 }
 
 bool BacktestContext::is_started() const { return true; }

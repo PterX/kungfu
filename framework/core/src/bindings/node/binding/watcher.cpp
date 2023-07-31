@@ -394,28 +394,28 @@ void Watcher::Init(Napi::Env env, Napi::Object exports) {
   Napi::Function func =
       DefineClass(env, "Watcher",
                   {
-                      InstanceMethod("now", &Watcher::Now),                                             //
-                      InstanceMethod("isUsable", &Watcher::IsUsable),                                   //
-                      InstanceMethod("isLive", &Watcher::IsLive),                                       //
-                      InstanceMethod("isStarted", &Watcher::IsStarted),                                 //
-                      InstanceMethod("requestStop", &Watcher::RequestStop),                             //
-                      InstanceMethod("hasLocation", &Watcher::HasLocation),                             //
-                      InstanceMethod("getLocation", &Watcher::GetLocation),                             //
-                      InstanceMethod("getLocationUID", &Watcher::GetLocationUID),                       //
-                      InstanceMethod("getInstrumentType", &Watcher::GetInstrumentType),                 //
-                      InstanceMethod("publishState", &Watcher::PublishState),                           //
-                      InstanceMethod("isReadyToInteract", &Watcher::IsReadyToInteract),                 //
-                      InstanceMethod("issueCustomData", &Watcher::IssueCustomData),                     //
-                      InstanceMethod("issueBlockMessage", &Watcher::IssueBlockMessage),                 //
-                      InstanceMethod("issueOrderTrigger", &Watcher::IssueOrderTrigger),                 //
-                      InstanceMethod("issueOrder", &Watcher::IssueOrder),                               //
-                      InstanceMethod("issueBasketOrder", &Watcher::IssueBasketOrder),                   //
-                      InstanceMethod("issueMark", &Watcher::IssueMark),                                 //
-                      InstanceMethod("cancelOrder", &Watcher::CancelOrder),                             //
-                      InstanceMethod("requestMarketData", &Watcher::RequestMarketData),                 //
-                      InstanceMethod("requestPosition", &Watcher::RequestPosition),                     //
-                      InstanceMethod("start", &Watcher::Start),                                         //
-                      InstanceMethod("sync", &Watcher::Sync),                                           //
+                      InstanceMethod("now", &Watcher::Now),                             //
+                      InstanceMethod("isUsable", &Watcher::IsUsable),                   //
+                      InstanceMethod("isLive", &Watcher::IsLive),                       //
+                      InstanceMethod("isStarted", &Watcher::IsStarted),                 //
+                      InstanceMethod("requestStop", &Watcher::RequestStop),             //
+                      InstanceMethod("hasLocation", &Watcher::HasLocation),             //
+                      InstanceMethod("getLocation", &Watcher::GetLocation),             //
+                      InstanceMethod("getLocationUID", &Watcher::GetLocationUID),       //
+                      InstanceMethod("getInstrumentType", &Watcher::GetInstrumentType), //
+                      InstanceMethod("publishState", &Watcher::PublishState),           //
+                      InstanceMethod("isReadyToInteract", &Watcher::IsReadyToInteract), //
+                      InstanceMethod("issueCustomData", &Watcher::IssueCustomData),     //
+                      InstanceMethod("issueBlockMessage", &Watcher::IssueBlockMessage), //
+                      InstanceMethod("issueOrderTrigger", &Watcher::IssueOrderTrigger), //
+                      InstanceMethod("issueOrder", &Watcher::IssueOrder),               //
+                      InstanceMethod("issueBasketOrder", &Watcher::IssueBasketOrder),   //
+                      InstanceMethod("issueMark", &Watcher::IssueMark),                 //
+                      InstanceMethod("cancelOrder", &Watcher::CancelOrder),             //
+                      InstanceMethod("requestMarketData", &Watcher::RequestMarketData), //
+                      InstanceMethod("requestPosition", &Watcher::RequestPosition),     //
+                      InstanceMethod("start", &Watcher::Start),                         //
+                      InstanceMethod("sync", &Watcher::Sync),                           //
                       InstanceMethod("quit", &Watcher::Quit),
                       InstanceAccessor("state", &Watcher::GetState, &Watcher::NoSet),                   //
                       InstanceAccessor("ledger", &Watcher::GetLedger, &Watcher::NoSet),                 //

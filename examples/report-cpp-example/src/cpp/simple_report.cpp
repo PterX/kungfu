@@ -15,13 +15,13 @@ KUNGFU_MAIN_REPORT(SimpleReport) {
 public:
   using Report::Report;
 
-  void on_quote(const Quote &quote, int64_t now) override {
-    // SPDLOG_INFO("on quote={}", quote.to_string());
+  void on_quote(const Quote &quote) override {
+    SPDLOG_INFO("on quote={}, at now()={}", quote.to_string(), time::strftime(this->now()));
   }
 
-  void on_order(const Order &order, int64_t now) override { SPDLOG_INFO("on order={}", order.to_string()); }
+  void on_order(const Order &order) override { SPDLOG_INFO("on order={}", order.to_string()); }
 
-  void on_trade(const Trade &trade, int64_t now) override {
-    SPDLOG_INFO("on trade={}, at={}", trade.to_string(), time::strftime(now));
+  void on_trade(const Trade &trade) override {
+    SPDLOG_INFO("on trade={}, at={}", trade.to_string(), time::strftime(now()));
   }
 };

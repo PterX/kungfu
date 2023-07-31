@@ -13,21 +13,21 @@ yjj = kungfu.__binding__.yijinjing
 
 
 
-def on_quote(ctx, quote: lf.types.Quote, now: int):
-    ctx.log.info("on quote={}, at={}".format(quote, kft.strftime(now)))
+def on_quote(ctx, quote: lf.types.Quote):
+    ctx.log.info("on quote={}, at={}".format(quote, kft.strftime(ctx.now())))
     pass
 
-def on_order(ctx, order: lf.types.Order, now: int):
-    ctx.log.info("on order={}, at={}".format(order, kft.strftime(now)))
+def on_order(ctx, order: lf.types.Order):
+    ctx.log.info("on order={}, at={}".format(order, kft.strftime(ctx.now())))
     pass
 
-def on_read_synthetic_data(ctx, synthetic_data: lf.types.SyntheticData, now: int):
-    ctx.log.info("on synthetic_data={}, at={}".format(synthetic_data, kft.strftime(now)))
+def on_read_synthetic_data(ctx, synthetic_data: lf.types.SyntheticData):
+    ctx.log.info("on synthetic_data={}, at={}".format(synthetic_data, kft.strftime(ctx.now())))
     pass
 
 
-def on_trade(ctx, trade: lf.types.Trade, now: int):
-    ctx.log.info("on trade={}, at={}".format(trade, kft.strftime(now)))
+def on_trade(ctx, trade: lf.types.Trade):
+    ctx.log.info("on trade={}, at={}".format(trade, kft.strftime(ctx.now())))
     pass
     
 def post_stop(ctx) -> Text:

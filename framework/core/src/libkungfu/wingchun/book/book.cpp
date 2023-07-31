@@ -159,9 +159,8 @@ void Book::update(int64_t update_time, longfist::enums::AccountingMethodType acc
   for (auto &pair : short_positions) {
     update_position(pair.second);
   }
-  if (not is_stock_acct) {
-    asset.margin = margin;
-  }
+
+  asset.margin = margin;
   asset_margin.short_market_value = short_market_value;
 }
 

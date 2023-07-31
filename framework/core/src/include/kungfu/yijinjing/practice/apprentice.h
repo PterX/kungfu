@@ -250,8 +250,6 @@ private:
 
   void expect_start();
 
-  void on_master_start();
-
   template <typename DataType> void do_read_from(const event_ptr &event, uint32_t dest_id) {
     const DataType &request = event->data<DataType>();
     reader_->join(get_location(request.source_id), dest_id, request.from_time);

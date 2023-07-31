@@ -173,13 +173,21 @@ double Ledger::translate_by_price_tick(const char *exchange_id, const char *inst
         price_tick = 1;
       }
 
+      int num = 1 / price_tick;
+      int digits = 0;
+      while (num != 0) {
+        num /= 10;
+        digits++;
+      }
+
+      double price_tick = 1.0 / pow(10, digits);
       uint64_t tick = 1 / price_tick;
-      uint64_t uPrice = (uint64_t)(std::abs(price) * tick + price_tick * 0.5);
+      uint64_t uPrice = (uint64_t)((std::abs(price) + price_tick * 0.5) * tick);
       return (double)uPrice / tick;
     }
   }
 
-  return int(price * 10000) / 10000.0;
+  return int(price * 1000) / 1000.0;
 }
 
 void Ledger::update_account_book(int64_t trigger_time, uint32_t account_uid) {

@@ -416,7 +416,7 @@ void Watcher::Init(Napi::Env env, Napi::Object exports) {
                       InstanceMethod("requestPosition", &Watcher::RequestPosition),                     //
                       InstanceMethod("start", &Watcher::Start),                                         //
                       InstanceMethod("sync", &Watcher::Sync),                                           //
-                      InstanceMethod("quit", &Watcher::Quit),
+                      InstanceMethod("quit", &Watcher::Quit),                                           //
                       InstanceAccessor("state", &Watcher::GetState, &Watcher::NoSet),                   //
                       InstanceAccessor("ledger", &Watcher::GetLedger, &Watcher::NoSet),                 //
                       InstanceAccessor("appStates", &Watcher::GetAppStates, &Watcher::NoSet),           //

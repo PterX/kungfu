@@ -110,7 +110,7 @@ public:
 
     auto &position = book->get_position_for(input);
     auto cd_mr = get_instr_conversion_margin_rate(book, position);
-    // Offset: Close
+
     if (input.side == Side::Sell) {
       position.frozen_total += input.volume;
       if (position.yesterday_volume - position.frozen_yesterday >= input.volume) {
@@ -136,12 +136,12 @@ public:
 
     auto &position = book->get_position_for(order);
     auto cd_mr = get_instr_conversion_margin_rate(book, position);
-    auto &asset = book->asset;
+
     if (order.side == Side::Buy) {
       auto frozen =
           book->get_frozen_price(order.order_id) * order.volume_left * cd_mr.exchange_rate * cd_mr.margin_ratio;
-      asset.frozen_cash -= frozen;
-      asset.avail += frozen;
+      book->asset.frozen_cash -= frozen;
+      book->asset.avail += frozen;
     } else if (order.side == Side::Sell) {
       position.frozen_total = std::max(position.frozen_total - order.volume_left, VOLUME_ZERO);
       position.frozen_yesterday = std::max(position.frozen_yesterday - order.volume_left, VOLUME_ZERO);

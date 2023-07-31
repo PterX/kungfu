@@ -128,13 +128,8 @@ public:
 
     auto &position = book->get_position_for(input);
     auto cd_mr = get_instr_conversion_margin_rate(book, position);
-    // double frozen_cash = 0;
-    // double frozen_margin = 0;
-    double frozen_fee = 0;
-    // const auto &asset = book->asset;
-    // const auto &asset_margin = book->asset_margin;
-    // Offset: Close
-    if (input.side == Side::Sell || input.side == Side::RepayMargin) {
+
+    if (input.side == Side::Sell) {
       position.frozen_total += input.volume;
       if (position.yesterday_volume - position.frozen_yesterday >= input.volume) {
         position.frozen_yesterday += input.volume;
@@ -142,37 +137,9 @@ public:
         position.frozen_yesterday = position.yesterday_volume;
       }
     } else if (input.side == Side::Buy) { // Offset: Open
-      // TODO: book->asset.frozen_fee += frozen_cash * fee_ratio;
-
-      double frozen_cash = input.volume * input.frozen_price * cd_mr.exchange_rate + frozen_fee;
+      double frozen_cash = input.volume * input.frozen_price * cd_mr.exchange_rate;
       book->asset.frozen_cash += frozen_cash;
       book->asset.avail -= frozen_cash;
-    } else if (input.side == Side::RepayStock) { // Offset: Close
-      // TODO: book->asset.frozen_fee += frozen_cash * fee_ratio;
-      double frozen_cash = input.volume * input.frozen_price * cd_mr.exchange_rate + frozen_fee;
-      book->asset.frozen_cash += frozen_cash;
-      book->asset.avail -= frozen_cash;
-      // Short position need frozen
-      position.frozen_total += input.volume;
-      if (position.yesterday_volume - position.frozen_yesterday >= input.volume) {
-        position.frozen_yesterday += input.volume;
-      } else {
-        position.frozen_yesterday = position.yesterday_volume;
-      }
-    } else if (input.side == Side::MarginTrade || input.side == Side::ShortSell) {
-      // TODO: book->asset.frozen_fee += frozen_cash * fee_ratio;
-      double frozen_cash = input.volume * input.frozen_price * cd_mr.exchange_rate + frozen_fee;
-
-      double frozen_margin =
-          frozen_cash * (input.side == Side::MarginTrade ? cd_mr.long_margin_ratio : cd_mr.short_margin_ratio);
-      book->asset.frozen_margin += frozen_margin;
-      book->asset_margin.avail_margin -= frozen_margin;
-      if (input.side == Side::MarginTrade) {
-        book->asset_margin.cash_margin += frozen_margin;
-      } else {
-        book->asset_margin.short_margin += frozen_margin;
-      }
-      book->asset_margin.margin += frozen_margin;
     }
   }
 
@@ -238,7 +205,6 @@ protected:
     auto is_local = dest != location::PUBLIC and dest != location::SYNC;
     auto &position = book->get_position_for(trade);
     auto cd_mr = get_instr_conversion_margin_rate(book, position);
-    auto &asset_margin = book->asset_margin;
     double commission = calculate_commission(trade);
     double tax = calculate_tax(trade);
     if (is_local) {
@@ -270,7 +236,6 @@ protected:
     auto &position = book->get_position_for(trade);
     auto cd_mr = get_instr_conversion_margin_rate(book, position);
     double trade_amt = trade.price * trade.volume * cd_mr.exchange_rate;
-    auto &asset_margin = book->asset_margin;
     double commission = calculate_commission(trade);
     double tax = calculate_tax(trade);
     position.last_price = position.last_price > 0 ? position.last_price : trade.price;
@@ -381,14 +346,10 @@ protected:
     position.frozen_yesterday = std::max(position.frozen_yesterday - trade.volume, VOLUME_ZERO);
     position.yesterday_volume = std::max(position.yesterday_volume - trade.volume, VOLUME_ZERO);
     position.volume = std::max(position.volume - trade.volume, VOLUME_ZERO);
-
     position.last_price = position.last_price > 0 ? position.last_price : trade.price;
-
-    double repay_debt_mrkt_value = position.last_price * cd_mr.exchange_rate * trade.volume;
-    double released_margin = repay_debt_mrkt_value * cd_mr.short_margin_ratio;
-
     auto realized_pnl = (position.avg_open_price - trade.price) * trade.volume;
     position.realized_pnl += realized_pnl;
+    double released_margin = position.last_price * cd_mr.exchange_rate * trade.volume * cd_mr.short_margin_ratio;
     position.margin -= released_margin;
     update_position(book, position);
   }

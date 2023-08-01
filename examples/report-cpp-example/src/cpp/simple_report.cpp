@@ -16,12 +16,17 @@ public:
   using Report::Report;
 
   void on_quote(const Quote &quote) override {
-    SPDLOG_INFO("on quote={}, at now()={}", quote.to_string(), time::strftime(this->now()));
+    // SPDLOG_INFO("on quote={}, at now()={}", quote.to_string(), time::strftime(this->now()));
   }
 
   void on_order(const Order &order) override { SPDLOG_INFO("on order={}", order.to_string()); }
 
   void on_trade(const Trade &trade) override {
     SPDLOG_INFO("on trade={}, at={}", trade.to_string(), time::strftime(now()));
+  }
+
+  std::string sumerize() override { 
+    SPDLOG_INFO("calling make report");
+    return {};
   }
 };

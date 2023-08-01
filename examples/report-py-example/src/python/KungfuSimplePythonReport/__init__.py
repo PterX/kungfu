@@ -14,7 +14,9 @@ yjj = kungfu.__binding__.yijinjing
 
 
 def on_quote(ctx, quote: lf.types.Quote):
-    ctx.log.info("on quote={}, at={}".format(quote, kft.strftime(ctx.now())))
+    # ctx.log.info("on quote={}, at={}".format(quote, kft.strftime(ctx.now())))
+    keeper = ctx.bookkeeper
+    books = keeper.get_books()
     pass
 
 def on_order(ctx, order: lf.types.Order):
@@ -22,7 +24,7 @@ def on_order(ctx, order: lf.types.Order):
     pass
 
 def on_read_synthetic_data(ctx, synthetic_data: lf.types.SyntheticData):
-    ctx.log.info("on synthetic_data={}, at={}".format(synthetic_data, kft.strftime(ctx.now())))
+    # ctx.log.info("on synthetic_data={}, at={}".format(synthetic_data, kft.strftime(ctx.now())))
     pass
 
 
@@ -30,7 +32,7 @@ def on_trade(ctx, trade: lf.types.Trade):
     ctx.log.info("on trade={}, at={}".format(trade, kft.strftime(ctx.now())))
     pass
     
-def post_stop(ctx) -> Text:
+def sumerize(ctx) -> Text:
     ctx.log.info("call post_stop")
     return "{}"
   

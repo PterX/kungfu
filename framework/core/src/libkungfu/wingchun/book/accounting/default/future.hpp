@@ -255,16 +255,17 @@ private:
     auto delta_margin = std::min(position.margin, margin);
     position.margin -= delta_margin;
     position.volume -= trade.volume;
+    
     if (is_local) {
       position.frozen_total -= trade.volume;
+      if (trade.offset != Offset::CloseToday) 
+        position.frozen_yesterday = std::max(position.frozen_yesterday - trade.volume, VOLUME_ZERO);
     }
+
     auto close_today_volume = 0.0;
     if (trade.offset != Offset::CloseToday) {
       close_today_volume = std::max(trade.volume - position.yesterday_volume, VOLUME_ZERO);
       position.yesterday_volume = std::max(position.yesterday_volume - trade.volume, VOLUME_ZERO);
-      if (is_local) {
-        position.frozen_yesterday = std::max(position.frozen_yesterday - trade.volume, VOLUME_ZERO);
-      }
     } else {
       close_today_volume = trade.volume;
     }

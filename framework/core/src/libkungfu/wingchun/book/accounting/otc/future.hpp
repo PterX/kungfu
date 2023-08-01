@@ -265,16 +265,17 @@ private:
     auto delta_margin = std::min(position.margin, margin);
     position.margin -= delta_margin;
     position.volume -= trade.volume;
+    
     if (is_local) {
       position.frozen_total -= trade.volume;
+      if (trade.offset != Offset::CloseToday)
+        position.frozen_yesterday = std::max(position.frozen_yesterday - trade.volume, VOLUME_ZERO);
     }
+
     auto close_today_volume = 0.0;
     if (trade.offset != Offset::CloseToday) {
       close_today_volume = std::max(trade.volume - position.yesterday_volume, VOLUME_ZERO);
       position.yesterday_volume = std::max(position.yesterday_volume - trade.volume, VOLUME_ZERO);
-      if (is_local) {
-        position.frozen_yesterday = std::max(position.frozen_yesterday - trade.volume, VOLUME_ZERO);
-      }
     } else {
       close_today_volume = trade.volume;
     }
@@ -374,7 +375,7 @@ private:
       cm_mr.contract_multiplier = DEFAULT_OTC_INSTRUMENT_CONTRACT_MULTIPLIER;
     } else {
       const auto &instrument = book->instruments.at(hashed_instrument_key);
-      cm_mr.contract_multiplier = instrument.contract_multiplier;
+            .contract_multiplier = instrument.contract_multiplier;
     }
 
     if (book->instrument_factors.find(hashed_instrument_key) == book->instrument_factors.end()) {

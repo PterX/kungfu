@@ -255,10 +255,10 @@ private:
     auto delta_margin = std::min(position.margin, margin);
     position.margin -= delta_margin;
     position.volume -= trade.volume;
-    
+
     if (is_local) {
       position.frozen_total -= trade.volume;
-      if (trade.offset != Offset::CloseToday) 
+      if (trade.offset != Offset::CloseToday)
         position.frozen_yesterday = std::max(position.frozen_yesterday - trade.volume, VOLUME_ZERO);
     }
 

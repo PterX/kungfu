@@ -265,7 +265,7 @@ private:
     auto delta_margin = std::min(position.margin, margin);
     position.margin -= delta_margin;
     position.volume -= trade.volume;
-    
+
     if (is_local) {
       position.frozen_total -= trade.volume;
       if (trade.offset != Offset::CloseToday)
@@ -375,7 +375,7 @@ private:
       cm_mr.contract_multiplier = DEFAULT_OTC_INSTRUMENT_CONTRACT_MULTIPLIER;
     } else {
       const auto &instrument = book->instruments.at(hashed_instrument_key);
-            .contract_multiplier = instrument.contract_multiplier;
+      .contract_multiplier = instrument.contract_multiplier;
     }
 
     if (book->instrument_factors.find(hashed_instrument_key) == book->instrument_factors.end()) {

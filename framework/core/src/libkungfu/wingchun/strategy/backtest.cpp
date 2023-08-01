@@ -75,13 +75,9 @@ void BacktestContext::add_time_interval(int64_t duration, const std::function<vo
 }
 
 void BacktestContext::on_timer_check() {
-  if (not pre_timer_callbacks_.empty()) {
-    timer_callbacks_.insert(pre_timer_callbacks_.begin(), pre_timer_callbacks_.end());
-    pre_timer_callbacks_.clear();
-  }
-  auto it = timer_callbacks_.begin();
+  timer_callbacks_.merge(pre_timer_callbacks_);
   auto now_time = now();
-  while (it != timer_callbacks_.end()) {
+  for ( auto it = timer_callbacks_.begin(); it != timer_callbacks_.end();) {
     if (it->first <= now_time) {
       nlohmann::json time_event;
       time_event["msg_type"] = Time::tag;

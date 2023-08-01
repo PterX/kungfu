@@ -279,6 +279,7 @@ KF_DEFINE_PACK_TYPE(                                 //
     (uint64_t, trade_id),                            // 成交ID
 
     (uint64_t, order_id),                                      // 订单ID
+    (uint64_t, parent_order_id),                                     // 母单号
     (kungfu::array<char, EXTERNAL_ID_LEN>, external_order_id), // 柜台订单id
     (kungfu::array<char, EXTERNAL_ID_LEN>, external_trade_id), // 柜台成交编号id
 

@@ -28,18 +28,20 @@ void TraderWriterHook::on_close_frame(int64_t gen_time, frame_ptr frame) {
   switch (frame->msg_type()) {
   case Order::tag: {
     auto &order = guard_update_time<Order>(frame->data<Order>());
-    get_algo_order_service().on_order(order);
-    get_order_service().on_order(frame->source(), frame->dest(), frame->gen_time(), order);
+    get_algo_order_service().on_order(frame->gen_time(), frame->source(), frame->dest(), order);
+    get_order_service().on_order(frame->gen_time(), frame->source(), frame->dest(), order);
     break;
   }
   case Trade::tag: {
     const Trade &trade = frame->data<Trade>();
-    get_order_service().on_trade(frame->source(), frame->dest(), frame->gen_time(), trade);
+    get_order_service().on_trade(frame->gen_time(), frame->source(), frame->dest(), trade);
+    get_algo_order_service().on_trade(frame->gen_time(), frame->source(), frame->dest(), trade);
     break;
   }
   case OrderTrigger::tag: {
     auto &order_trigger = guard_update_time<OrderTrigger>(frame->data<OrderTrigger>());
     get_order_trigger_service().on_order_trigger(frame->gen_time(), frame->source(), frame->dest(), order_trigger);
+    break;
   }
   case AlgoOrder::tag: {
     auto &algo_order = guard_update_time<AlgoOrder>(frame->data<AlgoOrder>());

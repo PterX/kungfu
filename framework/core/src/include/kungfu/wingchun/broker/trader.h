@@ -74,9 +74,9 @@ public:
 
   void on_order_action(const event_ptr &event);
 
-  void on_order(uint32_t source, uint32_t dest, int64_t gen_time, const longfist::types::Order &order);
+  void on_order(int64_t gen_time, uint32_t source, uint32_t dest, const longfist::types::Order &order);
 
-  void on_trade(uint32_t source, uint32_t dest, int64_t gen_time, const longfist::types::Trade &trade);
+  void on_trade(int64_t gen_time, uint32_t source, uint32_t dest, const longfist::types::Trade &trade);
 
   void on_batch_order_tag(const event_ptr &event);
 
@@ -119,7 +119,7 @@ public:
 
   void on_order_trigger_action(const event_ptr &event);
 
-  void on_order_trigger(uint32_t source, uint32_t dest, int64_t gen_time,
+  void on_order_trigger(int64_t gen_time, uint32_t source, uint32_t dest,
                         const longfist::types::OrderTrigger &order_trigger);
 
   void clean_order_triggers(bool bypass_recover = false);
@@ -152,9 +152,11 @@ public:
 
   void on_algo_order_action(const event_ptr &event);
 
-  void on_order(const longfist::types::Order &order);
+  void on_order(int64_t gen_time, uint32_t source, uint32_t dest, const longfist::types::Order &order);
 
   void on_algo_order(int64_t gen_time, uint32_t source, uint32_t dest, const longfist::types::AlgoOrder &algo_order);
+
+  void on_trade(int64_t gen_time, uint32_t source, uint32_t dest, const longfist::types::Trade &trade);
 
   void clean_algo_orders(bool bypass_recover = false);
 
@@ -174,9 +176,10 @@ public:
 private:
   AlgoOrderMap local_algo_orders_;
   AlgoOrderMap waiting_record_local_algo_orders_;
-  AlgoOrderInputMap local_algo_order_inputs_;
   AlgoOrderMap algo_orders_;
+  AlgoOrderInputMap local_algo_order_inputs_;
   SubOrders local_sub_orders_;
+  std::unordered_map<uint64_t, uint64_t> order_id_to_algo_order_id_;
   AlgoOrderActionMap algo_order_actions_;
 
   void try_update_sub_orders(const longfist::types::Order &order);

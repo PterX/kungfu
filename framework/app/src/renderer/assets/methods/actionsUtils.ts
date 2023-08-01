@@ -1132,7 +1132,9 @@ export const useSubscibeInstrumentAtEntry = (
     useGlobalStore();
 
   const app = getCurrentInstance();
-  const POSITION_SLICE_NUM = process.env.IF_CPUS_NUM_SAFE ? 128 : 0;
+  const POSITION_SLICE_NUM = booleanProcessEnv(process.env.IF_CPUS_NUM_SAFE)
+    ? 128
+    : 0;
 
   const getCurrentPositionsForSub = (watcher: KungfuApi.Watcher) => {
     if (!currentGlobalKfLocation.value) return [];

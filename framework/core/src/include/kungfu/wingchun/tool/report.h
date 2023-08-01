@@ -9,12 +9,22 @@
 #include <unordered_map>
 
 namespace kungfu::wingchun::tool {
-class Report : public std::enable_shared_from_this<Report> {
+class Report {
 public:
   Report() = default;
+
   virtual ~Report() = default;
 
-  virtual std::string post_stop() { return {}; };
+  // 获取Bookkeeper
+  //@return Bookkeeper
+  book::Bookkeeper *get_bookkeeper() const {return bookkeeper_;};
+
+  // 初始化
+  virtual void init() {};
+
+  // 报告撰写
+  //@return 报告文本
+  virtual std::string sumerize() { return {}; };
 
   // 行情数据更新回调
   //@param quote             行情数据
@@ -51,8 +61,9 @@ public:
   int64_t now() const { return app_->now(); };
 
 private:
-  friend void set_runner(Report &report, yijinjing::practice::apprentice *runner) { report.app_ = runner; }
+  friend void set_runner(Report &report, yijinjing::practice::apprentice *runner, book::Bookkeeper *bookkeeper) { report.app_ = runner; report.bookkeeper_ = std::move(bookkeeper); report.init(); }
   yijinjing::practice::apprentice *app_;
+  book::Bookkeeper *bookkeeper_;
 };
 DECLARE_PTR(Report)
 

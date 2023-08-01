@@ -26,6 +26,7 @@ class Report(wc.Report):
         ctx.strftime = kft.strftime
         ctx.strptime = kft.strptime
         ctx.now = partial(wc.Report.now, self)
+        ctx.bookkeeper = self.bookkeeper
         ctx.constants = constants
         ctx.utils = utils
         self.ctx = ctx
@@ -37,7 +38,8 @@ class Report(wc.Report):
         sys.path.insert(0, os.path.relpath(report_dir))
         module_name = os.path.splitext(name_no_ext[1])[0]
         self._module = import_force(module_name)
-        self._post_stop = getattr(self._module, "post_stop", lambda ctx: None)
+        self._init = getattr(self._module, "init", lambda ctx: None)
+        self._sumerize = getattr(self._module, "sumerize", lambda ctx: None)
 
         self._on_quote = getattr(self._module, "on_quote", lambda ctx, quote: None)
         self._on_entrust = getattr(
@@ -66,6 +68,13 @@ class Report(wc.Report):
         self._on_order = getattr(self._module, "on_order", lambda ctx, order: None)
 
         self._on_trade = getattr(self._module, "on_trade", lambda ctx, trade: None)
+    
+    def init(self):
+        self.ctx.bookkeeper = self.bookkeeper
+        self._init(self.ctx)
+    
+    def sumerize(self):
+        self._sumerize(self.ctx)
 
     def on_quote(self, quote):
         self._on_quote(self.ctx, quote)

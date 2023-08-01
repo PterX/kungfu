@@ -124,7 +124,9 @@ void bind_tool(pybind11::module &m) {
   public:
     using Report::Report; // Inherit constructors
 
-    std::string post_stop() override { PYBIND11_OVERLOAD(std::string, Report, post_stop); }
+    void init() override { PYBIND11_OVERLOAD(void, Report, init); }
+
+    std::string sumerize() override { PYBIND11_OVERLOAD(std::string, Report, sumerize); }
 
     void on_quote(const Quote &quote) override { PYBIND11_OVERLOAD(void, Report, on_quote, quote); }
 
@@ -153,8 +155,11 @@ void bind_tool(pybind11::module &m) {
   py::class_<Report, PyReport, Report_ptr>(m, "Report")
       .def(py::init<>())
       .def_property_readonly("bookkeeper", &Report::get_bookkeeper)
+      //TODO debug
+      .def("get_bookkeeper", &Report::get_bookkeeper)
       .def("now", &Report::now)
-      .def("post_stop", &Report::post_stop)
+      .def("init", &Report::init)
+      .def("sumerize", &Report::sumerize)
       .def("on_quote", &Report::on_quote)
       .def("on_tree", &Report::on_tree)
       .def("on_entrust", &Report::on_entrust)

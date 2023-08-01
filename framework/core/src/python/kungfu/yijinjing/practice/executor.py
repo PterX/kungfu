@@ -311,15 +311,18 @@ class ExtensionExecutor:
             )
             ctx.runner.set_from_indexer(from_indexer)
             ctx.runner.set_to_indexer(to_indexer)
-            report = load_report(ctx, ctx.report)
-            if report:
+            if ctx.report:
+                report = load_report(ctx, ctx.report)
                 ctx.runner.set_report(report)
+                
         ctx.runner.add_strategy(ctx.strategy)
         if kfj.MODES[ctx.mode] == lf.enums.mode.LIVE:
             ctx.loop = KungfuEventLoop(ctx, ctx.runner)
             ctx.loop.run_forever()
         else:
             ctx.runner.run()
+        if kfj.MODES[ctx.mode] == lf.enums.mode.BACKTEST and report:
+            report.sumerize()
 
     def run_operator(self):
         loader = self.loader
@@ -371,12 +374,14 @@ class ExtensionExecutor:
             )
             ctx.op_runner.set_from_indexer(from_indexer)
             ctx.op_runner.set_to_indexer(to_indexer)
-            report = load_report(ctx, ctx.report)
-            if report:
+            if ctx.report:
+                report = load_report(ctx, ctx.report)
                 ctx.op_runner.set_report(report)
         # ctx.runner = self.load_runner(ctx)
         ctx.op_runner.add_operator(ctx.operator)
         ctx.op_runner.run()
+        if kfj.MODES[ctx.mode] == lf.enums.mode.BACKTEST and report:
+            report.sumerize()
 
     def parse_begin_end(self, ctx):
         ctx.logger.debug(f"ctx.backtest: {ctx.backtest}")
@@ -464,7 +469,7 @@ def load_report(ctx, path):
         raise FileNotFoundError(f"report path: {path} not found")
     except Exception as e:
         ctx.logger.debug("load_report failed: {}".format(e))
-        ctx.logger.critical("report path: {} cannot be imported".format(path))
+        ctx.logger.critical("report path: {} cannot be imported.".format(path))
         return None
 
 

@@ -375,7 +375,7 @@ private:
       cm_mr.contract_multiplier = DEFAULT_OTC_INSTRUMENT_CONTRACT_MULTIPLIER;
     } else {
       const auto &instrument = book->instruments.at(hashed_instrument_key);
-      .contract_multiplier = instrument.contract_multiplier;
+      cm_mr.contract_multiplier = instrument.contract_multiplier;
     }
 
     if (book->instrument_factors.find(hashed_instrument_key) == book->instrument_factors.end()) {

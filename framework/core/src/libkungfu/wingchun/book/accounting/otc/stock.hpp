@@ -223,9 +223,10 @@ protected:
     }
 
     auto &asset = book->asset;
-    double frozen_cash_to_release = book->get_frozen_price(trade.order_id) * cd_mr.exchange_rate * trade.volume;
+    double frozen_cash_to_release =
+        book->get_frozen_price(trade.order_id) * cd_mr.exchange_rate * trade.volume * cd_mr.margin_ratio;
     asset.frozen_cash -= frozen_cash_to_release;
-    double avail_cash_change = frozen_cash_to_release - trade_amt - (commission + tax);
+    double avail_cash_change = frozen_cash_to_release - trade_amt * cd_mr.margin_ratio - (commission + tax);
     asset.avail += avail_cash_change;
     asset.intraday_fee += commission + tax;
     asset.accumulated_fee += commission + tax;

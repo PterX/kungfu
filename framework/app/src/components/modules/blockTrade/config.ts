@@ -45,7 +45,7 @@ export const getConfigSettings = (
       name: t('blockTradeConfig.limit_price'),
       type: 'float',
       min: 0,
-      precision: pricePrecision ?? 3,
+      precision: pricePrecision ?? 4,
       step: step || 1,
       required: true,
     },

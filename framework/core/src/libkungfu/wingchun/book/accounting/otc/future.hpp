@@ -104,7 +104,11 @@ public:
     apply(book->get_position_for(Direction::Short, quote));
   }
 
-  void apply_order_input(Book_ptr &book, const OrderInput &input) override {
+  void apply_order_input(uint32_t source, uint32_t dest, Book_ptr &book, const OrderInput &input) override {
+    if (dest == location::SYNC or dest == location::PUBLIC) {
+      return;
+    }
+
     auto offset = get_offset(book, input);
     auto direction = get_direction(input.instrument_type, input.side, offset);
     auto &position = book->get_position(direction, input.exchange_id, input.instrument_id);
@@ -136,9 +140,9 @@ public:
     update_position(book, position);
   }
 
-  void apply_order(Book_ptr &book, const Order &order) override {
-    if (book->orders.find(order.order_id) == book->orders.end()) {
-      book->orders.insert_or_assign(order.order_id, order);
+  void apply_order(uint32_t source, uint32_t dest, Book_ptr &book, const Order &order) override {
+    if (dest == location::SYNC or dest == location::PUBLIC) {
+      return;
     }
 
     if (not is_final_status(order.status))
@@ -156,10 +160,6 @@ public:
       book->asset.avail += frozen_margin;
       book->asset.frozen_cash -= frozen_margin;
       book->asset.frozen_margin -= frozen_margin;
-
-      auto frozen_market_value =
-          cm_mr.contract_multiplier * order.frozen_price * cm_mr.exchange_rate * order.volume_left;
-      book->asset.market_value += frozen_market_value;
     }
 
     if (offset == Offset::Close or offset == Offset::CloseYesterday) {
@@ -174,7 +174,7 @@ public:
     update_position(book, position);
   }
 
-  void apply_trade(Book_ptr &book, const Trade &trade) override {
+  void apply_trade(uint32_t source, uint32_t dest, Book_ptr &book, const Trade &trade) override {
     if (book->trades.find(trade.trade_id) == book->trades.end()) {
       book->trades.emplace(trade.trade_id, trade);
     }
@@ -186,10 +186,10 @@ public:
                  (int)offset);
 
     if (offset == Offset::Open) {
-      apply_open(book, position, trade);
+      apply_open(dest, book, position, trade);
     }
     if (offset == Offset::Close or offset == Offset::CloseToday or offset == Offset::CloseYesterday) {
-      apply_close(book, position, trade);
+      apply_close(dest, book, position, trade);
     }
   }
 
@@ -225,36 +225,39 @@ public:
   }
 
 private:
-  void apply_open(Book_ptr &book, Position &position, const Trade &trade) {
+  void apply_open(uint32_t dest, Book_ptr &book, Position &position, const Trade &trade) {
+    auto is_local = dest != location::SYNC and dest != location::PUBLIC;
     auto cm_mr =
         get_instrument_contract_multiplier_and_margin_ratio(book, trade.exchange_id, trade.instrument_id, position);
 
     auto contract_multiplier = cm_mr.contract_multiplier;
     auto margin_ratio_by_pos = cm_mr.margin_ratio;
     auto margin = contract_multiplier * trade.price * cm_mr.exchange_rate * trade.volume * margin_ratio_by_pos;
-    auto frozen_margin = contract_multiplier * book->get_frozen_price(trade.order_id) * cm_mr.exchange_rate *
-                         trade.volume * margin_ratio_by_pos;
     position.margin += margin;
     position.avg_open_price = (position.avg_open_price * position.volume + trade.price * trade.volume) /
                               double(position.volume + trade.volume);
     position.volume += trade.volume;
     update_position(book, position);
 
+    if (not is_local) {
+      return;
+    }
+
+    auto frozen_margin = contract_multiplier * book->get_frozen_price(trade.order_id) * cm_mr.exchange_rate *
+                         trade.volume * margin_ratio_by_pos;
     book->asset.avail += frozen_margin;
     book->asset.frozen_cash -= frozen_margin;
     book->asset.frozen_margin -= frozen_margin;
-    auto trade_market_value = contract_multiplier * position.last_price * cm_mr.exchange_rate * trade.volume;
-    book->asset.market_value += trade_market_value;
 
     auto commission = calculate_commission(book, trade, position, 0) * cm_mr.exchange_rate;
     book->asset.avail -= commission;
     book->asset.avail -= margin;
     book->asset.accumulated_fee += commission;
     book->asset.intraday_fee += commission;
-    book->asset.margin += margin;
   }
 
-  void apply_close(Book_ptr &book, Position &position, const Trade &trade) {
+  void apply_close(uint32_t dest, Book_ptr &book, Position &position, const Trade &trade) {
+    auto is_local = dest != location::SYNC and dest != location::PUBLIC;
     auto cm_mr =
         get_instrument_contract_multiplier_and_margin_ratio(book, trade.exchange_id, trade.instrument_id, position);
     auto contract_multiplier = cm_mr.contract_multiplier;
@@ -262,12 +265,17 @@ private:
     auto delta_margin = std::min(position.margin, margin);
     position.margin -= delta_margin;
     position.volume -= trade.volume;
-    position.frozen_total -= trade.volume;
+
+    if (is_local) {
+      position.frozen_total -= trade.volume;
+      if (trade.offset != Offset::CloseToday)
+        position.frozen_yesterday = std::max(position.frozen_yesterday - trade.volume, VOLUME_ZERO);
+    }
+
     auto close_today_volume = 0.0;
     if (trade.offset != Offset::CloseToday) {
       close_today_volume = std::max(trade.volume - position.yesterday_volume, VOLUME_ZERO);
       position.yesterday_volume = std::max(position.yesterday_volume - trade.volume, VOLUME_ZERO);
-      position.frozen_yesterday = std::max(position.frozen_yesterday - trade.volume, VOLUME_ZERO);
     } else {
       close_today_volume = trade.volume;
     }
@@ -279,8 +287,9 @@ private:
     position.realized_pnl += realized_pnl;
     update_position(book, position);
 
-    auto trade_market_value = contract_multiplier * trade.price * cm_mr.exchange_rate * trade.volume;
-    book->asset.market_value -= trade_market_value;
+    if (not is_local) {
+      return;
+    }
 
     auto commission = calculate_commission(book, trade, position, close_today_volume) * cm_mr.exchange_rate;
     book->asset.realized_pnl += realized_pnl * cm_mr.exchange_rate;

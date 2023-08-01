@@ -52,7 +52,6 @@ void Bookkeeper::on_trading_day(int64_t daytime) {
     }
   }
 }
-
 void Bookkeeper::on_start(const rx::connectable_observable<event_ptr> &events) {
   restore(app_.get_state_bank());
   on_trading_day(app_.get_trading_day());

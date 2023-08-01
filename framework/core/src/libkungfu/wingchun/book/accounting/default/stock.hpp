@@ -168,14 +168,14 @@ public:
   }
 
   virtual void apply_trade(uint32_t source, uint32_t dest, Book_ptr &book, const Trade &trade) override {
+    auto is_local = dest != location::PUBLIC and dest != location::SYNC;
 
     if (trade.side == Side::Sell) {
-      apply_sell(dest, book, trade);
+      apply_sell(book, trade, is_local);
     } else if (trade.side == Side::Buy) {
-      apply_buy(dest, book, trade);
+      apply_buy(book, trade, is_local);
     }
 
-    auto is_local = dest != location::PUBLIC and dest != location::SYNC;
     if (not is_local) {
       return;
     }
@@ -201,25 +201,22 @@ public:
   }
 
 protected:
-  virtual void apply_sell(uint32_t dest, Book_ptr &book, const Trade &trade) {
-    auto is_local = dest != location::PUBLIC and dest != location::SYNC;
+  virtual void apply_sell(Book_ptr &book, const Trade &trade, bool is_local) {
     auto &position = book->get_position_for(trade);
     auto cd_mr = get_instr_conversion_margin_rate(book, position);
     double commission = calculate_commission(trade);
     double tax = calculate_tax(trade);
+
     if (is_local) {
       position.frozen_total = std::max(position.frozen_total - trade.volume, VOLUME_ZERO);
       position.frozen_yesterday = std::max(position.frozen_yesterday - trade.volume, VOLUME_ZERO);
     }
+
     position.yesterday_volume = std::max(position.yesterday_volume - trade.volume, VOLUME_ZERO);
     position.volume = std::max(position.volume - trade.volume, VOLUME_ZERO);
     double realized_pnl = (trade.price - position.avg_open_price) * trade.volume;
     position.realized_pnl += realized_pnl;
     update_position(book, position);
-
-    if (not is_local) {
-      return;
-    }
 
     auto &asset = book->asset;
     double trade_amt = trade.price * cd_mr.exchange_rate * trade.volume;
@@ -231,8 +228,7 @@ protected:
     asset.accumulated_fee += commission + tax;
   }
 
-  virtual void apply_buy(uint32_t dest, Book_ptr &book, const Trade &trade) {
-    auto is_local = dest != location::PUBLIC and dest != location::SYNC;
+  virtual void apply_buy(Book_ptr &book, const Trade &trade, bool is_local) {
     auto &position = book->get_position_for(trade);
     auto cd_mr = get_instr_conversion_margin_rate(book, position);
     double trade_amt = trade.price * trade.volume * cd_mr.exchange_rate;
@@ -247,17 +243,18 @@ protected:
           (double)(position.volume + trade.volume);
     }
     position.volume += trade.volume;
+    position.open_volume += trade.volume;
     update_position(book, position);
 
+    auto &asset = book->asset;
+
     if (not is_local) {
-      return;
+      double frozen_cash_to_release = book->get_frozen_price(trade.order_id) * cd_mr.exchange_rate * trade.volume;
+      asset.frozen_cash -= frozen_cash_to_release;
+      double avail_cash_change = frozen_cash_to_release - trade_amt - (commission + tax);
+      asset.avail += avail_cash_change;
     }
 
-    auto &asset = book->asset;
-    double frozen_cash_to_release = book->get_frozen_price(trade.order_id) * cd_mr.exchange_rate * trade.volume;
-    asset.frozen_cash -= frozen_cash_to_release;
-    double avail_cash_change = frozen_cash_to_release - trade_amt - (commission + tax);
-    asset.avail += avail_cash_change;
     asset.intraday_fee += commission + tax;
     asset.accumulated_fee += commission + tax;
   }

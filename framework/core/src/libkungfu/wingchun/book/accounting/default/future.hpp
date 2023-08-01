@@ -171,13 +171,14 @@ public:
     auto offset = get_offset(book, trade);
     auto direction = get_direction(trade.instrument_type, trade.side, offset);
     auto &position = book->get_position(direction, trade.exchange_id, trade.instrument_id);
+    auto is_local = dest != location::SYNC and dest != location::PUBLIC;
 
     if (offset == Offset::Open) {
-      apply_open(dest, book, position, trade);
+      apply_open(book, position, trade, is_local);
     }
     if (offset == Offset::Close or offset == Offset::CloseToday or offset == Offset::CloseYesterday) {
       // the extra offset is for merge position situation
-      apply_close(dest, book, position, trade);
+      apply_close(book, position, trade, is_local);
     }
   }
 
@@ -215,8 +216,7 @@ public:
   }
 
 private:
-  void apply_open(uint32_t dest, Book_ptr &book, Position &position, const Trade &trade) {
-    auto is_local = dest != location::SYNC and dest != location::PUBLIC;
+  void apply_open(Book_ptr &book, Position &position, const Trade &trade, bool is_local) {
     auto cm_mr =
         get_instrument_contract_multiplier_and_margin_ratio(book, trade.exchange_id, trade.instrument_id, position);
 
@@ -227,17 +227,16 @@ private:
     position.avg_open_price = (position.avg_open_price * position.volume + trade.price * trade.volume) /
                               double(position.volume + trade.volume);
     position.volume += trade.volume;
+    position.open_volume += trade.volume;
     update_position(book, position);
 
-    if (not is_local) {
-      return;
+    if (is_local) {
+      auto frozen_margin = contract_multiplier * book->get_frozen_price(trade.order_id) * cm_mr.exchange_rate *
+                           trade.volume * margin_ratio_by_pos;
+      book->asset.avail += frozen_margin;
+      book->asset.frozen_cash -= frozen_margin;
+      book->asset.frozen_margin -= frozen_margin;
     }
-
-    auto frozen_margin = contract_multiplier * book->get_frozen_price(trade.order_id) * cm_mr.exchange_rate *
-                         trade.volume * margin_ratio_by_pos;
-    book->asset.avail += frozen_margin;
-    book->asset.frozen_cash -= frozen_margin;
-    book->asset.frozen_margin -= frozen_margin;
 
     auto commission = calculate_commission(book, trade, position, 0) * cm_mr.exchange_rate;
     book->asset.avail -= commission;
@@ -246,8 +245,7 @@ private:
     book->asset.intraday_fee += commission;
   }
 
-  void apply_close(uint32_t dest, Book_ptr &book, Position &position, const Trade &trade) {
-    auto is_local = dest != location::SYNC and dest != location::PUBLIC;
+  void apply_close(Book_ptr &book, Position &position, const Trade &trade, bool is_local) {
     auto cm_mr =
         get_instrument_contract_multiplier_and_margin_ratio(book, trade.exchange_id, trade.instrument_id, position);
     auto contract_multiplier = cm_mr.contract_multiplier;
@@ -276,10 +274,6 @@ private:
     }
     position.realized_pnl += realized_pnl;
     update_position(book, position);
-
-    if (not is_local) {
-      return;
-    }
 
     auto commission = calculate_commission(book, trade, position, close_today_volume) * cm_mr.exchange_rate;
     book->asset.realized_pnl += realized_pnl * cm_mr.exchange_rate;

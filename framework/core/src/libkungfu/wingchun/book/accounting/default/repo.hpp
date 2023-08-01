@@ -46,8 +46,7 @@ public:
     // 无需计算逆回购的收益，逆回购收益在买入时就固定了
   }
 
-  void apply_sell(uint32_t dest, Book_ptr &book, const Trade &trade) override {
-    auto is_local = dest != location::PUBLIC and dest != location::SYNC;
+  void apply_sell(Book_ptr &book, const Trade &trade, bool is_local) override {
     auto &position = book->get_position_for(trade);
     if (position.volume + trade.volume > 0 && trade.price > 0) {
       position.avg_open_price = (position.avg_open_price * position.volume + trade.price * trade.volume) /
@@ -61,11 +60,10 @@ public:
     position.volume += trade.volume;
     update_position(book, position);
 
-    if (not is_local) {
-      return;
+    if (is_local) {
+      book->asset.frozen_cash -= trade.volume * cd_mr.exchange_rate;
     }
 
-    book->asset.frozen_cash -= trade.volume * cd_mr.exchange_rate;
     book->asset.avail -= commission + tax;
     book->asset.intraday_fee += commission + tax;
     book->asset.accumulated_fee += commission + tax;

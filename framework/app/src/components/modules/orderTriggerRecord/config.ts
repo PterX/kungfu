@@ -186,13 +186,13 @@ export const getModalSettings = (): KungfuApi.KfConfigItem[] => {
         {
           title: 'volume',
           description: t('tradingConfig.volume_header_desc'),
-          type: 'str',
+          type: 'num',
           required: true,
         },
         {
           title: 'limit_price',
           description: t('tradingConfig.limit_price_header_desc'),
-          type: 'str',
+          type: 'num',
           required: true,
         },
       ],

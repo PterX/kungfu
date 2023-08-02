@@ -354,15 +354,16 @@ export default {
     order_trigger_not_future:
       '下单失败, 第 {rowStr} 标的信息有误 (当前仅支持期货标的), 请检查',
     batch_order_trigger_results: '批量埋单成功 {success} 条, 失败 {error} 条',
-    instrument_id_header_desc: '标的代码, (* 仅可填ctp/融航柜台支持的期货标的)',
+    instrument_id_header_desc:
+      '标的代码, 字符串, (* 仅可填ctp/融航柜台支持的期货标的)',
     exchange_id_header_desc:
       '交易所 ID, 字符串, 可填 SHFE(上期所), DCE(大商所), CZCE(郑商所), CFFEX(中金所), INE(能源中心)',
-    side_header_desc: '买卖, 可填 0(买)/ 1(卖)',
-    offset_header_desc: '开平, 可填 0(开)/ 1(平)/ 2(平今)/ 3(平昨)',
+    side_header_desc: '买卖, 字符串, 可填 0(买)/ 1(卖)',
+    offset_header_desc: '开平, 字符串, 可填 0(开)/ 1(平)/ 2(平今)/ 3(平昨)',
     price_type_header_desc:
-      '0(限价)/ 1(市价)/ 2(上海深圳最优五档即时成交剩余撤销)/ 3(深圳本方最优价格申报)/ 4(上海最优五档即时成交剩余转限价, 深圳对手方最优价格申报)/ 5(深圳即时成交剩余撤销)/ 6(深圳市价全额成交或者撤销)/ 7(增强限价盘)/ 8(竞价限价盘)/ 9(竞价盘)',
-    volume_header_desc: '交易量',
-    limit_price_header_desc: '价格',
+      '0(限价)/ 1(市价)/ 2(上海深圳最优五档即时成交剩余撤销)/ 3(深圳本方最优价格申报)/ 4(上海最优五档即时成交剩余转限价, 深圳对手方最优价格申报)/ 5(深圳即时成交剩余撤销)/ 6(深圳市价全额成交或者撤销)/ 7(增强限价盘)/ 8(竞价限价盘)/ 9(竞价盘), 整数型',
+    volume_header_desc: '交易量, 整数型',
+    limit_price_header_desc: '价格, 浮点型',
     apart_order: '拆单',
     reset_order: '重置',
     account: '账户',

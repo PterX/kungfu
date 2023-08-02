@@ -24,8 +24,6 @@ namespace kungfu::wingchun::book {
 
 struct contract_discount_and_margin_ratio {
   int32_t contract_multiplier;
-  double long_margin_ratio;
-  double short_margin_ratio;
   double margin_ratio;
   double conversion_rate; // For collateral/avail_margin calculation
   double exchange_rate;   // 汇率
@@ -55,8 +53,7 @@ public:
         }
         // collateral; security
         auto cd_mr = get_instr_conversion_margin_rate(book, position);
-        auto margin_ratio =
-            (position.direction == Direction::Long ? cd_mr.long_margin_ratio : cd_mr.short_margin_ratio);
+        auto margin_ratio = cd_mr.margin_ratio;
 
         if (position.direction == Direction::Short) {
           position.margin = position.pre_close_price * cd_mr.exchange_rate * position.volume * margin_ratio;
@@ -101,7 +98,7 @@ public:
         asset_margin.total_asset += market_value_change;
       } else {
         double short_margin_change = (quote.last_price < position.avg_open_price)
-                                         ? cd_mr.short_margin_ratio * market_value_change
+                                         ? cd_mr.margin_ratio * market_value_change
                                          : market_value_change;
 
         position.margin += short_margin_change;
@@ -137,7 +134,7 @@ public:
         position.frozen_yesterday = position.yesterday_volume;
       }
     } else if (input.side == Side::Buy) { // Offset: Open
-      double frozen_cash = input.volume * input.frozen_price * cd_mr.exchange_rate;
+      double frozen_cash = input.volume * input.frozen_price * cd_mr.exchange_rate * cd_mr.margin_ratio;
       book->asset.frozen_cash += frozen_cash;
       book->asset.avail -= frozen_cash;
     }
@@ -156,7 +153,8 @@ public:
     auto cd_mr = get_instr_conversion_margin_rate(book, position);
 
     if (order.side == Side::Buy) {
-      auto frozen = book->get_frozen_price(order.order_id) * order.volume_left * cd_mr.exchange_rate;
+      auto frozen =
+          book->get_frozen_price(order.order_id) * order.volume_left * cd_mr.exchange_rate * cd_mr.margin_ratio;
       book->asset.frozen_cash -= frozen;
       book->asset.avail += frozen;
     } else if (order.side == Side::Sell || order.side == Side::RepayMargin || order.side == Side::RepayStock) {
@@ -166,7 +164,6 @@ public:
 
     update_position(book, position);
   }
-
   virtual void apply_trade(uint32_t source, uint32_t dest, Book_ptr &book, const Trade &trade) override {
     auto is_local = dest != location::PUBLIC and dest != location::SYNC;
 
@@ -220,9 +217,9 @@ protected:
 
     auto &asset = book->asset;
     double trade_amt = trade.price * cd_mr.exchange_rate * trade.volume;
+    double repay_cash_debt = std::min(position.margin, (trade_amt * cd_mr.margin_ratio - (commission + tax)));
+    double cash_delivery = trade_amt * cd_mr.margin_ratio - repay_cash_debt - (commission + tax);
     asset.realized_pnl += realized_pnl * cd_mr.exchange_rate;
-    double repay_cash_debt = std::min(position.margin, (trade_amt - (commission + tax)));
-    double cash_delivery = trade_amt - repay_cash_debt - (commission + tax);
     asset.avail += cash_delivery;
     asset.intraday_fee += commission + tax;
     asset.accumulated_fee += commission + tax;
@@ -248,10 +245,11 @@ protected:
 
     auto &asset = book->asset;
 
-    if (not is_local) {
-      double frozen_cash_to_release = book->get_frozen_price(trade.order_id) * cd_mr.exchange_rate * trade.volume;
+    if (is_local) {
+      double frozen_cash_to_release =
+          book->get_frozen_price(trade.order_id) * cd_mr.exchange_rate * trade.volume * cd_mr.margin_ratio;
       asset.frozen_cash -= frozen_cash_to_release;
-      double avail_cash_change = frozen_cash_to_release - trade_amt - (commission + tax);
+      double avail_cash_change = frozen_cash_to_release - trade_amt * cd_mr.margin_ratio - (commission + tax);
       asset.avail += avail_cash_change;
     }
 
@@ -346,7 +344,7 @@ protected:
     position.last_price = position.last_price > 0 ? position.last_price : trade.price;
     auto realized_pnl = (position.avg_open_price - trade.price) * trade.volume;
     position.realized_pnl += realized_pnl;
-    double released_margin = position.last_price * cd_mr.exchange_rate * trade.volume * cd_mr.short_margin_ratio;
+    double released_margin = position.last_price * cd_mr.exchange_rate * trade.volume * cd_mr.margin_ratio;
     position.margin -= released_margin;
     update_position(book, position);
   }
@@ -363,44 +361,32 @@ protected:
     uint32_t hashed_instrument_key = hash_instrument(exchange_id, instrument_id);
     contract_discount_and_margin_ratio cd_mr = {};
 
-    try {
-      if (book->instruments.find(hashed_instrument_key) == book->instruments.end()) {
-        cd_mr.contract_multiplier = DEFAULT_STOCK_CONTRACT_MULTIPLIER;
-      } else {
-        const auto &instrument = book->instruments.at(hashed_instrument_key);
-        cd_mr.contract_multiplier = instrument.contract_multiplier;
-      }
-
-      if (book->instrument_factors.find(hashed_instrument_key) == book->instrument_factors.end()) {
-        cd_mr.margin_ratio =
-            position.direction == Direction::Long ? DEFAULT_STOCK_LONG_MARGIN_RATIO : DEFAULT_STOCK_SHORT_MARGIN_RATIO;
-        cd_mr.long_margin_ratio = DEFAULT_STOCK_LONG_MARGIN_RATIO;
-        cd_mr.short_margin_ratio = DEFAULT_STOCK_SHORT_MARGIN_RATIO;
-        cd_mr.conversion_rate = DEFAULT_STOCK_CONVERSION_RATE;
-        cd_mr.exchange_rate = DEFAULT_STOCK_EXCHANGE_RATE;
-      } else {
-        auto &factor = book->instrument_factors.at(hashed_instrument_key);
-        cd_mr.margin_ratio = margin_ratio(factor, position);
-        cd_mr.long_margin_ratio = factor.long_margin_ratio;
-        cd_mr.short_margin_ratio = factor.short_margin_ratio;
-        cd_mr.conversion_rate = factor.conversion_rate;
-        cd_mr.exchange_rate = is_equal(factor.exchange_rate, 0.0) ? 1.0 : factor.exchange_rate;
-      }
-    } catch (std::exception &ex) {
-      SPDLOG_ERROR("Exception for instrument_id {}: {}", instrument_id, ex.what());
+    if (book->instruments.find(hashed_instrument_key) == book->instruments.end()) {
       cd_mr.contract_multiplier = DEFAULT_STOCK_CONTRACT_MULTIPLIER;
+    } else {
+      const auto &instrument = book->instruments.at(hashed_instrument_key);
+      cd_mr.contract_multiplier = instrument.contract_multiplier == 0 ? DEFAULT_STOCK_CONTRACT_MULTIPLIER : instrument.contract_multiplier;
+    }
+
+    if (book->instrument_factors.find(hashed_instrument_key) == book->instrument_factors.end()) {
       cd_mr.margin_ratio =
           position.direction == Direction::Long ? DEFAULT_STOCK_LONG_MARGIN_RATIO : DEFAULT_STOCK_SHORT_MARGIN_RATIO;
-      cd_mr.long_margin_ratio = DEFAULT_STOCK_LONG_MARGIN_RATIO;
-      cd_mr.short_margin_ratio = DEFAULT_STOCK_SHORT_MARGIN_RATIO;
       cd_mr.conversion_rate = DEFAULT_STOCK_CONVERSION_RATE;
       cd_mr.exchange_rate = DEFAULT_STOCK_EXCHANGE_RATE;
+    } else {
+      auto &factor = book->instrument_factors.at(hashed_instrument_key);
+      cd_mr.margin_ratio = margin_ratio(factor, position);
+      cd_mr.conversion_rate = is_equal(factor.conversion_rate, 0.0) ? DEFAULT_STOCK_CONVERSION_RATE: factor.conversion_rate;
+      cd_mr.exchange_rate = is_equal(factor.exchange_rate, 0.0) ? DEFAULT_STOCK_EXCHANGE_RATE : factor.exchange_rate;
     }
+
     return cd_mr;
   }
 
   static double margin_ratio(const InstrumentFactor &factor, const Position &position) {
-    return position.direction == Direction::Long ? factor.long_margin_ratio : factor.short_margin_ratio;
+    auto long_margin_ratio = is_equal(factor.long_margin_ratio, 0.0) ? DEFAULT_STOCK_LONG_MARGIN_RATIO : factor.long_margin_ratio;
+    auto short_margin_ratio = is_equal(factor.short_margin_ratio, 0.0) ? DEFAULT_STOCK_SHORT_MARGIN_RATIO : factor.short_margin_ratio;
+    return position.direction == Direction::Long ? long_margin_ratio : short_margin_ratio;
   }
 
   [[maybe_unused]] static double roundn(double value, int n = AMOUT_PRECISION) {

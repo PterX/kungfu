@@ -871,7 +871,7 @@ export const dealOrderTrigger = (
     order.dest,
   );
   const destResolvedData = resolveClientId(watcher, order.dest);
-  const statusData = dealOrderStatus(order.status, order.error_msg);
+  const statusData = dealOrderTriggerStatus(order.status, order.error_msg);
   return {
     ...order,
     source: order.source,
@@ -881,7 +881,7 @@ export const dealOrderTrigger = (
     dest_resolved_data: destResolvedData,
     source_uname: sourceResolvedData.name,
     dest_uname: destResolvedData.name,
-    status_uname: statusData.name,
+    status_uname: statusData.name || '--',
     status_color: statusData.color || 'default',
     update_time_resolved: dealKfTime(order.update_time, isHistory),
     price_precision: pricePrecision,
@@ -891,9 +891,6 @@ export const dealOrderTrigger = (
       : '--',
     parked_type: dealParkedType(order.parked_type)
       ? dealParkedType(order.parked_type).name
-      : '--',
-    status: dealOrderTriggerStatus(order.status)
-      ? dealOrderTriggerStatus(order.status).name
       : '--',
   };
 };

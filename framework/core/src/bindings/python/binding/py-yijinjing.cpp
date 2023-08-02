@@ -385,7 +385,7 @@ void bind(pybind11::module &&m) {
       .def("step", &apprentice::step);
 
   py::class_<cached, kungfu::yijinjing::practice::apprentice, std::shared_ptr<cached>>(m, "cached")
-      .def(py::init<yijinjing::data::locator_ptr, longfist::enums::mode, bool>())
+      .def(py::init<yijinjing::data::locator_ptr, longfist::enums::mode, bool, const std::string &>())
       .def_property_readonly("io_device", &cached::get_io_device)
       .def_property_readonly("usable", &cached::is_usable)
       .def("set_begin_time", &cached::set_begin_time)

@@ -11,11 +11,15 @@ class BondAccountingMethod : public StockAccountingMethod {
 public:
   BondAccountingMethod() = default;
 
-  void apply_order_input(Book_ptr &book, const OrderInput &input) override {
+  void apply_order_input(uint32_t source, uint32_t dest, Book_ptr &book, const OrderInput &input) override {
+    if (dest == location::SYNC or dest == location::PUBLIC) {
+      return;
+    }
+
     auto &position = book->get_position_for(input);
     auto cd_mr = get_instr_conversion_margin_rate(book, position);
     if (!is_convertible_bond(input.instrument_id, input.exchange_id)) {
-      StockAccountingMethod::apply_order_input(book, input);
+      StockAccountingMethod::apply_order_input(source, dest, book, input);
       return;
     }
 

@@ -24,13 +24,11 @@ public:
   typedef yijinjing::data::location_ptr location_ptr;
   typedef longfist::enums::BrokerState BrokerState;
 
-  BrokerVendor(location_ptr location, bool low_latency);
+  BrokerVendor(location_ptr location, bool low_latency, const std::string &arguments);
 
   void on_exit() override;
 
   std::string get_arguments() const { return arguments_; }
-
-  void set_arguments(const std::string &argiments) { arguments_ = argiments; }
 
 protected:
   virtual BrokerService_ptr get_service() = 0;

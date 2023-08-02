@@ -80,7 +80,7 @@ export const getColumns = (): AntTableColumns => [
   },
   {
     title: t('orderConfig.order_status'),
-    dataIndex: 'status',
+    dataIndex: 'status_uname',
     align: 'left',
     width: 120,
   },
@@ -180,19 +180,19 @@ export const getModalSettings = (): KungfuApi.KfConfigItem[] => {
         {
           title: 'price_type',
           description: t('tradingConfig.price_type_header_desc'),
-          type: 'str',
+          type: 'num',
           required: true,
         },
         {
           title: 'volume',
           description: t('tradingConfig.volume_header_desc'),
-          type: 'str',
+          type: 'num',
           required: true,
         },
         {
           title: 'limit_price',
           description: t('tradingConfig.limit_price_header_desc'),
-          type: 'str',
+          type: 'num',
           required: true,
         },
       ],
@@ -250,50 +250,8 @@ export const getModalSettings = (): KungfuApi.KfConfigItem[] => {
         {
           key: 'price_type',
           name: t('tradingConfig.price_type'),
-          type: 'select',
-          options: [
-            {
-              label: t('tradingConfig.Limit'),
-              value: `${PriceTypeEnum.Limit}`,
-            },
-            {
-              label: t('tradingConfig.Market'),
-              value: `${PriceTypeEnum.Market}`,
-            },
-            {
-              label: t('tradingConfig.FakBest5'),
-              value: `${PriceTypeEnum.FakBest5}`,
-            },
-            {
-              label: t('tradingConfig.Forward_best'),
-              value: `${PriceTypeEnum.ForwardBest}`,
-            },
-            {
-              label: t('tradingConfig.Reverse_best'),
-              value: `${PriceTypeEnum.ReverseBest}`,
-            },
-            {
-              label: t('tradingConfig.Fak'),
-              value: `${PriceTypeEnum.Fak}`,
-            },
-            {
-              label: t('tradingConfig.Fok'),
-              value: `${PriceTypeEnum.Fok}`,
-            },
-            {
-              label: t('tradingConfig.EnhancedLimit'),
-              value: `${PriceTypeEnum.EnhancedLimit}`,
-            },
-            {
-              label: t('tradingConfig.AtAuctionLimit'),
-              value: `${PriceTypeEnum.AtAuctionLimit}`,
-            },
-            {
-              label: t('tradingConfig.AtAuction'),
-              value: `${PriceTypeEnum.AtAuction}`,
-            },
-          ],
-          default: `${PriceTypeEnum.Limit}`,
+          type: 'priceType',
+          default: PriceTypeEnum.Limit,
           required: true,
         },
         {

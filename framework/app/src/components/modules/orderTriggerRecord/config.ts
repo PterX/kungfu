@@ -251,48 +251,6 @@ export const getModalSettings = (): KungfuApi.KfConfigItem[] => {
           key: 'price_type',
           name: t('tradingConfig.price_type'),
           type: 'priceType',
-          options: [
-            {
-              label: t('tradingConfig.Limit'),
-              value: PriceTypeEnum.Limit,
-            },
-            {
-              label: t('tradingConfig.Market'),
-              value: PriceTypeEnum.Market,
-            },
-            {
-              label: t('tradingConfig.FakBest5'),
-              value: PriceTypeEnum.FakBest5,
-            },
-            {
-              label: t('tradingConfig.Forward_best'),
-              value: PriceTypeEnum.ForwardBest,
-            },
-            {
-              label: t('tradingConfig.Reverse_best'),
-              value: PriceTypeEnum.ReverseBest,
-            },
-            {
-              label: t('tradingConfig.Fak'),
-              value: PriceTypeEnum.Fak,
-            },
-            {
-              label: t('tradingConfig.Fok'),
-              value: PriceTypeEnum.Fok,
-            },
-            {
-              label: t('tradingConfig.EnhancedLimit'),
-              value: PriceTypeEnum.EnhancedLimit,
-            },
-            {
-              label: t('tradingConfig.AtAuctionLimit'),
-              value: PriceTypeEnum.AtAuctionLimit,
-            },
-            {
-              label: t('tradingConfig.AtAuction'),
-              value: PriceTypeEnum.AtAuction,
-            },
-          ],
           default: PriceTypeEnum.Limit,
           required: true,
         },

@@ -174,6 +174,7 @@ function handleConfirmBatchOrderTrigger(csvData: csvOrderInput[]) {
   const emptyRow = csvData.filter((item) => !item.instrument);
   if (emptyRow.length > 0) {
     error(t('tradingConfig.empty_csv_order'));
+    return;
   }
 
   const tdProcessId = getProcessIdByKfLocation(currentGlobalKfLocation.value);

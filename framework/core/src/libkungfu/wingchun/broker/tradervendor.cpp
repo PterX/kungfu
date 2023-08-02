@@ -65,7 +65,8 @@ AlgoOrderService &TraderWriterHook::get_algo_order_service() { return vendor_.ge
 
 TraderVendor::TraderVendor(locator_ptr locator, const std::string &group, const std::string &name, bool low_latency,
                            const std::string &arguments)
-    : BrokerVendor(location::make_shared(mode::LIVE, category::TD, group, name, std::move(locator)), low_latency),
+    : BrokerVendor(location::make_shared(mode::LIVE, category::TD, group, name, std::move(locator)), low_latency,
+                   arguments),
       algo_order_service_(*this), order_service_(*this), order_trigger_service_(*this),
       hook_(std::make_shared<TraderWriterHook>(*this)) {
   set_arguments(arguments);

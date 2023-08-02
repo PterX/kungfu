@@ -76,14 +76,12 @@ const { dealDataWithCache } = useDealDataWithCaches<
 const { globalSetting } = storeToRefs(useGlobalStore());
 
 const columns = computed(() => {
-  if (currentGlobalKfLocation.value === null) {
-    return getColumns({
-      category: 'td',
-      group: '*',
-      name: '*',
-      mode: 'live',
-    });
-  }
+  const defaultLocation = {
+    category: 'td',
+    group: '*',
+    name: '*',
+    mode: 'live',
+  };
 
   const kfGlobalSettings = getKfGlobalSettings();
   const tradeSettings = kfGlobalSettings.filter(
@@ -94,12 +92,14 @@ const columns = computed(() => {
     .options?.map((item) => item.value);
   const selectedOptions: string[] = globalSetting.value?.trade?.posTableColumns;
   if (!posTableColumnsOptions || !selectedOptions)
-    return getColumns(currentGlobalKfLocation.value);
+    return getColumns(currentGlobalKfLocation.value || defaultLocation);
   const notSelectedOptions = posTableColumnsOptions.filter((item) => {
     return !selectedOptions.includes(item as string);
   });
 
-  const columnsConfig = getColumns(currentGlobalKfLocation.value);
+  const columnsConfig = getColumns(
+    currentGlobalKfLocation.value || defaultLocation,
+  );
 
   return columnsConfig.filter((item) => {
     return !notSelectedOptions.includes(item.dataIndex);

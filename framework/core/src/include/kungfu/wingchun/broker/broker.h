@@ -76,8 +76,6 @@ public:
 
   [[nodiscard]] bool has_writer(uint32_t dest_id) const;
 
-  [[nodiscard]] yijinjing::journal::writer_ptr &get_thread_writer();
-
   template <typename DataType> void write_to(DataType &data, uint32_t dest_id = yijinjing::data::location::PUBLIC) {
     vendor_.write_to(now(), data, dest_id);
   }
@@ -98,7 +96,11 @@ public:
 
   [[nodiscard]] BrokerVendor &get_vendor() const { return vendor_; }
 
-  [[maybe_unused]] uint32_t request_band(const std::string &band_name) { return vendor_.request_band(band_name); }
+  [[maybe_unused]] uint32_t request_band(const std::string &band_name, uint32_t page_size = 0) {
+    return vendor_.request_band(band_name, page_size);
+  }
+
+  virtual void on_arguments(const std::string &argument) {}
 
   virtual void on_arguments(const std::string &argument) {}
 

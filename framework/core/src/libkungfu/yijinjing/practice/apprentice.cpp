@@ -68,17 +68,17 @@ void apprentice::request_write_to(int64_t trigger_time, uint32_t dest_id) {
   }
 }
 
-void apprentice::request_write_to_band(int64_t trigger_time, const location_ptr &location) {
+void apprentice::request_write_to_band(int64_t trigger_time, const location_ptr &location, uint32_t page_size) {
   if (get_io_device()->get_home()->mode == mode::LIVE) {
-    require_write_to_band(trigger_time, get_master_command_uid(), location);
+    require_write_to_band(trigger_time, get_master_command_uid(), location, page_size);
   }
 }
 
-uint32_t apprentice::request_band(const std::string &band_name) {
+uint32_t apprentice::request_band(const std::string &band_name, uint32_t page_size) {
   auto io_device = get_io_device();
   auto home = io_device->get_home();
   auto band_location = location::make_shared(home->mode, home->category, home->group, band_name, get_locator());
-  request_write_to_band(now(), band_location);
+  request_write_to_band(now(), band_location, page_size);
   return band_location->uid;
 }
 
@@ -217,9 +217,11 @@ void apprentice::on_write_to(const event_ptr &event) {
 }
 
 void apprentice::on_write_to_band(const event_ptr &event) {
-  auto dest_id = event->data<RequestWriteToBand>().location_uid;
+  const auto &request = event->data<RequestWriteToBand>();
+  auto dest_id = request.location_uid;
+  auto page_size = request.page_size;
   if (writers_.find(dest_id) == writers_.end()) {
-    writers_.insert_or_assign(dest_id, get_io_device()->open_writer(dest_id));
+    writers_.insert_or_assign(dest_id, get_io_device()->open_writer(dest_id, page_size));
   }
 }
 
@@ -237,7 +239,7 @@ void apprentice::reader_join(uint32_t source_id, uint32_t dest_id, int64_t from_
   reader_->join(get_location(source_id), dest_id, from_time);
 
   if (not has_writer(get_master_command_uid())) {
-    SPDLOG_ERROR("no master cmd writer");
+    SPDLOG_ERROR("no master cmd writer {}", get_master_command_uid());
     return;
   }
 
@@ -275,37 +277,8 @@ void apprentice::expect_start() {
   });
 }
 
-void apprentice::on_master_start() {
-  SPDLOG_INFO("master start, do some recoveries");
-  const auto publisher = get_io_device()->get_publisher();
-  while (not publisher->is_usable()) {
-  }
-
-  for (const auto &iter : timer_requests_) {
-    auto &r = iter.second;
-    publisher->publish(make_nano_msg(get_home_uid(), get_master_command_uid(), r));
-  }
-}
-
 void apprentice::reset_time(const longfist::types::TimeReset &time_reset) {
   time::reset(time_reset.system_clock_count, time_reset.steady_clock_count);
-}
-
-yijinjing::journal::writer_ptr &apprentice::get_thread_writer() {
-  if (not thread_writer_) {
-    uint32_t dest_id = kungfu::yijinjing::util::get_thread_id();
-    thread_writer_ = get_io_device()->open_writer(dest_id);
-
-    /// join channel in sub-thread will crash, so tell master to ask myself to join
-    /// do not use writer because of multi-thread concurrency issues
-    RequestReadFromOthers request{};
-    request.source_id = get_home_uid();
-    request.dest_id = dest_id;
-    request.from_time = now();
-    SPDLOG_TRACE("RequestReadFromOthers: {}", request.to_string());
-    get_io_device()->get_publisher()->publish(make_nano_msg(get_home_uid(), master_home_location_->uid, request));
-  }
-  return thread_writer_;
 }
 
 } // namespace kungfu::yijinjing::practice

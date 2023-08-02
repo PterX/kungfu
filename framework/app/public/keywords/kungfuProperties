@@ -488,6 +488,10 @@ OrderTriggerType
 Server
 Local
 ParkedType
+Low
+Medium
+High
+Priority
 No
 AccountInternal
 AccountInteractive

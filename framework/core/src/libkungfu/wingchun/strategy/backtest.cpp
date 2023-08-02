@@ -147,7 +147,8 @@ void BacktestContext::subscribe_operator(const std::string &group, const std::st
 }
 
 uint64_t BacktestContext::insert_block_message(const std::string &source, const std::string &account,
-                                               uint32_t opponent_seat, uint64_t match_number, bool is_specific) {
+                                               const std::string &opponent_seat, uint64_t match_number,
+                                               bool is_specific) {
   // not implemented
   return {};
 }

@@ -54,12 +54,12 @@ void OrderService::on_order_action(const event_ptr &event) {
   order_actions_.insert_or_assign(order_action.order_id, order_action_state);
 }
 
-void OrderService::on_order(uint32_t source, uint32_t dest, int64_t gen_time, const Order &order) {
+void OrderService::on_order(int64_t gen_time, uint32_t source, uint32_t dest, const Order &order) {
   state<Order> order_state(source, dest, gen_time, order);
   orders_.insert_or_assign(order.order_id, order_state);
 }
 
-void OrderService::on_trade(uint32_t source, uint32_t dest, int64_t gen_time, const Trade &trade) {
+void OrderService::on_trade(int64_t gen_time, uint32_t source, uint32_t dest, const Trade &trade) {
   state<Trade> trade_state(source, dest, gen_time, trade);
   trades_.insert_or_assign(trade.trade_id, trade_state);
 }
@@ -124,5 +124,13 @@ kungfu::state<longfist::types::Order> &OrderService::get_order(uint64_t order_id
 const OrderActionMap &OrderService::get_order_actions() const { return order_actions_; }
 
 const TradeMap &OrderService::get_trades() const { return trades_; }
+
+bool OrderService::has_order_action(uint64_t action_id) const {
+  return order_actions_.find(action_id) != order_actions_.end();
+}
+
+kungfu::state<longfist::types::OrderAction> &OrderService::get_order_action(uint64_t action_id) {
+  return order_actions_.at(action_id);
+}
 
 } // namespace kungfu::wingchun::broker

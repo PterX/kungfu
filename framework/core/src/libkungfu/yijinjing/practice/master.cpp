@@ -109,15 +109,16 @@ void master::register_app(const event_ptr &event) {
 
   auto now = time::now_in_nano();
   auto uid_str = fmt::format("{:08x}", app_location->uid);
-  SPDLOG_INFO("registering location {} uname {} uid {}", uid_str, app_location->uname, app_location->uid);
   auto master_cmd_location = location::make_shared(mode::LIVE, category::SYSTEM, "master", uid_str, home->locator);
+  SPDLOG_INFO("registering location {} uname {} uid {}, master_cmd_location {} uid {}", uid_str, app_location->uname,
+              app_location->uid, master_cmd_location->uname, master_cmd_location->uid);
   try_add_location(event->gen_time(), master_cmd_location);
 
   auto app_cmd_writer = get_io_device()->open_writer_at(master_cmd_location, app_location->uid);
   writers_.insert_or_assign(app_location->uid, app_cmd_writer);
   reader_->join(app_location, location::PUBLIC, now);
   reader_->join(app_location, location::SYNC, now);
-  reader_->join(app_location, master_cmd_location->uid, now);
+  reader_->join(app_location, master_cmd_location->uid, now, 0, Priority::High);
 
   auto public_writer = get_writer(location::PUBLIC);
   public_writer->write(event->gen_time(), *std::dynamic_pointer_cast<Location>(app_location));
@@ -275,6 +276,7 @@ void master::on_request_write_to_band(const event_ptr &event) {
   auto io_device = std::dynamic_pointer_cast<io_device_master>(get_io_device());
   auto home = io_device->get_home();
   auto target_location = location::make_shared(request, home->locator);
+  auto page_size = request.page_size;
 
   // layout have to be journal, for locator::list_locations
   auto dirname = home->locator->layout_dir(target_location, enums::layout::JOURNAL);
@@ -288,8 +290,8 @@ void master::on_request_write_to_band(const event_ptr &event) {
     return;
   }
 
-  reader_->join(get_location(app_uid), request.location_uid, trigger_time);
-  require_write_to_band(trigger_time, app_uid, target_location);
+  reader_->join(get_location(app_uid), request.location_uid, trigger_time, page_size);
+  require_write_to_band(trigger_time, app_uid, target_location, page_size);
   cached_.ensure_cached_storage(get_location(app_uid), request.location_uid);
   Band band = {};
   band.source_id = app_uid;
@@ -380,9 +382,8 @@ void master::on_time_request(const event_ptr &event) {
   if (not is_location_live(event->source())) {
     return;
   }
-  auto request_data = event->data_as_string();
-  SPDLOG_INFO("on_time_request ======== {}", request_data.c_str());
-  TimeRequest request(request_data.c_str(), request_data.length());
+  const TimeRequest &request = event->data<TimeRequest>();
+  SPDLOG_INFO("TimeRequest: {}", request.to_string());
   auto &app_tasks = timer_tasks_.try_emplace(event->source()).first->second;
   auto &task = app_tasks.try_emplace(request.id).first->second;
   task.checkpoint = request.base_time + request.duration;

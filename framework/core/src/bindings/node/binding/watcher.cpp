@@ -502,6 +502,9 @@ void Watcher::refresh_books() {
 }
 
 void Watcher::refresh_account_book(int64_t trigger_time, uint32_t account_uid) {
+  if (bypass_refresh_book_) {
+    return;
+  }
   auto account_location = get_location(account_uid);
   auto group = account_location->group;
   auto md_location = location::make_shared(account_location->mode, category::MD, group, group, get_locator());

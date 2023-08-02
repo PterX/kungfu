@@ -1305,7 +1305,7 @@ declare namespace KungfuApi {
       bypassAccounting = false,
       bypassTradingData = false,
       refreshTradingDataBeforeSync = false,
-      bypassRefrashBook = false,
+      bypassRefreshBook = false,
       millisecondsSleepAfterStep = 200,
     ): Watcher | null;
     shutdown(): void;

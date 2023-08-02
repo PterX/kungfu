@@ -30,6 +30,7 @@ import {
 } from 'ant-design-vue';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import globalBus from '@kungfu-trader/kungfu-js-api/utils/globalBus';
+import { loadCustomFont } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 
 const app = createApp(App);
 app
@@ -58,4 +59,5 @@ app
 app.use(VueI18n);
 app.directive('dragging', dragging);
 app.config.globalProperties.$globalBus = globalBus;
-app.mount('#app');
+
+loadCustomFont().then(() => app.mount('#app'));

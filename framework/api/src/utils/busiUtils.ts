@@ -1631,7 +1631,7 @@ export const dealKfPrice = (
     return afterNumber;
   }
 
-  return Number(afterNumber).kfToFixed(pricePrecision ?? 3);
+  return Number(afterNumber).kfToFixed(pricePrecision ?? 4);
 };
 
 export const dealAssetPrice = (
@@ -1644,7 +1644,7 @@ export const dealAssetPrice = (
     return afterNumber;
   }
 
-  return Number(afterNumber).kfToFixed(pricePrecision ?? 3);
+  return Number(afterNumber).kfToFixed(pricePrecision ?? 4);
 };
 
 export const sum = (list: number[]): number => {
@@ -2435,7 +2435,7 @@ export const dealOrderInputItem = (
     } else if (key === 'is_swap') {
       isInstrumnetShotable &&
         (orderInputResolved[key] = dealIsSwap(inputData.is_swap));
-    } else if (key === 'limit_price' && price_precision) {
+    } else if (key === 'limit_price') {
       orderInputResolved[key] = {
         name: dealAssetPrice(inputData[key], price_precision),
         color: 'default',

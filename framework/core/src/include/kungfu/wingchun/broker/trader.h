@@ -297,7 +297,7 @@ public:
 
   virtual bool req_account() = 0;
 
-  virtual bool req_order_trigger(const event_ptr &event) { return true; }
+  virtual bool req_order_trigger() { return true; }
 
   virtual bool req_algo_order(const event_ptr &event) { return true; }
 

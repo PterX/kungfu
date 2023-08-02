@@ -87,7 +87,7 @@ public:
 
   bool req_account() override { PYBIND11_OVERLOAD_PURE(bool, Trader, req_account); }
 
-  bool req_order_trigger(const event_ptr &event) override { PYBIND11_OVERLOAD(bool, Trader, req_order_trigger, event); }
+  bool req_order_trigger() override { PYBIND11_OVERLOAD(bool, Trader, req_order_trigger); }
 
   bool req_algo_order(const event_ptr &event) override { PYBIND11_OVERLOAD(bool, Trader, req_algo_order, event); }
 

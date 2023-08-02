@@ -1754,10 +1754,6 @@ export const dealVolumeByInstrumentType = (
   const orderVolume = Math.max(volume, minOrderVolume);
 
   if (instrumentType === InstrumentTypeEnum.techstock) return orderVolume;
-<<<<<<< HEAD
-
-=======
->>>>>>> 859f30f2ddaf04f18ab71d28e6ac829082064267
   return Math.floor(orderVolume / minOrderVolume) * minOrderVolume;
 };
 

@@ -96,9 +96,10 @@ export default {
   Operator: '算子',
   Trade: '成交记录',
   Order: '委托记录',
-  EmbeddedRecord: '预埋单记录',
+  OrderTriggerRecord: '预埋单记录',
   PosGlobal: '持仓汇总',
   Pos: '持仓',
+  TransferRecord: '划转记录',
 
   select_broker_ext: '选择柜台 API',
   select_operator_ext: '选择算子插件',
@@ -336,21 +337,20 @@ export default {
     archive: '归档服务',
 
     place_order: '下单',
-    embedded_order: '预埋',
-    embedded_order_title: '预埋单确认',
-    server_embedded_label: '服务器预埋单',
-    local_embedded_label: '本地预埋单',
+    order_trigger: '预埋',
+    order_trigger_title: '预埋单确认',
+    server_order_trigger_label: '服务器预埋单',
+    local_order_trigger_label: '本地预埋单',
     order_trigger_status_pending: '已提交',
     order_trigger_status_submitted: '未触发',
     order_trigger_status_filled: '已触发',
     order_trigger_status_cancelled: '已取消',
     batch: '批量',
-    batch_embedded: '批量预埋单',
-    embedded_order_td_error: '当前柜台 {tdName} 不支持下预埋单, 请联系管理员',
-    embedded_order_not_future: '批量埋单中, 第{rowStr}不是期货, 下单失败',
-    batch_embedded_results: '批量埋单成功 {success} 条, 失败 {error} 条',
-    instrument_id_header_desc:
-      '标的代码, （* 仅可填ctp/融航柜台支持的期货标的）',
+    batch_order_trigger: '批量预埋单',
+    order_trigger_td_error: '当前柜台 {tdName} 不支持下预埋单, 请联系管理员',
+    order_trigger_not_future: '批量埋单中, 第{rowStr}不是期货, 下单失败',
+    batch_order_trigger_results: '批量埋单成功 {success} 条, 失败 {error} 条',
+    instrument_id_header_desc: '标的代码, (* 仅可填ctp/融航柜台支持的期货标的)',
     exchange_id_header_desc:
       '交易所 ID, 字符串, 可填 SSE(上交所), SZE(深交所), BSE(北交所), SHFE(上期所), DCE(大商所), CZCE(郑商所), CFFEX(中金所), INE(能源中心)',
     side_header_desc: '买卖, 可填 0买/ 1卖',
@@ -466,6 +466,26 @@ export default {
     need_only_group: '需保证该账户组名称唯一',
     delete_amount_group: '删除账户组 {group}',
     confirm_delete_group: '不会影响改账户组下账户进程, 确认是否删除',
+  },
+
+  fundTrans: {
+    config_error: '{td} 柜台资金划转配置文件异常',
+    modal_title: '柜台间资金划转',
+    trans_selection: '请选择资金划转的方向',
+    centralized_counter: '集中柜台',
+    source: '划出节点',
+    target: '划入节点',
+    amount: '发生金额',
+    update_time: '划转时间',
+    tip_error: '划转失败,请联系管理员!',
+    capitalaccountor: '资金账号',
+    trade_password: '交易密码',
+    account: '客户号',
+    trans_type: '划转类型',
+    pending: '等待中',
+    status: '划转状态',
+    success: '成功',
+    error: '失败',
   },
 
   mdConfig: {
@@ -725,6 +745,9 @@ export default {
     bypass_archive_desc:
       '仅删除上个交易日留下的 journal 与 log 文件, 不再压缩打包, 跳过归档后无法恢复之前的内存数据, 会加快启动速度',
 
+    bypass_subscribe_position: '跳过持仓行情订阅',
+    bypass_subscribe_position_desc:
+      '打开后, 不再默认订阅交易账户持仓的行情更新, 且交易账户列表不再显示浮动盈亏, 市值相关字段使用开仓均价计算, 开启后可减轻机器性能负担, 重启后生效',
     porformance: '性能',
     rocket_model: '开启极速模式',
     rocket_model_desc:

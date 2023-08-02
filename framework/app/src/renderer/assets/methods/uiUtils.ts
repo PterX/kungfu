@@ -62,6 +62,7 @@ import { normalizePath } from '@kungfu-trader/kungfu-js-api/utils/osUtils';
 
 export const loadCustomFont = () => {
   const fontsDir = path.normalize(path.join(KUNGFU_RESOURCES_DIR, 'fonts'));
+  if (!fse.existsSync(fontsDir)) return Promise.resolve();
 
   return fse.readdir(fontsDir).then((fontFiles) => {
     return Promise.all(
@@ -358,6 +359,43 @@ export const useTableSearchKeyword = <T>(
       })
       .map((item) => toRaw(item));
   });
+
+  return {
+    searchKeyword,
+    tableData,
+  };
+};
+
+export const useDeepWatchTableSearchKeyword = <T>(
+  targetList: Ref<T[]> | ComputedRef<T[]>,
+  keys: string[],
+): {
+  searchKeyword: Ref<string>;
+  tableData: Ref<T[]>;
+} => {
+  const searchKeyword = ref<string>('');
+  const tableData = ref<T[]>([]) as Ref<T[]>;
+
+  watch(
+    () => ({ keyword: searchKeyword.value, list: targetList.value }),
+    (newValue) => {
+      const { keyword, list } = newValue;
+      tableData.value =
+        list.filter((item) => {
+          const combinedValue = keys
+            .map(
+              (key: string) =>
+                ((item[key] as string | number) || '').toString() || '',
+            )
+            .join('_');
+          return new RegExp(keyword, 'ig').test(combinedValue);
+        }) || [];
+    },
+    {
+      deep: true,
+      immediate: true,
+    },
+  );
 
   return {
     searchKeyword,

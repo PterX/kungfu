@@ -22,7 +22,7 @@ void OrderTriggerService::on_order_trigger_action(const event_ptr &event) {
   order_trigger_actions_.insert_or_assign(order_trigger_action.trigger_id, order_trigger_action_state);
 }
 
-void OrderTriggerService::on_order_trigger(uint32_t source, uint32_t dest, int64_t gen_time,
+void OrderTriggerService::on_order_trigger(int64_t gen_time, uint32_t source, uint32_t dest,
                                            const longfist::types::OrderTrigger &order_trigger) {
   state<OrderTrigger> order_trigger_state(source, dest, gen_time, order_trigger);
   order_triggers_.insert_or_assign(order_trigger.trigger_id, order_trigger_state);
@@ -70,5 +70,13 @@ kungfu::state<longfist::types::OrderTrigger> &OrderTriggerService::get_order_tri
 }
 
 const OrderTriggerActionMap &OrderTriggerService::get_order_trigger_actions() const { return order_trigger_actions_; }
+
+bool OrderTriggerService::has_order_trigger_action(uint64_t action_id) const {
+  return order_trigger_actions_.find(action_id) != order_trigger_actions_.end();
+}
+
+kungfu::state<longfist::types::OrderTriggerAction> &OrderTriggerService::get_order_trigger_action(uint64_t action_id) {
+  return order_trigger_actions_.at(action_id);
+}
 
 } // namespace kungfu::wingchun::broker

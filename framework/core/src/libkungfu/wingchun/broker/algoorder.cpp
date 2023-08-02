@@ -44,12 +44,15 @@ void AlgoOrderService::on_algo_order_action(const event_ptr &event) {
   algo_order_actions_.insert_or_assign(algo_order_action.order_id, algo_order_action_state);
 }
 
-void AlgoOrderService::on_order(const longfist::types::Order &order) {
-  if (not recover_done_) {
+void AlgoOrderService::on_order(int64_t gen_time, uint32_t source, uint32_t dest, const Order &order) {
+  if (order.parent_id == UINT64_ZERO) {
     return;
   }
 
-  if (order.parent_id == UINT64_ZERO) {
+  // save <order id> to <parent id> pair;
+  order_id_to_algo_order_id_.insert_or_assign(order.order_id, order.parent_id);
+
+  if (not recover_done_) {
     return;
   }
 
@@ -61,7 +64,6 @@ void AlgoOrderService::on_order(const longfist::types::Order &order) {
 
   auto &target_algo_order_state = local_algo_orders_.at(order.parent_id);
   auto &target_algo_order = target_algo_order_state.data;
-  auto dest = target_algo_order_state.dest;
 
   auto volume_traded = get_volume_traded(order.parent_id);
   target_algo_order.volume_left = target_algo_order.volume - volume_traded;
@@ -78,8 +80,17 @@ void AlgoOrderService::on_order(const longfist::types::Order &order) {
   waiting_record_local_algo_orders_.insert_or_assign(target_algo_order.order_id, target_algo_order_state);
 }
 
-void AlgoOrderService::on_algo_order(int64_t gen_time, uint32_t source, uint32_t dest,
-                                     const longfist::types::AlgoOrder &algo_order) {
+void AlgoOrderService::on_trade(int64_t gen_time, uint32_t source, uint32_t dest, const Trade &trade) {
+  auto &trade_ref = const_cast<Trade &>(trade);
+  auto order_id = trade.order_id;
+  if (order_id_to_algo_order_id_.find(order_id) == order_id_to_algo_order_id_.end()) {
+    return;
+  }
+
+  trade_ref.parent_order_id = order_id_to_algo_order_id_.at(order_id);
+}
+
+void AlgoOrderService::on_algo_order(int64_t gen_time, uint32_t source, uint32_t dest, const AlgoOrder &algo_order) {
 
   // this function fullfill all inner write AlgoOrder demand
   state<AlgoOrder> algo_order_state(source, dest, gen_time, algo_order);
@@ -90,7 +101,7 @@ void AlgoOrderService::on_algo_order(int64_t gen_time, uint32_t source, uint32_t
   }
 };
 
-void AlgoOrderService::try_update_sub_orders(const longfist::types::Order &order) {
+void AlgoOrderService::try_update_sub_orders(const Order &order) {
   if (local_sub_orders_.find(order.parent_id) == local_sub_orders_.end()) {
     Orders orders;
     local_sub_orders_.emplace(order.parent_id, orders);
@@ -167,7 +178,7 @@ bool AlgoOrderService::has_algo_order(uint64_t algo_order_id) const {
   return algo_orders_.find(algo_order_id) != algo_orders_.end();
 }
 
-kungfu::state<longfist::types::AlgoOrder> &AlgoOrderService::get_algo_order(uint64_t algo_order_id) {
+kungfu::state<AlgoOrder> &AlgoOrderService::get_algo_order(uint64_t algo_order_id) {
   return algo_orders_.at(algo_order_id);
 }
 

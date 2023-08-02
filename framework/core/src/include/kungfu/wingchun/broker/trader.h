@@ -52,9 +52,11 @@ inline bool is_all_order_finished(const Orders &orders) {
 class BaseService {
 public:
   explicit BaseService(TraderVendor &vendor) : vendor_(vendor){};
+
   virtual ~BaseService() = default;
 
   virtual void on_recover() { recover_done_ = true; };
+
   virtual void on_active(){};
 
 protected:
@@ -72,9 +74,9 @@ public:
 
   void on_order_action(const event_ptr &event);
 
-  void on_order(uint32_t source, uint32_t dest, int64_t gen_time, const longfist::types::Order &order);
+  void on_order(int64_t gen_time, uint32_t source, uint32_t dest, const longfist::types::Order &order);
 
-  void on_trade(uint32_t source, uint32_t dest, int64_t gen_time, const longfist::types::Trade &trade);
+  void on_trade(int64_t gen_time, uint32_t source, uint32_t dest, const longfist::types::Trade &trade);
 
   void on_batch_order_tag(const event_ptr &event);
 
@@ -84,15 +86,19 @@ public:
 
   void clean_orders(uint32_t source, const longfist::types::OrderInput &order_input, bool bypass_recover = false);
 
-  const OrderMap &get_orders() const;
+  [[nodiscard]] const OrderMap &get_orders() const;
 
-  bool has_order(uint64_t order_id) const;
+  [[nodiscard]] bool has_order(uint64_t order_id) const;
 
   kungfu::state<longfist::types::Order> &get_order(uint64_t order_id);
 
-  const TradeMap &get_trades() const;
+  [[nodiscard]] const TradeMap &get_trades() const;
 
-  const OrderActionMap &get_order_actions() const;
+  [[nodiscard]] const OrderActionMap &get_order_actions() const;
+
+  [[nodiscard]] bool has_order_action(uint64_t action_id) const;
+
+  [[nodiscard]] kungfu::state<longfist::types::OrderAction> &get_order_action(uint64_t action_id);
 
 private:
   OrderMap orders_{};
@@ -113,7 +119,7 @@ public:
 
   void on_order_trigger_action(const event_ptr &event);
 
-  void on_order_trigger(uint32_t source, uint32_t dest, int64_t gen_time,
+  void on_order_trigger(int64_t gen_time, uint32_t source, uint32_t dest,
                         const longfist::types::OrderTrigger &order_trigger);
 
   void clean_order_triggers(bool bypass_recover = false);
@@ -121,13 +127,17 @@ public:
   void clean_order_triggers(uint32_t source, const longfist::types::OrderTriggerInput &order_trigger_input,
                             bool bypass_recover = false);
 
-  const OrderTriggerMap &get_order_triggers() const;
+  [[nodiscard]] const OrderTriggerMap &get_order_triggers() const;
 
-  bool has_order_trigger(uint64_t trigger_id) const;
+  [[nodiscard]] bool has_order_trigger(uint64_t trigger_id) const;
 
   kungfu::state<longfist::types::OrderTrigger> &get_order_trigger(uint64_t trigger_id);
 
-  const OrderTriggerActionMap &get_order_trigger_actions() const;
+  [[nodiscard]] const OrderTriggerActionMap &get_order_trigger_actions() const;
+
+  [[nodiscard]] bool has_order_trigger_action(uint64_t action_id) const;
+
+  [[nodiscard]] kungfu::state<longfist::types::OrderTriggerAction> &get_order_trigger_action(uint64_t action_id);
 
 private:
   OrderTriggerMap order_triggers_{};
@@ -142,31 +152,34 @@ public:
 
   void on_algo_order_action(const event_ptr &event);
 
-  void on_order(const longfist::types::Order &order);
+  void on_order(int64_t gen_time, uint32_t source, uint32_t dest, const longfist::types::Order &order);
 
   void on_algo_order(int64_t gen_time, uint32_t source, uint32_t dest, const longfist::types::AlgoOrder &algo_order);
+
+  void on_trade(int64_t gen_time, uint32_t source, uint32_t dest, const longfist::types::Trade &trade);
 
   void clean_algo_orders(bool bypass_recover = false);
 
   void clean_algo_orders(uint32_t source, const longfist::types::AlgoOrderInput &algo_order_input,
                          bool bypass_recover = false);
 
-  const AlgoOrderMap &get_algo_orders() const;
+  [[nodiscard]] const AlgoOrderMap &get_algo_orders() const;
 
-  bool has_algo_order(uint64_t algo_order_id) const;
+  [[nodiscard]] bool has_algo_order(uint64_t algo_order_id) const;
 
   kungfu::state<longfist::types::AlgoOrder> &get_algo_order(uint64_t algo_order_id);
 
-  const AlgoOrderActionMap &get_algo_order_actions() const;
+  [[nodiscard]] const AlgoOrderActionMap &get_algo_order_actions() const;
 
   void on_active() override;
 
 private:
   AlgoOrderMap local_algo_orders_;
   AlgoOrderMap waiting_record_local_algo_orders_;
-  AlgoOrderInputMap local_algo_order_inputs_;
   AlgoOrderMap algo_orders_;
+  AlgoOrderInputMap local_algo_order_inputs_;
   SubOrders local_sub_orders_;
+  std::unordered_map<uint64_t, uint64_t> order_id_to_algo_order_id_;
   AlgoOrderActionMap algo_order_actions_;
 
   void try_update_sub_orders(const longfist::types::Order &order);
@@ -178,7 +191,7 @@ private:
 
 class TraderWriterHook : public yijinjing::journal::writer_hook {
 public:
-  TraderWriterHook(TraderVendor &vendor);
+  explicit TraderWriterHook(TraderVendor &vendor);
 
   void on_open_frame(int64_t trigger_time, yijinjing::journal::frame_ptr frame) override;
 
@@ -194,11 +207,19 @@ private:
   OrderTriggerService &get_order_trigger_service();
 
   AlgoOrderService &get_algo_order_service();
+
+  template <typename T> T &guard_update_time(const T &ct) {
+    auto &t = const_cast<T &>(ct);
+    t.update_time = yijinjing::time::now_in_nano();
+    return t;
+  }
 };
 
 class TraderVendor : public BrokerVendor {
   friend class BaseService;
+
   friend class TraderWriterHook;
+
   friend class Trader;
 
 public:
@@ -210,6 +231,8 @@ public:
   BrokerService_ptr get_service() override;
 
   void on_recover();
+
+  yijinjing::journal::writer_ptr &get_thread_writer();
 
 protected:
   void react() override;
@@ -228,6 +251,8 @@ private:
   OrderService order_service_;
   OrderTriggerService order_trigger_service_;
   TraderWriterHook_ptr hook_;
+  yijinjing::journal::writer_ptr master_cmd_writer_for_thread_{};
+  inline static thread_local yijinjing::journal::writer_ptr thread_writer_{};
 
   OrderService &get_order_service();
 
@@ -317,6 +342,10 @@ public:
 
   [[nodiscard]] const OrderActionMap &get_order_actions() const;
 
+  [[nodiscard]] bool has_order_action(uint64_t action_id) const;
+
+  [[nodiscard]] kungfu::state<longfist::types::OrderAction> &get_order_action(uint64_t action_id);
+
   [[nodiscard]] const TradeMap &get_trades() const;
 
   [[nodiscard]] const OrderTriggerMap &get_order_triggers() const;
@@ -326,6 +355,10 @@ public:
   [[nodiscard]] kungfu::state<longfist::types::OrderTrigger> &get_order_trigger(uint64_t trigger_id);
 
   [[nodiscard]] const OrderTriggerActionMap &get_order_trigger_actions() const;
+
+  [[nodiscard]] bool has_order_trigger_action(uint64_t action_id) const;
+
+  [[nodiscard]] kungfu::state<longfist::types::OrderTriggerAction> &get_order_trigger_action(uint64_t action_id);
 
   [[nodiscard]] const AlgoOrderMap &get_algo_orders() const;
 
@@ -340,6 +373,8 @@ public:
   [[maybe_unused]] void disable_recover();
 
   virtual void on_recover(){};
+
+  [[nodiscard]] yijinjing::journal::writer_ptr &get_thread_writer();
 
 protected:
   bool disable_recover_ = false;

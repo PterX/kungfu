@@ -128,7 +128,9 @@ bool TraderXTP::cancel_order(const event_ptr &event) {
     return false;
   }
 
-  order_state.data.status = OrderStatus::Cancelling;
+  if (not is_final_status(order_state.data.status)) {
+    order_state.data.status = OrderStatus::Cancelling;
+  }
   SPDLOG_DEBUG("Order: {}", order_state.data.to_string());
   if (has_writer(order_state.dest)) {
     write_to(order_state.data, order_state.dest);
@@ -329,13 +331,6 @@ void TraderXTP::OnCancelOrderError(XTPOrderCancelInfo *cancel_info, XTPRI *error
   }
   SPDLOG_DEBUG("BufferXTPOrderInfo: {}", to_string(bf_order_cancel_info));
   get_thread_writer()->close_data();
-
-  //  if (nullptr == error_info) {
-  //    SPDLOG_ERROR("XTPRI is nullptr");
-  //    return;
-  //  }
-  //  SPDLOG_ERROR("cancel order error, cancel_info: {}, error_id: {}, error_msg: {}, session_id: {}",
-  //               to_string(*cancel_info), error_info->error_id, error_info->error_msg, session_id);
 }
 
 bool TraderXTP::custom_OnCancelOrderError(const event_ptr &event) {
@@ -348,33 +343,30 @@ bool TraderXTP::custom_OnCancelOrderError(const XTPOrderCancelInfo &cancel_info,
                                           uint64_t session_id) {
   SPDLOG_DEBUG("XTPOrderCancelInfo: {}", to_string(cancel_info));
   SPDLOG_DEBUG("session_id: {}, XTPRI: {}", session_id, to_string(error_info));
-  auto order_xtp_id_iter = map_xtp_to_kf_order_id_.find(cancel_info.order_xtp_id);
-  if (order_xtp_id_iter == map_xtp_to_kf_order_id_.end()) {
-    SPDLOG_WARN("order_xtp_id: {} not in map_xtp_to_kf_order_id_", cancel_info.order_xtp_id);
+
+  uint64_t action_id = get_action_id(cancel_info.order_xtp_id);
+  if (not has_order_action(action_id)) {
+    SPDLOG_WARN("has not related OrderAction of {}:{}", cancel_info.order_xtp_id, action_id);
     return false;
   }
 
-  if (not has_order(order_xtp_id_iter->second)) {
-    SPDLOG_WARN("no order_id {} in orders_", order_xtp_id_iter->second);
+  auto action_state = get_order_action(action_id);
+  if (not has_writer(action_state.dest)) {
+    SPDLOG_DEBUG("action_state dest: {} is not live, do not write data",
+                 get_vendor().get_location_uname(action_state.dest));
     return false;
   }
 
-  auto order_state = get_order(order_xtp_id_iter->second);
-  if (not has_writer(order_state.dest)) {
-    SPDLOG_DEBUG("order dest: {} is not live, do not write data", get_vendor().get_location_uname(order_state.dest));
-    return false;
-  }
-
-  OrderActionError &error = get_writer(order_state.dest)->open_data<OrderActionError>(now());
-  error.order_id = order_state.data.order_id; // 订单ID
-  std::string str_external_order_id = std::to_string(cancel_info.order_xtp_id);
+  OrderActionError &error = get_writer(action_state.dest)->open_data<OrderActionError>(now());
+  error.order_id = action_state.data.order_id; // 订单ID
+  const std::string str_external_order_id = std::to_string(cancel_info.order_xtp_id);
   strncpy(error.external_order_id, str_external_order_id.c_str(), str_external_order_id.length());
-  error.order_action_id = get_action_id(cancel_info.order_xtp_id);              // 订单操作ID,
+  error.order_action_id = action_id;                                            // 订单操作ID,
   error.error_id = error_info.error_id;                                         // 错误ID
   strncpy(error.error_msg, error_info.error_msg, strlen(error_info.error_msg)); // 错误信息
   error.insert_time = time::now_in_nano();                                      // 写入时间
   SPDLOG_DEBUG("OrderActionError: {}", error.to_string());
-  get_writer(order_state.dest)->close_data();
+  get_writer(action_state.dest)->close_data();
   return true;
 }
 

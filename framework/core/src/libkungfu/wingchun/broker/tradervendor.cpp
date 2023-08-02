@@ -27,22 +27,24 @@ void TraderWriterHook::on_open_frame(int64_t trigger_time, frame_ptr frame) {}
 void TraderWriterHook::on_close_frame(int64_t gen_time, frame_ptr frame) {
   switch (frame->msg_type()) {
   case Order::tag: {
-    const Order &order = frame->data<Order>();
-    get_algo_order_service().on_order(order);
-    get_order_service().on_order(frame->source(), frame->dest(), frame->gen_time(), order);
+    auto &order = guard_update_time<Order>(frame->data<Order>());
+    get_algo_order_service().on_order(frame->gen_time(), frame->source(), frame->dest(), order);
+    get_order_service().on_order(frame->gen_time(), frame->source(), frame->dest(), order);
     break;
   }
   case Trade::tag: {
     const Trade &trade = frame->data<Trade>();
-    get_order_service().on_trade(frame->source(), frame->dest(), frame->gen_time(), trade);
+    get_order_service().on_trade(frame->gen_time(), frame->source(), frame->dest(), trade);
+    get_algo_order_service().on_trade(frame->gen_time(), frame->source(), frame->dest(), trade);
     break;
   }
   case OrderTrigger::tag: {
-    const OrderTrigger &order_trigger = frame->data<OrderTrigger>();
+    auto &order_trigger = guard_update_time<OrderTrigger>(frame->data<OrderTrigger>());
     get_order_trigger_service().on_order_trigger(frame->gen_time(), frame->source(), frame->dest(), order_trigger);
+    break;
   }
   case AlgoOrder::tag: {
-    const AlgoOrder &algo_order = frame->data<AlgoOrder>();
+    auto &algo_order = guard_update_time<AlgoOrder>(frame->data<AlgoOrder>());
     get_algo_order_service().on_algo_order(frame->gen_time(), frame->source(), frame->dest(), algo_order);
     break;
   }
@@ -116,6 +118,9 @@ void TraderVendor::on_write_to(const event_ptr &event) {
   auto dest_id = event->data<RequestWriteTo>().dest_id;
   if (writers_.find(dest_id) == writers_.end()) {
     writers_.emplace(dest_id, get_io_device()->open_hookable_writer(dest_id, hook_));
+    if (dest_id == get_master_command_uid()) {
+      master_cmd_writer_for_thread_ = get_writer(dest_id);
+    }
   }
 }
 
@@ -142,6 +147,27 @@ void TraderVendor::on_active() {
 void TraderVendor::on_recover() {
   algo_order_service_.on_recover();
   service_->on_recover();
+}
+
+yijinjing::journal::writer_ptr &TraderVendor::get_thread_writer() {
+  if (not thread_writer_) {
+    uint32_t dest_id = kungfu::yijinjing::util::get_thread_id();
+    thread_writer_ = get_io_device()->open_writer(dest_id);
+
+    /// join channel in sub-thread will crash, so tell master to ask myself to join
+    /// do not use writer because of multi-thread concurrency issues
+    if (not master_cmd_writer_for_thread_) {
+      SPDLOG_ERROR("has no writer of master_cmd: {:8x}:{}", get_master_command_uid(),
+                   get_location_uname(get_master_command_uid()));
+    }
+    RequestReadFromOthers &request = master_cmd_writer_for_thread_->open_data<RequestReadFromOthers>();
+    request.source_id = get_home_uid();
+    request.dest_id = dest_id;
+    request.from_time = now();
+    SPDLOG_TRACE("RequestReadFromOthers: {}", request.to_string());
+    master_cmd_writer_for_thread_->close_data();
+  }
+  return thread_writer_;
 }
 // ====================== TraderVendor end ======================
 

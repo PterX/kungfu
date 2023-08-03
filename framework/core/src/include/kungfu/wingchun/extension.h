@@ -18,7 +18,7 @@
   m.def("service", [&](kungfu::yijinjing::data::locator_ptr locator, kungfu::longfist::enums::mode m,                  \
                        bool low_latency = false, const std::string &arguments = "") {                                  \
     return std::static_pointer_cast<kungfu::yijinjing::practice::apprentice>(                                          \
-        std::make_shared<ServiceType>(locator, m, low_latency, arguments));                                                       \
+        std::make_shared<ServiceType>(locator, m, low_latency, arguments));                                            \
   })
 
 #define KUNGFU_DEFINE_MD(MarketDataType)                                                                               \

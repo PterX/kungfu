@@ -356,6 +356,11 @@ function handleOpenSetFundTransModal(type: FundTransTypeEnum) {
     category: 'td',
     key: currentAccout.source,
     extPath: '',
+    version: '',
+    mainRepoVersion: '',
+    description: '',
+    readmePath: '',
+    releaseNotePath: '',
     settings: selectFundTransConfig.settings,
   };
 

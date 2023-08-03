@@ -39,7 +39,6 @@ import { getColumns } from './config';
 import {
   dealOrder,
   getKungfuHistoryData,
-  getOrderLatencyDataByOrderStat,
   kfCancelAllOrders,
   kfCancelOrder,
   makeOrderByOrderInput,

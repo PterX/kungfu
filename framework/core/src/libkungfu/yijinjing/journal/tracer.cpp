@@ -73,8 +73,7 @@ tracer::tracer(const location_ptr location, bool in, bool out, int64_t begin, in
           if (page::check_page_existed(master_cmd_location, dest_id)) {
             reader_->join(master_cmd_location, dest_id, begin_time_);
           } else {
-            SPDLOG_WARN("page not existed, home_ {}, source_location: {}, dest: {}", home_->uname,
-                        master_cmd_location->uname, dest_id);
+            SPDLOG_WARN("page not existed, source_location: {}, dest: {}", master_cmd_location->uname, dest_id);
           }
         }
       }

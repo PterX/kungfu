@@ -41,7 +41,6 @@ import {
   OrderTriggerTypeEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import { ReloadOutlined } from '@ant-design/icons-vue';
-import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
 
 interface csvOrderInput {
   limit_price: string;
@@ -61,7 +60,6 @@ const { dashboardBodyHeight, handleBodySizeChange } = useDashboardBodySize();
 const { processStatusData } = useProcessStatusDetailData();
 const app = getCurrentInstance();
 const { extConfigs } = useExtConfigsRelated();
-const { instrumentsMap } = useGlobalStore();
 
 const {
   currentGlobalKfLocation,
@@ -191,7 +189,8 @@ function handleConfirmBatchOrderTrigger(csvData: csvOrderInput[]) {
       ) as KungfuApi.InstrumentResolved;
 
     const ukey = hashInstrumentUKey(instrumentId, exchangeId);
-    const instrumentResolved = instrumentsMap[ukey];
+    const instrumentResolved = (window.watcher as KungfuApi.Watcher)?.ledger
+      ?.Instrument?.[ukey];
 
     if (!instrumentResolved || instrumentType !== InstrumentTypeEnum.future) {
       notFutureRow.push(index + 1);

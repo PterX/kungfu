@@ -276,7 +276,7 @@ def list_archive(ctx):
 
 
 def export_logs(ctx, src_dir, dst_dir):
-    search_path = os.path.join(src_dir, "*", "*", "*", "log", "live", "*.log")
+    search_path = os.path.join(src_dir, "log", "*", "*", "*", "live", "*.log")
     for log_file in glob.glob(search_path):
         match = LOG_PATTERN.match(log_file[len(src_dir) + 1 :])
         if match:

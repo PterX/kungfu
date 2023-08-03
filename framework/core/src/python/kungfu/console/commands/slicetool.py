@@ -35,13 +35,41 @@ yjj = kungfu.__binding__.yijinjing
 )
 @click.option(
     "-i",
-    "--indexr_path",
+    "--indexer_path",
     type=str,
     required=False,
     help="path to indexer dynamic library",
 )
+@click.option(
+    "-a",
+    "--arguments",
+    type=str,
+    default="",
+    required=False,
+    help="arguments passed to SliceTool::get_arguments",
+)
+@click.option(
+    "-o",
+    "--overwrite",
+    # type=click.Choice([False, True]),
+    type=bool,
+    default=True,
+    required=False,
+    help="do not use it until you really understand what you are doing!",
+)
 @kfc.pass_context()
-def slicetool(ctx, begin, end, category, group, name, tool_path, index_path):
+def slicetool(
+    ctx,
+    begin,
+    end,
+    category,
+    group,
+    name,
+    tool_path,
+    indexer_path,
+    arguments,
+    overwrite,
+):
     location = yjj.location(
         kfj.MODES["data"],
         kfj.CATEGORIES[category],
@@ -61,9 +89,9 @@ def slicetool(ctx, begin, end, category, group, name, tool_path, index_path):
     logger.debug(f"loading module from {tool_path}")
     module = importlib.import_module(module_name)
 
-    if index_path:
+    if indexer_path:
         indexer = sliceindexer.SliceIndexer(
-            ctx, begin_time_stamp, end_time_stamp, index_path
+            ctx, begin_time_stamp, end_time_stamp, indexer_path
         )
     else:
         # indexer = wc.DayIndexer(begin_time_stamp, end_time_stamp)
@@ -71,7 +99,14 @@ def slicetool(ctx, begin, end, category, group, name, tool_path, index_path):
 
     if not tool_path.suffix.endswith("py"):
         slice_tool_builder = getattr(module, "slice_tool")
-        tool = slice_tool_builder(kfj.CATEGORIES[category], group, name, indexer)
+        tool = slice_tool_builder(
+            kfj.CATEGORIES[category], group, name, indexer, overwrite, arguments
+        )
         tool.run()
     else:
-        raise NotImplementedError("sliceTool for python not implemented.")
+        tool_script = getattr(module, "run")
+        tool_script(
+            wc.SliceTool(
+                kfj.CATEGORIES[category], group, name, indexer, overwrite, arguments
+            )
+        )

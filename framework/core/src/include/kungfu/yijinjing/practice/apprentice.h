@@ -62,9 +62,10 @@ public:
 
   void request_write_to(int64_t trigger_time, uint32_t dest_id);
 
-  void request_write_to_band(int64_t trigger_time, const yijinjing::data::location_ptr &location);
+  void request_write_to_band(int64_t trigger_time, const yijinjing::data::location_ptr &location,
+                             uint32_t page_size = 0);
 
-  uint32_t request_band(const std::string &band_name);
+  uint32_t request_band(const std::string &band_name, uint32_t page_size = 0);
 
   void add_timer(int64_t nanotime, const std::function<void(const event_ptr &)> &callback);
 
@@ -76,8 +77,6 @@ public:
   }
 
   bool release_page();
-
-  yijinjing::journal::writer_ptr &get_thread_writer();
 
 protected:
   cache::bank state_bank_;
@@ -108,7 +107,7 @@ protected:
 
   void on_read_from_sync(const event_ptr &event);
 
-  void on_write_to(const event_ptr &event);
+  virtual void on_write_to(const event_ptr &event);
 
   void on_write_to_band(const event_ptr &event);
 
@@ -117,9 +116,11 @@ protected:
   template <class DataType> std::string make_nano_msg(uint32_t source, uint32_t dest, const DataType &data) const {
     auto now = time::now_in_nano();
     nlohmann::json request;
+    request["data_type"] = int8_t(longfist::enums::FrameDataType::Json);
     request["msg_type"] = DataType::tag;
     request["gen_time"] = now;
     request["trigger_time"] = now;
+    request["initial_source"] = get_home_uid();
     request["source"] = source;
     request["dest"] = dest;
     request["data"] = nlohmann::json::parse(data.to_string());
@@ -131,18 +132,26 @@ protected:
   std::function<rx::observable<event_ptr>(rx::observable<event_ptr>)> timer(int64_t nanotime) {
     int32_t timer_usage_count = timer_usage_count_;
     int64_t duration_ns = nanotime - now();
-    longfist::types::TimeRequest r{};
+    auto writer = get_writer(get_master_command_uid());
+    longfist::types::TimeRequest &r = writer->open_data<longfist::types::TimeRequest>(now());
     r.id = timer_usage_count;
     r.base_time = now();
     r.duration = duration_ns;
     r.repeat = 1;
-    get_io_device()->get_publisher()->publish(make_nano_msg(get_home_uid(), get_master_command_uid(), r));
+    r.location_uid = get_home_uid();
+    writer->close_data();
     timer_checkpoints_[timer_usage_count] = now();
+    timer_requests_.insert_or_assign(timer_usage_count, r);
     timer_usage_count_++;
     return [&, duration_ns, timer_usage_count](const rx::observable<event_ptr> &src) {
       return events_ | rx::filter([&, duration_ns, timer_usage_count](const event_ptr &event) {
-               return (event->msg_type() == longfist::types::Time::tag &&
-                       event->gen_time() > timer_checkpoints_[timer_usage_count] + duration_ns);
+               if (event->msg_type() == longfist::types::Time::tag &&
+                   event->gen_time() > timer_checkpoints_[timer_usage_count] + duration_ns) {
+                 timer_requests_.erase(timer_usage_count);
+                 return true;
+               } else {
+                 return false;
+               };
              }) |
              rx::first();
     };
@@ -152,25 +161,31 @@ protected:
   std::function<rx::observable<event_ptr>(rx::observable<event_ptr>)> time_interval(Duration &&d) {
     auto duration_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(d).count();
     int32_t timer_usage_count = timer_usage_count_;
-    longfist::types::TimeRequest r{};
+    auto writer = get_writer(get_master_command_uid());
+    longfist::types::TimeRequest &r = writer->open_data<longfist::types::TimeRequest>(now());
     r.id = timer_usage_count;
     r.base_time = now();
     r.duration = duration_ns;
     r.repeat = 1;
-    get_io_device()->get_publisher()->publish(make_nano_msg(get_home_uid(), get_master_command_uid(), r));
+    r.location_uid = get_home_uid();
+    writer->close_data();
     timer_checkpoints_[timer_usage_count] = now();
+    timer_requests_.insert_or_assign(timer_usage_count, r);
     timer_usage_count_++;
     return [&, duration_ns, timer_usage_count](const rx::observable<event_ptr> &src) {
       return events_ | rx::filter([&, duration_ns, timer_usage_count](const event_ptr &event) {
                if (event->msg_type() == longfist::types::Time::tag &&
                    event->gen_time() > timer_checkpoints_[timer_usage_count] + duration_ns) {
-                 longfist::types::TimeRequest r{};
+                 auto writer = get_writer(get_master_command_uid());
+                 longfist::types::TimeRequest &r = writer->open_data<longfist::types::TimeRequest>(now());
                  r.id = timer_usage_count;
                  r.base_time = now();
                  r.duration = duration_ns;
                  r.repeat = 1;
-                 get_io_device()->get_publisher()->publish(make_nano_msg(get_home_uid(), get_master_command_uid(), r));
+                 r.location_uid = get_home_uid();
+                 writer->close_data();
                  timer_checkpoints_[timer_usage_count] = now();
+                 timer_requests_.insert_or_assign(timer_usage_count, r);
                  return true;
                } else {
                  return false;
@@ -183,24 +198,30 @@ protected:
   std::function<rx::observable<event_ptr>(rx::observable<event_ptr>)> timeout(Duration &&d) {
     auto duration_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(d).count();
     int32_t timer_usage_count = timer_usage_count_;
-    longfist::types::TimeRequest r{};
+    auto writer = get_writer(get_master_command_uid());
+    longfist::types::TimeRequest &r = writer->open_data<longfist::types::TimeRequest>(now());
     r.id = timer_usage_count;
     r.base_time = now();
     r.duration = duration_ns;
     r.repeat = 1;
-    get_io_device()->get_publisher()->publish(make_nano_msg(get_home_uid(), get_master_command_uid(), r));
+    r.location_uid = get_home_uid();
+    writer->close_data();
     timer_checkpoints_[timer_usage_count] = now();
+    timer_requests_.insert_or_assign(timer_usage_count, r);
     timer_usage_count_++;
     return [&, duration_ns, timer_usage_count](const rx::observable<event_ptr> &src) {
       return (src | rx::filter([&, duration_ns, timer_usage_count](const event_ptr &event) {
                 if (event->msg_type() != longfist::types::Time::tag) {
-                  longfist::types::TimeRequest r{};
+                  auto writer = get_writer(get_master_command_uid());
+                  longfist::types::TimeRequest &r = writer->open_data<longfist::types::TimeRequest>(now());
                   r.id = timer_usage_count;
                   r.base_time = now();
                   r.duration = duration_ns;
                   r.repeat = 1;
-                  get_io_device()->get_publisher()->publish(make_nano_msg(get_home_uid(), get_master_command_uid(), r));
+                  r.location_uid = get_home_uid();
+                  writer->close_data();
                   timer_checkpoints_[timer_usage_count] = now();
+                  timer_requests_.insert_or_assign(timer_usage_count, r);
                   return true;
                 } else {
                   return false;
@@ -208,8 +229,10 @@ protected:
               }))
           .merge(events_ | rx::filter([&, duration_ns, timer_usage_count](const event_ptr &event) {
                    if (event->gen_time() > timer_checkpoints_[timer_usage_count] + duration_ns) {
+                     timer_requests_.erase(timer_usage_count);
                      throw rx::timeout_error("timeout");
                    }
+                   timer_requests_.erase(timer_usage_count);
                    return false;
                  }));
     };
@@ -222,7 +245,7 @@ private:
   int32_t timer_usage_count_ = 0;
   yijinjing::practice::cleaner cleaner_;
   std::unordered_map<int, int64_t> timer_checkpoints_ = {};
-  inline static thread_local yijinjing::journal::writer_ptr thread_writer_;
+  std::unordered_map<int, longfist::types::TimeRequest> timer_requests_ = {};
 
   void checkin();
 

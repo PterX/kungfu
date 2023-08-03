@@ -40,7 +40,7 @@ public:
   OtcStockAccountingMethod() = default;
 
   virtual void apply_quote(Book_ptr &book, const Quote &quote) override {
-    auto apply = [&](auto &position) {
+    auto apply = [&](Position &position) {
       if (not is_valid_price(quote.last_price) or not position.volume) {
         return;
       }
@@ -62,7 +62,6 @@ public:
         SPDLOG_DEBUG("OtcStockAccountingMethod: apply_quote  Direction::Short instrument_id= {}",
                      position.instrument_id);
       }
-
       update_position(book, position);
     };
 
@@ -137,6 +136,7 @@ public:
       double price_change = position.last_price - position.avg_open_price;
       position.unrealized_pnl =
           (position.direction == Direction::Long ? price_change : -price_change) * position.volume;
+      position.update_time = yijinjing::time::now_in_nano();
     }
   }
 
@@ -217,7 +217,7 @@ protected:
     if (book->instruments.find(hashed_instrument_key) == book->instruments.end()) {
       cd_mr.contract_multiplier = DEFAULT_OTC_STOCK_CONTRACT_MULTIPLIER;
     } else {
-      auto &instrument = book->instruments.at(hashed_instrument_key);
+      const auto &instrument = book->instruments.at(hashed_instrument_key);
       cd_mr.contract_multiplier = instrument.contract_multiplier;
     }
 

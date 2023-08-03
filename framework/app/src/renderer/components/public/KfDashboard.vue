@@ -1,10 +1,10 @@
 <template>
   <div class="kf-dashboard__warp kf-translateZ">
     <div class="kf-dashboard__header">
-      <div class="title">
+      <div v-if="$slots.title" class="title">
         <slot name="title"></slot>
       </div>
-      <div class="header-actions">
+      <div v-if="$slots.header" class="header-actions">
         <slot name="header"></slot>
       </div>
     </div>
@@ -67,30 +67,47 @@ export default defineComponent({
   overflow: hidden;
 
   .kf-dashboard__header {
-    height: 32px;
+    width: 100%;
+    min-height: 32px;
     line-height: 32px;
     margin-bottom: 4px;
     display: flex;
+    align-items: flex-start;
     justify-content: space-between;
-    align-items: center;
 
     .title {
+      margin-right: 16px;
+
+      &:only-child {
+        margin-right: 0;
+      }
+
       display: flex;
       justify-content: flex-start;
       align-items: center;
-      white-space: nowrap;
+      white-space: break-spaces;
+      word-break: break-all;
 
       .name {
         font-size: 14px;
         font-weight: bold;
         color: @white;
+        user-select: text;
       }
     }
 
     .header-actions {
+      height: 100%;
+
+      &:only-child {
+        width: 100%;
+      }
+
       display: flex;
       justify-content: flex-end;
       align-items: center;
+      align-content: flex-start;
+      flex-wrap: wrap;
     }
   }
 

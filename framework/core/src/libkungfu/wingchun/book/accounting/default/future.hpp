@@ -155,7 +155,8 @@ public:
                                                                        position.exchange_id, position.instrument_id);
 
       auto contract_multiplier = cm_mr.contract_multiplier;
-      auto product_key = yijinjing::util::hash_str_32(get_instrument_product(position.instrument_id));
+      auto product_key = yijinjing::util::hash_str_32(get_instrument_product(position.instrument_id)) ^
+                         yijinjing::util::hash_str_32(position.exchange_id);
       double cost = 0;
 
       if (book->commissions.find(product_key) != book->commissions.end()) {
@@ -316,7 +317,7 @@ private:
       // SPDLOG_WARN("instrument information missing for {}@{}", instrument_id, exchange_id);
       cm_mr.contract_multiplier = DEFAULT_INSTRUMENT_CONTRACT_MULTIPLIER;
     } else {
-      auto &instrument = book->instruments.at(hashed_instrument_key);
+      const auto &instrument = book->instruments.at(hashed_instrument_key);
       cm_mr.contract_multiplier = instrument.contract_multiplier;
     }
 

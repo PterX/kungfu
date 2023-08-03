@@ -48,6 +48,7 @@ export const getColumns = (
         name: t('posGlobalConfig.yesterday_volume'),
         dataIndex: 'yesterday_volume',
         flex: 1,
+        align: 'right',
         sorter: buildSorter('yesterday_volume'),
       },
       {
@@ -55,6 +56,7 @@ export const getColumns = (
         name: t('posGlobalConfig.today_volume'),
         dataIndex: 'today_volume',
         flex: 1,
+        align: 'right',
         sorter: (a: KungfuApi.Position, b: KungfuApi.Position) => {
           const deltaA = a.volume - a.yesterday_volume;
           const deltaB = b.volume - b.yesterday_volume;
@@ -66,6 +68,7 @@ export const getColumns = (
         name: t('posGlobalConfig.sum_volume'),
         dataIndex: 'volume',
         flex: 1,
+        align: 'right',
         sorter: buildSorter('volume'),
       },
       {
@@ -73,6 +76,7 @@ export const getColumns = (
         name: t('posGlobalConfig.frozen_volume'),
         dataIndex: 'frozen_total',
         flex: 1,
+        align: 'right',
         sorter: buildSorter('frozen_total'),
       },
       {
@@ -80,6 +84,7 @@ export const getColumns = (
         name: t('posGlobalConfig.closable_volume'),
         dataIndex: 'closable_volume',
         flex: 1,
+        align: 'right',
         sorter: buildSorter('closable_volume'),
       },
 
@@ -88,6 +93,7 @@ export const getColumns = (
         name: t('posGlobalConfig.avg_open_price'),
         dataIndex: 'avg_open_price_resolved',
         flex: 1.2,
+        align: 'right',
         sorter: buildSorter('avg_open_price'),
       },
       {
@@ -95,6 +101,7 @@ export const getColumns = (
         name: t('posGlobalConfig.last_price'),
         dataIndex: 'last_price_resolved',
         flex: 1.5,
+        align: 'right',
         sorter: buildSorter('last_price'),
       },
       {
@@ -102,6 +109,7 @@ export const getColumns = (
         name: t('posGlobalConfig.unrealized_pnl'),
         dataIndex: 'unrealized_pnl_resolved',
         flex: 1.5,
+        align: 'right',
         sorter: buildSorter('unrealized_pnl'),
       },
     ]);

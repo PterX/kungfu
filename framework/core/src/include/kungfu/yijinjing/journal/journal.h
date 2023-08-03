@@ -19,11 +19,14 @@ namespace kungfu::yijinjing::journal {
 struct journal_key {
   journal_key(uint32_t locator_uid, uint32_t location_uid, uint32_t dest_id)
       : locator_uid(locator_uid), location_uid(location_uid), dest_id(dest_id) {}
+
   journal_key(const data::location_ptr &location, uint32_t dest_id)
       : locator_uid(util::hash_str_32(location->locator->get_root())), location_uid(location->uid), dest_id(dest_id) {}
+
   bool operator<(const journal_key &rhs) const {
     return std::tie(locator_uid, location_uid, dest_id) < std::tie(rhs.locator_uid, rhs.location_uid, rhs.dest_id);
   }
+
   uint32_t locator_uid;
   uint32_t location_uid;
   uint32_t dest_id;
@@ -33,10 +36,10 @@ typedef std::map<journal_key, journal> JournalMap;
 class journal {
 public:
   journal(data::location_ptr location, uint32_t dest_id, bool is_writing, bool lazy, bool low_latency,
-          const bus_ptr &bus)
+          const bus_ptr &bus, uint32_t page_size, longfist::enums::Priority priority = longfist::enums::Priority::Low)
       : location_(std::move(location)), dest_id_(dest_id), is_writing_(is_writing), lazy_(lazy),
         low_latency_(low_latency), bus_(bus), frame_(std::shared_ptr<frame>(new frame())), page_frame_nb_(0u),
-        replica_(false) {}
+        page_size_(page_size), priority_(priority), replica_(false) {}
 
   journal(const journal &other);
 
@@ -73,6 +76,7 @@ public:
 private:
   const data::location_ptr location_;
   const uint32_t dest_id_;
+  const uint32_t page_size_;
   const bool is_writing_;
   const bool lazy_;
   const bool low_latency_;
@@ -84,6 +88,7 @@ private:
   frame_ptr frame_;
   uint64_t page_frame_nb_;
   bool replica_{false};
+  longfist::enums::Priority priority_;
 
   void load_page(int page_id);
 
@@ -112,9 +117,12 @@ public:
    * @param dest_id journal dest id
    * @param from_time subscribe events after this time, 0 means from start
    */
-  void join(const data::location_ptr &location, uint32_t dest_id, int64_t from_time);
+  void join(const data::location_ptr &location, uint32_t dest_id, int64_t from_time, uint32_t page_size = 0,
+            longfist::enums::Priority priority = longfist::enums::Priority::Low);
 
   void disjoin(uint32_t location_uid);
+
+  void disjoin(const data::location_ptr &location, uint32_t dest_id);
 
   void disjoin_channel(uint32_t location_uid, uint32_t dest_id);
 
@@ -145,19 +153,36 @@ public:
   bool release_page();
 
 private:
+  void sort_without_buffer();
+
+  void build_buffer();
+
+  struct later {
+    bool operator()(journal *const lhs, journal *const rhs) const {
+      return lhs->current_frame()->gen_time() > rhs->current_frame()->gen_time();
+    };
+  };
+
   const bool lazy_;
   const bool low_latency_;
   bus_ptr bus_;
   journal *current_;
   JournalMap journals_;
   std::vector<journal> replica_journals_{};
+  bool buffer_built_{false};
+  std::vector<journal *> no_data_journals_buffer_{};
+  std::priority_queue<journal *, std::vector<journal *>, later> has_data_journals_heap_{};
   std::recursive_mutex mtx_{};
+
+  static uint32_t find_page_size(const data::location_ptr &location, uint32_t dest_id);
 };
 
 class writer {
 public:
   writer(const data::location_ptr &location, uint32_t dest_id, bool lazy, publisher_ptr publisher, bool low_latency,
          const bus_ptr &bus);
+  writer(const data::location_ptr &location, uint32_t dest_id, bool lazy, publisher_ptr publisher, bool low_latency,
+         const bus_ptr &bus, uint32_t page_size);
 
   [[nodiscard]] const data::location_ptr &get_location() const { return journal_.location_; }
 
@@ -165,15 +190,15 @@ public:
 
   [[nodiscard]] const journal &get_journal() const { return journal_; }
 
-  [[nodiscard]] const page_ptr get_current_page() const { return journal_.page_; }
+  [[nodiscard]] page_ptr get_current_page() const { return journal_.page_; }
 
   uint64_t current_frame_uid();
 
-  frame_ptr open_frame(int64_t trigger_time, int32_t msg_type, uint32_t length);
+  virtual frame_ptr open_frame(int64_t trigger_time, int32_t msg_type, uint32_t length);
 
-  void close_frame(size_t data_length, int64_t gen_time = time::now_in_nano());
+  virtual void close_frame(size_t data_length, int64_t gen_time = time::now_in_nano());
 
-  void copy_frame(const frame_ptr &source);
+  virtual void copy_frame(const frame_ptr &source);
 
   void mark(int64_t trigger_time, int32_t msg_type);
 
@@ -260,10 +285,12 @@ public:
     close_frame(size, gen_time);
   }
 
+protected:
+  journal journal_;
+  std::mutex writer_mtx_ = {};
+
 private:
   const uint64_t frame_id_base_;
-  journal journal_;
-  std::mutex writer_mutex_ = {};
   publisher_ptr publisher_;
   size_t size_to_write_;
   int64_t last_gen_time_;
@@ -271,5 +298,31 @@ private:
 
   void close_page(int64_t trigger_time);
 };
+
+class writer_hook {
+public:
+  writer_hook() = default;
+
+  virtual ~writer_hook() = default;
+
+  virtual void on_open_frame(int64_t trigger_time, frame_ptr frame) = 0;
+
+  virtual void on_close_frame(int64_t gen_time, frame_ptr frame) = 0;
+};
+
+class hookable_writer : public writer {
+public:
+  explicit hookable_writer(const data::location_ptr &location, uint32_t dest_id, bool lazy, publisher_ptr publisher,
+                           bool low_latency, const bus_ptr &bus, const writer_hook_ptr &hook)
+      : writer(location, dest_id, lazy, publisher, low_latency, bus), hook_(hook) {}
+
+  frame_ptr open_frame(int64_t trigger_time, int32_t msg_type, uint32_t length) override;
+
+  void close_frame(size_t data_length, int64_t gen_time) override;
+
+private:
+  writer_hook_ptr hook_;
+};
+
 } // namespace kungfu::yijinjing::journal
 #endif // YIJINJING_JOURNAL_H

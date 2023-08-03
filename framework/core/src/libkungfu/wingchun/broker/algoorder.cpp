@@ -1,0 +1,200 @@
+#include <kungfu/wingchun/broker/trader.h>
+
+using namespace kungfu::rx;
+using namespace kungfu::wingchun;
+using namespace kungfu::wingchun::broker;
+using namespace kungfu::longfist::enums;
+using namespace kungfu::longfist::types;
+using namespace kungfu::yijinjing::practice;
+using namespace kungfu::yijinjing;
+using namespace kungfu::yijinjing::data;
+using namespace kungfu::yijinjing::util;
+
+namespace kungfu::wingchun::broker {
+
+void AlgoOrderService::on_algo_order_input(const event_ptr &event) {
+
+  auto &algo_order_input = event->data<AlgoOrderInput>();
+  if (algo_order_input.is_local) {
+    state<AlgoOrderInput> algo_order_input_state(event->source(), event->dest(), event->gen_time(), algo_order_input);
+    local_algo_order_inputs_.insert_or_assign(algo_order_input.order_id, algo_order_input_state);
+  }
+  get_service().insert_algo_order(event);
+}
+
+void AlgoOrderService::on_algo_order_action(const event_ptr &event) {
+  // no algo order action resolution for local algo order;
+  auto &algo_order_action = event->data<AlgoOrderAction>();
+  if (local_algo_orders_.find(algo_order_action.order_id) == local_algo_orders_.end()) {
+    get_service().cancel_algo_order(event);
+  } else {
+    auto &algo_order_state = local_algo_orders_.at(algo_order_action.order_id);
+    auto &algo_order = algo_order_state.data;
+    auto dest = algo_order_state.dest;
+    auto algo_order_is_final = is_final_status(algo_order.status);
+    if (algo_order.volume == algo_order.volume_left) {
+      algo_order.status = OrderStatus::Cancelled;
+    } else if (not algo_order_is_final) {
+      algo_order.status = OrderStatus::PartialFilledNotActive;
+    }
+    vendor_.get_writer(dest)->write(time::now_in_nano(), algo_order);
+  }
+
+  state<AlgoOrderAction> algo_order_action_state(event->source(), event->dest(), event->gen_time(), algo_order_action);
+  algo_order_actions_.insert_or_assign(algo_order_action.order_id, algo_order_action_state);
+}
+
+void AlgoOrderService::on_order(int64_t gen_time, uint32_t source, uint32_t dest, const Order &order) {
+  if (order.parent_id == UINT64_ZERO) {
+    return;
+  }
+
+  // save <order id> to <parent id> pair;
+  order_id_to_algo_order_id_.insert_or_assign(order.order_id, order.parent_id);
+
+  if (not recover_done_) {
+    return;
+  }
+
+  if (local_algo_orders_.find(order.parent_id) == local_algo_orders_.end()) {
+    return;
+  }
+
+  try_update_sub_orders(order);
+
+  auto &target_algo_order_state = local_algo_orders_.at(order.parent_id);
+  auto &target_algo_order = target_algo_order_state.data;
+
+  auto volume_traded = get_volume_traded(order.parent_id);
+  target_algo_order.volume_left = target_algo_order.volume - volume_traded;
+
+  auto has_traded = target_algo_order.volume_left != target_algo_order.volume;
+  auto algo_order_is_final = is_final_status(target_algo_order.status);
+
+  if (target_algo_order.volume_left <= 0) {
+    target_algo_order.status = OrderStatus::Filled;
+  } else if (has_traded && target_algo_order.volume_left > 0 && not algo_order_is_final) {
+    target_algo_order.status = OrderStatus::PartialFilledActive;
+  }
+
+  waiting_record_local_algo_orders_.insert_or_assign(target_algo_order.order_id, target_algo_order_state);
+}
+
+void AlgoOrderService::on_trade(int64_t gen_time, uint32_t source, uint32_t dest, const Trade &trade) {
+  auto &trade_ref = const_cast<Trade &>(trade);
+  auto order_id = trade.order_id;
+  if (order_id_to_algo_order_id_.find(order_id) == order_id_to_algo_order_id_.end()) {
+    return;
+  }
+
+  trade_ref.parent_order_id = order_id_to_algo_order_id_.at(order_id);
+}
+
+void AlgoOrderService::on_algo_order(int64_t gen_time, uint32_t source, uint32_t dest, const AlgoOrder &algo_order) {
+
+  // this function fullfill all inner write AlgoOrder demand
+  state<AlgoOrder> algo_order_state(source, dest, gen_time, algo_order);
+  algo_orders_.insert_or_assign(algo_order.order_id, algo_order_state);
+
+  if (local_algo_order_inputs_.find(algo_order.order_id) != local_algo_order_inputs_.end()) {
+    local_algo_orders_.insert_or_assign(algo_order.order_id, algo_order_state);
+  }
+};
+
+void AlgoOrderService::try_update_sub_orders(const Order &order) {
+  if (local_sub_orders_.find(order.parent_id) == local_sub_orders_.end()) {
+    Orders orders;
+    local_sub_orders_.emplace(order.parent_id, orders);
+  }
+
+  auto &orders = local_sub_orders_.at(order.parent_id);
+  orders.insert_or_assign(order.order_id, order);
+}
+
+bool AlgoOrderService::check_if_all_order_finished(uint64_t algo_order_id) {
+  if (local_sub_orders_.find(algo_order_id) == local_sub_orders_.end()) {
+    SPDLOG_ERROR("check_if_all_order_finished no {} in local_sub_orders_", algo_order_id);
+    return false;
+  }
+  auto &orders = local_sub_orders_.at(algo_order_id);
+  return is_all_order_finished(orders);
+}
+
+int64_t AlgoOrderService::get_volume_traded(uint64_t algo_order_id) {
+  if (local_sub_orders_.find(algo_order_id) == local_sub_orders_.end()) {
+    SPDLOG_ERROR("get_volume_traded no {} in local_sub_orders_", algo_order_id);
+    return false;
+  }
+
+  if (local_algo_orders_.find(algo_order_id) == local_algo_orders_.end()) {
+    SPDLOG_ERROR("get_volume_traded no {} in local_algo_orders_", algo_order_id);
+    return false;
+  }
+
+  auto traded_volume = 0;
+  auto &orders = local_sub_orders_.at(algo_order_id);
+  std::for_each(orders.begin(), orders.end(), [&](auto &pair) {
+    auto &order = pair.second;
+    traded_volume += order.volume - order.volume_left;
+  });
+
+  return traded_volume;
+}
+
+void AlgoOrderService::clean_algo_orders(bool bypass_recover) {
+  std::for_each(algo_orders_.begin(), algo_orders_.end(), [&](auto &pair) {
+    AlgoOrder &algo_order = pair.second.data;
+
+    if (not is_final_status(algo_order.status) and
+        (bypass_recover or algo_order.external_order_id.to_string().empty())) {
+      algo_order.status = OrderStatus::Lost;
+      algo_order.update_time = time::now_in_nano();
+      if (vendor_.has_writer(pair.second.dest)) {
+        vendor_.write_to(vendor_.now(), algo_order, pair.second.dest);
+      }
+    }
+  });
+}
+
+void AlgoOrderService::clean_algo_orders(uint32_t source, const AlgoOrderInput &algo_order_input, bool bypass_recover) {
+  if (algo_orders_.find(algo_order_input.order_id) != algo_orders_.end()) {
+    return;
+  }
+
+  if (not vendor_.has_writer(source)) {
+    return;
+  }
+
+  AlgoOrder &algo_order = vendor_.get_writer(source)->open_data<AlgoOrder>();
+  algo_order_from_input(algo_order_input, algo_order);
+  algo_order.status = OrderStatus::Lost;
+  algo_order.update_time = time::now_in_nano();
+  vendor_.get_writer(source)->close_data();
+}
+
+const AlgoOrderMap &AlgoOrderService::get_algo_orders() const { return algo_orders_; }
+
+bool AlgoOrderService::has_algo_order(uint64_t algo_order_id) const {
+  return algo_orders_.find(algo_order_id) != algo_orders_.end();
+}
+
+kungfu::state<AlgoOrder> &AlgoOrderService::get_algo_order(uint64_t algo_order_id) {
+  return algo_orders_.at(algo_order_id);
+}
+
+const AlgoOrderActionMap &AlgoOrderService::get_algo_order_actions() const { return algo_order_actions_; }
+
+void AlgoOrderService::on_active() {
+  if (waiting_record_local_algo_orders_.empty()) {
+    return;
+  }
+
+  auto iter = waiting_record_local_algo_orders_.begin();
+  while (iter != waiting_record_local_algo_orders_.end()) {
+    auto &algo_order_state = iter->second;
+    vendor_.write_to(vendor_.now(), algo_order_state.data, algo_order_state.dest);
+    iter = waiting_record_local_algo_orders_.erase(iter);
+  }
+}
+
+} // namespace kungfu::wingchun::broker

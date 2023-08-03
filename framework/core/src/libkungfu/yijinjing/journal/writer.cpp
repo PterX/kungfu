@@ -14,7 +14,17 @@ constexpr uint32_t FRAME_ID_TRANC = 0x0000FFFF;
 writer::writer(const data::location_ptr &location, uint32_t dest_id, bool lazy, publisher_ptr publisher,
                bool low_latency, const bus_ptr &bus)
     : frame_id_base_(uint64_t(location->uid xor dest_id) << 32u),
-      journal_(location, dest_id, true, lazy, low_latency, bus), publisher_(std::move(publisher)), size_to_write_(0),
+      journal_(location, dest_id, true, lazy, low_latency, bus, page::find_page_size(location, dest_id)),
+      publisher_(std::move(publisher)), size_to_write_(0),
+      writer_start_time_32int_(time::nano_hashed(time::now_in_nano())) {
+  journal_.seek_to_time(time::now_in_nano());
+}
+
+writer::writer(const data::location_ptr &location, uint32_t dest_id, bool lazy, publisher_ptr publisher,
+               bool low_latency, const bus_ptr &bus, uint32_t page_size)
+    : frame_id_base_(uint64_t(location->uid xor dest_id) << 32u),
+      journal_(location, dest_id, true, lazy, low_latency, bus, page::find_page_size(location, dest_id, page_size)),
+      publisher_(std::move(publisher)), size_to_write_(0),
       writer_start_time_32int_(time::nano_hashed(time::now_in_nano())) {
   journal_.seek_to_time(time::now_in_nano());
 }
@@ -28,7 +38,7 @@ uint64_t writer::current_frame_uid() {
 
 frame_ptr writer::open_frame(int64_t trigger_time, int32_t msg_type, uint32_t data_length) {
   int64_t start_time = time::now_in_nano();
-  while (not writer_mutex_.try_lock()) {
+  while (not writer_mtx_.try_lock()) {
     if (time::now_in_nano() - start_time > 30 * time_unit::NANOSECONDS_PER_SECOND) {
       throw journal_error("Can not lock writer for " + journal_.location_->uname);
     }
@@ -42,6 +52,7 @@ frame_ptr writer::open_frame(int64_t trigger_time, int32_t msg_type, uint32_t da
   frame->set_trigger_time(trigger_time);
   frame->set_msg_type(msg_type);
   frame->set_source(journal_.location_->uid);
+  frame->set_initial_source(journal_.location_->uid);
   frame->set_dest(journal_.dest_id_);
   size_to_write_ = data_length;
   return frame;
@@ -59,7 +70,7 @@ void writer::close_frame(size_t data_length, int64_t gen_time) {
   size_to_write_ = 0;
   journal_.page_->set_last_frame_position(frame->address() - journal_.page_->address());
   journal_.next();
-  writer_mutex_.unlock();
+  writer_mtx_.unlock();
   publisher_->notify();
 }
 

@@ -34,6 +34,8 @@ declare global {
       APP_ID: string;
       EXTENSION_DIRS: string;
       KFC_DIR: string;
+      KF_APP_RUNTIME_DIR: string;
+      KF_CONFIG_DIR: string;
       CPUS_NUM: number;
       IF_CPUS_NUM_SAFE: boolean;
       ELECTRON_RUN_AS_NODE: boolean;
@@ -43,6 +45,7 @@ declare global {
       BY_PASS_RESTORE: boolean;
       BY_PASS_ACCOUNTING: boolean;
       BY_PASS_TRADINGDATA: boolean;
+      BY_PASS_REFRESHBOOK: boolean;
       REFRESH_LEDGER_BEFORE_SYNC: boolean;
       MILLISECONDS_SLEEP_AFTER_STEP: number;
       PM2_DEBUG: boolean;
@@ -117,6 +120,8 @@ export interface RootConfigJSON {
     showHelp?: boolean;
 
     boardFilter?: Record<string, boolean>;
+
+    orderTrigger?: boolean;
 
     kfConfigInitValue?: Record<string, KungfuApi.KfConfigValue>;
 

@@ -29,6 +29,7 @@ const props = withDefaults(
     passPrimaryKeySpecialWordsVerify?: boolean;
     primaryKeyAvoidRepeatCompareExtra?: string;
     primaryKeyAvoidRepeatCompareTarget?: string[];
+    formStyle?: Record<string, string>;
   }>(),
   {
     visible: false,
@@ -40,6 +41,7 @@ const props = withDefaults(
     passPrimaryKeySpecialWordsVerify: false,
     primaryKeyAvoidRepeatCompareTarget: () => [],
     primaryKeyAvoidRepeatCompareExtra: '',
+    formStyle: () => ({}),
   },
 );
 
@@ -187,6 +189,7 @@ function handleFormStateChange(formState) {
       :primary-key-avoid-repeat-compare-extra="
         primaryKeyAvoidRepeatCompareExtra
       "
+      :form-style="props.formStyle"
       @update:form-state="handleFormStateChange"
     ></KfConfigSettingsForm>
   </a-modal>

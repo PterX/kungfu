@@ -333,7 +333,7 @@ export const dealMemory = (mem: number): string => {
   if (!mem) {
     return '--';
   }
-  return Number((mem || 0) / (1024 * 1024)).toFixed(0) + 'MB';
+  return Number((mem || 0) / (1024 * 1024)).kfToFixed(0) + 'MB';
 };
 
 export const dealProcessName = (name: string) => {

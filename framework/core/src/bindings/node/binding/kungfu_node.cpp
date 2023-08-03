@@ -42,6 +42,7 @@ decltype(__pfnDliNotifyHook2) __pfnDliNotifyHook2 = load_exe_hook;
 
 #endif // _MSC_VER
 
+#include <kungfu/common.h>
 #include <kungfu/yijinjing/io.h>
 #include <kungfu/yijinjing/util/util.h>
 
@@ -68,11 +69,17 @@ using namespace kungfu::node;
 namespace kungfu::node {
 
 uint32_t Hash32(const Napi::CallbackInfo &info) {
-  if (not IsValid(info, 0, &Napi::Value::IsString)) {
-    throw Napi::Error::New(info.Env(), "Invalid argument");
+  if (IsValid(info, 0, &Napi::Value::IsString)) {
+    auto arg = info[0].ToString().Utf8Value();
+    return hash_32(reinterpret_cast<const unsigned char *>(arg.c_str()), arg.length());
   }
-  auto arg = info[0].ToString().Utf8Value();
-  return hash_32(reinterpret_cast<const unsigned char *>(arg.c_str()), arg.length());
+
+  if (IsValid(info, 0, &Napi::Value::IsNumber)) {
+    auto arg = static_cast<const int32_t>(info[0].ToNumber().Int32Value());
+    return hash<decltype(arg)>{}(arg);
+  }
+
+  throw Napi::Error::New(info.Env(), "Invalid argument");
 }
 
 Napi::Value Hash(const Napi::CallbackInfo &info) { return Napi::Number::New(info.Env(), Hash32(info)); }

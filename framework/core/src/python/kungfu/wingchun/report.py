@@ -68,11 +68,11 @@ class Report(wc.Report):
         self._on_order = getattr(self._module, "on_order", lambda ctx, order: None)
 
         self._on_trade = getattr(self._module, "on_trade", lambda ctx, trade: None)
-    
+
     def init(self):
         self.ctx.bookkeeper = self.bookkeeper
         self._init(self.ctx)
-    
+
     def sumerize(self):
         self._sumerize(self.ctx)
 

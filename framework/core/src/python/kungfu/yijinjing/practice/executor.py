@@ -314,7 +314,7 @@ class ExtensionExecutor:
             if ctx.report:
                 report = load_report(ctx, ctx.report)
                 ctx.runner.set_report(report)
-                
+
         ctx.runner.add_strategy(ctx.strategy)
         if kfj.MODES[ctx.mode] == lf.enums.mode.LIVE:
             ctx.loop = KungfuEventLoop(ctx, ctx.runner)

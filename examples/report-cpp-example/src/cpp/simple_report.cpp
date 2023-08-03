@@ -25,7 +25,7 @@ public:
     SPDLOG_INFO("on trade={}, at={}", trade.to_string(), time::strftime(now()));
   }
 
-  std::string sumerize() override { 
+  std::string sumerize() override {
     SPDLOG_INFO("calling make report");
     return {};
   }

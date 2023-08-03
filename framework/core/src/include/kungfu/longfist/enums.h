@@ -21,7 +21,7 @@ NLOHMANN_JSON_SERIALIZE_ENUM(mode, {
                                        {mode::BACKTEST, "BACKTEST"},
                                    })
 
-inline std::ostream &operator<<(std::ostream &os, mode t) { return os << int8_t(t); }
+inline std::ostream &operator<<(std::ostream &os, mode t) { return os << int32_t(t); }
 
 inline std::string get_mode_name(mode m) {
   switch (m) {
@@ -61,7 +61,7 @@ NLOHMANN_JSON_SERIALIZE_ENUM(category, {
                                            {category::SYSTEM, "SYSTEM"},
                                        })
 
-inline std::ostream &operator<<(std::ostream &os, category t) { return os << int8_t(t); }
+inline std::ostream &operator<<(std::ostream &os, category t) { return os << int32_t(t); }
 
 inline std::string get_category_name(category c) {
   switch (c) {
@@ -217,7 +217,7 @@ NLOHMANN_JSON_SERIALIZE_ENUM(InstrumentType, {
                                                  {InstrumentType::CryptoUFuture, "CryptoUFuture"},
                                              })
 
-inline std::ostream &operator<<(std::ostream &os, InstrumentType t) { return os << int8_t(t); }
+inline std::ostream &operator<<(std::ostream &os, InstrumentType t) { return os << int32_t(t); }
 
 enum class ExecType : int8_t { Unknown, Cancel, Trade };
 
@@ -227,7 +227,7 @@ NLOHMANN_JSON_SERIALIZE_ENUM(ExecType, {
                                            {ExecType::Trade, "Trade"},
                                        })
 
-inline std::ostream &operator<<(std::ostream &os, ExecType t) { return os << int8_t(t); }
+inline std::ostream &operator<<(std::ostream &os, ExecType t) { return os << int32_t(t); }
 
 enum class BsFlag : int8_t { Unknown, Buy, Sell };
 
@@ -237,7 +237,7 @@ NLOHMANN_JSON_SERIALIZE_ENUM(BsFlag, {
                                          {BsFlag::Sell, "Sell"},
                                      })
 
-inline std::ostream &operator<<(std::ostream &os, BsFlag t) { return os << int8_t(t); }
+inline std::ostream &operator<<(std::ostream &os, BsFlag t) { return os << int32_t(t); }
 
 enum class Side : int8_t {
   Buy,                       // 买入
@@ -285,7 +285,7 @@ NLOHMANN_JSON_SERIALIZE_ENUM(Side, {
                                        {Side::Unknown, "Unknown"},
                                    })
 
-inline std::ostream &operator<<(std::ostream &os, Side t) { return os << int8_t(t); }
+inline std::ostream &operator<<(std::ostream &os, Side t) { return os << int32_t(t); }
 
 enum class Offset : int8_t { Open, Close, CloseToday, CloseYesterday };
 
@@ -296,7 +296,7 @@ NLOHMANN_JSON_SERIALIZE_ENUM(Offset, {
                                          {Offset::CloseYesterday, "CloseYesterday"},
                                      })
 
-inline std::ostream &operator<<(std::ostream &os, Offset t) { return os << int8_t(t); }
+inline std::ostream &operator<<(std::ostream &os, Offset t) { return os << int32_t(t); }
 
 enum class HedgeFlag : int8_t { Speculation, Arbitrage, Hedge, Covered };
 
@@ -307,17 +307,31 @@ NLOHMANN_JSON_SERIALIZE_ENUM(HedgeFlag, {
                                             {HedgeFlag::Covered, "Covered"},
                                         })
 
-inline std::ostream &operator<<(std::ostream &os, HedgeFlag t) { return os << int8_t(t); }
+inline std::ostream &operator<<(std::ostream &os, HedgeFlag t) { return os << int32_t(t); }
 
 enum class OrderActionFlag : int8_t {
-  Cancel,
+  Cancel,        /// 普通撤单
+  TriggerCancel, /// 预埋撤单
 };
 
 NLOHMANN_JSON_SERIALIZE_ENUM(OrderActionFlag, {
                                                   {OrderActionFlag::Cancel, "Cancel"},
+                                                  {OrderActionFlag::TriggerCancel, "TriggerCancel"},
                                               })
 
-inline std::ostream &operator<<(std::ostream &os, OrderActionFlag t) { return os << int8_t(t); }
+inline std::ostream &operator<<(std::ostream &os, OrderActionFlag t) { return os << int32_t(t); }
+
+enum class OrderTriggerFlag : int8_t {
+  TriggerInsert, /// 预埋下单
+  TriggerCancel  /// 预埋撤单
+};
+
+NLOHMANN_JSON_SERIALIZE_ENUM(OrderTriggerFlag, {
+                                                   {OrderTriggerFlag::TriggerInsert, "TriggerInsert"},
+                                                   {OrderTriggerFlag::TriggerCancel, "TriggerCancel"},
+                                               })
+
+inline std::ostream &operator<<(std::ostream &os, OrderTriggerFlag t) { return os << int32_t(t); }
 
 enum class PriceType : int8_t {
   Limit, // 限价,证券通用
@@ -329,7 +343,7 @@ enum class PriceType : int8_t {
   Fok,            // 深圳市价全额成交或者撤销，不需要报价
   EnhancedLimit,  // 增强限价盘-港股
   AtAuctionLimit, // 竞价限价盘-港股
-  AtAuction,      // 竞价限价盘-港股| 期货
+  AtAuction,      // 竞价盘-港股| 期货(竞价盘的价格就是开市价格)
   Unknown
 };
 
@@ -347,10 +361,10 @@ NLOHMANN_JSON_SERIALIZE_ENUM(PriceType, {
                                             {PriceType::Unknown, "Unknown"},
                                         })
 
-inline std::ostream &operator<<(std::ostream &os, PriceType t) { return os << int8_t(t); }
+inline std::ostream &operator<<(std::ostream &os, PriceType t) { return os << int32_t(t); }
 
 enum class PriceLevel : int8_t {
-  Lastest, // 最新价
+  Latest, // 最新价
   Sell5,
   Sell4,
   Sell3,
@@ -367,7 +381,7 @@ enum class PriceLevel : int8_t {
 };
 
 NLOHMANN_JSON_SERIALIZE_ENUM(PriceLevel, {
-                                             {PriceLevel::Lastest, "Lastest"},
+                                             {PriceLevel::Latest, "Latest"},
                                              {PriceLevel::Sell5, "Sell5"},
                                              {PriceLevel::Sell4, "Sell4"},
                                              {PriceLevel::Sell3, "Sell3"},
@@ -383,7 +397,7 @@ NLOHMANN_JSON_SERIALIZE_ENUM(PriceLevel, {
                                              {PriceLevel::Unknown, "Unknown"},
                                          })
 
-inline std::ostream &operator<<(std::ostream &os, PriceLevel t) { return os << int8_t(t); }
+inline std::ostream &operator<<(std::ostream &os, PriceLevel t) { return os << int32_t(t); }
 
 enum class VolumeCondition : int8_t { Any, Min, All };
 
@@ -393,28 +407,40 @@ NLOHMANN_JSON_SERIALIZE_ENUM(VolumeCondition, {
                                                   {VolumeCondition::All, "All"},
                                               })
 
-inline std::ostream &operator<<(std::ostream &os, VolumeCondition t) { return os << int8_t(t); }
+inline std::ostream &operator<<(std::ostream &os, VolumeCondition t) { return os << int32_t(t); }
 
-enum class TimeCondition : int8_t { IOC, GFD, GTC };
+enum class TimeCondition : int8_t { ///
+  IOC,                              /// 立即完成，否则撤销
+  GFD,                              /// 当日有效
+  GTC,                              /// 撤销前有效
+  GFS,                              /// 本节有效
+  GTD,                              /// 指定日期前有效
+  GFA,                              /// 集合竞价有效
+  Unknown
+};
 
 NLOHMANN_JSON_SERIALIZE_ENUM(TimeCondition, {
                                                 {TimeCondition::IOC, "IOC"},
                                                 {TimeCondition::GFD, "GFD"},
                                                 {TimeCondition::GTC, "GTC"},
+                                                {TimeCondition::GFS, "GFS"},
+                                                {TimeCondition::GTD, "GTD"},
+                                                {TimeCondition::GFA, "GFA"},
                                             })
 
-inline std::ostream &operator<<(std::ostream &os, TimeCondition t) { return os << int8_t(t); }
+inline std::ostream &operator<<(std::ostream &os, TimeCondition t) { return os << int32_t(t); }
 
 enum class OrderStatus : int8_t {
   Unknown,
-  Submitted,
-  Pending,
-  Cancelled,
-  Error,
-  Filled,
-  PartialFilledNotActive,
-  PartialFilledActive,
-  Lost
+  Submitted,              // 已提交
+  Pending,                // 等待中
+  Cancelled,              // 已撤单
+  Error,                  // 错误
+  Filled,                 // 已成交
+  PartialFilledNotActive, // 部成部撤
+  PartialFilledActive,    // 部成交易中
+  Lost,                   // 丢失
+  Cancelling              // 待撤
 };
 
 NLOHMANN_JSON_SERIALIZE_ENUM(OrderStatus, {
@@ -427,9 +453,10 @@ NLOHMANN_JSON_SERIALIZE_ENUM(OrderStatus, {
                                               {OrderStatus::PartialFilledNotActive, "PartialFilledNotActive"},
                                               {OrderStatus::PartialFilledActive, "PartialFilledActive"},
                                               {OrderStatus::Lost, "Lost"},
+                                              {OrderStatus::Cancelling, "Cancelling"},
                                           })
 
-inline std::ostream &operator<<(std::ostream &os, OrderStatus t) { return os << int8_t(t); }
+inline std::ostream &operator<<(std::ostream &os, OrderStatus t) { return os << int32_t(t); }
 
 // 币种枚举
 enum class Currency : int8_t { Unknown = 0, CNY, HKD, USD, JPY, GBP, EUR, CNH, SGD, MYR, CEN };
@@ -448,7 +475,7 @@ NLOHMANN_JSON_SERIALIZE_ENUM(Currency, {
                                            {Currency::CEN, "CEN"},
                                        })
 
-inline std::ostream &operator<<(std::ostream &os, Currency t) { return os << int8_t(t); }
+inline std::ostream &operator<<(std::ostream &os, Currency t) { return os << int32_t(t); }
 
 enum class BasketOrderStatus : int8_t { Unknown, Pending, PartialFilledNotActive, PartialFilledActive, Filled };
 
@@ -461,7 +488,7 @@ NLOHMANN_JSON_SERIALIZE_ENUM(BasketOrderStatus,
                                  {BasketOrderStatus::Filled, "Filled"},
                              })
 
-inline std::ostream &operator<<(std::ostream &os, BasketOrderStatus t) { return os << int8_t(t); }
+inline std::ostream &operator<<(std::ostream &os, BasketOrderStatus t) { return os << int32_t(t); }
 
 enum class BasketOrderCalculationMode : int8_t { Static, Dynamic };
 
@@ -470,7 +497,7 @@ NLOHMANN_JSON_SERIALIZE_ENUM(BasketOrderCalculationMode, {
                                                              {BasketOrderCalculationMode::Dynamic, "Dynamic"},
                                                          })
 
-inline std::ostream &operator<<(std::ostream &os, BasketOrderCalculationMode t) { return os << int8_t(t); }
+inline std::ostream &operator<<(std::ostream &os, BasketOrderCalculationMode t) { return os << int32_t(t); }
 
 enum class BasketVolumeType : int8_t { Unknown, Quantity, Proportion };
 
@@ -480,7 +507,7 @@ NLOHMANN_JSON_SERIALIZE_ENUM(BasketVolumeType, {
                                                    {BasketVolumeType::Proportion, "Proportion"},
                                                })
 
-inline std::ostream &operator<<(std::ostream &os, BasketVolumeType t) { return os << int8_t(t); }
+inline std::ostream &operator<<(std::ostream &os, BasketVolumeType t) { return os << int32_t(t); }
 
 enum class BasketType : int8_t { Custom, ETF };
 
@@ -489,7 +516,7 @@ NLOHMANN_JSON_SERIALIZE_ENUM(BasketType, {
                                              {BasketType::ETF, "ETF"},
                                          })
 
-inline std::ostream &operator<<(std::ostream &os, BasketType t) { return os << int8_t(t); }
+inline std::ostream &operator<<(std::ostream &os, BasketType t) { return os << int32_t(t); }
 
 enum class Direction : int8_t { Long, Short };
 
@@ -498,7 +525,7 @@ NLOHMANN_JSON_SERIALIZE_ENUM(Direction, {
                                             {Direction::Short, "Short"},
                                         })
 
-inline std::ostream &operator<<(std::ostream &os, Direction t) { return os << int8_t(t); }
+inline std::ostream &operator<<(std::ostream &os, Direction t) { return os << int32_t(t); }
 
 enum class AccountType : int8_t { Stock, Credit, Future };
 
@@ -508,7 +535,7 @@ NLOHMANN_JSON_SERIALIZE_ENUM(AccountType, {
                                               {AccountType::Future, "Future"},
                                           })
 
-inline std::ostream &operator<<(std::ostream &os, AccountType t) { return os << int8_t(t); }
+inline std::ostream &operator<<(std::ostream &os, AccountType t) { return os << int32_t(t); }
 
 enum class CommissionRateMode : int8_t { ByAmount, ByVolume };
 
@@ -517,7 +544,7 @@ NLOHMANN_JSON_SERIALIZE_ENUM(CommissionRateMode, {
                                                      {CommissionRateMode::ByVolume, "ByVolume"},
                                                  })
 
-inline std::ostream &operator<<(std::ostream &os, CommissionRateMode t) { return os << int8_t(t); }
+inline std::ostream &operator<<(std::ostream &os, CommissionRateMode t) { return os << int32_t(t); }
 
 enum class LedgerCategory : int8_t {
   Account,
@@ -529,7 +556,7 @@ NLOHMANN_JSON_SERIALIZE_ENUM(LedgerCategory, {
                                                  {LedgerCategory::Strategy, "Strategy"},
                                              })
 
-inline std::ostream &operator<<(std::ostream &os, LedgerCategory t) { return os << int8_t(t); }
+inline std::ostream &operator<<(std::ostream &os, LedgerCategory t) { return os << int32_t(t); }
 
 enum class BrokerState : int8_t {
   Pending = 0,
@@ -541,7 +568,7 @@ enum class BrokerState : int8_t {
   Ready = 100
 };
 
-inline std::ostream &operator<<(std::ostream &os, BrokerState t) { return os << int8_t(t); }
+inline std::ostream &operator<<(std::ostream &os, BrokerState t) { return os << int32_t(t); }
 
 NLOHMANN_JSON_SERIALIZE_ENUM(BrokerState, {
                                               {BrokerState::Pending, "Pending"},
@@ -561,7 +588,7 @@ NLOHMANN_JSON_SERIALIZE_ENUM(HistoryDataType, {
                                                   {HistoryDataType::TotalEnd, "TotalEnd"},
                                               })
 
-inline std::ostream &operator<<(std::ostream &os, HistoryDataType t) { return os << int8_t(t); }
+inline std::ostream &operator<<(std::ostream &os, HistoryDataType t) { return os << int32_t(t); }
 
 enum class StrategyState : int8_t { Normal, Warn, Error };
 
@@ -571,7 +598,7 @@ NLOHMANN_JSON_SERIALIZE_ENUM(StrategyState, {
                                                 {StrategyState::Error, "Error"},
                                             })
 
-inline std::ostream &operator<<(std::ostream &os, StrategyState t) { return os << int8_t(t); }
+inline std::ostream &operator<<(std::ostream &os, StrategyState t) { return os << int32_t(t); }
 
 // enum value has to be same with BrokerState
 enum class OperatorState : int8_t { Pending = 0, DisConnected = 2, Connected = 3, Ready = 100 };
@@ -583,7 +610,7 @@ NLOHMANN_JSON_SERIALIZE_ENUM(OperatorState, {
                                                 {OperatorState::Ready, "Ready"},
                                             })
 
-inline std::ostream &operator<<(std::ostream &os, OperatorState t) { return os << int8_t(t); }
+inline std::ostream &operator<<(std::ostream &os, OperatorState t) { return os << int32_t(t); }
 
 class AssembleMode {
 public:
@@ -606,7 +633,7 @@ NLOHMANN_JSON_SERIALIZE_ENUM(PageStatus, {
                                              {PageStatus::PreOpen, "PreOpen"},
                                          })
 
-inline std::ostream &operator<<(std::ostream &os, PageStatus t) { return os << int8_t(t); }
+inline std::ostream &operator<<(std::ostream &os, PageStatus t) { return os << int32_t(t); }
 
 enum class AccountingMethodType : int8_t { Default = 0, OTC = 1 };
 
@@ -615,7 +642,7 @@ NLOHMANN_JSON_SERIALIZE_ENUM(AccountingMethodType, {
                                                        {AccountingMethodType::OTC, "OTC"},
                                                    })
 
-inline std::ostream &operator<<(std::ostream &os, AccountingMethodType t) { return os << int8_t(t); }
+inline std::ostream &operator<<(std::ostream &os, AccountingMethodType t) { return os << int32_t(t); }
 
 enum class FrameDataType : int8_t { Raw, Json, Unknown };
 
@@ -625,11 +652,78 @@ NLOHMANN_JSON_SERIALIZE_ENUM(FrameDataType, {
                                                 {FrameDataType::Unknown, "Unknown"},
                                             })
 
-inline std::ostream &operator<<(std::ostream &os, FrameDataType t) { return os << int8_t(t); }
+inline std::ostream &operator<<(std::ostream &os, FrameDataType t) { return os << int32_t(t); }
 
 inline bool operator==(int8_t type, FrameDataType t) { return type == int8_t(t); }
 
 inline bool operator==(FrameDataType t, int8_t type) { return type == int8_t(t); }
+
+enum class OrderTriggerType : int8_t { ///
+  Immediately,                         /// 立即
+  Touch,                               /// 止损
+  TouchProfit,                         /// 止赢
+  ParkedOrder,                         /// 预埋单
+  LastPriceGreaterThanStopPrice,       /// 最新价大于条件价
+  LastPriceGreaterEqualStopPrice,      /// 最新价大于等于条件价
+  LastPriceLesserThanStopPrice,        /// 最新价小于条件价
+  LastPriceLesserEqualStopPrice,       /// 最新价小于等于条件价
+  AskPriceGreaterThanStopPrice,        /// 卖一价大于条件价
+  AskPriceGreaterEqualStopPrice,       /// 卖一价大于等于条件价
+  AskPriceLesserThanStopPrice,         /// 卖一价小于条件价
+  AskPriceLesserEqualStopPrice,        /// 卖一价小于等于条件价
+  BidPriceGreaterThanStopPrice,        /// 买一价大于条件价
+  BidPriceGreaterEqualStopPrice,       /// 买一价大于等于条件价
+  BidPriceLesserThanStopPrice,         /// 买一价小于条件价
+  BidPriceLesserEqualStopPrice         /// 买一价小于等于条件价
+};
+
+NLOHMANN_JSON_SERIALIZE_ENUM(OrderTriggerType,
+                             {
+                                 {OrderTriggerType::Immediately, "Immediately"},
+                                 {OrderTriggerType::Touch, "Touch"},
+                                 {OrderTriggerType::TouchProfit, "TouchProfit"},
+                                 {OrderTriggerType::ParkedOrder, "ParkedOrder"},
+                                 {OrderTriggerType::LastPriceGreaterThanStopPrice, "LastPriceGreaterThanStopPrice"},
+                                 {OrderTriggerType::LastPriceGreaterEqualStopPrice, "LastPriceGreaterEqualStopPrice"},
+                                 {OrderTriggerType::LastPriceLesserThanStopPrice, "LastPriceLesserThanStopPrice"},
+                                 {OrderTriggerType::LastPriceLesserEqualStopPrice, "LastPriceLesserEqualStopPrice"},
+                                 {OrderTriggerType::AskPriceGreaterThanStopPrice, "AskPriceGreaterThanStopPrice"},
+                                 {OrderTriggerType::AskPriceGreaterEqualStopPrice, "AskPriceGreaterEqualStopPrice"},
+                                 {OrderTriggerType::AskPriceLesserThanStopPrice, "AskPriceLesserThanStopPrice"},
+                                 {OrderTriggerType::AskPriceLesserEqualStopPrice, "AskPriceLesserEqualStopPrice"},
+                                 {OrderTriggerType::BidPriceGreaterThanStopPrice, "BidPriceGreaterThanStopPrice"},
+                                 {OrderTriggerType::BidPriceGreaterEqualStopPrice, "BidPriceGreaterEqualStopPrice"},
+                                 {OrderTriggerType::BidPriceLesserThanStopPrice, "BidPriceLesserThanStopPrice"},
+                                 {OrderTriggerType::BidPriceLesserEqualStopPrice, "BidPriceLesserEqualStopPrice"},
+                             })
+
+inline std::ostream &operator<<(std::ostream &os, OrderTriggerType t) { return os << int32_t(t); }
+
+enum class ParkedType : int8_t {
+  Server, /// 服务器预埋
+  Local   /// 本地预埋
+};
+
+NLOHMANN_JSON_SERIALIZE_ENUM(ParkedType, {
+                                             {ParkedType::Server, "Server"},
+                                             {ParkedType::Local, "Local"},
+                                         })
+
+inline std::ostream &operator<<(std::ostream &os, ParkedType t) { return os << int32_t(t); }
+
+enum class Priority : int8_t { Low, Medium, High };
+
+NLOHMANN_JSON_SERIALIZE_ENUM(Priority, {
+                                           {Priority::Low, "Low"},
+                                           {Priority::Medium, "Medium"},
+                                           {Priority::High, "High"},
+                                       })
+
+inline std::ostream &operator<<(std::ostream &os, Priority t) { return os << int32_t(t); }
+
+inline bool operator<(Priority l, Priority r) { return int8_t(l) < int8_t(r); }
+
+inline bool operator==(Priority l, Priority r) { return int8_t(l) == int8_t(r); }
 
 } // namespace kungfu::longfist::enums
 #endif // KUNGFU_LONGFIST_ENUM_H

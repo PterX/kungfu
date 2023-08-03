@@ -23,7 +23,8 @@ class Ledger : public yijinjing::practice::apprentice {
   typedef std::unordered_map<uint32_t, longfist::types::Position> PositionMap;
 
 public:
-  explicit Ledger(yijinjing::data::locator_ptr locator, longfist::enums::mode m, bool low_latency = false);
+  explicit Ledger(yijinjing::data::locator_ptr locator, longfist::enums::mode m, bool low_latency,
+                  const std::string &arguments);
 
   ~Ledger() override = default;
 
@@ -43,7 +44,10 @@ private:
   std::unordered_map<uint64_t, state<longfist::types::OrderStat>> order_stats_ = {};
   BrokerStateMap broker_states_ = {};
   OperatorStateMap operator_states_ = {};
+  const std::string arguments_;
   bool is_sync_;
+
+  bool bypass_refresh_book() const;
 
   void on_deregister(const longfist::types::Deregister &deregister);
 

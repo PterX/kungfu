@@ -112,6 +112,13 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
         default: false,
         type: 'bool',
       },
+      {
+        key: 'bypassRefreshBook',
+        name: t('globalSettingConfig.bypass_subscribe_position'),
+        tip: t('globalSettingConfig.bypass_subscribe_position_desc'),
+        default: !ifCpusNumSafe,
+        type: 'bool',
+      },
     ],
   },
   {

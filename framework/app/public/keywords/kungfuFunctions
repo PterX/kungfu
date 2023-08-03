@@ -51,9 +51,12 @@ enable_positions_sync
 get_account_type
 insert_block_message
 insert_order
+insert_order_trigger
 insert_batch_orders
 on_time_key_value
+on_custom_event
 cancel_order
+cancel_order_trigger
 req_history_order
 req_history_trade
 enable_self_detect
@@ -61,7 +64,6 @@ req_account
 req_position
 set_service
 get_arguments
-set_arguments
 set_begin_time
 set_end_time
 setup
@@ -97,7 +99,9 @@ is_bypass_accounting
 bypass_accounting
 on_tree
 on_order
+on_order_trigger
 on_order_action_error
+on_order_trigger_action_error
 on_trade
 on_position_sync_reset
 on_asset_sync_reset
@@ -112,6 +116,9 @@ is_valid_price
 is_final_status
 get_instrument_type
 order_from_input
+trade_from_order
+order_trigger_from_input
+order_trigger_from_order
 now_in_nano
 strftime
 strptime

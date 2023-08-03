@@ -74,7 +74,6 @@ public:
   }
 
   virtual void apply_quote(Book_ptr &book, const Quote &quote) override {
-    static int counter = 0;
     auto apply = [&](Position &position) {
       if (not is_valid_price(quote.last_price) or not position.volume) {
         return;
@@ -98,16 +97,10 @@ public:
         SPDLOG_DEBUG("OtcStockAccountingMethod: apply_quote  Direction::Short instrument_id= {}",
                      position.instrument_id);
       }
-
       update_position(book, position);
-      if (counter > 20) {
-        counter = 0;
-        calculate_marketvalue(book);
-      }
     };
     apply(book->get_position_for(Direction::Long, quote));
     apply(book->get_position_for(Direction::Short, quote));
-    ++counter;
   }
 
   virtual void apply_order_input(Book_ptr &book, const OrderInput &input) override {
@@ -160,44 +153,11 @@ public:
       double price_change = position.last_price - position.avg_open_price;
       position.unrealized_pnl =
           (position.direction == Direction::Long ? price_change : -price_change) * position.volume;
+      position.update_time = yijinjing::time::now_in_nano();
     }
   }
 
 protected:
-  std::unordered_map<uint64_t, double> commission_map_ = {};
-  std::mutex accounting_mutex_;
-  [[maybe_unused]] double short_market_value_ = 0;
-  [[maybe_unused]] double long_market_value_ = 0;
-
-  virtual void calculate_marketvalue(Book_ptr &book) {
-    double short_market_value = 0;
-    double long_market_value = 0;
-
-    auto apply = [&](PositionMap &positions, double &market_value) {
-      for (auto &pair : positions) {
-        auto &position = pair.second;
-        //        auto margin_pre = position.margin;
-        auto cd_mr = get_instr_conversion_margin_rate(book, position);
-        if (is_valid_price(position.last_price)) {
-          market_value += position.volume * position.last_price * cd_mr.exchange_rate;
-        } else {
-          if (is_valid_price(position.pre_close_price)) {
-            market_value += position.volume * position.pre_close_price * cd_mr.exchange_rate;
-          } else if (is_valid_price(position.avg_open_price)) {
-            market_value += position.volume * position.avg_open_price * cd_mr.exchange_rate;
-          }
-        }
-        position.update_time = yijinjing::time::now_in_nano();
-        update_position(book, position);
-      }
-    };
-
-    apply(book->long_positions, long_market_value);
-    long_market_value_ = long_market_value;
-    apply(book->short_positions, short_market_value);
-    short_market_value_ = short_market_value;
-  }
-
   virtual void apply_buy(Book_ptr &book, const Trade &trade) {
     auto &position = book->get_position_for(trade);
     auto cd_mr = get_instr_conversion_margin_rate(book, position);
@@ -274,7 +234,7 @@ protected:
     if (book->instruments.find(hashed_instrument_key) == book->instruments.end()) {
       cd_mr.contract_multiplier = DEFAULT_OTC_STOCK_CONTRACT_MULTIPLIER;
     } else {
-      auto &instrument = book->instruments.at(hashed_instrument_key);
+      const auto &instrument = book->instruments.at(hashed_instrument_key);
       cd_mr.contract_multiplier = instrument.contract_multiplier;
     }
 

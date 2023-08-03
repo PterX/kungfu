@@ -29,8 +29,6 @@ public:
 protected:
   void react() override;
 
-  void on_react() override;
-
   void on_start() override;
 
   BrokerService_ptr get_service() override;
@@ -48,6 +46,8 @@ public:
   typedef std::unordered_map<uint64_t, state<longfist::types::Order>> OrderMap;
   typedef std::unordered_map<uint64_t, state<longfist::types::OrderAction>> OrderActionMap;
   typedef std::unordered_map<uint64_t, state<longfist::types::Trade>> TradeMap;
+  typedef std::unordered_map<uint64_t, state<longfist::types::OrderTrigger>> OrderTriggerMap;
+  typedef std::unordered_map<uint64_t, state<longfist::types::OrderTriggerAction>> OrderTriggerActionMap;
 
   explicit Trader(BrokerVendor &vendor) : BrokerService(vendor){};
 
@@ -55,15 +55,21 @@ public:
 
   virtual bool insert_block_message(const event_ptr &event);
 
+  virtual bool insert_order_trigger(const event_ptr &event) { return true; }
+
   virtual bool insert_order(const event_ptr &event) = 0;
 
   virtual bool insert_batch_orders(const event_ptr &event) { return true; }
+
+  virtual bool cancel_order_trigger(const event_ptr &event) { return true; }
 
   virtual bool cancel_order(const event_ptr &event) = 0;
 
   virtual bool req_position() = 0;
 
   virtual bool req_account() = 0;
+
+  virtual bool req_order_trigger() { return true; }
 
   virtual bool req_history_order(const event_ptr &event) { return true; }
 
@@ -73,9 +79,11 @@ public:
 
   virtual bool on_custom_event(const event_ptr &event) { return true; }
 
-  virtual void on_band(const event_ptr &event) { return; }
+  virtual void on_band(const event_ptr &event) {}
 
-  virtual void on_time_key_value(const event_ptr &event) { return; }
+  virtual void on_time_key_value(const event_ptr &event) {}
+
+  void on_risk_setting();
 
   /// 此函数自动发送一个空的AssetMargin数据. 两融柜台需要发送一个存有数据的AssetMargin, 请override此函数取消写入.
   /// 并且在使用writer写入完AssetMargin之后调用enable_asset_margin_sync()函数.
@@ -109,14 +117,16 @@ public:
   virtual void on_recover(){};
 
 protected:
-  OrderMap orders_ = {};
-  OrderActionMap actions_ = {};
+  OrderMap orders_{};
+  OrderActionMap actions_{};
+  OrderTriggerMap triggers_{};
+  OrderTriggerActionMap trigger_actions_{};
   TradeMap trades_ = {};
   bool self_deal_detect_ = false;
   bool disable_recover_ = false;
-  std::unordered_map<uint64_t, kungfu::longfist::types::BlockMessage> block_messages_ = {}; // <block_id, batch_flag>
+  std::unordered_map<uint64_t, kungfu::longfist::types::BlockMessage> block_messages_{};
   /// <strategy_uid, OrderInput>, a batch OrderInputs for a strategy
-  std::unordered_map<uint64_t, std::vector<longfist::types::OrderInput>> order_inputs_ = {};
+  std::unordered_map<uint64_t, std::vector<longfist::types::OrderInput>> order_inputs_{};
   /// <strategy_uid, batch_flag>, true mean batch mode for this strategy
   std::unordered_map<uint64_t, bool> batch_status_{};
   std::unordered_map<std::string, std::unordered_set<uint64_t>> map_exchange_instrument_to_order_ids_{};

@@ -89,9 +89,13 @@ public:
 
   Napi::Value IssueBlockMessage(const Napi::CallbackInfo &info);
 
+  Napi::Value IssueOrderTrigger(const Napi::CallbackInfo &info);
+
   Napi::Value IssueOrder(const Napi::CallbackInfo &info);
 
   Napi::Value IssueBasketOrder(const Napi::CallbackInfo &info);
+
+  Napi::Value IssueMark(const Napi::CallbackInfo &info);
 
   Napi::Value CancelOrder(const Napi::CallbackInfo &info);
 
@@ -113,6 +117,7 @@ protected:
   const bool bypass_quote_;
   const bool bypass_trading_data_;
   const bool refresh_trading_data_before_sync_;
+  const bool bypass_refresh_book_;
   const int milliseconds_sleep_after_step_;
   std::mutex feed_mutex_;
 
@@ -297,6 +302,13 @@ private:
   }
 
   template <typename TradingData>
+  std::enable_if_t<std::is_same_v<TradingData, longfist::types::OrderTriggerInput>>
+  UpdateBook(uint32_t source, uint32_t dest, const TradingData &data) {
+    state<kungfu::longfist::types::OrderTriggerInput> cache_state_order_trigger_input(source, dest, now(), data);
+    data_bank_ << cache_state_order_trigger_input;
+  }
+
+  template <typename TradingData>
   std::enable_if_t<std::is_same_v<TradingData, longfist::types::BasketOrder>> UpdateBook(uint32_t source, uint32_t dest,
                                                                                          const TradingData &data) {
     basketorder_engine_.insert_basket_order(now(), data);
@@ -306,7 +318,8 @@ private:
 
   template <typename TradingData>
   std::enable_if_t<not std::is_same_v<TradingData, longfist::types::OrderInput> and
-                   not std::is_same_v<TradingData, longfist::types::BasketOrder>>
+                   not std::is_same_v<TradingData, longfist::types::BasketOrder> and
+                   not std::is_same_v<TradingData, longfist::types::OrderTriggerInput>>
   UpdateBook(uint32_t source, uint32_t dest, const TradingData &data) {}
 
   uint64_t MakeInstructionUID(yijinjing::journal::writer_ptr &writer, uint32_t dest, uint32_t client_id = 0) {
@@ -330,7 +343,7 @@ private:
     using DataTypeMap = std::unordered_map<uint64_t, state<DataType>>;
     auto &target_map = const_cast<DataTypeMap &>(data_bank_[type]);
     auto iter = target_map.begin();
-    while (iter != target_map.end() and target_map.size() > 0) {
+    while (iter != target_map.end()) {
       const auto &state = iter->second;
       update_ledger(state.update_time, state.source, state.dest, state.data);
       iter = target_map.erase(iter);
@@ -342,7 +355,7 @@ private:
     auto &target_map = const_cast<DataTypeMap &>(data_bank_[type]);
     auto iter = target_map.begin();
     auto count = 0;
-    while (iter != target_map.end() and target_map.size() > 0 and count < TRANSFER_TRADING_DATA_LIMIT) {
+    while (iter != target_map.end() and count < TRANSFER_TRADING_DATA_LIMIT) {
       const auto &state = iter->second;
       update_ledger(state.update_time, state.source, state.dest, state.data);
       iter = target_map.erase(iter);

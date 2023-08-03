@@ -144,4 +144,13 @@ uint32_t page::find_page_id(const data::location_ptr &location, uint32_t dest_id
   }
   return page_ids.front();
 }
+
+bool page::check_page_existed(const data::location_ptr &location, uint32_t dest_id) {
+  std::vector<uint32_t> page_ids = location->locator->list_page_id(location, dest_id);
+  if (page_ids.empty()) {
+    return false;
+  }
+
+  return true;
+}
 } // namespace kungfu::yijinjing::journal

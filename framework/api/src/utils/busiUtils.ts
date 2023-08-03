@@ -2,7 +2,6 @@ import path from 'path';
 import dayjs from 'dayjs';
 import fse, { Stats } from 'fs-extra';
 import log4js from 'log4js';
-import glob from 'glob';
 import os from 'os';
 import {
   buildProcessLogPath,
@@ -10,6 +9,10 @@ import {
   KF_HOME,
   KF_RUNTIME_DIR,
 } from '../config/pathConfig';
+import {
+  EnterableSpecialWordsReg,
+  SpecialWordsReg,
+} from '../config/systemConfig';
 import {
   InstrumentType,
   KfCategory,
@@ -35,6 +38,8 @@ import {
   InstrumentMinOrderVolume,
   KfDefaultSystemProcess,
   ExportTradingDataColumnsToFilter,
+  ParkedType,
+  OrderTriggerStatus,
 } from '../config/tradingConfig';
 import {
   KfCategoryEnum,
@@ -63,6 +68,10 @@ import {
   PriceLevelEnum,
   CurrencyEnum,
   HistoryDateEnum,
+  OrderTriggerStatusEnum,
+  OrderTriggerTypeEnum,
+  OrderTriggerParkedTypeEnum,
+  OrderTriggerTimeConditionEnum,
 } from '../typings/enums';
 import {
   graceDeleteProcess,
@@ -84,10 +93,10 @@ import {
   listDir,
   readRootPackageJsonSync,
   removeTargetFilesInFolder,
+  removeTargetFoldersInFolder,
 } from './fileUtils';
 import minimist from 'minimist';
 import VueI18n, { useLanguage } from '../language';
-import { unlinkSync } from 'fs-extra';
 import { T0T1Config } from '../typings/global';
 import { getKfGlobalSettingsValue } from '../config/globalSettings';
 import { Currency } from '../config/tradingConfig';
@@ -108,6 +117,11 @@ declare global {
     toKfCategory(): string;
     toKfGroup(): string;
     toKfName(): string;
+  }
+
+  interface Number {
+    kfRound(precision?: number): number;
+    kfToFixed(precision?: number): string;
   }
 
   interface Array<T> {
@@ -168,6 +182,15 @@ String.prototype.parseSourceAccountId = function (): SourceAccountId {
       id: parseList[1],
     };
   }
+};
+
+Number.prototype.kfRound = function (precision?: number) {
+  const temp = 10 ** (precision || 0);
+  return Math.round(Number(this) * temp) / temp;
+};
+
+Number.prototype.kfToFixed = function (precision?: number) {
+  return this.kfRound(precision).toFixed(precision);
 };
 
 Array.prototype.removeRepeat = function () {
@@ -539,6 +562,46 @@ const resolveTypesInExtConfig = <T extends string>(types: T | T[]): T[] => {
   return typesResolved as T[];
 };
 
+const resolveOrderTriggerConfig = (
+  originConfig: KungfuApi.KfExtOriginConfig['config'],
+) => {
+  if (originConfig) {
+    const orderTriggerOriginConfig = originConfig.td?.order_trigger || {};
+    const orderTriggerTypesKeys = Object.keys(OrderTriggerTypeEnum);
+    const orderTriggerParkedTypesKeys = Object.keys(OrderTriggerParkedTypeEnum);
+    const orderTriggerTimeConditionKeys = Object.keys(
+      OrderTriggerTimeConditionEnum,
+    );
+    return Object.keys(orderTriggerOriginConfig).reduce((config, key) => {
+      if (orderTriggerTypesKeys.includes(key)) {
+        config[OrderTriggerTypeEnum[key]] = Object.keys(
+          orderTriggerOriginConfig[key] || {},
+        ).reduce((parkedConfig, parkedType) => {
+          if (orderTriggerParkedTypesKeys.includes(parkedType)) {
+            parkedConfig[OrderTriggerParkedTypeEnum[parkedType]] = Object.keys(
+              orderTriggerOriginConfig[key]?.[parkedType] || {},
+            ).reduce((timeConditionConfig, timeCondition) => {
+              if (orderTriggerTimeConditionKeys.includes(timeCondition)) {
+                timeConditionConfig[
+                  OrderTriggerTimeConditionEnum[timeCondition]
+                ] =
+                  !!orderTriggerOriginConfig[key]?.[parkedType]?.[
+                    timeCondition
+                  ];
+              }
+              return timeConditionConfig;
+            }, {});
+          }
+          return parkedConfig;
+        }, {});
+      }
+      return config;
+    }, {} as KungfuApi.KfTdExtConfig['orderTrigger']);
+  }
+
+  return {} as KungfuApi.KfTdExtConfig['orderTrigger'];
+};
+
 const getKfExtensionConfigByCategory = (
   extConfigs: KungfuApi.KfExtOriginConfig[],
 ): KungfuApi.KfExtConfigs => {
@@ -569,7 +632,22 @@ const getKfExtensionConfigByCategory = (
             };
             switch (category) {
               case 'td':
-                buildExtConfig('td');
+                configByCategory[category] = {
+                  ...(configByCategory[category] || {}),
+                  [extKey]: {
+                    name: extName,
+                    extPath,
+                    category,
+                    key: extKey,
+                    type: resolveTypesInExtConfig(
+                      extConfigByCategory[category]?.type || [],
+                    ),
+                    orderTrigger:
+                      resolveOrderTriggerConfig(extConfigByCategory),
+                    settings: extConfigByCategory[category]?.settings || [],
+                    fundTrans: extConfigByCategory[category]?.fund_trans || {},
+                  },
+                };
                 break;
               case 'md':
                 buildExtConfig('md');
@@ -1043,14 +1121,26 @@ export const getMdTdKfLocationByProcessId = (
 export const getOperatorKfLocationByProcessId = (
   processId: string,
 ): KungfuApi.KfLocation | null => {
-  if (processId.split('_').length === 3) {
-    const [category, group, name] = processId.split('_');
-    return {
-      category: category as KfCategoryTypes,
-      group,
-      name,
-      mode: 'live',
-    };
+  if (processId.indexOf('operator_') === 0) {
+    const splits = processId.split('_');
+
+    if (splits.length === 3) {
+      const [category, group, name] = processId.split('_');
+      return {
+        category: category as KfCategoryTypes,
+        group,
+        name,
+        mode: 'live',
+      };
+    } else if (splits.length === 2) {
+      const [category, name] = processId.split('_');
+      return {
+        category: category as KfCategoryTypes,
+        group: 'default',
+        name,
+        mode: 'live',
+      };
+    }
   }
 
   return null;
@@ -1244,7 +1334,7 @@ export const getPropertyFromProcessStatusDetailDataByKfLocation = (
   return {
     status,
     cpu: monit.cpu || 0,
-    memory: Number((monit.memory || 0) / (1024 * 1024)).toFixed(2),
+    memory: Number((monit.memory || 0) / (1024 * 1024)).kfToFixed(2),
   };
 };
 
@@ -1418,6 +1508,19 @@ export const getOffsetConfig = (): Record<
     }, {});
 };
 
+export const getOffsetByOffsetFilter = (
+  offsetKey: keyof typeof OffsetEnum,
+  defaultOffset: OffsetEnum,
+): OffsetEnum => {
+  const rootPackageJson = readRootPackageJsonSync();
+  const offsetConfig =
+    rootPackageJson?.appConfig?.makeOrder?.offsetFilter ||
+    ({} as Record<string, boolean>);
+  return offsetConfig[offsetKey] !== false
+    ? OffsetEnum[offsetKey]
+    : defaultOffset;
+};
+
 export const getAbleHedgeFlag = (): boolean => {
   const rootPackageJson = readRootPackageJsonSync();
   const ableHedgeFlag = rootPackageJson?.appConfig?.makeOrder?.ableHedgeFlag;
@@ -1536,7 +1639,7 @@ export const dealKfPrice = (
     return afterNumber;
   }
 
-  return Number(afterNumber).toFixed(pricePrecision ?? 3);
+  return Number(afterNumber).kfToFixed(pricePrecision ?? 4);
 };
 
 export const dealAssetPrice = (
@@ -1549,7 +1652,7 @@ export const dealAssetPrice = (
     return afterNumber;
   }
 
-  return Number(afterNumber).toFixed(pricePrecision ?? 3);
+  return Number(afterNumber).kfToFixed(pricePrecision ?? 4);
 };
 
 export const sum = (list: number[]): number => {
@@ -1565,8 +1668,7 @@ export const dealVolumeByInstrumentType = (
   const orderVolume = Math.max(volume, minOrderVolume);
 
   if (instrumentType === InstrumentTypeEnum.techstock) return orderVolume;
-
-  return ~~(orderVolume / minOrderVolume) * minOrderVolume;
+  return Math.floor(orderVolume / minOrderVolume) * minOrderVolume;
 };
 
 export const dealSide = (
@@ -1634,6 +1736,27 @@ export const dealTimeCondition = (
   timeCondition: TimeConditionEnum | number,
 ): KungfuApi.KfTradeValueCommonData => {
   return TimeCondition[+timeCondition as TimeConditionEnum];
+};
+
+export const dealParkedType = (
+  parkedType: OrderTriggerParkedTypeEnum | number,
+): KungfuApi.KfTradeValueCommonData => {
+  return ParkedType[+parkedType as OrderTriggerParkedTypeEnum];
+};
+
+export const dealOrderTriggerStatus = (
+  orderTriggerStatus: OrderTriggerStatusEnum | number,
+  errorMsg?: string,
+): KungfuApi.KfTradeValueCommonData => {
+  return {
+    ...OrderTriggerStatus[+orderTriggerStatus as OrderTriggerStatusEnum],
+    ...(+orderTriggerStatus === OrderTriggerStatusEnum.Error && errorMsg
+      ? {
+          name: errorMsg,
+          color: 'red',
+        }
+      : {}),
+  };
 };
 
 export const dealVolumeCondition = (
@@ -1707,15 +1830,15 @@ export const dealOrderStat = (
   const { insert_time, ack_time, md_time, trade_time } = orderStat;
   const latencyTrade =
     trade_time && ack_time
-      ? Number(Number(trade_time - ack_time) / 1000).toFixed(0)
+      ? Number(Number(trade_time - ack_time) / 1000).kfToFixed(0)
       : '--';
   const latencyNetwork =
     ack_time && insert_time
-      ? Number(Number(ack_time - insert_time) / 1000).toFixed(0)
+      ? Number(Number(ack_time - insert_time) / 1000).kfToFixed(0)
       : '--';
   const latencySystem =
     insert_time && md_time
-      ? Number(Number(insert_time - md_time) / 1000).toFixed(0)
+      ? Number(Number(insert_time - md_time) / 1000).kfToFixed(0)
       : '--';
 
   return {
@@ -2004,7 +2127,9 @@ export const replaceNonAlphaNumericWithSpace = (
   value: KungfuApi.KfConfigValue,
 ) => {
   if (typeof value === 'string') {
-    return value.replace(/[^a-zA-Z0-9]+/g, '');
+    return value
+      .replace(SpecialWordsReg, '')
+      .replace(EnterableSpecialWordsReg, '');
   } else {
     return value;
   }
@@ -2301,6 +2426,7 @@ export const removeNoDefaultStrategyFolders = async (): Promise<void> => {
 // 处理下单时输入数据
 export const dealOrderInputItem = (
   inputData: KungfuApi.MakeOrderInput,
+  price_precision?: number,
 ): Record<string, KungfuApi.KfTradeValueCommonData> => {
   const orderInputResolved: Record<string, KungfuApi.KfTradeValueCommonData> =
     {};
@@ -2321,6 +2447,11 @@ export const dealOrderInputItem = (
     } else if (key === 'is_swap') {
       isInstrumnetShotable &&
         (orderInputResolved[key] = dealIsSwap(inputData.is_swap));
+    } else if (key === 'limit_price') {
+      orderInputResolved[key] = {
+        name: dealAssetPrice(inputData[key], price_precision),
+        color: 'default',
+      };
     } else {
       orderInputResolved[key] = {
         name: inputData[key],
@@ -2473,24 +2604,8 @@ export const isBrokerStateReady = (state: BrokerStateStatusTypes) => {
 };
 
 export function deleteNNFiles(rootPathName = KF_HOME) {
-  return new Promise((resolve, reject) => {
-    glob(
-      '**/*.nn',
-      {
-        cwd: rootPathName,
-      },
-      (err: Error | null, files: string[]) => {
-        if (err) {
-          reject(err);
-        }
-
-        files.forEach((file: string) => {
-          unlinkSync(path.join(rootPathName, file));
-        });
-
-        resolve(true);
-      },
-    );
+  return removeTargetFoldersInFolder(rootPathName, ['nn']).then((res) => {
+    res.errors.forEach((err) => kfLogger.error(err));
   });
 }
 
@@ -2535,8 +2650,11 @@ export const buildIfWatcherLiveObservable = (watcher: KungfuApi.Watcher) => {
   });
 };
 
-export function countDecimalPlaces(num) {
-  const normalNum = Number(num).toFixed(10);
+export function countDecimalPlaces(num: number) {
+  if (String(num).indexOf('e-') !== -1) {
+    return parseInt(String(num).split('e-')[1], 10);
+  }
+  const normalNum = Number(num).kfToFixed(10);
   const numStr = String(normalNum)
     .replace(/(\.\d*?[1-9])0+$/, '$1')
     .replace(/\.0+$/, '');

@@ -50,10 +50,10 @@ inline bool GetBypassRestore(const Napi::CallbackInfo &info) {
 }
 
 inline int GetMillisecondsSleepAfterStep(const Napi::CallbackInfo &info) {
-  if (not IsValid(info, 6, &Napi::Value::IsNumber)) {
+  if (not IsValid(info, 7, &Napi::Value::IsNumber)) {
     throw Napi::Error::New(info.Env(), "Invalid millisecondsSleepAfterStep argument");
   }
-  return info[6].As<Napi::Number>().Int32Value();
+  return info[7].As<Napi::Number>().Int32Value();
 }
 
 WatcherAutoClient::WatcherAutoClient(yijinjing::practice::apprentice &app, bool bypass_trading_data)
@@ -117,6 +117,7 @@ Watcher::Watcher(const Napi::CallbackInfo &info)
       bypass_quote_(GetBool(info, 3)),                                                            //
       bypass_trading_data_(GetBool(info, 4)),                                                     //
       refresh_trading_data_before_sync_(GetBool(info, 5)),                                        //
+      bypass_refresh_book_(GetBool(info, 6)),                                                     //
       milliseconds_sleep_after_step_(GetMillisecondsSleepAfterStep(info)),                        //
       broker_client_(*this, bypass_trading_data_),                                                //
       bookkeeper_(*this, broker_client_, bypass_quote_),                                          //
@@ -302,6 +303,11 @@ Napi::Value Watcher::IssueBlockMessage(const Napi::CallbackInfo &info) {
   return InteractWithTD<BlockMessage>(info, info[0].ToObject(), &BlockMessage::block_id);
 }
 
+Napi::Value Watcher::IssueOrderTrigger(const Napi::CallbackInfo &info) {
+  SPDLOG_INFO("issue order trigger manually");
+  return InteractWithTD<OrderTriggerInput>(info, info[0].ToObject(), &OrderTriggerInput::trigger_id);
+}
+
 Napi::Value Watcher::IssueOrder(const Napi::CallbackInfo &info) {
   SPDLOG_INFO("issue order manually");
   return InteractWithTD<OrderInput>(info, info[0].ToObject(), &OrderInput::order_id);
@@ -327,6 +333,17 @@ Napi::Value Watcher::IssueBasketOrder(const Napi::CallbackInfo &info) {
   }
 
   return InteractWithTD<BasketOrder>(info, info[0].ToObject(), &BasketOrder::order_id);
+}
+
+Napi::Value Watcher::IssueMark(const Napi::CallbackInfo &info) {
+  SPDLOG_INFO("issue mark");
+  uint32_t tag = GetNumber(info, 0);
+  auto account_location = IODevice::ExtractLocation(info, 1, get_locator());
+  if (not has_writer(account_location->location_uid)) {
+    return Napi::Boolean::New(info.Env(), false);
+  }
+  get_writer(account_location->location_uid)->mark(time::now_in_nano(), tag);
+  return Napi::Boolean::New(info.Env(), true);
 }
 
 Napi::Value Watcher::CancelOrder(const Napi::CallbackInfo &info) {
@@ -377,27 +394,29 @@ void Watcher::Init(Napi::Env env, Napi::Object exports) {
   Napi::Function func =
       DefineClass(env, "Watcher",
                   {
-                      InstanceMethod("now", &Watcher::Now),                             //
-                      InstanceMethod("isUsable", &Watcher::IsUsable),                   //
-                      InstanceMethod("isLive", &Watcher::IsLive),                       //
-                      InstanceMethod("isStarted", &Watcher::IsStarted),                 //
-                      InstanceMethod("requestStop", &Watcher::RequestStop),             //
-                      InstanceMethod("hasLocation", &Watcher::HasLocation),             //
-                      InstanceMethod("getLocation", &Watcher::GetLocation),             //
-                      InstanceMethod("getLocationUID", &Watcher::GetLocationUID),       //
-                      InstanceMethod("getInstrumentType", &Watcher::GetInstrumentType), //
-                      InstanceMethod("publishState", &Watcher::PublishState),           //
-                      InstanceMethod("isReadyToInteract", &Watcher::IsReadyToInteract), //
-                      InstanceMethod("issueCustomData", &Watcher::IssueCustomData),     //
-                      InstanceMethod("issueBlockMessage", &Watcher::IssueBlockMessage), //
-                      InstanceMethod("issueOrder", &Watcher::IssueOrder),               //
-                      InstanceMethod("issueBasketOrder", &Watcher::IssueBasketOrder),   //
-                      InstanceMethod("cancelOrder", &Watcher::CancelOrder),             //
-                      InstanceMethod("requestMarketData", &Watcher::RequestMarketData), //
-                      InstanceMethod("requestPosition", &Watcher::RequestPosition),     //
-                      InstanceMethod("start", &Watcher::Start),                         //
-                      InstanceMethod("sync", &Watcher::Sync),                           //
-                      InstanceMethod("quit", &Watcher::Quit),
+                      InstanceMethod("now", &Watcher::Now),                                             //
+                      InstanceMethod("isUsable", &Watcher::IsUsable),                                   //
+                      InstanceMethod("isLive", &Watcher::IsLive),                                       //
+                      InstanceMethod("isStarted", &Watcher::IsStarted),                                 //
+                      InstanceMethod("requestStop", &Watcher::RequestStop),                             //
+                      InstanceMethod("hasLocation", &Watcher::HasLocation),                             //
+                      InstanceMethod("getLocation", &Watcher::GetLocation),                             //
+                      InstanceMethod("getLocationUID", &Watcher::GetLocationUID),                       //
+                      InstanceMethod("getInstrumentType", &Watcher::GetInstrumentType),                 //
+                      InstanceMethod("publishState", &Watcher::PublishState),                           //
+                      InstanceMethod("isReadyToInteract", &Watcher::IsReadyToInteract),                 //
+                      InstanceMethod("issueCustomData", &Watcher::IssueCustomData),                     //
+                      InstanceMethod("issueBlockMessage", &Watcher::IssueBlockMessage),                 //
+                      InstanceMethod("issueOrderTrigger", &Watcher::IssueOrderTrigger),                 //
+                      InstanceMethod("issueOrder", &Watcher::IssueOrder),                               //
+                      InstanceMethod("issueBasketOrder", &Watcher::IssueBasketOrder),                   //
+                      InstanceMethod("issueMark", &Watcher::IssueMark),                                 //
+                      InstanceMethod("cancelOrder", &Watcher::CancelOrder),                             //
+                      InstanceMethod("requestMarketData", &Watcher::RequestMarketData),                 //
+                      InstanceMethod("requestPosition", &Watcher::RequestPosition),                     //
+                      InstanceMethod("start", &Watcher::Start),                                         //
+                      InstanceMethod("sync", &Watcher::Sync),                                           //
+                      InstanceMethod("quit", &Watcher::Quit),                                           //
                       InstanceAccessor("state", &Watcher::GetState, &Watcher::NoSet),                   //
                       InstanceAccessor("ledger", &Watcher::GetLedger, &Watcher::NoSet),                 //
                       InstanceAccessor("appStates", &Watcher::GetAppStates, &Watcher::NoSet),           //
@@ -417,7 +436,7 @@ void Watcher::on_react() {
   // for receive history data
   auto before_start_events = events_ | take_until(events_ | is(RequestStart::tag));
   before_start_events | is(Instrument::tag) | $$(Feed(event, event->data<Instrument>()));
-  // bookkeeper restore, only Instrument and Commission,
+  // bookkeeper restore, only Instrument and Commission
   before_start_events | is(Instrument::tag, Commission::tag) | $$(feed_state_data(event, state_bank_));
 }
 
@@ -427,27 +446,25 @@ void Watcher::on_start() {
   UpdateBasketOrders(); // refresh basketorders
 
   if (not bypass_trading_data_) {
-    // for receive runtime data
-    events_ | is(Quote::tag) | is_subscribed(subscribed_instruments_) | $$(feed_state_data(event, data_bank_));
-    events_ | is(Instrument::tag) | $$(Feed(event, event->data<Instrument>()));
-    events_ | skip_while(while_is(Quote::tag, Instrument::tag)) | $$(feed_state_data(event, data_bank_));
-  }
-
-  if (not bypass_trading_data_) {
     bookkeeper_.on_start(events_);
     bookkeeper_.guard_positions();
     bookkeeper_.add_book_listener(std::make_shared<BookListener>(*this));
+
+    // for receive runtime data
+    events_ | is(Quote::tag) | is_subscribed(subscribed_instruments_) | $$(feed_state_data(event, data_bank_));
+    events_ | is(Instrument::tag) | $$(Feed(event, event->data<Instrument>()));
+    // position should be always read from bookkeeper in watcher, because of position_guard, instead of feeds;
+    events_ | skip_while(while_is(Quote::tag, Instrument::tag, Position::tag)) | $$(feed_state_data(event, data_bank_));
 
     if (not bypass_quote_) {
       events_ | is(Quote::tag) | is_subscribed(subscribed_instruments_) | $$(UpdateBook(event, event->data<Quote>()));
     }
 
-    // events_ | is(OrderInput::tag) | $$(UpdateBook(event, event->data<OrderInput>()));
     events_ | is(Order::tag) | $$(UpdateBook(event, event->data<Order>()));
     events_ | is(Order::tag) | $$(UpdateBasketOrder(event->trigger_time(), event->data<Order>()));
-    // events_ | is(Trade::tag) | $$(UpdateBook(event, event->data<Trade>()));
     events_ | is(Position::tag) | $$(UpdateBook(event, event->data<Position>()));
     events_ | is(PositionEnd::tag) | $$(UpdateAsset(event, event->data<PositionEnd>().holder_uid));
+
     refresh_books();
   }
 
@@ -473,6 +490,9 @@ void Watcher::refresh_books() {
 }
 
 void Watcher::refresh_account_book(int64_t trigger_time, uint32_t account_uid) {
+  if (bypass_refresh_book_) {
+    return;
+  }
   auto account_location = get_location(account_uid);
   auto group = account_location->group;
   auto md_location = location::make_shared(account_location->mode, category::MD, group, group, get_locator());

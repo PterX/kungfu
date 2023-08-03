@@ -68,6 +68,15 @@ class TraderSim(wc.Trader):
 
         self.update_broker_state(lf.enums.BrokerState.Ready)
 
+    def insert_order_trigger(self, event):
+        trigger_input = event.OrderTriggerInput()
+        self.logger.info(f"OrderTriggerInput: {trigger_input}")
+        trigger = order = wc.utils.order_trigger_from_input(trigger_input)
+        trigger.insert_time = yjj.now_in_nano()
+        trigger.update_time = trigger.insert_time
+        self.logger.info(f"OrderTrigger: {trigger}")
+        self.get_writer(event.source).write(event.gen_time, trigger)
+
     def insert_block_message(self, event):
         block_msg = event.BlockMessage()
         self.logger.info(f"{block_msg}")
@@ -209,6 +218,8 @@ class TraderSim(wc.Trader):
             order_action = event.OrderAction()
             if order_action.order_id in self.ctx.orders:
                 order = self.ctx.orders.pop(order_action.order_id)
+                if order.volume_left == 0:
+                    return True
                 order.update_time = yjj.now_in_nano()
                 order.status = (
                     lf.enums.OrderStatus.Cancelled
@@ -224,6 +235,9 @@ class TraderSim(wc.Trader):
         return False
 
     def req_position(self):
+        position_end = lf.types.PositionEnd()
+        position_end.holder_uid = self.home.uid
+
         if self.match_mode == MatchMode.Custom:
             return self.ctx.req_position(self.ctx)
         return False

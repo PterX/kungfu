@@ -20,9 +20,8 @@ using namespace kungfu::yijinjing::journal;
 namespace kungfu::wingchun::broker {
 TraderVendor::TraderVendor(locator_ptr locator, const std::string &group, const std::string &name, bool low_latency,
                            const std::string &arguments)
-    : BrokerVendor(location::make_shared(mode::LIVE, category::TD, group, name, std::move(locator)), low_latency) {
-  set_arguments(arguments);
-}
+    : BrokerVendor(location::make_shared(mode::LIVE, category::TD, group, name, std::move(locator)), low_latency,
+                   arguments) {}
 
 void TraderVendor::set_service(Trader_ptr service) { service_ = std::move(service); }
 
@@ -32,30 +31,28 @@ void TraderVendor::react() {
   apprentice::react();
 }
 
-void TraderVendor::on_react() {
-  events_ | is(ResetBookRequest::tag) |
-      $([&](const event_ptr &event) { get_writer(location::PUBLIC)->mark(now(), ResetBookRequest::tag); });
-}
-
 void TraderVendor::on_start() {
   BrokerVendor::on_start();
 
   events_ | is(BlockMessage::tag) | $$(service_->insert_block_message(event));
+  events_ | is(OrderTriggerInput::tag) | $$(service_->insert_order_trigger(event));
   events_ | is(OrderAction::tag) | $$(service_->cancel_order(event));
+  events_ | is(OrderTriggerAction::tag) | $$(service_->cancel_order_trigger(event));
   events_ | is(AssetRequest::tag) | $$(service_->req_account());
   events_ | is(Deregister::tag) | $$(service_->on_strategy_exit(event));
   events_ | is(TimeKeyValue::tag) | $$(service_->on_time_key_value(event));
   events_ | is(PositionRequest::tag) | $$(service_->req_position());
+  events_ | is(OrderTriggerRequest::tag) | $$(service_->req_order_trigger());
   events_ | is(RequestHistoryOrder::tag) | $$(service_->req_history_order(event));
   events_ | is(RequestHistoryTrade::tag) | $$(service_->req_history_trade(event));
   events_ | is(AssetSync::tag) | $$(service_->handle_asset_sync());
   events_ | is(PositionSync::tag) | $$(service_->handle_position_sync());
   events_ | is(Band::tag) | $$(service_->on_band(event));
+  events_ | is(BatchOrderBegin::tag, BatchOrderEnd::tag) | $$(service_->handle_batch_order_tag(event));
+  events_ | is(ResetBookRequest::tag) |
+      $([&](const event_ptr &event) { get_writer(location::PUBLIC)->mark(now(), ResetBookRequest::tag); });
 
-  events_ | filter([&](const event_ptr &event) {
-    return event->msg_type() == BatchOrderBegin::tag or event->msg_type() == BatchOrderEnd::tag;
-  }) | $$(service_->handle_batch_order_tag(event));
-
+  service_->on_risk_setting();
   service_->recover();
   service_->on_recover();
   service_->on_start();
@@ -236,10 +233,6 @@ bool Trader::insert_block_message(const event_ptr &event) {
 void Trader::enable_self_detect() { self_deal_detect_ = true; }
 
 void Trader::recover() {
-  if (disable_recover_) {
-    return;
-  }
-
   deal_write_frame();
   deal_read_frame();
 }
@@ -259,6 +252,10 @@ void Trader::deal_write_frame() {
     } else if (frame->msg_type() == Trade::tag) {
       const Trade &trade = frame->data<Trade>();
       trades_.insert_or_assign(trade.trade_id, state<Trade>(frame->source(), frame->dest(), frame->gen_time(), trade));
+    } else if (frame->msg_type() == OrderTrigger::tag) {
+      const OrderTrigger &trigger = frame->data<OrderTrigger>();
+      triggers_.insert_or_assign(trigger.trigger_id,
+                                 state<OrderTrigger>(frame->source(), frame->dest(), frame->gen_time(), trigger));
     }
     asb_write.next();
     ++count;
@@ -266,17 +263,28 @@ void Trader::deal_write_frame() {
   SPDLOG_DEBUG("after assemble read, count: {}", count);
 
   // set order as Lost which without external_order_id
-  for (auto &pair : orders_) {
+  std::for_each(orders_.begin(), orders_.end(), [&](auto &pair) {
     Order &order = pair.second.data;
-    if (not is_final_status(order.status) and order.external_order_id.to_string().empty()) {
+    if (not is_final_status(order.status) and (disable_recover_ or order.external_order_id.to_string().empty())) {
       order.status = OrderStatus::Lost;
       order.update_time = time::now_in_nano();
-
       if (has_writer(pair.second.dest)) {
         write_to(order, pair.second.dest);
       }
     }
-  }
+  });
+
+  // set trigger as Lost which without external_trigger_id
+  std::for_each(triggers_.begin(), triggers_.end(), [&](auto &pair) {
+    OrderTrigger &trigger = pair.second.data;
+    if (not is_final_status(trigger.status) and (disable_recover_ or trigger.external_trigger_id.to_string().empty())) {
+      trigger.status = OrderStatus::Lost;
+      trigger.update_time = time::now_in_nano();
+      if (has_writer(pair.second.dest)) {
+        write_to(trigger, pair.second.dest);
+      }
+    }
+  });
 }
 
 void Trader::deal_read_frame() {
@@ -292,12 +300,23 @@ void Trader::deal_read_frame() {
     if (frame->msg_type() == OrderInput::tag) {
       const OrderInput &order_input = frame->data<OrderInput>();
       if (orders_.find(order_input.order_id) == orders_.end()) {
-        if (has_writer(frame->dest())) {
-          Order &order = get_writer(frame->dest())->open_data<Order>();
+        if (has_writer(frame->source())) {
+          Order &order = get_writer(frame->source())->open_data<Order>();
           order_from_input(order_input, order);
           order.status = OrderStatus::Lost;
           order.update_time = time::now_in_nano();
-          get_writer(frame->dest())->close_data();
+          get_writer(frame->source())->close_data();
+        }
+      }
+    } else if (frame->msg_type() == OrderTriggerInput::tag) {
+      const OrderTriggerInput &trigger_input = frame->data<OrderTriggerInput>();
+      if (triggers_.find(trigger_input.trigger_id) == triggers_.end()) {
+        if (has_writer(frame->source())) {
+          OrderTrigger &trigger = get_writer(frame->source())->open_data<OrderTrigger>();
+          order_trigger_from_input(trigger_input, trigger);
+          trigger.status = OrderStatus::Lost;
+          trigger.update_time = time::now_in_nano();
+          get_writer(frame->source())->close_data();
         }
       }
     }
@@ -310,5 +329,12 @@ void Trader::deal_read_frame() {
 void Trader::clear_order_inputs(uint64_t location_uid) { order_inputs_.erase(location_uid); }
 
 [[maybe_unused]] void Trader::disable_recover() { disable_recover_ = true; }
+
+void Trader::on_risk_setting() {
+  const std::string msg = get_risk_setting();
+  SPDLOG_DEBUG("RiskSetting: {}", msg);
+  auto risk_setting_data = nlohmann::json::parse(msg);
+  disable_recover_ = risk_setting_data.value<bool>("disable_recover", false);
+}
 
 } // namespace kungfu::wingchun::broker

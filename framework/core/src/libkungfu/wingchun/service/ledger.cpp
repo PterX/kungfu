@@ -20,9 +20,11 @@ using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::cache;
 
 namespace kungfu::wingchun::service {
-Ledger::Ledger(locator_ptr locator, mode m, bool low_latency)
+#define DEFAULT_AVG_VALID_VALUE 10000.0
+
+Ledger::Ledger(locator_ptr locator, mode m, bool low_latency, const std::string &arguments)
     : apprentice(location::make_shared(m, category::SYSTEM, "service", "ledger", std::move(locator)), low_latency),
-      broker_client_(*this), bookkeeper_(*this, broker_client_, true) {}
+      arguments_(arguments), broker_client_(*this), bookkeeper_(*this, broker_client_, true) {}
 
 void Ledger::on_exit() {}
 
@@ -55,7 +57,18 @@ void Ledger::on_start() {
 
   add_time_interval(time_unit::NANOSECONDS_PER_MINUTE, [&](auto e) { request_asset_sync(e->gen_time()); });
   add_time_interval(time_unit::NANOSECONDS_PER_MINUTE, [&](auto e) { request_position_sync(e->gen_time()); });
+
+  SPDLOG_DEBUG("bypass_refresh_book {}", bypass_refresh_book());
   refresh_books();
+}
+
+bool Ledger::bypass_refresh_book() const {
+  if (arguments_.empty()) {
+    return false;
+  }
+
+  auto config = nlohmann::json::parse(arguments_);
+  return config.value<bool>("bypass_refresh_book", false);
 }
 
 void Ledger::on_deregister([[maybe_unused]] const Deregister &deregister) {
@@ -85,6 +98,9 @@ void Ledger::refresh_books() {
 }
 
 void Ledger::refresh_account_book(int64_t trigger_time, uint32_t account_uid) {
+  if (bypass_refresh_book()) {
+    return;
+  }
   auto account_location = get_location(account_uid);
   auto group = account_location->group;
   auto md_location = location::make_shared(account_location->mode, category::MD, group, group, get_locator());
@@ -103,7 +119,9 @@ void Ledger::refresh_account_book(int64_t trigger_time, uint32_t account_uid) {
 
 OrderStat &Ledger::get_order_stat(uint64_t order_id, const event_ptr &event) {
   if (order_stats_.find(order_id) == order_stats_.end()) {
-    order_stats_.try_emplace(order_id, get_home_uid(), event->source(), event->gen_time(), OrderStat());
+    OrderStat order_stat{};
+    order_stat.order_id = order_id;
+    order_stats_.try_emplace(order_id, get_home_uid(), event->source(), event->gen_time(), order_stat);
   }
   return order_stats_.at(order_id).data;
 }
@@ -111,7 +129,6 @@ OrderStat &Ledger::get_order_stat(uint64_t order_id, const event_ptr &event) {
 void Ledger::update_order_stat(const event_ptr &event, const OrderInput &data) {
   write_book(event->gen_time(), event->dest(), event->source(), data);
   auto &stat = get_order_stat(data.order_id, event);
-  stat.order_id = data.order_id;
   stat.md_time = event->trigger_time();
   stat.input_time = event->gen_time();
 }
@@ -133,25 +150,6 @@ void Ledger::update_order_stat(const event_ptr &event, const Order &data) {
   }
 }
 
-double Ledger::translate_by_price_tick(const char *exchange_id, const char *instrument_id, double price) {
-  auto hashed_instrument_key = hash_instrument(exchange_id, instrument_id);
-  auto instruments = bookkeeper_.get_instruments();
-  if (instruments.find(hashed_instrument_key) != instruments.end()) {
-    double price_tick = instruments[hashed_instrument_key].price_tick;
-    if (is_valid_price(price_tick)) {
-      if (price_tick >= 1) {
-        price_tick = 1;
-      }
-
-      uint64_t tick = 1 / price_tick;
-      uint64_t uPrice = (uint64_t)(std::abs(price) * tick + price_tick * 0.5);
-      return (double)uPrice / tick;
-    }
-  }
-
-  return int(price * 10000) / 10000.0;
-}
-
 void Ledger::update_order_stat(const event_ptr &event, const Trade &data) {
   write_book(event->gen_time(), event->source(), event->dest(), data);
   auto &stat = get_order_stat(data.order_id, event);
@@ -165,6 +163,33 @@ void Ledger::update_order_stat(const event_ptr &event, const Trade &data) {
     }
     write_to(event->gen_time(), stat, event->source());
   }
+}
+
+double Ledger::translate_by_price_tick(const char *exchange_id, const char *instrument_id, double price) {
+  auto hashed_instrument_key = hash_instrument(exchange_id, instrument_id);
+  auto instruments = bookkeeper_.get_instruments();
+  if (instruments.find(hashed_instrument_key) != instruments.end()) {
+    double price_tick = instruments[hashed_instrument_key].price_tick;
+    if (is_valid_price(price_tick)) {
+      if (price_tick >= 1) {
+        price_tick = 1;
+      }
+
+      int num = 1 / price_tick;
+      int digits = 0;
+      while (num != 0) {
+        num /= 10;
+        digits++;
+      }
+
+      double price_tick = 1.0 / pow(10, digits);
+      uint64_t tick = 1 / price_tick;
+      uint64_t uPrice = (uint64_t)((std::abs(price) + price_tick * 0.5) * tick);
+      return (double)uPrice / tick;
+    }
+  }
+
+  return int64_t(price * DEFAULT_AVG_VALID_VALUE) / DEFAULT_AVG_VALID_VALUE;
 }
 
 void Ledger::update_account_book(int64_t trigger_time, uint32_t account_uid) {
@@ -249,17 +274,17 @@ void Ledger::write_strategy_data(int64_t trigger_time, uint32_t strategy_uid) {
     auto book_uid = asset.holder_uid;
     bool has_account = asset.ledger_category == LedgerCategory::Account and has_channel(book_uid, strategy_uid);
     bool is_strategy = location->category == category::STRATEGY and book_uid == strategy_uid;
-    bool is_system = location->category == category::SYSTEM;
-    if (has_account or is_strategy or is_system) {
+    bool is_node = location->category == category::SYSTEM and location->group == "node";
+    if (has_account or is_strategy or is_node) {
       write_positions(trigger_time, strategy_uid, book->long_positions);
       write_positions(trigger_time, strategy_uid, book->short_positions);
-      writer->open_data<PositionEnd>(trigger_time).holder_uid = book_uid;
-      writer->close_data();
       write_instrument_factors(trigger_time, strategy_uid, book->instrument_factors);
       writer->write(trigger_time, asset);
       writer->write(trigger_time, asset_margin);
     }
   }
+  writer->open_data<PositionEnd>(trigger_time).holder_uid = strategy_uid;
+  writer->close_data();
 }
 
 void Ledger::write_positions(int64_t trigger_time, uint32_t dest, book::PositionMap &positions) {

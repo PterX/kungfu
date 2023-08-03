@@ -16,14 +16,15 @@
 #include <kungfu/yijinjing/time.h>
 #include <kungfu/yijinjing/util/util.h>
 
-#define EXCHANGE_SSE "SSE"
-#define EXCHANGE_SZE "SZE"
-#define EXCHANGE_BSE "BSE"
-#define EXCHANGE_SHFE "SHFE"
-#define EXCHANGE_DCE "DCE"
-#define EXCHANGE_CZCE "CZCE"
-#define EXCHANGE_CFFEX "CFFEX"
-#define EXCHANGE_INE "INE"
+#define EXCHANGE_SSE "SSE"     // 上交所
+#define EXCHANGE_SZE "SZE"     // 深交所
+#define EXCHANGE_BSE "BSE"     // 北交所
+#define EXCHANGE_GFEX "GFEX"   // 广交所
+#define EXCHANGE_SHFE "SHFE"   // 上期所
+#define EXCHANGE_DCE "DCE"     // 大商所
+#define EXCHANGE_CZCE "CZCE"   // 郑商所
+#define EXCHANGE_CFFEX "CFFEX" // 中金所
+#define EXCHANGE_INE "INE"     // 上海能源中心
 #define EXCHANGE_BINANCE "BINANCE"
 #define EXCHANGE_HB "HB"
 
@@ -150,6 +151,7 @@ inline bool is_final_status(const longfist::enums::OrderStatus &status) {
   case longfist::enums::OrderStatus::Pending:
   case longfist::enums::OrderStatus::PartialFilledActive:
   case longfist::enums::OrderStatus::Unknown:
+  case longfist::enums::OrderStatus::Cancelling:
     return false;
   default:
     return true;
@@ -338,7 +340,7 @@ inline longfist::enums::InstrumentType get_instrument_type(const std::string &ex
     return longfist::enums::InstrumentType::Stock;
   } else if (string_equals(exchange_id, EXCHANGE_DCE) || string_equals(exchange_id, EXCHANGE_SHFE) ||
              string_equals(exchange_id, EXCHANGE_CFFEX) || string_equals(exchange_id, EXCHANGE_CZCE) ||
-             string_equals(exchange_id, EXCHANGE_INE)) {
+             string_equals(exchange_id, EXCHANGE_INE) || string_equals(exchange_id, EXCHANGE_GFEX)) {
     return longfist::enums::InstrumentType::Future;
   } else if (string_equals(exchange_id, EXCHANGE_BINANCE) || string_equals(exchange_id, EXCHANGE_HB)) {
     return longfist::enums::InstrumentType::Crypto;
@@ -489,6 +491,8 @@ inline std::string get_exchange_id_from_future_instrument_id(const std::string &
     return EXCHANGE_CFFEX;
   } else if (product == "sc") {
     return EXCHANGE_INE;
+  } else if (product == "si") {
+    return EXCHANGE_GFEX;
   } else {
     return "";
   }
@@ -602,6 +606,54 @@ inline void order_from_input(const longfist::types::OrderInput &input, longfist:
   trade.side = order.side;
   trade.offset = order.offset;
   trade.hedge_flag = order.hedge_flag;
+}
+
+inline void order_trigger_from_input(const longfist::types::OrderTriggerInput &input,
+                                     longfist::types::OrderTrigger &trigger) {
+  trigger.trigger_id = input.trigger_id;
+
+  strcpy(trigger.instrument_id, input.instrument_id);
+  strcpy(trigger.exchange_id, input.exchange_id);
+  trigger.instrument_type = input.instrument_type;
+
+  trigger.limit_price = input.limit_price;
+  trigger.frozen_price = input.frozen_price;
+  trigger.volume = input.volume;
+  trigger.stop_price = input.stop_price;
+
+  trigger.status = longfist::enums::OrderStatus::Pending;
+
+  trigger.side = input.side;
+  trigger.offset = input.offset;
+  trigger.is_swap = input.is_swap;
+  trigger.hedge_flag = input.hedge_flag;
+  trigger.price_type = input.price_type;
+  trigger.volume_condition = input.volume_condition;
+  trigger.time_condition = input.time_condition;
+  trigger.trigger_type = input.trigger_type;
+  trigger.action_flag = longfist::enums::OrderTriggerFlag::TriggerInsert;
+  trigger.parked_type = input.parked_type;
+}
+
+inline void order_trigger_from_order(const longfist::types::Order &order, longfist::types::OrderTrigger &trigger) {
+  trigger.order_id = order.order_id;
+  strcpy(trigger.instrument_id, order.instrument_id);
+  strcpy(trigger.exchange_id, order.exchange_id);
+  strcpy(trigger.external_order_id, order.external_order_id);
+  trigger.instrument_type = order.instrument_type;
+  trigger.limit_price = order.limit_price;
+  trigger.frozen_price = order.frozen_price;
+  trigger.volume = order.volume;
+  trigger.status = longfist::enums::OrderStatus::Pending;
+  trigger.side = order.side;
+  trigger.offset = order.offset;
+  trigger.is_swap = order.is_swap;
+  trigger.hedge_flag = order.hedge_flag;
+  trigger.price_type = order.price_type;
+  trigger.volume_condition = order.volume_condition;
+  trigger.time_condition = order.time_condition;
+  trigger.trigger_type = longfist::enums::OrderTriggerType::ParkedOrder;
+  trigger.action_flag = longfist::enums::OrderTriggerFlag::TriggerCancel;
 }
 
 } // namespace kungfu::wingchun

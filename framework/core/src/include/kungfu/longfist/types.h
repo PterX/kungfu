@@ -18,6 +18,7 @@ static constexpr int EXCHANGE_ID_LEN = 16;
 static constexpr int TRAIDNG_PHASE_CODE_LEN = 8;
 static constexpr int ERROR_MSG_LEN = 256;
 static constexpr int EXTERNAL_ID_LEN = 32;
+static constexpr int OPPONENT_SEAT_LEN = 16;
 
 KF_DEFINE_MARK_TYPE(BatchOrderBegin, 251);
 KF_DEFINE_MARK_TYPE(BatchOrderEnd, 252);
@@ -25,6 +26,7 @@ KF_DEFINE_MARK_TYPE(AssetRequest, 351);
 KF_DEFINE_MARK_TYPE(PositionRequest, 352);
 KF_DEFINE_MARK_TYPE(AssetSync, 353);
 KF_DEFINE_MARK_TYPE(PositionSync, 354);
+KF_DEFINE_MARK_TYPE(OrderTriggerRequest, 355);
 KF_DEFINE_MARK_TYPE(PageEnd, 10051);
 KF_DEFINE_MARK_TYPE(Time, 10052);
 KF_DEFINE_MARK_TYPE(Ping, 10053);
@@ -34,8 +36,8 @@ KF_DEFINE_MARK_TYPE(SessionEnd, 10152);
 KF_DEFINE_MARK_TYPE(RequestStart, 10153);
 KF_DEFINE_MARK_TYPE(RequestStop, 10154);
 KF_DEFINE_MARK_TYPE(RequestDeregister, 10155);
-KF_DEFINE_MARK_TYPE(OperatorStateRequest, 10190);
-KF_DEFINE_MARK_TYPE(BrokerStateRequest, 10191);
+KF_DEFINE_MARK_TYPE(OperatorStateRequest, 10156);
+KF_DEFINE_MARK_TYPE(BrokerStateRequest, 10157);
 KF_DEFINE_MARK_TYPE(CachedReadyToRead, 10251);
 KF_DEFINE_MARK_TYPE(RequestCached, 10252);
 KF_DEFINE_MARK_TYPE(ResetBookRequest, 10451);
@@ -284,12 +286,8 @@ KF_DEFINE_PACK_TYPE(                                               //
     OrderAction, 204, PK(order_action_id), TIMESTAMP(insert_time), //
     (uint64_t, order_id),                                          // 订单ID
     (uint64_t, order_action_id),                                   // 订单操作ID
-
-    (enums::OrderActionFlag, action_flag), // 订单操作类型
-
-    (double, price),       // 价格
-    (int64_t, volume),     // 数量
-    (int64_t, insert_time) // 写入时间
+    (enums::OrderActionFlag, action_flag),                         // 订单操作类型
+    (int64_t, insert_time)                                         // 写入时间
 );
 
 KF_DEFINE_PACK_TYPE(                                                    //
@@ -304,11 +302,11 @@ KF_DEFINE_PACK_TYPE(                                                    //
 
 KF_DEFINE_PACK_TYPE(                                         //
     BlockMessage, 206, PK(block_id), TIMESTAMP(insert_time), //
-    (uint64_t, block_id),      // 大宗交易信息id, 用于TD从OrderInput找到此数据
-    (uint32_t, opponent_seat), // 对手方席号
-    (uint64_t, match_number),  // 成交约定号
-    (bool, is_specific),       // 是否受限(特定)股份
-    (int64_t, insert_time)     // 写入时间
+    (uint64_t, block_id), // 大宗交易信息id, 用于TD从OrderInput找到此数据
+    (kungfu::array<char, OPPONENT_SEAT_LEN>, opponent_seat), // 对手方席号
+    (uint64_t, match_number),                                // 成交约定号
+    (bool, is_specific),                                     // 是否受限(特定)股份
+    (int64_t, insert_time)                                   // 写入时间
 );
 
 KF_DEFINE_PACK_TYPE(                                  //
@@ -346,6 +344,92 @@ KF_DEFINE_PACK_TYPE(                                        //
     (uint32_t, dest_id),   // 下单账户
 
     (enums::BasketOrderCalculationMode, calculation_mode) // 计算方式
+);
+
+KF_DEFINE_PACK_TYPE(                                                //
+    OrderTriggerInput, 209, PK(trigger_id), TIMESTAMP(insert_time), //
+    (uint64_t, trigger_id),                                         // 触发器id
+
+    (kungfu::array<char, INSTRUMENT_ID_LEN>, instrument_id), // 合约代码
+    (kungfu::array<char, EXCHANGE_ID_LEN>, exchange_id),     // 交易所代码
+    (enums::InstrumentType, instrument_type),                // 合约类型
+
+    (double, limit_price),  // 价格
+    (double, frozen_price), // 冻结价格
+    (int64_t, volume),      // 数量
+    (double, stop_price),   // 条件触发价格
+
+    (bool, is_swap),                            // 互换单
+    (enums::Side, side),                        // 买卖方向
+    (enums::Offset, offset),                    // 开平方向
+    (enums::HedgeFlag, hedge_flag),             // 投机套保标识
+    (enums::PriceType, price_type),             // 价格类型
+    (enums::VolumeCondition, volume_condition), // 成交量类型
+    (enums::TimeCondition, time_condition),     // 成交时间类型
+    (enums::OrderTriggerType, trigger_type),    // 条件触发类型
+    (enums::ParkedType, parked_type),           // 本地 or 服务器 埋单
+
+    (int64_t, insert_time) // 写入时间
+);
+
+KF_DEFINE_PACK_TYPE(                                             //
+    OrderTrigger, 210, PK(trigger_id), TIMESTAMP(insert_time),   //
+    (uint64_t, trigger_id),                                      // 触发器id
+    (uint64_t, order_id),                                        // 预埋撤单, 被撤单的order_id
+    (kungfu::array<char, EXTERNAL_ID_LEN>, external_trigger_id), // 柜台触发器id
+    (kungfu::array<char, EXTERNAL_ID_LEN>, external_order_id),   // 柜台订单id
+    (enums::OrderTriggerFlag, action_flag),                      // 预埋下单 or 预埋撤单
+
+    (int64_t, insert_time), // 触发器写入时间
+    (int64_t, update_time), // 触发器更新时间
+
+    (kungfu::array<char, DATE_LEN>, trading_day), // 交易日
+
+    (kungfu::array<char, INSTRUMENT_ID_LEN>, instrument_id), // 合约ID
+    (kungfu::array<char, EXCHANGE_ID_LEN>, exchange_id),     // 交易所ID
+    (enums::InstrumentType, instrument_type),                // 合约类型
+
+    (double, limit_price),  // 价格
+    (double, frozen_price), // 冻结价格, 市价单冻结价格为0
+    (int64_t, volume),      // 数量
+    (double, stop_price),   // 条件触发价格
+
+    (enums::OrderStatus, status), //  触发器状态
+
+    (int32_t, error_id),                             // 错误ID
+    (kungfu::array<char, ERROR_MSG_LEN>, error_msg), // 错误信息
+
+    (bool, is_swap),                            // 互换单
+    (enums::Side, side),                        // 买卖方向
+    (enums::Offset, offset),                    // 开平方向
+    (enums::HedgeFlag, hedge_flag),             // 投机套保标识
+    (enums::PriceType, price_type),             // 价格类型
+    (enums::VolumeCondition, volume_condition), // 成交量类型
+    (enums::TimeCondition, time_condition),     // 成交时间类型
+    (enums::OrderTriggerType, trigger_type),    // 条件触发类型
+    (enums::ParkedType, parked_type)            // 本地 or 服务器 埋单
+);
+
+KF_DEFINE_PACK_TYPE(                                                              //
+    OrderTriggerAction, 211, PK(order_trigger_action_id), TIMESTAMP(insert_time), //
+    (uint64_t, trigger_id),                                                       // 订单ID
+    (uint64_t, order_trigger_action_id),                                          // 订单操作ID
+
+    (enums::OrderActionFlag, action_flag), // 订单操作类型
+
+    (double, price),       // 价格
+    (int64_t, volume),     // 数量
+    (int64_t, insert_time) // 写入时间
+);
+
+KF_DEFINE_PACK_TYPE(                                                                   //
+    OrderTriggerActionError, 212, PK(order_trigger_action_id), TIMESTAMP(insert_time), //
+    (uint64_t, trigger_id),                                                            // 订单ID
+    (kungfu::array<char, EXTERNAL_ID_LEN>, external_trigger_id), // 要删除的预埋单的ParkedId
+    (uint64_t, order_trigger_action_id),                         // 订单操作ID
+    (int32_t, error_id),                                         // 错误ID
+    (kungfu::array<char, ERROR_MSG_LEN>, error_msg),             // 错误信息
+    (int64_t, insert_time)                                       // 写入时间
 );
 
 KF_DEFINE_PACK_TYPE(                                                     //
@@ -697,6 +781,7 @@ KF_DEFINE_DATA_TYPE(                                   //
     (std::string, group),                              //
     (std::string, name),                               //
     (enums::mode, mode),                               //
+    (bool, disable_recover),                           // 是否跳过今日委托恢复
     (std::string, value)                               //
 );
 

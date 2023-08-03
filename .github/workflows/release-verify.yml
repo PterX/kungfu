@@ -23,11 +23,13 @@ jobs:
       enable-linux: true
       enable-macos: true
       enable-windows: true
+      code-signing-windows: true
     secrets:
       AWS_CI_ACCESS_KEY_ID: ${{ secrets.AWS_CI_ACCESS_KEY_ID }}
       AWS_CI_SECRET_ACCESS_KEY: ${{ secrets.AWS_CI_SECRET_ACCESS_KEY }}
       AWS_USER_ACCESS_KEY_ID: ${{ secrets.AWS_USER_ACCESS_KEY_ID }}
       AWS_USER_SECRET_ACCESS_KEY: ${{ secrets.AWS_USER_SECRET_ACCESS_KEY }}
+      WINDOWS_CSC_KEY: ${{ secrets.WINDOWS_CSC_KEY }}
 
   verify:
     needs: try

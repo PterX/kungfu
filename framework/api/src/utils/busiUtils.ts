@@ -1725,7 +1725,7 @@ export const dealKfPrice = (
     return afterNumber;
   }
 
-  return Number(afterNumber).kfToFixed(pricePrecision ?? 3);
+  return Number(afterNumber).kfToFixed(pricePrecision ?? 4);
 };
 
 export const dealAssetPrice = (
@@ -1738,7 +1738,7 @@ export const dealAssetPrice = (
     return afterNumber;
   }
 
-  return Number(afterNumber).kfToFixed(pricePrecision ?? 3);
+  return Number(afterNumber).kfToFixed(pricePrecision ?? 4);
 };
 
 export const sum = (list: number[]): number => {
@@ -1754,10 +1754,6 @@ export const dealVolumeByInstrumentType = (
   const orderVolume = Math.max(volume, minOrderVolume);
 
   if (instrumentType === InstrumentTypeEnum.techstock) return orderVolume;
-<<<<<<< HEAD
-
-=======
->>>>>>> 859f30f2ddaf04f18ab71d28e6ac829082064267
   return Math.floor(orderVolume / minOrderVolume) * minOrderVolume;
 };
 
@@ -2533,7 +2529,7 @@ export const dealOrderInputItem = (
     } else if (key === 'is_swap') {
       isInstrumnetShotable &&
         (orderInputResolved[key] = dealIsSwap(inputData.is_swap));
-    } else if (key === 'limit_price' && price_precision) {
+    } else if (key === 'limit_price') {
       orderInputResolved[key] = {
         name: dealAssetPrice(inputData[key], price_precision),
         color: 'default',

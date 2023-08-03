@@ -182,8 +182,6 @@ protected:
 
   virtual void pre_setup();
 
-  virtual void pre_setup();
-
   virtual void react() = 0;
 
   virtual void on_active() = 0;

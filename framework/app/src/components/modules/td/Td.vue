@@ -233,7 +233,7 @@ const columns = computed(() => {
 });
 
 const isShowUnrealizedPnl = computed(() => {
-  return !(globalSetting.value.performance?.bypassRefrashBook ?? false);
+  return !(globalSetting.value.performance?.bypassRefreshBook ?? false);
 });
 
 const getPrefixByLocation = (kfLocation: KungfuApi.KfLocation) =>
@@ -356,6 +356,11 @@ function handleOpenSetFundTransModal(type: FundTransTypeEnum) {
     category: 'td',
     key: currentAccout.source,
     extPath: '',
+    version: '',
+    mainRepoVersion: '',
+    description: '',
+    readmePath: '',
+    releaseNotePath: '',
     settings: selectFundTransConfig.settings,
   };
 

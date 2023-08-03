@@ -135,6 +135,7 @@ commission
 error_id
 error_msg
 trade_id
+parent_order_id
 external_trade_id
 trade_time
 price
@@ -361,7 +362,6 @@ req_account
 req_position
 set_service
 get_arguments
-set_arguments
 set_begin_time
 set_end_time
 set_from_indexer

@@ -159,6 +159,11 @@ function handleBatchModal() {
     category: 'orderTrigger',
     key: 'orderTrigger',
     extPath: '',
+    version: '',
+    mainRepoVersion: '',
+    description: '',
+    readmePath: '',
+    releaseNotePath: '',
     settings: getModalSettings(),
   };
 

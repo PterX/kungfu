@@ -333,18 +333,6 @@ NLOHMANN_JSON_SERIALIZE_ENUM(OrderTriggerFlag, {
 
 inline std::ostream &operator<<(std::ostream &os, OrderTriggerFlag t) { return os << int32_t(t); }
 
-enum class OrderTriggerFlag : int8_t {
-  TriggerInsert, /// 预埋下单
-  TriggerCancel  /// 预埋撤单
-};
-
-NLOHMANN_JSON_SERIALIZE_ENUM(OrderTriggerFlag, {
-                                                   {OrderTriggerFlag::TriggerInsert, "TriggerInsert"},
-                                                   {OrderTriggerFlag::TriggerCancel, "TriggerCancel"},
-                                               })
-
-inline std::ostream &operator<<(std::ostream &os, OrderTriggerFlag t) { return os << int8_t(t); }
-
 enum class PriceType : int8_t {
   Limit, // 限价,证券通用
   Any, // 市价，证券通用，对于股票上海为最优五档剩余撤销，深圳为即时成交剩余撤销，建议客户采用
@@ -736,73 +724,6 @@ inline std::ostream &operator<<(std::ostream &os, Priority t) { return os << int
 inline bool operator<(Priority l, Priority r) { return int8_t(l) < int8_t(r); }
 
 inline bool operator==(Priority l, Priority r) { return int8_t(l) == int8_t(r); }
-
-enum class SelfDealCheckType : int8_t { No, AccountInternal, AccountInteractive };
-
-NLOHMANN_JSON_SERIALIZE_ENUM(SelfDealCheckType, {
-                                                    {SelfDealCheckType::No, "No"},
-                                                    {SelfDealCheckType::AccountInternal, "AccountInternal"},
-                                                    {SelfDealCheckType::AccountInteractive, "AccountInteractive"},
-                                                })
-
-inline std::ostream &operator<<(std::ostream &os, SelfDealCheckType t) { return os << int8_t(t); }
-
-inline bool operator==(int8_t type, FrameDataType t) { return type == int8_t(t); }
-
-inline bool operator==(FrameDataType t, int8_t type) { return type == int8_t(t); }
-
-enum class OrderTriggerType : int8_t { ///
-  Immediately,                         /// 立即
-  Touch,                               /// 止损
-  TouchProfit,                         /// 止赢
-  ParkedOrder,                         /// 预埋单
-  LastPriceGreaterThanStopPrice,       /// 最新价大于条件价
-  LastPriceGreaterEqualStopPrice,      /// 最新价大于等于条件价
-  LastPriceLesserThanStopPrice,        /// 最新价小于条件价
-  LastPriceLesserEqualStopPrice,       /// 最新价小于等于条件价
-  AskPriceGreaterThanStopPrice,        /// 卖一价大于条件价
-  AskPriceGreaterEqualStopPrice,       /// 卖一价大于等于条件价
-  AskPriceLesserThanStopPrice,         /// 卖一价小于条件价
-  AskPriceLesserEqualStopPrice,        /// 卖一价小于等于条件价
-  BidPriceGreaterThanStopPrice,        /// 买一价大于条件价
-  BidPriceGreaterEqualStopPrice,       /// 买一价大于等于条件价
-  BidPriceLesserThanStopPrice,         /// 买一价小于条件价
-  BidPriceLesserEqualStopPrice         /// 买一价小于等于条件价
-};
-
-NLOHMANN_JSON_SERIALIZE_ENUM(OrderTriggerType,
-                             {
-                                 {OrderTriggerType::Immediately, "Immediately"},
-                                 {OrderTriggerType::Touch, "Touch"},
-                                 {OrderTriggerType::TouchProfit, "TouchProfit"},
-                                 {OrderTriggerType::ParkedOrder, "ParkedOrder"},
-                                 {OrderTriggerType::LastPriceGreaterThanStopPrice, "LastPriceGreaterThanStopPrice"},
-                                 {OrderTriggerType::LastPriceGreaterEqualStopPrice, "LastPriceGreaterEqualStopPrice"},
-                                 {OrderTriggerType::LastPriceLesserThanStopPrice, "LastPriceLesserThanStopPrice"},
-                                 {OrderTriggerType::LastPriceLesserEqualStopPrice, "LastPriceLesserEqualStopPrice"},
-                                 {OrderTriggerType::AskPriceGreaterThanStopPrice, "AskPriceGreaterThanStopPrice"},
-                                 {OrderTriggerType::AskPriceGreaterEqualStopPrice, "AskPriceGreaterEqualStopPrice"},
-                                 {OrderTriggerType::AskPriceLesserThanStopPrice, "AskPriceLesserThanStopPrice"},
-                                 {OrderTriggerType::AskPriceLesserEqualStopPrice, "AskPriceLesserEqualStopPrice"},
-                                 {OrderTriggerType::BidPriceGreaterThanStopPrice, "BidPriceGreaterThanStopPrice"},
-                                 {OrderTriggerType::BidPriceGreaterEqualStopPrice, "BidPriceGreaterEqualStopPrice"},
-                                 {OrderTriggerType::BidPriceLesserThanStopPrice, "BidPriceLesserThanStopPrice"},
-                                 {OrderTriggerType::BidPriceLesserEqualStopPrice, "BidPriceLesserEqualStopPrice"},
-                             })
-
-inline std::ostream &operator<<(std::ostream &os, OrderTriggerType t) { return os << int8_t(t); }
-
-enum class ParkedType : int8_t {
-  Server, /// 服务器预埋
-  Local   /// 本地预埋
-};
-
-NLOHMANN_JSON_SERIALIZE_ENUM(ParkedType, {
-                                             {ParkedType::Server, "Server"},
-                                             {ParkedType::Local, "Local"},
-                                         })
-
-inline std::ostream &operator<<(std::ostream &os, ParkedType t) { return os << int8_t(t); }
 
 enum class SelfDealCheckType : int8_t { No, AccountInternal, AccountInteractive };
 

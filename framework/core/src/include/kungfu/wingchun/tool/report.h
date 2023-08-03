@@ -17,10 +17,10 @@ public:
 
   // 获取Bookkeeper
   //@return Bookkeeper
-  book::Bookkeeper *get_bookkeeper() const {return bookkeeper_;};
+  book::Bookkeeper *get_bookkeeper() const { return bookkeeper_; };
 
   // 初始化
-  virtual void init() {};
+  virtual void init(){};
 
   // 报告撰写
   //@return 报告文本
@@ -61,7 +61,11 @@ public:
   int64_t now() const { return app_->now(); };
 
 private:
-  friend void set_runner(Report &report, yijinjing::practice::apprentice *runner, book::Bookkeeper *bookkeeper) { report.app_ = runner; report.bookkeeper_ = std::move(bookkeeper); report.init(); }
+  friend void set_runner(Report &report, yijinjing::practice::apprentice *runner, book::Bookkeeper *bookkeeper) {
+    report.app_ = runner;
+    report.bookkeeper_ = std::move(bookkeeper);
+    report.init();
+  }
   yijinjing::practice::apprentice *app_;
   book::Bookkeeper *bookkeeper_;
 };

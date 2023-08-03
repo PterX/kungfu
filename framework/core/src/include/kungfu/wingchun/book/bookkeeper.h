@@ -19,7 +19,6 @@ typedef std::unordered_map<uint32_t, kungfu::state<longfist::types::Quote>> Quot
 
 typedef std::unordered_map<longfist::enums::InstrumentType, AccountingMethod_ptr> AccountingMethodMap;
 
-FORWARD_DECLARE_CLASS_PTR(Context)
 class BookListener {
 public:
   virtual void on_position_sync_reset(const Book &old_book, const Book &new_book){};

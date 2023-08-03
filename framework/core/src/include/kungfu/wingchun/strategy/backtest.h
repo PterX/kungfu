@@ -293,6 +293,9 @@ protected:
 
   virtual void prepare(const event_ptr &event) override;
 
+  yijinjing::data::location_ptr find_td_location(const std::string &source, const std::string &account,
+                                                 bool check_exist = true) const;
+
   // yijinjing::data::location_ptr find_md_location(const std::string &source);
 
   // yijinjing::data::location_ptr find_op_location(const std::string &group, const std::string &name);

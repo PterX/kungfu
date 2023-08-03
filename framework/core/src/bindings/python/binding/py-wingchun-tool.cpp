@@ -132,9 +132,7 @@ void bind_tool(pybind11::module &m) {
 
     void on_tree(const Tree &tree) override { PYBIND11_OVERLOAD(void, Report, on_tree, tree); }
 
-    void on_entrust(const Entrust &entrust) override {
-      PYBIND11_OVERLOAD(void, Report, on_entrust, entrust);
-    }
+    void on_entrust(const Entrust &entrust) override { PYBIND11_OVERLOAD(void, Report, on_entrust, entrust); }
 
     void on_transaction(const Transaction &transaction) override {
       PYBIND11_OVERLOAD(void, Report, on_transaction, transaction);
@@ -155,8 +153,6 @@ void bind_tool(pybind11::module &m) {
   py::class_<Report, PyReport, Report_ptr>(m, "Report")
       .def(py::init<>())
       .def_property_readonly("bookkeeper", &Report::get_bookkeeper)
-      //TODO debug
-      .def("get_bookkeeper", &Report::get_bookkeeper)
       .def("now", &Report::now)
       .def("init", &Report::init)
       .def("sumerize", &Report::sumerize)

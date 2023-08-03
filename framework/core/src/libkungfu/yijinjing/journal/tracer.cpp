@@ -26,7 +26,7 @@ tracer::tracer(const location_ptr location, bool in, bool out, int64_t begin, in
         reader_for_in_->join(master_cmd_location, home_->uid, begin_time_);
       } else {
         SPDLOG_WARN("page not existed, home_ {}, source_location: {}, dest: {}", home_->uname,
-                    master_cmd_location->uname, home_->uid);
+                    master_cmd_location->uname, (uint32_t)home_->uid);
       }
     } else {
       for (auto target_location : get_locator()->list_locations("*", "*", "*", "*")) {
@@ -42,7 +42,7 @@ tracer::tracer(const location_ptr location, bool in, bool out, int64_t begin, in
               reader_->join(target_location, dest_id, begin_time_);
               reader_for_in_->join(target_location, dest_id, begin_time_);
             } else {
-              SPDLOG_WARN("page not existed, source_location: {}, dest: {}", target_location->uname, dest_id);
+              SPDLOG_WARN("page not existed, source_location: {}, dest: {}", target_location->uname, (uint32_t)dest_id);
             }
           }
         }
@@ -62,7 +62,7 @@ tracer::tracer(const location_ptr location, bool in, bool out, int64_t begin, in
       if (page::check_page_existed(home_, dest_id)) {
         reader_->join(home_, dest_id, begin_time_);
       } else {
-        SPDLOG_WARN("page not existed, source_location: {}, dest: {}", home_->uname, dest_id);
+        SPDLOG_WARN("page not existed, source_location: {}, dest: {}", home_->uname, (uint32_t)dest_id);
       }
     }
 
@@ -73,7 +73,8 @@ tracer::tracer(const location_ptr location, bool in, bool out, int64_t begin, in
           if (page::check_page_existed(master_cmd_location, dest_id)) {
             reader_->join(master_cmd_location, dest_id, begin_time_);
           } else {
-            SPDLOG_WARN("page not existed, source_location: {}, dest: {}", master_cmd_location->uname, dest_id);
+            SPDLOG_WARN("page not existed, source_location: {}, dest: {}", master_cmd_location->uname,
+                        (uint32_t)dest_id);
           }
         }
       }
@@ -114,7 +115,7 @@ void tracer::join_for_in(const yijinjing::journal::frame_ptr &frame) const {
     if (page::check_page_existed(source_location, home_->uid)) {
       reader_->join(source_location, home_->uid, request.from_time);
     } else {
-      SPDLOG_WARN("page not existed, source_location: {}, dest: {}", source_location->uname, home_->uid);
+      SPDLOG_WARN("page not existed, source_location: {}, dest: {}", source_location->uname, (uint32_t)home_->uid);
     }
   }
   if (frame->dest() == home_->uid and frame->msg_type() == RequestReadFromPublic::tag) {
@@ -141,7 +142,7 @@ void tracer::join_for_in(const yijinjing::journal::frame_ptr &frame) const {
     if (page::check_page_existed(source_location, request.dest_id)) {
       reader_->join(source_location, request.dest_id, request.from_time);
     } else {
-      SPDLOG_WARN("page not existed, source_location: {}, dest: {}", source_location->uname, request.dest_id);
+      SPDLOG_WARN("page not existed, source_location: {}, dest: {}", source_location->uname, (uint32_t)request.dest_id);
     }
   }
   if (frame->dest() == home_->uid and frame->msg_type() == Deregister::tag) {

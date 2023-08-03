@@ -680,11 +680,11 @@ const getKfExtensionConfigByCategory = (
                   [extKey]: {
                     name: extName,
                     extPath,
+                    readmePath,
+                    releaseNotePath,
                     version,
                     mainRepoVersion,
                     description,
-                    readmePath,
-                    releaseNotePath,
                     category,
                     key: extKey,
                     type: resolveTypesInExtConfig(

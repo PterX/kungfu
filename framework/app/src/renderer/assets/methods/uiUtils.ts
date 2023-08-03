@@ -366,6 +366,43 @@ export const useTableSearchKeyword = <T>(
   };
 };
 
+export const useDeepWatchTableSearchKeyword = <T>(
+  targetList: Ref<T[]> | ComputedRef<T[]>,
+  keys: string[],
+): {
+  searchKeyword: Ref<string>;
+  tableData: Ref<T[]>;
+} => {
+  const searchKeyword = ref<string>('');
+  const tableData = ref<T[]>([]) as Ref<T[]>;
+
+  watch(
+    () => ({ keyword: searchKeyword.value, list: targetList.value }),
+    (newValue) => {
+      const { keyword, list } = newValue;
+      tableData.value =
+        list.filter((item) => {
+          const combinedValue = keys
+            .map(
+              (key: string) =>
+                ((item[key] as string | number) || '').toString() || '',
+            )
+            .join('_');
+          return new RegExp(keyword, 'ig').test(combinedValue);
+        }) || [];
+    },
+    {
+      deep: true,
+      immediate: true,
+    },
+  );
+
+  return {
+    searchKeyword,
+    tableData,
+  };
+};
+
 export const useWritableTableSearchKeyword = <T>(
   targetList: Ref<T[]> | ComputedRef<T[]>,
   keys: string[],

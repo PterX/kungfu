@@ -118,6 +118,11 @@ void apprentice::react() {
   events_ | is(RequestStop::tag) | to(get_home_uid()) | $$(signal_stop());
   events_ | take_until(events_ | is(RequestStart::tag)) | $$(cached::feed_state_data(event, state_bank_));
 
+  auto master_start_event = events_ | is(SessionStart::tag) | filter([&](const event_ptr &event) {
+                              return event->source() == master_home_location_->uid && event->dest() == location::PUBLIC;
+                            });
+  master_start_event | $$(on_master_start());
+
   SPDLOG_TRACE("building reactive event handlers");
   on_react();
   cleaner_.on_react();

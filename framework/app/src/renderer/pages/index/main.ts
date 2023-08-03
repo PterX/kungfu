@@ -39,9 +39,9 @@ import {
   Progress,
   Popover,
   Breadcrumb,
-  Badge,
   Typography,
   BackTop,
+  Tooltip,
 } from 'ant-design-vue';
 
 import {
@@ -127,6 +127,7 @@ app
   .use(Badge)
   .use(Typography)
   .use(BackTop)
+  .use(Tooltip)
   .use(VueVirtualScroller);
 
 app.config.globalProperties.$antLocalesMap = {

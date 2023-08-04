@@ -290,9 +290,7 @@ void Ledger::write_strategy_data(int64_t trigger_time, uint32_t strategy_uid) {
 void Ledger::write_positions(int64_t trigger_time, uint32_t dest, book::PositionMap &positions) {
   auto writer = get_writer(dest);
   for (const auto &pair : positions) {
-    if (pair.second.volume > 0) {
-      writer->write_as(trigger_time, pair.second, get_home_uid(), pair.second.holder_uid);
-    }
+    writer->write_as(trigger_time, pair.second, get_home_uid(), pair.second.holder_uid);
   }
 }
 

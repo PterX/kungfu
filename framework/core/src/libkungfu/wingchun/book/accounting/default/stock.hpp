@@ -210,7 +210,7 @@ protected:
     }
 
     position.yesterday_volume = std::max(position.yesterday_volume - trade.volume, VOLUME_ZERO);
-    position.volume = std::max(position.volume - trade.volume, VOLUME_ZERO);
+    position.volume = position.volume - trade.volume;
     double realized_pnl = (trade.price - position.avg_open_price) * trade.volume;
     position.realized_pnl += realized_pnl;
     update_position(book, position);
@@ -317,7 +317,7 @@ protected:
     position.frozen_total = std::max(position.frozen_total - trade.volume, VOLUME_ZERO);
     position.frozen_yesterday = std::max(position.frozen_yesterday - trade.volume, VOLUME_ZERO);
     position.yesterday_volume = std::max(position.yesterday_volume - trade.volume, VOLUME_ZERO);
-    position.volume = std::max(position.volume - trade.volume, VOLUME_ZERO);
+    position.volume = position.volume - trade.volume;
     position.realized_pnl += (trade.price - position.avg_open_price) * trade.volume;
     update_position(book, position);
   }
@@ -332,7 +332,7 @@ protected:
     position.frozen_total = std::max(position.frozen_total - trade.volume, VOLUME_ZERO);
     position.frozen_yesterday = std::max(position.frozen_yesterday - trade.volume, VOLUME_ZERO);
     position.yesterday_volume = std::max(position.yesterday_volume - trade.volume, VOLUME_ZERO);
-    position.volume = std::max(position.volume - trade.volume, VOLUME_ZERO);
+    position.volume = position.volume - trade.volume;
     position.last_price = position.last_price > 0 ? position.last_price : trade.price;
     auto realized_pnl = (position.avg_open_price - trade.price) * trade.volume;
     position.realized_pnl += realized_pnl;

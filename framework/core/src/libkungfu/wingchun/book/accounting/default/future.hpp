@@ -75,8 +75,7 @@ public:
     book->apply_short_position_for(quote, apply);
   }
 
-  void apply_order_input(uint32_t source, uint32_t dest, Book_ptr &book, uint32_t account_id,
-                         const OrderInput &input) override {
+  void apply_order_input(uint32_t account_id, uint32_t dest, Book_ptr &book, const OrderInput &input) override {
     if (dest == location::SYNC or dest == location::PUBLIC) {
       return;
     }
@@ -116,7 +115,7 @@ public:
     book->apply_position(account_id, direction, input.exchange_id, input.instrument_id, apply);
   }
 
-  void apply_order(uint32_t source, uint32_t dest, Book_ptr &book, uint32_t account_id, const Order &order) override {
+  void apply_order(uint32_t account_id, uint32_t dest, Book_ptr &book, const Order &order) override {
     if (dest == location::SYNC or dest == location::PUBLIC) {
       return;
     }
@@ -155,7 +154,7 @@ public:
     book->apply_position(account_id, direction, order.exchange_id, order.instrument_id, apply);
   }
 
-  void apply_trade(uint32_t source, uint32_t dest, Book_ptr &book, uint32_t account_id, const Trade &trade) override {
+  void apply_trade(uint32_t account_id, uint32_t dest, Book_ptr &book, const Trade &trade) override {
     auto is_local = dest != location::PUBLIC and dest != location::SYNC;
     auto offset = get_offset(book, account_id, trade);
     auto apply = [&](auto &position) {

@@ -12,8 +12,7 @@ public:
 
   void apply_quote(Book_ptr &book, const Quote &quote) override {}
 
-  void apply_order_input(uint32_t source, uint32_t dest, Book_ptr &book, uint32_t account_id,
-                         const OrderInput &input) override {
+  void apply_order_input(uint32_t account_id, uint32_t dest, Book_ptr &book, const OrderInput &input) override {
     if (dest == location::SYNC or dest == location::PUBLIC) {
       return;
     }
@@ -31,7 +30,7 @@ public:
     book->apply_position_for(account_id, input, apply);
   }
 
-  void apply_order(uint32_t source, uint32_t dest, Book_ptr &book, uint32_t account_id, const Order &order) override {
+  void apply_order(uint32_t account_id, uint32_t dest, Book_ptr &book, const Order &order) override {
     if (dest == location::SYNC or dest == location::PUBLIC) {
       return;
     }

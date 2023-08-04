@@ -88,7 +88,7 @@ public:
     auto apply_and_update = [&](uint32_t book_uid, bool is_td = false) {
       auto book = get_book(book_uid);
       book->add_source_id(account_id);
-      (accounting_method.*method)(account_id, dest, book, account_id, data);
+      (accounting_method.*method)(account_id, dest, book, data);
       auto apply = [&](auto &position) { position.update_time = update_time; };
       auto direction = get_direction(data.instrument_type, data.side, data.offset);
       book->apply_position(account_id, direction, data.exchange_id, data.instrument_id, apply);
@@ -135,7 +135,6 @@ private:
   std::vector<BookListener_ptr> book_listeners_ = {};
   BookMap books_replica_ = {}; // 暂存从location::SYNC传来的asset和position信息
   std::unordered_map<uint32_t, bool> books_replica_asset_guards_ = {}; // Asset::tag添加对应<location_uid,true>
-  std::unordered_map<uint32_t, bool> books_replica_asset_margin_guards_ = {}; // AssetMargin::tag-><location_uid,true>
   std::unordered_map<uint32_t, bool> books_replica_position_guard_ = {}; // PositionEnd::tag添加对应<location_uid,true>
 
   Book_ptr make_book(uint32_t location_uid);

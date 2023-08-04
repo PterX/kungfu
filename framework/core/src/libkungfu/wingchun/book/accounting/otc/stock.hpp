@@ -26,7 +26,7 @@ class OtcStockAccountingMethod : public StockAccountingMethod {
 public:
   OtcStockAccountingMethod() = default;
 
-  void apply_trade(uint32_t source, uint32_t dest, Book_ptr &book, uint32_t account_id, const Trade &trade) override {
+  void apply_trade(uint32_t account_id, uint32_t dest, Book_ptr &book, const Trade &trade) override {
     auto is_local = dest != location::PUBLIC and dest != location::SYNC;
 
     auto apply = [&](auto &position) {

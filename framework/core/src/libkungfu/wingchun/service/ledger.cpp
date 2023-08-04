@@ -241,8 +241,6 @@ void Ledger::write_book_reset(int64_t trigger_time, uint32_t book_uid) {
   writer->close_data();
   writer->open_data<CacheReset>(trigger_time).msg_type = Asset::tag;
   writer->close_data();
-  writer->open_data<CacheReset>(trigger_time).msg_type = AssetMargin::tag;
-  writer->close_data();
   writer->open_data<CacheReset>(trigger_time).msg_type = InstrumentFactor::tag;
   writer->close_data();
   writer->mark(trigger_time, ResetBookRequest::tag);

@@ -342,11 +342,12 @@ export default {
     order_trigger_title: '预埋单确认',
     server_order_trigger_label: '服务器预埋单',
     local_order_trigger_label: '本地预埋单',
-    order_trigger_status_pending: '已提交',
+    order_trigger_status_pending: '等待中',
     order_trigger_status_submitted: '未触发',
     order_trigger_status_filled: '已触发',
     order_trigger_status_cancelled: '已取消',
     order_trigger_status_error: '错误',
+    order_trigger_status_cancelling: '待撤',
     batch: '批量',
     batch_order_trigger: '批量预埋单',
     empty_csv_order: '含有未填入的项, 下单失败',
@@ -444,6 +445,18 @@ export default {
     average_network_latency: '平均网络延迟(μs)',
     min_network_latency: '最小网络延迟(μs)',
     max_network_latency: '最大网络延迟(μs)',
+
+    actions: '操作',
+  },
+
+  orderTriggerConfig: {
+    trigger_insert: '下单',
+    trigger_cancel: '撤单',
+    action_flag: '类型',
+    confirm_cancel_all: '确认全部撤单',
+    confirm: '确认',
+    cancel_all: '全部撤单',
+    insert_time: '生成时间',
   },
 
   tdConfig: {

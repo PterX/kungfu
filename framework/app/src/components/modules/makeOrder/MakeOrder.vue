@@ -971,11 +971,7 @@ watch(
           <a-button class="make-order" @click="handleMakeOrder">
             {{ $t('tradingConfig.place_order') }}
           </a-button>
-          <a-button
-            class="make-order"
-            v-if="orderTriggerBtnVisible"
-            @click="handleOrderTrigger"
-          >
+          <a-button v-if="orderTriggerBtnVisible" @click="handleOrderTrigger">
             {{ $t('tradingConfig.order_trigger') }}
           </a-button>
           <a-button @click="handleApartOrder">

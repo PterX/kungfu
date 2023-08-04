@@ -18,12 +18,18 @@ const buildStrSorter =
 
 export const getColumns = (): AntTableColumns => [
   {
-    title: t('orderConfig.update_time'),
-    dataIndex: 'update_time_resolved',
+    title: t('orderTriggerConfig.action_flag'),
+    dataIndex: 'action_flag_uname',
+    align: 'left',
+    width: 60,
+  },
+  {
+    title: t('orderTriggerConfig.insert_time'),
+    dataIndex: 'insert_time_resolved',
     align: 'left',
     defaultSortOrder: 'descend',
     sorter: {
-      compare: buildSorter('update_time'),
+      compare: buildSorter('insert_time_resolved'),
     },
     width: 100,
   },
@@ -73,12 +79,6 @@ export const getColumns = (): AntTableColumns => [
     width: 120,
   },
   {
-    title: t('orderConfig.parked_type'),
-    dataIndex: 'parked_type',
-    align: 'left',
-    width: 120,
-  },
-  {
     title: t('orderConfig.order_status'),
     dataIndex: 'status_uname',
     align: 'left',
@@ -89,6 +89,13 @@ export const getColumns = (): AntTableColumns => [
     dataIndex: 'dest_uname',
     align: 'left',
     width: 80,
+  },
+  {
+    title: '',
+    dataIndex: 'actions',
+    align: 'center',
+    width: 40,
+    fixed: 'right',
   },
 ];
 

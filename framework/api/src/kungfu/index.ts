@@ -445,6 +445,34 @@ export const kfMakeOrder = (
   }
 };
 
+export const kfMakeAlgoOrder = (
+  watcher: KungfuApi.Watcher | null,
+  makeAlgoOrderInput: KungfuApi.MakeAlgoOrderInput,
+  tdLocation: KungfuApi.KfLocation,
+): Promise<bigint> => {
+  if (!watcher) {
+    return Promise.reject(new Error('Watcher is NULL'));
+  }
+
+  if (!watcher.isLive()) {
+    return Promise.reject(new Error(`Watcher is not live`));
+  }
+
+  if (!watcher.isReadyToInteract(tdLocation)) {
+    const accountId = getIdByKfLocation(tdLocation);
+    return Promise.reject(new Error(`Td ${accountId} not ready`));
+  }
+
+  const now = watcher.now();
+  const algoOrderInput: KungfuApi.AlgoOrderInput = {
+    ...longfist.types.AlgoOrderInput(),
+    ...makeAlgoOrderInput,
+    insert_time: now,
+  };
+
+  return Promise.resolve(watcher.issueAlgoOrder(algoOrderInput, tdLocation));
+};
+
 export const kfOrderTrigger = (
   watcher: KungfuApi.Watcher | null,
   makeOrderTriggerInput: KungfuApi.MakeOrderTriggerInput,

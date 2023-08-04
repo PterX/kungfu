@@ -14,7 +14,6 @@ declare module 'tasklist' {
 
   export = tasklist;
 }
-
 declare namespace KungfuApi {
   import {
     BrokerStateStatusEnum,
@@ -361,7 +360,6 @@ declare namespace KungfuApi {
     operator: Record<string, KfOperatorExtConfig>;
     system: Record<string, KfSystemExtConfigs>;
   };
-
   export type KfUIExtConfigs = Record<
     string,
     {
@@ -426,6 +424,21 @@ declare namespace KungfuApi {
     hedge_flag: HedgeFlagEnum;
     is_swap: boolean;
     parent_id: bigint;
+  }
+
+  export interface MakeAlgoOrderInput {
+    instrument_id: string;
+    instrument_type: InstrumentTypeEnum;
+    exchange_id: string;
+    begin_time: bigint;
+    end_time: bigint;
+    side: SideEnum;
+    price_type: PriceTypeEnum;
+    volume: bigint;
+    algo_type_id: string;
+    algo_id: string;
+    is_local: boolean;
+    args: string;
   }
   export interface MakeOrderTriggerInput extends MakeOrderInput {
     parked_type: OrderTriggerParkedTypeEnum;
@@ -1164,6 +1177,10 @@ declare namespace KungfuApi {
       tdLocation: KfLocation,
       strategyLocation?: KfLocation,
     ): bigint;
+    issueAlgoOrder(
+      algoOrderInput: AlgoOrderInput,
+      tdLocation: KfLocation,
+    ): bigint;
     issueOrderTrigger(
       orderInput: OrderTriggerInput,
       tdLocation: KfLocation,
@@ -1250,7 +1267,9 @@ declare namespace KungfuApi {
       AssetMargin(): AssetMargin;
       Instrument(): Instrument;
       Order(): Order;
+      AlgoOrder(): AlgoOrder;
       OrderInput(): OrderInput;
+      AlgoOrderInput(): AlgoOrderInput;
       OrderAction(): OrderAction;
       OrderStat(): OrderStat;
       Position(): Position;

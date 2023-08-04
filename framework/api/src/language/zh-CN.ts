@@ -561,7 +561,10 @@ export default {
 
   posGlobalConfig: {
     instrument_id: '标的',
-    account_id_resolved: '账户',
+    account_id_resolved: '持有账户',
+    static_yesterday_volume: '固定昨',
+    open_volume: '今开',
+    today_close_volume: '今平',
     yesterday_volume: '昨',
     today_volume: '今',
     sum_volume: '总',
@@ -787,6 +790,7 @@ export default {
     single_price: '单笔成交价',
     limit_value: '最大值',
     asset_margin: '两融',
+    pos_table_columns: '持仓表格项配置',
     show_asset_margin: '展示两融',
 
     code_editor: '代码编辑器',

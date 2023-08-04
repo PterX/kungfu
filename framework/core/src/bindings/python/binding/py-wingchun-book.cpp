@@ -36,16 +36,17 @@ public:
     PYBIND11_OVERLOAD_PURE(void, AccountingMethod, apply_quote, book, quote);
   }
 
-  void apply_order_input(Book_ptr &book, uint32_t account_id, const OrderInput &input) override {
-    PYBIND11_OVERLOAD_PURE(void, AccountingMethod, apply_order_input, book, account_id, input);
+  void apply_order_input(uint32_t source, uint32_t dest, Book_ptr &book, uint32_t account_id,
+                         const OrderInput &input) override {
+    PYBIND11_OVERLOAD_PURE(void, AccountingMethod, apply_order_input, source, dest, book, account_id, input);
   }
 
-  void apply_order(Book_ptr &book, uint32_t account_id, const Order &order) override {
-    PYBIND11_OVERLOAD_PURE(void, AccountingMethod, apply_order, book, account_id, order);
+  void apply_order(uint32_t source, uint32_t dest, Book_ptr &book, uint32_t account_id, const Order &order) override {
+    PYBIND11_OVERLOAD_PURE(void, AccountingMethod, apply_order, source, dest, book, account_id, order);
   }
 
-  void apply_trade(Book_ptr &book, uint32_t account_id, const Trade &trade) override {
-    PYBIND11_OVERLOAD_PURE(void, AccountingMethod, apply_trade, book, account_id, trade);
+  void apply_trade(uint32_t source, uint32_t dest, Book_ptr &book, uint32_t account_id, const Trade &trade) override {
+    PYBIND11_OVERLOAD_PURE(void, AccountingMethod, apply_trade, source, dest, book, account_id, trade);
   }
 
   void update_position(Book_ptr &book, Position &position) override {
@@ -63,7 +64,6 @@ void bind_book(pybind11::module &m) {
 
   py::class_<Book, Book_ptr>(m, "Book")
       .def_readonly("asset", &Book::asset, py::return_value_policy::reference)
-      .def_readonly("asset_margin", &Book::asset_margin, py::return_value_policy::reference)
       .def_readonly("long_positions", &Book::long_positions, py::return_value_policy::reference)
       .def_readonly("short_positions", &Book::short_positions, py::return_value_policy::reference)
       .def_readonly("order_inputs", &Book::order_inputs, py::return_value_policy::reference)

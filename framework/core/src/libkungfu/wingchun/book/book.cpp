@@ -96,7 +96,6 @@ void Book::update(int64_t update_time, longfist::enums::AccountingMethodType acc
   asset.unrealized_pnl = 0;
   asset.dynamic_equity = asset.avail;
   double margin = 0;
-  bool is_stock_acct = true;
   double short_market_value = 0;
   auto update_position = [&](const Position &position) {
     auto is_stock =
@@ -104,8 +103,6 @@ void Book::update(int64_t update_time, longfist::enums::AccountingMethodType acc
         position.instrument_type == InstrumentType::Fund or position.instrument_type == InstrumentType::StockOption or
         position.instrument_type == InstrumentType::TechStock or position.instrument_type == InstrumentType::Index or
         position.instrument_type == InstrumentType::Repo;
-    if (!is_stock)
-      is_stock_acct = false;
     auto is_future = position.instrument_type == InstrumentType::Future;
 
     double db_exchage_rate = 1.0;
@@ -150,10 +147,8 @@ void Book::update(int64_t update_time, longfist::enums::AccountingMethodType acc
   apply_long_positions(update_position);
   apply_short_positions(update_position);
 
-  if (not is_stock_acct) {
-    asset.margin = margin;
-  }
-  asset_margin.short_market_value = short_market_value;
+  asset.margin = margin;
+  asset.short_market_value = short_market_value;
 }
 
 void Book::replace(const OrderInput &input) { order_inputs.insert_or_assign(input.order_id, input); }

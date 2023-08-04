@@ -125,21 +125,9 @@ void Trader::enable_asset_margin_sync() { sync_asset_margin_ = true; }
 
 void Trader::enable_positions_sync() { sync_position_ = true; }
 
-bool Trader::write_default_asset_margin() {
-  SPDLOG_INFO("Write an empty AssetMargin by default");
-  sync_asset_margin_ = true;
-  auto writer = get_asset_margin_writer();
-  AssetMargin &asset_margin = writer->open_data<AssetMargin>();
-  asset_margin.holder_uid = get_home_uid();
-  asset_margin.update_time = yijinjing::time::now_in_nano();
-  writer->close_data();
-  return false;
-}
-
 void Trader::on_asset_sync() {
   if (state_ == BrokerState::Ready) {
     req_account();
-    write_default_asset_margin();
   }
 }
 

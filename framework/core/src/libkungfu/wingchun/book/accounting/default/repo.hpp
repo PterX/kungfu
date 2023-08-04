@@ -12,7 +12,12 @@ public:
 
   void apply_quote(Book_ptr &book, const Quote &quote) override {}
 
-  void apply_order_input(Book_ptr &book, uint32_t account_id, const OrderInput &input) override {
+  void apply_order_input(uint32_t source, uint32_t dest, Book_ptr &book, uint32_t account_id,
+                         const OrderInput &input) override {
+    if (dest == location::SYNC or dest == location::PUBLIC) {
+      return;
+    }
+
     auto apply = [&](auto &position) {
       auto cd_mr = get_instrument_conversion_margin_rate(book, position.source_id, position.direction,
                                                          position.exchange_id, position.instrument_id);
@@ -26,7 +31,11 @@ public:
     book->apply_position_for(account_id, input, apply);
   }
 
-  void apply_order(Book_ptr &book, uint32_t account_id, const Order &order) override {
+  void apply_order(uint32_t source, uint32_t dest, Book_ptr &book, uint32_t account_id, const Order &order) override {
+    if (dest == location::SYNC or dest == location::PUBLIC) {
+      return;
+    }
+
     if (not is_final_status(order.status))
       return;
 
@@ -47,7 +56,7 @@ public:
     // 无需计算逆回购的收益，逆回购收益在买入时就固定了
   }
 
-  void apply_sell(Book_ptr &book, longfist::types::Position &position, const Trade &trade) override {
+  void apply_sell(Book_ptr &book, longfist::types::Position &position, const Trade &trade, bool is_local) override {
     if (position.volume + trade.volume > 0 && trade.price > 0) {
       position.avg_open_price = (position.avg_open_price * position.volume + trade.price * trade.volume) /
                                 (double)(position.volume + trade.volume);
@@ -60,7 +69,10 @@ public:
     position.volume += trade.volume;
     update_position(book, position);
 
-    book->asset.frozen_cash -= trade.volume * cd_mr.exchange_rate;
+    if (is_local) {
+      book->asset.frozen_cash -= trade.volume * cd_mr.exchange_rate;
+    }
+
     book->asset.avail -= commission + tax;
     book->asset.intraday_fee += commission + tax;
     book->asset.accumulated_fee += commission + tax;

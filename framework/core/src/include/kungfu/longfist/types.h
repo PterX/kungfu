@@ -112,7 +112,6 @@ KF_DEFINE_PACK_TYPE(                         //
     (double, avail_margin), // 可用保证金
     (double, cash_margin),  // 融资占用保证金
     (double, short_margin), // 融券占用保证金
-                            //    (double, margin),       // 总占用保证金
 
     (double, cash_debt),  // 融资负债
     (double, short_cash), // 融券卖出金额
@@ -164,10 +163,12 @@ KF_DEFINE_PACK_TYPE(                                                            
 
     (enums::Direction, direction), // 持仓方向
 
-    (int64_t, volume),           // 数量
-    (int64_t, yesterday_volume), // 昨仓数量
-    (int64_t, frozen_total),     // 冻结数量
-    (int64_t, frozen_yesterday), // 冻结昨仓
+    (int64_t, volume),                  // 数量
+    (int64_t, yesterday_volume),        // 昨仓数量
+    (int64_t, frozen_total),            // 冻结数量
+    (int64_t, frozen_yesterday),        // 冻结昨仓
+    (int64_t, static_yesterday_volume), // 固定昨仓数量
+    (int64_t, open_volume),             // 今开数量
 
     (double, last_price), // 最新价
 

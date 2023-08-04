@@ -139,12 +139,6 @@ public:
     PYBIND11_OVERLOAD(void, strategy::Strategy, on_asset_sync_reset, context, old_asset, new_asset);
   }
 
-  void on_asset_margin_sync_reset(strategy::Context_ptr &context, const AssetMargin &old_asset_margin,
-                                  const AssetMargin &new_asset_margin) override {
-    PYBIND11_OVERLOAD(void, strategy::Strategy, on_asset_margin_sync_reset, context, old_asset_margin,
-                      new_asset_margin);
-  }
-
   void on_custom_data(strategy::Context_ptr &context, uint32_t msg_type, const std::vector<uint8_t> &data,
                       uint32_t length, const kungfu::yijinjing::data::location_ptr &location, uint32_t dest) override {
     PYBIND11_OVERLOAD(void, strategy::Strategy, on_custom_data, context, msg_type, data, length, location, dest);
@@ -249,7 +243,6 @@ void bind_strategy(pybind11::module &m) {
       .def("on_trade", &strategy::Strategy::on_trade)
       .def("on_position_sync_reset", &strategy::Strategy::on_position_sync_reset)
       .def("on_asset_sync_reset", &strategy::Strategy::on_asset_sync_reset)
-      .def("on_asset_margin_sync_reset", &strategy::Strategy::on_asset_margin_sync_reset)
       .def("on_deregister ", &strategy::Strategy::on_deregister)
       .def("on_broker_state_change ", &strategy::Strategy::on_broker_state_change)
       .def("on_operator_state_change ", &strategy::Strategy::on_operator_state_change)

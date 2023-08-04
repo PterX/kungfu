@@ -40,11 +40,14 @@ public:
 
   virtual void apply_quote(Book_ptr &book, const Quote &quote) override {}
 
-  virtual void apply_order_input(Book_ptr &book, uint32_t account_id, const OrderInput &input) override {}
+  virtual void apply_order_input(uint32_t source, uint32_t dest, Book_ptr &book, uint32_t account_id,
+                                 const OrderInput &input) override {}
 
-  virtual void apply_order(Book_ptr &book, uint32_t account_id, const Order &order) override {}
+  virtual void apply_order(uint32_t source, uint32_t dest, Book_ptr &book, uint32_t account_id,
+                           const Order &order) override {}
 
-  virtual void apply_trade(Book_ptr &book, uint32_t account_id, const Trade &trade) override {}
+  virtual void apply_trade(uint32_t source, uint32_t dest, Book_ptr &book, uint32_t account_id,
+                           const Trade &trade) override {}
 
   virtual void update_position(Book_ptr &book, Position &position) override {}
 

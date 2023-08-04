@@ -118,17 +118,17 @@ void master::register_app(const event_ptr &event) {
   writers_.insert_or_assign(app_location->uid, app_cmd_writer);
   reader_->join(app_location, location::PUBLIC, now);
   reader_->join(app_location, location::SYNC, now); // create sync journal
-  reader_->disjoin(app_location, location::SYNC); // no need to deal feed from sync
+  reader_->disjoin(app_location, location::SYNC);   // no need to deal feed from sync
   reader_->join(app_location, master_cmd_location->uid, now, 0, Priority::High);
 
-  require_write_to(event->gen_time(), app_location->uid, location::PUBLIC);
-  require_write_to(event->gen_time(), app_location->uid, location::SYNC);
-  require_write_to(event->gen_time(), app_location->uid, master_cmd_location->uid);
-
-  // after target app has public, sync, master cmd writer
   auto public_writer = get_writer(location::PUBLIC);
   public_writer->write(event->gen_time(), *std::dynamic_pointer_cast<Location>(app_location));
   public_writer->write(event->gen_time(), register_data);
+
+  // hava to be put after register sent, because master cmd journal only be joined after register;
+  require_write_to(event->gen_time(), app_location->uid, location::PUBLIC);
+  require_write_to(event->gen_time(), app_location->uid, location::SYNC);
+  require_write_to(event->gen_time(), app_location->uid, master_cmd_location->uid);
 
   // after register sent, then open session
   cached_.open_session(app_location, event->gen_time());

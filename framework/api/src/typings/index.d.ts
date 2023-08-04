@@ -14,6 +14,7 @@ declare module 'tasklist' {
 
   export = tasklist;
 }
+
 declare namespace KungfuApi {
   import {
     BrokerStateStatusEnum,
@@ -360,6 +361,7 @@ declare namespace KungfuApi {
     operator: Record<string, KfOperatorExtConfig>;
     system: Record<string, KfSystemExtConfigs>;
   };
+
   export type KfUIExtConfigs = Record<
     string,
     {
@@ -1157,6 +1159,10 @@ declare namespace KungfuApi {
       orderAction: OrderAction,
       tdLocation: KfLocation,
       strategyLocation?: KfLocation,
+    ): bigint;
+    cancelAlgoOrder(
+      orderInput: OrderTriggerInput,
+      tdLocation: KfLocation,
     ): bigint;
     issueOrder(
       orderInput: OrderInput,

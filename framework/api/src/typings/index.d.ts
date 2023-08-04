@@ -427,6 +427,7 @@ declare namespace KungfuApi {
     is_swap: boolean;
     parent_id: bigint;
   }
+
   export interface MakeOrderTriggerInput extends MakeOrderInput {
     parked_type: OrderTriggerParkedTypeEnum;
     time_condition: TimeConditionEnum;
@@ -1159,10 +1160,18 @@ declare namespace KungfuApi {
       tdLocation: KfLocation,
       strategyLocation?: KfLocation,
     ): bigint;
+    cancelAlgoOrder(
+      orderInput: OrderTriggerInput,
+      tdLocation: KfLocation,
+    ): bigint;
     issueOrder(
       orderInput: OrderInput,
       tdLocation: KfLocation,
       strategyLocation?: KfLocation,
+    ): bigint;
+    issueAlgoOrder(
+      algoOrderInput: AlgoOrderInput,
+      tdLocation: KfLocation,
     ): bigint;
     issueOrderTrigger(
       orderInput: OrderTriggerInput,
@@ -1250,7 +1259,9 @@ declare namespace KungfuApi {
       AssetMargin(): AssetMargin;
       Instrument(): Instrument;
       Order(): Order;
+      AlgoOrder(): AlgoOrder;
       OrderInput(): OrderInput;
+      AlgoOrderInput(): AlgoOrderInput;
       OrderAction(): OrderAction;
       OrderStat(): OrderStat;
       Position(): Position;

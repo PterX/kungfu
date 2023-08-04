@@ -198,6 +198,7 @@ export enum OrderStatusEnum {
   PartialFilledActive,
   Lost,
   Cancelling,
+  Pause,
 }
 
 export type OrderStatusTypes = keyof typeof OrderStatusEnum;

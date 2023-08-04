@@ -34,7 +34,6 @@ void BasketOrderEngine::restore(const cache::bank &state_bank) {
   }
 
   for (auto &pair : state_bank[boost::hana::type_c<Basket>]) {
-    SPDLOG_INFO("restore basket {}", pair.second.data.to_string());
     update_basket(pair.second.data);
   }
 
@@ -81,7 +80,6 @@ bool BasketOrderEngine::try_update_basket_order(int64_t, const longfist::types::
   }
 
   if (not has_basket_order_state(order.parent_id)) {
-    SPDLOG_ERROR("basket order is not exist {} {}", order.parent_id, order.to_string());
     return false;
   }
 

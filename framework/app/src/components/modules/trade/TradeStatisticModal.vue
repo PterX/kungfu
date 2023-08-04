@@ -9,10 +9,13 @@ import { Stats } from 'fast-stats';
 import {
   dealOffset,
   dealSide,
+  dealAssetPrice,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { useActiveInstruments } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import { statisColums } from './config';
 import { Dayjs } from 'dayjs';
 
+const { getPriceTickAndPrecision } = useActiveInstruments();
 const props = withDefaults(
   defineProps<{
     visible: boolean;
@@ -50,7 +53,7 @@ const tradeLatencyStats = computed(() => {
   const stats = new Stats().push(...tradeLatencyBuckets);
   const range = stats.range();
   return {
-    mean: stats.amean().toFixed(2),
+    mean: stats.amean().kfToFixed(2),
     min: range[0],
     max: range[1],
   };
@@ -104,6 +107,10 @@ const priceVolumeStats = computed(() => {
   }> = Object.keys(priceVolumeData)
     .map((id) => {
       const [instrumentId, exchangeId, side, offset] = id.split('_');
+      const { price_precision } = getPriceTickAndPrecision(
+        instrumentId,
+        exchangeId,
+      );
       const priceStats = new Stats().push(...priceVolumeData[id].price);
       const priceSum = priceVolumeData[id].priceByVolume.reduce(
         (a, b) => a + b,
@@ -119,9 +126,9 @@ const priceVolumeStats = computed(() => {
         sideColor: sideReolved.color || 'default',
         offsetName: offsetResolved.name,
         offsetColor: offsetResolved.color || 'default',
-        mean: Number(priceSum / volumeSum).toFixed(2),
-        min: range[0].toFixed(2),
-        max: range[1].toFixed(2),
+        mean: dealAssetPrice(Number(priceSum / volumeSum), price_precision),
+        min: dealAssetPrice(range[0], price_precision),
+        max: dealAssetPrice(range[1], price_precision),
         volume: volumeSum.toString(),
       };
     })
@@ -134,8 +141,8 @@ const priceVolumeStats = computed(() => {
 
 const { searchKeyword, tableData } = useTableSearchKeyword(priceVolumeStats, [
   'instrumentId_exchangeId',
-  'side',
-  'offset',
+  'sideName',
+  'offsetName',
   'mean',
   'min',
   'max',

@@ -45,7 +45,8 @@ void journal::load_page(int page_id) {
       passed_page_collector_.push_back(std::move(page_));
       bus_->on_load_page();
     }
-    page_ = page::load(location_, dest_id_, page_id, is_writing_, lazy_);
+
+    page_ = page::load(location_, dest_id_, page_size_, page_id, is_writing_, lazy_);
   }
 
   frame_->set_address(page_->first_frame_address());
@@ -57,10 +58,10 @@ void journal::load_next_page() { load_page(page_->get_page_id() + 1); }
 // saving time for other process switch page, except the master
 // only for master reading, and low_latency mode
 void journal::try_load_next_extra_page() {
-  if (lazy_ || is_writing_ || !low_latency_) {
+  if (lazy_ || is_writing_ || !low_latency_ || page_size_ != page::find_page_size(location_, dest_id_)) {
     return;
   }
-  pre_page_ = page::load(location_, dest_id_, page_->get_page_id() + 1, false, lazy_, true);
+  pre_page_ = page::load(location_, dest_id_, page_->get_page_size(), page_->get_page_id() + 1, false, lazy_, true);
 }
 
 bool journal::release_page() {
@@ -90,8 +91,9 @@ bool journal::release_page() {
 }
 
 journal::journal(const journal &other)
-    : location_(other.location_), dest_id_(other.dest_id_), is_writing_(other.is_writing_), lazy_(other.lazy_),
-      low_latency_(other.low_latency_), bus_(other.bus_), page_frame_nb_(other.page_frame_nb_) {
+    : location_(other.location_), dest_id_(other.dest_id_), page_size_(other.page_size_),
+      is_writing_(other.is_writing_), lazy_(other.lazy_), low_latency_(other.low_latency_), bus_(other.bus_),
+      page_frame_nb_(other.page_frame_nb_) {
   pre_page_ = other.pre_page_;
   page_ = other.page_;
   frame_ = std::make_shared<frame>(*other.frame_);

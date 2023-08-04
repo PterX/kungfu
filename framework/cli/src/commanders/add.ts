@@ -45,7 +45,10 @@ export const addMdTdStrategy = async (
   const extConfigs = await getKfExtensionConfig();
 
   if (type === 'md') {
-    const extDataList = getExtConfigList(extConfigs, 'md');
+    const extDataList = getExtConfigList(
+      extConfigs,
+      'md',
+    ) as KungfuApi.KfMdExtConfig[];
     const extStrList = parseExtDataList(extDataList);
     const { source } = await selectKfExtPrompt(extStrList);
     const extKey = source.split('    ')[1];
@@ -80,7 +83,10 @@ export const addMdTdStrategy = async (
       }),
     );
   } else if (type === 'td') {
-    const extDataList = getExtConfigList(extConfigs, 'td');
+    const extDataList = getExtConfigList(
+      extConfigs,
+      'td',
+    ) as KungfuApi.KfTdExtConfig[];
     const extStrList = parseExtDataList(extDataList);
     const { source } = await selectKfExtPrompt(extStrList);
     const extKey = source.split('    ')[1];

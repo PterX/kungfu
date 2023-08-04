@@ -23,6 +23,7 @@ import {
   buildProcessLogPath,
   EXTENSION_DIRS,
   KFC_DIR,
+  KF_CONFIG_DIR,
   KF_HOME,
   KF_RUNTIME_DIR,
   buildRuntimeChildDirByType,
@@ -440,6 +441,7 @@ export const startProcess = async (
       CLI_DIR: process.env.CLI_DIR || '',
       KF_HOME: dealSpaceInPath(KF_HOME),
       KF_RUNTIME_DIR: dealSpaceInPath(KF_RUNTIME_DIR),
+      KF_CONFIG_DIR: dealSpaceInPath(KF_CONFIG_DIR),
       LANG: `${locale}.UTF-8`,
       PYTHONUTF8: '1',
       PYTHONIOENCODING: 'utf8',
@@ -453,6 +455,7 @@ export const startProcess = async (
       UI_EXT_TYPE: '',
       BY_PASS_ACCOUNTING: '',
       BY_PASS_TRADINGDATA: '',
+      BY_PASS_REFRESHBOOK: '',
       BY_PASS_RESTORE: '',
     },
   };
@@ -752,7 +755,14 @@ export const startLedger = async (force = false): Promise<void> => {
 
   try {
     await preStartProcess(processName, force);
-    const args = buildArgs('run -c system -g service -n ledger');
+    const globalSetting = getKfGlobalSettingsValue();
+    const bypassRefreshBook =
+      process.env.BY_PASS_REFRESHBOOK ??
+      globalSetting?.performance?.bypassRefreshBook ??
+      false;
+    const args = buildArgs(
+      `run -c system -g service -n ledger -a '{"bypass_refresh_book": ${bypassRefreshBook}}'`,
+    );
     await startProcess({
       name: processName,
       args,

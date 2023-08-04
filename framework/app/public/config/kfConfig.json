@@ -2,7 +2,8 @@
   "performance": {
     "rocket": false,
     "bypassAccounting": false,
-    "bypassTradingData": false
+    "bypassTradingData": false,
+    "bypassRefreshBook": false
   },
   "currency": { "instrumentCurrency": true },
   "strategy": { "python": false },

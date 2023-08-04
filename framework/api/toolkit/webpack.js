@@ -12,6 +12,9 @@ module.exports = {
         topLevelAwait: true,
       },
       mode: production ? 'production' : 'development',
+      experiments: {
+        topLevelAwait: true,
+      },
       optimization: {
         minimize: true,
         minimizer: [new TerserPlugin()],

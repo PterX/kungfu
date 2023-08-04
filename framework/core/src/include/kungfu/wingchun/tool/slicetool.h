@@ -16,13 +16,15 @@ class SliceTool {
 
 public:
   SliceTool(longfist::enums::category category, std::string group, std::string name, SliceIndexer_ptr indexer,
-            bool overwrite = true);
+            bool overwrite = true, std::string arguments = "");
 
   virtual ~SliceTool() = default;
 
   int64_t get_begin_time() const { return indexer_->get_begin_time(); }
 
   int64_t get_end_time() const { return indexer_->get_end_time(); }
+
+  std::string get_arguments() const { return arguments_; }
 
   //   yijinjing::data::location_ptr get_location() const { return cache_location_; }
 
@@ -49,12 +51,21 @@ public:
 
   yijinjing::data::location_ptr find_operator_slice_location(int64_t nano_time) const;
 
+  void next();
+
+  bool data_available() const;
+
+  void join(const yijinjing::data::location_ptr &location, uint32_t dest_id, const int64_t from_time);
+
+  yijinjing::journal::frame_ptr current_frame() const;
+
 protected:
   // void write_raw_at(int64_t gen_time, int64_t trigger_time, uint32_t dest_id, int32_t msg_type, uintptr_t data,
   //                   uint32_t length);
 
   // void write_raw_at_as(int64_t gen_time, int64_t trigger_time, uint32_t source, uint32_t dest_id, int32_t msg_type,
   //                      uintptr_t data, uint32_t length);
+  int64_t get_last_read_gen_time() const { return last_read_gen_time_; }
 
   longfist::enums::category category_;
   std::string group_;
@@ -66,16 +77,7 @@ protected:
   yijinjing::journal::reader_ptr reader_;
   mutable int64_t last_gen_time_;
   mutable int64_t last_read_gen_time_;
-
-  void next();
-
-  bool data_available() const;
-
-  int64_t get_last_read_gen_time() const { return last_read_gen_time_; }
-
-  void join(const yijinjing::data::location_ptr &location, uint32_t dest_id, const int64_t from_time);
-
-  yijinjing::journal::frame_ptr current_frame() const;
+  const std::string arguments_;
 
   yijinjing::journal::writer_ptr get_writer(const yijinjing::data::location_ptr &location, uint32_t dest_id);
 

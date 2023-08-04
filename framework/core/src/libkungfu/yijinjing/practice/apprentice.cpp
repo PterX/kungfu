@@ -68,49 +68,27 @@ void apprentice::request_write_to(int64_t trigger_time, uint32_t dest_id) {
   }
 }
 
-void apprentice::request_write_to_band(int64_t trigger_time, const location_ptr &location) {
+void apprentice::request_write_to_band(int64_t trigger_time, const location_ptr &location, uint32_t page_size) {
   if (get_io_device()->get_home()->mode == mode::LIVE) {
-    require_write_to_band(trigger_time, get_master_command_uid(), location);
+    require_write_to_band(trigger_time, get_master_command_uid(), location, page_size);
   }
 }
 
-uint32_t apprentice::request_band(const std::string &band_name) {
+uint32_t apprentice::request_band(const std::string &band_name, uint32_t page_size) {
   auto io_device = get_io_device();
   auto home = io_device->get_home();
   auto band_location = location::make_shared(home->mode, home->category, home->group, band_name, get_locator());
-  request_write_to_band(now(), band_location);
+  request_write_to_band(now(), band_location, page_size);
   return band_location->uid;
 }
 
 void apprentice::add_timer(int64_t nanotime, const std::function<void(const event_ptr &)> &callback) {
-  events_ | timer(nanotime) |
-      $([&, callback](const event_ptr &event) {
-        // try {
-        callback(event);
-        // } catch (const std::exception &e) {
-        //   SPDLOG_ERROR("Unexpected exception by timer {}", e.what());
-        // }
-      }
-        // [&](std::exception_ptr e) {
-        //   try {
-        //     std::rethrow_exception(e);
-        //   } catch (const rx::empty_error &ex) {
-        //     SPDLOG_WARN("{}", ex.what());
-        //   } catch (const std::exception &ex) {
-        //     SPDLOG_WARN("Unexpected exception by timer{}", ex.what());
-        //   }
-        // }
-      );
+  events_ | timer(nanotime) | $([&, callback](const event_ptr &event) { callback(event); });
 }
 
 void apprentice::add_time_interval(int64_t duration, const std::function<void(const event_ptr &)> &callback) {
-  events_ | time_interval(std::chrono::nanoseconds(duration)) | $([&, callback](const event_ptr &event) {
-    // try {
-    callback(event);
-    // } catch (const std::exception &e) {
-    //   SPDLOG_ERROR("Unexpected exception by time_interval {}", e.what());
-    // }
-  });
+  events_ | time_interval(std::chrono::nanoseconds(duration)) |
+      $([&, callback](const event_ptr &event) { callback(event); });
 }
 
 bool apprentice::release_page() {
@@ -123,7 +101,9 @@ bool apprentice::release_page() {
 }
 
 void apprentice::react() {
-  events_ | is(TimeReset::tag) | first() | $$(reset_time(event->data<TimeReset>()));
+  if (get_home()->mode == mode::LIVE or get_home()->mode == mode::REPLAY) {
+    events_ | is(TimeReset::tag) | first() | $$(reset_time(event->data<TimeReset>()));
+  }
   events_ | is(Location::tag) | $$(add_location(event->gen_time(), event->data<Location>()));
   events_ | is(Register::tag) | $$(on_register(event->trigger_time(), event->data<Register>()));
   events_ | is(RequestReadFromOthers::tag) | $$(on_request_read_from_others(event));
@@ -169,8 +149,8 @@ void apprentice::react() {
       checkin_time_ = data.checkin_time;
       reader_->join(master_cmd_location_, get_live_home_uid(), begin_time_);
     });
-    checkin();
     expect_start();
+    checkin();
   }
   if (get_io_device()->get_home()->mode == mode::REPLAY) {
     reader_->join(master_cmd_location_, get_live_home_uid(), begin_time_);
@@ -180,7 +160,7 @@ void apprentice::react() {
     // dest_id 0 should be configurable TODO
     std::string journal_dir = get_locator()->layout_dir(get_home(), layout::JOURNAL);
     fs::remove_all(journal_dir);
-    writers_.emplace(location::PUBLIC, get_io_device()->open_writer(location::PUBLIC));
+    writers_.insert_or_assign(location::PUBLIC, get_io_device()->open_writer(location::PUBLIC));
     reader_->join(get_home(), location::PUBLIC, begin_time_);
     started_ = true;
     on_start();
@@ -227,14 +207,16 @@ void apprentice::on_read_from_sync(const event_ptr &event) { do_read_from<Reques
 void apprentice::on_write_to(const event_ptr &event) {
   auto dest_id = event->data<RequestWriteTo>().dest_id;
   if (writers_.find(dest_id) == writers_.end()) {
-    writers_.emplace(dest_id, get_io_device()->open_writer(dest_id));
+    writers_.insert_or_assign(dest_id, get_io_device()->open_writer(dest_id));
   }
 }
 
 void apprentice::on_write_to_band(const event_ptr &event) {
-  auto dest_id = event->data<RequestWriteToBand>().location_uid;
+  const auto &request = event->data<RequestWriteToBand>();
+  auto dest_id = request.location_uid;
+  auto page_size = request.page_size;
   if (writers_.find(dest_id) == writers_.end()) {
-    writers_.emplace(dest_id, get_io_device()->open_writer(dest_id));
+    writers_.insert_or_assign(dest_id, get_io_device()->open_writer(dest_id, page_size));
   }
 }
 
@@ -252,7 +234,7 @@ void apprentice::reader_join(uint32_t source_id, uint32_t dest_id, int64_t from_
   reader_->join(get_location(source_id), dest_id, from_time);
 
   if (not has_writer(get_master_command_uid())) {
-    SPDLOG_ERROR("no master cmd writer");
+    SPDLOG_ERROR("no master cmd writer {}", get_master_command_uid());
     return;
   }
 
@@ -266,79 +248,32 @@ void apprentice::reader_join(uint32_t source_id, uint32_t dest_id, int64_t from_
 
 void apprentice::checkin() {
   auto now = time::now_in_nano();
-  nlohmann::json request;
-  request["msg_type"] = Register::tag;
-  request["gen_time"] = now;
-  request["trigger_time"] = now;
-  request["source"] = get_home_uid();
-  request["dest"] = master_home_location_->uid;
+  auto home = get_home();
+  Register register_data{};
+  register_data.mode = home->mode;
+  register_data.category = home->category;
+  register_data.group = home->group;
+  register_data.name = home->name;
+  register_data.location_uid = home->uid;
+  register_data.pid = GETPID();
+  register_data.checkin_time = now;
+  register_data.last_active_time = now;
 
-  auto home = get_io_device()->get_home();
-  nlohmann::json data;
-  data["mode"] = home->mode;
-  data["category"] = home->category;
-  data["group"] = home->group;
-  data["name"] = home->name;
-  data["location_uid"] = home->uid;
-  data["pid"] = GETPID();
-  data["checkin_time"] = now;
-  data["last_active_time"] = now;
-  request["data"] = data;
-
-  get_io_device()->get_publisher()->publish(request.dump(), 0);
+  get_io_device()->get_publisher()->publish(make_nano_msg(get_home_uid(), master_home_location_->uid, register_data),
+                                            0);
 }
 
 void apprentice::expect_start() {
   reader_->join(master_home_location_, location::PUBLIC, begin_time_);
-  events_ | is(RequestStart::tag) | first() |
-      $([&](const event_ptr &event) {
-        started_ = true;
-        SPDLOG_INFO("ready to start");
-        on_start();
-      }
-        // [&](const std::exception_ptr &e) {
-        //   try {
-        //     std::rethrow_exception(e);
-        //   } catch (const rx::empty_error &ex) {
-        //     SPDLOG_WARN("Unexpected rx empty {}", ex.what());
-        //   } catch (const std::exception &ex) {
-        //     SPDLOG_WARN("Unexpected exception before start {}", ex.what());
-        //   }
-        // }
-      );
+  events_ | is(RequestStart::tag) | first() | $([&](const event_ptr &event) {
+    started_ = true;
+    SPDLOG_INFO("ready to start");
+    on_start();
+  });
 }
 
 void apprentice::reset_time(const longfist::types::TimeReset &time_reset) {
   time::reset(time_reset.system_clock_count, time_reset.steady_clock_count);
-}
-
-yijinjing::journal::writer_ptr &apprentice::get_thread_writer() {
-  if (not thread_writer_) {
-    uint32_t dest_id = kungfu::yijinjing::util::get_thread_id();
-    thread_writer_ = get_io_device()->open_writer(dest_id);
-    int64_t nano = now();
-
-    /// join channel in sub-thread will crash, so tell master to ask myself to join
-    /// do not use writer because of multi-thread concurrency issues
-    auto now = time::now_in_nano();
-    nlohmann::json request;
-    request["msg_type"] = RequestReadFromOthers::tag;
-    request["gen_time"] = now;
-    request["trigger_time"] = now;
-    request["source"] = get_home_uid();
-    request["dest"] = master_home_location_->uid;
-    request["data_type"] = int8_t(FrameDataType::Json);
-
-    nlohmann::json data;
-    data["source_id"] = get_home_uid();
-    data["dest_id"] = dest_id;
-    data["from_time"] = nano;
-    request["data"] = data;
-
-    SPDLOG_TRACE("RequestReadFromOthers: {}", request.dump());
-    get_io_device()->get_publisher()->publish(request.dump());
-  }
-  return thread_writer_;
 }
 
 } // namespace kungfu::yijinjing::practice

@@ -147,6 +147,8 @@ private:
 
   void update_instrument(const longfist::types::Instrument &instrument);
 
+  void update_commission(const event_ptr &event, const longfist::types::Commission &commission);
+
   void update_instrument_factor(const longfist::types::InstrumentFactor &instrument_factor);
 
   void try_update_asset(const longfist::types::Asset &asset);
@@ -167,6 +169,8 @@ private:
   void update_position_guard(const longfist::types::PositionEnd &position_end);
 
   Book_ptr get_book_replica(uint32_t location_uid);
+
+  void on_output_key(const event_ptr &event);
 };
 } // namespace kungfu::wingchun::book
 #endif // WINGCHUN_BOOKKEEPER_H

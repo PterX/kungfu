@@ -25,6 +25,9 @@ import {
   BasketVolumeTypeEnum,
   BasketOrderStatusEnum,
   CurrencyEnum,
+  OrderTriggerParkedTypeEnum,
+  OrderTriggerStatusEnum,
+  FundTransEnum,
 } from '../typings/enums';
 
 import { Pm2ProcessStatusTypes } from '../utils/processUtils';
@@ -301,6 +304,10 @@ export const OrderStatus: Record<
     name: t('tradingConfig.pending'),
     color: 'default',
   },
+  [OrderStatusEnum.Cancelling]: {
+    name: t('tradingConfig.cancelling'),
+    color: 'default',
+  },
   [OrderStatusEnum.Cancelled]: {
     name: t('tradingConfig.cancelled'),
     color: 'default',
@@ -358,6 +365,7 @@ export const UnfinishedOrderStatus = [
   OrderStatusEnum.Pending,
   OrderStatusEnum.Submitted,
   OrderStatusEnum.PartialFilledActive,
+  OrderStatusEnum.Cancelling,
 ];
 
 export const NotTradeAllOrderStatus = [
@@ -371,6 +379,17 @@ export const WellFinishedOrderStatus = [
   OrderStatusEnum.Cancelled,
   OrderStatusEnum.Filled,
   OrderStatusEnum.PartialFilledNotActive,
+];
+
+export const WellCancelledOrderStatus = [
+  OrderStatusEnum.Cancelled,
+  OrderStatusEnum.PartialFilledNotActive,
+];
+
+export const AllFinishedOrderStatus = [
+  ...WellFinishedOrderStatus,
+  OrderStatusEnum.Error,
+  OrderStatusEnum.Lost,
 ];
 
 export const Direction: Record<
@@ -401,6 +420,15 @@ export const PriceType: Record<
   },
   [PriceTypeEnum.Fok]: {
     name: t('tradingConfig.Fok'),
+  },
+  [PriceTypeEnum.EnhancedLimit]: {
+    name: t('tradingConfig.EnhancedLimit'),
+  },
+  [PriceTypeEnum.AtAuctionLimit]: {
+    name: t('tradingConfig.AtAuctionLimit'),
+  },
+  [PriceTypeEnum.AtAuction]: {
+    name: t('tradingConfig.AtAuction'),
   },
   [PriceTypeEnum.Unknown]: { name: t('tradingConfig.unknown') },
 };
@@ -453,6 +481,45 @@ export const TimeCondition: Record<
   [TimeConditionEnum.IOC]: { name: t('tradingConfig.IOC') },
   [TimeConditionEnum.GFD]: { name: t('tradingConfig.GFD') },
   [TimeConditionEnum.GTC]: { name: t('tradingConfig.GTC') },
+  [TimeConditionEnum.GFS]: { name: t('tradingConfig.GFS') },
+  [TimeConditionEnum.GTD]: { name: t('tradingConfig.GTD') },
+  [TimeConditionEnum.GFA]: { name: t('tradingConfig.GFA') },
+  [TimeConditionEnum.Unknown]: { name: t('tradingConfig.unknown') },
+};
+
+export const ParkedType: Record<
+  OrderTriggerParkedTypeEnum,
+  KungfuApi.KfTradeValueCommonData
+> = {
+  [OrderTriggerParkedTypeEnum.Server]: {
+    name: t('tradingConfig.server_order_trigger_label'),
+  },
+  [OrderTriggerParkedTypeEnum.Local]: {
+    name: t('tradingConfig.local_order_trigger_label'),
+  },
+};
+
+export const OrderTriggerStatus: Record<
+  OrderTriggerStatusEnum,
+  KungfuApi.KfTradeValueCommonData
+> = {
+  [OrderTriggerStatusEnum.Unknown]: { name: '' },
+  [OrderTriggerStatusEnum.Pending]: {
+    name: t('tradingConfig.order_trigger_status_pending'),
+    color: 'default',
+  },
+  [OrderTriggerStatusEnum.Submitted]: {
+    name: t('tradingConfig.order_trigger_status_submitted'),
+    color: 'green',
+  },
+  [OrderTriggerStatusEnum.Filled]: {
+    name: t('tradingConfig.order_trigger_status_filled'),
+    color: 'red',
+  },
+  [OrderTriggerStatusEnum.Cancelled]: {
+    name: t('tradingConfig.order_trigger_status_cancelled'),
+    color: 'red',
+  },
 };
 
 export const CommissionMode: Record<
@@ -478,6 +545,24 @@ export const BasketVolumeType: Record<
   [BasketVolumeTypeEnum.Proportion]: {
     name: t('tradingConfig.by_proportion'),
     color: 'purple',
+  },
+};
+
+export const FundTransType: Record<
+  FundTransEnum,
+  KungfuApi.KfTradeValueCommonData
+> = {
+  [FundTransEnum.Error]: {
+    name: t('fundTrans.error'),
+    color: 'red',
+  },
+  [FundTransEnum.Pending]: {
+    name: t('fundTrans.pending'),
+    color: 'gray',
+  },
+  [FundTransEnum.Success]: {
+    name: t('fundTrans.success'),
+    color: 'green',
   },
 };
 
@@ -665,6 +750,10 @@ export const ExchangeIds: Record<string, KungfuApi.KfTradeValueCommonData> = {
   SHFE: {
     name: t('tradingConfig.SHFE'),
     color: InstrumentType[InstrumentTypeEnum.future].color,
+  },
+  GFEX: {
+    name: t('tradingConfig.GFEX'),
+    color: InstrumentType[InstrumentTypeEnum.stock].color,
   },
   DCE: {
     name: t('tradingConfig.DCE'),
@@ -954,7 +1043,7 @@ export const ExportTradingDataColumnsToFilter: Record<
   Position: ['dest', 'source'],
   Trade: [],
   Order: [],
-  Instrument: ['dest', 'source'],
+  Instrument: ['product_id', 'dest', 'source'],
   AssetMargin: ['dest', 'source'],
   Asset: ['dest', 'source'],
   OrderInput: [],

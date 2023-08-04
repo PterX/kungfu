@@ -426,20 +426,6 @@ declare namespace KungfuApi {
     parent_id: bigint;
   }
 
-  export interface MakeAlgoOrderInput {
-    instrument_id: string;
-    instrument_type: InstrumentTypeEnum;
-    exchange_id: string;
-    begin_time: bigint;
-    end_time: bigint;
-    side: SideEnum;
-    price_type: PriceTypeEnum;
-    volume: bigint;
-    algo_type_id: string;
-    algo_id: string;
-    is_local: boolean;
-    args: string;
-  }
   export interface MakeOrderTriggerInput extends MakeOrderInput {
     parked_type: OrderTriggerParkedTypeEnum;
     time_condition: TimeConditionEnum;

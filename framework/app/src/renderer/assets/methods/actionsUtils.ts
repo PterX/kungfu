@@ -1132,7 +1132,9 @@ export const useSubscibeInstrumentAtEntry = (
     useGlobalStore();
 
   const app = getCurrentInstance();
-  const POSITION_SLICE_NUM = process.env.IF_CPUS_NUM_SAFE ? 128 : 0;
+  const POSITION_SLICE_NUM = booleanProcessEnv(process.env.IF_CPUS_NUM_SAFE)
+    ? 128
+    : 0;
 
   const getCurrentPositionsForSub = (watcher: KungfuApi.Watcher) => {
     if (!currentGlobalKfLocation.value) return [];
@@ -1588,8 +1590,8 @@ export const useActiveInstruments = () => {
   const getPriceTickAndPrecision = (
     instrumentId: string,
     exchangeId: string,
-    defaultTick = 0.001,
-    defaultPrecision = 0.001,
+    defaultTick = 0.0001,
+    defaultPrecision = 0.0001,
   ) => {
     const instrument = getInstrumentByIdsWithWatcher(instrumentId, exchangeId);
     const price_tick = instrument?.price_tick || defaultTick;

@@ -29,8 +29,6 @@ public:
 protected:
   void react() override;
 
-  void on_react() override;
-
   void on_start() override;
 
   BrokerService_ptr get_service() override;

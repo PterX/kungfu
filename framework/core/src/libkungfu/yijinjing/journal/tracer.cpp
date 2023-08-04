@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
+#include <kungfu/yijinjing/journal/page.h>
 #include <kungfu/yijinjing/journal/tracer.h>
 
 using namespace kungfu::longfist::types;
@@ -20,8 +21,13 @@ tracer::tracer(const location_ptr location, bool in, bool out, int64_t begin, in
     if (not is_master) {
       auto uid_str = fmt::format("{:08x}", home_->uid);
       auto master_cmd_location = location::make_shared(mode::LIVE, category::SYSTEM, "master", uid_str, get_locator());
-      reader_->join(master_cmd_location, home_->uid, begin_time_);
-      reader_for_in_->join(master_cmd_location, home_->uid, begin_time_);
+      if (page::check_page_existed(master_cmd_location, home_->uid)) {
+        reader_->join(master_cmd_location, home_->uid, begin_time_);
+        reader_for_in_->join(master_cmd_location, home_->uid, begin_time_);
+      } else {
+        SPDLOG_WARN("page not existed, home_ {}, source_location: {}, dest: {}", home_->uname,
+                    master_cmd_location->uname, (uint32_t)home_->uid);
+      }
     } else {
       for (auto target_location : get_locator()->list_locations("*", "*", "*", "*")) {
         if (target_location->category == category::SYSTEM and target_location->group == "master") {
@@ -32,27 +38,44 @@ tracer::tracer(const location_ptr location, bool in, bool out, int64_t begin, in
           auto master_cmd_location =
               location::make_shared(mode::LIVE, category::SYSTEM, "master", uid_str, get_locator());
           if (dest_id == master_cmd_location->uid) {
-            reader_->join(target_location, dest_id, begin_time_);
-            reader_for_in_->join(target_location, dest_id, begin_time_);
+            if (page::check_page_existed(target_location, dest_id)) {
+              reader_->join(target_location, dest_id, begin_time_);
+              reader_for_in_->join(target_location, dest_id, begin_time_);
+            } else {
+              SPDLOG_WARN("page not existed, source_location: {}, dest: {}", target_location->uname, (uint32_t)dest_id);
+            }
           }
         }
       }
     }
 
-    reader_->join(master_home_location, location::PUBLIC, begin_time_);
-    reader_for_in_->join(master_home_location, location::PUBLIC, begin_time_);
+    if (page::check_page_existed(master_home_location, location::PUBLIC)) {
+      reader_->join(master_home_location, location::PUBLIC, begin_time_);
+      reader_for_in_->join(master_home_location, location::PUBLIC, begin_time_);
+    } else {
+      SPDLOG_WARN("page not existed, source_location: {}, dest: {}", master_home_location->uname, location::PUBLIC);
+    }
   }
 
   if (out) {
     for (auto dest_id : get_locator()->list_location_dest(home_)) {
-      reader_->join(home_, dest_id, begin_time_);
+      if (page::check_page_existed(home_, dest_id)) {
+        reader_->join(home_, dest_id, begin_time_);
+      } else {
+        SPDLOG_WARN("page not existed, source_location: {}, dest: {}", home_->uname, (uint32_t)dest_id);
+      }
     }
 
     if (is_master) {
       for (auto master_cmd_location : get_locator()->list_locations("system", "master", "*", "*")) {
         SPDLOG_INFO("master_cmd_location: {}", master_cmd_location->uname);
         for (auto dest_id : get_locator()->list_location_dest(master_cmd_location)) {
-          reader_->join(master_cmd_location, dest_id, begin_time_);
+          if (page::check_page_existed(master_cmd_location, dest_id)) {
+            reader_->join(master_cmd_location, dest_id, begin_time_);
+          } else {
+            SPDLOG_WARN("page not existed, source_location: {}, dest: {}", master_cmd_location->uname,
+                        (uint32_t)dest_id);
+          }
         }
       }
     }
@@ -89,22 +112,38 @@ void tracer::join_for_in(const yijinjing::journal::frame_ptr &frame) const {
   if (frame->dest() == home_->uid and frame->msg_type() == RequestReadFrom::tag) {
     auto request = frame->data<RequestReadFrom>();
     auto source_location = locations_.at(request.source_id);
-    reader_->join(source_location, home_->uid, request.from_time);
+    if (page::check_page_existed(source_location, home_->uid)) {
+      reader_->join(source_location, home_->uid, request.from_time);
+    } else {
+      SPDLOG_WARN("page not existed, source_location: {}, dest: {}", source_location->uname, (uint32_t)home_->uid);
+    }
   }
   if (frame->dest() == home_->uid and frame->msg_type() == RequestReadFromPublic::tag) {
     auto request = frame->data<RequestReadFromPublic>();
     auto source_location = locations_.at(request.source_id);
-    reader_->join(source_location, location::PUBLIC, request.from_time);
+    if (page::check_page_existed(source_location, location::PUBLIC)) {
+      reader_->join(source_location, location::PUBLIC, request.from_time);
+    } else {
+      SPDLOG_WARN("page not existed, source_location: {}, dest: {}", source_location->uname, location::PUBLIC);
+    }
   }
   if (frame->dest() == home_->uid and frame->msg_type() == RequestReadFromSync::tag) {
     auto request = frame->data<RequestReadFromSync>();
     auto source_location = locations_.at(request.source_id);
-    reader_->join(source_location, location::SYNC, request.from_time);
+    if (page::check_page_existed(source_location, location::SYNC)) {
+      reader_->join(source_location, location::SYNC, request.from_time);
+    } else {
+      SPDLOG_WARN("page not existed, source_location: {}, dest: {}", source_location->uname, location::SYNC);
+    }
   }
   if (frame->dest() == home_->uid and frame->msg_type() == RequestReadFromOthers::tag) {
     auto request = frame->data<RequestReadFromOthers>();
     auto source_location = locations_.at(request.source_id);
-    reader_->join(source_location, request.dest_id, request.from_time);
+    if (page::check_page_existed(source_location, request.dest_id)) {
+      reader_->join(source_location, request.dest_id, request.from_time);
+    } else {
+      SPDLOG_WARN("page not existed, source_location: {}, dest: {}", source_location->uname, (uint32_t)request.dest_id);
+    }
   }
   if (frame->dest() == home_->uid and frame->msg_type() == Deregister::tag) {
     reader_->disjoin(location::make_shared(frame->data<Deregister>(), get_locator())->uid);

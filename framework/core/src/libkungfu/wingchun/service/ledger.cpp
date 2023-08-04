@@ -20,6 +20,8 @@ using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::cache;
 
 namespace kungfu::wingchun::service {
+#define DEFAULT_AVG_VALID_VALUE 10000.0
+
 Ledger::Ledger(locator_ptr locator, mode m, bool low_latency, const std::string &arguments)
     : apprentice(location::make_shared(m, category::SYSTEM, "service", "ledger", std::move(locator)), low_latency),
       arguments_(arguments), broker_client_(*this), bookkeeper_(*this, broker_client_, true) {}
@@ -173,13 +175,21 @@ double Ledger::translate_by_price_tick(const char *exchange_id, const char *inst
         price_tick = 1;
       }
 
+      int num = 1 / price_tick;
+      int digits = 0;
+      while (num != 0) {
+        num /= 10;
+        digits++;
+      }
+
+      double price_tick = 1.0 / pow(10, digits);
       uint64_t tick = 1 / price_tick;
-      uint64_t uPrice = (uint64_t)(std::abs(price) * tick + price_tick * 0.5);
+      uint64_t uPrice = (uint64_t)((std::abs(price) + price_tick * 0.5) * tick);
       return (double)uPrice / tick;
     }
   }
 
-  return int(price * 10000) / 10000.0;
+  return int64_t(price * DEFAULT_AVG_VALID_VALUE) / DEFAULT_AVG_VALID_VALUE;
 }
 
 void Ledger::update_account_book(int64_t trigger_time, uint32_t account_uid) {

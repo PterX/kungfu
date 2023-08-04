@@ -11,9 +11,9 @@ import { getColumns } from './config';
 import {
   dealSide,
   dealOffset,
-  transformSearchInstrumentResultToInstrument,
   isShotable,
   getProcessIdByKfLocation,
+  transformSearchInstrumentResultToInstrument,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 
 import {
@@ -27,6 +27,7 @@ import {
   longfist,
   kfOrderTrigger,
   kfRefreshOrderTrigger,
+  hashInstrumentUKey,
 } from '@kungfu-trader/kungfu-js-api/kungfu';
 import KfSetByConfigModal from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfSetByConfigModal.vue';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
@@ -168,6 +169,12 @@ function handleBatchModal() {
 function handleConfirmBatchOrderTrigger(csvData: csvOrderInput[]) {
   if (!currentGlobalKfLocation.value) return;
 
+  const emptyRow = csvData.filter((item) => !item.instrument);
+  if (emptyRow.length > 0) {
+    error(t('tradingConfig.empty_csv_order'));
+    return;
+  }
+
   const tdProcessId = getProcessIdByKfLocation(currentGlobalKfLocation.value);
   if (processStatusData.value[tdProcessId] !== 'online') {
     error(t('tradingConfig.start_process', { process: tdProcessId }));
@@ -176,11 +183,16 @@ function handleConfirmBatchOrderTrigger(csvData: csvOrderInput[]) {
 
   const notFutureRow: number[] = [];
   const orderTriggerInputs = csvData.map((item: csvOrderInput, index) => {
-    const { instrumentType } = transformSearchInstrumentResultToInstrument(
-      item.instrument,
-    ) as KungfuApi.InstrumentResolved;
+    const { instrumentType, exchangeId, instrumentId } =
+      transformSearchInstrumentResultToInstrument(
+        item.instrument,
+      ) as KungfuApi.InstrumentResolved;
 
-    if (instrumentType !== InstrumentTypeEnum.future) {
+    const ukey = hashInstrumentUKey(instrumentId, exchangeId);
+    const instrumentResolved = (window.watcher as KungfuApi.Watcher)?.ledger
+      ?.Instrument?.[ukey];
+
+    if (!instrumentResolved || instrumentType !== InstrumentTypeEnum.future) {
       notFutureRow.push(index + 1);
     }
 
@@ -326,9 +338,9 @@ function handleRequestOrderTrigger() {
               {{ dealOffset(record.offset).name }}
             </span>
           </template>
-          <template v-else-if="column.dataIndex === 'status'">
+          <template v-else-if="column.dataIndex === 'status_uname'">
             <span :class="`color-${record.status_color}`">
-              {{ record.status }}
+              {{ record.status_uname }}
             </span>
           </template>
           <template v-else-if="column.dataIndex === 'dest_uname'">

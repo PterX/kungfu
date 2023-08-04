@@ -31,11 +31,6 @@ void TraderVendor::react() {
   apprentice::react();
 }
 
-void TraderVendor::on_react() {
-  events_ | is(ResetBookRequest::tag) |
-      $([&](const event_ptr &event) { get_writer(location::PUBLIC)->mark(now(), ResetBookRequest::tag); });
-}
-
 void TraderVendor::on_start() {
   BrokerVendor::on_start();
 
@@ -54,6 +49,8 @@ void TraderVendor::on_start() {
   events_ | is(PositionSync::tag) | $$(service_->handle_position_sync());
   events_ | is(Band::tag) | $$(service_->on_band(event));
   events_ | is(BatchOrderBegin::tag, BatchOrderEnd::tag) | $$(service_->handle_batch_order_tag(event));
+  events_ | is(ResetBookRequest::tag) |
+      $([&](const event_ptr &event) { get_writer(location::PUBLIC)->mark(now(), ResetBookRequest::tag); });
 
   service_->on_risk_setting();
   service_->recover();

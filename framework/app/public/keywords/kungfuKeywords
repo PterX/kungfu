@@ -340,7 +340,6 @@ req_account
 req_position
 set_service
 get_arguments
-set_arguments
 set_begin_time
 set_end_time
 setup
@@ -497,9 +496,6 @@ SZSE
 HKEx
 MarketType
 Snapshot
-Entrust
-Transaction
-Tree
 SubscribeDataType
 Stock
 Future

@@ -262,17 +262,12 @@ protected:
 
     auto cd_mr = get_instr_conversion_margin_rate(book, position);
     double trade_amt = trade.price /** cd_mr.exchange_rate*/ * trade.volume;
-    // TODO: margin_commission requires a dedicate calculate_margin_commission(Trade&);
-    auto &asset_margin = book->asset_margin;
     double commission = calculate_commission(trade);
     auto tax = calculate_tax(trade);
     if (not position.last_price) {
       position.last_price = trade.price;
     }
 
-    // The market_value calculation would be reset in Book::update(), so it does not matter if has
-    // deviation of the actual status.
-    // TODO: the commission & tax should be included ?
     double cash_debt_change = trade_amt;
     double original_volume = position.volume;
     if (position.volume + trade.volume > 0 && trade.price > 0) {
@@ -281,7 +276,7 @@ protected:
       position.position_cost_price = (position.position_cost_price * position.volume + trade_amt + commission + tax) /
                                      (double)(position.volume + trade.volume);
     }
-    // Track the MarginTrade part cash_debt
+
     position.margin += cash_debt_change; // The margin is actually the cash debt of Position instead of margin
     position.volume += trade.volume;
     update_position(book, position);
@@ -292,7 +287,6 @@ protected:
     auto cd_mr = get_instr_conversion_margin_rate(book, position);
     double trade_amt = trade.price * trade.volume * cd_mr.exchange_rate;
     // TODO: margin_commission requires a dedicate calculate_margin_commission(Trade&);
-    auto &asset_margin = book->asset_margin;
     double commission = calculate_commission(trade);
     auto tax = calculate_tax(trade);
     if (position.volume + trade.volume > 0 && trade.price > 0) {
@@ -305,7 +299,7 @@ protected:
     double original_volume = position.volume;
     position.volume += trade.volume;
     // The market value is calculated in Book::update()
-    if (not position.last_price) {
+    if (position.last_price <= 0) {
       position.last_price = trade.price;
     }
     position.last_price = position.last_price > 0 ? position.last_price : position.avg_open_price;
@@ -318,7 +312,6 @@ protected:
     if (not position.last_price) {
       position.last_price = trade.price;
     }
-    auto &asset_margin = book->asset_margin;
     double commission = calculate_commission(trade);
     auto tax = calculate_tax(trade);
     position.frozen_total = std::max(position.frozen_total - trade.volume, VOLUME_ZERO);
@@ -333,7 +326,6 @@ protected:
 
     auto &position = book->get_position_for(trade);
     auto cd_mr = get_instr_conversion_margin_rate(book, position);
-    auto &asset_margin = book->asset_margin;
     double commission = calculate_commission(trade);
     auto tax = calculate_tax(trade);
     // Position Direction: Short

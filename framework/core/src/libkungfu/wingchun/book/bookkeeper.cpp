@@ -243,7 +243,6 @@ void Bookkeeper::try_sync_book_replica(uint32_t location_uid) {
   bool position_changed = false;
   bool asset_changed = false;
 
-
   // TODO: asset margin related compare
   auto asset_compare = [](const Asset &old_asset, const Asset &new_asset) {
     bool changed = false;

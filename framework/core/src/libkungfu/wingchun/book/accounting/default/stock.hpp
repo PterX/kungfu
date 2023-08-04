@@ -384,12 +384,6 @@ protected:
         is_equal(factor.short_margin_ratio, 0.0) ? DEFAULT_STOCK_SHORT_MARGIN_RATIO : factor.short_margin_ratio;
     return position.direction == Direction::Long ? long_margin_ratio : short_margin_ratio;
   }
-
-  [[maybe_unused]] static double roundn(double value, int n = AMOUT_PRECISION) {
-    double x = pow(10.0, (double)n);
-    double round_val = round(value * x) / x;
-    return round_val;
-  }
 };
 } // namespace kungfu::wingchun::book
 #endif // WINGCHUN_ACCOUNTING_STOCK_H

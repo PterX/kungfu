@@ -43,18 +43,18 @@ public:
       order.status = OrderStatus::Submitted;
       update_order(order);
     }
-    auto direction = get_direction(order.instrument_type, order.side, order.offset);
+    auto side = order.side;
     if (quotes_.find(hash_instrument(order.exchange_id, order.instrument_id)) == quotes_.end()) {
       return;
     }
     const auto &quote = quotes_[hash_instrument(order.exchange_id, order.instrument_id)];
-    if (direction == Direction::Long and order.limit_price > quote.ask_price[0]) {
+    if (side == Side::Buy and order.limit_price > quote.ask_price[0]) {
       Trade trade{};
       filled_order_trade(order, trade);
       trade.price = quote.ask_price[0];
       update_order(order);
       update_trade(trade);
-    } else if (direction == Direction::Short and order.limit_price < quote.bid_price[0]) {
+    } else if (side == Side::Sell and order.limit_price < quote.bid_price[0]) {
       Trade trade{};
       filled_order_trade(order, trade);
       trade.price = quote.bid_price[0];
@@ -85,15 +85,15 @@ public:
     auto order_it = orders_.begin();
     while (order_it != orders_.end()) {
       auto &order = order_it->second;
-      auto direction = get_direction(order.instrument_type, order.side, order.offset);
+      auto side = order.side;
       if (quotes_.find(hash_instrument(order.exchange_id, order.instrument_id)) == quotes_.end()) {
         order_it++;
         continue;
       }
       const auto &quote = quotes_[hash_instrument(order.exchange_id, order.instrument_id)];
 
-      if ((direction == Direction::Long and order.limit_price > quote.ask_price[0]) or
-          (direction == Direction::Short and order.limit_price < quote.bid_price[0])) {
+      if ((side == Side::Buy and order.limit_price > quote.ask_price[0]) or
+          (side == Side::Sell and order.limit_price < quote.bid_price[0])) {
         Trade trade{};
         filled_order_trade(order, trade);
         update_order(order);

@@ -50,9 +50,6 @@ exports.package = async () => {
 exports.dev = async (withWebpack) => {
   shell.verifyElectron();
   try {
-    const appDir = getAppDir();
-    const nodemodulesDir = path.join(appDir, 'node_modules');
-    fse.removeSync(nodemodulesDir);
     await require('@kungfu-trader/kungfu-app').devRun(
       ensureDir(process.cwd().toString(), 'dist'),
       'app',

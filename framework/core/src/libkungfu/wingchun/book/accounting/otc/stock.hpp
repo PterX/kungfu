@@ -7,10 +7,10 @@
 #ifndef WINGCHUN_ACCOUNTING_STOCK_LONG_SHORT_H
 #define WINGCHUN_ACCOUNTING_STOCK_LONG_SHORT_H
 
+#include "../default/stock.hpp"
 #include <exception>
 #include <kungfu/wingchun/book/accounting.h>
 #include <kungfu/wingchun/book/bookkeeper.h>
-#include "../default/stock.hpp"
 #include <math.h>
 #include <mutex>
 
@@ -24,7 +24,6 @@ namespace kungfu::wingchun::book {
 
 class OtcStockAccountingMethod : public StockAccountingMethod {
 public:
-
   OtcStockAccountingMethod() = default;
 
   void apply_trade(uint32_t source, uint32_t dest, Book_ptr &book, const Trade &trade) override {
@@ -36,7 +35,6 @@ public:
       apply_buy(book, trade, is_local);
     }
   }
-
 };
 } // namespace kungfu::wingchun::book
 #endif // WINGCHUN_ACCOUNTING_STOCK_LONG_SHORT_H

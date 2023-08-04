@@ -365,7 +365,8 @@ protected:
       cd_mr.contract_multiplier = DEFAULT_STOCK_CONTRACT_MULTIPLIER;
     } else {
       const auto &instrument = book->instruments.at(hashed_instrument_key);
-      cd_mr.contract_multiplier = instrument.contract_multiplier == 0 ? DEFAULT_STOCK_CONTRACT_MULTIPLIER : instrument.contract_multiplier;
+      cd_mr.contract_multiplier =
+          instrument.contract_multiplier == 0 ? DEFAULT_STOCK_CONTRACT_MULTIPLIER : instrument.contract_multiplier;
     }
 
     if (book->instrument_factors.find(hashed_instrument_key) == book->instrument_factors.end()) {
@@ -376,7 +377,8 @@ protected:
     } else {
       auto &factor = book->instrument_factors.at(hashed_instrument_key);
       cd_mr.margin_ratio = margin_ratio(factor, position);
-      cd_mr.conversion_rate = is_equal(factor.conversion_rate, 0.0) ? DEFAULT_STOCK_CONVERSION_RATE: factor.conversion_rate;
+      cd_mr.conversion_rate =
+          is_equal(factor.conversion_rate, 0.0) ? DEFAULT_STOCK_CONVERSION_RATE : factor.conversion_rate;
       cd_mr.exchange_rate = is_equal(factor.exchange_rate, 0.0) ? DEFAULT_STOCK_EXCHANGE_RATE : factor.exchange_rate;
     }
 
@@ -384,8 +386,10 @@ protected:
   }
 
   static double margin_ratio(const InstrumentFactor &factor, const Position &position) {
-    auto long_margin_ratio = is_equal(factor.long_margin_ratio, 0.0) ? DEFAULT_STOCK_LONG_MARGIN_RATIO : factor.long_margin_ratio;
-    auto short_margin_ratio = is_equal(factor.short_margin_ratio, 0.0) ? DEFAULT_STOCK_SHORT_MARGIN_RATIO : factor.short_margin_ratio;
+    auto long_margin_ratio =
+        is_equal(factor.long_margin_ratio, 0.0) ? DEFAULT_STOCK_LONG_MARGIN_RATIO : factor.long_margin_ratio;
+    auto short_margin_ratio =
+        is_equal(factor.short_margin_ratio, 0.0) ? DEFAULT_STOCK_SHORT_MARGIN_RATIO : factor.short_margin_ratio;
     return position.direction == Direction::Long ? long_margin_ratio : short_margin_ratio;
   }
 

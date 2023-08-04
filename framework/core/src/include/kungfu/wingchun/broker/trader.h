@@ -237,8 +237,6 @@ public:
 protected:
   void react() override;
 
-  void on_react() override;
-
   void on_start() override;
 
   void on_write_to(const event_ptr &event) override;

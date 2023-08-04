@@ -18,6 +18,7 @@ using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::journal;
 
 namespace kungfu::wingchun::broker {
+
 bool Trader::insert_algo_order(const event_ptr &event) {
   auto writer = get_writer(event->source());
   auto &algo_order_input = event->data<longfist::types::AlgoOrderInput>();

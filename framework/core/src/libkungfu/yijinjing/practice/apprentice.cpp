@@ -207,7 +207,7 @@ void apprentice::on_read_from_sync(const event_ptr &event) { do_read_from<Reques
 void apprentice::on_write_to(const event_ptr &event) {
   auto dest_id = event->data<RequestWriteTo>().dest_id;
   if (writers_.find(dest_id) == writers_.end()) {
-    writers_.insert_or_assign(dest_id, get_io_device()->open_writer(dest_id));
+    writers_.emplace(dest_id, get_io_device()->open_writer(dest_id));
   }
 }
 
@@ -216,7 +216,7 @@ void apprentice::on_write_to_band(const event_ptr &event) {
   auto dest_id = request.location_uid;
   auto page_size = request.page_size;
   if (writers_.find(dest_id) == writers_.end()) {
-    writers_.insert_or_assign(dest_id, get_io_device()->open_writer(dest_id, page_size));
+    writers_.emplace(dest_id, get_io_device()->open_writer(dest_id, page_size));
   }
 }
 

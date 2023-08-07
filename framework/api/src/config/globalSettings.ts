@@ -220,9 +220,9 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
         ],
       },
       {
-        key: 'assetMargin',
-        name: t('globalSettingConfig.asset_margin'),
-        tip: t('globalSettingConfig.show_asset_margin'),
+        key: 'marginTrading',
+        name: t('globalSettingConfig.margin_trading'),
+        tip: t('globalSettingConfig.show_margin_trading'),
         default: false,
         type: 'bool',
       },

@@ -14,7 +14,7 @@ export const getColumns = (
   marginSorter: (
     dataIndex: string,
   ) => (a: KungfuApi.KfConfig, b: KungfuApi.KfConfig) => number,
-  isShowAssetMargin: boolean,
+  isShowMarginTrading: boolean,
   isShowUnrealizedPnl: boolean,
 ): AntTableColumns =>
   (globalThis.HookKeeper.getHooks().dealTradingTable as DealTradingTableHooks)
@@ -90,7 +90,7 @@ export const getColumns = (
         width: 110,
       },
 
-      ...(isShowAssetMargin
+      ...(isShowMarginTrading
         ? [
             {
               title: t('tdConfig.avail_margin'),

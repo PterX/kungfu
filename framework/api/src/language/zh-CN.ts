@@ -790,9 +790,9 @@ export default {
     order_input_key: '限制属性',
     single_price: '单笔成交价',
     limit_value: '最大值',
-    asset_margin: '两融',
+    margin_trading: '两融',
     pos_table_columns: '持仓表格项配置',
-    show_asset_margin: '展示两融',
+    show_margin_trading: '展示两融',
 
     code_editor: '代码编辑器',
     tab_space_type: '缩进类别',

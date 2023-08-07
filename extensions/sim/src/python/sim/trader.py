@@ -72,12 +72,16 @@ class TraderSim(wc.Trader):
 
         self.update_broker_state(lf.enums.BrokerState.Ready)
 
-    def update_trigger(self, dest, trigger, status):
-        trigger.update_time = yjj.now_in_nano()
-        if not wc.utils.is_final_status(status):
-            trigger.status = status
+    def update_trigger(self, dest, trigger_id, status):
+        self.logger.info(f"{trigger_id}, {status}")
+        if trigger_id in self.ctx.triggers:
+            trigger = self.ctx.triggers[trigger_id]
             self.logger.info(f"OrderTrigger: {trigger}")
-            self.get_writer(dest).write(yjj.now_in_nano(), trigger)
+            trigger.update_time = yjj.now_in_nano()
+            if not wc.utils.is_final_status(trigger.status):
+                trigger.status = status
+                self.logger.info(f"OrderTrigger: {trigger}")
+                self.get_writer(dest).write(yjj.now_in_nano(), trigger)
 
     def insert_order_trigger(self, event):
         trigger_input = event.OrderTriggerInput()
@@ -94,7 +98,7 @@ class TraderSim(wc.Trader):
         self.add_timer(
             yjj.now_in_nano() + 30 * 10**9,
             lambda e: self.update_trigger(
-                event.source, trigger, lf.enums.OrderStatus.Filled
+                event.source, trigger.trigger_id, lf.enums.OrderStatus.Filled
             ),
         )
         self.add_timer(
@@ -109,14 +113,15 @@ class TraderSim(wc.Trader):
             writer = self.get_writer(event.source)
             order_trigger_action = event.OrderTriggerAction()
             if order_trigger_action.trigger_id in self.ctx.triggers:
-                trigger = self.ctx.triggers.pop(order_trigger_action.trigger_id)
+                trigger = self.ctx.triggers[order_trigger_action.trigger_id]
                 trigger.update_time = yjj.now_in_nano()
                 trigger.status = lf.enums.OrderStatus.Cancelling
                 writer.write(event.gen_time, trigger)
+                self.logger.info(f"OrderTrigger: {trigger}")
                 self.add_timer(
                     yjj.now_in_nano() + 10 * 10**9,
                     lambda e: self.update_trigger(
-                        event.source, trigger, lf.enums.OrderStatus.Cancelled
+                        event.source, trigger.trigger_id, lf.enums.OrderStatus.Cancelled
                     ),
                 )
             return True
@@ -254,23 +259,33 @@ class TraderSim(wc.Trader):
 
         return True
 
-    def update_cancel_trigger(self, dest, trigger, status):
-        trigger.update_time = yjj.now_in_nano()
-        if not wc.utils.is_final_status(status):
-            trigger.status = lf.enums.OrderStatus.Filled
-            self.logger.info(f"OrderTrigger: {trigger}")
-            self.get_writer(dest).write(yjj.now_in_nano(), trigger)
-        if trigger.order_id in self.ctx.orders:
-            order = self.ctx.orders.pop(trigger.order_id)
-            if order.volume_left == 0:
-                return True
-            order.update_time = yjj.now_in_nano()
-            order.status = (
-                lf.enums.OrderStatus.Cancelled
-                if order.volume - order.volume_left == 0
-                else lf.enums.OrderStatus.PartialFilledNotActive
-            )
-            self.get_writer(dest).write(yjj.now_in_nano(), order)
+    def update_cancel_trigger(self, dest, trigger_id, status):
+        if trigger_id in self.ctx.triggers:
+            trigger = self.ctx.triggers[trigger_id]
+            trigger.update_time = yjj.now_in_nano()
+            if not wc.utils.is_final_status(status):
+                trigger.status = lf.enums.OrderStatus.Filled
+                self.logger.info(f"OrderTrigger: {trigger}")
+                self.get_writer(dest).write(yjj.now_in_nano(), trigger)
+            if trigger.order_id in self.ctx.orders:
+                order = self.ctx.orders.pop(trigger.order_id)
+                if order.volume_left == 0:
+                    return True
+                order.update_time = yjj.now_in_nano()
+                order.status = (
+                    lf.enums.OrderStatus.Cancelled
+                    if order.volume - order.volume_left == 0
+                    else lf.enums.OrderStatus.PartialFilledNotActive
+                )
+                self.get_writer(dest).write(yjj.now_in_nano(), order)
+
+    def update_order(self, dest, order_id, status):
+        if order_id in self.ctx.orders:
+            order = self.ctx.orders[order_id]
+            if not wc.utils.is_final_status(order.status):
+                order.update_time = yjj.now_in_nano()
+                order.status = status
+                self.get_writer(dest).write(order.update_time, order)
 
     def cancel_order(self, event):
         if self.match_mode == MatchMode.Custom:
@@ -279,18 +294,27 @@ class TraderSim(wc.Trader):
             writer = self.get_writer(event.source)
             order_action = event.OrderAction()
             if order_action.order_id in self.ctx.orders:
-                order = self.ctx.orders.pop(order_action.order_id)
+                # order = self.ctx.orders.pop(order_action.order_id)
+                order = self.ctx.orders[order_action.order_id]
                 self.logger.info(f"Order: {order}")
                 if order_action.action_flag == lf.enums.OrderActionFlag.Cancel:
-                    if order.volume_left == 0:
+                    if wc.utils.is_final_status(order.status):
                         return True
                     order.update_time = yjj.now_in_nano()
-                    order.status = (
+                    order.status = lf.enums.OrderStatus.Cancelling
+                    writer.write(event.gen_time, order)
+                    status = (
                         lf.enums.OrderStatus.Cancelled
                         if order.volume - order.volume_left == 0
                         else lf.enums.OrderStatus.PartialFilledNotActive
                     )
-                    writer.write(event.gen_time, order)
+                    self.add_timer(
+                        yjj.now_in_nano() + 5 * 10**9,
+                        lambda e: self.update_order(
+                            event.source, order.order_id, status
+                        ),
+                    )
+
                 if order_action.action_flag == lf.enums.OrderActionFlag.TriggerCancel:
                     trigger = wc.utils.order_trigger_from_order(order)
                     trigger.insert_time = yjj.now_in_nano()

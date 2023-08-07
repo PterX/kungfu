@@ -125,31 +125,6 @@ KF_DEFINE_PACK_TYPE(                         //
     (double, collateral_ratio) // 担保比例
 );
 
-KF_DEFINE_PACK_TYPE(                               //
-    AssetMargin, 102, PK(holder_uid), PERPETUAL(), //
-    (int64_t, update_time),                        // 更新时间
-
-    (uint32_t, holder_uid),                   //
-    (enums::LedgerCategory, ledger_category), //
-
-    (double, total_asset),  // 总资产
-    (double, avail_margin), // 可用保证金
-    (double, cash_margin),  // 融资占用保证金
-    (double, short_margin), // 融券占用保证金
-    (double, margin),       // 总占用保证金
-
-    (double, cash_debt),  // 融资负债
-    (double, short_cash), // 融券卖出金额
-
-    (double, short_market_value),  // 融券卖出证券市值
-    (double, margin_market_value), // 融资买入证券市值
-    (double, margin_interest),     // 融资融券利息
-    (double, settlement),          // 融资融券清算资金
-
-    (double, credit),          // 信贷额度
-    (double, collateral_ratio) // 担保比例
-);
-
 KF_DEFINE_PACK_TYPE(                                                                                 //
     Position, 103, PK(holder_uid, instrument_id, exchange_id, source_op_id, direction), PERPETUAL(), //
     (int64_t, update_time),                                                                          // 更新时间

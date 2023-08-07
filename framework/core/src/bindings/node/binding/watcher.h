@@ -101,6 +101,8 @@ public:
 
   Napi::Value CancelAlgoOrder(const Napi::CallbackInfo &info);
 
+  Napi::Value CancelOrderTrigger(const Napi::CallbackInfo &info);
+
   Napi::Value RequestMarketData(const Napi::CallbackInfo &info);
 
   Napi::Value Start(const Napi::CallbackInfo &info);
@@ -275,7 +277,6 @@ private:
       state<kungfu::longfist::types::Asset> cache_state_asset(source, dest, event->gen_time(), book->asset);
       feed_state_data_bank(cache_state_asset, data_bank_);
     };
-
     update(event->source(), event->dest());
     update(event->dest(), event->source());
   }
@@ -326,6 +327,7 @@ private:
   std::enable_if_t<not std::is_same_v<TradingData, longfist::types::OrderTriggerInput> and
                    not std::is_same_v<TradingData, longfist::types::OrderInput> and
                    not std::is_same_v<TradingData, longfist::types::BasketOrder> and
+                   not std::is_same_v<TradingData, longfist::types::OrderTriggerInput> and
                    not std::is_same_v<TradingData, longfist::types::AlgoOrderInput>>
   UpdateBook(uint32_t source, uint32_t dest, const TradingData &data) {}
 

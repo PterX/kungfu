@@ -1,11 +1,7 @@
 {
   "name": "@kungfu-trader/examples-operator-python",
   "author": "kungfu-trader",
-<<<<<<< HEAD
   "version": "2.6.1-alpha.11",
-=======
-  "version": "2.5.3-alpha.1",
->>>>>>> 2b6710193adcb36d2c37edb5b1f06a8999f97dd1
   "description": "KungFu Operator 101 - Python Demo",
   "license": "Apache-2.0",
   "private": true,
@@ -19,10 +15,6 @@
     "format": "node ../../framework/core/.gyp/run-format-python.js src"
   },
   "devDependencies": {
-<<<<<<< HEAD
     "@kungfu-trader/kungfu-sdk": "^2.6.1-alpha.11"
-=======
-    "@kungfu-trader/kungfu-sdk": "^2.5.3-alpha.1"
->>>>>>> 2b6710193adcb36d2c37edb5b1f06a8999f97dd1
   }
 }

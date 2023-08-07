@@ -4,11 +4,7 @@
     "name": "Kungfu Trader",
     "email": "info@kungfu.link"
   },
-<<<<<<< HEAD
   "version": "2.6.1-alpha.11",
-=======
-  "version": "2.5.3-alpha.1",
->>>>>>> 2b6710193adcb36d2c37edb5b1f06a8999f97dd1
   "description": "Kungfu Javascript/Typescript API",
   "license": "Apache-2.0",
   "repository": {
@@ -36,11 +32,7 @@
   },
   "dependencies": {
     "@fast-csv/format": "^4.3.5",
-<<<<<<< HEAD
     "@kungfu-trader/kungfu-core": "^2.6.1-alpha.11",
-=======
-    "@kungfu-trader/kungfu-core": "^2.5.3-alpha.1",
->>>>>>> 2b6710193adcb36d2c37edb5b1f06a8999f97dd1
     "cfonts": "^2.10.0",
     "chalk": "^4.1.0",
     "fast-csv": "^4.3.5",

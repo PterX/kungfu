@@ -102,7 +102,6 @@ export const dealTradingDataItem = (
   watcher: KungfuApi.Watcher | null,
   isShowOrigin = false,
 ): Record<string, string | number | bigint> => {
-  console.log(item, '````````````````````');
   const itemResolved = { ...item } as Record<string, string | number | bigint>;
   const instrument_type =
     'instrument_type' in item
@@ -933,6 +932,22 @@ export const dealOrderTrigger = (
   );
   const destResolvedData = resolveClientId(watcher, order.dest);
   const statusData = dealOrderTriggerStatus(order.status, order.error_msg);
+  switch (index) {
+    case 0:
+      order.status = 1;
+      break;
+    case 1:
+      order.status = 2;
+      break;
+    case 2:
+      order.status = 5;
+      break;
+    case 3:
+      order.status = 3;
+      break;
+    default:
+      break;
+  }
   return {
     ...order,
     source: order.source,

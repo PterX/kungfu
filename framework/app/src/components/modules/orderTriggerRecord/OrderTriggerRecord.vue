@@ -360,7 +360,11 @@ function handleCancelAllOrderTrigger() {
     return;
   }
 
-  if (selectedRows.value.length === 0) return;
+  const orders = selectedRows.value.filter((item) => {
+    return orderTriggerCanBeCancel(item);
+  });
+
+  if (orders.length === 0) return;
 
   const name = getIdByKfLocation(currentGlobalKfLocation.value);
 
@@ -376,7 +380,7 @@ function handleCancelAllOrderTrigger() {
 
     return kfCancelAllOrdersTrigger(
       window.watcher,
-      selectedRows.value,
+      orders,
       currentGlobalKfLocation.value,
     )
       .then(() => {

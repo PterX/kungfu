@@ -127,6 +127,7 @@ function handleOpenSetOperatorDialog(
 ) {
   setOperatorConfigPayload.value.type = type;
   setOperatorConfigPayload.value.config = setOperatorConfig;
+  setOperatorConfigPayload.value.title = t('operatorConfig.operator');
   setOperatorConfigPayload.value.initValue = undefined;
 
   if (type === 'update' && operatorConfig) {

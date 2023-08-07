@@ -62,8 +62,8 @@ const { success, error } = messagePrompt();
 const handleSwitchProcessStatus = handleSwitchProcessStatusGenerator();
 const { dashboardBodyHeight, handleBodySizeChange } = useDashboardBodySize();
 const { globalSetting } = storeToRefs(useGlobalStore());
-const isShowAssetMargin = computed(() => {
-  return !!globalSetting.value?.trade?.assetMargin;
+const isShowMarginTrading = computed(() => {
+  return !!globalSetting.value?.trade?.marginTrading;
 });
 
 globalThis.HookKeeper.getHooks().dealTradingData.register(
@@ -209,7 +209,7 @@ const columns = computed(() => {
       },
       sorter,
       marginSorter,
-      isShowAssetMargin.value,
+      isShowMarginTrading.value,
       isShowUnrealizedPnl.value,
     );
   }
@@ -218,7 +218,7 @@ const columns = computed(() => {
     currentGlobalKfLocation.value,
     sorter,
     marginSorter,
-    isShowAssetMargin.value,
+    isShowMarginTrading.value,
     isShowUnrealizedPnl.value,
   );
 });
@@ -679,7 +679,9 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
             ></KfBlinkNum>
           </template>
           <template
-            v-else-if="isShowAssetMargin && column.dataIndex === 'avail_margin'"
+            v-else-if="
+              isShowMarginTrading && column.dataIndex === 'avail_margin'
+            "
           >
             <KfBlinkNum
               v-if="record.category === 'td'"
@@ -692,7 +694,7 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
             ></KfBlinkNum>
           </template>
           <template
-            v-else-if="isShowAssetMargin && column.dataIndex === 'cash_debt'"
+            v-else-if="isShowMarginTrading && column.dataIndex === 'cash_debt'"
           >
             <KfBlinkNum
               v-if="record.category === 'td'"
@@ -705,7 +707,9 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
             ></KfBlinkNum>
           </template>
           <template
-            v-else-if="isShowAssetMargin && column.dataIndex === 'total_asset'"
+            v-else-if="
+              isShowMarginTrading && column.dataIndex === 'total_asset'
+            "
           >
             <KfBlinkNum
               v-if="record.category === 'td'"
@@ -713,7 +717,7 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
               :num="dealAssetPrice(getAssetsByKfConfig(record).total_asset)"
             ></KfBlinkNum>
             <KfBlinkNum
-              v-else-if="isShowAssetMargin && record.category === 'tdGroup'"
+              v-else-if="isShowMarginTrading && record.category === 'tdGroup'"
               :num="dealAssetPrice(getAssetsByTdGroup(record).total_asset)"
             ></KfBlinkNum>
           </template>

@@ -1991,9 +1991,7 @@ export const dealStrategyStates = (
   );
 };
 
-export const dealAssetsByHolderUID = <
-  T extends KungfuApi.Asset | KungfuApi.AssetMargin,
->(
+export const dealAssetsByHolderUID = <T extends KungfuApi.Asset>(
   watcher: KungfuApi.Watcher | null,
   assets: KungfuApi.DataTable<T>,
 ): Record<string, T> => {

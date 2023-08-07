@@ -569,7 +569,12 @@ export default {
   posGlobalConfig: {
     instrument_id: 'instrument_id',
     account_id_resolved: 'account_id_resolved',
+    static_yesterday_volume: 'yesterday_volume',
+    static_yesterday_volume_setting: 'yesterday_volume(position before today)',
+    open_volume: 'open_volume',
+    close_volume: 'close_volume',
     yesterday_volume: 'yesterday_volume',
+    yesterday_volume_setting: 'yesterday_volume(yesterday volume remaining)',
     today_volume: 'today_volume',
     sum_volume: 'sum_volume',
     frozen_total: 'frozen_total',
@@ -578,6 +583,7 @@ export default {
     avg_open_price: 'avg_price',
     last_price: 'last_price',
     unrealized_pnl: 'unrealized_pnl',
+    pos_detail_header: 'Position',
   },
 
   marketDataConfig: {

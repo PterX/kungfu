@@ -45,11 +45,11 @@ export const getColumns = (): KfTradingDataTableHeaderConfig[] => [
   },
   {
     type: 'number',
-    name: t('posGlobalConfig.today_close_volume'),
-    dataIndex: 'today_close_volume',
+    name: t('posGlobalConfig.close_volume'),
+    dataIndex: 'close_volume',
     width: 80,
     align: 'right',
-    sorter: buildSorter('today_close_volume'),
+    sorter: buildSorter('close_volume'),
   },
   {
     type: 'number',

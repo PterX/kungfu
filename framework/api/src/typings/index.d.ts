@@ -138,7 +138,8 @@ declare namespace KungfuApi {
     | 'instruments'
     | 'instrumentsCsv'
     | 'csvTable'
-    | 'basket';
+    | 'basket'
+    | 'checkboxGroup';
 
   export type KfConfigValue =
     | string
@@ -876,7 +877,7 @@ declare namespace KungfuApi {
     last_price_resolved: number | string;
     avg_open_price_resolved: number | string;
     unrealized_pnl_resolved: number | string;
-    today_close_volume: number;
+    close_volume: number;
   }
 
   export interface Quote {

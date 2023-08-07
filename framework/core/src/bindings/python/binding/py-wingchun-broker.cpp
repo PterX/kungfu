@@ -156,7 +156,6 @@ void bind_broker(pybind11::module &m) {
       .def("has_algo_order", &Trader::has_algo_order)
       .def("get_algo_order", &Trader::get_algo_order)
       .def("enable_asset_sync", &Trader::enable_asset_sync)
-      .def("enable_asset_margin_sync", &Trader::enable_asset_margin_sync)
       .def("enable_positions_sync", &Trader::enable_positions_sync)
       .def("get_account_type", &Trader::get_account_type)
       .def("add_timer", &Trader::add_timer)

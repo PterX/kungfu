@@ -39,10 +39,6 @@ yijinjing::journal::writer_ptr Trader::get_asset_writer() const {
   return get_writer(sync_asset_ ? location::SYNC : location::PUBLIC);
 }
 
-yijinjing::journal::writer_ptr Trader::get_asset_margin_writer() const {
-  return get_writer(sync_asset_margin_ ? location::SYNC : location::PUBLIC);
-}
-
 yijinjing::journal::writer_ptr Trader::get_position_writer() const {
   return get_writer(sync_position_ ? location::SYNC : location::PUBLIC);
 }
@@ -120,8 +116,6 @@ const AlgoOrderActionMap &Trader::get_algo_order_actions() const {
 }
 
 void Trader::enable_asset_sync() { sync_asset_ = true; }
-
-void Trader::enable_asset_margin_sync() { sync_asset_margin_ = true; }
 
 void Trader::enable_positions_sync() { sync_position_ = true; }
 

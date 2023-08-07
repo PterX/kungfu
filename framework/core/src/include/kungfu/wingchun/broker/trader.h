@@ -317,13 +317,9 @@ public:
 
   [[nodiscard]] yijinjing::journal::writer_ptr get_asset_writer() const;
 
-  [[nodiscard]] yijinjing::journal::writer_ptr get_asset_margin_writer() const;
-
   [[nodiscard]] yijinjing::journal::writer_ptr get_position_writer() const;
 
   void enable_asset_sync();
-
-  void enable_asset_margin_sync();
 
   void enable_positions_sync();
 
@@ -374,7 +370,6 @@ protected:
 
 private:
   bool sync_asset_ = false;
-  bool sync_asset_margin_ = false;
   bool sync_position_ = false;
   uint32_t risk_uid_ = 0;
 

@@ -241,11 +241,17 @@ void Bookkeeper::try_sync_book_replica(uint32_t location_uid) {
   bool position_changed = false;
   bool asset_changed = false;
 
-  // TODO: asset margin related compare
   auto asset_compare = [](const Asset &old_asset, const Asset &new_asset) {
     bool changed = false;
-    changed |= old_asset.avail != new_asset.avail;   // 可用资金
-    changed |= old_asset.margin != new_asset.margin; // 保证金(期货)
+    changed |= old_asset.avail != new_asset.avail;               // 可用资金
+    changed |= old_asset.margin != new_asset.margin;             // 保证金(期货)
+    changed |= old_asset.total_asset != new_asset.total_asset;   // 总资产
+    changed |= old_asset.avail_margin != new_asset.avail_margin; // 可用保证金
+    changed |= old_asset.cash_margin != new_asset.cash_margin;   // 融资占用保证金
+    changed |= old_asset.short_margin != new_asset.short_margin; // 融券占用保证金
+    changed |= old_asset.margin != new_asset.margin;             // 总占用保证金
+    changed |= old_asset.cash_debt != new_asset.cash_debt;       // 融资负债
+    changed |= old_asset.short_cash != new_asset.short_cash;     // 融券卖出金额
     return changed;
   };
   asset_changed |= asset_compare(old_book->asset, new_book->asset);

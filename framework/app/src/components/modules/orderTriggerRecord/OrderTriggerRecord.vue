@@ -110,10 +110,13 @@ const getResolvedOffset = (
   return side === 0 ? 0 : 1;
 };
 
-watch(currentGlobalKfLocation, () => {
-  selectedRowKeys.value = [];
-  selectedRows.value = [];
-});
+watch(
+  () => currentGlobalKfLocation.value,
+  () => {
+    selectedRowKeys.value = [];
+    selectedRows.value = [];
+  },
+);
 
 onMounted(() => {
   if (app?.proxy) {
@@ -306,6 +309,10 @@ function handleRequestOrderTrigger() {
     })
     .catch((err: Error) => {
       error(err.message);
+    })
+    .finally(() => {
+      selectedRowKeys.value = [];
+      selectedRows.value = [];
     });
 }
 
@@ -373,23 +380,28 @@ function handleCancelAllOrderTrigger() {
     `${t('orderTriggerConfig.confirm')}${
       currentCategoryData.value?.name
     } ${name} ${t('orderTriggerConfig.cancel_all')}`,
-  ).then((flag) => {
-    if (!flag || !currentGlobalKfLocation.value || !window.watcher) {
-      return;
-    }
+  )
+    .then((flag) => {
+      if (!flag || !currentGlobalKfLocation.value || !window.watcher) {
+        return;
+      }
 
-    return kfCancelAllOrdersTrigger(
-      window.watcher,
-      orders,
-      currentGlobalKfLocation.value,
-    )
-      .then(() => {
-        success();
-      })
-      .catch((err) => {
-        error(err.message);
-      });
-  });
+      return kfCancelAllOrdersTrigger(
+        window.watcher,
+        orders,
+        currentGlobalKfLocation.value,
+      )
+        .then(() => {
+          success();
+        })
+        .catch((err) => {
+          error(err.message);
+        });
+    })
+    .finally(() => {
+      selectedRowKeys.value = [];
+      selectedRows.value = [];
+    });
 }
 
 function orderTriggerCanBeCancel(record: KungfuApi.OrderTriggerResolved) {

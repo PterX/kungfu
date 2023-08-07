@@ -782,8 +782,8 @@ export default {
     order_input_key: 'Property',
     single_price: 'Single Price',
     limit_value: 'Maximum',
-    margin_trading: 'AssetMargin',
-    show_margin_trading: 'AssetMargin Mode',
+    margin_trading: 'MarginTrading',
+    show_margin_trading: 'MarginTrading Mode',
 
     code_editor: 'Editor',
     tab_space_type: 'Indentation Category',

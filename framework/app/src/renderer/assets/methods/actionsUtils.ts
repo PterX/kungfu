@@ -742,13 +742,17 @@ export const handleExportInstrumentWhitelists = async (): Promise<void> => {
     });
 };
 
-export const showTradingDataDetail = (
-  item: KungfuApi.TradingDataTypes,
+export const showTradingDataDetail = <T extends KungfuApi.TradingDataTypes>(
+  item: T,
   typename: string,
+  filterKeys?: Array<keyof T>,
 ): Promise<boolean> => {
   const dataResolved = dealTradingDataItem(item, window.watcher);
   const vnode = Object.keys(dataResolved || {})
     .filter((key) => {
+      if (filterKeys && (filterKeys as string[]).includes(key)) {
+        return false;
+      }
       if (dataResolved[key].toString() === '[object Object]') {
         return false;
       }

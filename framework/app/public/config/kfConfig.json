@@ -18,13 +18,7 @@
     "sound": true,
     "fatFinger": 0,
     "close": 100,
-    "posTableColumns": [
-      "static_yesterday_volume",
-      "open_volume",
-      "today_close_volume",
-      "yesterday_volume",
-      "closable_volume"
-    ]
+    "posTableColumns": ["yesterday_volume", "today_volume"]
   },
   "update": { "isCheckVersion": true }
 }

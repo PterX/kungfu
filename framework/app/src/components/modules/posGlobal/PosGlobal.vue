@@ -35,6 +35,7 @@ import {
   useActiveInstruments,
   useQuote,
   useDealDataWithCaches,
+  showTradingDataDetail,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import { dealPosition } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
@@ -43,6 +44,9 @@ import {
   resolveTriggerOffset,
 } from '../pos/utils';
 import { getKfGlobalSettings } from '@kungfu-trader/kungfu-js-api/config/globalSettings';
+import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+
+const { t } = VueI18n.global;
 
 globalThis.HookKeeper.getHooks().dealTradingData.register(
   {
@@ -242,6 +246,17 @@ function tiggerOrderBookAndMakeOrder(record: KungfuApi.PositionResolved) {
   };
   triggerMakeOrder(ensuredInstrument, extraOrderInput);
 }
+
+function handleShowTradingDataDetail({
+  row,
+}: {
+  event: MouseEvent;
+  row: KungfuApi.PositionResolved;
+}) {
+  showTradingDataDetail(row, t('posGlobalConfig.pos_detail_header'), [
+    'account_id_resolved',
+  ]);
+}
 </script>
 <template>
   <div class="kf-position-global__warp kf-translateZ">
@@ -263,6 +278,7 @@ function tiggerOrderBookAndMakeOrder(record: KungfuApi.PositionResolved) {
         :item-size="28"
         :custom-row-class="dealRowClassNameResolved"
         @clickCell="handleClickRow"
+        @rightClickRow="handleShowTradingDataDetail"
       >
         <template
           #default="{
@@ -307,9 +323,9 @@ function tiggerOrderBookAndMakeOrder(record: KungfuApi.PositionResolved) {
               :num="Number(item.open_volume).kfToFixed(0)"
             ></KfBlinkNum>
           </template>
-          <template v-else-if="column.dataIndex === 'today_close_volume'">
+          <template v-else-if="column.dataIndex === 'close_volume'">
             <KfBlinkNum
-              :num="Number(item.today_close_volume).kfToFixed(0)"
+              :num="Number(item.close_volume).kfToFixed(0)"
             ></KfBlinkNum>
           </template>
           <template v-else-if="column.dataIndex === 'yesterday_volume'">

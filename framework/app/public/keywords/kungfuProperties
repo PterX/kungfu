@@ -230,7 +230,6 @@ system_clock_count
 frame_header
 page_header
 Asset
-AssetMargin
 Position
 PositionEnd
 InstrumentFactor

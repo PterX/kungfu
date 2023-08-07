@@ -964,9 +964,11 @@ export const dealPosition = (
     last_price_resolved: dealKfPrice(pos.last_price, pricePrecision),
     avg_open_price_resolved: dealKfPrice(pos.avg_open_price, pricePrecision),
     unrealized_pnl_resolved: dealAssetPrice(pos.unrealized_pnl, pricePrecision),
-    today_close_volume:
-      Number(pos.volume) -
-      Number(pos.static_yesterday_volume) -
-      Number(pos.open_volume),
+    open_volume: pos.open_volume ?? 0,
+    static_yesterday_volume: pos.static_yesterday_volume ?? 0,
+    close_volume:
+      Number(pos.open_volume) +
+        Number(pos.static_yesterday_volume) -
+        Number(pos.volume) || 0,
   };
 };

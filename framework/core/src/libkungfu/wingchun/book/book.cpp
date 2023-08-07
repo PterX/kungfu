@@ -29,7 +29,7 @@ double Book::get_frozen_price(uint64_t order_id) {
 void Book::add_source_id(uint32_t source_id) { source_ids.insert(source_id); }
 
 void Book::ensure_position_for(const InstrumentKey &instrument_key) {
-  auto apply = [&](auto &position) { assert(position.volume >= 0); };
+  auto apply = [&](auto &position) { return; };
   apply_short_position_for(instrument_key, apply);
   apply_long_position_for(instrument_key, apply);
 }

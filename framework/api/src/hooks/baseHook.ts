@@ -32,11 +32,11 @@ export class ResetOptionHook<Method, ValueType> {
 
         set(target: Record<string, Method>, prop: string, value: Method) {
           if (Reflect.has(target, prop)) {
-            kfLogger.warn(`${name} hook ${prop} already exists`);
+            kfLogger.warn(`${hookName} hook ${prop} already exists`);
             return true;
           }
 
-          kfLogger.info(`${name} hook ${prop} register success`);
+          kfLogger.info(`${hookName} hook ${prop} register success`);
           Reflect.set(target, prop, value);
           return true;
         },

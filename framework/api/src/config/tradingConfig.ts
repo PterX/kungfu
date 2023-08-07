@@ -514,14 +514,18 @@ export const OrderTriggerStatus: Record<
   },
   [OrderTriggerStatusEnum.Submitted]: {
     name: t('tradingConfig.order_trigger_status_submitted'),
-    color: 'green',
+    color: 'default',
   },
   [OrderTriggerStatusEnum.Filled]: {
     name: t('tradingConfig.order_trigger_status_filled'),
-    color: 'red',
+    color: 'green',
   },
   [OrderTriggerStatusEnum.Cancelled]: {
     name: t('tradingConfig.order_trigger_status_cancelled'),
+    color: 'red',
+  },
+  [OrderTriggerStatusEnum.Error]: {
+    name: t('tradingConfig.order_trigger_status_error'),
     color: 'red',
   },
 };

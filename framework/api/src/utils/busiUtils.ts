@@ -1129,14 +1129,26 @@ export const getMdTdKfLocationByProcessId = (
 export const getOperatorKfLocationByProcessId = (
   processId: string,
 ): KungfuApi.KfLocation | null => {
-  if (processId.split('_').length === 3) {
-    const [category, group, name] = processId.split('_');
-    return {
-      category: category as KfCategoryTypes,
-      group,
-      name,
-      mode: 'live',
-    };
+  if (processId.indexOf('operator_') === 0) {
+    const splits = processId.split('_');
+
+    if (splits.length === 3) {
+      const [category, group, name] = processId.split('_');
+      return {
+        category: category as KfCategoryTypes,
+        group,
+        name,
+        mode: 'live',
+      };
+    } else if (splits.length === 2) {
+      const [category, name] = processId.split('_');
+      return {
+        category: category as KfCategoryTypes,
+        group: 'default',
+        name,
+        mode: 'live',
+      };
+    }
   }
 
   return null;
@@ -1738,8 +1750,17 @@ export const dealParkedType = (
 
 export const dealOrderTriggerStatus = (
   orderTriggerStatus: OrderTriggerStatusEnum | number,
+  errorMsg?: string,
 ): KungfuApi.KfTradeValueCommonData => {
-  return OrderTriggerStatus[+orderTriggerStatus as OrderTriggerStatusEnum];
+  return {
+    ...OrderTriggerStatus[+orderTriggerStatus as OrderTriggerStatusEnum],
+    ...(+orderTriggerStatus === OrderTriggerStatusEnum.Error && errorMsg
+      ? {
+          name: errorMsg,
+          color: 'red',
+        }
+      : {}),
+  };
 };
 
 export const dealVolumeCondition = (

@@ -318,6 +318,7 @@ export enum OrderTriggerStatusEnum {
   Submitted = OrderStatusEnum.Submitted, // 未触发
   Filled = OrderStatusEnum.Filled, // 已触发
   Cancelled = OrderStatusEnum.Cancelled, // 已取消
+  Error = OrderStatusEnum.Error, // 错误
 }
 
 export enum FundTransEnum {

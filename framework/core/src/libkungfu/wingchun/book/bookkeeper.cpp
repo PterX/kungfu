@@ -52,8 +52,6 @@ void Bookkeeper::on_start(const rx::connectable_observable<event_ptr> &events) {
   events | is(Order::tag) | $$(update_book<Order>(event, &AccountingMethod::apply_order));
   events | is(Trade::tag) | $$(update_book<Trade>(event, &AccountingMethod::apply_trade));
   events | fork<Asset>(location::SYNC, &Bookkeeper::try_update_asset_replica, &Bookkeeper::try_update_asset);
-  events | fork<AssetMargin>(location::SYNC, &Bookkeeper::try_update_assetmargin_replica,
-                             &Bookkeeper::try_update_asset_margin);
   events | fork<Position>(location::SYNC, &Bookkeeper::try_update_position_replica, &Bookkeeper::try_update_position);
   events | fork<PositionEnd>(location::SYNC, &Bookkeeper::update_position_guard, &Bookkeeper::try_update_position_end);
   events | is(ResetBookRequest::tag) | $$(drop_book(event->source()));
@@ -118,16 +116,6 @@ void Bookkeeper::restore(const cache::bank &state_bank) {
     book->asset = asset;
     book->update(app_.now(), account_method_type_);
   }
-  for (auto &pair : state_bank[boost::hana::type_c<AssetMargin>]) {
-    auto &state = pair.second;
-    auto &asset_margin = state.data;
-    if (not app_.has_location(asset_margin.holder_uid)) {
-      continue;
-    }
-    auto book = get_book(asset_margin.holder_uid);
-    book->asset_margin = asset_margin;
-    book->update(app_.now(), account_method_type_);
-  }
 
   for (auto &pair : state_bank[boost::hana::type_c<InstrumentFactor>]) {
     auto &state = pair.second;
@@ -147,10 +135,6 @@ Book_ptr Bookkeeper::make_book(uint32_t location_uid) {
   auto &asset = book->asset;
   asset.holder_uid = location_uid;
   asset.ledger_category = location->category == category::TD ? LedgerCategory::Account : LedgerCategory::Strategy;
-  auto &asset_margin = book->asset_margin;
-  asset_margin.holder_uid = location_uid;
-  asset_margin.ledger_category =
-      location->category == category::TD ? LedgerCategory::Account : LedgerCategory::Strategy;
   return book;
 }
 
@@ -220,12 +204,6 @@ void Bookkeeper::try_update_asset(const Asset &asset) {
   }
 }
 
-void Bookkeeper::try_update_asset_margin(const AssetMargin &asset_margin) {
-  if (app_.has_location(asset_margin.holder_uid)) {
-    get_book(asset_margin.holder_uid)->asset_margin = asset_margin;
-  }
-}
-
 void Bookkeeper::try_update_position(const Position &position) {
   if (not app_.has_location(position.holder_uid)) {
     return;
@@ -249,43 +227,34 @@ void Bookkeeper::try_update_position(const Position &position) {
 }
 
 void Bookkeeper::try_sync_book_replica(uint32_t location_uid) {
-  /// sync的Asset, AssetMargin, PositionEnd都收到后才开始同步TD和策略的信息, 并使用TD的新book替换旧book
+  // sync 的 Asset, PositionEnd 都收到后才开始同步 TD 和策略的信息, 并使用 TD 的新 book 替换旧 book
   if (not books_replica_asset_guards_.try_emplace(location_uid).first->second or
-      not books_replica_position_guard_.try_emplace(location_uid).first->second or
-      not books_replica_asset_margin_guards_.try_emplace(location_uid).first->second) {
+      not books_replica_position_guard_.try_emplace(location_uid).first->second) {
     return;
   }
 
   books_replica_asset_guards_.insert_or_assign(location_uid, false);
-  books_replica_asset_margin_guards_.insert_or_assign(location_uid, false);
   books_replica_position_guard_.insert_or_assign(location_uid, false);
   auto old_book = get_book(location_uid);
   auto new_book = get_book_replica(location_uid);
 
   bool position_changed = false;
   bool asset_changed = false;
-  bool asset_margin_changed = false;
 
   auto asset_compare = [](const Asset &old_asset, const Asset &new_asset) {
     bool changed = false;
-    changed |= old_asset.avail != new_asset.avail;   // 可用资金
-    changed |= old_asset.margin != new_asset.margin; // 保证金(期货)
+    changed |= old_asset.avail != new_asset.avail;               // 可用资金
+    changed |= old_asset.margin != new_asset.margin;             // 保证金(期货)
+    changed |= old_asset.total_asset != new_asset.total_asset;   // 总资产
+    changed |= old_asset.avail_margin != new_asset.avail_margin; // 可用保证金
+    changed |= old_asset.cash_margin != new_asset.cash_margin;   // 融资占用保证金
+    changed |= old_asset.short_margin != new_asset.short_margin; // 融券占用保证金
+    changed |= old_asset.margin != new_asset.margin;             // 总占用保证金
+    changed |= old_asset.cash_debt != new_asset.cash_debt;       // 融资负债
+    changed |= old_asset.short_cash != new_asset.short_cash;     // 融券卖出金额
     return changed;
   };
   asset_changed |= asset_compare(old_book->asset, new_book->asset);
-
-  auto asset_margin_compare = [](const AssetMargin &old_asset_margin, const AssetMargin &new_asset_margin) {
-    bool changed = false;
-    changed |= old_asset_margin.total_asset != new_asset_margin.total_asset;   // 总资产
-    changed |= old_asset_margin.avail_margin != new_asset_margin.avail_margin; // 可用保证金
-    changed |= old_asset_margin.cash_margin != new_asset_margin.cash_margin;   // 融资占用保证金
-    changed |= old_asset_margin.short_margin != new_asset_margin.short_margin; // 融券占用保证金
-    changed |= old_asset_margin.margin != new_asset_margin.margin;             // 总占用保证金
-    changed |= old_asset_margin.cash_debt != new_asset_margin.cash_debt;       // 融资负债
-    changed |= old_asset_margin.short_cash != new_asset_margin.short_cash;     // 融券卖出金额
-    return changed;
-  };
-  asset_margin_changed |= asset_margin_compare(old_book->asset_margin, new_book->asset_margin);
 
   auto position_compare = [](const PositionMap &position_map, Book_ptr &target_book) {
     bool changed = false;
@@ -317,18 +286,6 @@ void Bookkeeper::try_sync_book_replica(uint32_t location_uid) {
     }
   }
 
-  /// position_changed更新book也会修改asset信息,
-  /// on_asset_margin_sync_reset仅在asset_margin改变而position不改变的情况下调用
-  if (asset_margin_changed and not position_changed) {
-    AssetMargin old_asset_margin = {};
-    longfist::copy(old_asset_margin, old_book->asset_margin);       // old_asset_margin拷贝一份用于回调返回
-    longfist::copy(old_book->asset_margin, new_book->asset_margin); // new_asset_margin替换掉old_asset_margin
-
-    for (auto &book_listener : book_listeners_) {
-      book_listener->on_asset_margin_sync_reset(old_asset_margin, new_book->asset_margin);
-    }
-  }
-
   /// position改变更新book，包括asset和position都更新并回调on_position_sync_reset
   if (position_changed) {
     /// 先进行td_book的替换, 否则下面mirror_position还是只会拿到旧的数据
@@ -348,14 +305,6 @@ void Bookkeeper::try_update_asset_replica(const longfist::types::Asset &asset) {
     get_book_replica(asset.holder_uid)->asset = asset;
     books_replica_asset_guards_.insert_or_assign(asset.holder_uid, true);
     try_sync_book_replica(asset.holder_uid);
-  }
-}
-
-void Bookkeeper::try_update_assetmargin_replica(const longfist::types::AssetMargin &asset_margin) {
-  if (app_.has_location(asset_margin.holder_uid)) {
-    get_book_replica(asset_margin.holder_uid)->asset_margin = asset_margin;
-    books_replica_asset_margin_guards_.insert_or_assign(asset_margin.holder_uid, true);
-    try_sync_book_replica(asset_margin.holder_uid);
   }
 }
 

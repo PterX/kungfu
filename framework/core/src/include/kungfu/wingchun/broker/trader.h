@@ -237,8 +237,6 @@ public:
 protected:
   void react() override;
 
-  void on_react() override;
-
   void on_start() override;
 
   void on_write_to(const event_ptr &event) override;
@@ -315,22 +313,13 @@ public:
 
   void on_risk_setting();
 
-  /// 此函数自动发送一个空的AssetMargin数据. 两融柜台需要发送一个存有数据的AssetMargin, 请override此函数取消写入.
-  /// 并且在使用writer写入完AssetMargin之后调用enable_asset_margin_sync()函数.
-  /// 非两融柜台想要取消日志输出请override此函数.
-  virtual bool write_default_asset_margin();
-
   [[maybe_unused]] [[nodiscard]] const std::string &get_account_id() const;
 
   [[nodiscard]] yijinjing::journal::writer_ptr get_asset_writer() const;
 
-  [[nodiscard]] yijinjing::journal::writer_ptr get_asset_margin_writer() const;
-
   [[nodiscard]] yijinjing::journal::writer_ptr get_position_writer() const;
 
   void enable_asset_sync();
-
-  void enable_asset_margin_sync();
 
   void enable_positions_sync();
 
@@ -381,7 +370,6 @@ protected:
 
 private:
   bool sync_asset_ = false;
-  bool sync_asset_margin_ = false;
   bool sync_position_ = false;
   uint32_t risk_uid_ = 0;
 

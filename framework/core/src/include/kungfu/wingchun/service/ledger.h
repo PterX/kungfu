@@ -123,7 +123,6 @@ private:
     auto apply = [&](auto &position) { write_to(trigger_time, position, book_uid); };
     book->apply_position_for(data, apply);
     write_to(trigger_time, book->asset, book_uid);
-    write_to(trigger_time, book->asset_margin, book_uid);
   }
 };
 } // namespace kungfu::wingchun::service

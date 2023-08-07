@@ -40,7 +40,6 @@ struct Book {
   const InstrumentMap &instruments;
   InstrumentFactorMap instrument_factors = {};
   longfist::types::Asset asset = {};
-  longfist::types::AssetMargin asset_margin = {};
   PositionMap long_positions = {};
   PositionMap short_positions = {};
   std::unordered_set<uint32_t> source_ids = {};

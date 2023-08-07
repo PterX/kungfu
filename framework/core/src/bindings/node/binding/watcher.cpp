@@ -777,9 +777,6 @@ void Watcher::UpdateAsset(const event_ptr &event, uint32_t book_uid) {
   auto book = bookkeeper_.get_book(book_uid);
   state<Asset> cache_state_asset(ledger_home_location_->uid, book_uid, event->gen_time(), book->asset);
   feed_state_data_bank(cache_state_asset, data_bank_);
-  state<AssetMargin> cache_state_asset_margin(ledger_home_location_->uid, book_uid, event->gen_time(),
-                                              book->asset_margin);
-  feed_state_data_bank(cache_state_asset_margin, data_bank_);
 }
 
 void Watcher::UpdateBook(const event_ptr &event, const Quote &quote) {
@@ -799,8 +796,6 @@ void Watcher::UpdateBook(const event_ptr &event, const Quote &quote) {
 
     state<Asset> cache_state_asset(ledger_uid, holder_uid, event->gen_time(), book->asset);
     feed_state_data_bank(cache_state_asset, data_bank_);
-    state<AssetMargin> cache_state_asset_margin(ledger_uid, holder_uid, event->gen_time(), book->asset_margin);
-    feed_state_data_bank(cache_state_asset_margin, data_bank_);
   }
 }
 
@@ -823,14 +818,6 @@ void Watcher::BookListener::on_asset_sync_reset(const Asset &old_asset, const As
   auto book = watcher_.bookkeeper_.get_book(new_asset.holder_uid);
   state<Asset> cache_state(watcher_.ledger_home_location_->uid, book->asset.holder_uid, book->asset.update_time,
                            book->asset);
-  watcher_.feed_state_data_bank(cache_state, watcher_.data_bank_);
-}
-
-void Watcher::BookListener::on_asset_margin_sync_reset(const AssetMargin &old_asset_margin,
-                                                       const AssetMargin &new_asset_margin) {
-  auto book = watcher_.bookkeeper_.get_book(new_asset_margin.holder_uid);
-  state<AssetMargin> cache_state(watcher_.ledger_home_location_->uid, book->asset_margin.holder_uid,
-                                 book->asset_margin.update_time, book->asset_margin);
   watcher_.feed_state_data_bank(cache_state, watcher_.data_bank_);
 }
 

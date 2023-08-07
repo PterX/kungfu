@@ -81,11 +81,6 @@ void TraderVendor::react() {
   apprentice::react();
 }
 
-void TraderVendor::on_react() {
-  events_ | is(ResetBookRequest::tag) |
-      $([&](const event_ptr &event) { get_writer(location::PUBLIC)->mark(now(), ResetBookRequest::tag); });
-}
-
 void TraderVendor::on_start() {
   BrokerVendor::on_start();
 
@@ -108,6 +103,8 @@ void TraderVendor::on_start() {
   events_ | is(PositionSync::tag) | $$(service_->on_position_sync());
   events_ | is(Band::tag) | $$(service_->on_band(event));
   events_ | is(TimeKeyValue::tag) | $$(service_->on_time_key_value(event));
+  events_ | is(ResetBookRequest::tag) |
+      $([&](const event_ptr &event) { get_writer(location::PUBLIC)->mark(now(), ResetBookRequest::tag); });
   events_ | is(Deregister::tag) | $$(service_->on_strategy_exit(event));
 
   service_->on_risk_setting();

@@ -892,6 +892,8 @@ declare namespace KungfuApi {
     direction: DirectionEnum; //持仓方向
 
     volume: bigint; //数量
+    static_yesterday_volume: bigint; // 固定昨仓数量
+    open_volume: bigint; // 今开数量
     yesterday_volume: bigint; //昨仓数量
     frozen_total: bigint; //冻结数量
     frozen_yesterday: bigint; //冻结昨仓
@@ -921,6 +923,7 @@ declare namespace KungfuApi {
     last_price_resolved: number | string;
     avg_open_price_resolved: number | string;
     unrealized_pnl_resolved: number | string;
+    today_close_volume: number;
   }
 
   export interface Quote {

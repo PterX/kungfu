@@ -1,7 +1,15 @@
 {
   "name": "@kungfu-trader/kfx-operator-bar",
+<<<<<<< HEAD
   "author": "kungfu-trader",
   "version": "2.6.1-alpha.11",
+=======
+  "author": {
+    "name": "Kungfu Trader",
+    "email": "info@kungfu.link"
+  },
+  "version": "2.5.3-alpha.1",
+>>>>>>> 2b6710193adcb36d2c37edb5b1f06a8999f97dd1
   "description": "KungFu Operator for Bar Data",
   "license": "Apache-2.0",
   "main": "package.json",
@@ -26,10 +34,17 @@
     "format": "node ../../framework/core/.gyp/run-format-cpp.js src"
   },
   "dependencies": {
+<<<<<<< HEAD
     "@kungfu-trader/kungfu-core": "^2.6.1-alpha.11"
   },
   "devDependencies": {
     "@kungfu-trader/kungfu-sdk": "^2.6.1-alpha.11"
+=======
+    "@kungfu-trader/kungfu-core": "^2.5.3-alpha.1"
+  },
+  "devDependencies": {
+    "@kungfu-trader/kungfu-sdk": "^2.5.3-alpha.1"
+>>>>>>> 2b6710193adcb36d2c37edb5b1f06a8999f97dd1
   },
   "kungfuConfig": {
     "key": "bar",

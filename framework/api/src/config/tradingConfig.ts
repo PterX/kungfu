@@ -1052,7 +1052,6 @@ export const ExportTradingDataColumnsToFilter: Record<
   Trade: [],
   Order: [],
   Instrument: ['product_id', 'dest', 'source'],
-  AssetMargin: ['dest', 'source'],
   Asset: ['dest', 'source'],
   OrderInput: [],
   OrderStat: ['dest', 'source'],

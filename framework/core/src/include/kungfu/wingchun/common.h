@@ -474,25 +474,25 @@ inline std::string get_exchange_id_from_future_instrument_id(const std::string &
   if (product == "c" || product == "cs" || product == "a" || product == "b" || product == "m" || product == "y" ||
       product == "p" || product == "fb" || product == "bb" || product == "jd" || product == "rr" || product == "l" ||
       product == "v" || product == "pp" || product == "j" || product == "jm" || product == "i" || product == "eg" ||
-      product == "eb") {
+      product == "eb" || product == "pg" || product == "lh") {
     return EXCHANGE_DCE;
   } else if (product == "wh" || product == "pm" || product == "cf" || product == "sr" || product == "oi" ||
              product == "ri" || product == "rs" || product == "rm" || product == "jr" || product == "lr" ||
              product == "cy" || product == "ap" || product == "cj" || product == "ta" || product == "ma" ||
              product == "zc" || product == "sf" || product == "sm" || product == "ur" || product == "fg" ||
-             product == "sa") {
+             product == "sa" || product == "pf" || product == "pk") {
     return EXCHANGE_CZCE;
   } else if (product == "cu" || product == "al" || product == "zn" || product == "pb" || product == "ni" ||
              product == "sn" || product == "au" || product == "ag" || product == "rb" || product == "wr" ||
              product == "hc" || product == "ss" || product == "fu" || product == "bu" || product == "ru" ||
-             product == "nr" || product == "sp") {
+             product == "sp" || product == "ao" || product == "br") {
     return EXCHANGE_SHFE;
   } else if (product == "if" || product == "ic" || product == "ih" || product == "ts" || product == "tf" ||
-             product == "t") {
+             product == "tl" || product == "t" || product == "im") {
     return EXCHANGE_CFFEX;
-  } else if (product == "sc") {
+  } else if (product == "sc" || product == "bc" || product == "lu" || product == "nr") {
     return EXCHANGE_INE;
-  } else if (product == "si") {
+  } else if (product == "si" || product == "lc") {
     return EXCHANGE_GFEX;
   } else {
     return "";
@@ -662,9 +662,7 @@ inline void order_trigger_from_order(const longfist::types::Order &order, longfi
   trigger.limit_price = order.limit_price;
   trigger.frozen_price = order.frozen_price;
   trigger.volume = order.volume;
-
   trigger.status = longfist::enums::OrderStatus::Pending;
-
   trigger.side = order.side;
   trigger.offset = order.offset;
   trigger.is_swap = order.is_swap;
@@ -674,6 +672,23 @@ inline void order_trigger_from_order(const longfist::types::Order &order, longfi
   trigger.time_condition = order.time_condition;
   trigger.trigger_type = longfist::enums::OrderTriggerType::ParkedOrder;
   trigger.action_flag = longfist::enums::OrderTriggerFlag::TriggerCancel;
+}
+
+inline void order_input_from_trigger_order(const longfist::types::OrderTriggerInput &trigger_input,
+                                           longfist::types::OrderInput &order_input) {
+  order_input.order_id = trigger_input.trigger_id;
+  strcpy(order_input.instrument_id, trigger_input.instrument_id);
+  strcpy(order_input.exchange_id, trigger_input.exchange_id);
+  order_input.instrument_type = trigger_input.instrument_type;
+  order_input.limit_price = trigger_input.limit_price;
+  order_input.frozen_price = trigger_input.frozen_price;
+  order_input.volume = trigger_input.volume;
+  order_input.side = trigger_input.side;
+  order_input.offset = trigger_input.offset;
+  order_input.is_swap = trigger_input.is_swap;
+  order_input.hedge_flag = trigger_input.hedge_flag;
+  order_input.price_type = trigger_input.price_type;
+  order_input.volume_condition = trigger_input.volume_condition;
 }
 
 inline void algo_order_from_input(const longfist::types::AlgoOrderInput &algo_order_input,

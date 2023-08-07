@@ -3,6 +3,7 @@ import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/publi
 import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
 
 import {
+  confirmModal,
   messagePrompt,
   useDashboardBodySize,
   useTableSearchKeyword,
@@ -14,20 +15,30 @@ import {
   isShotable,
   getProcessIdByKfLocation,
   transformSearchInstrumentResultToInstrument,
+  getIdByKfLocation,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 
 import {
+  showTradingDataDetail,
   useCurrentGlobalKfLocation,
   useExtConfigsRelated,
   useProcessStatusDetailData,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
-import { getCurrentInstance, onBeforeUnmount, onMounted, ref } from 'vue';
+import {
+  getCurrentInstance,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  watch,
+} from 'vue';
 import {
   dealOrderTrigger,
   longfist,
   kfOrderTrigger,
   kfRefreshOrderTrigger,
   hashInstrumentUKey,
+  kfCancelOriderTrigger,
+  kfCancelAllOrdersTrigger,
 } from '@kungfu-trader/kungfu-js-api/kungfu';
 import KfSetByConfigModal from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfSetByConfigModal.vue';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
@@ -39,8 +50,15 @@ import {
   SideEnum,
   TimeConditionEnum,
   OrderTriggerTypeEnum,
+  OrderTriggerStatusEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
-import { ReloadOutlined } from '@ant-design/icons-vue';
+import {
+  ReloadOutlined,
+  CloseOutlined,
+  LoadingOutlined,
+} from '@ant-design/icons-vue';
+import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
+import { OrderTriggerCancelStatus } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 
 interface csvOrderInput {
   limit_price: string;
@@ -60,6 +78,7 @@ const { dashboardBodyHeight, handleBodySizeChange } = useDashboardBodySize();
 const { processStatusData } = useProcessStatusDetailData();
 const app = getCurrentInstance();
 const { extConfigs } = useExtConfigsRelated();
+const { instrumentsMap } = useGlobalStore();
 
 const {
   currentGlobalKfLocation,
@@ -68,6 +87,8 @@ const {
 } = useCurrentGlobalKfLocation(window.watcher);
 const columns = getColumns();
 
+const selectedRowKeys = ref<number[]>([]);
+const selectedRows = ref<KungfuApi.OrderTriggerResolved[]>([]);
 const tableDataResolved = ref<KungfuApi.OrderTriggerResolved[]>([]);
 const batchOrderTriggerVisble = ref<boolean>(false);
 const batchOrderTriggerConfigPayload = ref<KungfuApi.SetKfConfigPayload>({
@@ -89,6 +110,14 @@ const getResolvedOffset = (
   return side === 0 ? 0 : 1;
 };
 
+watch(
+  () => currentGlobalKfLocation.value,
+  () => {
+    selectedRowKeys.value = [];
+    selectedRows.value = [];
+  },
+);
+
 onMounted(() => {
   if (app?.proxy) {
     const subscription = app.proxy.$tradingDataSubject.subscribe(
@@ -103,8 +132,8 @@ onMounted(() => {
           .filter('source', source)
           .list();
 
-        tableDataResolved.value = orderTriggerData.map((item) => {
-          return dealOrderTrigger(window.watcher, item);
+        tableDataResolved.value = orderTriggerData.map((item, index) => {
+          return dealOrderTrigger(window.watcher, item, false, 4, index);
         });
       },
     );
@@ -126,6 +155,15 @@ const { searchKeyword, tableData } =
     'dest_uname',
     'status',
   ]);
+
+const customRow = (row: KungfuApi.OrderTriggerResolved) => {
+  return {
+    onMousedown: (e: MouseEvent) => {
+      if (e.button !== 2) return;
+      showTradingDataDetail(row, t('tradingConfig.order_trigger'));
+    },
+  };
+};
 
 function handleBatchModal() {
   if (
@@ -189,8 +227,9 @@ function handleConfirmBatchOrderTrigger(csvData: csvOrderInput[]) {
       ) as KungfuApi.InstrumentResolved;
 
     const ukey = hashInstrumentUKey(instrumentId, exchangeId);
-    const instrumentResolved = (window.watcher as KungfuApi.Watcher)?.ledger
-      ?.Instrument?.[ukey];
+    const instrumentResolved =
+      (window.watcher as KungfuApi.Watcher)?.ledger?.Instrument?.[ukey] ||
+      instrumentsMap[ukey];
 
     if (!instrumentResolved || instrumentType !== InstrumentTypeEnum.future) {
       notFutureRow.push(index + 1);
@@ -270,7 +309,103 @@ function handleRequestOrderTrigger() {
     })
     .catch((err: Error) => {
       error(err.message);
+    })
+    .finally(() => {
+      selectedRowKeys.value = [];
+      selectedRows.value = [];
     });
+}
+
+function onSelectChange(
+  rowsKeys: number[],
+  rows: KungfuApi.OrderTriggerResolved[],
+) {
+  selectedRowKeys.value = rowsKeys;
+  selectedRows.value = rows;
+}
+
+function getCheckboxProps(record) {
+  return {
+    disabled: !orderTriggerCanBeCancel(record),
+  };
+}
+
+function handleCancelOrderTrigger(
+  orderTrigger: KungfuApi.OrderTriggerResolved,
+) {
+  if (!currentGlobalKfLocation.value || !window.watcher) {
+    error();
+    return;
+  }
+
+  if (!orderTriggerCanBeCancel(orderTrigger)) {
+    return;
+  }
+
+  kfCancelOriderTrigger(
+    window.watcher,
+    orderTrigger,
+    currentGlobalKfLocation.value,
+  )
+    .then(() => {
+      success();
+    })
+    .catch(() => {
+      error();
+    });
+}
+
+function handleCancelAllOrderTrigger() {
+  if (!currentGlobalKfLocation.value || !window.watcher) {
+    error();
+    return;
+  }
+
+  const tdProcessId = getProcessIdByKfLocation(currentGlobalKfLocation.value);
+  if (processStatusData.value[tdProcessId] !== 'online') {
+    error(t('tradingConfig.start_process', { process: tdProcessId }));
+    return;
+  }
+
+  const orders = selectedRows.value.filter((item) => {
+    return orderTriggerCanBeCancel(item);
+  });
+
+  if (orders.length === 0) return;
+
+  const name = getIdByKfLocation(currentGlobalKfLocation.value);
+
+  confirmModal(
+    t('orderTriggerConfig.confirm_cancel_all'),
+    `${t('orderTriggerConfig.confirm')}${
+      currentCategoryData.value?.name
+    } ${name} ${t('orderTriggerConfig.cancel_all')}`,
+  )
+    .then((flag) => {
+      if (!flag || !currentGlobalKfLocation.value || !window.watcher) {
+        return;
+      }
+
+      return kfCancelAllOrdersTrigger(
+        window.watcher,
+        orders,
+        currentGlobalKfLocation.value,
+      )
+        .then(() => {
+          success();
+        })
+        .catch((err) => {
+          error(err.message);
+        });
+    })
+    .finally(() => {
+      selectedRowKeys.value = [];
+      selectedRows.value = [];
+    });
+}
+
+function orderTriggerCanBeCancel(record: KungfuApi.OrderTriggerResolved) {
+  return OrderTriggerCancelStatus.includes(record.status);
 }
 </script>
 <template>
@@ -305,6 +440,16 @@ function handleRequestOrderTrigger() {
           </a-button>
         </KfDashboardItem>
         <KfDashboardItem>
+          <a-button
+            size="small"
+            type="primary"
+            danger
+            @click="handleCancelAllOrderTrigger"
+          >
+            {{ $t('orderTriggerConfig.cancel_all') }}
+          </a-button>
+        </KfDashboardItem>
+        <KfDashboardItem>
           <a-button size="small" type="primary" @click="handleBatchModal">
             {{ $t('tradingConfig.batch') }}
           </a-button>
@@ -318,6 +463,12 @@ function handleRequestOrderTrigger() {
         :pagination="false"
         :scroll="{ y: dashboardBodyHeight - 4 }"
         :empty-text="$t('empty_text')"
+        :row-selection="{
+          selectedRowKeys: selectedRowKeys,
+          onChange: onSelectChange,
+          getCheckboxProps: getCheckboxProps,
+        }"
+        :custom-row="customRow"
       >
         <template
           #bodyCell="{
@@ -347,6 +498,16 @@ function handleRequestOrderTrigger() {
             <span :class="[`color-${record.dest_resolved_data.color}`]">
               {{ record.dest_uname }}
             </span>
+          </template>
+          <template v-else-if="column.dataIndex === 'actions'">
+            <CloseOutlined
+              v-if="orderTriggerCanBeCancel(record)"
+              class="kf-hover"
+              @click="handleCancelOrderTrigger(record)"
+            />
+            <LoadingOutlined
+              v-if="record.status === OrderTriggerStatusEnum.Cancelling"
+            />
           </template>
         </template>
       </a-table>

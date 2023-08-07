@@ -205,6 +205,7 @@ export default {
     partial_filled_not_active: '部分撤单',
     partial_filled_active: '正在交易',
     lost: '丢失',
+    pause: '暂停',
 
     long: '多',
     short: '空',

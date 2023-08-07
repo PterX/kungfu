@@ -209,6 +209,7 @@ export default {
     partial_filled_not_active: 'PartialFilledNotActive',
     partial_filled_active: 'PartialFilledActive',
     lost: 'Lost',
+    pause: 'Pause',
 
     long: 'Long',
     short: 'Short',

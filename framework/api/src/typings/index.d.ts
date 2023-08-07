@@ -427,6 +427,7 @@ declare namespace KungfuApi {
     is_swap: boolean;
     parent_id: bigint;
   }
+
   export interface MakeOrderTriggerInput extends MakeOrderInput {
     parked_type: OrderTriggerParkedTypeEnum;
     time_condition: TimeConditionEnum;
@@ -523,6 +524,27 @@ declare namespace KungfuApi {
     frozen_fee: number; //冻结手续费(期货)
     position_pnl: number; //持仓盈亏(期货)
     close_pnl: number; //平仓盈亏(期货)
+
+    update_time: bigint; //更新时间
+    holder_uid: number;
+    ledger_category: LedgerCategoryEnum;
+
+    total_asset: number; //总资产
+    avail_margin: number; //可用保证金
+    cash_margin: number; //融资占用保证金
+    short_margin: number; //融券占用保证金
+    margin: number; //总占用保证金
+
+    cash_debt: number; //融资负债
+    short_cash: number; //融券卖出金额
+
+    short_market_value: number; //融券卖出证券市值
+    margin_market_value: number; //融资买入证券市值
+    margin_interest: number; //融资融券利息
+    settlement: number; //融资融券清算资金
+
+    credit: number; //信贷额度
+    collateral_ratio: number; //担保比例
   }
 
   export interface AssetMargin {
@@ -1015,8 +1037,7 @@ declare namespace KungfuApi {
     | KungfuApi.Position
     | KungfuApi.Order
     | KungfuApi.Trade
-    | KungfuApi.Asset
-    | KungfuApi.AssetMargin;
+    | KungfuApi.Asset;
 
   export type TradingDataTable =
     | KungfuApi.DataTable<KungfuApi.Position>
@@ -1032,14 +1053,10 @@ declare namespace KungfuApi {
     | KungfuApi.OrderInput
     | KungfuApi.Trade;
 
-  export type LedgerTradingData =
-    | KungfuApi.Asset
-    | KungfuApi.AssetMargin
-    | KungfuApi.Position;
+  export type LedgerTradingData = KungfuApi.Asset | KungfuApi.Position;
 
   export type TradingDataTypes =
     | Asset
-    | AssetMargin
     | Instrument
     | Order
     | OrderInput
@@ -1162,10 +1179,18 @@ declare namespace KungfuApi {
       tdLocation: KfLocation,
       strategyLocation?: KfLocation,
     ): bigint;
+    cancelAlgoOrder(
+      orderInput: OrderTriggerInput,
+      tdLocation: KfLocation,
+    ): bigint;
     issueOrder(
       orderInput: OrderInput,
       tdLocation: KfLocation,
       strategyLocation?: KfLocation,
+    ): bigint;
+    issueAlgoOrder(
+      algoOrderInput: AlgoOrderInput,
+      tdLocation: KfLocation,
     ): bigint;
     issueOrderTrigger(
       orderInput: OrderTriggerInput,
@@ -1253,7 +1278,9 @@ declare namespace KungfuApi {
       AssetMargin(): AssetMargin;
       Instrument(): Instrument;
       Order(): Order;
+      AlgoOrder(): AlgoOrder;
       OrderInput(): OrderInput;
+      AlgoOrderInput(): AlgoOrderInput;
       OrderAction(): OrderAction;
       OrderStat(): OrderStat;
       Position(): Position;

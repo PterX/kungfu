@@ -332,6 +332,10 @@ export const OrderStatus: Record<
     name: t('tradingConfig.lost'),
     color: 'default',
   },
+  [OrderStatusEnum.Pause]: {
+    name: t('tradingConfig.pause'),
+    color: 'default',
+  },
 };
 
 export const BasketOrderStatus: Record<

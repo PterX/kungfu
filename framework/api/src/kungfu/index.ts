@@ -387,7 +387,9 @@ export const kfCancelOriderTrigger = (
     trigger_id,
   };
 
-  return Promise.resolve(watcher.cancelOrder(orderAction, sourceLocation));
+  return Promise.resolve(
+    watcher.cancelOrderTrigger(orderAction, sourceLocation),
+  );
 };
 
 export const kfCancelOrderUtilFinished = (

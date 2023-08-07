@@ -2080,7 +2080,6 @@ export const dealTradingDataMethodsMap: Record<
   ) => T[]
 > = {
   Asset: dealLedgerTradingData,
-  AssetMargin: dealLedgerTradingData,
   Instrument: dealDefaultTradingData,
   InstrumentFactor: dealDefaultTradingData,
   Order: dealOrderTradingData,

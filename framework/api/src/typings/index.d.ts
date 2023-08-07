@@ -547,29 +547,6 @@ declare namespace KungfuApi {
     collateral_ratio: number; //担保比例
   }
 
-  export interface AssetMargin {
-    update_time: bigint; //更新时间
-    holder_uid: number;
-    ledger_category: LedgerCategoryEnum;
-
-    total_asset: number; //总资产
-    avail_margin: number; //可用保证金
-    cash_margin: number; //融资占用保证金
-    short_margin: number; //融券占用保证金
-    margin: number; //总占用保证金
-
-    cash_debt: number; //融资负债
-    short_cash: number; //融券卖出金额
-
-    short_market_value: number; //融券卖出证券市值
-    margin_market_value: number; //融资买入证券市值
-    margin_interest: number; //融资融券利息
-    settlement: number; //融资融券清算资金
-
-    credit: number; //信贷额度
-    collateral_ratio: number; //担保比例
-  }
-
   export interface Instrument {
     instrument_id: string; //合约ID
     exchange_id: string; //交易所ID
@@ -1019,7 +996,6 @@ declare namespace KungfuApi {
 
   export interface TradingData {
     Asset: DataTable<Asset>;
-    AssetMargin: DataTable<AssetMargin>;
     Instrument: DataTable<Instrument>;
     InstrumentFactor: DataTable<InstrumentFactor>;
     Order: DataTable<Order>;
@@ -1275,7 +1251,6 @@ declare namespace KungfuApi {
   export interface Longfist {
     types: {
       Asset(): Asset;
-      AssetMargin(): AssetMargin;
       Instrument(): Instrument;
       Order(): Order;
       AlgoOrder(): AlgoOrder;

@@ -932,22 +932,6 @@ export const dealOrderTrigger = (
   );
   const destResolvedData = resolveClientId(watcher, order.dest);
   const statusData = dealOrderTriggerStatus(order.status, order.error_msg);
-  switch (index) {
-    case 0:
-      order.status = 1;
-      break;
-    case 1:
-      order.status = 2;
-      break;
-    case 2:
-      order.status = 5;
-      break;
-    case 3:
-      order.status = 3;
-      break;
-    default:
-      break;
-  }
   return {
     ...order,
     source: order.source,

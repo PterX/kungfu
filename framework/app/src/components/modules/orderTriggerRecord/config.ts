@@ -74,7 +74,7 @@ export const getColumns = (): AntTableColumns => [
   },
   {
     title: t('orderConfig.time_condition'),
-    dataIndex: 'time_condition',
+    dataIndex: 'time_condition_resolved',
     align: 'left',
     width: 120,
   },

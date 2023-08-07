@@ -107,7 +107,7 @@ class TraderSim(wc.Trader):
             return self.ctx.cancel_order_trigger(self.ctx, event)
         else:
             writer = self.get_writer(event.source)
-            order_trigger_action = event.OrderTrggerAction()
+            order_trigger_action = event.OrderTriggerAction()
             if order_trigger_action.trigger_id in self.ctx.triggers:
                 trigger = self.ctx.triggers.pop(order_trigger_action.trigger_id)
                 trigger.update_time = yjj.now_in_nano()

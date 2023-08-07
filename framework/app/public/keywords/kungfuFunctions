@@ -51,7 +51,6 @@ get_order_trigger
 has_algo_order
 get_algo_order
 enable_asset_sync
-enable_asset_margin_sync
 enable_positions_sync
 get_account_type
 insert_order
@@ -115,7 +114,6 @@ on_algo_order_action_error
 on_trade
 on_position_sync_reset
 on_asset_sync_reset
-on_asset_margin_sync_reset
 on_history_order
 on_history_trade
 on_req_history_order_error

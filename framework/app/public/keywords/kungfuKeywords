@@ -39,7 +39,6 @@ live
 update_time
 data
 asset
-asset_margin
 long_positions
 short_positions
 order_inputs
@@ -101,6 +100,8 @@ volume
 yesterday_volume
 frozen_total
 frozen_yesterday
+static_yesterday_volume
+open_volume
 last_price
 avg_open_price
 position_cost_price
@@ -345,7 +346,6 @@ get_order_trigger
 has_algo_order
 get_algo_order
 enable_asset_sync
-enable_asset_margin_sync
 enable_positions_sync
 get_account_type
 insert_order
@@ -409,7 +409,6 @@ on_algo_order_action_error
 on_trade
 on_position_sync_reset
 on_asset_sync_reset
-on_asset_margin_sync_reset
 on_history_order
 on_history_trade
 on_req_history_order_error
@@ -529,6 +528,9 @@ SZSE
 HKEx
 MarketType
 Snapshot
+Entrust
+Transaction
+Tree
 SubscribeDataType
 Stock
 Future

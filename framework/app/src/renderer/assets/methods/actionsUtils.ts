@@ -283,6 +283,10 @@ export const useSwitchAllConfig = (
     return Promise.all(
       kfConfigs.value.map(
         (item: KungfuApi.KfLocation): Promise<void | Proc> => {
+          const processId = getProcessIdByKfLocation(item);
+          if (checked && processStatusData.value[processId] === 'online')
+            return Promise.resolve();
+
           return switchKfLocation(window.watcher, item, checked);
         },
       ),

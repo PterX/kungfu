@@ -328,6 +328,7 @@ class TraderSim(wc.Trader):
 
                 if order_action.action_flag == lf.enums.OrderActionFlag.TriggerCancel:
                     trigger = wc.utils.order_trigger_from_order(order)
+                    trigger.trigger_id = order_action.order_action_id
                     trigger.external_trigger_id = str(trigger.trigger_id)
                     trigger.insert_time = yjj.now_in_nano()
                     trigger.update_time = trigger.insert_time

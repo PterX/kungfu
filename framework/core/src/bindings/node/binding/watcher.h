@@ -99,11 +99,9 @@ public:
 
   Napi::Value CancelOrder(const Napi::CallbackInfo &info);
 
-<<<<<<< HEAD
   Napi::Value CancelAlgoOrder(const Napi::CallbackInfo &info);
-=======
+
   Napi::Value CancelOrderTrigger(const Napi::CallbackInfo &info);
->>>>>>> 19f0a48dff5addcd1cdcfca28bdf0525dbae0f70
 
   Napi::Value RequestMarketData(const Napi::CallbackInfo &info);
 

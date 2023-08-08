@@ -263,39 +263,7 @@ bool PassiveClient::is_custom_subscribed_all(uint32_t md_location_uid,
     SubscribeInstrumentType custom_type = instrument_type_to_subscribe_instrument_type(kf_instrument_type);
 
     for (const auto &it : custom_sub) {
-      std::string custom_exchange("Unknown");
-      switch (it.market_type) {
-      case MarketType::BSE:
-        custom_exchange = EXCHANGE_BSE;
-        break;
-      case MarketType::SHFE:
-        custom_exchange = EXCHANGE_SHFE;
-        break;
-      case MarketType::CFFEX:
-        custom_exchange = EXCHANGE_CFFEX;
-        break;
-      case MarketType::DCE:
-        custom_exchange = EXCHANGE_DCE;
-        break;
-      case MarketType::CZCE:
-        custom_exchange = EXCHANGE_CZCE;
-        break;
-      case MarketType::INE:
-        custom_exchange = EXCHANGE_INE;
-        break;
-      case MarketType::SSE:
-        custom_exchange = EXCHANGE_SSE;
-        break;
-      case MarketType::SZSE:
-        custom_exchange = EXCHANGE_SZE;
-        break;
-      case MarketType::All:
-        custom_exchange = "";
-        break;
-      default:
-        custom_exchange = "Unknown";
-        break;
-      }
+      const std::string custom_exchange = exchange_id_from_market_type(it.market_type);
       if ((it.data_type == SubscribeDataType::All or (uint64_t(it.data_type) & uint64_t(data_type)) != 0) and
           (custom_exchange.empty() || custom_exchange == exchange_id) and
           (it.instrument_type == SubscribeInstrumentType::All or

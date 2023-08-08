@@ -447,6 +447,16 @@ export default {
     max_network_latency: 'Max Network Latency(μs)',
   },
 
+  orderTriggerConfig: {
+    trigger_insert: 'Place order',
+    trigger_cancel: 'Cancel the order',
+    action_flag: 'Action flag',
+    confirm_cancel_all: 'Confirm cancellation of all orders',
+    confirm: 'Confirm',
+    cancel_all: 'All cancellations',
+    insert_time: 'Insert time',
+  },
+
   tdConfig: {
     td_group: 'Td Group',
     td_name: 'Td Group Name',

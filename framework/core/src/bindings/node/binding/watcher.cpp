@@ -351,6 +351,11 @@ Napi::Value Watcher::CancelOrder(const Napi::CallbackInfo &info) {
   return InteractWithTD<OrderAction>(info, info[0].ToObject(), &OrderAction::order_action_id);
 }
 
+Napi::Value Watcher::CancelOrderTrigger(const Napi::CallbackInfo &info) {
+  SPDLOG_INFO("cancel order trigger manually");
+  return InteractWithTD<OrderTriggerAction>(info, info[0].ToObject(), &OrderTriggerAction::order_trigger_action_id);
+}
+
 Napi::Value Watcher::RequestMarketData(const Napi::CallbackInfo &info) {
   if (not IsValid(info, 0, &Napi::Value::IsObject)) {
     return Napi::Boolean::New(info.Env(), false);
@@ -412,6 +417,7 @@ void Watcher::Init(Napi::Env env, Napi::Object exports) {
                       InstanceMethod("issueBasketOrder", &Watcher::IssueBasketOrder),                   //
                       InstanceMethod("issueMark", &Watcher::IssueMark),                                 //
                       InstanceMethod("cancelOrder", &Watcher::CancelOrder),                             //
+                      InstanceMethod("cancelOrderTrigger", &Watcher::CancelOrderTrigger),               //
                       InstanceMethod("requestMarketData", &Watcher::RequestMarketData),                 //
                       InstanceMethod("requestPosition", &Watcher::RequestPosition),                     //
                       InstanceMethod("start", &Watcher::Start),                                         //

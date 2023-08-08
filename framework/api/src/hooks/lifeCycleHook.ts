@@ -24,6 +24,12 @@ export class LifeCycleHook {
     }, {} as Record<LifeCycleKeys, Map<string, Array<Callback>>>);
   }
 
+  register(lifeCycle: LifeCycleKeys, callback: Callback): RegisterReturnType;
+  register(
+    lifeCycle: LifeCycleKeys,
+    key: string,
+    callback: Callback,
+  ): RegisterReturnType;
   register(
     lifeCycle: LifeCycleKeys,
     key: string | Callback,
@@ -48,7 +54,7 @@ export class LifeCycleHook {
       targetMap.set(key, [callback as Callback]);
     }
 
-    return () => this.clear(lifeCycle, key as string, callback);
+    return () => this.clear(lifeCycle, key as string, callback as Callback);
   }
 
   async trigger(lifeCycle: LifeCycleKeys) {
@@ -72,8 +78,26 @@ export class LifeCycleHook {
     }
   }
 
-  clear(lifeCycle: LifeCycleKeys, key: string, callback?: Callback) {
+  clear(lifeCycle: LifeCycleKeys): boolean;
+  clear(lifeCycle: LifeCycleKeys, key: string): boolean;
+  clear(lifeCycle: LifeCycleKeys, callback: Callback): boolean;
+  clear(lifeCycle: LifeCycleKeys, key: string, callback: Callback): boolean;
+  clear(
+    lifeCycle: LifeCycleKeys,
+    key?: string | Callback,
+    callback?: Callback,
+  ) {
+    if (!key) {
+      this.callbacksMap[lifeCycle] = new Map();
+      return true;
+    }
+
     const targetMap = this.callbacksMap[lifeCycle];
+
+    if (typeof key === 'function') {
+      callback = key;
+      key = this.CallbacksMapDefaultKey;
+    }
 
     if (!targetMap.has(key) || targetMap.get(key)?.length === 0) {
       kfLogger.warn(

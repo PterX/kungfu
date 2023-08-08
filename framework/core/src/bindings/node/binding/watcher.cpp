@@ -8,10 +8,9 @@
 #include "commission_store.h"
 #include "config_store.h"
 #include "history.h"
+#include <kungfu/yijinjing/cache/cached.h>
 #include <kungfu/yijinjing/util/os.h>
 #include <sstream>
-
-#include <kungfu/yijinjing/cache/cached.h>
 
 using namespace kungfu::rx;
 using namespace kungfu::longfist;
@@ -423,11 +422,11 @@ void Watcher::Init(Napi::Env env, Napi::Object exports) {
                       InstanceMethod("issueOrderTrigger", &Watcher::IssueOrderTrigger),                 //
                       InstanceMethod("issueOrder", &Watcher::IssueOrder),                               //
                       InstanceMethod("issueBasketOrder", &Watcher::IssueBasketOrder),                   //
-                      InstanceMethod("issueAlgoOrder", &Watcher::IssueAlgoOrder),       //
+                      InstanceMethod("issueAlgoOrder", &Watcher::IssueAlgoOrder),                       //
                       InstanceMethod("issueMark", &Watcher::IssueMark),                                 //
                       InstanceMethod("cancelOrder", &Watcher::CancelOrder),                             //
+                      InstanceMethod("cancelAlgoOrder", &Watcher::CancelAlgoOrder),                     //
                       InstanceMethod("cancelOrderTrigger", &Watcher::CancelOrderTrigger),               //
-                      InstanceMethod("cancelAlgoOrder", &Watcher::CancelAlgoOrder),     //
                       InstanceMethod("requestMarketData", &Watcher::RequestMarketData),                 //
                       InstanceMethod("requestPosition", &Watcher::RequestPosition),                     //
                       InstanceMethod("start", &Watcher::Start),                                         //

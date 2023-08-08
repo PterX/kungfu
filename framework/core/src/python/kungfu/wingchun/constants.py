@@ -103,12 +103,6 @@ OrderTriggerType = lf.enums.OrderTriggerType
 BasketVolumeType = lf.enums.BasketVolumeType
 BasketType = lf.enums.BasketType
 
-AllFinalOrderStatus = [
-    int(OrderStatus.Filled),
-    int(OrderStatus.Error),
-    int(OrderStatus.PartialFilledNotActive),
-    int(OrderStatus.Cancelled),
-]
 
 InstrumentTypeInStockAccount = [
     InstrumentType.Stock,

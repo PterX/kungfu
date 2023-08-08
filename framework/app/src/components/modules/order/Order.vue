@@ -49,6 +49,7 @@ import { UnfinishedOrderStatus } from '@kungfu-trader/kungfu-js-api/config/tradi
 import {
   HistoryDateEnum,
   OrderStatusEnum,
+  OrderActionFlagEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
   showTradingDataDetail,
@@ -297,7 +298,7 @@ function handleCancelOrder(order: KungfuApi.OrderResolved): void {
     return;
   }
 
-  kfCancelOrder(window.watcher, order)
+  kfCancelOrder(window.watcher, order, OrderActionFlagEnum.Cancel)
     .then(() => {
       success();
     })
@@ -479,7 +480,7 @@ function handleClickAdjustOrderMask(): void {
   }
 
   adjustOrderMaskVisible.value = false;
-  kfCancelOrder(window.watcher, order)
+  kfCancelOrder(window.watcher, order, OrderActionFlagEnum.Cancel)
     .then(() => {
       const makeOrderInput: KungfuApi.MakeOrderInput = {
         instrument_id: order.instrument_id,

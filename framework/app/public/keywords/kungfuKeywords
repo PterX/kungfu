@@ -431,6 +431,7 @@ order_from_input
 trade_from_order
 order_trigger_from_input
 order_trigger_from_order
+order_input_from_trigger_order
 now_in_nano
 strftime
 strptime
@@ -527,6 +528,9 @@ SZSE
 HKEx
 MarketType
 Snapshot
+Entrust
+Transaction
+Tree
 SubscribeDataType
 Stock
 Future

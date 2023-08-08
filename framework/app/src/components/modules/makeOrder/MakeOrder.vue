@@ -119,14 +119,13 @@ const configSettings = computed(() => {
     return getConfigSettings();
   }
 
-  let step = 1,
-    pricePrecision = 0;
+  let step = 0.0001,
+    pricePrecision = 4;
   if (instrumentResolved.value) {
     const { instrumentId, exchangeId } = instrumentResolved.value;
     const { price_tick, price_precision } = getPriceTickAndPrecision(
       instrumentId,
       exchangeId,
-      1,
     );
     step = price_tick;
     pricePrecision = price_precision;
@@ -972,11 +971,7 @@ watch(
           <a-button class="make-order" @click="handleMakeOrder">
             {{ $t('tradingConfig.place_order') }}
           </a-button>
-          <a-button
-            class="make-order"
-            v-if="orderTriggerBtnVisible"
-            @click="handleOrderTrigger"
-          >
+          <a-button v-if="orderTriggerBtnVisible" @click="handleOrderTrigger">
             {{ $t('tradingConfig.order_trigger') }}
           </a-button>
           <a-button @click="handleApartOrder">

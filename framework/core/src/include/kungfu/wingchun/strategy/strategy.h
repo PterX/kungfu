@@ -132,13 +132,6 @@ public:
   virtual void on_asset_sync_reset(Context_ptr &context, const kungfu::longfist::types::Asset &old_asset,
                                    const kungfu::longfist::types::Asset &new_asset){};
 
-  // 同步柜台资金信息回调
-  // @param old_asset_margin         更新前本地维护的旧数据
-  // @param new_asset_margin         更新后重新从柜台获取的新数据
-  virtual void on_asset_margin_sync_reset(Context_ptr &context,
-                                          const kungfu::longfist::types::AssetMargin &old_asset_margin,
-                                          const kungfu::longfist::types::AssetMargin &new_asset_margin){};
-
   // 断开回调
   // @param deregister     断开数据
   // @param location          数据来源

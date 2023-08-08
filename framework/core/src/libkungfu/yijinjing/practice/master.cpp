@@ -117,28 +117,26 @@ void master::register_app(const event_ptr &event) {
   auto app_cmd_writer = get_io_device()->open_writer_at(master_cmd_location, app_location->uid);
   writers_.insert_or_assign(app_location->uid, app_cmd_writer);
   reader_->join(app_location, location::PUBLIC, now);
-  reader_->join(app_location, location::SYNC, now);
+  reader_->join(app_location, location::SYNC, now); // create sync journal
+  reader_->disjoin(app_location, location::SYNC);   // no need to deal feed from sync
   reader_->join(app_location, master_cmd_location->uid, now, 0, Priority::High);
 
   auto public_writer = get_writer(location::PUBLIC);
   public_writer->write(event->gen_time(), *std::dynamic_pointer_cast<Location>(app_location));
   public_writer->write(event->gen_time(), register_data);
 
-  // have to be after register sent;
-  write_time_reset(event->gen_time(), app_cmd_writer);
-
-  // have to be after register sent;
+  // hava to be put after register sent, because master cmd journal only be joined after register;
   require_write_to(event->gen_time(), app_location->uid, location::PUBLIC);
   require_write_to(event->gen_time(), app_location->uid, location::SYNC);
   require_write_to(event->gen_time(), app_location->uid, master_cmd_location->uid);
 
+  // after register sent, then open session
   cached_.open_session(app_location, event->gen_time());
-  app_cmd_writer->mark(event->gen_time(), SessionStart::tag);
-
   cached_.ensure_cached_storage(app_location, location::PUBLIC);
-  cached_.ensure_cached_storage(app_location, location::SYNC);
   cached_.restore(app_location, app_cmd_writer);
 
+  write_time_reset(event->gen_time(), app_cmd_writer);
+  app_cmd_writer->mark(event->gen_time(), SessionStart::tag);
   app_cmd_writer->mark(time::now_in_nano(), RequestStart::tag);
 
   // have to be at this position, for triggering strategy(other) prepare

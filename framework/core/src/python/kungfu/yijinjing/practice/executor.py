@@ -64,12 +64,6 @@ class ExecutorRegistry:
 
         if ctx.group not in self.executors[ctx.category]:
             self.executors[ctx.category][ctx.group] = ExtensionLoader(ctx, None, None)
-        if (
-            ctx.category == "system"
-            and ctx.group == "service"
-            and ctx.name not in self.executors["system"]["service"]
-        ):
-            self.executors["system"]["service"].load_service(ctx)
 
         if (
             ctx.category == "system"
@@ -170,11 +164,17 @@ class ServiceLoader(dict):
                 self.ctx.runtime_locator,
             )
             self.ctx.logger = find_logger(self.ctx.location, self.ctx.log_level)
+            self.ctx.logger.info(
+                f"starting service {name}, low_latency={low_latency}, arguments={self.ctx.arguments}"
+            )
             if "is_python_service" in dir(service) and service.is_python_service:
                 service(self.ctx).run()
             else:
                 service(
-                    self.ctx.runtime_locator, kfj.MODES[self.ctx.mode], low_latency
+                    self.ctx.runtime_locator,
+                    kfj.MODES[self.ctx.mode],
+                    self.ctx.low_latency,
+                    self.ctx.arguments,
                 ).run()
 
         return run

@@ -101,6 +101,8 @@ public:
 
   Napi::Value CancelAlgoOrder(const Napi::CallbackInfo &info);
 
+  Napi::Value CancelOrderTrigger(const Napi::CallbackInfo &info);
+
   Napi::Value RequestMarketData(const Napi::CallbackInfo &info);
 
   Napi::Value Start(const Napi::CallbackInfo &info);
@@ -274,12 +276,7 @@ private:
 
       state<kungfu::longfist::types::Asset> cache_state_asset(source, dest, event->gen_time(), book->asset);
       feed_state_data_bank(cache_state_asset, data_bank_);
-
-      state<kungfu::longfist::types::AssetMargin> cache_state_asset_margin(source, dest, event->gen_time(),
-                                                                           book->asset_margin);
-      feed_state_data_bank(cache_state_asset_margin, data_bank_);
     };
-
     update(event->source(), event->dest());
     update(event->dest(), event->source());
   }
@@ -330,6 +327,7 @@ private:
   std::enable_if_t<not std::is_same_v<TradingData, longfist::types::OrderTriggerInput> and
                    not std::is_same_v<TradingData, longfist::types::OrderInput> and
                    not std::is_same_v<TradingData, longfist::types::BasketOrder> and
+                   not std::is_same_v<TradingData, longfist::types::OrderTriggerInput> and
                    not std::is_same_v<TradingData, longfist::types::AlgoOrderInput>>
   UpdateBook(uint32_t source, uint32_t dest, const TradingData &data) {}
 
@@ -484,9 +482,6 @@ private:
     void on_position_sync_reset(const wingchun::book::Book &old_book, const wingchun::book::Book &new_book) override;
 
     void on_asset_sync_reset(const longfist::types::Asset &old_asset, const longfist::types::Asset &new_asset) override;
-
-    void on_asset_margin_sync_reset(const longfist::types::AssetMargin &old_asset_margin,
-                                    const longfist::types::AssetMargin &new_asset_margin) override;
 
   private:
     Watcher &watcher_;

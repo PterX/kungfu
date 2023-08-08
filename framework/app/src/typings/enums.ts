@@ -15,7 +15,6 @@ export enum KfLayoutTargetDirectionClassName {
 
 export enum MsgType {
   Asset = 101,
-  AssetMargin = 102,
   Position = 103,
   Order = 202,
   OrderInput = 201,

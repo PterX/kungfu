@@ -41,6 +41,7 @@ import {
   ExportTradingDataColumnsToFilter,
   ParkedType,
   OrderTriggerStatus,
+  TriggerFlag,
 } from '../config/tradingConfig';
 import {
   KfCategoryEnum,
@@ -73,6 +74,7 @@ import {
   OrderTriggerTypeEnum,
   OrderTriggerParkedTypeEnum,
   OrderTriggerTimeConditionEnum,
+  OrderTriggerFlag,
 } from '../typings/enums';
 import {
   graceDeleteProcess,
@@ -1129,14 +1131,26 @@ export const getMdTdKfLocationByProcessId = (
 export const getOperatorKfLocationByProcessId = (
   processId: string,
 ): KungfuApi.KfLocation | null => {
-  if (processId.split('_').length === 3) {
-    const [category, group, name] = processId.split('_');
-    return {
-      category: category as KfCategoryTypes,
-      group,
-      name,
-      mode: 'live',
-    };
+  if (processId.indexOf('operator_') === 0) {
+    const splits = processId.split('_');
+
+    if (splits.length === 3) {
+      const [category, group, name] = processId.split('_');
+      return {
+        category: category as KfCategoryTypes,
+        group,
+        name,
+        mode: 'live',
+      };
+    } else if (splits.length === 2) {
+      const [category, name] = processId.split('_');
+      return {
+        category: category as KfCategoryTypes,
+        group: 'default',
+        name,
+        mode: 'live',
+      };
+    }
   }
 
   return null;
@@ -1631,7 +1645,7 @@ export const dealKfPrice = (
     return afterNumber;
   }
 
-  return Number(afterNumber).kfToFixed(pricePrecision ?? 3);
+  return Number(afterNumber).kfToFixed(pricePrecision ?? 4);
 };
 
 export const dealAssetPrice = (
@@ -1644,7 +1658,7 @@ export const dealAssetPrice = (
     return afterNumber;
   }
 
-  return Number(afterNumber).kfToFixed(pricePrecision ?? 3);
+  return Number(afterNumber).kfToFixed(pricePrecision ?? 4);
 };
 
 export const sum = (list: number[]): number => {
@@ -1730,6 +1744,12 @@ export const dealTimeCondition = (
   return TimeCondition[+timeCondition as TimeConditionEnum];
 };
 
+export const dealTOrderTriggerFlag = (
+  orderTriggerFlag: OrderTriggerFlag | number,
+): KungfuApi.KfTradeValueCommonData => {
+  return TriggerFlag[+orderTriggerFlag as OrderTriggerFlag];
+};
+
 export const dealParkedType = (
   parkedType: OrderTriggerParkedTypeEnum | number,
 ): KungfuApi.KfTradeValueCommonData => {
@@ -1738,8 +1758,17 @@ export const dealParkedType = (
 
 export const dealOrderTriggerStatus = (
   orderTriggerStatus: OrderTriggerStatusEnum | number,
+  errorMsg?: string,
 ): KungfuApi.KfTradeValueCommonData => {
-  return OrderTriggerStatus[+orderTriggerStatus as OrderTriggerStatusEnum];
+  return {
+    ...OrderTriggerStatus[+orderTriggerStatus as OrderTriggerStatusEnum],
+    ...(+orderTriggerStatus === OrderTriggerStatusEnum.Error && errorMsg
+      ? {
+          name: errorMsg,
+          color: 'red',
+        }
+      : {}),
+  };
 };
 
 export const dealVolumeCondition = (
@@ -1970,9 +1999,7 @@ export const dealStrategyStates = (
   );
 };
 
-export const dealAssetsByHolderUID = <
-  T extends KungfuApi.Asset | KungfuApi.AssetMargin,
->(
+export const dealAssetsByHolderUID = <T extends KungfuApi.Asset>(
   watcher: KungfuApi.Watcher | null,
   assets: KungfuApi.DataTable<T>,
 ): Record<string, T> => {
@@ -2061,7 +2088,6 @@ export const dealTradingDataMethodsMap: Record<
   ) => T[]
 > = {
   Asset: dealLedgerTradingData,
-  AssetMargin: dealLedgerTradingData,
   Instrument: dealDefaultTradingData,
   InstrumentFactor: dealDefaultTradingData,
   Order: dealOrderTradingData,
@@ -2435,7 +2461,7 @@ export const dealOrderInputItem = (
     } else if (key === 'is_swap') {
       isInstrumnetShotable &&
         (orderInputResolved[key] = dealIsSwap(inputData.is_swap));
-    } else if (key === 'limit_price' && price_precision) {
+    } else if (key === 'limit_price') {
       orderInputResolved[key] = {
         name: dealAssetPrice(inputData[key], price_precision),
         color: 'default',

@@ -8,10 +8,9 @@
 #include "commission_store.h"
 #include "config_store.h"
 #include "history.h"
+#include <kungfu/yijinjing/cache/cached.h>
 #include <kungfu/yijinjing/util/os.h>
 #include <sstream>
-
-#include <kungfu/yijinjing/cache/cached.h>
 
 using namespace kungfu::rx;
 using namespace kungfu::longfist;
@@ -359,6 +358,11 @@ Napi::Value Watcher::CancelAlgoOrder(const Napi::CallbackInfo &info) {
   return InteractWithTD<AlgoOrderAction>(info, info[0].ToObject(), &AlgoOrderAction::order_action_id);
 }
 
+Napi::Value Watcher::CancelOrderTrigger(const Napi::CallbackInfo &info) {
+  SPDLOG_INFO("cancel order trigger manually");
+  return InteractWithTD<OrderTriggerAction>(info, info[0].ToObject(), &OrderTriggerAction::order_trigger_action_id);
+}
+
 Napi::Value Watcher::RequestMarketData(const Napi::CallbackInfo &info) {
   if (not IsValid(info, 0, &Napi::Value::IsObject)) {
     return Napi::Boolean::New(info.Env(), false);
@@ -402,31 +406,32 @@ void Watcher::Init(Napi::Env env, Napi::Object exports) {
   Napi::Function func =
       DefineClass(env, "Watcher",
                   {
-                      InstanceMethod("now", &Watcher::Now),                             //
-                      InstanceMethod("isUsable", &Watcher::IsUsable),                   //
-                      InstanceMethod("isLive", &Watcher::IsLive),                       //
-                      InstanceMethod("isStarted", &Watcher::IsStarted),                 //
-                      InstanceMethod("requestStop", &Watcher::RequestStop),             //
-                      InstanceMethod("hasLocation", &Watcher::HasLocation),             //
-                      InstanceMethod("getLocation", &Watcher::GetLocation),             //
-                      InstanceMethod("getLocationUID", &Watcher::GetLocationUID),       //
-                      InstanceMethod("getInstrumentType", &Watcher::GetInstrumentType), //
-                      InstanceMethod("publishState", &Watcher::PublishState),           //
-                      InstanceMethod("isReadyToInteract", &Watcher::IsReadyToInteract), //
-                      InstanceMethod("issueCustomData", &Watcher::IssueCustomData),     //
-                      InstanceMethod("issueBlockMessage", &Watcher::IssueBlockMessage), //
-                      InstanceMethod("issueOrderTrigger", &Watcher::IssueOrderTrigger), //
-                      InstanceMethod("issueOrder", &Watcher::IssueOrder),               //
-                      InstanceMethod("issueBasketOrder", &Watcher::IssueBasketOrder),   //
-                      InstanceMethod("issueAlgoOrder", &Watcher::IssueAlgoOrder),       //
-                      InstanceMethod("issueMark", &Watcher::IssueMark),                 //
-                      InstanceMethod("cancelOrder", &Watcher::CancelOrder),             //
-                      InstanceMethod("cancelAlgoOrder", &Watcher::CancelAlgoOrder),     //
-                      InstanceMethod("requestMarketData", &Watcher::RequestMarketData), //
-                      InstanceMethod("requestPosition", &Watcher::RequestPosition),     //
-                      InstanceMethod("start", &Watcher::Start),                         //
-                      InstanceMethod("sync", &Watcher::Sync),                           //
-                      InstanceMethod("quit", &Watcher::Quit),
+                      InstanceMethod("now", &Watcher::Now),                                             //
+                      InstanceMethod("isUsable", &Watcher::IsUsable),                                   //
+                      InstanceMethod("isLive", &Watcher::IsLive),                                       //
+                      InstanceMethod("isStarted", &Watcher::IsStarted),                                 //
+                      InstanceMethod("requestStop", &Watcher::RequestStop),                             //
+                      InstanceMethod("hasLocation", &Watcher::HasLocation),                             //
+                      InstanceMethod("getLocation", &Watcher::GetLocation),                             //
+                      InstanceMethod("getLocationUID", &Watcher::GetLocationUID),                       //
+                      InstanceMethod("getInstrumentType", &Watcher::GetInstrumentType),                 //
+                      InstanceMethod("publishState", &Watcher::PublishState),                           //
+                      InstanceMethod("isReadyToInteract", &Watcher::IsReadyToInteract),                 //
+                      InstanceMethod("issueCustomData", &Watcher::IssueCustomData),                     //
+                      InstanceMethod("issueBlockMessage", &Watcher::IssueBlockMessage),                 //
+                      InstanceMethod("issueOrderTrigger", &Watcher::IssueOrderTrigger),                 //
+                      InstanceMethod("issueOrder", &Watcher::IssueOrder),                               //
+                      InstanceMethod("issueBasketOrder", &Watcher::IssueBasketOrder),                   //
+                      InstanceMethod("issueAlgoOrder", &Watcher::IssueAlgoOrder),                       //
+                      InstanceMethod("issueMark", &Watcher::IssueMark),                                 //
+                      InstanceMethod("cancelOrder", &Watcher::CancelOrder),                             //
+                      InstanceMethod("cancelAlgoOrder", &Watcher::CancelAlgoOrder),                     //
+                      InstanceMethod("cancelOrderTrigger", &Watcher::CancelOrderTrigger),               //
+                      InstanceMethod("requestMarketData", &Watcher::RequestMarketData),                 //
+                      InstanceMethod("requestPosition", &Watcher::RequestPosition),                     //
+                      InstanceMethod("start", &Watcher::Start),                                         //
+                      InstanceMethod("sync", &Watcher::Sync),                                           //
+                      InstanceMethod("quit", &Watcher::Quit),                                           //
                       InstanceAccessor("state", &Watcher::GetState, &Watcher::NoSet),                   //
                       InstanceAccessor("ledger", &Watcher::GetLedger, &Watcher::NoSet),                 //
                       InstanceAccessor("appStates", &Watcher::GetAppStates, &Watcher::NoSet),           //
@@ -502,6 +507,9 @@ void Watcher::refresh_books() {
 }
 
 void Watcher::refresh_account_book(int64_t trigger_time, uint32_t account_uid) {
+  if (bypass_refresh_book_) {
+    return;
+  }
   auto account_location = get_location(account_uid);
   auto group = account_location->group;
   auto md_location = location::make_shared(account_location->mode, category::MD, group, group, get_locator());
@@ -774,9 +782,6 @@ void Watcher::UpdateAsset(const event_ptr &event, uint32_t book_uid) {
   auto book = bookkeeper_.get_book(book_uid);
   state<Asset> cache_state_asset(ledger_home_location_->uid, book_uid, event->gen_time(), book->asset);
   feed_state_data_bank(cache_state_asset, data_bank_);
-  state<AssetMargin> cache_state_asset_margin(ledger_home_location_->uid, book_uid, event->gen_time(),
-                                              book->asset_margin);
-  feed_state_data_bank(cache_state_asset_margin, data_bank_);
 }
 
 void Watcher::UpdateBook(const event_ptr &event, const Quote &quote) {
@@ -796,8 +801,6 @@ void Watcher::UpdateBook(const event_ptr &event, const Quote &quote) {
 
     state<Asset> cache_state_asset(ledger_uid, holder_uid, event->gen_time(), book->asset);
     feed_state_data_bank(cache_state_asset, data_bank_);
-    state<AssetMargin> cache_state_asset_margin(ledger_uid, holder_uid, event->gen_time(), book->asset_margin);
-    feed_state_data_bank(cache_state_asset_margin, data_bank_);
   }
 }
 
@@ -820,14 +823,6 @@ void Watcher::BookListener::on_asset_sync_reset(const Asset &old_asset, const As
   auto book = watcher_.bookkeeper_.get_book(new_asset.holder_uid);
   state<Asset> cache_state(watcher_.ledger_home_location_->uid, book->asset.holder_uid, book->asset.update_time,
                            book->asset);
-  watcher_.feed_state_data_bank(cache_state, watcher_.data_bank_);
-}
-
-void Watcher::BookListener::on_asset_margin_sync_reset(const AssetMargin &old_asset_margin,
-                                                       const AssetMargin &new_asset_margin) {
-  auto book = watcher_.bookkeeper_.get_book(new_asset_margin.holder_uid);
-  state<AssetMargin> cache_state(watcher_.ledger_home_location_->uid, book->asset_margin.holder_uid,
-                                 book->asset_margin.update_time, book->asset_margin);
   watcher_.feed_state_data_bank(cache_state, watcher_.data_bank_);
 }
 

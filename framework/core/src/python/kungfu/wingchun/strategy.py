@@ -144,11 +144,6 @@ class Strategy(wc.Strategy):
         self._on_asset_sync_reset = getattr(
             self._module, "on_asset_sync_reset", lambda ctx, old_asset, new_asset: None
         )
-        self._on_asset_margin_sync_reset = getattr(
-            self._module,
-            "on_asset_margin_sync_reset",
-            lambda ctx, old_asset_margin, new_asset_margin: None,
-        )
         self._on_custom_data = getattr(
             self._module,
             "on_custom_data",
@@ -368,16 +363,6 @@ class Strategy(wc.Strategy):
 
     def on_asset_sync_reset(self, wc_context, old_asset, new_asset):
         self.__call_proxy(self._on_asset_sync_reset, self.ctx, old_asset, new_asset)
-
-    def on_asset_margin_sync_reset(
-        self, wc_context, old_asset_margin, new_asset_margin
-    ):
-        self.__call_proxy(
-            self._on_asset_margin_sync_reset,
-            self.ctx,
-            old_asset_margin,
-            new_asset_margin,
-        )
 
     def on_custom_data(self, wc_context, msg_type, data, length, location, dest):
         self.__call_proxy(

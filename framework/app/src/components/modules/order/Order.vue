@@ -49,6 +49,7 @@ import { UnfinishedOrderStatus } from '@kungfu-trader/kungfu-js-api/config/tradi
 import {
   HistoryDateEnum,
   OrderStatusEnum,
+  OrderActionFlagEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
   showTradingDataDetail,
@@ -141,7 +142,6 @@ onMounted(() => {
             const { price_precision } = getPriceTickAndPrecision(
               item.instrument_id,
               item.exchange_id,
-              0.001,
             );
 
             return toRaw({
@@ -168,7 +168,6 @@ onMounted(() => {
             const { price_precision } = getPriceTickAndPrecision(
               curOrder.instrument_id,
               curOrder.exchange_id,
-              0.001,
             );
 
             const orderResolved = toRaw({
@@ -256,7 +255,6 @@ watch(historyDate, async (newDate) => {
           const { price_precision } = getPriceTickAndPrecision(
             item.instrument_id,
             item.exchange_id,
-            0.001,
           );
 
           return toRaw({
@@ -300,7 +298,7 @@ function handleCancelOrder(order: KungfuApi.OrderResolved): void {
     return;
   }
 
-  kfCancelOrder(window.watcher, order)
+  kfCancelOrder(window.watcher, order, OrderActionFlagEnum.Cancel)
     .then(() => {
       success();
     })
@@ -482,7 +480,7 @@ function handleClickAdjustOrderMask(): void {
   }
 
   adjustOrderMaskVisible.value = false;
-  kfCancelOrder(window.watcher, order)
+  kfCancelOrder(window.watcher, order, OrderActionFlagEnum.Cancel)
     .then(() => {
       const makeOrderInput: KungfuApi.MakeOrderInput = {
         instrument_id: order.instrument_id,

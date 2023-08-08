@@ -268,7 +268,7 @@ watch(
                 case 'float':
                 case 'percent':
                   formState.value[key] = Number(newVal[key]).kfRound(
-                    numberKeys.value[key].precision ?? 3,
+                    numberKeys.value[key].precision ?? 4,
                   );
                   break;
               }
@@ -1234,8 +1234,8 @@ defineExpose({
         v-model:value="formState[item.key]"
         :max="item.max ?? Infinity"
         :min="item.min ?? -Infinity"
-        :precision="item.precision ?? 3"
-        :step="item.step ?? 0.001"
+        :precision="item.precision ?? 4"
+        :step="item.step ?? 0.0001"
         :disabled="
           (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
           item.disabled
@@ -1369,6 +1369,15 @@ defineExpose({
           item.disabled
         "
       ></a-checkbox>
+      <a-checkbox-group
+        v-else-if="item.type === 'checkboxGroup'"
+        v-model:value="formState[item.key]"
+        :options="item.options"
+        :disabled="
+          (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
+          item.disabled
+        "
+      ></a-checkbox-group>
       <a-select
         v-else-if="numberEnumSelectType[item.type]"
         v-model:value="formState[item.key]"

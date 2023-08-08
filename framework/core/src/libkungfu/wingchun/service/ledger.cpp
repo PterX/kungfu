@@ -20,9 +20,11 @@ using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::cache;
 
 namespace kungfu::wingchun::service {
-Ledger::Ledger(locator_ptr locator, mode m, bool low_latency)
+#define DEFAULT_AVG_VALID_VALUE 10000.0
+
+Ledger::Ledger(locator_ptr locator, mode m, bool low_latency, const std::string &arguments)
     : apprentice(location::make_shared(m, category::SYSTEM, "service", "ledger", std::move(locator)), low_latency),
-      broker_client_(*this), bookkeeper_(*this, broker_client_, true) {}
+      arguments_(arguments), broker_client_(*this), bookkeeper_(*this, broker_client_, true) {}
 
 void Ledger::on_exit() {}
 
@@ -53,7 +55,18 @@ void Ledger::on_start() {
 
   add_time_interval(time_unit::NANOSECONDS_PER_MINUTE, [&](auto e) { request_asset_sync(e->gen_time()); });
   add_time_interval(time_unit::NANOSECONDS_PER_MINUTE, [&](auto e) { request_position_sync(e->gen_time()); });
+
+  SPDLOG_DEBUG("bypass_refresh_book {}", bypass_refresh_book());
   refresh_books();
+}
+
+bool Ledger::bypass_refresh_book() const {
+  if (arguments_.empty()) {
+    return false;
+  }
+
+  auto config = nlohmann::json::parse(arguments_);
+  return config.value<bool>("bypass_refresh_book", false);
 }
 
 void Ledger::on_deregister([[maybe_unused]] const Deregister &deregister) {
@@ -77,6 +90,9 @@ void Ledger::refresh_books() {
 }
 
 void Ledger::refresh_account_book(int64_t trigger_time, uint32_t account_uid) {
+  if (bypass_refresh_book()) {
+    return;
+  }
   auto account_location = get_location(account_uid);
   auto group = account_location->group;
   auto md_location = location::make_shared(account_location->mode, category::MD, group, group, get_locator());
@@ -151,13 +167,21 @@ double Ledger::translate_by_price_tick(const char *exchange_id, const char *inst
         price_tick = 1;
       }
 
+      int num = 1 / price_tick;
+      int digits = 0;
+      while (num != 0) {
+        num /= 10;
+        digits++;
+      }
+
+      double price_tick = 1.0 / pow(10, digits);
       uint64_t tick = 1 / price_tick;
-      uint64_t uPrice = (uint64_t)(std::abs(price) * tick + price_tick * 0.5);
+      uint64_t uPrice = (uint64_t)((std::abs(price) + price_tick * 0.5) * tick);
       return (double)uPrice / tick;
     }
   }
 
-  return int(price * 10000) / 10000.0;
+  return int64_t(price * DEFAULT_AVG_VALID_VALUE) / DEFAULT_AVG_VALID_VALUE;
 }
 
 void Ledger::update_account_book(int64_t trigger_time, uint32_t account_uid) {
@@ -217,8 +241,6 @@ void Ledger::write_book_reset(int64_t trigger_time, uint32_t book_uid) {
   writer->close_data();
   writer->open_data<CacheReset>(trigger_time).msg_type = Asset::tag;
   writer->close_data();
-  writer->open_data<CacheReset>(trigger_time).msg_type = AssetMargin::tag;
-  writer->close_data();
   writer->open_data<CacheReset>(trigger_time).msg_type = InstrumentFactor::tag;
   writer->close_data();
   writer->mark(trigger_time, ResetBookRequest::tag);
@@ -235,7 +257,6 @@ void Ledger::write_strategy_data(int64_t trigger_time, uint32_t strategy_uid) {
   for (const auto &pair : bookkeeper_.get_books()) {
     auto &book = pair.second;
     auto &asset = book->asset;
-    auto &asset_margin = book->asset_margin;
     auto book_uid = asset.holder_uid;
     bool has_account = asset.ledger_category == LedgerCategory::Account and has_channel(book_uid, strategy_uid);
     bool is_strategy = location->category == category::STRATEGY and book_uid == strategy_uid;
@@ -245,7 +266,6 @@ void Ledger::write_strategy_data(int64_t trigger_time, uint32_t strategy_uid) {
       write_positions(trigger_time, strategy_uid, book->short_positions);
       write_instrument_factors(trigger_time, strategy_uid, book->instrument_factors);
       writer->write(trigger_time, asset);
-      writer->write(trigger_time, asset_margin);
     }
   }
 
@@ -256,9 +276,7 @@ void Ledger::write_strategy_data(int64_t trigger_time, uint32_t strategy_uid) {
 void Ledger::write_positions(int64_t trigger_time, uint32_t dest, book::PositionMap &positions) {
   auto writer = get_writer(dest);
   for (const auto &pair : positions) {
-    if (pair.second.volume > 0) {
-      writer->write_as(trigger_time, pair.second, get_home_uid(), pair.second.holder_uid);
-    }
+    writer->write_as(trigger_time, pair.second, get_home_uid(), pair.second.holder_uid);
   }
 }
 

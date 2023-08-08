@@ -74,9 +74,9 @@ public:
 
   void on_order_action(const event_ptr &event);
 
-  void on_order(uint32_t source, uint32_t dest, int64_t gen_time, const longfist::types::Order &order);
+  void on_order(int64_t gen_time, uint32_t source, uint32_t dest, const longfist::types::Order &order);
 
-  void on_trade(uint32_t source, uint32_t dest, int64_t gen_time, const longfist::types::Trade &trade);
+  void on_trade(int64_t gen_time, uint32_t source, uint32_t dest, const longfist::types::Trade &trade);
 
   void on_batch_order_tag(const event_ptr &event);
 
@@ -119,7 +119,7 @@ public:
 
   void on_order_trigger_action(const event_ptr &event);
 
-  void on_order_trigger(uint32_t source, uint32_t dest, int64_t gen_time,
+  void on_order_trigger(int64_t gen_time, uint32_t source, uint32_t dest,
                         const longfist::types::OrderTrigger &order_trigger);
 
   void clean_order_triggers(bool bypass_recover = false);
@@ -152,9 +152,11 @@ public:
 
   void on_algo_order_action(const event_ptr &event);
 
-  void on_order(const longfist::types::Order &order);
+  void on_order(int64_t gen_time, uint32_t source, uint32_t dest, const longfist::types::Order &order);
 
   void on_algo_order(int64_t gen_time, uint32_t source, uint32_t dest, const longfist::types::AlgoOrder &algo_order);
+
+  void on_trade(int64_t gen_time, uint32_t source, uint32_t dest, const longfist::types::Trade &trade);
 
   void clean_algo_orders(bool bypass_recover = false);
 
@@ -174,9 +176,10 @@ public:
 private:
   AlgoOrderMap local_algo_orders_;
   AlgoOrderMap waiting_record_local_algo_orders_;
-  AlgoOrderInputMap local_algo_order_inputs_;
   AlgoOrderMap algo_orders_;
+  AlgoOrderInputMap local_algo_order_inputs_;
   SubOrders local_sub_orders_;
+  std::unordered_map<uint64_t, uint64_t> order_id_to_algo_order_id_;
   AlgoOrderActionMap algo_order_actions_;
 
   void try_update_sub_orders(const longfist::types::Order &order);
@@ -233,8 +236,6 @@ public:
 
 protected:
   void react() override;
-
-  void on_react() override;
 
   void on_start() override;
 
@@ -294,7 +295,7 @@ public:
 
   virtual bool req_account() = 0;
 
-  virtual bool req_order_trigger(const event_ptr &event) { return true; }
+  virtual bool req_order_trigger() { return true; }
 
   virtual bool req_algo_order(const event_ptr &event) { return true; }
 
@@ -312,22 +313,13 @@ public:
 
   void on_risk_setting();
 
-  /// 此函数自动发送一个空的AssetMargin数据. 两融柜台需要发送一个存有数据的AssetMargin, 请override此函数取消写入.
-  /// 并且在使用writer写入完AssetMargin之后调用enable_asset_margin_sync()函数.
-  /// 非两融柜台想要取消日志输出请override此函数.
-  virtual bool write_default_asset_margin();
-
   [[maybe_unused]] [[nodiscard]] const std::string &get_account_id() const;
 
   [[nodiscard]] yijinjing::journal::writer_ptr get_asset_writer() const;
 
-  [[nodiscard]] yijinjing::journal::writer_ptr get_asset_margin_writer() const;
-
   [[nodiscard]] yijinjing::journal::writer_ptr get_position_writer() const;
 
   void enable_asset_sync();
-
-  void enable_asset_margin_sync();
 
   void enable_positions_sync();
 
@@ -378,7 +370,6 @@ protected:
 
 private:
   bool sync_asset_ = false;
-  bool sync_asset_margin_ = false;
   bool sync_position_ = false;
   uint32_t risk_uid_ = 0;
 

@@ -209,6 +209,7 @@ export default {
     partial_filled_not_active: 'PartialFilledNotActive',
     partial_filled_active: 'PartialFilledActive',
     lost: 'Lost',
+    pause: 'Pause',
 
     long: 'Long',
     short: 'Short',
@@ -345,25 +346,26 @@ export default {
     order_trigger_status_submitted: 'Not triggered',
     order_trigger_status_filled: 'Triggered',
     order_trigger_status_cancelled: 'Canceled',
+    order_trigger_status_error: 'Error',
     batch: 'Batch',
     batch_order_trigger: 'Batch embedded orders',
     order_trigger_td_error:
       'The current counter {tdName} does not support placing embedded orders. Please contact the administrator',
     order_trigger_not_future:
-      'In batch order burying, {rowStr} is not a futures and failed to place the order',
+      'Failed to place the order, the information of the {rowStr} target is incorrect (currently only futures targets are supported), please check',
     batch_order_trigger_results:
       'Batch payment succeeded {success}, failed {error}',
     instrument_id_header_desc:
-      'Target code, (* Only CTP/Ronghang counter can be filled in)',
+      'Target code, string, (* Only CTP/Ronghang counter can be filled in)',
     exchange_id_header_desc:
-      'Exchange ID, string, can be filled with SSE (Shanghai Stock Exchange), SZE (Shenzhen Stock Exchange), BSE (Beijing Stock Exchange), SHFE (Shanghai Stock Exchange), DCE (Da Shang Exchange), CZCE (Zheng Shang Exchange), CFFEX (China Securities Exchange), INE (Energy Center)',
-    side_header_desc: 'Buy and sell, can fill in 0 buy/1 sell',
+      'Exchange ID, string, can be filled with SHFE (Shanghai Stock Exchange), DCE (Da Shang Exchange), CZCE (Zheng Shang Exchange), CFFEX (China Securities Exchange), INE (Energy Center)',
+    side_header_desc: 'Buy and sell, string, can fill in 0 (buy)/1 (sell)',
     offset_header_desc:
-      'Open and close, you can fill in 0 open/1 close/2 close today/3 close yesterday',
+      'Open and close, string, you can fill in 0 (open)/1 (close)/2 (close today)/3 (close yesterday)',
     price_type_header_desc:
-      '0 price limit/1 market price/2 Shanghai Shenzhen optimal five level real-time transaction remaining cancellation/3 Shenzhen local optimal price declaration/4 Shanghai optimal five level real-time transaction remaining conversion to limit price, Shenzhen counterparty optimal price declaration/5 Shenzhen real-time transaction remaining cancellation/6 Shenzhen market price full transaction or cancellation/7 enhanced limit price order/8 bidding limit price order/9 bidding price order',
-    volume_header_desc: 'Volume',
-    limit_price_header_desc: 'Limit price',
+      '0 (price limit)/1 (market price)/2 (Shanghai Shenzhen optimal five level real-time transaction remaining cancellation)/3 (Shenzhen local optimal price declaration)/4 (Shanghai optimal five level real-time transaction remaining conversion to limit price, Shenzhen counterparty optimal price declaration)/5 (Shenzhen real-time transaction remaining cancellation)/6 (Shenzhen market price full transaction or cancellation)/7 (enhanced limit price order)/8 (bidding limit price order)/9 (bidding price order), number',
+    volume_header_desc: 'Volume, number',
+    limit_price_header_desc: 'Limit price, float',
     apart_order: 'Apart Order',
     reset_order: 'Reset',
     account: 'AccountId',
@@ -443,6 +445,16 @@ export default {
     average_network_latency: 'Average Network Latency(μs)',
     min_network_latency: 'Min Network Latency(μs)',
     max_network_latency: 'Max Network Latency(μs)',
+  },
+
+  orderTriggerConfig: {
+    trigger_insert: 'Place order',
+    trigger_cancel: 'Cancel the order',
+    action_flag: 'Action flag',
+    confirm_cancel_all: 'Confirm cancellation of all orders',
+    confirm: 'Confirm',
+    cancel_all: 'All cancellations',
+    insert_time: 'Insert time',
   },
 
   tdConfig: {
@@ -567,7 +579,12 @@ export default {
   posGlobalConfig: {
     instrument_id: 'instrument_id',
     account_id_resolved: 'account_id_resolved',
+    static_yesterday_volume: 'yesterday_volume',
+    static_yesterday_volume_setting: 'yesterday_volume(position before today)',
+    open_volume: 'open_volume',
+    close_volume: 'close_volume',
     yesterday_volume: 'yesterday_volume',
+    yesterday_volume_setting: 'yesterday_volume(yesterday volume remaining)',
     today_volume: 'today_volume',
     sum_volume: 'sum_volume',
     frozen_total: 'frozen_total',
@@ -576,6 +593,7 @@ export default {
     avg_open_price: 'avg_price',
     last_price: 'last_price',
     unrealized_pnl: 'unrealized_pnl',
+    pos_detail_header: 'Position',
   },
 
   marketDataConfig: {
@@ -780,8 +798,8 @@ export default {
     order_input_key: 'Property',
     single_price: 'Single Price',
     limit_value: 'Maximum',
-    asset_margin: 'AssetMargin',
-    show_asset_margin: 'AssetMargin Mode',
+    margin_trading: 'MarginTrading',
+    show_margin_trading: 'MarginTrading Mode',
 
     code_editor: 'Editor',
     tab_space_type: 'Indentation Category',

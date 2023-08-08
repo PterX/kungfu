@@ -14,9 +14,14 @@ export class LifeCycleHook {
   callbacksMap: Record<LifeCycleKeys, Map<string, Array<Callback>>>;
 
   constructor() {
-    this.callbacksMap = {
-      [LifeCycleKeys.BeforeStopAllProcesses]: new Map(),
-    };
+    this.callbacksMap = this.buildInitCallbacksMap();
+  }
+
+  private buildInitCallbacksMap() {
+    return Object.keys(LifeCycleKeys).reduce((map, key) => {
+      map[key] = new Map();
+      return map;
+    }, {} as Record<LifeCycleKeys, Map<string, Array<Callback>>>);
   }
 
   register(
@@ -90,9 +95,7 @@ export class LifeCycleHook {
   }
 
   clearAll(): boolean {
-    this.callbacksMap = {
-      [LifeCycleKeys.BeforeStopAllProcesses]: new Map(),
-    };
+    this.callbacksMap = this.buildInitCallbacksMap();
     return true;
   }
 }

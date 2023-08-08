@@ -19,7 +19,6 @@ export class LifeCycleHook {
 
   private buildInitCallbacksMap() {
     return Object.values(LifeCycleKeys).reduce((map, key) => {
-    return Object.values(LifeCycleKeys).reduce((map, key) => {
       map[key] = new Map();
       return map;
     }, {} as Record<LifeCycleKeys, Map<string, Array<Callback>>>);
@@ -108,8 +107,27 @@ export class LifeCycleHook {
     return true;
   }
 
-  clear(lifeCycle: LifeCycleKeys, key: string, callback?: Callback) {
+  isRegistered(lifeCycle: LifeCycleKeys): boolean;
+  isRegistered(lifeCycle: LifeCycleKeys, key: string): boolean;
+  isRegistered(lifeCycle: LifeCycleKeys, callback: Callback): boolean;
+  isRegistered(
+    lifeCycle: LifeCycleKeys,
+    key: string,
+    callback: Callback,
+  ): boolean;
+  isRegistered(
+    lifeCycle: LifeCycleKeys,
+    key?: string | Callback,
+    callback?: Callback,
+  ) {
+    if (!key) return true;
+
     const targetMap = this.callbacksMap[lifeCycle];
+
+    if (typeof key === 'function') {
+      callback = key;
+      key = this.CallbacksMapDefaultKey;
+    }
 
     if (!targetMap.has(key) || targetMap.get(key)?.length === 0) {
       kfLogger.warn(

@@ -95,6 +95,7 @@ class TraderSim(wc.Trader):
         trigger_input = event.OrderTriggerInput()
         self.logger.info(f"OrderTriggerInput: {trigger_input}")
         trigger = wc.utils.order_trigger_from_input(trigger_input)
+        trigger.external_trigger_id = str(trigger.trigger_id)
         trigger.insert_time = yjj.now_in_nano()
         trigger.update_time = trigger.insert_time
         trigger.status = lf.enums.OrderStatus.Submitted
@@ -327,6 +328,7 @@ class TraderSim(wc.Trader):
 
                 if order_action.action_flag == lf.enums.OrderActionFlag.TriggerCancel:
                     trigger = wc.utils.order_trigger_from_order(order)
+                    trigger.external_trigger_id = str(trigger.trigger_id)
                     trigger.insert_time = yjj.now_in_nano()
                     trigger.update_time = trigger.insert_time
                     trigger.status = lf.enums.OrderStatus.Submitted

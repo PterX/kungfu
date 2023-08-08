@@ -303,6 +303,31 @@ inline longfist::enums::InstrumentType get_instrument_type_by_exchange_hk(const 
   return longfist::enums::InstrumentType::Stock;
 }
 
+inline const std::string exchange_id_from_market_type(longfist::enums::MarketType market_type) {
+  switch (market_type) {
+  case longfist::enums::MarketType::BSE:
+    return EXCHANGE_BSE;
+  case longfist::enums::MarketType::SHFE:
+    return EXCHANGE_SHFE;
+  case longfist::enums::MarketType::CFFEX:
+    return EXCHANGE_CFFEX;
+  case longfist::enums::MarketType::DCE:
+    return EXCHANGE_DCE;
+  case longfist::enums::MarketType::CZCE:
+    return EXCHANGE_CZCE;
+  case longfist::enums::MarketType::INE:
+    return EXCHANGE_INE;
+  case longfist::enums::MarketType::SSE:
+    return EXCHANGE_SSE;
+  case longfist::enums::MarketType::SZE:
+    return EXCHANGE_SZE;
+  case longfist::enums::MarketType::All:
+    return "";
+  default:
+    return "Unknown";
+  }
+}
+
 inline longfist::enums::InstrumentType get_instrument_type(const std::string &exchange_id,
                                                            const std::string &instrument_id) {
   if (string_equals(exchange_id, EXCHANGE_SSE)) {

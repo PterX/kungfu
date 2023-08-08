@@ -100,6 +100,10 @@ import { KUNGFU_RESOURCES_DIR } from '@kungfu-trader/kungfu-js-api/config/pathCo
 import { RuleObject } from 'ant-design-vue/lib/form';
 import { TradeAccountingUsageMap } from '@kungfu-trader/kungfu-js-api/utils/accounting';
 import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
+import {
+  LifeCycleHook,
+  LifeCycleKeys,
+} from '@kungfu-trader/kungfu-js-api/hooks/lifeCycleHook';
 
 const { t } = VueI18n.global;
 const { success, error } = messagePrompt();
@@ -1086,14 +1090,15 @@ export const usePreStartAndQuitApp = (): {
                 preQuitSystemLoadingData.record = 'loading';
                 preQuitTasks([
                   // removeNoDefaultStrategyFolders(),
-                  Promise.resolve(),
+                  (
+                    globalThis.HookKeeper.getHooks().lifeCycle as LifeCycleHook
+                  ).trigger(LifeCycleKeys.BeforeStopAllProcesses),
                 ]).finally(() => {
                   ipcRenderer.send('record-before-quit-done');
                   preQuitSystemLoadingData.record = 'done';
                 });
                 break;
               case 'clear-process-before-quit-start':
-                globalThis.HookKeeper.getHooks().ClearProcessHook.trigger();
                 preQuitSystemLoadingData.quit = 'loading';
                 break;
               case 'clear-process-before-quit-end':

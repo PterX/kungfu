@@ -414,12 +414,8 @@ KF_DEFINE_PACK_TYPE(                                                            
     OrderTriggerAction, 211, PK(order_trigger_action_id), TIMESTAMP(insert_time), //
     (uint64_t, trigger_id),                                                       // 订单ID
     (uint64_t, order_trigger_action_id),                                          // 订单操作ID
-
-    (enums::OrderActionFlag, action_flag), // 订单操作类型
-
-    (double, price),       // 价格
-    (int64_t, volume),     // 数量
-    (int64_t, insert_time) // 写入时间
+    (enums::OrderActionFlag, action_flag),                                        // 订单操作类型
+    (int64_t, insert_time)                                                        // 写入时间
 );
 
 KF_DEFINE_PACK_TYPE(                                                                   //

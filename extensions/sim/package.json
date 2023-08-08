@@ -96,7 +96,7 @@
             "required": true
           }
         ],
-        "orderTrigger": {
+        "order_trigger": {
           "MakeOrder": {
             "Server": {
               "GFA": true

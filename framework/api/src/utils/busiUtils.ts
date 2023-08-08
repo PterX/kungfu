@@ -40,6 +40,7 @@ import {
   ExportTradingDataColumnsToFilter,
   ParkedType,
   OrderTriggerStatus,
+  TriggerFlag,
 } from '../config/tradingConfig';
 import {
   KfCategoryEnum,
@@ -72,6 +73,7 @@ import {
   OrderTriggerTypeEnum,
   OrderTriggerParkedTypeEnum,
   OrderTriggerTimeConditionEnum,
+  OrderTriggerFlag,
 } from '../typings/enums';
 import {
   graceDeleteProcess,
@@ -1736,6 +1738,12 @@ export const dealTimeCondition = (
   timeCondition: TimeConditionEnum | number,
 ): KungfuApi.KfTradeValueCommonData => {
   return TimeCondition[+timeCondition as TimeConditionEnum];
+};
+
+export const dealTOrderTriggerFlag = (
+  orderTriggerFlag: OrderTriggerFlag | number,
+): KungfuApi.KfTradeValueCommonData => {
+  return TriggerFlag[+orderTriggerFlag as OrderTriggerFlag];
 };
 
 export const dealParkedType = (

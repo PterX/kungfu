@@ -1,7 +1,7 @@
 import { kfLogger } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 
 type Callback = (...args) => Promise<void>;
-type ClearRegister = () => void;
+type ClearRegister = { clear: () => boolean };
 
 type RegisterReturnType = ClearRegister | false;
 
@@ -18,18 +18,13 @@ export class LifeCycleHook {
   }
 
   private buildInitCallbacksMap() {
-    return Object.keys(LifeCycleKeys).reduce((map, key) => {
+    return Object.values(LifeCycleKeys).reduce((map, key) => {
+    return Object.values(LifeCycleKeys).reduce((map, key) => {
       map[key] = new Map();
       return map;
     }, {} as Record<LifeCycleKeys, Map<string, Array<Callback>>>);
   }
 
-  register(lifeCycle: LifeCycleKeys, callback: Callback): RegisterReturnType;
-  register(
-    lifeCycle: LifeCycleKeys,
-    key: string,
-    callback: Callback,
-  ): RegisterReturnType;
   register(
     lifeCycle: LifeCycleKeys,
     key: string | Callback,
@@ -54,7 +49,9 @@ export class LifeCycleHook {
       targetMap.set(key, [callback as Callback]);
     }
 
-    return () => this.clear(lifeCycle, key as string, callback as Callback);
+    return {
+      clear: () => this.clear(lifeCycle, key as string, callback),
+    };
   }
 
   async trigger(lifeCycle: LifeCycleKeys) {
@@ -78,19 +75,20 @@ export class LifeCycleHook {
     }
   }
 
-  clear(lifeCycle: LifeCycleKeys): boolean;
-  clear(lifeCycle: LifeCycleKeys, key: string): boolean;
-  clear(lifeCycle: LifeCycleKeys, callback: Callback): boolean;
-  clear(lifeCycle: LifeCycleKeys, key: string, callback: Callback): boolean;
-  clear(
+  isRegistered(lifeCycle: LifeCycleKeys): boolean;
+  isRegistered(lifeCycle: LifeCycleKeys, key: string): boolean;
+  isRegistered(lifeCycle: LifeCycleKeys, callback: Callback): boolean;
+  isRegistered(
+    lifeCycle: LifeCycleKeys,
+    key: string,
+    callback: Callback,
+  ): boolean;
+  isRegistered(
     lifeCycle: LifeCycleKeys,
     key?: string | Callback,
     callback?: Callback,
   ) {
-    if (!key) {
-      this.callbacksMap[lifeCycle] = new Map();
-      return true;
-    }
+    if (!key) return true;
 
     const targetMap = this.callbacksMap[lifeCycle];
 
@@ -98,6 +96,20 @@ export class LifeCycleHook {
       callback = key;
       key = this.CallbacksMapDefaultKey;
     }
+
+    if (!targetMap.has(key) || targetMap.get(key)?.length === 0) return false;
+
+    if (callback) {
+      const existedCallbacks = targetMap.get(key) as Callback[];
+      const index = existedCallbacks.findIndex((cb) => callback === cb);
+      return index !== -1;
+    }
+
+    return true;
+  }
+
+  clear(lifeCycle: LifeCycleKeys, key: string, callback?: Callback) {
+    const targetMap = this.callbacksMap[lifeCycle];
 
     if (!targetMap.has(key) || targetMap.get(key)?.length === 0) {
       kfLogger.warn(

@@ -107,7 +107,7 @@ void TraderVendor::on_start() {
       $([&](const event_ptr &event) { get_writer(location::PUBLIC)->mark(now(), ResetBookRequest::tag); });
   events_ | is(Deregister::tag) | $$(service_->on_strategy_exit(event));
 
-  add_time_interval(time_unit::NANOSECONDS_PER_SECOND, [&](auto e) { service_->try_req_account(); }); // 具体修改
+  add_time_interval(5 * time_unit::NANOSECONDS_PER_SECOND, [&](auto e) { service_->try_req_account(); });
 
   service_->on_risk_setting();
   service_->recover();

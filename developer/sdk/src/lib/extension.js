@@ -327,7 +327,7 @@ exports.configure = () => {
   }
 };
 
-exports.compile = () => {
+exports.compile = (buildType = 'Release') => {
   const packageJson = shell.getPackageJson();
   const extensionName = packageJson.kungfuConfig.key;
   const outputDir = path.join('dist', extensionName);
@@ -354,16 +354,16 @@ exports.compile = () => {
   }
 
   if (hasSourceFor(packageJson, 'cpp')) {
-    const cmakeCmdArgs = getCmakeCmdArgs();
+    const cmakeCmdArgs = getCmakeCmdArgs(buildType);
     if (cmakeCmdArgs) {
-      console.log(`$ ${cmakeCmdArgs.cmd} ${cmakeCmdArgs.args.join(' ')} `);
+      console.log(`$ cmakeCmdArgs: ${cmakeCmdArgs.cmd} ${cmakeCmdArgs.args.join(' ')} `);
       const { cmd, args } = cmakeCmdArgs;
       spawnExec(cmd, [...args]);
     }
 
-    const nextCmdArgs = getCmakeNextCmdArgs();
+    const nextCmdArgs = getCmakeNextCmdArgs(buildType);
     if (nextCmdArgs) {
-      console.log(`$ ${nextCmdArgs.cmd} ${nextCmdArgs.args.join(' ')}`);
+      console.log(`$ nextCmdArgs: ${nextCmdArgs.cmd} ${nextCmdArgs.args.join(' ')}`);
       const { cmd, args } = nextCmdArgs;
       spawnExec(cmd, [...args]);
     }

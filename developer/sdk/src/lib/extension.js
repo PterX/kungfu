@@ -356,14 +356,18 @@ exports.compile = (buildType = 'Release') => {
   if (hasSourceFor(packageJson, 'cpp')) {
     const cmakeCmdArgs = getCmakeCmdArgs(buildType);
     if (cmakeCmdArgs) {
-      console.log(`$ cmakeCmdArgs: ${cmakeCmdArgs.cmd} ${cmakeCmdArgs.args.join(' ')} `);
+      console.log(
+        `$ cmakeCmdArgs: ${cmakeCmdArgs.cmd} ${cmakeCmdArgs.args.join(' ')} `,
+      );
       const { cmd, args } = cmakeCmdArgs;
       spawnExec(cmd, [...args]);
     }
 
     const nextCmdArgs = getCmakeNextCmdArgs(buildType);
     if (nextCmdArgs) {
-      console.log(`$ nextCmdArgs: ${nextCmdArgs.cmd} ${nextCmdArgs.args.join(' ')}`);
+      console.log(
+        `$ nextCmdArgs: ${nextCmdArgs.cmd} ${nextCmdArgs.args.join(' ')}`,
+      );
       const { cmd, args } = nextCmdArgs;
       spawnExec(cmd, [...args]);
     }

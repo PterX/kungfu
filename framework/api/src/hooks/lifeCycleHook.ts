@@ -49,7 +49,7 @@ export class LifeCycleHook {
     }
 
     return {
-      clear: () => this.clear(lifeCycle, key as string, callback),
+      clear: () => this.clear(lifeCycle, key as string, callback as Callback),
     };
   }
 
@@ -67,7 +67,7 @@ export class LifeCycleHook {
           `LifeCycle '${lifeCycle}' hook: the key named '${key}' trigger succeed`,
         );
       } catch (error) {
-        kfLogger.warn(
+        kfLogger.error(
           `LifeCycle '${lifeCycle}' hook: the key named '${key}' trigger error: \n${error}`,
         );
       }
@@ -107,15 +107,11 @@ export class LifeCycleHook {
     return true;
   }
 
-  isRegistered(lifeCycle: LifeCycleKeys): boolean;
-  isRegistered(lifeCycle: LifeCycleKeys, key: string): boolean;
-  isRegistered(lifeCycle: LifeCycleKeys, callback: Callback): boolean;
-  isRegistered(
-    lifeCycle: LifeCycleKeys,
-    key: string,
-    callback: Callback,
-  ): boolean;
-  isRegistered(
+  clear(lifeCycle: LifeCycleKeys): boolean;
+  clear(lifeCycle: LifeCycleKeys, key: string): boolean;
+  clear(lifeCycle: LifeCycleKeys, callback: Callback): boolean;
+  clear(lifeCycle: LifeCycleKeys, key: string, callback: Callback): boolean;
+  clear(
     lifeCycle: LifeCycleKeys,
     key?: string | Callback,
     callback?: Callback,

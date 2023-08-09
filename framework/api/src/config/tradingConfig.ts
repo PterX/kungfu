@@ -1055,9 +1055,11 @@ export const ExportTradingDataColumnsToFilter: Record<
 > = {
   Position: ['dest', 'source'],
   Trade: [],
+  AlgoOrder: [],
   Order: [],
   Instrument: ['product_id', 'dest', 'source'],
   Asset: ['dest', 'source'],
+  AlgoOrderInput: [],
   OrderInput: [],
   OrderStat: ['dest', 'source'],
   Quote: [],

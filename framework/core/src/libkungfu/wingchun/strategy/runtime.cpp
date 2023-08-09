@@ -435,7 +435,7 @@ void RuntimeContext::update_strategy_state(StrategyStateUpdate &state_update) {
   writer->write(state_update.update_time, state_update);
 }
 
-std::string RuntimeContext::arguments() { return arguments_; }
+std::string RuntimeContext::get_arguments() { return arguments_; }
 
 yijinjing::journal::writer_ptr RuntimeContext::get_writer(const std::string &source, const std::string &account) {
   return app_.get_writer(get_td_location_uid(source, account));

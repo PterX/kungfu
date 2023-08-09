@@ -14,6 +14,7 @@ trading_day
 io_device
 usable
 bookkeeper
+arguments
 basketorder_engine
 gen_time
 trigger_time
@@ -497,6 +498,9 @@ SZSE
 HKEx
 MarketType
 Snapshot
+Entrust
+Transaction
+Tree
 SubscribeDataType
 Stock
 Future

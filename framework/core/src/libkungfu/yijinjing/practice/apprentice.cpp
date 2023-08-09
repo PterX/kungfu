@@ -7,7 +7,7 @@
 #include <kungfu/common.h>
 #include <kungfu/yijinjing/practice/apprentice.h>
 #include <kungfu/yijinjing/util/os.h>
-#include <nng/nng.h>
+#include <utility>
 
 using namespace kungfu::rx;
 using namespace kungfu::longfist;
@@ -19,8 +19,9 @@ using namespace std::chrono;
 
 namespace kungfu::yijinjing::practice {
 
-apprentice::apprentice(location_ptr home, bool low_latency)
-    : hero(std::make_shared<io_device_client>(home, low_latency)), trading_day_(time::today_start()), cleaner_(*this) {}
+apprentice::apprentice(location_ptr home, bool low_latency, std::string arguments)
+    : hero(std::make_shared<io_device_client>(home, low_latency)), trading_day_(time::today_start()), cleaner_(*this),
+      arguments_(std::move(arguments)) {}
 
 bool apprentice::is_started() const { return started_; }
 
@@ -113,34 +114,12 @@ void apprentice::request_cached(uint32_t source_id) {
 }
 
 void apprentice::add_timer(int64_t nanotime, const std::function<void(const event_ptr &)> &callback) {
-  events_ | timer(nanotime) |
-      $([&, callback](const event_ptr &event) {
-        // try {
-        callback(event);
-        // } catch (const std::exception &e) {
-        //   SPDLOG_ERROR("Unexpected exception by timer {}", e.what());
-        // }
-      }
-        // [&](std::exception_ptr e) {
-        //   try {
-        //     std::rethrow_exception(e);
-        //   } catch (const rx::empty_error &ex) {
-        //     SPDLOG_WARN("{}", ex.what());
-        //   } catch (const std::exception &ex) {
-        //     SPDLOG_WARN("Unexpected exception by timer{}", ex.what());
-        //   }
-        // }
-      );
+  events_ | timer(nanotime) | $([&, callback](const event_ptr &event) { callback(event); });
 }
 
 void apprentice::add_time_interval(int64_t duration, const std::function<void(const event_ptr &)> &callback) {
-  events_ | time_interval(std::chrono::nanoseconds(duration)) | $([&, callback](const event_ptr &event) {
-    // try {
-    callback(event);
-    // } catch (const std::exception &e) {
-    //   SPDLOG_ERROR("Unexpected exception by time_interval {}", e.what());
-    // }
-  });
+  events_ | time_interval(std::chrono::nanoseconds(duration)) |
+      $([&, callback](const event_ptr &event) { callback(event); });
 }
 
 void apprentice::on_trading_day(const event_ptr &event, int64_t daytime) {}
@@ -335,22 +314,11 @@ void apprentice::checkin() {
 
 void apprentice::expect_start() {
   reader_->join(master_home_location_, location::PUBLIC, begin_time_);
-  events_ | is(RequestStart::tag) | first() |
-      $([&](const event_ptr &event) {
-        started_ = true;
-        SPDLOG_INFO("ready to start");
-        on_start();
-      }
-        // [&](const std::exception_ptr &e) {
-        //   try {
-        //     std::rethrow_exception(e);
-        //   } catch (const rx::empty_error &ex) {
-        //     SPDLOG_WARN("Unexpected rx empty {}", ex.what());
-        //   } catch (const std::exception &ex) {
-        //     SPDLOG_WARN("Unexpected exception before start {}", ex.what());
-        //   }
-        // }
-      );
+  events_ | is(RequestStart::tag) | first() | $([&](const event_ptr &event) {
+    started_ = true;
+    SPDLOG_INFO("ready to start");
+    on_start();
+  });
 }
 
 void apprentice::reset_time(const longfist::types::TimeReset &time_reset) {

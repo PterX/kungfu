@@ -735,9 +735,9 @@ export default {
   globalSettingConfig: {
     global_setting_title: 'Global Setting',
     system: 'System',
-    home_path: 'Select local home path',
-    home_path_desc:
-      'Kung Fu will take the selected home path as the root directory, and the directory path cannot contain Chinese characters. It is not recommended that the path be too long (which may cause the process to fail to start). After modification, restarting Kung Fu will take effect',
+    home_dir: 'Select local home directory',
+    home_dir_desc:
+      'Kung Fu will take the selected home directory as the root directory for Kungfu system cache data, and the directory path cannot contain Chinese characters. It is not recommended that the path be too long (which may cause the process to fail to start). After modification, restarting Kung Fu will take effect',
     reset_order: 'Reset',
     log_level: 'Log Level',
     for_all_log: 'For all Log',

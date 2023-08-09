@@ -89,12 +89,18 @@ const getKfcCmdArgs = () => {
 // eslint-disable-next-line no-unused-vars
 const getCmakeCmdArgs = (buildType) => {
   const cmdMap = {
-    [ModeMap.IN_CORE]: { cmd: 'yarn', args: ['cmake-js', 'build', '--config', buildType] },
+    [ModeMap.IN_CORE]: {
+      cmd: 'yarn',
+      args: ['cmake-js', 'build', '--config', buildType],
+    },
     [ModeMap.IN_PROD_APP]: {
       cmd: 'cmake',
       args: ['-S', './', '-B', './build', `-DCMAKE_BUILD_TYPE=${buildType}`],
     },
-    [ModeMap.IN_SDK_SRC]: { cmd: 'yarn', args: ['cmake-js', 'build', '--config', buildType] },
+    [ModeMap.IN_SDK_SRC]: {
+      cmd: 'yarn',
+      args: ['cmake-js', 'build', '--config', buildType],
+    },
   };
 
   return cmdMap[getCurrentMode()];

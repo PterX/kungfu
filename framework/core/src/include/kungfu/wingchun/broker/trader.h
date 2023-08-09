@@ -365,12 +365,21 @@ public:
 
   [[nodiscard]] yijinjing::journal::writer_ptr &get_thread_writer();
 
+  bool is_sync_account() { return sync_account_; }
+
+  void enable_sync_account() { sync_account_ = true; }
+
+  void disable_sync_account() { sync_account_ = false; }
+
+  void try_req_account();
+
 protected:
   bool disable_recover_ = false;
 
 private:
   bool sync_asset_ = false;
   bool sync_position_ = false;
+  bool sync_account_ = false;
   uint32_t risk_uid_ = 0;
 
   void on_asset_sync();

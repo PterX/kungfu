@@ -69,7 +69,7 @@ defineEmits<{
       idByPrimaryKeys: string;
       changeType: KungfuApi.ModalChangeType;
     },
-    conform: () => void,
+    confirm: () => void,
   ): void;
   (e: 'update:visible', visible: boolean): void;
   (e: 'close'): void;

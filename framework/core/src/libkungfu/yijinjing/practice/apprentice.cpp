@@ -147,13 +147,13 @@ void apprentice::react() {
       auto data = event->data<Register>();
       last_active_time_ = data.last_active_time;
       checkin_time_ = data.checkin_time;
-      reader_->join(master_cmd_location_, get_live_home_uid(), begin_time_);
+      reader_->join(master_cmd_location_, get_live_home_uid(), begin_time_, 0, Priority::Level100);
     });
     expect_start();
     checkin();
   }
   if (get_io_device()->get_home()->mode == mode::REPLAY) {
-    reader_->join(master_cmd_location_, get_live_home_uid(), begin_time_);
+    reader_->join(master_cmd_location_, get_live_home_uid(), begin_time_, 0, Priority::Level100);
     expect_start();
   }
   if (get_io_device()->get_home()->mode == mode::BACKTEST) {

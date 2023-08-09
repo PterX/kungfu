@@ -491,9 +491,9 @@ OrderTriggerType
 Server
 Local
 ParkedType
-Low
-Medium
-High
+Level1
+Level100
+Level1000
 Priority
 No
 AccountInternal

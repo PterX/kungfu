@@ -119,7 +119,7 @@ void master::register_app(const event_ptr &event) {
   reader_->join(app_location, location::PUBLIC, now);
   reader_->join(app_location, location::SYNC, now); // create sync journal
   reader_->disjoin(app_location, location::SYNC);   // no need to deal feed from sync
-  reader_->join(app_location, master_cmd_location->uid, now, 0, Priority::High);
+  reader_->join(app_location, master_cmd_location->uid, now, 0, Priority::Level1000);
 
   auto public_writer = get_writer(location::PUBLIC);
   public_writer->write(event->gen_time(), *std::dynamic_pointer_cast<Location>(app_location));

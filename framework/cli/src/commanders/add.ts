@@ -133,7 +133,6 @@ export const addMdTdStrategy = async (
         primary: true,
         required: true,
         tip: '需保证该策略ID唯一',
-        idValidate: true,
       },
       {
         key: 'file_path',

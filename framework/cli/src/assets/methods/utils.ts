@@ -22,10 +22,7 @@ import { startExtService } from '@kungfu-trader/kungfu-js-api/utils/processUtils
 import { Proc } from 'pm2';
 import { globalState } from '../actions/globalState';
 import { program } from 'commander';
-import {
-  EnterableSpecialWordsReg,
-  SpecialWordsReg,
-} from '@kungfu-trader/kungfu-js-api/config/systemConfig';
+import { SpecialWordsReg } from '@kungfu-trader/kungfu-js-api/config/systemConfig';
 
 export const parseToString = (
   targetList: (string | number)[],
@@ -174,11 +171,8 @@ export const buildQuestionByKfConfigItem = (
         return new Error('Required');
       }
 
-      if (configItem.idValidate) {
-        if (
-          SpecialWordsReg.test(value) ||
-          EnterableSpecialWordsReg.test(value)
-        ) {
+      if (configItem.primary) {
+        if (SpecialWordsReg.test(value)) {
           return new Error(
             'Cannot contain special characters or Chinese characters, and cannot start or end with - characters',
           );

@@ -178,7 +178,7 @@ void apprentice::on_start() {}
 void apprentice::on_request_read_from_others(const event_ptr &event) {
   const auto &request = event->data<RequestReadFromOthers>();
   if (has_location(request.source_id)) {
-    reader_->join(get_location(request.source_id), request.dest_id, request.from_time,0, Priority::Level1);
+    reader_->join(get_location(request.source_id), request.dest_id, request.from_time, 0, Priority::Level1);
   }
 }
 

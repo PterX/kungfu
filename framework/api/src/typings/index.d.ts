@@ -973,6 +973,7 @@ declare namespace KungfuApi {
     Basket: DataTable<Basket>;
     BasketInstrument: DataTable<BasketInstrument>;
     BasketOrder: DataTable<BasketOrder>;
+    OrderTrigger: DataTable<OrderTrigger>;
   }
 
   export type TradingDataItem =

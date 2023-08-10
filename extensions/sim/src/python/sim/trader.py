@@ -275,11 +275,13 @@ class TraderSim(wc.Trader):
                 self.get_writer(dest).write(order.update_time, order)
 
     def update_cancel_trigger(self, dest, trigger_id, status):
+        self.logger.debug(f"trigger_id: {trigger_id}, status: {status}, dest: {dest}")
         if trigger_id in self.ctx.triggers:
             trigger = self.ctx.triggers[trigger_id]
             trigger.update_time = yjj.now_in_nano()
-            if trigger.status == status:
-                trigger.status = lf.enums.OrderStatus.Filled
+            if trigger.status == lf.enums.OrderStatus.Submitted:
+                trigger.update_time = yjj.now_in_nano()
+                trigger.status = status
                 self.logger.info(f"OrderTrigger: {trigger}")
                 self.get_writer(dest).write(yjj.now_in_nano(), trigger)
                 if trigger.order_id in self.ctx.orders:
@@ -339,7 +341,7 @@ class TraderSim(wc.Trader):
                     self.add_timer(
                         yjj.now_in_nano() + 30 * 10**9,
                         lambda e: self.update_cancel_trigger(
-                            event.source, trigger, lf.enums.OrderStatus.Filled
+                            event.source, trigger.trigger_id, lf.enums.OrderStatus.Filled
                         ),
                     )
 

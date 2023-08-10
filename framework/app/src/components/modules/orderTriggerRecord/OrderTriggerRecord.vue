@@ -51,6 +51,7 @@ import {
   TimeConditionEnum,
   OrderTriggerTypeEnum,
   OrderTriggerStatusEnum,
+  OrderTriggerFlag,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
   ReloadOutlined,
@@ -58,7 +59,10 @@ import {
   LoadingOutlined,
 } from '@ant-design/icons-vue';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
-import { OrderTriggerCancelStatus } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
+import {
+  OrderCancelledStatus,
+  OrderTriggerCancelStatus,
+} from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 
 interface csvOrderInput {
   limit_price: string;
@@ -305,7 +309,7 @@ function handleRequestOrderTrigger() {
     currentGlobalKfLocation.value as KungfuApi.KfLocation,
   )
     .then(() => {
-      success();
+      success(t('orderTriggerConfig.order_trigger_request_success'));
     })
     .catch((err: Error) => {
       error(err.message);
@@ -342,6 +346,17 @@ function handleCancelOrderTrigger(
     return;
   }
 
+  const { order_id } = orderTrigger;
+  const curOrder = (window.watcher as KungfuApi.Watcher).ledger.Order.filter(
+    'order_id',
+    order_id,
+  ).list()[0];
+  if (OrderCancelledStatus.includes(curOrder.status)) {
+    error(t('orderTriggerConfig.order_finished'));
+    handleRequestOrderTrigger();
+    return;
+  }
+
   kfCancelOriderTrigger(
     window.watcher,
     orderTrigger,
@@ -367,11 +382,28 @@ function handleCancelAllOrderTrigger() {
     return;
   }
 
-  const orders = selectedRows.value.filter((item) => {
+  const orderTriggers = selectedRows.value.filter((item) => {
     return orderTriggerCanBeCancel(item);
   });
+  if (orderTriggers.length === 0) return;
 
-  if (orders.length === 0) return;
+  const cancelOrderTriggers = orderTriggers.filter((order) => {
+    return order.action_flag === OrderTriggerFlag.TriggerCancel;
+  });
+  const insertOrderTriggers = orderTriggers.filter((order) => {
+    return order.action_flag === OrderTriggerFlag.TriggerInsert;
+  });
+  const unfinishedOrderTriggers = cancelOrderTriggers.filter((item) => {
+    const { order_id } = item;
+    const curOrder = (window.watcher as KungfuApi.Watcher).ledger.Order.filter(
+      'order_id',
+      order_id,
+    ).list()[0];
+    if (!OrderCancelledStatus.includes(curOrder.status)) {
+      return true;
+    }
+    return false;
+  });
 
   const name = getIdByKfLocation(currentGlobalKfLocation.value);
 
@@ -388,7 +420,7 @@ function handleCancelAllOrderTrigger() {
 
       return kfCancelAllOrdersTrigger(
         window.watcher,
-        orders,
+        [...insertOrderTriggers, ...unfinishedOrderTriggers],
         currentGlobalKfLocation.value,
       )
         .then(() => {
@@ -399,8 +431,7 @@ function handleCancelAllOrderTrigger() {
         });
     })
     .finally(() => {
-      selectedRowKeys.value = [];
-      selectedRows.value = [];
+      handleRequestOrderTrigger();
     });
 }
 

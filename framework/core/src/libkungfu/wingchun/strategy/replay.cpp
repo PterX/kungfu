@@ -357,10 +357,10 @@ frame_ptr ReplayContext::read_next(uint32_t msg_type) {
 }
 
 void ReplayContext::on_timer_check() {
-    if (now() >= app_.get_end_time()) {
-        SPDLOG_WARN("end time limit exceeded");
-        req_deregister();
-    }
+  if (now() >= app_.get_end_time()) {
+    SPDLOG_WARN("end time limit exceeded");
+    req_deregister();
+  }
 }
 
 } // namespace kungfu::wingchun::strategy

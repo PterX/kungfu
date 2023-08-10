@@ -198,7 +198,6 @@ void apprentice::on_read_from_public(const event_ptr &event) { do_read_from<Requ
 
 void apprentice::on_read_from_sync(const event_ptr &event) { do_read_from<RequestReadFromSync>(event, location::SYNC); }
 
-
 void apprentice::on_request_read_from_others(const event_ptr &event) {
   const auto &request = event->data<RequestReadFromOthers>();
   if (has_location(request.source_id)) {

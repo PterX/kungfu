@@ -44,7 +44,7 @@ def run(ctx, mode, category, group, name, low_latency, reference, arguments, ven
     ctx.vendor = vendor
 
     if ctx.arguments is None:
-        ctx.arguments = ""
+        ctx.arguments = "{}"
 
     registry = ExecutorRegistry(ctx)
 

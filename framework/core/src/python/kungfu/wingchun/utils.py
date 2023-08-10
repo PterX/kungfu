@@ -13,10 +13,6 @@ is_valid_price = wc.utils.is_valid_price
 hash_instrument = wc.utils.hash_instrument
 
 
-# def is_final_status(order_status):
-#     return int(order_status) in AllFinalOrderStatus
-
-
 def get_position_effect(instrument_type, side, offset):
     if instrument_type in InstrumentTypeInStockAccount:
         return Direction.Long

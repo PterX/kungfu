@@ -178,6 +178,7 @@ void bind_strategy(pybind11::module &m) {
 
   py::class_<strategy::Context, std::shared_ptr<strategy::Context>>(m, "Context")
       .def_property_readonly("trading_day", &strategy::Context::get_trading_day)
+      .def_property_readonly("arguments", &strategy::Context::get_arguments)
       .def("now", &strategy::Context::now)
       .def("add_timer", &strategy::Context::add_timer)
       .def("add_time_interval", &strategy::Context::add_time_interval)

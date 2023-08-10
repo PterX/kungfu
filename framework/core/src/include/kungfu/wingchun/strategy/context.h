@@ -285,7 +285,7 @@ public:
    * Get arguments kfc run -a
    * @return string of arguments
    */
-  virtual std::string arguments() { return {}; };
+  virtual std::string get_arguments() { return {}; };
 
   /**
    *

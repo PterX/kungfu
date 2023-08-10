@@ -17,8 +17,8 @@ using namespace kungfu::yijinjing::practice;
 namespace kungfu::wingchun::strategy {
 Runner::Runner(locator_ptr locator, const std::string &group, const std::string &name, mode m, bool low_latency,
                const std::string &arguments)
-    : apprentice(location::make_shared(m, category::STRATEGY, group, name, std::move(locator)), low_latency),
-      positions_set_(m == mode::BACKTEST), started_(m == mode::BACKTEST), arguments_(arguments) {}
+    : apprentice(location::make_shared(m, category::STRATEGY, group, name, std::move(locator)), low_latency, arguments),
+      positions_set_(m == mode::BACKTEST), started_(m == mode::BACKTEST) {}
 
 Runner::~Runner() { context_.reset(); }
 
@@ -39,7 +39,7 @@ void Runner::on_trading_day(const event_ptr &event, int64_t daytime) {
 
 void Runner::react() {
   context_ = make_context();
-  context_->set_arguments(arguments_);
+  context_->set_arguments(get_arguments());
   enable(*context_);
   context_->get_bookkeeper().add_book_listener(std::make_shared<BookListener>(*this));
 

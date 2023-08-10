@@ -341,7 +341,9 @@ class TraderSim(wc.Trader):
                     self.add_timer(
                         yjj.now_in_nano() + 30 * 10**9,
                         lambda e: self.update_cancel_trigger(
-                            event.source, trigger.trigger_id, lf.enums.OrderStatus.Filled
+                            event.source,
+                            trigger.trigger_id,
+                            lf.enums.OrderStatus.Filled,
                         ),
                     )
 

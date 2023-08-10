@@ -108,7 +108,7 @@ const {
 const { handleDownload } = useDownloadHistoryTradingData();
 const adjustOrderMaskVisible = ref(false);
 const statisticModalVisible = ref<boolean>(false);
-const orderCurrentOderTriggers = ref<
+const orderCurrentOrderTriggers = ref<
   Record<string, KungfuApi.OrderTriggerResolved[]>
 >({});
 
@@ -216,7 +216,7 @@ onMounted(() => {
         orders.value = toRaw(ordersForTable);
 
         const source = watcher.getLocationUID(currentGlobalKfLocation.value);
-        orderCurrentOderTriggers.value = watcher.ledger.OrderTrigger.filter(
+        orderCurrentOrderTriggers.value = watcher.ledger.OrderTrigger.filter(
           'action_flag',
           1,
         )
@@ -324,7 +324,7 @@ function isFinishedOrderTriggerStatus(orderStatus: OrderStatusEnum): boolean {
   return !UnfinishedOrderTriggerStatus.includes(orderStatus);
 }
 
-const cancelOrderTriggerBtn = computed(() => {
+const cancelOrderTriggerBtnVisible = computed(() => {
   const rootPackageJson = readRootPackageJsonSync();
   if (rootPackageJson?.appConfig?.orderTrigger === false) {
     return false;
@@ -423,7 +423,8 @@ function handleInsertOrderTrigger(order: KungfuApi.OrderResolved): void {
         error(t('orderConfig.order_finished'));
         return;
       }
-      const orderTriggers = orderCurrentOderTriggers.value[order_id.toString()];
+      const orderTriggers =
+        orderCurrentOrderTriggers.value[order_id.toString()];
       const submittedOrderTrigger = orderTriggers.filter((orderTrigger) =>
         OrderTriggerCancelStatus.includes(orderTrigger.status),
       );
@@ -444,7 +445,7 @@ function handleInsertOrderTrigger(order: KungfuApi.OrderResolved): void {
 }
 
 function isOrderTriggerHasSubmitted(orderId: bigint) {
-  const orderTriggers = orderCurrentOderTriggers.value[orderId.toString()];
+  const orderTriggers = orderCurrentOrderTriggers.value[orderId.toString()];
   if (!orderTriggers || orderTriggers.length === 0) return true;
   const submittedOrderTrigger = orderTriggers.filter(
     (orderTrigger) => orderTrigger.status === OrderTriggerStatusEnum.Submitted,
@@ -453,8 +454,8 @@ function isOrderTriggerHasSubmitted(orderId: bigint) {
   return true;
 }
 
-function orderTriggerLoading(orderId: bigint) {
-  const orderTriggers = orderCurrentOderTriggers.value[orderId.toString()];
+function isOrderTriggerHasPending(orderId: bigint) {
+  const orderTriggers = orderCurrentOrderTriggers.value[orderId.toString()];
   if (!orderTriggers || orderTriggers.length === 0) return false;
   const submittedOrderTrigger = orderTriggers.filter(
     (orderTrigger) => orderTrigger.status === OrderTriggerStatusEnum.Pending,
@@ -918,7 +919,7 @@ function testOrderSourceIsOnline(order: KungfuApi.OrderResolved) {
               <span
                 v-if="
                   !isFinishedOrderTriggerStatus(item.status) &&
-                  cancelOrderTriggerBtn
+                  cancelOrderTriggerBtnVisible
                 "
                 :class="{
                   'color-default': isOrderTriggerHasSubmitted(item.order_id),
@@ -928,7 +929,7 @@ function testOrderSourceIsOnline(order: KungfuApi.OrderResolved) {
               >
                 {{ $t('orderConfig.cancel_order_trigger') }}
               </span>
-              <LoadingOutlined v-if="orderTriggerLoading(item.order_id)" />
+              <LoadingOutlined v-if="isOrderTriggerHasPending(item.order_id)" />
             </template>
           </template>
         </KfTradingDataTable>

@@ -120,7 +120,7 @@ export const getColumns = (
             {
               name: '',
               dataIndex: 'actions',
-              width: 60,
+              width: 120,
             },
           ]),
     ]);

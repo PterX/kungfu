@@ -6,7 +6,10 @@ import {
   delayMilliSeconds,
   getProcessIdByKfLocation,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
-import { useActiveInstruments } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
+import {
+  useActiveInstruments,
+  useExtConfigsRelated,
+} from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import {
   useDownloadHistoryTradingData,
   useTableSearchKeyword,
@@ -19,7 +22,6 @@ import KfTradingDataTable from '@kungfu-trader/kungfu-app/src/renderer/component
 import {
   DownloadOutlined,
   LoadingOutlined,
-  CloseOutlined,
   CalendarOutlined,
   PieChartOutlined,
 } from '@ant-design/icons-vue';
@@ -43,13 +45,21 @@ import {
   kfCancelOrder,
   makeOrderByOrderInput,
   getOrderLatencyDataByOrderStat,
+  kfCancelAllOrdersTrigger,
 } from '@kungfu-trader/kungfu-js-api/kungfu';
 import type { Dayjs } from 'dayjs';
-import { UnfinishedOrderStatus } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
+import {
+  OrderCancelledStatus,
+  OrderTriggerCancelStatus,
+  UnfinishedOrderStatus,
+  UnfinishedOrderTriggerStatus,
+} from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import {
   HistoryDateEnum,
   OrderStatusEnum,
   OrderActionFlagEnum,
+  OrderTriggerStatusEnum,
+  OrderTriggerTypeEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
   showTradingDataDetail,
@@ -60,11 +70,13 @@ import {
 import StatisticModal from './OrderStatisticModal.vue';
 import { messagePrompt } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
 
 const { t } = VueI18n.global;
 const { success, error } = messagePrompt();
 const app = getCurrentInstance();
 const { getPriceTickAndPrecision } = useActiveInstruments();
+const { extConfigs } = useExtConfigsRelated();
 
 const { handleBodySizeChange } = useDashboardBodySize();
 
@@ -96,6 +108,9 @@ const {
 const { handleDownload } = useDownloadHistoryTradingData();
 const adjustOrderMaskVisible = ref(false);
 const statisticModalVisible = ref<boolean>(false);
+const orderCurrentOrderTriggers = ref<
+  Record<string, KungfuApi.OrderTriggerResolved[]>
+>({});
 
 const columns = computed(() => {
   if (currentGlobalKfLocation.value === null) {
@@ -199,6 +214,23 @@ onMounted(() => {
 
         allOrders.value = toRaw(totalOrders);
         orders.value = toRaw(ordersForTable);
+
+        const source = watcher.getLocationUID(currentGlobalKfLocation.value);
+        orderCurrentOrderTriggers.value = watcher.ledger.OrderTrigger.filter(
+          'action_flag',
+          1,
+        )
+          .filter('source', source)
+          .list()
+          .reduce((pre, cur) => {
+            const order_id = cur.order_id.toString();
+            if (order_id in pre) {
+              pre[order_id].push(cur);
+            } else {
+              pre[order_id] = [cur];
+            }
+            return pre;
+          }, {});
       },
     );
 
@@ -288,6 +320,25 @@ function isFinishedOrderStatus(orderStatus: OrderStatusEnum): boolean {
   return !UnfinishedOrderStatus.includes(orderStatus);
 }
 
+function isFinishedOrderTriggerStatus(orderStatus: OrderStatusEnum): boolean {
+  return !UnfinishedOrderTriggerStatus.includes(orderStatus);
+}
+
+const cancelOrderTriggerBtnVisible = computed(() => {
+  const rootPackageJson = readRootPackageJsonSync();
+  if (rootPackageJson?.appConfig?.orderTrigger === false) {
+    return false;
+  }
+
+  const tdName = currentGlobalKfLocation.value?.group as string;
+  const extConfig = extConfigs.value.td[tdName];
+  if (extConfig && extConfig.orderTrigger[OrderTriggerTypeEnum.CancelOrder]) {
+    return true;
+  } else {
+    return false;
+  }
+});
+
 function handleCancelOrder(order: KungfuApi.OrderResolved): void {
   if (!currentGlobalKfLocation.value || !window.watcher) {
     error();
@@ -333,6 +384,84 @@ function handleCancelAllOrders(): void {
         error(err.message);
       });
   });
+}
+
+function handleInsertOrderTrigger(order: KungfuApi.OrderResolved): void {
+  const cancelOrderTrigger = isOrderTriggerHasSubmitted(order.order_id);
+  if (cancelOrderTrigger) {
+    if (!currentGlobalKfLocation.value || !window.watcher) {
+      error();
+      return;
+    }
+
+    if (isFinishedOrderTriggerStatus(order.status)) {
+      error(t('orderConfig.order_finished'));
+      return;
+    }
+
+    kfCancelOrder(window.watcher, order, OrderActionFlagEnum.TriggerCancel)
+      .then(() => {
+        success();
+      })
+      .catch(() => {
+        error();
+      });
+  } else {
+    confirmModal(
+      t('orderConfig.confirm_cancel_order_trigger'),
+      t('orderConfig.cancel_order_trigger_context'),
+    ).then((res) => {
+      if (!res || !currentGlobalKfLocation.value || !window.watcher) {
+        return;
+      }
+      const { order_id } = order;
+      // 再获取一次, 预防点击弹窗很久不操作, 原订单状态已改变
+      const { status } = (
+        window.watcher as KungfuApi.Watcher
+      ).ledger.Order.filter('order_id', order_id).list()[0];
+      if (OrderCancelledStatus.includes(status)) {
+        error(t('orderConfig.order_finished'));
+        return;
+      }
+      const orderTriggers =
+        orderCurrentOrderTriggers.value[order_id.toString()];
+      const submittedOrderTrigger = orderTriggers.filter((orderTrigger) =>
+        OrderTriggerCancelStatus.includes(orderTrigger.status),
+      );
+
+      return kfCancelAllOrdersTrigger(
+        window.watcher,
+        submittedOrderTrigger,
+        currentGlobalKfLocation.value,
+      )
+        .then(() => {
+          success();
+        })
+        .catch((err) => {
+          error(err.message);
+        });
+    });
+  }
+}
+
+function isOrderTriggerHasSubmitted(orderId: bigint) {
+  const orderTriggers = orderCurrentOrderTriggers.value[orderId.toString()];
+  if (!orderTriggers || orderTriggers.length === 0) return true;
+  const submittedOrderTrigger = orderTriggers.filter(
+    (orderTrigger) => orderTrigger.status === OrderTriggerStatusEnum.Submitted,
+  );
+  if (submittedOrderTrigger.length > 0) return false;
+  return true;
+}
+
+function isOrderTriggerHasPending(orderId: bigint) {
+  const orderTriggers = orderCurrentOrderTriggers.value[orderId.toString()];
+  if (!orderTriggers || orderTriggers.length === 0) return false;
+  const submittedOrderTrigger = orderTriggers.filter(
+    (orderTrigger) => orderTrigger.status === OrderTriggerStatusEnum.Pending,
+  );
+  if (submittedOrderTrigger.length > 0) return true;
+  return false;
 }
 
 function filterUnfinishedOrders(orders: KungfuApi.Order[]): KungfuApi.Order[] {
@@ -776,14 +905,31 @@ function testOrderSourceIsOnline(order: KungfuApi.OrderResolved) {
               </span>
             </template>
             <template v-else-if="column.dataIndex === 'actions'">
-              <CloseOutlined
+              <span
                 v-if="!isFinishedOrderStatus(item.status)"
-                class="kf-hover"
+                class="color-red"
+                style="margin-right: 6px"
                 @click="handleCancelOrder(item)"
-              />
+              >
+                {{ $t('orderConfig.cancel_order') }}
+              </span>
               <LoadingOutlined
                 v-if="item.status === OrderStatusEnum.Cancelling"
               />
+              <span
+                v-if="
+                  !isFinishedOrderTriggerStatus(item.status) &&
+                  cancelOrderTriggerBtnVisible
+                "
+                :class="{
+                  'color-default': isOrderTriggerHasSubmitted(item.order_id),
+                  'color-yellow': !isOrderTriggerHasSubmitted(item.order_id),
+                }"
+                @click="handleInsertOrderTrigger(item)"
+              >
+                {{ $t('orderConfig.cancel_order_trigger') }}
+              </span>
+              <LoadingOutlined v-if="isOrderTriggerHasPending(item.order_id)" />
             </template>
           </template>
         </KfTradingDataTable>

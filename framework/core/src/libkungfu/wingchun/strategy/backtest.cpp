@@ -254,12 +254,6 @@ std::vector<uint64_t> BacktestContext::insert_array_orders(const std::string &so
   return order_ids;
 }
 
-uint64_t BacktestContext::insert_basket_order(uint64_t basket_id, const std::string &source, const std::string &account,
-                                              Side side, PriceType price_type, PriceLevel price_level,
-                                              double price_offset, int64_t volume) {
-  return {};
-}
-
 uint64_t BacktestContext::insert_algo_order(const std::string &instrument_id, const std::string &exchange_id,
                                             const std::string &source, const std::string &account, int64_t begin_time,
                                             int64_t end_time, int64_t volume, PriceType type, Side side, Offset offset,

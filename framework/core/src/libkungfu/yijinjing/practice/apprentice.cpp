@@ -107,7 +107,6 @@ void apprentice::react() {
   events_ | is(Location::tag) | $$(add_location(event->gen_time(), event->data<Location>()));
   events_ | is(Register::tag) | $$(on_register(event->trigger_time(), event->data<Register>()));
   events_ | is(RequestReadFromOthers::tag) | $$(on_request_read_from_others(event));
-  events_ | is(Deregister::tag) | $$(on_deregister(event));
   events_ | is(RequestReadFrom::tag) | $$(on_read_from(event));
   events_ | is(RequestReadFromPublic::tag) | $$(on_read_from_public(event));
   events_ | is(RequestReadFromSync::tag) | $$(on_read_from_sync(event));
@@ -116,7 +115,9 @@ void apprentice::react() {
   events_ | is(Channel::tag) | $$(register_channel(event->gen_time(), event->data<Channel>()));
   events_ | is(Band::tag) | $$(register_band(event->gen_time(), event->data<Band>()));
   events_ | is(RequestStop::tag) | to(get_home_uid()) | $$(signal_stop());
+  events_ | is(RequestStop::tag) | to(get_live_home_uid()) | $$(signal_stop()); // for replay
   events_ | take_until(events_ | is(RequestStart::tag)) | $$(cached::feed_state_data(event, state_bank_));
+  events_ | is(Deregister::tag) | $$(on_deregister(event));
 
   SPDLOG_TRACE("building reactive event handlers");
   on_react();
@@ -175,13 +176,6 @@ void apprentice::on_react() {}
 
 void apprentice::on_start() {}
 
-void apprentice::on_request_read_from_others(const event_ptr &event) {
-  const auto &request = event->data<RequestReadFromOthers>();
-  if (has_location(request.source_id)) {
-    reader_->join(get_location(request.source_id), request.dest_id, request.from_time);
-  }
-}
-
 void apprentice::on_register(int64_t trigger_time, const Register &register_data) {
   register_location(trigger_time, register_data);
 }
@@ -203,6 +197,14 @@ void apprentice::on_read_from(const event_ptr &event) { do_read_from<RequestRead
 void apprentice::on_read_from_public(const event_ptr &event) { do_read_from<RequestReadFromPublic>(event, 0); }
 
 void apprentice::on_read_from_sync(const event_ptr &event) { do_read_from<RequestReadFromSync>(event, location::SYNC); }
+
+
+void apprentice::on_request_read_from_others(const event_ptr &event) {
+  const auto &request = event->data<RequestReadFromOthers>();
+  if (has_location(request.source_id)) {
+    reader_->join(get_location(request.source_id), request.dest_id, request.from_time);
+  }
+}
 
 void apprentice::on_write_to(const event_ptr &event) {
   auto dest_id = event->data<RequestWriteTo>().dest_id;

@@ -95,7 +95,6 @@ protected:
 
   virtual void on_start();
 
-  void on_request_read_from_others(const event_ptr &event);
 
   void on_register(int64_t trigger_time, const longfist::types::Register &register_data);
 
@@ -107,6 +106,8 @@ protected:
 
   void on_read_from_sync(const event_ptr &event);
 
+  void on_request_read_from_others(const event_ptr &event);
+  
   virtual void on_write_to(const event_ptr &event);
 
   void on_write_to_band(const event_ptr &event);

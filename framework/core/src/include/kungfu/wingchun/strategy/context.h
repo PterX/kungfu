@@ -15,6 +15,7 @@
 #include <kungfu/yijinjing/practice/apprentice.h>
 
 namespace kungfu::wingchun::strategy {
+
 class Context : public std::enable_shared_from_this<Context> {
 public:
   Context(yijinjing::practice::apprentice &app, const rx::connectable_observable<event_ptr> &events);
@@ -203,22 +204,6 @@ public:
   virtual std::vector<uint64_t> insert_array_orders(const std::string &source, const std::string &account,
                                                     std::vector<longfist::types::OrderInput> &order_inputs) = 0;
 
-  /*
-   * Insert Basket Orders
-   * @param basket_id
-   * @param source
-   * @param account
-   * @param price_type
-   * @param price_level
-   * @param price_offset
-   * @param volume_mode
-   * @param total_volume
-   */
-  virtual uint64_t insert_basket_order(uint64_t basket_id, const std::string &source, const std::string &account,
-                                       longfist::enums::Side side, longfist::enums::PriceType price_type,
-                                       longfist::enums::PriceLevel price_level, double price_offset = 0,
-                                       int64_t volume = 0) = 0;
-
   /**
    * @param instrument_id instrument ID
    * @param exchange_id exchange ID
@@ -351,16 +336,37 @@ protected:
 
   virtual void prepare(const event_ptr &event) = 0;
 
+  const yijinjing::data::location_ptr &find_md_location(const std::string &source,
+                                                        const yijinjing::data::location_ptr &home);
+
 private:
   bool book_held_ = false;
   bool positions_mirrored_ = true;
   bool bypass_accounting_ = false;
+
+  std::unordered_map<std::string, yijinjing::data::location_ptr> str_key_md_locations_ = {};
 
   friend void enable(Context &context) { context.on_start(); }
 
   friend void prepare(const event_ptr &event, Context &context) { context.prepare(event); }
 
   friend void set_arguments(Context &context, const std::string &arguments) { context.arguments_ = arguments; }
+};
+
+static constexpr auto has_td_channel(broker::Client &client, const auto &locations, uint32_t home_uid) {
+  return std::all_of(locations.begin(), locations.end(), [&](const auto &it) {
+    return client.has_channel(home_uid, it.second->uid) and client.has_channel(it.second->uid, home_uid);
+  });
+};
+
+static constexpr auto connected_test(broker::Client &client, const auto &locations) {
+  return std::all_of(locations.begin(), locations.end(),
+                     [&](const auto &it) { return client.is_connected(it.second->uid); });
+};
+
+static constexpr auto ready_test(broker::Client &client, const auto &locations) {
+  return std::all_of(locations.begin(), locations.end(),
+                     [&](const auto &it) { return client.is_ready(it.second->uid); });
 };
 
 } // namespace kungfu::wingchun::strategy

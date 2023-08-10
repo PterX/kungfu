@@ -128,8 +128,7 @@ private:
   broker::PassiveClient broker_client_;
   yijinjing::data::location_map md_locations_ = {};
   yijinjing::data::location_map op_locations_ = {};
-  std::unordered_map<std::string, yijinjing::data::location_ptr> market_data_ = {};
-  std::unordered_map<std::string, yijinjing::data::location_ptr> operator_data_ = {};
+  std::unordered_map<std::string, yijinjing::data::location_ptr> str_key_md_locations_ = {};
   longfist::enums::OperatorState state_;
   bool started_{false};
   bool broker_states_requested_{false};

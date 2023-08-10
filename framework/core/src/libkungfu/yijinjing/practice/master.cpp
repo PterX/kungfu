@@ -381,7 +381,6 @@ void master::on_time_request(const event_ptr &event) {
     return;
   }
   const TimeRequest &request = event->data<TimeRequest>();
-  SPDLOG_INFO("TimeRequest: {}", request.to_string());
   auto &app_tasks = timer_tasks_.try_emplace(event->source()).first->second;
   auto &task = app_tasks.try_emplace(request.id).first->second;
   task.checkpoint = request.base_time + request.duration;

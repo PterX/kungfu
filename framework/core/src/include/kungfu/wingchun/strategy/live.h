@@ -51,7 +51,7 @@ public:
    * @param source TD group
    * @param account TD account ID
    */
-  void add_account(const std::string &sourceOperator, const std::string &account) override;
+  void add_account(const std::string &soruce, const std::string &account) override;
 
   /**
    * Subscribe market data.
@@ -194,22 +194,6 @@ public:
                                             std::vector<longfist::types::OrderInput> &order_inputs) override;
 
   /**
-   * @param basket_id
-   * @param source
-   * @param account
-   * @param price_type
-   * @param price_level
-   * @param price_offset
-   * @param volume_mode
-   * @param total_volume
-   * @return basket order id
-   */
-  uint64_t insert_basket_order(uint64_t basket_id, const std::string &source, const std::string &account,
-                               longfist::enums::Side side, longfist::enums::PriceType price_type,
-                               longfist::enums::PriceLevel price_level, double price_offset = 0,
-                               int64_t volume = 0) override;
-
-  /**
    * @param instrument_id instrument ID
    * @param exchange_id exchange ID
    * @param source source ID
@@ -286,12 +270,6 @@ public:
   const yijinjing::data::location_map &list_accounts() const;
 
   /**
-   * Get basketorder engine.
-   * @return basketorder engine reference
-   */
-  basketorder::BasketOrderEngine &get_basketorder_engine();
-
-  /**
    * request deregister.
    * @return void
    */
@@ -311,11 +289,7 @@ protected:
 
   virtual void prepare(const event_ptr &event) override;
 
-  [[maybe_unused]] uint32_t lookup_account_location_id(const std::string &account) const;
-
   uint32_t get_td_location_uid(const std::string &source, const std::string &account) const;
-
-  const yijinjing::data::location_ptr &find_md_location(const std::string &source);
 
   void ensure_connect();
 
@@ -325,14 +299,13 @@ private:
   bool positions_requested_{false};
   bool broker_states_requested_{false};
   bool positions_set_{false};
+
   broker::PassiveClient broker_client_;
   book::Bookkeeper bookkeeper_;
-  basketorder::BasketOrderEngine basketorder_engine_;
+
   yijinjing::data::location_map md_locations_ = {};
   yijinjing::data::location_map td_locations_ = {};
   yijinjing::data::location_map op_locations_ = {};
-  std::unordered_map<uint32_t, uint32_t> account_location_ids_ = {};
-  std::unordered_map<std::string, yijinjing::data::location_ptr> market_data_ = {};
 };
 
 DECLARE_PTR(LiveContext)

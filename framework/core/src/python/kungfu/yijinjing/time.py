@@ -37,7 +37,9 @@ def strftime(nanotime, format=DATETIME_FORMAT):
     return to_datetime(nanotime).strftime(normal_format)
 
 
-def strptimes(timestr, formats=("%F %T", "%F %T.%N", "%Y%m%d", "%Y-%m-%d")):
+def strptimes(
+    timestr, formats=("%F %T", "%F %T.%N", "%Y%m%d", "%Y-%m-%d", "%Y-%m-%d %H:%M:%S")
+):
     if isinstance(formats, str):
         formats = [formats]
     for format in formats:

@@ -163,7 +163,7 @@ void LiveContext::check_dependency_state(const event_ptr &event) {
 }
 
 const location_ptr &LiveContext::find_md_location(const std::string &source) {
-  return find_location(source, category::MD, market_data_);
+  return find_location(source, category::MD, str_key_md_locations_);
 }
 
 const location_ptr &

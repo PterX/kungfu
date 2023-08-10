@@ -427,6 +427,8 @@ export default {
 
     checkbox_text: '未完成委托',
     cancel_all: '全部撤单',
+    cancel_order: '撤单',
+    cancel_order_trigger: '预撤',
     date_picker: '请选择日期',
     confirm_cancel_all: '确认全部撤单',
     entrust: '委托',
@@ -447,6 +449,9 @@ export default {
     max_network_latency: '最大网络延迟(μs)',
 
     actions: '操作',
+    order_finished: '该委托已结束, 无法预埋撤单',
+    confirm_cancel_order_trigger: '确认撤销预埋单',
+    cancel_order_trigger_context: '您是否要取消该委托单下的预埋撤单',
   },
 
   orderTriggerConfig: {
@@ -457,6 +462,10 @@ export default {
     confirm: '确认',
     cancel_all: '全部撤单',
     insert_time: '生成时间',
+    order_finished: '该委托已结束, 无法操作',
+    order_trigger_request_success: '刷新成功',
+    make_order_modal_tip:
+      '注: 预埋单仅支持在非交易时间段下单, 会在交易所交易状态变化时触发, 仅支持限价',
   },
 
   tdConfig: {

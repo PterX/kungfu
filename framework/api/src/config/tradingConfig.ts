@@ -393,6 +393,17 @@ export const AllFinishedOrderStatus = [
   OrderStatusEnum.Lost,
 ];
 
+export const UnfinishedOrderTriggerStatus = [
+  OrderStatusEnum.Pending,
+  OrderStatusEnum.Submitted,
+  OrderStatusEnum.PartialFilledActive,
+];
+
+export const OrderCancelledStatus = [
+  OrderStatusEnum.Cancelled,
+  OrderStatusEnum.PartialFilledNotActive,
+];
+
 export const Direction: Record<
   DirectionEnum,
   KungfuApi.KfTradeValueCommonData
@@ -1063,6 +1074,7 @@ export const ExportTradingDataColumnsToFilter: Record<
   BasketInstrument: ['dest', 'source'],
   BasketOrder: [],
   InstrumentFactor: ['dest', 'source'],
+  OrderTrigger: [],
 };
 
 export const OrderTriggerCancelStatus = [

@@ -95,6 +95,7 @@ class TraderSim(wc.Trader):
         trigger_input = event.OrderTriggerInput()
         self.logger.info(f"OrderTriggerInput: {trigger_input}")
         trigger = wc.utils.order_trigger_from_input(trigger_input)
+        trigger.external_trigger_id = str(trigger.trigger_id)
         trigger.insert_time = yjj.now_in_nano()
         trigger.update_time = trigger.insert_time
         trigger.status = lf.enums.OrderStatus.Submitted
@@ -274,11 +275,13 @@ class TraderSim(wc.Trader):
                 self.get_writer(dest).write(order.update_time, order)
 
     def update_cancel_trigger(self, dest, trigger_id, status):
+        self.logger.debug(f"trigger_id: {trigger_id}, status: {status}, dest: {dest}")
         if trigger_id in self.ctx.triggers:
             trigger = self.ctx.triggers[trigger_id]
             trigger.update_time = yjj.now_in_nano()
-            if trigger.status == status:
-                trigger.status = lf.enums.OrderStatus.Filled
+            if trigger.status == lf.enums.OrderStatus.Submitted:
+                trigger.update_time = yjj.now_in_nano()
+                trigger.status = status
                 self.logger.info(f"OrderTrigger: {trigger}")
                 self.get_writer(dest).write(yjj.now_in_nano(), trigger)
                 if trigger.order_id in self.ctx.orders:
@@ -327,6 +330,8 @@ class TraderSim(wc.Trader):
 
                 if order_action.action_flag == lf.enums.OrderActionFlag.TriggerCancel:
                     trigger = wc.utils.order_trigger_from_order(order)
+                    trigger.trigger_id = order_action.order_action_id
+                    trigger.external_trigger_id = str(trigger.trigger_id)
                     trigger.insert_time = yjj.now_in_nano()
                     trigger.update_time = trigger.insert_time
                     trigger.status = lf.enums.OrderStatus.Submitted
@@ -336,7 +341,7 @@ class TraderSim(wc.Trader):
                     self.add_timer(
                         yjj.now_in_nano() + 30 * 10**9,
                         lambda e: self.update_cancel_trigger(
-                            event.source, trigger, lf.enums.OrderStatus.Filled
+                            event.source, trigger.trigger_id, lf.enums.OrderStatus.Filled
                         ),
                     )
 

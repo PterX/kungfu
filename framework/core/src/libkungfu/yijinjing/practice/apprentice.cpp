@@ -147,13 +147,13 @@ void apprentice::react() {
       auto data = event->data<Register>();
       last_active_time_ = data.last_active_time;
       checkin_time_ = data.checkin_time;
-      reader_->join(master_cmd_location_, get_live_home_uid(), begin_time_, 0, Priority::Level100);
+      reader_->join(master_cmd_location_, get_live_home_uid(), begin_time_);
     });
     expect_start();
     checkin();
   }
   if (get_io_device()->get_home()->mode == mode::REPLAY) {
-    reader_->join(master_cmd_location_, get_live_home_uid(), begin_time_, 0, Priority::Level100);
+    reader_->join(master_cmd_location_, get_live_home_uid(), begin_time_);
     expect_start();
   }
   if (get_io_device()->get_home()->mode == mode::BACKTEST) {
@@ -178,7 +178,7 @@ void apprentice::on_start() {}
 void apprentice::on_request_read_from_others(const event_ptr &event) {
   const auto &request = event->data<RequestReadFromOthers>();
   if (has_location(request.source_id)) {
-    reader_->join(get_location(request.source_id), request.dest_id, request.from_time, 0, Priority::Level1);
+    reader_->join(get_location(request.source_id), request.dest_id, request.from_time);
   }
 }
 

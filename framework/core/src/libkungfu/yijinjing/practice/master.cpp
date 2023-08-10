@@ -119,7 +119,7 @@ void master::register_app(const event_ptr &event) {
   reader_->join(app_location, location::PUBLIC, now);
   reader_->join(app_location, location::SYNC, now); // create sync journal
   reader_->disjoin(app_location, location::SYNC);   // no need to deal feed from sync
-  reader_->join(app_location, master_cmd_location->uid, now, 0, Priority::Level1000);
+  reader_->join(app_location, master_cmd_location->uid, now, 0, Priority::High);
 
   auto public_writer = get_writer(location::PUBLIC);
   public_writer->write(event->gen_time(), *std::dynamic_pointer_cast<Location>(app_location));
@@ -381,6 +381,7 @@ void master::on_time_request(const event_ptr &event) {
     return;
   }
   const TimeRequest &request = event->data<TimeRequest>();
+  SPDLOG_INFO("TimeRequest: {}", request.to_string());
   auto &app_tasks = timer_tasks_.try_emplace(event->source()).first->second;
   auto &task = app_tasks.try_emplace(request.id).first->second;
   task.checkpoint = request.base_time + request.duration;

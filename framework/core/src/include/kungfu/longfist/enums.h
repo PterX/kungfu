@@ -709,23 +709,19 @@ NLOHMANN_JSON_SERIALIZE_ENUM(ParkedType, {
 
 inline std::ostream &operator<<(std::ostream &os, ParkedType t) { return os << int32_t(t); }
 
-enum class Priority : int32_t {
-  Level1 = 1,      //
-  Level100 = 100,  //
-  Level1000 = 1000 //
-};
+enum class Priority : int8_t { Low, Medium, High };
 
 NLOHMANN_JSON_SERIALIZE_ENUM(Priority, {
-                                           {Priority::Level1, "Level1"},
-                                           {Priority::Level100, "Level100"},
-                                           {Priority::Level1000, "Level1000"},
+                                           {Priority::Low, "Low"},
+                                           {Priority::Medium, "Medium"},
+                                           {Priority::High, "High"},
                                        })
 
 inline std::ostream &operator<<(std::ostream &os, Priority t) { return os << int32_t(t); }
 
-inline bool operator<(Priority l, Priority r) { return int32_t(l) < int32_t(r); }
+inline bool operator<(Priority l, Priority r) { return int8_t(l) < int8_t(r); }
 
-inline bool operator==(Priority l, Priority r) { return int32_t(l) == int32_t(r); }
+inline bool operator==(Priority l, Priority r) { return int8_t(l) == int8_t(r); }
 
 enum class SelfDealCheckType : int8_t { No, AccountInternal, AccountInteractive };
 

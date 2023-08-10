@@ -253,7 +253,7 @@ private:
 
   template <typename DataType> void do_read_from(const event_ptr &event, uint32_t dest_id) {
     const DataType &request = event->data<DataType>();
-    reader_->join(get_location(request.source_id), dest_id, request.from_time, 0, longfist::enums::Priority::Level100);
+    reader_->join(get_location(request.source_id), dest_id, request.from_time);
   }
 
   static void reset_time(const longfist::types::TimeReset &time_reset);

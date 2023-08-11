@@ -33,8 +33,9 @@ void from_json(const nlohmann::json &j, MDConfiguration &c) {
   c.buffer_size = j.value("buffer_size", 64);
 }
 
-MarketDataXTP::MarketDataXTP(broker::BrokerVendor &vendor) : MarketData(vendor), api_(nullptr) { //
+MarketDataXTP::MarketDataXTP(broker::BrokerVendor &vendor) : MarketData(vendor), api_(nullptr) {
   KUNGFU_SETUP_LOG();
+  SPDLOG_DEBUG("arguments: {}", get_vendor().get_arguments());
 }
 
 MarketDataXTP::~MarketDataXTP() {
@@ -44,7 +45,7 @@ MarketDataXTP::~MarketDataXTP() {
 }
 
 void MarketDataXTP::on_start() {
-  level2_tick_band_uid_ = request_band("market-data-band");
+  level2_tick_band_uid_ = request_band("market-data-band", 1024);
 
   MDConfiguration config = nlohmann::json::parse(get_config());
   if (config.client_id < 1 or config.client_id > 99) {
@@ -160,7 +161,6 @@ void MarketDataXTP::OnQueryAllTickers(XTPQSI *ticker_info, XTPRI *error_info, bo
 
   Instrument &instrument = get_writer(0)->open_data<Instrument>(0);
   from_xtp(ticker_info, instrument);
-  SPDLOG_TRACE("instrument {}", instrument.to_string());
   get_writer(0)->close_data();
 }
 

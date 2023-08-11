@@ -32,6 +32,8 @@ struct frame : event {
 
   [[nodiscard]] uint32_t source() const override { return header_->source; }
 
+  [[nodiscard]] uint32_t initial_source() const override { return header_->initial_source; }
+
   [[nodiscard]] uint32_t dest() const override { return header_->dest; }
 
   [[nodiscard]] const void *data_address() const override {
@@ -42,9 +44,13 @@ struct frame : event {
     return reinterpret_cast<char *>(address() + header_length());
   }
 
-  [[nodiscard]] std::string data_as_string() const override { return std::string(data_as_bytes()); }
+  [[nodiscard]] std::string data_as_string() const override { return std::string(data_as_bytes(), data_length()); }
 
   [[nodiscard]] std::string to_string() const override { return std::string(reinterpret_cast<char *>(address())); }
+
+  [[nodiscard]] int8_t data_type() const override { return int8_t(header_->data_type); }
+
+  [[nodiscard]] bool is_json() const override { return data_type() == longfist::enums::FrameDataType::Json; }
 
   template <typename T> size_t copy_data(const T &data) {
     size_t length = sizeof(T);
@@ -73,11 +79,15 @@ private:
 
   void set_msg_type(int32_t msg_type) { header_->msg_type = msg_type; }
 
+  void set_msg_type(longfist::enums::FrameDataType data_type) { header_->data_type = data_type; }
+
   void set_source(uint32_t source) { header_->source = source; }
+
+  void set_initial_source(uint32_t initial_source) { header_->initial_source = initial_source; }
 
   void set_dest(uint32_t dest) { header_->dest = dest; }
 
-  void copy(frame &source) { memcpy(header_, source.header_, source.frame_length()); }
+  void copy(const frame &source) { memcpy(header_, source.header_, source.frame_length()); }
 
   friend class journal;
 

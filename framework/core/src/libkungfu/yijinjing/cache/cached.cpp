@@ -47,7 +47,7 @@ void cached::restore_profile(const yijinjing::data::location_ptr &location,
     feed_mutex_.lock();
     profile_store_mutex_.lock();
     try {
-      // for config from user interface
+      // for config, basket, instruemnts .etc. from user interface
       profile_get_all(profile_, profile_feed_bank_);
     } catch (const std::exception &ex) {
       SPDLOG_ERROR("failed to drain profile db into profile band {} {} {}", location->uid, location->uname, ex.what());
@@ -147,11 +147,11 @@ void cached::feed(const event_ptr &event) {
 }
 
 void cached::run_store_workers() {
-  if (bypass_cached_)
-    return;
-
   store_profile_worker_ = std::thread(&cached::do_store_profile_feeds, this);
-  store_states_worker_ = std::thread(&cached::do_store_states_feeds, this);
+
+  if (not bypass_cached_) {
+    store_states_worker_ = std::thread(&cached::do_store_states_feeds, this);
+  }
 }
 
 void cached::do_store_states_feeds() {
@@ -221,6 +221,18 @@ void cached::store_profile_feeds() {
   // bank;
   feed_mutex_.lock();
   ProfileStateBank tmp_profile_bank = profile_feed_bank_;
+  // for avoid no requirement storeing profile data, except DataType "Location";
+  boost::hana::for_each(ProfileDataTypes, [&](auto it) {
+    using DataType = typename decltype(+boost::hana::second(it))::type;
+    if (DataType::tag == Location::tag) {
+      return;
+    }
+
+    auto hana_type = boost::hana::type_c<DataType>;
+    using FeedMap = std::unordered_map<uint64_t, state<DataType>>;
+    auto &feed_map = const_cast<FeedMap &>(profile_feed_bank_[hana_type]);
+    feed_map.clear();
+  });
   feed_mutex_.unlock();
 
   boost::hana::for_each(ProfileDataTypes, [&](auto it) {
@@ -228,7 +240,7 @@ void cached::store_profile_feeds() {
     auto hana_type = boost::hana::type_c<DataType>;
 
     using FeedMap = std::unordered_map<uint64_t, state<DataType>>;
-    auto &feed_map = const_cast<FeedMap &>(profile_feed_bank_[hana_type]);
+    auto &feed_map = const_cast<FeedMap &>(tmp_profile_bank[hana_type]);
 
     if (feed_map.size() != 0) {
       auto iter = feed_map.begin();
@@ -264,9 +276,9 @@ void cached::close_session(const location_ptr &location, int64_t close_time) {
   session_builder_.close_session(location, close_time);
 }
 
-index::SessionMap &cached::close_all_sessions(int64_t close_time) {
-  return session_builder_.close_all_sessions(close_time);
-}
+void cached::close_all_sessions(int64_t close_time) { return session_builder_.close_all_sessions(close_time); }
+
+index::SessionMap &cached::get_all_sessions() { return session_builder_.get_all_sessions(); }
 
 int64_t cached::find_last_active_time(const location_ptr &location) {
   if (bypass_cached_) {

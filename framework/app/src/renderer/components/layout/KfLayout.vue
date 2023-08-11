@@ -24,6 +24,8 @@ const menuSelectedKeys = ref<string[]>(['main']);
 const { uiExtConfigs } = useExtConfigsRelated();
 const { isLanguageKeyAvailable } = useLanguage();
 
+const isExtSidebarShow = ref<Record<string, boolean>>({});
+
 const sidebarFooterComponentConfigs = computed(() => {
   return Object.keys(uiExtConfigs.value)
     .filter((key) => uiExtConfigs.value[key].position === 'sidebar_footer')
@@ -64,6 +66,14 @@ const busSubscription = globalBus.subscribe((data: KfEvent.KfBusEvent) => {
         globalSettingModalVisible.value = true;
     }
   }
+
+  if (data.tag === 'show-or-hide-extension-sidebar') {
+    isExtSidebarShow.value[data.key || ''] = data.target;
+    if (data.target === false) {
+      menuSelectedKeys.value = ['main'];
+      handleToPage('/');
+    }
+  }
 });
 
 onBeforeUnmount(() => {
@@ -94,22 +104,24 @@ function handleToPage(pathname: string) {
             </template>
             <span>{{ $t('baseConfig.main_panel') }}</span>
           </a-menu-item>
-          <a-menu-item
-            v-for="config in sidebarComponentConfigs"
-            :key="config.key"
-            @click="handleToPage(`/${config.key}`)"
-          >
-            <template #icon>
-              <component :is="config.key"></component>
-            </template>
-            <span>
-              {{
-                isLanguageKeyAvailable(config.name)
-                  ? $t(config.name)
-                  : config.name
-              }}
-            </span>
-          </a-menu-item>
+          <template v-for="config in sidebarComponentConfigs">
+            <a-menu-item
+              v-if="isExtSidebarShow[config.key] !== false"
+              :key="config.key"
+              @click="handleToPage(`/${config.key}`)"
+            >
+              <template #icon>
+                <component :is="config.key"></component>
+              </template>
+              <span>
+                {{
+                  isLanguageKeyAvailable(config.name)
+                    ? $t(config.name)
+                    : config.name
+                }}
+              </span>
+            </a-menu-item>
+          </template>
         </a-menu>
         <div class="kf-sidebar-footer__warp">
           <div

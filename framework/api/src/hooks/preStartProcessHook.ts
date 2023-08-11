@@ -1,5 +1,5 @@
 import { Proc } from 'pm2';
-import { kfLogger } from '../utils/busiUtils';
+import { kfLogger } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 
 export type PreStartProcessMethod = (
   kfLocation: KungfuApi.DerivedKfLocation,
@@ -78,7 +78,7 @@ export class PreStartProcessHooks {
     return Promise.all(
       Reflect.get(this.hooks, key).map((method) => method(kfLocation)),
     ).catch((err) => {
-      console.warn(<Error>err);
+      kfLogger.warn(<Error>err);
     });
   }
 }

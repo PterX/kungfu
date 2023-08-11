@@ -73,7 +73,7 @@ public:
 
   void post_start(Context_ptr & context) override { SPDLOG_INFO("operator started"); }
 
-  void on_quote(Context_ptr & context, const Quote &quote, const location_ptr &location) override {
+  void on_quote(Context_ptr & context, const Quote &quote, const location_ptr &location, uint32_t dest) override {
     auto instrument_key = kungfu::wingchun::hash_instrument(quote.instrument_id, quote.exchange_id);
     auto pair = bars_.try_emplace(instrument_key);
     auto &bar = pair.first->second;
@@ -101,6 +101,8 @@ public:
     if (quote.data_time >= bar.end_time) {
       context->publish_synthetic_data(fmt::format("{}_{}", bar.instrument_id, time_interval_),
                                       nlohmann::json(bar).dump());
+      SPDLOG_INFO("publish_synthetic_data {} {}", fmt::format("{}_{}", bar.instrument_id, time_interval_),
+                  nlohmann::json(bar).dump());
       bar.start_time = bar.end_time;
       while (bar.start_time + time_interval_ < quote.data_time) {
         bar.start_time += time_interval_;

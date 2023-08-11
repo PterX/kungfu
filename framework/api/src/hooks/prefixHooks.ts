@@ -1,5 +1,6 @@
 import { FunctionalComponent } from '@vue/runtime-core/dist/runtime-core';
 import { AntdIconProps } from '@ant-design/icons-vue/lib/components/AntdIcon';
+import { kfLogger } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 
 export interface PrefixProps {
   key: string;
@@ -23,7 +24,7 @@ export class PrefixHooks {
       get(target: Record<string, PrefixProps>, prop: string) {
         const locationPairs = prop.split('_');
         if (locationPairs.length != 3) {
-          console.warn(`Invalid hook key: ${prop}`);
+          kfLogger.warn(`Invalid hook key: ${prop}`);
           return Reflect.get(target, 'default');
         }
 

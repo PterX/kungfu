@@ -11,6 +11,7 @@ import { computed } from 'vue';
 import { getColumns } from './config';
 import { ExchangeIds } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import {
+  useActiveInstruments,
   useExtConfigsRelated,
   useInstruments,
   useProcessStatusDetailData,
@@ -54,6 +55,7 @@ const {
   handleSearchInstrument,
   handleConfirmSearchInstrumentResult,
 } = useInstruments();
+const { getInstrumentByIdsWithWatcher } = useActiveInstruments();
 const { appStates, processStatusData } = useProcessStatusDetailData();
 const { mdExtTypeMap } = useExtConfigsRelated();
 
@@ -128,6 +130,14 @@ function handleConfirmRemoveInstrument(
 }
 
 function triggeOrderBookMakeOrder(instrument: KungfuApi.InstrumentResolved) {
+  if (instrument) {
+    const activeInstrument = getInstrumentByIdsWithWatcher(
+      instrument.instrumentId,
+      instrument.exchangeId,
+    );
+    if (activeInstrument)
+      instrument.instrumentType = activeInstrument?.instrument_type;
+  }
   triggerOrderBook(instrument);
   triggerMakeOrder(instrument, {
     side: SideEnum.Buy,

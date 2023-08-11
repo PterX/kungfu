@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import path from 'path';
+import os from 'os';
 import { dialog } from '@electron/remote';
 import {
   DeleteOutlined,
@@ -25,6 +26,7 @@ import {
   PriceLevel,
   Side,
 } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
+import { SpecialWordsReg } from '@kungfu-trader/kungfu-js-api/config/systemConfig';
 import {
   getIdByKfLocation,
   transformSearchInstrumentResultToInstrument,
@@ -41,6 +43,7 @@ import {
   dealPriceType,
   dealPriceLevel,
   dealSide,
+  replaceNonAlphaNumericWithSpace,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { RuleObject } from 'ant-design-vue/lib/form';
 import {
@@ -96,6 +99,7 @@ const props = withDefaults(
     passPrimaryKeySpecialWordsVerify?: boolean;
     isPrimaryDisabled?: boolean;
     willReplaceWholeFormState?: boolean;
+    formStyle?: Record<string, string>;
   }>(),
   {
     formState: () => ({}),
@@ -113,6 +117,7 @@ const props = withDefaults(
     passPrimaryKeySpecialWordsVerify: false,
     isPrimaryDisabled: false,
     willReplaceWholeFormState: false,
+    formStyle: () => ({}),
   },
 );
 
@@ -171,6 +176,11 @@ const instrumentsCsvData = reactive<
 const tableKeys = ref<Record<string, KungfuApi.KfConfigItem>>(
   filterTableKeysFromConfigSettings(props.configSettings),
 );
+// 解决 a-input-number ui 上自动 format 之后的值和真实的响应式数据对不上的问题
+const numberKeys = ref<Record<string, KungfuApi.KfConfigItem>>(
+  filterNumberKeysFromConfigSettings(props.configSettings),
+);
+const numbersTyping = ref<Record<string, boolean>>({});
 
 watch(
   () => props.configSettings,
@@ -178,6 +188,10 @@ watch(
     primaryKeys.value = getPrimaryKeys(newVal);
     instrumentKeys.value = filterInstrumentKeysFromConfigSettings(newVal);
     tableKeys.value = filterTableKeysFromConfigSettings(newVal);
+    numberKeys.value = filterNumberKeysFromConfigSettings(newVal);
+    Object.keys(numbersTyping.value).forEach((key) => {
+      if (!(key in numberKeys.value)) delete numbersTyping.value[key];
+    });
 
     const rowFormState = toRaw(props.formState);
     Object.keys(rowFormState).forEach(
@@ -240,7 +254,30 @@ if (props.willReplaceWholeFormState) {
 
 watch(
   () => formState.value,
-  (newVal) => {
+  (newVal, oldVal) => {
+    nextTick(() => {
+      // 解决 a-input-number ui 上自动 format 之后的值和真实的响应式数据对不上的问题
+      Object.keys(numberKeys.value).forEach((key) => {
+        if (key in oldVal && key in newVal) {
+          if (!numbersTyping.value[key]) {
+            if (typeof newVal[key] === 'number') {
+              switch (numberKeys.value[key].type) {
+                case 'int':
+                  formState.value[key] = Math.floor(newVal[key]);
+                  break;
+                case 'float':
+                case 'percent':
+                  formState.value[key] = Number(newVal[key]).kfRound(
+                    numberKeys.value[key].precision ?? 4,
+                  );
+                  break;
+              }
+            }
+          }
+        }
+      });
+    });
+
     app && app.emit('update:formState', newVal);
   },
   {
@@ -379,28 +416,33 @@ function filterTableKeysFromConfigSettings(
     }, {} as Record<string, KungfuApi.KfConfigItem>);
 }
 
+function filterNumberKeysFromConfigSettings(
+  configSettings: KungfuApi.KfConfigItem[],
+) {
+  return configSettings
+    .filter((item) => isNumberInputType(item.type))
+    .reduce((data, setting) => {
+      data[setting.key.toString()] = setting;
+      return data;
+    }, {} as Record<string, KungfuApi.KfConfigItem>);
+}
+
 function isNumberInputType(type: string): boolean {
   const numberInputTypes: string[] = ['int', 'float', 'percent'];
   return numberInputTypes.includes(type);
 }
 
-const SpecialWordsReg = new RegExp(
-  "[`~!@#$^&*()=|{}';',\\[\\]<>《》?~！@#￥……&*（）——|{}【】‘；”“'。，、？_]",
-);
 function primaryKeyValidator(_rule: RuleObject, value: string): Promise<void> {
   const combineValue: string = getCombineValueByPrimaryKeys(
     primaryKeys.value,
     formState.value,
     props.primaryKeyAvoidRepeatCompareExtra,
   );
-  if (
-    props.primaryKeyAvoidRepeatCompareTarget
-      .map((item): string => item.toLowerCase())
-      .includes(combineValue.toLowerCase())
-  ) {
+
+  if (!combineValue || replaceNonAlphaNumericWithSpace(value) === '') {
     return Promise.reject(
       new Error(
-        t('validate.value_existing', {
+        t('validate.single_characters', {
           value: combineValue,
         }),
       ),
@@ -419,6 +461,20 @@ function primaryKeyValidator(_rule: RuleObject, value: string): Promise<void> {
     !props.passPrimaryKeySpecialWordsVerify
   ) {
     return Promise.reject(new Error(t('validate.no_underline')));
+  }
+
+  if (
+    props.primaryKeyAvoidRepeatCompareTarget
+      .map((item): string => item.toLowerCase())
+      .includes(combineValue.toLowerCase())
+  ) {
+    return Promise.reject(
+      new Error(
+        t('validate.value_existing', {
+          value: combineValue,
+        }),
+      ),
+    );
   }
 
   return Promise.resolve();
@@ -777,7 +833,7 @@ function handleDownloadCsvTemplate(
                 filePaths[0],
                 template.name || t('settingsFormConfig.csv_template') + '.csv',
               );
-              return writeCsvWithUTF8Bom(filePath, template.data || []);
+              return writeCsvWithUTF8Bom(filePath, template.data || [], true);
             }),
           ).then(() => {
             messagePrompt().success();
@@ -794,6 +850,31 @@ function handleSelectFile(targetKey: string): void {
     })
     .then((res) => {
       const { filePaths } = res;
+      if (filePaths.length) {
+        formState.value[targetKey] = filePaths[0];
+        formRef.value.validateFields([targetKey]); //手动进行再次验证, 因数据放在span中, 改变数据后无法触发验证
+      }
+    });
+}
+
+function handleSelectDirectory(
+  target: KungfuApi.KfConfigItem,
+  type?: 'default',
+): void {
+  const targetKey = target.key;
+  if (type === 'default') {
+    formState.value[targetKey] = target.default;
+    formRef.value.validateFields([targetKey]);
+    return;
+  }
+  dialog
+    .showOpenDialog({
+      defaultPath: formState.value[targetKey] || os.homedir(),
+      properties: ['openDirectory', 'createDirectory', 'promptToCreate'],
+    })
+    .then((res) => {
+      const { filePaths } = res;
+
       if (filePaths.length) {
         formState.value[targetKey] = filePaths[0];
         formRef.value.validateFields([targetKey]); //手动进行再次验证, 因数据放在span中, 改变数据后无法触发验证
@@ -1031,6 +1112,7 @@ defineExpose({
     :colon="false"
     :scroll-to-first-error="true"
     :layout="layout"
+    :style="props.formStyle"
   >
     <a-form-item
       v-for="item in configSettings"
@@ -1117,6 +1199,7 @@ defineExpose({
       <a-input
         v-if="item.type === 'str'"
         v-model:value.trim="formState[item.key]"
+        :maxlength="item.maxlength || null"
         :disabled="
           (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
           item.disabled
@@ -1125,6 +1208,7 @@ defineExpose({
       <a-input-password
         v-else-if="item.type === 'password'"
         v-model:value.trim="formState[item.key]"
+        :maxlength="item.maxlength || null"
         :disabled="
           (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
           item.disabled
@@ -1142,18 +1226,22 @@ defineExpose({
           (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
           item.disabled
         "
+        @focus="numbersTyping[item.key] = true"
+        @blur="numbersTyping[item.key] = false"
       ></a-input-number>
       <a-input-number
         v-else-if="item.type === 'float'"
         v-model:value="formState[item.key]"
         :max="item.max ?? Infinity"
         :min="item.min ?? -Infinity"
-        :precision="item.precision ?? 3"
-        :step="item.step ?? 0.001"
+        :precision="item.precision ?? 4"
+        :step="item.step ?? 0.0001"
         :disabled="
           (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
           item.disabled
         "
+        @focus="numbersTyping[item.key] = true"
+        @blur="numbersTyping[item.key] = false"
       ></a-input-number>
       <a-input-number
         v-else-if="item.type === 'percent'"
@@ -1168,6 +1256,8 @@ defineExpose({
           (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
           item.disabled
         "
+        @focus="numbersTyping[item.key] = true"
+        @blur="numbersTyping[item.key] = false"
       ></a-input-number>
       <a-radio-group
         v-else-if="item.type === 'side'"
@@ -1279,6 +1369,15 @@ defineExpose({
           item.disabled
         "
       ></a-checkbox>
+      <a-checkbox-group
+        v-else-if="item.type === 'checkboxGroup'"
+        v-model:value="formState[item.key]"
+        :options="item.options"
+        :disabled="
+          (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
+          item.disabled
+        "
+      ></a-checkbox-group>
       <a-select
         v-else-if="numberEnumSelectType[item.type]"
         v-model:value="formState[item.key]"
@@ -1324,6 +1423,51 @@ defineExpose({
         <a-select-option
           v-for="option in item.options"
           :key="option.value"
+          :value="option.value"
+        >
+          <a-tag
+            v-if="option.type === 'tag'"
+            :color="dealKungfuColorToStyleColor(option.color || 'default')"
+          >
+            {{
+              isLanguageKeyAvailable(option.label + '')
+                ? $t(option.label + '')
+                : option.label
+            }}
+          </a-tag>
+          <span
+            v-else
+            :class="dealKungfuColorToClassname(option.color || 'text')"
+            :style="{
+              color: dealKungfuColorToStyleColor(option.color || 'text'),
+            }"
+          >
+            {{
+              isLanguageKeyAvailable(option.label + '')
+                ? $t(option.label + '')
+                : option.label
+            }}
+          </span>
+        </a-select-option>
+      </a-select>
+      <a-select
+        v-else-if="item.type === 'multiSelect'"
+        v-model:value="formState[item.key]"
+        mode="multiple"
+        :filter-option="
+          (inputValue, option) =>
+            option.key.toLowerCase().indexOf(inputValue.toLowerCase()) > -1
+        "
+        allow-clear
+        show-search
+        :disabled="
+          (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
+          item.disabled
+        "
+      >
+        <a-select-option
+          v-for="option in item.options"
+          :key="option.label"
           :value="option.value"
         >
           <a-tag
@@ -1539,6 +1683,36 @@ defineExpose({
           @click="handleSelectFile(item.key)"
         >
           <template #icon><DashOutlined /></template>
+        </a-button>
+        <div
+          v-if="formState[item.key]"
+          class="file-path"
+          :title="(formState[item.key] || '').toString()"
+        >
+          <span class="name">{{ formState[item.key] }}</span>
+        </div>
+      </div>
+      <div
+        v-else-if="item.type === 'directory'"
+        class="kf-form-item__warp file"
+      >
+        <a-button
+          size="small"
+          :disabled="
+            (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
+            item.disabled
+          "
+          @click="handleSelectDirectory(item)"
+        >
+          <template #icon><DashOutlined /></template>
+        </a-button>
+        <a-button
+          v-if="item.default"
+          size="small"
+          style="margin-left: 4px; vertical-align: middle"
+          @click="handleSelectDirectory(item, 'default')"
+        >
+          {{ $t('globalSettingConfig.reset_order') }}
         </a-button>
         <div
           v-if="formState[item.key]"
@@ -1828,6 +2002,9 @@ defineExpose({
                 class="table-in-config-setting-row"
                 :style="{
                   paddingBottom: item.noDivider ? '8px' : '',
+                  maxHeight: calcTableItemHeight(layout, !!item.noDivider),
+                  height: calcTableItemHeight(layout, !!item.noDivider),
+                  overflowY: 'hidden',
                 }"
               >
                 <div class="table-in-config-setting-row-from__wrap">

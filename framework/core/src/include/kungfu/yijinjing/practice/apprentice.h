@@ -32,7 +32,7 @@ private:
 
   void do_clean();
 
-  bool is_cleaner_worker_required() const;
+  [[nodiscard]] bool is_cleaner_worker_required() const;
 };
 
 class apprentice : public hero {
@@ -62,9 +62,10 @@ public:
 
   void request_write_to(int64_t trigger_time, uint32_t dest_id);
 
-  void request_write_to_band(int64_t trigger_time, const yijinjing::data::location_ptr &location);
+  void request_write_to_band(int64_t trigger_time, const yijinjing::data::location_ptr &location,
+                             uint32_t page_size = 0);
 
-  uint32_t request_band(const std::string &band_name);
+  uint32_t request_band(const std::string &band_name, uint32_t page_size = 0);
 
   void add_timer(int64_t nanotime, const std::function<void(const event_ptr &)> &callback);
 
@@ -94,6 +95,8 @@ protected:
 
   virtual void on_start();
 
+  void on_request_read_from_others(const event_ptr &event);
+
   void on_register(int64_t trigger_time, const longfist::types::Register &register_data);
 
   void on_deregister(const event_ptr &event);
@@ -104,28 +107,51 @@ protected:
 
   void on_read_from_sync(const event_ptr &event);
 
-  void on_write_to(const event_ptr &event);
+  virtual void on_write_to(const event_ptr &event);
 
   void on_write_to_band(const event_ptr &event);
 
   [[maybe_unused]] int get_observer_recv_timeout() const;
 
+  template <class DataType> std::string make_nano_msg(uint32_t source, uint32_t dest, const DataType &data) const {
+    auto now = time::now_in_nano();
+    nlohmann::json request;
+    request["data_type"] = int8_t(longfist::enums::FrameDataType::Json);
+    request["msg_type"] = DataType::tag;
+    request["gen_time"] = now;
+    request["trigger_time"] = now;
+    request["initial_source"] = get_home_uid();
+    request["source"] = source;
+    request["dest"] = dest;
+    request["data"] = nlohmann::json::parse(data.to_string());
+    return request.dump();
+  }
+
+  void reader_join(uint32_t source_id, uint32_t dest_id, int64_t from_time);
+
   std::function<rx::observable<event_ptr>(rx::observable<event_ptr>)> timer(int64_t nanotime) {
-    auto writer = get_writer(get_master_command_uid());
     int32_t timer_usage_count = timer_usage_count_;
     int64_t duration_ns = nanotime - now();
+    auto writer = get_writer(get_master_command_uid());
     longfist::types::TimeRequest &r = writer->open_data<longfist::types::TimeRequest>(now());
     r.id = timer_usage_count;
     r.base_time = now();
     r.duration = duration_ns;
     r.repeat = 1;
+    r.location_uid = get_home_uid();
     writer->close_data();
     timer_checkpoints_[timer_usage_count] = now();
+    timer_requests_.insert_or_assign(timer_usage_count, r);
     timer_usage_count_++;
     return [&, duration_ns, timer_usage_count](const rx::observable<event_ptr> &src) {
       return events_ | rx::filter([&, duration_ns, timer_usage_count](const event_ptr &event) {
-               return (event->msg_type() == longfist::types::Time::tag &&
-                       event->gen_time() > timer_checkpoints_[timer_usage_count] + duration_ns);
+               if (event->msg_type() == longfist::types::Time::tag &&
+                   event->gen_time() > timer_checkpoints_[timer_usage_count] + duration_ns) {
+                 timer_requests_.erase(timer_usage_count);
+                 return true;
+               } else {
+                 return false;
+               };
              }) |
              rx::first();
     };
@@ -134,15 +160,17 @@ protected:
   template <typename Duration, typename Enabled = rx::is_duration<Duration>>
   std::function<rx::observable<event_ptr>(rx::observable<event_ptr>)> time_interval(Duration &&d) {
     auto duration_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(d).count();
-    auto writer = get_writer(get_master_command_uid());
     int32_t timer_usage_count = timer_usage_count_;
+    auto writer = get_writer(get_master_command_uid());
     longfist::types::TimeRequest &r = writer->open_data<longfist::types::TimeRequest>(now());
     r.id = timer_usage_count;
     r.base_time = now();
     r.duration = duration_ns;
     r.repeat = 1;
+    r.location_uid = get_home_uid();
     writer->close_data();
     timer_checkpoints_[timer_usage_count] = now();
+    timer_requests_.insert_or_assign(timer_usage_count, r);
     timer_usage_count_++;
     return [&, duration_ns, timer_usage_count](const rx::observable<event_ptr> &src) {
       return events_ | rx::filter([&, duration_ns, timer_usage_count](const event_ptr &event) {
@@ -154,8 +182,10 @@ protected:
                  r.base_time = now();
                  r.duration = duration_ns;
                  r.repeat = 1;
+                 r.location_uid = get_home_uid();
                  writer->close_data();
                  timer_checkpoints_[timer_usage_count] = now();
+                 timer_requests_.insert_or_assign(timer_usage_count, r);
                  return true;
                } else {
                  return false;
@@ -167,15 +197,17 @@ protected:
   template <typename Duration, typename Enabled = rx::is_duration<Duration>>
   std::function<rx::observable<event_ptr>(rx::observable<event_ptr>)> timeout(Duration &&d) {
     auto duration_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(d).count();
-    auto writer = get_writer(get_master_command_uid());
     int32_t timer_usage_count = timer_usage_count_;
+    auto writer = get_writer(get_master_command_uid());
     longfist::types::TimeRequest &r = writer->open_data<longfist::types::TimeRequest>(now());
     r.id = timer_usage_count;
     r.base_time = now();
     r.duration = duration_ns;
     r.repeat = 1;
+    r.location_uid = get_home_uid();
     writer->close_data();
     timer_checkpoints_[timer_usage_count] = now();
+    timer_requests_.insert_or_assign(timer_usage_count, r);
     timer_usage_count_++;
     return [&, duration_ns, timer_usage_count](const rx::observable<event_ptr> &src) {
       return (src | rx::filter([&, duration_ns, timer_usage_count](const event_ptr &event) {
@@ -186,8 +218,10 @@ protected:
                   r.base_time = now();
                   r.duration = duration_ns;
                   r.repeat = 1;
+                  r.location_uid = get_home_uid();
                   writer->close_data();
                   timer_checkpoints_[timer_usage_count] = now();
+                  timer_requests_.insert_or_assign(timer_usage_count, r);
                   return true;
                 } else {
                   return false;
@@ -195,8 +229,10 @@ protected:
               }))
           .merge(events_ | rx::filter([&, duration_ns, timer_usage_count](const event_ptr &event) {
                    if (event->gen_time() > timer_checkpoints_[timer_usage_count] + duration_ns) {
+                     timer_requests_.erase(timer_usage_count);
                      throw rx::timeout_error("timeout");
                    }
+                   timer_requests_.erase(timer_usage_count);
                    return false;
                  }));
     };
@@ -209,6 +245,8 @@ private:
   int32_t timer_usage_count_ = 0;
   yijinjing::practice::cleaner cleaner_;
   std::unordered_map<int, int64_t> timer_checkpoints_ = {};
+  std::unordered_map<int, longfist::types::TimeRequest> timer_requests_ = {};
+
   void checkin();
 
   void expect_start();

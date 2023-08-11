@@ -23,6 +23,7 @@
 namespace kungfu::node {
 constexpr uint64_t ID_TRANC = 0x00000000FFFFFFFF;
 constexpr uint32_t PAGE_ID_MASK = 0x80000000;
+constexpr uint32_t TRANSFER_TRADING_DATA_LIMIT = 2000;
 
 class WatcherAutoClient : public wingchun::broker::SilentAutoClient {
 public:
@@ -32,6 +33,7 @@ public:
 
   void connect(const event_ptr &event, const longfist::types::Register &register_data) override;
   void connect(const event_ptr &event, const longfist::types::Band &band) override;
+  bool should_connect_system(const yijinjing::data::location_ptr &system_location) const override;
 
 private:
   bool bypass_trading_data_;
@@ -75,17 +77,31 @@ public:
 
   Napi::Value RequestStop(const Napi::CallbackInfo &info);
 
+  Napi::Value RequestPosition(const Napi::CallbackInfo &info);
+
   Napi::Value PublishState(const Napi::CallbackInfo &info);
 
   Napi::Value IsReadyToInteract(const Napi::CallbackInfo &info);
 
+  Napi::Value IssueCustomData(const Napi::CallbackInfo &info);
+
   Napi::Value IssueBlockMessage(const Napi::CallbackInfo &info);
+
+  Napi::Value IssueOrderTrigger(const Napi::CallbackInfo &info);
 
   Napi::Value IssueOrder(const Napi::CallbackInfo &info);
 
   Napi::Value IssueBasketOrder(const Napi::CallbackInfo &info);
 
+  Napi::Value IssueAlgoOrder(const Napi::CallbackInfo &info);
+
+  Napi::Value IssueMark(const Napi::CallbackInfo &info);
+
   Napi::Value CancelOrder(const Napi::CallbackInfo &info);
+
+  Napi::Value CancelAlgoOrder(const Napi::CallbackInfo &info);
+
+  Napi::Value CancelOrderTrigger(const Napi::CallbackInfo &info);
 
   Napi::Value RequestMarketData(const Napi::CallbackInfo &info);
 
@@ -102,9 +118,10 @@ public:
   void RequestDeregister();
 
 protected:
-  const bool bypass_accounting_;
+  const bool bypass_quote_;
   const bool bypass_trading_data_;
   const bool refresh_trading_data_before_sync_;
+  const bool bypass_refresh_book_;
   const int milliseconds_sleep_after_step_;
   std::mutex feed_mutex_;
 
@@ -136,7 +153,6 @@ private:
   serialize::JsPublishState publish;
   serialize::JsResetCache reset_cache;
   yijinjing::cache::bank data_bank_;
-  yijinjing::cache::trading_bank trading_bank_;
   std::vector<kungfu::state<longfist::types::CacheReset>> reset_cache_states_;
   InstrumentKeyMap subscribed_instruments_ = {};
   std::unordered_map<uint32_t, int> location_uid_states_map_ = {};
@@ -249,21 +265,17 @@ private:
       }
       auto location = get_location(source);
       auto book = bookkeeper_.get_book(source);
-      auto &position = book->get_position_for(data);
-      auto &oppsite_position = book->get_oppsite_position_for(data);
-      state<kungfu::longfist::types::Position> cache_state_position(source, dest, event->gen_time(), position);
-      feed_state_data_bank(cache_state_position, data_bank_);
 
-      state<kungfu::longfist::types::Position> cache_state_oppsite_position(source, dest, event->gen_time(),
-                                                                            oppsite_position);
-      feed_state_data_bank(cache_state_oppsite_position, data_bank_);
+      auto apply = [&](auto &position) {
+        state<kungfu::longfist::types::Position> cache_state_position(source, dest, event->gen_time(), position);
+        feed_state_data_bank(cache_state_position, data_bank_);
+      };
+
+      book->apply_position_for(data, apply);
+      book->apply_opposite_position_for(data, apply);
 
       state<kungfu::longfist::types::Asset> cache_state_asset(source, dest, event->gen_time(), book->asset);
       feed_state_data_bank(cache_state_asset, data_bank_);
-
-      state<kungfu::longfist::types::AssetMargin> cache_state_asset_margin(source, dest, event->gen_time(),
-                                                                           book->asset_margin);
-      feed_state_data_bank(cache_state_asset_margin, data_bank_);
     };
     update(event->source(), event->dest());
     update(event->dest(), event->source());
@@ -271,22 +283,29 @@ private:
 
   void UpdateBasketOrder(int64_t trigger_time, const longfist::types::Order &order) {
     if (basketorder_engine_.has_basket_order_state(order.parent_id)) {
-      trading_bank_ << basketorder_engine_.get_basket_order(order.parent_id);
+      data_bank_ << basketorder_engine_.get_basket_order(order.parent_id);
     }
   }
 
   void UpdateBasketOrders() {
     for (auto &pair : basketorder_engine_.get_all_basket_order_states()) {
-      trading_bank_ << pair.second->get_state();
+      data_bank_ << pair.second->get_state();
     }
+  }
+
+  template <typename TradingData>
+  std::enable_if_t<std::is_same_v<TradingData, longfist::types::OrderTriggerInput>>
+  UpdateBook(uint32_t source, uint32_t dest, const TradingData &data) {
+    state<kungfu::longfist::types::OrderTriggerInput> cache_state_order_trigger_input(source, dest, now(), data);
+    data_bank_ << cache_state_order_trigger_input;
   }
 
   template <typename TradingData>
   std::enable_if_t<std::is_same_v<TradingData, longfist::types::OrderInput>> UpdateBook(uint32_t source, uint32_t dest,
                                                                                         const TradingData &data) {
-    bookkeeper_.on_order_input(now(), source, dest, data);
+    bookkeeper_.on_order_input(now(), dest, source, data);
     state<kungfu::longfist::types::OrderInput> cache_state_order_input(source, dest, now(), data);
-    trading_bank_ << cache_state_order_input;
+    data_bank_ << cache_state_order_input;
   }
 
   template <typename TradingData>
@@ -294,12 +313,22 @@ private:
                                                                                          const TradingData &data) {
     basketorder_engine_.insert_basket_order(now(), data);
     state<kungfu::longfist::types::BasketOrder> cache_state_basket_order(source, dest, now(), data);
-    trading_bank_ << cache_state_basket_order;
+    data_bank_ << cache_state_basket_order;
   }
 
   template <typename TradingData>
-  std::enable_if_t<not std::is_same_v<TradingData, longfist::types::OrderInput> and
-                   not std::is_same_v<TradingData, longfist::types::BasketOrder>>
+  std::enable_if_t<std::is_same_v<TradingData, longfist::types::AlgoOrderInput>>
+  UpdateBook(uint32_t source, uint32_t dest, const TradingData &data) {
+    state<kungfu::longfist::types::AlgoOrderInput> cache_state_algo_order_input(source, dest, now(), data);
+    data_bank_ << cache_state_algo_order_input;
+  }
+
+  template <typename TradingData>
+  std::enable_if_t<not std::is_same_v<TradingData, longfist::types::OrderTriggerInput> and
+                   not std::is_same_v<TradingData, longfist::types::OrderInput> and
+                   not std::is_same_v<TradingData, longfist::types::BasketOrder> and
+                   not std::is_same_v<TradingData, longfist::types::OrderTriggerInput> and
+                   not std::is_same_v<TradingData, longfist::types::AlgoOrderInput>>
   UpdateBook(uint32_t source, uint32_t dest, const TradingData &data) {}
 
   uint64_t MakeInstructionUID(yijinjing::journal::writer_ptr &writer, uint32_t dest, uint32_t client_id = 0) {
@@ -323,7 +352,7 @@ private:
     using DataTypeMap = std::unordered_map<uint64_t, state<DataType>>;
     auto &target_map = const_cast<DataTypeMap &>(data_bank_[type]);
     auto iter = target_map.begin();
-    while (iter != target_map.end() and target_map.size() > 0) {
+    while (iter != target_map.end()) {
       const auto &state = iter->second;
       update_ledger(state.update_time, state.source, state.dest, state.data);
       iter = target_map.erase(iter);
@@ -331,12 +360,46 @@ private:
   }
 
   template <typename DataType> void UpdateTradingData(const boost::hana::basic_type<DataType> &type) {
-    auto &order_queue = trading_bank_[type];
-    int i = 0;
-    kungfu::state<DataType> *pstate = nullptr;
-    while (i < longfist::TRADING_MAP_RING_SIZE && order_queue.pop(pstate) && pstate != nullptr) {
-      update_ledger(pstate->update_time, pstate->source, pstate->dest, pstate->data);
-      i++;
+    using DataTypeMap = std::unordered_map<uint64_t, state<DataType>>;
+    auto &target_map = const_cast<DataTypeMap &>(data_bank_[type]);
+    auto iter = target_map.begin();
+    auto count = 0;
+    while (iter != target_map.end() and count < TRANSFER_TRADING_DATA_LIMIT) {
+      const auto &state = iter->second;
+      update_ledger(state.update_time, state.source, state.dest, state.data);
+      iter = target_map.erase(iter);
+      count++;
+    }
+  }
+
+  template <typename Instruction>
+  Napi::Value InteractWithLocation(const Napi::CallbackInfo &info, const Napi::Object &instruction_object) {
+    try {
+      auto target_location = IODevice::ExtractLocation(info, 1, get_locator());
+
+      if (target_location->category == longfist::enums::category::SYSTEM && target_location->group == "master") {
+        target_location = master_cmd_location_;
+      }
+
+      if (not is_location_live(target_location->uid) or not has_writer(target_location->uid)) {
+        return Napi::Boolean::New(info.Env(), false);
+      }
+
+      auto trigger_time = yijinjing::time::now_in_nano();
+      auto target_writer = get_writer(target_location->uid);
+      Instruction instruction = {};
+      serialize::JsGet{}(instruction_object, instruction);
+
+      if (info.Length() == 2) {
+        target_writer->write(trigger_time, instruction);
+        return Napi::Boolean::New(info.Env(), true);
+      }
+
+      throw Napi::Error::New(info.Env(), "Invalid instruction arguments length");
+    } catch (const std::exception &ex) {
+      throw Napi::Error::New(info.Env(), fmt::format("invalid instruction arguments: {}", ex.what()));
+    } catch (...) {
+      throw Napi::Error::New(info.Env(), "invalid instruction arguments");
     }
   }
 
@@ -345,6 +408,12 @@ private:
     try {
       auto account_location = IODevice::ExtractLocation(info, 1, get_locator());
       if (not is_location_live(account_location->uid) or not has_writer(account_location->uid)) {
+        SPDLOG_ERROR("no writer or not live for account_location {} {} ", account_location->uid,
+                     account_location->uname);
+        return Napi::BigInt::New(info.Env(), std::uint64_t(0));
+      }
+
+      if (not has_writer(get_master_command_uid())) {
         return Napi::BigInt::New(info.Env(), std::uint64_t(0));
       }
 
@@ -398,9 +467,9 @@ private:
 
       return Napi::BigInt::New(info.Env(), std::uint64_t(0));
     } catch (const std::exception &ex) {
-      throw Napi::Error::New(info.Env(), fmt::format("invalid order arguments: {}", ex.what()));
+      throw Napi::Error::New(info.Env(), fmt::format("invalid instruction arguments: {}", ex.what()));
     } catch (...) {
-      throw Napi::Error::New(info.Env(), "invalid order arguments");
+      throw Napi::Error::New(info.Env(), "invalid instruction arguments");
     }
   };
 
@@ -413,9 +482,6 @@ private:
     void on_position_sync_reset(const wingchun::book::Book &old_book, const wingchun::book::Book &new_book) override;
 
     void on_asset_sync_reset(const longfist::types::Asset &old_asset, const longfist::types::Asset &new_asset) override;
-
-    void on_asset_margin_sync_reset(const longfist::types::AssetMargin &old_asset_margin,
-                                    const longfist::types::AssetMargin &new_asset_margin) override;
 
   private:
     Watcher &watcher_;

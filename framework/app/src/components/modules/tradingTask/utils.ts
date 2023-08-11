@@ -41,7 +41,7 @@ export const useTradingTask = (): {
   const setTradingTaskConfigPayload = ref<KungfuApi.SetKfConfigPayload>({
     type: 'add',
     title: t('tradingTaskConfig.tradingTask'),
-    config: {} as KungfuApi.KfExtConfig,
+    config: {} as KungfuApi.KfStrategyExtConfig,
   });
   const { extConfigs } = useExtConfigsRelated();
   const { processStatusData } = useProcessStatusDetailData();
@@ -60,7 +60,7 @@ export const useTradingTask = (): {
       return;
     }
 
-    const extConfig: KungfuApi.KfExtConfig = (extConfigs.value[
+    const extConfig: KungfuApi.KfStrategyExtConfig = (extConfigs.value[
       tradingTaskCategory
     ] || {})[selectedExtKey];
 
@@ -125,8 +125,9 @@ export const useTradingTask = (): {
       mode: 'live',
     };
 
-    const extConfig: KungfuApi.KfExtConfig = (extConfigs.value['strategy'] ||
-      {})[extKey];
+    const extConfig: KungfuApi.KfStrategyExtConfig = (extConfigs.value[
+      'strategy'
+    ] || {})[extKey];
 
     if (!extConfig) {
       error(

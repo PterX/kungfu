@@ -77,6 +77,8 @@ interface GlobalState {
     side?: SideEnum;
     offset?: OffsetEnum;
   };
+
+  tdFilter: ((td: KungfuApi.KfConfig[]) => KungfuApi.KfConfig[]) | null;
 }
 
 export const useGlobalStore = defineStore('global', {
@@ -85,9 +87,15 @@ export const useGlobalStore = defineStore('global', {
       boardsMap: {},
       dragedContentData: null,
       isBoardDragging: false,
-      extConfigs: toRaw<KungfuApi.KfExtConfigs>({}),
+      extConfigs: toRaw<KungfuApi.KfExtConfigs>({
+        td: {},
+        md: {},
+        strategy: {},
+        operator: {},
+        system: {},
+      }),
       uiExtConfigs: toRaw<KungfuApi.KfUIExtConfigs>({}),
-
+      tdFilter: null,
       tdList: [],
       tdGroupList: [],
       mdList: [],
@@ -195,7 +203,11 @@ export const useGlobalStore = defineStore('global', {
 
     setKfConfigList() {
       return getAllKfConfigOriginData().then((res) => {
-        const { md, td, strategy, operator } = res;
+        const { md, strategy, operator } = res;
+        let { td } = res;
+        if (this.tdFilter) {
+          td = this.tdFilter(td);
+        }
         this.mdList = md;
         this.tdList = td;
         this.strategyList = strategy;
@@ -261,7 +273,6 @@ export const useGlobalStore = defineStore('global', {
         strategy: this.strategyList,
         system: [],
         operator: [],
-        daemon: [],
       };
 
       const targetKfConfigs: KungfuApi.KfConfig[] =
@@ -318,11 +329,15 @@ export const useGlobalStore = defineStore('global', {
 
     setKfUIExtConfigs() {
       return getKfUIExtensionConfig().then(
-        (KfExtConfig: KungfuApi.KfUIExtConfigs) => {
-          this.uiExtConfigs = toRaw(KfExtConfig);
-          return KfExtConfig;
+        (kfUiExtConfig: KungfuApi.KfUIExtConfigs) => {
+          this.uiExtConfigs = toRaw(kfUiExtConfig);
+          return kfUiExtConfig;
         },
       );
+    },
+
+    setTdFilter(tdFilter: (tds: KungfuApi.KfConfig[]) => KungfuApi.KfConfig[]) {
+      this.tdFilter = tdFilter;
     },
 
     markIsBoardDragging(status: boolean) {

@@ -28,6 +28,8 @@ import {
   Spin,
   Skeleton,
   Tree,
+  List,
+  Badge,
   Statistic,
   Row,
   Col,
@@ -43,13 +45,14 @@ import {
   preStartAll,
   mergeExtLanguages,
   checkCpusNumAndConfirmModal,
+  loadCustomFont,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
 import {
-  booleanProcessEnv,
   delayMilliSeconds,
   buildIfWatcherLiveObservable,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   Pm2ProcessStatusDetailData,
   Pm2ProcessStatusData,
@@ -108,6 +111,8 @@ app
   .use(Spin)
   .use(Skeleton)
   .use(Tree)
+  .use(List)
+  .use(Badge)
 
   .use(Statistic)
   .use(Divider)
@@ -218,33 +223,35 @@ const initStartAll = () => {
   }
 };
 
-mergeExtLanguages().then(() =>
-  useComponents(app, router).then(() => {
-    app.mount('#app');
+loadCustomFont().then(() =>
+  mergeExtLanguages().then(() =>
+    useComponents(app, router).then(() => {
+      app.mount('#app');
 
-    if (!booleanProcessEnv(process.env.RELOAD_AFTER_CRASHED)) {
-      initStartAll();
-    } else {
-      isAllMainProcessRunning().then((res) => {
-        if (res) {
-          startGetProcessStatus(
-            (res: {
-              processStatus: Pm2ProcessStatusData;
-              processStatusWithDetail: Pm2ProcessStatusDetailData;
-            }) => {
-              const { processStatus, processStatusWithDetail } = res;
-              globalStore.setProcessStatus(processStatus);
-              globalStore.setProcessStatusWithDetail(processStatusWithDetail);
-            },
-          );
-        } else {
-          KillAll().finally(() => {
-            initStartAll();
-          });
-        }
-      });
-    }
-  }),
+      if (!booleanProcessEnv(process.env.RELOAD_AFTER_CRASHED)) {
+        initStartAll();
+      } else {
+        isAllMainProcessRunning().then((res) => {
+          if (res) {
+            startGetProcessStatus(
+              (res: {
+                processStatus: Pm2ProcessStatusData;
+                processStatusWithDetail: Pm2ProcessStatusDetailData;
+              }) => {
+                const { processStatus, processStatusWithDetail } = res;
+                globalStore.setProcessStatus(processStatus);
+                globalStore.setProcessStatusWithDetail(processStatusWithDetail);
+              },
+            );
+          } else {
+            KillAll().finally(() => {
+              initStartAll();
+            });
+          }
+        });
+      }
+    }),
+  ),
 );
 
 triggerStartStep(1000);

@@ -56,8 +56,9 @@ export const getColumns = (
       {
         type: 'number',
         name: t('tradeConfig.price'),
-        dataIndex: 'price',
+        dataIndex: 'price_resolved',
         width: 120,
+        align: 'right',
         sorter: buildSorter('price'),
       },
       {
@@ -65,6 +66,7 @@ export const getColumns = (
         name: t('tradeConfig.volume'),
         dataIndex: 'volume',
         width: 60,
+        align: 'right',
         sorter: buildSorter('volume'),
       },
       {
@@ -72,6 +74,7 @@ export const getColumns = (
         name: t('tradeConfig.latency_trade'),
         dataIndex: 'latency_trade',
         width: 90,
+        align: 'right',
         sorter: (a: KungfuApi.TradeResolved, b: KungfuApi.TradeResolved) =>
           +a.latency_trade - +b.latency_trade,
       },
@@ -105,12 +108,12 @@ export const statisColums: KfTradingDataTableHeaderConfig[] = [
   },
   {
     name: '',
-    dataIndex: 'side',
+    dataIndex: 'sideName',
     width: 40,
   },
   {
     name: '',
-    dataIndex: 'offset',
+    dataIndex: 'offsetName',
     width: 40,
   },
   {

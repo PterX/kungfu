@@ -60,11 +60,13 @@ public:
 
   void close_session(const data::location_ptr &location, int64_t close_time);
 
-  yijinjing::index::SessionMap &close_all_sessions(int64_t close_time);
+  void close_all_sessions(int64_t close_time);
 
   int64_t find_last_active_time(const data::location_ptr &source_location);
 
   void update_session(const journal::frame_ptr &frame);
+
+  yijinjing::index::SessionMap &get_all_sessions();
 
   static constexpr auto feed_profile_data = [](const event_ptr &event, auto &receiver) {
     boost::hana::for_each(longfist::ProfileDataTypes, [&](auto it) {

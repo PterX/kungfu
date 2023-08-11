@@ -60,7 +60,7 @@ std::string get_root_dir(es::mode m, const std::vector<std::string> &tags) {
     }
     auto home_dir_path = get_default_root() / iter->second.second;
     home_dir_path /= std::accumulate(tags.begin(), tags.end(), fs::path{},
-                                     [&](const fs::path &p, const std::string &tag) { return p / tag; });
+                                     [](const fs::path &p, const std::string &tag) { return p / tag; });
     return home_dir_path.string();
   }
 }
@@ -75,14 +75,14 @@ bool locator::has_env(const std::string &name) const { return std::getenv(name.c
 
 std::string locator::get_env(const std::string &name) const { return std::getenv(name.c_str()); }
 
-std::string locator::layout_dir(const location_ptr &location, es::layout layout) const {
+std::string locator::layout_dir(const location_ptr &location, es::layout layout, bool create_not_exist) const {
   auto dir = root_ /                                     //
+             es::get_layout_name(layout) /               //
              es::get_category_name(location->category) / //
              location->group /                           //
              location->name /                            //
-             es::get_layout_name(layout) /               //
              es::get_mode_name(location->mode);
-  if (not fs::exists(dir)) {
+  if (create_not_exist && not fs::exists(dir)) {
     fs::create_directories(dir);
   }
   return dir.string();
@@ -99,10 +99,10 @@ std::string locator::layout_file(const location_ptr &location, es::layout layout
   auto db_file = layout_file(location, sqlite_layout, name);
   if (not fs::exists(db_file)) {
     auto system_db_file = root_ /                                     //
+                          es::get_layout_name(sqlite_layout) /        //
                           es::get_category_name(location->category) / //
                           location->group /                           //
                           location->name /                            //
-                          es::get_layout_name(sqlite_layout) /        //
                           es::get_mode_name(location->mode);
     fs::copy(system_db_file, db_file);
   }
@@ -112,7 +112,10 @@ std::string locator::layout_file(const location_ptr &location, es::layout layout
 std::vector<uint32_t> locator::list_page_id(const location_ptr &location, uint32_t dest_id) const {
   std::vector<uint32_t> result = {};
   auto dest_id_str = fmt::format("{:08x}", dest_id);
-  auto dir = fs::path(layout_dir(location, es::layout::JOURNAL));
+  auto dir = fs::path(layout_dir(location, es::layout::JOURNAL, false));
+  if (not fs::exists(dir)) {
+    return {};
+  }
   for (auto &it : fs::recursive_directory_iterator(dir)) {
     auto basename = it.path().stem();
     if (it.is_regular_file() and it.path().extension() == ".journal" and basename.stem() == dest_id_str) {
@@ -130,7 +133,7 @@ static constexpr auto g = [](const std::string &pattern) { return fmt::format("(
 
 std::vector<location_ptr> locator::list_locations(const std::string &category, const std::string &group,
                                                   const std::string &name, const std::string &mode) const {
-  fs::path search_path = root_ / g(category) / g(group) / g(name) / "journal" / g(mode);
+  fs::path search_path = root_ / "journal" / g(category) / g(group) / g(name) / g(mode);
   std::string pattern = std::regex_replace(search_path.string(), std::regex("\\\\"), "\\\\");
   std::regex search_regex(pattern);
   std::vector<location_ptr> result = {};

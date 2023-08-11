@@ -27,6 +27,10 @@ public:
 
   void set_matcher(const Matcher_ptr &matcher);
 
+  void set_from_indexer(const tool::SliceIndexer_ptr &indexer);
+
+  void set_to_indexer(const tool::SliceIndexer_ptr &indexer);
+
   void on_exit() override;
 
 protected:
@@ -52,6 +56,8 @@ private:
   std::vector<Strategy_ptr> strategies_ = {};
   Context_ptr context_;
   Matcher_ptr matcher_;
+  tool::SliceIndexer_ptr from_indexer_;
+  tool::SliceIndexer_ptr to_indexer_;
   const std::string arguments_;
 
   void inspect_channel(const event_ptr &event);
@@ -80,13 +86,24 @@ private:
     }
   }
 
-  template <typename OnMethod = void (Strategy::*)(Context_ptr &, uint32_t, const std::vector<uint8_t> &, uint32_t,
-                                                   const kungfu::yijinjing::data::location_ptr &)>
-  void invoke(OnMethod method, uint32_t msg_type, const std::vector<uint8_t> &data, uint32_t length,
-              const kungfu::yijinjing::data::location_ptr &location) {
+  template <typename TradingData,
+            typename OnMethod = void (Strategy::*)(Context_ptr &, const TradingData &,
+                                                   const kungfu::yijinjing::data::location_ptr &, uint32_t)>
+  void invoke(OnMethod method, const TradingData &data, const kungfu::yijinjing::data::location_ptr &location,
+              uint32_t dest) {
     auto context = std::dynamic_pointer_cast<Context>(context_);
     for (const auto &strategy : strategies_) {
-      (*strategy.*method)(context, msg_type, data, length, location);
+      (*strategy.*method)(context, data, location, dest);
+    }
+  }
+
+  template <typename OnMethod = void (Strategy::*)(Context_ptr &, uint32_t, const std::vector<uint8_t> &, uint32_t,
+                                                   const kungfu::yijinjing::data::location_ptr &, uint32_t)>
+  void invoke(OnMethod method, uint32_t msg_type, const std::vector<uint8_t> &data, uint32_t length,
+              const kungfu::yijinjing::data::location_ptr &location, uint32_t dest) {
+    auto context = std::dynamic_pointer_cast<Context>(context_);
+    for (const auto &strategy : strategies_) {
+      (*strategy.*method)(context, msg_type, data, length, location, dest);
     }
   }
 
@@ -99,9 +116,6 @@ private:
     void on_position_sync_reset(const wingchun::book::Book &old_book, const wingchun::book::Book &new_book) override;
 
     void on_asset_sync_reset(const longfist::types::Asset &old_asset, const longfist::types::Asset &new_asset) override;
-
-    void on_asset_margin_sync_reset(const longfist::types::AssetMargin &old_asset_margin,
-                                    const longfist::types::AssetMargin &new_asset_margin) override;
 
   private:
     Runner &runner_;

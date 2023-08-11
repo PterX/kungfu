@@ -4,6 +4,7 @@ import {
   SideEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import { dealOrderInputItem } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { useActiveInstruments } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import { h, VNode } from 'vue';
 import {
   makeOrderConfigKFTypes,
@@ -34,14 +35,19 @@ export function dealOrderPlaceVNode(
   isArbitrage: boolean,
 ): VNode {
   const orderData: KungfuApi.MakeOrderInput = dealStockOffset(makeOrderInput);
+  const { getPriceTickAndPrecision } = useActiveInstruments();
 
   const currentOrderInputTrans = {
     ...orderInputTrans,
     ...(isArbitrage ? getFutureArbitrageOrderTrans(orderData.side) : {}),
   };
 
+  const { price_precision } = getPriceTickAndPrecision(
+    orderData.instrument_id,
+    orderData.exchange_id,
+  );
   const orderInputResolved: Record<string, KungfuApi.KfTradeValueCommonData> =
-    dealOrderInputItem(orderData);
+    dealOrderInputItem(orderData, price_precision ?? 4);
 
   return createOrderPlaceVNode(
     orderInputResolved,
@@ -108,7 +114,7 @@ export const transformOrderInputToExtConfigForm = (
     const type = configItem.type;
 
     if (type === 'td') {
-      pre[key] = orderInputFormState['account_id'];
+      pre[key] = orderInputFormState['account_id'] || '';
       return pre;
     }
 

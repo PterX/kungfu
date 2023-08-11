@@ -110,6 +110,11 @@ public:
     return rc;
   }
 
+  bool nonblock_wait() override {
+    int rc = socket_.recv(NNG_FLAG_NONBLOCK | NNG_FLAG_ALLOC) == 0;
+    return rc;
+  }
+
   int get_recv_timeout() const override { return DEFAULT_RECV_TIMEOUT; }
 
   const std::string &get_notice() override { return socket_.last_message(); }
@@ -165,12 +170,21 @@ reader_ptr io_device::open_reader(const data::location_ptr &location, uint32_t d
   return r;
 }
 
-writer_ptr io_device::open_writer(uint32_t dest_id) {
-  return std::make_shared<writer>(home_, dest_id, lazy_, publisher_, low_latency_, bus_);
+writer_ptr io_device::open_writer(uint32_t dest_id, uint32_t page_size) {
+  return std::make_shared<writer>(home_, dest_id, lazy_, publisher_, low_latency_, bus_, page_size);
 }
 
-writer_ptr io_device::open_writer_at(const data::location_ptr &location, uint32_t dest_id) {
-  return std::make_shared<writer>(location, dest_id, lazy_, publisher_, low_latency_, bus_);
+writer_ptr io_device::open_writer_at(const data::location_ptr &location, uint32_t dest_id, uint32_t page_size) {
+  return std::make_shared<writer>(location, dest_id, lazy_, publisher_, low_latency_, bus_, page_size);
+}
+
+writer_ptr io_device::open_hookable_writer(uint32_t dest, const writer_hook_ptr &hook) {
+  return std::make_shared<hookable_writer>(home_, dest, lazy_, publisher_, low_latency_, bus_, hook);
+}
+
+writer_ptr io_device::open_hookable_writer_at(const data::location_ptr &location, uint32_t dest_id,
+                                              const writer_hook_ptr &hook) {
+  return std::make_shared<hookable_writer>(location, dest_id, lazy_, publisher_, low_latency_, bus_, hook);
 }
 
 io_device_master::io_device_master(data::location_ptr home, bool low_latency)

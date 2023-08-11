@@ -31,6 +31,7 @@ import {
 import {
   graceStopProcess,
   Pm2ProcessStatusDetail,
+  Pm2ProcessStatusDetailResolved,
   startTask,
 } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
 import KfProcessStatus from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfProcessStatus.vue';
@@ -75,11 +76,20 @@ const taskList = computed(() => {
   const taskPrefixs = taskTypeKeys.value.map((item) => {
     return `strategy_${item}`;
   });
-  const tasksResolved = getTaskListFromProcessStatusData(
-    taskPrefixs,
-    processStatusDetailData.value,
-    tradingTaskPropsInject?.taskSorter,
-  );
+  const tasksResolved: Pm2ProcessStatusDetailResolved[] =
+    getTaskListFromProcessStatusData(
+      taskPrefixs,
+      processStatusDetailData.value,
+      tradingTaskPropsInject?.taskSorter,
+    ).map((item) => {
+      return {
+        ...item,
+        name_resolved: dealTradingTaskName(
+          item.name as string,
+          extConfigs.value,
+        ),
+      };
+    });
 
   if (tradingTaskPropsInject?.taskFilter) {
     return tasksResolved.filter((item) =>
@@ -90,7 +100,11 @@ const taskList = computed(() => {
   return tasksResolved;
 });
 const { searchKeyword, tableData } =
-  useTableSearchKeyword<Pm2ProcessStatusDetail>(taskList, ['name', 'args']);
+  useTableSearchKeyword<Pm2ProcessStatusDetailResolved>(taskList, [
+    'name',
+    'args',
+    'name_resolved',
+  ]);
 
 const { dealRowClassName, setCurrentGlobalKfLocation } =
   useCurrentGlobalKfLocation(window.watcher);
@@ -140,9 +154,9 @@ function handleSwitchProcessStatusResolved(
   }
 
   const extKey = taskLocation.group;
-  const extConfig: KungfuApi.KfExtConfig = (extConfigs.value['strategy'] || {})[
-    extKey
-  ];
+  const extConfig: KungfuApi.KfStrategyExtConfig = (extConfigs.value[
+    'strategy'
+  ] || {})[extKey];
 
   if (!extConfig) {
     error(`${extKey} ${t('tradingTaskConfig.plugin_inexistence')}`);
@@ -340,7 +354,7 @@ function getProcessStatusName(
       >
         <template #bodyCell="{ column, record }">
           <template v-if="column.dataIndex === 'name'">
-            {{ dealTradingTaskName(record.name, extConfigs) }}
+            {{ record.name_resolved }}
           </template>
           <template v-else-if="column.dataIndex === 'processStatus'">
             <a-switch

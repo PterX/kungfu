@@ -18,6 +18,7 @@ import {
   showCrashMessageBox,
   showKungfuInfo,
   openUrl,
+  destoryAllWindows,
 } from '@kungfu-trader/kungfu-app/src/main/utils';
 import {
   kfLogger,
@@ -28,6 +29,7 @@ import {
   clearDB,
   clearJournal,
   exportAllTradingData,
+  exportInstrumentWhitelists,
   viewAllJournal,
   openLogFile,
   openSettingDialog,
@@ -38,6 +40,7 @@ import {
   BASE_DB_DIR,
   KF_HOME,
   RENDERER_LOG_DIR,
+  KF_CONFIG_PATH,
 } from '@kungfu-trader/kungfu-js-api/config/pathConfig';
 import {
   initKfConfig,
@@ -46,6 +49,7 @@ import {
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
 import { handleUpdateKungfu } from './autoUpdater';
+import globalStorage from '@kungfu-trader/kungfu-js-api/utils/globalStorage';
 const { t } = VueI18n.global;
 
 let MainWindow: BrowserWindow | null = null;
@@ -66,7 +70,7 @@ async function createWindow(
 ) {
   if (reloadAfterCrashed) {
     CrashedReloading = true;
-    MainWindow && MainWindow.close();
+    destoryAllWindows();
   }
 
   if (reloadBySchedule) {
@@ -113,6 +117,7 @@ async function createWindow(
     }
 
     isUpdateVersionLogicEnable() && handleUpdateKungfu(MainWindow);
+    globalStorage.setItem('ifNotFirstRunning', true);
   });
 
   MainWindow.on('close', (e) => {
@@ -278,23 +283,6 @@ function setMenu() {
   const isShowHelp = !(rootPackageJson?.appConfig?.showHelp === false); // 如果没有显示设置为 false，则显示
 
   const template: MenuItemConstructorOptions[] = [
-    //mac全屏鼠标触摸屏幕顶显示关闭按钮，取消全屏按钮，最小化按钮
-
-    {
-      label: t('File'),
-      submenu: [
-        {
-          label: t('close'),
-          accelerator: 'CommandOrControl+W',
-          click: () => {
-            const focusedWin = BrowserWindow.getFocusedWindow();
-            if (focusedWin) {
-              focusedWin.close();
-            }
-          },
-        },
-      ],
-    },
     {
       label: t('KungFu'),
       submenu: applicationOptions,
@@ -333,9 +321,14 @@ function setMenu() {
           click: () => shell.showItemInFolder(KF_HOME),
         },
         {
+          label: t('open_system_config_directory'),
+          click: () => shell.showItemInFolder(KF_CONFIG_PATH),
+        },
+        {
           label: t('open_install_directory'),
           click: () => shell.showItemInFolder(app.getAppPath()),
         },
+
         {
           label: t('open_basic_configuration'),
           click: () =>
@@ -377,6 +370,10 @@ function setMenu() {
           label: t('export_all_transaction_data'),
           accelerator: 'CommandOrControl+E',
           click: () => MainWindow && exportAllTradingData(MainWindow),
+        },
+        {
+          label: t('export_instrument_whitelists'),
+          click: () => MainWindow && exportInstrumentWhitelists(MainWindow),
         },
       ],
     },

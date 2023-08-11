@@ -19,7 +19,8 @@ using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::journal;
 
 namespace kungfu::wingchun::broker {
-BrokerVendor::BrokerVendor(location_ptr location, bool low_latency) : apprentice(std::move(location), low_latency) {}
+BrokerVendor::BrokerVendor(location_ptr location, bool low_latency, const std::string &arguments)
+    : apprentice(std::move(location), low_latency), arguments_(arguments) {}
 
 void BrokerVendor::on_start() {
   events_ | is(RequestWriteTo::tag, RequestReadFrom::tag, RequestReadFromPublic::tag, RequestReadFromSync::tag) |
@@ -46,7 +47,7 @@ int64_t BrokerService::now() const { return vendor_.now(); }
 
 BrokerState BrokerService::get_state() { return state_; }
 
-const std::string BrokerService::get_config() const {
+std::string BrokerService::get_config() const {
   auto &config_map = get_state_bank()[boost::hana::type_c<Config>];
   if (config_map.find(get_home_uid()) == config_map.end()) {
     return "{}";
@@ -55,10 +56,13 @@ const std::string BrokerService::get_config() const {
   return config_obj.data.value;
 }
 
-[[maybe_unused]] const std::string &BrokerService::get_risk_setting() const {
+std::string BrokerService::get_risk_setting() const {
   auto &risk_setting_map = get_state_bank()[boost::hana::type_c<RiskSetting>];
+  if (risk_setting_map.find(get_home_uid()) == risk_setting_map.end()) {
+    return "{}";
+  }
   auto &risk_setting_obj = risk_setting_map.at(get_home_uid());
-  return risk_setting_obj.data.value;
+  return risk_setting_obj.data.to_string();
 }
 
 std::string BrokerService::get_runtime_folder() { return vendor_.get_locator()->layout_dir(get_home(), layout::LOG); }
@@ -76,16 +80,12 @@ const cache::bank &BrokerService::get_state_bank() const { return vendor_.get_st
 [[maybe_unused]] bool BrokerService::check_if_stored_instruments(const std::string &trading_day) const {
   SPDLOG_INFO("CHECK_IF_STORED_INSTRUMENTS trading_day {}", trading_day);
   auto &time_key_value_map = get_state_bank()[boost::hana::type_c<TimeKeyValue>];
-  for (const auto &pair : time_key_value_map) {
+  return std::any_of(time_key_value_map.begin(), time_key_value_map.end(), [&](const auto &pair) {
     const TimeKeyValue &timeKeyValue = pair.second.data;
-    if (timeKeyValue.key == "instrument_stored_trading_day" ||
-        timeKeyValue.key == "instrument_stored_trading_day_next_day") {
-      if (timeKeyValue.value == trading_day) {
-        return true;
-      }
-    }
-  }
-  return false;
+    return (timeKeyValue.key == "instrument_stored_trading_day" ||
+            timeKeyValue.key == "instrument_stored_trading_day_next_day") and
+           (timeKeyValue.value == trading_day);
+  });
 }
 
 [[maybe_unused]] void BrokerService::record_stored_instruments_trading_day(const std::string &trading_day) const {
@@ -124,4 +124,5 @@ void BrokerService::update_broker_state(BrokerState state) {
 }
 
 yijinjing::io_device_ptr BrokerService::get_io_device() const { return get_vendor().get_io_device(); }
+
 } // namespace kungfu::wingchun::broker

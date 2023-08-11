@@ -10,6 +10,7 @@ import {
   InstrumentTypeEnum,
   OffsetEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
+import { useActiveInstruments } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 
 type OrderInputWithBlockMessage = KungfuApi.MakeOrderInput &
   KungfuApi.BlockMessage;
@@ -46,14 +47,19 @@ export function dealOrderPlaceVNode(
   orderCount: number,
 ): VNode {
   const orderData: OrderInputWithBlockMessage = dealStockOffset(makeOrderInput);
+  const { getPriceTickAndPrecision } = useActiveInstruments();
 
   const currentOrderInputTrans = getBlockTradeOrderTrans();
 
   const blockMessageResolved: Record<string, KungfuApi.KfTradeValueCommonData> =
     dealBlockMessageItem(orderData);
 
+  const { price_precision } = getPriceTickAndPrecision(
+    orderData.instrument_id,
+    orderData.exchange_id,
+  );
   const orderInputResolved: Record<string, KungfuApi.KfTradeValueCommonData> =
-    dealOrderInputItem(orderData);
+    dealOrderInputItem(orderData, price_precision);
 
   return createOrderPlaceVNode(
     { ...orderInputResolved, ...blockMessageResolved },

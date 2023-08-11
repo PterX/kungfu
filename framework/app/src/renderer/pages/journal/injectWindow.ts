@@ -1,5 +1,5 @@
-import workers from './workers';
+// import workers from './workers';
 
-window.workers = workers;
+// window.workers = workers;
 
-window.testCase = {};
+// window.testCase = {};

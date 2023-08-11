@@ -20,5 +20,25 @@ void bind_utils(pybind11::module &m) {
     order_from_input(input, order);
     return order;
   });
+  m_utils.def("trade_from_order", [](const Order &order) {
+    Trade trade{};
+    trade_from_order(order, trade);
+    return trade;
+  });
+  m_utils.def("order_trigger_from_input", [](const OrderTriggerInput &input) {
+    OrderTrigger trigger{};
+    order_trigger_from_input(input, trigger);
+    return trigger;
+  });
+  m_utils.def("order_trigger_from_order", [](const Order &order) {
+    OrderTrigger trigger{};
+    order_trigger_from_order(order, trigger);
+    return trigger;
+  });
+  m_utils.def("order_input_from_trigger_order", [](const OrderTriggerInput &trigger_input) {
+    OrderInput order_input{};
+    order_input_from_trigger_order(trigger_input, order_input);
+    return order_input;
+  });
 }
 } // namespace kungfu::wingchun::pybind

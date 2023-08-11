@@ -50,13 +50,18 @@ void bind_enums(py::module &m) {
       .value("Fund", InstrumentType::Fund)
       .value("Index", InstrumentType::Index)
       .value("Repo", InstrumentType::Repo)
-      .value("Warrant", InstrumentType::Warrant)
-      .value("Iopt", InstrumentType::Iopt)
       .value("Crypto", InstrumentType::Crypto)
       .value("CryptoFuture", InstrumentType::CryptoFuture)
       .value("CryptoUFuture", InstrumentType::CryptoUFuture)
       .export_values()
       .def("__eq__", [](const InstrumentType &a, int b) { return static_cast<int>(a) == b; });
+
+  py::enum_<AccountType>(m_enums, "AccountType", py::arithmetic())
+      .value("Stock", AccountType::Stock)
+      .value("Credit", AccountType::Credit)
+      .value("Future", AccountType::Future)
+      .export_values()
+      .def("__eq__", [](const AccountType &a, int b) { return static_cast<int>(a) == b; });
 
   py::enum_<CommissionRateMode>(m_enums, "CommissionRateMode", py::arithmetic())
       .value("ByAmount", CommissionRateMode::ByAmount)
@@ -128,6 +133,7 @@ void bind_enums(py::module &m) {
       .value("PartialFilledNotActive", OrderStatus::PartialFilledNotActive)
       .value("PartialFilledActive", OrderStatus::PartialFilledActive)
       .value("Lost", OrderStatus::Lost)
+      .value("Cancelling", OrderStatus::Cancelling)
       .export_values()
       .def("__eq__", [](const OrderStatus &a, int b) { return static_cast<int>(a) == b; });
 
@@ -145,11 +151,14 @@ void bind_enums(py::module &m) {
       .value("Limit", PriceType::Limit)
       .value("ForwardBest", PriceType::ForwardBest)
       .value("ReverseBest", PriceType::ReverseBest)
+      .value("EnhancedLimit", PriceType::EnhancedLimit)
+      .value("AtAuctionLimit", PriceType::AtAuctionLimit)
+      .value("AtAuction", PriceType::AtAuction)
       .export_values()
       .def("__eq__", [](const PriceType &a, int b) { return static_cast<int>(a) == b; });
 
   py::enum_<PriceLevel>(m_enums, "PriceLevel", py::arithmetic())
-      .value("Lastest", PriceLevel::Lastest)
+      .value("Latest", PriceLevel::Latest)
       .value("Sell5", PriceLevel::Sell5)
       .value("Sell4", PriceLevel::Sell4)
       .value("Sell3", PriceLevel::Sell3)
@@ -173,20 +182,20 @@ void bind_enums(py::module &m) {
       .value("PartialFilledActive", BasketOrderStatus::PartialFilledActive)
       .value("Filled", BasketOrderStatus::Filled)
       .export_values()
-      .def("__eq__", [](const BrokerState &a, int b) { return static_cast<int>(a) == b; });
+      .def("__eq__", [](const BasketOrderStatus &a, int b) { return static_cast<int>(a) == b; });
 
   py::enum_<BasketVolumeType>(m_enums, "BasketVolumeType", py::arithmetic())
       .value("Unknown", BasketVolumeType::Unknown)
       .value("Quantity", BasketVolumeType::Quantity)
       .value("Proportion", BasketVolumeType::Proportion)
       .export_values()
-      .def("__eq__", [](const BrokerState &a, int b) { return static_cast<int>(a) == b; });
+      .def("__eq__", [](const BasketVolumeType &a, int b) { return static_cast<int>(a) == b; });
 
   py::enum_<BasketType>(m_enums, "BasketType", py::arithmetic())
       .value("Custom", BasketType::Custom)
       .value("ETF", BasketType::ETF)
       .export_values()
-      .def("__eq__", [](const BrokerState &a, int b) { return static_cast<int>(a) == b; });
+      .def("__eq__", [](const BasketType &a, int b) { return static_cast<int>(a) == b; });
 
   py::enum_<VolumeCondition>(m_enums, "VolumeCondition", py::arithmetic())
       .value("Any", VolumeCondition::Any)
@@ -199,11 +208,16 @@ void bind_enums(py::module &m) {
       .value("IOC", TimeCondition::IOC)
       .value("GFD", TimeCondition::GFD)
       .value("GTC", TimeCondition::GTC)
+      .value("GFS", TimeCondition::GFS)
+      .value("GTD", TimeCondition::GTD)
+      .value("GFA", TimeCondition::GFA)
+      .value("Unknown", TimeCondition::Unknown)
       .export_values()
       .def("__eq__", [](const TimeCondition &a, int b) { return static_cast<int>(a) == b; });
 
   py::enum_<OrderActionFlag>(m_enums, "OrderActionFlag", py::arithmetic())
       .value("Cancel", OrderActionFlag::Cancel)
+      .value("TriggerCancel", OrderActionFlag::TriggerCancel)
       .export_values()
       .def("__eq__", [](const OrderActionFlag &a, int b) { return static_cast<int>(a) == b; });
 
@@ -251,12 +265,11 @@ void bind_enums(py::module &m) {
       .value("BSE", MarketType::BSE)
       .value("SHFE", MarketType::SHFE)
       .value("CFFEX", MarketType::CFFEX)
-      .value("kDCE", MarketType::DCE)
+      .value("DCE", MarketType::DCE)
       .value("CZCE", MarketType::CZCE)
       .value("INE", MarketType::INE)
       .value("SSE", MarketType::SSE)
-      .value("SZSE", MarketType::SZSE)
-      .value("HKEx", MarketType::HKEx)
+      .value("SZE", MarketType::SZE)
       .export_values()
       .def("__eq__", [](const MarketType &a, int b) { return static_cast<int>(a) == b; });
 
@@ -294,5 +307,56 @@ void bind_enums(py::module &m) {
       .def_readonly_static("Public", &AssembleMode::Public)
       .def_readonly_static("Sync", &AssembleMode::Sync)
       .def_readonly_static("All", &AssembleMode::All);
+
+  py::enum_<PageStatus>(m_enums, "PageStatus", py::arithmetic())
+      .value("Normal", PageStatus::Normal)
+      .value("PreOpen", PageStatus::PreOpen)
+      .export_values()
+      .def("__eq__", [](const PageStatus &a, int b) { return static_cast<int>(a) == b; });
+
+  py::enum_<AccountingMethodType>(m_enums, "AccountingMethodType", py::arithmetic())
+      .value("Default", AccountingMethodType::Default)
+      .value("OTC", AccountingMethodType::OTC)
+      .export_values()
+      .def("__eq__", [](const AccountingMethodType &a, int b) { return static_cast<int>(a) == b; });
+
+  py::enum_<FrameDataType>(m_enums, "FrameDataType", py::arithmetic())
+      .value("Raw", FrameDataType::Raw)
+      .value("Json", FrameDataType::Json)
+      .value("Unknown", FrameDataType::Unknown)
+      .export_values()
+      .def("__eq__", [](const FrameDataType &a, int b) { return static_cast<int>(a) == b; });
+
+  py::enum_<OrderTriggerType>(m_enums, "OrderTriggerType", py::arithmetic())
+      .value("Immediately", OrderTriggerType::Immediately)
+      .value("Touch", OrderTriggerType::Touch)
+      .value("TouchProfit", OrderTriggerType::TouchProfit)
+      .value("ParkedOrder", OrderTriggerType::ParkedOrder)
+      .value("LastPriceGreaterThanStopPrice", OrderTriggerType::LastPriceGreaterThanStopPrice)
+      .value("LastPriceGreaterEqualStopPrice", OrderTriggerType::LastPriceGreaterEqualStopPrice)
+      .value("LastPriceLesserThanStopPrice", OrderTriggerType::LastPriceLesserThanStopPrice)
+      .value("LastPriceLesserEqualStopPrice", OrderTriggerType::LastPriceLesserEqualStopPrice)
+      .value("AskPriceGreaterThanStopPrice", OrderTriggerType::AskPriceGreaterThanStopPrice)
+      .value("AskPriceGreaterEqualStopPrice", OrderTriggerType::AskPriceGreaterEqualStopPrice)
+      .value("AskPriceLesserThanStopPrice", OrderTriggerType::AskPriceLesserThanStopPrice)
+      .value("AskPriceLesserEqualStopPrice", OrderTriggerType::AskPriceLesserEqualStopPrice)
+      .value("BidPriceGreaterThanStopPrice", OrderTriggerType::BidPriceGreaterThanStopPrice)
+      .value("BidPriceGreaterEqualStopPrice", OrderTriggerType::BidPriceGreaterEqualStopPrice)
+      .value("BidPriceLesserThanStopPrice", OrderTriggerType::BidPriceLesserThanStopPrice)
+      .value("BidPriceLesserEqualStopPrice", OrderTriggerType::BidPriceLesserEqualStopPrice)
+      .export_values()
+      .def("__eq__", [](const OrderTriggerType &a, int b) { return static_cast<int>(a) == b; });
+
+  py::enum_<ParkedType>(m_enums, "ParkedType", py::arithmetic())
+      .value("Server", ParkedType::Server)
+      .value("Local", ParkedType::Local)
+      .export_values()
+      .def("__eq__", [](const ParkedType &a, int b) { return static_cast<int>(a) == b; });
+
+  py::enum_<OrderTriggerFlag>(m_enums, "OrderTriggerFlag", py::arithmetic())
+      .value("TriggerInsert", OrderTriggerFlag::TriggerInsert)
+      .value("TriggerCancel", OrderTriggerFlag::TriggerCancel)
+      .export_values()
+      .def("__eq__", [](const OrderTriggerFlag &a, int b) { return static_cast<int>(a) == b; });
 }
 } // namespace kungfu::longfist::pybind

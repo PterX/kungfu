@@ -6,14 +6,17 @@ import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/p
 import KfProcessStatus from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfProcessStatus.vue';
 import KfSetExtensionModal from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfSetExtensionModal.vue';
 import KfSetByConfigModal from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfSetByConfigModal.vue';
+import FundTransModal from './FundTransModal.vue';
 import Icon, {
   FileTextOutlined,
   SettingOutlined,
   DeleteOutlined,
   BankOutlined,
+  ReloadOutlined,
+  PayCircleOutlined,
 } from '@ant-design/icons-vue';
 
-import { categoryRegisterConfig, getColumns } from './config';
+import { categoryRegisterConfig, getColumns, getFundTransKey } from './config';
 import {
   useTableSearchKeyword,
   handleOpenLogview,
@@ -33,7 +36,6 @@ import {
   useAllKfConfigData,
   useTdGroups,
   useAssets,
-  useAssetMargins,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import {
   dealAssetPrice,
@@ -53,14 +55,15 @@ import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/ind
 import { messagePrompt } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { storeToRefs } from 'pinia';
+import { FundTransTypeEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 
 const { t } = VueI18n.global;
 const { success, error } = messagePrompt();
 const handleSwitchProcessStatus = handleSwitchProcessStatusGenerator();
 const { dashboardBodyHeight, handleBodySizeChange } = useDashboardBodySize();
 const { globalSetting } = storeToRefs(useGlobalStore());
-const isShowAssetMargin = computed(() => {
-  return !!globalSetting.value?.trade?.assetMargin;
+const isShowMarginTrading = computed(() => {
+  return !!globalSetting.value?.trade?.marginTrading;
 });
 
 globalThis.HookKeeper.getHooks().dealTradingData.register(
@@ -77,7 +80,7 @@ const setTdModalVisible = ref<boolean>(false);
 const setTdConfigPayload = ref<KungfuApi.SetKfConfigPayload>({
   type: 'add',
   title: t('Td'),
-  config: {} as KungfuApi.KfExtConfig,
+  config: {} as KungfuApi.KfTdExtConfig,
 });
 
 const currentSelectedSourceId = ref<string>('');
@@ -112,6 +115,25 @@ const tdGroupNames = computed(() => {
 const addTdGroupConfigPayload = ref<KungfuApi.SetKfConfigPayload>({
   type: 'add',
   title: t('tdConfig.account_group'),
+  config: {} as KungfuApi.KfTdExtConfig,
+});
+
+const currentAccout: {
+  source: string;
+  transfer_type: FundTransTypeEnum;
+  config: KungfuApi.KfConfig | null;
+  avail: number;
+} = {
+  source: '',
+  transfer_type: FundTransTypeEnum.BetweenNodes,
+  config: null,
+  avail: 0,
+};
+const setFundTransModeModalVisible = ref<boolean>(false);
+const setFundTransConfigModalVisible = ref<boolean>(false);
+const setFundTransConfigPayload = ref<KungfuApi.SetKfConfigPayload>({
+  type: 'custom',
+  title: t('Td'),
   config: {} as KungfuApi.KfExtConfig,
 });
 
@@ -151,8 +173,6 @@ const tableDataResolved = computed(() => {
 });
 
 const { getAssetsByKfConfig, getAssetsByTdGroup } = useAssets();
-const { getAssetMarginsByKfConfig, getAssetMarginsByTdGroup } =
-  useAssetMargins();
 const { handleConfirmAddUpdateKfConfig, handleRemoveKfConfig } =
   useAddUpdateRemoveKfConfig();
 
@@ -171,16 +191,10 @@ const columns = computed(() => {
   const marginSorter = (dataIndex) => {
     return (a: KungfuApi.KfConfig, b: KungfuApi.KfConfig) => {
       return (
-        (+Number(
-          getAssetMarginsByKfConfig(a)[
-            dataIndex as keyof KungfuApi.AssetMargin
-          ],
-        ) || 0) -
-        (+Number(
-          getAssetMarginsByKfConfig(b)[
-            dataIndex as keyof KungfuApi.AssetMargin
-          ],
-        ) || 0)
+        (+Number(getAssetsByKfConfig(a)[dataIndex as keyof KungfuApi.Asset]) ||
+          0) -
+        (+Number(getAssetsByKfConfig(b)[dataIndex as keyof KungfuApi.Asset]) ||
+          0)
       );
     };
   };
@@ -195,7 +209,8 @@ const columns = computed(() => {
       },
       sorter,
       marginSorter,
-      isShowAssetMargin.value,
+      isShowMarginTrading.value,
+      isShowUnrealizedPnl.value,
     );
   }
 
@@ -203,8 +218,13 @@ const columns = computed(() => {
     currentGlobalKfLocation.value,
     sorter,
     marginSorter,
-    isShowAssetMargin.value,
+    isShowMarginTrading.value,
+    isShowUnrealizedPnl.value,
   );
+});
+
+const isShowUnrealizedPnl = computed(() => {
+  return !(globalSetting.value.performance?.bypassRefreshBook ?? false);
 });
 
 const getPrefixByLocation = (kfLocation: KungfuApi.KfLocation) =>
@@ -223,7 +243,7 @@ async function handleOpenSetTdModal(
   selectedSource: string,
   tdConfig?: KungfuApi.KfConfig,
 ) {
-  const extConfig: KungfuApi.KfExtConfig = (extConfigs.value['td'] || {})[
+  const extConfig: KungfuApi.KfTdExtConfig = (extConfigs.value['td'] || {})[
     selectedSource
   ];
 
@@ -289,6 +309,89 @@ function handleOpenAddTdGroupDialog(type: KungfuApi.ModalChangeType) {
   };
   addTdGroupConfigPayload.value.initValue = undefined;
   addTdGroupModalVisble.value = true;
+}
+
+function handleFundTransModeDialog(config: KungfuApi.KfConfig) {
+  if (getProcessStatusName(config) !== 'Ready') return;
+  currentAccout.source = config.group;
+  currentAccout.config = config;
+  currentAccout.avail = getAssetsByKfConfig(config).avail;
+  setFundTransModeModalVisible.value = true;
+}
+
+function handleOpenSetFundTransModal(type: FundTransTypeEnum) {
+  const extConfig: KungfuApi.KfTdExtConfig = (extConfigs.value['td'] || {})[
+    currentAccout.source
+  ];
+  if (!extConfig || !extConfig.fundTrans) {
+    error(
+      t('fundTrans.config_error', {
+        td: currentAccout.source,
+      }),
+    );
+    return;
+  }
+
+  const selectFundTransConfig = extConfig.fundTrans[type];
+  currentAccout.transfer_type = type;
+  setTdConfigPayload.value.initValue = undefined;
+  setFundTransConfigPayload.value.title = t('fundTrans.modal_title');
+  setFundTransConfigPayload.value.config = {
+    type: [],
+    name: t('fundTrans.modal_title'),
+    category: 'td',
+    key: currentAccout.source,
+    extPath: '',
+    settings: selectFundTransConfig.settings,
+  };
+
+  setFundTransConfigModalVisible.value = true;
+}
+
+function handleConfirmFundTrans(formState) {
+  const watcher = window.watcher as KungfuApi.Watcher;
+  const formStateResolved = {
+    ...formState,
+    key: getFundTransKey(currentAccout.transfer_type),
+    update_time: '',
+  };
+
+  const message: KungfuApi.TimeKeyValue = {
+    key: watcher.now().toString(),
+    update_time: watcher.now(),
+    value: JSON.stringify(formStateResolved),
+    tag_a: getFundTransKey(null),
+    tag_b: '',
+    tag_c: '',
+    source: 0,
+    dest: 0,
+    uid_key: '',
+  };
+  const fundTransResult = watcher.issueCustomData(
+    message,
+    currentAccout.config as KungfuApi.KfConfig,
+  );
+
+  if (
+    formState.source &&
+    formState.target &&
+    formState.source === formState.target
+  ) {
+    error('划入节点和划出节点不能一致，请重新选择！');
+    return;
+  }
+
+  if (fundTransResult) {
+    success();
+  } else {
+    error(t('fundTrans.tip_error'));
+  }
+}
+
+function dealDisabledColor(config: KungfuApi.KfConfig) {
+  return getProcessStatusName(config) === 'Ready'
+    ? 'rgba(255, 255, 255, 1)'
+    : 'rgba(255, 255, 255, 0.35)';
 }
 
 function handleConfirmAddUpdateTdGroup(
@@ -366,6 +469,26 @@ function handleRemoveTd(item: KungfuApi.KfConfig) {
       error(err.message || t('operation_failed'));
     });
 }
+
+function handleRequestPosition() {
+  const res = window.watcher.requestPosition(window.watcher);
+  if (res) {
+    success(t('operation_success'));
+  } else {
+    error(t('operation_failed'));
+  }
+}
+
+function isShowFundTransIcon(location: KungfuApi.KfConfig) {
+  if (!location) return false;
+  const extConfig: KungfuApi.KfTdExtConfig = (extConfigs.value['td'] || {})[
+    location.group
+  ];
+
+  if (!extConfig || JSON.stringify(extConfig.fundTrans) === '{}') return false;
+
+  return true;
+}
 </script>
 
 <template>
@@ -384,6 +507,13 @@ function handleRemoveTd(item: KungfuApi.KfConfig) {
             :checked="allProcessOnline"
             @click="handleSwitchAllProcessStatus"
           ></a-switch>
+        </KfDashboardItem>
+        <KfDashboardItem>
+          <a-button size="small" @click="handleRequestPosition">
+            <template #icon>
+              <ReloadOutlined style="font-size: 14px" />
+            </template>
+          </a-button>
         </KfDashboardItem>
         <KfDashboardItem>
           <a-button size="small" @click="handleOpenAddTdGroupDialog('add')">
@@ -491,7 +621,11 @@ function handleRemoveTd(item: KungfuApi.KfConfig) {
                             "
             ></a-switch>
           </template>
-          <template v-else-if="column.dataIndex === 'unrealizedPnl'">
+          <template
+            v-else-if="
+              column.dataIndex === 'unrealizedPnl' && isShowUnrealizedPnl
+            "
+          >
             <KfBlinkNum
               v-if="record.category === 'td'"
               mode="compare-zero"
@@ -519,7 +653,7 @@ function handleRemoveTd(item: KungfuApi.KfConfig) {
               :num="
                 dealAssetPrice(
                   getAssetsByKfConfig(record).margin ||
-                    getAssetMarginsByKfConfig(record).margin,
+                    getAssetsByKfConfig(record).margin,
                 )
               "
             ></KfBlinkNum>
@@ -528,7 +662,7 @@ function handleRemoveTd(item: KungfuApi.KfConfig) {
               :num="
                 dealAssetPrice(
                   getAssetsByTdGroup(record).margin ||
-                    getAssetMarginsByTdGroup(record).margin,
+                    getAssetsByTdGroup(record).margin,
                 )
               "
             ></KfBlinkNum>
@@ -545,50 +679,46 @@ function handleRemoveTd(item: KungfuApi.KfConfig) {
             ></KfBlinkNum>
           </template>
           <template
-            v-else-if="isShowAssetMargin && column.dataIndex === 'avail_margin'"
+            v-else-if="
+              isShowMarginTrading && column.dataIndex === 'avail_margin'
+            "
           >
             <KfBlinkNum
               v-if="record.category === 'td'"
               mode="compare-zero"
-              :num="
-                dealAssetPrice(getAssetMarginsByKfConfig(record).avail_margin)
-              "
+              :num="dealAssetPrice(getAssetsByKfConfig(record).avail_margin)"
             ></KfBlinkNum>
             <KfBlinkNum
               v-else-if="record.category === 'tdGroup'"
-              :num="
-                dealAssetPrice(getAssetMarginsByTdGroup(record).avail_margin)
-              "
+              :num="dealAssetPrice(getAssetsByTdGroup(record).avail_margin)"
             ></KfBlinkNum>
           </template>
           <template
-            v-else-if="isShowAssetMargin && column.dataIndex === 'cash_debt'"
+            v-else-if="isShowMarginTrading && column.dataIndex === 'cash_debt'"
           >
             <KfBlinkNum
               v-if="record.category === 'td'"
               mode="compare-zero"
-              :num="dealAssetPrice(getAssetMarginsByKfConfig(record).cash_debt)"
+              :num="dealAssetPrice(getAssetsByKfConfig(record).cash_debt)"
             ></KfBlinkNum>
             <KfBlinkNum
               v-else-if="record.category === 'tdGroup'"
-              :num="dealAssetPrice(getAssetMarginsByTdGroup(record).cash_debt)"
+              :num="dealAssetPrice(getAssetsByTdGroup(record).cash_debt)"
             ></KfBlinkNum>
           </template>
           <template
-            v-else-if="isShowAssetMargin && column.dataIndex === 'total_asset'"
+            v-else-if="
+              isShowMarginTrading && column.dataIndex === 'total_asset'
+            "
           >
             <KfBlinkNum
               v-if="record.category === 'td'"
               mode="compare-zero"
-              :num="
-                dealAssetPrice(getAssetMarginsByKfConfig(record).total_asset)
-              "
+              :num="dealAssetPrice(getAssetsByKfConfig(record).total_asset)"
             ></KfBlinkNum>
             <KfBlinkNum
-              v-else-if="isShowAssetMargin && record.category === 'tdGroup'"
-              :num="
-                dealAssetPrice(getAssetMarginsByTdGroup(record).total_asset)
-              "
+              v-else-if="isShowMarginTrading && record.category === 'tdGroup'"
+              :num="dealAssetPrice(getAssetsByTdGroup(record).total_asset)"
             ></KfBlinkNum>
           </template>
           <template v-else-if="column.dataIndex === 'actions'">
@@ -597,6 +727,16 @@ function handleRemoveTd(item: KungfuApi.KfConfig) {
                 style="font-size: 12px"
                 @click.stop="handleOpenJournalView(record)"
               ></BankOutlined>
+              <!-- TODO -->
+              <PayCircleOutlined
+                v-if="isShowFundTransIcon(record as KungfuApi.KfConfig)"
+                :style="{
+                  color: dealDisabledColor(record as KungfuApi.KfConfig),
+                }"
+                @click.stop="
+                  handleFundTransModeDialog(record as KungfuApi.KfConfig)
+                "
+              />
               <FileTextOutlined
                 style="font-size: 12px"
                 @click.stop="handleOpenLogview(record)"
@@ -636,6 +776,11 @@ function handleRemoveTd(item: KungfuApi.KfConfig) {
       extension-type="td"
       @confirm="handleOpenSetTdModal('add', $event)"
     ></KfSetExtensionModal>
+    <FundTransModal
+      v-if="setFundTransModeModalVisible"
+      v-model:visible="setFundTransModeModalVisible"
+      @confirm="handleOpenSetFundTransModal"
+    ></FundTransModal>
     <KfSetByConfigModal
       v-if="setTdModalVisible"
       v-model:visible="setTdModalVisible"
@@ -652,6 +797,12 @@ function handleRemoveTd(item: KungfuApi.KfConfig) {
       :payload="addTdGroupConfigPayload"
       :primary-key-avoid-repeat-compare-target="tdGroupNames"
       @confirm="({ formState }) => handleConfirmAddUpdateTdGroup(formState)"
+    ></KfSetByConfigModal>
+    <KfSetByConfigModal
+      v-if="setFundTransConfigModalVisible"
+      v-model:visible="setFundTransConfigModalVisible"
+      :payload="setFundTransConfigPayload"
+      @confirm="({ formState }) => handleConfirmFundTrans(formState)"
     ></KfSetByConfigModal>
     <SetTdGroupModal
       v-if="setTdGroupModalVisble"

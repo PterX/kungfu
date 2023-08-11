@@ -15,6 +15,8 @@ namespace kungfu::wingchun::book {
 // key = location_uid
 typedef std::unordered_map<uint32_t, Book_ptr> BookMap;
 
+typedef std::unordered_map<uint32_t, kungfu::state<longfist::types::Quote>> QuoteMap;
+
 typedef std::unordered_map<longfist::enums::InstrumentType, AccountingMethod_ptr> AccountingMethodMap;
 
 FORWARD_DECLARE_CLASS_PTR(Context)
@@ -22,14 +24,12 @@ class BookListener {
 public:
   virtual void on_position_sync_reset(const Book &old_book, const Book &new_book){};
   virtual void on_asset_sync_reset(const longfist::types::Asset &old_asset, const longfist::types::Asset &new_asset){};
-  virtual void on_asset_margin_sync_reset(const longfist::types::AssetMargin &old_asset_margin,
-                                          const longfist::types::AssetMargin &new_asset_margin){};
 };
 DECLARE_PTR(BookListener)
 
 class Bookkeeper {
 public:
-  explicit Bookkeeper(yijinjing::practice::apprentice &app, broker::Client &broker_client);
+  explicit Bookkeeper(yijinjing::practice::apprentice &app, broker::Client &broker_client, bool bypass_quote = false);
 
   virtual ~Bookkeeper() = default;
 
@@ -54,7 +54,9 @@ public:
 
   void update_book(const event_ptr &event, const longfist::types::InstrumentKey &instrument_key);
 
-  void update_book(const event_ptr &event, const longfist::types::Quote &quote);
+  void try_update_book(const event_ptr &event, const longfist::types::Quote &quote);
+
+  void update_book(int64_t trigger_time, const longfist::types::Quote &quote);
 
   void add_book_listener(const BookListener_ptr &book_listener);
 
@@ -64,13 +66,18 @@ public:
 
   longfist::enums::AccountingMethodType get_accounting_method_type() { return account_method_type_; }
 
+  InstrumentMap get_instruments() { return instruments_; }
+
+  std::mutex &get_update_book_mutex();
+
   template <typename TradingData, typename ApplyMethod = void (AccountingMethod::*)(Book_ptr, const TradingData &)>
   void update_book(const event_ptr &event, ApplyMethod method) {
     update_book(event->gen_time(), event->source(), event->dest(), event->data<TradingData>(), method);
   }
 
   template <typename TradingData, typename ApplyMethod = void (AccountingMethod::*)(Book_ptr, const TradingData &)>
-  void update_book(int64_t update_time, uint32_t source, uint32_t dest, const TradingData &data, ApplyMethod method) {
+  void update_book(int64_t update_time, uint32_t account_id, uint32_t dest, const TradingData &data,
+                   ApplyMethod method) {
     std::lock_guard<std::mutex> lock(update_book_mutex_);
 
     if (accounting_methods_.find(data.instrument_type) == accounting_methods_.end()) {
@@ -78,16 +85,18 @@ public:
       return;
     }
     AccountingMethod &accounting_method = *accounting_methods_.at(data.instrument_type);
-    auto apply_and_update = [&](uint32_t book_uid) {
+    auto apply_and_update = [&](uint32_t book_uid, bool is_td = false) {
       auto book = get_book(book_uid);
-      auto &position = book->get_position_for(data);
-      (accounting_method.*method)(book, data);
-      position.update_time = update_time;
+      book->add_source_id(account_id);
+      (accounting_method.*method)(account_id, dest, book, data);
+      auto apply = [&](auto &position) { position.update_time = update_time; };
+      auto direction = get_direction(data.instrument_type, data.side, data.offset);
+      book->apply_position(account_id, direction, data.exchange_id, data.instrument_id, apply);
       book->replace(data);
       book->update(update_time, account_method_type_);
     };
-    apply_and_update(source);
-    if (dest != yijinjing::data::location::PUBLIC) {
+    apply_and_update(account_id);
+    if (dest != yijinjing::data::location::PUBLIC and dest != yijinjing::data::location::SYNC) {
       apply_and_update(dest);
     }
   }
@@ -113,6 +122,8 @@ public:
 private:
   yijinjing::practice::apprentice &app_;
   broker::Client &broker_client_;
+  const bool bypass_quote_;
+  QuoteMap quotes_;
 
   const longfist::enums::AccountingMethodType account_method_type_;
   std::mutex update_book_mutex_;
@@ -124,16 +135,19 @@ private:
   std::vector<BookListener_ptr> book_listeners_ = {};
   BookMap books_replica_ = {}; // 暂存从location::SYNC传来的asset和position信息
   std::unordered_map<uint32_t, bool> books_replica_asset_guards_ = {}; // Asset::tag添加对应<location_uid,true>
-  std::unordered_map<uint32_t, bool> books_replica_asset_margin_guards_ = {}; // AssetMargin::tag-><location_uid,true>
   std::unordered_map<uint32_t, bool> books_replica_position_guard_ = {}; // PositionEnd::tag添加对应<location_uid,true>
 
   Book_ptr make_book(uint32_t location_uid);
 
+  void batch_update_book_by_quote();
+
   void update_instrument(const longfist::types::Instrument &instrument);
 
-  void try_update_asset(const longfist::types::Asset &asset);
+  void update_commission(const event_ptr &event, const longfist::types::Commission &commission);
 
-  void try_update_asset_margin(const longfist::types::AssetMargin &asset_margin);
+  void update_instrument_factor(const longfist::types::InstrumentFactor &instrument_factor);
+
+  void try_update_asset(const longfist::types::Asset &asset);
 
   void try_update_position(const longfist::types::Position &position);
 
@@ -142,13 +156,13 @@ private:
 
   void try_update_asset_replica(const longfist::types::Asset &asset);
 
-  void try_update_assetmargin_replica(const longfist::types::AssetMargin &asset_margin);
-
   void try_update_position_replica(const longfist::types::Position &position);
 
   void update_position_guard(const longfist::types::PositionEnd &position_end);
 
   Book_ptr get_book_replica(uint32_t location_uid);
+
+  void on_output_key(const event_ptr &event);
 };
 } // namespace kungfu::wingchun::book
 #endif // WINGCHUN_BOOKKEEPER_H

@@ -69,9 +69,13 @@ onMounted(() => {
   if (selectedExtension.value === '') {
     if (availExtensionList.value.length) {
       const packageJSON = readRootPackageJsonSync();
-      const extension = packageJSON.appConfig?.defaultExtension?.Td;
+      let extension = '';
+      if (packageJSON.appConfig?.defaultExtension) {
+        extension =
+          packageJSON.appConfig?.defaultExtension[props.extensionType];
+      }
       for (let i = 0; i < availExtensionList.value.length; i++) {
-        if (availExtensionList.value[i].name === extension) {
+        if (availExtensionList.value[i].key === extension) {
           selectedExtension.value = availExtensionList.value[i].key;
           return;
         }

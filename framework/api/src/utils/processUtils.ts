@@ -23,18 +23,20 @@ import {
   buildProcessLogPath,
   EXTENSION_DIRS,
   KFC_DIR,
+  KF_CONFIG_DIR,
   KF_HOME,
   KF_RUNTIME_DIR,
+  buildRuntimeChildDirByType,
 } from '../config/pathConfig';
 import { getKfGlobalSettingsValue } from '../config/globalSettings';
 import { Observable } from 'rxjs';
+import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { Pm2StartOptions } from '../typings/global';
 import { KfHookKeeper } from '../hooks';
 const { t } = VueI18n.global;
 
 process.env.PM2_HOME = path.resolve(os.homedir(), '.pm2');
-const numCPUs = os.cpus() ? os.cpus().length : 1;
 const isWin = os.platform() === 'win32';
 const isLinux = os.platform() === 'linux';
 const locale = getUserLocale().replace(/-/g, '_');
@@ -191,6 +193,10 @@ export interface Pm2ProcessStatusDetail {
   cwd: Pm2Env['pm_cwd'];
   config_settings: string;
   args: string[];
+}
+
+export interface Pm2ProcessStatusDetailResolved extends Pm2ProcessStatusDetail {
+  name_resolved?: string;
 }
 
 export type Pm2ProcessStatusDetailData = Record<string, Pm2ProcessStatusDetail>;
@@ -435,6 +441,7 @@ export const startProcess = async (
       CLI_DIR: process.env.CLI_DIR || '',
       KF_HOME: dealSpaceInPath(KF_HOME),
       KF_RUNTIME_DIR: dealSpaceInPath(KF_RUNTIME_DIR),
+      KF_CONFIG_DIR: dealSpaceInPath(KF_CONFIG_DIR),
       LANG: `${locale}.UTF-8`,
       PYTHONUTF8: '1',
       PYTHONIOENCODING: 'utf8',
@@ -448,6 +455,7 @@ export const startProcess = async (
       UI_EXT_TYPE: '',
       BY_PASS_ACCOUNTING: '',
       BY_PASS_TRADINGDATA: '',
+      BY_PASS_REFRESHBOOK: '',
       BY_PASS_RESTORE: '',
     },
   };
@@ -655,7 +663,7 @@ function buildProcessStatus(pList: ProcessDescription[]): Pm2ProcessStatusData {
 function getRocketParams(args: string, ifRocket: boolean) {
   let rocket = ifRocket ? '-x' : '';
 
-  if (numCPUs <= 4) {
+  if (!booleanProcessEnv(process.env.IF_CPUS_NUM_SAFE)) {
     rocket = '';
   }
 
@@ -747,7 +755,14 @@ export const startLedger = async (force = false): Promise<void> => {
 
   try {
     await preStartProcess(processName, force);
-    const args = buildArgs('run -c system -g service -n ledger');
+    const globalSetting = getKfGlobalSettingsValue();
+    const bypassRefreshBook =
+      process.env.BY_PASS_REFRESHBOOK ??
+      globalSetting?.performance?.bypassRefreshBook ??
+      false;
+    const args = buildArgs(
+      `run -c system -g service -n ledger -a '{"bypass_refresh_book": ${bypassRefreshBook}}'`,
+    );
     await startProcess({
       name: processName,
       args,
@@ -793,7 +808,12 @@ export const startMd = async (
       .join(path.delimiter)}" run -c md -g "${sourceId}" -n "${sourceId}"`,
   );
   const cwd = dealSpaceInPath(
-    path.join(KF_RUNTIME_DIR, 'md', sourceId, sourceId),
+    path.join(
+      buildRuntimeChildDirByType('resources'),
+      'md',
+      sourceId,
+      sourceId,
+    ),
   );
   await fse.ensureDir(cwd);
   const options =
@@ -829,7 +849,9 @@ export const startTd = async (
       .map((dir) => dealSpaceInPath(path.dirname(dir)))
       .join(path.delimiter)}" run -c td -g "${source}" -n "${id}"`,
   );
-  const cwd = dealSpaceInPath(path.join(KF_RUNTIME_DIR, 'td', source, id));
+  const cwd = dealSpaceInPath(
+    path.join(buildRuntimeChildDirByType('resources'), 'td', source, id),
+  );
   await fse.ensureDir(cwd);
   const fullProcessId = `td_${accountId}`;
   const options =
@@ -893,7 +915,7 @@ export const startOperatorByExt = async (
       .join(path.delimiter)}" run -c operator -g "${group}" -n "${name}"`,
   );
   const cwd = dealSpaceInPath(
-    path.join(KF_RUNTIME_DIR, 'operator', group, name),
+    path.join(buildRuntimeChildDirByType('resources'), 'operator', group, name),
   );
   await fse.ensureDir(cwd);
   const fullProcessId = `operator_${group}_${name}`;
@@ -1018,20 +1040,54 @@ export const startDzxy = () => {
   });
 };
 
-export const startExtDaemon = (name: string, cwd: string, script: string) => {
-  return startProcess({
-    name,
-    args: '',
-    cwd,
-    script,
-    interpreter: path.join(KFC_DIR, kfcName),
-    force: true,
-    watch: process.env.NODE_ENV === 'production' ? false : true,
-    env: {
-      KFC_AS_VARIANT: 'node',
-    },
-    kill_timeout: 500,
-  }).catch((err) => {
+export const startExtService = async (
+  location: KungfuApi.KfExtServiceLocation,
+) => {
+  const { name, cwd, script } = location;
+  const processId = getProcessIdByKfLocation(location);
+
+  const getExtServicePm2Options = async (): Promise<Pm2StartOptions> => {
+    if (script.endsWith('.js')) {
+      return {
+        name: processId,
+        args: '',
+        cwd,
+        script,
+        interpreter: path.join(KFC_DIR, kfcName),
+        force: true,
+        watch: process.env.NODE_ENV === 'production' ? false : true,
+        env: {
+          KFC_AS_VARIANT: 'node',
+        },
+        kill_timeout: 500,
+      };
+    } else {
+      const extDirs = await flattenExtensionModuleDirs(EXTENSION_DIRS);
+      const args = buildArgs(
+        `-X "${
+          cwd ||
+          extDirs
+            .map((dir) => dealSpaceInPath(path.dirname(dir)))
+            .join(path.delimiter)
+        }" run -c system -g service -n "${name}"`,
+      );
+      return {
+        name: processId,
+        cwd,
+        script: `${dealSpaceInPath(path.join(KFC_DIR, kfcName))}`,
+        args,
+        force: true,
+      };
+    }
+  };
+
+  let options = await getExtServicePm2Options();
+  options = await globalThis.HookKeeper.getHooks().resolveStartOptions.trigger(
+    location,
+    options,
+  );
+
+  return startProcess(options).catch((err) => {
     kfLogger.error(err);
   });
 };

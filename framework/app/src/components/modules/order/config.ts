@@ -49,8 +49,9 @@ export const getColumns = (
       {
         type: 'number',
         name: t('orderConfig.limit_price'),
-        dataIndex: 'limit_price',
+        dataIndex: 'limit_price_resolved',
         width: 120,
+        align: 'right',
         sorter: buildSorter('limit_price'),
       },
       {
@@ -65,8 +66,9 @@ export const getColumns = (
       {
         type: 'number',
         name: t('orderConfig.avg_price'),
-        dataIndex: 'avg_price',
+        dataIndex: 'avg_price_resolved',
         width: 120,
+        align: 'right',
         sorter: buildSorter('avg_price'),
       },
       {
@@ -80,6 +82,7 @@ export const getColumns = (
         name: t('orderConfig.latency_system'),
         dataIndex: 'latency_system',
         width: 90,
+        align: 'right',
         sorter: buildSorter('latency_system'),
       },
       {
@@ -87,6 +90,7 @@ export const getColumns = (
         name: t('orderConfig.latency_network'),
         dataIndex: 'latency_network',
         width: 90,
+        align: 'right',
         sorter: buildSorter('latency_network'),
       },
       {
@@ -128,12 +132,12 @@ export const statisColums: KfTradingDataTableHeaderConfig[] = [
   },
   {
     name: '',
-    dataIndex: 'side',
+    dataIndex: 'sideName',
     width: 40,
   },
   {
     name: '',
-    dataIndex: 'offset',
+    dataIndex: 'offsetName',
     width: 40,
   },
   {

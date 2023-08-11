@@ -164,19 +164,18 @@ inline void from_xtp(const XTP_ORDER_STATUS_TYPE &xtp_order_status, OrderStatus 
   }
 }
 
-inline void from_xtp(XTPQSI *ticker_info, Instrument &quote) {
-  strcpy(quote.instrument_id, ticker_info->ticker);
+inline void from_xtp(XTPQSI *ticker_info, Instrument &instrument) {
+  strcpy(instrument.instrument_id, ticker_info->ticker);
   if (ticker_info->exchange_id == 1) {
-    quote.exchange_id = EXCHANGE_SSE;
+    instrument.exchange_id = EXCHANGE_SSE;
   } else if (ticker_info->exchange_id == 2) {
-    quote.exchange_id = EXCHANGE_SZE;
+    instrument.exchange_id = EXCHANGE_SZE;
   } else {
-    quote.exchange_id = "false_id";
+    instrument.exchange_id = "unknown";
   }
-  memcpy(quote.product_id, ticker_info->ticker_name, strlen(ticker_info->ticker_name));
-  quote.instrument_type = get_instrument_type(quote.exchange_id, quote.instrument_id);
-  quote.is_trading = true;
-  quote.price_tick = ticker_info->price_tick;
+  memcpy(instrument.product_id, ticker_info->ticker_name, strlen(ticker_info->ticker_name));
+  instrument.instrument_type = get_instrument_type(instrument.exchange_id, instrument.instrument_id);
+  instrument.price_tick = ticker_info->price_tick;
 }
 
 inline void from_xtp(const XTP_SIDE_TYPE &xtp_side, Side &side) {
@@ -245,7 +244,7 @@ inline void from_xtp(const XTPOrderInfo &ori, Order &des) {
   from_xtp(ori.market, des.exchange_id);
   from_xtp(ori.price_type, ori.market, des.price_type);
   des.volume = ori.quantity;
-  des.volume_left = ori.qty_left;
+  des.volume_left = ori.quantity - ori.qty_traded;
   des.limit_price = ori.price;
   from_xtp(ori.order_status, des.status);
   from_xtp(ori.side, des.side);
@@ -257,9 +256,11 @@ inline void from_xtp(const XTPOrderInfo &ori, Order &des) {
   if (ori.update_time > 0) {
     des.update_time = nsec_from_xtp_timestamp(ori.update_time);
   }
+  std::string str_external_order_id = std::to_string(ori.order_xtp_id);
+  strncpy(des.external_order_id, str_external_order_id.c_str(), str_external_order_id.length());
 }
 
-inline void from_xtp(const XTPQueryOrderRsp &ori, HistoryOrder &des) {
+inline void from_xtp(const XTPOrderInfo &ori, HistoryOrder &des) {
   strcpy(des.instrument_id, ori.ticker);
   from_xtp(ori.market, des.exchange_id);
   from_xtp(ori.price_type, ori.market, des.price_type);
@@ -276,6 +277,7 @@ inline void from_xtp(const XTPQueryOrderRsp &ori, HistoryOrder &des) {
   if (ori.update_time > 0) {
     des.update_time = nsec_from_xtp_timestamp(ori.update_time);
   }
+  strncpy(des.external_order_id, std::to_string(ori.order_xtp_id).c_str(), EXTERNAL_ID_LEN);
 }
 
 inline void from_xtp(const XTPTradeReport &ori, Trade &des) {
@@ -283,14 +285,13 @@ inline void from_xtp(const XTPTradeReport &ori, Trade &des) {
   des.volume = ori.quantity;
   des.price = ori.price;
   from_xtp(ori.market, des.exchange_id);
+  des.instrument_type = get_instrument_type(des.exchange_id, des.instrument_id);
   from_xtp(ori.side, des.side);
-  //  des.offset = Offset::Open;
   set_offset(des);
   if (ori.business_type == XTP_BUSINESS_TYPE_CASH) {
     des.instrument_type = InstrumentType::Stock;
   }
-  des.trade_time = nsec_from_xtp_timestamp(ori.trade_time);
-  //  des.external_order_id = ori.order_xtp_id;
+  des.trade_time = yijinjing::time::now_in_nano();
   strncpy(des.external_order_id, std::to_string(ori.order_xtp_id).c_str(), EXTERNAL_ID_LEN);
   strncpy(des.external_trade_id, ori.exec_id, XTP_EXEC_ID_LEN);
 }
@@ -307,6 +308,8 @@ inline void from_xtp(const XTPQueryTradeRsp &ori, HistoryTrade &des) {
     des.instrument_type = InstrumentType::Stock;
   }
   des.trade_time = nsec_from_xtp_timestamp(ori.trade_time);
+  strncpy(des.external_order_id, std::to_string(ori.order_xtp_id).c_str(), EXTERNAL_ID_LEN);
+  strncpy(des.external_trade_id, ori.exec_id, XTP_EXEC_ID_LEN);
 }
 
 inline void from_xtp(const XTPQueryStkPositionRsp &ori, Position &des) {

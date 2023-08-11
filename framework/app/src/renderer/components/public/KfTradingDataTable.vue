@@ -11,7 +11,9 @@ import {
   onMounted,
   ref,
   toRaw,
+  nextTick,
 } from 'vue';
+import { throttle } from 'lodash';
 
 type TableDataItem =
   | KungfuApi.TradingDataItem
@@ -60,9 +62,13 @@ defineEmits<{
   ): void;
   (e: 'rightClickRow', data: { event: MouseEvent; row: TableDataItem }): void;
   (e: 'update:selectedKey', data: number | string): void;
+  (e: 'onScrollToTop'): void;
+  (e: 'onScrollToBottom'): void;
+  (e: 'resetScrollTop'): void;
 }>();
 
 const app = getCurrentInstance();
+const scroller = ref();
 const simpleImage = Empty.PRESENTED_IMAGE_SIMPLE;
 const kfScrollerTableBodyRef = ref();
 const kfScrollerTableWidth = ref(0);
@@ -132,6 +138,15 @@ watch(
 );
 
 onMounted(() => {
+  nextTick(() => {
+    app &&
+      app.emit('resetScrollTop', () => {
+        if (scroller.value) {
+          scroller.value?.scrollToItem(0);
+        }
+      });
+  });
+
   if (kfScrollerTableBodyRef.value) {
     kfScrollerTableWidth.value = kfScrollerTableBodyRef.value.clientWidth;
   }
@@ -159,6 +174,24 @@ function getHeaderWidth(column: KfTradingDataTableHeaderConfig): string {
     return columnWidth + 'px';
   } else {
     return headerWidthByCalc.toString();
+  }
+}
+
+const emitOnScrollToTop = throttle(() => app && app.emit('onScrollToTop'), 500);
+
+const emitOnScrollToBottom = throttle(
+  () => app && app.emit('onScrollToBottom'),
+  500,
+);
+
+function handleScroll(e: Event): void {
+  const target = e.target as HTMLElement;
+  if (target.scrollTop === 0) {
+    emitOnScrollToTop();
+  }
+
+  if (target.scrollHeight - target.scrollTop === target.clientHeight) {
+    emitOnScrollToBottom();
   }
 }
 
@@ -346,10 +379,12 @@ defineExpose({
       <RecycleScroller
         v-if="dataSourceResolved && dataSourceResolved.length"
         class="kf-table-scroller"
+        ref="scroller"
         :items="dataSourceResolved"
         :item-size="Number(itemSize)"
         :key-field="keyField"
         :buffer="100"
+        @scroll="handleScroll($event)"
       >
         <template #default="{ item }: { item: TableDataItem }">
           <ul
@@ -382,6 +417,10 @@ defineExpose({
                 'max-width': getHeaderWidth(column),
                 height: tableCellHeight,
                 lineHeight: tableCellHeight,
+                'text-overflow': column.overflow ? 'ellipsis' : 'clip',
+                'white-space': column.wrap ? 'normal' : 'nowrap',
+                overflow: 'hidden',
+                'text-align': column.align || 'left',
               }"
               :title="item[column.dataIndex]"
               @click.stop="handleClickCell($event, item, column)"

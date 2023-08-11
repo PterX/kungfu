@@ -24,9 +24,13 @@ public:
   typedef yijinjing::data::location_ptr location_ptr;
   typedef longfist::enums::BrokerState BrokerState;
 
-  BrokerVendor(location_ptr location, bool low_latency);
+  BrokerVendor(location_ptr location, bool low_latency, const std::string &arguments);
 
   void on_exit() override;
+
+  std::string get_arguments() const { return arguments_; }
+
+  void set_arguments(const std::string &arguments) { arguments_ = arguments; }
 
 protected:
   virtual BrokerService_ptr get_service() = 0;
@@ -34,6 +38,8 @@ protected:
   void on_start() override;
 
 private:
+  std::string arguments_{};
+
   void notify_broker_state();
 };
 
@@ -55,9 +61,9 @@ public:
 
   [[nodiscard]] std::string get_runtime_folder();
 
-  [[nodiscard]] const std::string get_config() const;
+  [[nodiscard]] std::string get_config() const;
 
-  [[maybe_unused]] [[nodiscard]] const std::string &get_risk_setting() const;
+  [[nodiscard]] std::string get_risk_setting() const;
 
   [[nodiscard]] const yijinjing::data::location_ptr &get_home() const;
 
@@ -87,9 +93,13 @@ public:
 
   [[maybe_unused]] void request_deregister() { vendor_.request_deregister(); }
 
-  [[maybe_unused]] [[nodiscard]] BrokerVendor &get_vendor() const { return vendor_; }
+  [[nodiscard]] BrokerVendor &get_vendor() const { return vendor_; }
 
-  [[maybe_unused]] uint32_t request_band(const std::string &band_name) { return vendor_.request_band(band_name); }
+  [[maybe_unused]] uint32_t request_band(const std::string &band_name, uint32_t page_size = 0) {
+    return vendor_.request_band(band_name, page_size);
+  }
+
+  virtual void on_arguments(const std::string &argument) {}
 
 protected:
   volatile BrokerState state_;

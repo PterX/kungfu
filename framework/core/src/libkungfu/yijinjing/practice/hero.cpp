@@ -11,6 +11,7 @@
 #include <kungfu/yijinjing/practice/hero.h>
 #include <kungfu/yijinjing/time.h>
 #include <kungfu/yijinjing/util/os.h>
+#include <kungfu/yijinjing/util/util.h>
 
 using namespace kungfu::rx;
 using namespace kungfu::longfist::enums;
@@ -63,6 +64,8 @@ void hero::setup() {
   live_ = true;
 }
 
+void hero::pre_setup() { return; }
+
 void hero::step() {
   continual_ = false;
   events_.connect(cs_);
@@ -71,6 +74,7 @@ void hero::step() {
 void hero::run() {
   SPDLOG_INFO("[{:08x}] {} running", get_home_uid(), get_home_uname());
   SPDLOG_TRACE("from {} until {}", time::strftime(begin_time_), time::strftime(end_time_));
+  pre_setup();
   setup();
   continual_ = true;
   events_.connect(cs_);
@@ -130,6 +134,10 @@ bool hero::has_location(uint32_t uid) const { return locations_.find(uid) != loc
 location_ptr hero::get_location(uint32_t uid) const {
   if (not has_location(uid)) {
     SPDLOG_ERROR("no location {} in locations_", uid);
+  }
+
+  if (location::PUBLIC == uid or location::SYNC == uid) {
+    return nullptr;
   }
 
   assert(has_location(uid));
@@ -242,10 +250,7 @@ void hero::remove_location(int64_t trigger_time, uint32_t location_uid) { locati
 
 void hero::register_location(int64_t, const Register &register_data) {
   uint32_t location_uid = register_data.location_uid;
-  auto result = registry_.try_emplace(location_uid, register_data);
-  if (result.second) {
-    SPDLOG_TRACE("location [{:08x}] {} up", location_uid, get_location_uname(location_uid));
-  }
+  registry_.insert_or_assign(location_uid, register_data);
 }
 
 void hero::deregister_location(int64_t, const uint32_t location_uid) {
@@ -262,6 +267,10 @@ void hero::register_channel(int64_t, const Channel &channel) {
     auto source_uname = get_location_uname(channel.source_id);
     auto dest_uname = get_location_uname(channel.dest_id);
     SPDLOG_TRACE("channel [{:08x}] {} -> {} up", channel_uid, source_uname, dest_uname);
+  }
+
+  if (channel.source_id == get_home_uid() and not has_writer(channel.dest_id)) {
+    writers_.insert_or_assign(channel.dest_id, get_io_device()->open_writer(channel.dest_id));
   }
 }
 
@@ -288,6 +297,10 @@ void hero::register_band(int64_t, const Band &band) {
     auto source_uname = get_location_uname(band.source_id);
     auto dest_uname = get_location_uname(band.dest_id);
     SPDLOG_TRACE("band [{:08x}] {} -> {} up", band_uid, source_uname, dest_uname);
+  }
+
+  if (band.source_id == get_home_uid() and not has_writer(band.dest_id)) {
+    writers_.insert_or_assign(band.dest_id, get_io_device()->open_writer(band.dest_id));
   }
 }
 
@@ -330,10 +343,11 @@ void hero::require_write_to(int64_t trigger_time, uint32_t source_id, uint32_t d
 }
 
 void hero::require_write_to_band(int64_t trigger_time, uint32_t source_id,
-                                 const yijinjing::data::location_ptr &location) const {
+                                 const yijinjing::data::location_ptr &location, uint32_t page_size) const {
   auto writer = get_writer(source_id);
   RequestWriteToBand msg = {};
   location->to<RequestWriteToBand>(msg);
+  msg.page_size = page_size;
   writer->write(trigger_time, msg);
 }
 
@@ -353,22 +367,26 @@ void hero::produce(const rx::subscriber<event_ptr> &sb) {
 }
 
 void hero::deal_notice(bool bypass, bool notify, const rx::subscriber<event_ptr> &sb) {
-  if (not bypass and io_device_->get_home()->mode == mode::LIVE and io_device_->get_observer()->wait()) {
-    const std::string &notice = io_device_->get_observer()->get_notice();
-    now_ = time::now_in_nano();
-    if (notice.length() > 2) {
-      sb.on_next(std::make_shared<nanomsg_json>(notice));
-    } else if (notify) {
-      on_notify();
-    }
+  if (bypass or io_device_->get_home()->mode != mode::LIVE) {
+    return;
+  }
+
+  auto rc = notify ? io_device_->get_observer()->wait() : io_device_->get_observer()->nonblock_wait();
+  if (not rc)
+    return;
+
+  const std::string &notice = io_device_->get_observer()->get_notice();
+  now_ = time::now_in_nano();
+  if (notice.length() > 2) {
+    sb.on_next(std::make_shared<nanomsg_json>(notice));
+  } else if (notify) {
+    on_notify();
   }
 }
 
 bool hero::drain(const rx::subscriber<event_ptr> &sb) {
   deal_notice(false, true, sb);
-  bool is_lazy = io_device_->is_lazy();
-  bool is_low_latency = io_device_->is_low_latency();
-  bool bypass = is_lazy or !is_low_latency;
+  bool bypass = io_device_->is_lazy();
   while (live_ and reader_->data_available()) {
     deal_notice(bypass, false, sb);
     if (reader_->current_frame()->gen_time() <= end_time_) {
@@ -401,4 +419,5 @@ void hero::delegate_produce(hero *instance, const rx::subscriber<event_ptr> &sub
   instance->produce(subscriber);
 #endif
 }
+
 } // namespace kungfu::yijinjing::practice

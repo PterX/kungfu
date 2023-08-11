@@ -52,7 +52,7 @@ const setStrategyModalVisible = ref<boolean>(false);
 const setStrategyConfigPayload = ref<KungfuApi.SetKfConfigPayload>({
   type: 'add',
   title: t('strategyConfig.strategy'),
-  config: {} as KungfuApi.KfExtConfig,
+  config: {} as KungfuApi.KfStrategyExtConfig,
 });
 
 const { strategy } = toRefs(useAllKfConfigData());
@@ -73,6 +73,14 @@ const { searchKeyword, tableData } = useTableSearchKeyword<KungfuApi.KfConfig>(
   strategy as Ref<KungfuApi.KfConfig[]>,
   ['name'],
 );
+
+const tableDataResolved = computed(() => {
+  return [...tableData.value].sort((a, b) => {
+    const aAddTime = getConfigValue(a).add_time || 0;
+    const bAddTime = getConfigValue(b).add_time || 0;
+    return bAddTime - aAddTime;
+  });
+});
 const { getAssetsByKfConfig } = useAssets();
 
 const { handleConfirmAddUpdateKfConfig, handleRemoveKfConfig } =
@@ -160,7 +168,7 @@ function handleOpenCodeViewResolved(record: KungfuApi.KfConfig) {
       <a-table
         class="kf-ant-table"
         :columns="columns"
-        :data-source="tableData"
+        :data-source="tableDataResolved"
         size="small"
         :pagination="false"
         :scroll="{ y: dashboardBodyHeight - 4 }"

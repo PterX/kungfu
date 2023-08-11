@@ -1,5 +1,4 @@
 import fse from 'fs-extra';
-import os from 'os';
 import {
   OrderInputKeyEnum,
   SpaceSizeSettingEnum,
@@ -17,8 +16,10 @@ import {
 } from '@kungfu-trader/kungfu-js-api/language';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
+import { getDefaultHomePath } from './homePathConfig';
+import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 const { t } = VueI18n.global;
-const numCPUs = os.cpus() ? os.cpus().length : 1;
+const ifCpusNumSafe = booleanProcessEnv(process.env.IF_CPUS_NUM_SAFE);
 
 export interface KfSystemConfig {
   key: string;
@@ -32,11 +33,20 @@ const __python_version_resolved = __python_version
 
 const packageJson = readRootPackageJsonSync();
 
+const defaultHomePath = getDefaultHomePath();
+
 export const getKfGlobalSettings = (): KfSystemConfig[] => [
   {
     key: 'system',
     name: t('globalSettingConfig.system'),
     config: [
+      {
+        key: 'homePath',
+        name: t('globalSettingConfig.home_path'),
+        tip: t('globalSettingConfig.home_path_desc'),
+        default: defaultHomePath,
+        type: 'directory',
+      },
       {
         key: 'logLevel',
         name: t('globalSettingConfig.log_level'),
@@ -85,14 +95,14 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
         name: t('globalSettingConfig.rocket_model'),
         tip: t('globalSettingConfig.rocket_model_desc'),
         default: false,
-        disabled: numCPUs <= 4,
+        disabled: !ifCpusNumSafe,
         type: 'bool',
       },
       {
         key: 'bypassAccounting',
         name: t('globalSettingConfig.bypass_accounting'),
         tip: t('globalSettingConfig.bypass_accounting_desc'),
-        default: false,
+        default: !ifCpusNumSafe,
         type: 'bool',
       },
       {
@@ -100,6 +110,13 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
         name: t('globalSettingConfig.bypass_trading_data'),
         tip: t('globalSettingConfig.bypass_trading_data_desc'),
         default: false,
+        type: 'bool',
+      },
+      {
+        key: 'bypassRefreshBook',
+        name: t('globalSettingConfig.bypass_subscribe_position'),
+        tip: t('globalSettingConfig.bypass_subscribe_position_desc'),
+        default: !ifCpusNumSafe,
         type: 'bool',
       },
     ],
@@ -203,11 +220,39 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
         ],
       },
       {
-        key: 'assetMargin',
-        name: t('globalSettingConfig.asset_margin'),
-        tip: t('globalSettingConfig.show_asset_margin'),
+        key: 'marginTrading',
+        name: t('globalSettingConfig.margin_trading'),
+        tip: t('globalSettingConfig.show_margin_trading'),
         default: false,
         type: 'bool',
+      },
+      {
+        key: 'posTableColumns',
+        name: t('globalSettingConfig.pos_table_columns'),
+        type: 'checkboxGroup',
+        options: [
+          {
+            value: 'static_yesterday_volume',
+            label: t('posGlobalConfig.static_yesterday_volume_setting'),
+          },
+          {
+            value: 'yesterday_volume',
+            label: t('posGlobalConfig.yesterday_volume_setting'),
+          },
+          {
+            value: 'open_volume',
+            label: t('posGlobalConfig.open_volume'),
+          },
+          {
+            value: 'close_volume',
+            label: t('posGlobalConfig.close_volume'),
+          },
+          {
+            value: 'today_volume',
+            label: t('posGlobalConfig.today_volume'),
+          },
+        ],
+        default: ['yesterday_volume', 'today_volume'],
       },
     ],
   },

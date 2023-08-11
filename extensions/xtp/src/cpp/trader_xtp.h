@@ -12,6 +12,26 @@ namespace kungfu::wingchun::xtp {
 using namespace kungfu::longfist;
 using namespace kungfu::longfist::types;
 
+struct TDConfiguration {
+  int client_id;
+  std::string account_id;
+  std::string password;
+  std::string software_key;
+  std::string td_ip;
+  int td_port;
+  bool sync_external_order;
+};
+
+inline void from_json(const nlohmann::json &j, TDConfiguration &c) {
+  j.at("client_id").get_to(c.client_id);
+  j.at("account_id").get_to(c.account_id);
+  j.at("password").get_to(c.password);
+  j.at("software_key").get_to(c.software_key);
+  j.at("td_ip").get_to(c.td_ip);
+  j.at("td_port").get_to(c.td_port);
+  c.sync_external_order = j.value<bool>("sync_external_order", false);
+}
+
 class TraderXTP : public XTP::API::TraderSpi, public broker::Trader {
 public:
   explicit TraderXTP(broker::BrokerVendor &vendor);
@@ -31,6 +51,8 @@ public:
   bool cancel_order(const event_ptr &event) override;
 
   bool req_position() override;
+
+  bool on_custom_event(const event_ptr &event) override;
 
   bool req_account() override;
 
@@ -200,17 +222,50 @@ public:
                            uint64_t session_id) override{};
 
 private:
+  TDConfiguration config_{};
   XTP::API::TraderApi *api_{};
-  uint64_t session_id_;
-  int request_id_;
-  std::unordered_map<uint64_t, uint64_t> map_kf_to_xtp_order_id_;
-  std::unordered_map<uint64_t, uint64_t> map_xtp_to_kf_order_id_;
-  std::unordered_map<uint64_t, uint64_t> map_request_location_;
-  std::unordered_map<uint64_t, std::set<std::string>> map_xtp_order_id_to_xtp_trader_ids_;
+  uint64_t session_id_{};
+  int request_id_{};
+  int get_request_id() { return ++request_id_; }
+  std::string trading_day_{};
+
+  std::unordered_map<uint64_t, uint64_t> map_kf_to_xtp_order_id_{};
+  std::unordered_map<uint64_t, uint64_t> map_xtp_to_kf_order_id_{};
+  std::unordered_map<uint64_t, uint64_t> map_request_location_{};
+  std::unordered_map<uint64_t, std::unordered_set<std::string>> map_xtp_order_id_to_xtp_trader_ids_{};
+  std::unordered_map<uint64_t, std::vector<XTPTradeReport>> map_xtp_order_id_to_XTPTradeReports_{};
+  std::unordered_map<uint64_t, int64_t> map_xtp_order_id_to_traded_volume_{};
+  std::unordered_map<uint64_t, std::queue<uint64_t>> map_xtp_order_id_to_action_ids_{};
 
   yijinjing::journal::writer_ptr get_history_writer(uint64_t request_id);
 
-  bool req_order_trade();
+  bool custom_OnCancelOrderError(const event_ptr &event);
+  bool custom_OnOrderEvent(const event_ptr &event);
+  bool custom_OnTradeEvent(const event_ptr &event);
+  bool custom_OnQueryOrder(const event_ptr &event);
+  bool custom_OnQueryTrade(const event_ptr &event);
+
+  bool custom_OnCancelOrderError(const XTPOrderCancelInfo &cancel_info, const XTPRI &error_info, uint64_t session_id);
+  bool custom_OnOrderEvent(const XTPOrderInfo &order_info, const XTPRI &error_info, uint64_t session_id);
+  bool custom_OnTradeEvent(const XTPTradeReport &trade_info, uint64_t session_id);
+  bool custom_OnQueryOrder(const XTPOrderInfo &order_info, const XTPRI &error_info, int request_id, bool is_last,
+                           uint64_t session_id);
+  bool custom_OnQueryTrade(const XTPTradeReport &trade_info, const XTPRI &error_info, int request_id, bool is_last,
+                           uint64_t session_id);
+  void try_deal_XTPTradeReport(uint64_t xtp_order_id);
+  bool generate_external_order(const XTPOrderInfo &order_info);
+
+  void add_XTPTradeReport(const XTPTradeReport &trade_info);
+  bool has_dealt_trade(uint64_t xtp_order_id, const std::string &exec_id);
+  void add_dealt_trade(uint64_t xtp_order_id, const std::string &exec_id);
+
+  void add_traded_volume(uint64_t order_xtp_id, int64_t trade_volume);
+  int64_t get_traded_volume(uint64_t order_xtp_id);
+
+  void add_action_id(uint64_t xtp_order_id, int64_t action_id);
+  uint64_t get_action_id(uint64_t xtp_order_id);
+
+  void req_order_trade();
   void try_ready();
   bool req_order_over_{false};
   bool req_trade_over_{false};

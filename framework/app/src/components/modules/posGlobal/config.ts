@@ -5,13 +5,13 @@ import { getTradingDataSortKey } from '@kungfu-trader/kungfu-js-api/utils/busiUt
 const { t } = VueI18n.global;
 
 const buildSorter =
-  (dataIndex: keyof KungfuApi.Position) =>
-  (a: KungfuApi.Position, b: KungfuApi.Position) =>
+  (dataIndex: keyof KungfuApi.PositionResolved) =>
+  (a: KungfuApi.PositionResolved, b: KungfuApi.PositionResolved) =>
     (+Number(a[dataIndex]) || 0) - (+Number(b[dataIndex]) || 0);
 
 const buildStrSorter =
-  (dataIndex: keyof KungfuApi.Position) =>
-  (a: KungfuApi.Position, b: KungfuApi.Position) =>
+  (dataIndex: keyof KungfuApi.PositionResolved) =>
+  (a: KungfuApi.PositionResolved, b: KungfuApi.PositionResolved) =>
     a[dataIndex].toString().localeCompare(b[dataIndex].toString());
 
 export const getColumns = (): KfTradingDataTableHeaderConfig[] => [
@@ -29,9 +29,34 @@ export const getColumns = (): KfTradingDataTableHeaderConfig[] => [
   },
   {
     type: 'number',
+    name: t('posGlobalConfig.static_yesterday_volume'),
+    dataIndex: 'static_yesterday_volume',
+    width: 80,
+    align: 'right',
+    sorter: buildSorter('static_yesterday_volume'),
+  },
+  {
+    type: 'number',
+    name: t('posGlobalConfig.open_volume'),
+    dataIndex: 'open_volume',
+    width: 80,
+    align: 'right',
+    sorter: buildSorter('open_volume'),
+  },
+  {
+    type: 'number',
+    name: t('posGlobalConfig.close_volume'),
+    dataIndex: 'close_volume',
+    width: 80,
+    align: 'right',
+    sorter: buildSorter('close_volume'),
+  },
+  {
+    type: 'number',
     name: t('posGlobalConfig.yesterday_volume'),
     dataIndex: 'yesterday_volume',
     width: 80,
+    align: 'right',
     sorter: buildSorter('yesterday_volume'),
   },
   {
@@ -39,6 +64,7 @@ export const getColumns = (): KfTradingDataTableHeaderConfig[] => [
     name: t('posGlobalConfig.today_volume'),
     dataIndex: 'today_volume',
     width: 80,
+    align: 'right',
     sorter: (a: KungfuApi.Position, b: KungfuApi.Position) => {
       const deltaA = a.volume - a.yesterday_volume;
       const deltaB = b.volume - b.yesterday_volume;
@@ -50,27 +76,31 @@ export const getColumns = (): KfTradingDataTableHeaderConfig[] => [
     name: t('posGlobalConfig.sum_volume'),
     dataIndex: 'volume',
     width: 80,
+    align: 'right',
     sorter: buildSorter('volume'),
   },
   {
     type: 'number',
     name: t('posGlobalConfig.avg_open_price'),
-    dataIndex: 'avg_open_price',
+    dataIndex: 'avg_open_price_resolved',
     width: 110,
+    align: 'right',
     sorter: buildSorter('avg_open_price'),
   },
   {
     type: 'number',
     name: t('posGlobalConfig.last_price'),
-    dataIndex: 'last_price',
+    dataIndex: 'last_price_resolved',
     width: 110,
+    align: 'right',
     sorter: buildSorter('last_price'),
   },
   {
     type: 'number',
     name: t('posGlobalConfig.unrealized_pnl'),
-    dataIndex: 'unrealized_pnl',
+    dataIndex: 'unrealized_pnl_resolved',
     width: 110,
+    align: 'right',
     sorter: buildSorter('unrealized_pnl'),
   },
 ];

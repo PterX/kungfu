@@ -1,5 +1,5 @@
 {
-  "AssembleMode": "write",
+  "AssembleMode": "All",
   "source": {
     "mode": "live",
     "tags": [],
@@ -12,7 +12,7 @@
   },
   "function": "read_bytes",
   "arguments": [
-    10026
+    10204
   ],
   "export": [
     "xls",

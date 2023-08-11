@@ -42,8 +42,9 @@ class PyLocator : public locator {
     PYBIND11_OVERLOAD(std::string, locator, get_env, name);
   }
 
-  [[nodiscard]] std::string layout_dir(const location_ptr &location, layout l) const override {
-    PYBIND11_OVERLOAD(std::string, locator, layout_dir, location, l);
+  [[nodiscard]] std::string layout_dir(const location_ptr &location, layout l,
+                                       bool create_not_exist = true) const override {
+    PYBIND11_OVERLOAD(std::string, locator, layout_dir, location, l, create_not_exist);
   }
 
   [[nodiscard]] std::string layout_file(const location_ptr &location, layout l,
@@ -80,6 +81,8 @@ public:
 
   [[nodiscard]] uint32_t source() const override { PYBIND11_OVERLOAD_PURE(int64_t, event, source); }
 
+  [[nodiscard]] uint32_t initial_source() const override { PYBIND11_OVERLOAD_PURE(int64_t, event, initial_source); }
+
   [[nodiscard]] uint32_t dest() const override { PYBIND11_OVERLOAD_PURE(int64_t, event, dest); }
 };
 
@@ -113,8 +116,12 @@ public:
 
   void on_exit() override { PYBIND11_OVERLOAD(void, master, on_exit); }
 
-  void on_register(const event_ptr &event, const Register &register_data) override {
-    PYBIND11_OVERLOAD_PURE(void, master, on_register, event, register_data);
+  void on_register(int64_t gen_time, const Register &register_data) override {
+    PYBIND11_OVERLOAD_PURE(void, master, on_register, gen_time, register_data);
+  }
+
+  bool check_register(int64_t gen_time, const Register &register_data) override {
+    PYBIND11_OVERLOAD_PURE(bool, master, check_register, gen_time, register_data);
   }
 
   void on_interval_check(int64_t nanotime) override {
@@ -233,13 +240,15 @@ void bind(pybind11::module &&m) {
       .def("get_notice", &observer::get_notice);
 
   py::class_<reader, reader_ptr>(m, "reader")
+      .def(py::init<const reader &>())
       .def("subscribe", &reader::join)
       .def("current_frame", &reader::current_frame)
       .def("seek_to_time", &reader::seek_to_time)
       .def("data_available", &reader::data_available)
       .def("next", &reader::next)
       .def("join", &reader::join)
-      .def("disjoin", &reader::disjoin)
+      .def("disjoin", py::overload_cast<const data::location_ptr &, uint32_t>(&reader::disjoin))
+      .def("disjoin", py::overload_cast<const uint32_t>(&reader::disjoin))
       .def("disjoin_channel", &reader::disjoin_channel);
 
   py::class_<bus, bus_ptr>(m, "bus").def("on_load_page", &bus::on_load_page);
@@ -361,6 +370,7 @@ void bind(pybind11::module &&m) {
       .def("step", &master::step)
       .def("on_exit", &master::on_exit)
       .def("on_register", &master::on_register)
+      .def("check_register", &master::check_register)
       .def("on_interval_check", &master::on_interval_check)
       .def("deregister_app", &master::deregister_app);
 

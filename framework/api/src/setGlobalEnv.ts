@@ -1,6 +1,14 @@
-import { CLI_DIR, KFC_DIR, KF_HOME, KF_RUNTIME_DIR } from './config/pathConfig';
+import {
+  CLI_DIR,
+  KFC_DIR,
+  KF_CONFIG_DIR,
+  KF_HOME,
+  KF_RUNTIME_DIR,
+} from './config/pathConfig';
+import { KF_APP_RUNTIME_DIR } from './config/homePathConfig';
 import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
 import { dealSpaceInPath } from './utils/busiUtils';
+import { KUNGFU_SAFE_CPUS_NUM, getCpusNum } from './utils/osUtils';
 
 // 此文件为所有需要预置在进程时携带的环境变量
 // 注意：由于前端 app 的渲染进程是由 main 进程启动，c++ 中通过 std::getenv 的方式只能获取进程启动时就带有的 env
@@ -20,5 +28,10 @@ process.env.KFC_DIR = dealSpaceInPath(KFC_DIR);
 process.env.CLI_DIR = dealSpaceInPath(CLI_DIR);
 process.env.KF_HOME = dealSpaceInPath(KF_HOME);
 process.env.KF_RUNTIME_DIR = dealSpaceInPath(KF_RUNTIME_DIR);
+process.env.KF_APP_RUNTIME_DIR = dealSpaceInPath(KF_APP_RUNTIME_DIR);
+process.env.KF_CONFIG_DIR = dealSpaceInPath(KF_CONFIG_DIR);
 process.env.PYTHONUTF8 = '1';
 process.env.PYTHONIOENCODING = 'utf8';
+
+process.env.CPUS_NUM = await getCpusNum();
+process.env.IF_CPUS_NUM_SAFE = process.env.CPUS_NUM > KUNGFU_SAFE_CPUS_NUM;

@@ -15,15 +15,14 @@
 
 namespace kungfu::wingchun::service {
 
-// key = hash_instrument(exchange_id, instrument_id)
-
 class Ledger : public yijinjing::practice::apprentice {
   typedef std::unordered_map<uint32_t, longfist::types::BrokerStateUpdate> BrokerStateMap;
   typedef std::unordered_map<uint32_t, longfist::types::OperatorStateUpdate> OperatorStateMap;
   typedef std::unordered_map<uint32_t, longfist::types::Position> PositionMap;
 
 public:
-  explicit Ledger(yijinjing::data::locator_ptr locator, longfist::enums::mode m, bool low_latency = false);
+  explicit Ledger(yijinjing::data::locator_ptr locator, longfist::enums::mode m, bool low_latency,
+                  const std::string &arguments);
 
   ~Ledger() override = default;
 
@@ -41,7 +40,10 @@ private:
   std::unordered_map<uint64_t, state<longfist::types::OrderStat>> order_stats_ = {};
   BrokerStateMap broker_states_ = {};
   OperatorStateMap operator_states_ = {};
+  const std::string arguments_;
   bool is_sync_;
+
+  bool bypass_refresh_book() const;
 
   void on_deregister(const longfist::types::Deregister &deregister);
 
@@ -64,6 +66,8 @@ private:
   void keep_positions([[maybe_unused]] int64_t trigger_time, uint32_t strategy_uid);
 
   void rebuild_positions(int64_t trigger_time, uint32_t strategy_uid);
+
+  double translate_by_price_tick(const char *exchange_id, const char *instrument_id, double price);
 
   template <typename AppStateMap, typename AppStateUpdate>
   void update_app_state_map(uint32_t location_uid, const AppStateUpdate &state_update, AppStateMap &app_states) {
@@ -98,6 +102,9 @@ private:
 
   void write_positions(int64_t trigger_time, uint32_t dest, book::PositionMap &positions);
 
+  void write_instrument_factors(int64_t trigger_time, uint32_t strategy_uid,
+                                book::InstrumentFactorMap &instrument_factors);
+
   void request_asset_sync(int64_t trigger_time);
 
   void request_position_sync(int64_t trigger_time);
@@ -113,9 +120,9 @@ private:
       return;
     }
     auto book = bookkeeper_.get_book(book_uid);
-    write_to(trigger_time, book->get_position_for(data), book_uid);
+    auto apply = [&](auto &position) { write_to(trigger_time, position, book_uid); };
+    book->apply_position_for(data, apply);
     write_to(trigger_time, book->asset, book_uid);
-    write_to(trigger_time, book->asset_margin, book_uid);
   }
 };
 } // namespace kungfu::wingchun::service

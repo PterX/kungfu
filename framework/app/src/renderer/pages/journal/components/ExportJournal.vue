@@ -80,11 +80,9 @@ const rules = {
   required: true,
   type: 'string',
   validator: (_rule, value) => {
-    console.log(value);
     return fse
       .stat(value as string)
       .then((stats) => {
-        console.log(stats);
         if (stats.isDirectory()) return Promise.resolve();
 
         return Promise.reject(new Error(t('journalConfig.need_directroy')));
@@ -126,7 +124,6 @@ const handleConfirmExport = () => {
           }
 
           const headers = Object.keys(exportData[0]).filter((item, _, arr) => {
-            if (item === 'dataResolved') return false;
             if (item === 'data') return true;
             if (item.indexOf('Resolved') !== -1) return true;
             return arr.indexOf(`${item}Resolved`) === -1;

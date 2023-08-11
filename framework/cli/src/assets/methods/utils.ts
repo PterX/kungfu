@@ -5,7 +5,7 @@ import colors from 'colors';
 import { KfCategoryTypes } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import resolveExtConfigHook from '@kungfu-trader/kungfu-js-api/hooks/resolveExtConfigHook';
 import {
-  getAvailCliDaemonList,
+  getAvailCliExtServiceList,
   getIdByKfLocation,
   getKfCliExtensionConfig,
   getProcessIdByKfLocation,
@@ -18,7 +18,7 @@ import {
   Pm2ProcessStatus,
 } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import { PromptInputType, PromptQuestion } from '../../typings';
-import { startExtDaemon } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
+import { startExtService } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
 import { Proc } from 'pm2';
 import { globalState } from '../actions/globalState';
 import { program } from 'commander';
@@ -73,9 +73,9 @@ export const getKfCategoryFromString = (
 };
 
 export const parseExtDataList = (
-  extList: KungfuApi.KfExtConfig[],
+  extList: KungfuApi.KfAddableExtConfig[],
 ): string[] => {
-  return extList.map((ext: KungfuApi.KfExtConfig) => {
+  return extList.map((ext) => {
     const isArray = typeof ext.type === 'object';
     const type = isArray ? (ext.type || []).join(' ') : ext.type || '';
     return [ext.name, ext.key, type].join('    ');
@@ -333,7 +333,7 @@ export const dealMemory = (mem: number): string => {
   if (!mem) {
     return '--';
   }
-  return Number((mem || 0) / (1024 * 1024)).toFixed(0) + 'MB';
+  return Number((mem || 0) / (1024 * 1024)).kfToFixed(0) + 'MB';
 };
 
 export const dealProcessName = (name: string) => {
@@ -359,8 +359,6 @@ export const getCategoryName = (category: KfCategoryTypes) => {
     return colors.cyan('Td');
   } else if (category === 'strategy') {
     return colors.blue('Strat');
-  } else if (category === 'daemon') {
-    return colors.green('Daem');
   } else if (category === 'operator') {
     return colors.magenta('Oper');
   } else {
@@ -378,10 +376,11 @@ export const dealKfConfigValue = async (
   ).trigger(kfConfig, extConfigs[kfConfig.category][kfConfig.group]);
 
   try {
-    const settingsMap = extConfig?.settings.reduce((pre, item) => {
+    const settingsMap = extConfig?.settings?.reduce((pre, item) => {
       pre[item.key] = item.type;
       return pre;
     }, {});
+    if (!settingsMap) return kfConfig.value;
 
     const kfConfigValue = JSON.parse(kfConfig.value);
     return JSON.stringify(
@@ -415,12 +414,12 @@ export const isObject = (val) => {
   return Object.prototype.toString.call(val) === '[object Object]';
 };
 
-export const startAllExtDaemons = async () => {
-  const availDaemons = await getAvailCliDaemonList();
+export const startAllExtServices = async () => {
+  const availExtServices = await getAvailCliExtServiceList();
   return loopToRunProcess<void | Proc>(
-    availDaemons.map((item) => {
+    availExtServices.map((item) => {
       return () =>
-        startExtDaemon(getProcessIdByKfLocation(item), item.cwd, item.script)
+        startExtService(item)
           .then((res) => {
             return res;
           })

@@ -21,6 +21,7 @@ import {
   useDealInstruments,
   usePreStartAndQuitApp,
   useSubscibeInstrumentAtEntry,
+  handleExportInstrumentWhitelists,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 
 import { useGlobalStore } from './store/global';
@@ -104,6 +105,9 @@ const busSubscription = globalBus.subscribe((data: KfEvent.KfBusEvent) => {
           tag: 'export',
           tradingDataType: 'all',
         } as KfEvent.ExportTradingDataEvent);
+        break;
+      case 'export-instrument-whitelists':
+        handleExportInstrumentWhitelists();
         break;
       case 'view-all-journal':
         handleOpenJournalView();
@@ -190,7 +194,7 @@ onBeforeUnmount(() => {
         },
         extraResourcesLoading: {
           done: $t('extra_resources_done'),
-          loading: $t('extra_resouces_loading'),
+          loading: $t('extra_resources_loading'),
         },
       }"
     ></KfSystemPrepareModal>
@@ -254,8 +258,6 @@ onBeforeUnmount(() => {
 #app {
   width: 100%;
   height: 100%;
-  font-family: Consolas, Monaco, Lucida Console, Liberation Mono,
-    DejaVu Sans Mono, Bitstream Vera Sans Mono, Courier New, monospace;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 

@@ -1,10 +1,7 @@
 <script setup lang="ts">
 import {
-  dealKfPrice,
-  dealAssetPrice,
   dealDirection,
   dealCurrency,
-  isTdStrategyCategory,
   getIdByKfLocation,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 
@@ -17,7 +14,7 @@ import {
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
 import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
 import KfTradingDataTable from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfTradingDataTable.vue';
-import { DownloadOutlined } from '@ant-design/icons-vue';
+import { DownloadOutlined, ReloadOutlined } from '@ant-design/icons-vue';
 
 import {
   computed,
@@ -31,19 +28,26 @@ import {
 import { storeToRefs } from 'pinia';
 import { getColumns } from './config';
 import KfBlinkNum from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfBlinkNum.vue';
+import { dealKfPrice } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { dealPosition } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
-import {
-  OffsetEnum,
-  SideEnum,
-} from '@kungfu-trader/kungfu-js-api/typings/enums';
+import { SideEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
   getInstrumentByInstrumentPair,
   useCurrentGlobalKfLocation,
   useInstruments,
+  useDealDataWithCaches,
   useActiveInstruments,
+  useQuote,
+  showTradingDataDetail,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
+import { messagePrompt } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
+import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+import { getPosClosableVolumeByOffset, resolveTriggerOffset } from './utils';
+import { getKfGlobalSettings } from '@kungfu-trader/kungfu-js-api/config/globalSettings';
 
+const { t } = VueI18n.global;
+const { success, error } = messagePrompt();
 const app = getCurrentInstance();
 const { handleBodySizeChange } = useDashboardBodySize();
 
@@ -63,21 +67,43 @@ const {
 const { handleDownload } = useDownloadHistoryTradingData();
 const { triggerOrderBook, triggerMakeOrder } = useTriggerMakeOrder();
 const { instruments } = useInstruments();
-const { getInstrumentCurrencyByIds, getPriceTickAndPrecision } =
-  useActiveInstruments();
+const { getPositionLastPrice } = useQuote();
+const { getPriceTickAndPrecision } = useActiveInstruments();
+const { dealDataWithCache } = useDealDataWithCaches<
+  KungfuApi.Position,
+  KungfuApi.PositionResolved
+>(['uid_key', 'update_time']);
 const { globalSetting } = storeToRefs(useGlobalStore());
 
 const columns = computed(() => {
-  if (currentGlobalKfLocation.value === null) {
-    return getColumns({
-      category: 'td',
-      group: '*',
-      name: '*',
-      mode: 'live',
-    });
-  }
+  const defaultLocation = {
+    category: 'td',
+    group: '*',
+    name: '*',
+    mode: 'live',
+  };
 
-  return getColumns(currentGlobalKfLocation.value);
+  const kfGlobalSettings = getKfGlobalSettings();
+  const tradeSettings = kfGlobalSettings.filter(
+    (item) => item.key === 'trade',
+  )[0];
+  const posTableColumnsOptions = tradeSettings.config
+    .filter((item) => item.key === 'posTableColumns')[0]
+    .options?.map((item) => item.value);
+  const selectedOptions: string[] = globalSetting.value?.trade?.posTableColumns;
+  if (!posTableColumnsOptions || !selectedOptions)
+    return getColumns(currentGlobalKfLocation.value || defaultLocation);
+  const notSelectedOptions = posTableColumnsOptions.filter((item) => {
+    return !selectedOptions.includes(item as string);
+  });
+
+  const columnsConfig = getColumns(
+    currentGlobalKfLocation.value || defaultLocation,
+  );
+
+  return columnsConfig.filter((item) => {
+    return !notSelectedOptions.includes(item.dataIndex);
+  });
 });
 
 onMounted(() => {
@@ -101,10 +127,11 @@ onMounted(() => {
             const { price_precision } = getPriceTickAndPrecision(
               item.instrument_id,
               item.exchange_id,
-              0.001,
             );
 
-            return dealPosition(watcher, item, price_precision);
+            return dealDataWithCache(item, () =>
+              dealPosition(watcher, item, price_precision),
+            );
           }),
         );
       },
@@ -138,24 +165,39 @@ function handleClickRow(data: {
     );
 
   triggerOrderBook(ensuredInstrument);
+
+  const offset = resolveTriggerOffset(row);
   const extraOrderInput: ExtraOrderInput = {
     side: row.direction === 0 ? SideEnum.Sell : SideEnum.Buy,
-    offset:
-      row.yesterday_volume !== BigInt(0)
-        ? OffsetEnum.CloseYest
-        : OffsetEnum.CloseToday,
-    volume: row.closable_volume,
+    offset,
+    volume: getPosClosableVolumeByOffset(row, offset),
 
     price: row.last_price || row.avg_open_price || 0,
-    accountId: isTdStrategyCategory(currentGlobalKfLocation.value?.category)
-      ? undefined
-      : dealLocationUIDResolved(row.holder_uid),
+    accountId: dealLocationUIDResolved(row.source_id),
   };
   triggerMakeOrder(ensuredInstrument, extraOrderInput);
 }
 
 function dealLocationUIDResolved(holderUID: number): string {
   return getIdByKfLocation(window.watcher.getLocation(holderUID));
+}
+
+function handleRequestPosition() {
+  const res = window.watcher.requestPosition(window.watcher);
+  if (res) {
+    success(t('operation_success'));
+  } else {
+    error(t('operation_failed'));
+  }
+}
+
+function handleShowTradingDataDetail({
+  row,
+}: {
+  event: MouseEvent;
+  row: KungfuApi.PositionResolved;
+}) {
+  showTradingDataDetail(row, t('posGlobalConfig.pos_detail_header'));
 }
 </script>
 <template>
@@ -183,6 +225,13 @@ function dealLocationUIDResolved(holderUID: number): string {
           />
         </KfDashboardItem>
         <KfDashboardItem>
+          <a-button size="small" @click="handleRequestPosition">
+            <template #icon>
+              <ReloadOutlined style="font-size: 14px" />
+            </template>
+          </a-button>
+        </KfDashboardItem>
+        <KfDashboardItem>
           <a-button
             size="small"
             @click="handleDownload('Position', currentGlobalKfLocation)"
@@ -198,6 +247,7 @@ function dealLocationUIDResolved(holderUID: number): string {
         :data-source="tableData"
         key-field="uid_key"
         @clickCell="handleClickRow"
+        @rightClickRow="handleShowTradingDataDetail"
       >
         <template
           #default="{
@@ -215,14 +265,7 @@ function dealLocationUIDResolved(holderUID: number): string {
                 v-if="globalSetting?.currency?.instrumentCurrency"
                 style="color: #faad14"
               >
-                {{
-                  dealCurrency(
-                    getInstrumentCurrencyByIds(
-                      item.instrument_id,
-                      item.exchange_id,
-                    ),
-                  ).name
-                }}
+                {{ dealCurrency(item.currency).name }}
               </span>
             </span>
           </template>
@@ -231,33 +274,51 @@ function dealLocationUIDResolved(holderUID: number): string {
               {{ dealDirection(item.direction).name }}
             </span>
           </template>
+          <template v-else-if="column.dataIndex === 'static_yesterday_volume'">
+            <KfBlinkNum
+              :num="Number(item.static_yesterday_volume).kfToFixed(0)"
+            ></KfBlinkNum>
+          </template>
+          <template v-else-if="column.dataIndex === 'open_volume'">
+            <KfBlinkNum
+              :num="Number(item.open_volume).kfToFixed(0)"
+            ></KfBlinkNum>
+          </template>
+          <template v-else-if="column.dataIndex === 'close_volume'">
+            <KfBlinkNum
+              :num="Number(item.close_volume).kfToFixed(0)"
+            ></KfBlinkNum>
+          </template>
           <template v-else-if="column.dataIndex === 'yesterday_volume'">
             <KfBlinkNum
-              :num="Number(item.yesterday_volume).toFixed(0)"
+              :num="Number(item.yesterday_volume).kfToFixed(0)"
             ></KfBlinkNum>
           </template>
           <template v-else-if="column.dataIndex === 'today_volume'">
             <KfBlinkNum
-              :num="Number(item.volume - item.yesterday_volume).toFixed(0)"
+              :num="Number(item.volume - item.yesterday_volume).kfToFixed(0)"
             ></KfBlinkNum>
           </template>
           <template v-else-if="column.dataIndex === 'volume'">
-            <KfBlinkNum :num="Number(item.volume).toFixed(0)"></KfBlinkNum>
+            <KfBlinkNum :num="Number(item.volume).kfToFixed(0)"></KfBlinkNum>
           </template>
-          <template v-else-if="column.dataIndex === 'avg_open_price'">
+          <template v-else-if="column.dataIndex === 'avg_open_price_resolved'">
+            <KfBlinkNum :num="item.avg_open_price_resolved"></KfBlinkNum>
+          </template>
+          <template v-else-if="column.dataIndex === 'last_price_resolved'">
             <KfBlinkNum
-              :num="dealKfPrice(item.avg_open_price, item.price_precision)"
+              :num="
+                dealKfPrice(
+                  getPositionLastPrice(item, 'last_price_resolved'),
+                  item.price_precision,
+                )
+              "
             ></KfBlinkNum>
           </template>
-          <template v-else-if="column.dataIndex === 'last_price'">
-            <KfBlinkNum
-              :num="dealKfPrice(item.last_price, item.price_precision)"
-            ></KfBlinkNum>
-          </template>
-          <template v-else-if="column.dataIndex === 'unrealized_pnl'">
+          <template v-else-if="column.dataIndex === 'unrealized_pnl_resolved'">
             <KfBlinkNum
               mode="compare-zero"
-              :num="dealAssetPrice(item.unrealized_pnl, item.price_precision)"
+              :num="item.unrealized_pnl_resolved"
             ></KfBlinkNum>
           </template>
         </template>

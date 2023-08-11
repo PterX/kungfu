@@ -71,6 +71,7 @@ watch(
 <template>
   <div
     :class="['kf-blink-num', mode, classname, blinkType, compareZeroClassname]"
+    :title="num"
     :key="num"
   >
     <span>{{ num }}</span>

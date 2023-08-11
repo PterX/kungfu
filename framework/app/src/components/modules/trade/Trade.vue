@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import {
-  dealKfPrice,
   dealSide,
   dealOffset,
   delayMilliSeconds,
@@ -114,7 +113,6 @@ onMounted(() => {
             const { price_precision } = getPriceTickAndPrecision(
               item.instrument_id,
               item.exchange_id,
-              0.001,
             );
 
             return toRaw(
@@ -184,7 +182,6 @@ watch(historyDate, async (newDate) => {
           const { price_precision } = getPriceTickAndPrecision(
             item.instrument_id,
             item.exchange_id,
-            0.001,
           );
 
           return toRaw(
@@ -300,9 +297,6 @@ function handleShowTradingDataDetail({
             <span :class="`color-${dealOffset(item.offset).color}`">
               {{ dealOffset(item.offset).name }}
             </span>
-          </template>
-          <template v-else-if="column.dataIndex === 'price'">
-            {{ dealKfPrice(item.price, item.price_precision) }}
           </template>
           <template v-else-if="column.dataIndex === 'source_uname'">
             <span :class="[`color-${item.source_resolved_data.color}`]">

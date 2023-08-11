@@ -15,11 +15,11 @@
 #define KUNGFU_EXTENSION(...) PYBIND11_MODULE(KUNGFU_MODULE_NAME, m)
 
 #define KUNGFU_DEFINE_SERVICE(ServiceType)                                                                             \
-  m.def("service",                                                                                                     \
-        [&](kungfu::yijinjing::data::locator_ptr locator, kungfu::longfist::enums::mode m, bool low_latency = false) { \
-          return std::static_pointer_cast<kungfu::yijinjing::practice::apprentice>(                                    \
-              std::make_shared<ServiceType>(locator, m, low_latency));                                                 \
-        })
+  m.def("service", [&](kungfu::yijinjing::data::locator_ptr locator, kungfu::longfist::enums::mode m,                  \
+                       bool low_latency = false, const std::string &arguments = "") {                                  \
+    return std::static_pointer_cast<kungfu::yijinjing::practice::apprentice>(                                          \
+        std::make_shared<ServiceType>(locator, m, low_latency, arguments));                                            \
+  })
 
 #define KUNGFU_DEFINE_CACHE_TOOL(ToolType)                                                                             \
   m.def("tool", [&](kungfu::longfist::enums::category category, std::string group, std::string name,                   \
@@ -122,4 +122,24 @@
     });                                                                                                                \
   };                                                                                                                   \
   class ToolType : public kungfu::wingchun::tool::CacheTool
+
+#define KUNGFU_MAIN_SLICE_TOOL(SliceToolType)                                                                          \
+  class SliceToolType;                                                                                                 \
+  PYBIND11_MODULE(KUNGFU_MODULE_NAME, m) {                                                                             \
+    m.def("slice_tool", [&](kungfu::longfist::enums::category category, std::string group, std::string name,           \
+                            SliceIndexer_ptr indexer, bool overwrite, std::string argument) {                          \
+      return std::static_pointer_cast<kungfu::wingchun::tool::SliceTool>(std::make_shared<SliceToolType>(              \
+          category, std::move(group), std::move(name), indexer, overwrite, std::move(argument)));                      \
+    });                                                                                                                \
+  };                                                                                                                   \
+  class SliceToolType : public kungfu::wingchun::tool::SliceTool
+
+#define KUNGFU_MAIN_REPORT(ReportType)                                                                                 \
+  class ReportType;                                                                                                    \
+  PYBIND11_MODULE(KUNGFU_MODULE_NAME, m) {                                                                             \
+    m.def("report",                                                                                                    \
+          [&]() { return std::static_pointer_cast<kungfu::wingchun::tool::Report>(std::make_shared<ReportType>()); }); \
+  };                                                                                                                   \
+  class ReportType : public kungfu::wingchun::tool::Report
+
 #endif // KUNGFU_EXTENSION_H

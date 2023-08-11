@@ -12,33 +12,40 @@ const buildStrSorter =
   (dataIndex: keyof TableDataType) => (a: TableDataType, b: TableDataType) =>
     a[dataIndex].toString().localeCompare(b[dataIndex].toString());
 
-export const getSessionColumns = (): KfTradingDataTableHeaderConfig[] => [
+export const getSessionColumns = (): AntTableColumn[] => [
   {
-    type: 'string',
-    name: t('journalConfig.session_id'),
-    dataIndex: 'session_id_resolved',
-    width: 224,
-    sorter: buildStrSorter('session_id_resolved'),
+    title: t('journalConfig.session_id'),
+    dataIndex: 'sessionName',
+    align: 'left',
+    width: 240,
+    sorter: {
+      compare: buildStrSorter('sessionName'),
+    },
+    fixed: 'left',
   },
   {
-    type: 'string',
-    name: t('journalConfig.begin_time'),
-    dataIndex: 'begin_time_resolved',
+    title: t('journalConfig.begin_time'),
+    dataIndex: 'beginTimeResolved',
+    align: 'left',
     width: 160,
-    sorter: buildSorter('begin_time'),
+    sorter: {
+      compare: buildSorter('begin_time'),
+    },
+    fixed: 'left',
   },
   {
-    type: 'string',
-    name: t('journalConfig.end_time'),
-    dataIndex: 'end_time_resolved',
-    sorter: buildStrSorter('end_time'),
+    title: t('journalConfig.end_time'),
+    dataIndex: 'endTimeResolved',
     width: 160,
+    align: 'left',
+    sorter: { compare: buildStrSorter('end_time') },
+    fixed: 'left',
   },
   {
-    type: 'string',
-    name: t('journalConfig.status'),
+    title: t('journalConfig.status'),
     dataIndex: 'status',
-    width: 100,
+    align: 'left',
+    fixed: 'right',
   },
 ];
 
@@ -62,19 +69,47 @@ export const getFrameColumns = (): KfTradingDataTableHeaderConfig[] => [
     name: t('journalConfig.gen_time'),
     dataIndex: 'genTimeResolved',
     width: 160,
+    overflow: 'ellipsis',
     sorter: buildSorter('genTime'),
   },
   {
     type: 'string',
     name: `${t('journalConfig.source')} → ${t('journalConfig.dest')}`,
     dataIndex: 'sourceToDest',
+    overflow: 'ellipsis',
     sorter: buildStrSorter('sourceToDest'),
-    width: 400,
+    width: 280,
+  },
+  {
+    type: 'string',
+    name: t('journalConfig.frame_id'),
+    dataIndex: 'frameId',
+    align: 'right',
+    overflow: 'ellipsis',
+    sorter: buildStrSorter('frameId'),
+
+    width: 70,
+  },
+  {
+    type: 'string',
+    name: t('journalConfig.page_id'),
+    dataIndex: 'pageId',
+    align: 'right',
+    overflow: 'ellipsis',
+    sorter: buildStrSorter('pageId'),
+    width: 50,
   },
   {
     type: 'string',
     name: t('journalConfig.msg_type'),
-    dataIndex: 'stringMsgType',
-    width: 160,
+    dataIndex: 'msgTypeName',
+    width: 190,
+  },
+  {
+    type: 'string',
+    name: t('journalConfig.msg_details'),
+    dataIndex: 'dataAsString',
+    overflow: 'ellipsis',
+    flex: 1,
   },
 ];

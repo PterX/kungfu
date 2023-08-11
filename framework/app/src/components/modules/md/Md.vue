@@ -49,7 +49,7 @@ const setMdModalVisible = ref<boolean>(false);
 const setMdConfigPayload = ref<KungfuApi.SetKfConfigPayload>({
   type: 'add',
   title: t('Md'),
-  config: {} as KungfuApi.KfExtConfig,
+  config: {} as KungfuApi.KfMdExtConfig,
 });
 const currentSelectedSourceId = ref<string>('');
 const columns = getColumns();
@@ -84,7 +84,7 @@ async function handleOpenSetMdDialog(
   selectedSource: string,
   mdConfig?: KungfuApi.KfConfig,
 ) {
-  const extConfig: KungfuApi.KfExtConfig = (extConfigs.value['md'] || {})[
+  const extConfig: KungfuApi.KfMdExtConfig = (extConfigs.value['md'] || {})[
     selectedSource
   ];
 

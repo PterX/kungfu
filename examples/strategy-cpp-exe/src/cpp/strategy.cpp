@@ -19,20 +19,29 @@ public:
   void pre_start(Context_ptr &context) override {
     SPDLOG_INFO("preparing strategy");
     SPDLOG_INFO("arguments: {}", context->get_arguments());
+    context->add_account("sim", "fill");
     context->subscribe("sim", {"600000"}, {"SSE"});
-    // context->subscribe_operator("bar", "my-bar");
+    SPDLOG_INFO("is_bypass_accounting: {}", context->is_bypass_accounting());
+    SPDLOG_INFO("is_bypass_accounting: {}", context->is_bypass_accounting());
   }
 
   void post_start(Context_ptr &context) override {
     SPDLOG_INFO("strategy started");
-    // auto &runtime = dynamic_cast<RuntimeContext &>(*context);
-    // auto &bookkeeper = runtime.get_bookkeeper();
-    // auto &books = bookkeeper.get_books();
-    // for (const auto &pair : books) {
-    //   auto &book = pair.second;
-    //   SPDLOG_INFO("book asset: {}", book->asset.to_string());
-    // }
-    auto l_ptr = location::make_shared(mode::LIVE, category::MD, "sim", "sim", {});
+    auto &runtime = dynamic_cast<LiveContext &>(*context);
+    auto &bookkeeper = runtime.get_bookkeeper();
+    const auto &books = bookkeeper.get_books();
+    SPDLOG_INFO("books.size(): {}", books.size());
+    for (const auto &book_pair : books) {
+      const auto &book = book_pair.second;
+      SPDLOG_INFO("book asset: {}", book->asset.to_string());
+      SPDLOG_INFO("long_positions.size(): {}", book->long_positions.size());
+      for (const auto &position_pair : book->long_positions) {
+        auto &position = position_pair.second;
+        SPDLOG_INFO("Position: {}", position.to_string());
+      }
+    }
+
+    auto l_ptr = location::make_shared(mode::LIVE, category::MD, "sim", "sim", std::make_shared<locator>());
     kungfu::yijinjing::journal::assemble asb(l_ptr, location::PUBLIC, AssembleMode::All);
     auto headers = asb.read_headers(Location{});
     for (const auto &head : headers) {
@@ -52,7 +61,7 @@ public:
     }
   }
 
-  void on_quote(Context_ptr &context, const Quote &quote, const location_ptr &location) override {
+  void on_quote(Context_ptr &context, const Quote &quote, const location_ptr &location, uint32_t dest) override {
     SPDLOG_INFO("on quote: {} i {} location->uid {}", quote.last_price, i, location->location_uid);
     // i++;
     // if (i == 5) {
@@ -72,9 +81,20 @@ public:
     // }
   }
 
-  void on_synthetic_data(Context_ptr &context, const SyntheticData &synthetic_data,
-                         const location_ptr &location) override {
+  void on_tree(Context_ptr &context, const Tree &tree, const location_ptr &location, uint32_t dest) override {
+    SPDLOG_INFO("on tree: {}", tree.to_string());
+  }
+
+  void on_synthetic_data(Context_ptr &context, const SyntheticData &synthetic_data, const location_ptr &location,
+                         uint32_t dest) override {
     SPDLOG_INFO("on_synthetic_data: {} ", synthetic_data.to_string());
+  }
+
+  void on_order(Context_ptr &context, const Order &order, const location_ptr &location, uint32_t dest) override {
+    static int count = 0;
+    if (count++ % 1000 == 0) {
+      SPDLOG_INFO("Order: {}", order.to_string());
+    }
   }
 
   void on_broker_state_change(Context_ptr &context, const BrokerStateUpdate &broker_state_update,
@@ -86,10 +106,6 @@ public:
                                 const location_ptr &location) override {
     SPDLOG_INFO("on operator state changed: {}", operator_state_update.to_string());
   };
-
-  void on_tree(Context_ptr &context, const Tree &tree, const location_ptr &location) override {
-    SPDLOG_INFO("on tree: {}", tree.to_string());
-  }
 };
 
 int main(int argc, char **argv) {

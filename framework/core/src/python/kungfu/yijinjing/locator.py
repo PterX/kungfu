@@ -28,10 +28,10 @@ class Locator(yjj.locator):
         category = lf.enums.get_category_name(location.category)
         p = os.path.join(
             self._root,
+            lf.enums.get_layout_name(layout),
             category,
             location.group,
             location.name,
-            lf.enums.get_layout_name(layout),
             mode,
         )
         try:
@@ -80,7 +80,7 @@ class Locator(yjj.locator):
         return page_ids
 
     def list_locations(self, category, group, name, mode):
-        search_path = os.path.join(self._root, category, group, name, "journal", mode)
+        search_path = os.path.join(self._root, "journal", category, group, name, mode)
         locations = []
         for journal in glob.glob(search_path):
             match = JOURNAL_LOCATION_PATTERN.match(journal[len(self._root) + 1 :])
@@ -98,10 +98,10 @@ class Locator(yjj.locator):
     def list_location_dest(self, location):
         search_path = os.path.join(
             self._root,
+            "journal",
             lf.enums.get_category_name(location.category),
             location.group,
             location.name,
-            "journal",
             lf.enums.get_mode_name(location.mode),
             "*.journal",
         )

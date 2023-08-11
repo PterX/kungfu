@@ -2,14 +2,18 @@ import path from 'path';
 import dayjs from 'dayjs';
 import fse, { Stats } from 'fs-extra';
 import log4js from 'log4js';
-import glob from 'glob';
 import os from 'os';
 import {
   buildProcessLogPath,
+  buildRuntimeChildDirByType,
   EXTENSION_DIRS,
   KF_HOME,
-  KF_RUNTIME_DIR,
+  RuntimeChildDirTypes,
 } from '../config/pathConfig';
+import {
+  EnterableSpecialWordsReg,
+  SpecialWordsReg,
+} from '../config/systemConfig';
 import {
   InstrumentType,
   KfCategory,
@@ -33,6 +37,11 @@ import {
   T0ExchangeIds,
   PriceLevel,
   InstrumentMinOrderVolume,
+  KfDefaultSystemProcess,
+  ExportTradingDataColumnsToFilter,
+  ParkedType,
+  OrderTriggerStatus,
+  TriggerFlag,
 } from '../config/tradingConfig';
 import {
   KfCategoryEnum,
@@ -44,6 +53,7 @@ import {
   OffsetEnum,
   HedgeFlagEnum,
   InstrumentTypes,
+  ExtRunForEnvTypesEnum,
   KfCategoryTypes,
   LedgerCategoryTypes,
   ProcessStatusTypes,
@@ -60,13 +70,19 @@ import {
   PriceLevelEnum,
   CurrencyEnum,
   HistoryDateEnum,
+  OrderTriggerStatusEnum,
+  OrderTriggerTypeEnum,
+  OrderTriggerParkedTypeEnum,
+  OrderTriggerTimeConditionEnum,
+  OrderTriggerFlag,
 } from '../typings/enums';
 import {
   graceDeleteProcess,
   Pm2ProcessStatusData,
   Pm2ProcessStatusDetail,
+  Pm2ProcessStatusDetailResolved,
   Pm2ProcessStatusDetailData,
-  startExtDaemon,
+  startExtService,
   startLedger,
   startMaster,
   startMd,
@@ -79,10 +95,10 @@ import {
   listDir,
   readRootPackageJsonSync,
   removeTargetFilesInFolder,
+  removeTargetFoldersInFolder,
 } from './fileUtils';
 import minimist from 'minimist';
 import VueI18n, { useLanguage } from '../language';
-import { unlinkSync } from 'fs-extra';
 import { T0T1Config } from '../typings/global';
 import { getKfGlobalSettingsValue } from '../config/globalSettings';
 import { Currency } from '../config/tradingConfig';
@@ -103,6 +119,11 @@ declare global {
     toKfCategory(): string;
     toKfGroup(): string;
     toKfName(): string;
+  }
+
+  interface Number {
+    kfRound(precision?: number): number;
+    kfToFixed(precision?: number): string;
   }
 
   interface Array<T> {
@@ -163,6 +184,15 @@ String.prototype.parseSourceAccountId = function (): SourceAccountId {
       id: parseList[1],
     };
   }
+};
+
+Number.prototype.kfRound = function (precision?: number) {
+  const temp = 10 ** (precision || 0);
+  return Math.round(Number(this) * temp) / temp;
+};
+
+Number.prototype.kfToFixed = function (precision?: number) {
+  return this.kfRound(precision).toFixed(precision);
 };
 
 Array.prototype.removeRepeat = function () {
@@ -527,31 +557,51 @@ const getKfExtConfigList = async (): Promise<KungfuApi.KfExtOriginConfig[]> => {
   });
 };
 
-const resolveTypesInExtConfig = (
-  category: KfCategoryTypes,
-  types:
-    | InstrumentTypes
-    | InstrumentTypes[]
-    | StrategyExtTypes
-    | StrategyExtTypes[],
-): InstrumentTypes[] | StrategyExtTypes[] => {
-  if (typeof types === 'string') {
-    const typesResolved = [
-      types.toLowerCase() as InstrumentTypes | StrategyExtTypes,
-    ];
-    return isTdMd(category)
-      ? (typesResolved as InstrumentTypes[])
-      : (typesResolved as StrategyExtTypes[]);
+const resolveTypesInExtConfig = <T extends string>(types: T | T[]): T[] => {
+  if (!types) return ['unknown'] as T[];
+  const typesResolved = [types].flat().map((type) => type.toLowerCase());
+  if (!typesResolved.length) return ['unknown'] as T[];
+  return typesResolved as T[];
+};
+
+const resolveOrderTriggerConfig = (
+  originConfig: KungfuApi.KfExtOriginConfig['config'],
+) => {
+  if (originConfig) {
+    const orderTriggerOriginConfig = originConfig.td?.order_trigger || {};
+    const orderTriggerTypesKeys = Object.keys(OrderTriggerTypeEnum);
+    const orderTriggerParkedTypesKeys = Object.keys(OrderTriggerParkedTypeEnum);
+    const orderTriggerTimeConditionKeys = Object.keys(
+      OrderTriggerTimeConditionEnum,
+    );
+    return Object.keys(orderTriggerOriginConfig).reduce((config, key) => {
+      if (orderTriggerTypesKeys.includes(key)) {
+        config[OrderTriggerTypeEnum[key]] = Object.keys(
+          orderTriggerOriginConfig[key] || {},
+        ).reduce((parkedConfig, parkedType) => {
+          if (orderTriggerParkedTypesKeys.includes(parkedType)) {
+            parkedConfig[OrderTriggerParkedTypeEnum[parkedType]] = Object.keys(
+              orderTriggerOriginConfig[key]?.[parkedType] || {},
+            ).reduce((timeConditionConfig, timeCondition) => {
+              if (orderTriggerTimeConditionKeys.includes(timeCondition)) {
+                timeConditionConfig[
+                  OrderTriggerTimeConditionEnum[timeCondition]
+                ] =
+                  !!orderTriggerOriginConfig[key]?.[parkedType]?.[
+                    timeCondition
+                  ];
+              }
+              return timeConditionConfig;
+            }, {});
+          }
+          return parkedConfig;
+        }, {});
+      }
+      return config;
+    }, {} as KungfuApi.KfTdExtConfig['orderTrigger']);
   }
 
-  if (!types.length) {
-    return ['unknown'];
-  }
-
-  const typesResolved = types.map((type) => type.toLowerCase());
-  return isTdMd(category)
-    ? (typesResolved as InstrumentTypes[])
-    : (typesResolved as StrategyExtTypes[]);
+  return {} as KungfuApi.KfTdExtConfig['orderTrigger'];
 };
 
 const getKfExtensionConfigByCategory = (
@@ -559,31 +609,92 @@ const getKfExtensionConfigByCategory = (
 ): KungfuApi.KfExtConfigs => {
   return extConfigs
     .filter((item) => !!item.config)
-    .reduce((configByCategory, extConfig: KungfuApi.KfExtOriginConfig) => {
-      const extKey = extConfig.key;
-      const extName = extConfig.name;
-      const extPath = extConfig.extPath;
-      (Object.keys(extConfig['config'] || {}) as KfCategoryTypes[]).forEach(
-        (category: KfCategoryTypes) => {
-          const configOfCategory = (extConfig['config'] || {})[category];
-          configByCategory[category] = {
-            ...(configByCategory[category] || {}),
-            [extKey]: {
-              name: extName,
-              extPath,
-              category,
-              key: extKey,
-              type: resolveTypesInExtConfig(
-                category,
-                configOfCategory?.type || [],
-              ),
-              settings: configOfCategory?.settings || [],
-            },
-          };
-        },
-      );
-      return configByCategory;
-    }, {} as KungfuApi.KfExtConfigs);
+    .reduce(
+      (configByCategory, extConfig: KungfuApi.KfExtOriginConfig) => {
+        const extKey = extConfig.key;
+        const extName = extConfig.name;
+        const extPath = extConfig.extPath;
+        (Object.keys(extConfig['config'] || {}) as KfCategoryTypes[]).forEach(
+          (category: KfCategoryTypes) => {
+            const extConfigByCategory = extConfig['config'] || {};
+            const buildExtConfig = <T extends KfCategoryTypes>(category: T) => {
+              configByCategory[category] = {
+                ...(configByCategory[category] || {}),
+                [extKey]: {
+                  name: extName,
+                  extPath,
+                  category,
+                  key: extKey,
+                  type: resolveTypesInExtConfig(
+                    extConfigByCategory[category]?.type || [],
+                  ),
+                  settings: extConfigByCategory[category]?.settings || [],
+                },
+              } as KungfuApi.KfExtConfigs[T];
+            };
+            switch (category) {
+              case 'td':
+                configByCategory[category] = {
+                  ...(configByCategory[category] || {}),
+                  [extKey]: {
+                    name: extName,
+                    extPath,
+                    category,
+                    key: extKey,
+                    type: resolveTypesInExtConfig(
+                      extConfigByCategory[category]?.type || [],
+                    ),
+                    orderTrigger:
+                      resolveOrderTriggerConfig(extConfigByCategory),
+                    settings: extConfigByCategory[category]?.settings || [],
+                    fundTrans: extConfigByCategory[category]?.fund_trans || {},
+                  },
+                };
+                break;
+              case 'md':
+                buildExtConfig('md');
+                break;
+              case 'strategy':
+                buildExtConfig('strategy');
+                break;
+              case 'operator':
+                buildExtConfig('operator');
+                break;
+              case 'system':
+                configByCategory[category] = {
+                  ...(configByCategory[category] || {}),
+                  [extKey]:
+                    Object.entries(extConfigByCategory[category] || {}).reduce(
+                      (resolved, [name, item]) => ({
+                        ...resolved,
+                        [name]: {
+                          name: name || extName,
+                          extPath,
+                          category,
+                          key: extKey,
+                          type: resolveTypesInExtConfig(item?.type || []),
+                          for: [item.for].flat(),
+                          script: item?.script || '',
+                          settings: item?.settings || [],
+                        },
+                      }),
+                      {} as KungfuApi.KfSystemExtConfigs,
+                    ) || {},
+                };
+                break;
+            }
+          },
+        );
+        return configByCategory;
+      },
+      {
+        td: {},
+        md: {},
+        strategy: {},
+        operator: {},
+        system: {},
+      } as KungfuApi.KfExtConfigs,
+    );
 };
 
 const getKfUIExtensionConfigByExtKey = (
@@ -599,7 +710,6 @@ const getKfUIExtensionConfigByExtKey = (
       const position = uiConfig?.position || '';
       const exhibit = uiConfig?.exhibit || ({} as KungfuApi.KfExhibitConfig);
       const components = uiConfig?.components || null;
-      const daemon = uiConfig?.daemon || ({} as Record<string, string>);
       const script = uiConfig?.script || '';
 
       configByExtraKey[extKey] = {
@@ -608,7 +718,6 @@ const getKfUIExtensionConfigByExtKey = (
         position,
         exhibit,
         components,
-        daemon,
         script,
       };
       return configByExtraKey;
@@ -627,7 +736,6 @@ const getKfCliExtensionConfigByExtKey = (
       const cliConfig = extConfig['cli_config'];
       const exhibit = cliConfig?.exhibit || ({} as KungfuApi.KfExhibitConfig);
       const components = cliConfig?.components || null;
-      const daemon = cliConfig?.daemon || ({} as Record<string, string>);
       const script = cliConfig?.script || '';
 
       configByExtraKey[extKey] = {
@@ -635,7 +743,6 @@ const getKfCliExtensionConfigByExtKey = (
         extPath,
         exhibit,
         components,
-        daemon,
         script,
       };
       return configByExtraKey;
@@ -708,49 +815,66 @@ export const getKfExtensionLanguage = async () => {
   }, {} as KungfuApi.KfExtLanguages);
 };
 
-export const getAvailDaemonList = async (): Promise<
-  KungfuApi.KfDaemonLocation[]
+export const getAvailExtServiceList = async (): Promise<
+  KungfuApi.KfExtServiceLocation[]
 > => {
-  const kfExtConfig: KungfuApi.KfUIExtConfigs = await getKfUIExtensionConfig();
-  return Object.values(kfExtConfig || ({} as KungfuApi.KfUIExtConfigs))
+  const kfExtConfigs: KungfuApi.KfExtConfigs = await getKfExtensionConfig();
+  const kfSystemExtConfigsMap = (kfExtConfigs['system'] || {}) as Record<
+    string,
+    KungfuApi.KfSystemExtConfigs
+  >;
+  return Object.values(kfSystemExtConfigsMap)
     .filter((item) => Object.keys(item).length)
-    .reduce((daemonList, item) => {
-      daemonList = [
-        ...daemonList,
-        ...Object.keys(item.daemon).map((name) => ({
-          category: 'daemon',
-          group: 'ext',
-          name,
-          mode: 'live',
-          cwd: item.extPath,
-          script: item.daemon[name],
-        })),
+    .reduce((extServiceList, item) => {
+      extServiceList = [
+        ...extServiceList,
+        ...Object.values(item)
+          .filter((config) => config.for.includes(ExtRunForEnvTypesEnum.Ui))
+          .map(
+            (config) =>
+              ({
+                category: 'system',
+                group: 'service',
+                name: config.name,
+                mode: 'live',
+                cwd: config.extPath,
+                script: config.script,
+              } as KungfuApi.KfExtServiceLocation),
+          ),
       ];
-      return daemonList;
-    }, [] as KungfuApi.KfDaemonLocation[]);
+      return extServiceList;
+    }, [] as KungfuApi.KfExtServiceLocation[]);
 };
 
-export const getAvailCliDaemonList = async (): Promise<
-  KungfuApi.KfDaemonLocation[]
+export const getAvailCliExtServiceList = async (): Promise<
+  KungfuApi.KfExtServiceLocation[]
 > => {
-  const kfExtConfig: KungfuApi.KfCliExtConfigs =
-    await getKfCliExtensionConfig();
-  return Object.values(kfExtConfig || ({} as KungfuApi.KfCliExtConfigs))
+  const kfExtConfigs: KungfuApi.KfExtConfigs = await getKfExtensionConfig();
+  const kfSystemExtConfigsMap = (kfExtConfigs['system'] || {}) as Record<
+    string,
+    KungfuApi.KfSystemExtConfigs
+  >;
+  return Object.values(kfSystemExtConfigsMap)
     .filter((item) => Object.keys(item).length)
-    .reduce((daemonList, item) => {
-      daemonList = [
-        ...daemonList,
-        ...Object.keys(item.daemon).map((name) => ({
-          category: 'daemon',
-          group: 'ext',
-          name,
-          mode: 'live',
-          cwd: item.extPath,
-          script: item.daemon[name],
-        })),
+    .reduce((extServiceList, item) => {
+      extServiceList = [
+        ...extServiceList,
+        ...Object.values(item)
+          .filter((config) => config.for.includes(ExtRunForEnvTypesEnum.Cli))
+          .map(
+            (config) =>
+              ({
+                category: 'system',
+                group: 'service',
+                name: config.name,
+                mode: 'live',
+                cwd: config.extPath,
+                script: config.script,
+              } as KungfuApi.KfExtServiceLocation),
+          ),
       ];
-      return daemonList;
-    }, [] as KungfuApi.KfDaemonLocation[]);
+      return extServiceList;
+    }, [] as KungfuApi.KfExtServiceLocation[]);
 };
 
 export const getAvailScripts = async (): Promise<string[]> => {
@@ -762,6 +886,14 @@ export const getAvailScripts = async (): Promise<string[]> => {
 
 export const isTdMd = (category: KfCategoryTypes) => {
   if (category === 'td' || category === 'md') {
+    return true;
+  }
+
+  return false;
+};
+
+export const isTd = (category: KfCategoryTypes) => {
+  if (category === 'td') {
     return true;
   }
 
@@ -789,20 +921,28 @@ export const isTdMdOperatorStrategy = (category: KfCategoryTypes) => {
   return false;
 };
 
+export const isExtService = (location: KungfuApi.KfExtraLocation) => {
+  const { category, group, name } = location;
+  if (
+    category === 'system' &&
+    group === 'service' &&
+    KfDefaultSystemProcess.indexOf(name) === -1
+  )
+    return true;
+  return false;
+};
+
 export const buildExtTypeMap = (
   extConfigs: KungfuApi.KfExtConfigs,
   category: KfCategoryTypes,
 ): Record<string, InstrumentTypes | StrategyExtTypes> => {
+  if (category === 'system') return {};
   const extTypeMap: Record<string, InstrumentTypes | StrategyExtTypes> = {};
-  const targetCategoryConfig: Record<string, KungfuApi.KfExtConfig> =
-    extConfigs[category] || {};
+  const targetCategoryConfig = extConfigs[category] || {};
 
   Object.keys(targetCategoryConfig).forEach((extKey: string) => {
     const configInKfExtConfig = targetCategoryConfig[extKey];
-    const types = resolveTypesInExtConfig(
-      category,
-      configInKfExtConfig?.type || [],
-    );
+    const types = resolveTypesInExtConfig(configInKfExtConfig?.type || []);
 
     if (!types.length) {
       extTypeMap[extKey] = 'unknown';
@@ -845,6 +985,12 @@ export const getExtConfigList = (
   extConfigs: KungfuApi.KfExtConfigs,
   category: KfCategoryTypes,
 ): KungfuApi.KfExtConfig[] => {
+  if (category === 'system') {
+    return Object.values(extConfigs[category] || {})
+      .map((item) => Object.values(item))
+      .flat();
+  }
+
   return Object.values(extConfigs[category] || {});
 };
 
@@ -985,14 +1131,26 @@ export const getMdTdKfLocationByProcessId = (
 export const getOperatorKfLocationByProcessId = (
   processId: string,
 ): KungfuApi.KfLocation | null => {
-  if (processId.split('_').length === 3) {
-    const [category, group, name] = processId.split('_');
-    return {
-      category: category as KfCategoryTypes,
-      group,
-      name,
-      mode: 'live',
-    };
+  if (processId.indexOf('operator_') === 0) {
+    const splits = processId.split('_');
+
+    if (splits.length === 3) {
+      const [category, group, name] = processId.split('_');
+      return {
+        category: category as KfCategoryTypes,
+        group,
+        name,
+        mode: 'live',
+      };
+    } else if (splits.length === 2) {
+      const [category, name] = processId.split('_');
+      return {
+        category: category as KfCategoryTypes,
+        group: 'default',
+        name,
+        mode: 'live',
+      };
+    }
   }
 
   return null;
@@ -1026,23 +1184,6 @@ export const getStrategyKfLocationByProcessId = (
   return null;
 };
 
-export const getDaemonKfLocationByProcessId = (
-  processId: string,
-): KungfuApi.KfLocation | null => {
-  if (processId.indexOf('daemon_') === 0) {
-    const arr = processId.split('_');
-    if (arr.length < 3) return null;
-
-    return {
-      category: arr[0],
-      group: arr[1],
-      name: arr[2],
-      mode: 'live',
-    };
-  }
-  return null;
-};
-
 const getSystemKfLocationProcessId = (processId: string) => {
   if (!processId) return null;
   if (processId === 'master') {
@@ -1053,6 +1194,13 @@ const getSystemKfLocationProcessId = (processId: string) => {
       mode: 'live',
     };
   } else if (['ledger', 'archive', 'dzxy'].indexOf(processId) !== -1) {
+    return {
+      category: 'system',
+      group: 'service',
+      name: processId,
+      mode: 'live',
+    };
+  } else {
     return {
       category: 'system',
       group: 'service',
@@ -1073,8 +1221,6 @@ export const getKfLocationByProcessId = (
     return getOperatorKfLocationByProcessId(processId);
   } else if (processId.indexOf('strategy_') === 0) {
     return getStrategyKfLocationByProcessId(processId);
-  } else if (processId.indexOf('daemon_') === 0) {
-    return getDaemonKfLocationByProcessId(processId);
   } else if (processId.indexOf('_') === -1) {
     return getSystemKfLocationProcessId(processId);
   }
@@ -1196,7 +1342,7 @@ export const getPropertyFromProcessStatusDetailDataByKfLocation = (
   return {
     status,
     cpu: monit.cpu || 0,
-    memory: Number((monit.memory || 0) / (1024 * 1024)).toFixed(2),
+    memory: Number((monit.memory || 0) / (1024 * 1024)).kfToFixed(2),
   };
 };
 
@@ -1233,7 +1379,7 @@ export const getConfigValue = (kfConfig: KungfuApi.KfConfig) => {
   return JSON.parse(kfConfig.value || '{}');
 };
 
-export const buildIdByKeysFromKfConfigSettings = (
+export const buildIdByPrimaryKeysFromKfConfigSettings = (
   kfConfigState: Record<string, KungfuApi.KfConfigValue>,
   keys: string[],
 ) => {
@@ -1261,6 +1407,11 @@ const startProcessByKfLocation = async (
         return startMaster(isForce);
       } else if (kfLocation.name === 'ledger') {
         return startLedger(isForce);
+      } else if (
+        kfLocation.group === 'service' &&
+        KfDefaultSystemProcess.indexOf(kfLocation.name) === -1
+      ) {
+        startExtService(kfLocation as KungfuApi.KfExtServiceLocation);
       }
       break;
     case 'td':
@@ -1289,12 +1440,6 @@ const startProcessByKfLocation = async (
         getIdByKfLocation(kfLocation),
         filePath,
       );
-    case 'daemon':
-      return startExtDaemon(
-        getProcessIdByKfLocation(kfLocation),
-        kfLocation['cwd'] || '',
-        kfLocation['script'] || '',
-      );
     default:
       return Promise.resolve();
   }
@@ -1304,7 +1449,7 @@ export const switchKfLocation = (
   watcher: KungfuApi.Watcher | null,
   kfLocation: KungfuApi.DerivedKfLocation,
   targetStatus: boolean,
-  force?: boolean,
+  force = false,
 ): Promise<void | Proc> => {
   if (!watcher) return Promise.reject(new Error('Watcher is NULL'));
 
@@ -1369,12 +1514,35 @@ export const getOffsetConfig = (): Record<
     }, {});
 };
 
+export const getOffsetByOffsetFilter = (
+  offsetKey: keyof typeof OffsetEnum,
+  defaultOffset: OffsetEnum,
+): OffsetEnum => {
+  const rootPackageJson = readRootPackageJsonSync();
+  const offsetConfig =
+    rootPackageJson?.appConfig?.makeOrder?.offsetFilter ||
+    ({} as Record<string, boolean>);
+  return offsetConfig[offsetKey] !== false
+    ? OffsetEnum[offsetKey]
+    : defaultOffset;
+};
+
 export const getAbleHedgeFlag = (): boolean => {
   const rootPackageJson = readRootPackageJsonSync();
   const ableHedgeFlag = rootPackageJson?.appConfig?.makeOrder?.ableHedgeFlag;
   const ableHedgeFlagResolved =
     ableHedgeFlag == undefined ? true : ableHedgeFlag;
   return ableHedgeFlagResolved;
+};
+
+export const buildTradingDataHeaders = (
+  tradingDataType: KungfuApi.TradingDataTypeName,
+  tradingData: KungfuApi.TradingDataTypes[],
+) => {
+  if (!tradingData[0]) return true;
+  return [...Object.keys(tradingData[0]), 'source', 'dest'].filter(
+    (key) => !ExportTradingDataColumnsToFilter[tradingDataType].includes(key),
+  );
 };
 
 export const getT0Config = (): {
@@ -1453,16 +1621,18 @@ export const dealDateToNanotimeRange = (
 
 export const dealKfNumber = (
   preNumber: bigint | number | undefined | unknown,
-): string | number | bigint | unknown => {
+): string | number | bigint => {
   if (
     preNumber === undefined ||
     preNumber === null ||
     preNumber === Infinity ||
+    preNumber === -Infinity ||
     Number.isNaN(Number(preNumber))
-  )
+  ) {
     return '--';
+  }
 
-  return preNumber;
+  return Number(preNumber) || 0;
 };
 
 export const dealKfPrice = (
@@ -1475,7 +1645,7 @@ export const dealKfPrice = (
     return afterNumber;
   }
 
-  return Number(afterNumber).toFixed(pricePrecision ?? 3);
+  return Number(afterNumber).kfToFixed(pricePrecision ?? 4);
 };
 
 export const dealAssetPrice = (
@@ -1488,7 +1658,7 @@ export const dealAssetPrice = (
     return afterNumber;
   }
 
-  return Number(afterNumber).toFixed(pricePrecision ?? 3);
+  return Number(afterNumber).kfToFixed(pricePrecision ?? 4);
 };
 
 export const sum = (list: number[]): number => {
@@ -1504,8 +1674,7 @@ export const dealVolumeByInstrumentType = (
   const orderVolume = Math.max(volume, minOrderVolume);
 
   if (instrumentType === InstrumentTypeEnum.techstock) return orderVolume;
-
-  return ~~(orderVolume / minOrderVolume) * minOrderVolume;
+  return Math.floor(orderVolume / minOrderVolume) * minOrderVolume;
 };
 
 export const dealSide = (
@@ -1573,6 +1742,33 @@ export const dealTimeCondition = (
   timeCondition: TimeConditionEnum | number,
 ): KungfuApi.KfTradeValueCommonData => {
   return TimeCondition[+timeCondition as TimeConditionEnum];
+};
+
+export const dealTOrderTriggerFlag = (
+  orderTriggerFlag: OrderTriggerFlag | number,
+): KungfuApi.KfTradeValueCommonData => {
+  return TriggerFlag[+orderTriggerFlag as OrderTriggerFlag];
+};
+
+export const dealParkedType = (
+  parkedType: OrderTriggerParkedTypeEnum | number,
+): KungfuApi.KfTradeValueCommonData => {
+  return ParkedType[+parkedType as OrderTriggerParkedTypeEnum];
+};
+
+export const dealOrderTriggerStatus = (
+  orderTriggerStatus: OrderTriggerStatusEnum | number,
+  errorMsg?: string,
+): KungfuApi.KfTradeValueCommonData => {
+  return {
+    ...OrderTriggerStatus[+orderTriggerStatus as OrderTriggerStatusEnum],
+    ...(+orderTriggerStatus === OrderTriggerStatusEnum.Error && errorMsg
+      ? {
+          name: errorMsg,
+          color: 'red',
+        }
+      : {}),
+  };
 };
 
 export const dealVolumeCondition = (
@@ -1646,15 +1842,15 @@ export const dealOrderStat = (
   const { insert_time, ack_time, md_time, trade_time } = orderStat;
   const latencyTrade =
     trade_time && ack_time
-      ? Number(Number(trade_time - ack_time) / 1000).toFixed(0)
+      ? Number(Number(trade_time - ack_time) / 1000).kfToFixed(0)
       : '--';
   const latencyNetwork =
     ack_time && insert_time
-      ? Number(Number(ack_time - insert_time) / 1000).toFixed(0)
+      ? Number(Number(ack_time - insert_time) / 1000).kfToFixed(0)
       : '--';
   const latencySystem =
     insert_time && md_time
-      ? Number(Number(insert_time - md_time) / 1000).toFixed(0)
+      ? Number(Number(insert_time - md_time) / 1000).kfToFixed(0)
       : '--';
 
   return {
@@ -1737,13 +1933,19 @@ export const getTradingDataSortKey = (
   typename: KungfuApi.TradingDataTypeName,
 ): string => {
   switch (typename) {
+    case 'AlgoOrder':
+      return 'insert_time';
     case 'Order':
       return 'insert_time';
     case 'Trade':
       return 'trade_time';
     case 'OrderInput':
       return 'insert_time';
+    case 'AlgoOrderInput':
+      return 'insert_time';
     case 'Position':
+      return 'instrument_id';
+    case 'Instrument':
       return 'instrument_id';
     default:
       return '';
@@ -1801,9 +2003,7 @@ export const dealStrategyStates = (
   );
 };
 
-export const dealAssetsByHolderUID = <
-  T extends KungfuApi.Asset | KungfuApi.AssetMargin,
->(
+export const dealAssetsByHolderUID = <T extends KungfuApi.Asset>(
   watcher: KungfuApi.Watcher | null,
   assets: KungfuApi.DataTable<T>,
 ): Record<string, T> => {
@@ -1892,9 +2092,11 @@ export const dealTradingDataMethodsMap: Record<
   ) => T[]
 > = {
   Asset: dealLedgerTradingData,
-  AssetMargin: dealLedgerTradingData,
   Instrument: dealDefaultTradingData,
+  InstrumentFactor: dealDefaultTradingData,
+  AlgoOrder: dealDefaultTradingData,
   Order: dealOrderTradingData,
+  AlgoOrderInput: dealDefaultTradingData,
   OrderInput: dealOrderTradingData,
   OrderStat: dealDefaultTradingData,
   Position: dealLedgerTradingData,
@@ -1936,8 +2138,16 @@ export const getPrimaryKeys = (
 ): string[] => {
   return settings.filter((item) => item.primary).map((item) => item.key);
 };
-export const replaceNonAlphaNumericWithSpace = (str: string) => {
-  return str.replace(/[^a-zA-Z0-9]+/g, '');
+export const replaceNonAlphaNumericWithSpace = (
+  value: KungfuApi.KfConfigValue,
+) => {
+  if (typeof value === 'string') {
+    return value
+      .replace(SpecialWordsReg, '')
+      .replace(EnterableSpecialWordsReg, '');
+  } else {
+    return value;
+  }
 };
 const concatPrimaryKey = (arr: string[]) => {
   if (arr.length === 0) return '';
@@ -1986,26 +2196,6 @@ export const transformSearchInstrumentResultToInstrument = (
     id: `${instrumentId}_${instrumentName}_${exchangeId}`.toLowerCase(),
     ukey,
   };
-};
-
-export const booleanProcessEnv = (
-  val: string | boolean | undefined,
-): boolean => {
-  if (val === undefined) {
-    return false;
-  }
-
-  if (val === 'null') {
-    return false;
-  }
-
-  if (val === 'true') {
-    return true;
-  } else if (val === 'false') {
-    return false;
-  } else {
-    return !!val;
-  }
 };
 
 export const numberEnumRadioType: Record<
@@ -2057,6 +2247,7 @@ export const KfConfigValueArrayType = [
   'table',
   'csvTable',
   'rangePicker',
+  'multiSelect',
 ];
 
 export const KfConfigValueTimeType = [
@@ -2234,22 +2425,28 @@ export function isCriticalLog(line: string): boolean {
 }
 
 export const removeNoDefaultStrategyFolders = async (): Promise<void> => {
-  const strategyDir = path.join(KF_RUNTIME_DIR, 'strategy');
-  const filedirList: string[] = (await listDir(strategyDir)) || [];
-  filedirList.map((fileOrFolder) => {
-    const fullPath = path.join(strategyDir, fileOrFolder);
-    if (fileOrFolder === 'default') {
-      if (fse.statSync(fullPath).isDirectory()) {
-        return Promise.resolve();
+  const strategyDirs = RuntimeChildDirTypes.map((type) =>
+    path.join(buildRuntimeChildDirByType(type), 'strategy'),
+  );
+  for (const strategyDir of strategyDirs) {
+    if (!fse.pathExists(strategyDir)) continue;
+    const filedirList: string[] = (await listDir(strategyDir)) || [];
+    filedirList.map((fileOrFolder) => {
+      const fullPath = path.join(strategyDir, fileOrFolder);
+      if (fileOrFolder === 'default') {
+        if (fse.statSync(fullPath).isDirectory()) {
+          return Promise.resolve();
+        }
       }
-    }
-    return fse.remove(fullPath);
-  });
+      return fse.remove(fullPath);
+    });
+  }
 };
 
 // 处理下单时输入数据
 export const dealOrderInputItem = (
   inputData: KungfuApi.MakeOrderInput,
+  price_precision?: number,
 ): Record<string, KungfuApi.KfTradeValueCommonData> => {
   const orderInputResolved: Record<string, KungfuApi.KfTradeValueCommonData> =
     {};
@@ -2270,6 +2467,11 @@ export const dealOrderInputItem = (
     } else if (key === 'is_swap') {
       isInstrumnetShotable &&
         (orderInputResolved[key] = dealIsSwap(inputData.is_swap));
+    } else if (key === 'limit_price') {
+      orderInputResolved[key] = {
+        name: dealAssetPrice(inputData[key], price_precision),
+        color: 'default',
+      };
     } else {
       orderInputResolved[key] = {
         name: inputData[key],
@@ -2380,7 +2582,7 @@ export const getTaskListFromProcessStatusData = (
   taskPrefixs: string[],
   psDetail: Pm2ProcessStatusDetailData,
   sorter?: (a: Pm2ProcessStatusDetail, b: Pm2ProcessStatusDetail) => number,
-): Pm2ProcessStatusDetail[] => {
+): Pm2ProcessStatusDetailResolved[] => {
   return Object.keys(psDetail)
     .filter((processId) => {
       return (
@@ -2407,7 +2609,8 @@ export function dealTradingTaskName(
 ): string {
   const { isLanguageKeyAvailable } = useLanguage();
   const group = name.toKfGroup();
-  const strategyExts = extConfigs['strategy'] || {};
+  const strategyExts = (extConfigs['strategy'] ||
+    {}) as unknown as KungfuApi.KfStrategyExtConfig;
   const groupResolved = strategyExts[group] ? strategyExts[group].name : group;
   const groupTranslated = isLanguageKeyAvailable(groupResolved)
     ? t(groupResolved)
@@ -2421,24 +2624,8 @@ export const isBrokerStateReady = (state: BrokerStateStatusTypes) => {
 };
 
 export function deleteNNFiles(rootPathName = KF_HOME) {
-  return new Promise((resolve, reject) => {
-    glob(
-      '**/*.nn',
-      {
-        cwd: rootPathName,
-      },
-      (err: Error | null, files: string[]) => {
-        if (err) {
-          reject(err);
-        }
-
-        files.forEach((file: string) => {
-          unlinkSync(path.join(rootPathName, file));
-        });
-
-        resolve(true);
-      },
-    );
+  return removeTargetFoldersInFolder(rootPathName, ['nn']).then((res) => {
+    res.errors.forEach((err) => kfLogger.error(err));
   });
 }
 
@@ -2483,8 +2670,11 @@ export const buildIfWatcherLiveObservable = (watcher: KungfuApi.Watcher) => {
   });
 };
 
-export function countDecimalPlaces(num) {
-  const normalNum = Number(num).toFixed(10);
+export function countDecimalPlaces(num: number) {
+  if (String(num).indexOf('e-') !== -1) {
+    return parseInt(String(num).split('e-')[1], 10);
+  }
+  const normalNum = Number(num).kfToFixed(10);
   const numStr = String(normalNum)
     .replace(/(\.\d*?[1-9])0+$/, '$1')
     .replace(/\.0+$/, '');

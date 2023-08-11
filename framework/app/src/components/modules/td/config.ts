@@ -3,6 +3,7 @@ import { LedgerCategoryEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { DealTradingDataGetter } from '@kungfu-trader/kungfu-js-api/hooks/dealTradingDataHook';
 import { getTradingDataSortKey } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { FundTransTypeEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 const { t } = VueI18n.global;
 
 export const getColumns = (
@@ -13,7 +14,8 @@ export const getColumns = (
   marginSorter: (
     dataIndex: string,
   ) => (a: KungfuApi.KfConfig, b: KungfuApi.KfConfig) => number,
-  isShowAssetMargin: boolean,
+  isShowMarginTrading: boolean,
+  isShowUnrealizedPnl: boolean,
 ): AntTableColumns =>
   (globalThis.HookKeeper.getHooks().dealTradingTable as DealTradingTableHooks)
     .trigger(kfLocation, 'td')
@@ -47,15 +49,19 @@ export const getColumns = (
         width: 60,
         fixed: 'left',
       },
-      {
-        title: t('tdConfig.unrealized_pnl'),
-        dataIndex: 'unrealizedPnl',
-        align: 'right',
-        sorter: {
-          compare: sorter('unrealized_pnl'),
-        },
-        width: 110,
-      },
+      ...(isShowUnrealizedPnl
+        ? [
+            {
+              title: t('tdConfig.unrealized_pnl'),
+              dataIndex: 'unrealizedPnl',
+              align: 'right',
+              sorter: {
+                compare: sorter('unrealized_pnl'),
+              },
+              width: 110,
+            },
+          ]
+        : []),
       {
         title: t('tdConfig.marked_value'),
         dataIndex: 'marketValue',
@@ -84,7 +90,7 @@ export const getColumns = (
         width: 110,
       },
 
-      ...(isShowAssetMargin
+      ...(isShowMarginTrading
         ? [
             {
               title: t('tdConfig.avail_margin'),
@@ -170,4 +176,16 @@ export const categoryRegisterConfig: DealTradingDataGetter = {
         });
     },
   },
+};
+
+export const getFundTransKey = (type: FundTransTypeEnum | null): string => {
+  if (type === FundTransTypeEnum.BetweenNodes) {
+    return 'FundTransBetweenNodes';
+  } else if (type === FundTransTypeEnum.TrancIn) {
+    return 'FundTransIn';
+  } else if (type === FundTransTypeEnum.TrancOut) {
+    return 'FundTransOut';
+  } else {
+    return 'FundTrans';
+  }
 };

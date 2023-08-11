@@ -28,9 +28,8 @@ export const startTradingTaskByCommand = async (
   argsState: Record<string, KungfuApi.KfConfigValue>,
 ): Promise<Proc | void> => {
   const extConfigs = await getKfExtensionConfig();
-  const extConfig: KungfuApi.KfExtConfig = (extConfigs['strategy'] || {})[
-    extKey
-  ];
+  const extConfig: KungfuApi.KfStrategyExtConfig = (extConfigs['strategy'] ||
+    {})[extKey];
 
   if (!extConfig) {
     throw new Error(`${extKey} is not existed in extConfigs`);

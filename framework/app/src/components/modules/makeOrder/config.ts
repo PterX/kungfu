@@ -84,7 +84,7 @@ export const getConfigSettings = (
           : t('tradingConfig.protect_price'),
       type: 'float',
       min: 0,
-      precision: pricePrecision ?? 3,
+      precision: pricePrecision ?? 4,
       step: step || 1,
       required: priceType !== PriceTypeEnum.Market ? true : false,
     },
@@ -106,7 +106,7 @@ export const makeOrderConfigKFTypes = [
   'side',
   'offset',
   'hedgeFlag',
-  'pricetype',
+  'priceType',
 ];
 
 export const makeOrderConfigKFKeys = [

@@ -30,6 +30,7 @@ interface AntTableColumn {
   sorter?: boolean | { compare: (a: any, b: any) => number };
   align?: string;
   fixed?: string;
+  defaultSortOrder?: string;
 }
 
 type AntTableColumns = Array<AntTableColumn>;
@@ -44,8 +45,11 @@ interface ExtraOrderInput {
 interface KfTradingDataTableHeaderConfig {
   name: string;
   dataIndex: string;
+  align?: 'left' | 'right' | 'center';
   width?: number;
   flex?: number;
+  overflow?: 'visible' | 'hidden' | 'ellipsis' | 'clip';
+  wrap?: boolean;
   type?:
     | 'number'
     | 'string'
@@ -81,7 +85,9 @@ type BuiltinComponents =
   | 'OrderBook'
   | 'MakeOrder'
   | 'FutureArbitrage'
-  | 'BlockTrade';
+  | 'BlockTrade'
+  | 'OrderTriggerRecord'
+  | 'TransferRecord';
 
 interface BuiltinComponentPropsMap {
   TradingTask?: {
@@ -90,7 +96,9 @@ interface BuiltinComponentPropsMap {
       a: Pm2ProcessStatusDetail,
       b: Pm2ProcessStatusDetail,
     ) => number;
-    strategyFilter?: (strategyExtConfig: KungfuApi.KfExtConfig) => boolean;
+    strategyFilter?: (
+      strategyExtConfig: KungfuApi.KfStrategyExtConfig,
+    ) => boolean;
   };
 }
 

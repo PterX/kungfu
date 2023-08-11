@@ -3,6 +3,7 @@ import './injectGlobal';
 import path from 'path';
 import { triggerStartStep } from '@kungfu-trader/kungfu-js-api/kungfu/tradingData';
 import {
+  buildTradingDataHeaders,
   getOrderTradeFilterKey,
   getProcessIdByKfLocation,
   getTradingDataSortKey,
@@ -16,6 +17,7 @@ import {
   dealTrade,
   dealTradingDataItem,
   getKungfuHistoryData,
+  getOrderLatencyDataByOrderStat,
   kfCancelAllOrders,
 } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { watcher } from '@kungfu-trader/kungfu-js-api/kungfu/watcher';
@@ -82,13 +84,13 @@ function resOrders(packet: Pm2PacketMain) {
   const orders = globalThis.HookKeeper.getHooks()
     .dealTradingData.trigger(watcher, kfLocation, watcher.ledger.Order, 'order')
     .slice(0, 10)
-    .map((item) =>
-      dealOrder(
-        watcher as KungfuApi.Watcher,
-        item as KungfuApi.Order,
+    .map((item) => ({
+      ...dealOrder(watcher as KungfuApi.Watcher, item as KungfuApi.Order),
+      ...getOrderLatencyDataByOrderStat(
+        item,
         (watcher as KungfuApi.Watcher).ledger.OrderStat,
       ),
-    );
+    }));
 
   turnBigIntToString(orders);
 
@@ -247,14 +249,30 @@ async function exportTradingData(date, output_folder) {
   const posFilename = path.join(output_folder, `pos-${date}`);
 
   return Promise.all([
-    writeCsvWithUTF8Bom(ordersFilename, orders, dealTradingDataItemResolved),
-    writeCsvWithUTF8Bom(tradesFilename, trades, dealTradingDataItemResolved),
+    writeCsvWithUTF8Bom(
+      ordersFilename,
+      orders,
+      buildTradingDataHeaders('Order', orders),
+      dealTradingDataItemResolved,
+    ),
+    writeCsvWithUTF8Bom(
+      tradesFilename,
+      trades,
+      buildTradingDataHeaders('Trade', trades),
+      dealTradingDataItemResolved,
+    ),
     writeCsvWithUTF8Bom(
       orderStatFilename,
       orderStat,
+      buildTradingDataHeaders('OrderStat', orderStat),
       dealTradingDataItemResolved,
     ),
-    writeCsvWithUTF8Bom(posFilename, positions, dealTradingDataItemResolved),
+    writeCsvWithUTF8Bom(
+      posFilename,
+      positions,
+      buildTradingDataHeaders('Position', positions),
+      dealTradingDataItemResolved,
+    ),
   ]);
 }
 
@@ -272,7 +290,7 @@ function turnBigIntToString<T>(list: T[]) {
   list.forEach((item) => {
     Object.keys(item).forEach((key) => {
       if (typeof item[key] === 'bigint') {
-        item[key] = Number(item[key]).toFixed(0);
+        item[key] = Number(item[key]).kfToFixed(0);
       }
     });
   });

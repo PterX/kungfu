@@ -68,7 +68,7 @@ class Master(yjj.master):
             commission.min_commission = default.min_commission
             self.profile.set(commission)
 
-    def on_register(self, event, register_data):
+    def on_register(self, gen_time, register_data):
         pid = register_data.pid
         category = lf.enums.get_category_name(register_data.category)
         mode = lf.enums.get_mode_name(register_data.mode)
@@ -86,7 +86,22 @@ class Master(yjj.master):
                 exc_type, exc_obj, exc_tb = sys.exc_info()
                 err_msg = traceback.format_exception(exc_type, exc_obj, exc_tb)
                 self.ctx.logger.error(f"app [{pid}] {uname} checkin failed: {err_msg}")
-                self.deregister_app(event.gen_time, register_data.location_uid)
+                self.deregister_app(gen_time, register_data.location_uid)
+
+    def check_register(self, gen_time, register_data):
+        pid = register_data.pid
+        category = lf.enums.get_category_name(register_data.category)
+        mode = lf.enums.get_mode_name(register_data.mode)
+        uname = f"{category}/{register_data.group}/{register_data.name}/{mode}"
+        self.ctx.logger.info(f"app {pid} {uname} checking")
+        try:
+            psutil.Process(pid)
+            return True
+        except (psutil.AccessDenied, psutil.NoSuchProcess):
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            err_msg = traceback.format_exception(exc_type, exc_obj, exc_tb)
+            self.ctx.logger.warn(f"app [{pid}] {uname} checked failed: {err_msg}")
+            return False
 
     def on_interval_check(self, nanotime):
         try:

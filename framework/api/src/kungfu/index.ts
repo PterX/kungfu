@@ -28,6 +28,7 @@ import {
   setTimerPromiseTask,
   dealParkedType,
   dealOrderTriggerStatus,
+  dealTOrderTriggerFlag,
 } from '../utils/busiUtils';
 import {
   HistoryDateEnum,
@@ -325,6 +326,7 @@ export const kfRequestMarketData = (
 export const kfCancelOrder = (
   watcher: KungfuApi.Watcher | null,
   order: KungfuApi.Order,
+  orderActionFlag: OrderActionFlagEnum,
 ): Promise<bigint> => {
   if (!watcher) {
     return Promise.reject(new Error(`Watcher is NULL`));
@@ -345,7 +347,7 @@ export const kfCancelOrder = (
 
   const orderAction: KungfuApi.OrderAction = {
     ...longfist.types.OrderAction(),
-    action_flag: OrderActionFlagEnum.Cancel,
+    action_flag: orderActionFlag,
     order_id,
   };
 
@@ -358,6 +360,38 @@ export const kfCancelOrder = (
   );
 };
 
+export const kfCancelOriderTrigger = (
+  watcher: KungfuApi.Watcher | null,
+  order: KungfuApi.OrderTriggerResolved,
+  tdLocation: KungfuApi.KfLocation,
+): Promise<bigint> => {
+  if (!watcher) {
+    return Promise.reject(new Error(`Watcher is NULL`));
+  }
+
+  if (!watcher.isLive()) {
+    return Promise.reject(new Error(`Watcher is not live`));
+  }
+
+  const { order_id, source, trigger_id } = order;
+  const sourceLocation = watcher.getLocation(source);
+
+  if (!watcher.isReadyToInteract(tdLocation)) {
+    const accountId = getIdByKfLocation(tdLocation);
+    return Promise.reject(new Error(`Td ${accountId} not ready`));
+  }
+
+  const orderAction: KungfuApi.OrderAction = {
+    ...longfist.types.OrderAction(),
+    order_id,
+    trigger_id,
+  };
+
+  return Promise.resolve(
+    watcher.cancelOrderTrigger(orderAction, sourceLocation),
+  );
+};
+
 export const kfCancelOrderUtilFinished = (
   watcher: KungfuApi.Watcher,
   order: KungfuApi.Order,
@@ -365,7 +399,7 @@ export const kfCancelOrderUtilFinished = (
   return new Promise<KungfuApi.Order>((resolve, reject) => {
     if (!UnfinishedOrderStatus.includes(order.status)) return resolve(order);
 
-    kfCancelOrder(watcher, order)
+    kfCancelOrder(watcher, order, OrderActionFlagEnum.Cancel)
       .then(() => {
         const { clearLoop } = setTimerPromiseTask(() => {
           const targetOrder = (watcher as KungfuApi.Watcher).ledger.Order[
@@ -399,7 +433,34 @@ export const kfCancelAllOrders = (
 
   const cancelOrderTasks = orders.map(
     (item: KungfuApi.Order): Promise<bigint> => {
-      return kfCancelOrder(watcher, item);
+      return kfCancelOrder(watcher, item, OrderActionFlagEnum.Cancel);
+    },
+  );
+
+  return Promise.all(cancelOrderTasks);
+};
+
+export const kfCancelAllOrdersTrigger = (
+  watcher: KungfuApi.Watcher | null,
+  orders: KungfuApi.OrderTriggerResolved[],
+  tdLocation: KungfuApi.KfLocation,
+): Promise<bigint[]> => {
+  if (!watcher) {
+    return Promise.reject(new Error(`Watcher is NULL`));
+  }
+
+  if (!watcher.isLive()) {
+    return Promise.reject(new Error(`Watcher is not live`));
+  }
+
+  if (!watcher.isReadyToInteract(tdLocation)) {
+    const accountId = getIdByKfLocation(tdLocation);
+    return Promise.reject(new Error(`Td ${accountId} not ready`));
+  }
+
+  const cancelOrderTasks = orders.map(
+    (item: KungfuApi.OrderTriggerResolved): Promise<bigint> => {
+      return kfCancelOriderTrigger(watcher, item, tdLocation);
     },
   );
 
@@ -864,6 +925,7 @@ export const dealOrderTrigger = (
   order: KungfuApi.OrderTrigger,
   isHistory = false,
   pricePrecision = 4,
+  index,
 ): KungfuApi.OrderTriggerResolved => {
   const sourceResolvedData = resolveAccountId(
     watcher,
@@ -884,14 +946,17 @@ export const dealOrderTrigger = (
     status_uname: statusData.name || '--',
     status_color: statusData.color || 'default',
     update_time_resolved: dealKfTime(order.update_time, isHistory),
+    insert_time_resolved: dealKfTime(order.insert_time, isHistory),
     price_precision: pricePrecision,
     limit_price_resolved: dealKfPrice(order.limit_price, pricePrecision),
-    time_condition: dealTimeCondition(order.time_condition)
+    time_condition_resolved: dealTimeCondition(order.time_condition)
       ? dealTimeCondition(order.time_condition).name
       : '--',
-    parked_type: dealParkedType(order.parked_type)
+    parked_type_resolved: dealParkedType(order.parked_type)
       ? dealParkedType(order.parked_type).name
       : '--',
+    key: index + 1,
+    action_flag_uname: dealTOrderTriggerFlag(order.action_flag).name,
   };
 };
 

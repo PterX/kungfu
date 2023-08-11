@@ -342,11 +342,12 @@ export default {
     order_trigger_title: '预埋单确认',
     server_order_trigger_label: '服务器预埋单',
     local_order_trigger_label: '本地预埋单',
-    order_trigger_status_pending: '已提交',
+    order_trigger_status_pending: '等待中',
     order_trigger_status_submitted: '未触发',
     order_trigger_status_filled: '已触发',
     order_trigger_status_cancelled: '已取消',
     order_trigger_status_error: '错误',
+    order_trigger_status_cancelling: '待撤',
     batch: '批量',
     batch_order_trigger: '批量预埋单',
     empty_csv_order: '含有未填入的项, 下单失败',
@@ -426,6 +427,8 @@ export default {
 
     checkbox_text: '未完成委托',
     cancel_all: '全部撤单',
+    cancel_order: '撤单',
+    cancel_order_trigger: '预撤',
     date_picker: '请选择日期',
     confirm_cancel_all: '确认全部撤单',
     entrust: '委托',
@@ -444,6 +447,25 @@ export default {
     average_network_latency: '平均网络延迟(μs)',
     min_network_latency: '最小网络延迟(μs)',
     max_network_latency: '最大网络延迟(μs)',
+
+    actions: '操作',
+    order_finished: '该委托已结束, 无法预埋撤单',
+    confirm_cancel_order_trigger: '确认撤销预埋单',
+    cancel_order_trigger_context: '您是否要取消该委托单下的预埋撤单',
+  },
+
+  orderTriggerConfig: {
+    trigger_insert: '下单',
+    trigger_cancel: '撤单',
+    action_flag: '类型',
+    confirm_cancel_all: '确认全部撤单',
+    confirm: '确认',
+    cancel_all: '全部撤单',
+    insert_time: '生成时间',
+    order_finished: '该委托已结束, 无法操作',
+    order_trigger_request_success: '刷新成功',
+    make_order_modal_tip:
+      '注: 预埋单仅支持在非交易时间段下单, 会在交易所交易状态变化时触发, 仅支持限价',
   },
 
   tdConfig: {
@@ -733,9 +755,9 @@ export default {
   globalSettingConfig: {
     global_setting_title: '全局设置',
     system: '系统',
-    home_path: '选择本地 Home 路径',
-    home_path_desc:
-      '功夫将会以选择的 home 路径为根目录, 目录路径不可以包含中文, 且路径不建议太长 (过长会导致进程无法启动), 修改后重启功夫生效',
+    home_dir: '选择本地 Home 目录',
+    home_dir_desc:
+      '功夫将会以选择的 Home 目录作为系统缓存数据的根目录, 目录路径不可以包含中文, 且路径不建议太长 (过长会导致进程无法启动), 修改后重启功夫生效',
     reset_order: '重置',
     log_level: '全局日志级别',
     for_all_log: '对系统内所有日志级别的设置',

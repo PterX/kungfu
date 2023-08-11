@@ -28,6 +28,7 @@ import {
   OrderTriggerParkedTypeEnum,
   OrderTriggerStatusEnum,
   FundTransEnum,
+  OrderTriggerFlag,
 } from '../typings/enums';
 
 import { Pm2ProcessStatusTypes } from '../utils/processUtils';
@@ -392,6 +393,17 @@ export const AllFinishedOrderStatus = [
   OrderStatusEnum.Lost,
 ];
 
+export const UnfinishedOrderTriggerStatus = [
+  OrderStatusEnum.Pending,
+  OrderStatusEnum.Submitted,
+  OrderStatusEnum.PartialFilledActive,
+];
+
+export const OrderCancelledStatus = [
+  OrderStatusEnum.Cancelled,
+  OrderStatusEnum.PartialFilledNotActive,
+];
+
 export const Direction: Record<
   DirectionEnum,
   KungfuApi.KfTradeValueCommonData
@@ -523,6 +535,10 @@ export const OrderTriggerStatus: Record<
   [OrderTriggerStatusEnum.Error]: {
     name: t('tradingConfig.order_trigger_status_error'),
     color: 'red',
+  },
+  [OrderTriggerStatusEnum.Cancelling]: {
+    name: t('tradingConfig.order_trigger_status_cancelling'),
+    color: 'default',
   },
 };
 
@@ -1058,4 +1074,22 @@ export const ExportTradingDataColumnsToFilter: Record<
   BasketInstrument: ['dest', 'source'],
   BasketOrder: [],
   InstrumentFactor: ['dest', 'source'],
+  OrderTrigger: [],
+};
+
+export const OrderTriggerCancelStatus = [
+  OrderTriggerStatusEnum.Submitted,
+  OrderTriggerStatusEnum.Pending,
+];
+
+export const TriggerFlag: Record<
+  OrderTriggerFlag,
+  KungfuApi.KfTradeValueCommonData
+> = {
+  [OrderTriggerFlag.TriggerInsert]: {
+    name: t('orderTriggerConfig.trigger_insert'),
+  },
+  [OrderTriggerFlag.TriggerCancel]: {
+    name: t('orderTriggerConfig.trigger_cancel'),
+  },
 };

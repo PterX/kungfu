@@ -35,7 +35,7 @@ bool LiveContext::is_started() const { return started_; }
 void LiveContext::prepare(const event_ptr &event) {
   auto ledger_uid = app_.get_ledger_home_location()->uid;
   if (not app_.has_writer(ledger_uid)) {
-    SPDLOG_INFO("ledger writer not found");
+    SPDLOG_TRACE("ledger writer not found");
     return;
   }
   auto writer = app_.get_writer(ledger_uid);

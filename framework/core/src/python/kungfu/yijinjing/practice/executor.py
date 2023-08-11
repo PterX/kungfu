@@ -371,26 +371,31 @@ class ExtensionExecutor:
             )
             ctx.op_runner.set_from_indexer(from_indexer)
             ctx.op_runner.set_to_indexer(to_indexer)
-        # ctx.runner = self.load_runner(ctx)
+        if kfj.MODES[ctx.mode] == lf.enums.mode.REPLAY:
+            begin_time_stamp, end_time_stamp = self.parse_begin_end(ctx)
+            ctx.op_runner.set_begin_time(begin_time_stamp)
+            ctx.op_runner.set_end_time(end_time_stamp)
+
         ctx.op_runner.add_operator(ctx.operator)
         ctx.op_runner.run()
 
     def parse_begin_end(self, ctx):
-        ctx.logger.debug(f"ctx.mode: {ctx.mode}, ctx.backtest: {ctx.backtest}")
-        if ctx.backtest and ctx.backtest.endswith(".json"):
-            with open(ctx.backtest, "r", encoding="utf-8") as json_file:
-                backtest_para = json.load(json_file)
-        elif ctx.backtest:
-            backtest_para = json.loads(ctx.backtest)
+        ctx.logger.debug(f"ctx.mode: {ctx.mode}")
 
         begin_time_stamp = kft.strptimes(
-            ctx.begin if ctx.begin else backtest_para["begin_time"],
+            ctx.begin,
             ("%F %T", "%F %T.%N", "%Y%m%d", "%Y-%m-%d", "%Y-%m-%d %H:%M:%S"),
-        )
-        end_time_stamp = kft.strptimes(
-            ctx.end if ctx.end else backtest_para["end_time"],
+        ) if ctx.begin else yjj.now_in_nano()
+        end_time_stamp = kft.strptimes(ctx.end,
             ("%F %T", "%F %T.%N", "%Y%m%d", "%Y-%m-%d", "%Y-%m-%d %H:%M:%S"),
-        )
+        ) if ctx.end else yjj.now_in_nano()
+
+        if ctx.session_id:
+            session = kfj.find_session(ctx, ctx.session_id)
+            begin_time_stamp = session["begin_time"]
+            end_time_stamp = session["end_time"] if session.closed else yjj.now_in_nano()
+            ctx.logger.info(f"----- {begin_time_stamp} {end_time_stamp} {session.closed}")
+
         ctx.logger.debug(
             f"begin time: {begin_time_stamp}, end_time_stamp: {end_time_stamp}"
         )

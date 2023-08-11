@@ -53,7 +53,7 @@ uint32_t ReplayContext::get_live_home_uid() const { return app_.get_live_home_ui
 
 const std::string ReplayContext::get_config() const {
   auto &config_map = app_.get_state_bank()[boost::hana::type_c<Config>];
-  if (config_map.find(app_.get_home_uid()) == config_map.end()) {
+  if (config_map.find(app_.get_live_home_uid()) == config_map.end()) {
     return "{}";
   }
   auto &config_obj = config_map.at(app_.get_live_home_uid());
@@ -104,6 +104,8 @@ void ReplayContext::req_deregister() {
   SPDLOG_WARN("req_deregister");
   app_.request_deregister();
 }
+
+void ReplayContext::update_operator_state(OperatorStateUpdate &state_upate) {}
 
 broker::Client &ReplayContext::get_broker_client() { return broker_client_; }
 

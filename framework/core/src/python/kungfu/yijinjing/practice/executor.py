@@ -382,19 +382,43 @@ class ExtensionExecutor:
     def parse_begin_end(self, ctx):
         ctx.logger.debug(f"ctx.mode: {ctx.mode}")
 
-        begin_time_stamp = kft.strptimes(
-            ctx.begin,
-            ("%F %T", "%F %T.%N", "%Y%m%d", "%Y-%m-%d", "%Y-%m-%d %H:%M:%S"),
-        ) if ctx.begin else yjj.now_in_nano()
-        end_time_stamp = kft.strptimes(ctx.end,
-            ("%F %T", "%F %T.%N", "%Y%m%d", "%Y-%m-%d", "%Y-%m-%d %H:%M:%S"),
-        ) if ctx.end else yjj.now_in_nano()
+        if (
+            not ctx.begin
+            and not ctx.end
+            and kfj.MODES[ctx.mode] == lf.enums.mode.BACKTEST
+        ):
+            raise RuntimeError("backtest mode must specify begin and end")
+
+        if (
+            not (ctx.begin and ctx.end)
+            and not ctx.session_id
+            and kfj.MODES[ctx.mode] == lf.enums.mode.REPLAY
+        ):
+            raise RuntimeError("replay mode must specify begin and end or session_id")
+
+        begin_time_stamp = (
+            kft.strptimes(
+                ctx.begin,
+                ("%F %T", "%F %T.%N", "%Y%m%d", "%Y-%m-%d", "%Y-%m-%d %H:%M:%S"),
+            )
+            if ctx.begin
+            else yjj.now_in_nano()
+        )
+        end_time_stamp = (
+            kft.strptimes(
+                ctx.end,
+                ("%F %T", "%F %T.%N", "%Y%m%d", "%Y-%m-%d", "%Y-%m-%d %H:%M:%S"),
+            )
+            if ctx.end
+            else yjj.now_in_nano()
+        )
 
         if ctx.session_id:
             session = kfj.find_session(ctx, ctx.session_id)
             begin_time_stamp = session["begin_time"]
-            end_time_stamp = session["end_time"] if session.closed else yjj.now_in_nano()
-            ctx.logger.info(f"----- {begin_time_stamp} {end_time_stamp} {session.closed}")
+            end_time_stamp = (
+                session["end_time"] if session.closed else yjj.now_in_nano()
+            )
 
         ctx.logger.debug(
             f"begin time: {begin_time_stamp}, end_time_stamp: {end_time_stamp}"

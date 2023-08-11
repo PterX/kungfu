@@ -88,7 +88,6 @@ void Runner::post_start() {
                 event->dest()));
 
   invoke(&Operator::post_start);
-  SPDLOG_INFO("operator {} started", get_io_device()->get_home()->name);
 }
 
 void Runner::pre_stop() { invoke(&Operator::pre_stop); }

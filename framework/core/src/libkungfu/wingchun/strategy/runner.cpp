@@ -159,7 +159,6 @@ void Runner::post_start() {
       $$(invoke(&Strategy::on_algo_order_action_error, event->data<AlgoOrderActionError>(),
                 get_location(event->source()), event->dest()));
   invoke(&Strategy::post_start);
-  SPDLOG_INFO("strategy {} started", get_io_device()->get_home()->name);
 }
 
 void Runner::pre_stop() { invoke(&Strategy::pre_stop); }

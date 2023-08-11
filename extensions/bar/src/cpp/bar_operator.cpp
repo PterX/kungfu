@@ -52,7 +52,6 @@ public:
   }
 
   void pre_start(Context_ptr & context) override {
-    SPDLOG_INFO("preparing operator");
     try {
       nlohmann::json j_obj = nlohmann::json::parse(context->get_config());
       SPDLOG_INFO("preparing operator");

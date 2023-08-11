@@ -306,13 +306,17 @@ bool PassiveClient::has_enrolled_td_channel(uint32_t home_uid) const {
                      [this, home_uid](const auto &it) { return has_channel(home_uid, it.first); });
 }
 
-const PassiveClient::EnrolledLocationMap &PassiveClient::get_enrolled_md_locations() const { return enrolled_md_locations_; }
+const PassiveClient::EnrolledLocationMap &PassiveClient::get_enrolled_md_locations() const {
+  return enrolled_md_locations_;
+}
 
 const PassiveClient::EnrolledLocationMap &PassiveClient::get_enrolled_td_locations() const {
   return enrolled_td_locations_;
 }
 
-const PassiveClient::EnrolledLocationMap &PassiveClient::get_enrolled_op_locations() const { return enrolled_op_locations_; }
+const PassiveClient::EnrolledLocationMap &PassiveClient::get_enrolled_op_locations() const {
+  return enrolled_op_locations_;
+}
 
 uint32_t PassiveClient::get_td_location_uid(const std::string &source, const std::string &account) const {
   uint32_t hashed_account = hash_account(source, account);
@@ -332,7 +336,7 @@ const yijinjing::data::location_ptr &PassiveClient::find_md_location(const std::
       SPDLOG_ERROR(fmt::format("invalid md {}", source));
       throw wingchun_error(fmt::format("invalid md {}", source));
     }
-    
+
     str_key_md_locations_.emplace(source, md_location);
   }
   return str_key_md_locations_.at(source);

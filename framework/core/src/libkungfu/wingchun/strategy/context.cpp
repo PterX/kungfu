@@ -30,15 +30,4 @@ void Context::bypass_accounting() { bypass_accounting_ = true; }
 
 bool Context::is_bypass_accounting() const { return bypass_accounting_; }
 
-const location_ptr &Context::find_md_location(const std::string &source, const location_ptr &home) {
-  if (str_key_md_locations_.find(source) == str_key_md_locations_.end()) {
-    auto md_location = location::make_shared(mode::LIVE, category::MD, source, source, home->locator);
-    if (not app_.has_location(md_location->uid)) {
-      SPDLOG_ERROR(fmt::format("invalid md {}", source));
-    }
-    str_key_md_locations_.emplace(source, md_location);
-  }
-  return str_key_md_locations_.at(source);
-}
-
 } // namespace kungfu::wingchun::strategy

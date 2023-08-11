@@ -118,14 +118,6 @@ void BacktestContext::subscribe(const std::string &source, const std::vector<std
 void BacktestContext::subscribe_all(const std::string &source, uint8_t market_type, uint64_t instrument_type,
                                     uint64_t data_type) {
   throw wingchun_error(fmt::format("not support subscribe_all in backtest mode"));
-  // auto md_location = find_md_location(source);
-  // if (md_location->locator->list_page_id(md_location, location::PUBLIC).empty()) {
-  //   throw wingchun_error(fmt::format("md public journal {} not exists", md_location->uname));
-  // }
-  // SPDLOG_INFO("subscribe source={} in: {}", source, md_location->uname);
-  // add_location(app_, md_location);
-  // app_.get_reader()->join(md_location, location::PUBLIC, std::max(app_.get_begin_time(), app_.now()));
-  // broker_client_.subscribe_all(find_md_location(source), market_type, instrument_type, data_type);
 }
 
 void BacktestContext::subscribe_operator(const std::string &group, const std::string &name) {

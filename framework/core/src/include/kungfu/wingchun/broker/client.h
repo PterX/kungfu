@@ -261,6 +261,7 @@ public:
  */
 class PassiveClient : public Client {
   typedef std::unordered_map<uint32_t, bool> EnrollmentMap;
+  typedef std::unordered_map<uint32_t, yijinjing::data::location_ptr> EnrollmentLocationMap;
   typedef std::unordered_map<uint32_t, std::vector<longfist::types::CustomSubscribe>> CustomSubscribeMap;
 
 public:
@@ -287,13 +288,36 @@ public:
 
   void sync(int64_t trigger_time, const yijinjing::data::location_ptr &td_location) override;
 
-  void enroll_account(const yijinjing::data::location_ptr &td_location);
+  void enroll_td(const yijinjing::data::location_ptr &td_location);
+
+  void enroll_md(const yijinjing::data::location_ptr &md_location, bool is_custom_subscribe);
 
   void enroll_operator(const yijinjing::data::location_ptr &op_location);
 
   bool enrolled_operator_ready() const;
 
   bool enrolled_md_ready() const;
+
+  bool enrolled_td_ready() const;
+
+  bool enrolled_operator_connected() const;
+
+  bool enrolled_md_connected() const;
+
+  bool enrolled_td_connected() const;
+
+  bool has_enrolled_td_channel(uint32_t home_uid) const;
+
+  const EnrollmentMap &get_enrolled_md_locations() const;
+
+  const EnrollmentLocationMap &get_enrolled_td_locations() const;
+
+  const EnrollmentMap &get_enrolled_op_locations() const;
+
+  uint32_t get_td_location_uid(const std::string &source, const std::string &account) const;
+
+  const yijinjing::data::location_ptr &find_md_location(const std::string &source,
+                                                        const yijinjing::data::location_ptr &home);
 
 protected:
   [[nodiscard]] bool should_connect_md(const yijinjing::data::location_ptr &md_location) const override;
@@ -316,8 +340,10 @@ private:
   FromNowResumePolicy resume_policy_ = {};
   CustomSubscribeMap custom_subs_ = {};
   EnrollmentMap enrolled_md_locations_ = {};
-  EnrollmentMap enrolled_td_locations_ = {};
+  EnrollmentLocationMap enrolled_td_locations_ = {};
   EnrollmentMap enrolled_op_locations_ = {};
+
+  std::unordered_map<std::string, yijinjing::data::location_ptr> str_key_md_locations_ = {};
 };
 
 template <typename DataType, std::enable_if_t<longfist::is_market_data<DataType>()>...>

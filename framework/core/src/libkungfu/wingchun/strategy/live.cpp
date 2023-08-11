@@ -58,19 +58,19 @@ void LiveContext::prepare(const event_ptr &event) {
   }
   auto writer = app_.get_writer(ledger_uid);
 
-  if (not broker_states_requested_ and connected_test(get_broker_client(), list_accounts()) and
-      connected_test(get_broker_client(), list_md()) and connected_test(get_broker_client(), list_op())) {
+  if (not broker_states_requested_ and broker_client_.enrolled_md_connected() and
+      broker_client_.enrolled_operator_connected() and broker_client_.enrolled_td_connected()) {
     writer->mark(now(), BrokerStateRequest::tag);
     writer->mark(now(), OperatorStateRequest::tag);
     broker_states_requested_ = true;
   }
 
-  if (not ready_test(get_broker_client(), list_accounts()) or not ready_test(get_broker_client(), list_md()) or
-      not ready_test(get_broker_client(), list_op())) {
+  if (not broker_client_.enrolled_td_ready() or not broker_client_.enrolled_md_ready() or
+      not broker_client_.enrolled_operator_ready()) {
     return;
   }
 
-  if (not has_td_channel(get_broker_client(), list_accounts(), get_home_uid())) {
+  if (not broker_client_.has_enrolled_td_channel(get_home_uid())) {
     return;
   }
 
@@ -81,7 +81,7 @@ void LiveContext::prepare(const event_ptr &event) {
       writer->mark(now(), ResetBookRequest::tag);
     }
 
-    for (const auto &td_pair : list_accounts()) {
+    for (const auto &td_pair : broker_client_.get_enrolled_td_locations()) {
       writer->write(now(), td_pair.second->to<OutputKey>());
     }
 
@@ -128,30 +128,23 @@ void LiveContext::add_account(const std::string &source, const std::string &acco
     SPDLOG_ERROR("invalid account {}_{}", source, account);
     throw wingchun_error(fmt::format("invalid account {}_{}", source, account));
   }
-
-  uint32_t hashed_account = hash_account(source, account);
-  td_locations_.emplace(hashed_account, account_location);
-  td_locations_.emplace(account_location->uid, account_location);
-
-  broker_client_.enroll_account(account_location);
+  broker_client_.enroll_td(account_location);
 }
 
 void LiveContext::subscribe(const std::string &source, const std::vector<std::string> &instrument_ids,
                             const std::string &exchange_ids) {
-  auto md_location = find_md_location(source, app_.get_home());
+  auto md_location = broker_client_.find_md_location(source, app_.get_home());
   for (const auto &instrument_id : instrument_ids) {
     broker_client_.subscribe(md_location, exchange_ids, instrument_id);
   }
-  md_locations_.emplace(md_location->uid, md_location);
   ensure_connect();
   send_instrument_keys();
 }
 
 void LiveContext::subscribe_all(const std::string &source, uint8_t market_type, uint64_t instrument_type,
                                 uint64_t data_type) {
-  auto md_location = find_md_location(source, app_.get_home());
+  auto md_location = broker_client_.find_md_location(source, app_.get_home());
   broker_client_.subscribe_all(md_location, market_type, instrument_type, data_type);
-  md_locations_.emplace(md_location->uid, md_location);
   ensure_connect();
   send_instrument_keys();
 }
@@ -163,15 +156,14 @@ void LiveContext::subscribe_operator(const std::string &group, const std::string
     throw wingchun_error(fmt::format("invalid operator {}_{}", group, name));
   }
 
-  op_locations_.emplace(operator_location->uid, operator_location);
   broker_client_.enroll_operator(operator_location);
 }
 
 uint64_t LiveContext::insert_block_message(const std::string &source, const std::string &account,
                                            const std::string &opponent_seat, uint64_t match_number, bool is_specific) {
-  auto account_location_uid = get_td_location_uid(source, account);
+  auto account_location_uid = broker_client_.get_td_location_uid(source, account);
   if (not broker_client_.is_ready(account_location_uid)) {
-    SPDLOG_ERROR("account {} not ready", td_locations_.at(account_location_uid)->uname);
+    SPDLOG_ERROR("account {} not ready", app_.get_location_uname(account_location_uid));
     return 0;
   }
   auto writer = app_.get_writer(account_location_uid);
@@ -194,9 +186,9 @@ uint64_t LiveContext::insert_order_trigger(const std::string &instrument_id, con
                                            longfist::enums::TimeCondition time_condition,
                                            longfist::enums::ParkedType parked_type, double stop_price,
                                            longfist::enums::HedgeFlag hedge_flag, bool is_swap) {
-  auto account_location_uid = get_td_location_uid(source, account);
+  auto account_location_uid = broker_client_.get_td_location_uid(source, account);
   if (not broker_client_.is_ready(account_location_uid)) {
-    SPDLOG_ERROR("account {} not ready", td_locations_.at(account_location_uid)->uname);
+    SPDLOG_ERROR("account {} not ready", app_.get_location_uname(account_location_uid));
     return 0;
   }
   auto instrument_type = get_instrument_type(exchange_id, instrument_id);
@@ -232,9 +224,9 @@ uint64_t LiveContext::insert_order(const std::string &instrument_id, const std::
                                    const std::string &source, const std::string &account, double limit_price,
                                    int64_t volume, PriceType type, Side side, Offset offset, HedgeFlag hedge_flag,
                                    bool is_swap, uint64_t block_id, uint64_t parent_id) {
-  auto account_location_uid = get_td_location_uid(source, account);
+  auto account_location_uid = broker_client_.get_td_location_uid(source, account);
   if (not broker_client_.is_ready(account_location_uid)) {
-    SPDLOG_ERROR("account {} not ready", td_locations_.at(account_location_uid)->uname);
+    SPDLOG_ERROR("account {} not ready", app_.get_location_uname(account_location_uid));
     return 0;
   }
   auto instrument_type = get_instrument_type(exchange_id, instrument_id);
@@ -271,9 +263,9 @@ uint64_t LiveContext::insert_order(const std::string &instrument_id, const std::
 uint64_t LiveContext::insert_order_input(const std::string &source, const std::string &account,
                                          longfist::types::OrderInput &order_input) {
 
-  auto account_location_uid = get_td_location_uid(source, account);
+  auto account_location_uid = broker_client_.get_td_location_uid(source, account);
   if (not broker_client_.is_ready(account_location_uid)) {
-    SPDLOG_ERROR("account {} not ready", td_locations_.at(account_location_uid)->uname);
+    SPDLOG_ERROR("account {} not ready", app_.get_location_uname(account_location_uid));
     return 0;
   }
   order_input.instrument_type = get_instrument_type(order_input.exchange_id, order_input.instrument_id);
@@ -303,9 +295,9 @@ LiveContext::insert_batch_orders(const std::string &source, const std::string &a
                                  std::vector<longfist::enums::Side> sides, std::vector<longfist::enums::Offset> offsets,
                                  std::vector<longfist::enums::HedgeFlag> hedge_flags, std::vector<bool> is_swaps) {
   std::vector<uint64_t> order_ids{};
-  auto account_location_uid = get_td_location_uid(source, account);
+  auto account_location_uid = broker_client_.get_td_location_uid(source, account);
   if (not broker_client_.is_ready(account_location_uid)) {
-    SPDLOG_ERROR("account {} not ready", td_locations_.at(account_location_uid)->uname);
+    SPDLOG_ERROR("account {} not ready", app_.get_location_uname(account_location_uid));
     return order_ids;
   }
 
@@ -341,9 +333,9 @@ std::vector<uint64_t> LiveContext::insert_array_orders(const std::string &source
                                                        std::vector<longfist::types::OrderInput> &order_inputs) {
 
   std::vector<uint64_t> order_ids{};
-  auto account_location_uid = get_td_location_uid(source, account);
+  auto account_location_uid = broker_client_.get_td_location_uid(source, account);
   if (not broker_client_.is_ready(account_location_uid)) {
-    SPDLOG_ERROR("account {} not ready", td_locations_.at(account_location_uid)->uname);
+    SPDLOG_ERROR("account {} not ready", app_.get_location_uname(account_location_uid));
     return order_ids;
   }
 
@@ -368,9 +360,9 @@ uint64_t LiveContext::insert_algo_order(const std::string &instrument_id, const 
                                         longfist::enums::Side side, longfist::enums::Offset offset,
                                         const std::string &algo_type_id, const std::string &algo_id,
                                         const std::string &args, bool is_local) {
-  auto account_location_uid = get_td_location_uid(source, account);
+  auto account_location_uid = broker_client_.get_td_location_uid(source, account);
   if (not broker_client_.is_ready(account_location_uid)) {
-    SPDLOG_ERROR("account {} not ready", td_locations_.at(account_location_uid)->uname);
+    SPDLOG_ERROR("account {} not ready", app_.get_location_uname(account_location_uid));
     return 0;
   }
 
@@ -399,7 +391,7 @@ uint64_t LiveContext::insert_algo_order(const std::string &instrument_id, const 
 uint64_t LiveContext::cancel_order(uint64_t order_id, OrderActionFlag action_flag) {
   uint32_t account_location_uid = (order_id >> 32u) xor (get_home_uid());
   if (not broker_client_.is_ready(account_location_uid)) {
-    SPDLOG_ERROR("account {} not ready", td_locations_.at(account_location_uid)->uname);
+    SPDLOG_ERROR("account {} not ready", app_.get_location_uname(account_location_uid));
     return 0;
   }
   auto writer = app_.get_writer(account_location_uid);
@@ -417,7 +409,7 @@ uint64_t LiveContext::cancel_order(uint64_t order_id, OrderActionFlag action_fla
 uint64_t LiveContext::cancel_order_trigger(uint64_t trigger_id) {
   uint32_t account_location_uid = (trigger_id >> 32u) xor (get_home_uid());
   if (not broker_client_.is_ready(account_location_uid)) {
-    SPDLOG_ERROR("account {} not ready", td_locations_.at(account_location_uid)->uname);
+    SPDLOG_ERROR("account {} not ready", app_.get_location_uname(account_location_uid));
     return 0;
   }
   auto writer = app_.get_writer(account_location_uid);
@@ -435,7 +427,7 @@ uint64_t LiveContext::cancel_order_trigger(uint64_t trigger_id) {
 uint64_t LiveContext::cancel_algo_order(uint64_t algo_order_id) {
   uint32_t account_location_uid = (algo_order_id >> 32u) xor (get_home_uid());
   if (not broker_client_.is_ready(account_location_uid)) {
-    SPDLOG_ERROR("account {} not ready", td_locations_.at(account_location_uid)->uname);
+    SPDLOG_ERROR("account {} not ready", app_.get_location_uname(account_location_uid));
     return 0;
   }
 
@@ -450,27 +442,12 @@ uint64_t LiveContext::cancel_algo_order(uint64_t algo_order_id) {
   return action.order_action_id;
 }
 
-const location_map &LiveContext::list_md() const { return md_locations_; }
-
-const location_map &LiveContext::list_op() const { return op_locations_; }
-
-const location_map &LiveContext::list_accounts() const { return td_locations_; }
-
 broker::Client &LiveContext::get_broker_client() { return broker_client_; }
 
 book::Bookkeeper &LiveContext::get_bookkeeper() { return bookkeeper_; }
 
-uint32_t LiveContext::get_td_location_uid(const std::string &source, const std::string &account) const {
-  uint32_t hashed_account = hash_account(source, account);
-  if (td_locations_.find(hashed_account) == td_locations_.end()) {
-    SPDLOG_ERROR(fmt::format("invalid account {}_{}", source, account));
-  }
-
-  return td_locations_.at(hashed_account)->uid;
-}
-
 void LiveContext::req_history_order(const std::string &source, const std::string &account, uint32_t query_num) {
-  auto account_location_uid = get_td_location_uid(source, account);
+  auto account_location_uid = broker_client_.get_td_location_uid(source, account);
   if (not broker_client_.is_ready(account_location_uid)) {
     SPDLOG_ERROR("account {}_{} not ready", source, account);
     return;
@@ -483,7 +460,7 @@ void LiveContext::req_history_order(const std::string &source, const std::string
 }
 
 void LiveContext::req_history_trade(const std::string &source, const std::string &account, uint32_t query_num) {
-  auto account_location_uid = get_td_location_uid(source, account);
+  auto account_location_uid = broker_client_.get_td_location_uid(source, account);
   if (not broker_client_.is_ready(account_location_uid)) {
     SPDLOG_ERROR("account {}_{} not ready", source, account);
     return;

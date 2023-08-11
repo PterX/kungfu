@@ -52,17 +52,17 @@ bool ReplayContext::is_started() const { return started_; }
 void ReplayContext::prepare(const event_ptr &event) {
   if (event->msg_type() == Position::tag) {
     const Position &position = event->data<Position>();
-    if (position.holder_uid == get_home_uid()) {
+    if (position.holder_uid == get_live_home_uid()) {
       get_broker_client().subscribe(position.exchange_id, position.instrument_id);
     }
   }
 
-  if (not ready_test(get_broker_client(), list_accounts()) or not ready_test(get_broker_client(), list_md()) or
-      not ready_test(get_broker_client(), list_op())) {
+  if (not broker_client_.enrolled_td_ready() or not broker_client_.enrolled_md_ready() or
+      not broker_client_.enrolled_operator_ready()) {
     return;
   }
 
-  if (not has_td_channel(get_broker_client(), list_accounts(), get_home_uid())) {
+  if (not broker_client_.has_enrolled_td_channel(get_live_home_uid())) {
     return;
   }
 
@@ -78,7 +78,9 @@ void ReplayContext::prepare(const event_ptr &event) {
   started_ = true;
 }
 
-uint32_t ReplayContext::get_home_uid() const { return app_.get_live_home_uid(); }
+uint32_t ReplayContext::get_home_uid() const { return app_.get_home_uid(); }
+
+uint32_t ReplayContext::get_live_home_uid() const { return app_.get_live_home_uid(); }
 
 int64_t ReplayContext::now() const { return app_.now(); }
 
@@ -98,27 +100,21 @@ void ReplayContext::add_account(const std::string &source, const std::string &ac
     throw wingchun_error(fmt::format("invalid account {}_{}", source, account));
   }
 
-  uint32_t hashed_account = hash_account(source, account);
-  td_locations_.emplace(hashed_account, account_location);
-  td_locations_.emplace(account_location->uid, account_location);
-
-  broker_client_.enroll_account(account_location);
+  broker_client_.enroll_td(account_location);
 }
 
 void ReplayContext::subscribe(const std::string &source, const std::vector<std::string> &instrument_ids,
                               const std::string &exchange_ids) {
-  auto md_location = find_md_location(source, app_.get_live_home());
+  auto md_location = broker_client_.find_md_location(source, app_.get_live_home());
   for (const auto &instrument_id : instrument_ids) {
     broker_client_.subscribe(md_location, exchange_ids, instrument_id);
   }
-  md_locations_.emplace(md_location->uid, md_location);
 }
 
 void ReplayContext::subscribe_all(const std::string &source, uint8_t market_type, uint64_t instrument_type,
                                   uint64_t data_type) {
-  auto md_location = find_md_location(source, app_.get_live_home());
+  auto md_location = broker_client_.find_md_location(source, app_.get_live_home());
   broker_client_.subscribe_all(md_location, market_type, instrument_type, data_type);
-  md_locations_.emplace(md_location->uid, md_location);
 }
 
 void ReplayContext::subscribe_operator(const std::string &group, const std::string &name) {
@@ -128,7 +124,6 @@ void ReplayContext::subscribe_operator(const std::string &group, const std::stri
     throw wingchun_error(fmt::format("invalid operator {}_{}", group, name));
   }
 
-  op_locations_.emplace(operator_location->uid, operator_location);
   broker_client_.enroll_operator(operator_location);
 }
 
@@ -136,21 +131,12 @@ broker::Client &ReplayContext::get_broker_client() { return broker_client_; }
 
 book::Bookkeeper &ReplayContext::get_bookkeeper() { return bookkeeper_; }
 
-uint32_t ReplayContext::get_td_location_uid(const std::string &source, const std::string &account) const {
-  uint32_t hashed_account = hash_account(source, account);
-  if (td_locations_.find(hashed_account) == td_locations_.end()) {
-    SPDLOG_ERROR(fmt::format("invalid account {}_{}", source, account));
-  }
-
-  return td_locations_.at(hashed_account)->uid;
-}
-
 uint64_t ReplayContext::insert_block_message(const std::string &source, const std::string &account,
                                              const std::string &opponent_seat, uint64_t match_number,
                                              bool is_specific) {
-  auto account_location_uid = get_td_location_uid(source, account);
+  auto account_location_uid = broker_client_.get_td_location_uid(source, account);
   if (not broker_client_.is_ready(account_location_uid)) {
-    SPDLOG_ERROR("account {} not ready", td_locations_.at(account_location_uid)->uname);
+    SPDLOG_ERROR("account {} not ready", app_.get_location_uname(account_location_uid));
     return 0;
   }
   auto frame = read_next(BlockMessage::tag);
@@ -163,9 +149,9 @@ uint64_t ReplayContext::insert_order_trigger(const std::string &instrument_id, c
                                              OrderTriggerType trigger_type, TimeCondition time_condition,
                                              ParkedType parked_type, double stop_price, HedgeFlag hedge_flag,
                                              bool is_swap) {
-  auto account_location_uid = get_td_location_uid(source, account);
+  auto account_location_uid = broker_client_.get_td_location_uid(source, account);
   if (not broker_client_.is_ready(account_location_uid)) {
-    SPDLOG_ERROR("account {} not ready", td_locations_.at(account_location_uid)->uname);
+    SPDLOG_ERROR("account {} not ready", app_.get_location_uname(account_location_uid));
     return 0;
   }
   auto instrument_type = get_instrument_type(exchange_id, instrument_id);
@@ -183,25 +169,25 @@ uint64_t ReplayContext::insert_order(const std::string &instrument_id, const std
                                      const std::string &source, const std::string &account, double limit_price,
                                      int64_t volume, PriceType type, Side side, Offset offset, HedgeFlag hedge_flag,
                                      bool is_swap, uint64_t block_id, uint64_t parent_id) {
-  auto account_location_uid = get_td_location_uid(source, account);
+  auto account_location_uid = broker_client_.get_td_location_uid(source, account);
   if (not broker_client_.is_ready(account_location_uid)) {
-    SPDLOG_ERROR("account {} not ready", td_locations_.at(account_location_uid)->uname);
+    SPDLOG_ERROR("account {} not ready", app_.get_location_uname(account_location_uid));
     return 0;
   }
 
   auto frame = read_next(OrderInput::tag);
   auto &input = frame->data<OrderInput>();
   if (not is_bypass_accounting()) {
-    bookkeeper_.on_order_input(now(), get_home_uid(), account_location_uid, input);
+    bookkeeper_.on_order_input(now(), get_live_home_uid(), account_location_uid, input);
   }
   return input.order_id;
 }
 
 uint64_t ReplayContext::insert_order_input(const std::string &source, const std::string &account,
                                            OrderInput &order_input) {
-  auto account_location_uid = get_td_location_uid(source, account);
+  auto account_location_uid = broker_client_.get_td_location_uid(source, account);
   if (not broker_client_.is_ready(account_location_uid)) {
-    SPDLOG_ERROR("account {} not ready", td_locations_.at(account_location_uid)->uname);
+    SPDLOG_ERROR("account {} not ready", app_.get_location_uname(account_location_uid));
     return 0;
   }
 
@@ -209,7 +195,7 @@ uint64_t ReplayContext::insert_order_input(const std::string &source, const std:
   auto &input = frame->data<OrderInput>();
 
   if (not is_bypass_accounting()) {
-    bookkeeper_.on_order_input(now(), get_home_uid(), account_location_uid, input);
+    bookkeeper_.on_order_input(now(), get_live_home_uid(), account_location_uid, input);
   }
 
   return input.order_id;
@@ -221,9 +207,9 @@ std::vector<uint64_t> ReplayContext::insert_batch_orders(
     std::vector<PriceType> types, std::vector<Side> sides, std::vector<Offset> offsets,
     std::vector<HedgeFlag> hedge_flags, std::vector<bool> is_swaps) {
   std::vector<uint64_t> order_ids{};
-  auto account_location_uid = get_td_location_uid(source, account);
+  auto account_location_uid = broker_client_.get_td_location_uid(source, account);
   if (not broker_client_.is_ready(account_location_uid)) {
-    SPDLOG_ERROR("account {} not ready", td_locations_.at(account_location_uid)->uname);
+    SPDLOG_ERROR("account {} not ready", app_.get_location_uname(account_location_uid));
     return order_ids;
   }
 
@@ -253,9 +239,9 @@ std::vector<uint64_t> ReplayContext::insert_batch_orders(
 std::vector<uint64_t> ReplayContext::insert_array_orders(const std::string &source, const std::string &account,
                                                          std::vector<OrderInput> &order_inputs) {
   std::vector<uint64_t> order_ids{};
-  auto account_location_uid = get_td_location_uid(source, account);
+  auto account_location_uid = broker_client_.get_td_location_uid(source, account);
   if (not broker_client_.is_ready(account_location_uid)) {
-    SPDLOG_ERROR("account {} not ready", td_locations_.at(account_location_uid)->uname);
+    SPDLOG_ERROR("account {} not ready", app_.get_location_uname(account_location_uid));
     return order_ids;
   }
 
@@ -274,9 +260,9 @@ uint64_t ReplayContext::insert_algo_order(const std::string &instrument_id, cons
                                           int64_t end_time, int64_t volume, PriceType type, Side side, Offset offset,
                                           const std::string &algo_type_id, const std::string &algo_id,
                                           const std::string &args, bool is_local) {
-  auto account_location_uid = get_td_location_uid(source, account);
+  auto account_location_uid = broker_client_.get_td_location_uid(source, account);
   if (not broker_client_.is_ready(account_location_uid)) {
-    SPDLOG_ERROR("account {} not ready", td_locations_.at(account_location_uid)->uname);
+    SPDLOG_ERROR("account {} not ready", app_.get_location_uname(account_location_uid));
     return 0;
   }
 
@@ -285,9 +271,9 @@ uint64_t ReplayContext::insert_algo_order(const std::string &instrument_id, cons
 }
 
 uint64_t ReplayContext::cancel_order(uint64_t order_id, OrderActionFlag action_flag) {
-  uint32_t account_location_uid = (order_id >> 32u) xor (get_home_uid());
+  uint32_t account_location_uid = (order_id >> 32u) xor (get_live_home_uid());
   if (not broker_client_.is_ready(account_location_uid)) {
-    SPDLOG_ERROR("account {} not ready", td_locations_.at(account_location_uid)->uname);
+    SPDLOG_ERROR("account {} not ready", app_.get_location_uname(account_location_uid));
     return 0;
   }
 
@@ -296,9 +282,9 @@ uint64_t ReplayContext::cancel_order(uint64_t order_id, OrderActionFlag action_f
 }
 
 uint64_t ReplayContext::cancel_order_trigger(uint64_t trigger_id) {
-  uint32_t account_location_uid = (trigger_id >> 32u) xor (get_home_uid());
+  uint32_t account_location_uid = (trigger_id >> 32u) xor (get_live_home_uid());
   if (not broker_client_.is_ready(account_location_uid)) {
-    SPDLOG_ERROR("account {} not ready", td_locations_.at(account_location_uid)->uname);
+    SPDLOG_ERROR("account {} not ready", app_.get_location_uname(account_location_uid));
     return 0;
   }
 
@@ -307,9 +293,9 @@ uint64_t ReplayContext::cancel_order_trigger(uint64_t trigger_id) {
 }
 
 uint64_t ReplayContext::cancel_algo_order(uint64_t algo_order_id) {
-  uint32_t account_location_uid = (algo_order_id >> 32u) xor (get_home_uid());
+  uint32_t account_location_uid = (algo_order_id >> 32u) xor (get_live_home_uid());
   if (not broker_client_.is_ready(account_location_uid)) {
-    SPDLOG_ERROR("account {} not ready", td_locations_.at(account_location_uid)->uname);
+    SPDLOG_ERROR("account {} not ready", app_.get_location_uname(account_location_uid));
     return 0;
   }
 
@@ -320,12 +306,6 @@ uint64_t ReplayContext::cancel_algo_order(uint64_t algo_order_id) {
 void ReplayContext::req_history_order(const std::string &source, const std::string &account, uint32_t query_num) {}
 
 void ReplayContext::req_history_trade(const std::string &source, const std::string &account, uint32_t query_num) {}
-
-const location_map &ReplayContext::list_md() const { return md_locations_; }
-
-const location_map &ReplayContext::list_op() const { return op_locations_; }
-
-const location_map &ReplayContext::list_accounts() const { return td_locations_; }
 
 void ReplayContext::req_deregister() {
   SPDLOG_WARN("req_deregister");

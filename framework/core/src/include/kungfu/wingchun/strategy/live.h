@@ -4,8 +4,8 @@
 // Created by Keren Dong on 2020/7/20.
 //
 
-#ifndef WINGCHUN_RUNTIME_H
-#define WINGCHUN_RUNTIME_H
+#ifndef WINGCHUN_STRATEGY_LIVE_H
+#define WINGCHUN_STRATEGY_LIVE_H
 
 #include <kungfu/wingchun/strategy/context.h>
 
@@ -252,24 +252,6 @@ public:
   void req_history_trade(const std::string &source, const std::string &account, uint32_t query_num = 0) override;
 
   /**
-   * Get subscribed MD locations.
-   * @return subscribed MD locations
-   */
-  const yijinjing::data::location_map &list_md() const;
-
-  /**
-   * Get subscribed OPERATOR locations.
-   * @return subscribed OPERATOR locations
-   */
-  const yijinjing::data::location_map &list_op() const;
-
-  /**
-   * Get enrolled TD locations.
-   * @return enrolled TD locations
-   */
-  const yijinjing::data::location_map &list_accounts() const;
-
-  /**
    * request deregister.
    * @return void
    */
@@ -289,8 +271,6 @@ protected:
 
   virtual void prepare(const event_ptr &event) override;
 
-  uint32_t get_td_location_uid(const std::string &source, const std::string &account) const;
-
   void ensure_connect();
 
   void send_instrument_keys();
@@ -302,13 +282,9 @@ private:
 
   broker::PassiveClient broker_client_;
   book::Bookkeeper bookkeeper_;
-
-  yijinjing::data::location_map md_locations_ = {};
-  yijinjing::data::location_map td_locations_ = {};
-  yijinjing::data::location_map op_locations_ = {};
 };
 
 DECLARE_PTR(LiveContext)
 } // namespace kungfu::wingchun::strategy
 
-#endif // WINGCHUN_RUNTIME_H
+#endif // WINGCHUN_STRATEGY_LIVE_H

@@ -1,5 +1,5 @@
-#ifndef WINGCHUN_OPEARATOR_REPLAY_H_
-#define WINGCHUN_OPEARATOR_REPLAY_H_
+#ifndef WINGCHUN_STRATEGY_REPLAY_H_
+#define WINGCHUN_STRATEGY_REPLAY_H_
 
 #include <kungfu/wingchun/strategy/context.h>
 #include <kungfu/yijinjing/journal/journal.h>
@@ -21,6 +21,12 @@ public:
    * @return location_uid
    */
   uint32_t get_home_uid() const override;
+
+  /**
+   * Get location_uid of current process in live mode
+   * @return location_uid
+   */
+  uint32_t get_live_home_uid() const;
 
   /**
    * Get current time in nano seconds.
@@ -248,24 +254,6 @@ public:
   void req_history_trade(const std::string &source, const std::string &account, uint32_t query_num = 0) override;
 
   /**
-   * Get subscribed MD locations.
-   * @return subscribed MD locations
-   */
-  const yijinjing::data::location_map &list_md() const;
-
-  /**
-   * Get subscribed OPERATOR locations.
-   * @return subscribed OPERATOR locations
-   */
-  const yijinjing::data::location_map &list_op() const;
-
-  /**
-   * Get enrolled TD locations.
-   * @return enrolled TD locations
-   */
-  const yijinjing::data::location_map &list_accounts() const;
-
-  /**
    * request deregister.
    * @return void
    */
@@ -285,18 +273,12 @@ protected:
 
   virtual void prepare(const event_ptr &event) override;
 
-  uint32_t get_td_location_uid(const std::string &source, const std::string &account) const;
-
 private:
   bool positions_set_{false};
 
   broker::PassiveClient broker_client_;
   book::Bookkeeper bookkeeper_;
   yijinjing::journal::reader_ptr reader_for_write_;
-
-  yijinjing::data::location_map md_locations_ = {};
-  yijinjing::data::location_map td_locations_ = {};
-  yijinjing::data::location_map op_locations_ = {};
 
   yijinjing::journal::frame_ptr read_next(uint32_t msg_type);
 

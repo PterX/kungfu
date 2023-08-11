@@ -1,12 +1,12 @@
-// SPDX-License-Identifier: Apache-2.0
-
-#ifndef WINGCHUN_OPERATOR_LIVE_H
-#define WINGCHUN_OPERATOR_LIVE_H
+#ifndef WINGCHUN_OPERATOR_REPLAY_H
+#define WINGCHUN_OPERATOR_REPLAY_H
 
 #include <kungfu/wingchun/operator/context.h>
 
 namespace kungfu::wingchun::op {
+
 class LiveContext : public Context {
+
 public:
   explicit LiveContext(yijinjing::practice::apprentice &app, const rx::connectable_observable<event_ptr> &events);
 
@@ -102,18 +102,9 @@ public:
   yijinjing::data::location_ptr get_location(uint32_t location_uid) override;
 
 protected:
-  void on_start() override;
+  const yiji
+}
 
-  void prepare(const event_ptr &event) override;
-
-private:
-  broker::PassiveClient broker_client_;
-  longfist::enums::OperatorState state_;
-  bool started_{false};
-  bool broker_states_requested_{false};
-};
-
-DECLARE_PTR(LiveContext)
 } // namespace kungfu::wingchun::op
 
-#endif // WINGCHUN_OPERATOR_LIVE_H
+#endif // WINGCHUN_OPERATOR_REPLAY_H

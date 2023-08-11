@@ -4,8 +4,8 @@
 // Created by Keren Dong on 2020/7/20.
 //
 
-#ifndef WINGCHUN_BACKTEST_H
-#define WINGCHUN_BACKTEST_H
+#ifndef WINGCHUN_STRATEGY_BACKTEST_H
+#define WINGCHUN_STRATEGY_BACKTEST_H
 
 #include <kungfu/wingchun/strategy/context.h>
 #include <kungfu/wingchun/strategy/matcher.h>
@@ -275,10 +275,6 @@ protected:
 
   virtual void prepare(const event_ptr &event) override;
 
-  // yijinjing::data::location_ptr find_md_location(const std::string &source);
-
-  // yijinjing::data::location_ptr find_op_location(const std::string &group, const std::string &name);
-
 private:
   broker::PassiveClient broker_client_;
   book::Bookkeeper bookkeeper_;
@@ -294,4 +290,4 @@ private:
 DECLARE_PTR(BacktestContext)
 } // namespace kungfu::wingchun::strategy
 
-#endif // WINGCHUN_BACKTEST_H
+#endif // WINGCHUN_STRATEGY_BACKTEST_H

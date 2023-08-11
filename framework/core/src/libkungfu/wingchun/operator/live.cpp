@@ -40,15 +40,8 @@ void LiveContext::prepare(const event_ptr &event) {
   }
   auto writer = app_.get_writer(ledger_uid);
 
-  auto connected_test = [&](const auto &locations) {
-    for (const auto &pair : locations) {
-      if (not broker_client_.is_connected(pair.second->uid)) {
-        return false;
-      }
-    }
-    return true;
-  };
-  if (not broker_states_requested_ and connected_test(list_md()) and connected_test(list_op())) {
+  if (not broker_states_requested_ and broker_client_.enrolled_md_connected() and
+      broker_client_.enrolled_operator_connected()) {
     writer->mark(now(), BrokerStateRequest::tag);
     writer->mark(now(), OperatorStateRequest::tag);
     broker_states_requested_ = true;
@@ -85,33 +78,26 @@ void LiveContext::add_time_interval(int64_t duration, const std::function<void(e
 
 void LiveContext::subscribe(const std::string &source, const std::vector<std::string> &instrument_ids,
                             const std::string &exchange_id) {
-  auto md_location = find_md_location(source);
+  auto md_location = broker_client_.find_md_location(source, app_.get_home());
   for (const auto &instrument_id : instrument_ids) {
     broker_client_.subscribe(md_location, exchange_id, instrument_id);
   }
-  md_locations_.emplace(md_location->uid, md_location);
 }
 
 void LiveContext::subscribe_all(const std::string &source, uint8_t market_type, uint64_t instrument_type,
                                 uint64_t data_type) {
-  broker_client_.subscribe_all(find_md_location(source), market_type, instrument_type, data_type);
+  auto md_location = broker_client_.find_md_location(source, app_.get_home());
+  broker_client_.subscribe_all(md_location, market_type, instrument_type, data_type);
 }
 
 void LiveContext::subscribe_operator(const std::string &group, const std::string &name) {
   uint32_t hashed_op = hash_operator(group, name);
-
-  if (op_locations_.find(hashed_op) != op_locations_.end()) {
-    throw wingchun_error(fmt::format("duplicated operator subscribed {}_{}", group, name));
-  }
 
   auto home = app_.get_home();
   auto operator_location = location::make_shared(mode::LIVE, category::OPERATOR, group, name, home->locator);
   if (home->mode == mode::LIVE and not app_.has_location(operator_location->uid)) {
     throw wingchun_error(fmt::format("invalid operator {}_{}", group, name));
   }
-
-  // op_locations_.emplace(hashed_op, operator_location);
-  op_locations_.emplace(operator_location->uid, operator_location);
 
   broker_client_.enroll_operator(operator_location);
 }
@@ -125,10 +111,6 @@ void LiveContext::publish_synthetic_data(const std::string &key, const std::stri
   synthetic_data.value = value;
   writer->write(current_time, synthetic_data);
 }
-
-const location_map &LiveContext::list_md() const { return md_locations_; }
-
-const location_map &LiveContext::list_op() const { return op_locations_; }
 
 broker::Client &LiveContext::get_broker_client() { return broker_client_; }
 
@@ -160,24 +142,6 @@ void LiveContext::check_dependency_state(const event_ptr &event) {
     update_operator_state(state_update);
   }
   SPDLOG_DEBUG("checked dependency, all dependency ready={}, ", all_dependency_ready);
-}
-
-const location_ptr &LiveContext::find_md_location(const std::string &source) {
-  return find_location(source, category::MD, str_key_md_locations_);
-}
-
-const location_ptr &
-LiveContext::find_location(const std::string &source, category c,
-                           std::unordered_map<std::string, yijinjing::data::location_ptr> &locations) {
-  if (locations.find(source) == locations.end()) {
-    auto home_locator = app_.get_locator();
-    auto source_location = location::make_shared(mode::LIVE, c, source, source, home_locator);
-    if (not app_.has_location(source_location->uid)) {
-      throw wingchun_error(fmt::format("invalid {} {}", get_category_name(c), source));
-    }
-    locations.emplace(source, source_location);
-  }
-  return locations.at(source);
 }
 
 void LiveContext::req_deregister() { app_.request_deregister(); }

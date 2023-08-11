@@ -1933,11 +1933,15 @@ export const getTradingDataSortKey = (
   typename: KungfuApi.TradingDataTypeName,
 ): string => {
   switch (typename) {
+    case 'AlgoOrder':
+      return 'insert_time';
     case 'Order':
       return 'insert_time';
     case 'Trade':
       return 'trade_time';
     case 'OrderInput':
+      return 'insert_time';
+    case 'AlgoOrderInput':
       return 'insert_time';
     case 'Position':
       return 'instrument_id';
@@ -2090,7 +2094,9 @@ export const dealTradingDataMethodsMap: Record<
   Asset: dealLedgerTradingData,
   Instrument: dealDefaultTradingData,
   InstrumentFactor: dealDefaultTradingData,
+  AlgoOrder: dealDefaultTradingData,
   Order: dealOrderTradingData,
+  AlgoOrderInput: dealDefaultTradingData,
   OrderInput: dealOrderTradingData,
   OrderStat: dealDefaultTradingData,
   Position: dealLedgerTradingData,

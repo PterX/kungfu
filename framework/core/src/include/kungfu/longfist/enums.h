@@ -125,8 +125,7 @@ enum class MarketType : uint8_t {
   CZCE,  ///< 郑商所
   INE,   ///< 上期能源
   SSE,   ///< 上交所
-  SZSE,  ///< 深交所
-  HKEx ///< 港交所(暂时不支持直连港交所, 港交所行情数据通过深交所和上交所的港股通获取, 市场类型为kSZSE/kSSE)
+  SZE    ///< 深交所
 };
 
 NLOHMANN_JSON_SERIALIZE_ENUM(MarketType, {
@@ -138,8 +137,7 @@ NLOHMANN_JSON_SERIALIZE_ENUM(MarketType, {
                                              {MarketType::CZCE, "CZCE"},
                                              {MarketType::INE, "INE"},
                                              {MarketType::SSE, "SSE"},
-                                             {MarketType::SZSE, "SZSE"},
-                                             {MarketType::HKEx, "HKEx"},
+                                             {MarketType::SZE, "SZE"},
                                          })
 
 // 证券数据类型

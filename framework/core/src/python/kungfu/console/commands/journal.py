@@ -210,21 +210,22 @@ def clean(ctx, archive, dry):
 def archive(ctx, format, mode):
     os.chdir(ctx.archive_dir)
     today_date = yjj.strftime(yjj.now_in_nano(), "%Y-%m-%d")
+    tomorrow_date = yjj.strftime(yjj.now_in_nano() + 24 * 60 * 60 * 10 ** 9, "%Y-%m-%d")
 
     if mode == "delete":
-        today_start = yjj.strptime(today_date, "%Y-%m-%d")
-        today_start_timestamp = today_start / 10**9
+        tomorrow_start = yjj.strptime(tomorrow_date, "%Y-%m-%d")
+        tomorrow_start_timestamp = tomorrow_start / 10**9
         ctx.logger.info(
-            f"pruning runtime logs before {yjj.strftime(today_start, '%Y-%m-%d %H:%M:%S')}"
+            f"pruning runtime logs before {yjj.strftime(tomorrow_date, '%Y-%m-%d %H:%M:%S')}"
         )
         prue_layout_dirs_before_timestamp(
-            ctx.runtime_dir, "log", "live", today_start_timestamp
+            ctx.runtime_dir, "log", "live", tomorrow_start_timestamp
         )
         ctx.logger.info(
-            f"pruning runtime journals before {yjj.strftime(today_start, '%Y-%m-%d %H:%M:%S')}"
+            f"pruning runtime journals before {yjj.strftime(tomorrow_date, '%Y-%m-%d %H:%M:%S')}"
         )
         prue_layout_dirs_before_timestamp(
-            ctx.runtime_dir, "journal", "live", today_start_timestamp
+            ctx.runtime_dir, "journal", "live", tomorrow_start_timestamp
         )
         ctx.logger.info("archive done (delete mode)")
         return

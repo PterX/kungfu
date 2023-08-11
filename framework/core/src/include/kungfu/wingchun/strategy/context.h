@@ -330,7 +330,7 @@ protected:
   yijinjing::practice::apprentice &app_;
   const rx::connectable_observable<event_ptr> &events_;
   std::string arguments_;
-  bool started_{false};
+  bool started_ = false;
 
   virtual void on_start() {}
 

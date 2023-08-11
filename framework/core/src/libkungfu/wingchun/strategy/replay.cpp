@@ -19,8 +19,8 @@ namespace kungfu::wingchun::strategy {
 ReplayContext::ReplayContext(practice::apprentice &app, const rx::connectable_observable<event_ptr> &events)
     : Context(app, events), broker_client_(app_), bookkeeper_(app_, broker_client_),
       reader_for_write_(std::make_shared<reader>(true, false, std::make_shared<bus>(false))) {
-  auto live_home = app_.get_live_home();
   log::copy_log_settings(app_.get_home(), app_.get_home()->name);
+  auto live_home = app_.get_live_home();
   for (auto dest_id : live_home->locator->list_location_dest(live_home)) {
     if (page::check_page_existed(live_home, dest_id)) {
       reader_for_write_->join(live_home, dest_id, app_.get_begin_time());
@@ -46,8 +46,6 @@ void ReplayContext::on_start() {
 
   events_ | $$(on_timer_check());
 }
-
-bool ReplayContext::is_started() const { return started_; }
 
 void ReplayContext::prepare(const event_ptr &event) {
   if (event->msg_type() == Position::tag) {
@@ -77,6 +75,8 @@ void ReplayContext::prepare(const event_ptr &event) {
   get_bookkeeper().guard_positions();
   started_ = true;
 }
+
+bool ReplayContext::is_started() const { return started_; }
 
 uint32_t ReplayContext::get_home_uid() const { return app_.get_home_uid(); }
 

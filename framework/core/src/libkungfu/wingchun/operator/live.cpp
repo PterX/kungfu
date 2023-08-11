@@ -95,7 +95,7 @@ void LiveContext::subscribe_operator(const std::string &group, const std::string
 
   auto home = app_.get_home();
   auto operator_location = location::make_shared(mode::LIVE, category::OPERATOR, group, name, home->locator);
-  if (home->mode == mode::LIVE and not app_.has_location(operator_location->uid)) {
+  if (app_.has_location(operator_location->uid)) {
     throw wingchun_error(fmt::format("invalid operator {}_{}", group, name));
   }
 

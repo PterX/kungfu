@@ -109,7 +109,6 @@ protected:
 private:
   broker::PassiveClient broker_client_;
   longfist::enums::OperatorState state_;
-  bool started_{false};
   bool broker_states_requested_{false};
 };
 

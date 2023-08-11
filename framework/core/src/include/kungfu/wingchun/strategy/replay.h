@@ -274,7 +274,7 @@ protected:
   virtual void prepare(const event_ptr &event) override;
 
 private:
-  bool positions_set_{false};
+  bool positions_set_ = false;
 
   broker::PassiveClient broker_client_;
   book::Bookkeeper bookkeeper_;
@@ -284,6 +284,8 @@ private:
 
   void on_timer_check();
 };
+
+DECLARE_PTR(ReplayContext)
 } // namespace kungfu::wingchun::strategy
 
 #endif

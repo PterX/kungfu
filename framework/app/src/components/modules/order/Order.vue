@@ -908,7 +908,7 @@ function testOrderSourceIsOnline(order: KungfuApi.OrderResolved) {
               <span
                 v-if="!isFinishedOrderStatus(item.status)"
                 class="color-red"
-                style="margin-right: 6px"
+                style="margin-right: 16px"
                 @click="handleCancelOrder(item)"
               >
                 {{ $t('orderConfig.cancel_order') }}

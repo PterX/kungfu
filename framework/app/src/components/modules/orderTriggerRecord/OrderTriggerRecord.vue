@@ -53,11 +53,7 @@ import {
   OrderTriggerStatusEnum,
   OrderTriggerFlag,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
-import {
-  ReloadOutlined,
-  CloseOutlined,
-  LoadingOutlined,
-} from '@ant-design/icons-vue';
+import { ReloadOutlined, LoadingOutlined } from '@ant-design/icons-vue';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
 import {
   OrderCancelledStatus,
@@ -82,7 +78,7 @@ const { dashboardBodyHeight, handleBodySizeChange } = useDashboardBodySize();
 const { processStatusData } = useProcessStatusDetailData();
 const app = getCurrentInstance();
 const { extConfigs } = useExtConfigsRelated();
-const { instrumentsMap } = useGlobalStore();
+const store = useGlobalStore();
 
 const {
   currentGlobalKfLocation,
@@ -224,39 +220,42 @@ function handleConfirmBatchOrderTrigger(csvData: csvOrderInput[]) {
   }
 
   const notFutureRow: number[] = [];
-  const orderTriggerInputs = csvData.map((item: csvOrderInput, index) => {
-    const { instrumentType, exchangeId, instrumentId } =
-      transformSearchInstrumentResultToInstrument(
-        item.instrument,
-      ) as KungfuApi.InstrumentResolved;
+  const orderTriggerInputs = csvData
+    .map((item: csvOrderInput, index) => {
+      const { instrumentType, exchangeId, instrumentId } =
+        transformSearchInstrumentResultToInstrument(
+          item.instrument,
+        ) as KungfuApi.InstrumentResolved;
 
-    const ukey = hashInstrumentUKey(instrumentId, exchangeId);
-    const instrumentResolved =
-      (window.watcher as KungfuApi.Watcher)?.ledger?.Instrument?.[ukey] ||
-      instrumentsMap[ukey];
+      const ukey = hashInstrumentUKey(instrumentId, exchangeId);
+      const instrumentResolved =
+        (window.watcher as KungfuApi.Watcher)?.ledger?.Instrument?.[ukey] ||
+        store.instrumentsMap[ukey];
 
-    if (!instrumentResolved || instrumentType !== InstrumentTypeEnum.future) {
-      notFutureRow.push(index + 1);
-    }
+      if (!instrumentResolved || instrumentType !== InstrumentTypeEnum.future) {
+        notFutureRow.push(index + 1);
+        return null;
+      }
 
-    const { limit_price, volume, price_type, side, offset } = item;
+      const { limit_price, volume, price_type, side, offset } = item;
 
-    const orderTriggerInput: KungfuApi.MakeOrderTriggerInput = {
-      ...longfist.types.OrderInput(),
-      instrument_id: item.instrument_id,
-      instrument_type: +instrumentType,
-      exchange_id: item.exchange_id,
-      limit_price: +limit_price,
-      volume: +volume,
-      price_type: +price_type,
-      side: +side,
-      offset: getResolvedOffset(+offset, +side, instrumentType),
-      parked_type: OrderTriggerParkedTypeEnum.Server,
-      time_condition: TimeConditionEnum.GFA,
-    };
+      const orderTriggerInput: KungfuApi.MakeOrderTriggerInput = {
+        ...longfist.types.OrderInput(),
+        instrument_id: instrumentId,
+        instrument_type: +instrumentType,
+        exchange_id: exchangeId,
+        limit_price: +limit_price,
+        volume: +volume,
+        price_type: +price_type,
+        side: +side,
+        offset: getResolvedOffset(+offset, +side, instrumentType),
+        parked_type: OrderTriggerParkedTypeEnum.Server,
+        time_condition: TimeConditionEnum.GFA,
+      };
 
-    return orderTriggerInput;
-  });
+      return orderTriggerInput;
+    })
+    .filter((item) => item !== null);
 
   if (notFutureRow.length > 0) {
     const rowStr = notFutureRow.join(', ');
@@ -271,7 +270,7 @@ function handleConfirmBatchOrderTrigger(csvData: csvOrderInput[]) {
   const orderTriggerPromises = orderTriggerInputs.map((orderTriggerInput) => {
     return kfOrderTrigger(
       window.watcher,
-      orderTriggerInput,
+      orderTriggerInput as KungfuApi.MakeOrderTriggerInput,
       currentGlobalKfLocation.value as KungfuApi.KfLocation,
     );
   });
@@ -280,18 +279,8 @@ function handleConfirmBatchOrderTrigger(csvData: csvOrderInput[]) {
     return;
   }
 
-  Promise.allSettled(orderTriggerPromises).then((results) => {
-    const successOrderTrigger = results.filter(
-      (result) => result.status === 'fulfilled',
-    );
-    const errOrderTrigger =
-      orderTriggerPromises.length - successOrderTrigger.length;
-    success(
-      t('tradingConfig.batch_order_trigger_results', {
-        success: successOrderTrigger.length,
-        error: errOrderTrigger,
-      }),
-    );
+  Promise.allSettled(orderTriggerPromises).then(() => {
+    success();
   });
 }
 
@@ -351,7 +340,7 @@ function handleCancelOrderTrigger(
     'order_id',
     order_id,
   ).list()[0];
-  if (OrderCancelledStatus.includes(curOrder.status)) {
+  if (curOrder && OrderCancelledStatus.includes(curOrder.status)) {
     error(t('orderTriggerConfig.order_finished'));
     handleRequestOrderTrigger();
     return;
@@ -531,11 +520,13 @@ function orderTriggerCanBeCancel(record: KungfuApi.OrderTriggerResolved) {
             </span>
           </template>
           <template v-else-if="column.dataIndex === 'actions'">
-            <CloseOutlined
+            <span
               v-if="orderTriggerCanBeCancel(record)"
-              class="kf-hover"
+              class="color-default"
               @click="handleCancelOrderTrigger(record)"
-            />
+            >
+              {{ t('orderTriggerConfig.trigger_cancel') }}
+            </span>
             <LoadingOutlined
               v-if="record.status === OrderTriggerStatusEnum.Cancelling"
             />

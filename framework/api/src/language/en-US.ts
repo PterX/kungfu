@@ -353,8 +353,6 @@ export default {
       'The current counter {tdName} does not support placing embedded orders. Please contact the administrator',
     order_trigger_not_future:
       'Failed to place the order, the information of the {rowStr} target is incorrect (currently only futures targets are supported), please check',
-    batch_order_trigger_results:
-      'Batch payment succeeded {success}, failed {error}',
     instrument_id_header_desc:
       'Target code, string, (* Only CTP/Ronghang counter can be filled in)',
     exchange_id_header_desc:
@@ -468,7 +466,7 @@ export default {
     order_finished: 'The delegation has ended and cannot be operated',
     order_trigger_request_success: 'Refresh successful',
     make_order_modal_tip:
-      'Note: Pre embedded orders only support placing orders during non trading periods and will be triggered when the trading status of the exchange changes. Only price limits are supported',
+      'Note: Pre embedded orders only support placing orders during non trading periods and will be triggered when the trading status of the exchange changes.',
   },
 
   tdConfig: {

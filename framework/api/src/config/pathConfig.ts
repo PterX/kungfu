@@ -1,63 +1,9 @@
 import path from 'path';
 import dayjs from 'dayjs';
+import fse from 'fs-extra';
 
-import { addFileSync } from '../utils/fileUtils';
-import {
-  KF_APP_RUNTIME_DIR,
-  KF_HOME_BASE_DIR_RESOLVE,
-} from '../config/homePathConfig';
-
-addFileSync('', KF_HOME_BASE_DIR_RESOLVE, 'folder');
-export const KF_HOME_BASE_DIR = KF_HOME_BASE_DIR_RESOLVE;
-
-//BASE
-export const KF_HOME = path.join(KF_HOME_BASE_DIR, 'home');
-addFileSync('', KF_HOME, 'folder');
-
-//RUNTIME
-export const KF_RUNTIME_DIR = path.join(KF_HOME, 'runtime');
-addFileSync('', KF_RUNTIME_DIR, 'folder');
-
-//system
-export const SYSTEM_DIR = path.join(KF_RUNTIME_DIR, 'system');
-addFileSync('', SYSTEM_DIR, 'folder');
-
-export const NODE_DIR = path.join(SYSTEM_DIR, 'node');
-addFileSync('', NODE_DIR, 'folder');
-
-//log
-export const LOG_DIR = path.join(KF_HOME, 'logview');
-addFileSync('', LOG_DIR, 'folder');
-
-//archive
-export const ARCHIVE_DIR = path.join(KF_HOME, 'archive');
-addFileSync('', ARCHIVE_DIR, 'folder');
-
-//================= special item start ==============================
-
-//BASE_DB_DIR strategys, accounts, tasks
-export const BASE_DB_DIR = path.join(SYSTEM_DIR, 'etc', 'kungfu', 'db', 'live');
-
-//RENDERER_LOG_DIR
-export const RENDERER_LOG_DIR = path.join(
-  SYSTEM_DIR,
-  'node',
-  'renderer-app',
-  'log',
-  'live',
-);
-
-//================== others start =================================
-
-const production = process.env.NODE_ENV === 'production';
-
-//获取进程日志地址
-export const buildProcessLogPath = (processId: string) => {
-  const tmk = dayjs().format('YYYYMMDD');
-  return path.join(LOG_DIR, tmk, `${processId}.log`);
-};
-
-//================== others end ===================================
+import { addFileSync, readRootPackageJsonSync } from '../utils/fileUtils';
+import { KF_DEFAULT_HOME_ROOT_DIR } from '../config/homePathConfig';
 
 //================== config & resouces start =================================
 
@@ -69,7 +15,12 @@ export const KF_CONFIG_DEFAULT_PATH = path.join(
   'kfConfig.json',
 );
 
-export const KF_CONFIG_DIR = path.join(KF_APP_RUNTIME_DIR, 'config');
+const rootPackageJson = readRootPackageJsonSync();
+const productName = rootPackageJson.kungfuCraft?.productName || 'Kungfu';
+const currentProductName =
+  process.env.NODE_ENV === 'production' ? productName : 'Kungfu-dev';
+export const KF_CONFIG_ROOT_DIR = path.join(KF_DEFAULT_HOME_ROOT_DIR, 'config');
+export const KF_CONFIG_DIR = path.join(KF_CONFIG_ROOT_DIR, currentProductName);
 addFileSync('', KF_CONFIG_DIR, 'folder');
 
 export const KF_CONFIG_PATH = path.join(KF_CONFIG_DIR, 'kfConfig.json');
@@ -103,6 +54,78 @@ addFileSync('', KF_SCHEDULE_TASKS_JSON_PATH, 'file');
 export const PY_WHL_DIR = path.join(KUNGFU_RESOURCES_DIR, 'python');
 
 //================== config & resouces end ===================================
+
+//================= home start ==============================
+
+const getHomeDir = (): string => {
+  if (fse.existsSync(KF_CONFIG_PATH)) {
+    const kfConfigJson = fse.readJSONSync(KF_CONFIG_PATH) as Record<
+      string,
+      Record<string, KungfuApi.KfConfigValue>
+    >;
+    if (kfConfigJson.system.homeDir) {
+      return kfConfigJson.system.homeDir;
+    }
+  }
+
+  return KF_DEFAULT_HOME_ROOT_DIR;
+};
+
+export const KF_HOME_BASE_DIR_RESOLVE: string = getHomeDir();
+
+addFileSync('', KF_HOME_BASE_DIR_RESOLVE, 'folder');
+export const KF_HOME_BASE_DIR = KF_HOME_BASE_DIR_RESOLVE;
+
+//BASE
+export const KF_HOME = path.join(KF_HOME_BASE_DIR, 'home');
+addFileSync('', KF_HOME, 'folder');
+
+//RUNTIME
+export const KF_RUNTIME_DIR = path.join(KF_HOME, 'runtime');
+addFileSync('', KF_RUNTIME_DIR, 'folder');
+
+//system
+export const SYSTEM_DIR = path.join(KF_RUNTIME_DIR, 'system');
+addFileSync('', SYSTEM_DIR, 'folder');
+
+export const NODE_DIR = path.join(SYSTEM_DIR, 'node');
+addFileSync('', NODE_DIR, 'folder');
+
+//log
+export const LOG_DIR = path.join(KF_HOME, 'logview');
+addFileSync('', LOG_DIR, 'folder');
+
+//archive
+export const ARCHIVE_DIR = path.join(KF_HOME, 'archive');
+addFileSync('', ARCHIVE_DIR, 'folder');
+
+//================= home end ==============================
+
+//================= special item start ==============================
+
+//BASE_DB_DIR strategys, accounts, tasks
+export const BASE_DB_DIR = path.join(SYSTEM_DIR, 'etc', 'kungfu', 'db', 'live');
+
+//RENDERER_LOG_DIR
+export const RENDERER_LOG_DIR = path.join(
+  SYSTEM_DIR,
+  'node',
+  'renderer-app',
+  'log',
+  'live',
+);
+
+//================== others start =================================
+
+const production = process.env.NODE_ENV === 'production';
+
+//获取进程日志地址
+export const buildProcessLogPath = (processId: string) => {
+  const tmk = dayjs().format('YYYYMMDD');
+  return path.join(LOG_DIR, tmk, `${processId}.log`);
+};
+
+//================== others end ===================================
 
 //================== cli start ====================================
 // process.env.CLI_DIR = path.dirname(xxxx/dzxy.js);

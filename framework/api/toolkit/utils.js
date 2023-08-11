@@ -259,7 +259,6 @@ exports.buildDevArgv = (distDir, distName) => {
   process.env.KFC_DIR = kfcDir;
   process.env.APP_PUBLIC_DIR = path.join(appDir, 'public');
   process.env.CLI_DIR = path.join(cliDir, 'dist', 'cli');
-  process.env.KF_APP_RUNTIME_DIR = this.resolveDevAppRuntimeDir();
   process.env.KFC_DEV = 'true';
   process.env.EXTENSION_DIRS = [distDir, ...extdirs].join(path.delimiter);
 
@@ -276,9 +275,4 @@ exports.findPackageRoot = () => {
     return findRoot(path.resolve(cwd.split('node_modules')[0]));
   }
   return findRoot(path.resolve(cwd));
-};
-
-exports.resolveDevAppRuntimeDir = () => {
-  const rootDir = findRoot(path.join(__dirname, '..', '..'));
-  return path.join(rootDir, 'node_modules', '.kungfu-dev-runtime-dir');
 };

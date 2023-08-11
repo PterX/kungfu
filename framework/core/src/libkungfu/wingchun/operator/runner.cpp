@@ -27,6 +27,11 @@ Context_ptr Runner::make_context() {
     }
     return std::make_shared<BacktestContext>(*this, events_, std::move(from_indexer_), std::move(to_indexer_));
   }
+
+  if (get_home()->mode == mode::REPLAY) {
+    return std::make_shared<ReplayContext>(*this, events_);
+  }
+
   return std::make_shared<LiveContext>(*this, events_);
 }
 
@@ -83,7 +88,6 @@ void Runner::post_start() {
                 event->dest()));
 
   invoke(&Operator::post_start);
-  SPDLOG_INFO("operator {} started", get_io_device()->get_home()->name);
 }
 
 void Runner::pre_stop() { invoke(&Operator::pre_stop); }

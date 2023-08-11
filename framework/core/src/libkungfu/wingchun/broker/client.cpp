@@ -238,10 +238,6 @@ bool AutoClient::should_connect_system(const location_ptr &system_location) cons
 
 SilentAutoClient::SilentAutoClient(practice::apprentice &app) : AutoClient(app) {}
 
-// bool SilentAutoClient::is_subscribed(const std::string &exchange_id, const std::string &instrument_id) const {
-//   return false;
-// }
-
 void SilentAutoClient::renew(int64_t trigger_time, const location_ptr &md_location) {}
 
 void SilentAutoClient::sync(int64_t trigger_time, const location_ptr &td_location) {}
@@ -251,15 +247,14 @@ PassiveClient::PassiveClient(apprentice &app) : Client(app) {}
 const ResumePolicy &PassiveClient::get_resume_policy() const { return resume_policy_; }
 
 bool PassiveClient::is_custom_subscribed(uint32_t md_location_uid) const {
-  return should_connect_md(app_.get_location(md_location_uid)) and enrolled_md_locations_.at(md_location_uid);
+  return should_connect_md(app_.get_location(md_location_uid)) and enrolled_md_custom_info_.at(md_location_uid);
 }
 
 bool PassiveClient::is_custom_subscribed_all(uint32_t md_location_uid,
                                              kungfu::longfist::enums::SubscribeDataType data_type,
                                              const std::string &exchange_id, InstrumentType kf_instrument_type) const {
-  if (should_connect_md(app_.get_location(md_location_uid)) and enrolled_md_locations_.at(md_location_uid)) {
+  if (is_custom_subscribed(md_location_uid)) {
     const auto &custom_sub = custom_subs_.at(md_location_uid);
-
     SubscribeInstrumentType custom_type = instrument_type_to_subscribe_instrument_type(kf_instrument_type);
 
     for (const auto &it : custom_sub) {
@@ -286,6 +281,67 @@ bool PassiveClient::enrolled_md_ready() const {
                      [this](const auto &it) { return is_ready(it.first); });
 }
 
+bool PassiveClient::enrolled_td_ready() const {
+  return std::all_of(enrolled_td_locations_.begin(), enrolled_td_locations_.end(),
+                     [this](const auto &it) { return is_ready(it.first); });
+}
+
+bool PassiveClient::enrolled_operator_connected() const {
+  return std::all_of(enrolled_op_locations_.begin(), enrolled_op_locations_.end(),
+                     [this](const auto &it) { return is_connected(it.first); });
+}
+
+bool PassiveClient::enrolled_md_connected() const {
+  return std::all_of(enrolled_md_locations_.begin(), enrolled_md_locations_.end(),
+                     [this](const auto &it) { return is_connected(it.first); });
+}
+
+bool PassiveClient::enrolled_td_connected() const {
+  return std::all_of(enrolled_td_locations_.begin(), enrolled_td_locations_.end(),
+                     [this](const auto &it) { return is_connected(it.first); });
+}
+
+bool PassiveClient::has_enrolled_td_channel(uint32_t home_uid) const {
+  return std::all_of(enrolled_td_locations_.begin(), enrolled_td_locations_.end(),
+                     [this, home_uid](const auto &it) { return has_channel(home_uid, it.first); });
+}
+
+const PassiveClient::EnrolledLocationMap &PassiveClient::get_enrolled_md_locations() const {
+  return enrolled_md_locations_;
+}
+
+const PassiveClient::EnrolledLocationMap &PassiveClient::get_enrolled_td_locations() const {
+  return enrolled_td_locations_;
+}
+
+const PassiveClient::EnrolledLocationMap &PassiveClient::get_enrolled_op_locations() const {
+  return enrolled_op_locations_;
+}
+
+uint32_t PassiveClient::get_td_location_uid(const std::string &source, const std::string &account) const {
+  uint32_t hashed_account = hash_account(source, account);
+  if (enrolled_hash_td_locations_.find(hashed_account) == enrolled_hash_td_locations_.end()) {
+    SPDLOG_ERROR(fmt::format("invalid account {}_{}", source, account));
+    throw wingchun_error(fmt::format("invalid account {}_{}", source, account));
+  }
+
+  return enrolled_hash_td_locations_.at(hashed_account)->uid;
+}
+
+const yijinjing::data::location_ptr &PassiveClient::find_md_location(const std::string &source,
+                                                                     const location_ptr &home) {
+  if (str_key_md_locations_.find(source) == str_key_md_locations_.end()) {
+    auto md_location = location::make_shared(mode::LIVE, category::MD, source, source, home->locator);
+    if (not app_.has_location(md_location->uid)) {
+      SPDLOG_ERROR(fmt::format("invalid md {}", source));
+      throw wingchun_error(fmt::format("invalid md {}", source));
+    }
+
+    str_key_md_locations_.emplace(source, md_location);
+  }
+  return str_key_md_locations_.at(source);
+}
+
 bool PassiveClient::is_all_subscribed(uint32_t md_location_uid) const {
   if (should_connect_md(app_.get_location(md_location_uid))) {
     const auto &custom_sub = custom_subs_.at(md_location_uid);
@@ -300,14 +356,14 @@ bool PassiveClient::is_all_subscribed(uint32_t md_location_uid) const {
 void PassiveClient::subscribe(const location_ptr &md_location, const std::string &exchange_id,
                               const std::string &instrument_id) {
   if (not is_custom_subscribed(md_location->uid)) {
-    enrolled_md_locations_.emplace(md_location->uid, false);
+    enroll_md(md_location, false);
   }
   Client::subscribe(md_location, exchange_id, instrument_id);
 }
 
 void PassiveClient::subscribe_all(const location_ptr &md_location, uint8_t market_type, uint64_t instrument_type,
                                   uint64_t data_type) {
-  enrolled_md_locations_.insert_or_assign(md_location->uid, true);
+  enroll_md(md_location, true);
   CustomSubscribe custrom_sub = {};
   custrom_sub.market_type = MarketType(market_type);
   custrom_sub.instrument_type = SubscribeInstrumentType(instrument_type);
@@ -332,12 +388,19 @@ void PassiveClient::renew(int64_t trigger_time, const location_ptr &md_location)
 
 void PassiveClient::sync(int64_t trigger_time, const location_ptr &td_location) {}
 
-void PassiveClient::enroll_account(const location_ptr &td_location) {
-  enrolled_td_locations_.emplace(td_location->uid, true);
+void PassiveClient::enroll_td(const location_ptr &td_location) {
+  enrolled_td_locations_.emplace(td_location->uid, td_location);
+  uint32_t hashed_account = hash_account(td_location->group, td_location->name);
+  enrolled_hash_td_locations_.emplace(hashed_account, td_location);
+}
+
+void PassiveClient::enroll_md(const location_ptr &md_location, bool is_custom_subscribe) {
+  enrolled_md_locations_.emplace(md_location->uid, md_location);
+  enrolled_md_custom_info_.emplace(md_location->uid, is_custom_subscribe);
 }
 
 void PassiveClient::enroll_operator(const location_ptr &op_location) {
-  enrolled_op_locations_.emplace(op_location->uid, true);
+  enrolled_op_locations_.emplace(op_location->uid, op_location);
 }
 
 bool PassiveClient::should_connect_md(const location_ptr &md_location) const {

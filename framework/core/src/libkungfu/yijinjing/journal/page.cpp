@@ -16,7 +16,7 @@ page::page(data::location_ptr location, uint32_t dest_id, const uint32_t page_id
 }
 
 page::~page() {
-  SPDLOG_TRACE("release page {}/{:08x}.{}.journal", location_->uname, dest_id_, page_id_);
+  SPDLOG_TRACE("release page {}/{:08x}.{}.journal, is_writing_ {}", location_->uname, dest_id_, page_id_, is_writing_);
   if (not os::release_mmap_buffer(address(), size_, lazy_)) {
     SPDLOG_ERROR("can not release page {}/{:08x}.{}.journal", location_->uname, dest_id_, page_id_);
   }

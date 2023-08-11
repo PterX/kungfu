@@ -97,7 +97,6 @@ add_account
 insert_order_input
 insert_block_message
 insert_array_orders
-insert_basket_order
 hold_book
 hold_positions
 is_book_held

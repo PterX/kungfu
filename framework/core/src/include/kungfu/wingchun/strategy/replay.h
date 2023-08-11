@@ -1,22 +1,14 @@
-// SPDX-License-Identifier: Apache-2.0
-
-//
-// Created by Keren Dong on 2020/7/20.
-//
-
-#ifndef WINGCHUN_STRATEGY_BACKTEST_H
-#define WINGCHUN_STRATEGY_BACKTEST_H
+#ifndef WINGCHUN_STRATEGY_REPLAY_H_
+#define WINGCHUN_STRATEGY_REPLAY_H_
 
 #include <kungfu/wingchun/strategy/context.h>
-#include <kungfu/wingchun/strategy/matcher.h>
-#include <kungfu/wingchun/tool/sliceindexer.h>
-#include <kungfu/wingchun/tool/slicetool.h>
+#include <kungfu/yijinjing/journal/journal.h>
 
 namespace kungfu::wingchun::strategy {
-class BacktestContext : public Context {
+
+class ReplayContext : public Context {
 public:
-  explicit BacktestContext(yijinjing::practice::apprentice &app, const rx::connectable_observable<event_ptr> &events,
-                           Matcher_ptr matcher, tool::SliceIndexer_ptr from_indexer, tool::SliceIndexer_ptr to_indexer);
+  explicit ReplayContext(yijinjing::practice::apprentice &app, const rx::connectable_observable<event_ptr> &events);
 
   /**
    * checked_ is strated started.
@@ -29,6 +21,12 @@ public:
    * @return location_uid
    */
   uint32_t get_home_uid() const override;
+
+  /**
+   * Get location_uid of current process in live mode
+   * @return location_uid
+   */
+  uint32_t get_live_home_uid() const;
 
   /**
    * Get current time in nano seconds.
@@ -276,18 +274,18 @@ protected:
   virtual void prepare(const event_ptr &event) override;
 
 private:
+  bool positions_set_ = false;
+
   broker::PassiveClient broker_client_;
   book::Bookkeeper bookkeeper_;
-  Matcher_ptr matcher_;
-  tool::SliceIndexer_ptr from_indexer_;
-  tool::SliceTool_ptr slice_tool_;
-  std::multimap<int64_t, std::function<void(event_ptr)>> pre_timer_callbacks_ = {};
-  std::multimap<int64_t, std::function<void(event_ptr)>> timer_callbacks_ = {};
+  yijinjing::journal::reader_ptr reader_for_write_;
+
+  yijinjing::journal::frame_ptr read_next(uint32_t msg_type);
 
   void on_timer_check();
 };
 
-DECLARE_PTR(BacktestContext)
+DECLARE_PTR(ReplayContext)
 } // namespace kungfu::wingchun::strategy
 
-#endif // WINGCHUN_STRATEGY_BACKTEST_H
+#endif

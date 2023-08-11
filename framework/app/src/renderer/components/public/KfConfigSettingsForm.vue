@@ -1369,6 +1369,15 @@ defineExpose({
           item.disabled
         "
       ></a-checkbox>
+      <a-checkbox-group
+        v-else-if="item.type === 'checkboxGroup'"
+        v-model:value="formState[item.key]"
+        :options="item.options"
+        :disabled="
+          (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
+          item.disabled
+        "
+      ></a-checkbox-group>
       <a-select
         v-else-if="numberEnumSelectType[item.type]"
         v-model:value="formState[item.key]"

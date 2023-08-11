@@ -585,7 +585,12 @@ export default {
   posGlobalConfig: {
     instrument_id: '标的',
     account_id_resolved: '持有账户',
+    static_yesterday_volume: '昨',
+    static_yesterday_volume_setting: '昨(今天之前持仓量)',
+    open_volume: '今开',
+    close_volume: '今平',
     yesterday_volume: '昨',
+    yesterday_volume_setting: '昨(昨仓剩余)',
     today_volume: '今',
     sum_volume: '总',
     frozen_total: '冻结数量',
@@ -594,6 +599,7 @@ export default {
     avg_open_price: '开仓均价',
     last_price: '最新价',
     unrealized_pnl: '浮动盈亏',
+    pos_detail_header: '持仓',
   },
 
   marketDataConfig: {
@@ -810,6 +816,7 @@ export default {
     single_price: '单笔成交价',
     limit_value: '最大值',
     asset_margin: '两融',
+    pos_table_columns: '持仓表格项配置',
     show_asset_margin: '展示两融',
 
     code_editor: '代码编辑器',

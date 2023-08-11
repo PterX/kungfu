@@ -208,6 +208,7 @@ def clean(ctx, archive, dry):
 )
 @journal_command_context
 def archive(ctx, format, mode):
+    ctx.logger.info("archiving start")
     os.chdir(ctx.archive_dir)
     today_date = yjj.strftime(yjj.now_in_nano(), "%Y-%m-%d")
     tomorrow_date = yjj.strftime(yjj.now_in_nano() + 24 * 60 * 60 * 10**9, "%Y-%m-%d")

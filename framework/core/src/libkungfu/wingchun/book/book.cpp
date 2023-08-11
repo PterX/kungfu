@@ -29,10 +29,8 @@ double Book::get_frozen_price(uint64_t order_id) {
 void Book::ensure_position(const InstrumentKey &instrument_key) {
   if (is_shortable(instrument_key.instrument_type)) {
     [[maybe_unused]] const auto &short_position = get_position_for(Direction::Short, instrument_key);
-    assert(short_position.volume >= 0);
   }
   [[maybe_unused]] auto &long_position = get_position_for(Direction::Long, instrument_key);
-  assert(long_position.volume >= 0);
 }
 
 bool Book::has_long_position(const char *exchange_id, const char *instrument_id) const {
@@ -102,7 +100,6 @@ void Book::update(int64_t update_time, longfist::enums::AccountingMethodType acc
   asset.unrealized_pnl = 0;
   asset.dynamic_equity = asset.avail;
   double margin = 0;
-  bool is_stock_acct = true;
   double short_market_value = 0;
   auto update_position = [&](Position &position) {
     auto is_stock =
@@ -110,8 +107,6 @@ void Book::update(int64_t update_time, longfist::enums::AccountingMethodType acc
         position.instrument_type == InstrumentType::Fund or position.instrument_type == InstrumentType::StockOption or
         position.instrument_type == InstrumentType::TechStock or position.instrument_type == InstrumentType::Index or
         position.instrument_type == InstrumentType::Repo;
-    if (!is_stock)
-      is_stock_acct = false;
     auto is_future = position.instrument_type == InstrumentType::Future;
 
     double db_exchage_rate = 1.0;
@@ -159,9 +154,8 @@ void Book::update(int64_t update_time, longfist::enums::AccountingMethodType acc
   for (auto &pair : short_positions) {
     update_position(pair.second);
   }
-  if (not is_stock_acct) {
-    asset.margin = margin;
-  }
+
+  asset.margin = margin;
   asset_margin.short_market_value = short_market_value;
 }
 

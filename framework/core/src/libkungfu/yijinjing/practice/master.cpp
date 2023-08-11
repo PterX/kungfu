@@ -124,13 +124,13 @@ void master::register_app(const event_ptr &event) {
   session_builder_.open_session(app_location, event->gen_time());
   app_cmd_writer->mark(event->gen_time(), SessionStart::tag);
 
+  public_writer->write(event->gen_time(), *std::dynamic_pointer_cast<Location>(app_location));
+  public_writer->write(event->gen_time(), register_data);
+
+  // hava to be put after register sent, because master cmd journal only be joined after register;
   require_write_to(event->gen_time(), app_location->uid, location::PUBLIC);
   require_write_to(event->gen_time(), app_location->uid, location::SYNC);
   require_write_to(event->gen_time(), app_location->uid, master_cmd_location->uid);
-
-  // after target app has public, sync, master cmd writer
-  public_writer->write(event->gen_time(), *std::dynamic_pointer_cast<Location>(app_location));
-  public_writer->write(event->gen_time(), register_data);
 
   write_time_reset(event->gen_time(), app_cmd_writer);
   write_trading_day(event->gen_time(), app_cmd_writer);

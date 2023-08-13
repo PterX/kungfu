@@ -446,7 +446,7 @@ def load_matcher(ctx, path):
     except Exception as e:
         ctx.logger.debug("load_matcher failed: {}".format(e))
         ctx.logger.warn("matcher path: {} cannot be import by python".format(path))
-        return None
+        raise e
 
 
 def load_report(ctx, path):
@@ -470,7 +470,7 @@ def load_report(ctx, path):
     except Exception as e:
         ctx.logger.debug("load_report failed: {}".format(e))
         ctx.logger.critical("report path: {} cannot be imported.".format(path))
-        return None
+        raise e
 
 
 def try_load_cpp_module(ctx, path, key, cls):

@@ -19,20 +19,33 @@ using namespace kungfu::yijinjing::util;
 namespace kungfu::wingchun::strategy {
 void Matcher::update_order(const Order &order) {
   auto writer = app_->get_writer(location::PUBLIC);
-  writer->write_at(app_->now(), app_->now(), order);
+  // writer->write_at(app_->now(), app_->now(), order);
+  auto [source, dest] = order_ids_.at(order.order_id);
+  writer->write_raw_at_as(now(), now(), dest, source, order.tag,
+                      reinterpret_cast<uintptr_t>(&order), sizeof(order));
 }
 
 void Matcher::update_trade(const Trade &trade) {
   auto writer = app_->get_writer(location::PUBLIC);
-  writer->write_at(app_->now(), app_->now(), trade);
+  // writer->write_at(app_->now(), app_->now(), order);
+  auto [source, dest] = order_ids_.at(trade.order_id);
+  writer->write_raw_at_as(now(), now(), dest, source, trade.tag,
+                      reinterpret_cast<uintptr_t>(&trade), sizeof(trade));
 }
 
 void Matcher::update_order_action_error(const OrderActionError &error) {
   auto writer = app_->get_writer(location::PUBLIC);
-  writer->write_at(app_->now(), app_->now(), error);
+  // writer->write_at(app_->now(), app_->now(), order);
+  auto [source, dest] = order_ids_.at(error.order_id);
+  writer->write_raw_at_as(now(), now(), dest, source, error.tag,
+                      reinterpret_cast<uintptr_t>(&error), sizeof(error));
 }
 
 void set_runner(Matcher &matcher, Runner *runner) { matcher.app_ = runner; }
+
+void add_order_id(Matcher &matcher, uint64_t order_id, uint32_t source, uint32_t dest) { matcher.order_ids_.insert_or_assign(order_id, std::make_pair(source, dest));};
+
+void remove_order_id(Matcher &matcher, uint64_t order_id) {matcher.order_ids_.erase(order_id);};
 
 void BasicMatcher::on_quote(const Quote &quote) {
   // InstrumentKey instrument_key{};
@@ -56,18 +69,18 @@ void BasicMatcher::on_order_input(const OrderInput &order_input) {
     order.status = OrderStatus::Submitted;
     update_order(order);
   }
-  auto direction = get_direction(order.instrument_type, order.side, order.offset);
+  auto side = order.side;
   if (quotes_.find(hash_instrument(order.exchange_id, order.instrument_id)) == quotes_.end()) {
     return;
   }
   const auto &quote = quotes_[hash_instrument(order.exchange_id, order.instrument_id)];
-  if (direction == Direction::Long and order.limit_price > quote.ask_price[0]) {
+  if (side == Side::Buy and order.limit_price > quote.ask_price[0]) {
     Trade trade{};
     filled_order_trade(order, trade);
     trade.price = quote.ask_price[0];
     update_order(order);
     update_trade(trade);
-  } else if (direction == Direction::Short and order.limit_price < quote.bid_price[0]) {
+  } else if (side == Side::Sell and order.limit_price < quote.bid_price[0]) {
     Trade trade{};
     filled_order_trade(order, trade);
     trade.price = quote.bid_price[0];
@@ -119,15 +132,15 @@ void BasicMatcher::match() {
   auto order_it = orders_.begin();
   while (order_it != orders_.end()) {
     auto &order = order_it->second;
-    auto direction = get_direction(order.instrument_type, order.side, order.offset);
+        auto side = order.side;
     if (quotes_.find(hash_instrument(order.exchange_id, order.instrument_id)) == quotes_.end()) {
       order_it++;
       continue;
     }
     const auto &quote = quotes_[hash_instrument(order.exchange_id, order.instrument_id)];
 
-    if ((direction == Direction::Long and order.limit_price > quote.ask_price[0]) or
-        (direction == Direction::Short and order.limit_price < quote.bid_price[0])) {
+    if ((side == Side::Buy and order.limit_price > quote.ask_price[0]) or
+        (side == Side::Sell and order.limit_price < quote.bid_price[0])) {
       Trade trade{};
       filled_order_trade(order, trade);
       update_order(order);

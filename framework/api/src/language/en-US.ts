@@ -349,12 +349,12 @@ export default {
     order_trigger_status_error: 'Error',
     batch: 'Batch',
     batch_order_trigger: 'Batch embedded orders',
+    has_error_csv_order:
+      'The information filled in is not compliant. Please check the input information and place the order failed',
     order_trigger_td_error:
       'The current counter {tdName} does not support placing embedded orders. Please contact the administrator',
     order_trigger_not_future:
       'Failed to place the order, the information of the {rowStr} target is incorrect (currently only futures targets are supported), please check',
-    batch_order_trigger_results:
-      'Batch payment succeeded {success}, failed {error}',
     instrument_id_header_desc:
       'Target code, string, (* Only CTP/Ronghang counter can be filled in)',
     exchange_id_header_desc:
@@ -455,6 +455,7 @@ export default {
       'Confirm the cancellation of the embedded order',
     cancel_order_trigger_context:
       'Do you want to cancel the pre embedded cancellation under this commission order',
+    make_order_type: '(Embedded order)',
   },
 
   orderTriggerConfig: {
@@ -468,7 +469,9 @@ export default {
     order_finished: 'The delegation has ended and cannot be operated',
     order_trigger_request_success: 'Refresh successful',
     make_order_modal_tip:
-      'Note: Pre embedded orders only support placing orders during non trading periods and will be triggered when the trading status of the exchange changes. Only price limits are supported',
+      'Note: Pre embedded orders only support placing orders during non trading periods and will be triggered when the trading status of the exchange changes.',
+    error_msg_column: 'Return Information',
+    order_trigger_success: 'Success',
   },
 
   tdConfig: {

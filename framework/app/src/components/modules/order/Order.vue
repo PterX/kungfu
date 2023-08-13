@@ -217,10 +217,9 @@ onMounted(() => {
 
         const source = watcher.getLocationUID(currentGlobalKfLocation.value);
         orderCurrentOrderTriggers.value = watcher.ledger.OrderTrigger.filter(
-          'action_flag',
-          1,
+          'source',
+          source,
         )
-          .filter('source', source)
           .list()
           .reduce((pre, cur) => {
             const order_id = cur.order_id.toString();
@@ -322,6 +321,11 @@ function isFinishedOrderStatus(orderStatus: OrderStatusEnum): boolean {
 
 function isFinishedOrderTriggerStatus(orderStatus: OrderStatusEnum): boolean {
   return !UnfinishedOrderTriggerStatus.includes(orderStatus);
+}
+
+function isOrderMakedByOrderTrigger(orderId: bigint): boolean {
+  const orderKeys = Object.keys(orderCurrentOrderTriggers.value);
+  return orderKeys.includes(orderId.toString());
 }
 
 const cancelOrderTriggerBtnVisible = computed(() => {
@@ -890,6 +894,12 @@ function testOrderSourceIsOnline(order: KungfuApi.OrderResolved) {
               </span>
             </template>
             <template v-else-if="column.dataIndex === 'status_uname'">
+              <span
+                v-if="isOrderMakedByOrderTrigger(item.order_id)"
+                :class="`color-${item.status_color}`"
+              >
+                {{ t('orderConfig.make_order_type') }}
+              </span>
               <span :class="`color-${item.status_color}`">
                 {{ item.status_uname }}
               </span>
@@ -908,7 +918,7 @@ function testOrderSourceIsOnline(order: KungfuApi.OrderResolved) {
               <span
                 v-if="!isFinishedOrderStatus(item.status)"
                 class="color-red"
-                style="margin-right: 6px"
+                style="margin-right: 16px"
                 @click="handleCancelOrder(item)"
               >
                 {{ $t('orderConfig.cancel_order') }}

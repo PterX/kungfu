@@ -19,33 +19,29 @@ using namespace kungfu::yijinjing::util;
 namespace kungfu::wingchun::strategy {
 void Matcher::update_order(const Order &order) {
   auto writer = app_->get_writer(location::PUBLIC);
-  // writer->write_at(app_->now(), app_->now(), order);
   auto [source, dest] = order_ids_.at(order.order_id);
-  writer->write_raw_at_as(now(), now(), dest, source, order.tag,
-                      reinterpret_cast<uintptr_t>(&order), sizeof(order));
+  writer->write_raw_at_as(now(), now(), dest, source, order.tag, reinterpret_cast<uintptr_t>(&order), sizeof(order));
 }
 
 void Matcher::update_trade(const Trade &trade) {
   auto writer = app_->get_writer(location::PUBLIC);
-  // writer->write_at(app_->now(), app_->now(), order);
   auto [source, dest] = order_ids_.at(trade.order_id);
-  writer->write_raw_at_as(now(), now(), dest, source, trade.tag,
-                      reinterpret_cast<uintptr_t>(&trade), sizeof(trade));
+  writer->write_raw_at_as(now(), now(), dest, source, trade.tag, reinterpret_cast<uintptr_t>(&trade), sizeof(trade));
 }
 
 void Matcher::update_order_action_error(const OrderActionError &error) {
   auto writer = app_->get_writer(location::PUBLIC);
-  // writer->write_at(app_->now(), app_->now(), order);
   auto [source, dest] = order_ids_.at(error.order_id);
-  writer->write_raw_at_as(now(), now(), dest, source, error.tag,
-                      reinterpret_cast<uintptr_t>(&error), sizeof(error));
+  writer->write_raw_at_as(now(), now(), dest, source, error.tag, reinterpret_cast<uintptr_t>(&error), sizeof(error));
 }
 
 void set_runner(Matcher &matcher, Runner *runner) { matcher.app_ = runner; }
 
-void add_order_id(Matcher &matcher, uint64_t order_id, uint32_t source, uint32_t dest) { matcher.order_ids_.insert_or_assign(order_id, std::make_pair(source, dest));};
+void add_order_id(Matcher &matcher, uint64_t order_id, uint32_t source, uint32_t dest) {
+  matcher.order_ids_.insert_or_assign(order_id, std::make_pair(source, dest));
+};
 
-void remove_order_id(Matcher &matcher, uint64_t order_id) {matcher.order_ids_.erase(order_id);};
+void remove_order_id(Matcher &matcher, uint64_t order_id) { matcher.order_ids_.erase(order_id); };
 
 void BasicMatcher::on_quote(const Quote &quote) {
   // InstrumentKey instrument_key{};
@@ -132,7 +128,7 @@ void BasicMatcher::match() {
   auto order_it = orders_.begin();
   while (order_it != orders_.end()) {
     auto &order = order_it->second;
-        auto side = order.side;
+    auto side = order.side;
     if (quotes_.find(hash_instrument(order.exchange_id, order.instrument_id)) == quotes_.end()) {
       order_it++;
       continue;

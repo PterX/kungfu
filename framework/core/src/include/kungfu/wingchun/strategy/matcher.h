@@ -61,7 +61,7 @@ public:
 
 private:
   friend void set_runner(Matcher &matcher, Runner *runner);
-  friend void add_order_id(Matcher &matcher, uint64_t order_id, uint32_t source, uint32_t dest); 
+  friend void add_order_id(Matcher &matcher, uint64_t order_id, uint32_t source, uint32_t dest);
   friend void remove_order_id(Matcher &matcher, uint64_t order_id);
   yijinjing::practice::apprentice *app_;
   std::unordered_map<uint64_t, std::pair<uint32_t, uint32_t>> order_ids_; // <order_id, std::pair<source, dest>>

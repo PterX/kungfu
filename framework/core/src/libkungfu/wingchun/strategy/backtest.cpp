@@ -49,16 +49,15 @@ void BacktestContext::on_start() {
   events_ | is_own<Tree>(get_broker_client()) |
       $$(matcher_->on_tree(event->data<Tree>()); report_->on_tree(event->data<Tree>()););
   events_ | is(SyntheticData::tag) | $$(report_->on_read_synthetic_data(event->data<SyntheticData>()));
-  events_ | is(OrderInput::tag) | $$( const auto &order_input = event->data<OrderInput>(); add_order_id(*matcher_, order_input.order_id, event->source(), event->dest()); matcher_->on_order_input(order_input));
-  events_ | is(Order::tag) | $$(  
-    const auto &order = event->data<Order>();
-    report_->on_order(order);
-    if (is_final_status(order.status)) {
-      add_timer(now() + Matcher::MAX_DELAYED_REMOVE_DURATION, [=](event_ptr e) { 
-        remove_order_id(*matcher_, order.order_id);
+  events_ | is(OrderInput::tag) |
+      $$(const auto &order_input = event->data<OrderInput>();
+         add_order_id(*matcher_, order_input.order_id, event->source(), event->dest());
+         matcher_->on_order_input(order_input));
+  events_ | is(Order::tag) |
+      $$(const auto &order = event->data<Order>(); report_->on_order(order); if (is_final_status(order.status)) {
+        add_timer(now() + Matcher::MAX_DELAYED_REMOVE_DURATION,
+                  [=](event_ptr e) { remove_order_id(*matcher_, order.order_id); });
       });
-    }
-    );
   events_ | is(Trade::tag) | $$(report_->on_trade(event->data<Trade>()));
   events_ | is(OrderAction::tag) | $$(matcher_->on_order_action(event->data<OrderAction>()));
   events_ | is(OrderActionError::tag) | $$(remove_order_id(*matcher_, event->data<OrderActionError>().order_id));
@@ -274,7 +273,7 @@ uint64_t BacktestContext::insert_algo_order(const std::string &instrument_id, co
 
 uint64_t BacktestContext::cancel_order(uint64_t order_id, OrderActionFlag action_flag) {
   uint32_t account_location_uid = (order_id >> 32u) xor (app_.get_home_uid());
-  if (not app_.has_location(account_location_uid )) {
+  if (not app_.has_location(account_location_uid)) {
     SPDLOG_ERROR("no writer for [{:08x}]", account_location_uid);
   }
   auto writer = app_.get_writer(location::PUBLIC);
@@ -285,7 +284,7 @@ uint64_t BacktestContext::cancel_order(uint64_t order_id, OrderActionFlag action
   action.action_flag = action_flag;
 
   writer->write_raw_at_as(now(), now(), app_.get_home_uid(), account_location_uid, action.tag,
-                        reinterpret_cast<uintptr_t>(&action), sizeof(action));
+                          reinterpret_cast<uintptr_t>(&action), sizeof(action));
   return action.order_action_id;
 }
 

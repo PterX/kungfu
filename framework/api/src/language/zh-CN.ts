@@ -350,7 +350,7 @@ export default {
     order_trigger_status_cancelling: '待撤',
     batch: '批量',
     batch_order_trigger: '批量预埋单',
-    empty_csv_order: '含有未填入的项, 下单失败',
+    has_error_csv_order: '填入信息不合规, 请检查输入信息, 下单失败',
     order_trigger_td_error: '当前柜台 {tdName} 不支持下预埋单, 请联系管理员',
     order_trigger_not_future:
       '下单失败, 第 {rowStr} 标的信息有误 (当前仅支持期货标的), 请检查',
@@ -451,6 +451,7 @@ export default {
     order_finished: '该委托已结束, 无法预埋撤单',
     confirm_cancel_order_trigger: '确认撤销预埋单',
     cancel_order_trigger_context: '您是否要取消该委托单下的预埋撤单',
+    make_order_type: '(预埋)',
   },
 
   orderTriggerConfig: {
@@ -465,6 +466,8 @@ export default {
     order_trigger_request_success: '刷新成功',
     make_order_modal_tip:
       '注: 预埋单仅支持在非交易时间段下单, 会在交易所交易状态变化时触发',
+    error_msg_column: '回报信息',
+    order_trigger_success: '成功',
   },
 
   tdConfig: {

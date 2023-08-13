@@ -1093,3 +1093,25 @@ export const TriggerFlag: Record<
     name: t('orderTriggerConfig.trigger_cancel'),
   },
 };
+
+export const OrderTriggerSide = [SideEnum.Buy, SideEnum.Sell];
+
+export const OrderTriggerOffset = [
+  OffsetEnum.Open,
+  OffsetEnum.Close,
+  OffsetEnum.CloseToday,
+  OffsetEnum.CloseYest,
+];
+
+export const OrderTriggerPriceType = [
+  PriceTypeEnum.Limit,
+  PriceTypeEnum.Market,
+  PriceTypeEnum.FakBest5,
+  PriceTypeEnum.ForwardBest,
+  PriceTypeEnum.ReverseBest,
+  PriceTypeEnum.Fak,
+  PriceTypeEnum.Fok,
+  PriceTypeEnum.EnhancedLimit,
+  PriceTypeEnum.AtAuctionLimit,
+  PriceTypeEnum.AtAuction,
+];

@@ -85,6 +85,12 @@ export const getColumns = (): AntTableColumns => [
     width: 120,
   },
   {
+    title: t('orderTriggerConfig.error_msg_column'),
+    dataIndex: 'error_id',
+    align: 'left',
+    width: 120,
+  },
+  {
     title: t('orderConfig.dest_uname'),
     dataIndex: 'dest_uname',
     align: 'left',

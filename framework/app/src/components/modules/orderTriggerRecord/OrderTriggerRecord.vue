@@ -58,12 +58,15 @@ import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/ind
 import {
   OrderCancelledStatus,
   OrderTriggerCancelStatus,
+  OrderTriggerOffset,
+  OrderTriggerPriceType,
+  OrderTriggerSide,
 } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 
 interface csvOrderInput {
   limit_price: string;
   volume: string;
-  price_type: string;
+  price_type: number;
   side: string;
   offset: string;
   instrument_id: string;
@@ -204,12 +207,35 @@ function handleBatchModal() {
   batchOrderTriggerVisble.value = true;
 }
 
+function csvDataValidate(csvData: csvOrderInput[]) {
+  const errItems = csvData.filter((item) => {
+    if (
+      !item.instrument ||
+      !OrderTriggerSide.includes(+item.side) ||
+      !OrderTriggerOffset.includes(+item.offset) ||
+      !OrderTriggerPriceType.includes(item.price_type) ||
+      +item.limit_price <= 0 ||
+      +item.volume <= 0
+    ) {
+      return true;
+    } else {
+      return false;
+    }
+  });
+  if (errItems.length > 0) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
 function handleConfirmBatchOrderTrigger(csvData: csvOrderInput[]) {
   if (!currentGlobalKfLocation.value) return;
 
-  const emptyRow = csvData.filter((item) => !item.instrument);
-  if (emptyRow.length > 0) {
-    error(t('tradingConfig.empty_csv_order'));
+  // TODO
+  // 加个弹窗详细展示具体是哪一个的哪一项不符合规则, 周一加
+  if (csvDataValidate(csvData)) {
+    error(t('tradingConfig.has_error_csv_order'));
     return;
   }
 
@@ -512,6 +538,14 @@ function orderTriggerCanBeCancel(record: KungfuApi.OrderTriggerResolved) {
           <template v-else-if="column.dataIndex === 'status_uname'">
             <span :class="`color-${record.status_color}`">
               {{ record.status_uname }}
+            </span>
+          </template>
+          <template v-else-if="column.dataIndex === 'error_id'">
+            <span v-if="record.error_id === 0" class="color-green">
+              {{ t('orderTriggerConfig.order_trigger_success') }}
+            </span>
+            <span v-else class="color-red">
+              {{ record.error_msg }}
             </span>
           </template>
           <template v-else-if="column.dataIndex === 'dest_uname'">

@@ -198,6 +198,7 @@ export enum OrderStatusEnum {
   PartialFilledActive,
   Lost,
   Cancelling,
+  Pause,
 }
 
 export type OrderStatusTypes = keyof typeof OrderStatusEnum;
@@ -245,8 +246,13 @@ export enum HistoryDateEnum {
 }
 
 export enum OrderActionFlagEnum {
-  Cancel,
-  TriggerCancel,
+  Cancel, // 普通撤单
+  TriggerCancel, // 预埋撤单
+}
+
+export enum OrderTriggerFlag {
+  TriggerInsert, // 预埋下单
+  TriggerCancel, // 预埋撤单
 }
 
 export enum FutureArbitrageCodeEnum {
@@ -313,10 +319,12 @@ export enum OrderTriggerTimeConditionEnum {
 
 export enum OrderTriggerStatusEnum {
   Unknown,
-  Pending = OrderStatusEnum.Pending, // 已提交
+  Pending = OrderStatusEnum.Pending, // 等待中
   Submitted = OrderStatusEnum.Submitted, // 未触发
   Filled = OrderStatusEnum.Filled, // 已触发
   Cancelled = OrderStatusEnum.Cancelled, // 已取消
+  Error = OrderStatusEnum.Error, // 错误
+  Cancelling = OrderStatusEnum.Cancelling, // 待撤
 }
 
 export enum FundTransEnum {

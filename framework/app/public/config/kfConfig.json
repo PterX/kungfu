@@ -3,7 +3,7 @@
     "rocket": false,
     "bypassAccounting": false,
     "bypassTradingData": false,
-    "bypassRefrashBook": false
+    "bypassRefreshBook": false
   },
   "currency": { "instrumentCurrency": true },
   "strategy": { "python": false },
@@ -14,6 +14,11 @@
     "bypassArchive": false
   },
   "code": { "tabSpaceType": "SPACES", "tabSpaceSize": "TWOINDENT" },
-  "trade": { "sound": true, "fatFinger": 0, "close": 100 },
+  "trade": {
+    "sound": true,
+    "fatFinger": 0,
+    "close": 100,
+    "posTableColumns": ["yesterday_volume", "today_volume"]
+  },
   "update": { "isCheckVersion": true }
 }

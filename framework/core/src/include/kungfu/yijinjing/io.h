@@ -47,9 +47,9 @@ public:
 
   [[maybe_unused]] journal::reader_ptr open_reader(const data::location_ptr &location, uint32_t dest_id);
 
-  journal::writer_ptr open_writer(uint32_t dest_id);
+  journal::writer_ptr open_writer(uint32_t dest_id, uint32_t page_size = 0);
 
-  journal::writer_ptr open_writer_at(const data::location_ptr &location, uint32_t dest_id);
+  journal::writer_ptr open_writer_at(const data::location_ptr &location, uint32_t dest_id, uint32_t page_size = 0);
 
   journal::writer_ptr open_hookable_writer(uint32_t dest_id, const journal::writer_hook_ptr &hook);
 

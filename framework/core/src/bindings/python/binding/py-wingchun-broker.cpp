@@ -87,7 +87,7 @@ public:
 
   bool req_account() override { PYBIND11_OVERLOAD_PURE(bool, Trader, req_account); }
 
-  bool req_order_trigger(const event_ptr &event) override { PYBIND11_OVERLOAD(bool, Trader, req_order_trigger, event); }
+  bool req_order_trigger() override { PYBIND11_OVERLOAD(bool, Trader, req_order_trigger); }
 
   bool req_algo_order(const event_ptr &event) override { PYBIND11_OVERLOAD(bool, Trader, req_algo_order, event); }
 
@@ -104,7 +104,7 @@ public:
 
 void bind_broker(pybind11::module &m) {
   py::class_<BrokerVendor, PyBrokerVendor, std::shared_ptr<BrokerVendor>>(m, "BrokerVendor")
-      .def(py::init<location_ptr, bool>())
+      .def(py::init<location_ptr, bool, const std::string &>())
       .def_property_readonly("home", &BrokerVendor::get_home)
       .def("run", &BrokerVendor::run)
       .def("get_location", &BrokerVendor::get_location);
@@ -156,7 +156,6 @@ void bind_broker(pybind11::module &m) {
       .def("has_algo_order", &Trader::has_algo_order)
       .def("get_algo_order", &Trader::get_algo_order)
       .def("enable_asset_sync", &Trader::enable_asset_sync)
-      .def("enable_asset_margin_sync", &Trader::enable_asset_margin_sync)
       .def("enable_positions_sync", &Trader::enable_positions_sync)
       .def("get_account_type", &Trader::get_account_type)
       .def("add_timer", &Trader::add_timer)
@@ -179,13 +178,11 @@ void bind_broker(pybind11::module &m) {
   py::class_<MarketDataVendor, BrokerVendor, std::shared_ptr<MarketDataVendor>>(m, "MarketDataVendor")
       .def(py::init<locator_ptr, const std::string &, const std::string &, bool, const std::string &>())
       .def("set_service", &MarketDataVendor::set_service)
-      .def("get_arguments", &MarketDataVendor::get_arguments)
-      .def("set_arguments", &MarketDataVendor::set_arguments);
+      .def("get_arguments", &MarketDataVendor::get_arguments);
 
   py::class_<TraderVendor, BrokerVendor, std::shared_ptr<TraderVendor>>(m, "TraderVendor")
       .def(py::init<locator_ptr, const std::string &, const std::string &, bool, const std::string &>())
       .def("set_service", &TraderVendor::set_service)
-      .def("get_arguments", &TraderVendor::get_arguments)
-      .def("set_arguments", &TraderVendor::set_arguments);
+      .def("get_arguments", &TraderVendor::get_arguments);
 }
 } // namespace kungfu::wingchun::pybind

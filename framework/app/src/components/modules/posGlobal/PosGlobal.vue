@@ -5,6 +5,7 @@ import {
   useTriggerMakeOrder,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import {
+  computed,
   getCurrentInstance,
   onBeforeUnmount,
   onMounted,
@@ -34,6 +35,7 @@ import {
   useActiveInstruments,
   useQuote,
   useDealDataWithCaches,
+  showTradingDataDetail,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import { dealPosition } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
@@ -41,6 +43,10 @@ import {
   getPosClosableVolumeByOffset,
   resolveTriggerOffset,
 } from '../pos/utils';
+import { getKfGlobalSettings } from '@kungfu-trader/kungfu-js-api/config/globalSettings';
+import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+
+const { t } = VueI18n.global;
 
 globalThis.HookKeeper.getHooks().dealTradingData.register(
   {
@@ -52,7 +58,6 @@ globalThis.HookKeeper.getHooks().dealTradingData.register(
 );
 
 const app = getCurrentInstance();
-const columns = getColumns();
 const pos = ref<KungfuApi.PositionResolved[]>([]);
 const { handleBodySizeChange } = useDashboardBodySize();
 const { searchKeyword, tableData } =
@@ -79,6 +84,27 @@ const { dealDataWithCache } = useDealDataWithCaches<
 >(['uid_key', 'update_time']);
 const { globalSetting } = storeToRefs(useGlobalStore());
 
+const columns = computed(() => {
+  const kfGlobalSettings = getKfGlobalSettings();
+  const tradeSettings = kfGlobalSettings.filter(
+    (item) => item.key === 'trade',
+  )[0];
+  const posTableColumnsOptions = tradeSettings.config
+    .filter((item) => item.key === 'posTableColumns')[0]
+    .options?.map((item) => item.value);
+  const selectedOptions: string[] = globalSetting.value?.trade?.posTableColumns;
+  if (!posTableColumnsOptions || !selectedOptions) return getColumns();
+  const notSelectedOptions = posTableColumnsOptions.filter((item) => {
+    return !selectedOptions.includes(item as string);
+  });
+
+  const columnsConfig = getColumns();
+
+  return columnsConfig.filter((item) => {
+    return !notSelectedOptions.includes(item.dataIndex);
+  });
+});
+
 onMounted(() => {
   if (app?.proxy) {
     const subscription = app.proxy.$tradingDataSubject.subscribe(
@@ -96,7 +122,6 @@ onMounted(() => {
               const { price_precision } = getPriceTickAndPrecision(
                 position.instrument_id,
                 position.exchange_id,
-                0.001,
               );
 
               return dealDataWithCache(position, () =>
@@ -221,6 +246,17 @@ function tiggerOrderBookAndMakeOrder(record: KungfuApi.PositionResolved) {
   };
   triggerMakeOrder(ensuredInstrument, extraOrderInput);
 }
+
+function handleShowTradingDataDetail({
+  row,
+}: {
+  event: MouseEvent;
+  row: KungfuApi.PositionResolved;
+}) {
+  showTradingDataDetail(row, t('posGlobalConfig.pos_detail_header'), [
+    'account_id_resolved',
+  ]);
+}
 </script>
 <template>
   <div class="kf-position-global__warp kf-translateZ">
@@ -242,6 +278,7 @@ function tiggerOrderBookAndMakeOrder(record: KungfuApi.PositionResolved) {
         :item-size="28"
         :custom-row-class="dealRowClassNameResolved"
         @clickCell="handleClickRow"
+        @rightClickRow="handleShowTradingDataDetail"
       >
         <template
           #default="{
@@ -275,6 +312,21 @@ function tiggerOrderBookAndMakeOrder(record: KungfuApi.PositionResolved) {
             <span :class="`color-${dealDirection(item.direction).color}`">
               {{ dealDirection(item.direction).name }}
             </span>
+          </template>
+          <template v-else-if="column.dataIndex === 'static_yesterday_volume'">
+            <KfBlinkNum
+              :num="Number(item.static_yesterday_volume).kfToFixed(0)"
+            ></KfBlinkNum>
+          </template>
+          <template v-else-if="column.dataIndex === 'open_volume'">
+            <KfBlinkNum
+              :num="Number(item.open_volume).kfToFixed(0)"
+            ></KfBlinkNum>
+          </template>
+          <template v-else-if="column.dataIndex === 'close_volume'">
+            <KfBlinkNum
+              :num="Number(item.close_volume).kfToFixed(0)"
+            ></KfBlinkNum>
           </template>
           <template v-else-if="column.dataIndex === 'yesterday_volume'">
             <KfBlinkNum

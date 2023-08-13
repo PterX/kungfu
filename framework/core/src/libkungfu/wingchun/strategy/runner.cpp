@@ -48,6 +48,11 @@ Context_ptr Runner::make_context() {
     set_runner(*report_, this, std::addressof(backtest_context->get_bookkeeper()));
     return backtest_context;
   }
+
+  if (get_home()->mode == mode::REPLAY) {
+    return std::make_shared<ReplayContext>(*this, events_);
+  }
+
   return std::make_shared<LiveContext>(*this, events_);
 }
 
@@ -165,7 +170,6 @@ void Runner::post_start() {
       $$(invoke(&Strategy::on_algo_order_action_error, event->data<AlgoOrderActionError>(),
                 get_location(event->source()), event->dest()));
   invoke(&Strategy::post_start);
-  SPDLOG_INFO("strategy {} started", get_io_device()->get_home()->name);
 }
 
 void Runner::pre_stop() { invoke(&Strategy::pre_stop); }
@@ -186,14 +190,6 @@ void Runner::BookListener::on_asset_sync_reset(const longfist::types::Asset &old
   auto context = std::dynamic_pointer_cast<Context>(runner_.context_);
   for (const auto &strategy : runner_.strategies_) {
     strategy->on_asset_sync_reset(context, old_asset, new_asset);
-  }
-}
-
-void Runner::BookListener::on_asset_margin_sync_reset(const longfist::types::AssetMargin &old_asset_margin,
-                                                      const longfist::types::AssetMargin &new_asset_margin) {
-  auto context = std::dynamic_pointer_cast<Context>(runner_.context_);
-  for (const auto &strategy : runner_.strategies_) {
-    strategy->on_asset_margin_sync_reset(context, old_asset_margin, new_asset_margin);
   }
 }
 

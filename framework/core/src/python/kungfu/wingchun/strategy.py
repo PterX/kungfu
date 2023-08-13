@@ -145,11 +145,6 @@ class Strategy(wc.Strategy):
         self._on_asset_sync_reset = getattr(
             self._module, "on_asset_sync_reset", lambda ctx, old_asset, new_asset: None
         )
-        self._on_asset_margin_sync_reset = getattr(
-            self._module,
-            "on_asset_margin_sync_reset",
-            lambda ctx, old_asset_margin, new_asset_margin: None,
-        )
         self._on_custom_data = getattr(
             self._module,
             "on_custom_data",
@@ -179,8 +174,6 @@ class Strategy(wc.Strategy):
         )
 
         self.ctx.book = self.ctx.wc_context.bookkeeper.get_book(location.uid)
-        if kfj.MODES[self.ctx.mode] != lf.enums.mode.BACKTEST:
-            self.ctx.basketorder_engine = self.ctx.wc_context.basketorder_engine
 
     def __add_timer(self, nanotime, callback):
         def wrap_callback(event):
@@ -254,7 +247,6 @@ class Strategy(wc.Strategy):
         self.ctx.insert_order_input = wc_context.insert_order_input
         self.ctx.insert_batch_orders = wc_context.insert_batch_orders
         self.ctx.insert_array_orders = wc_context.insert_array_orders
-        self.ctx.insert_basket_order = wc_context.insert_basket_order
         self.ctx.insert_algo_order = wc_context.insert_algo_order
         self.ctx.cancel_order = wc_context.cancel_order
         self.ctx.cancel_order_trigger = wc_context.cancel_order_trigger
@@ -369,16 +361,6 @@ class Strategy(wc.Strategy):
 
     def on_asset_sync_reset(self, wc_context, old_asset, new_asset):
         self.__call_proxy(self._on_asset_sync_reset, self.ctx, old_asset, new_asset)
-
-    def on_asset_margin_sync_reset(
-        self, wc_context, old_asset_margin, new_asset_margin
-    ):
-        self.__call_proxy(
-            self._on_asset_margin_sync_reset,
-            self.ctx,
-            old_asset_margin,
-            new_asset_margin,
-        )
 
     def on_custom_data(self, wc_context, msg_type, data, length, location, dest):
         self.__call_proxy(

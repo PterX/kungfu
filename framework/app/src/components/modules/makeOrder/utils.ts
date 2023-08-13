@@ -47,7 +47,7 @@ export function dealOrderPlaceVNode(
     orderData.exchange_id,
   );
   const orderInputResolved: Record<string, KungfuApi.KfTradeValueCommonData> =
-    dealOrderInputItem(orderData, price_precision);
+    dealOrderInputItem(orderData, price_precision ?? 4);
 
   return createOrderPlaceVNode(
     orderInputResolved,

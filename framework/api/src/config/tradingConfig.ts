@@ -28,6 +28,7 @@ import {
   OrderTriggerParkedTypeEnum,
   OrderTriggerStatusEnum,
   FundTransEnum,
+  OrderTriggerFlag,
 } from '../typings/enums';
 
 import { Pm2ProcessStatusTypes } from '../utils/processUtils';
@@ -332,6 +333,10 @@ export const OrderStatus: Record<
     name: t('tradingConfig.lost'),
     color: 'default',
   },
+  [OrderStatusEnum.Pause]: {
+    name: t('tradingConfig.pause'),
+    color: 'default',
+  },
 };
 
 export const BasketOrderStatus: Record<
@@ -510,15 +515,23 @@ export const OrderTriggerStatus: Record<
   },
   [OrderTriggerStatusEnum.Submitted]: {
     name: t('tradingConfig.order_trigger_status_submitted'),
-    color: 'green',
+    color: 'default',
   },
   [OrderTriggerStatusEnum.Filled]: {
     name: t('tradingConfig.order_trigger_status_filled'),
-    color: 'red',
+    color: 'green',
   },
   [OrderTriggerStatusEnum.Cancelled]: {
     name: t('tradingConfig.order_trigger_status_cancelled'),
     color: 'red',
+  },
+  [OrderTriggerStatusEnum.Error]: {
+    name: t('tradingConfig.order_trigger_status_error'),
+    color: 'red',
+  },
+  [OrderTriggerStatusEnum.Cancelling]: {
+    name: t('tradingConfig.order_trigger_status_cancelling'),
+    color: 'default',
   },
 };
 
@@ -1042,10 +1055,11 @@ export const ExportTradingDataColumnsToFilter: Record<
 > = {
   Position: ['dest', 'source'],
   Trade: [],
+  AlgoOrder: [],
   Order: [],
   Instrument: ['product_id', 'dest', 'source'],
-  AssetMargin: ['dest', 'source'],
   Asset: ['dest', 'source'],
+  AlgoOrderInput: [],
   OrderInput: [],
   OrderStat: ['dest', 'source'],
   Quote: [],
@@ -1053,4 +1067,21 @@ export const ExportTradingDataColumnsToFilter: Record<
   BasketInstrument: ['dest', 'source'],
   BasketOrder: [],
   InstrumentFactor: ['dest', 'source'],
+};
+
+export const OrderTriggerCancelStatus = [
+  OrderTriggerStatusEnum.Submitted,
+  OrderTriggerStatusEnum.Pending,
+];
+
+export const TriggerFlag: Record<
+  OrderTriggerFlag,
+  KungfuApi.KfTradeValueCommonData
+> = {
+  [OrderTriggerFlag.TriggerInsert]: {
+    name: t('orderTriggerConfig.trigger_insert'),
+  },
+  [OrderTriggerFlag.TriggerCancel]: {
+    name: t('orderTriggerConfig.trigger_cancel'),
+  },
 };

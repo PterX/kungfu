@@ -51,7 +51,6 @@ get_order_trigger
 has_algo_order
 get_algo_order
 enable_asset_sync
-enable_asset_margin_sync
 enable_positions_sync
 get_account_type
 insert_order
@@ -68,7 +67,6 @@ req_account
 req_position
 set_service
 get_arguments
-set_arguments
 set_begin_time
 set_end_time
 set_from_indexer
@@ -100,7 +98,6 @@ add_account
 insert_order_input
 insert_block_message
 insert_array_orders
-insert_basket_order
 hold_book
 hold_positions
 is_book_held
@@ -117,7 +114,6 @@ on_algo_order_action_error
 on_trade
 on_position_sync_reset
 on_asset_sync_reset
-on_asset_margin_sync_reset
 on_history_order
 on_history_trade
 on_req_history_order_error
@@ -146,6 +142,7 @@ order_from_input
 trade_from_order
 order_trigger_from_input
 order_trigger_from_order
+order_input_from_trigger_order
 now_in_nano
 strftime
 strptime

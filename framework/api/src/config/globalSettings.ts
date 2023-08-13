@@ -113,7 +113,7 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
         type: 'bool',
       },
       {
-        key: 'bypassRefrashBook',
+        key: 'bypassRefreshBook',
         name: t('globalSettingConfig.bypass_subscribe_position'),
         tip: t('globalSettingConfig.bypass_subscribe_position_desc'),
         default: !ifCpusNumSafe,
@@ -220,11 +220,39 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
         ],
       },
       {
-        key: 'assetMargin',
-        name: t('globalSettingConfig.asset_margin'),
-        tip: t('globalSettingConfig.show_asset_margin'),
+        key: 'marginTrading',
+        name: t('globalSettingConfig.margin_trading'),
+        tip: t('globalSettingConfig.show_margin_trading'),
         default: false,
         type: 'bool',
+      },
+      {
+        key: 'posTableColumns',
+        name: t('globalSettingConfig.pos_table_columns'),
+        type: 'checkboxGroup',
+        options: [
+          {
+            value: 'static_yesterday_volume',
+            label: t('posGlobalConfig.static_yesterday_volume_setting'),
+          },
+          {
+            value: 'yesterday_volume',
+            label: t('posGlobalConfig.yesterday_volume_setting'),
+          },
+          {
+            value: 'open_volume',
+            label: t('posGlobalConfig.open_volume'),
+          },
+          {
+            value: 'close_volume',
+            label: t('posGlobalConfig.close_volume'),
+          },
+          {
+            value: 'today_volume',
+            label: t('posGlobalConfig.today_volume'),
+          },
+        ],
+        default: ['yesterday_volume', 'today_volume'],
       },
     ],
   },

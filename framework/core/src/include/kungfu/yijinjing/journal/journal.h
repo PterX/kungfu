@@ -36,10 +36,10 @@ typedef std::map<journal_key, journal> JournalMap;
 class journal {
 public:
   journal(data::location_ptr location, uint32_t dest_id, bool is_writing, bool lazy, bool low_latency,
-          const bus_ptr &bus)
+          const bus_ptr &bus, uint32_t page_size, longfist::enums::Priority priority = longfist::enums::Priority::Low)
       : location_(std::move(location)), dest_id_(dest_id), is_writing_(is_writing), lazy_(lazy),
         low_latency_(low_latency), bus_(bus), frame_(std::shared_ptr<frame>(new frame())), page_frame_nb_(0u),
-        replica_(false) {}
+        page_size_(page_size), priority_(priority), replica_(false) {}
 
   journal(const journal &other);
 
@@ -55,9 +55,9 @@ public:
 
   [[nodiscard]] const data::location_ptr &get_location() const { return location_; }
 
-  [[maybe_unused]] [[nodiscard]] uint32_t get_source() const { return location_->location_uid; }
+  [[nodiscard]] uint32_t get_source() const { return location_->location_uid; }
 
-  [[maybe_unused]] [[nodiscard]] uint32_t get_dest() const { return dest_id_; }
+  [[nodiscard]] uint32_t get_dest() const { return dest_id_; }
 
   /**
    * move current frame to the next available one
@@ -76,6 +76,7 @@ public:
 private:
   const data::location_ptr location_;
   const uint32_t dest_id_;
+  const uint32_t page_size_;
   const bool is_writing_;
   const bool lazy_;
   const bool low_latency_;
@@ -87,6 +88,7 @@ private:
   frame_ptr frame_;
   uint64_t page_frame_nb_;
   bool replica_{false};
+  longfist::enums::Priority priority_;
 
   void load_page(int page_id);
 
@@ -115,7 +117,8 @@ public:
    * @param dest_id journal dest id
    * @param from_time subscribe events after this time, 0 means from start
    */
-  void join(const data::location_ptr &location, uint32_t dest_id, int64_t from_time);
+  void join(const data::location_ptr &location, uint32_t dest_id, int64_t from_time, uint32_t page_size = 0,
+            longfist::enums::Priority priority = longfist::enums::Priority::Low);
 
   void disjoin(uint32_t location_uid);
 
@@ -170,12 +173,16 @@ private:
   std::vector<journal *> no_data_journals_buffer_{};
   std::priority_queue<journal *, std::vector<journal *>, later> has_data_journals_heap_{};
   std::recursive_mutex mtx_{};
+
+  static uint32_t find_page_size(const data::location_ptr &location, uint32_t dest_id);
 };
 
 class writer {
 public:
   writer(const data::location_ptr &location, uint32_t dest_id, bool lazy, publisher_ptr publisher, bool low_latency,
          const bus_ptr &bus);
+  writer(const data::location_ptr &location, uint32_t dest_id, bool lazy, publisher_ptr publisher, bool low_latency,
+         const bus_ptr &bus, uint32_t page_size);
 
   [[nodiscard]] const data::location_ptr &get_location() const { return journal_.location_; }
 
@@ -183,7 +190,7 @@ public:
 
   [[nodiscard]] const journal &get_journal() const { return journal_; }
 
-  [[nodiscard]] const page_ptr get_current_page() const { return journal_.page_; }
+  [[nodiscard]] page_ptr get_current_page() const { return journal_.page_; }
 
   uint64_t current_frame_uid();
 

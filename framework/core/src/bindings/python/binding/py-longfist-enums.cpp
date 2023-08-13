@@ -265,12 +265,11 @@ void bind_enums(py::module &m) {
       .value("BSE", MarketType::BSE)
       .value("SHFE", MarketType::SHFE)
       .value("CFFEX", MarketType::CFFEX)
-      .value("kDCE", MarketType::DCE)
+      .value("DCE", MarketType::DCE)
       .value("CZCE", MarketType::CZCE)
       .value("INE", MarketType::INE)
       .value("SSE", MarketType::SSE)
-      .value("SZSE", MarketType::SZSE)
-      .value("HKEx", MarketType::HKEx)
+      .value("SZE", MarketType::SZE)
       .export_values()
       .def("__eq__", [](const MarketType &a, int b) { return static_cast<int>(a) == b; });
 

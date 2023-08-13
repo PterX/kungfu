@@ -10,6 +10,7 @@
 #include <kungfu/wingchun/strategy/backtest.h>
 #include <kungfu/wingchun/strategy/live.h>
 #include <kungfu/wingchun/strategy/matcher.h>
+#include <kungfu/wingchun/strategy/replay.h>
 #include <kungfu/wingchun/strategy/strategy.h>
 #include <kungfu/yijinjing/practice/apprentice.h>
 
@@ -121,9 +122,6 @@ private:
     void on_position_sync_reset(const wingchun::book::Book &old_book, const wingchun::book::Book &new_book) override;
 
     void on_asset_sync_reset(const longfist::types::Asset &old_asset, const longfist::types::Asset &new_asset) override;
-
-    void on_asset_margin_sync_reset(const longfist::types::AssetMargin &old_asset_margin,
-                                    const longfist::types::AssetMargin &new_asset_margin) override;
 
   private:
     Runner &runner_;

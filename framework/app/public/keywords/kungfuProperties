@@ -38,7 +38,6 @@ live
 update_time
 data
 asset
-asset_margin
 long_positions
 short_positions
 order_inputs
@@ -100,6 +99,8 @@ volume
 yesterday_volume
 frozen_total
 frozen_yesterday
+static_yesterday_volume
+open_volume
 last_price
 avg_open_price
 position_cost_price
@@ -134,6 +135,7 @@ commission
 error_id
 error_msg
 trade_id
+parent_order_id
 external_trade_id
 trade_time
 price
@@ -227,7 +229,6 @@ system_clock_count
 frame_header
 page_header
 Asset
-AssetMargin
 Position
 PositionEnd
 InstrumentFactor
@@ -312,8 +313,7 @@ DCE
 CZCE
 INE
 SSE
-SZSE
-HKEx
+SZE
 MarketType
 Snapshot
 SubscribeDataType
@@ -487,6 +487,10 @@ OrderTriggerType
 Server
 Local
 ParkedType
+Low
+Medium
+High
+Priority
 No
 AccountInternal
 AccountInteractive

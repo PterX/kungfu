@@ -16,7 +16,7 @@ page::page(data::location_ptr location, uint32_t dest_id, const uint32_t page_id
 }
 
 page::~page() {
-  SPDLOG_TRACE("release page {}/{:08x}.{}.journal", location_->uname, dest_id_, page_id_);
+  SPDLOG_TRACE("release page {}/{:08x}.{}.journal, is_writing_ {}", location_->uname, dest_id_, page_id_, is_writing_);
   if (not os::release_mmap_buffer(address(), size_, lazy_)) {
     SPDLOG_ERROR("can not release page {}/{:08x}.{}.journal", location_->uname, dest_id_, page_id_);
   }
@@ -33,9 +33,8 @@ void page::set_last_frame_position(uint64_t position) {
   const_cast<page_header *>(header_)->last_frame_position = position;
 }
 
-page_ptr page::load(const data::location_ptr &location, uint32_t dest_id, uint32_t page_id, bool is_writing, bool lazy,
-                    bool pre_open) {
-  uint32_t page_size = find_page_size(location, dest_id);
+page_ptr page::load(const data::location_ptr &location, uint32_t dest_id, uint32_t page_size, uint32_t page_id,
+                    bool is_writing, bool lazy, bool pre_open) {
   std::string path = get_page_path(location, dest_id, page_id);
   uintptr_t address = os::load_mmap_buffer(path, page_size, is_writing, lazy);
 
@@ -86,7 +85,6 @@ page_ptr page::load(const data::location_ptr &location, uint32_t dest_id, uint32
 
 page_ptr page::load_header_and_1st_frame_header(const data::location_ptr &location, uint32_t dest_id, uint32_t page_id,
                                                 bool is_writing, bool lazy) {
-  uint32_t page_size = find_page_size(location, dest_id);
   uint32_t page_header_size = sizeof(page_header);
   uint32_t frame_header_size = sizeof(frame_header);
   uint32_t sliced_page_size = page_header_size + frame_header_size;
@@ -109,12 +107,6 @@ page_ptr page::load_header_and_1st_frame_header(const data::location_ptr &locati
   if (header->page_header_length != sizeof(page_header)) {
     uint32_t l = header->page_header_length;
     throw journal_error(fmt::format("{} header length mismatch, required {}, found {}", path, sizeof(page_header), l));
-  }
-  if (header->page_size != page_size) {
-    uint32_t s = header->page_size;
-    throw journal_error(
-        fmt::format("page size mismatch, required {}, found {}, location {}, path {}, dest_id {}, page_id {}",
-                    page_size, s, location->uname, path, dest_id, page_id));
   }
 
   return std::shared_ptr<page>(new page(location, dest_id, page_id, sliced_page_size, lazy, is_writing, address));
@@ -141,5 +133,35 @@ uint32_t page::find_page_id(const data::location_ptr &location, uint32_t dest_id
     }
   }
   return page_ids.front();
+}
+
+uint32_t page::find_page_size(const data::location_ptr &location, uint32_t dest_id, uint32_t page_size) {
+  if (page_size > 0) {
+    return page_size * MB;
+  }
+
+  if (location->category == longfist::enums::category::MD && dest_id != data::location::SYNC) {
+    return 128 * MB;
+  }
+  if (location->mode == longfist::enums::mode::BACKTEST || location->mode == longfist::enums::mode::DATA) {
+    return 128 * MB;
+  }
+  if ((location->category == longfist::enums::category::TD ||
+       location->category == longfist::enums::category::STRATEGY ||
+       location->category == longfist::enums::category::OPERATOR ||
+       location->category == longfist::enums::category::SYSTEM) &&
+      dest_id != 0) {
+    return 16 * MB;
+  }
+  return MB;
+}
+
+bool page::check_page_existed(const data::location_ptr &location, uint32_t dest_id) {
+  std::vector<uint32_t> page_ids = location->locator->list_page_id(location, dest_id);
+  if (page_ids.empty()) {
+    return false;
+  }
+
+  return true;
 }
 } // namespace kungfu::yijinjing::journal

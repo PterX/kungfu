@@ -28,18 +28,20 @@ void TraderWriterHook::on_close_frame(int64_t gen_time, frame_ptr frame) {
   switch (frame->msg_type()) {
   case Order::tag: {
     auto &order = guard_update_time<Order>(frame->data<Order>());
-    get_algo_order_service().on_order(order);
-    get_order_service().on_order(frame->source(), frame->dest(), frame->gen_time(), order);
+    get_algo_order_service().on_order(frame->gen_time(), frame->source(), frame->dest(), order);
+    get_order_service().on_order(frame->gen_time(), frame->source(), frame->dest(), order);
     break;
   }
   case Trade::tag: {
     const Trade &trade = frame->data<Trade>();
-    get_order_service().on_trade(frame->source(), frame->dest(), frame->gen_time(), trade);
+    get_order_service().on_trade(frame->gen_time(), frame->source(), frame->dest(), trade);
+    get_algo_order_service().on_trade(frame->gen_time(), frame->source(), frame->dest(), trade);
     break;
   }
   case OrderTrigger::tag: {
     auto &order_trigger = guard_update_time<OrderTrigger>(frame->data<OrderTrigger>());
     get_order_trigger_service().on_order_trigger(frame->gen_time(), frame->source(), frame->dest(), order_trigger);
+    break;
   }
   case AlgoOrder::tag: {
     auto &algo_order = guard_update_time<AlgoOrder>(frame->data<AlgoOrder>());
@@ -63,7 +65,8 @@ AlgoOrderService &TraderWriterHook::get_algo_order_service() { return vendor_.ge
 
 TraderVendor::TraderVendor(locator_ptr locator, const std::string &group, const std::string &name, bool low_latency,
                            const std::string &arguments)
-    : BrokerVendor(location::make_shared(mode::LIVE, category::TD, group, name, std::move(locator)), low_latency),
+    : BrokerVendor(location::make_shared(mode::LIVE, category::TD, group, name, std::move(locator)), low_latency,
+                   arguments),
       algo_order_service_(*this), order_service_(*this), order_trigger_service_(*this),
       hook_(std::make_shared<TraderWriterHook>(*this)) {
   set_arguments(arguments);
@@ -76,11 +79,6 @@ void TraderVendor::react() {
       $$(order_service_.on_order_input(event));
   events_ | skip_until(events_ | is(RequestStart::tag)) | is_custom() | $$(service_->on_custom_event(event));
   apprentice::react();
-}
-
-void TraderVendor::on_react() {
-  events_ | is(ResetBookRequest::tag) |
-      $([&](const event_ptr &event) { get_writer(location::PUBLIC)->mark(now(), ResetBookRequest::tag); });
 }
 
 void TraderVendor::on_start() {
@@ -98,13 +96,18 @@ void TraderVendor::on_start() {
 
   events_ | is(AssetRequest::tag) | $$(service_->req_account());
   events_ | is(PositionRequest::tag) | $$(service_->req_position());
+  events_ | is(OrderTriggerRequest::tag) | $$(service_->req_order_trigger());
   events_ | is(RequestHistoryOrder::tag) | $$(service_->req_history_order(event));
   events_ | is(RequestHistoryTrade::tag) | $$(service_->req_history_trade(event));
   events_ | is(AssetSync::tag) | $$(service_->on_asset_sync());
   events_ | is(PositionSync::tag) | $$(service_->on_position_sync());
   events_ | is(Band::tag) | $$(service_->on_band(event));
   events_ | is(TimeKeyValue::tag) | $$(service_->on_time_key_value(event));
+  events_ | is(ResetBookRequest::tag) |
+      $([&](const event_ptr &event) { get_writer(location::PUBLIC)->mark(now(), ResetBookRequest::tag); });
   events_ | is(Deregister::tag) | $$(service_->on_strategy_exit(event));
+
+  add_time_interval(5 * time_unit::NANOSECONDS_PER_SECOND, [&](auto e) { service_->try_req_account(); });
 
   service_->on_risk_setting();
   service_->recover();

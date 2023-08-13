@@ -23,8 +23,6 @@ class BookListener {
 public:
   virtual void on_position_sync_reset(const Book &old_book, const Book &new_book){};
   virtual void on_asset_sync_reset(const longfist::types::Asset &old_asset, const longfist::types::Asset &new_asset){};
-  virtual void on_asset_margin_sync_reset(const longfist::types::AssetMargin &old_asset_margin,
-                                          const longfist::types::AssetMargin &new_asset_margin){};
 };
 DECLARE_PTR(BookListener)
 
@@ -89,8 +87,7 @@ public:
     auto apply_and_update = [&](uint32_t book_uid, bool is_td = false) {
       auto book = get_book(book_uid);
       book->add_source_id(account_id);
-
-      (accounting_method.*method)(book, account_id, data);
+      (accounting_method.*method)(account_id, dest, book, data);
       auto apply = [&](auto &position) { position.update_time = update_time; };
       auto direction = get_direction(data.instrument_type, data.side, data.offset);
       book->apply_position(account_id, direction, data.exchange_id, data.instrument_id, apply);
@@ -137,7 +134,6 @@ private:
   std::vector<BookListener_ptr> book_listeners_ = {};
   BookMap books_replica_ = {}; // 暂存从location::SYNC传来的asset和position信息
   std::unordered_map<uint32_t, bool> books_replica_asset_guards_ = {}; // Asset::tag添加对应<location_uid,true>
-  std::unordered_map<uint32_t, bool> books_replica_asset_margin_guards_ = {}; // AssetMargin::tag-><location_uid,true>
   std::unordered_map<uint32_t, bool> books_replica_position_guard_ = {}; // PositionEnd::tag添加对应<location_uid,true>
 
   Book_ptr make_book(uint32_t location_uid);
@@ -152,16 +148,12 @@ private:
 
   void try_update_asset(const longfist::types::Asset &asset);
 
-  void try_update_asset_margin(const longfist::types::AssetMargin &asset_margin);
-
   void try_update_position(const longfist::types::Position &position);
 
   /// 把books_replica_中location_uid对应的book复制到books_，然后重置asset_guards和position_guards为false
   void try_sync_book_replica(uint32_t location_uid);
 
   void try_update_asset_replica(const longfist::types::Asset &asset);
-
-  void try_update_assetmargin_replica(const longfist::types::AssetMargin &asset_margin);
 
   void try_update_position_replica(const longfist::types::Position &position);
 

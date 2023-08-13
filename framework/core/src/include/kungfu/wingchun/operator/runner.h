@@ -5,6 +5,7 @@
 #include <kungfu/wingchun/operator/backtest.h>
 #include <kungfu/wingchun/operator/live.h>
 #include <kungfu/wingchun/operator/operator.h>
+#include <kungfu/wingchun/operator/replay.h>
 #include <kungfu/yijinjing/practice/apprentice.h>
 
 namespace kungfu::wingchun::op {

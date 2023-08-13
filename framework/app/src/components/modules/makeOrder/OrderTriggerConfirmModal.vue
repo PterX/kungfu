@@ -1,14 +1,12 @@
 <script setup lang="ts">
 import { useModalVisible } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
-import { computed, reactive, ref, getCurrentInstance } from 'vue';
+import { computed, reactive, getCurrentInstance } from 'vue';
 import { orderInputTrans } from './config';
-import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import {
   TimeConditionEnum,
   OrderTriggerParkedTypeEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 
-const { t } = VueI18n.global;
 const app = getCurrentInstance();
 
 const props = withDefaults(
@@ -39,12 +37,12 @@ const formState = reactive({
   parked_type: OrderTriggerParkedTypeEnum.Server,
   time_condition: TimeConditionEnum.GFA,
 });
-const serverOrderTriggerRadio = ref([
-  {
-    label: t('tradingConfig.GFA'),
-    value: TimeConditionEnum.GFA,
-  },
-]);
+// const serverOrderTriggerRadio = ref([
+//   {
+//     label: t('tradingConfig.GFA'),
+//     value: TimeConditionEnum.GFA,
+//   },
+// ]);
 
 const formData = computed<Record<string, KungfuApi.KfTradeValueCommonData>>(
   () => {
@@ -76,7 +74,7 @@ function handleConfirm() {
     @ok="handleConfirm"
   >
     <div class="order-trigger-content-wrap">
-      <div class="order-trigger-type">
+      <!-- <div class="order-trigger-type">
         <a-form
           ref="formRef"
           class="kf-config-form"
@@ -106,7 +104,7 @@ function handleConfirm() {
             </a-radio-group>
           </a-form-item>
         </a-form>
-      </div>
+      </div> -->
       <div
         v-for="(item, key) in formData"
         :key="key"

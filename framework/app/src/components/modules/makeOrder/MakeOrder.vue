@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
-import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
 import KfConfigSettingsForm from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfConfigSettingsForm.vue';
 import {
   useTriggerMakeOrder,
@@ -120,14 +119,13 @@ const configSettings = computed(() => {
     return getConfigSettings();
   }
 
-  let step = 1,
-    pricePrecision = 0;
+  let step = 0.0001,
+    pricePrecision = 4;
   if (instrumentResolved.value) {
     const { instrumentId, exchangeId } = instrumentResolved.value;
     const { price_tick, price_precision } = getPriceTickAndPrecision(
       instrumentId,
       exchangeId,
-      1,
     );
     step = price_tick;
     pricePrecision = price_precision;
@@ -858,13 +856,6 @@ watch(
           </span>
         </span>
       </template>
-      <template v-slot:header>
-        <KfDashboardItem>
-          <a-button size="small" @click="handleResetMakeOrderForm">
-            {{ $t('tradingConfig.reset_order') }}
-          </a-button>
-        </KfDashboardItem>
-      </template>
       <div class="make-order__wrap">
         <div class="make-order-content">
           <div class="make-order-form__warp">
@@ -970,14 +961,17 @@ watch(
           </div>
         </div>
         <div class="make-order-btns">
+          <a-button
+            style="flex: 0"
+            size="small"
+            @click="handleResetMakeOrderForm"
+          >
+            {{ $t('tradingConfig.reset_order') }}
+          </a-button>
           <a-button class="make-order" @click="handleMakeOrder">
             {{ $t('tradingConfig.place_order') }}
           </a-button>
-          <a-button
-            class="make-order"
-            v-if="orderTriggerBtnVisible"
-            @click="handleOrderTrigger"
-          >
+          <a-button v-if="orderTriggerBtnVisible" @click="handleOrderTrigger">
             {{ $t('tradingConfig.order_trigger') }}
           </a-button>
           <a-button @click="handleApartOrder">

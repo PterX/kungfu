@@ -205,6 +205,7 @@ export default {
     partial_filled_not_active: '部分撤单',
     partial_filled_active: '正在交易',
     lost: '丢失',
+    pause: '暂停',
 
     long: '多',
     short: '空',
@@ -316,10 +317,10 @@ export default {
     METL: 'METL',
     IPM: '国际贵金属',
 
-    SP: '郑商所 跨期 SP',
-    SPC: '郑商所 跨品种 SPC',
-    SPD: '大商所 跨期 SPD',
-    IPS: '大商所 跨品种 IPS',
+    SP: '大商所 跨期 SP',
+    SPC: '大商所 跨品种 SPC',
+    SPD: '郑商所 跨期 SPD',
+    IPS: '郑商所 跨品种 IPS',
 
     CNY: 'CNY',
     HKD: 'HKD',
@@ -341,24 +342,29 @@ export default {
     order_trigger_title: '预埋单确认',
     server_order_trigger_label: '服务器预埋单',
     local_order_trigger_label: '本地预埋单',
-    order_trigger_status_pending: '已提交',
+    order_trigger_status_pending: '等待中',
     order_trigger_status_submitted: '未触发',
     order_trigger_status_filled: '已触发',
     order_trigger_status_cancelled: '已取消',
+    order_trigger_status_error: '错误',
+    order_trigger_status_cancelling: '待撤',
     batch: '批量',
     batch_order_trigger: '批量预埋单',
+    empty_csv_order: '含有未填入的项, 下单失败',
     order_trigger_td_error: '当前柜台 {tdName} 不支持下预埋单, 请联系管理员',
-    order_trigger_not_future: '批量埋单中, 第{rowStr}不是期货, 下单失败',
+    order_trigger_not_future:
+      '下单失败, 第 {rowStr} 标的信息有误 (当前仅支持期货标的), 请检查',
     batch_order_trigger_results: '批量埋单成功 {success} 条, 失败 {error} 条',
-    instrument_id_header_desc: '标的代码, (* 仅可填ctp/融航柜台支持的期货标的)',
+    instrument_id_header_desc:
+      '标的代码, 字符串, (* 仅可填ctp/融航柜台支持的期货标的)',
     exchange_id_header_desc:
-      '交易所 ID, 字符串, 可填 SSE(上交所), SZE(深交所), BSE(北交所), SHFE(上期所), DCE(大商所), CZCE(郑商所), CFFEX(中金所), INE(能源中心)',
-    side_header_desc: '买卖, 可填 0买/ 1卖',
-    offset_header_desc: '开平,可填 0开/ 1平 / 2平今 / 3平昨',
+      '交易所 ID, 字符串, 可填 SHFE(上期所), DCE(大商所), CZCE(郑商所), CFFEX(中金所), INE(能源中心)',
+    side_header_desc: '买卖, 字符串, 可填 0(买)/ 1(卖)',
+    offset_header_desc: '开平, 字符串, 可填 0(开)/ 1(平)/ 2(平今)/ 3(平昨)',
     price_type_header_desc:
-      '0限价/ 1市价/ 2上海深圳最优五档即时成交剩余撤销/ 3深圳本方最优价格申报/ 4上海最优五档即时成交剩余转限价,深圳对手方最优价格申报/ 5深圳即时成交剩余撤销/ 6深圳市价全额成交或者撤销/ 7增强限价盘/ 8竞价限价盘/ 9竞价盘',
-    volume_header_desc: '交易量',
-    limit_price_header_desc: '价格',
+      '0(限价)/ 1(市价)/ 2(上海深圳最优五档即时成交剩余撤销)/ 3(深圳本方最优价格申报)/ 4(上海最优五档即时成交剩余转限价, 深圳对手方最优价格申报)/ 5(深圳即时成交剩余撤销)/ 6(深圳市价全额成交或者撤销)/ 7(增强限价盘)/ 8(竞价限价盘)/ 9(竞价盘), 整数型',
+    volume_header_desc: '交易量, 整数型',
+    limit_price_header_desc: '价格, 浮点型',
     apart_order: '拆单',
     reset_order: '重置',
     account: '账户',
@@ -439,6 +445,18 @@ export default {
     average_network_latency: '平均网络延迟(μs)',
     min_network_latency: '最小网络延迟(μs)',
     max_network_latency: '最大网络延迟(μs)',
+
+    actions: '操作',
+  },
+
+  orderTriggerConfig: {
+    trigger_insert: '下单',
+    trigger_cancel: '撤单',
+    action_flag: '类型',
+    confirm_cancel_all: '确认全部撤单',
+    confirm: '确认',
+    cancel_all: '全部撤单',
+    insert_time: '生成时间',
   },
 
   tdConfig: {
@@ -557,8 +575,13 @@ export default {
 
   posGlobalConfig: {
     instrument_id: '标的',
-    account_id_resolved: '账户',
+    account_id_resolved: '持有账户',
+    static_yesterday_volume: '昨',
+    static_yesterday_volume_setting: '昨(今天之前持仓量)',
+    open_volume: '今开',
+    close_volume: '今平',
     yesterday_volume: '昨',
+    yesterday_volume_setting: '昨(昨仓剩余)',
     today_volume: '今',
     sum_volume: '总',
     frozen_total: '冻结数量',
@@ -567,6 +590,7 @@ export default {
     avg_open_price: '开仓均价',
     last_price: '最新价',
     unrealized_pnl: '浮动盈亏',
+    pos_detail_header: '持仓',
   },
 
   marketDataConfig: {
@@ -782,8 +806,9 @@ export default {
     order_input_key: '限制属性',
     single_price: '单笔成交价',
     limit_value: '最大值',
-    asset_margin: '两融',
-    show_asset_margin: '展示两融',
+    margin_trading: '两融',
+    pos_table_columns: '持仓表格项配置',
+    show_margin_trading: '展示两融',
 
     code_editor: '代码编辑器',
     tab_space_type: '缩进类别',

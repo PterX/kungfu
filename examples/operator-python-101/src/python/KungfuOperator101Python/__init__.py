@@ -10,12 +10,12 @@ def pre_start(context):
     context.subscribe_operator("bar", "my-bar")
 
 
-def on_quote(context, quote, location,dest):
+def on_quote(context, quote, location, dest):
     context.log.info("on quote: {}".format(quote))
     pass
 
 
-def on_synthetic_data(context, synthetic_dataa, location,dest):
+def on_synthetic_data(context, synthetic_dataa, location, dest):
     context.log.info("on_synthetic_data: {}".format(synthetic_dataa))
 
 

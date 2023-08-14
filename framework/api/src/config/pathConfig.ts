@@ -113,6 +113,8 @@ addFileSync('', LOG_DIR, 'folder');
 export const ARCHIVE_DIR = path.join(KF_HOME, 'archive');
 addFileSync('', ARCHIVE_DIR, 'folder');
 
+//================= home end ==============================
+
 //================= special item start ==============================
 
 //BASE_DB_DIR strategys, accounts, tasks
@@ -126,12 +128,14 @@ export const BASE_DB_DIR = path.join(
 
 //RENDERER_LOG_DIR
 export const RENDERER_LOG_DIR = path.join(
-  SYSTEM_DIR,
+  LOG_SYSTEM_DIR,
   'node',
   'renderer-app',
   'log',
   'live',
 );
+
+//================= special item end ==============================
 
 //================== others start =================================
 

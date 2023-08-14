@@ -8,7 +8,7 @@
 #include <kungfu/yijinjing/cache/cached.h>
 #include <kungfu/yijinjing/practice/apprentice.h>
 #include <kungfu/yijinjing/util/os.h>
-#include <nng/nng.h>
+#include <utility>
 
 using namespace kungfu::rx;
 using namespace kungfu::longfist;
@@ -22,8 +22,8 @@ namespace fs = std::filesystem;
 
 namespace kungfu::yijinjing::practice {
 
-apprentice::apprentice(location_ptr home, bool low_latency)
-    : hero(std::make_shared<io_device_client>(home, low_latency)), cleaner_(*this) {}
+apprentice::apprentice(location_ptr home, bool low_latency, std::string arguments)
+    : hero(std::make_shared<io_device_client>(home, low_latency)), cleaner_(*this), arguments_(std::move(arguments)) {}
 
 bool apprentice::is_started() const { return started_; }
 
@@ -150,6 +150,7 @@ void apprentice::react() {
       checkin_time_ = data.checkin_time;
       reader_->join(master_cmd_location_, get_live_home_uid(), begin_time_);
     });
+
     expect_start();
     checkin();
   }

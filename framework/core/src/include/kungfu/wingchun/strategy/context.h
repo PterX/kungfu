@@ -317,7 +317,8 @@ public:
    * Get arguments kfc run -a
    * @return string of arguments
    */
-  const std::string &get_arguments() { return arguments_; };
+
+  virtual std::string get_arguments() { return app_.get_arguments(); };
 
   /**
    *
@@ -329,7 +330,6 @@ public:
 protected:
   yijinjing::practice::apprentice &app_;
   const rx::connectable_observable<event_ptr> &events_;
-  std::string arguments_;
   bool started_ = false;
 
   virtual void on_start() {}
@@ -344,8 +344,6 @@ private:
   friend void enable(Context &context) { context.on_start(); }
 
   friend void prepare(const event_ptr &event, Context &context) { context.prepare(event); }
-
-  friend void set_arguments(Context &context, const std::string &arguments) { context.arguments_ = arguments; }
 };
 } // namespace kungfu::wingchun::strategy
 

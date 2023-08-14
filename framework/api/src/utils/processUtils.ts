@@ -438,7 +438,6 @@ export const startProcess = async (
         .join(path.delimiter),
       KFC_DIR: process.env.KFC_DIR || '',
       CLI_DIR: process.env.CLI_DIR || '',
-      KF_APP_RUNTIME_DIR: process.cwd().toString(),
       IS_KF_DEV: `${process.env.IS_KF_DEV}` || '',
       KF_HOME: dealSpaceInPath(KF_HOME),
       KF_RUNTIME_DIR: dealSpaceInPath(KF_RUNTIME_DIR),

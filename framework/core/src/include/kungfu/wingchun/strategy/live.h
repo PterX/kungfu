@@ -264,14 +264,6 @@ public:
    */
   void update_strategy_state(longfist::types::StrategyStateUpdate &state_update) override;
 
-  /**
-   *
-   * @param source td source id
-   * @param account td account id
-   * @return writer to related td
-   */
-  yijinjing::journal::writer_ptr get_writer(const std::string &source, const std::string &account) override;
-
   yijinjing::data::location_ptr get_location(uint32_t location_uid) override;
 
 protected:

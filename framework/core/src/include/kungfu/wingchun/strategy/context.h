@@ -322,14 +322,6 @@ public:
 
   /**
    *
-   * @param source td source id
-   * @param account td account id
-   * @return writer to related td
-   */
-  virtual yijinjing::journal::writer_ptr get_writer(const std::string &source, const std::string &account) = 0;
-
-  /**
-   *
    * @param location_uid
    * @return location_ptr of location_uid
    */

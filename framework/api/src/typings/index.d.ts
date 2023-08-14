@@ -1016,7 +1016,9 @@ declare namespace KungfuApi {
     Instrument: DataTable<Instrument>;
     InstrumentFactor: DataTable<InstrumentFactor>;
     Order: DataTable<Order>;
+    AlgoOrder: DataTable<AlgoOrder>;
     OrderInput: DataTable<OrderInput>;
+    AlgoOrderInput: DataTable<AlgoOrderInput>;
     OrderStat: DataTable<OrderStat>;
     Position: DataTable<Position>;
     Quote: DataTable<Quote>;
@@ -1180,8 +1182,9 @@ declare namespace KungfuApi {
       strategyLocation?: KfLocation,
     ): bigint;
     cancelAlgoOrder(
-      orderInput: OrderTriggerInput,
+      algoOrderAction: AlgoOrderAction,
       tdLocation: KfLocation,
+      strategyLocation?: KfLocation,
     ): bigint;
     issueOrder(
       orderInput: OrderInput,
@@ -1191,6 +1194,7 @@ declare namespace KungfuApi {
     issueAlgoOrder(
       algoOrderInput: AlgoOrderInput,
       tdLocation: KfLocation,
+      strategyLocation?: KfLocation,
     ): bigint;
     issueOrderTrigger(
       orderInput: OrderTriggerInput,

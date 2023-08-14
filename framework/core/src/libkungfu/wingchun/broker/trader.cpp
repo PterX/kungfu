@@ -233,4 +233,11 @@ yijinjing::journal::writer_ptr &Trader::get_thread_writer() {
   return dynamic_cast<TraderVendor &>(get_vendor()).get_thread_writer();
 }
 
+void Trader::try_req_account() {
+  if (is_sync_account()) {
+    req_account();
+    disable_sync_account();
+  }
+}
+
 } // namespace kungfu::wingchun::broker

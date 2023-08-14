@@ -19,7 +19,6 @@ io_device
 usable
 bookkeeper
 arguments
-basketorder_engine
 begin_time
 end_time
 gen_time
@@ -314,13 +313,9 @@ DCE
 CZCE
 INE
 SSE
-SZSE
-HKEx
+SZE
 MarketType
 Snapshot
-Entrust
-Transaction
-Tree
 SubscribeDataType
 Stock
 Future

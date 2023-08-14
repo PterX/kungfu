@@ -111,6 +111,7 @@ public:
 protected:
   yijinjing::practice::apprentice &app_;
   const rx::connectable_observable<event_ptr> &events_;
+  bool started_ = false;
 
   virtual void on_start(){};
 

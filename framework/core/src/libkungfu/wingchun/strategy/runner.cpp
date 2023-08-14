@@ -40,6 +40,11 @@ Context_ptr Runner::make_context() {
     return std::make_shared<BacktestContext>(*this, events_, std::move(matcher_), std::move(from_indexer_),
                                              std::move(to_indexer_));
   }
+
+  if (get_home()->mode == mode::REPLAY) {
+    return std::make_shared<ReplayContext>(*this, events_);
+  }
+
   return std::make_shared<LiveContext>(*this, events_);
 }
 
@@ -152,7 +157,6 @@ void Runner::post_start() {
       $$(invoke(&Strategy::on_algo_order_action_error, event->data<AlgoOrderActionError>(),
                 get_location(event->source()), event->dest()));
   invoke(&Strategy::post_start);
-  SPDLOG_INFO("strategy {} started", get_io_device()->get_home()->name);
 }
 
 void Runner::pre_stop() { invoke(&Strategy::pre_stop); }

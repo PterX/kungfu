@@ -116,6 +116,8 @@ private:
 
   void on_timer_check();
 };
+
+DECLARE_PTR(BacktestContext)
 } // namespace kungfu::wingchun::op
 
 #endif // WINGCHUN_OPERATOR_BACKTEST_H

@@ -190,9 +190,6 @@ void bind_strategy(pybind11::module &m) {
            py::arg("stop_price") = 0, py::arg("hedge_flag") = HedgeFlag::Speculation, py::arg("is_swap") = false)
       .def("insert_batch_orders", &strategy::Context::insert_batch_orders)
       .def("insert_array_orders", &strategy::Context::insert_array_orders)
-      .def("insert_basket_order", &strategy::Context::insert_basket_order, py::arg("basket_id"), py::arg("source"),
-           py::arg("account"), py::arg("side"), py::arg("price_type") = PriceType::Limit,
-           py::arg("price_level") = PriceLevel::Latest, py::arg("price_offset") = 0, py::arg("volume") = 0)
       .def("insert_algo_order", &strategy::Context::insert_algo_order, py::arg("instrument_id"), py::arg("exchange_id"),
            py::arg("source"), py::arg("account"), py::arg("begin_time"), py::arg("end_time"), py::arg("volume"),
            py::arg("type"), py::arg("side"), py::arg("offset"), py::arg("algo_type_id"), py::arg("algo_id"),

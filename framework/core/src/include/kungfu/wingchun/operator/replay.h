@@ -1,14 +1,15 @@
-// SPDX-License-Identifier: Apache-2.0
-
-#ifndef WINGCHUN_OPERATOR_LIVE_H
-#define WINGCHUN_OPERATOR_LIVE_H
+#ifndef WINGCHUN_OPERATOR_REPLAY_H
+#define WINGCHUN_OPERATOR_REPLAY_H
 
 #include <kungfu/wingchun/operator/context.h>
+#include <kungfu/yijinjing/journal/journal.h>
 
 namespace kungfu::wingchun::op {
-class LiveContext : public Context {
+
+class ReplayContext : public Context {
+
 public:
-  explicit LiveContext(yijinjing::practice::apprentice &app, const rx::connectable_observable<event_ptr> &events);
+  explicit ReplayContext(yijinjing::practice::apprentice &app, const rx::connectable_observable<event_ptr> &events);
 
   /**
    * checked_ is strated started.
@@ -27,6 +28,12 @@ public:
    * @return location_uid
    */
   uint32_t get_home_uid() const override;
+
+  /**
+   * Get location_uid of current live process
+   * @return location_uid
+   */
+  uint32_t get_live_home_uid() const;
 
   /**
    * Get config from database.
@@ -97,8 +104,6 @@ public:
    */
   broker::Client &get_broker_client() override;
 
-  void check_dependency_state(const event_ptr &event);
-
   yijinjing::data::location_ptr get_location(uint32_t location_uid) override;
 
 protected:
@@ -108,11 +113,14 @@ protected:
 
 private:
   broker::PassiveClient broker_client_;
-  longfist::enums::OperatorState state_;
-  bool broker_states_requested_{false};
+  yijinjing::journal::reader_ptr reader_for_write_;
+
+  yijinjing::journal::frame_ptr read_next(uint32_t msg_type);
+
+  void on_timer_check();
 };
 
-DECLARE_PTR(LiveContext)
+DECLARE_PTR(ReplayContext)
 } // namespace kungfu::wingchun::op
 
-#endif // WINGCHUN_OPERATOR_LIVE_H
+#endif // WINGCHUN_OPERATOR_REPLAY_H

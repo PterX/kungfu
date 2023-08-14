@@ -63,7 +63,7 @@ public:
 private:
   friend void set_runner(Report &report, yijinjing::practice::apprentice *runner, book::Bookkeeper *bookkeeper) {
     report.app_ = runner;
-    report.bookkeeper_ = std::move(bookkeeper);
+    report.bookkeeper_ = bookkeeper;
     report.init();
   }
   yijinjing::practice::apprentice *app_;

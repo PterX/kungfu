@@ -39,7 +39,7 @@ Context_ptr Runner::make_context() {
     }
     if (not report_) {
       report_ = std::make_shared<tool::Report>();
-      SPDLOG_WARN("Runner in backtest mode not specified.");
+      SPDLOG_WARN("Runner in backtest mode not specified Report.");
     }
     set_runner(*matcher_, this);
     auto backtest_context = std::make_shared<BacktestContext>(

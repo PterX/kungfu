@@ -8,7 +8,7 @@
 import kungfu.yijinjing.time as kft
 from kungfu.wingchun.constants import *
 
-SOURCE = Source.CTP
+SOURCE = "ctp"
 ACCOUNT = "089270"
 # ACCOUNT = "115796"
 # tickers = ["AG2005", "AG2006", "ZN2006", "ZN2009"]
@@ -22,9 +22,9 @@ EXCHANGE = Exchange.SHFE
 
 # 启动前回调，添加交易账户，订阅行情，策略初始化计算等
 def pre_start(context):
-    context.add_account(Source.CTP, ACCOUNT)
-    context.subscribe(Source.CTP, ["rb2009"], Exchange.SHFE)
-    # context.subscribe(Source.CTP, ["BB2005", "BB2006", "EG2005", "EG2006"], Exchange.DCE)
+    context.add_account(SOURCE, ACCOUNT)
+    context.subscribe(SOURCE, ["rb2009"], Exchange.SHFE)
+    # context.subscribe(SOURCE, ["BB2005", "BB2006", "EG2005", "EG2006"], Exchange.DCE)
 
 
 # 启动准备工作完成后回调，策略只能在本函数回调以后才能进行获取持仓和报单
@@ -62,7 +62,7 @@ def log_book(context, event):
 
 
 # 收到快照行情时回调，行情信息通过quote对象获取 
-def on_quote(context, quote, location):
+def on_quote(context, quote, location,dest):
     context.log.info(f"insert order for {quote.instrument_id}")
     order_id = context.insert_order(quote.instrument_id, EXCHANGE, SOURCE, ACCOUNT, quote.last_price, VOLUME,
                                     PriceType.Limit, Side.Buy, Offset.Open)
@@ -75,13 +75,13 @@ def on_quote(context, quote, location):
     pass
 
 # 收到订单状态回报时回调
-def on_order(context, order, location):
+def on_order(context, order, location,dest):
     # context.log.info("[on_order] {}".format(order))
     pass
 
 
 # 收到成交信息回报时回调
-def on_trade(context, trade, location):
+def on_trade(context, trade, location,dest):
     context.log.info("[on_trade] {}".format(trade))
     pass
 

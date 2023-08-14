@@ -107,7 +107,6 @@ void master::register_app(const event_ptr &event) {
   auto uid_str = fmt::format("{:08x}", app_location->uid);
   SPDLOG_INFO("registering location {} uname {}", uid_str, app_location->uname);
   auto master_cmd_location = location::make_shared(mode::LIVE, category::SYSTEM, "master", uid_str, home->locator);
-  auto public_writer = get_writer(location::PUBLIC);
   auto app_cmd_writer = get_io_device()->open_writer_at(master_cmd_location, app_location->uid);
 
   try_add_location(event->gen_time(), app_location);
@@ -124,6 +123,7 @@ void master::register_app(const event_ptr &event) {
   session_builder_.open_session(app_location, event->gen_time());
   app_cmd_writer->mark(event->gen_time(), SessionStart::tag);
 
+  auto public_writer = get_writer(location::PUBLIC);
   public_writer->write(event->gen_time(), *std::dynamic_pointer_cast<Location>(app_location));
   public_writer->write(event->gen_time(), register_data);
 

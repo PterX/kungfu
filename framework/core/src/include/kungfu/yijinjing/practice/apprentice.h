@@ -79,7 +79,7 @@ public:
   bool release_page();
 
   const std::string &get_arguments() const { return arguments_; }
-  
+
 protected:
   cache::bank state_bank_;
 

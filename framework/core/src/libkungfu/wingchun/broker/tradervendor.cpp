@@ -68,8 +68,7 @@ TraderVendor::TraderVendor(locator_ptr locator, const std::string &group, const 
     : BrokerVendor(location::make_shared(mode::LIVE, category::TD, group, name, std::move(locator)), low_latency,
                    arguments),
       algo_order_service_(*this), order_service_(*this), order_trigger_service_(*this),
-      hook_(std::make_shared<TraderWriterHook>(*this)) {
-}
+      hook_(std::make_shared<TraderWriterHook>(*this)) {}
 
 void TraderVendor::set_service(Trader_ptr service) { service_ = std::move(service); }
 

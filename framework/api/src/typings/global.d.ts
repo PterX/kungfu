@@ -35,6 +35,7 @@ declare global {
       EXTENSION_DIRS: string;
       KFC_DIR: string;
       KF_CONFIG_DIR: string;
+      KF_APP_RUNTIME_DIR: string;
       IS_KF_DEV: boolean;
       CPUS_NUM: number;
       IF_CPUS_NUM_SAFE: boolean;

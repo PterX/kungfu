@@ -62,7 +62,7 @@ def log_book(context, event):
 
 
 # 收到快照行情时回调，行情信息通过quote对象获取 
-def on_quote(context, quote, location,dest):
+def on_quote(context, quote, location, dest):
     context.log.info(f"insert order for {quote.instrument_id}")
     order_id = context.insert_order(quote.instrument_id, EXCHANGE, SOURCE, ACCOUNT, quote.last_price, VOLUME,
                                     PriceType.Limit, Side.Buy, Offset.Open)
@@ -75,13 +75,13 @@ def on_quote(context, quote, location,dest):
     pass
 
 # 收到订单状态回报时回调
-def on_order(context, order, location,dest):
+def on_order(context, order, location, dest):
     # context.log.info("[on_order] {}".format(order))
     pass
 
 
 # 收到成交信息回报时回调
-def on_trade(context, trade, location,dest):
+def on_trade(context, trade, location, dest):
     context.log.info("[on_trade] {}".format(trade))
     pass
 

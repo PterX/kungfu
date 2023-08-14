@@ -286,8 +286,13 @@ class ExtensionExecutor:
                 ctx, ctx.path, loader.config["kungfuConfig"]["key"], Strategy
             )
         ctx.runner.add_strategy(ctx.strategy)
-        ctx.loop = KungfuEventLoop(ctx, ctx.runner)
-        ctx.loop.run_forever()
+        if "is_cpp_module" in dir(ctx) and ctx.is_cpp_module:
+            ctx.logger.info("is_cpp_module, use ctx.runner.run()")
+            ctx.runner.run()
+        else:
+            ctx.logger.info("not is_cpp_module, use ctx.loop.run_forever()")
+            ctx.loop = KungfuEventLoop(ctx, ctx.runner)
+            ctx.loop.run_forever()
 
     def run_operator(self):
         loader = self.loader
@@ -364,6 +369,7 @@ def try_load_cpp_module(ctx, path, key, cls):
         module = importlib.import_module(key)
         ctx.logger.debug(f"import as cpp {cls_name} success")
         factory_func = getattr(module, cls_name.lower())
+        ctx.is_cpp_module = True
         return factory_func()
     except Exception as e:
         ctx.logger.debug(f"fallback to python loader due to: {e}")

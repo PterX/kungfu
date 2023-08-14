@@ -219,7 +219,6 @@ const columns = computed(() => {
       sorter,
       marginSorter,
       isShowAssetMargin.value,
-      isShowUnrealizedPnl.value,
     );
   }
 
@@ -228,12 +227,7 @@ const columns = computed(() => {
     sorter,
     marginSorter,
     isShowAssetMargin.value,
-    isShowUnrealizedPnl.value,
   );
-});
-
-const isShowUnrealizedPnl = computed(() => {
-  return !(globalSetting.value.performance?.bypassRefreshBook ?? false);
 });
 
 const getPrefixByLocation = (kfLocation: KungfuApi.KfLocation) =>
@@ -630,11 +624,7 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
                             "
             ></a-switch>
           </template>
-          <template
-            v-else-if="
-              column.dataIndex === 'unrealizedPnl' && isShowUnrealizedPnl
-            "
-          >
+          <template v-else-if="column.dataIndex === 'unrealizedPnl'">
             <KfBlinkNum
               v-if="record.category === 'td'"
               mode="compare-zero"

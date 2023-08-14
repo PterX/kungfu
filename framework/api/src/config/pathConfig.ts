@@ -131,7 +131,6 @@ export const RENDERER_LOG_DIR = path.join(
   LOG_SYSTEM_DIR,
   'node',
   'renderer-app',
-  'log',
   'live',
 );
 

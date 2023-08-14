@@ -156,9 +156,14 @@ function buildGlobalPositions(
         yesterday_volume,
         unrealized_pnl,
         update_time,
+        static_yesterday_volume,
+        open_volume,
       } = prePosStat;
       posStat[id].yesterday_volume = yesterday_volume + pos.yesterday_volume;
       posStat[id].volume = volume + pos.volume;
+      posStat[id].static_yesterday_volume =
+        static_yesterday_volume + pos.static_yesterday_volume;
+      posStat[id].open_volume = open_volume + pos.open_volume;
       posStat[id].avg_open_price =
         (avg_open_price * Number(volume) +
           pos.avg_open_price * Number(pos.volume)) /
@@ -325,7 +330,11 @@ function handleShowTradingDataDetail({
           </template>
           <template v-else-if="column.dataIndex === 'close_volume'">
             <KfBlinkNum
-              :num="Number(item.close_volume).kfToFixed(0)"
+              :num="
+                Number(
+                  item.open_volume + item.static_yesterday_volume - item.volume,
+                ).kfToFixed(0)
+              "
             ></KfBlinkNum>
           </template>
           <template v-else-if="column.dataIndex === 'yesterday_volume'">

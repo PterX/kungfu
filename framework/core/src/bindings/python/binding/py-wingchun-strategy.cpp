@@ -216,13 +216,6 @@ void bind_strategy(pybind11::module &m) {
 
   py::class_<strategy::Matcher, std::shared_ptr<strategy::Matcher>>(m, "Matcher");
 
-  // TODO to be pruned. use Context instead
-  py::class_<strategy::LiveContext, strategy::Context, strategy::LiveContext_ptr>(m, "LiveContext")
-      // .def_property_readonly("bookkeeper", &strategy::LiveContext::get_bookkeeper,
-      // py::return_value_policy::reference)
-      .def_property_readonly("basketorder_engine", &strategy::LiveContext::get_basketorder_engine,
-                             py::return_value_policy::reference);
-
   py::class_<strategy::Strategy, PyStrategy, strategy::Strategy_ptr>(m, "Strategy")
       .def(py::init())
       .def("pre_start", &strategy::Strategy::pre_start)

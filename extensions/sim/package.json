@@ -101,7 +101,8 @@
             "Server": {
               "GFA": true
             }
-          }
+          },
+          "CancelOrder": {}
         }
       },
       "md": {

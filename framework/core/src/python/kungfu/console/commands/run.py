@@ -95,7 +95,7 @@ def run(
     ctx.vendor = vendor
 
     if ctx.arguments is None:
-        ctx.arguments = ""
+        ctx.arguments = "{}"
 
     registry = ExecutorRegistry(ctx)
 

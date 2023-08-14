@@ -350,11 +350,10 @@ export default {
     order_trigger_status_cancelling: '待撤',
     batch: '批量',
     batch_order_trigger: '批量预埋单',
-    empty_csv_order: '含有未填入的项, 下单失败',
+    has_error_csv_order: '填入信息不合规, 请检查输入信息, 下单失败',
     order_trigger_td_error: '当前柜台 {tdName} 不支持下预埋单, 请联系管理员',
     order_trigger_not_future:
       '下单失败, 第 {rowStr} 标的信息有误 (当前仅支持期货标的), 请检查',
-    batch_order_trigger_results: '批量埋单成功 {success} 条, 失败 {error} 条',
     instrument_id_header_desc:
       '标的代码, 字符串, (* 仅可填ctp/融航柜台支持的期货标的)',
     exchange_id_header_desc:
@@ -427,6 +426,8 @@ export default {
 
     checkbox_text: '未完成委托',
     cancel_all: '全部撤单',
+    cancel_order: '撤单',
+    cancel_order_trigger: '预撤',
     date_picker: '请选择日期',
     confirm_cancel_all: '确认全部撤单',
     entrust: '委托',
@@ -447,6 +448,10 @@ export default {
     max_network_latency: '最大网络延迟(μs)',
 
     actions: '操作',
+    order_finished: '该委托已结束, 无法预埋撤单',
+    confirm_cancel_order_trigger: '确认撤销预埋单',
+    cancel_order_trigger_context: '您是否要取消该委托单下的预埋撤单',
+    make_order_type: '(预埋)',
   },
 
   orderTriggerConfig: {
@@ -457,6 +462,12 @@ export default {
     confirm: '确认',
     cancel_all: '全部撤单',
     insert_time: '生成时间',
+    order_finished: '该委托已结束, 无法操作',
+    order_trigger_request_success: '刷新成功',
+    make_order_modal_tip:
+      '注: 预埋单仅支持在非交易时间段下单, 会在交易所交易状态变化时触发',
+    error_msg_column: '回报信息',
+    order_trigger_success: '成功',
   },
 
   tdConfig: {
@@ -576,7 +587,12 @@ export default {
   posGlobalConfig: {
     instrument_id: '标的',
     account_id_resolved: '持有账户',
+    static_yesterday_volume: '昨',
+    static_yesterday_volume_setting: '昨(今天之前持仓量)',
+    open_volume: '今开',
+    close_volume: '今平',
     yesterday_volume: '昨',
+    yesterday_volume_setting: '昨(昨仓剩余)',
     today_volume: '今',
     sum_volume: '总',
     frozen_total: '冻结数量',
@@ -585,6 +601,7 @@ export default {
     avg_open_price: '开仓均价',
     last_price: '最新价',
     unrealized_pnl: '浮动盈亏',
+    pos_detail_header: '持仓',
   },
 
   marketDataConfig: {
@@ -801,6 +818,7 @@ export default {
     single_price: '单笔成交价',
     limit_value: '最大值',
     asset_margin: '两融',
+    pos_table_columns: '持仓表格项配置',
     show_asset_margin: '展示两融',
 
     code_editor: '代码编辑器',

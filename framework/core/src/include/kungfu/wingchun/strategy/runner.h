@@ -53,7 +53,6 @@ private:
   bool started_;
   std::vector<Strategy_ptr> strategies_ = {};
   RuntimeContext_ptr context_;
-  const std::string arguments_;
 
   void prepare(const event_ptr &event);
   void inspect_channel(const event_ptr &event);

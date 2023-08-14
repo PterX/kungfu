@@ -23,8 +23,9 @@ namespace kungfu::wingchun::service {
 #define DEFAULT_AVG_VALID_VALUE 10000.0
 
 Ledger::Ledger(locator_ptr locator, mode m, bool low_latency, const std::string &arguments)
-    : apprentice(location::make_shared(m, category::SYSTEM, "service", "ledger", std::move(locator)), low_latency),
-      arguments_(arguments), broker_client_(*this), bookkeeper_(*this, broker_client_, true) {}
+    : apprentice(location::make_shared(m, category::SYSTEM, "service", "ledger", std::move(locator)), low_latency,
+                 arguments),
+      broker_client_(*this), bookkeeper_(*this, broker_client_, true) {}
 
 void Ledger::on_exit() {}
 
@@ -63,11 +64,11 @@ void Ledger::on_start() {
 }
 
 bool Ledger::bypass_refresh_book() const {
-  if (arguments_.empty()) {
+  if (get_arguments().empty()) {
     return false;
   }
 
-  auto config = nlohmann::json::parse(arguments_);
+  auto config = nlohmann::json::parse(get_arguments());
   return config.value<bool>("bypass_refresh_book", false);
 }
 
@@ -290,9 +291,7 @@ void Ledger::write_strategy_data(int64_t trigger_time, uint32_t strategy_uid) {
 void Ledger::write_positions(int64_t trigger_time, uint32_t dest, book::PositionMap &positions) {
   auto writer = get_writer(dest);
   for (const auto &pair : positions) {
-    if (pair.second.volume > 0) {
-      writer->write_as(trigger_time, pair.second, get_home_uid(), pair.second.holder_uid);
-    }
+    writer->write_as(trigger_time, pair.second, get_home_uid(), pair.second.holder_uid);
   }
 }
 

@@ -16,7 +16,7 @@ public:
 
   void pre_start(Context_ptr & context) override {
     SPDLOG_INFO("preparing strategy");
-    SPDLOG_INFO("arguments: {}", context->arguments());
+    SPDLOG_INFO("arguments: {}", context->get_arguments());
   }
 
   void post_start(Context_ptr & context) override {

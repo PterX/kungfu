@@ -40,16 +40,16 @@ public:
     PYBIND11_OVERLOAD_PURE(void, AccountingMethod, apply_quote, book, quote);
   }
 
-  void apply_order_input(Book_ptr &book, const OrderInput &input) override {
-    PYBIND11_OVERLOAD_PURE(void, AccountingMethod, apply_order_input, book, input);
+  void apply_order_input(uint32_t source, uint32_t dest, Book_ptr &book, const OrderInput &input) override {
+    PYBIND11_OVERLOAD_PURE(void, AccountingMethod, apply_order_input, source, dest, book, input);
   }
 
-  void apply_order(Book_ptr &book, const Order &order) override {
-    PYBIND11_OVERLOAD_PURE(void, AccountingMethod, apply_order, book, order);
+  void apply_order(uint32_t source, uint32_t dest, Book_ptr &book, const Order &order) override {
+    PYBIND11_OVERLOAD_PURE(void, AccountingMethod, apply_order, source, dest, book, order);
   }
 
-  void apply_trade(Book_ptr &book, const Trade &trade) override {
-    PYBIND11_OVERLOAD_PURE(void, AccountingMethod, apply_trade, book, trade);
+  void apply_trade(uint32_t source, uint32_t dest, Book_ptr &book, const Trade &trade) override {
+    PYBIND11_OVERLOAD_PURE(void, AccountingMethod, apply_trade, source, dest, book, trade);
   }
 
   void update_position(Book_ptr &book, Position &position) override {

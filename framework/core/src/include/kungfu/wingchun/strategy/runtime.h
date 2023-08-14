@@ -271,7 +271,7 @@ public:
    * Get arguments kfc run -a
    * @return string of arguments
    */
-  std::string arguments() override;
+  std::string get_arguments() override;
 
   /**
    *
@@ -281,7 +281,7 @@ public:
    */
   yijinjing::journal::writer_ptr get_writer(const std::string &source, const std::string &account) override;
 
-  void set_arguments(const std::string &argument) { arguments_ = argument; }
+  void set_arguments(const std::string &arguments) { arguments_ = arguments; }
 
   void set_started(bool started);
 

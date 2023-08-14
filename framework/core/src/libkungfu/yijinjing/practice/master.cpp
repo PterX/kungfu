@@ -107,7 +107,6 @@ void master::register_app(const event_ptr &event) {
   auto uid_str = fmt::format("{:08x}", app_location->uid);
   SPDLOG_INFO("registering location {} uname {}", uid_str, app_location->uname);
   auto master_cmd_location = location::make_shared(mode::LIVE, category::SYSTEM, "master", uid_str, home->locator);
-  auto public_writer = get_writer(location::PUBLIC);
   auto app_cmd_writer = get_io_device()->open_writer_at(master_cmd_location, app_location->uid);
 
   try_add_location(event->gen_time(), app_location);
@@ -124,13 +123,14 @@ void master::register_app(const event_ptr &event) {
   session_builder_.open_session(app_location, event->gen_time());
   app_cmd_writer->mark(event->gen_time(), SessionStart::tag);
 
+  auto public_writer = get_writer(location::PUBLIC);
+  public_writer->write(event->gen_time(), *std::dynamic_pointer_cast<Location>(app_location));
+  public_writer->write(event->gen_time(), register_data);
+
+  // hava to be put after register sent, because master cmd journal only be joined after register;
   require_write_to(event->gen_time(), app_location->uid, location::PUBLIC);
   require_write_to(event->gen_time(), app_location->uid, location::SYNC);
   require_write_to(event->gen_time(), app_location->uid, master_cmd_location->uid);
-
-  // after target app has public, sync, master cmd writer
-  public_writer->write(event->gen_time(), *std::dynamic_pointer_cast<Location>(app_location));
-  public_writer->write(event->gen_time(), register_data);
 
   write_time_reset(event->gen_time(), app_cmd_writer);
   write_trading_day(event->gen_time(), app_cmd_writer);

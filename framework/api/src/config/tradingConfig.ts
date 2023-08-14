@@ -393,6 +393,17 @@ export const AllFinishedOrderStatus = [
   OrderStatusEnum.Lost,
 ];
 
+export const UnfinishedOrderTriggerStatus = [
+  OrderStatusEnum.Pending,
+  OrderStatusEnum.Submitted,
+  OrderStatusEnum.PartialFilledActive,
+];
+
+export const OrderCancelledStatus = [
+  OrderStatusEnum.Cancelled,
+  OrderStatusEnum.PartialFilledNotActive,
+];
+
 export const Direction: Record<
   DirectionEnum,
   KungfuApi.KfTradeValueCommonData
@@ -1063,6 +1074,7 @@ export const ExportTradingDataColumnsToFilter: Record<
   BasketInstrument: ['dest', 'source'],
   BasketOrder: [],
   InstrumentFactor: ['dest', 'source'],
+  OrderTrigger: [],
 };
 
 export const OrderTriggerCancelStatus = [
@@ -1081,3 +1093,25 @@ export const TriggerFlag: Record<
     name: t('orderTriggerConfig.trigger_cancel'),
   },
 };
+
+export const OrderTriggerSide = [SideEnum.Buy, SideEnum.Sell];
+
+export const OrderTriggerOffset = [
+  OffsetEnum.Open,
+  OffsetEnum.Close,
+  OffsetEnum.CloseToday,
+  OffsetEnum.CloseYest,
+];
+
+export const OrderTriggerPriceType = [
+  PriceTypeEnum.Limit,
+  PriceTypeEnum.Market,
+  PriceTypeEnum.FakBest5,
+  PriceTypeEnum.ForwardBest,
+  PriceTypeEnum.ReverseBest,
+  PriceTypeEnum.Fak,
+  PriceTypeEnum.Fok,
+  PriceTypeEnum.EnhancedLimit,
+  PriceTypeEnum.AtAuctionLimit,
+  PriceTypeEnum.AtAuction,
+];

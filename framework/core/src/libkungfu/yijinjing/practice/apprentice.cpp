@@ -196,8 +196,8 @@ void apprentice::react() {
                                  first();
     cached_register_event | $$(request_cached_reader_writer());
 
-    checkin();
     expect_start();
+    checkin();
   }
   if (get_io_device()->get_home()->mode == mode::REPLAY) {
     reader_->join(master_cmd_location_, get_live_home_uid(), begin_time_);

@@ -4,7 +4,6 @@ import fsPromise from 'fs/promises';
 import * as csv from 'fast-csv';
 import { FormatterRow, ParserOptionsArgs } from 'fast-csv';
 import findRoot from 'find-root';
-import { booleanProcessEnv } from './commonUtils';
 import { RootConfigJSON } from '../typings/global';
 
 //添加文件
@@ -326,7 +325,7 @@ export const findPackageRoot = () => {
   let searchPath = '';
   const cwd = process.cwd().toString();
   if (process.env.NODE_ENV === 'production') {
-    searchPath = process.env.KF_APP_RUNTIME_DIR;
+    searchPath = process.env.KF_APP_RUNTIME_DIR || __dirname;
   } else {
     searchPath = cwd;
   }

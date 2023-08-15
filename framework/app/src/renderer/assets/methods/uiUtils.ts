@@ -338,6 +338,7 @@ export const useTableSearchKeywordList = <T>(
 export const useTableSearchKeyword = <T>(
   targetList: Ref<T[]> | ComputedRef<T[]>,
   keys: string[],
+  transform?: Record<string, (string: string | number) => string>,
 ): {
   searchKeyword: Ref<string>;
   tableData: ComputedRef<T[]>;
@@ -347,13 +348,16 @@ export const useTableSearchKeyword = <T>(
     return targetList.value
       .filter((item: T) => {
         const combinedValue = keys
-          .map(
-            (key: string) =>
+          .map((key: string) => {
+            const name =
               (
                 ((item as Record<string, unknown>)[key] as string | number) ||
                 ''
-              ).toString() || '',
-          )
+              ).toString() || '';
+            return transform && transform[key]
+              ? transform[key](item[key] as string | number)
+              : name;
+          })
           .join('_');
         return new RegExp(searchKeyword.value, 'ig').test(combinedValue);
       })

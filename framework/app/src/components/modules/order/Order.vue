@@ -60,6 +60,7 @@ import {
   OrderActionFlagEnum,
   OrderTriggerStatusEnum,
   OrderTriggerTypeEnum,
+  OrderTriggerFlag,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
   showTradingDataDetail,
@@ -218,7 +219,7 @@ onMounted(() => {
         const source = watcher.getLocationUID(currentGlobalKfLocation.value);
         orderCurrentOrderTriggers.value = watcher.ledger.OrderTrigger.filter(
           'action_flag',
-          1,
+          OrderTriggerFlag.TriggerCancel,
         )
           .filter('source', source)
           .list()

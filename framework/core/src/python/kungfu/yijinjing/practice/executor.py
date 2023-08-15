@@ -315,10 +315,14 @@ class ExtensionExecutor:
 
         ctx.runner.add_strategy(ctx.strategy)
 
-        if kfj.MODES[ctx.mode] == lf.enums.mode.LIVE:
+        if kfj.MODES[ctx.mode] == lf.enums.mode.LIVE and "is_cpp_module" not in dir(
+            ctx
+        ):
+            ctx.logger.info("use run_forever")
             ctx.loop = KungfuEventLoop(ctx, ctx.runner)
             ctx.loop.run_forever()
         else:
+            ctx.logger.info("use run")
             ctx.runner.run()
 
     def run_operator(self):
@@ -478,6 +482,7 @@ def try_load_cpp_module(ctx, path, key, cls):
         module = importlib.import_module(key)
         ctx.logger.debug(f"import as cpp {cls_name} success")
         factory_func = getattr(module, cls_name.lower())
+        ctx.is_cpp_module = True
         return factory_func()
     except Exception as e:
         ctx.logger.debug(f"fallback to python loader due to: {e}")

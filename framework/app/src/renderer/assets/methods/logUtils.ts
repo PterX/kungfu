@@ -140,12 +140,24 @@ export const useLogSearch = (
   handleToDownSearchResult: () => void;
   handleToUpSearchResult: () => void;
 } => {
+  const escapeRegExp = (string: string) => {
+    return string
+      .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      .replace(/\s+/g, '\\s+')
+      .replace(/\//g, '(\\/|&#x2F;)')
+      .replace(/&/g, '(&|&amp;)')
+      .replace(/</g, '(<|&lt;)')
+      .replace(/>/g, '(>|&gt;)')
+      .replace(/"/g, '("|&quot;)')
+      .replace(/'/g, "('|&#39;)")
+      .replace(/`/g, '(`|&#96;)');
+  };
   const inputSearchRef = ref();
   const searchKeyword = ref<string>('');
   const searchKeywordReg = computed(() => {
     let reg: RegExp | null = null;
     try {
-      reg = new RegExp(searchKeyword.value, 'g');
+      reg = new RegExp(escapeRegExp(searchKeyword.value), 'g');
     } catch (err) {
       console.error(err);
     }
@@ -266,7 +278,11 @@ export const useLogSearch = (
       totalResultCount.value = 0;
       nextTick().then(() => {
         logList.list.forEach((item: KungfuApi.KfLogData) => {
-          if (item.message.indexOf(searchKeyword.value) !== -1) {
+          const match = item.messageOrigin.match(/(\[.*)/);
+          if (
+            searchKeywordReg.value &&
+            searchKeywordReg.value.test(match ? match[1] : item.messageOrigin)
+          ) {
             item.messageForSearch = setLogDataMessageForSearch(item);
             searchLogResults.push(item);
           } else {

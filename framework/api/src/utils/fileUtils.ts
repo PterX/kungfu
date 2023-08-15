@@ -325,7 +325,7 @@ export const findPackageRoot = () => {
   let searchPath = '';
   const cwd = process.cwd().toString();
   if (process.env.NODE_ENV === 'production') {
-    searchPath = globalThis.__runtimeDir;
+    searchPath = process.env.KF_APP_RUNTIME_DIR || __dirname;
   } else {
     searchPath = cwd;
   }

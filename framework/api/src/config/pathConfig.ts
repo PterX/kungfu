@@ -4,6 +4,7 @@ import fse from 'fs-extra';
 
 import { addFileSync, readRootPackageJsonSync } from '../utils/fileUtils';
 import { KF_DEFAULT_HOME_ROOT_DIR } from '../config/homePathConfig';
+import { booleanProcessEnv } from '../utils/commonUtils';
 
 //================== config & resources start =================================
 
@@ -17,8 +18,9 @@ export const KF_CONFIG_DEFAULT_PATH = path.join(
 
 const rootPackageJson = readRootPackageJsonSync();
 const productName = rootPackageJson.kungfuCraft?.productName || 'Kungfu';
-const currentProductName =
-  process.env.NODE_ENV === 'production' ? productName : 'Kungfu-dev';
+const currentProductName = booleanProcessEnv(process.env.IS_KF_DEV)
+  ? 'Kungfu-dev'
+  : productName;
 export const KF_CONFIG_ROOT_DIR = path.join(KF_DEFAULT_HOME_ROOT_DIR, 'config');
 export const KF_CONFIG_DIR = path.join(KF_CONFIG_ROOT_DIR, currentProductName);
 addFileSync('', KF_CONFIG_DIR, 'folder');

@@ -932,7 +932,7 @@ export const dealOrderTrigger = (
     order.dest,
   );
   const destResolvedData = resolveClientId(watcher, order.dest);
-  const statusData = dealOrderTriggerStatus(order.status, order.error_msg);
+  const statusData = dealOrderTriggerStatus(order.status);
   return {
     ...order,
     source: order.source,

@@ -60,6 +60,7 @@ import {
   OrderActionFlagEnum,
   OrderTriggerStatusEnum,
   OrderTriggerTypeEnum,
+  OrderTriggerFlag,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
   showTradingDataDetail,
@@ -217,9 +218,10 @@ onMounted(() => {
 
         const source = watcher.getLocationUID(currentGlobalKfLocation.value);
         orderCurrentOrderTriggers.value = watcher.ledger.OrderTrigger.filter(
-          'source',
-          source,
+          'action_flag',
+          OrderTriggerFlag.TriggerCancel,
         )
+          .filter('source', source)
           .list()
           .reduce((pre, cur) => {
             const order_id = cur.order_id.toString();
@@ -321,11 +323,6 @@ function isFinishedOrderStatus(orderStatus: OrderStatusEnum): boolean {
 
 function isFinishedOrderTriggerStatus(orderStatus: OrderStatusEnum): boolean {
   return !UnfinishedOrderTriggerStatus.includes(orderStatus);
-}
-
-function isOrderMakedByOrderTrigger(orderId: bigint): boolean {
-  const orderKeys = Object.keys(orderCurrentOrderTriggers.value);
-  return orderKeys.includes(orderId.toString());
 }
 
 const cancelOrderTriggerBtnVisible = computed(() => {
@@ -894,12 +891,6 @@ function testOrderSourceIsOnline(order: KungfuApi.OrderResolved) {
               </span>
             </template>
             <template v-else-if="column.dataIndex === 'status_uname'">
-              <span
-                v-if="isOrderMakedByOrderTrigger(item.order_id)"
-                :class="`color-${item.status_color}`"
-              >
-                {{ t('orderConfig.make_order_type') }}
-              </span>
               <span :class="`color-${item.status_color}`">
                 {{ item.status_uname }}
               </span>

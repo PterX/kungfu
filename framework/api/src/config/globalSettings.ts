@@ -16,7 +16,7 @@ import {
 } from '@kungfu-trader/kungfu-js-api/language';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
-import { getDefaultHomePath } from './homePathConfig';
+import { getDefaultHomeDir } from './homePathConfig';
 import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 const { t } = VueI18n.global;
 const ifCpusNumSafe = booleanProcessEnv(process.env.IF_CPUS_NUM_SAFE);
@@ -33,7 +33,7 @@ const __python_version_resolved = __python_version
 
 const packageJson = readRootPackageJsonSync();
 
-const defaultHomePath = getDefaultHomePath();
+const defaultHomeDir = getDefaultHomeDir();
 
 export const getKfGlobalSettings = (): KfSystemConfig[] => [
   {
@@ -41,10 +41,10 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
     name: t('globalSettingConfig.system'),
     config: [
       {
-        key: 'homePath',
-        name: t('globalSettingConfig.home_path'),
-        tip: t('globalSettingConfig.home_path_desc'),
-        default: defaultHomePath,
+        key: 'homeDir',
+        name: t('globalSettingConfig.home_dir'),
+        tip: t('globalSettingConfig.home_dir_desc'),
+        default: defaultHomeDir,
         type: 'directory',
       },
       {

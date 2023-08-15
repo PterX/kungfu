@@ -81,7 +81,7 @@ class ExecutorRegistry:
         config_path = os.path.join(extension_dir, "package.json")
 
         def report(reason):
-            self.ctx.logger.info(
+            self.ctx.logger.debug(
                 f"kungfu extension not found in {extension_dir}: {reason}"
             )
 

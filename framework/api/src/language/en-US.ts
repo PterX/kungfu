@@ -349,12 +349,12 @@ export default {
     order_trigger_status_error: 'Error',
     batch: 'Batch',
     batch_order_trigger: 'Batch embedded orders',
+    has_error_csv_order:
+      'The information filled in is not compliant. Please check the input information and place the order failed',
     order_trigger_td_error:
       'The current counter {tdName} does not support placing embedded orders. Please contact the administrator',
     order_trigger_not_future:
       'Failed to place the order, the information of the {rowStr} target is incorrect (currently only futures targets are supported), please check',
-    batch_order_trigger_results:
-      'Batch payment succeeded {success}, failed {error}',
     instrument_id_header_desc:
       'Target code, string, (* Only CTP/Ronghang counter can be filled in)',
     exchange_id_header_desc:
@@ -426,6 +426,8 @@ export default {
 
     checkbox_text: 'Outstanding delegate',
     cancel_all: 'All cancellations',
+    cancel_order: 'Cancel order',
+    cancel_order_trigger: 'Embedded cancellation',
     date_picker: 'Select a date',
     confirm_cancel_all: 'Confirm cancellation of all orders',
     entrust: 'Entrust',
@@ -445,6 +447,15 @@ export default {
     average_network_latency: 'Average Network Latency(μs)',
     min_network_latency: 'Min Network Latency(μs)',
     max_network_latency: 'Max Network Latency(μs)',
+
+    actions: 'Action',
+    order_finished:
+      'The commission has ended and cannot be pre embedded for cancellation',
+    confirm_cancel_order_trigger:
+      'Confirm the cancellation of the embedded order',
+    cancel_order_trigger_context:
+      'Do you want to cancel the pre embedded cancellation under this commission order',
+    make_order_type: '(Embedded order)',
   },
 
   orderTriggerConfig: {
@@ -455,6 +466,12 @@ export default {
     confirm: 'Confirm',
     cancel_all: 'All cancellations',
     insert_time: 'Insert time',
+    order_finished: 'The delegation has ended and cannot be operated',
+    order_trigger_request_success: 'Refresh successful',
+    make_order_modal_tip:
+      'Note: Pre embedded orders only support placing orders during non trading periods and will be triggered when the trading status of the exchange changes.',
+    error_msg_column: 'Return Information',
+    order_trigger_success: 'Success',
   },
 
   tdConfig: {
@@ -741,9 +758,9 @@ export default {
   globalSettingConfig: {
     global_setting_title: 'Global Setting',
     system: 'System',
-    home_path: 'Select local home path',
-    home_path_desc:
-      'Kung Fu will take the selected home path as the root directory, and the directory path cannot contain Chinese characters. It is not recommended that the path be too long (which may cause the process to fail to start). After modification, restarting Kung Fu will take effect',
+    home_dir: 'Select local home directory',
+    home_dir_desc:
+      'Kung Fu will take the selected home directory as the root directory for Kungfu system cache data, and the directory path cannot contain Chinese characters. It is not recommended that the path be too long (which may cause the process to fail to start). After modification, restarting Kung Fu will take effect',
     reset_order: 'Reset',
     log_level: 'Log Level',
     for_all_log: 'For all Log',

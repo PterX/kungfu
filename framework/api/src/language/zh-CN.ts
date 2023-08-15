@@ -468,6 +468,10 @@ export default {
       '注: 预埋单仅支持在非交易时间段下单, 会在交易所交易状态变化时触发',
     error_msg_column: '回报信息',
     order_trigger_success: '成功',
+    order_trigger_error_row: '第 {index} 行',
+    empty_instrument: '空',
+    err_modal_title: '错误详情',
+    order_trigger_not_future: '不是期货',
   },
 
   tdConfig: {

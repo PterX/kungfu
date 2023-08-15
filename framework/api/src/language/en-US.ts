@@ -472,6 +472,10 @@ export default {
       'Note: Pre embedded orders only support placing orders during non trading periods and will be triggered when the trading status of the exchange changes.',
     error_msg_column: 'Return Information',
     order_trigger_success: 'Success',
+    order_trigger_error_row: 'Line {index}',
+    empty_instrument: 'empty',
+    err_modal_title: 'Error details',
+    order_trigger_not_future: 'Not futures',
   },
 
   tdConfig: {

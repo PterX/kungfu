@@ -2105,6 +2105,7 @@ export const dealTradingDataMethodsMap: Record<
   Basket: dealDefaultTradingData,
   BasketInstrument: dealDefaultTradingData,
   BasketOrder: dealDefaultTradingData,
+  OrderTrigger: dealOrderTradingData,
 };
 
 export const dealTradingData = <T>(

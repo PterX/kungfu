@@ -64,7 +64,6 @@ private:
   tool::SliceIndexer_ptr from_indexer_;
   tool::SliceIndexer_ptr to_indexer_;
   tool::Report_ptr report_;
-  const std::string arguments_;
 
   void inspect_channel(const event_ptr &event);
 

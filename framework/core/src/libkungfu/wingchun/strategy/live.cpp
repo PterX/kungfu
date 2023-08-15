@@ -28,9 +28,9 @@ LiveContext::LiveContext(apprentice &app, const rx::connectable_observable<event
 }
 
 void LiveContext::on_start() {
-  SPDLOG_DEBUG("arguments_: {}", arguments_);
-  if (not arguments_.empty()) {
-    auto config = nlohmann::json::parse(arguments_);
+  SPDLOG_DEBUG("arguments_: {}", get_arguments());
+  if (not get_arguments().empty()) {
+    auto config = nlohmann::json::parse(get_arguments());
     if (config.value<bool>("bypass_accounting", false)) {
       bypass_accounting();
     }
@@ -481,7 +481,7 @@ void LiveContext::update_strategy_state(StrategyStateUpdate &state_update) {
 }
 
 void LiveContext::ensure_connect() {
-  if (not is_started()) {
+  if (not started_) {
     return;
   }
 

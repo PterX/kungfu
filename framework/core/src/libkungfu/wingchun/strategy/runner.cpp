@@ -18,8 +18,8 @@ namespace kungfu::wingchun::strategy {
 
 Runner::Runner(locator_ptr locator, const std::string &group, const std::string &name, mode m, bool low_latency,
                const std::string &arguments)
-    : apprentice(location::make_shared(m, category::STRATEGY, group, name, std::move(locator)), low_latency),
-      arguments_(arguments) {}
+    : apprentice(location::make_shared(m, category::STRATEGY, group, name, std::move(locator)), low_latency,
+                 arguments) {}
 
 Context_ptr Runner::get_context() const { return context_; }
 
@@ -72,7 +72,6 @@ void Runner::on_exit() { post_stop(); }
 
 void Runner::react() {
   context_ = make_context();
-  set_arguments(*context_, arguments_);
   enable(*context_);
   context_->get_bookkeeper().add_book_listener(std::make_shared<BookListener>(*this));
 

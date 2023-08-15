@@ -105,6 +105,9 @@ function handleConfirm() {
           </a-form-item>
         </a-form>
       </div> -->
+      <p class="color-default" style="margin-bottom: 10px">
+        {{ $t('orderTriggerConfig.make_order_modal_tip') }}
+      </p>
       <div
         v-for="(item, key) in formData"
         :key="key"

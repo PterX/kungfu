@@ -395,18 +395,18 @@ class ExtensionExecutor:
         ctx.logger.debug(f"ctx.mode: {ctx.mode}")
 
         if (
-            not ctx.begin
-            and not ctx.end
-            and kfj.MODES[ctx.mode] == lf.enums.mode.BACKTEST
+            kfj.MODES[ctx.mode] == lf.enums.mode.BACKTEST
+            and (not ctx.begin
+            or not ctx.end)
         ):
-            raise RuntimeError("backtest mode must specify begin and end")
+            raise ValueError("backtest mode must specify begin and end")
 
         if (
-            not (ctx.begin and ctx.end)
-            and not ctx.session_id
-            and kfj.MODES[ctx.mode] == lf.enums.mode.REPLAY
+            kfj.MODES[ctx.mode] == lf.enums.mode.REPLAY
+            and (not (ctx.begin and ctx.end)
+            and not ctx.session_id)
         ):
-            raise RuntimeError("replay mode must specify begin and end or session_id")
+            raise ValueError("replay mode must specify begin and end or session_id")
 
         begin_time_stamp = (
             kft.strptimes(
@@ -428,12 +428,12 @@ class ExtensionExecutor:
         if ctx.session_id:
             session = kfj.find_session(ctx, ctx.session_id)
             begin_time_stamp = session["begin_time"]
-            end_time_stamp = (
+            end_time_stamp = min((
                 session["end_time"] if session.closed else yjj.now_in_nano()
-            )
+            ), end_time_stamp)
 
         ctx.logger.debug(
-            f"begin time: {begin_time_stamp}, end_time_stamp: {end_time_stamp}"
+            f"begin time: {kft.strftime(begin_time_stamp)}, end_time_stamp: {kft.strftime(end_time_stamp)}"
         )
         return begin_time_stamp, end_time_stamp
 

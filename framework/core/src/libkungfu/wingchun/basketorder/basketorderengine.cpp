@@ -46,14 +46,6 @@ void BasketOrderEngine::on_basket_order(int64_t trigger_time, const longfist::ty
   make_basket_order_state(trigger_time, basket_order);
 }
 
-void BasketOrderEngine::insert_basket_order(int64_t trigger_time, const longfist::types::BasketOrder &basket_order) {
-  auto basket_order_state = make_basket_order_state(trigger_time, basket_order);
-
-  if (app_.get_home_uid() == basket_order.source_id) {
-    app_.get_writer(basket_order.dest_id)->write(app_.now(), basket_order_state->get_state().data);
-  }
-}
-
 void BasketOrderEngine::update_basket_order(int64_t trigger_time, const longfist::types::Order &order) {
 
   if (not try_update_basket_order(trigger_time, order)) {

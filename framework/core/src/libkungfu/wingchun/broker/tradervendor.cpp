@@ -68,9 +68,7 @@ TraderVendor::TraderVendor(locator_ptr locator, const std::string &group, const 
     : BrokerVendor(location::make_shared(mode::LIVE, category::TD, group, name, std::move(locator)), low_latency,
                    arguments),
       algo_order_service_(*this), order_service_(*this), order_trigger_service_(*this),
-      hook_(std::make_shared<TraderWriterHook>(*this)) {
-  set_arguments(arguments);
-}
+      hook_(std::make_shared<TraderWriterHook>(*this)) {}
 
 void TraderVendor::set_service(Trader_ptr service) { service_ = std::move(service); }
 
@@ -106,6 +104,8 @@ void TraderVendor::on_start() {
   events_ | is(ResetBookRequest::tag) |
       $([&](const event_ptr &event) { get_writer(location::PUBLIC)->mark(now(), ResetBookRequest::tag); });
   events_ | is(Deregister::tag) | $$(service_->on_strategy_exit(event));
+
+  add_time_interval(5 * time_unit::NANOSECONDS_PER_SECOND, [&](auto e) { service_->try_req_account(); });
 
   service_->on_risk_setting();
   service_->recover();

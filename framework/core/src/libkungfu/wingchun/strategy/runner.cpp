@@ -18,8 +18,8 @@ namespace kungfu::wingchun::strategy {
 
 Runner::Runner(locator_ptr locator, const std::string &group, const std::string &name, mode m, bool low_latency,
                const std::string &arguments)
-    : apprentice(location::make_shared(m, category::STRATEGY, group, name, std::move(locator)), low_latency),
-      arguments_(arguments) {}
+    : apprentice(location::make_shared(m, category::STRATEGY, group, name, std::move(locator)), low_latency,
+                 arguments) {}
 
 Context_ptr Runner::get_context() const { return context_; }
 
@@ -41,6 +41,11 @@ Context_ptr Runner::make_context() {
     return std::make_shared<BacktestContext>(*this, events_, std::move(matcher_), std::move(from_indexer_),
                                              std::move(to_indexer_));
   }
+
+  if (get_home()->mode == mode::REPLAY) {
+    return std::make_shared<ReplayContext>(*this, events_);
+  }
+
   return std::make_shared<LiveContext>(*this, events_);
 }
 
@@ -56,7 +61,6 @@ void Runner::on_exit() { post_stop(); }
 
 void Runner::react() {
   context_ = make_context();
-  set_arguments(*context_, arguments_);
   enable(*context_);
   context_->get_bookkeeper().add_book_listener(std::make_shared<BookListener>(*this));
 
@@ -154,7 +158,6 @@ void Runner::post_start() {
       $$(invoke(&Strategy::on_algo_order_action_error, event->data<AlgoOrderActionError>(),
                 get_location(event->source()), event->dest()));
   invoke(&Strategy::post_start);
-  SPDLOG_INFO("strategy {} started", get_io_device()->get_home()->name);
 }
 
 void Runner::pre_stop() { invoke(&Strategy::pre_stop); }

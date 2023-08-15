@@ -1758,17 +1758,8 @@ export const dealParkedType = (
 
 export const dealOrderTriggerStatus = (
   orderTriggerStatus: OrderTriggerStatusEnum | number,
-  errorMsg?: string,
 ): KungfuApi.KfTradeValueCommonData => {
-  return {
-    ...OrderTriggerStatus[+orderTriggerStatus as OrderTriggerStatusEnum],
-    ...(+orderTriggerStatus === OrderTriggerStatusEnum.Error && errorMsg
-      ? {
-          name: errorMsg,
-          color: 'red',
-        }
-      : {}),
-  };
+  return OrderTriggerStatus[+orderTriggerStatus as OrderTriggerStatusEnum];
 };
 
 export const dealVolumeCondition = (
@@ -2105,6 +2096,7 @@ export const dealTradingDataMethodsMap: Record<
   Basket: dealDefaultTradingData,
   BasketInstrument: dealDefaultTradingData,
   BasketOrder: dealDefaultTradingData,
+  OrderTrigger: dealOrderTradingData,
 };
 
 export const dealTradingData = <T>(

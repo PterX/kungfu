@@ -10,6 +10,7 @@
 #include <kungfu/wingchun/strategy/backtest.h>
 #include <kungfu/wingchun/strategy/live.h>
 #include <kungfu/wingchun/strategy/matcher.h>
+#include <kungfu/wingchun/strategy/replay.h>
 #include <kungfu/wingchun/strategy/strategy.h>
 #include <kungfu/yijinjing/practice/apprentice.h>
 
@@ -58,7 +59,6 @@ private:
   Matcher_ptr matcher_;
   tool::SliceIndexer_ptr from_indexer_;
   tool::SliceIndexer_ptr to_indexer_;
-  const std::string arguments_;
 
   void inspect_channel(const event_ptr &event);
 

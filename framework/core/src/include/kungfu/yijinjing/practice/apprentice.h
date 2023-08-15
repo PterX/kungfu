@@ -37,7 +37,7 @@ private:
 
 class apprentice : public hero {
 public:
-  explicit apprentice(yijinjing::data::location_ptr home, bool low_latency = false);
+  explicit apprentice(yijinjing::data::location_ptr home, bool low_latency = false, std::string arguments = "{}");
 
   bool is_started() const;
 
@@ -78,6 +78,8 @@ public:
 
   bool release_page();
 
+  const std::string &get_arguments() const { return arguments_; }
+
 protected:
   cache::bank state_bank_;
 
@@ -95,8 +97,6 @@ protected:
 
   virtual void on_start();
 
-  void on_request_read_from_others(const event_ptr &event);
-
   void on_register(int64_t trigger_time, const longfist::types::Register &register_data);
 
   void on_deregister(const event_ptr &event);
@@ -106,6 +106,8 @@ protected:
   void on_read_from_public(const event_ptr &event);
 
   void on_read_from_sync(const event_ptr &event);
+
+  void on_request_read_from_others(const event_ptr &event);
 
   virtual void on_write_to(const event_ptr &event);
 
@@ -243,6 +245,7 @@ private:
   int64_t last_active_time_ = INT64_MIN;
   int64_t checkin_time_ = INT64_MIN;
   int32_t timer_usage_count_ = 0;
+  const std::string arguments_{};
   yijinjing::practice::cleaner cleaner_;
   std::unordered_map<int, int64_t> timer_checkpoints_ = {};
   std::unordered_map<int, longfist::types::TimeRequest> timer_requests_ = {};

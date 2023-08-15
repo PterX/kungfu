@@ -7,7 +7,7 @@ exchange = Exchange.SSE
 def pre_start(context):
     context.log.info("pre start")
     context.subscribe(source, ["600000"], exchange)
-    # context.subscribe_operator("bar", "my-bar")
+    context.subscribe_operator("bar", "my-bar")
 
 
 def on_quote(context, quote, location, dest):

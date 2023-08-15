@@ -62,6 +62,7 @@ void OrderService::on_order(int64_t gen_time, uint32_t source, uint32_t dest, co
 void OrderService::on_trade(int64_t gen_time, uint32_t source, uint32_t dest, const Trade &trade) {
   state<Trade> trade_state(source, dest, gen_time, trade);
   trades_.insert_or_assign(trade.trade_id, trade_state);
+  get_service().enable_sync_account();
 }
 
 void OrderService::on_batch_order_tag(const event_ptr &event) {

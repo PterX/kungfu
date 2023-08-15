@@ -15,6 +15,7 @@
 #include <kungfu/yijinjing/practice/apprentice.h>
 
 namespace kungfu::wingchun::strategy {
+
 class Context : public std::enable_shared_from_this<Context> {
 public:
   Context(yijinjing::practice::apprentice &app, const rx::connectable_observable<event_ptr> &events);
@@ -203,22 +204,6 @@ public:
   virtual std::vector<uint64_t> insert_array_orders(const std::string &source, const std::string &account,
                                                     std::vector<longfist::types::OrderInput> &order_inputs) = 0;
 
-  /*
-   * Insert Basket Orders
-   * @param basket_id
-   * @param source
-   * @param account
-   * @param price_type
-   * @param price_level
-   * @param price_offset
-   * @param volume_mode
-   * @param total_volume
-   */
-  virtual uint64_t insert_basket_order(uint64_t basket_id, const std::string &source, const std::string &account,
-                                       longfist::enums::Side side, longfist::enums::PriceType price_type,
-                                       longfist::enums::PriceLevel price_level, double price_offset = 0,
-                                       int64_t volume = 0) = 0;
-
   /**
    * @param instrument_id instrument ID
    * @param exchange_id exchange ID
@@ -332,7 +317,8 @@ public:
    * Get arguments kfc run -a
    * @return string of arguments
    */
-  const std::string &get_arguments() { return arguments_; };
+
+  virtual std::string get_arguments() { return app_.get_arguments(); };
 
   /**
    *
@@ -344,8 +330,7 @@ public:
 protected:
   yijinjing::practice::apprentice &app_;
   const rx::connectable_observable<event_ptr> &events_;
-  std::string arguments_;
-  bool started_{false};
+  bool started_ = false;
 
   virtual void on_start() {}
 
@@ -359,10 +344,7 @@ private:
   friend void enable(Context &context) { context.on_start(); }
 
   friend void prepare(const event_ptr &event, Context &context) { context.prepare(event); }
-
-  friend void set_arguments(Context &context, const std::string &arguments) { context.arguments_ = arguments; }
 };
-
 } // namespace kungfu::wingchun::strategy
 
 #endif // WINGCHUN_CONTEXT_H

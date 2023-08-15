@@ -190,9 +190,6 @@ void bind_strategy(pybind11::module &m) {
            py::arg("stop_price") = 0, py::arg("hedge_flag") = HedgeFlag::Speculation, py::arg("is_swap") = false)
       .def("insert_batch_orders", &strategy::Context::insert_batch_orders)
       .def("insert_array_orders", &strategy::Context::insert_array_orders)
-      .def("insert_basket_order", &strategy::Context::insert_basket_order, py::arg("basket_id"), py::arg("source"),
-           py::arg("account"), py::arg("side"), py::arg("price_type") = PriceType::Limit,
-           py::arg("price_level") = PriceLevel::Latest, py::arg("price_offset") = 0, py::arg("volume") = 0)
       .def("insert_algo_order", &strategy::Context::insert_algo_order, py::arg("instrument_id"), py::arg("exchange_id"),
            py::arg("source"), py::arg("account"), py::arg("begin_time"), py::arg("end_time"), py::arg("volume"),
            py::arg("type"), py::arg("side"), py::arg("offset"), py::arg("algo_type_id"), py::arg("algo_id"),
@@ -215,13 +212,6 @@ void bind_strategy(pybind11::module &m) {
       .def("bypass_accounting", &strategy::Context::bypass_accounting);
 
   py::class_<strategy::Matcher, std::shared_ptr<strategy::Matcher>>(m, "Matcher");
-
-  // TODO to be pruned. use Context instead
-  py::class_<strategy::LiveContext, strategy::Context, strategy::LiveContext_ptr>(m, "LiveContext")
-      // .def_property_readonly("bookkeeper", &strategy::LiveContext::get_bookkeeper,
-      // py::return_value_policy::reference)
-      .def_property_readonly("basketorder_engine", &strategy::LiveContext::get_basketorder_engine,
-                             py::return_value_policy::reference);
 
   py::class_<strategy::Strategy, PyStrategy, strategy::Strategy_ptr>(m, "Strategy")
       .def(py::init())

@@ -240,11 +240,13 @@ export const useModalVisible = (
 export const useTreeTableSearchKeyword = <T extends { children?: T[] }>(
   targetList: Ref<T[]> | ComputedRef<T[]>,
   keys: string[],
+  transform?: Record<string, (val: string | number) => string>,
 ): {
   searchKeyword: Ref<string>;
   tableData: Ref<T[]>;
 } => {
   const searchKeyword = ref<string>('');
+
   function searchTree<T extends { children?: T[] }>(
     tree: T[],
     keys: string[],
@@ -254,9 +256,14 @@ export const useTreeTableSearchKeyword = <T extends { children?: T[] }>(
       .filter((item) => {
         const combinedValue = keys
           .map((key: string) => {
-            const keyWord = (item as Record<string, unknown>)[
-              key
-            ] as unknown as string | number;
+            let keyWord = (item as Record<string, unknown>)[key] as unknown as
+              | string
+              | number;
+
+            if (transform && transform[key]) {
+              keyWord = transform[key](keyWord);
+            }
+
             return keyWord ? keyWord.toString() : '';
           })
           .join('_');
@@ -292,6 +299,7 @@ export const useTableSearchKeywordList = <T>(
     value: string;
     type?: 'string' | 'array';
   }[],
+  transform?: Record<string, (val: string | number) => string>,
 ): { [K in string]: Ref<string | string[]> } & {
   tableData: ComputedRef<T[]>;
 } => {
@@ -309,9 +317,14 @@ export const useTableSearchKeywordList = <T>(
     return targetList.value
       .filter((item: T) => {
         return searchObjects.every(({ key, value }) => {
-          const itemValue = (item as Record<string, unknown>)[value] as
+          let itemValue = (item as Record<string, unknown>)[value] as
             | string
             | number;
+
+          if (transform && transform[value]) {
+            itemValue = transform[value](itemValue);
+          }
+
           const keyword = searchKeywords[key].value;
           if (Array.isArray(keyword)) {
             if (keyword.length === 0) {
@@ -338,6 +351,7 @@ export const useTableSearchKeywordList = <T>(
 export const useTableSearchKeyword = <T>(
   targetList: Ref<T[]> | ComputedRef<T[]>,
   keys: string[],
+  transform?: Record<string, (string: string | number) => string>,
 ): {
   searchKeyword: Ref<string>;
   tableData: ComputedRef<T[]>;
@@ -347,13 +361,17 @@ export const useTableSearchKeyword = <T>(
     return targetList.value
       .filter((item: T) => {
         const combinedValue = keys
-          .map(
-            (key: string) =>
-              (
-                ((item as Record<string, unknown>)[key] as string | number) ||
-                ''
-              ).toString() || '',
-          )
+          .map((key: string) => {
+            let keyWord = (item as Record<string, unknown>)[key] as
+              | string
+              | number;
+
+            if (transform && transform[key]) {
+              keyWord = transform[key](keyWord);
+            }
+
+            return keyWord ? keyWord.toString() : '';
+          })
           .join('_');
         return new RegExp(searchKeyword.value, 'ig').test(combinedValue);
       })
@@ -369,6 +387,7 @@ export const useTableSearchKeyword = <T>(
 export const useWritableTableSearchKeyword = <T>(
   targetList: Ref<T[]> | ComputedRef<T[]>,
   keys: string[],
+  transform?: Record<string, (val: string | number) => string>,
 ): {
   searchKeyword: Ref<string>;
   tableData: Ref<{ data: T; index: number; id: string }[]>;
@@ -398,14 +417,17 @@ export const useWritableTableSearchKeyword = <T>(
           }))
           .filter((item: { data: T; index: number }) => {
             const combinedValue = keys
-              .map(
-                (key: string) =>
-                  (
-                    ((item.data as Record<string, unknown>)[key] as
-                      | string
-                      | number) || ''
-                  ).toString() || '',
-              )
+              .map((key: string) => {
+                let keyWord = (item.data as Record<string, unknown>)[key] as
+                  | string
+                  | number;
+
+                if (transform && transform[key]) {
+                  keyWord = transform[key](keyWord);
+                }
+
+                return keyWord ? keyWord.toString() : '';
+              })
               .join('_');
             return new RegExp(keyword, 'ig').test(combinedValue);
           }) || [];

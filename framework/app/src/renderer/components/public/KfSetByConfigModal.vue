@@ -30,6 +30,7 @@ const props = withDefaults(
     primaryKeyAvoidRepeatCompareExtra?: string;
     primaryKeyAvoidRepeatCompareTarget?: string[];
     formStyle?: Record<string, string>;
+    useFeedback?: boolean;
   }>(),
   {
     visible: false,
@@ -42,6 +43,7 @@ const props = withDefaults(
     primaryKeyAvoidRepeatCompareTarget: () => [],
     primaryKeyAvoidRepeatCompareExtra: '',
     formStyle: () => ({}),
+    useFeedback: false,
   },
 );
 
@@ -58,6 +60,16 @@ defineEmits<{
       idByPrimaryKeys: string;
       changeType: KungfuApi.ModalChangeType;
     },
+  ): void;
+  (
+    e: 'confirmWithFeedback',
+    data: {
+      formState: Record<string, KungfuApi.KfConfigValue>;
+      configSettings: KungfuApi.KfConfigItem[];
+      idByPrimaryKeys: string;
+      changeType: KungfuApi.ModalChangeType;
+    },
+    confirm: () => void,
   ): void;
   (e: 'update:visible', visible: boolean): void;
   (e: 'close'): void;
@@ -119,30 +131,56 @@ onMounted(() => {
   }
 });
 
-function handleConfirm(): void {
-  formRef.value
-    .validate()
-    .then(() => {
-      const primaryKeys: string[] = (configSettings.value || [])
-        .filter((item) => item.primary)
-        .map((item) => item.key);
+function handleConfirm(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    formRef.value
+      .validate()
+      .then(() => {
+        const primaryKeys: string[] = (configSettings.value || [])
+          .filter((item) => item.primary)
+          .map((item) => item.key);
 
-      const idByPrimaryKeys = buildIdByPrimaryKeysFromKfConfigSettings(
-        formState.value,
-        primaryKeys,
-      );
-      app &&
-        app.emit('confirm', {
-          formState: formState.value,
-          configSettings: configSettings.value,
-          idByPrimaryKeys,
-          changeType: props.payload.type,
-        });
-    })
+        const idByPrimaryKeys = buildIdByPrimaryKeysFromKfConfigSettings(
+          formState.value,
+          primaryKeys,
+        );
+
+        if (props.useFeedback) {
+          app &&
+            app.emit(
+              'confirmWithFeedback',
+              {
+                formState: formState.value,
+                configSettings: configSettings.value,
+                idByPrimaryKeys,
+                changeType: props.payload.type,
+              },
+              resolve,
+            );
+        } else {
+          app &&
+            app.emit('confirm', {
+              formState: formState.value,
+              configSettings: configSettings.value,
+              idByPrimaryKeys,
+              changeType: props.payload.type,
+            });
+          resolve();
+        }
+      })
+      .catch((err: Error) => {
+        console.error(err);
+        reject(err);
+      });
+  });
+}
+
+function confirm() {
+  handleConfirm()
     .then(() => {
       closeModal();
     })
-    .catch((err: Error) => {
+    .catch((err) => {
       console.error(err);
     });
 }
@@ -172,7 +210,7 @@ function handleFormStateChange(formState) {
     :title="titleResolved"
     :destroy-on-close="true"
     @cancel="handleCancel"
-    @ok="handleConfirm"
+    @ok="confirm"
   >
     <KfConfigSettingsForm
       ref="formRef"

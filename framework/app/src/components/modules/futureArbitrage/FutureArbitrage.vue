@@ -91,13 +91,12 @@ function arbitrageExchangeValidator(
     formState.value.future_arbitrage_code === FutureArbitrageCodeEnum.SP ||
     formState.value.future_arbitrage_code === FutureArbitrageCodeEnum.SPC
   ) {
-    if (exchangeId !== 'CZCE') {
+    if (exchangeId !== 'DCE') {
       return Promise.reject(
         new Error(
-          `${t('futureArbitrageConfig.only_corresponding')}
-            ${t('tradingConfig.CZCE')}
-            ${t('tradingConfig.instrument')},
-          `,
+          `${t('futureArbitrageConfig.only_corresponding')} 
+          ${t('tradingConfig.DCE')} 
+          ${t('tradingConfig.instrument')}`,
         ),
       );
     }
@@ -107,12 +106,13 @@ function arbitrageExchangeValidator(
     formState.value.future_arbitrage_code === FutureArbitrageCodeEnum.SPD ||
     formState.value.future_arbitrage_code === FutureArbitrageCodeEnum.IPS
   ) {
-    if (exchangeId !== 'DCE') {
+    if (exchangeId !== 'CZCE') {
       return Promise.reject(
         new Error(
-          `${t('futureArbitrageConfig.only_corresponding')} 
-          ${t('tradingConfig.DCE')} 
-          ${t('tradingConfig.instrument')}`,
+          `${t('futureArbitrageConfig.only_corresponding')}
+            ${t('tradingConfig.CZCE')}
+            ${t('tradingConfig.instrument')},
+          `,
         ),
       );
     }

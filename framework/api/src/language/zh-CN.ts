@@ -76,10 +76,10 @@ export default {
   trading_day: '交易日',
 
   delete_category:
-    '删除 {category} 所有数据,  如果该 {categoryName} 进程正在运行, 也将停止进程, 确认是否删除',
+    '删除{category} 所有数据,  如果该{categoryName}进程正在运行, 也将停止进程, 确认是否删除',
   add_config_modal:
-    '{category} ID 系统唯一, {changeTypeName} 成功后不可修改, 确认是否 {key}',
-  update_config_modal: '确认{key} 相关配置',
+    '{category} ID 系统唯一, {changeTypeName}成功后不可修改, 确认是否{key}',
+  update_config_modal: '确认{key}相关配置',
   database_locked: '检测到当前有交易进行, 数据库被占用',
   export_database_locked:
     '检测到当前有交易进行, 为不影响交易数据落地, 建议收盘后尝试进行此操作',
@@ -468,6 +468,10 @@ export default {
       '注: 预埋单仅支持在非交易时间段下单, 会在交易所交易状态变化时触发',
     error_msg_column: '回报信息',
     order_trigger_success: '成功',
+    order_trigger_error_row: '第 {index} 行',
+    empty_instrument: '空',
+    err_modal_title: '错误详情',
+    order_trigger_not_future: '不是期货',
   },
 
   tdConfig: {

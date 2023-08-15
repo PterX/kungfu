@@ -25,7 +25,9 @@ import {
   useProcessStatusDetailData,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import {
+  VNode,
   getCurrentInstance,
+  h,
   onBeforeUnmount,
   onMounted,
   ref,
@@ -63,7 +65,7 @@ import {
   OrderTriggerSide,
 } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 
-interface csvOrderInput {
+interface CsvOrderInput {
   limit_price: string;
   volume: string;
   price_type: number;
@@ -73,6 +75,8 @@ interface csvOrderInput {
   exchange_id: string;
   instrument: string;
 }
+
+type CsvOrderInputError = Partial<CsvOrderInput> & { index?: number };
 
 const { t } = VueI18n.global;
 const { error, success } = messagePrompt();
@@ -156,7 +160,9 @@ const { searchKeyword, tableData } =
     'volume',
     'time_condition',
     'dest_uname',
-    'status',
+    'status_uname',
+    'error_msg',
+    'action_flag_uname',
   ]);
 
 const customRow = (row: KungfuApi.OrderTriggerResolved) => {
@@ -207,47 +213,13 @@ function handleBatchModal() {
   batchOrderTriggerVisble.value = true;
 }
 
-function csvDataValidate(csvData: csvOrderInput[]) {
-  const errItems = csvData.filter((item) => {
-    if (
-      !item.instrument ||
-      !OrderTriggerSide.includes(+item.side) ||
-      !OrderTriggerOffset.includes(+item.offset) ||
-      !OrderTriggerPriceType.includes(item.price_type) ||
-      +item.limit_price <= 0 ||
-      +item.volume <= 0
-    ) {
-      return true;
+function csvDataValidate(csvData: CsvOrderInput[]) {
+  const errItems: CsvOrderInputError[] = [];
+  csvData.forEach((item, index) => {
+    const template: CsvOrderInputError = {};
+    if (!item.instrument) {
+      template['instrument'] = t('orderTriggerConfig.empty_instrument');
     } else {
-      return false;
-    }
-  });
-  if (errItems.length > 0) {
-    return true;
-  } else {
-    return false;
-  }
-}
-
-function handleConfirmBatchOrderTrigger(csvData: csvOrderInput[]) {
-  if (!currentGlobalKfLocation.value) return;
-
-  // TODO
-  // 加个弹窗详细展示具体是哪一个的哪一项不符合规则, 周一加
-  if (csvDataValidate(csvData)) {
-    error(t('tradingConfig.has_error_csv_order'));
-    return;
-  }
-
-  const tdProcessId = getProcessIdByKfLocation(currentGlobalKfLocation.value);
-  if (processStatusData.value[tdProcessId] !== 'online') {
-    error(t('tradingConfig.start_process', { process: tdProcessId }));
-    return;
-  }
-
-  const notFutureRow: number[] = [];
-  const orderTriggerInputs = csvData
-    .map((item: csvOrderInput, index) => {
       const { instrumentType, exchangeId, instrumentId } =
         transformSearchInstrumentResultToInstrument(
           item.instrument,
@@ -259,9 +231,110 @@ function handleConfirmBatchOrderTrigger(csvData: csvOrderInput[]) {
         store.instrumentsMap[ukey];
 
       if (!instrumentResolved || instrumentType !== InstrumentTypeEnum.future) {
-        notFutureRow.push(index + 1);
-        return null;
+        template['instrument'] = t(
+          'orderTriggerConfig.order_trigger_not_future',
+        );
       }
+    }
+
+    if (!OrderTriggerSide.includes(+item.side)) {
+      template['side'] = item.side;
+    }
+    if (!OrderTriggerOffset.includes(+item.offset)) {
+      template['offset'] = item.offset;
+    }
+    if (!OrderTriggerPriceType.includes(+item.price_type)) {
+      template['price_type'] = item.price_type;
+    }
+    if (+item.limit_price <= 0) {
+      template['limit_price'] = item.limit_price;
+    }
+    if (+item.volume <= 0) {
+      template['volume'] = item.volume;
+    }
+    if (Object.keys(template).length > 0) {
+      template['index'] = index;
+      errItems.push(template);
+    }
+  });
+
+  return errItems;
+}
+
+function dealOrderTriggerVNode(errItems: CsvOrderInputError[]) {
+  const vnode = errItems.map((item) => {
+    const spans = Object.keys(item)
+      .map((key) => {
+        if (key === 'index') {
+          return null;
+        }
+        const keyMap = {
+          instrument: t('tradingConfig.instrument'),
+          side: t('tradingConfig.side'),
+          offset: t('tradingConfig.offset'),
+          price_type: t('tradingConfig.price_type'),
+          volume: t('orderConfig.entrust_volume'),
+          limit_price: t('tradingConfig.limit_price'),
+        };
+        return h(
+          'span',
+          { style: 'margin-right: 8px' },
+          `${keyMap[key]}(${item[key]})`,
+        );
+      })
+      .filter((item) => item !== null);
+    if (item.index !== undefined) {
+      spans.unshift(
+        h(
+          'span',
+          { style: 'margin-right: 8px' },
+          t('orderTriggerConfig.order_trigger_error_row', {
+            index: item.index + 1,
+          }),
+        ),
+      );
+    }
+
+    return h('div', { style: 'margin-bottom: 8px' }, spans);
+  });
+
+  const rootVNode: VNode = h('div', { class: 'modal-node' }, [
+    h(
+      'p',
+      { class: 'color-red', style: 'margin-bottom: 8px' },
+      t('tradingConfig.has_error_csv_order'),
+    ),
+    ...vnode,
+  ]);
+
+  return rootVNode;
+}
+
+function handleConfirmBatchOrderTrigger(
+  csvData: CsvOrderInput[],
+  resolve: () => void,
+) {
+  if (!currentGlobalKfLocation.value) return;
+  if (csvDataValidate(csvData).length > 0) {
+    confirmModal(
+      t('orderTriggerConfig.err_modal_title'),
+      dealOrderTriggerVNode(csvDataValidate(csvData)),
+    );
+    return;
+  }
+
+  const tdProcessId = getProcessIdByKfLocation(currentGlobalKfLocation.value);
+  if (processStatusData.value[tdProcessId] !== 'online') {
+    error(t('tradingConfig.start_process', { process: tdProcessId }));
+    return;
+  }
+
+  const orderTriggerInputs = csvData
+    .map((item: CsvOrderInput) => {
+      const { instrumentType, exchangeId, instrumentId } =
+        transformSearchInstrumentResultToInstrument(
+          item.instrument,
+        ) as KungfuApi.InstrumentResolved;
 
       const { limit_price, volume, price_type, side, offset } = item;
 
@@ -283,16 +356,6 @@ function handleConfirmBatchOrderTrigger(csvData: csvOrderInput[]) {
     })
     .filter((item) => item !== null);
 
-  if (notFutureRow.length > 0) {
-    const rowStr = notFutureRow.join(', ');
-    error(
-      t('tradingConfig.order_trigger_not_future', {
-        rowStr,
-      }),
-    );
-    return;
-  }
-
   const orderTriggerPromises = orderTriggerInputs.map((orderTriggerInput) => {
     return kfOrderTrigger(
       window.watcher,
@@ -307,6 +370,7 @@ function handleConfirmBatchOrderTrigger(csvData: csvOrderInput[]) {
 
   Promise.allSettled(orderTriggerPromises).then(() => {
     success();
+    resolve();
   });
 }
 
@@ -574,14 +638,15 @@ function orderTriggerCanBeCancel(record: KungfuApi.OrderTriggerResolved) {
       :width="1410"
       :label-col="4"
       :wrapper-col="17"
+      :use-feedback="true"
       :payload="batchOrderTriggerConfigPayload"
       :form-style="{
         maxHeight: '700px',
         overflow: 'auto',
       }"
-      @confirm="
-        ({ formState }) =>
-          handleConfirmBatchOrderTrigger(formState.orderTrigger)
+      @confirm-with-feedback="
+        ({ formState }, resolve) =>
+          handleConfirmBatchOrderTrigger(formState.orderTrigger, resolve)
       "
     ></KfSetByConfigModal>
   </div>

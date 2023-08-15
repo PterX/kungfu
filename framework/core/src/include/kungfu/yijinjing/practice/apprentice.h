@@ -37,7 +37,7 @@ private:
 
 class apprentice : public hero {
 public:
-  explicit apprentice(yijinjing::data::location_ptr home, bool low_latency = false, std::string arguments = {});
+  explicit apprentice(yijinjing::data::location_ptr home, bool low_latency = false, std::string arguments = "{}");
 
   bool is_started() const;
 

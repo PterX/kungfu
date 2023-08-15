@@ -328,7 +328,7 @@ class ExtensionExecutor:
         else:
             ctx.logger.info("use run")
             ctx.runner.run()
-        if kfj.MODES[ctx.mode] == lf.enums.mode.BACKTEST and report:
+        if kfj.MODES[ctx.mode] == lf.enums.mode.BACKTEST and ctx.report:
             report.sumerize()
 
     def run_operator(self):
@@ -392,7 +392,7 @@ class ExtensionExecutor:
 
         ctx.op_runner.add_operator(ctx.operator)
         ctx.op_runner.run()
-        if kfj.MODES[ctx.mode] == lf.enums.mode.BACKTEST and report:
+        if kfj.MODES[ctx.mode] == lf.enums.mode.BACKTEST and ctx.report:
             report.sumerize()
 
     def parse_begin_end(self, ctx):
@@ -473,6 +473,8 @@ def load_module(ctx, path, key, cls):
 
 
 def load_matcher(ctx, path):
+    if not ctx.matcher:
+        return None
     try:
         sys.path.append(str(Path(path).parent))
         lib_name = Path(path).stem.split(".")[0]

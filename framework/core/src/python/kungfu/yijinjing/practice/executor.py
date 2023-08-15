@@ -394,17 +394,13 @@ class ExtensionExecutor:
     def parse_begin_end(self, ctx):
         ctx.logger.debug(f"ctx.mode: {ctx.mode}")
 
-        if (
-            kfj.MODES[ctx.mode] == lf.enums.mode.BACKTEST
-            and (not ctx.begin
-            or not ctx.end)
+        if kfj.MODES[ctx.mode] == lf.enums.mode.BACKTEST and (
+            not ctx.begin or not ctx.end
         ):
             raise ValueError("backtest mode must specify begin and end")
 
-        if (
-            kfj.MODES[ctx.mode] == lf.enums.mode.REPLAY
-            and (not (ctx.begin and ctx.end)
-            and not ctx.session_id)
+        if kfj.MODES[ctx.mode] == lf.enums.mode.REPLAY and (
+            not (ctx.begin and ctx.end) and not ctx.session_id
         ):
             raise ValueError("replay mode must specify begin and end or session_id")
 
@@ -428,9 +424,10 @@ class ExtensionExecutor:
         if ctx.session_id:
             session = kfj.find_session(ctx, ctx.session_id)
             begin_time_stamp = session["begin_time"]
-            end_time_stamp = min((
-                session["end_time"] if session.closed else yjj.now_in_nano()
-            ), end_time_stamp)
+            end_time_stamp = min(
+                (session["end_time"] if session.closed else yjj.now_in_nano()),
+                end_time_stamp,
+            )
 
         ctx.logger.debug(
             f"begin time: {kft.strftime(begin_time_stamp)}, end_time_stamp: {kft.strftime(end_time_stamp)}"

@@ -422,7 +422,6 @@ find_md_slice_location
 get_md_slice_end_time
 find_operator_slice_location
 get_operator_slice_end_time
-get_bookkeeper
 init
 sumerize
 on_read_synthetic_data

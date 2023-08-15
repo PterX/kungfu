@@ -157,6 +157,7 @@ void bind_strategy(pybind11::module &m) {
       .def("set_matcher", &strategy::Runner::set_matcher)
       .def("set_from_indexer", &strategy::Runner::set_from_indexer)
       .def("set_to_indexer", &strategy::Runner::set_to_indexer)
+      .def("set_report", &strategy::Runner::set_report)
       .def("now", &strategy::Runner::now)
       .def("run", &strategy::Runner::run)
       .def("setup", &strategy::Runner::setup)

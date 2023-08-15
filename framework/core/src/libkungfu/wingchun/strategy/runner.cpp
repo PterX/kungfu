@@ -37,9 +37,16 @@ Context_ptr Runner::make_context() {
       matcher_ = std::make_shared<BasicMatcher>();
       SPDLOG_WARN("Runner in backtest mode not specified Matcher, Default Quote-based Matcher used.");
     }
+    if (not report_) {
+      report_ = std::make_shared<tool::Report>();
+      SPDLOG_WARN("Runner in backtest mode not specified Report.");
+    }
     set_runner(*matcher_, this);
-    return std::make_shared<BacktestContext>(*this, events_, std::move(matcher_), std::move(from_indexer_),
-                                             std::move(to_indexer_));
+    auto backtest_context = std::make_shared<BacktestContext>(
+        *this, events_, std::move(matcher_), std::move(from_indexer_), std::move(to_indexer_), report_);
+
+    set_runner(*report_, this, std::addressof(backtest_context->get_bookkeeper()));
+    return backtest_context;
   }
 
   if (get_home()->mode == mode::REPLAY) {
@@ -56,6 +63,10 @@ void Runner::set_matcher(const Matcher_ptr &matcher) { matcher_ = matcher; }
 void Runner::set_from_indexer(const tool::SliceIndexer_ptr &indexer) { from_indexer_ = indexer; }
 
 void Runner::set_to_indexer(const tool::SliceIndexer_ptr &indexer) { to_indexer_ = indexer; }
+
+void Runner::set_report(const tool::Report_ptr &report) { report_ = report; }
+
+tool::Report_ptr Runner::get_report() const { return report_; }
 
 void Runner::on_exit() { post_stop(); }
 

@@ -74,7 +74,7 @@ public:
    * @param group OPERATOR group
    * @param name OPERATOR name
    */
-  virtual void subscribe_operator(const std::string &group, const std::string &name) override;
+  void subscribe_operator(const std::string &group, const std::string &name) override;
 
   /**
    * Get broker client.
@@ -128,8 +128,8 @@ public:
    * @param order_input
    * @return
    */
-  virtual uint64_t insert_order_input(const std::string &source, const std::string &account,
-                                      longfist::types::OrderInput &order_input) override;
+  uint64_t insert_order_input(const std::string &source, const std::string &account,
+                              longfist::types::OrderInput &order_input) override;
 
   /**
    *

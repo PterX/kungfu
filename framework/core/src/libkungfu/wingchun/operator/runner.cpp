@@ -46,7 +46,7 @@ void Runner::on_start() {
     auto start_events = events_ | skip_until(events_ | filter([&](auto e) { return started_; }));
     start_events | is(Deregister::tag) | $$(context_->check_dependency_state(event));
     start_events | is(OperatorStateUpdate::tag) | $$(context_->check_dependency_state(event));
-    start_events | is(OperatorStateUpdate::tag) | $$(context_->check_dependency_state(event));
+    start_events | is(BrokerStateUpdate::tag) | $$(context_->check_dependency_state(event));
   }
 
   events_ | take_until(events_ | filter([&](auto e) { return started_; })) | $$(prepare(event));

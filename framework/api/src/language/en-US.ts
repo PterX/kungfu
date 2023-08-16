@@ -691,6 +691,7 @@ export default {
     select_channel: 'Filter channels',
 
     selete_msg_type: 'Filter MsgType',
+    empty_export_data: 'No information to export',
   },
 
   tradeConfig: {

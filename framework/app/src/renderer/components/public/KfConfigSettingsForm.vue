@@ -1095,6 +1095,39 @@ function calcTableItemHeight(
   return baseHeight + dividerHeight;
 }
 
+function handleSelectChange(value, item) {
+  let convertedValue = value;
+
+  if (item && item.outputType) {
+    switch (item.outputType) {
+      case 'number':
+        convertedValue = Number(value);
+        break;
+      case 'string':
+        convertedValue = value.toString();
+        break;
+      case 'numberArray':
+        if (!value || !Array.isArray(value)) {
+          break;
+        }
+        convertedValue = value.map((item) => Number(item));
+        break;
+      case 'stringArray':
+        if (!value || !Array.isArray(value)) {
+          break;
+        }
+        convertedValue = value.map((item) => item.toString());
+      case 'boolean':
+        convertedValue = !!value;
+        break;
+      default:
+        break;
+    }
+  }
+
+  formState[item.key] = convertedValue;
+}
+
 defineExpose({
   validate,
   clearValidate,
@@ -1419,6 +1452,7 @@ defineExpose({
           (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
           item.disabled
         "
+        @change="handleSelectChange($event, item)"
       >
         <a-select-option
           v-for="option in item.options"

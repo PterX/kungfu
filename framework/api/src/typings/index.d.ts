@@ -173,6 +173,13 @@ declare namespace KungfuApi {
     data: Array<Row>;
   }
 
+  export type KfConfigitemoutputType =
+    | 'string'
+    | 'number'
+    | 'boolean'
+    | 'stringArray'
+    | 'numberArray';
+
   export interface KfConfigItemSearch {
     keys?: Array<string>;
   }
@@ -181,6 +188,7 @@ declare namespace KungfuApi {
     key: string;
     name: string;
     type: KfConfigItemSupportedTypes;
+    outputType?: KfConfigitemoutputType;
     columns?: KfConfigItem[];
     errMsg?: string;
     tip?: string;

@@ -72,7 +72,6 @@ import {
   OrderTriggerStatusEnum,
   OrderTriggerTypeEnum,
   OrderTriggerParkedTypeEnum,
-  OrderTriggerTimeConditionEnum,
   OrderTriggerFlag,
 } from '../typings/enums';
 import {
@@ -571,9 +570,6 @@ const resolveOrderTriggerConfig = (
     const orderTriggerOriginConfig = originConfig.td?.order_trigger || {};
     const orderTriggerTypesKeys = Object.keys(OrderTriggerTypeEnum);
     const orderTriggerParkedTypesKeys = Object.keys(OrderTriggerParkedTypeEnum);
-    const orderTriggerTimeConditionKeys = Object.keys(
-      OrderTriggerTimeConditionEnum,
-    );
     return Object.keys(orderTriggerOriginConfig).reduce((config, key) => {
       if (orderTriggerTypesKeys.includes(key)) {
         config[OrderTriggerTypeEnum[key]] = Object.keys(
@@ -582,17 +578,7 @@ const resolveOrderTriggerConfig = (
           if (orderTriggerParkedTypesKeys.includes(parkedType)) {
             parkedConfig[OrderTriggerParkedTypeEnum[parkedType]] = Object.keys(
               orderTriggerOriginConfig[key]?.[parkedType] || {},
-            ).reduce((timeConditionConfig, timeCondition) => {
-              if (orderTriggerTimeConditionKeys.includes(timeCondition)) {
-                timeConditionConfig[
-                  OrderTriggerTimeConditionEnum[timeCondition]
-                ] =
-                  !!orderTriggerOriginConfig[key]?.[parkedType]?.[
-                    timeCondition
-                  ];
-              }
-              return timeConditionConfig;
-            }, {});
+            );
           }
           return parkedConfig;
         }, {});

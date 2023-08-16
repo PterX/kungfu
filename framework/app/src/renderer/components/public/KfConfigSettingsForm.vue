@@ -1125,7 +1125,7 @@ function handleSelectChange(value, item) {
     }
   }
 
-  formState[item.key] = convertedValue;
+  formState.value[item.key] = convertedValue;
 }
 
 defineExpose({
@@ -1157,7 +1157,8 @@ defineExpose({
       "
       :rules="
         (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
-        item.disabled
+        item.disabled ||
+        item.outputType
           ? []
           : [
               ...(rules[item.key]
@@ -1418,6 +1419,7 @@ defineExpose({
           (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
           item.disabled
         "
+        @change="handleSelectChange($event, item)"
       >
         {{ item.type }}
         <a-select-option
@@ -1435,6 +1437,7 @@ defineExpose({
           (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
           item.disabled
         "
+        @change="handleSelectChange($event, item)"
       >
         {{ item.type }}
         <a-select-option

@@ -159,10 +159,12 @@ Watcher::Watcher(const Napi::CallbackInfo &info)
       }
     }
     RestoreState(saved_location, today, INT64_MAX, sync_schema);
-    shift(saved_location) >> state_bank_;
+    // for hidden pos && asset
+    // shift(saved_location) >> state_bank_;
   }
   RestoreState(ledger_home_location_, today, INT64_MAX, sync_schema);
-  shift(ledger_home_location_) >> state_bank_; // Load positions to restore bookkeeper
+  // for hidden pos && asset
+  // shift(ledger_home_location_) >> state_bank_; // Load positions to restore bookkeeper
 }
 
 Watcher::~Watcher() {
@@ -522,7 +524,9 @@ void Watcher::Feed(const event_ptr &event, const Instrument &instrument) {
 
 void Watcher::RestoreState(const location_ptr &state_location, int64_t from, int64_t to, bool sync_schema) {
   add_location(0, state_location);
-  serialize::JsRestoreState(ledger_ref_, state_location)(from, to, sync_schema);
+  // serialize::JsRestoreState(ledger_ref_, state_location)(from, to, sync_schema);
+  // for hidden pos && asset
+  serialize::JsRestoreState(ledger_ref_, state_location).filter_no<Position, Asset>(from, to, sync_schema);
 }
 
 Napi::Value Watcher::Start(const Napi::CallbackInfo &info) {

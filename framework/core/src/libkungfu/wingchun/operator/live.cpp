@@ -27,7 +27,7 @@ void LiveContext::on_start() {
   auto start_events = events_ | skip_until(events_ | filter([&](auto e) { return started_; }));
   start_events | is(Deregister::tag) | $$(check_dependency_state(event));
   start_events | is(OperatorStateUpdate::tag) | $$(check_dependency_state(event));
-  start_events | is(OperatorStateUpdate::tag) | $$(check_dependency_state(event));
+  start_events | is(BrokerStateUpdate::tag) | $$(check_dependency_state(event));
 }
 
 bool LiveContext::is_started() const { return started_; }

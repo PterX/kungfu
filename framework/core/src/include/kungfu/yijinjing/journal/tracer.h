@@ -25,12 +25,7 @@ public:
   [[nodiscard]] const yijinjing::data::location_ptr &get_home() const { return home_; }
 
   [[nodiscard]] bool data_available() const {
-    SPDLOG_INFO("----------------1111");
-    bool result = reader_->data_available();
-    SPDLOG_INFO("=================2222");
-    bool later_than_end_time = current_frame()->gen_time() < end_time_;
-    SPDLOG_INFO("~~~~~~~~~~~~~~~3333");
-    return result && later_than_end_time;
+    return reader_->data_available() && current_frame()->gen_time() < end_time_;
   };
 
   [[nodiscard]] yijinjing::journal::frame_ptr current_frame() const;

@@ -198,8 +198,9 @@ export const writeCsvByStream = <T>(
     filePath = path.normalize(filePath);
 
     const stream = format();
-    stream.pipe(fse.createWriteStream(filePath));
-
+    const fileWriteStream = fse.createWriteStream(filePath);
+    fileWriteStream.write(Buffer.from('\xEF\xBB\xBF', 'binary'));
+    stream.pipe(fileWriteStream);
     if (typeof data[0] === 'object') {
       const isFirstStringArray = Array.isArray(data[0])
         ? data[0].every((item) => typeof item === 'string')

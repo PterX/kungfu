@@ -218,9 +218,8 @@ uint64_t BacktestContext::insert_order_input(const std::string &source, const st
 uint64_t BacktestContext::insert_order_trigger(const std::string &instrument_id, const std::string &exchange_id,
                                                const std::string &source, const std::string &account,
                                                double limit_price, int64_t volume, PriceType type, Side side,
-                                               Offset offset, OrderTriggerType trigger_type,
-                                               TimeCondition time_condition, ParkedType parked_type, double stop_price,
-                                               HedgeFlag hedge_flag, bool is_swap) {
+                                               Offset offset, OrderTriggerType trigger_type, ParkedType parked_type,
+                                               double stop_price, HedgeFlag hedge_flag, bool is_swap) {
   return {};
 }
 

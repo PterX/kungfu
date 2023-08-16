@@ -50,7 +50,6 @@ declare namespace KungfuApi {
     CurrencyEnum,
     OrderTriggerTypeEnum,
     OrderTriggerParkedTypeEnum,
-    OrderTriggerTimeConditionEnum,
     OrderTriggerStatusEnum,
     FundTransEnum,
     FundTransTypeEnum,
@@ -244,7 +243,7 @@ declare namespace KungfuApi {
     config?: {
       td?: {
         type?: TdMdExtTypes[] | TdMdExtTypes;
-        order_trigger?: Record<string, Record<string, Record<string, boolean>>>;
+        order_trigger?: Record<string, Record<string, boolean>>;
         settings: KfConfigItem[];
         fund_trans?: KfExtFundTransConfig | null;
       };
@@ -300,12 +299,7 @@ declare namespace KungfuApi {
     orderTrigger: Partial<
       Record<
         OrderTriggerTypeEnum,
-        Partial<
-          Record<
-            OrderTriggerParkedTypeEnum,
-            Partial<OrderTriggerTimeConditionEnum, boolean>
-          >
-        >
+        Partial<Record<OrderTriggerParkedTypeEnum, boolean>>
       >
     >;
     settings: KfConfigItem[];
@@ -431,7 +425,6 @@ declare namespace KungfuApi {
   }
   export interface MakeOrderTriggerInput extends MakeOrderInput {
     parked_type: OrderTriggerParkedTypeEnum;
-    time_condition: TimeConditionEnum;
   }
 
   export interface KfLogData {

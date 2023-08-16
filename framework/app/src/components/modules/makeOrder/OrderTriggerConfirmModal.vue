@@ -1,11 +1,8 @@
 <script setup lang="ts">
 import { useModalVisible } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
-import { computed, reactive, getCurrentInstance } from 'vue';
+import { computed, getCurrentInstance } from 'vue';
 import { orderInputTrans } from './config';
-import {
-  TimeConditionEnum,
-  OrderTriggerParkedTypeEnum,
-} from '@kungfu-trader/kungfu-js-api/typings/enums';
+import { OrderTriggerParkedTypeEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 
 const app = getCurrentInstance();
 
@@ -20,29 +17,12 @@ const props = withDefaults(
 );
 
 defineEmits<{
-  (
-    e: 'confirm',
-    volumeList: {
-      parked_type: OrderTriggerParkedTypeEnum;
-      time_condition: TimeConditionEnum;
-    },
-  ): void;
+  (e: 'confirm', parked_type: OrderTriggerParkedTypeEnum): void;
   (e: 'update:visible', visible: boolean): void;
   (e: 'close'): void;
 }>();
 
 const { modalVisible, closeModal } = useModalVisible(props.visible);
-
-const formState = reactive({
-  parked_type: OrderTriggerParkedTypeEnum.Server,
-  time_condition: TimeConditionEnum.GFA,
-});
-// const serverOrderTriggerRadio = ref([
-//   {
-//     label: t('tradingConfig.GFA'),
-//     value: TimeConditionEnum.GFA,
-//   },
-// ]);
 
 const formData = computed<Record<string, KungfuApi.KfTradeValueCommonData>>(
   () => {
@@ -58,7 +38,7 @@ const formData = computed<Record<string, KungfuApi.KfTradeValueCommonData>>(
 );
 
 function handleConfirm() {
-  app && app.emit('confirm', formState);
+  app && app.emit('confirm', OrderTriggerParkedTypeEnum.Server);
   closeModal();
 }
 </script>
@@ -86,20 +66,6 @@ function handleConfirm() {
             <a-radio-group v-model:value="formState.parked_type">
               <a-radio :value="OrderTriggerParkedTypeEnum.Server">
                 {{ t('tradingConfig.server_order_trigger_label') }}
-              </a-radio>
-            </a-radio-group>
-          </a-form-item>
-          <a-form-item
-            v-if="formState.parked_type === OrderTriggerParkedTypeEnum.Server"
-            style="margin-left: 14px"
-          >
-            <a-radio-group v-model:value="formState.time_condition">
-              <a-radio
-                v-for="item in serverOrderTriggerRadio"
-                :key="item.label"
-                :value="item.value"
-              >
-                <span>{{ item.label }}</span>
               </a-radio>
             </a-radio-group>
           </a-form-item>

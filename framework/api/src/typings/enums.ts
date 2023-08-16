@@ -312,10 +312,6 @@ export enum OrderTriggerParkedTypeEnum {
   Local,
 }
 
-export enum OrderTriggerTimeConditionEnum {
-  GFA = TimeConditionEnum.GFA,
-}
-
 export enum OrderTriggerStatusEnum {
   Unknown,
   Pending = OrderStatusEnum.Pending, // 等待中

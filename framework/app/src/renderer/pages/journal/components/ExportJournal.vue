@@ -160,6 +160,8 @@ const handleConfirmExport = () => {
               message.error(err.message);
             });
         });
+      } else {
+        message.error(t('journalConfig.empty_export_data'));
       }
     },
   );

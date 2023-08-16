@@ -183,7 +183,7 @@ void Trader::deal_read_frame() {
   int64_t count = 0;
   while (trc.data_available()) {
     const auto &frame = trc.current_frame();
-    
+
     switch (frame->msg_type()) {
     case OrderInput::tag: {
       const OrderInput &order_input = frame->data<OrderInput>();

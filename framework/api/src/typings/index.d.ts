@@ -173,7 +173,7 @@ declare namespace KungfuApi {
     data: Array<Row>;
   }
 
-  export type KfConfigitemoutputType =
+  export type KfConfigItemOutputType =
     | 'string'
     | 'number'
     | 'boolean'
@@ -188,7 +188,7 @@ declare namespace KungfuApi {
     key: string;
     name: string;
     type: KfConfigItemSupportedTypes;
-    outputType?: KfConfigitemoutputType;
+    outputType?: KfConfigItemOutputType;
     columns?: KfConfigItem[];
     errMsg?: string;
     tip?: string;

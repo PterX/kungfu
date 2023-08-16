@@ -36,6 +36,7 @@ import {
   KfConfigValueNumberType,
   KfConfigValueArrayType,
   KfConfigValueBooleanType,
+  KfConfigValueAnyType,
   getCombineValueByPrimaryKeys,
   getPriceTypeConfig,
   initFormStateByConfig,
@@ -374,13 +375,15 @@ function getTablesSearchRelated(
 
 function getValidatorType(
   type: string,
-): 'number' | 'string' | 'array' | 'boolean' {
+): 'number' | 'string' | 'array' | 'boolean' | 'any' {
   if (KfConfigValueNumberType.includes(type)) {
     return 'number';
   } else if (KfConfigValueArrayType.includes(type)) {
     return 'array';
   } else if (KfConfigValueBooleanType.includes(type)) {
     return 'boolean';
+  } else if (KfConfigValueAnyType.includes(type)) {
+    return 'any';
   } else {
     return 'string';
   }
@@ -1095,40 +1098,6 @@ function calcTableItemHeight(
   return baseHeight + dividerHeight;
 }
 
-function handleSelectChange(value, item) {
-  let convertedValue = value;
-
-  if (item && item.outputType) {
-    switch (item.outputType) {
-      case 'number':
-        convertedValue = Number(value);
-        break;
-      case 'string':
-        convertedValue = value.toString();
-        break;
-      case 'numberArray':
-        if (!value || !Array.isArray(value)) {
-          break;
-        }
-        convertedValue = value.map((item) => Number(item));
-        break;
-      case 'stringArray':
-        if (!value || !Array.isArray(value)) {
-          break;
-        }
-        convertedValue = value.map((item) => item.toString());
-        break;
-      case 'boolean':
-        convertedValue = !!value;
-        break;
-      default:
-        break;
-    }
-  }
-
-  formState.value[item.key] = convertedValue;
-}
-
 defineExpose({
   validate,
   clearValidate,
@@ -1158,8 +1127,7 @@ defineExpose({
       "
       :rules="
         (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
-        item.disabled ||
-        item.outputType
+        item.disabled
           ? []
           : [
               ...(rules[item.key]
@@ -1420,7 +1388,6 @@ defineExpose({
           (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
           item.disabled
         "
-        @change="handleSelectChange($event, item)"
       >
         {{ item.type }}
         <a-select-option
@@ -1438,7 +1405,6 @@ defineExpose({
           (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
           item.disabled
         "
-        @change="handleSelectChange($event, item)"
       >
         {{ item.type }}
         <a-select-option
@@ -1456,7 +1422,6 @@ defineExpose({
           (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
           item.disabled
         "
-        @change="handleSelectChange($event, item)"
       >
         <a-select-option
           v-for="option in item.options"

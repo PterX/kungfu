@@ -50,7 +50,6 @@ import {
   OffsetEnum,
   OrderTriggerParkedTypeEnum,
   SideEnum,
-  TimeConditionEnum,
   OrderTriggerTypeEnum,
   OrderTriggerStatusEnum,
   OrderTriggerFlag,
@@ -349,7 +348,6 @@ function handleConfirmBatchOrderTrigger(
         side: +side,
         offset: getResolvedOffset(+offset, +side, instrumentType),
         parked_type: OrderTriggerParkedTypeEnum.Server,
-        time_condition: TimeConditionEnum.GFA,
       };
 
       return orderTriggerInput;

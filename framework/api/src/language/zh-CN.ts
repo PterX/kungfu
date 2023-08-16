@@ -697,6 +697,7 @@ export default {
     select_channel: '过滤数据信道',
 
     selete_msg_type: '过滤消息类型',
+    empty_export_data: '没有可导出的信息',
   },
 
   tradeConfig: {

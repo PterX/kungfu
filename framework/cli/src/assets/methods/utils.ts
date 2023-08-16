@@ -190,6 +190,10 @@ export const buildQuestionByKfConfigItem = (
       return true;
     },
 
+    filter: (value: KungfuApi.KfConfigValue) => {
+      return targetType === 'number' && isNaN(value) ? 0 : value;
+    },
+
     ...(targetType === 'path' ? { cwd: process.cwd().toString() } : {}),
   };
 

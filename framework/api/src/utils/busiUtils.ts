@@ -576,9 +576,8 @@ const resolveOrderTriggerConfig = (
           orderTriggerOriginConfig[key] || {},
         ).reduce((parkedConfig, parkedType) => {
           if (orderTriggerParkedTypesKeys.includes(parkedType)) {
-            parkedConfig[OrderTriggerParkedTypeEnum[parkedType]] = Object.keys(
-              orderTriggerOriginConfig[key]?.[parkedType] || {},
-            );
+            parkedConfig[OrderTriggerParkedTypeEnum[parkedType]] =
+              !!orderTriggerOriginConfig[key]?.[parkedType];
           }
           return parkedConfig;
         }, {});

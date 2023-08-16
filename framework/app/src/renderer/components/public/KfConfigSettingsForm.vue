@@ -1117,6 +1117,7 @@ function handleSelectChange(value, item) {
           break;
         }
         convertedValue = value.map((item) => item.toString());
+        break;
       case 'boolean':
         convertedValue = !!value;
         break;

@@ -2231,6 +2231,8 @@ export const KfConfigValueNumberType = [
 
 export const KfConfigValueBooleanType = ['bool', 'checkbox'];
 
+export const KfConfigValueAnyType = ['select'];
+
 export const KfConfigValueArrayType = [
   'tds',
   'files',

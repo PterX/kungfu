@@ -187,8 +187,8 @@ void bind_strategy(pybind11::module &m) {
       .def("insert_order_trigger", &strategy::Context::insert_order_trigger, py::arg("instrument_id"),
            py::arg("exchange"), py::arg("source"), py::arg("account"), py::arg("limit_price"), py::arg("volume"),
            py::arg("type"), py::arg("side"), py::arg("offset") = Offset::Open, py::arg("trigger_type"),
-           py::arg("time_condition"), py::arg("parked_type") = longfist::enums::ParkedType::Server,
-           py::arg("stop_price") = 0, py::arg("hedge_flag") = HedgeFlag::Speculation, py::arg("is_swap") = false)
+           py::arg("parked_type") = longfist::enums::ParkedType::Server, py::arg("stop_price") = 0,
+           py::arg("hedge_flag") = HedgeFlag::Speculation, py::arg("is_swap") = false)
       .def("insert_batch_orders", &strategy::Context::insert_batch_orders)
       .def("insert_array_orders", &strategy::Context::insert_array_orders)
       .def("insert_algo_order", &strategy::Context::insert_algo_order, py::arg("instrument_id"), py::arg("exchange_id"),

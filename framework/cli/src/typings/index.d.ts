@@ -25,6 +25,7 @@ interface PromptQuestion {
   choices: (string | number)[];
   message: string;
   validate: (value: KungfuApi.KfConfigValue) => Promise<Error | boolean>;
+  filter: (value: KungfuApi.KfConfigValue) => KungfuApi.KfConfigValue;
 }
 
 interface ProcessListItem {

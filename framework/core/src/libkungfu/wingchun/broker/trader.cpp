@@ -250,7 +250,7 @@ void Trader::deal_write_frame() {
     orders_.insert_or_assign(order_state.data.order_id, order_state);
     map_exchange_instrument_to_order_ids_
         .try_emplace(order_state.data.exchange_id.to_string() + order_state.data.instrument_id.to_string())
-        .first->second.emplace(order_state.data.order_id);
+        .first->second.emplace(uint64_t(order_state.data.order_id));
   });
 
   auto &trade_state_map = state_bank[boost::hana::type_c<Trade>];

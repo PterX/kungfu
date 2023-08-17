@@ -481,6 +481,7 @@ template <typename DataType> struct state {
     return *this;
   }
 };
+
 } // namespace kungfu
 
 #endif // KUNGFU_COMMON_H

@@ -274,9 +274,7 @@ void Trader::deal_write_frame() {
     if (not is_final_status(order.status) and (disable_recover_ or order.external_order_id.to_string().empty())) {
       order.status = OrderStatus::Lost;
       order.update_time = time::now_in_nano();
-      if (has_writer(pair.second.dest)) {
-        write_to(order, pair.second.dest);
-      }
+      try_write_to(order, pair.second.dest);
     }
   });
 
@@ -286,9 +284,7 @@ void Trader::deal_write_frame() {
     if (not is_final_status(trigger.status) and (disable_recover_ or trigger.external_trigger_id.to_string().empty())) {
       trigger.status = OrderStatus::Lost;
       trigger.update_time = time::now_in_nano();
-      if (has_writer(pair.second.dest)) {
-        write_to(trigger, pair.second.dest);
-      }
+      try_write_to(trigger, pair.second.dest);
     }
   });
 }

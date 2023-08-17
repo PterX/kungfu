@@ -24,6 +24,7 @@ import {
   kfLogger,
   isUpdateVersionLogicEnable,
   deleteNNFiles,
+  delayMilliSeconds,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { killExtra } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
 import {
@@ -213,6 +214,7 @@ app.on('ready', () => {
 //一上来先把所有之前意外没关掉的 pm2/kfc 进程kill掉
 console.time('init clean');
 killExtra()
+  .then(() => delayMilliSeconds(1000))
   .then(() => deleteNNFiles())
   .catch((err) => kfLogger.error(err))
   .finally(() => {

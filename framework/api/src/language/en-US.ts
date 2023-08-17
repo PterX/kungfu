@@ -476,6 +476,7 @@ export default {
     empty_instrument: 'empty',
     err_modal_title: 'Error details',
     order_trigger_not_future: 'Not futures',
+    start_process: 'please start {process} first',
   },
 
   tdConfig: {

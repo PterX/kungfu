@@ -52,7 +52,6 @@ import {
   OrderCancelledStatus,
   OrderTriggerCancelStatus,
   UnfinishedOrderStatus,
-  UnfinishedOrderTriggerStatus,
 } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import {
   HistoryDateEnum,
@@ -321,10 +320,6 @@ function isFinishedOrderStatus(orderStatus: OrderStatusEnum): boolean {
   return !UnfinishedOrderStatus.includes(orderStatus);
 }
 
-function isFinishedOrderTriggerStatus(orderStatus: OrderStatusEnum): boolean {
-  return !UnfinishedOrderTriggerStatus.includes(orderStatus);
-}
-
 const cancelOrderTriggerBtnVisible = computed(() => {
   const rootPackageJson = readRootPackageJsonSync();
   if (rootPackageJson?.appConfig?.orderTrigger === false) {
@@ -364,6 +359,12 @@ function handleCancelAllOrders(): void {
     error();
     return;
   }
+
+  const tdProcessId = getProcessIdByKfLocation(currentGlobalKfLocation.value);
+  if (processStatusData.value[tdProcessId] !== 'online') {
+    error(`${t('orderConfig.start')} ${tdProcessId} ${t('orderConfig.td')}`);
+    return;
+  }
   const name = getIdByKfLocation(currentGlobalKfLocation.value);
 
   confirmModal(
@@ -395,7 +396,7 @@ function handleInsertOrderTrigger(order: KungfuApi.OrderResolved): void {
       return;
     }
 
-    if (isFinishedOrderTriggerStatus(order.status)) {
+    if (isFinishedOrderStatus(order.status)) {
       error(t('orderConfig.order_finished'));
       return;
     }
@@ -913,17 +914,14 @@ function testOrderSourceIsOnline(order: KungfuApi.OrderResolved) {
               <span
                 v-if="!isFinishedOrderStatus(item.status)"
                 class="color-red"
-                style="margin-right: 16px"
+                style="margin-right: 8px"
                 @click="handleCancelOrder(item)"
               >
                 {{ $t('orderConfig.cancel_order') }}
               </span>
-              <LoadingOutlined
-                v-if="item.status === OrderStatusEnum.Cancelling"
-              />
               <span
                 v-if="
-                  !isFinishedOrderTriggerStatus(item.status) &&
+                  !isFinishedOrderStatus(item.status) &&
                   cancelOrderTriggerBtnVisible
                 "
                 :class="{

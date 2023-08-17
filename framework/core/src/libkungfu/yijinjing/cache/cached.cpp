@@ -41,13 +41,33 @@ void cached::on_react() {
       return;
     }
 
-    app_cache_shift_.try_emplace(source_id, locations_.at(source_id));
+    const auto &location = locations_.at(source_id);
+    app_cache_shift_.try_emplace(source_id, location);
     auto cached_writer = get_writer(source_id);
 
     try {
       app_cache_shift_.at(source_id) >> cached_writer;
     } catch (const std::exception &ex) {
       SPDLOG_ERROR("failed to write cache {} {} {}", source_id, get_location_uname(source_id), ex.what());
+    }
+
+    if (location->category == category::TD or location->category == category::STRATEGY) {
+      for (const auto &other_location : location->locator->list_locations("*", "*", "*", "*")) {
+        if (other_location->category == category::SYSTEM) {
+          continue;
+        }
+
+        for (auto dest : location->locator->list_location_dest_by_db(other_location)) {
+          if (dest == location->uid) {
+            try {
+              make_cache_shift(other_location->uid, dest);
+              app_cache_shift_.at(other_location->uid).restore_to(cached_writer, dest);
+            } catch (const std::exception &ex) {
+              SPDLOG_ERROR("failed to write cache {} {} {}", other_location->uname, dest, ex.what());
+            }
+          }
+        }
+      }
     }
 
     try {

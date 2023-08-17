@@ -223,7 +223,6 @@ void master::handle_timer_tasks() {
       auto &task = it->second;
       if (task.checkpoint <= now) {
         get_writer(app_id)->mark(0, Time::tag);
-        SPDLOG_DEBUG("app_id:{} , location: {}", app_id, get_location_uname(app_id));
         task.checkpoint += task.duration;
         task.repeat_count++;
         if (task.repeat_count >= task.repeat_limit) {

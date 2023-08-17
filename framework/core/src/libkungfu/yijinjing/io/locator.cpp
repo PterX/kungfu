@@ -113,6 +113,9 @@ std::vector<uint32_t> locator::list_page_id(const location_ptr &location, uint32
   std::vector<uint32_t> result = {};
   auto dest_id_str = fmt::format("{:08x}", dest_id);
   auto dir = fs::path(layout_dir(location, es::layout::JOURNAL));
+  if (not fs::exists(dir)) {
+    return {};
+  }
   for (auto &it : fs::recursive_directory_iterator(dir)) {
     auto basename = it.path().stem();
     if (it.is_regular_file() and it.path().extension() == ".journal" and basename.stem() == dest_id_str) {
@@ -156,10 +159,17 @@ std::vector<location_ptr> locator::list_locations(const std::string &category, c
 std::vector<uint32_t> locator::list_location_dest(const location_ptr &location) const {
   std::unordered_set<uint32_t> set = {};
   auto dir = fs::path(layout_dir(location, es::layout::JOURNAL));
+  if (not fs::exists(dir)) {
+    return {};
+  }
   for (auto &it : fs::recursive_directory_iterator(dir)) {
     auto basename = it.path().stem();
     if (it.is_regular_file() and it.path().extension() == ".journal") {
-      set.emplace(std::stoul(basename.stem(), nullptr, 16));
+      try {
+        set.emplace(std::stoul(basename.stem(), nullptr, 16));
+      } catch (const std::exception &ex) {
+        SPDLOG_ERROR("failed to std::stoul(basename.stem(), nullptr, 16) {}", basename);
+      }
     }
   }
   return std::vector<uint32_t>{set.begin(), set.end()};
@@ -168,10 +178,17 @@ std::vector<uint32_t> locator::list_location_dest(const location_ptr &location) 
 std::vector<uint32_t> locator::list_location_dest_by_db(const location_ptr &location) const {
   std::unordered_set<uint32_t> set = {};
   auto dir = fs::path(layout_dir(location, es::layout::SQLITE));
+  if (not fs::exists(dir)) {
+    return {};
+  }
   for (auto &it : fs::recursive_directory_iterator(dir)) {
     auto basename = it.path().stem();
     if (it.is_regular_file() and it.path().extension() == ".db") {
-      set.emplace(std::stoul(basename.stem(), nullptr, 16));
+      try {
+        set.emplace(std::stoul(basename.stem(), nullptr, 16));
+      } catch (const std::exception &ex) {
+        SPDLOG_ERROR("failed to std::stoul(basename.stem(), nullptr, 16) {}", basename);
+      }
     }
   }
   return std::vector<uint32_t>{set.begin(), set.end()};

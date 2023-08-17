@@ -438,7 +438,9 @@ export const startProcess = async (
         .join(path.delimiter),
       KFC_DIR: process.env.KFC_DIR || '',
       CLI_DIR: process.env.CLI_DIR || '',
-      IS_KF_DEV: `${process.env.IS_KF_DEV}` || '',
+      IS_KF_DEV: booleanProcessEnv(process.env.IS_KF_DEV)
+        ? `${process.env.IS_KF_DEV}`
+        : '',
       KF_HOME: dealSpaceInPath(KF_HOME),
       KF_RUNTIME_DIR: dealSpaceInPath(KF_RUNTIME_DIR),
       KF_CONFIG_DIR: dealSpaceInPath(KF_CONFIG_DIR),

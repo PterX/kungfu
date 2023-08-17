@@ -64,7 +64,7 @@ public:
    * @param key key of data to be published
    * @param value value of data to be published
    */
-  virtual void publish_synthetic_data(const std::string &key, const std::string &value) override;
+  void publish_synthetic_data(const std::string &key, const std::string &value) override;
 
   /**
    * Get current trading day.

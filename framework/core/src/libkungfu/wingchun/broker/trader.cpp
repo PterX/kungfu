@@ -143,8 +143,8 @@ void Trader::deal_write_frame() {
 
   auto &order_state_map = state_bank[boost::hana::type_c<Order>];
   count += order_state_map.size();
-  auto order_state_vector = transform_map_to_sorted_vector(order_state_map, sort_selector);
-  std::for_each(order_state_vector.begin(), order_state_vector.end(), [&](auto &order_state) {
+  std::for_each(order_state_map.begin(), order_state_map.end(), [&](auto &pair) {
+    auto &order_state = pair.second;
     get_order_service().on_order(order_state.source, order_state.dest, order_state.update_time, order_state.data);
   });
 
@@ -157,16 +157,16 @@ void Trader::deal_write_frame() {
 
   auto &order_trigger_state_map = state_bank[boost::hana::type_c<OrderTrigger>];
   count += order_trigger_state_map.size();
-  auto order_trigger_state_vector = transform_map_to_sorted_vector(order_trigger_state_map, sort_selector);
-  std::for_each(order_trigger_state_vector.begin(), order_trigger_state_vector.end(), [&](auto &order_trigger_state) {
+  std::for_each(order_trigger_state_map.begin(), order_trigger_state_map.end(), [&](auto &pair) {
+    auto &order_trigger_state = pair.second;
     get_order_trigger_service().on_order_trigger(order_trigger_state.source, order_trigger_state.dest,
                                                  order_trigger_state.update_time, order_trigger_state.data);
   });
 
   auto &algo_order_state_map = state_bank[boost::hana::type_c<AlgoOrder>];
   count += algo_order_state_map.size();
-  auto algo_order_state_vector = transform_map_to_sorted_vector(algo_order_state_map, sort_selector);
-  std::for_each(algo_order_state_vector.begin(), algo_order_state_vector.end(), [&](auto &algo_order_state) {
+  std::for_each(algo_order_state_map.begin(), algo_order_state_map.end(), [&](auto &pair) {
+    auto &algo_order_state = pair.second;
     get_algo_order_service().on_algo_order(algo_order_state.source, algo_order_state.dest, algo_order_state.update_time,
                                            algo_order_state.data);
   });

@@ -290,7 +290,8 @@ Napi::Value Watcher::PublishState(const Napi::CallbackInfo &info) {
 
 Napi::Value Watcher::IsReadyToInteract(const Napi::CallbackInfo &info) {
   auto account_location = IODevice::ExtractLocation(info, 0, get_locator());
-  return Napi::Boolean::New(info.Env(), account_location and has_writer(account_location->uid));
+  return Napi::Boolean::New(info.Env(), account_location and has_writer(account_location->uid) and
+                                            is_location_live(account_location->uid));
 }
 
 Napi::Value Watcher::IssueCustomData(const Napi::CallbackInfo &info) {

@@ -138,36 +138,37 @@ void Trader::recover() {
 void Trader::deal_write_frame() {
   SPDLOG_DEBUG("before state_bank read");
   int64_t count = 0;
-  auto& state_bank = get_vendor().get_state_bank();
+  auto &state_bank = get_vendor().get_state_bank();
 
-  auto& order_state_map = state_bank[boost::hana::type_c<Order>];
+  auto &order_state_map = state_bank[boost::hana::type_c<Order>];
   count += order_state_map.size();
-  std::for_each(order_state_map.begin(), order_state_map.end(), [&](auto& pair) {
-    auto& order_state = pair.second;
+  std::for_each(order_state_map.begin(), order_state_map.end(), [&](auto &pair) {
+    auto &order_state = pair.second;
     get_order_service().on_order(order_state.source, order_state.dest, order_state.update_time, order_state.data);
   });
 
-  auto& trade_state_map = state_bank[boost::hana::type_c<Trade>];
+  auto &trade_state_map = state_bank[boost::hana::type_c<Trade>];
   count += trade_state_map.size();
-  std::for_each(trade_state_map.begin(), trade_state_map.end(), [&](auto& pair) {
-    auto& trade_state = pair.second;
+  std::for_each(trade_state_map.begin(), trade_state_map.end(), [&](auto &pair) {
+    auto &trade_state = pair.second;
     get_order_service().on_trade(trade_state.source, trade_state.dest, trade_state.update_time, trade_state.data);
   });
 
-  auto& order_trigger_state_map = state_bank[boost::hana::type_c<OrderTrigger>];
-    count += order_trigger_state_map.size();
-    std::for_each(order_trigger_state_map.begin(), order_trigger_state_map.end(), [&](auto& pair) {
-      auto& order_trigger_state = pair.second;
-      get_order_trigger_service().on_order_trigger(order_trigger_state.source, order_trigger_state.dest, order_trigger_state.update_time, order_trigger_state.data);
-    });
+  auto &order_trigger_state_map = state_bank[boost::hana::type_c<OrderTrigger>];
+  count += order_trigger_state_map.size();
+  std::for_each(order_trigger_state_map.begin(), order_trigger_state_map.end(), [&](auto &pair) {
+    auto &order_trigger_state = pair.second;
+    get_order_trigger_service().on_order_trigger(order_trigger_state.source, order_trigger_state.dest,
+                                                 order_trigger_state.update_time, order_trigger_state.data);
+  });
 
-  auto& algo_order_state_map = state_bank[boost::hana::type_c<AlgoOrder>];
-    count += algo_order_state_map.size();
-    std::for_each(algo_order_state_map.begin(), algo_order_state_map.end(), [&](auto& pair) {
-      auto& algo_order_state = pair.second;
-      get_algo_order_service().on_algo_order(algo_order_state.source, algo_order_state.dest, algo_order_state.update_time, algo_order_state.data);
-    });
-
+  auto &algo_order_state_map = state_bank[boost::hana::type_c<AlgoOrder>];
+  count += algo_order_state_map.size();
+  std::for_each(algo_order_state_map.begin(), algo_order_state_map.end(), [&](auto &pair) {
+    auto &algo_order_state = pair.second;
+    get_algo_order_service().on_algo_order(algo_order_state.source, algo_order_state.dest, algo_order_state.update_time,
+                                           algo_order_state.data);
+  });
 
   SPDLOG_DEBUG("after state_bank read, count: {}", count);
 
@@ -180,28 +181,29 @@ void Trader::deal_read_frame() {
   // write a Lost Order to journal when read an OrderInput whose order_id not in orders_
   SPDLOG_DEBUG("before state_bank read");
   int64_t count = 0;
-  auto& state_bank = get_vendor().get_state_bank();
+  auto &state_bank = get_vendor().get_state_bank();
 
-  auto& order_input_state_map = state_bank[boost::hana::type_c<OrderInput>];
+  auto &order_input_state_map = state_bank[boost::hana::type_c<OrderInput>];
   count += order_input_state_map.size();
-  std::for_each(order_input_state_map.begin(), order_input_state_map.end(), [&](auto& pair) {
-    auto& order_input_state = pair.second;
+  std::for_each(order_input_state_map.begin(), order_input_state_map.end(), [&](auto &pair) {
+    auto &order_input_state = pair.second;
     get_order_service().clean_orders(order_input_state.source, order_input_state.data, disable_recover_);
   });
 
-  auto& order_trigger_input_state_map = state_bank[boost::hana::type_c<OrderTriggerInput>];
+  auto &order_trigger_input_state_map = state_bank[boost::hana::type_c<OrderTriggerInput>];
   count += order_trigger_input_state_map.size();
-  std::for_each(order_trigger_input_state_map.begin(), order_trigger_input_state_map.end(), [&](auto& pair) {
-    auto& order_trigger_input_state = pair.second;
-    get_order_trigger_service().clean_order_triggers(order_trigger_input_state.source, order_trigger_input_state.data, disable_recover_);
+  std::for_each(order_trigger_input_state_map.begin(), order_trigger_input_state_map.end(), [&](auto &pair) {
+    auto &order_trigger_input_state = pair.second;
+    get_order_trigger_service().clean_order_triggers(order_trigger_input_state.source, order_trigger_input_state.data,
+                                                     disable_recover_);
   });
 
-
-  auto& algo_order_input_state_map = state_bank[boost::hana::type_c<AlgoOrderInput>];
+  auto &algo_order_input_state_map = state_bank[boost::hana::type_c<AlgoOrderInput>];
   count += algo_order_input_state_map.size();
-  std::for_each(algo_order_input_state_map.begin(), algo_order_input_state_map.end(), [&](auto& pair) {
-    auto& algo_order_input_state = pair.second;
-    get_algo_order_service().clean_algo_orders(algo_order_input_state.source, algo_order_input_state.data, disable_recover_);
+  std::for_each(algo_order_input_state_map.begin(), algo_order_input_state_map.end(), [&](auto &pair) {
+    auto &algo_order_input_state = pair.second;
+    get_algo_order_service().clean_algo_orders(algo_order_input_state.source, algo_order_input_state.data,
+                                               disable_recover_);
   });
 
   SPDLOG_DEBUG("after state_bank read, count: {}", count);

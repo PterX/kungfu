@@ -139,7 +139,6 @@ void Trader::deal_write_frame() {
   SPDLOG_DEBUG("before state_bank read");
   int64_t count = 0;
   auto &state_bank = get_vendor().get_state_bank();
-  auto sort_selector = [](auto &a, auto &b) { return a.data.update_time < b.data.update_time; };
 
   auto &order_state_map = state_bank[boost::hana::type_c<Order>];
   count += order_state_map.size();

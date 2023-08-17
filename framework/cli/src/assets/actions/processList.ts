@@ -647,6 +647,7 @@ const switchMaster = async (status: boolean): Promise<void> => {
     if (process.env.NODE_ENV === 'production') {
       await killKungfu();
     }
+    await delayMilliSeconds(1000);
     await deleteNNFiles();
   } else {
     await deleteNNFiles();

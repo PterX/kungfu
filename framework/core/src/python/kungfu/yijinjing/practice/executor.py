@@ -18,6 +18,7 @@ from kungfu.yijinjing.practice.master import Master
 from kungfu.yijinjing.practice.coloop import KungfuEventLoop
 from kungfu.wingchun.strategy import Runner, Strategy
 from kungfu.wingchun.sliceindexer import SliceIndexer
+from kungfu.wingchun.report import Report
 from kungfu.wingchun.operator import OpRunner, Operator
 
 from collections import deque
@@ -308,6 +309,9 @@ class ExtensionExecutor:
             )
             ctx.runner.set_from_indexer(from_indexer)
             ctx.runner.set_to_indexer(to_indexer)
+            if ctx.report:
+                report = load_report(ctx, ctx.report)
+                ctx.runner.set_report(report)
         if kfj.MODES[ctx.mode] == lf.enums.mode.REPLAY:
             begin_time_stamp, end_time_stamp = self.parse_begin_end(ctx)
             ctx.runner.set_begin_time(begin_time_stamp)
@@ -324,6 +328,8 @@ class ExtensionExecutor:
         else:
             ctx.logger.info("use run")
             ctx.runner.run()
+        if kfj.MODES[ctx.mode] == lf.enums.mode.BACKTEST and ctx.report:
+            report.sumerize()
 
     def run_operator(self):
         loader = self.loader
@@ -375,6 +381,10 @@ class ExtensionExecutor:
             )
             ctx.op_runner.set_from_indexer(from_indexer)
             ctx.op_runner.set_to_indexer(to_indexer)
+            if ctx.report:
+                report = load_report(ctx, ctx.report)
+                ctx.op_runner.set_report(report)
+        # ctx.runner = self.load_runner(ctx)
         if kfj.MODES[ctx.mode] == lf.enums.mode.REPLAY:
             begin_time_stamp, end_time_stamp = self.parse_begin_end(ctx)
             ctx.op_runner.set_begin_time(begin_time_stamp)
@@ -382,23 +392,21 @@ class ExtensionExecutor:
 
         ctx.op_runner.add_operator(ctx.operator)
         ctx.op_runner.run()
+        if kfj.MODES[ctx.mode] == lf.enums.mode.BACKTEST and ctx.report:
+            report.sumerize()
 
     def parse_begin_end(self, ctx):
         ctx.logger.debug(f"ctx.mode: {ctx.mode}")
 
-        if (
-            not ctx.begin
-            and not ctx.end
-            and kfj.MODES[ctx.mode] == lf.enums.mode.BACKTEST
+        if kfj.MODES[ctx.mode] == lf.enums.mode.BACKTEST and (
+            not ctx.begin or not ctx.end
         ):
-            raise RuntimeError("backtest mode must specify begin and end")
+            raise ValueError("backtest mode must specify begin and end")
 
-        if (
-            not (ctx.begin and ctx.end)
-            and not ctx.session_id
-            and kfj.MODES[ctx.mode] == lf.enums.mode.REPLAY
+        if kfj.MODES[ctx.mode] == lf.enums.mode.REPLAY and (
+            not (ctx.begin and ctx.end) and not ctx.session_id
         ):
-            raise RuntimeError("replay mode must specify begin and end or session_id")
+            raise ValueError("replay mode must specify begin and end or session_id")
 
         begin_time_stamp = (
             kft.strptimes(
@@ -420,12 +428,13 @@ class ExtensionExecutor:
         if ctx.session_id:
             session = kfj.find_session(ctx, ctx.session_id)
             begin_time_stamp = session["begin_time"]
-            end_time_stamp = (
-                session["end_time"] if session.closed else yjj.now_in_nano()
+            end_time_stamp = min(
+                (session["end_time"] if session.closed else yjj.now_in_nano()),
+                end_time_stamp,
             )
 
         ctx.logger.debug(
-            f"begin time: {begin_time_stamp}, end_time_stamp: {end_time_stamp}"
+            f"begin time: {kft.strftime(begin_time_stamp)}, end_time_stamp: {kft.strftime(end_time_stamp)}"
         )
         return begin_time_stamp, end_time_stamp
 
@@ -434,6 +443,7 @@ class ExtensionExecutor:
         to_indexer = wc.SliceIndexer(begin, end)
         if ctx.from_indexer:
             from_indexer = SliceIndexer(ctx, begin, end, ctx.from_indexer)
+            # from_indexer = wc.DayIndexer(begin, end)
         if ctx.to_indexer:
             to_indexer = SliceIndexer(ctx, begin, end, ctx.to_indexer)
         return from_indexer, to_indexer
@@ -463,6 +473,8 @@ def load_module(ctx, path, key, cls):
 
 
 def load_matcher(ctx, path):
+    if not ctx.matcher:
+        return None
     try:
         sys.path.append(str(Path(path).parent))
         lib_name = Path(path).stem.split(".")[0]
@@ -473,7 +485,31 @@ def load_matcher(ctx, path):
     except Exception as e:
         ctx.logger.debug("load_matcher failed: {}".format(e))
         ctx.logger.warn("matcher path: {} cannot be import by python".format(path))
-        return None
+        raise e
+
+
+def load_report(ctx, path):
+    cls = Report
+    try:
+        if path.endswith(".py") or os.path.isdir(path):
+            return cls(ctx)  # keep strategy alive for pybind11
+        elif path.endswith(".so") or path.endswith(".pyd"):
+            sys.path.append(str(Path(path).parent))
+            lib_name = Path(path).stem.split(".")[0]
+            try:
+                module = importlib.import_module(lib_name)
+                ctx.logger.debug(f"import as cpp {lib_name} success")
+                factory_func = getattr(module, cls.__name__.lower())
+                return factory_func()
+            except Exception as e:
+                ctx.logger.debug(f"fallback to python loader due to: {e}")
+                ctx.report = os.path.join(os.path.dirname(path), lib_name)
+                return cls(ctx)
+        raise FileNotFoundError(f"report path: {path} not found")
+    except Exception as e:
+        ctx.logger.debug("load_report failed: {}".format(e))
+        ctx.logger.critical("report path: {} cannot be imported.".format(path))
+        raise e
 
 
 def try_load_cpp_module(ctx, path, key, cls):

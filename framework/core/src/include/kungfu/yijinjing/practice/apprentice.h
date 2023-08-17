@@ -78,6 +78,20 @@ public:
 
   bool release_page();
 
+  template <class DataType> std::string make_nano_msg(uint32_t source, uint32_t dest, const DataType &data) const {
+    auto now = this->now();
+    nlohmann::json request;
+    request["data_type"] = int8_t(longfist::enums::FrameDataType::Json);
+    request["msg_type"] = DataType::tag;
+    request["gen_time"] = now;
+    request["trigger_time"] = now;
+    request["initial_source"] = get_home_uid();
+    request["source"] = source;
+    request["dest"] = dest;
+    request["data"] = nlohmann::json::parse(data.to_string());
+    return request.dump();
+  }
+
   const std::string &get_arguments() const { return arguments_; }
 
 protected:
@@ -114,20 +128,6 @@ protected:
   void on_write_to_band(const event_ptr &event);
 
   [[maybe_unused]] int get_observer_recv_timeout() const;
-
-  template <class DataType> std::string make_nano_msg(uint32_t source, uint32_t dest, const DataType &data) const {
-    auto now = time::now_in_nano();
-    nlohmann::json request;
-    request["data_type"] = int8_t(longfist::enums::FrameDataType::Json);
-    request["msg_type"] = DataType::tag;
-    request["gen_time"] = now;
-    request["trigger_time"] = now;
-    request["initial_source"] = get_home_uid();
-    request["source"] = source;
-    request["dest"] = dest;
-    request["data"] = nlohmann::json::parse(data.to_string());
-    return request.dump();
-  }
 
   void reader_join(uint32_t source_id, uint32_t dest_id, int64_t from_time);
 

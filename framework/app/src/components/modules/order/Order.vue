@@ -604,6 +604,10 @@ function handleClickAdjustOrderMask(): void {
     return;
   }
 
+  if (+adjustOrderForm.value.price <= 0) {
+    return;
+  }
+
   if (+order.limit_price === +adjustOrderForm.value.price) {
     adjustOrderMaskVisible.value = false;
     return;

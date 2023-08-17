@@ -364,6 +364,7 @@ set_begin_time
 set_end_time
 set_from_indexer
 set_to_indexer
+set_report
 setup
 step
 on_exit
@@ -421,6 +422,10 @@ find_md_slice_location
 get_md_slice_end_time
 find_operator_slice_location
 get_operator_slice_end_time
+init
+sumerize
+on_read_synthetic_data
+on_write_synthetic_data
 hash_instrument
 is_valid_price
 is_final_status
@@ -525,6 +530,9 @@ SSE
 SZE
 MarketType
 Snapshot
+Entrust
+Transaction
+Tree
 SubscribeDataType
 Stock
 Future

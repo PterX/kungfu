@@ -24,25 +24,43 @@ using kungfu::yijinjing::nanomsg::nanomsg_json;
 namespace kungfu::wingchun::strategy {
 
 BacktestContext::BacktestContext(practice::apprentice &app, const rx::connectable_observable<event_ptr> &events,
-                                 Matcher_ptr matcher, SliceIndexer_ptr from_indexer, SliceIndexer_ptr to_indexer)
+                                 Matcher_ptr matcher, SliceIndexer_ptr from_indexer, SliceIndexer_ptr to_indexer,
+                                 Report_ptr report)
     : Context(app, events), broker_client_(app_), bookkeeper_(app_, broker_client_), matcher_(std::move(matcher)),
       from_indexer_(from_indexer),
       slice_tool_(std::make_shared<SliceTool>(category::STRATEGY, app.get_home()->group, app.get_home()->name,
-                                              std::move(to_indexer))) {
+                                              std::move(to_indexer))),
+      report_(std::move(report)) {
   log::copy_log_settings(app_.get_home(), app_.get_home()->name);
+  // add_location(app_, app_.get_home());
 }
 
 void BacktestContext::on_start() {
   // auto writer = app_.get_writer(location::PUBLIC);
   // writer->mark_at(app_.get_begin_time(), app_.get_begin_time(), RequestStart::tag);
   // broker_client_.on_start(events_);
-  // bookkeeper_.on_start(events_);
-  events_ | is_own<Quote>(get_broker_client()) | $$(matcher_->on_quote(event->data<Quote>()));
-  events_ | is_own<Entrust>(get_broker_client()) | $$(matcher_->on_entrust(event->data<Entrust>()));
-  events_ | is_own<Transaction>(get_broker_client()) | $$(matcher_->on_transaction(event->data<Transaction>()));
-  events_ | is_own<Tree>(get_broker_client()) | $$(matcher_->on_tree(event->data<Tree>()));
-  events_ | is(OrderInput::tag) | $$(matcher_->on_order_input(event->data<OrderInput>()));
+  bookkeeper_.on_start(events_);
+  events_ | is_own<Quote>(get_broker_client()) |
+      $$(matcher_->on_quote(event->data<Quote>()); report_->on_quote(event->data<Quote>()););
+  events_ | is_own<Entrust>(get_broker_client()) |
+      $$(matcher_->on_entrust(event->data<Entrust>()); report_->on_entrust(event->data<Entrust>()););
+  events_ | is_own<Transaction>(get_broker_client()) |
+      $$(matcher_->on_transaction(event->data<Transaction>()); report_->on_transaction(event->data<Transaction>()););
+  events_ | is_own<Tree>(get_broker_client()) |
+      $$(matcher_->on_tree(event->data<Tree>()); report_->on_tree(event->data<Tree>()););
+  events_ | is(SyntheticData::tag) | $$(report_->on_read_synthetic_data(event->data<SyntheticData>()));
+  events_ | is(OrderInput::tag) |
+      $$(const auto &order_input = event->data<OrderInput>();
+         add_order_id(*matcher_, order_input.order_id, event->source(), event->dest());
+         matcher_->on_order_input(order_input));
+  events_ | is(Order::tag) |
+      $$(const auto &order = event->data<Order>(); report_->on_order(order); if (is_final_status(order.status)) {
+        add_timer(now() + Matcher::MAX_DELAYED_REMOVE_DURATION,
+                  [=](event_ptr e) { remove_order_id(*matcher_, order.order_id); });
+      });
+  events_ | is(Trade::tag) | $$(report_->on_trade(event->data<Trade>()));
   events_ | is(OrderAction::tag) | $$(matcher_->on_order_action(event->data<OrderAction>()));
+  events_ | is(OrderActionError::tag) | $$(remove_order_id(*matcher_, event->data<OrderActionError>().order_id));
   events_ | $$(on_timer_check());
 }
 
@@ -65,13 +83,9 @@ void BacktestContext::add_time_interval(int64_t duration, const std::function<vo
 }
 
 void BacktestContext::on_timer_check() {
-  if (not pre_timer_callbacks_.empty()) {
-    timer_callbacks_.insert(pre_timer_callbacks_.begin(), pre_timer_callbacks_.end());
-    pre_timer_callbacks_.clear();
-  }
-  auto it = timer_callbacks_.begin();
+  timer_callbacks_.merge(pre_timer_callbacks_);
   auto now_time = now();
-  while (it != timer_callbacks_.end()) {
+  for (auto it = timer_callbacks_.begin(); it != timer_callbacks_.end();) {
     if (it->first <= now_time) {
       nlohmann::json time_event;
       time_event["msg_type"] = Time::tag;
@@ -80,6 +94,8 @@ void BacktestContext::on_timer_check() {
       time_event["source"] = app_.get_home_uid();
       time_event["dest"] = app_.get_home_uid();
       time_event["data"] = nlohmann::json::object();
+      // TODO use app_.make_nano_msg instead
+      // Time time_event{};
       it->second(std::make_shared<nanomsg_json>(time_event.dump()));
       it = timer_callbacks_.erase(it);
     } else {
@@ -88,7 +104,10 @@ void BacktestContext::on_timer_check() {
   }
 }
 
-void BacktestContext::add_account(const std::string &source, const std::string &account) {}
+void BacktestContext::add_account(const std::string &source, const std::string &account) {
+  auto td_location = find_td_location(source, account, false);
+  add_location(app_, td_location);
+}
 
 void BacktestContext::subscribe(const std::string &source, const std::vector<std::string> &instrument_ids,
                                 const std::string &exchange_id) {
@@ -157,7 +176,7 @@ uint64_t BacktestContext::insert_order(const std::string &instrument_id, const s
     return 0;
   }
   auto writer = app_.get_writer(location::PUBLIC);
-  OrderInput &input = writer->open_data<OrderInput>(now());
+  OrderInput input{};
   input.order_id = writer->current_frame_uid();
   strcpy(input.instrument_id, instrument_id.c_str());
   strcpy(input.exchange_id, exchange_id.c_str());
@@ -172,9 +191,9 @@ uint64_t BacktestContext::insert_order(const std::string &instrument_id, const s
   input.block_id = block_id;
   input.is_swap = is_swap;
   input.insert_time = insert_time;
-  writer->close_data(now());
-  // TODO
-  // bookkeeper_.on_order_input(app_.now(), app_.get_home_uid(), account_location_uid, input);
+  writer->write_raw_at_as(now(), now(), app_.get_home_uid(), find_td_location(source, account)->uid, input.tag,
+                          reinterpret_cast<uintptr_t>(&input), sizeof(input));
+  // bookkeeper_.on_order_input(app_.now(), app_.get_home_uid(), find_td_location(source, account)->uid, input);
   return input.order_id;
 }
 
@@ -188,22 +207,19 @@ uint64_t BacktestContext::insert_order_input(const std::string &source, const st
     return 0;
   }
   auto writer = app_.get_writer(location::PUBLIC);
-  OrderInput &input = writer->open_data<OrderInput>(app_.now());
-  memcpy(&input, &order_input, sizeof(input));
-  input.order_id = input.order_id == 0 ? writer->current_frame_uid() : input.order_id;
-  input.insert_time = insert_time;
-  writer->close_data();
-  // TODO
+  order_input.order_id = order_input.order_id == 0 ? writer->current_frame_uid() : order_input.order_id;
+  order_input.insert_time = insert_time;
+  writer->write_raw_at_as(now(), now(), app_.get_home_uid(), find_td_location(source, account)->uid, order_input.tag,
+                          reinterpret_cast<uintptr_t>(&order_input), sizeof(order_input));
   // bookkeeper_.on_order_input(app_.now(), app_.get_home_uid(), account_location_uid, input);
-  return input.order_id;
+  return order_input.order_id;
 }
 
 uint64_t BacktestContext::insert_order_trigger(const std::string &instrument_id, const std::string &exchange_id,
                                                const std::string &source, const std::string &account,
                                                double limit_price, int64_t volume, PriceType type, Side side,
-                                               Offset offset, OrderTriggerType trigger_type,
-                                               TimeCondition time_condition, ParkedType parked_type, double stop_price,
-                                               HedgeFlag hedge_flag, bool is_swap) {
+                                               Offset offset, OrderTriggerType trigger_type, ParkedType parked_type,
+                                               double stop_price, HedgeFlag hedge_flag, bool is_swap) {
   return {};
 }
 
@@ -255,14 +271,19 @@ uint64_t BacktestContext::insert_algo_order(const std::string &instrument_id, co
 }
 
 uint64_t BacktestContext::cancel_order(uint64_t order_id, OrderActionFlag action_flag) {
+  uint32_t account_location_uid = (order_id >> 32u) xor (app_.get_home_uid());
+  if (not app_.has_location(account_location_uid)) {
+    SPDLOG_ERROR("no writer for [{:08x}]", account_location_uid);
+  }
   auto writer = app_.get_writer(location::PUBLIC);
-  OrderAction &action = writer->open_data<OrderAction>(now());
+  OrderAction action{};
 
   action.order_action_id = writer->current_frame_uid();
   action.order_id = order_id;
   action.action_flag = action_flag;
 
-  writer->close_data(now());
+  writer->write_raw_at_as(now(), now(), app_.get_home_uid(), account_location_uid, action.tag,
+                          reinterpret_cast<uintptr_t>(&action), sizeof(action));
   return action.order_action_id;
 }
 
@@ -284,8 +305,19 @@ void BacktestContext::update_strategy_state(StrategyStateUpdate &state_update) {
   // not implemented
 }
 
-yijinjing::data::location_ptr BacktestContext::get_location(uint32_t location_uid) {
-  return app_.get_location(location_uid);
+location_ptr BacktestContext::get_location(uint32_t location_uid) { return app_.get_location(location_uid); }
+
+location_ptr BacktestContext::find_td_location(const std::string &source, const std::string &account,
+                                               bool check_exist) const {
+  auto td_location =
+      location::make_shared(longfist::enums::mode::BACKTEST, category::TD, source, account, app_.get_locator());
+  if (check_exist) {
+    if (not app_.has_location(td_location->uid)) {
+      SPDLOG_ERROR(fmt::format("invalid account {}_{}", source, account));
+      return app_.get_location(td_location->uid);
+    }
+  }
+  return td_location;
 }
 
 uint32_t BacktestContext::get_home_uid() const { return app_.get_home_uid(); }

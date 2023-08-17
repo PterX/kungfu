@@ -30,7 +30,7 @@ service_command_context = kfc.pass_context("low_latency")
     "-M",
     "--matcher",
     type=str,
-    help="path to matcher dll",
+    help="path to matcher .dll/.so/.py",
 )
 @click.option(
     "-F",
@@ -43,6 +43,12 @@ service_command_context = kfc.pass_context("low_latency")
     "--to_indexer",
     type=str,
     help="path to to_indexer .py",
+)
+@click.option(
+    "-r",
+    "--report",
+    type=str,
+    help="path to report .dll/.so/.py",
 )
 @click.option("-b", "--begin", type=str, required=False, help="begin time")
 @click.option("-e", "--end", type=str, required=False, help="end time")
@@ -62,6 +68,7 @@ def run(
     matcher,
     from_indexer,
     to_indexer,
+    report,
     begin,
     end,
     session_id,
@@ -78,6 +85,7 @@ def run(
     ctx.matcher = matcher
     ctx.from_indexer = from_indexer
     ctx.to_indexer = to_indexer
+    ctx.report = report
     ctx.begin = begin
     ctx.end = end
     ctx.session_id = session_id

@@ -146,7 +146,6 @@ public:
    * @param side
    * @param offset
    * @param trigger_type
-   * @param time_condition
    * @param action_flag
    * @param order_id
    * @param stop_price
@@ -158,8 +157,7 @@ public:
                                 const std::string &source, const std::string &account, double limit_price,
                                 int64_t volume, longfist::enums::PriceType type, longfist::enums::Side side,
                                 longfist::enums::Offset offset, longfist::enums::OrderTriggerType trigger_type,
-                                longfist::enums::TimeCondition time_condition, longfist::enums::ParkedType parked_type,
-                                double stop_price = 0,
+                                longfist::enums::ParkedType parked_type, double stop_price = 0,
                                 longfist::enums::HedgeFlag hedge_flag = longfist::enums::HedgeFlag::Speculation,
                                 bool is_swap = false) override;
 

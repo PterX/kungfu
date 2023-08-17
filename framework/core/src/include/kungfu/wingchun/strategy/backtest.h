@@ -9,6 +9,7 @@
 
 #include <kungfu/wingchun/strategy/context.h>
 #include <kungfu/wingchun/strategy/matcher.h>
+#include <kungfu/wingchun/tool/report.h>
 #include <kungfu/wingchun/tool/sliceindexer.h>
 #include <kungfu/wingchun/tool/slicetool.h>
 
@@ -16,7 +17,8 @@ namespace kungfu::wingchun::strategy {
 class BacktestContext : public Context {
 public:
   explicit BacktestContext(yijinjing::practice::apprentice &app, const rx::connectable_observable<event_ptr> &events,
-                           Matcher_ptr matcher, tool::SliceIndexer_ptr from_indexer, tool::SliceIndexer_ptr to_indexer);
+                           Matcher_ptr matcher, tool::SliceIndexer_ptr from_indexer, tool::SliceIndexer_ptr to_indexer,
+                           tool::Report_ptr report);
 
   /**
    * checked_ is strated started.
@@ -148,7 +150,6 @@ public:
    * @param side
    * @param offset
    * @param trigger_type
-   * @param time_condition
    * @param action_flag
    * @param order_id
    * @param stop_price
@@ -160,8 +161,7 @@ public:
                                 const std::string &source, const std::string &account, double limit_price,
                                 int64_t volume, longfist::enums::PriceType type, longfist::enums::Side side,
                                 longfist::enums::Offset offset, longfist::enums::OrderTriggerType trigger_type,
-                                longfist::enums::TimeCondition time_condition, longfist::enums::ParkedType parked_type,
-                                double stop_price = 0,
+                                longfist::enums::ParkedType parked_type, double stop_price = 0,
                                 longfist::enums::HedgeFlag hedge_flag = longfist::enums::HedgeFlag::Speculation,
                                 bool is_swap = false) override;
 
@@ -275,16 +275,22 @@ protected:
 
   virtual void prepare(const event_ptr &event) override;
 
+  yijinjing::data::location_ptr find_td_location(const std::string &source, const std::string &account,
+                                                 bool check_exist = true) const;
+
 private:
   broker::PassiveClient broker_client_;
   book::Bookkeeper bookkeeper_;
   Matcher_ptr matcher_;
   tool::SliceIndexer_ptr from_indexer_;
   tool::SliceTool_ptr slice_tool_;
-  std::multimap<int64_t, std::function<void(event_ptr)>> pre_timer_callbacks_ = {};
-  std::multimap<int64_t, std::function<void(event_ptr)>> timer_callbacks_ = {};
+  tool::Report_ptr report_;
+  std::multimap<int64_t, std::function<void(event_ptr)>> pre_timer_callbacks_{};
+  std::multimap<int64_t, std::function<void(event_ptr)>> timer_callbacks_{};
+  std::map<int64_t, std::vector<yijinjing::data::location_ptr>> lease_locations_{};
 
   void on_timer_check();
+  void lease_expired_check();
 };
 
 DECLARE_PTR(BacktestContext)

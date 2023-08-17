@@ -47,7 +47,7 @@ def strptimes(
         if yjj.strftime(time_stamp, format) == timestr:
             return time_stamp
     raise ValueError(
-        "time data '{}' does not match any format={}".format(timestr, formats)
+        "time data '{}' does not match any formats={}".format(timestr, formats)
     )
 
 

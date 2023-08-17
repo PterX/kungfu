@@ -4,6 +4,7 @@
 
 #include <kungfu/longfist/longfist.h>
 #include <kungfu/wingchun/tool/cachetool.h>
+#include <kungfu/wingchun/tool/report.h>
 #include <kungfu/wingchun/tool/sliceindexer.h>
 #include <kungfu/wingchun/tool/slicetool.h>
 
@@ -85,7 +86,6 @@ void bind_tool(pybind11::module &m) {
     }
   };
 
-  // TODO
   py::class_<SliceIndexer, PySliceIndexer, SliceIndexer_ptr>(m, "SliceIndexer")
       .def(py::init<int64_t, int64_t>(), py::arg("begin_time"), py::arg("end_time"))
       .def_property_readonly("begin_time", &SliceIndexer::get_begin_time)
@@ -119,5 +119,50 @@ void bind_tool(pybind11::module &m) {
         "write_at", py::overload_cast<int64_t, int64_t, uint32_t, const DataType &>(&SliceTool::write_at<DataType>),
         py::arg("gen_time"), py::arg("trigger_time"), py::arg("dest_id"), py::arg("data"));
   });
+
+  class PyReport : public Report {
+  public:
+    using Report::Report; // Inherit constructors
+
+    void init() override { PYBIND11_OVERLOAD(void, Report, init); }
+
+    std::string sumerize() override { PYBIND11_OVERLOAD(std::string, Report, sumerize); }
+
+    void on_quote(const Quote &quote) override { PYBIND11_OVERLOAD(void, Report, on_quote, quote); }
+
+    void on_tree(const Tree &tree) override { PYBIND11_OVERLOAD(void, Report, on_tree, tree); }
+
+    void on_entrust(const Entrust &entrust) override { PYBIND11_OVERLOAD(void, Report, on_entrust, entrust); }
+
+    void on_transaction(const Transaction &transaction) override {
+      PYBIND11_OVERLOAD(void, Report, on_transaction, transaction);
+    }
+
+    void on_read_synthetic_data(const SyntheticData &synthetic_data) override {
+      PYBIND11_OVERLOAD(void, Report, on_read_synthetic_data, synthetic_data);
+    }
+
+    void on_write_synthetic_data(const SyntheticData &synthetic_data) override {
+      PYBIND11_OVERLOAD(void, Report, on_write_synthetic_data, synthetic_data);
+    }
+
+    void on_order(const Order &order) override { PYBIND11_OVERLOAD(void, Report, on_order, order); }
+
+    void on_trade(const Trade &trade) override { PYBIND11_OVERLOAD(void, Report, on_trade, trade); }
+  };
+  py::class_<Report, PyReport, Report_ptr>(m, "Report")
+      .def(py::init<>())
+      .def_property_readonly("bookkeeper", &Report::get_bookkeeper)
+      .def("now", &Report::now)
+      .def("init", &Report::init)
+      .def("sumerize", &Report::sumerize)
+      .def("on_quote", &Report::on_quote)
+      .def("on_tree", &Report::on_tree)
+      .def("on_entrust", &Report::on_entrust)
+      .def("on_transaction", &Report::on_transaction)
+      .def("on_read_synthetic_data", &Report::on_read_synthetic_data)
+      .def("on_write_synthetic_data", &Report::on_write_synthetic_data)
+      .def("on_order", &Report::on_order)
+      .def("on_trade", &Report::on_trade);
 }
 } // namespace kungfu::wingchun::pybind

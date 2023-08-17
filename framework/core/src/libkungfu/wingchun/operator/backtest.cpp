@@ -15,16 +15,22 @@ using kungfu::yijinjing::nanomsg::nanomsg_json;
 namespace kungfu::wingchun::op {
 
 BacktestContext::BacktestContext(apprentice &app, const rx::connectable_observable<event_ptr> &events,
-                                 SliceIndexer_ptr from_indexer, SliceIndexer_ptr to_indexer)
+                                 SliceIndexer_ptr from_indexer, SliceIndexer_ptr to_indexer, Report_ptr report)
     : Context(app, events), broker_client_(app), from_indexer_(std::move(from_indexer)),
       slice_tool_(std::make_shared<SliceTool>(category::OPERATOR, app.get_home()->group, app.get_home()->name,
-                                              std::move(to_indexer))) {
+                                              std::move(to_indexer))),
+      report_(std::move(report)) {
   KUNGFU_SETUP_LOGGER(app_.get_home(), app_.get_home()->name);
 }
 
 void BacktestContext::on_start() {
   broker_client_.on_start(events_);
   events_ | $$(on_timer_check());
+  events_ | is_own<Quote>(get_broker_client()) | $$(report_->on_quote(event->data<Quote>()););
+  events_ | is_own<Entrust>(get_broker_client()) | $$(report_->on_entrust(event->data<Entrust>()););
+  events_ | is_own<Transaction>(get_broker_client()) | $$(report_->on_transaction(event->data<Transaction>()););
+  events_ | is_own<Tree>(get_broker_client()) | $$(report_->on_tree(event->data<Tree>()););
+  events_ | is(SyntheticData::tag) | $$(report_->on_read_synthetic_data(event->data<SyntheticData>()));
 }
 
 bool BacktestContext::is_started() const { return true; }

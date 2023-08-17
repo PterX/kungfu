@@ -358,5 +358,12 @@ void bind_enums(py::module &m) {
       .value("TriggerCancel", OrderTriggerFlag::TriggerCancel)
       .export_values()
       .def("__eq__", [](const OrderTriggerFlag &a, int b) { return static_cast<int>(a) == b; });
+
+  py::enum_<AlgoOrderActionFlag>(m_enums, "AlgoOrderActionFlag", py::arithmetic())
+      .value("AlgoCancel", AlgoOrderActionFlag::AlgoCancel)
+      .value("AlgoStart", AlgoOrderActionFlag::AlgoStart)
+      .value("AlgoStop", AlgoOrderActionFlag::AlgoStop)
+      .export_values()
+      .def("__eq__", [](const AlgoOrderActionFlag &a, int b) { return static_cast<int>(a) == b; });
 }
 } // namespace kungfu::longfist::pybind

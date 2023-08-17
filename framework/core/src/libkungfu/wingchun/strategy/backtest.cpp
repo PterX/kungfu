@@ -289,7 +289,9 @@ uint64_t BacktestContext::cancel_order(uint64_t order_id, OrderActionFlag action
 
 uint64_t BacktestContext::cancel_order_trigger(uint64_t trigger_id) { return {}; }
 
-uint64_t BacktestContext::cancel_algo_order(uint64_t algo_order_id) { return {}; }
+uint64_t BacktestContext::cancel_algo_order(uint64_t algo_order_id, longfist::enums::AlgoOrderActionFlag action_flag) {
+  return {};
+}
 
 broker::Client &BacktestContext::get_broker_client() { return broker_client_; }
 

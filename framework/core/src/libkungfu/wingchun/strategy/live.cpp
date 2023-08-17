@@ -422,7 +422,7 @@ uint64_t LiveContext::cancel_order_trigger(uint64_t trigger_id) {
   return action.order_trigger_action_id;
 }
 
-uint64_t LiveContext::cancel_algo_order(uint64_t algo_order_id) {
+uint64_t LiveContext::cancel_algo_order(uint64_t algo_order_id, AlgoOrderActionFlag action_flag) {
   uint32_t account_location_uid = (algo_order_id >> 32u) xor (get_home_uid());
   if (not broker_client_.is_ready(account_location_uid)) {
     SPDLOG_ERROR("account {} not ready", app_.get_location_uname(account_location_uid));
@@ -435,7 +435,7 @@ uint64_t LiveContext::cancel_algo_order(uint64_t algo_order_id) {
   AlgoOrderAction &action = writer->open_data<AlgoOrderAction>(0);
   action.order_action_id = writer->current_frame_uid();
   action.order_id = algo_order_id;
-  action.action_flag = OrderActionFlag::Cancel;
+  action.action_flag = action_flag;
   writer->close_data();
   return action.order_action_id;
 }

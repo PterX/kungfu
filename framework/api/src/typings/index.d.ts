@@ -41,6 +41,7 @@ declare namespace KungfuApi {
     KfModeEnum,
     KfModeTypes,
     OrderActionFlagEnum,
+    AlgoOrderActionFlagEnum,
     OrderInputKeyEnum,
     KfExhibitConfigTypes,
     BasketVolumeTypeEnum,
@@ -856,7 +857,7 @@ declare namespace KungfuApi {
   export interface AlgoOrderAction {
     order_id: bigint;
     order_action_id: bigint;
-    action_flag: OrderActionFlagEnum;
+    action_flag: AlgoOrderActionFlagEnum;
     insert_time: bigint;
   }
 

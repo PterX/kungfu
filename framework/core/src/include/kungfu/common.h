@@ -482,19 +482,6 @@ template <typename DataType> struct state {
   }
 };
 
-template <typename KeyType, typename ValueType, typename SortKeySelector>
-std::vector<ValueType> transform_map_to_sorted_vector(const std::unordered_map<KeyType, ValueType> &inputMap,
-                                                      SortKeySelector selector) {
-  std::vector<ValueType> outputVector;
-  outputVector.reserve(inputMap.size());
-
-  std::transform(inputMap.begin(), inputMap.end(), std::back_inserter(outputVector),
-                 [](const auto &entry) { return entry.second; });
-
-  std::sort(outputVector.begin(), outputVector.end(), selector);
-  return outputVector;
-};
-
 } // namespace kungfu
 
 #endif // KUNGFU_COMMON_H

@@ -33,6 +33,8 @@ public:
 
   void make_cache_shift(const yijinjing::data::location_ptr &location);
 
+  void try_ensure_cached_storage(const yijinjing::data::location_ptr &location, uint32_t dest);
+  
   void ensure_cached_storage(const yijinjing::data::location_ptr &location, uint32_t dest);
 
   void cache_reset(const event_ptr &event);

@@ -25,8 +25,6 @@ protected:
 
   void on_react() override;
 
-  void on_frame() override;
-
   void on_active() override;
 
   void on_notify() override;

@@ -93,7 +93,7 @@ public:
         return channel.source_id == get_home_uid() and channel.dest_id == dest_id;
       }) | rx::first() |
           rx::$([this, data, dest_id](const event_ptr &event) { write_to(now(), data, dest_id); });
-      request_write_to(now(), dest_id);
+      try_write_dest_ids_.emplace(dest_id);
     }
   }
 
@@ -253,6 +253,7 @@ private:
   yijinjing::practice::cleaner cleaner_;
   std::unordered_map<int, int64_t> timer_checkpoints_ = {};
   inline static thread_local yijinjing::journal::writer_ptr thread_writer_;
+  std::unordered_set<uint32_t> try_write_dest_ids_{};
 
   void checkin();
 

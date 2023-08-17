@@ -241,12 +241,11 @@ void Trader::deal_write_frame() {
   SPDLOG_DEBUG("before state bank read");
   int64_t count = 0;
   auto &state_bank = get_vendor().get_state_bank();
-  auto sort_selector = [](auto &a, auto &b) { return a.data.update_time < b.data.update_time; };
 
   auto &order_state_map = state_bank[boost::hana::type_c<Order>];
   count += order_state_map.size();
-  auto order_state_vector = transform_map_to_sorted_vector(order_state_map, sort_selector);
-  std::for_each(order_state_vector.begin(), order_state_vector.end(), [&](auto &order_state) {
+  std::for_each(order_state_map.begin(), order_state_map.end(), [&](auto &pair) {
+    auto &order_state = pair.second;
     orders_.insert_or_assign(order_state.data.order_id, order_state);
     map_exchange_instrument_to_order_ids_
         .try_emplace(order_state.data.exchange_id.to_string() + order_state.data.instrument_id.to_string())
@@ -262,8 +261,8 @@ void Trader::deal_write_frame() {
 
   auto &order_trigger_state_map = state_bank[boost::hana::type_c<OrderTrigger>];
   count += order_trigger_state_map.size();
-  auto order_trigger_state_vector = transform_map_to_sorted_vector(order_trigger_state_map, sort_selector);
-  std::for_each(order_trigger_state_vector.begin(), order_trigger_state_vector.end(), [&](auto &order_trigger_state) {
+  std::for_each(order_trigger_state_map.begin(), order_trigger_state_map.end(), [&](auto &pair) {
+    auto &order_trigger_state = pair.second;
     triggers_.insert_or_assign(order_trigger_state.data.trigger_id, order_trigger_state);
   });
 

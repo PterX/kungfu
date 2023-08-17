@@ -73,8 +73,14 @@ public:
 
   [[nodiscard]] yijinjing::journal::writer_ptr &get_thread_writer();
 
-  template <typename DataType> void write_to(DataType &data, uint32_t dest_id = yijinjing::data::location::PUBLIC) {
+  template <typename DataType>
+  void write_to(const DataType &data, uint32_t dest_id = yijinjing::data::location::PUBLIC) {
     vendor_.write_to(now(), data, dest_id);
+  }
+
+  template <typename DataType>
+  void try_write_to(const DataType &data, uint32_t dest_id = yijinjing::data::location::PUBLIC) {
+    vendor_.try_write_to(now(), data, dest_id);
   }
 
   [[nodiscard]] const yijinjing::cache::bank &get_state_bank() const;

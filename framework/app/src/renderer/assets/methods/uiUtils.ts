@@ -34,7 +34,6 @@ import {
   isKfColor,
   isHexOrRgbColor,
   removeTodayArchive,
-  deleteNNFiles,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
@@ -482,7 +481,6 @@ const removeDBBeforeStartAll = (): Promise<void> => {
 
 export const preStartAll = async (): Promise<(void | Proc)[]> => {
   return Promise.all([
-    deleteNNFiles(),
     removeJournalBeforeStartAll(),
     removeDBBeforeStartAll(),
     removeArchiveBeforeStartAll(),

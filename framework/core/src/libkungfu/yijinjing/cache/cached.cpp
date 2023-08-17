@@ -67,14 +67,33 @@ void cached::restore_states(const yijinjing::data::location_ptr &location,
     return;
   }
 
-  states_store_mutex_.lock();
+  std::lock_guard<std::mutex> lock(states_store_mutex_);
+
   try {
     make_cache_shift(location);
     app_states_shift_.at(location->uid) >> writer;
   } catch (const std::exception &ex) {
     SPDLOG_ERROR("failed to write cache {} {} {}", location->uid, location->uname, ex.what());
   }
-  states_store_mutex_.unlock();
+
+  if (location->category == category::TD or location->category == category::STRATEGY) {
+    for (const auto &other_location : location->locator->list_locations("*", "*", "*", "*")) {
+      if (other_location->category == category::SYSTEM) {
+        continue;
+      }
+
+      for (auto dest : location->locator->list_location_dest_by_db(other_location)) {
+        if (dest == location->uid) {
+          try {
+            ensure_cached_storage(other_location, dest);
+            app_states_shift_.at(other_location->uid).restore_to(writer, dest);
+          } catch (const std::exception &ex) {
+            SPDLOG_ERROR("failed to write cache {} {} {}", other_location->uname, dest, ex.what());
+          }
+        }
+      }
+    }
+  }
 }
 
 void cached::restore(const location_ptr &location, const journal::writer_ptr &writer) {
@@ -106,12 +125,16 @@ void cached::make_cache_shift(const location_ptr &location) {
   app_states_shift_.emplace(location->uid, location);
 }
 
-void cached::ensure_cached_storage(const location_ptr &location, uint32_t dest) {
+void cached::try_ensure_cached_storage(const location_ptr &location, uint32_t dest) {
   if (bypass_cached_) {
     return;
   }
 
   std::lock_guard<std::mutex> lock(states_store_mutex_);
+  ensure_cached_storage(location, dest);
+}
+
+void cached::ensure_cached_storage(const location_ptr &location, uint32_t dest) {
   make_cache_shift(location);
   app_states_shift_.at(location->uid).ensure_storage(dest);
 }

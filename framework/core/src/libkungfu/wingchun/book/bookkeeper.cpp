@@ -405,6 +405,8 @@ void Bookkeeper::mirror_positions(int64_t trigger_time, uint32_t strategy_uid) {
       position.yesterday_volume = 0;
       position.frozen_total = 0;
       position.frozen_yesterday = 0;
+      position.open_volume = 0;
+      position.static_yesterday_volume = 0;
       position.avg_open_price = 0;
       position.position_cost_price = 0;
       position.update_time = trigger_time;
@@ -423,6 +425,8 @@ void Bookkeeper::mirror_positions(int64_t trigger_time, uint32_t strategy_uid) {
         auto yesterday_volume = strategy_position.yesterday_volume;
         auto frozen_total = strategy_position.frozen_total;
         auto frozen_yesterday = strategy_position.frozen_yesterday;
+        auto open_volume = strategy_position.open_volume;
+        auto static_yesterday_volume = strategy_position.static_yesterday_volume;
         auto avg_open_price = strategy_position.avg_open_price;
         auto position_cost_price = strategy_position.position_cost_price;
         auto total_volume = strategy_position.volume + position.volume;
@@ -436,6 +440,8 @@ void Bookkeeper::mirror_positions(int64_t trigger_time, uint32_t strategy_uid) {
         strategy_position.yesterday_volume += yesterday_volume;
         strategy_position.frozen_total += frozen_total;
         strategy_position.frozen_yesterday += frozen_yesterday;
+        strategy_position.open_volume += open_volume;
+        strategy_position.static_yesterday_volume += static_yesterday_volume;
 
         if (total_volume != 0) {
           strategy_position.avg_open_price =

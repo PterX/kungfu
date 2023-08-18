@@ -224,7 +224,6 @@ void Ledger::keep_positions([[maybe_unused]] int64_t trigger_time, uint32_t stra
   if (bookkeeper_.has_book(strategy_uid)) {
     auto strategy_book = bookkeeper_.get_book(strategy_uid);
     tmp_books_.insert_or_assign(strategy_uid, strategy_book);
-    bookkeeper_.drop_book(strategy_uid);
   }
 }
 
@@ -253,6 +252,7 @@ void Ledger::rebuild_positions(int64_t trigger_time, uint32_t strategy_uid) {
     auto tmp_book = tmp_books_.at(strategy_uid);
     rebuild_book(tmp_book->long_positions);
     rebuild_book(tmp_book->short_positions);
+    tmp_books_.erase(strategy_uid);
   }
   strategy_book->update(trigger_time, bookkeeper_.get_accounting_method_type());
 }

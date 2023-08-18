@@ -223,7 +223,7 @@ void Ledger::inspect_channel(int64_t trigger_time, const Channel &channel) {
 void Ledger::keep_positions([[maybe_unused]] int64_t trigger_time, uint32_t strategy_uid) {
   if (bookkeeper_.has_book(strategy_uid)) {
     auto strategy_book = bookkeeper_.get_book(strategy_uid);
-    tmp_books_.insert_or_assign(strategy_uid, strategy_book);
+    tmp_books_.insert_or_assign(strategy_uid, *strategy_book);
   }
 }
 
@@ -248,10 +248,28 @@ void Ledger::rebuild_positions(int64_t trigger_time, uint32_t strategy_uid) {
     }
   };
 
+  auto reset_positions = [&](auto tmp_book, auto &strategy_positions) {
+    for (auto &item : strategy_positions) {
+      auto &position = item.second;
+      if (tmp_book.has_position_for(position) && tmp_book.get_position_for(position.direction, position).volume != 0) {
+        continue;
+      }
+      position.volume = 0;
+      position.yesterday_volume = 0;
+      position.frozen_total = 0;
+      position.frozen_yesterday = 0;
+      position.avg_open_price = 0;
+      position.position_cost_price = 0;
+      position.update_time = trigger_time;
+    }
+  };
+
   if (tmp_books_.find(strategy_uid) != tmp_books_.end()) {
     auto tmp_book = tmp_books_.at(strategy_uid);
-    rebuild_book(tmp_book->long_positions);
-    rebuild_book(tmp_book->short_positions);
+    rebuild_book(tmp_book.long_positions);
+    rebuild_book(tmp_book.short_positions);
+    reset_positions(tmp_book, strategy_book->long_positions);
+    reset_positions(tmp_book, strategy_book->short_positions);
     tmp_books_.erase(strategy_uid);
   }
   strategy_book->update(trigger_time, bookkeeper_.get_accounting_method_type());

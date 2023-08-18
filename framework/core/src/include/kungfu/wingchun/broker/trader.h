@@ -291,7 +291,7 @@ public:
 
   virtual bool cancel_algo_order(const event_ptr &event) { return true; }
 
-  virtual bool start_stop_algo_order(const event_ptr &event) { return true; }
+  virtual bool toggle_algo_order(const event_ptr &event) { return true; }
 
   virtual bool req_position() = 0;
 

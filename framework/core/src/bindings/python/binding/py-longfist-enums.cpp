@@ -360,9 +360,9 @@ void bind_enums(py::module &m) {
       .def("__eq__", [](const OrderTriggerFlag &a, int b) { return static_cast<int>(a) == b; });
 
   py::enum_<AlgoOrderActionFlag>(m_enums, "AlgoOrderActionFlag", py::arithmetic())
-      .value("AlgoCancel", AlgoOrderActionFlag::AlgoCancel)
-      .value("AlgoStart", AlgoOrderActionFlag::AlgoStart)
-      .value("AlgoStop", AlgoOrderActionFlag::AlgoStop)
+      .value("Cancel", AlgoOrderActionFlag::Cancel)
+      .value("Start", AlgoOrderActionFlag::Start)
+      .value("Stop", AlgoOrderActionFlag::Stop)
       .export_values()
       .def("__eq__", [](const AlgoOrderActionFlag &a, int b) { return static_cast<int>(a) == b; });
 }

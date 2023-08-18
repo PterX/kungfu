@@ -332,15 +332,15 @@ NLOHMANN_JSON_SERIALIZE_ENUM(OrderTriggerFlag, {
 inline std::ostream &operator<<(std::ostream &os, OrderTriggerFlag t) { return os << int32_t(t); }
 
 enum class AlgoOrderActionFlag : int8_t {
-  AlgoCancel, /// 普通撤单
-  AlgoStart,  /// 启动
-  AlgoStop,   /// 停止
+  Cancel, /// 普通撤单
+  Start,  /// 启动
+  Stop,   /// 停止
 };
 
 NLOHMANN_JSON_SERIALIZE_ENUM(AlgoOrderActionFlag, {
-                                                      {AlgoOrderActionFlag::AlgoCancel, "AlgoCancel"},
-                                                      {AlgoOrderActionFlag::AlgoStart, "AlgoStart"},
-                                                      {AlgoOrderActionFlag::AlgoStop, "AlgoStop"},
+                                                      {AlgoOrderActionFlag::Cancel, "Cancel"},
+                                                      {AlgoOrderActionFlag::Start, "Start"},
+                                                      {AlgoOrderActionFlag::Stop, "Stop"},
                                                   })
 
 inline std::ostream &operator<<(std::ostream &os, AlgoOrderActionFlag t) { return os << int32_t(t); }

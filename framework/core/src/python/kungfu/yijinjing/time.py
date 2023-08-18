@@ -43,9 +43,12 @@ def strptimes(
     if isinstance(formats, str):
         formats = [formats]
     for format in formats:
-        time_stamp = yjj.strptime(timestr, format)
-        if yjj.strftime(time_stamp, format) == timestr:
-            return time_stamp
+        try:
+            time_stamp = strptime(timestr, format)
+            if strftime(time_stamp, format) == timestr:
+                return time_stamp
+        except ValueError:
+            pass
     raise ValueError(
         "time data '{}' does not match any formats={}".format(timestr, formats)
     )

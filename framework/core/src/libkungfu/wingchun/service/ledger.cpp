@@ -251,6 +251,8 @@ void Ledger::rebuild_positions(int64_t trigger_time, uint32_t strategy_uid) {
   auto reset_positions = [&](auto tmp_book, auto &strategy_positions) {
     for (auto &item : strategy_positions) {
       auto &position = item.second;
+      // pos in tmp_book is influenced by instrumentKey event of subscribe, which trigger update_book method and build a
+      // target pos with 0 volume;
       if (tmp_book.has_position_for(position) && tmp_book.get_position_for(position.direction, position).volume != 0) {
         continue;
       }

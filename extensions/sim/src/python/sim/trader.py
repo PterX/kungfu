@@ -71,7 +71,7 @@ class TraderSim(wc.Trader):
             self.ctx.req_position = getattr(impl, "req_position", lambda ctx: False)
 
         self.update_broker_state(lf.enums.BrokerState.Ready)
-     
+
     def update_trigger(self, dest, trigger_id, status):
         self.logger.info(f"{trigger_id}, {status}")
         if trigger_id in self.ctx.triggers:

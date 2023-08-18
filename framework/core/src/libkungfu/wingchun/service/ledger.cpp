@@ -199,8 +199,8 @@ void Ledger::update_account_book(int64_t trigger_time, uint32_t account_uid) {
   auto book = bookkeeper_.get_book(account_uid);
   write_positions(trigger_time, account_uid, book->long_positions);
   write_positions(trigger_time, account_uid, book->short_positions);
-  writer->write(trigger_time,  book->asset);
-  writer->write(trigger_time,  book->asset_margin);
+  writer->write(trigger_time, book->asset);
+  writer->write(trigger_time, book->asset_margin);
   writer->open_data<PositionEnd>(trigger_time).holder_uid = account_uid;
   writer->close_data();
 }
@@ -224,7 +224,6 @@ void Ledger::keep_positions([[maybe_unused]] int64_t trigger_time, uint32_t stra
   if (bookkeeper_.has_book(strategy_uid)) {
     auto strategy_book = bookkeeper_.get_book(strategy_uid);
     tmp_books_.insert_or_assign(strategy_uid, strategy_book);
-    bookkeeper_.drop_book(strategy_uid);
   }
 }
 
@@ -253,6 +252,7 @@ void Ledger::rebuild_positions(int64_t trigger_time, uint32_t strategy_uid) {
     auto tmp_book = tmp_books_.at(strategy_uid);
     rebuild_book(tmp_book->long_positions);
     rebuild_book(tmp_book->short_positions);
+    tmp_books_.erase(strategy_uid);
   }
   strategy_book->update(trigger_time, bookkeeper_.get_accounting_method_type());
 }

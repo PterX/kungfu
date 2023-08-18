@@ -32,8 +32,7 @@ void TraderVendor::react() {
 
   // have to be in this position, only in react, the ResetBookRequest can be listened
   events_ | is(ResetBookRequest::tag) |
-      $([&](const event_ptr &event) { 
-        get_writer(location::PUBLIC)->mark(now(), ResetBookRequest::tag); });
+      $([&](const event_ptr &event) { get_writer(location::PUBLIC)->mark(now(), ResetBookRequest::tag); });
 }
 
 void TraderVendor::on_start() {

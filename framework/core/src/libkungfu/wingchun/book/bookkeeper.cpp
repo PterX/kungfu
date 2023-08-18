@@ -24,8 +24,7 @@ Bookkeeper::Bookkeeper(apprentice &app, broker::Client &broker_client, bool bypa
 
 bool Bookkeeper::has_book(uint32_t location_uid) { return books_.find(location_uid) != books_.end(); }
 
-void Bookkeeper::drop_book(uint32_t uid) {
-   books_.erase(uid); }
+void Bookkeeper::drop_book(uint32_t uid) { books_.erase(uid); }
 
 Book_ptr Bookkeeper::get_book(uint32_t location_uid) {
   if (books_.find(location_uid) == books_.end()) {
@@ -433,11 +432,12 @@ void Bookkeeper::mirror_positions(int64_t trigger_time, uint32_t strategy_uid) {
         strategy_position.ledger_category = LedgerCategory::Strategy;
         strategy_position.update_time = trigger_time;
 
-        if (volume > 0) {
-          strategy_position.volume += volume;
-          strategy_position.yesterday_volume += yesterday_volume;
-          strategy_position.frozen_total += frozen_total;
-          strategy_position.frozen_yesterday += frozen_yesterday;
+        strategy_position.volume = total_volume;
+        strategy_position.yesterday_volume += yesterday_volume;
+        strategy_position.frozen_total += frozen_total;
+        strategy_position.frozen_yesterday += frozen_yesterday;
+
+        if (total_volume != 0) {
           strategy_position.avg_open_price =
               ((position.avg_open_price * position.volume) + (avg_open_price * volume)) / total_volume;
           strategy_position.position_cost_price =

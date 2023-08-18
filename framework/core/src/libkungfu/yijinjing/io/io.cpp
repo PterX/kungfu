@@ -5,8 +5,8 @@
 #include <kungfu/yijinjing/log.h>
 #include <kungfu/yijinjing/time.h>
 
-#define SETUP_TIMEOUT 500
-#define DEFAULT_RECV_TIMEOUT 10000
+#define SETUP_TIMEOUT 50
+#define DEFAULT_RECV_TIMEOUT 100
 #define DEFAULT_NOTICE_TIMEOUT 10000
 
 using namespace kungfu::longfist;

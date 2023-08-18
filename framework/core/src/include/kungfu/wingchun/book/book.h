@@ -125,9 +125,7 @@ struct Book {
 
   [[nodiscard]] const CommissionMap &get_commissions() const { return commissions; }
 
-  Book& operator=(const Book& book) {
-    return *this;
-  }
+  Book &operator=(const Book &book) { return *this; }
 };
 } // namespace kungfu::wingchun::book
 

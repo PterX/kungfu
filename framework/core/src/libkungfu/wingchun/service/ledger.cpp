@@ -248,7 +248,7 @@ void Ledger::rebuild_positions(int64_t trigger_time, uint32_t strategy_uid) {
     }
   };
 
-  auto reset_positions = [&](auto tmp_book, auto& strategy_positions) {
+  auto reset_positions = [&](auto tmp_book, auto &strategy_positions) {
     for (auto &item : strategy_positions) {
       auto &position = item.second;
       if (tmp_book.has_position_for(position) && tmp_book.get_position_for(position.direction, position).volume != 0) {
@@ -261,7 +261,7 @@ void Ledger::rebuild_positions(int64_t trigger_time, uint32_t strategy_uid) {
       position.avg_open_price = 0;
       position.position_cost_price = 0;
       position.update_time = trigger_time;
-    }  
+    }
   };
 
   if (tmp_books_.find(strategy_uid) != tmp_books_.end()) {

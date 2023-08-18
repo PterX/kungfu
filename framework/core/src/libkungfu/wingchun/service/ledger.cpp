@@ -262,7 +262,7 @@ void Ledger::rebuild_positions(int64_t trigger_time, uint32_t strategy_uid) {
       position.frozen_yesterday = 0;
       position.open_volume = 0;
       position.static_yesterday_volume = 0;
-      // should keep avg_open_price and position_cost_price 
+      // should keep avg_open_price and position_cost_price
       // position.avg_open_price = 0;
       // position.position_cost_price = 0;
       position.update_time = trigger_time;

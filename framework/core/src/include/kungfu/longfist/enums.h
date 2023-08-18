@@ -331,6 +331,20 @@ NLOHMANN_JSON_SERIALIZE_ENUM(OrderTriggerFlag, {
 
 inline std::ostream &operator<<(std::ostream &os, OrderTriggerFlag t) { return os << int32_t(t); }
 
+enum class AlgoOrderActionFlag : int8_t {
+  Cancel, /// 普通撤单
+  Start,  /// 启动
+  Stop,   /// 停止
+};
+
+NLOHMANN_JSON_SERIALIZE_ENUM(AlgoOrderActionFlag, {
+                                                      {AlgoOrderActionFlag::Cancel, "Cancel"},
+                                                      {AlgoOrderActionFlag::Start, "Start"},
+                                                      {AlgoOrderActionFlag::Stop, "Stop"},
+                                                  })
+
+inline std::ostream &operator<<(std::ostream &os, AlgoOrderActionFlag t) { return os << int32_t(t); }
+
 enum class PriceType : int8_t {
   Limit, // 限价,证券通用
   Any, // 市价，证券通用，对于股票上海为最优五档剩余撤销，深圳为即时成交剩余撤销，建议客户采用

@@ -476,8 +476,8 @@ KF_DEFINE_PACK_TYPE(                                                   //
     (uint64_t, order_id),                                              // 订单ID
     (uint64_t, order_action_id),                                       // 订单操作ID
 
-    (enums::OrderActionFlag, action_flag), // 订单操作类型
-    (int64_t, insert_time)                 // 写入时间
+    (enums::AlgoOrderActionFlag, action_flag), // 订单操作类型
+    (int64_t, insert_time)                     // 写入时间
 );
 
 KF_DEFINE_PACK_TYPE(                                                        //

@@ -249,7 +249,8 @@ public:
    * @param algo_order_id
    * @return algo order action ID
    */
-  virtual uint64_t cancel_algo_order(uint64_t algo_order_id) = 0;
+  virtual uint64_t cancel_algo_order(uint64_t algo_order_id, longfist::enums::AlgoOrderActionFlag action_flag =
+                                                                 longfist::enums::AlgoOrderActionFlag::Cancel) = 0;
 
   /**
    * query history order

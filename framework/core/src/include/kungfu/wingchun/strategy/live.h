@@ -237,7 +237,8 @@ public:
    * @param algo_order_id
    * @return algo order action ID
    */
-  uint64_t cancel_algo_order(uint64_t algo_order_id) override;
+  uint64_t cancel_algo_order(uint64_t algo_order_id, longfist::enums::AlgoOrderActionFlag action_flag =
+                                                         longfist::enums::AlgoOrderActionFlag::Cancel) override;
 
   /**
    * query history order

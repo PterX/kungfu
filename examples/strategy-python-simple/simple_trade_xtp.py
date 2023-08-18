@@ -13,7 +13,7 @@ def test_time_interval(context, event):
 def pre_start(context):
     # context.hold_book()
     # context.hold_positions()
-    context.log.info(f"is_book_held: {context.is_book_held()}, is_positions_mirrored: {context.is_positions_mirrored()}")
+    context.log.info(f"is_book_held: {context.is_book_held()}, is_positions_held: {context.is_positions_held()}")
     context.log.info("pre start")
     context.add_account("xtp", "15040900")
     context.subscribe("xtp", ["600198", "600548"], Exchange.SSE)

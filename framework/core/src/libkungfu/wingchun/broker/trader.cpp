@@ -29,6 +29,10 @@ void TraderVendor::react() {
   events_ | skip_until(events_ | is(RequestStart::tag)) | is(OrderInput::tag) | $$(service_->handle_order_input(event));
   events_ | skip_until(events_ | is(RequestStart::tag)) | is_custom() | $$(service_->on_custom_event(event));
   apprentice::react();
+
+  // have to be in this position, only in react, the ResetBookRequest can be listened
+  events_ | is(ResetBookRequest::tag) |
+      $([&](const event_ptr &event) { get_writer(location::PUBLIC)->mark(now(), ResetBookRequest::tag); });
 }
 
 void TraderVendor::on_start() {
@@ -49,8 +53,6 @@ void TraderVendor::on_start() {
   events_ | is(PositionSync::tag) | $$(service_->handle_position_sync());
   events_ | is(Band::tag) | $$(service_->on_band(event));
   events_ | is(BatchOrderBegin::tag, BatchOrderEnd::tag) | $$(service_->handle_batch_order_tag(event));
-  events_ | is(ResetBookRequest::tag) |
-      $([&](const event_ptr &event) { get_writer(location::PUBLIC)->mark(now(), ResetBookRequest::tag); });
 
   service_->on_risk_setting();
   service_->recover();
@@ -274,9 +276,7 @@ void Trader::deal_write_frame() {
     if (not is_final_status(order.status) and (disable_recover_ or order.external_order_id.to_string().empty())) {
       order.status = OrderStatus::Lost;
       order.update_time = time::now_in_nano();
-      if (has_writer(pair.second.dest)) {
-        write_to(order, pair.second.dest);
-      }
+      try_write_to(order, pair.second.dest);
     }
   });
 
@@ -286,9 +286,7 @@ void Trader::deal_write_frame() {
     if (not is_final_status(trigger.status) and (disable_recover_ or trigger.external_trigger_id.to_string().empty())) {
       trigger.status = OrderStatus::Lost;
       trigger.update_time = time::now_in_nano();
-      if (has_writer(pair.second.dest)) {
-        write_to(trigger, pair.second.dest);
-      }
+      try_write_to(trigger, pair.second.dest);
     }
   });
 }
@@ -305,13 +303,11 @@ void Trader::deal_read_frame() {
     auto &order_input_state = pair.second;
     auto &order_input = order_input_state.data;
     if (orders_.find(order_input.order_id) == orders_.end()) {
-      if (has_writer(order_input_state.source)) {
-        Order &order = get_writer(order_input_state.source)->template open_data<Order>();
-        order_from_input(order_input, order);
-        order.status = OrderStatus::Lost;
-        order.update_time = time::now_in_nano();
-        get_writer(order_input_state.source)->close_data();
-      }
+      Order order{};
+      order_from_input(order_input, order);
+      order.status = OrderStatus::Lost;
+      order.update_time = time::now_in_nano();
+      try_write_to(order, order_input_state.source);
     }
   });
 
@@ -321,13 +317,11 @@ void Trader::deal_read_frame() {
     auto &order_trigger_input_state = pair.second;
     auto &order_trigger_input = order_trigger_input_state.data;
     if (triggers_.find(order_trigger_input.trigger_id) == triggers_.end()) {
-      if (has_writer(order_trigger_input_state.source)) {
-        OrderTrigger &trigger = get_writer(order_trigger_input_state.source)->template open_data<OrderTrigger>();
-        order_trigger_from_input(order_trigger_input, trigger);
-        trigger.status = OrderStatus::Lost;
-        trigger.update_time = time::now_in_nano();
-        get_writer(order_trigger_input_state.source)->close_data();
-      }
+      OrderTrigger trigger{};
+      order_trigger_from_input(order_trigger_input, trigger);
+      trigger.status = OrderStatus::Lost;
+      trigger.update_time = time::now_in_nano();
+      try_write_to(trigger, order_trigger_input_state.source);
     }
   });
   SPDLOG_DEBUG("after state bank read, count: {}", count);

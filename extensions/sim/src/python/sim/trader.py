@@ -355,8 +355,10 @@ class TraderSim(wc.Trader):
         return False
 
     def req_position(self):
+        writer = self.get_writer(0)
         position_end = lf.types.PositionEnd()
         position_end.holder_uid = self.home.uid
+        writer.write(yjj.now_in_nano(), position_end)
 
         if self.match_mode == MatchMode.Custom:
             return self.ctx.req_position(self.ctx)

@@ -303,6 +303,9 @@ SZSE
 HKEx
 MarketType
 Snapshot
+Entrust
+Transaction
+Tree
 SubscribeDataType
 Stock
 Future
@@ -372,7 +375,7 @@ EnhancedLimit
 AtAuctionLimit
 AtAuction
 PriceType
-Latest
+Last
 Sell5
 Sell4
 Sell3

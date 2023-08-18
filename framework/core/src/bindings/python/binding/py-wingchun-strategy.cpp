@@ -204,7 +204,7 @@ void bind_strategy(pybind11::module &m) {
       .def("insert_array_orders", &strategy::Context::insert_array_orders)
       .def("insert_basket_order", &strategy::Context::insert_basket_order, py::arg("basket_id"), py::arg("source"),
            py::arg("account"), py::arg("side"), py::arg("price_type") = PriceType::Limit,
-           py::arg("price_level") = PriceLevel::Latest, py::arg("price_offset") = 0, py::arg("volume") = 0)
+           py::arg("price_level") = PriceLevel::Last, py::arg("price_offset") = 0, py::arg("volume") = 0)
       .def("cancel_order", &strategy::Context::cancel_order, py::arg("order_id"),
            py::arg("action_flag") = OrderActionFlag::Cancel)
       .def("cancel_order_trigger", &strategy::Context::cancel_order_trigger)
@@ -215,7 +215,7 @@ void bind_strategy(pybind11::module &m) {
       .def("hold_book", &strategy::Context::hold_book)
       .def("hold_positions", &strategy::Context::hold_positions)
       .def("is_book_held", &strategy::Context::is_book_held)
-      .def("is_positions_mirrored", &strategy::Context::is_positions_mirrored)
+      .def("is_positions_held", &strategy::Context::is_positions_held)
       .def("req_deregister", &strategy::Context::req_deregister)
       .def("update_strategy_state", &strategy::Context::update_strategy_state)
       .def("get_writer", &strategy::Context::get_writer)

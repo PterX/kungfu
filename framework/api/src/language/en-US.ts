@@ -779,7 +779,7 @@ export default {
     select_language_desc: 'Select Language, the modified restart takes effect',
     bypass_archive: 'ByPass Archive',
     bypass_archive_desc:
-      'Archive only delete journal and logs, zip nomore files',
+      "If open, archive will delete journal and zip files, and these files data can't be recovered, will accelerate start system",
 
     bypass_subscribe_position: 'Skip position market subscription',
     bypass_subscribe_position_desc:

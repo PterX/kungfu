@@ -244,7 +244,7 @@ public:
    * by kungfu.
    * @return true if positions are mirrored, false otherwise. Defaults to true.
    */
-  [[nodiscard]] bool is_positions_mirrored() const;
+  [[nodiscard]] bool is_positions_held() const;
 
   /**
    * Call to hold book.

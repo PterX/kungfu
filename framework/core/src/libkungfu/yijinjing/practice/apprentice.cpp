@@ -215,7 +215,12 @@ void apprentice::react() {
 
 void apprentice::on_active() {}
 
-void apprentice::on_frame() {}
+void apprentice::on_frame() {
+  for (const uint32_t dest_id : try_write_dest_ids_) {
+    request_write_to(now(), dest_id);
+  }
+  try_write_dest_ids_.clear();
+}
 
 void apprentice::on_react() {}
 

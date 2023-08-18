@@ -20,6 +20,7 @@ declare global {
     sessionStore: KungfuApi.SessionStore;
     riskSettingStore: KungfuApi.RiskSettingStore;
     commissionStore: KungfuApi.CommissionStore;
+    io: KungfuApi.IODevice;
     fileId: number;
     testCase: Record<string, any>;
     pm2: any;

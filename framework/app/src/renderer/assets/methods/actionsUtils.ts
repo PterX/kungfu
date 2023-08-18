@@ -59,7 +59,7 @@ import {
   Pm2ProcessStatusData,
   Pm2ProcessStatusDetailData,
 } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
-import { message, Modal } from 'ant-design-vue';
+import { Modal } from 'ant-design-vue';
 import path from 'path';
 import { Proc } from 'pm2';
 import {
@@ -236,7 +236,7 @@ export const handleSwitchProcessStatus = (
   mouseEvent.stopPropagation();
   const processId = getProcessIdByKfLocation(kfLocation);
   if (switchController[processId]) {
-    message.warn(t('please_wait'));
+    messagePrompt().warn(t('please_wait'));
     return Promise.resolve();
   }
 

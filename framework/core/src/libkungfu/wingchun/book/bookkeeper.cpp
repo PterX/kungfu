@@ -24,7 +24,8 @@ Bookkeeper::Bookkeeper(apprentice &app, broker::Client &broker_client, bool bypa
 
 bool Bookkeeper::has_book(uint32_t location_uid) { return books_.find(location_uid) != books_.end(); }
 
-void Bookkeeper::drop_book(uint32_t uid) { books_.erase(uid); }
+void Bookkeeper::drop_book(uint32_t uid) {
+   books_.erase(uid); }
 
 Book_ptr Bookkeeper::get_book(uint32_t location_uid) {
   if (books_.find(location_uid) == books_.end()) {
@@ -425,7 +426,6 @@ void Bookkeeper::mirror_positions(int64_t trigger_time, uint32_t strategy_uid) {
         auto frozen_yesterday = strategy_position.frozen_yesterday;
         auto avg_open_price = strategy_position.avg_open_price;
         auto position_cost_price = strategy_position.position_cost_price;
-
         auto total_volume = strategy_position.volume + position.volume;
 
         longfist::copy(strategy_position, position);

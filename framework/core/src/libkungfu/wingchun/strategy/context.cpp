@@ -18,7 +18,7 @@ namespace kungfu::wingchun::strategy {
 
 bool Context::is_book_held() const { return book_held_; }
 
-bool Context::is_positions_mirrored() const { return positions_mirrored_; }
+bool Context::is_position_held() const { return not positions_mirrored_; }
 
 void Context::hold_book() { book_held_ = true; }
 

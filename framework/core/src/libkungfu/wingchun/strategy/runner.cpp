@@ -192,7 +192,8 @@ void Runner::prepare(const event_ptr &event) {
       writer->write(now(), pair.second);
     }
 
-    // in hold position situation, mirror position help to keep avg_open_price and position volume is reset by RebuildPositionsRequest 
+    // in hold position situation, mirror position help to keep avg_open_price and position volume is reset by
+    // RebuildPositionsRequest
     writer->mark(now(), MirrorPositionsRequest::tag);
 
     // End - Let ledger prepare book for strategy

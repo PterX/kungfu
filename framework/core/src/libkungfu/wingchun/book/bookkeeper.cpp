@@ -24,8 +24,7 @@ Bookkeeper::Bookkeeper(apprentice &app, broker::Client &broker_client, bool bypa
 
 bool Bookkeeper::has_book(uint32_t location_uid) { return books_.find(location_uid) != books_.end(); }
 
-void Bookkeeper::drop_book(uint32_t uid) {
-   books_.erase(uid); }
+void Bookkeeper::drop_book(uint32_t uid) { books_.erase(uid); }
 
 Book_ptr Bookkeeper::get_book(uint32_t location_uid) {
   if (books_.find(location_uid) == books_.end()) {

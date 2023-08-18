@@ -8,6 +8,7 @@
 #define WINGCHUN_LEDGER_H
 
 #include <kungfu/wingchun/book/bookkeeper.h>
+#include <kungfu/wingchun/book/book.h>
 #include <kungfu/wingchun/broker/client.h>
 #include <kungfu/yijinjing/io.h>
 #include <kungfu/yijinjing/log.h>
@@ -40,7 +41,7 @@ protected:
 private:
   broker::AutoClient broker_client_;
   book::Bookkeeper bookkeeper_;
-  book::BookMap tmp_books_;
+  std::unordered_map<uint32_t, book::Book> tmp_books_;
   std::unordered_map<uint64_t, state<longfist::types::OrderStat>> order_stats_ = {};
   BrokerStateMap broker_states_ = {};
   OperatorStateMap operator_states_ = {};

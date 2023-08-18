@@ -124,6 +124,10 @@ struct Book {
   [[nodiscard]] const InstrumentMap &get_instruments() const { return instruments; }
 
   [[nodiscard]] const CommissionMap &get_commissions() const { return commissions; }
+
+  Book& operator=(const Book& book) {
+    return *this;
+  }
 };
 } // namespace kungfu::wingchun::book
 

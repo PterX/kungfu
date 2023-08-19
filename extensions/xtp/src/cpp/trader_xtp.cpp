@@ -191,7 +191,7 @@ bool TraderXTP::custom_OnOrderEvent(const XTPOrderInfo &order_info, const XTPRI 
     return generate_external_order(order_info);
   }
 
-  auto &order_state = order_state_iter->second;
+  auto &order_state = get_order(kf_order_id);
   from_xtp(order_info, order_state.data);
   order_state.data.update_time = yijinjing::time::now_in_nano();
   if (error_info.error_id != 0) {
@@ -273,7 +273,7 @@ bool TraderXTP::custom_OnTradeEvent(const XTPTradeReport &trade_info, uint64_t s
   }
 
   add_dealt_trade(trade_info.order_xtp_id, trade_info.exec_id);
-  auto &order_state = order_state_iter->second;
+  auto &order_state = get_order(kf_order_id);
 
   if (has_writer(order_state.dest)) {
     auto writer = get_writer(order_state.dest);
@@ -281,7 +281,6 @@ bool TraderXTP::custom_OnTradeEvent(const XTPTradeReport &trade_info, uint64_t s
     from_xtp(trade_info, trade);
     trade.trade_id = writer->current_frame_uid();
     trade.order_id = kf_order_id;
-    strcpy(trade.trading_day, trading_day_.c_str());
     add_traded_volume(trade_info.order_xtp_id, trade.volume);
     SPDLOG_DEBUG("Trade: {}", trade.to_string());
     writer->close_data();
@@ -290,7 +289,6 @@ bool TraderXTP::custom_OnTradeEvent(const XTPTradeReport &trade_info, uint64_t s
     from_xtp(trade_info, trade);
     trade.trade_id = get_writer(location::PUBLIC)->current_frame_uid() xor (time::now_in_nano() & 0x0000FFFF);
     trade.order_id = kf_order_id;
-    strcpy(trade.trading_day, trading_day_.c_str());
     add_traded_volume(trade_info.order_xtp_id, trade.volume);
     SPDLOG_DEBUG("Trade: {}", trade.to_string());
     try_write_to(trade, order_state.dest);
@@ -358,7 +356,13 @@ bool TraderXTP::custom_OnCancelOrderError(const XTPOrderCancelInfo &cancel_info,
     return false;
   }
 
-  auto order_state = order_state_iter->second;
+  auto order_id = action_state.data.order_id;
+  if (not has_order(order_id)) {
+    SPDLOG_WARN("order_id not in orders_ {}", order_id);
+    return false;
+  }
+
+  auto order_state = get_order(order_id);
   if (has_writer(order_state.dest)) {
     OrderActionError &error = get_writer(order_state.dest)->open_data<OrderActionError>(now());
     error.order_id = order_state.data.order_id; // 订单ID

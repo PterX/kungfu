@@ -316,9 +316,6 @@ SSE
 SZE
 MarketType
 Snapshot
-Entrust
-Transaction
-Tree
 SubscribeDataType
 Stock
 Future
@@ -377,6 +374,9 @@ TriggerCancel
 OrderActionFlag
 TriggerInsert
 OrderTriggerFlag
+Start
+Stop
+AlgoOrderActionFlag
 Limit
 Any
 FakBest5

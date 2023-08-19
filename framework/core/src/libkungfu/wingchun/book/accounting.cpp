@@ -48,7 +48,7 @@ void AccountingMethod::setup_defaults(Bookkeeper &bookkeeper, const AccountingMe
 }
 
 bool AccountingMethod::guard_order_accounting(Book_ptr book, const longfist::types::Order &order) {
-  auto& orders = book->orders;
+  auto &orders = book->orders;
   if (orders.find(order.order_id) == orders.end()) {
     return true;
   }
@@ -62,7 +62,7 @@ bool AccountingMethod::guard_order_accounting(Book_ptr book, const longfist::typ
 }
 
 bool AccountingMethod::guard_trade_accounting(Book_ptr book, const longfist::types::Trade &trade) {
-  auto& trades = book->trades;
+  auto &trades = book->trades;
   if (trades.find(trade.trade_id) != trades.end()) {
     return false;
   }

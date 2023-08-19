@@ -181,7 +181,7 @@ public:
     if (not guard_trade_accounting(book, trade)) {
       return;
     }
-    
+
     auto offset = get_offset(book, trade);
     auto direction = get_direction(trade.instrument_type, trade.side, offset);
     auto &position = book->get_position(direction, trade.exchange_id, trade.instrument_id);

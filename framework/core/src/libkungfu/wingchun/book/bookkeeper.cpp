@@ -150,7 +150,7 @@ void Bookkeeper::restore(const cache::bank &state_bank) {
         instrument_factor;
   }
 
-  for (auto& pair : state_bank[boost::hana::type_c<Order>]) {
+  for (auto &pair : state_bank[boost::hana::type_c<Order>]) {
     auto &order_state = pair.second;
     auto source_book = get_book(order_state.source);
     source_book->replace(order_state.data);
@@ -161,7 +161,7 @@ void Bookkeeper::restore(const cache::bank &state_bank) {
     dest_book->replace(order_state.data);
   }
 
-  for (auto& pair : state_bank[boost::hana::type_c<Trade>]) {
+  for (auto &pair : state_bank[boost::hana::type_c<Trade>]) {
     auto &trade_state = pair.second;
     auto source_book = get_book(trade_state.source);
     source_book->replace(trade_state.data);

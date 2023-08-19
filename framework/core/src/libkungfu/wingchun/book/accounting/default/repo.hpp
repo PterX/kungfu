@@ -41,7 +41,7 @@ public:
       book->asset.frozen_cash -= order.volume_left * cd_mr.exchange_rate;
       book->asset.avail += order.volume_left * cd_mr.exchange_rate;
     }
-  
+
     update_position(book, book->get_position_for(order));
   }
 

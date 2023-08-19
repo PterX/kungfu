@@ -51,7 +51,7 @@ public:
                              const longfist::enums::AccountingMethodType accounting_method_type);
 
   bool guard_order_accounting(Book_ptr book, const longfist::types::Order &order);
-  
+
   bool guard_trade_accounting(Book_ptr book, const longfist::types::Trade &trade);
 };
 

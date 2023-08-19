@@ -132,9 +132,7 @@ bool TraderXTP::cancel_order(const event_ptr &event) {
     order_state.data.status = OrderStatus::Cancelling;
   }
   SPDLOG_DEBUG("Order: {}", order_state.data.to_string());
-  if (has_writer(order_state.dest)) {
-    write_to(order_state.data, order_state.dest);
-  }
+  try_write_to(order_state.data, order_state.dest);
   return success;
 }
 
@@ -193,19 +191,14 @@ bool TraderXTP::custom_OnOrderEvent(const XTPOrderInfo &order_info, const XTPRI 
     return generate_external_order(order_info);
   }
 
-  auto &order_state = get_order(kf_order_id);
-  if (not has_writer(order_state.dest)) {
-    SPDLOG_DEBUG("order dest: {} is not live, do not write data", get_vendor().get_location_uname(order_state.dest));
-    return false;
-  }
-
+  auto &order_state = order_state_iter->second;
   from_xtp(order_info, order_state.data);
   order_state.data.update_time = yijinjing::time::now_in_nano();
   if (error_info.error_id != 0) {
     order_state.data.error_id = error_info.error_id;
     strncpy(order_state.data.error_msg, error_info.error_msg, strlen(error_info.error_msg));
   }
-  write_to(order_state.data, order_state.dest);
+  try_write_to(order_state.data, order_state.dest);
   SPDLOG_DEBUG("Order: {}", order_state.data.to_string());
   try_deal_XTPTradeReport(order_info.order_xtp_id);
   return true;
@@ -279,21 +272,29 @@ bool TraderXTP::custom_OnTradeEvent(const XTPTradeReport &trade_info, uint64_t s
     return false;
   }
 
-  auto &order_state = get_order(kf_order_id);
-  if (not has_writer(order_state.dest)) {
-    SPDLOG_DEBUG("order dest: {} is not live, do not write data", get_vendor().get_location_uname(order_state.dest));
-    return false;
-  }
-
   add_dealt_trade(trade_info.order_xtp_id, trade_info.exec_id);
-  auto writer = get_writer(order_state.dest);
-  Trade &trade = writer->open_data<Trade>(now());
-  from_xtp(trade_info, trade);
-  trade.trade_id = writer->current_frame_uid();
-  trade.order_id = kf_order_id;
-  add_traded_volume(trade_info.order_xtp_id, trade.volume);
-  SPDLOG_DEBUG("Trade: {}", trade.to_string());
-  writer->close_data();
+  auto &order_state = order_state_iter->second;
+
+  if (has_writer(order_state.dest)) {
+    auto writer = get_writer(order_state.dest);
+    Trade &trade = writer->open_data<Trade>(now());
+    from_xtp(trade_info, trade);
+    trade.trade_id = writer->current_frame_uid();
+    trade.order_id = kf_order_id;
+    strcpy(trade.trading_day, trading_day_.c_str());
+    add_traded_volume(trade_info.order_xtp_id, trade.volume);
+    SPDLOG_DEBUG("Trade: {}", trade.to_string());
+    writer->close_data();
+  } else {
+    Trade trade{};
+    from_xtp(trade_info, trade);
+    trade.trade_id = get_writer(location::PUBLIC)->current_frame_uid() xor (time::now_in_nano() & 0x0000FFFF);
+    trade.order_id = kf_order_id;
+    strcpy(trade.trading_day, trading_day_.c_str());
+    add_traded_volume(trade_info.order_xtp_id, trade.volume);
+    SPDLOG_DEBUG("Trade: {}", trade.to_string());
+    try_write_to(trade, order_state.dest);
+  }
 
   if (not is_final_status(order_state.data.status)) {
     order_state.data.volume_left = std::min<int64_t>(
@@ -303,7 +304,7 @@ bool TraderXTP::custom_OnTradeEvent(const XTPTradeReport &trade_info, uint64_t s
     }
     order_state.data.update_time = now();
     SPDLOG_DEBUG("Order: {}", order_state.data.to_string());
-    write_to(order_state.data, order_state.dest);
+    try_write_to(order_state.data, order_state.dest);
   }
   return true;
 }
@@ -357,16 +358,30 @@ bool TraderXTP::custom_OnCancelOrderError(const XTPOrderCancelInfo &cancel_info,
     return false;
   }
 
-  OrderActionError &error = get_writer(action_state.dest)->open_data<OrderActionError>(now());
-  error.order_id = action_state.data.order_id; // 订单ID
-  const std::string str_external_order_id = std::to_string(cancel_info.order_xtp_id);
-  strncpy(error.external_order_id, str_external_order_id.c_str(), str_external_order_id.length());
-  error.order_action_id = action_id;                                            // 订单操作ID,
-  error.error_id = error_info.error_id;                                         // 错误ID
-  strncpy(error.error_msg, error_info.error_msg, strlen(error_info.error_msg)); // 错误信息
-  error.insert_time = time::now_in_nano();                                      // 写入时间
-  SPDLOG_DEBUG("OrderActionError: {}", error.to_string());
-  get_writer(action_state.dest)->close_data();
+  auto order_state = order_state_iter->second;
+  if (has_writer(order_state.dest)) {
+    OrderActionError &error = get_writer(order_state.dest)->open_data<OrderActionError>(now());
+    error.order_id = order_state.data.order_id; // 订单ID
+    std::string str_external_order_id = std::to_string(cancel_info.order_xtp_id);
+    strncpy(error.external_order_id, str_external_order_id.c_str(), str_external_order_id.length());
+    error.order_action_id = get_action_id(cancel_info.order_xtp_id);              // 订单操作ID,
+    error.error_id = error_info.error_id;                                         // 错误ID
+    strncpy(error.error_msg, error_info.error_msg, strlen(error_info.error_msg)); // 错误信息
+    error.insert_time = time::now_in_nano();                                      // 写入时间
+    SPDLOG_DEBUG("OrderActionError: {}", error.to_string());
+    get_writer(order_state.dest)->close_data();
+  } else {
+    OrderActionError error{};
+    error.order_id = order_state.data.order_id; // 订单ID
+    std::string str_external_order_id = std::to_string(cancel_info.order_xtp_id);
+    strncpy(error.external_order_id, str_external_order_id.c_str(), str_external_order_id.length());
+    error.order_action_id = get_action_id(cancel_info.order_xtp_id);              // 订单操作ID,
+    error.error_id = error_info.error_id;                                         // 错误ID
+    strncpy(error.error_msg, error_info.error_msg, strlen(error_info.error_msg)); // 错误信息
+    error.insert_time = time::now_in_nano();                                      // 写入时间
+    SPDLOG_DEBUG("OrderActionError: {}", error.to_string());
+    try_write_to(error, order_state.dest);
+  }
   return true;
 }
 

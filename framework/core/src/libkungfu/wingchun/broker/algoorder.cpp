@@ -159,9 +159,7 @@ void AlgoOrderService::clean_algo_orders(bool bypass_recover) {
         (bypass_recover or algo_order.external_order_id.to_string().empty())) {
       algo_order.status = OrderStatus::Lost;
       algo_order.update_time = time::now_in_nano();
-      if (vendor_.has_writer(pair.second.dest)) {
-        vendor_.write_to(vendor_.now(), algo_order, pair.second.dest);
-      }
+      vendor_.try_write_to(vendor_.now(), algo_order, pair.second.dest);
     }
   });
 }

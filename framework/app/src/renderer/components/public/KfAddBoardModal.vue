@@ -44,14 +44,17 @@ onMounted(() => {
   }
 });
 
-function handleComfirm() {
+function handleConfirm() {
   if (!selectedBoard.value) {
     error(t('select_board'));
     return;
   }
 
   if (props.targetBoardId === 0) {
-    if (!boardsMap.value[0]) return error(t('add_board_error'));
+    if (!boardsMap.value[0]) {
+      error(t('add_board_error'));
+      return;
+    }
 
     useGlobalStore()
       .addBoardFromEmpty(selectedBoard.value)
@@ -94,7 +97,7 @@ function handleComfirm() {
     :title="$t('add_board')"
     :destroy-on-close="true"
     @cancel="closeModal"
-    @ok="handleComfirm"
+    @ok="handleConfirm"
   >
     <div class="kf-add-board__content">
       <a-radio-group v-model:value="selectedBoard">

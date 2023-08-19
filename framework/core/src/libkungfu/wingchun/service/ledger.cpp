@@ -189,10 +189,11 @@ void Ledger::update_account_book(int64_t trigger_time, uint32_t account_uid) {
   refresh_account_book(trigger_time, account_uid);
   auto writer = get_writer(account_uid);
   auto book = bookkeeper_.get_book(account_uid);
-  auto &asset = book->asset;
   write_positions(trigger_time, account_uid, book->long_positions);
   write_positions(trigger_time, account_uid, book->short_positions);
-  writer->write(trigger_time, asset);
+  writer->write(trigger_time, book->asset);
+  writer->open_data<PositionEnd>(trigger_time).holder_uid = account_uid;
+  writer->close_data();
 }
 
 void Ledger::inspect_channel(int64_t trigger_time, const Channel &channel) {
@@ -210,8 +211,7 @@ void Ledger::inspect_channel(int64_t trigger_time, const Channel &channel) {
 void Ledger::keep_positions([[maybe_unused]] int64_t trigger_time, uint32_t strategy_uid) {
   if (bookkeeper_.has_book(strategy_uid)) {
     auto strategy_book = bookkeeper_.get_book(strategy_uid);
-    tmp_books_.insert_or_assign(strategy_uid, strategy_book);
-    bookkeeper_.drop_book(strategy_uid);
+    tmp_books_.insert_or_assign(strategy_uid, *strategy_book);
   }
 }
 
@@ -220,6 +220,7 @@ void Ledger::rebuild_positions(int64_t trigger_time, uint32_t strategy_uid) {
   if (tmp_books_.find(strategy_uid) == tmp_books_.end()) {
     return;
   }
+  auto &tmp_book = tmp_books_.at(strategy_uid);
 
   auto rebuild_book = [&](auto &from_position) {
     auto apply = [&](auto &to_position) {
@@ -230,9 +231,31 @@ void Ledger::rebuild_positions(int64_t trigger_time, uint32_t strategy_uid) {
                                   from_position.instrument_id, apply);
   };
 
-  auto &tmp_book = tmp_books_.at(strategy_uid);
-  tmp_book->apply_long_positions(rebuild_book);
-  tmp_book->apply_short_positions(rebuild_book);
+  auto reset_positions = [&](auto &position) {
+    // pos in tmp_book is influenced by instrumentKey event of subscribe, which trigger update_book method and build a
+    // target pos with 0 volume;
+    if (tmp_book.has_position(position.source_id, position.direction, position.exchange_id, position.instrument_id) &&
+        tmp_book.get_position(position.source_id, position.direction, position.exchange_id, position.instrument_id)
+                .volume != 0) {
+      return;
+    }
+    position.volume = 0;
+    position.yesterday_volume = 0;
+    position.frozen_total = 0;
+    position.frozen_yesterday = 0;
+    position.open_volume = 0;
+    position.static_yesterday_volume = 0;
+    // should keep avg_open_price and position_cost_price
+    // position.avg_open_price = 0;
+    // position.position_cost_price = 0;
+    position.update_time = trigger_time;
+  };
+
+  tmp_book.apply_long_positions(rebuild_book);
+  tmp_book.apply_short_positions(rebuild_book);
+  strategy_book->apply_long_positions(reset_positions);
+  strategy_book->apply_short_positions(reset_positions);
+  tmp_books_.erase(strategy_uid);
   strategy_book->update(trigger_time, bookkeeper_.get_accounting_method_type());
 }
 
@@ -262,7 +285,7 @@ void Ledger::write_strategy_data(int64_t trigger_time, uint32_t strategy_uid) {
     bool has_account = asset.ledger_category == LedgerCategory::Account and has_channel(book_uid, strategy_uid);
     bool is_strategy = location->category == category::STRATEGY and book_uid == strategy_uid;
     bool is_node = location->category == category::SYSTEM and location->group == "node";
-    if (has_account or is_strategy or is_node) {
+    if ((has_account or is_strategy) or is_node) {
       write_positions(trigger_time, strategy_uid, book->long_positions);
       write_positions(trigger_time, strategy_uid, book->short_positions);
       write_instrument_factors(trigger_time, strategy_uid, book->instrument_factors);

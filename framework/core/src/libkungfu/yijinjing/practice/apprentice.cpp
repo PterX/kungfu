@@ -313,8 +313,12 @@ void apprentice::checkin() {
   register_data.checkin_time = now;
   register_data.last_active_time = now;
 
-  get_io_device()->get_publisher()->publish(make_nano_msg(get_home_uid(), master_home_location_->uid, register_data),
-                                            0);
+  while (not is_usable()) {
+    SPDLOG_WARN("publisher is not usable");
+  }
+
+  SPDLOG_INFO("io is usable");
+  get_io_device()->get_publisher()->publish(make_nano_msg(get_home_uid(), master_home_location_->uid, register_data), 0);
 }
 
 void apprentice::expect_start() {

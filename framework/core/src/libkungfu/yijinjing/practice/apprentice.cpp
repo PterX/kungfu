@@ -318,7 +318,8 @@ void apprentice::checkin() {
   }
 
   SPDLOG_INFO("io is usable");
-  get_io_device()->get_publisher()->publish(make_nano_msg(get_home_uid(), master_home_location_->uid, register_data), 0);
+  get_io_device()->get_publisher()->publish(make_nano_msg(get_home_uid(), master_home_location_->uid, register_data),
+                                            0);
 }
 
 void apprentice::expect_start() {

@@ -27,6 +27,10 @@ public:
   OtcStockAccountingMethod() = default;
 
   void apply_trade(uint32_t source, uint32_t dest, Book_ptr &book, const Trade &trade) override {
+    if (not guard_trade_accounting(book, trade)) {
+      return;
+    }
+
     auto is_local = dest != location::PUBLIC and dest != location::SYNC;
 
     if (trade.side == Side::Sell) {

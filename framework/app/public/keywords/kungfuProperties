@@ -374,6 +374,9 @@ TriggerCancel
 OrderActionFlag
 TriggerInsert
 OrderTriggerFlag
+Start
+Stop
+AlgoOrderActionFlag
 Limit
 Any
 FakBest5
@@ -385,7 +388,7 @@ EnhancedLimit
 AtAuctionLimit
 AtAuction
 PriceType
-Latest
+Last
 Sell5
 Sell4
 Sell3

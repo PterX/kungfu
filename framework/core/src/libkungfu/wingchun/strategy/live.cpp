@@ -75,9 +75,12 @@ void LiveContext::prepare(const event_ptr &event) {
   }
 
   if (not positions_requested_) {
-    if (not is_book_held()) {
+    if (is_positions_held()) {
       // Start - Let ledger prepare book for strategy
       writer->mark(now(), KeepPositionsRequest::tag);
+    }
+
+    if (not is_book_held()) {
       writer->mark(now(), ResetBookRequest::tag);
     }
 
@@ -88,25 +91,31 @@ void LiveContext::prepare(const event_ptr &event) {
     for (const auto &pair : get_broker_client().get_instrument_keys()) {
       writer->write(now(), pair.second);
     }
-    if (is_positions_mirrored()) {
-      writer->mark(now(), MirrorPositionsRequest::tag);
-    }
+
+    // in hold position situation, mirror position help to keep avg_open_price and position volume is reset by
+    // RebuildPositionsRequest
+    writer->mark(now(), MirrorPositionsRequest::tag);
+
     // End - Let ledger prepare book for strategy
-    if (not is_book_held() and not is_positions_mirrored()) {
+    if (is_positions_held()) {
       writer->mark(now(), RebuildPositionsRequest::tag);
     }
+
     // Request ledger to recover book for strategy
     writer->mark(now(), AssetRequest::tag);
     writer->mark(now(), PositionRequest::tag);
     positions_requested_ = true;
     return;
   }
+
   if (event->msg_type() == PositionEnd::tag and event->source() == ledger_uid) {
     positions_set_ = true;
   }
+
   if (not positions_set_) {
     return;
   }
+
   get_bookkeeper().guard_positions();
   started_ = true;
 }

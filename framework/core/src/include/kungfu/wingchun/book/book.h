@@ -246,6 +246,8 @@ struct Book {
   uint64_t source_op_id(uint32_t holder_uid, uint32_t source_id) {
     return static_cast<uint64_t>(holder_uid) << 32u | static_cast<uint64_t>(source_id);
   }
+
+  Book &operator=(const Book &book) { return *this; }
 };
 } // namespace kungfu::wingchun::book
 

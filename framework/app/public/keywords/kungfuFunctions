@@ -101,7 +101,7 @@ insert_array_orders
 hold_book
 hold_positions
 is_book_held
-is_positions_mirrored
+is_positions_held
 update_strategy_state
 is_bypass_accounting
 bypass_accounting

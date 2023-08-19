@@ -72,8 +72,22 @@ public:
   void add_time_interval(int64_t nanotime, const std::function<void(const event_ptr &)> &callback);
 
   template <typename DataType>
-  void write_to(int64_t trigger_time, DataType &data, uint32_t dest_id = yijinjing::data::location::PUBLIC) {
+  void write_to(int64_t trigger_time, const DataType &data, uint32_t dest_id = yijinjing::data::location::PUBLIC) {
     get_writer(dest_id)->write(trigger_time, data);
+  }
+
+  template <typename DataType>
+  void try_write_to(int64_t trigger_time, const DataType &data, uint32_t dest_id = yijinjing::data::location::PUBLIC) {
+    if (has_writer(dest_id)) {
+      get_writer(dest_id)->write(trigger_time, data);
+    } else {
+      events_ | rx::is(longfist::types::Channel::tag) | rx::filter([&, dest_id](const event_ptr &event) {
+        const longfist::types::Channel &channel = event->data<longfist::types::Channel>();
+        return channel.source_id == get_home_uid() and channel.dest_id == dest_id;
+      }) | rx::first() |
+          rx::$([this, data, dest_id](const event_ptr &event) { write_to(now(), data, dest_id); });
+      try_write_dest_ids_.emplace(dest_id);
+    }
   }
 
   bool release_page();
@@ -249,6 +263,7 @@ private:
   yijinjing::practice::cleaner cleaner_;
   std::unordered_map<int, int64_t> timer_checkpoints_ = {};
   std::unordered_map<int, longfist::types::TimeRequest> timer_requests_ = {};
+  std::unordered_set<uint32_t> try_write_dest_ids_{};
 
   void checkin();
 

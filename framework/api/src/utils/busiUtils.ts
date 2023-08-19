@@ -2603,8 +2603,13 @@ export const isBrokerStateReady = (state: BrokerStateStatusTypes) => {
 };
 
 export function deleteNNFiles(rootPathName = KF_HOME) {
+  kfLogger.info('Deleting nn folder');
   return removeTargetFoldersInFolder(rootPathName, ['nn']).then((res) => {
+    if (res.successes.length) {
+      kfLogger.info(`Succeed delete 'nn' folders: ${res.successes.join(', ')}`);
+    }
     res.errors.forEach((err) => kfLogger.error(err));
+    kfLogger.info('Deleting nn folder finished');
   });
 }
 

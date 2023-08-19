@@ -303,13 +303,11 @@ void Trader::deal_read_frame() {
     auto &order_input_state = pair.second;
     auto &order_input = order_input_state.data;
     if (orders_.find(order_input.order_id) == orders_.end()) {
-      if (has_writer(order_input_state.source)) {
-        Order &order = get_writer(order_input_state.source)->template open_data<Order>();
-        order_from_input(order_input, order);
-        order.status = OrderStatus::Lost;
-        order.update_time = time::now_in_nano();
-        get_writer(order_input_state.source)->close_data();
-      }
+      Order order{};
+      order_from_input(order_input, order);
+      order.status = OrderStatus::Lost;
+      order.update_time = time::now_in_nano();
+      try_write_to(order, order_input_state.source);
     }
   });
 
@@ -319,13 +317,11 @@ void Trader::deal_read_frame() {
     auto &order_trigger_input_state = pair.second;
     auto &order_trigger_input = order_trigger_input_state.data;
     if (triggers_.find(order_trigger_input.trigger_id) == triggers_.end()) {
-      if (has_writer(order_trigger_input_state.source)) {
-        OrderTrigger &trigger = get_writer(order_trigger_input_state.source)->template open_data<OrderTrigger>();
-        order_trigger_from_input(order_trigger_input, trigger);
-        trigger.status = OrderStatus::Lost;
-        trigger.update_time = time::now_in_nano();
-        get_writer(order_trigger_input_state.source)->close_data();
-      }
+      OrderTrigger trigger{};
+      order_trigger_from_input(order_trigger_input, trigger);
+      trigger.status = OrderStatus::Lost;
+      trigger.update_time = time::now_in_nano();
+      try_write_to(trigger, order_trigger_input_state.source);
     }
   });
   SPDLOG_DEBUG("after state bank read, count: {}", count);

@@ -361,7 +361,7 @@ bool TraderXTP::custom_OnCancelOrderError(const XTPOrderCancelInfo &cancel_info,
 
   auto order_state_iter = orders_.find(order_xtp_id_iter->second);
   if (order_state_iter == orders_.end()) {
-    SPDLOG_WARN("kf_order_id not in orders_", order_xtp_id_iter->second);
+    SPDLOG_WARN("kf_order_id {} not in orders_", order_xtp_id_iter->second);
     return false;
   }
 

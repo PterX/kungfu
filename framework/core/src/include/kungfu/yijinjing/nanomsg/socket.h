@@ -115,7 +115,7 @@ public:
   void close();
 
   // Send policy changed to flag = 0 at app register, then notify with flag = NNG_FLAG_NONBLOCK
-  int send(const std::string &msg, int flags = NNG_FLAG_NONBLOCK) const;
+  int send(const std::string &msg, int flags = NNG_FLAG_NONBLOCK, bool no_exception = false) const;
 
   int send_json(const nlohmann::json &msg, int flags = NNG_FLAG_NONBLOCK) const;
 

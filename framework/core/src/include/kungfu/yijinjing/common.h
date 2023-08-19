@@ -39,7 +39,7 @@ public:
 
   virtual int notify() = 0;
 
-  virtual int publish(const std::string &json_message, int flags = NNG_FLAG_NONBLOCK) = 0;
+  virtual int publish(const std::string &json_message, int flags = NNG_FLAG_NONBLOCK, bool no_exception = false) = 0;
 };
 
 DECLARE_PTR(publisher)

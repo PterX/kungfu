@@ -302,6 +302,17 @@ uint64_t ReplayContext::cancel_algo_order(uint64_t algo_order_id, AlgoOrderActio
   return frame->data<AlgoOrderAction>().order_action_id;
 }
 
+uint64_t ReplayContext::toggle_algo_order(uint64_t algo_order_id, longfist::enums::AlgoOrderActionFlag action_flag) {
+  uint32_t account_location_uid = (algo_order_id >> 32u) xor (get_live_home_uid());
+  if (not broker_client_.is_ready(account_location_uid)) {
+    SPDLOG_ERROR("toggle_algo_order account {} not ready", app_.get_location_uname(account_location_uid));
+    return 0;
+  }
+
+  auto frame = read_next(AlgoOrderAction::tag);
+  return frame->data<AlgoOrderAction>().order_action_id;
+}
+
 void ReplayContext::req_history_order(const std::string &source, const std::string &account, uint32_t query_num) {}
 
 void ReplayContext::req_history_trade(const std::string &source, const std::string &account, uint32_t query_num) {}

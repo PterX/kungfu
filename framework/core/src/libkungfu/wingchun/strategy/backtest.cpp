@@ -293,6 +293,10 @@ uint64_t BacktestContext::cancel_algo_order(uint64_t algo_order_id, longfist::en
   return {};
 }
 
+uint64_t BacktestContext::toggle_algo_order(uint64_t algo_order_id, longfist::enums::AlgoOrderActionFlag action_flag) {
+  return {};
+}
+
 broker::Client &BacktestContext::get_broker_client() { return broker_client_; }
 
 book::Bookkeeper &BacktestContext::get_bookkeeper() { return bookkeeper_; }

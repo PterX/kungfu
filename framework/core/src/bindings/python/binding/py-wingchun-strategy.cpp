@@ -199,6 +199,7 @@ void bind_strategy(pybind11::module &m) {
            py::arg("action_flag") = OrderActionFlag::Cancel)
       .def("cancel_order_trigger", &strategy::Context::cancel_order_trigger)
       .def("cancel_algo_order", &strategy::Context::cancel_algo_order)
+      .def("toggle_algo_order", &strategy::Context::toggle_algo_order)
       .def("req_history_order", &strategy::Context::req_history_order, py::arg("source"), py::arg("account"),
            py::arg("query_num") = 0)
       .def("req_history_trade", &strategy::Context::req_history_trade, py::arg("source"), py::arg("account"),

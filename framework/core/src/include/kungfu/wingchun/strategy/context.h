@@ -253,6 +253,15 @@ public:
                                                                  longfist::enums::AlgoOrderActionFlag::Cancel) = 0;
 
   /**
+   * Toggle Algo Order
+   * @param algo_order_id
+   * @return algo order action ID
+   */
+  virtual uint64_t
+  toggle_algo_order(uint64_t algo_order_id,
+                    longfist::enums::AlgoOrderActionFlag action_flag = longfist::enums::AlgoOrderActionFlag::Start) = 0;
+
+  /**
    * query history order
    */
   virtual void req_history_order(const std::string &source, const std::string &account, uint32_t query_num = 0) = 0;

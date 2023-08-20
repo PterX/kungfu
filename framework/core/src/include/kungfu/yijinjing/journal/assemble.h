@@ -16,8 +16,9 @@ struct noop_publisher : public publisher {
   void setup() override {}
   int notify() override { return 0; }
   int publish(const std::string &json_message, int flags = NNG_FLAG_NONBLOCK, bool no_exception = false) override {
+    return 0;
+  };
 };
-
 struct assemble_exception : std::runtime_error {
   explicit assemble_exception(const std::string &msg) : std::runtime_error(msg){};
 };

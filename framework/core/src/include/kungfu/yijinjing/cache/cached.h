@@ -112,6 +112,8 @@ private:
   std::mutex profile_store_mutex_;
   bool m_quit_ = false;
 
+  yijinjing::data::location_ptr ledger_home_location_;
+
   static constexpr auto profile_get_all = [](auto &profile, auto &receiver) {
     boost::hana::for_each(longfist::ProfileDataTypes, [&](auto it) {
       using DataType = typename decltype(+boost::hana::second(it))::type;

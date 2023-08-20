@@ -120,11 +120,11 @@ public:
   }
 
   virtual void apply_order(uint32_t account_id, uint32_t dest, Book_ptr &book, const Order &order) override {
-    if (dest == location::SYNC or dest == location::PUBLIC) {
+    if (not guard_order_accounting(book, order)) {
       return;
     }
 
-    if (not is_final_status(order.status)) {
+    if (dest == location::SYNC or dest == location::PUBLIC) {
       return;
     }
 
@@ -149,6 +149,10 @@ public:
   }
 
   virtual void apply_trade(uint32_t account_id, uint32_t dest, Book_ptr &book, const Trade &trade) override {
+    if (not guard_trade_accounting(book, trade)) {
+      return;
+    }
+
     auto is_local = dest != location::PUBLIC and dest != location::SYNC;
 
     auto apply = [&](auto &position) {

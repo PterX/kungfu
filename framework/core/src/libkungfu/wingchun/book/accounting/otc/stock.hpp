@@ -30,7 +30,7 @@ public:
     if (not guard_trade_accounting(book, trade)) {
       return;
     }
-    
+
     auto is_local = dest != location::PUBLIC and dest != location::SYNC;
 
     auto apply = [&](auto &position) {

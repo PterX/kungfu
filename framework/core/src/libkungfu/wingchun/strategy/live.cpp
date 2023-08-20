@@ -449,6 +449,24 @@ uint64_t LiveContext::cancel_algo_order(uint64_t algo_order_id, AlgoOrderActionF
   return action.order_action_id;
 }
 
+uint64_t LiveContext::toggle_algo_order(uint64_t algo_order_id, longfist::enums::AlgoOrderActionFlag action_flag) {
+  uint32_t account_location_uid = (algo_order_id >> 32u) xor (get_home_uid());
+  if (not broker_client_.is_ready(account_location_uid)) {
+    SPDLOG_ERROR("toggle_algo_order account {} not ready", app_.get_location_uname(account_location_uid));
+    return 0;
+  }
+
+  auto account_location = app_.get_location(account_location_uid);
+  auto writer = app_.get_writer(account_location_uid);
+  page_ptr page = writer->get_current_page();
+  AlgoOrderAction &action = writer->open_data<AlgoOrderAction>(0);
+  action.order_action_id = writer->current_frame_uid();
+  action.order_id = algo_order_id;
+  action.action_flag = action_flag;
+  writer->close_data();
+  return action.order_action_id;
+}
+
 broker::Client &LiveContext::get_broker_client() { return broker_client_; }
 
 book::Bookkeeper &LiveContext::get_bookkeeper() { return bookkeeper_; }

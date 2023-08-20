@@ -27,18 +27,21 @@ public:
   }
 
   void apply_order(uint32_t source, uint32_t dest, Book_ptr &book, const Order &order) override {
+    if (not guard_order_accounting(book, order)) {
+      return;
+    }
+
     if (dest == location::SYNC or dest == location::PUBLIC) {
       return;
     }
 
-    if (is_final_status(order.status)) {
-      const auto &position = book->get_position_for(order);
-      auto cd_mr = get_instr_conversion_margin_rate(book, position);
-      if (order.side == Side::Sell) {
-        book->asset.frozen_cash -= order.volume_left * cd_mr.exchange_rate;
-        book->asset.avail += order.volume_left * cd_mr.exchange_rate;
-      }
+    const auto &position = book->get_position_for(order);
+    auto cd_mr = get_instr_conversion_margin_rate(book, position);
+    if (order.side == Side::Sell) {
+      book->asset.frozen_cash -= order.volume_left * cd_mr.exchange_rate;
+      book->asset.avail += order.volume_left * cd_mr.exchange_rate;
     }
+
     update_position(book, book->get_position_for(order));
   }
 

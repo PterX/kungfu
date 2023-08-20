@@ -60,6 +60,7 @@ bool hero::is_usable() { return io_device_->is_usable(); }
 
 void hero::setup() {
   io_device_->setup();
+  SPDLOG_DEBUG("io setup done");
   events_ = observable<>::create<event_ptr>([this](auto &s) { delegate_produce(this, s); }) | holdon();
   react();
   live_ = true;
@@ -74,6 +75,7 @@ void hero::run() {
   SPDLOG_INFO("[{:08x}] {} running", get_home_uid(), get_home_uname());
   SPDLOG_TRACE("from {} until {}", time::strftime(begin_time_), time::strftime(end_time_));
   setup();
+  SPDLOG_DEBUG("app setup done");
   continual_ = true;
   events_.connect(cs_);
   on_exit();

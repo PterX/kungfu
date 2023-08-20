@@ -88,8 +88,8 @@ class PyPublisher : public publisher {
 public:
   int notify() override { PYBIND11_OVERLOAD_PURE(int, publisher, notify); }
 
-  int publish(const std::string &json_message, int flags = NNG_FLAG_NONBLOCK) override {
-    PYBIND11_OVERLOAD_PURE(int, publisher, publish, json_message, flags);
+  int publish(const std::string &json_message, int flags = NNG_FLAG_NONBLOCK, bool no_exception = false) override {
+    PYBIND11_OVERLOAD_PURE(int, publisher, publish, json_message, flags, no_exception);
   }
 };
 
@@ -227,7 +227,7 @@ void bind(pybind11::module &&m) {
       .def("listen", &socket::listen, py::arg("url"), py::arg("flags") = 0)
       .def("dial", &socket::dial, py::arg("url"), py::arg("flags") = 0)
       .def("close", &socket::close)
-      .def("send", &socket::send, py::arg("msg"), py::arg("flags") = 0)
+      .def("send", &socket::send, py::arg("msg"), py::arg("flags") = 0, py::arg("no_exception") = false)
       .def("recv", &socket::recv_msg, py::arg("flags") = 0)
       .def("last_message", &socket::last_message);
 

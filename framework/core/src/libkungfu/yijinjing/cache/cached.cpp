@@ -21,7 +21,9 @@ using namespace kungfu::yijinjing::cache;
 namespace kungfu::yijinjing::cache {
 
 cached::cached(const yijinjing::io_device_ptr &io_device, bool bypass_cached)
-    : session_builder_(io_device), profile_(io_device->get_locator()), bypass_cached_(bypass_cached) {
+    : session_builder_(io_device), profile_(io_device->get_locator()), bypass_cached_(bypass_cached), 
+    ledger_home_location_(yijinjing::practice::make_system_location("service", "ledger", io_device->get_locator()))
+     {
   profile_.setup();
   profile_get_all(profile_, profile_feed_bank_);
 }
@@ -95,7 +97,7 @@ void cached::restore_states(const yijinjing::data::location_ptr &location,
     }
   }
 
-  if (location->uid == get_ledger_home_location()->uid) {
+  if (location->uid == ledger_home_location_->uid) {
     for (const auto &other_location : location->locator->list_locations("td", "*", "*", "live")) {
       for (auto dest : location->locator->list_location_dest_by_db(other_location)) {
         try {

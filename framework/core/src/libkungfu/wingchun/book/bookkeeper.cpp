@@ -125,6 +125,28 @@ void Bookkeeper::restore(const cache::bank &state_bank) {
     }
     update_instrument_factor(instrument_factor);
   }
+
+  for (auto &pair : state_bank[boost::hana::type_c<Order>]) {
+    auto &order_state = pair.second;
+    auto source_book = get_book(order_state.source);
+    source_book->replace(order_state.data);
+    if (order_state.dest == location::PUBLIC) {
+      continue;
+    }
+    auto dest_book = get_book(order_state.dest);
+    dest_book->replace(order_state.data);
+  }
+
+  for (auto &pair : state_bank[boost::hana::type_c<Trade>]) {
+    auto &trade_state = pair.second;
+    auto source_book = get_book(trade_state.source);
+    source_book->replace(trade_state.data);
+    if (trade_state.dest == location::PUBLIC) {
+      continue;
+    }
+    auto dest_book = get_book(trade_state.dest);
+    dest_book->replace(trade_state.data);
+  }
 }
 
 void Bookkeeper::guard_positions() { positions_guarded_ = true; }

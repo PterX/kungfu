@@ -34,9 +34,7 @@ void OrderTriggerService::clean_order_triggers(bool bypass_recover) {
     if (not is_final_status(trigger.status) and (bypass_recover or trigger.external_trigger_id.to_string().empty())) {
       trigger.status = OrderStatus::Lost;
       trigger.update_time = time::now_in_nano();
-      if (vendor_.has_writer(pair.second.dest)) {
-        vendor_.write_to(vendor_.now(), trigger, pair.second.dest);
-      }
+      vendor_.try_write_to(vendor_.now(), trigger, pair.second.dest);
     }
   });
 }

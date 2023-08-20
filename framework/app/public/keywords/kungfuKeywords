@@ -394,7 +394,7 @@ insert_array_orders
 hold_book
 hold_positions
 is_book_held
-is_positions_mirrored
+is_positions_held
 update_strategy_state
 is_bypass_accounting
 bypass_accounting
@@ -588,6 +588,9 @@ TriggerCancel
 OrderActionFlag
 TriggerInsert
 OrderTriggerFlag
+Start
+Stop
+AlgoOrderActionFlag
 Limit
 Any
 FakBest5
@@ -599,7 +602,7 @@ EnhancedLimit
 AtAuctionLimit
 AtAuction
 PriceType
-Latest
+Last
 Sell5
 Sell4
 Sell3

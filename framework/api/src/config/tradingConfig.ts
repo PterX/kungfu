@@ -397,12 +397,6 @@ export const AllFinishedOrderStatus = [
   OrderStatusEnum.Lost,
 ];
 
-export const UnfinishedOrderTriggerStatus = [
-  OrderStatusEnum.Pending,
-  OrderStatusEnum.Submitted,
-  OrderStatusEnum.PartialFilledActive,
-];
-
 export const OrderCancelledStatus = [
   OrderStatusEnum.Cancelled,
   OrderStatusEnum.PartialFilledNotActive,

@@ -158,7 +158,7 @@ void bind_enums(py::module &m) {
       .def("__eq__", [](const PriceType &a, int b) { return static_cast<int>(a) == b; });
 
   py::enum_<PriceLevel>(m_enums, "PriceLevel", py::arithmetic())
-      .value("Latest", PriceLevel::Latest)
+      .value("Last", PriceLevel::Last)
       .value("Sell5", PriceLevel::Sell5)
       .value("Sell4", PriceLevel::Sell4)
       .value("Sell3", PriceLevel::Sell3)
@@ -358,5 +358,12 @@ void bind_enums(py::module &m) {
       .value("TriggerCancel", OrderTriggerFlag::TriggerCancel)
       .export_values()
       .def("__eq__", [](const OrderTriggerFlag &a, int b) { return static_cast<int>(a) == b; });
+
+  py::enum_<AlgoOrderActionFlag>(m_enums, "AlgoOrderActionFlag", py::arithmetic())
+      .value("Cancel", AlgoOrderActionFlag::Cancel)
+      .value("Start", AlgoOrderActionFlag::Start)
+      .value("Stop", AlgoOrderActionFlag::Stop)
+      .export_values()
+      .def("__eq__", [](const AlgoOrderActionFlag &a, int b) { return static_cast<int>(a) == b; });
 }
 } // namespace kungfu::longfist::pybind

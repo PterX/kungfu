@@ -153,11 +153,13 @@ export function KillAll(): Promise<void> {
                 killExtra()
                   .catch((err) => kfLogger.error(err))
                   .finally(() => {
-                    deleteNNFiles()
-                      .catch((err) => kfLogger.error(err))
-                      .finally(() => {
-                        resolve();
-                      });
+                    delayMilliSeconds(1000).then(() => {
+                      deleteNNFiles()
+                        .catch((err) => kfLogger.error(err))
+                        .finally(() => {
+                          resolve();
+                        });
+                    });
                   });
               });
           });

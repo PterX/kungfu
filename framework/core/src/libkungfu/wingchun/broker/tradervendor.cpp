@@ -77,6 +77,10 @@ void TraderVendor::react() {
       $$(order_service_.on_order_input(event));
   events_ | skip_until(events_ | is(RequestStart::tag)) | is_custom() | $$(service_->on_custom_event(event));
   apprentice::react();
+
+  // have to be in this position, only in react, the ResetBookRequest can be listened
+  events_ | is(ResetBookRequest::tag) |
+      $([&](const event_ptr &event) { get_writer(location::PUBLIC)->mark(now(), ResetBookRequest::tag); });
 }
 
 void TraderVendor::on_start() {
@@ -101,8 +105,6 @@ void TraderVendor::on_start() {
   events_ | is(PositionSync::tag) | $$(service_->on_position_sync());
   events_ | is(Band::tag) | $$(service_->on_band(event));
   events_ | is(TimeKeyValue::tag) | $$(service_->on_time_key_value(event));
-  events_ | is(ResetBookRequest::tag) |
-      $([&](const event_ptr &event) { get_writer(location::PUBLIC)->mark(now(), ResetBookRequest::tag); });
   events_ | is(Deregister::tag) | $$(service_->on_strategy_exit(event));
 
   add_time_interval(5 * time_unit::NANOSECONDS_PER_SECOND, [&](auto e) { service_->try_req_account(); });

@@ -287,7 +287,8 @@ Napi::Value Watcher::PublishState(const Napi::CallbackInfo &info) {
 
 Napi::Value Watcher::IsReadyToInteract(const Napi::CallbackInfo &info) {
   auto account_location = IODevice::ExtractLocation(info, 0, get_locator());
-  return Napi::Boolean::New(info.Env(), account_location and has_writer(account_location->uid));
+  return Napi::Boolean::New(info.Env(), account_location and has_writer(account_location->uid) and
+                                            is_location_live(account_location->uid));
 }
 
 Napi::Value Watcher::IssueCustomData(const Napi::CallbackInfo &info) {
@@ -363,6 +364,11 @@ Napi::Value Watcher::CancelOrderTrigger(const Napi::CallbackInfo &info) {
   return InteractWithTD<OrderTriggerAction>(info, info[0].ToObject(), &OrderTriggerAction::order_trigger_action_id);
 }
 
+Napi::Value Watcher::ToggleAlgoOrder(const Napi::CallbackInfo &info) {
+  SPDLOG_INFO("toggle algo order manually");
+  return InteractWithTD<AlgoOrderAction>(info, info[0].ToObject(), &AlgoOrderAction::order_action_id);
+}
+
 Napi::Value Watcher::RequestMarketData(const Napi::CallbackInfo &info) {
   if (not IsValid(info, 0, &Napi::Value::IsObject)) {
     return Napi::Boolean::New(info.Env(), false);
@@ -427,6 +433,7 @@ void Watcher::Init(Napi::Env env, Napi::Object exports) {
                       InstanceMethod("cancelOrder", &Watcher::CancelOrder),                             //
                       InstanceMethod("cancelAlgoOrder", &Watcher::CancelAlgoOrder),                     //
                       InstanceMethod("cancelOrderTrigger", &Watcher::CancelOrderTrigger),               //
+                      InstanceMethod("toggleAlgoOrder", &Watcher::ToggleAlgoOrder),                     //
                       InstanceMethod("requestMarketData", &Watcher::RequestMarketData),                 //
                       InstanceMethod("requestPosition", &Watcher::RequestPosition),                     //
                       InstanceMethod("start", &Watcher::Start),                                         //

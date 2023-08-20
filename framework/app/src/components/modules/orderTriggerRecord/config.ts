@@ -29,7 +29,7 @@ export const getColumns = (): AntTableColumns => [
     align: 'left',
     defaultSortOrder: 'descend',
     sorter: {
-      compare: buildSorter('insert_time_resolved'),
+      compare: buildSorter('insert_time'),
     },
     width: 100,
   },

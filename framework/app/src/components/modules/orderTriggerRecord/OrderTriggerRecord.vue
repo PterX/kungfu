@@ -50,7 +50,6 @@ import {
   OffsetEnum,
   OrderTriggerParkedTypeEnum,
   SideEnum,
-  TimeConditionEnum,
   OrderTriggerTypeEnum,
   OrderTriggerStatusEnum,
   OrderTriggerFlag,
@@ -183,7 +182,7 @@ function handleBatchModal() {
 
   const tdProcessId = getProcessIdByKfLocation(currentGlobalKfLocation.value);
   if (processStatusData.value[tdProcessId] !== 'online') {
-    error(t('tradingConfig.start_process', { process: tdProcessId }));
+    error(t('orderTriggerConfig.start_process', { process: tdProcessId }));
     return;
   }
 
@@ -325,7 +324,7 @@ function handleConfirmBatchOrderTrigger(
 
   const tdProcessId = getProcessIdByKfLocation(currentGlobalKfLocation.value);
   if (processStatusData.value[tdProcessId] !== 'online') {
-    error(t('tradingConfig.start_process', { process: tdProcessId }));
+    error(t('orderTriggerConfig.start_process', { process: tdProcessId }));
     return;
   }
 
@@ -349,7 +348,6 @@ function handleConfirmBatchOrderTrigger(
         side: +side,
         offset: getResolvedOffset(+offset, +side, instrumentType),
         parked_type: OrderTriggerParkedTypeEnum.Server,
-        time_condition: TimeConditionEnum.GFA,
       };
 
       return orderTriggerInput;
@@ -425,6 +423,12 @@ function handleCancelOrderTrigger(
     return;
   }
 
+  const tdProcessId = getProcessIdByKfLocation(currentGlobalKfLocation.value);
+  if (processStatusData.value[tdProcessId] !== 'online') {
+    error(t('orderTriggerConfig.start_process', { process: tdProcessId }));
+    return;
+  }
+
   const { order_id } = orderTrigger;
   const curOrder = (window.watcher as KungfuApi.Watcher).ledger.Order.filter(
     'order_id',
@@ -444,8 +448,8 @@ function handleCancelOrderTrigger(
     .then(() => {
       success();
     })
-    .catch(() => {
-      error();
+    .catch((err: Error) => {
+      error(err.message);
     });
 }
 
@@ -457,7 +461,7 @@ function handleCancelAllOrderTrigger() {
 
   const tdProcessId = getProcessIdByKfLocation(currentGlobalKfLocation.value);
   if (processStatusData.value[tdProcessId] !== 'online') {
-    error(t('tradingConfig.start_process', { process: tdProcessId }));
+    error(t('orderTriggerConfig.start_process', { process: tdProcessId }));
     return;
   }
 

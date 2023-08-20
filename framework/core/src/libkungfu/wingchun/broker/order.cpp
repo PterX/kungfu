@@ -93,9 +93,7 @@ void OrderService::clean_orders(bool bypass_recover) {
     if (not is_final_status(order.status) and (bypass_recover or order.external_order_id.to_string().empty())) {
       order.status = OrderStatus::Lost;
       order.update_time = time::now_in_nano();
-      if (vendor_.has_writer(pair.second.dest)) {
-        vendor_.write_to(vendor_.now(), order, pair.second.dest);
-      }
+      vendor_.try_write_to(vendor_.now(), order, pair.second.dest);
     }
   });
 }

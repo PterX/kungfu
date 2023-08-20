@@ -89,6 +89,7 @@ VolumeCondition = lf.enums.VolumeCondition
 TimeCondition = lf.enums.TimeCondition
 OrderActionFlag = lf.enums.OrderActionFlag
 OrderTriggerFlag = lf.enums.OrderTriggerFlag
+AlgoOrderActionFlag = lf.enums.AlgoOrderActionFlag
 LedgerCategory = lf.enums.LedgerCategory
 HedgeFlag = lf.enums.HedgeFlag
 CommissionRateMode = lf.enums.CommissionRateMode

@@ -146,9 +146,8 @@ uint64_t ReplayContext::insert_block_message(const std::string &source, const st
 uint64_t ReplayContext::insert_order_trigger(const std::string &instrument_id, const std::string &exchange_id,
                                              const std::string &source, const std::string &account, double limit_price,
                                              int64_t volume, PriceType type, Side side, Offset offset,
-                                             OrderTriggerType trigger_type, TimeCondition time_condition,
-                                             ParkedType parked_type, double stop_price, HedgeFlag hedge_flag,
-                                             bool is_swap) {
+                                             OrderTriggerType trigger_type, ParkedType parked_type, double stop_price,
+                                             HedgeFlag hedge_flag, bool is_swap) {
   auto account_location_uid = broker_client_.get_td_location_uid(source, account);
   if (not broker_client_.is_ready(account_location_uid)) {
     SPDLOG_ERROR("account {} not ready", app_.get_location_uname(account_location_uid));
@@ -292,10 +291,21 @@ uint64_t ReplayContext::cancel_order_trigger(uint64_t trigger_id) {
   return frame->data<OrderTriggerAction>().order_trigger_action_id;
 }
 
-uint64_t ReplayContext::cancel_algo_order(uint64_t algo_order_id) {
+uint64_t ReplayContext::cancel_algo_order(uint64_t algo_order_id, AlgoOrderActionFlag action_flag) {
   uint32_t account_location_uid = (algo_order_id >> 32u) xor (get_live_home_uid());
   if (not broker_client_.is_ready(account_location_uid)) {
     SPDLOG_ERROR("account {} not ready", app_.get_location_uname(account_location_uid));
+    return 0;
+  }
+
+  auto frame = read_next(AlgoOrderAction::tag);
+  return frame->data<AlgoOrderAction>().order_action_id;
+}
+
+uint64_t ReplayContext::toggle_algo_order(uint64_t algo_order_id, longfist::enums::AlgoOrderActionFlag action_flag) {
+  uint32_t account_location_uid = (algo_order_id >> 32u) xor (get_live_home_uid());
+  if (not broker_client_.is_ready(account_location_uid)) {
+    SPDLOG_ERROR("toggle_algo_order account {} not ready", app_.get_location_uname(account_location_uid));
     return 0;
   }
 

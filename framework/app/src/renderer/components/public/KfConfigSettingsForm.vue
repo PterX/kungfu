@@ -36,6 +36,7 @@ import {
   KfConfigValueNumberType,
   KfConfigValueArrayType,
   KfConfigValueBooleanType,
+  KfConfigValueAnyType,
   getCombineValueByPrimaryKeys,
   getPriceTypeConfig,
   initFormStateByConfig,
@@ -374,13 +375,15 @@ function getTablesSearchRelated(
 
 function getValidatorType(
   type: string,
-): 'number' | 'string' | 'array' | 'boolean' {
+): 'number' | 'string' | 'array' | 'boolean' | 'any' {
   if (KfConfigValueNumberType.includes(type)) {
     return 'number';
   } else if (KfConfigValueArrayType.includes(type)) {
     return 'array';
   } else if (KfConfigValueBooleanType.includes(type)) {
     return 'boolean';
+  } else if (KfConfigValueAnyType.includes(type)) {
+    return 'any';
   } else {
     return 'string';
   }

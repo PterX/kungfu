@@ -120,7 +120,7 @@ const million2nanoSecond = (number: number) => {
 };
 
 const tipFormatter = (num: number) => {
-  return dealKfTime(BigInt(num * SCALE));
+  return dealKfTime(BigInt(num) * BIGINT_SCALE);
 };
 
 const getTooltipPopupContainer = (trigger: HTMLElement): HTMLElement => trigger;

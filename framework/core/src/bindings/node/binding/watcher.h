@@ -103,6 +103,8 @@ public:
 
   Napi::Value CancelOrderTrigger(const Napi::CallbackInfo &info);
 
+  Napi::Value ToggleAlgoOrder(const Napi::CallbackInfo &info);
+
   Napi::Value RequestMarketData(const Napi::CallbackInfo &info);
 
   Napi::Value Start(const Napi::CallbackInfo &info);

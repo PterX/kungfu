@@ -150,7 +150,6 @@ public:
    * @param side
    * @param offset
    * @param trigger_type
-   * @param time_condition
    * @param action_flag
    * @param order_id
    * @param stop_price
@@ -162,8 +161,7 @@ public:
                                 const std::string &source, const std::string &account, double limit_price,
                                 int64_t volume, longfist::enums::PriceType type, longfist::enums::Side side,
                                 longfist::enums::Offset offset, longfist::enums::OrderTriggerType trigger_type,
-                                longfist::enums::TimeCondition time_condition, longfist::enums::ParkedType parked_type,
-                                double stop_price = 0,
+                                longfist::enums::ParkedType parked_type, double stop_price = 0,
                                 longfist::enums::HedgeFlag hedge_flag = longfist::enums::HedgeFlag::Speculation,
                                 bool is_swap = false) override;
 
@@ -245,7 +243,15 @@ public:
    * @param algo_order_id
    * @return algo order action ID
    */
-  uint64_t cancel_algo_order(uint64_t algo_order_id) override;
+  uint64_t cancel_algo_order(uint64_t algo_order_id, longfist::enums::AlgoOrderActionFlag action_flag =
+                                                         longfist::enums::AlgoOrderActionFlag::Cancel) override;
+  /**
+   * Toggle Algo Order
+   * @param algo_order_id
+   * @return algo order action ID
+   */
+  virtual uint64_t toggle_algo_order(uint64_t algo_order_id, longfist::enums::AlgoOrderActionFlag action_flag =
+                                                                 longfist::enums::AlgoOrderActionFlag::Start) override;
 
   /**
    * query history order

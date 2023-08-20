@@ -165,7 +165,6 @@ public:
                                         const std::string &source, const std::string &account, double limit_price,
                                         int64_t volume, longfist::enums::PriceType type, longfist::enums::Side side,
                                         longfist::enums::Offset offset, longfist::enums::OrderTriggerType trigger_type,
-                                        longfist::enums::TimeCondition time_condition,
                                         longfist::enums::ParkedType parked_type = longfist::enums::ParkedType::Server,
                                         double stop_price = 0,
                                         longfist::enums::HedgeFlag hedge_flag = longfist::enums::HedgeFlag::Speculation,
@@ -250,7 +249,17 @@ public:
    * @param algo_order_id
    * @return algo order action ID
    */
-  virtual uint64_t cancel_algo_order(uint64_t algo_order_id) = 0;
+  virtual uint64_t cancel_algo_order(uint64_t algo_order_id, longfist::enums::AlgoOrderActionFlag action_flag =
+                                                                 longfist::enums::AlgoOrderActionFlag::Cancel) = 0;
+
+  /**
+   * Toggle Algo Order
+   * @param algo_order_id
+   * @return algo order action ID
+   */
+  virtual uint64_t
+  toggle_algo_order(uint64_t algo_order_id,
+                    longfist::enums::AlgoOrderActionFlag action_flag = longfist::enums::AlgoOrderActionFlag::Start) = 0;
 
   /**
    * query history order
@@ -277,7 +286,7 @@ public:
    * by kungfu.
    * @return true if positions are mirrored, false otherwise. Defaults to true.
    */
-  [[nodiscard]] bool is_positions_mirrored() const;
+  [[nodiscard]] bool is_positions_held() const;
 
   /**
    * Call to hold book.

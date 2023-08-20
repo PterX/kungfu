@@ -75,9 +75,12 @@ void LiveContext::prepare(const event_ptr &event) {
   }
 
   if (not positions_requested_) {
-    if (not is_book_held()) {
+    if (is_positions_held()) {
       // Start - Let ledger prepare book for strategy
       writer->mark(now(), KeepPositionsRequest::tag);
+    }
+
+    if (not is_book_held()) {
       writer->mark(now(), ResetBookRequest::tag);
     }
 
@@ -88,25 +91,31 @@ void LiveContext::prepare(const event_ptr &event) {
     for (const auto &pair : get_broker_client().get_instrument_keys()) {
       writer->write(now(), pair.second);
     }
-    if (is_positions_mirrored()) {
-      writer->mark(now(), MirrorPositionsRequest::tag);
-    }
+
+    // in hold position situation, mirror position help to keep avg_open_price and position volume is reset by
+    // RebuildPositionsRequest
+    writer->mark(now(), MirrorPositionsRequest::tag);
+
     // End - Let ledger prepare book for strategy
-    if (not is_book_held() and not is_positions_mirrored()) {
+    if (is_positions_held()) {
       writer->mark(now(), RebuildPositionsRequest::tag);
     }
+
     // Request ledger to recover book for strategy
     writer->mark(now(), AssetRequest::tag);
     writer->mark(now(), PositionRequest::tag);
     positions_requested_ = true;
     return;
   }
+
   if (event->msg_type() == PositionEnd::tag and event->source() == ledger_uid) {
     positions_set_ = true;
   }
+
   if (not positions_set_) {
     return;
   }
+
   get_bookkeeper().guard_positions();
   started_ = true;
 }
@@ -183,7 +192,6 @@ uint64_t LiveContext::insert_order_trigger(const std::string &instrument_id, con
                                            int64_t volume, longfist::enums::PriceType type, longfist::enums::Side side,
                                            longfist::enums::Offset offset,
                                            longfist::enums::OrderTriggerType trigger_type,
-                                           longfist::enums::TimeCondition time_condition,
                                            longfist::enums::ParkedType parked_type, double stop_price,
                                            longfist::enums::HedgeFlag hedge_flag, bool is_swap) {
   auto account_location_uid = broker_client_.get_td_location_uid(source, account);
@@ -213,7 +221,6 @@ uint64_t LiveContext::insert_order_trigger(const std::string &instrument_id, con
   input.offset = offset;
   input.hedge_flag = hedge_flag;
   input.is_swap = is_swap;
-  input.time_condition = time_condition;
   input.parked_type = parked_type;
   input.insert_time = time::now_in_nano();
   writer->close_data();
@@ -424,7 +431,7 @@ uint64_t LiveContext::cancel_order_trigger(uint64_t trigger_id) {
   return action.order_trigger_action_id;
 }
 
-uint64_t LiveContext::cancel_algo_order(uint64_t algo_order_id) {
+uint64_t LiveContext::cancel_algo_order(uint64_t algo_order_id, AlgoOrderActionFlag action_flag) {
   uint32_t account_location_uid = (algo_order_id >> 32u) xor (get_home_uid());
   if (not broker_client_.is_ready(account_location_uid)) {
     SPDLOG_ERROR("account {} not ready", app_.get_location_uname(account_location_uid));
@@ -437,7 +444,25 @@ uint64_t LiveContext::cancel_algo_order(uint64_t algo_order_id) {
   AlgoOrderAction &action = writer->open_data<AlgoOrderAction>(0);
   action.order_action_id = writer->current_frame_uid();
   action.order_id = algo_order_id;
-  action.action_flag = OrderActionFlag::Cancel;
+  action.action_flag = action_flag;
+  writer->close_data();
+  return action.order_action_id;
+}
+
+uint64_t LiveContext::toggle_algo_order(uint64_t algo_order_id, longfist::enums::AlgoOrderActionFlag action_flag) {
+  uint32_t account_location_uid = (algo_order_id >> 32u) xor (get_home_uid());
+  if (not broker_client_.is_ready(account_location_uid)) {
+    SPDLOG_ERROR("toggle_algo_order account {} not ready", app_.get_location_uname(account_location_uid));
+    return 0;
+  }
+
+  auto account_location = app_.get_location(account_location_uid);
+  auto writer = app_.get_writer(account_location_uid);
+  page_ptr page = writer->get_current_page();
+  AlgoOrderAction &action = writer->open_data<AlgoOrderAction>(0);
+  action.order_action_id = writer->current_frame_uid();
+  action.order_id = algo_order_id;
+  action.action_flag = action_flag;
   writer->close_data();
   return action.order_action_id;
 }

@@ -73,7 +73,6 @@ import {
   OrderTriggerStatusEnum,
   OrderTriggerTypeEnum,
   OrderTriggerParkedTypeEnum,
-  OrderTriggerTimeConditionEnum,
   OrderTriggerFlag,
 } from '../typings/enums';
 import {
@@ -571,28 +570,14 @@ const resolveOrderTriggerConfig = (
     const orderTriggerOriginConfig = originConfig.td?.order_trigger || {};
     const orderTriggerTypesKeys = Object.keys(OrderTriggerTypeEnum);
     const orderTriggerParkedTypesKeys = Object.keys(OrderTriggerParkedTypeEnum);
-    const orderTriggerTimeConditionKeys = Object.keys(
-      OrderTriggerTimeConditionEnum,
-    );
     return Object.keys(orderTriggerOriginConfig).reduce((config, key) => {
       if (orderTriggerTypesKeys.includes(key)) {
         config[OrderTriggerTypeEnum[key]] = Object.keys(
           orderTriggerOriginConfig[key] || {},
         ).reduce((parkedConfig, parkedType) => {
           if (orderTriggerParkedTypesKeys.includes(parkedType)) {
-            parkedConfig[OrderTriggerParkedTypeEnum[parkedType]] = Object.keys(
-              orderTriggerOriginConfig[key]?.[parkedType] || {},
-            ).reduce((timeConditionConfig, timeCondition) => {
-              if (orderTriggerTimeConditionKeys.includes(timeCondition)) {
-                timeConditionConfig[
-                  OrderTriggerTimeConditionEnum[timeCondition]
-                ] =
-                  !!orderTriggerOriginConfig[key]?.[parkedType]?.[
-                    timeCondition
-                  ];
-              }
-              return timeConditionConfig;
-            }, {});
+            parkedConfig[OrderTriggerParkedTypeEnum[parkedType]] =
+              !!orderTriggerOriginConfig[key]?.[parkedType];
           }
           return parkedConfig;
         }, {});
@@ -2231,6 +2216,8 @@ export const KfConfigValueNumberType = [
 
 export const KfConfigValueBooleanType = ['bool', 'checkbox'];
 
+export const KfConfigValueAnyType = ['select'];
+
 export const KfConfigValueArrayType = [
   'tds',
   'files',
@@ -2616,8 +2603,13 @@ export const isBrokerStateReady = (state: BrokerStateStatusTypes) => {
 };
 
 export function deleteNNFiles(rootPathName = KF_HOME) {
+  kfLogger.info('Deleting nn folder');
   return removeTargetFoldersInFolder(rootPathName, ['nn']).then((res) => {
+    if (res.successes.length) {
+      kfLogger.info(`Succeed delete 'nn' folders: ${res.successes.join(', ')}`);
+    }
     res.errors.forEach((err) => kfLogger.error(err));
+    kfLogger.info('Deleting nn folder finished');
   });
 }
 

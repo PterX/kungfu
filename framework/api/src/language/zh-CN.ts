@@ -392,7 +392,7 @@ export default {
       '卖出价格超出警戒线, 当前价格为 {price}, 警戒线为 {warningLine}, 当前乌龙指阈值为 {fatFinger}%',
     close_apart_open_modal:
       '下单量为 {volume}, 当前标的可平 {direction} 仓为 {closableVolume}, 超出数量为 {openVolume}\n点击 “超出部分反向开仓”, 将会 平 {direction} {closableVolume}, 开{oppositeDirection} {openVolume}\n点击“按原方案下单”, 将会继续平 {direction} {volume}',
-    start_process: '请先启动{process}交易进程',
+    start_process: '请先启动 {process} 交易进程',
     place_confirm: '下单确认',
     continue_close_rate: '{relationship} 平仓阈值 ({rate}%), 是否继续下单?',
     Continue: '继续下单',
@@ -472,6 +472,7 @@ export default {
     empty_instrument: '空',
     err_modal_title: '错误详情',
     order_trigger_not_future: '不是期货',
+    start_process: '请先启动 {process} 交易进程',
   },
 
   tdConfig: {
@@ -697,6 +698,7 @@ export default {
     select_channel: '过滤数据信道',
 
     selete_msg_type: '过滤消息类型',
+    empty_export_data: '没有可导出的信息',
   },
 
   tradeConfig: {
@@ -782,7 +784,7 @@ export default {
     select_language_desc: '选择语言, 修改后重启功夫生效',
     bypass_archive: '跳过归档',
     bypass_archive_desc:
-      '仅删除上个交易日留下的 journal 与 log 文件, 不再压缩打包, 跳过归档后无法恢复之前的内存数据, 会加快启动速度',
+      '开启后, 每次启动会删除所有 journal, 且仅保留当日 runtime 目录下 log, 跳过归档后无法恢复之前的内存数据, 会加快启动速度',
 
     bypass_subscribe_position: '跳过持仓行情订阅',
     bypass_subscribe_position_desc:

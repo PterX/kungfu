@@ -187,8 +187,8 @@ void bind_strategy(pybind11::module &m) {
       .def("insert_order_trigger", &strategy::Context::insert_order_trigger, py::arg("instrument_id"),
            py::arg("exchange"), py::arg("source"), py::arg("account"), py::arg("limit_price"), py::arg("volume"),
            py::arg("type"), py::arg("side"), py::arg("offset") = Offset::Open, py::arg("trigger_type"),
-           py::arg("time_condition"), py::arg("parked_type") = longfist::enums::ParkedType::Server,
-           py::arg("stop_price") = 0, py::arg("hedge_flag") = HedgeFlag::Speculation, py::arg("is_swap") = false)
+           py::arg("parked_type") = longfist::enums::ParkedType::Server, py::arg("stop_price") = 0,
+           py::arg("hedge_flag") = HedgeFlag::Speculation, py::arg("is_swap") = false)
       .def("insert_batch_orders", &strategy::Context::insert_batch_orders)
       .def("insert_array_orders", &strategy::Context::insert_array_orders)
       .def("insert_algo_order", &strategy::Context::insert_algo_order, py::arg("instrument_id"), py::arg("exchange_id"),
@@ -199,6 +199,7 @@ void bind_strategy(pybind11::module &m) {
            py::arg("action_flag") = OrderActionFlag::Cancel)
       .def("cancel_order_trigger", &strategy::Context::cancel_order_trigger)
       .def("cancel_algo_order", &strategy::Context::cancel_algo_order)
+      .def("toggle_algo_order", &strategy::Context::toggle_algo_order)
       .def("req_history_order", &strategy::Context::req_history_order, py::arg("source"), py::arg("account"),
            py::arg("query_num") = 0)
       .def("req_history_trade", &strategy::Context::req_history_trade, py::arg("source"), py::arg("account"),
@@ -206,7 +207,7 @@ void bind_strategy(pybind11::module &m) {
       .def("hold_book", &strategy::Context::hold_book)
       .def("hold_positions", &strategy::Context::hold_positions)
       .def("is_book_held", &strategy::Context::is_book_held)
-      .def("is_positions_mirrored", &strategy::Context::is_positions_mirrored)
+      .def("is_positions_held", &strategy::Context::is_positions_held)
       .def("req_deregister", &strategy::Context::req_deregister)
       .def("update_strategy_state", &strategy::Context::update_strategy_state)
       .def("is_bypass_accounting", &strategy::Context::is_bypass_accounting)

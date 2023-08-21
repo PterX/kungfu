@@ -841,7 +841,6 @@ KF_DEFINE_DATA_TYPE(                                   //
     (std::string, group),                              //
     (std::string, name),                               //
     (enums::mode, mode),                               //
-    (bool, disable_recover),                           // 是否跳过今日委托恢复
     (bool, risk_check),                                //
     (enums::SelfDealCheckType, self_deal_check_type),  //
     (std::string, value)                               //

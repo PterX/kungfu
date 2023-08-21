@@ -49,13 +49,11 @@ void AccountingMethod::setup_defaults(Bookkeeper &bookkeeper, const AccountingMe
 
 bool AccountingMethod::guard_order_accounting(Book_ptr book, const longfist::types::Order &order) {
   auto &orders = book->orders;
-  if (orders.find(order.order_id) == orders.end()) {
-    return true;
-  }
-  if (is_final_status(orders.at(order.order_id).status)) {
+  if (not is_final_status(order.status)) {
     return false;
   }
-  if (not is_final_status(order.status)) {
+
+  if (orders.find(order.order_id) != orders.end() and is_final_status(orders.at(order.order_id).status)) {
     return false;
   }
   return true;

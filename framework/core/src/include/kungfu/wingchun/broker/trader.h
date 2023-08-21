@@ -361,7 +361,7 @@ public:
 
   [[nodiscard]] uint32_t get_risk_uid() const;
 
-  [[maybe_unused]] void disable_recover();
+  void disable_recover();
 
   virtual void on_recover(){};
 

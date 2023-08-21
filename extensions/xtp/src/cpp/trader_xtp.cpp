@@ -23,9 +23,16 @@ TraderXTP::~TraderXTP() {
   }
 }
 
-void TraderXTP::on_start() {
+void TraderXTP::pre_start() {
   config_ = nlohmann::json::parse(get_config());
   SPDLOG_INFO("config: {}", get_config());
+  if (not config_.recover_order_trade) {
+    disable_recover();
+  }
+}
+
+void TraderXTP::on_start() {
+
   if (config_.client_id < 1 or config_.client_id > 99) {
     SPDLOG_ERROR("client_id must between 1 and 99");
   }

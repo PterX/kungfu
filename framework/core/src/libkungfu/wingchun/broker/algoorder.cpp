@@ -169,15 +169,11 @@ void AlgoOrderService::clean_algo_orders(uint32_t source, const AlgoOrderInput &
     return;
   }
 
-  if (not vendor_.has_writer(source)) {
-    return;
-  }
-
-  AlgoOrder &algo_order = vendor_.get_writer(source)->open_data<AlgoOrder>();
+  AlgoOrder algo_order{};
   algo_order_from_input(algo_order_input, algo_order);
   algo_order.status = OrderStatus::Lost;
   algo_order.update_time = time::now_in_nano();
-  vendor_.get_writer(source)->close_data();
+  vendor_.try_write_to(vendor_.now(), algo_order, source);
 }
 
 const AlgoOrderMap &AlgoOrderService::get_algo_orders() const { return algo_orders_; }

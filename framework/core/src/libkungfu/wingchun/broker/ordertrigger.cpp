@@ -45,16 +45,12 @@ void OrderTriggerService::clean_order_triggers(uint32_t source,
   if (order_triggers_.find(order_trigger_input.trigger_id) != order_triggers_.end()) {
     return;
   }
-  if (not vendor_.has_writer(source)) {
-    return;
-  }
 
-  auto writer = vendor_.get_writer(source);
-  OrderTrigger &trigger = writer->open_data<OrderTrigger>();
+  OrderTrigger trigger{};
   order_trigger_from_input(order_trigger_input, trigger);
   trigger.status = OrderStatus::Lost;
   trigger.update_time = time::now_in_nano();
-  writer->close_data();
+  vendor_.try_write_to(vendor_.now(), trigger, source);
 }
 
 const OrderTriggerMap &OrderTriggerService::get_order_triggers() const { return order_triggers_; }

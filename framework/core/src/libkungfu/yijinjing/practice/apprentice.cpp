@@ -315,8 +315,9 @@ void apprentice::checkin() {
 
   SPDLOG_INFO("app checkin");
 
-  while (not is_usable()) {
-    SPDLOG_WARN("publisher is not usable");
+  int count = 10;
+  while (not is_usable() and count-- > 0) {
+    SPDLOG_WARN("publisher is not usable, count {}", count);
   }
 
   SPDLOG_INFO("io is usable");

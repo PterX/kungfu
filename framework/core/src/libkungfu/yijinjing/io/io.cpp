@@ -8,7 +8,7 @@
 
 #define SETUP_TIMEOUT 500
 #define DEFAULT_RECV_TIMEOUT 100
-#define DEFAULT_NOTICE_TIMEOUT 1000
+#define DEFAULT_NOTICE_TIMEOUT 10000
 
 using namespace kungfu::longfist;
 using namespace kungfu::longfist::enums;
@@ -57,8 +57,8 @@ public:
 
   int notify() override { return low_latency_ ? 0 : publish("{}"); }
 
-  int publish(const std::string &json_message, int flags = NNG_FLAG_NONBLOCK) override {
-    return socket_.send(json_message, flags);
+  int publish(const std::string &json_message, int flags = NNG_FLAG_NONBLOCK, bool no_exception = false) override {
+    return socket_.send(json_message, flags, no_exception);
   }
 };
 
@@ -93,7 +93,7 @@ public:
     ping["source"] = io_device_.get_home()->uid;
     ping["dest"] = 0;
     ping["data"] = "";
-    return publish(ping.dump()) == 0;
+    return publish(ping.dump(), 0, true) == 0;
   }
 };
 

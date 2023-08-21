@@ -21,7 +21,8 @@ using namespace kungfu::yijinjing::cache;
 namespace kungfu::yijinjing::cache {
 
 cached::cached(const yijinjing::io_device_ptr &io_device, bool bypass_cached)
-    : session_builder_(io_device), profile_(io_device->get_locator()), bypass_cached_(bypass_cached) {
+    : session_builder_(io_device), profile_(io_device->get_locator()), bypass_cached_(bypass_cached),
+      ledger_home_location_(yijinjing::practice::make_system_location("service", "ledger", io_device->get_locator())) {
   profile_.setup();
   profile_get_all(profile_, profile_feed_bank_);
 }
@@ -90,6 +91,19 @@ void cached::restore_states(const yijinjing::data::location_ptr &location,
           } catch (const std::exception &ex) {
             SPDLOG_ERROR("failed to write cache {} {} {}", other_location->uname, dest, ex.what());
           }
+        }
+      }
+    }
+  }
+
+  if (location->uid == ledger_home_location_->uid) {
+    for (const auto &other_location : location->locator->list_locations("td", "*", "*", "live")) {
+      for (auto dest : location->locator->list_location_dest_by_db(other_location)) {
+        try {
+          ensure_cached_storage(other_location, dest);
+          app_states_shift_.at(other_location->uid).restore_to(writer, dest);
+        } catch (const std::exception &ex) {
+          SPDLOG_ERROR("failed to write cache {} {} {} for ledger", other_location->uname, dest, ex.what());
         }
       }
     }

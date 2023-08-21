@@ -217,7 +217,6 @@ void Trader::on_risk_setting() {
   const std::string msg = get_risk_setting();
   SPDLOG_DEBUG("RiskSetting: {}", msg);
   auto risk_setting_data = nlohmann::json::parse(msg);
-  disable_recover_ = risk_setting_data.value<bool>("disable_recover", false);
   auto risk_check = risk_setting_data.value<bool>("risk_check", false);
   if (risk_check) {
     // let process crash if value is not a json

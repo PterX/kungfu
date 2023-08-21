@@ -45,7 +45,7 @@ public:
   }
 
   void pre_start() override;
-  
+
   void on_start() override;
 
   void on_exit() override;

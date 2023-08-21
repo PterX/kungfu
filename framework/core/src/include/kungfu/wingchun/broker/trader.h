@@ -112,7 +112,7 @@ public:
 
   void enable_self_detect();
 
-  [[maybe_unused]] void disable_recover();
+  void disable_recover();
 
   virtual void on_recover(){};
 

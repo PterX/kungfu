@@ -37,6 +37,7 @@ void TraderVendor::react() {
 
 void TraderVendor::on_start() {
   BrokerVendor::on_start();
+  service_->pre_start();
 
   events_ | is(BlockMessage::tag) | $$(service_->insert_block_message(event));
   events_ | is(OrderTriggerInput::tag) | $$(service_->insert_order_trigger(event));
@@ -331,11 +332,6 @@ void Trader::clear_order_inputs(uint64_t location_uid) { order_inputs_.erase(loc
 
 [[maybe_unused]] void Trader::disable_recover() { disable_recover_ = true; }
 
-void Trader::on_risk_setting() {
-  const std::string msg = get_risk_setting();
-  SPDLOG_DEBUG("RiskSetting: {}", msg);
-  auto risk_setting_data = nlohmann::json::parse(msg);
-  disable_recover_ = risk_setting_data.value<bool>("disable_recover", false);
-}
+void Trader::on_risk_setting() {}
 
 } // namespace kungfu::wingchun::broker

@@ -20,6 +20,7 @@ struct TDConfiguration {
   std::string td_ip;
   int td_port;
   bool sync_external_order;
+  bool recover_order_trade;
 };
 
 inline void from_json(const nlohmann::json &j, TDConfiguration &c) {
@@ -30,6 +31,7 @@ inline void from_json(const nlohmann::json &j, TDConfiguration &c) {
   j.at("td_ip").get_to(c.td_ip);
   j.at("td_port").get_to(c.td_port);
   c.sync_external_order = j.value<bool>("sync_external_order", false);
+  c.recover_order_trade = j.value<bool>("recover_order_trade", true);
 }
 
 class TraderXTP : public XTP::API::TraderSpi, public broker::Trader {
@@ -43,6 +45,8 @@ public:
   }
 
   void on_trading_day(const event_ptr &event, int64_t daytime) override;
+
+  void pre_start() override;
 
   void on_start() override;
 

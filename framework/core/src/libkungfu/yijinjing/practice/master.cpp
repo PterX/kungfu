@@ -105,7 +105,7 @@ void master::register_app(const event_ptr &event) {
 
   auto now = time::now_in_nano();
   auto uid_str = fmt::format("{:08x}", app_location->uid);
-  SPDLOG_INFO("registering location {} uname {}", uid_str, app_location->uname);
+  SPDLOG_INFO("registering location {} uid {} uname {}", uid_str, app_location->uid, app_location->uname);
   auto master_cmd_location = location::make_shared(mode::LIVE, category::SYSTEM, "master", uid_str, home->locator);
   auto app_cmd_writer = get_io_device()->open_writer_at(master_cmd_location, app_location->uid);
 

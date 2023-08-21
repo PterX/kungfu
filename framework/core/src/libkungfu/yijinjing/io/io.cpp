@@ -105,12 +105,12 @@ public:
   ~nanomsg_observer() override { socket_.close(); }
 
   bool wait() override {
-    int rc = socket_.recv(recv_flags_) == 0;
+    bool rc = socket_.recv(recv_flags_) == 0;
     return rc;
   }
 
   bool nonblock_wait() override {
-    int rc = socket_.recv(NNG_FLAG_NONBLOCK | NNG_FLAG_ALLOC) == 0;
+    bool rc = socket_.recv(NNG_FLAG_NONBLOCK | NNG_FLAG_ALLOC) == 0;
     return rc;
   }
 

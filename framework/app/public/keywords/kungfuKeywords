@@ -197,7 +197,6 @@ frame_count
 info_a
 info_b
 info_c
-disable_recover
 open_ratio
 close_ratio
 close_today_ratio

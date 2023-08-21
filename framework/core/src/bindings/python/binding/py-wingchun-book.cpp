@@ -71,29 +71,11 @@ void bind_book(pybind11::module &m) {
       .def_readonly("instrument_factors", &Book::instrument_factors, py::return_value_policy::reference)
       .def_property_readonly("instruments", &Book::get_instruments, py::return_value_policy::reference)
       .def_property_readonly("commissions", &Book::get_commissions, py::return_value_policy::reference)
-      .def("update", &Book::update);
-  // TODO
-  // .def("has_long_position", &Book::has_long_position)
-  // .def("has_short_position", &Book::has_short_position)
-  // .def("has_position", &Book::has_position)
-  // .def("get_long_position", &Book::get_long_position)
-  // .def("get_short_position", &Book::get_short_position)
-  // .def("get_position", &Book::get_position)
-  // .def("has_position_for", py::overload_cast<const Quote &>(&Book::has_position_for<Quote>, py::const_))
-  // .def("has_position_for", py::overload_cast<const Tree &>(&Book::has_position_for<Tree>, py::const_))
-  // .def("has_position_for", py::overload_cast<const OrderInput &>(&Book::has_position_for<OrderInput>, py::const_))
-  // .def("has_position_for", py::overload_cast<const Order &>(&Book::has_position_for<Order>, py::const_))
-  // .def("has_position_for", py::overload_cast<const Trade &>(&Book::has_position_for<Trade>, py::const_))
-  // .def("get_position_for", py::overload_cast<Direction, const Quote &>(&Book::get_position_for<Quote>),
-  //      py::return_value_policy::reference)
-  // .def("get_position_for", py::overload_cast<Direction, const Tree &>(&Book::get_position_for<Tree>),
-  //      py::return_value_policy::reference)
-  // .def("get_position_for", py::overload_cast<const OrderInput &>(&Book::get_position_for<OrderInput>),
-  //      py::return_value_policy::reference)
-  // .def("get_position_for", py::overload_cast<const Order &>(&Book::get_position_for<Order>),
-  //      py::return_value_policy::reference)
-  // .def("get_position_for", py::overload_cast<const Trade &>(&Book::get_position_for<Trade>),
-  //      py::return_value_policy::reference);
+      .def("update", &Book::update)
+      .def("has_long_position", &Book::has_long_position)
+      .def("has_short_position", &Book::has_short_position)
+      .def("get_long_position", &Book::get_long_position)
+      .def("get_short_position", &Book::get_short_position);
 
   py::class_<AccountingMethod, PyAccountingMethod, AccountingMethod_ptr>(m, "AccountingMethod")
       .def(py::init<>())

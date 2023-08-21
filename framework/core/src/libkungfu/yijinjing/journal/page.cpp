@@ -72,8 +72,8 @@ page_ptr page::load(const data::location_ptr &location, uint32_t dest_id, uint32
   if (header->page_size != page_size) {
     uint32_t s = header->page_size;
     throw journal_error(
-        fmt::format("page size mismatch, required {}, found {}, location {}, path {}, dest_id {}, page_id {}",
-                    page_size, s, location->uname, path, dest_id, page_id));
+        fmt::format("page size mismatch, required {}, found {}, location {}, path {}, dest_id {}, page_id {} is_writing {}",
+                    page_size, s, location->uname, path, dest_id, page_id, is_writing));
   }
 
   if (header->status != longfist::enums::PageStatus::Normal && !pre_open) {

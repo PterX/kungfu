@@ -213,21 +213,6 @@ uint32_t Trader::get_risk_uid() const { return risk_uid_; }
 
 [[maybe_unused]] void Trader::disable_recover() { disable_recover_ = true; }
 
-void Trader::on_risk_setting() {
-  const std::string msg = get_risk_setting();
-  SPDLOG_DEBUG("RiskSetting: {}", msg);
-  auto risk_setting_data = nlohmann::json::parse(msg);
-  auto risk_check = risk_setting_data.value<bool>("risk_check", false);
-  if (risk_check) {
-    // let process crash if value is not a json
-    auto config = nlohmann::json::parse(risk_setting_data.value<std::string>("value", "{}"));
-    const auto risk_name = config.value<std::string>("risk_name", "");
-    if (not risk_name.empty()) {
-      risk_uid_ = location(get_home()->mode, category::SYSTEM, "service", risk_name, get_home()->locator).location_uid;
-    }
-  }
-}
-
 yijinjing::journal::writer_ptr &Trader::get_thread_writer() {
   return dynamic_cast<TraderVendor &>(get_vendor()).get_thread_writer();
 }
@@ -239,4 +224,5 @@ void Trader::try_req_account() {
   }
 }
 
+void Trader::on_risk_setting() {}
 } // namespace kungfu::wingchun::broker

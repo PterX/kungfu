@@ -204,7 +204,6 @@ frame_count
 info_a
 info_b
 info_c
-disable_recover
 risk_check
 self_deal_check_type
 open_ratio
@@ -306,12 +305,8 @@ __parse__
 update
 has_long_position
 has_short_position
-has_position
 get_long_position
 get_short_position
-get_position
-has_position_for
-get_position_for
 apply_quote
 apply_order_input
 apply_order
@@ -531,9 +526,6 @@ SSE
 SZE
 MarketType
 Snapshot
-Entrust
-Transaction
-Tree
 SubscribeDataType
 Stock
 Future

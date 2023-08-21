@@ -354,6 +354,7 @@ insert_batch_orders
 cancel_order
 cancel_order_trigger
 cancel_algo_order
+toggle_algo_order
 req_history_order
 req_history_trade
 req_account
@@ -530,6 +531,9 @@ SSE
 SZE
 MarketType
 Snapshot
+Entrust
+Transaction
+Tree
 SubscribeDataType
 Stock
 Future

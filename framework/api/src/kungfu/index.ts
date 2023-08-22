@@ -26,7 +26,6 @@ import {
   resolveAccountId,
   resolveClientId,
   setTimerPromiseTask,
-  dealParkedType,
   dealOrderTriggerStatus,
   dealTOrderTriggerFlag,
 } from '../utils/busiUtils';
@@ -952,9 +951,6 @@ export const dealOrderTrigger = (
     time_condition_resolved: dealTimeCondition(order.time_condition)
       ? dealTimeCondition(order.time_condition).name
       : '--',
-    parked_type_resolved: dealParkedType(order.parked_type)
-      ? dealParkedType(order.parked_type).name
-      : '--',
     key: index + 1,
     action_flag_uname: dealTOrderTriggerFlag(order.action_flag).name,
   };
@@ -1035,10 +1031,10 @@ export const dealPosition = (
       ? dealAssetPrice(pos.unrealized_pnl, pricePrecision)
       : '--',
     open_volume: pos.open_volume ?? 0,
-    static_yesterday_volume: pos.static_yesterday_volume ?? 0,
+    static_yesterday: pos.static_yesterday ?? 0,
     close_volume:
       Number(pos.open_volume) +
-        Number(pos.static_yesterday_volume) -
+        Number(pos.static_yesterday) -
         Number(pos.volume) || 0,
   };
 };

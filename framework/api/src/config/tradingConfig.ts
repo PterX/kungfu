@@ -25,7 +25,6 @@ import {
   BasketVolumeTypeEnum,
   BasketOrderStatusEnum,
   CurrencyEnum,
-  OrderTriggerParkedTypeEnum,
   OrderTriggerStatusEnum,
   FundTransEnum,
   OrderTriggerFlag,
@@ -491,18 +490,6 @@ export const TimeCondition: Record<
   [TimeConditionEnum.GTD]: { name: t('tradingConfig.GTD') },
   [TimeConditionEnum.GFA]: { name: t('tradingConfig.GFA') },
   [TimeConditionEnum.Unknown]: { name: t('tradingConfig.unknown') },
-};
-
-export const ParkedType: Record<
-  OrderTriggerParkedTypeEnum,
-  KungfuApi.KfTradeValueCommonData
-> = {
-  [OrderTriggerParkedTypeEnum.Server]: {
-    name: t('tradingConfig.server_order_trigger_label'),
-  },
-  [OrderTriggerParkedTypeEnum.Local]: {
-    name: t('tradingConfig.local_order_trigger_label'),
-  },
 };
 
 export const OrderTriggerStatus: Record<

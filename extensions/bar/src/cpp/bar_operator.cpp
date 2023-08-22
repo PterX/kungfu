@@ -52,10 +52,10 @@ public:
   }
 
   void pre_start(Context_ptr & context) override {
-    SPDLOG_INFO("preparing operator");
     try {
       nlohmann::json j_obj = nlohmann::json::parse(context->get_config());
       SPDLOG_INFO("preparing operator");
+      SPDLOG_INFO("j_obj: {}", j_obj.dump());
       std::string source = j_obj["source"];
       auto j_instruments = j_obj["instruments"];
       time_interval_ = j_obj["period"].get<int>() * kungfu::yijinjing::time_unit::NANOSECONDS_PER_SECOND;

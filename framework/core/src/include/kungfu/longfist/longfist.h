@@ -17,7 +17,6 @@ constexpr auto AllTypes = boost::hana::make_map( //
     TYPE_PAIR(frame_header),                     // 0
     TYPE_PAIR(page_header),                      // 1
     TYPE_PAIR(Asset),                            // 101
-    TYPE_PAIR(AssetMargin),                      // 102
     TYPE_PAIR(Position),                         // 103
     TYPE_PAIR(PositionEnd),                      // 104
     TYPE_PAIR(InstrumentFactor),                 // 105
@@ -110,7 +109,6 @@ constexpr auto AllTypes = boost::hana::make_map( //
     TYPE_PAIR(frame_header),                                          // 0
     TYPE_PAIR(page_header),                                           // 1
     TYPE_PAIR(Asset),                                                 // 101
-    TYPE_PAIR(AssetMargin),                                           // 102
     TYPE_PAIR(Position),                                              // 103
     TYPE_PAIR(PositionEnd),                                           // 104
     TYPE_PAIR(InstrumentFactor),                                      // 105
@@ -191,7 +189,6 @@ constexpr auto SessionDataTypes = boost::hana::make_map( //
 
 constexpr auto StateDataTypes = boost::hana::make_map( //
     TYPE_PAIR(Asset),                                  // 101
-    TYPE_PAIR(AssetMargin),                            // 102
     TYPE_PAIR(Position),                               // 103
     TYPE_PAIR(InstrumentFactor),                       // 105
     TYPE_PAIR(OrderInput),                             // 201

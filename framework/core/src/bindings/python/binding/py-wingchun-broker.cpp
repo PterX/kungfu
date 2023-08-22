@@ -77,6 +77,8 @@ public:
 
   bool cancel_algo_order(const event_ptr &event) override { PYBIND11_OVERLOAD(bool, Trader, cancel_algo_order, event); }
 
+  bool toggle_algo_order(const event_ptr &event) override { PYBIND11_OVERLOAD(bool, Trader, toggle_algo_order, event); }
+
   bool on_custom_event(const event_ptr &event) override { PYBIND11_OVERLOAD(bool, Trader, on_custom_event, event); }
 
   void on_time_key_value(const kungfu::event_ptr &event) override {
@@ -156,7 +158,6 @@ void bind_broker(pybind11::module &m) {
       .def("has_algo_order", &Trader::has_algo_order)
       .def("get_algo_order", &Trader::get_algo_order)
       .def("enable_asset_sync", &Trader::enable_asset_sync)
-      .def("enable_asset_margin_sync", &Trader::enable_asset_margin_sync)
       .def("enable_positions_sync", &Trader::enable_positions_sync)
       .def("get_account_type", &Trader::get_account_type)
       .def("add_timer", &Trader::add_timer)
@@ -170,6 +171,7 @@ void bind_broker(pybind11::module &m) {
       .def("cancel_order", &Trader::cancel_order)
       .def("cancel_order_trigger", &Trader::cancel_order_trigger)
       .def("cancel_algo_order", &Trader::cancel_algo_order)
+      .def("toggle_algo_order", &Trader::toggle_algo_order)
       .def("req_history_order", &Trader::req_history_order)
       .def("req_history_trade", &Trader::req_history_trade)
       .def("req_account", &Trader::req_account)

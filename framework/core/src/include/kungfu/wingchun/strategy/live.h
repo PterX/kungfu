@@ -4,8 +4,8 @@
 // Created by Keren Dong on 2020/7/20.
 //
 
-#ifndef WINGCHUN_RUNTIME_H
-#define WINGCHUN_RUNTIME_H
+#ifndef WINGCHUN_STRATEGY_LIVE_H
+#define WINGCHUN_STRATEGY_LIVE_H
 
 #include <kungfu/wingchun/strategy/context.h>
 
@@ -51,7 +51,7 @@ public:
    * @param source TD group
    * @param account TD account ID
    */
-  void add_account(const std::string &sourceOperator, const std::string &account) override;
+  void add_account(const std::string &soruce, const std::string &account) override;
 
   /**
    * Subscribe market data.
@@ -74,7 +74,7 @@ public:
    * @param group OPERATOR group
    * @param name OPERATOR name
    */
-  virtual void subscribe_operator(const std::string &group, const std::string &name) override;
+  void subscribe_operator(const std::string &group, const std::string &name) override;
 
   /**
    * Get broker client.
@@ -128,8 +128,8 @@ public:
    * @param order_input
    * @return
    */
-  virtual uint64_t insert_order_input(const std::string &source, const std::string &account,
-                                      longfist::types::OrderInput &order_input) override;
+  uint64_t insert_order_input(const std::string &source, const std::string &account,
+                              longfist::types::OrderInput &order_input) override;
 
   /**
    *
@@ -143,7 +143,6 @@ public:
    * @param side
    * @param offset
    * @param trigger_type
-   * @param time_condition
    * @param action_flag
    * @param order_id
    * @param stop_price
@@ -155,8 +154,7 @@ public:
                                 const std::string &source, const std::string &account, double limit_price,
                                 int64_t volume, longfist::enums::PriceType type, longfist::enums::Side side,
                                 longfist::enums::Offset offset, longfist::enums::OrderTriggerType trigger_type,
-                                longfist::enums::TimeCondition time_condition, longfist::enums::ParkedType parked_type,
-                                double stop_price = 0,
+                                longfist::enums::ParkedType parked_type, double stop_price = 0,
                                 longfist::enums::HedgeFlag hedge_flag = longfist::enums::HedgeFlag::Speculation,
                                 bool is_swap = false) override;
 
@@ -192,22 +190,6 @@ public:
    */
   std::vector<uint64_t> insert_array_orders(const std::string &source, const std::string &account,
                                             std::vector<longfist::types::OrderInput> &order_inputs) override;
-
-  /**
-   * @param basket_id
-   * @param source
-   * @param account
-   * @param price_type
-   * @param price_level
-   * @param price_offset
-   * @param volume_mode
-   * @param total_volume
-   * @return basket order id
-   */
-  uint64_t insert_basket_order(uint64_t basket_id, const std::string &source, const std::string &account,
-                               longfist::enums::Side side, longfist::enums::PriceType price_type,
-                               longfist::enums::PriceLevel price_level, double price_offset = 0,
-                               int64_t volume = 0) override;
 
   /**
    * @param instrument_id instrument ID
@@ -255,7 +237,16 @@ public:
    * @param algo_order_id
    * @return algo order action ID
    */
-  uint64_t cancel_algo_order(uint64_t algo_order_id) override;
+  uint64_t cancel_algo_order(uint64_t algo_order_id, longfist::enums::AlgoOrderActionFlag action_flag =
+                                                         longfist::enums::AlgoOrderActionFlag::Cancel) override;
+
+  /**
+   * Toggle Algo Order
+   * @param algo_order_id
+   * @return algo order action ID
+   */
+  virtual uint64_t toggle_algo_order(uint64_t algo_order_id, longfist::enums::AlgoOrderActionFlag action_flag =
+                                                                 longfist::enums::AlgoOrderActionFlag::Start) override;
 
   /**
    * query history order
@@ -266,30 +257,6 @@ public:
    * query history trade
    */
   void req_history_trade(const std::string &source, const std::string &account, uint32_t query_num = 0) override;
-
-  /**
-   * Get subscribed MD locations.
-   * @return subscribed MD locations
-   */
-  const yijinjing::data::location_map &list_md() const;
-
-  /**
-   * Get subscribed OPERATOR locations.
-   * @return subscribed OPERATOR locations
-   */
-  const yijinjing::data::location_map &list_op() const;
-
-  /**
-   * Get enrolled TD locations.
-   * @return enrolled TD locations
-   */
-  const yijinjing::data::location_map &list_accounts() const;
-
-  /**
-   * Get basketorder engine.
-   * @return basketorder engine reference
-   */
-  basketorder::BasketOrderEngine &get_basketorder_engine();
 
   /**
    * request deregister.
@@ -311,12 +278,6 @@ protected:
 
   virtual void prepare(const event_ptr &event) override;
 
-  [[maybe_unused]] uint32_t lookup_account_location_id(const std::string &account) const;
-
-  uint32_t get_td_location_uid(const std::string &source, const std::string &account) const;
-
-  const yijinjing::data::location_ptr &find_md_location(const std::string &source);
-
   void ensure_connect();
 
   void send_instrument_keys();
@@ -325,17 +286,12 @@ private:
   bool positions_requested_{false};
   bool broker_states_requested_{false};
   bool positions_set_{false};
+
   broker::PassiveClient broker_client_;
   book::Bookkeeper bookkeeper_;
-  basketorder::BasketOrderEngine basketorder_engine_;
-  yijinjing::data::location_map md_locations_ = {};
-  yijinjing::data::location_map td_locations_ = {};
-  yijinjing::data::location_map op_locations_ = {};
-  std::unordered_map<uint32_t, uint32_t> account_location_ids_ = {};
-  std::unordered_map<std::string, yijinjing::data::location_ptr> market_data_ = {};
 };
 
 DECLARE_PTR(LiveContext)
 } // namespace kungfu::wingchun::strategy
 
-#endif // WINGCHUN_RUNTIME_H
+#endif // WINGCHUN_STRATEGY_LIVE_H

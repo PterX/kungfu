@@ -14,6 +14,11 @@
     "bypassArchive": false
   },
   "code": { "tabSpaceType": "SPACES", "tabSpaceSize": "TWOINDENT" },
-  "trade": { "sound": true, "fatFinger": 0, "close": 100 },
+  "trade": {
+    "sound": true,
+    "fatFinger": 0,
+    "close": 100,
+    "posTableColumns": ["yesterday_volume", "today_volume"]
+  },
   "update": { "isCheckVersion": true }
 }

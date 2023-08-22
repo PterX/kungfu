@@ -111,6 +111,14 @@ public:
     });
   }
 
+  template <typename TargetType> void restore_to(TargetType &target, uint32_t dest) {
+    ensure_storage(dest);
+    boost::hana::for_each(longfist::StateDataTypes, [&](auto it) {
+      using DataType = typename decltype(+boost::hana::second(it))::type;
+      restore<DataType>(target, dest, storage_map_.at(dest));
+    });
+  }
+
   template <typename DataType> void operator<<(const typed_event_ptr<DataType> &event) {
     ensure_storage(event->dest());
     storage_map_.at(event->dest())->replace(event->template data<DataType>());
@@ -139,7 +147,7 @@ private:
   template <typename DataType>
   void restore(const yijinjing::journal::writer_ptr &writer, uint32_t dest, StateStoragePtr &storage) {
     for (auto &data : time_spec<DataType>::get_all(storage, yijinjing::time::today_start(), INT64_MAX)) {
-      writer->write(0, data);
+      writer->write_as(0, data, location_->uid, dest);
     }
   }
 

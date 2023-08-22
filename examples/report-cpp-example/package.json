@@ -1,0 +1,20 @@
+{
+  "name": "@kungfu-trader/example-cpp-report",
+  "author": "kungfu-trader",
+  "version": "2.7.0-alpha.5",
+  "description": "KungFu Report 10",
+  "license": "Apache-2.0",
+  "private": true,
+  "kungfuConfig": {
+    "key": "KungfuSimpleReport"
+  },
+  "scripts": {
+    "clean": "kfs extension clean",
+    "build": "kfs extension build",
+    "package": "kfs  strategy package",
+    "format": "node ../../framework/core/.gyp/run-format-cpp.js src"
+  },
+  "devDependencies": {
+    "@kungfu-trader/kungfu-sdk": "^2.7.0-alpha.5"
+  }
+}

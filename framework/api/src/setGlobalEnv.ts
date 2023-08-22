@@ -5,7 +5,6 @@ import {
   KF_HOME,
   KF_RUNTIME_DIR,
 } from './config/pathConfig';
-import { KF_APP_RUNTIME_DIR } from './config/homePathConfig';
 import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
 import { dealSpaceInPath } from './utils/busiUtils';
 import { KUNGFU_SAFE_CPUS_NUM, getCpusNum } from './utils/osUtils';
@@ -28,8 +27,8 @@ process.env.KFC_DIR = dealSpaceInPath(KFC_DIR);
 process.env.CLI_DIR = dealSpaceInPath(CLI_DIR);
 process.env.KF_HOME = dealSpaceInPath(KF_HOME);
 process.env.KF_RUNTIME_DIR = dealSpaceInPath(KF_RUNTIME_DIR);
-process.env.KF_APP_RUNTIME_DIR = dealSpaceInPath(KF_APP_RUNTIME_DIR);
 process.env.KF_CONFIG_DIR = dealSpaceInPath(KF_CONFIG_DIR);
+process.env.KF_APP_RUNTIME_DIR = process.env.KF_APP_RUNTIME_DIR || __dirname;
 process.env.PYTHONUTF8 = '1';
 process.env.PYTHONIOENCODING = 'utf8';
 

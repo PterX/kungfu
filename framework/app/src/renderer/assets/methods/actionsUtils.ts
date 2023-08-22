@@ -35,7 +35,6 @@ import {
   getAppStateStatusName,
   buildExtTypeMap,
   dealCategory,
-  dealAssetsByHolderUID,
   getAvailExtServiceList,
   getStrategyStateStatusName,
   isBrokerStateReady,
@@ -59,7 +58,7 @@ import {
   Pm2ProcessStatusData,
   Pm2ProcessStatusDetailData,
 } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
-import { message, Modal } from 'ant-design-vue';
+import { Modal } from 'ant-design-vue';
 import path from 'path';
 import { Proc } from 'pm2';
 import {
@@ -100,6 +99,10 @@ import { KUNGFU_RESOURCES_DIR } from '@kungfu-trader/kungfu-js-api/config/pathCo
 import { RuleObject } from 'ant-design-vue/lib/form';
 import { TradeAccountingUsageMap } from '@kungfu-trader/kungfu-js-api/utils/accounting';
 import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
+import {
+  LifeCycleHook,
+  LifeCycleKeys,
+} from '@kungfu-trader/kungfu-js-api/hooks/lifeCycleHook';
 
 const { t } = VueI18n.global;
 const { success, error } = messagePrompt();
@@ -232,7 +235,7 @@ export const handleSwitchProcessStatus = (
   mouseEvent.stopPropagation();
   const processId = getProcessIdByKfLocation(kfLocation);
   if (switchController[processId]) {
-    message.warn(t('please_wait'));
+    messagePrompt().warn(t('please_wait'));
     return Promise.resolve();
   }
 
@@ -283,6 +286,10 @@ export const useSwitchAllConfig = (
     return Promise.all(
       kfConfigs.value.map(
         (item: KungfuApi.KfLocation): Promise<void | Proc> => {
+          const processId = getProcessIdByKfLocation(item);
+          if (checked && processStatusData.value[processId] === 'online')
+            return Promise.resolve();
+
           return switchKfLocation(window.watcher, item, checked);
         },
       ),
@@ -743,13 +750,17 @@ export const handleExportInstrumentWhitelists = async (): Promise<void> => {
     });
 };
 
-export const showTradingDataDetail = (
-  item: KungfuApi.TradingDataTypes,
+export const showTradingDataDetail = <T extends KungfuApi.TradingDataTypes>(
+  item: T,
   typename: string,
+  filterKeys?: Array<keyof T>,
 ): Promise<boolean> => {
   const dataResolved = dealTradingDataItem(item, window.watcher);
   const vnode = Object.keys(dataResolved || {})
     .filter((key) => {
+      if (filterKeys && (filterKeys as string[]).includes(key)) {
+        return false;
+      }
       if (dataResolved[key].toString() === '[object Object]') {
         return false;
       }
@@ -1086,7 +1097,9 @@ export const usePreStartAndQuitApp = (): {
                 preQuitSystemLoadingData.record = 'loading';
                 preQuitTasks([
                   // removeNoDefaultStrategyFolders(),
-                  Promise.resolve(),
+                  (
+                    globalThis.HookKeeper.getHooks().lifeCycle as LifeCycleHook
+                  ).trigger(LifeCycleKeys.BeforeStopAllProcesses),
                 ]).finally(() => {
                   ipcRenderer.send('record-before-quit-done');
                   preQuitSystemLoadingData.record = 'done';
@@ -1948,6 +1961,7 @@ export const useAssets = (): {
         market_value: (allAssets.market_value || 0) + asset.market_value,
         margin: (allAssets.margin || 0) + asset.margin,
         avail: (allAssets.avail || 0) + asset.avail,
+        avail_margin: (allAssets.avail_margin || 0) + asset.avail_margin,
       };
     }, {} as KungfuApi.Asset);
   };
@@ -1956,61 +1970,6 @@ export const useAssets = (): {
     assets,
     getAssetsByKfConfig,
     getAssetsByTdGroup,
-  };
-};
-
-export const useAssetMargins = () => {
-  const app = getCurrentInstance();
-  const assetMagins = ref<Record<string, KungfuApi.AssetMargin>>({});
-
-  const getAssetMarginsByKfConfig = (
-    kfConfig: KungfuApi.KfLocation | KungfuApi.KfConfig,
-  ): KungfuApi.AssetMargin => {
-    const processId = getProcessIdByKfLocation(kfConfig);
-    return assetMagins.value[processId] || ({} as KungfuApi.AssetMargin);
-  };
-
-  const getAssetMarginsByTdGroup = (
-    tdGroup: KungfuApi.KfExtraLocation,
-  ): KungfuApi.AssetMargin => {
-    const children = (tdGroup.children || []) as KungfuApi.KfConfig[];
-    const assetMarginsList = children
-      .map((item) => getAssetMarginsByKfConfig(item))
-      .filter((item) => Object.keys(item).length);
-
-    return assetMarginsList.reduce((allAssetMargins, assetMagin) => {
-      return {
-        ...allAssetMargins,
-        margin: (allAssetMargins.margin || 0) + assetMagin.margin,
-        avail_margin:
-          (allAssetMargins.avail_margin || 0) + assetMagin.avail_margin,
-        market_value: (allAssetMargins.cash_debt || 0) + assetMagin.cash_debt,
-        avail: (allAssetMargins.total_asset || 0) + assetMagin.total_asset,
-      };
-    }, {} as KungfuApi.AssetMargin);
-  };
-
-  onMounted(() => {
-    if (app?.proxy) {
-      const subscription = app.proxy.$tradingDataSubject.subscribe(
-        (watcher: KungfuApi.Watcher) => {
-          assetMagins.value = dealAssetsByHolderUID<KungfuApi.AssetMargin>(
-            watcher,
-            watcher.ledger.AssetMargin,
-          );
-        },
-      );
-
-      onBeforeUnmount(() => {
-        subscription.unsubscribe();
-      });
-    }
-  });
-
-  return {
-    assetMagins,
-    getAssetMarginsByKfConfig,
-    getAssetMarginsByTdGroup,
   };
 };
 

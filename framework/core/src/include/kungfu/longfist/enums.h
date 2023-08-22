@@ -125,8 +125,7 @@ enum class MarketType : uint8_t {
   CZCE,  ///< 郑商所
   INE,   ///< 上期能源
   SSE,   ///< 上交所
-  SZSE,  ///< 深交所
-  HKEx ///< 港交所(暂时不支持直连港交所, 港交所行情数据通过深交所和上交所的港股通获取, 市场类型为kSZSE/kSSE)
+  SZE    ///< 深交所
 };
 
 NLOHMANN_JSON_SERIALIZE_ENUM(MarketType, {
@@ -138,8 +137,7 @@ NLOHMANN_JSON_SERIALIZE_ENUM(MarketType, {
                                              {MarketType::CZCE, "CZCE"},
                                              {MarketType::INE, "INE"},
                                              {MarketType::SSE, "SSE"},
-                                             {MarketType::SZSE, "SZSE"},
-                                             {MarketType::HKEx, "HKEx"},
+                                             {MarketType::SZE, "SZE"},
                                          })
 
 // 证券数据类型
@@ -333,6 +331,20 @@ NLOHMANN_JSON_SERIALIZE_ENUM(OrderTriggerFlag, {
 
 inline std::ostream &operator<<(std::ostream &os, OrderTriggerFlag t) { return os << int32_t(t); }
 
+enum class AlgoOrderActionFlag : int8_t {
+  Cancel, /// 普通撤单
+  Start,  /// 启动
+  Stop,   /// 停止
+};
+
+NLOHMANN_JSON_SERIALIZE_ENUM(AlgoOrderActionFlag, {
+                                                      {AlgoOrderActionFlag::Cancel, "Cancel"},
+                                                      {AlgoOrderActionFlag::Start, "Start"},
+                                                      {AlgoOrderActionFlag::Stop, "Stop"},
+                                                  })
+
+inline std::ostream &operator<<(std::ostream &os, AlgoOrderActionFlag t) { return os << int32_t(t); }
+
 enum class PriceType : int8_t {
   Limit, // 限价,证券通用
   Any, // 市价，证券通用，对于股票上海为最优五档剩余撤销，深圳为即时成交剩余撤销，建议客户采用
@@ -364,7 +376,7 @@ NLOHMANN_JSON_SERIALIZE_ENUM(PriceType, {
 inline std::ostream &operator<<(std::ostream &os, PriceType t) { return os << int32_t(t); }
 
 enum class PriceLevel : int8_t {
-  Latest, // 最新价
+  Last, // 最新价
   Sell5,
   Sell4,
   Sell3,
@@ -381,7 +393,7 @@ enum class PriceLevel : int8_t {
 };
 
 NLOHMANN_JSON_SERIALIZE_ENUM(PriceLevel, {
-                                             {PriceLevel::Latest, "Latest"},
+                                             {PriceLevel::Last, "Last"},
                                              {PriceLevel::Sell5, "Sell5"},
                                              {PriceLevel::Sell4, "Sell4"},
                                              {PriceLevel::Sell3, "Sell3"},

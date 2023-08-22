@@ -36,16 +36,16 @@ public:
     PYBIND11_OVERLOAD_PURE(void, AccountingMethod, apply_quote, book, quote);
   }
 
-  void apply_order_input(Book_ptr &book, uint32_t account_id, const OrderInput &input) override {
-    PYBIND11_OVERLOAD_PURE(void, AccountingMethod, apply_order_input, book, account_id, input);
+  void apply_order_input(uint32_t account_id, uint32_t dest, Book_ptr &book, const OrderInput &input) override {
+    PYBIND11_OVERLOAD_PURE(void, AccountingMethod, apply_order_input, account_id, dest, book, input);
   }
 
-  void apply_order(Book_ptr &book, uint32_t account_id, const Order &order) override {
-    PYBIND11_OVERLOAD_PURE(void, AccountingMethod, apply_order, book, account_id, order);
+  void apply_order(uint32_t account_id, uint32_t dest, Book_ptr &book, const Order &order) override {
+    PYBIND11_OVERLOAD_PURE(void, AccountingMethod, apply_order, account_id, dest, book, order);
   }
 
-  void apply_trade(Book_ptr &book, uint32_t account_id, const Trade &trade) override {
-    PYBIND11_OVERLOAD_PURE(void, AccountingMethod, apply_trade, book, account_id, trade);
+  void apply_trade(uint32_t account_id, uint32_t dest, Book_ptr &book, const Trade &trade) override {
+    PYBIND11_OVERLOAD_PURE(void, AccountingMethod, apply_trade, account_id, dest, book, trade);
   }
 
   void update_position(Book_ptr &book, Position &position) override {
@@ -63,38 +63,19 @@ void bind_book(pybind11::module &m) {
 
   py::class_<Book, Book_ptr>(m, "Book")
       .def_readonly("asset", &Book::asset, py::return_value_policy::reference)
-      .def_readonly("asset_margin", &Book::asset_margin, py::return_value_policy::reference)
       .def_readonly("long_positions", &Book::long_positions, py::return_value_policy::reference)
       .def_readonly("short_positions", &Book::short_positions, py::return_value_policy::reference)
       .def_readonly("order_inputs", &Book::order_inputs, py::return_value_policy::reference)
       .def_readonly("orders", &Book::orders, py::return_value_policy::reference)
       .def_readonly("trades", &Book::trades, py::return_value_policy::reference)
       .def_readonly("instrument_factors", &Book::instrument_factors, py::return_value_policy::reference)
-      .def_property_readonly("instruments", &Book::get_instruments)
-      .def_property_readonly("commissions", &Book::get_commissions)
-      .def("update", &Book::update);
-  // TODO
-  // .def("has_long_position", &Book::has_long_position)
-  // .def("has_short_position", &Book::has_short_position)
-  // .def("has_position", &Book::has_position)
-  // .def("get_long_position", &Book::get_long_position)
-  // .def("get_short_position", &Book::get_short_position)
-  // .def("get_position", &Book::get_position)
-  // .def("has_position_for", py::overload_cast<const Quote &>(&Book::has_position_for<Quote>, py::const_))
-  // .def("has_position_for", py::overload_cast<const Tree &>(&Book::has_position_for<Tree>, py::const_))
-  // .def("has_position_for", py::overload_cast<const OrderInput &>(&Book::has_position_for<OrderInput>, py::const_))
-  // .def("has_position_for", py::overload_cast<const Order &>(&Book::has_position_for<Order>, py::const_))
-  // .def("has_position_for", py::overload_cast<const Trade &>(&Book::has_position_for<Trade>, py::const_))
-  // .def("get_position_for", py::overload_cast<Direction, const Quote &>(&Book::get_position_for<Quote>),
-  //      py::return_value_policy::reference)
-  // .def("get_position_for", py::overload_cast<Direction, const Tree &>(&Book::get_position_for<Tree>),
-  //      py::return_value_policy::reference)
-  // .def("get_position_for", py::overload_cast<const OrderInput &>(&Book::get_position_for<OrderInput>),
-  //      py::return_value_policy::reference)
-  // .def("get_position_for", py::overload_cast<const Order &>(&Book::get_position_for<Order>),
-  //      py::return_value_policy::reference)
-  // .def("get_position_for", py::overload_cast<const Trade &>(&Book::get_position_for<Trade>),
-  //      py::return_value_policy::reference);
+      .def_property_readonly("instruments", &Book::get_instruments, py::return_value_policy::reference)
+      .def_property_readonly("commissions", &Book::get_commissions, py::return_value_policy::reference)
+      .def("update", &Book::update)
+      .def("has_long_position", &Book::has_long_position)
+      .def("has_short_position", &Book::has_short_position)
+      .def("get_long_position", &Book::get_long_position)
+      .def("get_short_position", &Book::get_short_position);
 
   py::class_<AccountingMethod, PyAccountingMethod, AccountingMethod_ptr>(m, "AccountingMethod")
       .def(py::init<>())

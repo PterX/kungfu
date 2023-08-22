@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
-#ifndef WINGCHUN_OPERATOR_RUNTIME_H
-#define WINGCHUN_OPERATOR_RUNTIME_H
+#ifndef WINGCHUN_OPERATOR_LIVE_H
+#define WINGCHUN_OPERATOR_LIVE_H
 
 #include <kungfu/wingchun/operator/context.h>
 
@@ -92,18 +92,6 @@ public:
   void update_operator_state(longfist::types::OperatorStateUpdate &state_update) override;
 
   /**
-   * Get subscribed MD locations.
-   * @return subscribed MD locations
-   */
-  const yijinjing::data::location_map &list_md() const;
-
-  /**
-   * Get subscribed OPERATOR locations.
-   * @return subscribed OPERATOR locations
-   */
-  const yijinjing::data::location_map &list_op() const;
-
-  /**
    * Get broker client.
    * @return broker client reference
    */
@@ -114,28 +102,17 @@ public:
   yijinjing::data::location_ptr get_location(uint32_t location_uid) override;
 
 protected:
-  const yijinjing::data::location_ptr &
-  find_location(const std::string &source, longfist::enums::category c,
-                std::unordered_map<std::string, yijinjing::data::location_ptr> &locations);
-
-  const yijinjing::data::location_ptr &find_md_location(const std::string &source);
-
   void on_start() override;
 
   void prepare(const event_ptr &event) override;
 
 private:
   broker::PassiveClient broker_client_;
-  yijinjing::data::location_map md_locations_ = {};
-  yijinjing::data::location_map op_locations_ = {};
-  std::unordered_map<std::string, yijinjing::data::location_ptr> market_data_ = {};
-  std::unordered_map<std::string, yijinjing::data::location_ptr> operator_data_ = {};
   longfist::enums::OperatorState state_;
-  bool started_{false};
   bool broker_states_requested_{false};
 };
 
 DECLARE_PTR(LiveContext)
 } // namespace kungfu::wingchun::op
 
-#endif //  WINGCHUN_OPERATOR_RUNTIME_H
+#endif // WINGCHUN_OPERATOR_LIVE_H

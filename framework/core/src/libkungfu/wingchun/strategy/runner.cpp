@@ -18,8 +18,8 @@ namespace kungfu::wingchun::strategy {
 
 Runner::Runner(locator_ptr locator, const std::string &group, const std::string &name, mode m, bool low_latency,
                const std::string &arguments)
-    : apprentice(location::make_shared(m, category::STRATEGY, group, name, std::move(locator)), low_latency),
-      arguments_(arguments) {}
+    : apprentice(location::make_shared(m, category::STRATEGY, group, name, std::move(locator)), low_latency,
+                 arguments) {}
 
 Context_ptr Runner::get_context() const { return context_; }
 
@@ -37,10 +37,22 @@ Context_ptr Runner::make_context() {
       matcher_ = std::make_shared<BasicMatcher>();
       SPDLOG_WARN("Runner in backtest mode not specified Matcher, Default Quote-based Matcher used.");
     }
+    if (not report_) {
+      report_ = std::make_shared<tool::Report>();
+      SPDLOG_WARN("Runner in backtest mode not specified Report.");
+    }
     set_runner(*matcher_, this);
-    return std::make_shared<BacktestContext>(*this, events_, std::move(matcher_), std::move(from_indexer_),
-                                             std::move(to_indexer_));
+    auto backtest_context = std::make_shared<BacktestContext>(
+        *this, events_, std::move(matcher_), std::move(from_indexer_), std::move(to_indexer_), report_);
+
+    set_runner(*report_, this, std::addressof(backtest_context->get_bookkeeper()));
+    return backtest_context;
   }
+
+  if (get_home()->mode == mode::REPLAY) {
+    return std::make_shared<ReplayContext>(*this, events_);
+  }
+
   return std::make_shared<LiveContext>(*this, events_);
 }
 
@@ -52,11 +64,14 @@ void Runner::set_from_indexer(const tool::SliceIndexer_ptr &indexer) { from_inde
 
 void Runner::set_to_indexer(const tool::SliceIndexer_ptr &indexer) { to_indexer_ = indexer; }
 
+void Runner::set_report(const tool::Report_ptr &report) { report_ = report; }
+
+tool::Report_ptr Runner::get_report() const { return report_; }
+
 void Runner::on_exit() { post_stop(); }
 
 void Runner::react() {
   context_ = make_context();
-  set_arguments(*context_, arguments_);
   enable(*context_);
   context_->get_bookkeeper().add_book_listener(std::make_shared<BookListener>(*this));
 
@@ -154,7 +169,6 @@ void Runner::post_start() {
       $$(invoke(&Strategy::on_algo_order_action_error, event->data<AlgoOrderActionError>(),
                 get_location(event->source()), event->dest()));
   invoke(&Strategy::post_start);
-  SPDLOG_INFO("strategy {} started", get_io_device()->get_home()->name);
 }
 
 void Runner::pre_stop() { invoke(&Strategy::pre_stop); }
@@ -175,14 +189,6 @@ void Runner::BookListener::on_asset_sync_reset(const longfist::types::Asset &old
   auto context = std::dynamic_pointer_cast<Context>(runner_.context_);
   for (const auto &strategy : runner_.strategies_) {
     strategy->on_asset_sync_reset(context, old_asset, new_asset);
-  }
-}
-
-void Runner::BookListener::on_asset_margin_sync_reset(const longfist::types::AssetMargin &old_asset_margin,
-                                                      const longfist::types::AssetMargin &new_asset_margin) {
-  auto context = std::dynamic_pointer_cast<Context>(runner_.context_);
-  for (const auto &strategy : runner_.strategies_) {
-    strategy->on_asset_margin_sync_reset(context, old_asset_margin, new_asset_margin);
   }
 }
 

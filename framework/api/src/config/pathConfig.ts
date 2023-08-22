@@ -1,11 +1,79 @@
 import path from 'path';
 import dayjs from 'dayjs';
+import fse from 'fs-extra';
 
-import { addFileSync } from '../utils/fileUtils';
-import {
-  KF_APP_RUNTIME_DIR,
-  KF_HOME_BASE_DIR_RESOLVE,
-} from '../config/homePathConfig';
+import { addFileSync, readRootPackageJsonSync } from '../utils/fileUtils';
+import { KF_DEFAULT_HOME_ROOT_DIR } from '../config/homePathConfig';
+import { booleanProcessEnv } from '../utils/commonUtils';
+
+//================== config & resources start =================================
+
+export const KUNGFU_RESOURCES_DIR = globalThis.__publicResources;
+
+export const KF_CONFIG_DEFAULT_PATH = path.join(
+  KUNGFU_RESOURCES_DIR,
+  'config',
+  'kfConfig.json',
+);
+
+const rootPackageJson = readRootPackageJsonSync();
+const productName = rootPackageJson.kungfuCraft?.productName || 'Kungfu';
+const currentProductName = booleanProcessEnv(process.env.IS_KF_DEV)
+  ? 'Kungfu-dev'
+  : productName;
+export const KF_CONFIG_ROOT_DIR = path.join(KF_DEFAULT_HOME_ROOT_DIR, 'config');
+export const KF_CONFIG_DIR = path.join(KF_CONFIG_ROOT_DIR, currentProductName);
+addFileSync('', KF_CONFIG_DIR, 'folder');
+
+export const KF_CONFIG_PATH = path.join(KF_CONFIG_DIR, 'kfConfig.json');
+
+export const KF_INSTRUMENTS_DEFAULT_PATH = path.join(
+  KUNGFU_RESOURCES_DIR,
+  'config',
+  'defaultInstruments.json',
+);
+
+export const KF_INSTRUMENTS_PATH = path.join(
+  KF_CONFIG_DIR,
+  'defaultInstruments.json',
+);
+
+export const KF_SUBSCRIBED_INSTRUMENTS_JSON_PATH = path.join(
+  KF_CONFIG_DIR,
+  'subscribedInstruments.json',
+);
+addFileSync('', KF_SUBSCRIBED_INSTRUMENTS_JSON_PATH, 'file');
+
+export const KF_TD_GROUP_JSON_PATH = path.join(KF_CONFIG_DIR, 'tdGroups.json');
+addFileSync('', KF_TD_GROUP_JSON_PATH, 'file');
+
+export const KF_SCHEDULE_TASKS_JSON_PATH = path.join(
+  KF_CONFIG_DIR,
+  'scheduleTasks.json',
+);
+addFileSync('', KF_SCHEDULE_TASKS_JSON_PATH, 'file');
+
+export const PY_WHL_DIR = path.join(KUNGFU_RESOURCES_DIR, 'python');
+
+//================== config & resources end ===================================
+
+//================= home start ==============================
+
+const getHomeDir = (): string => {
+  if (fse.existsSync(KF_CONFIG_PATH)) {
+    const kfConfigJson = fse.readJSONSync(KF_CONFIG_PATH) as Record<
+      string,
+      Record<string, KungfuApi.KfConfigValue>
+    >;
+    if (kfConfigJson.system.homeDir) {
+      return kfConfigJson.system.homeDir;
+    }
+  }
+
+  return KF_DEFAULT_HOME_ROOT_DIR;
+};
+
+export const KF_HOME_BASE_DIR_RESOLVE: string = getHomeDir();
 
 addFileSync('', KF_HOME_BASE_DIR_RESOLVE, 'folder');
 export const KF_HOME_BASE_DIR = KF_HOME_BASE_DIR_RESOLVE;
@@ -47,6 +115,8 @@ addFileSync('', LOG_DIR, 'folder');
 export const ARCHIVE_DIR = path.join(KF_HOME, 'archive');
 addFileSync('', ARCHIVE_DIR, 'folder');
 
+//================= home end ==============================
+
 //================= special item start ==============================
 
 //BASE_DB_DIR strategys, accounts, tasks
@@ -66,6 +136,8 @@ export const RENDERER_LOG_DIR = path.join(
   'live',
 );
 
+//================= special item end ==============================
+
 //================== others start =================================
 
 const production = process.env.NODE_ENV === 'production';
@@ -77,51 +149,6 @@ export const buildProcessLogPath = (processId: string) => {
 };
 
 //================== others end ===================================
-
-//================== config & resources start =================================
-
-export const KUNGFU_RESOURCES_DIR = globalThis.__publicResources;
-
-export const KF_CONFIG_DEFAULT_PATH = path.join(
-  KUNGFU_RESOURCES_DIR,
-  'config',
-  'kfConfig.json',
-);
-
-export const KF_CONFIG_DIR = path.join(KF_APP_RUNTIME_DIR, 'config');
-addFileSync('', KF_CONFIG_DIR, 'folder');
-
-export const KF_CONFIG_PATH = path.join(KF_CONFIG_DIR, 'kfConfig.json');
-
-export const KF_INSTRUMENTS_DEFAULT_PATH = path.join(
-  KUNGFU_RESOURCES_DIR,
-  'config',
-  'defaultInstruments.json',
-);
-
-export const KF_INSTRUMENTS_PATH = path.join(
-  KF_CONFIG_DIR,
-  'defaultInstruments.json',
-);
-
-export const KF_SUBSCRIBED_INSTRUMENTS_JSON_PATH = path.join(
-  KF_CONFIG_DIR,
-  'subscribedInstruments.json',
-);
-addFileSync('', KF_SUBSCRIBED_INSTRUMENTS_JSON_PATH, 'file');
-
-export const KF_TD_GROUP_JSON_PATH = path.join(KF_CONFIG_DIR, 'tdGroups.json');
-addFileSync('', KF_TD_GROUP_JSON_PATH, 'file');
-
-export const KF_SCHEDULE_TASKS_JSON_PATH = path.join(
-  KF_CONFIG_DIR,
-  'scheduleTasks.json',
-);
-addFileSync('', KF_SCHEDULE_TASKS_JSON_PATH, 'file');
-
-export const PY_WHL_DIR = path.join(KUNGFU_RESOURCES_DIR, 'python');
-
-//================== config & resources end ===================================
 
 //================== cli start ====================================
 // process.env.CLI_DIR = path.dirname(xxxx/dzxy.js);

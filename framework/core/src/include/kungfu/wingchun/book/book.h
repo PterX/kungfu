@@ -40,7 +40,6 @@ struct Book {
   const InstrumentMap &instruments;
   InstrumentFactorMap instrument_factors = {};
   longfist::types::Asset asset = {};
-  longfist::types::AssetMargin asset_margin = {};
   PositionMap long_positions = {};
   PositionMap short_positions = {};
   std::unordered_set<uint32_t> source_ids = {};
@@ -247,6 +246,8 @@ struct Book {
   uint64_t source_op_id(uint32_t holder_uid, uint32_t source_id) {
     return static_cast<uint64_t>(holder_uid) << 32u | static_cast<uint64_t>(source_id);
   }
+
+  Book &operator=(const Book &book) { return *this; }
 };
 } // namespace kungfu::wingchun::book
 

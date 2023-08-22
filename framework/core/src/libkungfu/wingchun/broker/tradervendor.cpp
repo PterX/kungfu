@@ -68,9 +68,7 @@ TraderVendor::TraderVendor(locator_ptr locator, const std::string &group, const 
     : BrokerVendor(location::make_shared(mode::LIVE, category::TD, group, name, std::move(locator)), low_latency,
                    arguments),
       algo_order_service_(*this), order_service_(*this), order_trigger_service_(*this),
-      hook_(std::make_shared<TraderWriterHook>(*this)) {
-  set_arguments(arguments);
-}
+      hook_(std::make_shared<TraderWriterHook>(*this)) {}
 
 void TraderVendor::set_service(Trader_ptr service) { service_ = std::move(service); }
 
@@ -79,15 +77,15 @@ void TraderVendor::react() {
       $$(order_service_.on_order_input(event));
   events_ | skip_until(events_ | is(RequestStart::tag)) | is_custom() | $$(service_->on_custom_event(event));
   apprentice::react();
-}
 
-void TraderVendor::on_react() {
+  // have to be in this position, only in react, the ResetBookRequest can be listened
   events_ | is(ResetBookRequest::tag) |
       $([&](const event_ptr &event) { get_writer(location::PUBLIC)->mark(now(), ResetBookRequest::tag); });
 }
 
 void TraderVendor::on_start() {
   BrokerVendor::on_start();
+  service_->pre_start();
 
   events_ | is(OrderAction::tag) | $$(order_service_.on_order_action(event));
   events_ | is(BlockMessage::tag) | $$(order_service_.on_block_message(event->data<BlockMessage>()));
@@ -109,6 +107,8 @@ void TraderVendor::on_start() {
   events_ | is(Band::tag) | $$(service_->on_band(event));
   events_ | is(TimeKeyValue::tag) | $$(service_->on_time_key_value(event));
   events_ | is(Deregister::tag) | $$(service_->on_strategy_exit(event));
+
+  add_time_interval(5 * time_unit::NANOSECONDS_PER_SECOND, [&](auto e) { service_->try_req_account(); });
 
   service_->on_risk_setting();
   service_->recover();

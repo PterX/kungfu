@@ -369,7 +369,6 @@ KF_DEFINE_PACK_TYPE(                                                //
     (enums::VolumeCondition, volume_condition), // 成交量类型
     (enums::TimeCondition, time_condition),     // 成交时间类型
     (enums::OrderTriggerType, trigger_type),    // 条件触发类型
-    (enums::ParkedType, parked_type),           // 本地 or 服务器 埋单
 
     (int64_t, insert_time) // 写入时间
 );
@@ -408,8 +407,7 @@ KF_DEFINE_PACK_TYPE(                                             //
     (enums::PriceType, price_type),             // 价格类型
     (enums::VolumeCondition, volume_condition), // 成交量类型
     (enums::TimeCondition, time_condition),     // 成交时间类型
-    (enums::OrderTriggerType, trigger_type),    // 条件触发类型
-    (enums::ParkedType, parked_type)            // 本地 or 服务器 埋单
+    (enums::OrderTriggerType, trigger_type)     // 条件触发类型
 );
 
 KF_DEFINE_PACK_TYPE(                                                              //

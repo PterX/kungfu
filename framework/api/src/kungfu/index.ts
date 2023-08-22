@@ -1035,10 +1035,10 @@ export const dealPosition = (
       ? dealAssetPrice(pos.unrealized_pnl, pricePrecision)
       : '--',
     open_volume: pos.open_volume ?? 0,
-    static_yesterday_volume: pos.static_yesterday_volume ?? 0,
+    static_yesterday: pos.static_yesterday ?? 0,
     close_volume:
       Number(pos.open_volume) +
-        Number(pos.static_yesterday_volume) -
+        Number(pos.static_yesterday) -
         Number(pos.volume) || 0,
   };
 };

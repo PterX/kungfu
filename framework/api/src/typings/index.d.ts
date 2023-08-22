@@ -848,7 +848,7 @@ declare namespace KungfuApi {
     direction: DirectionEnum; //持仓方向
 
     volume: bigint; //数量
-    static_yesterday_volume: bigint; // 固定昨仓数量
+    static_yesterday: bigint; // 固定昨仓数量
     open_volume: bigint; // 今开数量
     yesterday_volume: bigint; //昨仓数量
     frozen_total: bigint; //冻结数量

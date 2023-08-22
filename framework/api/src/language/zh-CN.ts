@@ -592,7 +592,7 @@ export default {
   posGlobalConfig: {
     instrument_id: '标的',
     account_id_resolved: '持有账户',
-    static_yesterday_volume: '昨',
+    static_yesterday: '昨',
     static_yesterday_volume_setting: '昨(今天之前持仓量)',
     open_volume: '今开',
     close_volume: '今平',

@@ -223,6 +223,7 @@ declare namespace KungfuApi {
     readmePath: string;
     releaseNotePath: string;
     ui_config?: {
+      silent: boolean;
       position: KfUIExtLocatorTypes;
       exhibit?: KfExhibitConfig;
       components?:
@@ -236,6 +237,7 @@ declare namespace KungfuApi {
       script?: string;
     };
     cli_config?: {
+      silent: boolean;
       exhibit?: KfExhibitConfig;
       components?: Record<
         string,
@@ -248,26 +250,31 @@ declare namespace KungfuApi {
     };
     config?: {
       td?: {
+        silent: boolean;
         type?: TdMdExtTypes[] | TdMdExtTypes;
         order_trigger?: Record<string, Record<string, boolean>>;
         settings: KfConfigItem[];
         fund_trans?: KfExtFundTransConfig | null;
       };
       md?: {
+        silent: boolean;
         type?: TdMdExtTypes[] | TdMdExtTypes;
         settings: KfConfigItem[];
       };
       strategy?: {
+        silent: boolean;
         type?: StrategyExtTypes[] | StrategyExtTypes;
         settings: KfConfigItem[];
       };
       operator?: {
+        silent: boolean;
         type?: StrategyExtTypes[] | StrategyExtTypes;
         settings: KfConfigItem[];
       };
       system?: Record<
         string,
         {
+          silent: boolean;
           type?: SystemExtTypes[] | SystemExtTypes;
           for: ExtRunForEnvTypesEnum[] | ExtRunForEnvTypesEnum;
           script: string;
@@ -304,6 +311,7 @@ declare namespace KungfuApi {
     extPath: string;
     readmePath: string;
     releaseNotePath: string;
+    silent: boolean;
   }
   export interface KfTdExtConfig extends KfExtConfigBase<'td' | 'tdGroup'> {
     type: TdMdExtTypes[];
@@ -371,6 +379,7 @@ declare namespace KungfuApi {
 
   export interface KfUIExtConfig {
     name: string;
+    silent: boolean;
     version: string;
     mainRepoVersion: string;
     description: string;
@@ -395,6 +404,7 @@ declare namespace KungfuApi {
 
   export interface KfCliExtConfig {
     name: string;
+    silent: boolean;
     version: string;
     mainRepoVersion: string;
     description: string;

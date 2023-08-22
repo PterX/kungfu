@@ -537,8 +537,8 @@ export const flattenExtensionModuleDirs = async (
 export const getMainRepoVersionByExtVersion = (
   dependencies: Record<string, string>,
 ) => {
-  const dependencieKeys = Object.keys(dependencies);
-  if (!dependencieKeys.length) return '';
+  const dependenciesKeys = Object.keys(dependencies);
+  if (!dependenciesKeys.length) return '';
   const mainRepoDependencies = [
     '@kungfu-trader/kungfu-js-api',
     '@kungfu-trader/kungfu-app',
@@ -546,14 +546,12 @@ export const getMainRepoVersionByExtVersion = (
     '@kungfu-trader/kungfu-core',
     '@kungfu-trader/kungfu-toolchain',
   ];
-  const targetMainRepoDepKey = dependencieKeys.find((item) =>
+  const targetMainRepoDepKey = dependenciesKeys.find((item) =>
     mainRepoDependencies.includes(item),
   );
   if (!targetMainRepoDepKey) return '';
   const version = dependencies[targetMainRepoDepKey];
-  const semVer = semver.parse(version);
-  if (!semVer) return '';
-  return `${semVer.major}.${semVer.minor}`;
+  return version;
 };
 
 const getKfExtConfigList = async (): Promise<KungfuApi.KfExtOriginConfig[]> => {
@@ -674,6 +672,7 @@ const getKfExtensionConfigByCategory = (
                     description,
                     category,
                     key: extKey,
+                    silent: extConfigByCategory[category]?.silent ?? false,
                     type: resolveTypesInExtConfig(
                       extConfigByCategory[category]?.type || [],
                     ),
@@ -710,6 +709,7 @@ const getKfExtensionConfigByCategory = (
                           description,
                           category,
                           key: extKey,
+                          silent: item?.silent ?? false,
                           type: resolveTypesInExtConfig(item?.type || []),
                           for: [item.for].flat(),
                           script: item?.script || '',
@@ -752,6 +752,7 @@ const getKfUIExtensionConfigByExtKey = (
         mainRepoVersion,
         description,
       } = extConfig;
+      const silent = uiConfig?.silent ?? false;
       const position = uiConfig?.position || '';
       const exhibit = uiConfig?.exhibit || ({} as KungfuApi.KfExhibitConfig);
       const components = uiConfig?.components || null;
@@ -759,6 +760,7 @@ const getKfUIExtensionConfigByExtKey = (
 
       configByExtraKey[extKey] = {
         name: extName,
+        silent,
         extPath,
         readmePath,
         releaseNotePath,
@@ -791,12 +793,14 @@ const getKfCliExtensionConfigByExtKey = (
         mainRepoVersion,
         description,
       } = extConfig;
+      const silent = cliConfig?.silent ?? false;
       const exhibit = cliConfig?.exhibit || ({} as KungfuApi.KfExhibitConfig);
       const components = cliConfig?.components || null;
       const script = cliConfig?.script || '';
 
       configByExtraKey[extKey] = {
         name: extName,
+        silent,
         extPath,
         readmePath,
         releaseNotePath,

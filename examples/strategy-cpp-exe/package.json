@@ -1,7 +1,7 @@
 {
   "name": "@kungfu-trader/examples-strategy-cpp-exe",
   "author": "kungfu-trader",
-  "version": "2.6.2-alpha.5",
+  "version": "2.6.2-alpha.6",
   "description": "KungFu Strategy 101 - C++ Demo",
   "license": "Apache-2.0",
   "private": true,
@@ -22,7 +22,7 @@
     "master": "kfc -l debug run -c system -g master -n master"
   },
   "devDependencies": {
-    "@kungfu-trader/kungfu-sdk": "^2.6.2-alpha.5"
+    "@kungfu-trader/kungfu-sdk": "^2.6.2-alpha.6"
   },
   "repository": {
     "url": "https://github.com/kungfu-trader/kungfu.git"

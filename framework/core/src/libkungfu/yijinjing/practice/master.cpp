@@ -224,7 +224,7 @@ void master::handle_timer_tasks() {
     auto &app_tasks = app.second;
     for (auto it = app_tasks.begin(); it != app_tasks.end();) {
       auto &task = it->second;
-      if (task.checkpoint <= now) {
+      if (task.checkpoint <= now && has_writer(app_id)) {
         get_writer(app_id)->mark(0, Time::tag);
         task.checkpoint += task.duration;
         task.repeat_count++;

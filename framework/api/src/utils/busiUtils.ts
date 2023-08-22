@@ -42,6 +42,7 @@ import {
   ExportTradingDataColumnsToFilter,
   ParkedType,
   OrderTriggerStatus,
+  TriggerFlag,
 } from '../config/tradingConfig';
 import {
   KfCategoryEnum,
@@ -73,7 +74,7 @@ import {
   OrderTriggerStatusEnum,
   OrderTriggerTypeEnum,
   OrderTriggerParkedTypeEnum,
-  OrderTriggerTimeConditionEnum,
+  OrderTriggerFlag,
 } from '../typings/enums';
 import {
   graceDeleteProcess,
@@ -600,28 +601,14 @@ const resolveOrderTriggerConfig = (
     const orderTriggerOriginConfig = originConfig.td?.order_trigger || {};
     const orderTriggerTypesKeys = Object.keys(OrderTriggerTypeEnum);
     const orderTriggerParkedTypesKeys = Object.keys(OrderTriggerParkedTypeEnum);
-    const orderTriggerTimeConditionKeys = Object.keys(
-      OrderTriggerTimeConditionEnum,
-    );
     return Object.keys(orderTriggerOriginConfig).reduce((config, key) => {
       if (orderTriggerTypesKeys.includes(key)) {
         config[OrderTriggerTypeEnum[key]] = Object.keys(
           orderTriggerOriginConfig[key] || {},
         ).reduce((parkedConfig, parkedType) => {
           if (orderTriggerParkedTypesKeys.includes(parkedType)) {
-            parkedConfig[OrderTriggerParkedTypeEnum[parkedType]] = Object.keys(
-              orderTriggerOriginConfig[key]?.[parkedType] || {},
-            ).reduce((timeConditionConfig, timeCondition) => {
-              if (orderTriggerTimeConditionKeys.includes(timeCondition)) {
-                timeConditionConfig[
-                  OrderTriggerTimeConditionEnum[timeCondition]
-                ] =
-                  !!orderTriggerOriginConfig[key]?.[parkedType]?.[
-                    timeCondition
-                  ];
-              }
-              return timeConditionConfig;
-            }, {});
+            parkedConfig[OrderTriggerParkedTypeEnum[parkedType]] =
+              !!orderTriggerOriginConfig[key]?.[parkedType];
           }
           return parkedConfig;
         }, {});
@@ -1223,14 +1210,26 @@ export const getMdTdKfLocationByProcessId = (
 export const getOperatorKfLocationByProcessId = (
   processId: string,
 ): KungfuApi.KfLocation | null => {
-  if (processId.split('_').length === 3) {
-    const [category, group, name] = processId.split('_');
-    return {
-      category: category as KfCategoryTypes,
-      group,
-      name,
-      mode: 'live',
-    };
+  if (processId.indexOf('operator_') === 0) {
+    const splits = processId.split('_');
+
+    if (splits.length === 3) {
+      const [category, group, name] = processId.split('_');
+      return {
+        category: category as KfCategoryTypes,
+        group,
+        name,
+        mode: 'live',
+      };
+    } else if (splits.length === 2) {
+      const [category, name] = processId.split('_');
+      return {
+        category: category as KfCategoryTypes,
+        group: 'default',
+        name,
+        mode: 'live',
+      };
+    }
   }
 
   return null;
@@ -1824,6 +1823,12 @@ export const dealTimeCondition = (
   return TimeCondition[+timeCondition as TimeConditionEnum];
 };
 
+export const dealTOrderTriggerFlag = (
+  orderTriggerFlag: OrderTriggerFlag | number,
+): KungfuApi.KfTradeValueCommonData => {
+  return TriggerFlag[+orderTriggerFlag as OrderTriggerFlag];
+};
+
 export const dealParkedType = (
   parkedType: OrderTriggerParkedTypeEnum | number,
 ): KungfuApi.KfTradeValueCommonData => {
@@ -1998,11 +2003,15 @@ export const getTradingDataSortKey = (
   typename: KungfuApi.TradingDataTypeName,
 ): string => {
   switch (typename) {
+    case 'AlgoOrder':
+      return 'insert_time';
     case 'Order':
       return 'insert_time';
     case 'Trade':
       return 'trade_time';
     case 'OrderInput':
+      return 'insert_time';
+    case 'AlgoOrderInput':
       return 'insert_time';
     case 'Position':
       return 'instrument_id';
@@ -2064,9 +2073,7 @@ export const dealStrategyStates = (
   );
 };
 
-export const dealAssetsByHolderUID = <
-  T extends KungfuApi.Asset | KungfuApi.AssetMargin,
->(
+export const dealAssetsByHolderUID = <T extends KungfuApi.Asset>(
   watcher: KungfuApi.Watcher | null,
   assets: KungfuApi.DataTable<T>,
 ): Record<string, T> => {
@@ -2155,10 +2162,11 @@ export const dealTradingDataMethodsMap: Record<
   ) => T[]
 > = {
   Asset: dealLedgerTradingData,
-  AssetMargin: dealLedgerTradingData,
   Instrument: dealDefaultTradingData,
   InstrumentFactor: dealDefaultTradingData,
+  AlgoOrder: dealDefaultTradingData,
   Order: dealOrderTradingData,
+  AlgoOrderInput: dealDefaultTradingData,
   OrderInput: dealOrderTradingData,
   OrderStat: dealDefaultTradingData,
   Position: dealLedgerTradingData,
@@ -2167,6 +2175,7 @@ export const dealTradingDataMethodsMap: Record<
   Basket: dealDefaultTradingData,
   BasketInstrument: dealDefaultTradingData,
   BasketOrder: dealDefaultTradingData,
+  OrderTrigger: dealOrderTradingData,
 };
 
 export const dealTradingData = <T>(
@@ -2300,6 +2309,8 @@ export const KfConfigValueNumberType = [
 ];
 
 export const KfConfigValueBooleanType = ['bool', 'checkbox'];
+
+export const KfConfigValueAnyType = ['select'];
 
 export const KfConfigValueArrayType = [
   'tds',
@@ -2686,8 +2697,13 @@ export const isBrokerStateReady = (state: BrokerStateStatusTypes) => {
 };
 
 export function deleteNNFiles(rootPathName = KF_HOME) {
+  kfLogger.info('Deleting nn folder');
   return removeTargetFoldersInFolder(rootPathName, ['nn']).then((res) => {
+    if (res.successes.length) {
+      kfLogger.info(`Succeed delete 'nn' folders: ${res.successes.join(', ')}`);
+    }
     res.errors.forEach((err) => kfLogger.error(err));
+    kfLogger.info('Deleting nn folder finished');
   });
 }
 

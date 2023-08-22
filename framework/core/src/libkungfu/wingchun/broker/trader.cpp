@@ -6,7 +6,6 @@
 
 #include <kungfu/common.h>
 #include <kungfu/wingchun/broker/trader.h>
-#include <kungfu/yijinjing/journal/tracer.h>
 #include <kungfu/yijinjing/time.h>
 
 using namespace kungfu::rx;
@@ -18,6 +17,7 @@ using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::journal;
 
 namespace kungfu::wingchun::broker {
+
 bool Trader::insert_algo_order(const event_ptr &event) {
   auto writer = get_writer(event->source());
   auto &algo_order_input = event->data<longfist::types::AlgoOrderInput>();
@@ -36,10 +36,6 @@ bool Trader::insert_algo_order(const event_ptr &event) {
 
 yijinjing::journal::writer_ptr Trader::get_asset_writer() const {
   return get_writer(sync_asset_ ? location::SYNC : location::PUBLIC);
-}
-
-yijinjing::journal::writer_ptr Trader::get_asset_margin_writer() const {
-  return get_writer(sync_asset_margin_ ? location::SYNC : location::PUBLIC);
 }
 
 yijinjing::journal::writer_ptr Trader::get_position_writer() const {
@@ -120,25 +116,11 @@ const AlgoOrderActionMap &Trader::get_algo_order_actions() const {
 
 void Trader::enable_asset_sync() { sync_asset_ = true; }
 
-void Trader::enable_asset_margin_sync() { sync_asset_margin_ = true; }
-
 void Trader::enable_positions_sync() { sync_position_ = true; }
-
-bool Trader::write_default_asset_margin() {
-  SPDLOG_INFO("Write an empty AssetMargin by default");
-  sync_asset_margin_ = true;
-  auto writer = get_asset_margin_writer();
-  AssetMargin &asset_margin = writer->open_data<AssetMargin>();
-  asset_margin.holder_uid = get_home_uid();
-  asset_margin.update_time = yijinjing::time::now_in_nano();
-  writer->close_data();
-  return false;
-}
 
 void Trader::on_asset_sync() {
   if (state_ == BrokerState::Ready) {
     req_account();
-    write_default_asset_margin();
   }
 }
 
@@ -154,39 +136,41 @@ void Trader::recover() {
 }
 
 void Trader::deal_write_frame() {
-  tracer trc(get_home(), false, true, time::today_start(), time::now_in_nano());
-  SPDLOG_DEBUG("before tracer read");
+  SPDLOG_DEBUG("before state_bank read");
   int64_t count = 0;
-  while (trc.data_available()) {
-    const auto &frame = trc.current_frame();
+  auto &state_bank = get_vendor().get_state_bank();
 
-    switch (frame->msg_type()) {
-    case Order::tag: {
-      const Order &order = frame->data<Order>();
-      get_order_service().on_order(frame->source(), frame->dest(), frame->gen_time(), order);
-      break;
-    }
-    case Trade::tag: {
-      const Trade &trade = frame->data<Trade>();
-      get_order_service().on_trade(frame->source(), frame->dest(), frame->gen_time(), trade);
-      break;
-    }
-    case OrderTrigger::tag: {
-      const OrderTrigger &trigger = frame->data<OrderTrigger>();
-      get_order_trigger_service().on_order_trigger(frame->source(), frame->dest(), frame->gen_time(), trigger);
-      break;
-    }
-    case AlgoOrder::tag: {
-      const AlgoOrder &algo_order = frame->data<AlgoOrder>();
-      get_algo_order_service().on_algo_order(frame->gen_time(), frame->source(), frame->dest(), algo_order);
-      break;
-    }
-    }
+  auto &order_state_map = state_bank[boost::hana::type_c<Order>];
+  count += order_state_map.size();
+  std::for_each(order_state_map.begin(), order_state_map.end(), [&](auto &pair) {
+    auto &order_state = pair.second;
+    get_order_service().on_order(order_state.update_time, order_state.source, order_state.dest, order_state.data);
+  });
 
-    trc.next();
-    ++count;
-  }
-  SPDLOG_DEBUG("after tracer read, count: {}", count);
+  auto &trade_state_map = state_bank[boost::hana::type_c<Trade>];
+  count += trade_state_map.size();
+  std::for_each(trade_state_map.begin(), trade_state_map.end(), [&](auto &pair) {
+    auto &trade_state = pair.second;
+    get_order_service().on_trade(trade_state.update_time, trade_state.source, trade_state.dest, trade_state.data);
+  });
+
+  auto &order_trigger_state_map = state_bank[boost::hana::type_c<OrderTrigger>];
+  count += order_trigger_state_map.size();
+  std::for_each(order_trigger_state_map.begin(), order_trigger_state_map.end(), [&](auto &pair) {
+    auto &order_trigger_state = pair.second;
+    get_order_trigger_service().on_order_trigger(order_trigger_state.update_time, order_trigger_state.source,
+                                                 order_trigger_state.dest, order_trigger_state.data);
+  });
+
+  auto &algo_order_state_map = state_bank[boost::hana::type_c<AlgoOrder>];
+  count += algo_order_state_map.size();
+  std::for_each(algo_order_state_map.begin(), algo_order_state_map.end(), [&](auto &pair) {
+    auto &algo_order_state = pair.second;
+    get_algo_order_service().on_algo_order(algo_order_state.update_time, algo_order_state.source, algo_order_state.dest,
+                                           algo_order_state.data);
+  });
+
+  SPDLOG_DEBUG("after state_bank read, count: {}", count);
 
   get_order_service().clean_orders(disable_recover_);
   get_order_trigger_service().clean_order_triggers(disable_recover_);
@@ -195,59 +179,50 @@ void Trader::deal_write_frame() {
 
 void Trader::deal_read_frame() {
   // write a Lost Order to journal when read an OrderInput whose order_id not in orders_
-  tracer trc(get_home(), true, false, time::today_start(), time::now_in_nano());
-  SPDLOG_DEBUG("before tracer read");
+  SPDLOG_DEBUG("before state_bank read");
   int64_t count = 0;
-  while (trc.data_available()) {
-    const auto &frame = trc.current_frame();
+  auto &state_bank = get_vendor().get_state_bank();
 
-    switch (frame->msg_type()) {
-    case OrderInput::tag: {
-      const OrderInput &order_input = frame->data<OrderInput>();
-      get_order_service().clean_orders(frame->source(), order_input, disable_recover_);
-      break;
-    }
-    case OrderTriggerInput::tag: {
-      const OrderTriggerInput &trigger_input = frame->data<OrderTriggerInput>();
-      get_order_trigger_service().clean_order_triggers(frame->source(), trigger_input, disable_recover_);
-      break;
-    }
-    case AlgoOrderInput::tag: {
-      const AlgoOrderInput &algo_order_input = frame->data<AlgoOrderInput>();
-      get_algo_order_service().clean_algo_orders(frame->source(), algo_order_input, disable_recover_);
-      break;
-    }
-    }
+  auto &order_input_state_map = state_bank[boost::hana::type_c<OrderInput>];
+  count += order_input_state_map.size();
+  std::for_each(order_input_state_map.begin(), order_input_state_map.end(), [&](auto &pair) {
+    auto &order_input_state = pair.second;
+    get_order_service().clean_orders(order_input_state.source, order_input_state.data, disable_recover_);
+  });
 
-    trc.next();
-    ++count;
-  }
+  auto &order_trigger_input_state_map = state_bank[boost::hana::type_c<OrderTriggerInput>];
+  count += order_trigger_input_state_map.size();
+  std::for_each(order_trigger_input_state_map.begin(), order_trigger_input_state_map.end(), [&](auto &pair) {
+    auto &order_trigger_input_state = pair.second;
+    get_order_trigger_service().clean_order_triggers(order_trigger_input_state.source, order_trigger_input_state.data,
+                                                     disable_recover_);
+  });
 
-  SPDLOG_DEBUG("after tracer read, count: {}", count);
+  auto &algo_order_input_state_map = state_bank[boost::hana::type_c<AlgoOrderInput>];
+  count += algo_order_input_state_map.size();
+  std::for_each(algo_order_input_state_map.begin(), algo_order_input_state_map.end(), [&](auto &pair) {
+    auto &algo_order_input_state = pair.second;
+    get_algo_order_service().clean_algo_orders(algo_order_input_state.source, algo_order_input_state.data,
+                                               disable_recover_);
+  });
+
+  SPDLOG_DEBUG("after state_bank read, count: {}", count);
 }
 
 uint32_t Trader::get_risk_uid() const { return risk_uid_; }
 
 [[maybe_unused]] void Trader::disable_recover() { disable_recover_ = true; }
 
-void Trader::on_risk_setting() {
-  const std::string msg = get_risk_setting();
-  SPDLOG_DEBUG("RiskSetting: {}", msg);
-  auto risk_setting_data = nlohmann::json::parse(msg);
-  disable_recover_ = risk_setting_data.value<bool>("disable_recover", false);
-  auto risk_check = risk_setting_data.value<bool>("risk_check", false);
-  if (risk_check) {
-    // let process crash if value is not a json
-    auto config = nlohmann::json::parse(risk_setting_data.value<std::string>("value", "{}"));
-    const auto risk_name = config.value<std::string>("risk_name", "");
-    if (not risk_name.empty()) {
-      risk_uid_ = location(get_home()->mode, category::SYSTEM, "service", risk_name, get_home()->locator).location_uid;
-    }
-  }
-}
-
 yijinjing::journal::writer_ptr &Trader::get_thread_writer() {
   return dynamic_cast<TraderVendor &>(get_vendor()).get_thread_writer();
 }
 
+void Trader::try_req_account() {
+  if (is_sync_account()) {
+    req_account();
+    disable_sync_account();
+  }
+}
+
+void Trader::on_risk_setting() {}
 } // namespace kungfu::wingchun::broker

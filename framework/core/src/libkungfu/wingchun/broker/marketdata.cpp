@@ -31,6 +31,7 @@ void MarketDataVendor::on_react() {
 
 void MarketDataVendor::on_start() {
   BrokerVendor::on_start();
+  service_->pre_start();
   events_ | is(CustomSubscribe::tag) | $$(service_->subscribe_custom(event->data<CustomSubscribe>()));
   events_ | is(InstrumentKey::tag) | $$(service_->add_instrument_key(event->data<InstrumentKey>()));
   events_ | is(Band::tag) | $$(service_->on_band(event));

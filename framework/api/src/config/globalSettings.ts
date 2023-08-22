@@ -16,7 +16,7 @@ import {
 } from '@kungfu-trader/kungfu-js-api/language';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
-import { getDefaultHomePath } from './homePathConfig';
+import { getDefaultHomeDir } from './homePathConfig';
 import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 const { t } = VueI18n.global;
 const ifCpusNumSafe = booleanProcessEnv(process.env.IF_CPUS_NUM_SAFE);
@@ -33,7 +33,7 @@ const __python_version_resolved = __python_version
 
 const packageJson = readRootPackageJsonSync();
 
-const defaultHomePath = getDefaultHomePath();
+const defaultHomeDir = getDefaultHomeDir();
 
 export const getKfGlobalSettings = (): KfSystemConfig[] => [
   {
@@ -41,10 +41,10 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
     name: t('globalSettingConfig.system'),
     config: [
       {
-        key: 'homePath',
-        name: t('globalSettingConfig.home_path'),
-        tip: t('globalSettingConfig.home_path_desc'),
-        default: defaultHomePath,
+        key: 'homeDir',
+        name: t('globalSettingConfig.home_dir'),
+        tip: t('globalSettingConfig.home_dir_desc'),
+        default: defaultHomeDir,
         type: 'directory',
       },
       {
@@ -220,11 +220,39 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
         ],
       },
       {
-        key: 'assetMargin',
-        name: t('globalSettingConfig.asset_margin'),
-        tip: t('globalSettingConfig.show_asset_margin'),
+        key: 'marginTrading',
+        name: t('globalSettingConfig.margin_trading'),
+        tip: t('globalSettingConfig.show_margin_trading'),
         default: false,
         type: 'bool',
+      },
+      {
+        key: 'posTableColumns',
+        name: t('globalSettingConfig.pos_table_columns'),
+        type: 'checkboxGroup',
+        options: [
+          {
+            value: 'static_yesterday_volume',
+            label: t('posGlobalConfig.static_yesterday_volume_setting'),
+          },
+          {
+            value: 'yesterday_volume',
+            label: t('posGlobalConfig.yesterday_volume_setting'),
+          },
+          {
+            value: 'open_volume',
+            label: t('posGlobalConfig.open_volume'),
+          },
+          {
+            value: 'close_volume',
+            label: t('posGlobalConfig.close_volume'),
+          },
+          {
+            value: 'today_volume',
+            label: t('posGlobalConfig.today_volume'),
+          },
+        ],
+        default: ['yesterday_volume', 'today_volume'],
       },
     ],
   },

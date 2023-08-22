@@ -15,6 +15,7 @@
 #include <kungfu/yijinjing/practice/apprentice.h>
 
 namespace kungfu::wingchun::strategy {
+
 class Context : public std::enable_shared_from_this<Context> {
 public:
   Context(yijinjing::practice::apprentice &app, const rx::connectable_observable<event_ptr> &events);
@@ -164,7 +165,6 @@ public:
                                         const std::string &source, const std::string &account, double limit_price,
                                         int64_t volume, longfist::enums::PriceType type, longfist::enums::Side side,
                                         longfist::enums::Offset offset, longfist::enums::OrderTriggerType trigger_type,
-                                        longfist::enums::TimeCondition time_condition,
                                         longfist::enums::ParkedType parked_type = longfist::enums::ParkedType::Server,
                                         double stop_price = 0,
                                         longfist::enums::HedgeFlag hedge_flag = longfist::enums::HedgeFlag::Speculation,
@@ -202,22 +202,6 @@ public:
    */
   virtual std::vector<uint64_t> insert_array_orders(const std::string &source, const std::string &account,
                                                     std::vector<longfist::types::OrderInput> &order_inputs) = 0;
-
-  /*
-   * Insert Basket Orders
-   * @param basket_id
-   * @param source
-   * @param account
-   * @param price_type
-   * @param price_level
-   * @param price_offset
-   * @param volume_mode
-   * @param total_volume
-   */
-  virtual uint64_t insert_basket_order(uint64_t basket_id, const std::string &source, const std::string &account,
-                                       longfist::enums::Side side, longfist::enums::PriceType price_type,
-                                       longfist::enums::PriceLevel price_level, double price_offset = 0,
-                                       int64_t volume = 0) = 0;
 
   /**
    * @param instrument_id instrument ID
@@ -265,7 +249,17 @@ public:
    * @param algo_order_id
    * @return algo order action ID
    */
-  virtual uint64_t cancel_algo_order(uint64_t algo_order_id) = 0;
+  virtual uint64_t cancel_algo_order(uint64_t algo_order_id, longfist::enums::AlgoOrderActionFlag action_flag =
+                                                                 longfist::enums::AlgoOrderActionFlag::Cancel) = 0;
+
+  /**
+   * Toggle Algo Order
+   * @param algo_order_id
+   * @return algo order action ID
+   */
+  virtual uint64_t
+  toggle_algo_order(uint64_t algo_order_id,
+                    longfist::enums::AlgoOrderActionFlag action_flag = longfist::enums::AlgoOrderActionFlag::Start) = 0;
 
   /**
    * query history order
@@ -292,7 +286,7 @@ public:
    * by kungfu.
    * @return true if positions are mirrored, false otherwise. Defaults to true.
    */
-  [[nodiscard]] bool is_positions_mirrored() const;
+  [[nodiscard]] bool is_positions_held() const;
 
   /**
    * Call to hold book.
@@ -332,7 +326,8 @@ public:
    * Get arguments kfc run -a
    * @return string of arguments
    */
-  const std::string &get_arguments() { return arguments_; };
+
+  virtual std::string get_arguments() { return app_.get_arguments(); };
 
   /**
    *
@@ -344,8 +339,7 @@ public:
 protected:
   yijinjing::practice::apprentice &app_;
   const rx::connectable_observable<event_ptr> &events_;
-  std::string arguments_;
-  bool started_{false};
+  bool started_ = false;
 
   virtual void on_start() {}
 
@@ -359,10 +353,7 @@ private:
   friend void enable(Context &context) { context.on_start(); }
 
   friend void prepare(const event_ptr &event, Context &context) { context.prepare(event); }
-
-  friend void set_arguments(Context &context, const std::string &arguments) { context.arguments_ = arguments; }
 };
-
 } // namespace kungfu::wingchun::strategy
 
 #endif // WINGCHUN_CONTEXT_H

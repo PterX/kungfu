@@ -7,6 +7,7 @@ import {
   configStore,
   sessionStore,
   getRendererProcessId,
+  io,
   kf,
   riskSettingStore,
 } from '@kungfu-trader/kungfu-js-api/kungfu';
@@ -21,6 +22,7 @@ window.configStore = configStore;
 window.riskSettingStore = riskSettingStore;
 window.commissionStore = commissionStore;
 window.sessionStore = sessionStore;
+window.io = io;
 
 window.testCase = {};
 window.testCase.crashTheWatcher = () => {

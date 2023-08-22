@@ -169,7 +169,7 @@ template <typename T, size_t N> struct array {
       return *this;
     }
     if constexpr (std::is_same_v<T, char>) {
-      memcpy(value, data, strlen(data));
+      strncpy(value, data, N);
     } else {
       memcpy(value, data, sizeof(value));
     }
@@ -348,7 +348,7 @@ template <typename DataType> struct data {
       auto accessor = boost::hana::second(it);
       j[name.c_str()] = accessor(*reinterpret_cast<const DataType *>(this));
     });
-    return j.dump();
+    return j.dump(-1, ' ', false, nlohmann::json::basic_json::error_handler_t::replace);
   }
 
   explicit operator std::string() const { return to_string(); }
@@ -481,6 +481,7 @@ template <typename DataType> struct state {
     return *this;
   }
 };
+
 } // namespace kungfu
 
 #endif // KUNGFU_COMMON_H

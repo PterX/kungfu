@@ -25,8 +25,18 @@ Context_ptr Runner::make_context() {
       to_indexer_ = std::make_shared<tool::SliceIndexer>(get_begin_time(), get_end_time());
       SPDLOG_WARN("Runner in backtest mode not specified to_indexer, Default NameHashingIndexer used.");
     }
-    return std::make_shared<BacktestContext>(*this, events_, std::move(from_indexer_), std::move(to_indexer_));
+    if (not report_) {
+      report_ = std::make_shared<tool::Report>();
+      SPDLOG_WARN("Runner in backtest mode not specified.");
+    }
+    set_runner(*report_, this, nullptr);
+    return std::make_shared<BacktestContext>(*this, events_, std::move(from_indexer_), std::move(to_indexer_), report_);
   }
+
+  if (get_home()->mode == mode::REPLAY) {
+    return std::make_shared<ReplayContext>(*this, events_);
+  }
+
   return std::make_shared<LiveContext>(*this, events_);
 }
 
@@ -35,6 +45,10 @@ void Runner::add_operator(const Operator_ptr &op) { operators_.push_back(op); }
 void Runner::set_from_indexer(const tool::SliceIndexer_ptr &indexer) { from_indexer_ = indexer; }
 
 void Runner::set_to_indexer(const tool::SliceIndexer_ptr &indexer) { to_indexer_ = indexer; }
+
+void Runner::set_report(const tool::Report_ptr &report) { report_ = report; }
+
+tool::Report_ptr Runner::get_report() const { return report_; }
 
 void Runner::on_exit() { post_stop(); }
 
@@ -83,7 +97,6 @@ void Runner::post_start() {
                 event->dest()));
 
   invoke(&Operator::post_start);
-  SPDLOG_INFO("operator {} started", get_io_device()->get_home()->name);
 }
 
 void Runner::pre_stop() { invoke(&Operator::pre_stop); }

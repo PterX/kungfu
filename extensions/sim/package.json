@@ -96,12 +96,11 @@
             "required": true
           }
         ],
-        "orderTrigger": {
+        "order_trigger": {
           "MakeOrder": {
-            "Server": {
-              "GFA": true
-            }
-          }
+            "Server": true
+          },
+          "CancelOrder": {}
         }
       },
       "md": {

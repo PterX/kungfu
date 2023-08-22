@@ -55,9 +55,9 @@ public:
 
   [[nodiscard]] const data::location_ptr &get_location() const { return location_; }
 
-  [[maybe_unused]] [[nodiscard]] uint32_t get_source() const { return location_->location_uid; }
+  [[nodiscard]] uint32_t get_source() const { return location_->location_uid; }
 
-  [[maybe_unused]] [[nodiscard]] uint32_t get_dest() const { return dest_id_; }
+  [[nodiscard]] uint32_t get_dest() const { return dest_id_; }
 
   /**
    * move current frame to the next available one

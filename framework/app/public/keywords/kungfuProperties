@@ -19,7 +19,6 @@ io_device
 usable
 bookkeeper
 arguments
-basketorder_engine
 begin_time
 end_time
 gen_time
@@ -39,7 +38,6 @@ live
 update_time
 data
 asset
-asset_margin
 long_positions
 short_positions
 order_inputs
@@ -101,6 +99,8 @@ volume
 yesterday_volume
 frozen_total
 frozen_yesterday
+static_yesterday_volume
+open_volume
 last_price
 avg_open_price
 position_cost_price
@@ -204,7 +204,6 @@ frame_count
 info_a
 info_b
 info_c
-disable_recover
 risk_check
 self_deal_check_type
 open_ratio
@@ -229,7 +228,6 @@ system_clock_count
 frame_header
 page_header
 Asset
-AssetMargin
 Position
 PositionEnd
 InstrumentFactor
@@ -314,8 +312,7 @@ DCE
 CZCE
 INE
 SSE
-SZSE
-HKEx
+SZE
 MarketType
 Snapshot
 SubscribeDataType
@@ -376,6 +373,9 @@ TriggerCancel
 OrderActionFlag
 TriggerInsert
 OrderTriggerFlag
+Start
+Stop
+AlgoOrderActionFlag
 Limit
 Any
 FakBest5
@@ -387,7 +387,7 @@ EnhancedLimit
 AtAuctionLimit
 AtAuction
 PriceType
-Latest
+Last
 Sell5
 Sell4
 Sell3

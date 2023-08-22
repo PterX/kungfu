@@ -27,7 +27,6 @@ import {
   OrderInputKeyEnum,
   SideEnum,
   PriceTypeEnum,
-  TimeConditionEnum,
   OrderTriggerParkedTypeEnum,
   OrderTriggerTypeEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
@@ -679,13 +678,10 @@ async function handleOrderTrigger() {
   }
 }
 
-function handleOrderTriggerConfirm(data: {
-  parked_type: OrderTriggerParkedTypeEnum;
-  time_condition: TimeConditionEnum;
-}) {
+function handleOrderTriggerConfirm(parked_type: OrderTriggerParkedTypeEnum) {
   if (!currentGlobalKfLocation.value) return;
   const orderInput: KungfuApi.MakeOrderTriggerInput = {
-    ...data,
+    parked_type,
     ...(orderTriggerInput.value as KungfuApi.MakeOrderInput),
   };
 
@@ -971,11 +967,7 @@ watch(
           <a-button class="make-order" @click="handleMakeOrder">
             {{ $t('tradingConfig.place_order') }}
           </a-button>
-          <a-button
-            class="make-order"
-            v-if="orderTriggerBtnVisible"
-            @click="handleOrderTrigger"
-          >
+          <a-button v-if="orderTriggerBtnVisible" @click="handleOrderTrigger">
             {{ $t('tradingConfig.order_trigger') }}
           </a-button>
           <a-button @click="handleApartOrder">

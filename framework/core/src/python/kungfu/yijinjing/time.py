@@ -37,15 +37,20 @@ def strftime(nanotime, format=DATETIME_FORMAT):
     return to_datetime(nanotime).strftime(normal_format)
 
 
-def strptimes(timestr, formats=("%F %T", "%F %T.%N", "%Y%m%d", "%Y-%m-%d")):
+def strptimes(
+    timestr, formats=("%F %T", "%F %T.%N", "%Y%m%d", "%Y-%m-%d", "%Y-%m-%d %H:%M:%S")
+):
     if isinstance(formats, str):
         formats = [formats]
     for format in formats:
-        time_stamp = yjj.strptime(timestr, format)
-        if yjj.strftime(time_stamp, format) == timestr:
-            return time_stamp
+        try:
+            time_stamp = strptime(timestr, format)
+            if strftime(time_stamp, format) == timestr:
+                return time_stamp
+        except ValueError:
+            pass
     raise ValueError(
-        "time data '{}' does not match any format={}".format(timestr, formats)
+        "time data '{}' does not match any formats={}".format(timestr, formats)
     )
 
 

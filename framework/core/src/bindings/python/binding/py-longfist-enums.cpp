@@ -365,5 +365,13 @@ void bind_enums(py::module &m) {
       .value("Stop", AlgoOrderActionFlag::Stop)
       .export_values()
       .def("__eq__", [](const AlgoOrderActionFlag &a, int b) { return static_cast<int>(a) == b; });
+
+  py::enum_<ResumePolicy>(m_enums, "ResumePolicy", py::arithmetic())
+      .value("Now", ResumePolicy::Now)
+      .value("Intraday", ResumePolicy::Intraday)
+      .value("Stateless", ResumePolicy::Stateless)
+      .value("Continuous", ResumePolicy::Continuous)
+      .export_values()
+      .def("__eq__", [](const AlgoOrderActionFlag &a, int b) { return static_cast<int>(a) == b; });
 }
 } // namespace kungfu::longfist::pybind

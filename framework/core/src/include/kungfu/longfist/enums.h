@@ -747,5 +747,16 @@ NLOHMANN_JSON_SERIALIZE_ENUM(SelfDealCheckType, {
 
 inline std::ostream &operator<<(std::ostream &os, SelfDealCheckType t) { return os << int8_t(t); }
 
+enum class ResumePolicy : int8_t { Now, Intraday, Stateless, Continuous };
+
+NLOHMANN_JSON_SERIALIZE_ENUM(ResumePolicy, {
+                                               {ResumePolicy::Now, "Now"},
+                                               {ResumePolicy::Intraday, "Intraday"},
+                                               {ResumePolicy::Stateless, "Stateless"},
+                                               {ResumePolicy::Continuous, "Continuous"},
+                                           })
+
+inline std::ostream &operator<<(std::ostream &os, ResumePolicy t) { return os << int8_t(t); }
+
 } // namespace kungfu::longfist::enums
 #endif // KUNGFU_LONGFIST_ENUM_H

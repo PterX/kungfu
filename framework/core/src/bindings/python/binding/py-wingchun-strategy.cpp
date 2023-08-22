@@ -211,6 +211,7 @@ void bind_strategy(pybind11::module &m) {
       .def("is_bypass_accounting", &strategy::Context::is_bypass_accounting)
       .def("bypass_accounting", &strategy::Context::bypass_accounting)
       .def("update_strategy_state", &strategy::Context::update_strategy_state)
+      .def("set_resume_policy", &strategy::Context::set_resume_policy)
       .def("req_deregister", &strategy::Context::req_deregister);
 
   py::class_<strategy::Matcher, std::shared_ptr<strategy::Matcher>>(m, "Matcher");

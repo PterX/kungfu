@@ -108,6 +108,13 @@ public:
    */
   virtual yijinjing::data::location_ptr get_location(uint32_t location_uid) = 0;
 
+  /**
+   *
+   * @param resume_policy
+   * @return void
+   */
+  virtual void set_resume_policy(longfist::enums::ResumePolicy resume_policy) {};
+
 protected:
   yijinjing::practice::apprentice &app_;
   const rx::connectable_observable<event_ptr> &events_;

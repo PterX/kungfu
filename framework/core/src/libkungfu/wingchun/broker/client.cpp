@@ -154,7 +154,7 @@ void Client::on_start(const rx::connectable_observable<event_ptr> &events) {
 void Client::connect(const event_ptr &event, const Register &register_data) {
   auto app_uid = register_data.location_uid;
   auto app_location = app_.get_location(app_uid);
-  auto resume_time_point = get_resume_policy().get_connect_time(app_, register_data);
+  auto resume_time_point = get_resume_policy()->get_connect_time(app_, register_data);
   if (app_location->category == category::MD and should_connect_md(app_location)) {
     app_.request_write_to(app_.now(), app_uid);
     app_.request_read_from_public(app_.now(), app_uid, resume_time_point);
@@ -208,7 +208,7 @@ void Client::on_deregister(const longfist::types::Deregister &deregister_data) {
 
 AutoClient::AutoClient(apprentice &app) : Client(app) {}
 
-const ResumePolicy &AutoClient::get_resume_policy() const { return resume_policy_; }
+ResumePolicy_ptr AutoClient::get_resume_policy() const { return std::make_shared<FromNowResumePolicy>(); }
 
 bool AutoClient::is_custom_subscribed(uint32_t md_location_uid) const { return false; }
 
@@ -244,7 +244,20 @@ void SilentAutoClient::sync(int64_t trigger_time, const location_ptr &td_locatio
 
 PassiveClient::PassiveClient(apprentice &app) : Client(app) {}
 
-const ResumePolicy &PassiveClient::get_resume_policy() const { return resume_policy_; }
+ResumePolicy_ptr PassiveClient::get_resume_policy() const { 
+  switch(resume_policy_) {
+    case longfist::enums::ResumePolicy::Now:
+      return std::make_shared<FromNowResumePolicy>();
+    case longfist::enums::ResumePolicy::Stateless:
+      return std::make_shared<StatelessResumePolicy>();
+    case longfist::enums::ResumePolicy::Continuous:
+      return std::make_shared<ContinuousResumePolicy>();
+    case longfist::enums::ResumePolicy::Intraday:
+      return std::make_shared<IntradayResumePolicy>();
+    default:
+      return std::make_shared<FromNowResumePolicy>();
+  }   
+}
 
 bool PassiveClient::is_custom_subscribed(uint32_t md_location_uid) const {
   return should_connect_md(app_.get_location(md_location_uid)) and enrolled_md_custom_info_.at(md_location_uid);
@@ -430,4 +443,8 @@ bool PassiveClient::should_connect_operator(uint32_t op_location_uid) const {
 bool PassiveClient::should_connect_strategy(const location_ptr &strategy_location) const { return false; }
 
 bool PassiveClient::should_connect_system(const location_ptr &system_location) const { return false; };
+
+void PassiveClient::set_resume_policy(longfist::enums::ResumePolicy resume_policy) {
+  resume_policy_ = resume_policy;
+}
 } // namespace kungfu::wingchun::broker

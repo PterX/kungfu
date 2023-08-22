@@ -67,7 +67,7 @@ void WatcherAutoClient::connect(const event_ptr &event, const longfist::types::R
     return;
   }
   auto app_location = app_.get_location(app_uid);
-  auto resume_time_point = get_resume_policy().get_connect_time(app_, register_data);
+  auto resume_time_point = get_resume_policy()->get_connect_time(app_, register_data);
 
   if (app_location->category == category::SYSTEM and should_connect_system(app_location)) {
     app_.request_read_from_public(app_.now(), app_uid, 0);

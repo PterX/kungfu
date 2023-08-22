@@ -25,6 +25,8 @@ struct ResumePolicy {
                                                 const longfist::types::Register &broker) const = 0;
 };
 
+DECLARE_PTR(ResumePolicy);
+
 /**
  * Always resume from the last unread frame, is intended to be used by system services that needs continuity.
  */
@@ -73,7 +75,7 @@ public:
 
   virtual ~Client() = default;
 
-  [[nodiscard]] virtual const ResumePolicy &get_resume_policy() const = 0;
+  [[nodiscard]] virtual ResumePolicy_ptr get_resume_policy() const = 0;
 
   [[nodiscard]] const InstrumentKeyMap &get_instrument_keys() const;
 
@@ -204,7 +206,7 @@ class AutoClient : public Client {
 public:
   explicit AutoClient(yijinjing::practice::apprentice &app);
 
-  [[nodiscard]] const ResumePolicy &get_resume_policy() const override;
+  [[nodiscard]] ResumePolicy_ptr get_resume_policy() const override;
 
   [[nodiscard]] bool is_custom_subscribed(uint32_t md_location_uid) const override;
 
@@ -263,7 +265,7 @@ class PassiveClient : public Client {
 public:
   explicit PassiveClient(yijinjing::practice::apprentice &app);
 
-  [[nodiscard]] const ResumePolicy &get_resume_policy() const override;
+  [[nodiscard]] ResumePolicy_ptr get_resume_policy() const override;
 
   [[nodiscard]] bool is_custom_subscribed(uint32_t md_location_uid) const override;
 
@@ -315,6 +317,8 @@ public:
   const yijinjing::data::location_ptr &find_md_location(const std::string &source,
                                                         const yijinjing::data::location_ptr &home);
 
+  void set_resume_policy(longfist::enums::ResumePolicy resume_policy);
+
 protected:
   [[nodiscard]] bool should_connect_md(const yijinjing::data::location_ptr &md_location) const override;
 
@@ -333,7 +337,7 @@ protected:
   [[nodiscard]] bool should_connect_system(const yijinjing::data::location_ptr &system_location) const override;
 
 private:
-  FromNowResumePolicy resume_policy_ = {};
+  longfist::enums::ResumePolicy resume_policy_ = longfist::enums::ResumePolicy::Now;
   CustomSubscribeMap custom_subs_ = {};
   EnrollmentMap enrolled_md_custom_info_ = {};
   EnrolledLocationMap enrolled_md_locations_ = {};

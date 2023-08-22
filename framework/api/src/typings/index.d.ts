@@ -49,7 +49,6 @@ declare namespace KungfuApi {
     SessionStatusEnum,
     CurrencyEnum,
     OrderTriggerTypeEnum,
-    OrderTriggerParkedTypeEnum,
     OrderTriggerStatusEnum,
     FundTransEnum,
     FundTransTypeEnum,
@@ -296,12 +295,7 @@ declare namespace KungfuApi {
   }
   export interface KfTdExtConfig extends KfExtConfigBase<'td' | 'tdGroup'> {
     type: TdMdExtTypes[];
-    orderTrigger: Partial<
-      Record<
-        OrderTriggerTypeEnum,
-        Partial<Record<OrderTriggerParkedTypeEnum, boolean>>
-      >
-    >;
+    orderTrigger: Partial<Record<OrderTriggerTypeEnum, boolean>>;
     settings: KfConfigItem[];
     fundTrans?: KfExtFundTransConfig | null;
   }
@@ -423,9 +417,7 @@ declare namespace KungfuApi {
     is_swap: boolean;
     parent_id: bigint;
   }
-  export interface MakeOrderTriggerInput extends MakeOrderInput {
-    parked_type: OrderTriggerParkedTypeEnum;
-  }
+  export type MakeOrderTriggerInput = MakeOrderInput;
 
   export interface KfLogData {
     id: number;
@@ -677,9 +669,7 @@ declare namespace KungfuApi {
     uid_key: string;
   }
 
-  export interface OrderTriggerInput extends OrderInput {
-    parked_type: OrderTriggerParkedTypeEnum; // 预埋方式
-  }
+  export type OrderTriggerInput = OrderInput;
 
   export interface OrderTrigger {
     trigger_id: bigint; // 触发器id
@@ -714,7 +704,6 @@ declare namespace KungfuApi {
     price_type: PriceTypeEnum; //价格类型
     volume_condition: VolumeConditionEnum; //成交量类型
     time_condition: TimeConditionEnum; //成交时间类型
-    parked_type: OrderTriggerParkedTypeEnum; // 预埋方式
 
     source: number;
     dest: number;
@@ -735,7 +724,6 @@ declare namespace KungfuApi {
     key: number;
     action_flag_uname: string;
     time_condition_resolved: string;
-    parked_type_resolved: string;
   }
 
   export interface TimeKeyValue {

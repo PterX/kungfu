@@ -10,14 +10,14 @@ export function reqRecordBeforeQuit(
       return;
     }
 
-    //30s后强制关闭
+    //10s后强制关闭
     console.time('record before quit');
     const timer = setTimeout(() => {
       resolve(false);
       console.timeEnd('record before quit');
       console.log('record before quit timeout');
       clearTimeout(timer);
-    }, 500);
+    }, 10000);
 
     sendMsgToMainWindow(mainWindow, 'record-before-quit');
 

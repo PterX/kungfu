@@ -36,6 +36,7 @@ import {
   KfConfigValueNumberType,
   KfConfigValueArrayType,
   KfConfigValueBooleanType,
+  KfConfigValueAnyType,
   getCombineValueByPrimaryKeys,
   getPriceTypeConfig,
   initFormStateByConfig,
@@ -374,13 +375,15 @@ function getTablesSearchRelated(
 
 function getValidatorType(
   type: string,
-): 'number' | 'string' | 'array' | 'boolean' {
+): 'number' | 'string' | 'array' | 'boolean' | 'any' {
   if (KfConfigValueNumberType.includes(type)) {
     return 'number';
   } else if (KfConfigValueArrayType.includes(type)) {
     return 'array';
   } else if (KfConfigValueBooleanType.includes(type)) {
     return 'boolean';
+  } else if (KfConfigValueAnyType.includes(type)) {
+    return 'any';
   } else {
     return 'string';
   }
@@ -1369,6 +1372,15 @@ defineExpose({
           item.disabled
         "
       ></a-checkbox>
+      <a-checkbox-group
+        v-else-if="item.type === 'checkboxGroup'"
+        v-model:value="formState[item.key]"
+        :options="item.options"
+        :disabled="
+          (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
+          item.disabled
+        "
+      ></a-checkbox-group>
       <a-select
         v-else-if="numberEnumSelectType[item.type]"
         v-model:value="formState[item.key]"

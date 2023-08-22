@@ -37,7 +37,7 @@ private:
 
 class apprentice : public hero {
 public:
-  explicit apprentice(yijinjing::data::location_ptr home, bool low_latency = false);
+  explicit apprentice(yijinjing::data::location_ptr home, bool low_latency = false, std::string arguments = "{}");
 
   bool is_started() const;
 
@@ -72,11 +72,41 @@ public:
   void add_time_interval(int64_t nanotime, const std::function<void(const event_ptr &)> &callback);
 
   template <typename DataType>
-  void write_to(int64_t trigger_time, DataType &data, uint32_t dest_id = yijinjing::data::location::PUBLIC) {
+  void write_to(int64_t trigger_time, const DataType &data, uint32_t dest_id = yijinjing::data::location::PUBLIC) {
     get_writer(dest_id)->write(trigger_time, data);
   }
 
+  template <typename DataType>
+  void try_write_to(int64_t trigger_time, const DataType &data, uint32_t dest_id = yijinjing::data::location::PUBLIC) {
+    if (has_writer(dest_id)) {
+      get_writer(dest_id)->write(trigger_time, data);
+    } else {
+      events_ | rx::is(longfist::types::Channel::tag) | rx::filter([&, dest_id](const event_ptr &event) {
+        const longfist::types::Channel &channel = event->data<longfist::types::Channel>();
+        return channel.source_id == get_home_uid() and channel.dest_id == dest_id;
+      }) | rx::first() |
+          rx::$([this, data, dest_id](const event_ptr &event) { write_to(now(), data, dest_id); });
+      try_write_dest_ids_.emplace(dest_id);
+    }
+  }
+
   bool release_page();
+
+  template <class DataType> std::string make_nano_msg(uint32_t source, uint32_t dest, const DataType &data) const {
+    auto now = this->now();
+    nlohmann::json request;
+    request["data_type"] = int8_t(longfist::enums::FrameDataType::Json);
+    request["msg_type"] = DataType::tag;
+    request["gen_time"] = now;
+    request["trigger_time"] = now;
+    request["initial_source"] = get_home_uid();
+    request["source"] = source;
+    request["dest"] = dest;
+    request["data"] = nlohmann::json::parse(data.to_string());
+    return request.dump();
+  }
+
+  const std::string &get_arguments() const { return arguments_; }
 
 protected:
   cache::bank state_bank_;
@@ -95,8 +125,6 @@ protected:
 
   virtual void on_start();
 
-  void on_request_read_from_others(const event_ptr &event);
-
   void on_register(int64_t trigger_time, const longfist::types::Register &register_data);
 
   void on_deregister(const event_ptr &event);
@@ -107,25 +135,13 @@ protected:
 
   void on_read_from_sync(const event_ptr &event);
 
+  void on_request_read_from_others(const event_ptr &event);
+
   virtual void on_write_to(const event_ptr &event);
 
   void on_write_to_band(const event_ptr &event);
 
   [[maybe_unused]] int get_observer_recv_timeout() const;
-
-  template <class DataType> std::string make_nano_msg(uint32_t source, uint32_t dest, const DataType &data) const {
-    auto now = time::now_in_nano();
-    nlohmann::json request;
-    request["data_type"] = int8_t(longfist::enums::FrameDataType::Json);
-    request["msg_type"] = DataType::tag;
-    request["gen_time"] = now;
-    request["trigger_time"] = now;
-    request["initial_source"] = get_home_uid();
-    request["source"] = source;
-    request["dest"] = dest;
-    request["data"] = nlohmann::json::parse(data.to_string());
-    return request.dump();
-  }
 
   void reader_join(uint32_t source_id, uint32_t dest_id, int64_t from_time);
 
@@ -243,9 +259,11 @@ private:
   int64_t last_active_time_ = INT64_MIN;
   int64_t checkin_time_ = INT64_MIN;
   int32_t timer_usage_count_ = 0;
+  const std::string arguments_{};
   yijinjing::practice::cleaner cleaner_;
   std::unordered_map<int, int64_t> timer_checkpoints_ = {};
   std::unordered_map<int, longfist::types::TimeRequest> timer_requests_ = {};
+  std::unordered_set<uint32_t> try_write_dest_ids_{};
 
   void checkin();
 

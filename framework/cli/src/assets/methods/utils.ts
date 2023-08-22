@@ -22,6 +22,7 @@ import { startExtService } from '@kungfu-trader/kungfu-js-api/utils/processUtils
 import { Proc } from 'pm2';
 import { globalState } from '../actions/globalState';
 import { program } from 'commander';
+import { SpecialWordsReg } from '@kungfu-trader/kungfu-js-api/config/systemConfig';
 
 export const parseToString = (
   targetList: (string | number)[],
@@ -170,6 +171,14 @@ export const buildQuestionByKfConfigItem = (
         return new Error('Required');
       }
 
+      if (configItem.primary) {
+        if (SpecialWordsReg.test(value)) {
+          return new Error(
+            'Cannot contain special characters or Chinese characters, and cannot start or end with - characters',
+          );
+        }
+      }
+
       if ((isUpdate && configItem.primary) || configItem.disabled) {
         if (value !== dafultValue) {
           return new Error("This value can't change");
@@ -179,6 +188,10 @@ export const buildQuestionByKfConfigItem = (
       }
 
       return true;
+    },
+
+    filter: (value: KungfuApi.KfConfigValue) => {
+      return targetType === 'number' && isNaN(value) ? 0 : value;
     },
 
     ...(targetType === 'path' ? { cwd: process.cwd().toString() } : {}),

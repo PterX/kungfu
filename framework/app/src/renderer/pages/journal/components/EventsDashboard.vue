@@ -183,7 +183,6 @@ const HUNDRED_MILLISECONDS = 100000000;
 const DEFAULT_LIST_SIZE = 10000;
 const SHOW_DETAIL_MSG_TYPES = {
   [MsgType.Asset]: true,
-  [MsgType.AssetMargin]: true,
   [MsgType.Position]: true,
   [MsgType.Order]: true,
   [MsgType.OrderInput]: true,

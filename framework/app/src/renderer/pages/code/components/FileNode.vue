@@ -150,7 +150,7 @@ import { confirmModal, messagePrompt } from '../../../assets/methods/uiUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 const { t } = VueI18n.global;
 
-const { success, error, warning } = messagePrompt();
+const { success, error, warn } = messagePrompt();
 
 const store = useCodeStore();
 
@@ -326,7 +326,7 @@ function handleDelete() {
         });
     });
   } else {
-    warning(t('editor.cannot_delate_entry'));
+    warn(t('editor.cannot_delate_entry'));
     return;
   }
 }

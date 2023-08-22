@@ -4,16 +4,29 @@ module.exports = {
   flags: 'build',
   desc: 'Build kungfu extension',
   setup: (cli) => {
-    cli.option('url', {
-      type: 'string',
-      desc: 'lib site URL',
-      defaultValue: sdk.lib.extension.DefaultLibSiteURL,
-    });
+    cli
+      .option('url', {
+        type: 'string',
+        desc: 'lib site URL',
+        defaultValue: sdk.lib.extension.DefaultLibSiteURL,
+      })
+      .option('update-project-config', {
+        type: 'boolean',
+        desc: 'update project config files',
+        defaultValue: true,
+      })
+      .option('build_type', {
+        type: 'string',
+        desc: 'build type',
+        defaultValue: 'Release',
+      });
   },
   run: async (argv) => {
-    sdk.lib.project.configure();
+    if (argv['update-project-config']) {
+      sdk.lib.project.configure(false, true);
+    }
     await sdk.lib.extension.installBatch(argv.url);
     sdk.lib.extension.configure();
-    sdk.lib.extension.compile();
+    sdk.lib.extension.compile(argv['build_type']);
   },
 };

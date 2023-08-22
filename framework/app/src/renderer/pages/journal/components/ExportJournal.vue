@@ -48,8 +48,8 @@ import path from 'path';
 import { dialog } from '@electron/remote';
 import { reactive, ref } from 'vue';
 import { DashOutlined } from '@ant-design/icons-vue';
-import { message } from 'ant-design-vue';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+import { messagePrompt } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import { writeCsvByStream } from '../utils';
 
 const { t } = VueI18n.global;
@@ -70,6 +70,7 @@ const exportFormState = reactive({
   [EXPORT_KEY]: '',
 });
 const exportFormModalVisible = ref(false);
+const message = messagePrompt();
 
 const exportModalConfig = {
   title: t('journalConfig.export'),
@@ -160,6 +161,8 @@ const handleConfirmExport = () => {
               message.error(err.message);
             });
         });
+      } else {
+        message.error(t('journalConfig.empty_export_data'));
       }
     },
   );

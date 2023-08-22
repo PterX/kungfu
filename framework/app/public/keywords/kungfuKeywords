@@ -19,7 +19,6 @@ io_device
 usable
 bookkeeper
 arguments
-basketorder_engine
 begin_time
 end_time
 gen_time
@@ -39,7 +38,6 @@ live
 update_time
 data
 asset
-asset_margin
 long_positions
 short_positions
 order_inputs
@@ -101,6 +99,8 @@ volume
 yesterday_volume
 frozen_total
 frozen_yesterday
+static_yesterday_volume
+open_volume
 last_price
 avg_open_price
 position_cost_price
@@ -204,7 +204,6 @@ frame_count
 info_a
 info_b
 info_c
-disable_recover
 risk_check
 self_deal_check_type
 open_ratio
@@ -229,7 +228,6 @@ system_clock_count
 frame_header
 page_header
 Asset
-AssetMargin
 Position
 PositionEnd
 InstrumentFactor
@@ -307,12 +305,8 @@ __parse__
 update
 has_long_position
 has_short_position
-has_position
 get_long_position
 get_short_position
-get_position
-has_position_for
-get_position_for
 apply_quote
 apply_order_input
 apply_order
@@ -345,7 +339,6 @@ get_order_trigger
 has_algo_order
 get_algo_order
 enable_asset_sync
-enable_asset_margin_sync
 enable_positions_sync
 get_account_type
 insert_order
@@ -356,6 +349,7 @@ insert_batch_orders
 cancel_order
 cancel_order_trigger
 cancel_algo_order
+toggle_algo_order
 req_history_order
 req_history_trade
 req_account
@@ -366,6 +360,7 @@ set_begin_time
 set_end_time
 set_from_indexer
 set_to_indexer
+set_report
 setup
 step
 on_exit
@@ -392,11 +387,10 @@ add_account
 insert_order_input
 insert_block_message
 insert_array_orders
-insert_basket_order
 hold_book
 hold_positions
 is_book_held
-is_positions_mirrored
+is_positions_held
 update_strategy_state
 is_bypass_accounting
 bypass_accounting
@@ -409,7 +403,6 @@ on_algo_order_action_error
 on_trade
 on_position_sync_reset
 on_asset_sync_reset
-on_asset_margin_sync_reset
 on_history_order
 on_history_trade
 on_req_history_order_error
@@ -425,6 +418,10 @@ find_md_slice_location
 get_md_slice_end_time
 find_operator_slice_location
 get_operator_slice_end_time
+init
+sumerize
+on_read_synthetic_data
+on_write_synthetic_data
 hash_instrument
 is_valid_price
 is_final_status
@@ -433,6 +430,7 @@ order_from_input
 trade_from_order
 order_trigger_from_input
 order_trigger_from_order
+order_input_from_trigger_order
 now_in_nano
 strftime
 strptime
@@ -525,8 +523,7 @@ DCE
 CZCE
 INE
 SSE
-SZSE
-HKEx
+SZE
 MarketType
 Snapshot
 SubscribeDataType
@@ -587,6 +584,9 @@ TriggerCancel
 OrderActionFlag
 TriggerInsert
 OrderTriggerFlag
+Start
+Stop
+AlgoOrderActionFlag
 Limit
 Any
 FakBest5
@@ -598,7 +598,7 @@ EnhancedLimit
 AtAuctionLimit
 AtAuction
 PriceType
-Latest
+Last
 Sell5
 Sell4
 Sell3

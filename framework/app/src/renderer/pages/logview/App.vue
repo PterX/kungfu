@@ -75,7 +75,8 @@ document.addEventListener('keydown', (e) => {
   if (ctrlCmd && e.key === 'f') {
     searchKeyword.value = clipboard.readText();
     if (inputSearchRef.value) {
-      const $input = inputSearchRef.value.$el.firstElementChild;
+      const $inputWrapper = inputSearchRef.value.$el.firstElementChild;
+      const $input = $inputWrapper.querySelector('input');
       if ($input) {
         $input.focus();
         nextTick().then(() => {

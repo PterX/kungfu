@@ -89,6 +89,7 @@ VolumeCondition = lf.enums.VolumeCondition
 TimeCondition = lf.enums.TimeCondition
 OrderActionFlag = lf.enums.OrderActionFlag
 OrderTriggerFlag = lf.enums.OrderTriggerFlag
+AlgoOrderActionFlag = lf.enums.AlgoOrderActionFlag
 LedgerCategory = lf.enums.LedgerCategory
 HedgeFlag = lf.enums.HedgeFlag
 CommissionRateMode = lf.enums.CommissionRateMode
@@ -103,12 +104,6 @@ OrderTriggerType = lf.enums.OrderTriggerType
 BasketVolumeType = lf.enums.BasketVolumeType
 BasketType = lf.enums.BasketType
 
-AllFinalOrderStatus = [
-    int(OrderStatus.Filled),
-    int(OrderStatus.Error),
-    int(OrderStatus.PartialFilledNotActive),
-    int(OrderStatus.Cancelled),
-]
 
 InstrumentTypeInStockAccount = [
     InstrumentType.Stock,

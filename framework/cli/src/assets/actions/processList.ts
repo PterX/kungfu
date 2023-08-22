@@ -45,6 +45,10 @@ import {
   KF_HOME,
 } from '@kungfu-trader/kungfu-js-api/config/pathConfig';
 import { globalState } from './globalState';
+import {
+  LifeCycleHook,
+  LifeCycleKeys,
+} from '@kungfu-trader/kungfu-js-api/hooks/lifeCycleHook';
 
 export const mdTdStrategyExtServiceObservable = () => {
   return new Observable<
@@ -609,12 +613,16 @@ function preSwitchMain(
 
 const switchMaster = async (status: boolean): Promise<void> => {
   if (!status) {
+    await (globalThis.HookKeeper.getHooks().lifeCycle as LifeCycleHook).trigger(
+      LifeCycleKeys.BeforeStopAllProcesses,
+    );
     await pm2Kill();
     await killKfc();
     await killExtra();
     if (process.env.NODE_ENV === 'production') {
       await killKungfu();
     }
+    await delayMilliSeconds(1000);
     await deleteNNFiles();
   } else {
     await deleteNNFiles();

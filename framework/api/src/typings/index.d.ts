@@ -1184,7 +1184,7 @@ declare namespace KungfuApi {
       algoOrderAction: AlgoOrderAction,
       tdLocation: KfLocation,
       strategyLocation?: KfLocation,
-    );
+    ): bigint;
     issueOrder(
       orderInput: OrderInput,
       tdLocation: KfLocation,

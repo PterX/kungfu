@@ -33,6 +33,7 @@ import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtil
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { Pm2StartOptions } from '../typings/global';
 import { KfHookKeeper } from '../hooks';
+import { getAppRuntimeDirName } from './fileUtils';
 const { t } = VueI18n.global;
 
 process.env.PM2_HOME = path.resolve(os.homedir(), '.pm2');
@@ -46,15 +47,17 @@ interface FindProcessResult {
   uid?: number;
   gid?: number;
   name: string;
+  bin?: string;
   cmd?: string;
   username?: string;
 }
 
 export const findProcessByKeyword = (
   processName: string,
+  strict = true,
 ): Promise<FindProcessResult[]> => {
   const userid = os.userInfo().uid;
-  return find('name', processName, true).then((processList) => {
+  return find('name', processName, strict).then((processList) => {
     return processList.filter((item) => {
       return item.uid ? item.uid == userid : true;
     });
@@ -63,15 +66,16 @@ export const findProcessByKeyword = (
 
 export const findProcessByKeywordsByFindProcess = (
   tasks: string[],
+  strict = true,
 ): Promise<FindProcessResult[]> => {
-  return Promise.all(tasks.map((key) => findProcessByKeyword(key))).then(
-    (results) => {
-      return results.reduce((pre, processList) => {
-        pre = [...pre, ...processList];
-        return pre;
-      }, []);
-    },
-  );
+  return Promise.all(
+    tasks.map((key) => findProcessByKeyword(key, strict)),
+  ).then((results) => {
+    return results.reduce((pre, processList) => {
+      pre = [...pre, ...processList];
+      return pre;
+    }, []);
+  });
 };
 
 /***
@@ -100,23 +104,34 @@ export const findProcessByKeywordsByFindProcess = (
 
 export const findProcessByKeywords = (
   tasks: string[],
+  strict = true,
 ): Promise<FindProcessResult[]> => {
-  return findProcessByKeywordsByFindProcess(tasks);
+  return findProcessByKeywordsByFindProcess(tasks, strict);
 };
 
-export const forceKill = (tasks: string[]): Promise<void> => {
-  return findProcessByKeywords(tasks).then((processList) => {
+export const forceKill = (pids: number[]) => {
+  return fkill(pids, {
+    force: true,
+    tree: isWin ? true : false,
+    ignoreCase: true,
+    silent: process.env.NODE_ENV === 'development' ? true : false,
+  }).catch((err) => {
+    kfLogger.warn((<Error>err).message);
+  });
+};
+
+export const forceKillByKeyWords = (
+  tasks: string[],
+  strict = true,
+): Promise<void> => {
+  return findProcessByKeywords(tasks, strict).then((processList) => {
     const pids = processList.map((item) => item.pid);
 
-    kfLogger.info('Target to force kill processList ', processList);
-    return fkill(pids, {
-      force: true,
-      tree: isWin ? true : false,
-      ignoreCase: true,
-      silent: process.env.NODE_ENV === 'development' ? true : false,
-    }).catch((err) => {
-      kfLogger.warn((<Error>err).message);
-    });
+    kfLogger.info(
+      `Target to force kill processList about [${tasks.join(', ')}]: `,
+      JSON.stringify(processList),
+    );
+    return forceKill(pids);
   });
 };
 
@@ -124,18 +139,54 @@ const kfcName = isWin ? 'kfc.exe' : 'kfc';
 
 export const killKfc = (): Promise<void> =>
   new Promise((resolve) => {
-    forceKill([kfcName]).finally(() => resolve());
+    forceKillByKeyWords([kfcName]).finally(() => resolve());
   });
 
 export const killKungfu = () => {
   if (isLinux) {
-    return forceKill(['kungfu']);
+    return forceKillByKeyWords(['kungfu']);
   }
 
   return Promise.resolve(true);
 };
 
-export const killExtra = () => forceKill([kfcName, 'pm2']);
+export const killAllAboutKungfu = () => {
+  const appDirName = getAppRuntimeDirName();
+
+  if (!appDirName) return Promise.resolve();
+
+  return findProcessByKeywords([appDirName], false).then((processList) => {
+    const pids = processList
+      .filter((item) => {
+        if (item.name.includes(appDirName) || appDirName.includes(item.name))
+          return true;
+
+        if (item.bin && item.bin.includes(appDirName)) return true;
+
+        if (item.cmd) {
+          const cmds = item.cmd.trim().split(' ');
+          const bin = cmds[0];
+          const opt = cmds.slice(1).join();
+          if (bin.includes(appDirName)) return true;
+
+          // for win pm2 process
+          if (opt.includes(appDirName) && opt.includes('pm2')) return true;
+        }
+
+        return false;
+      })
+      .map((item) => item.pid);
+
+    kfLogger.info(
+      `Target to force kill processList about kungfu app ${appDirName}: `,
+      JSON.stringify(processList),
+    );
+    return forceKill(pids);
+  });
+};
+
+export const killExtra = () =>
+  killAllAboutKungfu().then(() => forceKillByKeyWords([kfcName, 'pm2'], true));
 
 export function KillAll(): Promise<void> {
   //不需要加killdaemon

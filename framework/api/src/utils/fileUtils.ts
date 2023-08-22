@@ -1,3 +1,4 @@
+import os from 'os';
 import path from 'path';
 import fse from 'fs-extra';
 import fsPromise from 'fs/promises';
@@ -357,4 +358,23 @@ export const isDiskRootDirectory = (dirPath: string): boolean => {
   const rootDirectory = path.parse(absolutePath).root;
 
   return absolutePath === rootDirectory;
+};
+
+export const getAppRuntimeDirName = () => {
+  const packageJson = readRootPackageJsonSync();
+  const runner = process.env.IS_KF_DEV
+    ? 'Electron'
+    : packageJson.kungfuCraft?.productName;
+
+  if (!runner) return null;
+
+  switch (os.platform()) {
+    case 'win32':
+      return runner;
+    case 'darwin':
+    case 'linux':
+      return runner + '.app';
+    default:
+      return runner;
+  }
 };

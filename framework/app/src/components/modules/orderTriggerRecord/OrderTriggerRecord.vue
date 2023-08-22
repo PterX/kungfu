@@ -205,6 +205,7 @@ function handleBatchModal() {
     name: t('tradingConfig.batch_order_trigger'),
     category: 'orderTrigger',
     key: 'orderTrigger',
+    silent: true,
     extPath: '',
     version: '',
     mainRepoVersion: '',

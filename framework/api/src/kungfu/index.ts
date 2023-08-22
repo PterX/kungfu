@@ -26,7 +26,6 @@ import {
   resolveAccountId,
   resolveClientId,
   setTimerPromiseTask,
-  dealParkedType,
   dealOrderTriggerStatus,
   dealTOrderTriggerFlag,
 } from '../utils/busiUtils';
@@ -951,9 +950,6 @@ export const dealOrderTrigger = (
     limit_price_resolved: dealKfPrice(order.limit_price, pricePrecision),
     time_condition_resolved: dealTimeCondition(order.time_condition)
       ? dealTimeCondition(order.time_condition).name
-      : '--',
-    parked_type_resolved: dealParkedType(order.parked_type)
-      ? dealParkedType(order.parked_type).name
       : '--',
     key: index + 1,
     action_flag_uname: dealTOrderTriggerFlag(order.action_flag).name,

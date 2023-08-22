@@ -38,7 +38,6 @@ import {
   InstrumentMinOrderVolume,
   KfDefaultSystemProcess,
   ExportTradingDataColumnsToFilter,
-  ParkedType,
   OrderTriggerStatus,
   TriggerFlag,
 } from '../config/tradingConfig';
@@ -71,7 +70,6 @@ import {
   HistoryDateEnum,
   OrderTriggerStatusEnum,
   OrderTriggerTypeEnum,
-  OrderTriggerParkedTypeEnum,
   OrderTriggerFlag,
 } from '../typings/enums';
 import {
@@ -569,18 +567,9 @@ const resolveOrderTriggerConfig = (
   if (originConfig) {
     const orderTriggerOriginConfig = originConfig.td?.order_trigger || {};
     const orderTriggerTypesKeys = Object.keys(OrderTriggerTypeEnum);
-    const orderTriggerParkedTypesKeys = Object.keys(OrderTriggerParkedTypeEnum);
     return Object.keys(orderTriggerOriginConfig).reduce((config, key) => {
       if (orderTriggerTypesKeys.includes(key)) {
-        config[OrderTriggerTypeEnum[key]] = Object.keys(
-          orderTriggerOriginConfig[key] || {},
-        ).reduce((parkedConfig, parkedType) => {
-          if (orderTriggerParkedTypesKeys.includes(parkedType)) {
-            parkedConfig[OrderTriggerParkedTypeEnum[parkedType]] =
-              !!orderTriggerOriginConfig[key]?.[parkedType];
-          }
-          return parkedConfig;
-        }, {});
+        config[OrderTriggerTypeEnum[key]] = !!orderTriggerOriginConfig[key];
       }
       return config;
     }, {} as KungfuApi.KfTdExtConfig['orderTrigger']);
@@ -1729,12 +1718,6 @@ export const dealTOrderTriggerFlag = (
   orderTriggerFlag: OrderTriggerFlag | number,
 ): KungfuApi.KfTradeValueCommonData => {
   return TriggerFlag[+orderTriggerFlag as OrderTriggerFlag];
-};
-
-export const dealParkedType = (
-  parkedType: OrderTriggerParkedTypeEnum | number,
-): KungfuApi.KfTradeValueCommonData => {
-  return ParkedType[+parkedType as OrderTriggerParkedTypeEnum];
 };
 
 export const dealOrderTriggerStatus = (

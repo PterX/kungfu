@@ -250,6 +250,12 @@ export enum OrderActionFlagEnum {
   TriggerCancel, // 预埋撤单
 }
 
+export enum AlgoOrderActionFlagEnum {
+  Cancel,
+  Start,
+  Stop,
+}
+
 export enum OrderTriggerFlag {
   TriggerInsert, // 预埋下单
   TriggerCancel, // 预埋撤单

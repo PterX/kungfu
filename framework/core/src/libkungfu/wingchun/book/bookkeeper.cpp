@@ -153,7 +153,7 @@ void Bookkeeper::guard_positions() { positions_guarded_ = true; }
 
 Book_ptr Bookkeeper::make_book(uint32_t location_uid) {
   auto location = app_.get_location(location_uid);
-  auto book = std::make_shared<Book>(commissions_, instruments_);
+  auto book = std::make_shared<Book>(commissions_, instruments_, location);
   auto &asset = book->asset;
   asset.holder_uid = location_uid;
   asset.ledger_category = location->category == category::TD ? LedgerCategory::Account : LedgerCategory::Strategy;

@@ -208,10 +208,10 @@ void bind_strategy(pybind11::module &m) {
       .def("hold_positions", &strategy::Context::hold_positions)
       .def("is_book_held", &strategy::Context::is_book_held)
       .def("is_positions_held", &strategy::Context::is_positions_held)
-      .def("req_deregister", &strategy::Context::req_deregister)
-      .def("update_strategy_state", &strategy::Context::update_strategy_state)
       .def("is_bypass_accounting", &strategy::Context::is_bypass_accounting)
-      .def("bypass_accounting", &strategy::Context::bypass_accounting);
+      .def("bypass_accounting", &strategy::Context::bypass_accounting)
+      .def("update_strategy_state", &strategy::Context::update_strategy_state)
+      .def("req_deregister", &strategy::Context::req_deregister);
 
   py::class_<strategy::Matcher, std::shared_ptr<strategy::Matcher>>(m, "Matcher");
 

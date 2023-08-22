@@ -306,12 +306,6 @@ export enum OrderTriggerTypeEnum {
   MakeOrder,
 }
 
-// 预埋方式
-export enum OrderTriggerParkedTypeEnum {
-  Server,
-  Local,
-}
-
 export enum OrderTriggerStatusEnum {
   Unknown,
   Pending = OrderStatusEnum.Pending, // 等待中

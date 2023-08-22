@@ -235,8 +235,10 @@ private:
     auto margin_ratio_by_pos = cm_mr.margin_ratio;
     auto margin = contract_multiplier * trade.price * cm_mr.exchange_rate * trade.volume * margin_ratio_by_pos;
     position.margin += margin;
-    position.avg_open_price = (position.avg_open_price * position.volume + trade.price * trade.volume) /
-                              double(position.volume + trade.volume);
+    position.avg_open_price = (position.volume + trade.volume == 0)
+                                  ? 0
+                                  : (position.avg_open_price * position.volume + trade.price * trade.volume) /
+                                        double(position.volume + trade.volume);
     position.volume += trade.volume;
     position.open_volume += trade.volume;
     update_position(book, position);

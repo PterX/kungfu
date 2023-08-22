@@ -601,7 +601,7 @@ export default {
   posGlobalConfig: {
     instrument_id: 'instrument_id',
     account_id_resolved: 'account_id_resolved',
-    static_yesterday_volume: 'yesterday_volume',
+    static_yesterday: 'yesterday_volume',
     static_yesterday_volume_setting: 'yesterday_volume(position before today)',
     open_volume: 'open_volume',
     close_volume: 'close_volume',

@@ -16,8 +16,9 @@ using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
 
 namespace kungfu::wingchun::book {
-Book::Book(CommissionMap &commissions_ref, const InstrumentMap &instruments_ref)
-    : commissions(commissions_ref), instruments(instruments_ref) {}
+Book::Book(CommissionMap &commissions_ref, const InstrumentMap &instruments_ref,
+           yijinjing::data::location_ptr home_location)
+    : commissions(commissions_ref), instruments(instruments_ref), home(home_location) {}
 
 double Book::get_frozen_price(uint64_t order_id) {
   if (orders.find(order_id) != orders.end()) {
@@ -39,9 +40,21 @@ bool Book::has_long_position(uint32_t source_id, const char *exchange_id, const 
   return long_positions.find(position_id) != long_positions.end();
 }
 
+bool Book::has_long_position(const std::string &source, const std::string &account, const char *exchange_id,
+                             const char *instrument_id) const {
+  auto location = location::make_shared(mode::LIVE, category::TD, source, account, home->locator);
+  return has_long_position(location->uid, exchange_id, instrument_id);
+}
+
 bool Book::has_short_position(uint32_t source_id, const char *exchange_id, const char *instrument_id) const {
   auto position_id = hash_instrument(source_id, exchange_id, instrument_id);
   return short_positions.find(position_id) != short_positions.end();
+}
+
+bool Book::has_short_position(const std::string &source, const std::string &account, const char *exchange_id,
+                              const char *instrument_id) const {
+  auto location = location::make_shared(mode::LIVE, category::TD, source, account, home->locator);
+  return has_short_position(location->uid, exchange_id, instrument_id);
 }
 
 bool Book::has_position(uint32_t source_id, const char *exchange_id, const char *instrument_id) const {
@@ -53,8 +66,20 @@ Position &Book::get_long_position(uint32_t source_id, const char *exchange_id, c
   return get_position(source_id, Direction::Long, exchange_id, instrument_id);
 }
 
+Position &Book::get_long_position(const std::string &source, const std::string &account, const char *exchange_id,
+                                  const char *instrument_id) {
+  auto location = location::make_shared(mode::LIVE, category::TD, source, account, home->locator);
+  return get_long_position(location->uid, exchange_id, instrument_id);
+}
+
 Position &Book::get_short_position(uint32_t source_id, const char *exchange_id, const char *instrument_id) {
   return get_position(source_id, Direction::Short, exchange_id, instrument_id);
+}
+
+Position &Book::get_short_position(const std::string &source, const std::string &account, const char *exchange_id,
+                                   const char *instrument_id) {
+  auto location = location::make_shared(mode::LIVE, category::TD, source, account, home->locator);
+  return get_short_position(location->uid, exchange_id, instrument_id);
 }
 
 Position &Book::get_position(uint32_t source_id, Direction direction, const char *exchange_id,

@@ -1,5 +1,4 @@
 import path from 'path';
-import semver from 'semver';
 import dayjs from 'dayjs';
 import fse, { Stats } from 'fs-extra';
 import log4js from 'log4js';

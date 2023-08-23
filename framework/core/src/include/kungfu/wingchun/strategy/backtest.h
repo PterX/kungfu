@@ -285,6 +285,8 @@ protected:
   yijinjing::data::location_ptr find_td_location(const std::string &source, const std::string &account,
                                                  bool check_exist = true) const;
 
+  uint64_t get_order_id(const yijinjing::journal::writer_ptr &writer, uint32_t dest) const;
+
 private:
   broker::PassiveClient broker_client_;
   book::Bookkeeper bookkeeper_;

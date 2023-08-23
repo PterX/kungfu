@@ -39,7 +39,7 @@ import {
   kfOrderTrigger,
   kfRefreshOrderTrigger,
   hashInstrumentUKey,
-  kfCancelOriderTrigger,
+  kfCancelOrderTrigger,
   kfCancelAllOrdersTrigger,
 } from '@kungfu-trader/kungfu-js-api/kungfu';
 import KfSetByConfigModal from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfSetByConfigModal.vue';
@@ -438,7 +438,7 @@ function handleCancelOrderTrigger(
     return;
   }
 
-  kfCancelOriderTrigger(
+  kfCancelOrderTrigger(
     window.watcher,
     orderTrigger,
     currentGlobalKfLocation.value,
@@ -454,12 +454,6 @@ function handleCancelOrderTrigger(
 function handleCancelAllOrderTrigger() {
   if (!currentGlobalKfLocation.value || !window.watcher) {
     error();
-    return;
-  }
-
-  const tdProcessId = getProcessIdByKfLocation(currentGlobalKfLocation.value);
-  if (processStatusData.value[tdProcessId] !== 'online') {
-    error(t('orderTriggerConfig.start_process', { process: tdProcessId }));
     return;
   }
 
@@ -507,7 +501,7 @@ function handleCancelAllOrderTrigger() {
         .then(() => {
           success();
         })
-        .catch((err) => {
+        .catch((err: Error) => {
           error(err.message);
         });
     })

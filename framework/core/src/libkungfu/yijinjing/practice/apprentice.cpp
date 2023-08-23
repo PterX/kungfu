@@ -20,6 +20,8 @@ using namespace kungfu::yijinjing::cache;
 using namespace std::chrono;
 namespace fs = std::filesystem;
 
+#define REGISTER_TIMEOUT_SECONDS 60
+
 namespace kungfu::yijinjing::practice {
 
 apprentice::apprentice(location_ptr home, bool low_latency, std::string arguments)
@@ -130,7 +132,7 @@ void apprentice::react() {
                                                     })) |
                                first();
 
-    self_register_event | rx::timeout(seconds(60), observe_on_new_thread()) |
+    self_register_event | rx::timeout(seconds(REGISTER_TIMEOUT_SECONDS), observe_on_new_thread()) |
         $(
             [&](const event_ptr &event) {
               // this subscriber will quit when register is done, no worry for performance.
@@ -273,7 +275,7 @@ void apprentice::checkin() {
                make_nano_msg(get_home_uid(), master_home_location_->uid, register_data), 0, true) == 0;
   };
 
-  int count = 6;
+  int count = (REGISTER_TIMEOUT_SECONDS * 1000) / DEFAULT_NOTICE_TIMEOUT;
   while (not try_register()) {
     SPDLOG_WARN("try register failed, retrying...");
     if (count-- <= 0) {

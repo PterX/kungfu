@@ -558,6 +558,10 @@ defineExpose({
     &.number {
       text-align: right;
     }
+
+    &.actions {
+      text-align: center;
+    }
   }
 
   .kf-table-select-cell {

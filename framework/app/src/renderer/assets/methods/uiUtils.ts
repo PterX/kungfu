@@ -568,6 +568,10 @@ export const openNewBrowserWindow = (
       win && win.focus();
     });
 
+    win.on('closed', () => {
+      resolve(win);
+    });
+
     win.webContents.loadURL(modalPath);
     win.webContents.on('did-finish-load', () => {
       if (!currentWindow || Object.keys(currentWindow).length == 0) {

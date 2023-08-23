@@ -14,42 +14,68 @@ using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
 
 namespace kungfu::wingchun::broker {
-int64_t ResumePolicy::get_connect_time(const apprentice &app, const Register &broker) const {
+int64_t ResumePolicy::get_connect_time(const apprentice &app, const Register &target) const {
+  auto target_checkin_time = target.checkin_time;
+  auto target_checkin_time_str = time::strftime(target_checkin_time);
   if (app.get_last_active_time() == INT64_MIN) {
-    return broker.checkin_time;
+    SPDLOG_DEBUG("app has no previous session, connect from target checkin_time {}", target_checkin_time_str);
+    return target_checkin_time;
   }
-  if (broker.checkin_time >= app.get_checkin_time() and broker.last_active_time >= app.get_checkin_time()) {
-    return broker.checkin_time;
+
+  // target:     =======   =====
+  // strategy:   ===============
+  if (target.checkin_time >= app.get_checkin_time() and target.last_active_time >= app.get_checkin_time()) {
+    SPDLOG_DEBUG("case[1] target checkin_time >= app checkin_time and target last_active_time >= app checkin_time, "
+                 "connect from target checkin time {}",
+                 target_checkin_time_str);
+    return target_checkin_time;
   }
-  if (broker.checkin_time >= app.get_checkin_time() and broker.last_active_time <= app.get_last_active_time()) {
-    return broker.checkin_time;
+
+  // target:     ====      =======
+  // strategy:   ======   ========
+  if (target.checkin_time >= app.get_checkin_time() and target.last_active_time <= app.get_last_active_time()) {
+    SPDLOG_DEBUG("case[2] target checkin_time >= app checkin_time and target last_active_time <= app "
+                 "last_active_time, "
+                 "connect from target checkin time {}",
+                 target_checkin_time_str);
+    return target_checkin_time;
   }
-  if (broker.checkin_time <= app.get_last_active_time()) {
-    return app.get_last_active_time();
-  }
-  return get_resume_time(app, broker);
+
+  return get_resume_time(app, target);
 }
 
-int64_t StatelessResumePolicy::get_resume_time(const apprentice &app, const Register &broker) const {
-  return broker.checkin_time;
+int64_t StatelessResumePolicy::get_resume_time(const apprentice &app, const Register &target) const {
+  auto resume_time = target.checkin_time;
+  SPDLOG_DEBUG("Stateless resume policy, connect from target checkin_time {}", time::strftime(resume_time));
+  return resume_time;
 }
 
-int64_t ContinuousResumePolicy::get_resume_time(const apprentice &app, const Register &broker) const {
-  return app.get_last_active_time();
+int64_t ContinuousResumePolicy::get_resume_time(const apprentice &app, const Register &target) const {
+  auto resume_time = app.get_last_active_time();
+  SPDLOG_DEBUG("Continuous resume policy, connect from app last_active_time {}", time::strftime(resume_time));
+  return resume_time;
 }
 
-int64_t IntradayResumePolicy::get_resume_time(const apprentice &app, const Register &broker) const {
-  return std::max(app.get_last_active_time(), time::calendar_day_start(app.now()));
+int64_t IntradayResumePolicy::get_resume_time(const apprentice &app, const Register &target) const {
+  auto resume_time = std::max(app.get_last_active_time(), time::calendar_day_start(app.now()));
+  SPDLOG_DEBUG("Intraday resume policy, connect from max(app last_active_time, today_start) {}",
+               time::strftime(resume_time));
+  return resume_time;
 }
 
-int64_t FromNowResumePolicy::get_connect_time(const apprentice &app, const Register &broker) const {
-  if (broker.checkin_time >= app.get_checkin_time()) {
-    return broker.checkin_time;
+int64_t FromNowResumePolicy::get_connect_time(const apprentice &app, const Register &target) const {
+  if (target.checkin_time >= app.get_checkin_time()) {
+    SPDLOG_DEBUG("case[0] target started later than current, connect from target checkin_time {}",
+                 time::strftime(target.checkin_time));
+    return target.checkin_time;
   }
-  return get_resume_time(app, broker);
+  return get_resume_time(app, target);
 }
 
-int64_t FromNowResumePolicy::get_resume_time(const apprentice &app, const Register &broker) const { return app.now(); }
+int64_t FromNowResumePolicy::get_resume_time(const apprentice &app, const Register &target) const {
+  SPDLOG_DEBUG("From now resume policy, connect from now {}", time::strftime(app.now()));
+  return app.now();
+}
 
 Client::Client(apprentice &app) : app_(app) {}
 
@@ -154,30 +180,35 @@ void Client::on_start(const rx::connectable_observable<event_ptr> &events) {
 void Client::connect(const event_ptr &event, const Register &register_data) {
   auto app_uid = register_data.location_uid;
   auto app_location = app_.get_location(app_uid);
-  auto resume_time_point = get_resume_policy().get_connect_time(app_, register_data);
+  SPDLOG_DEBUG("register {}", app_location->uname);
+
   if (app_location->category == category::MD and should_connect_md(app_location)) {
+    auto resume_time_point = get_resume_policy()->get_connect_time(app_, register_data);
     app_.request_write_to(app_.now(), app_uid);
     app_.request_read_from_public(app_.now(), app_uid, resume_time_point);
-    SPDLOG_INFO("resume {} connection from {}", app_.get_location_uname(app_uid), time::strftime(resume_time_point));
+    SPDLOG_INFO("resume {} connection from {}", app_location->uname, time::strftime(resume_time_point));
   }
   if (app_location->category == category::TD and should_connect_td(app_location)) {
+    auto resume_time_point = get_resume_policy()->get_connect_time(app_, register_data);
     app_.request_write_to(app_.now(), app_uid);
     app_.request_read_from(app_.now(), app_uid, resume_time_point);
     app_.request_read_from_public(app_.now(), app_uid, resume_time_point);
     app_.request_read_from_sync(app_.now(), app_uid, resume_time_point);
-    SPDLOG_INFO("resume {} connection from {}", app_.get_location_uname(app_uid), time::strftime(resume_time_point));
+    SPDLOG_INFO("resume {} connection from {}", app_location->uname, time::strftime(resume_time_point));
   }
   if (app_location->category == category::STRATEGY and should_connect_strategy(app_location)) {
+    auto resume_time_point = get_resume_policy()->get_connect_time(app_, register_data);
     app_.request_write_to(app_.now(), app_location->uid);
     app_.request_read_from(app_.now(), app_location->uid, resume_time_point);
     app_.request_read_from_public(app_.now(), app_location->uid, resume_time_point);
-    SPDLOG_INFO("resume {} connection from {}", app_.get_location_uname(app_uid), time::strftime(resume_time_point));
+    SPDLOG_INFO("resume {} connection from {}", app_location->uname, time::strftime(resume_time_point));
   }
   if (app_location->category == category::OPERATOR and should_connect_operator(app_location)) {
+    auto resume_time_point = get_resume_policy()->get_connect_time(app_, register_data);
     app_.request_write_to(app_.now(), app_location->uid);
     app_.request_read_from(app_.now(), app_location->uid, resume_time_point);
     app_.request_read_from_public(app_.now(), app_location->uid, resume_time_point);
-    SPDLOG_INFO("resume {} connection from {}", app_.get_location_uname(app_uid), time::strftime(resume_time_point));
+    SPDLOG_INFO("resume {} connection from {}", app_location->uname, time::strftime(resume_time_point));
   }
 }
 
@@ -208,7 +239,7 @@ void Client::on_deregister(const longfist::types::Deregister &deregister_data) {
 
 AutoClient::AutoClient(apprentice &app) : Client(app) {}
 
-const ResumePolicy &AutoClient::get_resume_policy() const { return resume_policy_; }
+ResumePolicy_ptr AutoClient::get_resume_policy() const { return std::make_shared<FromNowResumePolicy>(); }
 
 bool AutoClient::is_custom_subscribed(uint32_t md_location_uid) const { return false; }
 
@@ -244,7 +275,20 @@ void SilentAutoClient::sync(int64_t trigger_time, const location_ptr &td_locatio
 
 PassiveClient::PassiveClient(apprentice &app) : Client(app) {}
 
-const ResumePolicy &PassiveClient::get_resume_policy() const { return resume_policy_; }
+ResumePolicy_ptr PassiveClient::get_resume_policy() const {
+  switch (resume_policy_) {
+  case longfist::enums::ResumePolicy::Now:
+    return std::make_shared<FromNowResumePolicy>();
+  case longfist::enums::ResumePolicy::Stateless:
+    return std::make_shared<StatelessResumePolicy>();
+  case longfist::enums::ResumePolicy::Continuous:
+    return std::make_shared<ContinuousResumePolicy>();
+  case longfist::enums::ResumePolicy::Intraday:
+    return std::make_shared<IntradayResumePolicy>();
+  default:
+    return std::make_shared<FromNowResumePolicy>();
+  }
+}
 
 bool PassiveClient::is_custom_subscribed(uint32_t md_location_uid) const {
   return should_connect_md(app_.get_location(md_location_uid)) and enrolled_md_custom_info_.at(md_location_uid);
@@ -430,4 +474,6 @@ bool PassiveClient::should_connect_operator(uint32_t op_location_uid) const {
 bool PassiveClient::should_connect_strategy(const location_ptr &strategy_location) const { return false; }
 
 bool PassiveClient::should_connect_system(const location_ptr &system_location) const { return false; };
+
+void PassiveClient::set_resume_policy(longfist::enums::ResumePolicy resume_policy) { resume_policy_ = resume_policy; }
 } // namespace kungfu::wingchun::broker

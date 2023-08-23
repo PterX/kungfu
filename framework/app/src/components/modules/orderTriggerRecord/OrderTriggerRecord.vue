@@ -48,7 +48,6 @@ import { getModalSettings } from './config';
 import {
   InstrumentTypeEnum,
   OffsetEnum,
-  OrderTriggerParkedTypeEnum,
   SideEnum,
   OrderTriggerTypeEnum,
   OrderTriggerStatusEnum,
@@ -347,7 +346,6 @@ function handleConfirmBatchOrderTrigger(
         price_type: +price_type,
         side: +side,
         offset: getResolvedOffset(+offset, +side, instrumentType),
-        parked_type: OrderTriggerParkedTypeEnum.Server,
       };
 
       return orderTriggerInput;

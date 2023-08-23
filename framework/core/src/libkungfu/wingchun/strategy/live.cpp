@@ -191,8 +191,7 @@ uint64_t LiveContext::insert_order_trigger(const std::string &instrument_id, con
                                            const std::string &source, const std::string &account, double limit_price,
                                            int64_t volume, longfist::enums::PriceType type, longfist::enums::Side side,
                                            longfist::enums::Offset offset,
-                                           longfist::enums::OrderTriggerType trigger_type,
-                                           longfist::enums::ParkedType parked_type, double stop_price,
+                                           longfist::enums::OrderTriggerType trigger_type, double stop_price,
                                            longfist::enums::HedgeFlag hedge_flag, bool is_swap) {
   auto account_location_uid = broker_client_.get_td_location_uid(source, account);
   if (not broker_client_.is_ready(account_location_uid)) {
@@ -221,7 +220,6 @@ uint64_t LiveContext::insert_order_trigger(const std::string &instrument_id, con
   input.offset = offset;
   input.hedge_flag = hedge_flag;
   input.is_swap = is_swap;
-  input.parked_type = parked_type;
   input.insert_time = time::now_in_nano();
   writer->close_data();
   return input.trigger_id;
@@ -534,6 +532,10 @@ void LiveContext::send_instrument_keys() {
 
 yijinjing::data::location_ptr LiveContext::get_location(uint32_t location_uid) {
   return app_.get_location(location_uid);
+}
+
+void LiveContext::set_resume_policy(longfist::enums::ResumePolicy resume_policy) {
+  broker_client_.set_resume_policy(resume_policy);
 }
 
 uint32_t LiveContext::get_home_uid() const { return app_.get_home_uid(); }

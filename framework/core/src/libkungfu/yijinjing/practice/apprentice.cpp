@@ -268,14 +268,19 @@ void apprentice::checkin() {
 
   SPDLOG_INFO("app checkin");
 
-  int count = 10;
-  while (not is_usable() and count-- > 0) {
-    SPDLOG_WARN("publisher is not usable, count {}", count);
-  }
+  auto try_register = [&]() {
+    return get_io_device()->get_publisher()->publish(
+               make_nano_msg(get_home_uid(), master_home_location_->uid, register_data), 0, true) == 0;
+  };
 
-  SPDLOG_INFO("io is usable");
-  get_io_device()->get_publisher()->publish(make_nano_msg(get_home_uid(), master_home_location_->uid, register_data),
-                                            0);
+  int count = 10;
+  while (not try_register()) {
+    SPDLOG_WARN("try register failed, retrying...");
+    if (count-- <= 0) {
+      SPDLOG_ERROR("register failed");
+      break;
+    }
+  }
 }
 
 void apprentice::expect_start() {

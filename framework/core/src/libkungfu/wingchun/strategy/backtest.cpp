@@ -55,12 +55,13 @@ void BacktestContext::on_start() {
          add_order_id(*matcher_, order_input.order_id, event->source(), event->dest());
          matcher_->on_order_input(order_input));
   events_ | is(Order::tag) |
-      $$(const auto &order = event->data<Order>(); report_->on_order(order); if (is_final_status(order.status)) {
-        add_timer(now() + Matcher::MAX_DELAYED_REMOVE_DURATION,
-                  [=](event_ptr e) { remove_order_id(*matcher_, order.order_id); });
-      });
+      $$(const auto &order = event->data<Order>(); report_->on_order(order);
+         if (is_final_status(order.status)) { remove_order_id(*matcher_, order.order_id); });
   events_ | is(Trade::tag) | $$(report_->on_trade(event->data<Trade>()));
-  events_ | is(OrderAction::tag) | $$(matcher_->on_order_action(event->data<OrderAction>()));
+  events_ | is(OrderAction::tag) |
+      $$(const auto &order_action = event->data<OrderAction>();
+         add_order_id(*matcher_, order_action.order_id, event->source(), event->dest());
+         matcher_->on_order_action(order_action));
   events_ | is(OrderActionError::tag) | $$(remove_order_id(*matcher_, event->data<OrderActionError>().order_id));
   events_ | $$(on_timer_check());
 }

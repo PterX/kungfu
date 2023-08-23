@@ -18,21 +18,36 @@ using namespace kungfu::yijinjing::util;
 
 namespace kungfu::wingchun::strategy {
 void Matcher::update_order(const Order &order) {
-  auto writer = app_->get_writer(location::PUBLIC);
-  auto [source, dest] = order_ids_.at(order.order_id);
-  writer->write_raw_at_as(now(), now(), dest, source, order.tag, reinterpret_cast<uintptr_t>(&order), sizeof(order));
+  try {
+    auto writer = app_->get_writer(location::PUBLIC);
+    auto [source, dest] = order_ids_.at(order.order_id);
+    writer->write_raw_at_as(now(), now(), dest, source, order.tag, reinterpret_cast<uintptr_t>(&order), sizeof(order));
+  } catch (std::out_of_range &e) {
+    throw std::out_of_range(
+        fmt::format("order_id {} not found, it might already cancelled or filled.", order.order_id));
+  }
 }
 
 void Matcher::update_trade(const Trade &trade) {
-  auto writer = app_->get_writer(location::PUBLIC);
-  auto [source, dest] = order_ids_.at(trade.order_id);
-  writer->write_raw_at_as(now(), now(), dest, source, trade.tag, reinterpret_cast<uintptr_t>(&trade), sizeof(trade));
+  try {
+    auto writer = app_->get_writer(location::PUBLIC);
+    auto [source, dest] = order_ids_.at(trade.order_id);
+    writer->write_raw_at_as(now(), now(), dest, source, trade.tag, reinterpret_cast<uintptr_t>(&trade), sizeof(trade));
+  } catch (std::out_of_range &e) {
+    throw std::out_of_range(
+        fmt::format("order_id {} not found, it might already cancelled or filled.", trade.order_id));
+  }
 }
 
 void Matcher::update_order_action_error(const OrderActionError &error) {
-  auto writer = app_->get_writer(location::PUBLIC);
-  auto [source, dest] = order_ids_.at(error.order_id);
-  writer->write_raw_at_as(now(), now(), dest, source, error.tag, reinterpret_cast<uintptr_t>(&error), sizeof(error));
+  try {
+    auto writer = app_->get_writer(location::PUBLIC);
+    auto [source, dest] = order_ids_.at(error.order_id);
+    writer->write_raw_at_as(now(), now(), dest, source, error.tag, reinterpret_cast<uintptr_t>(&error), sizeof(error));
+  } catch (std::out_of_range &e) {
+    throw std::out_of_range(
+        fmt::format("order_id {} not found, it might already cancelled or filled.", error.order_id));
+  }
 }
 
 void set_runner(Matcher &matcher, Runner *runner) { matcher.app_ = runner; }

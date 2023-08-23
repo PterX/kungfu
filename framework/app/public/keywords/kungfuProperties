@@ -99,7 +99,7 @@ volume
 yesterday_volume
 frozen_total
 frozen_yesterday
-static_yesterday_volume
+static_yesterday
 open_volume
 last_price
 avg_open_price
@@ -155,7 +155,6 @@ dest_id
 trigger_id
 stop_price
 trigger_type
-parked_type
 external_trigger_id
 order_trigger_action_id
 algo_type_id
@@ -486,9 +485,6 @@ BidPriceGreaterEqualStopPrice
 BidPriceLesserThanStopPrice
 BidPriceLesserEqualStopPrice
 OrderTriggerType
-Server
-Local
-ParkedType
 Low
 Medium
 High

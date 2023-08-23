@@ -100,6 +100,29 @@ public:
 
   /**
    *
+   * @param instrument_id
+   * @param exchange_id
+   * @param source
+   * @param account
+   * @param limit_price
+   * @param volume
+   * @param type
+   * @param side
+   * @param offset
+   * @param trigger_type
+   * @param stop_price
+   * @param hedge_flag
+   * @param is_swap
+   * @return
+   */
+  uint64_t insert_order_trigger(const std::string &instrument_id, const std::string &exchange_id,
+                                const std::string &source, const std::string &account, double limit_price,
+                                int64_t volume, longfist::enums::PriceType type, longfist::enums::Side side,
+                                longfist::enums::Offset offset, longfist::enums::OrderTriggerType trigger_type,
+                                double stop_price = 0, longfist::enums::HedgeFlag hedge_flag = longfist::enums::HedgeFlag::Speculation, bool is_swap = false) override;
+
+  /**
+   *
    * @param instrument_id instrument ID
    * @param exchange_id exchange ID
    * @param source source ID
@@ -130,33 +153,6 @@ public:
    */
   uint64_t insert_order_input(const std::string &source, const std::string &account,
                               longfist::types::OrderInput &order_input) override;
-
-  /**
-   *
-   * @param instrument_id
-   * @param exchange_id
-   * @param source
-   * @param account
-   * @param limit_price
-   * @param volume
-   * @param type
-   * @param side
-   * @param offset
-   * @param trigger_type
-   * @param action_flag
-   * @param order_id
-   * @param stop_price
-   * @param hedge_flag
-   * @param is_swap
-   * @return
-   */
-  uint64_t insert_order_trigger(const std::string &instrument_id, const std::string &exchange_id,
-                                const std::string &source, const std::string &account, double limit_price,
-                                int64_t volume, longfist::enums::PriceType type, longfist::enums::Side side,
-                                longfist::enums::Offset offset, longfist::enums::OrderTriggerType trigger_type,
-                                longfist::enums::ParkedType parked_type, double stop_price = 0,
-                                longfist::enums::HedgeFlag hedge_flag = longfist::enums::HedgeFlag::Speculation,
-                                bool is_swap = false) override;
 
   /**
    *

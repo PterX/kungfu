@@ -244,7 +244,7 @@ void Ledger::rebuild_positions(int64_t trigger_time, uint32_t strategy_uid) {
     position.frozen_total = 0;
     position.frozen_yesterday = 0;
     position.open_volume = 0;
-    position.static_yesterday_volume = 0;
+    position.static_yesterday = 0;
     // should keep avg_open_price and position_cost_price
     // position.avg_open_price = 0;
     // position.position_cost_price = 0;
@@ -255,8 +255,8 @@ void Ledger::rebuild_positions(int64_t trigger_time, uint32_t strategy_uid) {
   tmp_book.apply_short_positions(rebuild_book);
   strategy_book->apply_long_positions(reset_positions);
   strategy_book->apply_short_positions(reset_positions);
-  tmp_books_.erase(strategy_uid);
   strategy_book->update(trigger_time, bookkeeper_.get_accounting_method_type());
+  tmp_books_.erase(strategy_uid);
 }
 
 void Ledger::write_book_reset(int64_t trigger_time, uint32_t book_uid) {

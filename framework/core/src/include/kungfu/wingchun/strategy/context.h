@@ -161,14 +161,14 @@ public:
    * @param is_swap
    * @return
    */
-  virtual uint64_t insert_order_trigger(const std::string &instrument_id, const std::string &exchange_id,
-                                        const std::string &source, const std::string &account, double limit_price,
-                                        int64_t volume, longfist::enums::PriceType type, longfist::enums::Side side,
-                                        longfist::enums::Offset offset, longfist::enums::OrderTriggerType trigger_type,
-                                        longfist::enums::ParkedType parked_type = longfist::enums::ParkedType::Server,
-                                        double stop_price = 0,
-                                        longfist::enums::HedgeFlag hedge_flag = longfist::enums::HedgeFlag::Speculation,
-                                        bool is_swap = false) = 0;
+  virtual uint64_t
+  insert_order_trigger(const std::string &instrument_id, const std::string &exchange_id, const std::string &source,
+                       const std::string &account, double limit_price, int64_t volume, longfist::enums::PriceType type,
+                       longfist::enums::Side side, longfist::enums::Offset offset,
+                       longfist::enums::OrderTriggerType trigger_type = longfist::enums::OrderTriggerType::ParkedOrder,
+                       double stop_price = 0,
+                       longfist::enums::HedgeFlag hedge_flag = longfist::enums::HedgeFlag::Speculation,
+                       bool is_swap = false) = 0;
 
   /**
    * Insert Batch Orders

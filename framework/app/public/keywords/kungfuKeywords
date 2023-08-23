@@ -367,8 +367,9 @@ on_exit
 add_operator
 subscribe_operator
 publish_synthetic_data
-req_deregister
 update_operator_state
+set_resume_policy
+req_deregister
 pre_start
 post_start
 pre_stop
@@ -391,9 +392,9 @@ hold_book
 hold_positions
 is_book_held
 is_positions_held
-update_strategy_state
 is_bypass_accounting
 bypass_accounting
+update_strategy_state
 on_order
 on_order_trigger
 on_algo_order
@@ -708,3 +709,8 @@ No
 AccountInternal
 AccountInteractive
 SelfDealCheckType
+Now
+Intraday
+Stateless
+Continuous
+ResumePolicy

@@ -19,10 +19,10 @@ namespace kungfu::wingchun::broker {
  */
 struct ResumePolicy {
   [[nodiscard]] virtual int64_t get_connect_time(const yijinjing::practice::apprentice &app,
-                                                 const longfist::types::Register &broker) const;
+                                                 const longfist::types::Register &target) const;
 
   [[nodiscard]] virtual int64_t get_resume_time(const yijinjing::practice::apprentice &app,
-                                                const longfist::types::Register &broker) const = 0;
+                                                const longfist::types::Register &target) const = 0;
 };
 
 DECLARE_PTR(ResumePolicy);
@@ -32,7 +32,7 @@ DECLARE_PTR(ResumePolicy);
  */
 struct StatelessResumePolicy : public ResumePolicy {
   [[nodiscard]] int64_t get_resume_time(const yijinjing::practice::apprentice &app,
-                                        const longfist::types::Register &broker) const override;
+                                        const longfist::types::Register &target) const override;
 };
 
 /**
@@ -40,7 +40,7 @@ struct StatelessResumePolicy : public ResumePolicy {
  */
 struct [[maybe_unused]] ContinuousResumePolicy : public ResumePolicy {
   [[nodiscard]] int64_t get_resume_time(const yijinjing::practice::apprentice &app,
-                                        const longfist::types::Register &broker) const override;
+                                        const longfist::types::Register &target) const override;
 };
 
 /**
@@ -49,15 +49,15 @@ struct [[maybe_unused]] ContinuousResumePolicy : public ResumePolicy {
  */
 struct [[maybe_unused]] IntradayResumePolicy : public ResumePolicy {
   [[nodiscard]] int64_t get_resume_time(const yijinjing::practice::apprentice &app,
-                                        const longfist::types::Register &broker) const override;
+                                        const longfist::types::Register &target) const override;
 };
 
 struct FromNowResumePolicy : public ResumePolicy {
   [[nodiscard]] int64_t get_connect_time(const yijinjing::practice::apprentice &app,
-                                         const longfist::types::Register &broker) const override;
+                                         const longfist::types::Register &target) const override;
 
   [[nodiscard]] int64_t get_resume_time(const yijinjing::practice::apprentice &app,
-                                        const longfist::types::Register &broker) const override;
+                                        const longfist::types::Register &target) const override;
 };
 
 /**

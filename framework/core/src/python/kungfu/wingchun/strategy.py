@@ -261,6 +261,7 @@ class Strategy(wc.Strategy):
         self.ctx.bypass_accounting = wc_context.bypass_accounting
         self.ctx.hold_book = wc_context.hold_book
         self.ctx.hold_positions = wc_context.hold_positions
+        self.ctx.set_resume_policy = wc_context.set_resume_policy
         self.ctx.get_account_book = self.__get_account_book
         self.ctx.req_deregister = wc_context.req_deregister
         self.ctx.buy = functools.partial(self.__async_insert_order, Side.Buy)

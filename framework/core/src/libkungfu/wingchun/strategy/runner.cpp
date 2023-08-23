@@ -104,7 +104,7 @@ void Runner::inspect_channel(const event_ptr &event) {
 
 void Runner::on_start() {
   pre_start();
-  
+
   enable(*context_);
   events_ | is(Order::tag) |
       $$(invoke(&Strategy::on_order, event->data<Order>(), get_location(event->source()), event->dest()));

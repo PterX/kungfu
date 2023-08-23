@@ -113,7 +113,7 @@ public:
    * @param resume_policy
    * @return void
    */
-  virtual void set_resume_policy(longfist::enums::ResumePolicy resume_policy) {};
+  virtual void set_resume_policy(longfist::enums::ResumePolicy resume_policy){};
 
 protected:
   yijinjing::practice::apprentice &app_;

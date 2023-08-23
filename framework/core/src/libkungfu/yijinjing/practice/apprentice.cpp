@@ -320,7 +320,7 @@ void apprentice::checkin() {
                make_nano_msg(get_home_uid(), master_home_location_->uid, register_data), 0, true) == 0;
   };
 
-  int count = 10;
+  int count = 6;
   while (not try_register()) {
     SPDLOG_WARN("try register failed, retrying...");
     if (count-- <= 0) {

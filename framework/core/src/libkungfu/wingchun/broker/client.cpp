@@ -22,22 +22,17 @@ int64_t ResumePolicy::get_connect_time(const apprentice &app, const Register &ta
     return target_checkin_time;
   }
 
-  // target:     =======   =====
-  // strategy:   ===============
   if (target.checkin_time >= app.get_checkin_time() and target.last_active_time >= app.get_checkin_time()) {
-    SPDLOG_DEBUG("case[1] target checkin_time >= app checkin_time and target last_active_time >= app checkin_time, "
-                 "connect from target checkin time {}",
-                 target_checkin_time_str);
+    SPDLOG_DEBUG("CASE [1] target:     ======    =====");
+    SPDLOG_DEBUG("         strategy:   ===============");
+    SPDLOG_DEBUG("connect from target checkin time {}", target_checkin_time_str);
     return target_checkin_time;
   }
 
-  // target:     ====      =======
-  // strategy:   ======   ========
   if (target.checkin_time >= app.get_checkin_time() and target.last_active_time <= app.get_last_active_time()) {
-    SPDLOG_DEBUG("case[2] target checkin_time >= app checkin_time and target last_active_time <= app "
-                 "last_active_time, "
-                 "connect from target checkin time {}",
-                 target_checkin_time_str);
+    SPDLOG_DEBUG("CASE[2] target:     ====       ======");
+    SPDLOG_DEBUG("        strategy:   ======   ========");
+    SPDLOG_DEBUG("connect from target checkin time {}", target_checkin_time_str);
     return target_checkin_time;
   }
 

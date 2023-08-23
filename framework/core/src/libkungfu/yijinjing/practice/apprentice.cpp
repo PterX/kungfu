@@ -325,7 +325,7 @@ void apprentice::checkin() {
     SPDLOG_WARN("try register failed, retrying...");
     if (count-- <= 0) {
       SPDLOG_ERROR("register failed");
-      break;
+      throw yijinjing_error("register failed");
     }
   }
 }

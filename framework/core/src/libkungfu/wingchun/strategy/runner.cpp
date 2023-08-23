@@ -94,9 +94,9 @@ void Runner::on_start() {
   enable(*context_);
 
   auto resume_policy_is_now = context_->get_resume_policy() == longfist::enums::ResumePolicy::Now;
-  auto start_events = events_ | skip_until(events_ | filter([&](auto e) {
-                                             return resume_policy_is_now ? context_->is_started() : true;
-                                           }));
+  auto start_events =
+      events_ |
+      skip_until(events_ | filter([&](auto e) { return resume_policy_is_now ? context_->is_started() : true; }));
   start_events | is_own<Quote>(context_->get_broker_client()) |
       $$(invoke(&Strategy::on_quote, event->data<Quote>(), get_location(event->source()), event->dest()));
   start_events | is_own<Tree>(context_->get_broker_client()) |

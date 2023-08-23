@@ -360,11 +360,6 @@ function handleCancelAllOrders(): void {
     return;
   }
 
-  const tdProcessId = getProcessIdByKfLocation(currentGlobalKfLocation.value);
-  if (processStatusData.value[tdProcessId] !== 'online') {
-    error(`${t('orderConfig.start')} ${tdProcessId} ${t('orderConfig.td')}`);
-    return;
-  }
   const name = getIdByKfLocation(currentGlobalKfLocation.value);
 
   confirmModal(
@@ -405,8 +400,8 @@ function handleInsertOrderTrigger(order: KungfuApi.OrderResolved): void {
       .then(() => {
         success();
       })
-      .catch(() => {
-        error();
+      .catch((err: Error) => {
+        error(err.message);
       });
   } else {
     confirmModal(

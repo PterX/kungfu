@@ -273,6 +273,8 @@ public:
 
   void set_resume_policy(longfist::enums::ResumePolicy resume_policy) override;
 
+  longfist::enums::ResumePolicy get_resume_policy() override;
+
 protected:
   virtual void on_start() override;
 

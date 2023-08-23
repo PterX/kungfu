@@ -8,7 +8,7 @@
 
 #define SETUP_TIMEOUT 500
 #define DEFAULT_RECV_TIMEOUT 100
-#define DEFAULT_NOTICE_TIMEOUT 1000
+#define DEFAULT_NOTICE_TIMEOUT 50000
 
 using namespace kungfu::longfist;
 using namespace kungfu::longfist::enums;

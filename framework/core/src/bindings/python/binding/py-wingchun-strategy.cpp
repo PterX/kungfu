@@ -169,6 +169,7 @@ void bind_strategy(pybind11::module &m) {
       .def_property_readonly("arguments", &strategy::Context::get_arguments)
       .def_property_readonly("bookkeeper", &strategy::Context::get_bookkeeper, py::return_value_policy::reference)
       .def("now", &strategy::Context::now)
+      .def("is_started", &strategy::Context::is_started)
       .def("add_timer", &strategy::Context::add_timer)
       .def("add_time_interval", &strategy::Context::add_time_interval)
       .def("add_account", &strategy::Context::add_account)

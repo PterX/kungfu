@@ -328,7 +328,7 @@ location_ptr BacktestContext::find_td_location(const std::string &source, const 
   return td_location;
 }
 
-uint64_t BacktestContext::get_order_id(const journal::writer_ptr &writer, uint32_t dest) const {
+uint64_t BacktestContext::get_order_id(const writer_ptr &writer, uint32_t dest) const {
   uint32_t id_part = static_cast<uint32_t>(writer->current_frame_uid());
   uint64_t dest_part = static_cast<uint64_t>(get_home_uid() xor dest) << 32u;
   return dest_part | id_part;

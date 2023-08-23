@@ -725,6 +725,13 @@ declare namespace KungfuApi {
     time_condition_resolved: string;
   }
 
+  export interface OrderTriggerAction {
+    trigger_id: bigint;
+    order_trigger_action_id: bigint;
+    action_flag: OrderActionFlagEnum;
+    insert_time: number;
+  }
+
   export interface TimeKeyValue {
     key: string;
     update_time: bigint;
@@ -1149,7 +1156,7 @@ declare namespace KungfuApi {
       strategyLocation?: KfLocation,
     ): bigint;
     cancelOrderTrigger(
-      orderAction: OrderAction,
+      orderAction: OrderTriggerAction,
       tdLocation: KfLocation,
       strategyLocation?: KfLocation,
     ): bigint;
@@ -1262,6 +1269,7 @@ declare namespace KungfuApi {
       OrderInput(): OrderInput;
       AlgoOrderInput(): AlgoOrderInput;
       OrderAction(): OrderAction;
+      OrderTriggerAction(): OrderTriggerAction;
       AlgoOrderAction(): AlgoOrderAction;
       OrderStat(): OrderStat;
       Position(): Position;

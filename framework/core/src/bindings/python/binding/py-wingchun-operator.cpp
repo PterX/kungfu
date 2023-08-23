@@ -99,6 +99,7 @@ void bind_operator(pybind11::module &m) {
   py::class_<op::Context, std::shared_ptr<op::Context>>(m, "OpContext")
       .def_property_readonly("config", &op::Context::get_config)
       .def("now", &op::Context::now)
+      .def("is_started", &op::Context::is_started)
       .def("add_timer", &op::Context::add_timer)
       .def("add_time_interval", &op::Context::add_time_interval)
       .def("subscribe", &op::Context::subscribe)

@@ -358,7 +358,7 @@ export const kfCancelOrder = (
   );
 };
 
-export const kfCancelOriderTrigger = (
+export const kfCancelOrderTrigger = (
   watcher: KungfuApi.Watcher | null,
   order: KungfuApi.OrderTriggerResolved,
   tdLocation: KungfuApi.KfLocation,
@@ -371,7 +371,7 @@ export const kfCancelOriderTrigger = (
     return Promise.reject(new Error(`Watcher is not live`));
   }
 
-  const { order_id, source, trigger_id } = order;
+  const { source, trigger_id } = order;
   const sourceLocation = watcher.getLocation(source);
 
   if (!watcher.isReadyToInteract(tdLocation)) {
@@ -379,9 +379,8 @@ export const kfCancelOriderTrigger = (
     return Promise.reject(new Error(`Td ${accountId} not ready`));
   }
 
-  const orderAction: KungfuApi.OrderAction = {
-    ...longfist.types.OrderAction(),
-    order_id,
+  const orderAction: KungfuApi.OrderTriggerAction = {
+    ...longfist.types.OrderTriggerAction(),
     trigger_id,
   };
 
@@ -458,7 +457,7 @@ export const kfCancelAllOrdersTrigger = (
 
   const cancelOrderTasks = orders.map(
     (item: KungfuApi.OrderTriggerResolved): Promise<bigint> => {
-      return kfCancelOriderTrigger(watcher, item, tdLocation);
+      return kfCancelOrderTrigger(watcher, item, tdLocation);
     },
   );
 

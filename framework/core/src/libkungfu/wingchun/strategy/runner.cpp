@@ -73,19 +73,6 @@ void Runner::on_exit() { post_stop(); }
 void Runner::react() {
   context_ = make_context();
   context_->get_bookkeeper().add_book_listener(std::make_shared<BookListener>(*this));
-
-  auto start_events = events_ | skip_until(events_ | filter([&](auto e) { return context_->is_started(); }));
-  start_events | is_own<Quote>(context_->get_broker_client()) |
-      $$(invoke(&Strategy::on_quote, event->data<Quote>(), get_location(event->source()), event->dest()));
-  start_events | is_own<Tree>(context_->get_broker_client()) |
-      $$(invoke(&Strategy::on_tree, event->data<Tree>(), get_location(event->source()), event->dest()));
-  start_events | is_own<Entrust>(context_->get_broker_client()) |
-      $$(invoke(&Strategy::on_entrust, event->data<Entrust>(), get_location(event->source()), event->dest()));
-  start_events | is_own<Transaction>(context_->get_broker_client()) |
-      $$(invoke(&Strategy::on_transaction, event->data<Transaction>(), get_location(event->source()), event->dest()));
-  start_events | is(SyntheticData::tag) |
-      $$(invoke(&Strategy::on_synthetic_data, event->data<SyntheticData>(), get_location(event->source()),
-                event->dest()));
   apprentice::react();
 }
 
@@ -104,21 +91,24 @@ void Runner::inspect_channel(const event_ptr &event) {
 
 void Runner::on_start() {
   pre_start();
-
   enable(*context_);
-  events_ | is(Order::tag) |
-      $$(invoke(&Strategy::on_order, event->data<Order>(), get_location(event->source()), event->dest()));
-  events_ | is(OrderTrigger::tag) |
-      $$(invoke(&Strategy::on_order_trigger, event->data<OrderTrigger>(), get_location(event->source()),
+
+  auto resume_policy_is_now = context_->get_resume_policy() == longfist::enums::ResumePolicy::Now;
+  auto start_events =
+      events_ |
+      skip_until(events_ | filter([&](auto e) { return resume_policy_is_now ? context_->is_started() : true; }));
+  start_events | is_own<Quote>(context_->get_broker_client()) |
+      $$(invoke(&Strategy::on_quote, event->data<Quote>(), get_location(event->source()), event->dest()));
+  start_events | is_own<Tree>(context_->get_broker_client()) |
+      $$(invoke(&Strategy::on_tree, event->data<Tree>(), get_location(event->source()), event->dest()));
+  start_events | is_own<Entrust>(context_->get_broker_client()) |
+      $$(invoke(&Strategy::on_entrust, event->data<Entrust>(), get_location(event->source()), event->dest()));
+  start_events | is_own<Transaction>(context_->get_broker_client()) |
+      $$(invoke(&Strategy::on_transaction, event->data<Transaction>(), get_location(event->source()), event->dest()));
+  start_events | is(SyntheticData::tag) |
+      $$(invoke(&Strategy::on_synthetic_data, event->data<SyntheticData>(), get_location(event->source()),
                 event->dest()));
-  events_ | is(AlgoOrder::tag) |
-      $$(invoke(&Strategy::on_algo_order, event->data<AlgoOrder>(), get_location(event->source()), event->dest()));
-  events_ | is(Trade::tag) |
-      $$(invoke(&Strategy::on_trade, event->data<Trade>(), get_location(event->source()), event->dest()));
-  events_ | is_custom() |
-      $$(invoke(&Strategy::on_custom_data, event->msg_type(),
-                {event->data_as_bytes(), event->data_as_bytes() + event->data_length()}, event->data_length(),
-                get_location(event->source()), event->dest()));
+
   events_ | is_own<BrokerStateUpdate>(context_->get_broker_client()) |
       $$(invoke(&Strategy::on_broker_state_change, event->data<BrokerStateUpdate>(), get_location(event->source())));
   events_ | is_own<OperatorStateUpdate>(context_->get_broker_client()) |
@@ -126,6 +116,7 @@ void Runner::on_start() {
                 get_location(event->source())));
   events_ | is_own<Deregister>(context_->get_broker_client()) |
       $$(invoke(&Strategy::on_deregister, event->data<Deregister>(), get_location(event->source())));
+
   events_ | take_until(events_ | filter([&](auto e) { return context_->is_started(); })) |
       $$(prepare(event, *context_));
   if (context_->is_started()) {
@@ -147,7 +138,15 @@ void Runner::post_start() {
   if (not context_->is_started()) {
     return; // safe guard for live mode, in that case we will run truly when prepare process is done.
   }
-
+  events_ | is(Order::tag) |
+      $$(invoke(&Strategy::on_order, event->data<Order>(), get_location(event->source()), event->dest()));
+  events_ | is(OrderTrigger::tag) |
+      $$(invoke(&Strategy::on_order_trigger, event->data<OrderTrigger>(), get_location(event->source()),
+                event->dest()));
+  events_ | is(AlgoOrder::tag) |
+      $$(invoke(&Strategy::on_algo_order, event->data<AlgoOrder>(), get_location(event->source()), event->dest()));
+  events_ | is(Trade::tag) |
+      $$(invoke(&Strategy::on_trade, event->data<Trade>(), get_location(event->source()), event->dest()));
   events_ | is(HistoryOrder::tag) |
       $$(invoke(&Strategy::on_history_order, event->data<HistoryOrder>(), get_location(event->source()),
                 event->dest()));
@@ -168,6 +167,10 @@ void Runner::post_start() {
                 get_location(event->source()), event->dest()));
   events_ | is(AlgoOrderActionError::tag) |
       $$(invoke(&Strategy::on_algo_order_action_error, event->data<AlgoOrderActionError>(),
+                get_location(event->source()), event->dest()));
+  events_ | is_custom() |
+      $$(invoke(&Strategy::on_custom_data, event->msg_type(),
+                {event->data_as_bytes(), event->data_as_bytes() + event->data_length()}, event->data_length(),
                 get_location(event->source()), event->dest()));
   invoke(&Strategy::post_start);
 }

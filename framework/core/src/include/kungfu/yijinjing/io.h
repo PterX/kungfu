@@ -13,6 +13,10 @@
 namespace kungfu::yijinjing {
 FORWARD_DECLARE_CLASS_PTR(session)
 
+#define SETUP_TIMEOUT 500
+#define DEFAULT_RECV_TIMEOUT 100
+#define DEFAULT_NOTICE_TIMEOUT 2000
+
 class io_device : public resource {
 public:
   io_device(data::location_ptr home, bool low_latency, bool lazy);

@@ -134,6 +134,11 @@ book::Bookkeeper &ReplayContext::get_bookkeeper() { return bookkeeper_; }
 uint64_t ReplayContext::insert_block_message(const std::string &source, const std::string &account,
                                              const std::string &opponent_seat, uint64_t match_number,
                                              bool is_specific) {
+  if (not is_started()) {
+    SPDLOG_ERROR("context not ready");
+    return 0;
+  }
+
   auto account_location_uid = broker_client_.get_td_location_uid(source, account);
   if (not broker_client_.is_ready(account_location_uid)) {
     SPDLOG_ERROR("account {} not ready", app_.get_location_uname(account_location_uid));
@@ -148,6 +153,11 @@ uint64_t ReplayContext::insert_order_trigger(const std::string &instrument_id, c
                                              int64_t volume, PriceType type, Side side, Offset offset,
                                              OrderTriggerType trigger_type, double stop_price, HedgeFlag hedge_flag,
                                              bool is_swap) {
+  if (not is_started()) {
+    SPDLOG_ERROR("context not ready");
+    return 0;
+  }
+
   auto account_location_uid = broker_client_.get_td_location_uid(source, account);
   if (not broker_client_.is_ready(account_location_uid)) {
     SPDLOG_ERROR("account {} not ready", app_.get_location_uname(account_location_uid));
@@ -168,6 +178,11 @@ uint64_t ReplayContext::insert_order(const std::string &instrument_id, const std
                                      const std::string &source, const std::string &account, double limit_price,
                                      int64_t volume, PriceType type, Side side, Offset offset, HedgeFlag hedge_flag,
                                      bool is_swap, uint64_t block_id, uint64_t parent_id) {
+  if (not is_started()) {
+    SPDLOG_ERROR("context not ready");
+    return 0;
+  }
+
   auto account_location_uid = broker_client_.get_td_location_uid(source, account);
   if (not broker_client_.is_ready(account_location_uid)) {
     SPDLOG_ERROR("account {} not ready", app_.get_location_uname(account_location_uid));
@@ -184,6 +199,11 @@ uint64_t ReplayContext::insert_order(const std::string &instrument_id, const std
 
 uint64_t ReplayContext::insert_order_input(const std::string &source, const std::string &account,
                                            OrderInput &order_input) {
+  if (not is_started()) {
+    SPDLOG_ERROR("context not ready");
+    return 0;
+  }
+
   auto account_location_uid = broker_client_.get_td_location_uid(source, account);
   if (not broker_client_.is_ready(account_location_uid)) {
     SPDLOG_ERROR("account {} not ready", app_.get_location_uname(account_location_uid));
@@ -206,6 +226,11 @@ std::vector<uint64_t> ReplayContext::insert_batch_orders(
     std::vector<PriceType> types, std::vector<Side> sides, std::vector<Offset> offsets,
     std::vector<HedgeFlag> hedge_flags, std::vector<bool> is_swaps) {
   std::vector<uint64_t> order_ids{};
+  if (not is_started()) {
+    SPDLOG_ERROR("context not ready");
+    return order_ids;
+  }
+
   auto account_location_uid = broker_client_.get_td_location_uid(source, account);
   if (not broker_client_.is_ready(account_location_uid)) {
     SPDLOG_ERROR("account {} not ready", app_.get_location_uname(account_location_uid));
@@ -238,6 +263,11 @@ std::vector<uint64_t> ReplayContext::insert_batch_orders(
 std::vector<uint64_t> ReplayContext::insert_array_orders(const std::string &source, const std::string &account,
                                                          std::vector<OrderInput> &order_inputs) {
   std::vector<uint64_t> order_ids{};
+  if (not is_started()) {
+    SPDLOG_ERROR("context not ready");
+    return order_ids;
+  }
+
   auto account_location_uid = broker_client_.get_td_location_uid(source, account);
   if (not broker_client_.is_ready(account_location_uid)) {
     SPDLOG_ERROR("account {} not ready", app_.get_location_uname(account_location_uid));
@@ -259,6 +289,11 @@ uint64_t ReplayContext::insert_algo_order(const std::string &instrument_id, cons
                                           int64_t end_time, int64_t volume, PriceType type, Side side, Offset offset,
                                           const std::string &algo_type_id, const std::string &algo_id,
                                           const std::string &args, bool is_local) {
+  if (not is_started()) {
+    SPDLOG_ERROR("context not ready");
+    return 0;
+  }
+
   auto account_location_uid = broker_client_.get_td_location_uid(source, account);
   if (not broker_client_.is_ready(account_location_uid)) {
     SPDLOG_ERROR("account {} not ready", app_.get_location_uname(account_location_uid));
@@ -270,6 +305,11 @@ uint64_t ReplayContext::insert_algo_order(const std::string &instrument_id, cons
 }
 
 uint64_t ReplayContext::cancel_order(uint64_t order_id, OrderActionFlag action_flag) {
+  if (not is_started()) {
+    SPDLOG_ERROR("context not ready");
+    return 0;
+  }
+
   uint32_t account_location_uid = (order_id >> 32u) xor (get_live_home_uid());
   if (not broker_client_.is_ready(account_location_uid)) {
     SPDLOG_ERROR("account {} not ready", app_.get_location_uname(account_location_uid));
@@ -281,6 +321,11 @@ uint64_t ReplayContext::cancel_order(uint64_t order_id, OrderActionFlag action_f
 }
 
 uint64_t ReplayContext::cancel_order_trigger(uint64_t trigger_id) {
+  if (not is_started()) {
+    SPDLOG_ERROR("context not ready");
+    return 0;
+  }
+
   uint32_t account_location_uid = (trigger_id >> 32u) xor (get_live_home_uid());
   if (not broker_client_.is_ready(account_location_uid)) {
     SPDLOG_ERROR("account {} not ready", app_.get_location_uname(account_location_uid));
@@ -292,6 +337,11 @@ uint64_t ReplayContext::cancel_order_trigger(uint64_t trigger_id) {
 }
 
 uint64_t ReplayContext::cancel_algo_order(uint64_t algo_order_id, AlgoOrderActionFlag action_flag) {
+  if (not is_started()) {
+    SPDLOG_ERROR("context not ready");
+    return 0;
+  }
+
   uint32_t account_location_uid = (algo_order_id >> 32u) xor (get_live_home_uid());
   if (not broker_client_.is_ready(account_location_uid)) {
     SPDLOG_ERROR("account {} not ready", app_.get_location_uname(account_location_uid));
@@ -303,6 +353,11 @@ uint64_t ReplayContext::cancel_algo_order(uint64_t algo_order_id, AlgoOrderActio
 }
 
 uint64_t ReplayContext::toggle_algo_order(uint64_t algo_order_id, longfist::enums::AlgoOrderActionFlag action_flag) {
+  if (not is_started()) {
+    SPDLOG_ERROR("context not ready");
+    return 0;
+  }
+
   uint32_t account_location_uid = (algo_order_id >> 32u) xor (get_live_home_uid());
   if (not broker_client_.is_ready(account_location_uid)) {
     SPDLOG_ERROR("toggle_algo_order account {} not ready", app_.get_location_uname(account_location_uid));
@@ -352,5 +407,11 @@ void ReplayContext::on_timer_check() {
     req_deregister();
   }
 }
+
+void ReplayContext::set_resume_policy(longfist::enums::ResumePolicy resume_policy) {
+  broker_client_.set_resume_policy(resume_policy);
+}
+
+longfist::enums::ResumePolicy ReplayContext::get_resume_policy() { return broker_client_.get_resume_policy_value(); }
 
 } // namespace kungfu::wingchun::strategy

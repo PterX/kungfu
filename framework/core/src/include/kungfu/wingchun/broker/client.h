@@ -267,6 +267,8 @@ public:
 
   [[nodiscard]] ResumePolicy_ptr get_resume_policy() const override;
 
+  longfist::enums::ResumePolicy get_resume_policy_value() const;
+
   [[nodiscard]] bool is_custom_subscribed(uint32_t md_location_uid) const override;
 
   [[nodiscard]] bool is_custom_subscribed_all(uint32_t md_location_uid,
@@ -318,6 +320,8 @@ public:
                                                         const yijinjing::data::location_ptr &home);
 
   void set_resume_policy(longfist::enums::ResumePolicy resume_policy);
+
+  longfist::enums::ResumePolicy get_resume_policy();
 
 protected:
   [[nodiscard]] bool should_connect_md(const yijinjing::data::location_ptr &md_location) const override;

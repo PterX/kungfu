@@ -138,4 +138,10 @@ void ReplayContext::on_timer_check() {
   }
 }
 
+void ReplayContext::set_resume_policy(longfist::enums::ResumePolicy resume_policy) {
+  broker_client_.set_resume_policy(resume_policy);
+}
+
+longfist::enums::ResumePolicy ReplayContext::get_resume_policy() { return broker_client_.get_resume_policy_value(); }
+
 } // namespace kungfu::wingchun::op

@@ -285,6 +285,8 @@ ResumePolicy_ptr PassiveClient::get_resume_policy() const {
   }
 }
 
+longfist::enums::ResumePolicy PassiveClient::get_resume_policy_value() const { return resume_policy_; }
+
 bool PassiveClient::is_custom_subscribed(uint32_t md_location_uid) const {
   return should_connect_md(app_.get_location(md_location_uid)) and enrolled_md_custom_info_.at(md_location_uid);
 }
@@ -471,4 +473,6 @@ bool PassiveClient::should_connect_strategy(const location_ptr &strategy_locatio
 bool PassiveClient::should_connect_system(const location_ptr &system_location) const { return false; };
 
 void PassiveClient::set_resume_policy(longfist::enums::ResumePolicy resume_policy) { resume_policy_ = resume_policy; }
+
+longfist::enums::ResumePolicy PassiveClient::get_resume_policy() { return resume_policy_; }
 } // namespace kungfu::wingchun::broker

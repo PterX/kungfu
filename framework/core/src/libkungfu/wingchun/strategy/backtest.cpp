@@ -193,8 +193,8 @@ uint64_t BacktestContext::insert_order(const std::string &instrument_id, const s
   input.block_id = block_id;
   input.is_swap = is_swap;
   input.insert_time = insert_time;
-  writer->write_raw_at_as(now(), now(), app_.get_home_uid(),  td_dest, input.tag,
-                          reinterpret_cast<uintptr_t>(&input), sizeof(input));
+  writer->write_raw_at_as(now(), now(), app_.get_home_uid(), td_dest, input.tag, reinterpret_cast<uintptr_t>(&input),
+                          sizeof(input));
   // bookkeeper_.on_order_input(app_.now(), app_.get_home_uid(), find_td_location(source, account)->uid, input);
   return input.order_id;
 }
@@ -311,8 +311,7 @@ void BacktestContext::req_history_trade(const std::string &source, const std::st
 
 void BacktestContext::req_deregister() { app_.request_deregister(); }
 
-void BacktestContext::update_strategy_state(StrategyStateUpdate &state_update) {
-}
+void BacktestContext::update_strategy_state(StrategyStateUpdate &state_update) {}
 
 location_ptr BacktestContext::get_location(uint32_t location_uid) { return app_.get_location(location_uid); }
 

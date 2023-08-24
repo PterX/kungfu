@@ -19,8 +19,9 @@ using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::cache;
 
-namespace kungfu::wingchun::service {
 #define DEFAULT_AVG_VALID_VALUE 10000.0
+
+namespace kungfu::wingchun::service {
 
 Ledger::Ledger(locator_ptr locator, mode m, bool low_latency, const std::string &arguments)
     : apprentice(location::make_shared(m, category::SYSTEM, "service", "ledger", std::move(locator)), low_latency,

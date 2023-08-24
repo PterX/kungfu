@@ -228,13 +228,6 @@ void apprentice::on_react() {}
 
 void apprentice::on_start() {}
 
-void apprentice::on_request_read_from_others(const event_ptr &event) {
-  const auto &request = event->data<RequestReadFromOthers>();
-  if (has_location(request.source_id)) {
-    reader_->join(get_location(request.source_id), request.dest_id, request.from_time);
-  }
-}
-
 void apprentice::on_register(int64_t trigger_time, const Register &register_data) {
   register_location(trigger_time, register_data);
 }
@@ -249,6 +242,13 @@ void apprentice::on_deregister(const event_ptr &event) {
   deregister_channel(location_uid);
   deregister_band(location_uid);
   deregister_location(event->trigger_time(), location_uid);
+}
+
+void apprentice::on_request_read_from_others(const event_ptr &event) {
+  const auto &request = event->data<RequestReadFromOthers>();
+  if (has_location(request.source_id)) {
+    reader_->join(get_location(request.source_id), request.dest_id, request.from_time);
+  }
 }
 
 void apprentice::on_read_from(const event_ptr &event) { do_read_from<RequestReadFrom>(event, get_live_home_uid()); }

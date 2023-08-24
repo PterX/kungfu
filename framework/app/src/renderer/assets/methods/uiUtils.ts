@@ -45,7 +45,12 @@ import {
 import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
 import { ExchangeIds } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
-import { BrowserWindow, getCurrentWindow, dialog } from '@electron/remote';
+import {
+  BrowserWindow,
+  getCurrentWindow,
+  dialog,
+  nativeImage,
+} from '@electron/remote';
 import { ipcRenderer } from 'electron';
 import {
   message,
@@ -69,6 +74,7 @@ import fsPromise from 'fs/promises';
 import md from 'markdown-it';
 import { Router } from 'vue-router';
 import { normalizePath } from '@kungfu-trader/kungfu-js-api/utils/osUtils';
+import { getDialogLogoPath } from '@kungfu-trader/kungfu-js-api/config/brand';
 
 // this utils file is only for ui components
 
@@ -1125,4 +1131,24 @@ export const vueProvideBaseOnParent = <T extends { [x: string]: any }>(
   if (typeof parentProvide !== 'object' || typeof value !== 'object')
     return provide(key, value);
   return provide(key, Object.assign(parentProvide, value));
+};
+
+export const showInitAfterReloadConfirmDialog = () => {
+  return dialog
+    .showMessageBox({
+      type: 'question',
+      title: t('prompt'),
+      defaultId: 0,
+      cancelId: 1,
+      message: t('init_after_reload'),
+      buttons: [t('confirm'), t('cancel')],
+      icon: nativeImage.createFromPath(getDialogLogoPath()),
+    })
+    .then(({ response }) => {
+      if (response === 0) {
+        return true;
+      }
+
+      return false;
+    });
 };

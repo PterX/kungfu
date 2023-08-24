@@ -1122,3 +1122,22 @@ export const vueProvideBaseOnParent = <T extends { [x: string]: any }>(
     return provide(key, value);
   return provide(key, Object.assign(parentProvide, value));
 };
+
+export const showInitAfterReloadConfirmDialog = () => {
+  return dialog
+    .showMessageBox({
+      type: 'question',
+      title: t('prompt'),
+      defaultId: 0,
+      cancelId: 1,
+      message: t('init_after_reload'),
+      buttons: [t('confirm'), t('cancel')],
+    })
+    .then(({ response }) => {
+      if (response === 0) {
+        return true;
+      }
+
+      return false;
+    });
+};

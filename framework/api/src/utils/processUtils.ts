@@ -710,8 +710,13 @@ function startGetProcessStatusByName(
 
 //================ business related start ===============
 
-export async function isAllMainProcessRunning() {
+export async function isAllMainProcessRunning(onlyMaster = false) {
   const { processStatus } = await listProcessStatus();
+  kfLogger.info('isAllMainProcessRunning', processStatus);
+
+  if (onlyMaster) { 
+    return getIfProcessRunning(processStatus, 'master')
+  }
 
   return (
     getIfProcessRunning(processStatus, 'master') &&
@@ -1158,5 +1163,13 @@ export const processStatusDataObservable = () => {
     );
   });
 };
+
+export const initClean = () => {
+  return killExtra()
+  .then(() => delayMilliSeconds(1000))
+    .then(() => deleteNNFiles())
+    .then(() => kfLogger.info('initClean done'))
+  .catch((err) => kfLogger.error(err))
+}
 
 //================ business related end =================

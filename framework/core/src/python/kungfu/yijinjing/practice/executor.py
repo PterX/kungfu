@@ -48,7 +48,9 @@ class ExecutorRegistry:
             kfj.CATEGORIES[ctx.category],
             ctx.group,
             ctx.name,
-            ctx.runtime_locator,
+            ctx.backtest_locator
+            if kfj.MODES[ctx.mode] == lf.enums.mode.BACKTEST
+            else ctx.runtime_locator,
         )
         ctx.logger = find_logger(ctx.location, ctx.log_level)
 

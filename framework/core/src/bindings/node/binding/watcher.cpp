@@ -440,6 +440,8 @@ void Watcher::on_react() {
   before_start_events | is(Instrument::tag) | $$(Feed(event, event->data<Instrument>()));
   // bookkeeper restore, only Instrument and Commission
   before_start_events | is(Instrument::tag, Commission::tag) | $$(feed_state_data(event, state_bank_));
+  // accept trading data from cached state, so even if ui reload, history data is able to be shown
+  before_start_events | is_trading_data() | $$(feed_state_data(event, data_bank_));
 }
 
 void Watcher::on_start() {

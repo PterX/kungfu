@@ -232,7 +232,8 @@ const auto build_data_set = [](auto types) {
   return s;
 };
 
-const std::unordered_set<int32_t> AllTypesTags = build_data_set(AllTypes);
+const auto AllTypesTags = build_data_set(AllTypes);
+const auto TradingDataTags = build_data_set(TradingDataTypes);
 
 constexpr auto build_data_map = [](auto types) {
   auto maps = boost::hana::transform(boost::hana::values(types), [](auto value) {

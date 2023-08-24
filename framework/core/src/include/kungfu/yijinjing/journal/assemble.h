@@ -152,10 +152,10 @@ protected:
   reader_ptr current_reader_ = {};
 
 private:
-  const std::string &mode_;
-  const std::string &category_;
-  const std::string &group_;
-  const std::string &name_;
+  const std::string mode_;
+  const std::string category_;
+  const std::string group_;
+  const std::string name_;
   publisher_ptr publisher_;
   std::vector<data::locator_ptr> locators_ = {};
   int64_t from_time_ = 0;

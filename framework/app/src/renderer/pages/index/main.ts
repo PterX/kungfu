@@ -46,11 +46,13 @@ import {
   mergeExtLanguages,
   checkCpusNumAndConfirmModal,
   loadCustomFont,
+  showInitAfterReloadConfirmDialog,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
 import {
   delayMilliSeconds,
   buildIfWatcherLiveObservable,
+  kfLogger,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
@@ -63,7 +65,7 @@ import {
   startCacheD,
   startMaster,
   isAllMainProcessRunning,
-  KillAll,
+  initClean,
 } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
 
 import {
@@ -81,7 +83,6 @@ import zhCN from 'ant-design-vue/es/locale/zh_CN';
 import enUS from 'ant-design-vue/es/locale/en_US';
 import { first } from 'rxjs';
 import { getCurrentWebContents } from '@electron/remote';
-
 const app = createApp(App);
 
 app
@@ -141,7 +142,66 @@ globalBus.subscribe((data) => {
   }
 });
 
-const initStartAll = () => {
+const tryArchive = async (bypassArchive = false) => {
+  if (bypassArchive) {
+    globalBus.next({
+      tag: 'processStatus',
+      name: 'archive',
+      status: 'online',
+    });
+    await delayMilliSeconds(2000);
+    globalBus.next({
+      tag: 'processStatus',
+      name: 'archive',
+      status: 'stopped',
+    });
+    return;
+  } else {
+    return startArchiveMakeTask((archiveStatus: Pm2ProcessStatusTypes) => {
+      globalBus.next({
+        tag: 'processStatus',
+        name: 'archive',
+        status: archiveStatus,
+      });
+    });
+  }
+};
+
+const afterWatchIsLive = () => {
+  const watcherIsLiveObervable = buildIfWatcherLiveObservable(window.watcher);
+  watcherIsLiveObervable.pipe(first()).subscribe(() => {
+    kfLogger.info('watcher is live');
+    delayMilliSeconds(2000)
+      .then(() => startCacheD(false))
+      .then(() => delayMilliSeconds(2000))
+      .then(() => startLedger(false))
+      .then(() => postStartAll())
+      .then(() => delayMilliSeconds(1000))
+      .then(() => {
+        globalBus.next({
+          tag: 'processStatus',
+          name: 'extraResourcesLoading',
+          status: 'online',
+        });
+      })
+      .catch((err) => kfLogger.error(err.message));
+  });
+};
+
+const syncProcessStatusToPinia = () => {
+  startGetProcessStatus(
+    (res: {
+      processStatus: Pm2ProcessStatusData;
+      processStatusWithDetail: Pm2ProcessStatusDetailData;
+    }) => {
+      const { processStatus, processStatusWithDetail } = res;
+      globalStore.setProcessStatus(processStatus);
+      globalStore.setProcessStatusWithDetail(processStatusWithDetail);
+    },
+  );
+};
+
+const initStartAll = (bypassArchive = false) => {
   const start = () => {
     preStartAll()
       .then(() => checkCpusNumAndConfirmModal())
@@ -154,65 +214,12 @@ const initStartAll = () => {
           });
         });
       })
-      .then(async () => {
-        if (__BYPASS_ARCHIVE__) {
-          globalBus.next({
-            tag: 'processStatus',
-            name: 'archive',
-            status: 'online',
-          });
-          await delayMilliSeconds(2000);
-          globalBus.next({
-            tag: 'processStatus',
-            name: 'archive',
-            status: 'stopped',
-          });
-          return;
-        } else {
-          return startArchiveMakeTask(
-            (archiveStatus: Pm2ProcessStatusTypes) => {
-              globalBus.next({
-                tag: 'processStatus',
-                name: 'archive',
-                status: archiveStatus,
-              });
-            },
-          );
-        }
-      })
+      .then(() => tryArchive(bypassArchive || __BYPASS_ARCHIVE__))
       .then(() => startMaster(false))
-      .catch((err) => console.error(err.message))
-      .finally(() => {
-        startGetProcessStatus(
-          (res: {
-            processStatus: Pm2ProcessStatusData;
-            processStatusWithDetail: Pm2ProcessStatusDetailData;
-          }) => {
-            const { processStatus, processStatusWithDetail } = res;
-            globalStore.setProcessStatus(processStatus);
-            globalStore.setProcessStatusWithDetail(processStatusWithDetail);
-          },
-        );
-      });
+      .catch((err) => kfLogger.error(err.message))
+      .finally(() => syncProcessStatusToPinia());
 
-    const watcherIsLiveObervable = buildIfWatcherLiveObservable(window.watcher);
-    watcherIsLiveObervable.pipe(first()).subscribe(() => {
-      console.log('watcher is live');
-      delayMilliSeconds(2000)
-        .then(() => startCacheD(false))
-        .then(() => delayMilliSeconds(2000))
-        .then(() => startLedger(false))
-        .then(() => postStartAll())
-        .then(() => delayMilliSeconds(1000))
-        .then(() => {
-          globalBus.next({
-            tag: 'processStatus',
-            name: 'extraResourcesLoading',
-            status: 'online',
-          });
-        })
-        .catch((err) => console.error(err.message));
-    });
+    afterWatchIsLive();
   };
 
   if (appMounted) {
@@ -226,42 +233,39 @@ const initStartAll = () => {
   }
 };
 
-loadCustomFont().then(() =>
-  mergeExtLanguages().then(() =>
-    useComponents(app, router).then(() => {
-      app.mount('#app');
+loadCustomFont().then(async () => {
+  await mergeExtLanguages();
+  await useComponents(app, router);
+  app.mount('#app');
 
-      if (!booleanProcessEnv(process.env.RELOAD_AFTER_CRASHED)) {
-        initStartAll();
-      } else {
-        isAllMainProcessRunning().then((res) => {
-          if (res) {
-            startGetProcessStatus(
-              (res: {
-                processStatus: Pm2ProcessStatusData;
-                processStatusWithDetail: Pm2ProcessStatusDetailData;
-              }) => {
-                const { processStatus, processStatusWithDetail } = res;
-                globalStore.setProcessStatus(processStatus);
-                globalStore.setProcessStatusWithDetail(processStatusWithDetail);
-              },
-            );
-          } else {
-            KillAll().finally(() => {
-              initStartAll();
-            });
-          }
-        });
-      }
-    }),
-  ),
-);
+  if (!booleanProcessEnv(process.env.RELOAD_AFTER_CRASHED)) {
+    await initStartAll();
+    return;
+  }
+
+  // reload keep old process running as long as master running, even if ledger and cached down
+  const isAllMainRunning: boolean = await isAllMainProcessRunning(true);
+  if (isAllMainRunning) {
+    afterWatchIsLive();
+    syncProcessStatusToPinia();
+    return;
+  }
+
+  kfLogger.warn('master down in reload ui process');
+  showInitAfterReloadConfirmDialog().then((res) => {
+    if (!res) return;
+    initClean().finally(() => {
+      // need pass archive, avoid read master public journal before master started
+      initStartAll(true);
+    });
+  });
+});
 
 triggerStartStep(1000);
 
 const webContents = getCurrentWebContents();
 webContents.on('devtools-reload-page', () => {
-  console.warn('devtools-reload-page');
+  kfLogger.warn('devtools-reload-page');
   window.watcher && window.watcher.quit();
   localStorage.setItem('page-reloaded', '1');
 });

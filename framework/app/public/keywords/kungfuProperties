@@ -148,7 +148,6 @@ dest_id
 trigger_id
 stop_price
 trigger_type
-parked_type
 external_trigger_id
 order_trigger_action_id
 is_last
@@ -470,9 +469,6 @@ BidPriceGreaterEqualStopPrice
 BidPriceLesserThanStopPrice
 BidPriceLesserEqualStopPrice
 OrderTriggerType
-Server
-Local
-ParkedType
 Low
 Medium
 High

@@ -49,7 +49,7 @@ class Strategy(wc.Strategy):
     def __init_strategy(self, path):
         strategy_dir = os.path.dirname(path)
         name_no_ext = os.path.split(os.path.basename(path))
-        sys.path.append(os.path.relpath(strategy_dir))
+        sys.path.insert(0, strategy_dir)
         self._module = importlib.import_module(os.path.splitext(name_no_ext[1])[0])
         self._pre_start = getattr(self._module, "pre_start", lambda ctx: None)
         self._post_start = getattr(self._module, "post_start", lambda ctx: None)

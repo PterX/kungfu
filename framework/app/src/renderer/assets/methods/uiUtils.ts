@@ -1139,16 +1139,11 @@ export const showInitAfterReloadConfirmDialog = () => {
       type: 'question',
       title: t('prompt'),
       defaultId: 0,
-      cancelId: 1,
       message: t('init_after_reload'),
-      buttons: [t('confirm'), t('cancel')],
+      buttons: [t('confirm')],
       icon: nativeImage.createFromPath(getDialogLogoPath()),
     })
-    .then(({ response }) => {
-      if (response === 0) {
-        return true;
-      }
-
-      return false;
+    .then(() => {
+      return true;
     });
 };

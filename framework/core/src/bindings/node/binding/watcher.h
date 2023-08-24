@@ -174,23 +174,9 @@ private:
   };
 
   static constexpr auto is_trading_data = []() {
-    return rx::filter([](const event_ptr &event) {
-      bool is_target = false;
-      boost::hana::for_each(longfist::TradingDataTypes, [&](auto it) {
-        using DataType = typename decltype(+boost::hana::second(it))::type;
-        is_target |= DataType::tag == event->msg_type();
-      });
-      return is_target;
+    return rx::filter([&](const event_ptr &event) {
+      return kungfu::longfist::TradingDataTags.find(event->msg_type()) != kungfu::longfist::TradingDataTags.end();
     });
-  };
-
-  static constexpr auto while_is_trading_data = [](const event_ptr &event) {
-    bool is_target = false;
-    boost::hana::for_each(longfist::TradingDataTypes, [&](auto it) {
-      using DataType = typename decltype(+boost::hana::second(it))::type;
-      is_target |= DataType::tag == event->msg_type();
-    });
-    return is_target;
   };
 
   void Feed(const event_ptr &event, const longfist::types::Instrument &instrument);

@@ -364,6 +364,7 @@ setup
 step
 on_exit
 add_operator
+is_started
 subscribe_operator
 publish_synthetic_data
 update_operator_state
@@ -526,9 +527,6 @@ SSE
 SZE
 MarketType
 Snapshot
-Entrust
-Transaction
-Tree
 SubscribeDataType
 Stock
 Future

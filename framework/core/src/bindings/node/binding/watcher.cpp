@@ -154,11 +154,6 @@ Watcher::Watcher(const Napi::CallbackInfo &info)
   for (const auto &item : config_store->profile_.get_all(Location{})) {
     auto saved_location = location::make_shared(item, get_locator());
     add_location(now(), saved_location);
-    if (saved_location->category == longfist::enums::category::SYSTEM) {
-      if (saved_location->group != "node") {
-        continue;
-      }
-    }
     RestoreState(saved_location, today, INT64_MAX, sync_schema);
     // for hidden pos && asset
     // shift(saved_location) >> state_bank_;

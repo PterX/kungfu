@@ -89,7 +89,7 @@ public:
     ping["source"] = io_device_.get_home()->uid;
     ping["dest"] = 0;
     ping["data"] = "";
-    return publish(ping.dump(), 0, true) == 0;
+    return publish(ping.dump()) == 0;
   }
 };
 

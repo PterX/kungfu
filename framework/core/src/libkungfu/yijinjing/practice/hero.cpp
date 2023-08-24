@@ -43,6 +43,9 @@ hero::hero(io_device_ptr io_device)
   add_location(0, master_home_location_);
   add_location(0, master_cmd_location_);
   add_location(0, ledger_home_location_);
+  for (const auto &l : get_home()->locator->list_locations("*", "*", "*", "*")) {
+    add_location(0, l);
+  }
   reader_ = io_device_->open_reader_to_subscribe();
 }
 

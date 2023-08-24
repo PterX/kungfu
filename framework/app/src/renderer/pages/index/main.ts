@@ -188,6 +188,19 @@ const afterWatchIsLive = () => {
   });
 };
 
+const syncProcessStatusToPinia = () => {
+  startGetProcessStatus(
+    (res: {
+      processStatus: Pm2ProcessStatusData;
+      processStatusWithDetail: Pm2ProcessStatusDetailData;
+    }) => {
+      const { processStatus, processStatusWithDetail } = res;
+      globalStore.setProcessStatus(processStatus);
+      globalStore.setProcessStatusWithDetail(processStatusWithDetail);
+    },
+  );
+};
+
 const initStartAll = (bypassArchive = false) => {
   const start = () => {
     preStartAll()
@@ -204,18 +217,7 @@ const initStartAll = (bypassArchive = false) => {
       .then(() => tryArchive(bypassArchive || __BYPASS_ARCHIVE__))
       .then(() => startMaster(false))
       .catch((err) => kfLogger.error(err.message))
-      .finally(() => {
-        startGetProcessStatus(
-          (res: {
-            processStatus: Pm2ProcessStatusData;
-            processStatusWithDetail: Pm2ProcessStatusDetailData;
-          }) => {
-            const { processStatus, processStatusWithDetail } = res;
-            globalStore.setProcessStatus(processStatus);
-            globalStore.setProcessStatusWithDetail(processStatusWithDetail);
-          },
-        );
-      });
+      .finally(() => syncProcessStatusToPinia());
 
     afterWatchIsLive();
   };
@@ -245,16 +247,7 @@ loadCustomFont().then(async () => {
   const isAllMainRunning: boolean = await isAllMainProcessRunning(true);
   if (isAllMainRunning) {
     afterWatchIsLive();
-    startGetProcessStatus(
-      (res: {
-        processStatus: Pm2ProcessStatusData;
-        processStatusWithDetail: Pm2ProcessStatusDetailData;
-      }) => {
-        const { processStatus, processStatusWithDetail } = res;
-        globalStore.setProcessStatus(processStatus);
-        globalStore.setProcessStatusWithDetail(processStatusWithDetail);
-      },
-    );
+    syncProcessStatusToPinia();
     return;
   }
 

@@ -45,7 +45,12 @@ import {
 import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
 import { ExchangeIds } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
-import { BrowserWindow, getCurrentWindow, dialog, nativeImage } from '@electron/remote';
+import {
+  BrowserWindow,
+  getCurrentWindow,
+  dialog,
+  nativeImage,
+} from '@electron/remote';
 import { ipcRenderer } from 'electron';
 import {
   message,

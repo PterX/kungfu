@@ -1055,11 +1055,10 @@ export const usePreStartAndQuitApp = (): {
 
   onMounted(() => {
     if (booleanProcessEnv(process.env.RELOAD_AFTER_CRASHED)) {
-      isAllMainProcessRunning().then((flag) => {
+      isAllMainProcessRunning(true).then((flag) => {
         if (flag) {
           preStartSystemLoadingData.cpusSafeNumChecking = 'done';
           preStartSystemLoadingData.archive = 'done';
-          preStartSystemLoadingData.extraResourcesLoading = 'done';
         }
       });
     }

@@ -24,6 +24,13 @@ void JsRestoreState::operator()(int64_t from, int64_t to, bool sync_schema) {
   auto now = time::now_in_nano();
   auto source = location_->uid;
   auto locator = location_->locator;
+
+  if (location_->category == longfist::enums::category::SYSTEM) {
+    if (location_->group != "node") {
+      return;
+    }
+  }
+
   for (auto dest : locator->list_location_dest_by_db(location_)) {
     auto db_file = locator->layout_file(location_, layout::SQLITE, fmt::format("{:08x}", dest));
     auto storage = cache::make_storage_ptr(db_file, longfist::StateDataTypes);

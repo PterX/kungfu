@@ -568,6 +568,10 @@ export const openNewBrowserWindow = (
       win && win.focus();
     });
 
+    win.on('closed', () => {
+      resolve(win);
+    });
+
     win.webContents.loadURL(modalPath);
     win.webContents.on('did-finish-load', () => {
       if (!currentWindow || Object.keys(currentWindow).length == 0) {
@@ -689,7 +693,7 @@ export const markClearDB = (): void => {
 };
 
 message.config({
-  maxCount: 3,
+  maxCount: 4,
 });
 export const messagePrompt = (): {
   success(msg?: string, duration?: number): MessageType;

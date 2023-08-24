@@ -52,6 +52,7 @@ import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/ind
 import {
   delayMilliSeconds,
   buildIfWatcherLiveObservable,
+  kfLogger,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
@@ -169,7 +170,7 @@ const tryArchive = async (bypassArchive = false) => {
 const afterWatchIsLive = () => {
   const watcherIsLiveObervable = buildIfWatcherLiveObservable(window.watcher);
   watcherIsLiveObervable.pipe(first()).subscribe(() => {
-    console.log('watcher is live');
+    kfLogger.info('watcher is live');
     delayMilliSeconds(2000)
       .then(() => startCacheD(false))
       .then(() => delayMilliSeconds(2000))
@@ -183,7 +184,7 @@ const afterWatchIsLive = () => {
           status: 'online',
         });
       })
-      .catch((err) => console.error(err.message));
+      .catch((err) => kfLogger.error(err.message));
   });
 };
 
@@ -202,7 +203,7 @@ const initStartAll = (bypassArchive = false) => {
       })
       .then(() => tryArchive(bypassArchive || __BYPASS_ARCHIVE__))
       .then(() => startMaster(false))
-      .catch((err) => console.error(err.message))
+      .catch((err) => kfLogger.error(err.message))
       .finally(() => {
         startGetProcessStatus(
           (res: {
@@ -257,6 +258,7 @@ loadCustomFont().then(async () => {
     return;
   }
 
+  kfLogger.warn('master down in reload ui process');
   showInitAfterReloadConfirmDialog().then((res) => {
     if (!res) return;
     initClean().finally(() => {
@@ -270,7 +272,7 @@ triggerStartStep(1000);
 
 const webContents = getCurrentWebContents();
 webContents.on('devtools-reload-page', () => {
-  console.warn('devtools-reload-page');
+  kfLogger.warn('devtools-reload-page');
   window.watcher && window.watcher.quit();
   localStorage.setItem('page-reloaded', '1');
 });

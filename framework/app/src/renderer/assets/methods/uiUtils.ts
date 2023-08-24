@@ -693,7 +693,7 @@ export const markClearDB = (): void => {
 };
 
 message.config({
-  maxCount: 3,
+  maxCount: 4,
 });
 export const messagePrompt = (): {
   success(msg?: string, duration?: number): MessageType;

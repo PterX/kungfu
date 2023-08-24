@@ -1167,16 +1167,9 @@ export const processStatusDataObservable = () => {
 export const initClean = async () => {
   try {
     await KillAll();
+    await deleteNNFiles();
   } catch (err) {
     kfLogger.error('initClean killAll', err);
-  }
-
-  try {
-    await killExtra();
-    await deleteNNFiles();
-    kfLogger.info('initClean done');
-  } catch (err) {
-    kfLogger.error('initClean killExtra', err);
   }
 };
 

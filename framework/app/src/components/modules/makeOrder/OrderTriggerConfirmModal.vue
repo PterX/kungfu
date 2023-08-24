@@ -2,7 +2,6 @@
 import { useModalVisible } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import { computed, getCurrentInstance } from 'vue';
 import { orderInputTrans } from './config';
-import { OrderTriggerParkedTypeEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 
 const app = getCurrentInstance();
 
@@ -17,7 +16,7 @@ const props = withDefaults(
 );
 
 defineEmits<{
-  (e: 'confirm', parked_type: OrderTriggerParkedTypeEnum): void;
+  (e: 'confirm'): void;
   (e: 'update:visible', visible: boolean): void;
   (e: 'close'): void;
 }>();
@@ -38,7 +37,7 @@ const formData = computed<Record<string, KungfuApi.KfTradeValueCommonData>>(
 );
 
 function handleConfirm() {
-  app && app.emit('confirm', OrderTriggerParkedTypeEnum.Server);
+  app && app.emit('confirm');
   closeModal();
 }
 </script>
@@ -54,23 +53,6 @@ function handleConfirm() {
     @ok="handleConfirm"
   >
     <div class="order-trigger-content-wrap">
-      <!-- <div class="order-trigger-type">
-        <a-form
-          ref="formRef"
-          class="kf-config-form"
-          :model="formState"
-          :colon="false"
-          :scroll-to-first-error="true"
-        >
-          <a-form-item>
-            <a-radio-group v-model:value="formState.parked_type">
-              <a-radio :value="OrderTriggerParkedTypeEnum.Server">
-                {{ t('tradingConfig.server_order_trigger_label') }}
-              </a-radio>
-            </a-radio-group>
-          </a-form-item>
-        </a-form>
-      </div> -->
       <p class="color-default" style="margin-bottom: 10px">
         {{ $t('orderTriggerConfig.make_order_modal_tip') }}
       </p>

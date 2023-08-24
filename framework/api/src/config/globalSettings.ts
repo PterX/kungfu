@@ -232,7 +232,7 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
         type: 'checkboxGroup',
         options: [
           {
-            value: 'static_yesterday_volume',
+            value: 'static_yesterday',
             label: t('posGlobalConfig.static_yesterday_volume_setting'),
           },
           {

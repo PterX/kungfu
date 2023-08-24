@@ -17,6 +17,7 @@
 
 namespace kungfu {
 namespace yijinjing {
+
 /** size related */
 constexpr int KB = 1024;
 constexpr int MB = KB * KB;

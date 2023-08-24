@@ -937,6 +937,8 @@ export default {
 
   quit_confirm:
     'Exiting the application ends all transactions, Confirm to exit?',
+  init_after_reload:
+    'Main processes not running, all trading are affected, click confirm to restart main processes',
   restart_process:
     'Kungfu graphics process is interrupted. The interruption will not affect transactions. Do you want to restart the graphics process?',
 

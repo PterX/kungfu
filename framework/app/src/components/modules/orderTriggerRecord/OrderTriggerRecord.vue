@@ -49,7 +49,7 @@ import {
   InstrumentTypeEnum,
   OffsetEnum,
   SideEnum,
-  OrderTriggerTypeEnum,
+  OrderTriggerConfigTypeEnum,
   OrderTriggerStatusEnum,
   OrderTriggerFlag,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
@@ -187,7 +187,10 @@ function handleBatchModal() {
 
   const tdName = currentGlobalKfLocation.value?.group as string;
   const extConfig = extConfigs.value.td[tdName];
-  if (extConfig && !extConfig.orderTrigger[OrderTriggerTypeEnum.MakeOrder]) {
+  if (
+    extConfig &&
+    !extConfig.orderTrigger[OrderTriggerConfigTypeEnum.MakeOrder]
+  ) {
     error(
       t('tradingConfig.order_trigger_td_error', {
         tdName,

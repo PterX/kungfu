@@ -534,7 +534,6 @@ export const kfOrderTrigger = (
     trigger_type: OrderTriggerTypeEnum.ParkedOrder,
   };
 
-  console.log(orderTriggerInput, '`````````````');
   return Promise.resolve(
     watcher.issueOrderTrigger(orderTriggerInput, tdLocation),
   );

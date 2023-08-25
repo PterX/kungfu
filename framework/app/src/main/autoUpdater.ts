@@ -11,7 +11,7 @@ import {
   foundNewVersion,
   reqRecordBeforeQuit,
   sendUpdatingError,
-  startDownloadNewVersion,
+  downloadStartedNewVersion,
   updateNotAvailable,
 } from './events';
 import { KF_HOME } from '@kungfu-trader/kungfu-js-api/config/pathConfig';
@@ -115,13 +115,14 @@ function handleUpdateKungfu(
   autoUpdater.setFeedURL(updaterOption);
   autoUpdater.removeAllListeners();
 
-  let curErrorCalledNext = false;
+  let curErrorBeCalled = false;
+  let downloadStarted = false;
   autoUpdater.on('error', (error) => {
     kfLogger.error('Kungfu autoUpdater error message: ', error?.message);
-    MainWindow && sendUpdatingError(MainWindow, error);
+    if (MainWindow && downloadStarted) sendUpdatingError(MainWindow, error);
 
-    if (!curErrorCalledNext && targetVersions.length) {
-      curErrorCalledNext = true;
+    if (!curErrorBeCalled && targetVersions.length) {
+      curErrorBeCalled = true;
       handleUpdateKungfu(MainWindow, targetVersions);
     }
   });
@@ -138,13 +139,15 @@ function handleUpdateKungfu(
       ipcMain.on('auto-update-confirm-result', (_, result) => {
         if (result) {
           autoUpdater.downloadUpdate();
-          startDownloadNewVersion(MainWindow);
+          downloadStarted = true;
+          downloadStartedNewVersion(MainWindow);
         }
       });
 
       ipcMain.on('auto-update-to-start-download', () => {
         autoUpdater.downloadUpdate();
-        startDownloadNewVersion(MainWindow);
+        downloadStarted = true;
+        downloadStartedNewVersion(MainWindow);
       });
     }
   });

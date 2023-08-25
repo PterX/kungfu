@@ -104,10 +104,11 @@ class TraderSim(wc.Trader):
         self.get_writer(event.source).write(event.gen_time, trigger)
 
         order_input = wc.utils.order_input_from_trigger_order(trigger_input)
+        dest = event.source
         self.add_timer(
             yjj.now_in_nano() + 30 * 10**9,
             lambda e: self.trigger_generate_order(
-                event.source,
+                dest,
                 trigger.trigger_id,
                 lf.enums.OrderStatus.Filled,
                 order_input,
@@ -126,10 +127,11 @@ class TraderSim(wc.Trader):
                 trigger.status = lf.enums.OrderStatus.Cancelling
                 writer.write(event.gen_time, trigger)
                 self.logger.info(f"OrderTrigger: {trigger}")
+                dest = event.source
                 self.add_timer(
                     yjj.now_in_nano() + 10 * 10**9,
                     lambda e: self.update_trigger(
-                        event.source, trigger.trigger_id, lf.enums.OrderStatus.Cancelled
+                        dest, trigger.trigger_id, lf.enums.OrderStatus.Cancelled
                     ),
                 )
             return True
@@ -321,11 +323,10 @@ class TraderSim(wc.Trader):
                         if order.volume - order.volume_left == 0
                         else lf.enums.OrderStatus.PartialFilledNotActive
                     )
+                    dest = event.source
                     self.add_timer(
                         yjj.now_in_nano() + 5 * 10**9,
-                        lambda e: self.update_order(
-                            event.source, order.order_id, status
-                        ),
+                        lambda e: self.update_order(dest, order.order_id, status),
                     )
 
                 if order_action.action_flag == lf.enums.OrderActionFlag.TriggerCancel:
@@ -338,10 +339,11 @@ class TraderSim(wc.Trader):
                     self.logger.info(f"OrderTrigger: {trigger}")
                     self.ctx.triggers[trigger.trigger_id] = trigger
                     self.get_writer(event.source).write(event.gen_time, trigger)
+                    dest = event.source
                     self.add_timer(
                         yjj.now_in_nano() + 30 * 10**9,
                         lambda e: self.update_cancel_trigger(
-                            event.source,
+                            dest,
                             trigger.trigger_id,
                             lf.enums.OrderStatus.Filled,
                         ),

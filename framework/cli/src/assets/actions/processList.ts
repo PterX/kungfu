@@ -18,12 +18,10 @@ import {
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import {
   killExtra,
-  killKfc,
   pm2Kill,
   Pm2ProcessStatusData,
   Pm2ProcessStatusDetailData,
   startArchiveMakeTask,
-  killKungfu,
   startMaster,
   startLedger,
   startDzxy,
@@ -642,11 +640,7 @@ const switchMaster = async (status: boolean): Promise<void> => {
       LifeCycleKeys.BeforeStopAllProcesses,
     );
     await pm2Kill();
-    await killKfc();
-    await killExtra();
-    if (process.env.NODE_ENV === 'production') {
-      await killKungfu();
-    }
+    await killExtra(false);
     await delayMilliSeconds(1000);
     await deleteNNFiles();
   } else {

@@ -6,6 +6,7 @@ import * as csv from 'fast-csv';
 import { FormatterRow, ParserOptionsArgs } from 'fast-csv';
 import findRoot from 'find-root';
 import { RootConfigJSON } from '../typings/global';
+import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 
 //添加文件
 export const addFileSync = (
@@ -362,19 +363,17 @@ export const isDiskRootDirectory = (dirPath: string): boolean => {
 
 export const getAppRuntimeDirName = () => {
   const packageJson = readRootPackageJsonSync();
-  const runner = process.env.IS_KF_DEV
-    ? 'Electron'
-    : packageJson.kungfuCraft?.productName;
-
-  if (!runner) return null;
+  const productName = booleanProcessEnv(process.env.IS_KF_DEV)
+    ? 'electron'
+    : packageJson.kungfuCraft?.productName || 'Kungfu';
 
   switch (os.platform()) {
     case 'win32':
-      return runner;
-    case 'darwin':
     case 'linux':
-      return runner + '.app';
+      return productName;
+    case 'darwin':
+      return productName + '.app';
     default:
-      return runner;
+      return productName;
   }
 };

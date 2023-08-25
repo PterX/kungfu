@@ -62,7 +62,7 @@ hero::~hero() {
 bool hero::is_usable() { return io_device_->is_usable(); }
 
 bool hero::setup() {
-  auto rc = io_device_->setup();
+  io_device_->setup();
   SPDLOG_DEBUG("io setup done");
   events_ = observable<>::create<event_ptr>([this](auto &s) { delegate_produce(this, s); }) | holdon();
   react();

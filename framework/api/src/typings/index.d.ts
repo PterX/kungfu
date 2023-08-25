@@ -49,6 +49,7 @@ declare namespace KungfuApi {
     SessionStatusEnum,
     CurrencyEnum,
     OrderTriggerTypeEnum,
+    OrderTriggerConfigTypeEnum,
     OrderTriggerStatusEnum,
     FundTransEnum,
     FundTransTypeEnum,
@@ -295,7 +296,7 @@ declare namespace KungfuApi {
   }
   export interface KfTdExtConfig extends KfExtConfigBase<'td' | 'tdGroup'> {
     type: TdMdExtTypes[];
-    orderTrigger: Partial<Record<OrderTriggerTypeEnum, boolean>>;
+    orderTrigger: Partial<Record<OrderTriggerConfigTypeEnum, boolean>>;
     settings: KfConfigItem[];
     fundTrans?: KfExtFundTransConfig | null;
   }
@@ -669,8 +670,6 @@ declare namespace KungfuApi {
     uid_key: string;
   }
 
-  export type OrderTriggerInput = OrderInput;
-
   export interface OrderTrigger {
     trigger_id: bigint; // 触发器id
     order_id: bigint; // 预埋撤单, 被撤单的order_id
@@ -704,6 +703,7 @@ declare namespace KungfuApi {
     price_type: PriceTypeEnum; //价格类型
     volume_condition: VolumeConditionEnum; //成交量类型
     time_condition: TimeConditionEnum; //成交时间类型
+    trigger_type: OrderTriggerTypeEnum; // 条件触发类型
 
     source: number;
     dest: number;
@@ -724,6 +724,30 @@ declare namespace KungfuApi {
     key: number;
     action_flag_uname: string;
     time_condition_resolved: string;
+  }
+
+  export interface OrderTriggerInput {
+    trigger_id: bigint; // 触发器id
+
+    instrument_id: string; //合约ID
+    exchange_id: string; //交易所ID
+    instrument_type: InstrumentTypeEnum; //合约类型
+
+    limit_price: number; //价格
+    frozen_price: number; //冻结价格, 市价单冻结价格为0
+    volume: bigint; //数量
+    stop_price: number; // 条件触发价格
+
+    is_swap: boolean; // 互换单
+    side: SideEnum; //买卖方向
+    offset: OffsetEnum; //开平方向
+    hedge_flag: HedgeFlagEnum; //投机套保标识
+    price_type: PriceTypeEnum; //价格类型
+    volume_condition: VolumeConditionEnum; //成交量类型
+    time_condition: TimeConditionEnum; //成交时间类型
+    trigger_type: OrderTriggerTypeEnum; // 条件触发类型
+
+    insert_time: bigint;
   }
 
   export interface TimeKeyValue {
@@ -1215,6 +1239,8 @@ declare namespace KungfuApi {
       Order(): Order;
       OrderInput(): OrderInput;
       OrderAction(): OrderAction;
+      OrderTrigger(): OrderTrigger;
+      OrderTriggerInput(): OrderTriggerInput;
       OrderTriggerAction(): OrderTriggerAction;
       OrderStat(): OrderStat;
       Position(): Position;

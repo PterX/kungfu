@@ -96,14 +96,16 @@ void cached::restore_states(const yijinjing::data::location_ptr &location,
     }
   }
 
-  if (location->uid == ledger_home_location_->uid) {
+  if (location->uid == ledger_home_location_->uid or
+      (location->category == category::SYSTEM and location->group == "node")) {
     for (const auto &other_location : location->locator->list_locations("td", "*", "*", "live")) {
       for (auto dest : location->locator->list_location_dest_by_db(other_location)) {
         try {
           ensure_cached_storage(other_location, dest);
           app_states_shift_.at(other_location->uid).restore_to(writer, dest);
         } catch (const std::exception &ex) {
-          SPDLOG_ERROR("failed to write cache {} {} {} for ledger", other_location->uname, dest, ex.what());
+          SPDLOG_ERROR("failed to write cache {} {} {} for target {}", other_location->uname, dest, ex.what(),
+                       location->uname);
         }
       }
     }

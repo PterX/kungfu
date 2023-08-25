@@ -125,9 +125,9 @@ protected:
 
   virtual void on_start();
 
-  void on_register(int64_t trigger_time, const longfist::types::Register &register_data);
+  virtual void on_register(int64_t trigger_time, const longfist::types::Register &register_data);
 
-  void on_deregister(const event_ptr &event);
+  virtual void on_deregister(const event_ptr &event);
 
   void on_read_from(const event_ptr &event);
 

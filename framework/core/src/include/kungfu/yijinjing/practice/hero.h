@@ -36,7 +36,7 @@ public:
 
   bool is_usable() override;
 
-  void setup() override;
+  bool setup() override;
 
   void step();
 

@@ -17,8 +17,6 @@ using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
 using namespace std::chrono;
 
-#define REGISTER_TIMEOUT_SECONDS 60
-
 namespace kungfu::yijinjing::practice {
 
 apprentice::apprentice(location_ptr home, bool low_latency, std::string arguments)
@@ -325,11 +323,14 @@ void apprentice::checkin() {
   int count = (REGISTER_TIMEOUT_SECONDS * 1000) / DEFAULT_NOTICE_TIMEOUT;
   while (not try_register()) {
     SPDLOG_WARN("try register failed, retrying...");
+
     if (count-- <= 0) {
       SPDLOG_ERROR("register failed");
       throw yijinjing_error("register failed");
     }
   }
+
+  SPDLOG_INFO("app checkin done");
 }
 
 void apprentice::expect_start() {

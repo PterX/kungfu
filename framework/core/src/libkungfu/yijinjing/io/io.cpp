@@ -202,7 +202,7 @@ bool io_device_client::setup() {
     return prc && orc;
   };
 
-  int count = (REGISTER_TIMEOUT_SECONDS * 1000) / DEFAULT_NOTICE_TIMEOUT;
+  int count = (REGISTER_TIMEOUT_SECONDS * 1000) / SETUP_TIMEOUT;
   while (not try_setup()) {
     SPDLOG_WARN("try setup failed, retrying...");
     if (count-- <= 0) {

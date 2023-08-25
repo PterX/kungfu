@@ -115,6 +115,7 @@ export const useUpdateVersion = () => {
   const newVersion = ref('');
   const popoverVisible = ref(false);
   const hasNewVersion = ref(false);
+  const checkingUpdate = ref(false);
   const downloadStarted = ref<boolean>(false);
   const progressStatus = ref<'success' | 'active' | 'exception' | 'normal'>(
     'normal',
@@ -122,10 +123,19 @@ export const useUpdateVersion = () => {
   const errorMessage = ref('');
   const process = ref<number>();
 
+  const handleToRetryCheckUpdate = () => {
+    ipcRenderer.send('auto-update-retry-check-update');
+    checkingUpdate.value = true;
+    // 超过 10 秒视为检测完成
+    setTimeout(() => {
+      checkingUpdate.value = false;
+    }, 10000);
+  };
+
   const handleToConfirmStartUpdate = (newVersion: string) => {
     confirmModal(
-      t('globalSettingConfig.update'),
-      t('globalSettingConfig.find_new_version', {
+      t('autoUpdater.update'),
+      t('autoUpdater.find_new_version', {
         version: newVersion,
       }),
     ).then((flag) => {
@@ -139,8 +149,8 @@ export const useUpdateVersion = () => {
 
   const handleQuitAndInstall = () => {
     confirmModal(
-      t('globalSettingConfig.update'),
-      t('globalSettingConfig.warning_before_install'),
+      t('autoUpdater.update'),
+      t('autoUpdater.warning_before_install'),
     ).then((flag) => {
       if (flag) {
         ipcRenderer.send('auto-update-quit-and-install');
@@ -158,6 +168,7 @@ export const useUpdateVersion = () => {
 
       if (data.tag === 'main') {
         if (data.name === 'auto-update-find-new-version') {
+          checkingUpdate.value = false;
           hasNewVersion.value = true;
           newVersion.value = data.payload.newVersion;
           errorMessage.value = '';
@@ -166,6 +177,7 @@ export const useUpdateVersion = () => {
         }
 
         if (data.tag === 'auto-update-up-to-date') {
+          checkingUpdate.value = false;
           hasNewVersion.value = false;
         }
 
@@ -187,8 +199,10 @@ export const useUpdateVersion = () => {
         }
 
         if (data.name === 'auto-update-error') {
+          console.error(data.payload.error);
           errorMessage.value = (data.payload.error as Error).message;
           progressStatus.value = 'exception';
+          popoverVisible.value = true;
         }
       }
     });
@@ -198,11 +212,13 @@ export const useUpdateVersion = () => {
     popoverVisible,
     newVersion,
     currentVersion,
+    checkingUpdate,
     hasNewVersion,
     downloadStarted,
     process,
     progressStatus,
     errorMessage,
+    handleToRetryCheckUpdate,
     handleToStartDownload,
     handleQuitAndInstall,
   };

@@ -46,7 +46,7 @@
         </div>
       </template>
       <template v-else>
-        <div>
+        <span>
           {{
             $t('autoUpdater.current_version') +
             ': ' +
@@ -55,7 +55,15 @@
             $t('autoUpdater.already_latest_version') +
             ' )'
           }}
-        </div>
+        </span>
+        <a-button
+          type="link"
+          size="small"
+          :loading="checkingUpdate"
+          @click="handleToRetryCheckUpdate"
+        >
+          {{ $t('autoUpdater.retry_check') }}
+        </a-button>
       </template>
     </template>
     <div class="kf-update-controller-entry__wrap">
@@ -75,11 +83,13 @@ const {
   popoverVisible,
   newVersion,
   currentVersion,
+  checkingUpdate,
   hasNewVersion,
   downloadStarted,
   process,
   progressStatus,
   errorMessage,
+  handleToRetryCheckUpdate,
   handleToStartDownload,
   handleQuitAndInstall,
 } = useUpdateVersion();

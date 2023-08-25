@@ -860,6 +860,7 @@ export default {
     current_version: 'Current version',
     already_latest_version: 'Already latest version',
     new_version: 'New version',
+    retry_check: 'Check',
     start_download: 'Start Download',
     retry_download: 'Retry',
     find_new_version: 'Found new version: {version}\nIf you want download now?',

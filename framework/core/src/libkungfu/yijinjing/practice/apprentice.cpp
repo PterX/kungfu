@@ -326,8 +326,6 @@ void apprentice::checkin() {
 
   while (not try_register()) {
     SPDLOG_WARN("try register failed, retrying...");
-    get_io_device()->setup();
-    SPDLOG_DEBUG("io resetup done");
 
     if (count-- <= 0) {
       SPDLOG_ERROR("register failed");

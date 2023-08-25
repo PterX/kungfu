@@ -35,6 +35,7 @@ import {
   InstrumentTypeEnum,
   CurrencyEnum,
   OrderActionFlagEnum,
+  OrderTriggerTypeEnum,
 } from '../typings/enums';
 import { ExchangeIds, AllFinishedOrderStatus } from '../config/tradingConfig';
 
@@ -524,16 +525,19 @@ export const kfOrderTrigger = (
   }
 
   const now = watcher.now();
-  const orderInput: KungfuApi.OrderTriggerInput = {
-    ...longfist.types.OrderInput(),
+  const orderTriggerInput: KungfuApi.OrderTriggerInput = {
+    ...longfist.types.OrderTriggerInput(),
     ...makeOrderTriggerInput,
-    block_id: BigInt(0),
     limit_price: makeOrderTriggerInput.limit_price || 0,
     volume: BigInt(makeOrderTriggerInput.volume),
     insert_time: now,
+    trigger_type: OrderTriggerTypeEnum.ParkedOrder,
   };
 
-  return Promise.resolve(watcher.issueOrderTrigger(orderInput, tdLocation));
+  console.log(orderTriggerInput, '`````````````');
+  return Promise.resolve(
+    watcher.issueOrderTrigger(orderTriggerInput, tdLocation),
+  );
 };
 
 export const kfRefreshOrderTrigger = (

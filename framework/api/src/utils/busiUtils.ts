@@ -69,7 +69,7 @@ import {
   CurrencyEnum,
   HistoryDateEnum,
   OrderTriggerStatusEnum,
-  OrderTriggerTypeEnum,
+  OrderTriggerConfigTypeEnum,
   OrderTriggerFlag,
 } from '../typings/enums';
 import {
@@ -566,10 +566,11 @@ const resolveOrderTriggerConfig = (
 ) => {
   if (originConfig) {
     const orderTriggerOriginConfig = originConfig.td?.order_trigger || {};
-    const orderTriggerTypesKeys = Object.keys(OrderTriggerTypeEnum);
+    const orderTriggerTypesKeys = Object.keys(OrderTriggerConfigTypeEnum);
     return Object.keys(orderTriggerOriginConfig).reduce((config, key) => {
       if (orderTriggerTypesKeys.includes(key)) {
-        config[OrderTriggerTypeEnum[key]] = !!orderTriggerOriginConfig[key];
+        config[OrderTriggerConfigTypeEnum[key]] =
+          !!orderTriggerOriginConfig[key];
       }
       return config;
     }, {} as KungfuApi.KfTdExtConfig['orderTrigger']);

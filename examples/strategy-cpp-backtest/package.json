@@ -1,7 +1,7 @@
 {
   "name": "@kungfu-trader/examples-strategy-backtest-cpp",
   "author": "kungfu-trader",
-  "version": "2.6.2-alpha.10",
+  "version": "2.6.2-alpha.11",
   "description": "KungFu Strategy for Backtest",
   "license": "Apache-2.0",
   "private": true,
@@ -21,6 +21,6 @@
     "format": "node ../../framework/core/.gyp/run-format-cpp.js src"
   },
   "devDependencies": {
-    "@kungfu-trader/kungfu-sdk": "^2.6.2-alpha.10"
+    "@kungfu-trader/kungfu-sdk": "^2.6.2-alpha.11"
   }
 }

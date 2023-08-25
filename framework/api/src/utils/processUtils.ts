@@ -141,9 +141,22 @@ const kfcName = isWin ? 'kfc.exe' : 'kfc';
 const appDirName = getAppRuntimeDirName();
 const appDirNameRegExp = new RegExp(appDirName, 'i');
 
-const isAppProcess = (pro: FindProcessResult) =>
-  pro.name.match(appDirNameRegExp) ||
-  appDirName.match(new RegExp(pro.name, 'i'));
+const isCurrentProcess = (pro: FindProcessResult) => {
+  return pro.pid === process.pid;
+};
+
+const isAppProcess = (pro: FindProcessResult) => {
+  if (process.env.APP_TYPE === 'main') {
+    if (pro.ppid === process.pid) return false;
+
+    return (
+      pro.name.match(appDirNameRegExp) ||
+      appDirName.match(new RegExp(pro.name, 'i'))
+    );
+  }
+
+  return false;
+};
 
 const isProcessBelongsToCurrentApp = (pro: FindProcessResult) => {
   if (pro.bin && pro.bin.match(appDirNameRegExp)) return true;
@@ -163,6 +176,7 @@ export const killKfc = (byCurrentApp = false): Promise<void> => {
     findProcessByKeywords([kfcName], false)
       .then((processList) => {
         const processes = processList.filter((item) => {
+          if (isCurrentProcess(item)) return false;
           if (isKfDev) return true;
           if (byCurrentApp) return isProcessBelongsToCurrentApp(item);
           return true;
@@ -188,7 +202,10 @@ export const killKungfuApp = (): Promise<void> => {
   return new Promise((resolve) => {
     findProcessByKeywords([appDirNameRegExp], false)
       .then((processList) => {
-        const processes = processList.filter((item) => isAppProcess(item));
+        const processes = processList.filter((item) => {
+          if (isCurrentProcess(item)) return false;
+          return isAppProcess(item);
+        });
         const pids = processes.map((item) => item.pid);
 
         kfLogger.info(

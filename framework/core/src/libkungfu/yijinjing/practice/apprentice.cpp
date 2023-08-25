@@ -323,13 +323,19 @@ void apprentice::checkin() {
   };
 
   int count = (REGISTER_TIMEOUT_SECONDS * 1000) / DEFAULT_NOTICE_TIMEOUT;
+
   while (not try_register()) {
     SPDLOG_WARN("try register failed, retrying...");
+    get_io_device()->setup();
+    SPDLOG_DEBUG("io resetup done");
+
     if (count-- <= 0) {
       SPDLOG_ERROR("register failed");
       throw yijinjing_error("register failed");
     }
   }
+
+  SPDLOG_INFO("app checkin done");
 }
 
 void apprentice::expect_start() {

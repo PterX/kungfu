@@ -14,7 +14,7 @@ using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::cache;
 
-#define DEFAULT_STORE_VOLUME_BY_INTERVAL 100
+#define DEFAULT_STORE_VOLUME_BY_INTERVAL 500
 #define LOW_LATENCY_STORE_VOLUME_BY_INTERVAL 10
 
 namespace kungfu::yijinjing::cache {
@@ -117,6 +117,9 @@ void cached::on_start() {
                          auto source_id = event->source();
                          return source_id != master_home_location_->uid and source_id != get_master_command_uid();
                        }) | $$(feed(event));
+
+  add_time_interval(time_unit::NANOSECONDS_PER_MILLISECOND * 10,
+                    [&](auto e) { handle_cached_feeds(store_volume_every_loop_); });
 }
 
 void cached::on_active() {
@@ -144,6 +147,11 @@ void cached::handle_cached_feeds(int store_volume_every_loop) {
 
     using FeedMap = std::unordered_map<uint64_t, state<DataType>>;
     auto &feed_map = const_cast<FeedMap &>(feed_bank_[hana_type]);
+
+    if (DataType::tag == Instrument::tag) {
+      feed_map.clear();
+      return;
+    }
 
     if (feed_map.size() != 0) {
       auto iter = feed_map.begin();

@@ -202,10 +202,10 @@ void cached::make_cache_shift(uint32_t source_id, uint32_t dest_id) {
     return;
   }
 
-  if (not is_location_live(source_id)) {
-    SPDLOG_ERROR("no source {} in registry_", get_location_uname(source_id));
-    return;
-  }
+  // if (not is_location_live(source_id)) {
+  //   SPDLOG_ERROR("no source {} in registry_", get_location_uname(source_id));
+  //   return;
+  // }
 
   const location_ptr &location = locations_.at(source_id);
   app_cache_shift_.emplace(source_id, location);

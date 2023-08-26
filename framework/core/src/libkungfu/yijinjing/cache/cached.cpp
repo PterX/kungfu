@@ -141,18 +141,8 @@ void cached::mark_request_cached_done(uint32_t dest_id) {
 
 void cached::handle_cached_feeds(int store_volume_every_loop) {
   int stored_controller = 0;
-  boost::hana::for_each(StateDataTypes, [&](auto it) {
-    using DataType = typename decltype(+boost::hana::second(it))::type;
-    auto hana_type = boost::hana::type_c<DataType>;
 
-    using FeedMap = std::unordered_map<uint64_t, state<DataType>>;
-    auto &feed_map = const_cast<FeedMap &>(feed_bank_[hana_type]);
-
-    if (DataType::tag == Instrument::tag) {
-      feed_map.clear();
-      return;
-    }
-
+  auto clear_map = [&](auto feed_map, auto type_name) {
     if (feed_map.size() != 0) {
       auto iter = feed_map.begin();
       while (iter != feed_map.end() and stored_controller <= store_volume_every_loop) {
@@ -163,7 +153,7 @@ void cached::handle_cached_feeds(int store_volume_every_loop) {
           try {
             app_cache_shift_.at(source_id) << s;
             SPDLOG_TRACE("cache [feed] source {} dest {} {} data {}", get_location_uname(source_id),
-                         get_location_uname(dest_id), DataType::type_name.c_str(), s.data.to_string());
+                         get_location_uname(dest_id), type_name.c_str(), s.data.to_string());
           } catch (const std::exception &e) {
             SPDLOG_ERROR("Unexpected exception by handle_cached_feeds {}", e.what());
             stored_controller++;
@@ -177,7 +167,35 @@ void cached::handle_cached_feeds(int store_volume_every_loop) {
         }
       }
     }
+  };
+
+  boost::hana::for_each(StateDataTypes, [&](auto it) {
+    using DataType = typename decltype(+boost::hana::second(it))::type;
+    auto hana_type = boost::hana::type_c<DataType>;
+
+    using FeedMap = std::unordered_map<uint64_t, state<DataType>>;
+    auto &feed_map = const_cast<FeedMap &>(feed_bank_[hana_type]);
+
+    if (DataType::tag == Instrument::tag) {
+      feed_map.clear();
+      return;
+    }
+
+    if (DataType::tag == InstrumentFactor::tag) {
+      return;
+    }
+
+    clear_map(feed_map, DataType::type_name);
   });
+
+  if (stored_controller >= store_volume_every_loop) {
+    return;
+  }
+
+  using InstrumentFactorMap = std::unordered_map<uint64_t, state<InstrumentFactor>>;
+  auto &instrument_factor_map = const_cast<InstrumentFactorMap &>(feed_bank_[boost::hana::type_c<InstrumentFactor>]);
+
+  clear_map(instrument_factor_map, InstrumentFactor::type_name);
 }
 
 void cached::handle_profile_feeds(int store_volume_every_loop) {

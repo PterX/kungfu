@@ -85,6 +85,20 @@ void cached::on_react() {
       }
     }
 
+    if (location->category == category::SYSTEM and location->group == "node") {
+      for (const auto &other_location : location->locator->list_locations("system", "service", "ledger", "live")) {
+        for (auto dest : location->locator->list_location_dest_by_db(other_location)) {
+          try {
+            make_cache_shift(other_location->uid, dest);
+            app_cache_shift_.at(other_location->uid).restore_to(cached_writer, dest);
+          } catch (const std::exception &ex) {
+            SPDLOG_ERROR("failed to write cache {} {} {} for target {}", other_location->uname, dest, ex.what(),
+                         location->uname);
+          }
+        }
+      }
+    }
+
     try {
       profile_get_all(profile_, profile_bank_);
       profile_bank_ >> cached_writer;

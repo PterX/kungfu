@@ -13,7 +13,7 @@ namespace kungfu::yijinjing::journal {
 struct noop_publisher : public publisher {
   noop_publisher() = default;
   bool is_usable() override { return true; }
-  void setup() override {}
+  bool setup() override { return true; }
   int notify() override { return 0; }
   int publish(const std::string &json_message, int flags = NNG_FLAG_NONBLOCK, bool no_exception = false) override {
     return 0;

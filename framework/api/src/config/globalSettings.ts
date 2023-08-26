@@ -300,12 +300,12 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
     ? [
         {
           key: 'update',
-          name: t('globalSettingConfig.update'),
+          name: t('autoUpdater.update'),
           config: [
             {
               key: 'isCheckVersion',
-              name: t('globalSettingConfig.is_check_version'),
-              tip: t('globalSettingConfig.is_check_version_desc'),
+              name: t('autoUpdater.is_check_version'),
+              tip: t('autoUpdater.is_check_version_desc'),
               default: true,
               type: 'bool' as KungfuApi.KfConfigItemSupportedTypes,
             },

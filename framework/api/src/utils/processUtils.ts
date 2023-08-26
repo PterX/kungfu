@@ -1270,10 +1270,10 @@ export const processStatusDataObservable = () => {
   });
 };
 
-export const initClean = async (withApp = false) => {
+export const initClean = async (withApp: boolean, withPm2: boolean) => {
   try {
     // have to be killExtra, otherwise main process starting takes too long
-    await killExtra(withApp);
+    await killExtra(withApp, withPm2);
     await deleteNNFiles();
   } catch (err) {
     kfLogger.error('initClean error: ', err);

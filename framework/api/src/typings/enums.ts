@@ -307,8 +307,27 @@ export enum CurrencyEnum {
   CEN, // 美分
 }
 
-// 预埋单类型
 export enum OrderTriggerTypeEnum {
+  Immediately, // 立即
+  Touch, // 止损
+  TouchProfit, // 止赢
+  ParkedOrder, // 预埋单
+  LastPriceGreaterThanStopPrice, // 最新价大于条件价
+  LastPriceGreaterEqualStopPrice, // 最新价大于等于条件价
+  LastPriceLesserThanStopPrice, // 最新价小于条件价
+  LastPriceLesserEqualStopPrice, // 最新价小于等于条件价
+  AskPriceGreaterThanStopPrice, // 卖一价大于条件价
+  AskPriceGreaterEqualStopPrice, // 卖一价大于等于条件价
+  AskPriceLesserThanStopPrice, // 卖一价小于条件价
+  AskPriceLesserEqualStopPrice, // 卖一价小于等于条件价
+  BidPriceGreaterThanStopPrice, // 买一价大于条件价
+  BidPriceGreaterEqualStopPrice, // 买一价大于等于条件价
+  BidPriceLesserThanStopPrice, // 买一价小于条件价
+  BidPriceLesserEqualStopPrice, // 买一价小于等于条件价
+}
+
+// 预埋单类型
+export enum OrderTriggerConfigTypeEnum {
   CancelOrder,
   MakeOrder,
 }

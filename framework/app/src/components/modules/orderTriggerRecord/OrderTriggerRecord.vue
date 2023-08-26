@@ -16,6 +16,7 @@ import {
   getProcessIdByKfLocation,
   transformSearchInstrumentResultToInstrument,
   getIdByKfLocation,
+  getOrderTradeFilterKey,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 
 import {
@@ -49,7 +50,7 @@ import {
   InstrumentTypeEnum,
   OffsetEnum,
   SideEnum,
-  OrderTriggerTypeEnum,
+  OrderTriggerConfigTypeEnum,
   OrderTriggerStatusEnum,
   OrderTriggerFlag,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
@@ -128,13 +129,19 @@ onMounted(() => {
     const subscription = app.proxy.$tradingDataSubject.subscribe(
       (watcher: KungfuApi.Watcher) => {
         if (!currentGlobalKfLocation.value) return;
-        const source = watcher.getLocationUID(currentGlobalKfLocation.value);
+        const currentUID = watcher.getLocationUID(
+          currentGlobalKfLocation.value,
+        );
+
+        const orderTradeFilterKey = getOrderTradeFilterKey(
+          currentGlobalKfLocation.value.category,
+        );
         const orderTriggerData = (
           window.watcher.ledger[
             'OrderTrigger'
           ] as KungfuApi.DataTable<KungfuApi.OrderTrigger>
         )
-          .filter('source', source)
+          .filter(orderTradeFilterKey, currentUID)
           .list();
 
         tableDataResolved.value = orderTriggerData.map((item, index) => {
@@ -187,7 +194,10 @@ function handleBatchModal() {
 
   const tdName = currentGlobalKfLocation.value?.group as string;
   const extConfig = extConfigs.value.td[tdName];
-  if (extConfig && !extConfig.orderTrigger[OrderTriggerTypeEnum.MakeOrder]) {
+  if (
+    extConfig &&
+    !extConfig.orderTrigger[OrderTriggerConfigTypeEnum.MakeOrder]
+  ) {
     error(
       t('tradingConfig.order_trigger_td_error', {
         tdName,

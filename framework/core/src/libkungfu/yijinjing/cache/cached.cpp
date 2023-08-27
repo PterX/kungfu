@@ -118,7 +118,7 @@ void cached::on_start() {
                          return source_id != master_home_location_->uid and source_id != get_master_command_uid();
                        }) | $$(feed(event));
 
-  add_time_interval(time_unit::NANOSECONDS_PER_MILLISECOND * 10, [&](auto e) {
+  add_time_interval(time_unit::NANOSECONDS_PER_MILLISECOND * 50, [&](auto e) {
     handle_cached_feeds(store_volume_every_loop_);
     handle_profile_feeds(store_volume_every_loop_);
   });
@@ -144,7 +144,7 @@ void cached::mark_request_cached_done(uint32_t dest_id) {
 void cached::handle_cached_feeds(int store_volume_every_loop) {
   int stored_controller = 0;
 
-  auto clear_map = [&](auto feed_map, auto type_name) {
+  auto clear_map = [&](auto &feed_map, auto type_name) {
     if (feed_map.size() != 0) {
       auto iter = feed_map.begin();
       while (iter != feed_map.end() and stored_controller <= store_volume_every_loop) {
@@ -171,13 +171,8 @@ void cached::handle_cached_feeds(int store_volume_every_loop) {
     }
   };
 
-  boost::hana::for_each(StateDataTypes, [&](auto it) {
+  boost::hana::for_each(TradingDataTypes, [&](auto it) {
     using DataType = typename decltype(+boost::hana::second(it))::type;
-
-    if (DataType::tag == Instrument::tag or DataType::tag == InstrumentFactor::tag) {
-      return;
-    }
-
     auto hana_type = boost::hana::type_c<DataType>;
     using FeedMap = std::unordered_map<uint64_t, state<DataType>>;
     auto &feed_map = const_cast<FeedMap &>(feed_bank_[hana_type]);
@@ -188,9 +183,18 @@ void cached::handle_cached_feeds(int store_volume_every_loop) {
     return;
   }
 
-  using InstrumentFactorMap = std::unordered_map<uint64_t, state<InstrumentFactor>>;
-  auto &instrument_factor_map = const_cast<InstrumentFactorMap &>(feed_bank_[boost::hana::type_c<InstrumentFactor>]);
-  clear_map(instrument_factor_map, InstrumentFactor::type_name);
+  boost::hana::for_each(StateDataTypes, [&](auto it) {
+    using DataType = typename decltype(+boost::hana::second(it))::type;
+
+    if (DataType::tag == Instrument::tag) {
+      return;
+    }
+
+    auto hana_type = boost::hana::type_c<DataType>;
+    using FeedMap = std::unordered_map<uint64_t, state<DataType>>;
+    auto &feed_map = const_cast<FeedMap &>(feed_bank_[hana_type]);
+    clear_map(feed_map, DataType::type_name);
+  });
 }
 
 void cached::handle_profile_feeds(int store_volume_every_loop) {

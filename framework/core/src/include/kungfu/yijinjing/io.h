@@ -15,7 +15,8 @@ FORWARD_DECLARE_CLASS_PTR(session)
 
 #define SETUP_TIMEOUT 500
 #define DEFAULT_RECV_TIMEOUT 100
-#define DEFAULT_NOTICE_TIMEOUT 2000
+#define DEFAULT_NOTICE_TIMEOUT 1000
+#define REGISTER_TIMEOUT_SECONDS 60
 
 class io_device : public resource {
 public:
@@ -29,9 +30,10 @@ public:
 
   bool is_low_latency() { return low_latency_; }
 
-  void setup() override {
-    publisher_->setup();
-    observer_->setup();
+  bool setup() override {
+    bool prc = publisher_->setup();
+    bool orc = observer_->setup();
+    return prc && orc;
   }
 
   [[nodiscard]] const data::locator_ptr &get_locator() const { return home_->locator; }
@@ -92,7 +94,7 @@ public:
 
   bool is_usable() override;
 
-  void setup() override;
+  bool setup() override;
 };
 
 DECLARE_PTR(io_device_client)

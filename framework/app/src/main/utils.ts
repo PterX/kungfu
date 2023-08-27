@@ -5,7 +5,7 @@ import {
   clearProcessBeforeQuitStart,
   clearProcessBeforeQuitEnd,
 } from './events';
-import { KillAll } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
+import { quitClean } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
 import { delayMilliSeconds } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import {
   KFC_DIR,
@@ -53,7 +53,7 @@ export function showKungfuInfo(): void {
 export function killAllBeforeQuit(mainWindow: BrowserWindow): Promise<void> {
   console.time('quit clean');
   clearProcessBeforeQuitStart(mainWindow);
-  return KillAll().finally(() => {
+  return quitClean().finally(() => {
     console.timeEnd('quit clean');
     clearProcessBeforeQuitEnd(mainWindow);
   });

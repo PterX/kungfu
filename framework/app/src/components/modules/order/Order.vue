@@ -58,7 +58,7 @@ import {
   OrderStatusEnum,
   OrderActionFlagEnum,
   OrderTriggerStatusEnum,
-  OrderTriggerTypeEnum,
+  OrderTriggerConfigTypeEnum,
   OrderTriggerFlag,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
@@ -328,7 +328,10 @@ const cancelOrderTriggerBtnVisible = computed(() => {
 
   const tdName = currentGlobalKfLocation.value?.group as string;
   const extConfig = extConfigs.value.td[tdName];
-  if (extConfig && extConfig.orderTrigger[OrderTriggerTypeEnum.CancelOrder]) {
+  if (
+    extConfig &&
+    extConfig.orderTrigger[OrderTriggerConfigTypeEnum.CancelOrder]
+  ) {
     return true;
   } else {
     return false;

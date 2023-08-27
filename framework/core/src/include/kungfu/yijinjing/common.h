@@ -31,7 +31,7 @@ class resource {
 public:
   virtual bool is_usable() = 0;
 
-  virtual void setup() = 0;
+  virtual bool setup() = 0;
 };
 
 class publisher : public resource {

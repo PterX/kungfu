@@ -14,7 +14,7 @@ using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::cache;
 
-#define DEFAULT_STORE_VOLUME_BY_INTERVAL 500
+#define DEFAULT_STORE_VOLUME_BY_INTERVAL 100
 #define LOW_LATENCY_STORE_VOLUME_BY_INTERVAL 10
 
 namespace kungfu::yijinjing::cache {
@@ -118,8 +118,10 @@ void cached::on_start() {
                          return source_id != master_home_location_->uid and source_id != get_master_command_uid();
                        }) | $$(feed(event));
 
-  add_time_interval(time_unit::NANOSECONDS_PER_MILLISECOND * 10,
-                    [&](auto e) { handle_cached_feeds(store_volume_every_loop_); });
+  add_time_interval(time_unit::NANOSECONDS_PER_MILLISECOND * 10, [&](auto e) {
+    handle_cached_feeds(store_volume_every_loop_);
+    handle_profile_feeds(store_volume_every_loop_);
+  });
 }
 
 void cached::on_active() {

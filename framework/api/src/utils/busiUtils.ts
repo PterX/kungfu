@@ -564,9 +564,6 @@ const getKfExtConfigList = async (): Promise<KungfuApi.KfExtOriginConfig[]> => {
         return {
           ...(jsonConfig.kungfuConfig || {}),
           version: jsonConfig.version || '',
-          mainRepoVersion: getMainRepoVersionByExtVersion(
-            jsonConfig.dependencies || {},
-          ),
           dependencies: jsonConfig.dependencies || {},
           description: jsonConfig.description || '',
           extPath,

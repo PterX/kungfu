@@ -39,7 +39,6 @@ import {
   InstrumentMinOrderVolume,
   KfDefaultSystemProcess,
   ExportTradingDataColumnsToFilter,
-  ParkedType,
   OrderTriggerStatus,
   TriggerFlag,
 } from '../config/tradingConfig';
@@ -71,8 +70,7 @@ import {
   CurrencyEnum,
   HistoryDateEnum,
   OrderTriggerStatusEnum,
-  OrderTriggerTypeEnum,
-  OrderTriggerParkedTypeEnum,
+  OrderTriggerConfigTypeEnum,
   OrderTriggerFlag,
 } from '../typings/enums';
 import {
@@ -533,7 +531,7 @@ export const flattenExtensionModuleDirs = async (
   return extensionModuleDirs;
 };
 
-export const getMainRepoVersionByExtVersion = (
+export const getMainRepoVersionInDependencies = (
   dependencies: Record<string, string>,
 ) => {
   const dependenciesKeys = Object.keys(dependencies);
@@ -544,6 +542,7 @@ export const getMainRepoVersionByExtVersion = (
     '@kungfu-trader/kungfu-cli',
     '@kungfu-trader/kungfu-core',
     '@kungfu-trader/kungfu-toolchain',
+    '@kungfu-trader/kungfu-sdk',
   ];
   const targetMainRepoDepKey = dependenciesKeys.find((item) =>
     mainRepoDependencies.includes(item),
@@ -568,6 +567,7 @@ const getKfExtConfigList = async (): Promise<KungfuApi.KfExtOriginConfig[]> => {
           mainRepoVersion: getMainRepoVersionByExtVersion(
             jsonConfig.dependencies || {},
           ),
+          dependencies: jsonConfig.dependencies || {},
           description: jsonConfig.description || '',
           extPath,
           readmePath: path.join(extPath, 'README.md'),
@@ -596,19 +596,11 @@ const resolveOrderTriggerConfig = (
 ) => {
   if (originConfig) {
     const orderTriggerOriginConfig = originConfig.td?.order_trigger || {};
-    const orderTriggerTypesKeys = Object.keys(OrderTriggerTypeEnum);
-    const orderTriggerParkedTypesKeys = Object.keys(OrderTriggerParkedTypeEnum);
+    const orderTriggerTypesKeys = Object.keys(OrderTriggerConfigTypeEnum);
     return Object.keys(orderTriggerOriginConfig).reduce((config, key) => {
       if (orderTriggerTypesKeys.includes(key)) {
-        config[OrderTriggerTypeEnum[key]] = Object.keys(
-          orderTriggerOriginConfig[key] || {},
-        ).reduce((parkedConfig, parkedType) => {
-          if (orderTriggerParkedTypesKeys.includes(parkedType)) {
-            parkedConfig[OrderTriggerParkedTypeEnum[parkedType]] =
-              !!orderTriggerOriginConfig[key]?.[parkedType];
-          }
-          return parkedConfig;
-        }, {});
+        config[OrderTriggerConfigTypeEnum[key]] =
+          !!orderTriggerOriginConfig[key];
       }
       return config;
     }, {} as KungfuApi.KfTdExtConfig['orderTrigger']);
@@ -631,8 +623,8 @@ const getKfExtensionConfigByCategory = (
           readmePath,
           releaseNotePath,
           version,
-          mainRepoVersion,
           description,
+          dependencies,
         } = extConfig;
         (Object.keys(extConfig['config'] || {}) as KfCategoryTypes[]).forEach(
           (category: KfCategoryTypes) => {
@@ -646,8 +638,8 @@ const getKfExtensionConfigByCategory = (
                   readmePath,
                   releaseNotePath,
                   version,
-                  mainRepoVersion,
                   description,
+                  dependencies,
                   category,
                   key: extKey,
                   type: resolveTypesInExtConfig(
@@ -667,8 +659,8 @@ const getKfExtensionConfigByCategory = (
                     readmePath,
                     releaseNotePath,
                     version,
-                    mainRepoVersion,
                     description,
+                    dependencies,
                     category,
                     key: extKey,
                     silent: extConfigByCategory[category]?.silent ?? false,
@@ -704,8 +696,8 @@ const getKfExtensionConfigByCategory = (
                           readmePath,
                           releaseNotePath,
                           version,
-                          mainRepoVersion,
                           description,
+                          dependencies,
                           category,
                           key: extKey,
                           silent: item?.silent ?? false,
@@ -748,8 +740,8 @@ const getKfUIExtensionConfigByExtKey = (
         readmePath,
         releaseNotePath,
         version,
-        mainRepoVersion,
         description,
+        dependencies,
       } = extConfig;
       const silent = uiConfig?.silent ?? false;
       const position = uiConfig?.position || '';
@@ -758,14 +750,16 @@ const getKfUIExtensionConfigByExtKey = (
       const script = uiConfig?.script || '';
 
       configByExtraKey[extKey] = {
+        key: extKey,
+        category: 'ui',
         name: extName,
         silent,
         extPath,
         readmePath,
         releaseNotePath,
         version,
-        mainRepoVersion,
         description,
+        dependencies,
         position,
         exhibit,
         components,
@@ -789,8 +783,8 @@ const getKfCliExtensionConfigByExtKey = (
         readmePath,
         releaseNotePath,
         version,
-        mainRepoVersion,
         description,
+        dependencies,
       } = extConfig;
       const silent = cliConfig?.silent ?? false;
       const exhibit = cliConfig?.exhibit || ({} as KungfuApi.KfExhibitConfig);
@@ -798,14 +792,16 @@ const getKfCliExtensionConfigByExtKey = (
       const script = cliConfig?.script || '';
 
       configByExtraKey[extKey] = {
+        key: extKey,
+        category: 'cli',
         name: extName,
         silent,
         extPath,
         readmePath,
         releaseNotePath,
         version,
-        mainRepoVersion,
         description,
+        dependencies,
         exhibit,
         components,
         script,
@@ -1830,12 +1826,6 @@ export const dealTOrderTriggerFlag = (
   orderTriggerFlag: OrderTriggerFlag | number,
 ): KungfuApi.KfTradeValueCommonData => {
   return TriggerFlag[+orderTriggerFlag as OrderTriggerFlag];
-};
-
-export const dealParkedType = (
-  parkedType: OrderTriggerParkedTypeEnum | number,
-): KungfuApi.KfTradeValueCommonData => {
-  return ParkedType[+parkedType as OrderTriggerParkedTypeEnum];
 };
 
 export const dealOrderTriggerStatus = (

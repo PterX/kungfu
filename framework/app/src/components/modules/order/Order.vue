@@ -58,7 +58,7 @@ import {
   OrderStatusEnum,
   OrderActionFlagEnum,
   OrderTriggerStatusEnum,
-  OrderTriggerTypeEnum,
+  OrderTriggerConfigTypeEnum,
   OrderTriggerFlag,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
@@ -328,7 +328,10 @@ const cancelOrderTriggerBtnVisible = computed(() => {
 
   const tdName = currentGlobalKfLocation.value?.group as string;
   const extConfig = extConfigs.value.td[tdName];
-  if (extConfig && extConfig.orderTrigger[OrderTriggerTypeEnum.CancelOrder]) {
+  if (
+    extConfig &&
+    extConfig.orderTrigger[OrderTriggerConfigTypeEnum.CancelOrder]
+  ) {
     return true;
   } else {
     return false;
@@ -360,11 +363,6 @@ function handleCancelAllOrders(): void {
     return;
   }
 
-  const tdProcessId = getProcessIdByKfLocation(currentGlobalKfLocation.value);
-  if (processStatusData.value[tdProcessId] !== 'online') {
-    error(`${t('orderConfig.start')} ${tdProcessId} ${t('orderConfig.td')}`);
-    return;
-  }
   const name = getIdByKfLocation(currentGlobalKfLocation.value);
 
   confirmModal(
@@ -405,8 +403,8 @@ function handleInsertOrderTrigger(order: KungfuApi.OrderResolved): void {
       .then(() => {
         success();
       })
-      .catch(() => {
-        error();
+      .catch((err: Error) => {
+        error(err.message);
       });
   } else {
     confirmModal(

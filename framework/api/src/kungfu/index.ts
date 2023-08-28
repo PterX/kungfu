@@ -26,7 +26,6 @@ import {
   resolveAccountId,
   resolveClientId,
   setTimerPromiseTask,
-  dealParkedType,
   dealOrderTriggerStatus,
   dealTOrderTriggerFlag,
 } from '../utils/busiUtils';
@@ -35,6 +34,7 @@ import {
   InstrumentTypeEnum,
   CurrencyEnum,
   OrderActionFlagEnum,
+  OrderTriggerTypeEnum,
 } from '../typings/enums';
 import { ExchangeIds, AllFinishedOrderStatus } from '../config/tradingConfig';
 
@@ -359,7 +359,7 @@ export const kfCancelOrder = (
   );
 };
 
-export const kfCancelOriderTrigger = (
+export const kfCancelOrderTrigger = (
   watcher: KungfuApi.Watcher | null,
   order: KungfuApi.OrderTriggerResolved,
   tdLocation: KungfuApi.KfLocation,
@@ -372,7 +372,7 @@ export const kfCancelOriderTrigger = (
     return Promise.reject(new Error(`Watcher is not live`));
   }
 
-  const { order_id, source, trigger_id } = order;
+  const { source, trigger_id } = order;
   const sourceLocation = watcher.getLocation(source);
 
   if (!watcher.isReadyToInteract(tdLocation)) {
@@ -380,9 +380,8 @@ export const kfCancelOriderTrigger = (
     return Promise.reject(new Error(`Td ${accountId} not ready`));
   }
 
-  const orderAction: KungfuApi.OrderAction = {
-    ...longfist.types.OrderAction(),
-    order_id,
+  const orderAction: KungfuApi.OrderTriggerAction = {
+    ...longfist.types.OrderTriggerAction(),
     trigger_id,
   };
 
@@ -459,7 +458,7 @@ export const kfCancelAllOrdersTrigger = (
 
   const cancelOrderTasks = orders.map(
     (item: KungfuApi.OrderTriggerResolved): Promise<bigint> => {
-      return kfCancelOriderTrigger(watcher, item, tdLocation);
+      return kfCancelOrderTrigger(watcher, item, tdLocation);
     },
   );
 
@@ -525,16 +524,18 @@ export const kfOrderTrigger = (
   }
 
   const now = watcher.now();
-  const orderInput: KungfuApi.OrderTriggerInput = {
-    ...longfist.types.OrderInput(),
+  const orderTriggerInput: KungfuApi.OrderTriggerInput = {
+    ...longfist.types.OrderTriggerInput(),
     ...makeOrderTriggerInput,
-    block_id: BigInt(0),
     limit_price: makeOrderTriggerInput.limit_price || 0,
     volume: BigInt(makeOrderTriggerInput.volume),
     insert_time: now,
+    trigger_type: OrderTriggerTypeEnum.ParkedOrder,
   };
 
-  return Promise.resolve(watcher.issueOrderTrigger(orderInput, tdLocation));
+  return Promise.resolve(
+    watcher.issueOrderTrigger(orderTriggerInput, tdLocation),
+  );
 };
 
 export const kfRefreshOrderTrigger = (
@@ -951,9 +952,6 @@ export const dealOrderTrigger = (
     time_condition_resolved: dealTimeCondition(order.time_condition)
       ? dealTimeCondition(order.time_condition).name
       : '--',
-    parked_type_resolved: dealParkedType(order.parked_type)
-      ? dealParkedType(order.parked_type).name
-      : '--',
     key: index + 1,
     action_flag_uname: dealTOrderTriggerFlag(order.action_flag).name,
   };
@@ -1032,10 +1030,10 @@ export const dealPosition = (
       ? dealAssetPrice(pos.unrealized_pnl, pricePrecision)
       : '--',
     open_volume: pos.open_volume ?? 0,
-    static_yesterday_volume: pos.static_yesterday_volume ?? 0,
+    static_yesterday: pos.static_yesterday ?? 0,
     close_volume:
       Number(pos.open_volume) +
-        Number(pos.static_yesterday_volume) -
+        Number(pos.static_yesterday) -
         Number(pos.volume) || 0,
   };
 };

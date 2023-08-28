@@ -34,11 +34,11 @@ import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtil
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { Pm2StartOptions } from '../typings/global';
 import { KfHookKeeper } from '../hooks';
+import { getAppRuntimeDirName } from './fileUtils';
 const { t } = VueI18n.global;
 
 process.env.PM2_HOME = path.resolve(os.homedir(), '.pm2');
 const isWin = os.platform() === 'win32';
-const isLinux = os.platform() === 'linux';
 const locale = getUserLocale().replace(/-/g, '_');
 
 interface FindProcessResult {
@@ -47,15 +47,17 @@ interface FindProcessResult {
   uid?: number;
   gid?: number;
   name: string;
+  bin?: string;
   cmd?: string;
   username?: string;
 }
 
 export const findProcessByKeyword = (
-  processName: string,
+  processName: string | RegExp,
+  strict = true,
 ): Promise<FindProcessResult[]> => {
   const userid = os.userInfo().uid;
-  return find('name', processName, true).then((processList) => {
+  return find('name', processName, strict).then((processList) => {
     return processList.filter((item) => {
       return item.uid ? item.uid == userid : true;
     });
@@ -63,16 +65,20 @@ export const findProcessByKeyword = (
 };
 
 export const findProcessByKeywordsByFindProcess = (
-  tasks: string[],
+  tasks: Array<string | RegExp>,
+  strict = true,
 ): Promise<FindProcessResult[]> => {
-  return Promise.all(tasks.map((key) => findProcessByKeyword(key))).then(
-    (results) => {
-      return results.reduce((pre, processList) => {
-        pre = [...pre, ...processList];
-        return pre;
-      }, []);
-    },
-  );
+  return Promise.all(
+    tasks.map((key) => findProcessByKeyword(key, strict)),
+  ).then((results) => {
+    return results.reduce((pre, processList) => {
+      const prePids = pre.map((p) => p.pid);
+      processList.forEach((process) => {
+        if (!prePids.includes(process.pid)) pre.push(process);
+      });
+      return pre;
+    }, []);
+  });
 };
 
 /***
@@ -81,7 +87,7 @@ export const findProcessByKeywordsByFindProcess = (
  *  ***/
 
 // export const findProcessByKeywordsByTaskList = (
-//   tasks: string[],
+//   tasks: Array<string | RegExp>,
 // ): Promise<FindProcessResult[]> => {
 //   const username = os.userInfo().username;
 //   const tasklist = require('tasklist');
@@ -100,72 +106,172 @@ export const findProcessByKeywordsByFindProcess = (
 // };
 
 export const findProcessByKeywords = (
-  tasks: string[],
+  tasks: Array<string | RegExp>,
+  strict = true,
 ): Promise<FindProcessResult[]> => {
-  return findProcessByKeywordsByFindProcess(tasks);
+  return findProcessByKeywordsByFindProcess(tasks, strict);
 };
 
-export const forceKill = (tasks: string[]): Promise<void> => {
-  return findProcessByKeywords(tasks).then((processList) => {
+export const forceKill = (pids: number[]) => {
+  return fkill(pids, {
+    force: true,
+    tree: isWin ? true : false,
+    ignoreCase: true,
+    silent: process.env.NODE_ENV === 'development' ? true : false,
+  }).catch((err) => {
+    kfLogger.warn((<Error>err).message);
+  });
+};
+
+export const forceKillByKeyWords = (
+  tasks: Array<string | RegExp>,
+  strict = true,
+): Promise<void> => {
+  return findProcessByKeywords(tasks, strict).then((processList) => {
     const pids = processList.map((item) => item.pid);
 
-    kfLogger.info('Target to force kill processList ', processList);
-    return fkill(pids, {
-      force: true,
-      tree: isWin ? true : false,
-      ignoreCase: true,
-      silent: process.env.NODE_ENV === 'development' ? true : false,
-    }).catch((err) => {
-      kfLogger.warn((<Error>err).message);
-    });
+    kfLogger.info(
+      `Target to force kill processList about [${tasks.join(', ')}]: `,
+      JSON.stringify(processList),
+    );
+    return forceKill(pids);
   });
 };
 
 const kfcName = isWin ? 'kfc.exe' : 'kfc';
+const appDirName = getAppRuntimeDirName();
+const appDirNameRegExp = new RegExp(appDirName, 'i');
 
-export const killKfc = (): Promise<void> =>
-  new Promise((resolve) => {
-    forceKill([kfcName]).finally(() => resolve());
-  });
-
-export const killKungfu = () => {
-  if (isLinux) {
-    return forceKill(['kungfu']);
-  }
-
-  return Promise.resolve(true);
+const isCurrentProcess = (pro: FindProcessResult) => {
+  return pro.pid === process.pid;
 };
 
-export const killExtra = () => forceKill([kfcName, 'pm2']);
+const isAppProcess = (pro: FindProcessResult) => {
+  if (process.env.APP_TYPE === 'main') {
+    if (pro.ppid === process.pid) return false;
 
-export function KillAll(): Promise<void> {
-  //不需要加killdaemon
+    return (
+      pro.name.match(appDirNameRegExp) ||
+      appDirName.match(new RegExp(pro.name, 'i'))
+    );
+  }
+
+  return false;
+};
+
+const isProcessBelongsToCurrentApp = (pro: FindProcessResult) => {
+  if (pro.bin && pro.bin.match(appDirNameRegExp)) return true;
+
+  if (pro.cmd) {
+    const cmds = pro.cmd.trim().split(' ');
+    const bin = cmds[0];
+    if (bin.match(appDirNameRegExp)) return true;
+  }
+
+  return false;
+};
+
+export const killKfc = (byCurrentApp = false): Promise<void> => {
+  const isKfDev = booleanProcessEnv(process.env.IS_KF_DEV);
   return new Promise((resolve) => {
-    pm2Kill()
-      .catch((err) => kfLogger.error(err))
+    findProcessByKeywords([kfcName], false)
+      .then((processList) => {
+        const processes = processList.filter((item) => {
+          if (isCurrentProcess(item)) return false;
+          if (isKfDev) return true;
+          if (byCurrentApp) return isProcessBelongsToCurrentApp(item);
+          return true;
+        });
+        const pids = processes.map((item) => item.pid);
+
+        kfLogger.info(
+          `Target to force kill processList about [${kfcName}]: `,
+          JSON.stringify(processes),
+        );
+        return forceKill(pids);
+      })
+      .catch((err) => {
+        kfLogger.error(err);
+      })
       .finally(() => {
-        killKfc()
-          .catch((err) => kfLogger.error(err))
-          .finally(() => {
-            killKungfu()
-              .catch((err) => kfLogger.error(err))
-              .finally(() => {
-                killExtra()
-                  .catch((err) => kfLogger.error(err))
-                  .finally(() => {
-                    delayMilliSeconds(1000).then(() => {
-                      deleteNNFiles()
-                        .catch((err) => kfLogger.error(err))
-                        .finally(() => {
-                          resolve();
-                        });
-                    });
-                  });
-              });
-          });
+        resolve();
       });
   });
-}
+};
+
+export const killKungfuApp = (): Promise<void> => {
+  return new Promise((resolve) => {
+    findProcessByKeywords([appDirNameRegExp], false)
+      .then((processList) => {
+        const processes = processList.filter((item) => {
+          if (isCurrentProcess(item)) return false;
+          return isAppProcess(item);
+        });
+        const pids = processes.map((item) => item.pid);
+
+        kfLogger.info(
+          `Target to force kill processList about [${appDirName}]: `,
+          JSON.stringify(processes),
+        );
+        return forceKill(pids);
+      })
+      .catch((err) => {
+        kfLogger.error(err);
+      })
+      .finally(() => {
+        resolve();
+      });
+  });
+};
+
+export const killPm2 = (): Promise<void> => {
+  return new Promise((resolve) => {
+    findProcessByKeywords(['pm2'], false)
+      .then((processList) => {
+        const pids = processList
+          // for win pm2 daemon
+          // TODO: except every kungfu client has own pm2 daemon
+          //
+          // .filter((item) => {
+          //   if (item.cmd) {
+          //     const cmds = item.cmd.trim().split(' ');
+          //     const opt = cmds.slice(1).join();
+          //     if (opt.includes(appDirName) && opt.includes('pm2')) return true;
+          //   }
+          //
+          //   return false;
+          // })
+          //
+          // but now, have to kill the all global daemons
+          .map((item) => item.pid);
+
+        kfLogger.info(
+          `Target to force kill processList about [pm2]: `,
+          JSON.stringify(processList),
+        );
+        return forceKill(pids);
+      })
+      .catch((err) => {
+        kfLogger.error(err);
+      })
+      .finally(() => {
+        resolve();
+      });
+  });
+};
+
+export const killExtra = (withApp: boolean, withPm2 = true, withKfc = true) => {
+  const promises: Array<Promise<void>> = [];
+  if (withApp) promises.push(killKungfuApp());
+  if (withPm2) promises.push(killPm2());
+  if (withKfc) promises.push(killKfc());
+
+  if (promises.length) {
+    return Promise.all(promises);
+  }
+
+  return Promise.resolve();
+};
 
 //===================== pm2 start =======================
 
@@ -711,8 +817,13 @@ function startGetProcessStatusByName(
 
 //================ business related start ===============
 
-export async function isAllMainProcessRunning() {
+export async function isAllMainProcessRunning(onlyMaster = false) {
   const { processStatus } = await listProcessStatus();
+  kfLogger.info('isAllMainProcessRunning', processStatus);
+
+  if (onlyMaster) {
+    return getIfProcessRunning(processStatus, 'master');
+  }
 
   return (
     getIfProcessRunning(processStatus, 'master') &&
@@ -1149,5 +1260,36 @@ export const processStatusDataObservable = () => {
     );
   });
 };
+
+export const initClean = async (withApp: boolean, withPm2: boolean) => {
+  try {
+    // have to be killExtra, otherwise main process starting takes too long
+    await killExtra(withApp, withPm2);
+    await deleteNNFiles();
+  } catch (err) {
+    kfLogger.error('initClean error: ', err);
+  }
+};
+
+export function quitClean(): Promise<void> {
+  //不需要加kill daemon
+  return new Promise((resolve) => {
+    pm2Kill()
+      .catch((err) => kfLogger.error('quitClean pm2Kill error: ', err))
+      .finally(() => {
+        killExtra(false)
+          .catch((err) => kfLogger.error('quitClean killExtra error: ', err))
+          .finally(() => {
+            delayMilliSeconds(1000).then(() => {
+              deleteNNFiles()
+                .catch((err) => kfLogger.error(err))
+                .finally(() => {
+                  resolve();
+                });
+            });
+          });
+      });
+  });
+}
 
 //================ business related end =================

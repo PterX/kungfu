@@ -16,6 +16,7 @@ import {
   getProcessIdByKfLocation,
   transformSearchInstrumentResultToInstrument,
   getIdByKfLocation,
+  getOrderTradeFilterKey,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 
 import {
@@ -39,7 +40,7 @@ import {
   kfOrderTrigger,
   kfRefreshOrderTrigger,
   hashInstrumentUKey,
-  kfCancelOriderTrigger,
+  kfCancelOrderTrigger,
   kfCancelAllOrdersTrigger,
 } from '@kungfu-trader/kungfu-js-api/kungfu';
 import KfSetByConfigModal from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfSetByConfigModal.vue';
@@ -48,9 +49,8 @@ import { getModalSettings } from './config';
 import {
   InstrumentTypeEnum,
   OffsetEnum,
-  OrderTriggerParkedTypeEnum,
   SideEnum,
-  OrderTriggerTypeEnum,
+  OrderTriggerConfigTypeEnum,
   OrderTriggerStatusEnum,
   OrderTriggerFlag,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
@@ -129,13 +129,19 @@ onMounted(() => {
     const subscription = app.proxy.$tradingDataSubject.subscribe(
       (watcher: KungfuApi.Watcher) => {
         if (!currentGlobalKfLocation.value) return;
-        const source = watcher.getLocationUID(currentGlobalKfLocation.value);
+        const currentUID = watcher.getLocationUID(
+          currentGlobalKfLocation.value,
+        );
+
+        const orderTradeFilterKey = getOrderTradeFilterKey(
+          currentGlobalKfLocation.value.category,
+        );
         const orderTriggerData = (
           window.watcher.ledger[
             'OrderTrigger'
           ] as KungfuApi.DataTable<KungfuApi.OrderTrigger>
         )
-          .filter('source', source)
+          .filter(orderTradeFilterKey, currentUID)
           .list();
 
         tableDataResolved.value = orderTriggerData.map((item, index) => {
@@ -188,7 +194,10 @@ function handleBatchModal() {
 
   const tdName = currentGlobalKfLocation.value?.group as string;
   const extConfig = extConfigs.value.td[tdName];
-  if (extConfig && !extConfig.orderTrigger[OrderTriggerTypeEnum.MakeOrder]) {
+  if (
+    extConfig &&
+    !extConfig.orderTrigger[OrderTriggerConfigTypeEnum.MakeOrder]
+  ) {
     error(
       t('tradingConfig.order_trigger_td_error', {
         tdName,
@@ -208,8 +217,8 @@ function handleBatchModal() {
     silent: true,
     extPath: '',
     version: '',
-    mainRepoVersion: '',
     description: '',
+    dependencies: {},
     readmePath: '',
     releaseNotePath: '',
     settings: getModalSettings(),
@@ -353,7 +362,6 @@ function handleConfirmBatchOrderTrigger(
         price_type: +price_type,
         side: +side,
         offset: getResolvedOffset(+offset, +side, instrumentType),
-        parked_type: OrderTriggerParkedTypeEnum.Server,
       };
 
       return orderTriggerInput;
@@ -446,7 +454,7 @@ function handleCancelOrderTrigger(
     return;
   }
 
-  kfCancelOriderTrigger(
+  kfCancelOrderTrigger(
     window.watcher,
     orderTrigger,
     currentGlobalKfLocation.value,
@@ -462,12 +470,6 @@ function handleCancelOrderTrigger(
 function handleCancelAllOrderTrigger() {
   if (!currentGlobalKfLocation.value || !window.watcher) {
     error();
-    return;
-  }
-
-  const tdProcessId = getProcessIdByKfLocation(currentGlobalKfLocation.value);
-  if (processStatusData.value[tdProcessId] !== 'online') {
-    error(t('orderTriggerConfig.start_process', { process: tdProcessId }));
     return;
   }
 
@@ -515,7 +517,7 @@ function handleCancelAllOrderTrigger() {
         .then(() => {
           success();
         })
-        .catch((err) => {
+        .catch((err: Error) => {
           error(err.message);
         });
     })

@@ -251,7 +251,7 @@ loadCustomFont().then(async () => {
   kfLogger.warn('master down in reload ui process');
   showInitAfterReloadConfirmDialog().then((res) => {
     if (!res) return;
-    initClean().finally(() => {
+    initClean(false, false).finally(() => {
       // need pass archive, avoid read master public journal before master started
       initStartAll(true);
     });

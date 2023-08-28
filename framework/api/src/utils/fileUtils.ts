@@ -1,3 +1,4 @@
+import os from 'os';
 import path from 'path';
 import fse from 'fs-extra';
 import fsPromise from 'fs/promises';
@@ -5,6 +6,7 @@ import * as csv from 'fast-csv';
 import { FormatterRow, ParserOptionsArgs } from 'fast-csv';
 import findRoot from 'find-root';
 import { RootConfigJSON } from '../typings/global';
+import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 
 //添加文件
 export const addFileSync = (
@@ -357,4 +359,21 @@ export const isDiskRootDirectory = (dirPath: string): boolean => {
   const rootDirectory = path.parse(absolutePath).root;
 
   return absolutePath === rootDirectory;
+};
+
+export const getAppRuntimeDirName = () => {
+  const packageJson = readRootPackageJsonSync();
+  const productName = booleanProcessEnv(process.env.IS_KF_DEV)
+    ? 'electron'
+    : packageJson.kungfuCraft?.productName || 'Kungfu';
+
+  switch (os.platform()) {
+    case 'win32':
+    case 'linux':
+      return productName;
+    case 'darwin':
+      return productName + '.app';
+    default:
+      return productName;
+  }
 };

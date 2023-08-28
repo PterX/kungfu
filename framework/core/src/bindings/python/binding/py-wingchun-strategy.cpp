@@ -169,6 +169,7 @@ void bind_strategy(pybind11::module &m) {
       .def_property_readonly("arguments", &strategy::Context::get_arguments)
       .def_property_readonly("bookkeeper", &strategy::Context::get_bookkeeper, py::return_value_policy::reference)
       .def("now", &strategy::Context::now)
+      .def("is_started", &strategy::Context::is_started)
       .def("add_timer", &strategy::Context::add_timer)
       .def("add_time_interval", &strategy::Context::add_time_interval)
       .def("add_account", &strategy::Context::add_account)
@@ -186,8 +187,8 @@ void bind_strategy(pybind11::module &m) {
            py::arg("opponent_seat"), py::arg("match_number"), py::arg("is_specific") = false)
       .def("insert_order_trigger", &strategy::Context::insert_order_trigger, py::arg("instrument_id"),
            py::arg("exchange"), py::arg("source"), py::arg("account"), py::arg("limit_price"), py::arg("volume"),
-           py::arg("type"), py::arg("side"), py::arg("offset") = Offset::Open, py::arg("trigger_type"),
-           py::arg("parked_type") = longfist::enums::ParkedType::Server, py::arg("stop_price") = 0,
+           py::arg("type"), py::arg("side"), py::arg("offset") = Offset::Open,
+           py::arg("trigger_type") = longfist::enums::OrderTriggerType::ParkedOrder, py::arg("stop_price") = 0,
            py::arg("hedge_flag") = HedgeFlag::Speculation, py::arg("is_swap") = false)
       .def("insert_batch_orders", &strategy::Context::insert_batch_orders)
       .def("insert_array_orders", &strategy::Context::insert_array_orders)
@@ -208,10 +209,11 @@ void bind_strategy(pybind11::module &m) {
       .def("hold_positions", &strategy::Context::hold_positions)
       .def("is_book_held", &strategy::Context::is_book_held)
       .def("is_positions_held", &strategy::Context::is_positions_held)
-      .def("req_deregister", &strategy::Context::req_deregister)
-      .def("update_strategy_state", &strategy::Context::update_strategy_state)
       .def("is_bypass_accounting", &strategy::Context::is_bypass_accounting)
-      .def("bypass_accounting", &strategy::Context::bypass_accounting);
+      .def("bypass_accounting", &strategy::Context::bypass_accounting)
+      .def("update_strategy_state", &strategy::Context::update_strategy_state)
+      .def("set_resume_policy", &strategy::Context::set_resume_policy)
+      .def("req_deregister", &strategy::Context::req_deregister);
 
   py::class_<strategy::Matcher, std::shared_ptr<strategy::Matcher>>(m, "Matcher");
 

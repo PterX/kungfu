@@ -130,7 +130,7 @@ void apprentice::react() {
                                                     })) |
                                first();
 
-    self_register_event | rx::timeout(seconds(60), observe_on_new_thread()) |
+    self_register_event | rx::timeout(seconds(REGISTER_TIMEOUT_SECONDS), observe_on_new_thread()) |
         $(
             [&](const event_ptr &event) {
               // this subscriber will quit when register is done, no worry for performance.
@@ -268,14 +268,22 @@ void apprentice::checkin() {
 
   SPDLOG_INFO("app checkin");
 
-  int count = 10;
-  while (not is_usable() and count-- > 0) {
-    SPDLOG_WARN("publisher is not usable, count {}", count);
+  auto try_register = [&]() {
+    return get_io_device()->get_publisher()->publish(
+               make_nano_msg(get_home_uid(), master_home_location_->uid, register_data), 0, true) == 0;
+  };
+
+  int count = (REGISTER_TIMEOUT_SECONDS * 1000) / DEFAULT_NOTICE_TIMEOUT;
+  while (not try_register()) {
+    SPDLOG_WARN("try register failed, retrying...");
+
+    if (count-- <= 0) {
+      SPDLOG_ERROR("register failed");
+      throw yijinjing_error("register failed");
+    }
   }
 
-  SPDLOG_INFO("io is usable");
-  get_io_device()->get_publisher()->publish(make_nano_msg(get_home_uid(), master_home_location_->uid, register_data),
-                                            0);
+  SPDLOG_INFO("app checkin done");
 }
 
 void apprentice::expect_start() {
@@ -290,5 +298,7 @@ void apprentice::expect_start() {
 void apprentice::reset_time(const longfist::types::TimeReset &time_reset) {
   time::reset(time_reset.system_clock_count, time_reset.steady_clock_count);
 }
+
+std::thread &apprentice::get_cleaning_worker() { return cleaner_.get_cleaning_worker(); }
 
 } // namespace kungfu::yijinjing::practice

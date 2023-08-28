@@ -58,8 +58,10 @@ public:
 
   void apply_sell(Book_ptr &book, longfist::types::Position &position, const Trade &trade, bool is_local) override {
     if (position.volume + trade.volume > 0 && trade.price > 0) {
-      position.avg_open_price = (position.avg_open_price * position.volume + trade.price * trade.volume) /
-                                (double)(position.volume + trade.volume);
+      position.avg_open_price = (position.volume + trade.volume == 0)
+                                    ? 0
+                                    : (position.avg_open_price * position.volume + trade.price * trade.volume) /
+                                          (double)(position.volume + trade.volume);
     }
     auto cd_mr = get_instrument_conversion_margin_rate(book, position.source_id, position.direction,
                                                        position.exchange_id, position.instrument_id);

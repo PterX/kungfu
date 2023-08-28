@@ -675,7 +675,6 @@ inline void order_trigger_from_input(const longfist::types::OrderTriggerInput &i
   trigger.time_condition = input.time_condition;
   trigger.trigger_type = input.trigger_type;
   trigger.action_flag = longfist::enums::OrderTriggerFlag::TriggerInsert;
-  trigger.parked_type = input.parked_type;
 }
 
 inline void order_trigger_from_order(const longfist::types::Order &order, longfist::types::OrderTrigger &trigger) {

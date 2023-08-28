@@ -157,7 +157,7 @@ public:
                                 const std::string &source, const std::string &account, double limit_price,
                                 int64_t volume, longfist::enums::PriceType type, longfist::enums::Side side,
                                 longfist::enums::Offset offset, longfist::enums::OrderTriggerType trigger_type,
-                                longfist::enums::ParkedType parked_type, double stop_price = 0,
+                                double stop_price = 0,
                                 longfist::enums::HedgeFlag hedge_flag = longfist::enums::HedgeFlag::Speculation,
                                 bool is_swap = false) override;
 
@@ -274,6 +274,10 @@ public:
   void update_strategy_state(longfist::types::StrategyStateUpdate &state_update) override;
 
   yijinjing::data::location_ptr get_location(uint32_t location_uid) override;
+
+  void set_resume_policy(longfist::enums::ResumePolicy resume_policy) override;
+
+  longfist::enums::ResumePolicy get_resume_policy() override;
 
 protected:
   virtual void on_start() override;

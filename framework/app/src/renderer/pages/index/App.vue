@@ -14,7 +14,6 @@ import {
   markClearDB,
   handleOpenJournalView,
   setHtmlTitle,
-  // messagePrompt,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import {
   playSound,
@@ -136,8 +135,6 @@ const {
 } = useTradingTask();
 
 onMounted(() => {
-  // messagePrompt().loading('lalalalalal');
-  // messagePrompt().warn('lalalalalal', 0);
   locale.value =
     (app?.proxy?.$antLocalesMap || {})[
       store.globalSetting?.system?.language || langDefault

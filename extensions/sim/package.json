@@ -97,10 +97,8 @@
           }
         ],
         "order_trigger": {
-          "MakeOrder": {
-            "Server": true
-          },
-          "CancelOrder": {}
+          "MakeOrder": true,
+          "CancelOrder": true
         }
       },
       "md": {

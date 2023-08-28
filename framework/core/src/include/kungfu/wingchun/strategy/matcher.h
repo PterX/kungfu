@@ -22,7 +22,6 @@ namespace kungfu::wingchun::strategy {
 FORWARD_DECLARE_CLASS_PTR(Runner)
 class Matcher : public std::enable_shared_from_this<Matcher> {
 public:
-  static const uint64_t MAX_DELAYED_REMOVE_DURATION = yijinjing::time_unit::NANOSECONDS_PER_MINUTE;
   Matcher() = default;
   virtual ~Matcher() = default;
 

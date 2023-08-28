@@ -6,10 +6,6 @@
 #include <kungfu/yijinjing/log.h>
 #include <kungfu/yijinjing/time.h>
 
-#define SETUP_TIMEOUT 500
-#define DEFAULT_RECV_TIMEOUT 100
-#define DEFAULT_NOTICE_TIMEOUT 10000
-
 using namespace kungfu::longfist;
 using namespace kungfu::longfist::enums;
 using namespace kungfu::longfist::types;
@@ -67,9 +63,9 @@ public:
   nanomsg_publisher_master(const io_device &io_device, bool low_latency)
       : nanomsg_publisher(io_device, low_latency, protocol::PUBLISH) {}
 
-  void setup() override {
+  bool setup() override {
     socket_.setsockopt_ms(NNG_OPT_SENDTIMEO, DEFAULT_NOTICE_TIMEOUT);
-    socket_.listen(listen_path_);
+    return socket_.listen(listen_path_) == 0;
   }
 
   bool is_usable() override { return true; }
@@ -80,9 +76,9 @@ public:
   nanomsg_publisher_client(const io_device &io_device, bool low_latency)
       : nanomsg_publisher(io_device, low_latency, protocol::PUSH) {}
 
-  void setup() override {
+  bool setup() override {
     socket_.setsockopt_ms(NNG_OPT_SENDTIMEO, DEFAULT_NOTICE_TIMEOUT);
-    socket_.dial(dial_path_);
+    return socket_.dial(dial_path_) == 0;
   }
 
   bool is_usable() override {
@@ -93,7 +89,7 @@ public:
     ping["source"] = io_device_.get_home()->uid;
     ping["dest"] = 0;
     ping["data"] = "";
-    return publish(ping.dump(), 0, true) == 0;
+    return publish(ping.dump()) == 0;
   }
 };
 
@@ -128,9 +124,9 @@ public:
   nanomsg_observer_master(const io_device &io_device, bool low_latency)
       : nanomsg_observer(io_device, low_latency, protocol::PULL) {}
 
-  void setup() override {
+  bool setup() override {
     socket_.setsockopt_ms(NNG_OPT_RECVTIMEO, DEFAULT_RECV_TIMEOUT);
-    socket_.listen(listen_path_);
+    return socket_.listen(listen_path_) == 0;
   }
 
   bool is_usable() override { return true; }
@@ -141,10 +137,10 @@ public:
   nanomsg_observer_client(const io_device &io_device, bool low_latency)
       : nanomsg_observer(io_device, low_latency, protocol::SUBSCRIBE) {}
 
-  void setup() override {
+  bool setup() override {
     socket_.setsockopt_str(NNG_OPT_SUB_SUBSCRIBE, "");
     socket_.setsockopt_ms(NNG_OPT_RECVTIMEO, DEFAULT_RECV_TIMEOUT);
-    socket_.dial(dial_path_);
+    return socket_.dial(dial_path_) == 0;
   }
 
   bool is_usable() override { return socket_.recv(NNG_FLAG_ALLOC) == 0; }
@@ -205,11 +201,26 @@ bool io_device_client::is_usable() {
   return publisher.is_usable() and observer.is_usable();
 }
 
-void io_device_client::setup() {
+bool io_device_client::setup() {
   publisher_ = std::make_shared<nanomsg_publisher_client>(*this, is_low_latency());
   observer_ = std::make_shared<nanomsg_observer_client>(*this, is_low_latency());
-  publisher_->setup();
-  observer_->setup();
-  std::this_thread::sleep_for(std::chrono::milliseconds(SETUP_TIMEOUT));
+
+  auto try_setup = [&]() {
+    auto prc = publisher_->setup();
+    auto orc = observer_->setup();
+    std::this_thread::sleep_for(std::chrono::milliseconds(SETUP_TIMEOUT));
+    return prc && orc;
+  };
+
+  int count = (REGISTER_TIMEOUT_SECONDS * 1000) / SETUP_TIMEOUT;
+  while (not try_setup()) {
+    SPDLOG_WARN("try setup failed, retrying...");
+    if (count-- <= 0) {
+      SPDLOG_ERROR("setup failed");
+      throw yijinjing_error("setup failed");
+    }
+  }
+
+  return true;
 }
 } // namespace kungfu::yijinjing

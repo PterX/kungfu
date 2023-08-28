@@ -23,6 +23,8 @@ public:
 
   void on_react();
 
+  std::thread &get_cleaning_worker();
+
 private:
   yijinjing::practice::apprentice &app_;
   std::thread cleaning_worker_;
@@ -108,6 +110,8 @@ public:
 
   const std::string &get_arguments() const { return arguments_; }
 
+  std::thread &get_cleaning_worker();
+
 protected:
   cache::bank state_bank_;
 
@@ -125,9 +129,9 @@ protected:
 
   virtual void on_start();
 
-  void on_register(int64_t trigger_time, const longfist::types::Register &register_data);
+  virtual void on_register(int64_t trigger_time, const longfist::types::Register &register_data);
 
-  void on_deregister(const event_ptr &event);
+  virtual void on_deregister(const event_ptr &event);
 
   void on_read_from(const event_ptr &event);
 

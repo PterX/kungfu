@@ -23,6 +23,8 @@ public:
 
   void on_react();
 
+  std::thread &get_cleaning_worker();
+
 private:
   yijinjing::practice::apprentice &app_;
   std::thread cleaning_worker_;
@@ -107,6 +109,8 @@ public:
   }
 
   const std::string &get_arguments() const { return arguments_; }
+
+  std::thread &get_cleaning_worker();
 
 protected:
   cache::bank state_bank_;

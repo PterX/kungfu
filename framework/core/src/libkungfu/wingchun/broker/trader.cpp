@@ -243,7 +243,7 @@ void Trader::recover() {
 }
 
 void Trader::recover_from_journal() {
-  tracer trc(get_home(), true, true, time::today_start(), time::now_in_nano());
+  tracer trc(get_home(), false, true, time::today_start(), time::now_in_nano());
   SPDLOG_DEBUG("before tracer read");
   int64_t count = 0;
   auto& state_bank = const_cast<cache::bank &>(get_vendor().get_state_bank());
@@ -265,11 +265,6 @@ void Trader::recover_from_journal() {
     const auto &frame = trc.current_frame();
 
     switch (frame->msg_type()) {
-      case OrderInput::tag:
-      case OrderTriggerInput::tag:
-      case Trade::tag:
-        get_vendor().feed_state_data(frame, state_bank);
-        break;
       case Order::tag: {
         if (should_insert(order_map, frame->data<Order>(), &Order::order_id, &Order::update_time)) {
            get_vendor().feed_state_data(frame, state_bank);
@@ -280,6 +275,10 @@ void Trader::recover_from_journal() {
        if (should_insert(order_trigger_map, frame->data<OrderTrigger>(), &OrderTrigger::trigger_id, &OrderTrigger::update_time)) {
            get_vendor().feed_state_data(frame, state_bank);
         }
+        break;
+      }
+      case Trade::tag: {
+        get_vendor().feed_state_data(frame, state_bank);
         break;
       }
   

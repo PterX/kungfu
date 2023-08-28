@@ -65,8 +65,8 @@ export const setOperatorConfig: KungfuApi.KfOperatorExtConfig = {
   silent: true,
   extPath: '',
   version: '',
-  mainRepoVersion: '',
   description: '',
+  dependencies: {},
   readmePath: '',
   releaseNotePath: '',
   settings: [

@@ -533,7 +533,7 @@ export const flattenExtensionModuleDirs = async (
   return extensionModuleDirs;
 };
 
-export const getMainRepoVersionByExtVersion = (
+export const getMainRepoVersionInDependencies = (
   dependencies: Record<string, string>,
 ) => {
   const dependenciesKeys = Object.keys(dependencies);
@@ -544,6 +544,7 @@ export const getMainRepoVersionByExtVersion = (
     '@kungfu-trader/kungfu-cli',
     '@kungfu-trader/kungfu-core',
     '@kungfu-trader/kungfu-toolchain',
+    '@kungfu-trader/kungfu-sdk',
   ];
   const targetMainRepoDepKey = dependenciesKeys.find((item) =>
     mainRepoDependencies.includes(item),
@@ -568,6 +569,7 @@ const getKfExtConfigList = async (): Promise<KungfuApi.KfExtOriginConfig[]> => {
           mainRepoVersion: getMainRepoVersionByExtVersion(
             jsonConfig.dependencies || {},
           ),
+          dependencies: jsonConfig.dependencies || {},
           description: jsonConfig.description || '',
           extPath,
           readmePath: path.join(extPath, 'README.md'),
@@ -631,8 +633,8 @@ const getKfExtensionConfigByCategory = (
           readmePath,
           releaseNotePath,
           version,
-          mainRepoVersion,
           description,
+          dependencies,
         } = extConfig;
         (Object.keys(extConfig['config'] || {}) as KfCategoryTypes[]).forEach(
           (category: KfCategoryTypes) => {
@@ -646,8 +648,8 @@ const getKfExtensionConfigByCategory = (
                   readmePath,
                   releaseNotePath,
                   version,
-                  mainRepoVersion,
                   description,
+                  dependencies,
                   category,
                   key: extKey,
                   type: resolveTypesInExtConfig(
@@ -667,8 +669,8 @@ const getKfExtensionConfigByCategory = (
                     readmePath,
                     releaseNotePath,
                     version,
-                    mainRepoVersion,
                     description,
+                    dependencies,
                     category,
                     key: extKey,
                     silent: extConfigByCategory[category]?.silent ?? false,
@@ -704,8 +706,8 @@ const getKfExtensionConfigByCategory = (
                           readmePath,
                           releaseNotePath,
                           version,
-                          mainRepoVersion,
                           description,
+                          dependencies,
                           category,
                           key: extKey,
                           silent: item?.silent ?? false,
@@ -748,8 +750,8 @@ const getKfUIExtensionConfigByExtKey = (
         readmePath,
         releaseNotePath,
         version,
-        mainRepoVersion,
         description,
+        dependencies,
       } = extConfig;
       const silent = uiConfig?.silent ?? false;
       const position = uiConfig?.position || '';
@@ -758,14 +760,16 @@ const getKfUIExtensionConfigByExtKey = (
       const script = uiConfig?.script || '';
 
       configByExtraKey[extKey] = {
+        key: extKey,
+        category: 'ui',
         name: extName,
         silent,
         extPath,
         readmePath,
         releaseNotePath,
         version,
-        mainRepoVersion,
         description,
+        dependencies,
         position,
         exhibit,
         components,
@@ -789,8 +793,8 @@ const getKfCliExtensionConfigByExtKey = (
         readmePath,
         releaseNotePath,
         version,
-        mainRepoVersion,
         description,
+        dependencies,
       } = extConfig;
       const silent = cliConfig?.silent ?? false;
       const exhibit = cliConfig?.exhibit || ({} as KungfuApi.KfExhibitConfig);
@@ -798,14 +802,16 @@ const getKfCliExtensionConfigByExtKey = (
       const script = cliConfig?.script || '';
 
       configByExtraKey[extKey] = {
+        key: extKey,
+        category: 'cli',
         name: extName,
         silent,
         extPath,
         readmePath,
         releaseNotePath,
         version,
-        mainRepoVersion,
         description,
+        dependencies,
         exhibit,
         components,
         script,

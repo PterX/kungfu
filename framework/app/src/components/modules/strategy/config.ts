@@ -62,8 +62,8 @@ export const setStrategyConfig: KungfuApi.KfStrategyExtConfig = {
   silent: true,
   extPath: '',
   version: '',
-  mainRepoVersion: '',
   description: '',
+  dependencies: {},
   readmePath: '',
   releaseNotePath: '',
   settings: [

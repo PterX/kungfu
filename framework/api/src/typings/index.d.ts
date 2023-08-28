@@ -217,8 +217,8 @@ declare namespace KungfuApi {
     key: string;
     name: string;
     version: string;
-    mainRepoVersion: string;
     description: string;
+    dependencies: Record<string, string>;
     extPath: string;
     readmePath: string;
     releaseNotePath: string;
@@ -301,18 +301,19 @@ declare namespace KungfuApi {
     { settings: KfConfigItem[] }
   >;
 
-  interface KfExtConfigBase<C extends KfCategoryTypes> {
+  interface KfExtConfigBase<C extends string> {
     name: string;
     category: C;
     key: string;
     version: string;
-    mainRepoVersion: string;
     description: string;
+    dependencies: Record<string, string>;
     extPath: string;
     readmePath: string;
     releaseNotePath: string;
     silent: boolean;
   }
+
   export interface KfTdExtConfig extends KfExtConfigBase<'td' | 'tdGroup'> {
     type: TdMdExtTypes[];
     orderTrigger: Partial<
@@ -377,15 +378,7 @@ declare namespace KungfuApi {
     system: Record<string, KfSystemExtConfigs>;
   };
 
-  export interface KfUIExtConfig {
-    name: string;
-    silent: boolean;
-    version: string;
-    mainRepoVersion: string;
-    description: string;
-    extPath: string;
-    readmePath: string;
-    releaseNotePath: string;
+  export interface KfUIExtConfig extends KfExtConfigBase<'ui'> {
     position: KfUIExtLocatorTypes;
     exhibit: KfExhibitConfig;
     components:
@@ -402,15 +395,7 @@ declare namespace KungfuApi {
 
   export type KfUIExtConfigs = Record<string, KfUIExtConfig>;
 
-  export interface KfCliExtConfig {
-    name: string;
-    silent: boolean;
-    version: string;
-    mainRepoVersion: string;
-    description: string;
-    extPath: string;
-    readmePath: string;
-    releaseNotePath: string;
+  export interface KfCliExtConfig extends KfExtConfigBase<'cli'> {
     exhibit: KfExhibitConfig;
     components: Record<
       string,

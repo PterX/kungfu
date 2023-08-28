@@ -15,9 +15,6 @@ using namespace kungfu::yijinjing::practice;
 using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::cache;
 
-#define DEFAULT_STORE_VOLUME_BY_INTERVAL 100
-#define LOW_LATENCY_STORE_VOLUME_BY_INTERVAL 10
-
 namespace kungfu::yijinjing::cache {
 
 cached::cached(const yijinjing::io_device_ptr &io_device, bool bypass_cached)

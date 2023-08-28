@@ -148,6 +148,8 @@ private:
 
   void recover();
 
+  void recover_from_journal();
+
   void deal_write_frame();
 
   void deal_read_frame();

@@ -8,6 +8,8 @@ namespace kungfu::yijinjing::practice {
 
 cleaner::cleaner(apprentice &app) : app_(app) {}
 
+std::thread &cleaner::get_cleaning_worker() { return cleaning_worker_; }
+
 void cleaner::on_react() {
   if (not is_cleaner_worker_required()) {
     return;

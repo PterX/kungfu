@@ -299,4 +299,6 @@ void apprentice::reset_time(const longfist::types::TimeReset &time_reset) {
   time::reset(time_reset.system_clock_count, time_reset.steady_clock_count);
 }
 
+std::thread &apprentice::get_cleaning_worker() { return cleaner_.get_cleaning_worker(); }
+
 } // namespace kungfu::yijinjing::practice

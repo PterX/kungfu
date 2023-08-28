@@ -245,4 +245,3 @@ private:
 };
 } // namespace kungfu::yijinjing::practice
 #endif // KUNGFU_HERO_H
- 

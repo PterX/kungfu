@@ -131,6 +131,33 @@ public:
 
   const rx::connectable_observable<event_ptr> &get_events() const;
 
+  static constexpr auto feed_profile_data = [](const event_ptr &event, auto &receiver) {
+    boost::hana::for_each(longfist::ProfileDataTypes, [&](auto it) {
+      using DataType = typename decltype(+boost::hana::second(it))::type;
+      if (DataType::tag == event->msg_type()) {
+        receiver << typed_event_ptr<DataType>(event);
+      }
+    });
+  };
+
+  static constexpr auto feed_state_data = [](const event_ptr &event, auto &receiver) {
+    boost::hana::for_each(longfist::StateDataTypes, [&](auto it) {
+      using DataType = typename decltype(+boost::hana::second(it))::type;
+      if (DataType::tag == event->msg_type()) {
+        receiver << typed_event_ptr<DataType>(event);
+      }
+    });
+  };
+
+  static constexpr auto feed_trading_data = [](const event_ptr &event, auto &receiver) {
+    boost::hana::for_each(longfist::TradingDataTypes, [&](auto it) {
+      using DataType = typename decltype(+boost::hana::second(it))::type;
+      if (DataType::tag == event->msg_type()) {
+        receiver << typed_event_ptr<DataType>(event);
+      }
+    });
+  };
+
 protected:
   int64_t begin_time_;
   int64_t end_time_;
@@ -189,33 +216,6 @@ protected:
   virtual void on_active() = 0;
 
   virtual void on_frame() = 0;
-
-  static constexpr auto feed_profile_data = [](const event_ptr &event, auto &receiver) {
-    boost::hana::for_each(longfist::ProfileDataTypes, [&](auto it) {
-      using DataType = typename decltype(+boost::hana::second(it))::type;
-      if (DataType::tag == event->msg_type()) {
-        receiver << typed_event_ptr<DataType>(event);
-      }
-    });
-  };
-
-  static constexpr auto feed_state_data = [](const event_ptr &event, auto &receiver) {
-    boost::hana::for_each(longfist::StateDataTypes, [&](auto it) {
-      using DataType = typename decltype(+boost::hana::second(it))::type;
-      if (DataType::tag == event->msg_type()) {
-        receiver << typed_event_ptr<DataType>(event);
-      }
-    });
-  };
-
-  static constexpr auto feed_trading_data = [](const event_ptr &event, auto &receiver) {
-    boost::hana::for_each(longfist::TradingDataTypes, [&](auto it) {
-      using DataType = typename decltype(+boost::hana::second(it))::type;
-      if (DataType::tag == event->msg_type()) {
-        receiver << typed_event_ptr<DataType>(event);
-      }
-    });
-  };
 
 private:
   yijinjing::io_device_ptr io_device_;

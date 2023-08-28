@@ -14,7 +14,7 @@ using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::cache;
 
-#define DEFAULT_STORE_VOLUME_BY_INTERVAL 100
+#define DEFAULT_STORE_VOLUME_BY_INTERVAL 50
 #define LOW_LATENCY_STORE_VOLUME_BY_INTERVAL 10
 
 namespace kungfu::yijinjing::cache {

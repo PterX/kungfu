@@ -2583,20 +2583,34 @@ export const useBasket = () => {
 };
 
 export const useDealDataWithCaches = <T, U>(keys: Array<keyof T>) => {
-  const caches = new Map<string, U>();
+  type ExtraKeys = Record<string, string | number | bigint>;
+  const caches = new Map<string, { cache: U; extraKeys?: ExtraKeys }>();
 
-  const dealDataWithCache = (data: T, dealer: () => U): U => {
+  const dealDataWithCache = (
+    data: T,
+    dealer: () => U,
+    extraKeys?: ExtraKeys,
+  ): U => {
     const curKey = keys.map((key) => data[key]).join('_');
     if (caches.has(curKey)) {
       const value = caches.get(curKey);
       if (value) {
-        return value;
+        if (value.extraKeys && extraKeys) {
+          const shouldUpdate = Object.entries(value.extraKeys).find(
+            ([key, value]) => extraKeys[key] !== value,
+          );
+          if (!shouldUpdate) {
+            return value.cache;
+          }
+        } else {
+          return value.cache;
+        }
       }
     }
 
-    const value = dealer();
-    caches.set(curKey, value);
-    return value;
+    const cache = dealer();
+    caches.set(curKey, { cache, extraKeys });
+    return cache;
   };
 
   const clearCaches = () => {

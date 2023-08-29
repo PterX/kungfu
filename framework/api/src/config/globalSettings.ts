@@ -226,6 +226,34 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
         default: false,
         type: 'bool',
       },
+      {
+        key: 'posTableColumns',
+        name: t('globalSettingConfig.pos_table_columns'),
+        type: 'checkboxGroup',
+        options: [
+          {
+            value: 'static_yesterday',
+            label: t('posGlobalConfig.static_yesterday_volume_setting'),
+          },
+          {
+            value: 'yesterday_volume',
+            label: t('posGlobalConfig.yesterday_volume_setting'),
+          },
+          {
+            value: 'open_volume',
+            label: t('posGlobalConfig.open_volume'),
+          },
+          {
+            value: 'close_volume',
+            label: t('posGlobalConfig.close_volume'),
+          },
+          {
+            value: 'today_volume',
+            label: t('posGlobalConfig.today_volume'),
+          },
+        ],
+        default: ['yesterday_volume', 'today_volume'],
+      },
     ],
   },
   {
@@ -272,12 +300,12 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
     ? [
         {
           key: 'update',
-          name: t('globalSettingConfig.update'),
+          name: t('autoUpdater.update'),
           config: [
             {
               key: 'isCheckVersion',
-              name: t('globalSettingConfig.is_check_version'),
-              tip: t('globalSettingConfig.is_check_version_desc'),
+              name: t('autoUpdater.is_check_version'),
+              tip: t('autoUpdater.is_check_version_desc'),
               default: true,
               type: 'bool' as KungfuApi.KfConfigItemSupportedTypes,
             },

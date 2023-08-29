@@ -162,7 +162,7 @@ void apprentice::react() {
                                                     })) |
                                first();
 
-    self_register_event | rx::timeout(seconds(60), observe_on_new_thread()) |
+    self_register_event | rx::timeout(seconds(REGISTER_TIMEOUT_SECONDS), observe_on_new_thread()) |
         $(
             [&](const event_ptr &event) {
               // this subscriber will quit when register is done, no worry for performance.
@@ -196,8 +196,8 @@ void apprentice::react() {
                                  first();
     cached_register_event | $$(request_cached_reader_writer());
 
-    checkin();
     expect_start();
+    checkin();
   }
   if (get_io_device()->get_home()->mode == mode::REPLAY) {
     reader_->join(master_cmd_location_, get_live_home_uid(), begin_time_);
@@ -215,18 +215,16 @@ void apprentice::react() {
 
 void apprentice::on_active() {}
 
-void apprentice::on_frame() {}
+void apprentice::on_frame() {
+  for (const uint32_t dest_id : try_write_dest_ids_) {
+    request_write_to(now(), dest_id);
+  }
+  try_write_dest_ids_.clear();
+}
 
 void apprentice::on_react() {}
 
 void apprentice::on_start() {}
-
-void apprentice::on_request_read_from_others(const event_ptr &event) {
-  const auto &request = event->data<RequestReadFromOthers>();
-  if (has_location(request.source_id)) {
-    reader_->join(get_location(request.source_id), request.dest_id, request.from_time);
-  }
-}
 
 void apprentice::on_register(int64_t trigger_time, const Register &register_data) {
   register_location(trigger_time, register_data);
@@ -242,6 +240,13 @@ void apprentice::on_deregister(const event_ptr &event) {
   deregister_channel(location_uid);
   deregister_band(location_uid);
   deregister_location(event->trigger_time(), location_uid);
+}
+
+void apprentice::on_request_read_from_others(const event_ptr &event) {
+  const auto &request = event->data<RequestReadFromOthers>();
+  if (has_location(request.source_id)) {
+    reader_->join(get_location(request.source_id), request.dest_id, request.from_time);
+  }
 }
 
 void apprentice::on_read_from(const event_ptr &event) { do_read_from<RequestReadFrom>(event, get_live_home_uid()); }
@@ -308,8 +313,24 @@ void apprentice::checkin() {
   register_data.checkin_time = now;
   register_data.last_active_time = now;
 
-  get_io_device()->get_publisher()->publish(make_nano_msg(get_home_uid(), master_home_location_->uid, register_data),
-                                            0);
+  SPDLOG_INFO("app checkin");
+
+  auto try_register = [&]() {
+    return get_io_device()->get_publisher()->publish(
+               make_nano_msg(get_home_uid(), master_home_location_->uid, register_data), 0, true) == 0;
+  };
+
+  int count = (REGISTER_TIMEOUT_SECONDS * 1000) / DEFAULT_NOTICE_TIMEOUT;
+  while (not try_register()) {
+    SPDLOG_WARN("try register failed, retrying...");
+
+    if (count-- <= 0) {
+      SPDLOG_ERROR("register failed");
+      throw yijinjing_error("register failed");
+    }
+  }
+
+  SPDLOG_INFO("app checkin done");
 }
 
 void apprentice::expect_start() {

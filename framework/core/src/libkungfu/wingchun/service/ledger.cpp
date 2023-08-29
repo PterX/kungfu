@@ -19,8 +19,9 @@ using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::cache;
 
-namespace kungfu::wingchun::service {
 #define DEFAULT_AVG_VALID_VALUE 10000.0
+
+namespace kungfu::wingchun::service {
 
 Ledger::Ledger(locator_ptr locator, mode m, bool low_latency, const std::string &arguments)
     : apprentice(location::make_shared(m, category::SYSTEM, "service", "ledger", std::move(locator)), low_latency,
@@ -197,10 +198,12 @@ void Ledger::update_account_book(int64_t trigger_time, uint32_t account_uid) {
   refresh_account_book(trigger_time, account_uid);
   auto writer = get_writer(account_uid);
   auto book = bookkeeper_.get_book(account_uid);
-  auto &asset = book->asset;
   write_positions(trigger_time, account_uid, book->long_positions);
   write_positions(trigger_time, account_uid, book->short_positions);
-  writer->write(trigger_time, asset);
+  writer->write(trigger_time, book->asset);
+  writer->write(trigger_time, book->asset_margin);
+  writer->open_data<PositionEnd>(trigger_time).holder_uid = account_uid;
+  writer->close_data();
 }
 
 void Ledger::inspect_channel(int64_t trigger_time, const Channel &channel) {
@@ -221,8 +224,7 @@ void Ledger::inspect_channel(int64_t trigger_time, const Channel &channel) {
 void Ledger::keep_positions([[maybe_unused]] int64_t trigger_time, uint32_t strategy_uid) {
   if (bookkeeper_.has_book(strategy_uid)) {
     auto strategy_book = bookkeeper_.get_book(strategy_uid);
-    tmp_books_.insert_or_assign(strategy_uid, strategy_book);
-    bookkeeper_.drop_book(strategy_uid);
+    tmp_books_.insert_or_assign(strategy_uid, *strategy_book);
   }
 }
 
@@ -233,16 +235,48 @@ void Ledger::rebuild_positions(int64_t trigger_time, uint32_t strategy_uid) {
       auto &position = pair.second;
       if (strategy_book->has_position_for(position)) {
         auto &strategy_position = strategy_book->get_position_for(position.direction, position);
+        auto avg_open_price = strategy_position.avg_open_price;
+        auto position_cost_price = strategy_position.position_cost_price;
         longfist::copy(strategy_position, position);
+        if (is_equal(position.avg_open_price, 0.0)) {
+          strategy_position.avg_open_price = avg_open_price;
+        }
+        if (is_equal(position.position_cost_price, 0.0)) {
+          strategy_position.position_cost_price = position_cost_price;
+        }
         strategy_position.update_time = trigger_time;
       }
     }
   };
 
+  auto reset_positions = [&](auto tmp_book, auto &strategy_positions) {
+    for (auto &item : strategy_positions) {
+      auto &position = item.second;
+      // pos in tmp_book is influenced by instrumentKey event of subscribe, which trigger update_book method and build a
+      // target pos with 0 volume;
+      if (tmp_book.has_position_for(position) && tmp_book.get_position_for(position.direction, position).volume != 0) {
+        continue;
+      }
+      position.volume = 0;
+      position.yesterday_volume = 0;
+      position.frozen_total = 0;
+      position.frozen_yesterday = 0;
+      position.open_volume = 0;
+      position.static_yesterday = 0;
+      // should keep avg_open_price and position_cost_price
+      // position.avg_open_price = 0;
+      // position.position_cost_price = 0;
+      position.update_time = trigger_time;
+    }
+  };
+
   if (tmp_books_.find(strategy_uid) != tmp_books_.end()) {
     auto tmp_book = tmp_books_.at(strategy_uid);
-    rebuild_book(tmp_book->long_positions);
-    rebuild_book(tmp_book->short_positions);
+    rebuild_book(tmp_book.long_positions);
+    rebuild_book(tmp_book.short_positions);
+    reset_positions(tmp_book, strategy_book->long_positions);
+    reset_positions(tmp_book, strategy_book->short_positions);
+    tmp_books_.erase(strategy_uid);
   }
   strategy_book->update(trigger_time, bookkeeper_.get_accounting_method_type());
 }
@@ -276,7 +310,7 @@ void Ledger::write_strategy_data(int64_t trigger_time, uint32_t strategy_uid) {
     bool has_account = asset.ledger_category == LedgerCategory::Account and has_channel(book_uid, strategy_uid);
     bool is_strategy = location->category == category::STRATEGY and book_uid == strategy_uid;
     bool is_node = location->category == category::SYSTEM and location->group == "node";
-    if (has_account or is_strategy or is_node) {
+    if ((has_account or is_strategy) or is_node) {
       write_positions(trigger_time, strategy_uid, book->long_positions);
       write_positions(trigger_time, strategy_uid, book->short_positions);
       write_instrument_factors(trigger_time, strategy_uid, book->instrument_factors);
@@ -291,9 +325,7 @@ void Ledger::write_strategy_data(int64_t trigger_time, uint32_t strategy_uid) {
 void Ledger::write_positions(int64_t trigger_time, uint32_t dest, book::PositionMap &positions) {
   auto writer = get_writer(dest);
   for (const auto &pair : positions) {
-    if (pair.second.volume > 0) {
-      writer->write_as(trigger_time, pair.second, get_home_uid(), pair.second.holder_uid);
-    }
+    writer->write_as(trigger_time, pair.second, get_home_uid(), pair.second.holder_uid);
   }
 }
 

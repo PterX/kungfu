@@ -12,7 +12,11 @@ public:
 
   void apply_quote(Book_ptr &book, const Quote &quote) override {}
 
-  void apply_order_input(Book_ptr &book, const OrderInput &input) override {
+  void apply_order_input(uint32_t source, uint32_t dest, Book_ptr &book, const OrderInput &input) override {
+    if (dest == location::SYNC or dest == location::PUBLIC) {
+      return;
+    }
+
     const auto &position = book->get_position_for(input);
     auto cd_mr = get_instr_conversion_margin_rate(book, position);
     if (input.side == Side::Sell) {
@@ -22,15 +26,22 @@ public:
     }
   }
 
-  void apply_order(Book_ptr &book, const Order &order) override {
-    if (is_final_status(order.status)) {
-      const auto &position = book->get_position_for(order);
-      auto cd_mr = get_instr_conversion_margin_rate(book, position);
-      if (order.side == Side::Sell) {
-        book->asset.frozen_cash -= order.volume_left * cd_mr.exchange_rate;
-        book->asset.avail += order.volume_left * cd_mr.exchange_rate;
-      }
+  void apply_order(uint32_t source, uint32_t dest, Book_ptr &book, const Order &order) override {
+    if (not guard_order_accounting(book, order)) {
+      return;
     }
+
+    if (dest == location::SYNC or dest == location::PUBLIC) {
+      return;
+    }
+
+    const auto &position = book->get_position_for(order);
+    auto cd_mr = get_instr_conversion_margin_rate(book, position);
+    if (order.side == Side::Sell) {
+      book->asset.frozen_cash -= order.volume_left * cd_mr.exchange_rate;
+      book->asset.avail += order.volume_left * cd_mr.exchange_rate;
+    }
+
     update_position(book, book->get_position_for(order));
   }
 
@@ -38,25 +49,26 @@ public:
     // 无需计算逆回购的收益，逆回购收益在买入时就固定了
   }
 
-  void apply_sell(Book_ptr &book, const Trade &trade) override {
+  void apply_sell(Book_ptr &book, const Trade &trade, bool is_local) override {
     auto &position = book->get_position_for(trade);
     if (position.volume + trade.volume > 0 && trade.price > 0) {
-      position.avg_open_price = (position.avg_open_price * position.volume + trade.price * trade.volume) /
-                                (double)(position.volume + trade.volume);
+      position.avg_open_price = (position.volume + trade.volume == 0)
+                                    ? 0
+                                    : (position.avg_open_price * position.volume + trade.price * trade.volume) /
+                                          (double)(position.volume + trade.volume);
     }
     auto cd_mr = get_instr_conversion_margin_rate(book, position);
     position.avg_open_price = 1;
     auto commission = calculate_commission(book, trade);
     auto tax = calculate_tax(trade);
-    //    auto days = get_repo_expire_days(trade.instrument_id);
-    //    auto profit = trade.volume / 100 / 360 * days;
 
     position.volume += trade.volume;
-    //    position.realized_pnl += profit;
     update_position(book, position);
 
-    //    book->asset.realized_pnl += profit;
-    book->asset.frozen_cash -= trade.volume * cd_mr.exchange_rate;
+    if (is_local) {
+      book->asset.frozen_cash -= trade.volume * cd_mr.exchange_rate;
+    }
+
     book->asset.avail -= commission + tax;
     book->asset.intraday_fee += commission + tax;
     book->asset.accumulated_fee += commission + tax;

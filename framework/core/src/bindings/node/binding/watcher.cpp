@@ -153,11 +153,6 @@ Watcher::Watcher(const Napi::CallbackInfo &info)
   for (const auto &item : config_store->profile_.get_all(Location{})) {
     auto saved_location = location::make_shared(item, get_locator());
     add_location(now(), saved_location);
-    if (saved_location->category == longfist::enums::category::SYSTEM) {
-      if (saved_location->group != "node") {
-        continue;
-      }
-    }
     RestoreState(saved_location, today, INT64_MAX, sync_schema);
     // for hidden pos && asset
     // shift(saved_location) >> state_bank_;
@@ -290,7 +285,8 @@ Napi::Value Watcher::PublishState(const Napi::CallbackInfo &info) {
 
 Napi::Value Watcher::IsReadyToInteract(const Napi::CallbackInfo &info) {
   auto account_location = IODevice::ExtractLocation(info, 0, get_locator());
-  return Napi::Boolean::New(info.Env(), account_location and has_writer(account_location->uid));
+  return Napi::Boolean::New(info.Env(), account_location and has_writer(account_location->uid) and
+                                            is_location_live(account_location->uid));
 }
 
 Napi::Value Watcher::IssueCustomData(const Napi::CallbackInfo &info) {
@@ -379,6 +375,7 @@ Napi::Value Watcher::RequestMarketData(const Napi::CallbackInfo &info) {
     return Napi::Boolean::New(info.Env(), false);
   }
 
+  broker_client_.subscribe(md_location, exchange_id, instrument_id);
   auto writer = get_writer(md_location->uid);
   uint32_t key = hash_instrument(exchange_id.c_str(), instrument_id.c_str());
   InstrumentKey instrument_key = {};
@@ -444,6 +441,8 @@ void Watcher::on_react() {
   before_start_events | is(Instrument::tag) | $$(Feed(event, event->data<Instrument>()));
   // bookkeeper restore, only Instrument and Commission
   before_start_events | is(Instrument::tag, Commission::tag) | $$(feed_state_data(event, state_bank_));
+  // accept trading data from cached state, so even if ui reload, history data is able to be shown
+  before_start_events | is_trading_data() | $$(feed_state_data(event, data_bank_));
 }
 
 void Watcher::on_start() {
@@ -524,6 +523,7 @@ void Watcher::Feed(const event_ptr &event, const Instrument &instrument) {
 
 void Watcher::RestoreState(const location_ptr &state_location, int64_t from, int64_t to, bool sync_schema) {
   add_location(0, state_location);
+  // serialize::JsRestoreState(ledger_ref_, state_location)(from, to, sync_schema);
   // for hidden pos && asset
   serialize::JsRestoreState(ledger_ref_, state_location).filter_no<Position, Asset>(from, to, sync_schema);
 }

@@ -14,6 +14,7 @@ process.env.KFC_DIR = kfcDir;
 process.env.APP_PUBLIC_DIR = path.join(appDir, 'public');
 process.env.CLI_DIR = path.join(cliDir, 'dist', 'cli');
 process.env.KFC_DEV = true;
+process.env.IS_KF_DEV = true;
 process.env.EXTENSION_DIRS = [
   path.join(process.cwd().toString(), 'dist'),
   ...extdirs,

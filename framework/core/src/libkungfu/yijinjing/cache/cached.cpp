@@ -14,7 +14,7 @@ using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::cache;
 
-#define DEFAULT_STORE_VOLUME_BY_INTERVAL 100
+#define DEFAULT_STORE_VOLUME_BY_INTERVAL 50
 #define LOW_LATENCY_STORE_VOLUME_BY_INTERVAL 10
 
 namespace kungfu::yijinjing::cache {
@@ -41,13 +41,62 @@ void cached::on_react() {
       return;
     }
 
-    app_cache_shift_.try_emplace(source_id, locations_.at(source_id));
+    const auto &location = locations_.at(source_id);
+    app_cache_shift_.try_emplace(source_id, location);
     auto cached_writer = get_writer(source_id);
 
     try {
       app_cache_shift_.at(source_id) >> cached_writer;
     } catch (const std::exception &ex) {
       SPDLOG_ERROR("failed to write cache {} {} {}", source_id, get_location_uname(source_id), ex.what());
+    }
+
+    if (location->category == category::TD or location->category == category::STRATEGY) {
+      for (const auto &other_location : location->locator->list_locations("*", "*", "*", "live")) {
+        if (other_location->category == category::SYSTEM) {
+          continue;
+        }
+
+        for (auto dest : location->locator->list_location_dest_by_db(other_location)) {
+          if (dest == location->uid) {
+            try {
+              make_cache_shift(other_location->uid, dest);
+              app_cache_shift_.at(other_location->uid).restore_to(cached_writer, dest);
+            } catch (const std::exception &ex) {
+              SPDLOG_ERROR("failed to write cache {} {} {} for td or strategy", other_location->uname, dest, ex.what());
+            }
+          }
+        }
+      }
+    }
+
+    if (location->uid == get_ledger_home_location()->uid or
+        (location->category == category::SYSTEM and location->group == "node")) {
+      for (const auto &other_location : location->locator->list_locations("td", "*", "*", "live")) {
+        for (auto dest : location->locator->list_location_dest_by_db(other_location)) {
+          try {
+            make_cache_shift(other_location->uid, dest);
+            app_cache_shift_.at(other_location->uid).restore_to(cached_writer, dest);
+          } catch (const std::exception &ex) {
+            SPDLOG_ERROR("failed to write cache {} {} {} for target {}", other_location->uname, dest, ex.what(),
+                         location->uname);
+          }
+        }
+      }
+    }
+
+    if (location->category == category::SYSTEM and location->group == "node") {
+      for (const auto &other_location : location->locator->list_locations("system", "service", "ledger", "live")) {
+        for (auto dest : location->locator->list_location_dest_by_db(other_location)) {
+          try {
+            make_cache_shift(other_location->uid, dest);
+            app_cache_shift_.at(other_location->uid).restore_to(cached_writer, dest);
+          } catch (const std::exception &ex) {
+            SPDLOG_ERROR("failed to write cache {} {} {} for target {}", other_location->uname, dest, ex.what(),
+                         location->uname);
+          }
+        }
+      }
     }
 
     try {
@@ -68,9 +117,12 @@ void cached::on_start() {
                          auto source_id = event->source();
                          return source_id != master_home_location_->uid and source_id != get_master_command_uid();
                        }) | $$(feed(event));
-}
 
-void cached::on_frame() {}
+  add_time_interval(time_unit::NANOSECONDS_PER_MILLISECOND * 50, [&](auto e) {
+    handle_cached_feeds(store_volume_every_loop_);
+    handle_profile_feeds(store_volume_every_loop_);
+  });
+}
 
 void cached::on_active() {
   handle_cached_feeds(store_volume_every_loop_);
@@ -91,13 +143,8 @@ void cached::mark_request_cached_done(uint32_t dest_id) {
 
 void cached::handle_cached_feeds(int store_volume_every_loop) {
   int stored_controller = 0;
-  boost::hana::for_each(StateDataTypes, [&](auto it) {
-    using DataType = typename decltype(+boost::hana::second(it))::type;
-    auto hana_type = boost::hana::type_c<DataType>;
 
-    using FeedMap = std::unordered_map<uint64_t, state<DataType>>;
-    auto &feed_map = const_cast<FeedMap &>(feed_bank_[hana_type]);
-
+  auto clear_map = [&](auto &feed_map, auto type_name) {
     if (feed_map.size() != 0) {
       auto iter = feed_map.begin();
       while (iter != feed_map.end() and stored_controller <= store_volume_every_loop) {
@@ -108,7 +155,7 @@ void cached::handle_cached_feeds(int store_volume_every_loop) {
           try {
             app_cache_shift_.at(source_id) << s;
             SPDLOG_TRACE("cache [feed] source {} dest {} {} data {}", get_location_uname(source_id),
-                         get_location_uname(dest_id), DataType::type_name.c_str(), s.data.to_string());
+                         get_location_uname(dest_id), type_name.c_str(), s.data.to_string());
           } catch (const std::exception &e) {
             SPDLOG_ERROR("Unexpected exception by handle_cached_feeds {}", e.what());
             stored_controller++;
@@ -122,6 +169,31 @@ void cached::handle_cached_feeds(int store_volume_every_loop) {
         }
       }
     }
+  };
+
+  boost::hana::for_each(TradingDataTypes, [&](auto it) {
+    using DataType = typename decltype(+boost::hana::second(it))::type;
+    auto hana_type = boost::hana::type_c<DataType>;
+    using FeedMap = std::unordered_map<uint64_t, state<DataType>>;
+    auto &feed_map = const_cast<FeedMap &>(feed_bank_[hana_type]);
+    clear_map(feed_map, DataType::type_name);
+  });
+
+  if (stored_controller >= store_volume_every_loop) {
+    return;
+  }
+
+  boost::hana::for_each(StateDataTypes, [&](auto it) {
+    using DataType = typename decltype(+boost::hana::second(it))::type;
+
+    if (DataType::tag == Instrument::tag) {
+      return;
+    }
+
+    auto hana_type = boost::hana::type_c<DataType>;
+    using FeedMap = std::unordered_map<uint64_t, state<DataType>>;
+    auto &feed_map = const_cast<FeedMap &>(feed_bank_[hana_type]);
+    clear_map(feed_map, DataType::type_name);
   });
 }
 
@@ -169,10 +241,10 @@ void cached::make_cache_shift(uint32_t source_id, uint32_t dest_id) {
     return;
   }
 
-  if (not is_location_live(source_id)) {
-    SPDLOG_ERROR("no source {} in registry_", get_location_uname(source_id));
-    return;
-  }
+  // if (not is_location_live(source_id)) {
+  //   SPDLOG_ERROR("no source {} in registry_", get_location_uname(source_id));
+  //   return;
+  // }
 
   const location_ptr &location = locations_.at(source_id);
   app_cache_shift_.emplace(source_id, location);

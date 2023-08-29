@@ -52,7 +52,6 @@ void Bookkeeper::on_trading_day(int64_t daytime) {
     }
   }
 }
-
 void Bookkeeper::on_start(const rx::connectable_observable<event_ptr> &events) {
   restore(app_.get_state_bank());
   on_trading_day(app_.get_trading_day());
@@ -149,6 +148,28 @@ void Bookkeeper::restore(const cache::bank &state_bank) {
     auto book = get_book(instrument_factor.source_id);
     book->instrument_factors[hash_instrument(instrument_factor.exchange_id, instrument_factor.instrument_id)] =
         instrument_factor;
+  }
+
+  for (auto &pair : state_bank[boost::hana::type_c<Order>]) {
+    auto &order_state = pair.second;
+    auto source_book = get_book(order_state.source);
+    source_book->replace(order_state.data);
+    if (order_state.dest == location::PUBLIC) {
+      continue;
+    }
+    auto dest_book = get_book(order_state.dest);
+    dest_book->replace(order_state.data);
+  }
+
+  for (auto &pair : state_bank[boost::hana::type_c<Trade>]) {
+    auto &trade_state = pair.second;
+    auto source_book = get_book(trade_state.source);
+    source_book->replace(trade_state.data);
+    if (trade_state.dest == location::PUBLIC) {
+      continue;
+    }
+    auto dest_book = get_book(trade_state.dest);
+    dest_book->replace(trade_state.data);
   }
 }
 
@@ -406,6 +427,8 @@ void Bookkeeper::mirror_positions(int64_t trigger_time, uint32_t strategy_uid) {
       position.yesterday_volume = 0;
       position.frozen_total = 0;
       position.frozen_yesterday = 0;
+      position.open_volume = 0;
+      position.static_yesterday = 0;
       position.avg_open_price = 0;
       position.position_cost_price = 0;
       position.update_time = trigger_time;
@@ -424,9 +447,10 @@ void Bookkeeper::mirror_positions(int64_t trigger_time, uint32_t strategy_uid) {
         auto yesterday_volume = strategy_position.yesterday_volume;
         auto frozen_total = strategy_position.frozen_total;
         auto frozen_yesterday = strategy_position.frozen_yesterday;
+        auto open_volume = strategy_position.open_volume;
+        auto static_yesterday = strategy_position.static_yesterday;
         auto avg_open_price = strategy_position.avg_open_price;
         auto position_cost_price = strategy_position.position_cost_price;
-
         auto total_volume = strategy_position.volume + position.volume;
 
         longfist::copy(strategy_position, position);
@@ -434,11 +458,14 @@ void Bookkeeper::mirror_positions(int64_t trigger_time, uint32_t strategy_uid) {
         strategy_position.ledger_category = LedgerCategory::Strategy;
         strategy_position.update_time = trigger_time;
 
-        if (volume > 0) {
-          strategy_position.volume += volume;
-          strategy_position.yesterday_volume += yesterday_volume;
-          strategy_position.frozen_total += frozen_total;
-          strategy_position.frozen_yesterday += frozen_yesterday;
+        strategy_position.volume = total_volume;
+        strategy_position.yesterday_volume += yesterday_volume;
+        strategy_position.frozen_total += frozen_total;
+        strategy_position.frozen_yesterday += frozen_yesterday;
+        strategy_position.open_volume += open_volume;
+        strategy_position.static_yesterday += static_yesterday;
+
+        if (total_volume != 0) {
           strategy_position.avg_open_price =
               ((position.avg_open_price * position.volume) + (avg_open_price * volume)) / total_volume;
           strategy_position.position_cost_price =
@@ -457,5 +484,4 @@ void Bookkeeper::mirror_positions(int64_t trigger_time, uint32_t strategy_uid) {
   }
   strategy_book->update(trigger_time, account_method_type_);
 }
-
 } // namespace kungfu::wingchun::book

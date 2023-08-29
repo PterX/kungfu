@@ -105,9 +105,8 @@ void master::register_app(const event_ptr &event) {
 
   auto now = time::now_in_nano();
   auto uid_str = fmt::format("{:08x}", app_location->uid);
-  SPDLOG_INFO("registering location {} uname {}", uid_str, app_location->uname);
+  SPDLOG_INFO("registering location {} uid {} uname {}", uid_str, app_location->uid, app_location->uname);
   auto master_cmd_location = location::make_shared(mode::LIVE, category::SYSTEM, "master", uid_str, home->locator);
-  auto public_writer = get_writer(location::PUBLIC);
   auto app_cmd_writer = get_io_device()->open_writer_at(master_cmd_location, app_location->uid);
 
   try_add_location(event->gen_time(), app_location);
@@ -124,13 +123,14 @@ void master::register_app(const event_ptr &event) {
   session_builder_.open_session(app_location, event->gen_time());
   app_cmd_writer->mark(event->gen_time(), SessionStart::tag);
 
+  auto public_writer = get_writer(location::PUBLIC);
+  public_writer->write(event->gen_time(), *std::dynamic_pointer_cast<Location>(app_location));
+  public_writer->write(event->gen_time(), register_data);
+
+  // hava to be put after register sent, because master cmd journal only be joined after register;
   require_write_to(event->gen_time(), app_location->uid, location::PUBLIC);
   require_write_to(event->gen_time(), app_location->uid, location::SYNC);
   require_write_to(event->gen_time(), app_location->uid, master_cmd_location->uid);
-
-  // after target app has public, sync, master cmd writer
-  public_writer->write(event->gen_time(), *std::dynamic_pointer_cast<Location>(app_location));
-  public_writer->write(event->gen_time(), register_data);
 
   write_time_reset(event->gen_time(), app_cmd_writer);
   write_trading_day(event->gen_time(), app_cmd_writer);
@@ -221,9 +221,8 @@ void master::handle_timer_tasks() {
     auto &app_tasks = app.second;
     for (auto it = app_tasks.begin(); it != app_tasks.end();) {
       auto &task = it->second;
-      if (task.checkpoint <= now) {
+      if (task.checkpoint <= now && has_writer(app_id)) {
         get_writer(app_id)->mark(0, Time::tag);
-        SPDLOG_DEBUG("app_id:{} , location: {}", app_id, get_location_uname(app_id));
         task.checkpoint += task.duration;
         task.repeat_count++;
         if (task.repeat_count >= task.repeat_limit) {
@@ -279,6 +278,7 @@ void master::on_request_write_to_band(const event_ptr &event) {
 
   // layout have to be journal, for locator::list_locations
   auto dirname = home->locator->layout_dir(target_location, enums::layout::JOURNAL);
+  reader_->join(target_location, location::PUBLIC, trigger_time);
 
   // notify others band location, but it represents a simulation location, no register, only location
   try_add_location(now(), target_location);
@@ -346,12 +346,7 @@ void master::on_request_read_from_sync(const event_ptr &event) {
 
 void master::on_request_read_from_others(const event_ptr &event) {
   RequestReadFromOthers request{};
-  if (event->data_type() == int8_t(FrameDataType::Json)) {
-    const std::string msg = event->data_as_string();
-    request = RequestReadFromOthers(msg.c_str(), msg.length());
-  } else {
-    request = event->data<RequestReadFromOthers>();
-  }
+  request = event->data<RequestReadFromOthers>();
   auto source = event->source();
   if (has_writer(source)) {
     get_writer(source)->write(now(), request);

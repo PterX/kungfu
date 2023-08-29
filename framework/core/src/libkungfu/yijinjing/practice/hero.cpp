@@ -45,6 +45,9 @@ hero::hero(io_device_ptr io_device)
   add_location(0, master_cmd_location_);
   add_location(0, cached_home_location_);
   add_location(0, ledger_home_location_);
+  for (const auto &l : get_home()->locator->list_locations("*", "*", "*", "*")) {
+    add_location(0, l);
+  }
   reader_ = io_device_->open_reader_to_subscribe();
 }
 
@@ -58,11 +61,13 @@ hero::~hero() {
 
 bool hero::is_usable() { return io_device_->is_usable(); }
 
-void hero::setup() {
+bool hero::setup() {
   io_device_->setup();
+  SPDLOG_DEBUG("io setup done");
   events_ = observable<>::create<event_ptr>([this](auto &s) { delegate_produce(this, s); }) | holdon();
   react();
   live_ = true;
+  return true;
 }
 
 void hero::step() {
@@ -74,6 +79,7 @@ void hero::run() {
   SPDLOG_INFO("[{:08x}] {} running", get_home_uid(), get_home_uname());
   SPDLOG_TRACE("from {} until {}", time::strftime(begin_time_), time::strftime(end_time_));
   setup();
+  SPDLOG_DEBUG("app setup done");
   continual_ = true;
   events_.connect(cs_);
   on_exit();

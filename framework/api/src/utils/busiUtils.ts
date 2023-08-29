@@ -38,7 +38,6 @@ import {
   InstrumentMinOrderVolume,
   KfDefaultSystemProcess,
   ExportTradingDataColumnsToFilter,
-  ParkedType,
   OrderTriggerStatus,
   TriggerFlag,
 } from '../config/tradingConfig';
@@ -70,9 +69,7 @@ import {
   CurrencyEnum,
   HistoryDateEnum,
   OrderTriggerStatusEnum,
-  OrderTriggerTypeEnum,
-  OrderTriggerParkedTypeEnum,
-  OrderTriggerTimeConditionEnum,
+  OrderTriggerConfigTypeEnum,
   OrderTriggerFlag,
 } from '../typings/enums';
 import {
@@ -569,33 +566,11 @@ const resolveOrderTriggerConfig = (
 ) => {
   if (originConfig) {
     const orderTriggerOriginConfig = originConfig.td?.order_trigger || {};
-    const orderTriggerTypesKeys = Object.keys(OrderTriggerTypeEnum);
-    const orderTriggerParkedTypesKeys = Object.keys(OrderTriggerParkedTypeEnum);
-    const orderTriggerTimeConditionKeys = Object.keys(
-      OrderTriggerTimeConditionEnum,
-    );
+    const orderTriggerTypesKeys = Object.keys(OrderTriggerConfigTypeEnum);
     return Object.keys(orderTriggerOriginConfig).reduce((config, key) => {
       if (orderTriggerTypesKeys.includes(key)) {
-        config[OrderTriggerTypeEnum[key]] = Object.keys(
-          orderTriggerOriginConfig[key] || {},
-        ).reduce((parkedConfig, parkedType) => {
-          if (orderTriggerParkedTypesKeys.includes(parkedType)) {
-            parkedConfig[OrderTriggerParkedTypeEnum[parkedType]] = Object.keys(
-              orderTriggerOriginConfig[key]?.[parkedType] || {},
-            ).reduce((timeConditionConfig, timeCondition) => {
-              if (orderTriggerTimeConditionKeys.includes(timeCondition)) {
-                timeConditionConfig[
-                  OrderTriggerTimeConditionEnum[timeCondition]
-                ] =
-                  !!orderTriggerOriginConfig[key]?.[parkedType]?.[
-                    timeCondition
-                  ];
-              }
-              return timeConditionConfig;
-            }, {});
-          }
-          return parkedConfig;
-        }, {});
+        config[OrderTriggerConfigTypeEnum[key]] =
+          !!orderTriggerOriginConfig[key];
       }
       return config;
     }, {} as KungfuApi.KfTdExtConfig['orderTrigger']);
@@ -1746,25 +1721,10 @@ export const dealTOrderTriggerFlag = (
   return TriggerFlag[+orderTriggerFlag as OrderTriggerFlag];
 };
 
-export const dealParkedType = (
-  parkedType: OrderTriggerParkedTypeEnum | number,
-): KungfuApi.KfTradeValueCommonData => {
-  return ParkedType[+parkedType as OrderTriggerParkedTypeEnum];
-};
-
 export const dealOrderTriggerStatus = (
   orderTriggerStatus: OrderTriggerStatusEnum | number,
-  errorMsg?: string,
 ): KungfuApi.KfTradeValueCommonData => {
-  return {
-    ...OrderTriggerStatus[+orderTriggerStatus as OrderTriggerStatusEnum],
-    ...(+orderTriggerStatus === OrderTriggerStatusEnum.Error && errorMsg
-      ? {
-          name: errorMsg,
-          color: 'red',
-        }
-      : {}),
-  };
+  return OrderTriggerStatus[+orderTriggerStatus as OrderTriggerStatusEnum];
 };
 
 export const dealVolumeCondition = (
@@ -2613,8 +2573,13 @@ export const isBrokerStateReady = (state: BrokerStateStatusTypes) => {
 };
 
 export function deleteNNFiles(rootPathName = KF_HOME) {
+  kfLogger.info('Deleting nn folder');
   return removeTargetFoldersInFolder(rootPathName, ['nn']).then((res) => {
+    if (res.successes.length) {
+      kfLogger.info(`Succeed delete 'nn' folders: ${res.successes.join(', ')}`);
+    }
     res.errors.forEach((err) => kfLogger.error(err));
+    kfLogger.info('Deleting nn folder finished');
   });
 }
 

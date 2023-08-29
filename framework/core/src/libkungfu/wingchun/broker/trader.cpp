@@ -7,6 +7,7 @@
 #include <kungfu/common.h>
 #include <kungfu/wingchun/broker/trader.h>
 #include <kungfu/yijinjing/journal/assemble.h>
+#include <kungfu/yijinjing/journal/tracer.h>
 #include <kungfu/yijinjing/time.h>
 
 using namespace kungfu::rx;
@@ -29,10 +30,15 @@ void TraderVendor::react() {
   events_ | skip_until(events_ | is(RequestStart::tag)) | is(OrderInput::tag) | $$(service_->handle_order_input(event));
   events_ | skip_until(events_ | is(RequestStart::tag)) | is_custom() | $$(service_->on_custom_event(event));
   apprentice::react();
+
+  // have to be in this position, only in react, the ResetBookRequest can be listened
+  events_ | is(ResetBookRequest::tag) |
+      $([&](const event_ptr &event) { get_writer(location::PUBLIC)->mark(now(), ResetBookRequest::tag); });
 }
 
 void TraderVendor::on_start() {
   BrokerVendor::on_start();
+  service_->pre_start();
 
   events_ | is(BlockMessage::tag) | $$(service_->insert_block_message(event));
   events_ | is(OrderTriggerInput::tag) | $$(service_->insert_order_trigger(event));
@@ -49,8 +55,6 @@ void TraderVendor::on_start() {
   events_ | is(PositionSync::tag) | $$(service_->handle_position_sync());
   events_ | is(Band::tag) | $$(service_->on_band(event));
   events_ | is(BatchOrderBegin::tag, BatchOrderEnd::tag) | $$(service_->handle_batch_order_tag(event));
-  events_ | is(ResetBookRequest::tag) |
-      $([&](const event_ptr &event) { get_writer(location::PUBLIC)->mark(now(), ResetBookRequest::tag); });
 
   service_->on_risk_setting();
   service_->recover();
@@ -233,34 +237,63 @@ bool Trader::insert_block_message(const event_ptr &event) {
 void Trader::enable_self_detect() { self_deal_detect_ = true; }
 
 void Trader::recover() {
+  recover_from_journal();
   deal_write_frame();
   deal_read_frame();
 }
 
-void Trader::deal_write_frame() {
-  assemble asb_write(get_home(), location::PUBLIC, AssembleMode::Write);
-  asb_write.seek_to_time(time::today_start()); // recover from today
-  SPDLOG_DEBUG("before assemble read");
+void Trader::recover_from_journal() {
+  tracer trc(get_home(), false, true, time::today_start(), time::now_in_nano());
+  SPDLOG_DEBUG("before tracer read");
   int64_t count = 0;
-  while (asb_write.data_available()) {
-    const auto &frame = asb_write.current_frame();
-    if (frame->msg_type() == Order::tag) {
-      const Order &order = frame->data<Order>();
-      orders_.insert_or_assign(order.order_id, state<Order>(frame->source(), frame->dest(), frame->gen_time(), order));
-      map_exchange_instrument_to_order_ids_.try_emplace(order.exchange_id.to_string() + order.instrument_id.to_string())
-          .first->second.emplace(order.order_id);
-    } else if (frame->msg_type() == Trade::tag) {
-      const Trade &trade = frame->data<Trade>();
-      trades_.insert_or_assign(trade.trade_id, state<Trade>(frame->source(), frame->dest(), frame->gen_time(), trade));
-    } else if (frame->msg_type() == OrderTrigger::tag) {
-      const OrderTrigger &trigger = frame->data<OrderTrigger>();
-      triggers_.insert_or_assign(trigger.trigger_id,
-                                 state<OrderTrigger>(frame->source(), frame->dest(), frame->gen_time(), trigger));
+  auto &state_bank = const_cast<cache::bank &>(get_vendor().get_state_bank());
+  while (trc.data_available()) {
+    const auto &frame = trc.current_frame();
+
+    switch (frame->msg_type()) {
+    case Order::tag:
+    case Trade::tag:
+    case OrderTrigger::tag:
+      get_vendor().feed_state_data(frame, state_bank);
+      ++count;
+      break;
     }
-    asb_write.next();
-    ++count;
+
+    trc.next();
   }
-  SPDLOG_DEBUG("after assemble read, count: {}", count);
+  SPDLOG_DEBUG("after tracer read, count: {}", count);
+}
+
+void Trader::deal_write_frame() {
+  SPDLOG_DEBUG("before state bank read");
+  int64_t count = 0;
+  auto &state_bank = get_vendor().get_state_bank();
+
+  auto &order_state_map = state_bank[boost::hana::type_c<Order>];
+  count += order_state_map.size();
+  std::for_each(order_state_map.begin(), order_state_map.end(), [&](auto &pair) {
+    auto &order_state = pair.second;
+    orders_.insert_or_assign(order_state.data.order_id, order_state);
+    map_exchange_instrument_to_order_ids_
+        .try_emplace(order_state.data.exchange_id.to_string() + order_state.data.instrument_id.to_string())
+        .first->second.emplace(uint64_t(order_state.data.order_id));
+  });
+
+  auto &trade_state_map = state_bank[boost::hana::type_c<Trade>];
+  count += trade_state_map.size();
+  std::for_each(trade_state_map.begin(), trade_state_map.end(), [&](auto &pair) {
+    auto &trade_state = pair.second;
+    trades_.insert_or_assign(trade_state.data.trade_id, trade_state);
+  });
+
+  auto &order_trigger_state_map = state_bank[boost::hana::type_c<OrderTrigger>];
+  count += order_trigger_state_map.size();
+  std::for_each(order_trigger_state_map.begin(), order_trigger_state_map.end(), [&](auto &pair) {
+    auto &order_trigger_state = pair.second;
+    triggers_.insert_or_assign(order_trigger_state.data.trigger_id, order_trigger_state);
+  });
+
+  SPDLOG_DEBUG("after state bank read, count: {}", count);
 
   // set order as Lost which without external_order_id
   std::for_each(orders_.begin(), orders_.end(), [&](auto &pair) {
@@ -268,9 +301,7 @@ void Trader::deal_write_frame() {
     if (not is_final_status(order.status) and (disable_recover_ or order.external_order_id.to_string().empty())) {
       order.status = OrderStatus::Lost;
       order.update_time = time::now_in_nano();
-      if (has_writer(pair.second.dest)) {
-        write_to(order, pair.second.dest);
-      }
+      try_write_to(order, pair.second.dest);
     }
   });
 
@@ -280,61 +311,51 @@ void Trader::deal_write_frame() {
     if (not is_final_status(trigger.status) and (disable_recover_ or trigger.external_trigger_id.to_string().empty())) {
       trigger.status = OrderStatus::Lost;
       trigger.update_time = time::now_in_nano();
-      if (has_writer(pair.second.dest)) {
-        write_to(trigger, pair.second.dest);
-      }
+      try_write_to(trigger, pair.second.dest);
     }
   });
 }
 
 void Trader::deal_read_frame() {
   // write a Lost Order to journal when read an OrderInput whose order_id not in orders_
-  assemble asb_read(get_home(), get_home_uid(), AssembleMode::Read);
-  asb_read.disjoin(get_vendor().get_ledger_home_location()->location_uid); // ledger
-  asb_read.disjoin(get_vendor().get_master_home_location()->location_uid); // master
-  asb_read.seek_to_time(time::today_start());                              // recover from today
-  SPDLOG_DEBUG("before assemble read");
+  SPDLOG_DEBUG("before state_bank read");
   int64_t count = 0;
-  while (asb_read.data_available()) {
-    const auto &frame = asb_read.current_frame();
-    if (frame->msg_type() == OrderInput::tag) {
-      const OrderInput &order_input = frame->data<OrderInput>();
-      if (orders_.find(order_input.order_id) == orders_.end()) {
-        if (has_writer(frame->source())) {
-          Order &order = get_writer(frame->source())->open_data<Order>();
-          order_from_input(order_input, order);
-          order.status = OrderStatus::Lost;
-          order.update_time = time::now_in_nano();
-          get_writer(frame->source())->close_data();
-        }
-      }
-    } else if (frame->msg_type() == OrderTriggerInput::tag) {
-      const OrderTriggerInput &trigger_input = frame->data<OrderTriggerInput>();
-      if (triggers_.find(trigger_input.trigger_id) == triggers_.end()) {
-        if (has_writer(frame->source())) {
-          OrderTrigger &trigger = get_writer(frame->source())->open_data<OrderTrigger>();
-          order_trigger_from_input(trigger_input, trigger);
-          trigger.status = OrderStatus::Lost;
-          trigger.update_time = time::now_in_nano();
-          get_writer(frame->source())->close_data();
-        }
-      }
+  auto &state_bank = get_vendor().get_state_bank();
+
+  auto &order_input_state_map = state_bank[boost::hana::type_c<OrderInput>];
+  count += order_input_state_map.size();
+  std::for_each(order_input_state_map.begin(), order_input_state_map.end(), [&](auto &pair) {
+    auto &order_input_state = pair.second;
+    auto &order_input = order_input_state.data;
+    if (orders_.find(order_input.order_id) == orders_.end()) {
+      Order order{};
+      order_from_input(order_input, order);
+      order.status = OrderStatus::Lost;
+      order.update_time = time::now_in_nano();
+      try_write_to(order, order_input_state.source);
     }
-    asb_read.next();
-    ++count;
-  }
-  SPDLOG_DEBUG("after assemble read, count: {}", count);
+  });
+
+  auto &order_trigger_input_state_map = state_bank[boost::hana::type_c<OrderTriggerInput>];
+  count += order_trigger_input_state_map.size();
+  std::for_each(order_trigger_input_state_map.begin(), order_trigger_input_state_map.end(), [&](auto &pair) {
+    auto &order_trigger_input_state = pair.second;
+    auto &order_trigger_input = order_trigger_input_state.data;
+    if (triggers_.find(order_trigger_input.trigger_id) == triggers_.end()) {
+      OrderTrigger trigger{};
+      order_trigger_from_input(order_trigger_input, trigger);
+      trigger.status = OrderStatus::Lost;
+      trigger.update_time = time::now_in_nano();
+      try_write_to(trigger, order_trigger_input_state.source);
+    }
+  });
+  SPDLOG_DEBUG("after state bank read, count: {}", count);
 }
 
 void Trader::clear_order_inputs(uint64_t location_uid) { order_inputs_.erase(location_uid); }
 
 [[maybe_unused]] void Trader::disable_recover() { disable_recover_ = true; }
 
-void Trader::on_risk_setting() {
-  const std::string msg = get_risk_setting();
-  SPDLOG_DEBUG("RiskSetting: {}", msg);
-  auto risk_setting_data = nlohmann::json::parse(msg);
-  disable_recover_ = risk_setting_data.value<bool>("disable_recover", false);
-}
+void Trader::on_risk_setting() {}
 
 } // namespace kungfu::wingchun::broker

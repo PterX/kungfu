@@ -32,6 +32,15 @@ public:
     });
   }
 
+  void operator>>(yijinjing::cache::bank &bank) {
+    boost::hana::for_each(longfist::StateDataTypes, [&](auto it) {
+      auto type = boost::hana::second(it);
+      for (const auto &element : state_map_[type]) {
+        bank << element.second;
+      }
+    });
+  }
+
   template <typename DataType>
   const std::unordered_map<uint64_t, state<DataType>> &operator[](const boost::hana::basic_type<DataType> &type) const {
     return state_map_[type];
@@ -55,11 +64,20 @@ public:
     target_map.insert_or_assign(event->template data<DataType>().uid(), *event);
   }
 
-  void operator>>([[maybe_unused]] const yijinjing::journal::writer_ptr &writer) const {
+  void operator>>(const yijinjing::journal::writer_ptr &writer) const {
     boost::hana::for_each(types_, [&](auto it) {
       auto type = boost::hana::second(it);
       for (const auto &element : state_map_[type]) {
         writer->write(0, element.second.data);
+      }
+    });
+  }
+
+  void operator>>(yijinjing::cache::bank &bank) {
+    boost::hana::for_each(types_, [&](auto it) {
+      auto type = boost::hana::second(it);
+      for (const auto &element : state_map_[type]) {
+        bank << element.second;
       }
     });
   }

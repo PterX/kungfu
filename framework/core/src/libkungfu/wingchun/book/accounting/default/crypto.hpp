@@ -42,11 +42,19 @@ public:
 
   virtual void apply_quote(Book_ptr &book, const Quote &quote) override {}
 
-  virtual void apply_order_input(Book_ptr &book, const OrderInput &input) override {}
+  virtual void apply_order_input(uint32_t source, uint32_t dest, Book_ptr &book, const OrderInput &input) override {}
 
-  virtual void apply_order(Book_ptr &book, const Order &order) override {}
+  virtual void apply_order(uint32_t source, uint32_t dest, Book_ptr &book, const Order &order) override {
+    if (not guard_order_accounting(book, order)) {
+      return;
+    }
+  }
 
-  virtual void apply_trade(Book_ptr &book, const Trade &trade) override {
+  virtual void apply_trade(uint32_t source, uint32_t dest, Book_ptr &book, const Trade &trade) override {
+    if (not guard_trade_accounting(book, trade)) {
+      return;
+    }
+
     kungfu::array<char, INSTRUMENT_ID_LEN> instrument_a;
     kungfu::array<char, INSTRUMENT_ID_LEN> instrument_b;
     kungfu::array<char, INSTRUMENT_ID_LEN> instrument_commission;

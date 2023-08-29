@@ -4,7 +4,7 @@
     "name": "Kungfu Trader",
     "email": "info@kungfu.link"
   },
-  "version": "2.5.5",
+  "version": "2.5.6-alpha.27",
   "description": "Kungfu Extension - XTP Demo",
   "license": "Apache-2.0",
   "main": "package.json",
@@ -29,10 +29,10 @@
     "package": "kfs project package"
   },
   "dependencies": {
-    "@kungfu-trader/kungfu-core": "^2.5.5"
+    "@kungfu-trader/kungfu-core": "^2.5.6-alpha.27"
   },
   "devDependencies": {
-    "@kungfu-trader/kungfu-sdk": "^2.5.5"
+    "@kungfu-trader/kungfu-sdk": "^2.5.6-alpha.27"
   },
   "kungfuDependencies": {
     "xtp": "v2.2.32.2"
@@ -85,7 +85,10 @@
         "buffer_size_tip": "请填写 缓冲区大小(mb)",
         "sync_external_order": "同步外部订单",
         "sync_external_order_msg": "是否同步外部订单",
-        "sync_external_order_tip": "若开启则同步用户在其他交易软件的订单"
+        "sync_external_order_tip": "若开启则同步用户在其他交易软件的订单",
+        "recover_order_trade": "恢复订单",
+        "recover_order_trade_msg": "启动时是否查询恢复订单",
+        "recover_order_trade_tip": "若开启则启动时查询今日委托和成交"
       },
       "en-US": {
         "account_name": "account name",
@@ -112,7 +115,10 @@
         "buffer_size_tip": "Please enter buffer size(mb)",
         "sync_external_order": "sync external order",
         "sync_external_order_msg": "Whether open sync_external_order",
-        "sync_external_order_tip": "If enabled, it synchronizes users' orders in other trading software"
+        "sync_external_order_tip": "If enabled, it synchronizes users' orders in other trading software",
+        "recover_order_trade": "recover order trade",
+        "recover_order_trade_msg": "Whether recover order trade",
+        "recover_order_trade_tip": "If enabled, query order and trade when TD ready"
       }
     },
     "config": {
@@ -178,6 +184,15 @@
             "required": false,
             "default": false,
             "tip": "xtp.sync_external_order_tip"
+          },
+          {
+            "key": "recover_order_trade",
+            "name": "xtp.recover_order_trade",
+            "type": "bool",
+            "errMsg": "xtp.recover_order_trade_msg",
+            "required": false,
+            "default": false,
+            "tip": "xtp.recover_order_trade_tip"
           }
         ]
       },

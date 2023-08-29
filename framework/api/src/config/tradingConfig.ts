@@ -25,7 +25,6 @@ import {
   BasketVolumeTypeEnum,
   BasketOrderStatusEnum,
   CurrencyEnum,
-  OrderTriggerParkedTypeEnum,
   OrderTriggerStatusEnum,
   FundTransEnum,
   OrderTriggerFlag,
@@ -393,12 +392,6 @@ export const AllFinishedOrderStatus = [
   OrderStatusEnum.Lost,
 ];
 
-export const UnfinishedOrderTriggerStatus = [
-  OrderStatusEnum.Pending,
-  OrderStatusEnum.Submitted,
-  OrderStatusEnum.PartialFilledActive,
-];
-
 export const OrderCancelledStatus = [
   OrderStatusEnum.Cancelled,
   OrderStatusEnum.PartialFilledNotActive,
@@ -497,18 +490,6 @@ export const TimeCondition: Record<
   [TimeConditionEnum.GTD]: { name: t('tradingConfig.GTD') },
   [TimeConditionEnum.GFA]: { name: t('tradingConfig.GFA') },
   [TimeConditionEnum.Unknown]: { name: t('tradingConfig.unknown') },
-};
-
-export const ParkedType: Record<
-  OrderTriggerParkedTypeEnum,
-  KungfuApi.KfTradeValueCommonData
-> = {
-  [OrderTriggerParkedTypeEnum.Server]: {
-    name: t('tradingConfig.server_order_trigger_label'),
-  },
-  [OrderTriggerParkedTypeEnum.Local]: {
-    name: t('tradingConfig.local_order_trigger_label'),
-  },
 };
 
 export const OrderTriggerStatus: Record<
@@ -1093,3 +1074,25 @@ export const TriggerFlag: Record<
     name: t('orderTriggerConfig.trigger_cancel'),
   },
 };
+
+export const OrderTriggerSide = [SideEnum.Buy, SideEnum.Sell];
+
+export const OrderTriggerOffset = [
+  OffsetEnum.Open,
+  OffsetEnum.Close,
+  OffsetEnum.CloseToday,
+  OffsetEnum.CloseYest,
+];
+
+export const OrderTriggerPriceType = [
+  PriceTypeEnum.Limit,
+  PriceTypeEnum.Market,
+  PriceTypeEnum.FakBest5,
+  PriceTypeEnum.ForwardBest,
+  PriceTypeEnum.ReverseBest,
+  PriceTypeEnum.Fak,
+  PriceTypeEnum.Fok,
+  PriceTypeEnum.EnhancedLimit,
+  PriceTypeEnum.AtAuctionLimit,
+  PriceTypeEnum.AtAuction,
+];

@@ -28,6 +28,7 @@ process.env.CLI_DIR = dealSpaceInPath(CLI_DIR);
 process.env.KF_HOME = dealSpaceInPath(KF_HOME);
 process.env.KF_RUNTIME_DIR = dealSpaceInPath(KF_RUNTIME_DIR);
 process.env.KF_CONFIG_DIR = dealSpaceInPath(KF_CONFIG_DIR);
+process.env.KF_APP_RUNTIME_DIR = process.env.KF_APP_RUNTIME_DIR || __dirname;
 process.env.PYTHONUTF8 = '1';
 process.env.PYTHONIOENCODING = 'utf8';
 

@@ -49,7 +49,7 @@ class Strategy(wc.Strategy):
     def __init_strategy(self, path):
         strategy_dir = os.path.dirname(path)
         name_no_ext = os.path.split(os.path.basename(path))
-        sys.path.append(os.path.relpath(strategy_dir))
+        sys.path.insert(0, strategy_dir)
         self._module = importlib.import_module(os.path.splitext(name_no_ext[1])[0])
         self._pre_start = getattr(self._module, "pre_start", lambda ctx: None)
         self._post_start = getattr(self._module, "post_start", lambda ctx: None)
@@ -249,7 +249,7 @@ class Strategy(wc.Strategy):
         self.ctx.req_history_trade = wc_context.req_history_trade
         self.ctx.update_strategy_state = wc_context.update_strategy_state
         self.ctx.is_book_held = wc_context.is_book_held
-        self.ctx.is_positions_mirrored = wc_context.is_positions_mirrored
+        self.ctx.is_positions_held = wc_context.is_positions_held
         self.ctx.is_bypass_accounting = wc_context.is_bypass_accounting
         self.ctx.bypass_accounting = wc_context.bypass_accounting
         self.ctx.hold_book = wc_context.hold_book

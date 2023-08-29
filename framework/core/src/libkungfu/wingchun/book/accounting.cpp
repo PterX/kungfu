@@ -9,46 +9,62 @@
 #include "accounting/default/future.hpp"
 #include "accounting/default/repo.hpp"
 #include "accounting/default/stock.hpp"
-#include "accounting/otc/future.hpp"
 #include "accounting/otc/stock.hpp"
 
 using namespace kungfu::wingchun;
+using namespace kungfu::longfist::enums;
 
 namespace kungfu::wingchun::book {
-void AccountingMethod::setup_defaults(Bookkeeper &bookkeeper,
-                                      const longfist::enums::AccountingMethodType accounting_method_type) {
+void AccountingMethod::setup_defaults(Bookkeeper &bookkeeper, const AccountingMethodType accounting_method_type) {
   auto bond_accounting_method = std::make_shared<BondAccountingMethod>();
   auto repo_accounting_method = std::make_shared<RepoAccountingMethod>();
   auto crypto_accounting_method = std::make_shared<CryptoAccountingMethod>();
 
+  auto future_accounting_method = std::make_shared<FutureAccountingMethod>();
+
+  if (accounting_method_type == AccountingMethodType::OTC) {
+    auto otc_stock_accounting_method = std::make_shared<OtcStockAccountingMethod>();
+    bookkeeper.set_accounting_method(InstrumentType::Unknown, otc_stock_accounting_method);
+    bookkeeper.set_accounting_method(InstrumentType::Stock, otc_stock_accounting_method);
+    bookkeeper.set_accounting_method(InstrumentType::TechStock, otc_stock_accounting_method);
+    bookkeeper.set_accounting_method(InstrumentType::Fund, otc_stock_accounting_method);
+    bookkeeper.set_accounting_method(InstrumentType::Index, otc_stock_accounting_method);
+  } else {
+    auto stock_accouting_method = std::make_shared<StockAccountingMethod>();
+    bookkeeper.set_accounting_method(InstrumentType::Unknown, stock_accouting_method);
+    bookkeeper.set_accounting_method(InstrumentType::Stock, stock_accouting_method);
+    bookkeeper.set_accounting_method(InstrumentType::TechStock, stock_accouting_method);
+    bookkeeper.set_accounting_method(InstrumentType::Fund, stock_accouting_method);
+    bookkeeper.set_accounting_method(InstrumentType::Index, stock_accouting_method);
+  }
+
+  bookkeeper.set_accounting_method(InstrumentType::StockOption, future_accounting_method);
+  bookkeeper.set_accounting_method(InstrumentType::Future, future_accounting_method);
   bookkeeper.set_accounting_method(InstrumentType::Bond, bond_accounting_method);
   bookkeeper.set_accounting_method(InstrumentType::Repo, repo_accounting_method);
   bookkeeper.set_accounting_method(InstrumentType::Crypto, crypto_accounting_method);
   bookkeeper.set_accounting_method(InstrumentType::CryptoFuture, crypto_accounting_method);
   bookkeeper.set_accounting_method(InstrumentType::CryptoUFuture, crypto_accounting_method);
-
-  if (accounting_method_type == longfist::enums::AccountingMethodType::OTC) {
-    auto otc_stock_accounting_method = std::make_shared<OtcStockAccountingMethod>();
-    auto otc_future_accounting_method = std::make_shared<OtcFutureAccountingMethod>();
-
-    bookkeeper.set_accounting_method(InstrumentType::Stock, otc_stock_accounting_method);
-    bookkeeper.set_accounting_method(InstrumentType::Fund, otc_stock_accounting_method);
-    bookkeeper.set_accounting_method(InstrumentType::TechStock, otc_stock_accounting_method);
-    bookkeeper.set_accounting_method(InstrumentType::Index, otc_stock_accounting_method);
-    bookkeeper.set_accounting_method(InstrumentType::Unknown, otc_stock_accounting_method);
-    bookkeeper.set_accounting_method(InstrumentType::StockOption, otc_future_accounting_method);
-    bookkeeper.set_accounting_method(InstrumentType::Future, otc_future_accounting_method);
-  } else {
-    auto stock_accounting_method = std::make_shared<StockAccountingMethod>();
-    auto future_accounting_method = std::make_shared<FutureAccountingMethod>();
-
-    bookkeeper.set_accounting_method(InstrumentType::Stock, stock_accounting_method);
-    bookkeeper.set_accounting_method(InstrumentType::Fund, stock_accounting_method);
-    bookkeeper.set_accounting_method(InstrumentType::TechStock, stock_accounting_method);
-    bookkeeper.set_accounting_method(InstrumentType::Index, stock_accounting_method);
-    bookkeeper.set_accounting_method(InstrumentType::Unknown, stock_accounting_method);
-    bookkeeper.set_accounting_method(InstrumentType::StockOption, future_accounting_method);
-    bookkeeper.set_accounting_method(InstrumentType::Future, future_accounting_method);
-  }
 }
+
+bool AccountingMethod::guard_order_accounting(Book_ptr book, const longfist::types::Order &order) {
+  auto &orders = book->orders;
+  if (not is_final_status(order.status)) {
+    return false;
+  }
+
+  if (orders.find(order.order_id) != orders.end() and is_final_status(orders.at(order.order_id).status)) {
+    return false;
+  }
+  return true;
+}
+
+bool AccountingMethod::guard_trade_accounting(Book_ptr book, const longfist::types::Trade &trade) {
+  auto &trades = book->trades;
+  if (trades.find(trade.trade_id) != trades.end()) {
+    return false;
+  }
+  return true;
+};
+
 } // namespace kungfu::wingchun::book

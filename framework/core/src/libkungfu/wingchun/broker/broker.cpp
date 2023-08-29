@@ -20,7 +20,7 @@ using namespace kungfu::yijinjing::journal;
 
 namespace kungfu::wingchun::broker {
 BrokerVendor::BrokerVendor(location_ptr location, bool low_latency, const std::string &arguments)
-    : apprentice(std::move(location), low_latency) {}
+    : apprentice(std::move(location), low_latency, arguments) {}
 
 void BrokerVendor::on_start() {
   events_ | is(RequestWriteTo::tag, RequestReadFrom::tag, RequestReadFromPublic::tag, RequestReadFromSync::tag) |
@@ -38,6 +38,8 @@ void BrokerVendor::notify_broker_state() {
 }
 
 BrokerService::BrokerService(BrokerVendor &vendor) : vendor_(vendor), state_(BrokerState::Pending) {}
+
+void BrokerService::pre_start() {}
 
 void BrokerService::on_start() {}
 

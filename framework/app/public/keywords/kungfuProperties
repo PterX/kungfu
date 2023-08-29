@@ -93,6 +93,8 @@ volume
 yesterday_volume
 frozen_total
 frozen_yesterday
+static_yesterday
+open_volume
 last_price
 avg_open_price
 position_cost_price
@@ -146,7 +148,6 @@ dest_id
 trigger_id
 stop_price
 trigger_type
-parked_type
 external_trigger_id
 order_trigger_action_id
 is_last
@@ -195,7 +196,6 @@ frame_count
 info_a
 info_b
 info_c
-disable_recover
 open_ratio
 close_ratio
 close_today_ratio
@@ -301,9 +301,6 @@ SZSE
 HKEx
 MarketType
 Snapshot
-Entrust
-Transaction
-Tree
 SubscribeDataType
 Stock
 Future
@@ -373,7 +370,7 @@ EnhancedLimit
 AtAuctionLimit
 AtAuction
 PriceType
-Latest
+Last
 Sell5
 Sell4
 Sell3
@@ -472,9 +469,6 @@ BidPriceGreaterEqualStopPrice
 BidPriceLesserThanStopPrice
 BidPriceLesserEqualStopPrice
 OrderTriggerType
-Server
-Local
-ParkedType
 Low
 Medium
 High

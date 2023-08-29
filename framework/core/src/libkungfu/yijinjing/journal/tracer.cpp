@@ -111,6 +111,10 @@ frame_ptr tracer::current_frame() const {
 void tracer::join_for_in(const yijinjing::journal::frame_ptr &frame) const {
   if (frame->dest() == home_->uid and frame->msg_type() == RequestReadFrom::tag) {
     auto request = frame->data<RequestReadFrom>();
+    if (locations_.find(request.source_id) == locations_.end()) {
+      SPDLOG_WARN("RequestReadFrom no location {}", (uint32_t)request.source_id);
+      return;
+    }
     auto source_location = locations_.at(request.source_id);
     if (page::check_page_existed(source_location, home_->uid)) {
       reader_->join(source_location, home_->uid, request.from_time);
@@ -120,6 +124,10 @@ void tracer::join_for_in(const yijinjing::journal::frame_ptr &frame) const {
   }
   if (frame->dest() == home_->uid and frame->msg_type() == RequestReadFromPublic::tag) {
     auto request = frame->data<RequestReadFromPublic>();
+    if (locations_.find(request.source_id) == locations_.end()) {
+      SPDLOG_WARN("RequestReadFromPublic no location {}", (uint32_t)request.source_id);
+      return;
+    }
     auto source_location = locations_.at(request.source_id);
     if (page::check_page_existed(source_location, location::PUBLIC)) {
       reader_->join(source_location, location::PUBLIC, request.from_time);
@@ -129,6 +137,10 @@ void tracer::join_for_in(const yijinjing::journal::frame_ptr &frame) const {
   }
   if (frame->dest() == home_->uid and frame->msg_type() == RequestReadFromSync::tag) {
     auto request = frame->data<RequestReadFromSync>();
+    if (locations_.find(request.source_id) == locations_.end()) {
+      SPDLOG_WARN("RequestReadFromSync no location {}", (uint32_t)request.source_id);
+      return;
+    }
     auto source_location = locations_.at(request.source_id);
     if (page::check_page_existed(source_location, location::SYNC)) {
       reader_->join(source_location, location::SYNC, request.from_time);
@@ -138,6 +150,10 @@ void tracer::join_for_in(const yijinjing::journal::frame_ptr &frame) const {
   }
   if (frame->dest() == home_->uid and frame->msg_type() == RequestReadFromOthers::tag) {
     auto request = frame->data<RequestReadFromOthers>();
+    if (locations_.find(request.source_id) == locations_.end()) {
+      SPDLOG_WARN("RequestReadFromOthers no location {}", (uint32_t)request.source_id);
+      return;
+    }
     auto source_location = locations_.at(request.source_id);
     if (page::check_page_existed(source_location, request.dest_id)) {
       reader_->join(source_location, request.dest_id, request.from_time);

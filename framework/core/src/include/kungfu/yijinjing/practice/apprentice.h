@@ -37,7 +37,7 @@ private:
 
 class apprentice : public hero {
 public:
-  explicit apprentice(yijinjing::data::location_ptr home, bool low_latency = false, std::string arguments = {});
+  explicit apprentice(yijinjing::data::location_ptr home, bool low_latency = false, std::string arguments = "{}");
 
   bool is_started() const;
 
@@ -79,8 +79,22 @@ public:
   virtual void on_trading_day(const event_ptr &event, int64_t daytime);
 
   template <typename DataType>
-  void write_to(int64_t trigger_time, DataType &data, uint32_t dest_id = yijinjing::data::location::PUBLIC) {
+  void write_to(int64_t trigger_time, const DataType &data, uint32_t dest_id = yijinjing::data::location::PUBLIC) {
     get_writer(dest_id)->write(trigger_time, data);
+  }
+
+  template <typename DataType>
+  void try_write_to(int64_t trigger_time, const DataType &data, uint32_t dest_id = yijinjing::data::location::PUBLIC) {
+    if (has_writer(dest_id)) {
+      get_writer(dest_id)->write(trigger_time, data);
+    } else {
+      events_ | rx::is(longfist::types::Channel::tag) | rx::filter([&, dest_id](const event_ptr &event) {
+        const longfist::types::Channel &channel = event->data<longfist::types::Channel>();
+        return channel.source_id == get_home_uid() and channel.dest_id == dest_id;
+      }) | rx::first() |
+          rx::$([this, data, dest_id](const event_ptr &event) { write_to(now(), data, dest_id); });
+      try_write_dest_ids_.emplace(dest_id);
+    }
   }
 
   bool release_page();
@@ -102,11 +116,11 @@ protected:
 
   virtual void on_start();
 
+  virtual void on_register(int64_t trigger_time, const longfist::types::Register &register_data);
+
+  virtual void on_deregister(const event_ptr &event);
+
   void on_request_read_from_others(const event_ptr &event);
-
-  void on_register(int64_t trigger_time, const longfist::types::Register &register_data);
-
-  void on_deregister(const event_ptr &event);
 
   void on_read_from(const event_ptr &event);
 
@@ -239,6 +253,7 @@ private:
   yijinjing::practice::cleaner cleaner_;
   std::unordered_map<int, int64_t> timer_checkpoints_ = {};
   inline static thread_local yijinjing::journal::writer_ptr thread_writer_;
+  std::unordered_set<uint32_t> try_write_dest_ids_{};
 
   void checkin();
 

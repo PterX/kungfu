@@ -36,7 +36,7 @@ import { messagePrompt } from '@kungfu-trader/kungfu-app/src/renderer/assets/met
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 
 const { t } = VueI18n.global;
-const { success, error, warning } = messagePrompt();
+const { success, error, warn } = messagePrompt();
 const { dashboardBodyHeight, dashboardBodyWidth, handleBodySizeChange } =
   useDashboardBodySize();
 
@@ -93,7 +93,7 @@ function handleConfirmAddInstrumentCallback(val: string): Promise<void> {
 
   if (targetIndex !== -1) {
     return Promise.reject(new Error('重复订阅')).catch((err) => {
-      warning(err.message);
+      warn(err.message);
     });
   }
 

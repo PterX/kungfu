@@ -349,12 +349,12 @@ export default {
     order_trigger_status_error: 'Error',
     batch: 'Batch',
     batch_order_trigger: 'Batch embedded orders',
+    has_error_csv_order:
+      'The information filled in is not compliant. Please check the input information and place the order failed',
     order_trigger_td_error:
       'The current counter {tdName} does not support placing embedded orders. Please contact the administrator',
     order_trigger_not_future:
       'Failed to place the order, the information of the {rowStr} target is incorrect (currently only futures targets are supported), please check',
-    batch_order_trigger_results:
-      'Batch payment succeeded {success}, failed {error}',
     instrument_id_header_desc:
       'Target code, string, (* Only CTP/Ronghang counter can be filled in)',
     exchange_id_header_desc:
@@ -455,6 +455,7 @@ export default {
       'Confirm the cancellation of the embedded order',
     cancel_order_trigger_context:
       'Do you want to cancel the pre embedded cancellation under this commission order',
+    make_order_type: '(Embedded order)',
   },
 
   orderTriggerConfig: {
@@ -468,7 +469,14 @@ export default {
     order_finished: 'The delegation has ended and cannot be operated',
     order_trigger_request_success: 'Refresh successful',
     make_order_modal_tip:
-      'Note: Pre embedded orders only support placing orders during non trading periods and will be triggered when the trading status of the exchange changes. Only price limits are supported',
+      'Note: Pre embedded orders only support placing orders during non trading periods and will be triggered when the trading status of the exchange changes.',
+    error_msg_column: 'Return Information',
+    order_trigger_success: 'Success',
+    order_trigger_error_row: 'Line {index}',
+    empty_instrument: 'empty',
+    err_modal_title: 'Error details',
+    order_trigger_not_future: 'Not futures',
+    start_process: 'please start {process} first',
   },
 
   tdConfig: {
@@ -593,7 +601,12 @@ export default {
   posGlobalConfig: {
     instrument_id: 'instrument_id',
     account_id_resolved: 'account_id_resolved',
+    static_yesterday: 'yesterday_volume',
+    static_yesterday_volume_setting: 'yesterday_volume(position before today)',
+    open_volume: 'open_volume',
+    close_volume: 'close_volume',
     yesterday_volume: 'yesterday_volume',
+    yesterday_volume_setting: 'yesterday_volume(yesterday volume remaining)',
     today_volume: 'today_volume',
     sum_volume: 'sum_volume',
     frozen_total: 'frozen_total',
@@ -602,6 +615,7 @@ export default {
     avg_open_price: 'avg_price',
     last_price: 'last_price',
     unrealized_pnl: 'unrealized_pnl',
+    pos_detail_header: 'Position',
   },
 
   marketDataConfig: {
@@ -678,6 +692,7 @@ export default {
     select_channel: 'Filter channels',
 
     selete_msg_type: 'Filter MsgType',
+    empty_export_data: 'No information to export',
   },
 
   tradeConfig: {
@@ -764,7 +779,7 @@ export default {
     select_language_desc: 'Select Language, the modified restart takes effect',
     bypass_archive: 'ByPass Archive',
     bypass_archive_desc:
-      'Archive only delete journal and logs, zip nomore files',
+      "If open, archive will delete journal and zip files, and these files data can't be recovered, will accelerate start system",
 
     bypass_subscribe_position: 'Skip position market subscription',
     bypass_subscribe_position_desc:
@@ -824,19 +839,6 @@ export default {
     close_today: 'Close Today',
     close_yesterday: 'Close Yesterday',
     min: 'Min',
-
-    update: 'Upgrade Version',
-    is_check_version: 'Check Version',
-    is_check_version_desc: 'Check the client version when start kungfu',
-    current_version: 'Current version',
-    already_latest_version: 'Already latest version',
-    new_version: 'New version',
-    start_download: 'Start Download',
-    find_new_version: 'Found new version: {version}\nIf you want download now?',
-    downloaded: 'Download finished, wait to install',
-    to_install: 'To install',
-    warning_before_install:
-      "Installing will clean today's trading data and quit Kungfu (If you need, make a backup at first), sure install now? (suggest install when today's trade end)",
   },
 
   风控: 'Risk Setting',
@@ -850,6 +852,23 @@ export default {
   最大回撤率: 'Maximum withdrawal rate',
   标的白名单: 'white list',
   白名单设置警告: 'Please set the whitelist for this account first',
+
+  autoUpdater: {
+    update: 'Upgrade Version',
+    is_check_version: 'Check Version',
+    is_check_version_desc: 'Check the client version when start kungfu',
+    current_version: 'Current version',
+    already_latest_version: 'Already latest version',
+    new_version: 'New version',
+    retry_check: 'Check',
+    start_download: 'Start Download',
+    retry_download: 'Retry',
+    find_new_version: 'Found new version: {version}\nIf you want download now?',
+    downloaded: 'Download finished, wait to install',
+    to_install: 'To install',
+    warning_before_install:
+      "Installing will clean today's trading data and quit Kungfu (If you need, make a backup at first), sure install now? (suggest install when today's trade end)",
+  },
 
   validate: {
     no_special_characters:
@@ -926,6 +945,8 @@ export default {
 
   quit_confirm:
     'Exiting the application ends all transactions, Confirm to exit?',
+  init_after_reload:
+    'Main processes not running, all trading are affected, click confirm to restart main processes',
   restart_process:
     'Kungfu graphics process is interrupted. The interruption will not affect transactions. Do you want to restart the graphics process?',
 

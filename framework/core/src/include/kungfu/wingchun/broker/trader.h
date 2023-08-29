@@ -112,7 +112,7 @@ public:
 
   void enable_self_detect();
 
-  [[maybe_unused]] void disable_recover();
+  void disable_recover();
 
   virtual void on_recover(){};
 
@@ -147,6 +147,8 @@ private:
   bool has_self_deal_risk(const event_ptr &event);
 
   void recover();
+
+  void recover_from_journal();
 
   void deal_write_frame();
 

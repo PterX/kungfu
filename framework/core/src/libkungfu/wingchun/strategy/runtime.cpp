@@ -134,9 +134,7 @@ uint64_t RuntimeContext::insert_order_trigger(const std::string &instrument_id, 
                                               const std::string &source, const std::string &account, double limit_price,
                                               int64_t volume, longfist::enums::PriceType type,
                                               longfist::enums::Side side, longfist::enums::Offset offset,
-                                              longfist::enums::OrderTriggerType trigger_type,
-                                              longfist::enums::TimeCondition time_condition,
-                                              longfist::enums::ParkedType parked_type, double stop_price,
+                                              longfist::enums::OrderTriggerType trigger_type, double stop_price,
                                               longfist::enums::HedgeFlag hedge_flag, bool is_swap) {
   auto account_location_uid = get_td_location_uid(source, account);
   if (not broker_client_.is_ready(account_location_uid)) {
@@ -165,8 +163,6 @@ uint64_t RuntimeContext::insert_order_trigger(const std::string &instrument_id, 
   input.offset = offset;
   input.hedge_flag = hedge_flag;
   input.is_swap = is_swap;
-  input.time_condition = time_condition;
-  input.parked_type = parked_type;
   input.insert_time = time::now_in_nano();
   writer->close_data();
   return input.trigger_id;

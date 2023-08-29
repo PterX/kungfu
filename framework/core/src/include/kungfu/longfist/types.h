@@ -150,6 +150,8 @@ KF_DEFINE_PACK_TYPE(                                                            
     (int64_t, yesterday_volume), // 昨仓数量
     (int64_t, frozen_total),     // 冻结数量
     (int64_t, frozen_yesterday), // 冻结昨仓
+    (int64_t, static_yesterday), // 固定昨仓数量
+    (int64_t, open_volume),      // 今开数量
 
     (double, last_price), // 最新价
 
@@ -367,7 +369,6 @@ KF_DEFINE_PACK_TYPE(                                                //
     (enums::VolumeCondition, volume_condition), // 成交量类型
     (enums::TimeCondition, time_condition),     // 成交时间类型
     (enums::OrderTriggerType, trigger_type),    // 条件触发类型
-    (enums::ParkedType, parked_type),           // 本地 or 服务器 埋单
 
     (int64_t, insert_time) // 写入时间
 );
@@ -406,8 +407,7 @@ KF_DEFINE_PACK_TYPE(                                             //
     (enums::PriceType, price_type),             // 价格类型
     (enums::VolumeCondition, volume_condition), // 成交量类型
     (enums::TimeCondition, time_condition),     // 成交时间类型
-    (enums::OrderTriggerType, trigger_type),    // 条件触发类型
-    (enums::ParkedType, parked_type)            // 本地 or 服务器 埋单
+    (enums::OrderTriggerType, trigger_type)     // 条件触发类型
 );
 
 KF_DEFINE_PACK_TYPE(                                                              //
@@ -777,7 +777,6 @@ KF_DEFINE_DATA_TYPE(                                   //
     (std::string, group),                              //
     (std::string, name),                               //
     (enums::mode, mode),                               //
-    (bool, disable_recover),                           // 是否跳过今日委托恢复
     (std::string, value)                               //
 );
 

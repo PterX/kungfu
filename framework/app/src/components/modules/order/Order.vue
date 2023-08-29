@@ -52,14 +52,14 @@ import {
   OrderCancelledStatus,
   OrderTriggerCancelStatus,
   UnfinishedOrderStatus,
-  UnfinishedOrderTriggerStatus,
 } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import {
   HistoryDateEnum,
   OrderStatusEnum,
   OrderActionFlagEnum,
   OrderTriggerStatusEnum,
-  OrderTriggerTypeEnum,
+  OrderTriggerConfigTypeEnum,
+  OrderTriggerFlag,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
   showTradingDataDetail,
@@ -160,8 +160,10 @@ onMounted(() => {
             );
 
             return toRaw({
-              ...dealDataWithCache(item, () =>
-                dealOrder(watcher, item, false, price_precision),
+              ...dealDataWithCache(
+                item,
+                () => dealOrder(watcher, item, false, price_precision),
+                { price_precision },
               ),
               ...getOrderLatencyDataByOrderStat(
                 item,
@@ -186,8 +188,10 @@ onMounted(() => {
             );
 
             const orderResolved = toRaw({
-              ...dealDataWithCache(curOrder, () =>
-                dealOrder(watcher, curOrder, false, price_precision),
+              ...dealDataWithCache(
+                curOrder,
+                () => dealOrder(watcher, curOrder, false, price_precision),
+                { price_precision },
               ),
               ...getOrderLatencyDataByOrderStat(
                 curOrder,
@@ -218,7 +222,7 @@ onMounted(() => {
         const source = watcher.getLocationUID(currentGlobalKfLocation.value);
         orderCurrentOrderTriggers.value = watcher.ledger.OrderTrigger.filter(
           'action_flag',
-          1,
+          OrderTriggerFlag.TriggerCancel,
         )
           .filter('source', source)
           .list()
@@ -290,8 +294,10 @@ watch(historyDate, async (newDate) => {
           );
 
           return toRaw({
-            ...dealDataWithCache(item, () =>
-              dealOrder(window.watcher, item, true, price_precision),
+            ...dealDataWithCache(
+              item,
+              () => dealOrder(window.watcher, item, true, price_precision),
+              { price_precision },
             ),
             ...getOrderLatencyDataByOrderStat(
               item,
@@ -320,10 +326,6 @@ function isFinishedOrderStatus(orderStatus: OrderStatusEnum): boolean {
   return !UnfinishedOrderStatus.includes(orderStatus);
 }
 
-function isFinishedOrderTriggerStatus(orderStatus: OrderStatusEnum): boolean {
-  return !UnfinishedOrderTriggerStatus.includes(orderStatus);
-}
-
 const cancelOrderTriggerBtnVisible = computed(() => {
   const rootPackageJson = readRootPackageJsonSync();
   if (rootPackageJson?.appConfig?.orderTrigger === false) {
@@ -332,7 +334,10 @@ const cancelOrderTriggerBtnVisible = computed(() => {
 
   const tdName = currentGlobalKfLocation.value?.group as string;
   const extConfig = extConfigs.value.td[tdName];
-  if (extConfig && extConfig.orderTrigger[OrderTriggerTypeEnum.CancelOrder]) {
+  if (
+    extConfig &&
+    extConfig.orderTrigger[OrderTriggerConfigTypeEnum.CancelOrder]
+  ) {
     return true;
   } else {
     return false;
@@ -363,6 +368,7 @@ function handleCancelAllOrders(): void {
     error();
     return;
   }
+
   const name = getIdByKfLocation(currentGlobalKfLocation.value);
 
   confirmModal(
@@ -394,7 +400,7 @@ function handleInsertOrderTrigger(order: KungfuApi.OrderResolved): void {
       return;
     }
 
-    if (isFinishedOrderTriggerStatus(order.status)) {
+    if (isFinishedOrderStatus(order.status)) {
       error(t('orderConfig.order_finished'));
       return;
     }
@@ -403,8 +409,8 @@ function handleInsertOrderTrigger(order: KungfuApi.OrderResolved): void {
       .then(() => {
         success();
       })
-      .catch(() => {
-        error();
+      .catch((err: Error) => {
+        error(err.message);
       });
   } else {
     confirmModal(
@@ -600,6 +606,10 @@ function handleClickAdjustOrderMask(): void {
         status: order.status,
       }),
     );
+    return;
+  }
+
+  if (+adjustOrderForm.value.price <= 0) {
     return;
   }
 
@@ -908,17 +918,14 @@ function testOrderSourceIsOnline(order: KungfuApi.OrderResolved) {
               <span
                 v-if="!isFinishedOrderStatus(item.status)"
                 class="color-red"
-                style="margin-right: 6px"
+                style="margin-right: 8px"
                 @click="handleCancelOrder(item)"
               >
                 {{ $t('orderConfig.cancel_order') }}
               </span>
-              <LoadingOutlined
-                v-if="item.status === OrderStatusEnum.Cancelling"
-              />
               <span
                 v-if="
-                  !isFinishedOrderTriggerStatus(item.status) &&
+                  !isFinishedOrderStatus(item.status) &&
                   cancelOrderTriggerBtnVisible
                 "
                 :class="{

@@ -7,7 +7,7 @@ exchange = Exchange.SSE
 
 def pre_start(context):
     context.log.info(
-        f"is_book_held: {context.is_book_held()}, is_positions_mirrored: {context.is_positions_mirrored()}"
+        f"is_book_held: {context.is_book_held()}, is_positions_held: {context.is_positions_held()}"
     )
     context.log.info("pre start")
     context.add_account(source, "123456")
@@ -15,7 +15,7 @@ def pre_start(context):
     # context.subscribe_operator("bar", "my-bar")
 
 
-def on_quote(context, quote, location):
+def on_quote(context, quote, location, dest):
     side = random.choice([Side.Buy, Side.Sell])
     side = Side.Buy
     price = quote.ask_price[0] if side == Side.Buy else quote.bid_price[0]
@@ -25,14 +25,14 @@ def on_quote(context, quote, location):
     )
 
 
-def on_synthetic_data(context, synthetic_dataa, location):
+def on_synthetic_data(context, synthetic_dataa, location, dest):
     context.log.info("on_synthetic_data: {}".format(synthetic_dataa))
 
 
-def on_order(context, order, location):
+def on_order(context, order, location, dest):
     if order.error_id != 0:
         context.log.info(f"order error {order.error_msg}")
 
 
-def on_trade(context, trade, location):
+def on_trade(context, trade, location, dest):
     context.log.info(f"traded")

@@ -16,11 +16,7 @@ Runner::Runner(locator_ptr locator, const std::string &group, const std::string 
 
 RuntimeContext_ptr Runner::get_context() const { return context_; }
 
-RuntimeContext_ptr Runner::make_context() {
-  if (get_home()->mode == mode::LIVE) {
-    return std::make_shared<RuntimeContext>(*this, events_);
-  }
-}
+RuntimeContext_ptr Runner::make_context() { return std::make_shared<RuntimeContext>(*this, events_); }
 
 void Runner::add_operator(const Operator_ptr &op) { operators_.push_back(op); }
 
@@ -46,7 +42,7 @@ void Runner::on_start() {
     auto start_events = events_ | skip_until(events_ | filter([&](auto e) { return started_; }));
     start_events | is(Deregister::tag) | $$(context_->check_dependency_state(event));
     start_events | is(OperatorStateUpdate::tag) | $$(context_->check_dependency_state(event));
-    start_events | is(OperatorStateUpdate::tag) | $$(context_->check_dependency_state(event));
+    start_events | is(BrokerStateUpdate::tag) | $$(context_->check_dependency_state(event));
   }
 
   events_ | take_until(events_ | filter([&](auto e) { return started_; })) | $$(prepare(event));

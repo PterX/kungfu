@@ -17,29 +17,10 @@ public:
   void pre_start(Context_ptr & context) override {
     SPDLOG_INFO("preparing strategy");
     SPDLOG_INFO("arguments: {}", context->get_arguments());
+    context->subscribe("sim", {"000001"}, "SZE");
   }
 
-  void post_start(Context_ptr & context) override {
-    SPDLOG_INFO("strategy started");
-    auto l_ptr = location::make_shared(mode::LIVE, category::MD, "sim", "sim", {});
-    kungfu::yijinjing::journal::assemble asb(l_ptr, location::PUBLIC, AssembleMode::All);
-    auto headers = asb.read_headers(Location{});
-    for (const auto &head : headers) {
-      SPDLOG_INFO("head: {}", head.to_string());
-    }
-    kungfu::yijinjing::journal::assemble asb2(l_ptr, location::PUBLIC, AssembleMode::All);
-    auto locations = asb2.read_bytes<Location>();
-    SPDLOG_INFO("locations.length: {}", locations.size());
-    for (const auto &loc : locations) {
-      SPDLOG_INFO("locaton byte: {}", std::string(loc.second.begin(), loc.second.end()));
-    }
-    kungfu::yijinjing::journal::assemble asb3(l_ptr, location::PUBLIC, AssembleMode::All);
-    auto l3 = asb3.read_all<Location>();
-    SPDLOG_INFO("locations.length: {}", l3.size());
-    for (const auto &loc : l3) {
-      SPDLOG_INFO("l3 : {}", loc.to_string());
-    }
-  }
+  void post_start(Context_ptr & context) override { SPDLOG_INFO("strategy started"); }
 
   void on_quote(Context_ptr & context, const Quote &quote, const location_ptr &location, uint32_t dest) override {
     SPDLOG_INFO("on quote: {} i {} location->uid {}", quote.last_price, i, location->location_uid);

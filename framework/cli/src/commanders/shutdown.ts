@@ -1,11 +1,13 @@
 import {
   killExtra,
-  killKfc,
   pm2Kill,
   pm2KillGodDaemon,
 } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
 import 'console-success';
-import { deleteNNFiles } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import {
+  delayMilliSeconds,
+  deleteNNFiles,
+} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 
 export const shutdown = async () => {
   try {
@@ -14,8 +16,8 @@ export const shutdown = async () => {
     console.log('Killing pm2 ...');
     await pm2KillGodDaemon();
     console.log('Killing extra ...');
-    await killKfc();
-    await killExtra();
+    await killExtra(true);
+    await delayMilliSeconds(1000);
     console.log('Deleting socket files ...');
     await deleteNNFiles();
 

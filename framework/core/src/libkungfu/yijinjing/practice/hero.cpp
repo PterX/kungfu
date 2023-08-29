@@ -60,8 +60,10 @@ hero::~hero() {
 bool hero::is_usable() { return io_device_->is_usable(); }
 
 bool hero::setup() {
-  io_device_->setup();
-  SPDLOG_DEBUG("io setup done");
+  if (io_device_->get_home()->mode == mode::LIVE) {
+    io_device_->setup();
+    SPDLOG_DEBUG("io setup done");
+  }
   events_ = observable<>::create<event_ptr>([this](auto &s) { delegate_produce(this, s); }) | holdon();
   now_ = get_begin_time();
   react();

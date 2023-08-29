@@ -31,8 +31,8 @@ class nanomsg_resource : public resource {
 protected:
   nanomsg_resource(const io_device &io_device, bool low_latency, protocol p)
       : io_device_(io_device), low_latency_(low_latency),
-        location_(std::make_shared<data::location>(longfist::enums::mode::LIVE, longfist::enums::category::SYSTEM,
-                                                   "master", "master", io_device_.get_home()->locator)),
+        location_(std::make_shared<data::location>(mode::LIVE, longfist::enums::category::SYSTEM, "master", "master",
+                                                   io_device_.get_home()->locator)),
         listen_path_(io_device_.get_url_factory()->make_path_listen(location_, p)),
         dial_path_(io_device_.get_url_factory()->make_path_dial(location_, p)), socket_(p) {}
 
@@ -204,13 +204,9 @@ bool io_device_client::is_usable() {
 bool io_device_client::setup() {
   publisher_ = std::make_shared<nanomsg_publisher_client>(*this, is_low_latency());
   observer_ = std::make_shared<nanomsg_observer_client>(*this, is_low_latency());
-  auto is_live = get_home()->mode == longfist::enums::mode::LIVE;
+  auto is_live_mode = get_home()->mode == mode::LIVE;
 
   auto try_setup = [&]() {
-    if (is_live) {
-      return true;
-    }
-
     auto prc = publisher_->setup();
     auto orc = observer_->setup();
     std::this_thread::sleep_for(std::chrono::milliseconds(SETUP_TIMEOUT));
@@ -218,7 +214,7 @@ bool io_device_client::setup() {
   };
 
   int count = (REGISTER_TIMEOUT_SECONDS * 1000) / SETUP_TIMEOUT;
-  while (not try_setup()) {
+  while (not try_setup() && is_live_mode) {
     SPDLOG_WARN("try setup failed, retrying...");
     if (count-- <= 0) {
       SPDLOG_ERROR("setup failed");

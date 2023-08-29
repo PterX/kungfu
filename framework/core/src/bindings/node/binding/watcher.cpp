@@ -387,6 +387,7 @@ Napi::Value Watcher::RequestMarketData(const Napi::CallbackInfo &info) {
     return Napi::Boolean::New(info.Env(), false);
   }
 
+  broker_client_.subscribe(md_location, exchange_id, instrument_id);
   auto writer = get_writer(md_location->uid);
   uint32_t key = hash_instrument(exchange_id.c_str(), instrument_id.c_str());
   InstrumentKey instrument_key = {};

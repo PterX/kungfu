@@ -295,7 +295,7 @@ void cached::store_states_feeds() {
     store_map(feed_map, DataType::type_name);
   });
   auto store_trading_data_end_time = time::now_in_nano();
-  SPDLOG_DEBUG("store trading data take {}ns, count {}", store_trading_data_end_time - store_trading_data_start_time,
+  SPDLOG_TRACE("store trading data take {}ns, count {}", store_trading_data_end_time - store_trading_data_start_time,
                trading_data_count);
 
   auto store_others_start_time = time::now_in_nano();
@@ -308,7 +308,7 @@ void cached::store_states_feeds() {
     store_map(feed_map, DataType::type_name);
   });
   auto store_others_end_time = time::now_in_nano();
-  SPDLOG_DEBUG("store others data take {}ns, count {}", store_others_end_time - store_others_start_time,
+  SPDLOG_TRACE("store others data take {}ns, count {}", store_others_end_time - store_others_start_time,
                others_data_count);
 }
 
@@ -347,7 +347,7 @@ void cached::store_profile_feeds() {
     }
   });
   auto store_profile_data_end_time = time::now_in_nano();
-  SPDLOG_DEBUG("store profile data take {}ns, count {}", store_profile_data_end_time - store_profile_data_start_time,
+  SPDLOG_TRACE("store profile data take {}ns, count {}", store_profile_data_end_time - store_profile_data_start_time,
                count);
 }
 

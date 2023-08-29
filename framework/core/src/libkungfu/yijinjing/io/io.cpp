@@ -204,8 +204,13 @@ bool io_device_client::is_usable() {
 bool io_device_client::setup() {
   publisher_ = std::make_shared<nanomsg_publisher_client>(*this, is_low_latency());
   observer_ = std::make_shared<nanomsg_observer_client>(*this, is_low_latency());
+  auto is_live = get_home()->mode == longfist::enums::mode::LIVE;
 
   auto try_setup = [&]() {
+    if (is_live) {
+      return true;
+    }
+
     auto prc = publisher_->setup();
     auto orc = observer_->setup();
     std::this_thread::sleep_for(std::chrono::milliseconds(SETUP_TIMEOUT));

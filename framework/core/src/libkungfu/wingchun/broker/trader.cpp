@@ -6,6 +6,7 @@
 
 #include <kungfu/common.h>
 #include <kungfu/wingchun/broker/trader.h>
+#include <kungfu/yijinjing/journal/tracer.h>
 #include <kungfu/yijinjing/time.h>
 
 using namespace kungfu::rx;
@@ -131,8 +132,31 @@ void Trader::on_position_sync() {
 }
 
 void Trader::recover() {
+  recover_from_journal();
   deal_write_frame();
   deal_read_frame();
+}
+
+void Trader::recover_from_journal() {
+  tracer trc(get_home(), false, true, time::today_start(), time::now_in_nano());
+  SPDLOG_DEBUG("before tracer read");
+  int64_t count = 0;
+  auto &state_bank = const_cast<cache::bank &>(get_vendor().get_state_bank());
+  while (trc.data_available()) {
+    const auto &frame = trc.current_frame();
+
+    switch (frame->msg_type()) {
+    case Order::tag:
+    case Trade::tag:
+    case OrderTrigger::tag:
+      get_vendor().feed_state_data(frame, state_bank);
+      ++count;
+      break;
+    }
+
+    trc.next();
+  }
+  SPDLOG_DEBUG("after tracer read, count: {}", count);
 }
 
 void Trader::deal_write_frame() {

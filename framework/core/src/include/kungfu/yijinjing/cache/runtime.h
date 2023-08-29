@@ -40,7 +40,8 @@ public:
         auto &target_map = state_map_[type];
         auto state = element.second;
         target_map.insert_or_assign(state.data.uid(), state);
-      }});
+      }
+    });
   }
 
   void operator>>(yijinjing::cache::bank &bank) {
@@ -99,7 +100,7 @@ public:
         auto &target_map = state_map_[type];
         auto state = element.second;
         target_map.insert_or_assign(state.data.uid(), state);
-              }
+      }
     });
   }
 

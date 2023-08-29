@@ -946,7 +946,8 @@ export const dealOrderTrigger = (
     status_uname: statusData.name || '--',
     status_color: statusData.color || 'default',
     update_time_resolved: dealKfTime(order.update_time, isHistory),
-    insert_time_resolved: dealKfTime(order.insert_time, isHistory),
+    insert_time_resolved:
+      order.dest === 0 ? '--' : dealKfTime(order.insert_time, isHistory),
     price_precision: pricePrecision,
     limit_price_resolved: dealKfPrice(order.limit_price, pricePrecision),
     time_condition_resolved: dealTimeCondition(order.time_condition)

@@ -288,9 +288,10 @@ class KungfuCoreConan(ConanFile):
         parallel_level = os.cpu_count()
 
         python_path = (
-            subprocess.Popen(["pipenv", "--py"], stdout=subprocess.PIPE)
-            .stdout.read()
-            .decode()
+            subprocess.Popen(
+                ["pipenv", "--py"], stdout=subprocess.PIPE, text=True, encoding="utf-8"
+            ).stdout.read()
+            # .decode()
             .strip()
         )
 

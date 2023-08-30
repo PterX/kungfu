@@ -119,10 +119,12 @@ void Ledger::refresh_account_book(int64_t trigger_time, uint32_t account_uid) {
   book->update(trigger_time, bookkeeper_.get_accounting_method_type());
 }
 
-OrderStat &Ledger::get_order_stat(uint64_t order_id, const event_ptr &event) {
+OrderStat &Ledger::ensure_order_stat(uint64_t order_id, const event_ptr &event) {
   if (order_stats_.find(order_id) == order_stats_.end()) {
     OrderStat order_stat{};
     order_stat.order_id = order_id;
+    order_stat.md_time = event->trigger_time();
+    order_stat.input_time = event->gen_time();
     order_stats_.try_emplace(order_id, get_home_uid(), event->source(), event->gen_time(), order_stat);
   }
   return order_stats_.at(order_id).data;
@@ -130,16 +132,14 @@ OrderStat &Ledger::get_order_stat(uint64_t order_id, const event_ptr &event) {
 
 void Ledger::update_order_stat(const event_ptr &event, const OrderInput &data) {
   write_book(event->gen_time(), event->dest(), event->source(), data);
-  auto &stat = get_order_stat(data.order_id, event);
-  stat.md_time = event->trigger_time();
-  stat.input_time = event->gen_time();
+  ensure_order_stat(data.order_id, event);
 }
 
 void Ledger::update_order_stat(const event_ptr &event, const Order &data) {
   if (data.error_id == 0) {
     write_book(event->gen_time(), event->source(), event->dest(), data);
   }
-  auto &stat = get_order_stat(data.order_id, event);
+  auto &stat = ensure_order_stat(data.order_id, event);
   auto inserted = stat.insert_time != 0;
   auto acked = stat.ack_time != 0;
   if (not inserted) {
@@ -154,7 +154,7 @@ void Ledger::update_order_stat(const event_ptr &event, const Order &data) {
 
 void Ledger::update_order_stat(const event_ptr &event, const Trade &data) {
   write_book(event->gen_time(), event->source(), event->dest(), data);
-  auto &stat = get_order_stat(data.order_id, event);
+  auto &stat = ensure_order_stat(data.order_id, event);
   if (stat.trade_time < event->gen_time()) {
     stat.trade_time = event->gen_time();
     stat.total_price += data.price * double(data.volume);

@@ -1,12 +1,12 @@
 {
-  "name": "@kungfu-trader/example_matcher",
+  "name": "@kungfu-trader/example-report-cpp",
   "author": "kungfu-trader",
   "version": "2.7.0-alpha.6",
-  "description": "KungFu Matcher 101 - on quote",
+  "description": "KungFu Report 10",
   "license": "Apache-2.0",
   "private": true,
   "kungfuConfig": {
-    "key": "KungfuSimpleMatcher"
+    "key": "KungfuReport101Cpp"
   },
   "scripts": {
     "clean": "kfs extension clean",

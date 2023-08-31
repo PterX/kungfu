@@ -413,7 +413,15 @@ class ExtensionExecutor:
         begin_time_stamp = (
             kft.strptimes(
                 ctx.begin,
-                ("%F %T", "%F %T.%N", "%Y%m%d", "%Y-%m-%d", "%Y-%m-%d %H:%M:%S"),
+                (
+                    "%F %T",
+                    "%F %T.%N",
+                    "%Y%m%d",
+                    "%Y-%m-%d",
+                    "%Y-%m-%d %H:%M:%S",
+                    "%Y-%m-%d %H:%M:%S.%f",
+                    "%Y-%m-%d %H:%M:%S.%N",
+                ),
             )
             if ctx.begin
             else yjj.now_in_nano()
@@ -421,7 +429,15 @@ class ExtensionExecutor:
         end_time_stamp = (
             kft.strptimes(
                 ctx.end,
-                ("%F %T", "%F %T.%N", "%Y%m%d", "%Y-%m-%d", "%Y-%m-%d %H:%M:%S"),
+                (
+                    "%F %T",
+                    "%F %T.%N",
+                    "%Y%m%d",
+                    "%Y-%m-%d",
+                    "%Y-%m-%d %H:%M:%S",
+                    "%Y-%m-%d %H:%M:%S.%f",
+                    "%Y-%m-%d %H:%M:%S.%N",
+                ),
             )
             if ctx.end
             else yjj.now_in_nano()

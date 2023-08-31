@@ -10,6 +10,7 @@
 #include <kungfu/wingchun/strategy/backtest.h>
 #include <kungfu/wingchun/strategy/live.h>
 #include <kungfu/wingchun/strategy/matcher.h>
+#include <kungfu/wingchun/strategy/replay.h>
 #include <kungfu/wingchun/strategy/strategy.h>
 #include <kungfu/yijinjing/practice/apprentice.h>
 
@@ -30,6 +31,10 @@ public:
   void set_from_indexer(const tool::SliceIndexer_ptr &indexer);
 
   void set_to_indexer(const tool::SliceIndexer_ptr &indexer);
+
+  void set_report(const tool::Report_ptr &report);
+
+  tool::Report_ptr get_report() const;
 
   void on_exit() override;
 
@@ -58,7 +63,7 @@ private:
   Matcher_ptr matcher_;
   tool::SliceIndexer_ptr from_indexer_;
   tool::SliceIndexer_ptr to_indexer_;
-  const std::string arguments_;
+  tool::Report_ptr report_;
 
   void inspect_channel(const event_ptr &event);
 

@@ -88,6 +88,7 @@ void bind_operator(pybind11::module &m) {
       .def("set_end_time", &op::Runner::set_end_time)
       .def("set_from_indexer", &op::Runner::set_from_indexer)
       .def("set_to_indexer", &op::Runner::set_to_indexer)
+      .def("set_report", &op::Runner::set_report)
       .def("now", &op::Runner::now)
       .def("run", &op::Runner::run)
       .def("setup", &op::Runner::setup)
@@ -98,6 +99,7 @@ void bind_operator(pybind11::module &m) {
   py::class_<op::Context, std::shared_ptr<op::Context>>(m, "OpContext")
       .def_property_readonly("config", &op::Context::get_config)
       .def("now", &op::Context::now)
+      .def("is_started", &op::Context::is_started)
       .def("add_timer", &op::Context::add_timer)
       .def("add_time_interval", &op::Context::add_time_interval)
       .def("subscribe", &op::Context::subscribe)
@@ -105,8 +107,9 @@ void bind_operator(pybind11::module &m) {
            py::arg("instrument_type") = SubscribeInstrumentType::All, py::arg("data_type") = SubscribeDataType::All)
       .def("subscribe_operator", &op::Context::subscribe_operator)
       .def("publish_synthetic_data", &op::Context::publish_synthetic_data)
-      .def("req_deregister", &op::Context::req_deregister)
-      .def("update_operator_state", &op::Context::update_operator_state);
+      .def("update_operator_state", &op::Context::update_operator_state)
+      .def("set_resume_policy", &op::Context::set_resume_policy)
+      .def("req_deregister", &op::Context::req_deregister);
 
   py::class_<op::LiveContext, op::Context, op::LiveContext_ptr>(m, "OpLiveContext");
 

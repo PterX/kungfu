@@ -19,7 +19,7 @@ JsPublishState::JsPublishState(apprentice &app, Napi::ObjectReference &state) : 
 
 void JsPublishState::operator()(Napi::Object object) {
   auto now = yijinjing::time::now_in_nano();
-  auto location = app_.get_io_device()->get_home();
+  auto location = app_.get_home();
   auto type_name = object.Get("type").ToString().Utf8Value();
   boost::hana::for_each(longfist::StateDataTypes, [&](auto it) {
     using DataType = typename decltype(+boost::hana::second(it))::type;

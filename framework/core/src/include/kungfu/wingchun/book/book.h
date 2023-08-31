@@ -46,8 +46,10 @@ struct Book {
   OrderInputMap order_inputs = {};
   OrderMap orders = {};
   TradeMap trades = {};
+  yijinjing::data::location_ptr home;
 
-  Book(CommissionMap &commissions_ref, const InstrumentMap &instruments_ref);
+  Book(CommissionMap &commissions_ref, const InstrumentMap &instruments_ref,
+       yijinjing::data::location_ptr home_location);
 
   double get_frozen_price(uint64_t order_id);
 
@@ -183,15 +185,27 @@ struct Book {
 
   [[nodiscard]] bool has_long_position(uint32_t source_id, const char *exchange_id, const char *instrument_id) const;
 
+  [[nodiscard]] bool has_long_position(const std::string &source, const std::string &account, const char *exchange_id,
+                                       const char *instrument_id) const;
+
   [[nodiscard]] bool has_short_position(uint32_t source_id, const char *exchange_id, const char *instrument_id) const;
+
+  [[nodiscard]] bool has_short_position(const std::string &source, const std::string &account, const char *exchange_id,
+                                        const char *instrument_id) const;
 
   [[nodiscard]] bool has_position(uint32_t source_id, const char *exchange_id, const char *instrument_id) const;
 
   [[nodiscard]] longfist::types::Position &get_long_position(uint32_t source_id, const char *exchange_id,
                                                              const char *instrument_id);
 
+  [[nodiscard]] longfist::types::Position &get_long_position(const std::string &source, const std::string &account,
+                                                             const char *exchange_id, const char *instrument_id);
+
   [[nodiscard]] longfist::types::Position &get_short_position(uint32_t source_id, const char *exchange_id,
                                                               const char *instrument_id);
+
+  [[nodiscard]] longfist::types::Position &get_short_position(const std::string &source, const std::string &account,
+                                                              const char *exchange_id, const char *instrument_id);
 
   [[nodiscard]] longfist::types::Position &get_position(uint32_t source_id, longfist::enums::Direction direction,
                                                         const char *exchange_id, const char *instrument_id);
@@ -246,6 +260,8 @@ struct Book {
   uint64_t source_op_id(uint32_t holder_uid, uint32_t source_id) {
     return static_cast<uint64_t>(holder_uid) << 32u | static_cast<uint64_t>(source_id);
   }
+
+  Book &operator=(const Book &book) { return *this; }
 };
 } // namespace kungfu::wingchun::book
 

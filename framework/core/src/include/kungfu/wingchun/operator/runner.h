@@ -5,6 +5,7 @@
 #include <kungfu/wingchun/operator/backtest.h>
 #include <kungfu/wingchun/operator/live.h>
 #include <kungfu/wingchun/operator/operator.h>
+#include <kungfu/wingchun/operator/replay.h>
 #include <kungfu/yijinjing/practice/apprentice.h>
 
 namespace kungfu::wingchun::op {
@@ -22,6 +23,10 @@ public:
   void set_from_indexer(const tool::SliceIndexer_ptr &indexer);
 
   void set_to_indexer(const tool::SliceIndexer_ptr &indexer);
+
+  void set_report(const tool::Report_ptr &report);
+
+  tool::Report_ptr get_report() const;
 
   void on_exit() override;
 
@@ -47,6 +52,7 @@ private:
   Context_ptr context_;
   tool::SliceIndexer_ptr from_indexer_;
   tool::SliceIndexer_ptr to_indexer_;
+  tool::Report_ptr report_;
 
   template <typename OnMethod = void (Operator::*)(Context_ptr &)> void invoke(OnMethod method) {
     auto context = std::dynamic_pointer_cast<Context>(context_);

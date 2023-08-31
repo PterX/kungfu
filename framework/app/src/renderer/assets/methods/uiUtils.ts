@@ -12,7 +12,14 @@ import {
   InjectionKey,
   inject,
   provide,
+  createVNode,
+  FunctionalComponent,
 } from 'vue';
+import {
+  CheckCircleOutlined,
+  ExclamationCircleOutlined,
+  CloseCircleOutlined,
+} from '@ant-design/icons-vue';
 import {
   ARCHIVE_DIR,
   buildProcessLogPath,
@@ -34,14 +41,24 @@ import {
   isKfColor,
   isHexOrRgbColor,
   removeTodayArchive,
-  deleteNNFiles,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
 import { ExchangeIds } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
-import { BrowserWindow, getCurrentWindow, dialog } from '@electron/remote';
+import {
+  BrowserWindow,
+  getCurrentWindow,
+  dialog,
+  nativeImage,
+} from '@electron/remote';
 import { ipcRenderer } from 'electron';
-import { message, Modal, ModalFuncProps } from 'ant-design-vue';
+import {
+  message,
+  MessageArgsProps,
+  Modal,
+  ModalFuncProps,
+} from 'ant-design-vue';
+import { MessageType } from 'ant-design-vue/lib/message';
 import {
   InstrumentTypes,
   KfUIExtLocatorTypes,
@@ -57,6 +74,7 @@ import fsPromise from 'fs/promises';
 import md from 'markdown-it';
 import { Router } from 'vue-router';
 import { normalizePath } from '@kungfu-trader/kungfu-js-api/utils/osUtils';
+import { getDialogLogoPath } from '@kungfu-trader/kungfu-js-api/config/brand';
 
 // this utils file is only for ui components
 
@@ -240,11 +258,13 @@ export const useModalVisible = (
 export const useTreeTableSearchKeyword = <T extends { children?: T[] }>(
   targetList: Ref<T[]> | ComputedRef<T[]>,
   keys: string[],
+  transform?: Record<string, (val: string | number) => string>,
 ): {
   searchKeyword: Ref<string>;
   tableData: Ref<T[]>;
 } => {
   const searchKeyword = ref<string>('');
+
   function searchTree<T extends { children?: T[] }>(
     tree: T[],
     keys: string[],
@@ -254,9 +274,14 @@ export const useTreeTableSearchKeyword = <T extends { children?: T[] }>(
       .filter((item) => {
         const combinedValue = keys
           .map((key: string) => {
-            const keyWord = (item as Record<string, unknown>)[
-              key
-            ] as unknown as string | number;
+            let keyWord = (item as Record<string, unknown>)[key] as unknown as
+              | string
+              | number;
+
+            if (transform && transform[key]) {
+              keyWord = transform[key](keyWord);
+            }
+
             return keyWord ? keyWord.toString() : '';
           })
           .join('_');
@@ -292,6 +317,7 @@ export const useTableSearchKeywordList = <T>(
     value: string;
     type?: 'string' | 'array';
   }[],
+  transform?: Record<string, (val: string | number) => string>,
 ): { [K in string]: Ref<string | string[]> } & {
   tableData: ComputedRef<T[]>;
 } => {
@@ -309,9 +335,14 @@ export const useTableSearchKeywordList = <T>(
     return targetList.value
       .filter((item: T) => {
         return searchObjects.every(({ key, value }) => {
-          const itemValue = (item as Record<string, unknown>)[value] as
+          let itemValue = (item as Record<string, unknown>)[value] as
             | string
             | number;
+
+          if (transform && transform[value]) {
+            itemValue = transform[value](itemValue);
+          }
+
           const keyword = searchKeywords[key].value;
           if (Array.isArray(keyword)) {
             if (keyword.length === 0) {
@@ -338,6 +369,7 @@ export const useTableSearchKeywordList = <T>(
 export const useTableSearchKeyword = <T>(
   targetList: Ref<T[]> | ComputedRef<T[]>,
   keys: string[],
+  transform?: Record<string, (string: string | number) => string>,
 ): {
   searchKeyword: Ref<string>;
   tableData: ComputedRef<T[]>;
@@ -347,13 +379,17 @@ export const useTableSearchKeyword = <T>(
     return targetList.value
       .filter((item: T) => {
         const combinedValue = keys
-          .map(
-            (key: string) =>
-              (
-                ((item as Record<string, unknown>)[key] as string | number) ||
-                ''
-              ).toString() || '',
-          )
+          .map((key: string) => {
+            let keyWord = (item as Record<string, unknown>)[key] as
+              | string
+              | number;
+
+            if (transform && transform[key]) {
+              keyWord = transform[key](keyWord);
+            }
+
+            return keyWord ? keyWord.toString() : '';
+          })
           .join('_');
         return new RegExp(searchKeyword.value, 'ig').test(combinedValue);
       })
@@ -369,6 +405,7 @@ export const useTableSearchKeyword = <T>(
 export const useWritableTableSearchKeyword = <T>(
   targetList: Ref<T[]> | ComputedRef<T[]>,
   keys: string[],
+  transform?: Record<string, (val: string | number) => string>,
 ): {
   searchKeyword: Ref<string>;
   tableData: Ref<{ data: T; index: number; id: string }[]>;
@@ -398,14 +435,17 @@ export const useWritableTableSearchKeyword = <T>(
           }))
           .filter((item: { data: T; index: number }) => {
             const combinedValue = keys
-              .map(
-                (key: string) =>
-                  (
-                    ((item.data as Record<string, unknown>)[key] as
-                      | string
-                      | number) || ''
-                  ).toString() || '',
-              )
+              .map((key: string) => {
+                let keyWord = (item.data as Record<string, unknown>)[key] as
+                  | string
+                  | number;
+
+                if (transform && transform[key]) {
+                  keyWord = transform[key](keyWord);
+                }
+
+                return keyWord ? keyWord.toString() : '';
+              })
               .join('_');
             return new RegExp(keyword, 'ig').test(combinedValue);
           }) || [];
@@ -460,7 +500,6 @@ const removeDBBeforeStartAll = (): Promise<void> => {
 
 export const preStartAll = async (): Promise<(void | Proc)[]> => {
   return Promise.all([
-    deleteNNFiles(),
     removeJournalBeforeStartAll(),
     removeDBBeforeStartAll(),
     removeArchiveBeforeStartAll(),
@@ -533,6 +572,10 @@ export const openNewBrowserWindow = (
 
     win.on('ready-to-show', function () {
       win && win.focus();
+    });
+
+    win.on('closed', () => {
+      resolve(win);
     });
 
     win.webContents.loadURL(modalPath);
@@ -655,31 +698,92 @@ export const markClearDB = (): void => {
   messagePrompt().success(t('clear', { content: 'DB' }));
 };
 
+message.config({
+  maxCount: 4,
+});
 export const messagePrompt = (): {
-  success(msg?: string): void;
-  error(msg?: string): void;
-  warning(msg: string): void;
+  success(msg?: string, duration?: number): MessageType;
+  error(msg?: string, duration?: number): MessageType;
+  warn(msg: string, duration?: number): MessageType;
+  loading(msg: string): MessageType;
 } => {
-  const success = (msg: string = t('operation_success')): void => {
-    message.success(msg);
+  const baseConfig: Partial<MessageArgsProps> = {
+    class: 'kf-message',
   };
-  const error = (msg: string = t('operation_failed')): void => {
-    message.error(msg, 5);
+
+  const EVER_SECOND_LEN = 6,
+    MIN_DURATION = 4,
+    MAX_DURATION = 6;
+  const calcDurationByContent = (content: string): number => {
+    const contentLen = content.length;
+    const targetSeconds = (contentLen / EVER_SECOND_LEN).kfRound();
+
+    if (targetSeconds < MIN_DURATION) return MIN_DURATION;
+    if (targetSeconds > MAX_DURATION) return MAX_DURATION;
+    return targetSeconds;
   };
-  const warning = (msg: string): void => {
-    message.warning(msg, 5);
+
+  const buildMessageArgs = (
+    content: string,
+    subClassName = '',
+    duration = calcDurationByContent(content),
+    icon?: FunctionalComponent,
+  ): MessageArgsProps => {
+    return {
+      ...baseConfig,
+      class: [baseConfig.class, subClassName].join(' '),
+      content,
+      duration,
+      ...(icon ? { icon: createVNode(icon) } : {}),
+    };
+  };
+
+  const success = (
+    msg: string = t('operation_success'),
+    duration?: number,
+  ): MessageType => {
+    return message.success(
+      buildMessageArgs(
+        msg,
+        'kf-message-success',
+        duration,
+        CheckCircleOutlined,
+      ),
+    );
+  };
+  const error = (
+    msg: string = t('operation_failed'),
+    duration?: number,
+  ): MessageType => {
+    return message.error(
+      buildMessageArgs(msg, 'kf-message-error', duration, CloseCircleOutlined),
+    );
+  };
+  const warn = (msg: string, duration?: number): MessageType => {
+    return message.warning(
+      buildMessageArgs(
+        msg,
+        'kf-message-warning',
+        duration,
+        ExclamationCircleOutlined,
+      ),
+    );
+  };
+  const loading = (msg: string): MessageType => {
+    return message.loading(buildMessageArgs(msg, 'kf-message-info', 0));
   };
   return {
     success,
     error,
-    warning,
+    warn,
+    loading,
   };
 };
 
 export const handleOpenLogview = (
   config: KungfuApi.KfConfig | KungfuApi.KfLocation,
 ): Promise<Electron.BrowserWindow | void> => {
-  const hideloading = message.loading(t('open_window'));
+  const hideloading = messagePrompt().loading(t('open_window'));
   const logPath = buildProcessLogPath(getProcessIdByKfLocation(config));
   return openLogView(logPath).finally(() => {
     hideloading();
@@ -697,7 +801,7 @@ export const handleOpenLogviewByFile =
         const { filePaths } = res;
         if (filePaths.length) {
           const targetLogPath = filePaths[0];
-          const hideloading = message.loading(t('open_window'));
+          const hideloading = messagePrompt().loading(t('open_window'));
           return openLogView(targetLogPath).finally(() => {
             hideloading();
           });
@@ -712,7 +816,7 @@ export const handleOpenCodeView = (
   filePath: string,
   isEntryFilenameEditable: boolean,
 ): Promise<Electron.BrowserWindow> => {
-  const openMessage = message.loading(t('open_code_editor'));
+  const openMessage = messagePrompt().loading(t('open_code_editor'));
   return openCodeView(id, filePath, isEntryFilenameEditable).finally(() => {
     openMessage();
   });
@@ -721,7 +825,7 @@ export const handleOpenCodeView = (
 export const handleOpenJournalView = (
   config?: KungfuApi.KfConfig | KungfuApi.KfLocation,
 ): Promise<Electron.BrowserWindow> => {
-  const hideloading = message.loading(t('open_journal_dashboard'));
+  const hideloading = messagePrompt().loading(t('open_journal_dashboard'));
   const processId = config ? getProcessIdByKfLocation(config) : '';
   const locationUID = config ? getKfLocationUID(config) || '' : '';
   return openJournalView(processId, locationUID).finally(() => {
@@ -979,7 +1083,7 @@ export const openReadmeModal = (title: string, readmePath: string) => {
       });
     });
   } else {
-    message.error(t('文件路径不存在'));
+    messagePrompt().error(t('文件路径不存在'));
     return Promise.reject();
   }
 };
@@ -1027,4 +1131,19 @@ export const vueProvideBaseOnParent = <T extends { [x: string]: any }>(
   if (typeof parentProvide !== 'object' || typeof value !== 'object')
     return provide(key, value);
   return provide(key, Object.assign(parentProvide, value));
+};
+
+export const showInitAfterReloadConfirmDialog = () => {
+  return dialog
+    .showMessageBox({
+      type: 'question',
+      title: t('prompt'),
+      defaultId: 0,
+      message: t('init_after_reload'),
+      buttons: [t('confirm')],
+      icon: nativeImage.createFromPath(getDialogLogoPath()),
+    })
+    .then(() => {
+      return true;
+    });
 };

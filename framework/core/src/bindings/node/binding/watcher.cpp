@@ -67,7 +67,7 @@ void WatcherAutoClient::connect(const event_ptr &event, const longfist::types::R
     return;
   }
   auto app_location = app_.get_location(app_uid);
-  auto resume_time_point = get_resume_policy().get_connect_time(app_, register_data);
+  auto resume_time_point = get_resume_policy()->get_connect_time(app_, register_data);
 
   if (app_location->category == category::SYSTEM and should_connect_system(app_location)) {
     app_.request_read_from_public(app_.now(), app_uid, 0);
@@ -154,11 +154,6 @@ Watcher::Watcher(const Napi::CallbackInfo &info)
   for (const auto &item : config_store->profile_.get_all(Location{})) {
     auto saved_location = location::make_shared(item, get_locator());
     add_location(now(), saved_location);
-    if (saved_location->category == longfist::enums::category::SYSTEM) {
-      if (saved_location->group != "node") {
-        continue;
-      }
-    }
     RestoreState(saved_location, today, INT64_MAX, sync_schema);
     // for hidden pos && asset
     // shift(saved_location) >> state_bank_;
@@ -287,7 +282,8 @@ Napi::Value Watcher::PublishState(const Napi::CallbackInfo &info) {
 
 Napi::Value Watcher::IsReadyToInteract(const Napi::CallbackInfo &info) {
   auto account_location = IODevice::ExtractLocation(info, 0, get_locator());
-  return Napi::Boolean::New(info.Env(), account_location and has_writer(account_location->uid));
+  return Napi::Boolean::New(info.Env(), account_location and has_writer(account_location->uid) and
+                                            is_location_live(account_location->uid));
 }
 
 Napi::Value Watcher::IssueCustomData(const Napi::CallbackInfo &info) {
@@ -363,6 +359,11 @@ Napi::Value Watcher::CancelOrderTrigger(const Napi::CallbackInfo &info) {
   return InteractWithTD<OrderTriggerAction>(info, info[0].ToObject(), &OrderTriggerAction::order_trigger_action_id);
 }
 
+Napi::Value Watcher::ToggleAlgoOrder(const Napi::CallbackInfo &info) {
+  SPDLOG_INFO("toggle algo order manually");
+  return InteractWithTD<AlgoOrderAction>(info, info[0].ToObject(), &AlgoOrderAction::order_action_id);
+}
+
 Napi::Value Watcher::RequestMarketData(const Napi::CallbackInfo &info) {
   if (not IsValid(info, 0, &Napi::Value::IsObject)) {
     return Napi::Boolean::New(info.Env(), false);
@@ -386,6 +387,7 @@ Napi::Value Watcher::RequestMarketData(const Napi::CallbackInfo &info) {
     return Napi::Boolean::New(info.Env(), false);
   }
 
+  broker_client_.subscribe(md_location, exchange_id, instrument_id);
   auto writer = get_writer(md_location->uid);
   uint32_t key = hash_instrument(exchange_id.c_str(), instrument_id.c_str());
   InstrumentKey instrument_key = {};
@@ -427,6 +429,7 @@ void Watcher::Init(Napi::Env env, Napi::Object exports) {
                       InstanceMethod("cancelOrder", &Watcher::CancelOrder),                             //
                       InstanceMethod("cancelAlgoOrder", &Watcher::CancelAlgoOrder),                     //
                       InstanceMethod("cancelOrderTrigger", &Watcher::CancelOrderTrigger),               //
+                      InstanceMethod("toggleAlgoOrder", &Watcher::ToggleAlgoOrder),                     //
                       InstanceMethod("requestMarketData", &Watcher::RequestMarketData),                 //
                       InstanceMethod("requestPosition", &Watcher::RequestPosition),                     //
                       InstanceMethod("start", &Watcher::Start),                                         //
@@ -450,8 +453,10 @@ void Watcher::on_react() {
   // for receive history data
   auto before_start_events = events_ | take_until(events_ | is(RequestStart::tag));
   before_start_events | is(Instrument::tag) | $$(Feed(event, event->data<Instrument>()));
-  // bookkeeper restore, only Instrument and Commission,
+  // bookkeeper restore, only Instrument and Commission
   before_start_events | is(Instrument::tag, Commission::tag) | $$(cached::feed_state_data(event, state_bank_));
+  // accept trading data from cached state, so even if ui reload, history data is able to be shown
+  before_start_events | is_trading_data() | $$(cached::feed_state_data(event, data_bank_));
 }
 
 void Watcher::on_start() {
@@ -535,6 +540,7 @@ void Watcher::Feed(const event_ptr &event, const Instrument &instrument) {
 
 void Watcher::RestoreState(const location_ptr &state_location, int64_t from, int64_t to, bool sync_schema) {
   add_location(0, state_location);
+  // serialize::JsRestoreState(ledger_ref_, state_location)(from, to, sync_schema);
   // for hidden pos && asset
   serialize::JsRestoreState(ledger_ref_, state_location).filter_no<Position, Asset>(from, to, sync_schema);
 }

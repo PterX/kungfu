@@ -274,9 +274,9 @@ function handleShowTradingDataDetail({
               {{ dealDirection(item.direction).name }}
             </span>
           </template>
-          <template v-else-if="column.dataIndex === 'static_yesterday_volume'">
+          <template v-else-if="column.dataIndex === 'static_yesterday'">
             <KfBlinkNum
-              :num="Number(item.static_yesterday_volume).kfToFixed(0)"
+              :num="Number(item.static_yesterday).kfToFixed(0)"
             ></KfBlinkNum>
           </template>
           <template v-else-if="column.dataIndex === 'open_volume'">

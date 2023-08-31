@@ -291,6 +291,8 @@ public:
 
   virtual bool cancel_algo_order(const event_ptr &event) { return true; }
 
+  virtual bool toggle_algo_order(const event_ptr &event) { return true; }
+
   virtual bool req_position() = 0;
 
   virtual bool req_account() = 0;
@@ -359,11 +361,19 @@ public:
 
   [[nodiscard]] uint32_t get_risk_uid() const;
 
-  [[maybe_unused]] void disable_recover();
+  void disable_recover();
 
   virtual void on_recover(){};
 
   [[nodiscard]] yijinjing::journal::writer_ptr &get_thread_writer();
+
+  bool is_sync_account() { return sync_account_; }
+
+  void enable_sync_account() { sync_account_ = true; }
+
+  void disable_sync_account() { sync_account_ = false; }
+
+  void try_req_account();
 
 protected:
   bool disable_recover_ = false;
@@ -371,6 +381,7 @@ protected:
 private:
   bool sync_asset_ = false;
   bool sync_position_ = false;
+  bool sync_account_ = false;
   uint32_t risk_uid_ = 0;
 
   void on_asset_sync();
@@ -378,6 +389,8 @@ private:
   void on_position_sync();
 
   void recover();
+
+  void recover_from_journal();
 
   void deal_write_frame();
 

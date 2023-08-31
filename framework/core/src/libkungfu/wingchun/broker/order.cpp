@@ -50,18 +50,17 @@ void OrderService::on_order_input(const event_ptr &event) {
 void OrderService::on_order_action(const event_ptr &event) {
   get_service().cancel_order(event);
   const auto &order_action = event->data<OrderAction>();
-  state<OrderAction> order_action_state(event->source(), event->dest(), event->gen_time(), order_action);
-  order_actions_.insert_or_assign(order_action.order_id, order_action_state);
+  order_actions_.insert_or_assign(order_action.order_id,
+                                  state<OrderAction>{event->source(), event->dest(), event->gen_time(), order_action});
 }
 
 void OrderService::on_order(int64_t gen_time, uint32_t source, uint32_t dest, const Order &order) {
-  state<Order> order_state(source, dest, gen_time, order);
-  orders_.insert_or_assign(order.order_id, order_state);
+  orders_.insert_or_assign(order.order_id, state<Order>{source, dest, gen_time, order});
 }
 
 void OrderService::on_trade(int64_t gen_time, uint32_t source, uint32_t dest, const Trade &trade) {
-  state<Trade> trade_state(source, dest, gen_time, trade);
-  trades_.insert_or_assign(trade.trade_id, trade_state);
+  trades_.insert_or_assign(trade.trade_id, state<Trade>{source, dest, gen_time, trade});
+  get_service().enable_sync_account();
 }
 
 void OrderService::on_batch_order_tag(const event_ptr &event) {
@@ -92,9 +91,7 @@ void OrderService::clean_orders(bool bypass_recover) {
     if (not is_final_status(order.status) and (bypass_recover or order.external_order_id.to_string().empty())) {
       order.status = OrderStatus::Lost;
       order.update_time = time::now_in_nano();
-      if (vendor_.has_writer(pair.second.dest)) {
-        vendor_.write_to(vendor_.now(), order, pair.second.dest);
-      }
+      vendor_.try_write_to(vendor_.now(), order, pair.second.dest);
     }
   });
 }
@@ -103,16 +100,12 @@ void OrderService::clean_orders(uint32_t source, const OrderInput &order_input, 
   if (orders_.find(order_input.order_id) != orders_.end()) {
     return;
   }
-  if (not vendor_.has_writer(source)) {
-    return;
-  }
 
-  auto writer = vendor_.get_writer(source);
-  Order &order = writer->open_data<Order>();
+  Order order{};
   order_from_input(order_input, order);
   order.status = OrderStatus::Lost;
   order.update_time = time::now_in_nano();
-  writer->close_data();
+  vendor_.try_write_to(vendor_.now(), order, source);
 }
 
 const OrderMap &OrderService::get_orders() const { return orders_; }

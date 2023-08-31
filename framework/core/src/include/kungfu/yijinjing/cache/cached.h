@@ -33,6 +33,8 @@ public:
 
   void make_cache_shift(const yijinjing::data::location_ptr &location);
 
+  void try_ensure_cached_storage(const yijinjing::data::location_ptr &location, uint32_t dest);
+
   void ensure_cached_storage(const yijinjing::data::location_ptr &location, uint32_t dest);
 
   void cache_reset(const event_ptr &event);
@@ -100,6 +102,7 @@ private:
   std::unordered_map<uint32_t, yijinjing::data::location_ptr> locations_ = {};
   yijinjing::cache::profile profile_;
   ProfileStateBank profile_feed_bank_ = ProfileStateBank(longfist::ProfileDataTypes);
+  ProfileStateBank profile_restore_bank_ = ProfileStateBank(longfist::ProfileDataTypes);
   std::unordered_map<uint32_t, yijinjing::cache::shift> app_states_shift_ = {};
   yijinjing::cache::bank states_feed_bank_;
   const bool bypass_cached_;
@@ -109,6 +112,8 @@ private:
   std::mutex states_store_mutex_;
   std::mutex profile_store_mutex_;
   bool m_quit_ = false;
+
+  yijinjing::data::location_ptr ledger_home_location_;
 
   static constexpr auto profile_get_all = [](auto &profile, auto &receiver) {
     boost::hana::for_each(longfist::ProfileDataTypes, [&](auto it) {

@@ -31,12 +31,13 @@ public:
   }
 
   void apply_order(uint32_t account_id, uint32_t dest, Book_ptr &book, const Order &order) override {
-    if (dest == location::SYNC or dest == location::PUBLIC) {
+    if (not guard_order_accounting(book, order)) {
       return;
     }
 
-    if (not is_final_status(order.status))
+    if (dest == location::SYNC or dest == location::PUBLIC) {
       return;
+    }
 
     auto apply = [&](auto &position) {
       auto cd_mr = get_instrument_conversion_margin_rate(book, position.source_id, position.direction,
@@ -57,8 +58,10 @@ public:
 
   void apply_sell(Book_ptr &book, longfist::types::Position &position, const Trade &trade, bool is_local) override {
     if (position.volume + trade.volume > 0 && trade.price > 0) {
-      position.avg_open_price = (position.avg_open_price * position.volume + trade.price * trade.volume) /
-                                (double)(position.volume + trade.volume);
+      position.avg_open_price = (position.volume + trade.volume == 0)
+                                    ? 0
+                                    : (position.avg_open_price * position.volume + trade.price * trade.volume) /
+                                          (double)(position.volume + trade.volume);
     }
     auto cd_mr = get_instrument_conversion_margin_rate(book, position.source_id, position.direction,
                                                        position.exchange_id, position.instrument_id);

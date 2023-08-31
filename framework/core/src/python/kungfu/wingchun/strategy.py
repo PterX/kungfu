@@ -8,6 +8,7 @@ import kungfu
 import os
 import sys
 
+from kungfu.console.utils import import_force
 from kungfu.yijinjing import time as kft
 from kungfu.yijinjing import journal as kfj
 from kungfu.wingchun import constants
@@ -22,7 +23,7 @@ yjj = kungfu.__binding__.yijinjing
 class Runner(wc.Runner):
     def __init__(self, ctx, locator, mode):
         if ctx.arguments is None:
-            ctx.arguments = ""
+            ctx.arguments = "{}"
         wc.Runner.__init__(
             self,
             locator,
@@ -50,8 +51,8 @@ class Strategy(wc.Strategy):
     def __init_strategy(self, path):
         strategy_dir = os.path.dirname(path)
         name_no_ext = os.path.split(os.path.basename(path))
-        sys.path.append(os.path.relpath(strategy_dir))
-        self._module = importlib.import_module(os.path.splitext(name_no_ext[1])[0])
+        sys.path.insert(0, strategy_dir)
+        self._module = import_force(os.path.splitext(name_no_ext[1])[0])
         self._pre_start = getattr(self._module, "pre_start", lambda ctx: None)
         self._post_start = getattr(self._module, "post_start", lambda ctx: None)
         self._pre_stop = getattr(self._module, "pre_stop", lambda ctx: None)
@@ -173,8 +174,6 @@ class Strategy(wc.Strategy):
         )
 
         self.ctx.book = self.ctx.wc_context.bookkeeper.get_book(location.uid)
-        if kfj.MODES[self.ctx.mode] != lf.enums.mode.BACKTEST:
-            self.ctx.basketorder_engine = self.ctx.wc_context.basketorder_engine
 
     def __add_timer(self, nanotime, callback):
         def wrap_callback(event):
@@ -248,22 +247,24 @@ class Strategy(wc.Strategy):
         self.ctx.insert_order_input = wc_context.insert_order_input
         self.ctx.insert_batch_orders = wc_context.insert_batch_orders
         self.ctx.insert_array_orders = wc_context.insert_array_orders
-        self.ctx.insert_basket_order = wc_context.insert_basket_order
         self.ctx.insert_algo_order = wc_context.insert_algo_order
         self.ctx.cancel_order = wc_context.cancel_order
         self.ctx.cancel_order_trigger = wc_context.cancel_order_trigger
         self.ctx.cancel_algo_order = wc_context.cancel_algo_order
+        self.ctx.toggle_algo_order = wc_context.toggle_algo_order
         self.ctx.req_history_order = wc_context.req_history_order
         self.ctx.req_history_trade = wc_context.req_history_trade
         self.ctx.update_strategy_state = wc_context.update_strategy_state
         self.ctx.is_book_held = wc_context.is_book_held
-        self.ctx.is_positions_mirrored = wc_context.is_positions_mirrored
+        self.ctx.is_positions_held = wc_context.is_positions_held
         self.ctx.is_bypass_accounting = wc_context.is_bypass_accounting
         self.ctx.bypass_accounting = wc_context.bypass_accounting
         self.ctx.hold_book = wc_context.hold_book
         self.ctx.hold_positions = wc_context.hold_positions
+        self.ctx.set_resume_policy = wc_context.set_resume_policy
         self.ctx.get_account_book = self.__get_account_book
         self.ctx.req_deregister = wc_context.req_deregister
+        self.ctx.is_started = wc_context.is_started
         self.ctx.buy = functools.partial(self.__async_insert_order, Side.Buy)
         self.ctx.sell = functools.partial(self.__async_insert_order, Side.Sell)
         self.__init_book()

@@ -120,11 +120,11 @@ public:
   }
 
   virtual void apply_order(uint32_t account_id, uint32_t dest, Book_ptr &book, const Order &order) override {
-    if (dest == location::SYNC or dest == location::PUBLIC) {
+    if (not guard_order_accounting(book, order)) {
       return;
     }
 
-    if (not is_final_status(order.status)) {
+    if (dest == location::SYNC or dest == location::PUBLIC) {
       return;
     }
 
@@ -149,6 +149,10 @@ public:
   }
 
   virtual void apply_trade(uint32_t account_id, uint32_t dest, Book_ptr &book, const Trade &trade) override {
+    if (not guard_trade_accounting(book, trade)) {
+      return;
+    }
+
     auto is_local = dest != location::PUBLIC and dest != location::SYNC;
 
     auto apply = [&](auto &position) {
@@ -221,11 +225,15 @@ protected:
     double tax = calculate_tax(trade);
     position.last_price = position.last_price > 0 ? position.last_price : trade.price;
     if (position.volume + trade.volume > 0 && trade.price > 0) {
-      position.avg_open_price = (position.avg_open_price * position.volume + trade_amt / cd_mr.exchange_rate) /
-                                (double)(position.volume + trade.volume);
+      position.avg_open_price = (position.volume + trade.volume == 0)
+                                    ? 0
+                                    : (position.avg_open_price * position.volume + trade_amt / cd_mr.exchange_rate) /
+                                          (double)(position.volume + trade.volume);
       position.position_cost_price =
-          (position.position_cost_price * position.volume + trade_amt / cd_mr.exchange_rate + commission + tax) /
-          (double)(position.volume + trade.volume);
+          (position.volume + trade.volume == 0)
+              ? 0
+              : (position.position_cost_price * position.volume + trade_amt / cd_mr.exchange_rate + commission + tax) /
+                    (double)(position.volume + trade.volume);
     }
     position.volume += trade.volume;
     position.open_volume += trade.volume;
@@ -261,8 +269,11 @@ protected:
     if (position.volume + trade.volume > 0 && trade.price > 0) {
       position.avg_open_price =
           (position.avg_open_price * original_volume + trade_amt) / (double)(original_volume + trade.volume);
-      position.position_cost_price = (position.position_cost_price * position.volume + trade_amt + commission + tax) /
-                                     (double)(position.volume + trade.volume);
+      position.position_cost_price =
+          (position.volume + trade.volume == 0)
+              ? 0
+              : (position.position_cost_price * position.volume + trade_amt + commission + tax) /
+                    (double)(position.volume + trade.volume);
     }
 
     position.margin += cash_debt_change; // The margin is actually the cash debt of Position instead of margin
@@ -277,11 +288,15 @@ protected:
     double commission = calculate_commission(trade);
     auto tax = calculate_tax(trade);
     if (position.volume + trade.volume > 0 && trade.price > 0) {
-      position.avg_open_price = (position.avg_open_price * position.volume + trade_amt / cd_mr.exchange_rate) /
-                                (double)(position.volume + trade.volume);
+      position.avg_open_price = (position.volume + trade.volume == 0)
+                                    ? 0
+                                    : (position.avg_open_price * position.volume + trade_amt / cd_mr.exchange_rate) /
+                                          (double)(position.volume + trade.volume);
       position.position_cost_price =
-          (position.position_cost_price * position.volume + trade_amt / cd_mr.exchange_rate - commission - tax) /
-          (double)(position.volume + trade.volume);
+          (position.volume + trade.volume == 0)
+              ? 0
+              : (position.position_cost_price * position.volume + trade_amt / cd_mr.exchange_rate - commission - tax) /
+                    (double)(position.volume + trade.volume);
     }
     double original_volume = position.volume;
     position.volume += trade.volume;

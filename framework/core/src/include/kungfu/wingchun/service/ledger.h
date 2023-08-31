@@ -7,6 +7,7 @@
 #ifndef WINGCHUN_LEDGER_H
 #define WINGCHUN_LEDGER_H
 
+#include <kungfu/wingchun/book/book.h>
 #include <kungfu/wingchun/book/bookkeeper.h>
 #include <kungfu/wingchun/broker/client.h>
 #include <kungfu/yijinjing/io.h>
@@ -36,12 +37,10 @@ protected:
 private:
   broker::AutoClient broker_client_;
   book::Bookkeeper bookkeeper_;
-  book::BookMap tmp_books_;
+  std::unordered_map<uint32_t, book::Book> tmp_books_;
   std::unordered_map<uint64_t, state<longfist::types::OrderStat>> order_stats_ = {};
   BrokerStateMap broker_states_ = {};
   OperatorStateMap operator_states_ = {};
-  const std::string arguments_;
-  bool is_sync_;
 
   bool bypass_refresh_book() const;
 
@@ -51,7 +50,7 @@ private:
 
   void refresh_account_book(int64_t trigger_time, uint32_t account_uid);
 
-  longfist::types::OrderStat &get_order_stat(uint64_t order_id, const event_ptr &event);
+  longfist::types::OrderStat &ensure_order_stat(uint64_t order_id, const event_ptr &event);
 
   void update_order_stat(const event_ptr &event, const longfist::types::OrderInput &data);
 

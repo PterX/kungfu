@@ -116,11 +116,11 @@ public:
   }
 
   void apply_order(uint32_t account_id, uint32_t dest, Book_ptr &book, const Order &order) override {
-    if (dest == location::SYNC or dest == location::PUBLIC) {
+    if (not guard_order_accounting(book, order)) {
       return;
     }
 
-    if (not is_final_status(order.status)) {
+    if (dest == location::SYNC or dest == location::PUBLIC) {
       return;
     }
 
@@ -155,6 +155,10 @@ public:
   }
 
   void apply_trade(uint32_t account_id, uint32_t dest, Book_ptr &book, const Trade &trade) override {
+    if (not guard_trade_accounting(book, trade)) {
+      return;
+    }
+
     auto is_local = dest != location::PUBLIC and dest != location::SYNC;
     auto offset = get_offset(book, account_id, trade);
     auto apply = [&](auto &position) {
@@ -212,8 +216,10 @@ private:
     auto margin_ratio_by_pos = cm_mr.margin_ratio;
     auto margin = contract_multiplier * trade.price * cm_mr.exchange_rate * trade.volume * margin_ratio_by_pos;
     position.margin += margin;
-    position.avg_open_price = (position.avg_open_price * position.volume + trade.price * trade.volume) /
-                              double(position.volume + trade.volume);
+    position.avg_open_price = (position.volume + trade.volume == 0)
+                                  ? 0
+                                  : (position.avg_open_price * position.volume + trade.price * trade.volume) /
+                                        double(position.volume + trade.volume);
     position.volume += trade.volume;
     position.open_volume += trade.volume;
     update_position(book, position);

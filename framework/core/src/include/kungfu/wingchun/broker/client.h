@@ -19,18 +19,20 @@ namespace kungfu::wingchun::broker {
  */
 struct ResumePolicy {
   [[nodiscard]] virtual int64_t get_connect_time(const yijinjing::practice::apprentice &app,
-                                                 const longfist::types::Register &broker) const;
+                                                 const longfist::types::Register &target) const;
 
   [[nodiscard]] virtual int64_t get_resume_time(const yijinjing::practice::apprentice &app,
-                                                const longfist::types::Register &broker) const = 0;
+                                                const longfist::types::Register &target) const = 0;
 };
+
+DECLARE_PTR(ResumePolicy);
 
 /**
  * Always resume from the last unread frame, is intended to be used by system services that needs continuity.
  */
 struct StatelessResumePolicy : public ResumePolicy {
   [[nodiscard]] int64_t get_resume_time(const yijinjing::practice::apprentice &app,
-                                        const longfist::types::Register &broker) const override;
+                                        const longfist::types::Register &target) const override;
 };
 
 /**
@@ -38,7 +40,7 @@ struct StatelessResumePolicy : public ResumePolicy {
  */
 struct [[maybe_unused]] ContinuousResumePolicy : public ResumePolicy {
   [[nodiscard]] int64_t get_resume_time(const yijinjing::practice::apprentice &app,
-                                        const longfist::types::Register &broker) const override;
+                                        const longfist::types::Register &target) const override;
 };
 
 /**
@@ -47,15 +49,15 @@ struct [[maybe_unused]] ContinuousResumePolicy : public ResumePolicy {
  */
 struct [[maybe_unused]] IntradayResumePolicy : public ResumePolicy {
   [[nodiscard]] int64_t get_resume_time(const yijinjing::practice::apprentice &app,
-                                        const longfist::types::Register &broker) const override;
+                                        const longfist::types::Register &target) const override;
 };
 
 struct FromNowResumePolicy : public ResumePolicy {
   [[nodiscard]] int64_t get_connect_time(const yijinjing::practice::apprentice &app,
-                                         const longfist::types::Register &broker) const override;
+                                         const longfist::types::Register &target) const override;
 
   [[nodiscard]] int64_t get_resume_time(const yijinjing::practice::apprentice &app,
-                                        const longfist::types::Register &broker) const override;
+                                        const longfist::types::Register &target) const override;
 };
 
 /**
@@ -73,7 +75,7 @@ public:
 
   virtual ~Client() = default;
 
-  [[nodiscard]] virtual const ResumePolicy &get_resume_policy() const = 0;
+  [[nodiscard]] virtual ResumePolicy_ptr get_resume_policy() const = 0;
 
   [[nodiscard]] const InstrumentKeyMap &get_instrument_keys() const;
 
@@ -148,10 +150,6 @@ private:
   yijinjing::data::location_map ready_td_locations_ = {};
   yijinjing::data::location_map ready_op_locations_ = {};
 
-  // void update_broker_state(const event_ptr &event, const longfist::types::BrokerStateUpdate &state);
-
-  // void update_operator_state(const event_ptr &event, const longfist::types::OperatorStateUpdate &state);
-
   template <typename AppStateUpdate,
             std::enable_if_t<std::is_same_v<AppStateUpdate, longfist::types::BrokerStateUpdate> or
                              std::is_same_v<AppStateUpdate, longfist::types::OperatorStateUpdate>>...>
@@ -208,7 +206,7 @@ class AutoClient : public Client {
 public:
   explicit AutoClient(yijinjing::practice::apprentice &app);
 
-  [[nodiscard]] const ResumePolicy &get_resume_policy() const override;
+  [[nodiscard]] ResumePolicy_ptr get_resume_policy() const override;
 
   [[nodiscard]] bool is_custom_subscribed(uint32_t md_location_uid) const override;
 
@@ -261,12 +259,15 @@ public:
  */
 class PassiveClient : public Client {
   typedef std::unordered_map<uint32_t, bool> EnrollmentMap;
+  typedef std::unordered_map<uint32_t, yijinjing::data::location_ptr> EnrolledLocationMap;
   typedef std::unordered_map<uint32_t, std::vector<longfist::types::CustomSubscribe>> CustomSubscribeMap;
 
 public:
   explicit PassiveClient(yijinjing::practice::apprentice &app);
 
-  [[nodiscard]] const ResumePolicy &get_resume_policy() const override;
+  [[nodiscard]] ResumePolicy_ptr get_resume_policy() const override;
+
+  longfist::enums::ResumePolicy get_resume_policy_value() const;
 
   [[nodiscard]] bool is_custom_subscribed(uint32_t md_location_uid) const override;
 
@@ -287,13 +288,40 @@ public:
 
   void sync(int64_t trigger_time, const yijinjing::data::location_ptr &td_location) override;
 
-  void enroll_account(const yijinjing::data::location_ptr &td_location);
+  void enroll_td(const yijinjing::data::location_ptr &td_location);
+
+  void enroll_md(const yijinjing::data::location_ptr &md_location, bool is_custom_subscribe);
 
   void enroll_operator(const yijinjing::data::location_ptr &op_location);
 
   bool enrolled_operator_ready() const;
 
   bool enrolled_md_ready() const;
+
+  bool enrolled_td_ready() const;
+
+  bool enrolled_operator_connected() const;
+
+  bool enrolled_md_connected() const;
+
+  bool enrolled_td_connected() const;
+
+  bool has_enrolled_td_channel(uint32_t home_uid) const;
+
+  const EnrolledLocationMap &get_enrolled_md_locations() const;
+
+  const EnrolledLocationMap &get_enrolled_td_locations() const;
+
+  const EnrolledLocationMap &get_enrolled_op_locations() const;
+
+  uint32_t get_td_location_uid(const std::string &source, const std::string &account) const;
+
+  const yijinjing::data::location_ptr &find_md_location(const std::string &source,
+                                                        const yijinjing::data::location_ptr &home);
+
+  void set_resume_policy(longfist::enums::ResumePolicy resume_policy);
+
+  longfist::enums::ResumePolicy get_resume_policy();
 
 protected:
   [[nodiscard]] bool should_connect_md(const yijinjing::data::location_ptr &md_location) const override;
@@ -313,11 +341,15 @@ protected:
   [[nodiscard]] bool should_connect_system(const yijinjing::data::location_ptr &system_location) const override;
 
 private:
-  FromNowResumePolicy resume_policy_ = {};
+  longfist::enums::ResumePolicy resume_policy_ = longfist::enums::ResumePolicy::Now;
   CustomSubscribeMap custom_subs_ = {};
-  EnrollmentMap enrolled_md_locations_ = {};
-  EnrollmentMap enrolled_td_locations_ = {};
-  EnrollmentMap enrolled_op_locations_ = {};
+  EnrollmentMap enrolled_md_custom_info_ = {};
+  EnrolledLocationMap enrolled_md_locations_ = {};
+  EnrolledLocationMap enrolled_td_locations_ = {};
+  EnrolledLocationMap enrolled_hash_td_locations_ = {};
+  EnrolledLocationMap enrolled_op_locations_ = {};
+
+  std::unordered_map<std::string, yijinjing::data::location_ptr> str_key_md_locations_ = {};
 };
 
 template <typename DataType, std::enable_if_t<longfist::is_market_data<DataType>()>...>

@@ -26,17 +26,27 @@ void AlgoOrderService::on_algo_order_action(const event_ptr &event) {
   // no algo order action resolution for local algo order;
   auto &algo_order_action = event->data<AlgoOrderAction>();
   if (local_algo_orders_.find(algo_order_action.order_id) == local_algo_orders_.end()) {
-    get_service().cancel_algo_order(event);
+    if (algo_order_action.action_flag == AlgoOrderActionFlag::Cancel) {
+      get_service().cancel_algo_order(event);
+    } else {
+      get_service().toggle_algo_order(event);
+    }
   } else {
+    if (algo_order_action.action_flag != AlgoOrderActionFlag::Cancel) {
+      return;
+    }
+
     auto &algo_order_state = local_algo_orders_.at(algo_order_action.order_id);
     auto &algo_order = algo_order_state.data;
     auto dest = algo_order_state.dest;
     auto algo_order_is_final = is_final_status(algo_order.status);
+
     if (algo_order.volume == algo_order.volume_left) {
       algo_order.status = OrderStatus::Cancelled;
     } else if (not algo_order_is_final) {
       algo_order.status = OrderStatus::PartialFilledNotActive;
     }
+
     vendor_.get_writer(dest)->write(time::now_in_nano(), algo_order);
   }
 
@@ -149,9 +159,7 @@ void AlgoOrderService::clean_algo_orders(bool bypass_recover) {
         (bypass_recover or algo_order.external_order_id.to_string().empty())) {
       algo_order.status = OrderStatus::Lost;
       algo_order.update_time = time::now_in_nano();
-      if (vendor_.has_writer(pair.second.dest)) {
-        vendor_.write_to(vendor_.now(), algo_order, pair.second.dest);
-      }
+      vendor_.try_write_to(vendor_.now(), algo_order, pair.second.dest);
     }
   });
 }
@@ -161,15 +169,11 @@ void AlgoOrderService::clean_algo_orders(uint32_t source, const AlgoOrderInput &
     return;
   }
 
-  if (not vendor_.has_writer(source)) {
-    return;
-  }
-
-  AlgoOrder &algo_order = vendor_.get_writer(source)->open_data<AlgoOrder>();
+  AlgoOrder algo_order{};
   algo_order_from_input(algo_order_input, algo_order);
   algo_order.status = OrderStatus::Lost;
   algo_order.update_time = time::now_in_nano();
-  vendor_.get_writer(source)->close_data();
+  vendor_.try_write_to(vendor_.now(), algo_order, source);
 }
 
 const AlgoOrderMap &AlgoOrderService::get_algo_orders() const { return algo_orders_; }

@@ -29,11 +29,11 @@ export const getColumns = (): KfTradingDataTableHeaderConfig[] => [
   },
   {
     type: 'number',
-    name: t('posGlobalConfig.static_yesterday_volume'),
-    dataIndex: 'static_yesterday_volume',
+    name: t('posGlobalConfig.static_yesterday'),
+    dataIndex: 'static_yesterday',
     width: 80,
     align: 'right',
-    sorter: buildSorter('static_yesterday_volume'),
+    sorter: buildSorter('static_yesterday'),
   },
   {
     type: 'number',

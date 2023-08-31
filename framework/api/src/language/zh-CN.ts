@@ -76,10 +76,10 @@ export default {
   trading_day: '交易日',
 
   delete_category:
-    '删除 {category} 所有数据,  如果该 {categoryName} 进程正在运行, 也将停止进程, 确认是否删除',
+    '删除{category} 所有数据,  如果该{categoryName}进程正在运行, 也将停止进程, 确认是否删除',
   add_config_modal:
-    '{category} ID 系统唯一, {changeTypeName} 成功后不可修改, 确认是否 {key}',
-  update_config_modal: '确认{key} 相关配置',
+    '{category} ID 系统唯一, {changeTypeName}成功后不可修改, 确认是否{key}',
+  update_config_modal: '确认{key}相关配置',
   database_locked: '检测到当前有交易进行, 数据库被占用',
   export_database_locked:
     '检测到当前有交易进行, 为不影响交易数据落地, 建议收盘后尝试进行此操作',
@@ -350,11 +350,10 @@ export default {
     order_trigger_status_cancelling: '待撤',
     batch: '批量',
     batch_order_trigger: '批量预埋单',
-    empty_csv_order: '含有未填入的项, 下单失败',
+    has_error_csv_order: '填入信息不合规, 请检查输入信息, 下单失败',
     order_trigger_td_error: '当前柜台 {tdName} 不支持下预埋单, 请联系管理员',
     order_trigger_not_future:
       '下单失败, 第 {rowStr} 标的信息有误 (当前仅支持期货标的), 请检查',
-    batch_order_trigger_results: '批量埋单成功 {success} 条, 失败 {error} 条',
     instrument_id_header_desc:
       '标的代码, 字符串, (* 仅可填ctp/融航柜台支持的期货标的)',
     exchange_id_header_desc:
@@ -393,7 +392,7 @@ export default {
       '卖出价格超出警戒线, 当前价格为 {price}, 警戒线为 {warningLine}, 当前乌龙指阈值为 {fatFinger}%',
     close_apart_open_modal:
       '下单量为 {volume}, 当前标的可平 {direction} 仓为 {closableVolume}, 超出数量为 {openVolume}\n点击 “超出部分反向开仓”, 将会 平 {direction} {closableVolume}, 开{oppositeDirection} {openVolume}\n点击“按原方案下单”, 将会继续平 {direction} {volume}',
-    start_process: '请先启动{process}交易进程',
+    start_process: '请先启动 {process} 交易进程',
     place_confirm: '下单确认',
     continue_close_rate: '{relationship} 平仓阈值 ({rate}%), 是否继续下单?',
     Continue: '继续下单',
@@ -427,6 +426,8 @@ export default {
 
     checkbox_text: '未完成委托',
     cancel_all: '全部撤单',
+    cancel_order: '撤单',
+    cancel_order_trigger: '预撤',
     date_picker: '请选择日期',
     confirm_cancel_all: '确认全部撤单',
     entrust: '委托',
@@ -447,6 +448,10 @@ export default {
     max_network_latency: '最大网络延迟(μs)',
 
     actions: '操作',
+    order_finished: '该委托已结束, 无法预埋撤单',
+    confirm_cancel_order_trigger: '确认撤销预埋单',
+    cancel_order_trigger_context: '您是否要取消该委托单下的预埋撤单',
+    make_order_type: '(预埋)',
   },
 
   orderTriggerConfig: {
@@ -457,6 +462,17 @@ export default {
     confirm: '确认',
     cancel_all: '全部撤单',
     insert_time: '生成时间',
+    order_finished: '该委托已结束, 无法操作',
+    order_trigger_request_success: '刷新成功',
+    make_order_modal_tip:
+      '注: 预埋单仅支持在非交易时间段下单, 会在交易所交易状态变化时触发',
+    error_msg_column: '回报信息',
+    order_trigger_success: '成功',
+    order_trigger_error_row: '第 {index} 行',
+    empty_instrument: '空',
+    err_modal_title: '错误详情',
+    order_trigger_not_future: '不是期货',
+    start_process: '请先启动 {process} 交易进程',
   },
 
   tdConfig: {
@@ -576,7 +592,7 @@ export default {
   posGlobalConfig: {
     instrument_id: '标的',
     account_id_resolved: '持有账户',
-    static_yesterday_volume: '昨',
+    static_yesterday: '昨',
     static_yesterday_volume_setting: '昨(今天之前持仓量)',
     open_volume: '今开',
     close_volume: '今平',
@@ -682,6 +698,7 @@ export default {
     select_channel: '过滤数据信道',
 
     selete_msg_type: '过滤消息类型',
+    empty_export_data: '没有可导出的信息',
   },
 
   tradeConfig: {
@@ -752,9 +769,9 @@ export default {
   globalSettingConfig: {
     global_setting_title: '全局设置',
     system: '系统',
-    home_path: '选择本地 Home 路径',
-    home_path_desc:
-      '功夫将会以选择的 home 路径为根目录, 目录路径不可以包含中文, 且路径不建议太长 (过长会导致进程无法启动), 修改后重启功夫生效',
+    home_dir: '选择本地 Home 目录',
+    home_dir_desc:
+      '功夫将会以选择的 Home 目录作为系统缓存数据的根目录, 目录路径不可以包含中文, 且路径不建议太长 (过长会导致进程无法启动), 修改后重启功夫生效',
     reset_order: '重置',
     log_level: '全局日志级别',
     for_all_log: '对系统内所有日志级别的设置',
@@ -767,7 +784,7 @@ export default {
     select_language_desc: '选择语言, 修改后重启功夫生效',
     bypass_archive: '跳过归档',
     bypass_archive_desc:
-      '仅删除上个交易日留下的 journal 与 log 文件, 不再压缩打包, 跳过归档后无法恢复之前的内存数据, 会加快启动速度',
+      '开启后, 每次启动会删除所有 journal, 且仅保留当日 runtime 目录下 log, 跳过归档后无法恢复之前的内存数据, 会加快启动速度',
 
     bypass_subscribe_position: '跳过持仓行情订阅',
     bypass_subscribe_position_desc:
@@ -825,19 +842,6 @@ export default {
     close_today: '平今',
     close_yesterday: '平昨',
     min: '最小',
-
-    update: '版本更新',
-    is_check_version: '检测更新',
-    is_check_version_desc: '启动功夫时, 是否检测更新',
-    current_version: '当前版本',
-    already_latest_version: '已是最新版本',
-    new_version: '新版本',
-    start_download: '开始下载',
-    find_new_version: '发现新版本: {version}\n是否现在下载安装包? ',
-    downloaded: '下载完成, 等待安装',
-    to_install: '现在安装',
-    warning_before_install:
-      '安装会清理当日交易数据并退出功夫 (如有需要请提前备份), 确定现在安装吗? (建议盘后进行)',
   },
 
   风控: '风控',
@@ -850,6 +854,23 @@ export default {
   最大回撤率: '最大回撤率',
   标的白名单: '标的白名单',
   白名单设置警告: '请先为此账户设置标的白名单',
+
+  autoUpdater: {
+    update: '版本更新',
+    is_check_version: '检测更新',
+    is_check_version_desc: '启动功夫时, 是否检测更新',
+    current_version: '当前版本',
+    already_latest_version: '已是最新版本',
+    new_version: '新版本',
+    retry_check: '检测',
+    start_download: '开始下载',
+    retry_download: '重试',
+    find_new_version: '发现新版本: {version}\n是否现在下载安装包? ',
+    downloaded: '下载完成, 等待安装',
+    to_install: '现在安装',
+    warning_before_install:
+      '安装会清理当日交易数据并退出功夫 (如有需要请提前备份), 确定现在安装吗? (建议盘后进行)',
+  },
 
   validate: {
     no_special_characters: '不能含有特殊字符和中文',
@@ -912,6 +933,8 @@ export default {
     '电脑性能过低, 将默认开启跳过 UI 计算选项 (可在全局系统设置里打开, 开启可能会导致系统进程崩溃), 建议使用8核及以上的 CPU 运行系统',
 
   quit_confirm: '退出应用会结束所有交易进程, 确认退出吗?',
+  init_after_reload:
+    '现检测到主控进程已退出, 会导致当前交易无法正常进行, 点击确认重启主控进程',
   restart_process: '功夫图形进程中断, 该中断不会影响交易, 是否重启图形进程?',
 
   未就绪: '{processId} 还未准备就绪, 请稍后重试',

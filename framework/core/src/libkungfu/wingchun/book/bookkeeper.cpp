@@ -125,13 +125,35 @@ void Bookkeeper::restore(const cache::bank &state_bank) {
     }
     update_instrument_factor(instrument_factor);
   }
+
+  for (auto &pair : state_bank[boost::hana::type_c<Order>]) {
+    auto &order_state = pair.second;
+    auto source_book = get_book(order_state.source);
+    source_book->replace(order_state.data);
+    if (order_state.dest == location::PUBLIC) {
+      continue;
+    }
+    auto dest_book = get_book(order_state.dest);
+    dest_book->replace(order_state.data);
+  }
+
+  for (auto &pair : state_bank[boost::hana::type_c<Trade>]) {
+    auto &trade_state = pair.second;
+    auto source_book = get_book(trade_state.source);
+    source_book->replace(trade_state.data);
+    if (trade_state.dest == location::PUBLIC) {
+      continue;
+    }
+    auto dest_book = get_book(trade_state.dest);
+    dest_book->replace(trade_state.data);
+  }
 }
 
 void Bookkeeper::guard_positions() { positions_guarded_ = true; }
 
 Book_ptr Bookkeeper::make_book(uint32_t location_uid) {
   auto location = app_.get_location(location_uid);
-  auto book = std::make_shared<Book>(commissions_, instruments_);
+  auto book = std::make_shared<Book>(commissions_, instruments_, location);
   auto &asset = book->asset;
   asset.holder_uid = location_uid;
   asset.ledger_category = location->category == category::TD ? LedgerCategory::Account : LedgerCategory::Strategy;
@@ -338,6 +360,8 @@ void Bookkeeper::mirror_positions(int64_t trigger_time, uint32_t strategy_uid) {
     position.yesterday_volume = 0;
     position.frozen_total = 0;
     position.frozen_yesterday = 0;
+    position.open_volume = 0;
+    position.static_yesterday = 0;
     position.avg_open_price = 0;
     position.position_cost_price = 0;
     position.update_time = trigger_time;

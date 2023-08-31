@@ -4,11 +4,12 @@
 // Created by Keren Dong on 2020/7/20.
 //
 
-#ifndef WINGCHUN_BACKTEST_H
-#define WINGCHUN_BACKTEST_H
+#ifndef WINGCHUN_STRATEGY_BACKTEST_H
+#define WINGCHUN_STRATEGY_BACKTEST_H
 
 #include <kungfu/wingchun/strategy/context.h>
 #include <kungfu/wingchun/strategy/matcher.h>
+#include <kungfu/wingchun/tool/report.h>
 #include <kungfu/wingchun/tool/sliceindexer.h>
 #include <kungfu/wingchun/tool/slicetool.h>
 
@@ -16,7 +17,8 @@ namespace kungfu::wingchun::strategy {
 class BacktestContext : public Context {
 public:
   explicit BacktestContext(yijinjing::practice::apprentice &app, const rx::connectable_observable<event_ptr> &events,
-                           Matcher_ptr matcher, tool::SliceIndexer_ptr from_indexer, tool::SliceIndexer_ptr to_indexer);
+                           Matcher_ptr matcher, tool::SliceIndexer_ptr from_indexer, tool::SliceIndexer_ptr to_indexer,
+                           tool::Report_ptr report);
 
   /**
    * checked_ is strated started.
@@ -148,7 +150,6 @@ public:
    * @param side
    * @param offset
    * @param trigger_type
-   * @param time_condition
    * @param action_flag
    * @param order_id
    * @param stop_price
@@ -160,7 +161,6 @@ public:
                                 const std::string &source, const std::string &account, double limit_price,
                                 int64_t volume, longfist::enums::PriceType type, longfist::enums::Side side,
                                 longfist::enums::Offset offset, longfist::enums::OrderTriggerType trigger_type,
-                                longfist::enums::TimeCondition time_condition, longfist::enums::ParkedType parked_type,
                                 double stop_price = 0,
                                 longfist::enums::HedgeFlag hedge_flag = longfist::enums::HedgeFlag::Speculation,
                                 bool is_swap = false) override;
@@ -197,22 +197,6 @@ public:
    */
   virtual std::vector<uint64_t> insert_array_orders(const std::string &source, const std::string &account,
                                                     std::vector<longfist::types::OrderInput> &order_inputs) override;
-
-  /*
-   * Insert Basket Orders
-   * @param basket_id
-   * @param source
-   * @param account
-   * @param price_type
-   * @param price_level
-   * @param price_offset
-   * @param volume_mode
-   * @param total_volume
-   */
-  virtual uint64_t insert_basket_order(uint64_t basket_id, const std::string &source, const std::string &account,
-                                       longfist::enums::Side side, longfist::enums::PriceType price_type,
-                                       longfist::enums::PriceLevel price_level, double price_offset = 0,
-                                       int64_t volume = 0) override;
 
   /**
    * @param instrument_id instrument ID
@@ -259,7 +243,15 @@ public:
    * @param algo_order_id
    * @return algo order action ID
    */
-  uint64_t cancel_algo_order(uint64_t algo_order_id) override;
+  uint64_t cancel_algo_order(uint64_t algo_order_id, longfist::enums::AlgoOrderActionFlag action_flag =
+                                                         longfist::enums::AlgoOrderActionFlag::Cancel) override;
+  /**
+   * Toggle Algo Order
+   * @param algo_order_id
+   * @return algo order action ID
+   */
+  virtual uint64_t toggle_algo_order(uint64_t algo_order_id, longfist::enums::AlgoOrderActionFlag action_flag =
+                                                                 longfist::enums::AlgoOrderActionFlag::Start) override;
 
   /**
    * query history order
@@ -291,9 +283,10 @@ protected:
 
   virtual void prepare(const event_ptr &event) override;
 
-  // yijinjing::data::location_ptr find_md_location(const std::string &source);
+  yijinjing::data::location_ptr find_td_location(const std::string &source, const std::string &account,
+                                                 bool check_exist = true) const;
 
-  // yijinjing::data::location_ptr find_op_location(const std::string &group, const std::string &name);
+  uint64_t get_order_id(const yijinjing::journal::writer_ptr &writer, uint32_t dest) const;
 
 private:
   broker::PassiveClient broker_client_;
@@ -301,13 +294,16 @@ private:
   Matcher_ptr matcher_;
   tool::SliceIndexer_ptr from_indexer_;
   tool::SliceTool_ptr slice_tool_;
-  std::multimap<int64_t, std::function<void(event_ptr)>> pre_timer_callbacks_ = {};
-  std::multimap<int64_t, std::function<void(event_ptr)>> timer_callbacks_ = {};
+  tool::Report_ptr report_;
+  std::multimap<int64_t, std::function<void(event_ptr)>> pre_timer_callbacks_{};
+  std::multimap<int64_t, std::function<void(event_ptr)>> timer_callbacks_{};
+  std::map<int64_t, std::vector<yijinjing::data::location_ptr>> lease_locations_{};
 
   void on_timer_check();
+  void lease_expired_check();
 };
 
 DECLARE_PTR(BacktestContext)
 } // namespace kungfu::wingchun::strategy
 
-#endif // WINGCHUN_BACKTEST_H
+#endif // WINGCHUN_STRATEGY_BACKTEST_H

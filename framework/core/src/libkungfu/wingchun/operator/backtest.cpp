@@ -15,16 +15,22 @@ using kungfu::yijinjing::nanomsg::nanomsg_json;
 namespace kungfu::wingchun::op {
 
 BacktestContext::BacktestContext(apprentice &app, const rx::connectable_observable<event_ptr> &events,
-                                 SliceIndexer_ptr from_indexer, SliceIndexer_ptr to_indexer)
+                                 SliceIndexer_ptr from_indexer, SliceIndexer_ptr to_indexer, Report_ptr report)
     : Context(app, events), broker_client_(app), from_indexer_(std::move(from_indexer)),
       slice_tool_(std::make_shared<SliceTool>(category::OPERATOR, app.get_home()->group, app.get_home()->name,
-                                              std::move(to_indexer))) {
+                                              std::move(to_indexer))),
+      report_(std::move(report)) {
   KUNGFU_SETUP_LOGGER(app_.get_home(), app_.get_home()->name);
 }
 
 void BacktestContext::on_start() {
   broker_client_.on_start(events_);
   events_ | $$(on_timer_check());
+  events_ | is_own<Quote>(get_broker_client()) | $$(report_->on_quote(event->data<Quote>()););
+  events_ | is_own<Entrust>(get_broker_client()) | $$(report_->on_entrust(event->data<Entrust>()););
+  events_ | is_own<Transaction>(get_broker_client()) | $$(report_->on_transaction(event->data<Transaction>()););
+  events_ | is_own<Tree>(get_broker_client()) | $$(report_->on_tree(event->data<Tree>()););
+  events_ | is(SyntheticData::tag) | $$(report_->on_read_synthetic_data(event->data<SyntheticData>()));
 }
 
 bool BacktestContext::is_started() const { return true; }
@@ -99,15 +105,7 @@ void BacktestContext::subscribe(const std::string &source, const std::vector<std
 
 void BacktestContext::subscribe_all(const std::string &source, uint8_t market_type, uint64_t instrument_type,
                                     uint64_t data_type) {
-  throw std::runtime_error("BacktestContext::subscribe_all  not implemented");
-  // auto md_location = find_md_location(source);
-  // if (md_location->locator->list_page_id(md_location, location::PUBLIC).empty()) {
-  //   throw wingchun_error(fmt::format("md public journal {} not exists", md_location->uname));
-  // }
-  // SPDLOG_INFO("subscribe source={} in: {}", source, md_location->uname);
-  // add_location(app_, md_location);
-  // app_.get_reader()->join(md_location, location::PUBLIC, std::max(app_.get_begin_time(), app_.now()));
-  // broker_client_.subscribe_all(find_md_location(source), market_type, instrument_type, data_type);
+  throw std::runtime_error("BacktestContext::subscribe_all not implemented");
 }
 
 void BacktestContext::subscribe_operator(const std::string &group, const std::string &name) {

@@ -34,9 +34,7 @@ void OrderTriggerService::clean_order_triggers(bool bypass_recover) {
     if (not is_final_status(trigger.status) and (bypass_recover or trigger.external_trigger_id.to_string().empty())) {
       trigger.status = OrderStatus::Lost;
       trigger.update_time = time::now_in_nano();
-      if (vendor_.has_writer(pair.second.dest)) {
-        vendor_.write_to(vendor_.now(), trigger, pair.second.dest);
-      }
+      vendor_.try_write_to(vendor_.now(), trigger, pair.second.dest);
     }
   });
 }
@@ -47,16 +45,12 @@ void OrderTriggerService::clean_order_triggers(uint32_t source,
   if (order_triggers_.find(order_trigger_input.trigger_id) != order_triggers_.end()) {
     return;
   }
-  if (not vendor_.has_writer(source)) {
-    return;
-  }
 
-  auto writer = vendor_.get_writer(source);
-  OrderTrigger &trigger = writer->open_data<OrderTrigger>();
+  OrderTrigger trigger{};
   order_trigger_from_input(order_trigger_input, trigger);
   trigger.status = OrderStatus::Lost;
   trigger.update_time = time::now_in_nano();
-  writer->close_data();
+  vendor_.try_write_to(vendor_.now(), trigger, source);
 }
 
 const OrderTriggerMap &OrderTriggerService::get_order_triggers() const { return order_triggers_; }

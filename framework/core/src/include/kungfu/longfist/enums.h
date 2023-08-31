@@ -331,6 +331,20 @@ NLOHMANN_JSON_SERIALIZE_ENUM(OrderTriggerFlag, {
 
 inline std::ostream &operator<<(std::ostream &os, OrderTriggerFlag t) { return os << int32_t(t); }
 
+enum class AlgoOrderActionFlag : int8_t {
+  Cancel, /// 普通撤单
+  Start,  /// 启动
+  Stop,   /// 停止
+};
+
+NLOHMANN_JSON_SERIALIZE_ENUM(AlgoOrderActionFlag, {
+                                                      {AlgoOrderActionFlag::Cancel, "Cancel"},
+                                                      {AlgoOrderActionFlag::Start, "Start"},
+                                                      {AlgoOrderActionFlag::Stop, "Stop"},
+                                                  })
+
+inline std::ostream &operator<<(std::ostream &os, AlgoOrderActionFlag t) { return os << int32_t(t); }
+
 enum class PriceType : int8_t {
   Limit, // 限价,证券通用
   Any, // 市价，证券通用，对于股票上海为最优五档剩余撤销，深圳为即时成交剩余撤销，建议客户采用
@@ -362,7 +376,7 @@ NLOHMANN_JSON_SERIALIZE_ENUM(PriceType, {
 inline std::ostream &operator<<(std::ostream &os, PriceType t) { return os << int32_t(t); }
 
 enum class PriceLevel : int8_t {
-  Latest, // 最新价
+  Last, // 最新价
   Sell5,
   Sell4,
   Sell3,
@@ -379,7 +393,7 @@ enum class PriceLevel : int8_t {
 };
 
 NLOHMANN_JSON_SERIALIZE_ENUM(PriceLevel, {
-                                             {PriceLevel::Latest, "Latest"},
+                                             {PriceLevel::Last, "Last"},
                                              {PriceLevel::Sell5, "Sell5"},
                                              {PriceLevel::Sell4, "Sell4"},
                                              {PriceLevel::Sell3, "Sell3"},
@@ -697,18 +711,6 @@ NLOHMANN_JSON_SERIALIZE_ENUM(OrderTriggerType,
 
 inline std::ostream &operator<<(std::ostream &os, OrderTriggerType t) { return os << int32_t(t); }
 
-enum class ParkedType : int8_t {
-  Server, /// 服务器预埋
-  Local   /// 本地预埋
-};
-
-NLOHMANN_JSON_SERIALIZE_ENUM(ParkedType, {
-                                             {ParkedType::Server, "Server"},
-                                             {ParkedType::Local, "Local"},
-                                         })
-
-inline std::ostream &operator<<(std::ostream &os, ParkedType t) { return os << int32_t(t); }
-
 enum class Priority : int8_t { Low, Medium, High };
 
 NLOHMANN_JSON_SERIALIZE_ENUM(Priority, {
@@ -732,6 +734,17 @@ NLOHMANN_JSON_SERIALIZE_ENUM(SelfDealCheckType, {
                                                 })
 
 inline std::ostream &operator<<(std::ostream &os, SelfDealCheckType t) { return os << int8_t(t); }
+
+enum class ResumePolicy : int8_t { Now, Intraday, Stateless, Continuous };
+
+NLOHMANN_JSON_SERIALIZE_ENUM(ResumePolicy, {
+                                               {ResumePolicy::Now, "Now"},
+                                               {ResumePolicy::Intraday, "Intraday"},
+                                               {ResumePolicy::Stateless, "Stateless"},
+                                               {ResumePolicy::Continuous, "Continuous"},
+                                           })
+
+inline std::ostream &operator<<(std::ostream &os, ResumePolicy t) { return os << int8_t(t); }
 
 } // namespace kungfu::longfist::enums
 #endif // KUNGFU_LONGFIST_ENUM_H

@@ -25,8 +25,18 @@ Context_ptr Runner::make_context() {
       to_indexer_ = std::make_shared<tool::SliceIndexer>(get_begin_time(), get_end_time());
       SPDLOG_WARN("Runner in backtest mode not specified to_indexer, Default NameHashingIndexer used.");
     }
-    return std::make_shared<BacktestContext>(*this, events_, std::move(from_indexer_), std::move(to_indexer_));
+    if (not report_) {
+      report_ = std::make_shared<tool::Report>();
+      SPDLOG_WARN("Runner in backtest mode not specified.");
+    }
+    set_runner(*report_, this, nullptr);
+    return std::make_shared<BacktestContext>(*this, events_, std::move(from_indexer_), std::move(to_indexer_), report_);
   }
+
+  if (get_home()->mode == mode::REPLAY) {
+    return std::make_shared<ReplayContext>(*this, events_);
+  }
+
   return std::make_shared<LiveContext>(*this, events_);
 }
 
@@ -36,20 +46,41 @@ void Runner::set_from_indexer(const tool::SliceIndexer_ptr &indexer) { from_inde
 
 void Runner::set_to_indexer(const tool::SliceIndexer_ptr &indexer) { to_indexer_ = indexer; }
 
+void Runner::set_report(const tool::Report_ptr &report) { report_ = report; }
+
+tool::Report_ptr Runner::get_report() const { return report_; }
+
 void Runner::on_exit() { post_stop(); }
 
 void Runner::on_react() { context_ = make_context(); }
 
 void Runner::on_start() {
-  enable(*context_);
   pre_start();
-  events_ | is_own<Deregister>(context_->get_broker_client()) |
-      $$(invoke(&Operator::on_deregister, event->data<Deregister>(), get_location(event->source())));
+  enable(*context_);
+
+  auto resume_policy_is_now = context_->get_resume_policy() == longfist::enums::ResumePolicy::Now;
+  auto start_events =
+      events_ |
+      skip_until(events_ | filter([&](auto e) { return resume_policy_is_now ? context_->is_started() : true; }));
+  start_events | is_own<Quote>(context_->get_broker_client()) |
+      $$(invoke(&Operator::on_quote, event->data<Quote>(), get_location(event->source()), event->dest()));
+  start_events | is_own<Tree>(context_->get_broker_client()) |
+      $$(invoke(&Operator::on_tree, event->data<Tree>(), get_location(event->source()), event->dest()));
+  start_events | is_own<Entrust>(context_->get_broker_client()) |
+      $$(invoke(&Operator::on_entrust, event->data<Entrust>(), get_location(event->source()), event->dest()));
+  start_events | is_own<Transaction>(context_->get_broker_client()) |
+      $$(invoke(&Operator::on_transaction, event->data<Transaction>(), get_location(event->source()), event->dest()));
+  start_events | is(SyntheticData::tag) |
+      $$(invoke(&Operator::on_synthetic_data, event->data<SyntheticData>(), get_location(event->source()),
+                event->dest()));
+
   events_ | is_own<BrokerStateUpdate>(context_->get_broker_client()) |
       $$(invoke(&Operator::on_broker_state_change, event->data<BrokerStateUpdate>(), get_location(event->source())));
   events_ | is_own<OperatorStateUpdate>(context_->get_broker_client()) |
       $$(invoke(&Operator::on_operator_state_change, event->data<OperatorStateUpdate>(),
                 get_location(event->source())));
+  events_ | is_own<Deregister>(context_->get_broker_client()) |
+      $$(invoke(&Operator::on_deregister, event->data<Deregister>(), get_location(event->source())));
 
   events_ | take_until(events_ | filter([&](auto e) { return context_->is_started(); })) |
       $$(prepare(event, *context_));
@@ -69,21 +100,10 @@ void Runner::on_active() {
 void Runner::pre_start() { invoke(&Operator::pre_start); }
 
 void Runner::post_start() {
-  events_ | is_own<Quote>(context_->get_broker_client()) |
-      $$(invoke(&Operator::on_quote, event->data<Quote>(), get_location(event->source()), event->dest()));
-  events_ | is_own<Entrust>(context_->get_broker_client()) |
-      $$(invoke(&Operator::on_entrust, event->data<Entrust>(), get_location(event->source()), event->dest()));
-  events_ | is_own<Transaction>(context_->get_broker_client()) |
-      $$(invoke(&Operator::on_transaction, event->data<Transaction>(), get_location(event->source()), event->dest()));
-  events_ | is_own<Tree>(context_->get_broker_client()) |
-      $$(invoke(&Operator::on_tree, event->data<Tree>(), get_location(event->source()), event->dest()));
-
-  events_ | is(SyntheticData::tag) |
-      $$(invoke(&Operator::on_synthetic_data, event->data<SyntheticData>(), get_location(event->source()),
-                event->dest()));
-
+  if (not context_->is_started()) {
+    return;
+  }
   invoke(&Operator::post_start);
-  SPDLOG_INFO("operator {} started", get_io_device()->get_home()->name);
 }
 
 void Runner::pre_stop() { invoke(&Operator::pre_stop); }

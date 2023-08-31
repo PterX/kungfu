@@ -29,7 +29,7 @@ export const getColumns = (): AntTableColumns => [
     align: 'left',
     defaultSortOrder: 'descend',
     sorter: {
-      compare: buildSorter('insert_time_resolved'),
+      compare: buildSorter('insert_time'),
     },
     width: 100,
   },
@@ -81,6 +81,12 @@ export const getColumns = (): AntTableColumns => [
   {
     title: t('orderConfig.order_status'),
     dataIndex: 'status_uname',
+    align: 'left',
+    width: 120,
+  },
+  {
+    title: t('orderTriggerConfig.error_msg_column'),
+    dataIndex: 'error_id',
     align: 'left',
     width: 120,
   },

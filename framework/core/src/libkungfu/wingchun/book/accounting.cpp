@@ -46,4 +46,25 @@ void AccountingMethod::setup_defaults(Bookkeeper &bookkeeper, const AccountingMe
   bookkeeper.set_accounting_method(InstrumentType::CryptoFuture, crypto_accounting_method);
   bookkeeper.set_accounting_method(InstrumentType::CryptoUFuture, crypto_accounting_method);
 }
+
+bool AccountingMethod::guard_order_accounting(Book_ptr book, const longfist::types::Order &order) {
+  auto &orders = book->orders;
+  if (not is_final_status(order.status)) {
+    return false;
+  }
+
+  if (orders.find(order.order_id) != orders.end() and is_final_status(orders.at(order.order_id).status)) {
+    return false;
+  }
+  return true;
+}
+
+bool AccountingMethod::guard_trade_accounting(Book_ptr book, const longfist::types::Trade &trade) {
+  auto &trades = book->trades;
+  if (trades.find(trade.trade_id) != trades.end()) {
+    return false;
+  }
+  return true;
+};
+
 } // namespace kungfu::wingchun::book

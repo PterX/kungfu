@@ -17,6 +17,7 @@
 
 namespace kungfu {
 namespace yijinjing {
+
 /** size related */
 constexpr int KB = 1024;
 constexpr int MB = KB * KB;
@@ -30,7 +31,7 @@ class resource {
 public:
   virtual bool is_usable() = 0;
 
-  virtual void setup() = 0;
+  virtual bool setup() = 0;
 };
 
 class publisher : public resource {
@@ -39,7 +40,7 @@ public:
 
   virtual int notify() = 0;
 
-  virtual int publish(const std::string &json_message, int flags = NNG_FLAG_NONBLOCK) = 0;
+  virtual int publish(const std::string &json_message, int flags = NNG_FLAG_NONBLOCK, bool no_exception = false) = 0;
 };
 
 DECLARE_PTR(publisher)

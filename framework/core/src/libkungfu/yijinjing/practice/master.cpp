@@ -132,7 +132,7 @@ void master::register_app(const event_ptr &event) {
 
   // after register sent, then open session
   cached_.open_session(app_location, event->gen_time());
-  cached_.ensure_cached_storage(app_location, location::PUBLIC);
+  cached_.try_ensure_cached_storage(app_location, location::PUBLIC);
   cached_.restore(app_location, app_cmd_writer);
 
   write_time_reset(event->gen_time(), app_cmd_writer);
@@ -224,7 +224,7 @@ void master::handle_timer_tasks() {
     auto &app_tasks = app.second;
     for (auto it = app_tasks.begin(); it != app_tasks.end();) {
       auto &task = it->second;
-      if (task.checkpoint <= now) {
+      if (task.checkpoint <= now && has_writer(app_id)) {
         get_writer(app_id)->mark(0, Time::tag);
         task.checkpoint += task.duration;
         task.repeat_count++;
@@ -278,6 +278,7 @@ void master::on_request_write_to_band(const event_ptr &event) {
 
   // layout have to be journal, for locator::list_locations
   auto dirname = home->locator->layout_dir(target_location, enums::layout::JOURNAL);
+  reader_->join(target_location, location::PUBLIC, trigger_time, 1);
 
   // notify others band location, but it represents a simulation location, no register, only location
   try_add_location(now(), target_location);
@@ -290,7 +291,7 @@ void master::on_request_write_to_band(const event_ptr &event) {
 
   reader_->join(get_location(app_uid), request.location_uid, trigger_time, page_size);
   require_write_to_band(trigger_time, app_uid, target_location, page_size);
-  cached_.ensure_cached_storage(get_location(app_uid), request.location_uid);
+  cached_.try_ensure_cached_storage(get_location(app_uid), request.location_uid);
   Band band = {};
   band.source_id = app_uid;
   band.dest_id = target_location->location_uid;
@@ -308,7 +309,7 @@ void master::on_request_write_to(const event_ptr &event) {
   }
   reader_->join(get_location(app_uid), request.dest_id, trigger_time);
   require_write_to(trigger_time, app_uid, request.dest_id);
-  cached_.ensure_cached_storage(get_location(app_uid), request.dest_id);
+  cached_.try_ensure_cached_storage(get_location(app_uid), request.dest_id);
 
   if (is_location_live(request.dest_id) and has_writer(request.dest_id)) {
     require_read_from(0, request.dest_id, app_uid, trigger_time);
@@ -331,7 +332,7 @@ void master::on_request_read_from(const event_ptr &event) {
   reader_->join(get_location(request.source_id), app_uid, trigger_time);
   require_write_to(trigger_time, request.source_id, app_uid);
   require_read_from(trigger_time, app_uid, request.source_id, request.from_time);
-  cached_.ensure_cached_storage(get_location(request.source_id), app_uid);
+  cached_.try_ensure_cached_storage(get_location(request.source_id), app_uid);
 
   Channel channel = {};
   channel.source_id = request.source_id;
@@ -352,12 +353,7 @@ void master::on_request_read_from_sync(const event_ptr &event) {
 
 void master::on_request_read_from_others(const event_ptr &event) {
   RequestReadFromOthers request{};
-  if (event->is_json()) {
-    const std::string msg = event->data_as_string();
-    request = RequestReadFromOthers(msg.c_str(), msg.length());
-  } else {
-    request = event->data<RequestReadFromOthers>();
-  }
+  request = event->data<RequestReadFromOthers>();
   auto source = event->source();
   if (has_writer(source)) {
     get_writer(source)->write(now(), request);
@@ -368,7 +364,7 @@ void master::on_channel_request(const event_ptr &event) {
   const Channel &channel = event->data<Channel>();
   auto trigger_time = event->gen_time();
   if (is_location_live(channel.source_id) and not has_channel(channel.source_id, channel.dest_id)) {
-    cached_.ensure_cached_storage(get_location(channel.source_id), channel.dest_id);
+    cached_.try_ensure_cached_storage(get_location(channel.source_id), channel.dest_id);
     reader_->join(get_location(channel.source_id), channel.dest_id, trigger_time);
     require_write_to(trigger_time, channel.source_id, channel.dest_id);
     register_channel(trigger_time, channel);
@@ -381,7 +377,6 @@ void master::on_time_request(const event_ptr &event) {
     return;
   }
   const TimeRequest &request = event->data<TimeRequest>();
-  SPDLOG_INFO("TimeRequest: {}", request.to_string());
   auto &app_tasks = timer_tasks_.try_emplace(event->source()).first->second;
   auto &task = app_tasks.try_emplace(request.id).first->second;
   task.checkpoint = request.base_time + request.duration;

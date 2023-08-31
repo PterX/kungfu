@@ -157,6 +157,7 @@ void bind_strategy(pybind11::module &m) {
       .def("set_matcher", &strategy::Runner::set_matcher)
       .def("set_from_indexer", &strategy::Runner::set_from_indexer)
       .def("set_to_indexer", &strategy::Runner::set_to_indexer)
+      .def("set_report", &strategy::Runner::set_report)
       .def("now", &strategy::Runner::now)
       .def("run", &strategy::Runner::run)
       .def("setup", &strategy::Runner::setup)
@@ -168,6 +169,7 @@ void bind_strategy(pybind11::module &m) {
       .def_property_readonly("arguments", &strategy::Context::get_arguments)
       .def_property_readonly("bookkeeper", &strategy::Context::get_bookkeeper, py::return_value_policy::reference)
       .def("now", &strategy::Context::now)
+      .def("is_started", &strategy::Context::is_started)
       .def("add_timer", &strategy::Context::add_timer)
       .def("add_time_interval", &strategy::Context::add_time_interval)
       .def("add_account", &strategy::Context::add_account)
@@ -185,14 +187,11 @@ void bind_strategy(pybind11::module &m) {
            py::arg("opponent_seat"), py::arg("match_number"), py::arg("is_specific") = false)
       .def("insert_order_trigger", &strategy::Context::insert_order_trigger, py::arg("instrument_id"),
            py::arg("exchange"), py::arg("source"), py::arg("account"), py::arg("limit_price"), py::arg("volume"),
-           py::arg("type"), py::arg("side"), py::arg("offset") = Offset::Open, py::arg("trigger_type"),
-           py::arg("time_condition"), py::arg("parked_type") = longfist::enums::ParkedType::Server,
-           py::arg("stop_price") = 0, py::arg("hedge_flag") = HedgeFlag::Speculation, py::arg("is_swap") = false)
+           py::arg("type"), py::arg("side"), py::arg("offset") = Offset::Open,
+           py::arg("trigger_type") = longfist::enums::OrderTriggerType::ParkedOrder, py::arg("stop_price") = 0,
+           py::arg("hedge_flag") = HedgeFlag::Speculation, py::arg("is_swap") = false)
       .def("insert_batch_orders", &strategy::Context::insert_batch_orders)
       .def("insert_array_orders", &strategy::Context::insert_array_orders)
-      .def("insert_basket_order", &strategy::Context::insert_basket_order, py::arg("basket_id"), py::arg("source"),
-           py::arg("account"), py::arg("side"), py::arg("price_type") = PriceType::Limit,
-           py::arg("price_level") = PriceLevel::Latest, py::arg("price_offset") = 0, py::arg("volume") = 0)
       .def("insert_algo_order", &strategy::Context::insert_algo_order, py::arg("instrument_id"), py::arg("exchange_id"),
            py::arg("source"), py::arg("account"), py::arg("begin_time"), py::arg("end_time"), py::arg("volume"),
            py::arg("type"), py::arg("side"), py::arg("offset"), py::arg("algo_type_id"), py::arg("algo_id"),
@@ -201,6 +200,7 @@ void bind_strategy(pybind11::module &m) {
            py::arg("action_flag") = OrderActionFlag::Cancel)
       .def("cancel_order_trigger", &strategy::Context::cancel_order_trigger)
       .def("cancel_algo_order", &strategy::Context::cancel_algo_order)
+      .def("toggle_algo_order", &strategy::Context::toggle_algo_order)
       .def("req_history_order", &strategy::Context::req_history_order, py::arg("source"), py::arg("account"),
            py::arg("query_num") = 0)
       .def("req_history_trade", &strategy::Context::req_history_trade, py::arg("source"), py::arg("account"),
@@ -208,20 +208,14 @@ void bind_strategy(pybind11::module &m) {
       .def("hold_book", &strategy::Context::hold_book)
       .def("hold_positions", &strategy::Context::hold_positions)
       .def("is_book_held", &strategy::Context::is_book_held)
-      .def("is_positions_mirrored", &strategy::Context::is_positions_mirrored)
-      .def("req_deregister", &strategy::Context::req_deregister)
-      .def("update_strategy_state", &strategy::Context::update_strategy_state)
+      .def("is_positions_held", &strategy::Context::is_positions_held)
       .def("is_bypass_accounting", &strategy::Context::is_bypass_accounting)
-      .def("bypass_accounting", &strategy::Context::bypass_accounting);
+      .def("bypass_accounting", &strategy::Context::bypass_accounting)
+      .def("update_strategy_state", &strategy::Context::update_strategy_state)
+      .def("set_resume_policy", &strategy::Context::set_resume_policy)
+      .def("req_deregister", &strategy::Context::req_deregister);
 
   py::class_<strategy::Matcher, std::shared_ptr<strategy::Matcher>>(m, "Matcher");
-
-  // TODO to be pruned. use Context instead
-  py::class_<strategy::LiveContext, strategy::Context, strategy::LiveContext_ptr>(m, "LiveContext")
-      // .def_property_readonly("bookkeeper", &strategy::LiveContext::get_bookkeeper,
-      // py::return_value_policy::reference)
-      .def_property_readonly("basketorder_engine", &strategy::LiveContext::get_basketorder_engine,
-                             py::return_value_policy::reference);
 
   py::class_<strategy::Strategy, PyStrategy, strategy::Strategy_ptr>(m, "Strategy")
       .def(py::init())

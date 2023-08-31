@@ -8,12 +8,12 @@
 namespace kungfu::yijinjing::journal {
 using namespace longfist::types;
 
-constexpr uint32_t PAGE_ID_TRANC = 0xFFFF0000;
-constexpr uint32_t FRAME_ID_TRANC = 0x0000FFFF;
+constexpr uint32_t PAGE_ID_TRANC = 0xFF000000;
+constexpr uint32_t FRAME_ID_TRANC = 0x00FFFFFF;
 
 writer::writer(const data::location_ptr &location, uint32_t dest_id, bool lazy, publisher_ptr publisher,
                bool low_latency, const bus_ptr &bus)
-    : frame_id_base_(uint64_t(location->uid xor dest_id) << 32u),
+    : frame_id_base_(static_cast<uint64_t>(location->uid xor dest_id) << 32u),
       journal_(location, dest_id, true, lazy, low_latency, bus, page::find_page_size(location, dest_id)),
       publisher_(std::move(publisher)), size_to_write_(0),
       writer_start_time_32int_(time::nano_hashed(time::now_in_nano())) {
@@ -22,7 +22,7 @@ writer::writer(const data::location_ptr &location, uint32_t dest_id, bool lazy, 
 
 writer::writer(const data::location_ptr &location, uint32_t dest_id, bool lazy, publisher_ptr publisher,
                bool low_latency, const bus_ptr &bus, uint32_t page_size)
-    : frame_id_base_(uint64_t(location->uid xor dest_id) << 32u),
+    : frame_id_base_(static_cast<uint64_t>(location->uid xor dest_id) << 32u),
       journal_(location, dest_id, true, lazy, low_latency, bus, page::find_page_size(location, dest_id, page_size)),
       publisher_(std::move(publisher)), size_to_write_(0),
       writer_start_time_32int_(time::nano_hashed(time::now_in_nano())) {
@@ -30,7 +30,7 @@ writer::writer(const data::location_ptr &location, uint32_t dest_id, bool lazy, 
 }
 
 uint64_t writer::current_frame_uid() {
-  uint32_t page_part = (journal_.page_->page_id_ << 16u) & PAGE_ID_TRANC;
+  uint32_t page_part = (journal_.page_->page_id_ << 24u) & PAGE_ID_TRANC;
   uint32_t frame_part = journal_.page_frame_nb_ & FRAME_ID_TRANC;
   // frame_id_base is used for get account id while canceling order
   return frame_id_base_ | ((page_part | frame_part) xor writer_start_time_32int_);

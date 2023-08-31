@@ -67,7 +67,7 @@ assemble::assemble(const std::vector<data::locator_ptr> &locators, const std::st
 
 assemble::assemble(const data::location_ptr &source_location, uint32_t dest_id, uint32_t assemble_mode,
                    int64_t from_time)
-    : assemble(source_location->locator) {
+    : mode_("*"), category_("*"), group_("*"), name_("*"), publisher_(std::make_shared<noop_publisher>()) {
   from_time_ = from_time;
   locators_.clear();
   readers_.clear();

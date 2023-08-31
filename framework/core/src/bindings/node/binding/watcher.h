@@ -103,6 +103,8 @@ public:
 
   Napi::Value CancelOrderTrigger(const Napi::CallbackInfo &info);
 
+  Napi::Value ToggleAlgoOrder(const Napi::CallbackInfo &info);
+
   Napi::Value RequestMarketData(const Napi::CallbackInfo &info);
 
   Napi::Value Start(const Napi::CallbackInfo &info);
@@ -176,23 +178,9 @@ private:
   };
 
   static constexpr auto is_trading_data = []() {
-    return rx::filter([](const event_ptr &event) {
-      bool is_target = false;
-      boost::hana::for_each(longfist::TradingDataTypes, [&](auto it) {
-        using DataType = typename decltype(+boost::hana::second(it))::type;
-        is_target |= DataType::tag == event->msg_type();
-      });
-      return is_target;
+    return rx::filter([&](const event_ptr &event) {
+      return kungfu::longfist::TradingDataTags.find(event->msg_type()) != kungfu::longfist::TradingDataTags.end();
     });
-  };
-
-  static constexpr auto while_is_trading_data = [](const event_ptr &event) {
-    bool is_target = false;
-    boost::hana::for_each(longfist::TradingDataTypes, [&](auto it) {
-      using DataType = typename decltype(+boost::hana::second(it))::type;
-      is_target |= DataType::tag == event->msg_type();
-    });
-    return is_target;
   };
 
   void Feed(const event_ptr &event, const longfist::types::Instrument &instrument);
@@ -311,7 +299,6 @@ private:
   template <typename TradingData>
   std::enable_if_t<std::is_same_v<TradingData, longfist::types::BasketOrder>> UpdateBook(uint32_t source, uint32_t dest,
                                                                                          const TradingData &data) {
-    basketorder_engine_.insert_basket_order(now(), data);
     state<kungfu::longfist::types::BasketOrder> cache_state_basket_order(source, dest, now(), data);
     data_bank_ << cache_state_basket_order;
   }

@@ -94,6 +94,7 @@ class TraderSim(wc.Trader):
         trigger_input = event.OrderTriggerInput()
         self.logger.info(f"OrderTriggerInput: {trigger_input}")
         trigger = wc.utils.order_trigger_from_input(trigger_input)
+        trigger.external_trigger_id = str(trigger.trigger_id)
         trigger.insert_time = yjj.now_in_nano()
         trigger.update_time = trigger.insert_time
         trigger.status = lf.enums.OrderStatus.Submitted
@@ -102,10 +103,11 @@ class TraderSim(wc.Trader):
         self.get_writer(event.source).write(event.gen_time, trigger)
 
         order_input = wc.utils.order_input_from_trigger_order(trigger_input)
+        dest = event.source
         self.add_timer(
             yjj.now_in_nano() + 30 * 10**9,
             lambda e: self.trigger_generate_order(
-                event.source,
+                dest,
                 trigger.trigger_id,
                 lf.enums.OrderStatus.Filled,
                 order_input,
@@ -124,10 +126,11 @@ class TraderSim(wc.Trader):
                 trigger.status = lf.enums.OrderStatus.Cancelling
                 writer.write(event.gen_time, trigger)
                 self.logger.info(f"OrderTrigger: {trigger}")
+                dest = event.source
                 self.add_timer(
                     yjj.now_in_nano() + 10 * 10**9,
                     lambda e: self.update_trigger(
-                        event.source, trigger.trigger_id, lf.enums.OrderStatus.Cancelled
+                        dest, trigger.trigger_id, lf.enums.OrderStatus.Cancelled
                     ),
                 )
             return True
@@ -268,11 +271,13 @@ class TraderSim(wc.Trader):
                 self.get_writer(dest).write(order.update_time, order)
 
     def update_cancel_trigger(self, dest, trigger_id, status):
+        self.logger.debug(f"trigger_id: {trigger_id}, status: {status}, dest: {dest}")
         if trigger_id in self.ctx.triggers:
             trigger = self.ctx.triggers[trigger_id]
             trigger.update_time = yjj.now_in_nano()
-            if trigger.status == status:
-                trigger.status = lf.enums.OrderStatus.Filled
+            if trigger.status == lf.enums.OrderStatus.Submitted:
+                trigger.update_time = yjj.now_in_nano()
+                trigger.status = status
                 self.logger.info(f"OrderTrigger: {trigger}")
                 self.get_writer(dest).write(yjj.now_in_nano(), trigger)
                 if trigger.order_id in self.ctx.orders:
@@ -312,25 +317,29 @@ class TraderSim(wc.Trader):
                         if order.volume - order.volume_left == 0
                         else lf.enums.OrderStatus.PartialFilledNotActive
                     )
+                    dest = event.source
                     self.add_timer(
                         yjj.now_in_nano() + 5 * 10**9,
-                        lambda e: self.update_order(
-                            event.source, order.order_id, status
-                        ),
+                        lambda e: self.update_order(dest, order.order_id, status),
                     )
 
                 if order_action.action_flag == lf.enums.OrderActionFlag.TriggerCancel:
                     trigger = wc.utils.order_trigger_from_order(order)
+                    trigger.trigger_id = order_action.order_action_id
+                    trigger.external_trigger_id = str(trigger.trigger_id)
                     trigger.insert_time = yjj.now_in_nano()
                     trigger.update_time = trigger.insert_time
                     trigger.status = lf.enums.OrderStatus.Submitted
                     self.logger.info(f"OrderTrigger: {trigger}")
                     self.ctx.triggers[trigger.trigger_id] = trigger
                     self.get_writer(event.source).write(event.gen_time, trigger)
+                    dest = event.source
                     self.add_timer(
                         yjj.now_in_nano() + 30 * 10**9,
                         lambda e: self.update_cancel_trigger(
-                            event.source, trigger, lf.enums.OrderStatus.Filled
+                            dest,
+                            trigger.trigger_id,
+                            lf.enums.OrderStatus.Filled,
                         ),
                     )
 
@@ -342,8 +351,10 @@ class TraderSim(wc.Trader):
         return False
 
     def req_position(self):
+        writer = self.get_writer(0)
         position_end = lf.types.PositionEnd()
         position_end.holder_uid = self.home.uid
+        writer.write(yjj.now_in_nano(), position_end)
 
         if self.match_mode == MatchMode.Custom:
             return self.ctx.req_position(self.ctx)

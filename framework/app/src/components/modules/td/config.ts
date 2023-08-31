@@ -15,7 +15,6 @@ export const getColumns = (
     dataIndex: string,
   ) => (a: KungfuApi.KfConfig, b: KungfuApi.KfConfig) => number,
   isShowMarginTrading: boolean,
-  isShowUnrealizedPnl: boolean,
 ): AntTableColumns =>
   (globalThis.HookKeeper.getHooks().dealTradingTable as DealTradingTableHooks)
     .trigger(kfLocation, 'td')
@@ -49,19 +48,15 @@ export const getColumns = (
         width: 60,
         fixed: 'left',
       },
-      ...(isShowUnrealizedPnl
-        ? [
-            {
-              title: t('tdConfig.unrealized_pnl'),
-              dataIndex: 'unrealizedPnl',
-              align: 'right',
-              sorter: {
-                compare: sorter('unrealized_pnl'),
-              },
-              width: 110,
-            },
-          ]
-        : []),
+      {
+        title: t('tdConfig.unrealized_pnl'),
+        dataIndex: 'unrealizedPnl',
+        align: 'right',
+        sorter: {
+          compare: sorter('unrealized_pnl'),
+        },
+        width: 110,
+      },
       {
         title: t('tdConfig.marked_value'),
         dataIndex: 'marketValue',

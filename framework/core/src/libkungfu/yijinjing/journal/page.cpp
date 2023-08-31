@@ -16,7 +16,7 @@ page::page(data::location_ptr location, uint32_t dest_id, const uint32_t page_id
 }
 
 page::~page() {
-  SPDLOG_TRACE("release page {}/{:08x}.{}.journal", location_->uname, dest_id_, page_id_);
+  SPDLOG_TRACE("release page {}/{:08x}.{}.journal, is_writing_ {}", location_->uname, dest_id_, page_id_, is_writing_);
   if (not os::release_mmap_buffer(address(), size_, lazy_)) {
     SPDLOG_ERROR("can not release page {}/{:08x}.{}.journal", location_->uname, dest_id_, page_id_);
   }
@@ -71,9 +71,9 @@ page_ptr page::load(const data::location_ptr &location, uint32_t dest_id, uint32
   }
   if (header->page_size != page_size) {
     uint32_t s = header->page_size;
-    throw journal_error(
-        fmt::format("page size mismatch, required {}, found {}, location {}, path {}, dest_id {}, page_id {}",
-                    page_size, s, location->uname, path, dest_id, page_id));
+    throw journal_error(fmt::format(
+        "page size mismatch, required {}, found {}, location {}, path {}, dest_id {}, page_id {} is_writing {}",
+        page_size, s, location->uname, path, dest_id, page_id, is_writing));
   }
 
   if (header->status != longfist::enums::PageStatus::Normal && !pre_open) {

@@ -13,11 +13,12 @@ namespace kungfu::yijinjing::journal {
 struct noop_publisher : public publisher {
   noop_publisher() = default;
   bool is_usable() override { return true; }
-  void setup() override {}
+  bool setup() override { return true; }
   int notify() override { return 0; }
-  int publish(const std::string &json_message, int flags = NNG_FLAG_NONBLOCK) override { return 0; }
+  int publish(const std::string &json_message, int flags = NNG_FLAG_NONBLOCK, bool no_exception = false) override {
+    return 0;
+  };
 };
-
 struct assemble_exception : std::runtime_error {
   explicit assemble_exception(const std::string &msg) : std::runtime_error(msg){};
 };
@@ -151,10 +152,10 @@ protected:
   reader_ptr current_reader_ = {};
 
 private:
-  const std::string &mode_;
-  const std::string &category_;
-  const std::string &group_;
-  const std::string &name_;
+  const std::string mode_;
+  const std::string category_;
+  const std::string group_;
+  const std::string name_;
   publisher_ptr publisher_;
   std::vector<data::locator_ptr> locators_ = {};
   int64_t from_time_ = 0;

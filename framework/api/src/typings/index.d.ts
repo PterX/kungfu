@@ -41,6 +41,7 @@ declare namespace KungfuApi {
     KfModeEnum,
     KfModeTypes,
     OrderActionFlagEnum,
+    AlgoOrderActionFlagEnum,
     OrderInputKeyEnum,
     KfExhibitConfigTypes,
     BasketVolumeTypeEnum,
@@ -49,8 +50,7 @@ declare namespace KungfuApi {
     SessionStatusEnum,
     CurrencyEnum,
     OrderTriggerTypeEnum,
-    OrderTriggerParkedTypeEnum,
-    OrderTriggerTimeConditionEnum,
+    OrderTriggerConfigTypeEnum,
     OrderTriggerStatusEnum,
     FundTransEnum,
     FundTransTypeEnum,
@@ -244,7 +244,7 @@ declare namespace KungfuApi {
     config?: {
       td?: {
         type?: TdMdExtTypes[] | TdMdExtTypes;
-        order_trigger?: Record<string, Record<string, Record<string, boolean>>>;
+        order_trigger?: Record<string, Record<string, boolean>>;
         settings: KfConfigItem[];
         fund_trans?: KfExtFundTransConfig | null;
       };
@@ -297,17 +297,7 @@ declare namespace KungfuApi {
   }
   export interface KfTdExtConfig extends KfExtConfigBase<'td' | 'tdGroup'> {
     type: TdMdExtTypes[];
-    orderTrigger: Partial<
-      Record<
-        OrderTriggerTypeEnum,
-        Partial<
-          Record<
-            OrderTriggerParkedTypeEnum,
-            Partial<OrderTriggerTimeConditionEnum, boolean>
-          >
-        >
-      >
-    >;
+    orderTrigger: Partial<Record<OrderTriggerConfigTypeEnum, boolean>>;
     settings: KfConfigItem[];
     fundTrans?: KfExtFundTransConfig | null;
   }
@@ -429,10 +419,7 @@ declare namespace KungfuApi {
     is_swap: boolean;
     parent_id: bigint;
   }
-  export interface MakeOrderTriggerInput extends MakeOrderInput {
-    parked_type: OrderTriggerParkedTypeEnum;
-    time_condition: TimeConditionEnum;
-  }
+  export type MakeOrderTriggerInput = MakeOrderInput;
 
   export interface KfLogData {
     id: number;
@@ -684,10 +671,6 @@ declare namespace KungfuApi {
     insert_time: bigint;
   }
 
-  export interface OrderTriggerInput extends OrderInput {
-    parked_type: OrderTriggerParkedTypeEnum; // 预埋方式
-  }
-
   export interface OrderTrigger {
     trigger_id: bigint; // 触发器id
     order_id: bigint; // 预埋撤单, 被撤单的order_id
@@ -719,7 +702,7 @@ declare namespace KungfuApi {
     price_type: PriceTypeEnum; //价格类型
     volume_condition: VolumeConditionEnum; //成交量类型
     time_condition: TimeConditionEnum; //成交时间类型
-    parked_type: OrderTriggerParkedTypeEnum; // 预埋方式
+    trigger_type: OrderTriggerTypeEnum; // 条件触发类型
 
     source: number;
     dest: number;
@@ -740,7 +723,36 @@ declare namespace KungfuApi {
     key: number;
     action_flag_uname: string;
     time_condition_resolved: string;
-    parked_type_resolved: string;
+  }
+
+  export interface OrderTriggerAction {
+    trigger_id: bigint;
+    order_trigger_action_id: bigint;
+    action_flag: OrderActionFlagEnum;
+    insert_time: number;
+  }
+  export interface OrderTriggerInput {
+    trigger_id: bigint; // 触发器id
+
+    instrument_id: string; //合约ID
+    exchange_id: string; //交易所ID
+    instrument_type: InstrumentTypeEnum; //合约类型
+
+    limit_price: number; //价格
+    frozen_price: number; //冻结价格, 市价单冻结价格为0
+    volume: bigint; //数量
+    stop_price: number; // 条件触发价格
+
+    is_swap: boolean; // 互换单
+    side: SideEnum; //买卖方向
+    offset: OffsetEnum; //开平方向
+    hedge_flag: HedgeFlagEnum; //投机套保标识
+    price_type: PriceTypeEnum; //价格类型
+    volume_condition: VolumeConditionEnum; //成交量类型
+    time_condition: TimeConditionEnum; //成交时间类型
+    trigger_type: OrderTriggerTypeEnum; // 条件触发类型
+
+    insert_time: bigint;
   }
 
   export interface TimeKeyValue {
@@ -863,7 +875,7 @@ declare namespace KungfuApi {
   export interface AlgoOrderAction {
     order_id: bigint;
     order_action_id: bigint;
-    action_flag: OrderActionFlagEnum;
+    action_flag: AlgoOrderActionFlagEnum;
     insert_time: bigint;
   }
 
@@ -883,16 +895,6 @@ declare namespace KungfuApi {
     uid_key: string;
   }
 
-  export interface OrderAction {
-    order_id: bigint;
-    trigger_id: bigint;
-    order_action_id: bigint;
-    action_flag: OrderActionFlagEnum;
-    price: number;
-    volume: number;
-    insert_time: bigint;
-  }
-
   export interface Position {
     update_time: bigint; //更新时间
     instrument_id: string; //合约ID
@@ -907,7 +909,7 @@ declare namespace KungfuApi {
     direction: DirectionEnum; //持仓方向
 
     volume: bigint; //数量
-    static_yesterday_volume: bigint; // 固定昨仓数量
+    static_yesterday: bigint; // 固定昨仓数量
     open_volume: bigint; // 今开数量
     yesterday_volume: bigint; //昨仓数量
     frozen_total: bigint; //冻结数量
@@ -1026,6 +1028,7 @@ declare namespace KungfuApi {
     Basket: DataTable<Basket>;
     BasketInstrument: DataTable<BasketInstrument>;
     BasketOrder: DataTable<BasketOrder>;
+    OrderTrigger: DataTable<OrderTrigger>;
   }
 
   export type TradingDataItem =
@@ -1176,11 +1179,16 @@ declare namespace KungfuApi {
       strategyLocation?: KfLocation,
     ): bigint;
     cancelOrderTrigger(
-      orderAction: OrderAction,
+      orderAction: OrderTriggerAction,
       tdLocation: KfLocation,
       strategyLocation?: KfLocation,
     ): bigint;
     cancelAlgoOrder(
+      algoOrderAction: AlgoOrderAction,
+      tdLocation: KfLocation,
+      strategyLocation?: KfLocation,
+    ): bigint;
+    toggleAlgoOrder(
       algoOrderAction: AlgoOrderAction,
       tdLocation: KfLocation,
       strategyLocation?: KfLocation,
@@ -1284,6 +1292,10 @@ declare namespace KungfuApi {
       OrderInput(): OrderInput;
       AlgoOrderInput(): AlgoOrderInput;
       OrderAction(): OrderAction;
+      OrderTrigger(): OrderTrigger;
+      OrderTriggerInput(): OrderTriggerInput;
+      OrderTriggerAction(): OrderTriggerAction;
+      AlgoOrderAction(): AlgoOrderAction;
       OrderStat(): OrderStat;
       Position(): Position;
       Quote(): Quote;

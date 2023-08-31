@@ -1,5 +1,6 @@
 import { UnfinishedOrderStatus } from './../config/tradingConfig';
-import dayjs from 'dayjs';
+import dayjs, { Dayjs } from 'dayjs';
+import dayjsBusinessDays from 'dayjs-business-days';
 import { kungfu } from '@kungfu-trader/kungfu-core';
 import { KF_RUNTIME_DIR } from '../config/pathConfig';
 import {
@@ -38,6 +39,9 @@ import {
   OrderTriggerTypeEnum,
 } from '../typings/enums';
 import { ExchangeIds, AllFinishedOrderStatus } from '../config/tradingConfig';
+dayjs.extend(dayjsBusinessDays);
+
+type DayjsWithBusinessDays = Dayjs & { isBusinessDay: () => boolean };
 
 export const kf = kungfu();
 
@@ -214,57 +218,40 @@ export const getKungfuDataByDateRange = (
   date: number | string,
   dateType = HistoryDateEnum.naturalDate, //0 natural date, 1 tradingDate
 ): Promise<KungfuApi.TradingData | Record<string, unknown>> => {
-  const tradingDay = dayjs(date).format('YYYYMMDD');
-  const from = dayjs(date).format('YYYY-MM-DD');
-  const to = dayjs(date).add(1, 'day').format('YYYY-MM-DD');
-  const yesFrom = dayjs(date).add(-1, 'day').format('YYYY-MM-DD');
-  const fridayFrom = dayjs(date).add(-3, 'day').format('YYYY-MM-DD');
-  const fridayTo = dayjs(date).add(-2, 'day').format('YYYY-MM-DD');
-  const dataTypeForHistory: KungfuApi.TradingDataTypeName[] = [
-    'Order',
-    'Trade',
-    'OrderStat',
-    'Position',
-    'Asset',
-    'OrderInput',
-  ];
+  const targetDate = dayjs(date).format('YYYY-MM-DD');
+  const yesterdayDate = dayjs(date).add(-1, 'day').format('YYYY-MM-DD');
+  const isYesterdayBusinessDay = (
+    dayjs(date).add(-1, 'day') as DayjsWithBusinessDays
+  ).isBusinessDay();
+  const fridayDate = dayjs(date).add(-3, 'day').format('YYYY-MM-DD');
+  let from =
+    dateType == HistoryDateEnum.naturalDate
+      ? dayjs(targetDate).format('YYYY-MM-DD HH:mm:ss')
+      : isYesterdayBusinessDay
+      ? dayjs(yesterdayDate).format('YYYY-MM-DD HH:mm:ss')
+      : dayjs(fridayDate).format('YYYY-MM-DD HH:mm:ss');
+  let to = dayjs(targetDate).add(1, 'day').format('YYYY-MM-DD HH:mm:ss');
+
+  if (dateType == HistoryDateEnum.tradingDate) {
+    from = dayjs(from).add(16, 'hour').format('YYYY-MM-DD HH:mm:ss');
+    to = dayjs(to).add(-8, 'hour').format('YYYY-MM-DD HH:mm:ss');
+  }
+
+  kfLogger.info(
+    'is yesterday bussiness day',
+    yesterdayDate,
+    isYesterdayBusinessDay,
+  );
+  kfLogger.info('Export data', from, to);
 
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
       //by trading date
-      if (dateType === HistoryDateEnum.tradingDate) {
-        const kungfuDataToday = history.selectPeriod(from, to);
-        const kungfuDataYesterday = history.selectPeriod(yesFrom, from);
-        const kungfuDataFriday = history.selectPeriod(fridayFrom, fridayTo);
-        const historyData: KungfuApi.TradingData | Record<string, unknown> = {};
+      const kungfuDataToday = history.selectPeriod(from, to);
 
-        if (!kungfuDataToday || !kungfuDataYesterday || !kungfuDataFriday)
-          return reject(new Error('database_locked'));
+      if (!kungfuDataToday) return reject(new Error('database_locked'));
 
-        dataTypeForHistory.forEach((key) => {
-          if (key === 'Order' || key === 'Trade' || key === 'OrderInput') {
-            historyData[key] = Object.assign(
-              kungfuDataToday[key].filter('trading_day', tradingDay),
-              kungfuDataYesterday[key].filter('trading_day', tradingDay),
-              kungfuDataFriday[key].filter('trading_day', tradingDay),
-            );
-          } else {
-            historyData[key] = Object.assign(
-              kungfuDataFriday[key as keyof KungfuApi.TradingData],
-              kungfuDataYesterday[key as keyof KungfuApi.TradingData],
-              kungfuDataToday[key as keyof KungfuApi.TradingData],
-            );
-          }
-        });
-
-        resolve(historyData);
-      } else {
-        const kungfuDataToday = history.selectPeriod(from, to);
-
-        if (!kungfuDataToday) return reject(new Error('database_locked'));
-
-        resolve(kungfuDataToday);
-      }
+      resolve(kungfuDataToday);
       clearTimeout(timer);
     }, 160);
   });

@@ -103,14 +103,14 @@ public:
   void try_write_raw_to(int64_t trigger_time, int32_t msg_type, const DataType &data, uint32_t length,
                         uint32_t dest_id = yijinjing::data::location::PUBLIC) {
     if (has_writer(dest_id)) {
-      get_writer(dest_id)->write_raw(trigger_time, msg_type, &data, length);
+      get_writer(dest_id)->write_raw(trigger_time, msg_type, reinterpret_cast<uintptr_t>(&data), length);
     } else {
       events_ | rx::is(longfist::types::Channel::tag) | rx::filter([&, dest_id](const event_ptr &event) {
         const longfist::types::Channel &channel = event->data<longfist::types::Channel>();
         return channel.source_id == get_home_uid() and channel.dest_id == dest_id;
       }) | rx::first() |
           rx::$([&, msg_type, data, length, dest_id](const event_ptr &event) {
-            get_writer(dest_id)->write_raw(now(), msg_type, &data, length);
+            get_writer(dest_id)->write_raw(now(), msg_type, reinterpret_cast<uintptr_t>(&data), length);
           });
       try_write_dest_ids_.emplace(dest_id);
     }

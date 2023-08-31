@@ -54,7 +54,7 @@ private:
 
   void refresh_account_book(int64_t trigger_time, uint32_t account_uid);
 
-  longfist::types::OrderStat &get_order_stat(uint64_t order_id, const event_ptr &event);
+  longfist::types::OrderStat &ensure_order_stat(uint64_t order_id, const event_ptr &event);
 
   void update_order_stat(const event_ptr &event, const longfist::types::OrderInput &data);
 

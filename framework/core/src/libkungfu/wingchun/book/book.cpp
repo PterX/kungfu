@@ -42,7 +42,7 @@ bool Book::has_long_position(uint32_t source_id, const char *exchange_id, const 
 
 bool Book::has_long_position(const std::string &source, const std::string &account, const char *exchange_id,
                              const char *instrument_id) const {
-  auto location = location::make_shared(mode::LIVE, category::TD, source, account, home->locator);
+  auto location = location::make_shared(home->mode, category::TD, source, account, home->locator);
   return has_long_position(location->uid, exchange_id, instrument_id);
 }
 
@@ -53,7 +53,7 @@ bool Book::has_short_position(uint32_t source_id, const char *exchange_id, const
 
 bool Book::has_short_position(const std::string &source, const std::string &account, const char *exchange_id,
                               const char *instrument_id) const {
-  auto location = location::make_shared(mode::LIVE, category::TD, source, account, home->locator);
+  auto location = location::make_shared(home->mode, category::TD, source, account, home->locator);
   return has_short_position(location->uid, exchange_id, instrument_id);
 }
 
@@ -68,7 +68,7 @@ Position &Book::get_long_position(uint32_t source_id, const char *exchange_id, c
 
 Position &Book::get_long_position(const std::string &source, const std::string &account, const char *exchange_id,
                                   const char *instrument_id) {
-  auto location = location::make_shared(mode::LIVE, category::TD, source, account, home->locator);
+  auto location = location::make_shared(home->mode, category::TD, source, account, home->locator);
   return get_long_position(location->uid, exchange_id, instrument_id);
 }
 
@@ -78,7 +78,7 @@ Position &Book::get_short_position(uint32_t source_id, const char *exchange_id, 
 
 Position &Book::get_short_position(const std::string &source, const std::string &account, const char *exchange_id,
                                    const char *instrument_id) {
-  auto location = location::make_shared(mode::LIVE, category::TD, source, account, home->locator);
+  auto location = location::make_shared(home->mode, category::TD, source, account, home->locator);
   return get_short_position(location->uid, exchange_id, instrument_id);
 }
 

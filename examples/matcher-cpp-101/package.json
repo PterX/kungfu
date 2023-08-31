@@ -1,12 +1,12 @@
 {
-  "name": "@kungfu-trader/example-py-report",
+  "name": "@kungfu-trader/example-matcher-cpp",
   "author": "kungfu-trader",
-  "version": "2.6.2-alpha.14",
-  "description": "KungFu Report 10 python example",
+  "version": "2.6.2-alpha.15",
+  "description": "KungFu Matcher 101 - on quote",
   "license": "Apache-2.0",
   "private": true,
   "kungfuConfig": {
-    "key": "KungfuSimplePythonReport"
+    "key": "KungfuMatcher101Cpp"
   },
   "scripts": {
     "clean": "kfs extension clean",
@@ -15,6 +15,6 @@
     "format": "node ../../framework/core/.gyp/run-format-cpp.js src"
   },
   "devDependencies": {
-    "@kungfu-trader/kungfu-sdk": "^2.6.2-alpha.14"
+    "@kungfu-trader/kungfu-sdk": "^2.6.2-alpha.15"
   }
 }

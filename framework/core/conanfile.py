@@ -10,6 +10,7 @@ import shutil
 import stat
 import subprocess
 import sys
+import re
 
 from conans import ConanFile
 from conans import tools
@@ -286,12 +287,12 @@ class KungfuCoreConan(ConanFile):
         log_level = spdlog_levels[str(self.options.log_level)]
 
         parallel_level = os.cpu_count()
-
-        python_path = (
-            subprocess.Popen(["pipenv", "--py"], stdout=subprocess.PIPE)
+        python_path = re.sub(
+            r"(?:\x1B[@-_]|[\x80-\x9F])[0-?]*[ -/]*[@-~]",
+            "",
+            subprocess.Popen(["pipenv", "--py"], stdout=subprocess.PIPE, text=True)
             .stdout.read()
-            .decode()
-            .strip()
+            .strip(),
         )
 
         toolset_option = ["--toolset", toolset] if toolset != "auto" else []

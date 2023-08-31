@@ -319,7 +319,7 @@ void Trader::deal_write_frame() {
 void Trader::deal_read_frame() {
   // write a Lost Order to journal when read an OrderInput whose order_id not in orders_
   SPDLOG_DEBUG("before state_bank read");
-  int64_t count = 0;
+  uint64_t count = 0;
   auto &state_bank = get_vendor().get_state_bank();
 
   auto &order_input_state_map = state_bank[boost::hana::type_c<OrderInput>];

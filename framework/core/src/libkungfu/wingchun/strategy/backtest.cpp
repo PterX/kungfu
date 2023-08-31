@@ -8,13 +8,23 @@
 
 namespace kungfu::wingchun::strategy {
 int64_t BacktestContext::now() const { return 0; }
-void BacktestContext::add_timer(int64_t nanotime, const std::function<void(event_ptr)> &callback) {}
-void BacktestContext::add_time_interval(int64_t duration, const std::function<void(event_ptr)> &callback) {}
+
+int32_t BacktestContext::add_timer(int64_t nanotime, const std::function<void(event_ptr)> &callback) { return 0; }
+
+int32_t BacktestContext::add_time_interval(int64_t duration, const std::function<void(event_ptr)> &callback) {
+  return 0;
+}
+
+void BacktestContext::clear_timer(int32_t timer_id) {}
+
 void BacktestContext::add_account(const std::string &source, const std::string &account) {}
+
 void BacktestContext::subscribe(const std::string &source, const std::vector<std::string> &instrument_ids,
                                 const std::string &exchange_ids) {}
+
 void BacktestContext::subscribe_all(const std::string &source, uint8_t market_type, uint64_t instrument_type,
                                     uint64_t data_type) {}
+
 uint64_t BacktestContext::insert_order(const std::string &instrument_id, const std::string &exchange_id,
                                        const std::string &source, const std::string &account, double limit_price,
                                        int64_t volume, longfist::enums::PriceType type, longfist::enums::Side side,
@@ -22,6 +32,8 @@ uint64_t BacktestContext::insert_order(const std::string &instrument_id, const s
                                        bool is_swap, uint64_t block_id, uint64_t parent_id) {
   return 0;
 }
+
 uint64_t BacktestContext::cancel_order(uint64_t order_id, OrderActionFlag action_flag) { return 0; }
+
 int64_t BacktestContext::get_trading_day() const { return 0; }
 } // namespace kungfu::wingchun::strategy

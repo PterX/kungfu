@@ -1,12 +1,12 @@
 {
-  "name": "@kungfu-trader/example-py-report",
+  "name": "@kungfu-trader/example-report-python",
   "author": "kungfu-trader",
   "version": "2.6.2-alpha.15",
   "description": "KungFu Report 10 python example",
   "license": "Apache-2.0",
   "private": true,
   "kungfuConfig": {
-    "key": "KungfuSimplePythonReport"
+    "key": "KungfuReport101Python"
   },
   "scripts": {
     "clean": "kfs extension clean",

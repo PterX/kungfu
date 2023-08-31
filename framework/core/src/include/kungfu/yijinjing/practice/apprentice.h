@@ -205,7 +205,10 @@ protected:
     writer->close_data();
     timer_checkpoints_[timer_id] = now();
     return [&, duration_ns, timer_id](const rx::observable<event_ptr> &src) {
-      return events_ | rx::filter([&, duration_ns, timer_id](const event_ptr &event) {
+      return events_ | rx::take_until(events_ | rx::filter([&, timer_id](const event_ptr &event) {
+                                        return not is_timer_enabled(timer_id);
+                                      })) |
+             rx::filter([&, duration_ns, timer_id](const event_ptr &event) {
                if (event->msg_type() == longfist::types::Time::tag &&
                    event->gen_time() > timer_checkpoints_[timer_id] + duration_ns) {
                  auto writer = get_writer(get_master_command_uid());
@@ -216,7 +219,7 @@ protected:
                  r.repeat = 1;
                  writer->close_data();
                  timer_checkpoints_[timer_id] = now();
-                 return is_timer_enabled(timer_id);
+                 return true;
                } else {
                  return false;
                }
@@ -237,7 +240,10 @@ protected:
     writer->close_data();
     timer_checkpoints_[timer_id] = now();
     return [&, duration_ns, timer_id](const rx::observable<event_ptr> &src) {
-      return (src | rx::filter([&, duration_ns, timer_id](const event_ptr &event) {
+      return (src | rx::take_until(events_ | rx::filter([&, timer_id](const event_ptr &event) {
+                                     return not is_timer_enabled(timer_id);
+                                   })) |
+              rx::filter([&, duration_ns, timer_id](const event_ptr &event) {
                 if (event->msg_type() != longfist::types::Time::tag) {
                   auto writer = get_writer(get_master_command_uid());
                   longfist::types::TimeRequest &r = writer->open_data<longfist::types::TimeRequest>(now());
@@ -247,7 +253,7 @@ protected:
                   r.repeat = 1;
                   writer->close_data();
                   timer_checkpoints_[timer_id] = now();
-                  return is_timer_enabled(timer_id);
+                  return true;
                 } else {
                   return false;
                 }

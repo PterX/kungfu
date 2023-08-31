@@ -1,12 +1,12 @@
 {
-  "name": "@kungfu-trader/example-cpp-report",
+  "name": "@kungfu-trader/example-report-cpp",
   "author": "kungfu-trader",
   "version": "2.6.2-alpha.15",
   "description": "KungFu Report 10",
   "license": "Apache-2.0",
   "private": true,
   "kungfuConfig": {
-    "key": "KungfuSimpleReport"
+    "key": "KungfuReport101Cpp"
   },
   "scripts": {
     "clean": "kfs extension clean",

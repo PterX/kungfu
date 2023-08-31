@@ -85,6 +85,12 @@ public:
     vendor_.try_write_to(now(), data, dest_id);
   }
 
+  template <typename DataType>
+  void try_write_raw_to(int64_t trigger_time, int32_t msg_type, const DataType &data, uint32_t length,
+                        uint32_t dest_id = yijinjing::data::location::PUBLIC) {
+    vendor_.try_write_raw_to(trigger_time, msg_type, data, length, dest_id);
+  }
+
   [[nodiscard]] const yijinjing::cache::bank &get_state_bank() const;
 
   [[maybe_unused]] [[nodiscard]] bool check_if_stored_instruments(const std::string &trading_day) const;

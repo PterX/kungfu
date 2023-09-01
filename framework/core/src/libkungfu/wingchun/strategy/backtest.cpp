@@ -74,6 +74,7 @@ int64_t BacktestContext::now() const { return app_.now(); }
 
 int32_t BacktestContext::add_timer(int64_t nanotime, const std::function<void(event_ptr)> &callback) {
   pre_timer_callbacks_.emplace(nanotime, callback);
+  return 0;
 }
 
 int32_t BacktestContext::add_time_interval(int64_t duration, const std::function<void(event_ptr)> &callback) {
@@ -82,6 +83,7 @@ int32_t BacktestContext::add_time_interval(int64_t duration, const std::function
     this->add_time_interval(duration, callback);
   };
   pre_timer_callbacks_.emplace(now() + duration, timer_callback);
+  return 0;
 }
 
 void BacktestContext::clear_timer(int32_t timer_id) {}

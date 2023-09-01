@@ -68,13 +68,15 @@ const std::string LiveContext::get_config() const {
 
 int64_t LiveContext::now() const { return app_.now(); }
 
-void LiveContext::add_timer(int64_t nanotime, const std::function<void(event_ptr)> &callback) {
-  app_.add_timer(nanotime, callback);
+int32_t LiveContext::add_timer(int64_t nanotime, const std::function<void(event_ptr)> &callback) {
+  return app_.add_timer(nanotime, callback);
 }
 
-void LiveContext::add_time_interval(int64_t duration, const std::function<void(event_ptr)> &callback) {
-  app_.add_time_interval(duration, callback);
+int32_t LiveContext::add_time_interval(int64_t duration, const std::function<void(event_ptr)> &callback) {
+  return app_.add_time_interval(duration, callback);
 }
+
+void LiveContext::clear_timer(int32_t timer_id) { app_.clear_timer(timer_id); }
 
 void LiveContext::subscribe(const std::string &source, const std::vector<std::string> &instrument_ids,
                             const std::string &exchange_id) {

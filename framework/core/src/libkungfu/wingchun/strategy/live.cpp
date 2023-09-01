@@ -122,13 +122,15 @@ void LiveContext::prepare(const event_ptr &event) {
 
 int64_t LiveContext::now() const { return app_.now(); }
 
-void LiveContext::add_timer(int64_t nanotime, const std::function<void(event_ptr)> &callback) {
-  app_.add_timer(nanotime, callback);
+int32_t LiveContext::add_timer(int64_t nanotime, const std::function<void(event_ptr)> &callback) {
+  return app_.add_timer(nanotime, callback);
 }
 
-void LiveContext::add_time_interval(int64_t duration, const std::function<void(event_ptr)> &callback) {
-  app_.add_time_interval(duration, callback);
+int32_t LiveContext::add_time_interval(int64_t duration, const std::function<void(event_ptr)> &callback) {
+  return app_.add_time_interval(duration, callback);
 }
+
+void LiveContext::clear_timer(int32_t timer_id) { app_.clear_timer(timer_id); }
 
 void LiveContext::add_account(const std::string &source, const std::string &account) {
   auto home = app_.get_home();

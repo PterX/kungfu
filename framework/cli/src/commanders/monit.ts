@@ -7,9 +7,6 @@ import {
   setTimerPromiseTask,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 
-// it is so important, because inquirer event will conflict with blessed
-process.stdin.removeAllListeners('data');
-
 export const monitPrompt = async (list: boolean) => {
   const { watcher } = await import(
     '@kungfu-trader/kungfu-js-api/kungfu/watcher'
@@ -45,7 +42,11 @@ export const monitPrompt = async (list: boolean) => {
       throw new Error('target is illegal kfLocation');
     }
 
+    // it is so important, because inquirer event will conflict with blessed
+    process.stdin.removeAllListeners('data');
     return tradingDataMonitor(kfConfig);
   }
+
+  process.stdin.removeAllListeners('data');
   return monitor();
 };

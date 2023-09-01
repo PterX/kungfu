@@ -1,4 +1,5 @@
 const path = require('path');
+const webpack = require('webpack');
 const TerserPlugin = require('terser-webpack-plugin');
 const ESLintPlugin = require('eslint-webpack-plugin');
 const { isProduction, getAppDir } = require('./utils');
@@ -117,6 +118,19 @@ module.exports = {
           extensions: ['js', 'json', 'ts', 'css', 'less'],
           exclude: 'node_modules',
           failOnWarning: !production,
+        }),
+        new webpack.IgnorePlugin({
+          checkResource(resource, context) {
+            // ---- do not bundle astronomia vsop planet data
+            if (/\/astronomia\/data$/.test(context)) {
+              return !['./deltat.js', './vsop87Bearth.js'].includes(resource);
+            }
+            // ---- do not bundle moment locales
+            if (/\/moment\/locale$/.test(context)) {
+              return true;
+            }
+            return false;
+          },
         }),
       ],
       resolve: {

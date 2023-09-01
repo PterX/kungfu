@@ -84,13 +84,15 @@ uint32_t ReplayContext::get_live_home_uid() const { return app_.get_live_home_ui
 
 int64_t ReplayContext::now() const { return app_.now(); }
 
-void ReplayContext::add_timer(int64_t nanotime, const std::function<void(event_ptr)> &callback) {
-  app_.add_timer(nanotime, callback);
+int32_t ReplayContext::add_timer(int64_t nanotime, const std::function<void(event_ptr)> &callback) {
+  return app_.add_timer(nanotime, callback);
 }
 
-void ReplayContext::add_time_interval(int64_t duration, const std::function<void(event_ptr)> &callback) {
-  app_.add_time_interval(duration, callback);
+int32_t ReplayContext::add_time_interval(int64_t duration, const std::function<void(event_ptr)> &callback) {
+  return app_.add_time_interval(duration, callback);
 }
+
+void ReplayContext::clear_timer(int32_t timer_id) { app_.clear_timer(timer_id); }
 
 void ReplayContext::add_account(const std::string &source, const std::string &account) {
   auto home = app_.get_live_home();

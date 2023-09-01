@@ -71,8 +71,6 @@ public:
 
   [[nodiscard]] bool has_writer(uint32_t dest_id) const;
 
-  [[nodiscard]] yijinjing::journal::writer_ptr &get_thread_writer();
-
   template <typename DataType>
   void write_to(const DataType &data, uint32_t dest_id = yijinjing::data::location::PUBLIC) {
     vendor_.write_to(now(), data, dest_id);
@@ -112,6 +110,8 @@ public:
   }
 
   virtual void on_arguments(const std::string &argument) {}
+
+  bool is_broker_ready();
 
 protected:
   volatile BrokerState state_;

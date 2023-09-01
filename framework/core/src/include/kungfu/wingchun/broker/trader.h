@@ -367,7 +367,7 @@ public:
 
   [[nodiscard]] yijinjing::journal::writer_ptr &get_thread_writer();
 
-  bool is_sync_account() { return sync_account_; }
+  [[nodiscard]] bool is_sync_account() const { return sync_account_; }
 
   void enable_sync_account() { sync_account_ = true; }
 

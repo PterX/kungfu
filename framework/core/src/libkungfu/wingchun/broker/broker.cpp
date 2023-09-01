@@ -129,4 +129,6 @@ void BrokerService::update_broker_state(BrokerState state) {
 
 yijinjing::io_device_ptr BrokerService::get_io_device() const { return get_vendor().get_io_device(); }
 
+bool BrokerService::is_broker_ready() { return BrokerState::Ready == state_; }
+
 } // namespace kungfu::wingchun::broker

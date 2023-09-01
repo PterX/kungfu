@@ -242,7 +242,7 @@ yijinjing::journal::writer_ptr &Trader::get_thread_writer() {
 }
 
 void Trader::try_req_account() {
-  if (is_sync_account()) {
+  if (is_sync_account() and is_broker_ready()) {
     req_account();
     disable_sync_account();
   }

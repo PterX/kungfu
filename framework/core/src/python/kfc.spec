@@ -48,6 +48,7 @@ src_dir = abspath(make_path(cwd, "src"))
 build_dir = abspath(make_path(cwd, "build"))
 build_cpp_dir = abspath(make_path(build_dir, "src"))
 build_output_dir = make_path(build_dir, os.environ["CMAKE_BUILD_TYPE"])
+build_whl_dir = make_path(build_dir, "python", "dist")
 
 path_env = "PYI_PYTHONPATH"
 extra_python_paths = (
@@ -124,6 +125,7 @@ kfc_a = Analysis(
             (make_path(dep_sqlite_orm_dir, "include"), "include"),
             (dep_pybind11_dir, "pybind11"),
             (make_path(build_output_dir, "*"), "."),
+            (make_path(build_whl_dir, "*"), "kungfu-wheel"),
             (make_path(build_dir, "include"), "include"),
         ],
         src_dirs=[

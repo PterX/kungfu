@@ -179,13 +179,13 @@ class Strategy(wc.Strategy):
         def wrap_callback(event):
             self.__call_proxy(callback, self.ctx, event)
 
-        self.ctx.wc_context.add_timer(nanotime, wrap_callback)
+        return self.ctx.wc_context.add_timer(nanotime, wrap_callback)
 
     def __add_time_interval(self, duration, callback):
         def wrap_callback(event):
             self.__call_proxy(callback, self.ctx, event)
 
-        self.ctx.wc_context.add_time_interval(duration, wrap_callback)
+        return self.ctx.wc_context.add_time_interval(duration, wrap_callback)
 
     def __add_account(self, source, account):
         self.ctx.wc_context.add_account(source, account)
@@ -237,6 +237,7 @@ class Strategy(wc.Strategy):
         self.ctx.now = wc_context.now
         self.ctx.add_timer = self.__add_timer
         self.ctx.add_time_interval = self.__add_time_interval
+        self.ctx.clear_timer = wc_context.clear_timer
         self.ctx.subscribe = wc_context.subscribe
         self.ctx.subscribe_all = wc_context.subscribe_all
         self.ctx.subscribe_operator = wc_context.subscribe_operator

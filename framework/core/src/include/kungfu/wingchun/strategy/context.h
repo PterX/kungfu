@@ -45,14 +45,20 @@ public:
    * @param nanotime when to call in nano seconds
    * @param callback callback function
    */
-  virtual void add_timer(int64_t nanotime, const std::function<void(event_ptr)> &callback) = 0;
+  virtual int32_t add_timer(int64_t nanotime, const std::function<void(event_ptr)> &callback) = 0;
 
   /**
    * Add periodically callback.
    * @param duration duration in nano seconds
    * @param callback callback function
    */
-  virtual void add_time_interval(int64_t duration, const std::function<void(event_ptr)> &callback) = 0;
+  virtual int32_t add_time_interval(int64_t duration, const std::function<void(event_ptr)> &callback) = 0;
+
+  /**
+   * Clear timer
+   * @param timer_id id of timer, return by add_timer and add_time_interval
+   */
+  virtual void clear_timer(int32_t timer_id) = 0;
 
   /**
    * Add account for strategy.

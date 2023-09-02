@@ -108,12 +108,13 @@ void TraderVendor::on_start() {
   events_ | is(TimeKeyValue::tag) | $$(service_->on_time_key_value(event));
   events_ | is(Deregister::tag) | $$(service_->on_strategy_exit(event));
 
-  add_time_interval(5 * time_unit::NANOSECONDS_PER_SECOND, [&](auto e) { service_->try_req_account(); });
-
   service_->on_risk_setting();
   service_->recover();
   on_recover();
   service_->on_start();
+
+  // after recover done, which take some time, then start to try req account
+  add_time_interval(5 * time_unit::NANOSECONDS_PER_SECOND, [&](auto e) { service_->try_req_account(); });
 }
 
 void TraderVendor::on_write_to(const event_ptr &event) {

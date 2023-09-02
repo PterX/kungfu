@@ -122,6 +122,7 @@ void Trader::enable_positions_sync() { sync_position_ = true; }
 void Trader::on_asset_sync() {
   if (state_ == BrokerState::Ready) {
     req_account();
+    disable_sync_account();
   }
 }
 
@@ -242,7 +243,7 @@ yijinjing::journal::writer_ptr &Trader::get_thread_writer() {
 }
 
 void Trader::try_req_account() {
-  if (is_sync_account()) {
+  if (is_sync_account() and BrokerState::Ready == state_) {
     req_account();
     disable_sync_account();
   }

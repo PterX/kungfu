@@ -113,13 +113,17 @@ void apprentice::request_cached(uint32_t source_id) {
   writer->mark(now(), RequestCached::tag);
 }
 
-void apprentice::add_timer(int64_t nanotime, const std::function<void(const event_ptr &)> &callback) {
-  events_ | timer(nanotime) | $([&, callback](const event_ptr &event) { callback(event); });
+int32_t apprentice::add_timer(int64_t nanotime, const std::function<void(const event_ptr &)> &callback) {
+  int32_t timer_id = get_timer_usage_count();
+  events_ | timer(nanotime, timer_id) | $([&, callback](const event_ptr &event) { callback(event); });
+  return timer_id;
 }
 
-void apprentice::add_time_interval(int64_t duration, const std::function<void(const event_ptr &)> &callback) {
-  events_ | time_interval(std::chrono::nanoseconds(duration)) |
+int32_t apprentice::add_time_interval(int64_t duration, const std::function<void(const event_ptr &)> &callback) {
+  int32_t timer_id = get_timer_usage_count();
+  events_ | time_interval(std::chrono::nanoseconds(duration), timer_id) |
       $([&, callback](const event_ptr &event) { callback(event); });
+  return timer_id;
 }
 
 void apprentice::on_trading_day(const event_ptr &event, int64_t daytime) {}
@@ -365,5 +369,11 @@ yijinjing::journal::writer_ptr &apprentice::get_thread_writer() {
   }
   return thread_writer_;
 }
+
+void apprentice::clear_timer(int32_t timer_id) { timers_.insert_or_assign(timer_id, false); }
+
+bool apprentice::is_timer_enabled(int32_t timer_id) { return timers_.try_emplace(timer_id).first->second; }
+
+void apprentice::enable_timer(int32_t timer_id) { timers_.insert_or_assign(timer_id, true); }
 
 } // namespace kungfu::yijinjing::practice

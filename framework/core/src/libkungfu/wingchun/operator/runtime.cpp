@@ -35,13 +35,15 @@ const std::string RuntimeContext::get_config() const {
 
 int64_t RuntimeContext::now() const { return app_.now(); }
 
-void RuntimeContext::add_timer(int64_t nanotime, const std::function<void(event_ptr)> &callback) {
-  app_.add_timer(nanotime, callback);
+int32_t RuntimeContext::add_timer(int64_t nanotime, const std::function<void(event_ptr)> &callback) {
+  return app_.add_timer(nanotime, callback);
 }
 
-void RuntimeContext::add_time_interval(int64_t duration, const std::function<void(event_ptr)> &callback) {
-  app_.add_time_interval(duration, callback);
+int32_t RuntimeContext::add_time_interval(int64_t duration, const std::function<void(event_ptr)> &callback) {
+  return app_.add_time_interval(duration, callback);
 }
+
+void RuntimeContext::clear_timer(int32_t timer_id) { app_.clear_timer(timer_id); }
 
 void RuntimeContext::subscribe(const std::string &source, const std::vector<std::string> &instrument_ids,
                                const std::string &exchange_ids) {

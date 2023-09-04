@@ -25,12 +25,12 @@ BacktestContext::BacktestContext(apprentice &app, const rx::connectable_observab
 
 void BacktestContext::on_start() {
   broker_client_.on_start(events_);
-  events_ | $$(on_timer_check());
   events_ | is_own<Quote>(get_broker_client()) | $$(report_->on_quote(event->data<Quote>()););
   events_ | is_own<Entrust>(get_broker_client()) | $$(report_->on_entrust(event->data<Entrust>()););
   events_ | is_own<Transaction>(get_broker_client()) | $$(report_->on_transaction(event->data<Transaction>()););
   events_ | is_own<Tree>(get_broker_client()) | $$(report_->on_tree(event->data<Tree>()););
   events_ | is(SyntheticData::tag) | $$(report_->on_read_synthetic_data(event->data<SyntheticData>()));
+  events_ | $$(on_timer_check(); lease_expired_check(););
 }
 
 bool BacktestContext::is_started() const { return true; }
@@ -63,9 +63,8 @@ void BacktestContext::on_timer_check() {
     timer_callbacks_.insert(pre_timer_callbacks_.begin(), pre_timer_callbacks_.end());
     pre_timer_callbacks_.clear();
   }
-  auto it = timer_callbacks_.begin();
-  auto now_time = now();
-  while (it != timer_callbacks_.end()) {
+  int64_t now_time = now();
+  for (auto it = timer_callbacks_.begin(); it != timer_callbacks_.end();) {
     if (it->first <= now_time) {
       nlohmann::json time_event;
       time_event["msg_type"] = Time::tag;
@@ -82,14 +81,33 @@ void BacktestContext::on_timer_check() {
   }
 }
 
+void BacktestContext::lease_expired_check() {
+  int64_t now_time = now();
+  for (auto it = lease_locations_.begin(); it != lease_locations_.end();) {
+    if (it->first < now_time) {
+      for (const auto &expired_location : it->second) {
+        SPDLOG_TRACE("sliced location expired, locator={}, location={} disjoining.",
+                     expired_location->locator->get_root(), expired_location->uname);
+        app_.get_reader()->disjoin(expired_location, location::PUBLIC);
+      }
+      it = lease_locations_.erase(it);
+    } else {
+      break;
+    }
+  }
+}
+
 void BacktestContext::subscribe(const std::string &source, const std::vector<std::string> &instrument_ids,
                                 const std::string &exchange_id) {
   for (auto data_type : {Quote::tag, Tree::tag, Entrust::tag, Transaction::tag}) {
     for (const auto &instrument_id : instrument_ids) {
       int64_t slice_begin_time = app_.now();
+      int64_t slice_end_time{INT64_MAX};
       do {
         auto md_location = from_indexer_->find_md_slice_location(slice_begin_time, source, source, instrument_id,
                                                                  exchange_id, data_type);
+        slice_end_time = from_indexer_->get_md_slice_end_time(slice_begin_time, source, source, instrument_id,
+                                                              exchange_id, data_type);
         if (md_location->locator->list_page_id(md_location, location::PUBLIC).empty()) {
           SPDLOG_WARN("md public journal in locator={}, location={} not exists", md_location->locator->get_root(),
                       md_location->uname);
@@ -100,9 +118,8 @@ void BacktestContext::subscribe(const std::string &source, const std::vector<std
         add_location(app_, md_location);
         app_.get_reader()->join(md_location, location::PUBLIC, slice_begin_time);
         broker_client_.subscribe(md_location, exchange_id, instrument_id);
-      } while ((slice_begin_time = 1 + from_indexer_->get_md_slice_end_time(slice_begin_time, source, source,
-                                                                            instrument_id, exchange_id, data_type)) <
-               app_.get_end_time());
+        lease_locations_[slice_end_time].push_back(std::move(md_location));
+      } while ((slice_begin_time = 1 + slice_end_time) < app_.get_end_time());
     }
   }
 }
@@ -114,8 +131,10 @@ void BacktestContext::subscribe_all(const std::string &source, uint8_t market_ty
 
 void BacktestContext::subscribe_operator(const std::string &group, const std::string &name) {
   int64_t slice_begin_time = app_.now();
+  int64_t slice_end_time{INT64_MAX};
   do {
     auto op_location = from_indexer_->find_operator_slice_location(slice_begin_time, group, name);
+    slice_end_time = from_indexer_->get_operator_slice_end_time(slice_begin_time, group, name);
     if (op_location->locator->list_page_id(op_location, location::PUBLIC).empty()) {
       SPDLOG_WARN("operator public journal in locator={}, location={} not exists", op_location->locator->get_root(),
                   op_location->uname);
@@ -126,8 +145,8 @@ void BacktestContext::subscribe_operator(const std::string &group, const std::st
     add_location(app_, op_location);
     app_.get_reader()->join(op_location, location::PUBLIC, slice_begin_time);
     broker_client_.enroll_operator(op_location);
-  } while ((slice_begin_time = 1 + from_indexer_->get_operator_slice_end_time(slice_begin_time, group, name)) <
-           app_.get_end_time());
+    lease_locations_[slice_end_time].push_back(std::move(op_location));
+  } while ((slice_begin_time = 1 + slice_end_time) < app_.get_end_time());
 }
 
 void BacktestContext::publish_synthetic_data(const std::string &key, const std::string &value) {

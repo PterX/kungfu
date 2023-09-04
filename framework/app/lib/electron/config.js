@@ -141,7 +141,7 @@ module.exports = {
         ]
       : []),
     {
-      from: `${coreDir}/build/python/dist`,
+      from: `${coreDir}/dist/kfc/kungfu-wheel`,
       to: 'app/dist/public/python',
       filter: ['*.whl'],
     },

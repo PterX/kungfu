@@ -313,6 +313,7 @@ get_writer
 has_writer
 add_timer
 add_time_interval
+clear_timer
 update_broker_state
 subscribe
 subscribe_all
@@ -498,6 +499,9 @@ SZSE
 HKEx
 MarketType
 Snapshot
+Entrust
+Transaction
+Tree
 SubscribeDataType
 Stock
 Future

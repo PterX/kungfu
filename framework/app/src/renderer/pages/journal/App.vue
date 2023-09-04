@@ -1,9 +1,12 @@
 <template>
   <a-layout>
     <div class="kf-journal-view__wrap">
-      <div class="kf-journal-session__warp kf-translateZ">
+      <div
+        v-if="!visualVisibility"
+        class="kf-journal-session__warp kf-translateZ"
+      >
         <KfDashboard @boardSizeChange="handleBodySizeChange">
-          <template v-slot:header>
+          <template #header>
             <KfDashboardItem>
               <a-input-search
                 v-model:value="searchKeyword"
@@ -29,7 +32,7 @@
             :custom-row="customRow"
             :default-expand-all-rows="true"
             :scroll="{ y: dashboardBodyHeight - 4 }"
-            :emptyText="$t('empty_text')"
+            :empty-text="$t('empty_text')"
           >
             <template
               #bodyCell="{
@@ -64,6 +67,11 @@
         </KfDashboard>
       </div>
 
+      <EntryVisualization
+        v-if="visualVisibility"
+        class="kf-journal-visualization"
+      />
+
       <div class="kf-journal-control-bar">
         <div class="kf-journal-bar-title" v-if="currentSession">
           <a-tag :color="currentCategoryData?.color || 'default'">
@@ -76,7 +84,16 @@
           :step="60"
           class="kf-journal-time-slider"
         ></TimeSlider>
-        <ExportJournal @export-journal-data="onExportJournalData" />
+        <div class="kf-journal-visualization-btn">
+          <a-button
+            v-if="currentSession?.category === 'strategy'"
+            style="margin-right: 8px; color: #d22e88; border-color: #d22e88"
+            @click="onEntryVisualization"
+          >
+            {{ visualBtnText }}
+          </a-button>
+          <ExportJournal @export-journal-data="onExportJournalData" />
+        </div>
       </div>
       <div class="kf-journal-menu__wrap">
         <a-menu
@@ -117,6 +134,7 @@ import { UnorderedListOutlined, ReloadOutlined } from '@ant-design/icons-vue';
 import TimeSlider from './components/TimeSlider.vue';
 import ExportJournal from './components/ExportJournal.vue';
 import EventsDashBoard from './components/EventsDashboard.vue';
+import EntryVisualization from './components/EntryVisualization.vue';
 import { useJournalStore } from './store/journalStore';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import KfDashboard from '../../components/public/KfDashboard.vue';
@@ -152,6 +170,7 @@ const menus = [
     icon: UnorderedListOutlined,
   },
 ];
+const visualVisibility = ref<boolean>(false);
 
 const isCurrentMenuItem = (key: 'event' | 'visual') =>
   currentMenuList.value.includes(key);
@@ -167,6 +186,12 @@ const exportFileName = computed(() => {
   }
 
   return 'session';
+});
+
+const visualBtnText = computed(() => {
+  return visualVisibility.value
+    ? t('journalConfig.quit_visualization')
+    : t('journalConfig.entry_visualization');
 });
 
 const customRow = (record: KungfuApi.SessionResolved) => {
@@ -199,6 +224,10 @@ const dealRowClassName = (row) => {
     ? 'current-global-kfLocation'
     : '';
 };
+
+function onEntryVisualization() {
+  visualVisibility.value = !visualVisibility.value;
+}
 </script>
 
 <style lang="less">
@@ -231,6 +260,14 @@ const dealRowClassName = (row) => {
         width: 60%;
         margin: auto;
         padding: 8px 0;
+        box-sizing: border-box;
+      }
+
+      .kf-journal-visualization {
+        flex: 0 0 300px;
+        height: 300px;
+        width: 100%;
+        padding: 8px 0 4px 0;
         box-sizing: border-box;
       }
 

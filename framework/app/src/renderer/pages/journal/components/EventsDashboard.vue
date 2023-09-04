@@ -54,9 +54,11 @@
         key-field="id"
         :resizable="false"
         :custom-row-class="dealRowClassName"
+        :scroll-to-item="selectedChartItem"
         @resetScrollTop="setResetToTopObject($event)"
         @click-cell="handleOpenFrameDetail"
         @click-row="handleOpenFrameDetail"
+        @right-click-row="handleRightClickRow"
         @onScrollToTop="handleScrollToTop"
         @onScrollToBottom="handleScrollToBottom"
       >
@@ -171,9 +173,15 @@ const {
   currentSessionBeginTime,
   currentSessionEndTime,
   currentFrameList,
+  isLoadingFrames,
+  selectedChartItem,
 } = storeToRefs(useJournalStore());
-const { setCurrentFrameList, setCurrentTime, setCurrentLastFrameTime } =
-  useJournalStore();
+const {
+  setCurrentFrameList,
+  setCurrentTime,
+  setCurrentLastFrameTime,
+  setCurrentFrame,
+} = useJournalStore();
 const sourceDestMap = getSourceDestMap();
 const { now } = useNow();
 
@@ -203,7 +211,6 @@ const frameFilter = ref();
 let currentTracer: KungfuApi.Tracer | null = null;
 
 let requestBreakLoadingDataWhile = false;
-let isLoadingFrames = false;
 
 const channels = ref<ChannelRecords>({} as ChannelRecords);
 const selectedChannels = ref<string[]>([]);
@@ -273,7 +280,7 @@ const handleScrollToTop = () => {
 const handleScrollToBottom = debounce(async () => {
   console.warn('scrolling to bottom');
   if (!currentSession.value) return;
-  if (isLoadingFrames) return;
+  if (isLoadingFrames.value) return;
   await delayMilliSeconds(0);
   await loadFrameData(currentSession.value.index, true);
 }, 50);
@@ -405,7 +412,7 @@ const initLoad = debounce(async () => {
   console.warn('initLoad');
   if (!currentSession.value) return;
   const sessionIdOrigin = currentSession.value.index;
-  isLoadingFrames && (requestBreakLoadingDataWhile = true);
+  isLoadingFrames.value && (requestBreakLoadingDataWhile = true);
   firstSplitFramesLoading.value = true;
   // wait for while looping and break while working
   await delayMilliSeconds(0);
@@ -536,9 +543,9 @@ const loadFrameData = async (currentSessionId: number, loadmore = false) => {
     }
   };
 
-  isLoadingFrames = true;
+  isLoadingFrames.value = true;
   return drain(currentSessionId).then((_: KungfuApi.FrameResolved[]) => {
-    isLoadingFrames = false;
+    isLoadingFrames.value = false;
     firstSplitFramesLoading.value = false;
     requestBreakLoadingDataWhile = false;
     currentFramesId.value = currentFrameList.value[0]?.id;
@@ -582,6 +589,10 @@ const dealTagBackgroudColor = (colorStr: string) => {
 const dealRowClassName = (row) => {
   return row.id === currentFramesId.value ? 'kf-current-table-select' : '';
 };
+
+function handleRightClickRow({ row }) {
+  setCurrentFrame(row);
+}
 </script>
 
 <style lang="less">

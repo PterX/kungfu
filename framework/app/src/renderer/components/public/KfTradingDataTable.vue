@@ -30,6 +30,7 @@ const props = withDefaults(
     selectable?: boolean;
     selection?: KfTradingDataTableSelection; // 仅在 selectable 为 true 的时候生效
     customRowClass?: (row: TableDataItem) => string;
+    scrollToItem?: number;
   }>(),
   {
     columns: () => [],
@@ -40,6 +41,7 @@ const props = withDefaults(
     selectable: false,
     selection: () => ({}),
     customRowClass: () => '',
+    scrollToItem: 0,
   },
 );
 
@@ -135,6 +137,15 @@ watch(
     selectedRowsMap.value = tempSelectedRows;
   },
   { immediate: true },
+);
+
+watch(
+  () => props.scrollToItem,
+  (newScrollToItem) => {
+    if (scroller.value) {
+      scroller.value?.scrollToItem(newScrollToItem);
+    }
+  },
 );
 
 onMounted(() => {
@@ -378,8 +389,8 @@ defineExpose({
     <div ref="kfScrollerTableBodyRef" class="kf-table-body">
       <RecycleScroller
         v-if="dataSourceResolved && dataSourceResolved.length"
-        class="kf-table-scroller"
         ref="scroller"
+        class="kf-table-scroller"
         :items="dataSourceResolved"
         :item-size="Number(itemSize)"
         :key-field="keyField"

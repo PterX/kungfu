@@ -148,6 +148,27 @@ export const buildProcessLogPath = (processId: string) => {
   return path.join(LOG_DIR, tmk, `${processId}.log`);
 };
 
+//获取进程回放日志地址
+export const buildProcessReplayPath = (
+  location: {
+    category: string;
+    group: string;
+    name: string;
+  },
+  processId: string,
+) => {
+  const a = path.join(
+    KF_RUNTIME_DIR,
+    'log',
+    `${location.category}`,
+    `${location.group}`,
+    `${location.name}`,
+    'replay',
+    `${processId}.log`,
+  );
+  return a;
+};
+
 //================== others end ===================================
 
 //================== cli start ====================================

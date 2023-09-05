@@ -1,7 +1,12 @@
 <template>
-  <a-button @click="handleOpenExportFormModal">
-    {{ t('journalConfig.export') }}
-  </a-button>
+  <div class="journal-action">
+    <a-button @click="handleOpenReplayConfirmModal">
+      {{ t('replay.replay') }}
+    </a-button>
+    <a-button @click="handleOpenExportFormModal">
+      {{ t('journalConfig.export') }}
+    </a-button>
+  </div>
 
   <a-modal
     v-model:visible="exportFormModalVisible"
@@ -51,7 +56,6 @@ import { DashOutlined } from '@ant-design/icons-vue';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { messagePrompt } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import { writeCsvByStream } from '../utils';
-
 const { t } = VueI18n.global;
 
 const emit = defineEmits<{
@@ -62,6 +66,7 @@ const emit = defineEmits<{
       exportData: KungfuApi.FrameResolved[],
     ) => void,
   ): void;
+  (e: 'startReplay'): void;
 }>();
 
 const EXPORT_KEY = 'export_file_path';
@@ -167,6 +172,10 @@ const handleConfirmExport = () => {
     },
   );
 };
+
+const handleOpenReplayConfirmModal = async () => {
+  emit('startReplay');
+};
 </script>
 
 <style lang="less">
@@ -189,5 +198,11 @@ const handleConfirmExport = () => {
       width: 40px;
     }
   }
+}
+
+.journal-action {
+  display: flex;
+  justify-content: flex-end;
+  margin-left: 16px;
 }
 </style>

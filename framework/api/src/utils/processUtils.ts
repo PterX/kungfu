@@ -122,7 +122,6 @@ export const forceKill = (pids: number[]) => {
     kfLogger.warn((<Error>err).message);
   });
 };
-
 export const forceKillByKeyWords = (
   tasks: Array<string | RegExp>,
   strict = true,
@@ -1136,6 +1135,40 @@ export const startStrategyOperator = async (
       kfLogger.error(err);
     });
   }
+};
+
+//启动replay
+export const startReplay = async (
+  category: 'strategy' | 'operator',
+  group: string,
+  id: string,
+  replayConfig: KungfuApi.ReplayConfig,
+): Promise<Proc | void> => {
+  const { session_name, log_level, path, begin_time, end_time } = replayConfig;
+  const strategyOperatorIdResolved = `${category}_replay_${
+    begin_time.split(' ')[1]
+  }_${end_time.split(' ')[1]}`;
+
+  //因为pm2环境残留，在反复切换本地python跟内置python时，会出现本地python启动失败，所以需要先pm2 kill
+  try {
+    const { processStatus } = await listProcessStatus();
+    if (!getIfProcessDeleted(processStatus, strategyOperatorIdResolved)) {
+      kfLogger.info(`Clear existed ${category} ${strategyOperatorIdResolved}`);
+      await deleteProcess(strategyOperatorIdResolved);
+    }
+  } catch (err) {
+    kfLogger.warn(err);
+  }
+
+  const args = `${log_level} run  -c ${category} -g ${group} -n ${session_name} -m replay ${path} -b '${begin_time}' -e '${end_time}'`;
+
+  return startProcess({
+    name: strategyOperatorIdResolved,
+    args,
+    force: true,
+  }).catch((err) => {
+    kfLogger.error(err);
+  });
 };
 
 export const startDzxy = () => {

@@ -7,6 +7,8 @@ import {
   getKungfuHistoryData,
   hashInstrumentUKey,
   kfRequestMarketData,
+  sessionStore,
+  kf,
 } from '@kungfu-trader/kungfu-js-api/kungfu';
 
 import { setKfConfig } from '@kungfu-trader/kungfu-js-api/kungfu/store';
@@ -49,6 +51,8 @@ import {
   kfLogger,
   countDecimalPlaces,
   buildTradingDataHeaders,
+  getYearMonthDay,
+  flattenExtensionModuleDirs,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { BasketVolumeType } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
@@ -57,8 +61,11 @@ import {
   isAllMainProcessRunning,
   Pm2ProcessStatusData,
   Pm2ProcessStatusDetailData,
+  deleteProcess,
 } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
 import { Modal } from 'ant-design-vue';
+import { ExclamationCircleOutlined } from '@ant-design/icons-vue';
+
 import path from 'path';
 import { Proc } from 'pm2';
 import {
@@ -75,6 +82,7 @@ import {
   toRaw,
   toRefs,
   watch,
+  createVNode,
 } from 'vue';
 import dayjs from 'dayjs';
 import { Row } from '@fast-csv/format';
@@ -87,6 +95,8 @@ import {
   buildInstrumentSelectOptionValue,
   confirmModal,
   makeSearchOptionFormInstruments,
+  handleOpenReplayView,
+  handleOpenJournalReplayView,
 } from './uiUtils';
 import { storeToRefs } from 'pinia';
 import { ipcRenderer } from 'electron';
@@ -95,10 +105,14 @@ import { useGlobalStore } from '../../pages/index/store/global';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { messagePrompt } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import sound from 'sound-play';
-import { KUNGFU_RESOURCES_DIR } from '@kungfu-trader/kungfu-js-api/config/pathConfig';
+import {
+  KUNGFU_RESOURCES_DIR,
+  EXTENSION_DIRS,
+} from '@kungfu-trader/kungfu-js-api/config/pathConfig';
 import { RuleObject } from 'ant-design-vue/lib/form';
 import { TradeAccountingUsageMap } from '@kungfu-trader/kungfu-js-api/utils/accounting';
 import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
+import fse from 'fs-extra';
 import {
   LifeCycleHook,
   LifeCycleKeys,
@@ -445,6 +459,44 @@ export const useAddUpdateRemoveKfConfig = (): {
   return {
     handleRemoveKfConfig,
     handleConfirmAddUpdateKfConfig,
+  };
+};
+
+export const useRemoveReplayProcess = (): {
+  handleRemoveReplayProcess: (
+    watcher: KungfuApi.Watcher,
+    processStatusData: Pm2ProcessStatusData,
+    processId: string,
+  ) => Promise<void>;
+} => {
+  const handleRemoveReplayProcess = (
+    watcher: KungfuApi.Watcher,
+    processStatusData: Pm2ProcessStatusData,
+    processId: string,
+  ): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      Modal.confirm({
+        title: `${t('replay.stop_replay')}`,
+        content: t('replay.stop_replay_warn_content'),
+        okText: t('confirm'),
+        cancelText: t('cancel'),
+        icon: createVNode(ExclamationCircleOutlined),
+        onOk() {
+          return deleteProcess(processId)
+            .then((res) => {
+              resolve();
+            })
+            .catch((err) => {
+              kfLogger.error(err);
+              reject(err);
+            });
+        },
+      });
+    });
+  };
+
+  return {
+    handleRemoveReplayProcess,
   };
 };
 
@@ -1549,10 +1601,9 @@ export const useDealInstruments = (): void => {
     const { instruments } = event.data || {};
 
     const instrumentsValue = Object.values(instruments);
-    console.log('DealInstruments onmessage', instrumentsValue.length);
     dealInstrumentController.value = false;
     if (instrumentsValue.length) {
-      existedInstrumentsLength.value = instrumentsValue.length || 0; //refresh old instruments
+      existedInstrumentsLength.value = instrumentsValue.length || 0;
       const globalStore = useGlobalStore();
       globalStore.setInstruments(instrumentsValue);
       globalStore.setInstrumentsMap(instruments);
@@ -1985,6 +2036,251 @@ export const useAssets = (): {
     assets,
     getAssetsByKfConfig,
     getAssetsByTdGroup,
+  };
+};
+
+export async function getOperatorPath(
+  record: KungfuApi.KfConfig,
+): Promise<string> {
+  const extDirs = await flattenExtensionModuleDirs(EXTENSION_DIRS);
+  let filePath = '';
+
+  for (let i = 0; i < extDirs.length; i++) {
+    if (extDirs[i].split('/').pop() === record.group) {
+      const dir = extDirs[i];
+
+      const files = await new Promise<string[]>((resolve, reject) => {
+        fse.readdir(dir, (err, files) => {
+          if (err) {
+            reject('Unable to scan directory: ' + err);
+          } else {
+            resolve(files);
+          }
+        });
+      });
+
+      const soFiles = files.filter((file) => path.extname(file) === '.so');
+
+      if (soFiles.length > 0) {
+        filePath = path.join(dir, soFiles[0]);
+        return filePath;
+      }
+    }
+  }
+
+  return filePath;
+}
+
+export const useReplay = (): {
+  currentLocation: Ref<KungfuApi.KfConfig | null>;
+  replayConfig: Ref<KungfuApi.ReplayConfig>;
+  setReplayModalVisible: Ref<boolean>;
+  journalReplayflag: Ref<number>;
+  replayProcessParams: Ref<
+    | {
+        category: string;
+        group: string;
+        id: string;
+        replayConfig: KungfuApi.ReplayConfig;
+      }
+    | undefined
+  >;
+  handleOpenReplayConfirmView(
+    record: KungfuApi.KfConfig,
+    session?: KungfuApi.Session,
+  ): void;
+  handleReplayModal(
+    data: {
+      sessionInfo: string;
+      beginTime: string;
+      endTime: string;
+      logLevel: string;
+    },
+    location: KungfuApi.KfConfig | null,
+    isJournal?: boolean,
+  ): void;
+  sessionOptions: Ref<
+    {
+      label: string;
+      value: string;
+    }[]
+  >;
+} => {
+  const { replaySetting } = storeToRefs(useGlobalStore());
+  const setReplayModalVisible = ref(false);
+  const journalReplayflag = ref(0);
+  const replayProcessParams = ref<
+    | {
+        category: string;
+        group: string;
+        id: string;
+        replayConfig: KungfuApi.ReplayConfig;
+      }
+    | undefined
+  >(undefined);
+
+  const currentLocation = ref<KungfuApi.KfConfig | null>(null);
+  const replayConfig = ref<KungfuApi.ReplayConfig>({
+    group: 'default',
+    begin_time: '',
+    end_time: '',
+    log_level: '',
+    session_name: '',
+    path: '',
+  });
+  const sessionOptions = ref<
+    {
+      label: string;
+      value: string;
+    }[]
+  >([]);
+  const handleOpenReplayConfirmView = async (
+    record: KungfuApi.KfConfig,
+    CurSession?: KungfuApi.Session,
+  ) => {
+    if (record.category !== 'operator' && record.category !== 'strategy') {
+      error(t('replay.only_operator_or_strategy_can_be_replayed'));
+      return;
+    }
+    let isOperator = false;
+    let filePath = '';
+    if (record.category === 'operator' && record.group !== 'default') {
+      isOperator = true;
+      filePath = await getOperatorPath(record);
+    }
+    sessionOptions.value = [];
+    const sessions = sessionStore.getAllSessions();
+    if (!sessions || sessions.length === 0) {
+      error(t('replay.process_has_not_been_started'));
+      return;
+    }
+
+    let currentSession: KungfuApi.Session | null = CurSession
+      ? CurSession
+      : null;
+    if (currentSession) {
+      const beginTimeStr = kf
+        .formatTime(currentSession.begin_time, '%m/%d %H:%M:%S.%N')
+        .slice(6);
+      const endTimeStr = currentSession.end_time
+        ? kf.formatTime(currentSession.end_time, '%m/%d %H:%M:%S.%N').slice(6)
+        : 'now';
+      sessionOptions.value.push({
+        label: `${beginTimeStr}--${endTimeStr}`,
+        value: `${beginTimeStr}--${endTimeStr}`,
+      });
+    } else {
+      sessions.forEach((item) => {
+        if (item.location_uid === record.location_uid) {
+          currentSession = item;
+          const beginTimeStr = kf
+            .formatTime(item.begin_time, '%m/%d %H:%M:%S.%N')
+            .slice(6);
+          const endTimeStr = item.end_time
+            ? kf.formatTime(item.end_time, '%m/%d %H:%M:%S.%N').slice(6)
+            : 'now';
+          sessionOptions.value.push({
+            label: `${beginTimeStr}--${endTimeStr}`,
+            value: `${beginTimeStr}--${endTimeStr}`,
+          });
+        }
+      });
+    }
+
+    if (!currentSession) {
+      error(t('replay.process_has_not_been_started'));
+      return;
+    }
+    const startTime = kf
+      .formatTime(currentSession.begin_time, '%m/%d %H:%M:%S.%N')
+      .slice(6);
+    const endTime =
+      replaySetting.value.end_time && replaySetting.value.end_time > startTime
+        ? replaySetting.value.end_time
+        : currentSession.end_time
+        ? kf.formatTime(currentSession.end_time, '%m/%d %H:%M:%S.%N').slice(6)
+        : kf
+            .formatTime(
+              BigInt(new Date().getTime()) * 1000000n,
+              '%m/%d %H:%M:%S.%N',
+            )
+            .slice(6);
+    const logLevel = replaySetting.value.log_level || '-l info';
+    const params = record.value ? JSON.parse(record.value) : {};
+    const date = getYearMonthDay();
+    const beginTime = `${date} ${startTime}`;
+    const endTimeStr = `${date} ${endTime}`;
+
+    replayConfig.value = {
+      group: record.group,
+      begin_time: beginTime,
+      end_time: endTimeStr,
+      log_level: logLevel,
+      session_name: currentSession.name,
+      path: isOperator ? filePath : params.file_path,
+    };
+    currentLocation.value = record;
+
+    setReplayModalVisible.value = true;
+  };
+
+  const handleReplayModal = async (
+    data: {
+      sessionInfo: string;
+      beginTime: string;
+      endTime: string;
+      logLevel: string;
+    },
+    location: KungfuApi.KfConfig | null,
+    isJournal = false,
+  ) => {
+    if (!location) {
+      error();
+      return;
+    }
+    const startTime = data.beginTime;
+    const endTime = data.endTime || '';
+    useGlobalStore().setReplaySetting({
+      begin_time: startTime,
+      end_time: endTime,
+      log_level: data.logLevel,
+    });
+    setReplayModalVisible.value = false;
+    if (isJournal) {
+      const { startProcess, ProcessConfigs } =
+        await handleOpenJournalReplayView(
+          location,
+          replayConfig.value,
+          journalReplayflag.value,
+        );
+      journalReplayflag.value = startProcess;
+      replayProcessParams.value = ProcessConfigs;
+    } else {
+      await handleOpenReplayView(
+        location,
+        startTime,
+        endTime ||
+          kf
+            .formatTime(
+              BigInt(new Date().getTime()) * 1000000n,
+              '%m/%d %H:%M:%S.%N',
+            )
+            .slice(6),
+        data.logLevel,
+        replayConfig.value,
+      );
+    }
+  };
+
+  return {
+    currentLocation,
+    replayConfig,
+    setReplayModalVisible,
+    journalReplayflag,
+    sessionOptions,
+    replayProcessParams,
+    handleOpenReplayConfirmView,
+    handleReplayModal,
   };
 };
 

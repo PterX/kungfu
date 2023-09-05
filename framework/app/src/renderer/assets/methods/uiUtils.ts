@@ -23,6 +23,7 @@ import {
 import {
   ARCHIVE_DIR,
   buildProcessLogPath,
+  buildProcessReplayPath,
   KF_HOME,
   KUNGFU_RESOURCES_DIR,
 } from '@kungfu-trader/kungfu-js-api/config/pathConfig';
@@ -41,6 +42,7 @@ import {
   isKfColor,
   isHexOrRgbColor,
   removeTodayArchive,
+  getYearMonthDay,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
@@ -64,7 +66,10 @@ import {
   KfUIExtLocatorTypes,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import path from 'path';
-import { startExtService } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
+import {
+  startExtService,
+  startReplay,
+} from '@kungfu-trader/kungfu-js-api/utils/processUtils';
 import { Proc } from 'pm2';
 import { VueNode } from 'ant-design-vue/lib/_util/type';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
@@ -540,6 +545,8 @@ export const getInstrumentTypeColor = (
   return getInstrumentTypeData(type).color || 'default';
 };
 
+// const childWindows: Electron.BrowserWindow[] = [];
+// let minimizedWindowsCount = 0;
 /**
  * 新建窗口
  * @param  {string} htmlPath
@@ -551,16 +558,21 @@ export const openNewBrowserWindow = (
   windowConfig?: Electron.BrowserWindowConstructorOptions,
 ): Promise<Electron.BrowserWindow> => {
   const currentWindow = getCurrentWindow();
+  const isParentFullScreen = currentWindow.isFullScreen();
   const modalPath =
     process.env.APP_TYPE === 'renderer' && process.env.NODE_ENV !== 'production'
       ? `http://localhost:9090/${name}.html${params}`
       : `file://${folderName}/${name}.html${params}`;
+
   return new Promise((resolve, reject) => {
     const win = new BrowserWindow({
       ...(getNewWindowLocation() || {}),
+      alwaysOnTop: false,
       width: 1080,
       height: 766,
+      show: false,
       parent: currentWindow,
+      fullscreen: false,
       webPreferences: {
         nodeIntegration: true,
         nodeIntegrationInWorker: true,
@@ -570,13 +582,91 @@ export const openNewBrowserWindow = (
       ...windowConfig,
     });
 
+    // let offsetX, offsetY;
+
+    // const offset = 300; // 偏移量
+
     win.on('ready-to-show', function () {
-      win && win.focus();
+      if (isParentFullScreen) {
+        win.setFullScreen(false);
+        win.setSize(1080, 766);
+        win.center();
+      }
+      win.show();
+      win.focus();
+    });
+
+    // childWindows.push(win);
+
+    currentWindow.on('closed', () => {
+      // childWindows.forEach((childWin) => {
+      //   childWin.close();
+      // });
     });
 
     win.on('closed', () => {
+      // if (minimizedWindowsCount > 0) {
+      //   minimizedWindowsCount--;
+      // }
+      // const index = childWindows.indexOf(win);
+      // if (index !== -1) {
+      //   childWindows.splice(index, 1);
+      // }
       resolve(win);
     });
+
+    ipcRenderer.on('trigger-main-window-hook', (_event, args) => {
+      const { key, hookName } = args;
+      if (key && hookName) {
+        globalThis.HookKeeper.getHooks().processAction.trigger(hookName, key);
+      }
+    });
+
+    ipcRenderer.on('startReplay', async (_event, args) => {
+      const { replayProcessParams } = args;
+      const { category, group, id, replayConfig } = replayProcessParams;
+      await startReplay(category, group, id, replayConfig);
+    });
+
+    // 在窗口恢复正常大小或关闭时
+    // win.on('restore', function () {
+    //   if (minimizedWindowsCount > 0) {
+    //     minimizedWindowsCount--;
+    //   }
+    // });
+
+    // win.on('minimize', function () {
+    //   win.setAlwaysOnTop(true);
+    //   const [parentX, parentY, parentWidth, parentHeight] = [
+    //     currentWindow.getPosition()[0],
+    //     currentWindow.getPosition()[1],
+    //     currentWindow.getSize()[0],
+    //     currentWindow.getSize()[1],
+    //   ];
+
+    //   const newX = parentX + parentWidth - 300 + minimizedWindowsCount * offset;
+    //   const newY = parentY + parentHeight - 30 + minimizedWindowsCount * offset;
+    //   win.setSize(300, 30);
+    //   win.setPosition(newX, newY);
+
+    //   offsetX = newX - parentX;
+    //   offsetY = newY - parentY;
+    //   minimizedWindowsCount++;
+
+    //   win.show();
+    // });
+
+    // currentWindow.on('move', () => {
+    //   const [newParentX, newParentY] = currentWindow.getPosition();
+
+    //   const newChildX = newParentX + offsetX;
+    //   const newChildY = newParentY + offsetY;
+    //   win.setPosition(newChildX, newChildY);
+    // });
+
+    // currentWindow.on('focus', () => {
+    //   win.setAlwaysOnTop(true);
+    // });
 
     win.webContents.loadURL(modalPath);
     win.webContents.on('did-finish-load', () => {
@@ -605,6 +695,24 @@ function getNewWindowLocation(): { x: number; y: number } | null {
 
   return null;
 }
+
+export const openReplayView = (
+  type: 'stategy' | 'operator',
+  filePath: string,
+  beginTime: string,
+  endTime: string,
+  log_level: string,
+): Promise<Electron.BrowserWindow> => {
+  return openNewBrowserWindow(
+    globalThis.__runtimeDir,
+    'replay',
+    `?logPath=${filePath}&beginTime=${beginTime}&endTime=${endTime}&logLevel=${log_level}&processId=${type}_replay_${beginTime}_${endTime}`,
+    {
+      width: 1280,
+      height: 960,
+    },
+  );
+};
 
 export const openLogView = (
   logPath: string,
@@ -778,6 +886,77 @@ export const messagePrompt = (): {
     warn,
     loading,
   };
+};
+
+export const handleOpenReplayView = async (
+  config: KungfuApi.KfConfig | KungfuApi.KfLocation,
+  beginTime: string,
+  endTime: string,
+  logLevel: string,
+  replayConfig: KungfuApi.ReplayConfig,
+): Promise<Electron.BrowserWindow> => {
+  const dateStr = getYearMonthDay();
+  const hideloading = messagePrompt().loading(t('open_replay_dashboard'));
+  const logPath = buildProcessReplayPath(config, `${config.name}_${dateStr}`);
+  if (replayConfig) {
+    const id = getProcessIdByKfLocation(config);
+    const processId = `${config.category}_replay_${
+      replayConfig.begin_time.split(' ')[1]
+    }_${replayConfig.end_time.split(' ')[1]}`;
+    globalThis.HookKeeper.getHooks().processAction.register(
+      processId,
+      'start',
+      async () => {
+        await startReplay(config.category, config.group, id, replayConfig);
+        console.log(`start replay${processId}`);
+      },
+    );
+    await startReplay(config.category, config.group, id, replayConfig);
+  }
+  return openReplayView(
+    config.category,
+    logPath,
+    beginTime,
+    endTime,
+    logLevel,
+  ).finally(() => {
+    hideloading();
+  });
+};
+
+export const handleOpenJournalReplayView = async (
+  config: KungfuApi.KfConfig | KungfuApi.KfLocation,
+  replayConfig: KungfuApi.ReplayConfig,
+  count: number,
+): Promise<{
+  startProcess: number;
+  ProcessConfigs:
+    | {
+        category: string;
+        group: string;
+        id: string;
+        replayConfig: KungfuApi.ReplayConfig;
+      }
+    | undefined;
+}> => {
+  try {
+    const id = getProcessIdByKfLocation(config);
+    return {
+      startProcess: ++count,
+      ProcessConfigs: {
+        category: config.category,
+        group: config.group,
+        id,
+        replayConfig,
+      },
+    };
+  } catch (error) {
+    console.error(error);
+    return {
+      startProcess: 0,
+      ProcessConfigs: undefined,
+    };
+  }
 };
 
 export const handleOpenLogview = (

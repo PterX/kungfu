@@ -1010,6 +1010,51 @@ function disabledEndTime(
   };
 }
 
+function handleDisabledTime(stratTime: string, endTimeLstring) {
+  const [startHour, startMinute] = stratTime.split(':');
+  const [endHour, endMinute] = endTimeLstring.split(':');
+  let hours: number[] = [];
+  let minutes: number[] = [];
+  let seconds: number[] = [];
+  if (!startHour || !startMinute || !endHour || !endMinute) {
+    return {
+      disabledHours: () => [],
+      disabledMinutes: () => [],
+    };
+  }
+  return {
+    disabledHours: () => {
+      for (let i = 0; i < Number(startHour); i++) {
+        hours.push(i);
+      }
+      for (let i = Number(endHour) + 1; i < 24; i++) {
+        hours.push(i);
+      }
+      return hours;
+    },
+    disabledMinutes: (seletedHour: number) => {
+      if (seletedHour === -1) return Array.from({ length: 60 }, (_, i) => i);
+      if (seletedHour === Number(startHour)) {
+        for (let i = 0; i < Number(startMinute); i++) {
+          minutes.push(i);
+        }
+      }
+      if (seletedHour === Number(endHour)) {
+        for (let i = Number(endMinute) + 1; i < 60; i++) {
+          minutes.push(i);
+        }
+      }
+      return minutes;
+    },
+    disabledSeconds: (seletedMinute: number) => {
+      if (seletedMinute === -1) {
+        return Array.from({ length: 60 }, (_, i) => i);
+      }
+      return seconds;
+    },
+  };
+}
+
 function handleRangePickerChange(date: Dayjs[], key: string) {
   if (date) {
     formState.value[key] = date.map((d) =>
@@ -1896,6 +1941,12 @@ defineExpose({
           item.disabled
         "
         :value="formState[item.key] == null ? null : dayjs(formState[item.key])"
+        :disabled-time="
+          item.abledTimeRange ? ()=>{return handleDisabledTime(...item.abledTimeRange as [string,string])} : ()=>{    return {
+      disabledHours: () => {return[1]},
+      disabledMinutes: () => [],
+    };}
+        "
         @change="handleTimePickerChange($event as unknown as Dayjs, item.key)"
       ></a-time-picker>
       <div

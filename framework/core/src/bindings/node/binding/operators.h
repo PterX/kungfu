@@ -308,12 +308,6 @@ public:
     auto source = location_->uid;
     auto locator = location_->locator;
 
-    if (location_->category == longfist::enums::category::SYSTEM) {
-      if (location_->group != "node") {
-        return;
-      }
-    }
-
     for (auto dest : locator->list_location_dest_by_db(location_)) {
       auto db_file = locator->layout_file(location_, longfist::enums::layout::SQLITE, fmt::format("{:08x}", dest));
       auto storage = yijinjing::cache::make_storage_ptr(db_file, longfist::StateDataTypes);

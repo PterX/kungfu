@@ -1,9 +1,5 @@
 <script setup lang="ts">
-import {
-  // nextTick,
-  onMounted,
-  ref,
-} from 'vue';
+import { onMounted, ref } from 'vue';
 import {
   UpOutlined,
   DownOutlined,
@@ -20,13 +16,10 @@ import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/publi
 import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
 import { ensureFileSync, outputFile } from 'fs-extra';
 import { shell } from '@electron/remote';
-// import { clipboard } from 'electron';
-// import { platform } from 'os';
 import {
   getLogPath,
   useLogInit,
   dealLogMessage,
-  // useLogSearch,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/logUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 
@@ -73,7 +66,7 @@ const {
 } = useScrollerTableSearch(
   () => logList.list,
   'id',
-  ['messageOrigin'],
+  ['message'],
   scrollerTableRef,
 );
 
@@ -192,9 +185,7 @@ function resetLog() {
                 :id="`kf-log-item-${item.id}`"
                 :active="active"
                 class="kf-log-line"
-                v-html="
-                  dealLogMessage(getItemSearchResult(item, 'messageOrigin'))
-                "
+                v-html="dealLogMessage(getItemSearchResult(item, 'message'))"
               ></div>
             </DynamicScrollerItem>
           </template>

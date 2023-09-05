@@ -19,15 +19,8 @@ export const getLogPath = (): string => {
 export function preDealLogMessage(line: string): string {
   // 21 = pm2 timestamp length
   if (line.indexOf('[') === 21) {
-    line = line.slice(21);
+    return line.slice(21);
   }
-  line = line.replace(/&/g, '&amp;');
-  line = line.replace(/</g, '&lt;');
-  line = line.replace(/>/g, '&gt;');
-  line = line.replace(/"/g, '&quot;');
-  line = line.replace(/'/g, '&#39;');
-  line = line.replace(/`/g, '&#96;');
-  line = line.replace(/\//g, '&#x2F;');
   return line;
 }
 
@@ -37,21 +30,30 @@ export function dealLogMessage(line: string): string {
     return line;
   }
 
+  const createLogLevelRegExp = (level: string) =>
+    new RegExp(`(?<=\\[(<\\/mark>)?)\\s*(${level})\\s*(?=(<mark .*>)?\\])`);
+
   line = line
     .replace(
-      /(?<=\[)\s*(info|KF_INFO)\s*(?=\])/g,
-      '<span class="info"> $1 </span>',
+      createLogLevelRegExp('info|KF_INFO'),
+      '<span class="info"> $2 </span>',
     )
     .replace(
-      /(?<=\[)\s*(warning|KF_WARN)\s*(?=\])/g,
-      '<span class="warning"> $1 </span>',
+      createLogLevelRegExp('warning|KF_WARN'),
+      '<span class="warning"> $2 </span>',
     )
     .replace(
-      /(?<=\[)\s*(error|KF_ERROR)\s*(?=\])/g,
-      '<span class="error"> $1 </span>',
+      createLogLevelRegExp('error|KF_ERROR'),
+      '<span class="error"> $2 </span>',
     )
-    .replace(/(?<=\[)\s*debug\s*(?=\])/g, '<span class="debug"> debug </span>')
-    .replace(/(?<=\[)\s*trace\s*(?=\])/g, '<span class="trace"> trace </span>');
+    .replace(
+      createLogLevelRegExp('debug'),
+      '<span class="debug"> debug </span>',
+    )
+    .replace(
+      createLogLevelRegExp('trace'),
+      '<span class="trace"> trace </span>',
+    );
 
   return line;
 }
@@ -94,7 +96,7 @@ export const useLogInit = (
       logList.insert({
         id: markId++,
         message: dealLogMessage(preDealLogMessage(line)),
-        messageOrigin: line,
+        messageOrigin: preDealLogMessage(line),
         messageForSearch: '',
       });
 

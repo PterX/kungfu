@@ -11,7 +11,6 @@ import {
   onMounted,
   ref,
   toRaw,
-  nextTick,
 } from 'vue';
 import { throttle } from 'lodash';
 
@@ -64,7 +63,6 @@ defineEmits<{
   (e: 'update:selectedKey', data: number | string): void;
   (e: 'onScrollToTop'): void;
   (e: 'onScrollToBottom'): void;
-  (e: 'resetScrollTop'): void;
 }>();
 
 const app = getCurrentInstance();
@@ -138,15 +136,6 @@ watch(
 );
 
 onMounted(() => {
-  nextTick(() => {
-    app &&
-      app.emit('resetScrollTop', () => {
-        if (scroller.value) {
-          scroller.value?.scrollToItem(0);
-        }
-      });
-  });
-
   if (kfScrollerTableBodyRef.value) {
     kfScrollerTableWidth.value = kfScrollerTableBodyRef.value.clientWidth;
   }
@@ -322,11 +311,18 @@ watch(
   },
 );
 
+const scrollToItem = (index: number) => {
+  if (scroller.value) {
+    scroller.value.scrollToItem(index);
+  }
+};
+
 defineExpose({
   selectedRowsMap,
   isSelectAll,
   handleSelectRow,
   handleSelectAll,
+  scrollToItem,
 });
 </script>
 <template>

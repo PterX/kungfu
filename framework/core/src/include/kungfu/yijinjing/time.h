@@ -76,6 +76,13 @@ public:
   static int64_t today_start();
 
   /**
+   * Start time of trading day (yesterday 16:00:00) in nano seconds.
+   * @return start time of trading day in nano seconds
+   */
+  static int64_t trading_day_start();
+
+
+  /**
    * Parse string time to nano time.
    * @param time_string string-formatted time
    * @param format ref: https://en.cppreference.com/w/cpp/io/manip/put_time + %N for nanoseconds {:09d}

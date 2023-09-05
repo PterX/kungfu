@@ -3,10 +3,9 @@
 # Then let poetry to manage the other dependencies.
 
 [packages]
-poetry = "==1.2.2"
-pip = "==23.0"
-setuptools = "==67.2.0"
-virtualenv = "==20.19.0"
-wheel = "==0.38.4"
-keyring = "==23.13.1"
-xattr = {version = "==0.9.9", sys_platform = "!= 'win32'"}
+poetry = "==1.6.1"
+pip = "==23.2.1"
+setuptools = "==68.0.0"
+virtualenv = "==20.24.4"
+wheel = "==0.41.2"
+urllib3 = "~=1.26"

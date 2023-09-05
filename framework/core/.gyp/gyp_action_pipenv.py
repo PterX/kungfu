@@ -19,12 +19,16 @@ class Pipenv(object):
             s = line.strip().replace(" ", "")
             if s.startswith(mark) and "==" in s:
                 return package + s.replace(mark, "").replace('"', "")
-        raise NameError(f"No valid semver found for {package} in Pipfile")
+        return None
 
     @property
     def seed_packages(self):
         # make sure pipenv install our specified version of the seed packages
-        return list(map(self.find_version, Pipenv.SEED_PACKAGES))
+        return list(
+            filter(
+                lambda x: x is not None, map(self.find_version, Pipenv.SEED_PACKAGES)
+            )
+        )
 
 
 Shell.run(["yarn", "pipenv", "--bare", "install"])

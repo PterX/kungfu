@@ -126,7 +126,7 @@ watch(
 
 .kf-table-cell {
   .kf-blink-num {
-    padding: 0 8px;
+    padding: 0 6px;
   }
 }
 </style>

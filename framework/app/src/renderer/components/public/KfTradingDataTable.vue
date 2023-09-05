@@ -543,7 +543,7 @@ defineExpose({
   }
 
   .kf-table-cell {
-    padding: 0 8px;
+    padding: 0 6px;
     box-sizing: border-box;
     word-wrap: break-word;
     flex: 1;

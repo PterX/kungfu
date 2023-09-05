@@ -81,7 +81,6 @@ public:
    */
   static int64_t trading_day_start();
 
-
   /**
    * Parse string time to nano time.
    * @param time_string string-formatted time

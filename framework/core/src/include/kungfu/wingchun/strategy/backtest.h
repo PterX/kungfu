@@ -161,7 +161,7 @@ public:
                                 const std::string &source, const std::string &account, double limit_price,
                                 int64_t volume, longfist::enums::PriceType type, longfist::enums::Side side,
                                 longfist::enums::Offset offset, longfist::enums::OrderTriggerType trigger_type,
-                                longfist::enums::ParkedType parked_type, double stop_price = 0,
+                                double stop_price = 0,
                                 longfist::enums::HedgeFlag hedge_flag = longfist::enums::HedgeFlag::Speculation,
                                 bool is_swap = false) override;
 
@@ -285,6 +285,8 @@ protected:
 
   yijinjing::data::location_ptr find_td_location(const std::string &source, const std::string &account,
                                                  bool check_exist = true) const;
+
+  uint64_t get_order_id(const yijinjing::journal::writer_ptr &writer, uint32_t dest) const;
 
 private:
   broker::PassiveClient broker_client_;

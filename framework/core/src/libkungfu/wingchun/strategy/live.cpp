@@ -162,6 +162,7 @@ void LiveContext::subscribe_operator(const std::string &group, const std::string
   auto home = app_.get_home();
   auto operator_location = location::make_shared(mode::LIVE, category::OPERATOR, group, name, home->locator);
   if (not app_.has_location(operator_location->uid)) {
+    SPDLOG_ERROR("subscribe operator no location");
     throw wingchun_error(fmt::format("invalid operator {}_{}", group, name));
   }
 
@@ -170,6 +171,11 @@ void LiveContext::subscribe_operator(const std::string &group, const std::string
 
 uint64_t LiveContext::insert_block_message(const std::string &source, const std::string &account,
                                            const std::string &opponent_seat, uint64_t match_number, bool is_specific) {
+  if (not is_started()) {
+    SPDLOG_ERROR("context not ready");
+    return 0;
+  }
+
   auto account_location_uid = broker_client_.get_td_location_uid(source, account);
   if (not broker_client_.is_ready(account_location_uid)) {
     SPDLOG_ERROR("account {} not ready", app_.get_location_uname(account_location_uid));
@@ -191,9 +197,13 @@ uint64_t LiveContext::insert_order_trigger(const std::string &instrument_id, con
                                            const std::string &source, const std::string &account, double limit_price,
                                            int64_t volume, longfist::enums::PriceType type, longfist::enums::Side side,
                                            longfist::enums::Offset offset,
-                                           longfist::enums::OrderTriggerType trigger_type,
-                                           longfist::enums::ParkedType parked_type, double stop_price,
+                                           longfist::enums::OrderTriggerType trigger_type, double stop_price,
                                            longfist::enums::HedgeFlag hedge_flag, bool is_swap) {
+  if (not is_started()) {
+    SPDLOG_ERROR("context not ready");
+    return 0;
+  }
+
   auto account_location_uid = broker_client_.get_td_location_uid(source, account);
   if (not broker_client_.is_ready(account_location_uid)) {
     SPDLOG_ERROR("account {} not ready", app_.get_location_uname(account_location_uid));
@@ -221,7 +231,6 @@ uint64_t LiveContext::insert_order_trigger(const std::string &instrument_id, con
   input.offset = offset;
   input.hedge_flag = hedge_flag;
   input.is_swap = is_swap;
-  input.parked_type = parked_type;
   input.insert_time = time::now_in_nano();
   writer->close_data();
   return input.trigger_id;
@@ -231,6 +240,11 @@ uint64_t LiveContext::insert_order(const std::string &instrument_id, const std::
                                    const std::string &source, const std::string &account, double limit_price,
                                    int64_t volume, PriceType type, Side side, Offset offset, HedgeFlag hedge_flag,
                                    bool is_swap, uint64_t block_id, uint64_t parent_id) {
+  if (not is_started()) {
+    SPDLOG_ERROR("context not ready");
+    return 0;
+  }
+
   auto account_location_uid = broker_client_.get_td_location_uid(source, account);
   if (not broker_client_.is_ready(account_location_uid)) {
     SPDLOG_ERROR("account {} not ready", app_.get_location_uname(account_location_uid));
@@ -269,6 +283,10 @@ uint64_t LiveContext::insert_order(const std::string &instrument_id, const std::
 
 uint64_t LiveContext::insert_order_input(const std::string &source, const std::string &account,
                                          longfist::types::OrderInput &order_input) {
+  if (not is_started()) {
+    SPDLOG_ERROR("context not ready");
+    return 0;
+  }
 
   auto account_location_uid = broker_client_.get_td_location_uid(source, account);
   if (not broker_client_.is_ready(account_location_uid)) {
@@ -302,6 +320,11 @@ LiveContext::insert_batch_orders(const std::string &source, const std::string &a
                                  std::vector<longfist::enums::Side> sides, std::vector<longfist::enums::Offset> offsets,
                                  std::vector<longfist::enums::HedgeFlag> hedge_flags, std::vector<bool> is_swaps) {
   std::vector<uint64_t> order_ids{};
+  if (not is_started()) {
+    SPDLOG_ERROR("context not ready");
+    return order_ids;
+  }
+
   auto account_location_uid = broker_client_.get_td_location_uid(source, account);
   if (not broker_client_.is_ready(account_location_uid)) {
     SPDLOG_ERROR("account {} not ready", app_.get_location_uname(account_location_uid));
@@ -338,8 +361,12 @@ LiveContext::insert_batch_orders(const std::string &source, const std::string &a
 
 std::vector<uint64_t> LiveContext::insert_array_orders(const std::string &source, const std::string &account,
                                                        std::vector<longfist::types::OrderInput> &order_inputs) {
-
   std::vector<uint64_t> order_ids{};
+  if (not is_started()) {
+    SPDLOG_ERROR("context not ready");
+    return order_ids;
+  }
+
   auto account_location_uid = broker_client_.get_td_location_uid(source, account);
   if (not broker_client_.is_ready(account_location_uid)) {
     SPDLOG_ERROR("account {} not ready", app_.get_location_uname(account_location_uid));
@@ -367,6 +394,11 @@ uint64_t LiveContext::insert_algo_order(const std::string &instrument_id, const 
                                         longfist::enums::Side side, longfist::enums::Offset offset,
                                         const std::string &algo_type_id, const std::string &algo_id,
                                         const std::string &args, bool is_local) {
+  if (not is_started()) {
+    SPDLOG_ERROR("context not ready");
+    return 0;
+  }
+
   auto account_location_uid = broker_client_.get_td_location_uid(source, account);
   if (not broker_client_.is_ready(account_location_uid)) {
     SPDLOG_ERROR("account {} not ready", app_.get_location_uname(account_location_uid));
@@ -396,6 +428,11 @@ uint64_t LiveContext::insert_algo_order(const std::string &instrument_id, const 
 }
 
 uint64_t LiveContext::cancel_order(uint64_t order_id, OrderActionFlag action_flag) {
+  if (not is_started()) {
+    SPDLOG_ERROR("context not ready");
+    return 0;
+  }
+
   uint32_t account_location_uid = (order_id >> 32u) xor (get_home_uid());
   if (not broker_client_.is_ready(account_location_uid)) {
     SPDLOG_ERROR("account {} not ready", app_.get_location_uname(account_location_uid));
@@ -414,6 +451,11 @@ uint64_t LiveContext::cancel_order(uint64_t order_id, OrderActionFlag action_fla
 }
 
 uint64_t LiveContext::cancel_order_trigger(uint64_t trigger_id) {
+  if (not is_started()) {
+    SPDLOG_ERROR("context not ready");
+    return 0;
+  }
+
   uint32_t account_location_uid = (trigger_id >> 32u) xor (get_home_uid());
   if (not broker_client_.is_ready(account_location_uid)) {
     SPDLOG_ERROR("account {} not ready", app_.get_location_uname(account_location_uid));
@@ -432,6 +474,11 @@ uint64_t LiveContext::cancel_order_trigger(uint64_t trigger_id) {
 }
 
 uint64_t LiveContext::cancel_algo_order(uint64_t algo_order_id, AlgoOrderActionFlag action_flag) {
+  if (not is_started()) {
+    SPDLOG_ERROR("context not ready");
+    return 0;
+  }
+
   uint32_t account_location_uid = (algo_order_id >> 32u) xor (get_home_uid());
   if (not broker_client_.is_ready(account_location_uid)) {
     SPDLOG_ERROR("account {} not ready", app_.get_location_uname(account_location_uid));
@@ -450,6 +497,11 @@ uint64_t LiveContext::cancel_algo_order(uint64_t algo_order_id, AlgoOrderActionF
 }
 
 uint64_t LiveContext::toggle_algo_order(uint64_t algo_order_id, longfist::enums::AlgoOrderActionFlag action_flag) {
+  if (not is_started()) {
+    SPDLOG_ERROR("context not ready");
+    return 0;
+  }
+
   uint32_t account_location_uid = (algo_order_id >> 32u) xor (get_home_uid());
   if (not broker_client_.is_ready(account_location_uid)) {
     SPDLOG_ERROR("toggle_algo_order account {} not ready", app_.get_location_uname(account_location_uid));
@@ -472,6 +524,11 @@ broker::Client &LiveContext::get_broker_client() { return broker_client_; }
 book::Bookkeeper &LiveContext::get_bookkeeper() { return bookkeeper_; }
 
 void LiveContext::req_history_order(const std::string &source, const std::string &account, uint32_t query_num) {
+  if (not is_started()) {
+    SPDLOG_ERROR("context not ready");
+    return;
+  }
+
   auto account_location_uid = broker_client_.get_td_location_uid(source, account);
   if (not broker_client_.is_ready(account_location_uid)) {
     SPDLOG_ERROR("account {}_{} not ready", source, account);
@@ -485,6 +542,11 @@ void LiveContext::req_history_order(const std::string &source, const std::string
 }
 
 void LiveContext::req_history_trade(const std::string &source, const std::string &account, uint32_t query_num) {
+  if (not is_started()) {
+    SPDLOG_ERROR("context not ready");
+    return;
+  }
+
   auto account_location_uid = broker_client_.get_td_location_uid(source, account);
   if (not broker_client_.is_ready(account_location_uid)) {
     SPDLOG_ERROR("account {}_{} not ready", source, account);
@@ -535,6 +597,12 @@ void LiveContext::send_instrument_keys() {
 yijinjing::data::location_ptr LiveContext::get_location(uint32_t location_uid) {
   return app_.get_location(location_uid);
 }
+
+void LiveContext::set_resume_policy(longfist::enums::ResumePolicy resume_policy) {
+  broker_client_.set_resume_policy(resume_policy);
+}
+
+longfist::enums::ResumePolicy LiveContext::get_resume_policy() { return broker_client_.get_resume_policy_value(); }
 
 uint32_t LiveContext::get_home_uid() const { return app_.get_home_uid(); }
 

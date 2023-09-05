@@ -58,7 +58,7 @@ import {
   OrderStatusEnum,
   OrderActionFlagEnum,
   OrderTriggerStatusEnum,
-  OrderTriggerTypeEnum,
+  OrderTriggerConfigTypeEnum,
   OrderTriggerFlag,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
@@ -160,8 +160,10 @@ onMounted(() => {
             );
 
             return toRaw({
-              ...dealDataWithCache(item, () =>
-                dealOrder(watcher, item, false, price_precision),
+              ...dealDataWithCache(
+                item,
+                () => dealOrder(watcher, item, false, price_precision),
+                { price_precision },
               ),
               ...getOrderLatencyDataByOrderStat(
                 item,
@@ -186,8 +188,10 @@ onMounted(() => {
             );
 
             const orderResolved = toRaw({
-              ...dealDataWithCache(curOrder, () =>
-                dealOrder(watcher, curOrder, false, price_precision),
+              ...dealDataWithCache(
+                curOrder,
+                () => dealOrder(watcher, curOrder, false, price_precision),
+                { price_precision },
               ),
               ...getOrderLatencyDataByOrderStat(
                 curOrder,
@@ -290,8 +294,10 @@ watch(historyDate, async (newDate) => {
           );
 
           return toRaw({
-            ...dealDataWithCache(item, () =>
-              dealOrder(window.watcher, item, true, price_precision),
+            ...dealDataWithCache(
+              item,
+              () => dealOrder(window.watcher, item, true, price_precision),
+              { price_precision },
             ),
             ...getOrderLatencyDataByOrderStat(
               item,
@@ -328,7 +334,10 @@ const cancelOrderTriggerBtnVisible = computed(() => {
 
   const tdName = currentGlobalKfLocation.value?.group as string;
   const extConfig = extConfigs.value.td[tdName];
-  if (extConfig && extConfig.orderTrigger[OrderTriggerTypeEnum.CancelOrder]) {
+  if (
+    extConfig &&
+    extConfig.orderTrigger[OrderTriggerConfigTypeEnum.CancelOrder]
+  ) {
     return true;
   } else {
     return false;
@@ -360,11 +369,6 @@ function handleCancelAllOrders(): void {
     return;
   }
 
-  const tdProcessId = getProcessIdByKfLocation(currentGlobalKfLocation.value);
-  if (processStatusData.value[tdProcessId] !== 'online') {
-    error(`${t('orderConfig.start')} ${tdProcessId} ${t('orderConfig.td')}`);
-    return;
-  }
   const name = getIdByKfLocation(currentGlobalKfLocation.value);
 
   confirmModal(
@@ -405,8 +409,8 @@ function handleInsertOrderTrigger(order: KungfuApi.OrderResolved): void {
       .then(() => {
         success();
       })
-      .catch(() => {
-        error();
+      .catch((err: Error) => {
+        error(err.message);
       });
   } else {
     confirmModal(

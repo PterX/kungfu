@@ -100,6 +100,7 @@ StrategyState = lf.enums.StrategyState
 OperatorState = lf.enums.OperatorState
 HistoryDataType = lf.enums.HistoryDataType
 OrderTriggerType = lf.enums.OrderTriggerType
+ResumePolicy = lf.enums.ResumePolicy
 
 BasketVolumeType = lf.enums.BasketVolumeType
 BasketType = lf.enums.BasketType

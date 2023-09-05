@@ -95,7 +95,8 @@ void LiveContext::subscribe_operator(const std::string &group, const std::string
 
   auto home = app_.get_home();
   auto operator_location = location::make_shared(mode::LIVE, category::OPERATOR, group, name, home->locator);
-  if (app_.has_location(operator_location->uid)) {
+  if (not app_.has_location(operator_location->uid)) {
+    SPDLOG_ERROR("subscribe operator no location");
     throw wingchun_error(fmt::format("invalid operator {}_{}", group, name));
   }
 
@@ -157,6 +158,12 @@ void LiveContext::update_operator_state(OperatorStateUpdate &state_update) {
 yijinjing::data::location_ptr LiveContext::get_location(uint32_t location_uid) {
   return app_.get_location(location_uid);
 }
+
+void LiveContext::set_resume_policy(longfist::enums::ResumePolicy resume_policy) {
+  broker_client_.set_resume_policy(resume_policy);
+}
+
+longfist::enums::ResumePolicy LiveContext::get_resume_policy() { return broker_client_.get_resume_policy_value(); }
 
 uint32_t LiveContext::get_home_uid() const { return app_.get_home_uid(); }
 

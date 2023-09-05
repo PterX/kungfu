@@ -347,12 +347,6 @@ void bind_enums(py::module &m) {
       .export_values()
       .def("__eq__", [](const OrderTriggerType &a, int b) { return static_cast<int>(a) == b; });
 
-  py::enum_<ParkedType>(m_enums, "ParkedType", py::arithmetic())
-      .value("Server", ParkedType::Server)
-      .value("Local", ParkedType::Local)
-      .export_values()
-      .def("__eq__", [](const ParkedType &a, int b) { return static_cast<int>(a) == b; });
-
   py::enum_<OrderTriggerFlag>(m_enums, "OrderTriggerFlag", py::arithmetic())
       .value("TriggerInsert", OrderTriggerFlag::TriggerInsert)
       .value("TriggerCancel", OrderTriggerFlag::TriggerCancel)
@@ -363,6 +357,14 @@ void bind_enums(py::module &m) {
       .value("Cancel", AlgoOrderActionFlag::Cancel)
       .value("Start", AlgoOrderActionFlag::Start)
       .value("Stop", AlgoOrderActionFlag::Stop)
+      .export_values()
+      .def("__eq__", [](const AlgoOrderActionFlag &a, int b) { return static_cast<int>(a) == b; });
+
+  py::enum_<ResumePolicy>(m_enums, "ResumePolicy", py::arithmetic())
+      .value("Now", ResumePolicy::Now)
+      .value("Intraday", ResumePolicy::Intraday)
+      .value("Stateless", ResumePolicy::Stateless)
+      .value("Continuous", ResumePolicy::Continuous)
       .export_values()
       .def("__eq__", [](const AlgoOrderActionFlag &a, int b) { return static_cast<int>(a) == b; });
 }

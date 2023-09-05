@@ -278,6 +278,7 @@ void master::on_request_write_to_band(const event_ptr &event) {
 
   // layout have to be journal, for locator::list_locations
   auto dirname = home->locator->layout_dir(target_location, enums::layout::JOURNAL);
+  reader_->join(target_location, location::PUBLIC, trigger_time, 1);
 
   // notify others band location, but it represents a simulation location, no register, only location
   try_add_location(now(), target_location);
@@ -352,12 +353,7 @@ void master::on_request_read_from_sync(const event_ptr &event) {
 
 void master::on_request_read_from_others(const event_ptr &event) {
   RequestReadFromOthers request{};
-  if (event->is_json()) {
-    const std::string msg = event->data_as_string();
-    request = RequestReadFromOthers(msg.c_str(), msg.length());
-  } else {
-    request = event->data<RequestReadFromOthers>();
-  }
+  request = event->data<RequestReadFromOthers>();
   auto source = event->source();
   if (has_writer(source)) {
     get_writer(source)->write(now(), request);

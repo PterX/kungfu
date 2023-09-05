@@ -19,8 +19,9 @@ using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::cache;
 
-namespace kungfu::wingchun::service {
 #define DEFAULT_AVG_VALID_VALUE 10000.0
+
+namespace kungfu::wingchun::service {
 
 Ledger::Ledger(locator_ptr locator, mode m, bool low_latency, const std::string &arguments)
     : apprentice(location::make_shared(m, category::SYSTEM, "service", "ledger", std::move(locator)), low_latency,
@@ -110,10 +111,12 @@ void Ledger::refresh_account_book(int64_t trigger_time, uint32_t account_uid) {
   book->update(trigger_time, bookkeeper_.get_accounting_method_type());
 }
 
-OrderStat &Ledger::get_order_stat(uint64_t order_id, const event_ptr &event) {
+OrderStat &Ledger::ensure_order_stat(uint64_t order_id, const event_ptr &event) {
   if (order_stats_.find(order_id) == order_stats_.end()) {
     OrderStat order_stat{};
     order_stat.order_id = order_id;
+    order_stat.md_time = event->trigger_time();
+    order_stat.input_time = event->gen_time();
     order_stats_.try_emplace(order_id, get_home_uid(), event->source(), event->gen_time(), order_stat);
   }
   return order_stats_.at(order_id).data;
@@ -121,16 +124,14 @@ OrderStat &Ledger::get_order_stat(uint64_t order_id, const event_ptr &event) {
 
 void Ledger::update_order_stat(const event_ptr &event, const OrderInput &data) {
   write_book(event->gen_time(), event->dest(), event->source(), data);
-  auto &stat = get_order_stat(data.order_id, event);
-  stat.md_time = event->trigger_time();
-  stat.input_time = event->gen_time();
+  ensure_order_stat(data.order_id, event);
 }
 
 void Ledger::update_order_stat(const event_ptr &event, const Order &data) {
   if (data.error_id == 0) {
     write_book(event->gen_time(), event->source(), event->dest(), data);
   }
-  auto &stat = get_order_stat(data.order_id, event);
+  auto &stat = ensure_order_stat(data.order_id, event);
   auto inserted = stat.insert_time != 0;
   auto acked = stat.ack_time != 0;
   if (not inserted) {
@@ -145,7 +146,7 @@ void Ledger::update_order_stat(const event_ptr &event, const Order &data) {
 
 void Ledger::update_order_stat(const event_ptr &event, const Trade &data) {
   write_book(event->gen_time(), event->source(), event->dest(), data);
-  auto &stat = get_order_stat(data.order_id, event);
+  auto &stat = ensure_order_stat(data.order_id, event);
   if (stat.trade_time < event->gen_time()) {
     stat.trade_time = event->gen_time();
     stat.total_price += data.price * double(data.volume);
@@ -244,7 +245,7 @@ void Ledger::rebuild_positions(int64_t trigger_time, uint32_t strategy_uid) {
     position.frozen_total = 0;
     position.frozen_yesterday = 0;
     position.open_volume = 0;
-    position.static_yesterday_volume = 0;
+    position.static_yesterday = 0;
     // should keep avg_open_price and position_cost_price
     // position.avg_open_price = 0;
     // position.position_cost_price = 0;
@@ -255,8 +256,8 @@ void Ledger::rebuild_positions(int64_t trigger_time, uint32_t strategy_uid) {
   tmp_book.apply_short_positions(rebuild_book);
   strategy_book->apply_long_positions(reset_positions);
   strategy_book->apply_short_positions(reset_positions);
-  tmp_books_.erase(strategy_uid);
   strategy_book->update(trigger_time, bookkeeper_.get_accounting_method_type());
+  tmp_books_.erase(strategy_uid);
 }
 
 void Ledger::write_book_reset(int64_t trigger_time, uint32_t book_uid) {

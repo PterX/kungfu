@@ -22,6 +22,13 @@
           >
             <FolderAddFilled class="icon" />
           </span>
+          <span
+            class="create"
+            :title="$t('editor.open_folder')"
+            @click="handleOpenFileLocation"
+          >
+            <SelectOutlined class="icon" />
+          </span>
         </span>
       </div>
       <div class="file-tree-body" v-if="currentCodePath">
@@ -48,8 +55,13 @@ import { watch, ref } from 'vue';
 import FileNode from './FileNode.vue';
 import { storeToRefs } from 'pinia';
 import { useCodeStore } from '../store/codeStore';
+import { shell } from '@electron/remote';
 import path from 'path';
-import { FileAddFilled, FolderAddFilled } from '@ant-design/icons-vue';
+import {
+  FileAddFilled,
+  FolderAddFilled,
+  SelectOutlined,
+} from '@ant-design/icons-vue';
 import {
   getTreeByFilePath,
   openFolder,
@@ -178,6 +190,10 @@ function bindFunctionalNode(curFileTree) {
     parentId: '',
   };
   return curFileTree;
+}
+
+function handleOpenFileLocation() {
+  return shell.showItemInFolder(props.filePath);
 }
 </script>
 

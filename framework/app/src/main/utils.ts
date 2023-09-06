@@ -7,6 +7,8 @@ import {
 } from './events';
 import { quitClean } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
 import { delayMilliSeconds } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
+
 import {
   KFC_DIR,
   KFC_PARENT_DIR,
@@ -23,11 +25,17 @@ export function openUrl(url: string): void {
   shell.openExternal(url);
 }
 
+const rootPackageJson = readRootPackageJsonSync();
+
 export function showKungfuInfo(): void {
   const version = packageJSON.version;
   const electronVersion = packageJSON.dependencies.electron;
+  const appVersion = rootPackageJson.version;
+  const appName = rootPackageJson.kungfuCraft?.productName || 'Kungfu';
   const info =
-    `Version: ${version}\n` +
+    `app_name: ${appName} \n` +
+    `app_version: ${appVersion} \n` +
+    `kungfu_base_version: ${version}\n` +
     `electron: ${electronVersion} \n` +
     `python: ${__python_version}\n` +
     `platform: ${os.platform()} \n` +

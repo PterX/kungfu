@@ -162,7 +162,6 @@ function resetLog() {
           :items="logList.list"
           :min-item-size="36"
           :simple-array="true"
-          :buffer="1000"
         >
           <template
             #default="{

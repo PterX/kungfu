@@ -35,6 +35,7 @@
     "@electron/remote": "^2.0.0",
     "@kungfu-trader/kungfu-js-api": "^2.5.8-alpha.0",
     "@types/mark.js": "^8.11.8",
+    "@vueuse/core": "^10.4.1",
     "ant-design-vue": "^3.2.9",
     "core-js": "^3.20.0",
     "echarts": "^5.3.3",

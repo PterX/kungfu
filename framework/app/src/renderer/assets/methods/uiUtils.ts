@@ -1417,21 +1417,19 @@ export const useScrollerTableSearch = <T extends object>(
     }
   };
 
+  const handleInputFocus = () => {
+    isInputFocused.value = true;
+  };
+
+  const handleInputBlur = () => {
+    isInputFocused.value = false;
+  };
+
   const registerKeydownEvent = () => {
     document.addEventListener('keydown', handleKeydown);
-    onBeforeUnmount(() => {
-      document.removeEventListener('keydown', handleKeydown);
-    });
   };
 
   const registerInputFocusEvent = () => {
-    const handleInputFocus = () => {
-      isInputFocused.value = true;
-    };
-    const handleInputBlur = () => {
-      isInputFocused.value = false;
-    };
-
     const register = (input: HTMLInputElement) => {
       input.addEventListener('focus', handleInputFocus);
       input.addEventListener('blur', handleInputBlur);
@@ -1439,12 +1437,14 @@ export const useScrollerTableSearch = <T extends object>(
 
     if (inputElement.value) {
       register(inputElement.value);
-      onBeforeUnmount(() => {
-        inputElement.value?.removeEventListener('focus', handleInputFocus);
-        inputElement.value?.removeEventListener('blur', handleInputBlur);
-      });
     }
   };
+
+  onBeforeUnmount(() => {
+    document.removeEventListener('keydown', handleKeydown);
+    inputElement.value?.removeEventListener('focus', handleInputFocus);
+    inputElement.value?.removeEventListener('blur', handleInputBlur);
+  });
 
   watch(inputElement, (newInput) => {
     if (newInput) {
@@ -1458,25 +1458,12 @@ export const useScrollerTableSearch = <T extends object>(
     registerInputFocusEvent();
   });
 
-  // const dealContext = (context: string) => {
-  //   return context
-  //     .replace(/&/g, '&amp;')
-  //     .replace(/</g, '&lt;')
-  //     .replace(/>/g, '&gt;')
-  //     .replace(/"/g, '&quot;')
-  //     .replace(/'/g, '&#39;')
-  //     .replace(/`/g, '&#96;')
-  //     .replace(/\//g, '&#x2F;');
-  // };
-
   const getMarkElementIdByIndex = (index: number): string => `kf-mark-${index}`;
 
   const buildResultFromContentForSearch = (
     contentForSearch: string,
     curIndex: number,
   ): string | null => {
-    // contentForSearch = dealContext(`${contentForSearch}`);
-
     if (searchKeywordReg.value?.test(contentForSearch)) {
       const id = getMarkElementIdByIndex(curIndex);
       const className =

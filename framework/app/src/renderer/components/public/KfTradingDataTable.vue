@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { sum } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { createReusableTemplate } from '@vueuse/core';
 import { Empty } from 'ant-design-vue';
 import { CaretUpOutlined, CaretDownOutlined } from '@ant-design/icons-vue';
 import { filter } from 'rxjs';
@@ -21,21 +22,27 @@ type TableDataItem =
 
 const props = withDefaults(
   defineProps<{
+    dynamic?: boolean;
     dataSource: TableDataItem[];
     columns: KfTradingDataTableHeaderConfig[];
     keyField?: string;
     resizable?: boolean;
     itemSize?: number;
+    minItemSize?: number;
+    sizeDependenciesFields?: string[];
     selectable?: boolean;
     selection?: KfTradingDataTableSelection; // 仅在 selectable 为 true 的时候生效
     customRowClass?: (row: TableDataItem) => string;
   }>(),
   {
+    dynamic: false,
     columns: () => [],
     dataSource: () => [],
     keyField: 'id',
     resizable: true,
     itemSize: 26,
+    minItemSize: 26,
+    sizeDependenciesFields: () => [],
     selectable: false,
     selection: () => ({}),
     customRowClass: () => '',
@@ -66,11 +73,12 @@ defineEmits<{
 }>();
 
 const app = getCurrentInstance();
+const TradingDataTableItem = createReusableTemplate<{ item: TableDataItem }>();
 const scroller = ref();
 const simpleImage = Empty.PRESENTED_IMAGE_SIMPLE;
 const kfScrollerTableBodyRef = ref();
 const kfScrollerTableWidth = ref(0);
-const dataSouceMap = ref<Record<string, TableDataItem>>({});
+const dataSourceMap = ref<Record<string, TableDataItem>>({});
 let allRowKeyFieldTrue: Record<string, boolean> = {};
 let allRowKeyFieldFalse: Record<string, boolean> = {};
 const isSelectAll = ref(false);
@@ -106,11 +114,12 @@ const headerWidth = computed(() => {
 });
 
 const tableCellHeight = computed(() => `${props.itemSize}px`);
+const tableCellMinHeight = computed(() => `${props.minItemSize}px`);
 
 watch(
   () => props.dataSource,
   (newDataSource) => {
-    dataSouceMap.value = {};
+    dataSourceMap.value = {};
     allRowKeyFieldTrue = {};
     allRowKeyFieldFalse = {};
 
@@ -119,7 +128,7 @@ watch(
 
     newDataSource.forEach((item) => {
       const key = `${item[props.keyField]}`;
-      dataSouceMap.value[key] = item;
+      dataSourceMap.value[key] = item;
       allRowKeyFieldTrue[key] = true;
       allRowKeyFieldFalse[key] = false;
 
@@ -137,7 +146,7 @@ watch(
 
 onMounted(() => {
   if (kfScrollerTableBodyRef.value) {
-    kfScrollerTableWidth.value = kfScrollerTableBodyRef.value.clientWidth;
+    kfScrollerTableWidth.value = kfScrollerTableBodyRef.value.clientWidth - 8;
   }
 
   if (app?.proxy && props.resizable) {
@@ -145,7 +154,8 @@ onMounted(() => {
       .pipe(filter((e: KfEvent.KfBusEvent) => e.tag === 'resize'))
       .subscribe(() => {
         if (kfScrollerTableBodyRef.value) {
-          kfScrollerTableWidth.value = kfScrollerTableBodyRef.value.clientWidth;
+          kfScrollerTableWidth.value =
+            kfScrollerTableBodyRef.value.clientWidth - 8;
         }
       });
 
@@ -154,6 +164,9 @@ onMounted(() => {
     });
   }
 });
+
+const getSizeDependencies = (item: TableDataItem) =>
+  props.sizeDependenciesFields.map((field) => item[field]);
 
 function getHeaderWidth(column: KfTradingDataTableHeaderConfig): string {
   const headerWidthByCalc = headerWidth.value[column.dataIndex];
@@ -275,7 +288,7 @@ function handleSelectRow(isChecked: boolean, item: TableDataItem) {
   selectedRowKeyFieldValues.value[key] = isChecked;
 
   if (isChecked) {
-    selectedRowsMap.value[key] = toRaw(dataSouceMap.value[key]);
+    selectedRowsMap.value[key] = toRaw(dataSourceMap.value[key]);
   } else {
     delete selectedRowsMap.value[key];
   }
@@ -286,7 +299,7 @@ function handleSelectAll(isChecked: boolean) {
 
   const allSelected = Object.assign({}, allRowKeyFieldTrue);
   const allUnSelected = Object.assign({}, allRowKeyFieldFalse);
-  const allRowsMap = Object.assign({}, toRaw(dataSouceMap.value));
+  const allRowsMap = Object.assign({}, toRaw(dataSourceMap.value));
 
   selectedRowKeyFieldValues.value = isChecked ? allSelected : allUnSelected;
   selectedRowsMap.value = isChecked ? allRowsMap : {};
@@ -372,64 +385,115 @@ defineExpose({
       </li>
     </ul>
     <div ref="kfScrollerTableBodyRef" class="kf-table-body">
-      <RecycleScroller
-        v-if="dataSourceResolved && dataSourceResolved.length"
-        class="kf-table-scroller"
-        ref="scroller"
-        :items="dataSourceResolved"
-        :item-size="Number(itemSize)"
-        :key-field="keyField"
-        :buffer="100"
-        @scroll="handleScroll($event)"
-      >
-        <template #default="{ item }: { item: TableDataItem }">
-          <ul
-            :class="['kf-table-row', customRowClass?.(item) || '']"
-            @dblclick="handleDbClickRow($event, item)"
-            @mousedown="handleMousedown($event, item)"
-            @click.stop="handleClickRow($event, item)"
+      <!-- reusable template for trading data item -->
+      <TradingDataTableItem.define v-slot="{ item }">
+        <ul
+          :class="['kf-table-row', customRowClass?.(item) || '']"
+          :style="
+            dynamic
+              ? {
+                  minHeight: tableCellMinHeight,
+                  lineHeight: '26px',
+                }
+              : {
+                  height: tableCellHeight,
+                  lineHeight: tableCellHeight,
+                }
+          "
+          @dblclick="handleDbClickRow($event, item)"
+          @mousedown="handleMousedown($event, item)"
+          @click.stop="handleClickRow($event, item)"
+        >
+          <li
+            v-if="selectable"
+            class="kf-table-cell kf-table-select-cell"
+            :style="{
+              width: '36px',
+              flexBasis: '36px',
+              height: '100%',
+            }"
           >
-            <li
-              v-if="selectable"
-              class="kf-table-cell kf-table-select-cell"
-              :style="{
-                width: '36px',
-                flexBasis: '36px',
-                height: tableCellHeight,
-                lineHeight: tableCellHeight,
-              }"
+            <a-checkbox
+              v-model:checked="selectedRowKeyFieldValues[item[keyField]]"
+              :disabled="selection[item[keyField]]?.disabled ?? false"
+              @change="handleSelectRow(!!$event.target.checked, item)"
+            ></a-checkbox>
+          </li>
+          <li
+            v-for="column in columns"
+            :key="`${column.dataIndex}_${item[keyField as keyof TableDataItem]}`"
+            :class="['kf-table-cell', column.type]"
+            :style="{
+              'max-width': getHeaderWidth(column),
+              height: '100%',
+              'text-overflow': column.textOverflow ? 'ellipsis' : 'clip',
+              'white-space': column.wrap ? 'normal' : 'nowrap',
+              overflow: column.wrap ? 'unset' : 'hidden',
+              'text-align': column.align || 'left',
+            }"
+            :title="item[column.dataIndex]"
+            @click.stop="handleClickCell($event, item, column)"
+          >
+            <slot :item="item" :column="column">
+              <span>
+                {{ item[column.dataIndex as keyof TableDataItem] }}
+              </span>
+            </slot>
+          </li>
+        </ul>
+      </TradingDataTableItem.define>
+
+      <template v-if="dataSourceResolved && dataSourceResolved.length">
+        <DynamicScroller
+          v-if="dynamic"
+          ref="scroller"
+          class="kf-table-scroller"
+          :items="dataSourceResolved"
+          :min-item-size="Number(minItemSize)"
+          :key-field="keyField"
+          :buffer="100"
+          @scroll="handleScroll($event)"
+        >
+          <template
+            #default="{
+              item,
+              index,
+              active,
+            }: {
+              item: TableDataItem,
+              index: number,
+              active: boolean,
+            }"
+          >
+            <DynamicScrollerItem
+              :item="item"
+              :active="active"
+              :size-dependencies="getSizeDependencies(item)"
+              :data-index="index"
             >
-              <a-checkbox
-                v-model:checked="selectedRowKeyFieldValues[item[keyField]]"
-                :disabled="selection[item[keyField]]?.disabled ?? false"
-                @change="handleSelectRow(!!$event.target.checked, item)"
-              ></a-checkbox>
-            </li>
-            <li
-              v-for="column in columns"
-              :key="`${column.dataIndex}_${item[keyField as keyof TableDataItem]}`"
-              :class="['kf-table-cell', column.type]"
-              :style="{
-                'max-width': getHeaderWidth(column),
-                height: tableCellHeight,
-                lineHeight: tableCellHeight,
-                'text-overflow': column.overflow ? 'ellipsis' : 'clip',
-                'white-space': column.wrap ? 'normal' : 'nowrap',
-                overflow: 'hidden',
-                'text-align': column.align || 'left',
-              }"
-              :title="item[column.dataIndex]"
-              @click.stop="handleClickCell($event, item, column)"
-            >
-              <slot :item="item" :column="column">
-                <span>
-                  {{ item[column.dataIndex as keyof TableDataItem] }}
-                </span>
-              </slot>
-            </li>
-          </ul>
-        </template>
-      </RecycleScroller>
+              <TradingDataTableItem.reuse
+                :item="item"
+              ></TradingDataTableItem.reuse>
+            </DynamicScrollerItem>
+          </template>
+        </DynamicScroller>
+        <RecycleScroller
+          v-else
+          ref="scroller"
+          class="kf-table-scroller"
+          :items="dataSourceResolved"
+          :item-size="Number(itemSize)"
+          :key-field="keyField"
+          :buffer="100"
+          @scroll="handleScroll($event)"
+        >
+          <template #default="{ item }: { item: TableDataItem }">
+            <TradingDataTableItem.reuse
+              :item="item"
+            ></TradingDataTableItem.reuse>
+          </template>
+        </RecycleScroller>
+      </template>
       <a-empty v-else :image="simpleImage"></a-empty>
     </div>
   </div>
@@ -466,9 +530,8 @@ defineExpose({
     margin-bottom: 4px;
 
     .kf-table-cell {
-      height: 36px;
-      line-height: 36px;
       display: flex;
+      align-items: center;
       user-select: none;
       position: relative;
 

@@ -78,6 +78,8 @@
         :data-source="currentFrameList"
         :columns="frameColumns"
         key-field="id"
+        :dynamic="true"
+        :size-dependencies-fields="['dataAsString']"
         :resizable="false"
         :custom-row-class="dealRowClassName"
         @click-cell="handleOpenFrameDetail"
@@ -98,7 +100,7 @@
             <a-tag
               :style="{
                 color: '#ffffffd9',
-                backgroundColor: dealTagBackgroudColor(
+                backgroundColor: dealTagBackgroundColor(
                   item.msgTypeResolved.color || 'rgb(158, 158, 158)',
                 ),
               }"
@@ -622,7 +624,7 @@ const onFiltersApply = async (
   initLoad();
 };
 
-const dealTagBackgroudColor = (colorStr: string) => {
+const dealTagBackgroundColor = (colorStr: string) => {
   if (!colorStr || colorStr === 'default') return '';
   let color = colorMap[colorStr];
   return color;

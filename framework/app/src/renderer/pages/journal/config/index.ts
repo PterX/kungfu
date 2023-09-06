@@ -68,7 +68,7 @@ export const getFrameColumns = (): KfTradingDataTableHeaderConfig[] => [
     type: 'string',
     name: t('journalConfig.gen_time'),
     dataIndex: 'genTimeResolved',
-    width: 160,
+    width: 120,
     textOverflow: 'ellipsis',
     sorter: buildSorter('genTime'),
   },
@@ -78,7 +78,7 @@ export const getFrameColumns = (): KfTradingDataTableHeaderConfig[] => [
     dataIndex: 'sourceToDest',
     textOverflow: 'ellipsis',
     sorter: buildStrSorter('sourceToDest'),
-    width: 280,
+    width: 216,
   },
   {
     type: 'string',
@@ -88,7 +88,7 @@ export const getFrameColumns = (): KfTradingDataTableHeaderConfig[] => [
     textOverflow: 'ellipsis',
     sorter: buildStrSorter('frameId'),
 
-    width: 70,
+    width: 50,
   },
   {
     type: 'string',
@@ -97,13 +97,14 @@ export const getFrameColumns = (): KfTradingDataTableHeaderConfig[] => [
     align: 'right',
     textOverflow: 'ellipsis',
     sorter: buildStrSorter('pageId'),
-    width: 50,
+    width: 40,
   },
   {
     type: 'string',
     name: t('journalConfig.msg_type'),
     dataIndex: 'msgTypeName',
-    width: 190,
+    align: 'center',
+    width: 180,
   },
   {
     type: 'string',

@@ -157,7 +157,7 @@ export const buildProcessReplayPath = (
   },
   processId: string,
 ) => {
-  const a = path.join(
+  return path.join(
     KF_RUNTIME_DIR,
     'log',
     `${location.category}`,
@@ -166,7 +166,6 @@ export const buildProcessReplayPath = (
     'replay',
     `${processId}.log`,
   );
-  return a;
 };
 
 //================== others end ===================================

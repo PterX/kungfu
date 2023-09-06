@@ -1,6 +1,13 @@
 <script setup lang="ts">
-import { nextTick, onMounted, ref, watchEffect, computed } from 'vue';
-import { storeToRefs } from 'pinia';
+import {
+  nextTick,
+  onMounted,
+  ref,
+  watchEffect,
+  computed,
+  onBeforeUnmount,
+} from 'vue';
+// import { storeToRefs } from 'pinia';
 import {
   UpOutlined,
   DownOutlined,
@@ -12,11 +19,8 @@ import {
   removeLoadingMask,
   setHtmlTitle,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
-import {
-  useProcessStatusDetailData,
-  useRemoveReplayProcess,
-} from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
-import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
+import { useRemoveReplayProcess } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
+// import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
 import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
 import { LogLevelType } from '@kungfu-trader/kungfu-app/src/typings/enums';
@@ -29,10 +33,10 @@ import {
   useLogSearch,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/logUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+import { listProcessStatus } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
 
-const { replaySetting } = storeToRefs(useGlobalStore());
+// const { replaySetting } = storeToRefs(useGlobalStore());
 
-const { processStatusData } = useProcessStatusDetailData();
 const { handleRemoveReplayProcess } = useRemoveReplayProcess();
 
 const currentWindow = BrowserWindow.getFocusedWindow();
@@ -48,7 +52,6 @@ const props = withDefaults(
     replayProcessParams?: {
       category: string;
       group: string;
-      id: string;
       replayConfig: KungfuApi.ReplayConfig;
     };
   }>(),
@@ -58,12 +61,13 @@ const props = withDefaults(
 );
 
 const params = props.params;
-
+const isLoading = ref(false);
 const LOG_PATH = params.logPath || '';
-const replayList = ['stategy', 'operator'];
+const replayList = ['strategy', 'operator'];
 const isReplayAble = computed(() => {
   return replayList.includes(extractWordAfterLog(LOG_PATH));
 });
+
 setHtmlTitle(LOG_PATH);
 
 const boardSize = ref<{ width: number; height: number }>({
@@ -86,7 +90,6 @@ const {
   logList,
   scrollToBottomChecked,
   scrollerTableRef,
-  isLoading,
   scrollToBottom,
   startTailLog,
   clearLogState,
@@ -103,16 +106,30 @@ const {
 } = useLogSearch(logList, scrollerTableRef, boardSize);
 
 onMounted(() => {
-  console.log('onMounted', props.params);
+  const replayPocessCheckTimer = setInterval(async () => {
+    const { processStatus } = await listProcessStatus();
+    if (processStatus) {
+      if (processStatus[props.params.processId] === 'online') {
+        isLoading.value = true;
+      } else {
+        isLoading.value = false;
+      }
+    }
+    console.log(
+      'listProcessStatus',
+      processStatus ? processStatus[props.params.processId] : null,
+      props.params.processId,
+    );
+  }, 1000);
   if (props.type && props.type === 'replay' && !props.isJournal) {
     if (currentWindow) {
-      currentWindow.on('close', (event) => {
+      currentWindow.on('close', async (event) => {
         event.preventDefault();
-
+        const { processStatus } = await listProcessStatus();
         console.log('Attempting to close the window...');
         handleRemoveReplayProcess(
           window.watcher,
-          processStatusData.value,
+          processStatus,
           props.params.processId,
         ).finally(() => {
           currentWindow.destroy();
@@ -120,6 +137,9 @@ onMounted(() => {
       });
     }
   }
+  onBeforeUnmount(() => {
+    clearInterval(replayPocessCheckTimer);
+  });
 
   removeLoadingMask();
   resetLog();
@@ -168,7 +188,7 @@ function resetLog() {
   clearLogSearchState();
   startTailLog();
 }
-function reLoadLog() {
+async function reLoadLog() {
   if (!isReplayAble.value) {
     messagePrompt().error(
       t('replay.only_operator_or_strategy_can_be_replayed'),
@@ -177,6 +197,7 @@ function reLoadLog() {
   }
 
   console.log('reLoadLog', props.params);
+
   if (currentWindow) {
     const pawin = currentWindow.getParentWindow();
     if (pawin) {
@@ -198,7 +219,7 @@ function reLoadLog() {
 }
 
 watchEffect(() => {
-  console.log('replaySetting', replaySetting, props.params);
+  console.log('replaySetting', props.params);
 });
 </script>
 <template>
@@ -216,35 +237,20 @@ watchEffect(() => {
               <div class="replay_title">
                 {{
                   `${$t('replay.log_level')}: ${
-                    LogLevelType[
-                      replaySetting.log_level
-                        ? replaySetting.log_level.replace('%20', ' ')
-                        : props.params.logLevel.replace('%20', ' ')
-                    ] || 'INFO'
+                    LogLevelType[props.params.logLevel.replace('%20', ' ')] ||
+                    'INFO'
                   }`
                 }}
               </div>
             </KfDashboardItem>
             <KfDashboardItem v-if="props.type && props.type === 'replay'">
               <div class="replay_title">
-                {{
-                  `${$t('replay.begin_time')}: ${
-                    replaySetting.begin_time
-                      ? replaySetting.begin_time
-                      : props.params.beginTime
-                  }`
-                }}
+                {{ `${$t('replay.begin_time')}: ${props.params.beginTime}` }}
               </div>
             </KfDashboardItem>
             <KfDashboardItem v-if="props.type && props.type === 'replay'">
               <div class="replay_title">
-                {{
-                  `${$t('replay.end_time')}: ${
-                    replaySetting.end_time
-                      ? replaySetting.end_time
-                      : props.params.endTime
-                  }`
-                }}
+                {{ `${$t('replay.end_time')}: ${props.params.endTime}` }}
               </div>
             </KfDashboardItem>
           </template>

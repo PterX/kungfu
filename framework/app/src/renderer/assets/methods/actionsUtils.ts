@@ -8,7 +8,7 @@ import {
   hashInstrumentUKey,
   kfRequestMarketData,
   sessionStore,
-  kf,
+  getNanoDateString,
 } from '@kungfu-trader/kungfu-js-api/kungfu';
 
 import { setKfConfig } from '@kungfu-trader/kungfu-js-api/kungfu/store';
@@ -483,7 +483,7 @@ export const useRemoveReplayProcess = (): {
         icon: createVNode(ExclamationCircleOutlined),
         onOk() {
           return deleteProcess(processId)
-            .then((res) => {
+            .then(() => {
               resolve();
             })
             .catch((err) => {
@@ -2080,7 +2080,6 @@ export const useReplay = (): {
     | {
         category: string;
         group: string;
-        id: string;
         replayConfig: KungfuApi.ReplayConfig;
       }
     | undefined
@@ -2113,7 +2112,6 @@ export const useReplay = (): {
     | {
         category: string;
         group: string;
-        id: string;
         replayConfig: KungfuApi.ReplayConfig;
       }
     | undefined
@@ -2159,52 +2157,42 @@ export const useReplay = (): {
       ? CurSession
       : null;
     if (currentSession) {
-      const beginTimeStr = kf
-        .formatTime(currentSession.begin_time, '%m/%d %H:%M:%S.%N')
-        .slice(6);
+      const beginTimeStr = getNanoDateString(currentSession.begin_time);
       const endTimeStr = currentSession.end_time
-        ? kf.formatTime(currentSession.end_time, '%m/%d %H:%M:%S.%N').slice(6)
+        ? getNanoDateString(currentSession.end_time)
         : 'now';
       sessionOptions.value.push({
         label: `${beginTimeStr}--${endTimeStr}`,
         value: `${beginTimeStr}--${endTimeStr}`,
       });
     } else {
-      sessions.forEach((item) => {
+      for (let i = sessions.length - 1; i >= 0; i--) {
+        const item = sessions[i];
         if (item.location_uid === record.location_uid) {
-          currentSession = item;
-          const beginTimeStr = kf
-            .formatTime(item.begin_time, '%m/%d %H:%M:%S.%N')
-            .slice(6);
+          currentSession ||= item;
+          const beginTimeStr = getNanoDateString(item.begin_time);
           const endTimeStr = item.end_time
-            ? kf.formatTime(item.end_time, '%m/%d %H:%M:%S.%N').slice(6)
+            ? getNanoDateString(item.end_time)
             : 'now';
           sessionOptions.value.push({
             label: `${beginTimeStr}--${endTimeStr}`,
             value: `${beginTimeStr}--${endTimeStr}`,
           });
         }
-      });
+      }
     }
 
     if (!currentSession) {
       error(t('replay.process_has_not_been_started'));
       return;
     }
-    const startTime = kf
-      .formatTime(currentSession.begin_time, '%m/%d %H:%M:%S.%N')
-      .slice(6);
+    const startTime = getNanoDateString(currentSession.begin_time);
     const endTime =
       replaySetting.value.end_time && replaySetting.value.end_time > startTime
         ? replaySetting.value.end_time
         : currentSession.end_time
-        ? kf.formatTime(currentSession.end_time, '%m/%d %H:%M:%S.%N').slice(6)
-        : kf
-            .formatTime(
-              BigInt(new Date().getTime()) * 1000000n,
-              '%m/%d %H:%M:%S.%N',
-            )
-            .slice(6);
+        ? getNanoDateString(currentSession.end_time)
+        : getNanoDateString(BigInt(new Date().getTime()) * 1000000n);
     const logLevel = replaySetting.value.log_level || '-l info';
     const params = record.value ? JSON.parse(record.value) : {};
     const date = getYearMonthDay();
@@ -2239,13 +2227,20 @@ export const useReplay = (): {
       return;
     }
     const startTime = data.beginTime;
-    const endTime = data.endTime || '';
+    const endTime =
+      data.endTime ||
+      getNanoDateString(BigInt(new Date().getTime()) * 1000000n);
     useGlobalStore().setReplaySetting({
       begin_time: startTime,
       end_time: endTime,
       log_level: data.logLevel,
     });
     setReplayModalVisible.value = false;
+    const date = getYearMonthDay();
+    const beginTime = `${date} ${startTime}`;
+    const endTimeStr = `${date} ${endTime}`;
+    replayConfig.value.begin_time = beginTime;
+    replayConfig.value.end_time = endTimeStr;
     if (isJournal) {
       const { startProcess, ProcessConfigs } =
         await handleOpenJournalReplayView(
@@ -2259,13 +2254,7 @@ export const useReplay = (): {
       await handleOpenReplayView(
         location,
         startTime,
-        endTime ||
-          kf
-            .formatTime(
-              BigInt(new Date().getTime()) * 1000000n,
-              '%m/%d %H:%M:%S.%N',
-            )
-            .slice(6),
+        endTime,
         data.logLevel,
         replayConfig.value,
       );

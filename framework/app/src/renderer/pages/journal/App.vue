@@ -101,13 +101,16 @@
             ref="eventDashBoard"
           />
           <Replay
-            v-if="currentSession && replayPramas.logPath"
-            v-show="isCurrentMenuItem('replay')"
+            v-if="
+              currentSession &&
+              replayPramas.processId &&
+              isCurrentMenuItem('replay')
+            "
             :params="replayPramas"
             :is-journal="true"
             :replayProcessParams="replayProcessParams"
             :type="'replay'"
-            :key="replayPramas.logPath"
+            :key="replayPramas.processId"
           />
         </div>
       </div>
@@ -120,6 +123,7 @@
     :session-options="sessionOptions"
     :begin-time="replayConfig.begin_time.split(' ')[1]"
     :end-time="replayConfig.end_time ? replayConfig.end_time.split(' ')[1] : ''"
+    :now="getNanoDateString(BigInt(new Date().getTime()) * 1000000n)"
     :log-level="replayConfig.log_level"
     @close="setReplayModalVisible = false"
     @confirm="(event) => handleReplayModal(event, currentLocationConfig, true)"
@@ -144,9 +148,10 @@ import {
   removeLoadingMask,
   useDashboardBodySize,
   useTableSearchKeyword,
+  setHtmlTitle,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import { getYearMonthDay } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
-import { kf } from '@kungfu-trader/kungfu-js-api/kungfu';
+import { getNanoDateString } from '@kungfu-trader/kungfu-js-api/kungfu';
 
 import { dealCategory } from './utils';
 import { UnorderedListOutlined, ReloadOutlined } from '@ant-design/icons-vue';
@@ -192,8 +197,13 @@ const { handleBodySizeChange, dashboardBodyHeight } = useDashboardBodySize();
 const columns = getSessionColumns();
 const operator = ref<KungfuApi.KfConfig[]>([]);
 const strategy = ref<KungfuApi.KfConfig[]>([]);
+const replayList = ['strategy', 'operator'];
 const replayPramas = computed(() => {
-  if (!currentSession.value) return {};
+  if (
+    !currentSession.value ||
+    !replayList.includes(currentSession.value.category)
+  )
+    return {};
   const { category, group, name } = currentSession.value;
   const dateStr = getYearMonthDay();
   const logPath = buildProcessReplayPath(
@@ -204,25 +214,22 @@ const replayPramas = computed(() => {
     },
     `${currentSession.value.name}_${dateStr}`,
   );
+  const begin_time =
+    replayConfig.value.begin_time.split(' ')[1] ||
+    getNanoDateString(currentSession.value.begin_time);
+  const end_time =
+    replayConfig.value.end_time.split(' ')[1] ||
+    (currentSession.value.end_time
+      ? getNanoDateString(currentSession.value.end_time)
+      : getNanoDateString(BigInt(new Date().getTime()) * 1000000n));
   return {
-    beginTime:
-      replayConfig.value.begin_time.split(' ')[1] ||
-      kf
-        .formatTime(currentSession.value.begin_time, '%m/%d %H:%M:%S.%N')
-        .slice(6),
-    endTime:
-      replayConfig.value.end_time.split(' ')[1] || currentSession.value.end_time
-        ? kf
-            .formatTime(currentSession.value.end_time, '%m/%d %H:%M:%S.%N')
-            .slice(6)
-        : kf
-            .formatTime(
-              BigInt(new Date().getTime()) * 1000000n,
-              '%m/%d %H:%M:%S.%N',
-            )
-            .slice(6),
+    beginTime: begin_time,
+
+    endTime: end_time,
+
     logPath: logPath,
     logLevel: replayConfig.value.log_level || '-l info',
+    processId: `${category}_replay_${begin_time}_${end_time}`,
   };
 });
 
@@ -248,8 +255,14 @@ const menus = [
     icon: ReloadOutlined,
   },
 ];
-const isCurrentMenuItem = (key: 'event' | 'visual' | 'replay') =>
-  currentMenuList.value.includes(key);
+const isCurrentMenuItem = (key: 'event' | 'visual' | 'replay') => {
+  if (currentMenuList.value.includes(key) && key === 'replay') {
+    setHtmlTitle(replayPramas.value.logPath);
+    return replayList.includes(extractWordAfterLog(replayPramas.value.logPath));
+  } else {
+    return currentMenuList.value.includes(key);
+  }
+};
 
 const exportFileName = computed(() => {
   if (currentSession.value) {
@@ -268,6 +281,14 @@ const customRow = (record: KungfuApi.SessionResolved) => {
   return {
     onClick: () => {
       setCurrentSession(record);
+      replayConfig.value = {
+        group: 'default',
+        begin_time: '',
+        end_time: '',
+        log_level: '',
+        session_name: '',
+        path: '',
+      };
     },
   };
 };
@@ -369,6 +390,11 @@ const dealRowClassName = (row) => {
     ? 'current-global-kfLocation'
     : '';
 };
+
+function extractWordAfterLog(inputString) {
+  const match = inputString.match(/\/log\/([^\/]+)/);
+  return match ? match[1] : null;
+}
 </script>
 
 <style lang="less">

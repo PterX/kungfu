@@ -1,5 +1,7 @@
 <script lang="ts" setup>
 import { onMounted, ref } from 'vue';
+import { getNanoDateString } from '@kungfu-trader/kungfu-js-api/kungfu';
+
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 
@@ -36,11 +38,25 @@ const emit = defineEmits<{
   (e: 'close'): void;
 }>();
 
-onMounted(() => {
-  formState.value.endTime = formatTimeToNanoseconds(formState.value.endTime, [
+const dealEndTime = () => {
+  let endTime = '';
+  for (let i of props.sessionOptions) {
+    if (i.value.split('--')[0] === formState.value.beginTime) {
+      endTime = i.value.split('--')[1];
+    }
+  }
+  if (endTime === 'now') {
+    endTime = getNanoDateString(BigInt(new Date().getTime()) * 1000000n);
+  }
+  const a = formatTimeToNanoseconds(formState.value.endTime, [
     props.beginTime,
-    props.endTime,
+    endTime,
   ]);
+  formState.value.endTime = a;
+  console.log('endTime', a);
+};
+onMounted(() => {
+  dealEndTime();
 });
 
 const logLevelOptions = [
@@ -61,9 +77,10 @@ const formState = ref({
 });
 const handleSelectSessionInfo = (value: string) => {
   formState.value.beginTime = value.split('--')[0];
-  if (value !== 'now')
-    formState.value.endTime =
-      value.split('--')[1] !== 'now' ? value.split('--')[1] : props.endTime;
+  formState.value.endTime =
+    value.split('--')[1] !== 'now'
+      ? value.split('--')[1]
+      : getNanoDateString(BigInt(new Date().getTime()) * 1000000n);
 };
 
 const formatTimeToNanoseconds = (
@@ -74,7 +91,7 @@ const formatTimeToNanoseconds = (
     const regex = /^([0-9]{1,2}):([0-9]{1,2}):([0-9]{1,2})(?:\.([0-9]{1,9}))?$/;
     const match = str.match(regex);
     if (!match) {
-      return null;
+      return boundaries[1];
     }
     const [, hoursStr, minutesStr, secondsStr, nanosecondsStr] = match;
     const hours = hoursStr.padStart(2, '0');
@@ -88,7 +105,7 @@ const formatTimeToNanoseconds = (
   const [lowerBound, upperBound] = boundaries.map(format);
 
   if (!formattedTime || !lowerBound || !upperBound) {
-    return 'Invalid time format';
+    return getNanoDateString(BigInt(new Date().getTime()) * 1000000n);
   }
 
   if (formattedTime < lowerBound || formattedTime > upperBound) {
@@ -96,15 +113,6 @@ const formatTimeToNanoseconds = (
   }
 
   return formattedTime;
-};
-
-const dealEndTime = () => {
-  const a = formatTimeToNanoseconds(formState.value.endTime, [
-    props.beginTime,
-    props.endTime,
-  ]);
-  formState.value.endTime = a;
-  console.log('endTime', a);
 };
 
 const handleOk = () => {

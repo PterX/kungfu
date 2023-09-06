@@ -702,7 +702,7 @@ export default {
     empty_export_data: 'No information to export',
 
     replay: 'Replay',
-    please_select_stategy_or_operator: 'Please select stategy or operator',
+    please_select_strategy_or_operator: 'Please select strategy or operator',
   },
 
   tradeConfig: {

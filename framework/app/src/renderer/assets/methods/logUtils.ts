@@ -82,7 +82,7 @@ export const useLogInit = (
   startTailLog: () => void;
   clearLogState: () => void;
 } => {
-  const LOADING_TIMEOUT = 2000;
+  // const LOADING_TIMEOUT = 2000;
   let LogTail: Tail | null = null;
   const logList = reactive<KungfuApi.KfFixedList<KungfuApi.KfLogData>>(
     new KfFixedList(nLines),
@@ -90,6 +90,7 @@ export const useLogInit = (
   const scrollerTableRef = ref();
   const scrollToBottomChecked = ref<boolean>(false);
   const isLoading = ref<boolean>(false);
+
   ensureFileSync(logPath);
 
   const scrollToBottom = () => {
@@ -99,6 +100,8 @@ export const useLogInit = (
   };
 
   const startTailLog = () => {
+    let lastLineReceivedAt = Date.now();
+
     isLoading.value = true;
     LogTail && LogTail.unwatch();
     LogTail = new Tail(logPath, {
@@ -107,22 +110,15 @@ export const useLogInit = (
       useWatchFile: os.platform() === 'win32',
     });
 
-    const timeoutId = setTimeout(() => {
-      isLoading.value = false;
-    }, LOADING_TIMEOUT);
-
     let markId: number = +new Date();
     LogTail.on('line', (line: string) => {
-      clearTimeout(timeoutId);
+      lastLineReceivedAt = Date.now();
       logList.insert({
         id: markId++,
         message: dealLogMessage(preDealLogMessage(line)),
         messageOrigin: line,
         messageForSearch: '',
       });
-      if (isLoading.value) {
-        isLoading.value = false;
-      }
       scrollToBottom();
     });
 
@@ -131,6 +127,15 @@ export const useLogInit = (
     });
 
     LogTail.watch();
+    const timeoutId = setInterval(checkLoadingStatus, 1000); // 每1秒检查一次
+
+    function checkLoadingStatus() {
+      if (Date.now() - lastLineReceivedAt > 1000) {
+        // 1秒没有接收到新行
+        isLoading.value = false;
+        clearInterval(timeoutId);
+      }
+    }
   };
 
   const clearLogState = () => {

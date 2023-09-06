@@ -708,7 +708,7 @@ export default {
 
     replay: '回放',
 
-    please_select_stategy_or_operator: '请选择策略或算子',
+    please_select_strategy_or_operator: '请选择策略或算子',
   },
 
   tradeConfig: {

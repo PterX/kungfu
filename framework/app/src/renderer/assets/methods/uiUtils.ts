@@ -545,8 +545,6 @@ export const getInstrumentTypeColor = (
   return getInstrumentTypeData(type).color || 'default';
 };
 
-// const childWindows: Electron.BrowserWindow[] = [];
-// let minimizedWindowsCount = 0;
 /**
  * 新建窗口
  * @param  {string} htmlPath
@@ -582,9 +580,10 @@ export const openNewBrowserWindow = (
       ...windowConfig,
     });
 
-    // let offsetX, offsetY;
+    //判断是否是macOS系统
+    const isMacOS = process.platform === 'darwin';
 
-    // const offset = 300; // 偏移量
+    let offsetX, offsetY;
 
     win.on('ready-to-show', function () {
       if (isParentFullScreen) {
@@ -596,22 +595,7 @@ export const openNewBrowserWindow = (
       win.focus();
     });
 
-    // childWindows.push(win);
-
-    currentWindow.on('closed', () => {
-      // childWindows.forEach((childWin) => {
-      //   childWin.close();
-      // });
-    });
-
     win.on('closed', () => {
-      // if (minimizedWindowsCount > 0) {
-      //   minimizedWindowsCount--;
-      // }
-      // const index = childWindows.indexOf(win);
-      // if (index !== -1) {
-      //   childWindows.splice(index, 1);
-      // }
       resolve(win);
     });
 
@@ -624,49 +608,53 @@ export const openNewBrowserWindow = (
 
     ipcRenderer.on('startReplay', async (_event, args) => {
       const { replayProcessParams } = args;
-      const { category, group, id, replayConfig } = replayProcessParams;
-      await startReplay(category, group, id, replayConfig);
+      const { category, group, replayConfig } = replayProcessParams;
+      await startReplay(category, group, replayConfig);
     });
 
     // 在窗口恢复正常大小或关闭时
-    // win.on('restore', function () {
-    //   if (minimizedWindowsCount > 0) {
-    //     minimizedWindowsCount--;
-    //   }
-    // });
+    if (isMacOS) {
+      // win.on('restore', function () {});
 
-    // win.on('minimize', function () {
-    //   win.setAlwaysOnTop(true);
-    //   const [parentX, parentY, parentWidth, parentHeight] = [
-    //     currentWindow.getPosition()[0],
-    //     currentWindow.getPosition()[1],
-    //     currentWindow.getSize()[0],
-    //     currentWindow.getSize()[1],
-    //   ];
+      win.on('minimize', (event) => {
+        event.preventDefault();
+        const [parentX, parentY, parentWidth, parentHeight] = [
+          currentWindow.getPosition()[0],
+          currentWindow.getPosition()[1],
+          currentWindow.getSize()[0],
+          currentWindow.getSize()[1],
+        ];
 
-    //   const newX = parentX + parentWidth - 300 + minimizedWindowsCount * offset;
-    //   const newY = parentY + parentHeight - 30 + minimizedWindowsCount * offset;
-    //   win.setSize(300, 30);
-    //   win.setPosition(newX, newY);
+        const newX = parentX + parentWidth - 300;
+        const newY = parentY + parentHeight - 30;
+        win.setSize(300, 30);
+        win.setPosition(newX, newY);
+        currentWindow.setSize(parentWidth, parentHeight);
+        currentWindow.setPosition(parentX, parentY);
 
-    //   offsetX = newX - parentX;
-    //   offsetY = newY - parentY;
-    //   minimizedWindowsCount++;
+        offsetX = newX - parentX;
+        offsetY = newY - parentY;
 
-    //   win.show();
-    // });
+        win.setAlwaysOnTop(true);
 
-    // currentWindow.on('move', () => {
-    //   const [newParentX, newParentY] = currentWindow.getPosition();
+        win.show();
+      });
 
-    //   const newChildX = newParentX + offsetX;
-    //   const newChildY = newParentY + offsetY;
-    //   win.setPosition(newChildX, newChildY);
-    // });
+      currentWindow.on('move', () => {
+        const [newParentX, newParentY] = currentWindow.getPosition();
 
-    // currentWindow.on('focus', () => {
-    //   win.setAlwaysOnTop(true);
-    // });
+        const newChildX = newParentX + offsetX;
+        const newChildY = newParentY + offsetY;
+        win.setPosition(newChildX, newChildY);
+        win.show();
+      });
+
+      // currentWindow.on('focus', () => {
+      //   if (!win.isDestroyed()) {
+      //     win.show();
+      //   }
+      // });
+    }
 
     win.webContents.loadURL(modalPath);
     win.webContents.on('did-finish-load', () => {
@@ -697,7 +685,7 @@ function getNewWindowLocation(): { x: number; y: number } | null {
 }
 
 export const openReplayView = (
-  type: 'stategy' | 'operator',
+  type: 'strategy' | 'operator',
   filePath: string,
   beginTime: string,
   endTime: string,
@@ -899,19 +887,16 @@ export const handleOpenReplayView = async (
   const hideloading = messagePrompt().loading(t('open_replay_dashboard'));
   const logPath = buildProcessReplayPath(config, `${config.name}_${dateStr}`);
   if (replayConfig) {
-    const id = getProcessIdByKfLocation(config);
-    const processId = `${config.category}_replay_${
-      replayConfig.begin_time.split(' ')[1]
-    }_${replayConfig.end_time.split(' ')[1]}`;
+    const processId = `${config.category}_replay_${beginTime}_${endTime}`;
     globalThis.HookKeeper.getHooks().processAction.register(
       processId,
       'start',
       async () => {
-        await startReplay(config.category, config.group, id, replayConfig);
+        await startReplay(config.category, config.group, replayConfig);
         console.log(`start replay${processId}`);
       },
     );
-    await startReplay(config.category, config.group, id, replayConfig);
+    await startReplay(config.category, config.group, replayConfig);
   }
   return openReplayView(
     config.category,
@@ -934,19 +919,16 @@ export const handleOpenJournalReplayView = async (
     | {
         category: string;
         group: string;
-        id: string;
         replayConfig: KungfuApi.ReplayConfig;
       }
     | undefined;
 }> => {
   try {
-    const id = getProcessIdByKfLocation(config);
     return {
       startProcess: ++count,
       ProcessConfigs: {
         category: config.category,
         group: config.group,
-        id,
         replayConfig,
       },
     };

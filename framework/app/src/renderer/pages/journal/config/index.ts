@@ -68,7 +68,7 @@ export const getFrameColumns = (): KfTradingDataTableHeaderConfig[] => [
     type: 'string',
     name: t('journalConfig.gen_time'),
     dataIndex: 'genTimeResolved',
-    width: 120,
+    width: 128,
     textOverflow: 'ellipsis',
     sorter: buildSorter('genTime'),
   },

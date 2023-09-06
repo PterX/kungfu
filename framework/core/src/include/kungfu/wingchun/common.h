@@ -612,6 +612,10 @@ inline uint32_t hash_backtest_cache(std::string source_name, int64_t start, int6
          yijinjing::util::hash_32(reinterpret_cast<unsigned char *>(&end), sizeof(end));
 }
 
+inline uint64_t get_source_op_id(uint32_t holder_uid, uint32_t source_id) {
+  return static_cast<uint64_t>(holder_uid) << 32u | static_cast<uint64_t>(source_id);
+}
+
 inline void order_from_input(const longfist::types::OrderInput &input, longfist::types::Order &order) {
   order.order_id = input.order_id;
 

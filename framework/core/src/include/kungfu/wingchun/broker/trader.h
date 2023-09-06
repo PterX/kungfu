@@ -213,6 +213,8 @@ private:
     t.update_time = yijinjing::time::now_in_nano();
     return t;
   }
+
+  void guard_position(const longfist::types::Position &position);
 };
 
 class TraderVendor : public BrokerVendor {

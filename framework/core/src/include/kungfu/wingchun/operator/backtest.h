@@ -120,13 +120,15 @@ private:
   tool::SliceIndexer_ptr from_indexer_;
   tool::SliceTool_ptr slice_tool_;
   tool::Report_ptr report_;
-  std::multimap<int64_t, std::function<void(event_ptr)>> pre_timer_callbacks_ = {};
-  std::multimap<int64_t, std::function<void(event_ptr)>> timer_callbacks_ = {};
+  std::multimap<int64_t, std::function<void(event_ptr)>> pre_timer_callbacks_{};
+  std::multimap<int64_t, std::function<void(event_ptr)>> timer_callbacks_{};
+  std::map<int64_t, std::vector<yijinjing::data::location_ptr>> lease_locations_{};
 
   void on_timer_check();
+  void lease_expired_check();
 };
 
 DECLARE_PTR(BacktestContext)
 } // namespace kungfu::wingchun::op
 
-#endif // WINGCHUN_OPERATOR_BACKTEST_H
+#endif // WINGCHUN_OPERATOR_BACKTEST_H    

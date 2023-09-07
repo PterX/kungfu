@@ -212,6 +212,10 @@ def archive(ctx, format, mode):
     os.chdir(ctx.archive_dir)
     today_date = yjj.strftime(yjj.now_in_nano(), "%Y-%m-%d")
     tomorrow_date = yjj.strftime(yjj.now_in_nano() + 24 * 60 * 60 * 10**9, "%Y-%m-%d")
+    reindex_start = yjj.now_in_nano()
+    update_index_db(ctx)
+    reindex_end = yjj.now_in_nano()
+    ctx.logger.info(f"reindex takes {reindex_end - reindex_start} ns")
 
     if mode == "delete":
         today_start = yjj.strptime(today_date, "%Y-%m-%d")
@@ -260,7 +264,6 @@ def archive(ctx, format, mode):
             filter(os.path.isdir, sorted(os.listdir(os.curdir))),
         )
     )
-    update_index_db(ctx)
 
     ctx.logger.info("pruning runtime logs")
     prune_layout_files(ctx.runtime_dir, "log", "live")

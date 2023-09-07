@@ -371,6 +371,8 @@ body {
   padding-top: 8px;
 
   .trading-data-detail-row {
+    word-break: break-all;
+
     .label,
     .value {
       display: inline-block;
@@ -412,5 +414,16 @@ body {
     padding: 10px 20px;
     margin: 0 0 20px;
     border-left: 5px solid rgba(238, 238, 238, 0.3);
+  }
+}
+
+.kf-mark {
+  padding: 0;
+  background-color: fade(@white, 70%);
+  color: #000;
+
+  &.kf-mark-current {
+    background-color: @primary-color;
+    color: #fff;
   }
 }

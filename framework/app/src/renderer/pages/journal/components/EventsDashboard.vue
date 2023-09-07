@@ -1,5 +1,5 @@
 <template>
-  <div class="kf-journal-events__wrap" v-if="contentVisible">
+  <div v-if="contentVisible" class="kf-journal-events__wrap">
     <div class="kf-journal-filters-bar">
       <div class="kf-journal-bar-title">
         <span>{{ `${$t('journalConfig.time_range')}: ` }}</span>
@@ -15,14 +15,14 @@
         </a-button>
         <a-input
           ref="inputRef"
+          v-model:value="currentStartTimeInput"
           type="text"
           size="large"
-          v-model:value="currentStartTimeInput"
-          @blur="handleStartTimeBlur"
-          @keyup.enter="handleStartTimeEnter"
           autofocus
           :placeholder="$t('journalConfig.please_input_time')"
           style="width: 128px"
+          @blur="handleStartTimeBlur"
+          @keyup.enter="handleStartTimeEnter"
         />
         <a-button
           class="kf-time-btn__increase"
@@ -39,23 +39,50 @@
 
       <FrameFilters
         ref="frameFilter"
-        @apply-filters="onFiltersApply"
         :channels="channels"
         :read="readEvent"
         :write="writeEvent"
         :selected-msg-types="selectedMsgTypes"
         :selected-channels="selectedChannels"
+        @apply-filters="onFiltersApply"
       ></FrameFilters>
     </div>
-    <div class="kf-journal-frame__wrap" v-if="useResizeFlag">
+    <div v-show="searchInUsing" class="kf-search-in-table__warp">
+      <div class="kf-search-in-table__content">
+        <a-input-search
+          ref="inputSearchRef"
+          v-model:value="searchKeyword"
+          class="kf-search-in-table__item"
+          :placeholder="$t('keyword_input')"
+        />
+        <div class="kf-search-in-table__item">
+          {{ currentResultIndex }} /
+          {{ totalResultCount }}
+        </div>
+        <div class="kf-search-in-table__item kf-actions__warp">
+          <up-outlined
+            style="font-size: 14px; margin-left: 0px"
+            @click="handleToUpSearchResult"
+          />
+          <down-outlined
+            style="font-size: 14px; margin-left: 8px"
+            @click="handleToDownSearchResult"
+          />
+        </div>
+        <a-button @click="searchInUsing = false">{{ $t('cancel') }}</a-button>
+      </div>
+    </div>
+    <div class="kf-journal-frame__wrap">
       <KfTradingDataTable
+        ref="scrollerTableRef"
         :data-source="currentFrameList"
         :columns="frameColumns"
         key-field="id"
+        :dynamic="true"
+        :size-dependencies-fields="['dataAsString']"
         :resizable="false"
         :custom-row-class="dealRowClassName"
         :scroll-to-item="selectedChartItem"
-        @resetScrollTop="setResetToTopObject($event)"
         @click-cell="handleOpenFrameDetail"
         @click-row="handleOpenFrameDetail"
         @right-click-row="handleRightClickRow"
@@ -75,7 +102,7 @@
             <a-tag
               :style="{
                 color: '#ffffffd9',
-                backgroundColor: dealTagBackgroudColor(
+                backgroundColor: dealTagBackgroundColor(
                   item.msgTypeResolved.color || 'rgb(158, 158, 158)',
                 ),
               }"
@@ -88,6 +115,9 @@
               {{ item.data }}
             </span>
           </template>
+          <template v-else-if="column.dataIndex === 'dataAsString'">
+            <span v-html="getItemSearchResult(item, 'dataAsString')"></span>
+          </template>
           <template v-else>
             <span>
               {{ item[column.dataIndex as keyof KungfuApi.FrameResolved] }}
@@ -96,6 +126,7 @@
         </template>
       </KfTradingDataTable>
     </div>
+
     <a-spin
       class="kf-journal-spin"
       :spinning="firstSplitFramesLoading"
@@ -145,7 +176,12 @@
 import { ref, computed, watch, nextTick, onMounted } from 'vue';
 import { storeToRefs } from 'pinia';
 import { Empty } from 'ant-design-vue';
-import { PlusOutlined, MinusOutlined } from '@ant-design/icons-vue';
+import {
+  PlusOutlined,
+  MinusOutlined,
+  UpOutlined,
+  DownOutlined,
+} from '@ant-design/icons-vue';
 import { tracer } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { getFrameColumns } from '../config';
 import {
@@ -166,6 +202,7 @@ import {
   delayMilliSeconds,
   debounce,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { useScrollerTableSearch } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 const { contentVisible } = useResizeFlag();
 const {
   currentSession,
@@ -184,6 +221,22 @@ const {
 } = useJournalStore();
 const sourceDestMap = getSourceDestMap();
 const { now } = useNow();
+const scrollerTableRef = ref();
+const {
+  searchInUsing,
+  inputSearchRef,
+  searchKeyword,
+  currentResultIndex,
+  totalResultCount,
+  handleToDownSearchResult,
+  handleToUpSearchResult,
+  getItemSearchResult,
+} = useScrollerTableSearch(
+  currentFrameList,
+  'id',
+  ['dataAsString'],
+  scrollerTableRef,
+);
 
 const FRAME_LIST_SPLIT = 200;
 const SCALE = 1000000;
@@ -267,14 +320,11 @@ const frameDataForShow = computed(() => {
   });
 });
 
-const resetToTop = ref<(() => void) | null>(null);
-
-const setResetToTopObject = (e: (() => void) | undefined) => {
-  e && (resetToTop.value = e);
-};
-
 const handleScrollToTop = () => {
   //TODO on scroll to top event;
+  if (scrollerTableRef.value) {
+    scrollerTableRef.value.scrollToItem(0);
+  }
 };
 
 const handleScrollToBottom = debounce(async () => {
@@ -384,7 +434,7 @@ watch(
   () => firstSplitFramesLoading.value,
   (newIsLoading, oldIsLoading) => {
     if (!newIsLoading && oldIsLoading) {
-      resetToTop.value?.();
+      handleScrollToTop();
     }
   },
 );
@@ -580,7 +630,7 @@ const onFiltersApply = async (
   initLoad();
 };
 
-const dealTagBackgroudColor = (colorStr: string) => {
+const dealTagBackgroundColor = (colorStr: string) => {
   if (!colorStr || colorStr === 'default') return '';
   let color = colorMap[colorStr];
   return color;
@@ -601,7 +651,7 @@ function handleRightClickRow({ row }) {
   width: 100%;
   display: flex;
   flex-direction: column;
-  padding: 4px 8px;
+  padding: 4px 0 4px 4px;
   box-sizing: border-box;
   overflow: hidden;
 
@@ -615,7 +665,6 @@ function handleRightClickRow({ row }) {
     width: 100%;
     background-color: #1d1d1d;
     padding: 4px 16px;
-    margin-bottom: 4px;
     overflow-x: overlay;
     display: flex;
     align-items: center;
@@ -649,6 +698,31 @@ function handleRightClickRow({ row }) {
 
       input {
         height: 100%;
+      }
+    }
+  }
+
+  .kf-search-in-table__warp {
+    padding: 4px 16px;
+    margin-bottom: 4px;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    font-size: 12px;
+    background-color: #1d1d1d;
+
+    .kf-search-in-table__content {
+      width: 596px;
+      display: flex;
+      align-items: center;
+
+      .kf-search-in-table__item {
+        margin: 0 4px;
+      }
+
+      .ant-input-search {
+        margin-left: 0;
+        flex: 1;
       }
     }
   }

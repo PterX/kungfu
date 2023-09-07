@@ -376,15 +376,15 @@ enum class CashRepalceFlag : int8_t {
 };
 
 NLOHMANN_JSON_SERIALIZE_ENUM(CashRepalceFlag, {
-                                             {CashRepalceFlag::UnReplace, "UnReplace"},
-                                             {CashRepalceFlag::EnReplace, "EnReplace"},
-                                             {CashRepalceFlag::MustReplace, "MustReplace"},
-                                             {CashRepalceFlag::UnSSEReplace, "UnSSEReplace"},
-                                             {CashRepalceFlag::UnSSEMustReplace, "UnSSEMustReplace"},
-                                             {CashRepalceFlag::UnSSESZEReplace, "UnSSESZEReplace"},
-                                             {CashRepalceFlag::UnSSESZEMustReplace, "UnSSESZEMustReplace"},
-                                             {CashRepalceFlag::Unknown, "Unknown"},
-                                         })
+                                                  {CashRepalceFlag::UnReplace, "UnReplace"},
+                                                  {CashRepalceFlag::EnReplace, "EnReplace"},
+                                                  {CashRepalceFlag::MustReplace, "MustReplace"},
+                                                  {CashRepalceFlag::UnSSEReplace, "UnSSEReplace"},
+                                                  {CashRepalceFlag::UnSSEMustReplace, "UnSSEMustReplace"},
+                                                  {CashRepalceFlag::UnSSESZEReplace, "UnSSESZEReplace"},
+                                                  {CashRepalceFlag::UnSSESZEMustReplace, "UnSSESZEMustReplace"},
+                                                  {CashRepalceFlag::Unknown, "Unknown"},
+                                              })
 
 inline std::ostream &operator<<(std::ostream &os, CashRepalceFlag t) { return os << int32_t(t); }
 
@@ -400,15 +400,15 @@ enum class ETFType : int8_t {
 };
 
 NLOHMANN_JSON_SERIALIZE_ENUM(ETFType, {
-                                             {ETFType::LocalETF, "LocalETF"},
-                                             {ETFType::CrossCountryETF, "CrossCountryETF"},
-                                             {ETFType::CrossMarketETF, "CrossMarketETF"},
-                                             {ETFType::CurrencyETF, "CurrencyETF"},
-                                             {ETFType::PhysicalBondETF, "PhysicalBondETF"},
-                                             {ETFType::CommodityETF, "CommodityETF"},
-                                             {ETFType::CashBondETF, "CashBondETF"},
-                                             {ETFType::Unknown, "Unknown"},
-                                         })
+                                          {ETFType::LocalETF, "LocalETF"},
+                                          {ETFType::CrossCountryETF, "CrossCountryETF"},
+                                          {ETFType::CrossMarketETF, "CrossMarketETF"},
+                                          {ETFType::CurrencyETF, "CurrencyETF"},
+                                          {ETFType::PhysicalBondETF, "PhysicalBondETF"},
+                                          {ETFType::CommodityETF, "CommodityETF"},
+                                          {ETFType::CashBondETF, "CashBondETF"},
+                                          {ETFType::Unknown, "Unknown"},
+                                      })
 
 inline std::ostream &operator<<(std::ostream &os, ETFType t) { return os << int32_t(t); }
 

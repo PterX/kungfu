@@ -96,7 +96,7 @@ public:
   [[maybe_unused]] [[nodiscard]] bool check_if_stored_instruments(const std::string &trading_day) const;
 
   [[maybe_unused]] void record_stored_instruments_trading_day(const std::string &trading_day) const;
-   
+
   [[maybe_unused]] [[nodiscard]] bool check_if_stored_baskets(const std::string &trading_day) const;
 
   [[maybe_unused]] void record_stored_baskets_trading_day(const std::string &trading_Day);

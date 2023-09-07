@@ -855,7 +855,8 @@ KF_DEFINE_PACK_TYPE(                                                            
     (int64_t, volume),                                                                 // 数量
     (double, rate),                                                                    // 比例, volume比例
     (enums::CashRepalceFlag, replace_flag),                                            // 是否可以由现金替代
-    (double, cash_premium_ratio)                                                       // 现金替代溢价比率
+    (double, cash_premium_ratio),                                                      // 现金替代溢价比率
+    (double, replace_balance)                                                          // 替代金额
 );
 
 KF_DEFINE_PACK_TYPE(                              //

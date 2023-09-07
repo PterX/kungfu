@@ -106,6 +106,7 @@
               replayPramas.processId &&
               isCurrentMenuItem('replay')
             "
+            :category="currentSession.category"
             :params="replayPramas"
             :is-journal="true"
             :replayProcessParams="replayProcessParams"

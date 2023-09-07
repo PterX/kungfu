@@ -40,6 +40,7 @@ const { success, error } = messagePrompt();
 const props = withDefaults(
   defineProps<{
     params: Record<string, string>;
+    category?: string;
     type?: string;
     isJournal?: boolean;
     replayProcessParams?: {
@@ -59,7 +60,7 @@ const isLoading = ref(false);
 const LOG_PATH = params.logPath || '';
 const replayList = ['strategy', 'operator'];
 const isReplayAble = computed(() => {
-  return replayList.includes(extractWordAfterLog(LOG_PATH));
+  return replayList.includes(props.category ? props.category : extractWordAfterLog(LOG_PATH));
 });
 
 setHtmlTitle(LOG_PATH);

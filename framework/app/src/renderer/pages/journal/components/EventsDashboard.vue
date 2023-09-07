@@ -225,6 +225,7 @@ const {
   searchKeyword,
   currentResultIndex,
   totalResultCount,
+  clearSearchState,
   handleToDownSearchResult,
   handleToUpSearchResult,
   getItemHtmlResult,

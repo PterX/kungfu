@@ -338,7 +338,6 @@ const scrollToItem = (index: number) => {
     const scroller = props.dynamic
       ? dynamicScroller.value
       : normalScroller.value;
-    console.log(props.dynamic, scroller);
     if (scroller) {
       scroller.scrollToItem(index);
     }

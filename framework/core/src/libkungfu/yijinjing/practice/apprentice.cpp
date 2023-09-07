@@ -176,6 +176,7 @@ void apprentice::react() {
 void apprentice::on_active() {}
 
 void apprentice::on_frame() {
+  // request_write_to the dest which from try_write_to
   for (const uint32_t dest_id : try_write_dest_ids_) {
     request_write_to(now(), dest_id);
   }

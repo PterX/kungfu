@@ -40,7 +40,6 @@ const { success, error } = messagePrompt();
 const props = withDefaults(
   defineProps<{
     params: Record<string, string>;
-    category?: string;
     type?: string;
     isJournal?: boolean;
     replayProcessParams?: {
@@ -61,7 +60,7 @@ const LOG_PATH = params.logPath || '';
 const replayList = ['strategy', 'operator'];
 const isReplayAble = computed(() => {
   return replayList.includes(
-    props.category ? props.category : extractWordAfterLog(LOG_PATH),
+    props.params.category
   );
 });
 
@@ -167,11 +166,6 @@ function handleRemoveLog(): Promise<void> {
 
 function handleOpenFileLocation() {
   return shell.showItemInFolder(LOG_PATH);
-}
-
-function extractWordAfterLog(inputString) {
-  const match = inputString.match(/\/log\/([^\/]+)/);
-  return match ? match[1] : null;
 }
 
 function resetLog() {

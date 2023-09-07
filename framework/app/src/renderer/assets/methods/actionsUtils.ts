@@ -2135,7 +2135,7 @@ export const useReplay = (): {
   >([]);
   const handleOpenReplayConfirmView = async (
     record: KungfuApi.KfConfig,
-    CurSession?: KungfuApi.Session,
+    curSession?: KungfuApi.Session,
   ) => {
     if (record.category !== 'operator' && record.category !== 'strategy') {
       error(t('replay.only_operator_or_strategy_can_be_replayed'));
@@ -2154,8 +2154,8 @@ export const useReplay = (): {
       return;
     }
 
-    let currentSession: KungfuApi.Session | null = CurSession
-      ? CurSession
+    let currentSession: KungfuApi.Session | null = curSession
+      ? curSession
       : null;
     let sessionInfo = '';
     if (currentSession) {

@@ -6,9 +6,7 @@
     <a-button @click="handleOpenExportFormModal" style="margin-left: 8px">
       {{ t('journalConfig.export') }}
     </a-button>
-  </div>
-
-  <a-modal
+    <a-modal
     v-model:visible="exportFormModalVisible"
     :width="520"
     class="kf-set-by-config-modal"
@@ -45,6 +43,7 @@
       </a-form-item>
     </a-form>
   </a-modal>
+  </div>
 </template>
 
 <script setup lang="ts">

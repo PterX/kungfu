@@ -77,30 +77,42 @@ void reader::next() {
 
 void reader::sort_without_buffer() {
   buffer_built_ = false;
-  int64_t min_time = time::now_in_nano();
+  std::vector<journal *> has_data_journals;
   for (auto &pair : journals_) {
     auto &journal = pair.second;
-    auto &frame = journal.current_frame();
-    bool current_has_data = current_ != nullptr && current_->current_frame()->has_data();
-
-    if (not current_has_data && frame->has_data() && frame->gen_time() <= min_time) {
-      min_time = frame->gen_time();
-      current_ = &journal;
-      continue;
-    }
-
-    if (current_has_data && current_->priority_ < journal.priority_ && frame->has_data()) {
-      min_time = frame->gen_time();
-      current_ = &journal;
-      continue;
-    }
-
-    if (current_has_data && current_->priority_ == journal.priority_ && frame->has_data() &&
-        frame->gen_time() <= min_time) {
-      min_time = frame->gen_time();
-      current_ = &journal;
+    if (journal.current_frame()->has_data()) {
+      has_data_journals.push_back(&journal);
     }
   }
+  auto min_journal_it = std::min_element(has_data_journals.begin(), has_data_journals.end(),
+                                         [](journal *lhs, journal *rhs) { return not later{}(lhs, rhs); });
+  if (min_journal_it != has_data_journals.end()) {
+    current_ = *min_journal_it;
+  }
+
+  // for (auto &pair : journals_) {
+  //   auto &journal = pair.second;
+  //   auto &frame = journal.current_frame();
+  //   bool current_has_data = current_ != nullptr && current_->current_frame()->has_data();
+
+  //   if (not current_has_data && frame->has_data() && frame->gen_time() <= min_time) {
+  //     min_time = frame->gen_time();
+  //     current_ = &journal;
+  //     continue;
+  //   }
+
+  //   if (current_has_data && current_->priority_ < journal.priority_ && frame->has_data()) {
+  //     min_time = frame->gen_time();
+  //     current_ = &journal;
+  //     continue;
+  //   }
+
+  //   if (current_has_data && current_->priority_ == journal.priority_ && frame->has_data() &&
+  //       frame->gen_time() <= min_time) {
+  //     min_time = frame->gen_time();
+  //     current_ = &journal;
+  //   }
+  // }
 }
 
 namespace internal {
@@ -202,4 +214,11 @@ uint32_t reader::find_page_size(const data::location_ptr &location, uint32_t des
   return page_size;
 }
 
-} // namespace kungfu::yijinjing::journal
+bool reader::later::operator()(const journal *const lhs, const journal *const rhs) const {
+  if (lhs->priority_ == rhs->priority_) {
+    return const_cast<journal*>(lhs)->current_frame()->gen_time() > const_cast<journal*>(rhs)->current_frame()->gen_time();
+  }
+  return lhs->priority_ > rhs->priority_;
+}
+
+} // namespace kungfu::yijinjing::journal 

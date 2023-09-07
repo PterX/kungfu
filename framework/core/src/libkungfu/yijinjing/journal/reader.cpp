@@ -89,45 +89,7 @@ void reader::sort_without_buffer() {
   if (min_journal_it != has_data_journals.end()) {
     current_ = *min_journal_it;
   }
-
-  // for (auto &pair : journals_) {
-  //   auto &journal = pair.second;
-  //   auto &frame = journal.current_frame();
-  //   bool current_has_data = current_ != nullptr && current_->current_frame()->has_data();
-
-  //   if (not current_has_data && frame->has_data() && frame->gen_time() <= min_time) {
-  //     min_time = frame->gen_time();
-  //     current_ = &journal;
-  //     continue;
-  //   }
-
-  //   if (current_has_data && current_->priority_ < journal.priority_ && frame->has_data()) {
-  //     min_time = frame->gen_time();
-  //     current_ = &journal;
-  //     continue;
-  //   }
-
-  //   if (current_has_data && current_->priority_ == journal.priority_ && frame->has_data() &&
-  //       frame->gen_time() <= min_time) {
-  //     min_time = frame->gen_time();
-  //     current_ = &journal;
-  //   }
-  // }
 }
-
-namespace internal {
-template <class ForwardIt, class UnaryPredicate>
-ForwardIt swap2tail_if(ForwardIt first, ForwardIt last, const UnaryPredicate &p) {
-  first = std::find_if(first, last, p);
-  if (first != last) {
-    for (ForwardIt i = first; ++i != last;) {
-      if (!p(*i))
-        std::iter_swap(first++, i);
-    }
-  }
-  return first;
-}
-} // namespace internal
 
 void reader::sort() {
   if (not buffer_built_) {
@@ -135,16 +97,14 @@ void reader::sort() {
   }
   int64_t min_time = time::now_in_nano();
   no_data_journals_buffer_.erase(std::remove_if(no_data_journals_buffer_.begin(), no_data_journals_buffer_.end(),
-                                              [this](const auto &journal_ptr) { 
-                                                const bool has_data = journal_ptr->current_frame()->has_data(); 
-                                                if (has_data)
-                                                  has_data_journals_heap_.push(journal_ptr);
-                                                
-                                                return has_data;}), no_data_journals_buffer_.end());
-  // for (auto iter = has_data_iter; iter != no_data_journals_buffer_.end(); ++iter) {
-  //   has_data_journals_heap_.push(*iter);
-  // }
-  // no_data_journals_buffer_.erase(has_data_iter, no_data_journals_buffer_.end());
+                                                [this](const auto &journal_ptr) {
+                                                  const bool has_data = journal_ptr->current_frame()->has_data();
+                                                  if (has_data) {
+                                                    has_data_journals_heap_.push(journal_ptr);
+                                                  }
+                                                  return has_data;
+                                                }),
+                                 no_data_journals_buffer_.end());
   if (has_data_journals_heap_.empty()) {
     return;
   }
@@ -221,9 +181,10 @@ uint32_t reader::find_page_size(const data::location_ptr &location, uint32_t des
 
 bool reader::later::operator()(const journal *const lhs, const journal *const rhs) const {
   if (lhs->priority_ == rhs->priority_) {
-    return const_cast<journal*>(lhs)->current_frame()->gen_time() > const_cast<journal*>(rhs)->current_frame()->gen_time();
+    return const_cast<journal *>(lhs)->current_frame()->gen_time() >
+           const_cast<journal *>(rhs)->current_frame()->gen_time();
   }
   return lhs->priority_ > rhs->priority_;
 }
 
-} // namespace kungfu::yijinjing::journal 
+} // namespace kungfu::yijinjing::journal

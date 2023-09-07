@@ -1148,7 +1148,7 @@ export const startReplay = async (
     begin_time.split(' ')[1]
   }_${end_time.split(' ')[1]}`;
 
-  const args = `${log_level} run  -c ${category} -g ${group} -n ${session_name} -m replay ${path} -b '${begin_time}' -e '${end_time}'`;
+  const args = `${log_level} run -c ${category} -g ${group} -n ${session_name} -m replay ${path} -b '${begin_time}' -e '${end_time}'`;
 
   return startProcess({
     name: strategyOperatorIdResolved,

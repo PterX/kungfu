@@ -2119,6 +2119,7 @@ export const useReplay = (): {
 
   const currentLocation = ref<KungfuApi.KfConfig | null>(null);
   const replayConfig = ref<KungfuApi.ReplayConfig>({
+    session_info: '',
     group: 'default',
     begin_time: '',
     end_time: '',
@@ -2156,11 +2157,13 @@ export const useReplay = (): {
     let currentSession: KungfuApi.Session | null = CurSession
       ? CurSession
       : null;
+    let sessionInfo = '';
     if (currentSession) {
       const beginTimeStr = getNanoDateString(currentSession.begin_time);
       const endTimeStr = currentSession.end_time
         ? getNanoDateString(currentSession.end_time)
         : 'now';
+      sessionInfo = `${beginTimeStr}--${endTimeStr}`;
       sessionOptions.value.push({
         label: `${beginTimeStr}--${endTimeStr}`,
         value: `${beginTimeStr}--${endTimeStr}`,
@@ -2170,10 +2173,12 @@ export const useReplay = (): {
         const item = sessions[i];
         if (item.location_uid === record.location_uid) {
           currentSession ||= item;
+
           const beginTimeStr = getNanoDateString(item.begin_time);
           const endTimeStr = item.end_time
             ? getNanoDateString(item.end_time)
             : 'now';
+          sessionInfo ||= `${beginTimeStr}--${endTimeStr}`;
           sessionOptions.value.push({
             label: `${beginTimeStr}--${endTimeStr}`,
             value: `${beginTimeStr}--${endTimeStr}`,
@@ -2200,6 +2205,7 @@ export const useReplay = (): {
     const endTimeStr = `${date} ${endTime}`;
 
     replayConfig.value = {
+      session_info: sessionInfo,
       group: record.group,
       begin_time: beginTime,
       end_time: endTimeStr,
@@ -2207,6 +2213,7 @@ export const useReplay = (): {
       session_name: currentSession.name,
       path: isOperator ? filePath : params.file_path,
     };
+
     currentLocation.value = record;
 
     setReplayModalVisible.value = true;
@@ -2239,8 +2246,12 @@ export const useReplay = (): {
     const date = getYearMonthDay();
     const beginTime = `${date} ${startTime}`;
     const endTimeStr = `${date} ${endTime}`;
+    const processId = `${location.category}_replay_${startTime}_${endTime}`;
     replayConfig.value.begin_time = beginTime;
     replayConfig.value.end_time = endTimeStr;
+    useGlobalStore().addReplayProcessConfigMap({
+      [processId]: replayConfig.value,
+    });
     if (isJournal) {
       const { startProcess, ProcessConfigs } =
         await handleOpenJournalReplayView(
@@ -2253,6 +2264,7 @@ export const useReplay = (): {
     } else {
       await handleOpenReplayView(
         location,
+        processId,
         startTime,
         endTime,
         data.logLevel,

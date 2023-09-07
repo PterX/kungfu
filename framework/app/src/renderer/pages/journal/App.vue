@@ -121,6 +121,7 @@
     :width="520"
     v-model:visible="setReplayModalVisible"
     :session-options="sessionOptions"
+    :session-info="replayConfig.session_info"
     :begin-time="replayConfig.begin_time.split(' ')[1]"
     :end-time="replayConfig.end_time ? replayConfig.end_time.split(' ')[1] : ''"
     :now="getNanoDateString(BigInt(new Date().getTime()) * 1000000n)"
@@ -154,7 +155,7 @@ import { getYearMonthDay } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { getNanoDateString } from '@kungfu-trader/kungfu-js-api/kungfu';
 
 import { dealCategory } from './utils';
-import { UnorderedListOutlined, ReloadOutlined } from '@ant-design/icons-vue';
+import { UnorderedListOutlined, HistoryOutlined } from '@ant-design/icons-vue';
 import TimeSlider from './components/TimeSlider.vue';
 import JournalActions from './components/JournalActions.vue';
 import EventsDashBoard from './components/EventsDashboard.vue';
@@ -252,7 +253,7 @@ const menus = [
   {
     key: 'replay',
     title: t('journalConfig.replay'),
-    icon: ReloadOutlined,
+    icon: HistoryOutlined,
   },
 ];
 const isCurrentMenuItem = (key: 'event' | 'visual' | 'replay') => {
@@ -282,6 +283,7 @@ const customRow = (record: KungfuApi.SessionResolved) => {
     onClick: () => {
       setCurrentSession(record);
       replayConfig.value = {
+        session_info: '',
         group: 'default',
         begin_time: '',
         end_time: '',

@@ -1,9 +1,9 @@
 <template>
   <div class="journal-action">
-    <a-button @click="handleOpenReplayConfirmModal">
+    <a-button @click="handleOpenReplayConfirmModal" style="margin-left: 8px">
       {{ t('replay.replay') }}
     </a-button>
-    <a-button @click="handleOpenExportFormModal">
+    <a-button @click="handleOpenExportFormModal" style="margin-left: 8px">
       {{ t('journalConfig.export') }}
     </a-button>
   </div>

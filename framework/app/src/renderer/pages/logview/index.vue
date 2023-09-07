@@ -1,13 +1,6 @@
 <script setup lang="ts">
-import {
-  nextTick,
-  onMounted,
-  ref,
-  watchEffect,
-  computed,
-  onBeforeUnmount,
-} from 'vue';
-// import { storeToRefs } from 'pinia';
+import { nextTick, onMounted, ref, computed, onBeforeUnmount } from 'vue';
+import { storeToRefs } from 'pinia';
 import {
   UpOutlined,
   DownOutlined,
@@ -20,7 +13,7 @@ import {
   setHtmlTitle,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import { useRemoveReplayProcess } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
-// import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
+import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
 import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
 import { LogLevelType } from '@kungfu-trader/kungfu-app/src/typings/enums';
@@ -35,7 +28,7 @@ import {
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { listProcessStatus } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
 
-// const { replaySetting } = storeToRefs(useGlobalStore());
+const { replayProcessConfigMap } = storeToRefs(useGlobalStore());
 
 const { handleRemoveReplayProcess } = useRemoveReplayProcess();
 
@@ -60,6 +53,7 @@ const props = withDefaults(
   },
 );
 
+const CHECK_REPLAY_PROCESS_TIMER = 1000;
 const params = props.params;
 const isLoading = ref(false);
 const LOG_PATH = params.logPath || '';
@@ -115,18 +109,12 @@ onMounted(() => {
         isLoading.value = false;
       }
     }
-    console.log(
-      'listProcessStatus',
-      processStatus ? processStatus[props.params.processId] : null,
-      props.params.processId,
-    );
-  }, 1000);
+  }, CHECK_REPLAY_PROCESS_TIMER);
   if (props.type && props.type === 'replay' && !props.isJournal) {
     if (currentWindow) {
       currentWindow.on('close', async (event) => {
         event.preventDefault();
         const { processStatus } = await listProcessStatus();
-        console.log('Attempting to close the window...');
         handleRemoveReplayProcess(
           window.watcher,
           processStatus,
@@ -196,31 +184,46 @@ async function reLoadLog() {
     return;
   }
 
-  console.log('reLoadLog', props.params);
-
   if (currentWindow) {
     const pawin = currentWindow.getParentWindow();
     if (pawin) {
       if (props.isJournal && props.replayProcessParams) {
-        pawin.webContents.send('startReplay', {
-          replayProcessParams: props.replayProcessParams,
-        });
+        if (!replayProcessConfigMap.value[props.params.processId]) {
+          messagePrompt().error(t('replay.please_start_replay'));
+          return;
+        }
+        ensureFileSync(LOG_PATH);
+        outputFile(LOG_PATH, '')
+          .then(() => {
+            resetLog();
+            pawin.webContents.send('startReplay', {
+              replayProcessParams: props.replayProcessParams,
+            });
+          })
+          .catch((err: Error) => {
+            error(err.message || t('operation_failed'));
+          });
+
         return;
       } else if (!props.isJournal) {
-        pawin.webContents.send('trigger-main-window-hook', {
-          hookName: props.params.processId,
-          key: 'start',
-        });
+        ensureFileSync(LOG_PATH);
+        outputFile(LOG_PATH, '')
+          .then(() => {
+            resetLog();
+            pawin.webContents.send('trigger-main-window-hook', {
+              hookName: props.params.processId,
+              key: 'start',
+            });
+          })
+          .catch((err: Error) => {
+            error(err.message || t('operation_failed'));
+          });
       } else {
         messagePrompt().error(t('replay.please_start_replay'));
       }
     }
   }
 }
-
-watchEffect(() => {
-  console.log('replaySetting', props.params);
-});
 </script>
 <template>
   <div class="default-log-view_warp">

@@ -14,7 +14,7 @@ import Icon, {
   DeleteOutlined,
   FormOutlined,
   BankOutlined,
-  PlayCircleOutlined,
+  HistoryOutlined,
 } from '@ant-design/icons-vue';
 
 import {
@@ -312,10 +312,10 @@ function handleOpenCodeViewResolved(record: KungfuApi.KfConfig) {
           </template>
           <template v-else-if="column.dataIndex === 'actions'">
             <div class="kf-actions__warp">
-              <PlayCircleOutlined
+              <HistoryOutlined
                 style="font-size: 12px"
                 @click.stop="handleOpenReplayConfirmView(record)"
-              ></PlayCircleOutlined>
+              ></HistoryOutlined>
               <BankOutlined
                 style="font-size: 12px"
                 @click.stop="handleOpenJournalView(record)"
@@ -385,6 +385,7 @@ function handleOpenCodeViewResolved(record: KungfuApi.KfConfig) {
       :width="520"
       v-model:visible="setReplayModalVisible"
       :session-options="sessionOptions"
+      :session-info="replayConfig.session_info"
       :begin-time="replayConfig.begin_time.split(' ')[1]"
       :end-time="
         replayConfig.end_time ? replayConfig.end_time.split(' ')[1] : ''

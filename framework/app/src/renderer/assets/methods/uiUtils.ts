@@ -878,6 +878,7 @@ export const messagePrompt = (): {
 
 export const handleOpenReplayView = async (
   config: KungfuApi.KfConfig | KungfuApi.KfLocation,
+  processId: string,
   beginTime: string,
   endTime: string,
   logLevel: string,
@@ -887,7 +888,6 @@ export const handleOpenReplayView = async (
   const hideloading = messagePrompt().loading(t('open_replay_dashboard'));
   const logPath = buildProcessReplayPath(config, `${config.name}_${dateStr}`);
   if (replayConfig) {
-    const processId = `${config.category}_replay_${beginTime}_${endTime}`;
     globalThis.HookKeeper.getHooks().processAction.register(
       processId,
       'start',

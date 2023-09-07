@@ -1150,6 +1150,7 @@ declare namespace KungfuApi {
   }
 
   export interface ReplayConfig {
+    session_info: string;
     group: string;
     begin_time: string;
     end_time: string;

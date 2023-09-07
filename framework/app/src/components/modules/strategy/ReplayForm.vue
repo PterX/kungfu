@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { onMounted, ref } from 'vue';
+import { ReloadOutlined } from '@ant-design/icons-vue';
 import { getNanoDateString } from '@kungfu-trader/kungfu-js-api/kungfu';
 
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
@@ -14,6 +15,7 @@ const props = withDefaults(
       label: string;
       value: string;
     }[];
+    sessionInfo: string;
     beginTime: string;
     endTime: string;
     logLevel: string;
@@ -23,7 +25,7 @@ const props = withDefaults(
     sessionOptions: () => [],
   },
 );
-console.log(props);
+
 const emit = defineEmits<{
   (
     e: 'confirm',
@@ -56,11 +58,11 @@ const dealEndTime = () => {
 };
 onMounted(() => {
   dealEndTime();
+  formState.value.sessionInfo = props.sessionInfo;
 });
 
 const logLevelOptions = [
   { value: '-l trace', label: 'TRACE' },
-
   { value: '-l debug', label: 'DEBUG' },
   { value: '-l info', label: 'INFO' },
   { value: '-l warn', label: 'WARN' },
@@ -114,11 +116,25 @@ const formatTimeToNanoseconds = (
   return formattedTime;
 };
 
+const refreshEndTime = () => {
+  let endTime = '';
+  for (let i of props.sessionOptions) {
+    if (i.value.split('--')[0] === formState.value.beginTime) {
+      endTime = i.value.split('--')[1];
+    }
+  }
+
+  if (endTime === 'now') {
+    endTime = getNanoDateString(BigInt(new Date().getTime()) * 1000000n);
+  }
+
+  formState.value.endTime = endTime;
+};
+
 const handleOk = () => {
   formRef.value
     ?.validate()
     .then(() => {
-      console.log(formState.value);
       useGlobalStore().setReplaySetting({
         begin_time: formState.value.beginTime,
         end_time: formState.value.endTime,
@@ -188,7 +204,11 @@ const handleCancel = () => {
         <a-input v-model:value="formState.beginTime" :disabled="true" />
       </a-form-item>
       <a-form-item :label="$t('replay.end_time')" name="endTime">
-        <a-input v-model:value="formState.endTime" @blur="dealEndTime" />
+        <a-input v-model:value="formState.endTime" @blur="dealEndTime">
+          <template v-slot:suffix>
+            <ReloadOutlined @click="refreshEndTime" style="font-size: 14px" />
+          </template>
+        </a-input>
       </a-form-item>
       <a-form-item
         :label="$t('replay.log_level')"

@@ -164,7 +164,7 @@ export const dealFrame = (
       session.location_uid,
       locationNameMap,
     ),
-    msgTypeName: longfist.msgTypes[+frame.msgType],
+    msgTypeName: longfist.msgTypes[+frame.msgType] || frame.msgType + '',
   };
 };
 

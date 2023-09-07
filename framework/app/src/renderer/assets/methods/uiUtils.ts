@@ -1646,7 +1646,7 @@ export const useScrollerTableSearch = <T extends object>(
     }
   };
 
-  const getItemSearchResult = (item: T, key: keyof T) => {
+  const getItemHtmlResult = (item: T, key: keyof T) => {
     const searchResult = searchResults.value[`${item[keyField]}`] as
       | SearchResultByContent
       | undefined;
@@ -1666,6 +1666,6 @@ export const useScrollerTableSearch = <T extends object>(
     clearSearchState,
     handleToDownSearchResult,
     handleToUpSearchResult,
-    getItemSearchResult,
+    getItemHtmlResult,
   };
 };

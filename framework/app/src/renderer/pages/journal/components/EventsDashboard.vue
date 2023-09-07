@@ -47,38 +47,43 @@
         @apply-filters="onFiltersApply"
       ></FrameFilters>
     </div>
-    <div v-show="searchInUsing" class="kf-search-in-table__warp">
-      <div class="kf-search-in-table__content">
-        <a-input-search
-          ref="inputSearchRef"
-          v-model:value="searchKeyword"
-          class="kf-search-in-table__item"
-          :placeholder="$t('keyword_input')"
-        />
-        <div class="kf-search-in-table__item">
-          {{ currentResultIndex }} /
-          {{ totalResultCount }}
-        </div>
-        <div class="kf-search-in-table__item kf-actions__warp">
-          <up-outlined
-            style="font-size: 14px; margin-left: 0px"
-            @click="handleToUpSearchResult"
-          />
-          <down-outlined
-            style="font-size: 14px; margin-left: 8px"
-            @click="handleToDownSearchResult"
-          />
-        </div>
-        <a-button @click="searchInUsing = false">{{ $t('cancel') }}</a-button>
-      </div>
-    </div>
     <div class="kf-journal-frame__wrap">
+      <Transition name="fade">
+        <div v-show="searchInUsing" class="kf-search-in-table__warp">
+          <div class="kf-search-in-table__content">
+            <a-input-search
+              ref="inputSearchRef"
+              v-model:value="searchKeyword"
+              class="kf-search-in-table__item"
+              :placeholder="$t('keyword_input')"
+            />
+            <div class="kf-search-in-table__item">
+              {{ currentResultIndex }} /
+              {{ totalResultCount }}
+            </div>
+            <div class="kf-search-in-table__item kf-actions__warp">
+              <up-outlined
+                style="font-size: 14px; margin-left: 0px"
+                @click="handleToUpSearchResult"
+              />
+              <down-outlined
+                style="font-size: 14px; margin-left: 8px"
+                @click="handleToDownSearchResult"
+              />
+            </div>
+            <a-button @click="searchInUsing = false">
+              {{ $t('cancel') }}
+            </a-button>
+          </div>
+        </div>
+      </Transition>
       <KfTradingDataTable
         ref="scrollerTableRef"
         :data-source="currentFrameList"
         :columns="frameColumns"
         key-field="id"
-        :dynamic="true"
+        :dynamic="searchInUsing"
+        :will-switch-dynamic="true"
         :size-dependencies-fields="['dataAsString']"
         :resizable="false"
         :custom-row-class="dealRowClassName"
@@ -105,7 +110,7 @@
                 ),
               }"
             >
-              {{ item.msgTypeName }}
+              <span v-html="getItemHtmlResult(item, 'msgTypeName')"></span>
             </a-tag>
           </template>
           <template v-else-if="column.dataIndex === 'data'">
@@ -114,7 +119,7 @@
             </span>
           </template>
           <template v-else-if="column.dataIndex === 'dataAsString'">
-            <span v-html="getItemSearchResult(item, 'dataAsString')"></span>
+            <span v-html="getItemHtmlResult(item, 'dataAsString')"></span>
           </template>
           <template v-else>
             <span>
@@ -223,11 +228,11 @@ const {
   clearSearchState,
   handleToDownSearchResult,
   handleToUpSearchResult,
-  getItemSearchResult,
+  getItemHtmlResult,
 } = useScrollerTableSearch(
   currentFrameList,
   'id',
-  ['dataAsString'],
+  ['msgTypeName', 'dataAsString'],
   scrollerTableRef,
 );
 
@@ -249,7 +254,7 @@ const SHOW_DETAIL_MSG_TYPES = {
 };
 
 const inputRef = ref<HTMLInputElement>({} as HTMLInputElement);
-const frameColumns = getFrameColumns();
+const frameColumns = computed(() => getFrameColumns(searchInUsing.value));
 const simpleImage = Empty.PRESENTED_IMAGE_SIMPLE;
 const firstSplitFramesLoading = ref(false);
 const currentFramesId = ref<string>('');
@@ -273,6 +278,20 @@ const colorMap = {
   '#FAAD14': 'rgb(250, 173, 20)',
   purple: 'rgb(83, 29, 171)',
 };
+
+watch(searchInUsing, (n, o) => {
+  if (n !== o) {
+    if (scrollerTableRef.value) {
+      const [startIndex] = scrollerTableRef.value.getVisibleIndexRange();
+
+      if (startIndex !== undefined && startIndex > -1) {
+        nextTick(() => {
+          scrollerTableRef.value.scrollToItem(startIndex);
+        });
+      }
+    }
+  }
+});
 
 const loadedLastFrameTime = computed(() => {
   if (currentFrameList.value.length) {
@@ -460,6 +479,7 @@ const initLoad = debounce(async () => {
   firstSplitFramesLoading.value = true;
   // wait for while looping and break while working
   await delayMilliSeconds(0);
+  clearSearchState();
   setCurrentFrameList([]);
   await nextTick();
   currentTracer?.seekToTime(currentTime.value);
@@ -655,6 +675,7 @@ const dealRowClassName = (row) => {
     width: 100%;
     background-color: #1d1d1d;
     padding: 4px 16px;
+    margin-bottom: 4px;
     overflow-x: overlay;
     display: flex;
     align-items: center;
@@ -692,33 +713,52 @@ const dealRowClassName = (row) => {
     }
   }
 
-  .kf-search-in-table__warp {
-    padding: 4px 16px;
-    margin-bottom: 4px;
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    font-size: 12px;
-    background-color: #1d1d1d;
-
-    .kf-search-in-table__content {
-      width: 596px;
-      display: flex;
-      align-items: center;
-
-      .kf-search-in-table__item {
-        margin: 0 4px;
-      }
-
-      .ant-input-search {
-        margin-left: 0;
-        flex: 1;
-      }
-    }
-  }
-
   .kf-journal-frame__wrap {
     flex: auto;
+    overflow: hidden;
+    position: relative;
+
+    .fade-enter-active,
+    .fade-leave-active {
+      transition: all 0.3s ease;
+    }
+
+    .fade-enter-from,
+    .fade-leave-to {
+      top: -40px;
+    }
+
+    .fade-enter-to,
+    .fade-leave-from {
+      top: 0;
+    }
+
+    .kf-search-in-table__warp {
+      position: absolute;
+      right: 16px;
+      padding: 4px 0;
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      font-size: 12px;
+      background-color: #1d1d1d;
+      z-index: 999;
+
+      .kf-search-in-table__content {
+        width: 480px;
+        display: flex;
+        align-items: center;
+
+        .kf-search-in-table__item {
+          margin: 0 4px;
+        }
+
+        .ant-input-search {
+          margin-left: 0;
+          flex: 1;
+        }
+      }
+    }
   }
 }
 

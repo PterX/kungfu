@@ -63,7 +63,9 @@ export const SessionStatus: Record<
   },
 };
 
-export const getFrameColumns = (): KfTradingDataTableHeaderConfig[] => [
+export const getFrameColumns = (
+  searchInUsing: boolean,
+): KfTradingDataTableHeaderConfig[] => [
   {
     type: 'string',
     name: t('journalConfig.gen_time'),
@@ -109,7 +111,8 @@ export const getFrameColumns = (): KfTradingDataTableHeaderConfig[] => [
     type: 'string',
     name: t('journalConfig.msg_details'),
     dataIndex: 'dataAsString',
-    wrap: true,
+    textOverflow: searchInUsing ? 'clip' : 'ellipsis',
+    wrap: searchInUsing,
     flex: 1,
   },
 ];

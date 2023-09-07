@@ -62,7 +62,7 @@ const {
   clearSearchState,
   handleToDownSearchResult,
   handleToUpSearchResult,
-  getItemSearchResult,
+  getItemHtmlResult,
 } = useScrollerTableSearch(
   () => logList.list,
   'id',
@@ -184,7 +184,7 @@ function resetLog() {
                 :id="`kf-log-item-${item.id}`"
                 :active="active"
                 class="kf-log-line"
-                v-html="dealLogMessage(getItemSearchResult(item, 'message'))"
+                v-html="dealLogMessage(getItemHtmlResult(item, 'message'))"
               ></div>
             </DynamicScrollerItem>
           </template>

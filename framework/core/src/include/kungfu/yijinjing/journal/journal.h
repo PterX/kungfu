@@ -175,7 +175,6 @@ private:
   std::vector<journal *> no_data_journals_buffer_{};
   std::priority_queue<journal *, std::vector<journal *>, later> has_data_journals_heap_{};
   std::recursive_mutex mtx_{};
-
 };
 
 class writer {

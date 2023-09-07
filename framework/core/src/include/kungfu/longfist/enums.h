@@ -363,6 +363,55 @@ NLOHMANN_JSON_SERIALIZE_ENUM(PriceType, {
 
 inline std::ostream &operator<<(std::ostream &os, PriceType t) { return os << int32_t(t); }
 
+// ETF成分股信息,标志改成分股是否可以由现金替代
+enum class CashRepalceFlag : int8_t {
+  UnReplace,           // 不可替代
+  EnReplace,           // 可以替代
+  MustReplace,         // 必须替代
+  UnSSEReplace,        // 非沪市退补现金替代
+  UnSSEMustReplace,    // 非沪市必须现金替代
+  UnSSESZEReplace,     // 非沪深退补现金替代
+  UnSSESZEMustReplace, // 非沪深必须现金替代
+  Unknown
+};
+
+NLOHMANN_JSON_SERIALIZE_ENUM(CashRepalceFlag, {
+                                             {CashRepalceFlag::UnReplace, "UnReplace"},
+                                             {CashRepalceFlag::EnReplace, "EnReplace"},
+                                             {CashRepalceFlag::MustReplace, "MustReplace"},
+                                             {CashRepalceFlag::UnSSEReplace, "UnSSEReplace"},
+                                             {CashRepalceFlag::UnSSEMustReplace, "UnSSEMustReplace"},
+                                             {CashRepalceFlag::UnSSESZEReplace, "UnSSESZEReplace"},
+                                             {CashRepalceFlag::UnSSESZEMustReplace, "UnSSESZEMustReplace"},
+                                             {CashRepalceFlag::Unknown, "Unknown"},
+                                         })
+
+inline std::ostream &operator<<(std::ostream &os, CashRepalceFlag t) { return os << int32_t(t); }
+
+enum class ETFType : int8_t {
+  LocalETF,        // 本市ETF
+  CrossCountryETF, // 跨境ETF
+  CrossMarketETF,  // 跨市ETF
+  CurrencyETF,     // 货币ETF
+  PhysicalBondETF, // 实物债券ETF
+  CommodityETF,    // 商品ETF
+  CashBondETF,     // 现金债券ETF
+  Unknown
+};
+
+NLOHMANN_JSON_SERIALIZE_ENUM(ETFType, {
+                                             {ETFType::LocalETF, "LocalETF"},
+                                             {ETFType::CrossCountryETF, "CrossCountryETF"},
+                                             {ETFType::CrossMarketETF, "CrossMarketETF"},
+                                             {ETFType::CurrencyETF, "CurrencyETF"},
+                                             {ETFType::PhysicalBondETF, "PhysicalBondETF"},
+                                             {ETFType::CommodityETF, "CommodityETF"},
+                                             {ETFType::CashBondETF, "CashBondETF"},
+                                             {ETFType::Unknown, "Unknown"},
+                                         })
+
+inline std::ostream &operator<<(std::ostream &os, ETFType t) { return os << int32_t(t); }
+
 enum class PriceLevel : int8_t {
   Last, // 最新价
   Sell5,

@@ -398,6 +398,14 @@ export const findTargetFromArray = <T>(
   return null;
 };
 
+export const timestampToTimeString = (
+  timestamp: bigint,
+  format = 'YYYY-MM-DD HH:mm:ss',
+) => {
+  const date = new Date(Number(timestamp) / 1000000);
+  return dayjs(date).format(format);
+};
+
 export const buildObjectFromArray = <T>(
   list: Array<T>,
   targetKey: number | string,
@@ -2656,4 +2664,22 @@ export function countDecimalPlaces(num: number) {
 export function roundToDecimalPlaces(num: number, precision: number) {
   const multiplier = Math.pow(10, precision);
   return Math.round(num * multiplier) / multiplier;
+}
+
+export function getHourMinuteSecond(delimiter = ':') {
+  const now = new Date();
+  const hour = now.getHours();
+  const minute = now.getMinutes();
+  const second = now.getSeconds();
+  return `${hour}${delimiter}${minute}${delimiter}${second}`;
+}
+
+export function getYearMonthDay(delimiter = '-') {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1;
+  const day = now.getDate();
+  const monthStr = month < 10 ? `0${month}` : `${month}`;
+  const dayStr = day < 10 ? `0${day}` : `${day}`;
+  return `${year}${delimiter}${monthStr}${delimiter}${dayStr}`;
 }

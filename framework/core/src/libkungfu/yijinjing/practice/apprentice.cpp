@@ -82,13 +82,17 @@ uint32_t apprentice::request_band(const std::string &band_name, uint32_t page_si
   return band_location->uid;
 }
 
-void apprentice::add_timer(int64_t nanotime, const std::function<void(const event_ptr &)> &callback) {
-  events_ | timer(nanotime) | $([&, callback](const event_ptr &event) { callback(event); });
+int32_t apprentice::add_timer(int64_t nanotime, const std::function<void(const event_ptr &)> &callback) {
+  int32_t timer_id = get_timer_usage_count();
+  events_ | timer(nanotime, timer_id) | $([&, callback](const event_ptr &event) { callback(event); });
+  return timer_id;
 }
 
-void apprentice::add_time_interval(int64_t duration, const std::function<void(const event_ptr &)> &callback) {
-  events_ | time_interval(std::chrono::nanoseconds(duration)) |
+int32_t apprentice::add_time_interval(int64_t duration, const std::function<void(const event_ptr &)> &callback) {
+  int32_t timer_id = get_timer_usage_count();
+  events_ | time_interval(std::chrono::nanoseconds(duration), timer_id) |
       $([&, callback](const event_ptr &event) { callback(event); });
+  return timer_id;
 }
 
 bool apprentice::release_page() {
@@ -172,6 +176,7 @@ void apprentice::react() {
 void apprentice::on_active() {}
 
 void apprentice::on_frame() {
+  // request_write_to the dest which from try_write_to
   for (const uint32_t dest_id : try_write_dest_ids_) {
     request_write_to(now(), dest_id);
   }
@@ -300,5 +305,11 @@ void apprentice::reset_time(const longfist::types::TimeReset &time_reset) {
 }
 
 std::thread &apprentice::get_cleaning_worker() { return cleaner_.get_cleaning_worker(); }
+
+void apprentice::clear_timer(int32_t timer_id) { timers_.insert_or_assign(timer_id, false); }
+
+bool apprentice::is_timer_enabled(int32_t timer_id) { return timers_.try_emplace(timer_id).first->second; }
+
+void apprentice::enable_timer(int32_t timer_id) { timers_.insert_or_assign(timer_id, true); }
 
 } // namespace kungfu::yijinjing::practice

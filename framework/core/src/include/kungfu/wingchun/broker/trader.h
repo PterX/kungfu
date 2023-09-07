@@ -213,6 +213,8 @@ private:
     t.update_time = yijinjing::time::now_in_nano();
     return t;
   }
+
+  void guard_position(const longfist::types::Position &position);
 };
 
 class TraderVendor : public BrokerVendor {
@@ -367,7 +369,7 @@ public:
 
   [[nodiscard]] yijinjing::journal::writer_ptr &get_thread_writer();
 
-  bool is_sync_account() { return sync_account_; }
+  [[nodiscard]] bool is_sync_account() const { return sync_account_; }
 
   void enable_sync_account() { sync_account_ = true; }
 

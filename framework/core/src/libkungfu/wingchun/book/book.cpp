@@ -97,7 +97,7 @@ Position &Book::get_position(uint32_t source_id, Direction direction, const char
     position.ledger_category = asset.ledger_category;
     position.direction = direction;
     position.source_id = source_id;
-    position.source_op_id = source_op_id(asset.holder_uid, source_id);
+    position.source_op_id = get_source_op_id(asset.holder_uid, source_id);
   }
   add_source_id(source_id);
   return position;

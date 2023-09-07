@@ -48,6 +48,10 @@ void TraderWriterHook::on_close_frame(int64_t gen_time, frame_ptr frame) {
     get_algo_order_service().on_algo_order(frame->gen_time(), frame->source(), frame->dest(), algo_order);
     break;
   }
+  case Position::tag: {
+    guard_position(frame->data<Position>());
+    break;
+  }
   }
 }
 
@@ -58,6 +62,15 @@ OrderService &TraderWriterHook::get_order_service() { return vendor_.get_order_s
 OrderTriggerService &TraderWriterHook::get_order_trigger_service() { return vendor_.get_order_trigger_service(); }
 
 AlgoOrderService &TraderWriterHook::get_algo_order_service() { return vendor_.get_algo_order_service(); }
+
+void TraderWriterHook::guard_position(const Position &const_position) {
+  auto &position = const_cast<Position &>(const_position);
+  position.update_time = vendor_.now();
+  position.source_id = vendor_.get_home_uid();
+  position.holder_uid = vendor_.get_home_uid();
+  position.source_op_id = get_source_op_id(position.holder_uid, position.source_id);
+  position.instrument_type = get_instrument_type(position.exchange_id, position.instrument_id);
+}
 
 // ====================== TraderWriterHook end ======================
 
@@ -108,12 +121,13 @@ void TraderVendor::on_start() {
   events_ | is(TimeKeyValue::tag) | $$(service_->on_time_key_value(event));
   events_ | is(Deregister::tag) | $$(service_->on_strategy_exit(event));
 
-  add_time_interval(5 * time_unit::NANOSECONDS_PER_SECOND, [&](auto e) { service_->try_req_account(); });
-
   service_->on_risk_setting();
   service_->recover();
   on_recover();
   service_->on_start();
+
+  // after recover done, which take some time, then start to try req account
+  add_time_interval(5 * time_unit::NANOSECONDS_PER_SECOND, [&](auto e) { service_->try_req_account(); });
 }
 
 void TraderVendor::on_write_to(const event_ptr &event) {

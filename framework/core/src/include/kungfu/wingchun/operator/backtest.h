@@ -44,14 +44,20 @@ public:
    * @param nanotime when to call in nano seconds
    * @param callback callback function
    */
-  void add_timer(int64_t nanotime, const std::function<void(event_ptr)> &callback) override;
+  int32_t add_timer(int64_t nanotime, const std::function<void(event_ptr)> &callback) override;
 
   /**
    * Add periodically callback.
    * @param duration duration in nano seconds
    * @param callback callback function
    */
-  void add_time_interval(int64_t duration, const std::function<void(event_ptr)> &callback) override;
+  int32_t add_time_interval(int64_t duration, const std::function<void(event_ptr)> &callback) override;
+
+  /**
+   * Clear timer
+   * @param timer_id id of timer, return by add_timer and add_time_interval
+   */
+  void clear_timer(int32_t timer_id) override;
 
   /**
    * Subscribe market data.
@@ -114,10 +120,12 @@ private:
   tool::SliceIndexer_ptr from_indexer_;
   tool::SliceTool_ptr slice_tool_;
   tool::Report_ptr report_;
-  std::multimap<int64_t, std::function<void(event_ptr)>> pre_timer_callbacks_ = {};
-  std::multimap<int64_t, std::function<void(event_ptr)>> timer_callbacks_ = {};
+  std::multimap<int64_t, std::function<void(event_ptr)>> pre_timer_callbacks_{};
+  std::multimap<int64_t, std::function<void(event_ptr)>> timer_callbacks_{};
+  std::map<int64_t, std::vector<yijinjing::data::location_ptr>> lease_locations_{};
 
   void on_timer_check();
+  void lease_expired_check();
 };
 
 DECLARE_PTR(BacktestContext)

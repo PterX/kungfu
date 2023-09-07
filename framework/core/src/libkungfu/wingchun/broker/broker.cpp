@@ -108,13 +108,15 @@ const cache::bank &BrokerService::get_state_bank() const { return vendor_.get_st
   SPDLOG_INFO("STORED_INSTRUMENT_TRADING_DAY {}", trading_day);
 }
 
-void BrokerService::add_timer(int64_t nanotime, const std::function<void(const event_ptr &)> &callback) {
-  vendor_.add_timer(nanotime, callback);
+int32_t BrokerService::add_timer(int64_t nanotime, const std::function<void(const event_ptr &)> &callback) {
+  return vendor_.add_timer(nanotime, callback);
 }
 
-void BrokerService::add_time_interval(int64_t nanotime, const std::function<void(const event_ptr &)> &callback) {
-  vendor_.add_time_interval(nanotime, callback);
+int32_t BrokerService::add_time_interval(int64_t nanotime, const std::function<void(const event_ptr &)> &callback) {
+  return vendor_.add_time_interval(nanotime, callback);
 }
+
+void BrokerService::clear_timer(int32_t timer_id) { vendor_.clear_timer(timer_id); }
 
 void BrokerService::update_broker_state(BrokerState state) {
   state_ = state;

@@ -152,6 +152,8 @@ public:
 
   bool release_page();
 
+  static uint32_t find_page_size(const data::location_ptr &location, uint32_t dest_id);
+
 private:
   void sort_without_buffer();
 
@@ -173,8 +175,6 @@ private:
   std::vector<journal *> no_data_journals_buffer_{};
   std::priority_queue<journal *, std::vector<journal *>, later> has_data_journals_heap_{};
   std::recursive_mutex mtx_{};
-
-  static uint32_t find_page_size(const data::location_ptr &location, uint32_t dest_id);
 };
 
 class writer {

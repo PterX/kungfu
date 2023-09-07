@@ -164,7 +164,7 @@ export const dealFrame = (
       session.location_uid,
       locationNameMap,
     ),
-    msgTypeName: longfist.msgTypes[+frame.msgType],
+    msgTypeName: longfist.msgTypes[+frame.msgType] || frame.msgType + '',
   };
 };
 
@@ -245,8 +245,8 @@ export const getSourceToDest = (
   currentLocationUid: number,
   locationMap: Record<string, string>,
 ): string => {
-  const sourceLocationName = locationMap[source + ''];
-  const destLocationName = locationMap[dest + ''];
+  const sourceLocationName = locationMap[source + ''] || source;
+  const destLocationName = locationMap[dest + ''] || dest;
   if (source === currentLocationUid) {
     return `self -> ${destLocationName}`;
   } else if (dest === currentLocationUid) {

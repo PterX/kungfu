@@ -415,7 +415,6 @@ void TraderXTP::OnQueryPosition(XTPQueryStkPositionRsp *position, XTPRI *error_i
     from_xtp(*position, stock_pos);
   }
   stock_pos.holder_uid = get_home_uid();
-  stock_pos.source_op_id = get_home_uid();
   stock_pos.source_id = get_home_uid();
   stock_pos.instrument_type = get_instrument_type(stock_pos.exchange_id, stock_pos.instrument_id);
   stock_pos.direction = Direction::Long;

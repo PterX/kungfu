@@ -53,7 +53,6 @@ const dealEndTime = () => {
     endTime,
   ]);
   formState.value.endTime = a;
-  console.log('endTime', a);
 };
 onMounted(() => {
   dealEndTime();

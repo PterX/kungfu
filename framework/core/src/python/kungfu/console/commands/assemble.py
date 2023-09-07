@@ -100,7 +100,10 @@ def assemble(ctx, reference):
             assemble_mode = ASSEMBLE_MODE["channel"]
 
         asb = yjj.assemble(
-            source_location, dest_id, assemble_mode, config.get("from_time", 0),
+            source_location,
+            dest_id,
+            assemble_mode,
+            config.get("from_time", 0),
         )
 
         arguments = []

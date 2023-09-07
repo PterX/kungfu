@@ -106,9 +106,12 @@ class TraderSim(wc.Trader):
         order_input = wc.utils.order_input_from_trigger_order(trigger_input)
         dest = event.source
         self.add_timer(
-            yjj.now_in_nano() + 30 * 10 ** 9,
+            yjj.now_in_nano() + 30 * 10**9,
             lambda e: self.trigger_generate_order(
-                dest, trigger.trigger_id, lf.enums.OrderStatus.Filled, order_input,
+                dest,
+                trigger.trigger_id,
+                lf.enums.OrderStatus.Filled,
+                order_input,
             ),
         )
 
@@ -126,7 +129,7 @@ class TraderSim(wc.Trader):
                 self.logger.info(f"OrderTrigger: {trigger}")
                 dest = event.source
                 self.add_timer(
-                    yjj.now_in_nano() + 10 * 10 ** 9,
+                    yjj.now_in_nano() + 10 * 10**9,
                     lambda e: self.update_trigger(
                         dest, trigger.trigger_id, lf.enums.OrderStatus.Cancelled
                     ),
@@ -296,7 +299,7 @@ class TraderSim(wc.Trader):
                         else lf.enums.OrderStatus.PartialFilledNotActive
                     )
                     self.add_timer(
-                        yjj.now_in_nano() + 5 * 10 ** 9,
+                        yjj.now_in_nano() + 5 * 10**9,
                         lambda e: self.update_order(dest, order.order_id, status),
                     )
 
@@ -322,7 +325,7 @@ class TraderSim(wc.Trader):
                     )
                     dest = event.source
                     self.add_timer(
-                        yjj.now_in_nano() + 5 * 10 ** 9,
+                        yjj.now_in_nano() + 5 * 10**9,
                         lambda e: self.update_order(dest, order.order_id, status),
                     )
 
@@ -338,9 +341,11 @@ class TraderSim(wc.Trader):
                     self.get_writer(event.source).write(event.gen_time, trigger)
                     dest = event.source
                     self.add_timer(
-                        yjj.now_in_nano() + 30 * 10 ** 9,
+                        yjj.now_in_nano() + 30 * 10**9,
                         lambda e: self.update_cancel_trigger(
-                            dest, trigger.trigger_id, lf.enums.OrderStatus.Filled,
+                            dest,
+                            trigger.trigger_id,
+                            lf.enums.OrderStatus.Filled,
                         ),
                     )
 

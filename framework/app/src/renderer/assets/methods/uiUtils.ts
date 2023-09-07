@@ -689,7 +689,7 @@ export const openReplayView = (
   return openNewBrowserWindow(
     globalThis.__runtimeDir,
     'replay',
-    `?logPath=${filePath}&categoty=${type}&beginTime=${beginTime}&endTime=${endTime}&logLevel=${log_level}&processId=${type}_replay_${beginTime}_${endTime}`,
+    `?logPath=${filePath}&category=${type}&beginTime=${beginTime}&endTime=${endTime}&logLevel=${log_level}&processId=${type}_replay_${beginTime}_${endTime}`,
     {
       width: 1280,
       height: 960,

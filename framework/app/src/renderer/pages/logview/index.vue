@@ -59,9 +59,7 @@ const isLoading = ref(false);
 const LOG_PATH = params.logPath || '';
 const replayList = ['strategy', 'operator'];
 const isReplayAble = computed(() => {
-  return replayList.includes(
-    props.params.category
-  );
+  return replayList.includes(props.params.category);
 });
 
 setHtmlTitle(LOG_PATH);

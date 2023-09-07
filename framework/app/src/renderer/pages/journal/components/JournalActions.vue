@@ -7,42 +7,42 @@
       {{ t('journalConfig.export') }}
     </a-button>
     <a-modal
-    v-model:visible="exportFormModalVisible"
-    :width="520"
-    class="kf-set-by-config-modal"
-    :title="exportModalConfig.title"
-    :destroy-on-close="true"
-    :cancel-text="$t('cancel')"
-    :ok-text="$t('confirm')"
-    @ok="handleConfirmExport"
-  >
-    <a-form
-      ref="formRef"
-      class="kf-config-form"
-      :model="exportFormState"
-      :colon="false"
-      :scroll-to-first-error="true"
+      v-model:visible="exportFormModalVisible"
+      :width="520"
+      class="kf-set-by-config-modal"
+      :title="exportModalConfig.title"
+      :destroy-on-close="true"
+      :cancel-text="$t('cancel')"
+      :ok-text="$t('confirm')"
+      @ok="handleConfirmExport"
     >
-      <a-form-item
-        :key="EXPORT_KEY"
-        :rules="rules"
-        :label="exportModalConfig.name"
-        :required="true"
+      <a-form
+        ref="formRef"
+        class="kf-config-form"
+        :model="exportFormState"
+        :colon="false"
+        :scroll-to-first-error="true"
       >
-        <div class="kf-form-item__warp file">
-          <a-button size="small" @click="handleSelectFile">
-            <template #icon><DashOutlined /></template>
-          </a-button>
-          <div
-            class="file-path"
-            :title="(exportFormState[EXPORT_KEY] || '').toString()"
-          >
-            <span class="name">{{ exportFormState[EXPORT_KEY] }}</span>
+        <a-form-item
+          :key="EXPORT_KEY"
+          :rules="rules"
+          :label="exportModalConfig.name"
+          :required="true"
+        >
+          <div class="kf-form-item__warp file">
+            <a-button size="small" @click="handleSelectFile">
+              <template #icon><DashOutlined /></template>
+            </a-button>
+            <div
+              class="file-path"
+              :title="(exportFormState[EXPORT_KEY] || '').toString()"
+            >
+              <span class="name">{{ exportFormState[EXPORT_KEY] }}</span>
+            </div>
           </div>
-        </div>
-      </a-form-item>
-    </a-form>
-  </a-modal>
+        </a-form-item>
+      </a-form>
+    </a-modal>
   </div>
 </template>
 

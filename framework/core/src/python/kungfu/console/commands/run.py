@@ -21,10 +21,7 @@ service_command_context = kfc.pass_context("low_latency")
     "-m", "--mode", default="live", type=click.Choice(kfj.MODES.keys()), help="mode"
 )
 @click.option(
-    "-c",
-    "--category",
-    type=click.Choice(kfj.CATEGORIES.keys()),
-    help="category",
+    "-c", "--category", type=click.Choice(kfj.CATEGORIES.keys()), help="category",
 )
 @click.option("-g", "--group", type=str, help="group")
 @click.option("-n", "--name", type=str, help="name")

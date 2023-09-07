@@ -464,14 +464,10 @@ export const useAddUpdateRemoveKfConfig = (): {
 
 export const useRemoveReplayProcess = (): {
   handleRemoveReplayProcess: (
-    watcher: KungfuApi.Watcher,
-    processStatusData: Pm2ProcessStatusData,
     processId: string,
   ) => Promise<void>;
 } => {
   const handleRemoveReplayProcess = (
-    watcher: KungfuApi.Watcher,
-    processStatusData: Pm2ProcessStatusData,
     processId: string,
   ): Promise<void> => {
     return new Promise((resolve, reject) => {

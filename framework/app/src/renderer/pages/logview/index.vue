@@ -114,10 +114,7 @@ onMounted(() => {
     if (currentWindow) {
       currentWindow.on('close', async (event) => {
         event.preventDefault();
-        const { processStatus } = await listProcessStatus();
         handleRemoveReplayProcess(
-          window.watcher,
-          processStatus,
           props.params.processId,
         ).finally(() => {
           currentWindow.destroy();
@@ -187,6 +184,9 @@ async function reLoadLog() {
           messagePrompt().error(t('replay.please_start_replay'));
           return;
         }
+        props.replayProcessParams.replayConfig = replayProcessConfigMap.value[
+          props.params.processId
+        ];
         ensureFileSync(LOG_PATH);
         outputFile(LOG_PATH, '')
           .then(() => {

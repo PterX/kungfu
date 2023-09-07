@@ -134,12 +134,17 @@ void reader::sort() {
     build_buffer();
   }
   int64_t min_time = time::now_in_nano();
-  auto has_data_iter = internal::swap2tail_if(no_data_journals_buffer_.begin(), no_data_journals_buffer_.end(),
-                                              [](const auto &journal) { return journal->current_frame()->has_data(); });
-  for (auto iter = has_data_iter; iter != no_data_journals_buffer_.end(); ++iter) {
-    has_data_journals_heap_.push(*iter);
-  }
-  no_data_journals_buffer_.erase(has_data_iter, no_data_journals_buffer_.end());
+  no_data_journals_buffer_.erase(std::remove_if(no_data_journals_buffer_.begin(), no_data_journals_buffer_.end(),
+                                              [this](const auto &journal_ptr) { 
+                                                const bool has_data = journal_ptr->current_frame()->has_data(); 
+                                                if (has_data)
+                                                  has_data_journals_heap_.push(journal_ptr);
+                                                
+                                                return has_data;}), no_data_journals_buffer_.end());
+  // for (auto iter = has_data_iter; iter != no_data_journals_buffer_.end(); ++iter) {
+  //   has_data_journals_heap_.push(*iter);
+  // }
+  // no_data_journals_buffer_.erase(has_data_iter, no_data_journals_buffer_.end());
   if (has_data_journals_heap_.empty()) {
     return;
   }

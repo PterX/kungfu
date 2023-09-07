@@ -90,6 +90,7 @@ public:
         return channel.source_id == get_home_uid() and channel.dest_id == dest_id;
       }) | rx::first() |
           rx::$([&, data, dest_id](const event_ptr &event) { write_to(now(), data, dest_id); });
+      // call request_write_to to create writer in on_frame, in case that try_write_to the same dest_id multiple times
       try_write_dest_ids_.emplace(dest_id);
     }
   }

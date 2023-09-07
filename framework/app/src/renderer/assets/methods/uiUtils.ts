@@ -586,13 +586,17 @@ export const openNewBrowserWindow = (
     let offsetX, offsetY;
 
     win.on('ready-to-show', function () {
-      if (isParentFullScreen) {
-        win.setFullScreen(false);
-        win.setSize(1080, 766);
-        win.center();
+      if (isMacOS) {
+        if (isParentFullScreen) {
+          win.setFullScreen(false);
+          win.setSize(1080, 766);
+          win.center();
+        }
+        win.show();
+        win.focus();
+      } else {
+        win && win.focus();
       }
-      win.show();
-      win.focus();
     });
 
     win.on('closed', () => {
@@ -612,10 +616,7 @@ export const openNewBrowserWindow = (
       await startReplay(category, group, replayConfig);
     });
 
-    // 在窗口恢复正常大小或关闭时
     if (isMacOS) {
-      // win.on('restore', function () {});
-
       win.on('minimize', (event) => {
         event.preventDefault();
         const [parentX, parentY, parentWidth, parentHeight] = [
@@ -648,12 +649,6 @@ export const openNewBrowserWindow = (
         win.setPosition(newChildX, newChildY);
         win.show();
       });
-
-      // currentWindow.on('focus', () => {
-      //   if (!win.isDestroyed()) {
-      //     win.show();
-      //   }
-      // });
     }
 
     win.webContents.loadURL(modalPath);
@@ -694,7 +689,7 @@ export const openReplayView = (
   return openNewBrowserWindow(
     globalThis.__runtimeDir,
     'replay',
-    `?logPath=${filePath}&beginTime=${beginTime}&endTime=${endTime}&logLevel=${log_level}&processId=${type}_replay_${beginTime}_${endTime}`,
+    `?logPath=${filePath}&category=${type}&beginTime=${beginTime}&endTime=${endTime}&logLevel=${log_level}&processId=${type}_replay_${beginTime}_${endTime}`,
     {
       width: 1280,
       height: 960,

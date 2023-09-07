@@ -106,7 +106,6 @@
               replayPramas.processId &&
               isCurrentMenuItem('replay')
             "
-            :category="currentSession.category"
             :params="replayPramas"
             :is-journal="true"
             :replayProcessParams="replayProcessParams"
@@ -225,10 +224,9 @@ const replayPramas = computed(() => {
       ? getNanoDateString(currentSession.value.end_time)
       : getNanoDateString(BigInt(new Date().getTime()) * 1000000n));
   return {
+    category: category,
     beginTime: begin_time,
-
     endTime: end_time,
-
     logPath: logPath,
     logLevel: replayConfig.value.log_level || '-l info',
     processId: `${category}_replay_${begin_time}_${end_time}`,

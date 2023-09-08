@@ -48,7 +48,7 @@ interface KfTradingDataTableHeaderConfig {
   align?: 'left' | 'right' | 'center';
   width?: number;
   flex?: number;
-  overflow?: 'visible' | 'hidden' | 'ellipsis' | 'clip';
+  textOverflow?: 'visible' | 'hidden' | 'ellipsis' | 'clip';
   wrap?: boolean;
   type?:
     | 'number'

@@ -10,7 +10,7 @@ const LOG_PATH = params.logPath || '';
 setHtmlTitle(LOG_PATH);
 </script>
 <template>
-  <Index :params="params" :type="'logview'" />
+  <Index :log-path="LOG_PATH" />
 </template>
 
 <style lang="less">

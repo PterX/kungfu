@@ -583,8 +583,6 @@ export const openNewBrowserWindow = (
     //判断是否是macOS系统
     const isMacOS = process.platform === 'darwin';
 
-    let offsetX, offsetY;
-
     win.on('ready-to-show', function () {
       if (isMacOS) {
         if (isParentFullScreen) {
@@ -601,19 +599,6 @@ export const openNewBrowserWindow = (
 
     win.on('closed', () => {
       resolve(win);
-    });
-
-    ipcRenderer.on('trigger-main-window-hook', (_event, args) => {
-      const { key, hookName } = args;
-      if (key && hookName) {
-        globalThis.HookKeeper.getHooks().processAction.trigger(hookName, key);
-      }
-    });
-
-    ipcRenderer.on('startReplay', async (_event, args) => {
-      const { replayProcessParams } = args;
-      const { category, group, replayConfig } = replayProcessParams;
-      await startReplay(category, group, replayConfig);
     });
 
     if (isMacOS) {
@@ -633,21 +618,24 @@ export const openNewBrowserWindow = (
         currentWindow.setSize(parentWidth, parentHeight);
         currentWindow.setPosition(parentX, parentY);
 
-        offsetX = newX - parentX;
-        offsetY = newY - parentY;
-
-        win.setAlwaysOnTop(true);
-
         win.show();
       });
 
-      currentWindow.on('move', () => {
-        const [newParentX, newParentY] = currentWindow.getPosition();
+      currentWindow.on('resize', () => {
+        if (win.getSize()[0] === 300 && win.getSize()[1] === 30) {
+          const [parentX, parentY, parentWidth, parentHeight] = [
+            currentWindow.getPosition()[0],
+            currentWindow.getPosition()[1],
+            currentWindow.getSize()[0],
+            currentWindow.getSize()[1],
+          ];
 
-        const newChildX = newParentX + offsetX;
-        const newChildY = newParentY + offsetY;
-        win.setPosition(newChildX, newChildY);
-        win.show();
+          const newX = parentX + parentWidth - 300;
+          const newY = parentY + parentHeight - 30;
+
+          win.setPosition(newX, newY);
+          win.show();
+        }
       });
     } else {
       win && win.show();
@@ -875,7 +863,6 @@ export const messagePrompt = (): {
 
 export const handleOpenReplayView = async (
   config: KungfuApi.KfConfig | KungfuApi.KfLocation,
-  processId: string,
   beginTime: string,
   endTime: string,
   logLevel: string,
@@ -885,14 +872,6 @@ export const handleOpenReplayView = async (
   const hideloading = messagePrompt().loading(t('open_replay_dashboard'));
   const logPath = buildProcessReplayPath(config, `${config.name}_${dateStr}`);
   if (replayConfig) {
-    globalThis.HookKeeper.getHooks().processAction.register(
-      processId,
-      'start',
-      async () => {
-        await startReplay(config.category, config.group, replayConfig);
-        console.log(`start replay${processId}`);
-      },
-    );
     await startReplay(config.category, config.group, replayConfig);
   }
   return openReplayView(

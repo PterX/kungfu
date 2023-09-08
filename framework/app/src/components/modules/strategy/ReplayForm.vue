@@ -3,7 +3,6 @@ import { onMounted, ref } from 'vue';
 import { ReloadOutlined } from '@ant-design/icons-vue';
 import { getNanoDateString } from '@kungfu-trader/kungfu-js-api/kungfu';
 
-import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 
 const { t } = VueI18n.global;
@@ -67,7 +66,7 @@ const logLevelOptions = [
   { value: '-l trace', label: 'TRACE' },
   { value: '-l debug', label: 'DEBUG' },
   { value: '-l info', label: 'INFO' },
-  { value: '-l warn', label: 'WARN' },
+  { value: '-l warning', label: 'WARN' },
   { value: '-l error', label: 'ERROR' },
   { value: '-l critical', label: 'CRITICAL' },
 ];
@@ -137,11 +136,6 @@ const handleOk = () => {
   formRef.value
     ?.validate()
     .then(() => {
-      useGlobalStore().setReplaySetting({
-        begin_time: formState.value.beginTime,
-        end_time: formState.value.endTime,
-        log_level: formState.value.logLevel,
-      });
       emit('confirm', formState.value);
     })
     .catch((error) => {

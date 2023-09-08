@@ -2098,7 +2098,6 @@ export const useReplay = (): {
     }[]
   >;
 } => {
-  const { replaySetting } = storeToRefs(useGlobalStore());
   const setReplayModalVisible = ref(false);
   const journalReplayflag = ref(0);
   const replayProcessParams = ref<
@@ -2111,12 +2110,14 @@ export const useReplay = (): {
   >(undefined);
 
   const currentLocation = ref<KungfuApi.KfConfig | null>(null);
+  const config = localStorage.getItem('replaySetting');
+  const replaySetting = config ? JSON.parse(config) : {};
   const replayConfig = ref<KungfuApi.ReplayConfig>({
     session_info: '',
     group: 'default',
     begin_time: '',
     end_time: '',
-    log_level: '',
+    log_level: replaySetting.log_level || '-l info',
     session_name: '',
     path: '',
   });
@@ -2184,14 +2185,16 @@ export const useReplay = (): {
       error(t('replay.process_has_not_been_started'));
       return;
     }
+    const config = localStorage.getItem('replaySetting');
+    const replaySetting = config ? JSON.parse(config) : {};
     const startTime = getNanoDateString(currentSession.begin_time);
     const endTime =
-      replaySetting.value.end_time && replaySetting.value.end_time > startTime
-        ? replaySetting.value.end_time
+      replaySetting.end_time && replaySetting.end_time > startTime
+        ? replaySetting.end_time
         : currentSession.end_time
         ? getNanoDateString(currentSession.end_time)
         : getNanoDateString(BigInt(new Date().getTime()) * 1000000n);
-    const logLevel = replaySetting.value.log_level || '-l info';
+    const logLevel = replaySetting.log_level || '-l info';
     const params = record.value ? JSON.parse(record.value) : {};
     const date = getYearMonthDay();
     const beginTime = `${date} ${startTime}`;
@@ -2230,11 +2233,12 @@ export const useReplay = (): {
     const endTime =
       data.endTime ||
       getNanoDateString(BigInt(new Date().getTime()) * 1000000n);
-    useGlobalStore().setReplaySetting({
+    const replaySetting = {
       begin_time: startTime,
       end_time: endTime,
       log_level: data.logLevel,
-    });
+    };
+    localStorage.setItem('replaySetting', JSON.stringify(replaySetting));
     setReplayModalVisible.value = false;
     const date = getYearMonthDay();
     const beginTime = `${date} ${startTime}`;
@@ -2242,6 +2246,7 @@ export const useReplay = (): {
     const processId = `${location.category}_replay_${startTime}_${endTime}`;
     replayConfig.value.begin_time = beginTime;
     replayConfig.value.end_time = endTimeStr;
+    replayConfig.value.log_level = data.logLevel;
     const params = {
       category: location.category,
       group: location.group,
@@ -2260,7 +2265,6 @@ export const useReplay = (): {
     } else {
       await handleOpenReplayView(
         location,
-        processId,
         startTime,
         endTime,
         data.logLevel,

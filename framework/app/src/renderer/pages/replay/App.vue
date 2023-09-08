@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import { setHtmlTitle } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import { getUrlParams } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/logUtils';
-import Index from '@kungfu-trader/kungfu-app/src/renderer/pages/logview/index.vue';
+import Replay from '@kungfu-trader/kungfu-app/src/renderer/pages/replay/replay.vue';
 
 const params = getUrlParams();
-console.log(params);
 
 const LOG_PATH = params.logPath || '';
 setHtmlTitle(LOG_PATH);
@@ -14,7 +13,7 @@ window.onbeforeunload = (e) => {
 };
 </script>
 <template>
-  <Index :params="params" :type="'replay'" />
+  <Replay :params="params" :closeImmediately="false" />
 </template>
 
 <style lang="less">

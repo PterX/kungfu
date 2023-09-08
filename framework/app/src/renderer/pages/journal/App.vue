@@ -96,8 +96,7 @@
         </a-menu>
         <div class="kf-journal-menu-content">
           <EventsDashBoard
-            v-if="currentSession"
-            v-show="isCurrentMenuItem('event')"
+            v-if="currentSession && isCurrentMenuItem('event')"
             ref="eventDashBoard"
           />
           <Replay
@@ -106,9 +105,8 @@
               replayPramas.processId &&
               isCurrentMenuItem('replay')
             "
+            ref="replayRef"
             :params="replayPramas"
-            :is-journal="true"
-            :type="'replay'"
             :key="replayPramas.processId"
           />
         </div>
@@ -151,11 +149,18 @@ import {
   useTableSearchKeyword,
   setHtmlTitle,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
-import { getYearMonthDay } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import {
+  getYearMonthDay,
+  delayMilliSeconds,
+} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { getNanoDateString } from '@kungfu-trader/kungfu-js-api/kungfu';
 
 import { dealCategory } from './utils';
-import { UnorderedListOutlined, HistoryOutlined } from '@ant-design/icons-vue';
+import {
+  UnorderedListOutlined,
+  HistoryOutlined,
+  ReloadOutlined,
+} from '@ant-design/icons-vue';
 import TimeSlider from './components/TimeSlider.vue';
 import JournalActions from './components/JournalActions.vue';
 import EventsDashBoard from './components/EventsDashboard.vue';
@@ -167,10 +172,12 @@ import { useReplay } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods
 import KfDashboard from '../../components/public/KfDashboard.vue';
 
 import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
-import Replay from '@kungfu-trader/kungfu-app/src/renderer/pages/logview/index.vue';
+import Replay from '@kungfu-trader/kungfu-app/src/renderer/pages/replay/replay.vue';
 import ReplayForm from '@kungfu-trader/kungfu-app/src/components/modules/strategy/ReplayForm.vue';
 
 const { t } = VueI18n.global;
+
+const replayRef = ref();
 
 let currentWindow: Electron.BrowserWindow | null = null;
 const {
@@ -258,7 +265,9 @@ const menus = [
 const isCurrentMenuItem = (key: 'event' | 'visual' | 'replay') => {
   if (currentMenuList.value.includes(key) && key === 'replay') {
     setHtmlTitle(replayPramas.value.logPath);
-    return replayList.includes(extractWordAfterLog(replayPramas.value.logPath));
+    return replayList.includes(
+      currentSession.value ? currentSession.value.category : '',
+    );
   } else {
     return currentMenuList.value.includes(key);
   }
@@ -281,15 +290,23 @@ const customRow = (record: KungfuApi.SessionResolved) => {
   return {
     onClick: () => {
       setCurrentSession(record);
-      replayConfig.value = {
-        session_info: '',
-        group: 'default',
-        begin_time: '',
-        end_time: '',
-        log_level: '',
-        session_name: '',
-        path: '',
-      };
+
+      if (replayRef.value) {
+        const config = localStorage.getItem('replaySetting');
+        const replaySetting = config ? JSON.parse(config) : {};
+        replayConfig.value = {
+          session_info: '',
+          group: 'default',
+          begin_time: '',
+          end_time: '',
+          log_level: replaySetting.log_level || '-l info',
+          session_name: '',
+          path: '',
+        };
+        delayMilliSeconds(0).then(() => {
+          replayRef.value.uodateLogLevel();
+        });
+      }
     },
   };
 };
@@ -391,11 +408,6 @@ const dealRowClassName = (row) => {
     ? 'current-global-kfLocation'
     : '';
 };
-
-function extractWordAfterLog(inputString) {
-  const match = inputString.match(/\/log\/([^\/]+)/);
-  return match ? match[1] : null;
-}
 </script>
 
 <style lang="less">

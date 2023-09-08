@@ -182,6 +182,17 @@ const orderActionByInstrument = ref<Record<string, OrderActionResolved[]>>({});
 
 const selectedInstrument = ref<string>('');
 const xAxisData = ref<number[]>([]);
+// const xAxisData2 = ref<
+//   Record<
+//     string,
+//     {
+//       quote?: number;
+//       orderInput?: number;
+//       order?: number;
+//       orderAction?: number;
+//     }
+//   >
+// >({});
 const searchOrderId = ref<string>('');
 const instrumentList = ref<
   {
@@ -213,7 +224,6 @@ const customRow = (record: KungfuApi.SessionResolved) => {
   return {
     onClick: () => {
       setCurrentSession(record);
-      // 可能有时序问题，收尾看一下
       dealAllFrameData();
     },
   };
@@ -317,6 +327,7 @@ function reset() {
 
 function dealAllFrameData() {
   reset();
+  // dealFrameListMap();
   quoteByInstrument.value = dealFrame<QuoteChartResolved>(
     'quote',
     kfInstrumentsJSON,
@@ -341,6 +352,67 @@ function dealAllFrameData() {
     getCurInstrument(instrumentList.value[0]);
   }
 }
+
+// const chartFrameListMap = ref<Record<string, KungfuApi.FrameResolved[]>>({
+//   quote: [],
+//   orderInput: [],
+//   order: [],
+//   orderAction: [],
+// });
+
+// watch(
+//   () => currentFrameList.value,
+//   (currentFrameList) => {
+//     if (currentFrameList.length > 0) {
+//       dealFrameListMap();
+//     }
+//   },
+// );
+
+// function dealFrameListMap() {
+//   chartFrameListMap.value = {
+//     quote: [],
+//     orderInput: [],
+//     order: [],
+//     orderAction: [],
+//   };
+//   xAxisData2.value = {};
+//   currentFrameList.value.forEach((item, index) => {
+//     if (item.msgTypeName === 'Quote') {
+//       chartFrameListMap.value.quote.push(item);
+//       const dataTime = (item.data as KungfuApi.Quote).data_time;
+//       if (dataTime) {
+//         xAxisData2.value[dataTime.toString()] = {
+//           quote: index,
+//         };
+//       }
+//     } else if (item.msgTypeName === 'OrderInput') {
+//       chartFrameListMap.value.orderInput.push(item);
+//       const dataTime = (item.data as KungfuApi.OrderInput).insert_time;
+//       if (dataTime) {
+//         xAxisData2.value[dataTime.toString()] = {
+//           orderInput: index,
+//         };
+//       }
+//     } else if (item.msgTypeName === 'Order') {
+//       chartFrameListMap.value.order.push(item);
+//       const dataTime = (item.data as KungfuApi.Order).update_time;
+//       if (dataTime) {
+//         xAxisData2.value[dataTime.toString()] = {
+//           order: index,
+//         };
+//       }
+//     } else if (item.msgTypeName === 'OrderAction') {
+//       chartFrameListMap.value.orderAction.push(item);
+//       const dataTime = (item.data as KungfuApi.Order).insert_time;
+//       if (dataTime) {
+//         xAxisData2.value[dataTime.toString()] = {
+//           orderAction: index,
+//         };
+//       }
+//     }
+//   });
+// }
 
 const chartFrameListMap = computed<Record<string, KungfuApi.FrameResolved[]>>(
   () => {
@@ -562,14 +634,6 @@ const initChart = () => {
 };
 
 const updateOption = () => {
-  console.log(
-    dealChartDataByFrameResolved<QuoteChartResolved>(
-      selectedInstrument.value,
-      quoteByInstrument.value,
-      'Quote',
-    ),
-    '`````````````',
-  );
   option.yAxis.min = xAxisMinMax.value.min;
   option.yAxis.max = xAxisMinMax.value.max;
 

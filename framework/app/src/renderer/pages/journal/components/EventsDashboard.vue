@@ -87,7 +87,6 @@
         :size-dependencies-fields="['dataAsString']"
         :resizable="false"
         :custom-row-class="dealRowClassName"
-        :scroll-to-item="selectedChartItem"
         @click-cell="handleOpenFrameDetail"
         @click-row="handleOpenFrameDetail"
         @right-click-row="handleRightClickRow"
@@ -314,6 +313,15 @@ watch(
   () => loadedLastFrameTime.value,
   (nano) => {
     setCurrentLastFrameTime(nano);
+  },
+);
+
+watch(
+  () => selectedChartItem.value,
+  (newScrollToItem) => {
+    if (scrollerTableRef.value) {
+      scrollerTableRef.value.scrollToItem(newScrollToItem);
+    }
   },
 );
 

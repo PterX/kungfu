@@ -35,7 +35,6 @@ const props = withDefaults(
     selectable?: boolean;
     selection?: KfTradingDataTableSelection; // 仅在 selectable 为 true 的时候生效
     customRowClass?: (row: TableDataItem) => string;
-    scrollToItem?: number;
   }>(),
   {
     dynamic: false,
@@ -50,7 +49,6 @@ const props = withDefaults(
     selectable: false,
     selection: () => ({}),
     customRowClass: () => '',
-    scrollToItem: 0,
   },
 );
 
@@ -153,15 +151,6 @@ watch(
     selectedRowsMap.value = tempSelectedRows;
   },
   { immediate: true },
-);
-
-watch(
-  () => props.scrollToItem,
-  (newScrollToItem) => {
-    if (scroller.value) {
-      scroller.value?.scrollToItem(newScrollToItem);
-    }
-  },
 );
 
 onMounted(() => {

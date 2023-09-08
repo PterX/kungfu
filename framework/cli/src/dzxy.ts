@@ -243,7 +243,7 @@ async function exportTradingData(date, output_folder) {
   const orderStat = tradingData.OrderStat.sort(orderStatSortKey);
   const positions = tradingData.Position.sort(positionSortKey);
 
-  const ordersFilename = path.join(output_folder, `orders-${date}}`);
+  const ordersFilename = path.join(output_folder, `orders-${date}`);
   const tradesFilename = path.join(output_folder, `trades-${date}`);
   const orderStatFilename = path.join(output_folder, `orderStats-${date}`);
   const posFilename = path.join(output_folder, `pos-${date}`);

@@ -538,7 +538,8 @@ def try_load_cpp_module(ctx, path, key, cls):
         factory_func = getattr(module, cls_name.lower())
         ctx.is_cpp_module = True
         return factory_func()
-    except Exception as e:
+    except AttributeError as e:
+        sys.modules.pop(key)
         ctx.logger.debug(f"fallback to python loader due to: {e}")
         ctx.path = os.path.join(os.path.dirname(path), key)
         return cls(ctx)

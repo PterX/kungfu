@@ -12,6 +12,7 @@ import {
   onMounted,
   ref,
   toRaw,
+  nextTick,
 } from 'vue';
 import { throttle } from 'lodash';
 
@@ -23,6 +24,7 @@ type TableDataItem =
 const props = withDefaults(
   defineProps<{
     dynamic?: boolean;
+    willSwitchDynamic?: boolean;
     dataSource: TableDataItem[];
     columns: KfTradingDataTableHeaderConfig[];
     keyField?: string;
@@ -37,6 +39,7 @@ const props = withDefaults(
   }>(),
   {
     dynamic: false,
+    willSwitchDynamic: false,
     columns: () => [],
     dataSource: () => [],
     keyField: 'id',
@@ -75,8 +78,14 @@ defineEmits<{
 }>();
 
 const app = getCurrentInstance();
-const TradingDataTableItem = createReusableTemplate<{ item: TableDataItem }>();
-const scroller = ref();
+const TradingDataTableItem = createReusableTemplate<{
+  type: 'dynamic' | 'normal';
+  item: TableDataItem;
+  index: number;
+  active: boolean;
+}>();
+const normalScroller = ref();
+const dynamicScroller = ref();
 const simpleImage = Empty.PRESENTED_IMAGE_SIMPLE;
 const kfScrollerTableBodyRef = ref();
 const kfScrollerTableWidth = ref(0);
@@ -336,9 +345,51 @@ watch(
 );
 
 const scrollToItem = (index: number) => {
-  if (scroller.value) {
-    scroller.value.scrollToItem(index);
+  nextTick(() => {
+    const scroller = props.dynamic
+      ? dynamicScroller.value
+      : normalScroller.value;
+    if (scroller) {
+      scroller.scrollToItem(index);
+    }
+  });
+};
+
+const getVisibleIndexRange = (): [number, number] => {
+  if (kfScrollerTableBodyRef.value) {
+    const rect = (
+      kfScrollerTableBodyRef.value as Element
+    ).getBoundingClientRect();
+    const { top, bottom } = rect;
+    const itemNodeList = document.querySelectorAll(
+      `ul[kf-table-item-active="${props.dynamic ? 'dynamic' : 'normal'}-true"]`,
+    );
+    if (itemNodeList.length) {
+      const range: [number, number] = [-1, -1];
+      let minTopDelta = Infinity,
+        minBottomDelta = Infinity;
+      for (let i = 0; i < itemNodeList.length; i++) {
+        const itemNode = itemNodeList[i] as HTMLElement;
+        const itemIndex = itemNode.getAttribute('kf-table-item-index');
+        const itemRect = itemNode.getBoundingClientRect();
+        const topDelta = itemRect.top - top;
+        const bottomDelta = bottom - itemRect.bottom;
+        if (topDelta >= 0 && bottomDelta >= 0) {
+          if (topDelta < minTopDelta) {
+            minTopDelta = topDelta;
+            range[0] = +(itemIndex ?? -1);
+          }
+          if (bottomDelta < minBottomDelta) {
+            minBottomDelta = bottomDelta;
+            range[1] = +(itemIndex ?? -1);
+          }
+        }
+      }
+      return range;
+    }
   }
+
+  return [-1, -1];
 };
 
 defineExpose({
@@ -347,6 +398,7 @@ defineExpose({
   handleSelectRow,
   handleSelectAll,
   scrollToItem,
+  getVisibleIndexRange,
 });
 </script>
 <template>
@@ -397,8 +449,10 @@ defineExpose({
     </ul>
     <div ref="kfScrollerTableBodyRef" class="kf-table-body">
       <!-- reusable template for trading data item -->
-      <TradingDataTableItem.define v-slot="{ item }">
+      <TradingDataTableItem.define v-slot="{ type, item, index, active }">
         <ul
+          :kf-table-item-active="`${type}-${active}`"
+          :kf-table-item-index="index"
           :class="['kf-table-row', customRowClass?.(item) || '']"
           :style="
             dynamic
@@ -437,7 +491,7 @@ defineExpose({
             :style="{
               'max-width': getHeaderWidth(column),
               height: '100%',
-              'text-overflow': column.textOverflow ? 'ellipsis' : 'clip',
+              'text-overflow': column.textOverflow || 'clip',
               'white-space': column.wrap ? 'normal' : 'nowrap',
               overflow: column.wrap ? 'unset' : 'hidden',
               'text-align': column.align || 'left',
@@ -456,8 +510,9 @@ defineExpose({
 
       <template v-if="dataSourceResolved && dataSourceResolved.length">
         <DynamicScroller
-          v-if="dynamic"
-          ref="scroller"
+          v-if="willSwitchDynamic || dynamic"
+          v-show="dynamic"
+          ref="dynamicScroller"
           class="kf-table-scroller"
           :items="dataSourceResolved"
           :min-item-size="Number(minItemSize)"
@@ -483,14 +538,18 @@ defineExpose({
               :data-index="index"
             >
               <TradingDataTableItem.reuse
+                type="dynamic"
                 :item="item"
+                :active="active"
+                :index="index"
               ></TradingDataTableItem.reuse>
             </DynamicScrollerItem>
           </template>
         </DynamicScroller>
         <RecycleScroller
-          v-else
-          ref="scroller"
+          v-if="willSwitchDynamic || !dynamic"
+          v-show="!dynamic"
+          ref="normalScroller"
           class="kf-table-scroller"
           :items="dataSourceResolved"
           :item-size="Number(itemSize)"
@@ -498,9 +557,22 @@ defineExpose({
           :buffer="100"
           @scroll="handleScroll($event)"
         >
-          <template #default="{ item }: { item: TableDataItem }">
+          <template
+            #default="{
+              item,
+              index,
+              active,
+            }: {
+              item: TableDataItem,
+              index: number,
+              active: boolean,
+            }"
+          >
             <TradingDataTableItem.reuse
+              type="normal"
               :item="item"
+              :active="active"
+              :index="index"
             ></TradingDataTableItem.reuse>
           </template>
         </RecycleScroller>

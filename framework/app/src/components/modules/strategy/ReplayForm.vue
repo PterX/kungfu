@@ -20,7 +20,6 @@ const props = withDefaults(
     beginTime: string;
     endTime: string;
     logLevel: string;
-    
   }>(),
   {
     isJournal: false,
@@ -178,96 +177,119 @@ const handleCancel = () => {
     @ok="handleOk"
     @cancel="handleCancel"
   >
-  <div class="flex-container">
-    <a-form
-      :model="formState"
-      name="basic"
-      autocomplete="off"
-      ref="formRef"
-      class="replay-config-form"
-    >
-      <a-form-item :label="$t('replay.session')" name="sessionInfo">
-        <a-select
-          v-model:value="formState.sessionInfo"
-          @select="handleSelectSessionInfo"
+    <div class="flex-container">
+      <a-form
+        :model="formState"
+        name="basic"
+        autocomplete="off"
+        ref="formRef"
+        class="replay-config-form"
+      >
+        <a-form-item :label="$t('replay.session')" name="sessionInfo">
+          <a-select
+            v-model:value="formState.sessionInfo"
+            @select="handleSelectSessionInfo"
+          >
+            <a-select-option
+              v-for="item in sessionOptions"
+              :key="item.value"
+              :value="item.value"
+            >
+              {{ item.label }}
+            </a-select-option>
+          </a-select>
+        </a-form-item>
+        <a-form-item
+          :label="$t('replay.begin_time')"
+          name="beginTime"
+          :required:="true"
         >
-          <a-select-option
-            v-for="item in sessionOptions"
-            :key="item.value"
-            :value="item.value"
-          >
-            {{ item.label }}
-          </a-select-option>
-        </a-select>
-      </a-form-item>
-      <a-form-item
-        :label="$t('replay.begin_time')"
-        name="beginTime"
-        :required:="true"
-      >
-        <a-input v-model:value="formState.beginTime" :disabled="true" />
-      </a-form-item>
-      <a-form-item :label="$t('replay.end_time')" name="endTime">
-        <a-input v-model:value="formState.endTime" @blur="dealEndTime">
-          <template v-slot:suffix>
-            <ReloadOutlined @click="refreshEndTime" style="font-size: 14px" />
-          </template>
-        </a-input>
-      </a-form-item>
-      <a-form-item
-        :label="$t('replay.log_level')"
-        name="logLevel"
-        :rules="[
-          {
-            required: true,
-            message: t('replay.please_select_log_level'),
-            trigger: 'blur',
-          },
-        ]"
-      >
-        <a-select v-model:value="formState.logLevel">
-          <a-select-option
-            v-for="item in logLevelOptions"
-            :key="item.value"
-            :value="item.value"
-          >
-            {{ item.label }}
-          </a-select-option>
-        </a-select>
-      </a-form-item>
-      
-    </a-form>
-    <div class="form-note">
-      <div class="spacer"></div>
-      <div class="note-content" v-if="props.isJournal">
-        <p>* 注: </p>
-        <ul>
-          <li>1.回放依赖数据时间, <span class="highlighted-text">请勿在策略内使用物理时间相关代码来表达"now"</span>(如 python 的 time 或者 yjj.now_in_nano), 建议使用策略提供的 context.now 方法, 否则回放无法按照预期执行.</li>
-          <li>2.回放仅可增加 log, <span class="highlighted-text">请勿修改策略逻辑</span>, 否则会由于输出数据与实际不符而报错.</li>
-        </ul>
-      </div>
-      <div class="note-content" v-else>
-        <p>* 注: </p>
-        <ul>
-          <li>1.点击确认后, 开始回放本记录最近一次 session.如需回放之前启动过的 session, 请使用 journal 工具选择 session, 点击"回放"按钮进行回放.</li>
-          <li>2.回放依赖数据时间, <span class="highlighted-text">请勿在策略内使用物理时间相关代码来表达"now"</span>(如 python 的 time 或者 yjj.now_in_nano), 建议使用策略提供的 context.now 方法, 否则回放无法按照预期执行.</li>
-          <li>3.回放仅可增加 log, <span class="highlighted-text">请勿修改策略逻辑</span>, 否则会由于输出数据与实际不符而报错.</li>
-        </ul>
+          <a-input v-model:value="formState.beginTime" :disabled="true" />
+        </a-form-item>
+        <a-form-item :label="$t('replay.end_time')" name="endTime">
+          <a-input v-model:value="formState.endTime" @blur="dealEndTime">
+            <template v-slot:suffix>
+              <ReloadOutlined @click="refreshEndTime" style="font-size: 14px" />
+            </template>
+          </a-input>
+        </a-form-item>
+        <a-form-item
+          :label="$t('replay.log_level')"
+          name="logLevel"
+          :rules="[
+            {
+              required: true,
+              message: t('replay.please_select_log_level'),
+              trigger: 'blur',
+            },
+          ]"
+        >
+          <a-select v-model:value="formState.logLevel">
+            <a-select-option
+              v-for="item in logLevelOptions"
+              :key="item.value"
+              :value="item.value"
+            >
+              {{ item.label }}
+            </a-select-option>
+          </a-select>
+        </a-form-item>
+      </a-form>
+      <div class="form-note">
+        <div class="spacer"></div>
+        <div class="note-content" v-if="props.isJournal">
+          <p>* 注:</p>
+          <ul>
+            <li>
+              1.回放依赖数据时间,
+              <span class="highlighted-text">
+                请勿在策略内使用物理时间相关代码来表达"now"
+              </span>
+              (如 python 的 time 或者 yjj.now_in_nano), 建议使用策略提供的
+              context.now 方法, 否则回放无法按照预期执行.
+            </li>
+            <li>
+              2.回放仅可增加 log,
+              <span class="highlighted-text">请勿修改策略逻辑</span>
+              , 否则会由于输出数据与实际不符而报错.
+            </li>
+          </ul>
+        </div>
+        <div class="note-content" v-else>
+          <p>* 注:</p>
+          <ul>
+            <li>
+              1.点击确认后, 开始回放本记录最近一次 session.如需回放之前启动过的
+              session, 请使用 journal 工具选择 session, 点击"回放"按钮进行回放.
+            </li>
+            <li>
+              2.回放依赖数据时间,
+              <span class="highlighted-text">
+                请勿在策略内使用物理时间相关代码来表达"now"
+              </span>
+              (如 python 的 time 或者 yjj.now_in_nano), 建议使用策略提供的
+              context.now 方法, 否则回放无法按照预期执行.
+            </li>
+            <li>
+              3.回放仅可增加 log,
+              <span class="highlighted-text">请勿修改策略逻辑</span>
+              , 否则会由于输出数据与实际不符而报错.
+            </li>
+          </ul>
+        </div>
       </div>
     </div>
-  </div>
   </a-modal>
 </template>
 
-<style lang="less" >
-
+<style lang="less">
 .flex-container {
   display: flex;
   flex-direction: column;
 }
 
 .highlighted-text {
-  color: #FAAD14;
+  color: #faad14;
 }
 
 .form-note {
@@ -284,7 +306,7 @@ const handleCancel = () => {
   ul {
     padding-left: 20px;
     margin: 0;
-    
+
     li {
       margin-bottom: 10px;
     }
@@ -294,10 +316,4 @@ const handleCancel = () => {
   list-style-type: none;
   padding-left: 0;
 }
-
-
-
-
-
-
 </style>

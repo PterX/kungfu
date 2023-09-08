@@ -24,3 +24,12 @@ export enum MsgType {
   BlockMessage = 207,
   Quote = 401,
 }
+
+export enum LogLevelType {
+  '-l trace' = 'TRACE',
+  '-l debug' = 'DEBUG',
+  '-l info' = 'INFO',
+  '-l warning' = 'WARN',
+  '-l error' = 'ERROR',
+  '-l critical' = 'CRITICAL',
+}

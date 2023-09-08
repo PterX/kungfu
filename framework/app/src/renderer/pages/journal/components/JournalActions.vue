@@ -1,45 +1,49 @@
 <template>
-  <a-button @click="handleOpenExportFormModal">
-    {{ t('journalConfig.export') }}
-  </a-button>
-
-  <a-modal
-    v-model:visible="exportFormModalVisible"
-    :width="520"
-    class="kf-set-by-config-modal"
-    :title="exportModalConfig.title"
-    :destroy-on-close="true"
-    :cancel-text="$t('cancel')"
-    :ok-text="$t('confirm')"
-    @ok="handleConfirmExport"
-  >
-    <a-form
-      ref="formRef"
-      class="kf-config-form"
-      :model="exportFormState"
-      :colon="false"
-      :scroll-to-first-error="true"
+  <div class="journal-action">
+    <a-button @click="handleOpenReplayConfirmModal" style="margin-left: 8px">
+      {{ t('replay.replay') }}
+    </a-button>
+    <a-button @click="handleOpenExportFormModal" style="margin-left: 8px">
+      {{ t('journalConfig.export') }}
+    </a-button>
+    <a-modal
+      v-model:visible="exportFormModalVisible"
+      :width="520"
+      class="kf-set-by-config-modal"
+      :title="exportModalConfig.title"
+      :destroy-on-close="true"
+      :cancel-text="$t('cancel')"
+      :ok-text="$t('confirm')"
+      @ok="handleConfirmExport"
     >
-      <a-form-item
-        :key="EXPORT_KEY"
-        :rules="rules"
-        :label="exportModalConfig.name"
-        :required="true"
+      <a-form
+        ref="formRef"
+        class="kf-config-form"
+        :model="exportFormState"
+        :colon="false"
+        :scroll-to-first-error="true"
       >
-        <div class="kf-form-item__warp file">
-          <a-button size="small" @click="handleSelectFile">
-            <template #icon><DashOutlined /></template>
-          </a-button>
-          <div
-            class="file-path"
-            :title="(exportFormState[EXPORT_KEY] || '').toString()"
-          >
-            <span class="name">{{ exportFormState[EXPORT_KEY] }}</span>
+        <a-form-item
+          :key="EXPORT_KEY"
+          :rules="rules"
+          :label="exportModalConfig.name"
+          :required="true"
+        >
+          <div class="kf-form-item__warp file">
+            <a-button size="small" @click="handleSelectFile">
+              <template #icon><DashOutlined /></template>
+            </a-button>
+            <div
+              class="file-path"
+              :title="(exportFormState[EXPORT_KEY] || '').toString()"
+            >
+              <span class="name">{{ exportFormState[EXPORT_KEY] }}</span>
+            </div>
           </div>
-        </div>
-      </a-form-item>
-    </a-form>
-  </a-modal>
+        </a-form-item>
+      </a-form>
+    </a-modal>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -51,7 +55,6 @@ import { DashOutlined } from '@ant-design/icons-vue';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { messagePrompt } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import { writeCsvByStream } from '../utils';
-
 const { t } = VueI18n.global;
 
 const emit = defineEmits<{
@@ -62,6 +65,7 @@ const emit = defineEmits<{
       exportData: KungfuApi.FrameResolved[],
     ) => void,
   ): void;
+  (e: 'startReplay'): void;
 }>();
 
 const EXPORT_KEY = 'export_file_path';
@@ -167,6 +171,10 @@ const handleConfirmExport = () => {
     },
   );
 };
+
+const handleOpenReplayConfirmModal = async () => {
+  emit('startReplay');
+};
 </script>
 
 <style lang="less">
@@ -189,5 +197,11 @@ const handleConfirmExport = () => {
       width: 40px;
     }
   }
+}
+
+.journal-action {
+  display: flex;
+  justify-content: flex-end;
+  margin-left: 16px;
 }
 </style>

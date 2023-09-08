@@ -29,7 +29,7 @@ public:
 
   void restore(const yijinjing::data::location_ptr &location, const yijinjing::journal::writer_ptr &writer);
 
-  void clear_cache_shift(const yijinjing::data::location_ptr &location);
+  void reset_cache_shift(const yijinjing::data::location_ptr &location);
 
   void make_cache_shift(const yijinjing::data::location_ptr &location);
 

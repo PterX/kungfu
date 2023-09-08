@@ -113,3 +113,47 @@ export const getFrameColumns = (): KfTradingDataTableHeaderConfig[] => [
     flex: 1,
   },
 ];
+
+export const getReplayConfig = (
+  startTime: string,
+  endTime: string,
+): KungfuApi.KfStrategyExtConfig => {
+  return {
+    type: [],
+    name: t('strategyConfig.replay'),
+    category: 'strategy',
+    key: 'default',
+    extPath: '',
+    settings: [
+      {
+        key: 'start_time',
+        name: t('strategyConfig.start_time'),
+        type: 'timePicker',
+        disabled: true,
+      },
+      {
+        key: 'end_time',
+        name: t('strategyConfig.end_time'),
+        type: 'timePicker',
+        abledTimeRange: [
+          startTime ? startTime : '00:00:00',
+          endTime ? endTime : '23:59:59',
+        ],
+      },
+      {
+        key: 'log_level',
+        name: t('strategyConfig.log_level'),
+        type: 'select',
+        options: [
+          { value: 'TRACE', label: 'TRACE' },
+          { value: 'DEBUG', label: 'DEBUG' },
+          { value: 'INFO', label: 'INFO' },
+          { value: 'WARN', label: 'WARN' },
+          { value: 'ERROR', label: 'ERROR' },
+          { value: 'CRITICAL', label: 'CRITICAL' },
+        ],
+        default: 'INFO',
+      },
+    ],
+  };
+};

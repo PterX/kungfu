@@ -132,6 +132,7 @@ void master::register_app(const event_ptr &event) {
 
   // after register sent, then open session
   cached_.open_session(app_location, event->gen_time());
+  cached_.reset_cache_shift(app_location);
   cached_.try_ensure_cached_storage(app_location, location::PUBLIC);
   cached_.restore(app_location, app_cmd_writer);
 

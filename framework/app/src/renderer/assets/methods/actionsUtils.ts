@@ -102,7 +102,6 @@ import { storeToRefs } from 'pinia';
 import { ipcRenderer } from 'electron';
 import { throttleTime } from 'rxjs';
 import { useGlobalStore } from '../../pages/index/store/global';
-import { useJournalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/journal/store/journalStore';
 
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { messagePrompt } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
@@ -2243,9 +2242,6 @@ export const useReplay = (): {
     const processId = `${location.category}_replay_${startTime}_${endTime}`;
     replayConfig.value.begin_time = beginTime;
     replayConfig.value.end_time = endTimeStr;
-    useJournalStore().addReplayProcessConfigMap({
-      [processId]: replayConfig.value,
-    });
     const params = {
       category: location.category,
       group: location.group,

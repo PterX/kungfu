@@ -114,9 +114,7 @@ onMounted(() => {
     if (currentWindow) {
       currentWindow.on('close', async (event) => {
         event.preventDefault();
-        handleRemoveReplayProcess(
-          props.params.processId,
-        ).finally(() => {
+        handleRemoveReplayProcess(props.params.processId).finally(() => {
           currentWindow.destroy();
         });
       });

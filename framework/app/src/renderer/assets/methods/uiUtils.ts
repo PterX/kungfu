@@ -649,6 +649,8 @@ export const openNewBrowserWindow = (
         win.setPosition(newChildX, newChildY);
         win.show();
       });
+    } else {
+      win && win.show();
     }
 
     win.webContents.loadURL(modalPath);

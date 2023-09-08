@@ -62,6 +62,10 @@ interface GlobalState {
 
   globalSetting: Record<string, Record<string, KungfuApi.KfConfigValue>>;
 
+  replaySetting: Record<string, string>;
+
+  replayProcessConfigMap: Record<string, KungfuApi.ReplayConfig>;
+
   currentGlobalKfLocation:
     | KungfuApi.KfLocation
     | KungfuApi.KfConfig
@@ -116,6 +120,10 @@ export const useGlobalStore = defineStore('global', {
       curSubscribedInstruments: {},
 
       riskSettings: [],
+
+      replaySetting: {},
+
+      replayProcessConfigMap: {},
 
       globalSetting: {},
 
@@ -244,6 +252,18 @@ export const useGlobalStore = defineStore('global', {
     setRiskSettingList() {
       return getAllRiskSettingList().then((res) => {
         this.riskSettings = res;
+      });
+    },
+
+    setReplaySetting(replaySetting: Record<string, string>) {
+      this.replaySetting = replaySetting;
+    },
+
+    addReplayProcessConfigMap(
+      replayProcessConfigMap: Record<string, KungfuApi.ReplayConfig>,
+    ) {
+      Object.keys(replayProcessConfigMap).forEach((key) => {
+        this.replayProcessConfigMap[key] = replayProcessConfigMap[key];
       });
     },
 

@@ -78,3 +78,44 @@ export const setStrategyConfig: KungfuApi.KfStrategyExtConfig = {
     },
   ],
 };
+
+export const getReplayConfig = (
+  begintime: string,
+  endTime: string,
+): KungfuApi.KfStrategyExtConfig => {
+  console.log(begintime, endTime);
+  return {
+    type: [],
+    name: t('strategyConfig.replay'),
+    category: 'strategy',
+    key: 'default',
+    extPath: '',
+    settings: [
+      {
+        key: 'begin_time',
+        name: t('strategyConfig.begin_time'),
+        type: 'str',
+        disabled: true,
+      },
+      {
+        key: 'end_time',
+        name: t('strategyConfig.end_time'),
+        type: 'str',
+      },
+      {
+        key: 'log_level',
+        name: t('strategyConfig.log_level'),
+        type: 'select',
+        options: [
+          { value: '-l trace', label: 'TRACE' },
+          { value: '-l debug', label: 'DEBUG' },
+          { value: '-l info', label: 'INFO' },
+          { value: '-l warning', label: 'WARN' },
+          { value: '-l error', label: 'ERROR' },
+          { value: '-l critical', label: 'CRITICAL' },
+        ],
+        default: '-l info',
+      },
+    ],
+  };
+};

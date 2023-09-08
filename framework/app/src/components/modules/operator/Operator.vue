@@ -6,6 +6,7 @@ import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/p
 import AddOperatorModal from './AddOperatorModal.vue';
 import KfSetByConfigModal from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfSetByConfigModal.vue';
 import KfSetExtensionModal from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfSetExtensionModal.vue';
+import ReplayForm from '@kungfu-trader/kungfu-app/src/components/modules/strategy/ReplayForm.vue';
 import KfProcessStatus from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfProcessStatus.vue';
 import Icon, {
   FileTextOutlined,
@@ -13,6 +14,7 @@ import Icon, {
   DeleteOutlined,
   FormOutlined,
   BankOutlined,
+  HistoryOutlined,
 } from '@ant-design/icons-vue';
 
 import {
@@ -32,6 +34,7 @@ import {
   useAddUpdateRemoveKfConfig,
   handleSwitchProcessStatusGenerator,
   useExtConfigsRelated,
+  useReplay,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import {
   getIdByKfLocation,
@@ -40,13 +43,13 @@ import {
   getProcessIdByKfLocation,
   getIfProcessStopping,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+
 import { AddOperatorTypeEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import path from 'path';
 
 const { t } = VueI18n.global;
 const { success, error } = messagePrompt();
-
 const { dashboardBodyHeight, handleBodySizeChange } = useDashboardBodySize();
 const { operator } = toRefs(useAllKfConfigData());
 const operatorIdList = computed(() => {
@@ -67,6 +70,15 @@ const { searchKeyword, tableData } = useTableSearchKeyword<KungfuApi.KfConfig>(
 );
 const { handleConfirmAddUpdateKfConfig, handleRemoveKfConfig } =
   useAddUpdateRemoveKfConfig();
+
+const {
+  currentLocation,
+  replayConfig,
+  setReplayModalVisible,
+  sessionOptions,
+  handleOpenReplayConfirmView,
+  handleReplayModal,
+} = useReplay();
 
 const columns = getColumns();
 const handleSwitchProcessStatus = handleSwitchProcessStatusGenerator();
@@ -300,6 +312,10 @@ function handleOpenCodeViewResolved(record: KungfuApi.KfConfig) {
           </template>
           <template v-else-if="column.dataIndex === 'actions'">
             <div class="kf-actions__warp">
+              <HistoryOutlined
+                style="font-size: 12px"
+                @click.stop="handleOpenReplayConfirmView(record)"
+              ></HistoryOutlined>
               <BankOutlined
                 style="font-size: 12px"
                 @click.stop="handleOpenJournalView(record)"
@@ -364,6 +380,20 @@ function handleOpenCodeViewResolved(record: KungfuApi.KfConfig) {
         )
       "
     ></KfSetByConfigModal>
+    <ReplayForm
+      v-if="setReplayModalVisible"
+      :width="520"
+      v-model:visible="setReplayModalVisible"
+      :session-options="sessionOptions"
+      :session-info="replayConfig.session_info"
+      :begin-time="replayConfig.begin_time.split(' ')[1]"
+      :end-time="
+        replayConfig.end_time ? replayConfig.end_time.split(' ')[1] : ''
+      "
+      :log-level="replayConfig.log_level"
+      @close="setReplayModalVisible = false"
+      @confirm="(event) => handleReplayModal(event, currentLocation)"
+    ></ReplayForm>
   </div>
 </template>
 <style lang="less">

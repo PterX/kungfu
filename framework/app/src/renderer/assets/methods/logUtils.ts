@@ -16,6 +16,20 @@ export const getLogPath = (): string => {
   return path.resolve(decodeURI(parseURIParams().logPath) || '');
 };
 
+export const getUrlParams = (): Record<string, string> => {
+  const urlParams = parseURIParams();
+  const params: Record<string, string> = {};
+  Object.keys(urlParams).forEach((key) => {
+    if (key === 'logPath') {
+      params[key] = decodeURI(urlParams[key]);
+    } else {
+      params[key] = urlParams[key];
+    }
+  });
+  console.log('getUrlParams', params);
+  return params;
+};
+
 export function preDealLogMessage(line: string): string {
   // 21 = pm2 timestamp length
   if (line.indexOf('[') === 21) {
@@ -63,16 +77,20 @@ export const useLogInit = (
   logList: KungfuApi.KfFixedList<KungfuApi.KfLogData>;
   scrollToBottomChecked: Ref<boolean>;
   scrollerTableRef: Ref;
+  isLoading: Ref<boolean>;
   scrollToBottom: () => void;
   startTailLog: () => void;
   clearLogState: () => void;
 } => {
+  // const LOADING_TIMEOUT = 2000;
   let LogTail: Tail | null = null;
   const logList = reactive<KungfuApi.KfFixedList<KungfuApi.KfLogData>>(
     new KfFixedList(nLines),
   );
   const scrollerTableRef = ref();
   const scrollToBottomChecked = ref<boolean>(false);
+  const isLoading = ref<boolean>(false);
+
   ensureFileSync(logPath);
 
   const scrollToBottom = () => {
@@ -82,6 +100,9 @@ export const useLogInit = (
   };
 
   const startTailLog = () => {
+    let lastLineReceivedAt = Date.now();
+
+    isLoading.value = true;
     LogTail && LogTail.unwatch();
     LogTail = new Tail(logPath, {
       follow: true,
@@ -91,13 +112,13 @@ export const useLogInit = (
 
     let markId: number = +new Date();
     LogTail.on('line', (line: string) => {
+      lastLineReceivedAt = Date.now();
       logList.insert({
         id: markId++,
         message: dealLogMessage(preDealLogMessage(line)),
         messageOrigin: line,
         messageForSearch: '',
       });
-
       scrollToBottom();
     });
 
@@ -106,18 +127,29 @@ export const useLogInit = (
     });
 
     LogTail.watch();
+    const timeoutId = setInterval(checkLoadingStatus, 1000); // 每1秒检查一次
+
+    function checkLoadingStatus() {
+      if (Date.now() - lastLineReceivedAt > 1000) {
+        // 1秒没有接收到新行
+        isLoading.value = false;
+        clearInterval(timeoutId);
+      }
+    }
   };
 
   const clearLogState = () => {
     logList.list = [];
     LogTail?.unwatch();
     LogTail = null;
+    isLoading.value = false;
   };
 
   return {
     logList,
     scrollToBottomChecked,
     scrollerTableRef,
+    isLoading,
     scrollToBottom,
     startTailLog,
     clearLogState,

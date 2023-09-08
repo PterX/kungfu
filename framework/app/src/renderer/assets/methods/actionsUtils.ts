@@ -463,13 +463,9 @@ export const useAddUpdateRemoveKfConfig = (): {
 };
 
 export const useRemoveReplayProcess = (): {
-  handleRemoveReplayProcess: (
-    processId: string,
-  ) => Promise<void>;
+  handleRemoveReplayProcess: (processId: string) => Promise<void>;
 } => {
-  const handleRemoveReplayProcess = (
-    processId: string,
-  ): Promise<void> => {
+  const handleRemoveReplayProcess = (processId: string): Promise<void> => {
     return new Promise((resolve, reject) => {
       Modal.confirm({
         title: `${t('replay.stop_replay')}`,

@@ -16,6 +16,7 @@ interface journalState {
   currentTime: bigint;
   currentLoadedLastestFrameGenTime: bigint;
   currentLocation: LocationRseolved | null;
+  replayProcessConfigMap: Record<string, KungfuApi.ReplayConfig>;
 }
 
 export const useJournalStore = defineStore('journal', {
@@ -26,6 +27,7 @@ export const useJournalStore = defineStore('journal', {
     currentTime: getNowInNano(),
     currentLoadedLastestFrameGenTime: 0n,
     currentLocation: null,
+    replayProcessConfigMap: {},
   }),
 
   actions: {
@@ -63,6 +65,14 @@ export const useJournalStore = defineStore('journal', {
 
     setCurrentLastFrameTime(nano: bigint) {
       this.currentLoadedLastestFrameGenTime = nano;
+    },
+
+    addReplayProcessConfigMap(
+      replayProcessConfigMap: Record<string, KungfuApi.ReplayConfig>,
+    ) {
+      Object.keys(replayProcessConfigMap).forEach((key) => {
+        this.replayProcessConfigMap[key] = replayProcessConfigMap[key];
+      });
     },
   },
 

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { nextTick, onMounted, ref, computed, onBeforeUnmount } from 'vue';
-import { storeToRefs } from 'pinia';
+// import { storeToRefs } from 'pinia';
 import {
   UpOutlined,
   DownOutlined,
@@ -13,7 +13,7 @@ import {
   setHtmlTitle,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import { useRemoveReplayProcess } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
-import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
+// import { useJournalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/journal/store/journalStore';
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
 import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
 import { LogLevelType } from '@kungfu-trader/kungfu-app/src/typings/enums';
@@ -28,7 +28,7 @@ import {
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { listProcessStatus } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
 
-const { replayProcessConfigMap } = storeToRefs(useGlobalStore());
+// const { replayProcessConfigMap } = storeToRefs(useJournalStore());
 
 const { handleRemoveReplayProcess } = useRemoveReplayProcess();
 
@@ -114,10 +114,7 @@ onMounted(() => {
     if (currentWindow) {
       currentWindow.on('close', async (event) => {
         event.preventDefault();
-        const { processStatus } = await listProcessStatus();
         handleRemoveReplayProcess(
-          window.watcher,
-          processStatus,
           props.params.processId,
         ).finally(() => {
           currentWindow.destroy();
@@ -182,8 +179,9 @@ async function reLoadLog() {
   if (currentWindow) {
     const pawin = currentWindow.getParentWindow();
     if (pawin) {
-      if (props.isJournal && props.replayProcessParams) {
-        if (!replayProcessConfigMap.value[props.params.processId]) {
+      if (props.isJournal) {
+        const config = localStorage.getItem(props.params.processId);
+        if (!config) {
           messagePrompt().error(t('replay.please_start_replay'));
           return;
         }
@@ -192,7 +190,7 @@ async function reLoadLog() {
           .then(() => {
             resetLog();
             pawin.webContents.send('startReplay', {
-              replayProcessParams: props.replayProcessParams,
+              replayProcessParams: JSON.parse(config),
             });
           })
           .catch((err: Error) => {

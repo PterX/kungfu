@@ -108,7 +108,6 @@
             "
             :params="replayPramas"
             :is-journal="true"
-            :replayProcessParams="replayProcessParams"
             :type="'replay'"
             :key="replayPramas.processId"
           />
@@ -120,6 +119,7 @@
     v-if="setReplayModalVisible"
     :width="520"
     v-model:visible="setReplayModalVisible"
+    :is-journal="true"
     :session-options="sessionOptions"
     :session-info="replayConfig.session_info"
     :begin-time="replayConfig.begin_time.split(' ')[1]"

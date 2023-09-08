@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { nextTick, onMounted, ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import {
   UpOutlined,
   DownOutlined,
@@ -10,17 +10,16 @@ import {
   messagePrompt,
   removeLoadingMask,
   setHtmlTitle,
+  useScrollerTableSearch,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
 import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
 import { ensureFileSync, outputFile } from 'fs-extra';
 import { shell } from '@electron/remote';
-import { clipboard } from 'electron';
-import { platform } from 'os';
 import {
   getLogPath,
   useLogInit,
-  useLogSearch,
+  dealLogMessage,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/logUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 
@@ -58,33 +57,22 @@ const {
 const {
   inputSearchRef,
   searchKeyword,
-  currentResultPointerIndex,
+  currentResultIndex,
   totalResultCount,
-  clearLogSearchState,
+  clearSearchState,
   handleToDownSearchResult,
   handleToUpSearchResult,
-} = useLogSearch(logList, scrollerTableRef, boardSize);
+  getItemHtmlResult,
+} = useScrollerTableSearch(
+  () => logList.list,
+  'id',
+  ['message'],
+  scrollerTableRef,
+);
 
 onMounted(() => {
   removeLoadingMask();
   resetLog();
-});
-
-document.addEventListener('keydown', (e) => {
-  const ctrlCmd = platform() === 'darwin' ? e.metaKey : e.ctrlKey;
-  if (ctrlCmd && e.key === 'f') {
-    searchKeyword.value = clipboard.readText();
-    if (inputSearchRef.value) {
-      const $inputWrapper = inputSearchRef.value.$el.firstElementChild;
-      const $input = $inputWrapper.querySelector('input');
-      if ($input) {
-        $input.focus();
-        nextTick().then(() => {
-          $input.select();
-        });
-      }
-    }
-  }
 });
 
 function handleRemoveLog(): Promise<void> {
@@ -105,7 +93,7 @@ function handleOpenFileLocation() {
 
 function resetLog() {
   clearLogState();
-  clearLogSearchState();
+  clearSearchState();
   startTailLog();
 }
 </script>
@@ -133,7 +121,7 @@ function resetLog() {
                 style="width: 120px"
               />
               <div class="current-to-total search-int-table__item">
-                {{ currentResultPointerIndex }} /
+                {{ currentResultIndex }} /
                 {{ totalResultCount }}
               </div>
               <div class="find-up-down search-int-table__item kf-actions__warp">
@@ -196,7 +184,7 @@ function resetLog() {
                 :id="`kf-log-item-${item.id}`"
                 :active="active"
                 class="kf-log-line"
-                v-html="item.messageForSearch || item.message"
+                v-html="dealLogMessage(getItemHtmlResult(item, 'message'))"
               ></div>
             </DynamicScrollerItem>
           </template>

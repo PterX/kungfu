@@ -43,21 +43,41 @@ const std::string BacktestContext::get_config() const {
 int64_t BacktestContext::now() const { return app_.now(); }
 
 int32_t BacktestContext::add_timer(int64_t nanotime, const std::function<void(event_ptr)> &callback) {
-  pre_timer_callbacks_.emplace(nanotime, callback);
-  return 0;
+  const int32_t timer_id = timer_usage_count_++;
+  pre_timer_callbacks_.emplace(nanotime,  TimerTask{timer_id, callback});
+  return timer_id;
 }
 
 int32_t BacktestContext::add_time_interval(int64_t duration, const std::function<void(event_ptr)> &callback) {
-  auto timer_callback = [this, callback, duration](event_ptr event) {
-    callback(event);
-    this->add_time_interval(duration, callback);
-  };
-  pre_timer_callbacks_.emplace(now() + duration, timer_callback);
-  return 0;
+  const int32_t timer_id = timer_usage_count_++;
+  return add_timer_interval_helper(duration, timer_id, callback);
 }
 
-void BacktestContext::clear_timer(int32_t timer_id) {}
+int32_t BacktestContext::add_timer_interval_helper(int64_t duration, int32_t timer_id, const std::function<void(event_ptr)> &callback) {
+  auto timer_callback = [this, callback, duration, timer_id](event_ptr event) {
+    callback(event);
+    this->add_timer_interval_helper(duration, timer_id, callback);
+  };
+  pre_timer_callbacks_.emplace(now() + duration,  TimerTask{timer_id, timer_callback});
+  return timer_id;
+}
 
+void BacktestContext::clear_timer(int32_t timer_id) {
+  for (auto it = timer_callbacks_.begin(); it != timer_callbacks_.end();) {
+    if (it->second.timer_id == timer_id) {
+      it = timer_callbacks_.erase(it);
+    } else {
+      ++it;
+    }
+  }
+  for (auto it = pre_timer_callbacks_.begin(); it != pre_timer_callbacks_.end();) {
+    if (it->second.timer_id == timer_id) {
+      it = pre_timer_callbacks_.erase(it);
+    } else {
+      ++it;
+    }
+  }
+}
 void BacktestContext::on_timer_check() {
   if (not pre_timer_callbacks_.empty()) {
     timer_callbacks_.insert(pre_timer_callbacks_.begin(), pre_timer_callbacks_.end());
@@ -73,7 +93,7 @@ void BacktestContext::on_timer_check() {
       time_event["source"] = app_.get_home_uid();
       time_event["dest"] = app_.get_home_uid();
       time_event["data"] = nlohmann::json::object();
-      it->second(std::make_shared<nanomsg_json>(time_event.dump()));
+      it->second.call_back(std::make_shared<nanomsg_json>(time_event.dump()));
       it = timer_callbacks_.erase(it);
     } else {
       return;

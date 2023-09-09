@@ -77,6 +77,7 @@ void reader::next() {
 
 void reader::sort_without_buffer() {
   buffer_built_ = false;
+  // those could be refacted to std::ranges after cxx==20
   std::vector<journal *> has_data_journals;
   for (auto &pair : journals_) {
     auto &journal = pair.second;
@@ -84,8 +85,7 @@ void reader::sort_without_buffer() {
       has_data_journals.push_back(&journal);
     }
   }
-  auto min_journal_it = std::min_element(has_data_journals.begin(), has_data_journals.end(),
-                                         [](journal *lhs, journal *rhs) { return not later{}(lhs, rhs); });
+  auto min_journal_it = std::max_element(has_data_journals.cbegin(), has_data_journals.cend(), later{});
   if (min_journal_it != has_data_journals.end()) {
     current_ = *min_journal_it;
   }

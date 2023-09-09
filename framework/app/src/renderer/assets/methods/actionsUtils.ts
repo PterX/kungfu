@@ -102,6 +102,7 @@ import { storeToRefs } from 'pinia';
 import { ipcRenderer } from 'electron';
 import { throttleTime } from 'rxjs';
 import { useGlobalStore } from '../../pages/index/store/global';
+
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { messagePrompt } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import sound from 'sound-play';
@@ -463,17 +464,9 @@ export const useAddUpdateRemoveKfConfig = (): {
 };
 
 export const useRemoveReplayProcess = (): {
-  handleRemoveReplayProcess: (
-    watcher: KungfuApi.Watcher,
-    processStatusData: Pm2ProcessStatusData,
-    processId: string,
-  ) => Promise<void>;
+  handleRemoveReplayProcess: (processId: string) => Promise<void>;
 } => {
-  const handleRemoveReplayProcess = (
-    watcher: KungfuApi.Watcher,
-    processStatusData: Pm2ProcessStatusData,
-    processId: string,
-  ): Promise<void> => {
+  const handleRemoveReplayProcess = (processId: string): Promise<void> => {
     return new Promise((resolve, reject) => {
       Modal.confirm({
         title: `${t('replay.stop_replay')}`,
@@ -2249,9 +2242,12 @@ export const useReplay = (): {
     const processId = `${location.category}_replay_${startTime}_${endTime}`;
     replayConfig.value.begin_time = beginTime;
     replayConfig.value.end_time = endTimeStr;
-    useGlobalStore().addReplayProcessConfigMap({
-      [processId]: replayConfig.value,
-    });
+    const params = {
+      category: location.category,
+      group: location.group,
+      replayConfig: replayConfig.value,
+    };
+    localStorage.setItem(processId, JSON.stringify(params));
     if (isJournal) {
       const { startProcess, ProcessConfigs } =
         await handleOpenJournalReplayView(

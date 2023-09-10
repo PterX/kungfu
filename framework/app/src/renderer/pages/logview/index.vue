@@ -9,7 +9,6 @@ import {
 import {
   messagePrompt,
   removeLoadingMask,
-  setHtmlTitle,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
 import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
@@ -40,8 +39,6 @@ const props = withDefaults(
 );
 
 const LOG_PATH = props.logPath || '';
-
-setHtmlTitle(props.logPath);
 
 const boardSize = ref<{ width: number; height: number }>({
   width: 0,
@@ -128,10 +125,10 @@ function resetLog() {
       <div class="kf-log-view__warp">
         <KfDashboard @boardSizeChange="handleChangeBoardSize">
           <template #title>
-            <slot name="replayTitle"></slot>
+            <slot name="title"></slot>
           </template>
           <template #header>
-            <slot name="retry"></slot>
+            <slot name="action"></slot>
             <KfDashboardItem>
               <a-checkbox
                 v-model:checked="scrollToBottomChecked"

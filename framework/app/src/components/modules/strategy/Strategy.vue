@@ -74,7 +74,6 @@ const { allProcessOnline, handleSwitchAllProcessStatus } = useSwitchAllConfig(
 );
 
 const {
-  currentLocation,
   replayConfig,
   setReplayModalVisible,
   sessionOptions,
@@ -289,7 +288,7 @@ function handleOpenCodeViewResolved(record: KungfuApi.KfConfig) {
       "
       :log-level="replayConfig.log_level"
       @close="setReplayModalVisible = false"
-      @confirm="(event) => handleReplayModal(event, currentLocation)"
+      @confirm="(event) => handleReplayModal(event)"
     ></ReplayForm>
   </div>
 </template>

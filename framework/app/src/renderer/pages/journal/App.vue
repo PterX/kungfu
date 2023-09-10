@@ -125,7 +125,7 @@
     :now="getNanoDateString(BigInt(new Date().getTime()) * 1000000n)"
     :log-level="replayConfig.log_level"
     @close="setReplayModalVisible = false"
-    @confirm="(event) => handleReplayModal(event, currentLocationConfig, true)"
+    @confirm="(event) => handleReplayModal(event, true)"
   ></ReplayForm>
 </template>
 
@@ -190,7 +190,6 @@ const {
 } = storeToRefs(useJournalStore());
 
 const {
-  currentLocation: currentLocationConfig,
   replayConfig,
   setReplayModalVisible,
   sessionOptions,
@@ -291,7 +290,7 @@ const customRow = (record: KungfuApi.SessionResolved) => {
     onClick: () => {
       setCurrentSession(record);
 
-      if (replayRef.value) {
+      if (replayPramas.value.processId) {
         const config = localStorage.getItem('replaySetting');
         const replaySetting = config ? JSON.parse(config) : {};
         replayConfig.value = {
@@ -304,7 +303,7 @@ const customRow = (record: KungfuApi.SessionResolved) => {
           path: '',
         };
         delayMilliSeconds(0).then(() => {
-          replayRef.value.uodateLogLevel();
+          replayRef.value && replayRef.value.updateLogLevel();
         });
       }
     },

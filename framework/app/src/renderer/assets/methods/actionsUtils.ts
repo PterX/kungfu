@@ -2088,7 +2088,6 @@ export const useReplay = (): {
       endTime: string;
       logLevel: string;
     },
-    location: KungfuApi.KfConfig | null,
     isJournal?: boolean,
   ): void;
   sessionOptions: Ref<
@@ -2222,10 +2221,9 @@ export const useReplay = (): {
       endTime: string;
       logLevel: string;
     },
-    location: KungfuApi.KfConfig | null,
     isJournal = false,
   ) => {
-    if (!location) {
+    if (!currentLocation.value) {
       error();
       return;
     }
@@ -2243,20 +2241,20 @@ export const useReplay = (): {
     const date = getYearMonthDay();
     const beginTime = `${date} ${startTime}`;
     const endTimeStr = `${date} ${endTime}`;
-    const processId = `${location.category}_replay_${startTime}_${endTime}`;
+    const processId = `${currentLocation.value.category}_replay_${startTime}_${endTime}`;
     replayConfig.value.begin_time = beginTime;
     replayConfig.value.end_time = endTimeStr;
     replayConfig.value.log_level = data.logLevel;
     const params = {
-      category: location.category,
-      group: location.group,
+      category: currentLocation.value.category,
+      group: currentLocation.value.group,
       replayConfig: replayConfig.value,
     };
     localStorage.setItem(processId, JSON.stringify(params));
     if (isJournal) {
       const { startProcess, ProcessConfigs } =
         await handleOpenJournalReplayView(
-          location,
+          currentLocation.value,
           replayConfig.value,
           journalReplayflag.value,
         );
@@ -2264,7 +2262,7 @@ export const useReplay = (): {
       replayProcessParams.value = ProcessConfigs;
     } else {
       await handleOpenReplayView(
-        location,
+        currentLocation.value,
         startTime,
         endTime,
         data.logLevel,

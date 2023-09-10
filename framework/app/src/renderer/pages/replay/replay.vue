@@ -1,6 +1,6 @@
 <template>
   <LogView ref="logViewRef" :log-path="LOG_PATH">
-    <template #replayTitle>
+    <template #title>
       <KfDashboardItem>
         <div class="replay_title">
           {{ $t('replay.replay') }}
@@ -22,7 +22,7 @@
         </div>
       </KfDashboardItem>
     </template>
-    <template #retry>
+    <template #action>
       <KfDashboardItem>
         <a-button @click="reLoadLog" size="small" :loading="isLoading">
           {{ $t('replay.try_again') }}
@@ -49,7 +49,7 @@ import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 const { t } = VueI18n.global;
 
 defineExpose({
-  uodateLogLevel,
+  updateLogLevel,
 });
 const { error } = messagePrompt();
 const { handleRemoveReplayProcess } = useRemoveReplayProcess();
@@ -148,7 +148,7 @@ async function reLoadLog() {
   }
 }
 
-function uodateLogLevel(level: string) {
+function updateLogLevel(level: string) {
   const config = localStorage.getItem(props.params.processId);
   if (config) {
     const replayParams = JSON.parse(config);

@@ -139,7 +139,7 @@ const handleOk = () => {
       emit('confirm', formState.value);
     })
     .catch((error) => {
-      console.error('Validation failed:', error);
+      console.error(error);
     });
 };
 
@@ -235,7 +235,7 @@ const handleCancel = () => {
           <p>* 注:</p>
           <ul>
             <li>
-              1.回放依赖数据时间,
+              1. 回放依赖数据时间,
               <span class="highlighted-text">
                 请勿在策略内使用物理时间相关代码来表达"now"
               </span>
@@ -243,7 +243,7 @@ const handleCancel = () => {
               context.now 方法, 否则回放无法按照预期执行.
             </li>
             <li>
-              2.回放仅可增加 log,
+              2. 回放仅可增加 log,
               <span class="highlighted-text">请勿修改策略逻辑</span>
               , 否则会由于输出数据与实际不符而报错.
             </li>
@@ -253,11 +253,12 @@ const handleCancel = () => {
           <p>* 注:</p>
           <ul>
             <li>
-              1.点击确认后, 开始回放本记录最近一次 session.如需回放之前启动过的
-              session, 请使用 journal 工具选择 session, 点击"回放"按钮进行回放.
+              1. 点击确认后, 开始回放本记录最近一次 session.
+              如需回放之前启动过的 session, 请使用 journal 工具选择 session,
+              点击"回放"按钮进行回放.
             </li>
             <li>
-              2.回放依赖数据时间,
+              2. 回放依赖数据时间,
               <span class="highlighted-text">
                 请勿在策略内使用物理时间相关代码来表达"now"
               </span>
@@ -265,7 +266,7 @@ const handleCancel = () => {
               context.now 方法, 否则回放无法按照预期执行.
             </li>
             <li>
-              3.回放仅可增加 log,
+              3. 回放仅可增加 log,
               <span class="highlighted-text">请勿修改策略逻辑</span>
               , 否则会由于输出数据与实际不符而报错.
             </li>

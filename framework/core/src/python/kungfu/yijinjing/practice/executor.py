@@ -442,14 +442,12 @@ class ExtensionExecutor:
             if ctx.end
             else yjj.now_in_nano()
         )
+        end_time_stamp = min(yjj.now_in_nano(), end_time_stamp)
 
         if ctx.session_id:
             session = kfj.find_session(ctx, ctx.session_id)
             begin_time_stamp = session["begin_time"]
-            end_time_stamp = min(
-                (session["end_time"] if session.closed else yjj.now_in_nano()),
-                end_time_stamp,
-            )
+            end_time_stamp = session["end_time"] if session.closed else end_time_stamp
 
         ctx.logger.debug(
             f"begin time: {kft.strftime(begin_time_stamp)}, end_time_stamp: {kft.strftime(end_time_stamp)}"

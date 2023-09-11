@@ -8,6 +8,7 @@ const triangleSvg =
   'path://M529.493333 179.84l447.872 639.872a21.333333 21.333333 0 0 1-17.493333 33.578667H64.128a21.333333 21.333333 0 0 1-17.493333-33.578667L494.506667 179.84a21.333333 21.333333 0 0 1 34.986666 0z';
 const forkSvg =
   'path://M617.92 516.096l272 272-101.824 101.824-272-272-272 272-101.856-101.824 272-272-275.008-275.04L241.056 139.2l275.04 275.04 275.04-275.04 101.824 101.824-275.04 275.04z';
+const straightLine = 'path://M63.6 489.6h896.7v44.8H63.6z';
 
 type TableDataType = KungfuApi.FrameResolved & KungfuApi.SessionResolved;
 
@@ -192,10 +193,19 @@ export const getChartOption = () => {
         color: '#FAAD14',
       },
       data: [
-        t('journalConfig.quote_legend'),
-        t('journalConfig.order_input_legend'),
-        t('journalConfig.order_legend'),
-        t('journalConfig.cancel_order_legend'),
+        {
+          name: t('journalConfig.quote_legend'),
+          icon: straightLine,
+        },
+        {
+          name: t('journalConfig.order_input_legend'),
+        },
+        {
+          name: t('journalConfig.order_legend'),
+        },
+        {
+          name: t('journalConfig.cancel_order_legend'),
+        },
       ],
     },
     xAxis: {
@@ -231,9 +241,8 @@ export const getChartOption = () => {
         name: t('journalConfig.quote_legend'),
         type: 'line',
         data: [] as SeriesData[],
-        symbol: 'pin',
-        symbolSize: 16,
-        showSymbol: false,
+        symbol: 'circle',
+        symbolSize: 2,
         itemStyle: {
           color: '#0F6DA6',
         },

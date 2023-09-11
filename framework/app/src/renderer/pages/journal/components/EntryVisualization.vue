@@ -182,17 +182,17 @@ const orderActionByInstrument = ref<Record<string, OrderActionResolved[]>>({});
 
 const selectedInstrument = ref<string>('');
 const xAxisData = ref<number[]>([]);
-// const xAxisData2 = ref<
-//   Record<
-//     string,
-//     {
-//       quote?: number;
-//       orderInput?: number;
-//       order?: number;
-//       orderAction?: number;
-//     }
-//   >
-// >({});
+const xAxisData2 = ref<
+  Record<
+    string,
+    {
+      quote?: number[];
+      orderInput?: number[];
+      order?: number[];
+      orderAction?: number[];
+    }
+  >
+>({});
 const searchOrderId = ref<string>('');
 const instrumentList = ref<
   {
@@ -237,8 +237,8 @@ const dealRowClassName = (row) => {
 
 watch(
   () => isLoadingFrames.value,
-  () => {
-    if (!isLoadingFrames.value) {
+  (newValue) => {
+    if (!newValue) {
       dealAllFrameData();
     }
   },
@@ -276,7 +276,9 @@ watch(
             break;
         }
 
-        if (newCurrentFram.msgTypeName !== 'Quote') {
+        if (newCurrentFram.msgTypeName === 'Quote') {
+          // 待补充
+        } else {
           selectedOrderId = orderId as bigint;
           option.series
             .filter((serie, index) => {
@@ -327,7 +329,7 @@ function reset() {
 
 function dealAllFrameData() {
   reset();
-  // dealFrameListMap();
+  dealFrameListMap();
   quoteByInstrument.value = dealFrame<QuoteChartResolved>(
     'quote',
     kfInstrumentsJSON,
@@ -353,89 +355,86 @@ function dealAllFrameData() {
   }
 }
 
-// const chartFrameListMap = ref<Record<string, KungfuApi.FrameResolved[]>>({
-//   quote: [],
-//   orderInput: [],
-//   order: [],
-//   orderAction: [],
-// });
+const chartFrameListMap = ref<Record<string, KungfuApi.FrameResolved[]>>({
+  quote: [],
+  orderInput: [],
+  order: [],
+  orderAction: [],
+});
 
-// watch(
-//   () => currentFrameList.value,
-//   (currentFrameList) => {
-//     if (currentFrameList.length > 0) {
-//       dealFrameListMap();
-//     }
-//   },
-// );
+function dealFrameListMap() {
+  chartFrameListMap.value = {
+    quote: [],
+    orderInput: [],
+    order: [],
+    orderAction: [],
+  };
 
-// function dealFrameListMap() {
-//   chartFrameListMap.value = {
-//     quote: [],
-//     orderInput: [],
-//     order: [],
-//     orderAction: [],
-//   };
-//   xAxisData2.value = {};
-//   currentFrameList.value.forEach((item, index) => {
-//     if (item.msgTypeName === 'Quote') {
-//       chartFrameListMap.value.quote.push(item);
-//       const dataTime = (item.data as KungfuApi.Quote).data_time;
-//       if (dataTime) {
-//         xAxisData2.value[dataTime.toString()] = {
-//           quote: index,
-//         };
-//       }
-//     } else if (item.msgTypeName === 'OrderInput') {
-//       chartFrameListMap.value.orderInput.push(item);
-//       const dataTime = (item.data as KungfuApi.OrderInput).insert_time;
-//       if (dataTime) {
-//         xAxisData2.value[dataTime.toString()] = {
-//           orderInput: index,
-//         };
-//       }
-//     } else if (item.msgTypeName === 'Order') {
-//       chartFrameListMap.value.order.push(item);
-//       const dataTime = (item.data as KungfuApi.Order).update_time;
-//       if (dataTime) {
-//         xAxisData2.value[dataTime.toString()] = {
-//           order: index,
-//         };
-//       }
-//     } else if (item.msgTypeName === 'OrderAction') {
-//       chartFrameListMap.value.orderAction.push(item);
-//       const dataTime = (item.data as KungfuApi.Order).insert_time;
-//       if (dataTime) {
-//         xAxisData2.value[dataTime.toString()] = {
-//           orderAction: index,
-//         };
-//       }
-//     }
-//   });
-// }
-
-const chartFrameListMap = computed<Record<string, KungfuApi.FrameResolved[]>>(
-  () => {
-    return {
-      quote: currentFrameList.value.filter((item, index) => {
-        item.index = index;
-        return item.msgTypeName === 'Quote';
-      }),
-      orderInput: currentFrameList.value.filter((item, index) => {
-        item.index = index;
-        return item.msgTypeName === 'OrderInput';
-      }),
-      order: currentFrameList.value.filter((item, index) => {
-        item.index = index;
-        return item.msgTypeName === 'Order';
-      }),
-      orderAction: currentFrameList.value.filter((item, index) => {
-        item.index = index;
-        return item.msgTypeName === 'OrderAction';
-      }),
-    };
-  },
-);
+  currentFrameList.value.forEach((item, index) => {
+    item.index = index;
+    if (item.msgTypeName === 'Quote') {
+      chartFrameListMap.value.quote.push(item);
+      const dataTime = (item.data as KungfuApi.Quote).data_time;
+      if (dataTime) {
+        if (xAxisData2.value[dataTime.toString()]) {
+          xAxisData2.value[dataTime.toString()].quote = [
+            index,
+            chartFrameListMap.value.quote.length,
+          ];
+        } else {
+          xAxisData2.value[dataTime.toString()] = {
+            quote: [index, chartFrameListMap.value.quote.length],
+          };
+        }
+      }
+    } else if (item.msgTypeName === 'OrderInput') {
+      chartFrameListMap.value.orderInput.push(item);
+      const dataTime = (item.data as KungfuApi.OrderInput).insert_time;
+      if (dataTime) {
+        if (xAxisData2.value[dataTime.toString()]) {
+          xAxisData2.value[dataTime.toString()].orderInput = [
+            index,
+            chartFrameListMap.value.orderInput.length,
+          ];
+        } else {
+          xAxisData2.value[dataTime.toString()] = {
+            orderInput: [index, chartFrameListMap.value.orderInput.length],
+          };
+        }
+      }
+    } else if (item.msgTypeName === 'Order') {
+      chartFrameListMap.value.order.push(item);
+      const dataTime = (item.data as KungfuApi.Order).update_time;
+      if (dataTime) {
+        if (xAxisData2.value[dataTime.toString()]) {
+          xAxisData2.value[dataTime.toString()].order = [
+            index,
+            chartFrameListMap.value.order.length,
+          ];
+        } else {
+          xAxisData2.value[dataTime.toString()] = {
+            order: [index, chartFrameListMap.value.order.length],
+          };
+        }
+      }
+    } else if (item.msgTypeName === 'OrderAction') {
+      chartFrameListMap.value.orderAction.push(item);
+      const dataTime = (item.data as KungfuApi.Order).insert_time;
+      if (dataTime) {
+        if (xAxisData2.value[dataTime.toString()]) {
+          xAxisData2.value[dataTime.toString()].orderAction = [
+            index,
+            chartFrameListMap.value.orderAction.length,
+          ];
+        } else {
+          xAxisData2.value[dataTime.toString()] = {
+            orderAction: [index, chartFrameListMap.value.orderAction.length],
+          };
+        }
+      }
+    }
+  });
+}
 
 function dealFrame<T extends frameResolvedDataType>(
   msgTypeName: string,
@@ -985,6 +984,12 @@ function handleInputChange() {
   display: flex;
   .ant-spin.ant-spin-spinning {
     position: absolute;
+  }
+
+  .kf-journal-spin {
+    .ant-spin-text {
+      margin-left: 8px;
+    }
   }
   .ant-empty-normal {
     padding: 32px 0;

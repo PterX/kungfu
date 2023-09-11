@@ -18,7 +18,6 @@
           v-model:value="currentStartTimeInput"
           type="text"
           size="large"
-          autofocus
           :placeholder="$t('journalConfig.please_input_time')"
           style="width: 128px"
           @blur="handleStartTimeBlur"
@@ -87,9 +86,9 @@
         :size-dependencies-fields="['dataAsString']"
         :resizable="false"
         :custom-row-class="dealRowClassName"
-        @click-cell="handleOpenFrameDetail"
-        @click-row="handleOpenFrameDetail"
-        @right-click-row="handleRightClickRow"
+        @click-cell="handleRightClickRow"
+        @click-row="handleRightClickRow"
+        @right-click-row="handleOpenFrameDetail"
         @onScrollToTop="handleScrollToTop"
         @onScrollToBottom="handleScrollToBottom"
       >
@@ -387,6 +386,7 @@ const convertToTimestamp = (timeStr) => {
   }
 };
 const validateAndUpdateStartTime = async () => {
+  console.log(111, '`````````````');
   const timeRegex = /^(\d{10,19}|(\d{2}:\d{2}:\d{2}(\.\d{3})?))$/;
   if (timeRegex.test(currentStartTimeInput.value)) {
     const newStartTime = convertToTimestamp(currentStartTimeInput.value);
@@ -433,8 +433,12 @@ const modifyTimestamp = (isIncrease) => {
   validateAndUpdateStartTime();
 };
 
-const increaseTimestamp = () => modifyTimestamp(true);
-const decreaseTimestamp = () => modifyTimestamp(false);
+const increaseTimestamp = () => {
+  modifyTimestamp(true);
+};
+const decreaseTimestamp = () => {
+  modifyTimestamp(false);
+};
 
 watch(
   () => currentSession.value,

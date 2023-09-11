@@ -1049,7 +1049,7 @@ export const removeDB = (targetFolder: string): Promise<void> => {
 
 export const getProcessIdByKfLocation = (
   kfLocation: KungfuApi.KfLocation,
-  mode?:string
+  mode?: string,
 ): string => {
   switch (kfLocation.category) {
     case 'md':
@@ -1057,9 +1057,13 @@ export const getProcessIdByKfLocation = (
     case 'strategy':
     case 'operator':
       if (kfLocation.group === 'default') {
-        return mode ? `${kfLocation.category}-${mode}_${kfLocation.name}`:`${kfLocation.category}_${kfLocation.name}`;
+        return mode
+          ? `${kfLocation.category}-${mode}_${kfLocation.name}`
+          : `${kfLocation.category}_${kfLocation.name}`;
       } else {
-        return mode ? `${kfLocation.category}_${kfLocation.group}-${mode}_${kfLocation.name}` : `${kfLocation.category}_${kfLocation.group}_${kfLocation.name}`;
+        return mode
+          ? `${kfLocation.category}_${kfLocation.group}-${mode}_${kfLocation.name}`
+          : `${kfLocation.category}_${kfLocation.group}_${kfLocation.name}`;
       }
     case 'system':
       return kfLocation.name;

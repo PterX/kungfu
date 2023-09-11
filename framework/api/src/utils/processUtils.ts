@@ -6,7 +6,7 @@ import { Proc, ProcessDescription, StartOptions } from 'pm2';
 import pm2 from './pm2Custom';
 import { getUserLocale } from 'get-user-locale';
 import find from 'find-process';
-import  { ensureFileSync } from 'fs-extra';
+import { ensureFileSync } from 'fs-extra';
 
 import {
   kfLogger,
@@ -521,8 +521,8 @@ export const startProcess = async (
     .resolveStartOptions.trigger(
       { category: '*', group: '*', name: '*' } as KungfuApi.DerivedKfLocation,
       options,
-  );
-  
+    );
+
   const filePath = buildProcessLogPath(options.name);
   ensureFileSync(filePath);
   const optionsResolved: Pm2StartOptions = {
@@ -1147,7 +1147,10 @@ export const startReplay = async (
   replayConfig: KungfuApi.ReplayConfig,
 ): Promise<Proc | void> => {
   const { session_name, log_level, path, begin_time, end_time } = replayConfig;
-  const strategyOperatorIdResolved = getProcessIdByKfLocation(location,'replay')
+  const strategyOperatorIdResolved = getProcessIdByKfLocation(
+    location,
+    'replay',
+  );
 
   const args = `${log_level} run -c ${location.category} -g ${location.group} -n ${session_name} -m replay ${path} -b '${begin_time}' -e '${end_time}'`;
 

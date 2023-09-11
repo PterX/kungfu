@@ -93,7 +93,7 @@ bool journal::release_page() {
 journal::journal(const journal &other)
     : location_(other.location_), dest_id_(other.dest_id_), page_size_(other.page_size_),
       is_writing_(other.is_writing_), lazy_(other.lazy_), low_latency_(other.low_latency_), bus_(other.bus_),
-      page_frame_nb_(other.page_frame_nb_),priority_(other.priority_) {
+      page_frame_nb_(other.page_frame_nb_), priority_(other.priority_) {
   pre_page_ = other.pre_page_;
   page_ = other.page_;
   frame_ = std::make_shared<frame>(*other.frame_);

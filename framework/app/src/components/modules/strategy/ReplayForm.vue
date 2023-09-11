@@ -235,22 +235,14 @@ const handleCancel = () => {
           <p>{{ t('replay.tips_title') }}</p>
           <ul>
             <li>
-              {{
-                t('replay.replay_tips2_part1', {
-                  num: '1.',
-                })
-              }}
+              {{ `1. ${t('replay.replay_tips2_part1')}` }}
               <span class="highlighted-text">
                 {{ t('replay.replay_tips2_part2') }}
               </span>
               {{ t('replay.replay_tips2_part3') }}
             </li>
             <li>
-              {{
-                t('replay.replay_tips3_part1', {
-                  num: '2.',
-                })
-              }}
+              {{ `2. ${t('replay.replay_tips3_part1')}` }}
               <span class="highlighted-text">
                 {{ t('replay.replay_tips3_part2') }}
               </span>
@@ -262,27 +254,17 @@ const handleCancel = () => {
           <p>{{ t('replay.tips_title') }}</p>
           <ul>
             <li>
-              {{ t('replay.replay_tips1',{
-                num: '1.'
-              }) }}
+              {{ `1. ${t('replay.replay_tips1')}` }}
             </li>
             <li>
-              {{
-                t('replay.replay_tips2_part1', {
-                  num: '2.',
-                })
-              }}
+              {{ `2. ${t('replay.replay_tips2_part1')}` }}
               <span class="highlighted-text">
                 {{ t('replay.replay_tips2_part2') }}
               </span>
               {{ t('replay.replay_tips2_part3') }}
             </li>
             <li>
-              {{
-                t('replay.replay_tips3_part1', {
-                  num: '3.',
-                })
-              }}
+              {{ `3. ${t('replay.replay_tips3_part1')}` }}
               <span class="highlighted-text">
                 {{ t('replay.replay_tips3_part2') }}
               </span>

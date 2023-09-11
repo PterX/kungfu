@@ -937,13 +937,13 @@ export default {
       'Only operator or strategy can be replayed',
     tips_title: '* Tips:',
     replay_tips1:
-      '{num} Upon clicking "confirm", the system will commence replaying the most recent session record. To replay a session initiated earlier, please utilize the "journal" tool to select the session and click the "replay" button.',
-    replay_tips2_part1: '{num} Replay functionality relies on data time, ',
+      'Upon clicking "confirm", the system will commence replaying the most recent session record. To replay a session initiated earlier, please utilize the "journal" tool to select the session and click the "replay" button.',
+    replay_tips2_part1: 'Replay functionality relies on data time, ',
     replay_tips2_part2:
       'please refrain from using physical time-related code within the strategy to express "now"',
     replay_tips2_part3: `(such as Python's time or yjj.now_in_nano). It is recommended to use the context.now method provided by the strategy. Otherwise, the replay may not execute as expected.`,
     replay_tips3_part1:
-      '{num} The replay function is limited to simulating and logging based on the states recorded from previously executed strategies.',
+      'The replay function is limited to simulating and logging based on the states recorded from previously executed strategies.',
     replay_tips3_part2: `Modifying the strategy's logic may lead to errors`,
     replay_tips3_part3:
       'due to discrepancies between the output data and the actual execution.',

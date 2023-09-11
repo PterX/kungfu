@@ -27,7 +27,13 @@ export function bindIPCListener(store) {
   });
   ipcRenderer.on('startReplay', async (_event, args) => {
     const { replayProcessParams } = args;
-    const { category, group, replayConfig } = replayProcessParams;
-    await startReplay(category, group, replayConfig);
+    const { category, group, name, replayConfig } = replayProcessParams;
+    const location: KungfuApi.KfLocation = {
+      category,
+      group,
+      name,
+      mode: 'replay',
+    };
+    await startReplay(location, replayConfig);
   });
 }

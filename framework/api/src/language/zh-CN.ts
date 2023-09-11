@@ -930,12 +930,12 @@ export default {
     only_operator_or_strategy_can_be_replayed: '只有算子或策略才能回放',
     tips_title: '* 注:',
     replay_tips1:
-      '{num} 点击确认后, 开始回放本记录最近一次 session. 如需回放之前启动过的 session, 请使用 journal 工具选择 session, 点击 "回放" 按钮进行回放.',
-    replay_tips2_part1: '{num} 回放依赖数据时间, ',
+      '点击确认后, 开始回放本记录最近一次 session. 如需回放之前启动过的 session, 请使用 journal 工具选择 session, 点击 "回放" 按钮进行回放.',
+    replay_tips2_part1: '回放依赖数据时间, ',
     replay_tips2_part2: '请勿在策略内使用物理时间相关代码来表达"now"',
     replay_tips2_part3:
       '(如 python 的 time 或者 yjj.now_in_nano), 建议使用策略提供的context.now 方法, 否则回放无法按照预期执行.',
-    replay_tips3_part1: '{num} 回放仅可增加 log, ',
+    replay_tips3_part1: '回放仅可增加 log, ',
     replay_tips3_part2: '请勿修改策略逻辑',
     replay_tips3_part3: ', 否则会由于输出数据与实际不符而报错.',
   },

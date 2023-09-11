@@ -15,6 +15,7 @@ import {
   createVNode,
   FunctionalComponent,
 } from 'vue';
+import { ensureFileSync, outputFile } from 'fs-extra';
 import {
   CheckCircleOutlined,
   ExclamationCircleOutlined,
@@ -54,6 +55,7 @@ import {
   nativeImage,
 } from '@electron/remote';
 import { ipcRenderer } from 'electron';
+import { ipcEmit } from '@kungfu-trader/kungfu-app/src/renderer/ipcMsg/emitter';
 import {
   message,
   MessageArgsProps,
@@ -673,15 +675,18 @@ function getNewWindowLocation(): { x: number; y: number } | null {
 
 export const openReplayView = (
   type: 'strategy' | 'operator',
-  filePath: string,
+  logPath: string,
   beginTime: string,
   endTime: string,
   log_level: string,
+  sessionName: string,
+  filePath: string,
+  processId: string,
 ): Promise<Electron.BrowserWindow> => {
   return openNewBrowserWindow(
     globalThis.__runtimeDir,
     'replay',
-    `?logPath=${filePath}&category=${type}&beginTime=${beginTime}&endTime=${endTime}&logLevel=${log_level}&processId=${type}_replay_${beginTime}_${endTime}`,
+    `?logPath=${logPath}&sessionName=${sessionName}&filePath=${filePath}&category=${type}&beginTime=${beginTime}&endTime=${endTime}&logLevel=${log_level}&processId=${processId}`,
     {
       width: 1280,
       height: 960,
@@ -756,7 +761,6 @@ export const parseURIParams = (): Record<string, string> => {
 
   return paramsData;
 };
-
 export const useIpcListener = (): void => {
   const app = getCurrentInstance();
   ipcRenderer.removeAllListeners('main-process-messages');
@@ -868,26 +872,47 @@ export const handleOpenReplayView = async (
   beginTime: string,
   endTime: string,
   logLevel: string,
+  processId: string,
   replayConfig: KungfuApi.ReplayConfig,
 ): Promise<Electron.BrowserWindow> => {
   const dateStr = getYearMonthDay();
   const hideloading = messagePrompt().loading(t('open_replay_dashboard'));
   const logPath = buildProcessReplayPath(config, `${config.name}_${dateStr}`);
   if (replayConfig) {
-    await startReplay(config.category, config.group, replayConfig);
+    try {
+      ensureFileSync(logPath);
+      await outputFile(logPath, '');
+    } catch (error) {
+      console.error(error);
+      messagePrompt().error();
+    }
+
+    try {
+      await ipcEmit('clear-process', {
+        processId,
+      });
+    } catch (error) {
+      console.error(error);
+      messagePrompt().error();
+    }
   }
+
   return openReplayView(
     config.category,
     logPath,
     beginTime,
     endTime,
     logLevel,
-  ).finally(() => {
+    replayConfig.session_name,
+    replayConfig.path,
+    processId,
+  ).finally(async () => {
     hideloading();
+    await startReplay(config, replayConfig);
   });
 };
 
-export const handleOpenJournalReplayView = async (
+export const getJournalReplayConfigs = async (
   config: KungfuApi.KfConfig | KungfuApi.KfLocation,
   replayConfig: KungfuApi.ReplayConfig,
   count: number,
@@ -897,6 +922,7 @@ export const handleOpenJournalReplayView = async (
     | {
         category: string;
         group: string;
+        name: string;
         replayConfig: KungfuApi.ReplayConfig;
       }
     | undefined;
@@ -907,6 +933,7 @@ export const handleOpenJournalReplayView = async (
       ProcessConfigs: {
         category: config.category,
         group: config.group,
+        name: config.name,
         replayConfig,
       },
     };

@@ -96,7 +96,7 @@ import {
   confirmModal,
   makeSearchOptionFormInstruments,
   handleOpenReplayView,
-  handleOpenJournalReplayView,
+  getJournalReplayConfigs,
 } from './uiUtils';
 import { storeToRefs } from 'pinia';
 import { ipcRenderer } from 'electron';
@@ -2103,6 +2103,7 @@ export const useReplay = (): {
     | {
         category: string;
         group: string;
+        name: string;
         replayConfig: KungfuApi.ReplayConfig;
       }
     | undefined
@@ -2241,23 +2242,23 @@ export const useReplay = (): {
     const date = getYearMonthDay();
     const beginTime = `${date} ${startTime}`;
     const endTimeStr = `${date} ${endTime}`;
-    const processId = `${currentLocation.value.category}_replay_${startTime}_${endTime}`;
+    const processId = getProcessIdByKfLocation(currentLocation.value, 'replay');
     replayConfig.value.begin_time = beginTime;
     replayConfig.value.end_time = endTimeStr;
     replayConfig.value.log_level = data.logLevel;
     const params = {
       category: currentLocation.value.category,
       group: currentLocation.value.group,
+      name: currentLocation.value.name,
       replayConfig: replayConfig.value,
     };
     localStorage.setItem(processId, JSON.stringify(params));
     if (isJournal) {
-      const { startProcess, ProcessConfigs } =
-        await handleOpenJournalReplayView(
-          currentLocation.value,
-          replayConfig.value,
-          journalReplayflag.value,
-        );
+      const { startProcess, ProcessConfigs } = await getJournalReplayConfigs(
+        currentLocation.value,
+        replayConfig.value,
+        journalReplayflag.value,
+      );
       journalReplayflag.value = startProcess;
       replayProcessParams.value = ProcessConfigs;
     } else {
@@ -2266,6 +2267,7 @@ export const useReplay = (): {
         startTime,
         endTime,
         data.logLevel,
+        processId,
         replayConfig.value,
       );
     }

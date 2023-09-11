@@ -138,9 +138,10 @@ import {
   watch,
   onUnmounted,
 } from 'vue';
+import { ensureFileSync, outputFile } from 'fs-extra';
 import { storeToRefs } from 'pinia';
 import { getSessionColumns, SessionStatus } from './config';
-import { BrowserWindow } from '@electron/remote';
+import { getCurrentWindow } from '@electron/remote';
 import { buildProcessReplayPath } from '@kungfu-trader/kungfu-js-api/config/pathConfig';
 import {
   messagePrompt,
@@ -167,6 +168,7 @@ import EventsDashBoard from './components/EventsDashboard.vue';
 import { useJournalStore } from './store/journalStore';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { getAllKfConfigOriginData } from '@kungfu-trader/kungfu-js-api/actions';
+import { ipcEmit } from '@kungfu-trader/kungfu-app/src/renderer/ipcMsg/emitter';
 
 import { useReplay } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import KfDashboard from '../../components/public/KfDashboard.vue';
@@ -235,7 +237,9 @@ const replayPramas = computed(() => {
     endTime: end_time,
     logPath: logPath,
     logLevel: replayConfig.value.log_level || '-l info',
-    processId: `${category}_replay_${begin_time}_${end_time}`,
+    sessionName: currentSession.value.name || '',
+    filePath:replayConfig.value.path || '',
+    processId: `${category}-replay_${name}`,
   };
 });
 
@@ -311,7 +315,7 @@ const customRow = (record: KungfuApi.SessionResolved) => {
 };
 
 onMounted(async () => {
-  currentWindow = BrowserWindow.getFocusedWindow();
+  currentWindow = getCurrentWindow();
   const { operator: originOperator, strategy: originStategy } =
     await getAllKfConfigOriginData();
   operator.value = originOperator;
@@ -334,14 +338,40 @@ watch(
   () => journalReplayflag.value,
   (val) => {
     if (val) {
-      if (currentWindow) {
-        const pawin = currentWindow.getParentWindow();
-        if (pawin) {
-          pawin.webContents.send('startReplay', {
-            replayProcessParams: replayProcessParams.value,
+      if (currentSession.value) {
+        const dateStr = getYearMonthDay();
+        const logPath = buildProcessReplayPath(
+          {
+            category: currentSession.value.category,
+            group: currentSession.value.group,
+            name: currentSession.value.name,
+          },
+          `${currentSession.value.name}_${dateStr}`,
+        );
+
+        ensureFileSync(logPath);
+        outputFile(logPath, '')
+          .then(() => {
+            if (currentWindow) {
+              ipcEmit('clear-process', {processId: replayPramas.value.processId || ''})
+                .then(() => {
+                  const pawin =
+                    currentWindow && currentWindow.getParentWindow();
+                  if (pawin) {
+                    pawin.webContents.send('startReplay', {
+                      replayProcessParams: replayProcessParams.value,
+                    });
+                    currentMenuList.value = ['replay'];
+                  }
+                })
+                .catch((err) => {
+                  console.error(err);
+                });
+            }
+          })
+          .catch((err) => {
+            console.log(err);
           });
-          currentMenuList.value = ['replay'];
-        }
       }
     }
   },

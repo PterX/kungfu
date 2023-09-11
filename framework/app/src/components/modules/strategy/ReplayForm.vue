@@ -303,7 +303,7 @@ const handleCancel = () => {
     margin: 0;
 
     li {
-      margin-bottom: 10px;
+      margin-bottom: 4px;
     }
   }
 }

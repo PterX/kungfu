@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { nextTick, onMounted, ref, computed, onBeforeUnmount } from 'vue';
+import { onMounted, ref, computed, onBeforeUnmount } from 'vue';
 // import { storeToRefs } from 'pinia';
 import {
   UpOutlined,
@@ -11,6 +11,7 @@ import {
   messagePrompt,
   removeLoadingMask,
   setHtmlTitle,
+useScrollerTableSearch,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import { useRemoveReplayProcess } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 // import { useJournalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/journal/store/journalStore';
@@ -19,11 +20,9 @@ import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/p
 import { LogLevelType } from '@kungfu-trader/kungfu-app/src/typings/enums';
 import { ensureFileSync, outputFile } from 'fs-extra';
 import { shell, BrowserWindow } from '@electron/remote';
-import { clipboard } from 'electron';
-import { platform } from 'os';
 import {
   useLogInit,
-  useLogSearch,
+  dealLogMessage
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/logUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { listProcessStatus } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
@@ -92,12 +91,18 @@ const {
 const {
   inputSearchRef,
   searchKeyword,
-  currentResultPointerIndex,
+  currentResultIndex,
   totalResultCount,
-  clearLogSearchState,
+  clearSearchState,
   handleToDownSearchResult,
   handleToUpSearchResult,
-} = useLogSearch(logList, scrollerTableRef, boardSize);
+  getItemHtmlResult,
+} = useScrollerTableSearch(
+  () => logList.list,
+  'id',
+  ['message'],
+  scrollerTableRef,
+);
 
 onMounted(() => {
   const replayPocessCheckTimer = setInterval(async () => {
@@ -128,22 +133,6 @@ onMounted(() => {
   resetLog();
 });
 
-document.addEventListener('keydown', (e) => {
-  const ctrlCmd = platform() === 'darwin' ? e.metaKey : e.ctrlKey;
-  if (ctrlCmd && e.key === 'f') {
-    searchKeyword.value = clipboard.readText();
-    if (inputSearchRef.value) {
-      const $inputWrapper = inputSearchRef.value.$el.firstElementChild;
-      const $input = $inputWrapper.querySelector('input');
-      if ($input) {
-        $input.focus();
-        nextTick().then(() => {
-          $input.select();
-        });
-      }
-    }
-  }
-});
 
 function handleRemoveLog(): Promise<void> {
   ensureFileSync(LOG_PATH);
@@ -163,7 +152,7 @@ function handleOpenFileLocation() {
 
 function resetLog() {
   clearLogState();
-  clearLogSearchState();
+  clearSearchState()
   startTailLog();
 }
 async function reLoadLog() {
@@ -278,7 +267,7 @@ async function reLoadLog() {
                   style="width: 120px"
                 />
                 <div class="current-to-total search-int-table__item">
-                  {{ currentResultPointerIndex }} /
+                  {{ currentResultIndex }} /
                   {{ totalResultCount }}
                 </div>
                 <div
@@ -339,12 +328,12 @@ async function reLoadLog() {
                 :size-dependencies="[item.message]"
                 :data-index="index"
               >
-                <div
-                  :id="`kf-log-item-${item.id}`"
-                  :active="active"
-                  class="kf-log-line"
-                  v-html="item.messageForSearch || item.message"
-                ></div>
+              <div
+                :id="`kf-log-item-${item.id}`"
+                :active="active"
+                class="kf-log-line"
+                v-html="dealLogMessage(getItemHtmlResult(item, 'message'))"
+              ></div>
               </DynamicScrollerItem>
             </template>
           </DynamicScroller>

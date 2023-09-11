@@ -439,7 +439,7 @@ function extractWordAfterLog(inputString) {
         flex: 0 0 50px;
         height: 50px;
         background-color: #1d1d1d;
-        padding: 5px 20px;
+        padding: 5px 16px;
         margin-bottom: 2px;
         display: flex;
         align-items: center;

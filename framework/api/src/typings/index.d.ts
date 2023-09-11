@@ -423,8 +423,6 @@ declare namespace KungfuApi {
   export interface KfLogData {
     id: number;
     message: string;
-    messageOrigin: string;
-    messageForSearch: string;
   }
 
   export class KfFixedList<T> {

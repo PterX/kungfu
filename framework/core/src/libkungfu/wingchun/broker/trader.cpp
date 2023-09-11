@@ -44,7 +44,7 @@ void TraderVendor::on_start() {
   events_ | is(OrderTriggerInput::tag) | $$(service_->insert_order_trigger(event));
   events_ | is(OrderAction::tag) | $$(service_->cancel_order(event));
   events_ | is(OrderTriggerAction::tag) | $$(service_->cancel_order_trigger(event));
-  events_ | is(AssetRequest::tag) | $$(service_->req_account());
+  events_ | is(AssetRequest::tag) | $$(service_->handle_asset_sync());
   events_ | is(Deregister::tag) | $$(service_->on_strategy_exit(event));
   events_ | is(TimeKeyValue::tag) | $$(service_->on_time_key_value(event));
   events_ | is(PositionRequest::tag) | $$(service_->req_position());
@@ -122,12 +122,12 @@ void Trader::enable_positions_sync() { sync_position_ = true; }
 
 bool Trader::write_default_asset_margin() {
   SPDLOG_INFO("Write an empty AssetMargin by default");
-  sync_asset_margin_ = true;
   auto writer = get_asset_margin_writer();
   AssetMargin &asset_margin = writer->open_data<AssetMargin>();
   asset_margin.holder_uid = get_home_uid();
   asset_margin.update_time = yijinjing::time::now_in_nano();
   writer->close_data();
+  enable_asset_margin_sync();
   return false;
 }
 

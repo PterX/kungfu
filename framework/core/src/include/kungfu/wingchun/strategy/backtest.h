@@ -295,18 +295,25 @@ protected:
   uint64_t get_order_id(const yijinjing::journal::writer_ptr &writer, uint32_t dest) const;
 
 private:
+  struct TimerTask {
+    int32_t timer_id;
+    std::function<void(event_ptr)> call_back;
+    TimerTask(int32_t id, std::function<void(event_ptr)> cb) : timer_id(id), call_back(cb) {};
+  };
   broker::PassiveClient broker_client_;
   book::Bookkeeper bookkeeper_;
   Matcher_ptr matcher_;
   tool::SliceIndexer_ptr from_indexer_;
   tool::SliceTool_ptr slice_tool_;
   tool::Report_ptr report_;
-  std::multimap<int64_t, std::function<void(event_ptr)>> pre_timer_callbacks_{};
-  std::multimap<int64_t, std::function<void(event_ptr)>> timer_callbacks_{};
+  int32_t timer_usage_count_{0};
+  std::multimap<int64_t, TimerTask> pre_timer_callbacks_{};
+  std::multimap<int64_t, TimerTask> timer_callbacks_{};
   std::map<int64_t, std::vector<yijinjing::data::location_ptr>> lease_locations_{};
 
   void on_timer_check();
   void lease_expired_check();
+  int32_t add_timer_interval_helper(int64_t duration, int32_t timer_id, const std::function<void(event_ptr)> &callback);
 };
 
 DECLARE_PTR(BacktestContext)

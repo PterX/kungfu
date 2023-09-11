@@ -63,21 +63,10 @@ int32_t BacktestContext::add_timer_interval_helper(int64_t duration, int32_t tim
 }
 
 void BacktestContext::clear_timer(int32_t timer_id) {
-  for (auto it = timer_callbacks_.begin(); it != timer_callbacks_.end();) {
-    if (it->second.timer_id == timer_id) {
-      it = timer_callbacks_.erase(it);
-    } else {
-      ++it;
-    }
-  }
-  for (auto it = pre_timer_callbacks_.begin(); it != pre_timer_callbacks_.end();) {
-    if (it->second.timer_id == timer_id) {
-      it = pre_timer_callbacks_.erase(it);
-    } else {
-      ++it;
-    }
-  }
+  std::erase_if(pre_timer_callbacks_, [timer_id](const auto &timer_task) { return timer_task.second.timer_id == timer_id; });
+  std::erase_if(timer_callbacks_, [timer_id](const auto &timer_task) { return timer_task.second.timer_id == timer_id; });
 }
+
 void BacktestContext::on_timer_check() {
   if (not pre_timer_callbacks_.empty()) {
     timer_callbacks_.insert(pre_timer_callbacks_.begin(), pre_timer_callbacks_.end());

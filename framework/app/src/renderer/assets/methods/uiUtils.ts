@@ -621,22 +621,24 @@ export const openNewBrowserWindow = (
         win.show();
       });
 
-      currentWindow.on('resize', () => {
-        if (win.getSize()[0] === 300 && win.getSize()[1] === 30) {
-          const [parentX, parentY, parentWidth, parentHeight] = [
-            currentWindow.getPosition()[0],
-            currentWindow.getPosition()[1],
-            currentWindow.getSize()[0],
-            currentWindow.getSize()[1],
-          ];
+      if (win && !win.isDestroyed()) {
+        currentWindow.on('resize', () => {
+          if (win.getSize()[0] === 300 && win.getSize()[1] === 30) {
+            const [parentX, parentY, parentWidth, parentHeight] = [
+              currentWindow.getPosition()[0],
+              currentWindow.getPosition()[1],
+              currentWindow.getSize()[0],
+              currentWindow.getSize()[1],
+            ];
 
-          const newX = parentX + parentWidth - 300;
-          const newY = parentY + parentHeight - 30;
+            const newX = parentX + parentWidth - 300;
+            const newY = parentY + parentHeight - 30;
 
-          win.setPosition(newX, newY);
-          win.show();
-        }
-      });
+            win.setPosition(newX, newY);
+            win.show();
+          }
+        });
+      }
     } else {
       win && win.show();
     }

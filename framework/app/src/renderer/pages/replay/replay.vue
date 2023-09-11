@@ -35,7 +35,7 @@
 <script setup lang="ts">
 import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
 
-import LogView from '@kungfu-trader/kungfu-app/src/renderer/pages/logview/index.vue';
+import LogView from '@kungfu-trader/kungfu-app/src/renderer/pages/logview/LogView.vue';
 import { BrowserWindow } from '@electron/remote';
 import { ensureFileSync, outputFile } from 'fs-extra';
 import { useRemoveReplayProcess } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';

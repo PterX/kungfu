@@ -172,7 +172,7 @@ import { useReplay } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods
 import KfDashboard from '../../components/public/KfDashboard.vue';
 
 import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
-import Replay from '@kungfu-trader/kungfu-app/src/renderer/pages/replay/replay.vue';
+import Replay from '@kungfu-trader/kungfu-app/src/renderer/pages/replay/Replay.vue';
 import ReplayForm from '@kungfu-trader/kungfu-app/src/components/modules/strategy/ReplayForm.vue';
 
 const { t } = VueI18n.global;

@@ -1463,7 +1463,6 @@ declare module '@kungfu-trader/kungfu-core' {
 declare namespace Code {
   import { Stats } from 'fs-extra';
   import { SpaceTabSettingEnum, SpaceSizeSettingEnum } from './enums';
-  import Replay from '@kungfu-trader/kungfu-app/src/renderer/pages/logview/index.vue';
   import { session } from 'electron';
   import path from 'path';
 

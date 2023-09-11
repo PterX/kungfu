@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { setHtmlTitle } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import { getUrlParams } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/logUtils';
-import Replay from '@kungfu-trader/kungfu-app/src/renderer/pages/replay/replay.vue';
+import Replay from '@kungfu-trader/kungfu-app/src/renderer/pages/replay/Replay.vue';
 
 const params = getUrlParams();
 

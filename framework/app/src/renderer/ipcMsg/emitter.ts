@@ -1,5 +1,5 @@
 import { ipcRenderer } from 'electron';
-import { getCurrentWindow } from '@electron/remote';
+import { getCurrentWindow, BrowserWindow } from '@electron/remote';
 const currentWin = getCurrentWindow();
 const paWin = currentWin.getParentWindow();
 
@@ -34,5 +34,18 @@ export const ipcEmitDataByName = (
       ipcRenderer.removeAllListeners(`ipc-res-${name}`);
       clearTimeout(timer);
     });
+  });
+};
+
+export const ipcEmit = (
+  name: string,
+  params: Record<string, string>,
+): Promise<void> => {
+  return new Promise((resolve) => {
+    const allWindows = BrowserWindow.getAllWindows();
+    allWindows.forEach((win) => {
+      win.webContents.send(name, params);
+    });
+    resolve();
   });
 };

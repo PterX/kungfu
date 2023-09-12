@@ -241,8 +241,9 @@ export const getChartOption = () => {
         name: t('journalConfig.quote_legend'),
         type: 'line',
         data: [] as SeriesData[],
-        symbol: 'circle',
-        symbolSize: 2,
+        symbol: 'pin',
+        symbolSize: 16,
+        showSymbol: false,
         itemStyle: {
           color: '#0F6DA6',
         },

@@ -39,6 +39,7 @@
 
 <script lang="ts" setup>
 import { computed, ref, watch } from 'vue';
+import { useWindowFocus } from '@vueuse/core';
 import { storeToRefs } from 'pinia';
 import { dealKfTime } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { ForwardOutlined, BackwardOutlined } from '@ant-design/icons-vue';
@@ -81,6 +82,8 @@ const nano2millionSecond = (number: bigint | number) => {
   }
 };
 
+const windowFocusStatus = useWindowFocus();
+
 watch(
   currentTime,
   (newVal) => {
@@ -90,6 +93,12 @@ watch(
     immediate: true,
   },
 );
+
+watch(windowFocusStatus, () => {
+  if (!windowFocusStatus.value) {
+    (document.activeElement as HTMLElement).blur();
+  }
+});
 
 const onAfterChange = () => {
   setCurrentTime(million2nanoSecond(currentTimeResolved.value));

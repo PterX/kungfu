@@ -838,10 +838,10 @@ function addChartEventListener(myChart: echarts.ECharts) {
 
 const chartFrameList = computed(() => {
   return [
-    ...quoteByInstrument.value[selectedInstrument.value],
-    ...orderByInstrument.value[selectedInstrument.value],
-    ...orderInputByInstrument.value[selectedInstrument.value],
-    ...orderActionByInstrument.value[selectedInstrument.value],
+    ...(quoteByInstrument.value[selectedInstrument.value] ?? []),
+    ...(orderByInstrument.value[selectedInstrument.value] ?? []),
+    ...(orderInputByInstrument.value[selectedInstrument.value] ?? []),
+    ...(orderActionByInstrument.value[selectedInstrument.value] ?? []),
   ].sort((a, b) => {
     let aDataTime = getTradingDataValueByKey(a).dataTime;
     let bDataTime = getTradingDataValueByKey(b).dataTime;

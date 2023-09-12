@@ -3,7 +3,6 @@ import { onMounted, ref } from 'vue';
 import { ReloadOutlined } from '@ant-design/icons-vue';
 import { getNanoDateString } from '@kungfu-trader/kungfu-js-api/kungfu';
 
-import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 
 const { t } = VueI18n.global;
@@ -67,7 +66,7 @@ const logLevelOptions = [
   { value: '-l trace', label: 'TRACE' },
   { value: '-l debug', label: 'DEBUG' },
   { value: '-l info', label: 'INFO' },
-  { value: '-l warn', label: 'WARN' },
+  { value: '-l warning', label: 'WARN' },
   { value: '-l error', label: 'ERROR' },
   { value: '-l critical', label: 'CRITICAL' },
 ];
@@ -137,15 +136,10 @@ const handleOk = () => {
   formRef.value
     ?.validate()
     .then(() => {
-      useGlobalStore().setReplaySetting({
-        begin_time: formState.value.beginTime,
-        end_time: formState.value.endTime,
-        log_level: formState.value.logLevel,
-      });
       emit('confirm', formState.value);
     })
     .catch((error) => {
-      console.error('Validation failed:', error);
+      console.error(error);
     });
 };
 
@@ -238,42 +232,43 @@ const handleCancel = () => {
       <div class="form-note">
         <div class="spacer"></div>
         <div class="note-content" v-if="props.isJournal">
-          <p>* 注:</p>
+          <p>{{ t('replay.tips_title') }}</p>
           <ul>
             <li>
-              1.回放依赖数据时间,
+              {{ `1. ${t('replay.replay_tips2_part1')}` }}
               <span class="highlighted-text">
-                请勿在策略内使用物理时间相关代码来表达"now"
+                {{ t('replay.replay_tips2_part2') }}
               </span>
-              (如 python 的 time 或者 yjj.now_in_nano), 建议使用策略提供的
-              context.now 方法, 否则回放无法按照预期执行.
+              {{ t('replay.replay_tips2_part3') }}
             </li>
             <li>
-              2.回放仅可增加 log,
-              <span class="highlighted-text">请勿修改策略逻辑</span>
-              , 否则会由于输出数据与实际不符而报错.
+              {{ `2. ${t('replay.replay_tips3_part1')}` }}
+              <span class="highlighted-text">
+                {{ t('replay.replay_tips3_part2') }}
+              </span>
+              {{ t('replay.replay_tips3_part3') }}
             </li>
           </ul>
         </div>
         <div class="note-content" v-else>
-          <p>* 注:</p>
+          <p>{{ t('replay.tips_title') }}</p>
           <ul>
             <li>
-              1.点击确认后, 开始回放本记录最近一次 session.如需回放之前启动过的
-              session, 请使用 journal 工具选择 session, 点击"回放"按钮进行回放.
+              {{ `1. ${t('replay.replay_tips1')}` }}
             </li>
             <li>
-              2.回放依赖数据时间,
+              {{ `2. ${t('replay.replay_tips2_part1')}` }}
               <span class="highlighted-text">
-                请勿在策略内使用物理时间相关代码来表达"now"
+                {{ t('replay.replay_tips2_part2') }}
               </span>
-              (如 python 的 time 或者 yjj.now_in_nano), 建议使用策略提供的
-              context.now 方法, 否则回放无法按照预期执行.
+              {{ t('replay.replay_tips2_part3') }}
             </li>
             <li>
-              3.回放仅可增加 log,
-              <span class="highlighted-text">请勿修改策略逻辑</span>
-              , 否则会由于输出数据与实际不符而报错.
+              {{ `3. ${t('replay.replay_tips3_part1')}` }}
+              <span class="highlighted-text">
+                {{ t('replay.replay_tips3_part2') }}
+              </span>
+              {{ t('replay.replay_tips3_part3') }}
             </li>
           </ul>
         </div>
@@ -308,7 +303,7 @@ const handleCancel = () => {
     margin: 0;
 
     li {
-      margin-bottom: 10px;
+      margin-bottom: 4px;
     }
   }
 }

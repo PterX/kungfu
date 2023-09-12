@@ -15,6 +15,7 @@ import {
   createVNode,
   FunctionalComponent,
 } from 'vue';
+import { ensureFileSync, outputFile } from 'fs-extra';
 import {
   CheckCircleOutlined,
   ExclamationCircleOutlined,
@@ -54,6 +55,7 @@ import {
   nativeImage,
 } from '@electron/remote';
 import { ipcRenderer } from 'electron';
+import { ipcEmit } from '@kungfu-trader/kungfu-app/src/renderer/ipcMsg/emitter';
 import {
   message,
   MessageArgsProps,
@@ -583,8 +585,6 @@ export const openNewBrowserWindow = (
     //判断是否是macOS系统
     const isMacOS = process.platform === 'darwin';
 
-    let offsetX, offsetY;
-
     win.on('ready-to-show', function () {
       if (isMacOS) {
         if (isParentFullScreen) {
@@ -601,19 +601,6 @@ export const openNewBrowserWindow = (
 
     win.on('closed', () => {
       resolve(win);
-    });
-
-    ipcRenderer.on('trigger-main-window-hook', (_event, args) => {
-      const { key, hookName } = args;
-      if (key && hookName) {
-        globalThis.HookKeeper.getHooks().processAction.trigger(hookName, key);
-      }
-    });
-
-    ipcRenderer.on('startReplay', async (_event, args) => {
-      const { replayProcessParams } = args;
-      const { category, group, replayConfig } = replayProcessParams;
-      await startReplay(category, group, replayConfig);
     });
 
     if (isMacOS) {
@@ -633,22 +620,27 @@ export const openNewBrowserWindow = (
         currentWindow.setSize(parentWidth, parentHeight);
         currentWindow.setPosition(parentX, parentY);
 
-        offsetX = newX - parentX;
-        offsetY = newY - parentY;
-
-        win.setAlwaysOnTop(true);
-
         win.show();
       });
 
-      currentWindow.on('move', () => {
-        const [newParentX, newParentY] = currentWindow.getPosition();
+      if (win && !win.isDestroyed()) {
+        currentWindow.on('resize', () => {
+          if (win.getSize()[0] === 300 && win.getSize()[1] === 30) {
+            const [parentX, parentY, parentWidth, parentHeight] = [
+              currentWindow.getPosition()[0],
+              currentWindow.getPosition()[1],
+              currentWindow.getSize()[0],
+              currentWindow.getSize()[1],
+            ];
 
-        const newChildX = newParentX + offsetX;
-        const newChildY = newParentY + offsetY;
-        win.setPosition(newChildX, newChildY);
-        win.show();
-      });
+            const newX = parentX + parentWidth - 300;
+            const newY = parentY + parentHeight - 30;
+
+            win.setPosition(newX, newY);
+            win.show();
+          }
+        });
+      }
     } else {
       win && win.show();
     }
@@ -683,15 +675,18 @@ function getNewWindowLocation(): { x: number; y: number } | null {
 
 export const openReplayView = (
   type: 'strategy' | 'operator',
-  filePath: string,
+  logPath: string,
   beginTime: string,
   endTime: string,
   log_level: string,
+  sessionName: string,
+  filePath: string,
+  processId: string,
 ): Promise<Electron.BrowserWindow> => {
   return openNewBrowserWindow(
     globalThis.__runtimeDir,
     'replay',
-    `?logPath=${filePath}&category=${type}&beginTime=${beginTime}&endTime=${endTime}&logLevel=${log_level}&processId=${type}_replay_${beginTime}_${endTime}`,
+    `?logPath=${logPath}&sessionName=${sessionName}&filePath=${filePath}&category=${type}&beginTime=${beginTime}&endTime=${endTime}&logLevel=${log_level}&processId=${processId}`,
     {
       width: 1280,
       height: 960,
@@ -766,7 +761,6 @@ export const parseURIParams = (): Record<string, string> => {
 
   return paramsData;
 };
-
 export const useIpcListener = (): void => {
   const app = getCurrentInstance();
   ipcRenderer.removeAllListeners('main-process-messages');
@@ -875,38 +869,50 @@ export const messagePrompt = (): {
 
 export const handleOpenReplayView = async (
   config: KungfuApi.KfConfig | KungfuApi.KfLocation,
-  processId: string,
   beginTime: string,
   endTime: string,
   logLevel: string,
+  processId: string,
   replayConfig: KungfuApi.ReplayConfig,
 ): Promise<Electron.BrowserWindow> => {
   const dateStr = getYearMonthDay();
   const hideloading = messagePrompt().loading(t('open_replay_dashboard'));
   const logPath = buildProcessReplayPath(config, `${config.name}_${dateStr}`);
   if (replayConfig) {
-    globalThis.HookKeeper.getHooks().processAction.register(
-      processId,
-      'start',
-      async () => {
-        await startReplay(config.category, config.group, replayConfig);
-        console.log(`start replay${processId}`);
-      },
-    );
-    await startReplay(config.category, config.group, replayConfig);
+    try {
+      ensureFileSync(logPath);
+      await outputFile(logPath, '');
+    } catch (error) {
+      console.error(error);
+      messagePrompt().error();
+    }
+
+    try {
+      await ipcEmit('clear-process', {
+        processId,
+      });
+    } catch (error) {
+      console.error(error);
+      messagePrompt().error();
+    }
   }
+
   return openReplayView(
     config.category,
     logPath,
     beginTime,
     endTime,
     logLevel,
-  ).finally(() => {
+    replayConfig.session_name,
+    replayConfig.path,
+    processId,
+  ).finally(async () => {
     hideloading();
+    await startReplay(config, replayConfig);
   });
 };
 
-export const handleOpenJournalReplayView = async (
+export const getJournalReplayConfigs = async (
   config: KungfuApi.KfConfig | KungfuApi.KfLocation,
   replayConfig: KungfuApi.ReplayConfig,
   count: number,
@@ -916,6 +922,7 @@ export const handleOpenJournalReplayView = async (
     | {
         category: string;
         group: string;
+        name: string;
         replayConfig: KungfuApi.ReplayConfig;
       }
     | undefined;
@@ -926,6 +933,7 @@ export const handleOpenJournalReplayView = async (
       ProcessConfigs: {
         category: config.category,
         group: config.group,
+        name: config.name,
         replayConfig,
       },
     };

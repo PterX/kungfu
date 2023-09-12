@@ -1010,7 +1010,7 @@ function disabledEndTime(
   };
 }
 
-function handleDisabledTime(stratTime: string, endTimeLstring) {
+function initDisabledTime(stratTime: string, endTimeLstring) {
   const [startHour, startMinute] = stratTime.split(':');
   const [endHour, endMinute] = endTimeLstring.split(':');
   let hours: number[] = [];
@@ -1942,7 +1942,7 @@ defineExpose({
         "
         :value="formState[item.key] == null ? null : dayjs(formState[item.key])"
         :disabled-time="
-          item.abledTimeRange ? ()=>{return handleDisabledTime(...item.abledTimeRange as [string,string])} : ()=>{    return {
+          item.abledTimeRange ? ()=>{return initDisabledTime(...item.abledTimeRange as [string,string])} : ()=>{    return {
       disabledHours: () => {return[1]},
       disabledMinutes: () => [],
     };}

@@ -287,10 +287,6 @@ void hero::register_channel(int64_t, const Channel &channel) {
     auto dest_uname = get_location_uname(channel.dest_id);
     SPDLOG_TRACE("channel [{:08x}] {} -> {} up", channel_uid, source_uname, dest_uname);
   }
-
-  if (channel.source_id == get_home_uid() and not has_writer(channel.dest_id)) {
-    writers_.insert_or_assign(channel.dest_id, get_io_device()->open_writer(channel.dest_id));
-  }
 }
 
 void hero::deregister_channel(uint32_t source_id) {
@@ -316,10 +312,6 @@ void hero::register_band(int64_t, const Band &band) {
     auto source_uname = get_location_uname(band.source_id);
     auto dest_uname = get_location_uname(band.dest_id);
     SPDLOG_TRACE("band [{:08x}] {} -> {} up", band_uid, source_uname, dest_uname);
-  }
-
-  if (band.source_id == get_home_uid() and not has_writer(band.dest_id)) {
-    writers_.insert_or_assign(band.dest_id, get_io_device()->open_writer(band.dest_id));
   }
 }
 

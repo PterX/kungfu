@@ -44,8 +44,7 @@ MarketDataXTP::~MarketDataXTP() {
   }
 }
 
-void MarketDataXTP::pre_start() {
-  quote_band_uid_ = request_band("market-data-band-quote", 256);
+void MarketDataXTP::pre_start() {  
   entrust_band_uid_ = request_band("market-data-band-entrust", 256);
   transaction_band_uid_ = request_band("market-data-band-transaction", 256);
 }
@@ -179,11 +178,11 @@ void MarketDataXTP::OnDepthMarketData(XTPMD *market_data, int64_t *bid1_qty, int
 
   if (not quote_band_writer_) {
     SPDLOG_DEBUG("quote_band_writer_ is nullptr");
-    while (not has_band_writer(quote_band_uid_)) {
+    while (not has_writer(0)) {
       SPDLOG_DEBUG("sleep_for : {}", time::strfnow());
       std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
-    quote_band_writer_ = get_band_writer(quote_band_uid_);
+    quote_band_writer_ = get_writer(0);
   }
 
   Quote &quote = quote_band_writer_->open_data<Quote>(0);

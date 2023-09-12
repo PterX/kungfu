@@ -226,12 +226,9 @@ protected:
 
 private:
   XTP::API::QuoteApi *api_{};
-  uint32_t level2_tick_band_uid_{};
-  uint32_t quote_band_uid_{};
   uint32_t entrust_band_uid_{};
   uint32_t transaction_band_uid_{};
 
-  yijinjing::journal::writer_ptr level2_tick_band_writer_{};
   yijinjing::journal::writer_ptr quote_band_writer_{};
   yijinjing::journal::writer_ptr entrust_band_writer_{};
   yijinjing::journal::writer_ptr transaction_band_writer_{};

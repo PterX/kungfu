@@ -70,22 +70,12 @@
     </div>
     <div ref="chartWrapper" class="kf-chart_wrap">
       <a-input-search
-        v-show="instrumentList.length > 0"
         v-model:value="searchOrderId"
         class="chart-search-order-id"
         :placeholder="$t('journalConfig.search_order_id')"
         @search="handleSearchOrderId"
       />
-      <div
-        v-show="instrumentList.length > 0"
-        id="strategyChart"
-        class="kf-chart_content"
-      ></div>
-      <a-empty
-        v-show="instrumentList.length === 0"
-        class="kf-chart_content"
-        :image="simpleImage"
-      ></a-empty>
+      <div id="strategyChart" class="kf-chart_content"></div>
     </div>
     <a-spin
       class="kf-journal-spin"
@@ -134,6 +124,7 @@ import {
   OffsetEnum,
   SideEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
+import { delayMilliSeconds } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 
 const { t } = VueI18n.global;
 
@@ -147,12 +138,12 @@ type OrderActionResolved = WithTableRowInfo<KungfuApi.OrderAction> & {
   limit_price: number;
 };
 
-type frameDataType =
+type FrameDataType =
   | KungfuApi.Quote
   | KungfuApi.OrderInput
   | KungfuApi.Order
   | KungfuApi.OrderAction;
-type frameResolvedDataType =
+type FrameResolvedDataType =
   | QuoteChartResolved
   | OrderInputChartResolved
   | OrderChartResolved
@@ -182,17 +173,7 @@ const orderActionByInstrument = ref<Record<string, OrderActionResolved[]>>({});
 
 const selectedInstrument = ref<string>('');
 const xAxisData = ref<number[]>([]);
-// const xAxisData2 = ref<
-//   Record<
-//     string,
-//     {
-//       quote?: number;
-//       orderInput?: number;
-//       order?: number;
-//       orderAction?: number;
-//     }
-//   >
-// >({});
+const quoteXAxisData = ref<number[]>([]);
 const searchOrderId = ref<string>('');
 const instrumentList = ref<
   {
@@ -203,10 +184,10 @@ const instrumentList = ref<
 >([]);
 
 onMounted(() => {
+  dealAllFrameData();
   nextTick(() => {
     initChart();
   });
-  dealAllFrameData();
 });
 
 onBeforeUnmount(() => {
@@ -237,8 +218,8 @@ const dealRowClassName = (row) => {
 
 watch(
   () => isLoadingFrames.value,
-  () => {
-    if (!isLoadingFrames.value) {
+  (newValue) => {
+    if (!newValue) {
       dealAllFrameData();
     }
   },
@@ -255,7 +236,7 @@ watch(
           newCurrentFram.msgTypeName,
         )
       ) {
-        const chartData = newCurrentFram.data as frameResolvedDataType;
+        const chartData = newCurrentFram.data as FrameResolvedDataType;
         let orderId: string | bigint = 0n;
         switch (newCurrentFram.msgTypeName) {
           case 'Quote':
@@ -276,7 +257,30 @@ watch(
             break;
         }
 
-        if (newCurrentFram.msgTypeName !== 'Quote') {
+        if (newCurrentFram.msgTypeName === 'Quote') {
+          const closestTimeIndex = findClosestTime(
+            Number(dataTime),
+            quoteXAxisData.value,
+          );
+
+          delayMilliSeconds(500)
+            .then(() => {
+              myChart.dispatchAction({
+                type: 'highlight',
+                seriesIndex: 0,
+                dataIndex: closestTimeIndex,
+              });
+            })
+            .then(() => {
+              delayMilliSeconds(3000).then(() => {
+                myChart.dispatchAction({
+                  type: 'downplay',
+                  seriesIndex: 0,
+                  dataIndex: closestTimeIndex,
+                });
+              });
+            });
+        } else {
           selectedOrderId = orderId as bigint;
           option.series
             .filter((serie, index) => {
@@ -327,12 +331,11 @@ function reset() {
 
 function dealAllFrameData() {
   reset();
-  // dealFrameListMap();
+  dealFrameListMap();
   quoteByInstrument.value = dealFrame<QuoteChartResolved>(
     'quote',
     kfInstrumentsJSON,
   );
-  // order必需在orderInput前
   orderByInstrument.value = dealFrame<OrderChartResolved>(
     'order',
     kfInstrumentsJSON,
@@ -353,91 +356,42 @@ function dealAllFrameData() {
   }
 }
 
-// const chartFrameListMap = ref<Record<string, KungfuApi.FrameResolved[]>>({
-//   quote: [],
-//   orderInput: [],
-//   order: [],
-//   orderAction: [],
-// });
+const chartFrameListMap = ref<Record<string, KungfuApi.FrameResolved[]>>({
+  quote: [],
+  orderInput: [],
+  order: [],
+  orderAction: [],
+});
 
-// watch(
-//   () => currentFrameList.value,
-//   (currentFrameList) => {
-//     if (currentFrameList.length > 0) {
-//       dealFrameListMap();
-//     }
-//   },
-// );
+function dealFrameListMap() {
+  chartFrameListMap.value = {
+    quote: [],
+    orderInput: [],
+    order: [],
+    orderAction: [],
+  };
 
-// function dealFrameListMap() {
-//   chartFrameListMap.value = {
-//     quote: [],
-//     orderInput: [],
-//     order: [],
-//     orderAction: [],
-//   };
-//   xAxisData2.value = {};
-//   currentFrameList.value.forEach((item, index) => {
-//     if (item.msgTypeName === 'Quote') {
-//       chartFrameListMap.value.quote.push(item);
-//       const dataTime = (item.data as KungfuApi.Quote).data_time;
-//       if (dataTime) {
-//         xAxisData2.value[dataTime.toString()] = {
-//           quote: index,
-//         };
-//       }
-//     } else if (item.msgTypeName === 'OrderInput') {
-//       chartFrameListMap.value.orderInput.push(item);
-//       const dataTime = (item.data as KungfuApi.OrderInput).insert_time;
-//       if (dataTime) {
-//         xAxisData2.value[dataTime.toString()] = {
-//           orderInput: index,
-//         };
-//       }
-//     } else if (item.msgTypeName === 'Order') {
-//       chartFrameListMap.value.order.push(item);
-//       const dataTime = (item.data as KungfuApi.Order).update_time;
-//       if (dataTime) {
-//         xAxisData2.value[dataTime.toString()] = {
-//           order: index,
-//         };
-//       }
-//     } else if (item.msgTypeName === 'OrderAction') {
-//       chartFrameListMap.value.orderAction.push(item);
-//       const dataTime = (item.data as KungfuApi.Order).insert_time;
-//       if (dataTime) {
-//         xAxisData2.value[dataTime.toString()] = {
-//           orderAction: index,
-//         };
-//       }
-//     }
-//   });
-// }
+  let requestStart = false;
+  currentFrameList.value.forEach((item, index) => {
+    if (item.msgTypeName === 'RequestStart') {
+      requestStart = true;
+    }
+    if (requestStart) {
+      item.index = index;
+      if (item.msgTypeName === 'Quote') {
+        chartFrameListMap.value.quote.push(item);
+      } else if (item.msgTypeName === 'OrderInput') {
+        chartFrameListMap.value.orderInput.push(item);
+      } else if (item.msgTypeName === 'Order') {
+        chartFrameListMap.value.order.push(item);
+      } else if (item.msgTypeName === 'OrderAction') {
+        chartFrameListMap.value.orderAction.push(item);
+      }
+    }
+  });
+}
 
-const chartFrameListMap = computed<Record<string, KungfuApi.FrameResolved[]>>(
-  () => {
-    return {
-      quote: currentFrameList.value.filter((item, index) => {
-        item.index = index;
-        return item.msgTypeName === 'Quote';
-      }),
-      orderInput: currentFrameList.value.filter((item, index) => {
-        item.index = index;
-        return item.msgTypeName === 'OrderInput';
-      }),
-      order: currentFrameList.value.filter((item, index) => {
-        item.index = index;
-        return item.msgTypeName === 'Order';
-      }),
-      orderAction: currentFrameList.value.filter((item, index) => {
-        item.index = index;
-        return item.msgTypeName === 'OrderAction';
-      }),
-    };
-  },
-);
-
-function dealFrame<T extends frameResolvedDataType>(
+function dealFrame<T extends FrameResolvedDataType>(
   msgTypeName: string,
   kfInstrumentsJSON: Record<string, KungfuApi.InstrumentResolved>,
 ): Record<string, T[]> {
@@ -473,7 +427,7 @@ function dealFrame<T extends frameResolvedDataType>(
       } as T;
     } else {
       tradingData = {
-        ...(item.data as frameDataType),
+        ...(item.data as FrameDataType),
         tableRowId: item.id,
         msgTypeName,
       } as T;
@@ -496,9 +450,9 @@ function dealFrame<T extends frameResolvedDataType>(
   return result;
 }
 
-function dealChartDataByFrameResolved<T extends frameResolvedDataType>(
+function dealChartDataByFrameResolved<T extends FrameResolvedDataType>(
   selectedInstrument: string,
-  frameResolved: Record<string, frameResolvedDataType[]>,
+  frameResolved: Record<string, FrameResolvedDataType[]>,
   type: string,
 ): {
   value: (string | number)[];
@@ -527,6 +481,9 @@ function dealChartDataByFrameResolved<T extends frameResolvedDataType>(
     }
     return Number(dataTime);
   });
+  if (type === 'Quote') {
+    quoteXAxisData.value = timeData;
+  }
   xAxisData.value = [...xAxisData.value, ...timeData];
 
   return frameResolved[selectedInstrument].map((item) => {
@@ -610,7 +567,6 @@ function getCurInstrument(instrument: {
   updateOption();
 }
 
-// echart相关逻辑，暂时分割下
 const chartWrapper = ref<HTMLElement>();
 let myChart: echarts.ECharts;
 let selectedOrderId = 0n;
@@ -649,6 +605,10 @@ const updateOption = () => {
   ).map((item) => {
     return {
       value: item.value,
+      tooltip: {
+        position: 'bottom',
+        formatter: tooltipFormatter(item.data, 'quote'),
+      },
       customInfo: {
         tableRowId: item.data.tableRowId,
         time: item.data.data_time,
@@ -742,7 +702,8 @@ const updateOption = () => {
   xAxisData.value.sort((a, b) => {
     return a - b;
   });
-  const xAxis = Array.from(new Set(xAxisData.value));
+
+  const xAxis = xAxisData.value;
   option.xAxis.data = xAxis.map((item) => {
     return dealKfTime(BigInt(item));
   });
@@ -832,15 +793,121 @@ function addChartEventListener(myChart: echarts.ECharts) {
       selectedOrderId = 0n;
     }
   });
+
+  let lastIndex;
+  myChart.getZr().on('mousemove', (e) => {
+    if (!e.target || e.target.type !== 'ec-polyline') return;
+    const { offsetX, offsetY } = e;
+    const [index] = myChart.convertFromPixel({ seriesIndex: 0 }, [
+      offsetX,
+      offsetY,
+    ]);
+
+    let { dataTime } = getTradingDataValueByKey(chartFrameList.value[index]);
+    const closestTimeIndex = findClosestTime(
+      Number(dataTime),
+      quoteXAxisData.value,
+    );
+    if (lastIndex !== undefined) {
+      myChart.dispatchAction({
+        type: 'downplay',
+        seriesIndex: 0,
+        dataIndex: lastIndex,
+      });
+    }
+    myChart.dispatchAction({
+      type: 'highlight',
+      seriesIndex: 0,
+      dataIndex: closestTimeIndex,
+    });
+    if (closestTimeIndex !== lastIndex) lastIndex = closestTimeIndex;
+  });
+
+  const element = document.getElementById('strategyChart');
+  element &&
+    element.addEventListener('mouseout', () => {
+      if (lastIndex) {
+        myChart.dispatchAction({
+          type: 'downplay',
+          seriesIndex: 0,
+          dataIndex: lastIndex,
+        });
+      }
+    });
 }
 
-function tooltipFormatter(data: frameResolvedDataType) {
-  const htmlTemplate = Object.keys(data).reduce((pre, cur) => {
-    return (pre += `<div class="tooltip-row">
+const chartFrameList = computed(() => {
+  return [
+    ...quoteByInstrument.value[selectedInstrument.value],
+    ...orderByInstrument.value[selectedInstrument.value],
+    ...orderInputByInstrument.value[selectedInstrument.value],
+    ...orderActionByInstrument.value[selectedInstrument.value],
+  ].sort((a, b) => {
+    let aDataTime = getTradingDataValueByKey(a).dataTime;
+    let bDataTime = getTradingDataValueByKey(b).dataTime;
+    return Number(aDataTime) - Number(bDataTime);
+  });
+});
+
+function getTradingDataValueByKey(data: FrameResolvedDataType) {
+  let dataTime = 0n;
+  switch (data.msgTypeName) {
+    case 'quote':
+      if ('data_time' in data) dataTime = data.data_time;
+      break;
+    case 'orderInput':
+      if ('insert_time' in data) dataTime = data.insert_time;
+      break;
+    case 'order':
+      if ('update_time' in data) dataTime = data.update_time;
+      break;
+    case 'orderAction':
+      if ('insert_time' in data) dataTime = data.insert_time;
+      break;
+  }
+
+  return {
+    dataTime,
+  };
+}
+
+function tooltipFormatter(data: FrameResolvedDataType, type?: string) {
+  let htmlTemplate;
+  if (type) {
+    htmlTemplate = Object.keys(data).reduce((pre, cur) => {
+      if (cur === 'bid_volume' || cur === 'ask_volume') return pre;
+      if (cur === 'bid_price' || cur === 'ask_price') {
+        const side =
+          cur === 'bid_price'
+            ? t('tradingConfig.buy')
+            : t('tradingConfig.sell');
+        data[cur].forEach((item, index) => {
+          if (index > 4) return;
+          const volume =
+            cur === 'bid_price'
+              ? data['bid_volume'][index]
+              : data['ask_volume'][index];
+          pre += `<div class="tooltip-row">
+          <span class="tooltip-item-key">${side}${index + 1}</span>
+          <span class="tooltip-item-value">${item}--${volume}</span>
+        </div>`;
+        });
+
+        return pre;
+      }
+      return (pre += `<div class="tooltip-row">
           <span class="tooltip-item-key">${cur}</span>
           <span class="tooltip-item-value">${data[cur]}</span>
         </div>`);
-  }, '');
+    }, '');
+  } else {
+    htmlTemplate = Object.keys(data).reduce((pre, cur) => {
+      return (pre += `<div class="tooltip-row">
+          <span class="tooltip-item-key">${cur}</span>
+          <span class="tooltip-item-value">${data[cur]}</span>
+        </div>`);
+    }, '');
+  }
   return `
     <div class="tooltip-container">
       ${htmlTemplate}
@@ -923,9 +990,7 @@ function handleSearchOrderId() {
 
 function setDataZoom(dataTime: bigint) {
   const closestTimeIndex = findClosestTime(Number(dataTime), xAxisData.value);
-
   const start = ((closestTimeIndex / xAxisData.value.length) * 100).kfRound(2);
-
   if (start <= 15) {
     option.dataZoom.forEach((item) => {
       item.start = 0;
@@ -986,6 +1051,12 @@ function handleInputChange() {
   .ant-spin.ant-spin-spinning {
     position: absolute;
   }
+
+  .kf-journal-spin {
+    .ant-spin-text {
+      margin-left: 8px;
+    }
+  }
   .ant-empty-normal {
     padding: 32px 0;
     margin: 0;
@@ -1033,8 +1104,6 @@ function handleInputChange() {
   .kf-chart_wrap {
     flex: 1;
     overflow: visible;
-    width: 100%;
-    height: 100%;
     position: relative;
     background-color: #1d1d1d;
     .chart-search-order-id {
@@ -1049,7 +1118,7 @@ function handleInputChange() {
       height: 100%;
     }
     .tooltip-container {
-      width: 350px;
+      width: 450px;
       color: #ffffffd9;
       .tooltip-row {
         display: flex;

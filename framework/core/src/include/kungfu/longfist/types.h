@@ -826,24 +826,37 @@ KF_DEFINE_DATA_TYPE(                                //
     (std::string, name)                             //
 );
 
-KF_DEFINE_DATA_TYPE(                        //
-    Basket, 10206, PK(id), PERPETUAL(),     //
-    (uint32_t, id),                         //
-    (std::string, name),                    //
-    (enums::BasketVolumeType, volume_type), // 比例/数量
-    (int64_t, total_amount),                // 总数量
-    (enums::BasketType, type)               // 类型: Custom 或 ETF
+KF_DEFINE_DATA_TYPE(                                         //
+    Basket, 100040, PK(id), PERPETUAL(),                     //
+    (uint32_t, id),                                          // basket id
+    (std::string, name),                                     // basket 名字
+    (enums::BasketVolumeType, volume_type),                  // 比例/数量
+    (int64_t, total_amount),                                 // 总数量
+    (enums::BasketType, type),                               // 类型: Custom 或 ETF
+    (kungfu::array<char, INSTRUMENT_ID_LEN>, instrument_id), // ETF基金代码
+    (kungfu::array<char, EXCHANGE_ID_LEN>, exchange_id),     // ETF基金的市场
+    (double, net_unit_value),                                // 最小申赎单位净值
+    (double, etf_value),                                     // 基金份额净值
+    (double, cash_difference),                               // 现金差额
+    (double, max_cash_ratio),                                // 现金替代比例上限
+    (int64_t, max_purchase_volume),                          // 申购上限
+    (int64_t, max_redemption_volume),                        // 赎回上限
+    (int64_t, min_volume),                                   // 最小申赎单位
+    (enums::ETFType, etf_type)                               // etf种类
 );
 
-KF_DEFINE_PACK_TYPE(                                                                  //
-    BasketInstrument, 10207, PK(basket_uid, instrument_id, exchange_id), PERPETUAL(), //
-    (uint32_t, basket_uid),                                                           //
-    (kungfu::array<char, INSTRUMENT_ID_LEN>, instrument_id),                          // 合约ID
-    (kungfu::array<char, EXCHANGE_ID_LEN>, exchange_id),                              // 交易所ID
-    (enums::InstrumentType, instrument_type),                                         // 合约类型
-    (enums::Direction, direction),                                                    // 方向
-    (int64_t, volume),                                                                // 数量
-    (double, rate)                                                                    // 比例, volume比例
+KF_DEFINE_PACK_TYPE(                                                                   //
+    BasketInstrument, 100041, PK(basket_uid, instrument_id, exchange_id), PERPETUAL(), //
+    (uint32_t, basket_uid),                                                            //
+    (kungfu::array<char, INSTRUMENT_ID_LEN>, instrument_id),                           // 合约ID
+    (kungfu::array<char, EXCHANGE_ID_LEN>, exchange_id),                               // 交易所ID
+    (enums::InstrumentType, instrument_type),                                          // 合约类型
+    (enums::Direction, direction),                                                     // 方向
+    (int64_t, volume),                                                                 // 数量
+    (double, rate),                                                                    // 比例, volume比例
+    (enums::CashRepalceFlag, replace_flag),                                            // 是否可以由现金替代
+    (double, cash_premium_ratio),                                                      // 现金替代溢价比率
+    (double, replace_balance)                                                          // 替代金额
 );
 
 KF_DEFINE_PACK_TYPE(                              //

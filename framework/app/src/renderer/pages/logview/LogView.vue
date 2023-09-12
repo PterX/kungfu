@@ -156,7 +156,11 @@ function resetLog() {
             <KfDashboardItem>
               <a-button size="small">
                 <template #icon>
-                  <ReloadOutlined class="kf-hover" style="font-size: 14px" @click="resetLog"/>
+                  <ReloadOutlined
+                    class="kf-hover"
+                    style="font-size: 14px"
+                    @click="resetLog"
+                  />
                 </template>
               </a-button>
             </KfDashboardItem>

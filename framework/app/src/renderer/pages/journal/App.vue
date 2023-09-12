@@ -238,7 +238,7 @@ const replayPramas = computed(() => {
     logPath: logPath,
     logLevel: replayConfig.value.log_level || '-l info',
     sessionName: currentSession.value.name || '',
-    filePath:replayConfig.value.path || '',
+    filePath: replayConfig.value.path || '',
     processId: `${category}-replay_${name}`,
   };
 });
@@ -353,7 +353,9 @@ watch(
         outputFile(logPath, '')
           .then(() => {
             if (currentWindow) {
-              ipcEmit('clear-process', {processId: replayPramas.value.processId || ''})
+              ipcEmit('clear-process', {
+                processId: replayPramas.value.processId || '',
+              })
                 .then(() => {
                   const pawin =
                     currentWindow && currentWindow.getParentWindow();

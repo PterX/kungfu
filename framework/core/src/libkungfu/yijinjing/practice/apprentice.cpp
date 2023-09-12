@@ -220,6 +220,9 @@ void apprentice::on_write_to(const event_ptr &event) {
   auto dest_id = event->data<RequestWriteTo>().dest_id;
   if (writers_.find(dest_id) == writers_.end()) {
     writers_.emplace(dest_id, get_io_device()->open_writer(dest_id));
+    if (dest_id == get_master_command_uid()) {
+      master_cmd_writer_for_thread_ = get_writer(dest_id);
+    }
   }
 }
 
@@ -311,5 +314,26 @@ void apprentice::clear_timer(int32_t timer_id) { timers_.insert_or_assign(timer_
 bool apprentice::is_timer_enabled(int32_t timer_id) { return timers_.try_emplace(timer_id).first->second; }
 
 void apprentice::enable_timer(int32_t timer_id) { timers_.insert_or_assign(timer_id, true); }
+
+yijinjing::journal::writer_ptr &apprentice::get_thread_writer() {
+  if (not thread_writer_) {
+    uint32_t dest_id = kungfu::yijinjing::util::get_thread_id();
+    thread_writer_ = get_io_device()->open_writer(dest_id);
+
+    /// join channel in sub-thread will crash, so tell master to ask myself to join
+    /// do not use writer because of multi-thread concurrency issues
+    if (not master_cmd_writer_for_thread_) {
+      SPDLOG_ERROR("has no writer of master_cmd: {:8x}:{}", get_master_command_uid(),
+                   get_location_uname(get_master_command_uid()));
+    }
+    RequestReadFromOthers &request = master_cmd_writer_for_thread_->open_data<RequestReadFromOthers>();
+    request.source_id = get_home_uid();
+    request.dest_id = dest_id;
+    request.from_time = now();
+    SPDLOG_TRACE("RequestReadFromOthers: {}", request.to_string());
+    master_cmd_writer_for_thread_->close_data();
+  }
+  return thread_writer_;
+}
 
 } // namespace kungfu::yijinjing::practice

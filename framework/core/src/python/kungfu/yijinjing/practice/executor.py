@@ -442,14 +442,12 @@ class ExtensionExecutor:
             if ctx.end
             else yjj.now_in_nano()
         )
+        end_time_stamp = min(yjj.now_in_nano(), end_time_stamp)
 
         if ctx.session_id:
             session = kfj.find_session(ctx, ctx.session_id)
             begin_time_stamp = session["begin_time"]
-            end_time_stamp = min(
-                (session["end_time"] if session.closed else yjj.now_in_nano()),
-                end_time_stamp,
-            )
+            end_time_stamp = session["end_time"] if session.closed else end_time_stamp
 
         ctx.logger.debug(
             f"begin time: {kft.strftime(begin_time_stamp)}, end_time_stamp: {kft.strftime(end_time_stamp)}"
@@ -538,7 +536,8 @@ def try_load_cpp_module(ctx, path, key, cls):
         factory_func = getattr(module, cls_name.lower())
         ctx.is_cpp_module = True
         return factory_func()
-    except Exception as e:
+    except AttributeError as e:
+        sys.modules.pop(key)
         ctx.logger.debug(f"fallback to python loader due to: {e}")
         ctx.path = os.path.join(os.path.dirname(path), key)
         return cls(ctx)

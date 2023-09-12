@@ -165,26 +165,6 @@ void TraderVendor::on_recover() {
   service_->on_recover();
 }
 
-yijinjing::journal::writer_ptr &TraderVendor::get_thread_writer() {
-  if (not thread_writer_) {
-    uint32_t dest_id = kungfu::yijinjing::util::get_thread_id();
-    thread_writer_ = get_io_device()->open_writer(dest_id);
-
-    /// join channel in sub-thread will crash, so tell master to ask myself to join
-    /// do not use writer because of multi-thread concurrency issues
-    if (not master_cmd_writer_for_thread_) {
-      SPDLOG_ERROR("has no writer of master_cmd: {:8x}:{}", get_master_command_uid(),
-                   get_location_uname(get_master_command_uid()));
-    }
-    RequestReadFromOthers &request = master_cmd_writer_for_thread_->open_data<RequestReadFromOthers>();
-    request.source_id = get_home_uid();
-    request.dest_id = dest_id;
-    request.from_time = now();
-    SPDLOG_TRACE("RequestReadFromOthers: {}", request.to_string());
-    master_cmd_writer_for_thread_->close_data();
-  }
-  return thread_writer_;
-}
 // ====================== TraderVendor end ======================
 
 } // namespace kungfu::wingchun::broker

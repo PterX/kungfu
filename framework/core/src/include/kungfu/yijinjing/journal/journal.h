@@ -88,7 +88,7 @@ private:
   frame_ptr frame_;
   uint64_t page_frame_nb_;
   bool replica_{false};
-  longfist::enums::Priority priority_;
+  const longfist::enums::Priority priority_;
 
   void load_page(int page_id);
 
@@ -160,9 +160,7 @@ private:
   void build_buffer();
 
   struct later {
-    bool operator()(journal *const lhs, journal *const rhs) const {
-      return lhs->current_frame()->gen_time() > rhs->current_frame()->gen_time();
-    };
+    bool operator()(const journal *const lhs, const journal *const rhs) const;
   };
 
   const bool lazy_;

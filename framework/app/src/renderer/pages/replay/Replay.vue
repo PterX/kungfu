@@ -139,6 +139,7 @@ async function reLoadLog() {
     return;
   }
 
+<<<<<<< HEAD
   if (!currentWindow) return;
 
   const pawin = currentWindow.getParentWindow();
@@ -204,6 +205,64 @@ async function reLoadLog() {
     pawin.webContents.send('startReplay', { replayProcessParams: args });
   } catch (err) {
     console.error(error);
+=======
+  if (currentWindow) {
+    const pawin = currentWindow.getParentWindow();
+    if (pawin) {
+      const config = localStorage.getItem(props.params.processId);
+      if (!config || !props.params.filePath) {
+        error(t('replay.please_start_replay'));
+        return;
+      }
+      ensureFileSync(LOG_PATH);
+      outputFile(LOG_PATH, '')
+        .then(() => {
+          ipcEmit('clear-process', {
+            processId: props.params.processId || '',
+          }).then(() => {
+            logViewRef.value.resetLog();
+            const configParams = JSON.parse(config);
+            let rerunFlag = false;
+            const begintime = `${DateTimeStr} ${props.params.beginTime}`;
+            const endtime = `${DateTimeStr} ${props.params.endTime}`;
+            if (configParams && configParams.replayConfig) {
+              rerunFlag =
+                configParams.replayConfig.begin_time === begintime &&
+                configParams.replayConfig.end_time === endtime;
+            }
+
+            const args = rerunFlag
+              ? configParams
+              : {
+                  category: configParams.category,
+                  group: configParams.group,
+                  name: configParams.name,
+                  replayConfig: {
+                    begin_time: begintime,
+                    end_time: endtime,
+                    log_level: props.params.logLevel
+                      ? props.params.logLevel.replace('%20', ' ')
+                      : '-l info',
+                    session_name: props.params.sessionName,
+                    path: props.params.filePath,
+                  },
+                };
+            if (!rerunFlag) {
+              localStorage.setItem(
+                props.params.processId,
+                JSON.stringify(args),
+              );
+            }
+            pawin.webContents.send('startReplay', {
+              replayProcessParams: args,
+            });
+          });
+        })
+        .catch((err: Error) => {
+          error(err.message || t('operation_failed'));
+        });
+    }
+>>>>>>> efde203d052b5207b7e13c462b7c4cb93611005f
   }
 }
 

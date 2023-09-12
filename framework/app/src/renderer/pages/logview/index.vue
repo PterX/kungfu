@@ -11,7 +11,7 @@ import {
   messagePrompt,
   removeLoadingMask,
   setHtmlTitle,
-useScrollerTableSearch,
+  useScrollerTableSearch,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import { useRemoveReplayProcess } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 // import { useJournalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/journal/store/journalStore';
@@ -22,7 +22,7 @@ import { ensureFileSync, outputFile } from 'fs-extra';
 import { shell, BrowserWindow } from '@electron/remote';
 import {
   useLogInit,
-  dealLogMessage
+  dealLogMessage,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/logUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { listProcessStatus } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
@@ -133,7 +133,6 @@ onMounted(() => {
   resetLog();
 });
 
-
 function handleRemoveLog(): Promise<void> {
   ensureFileSync(LOG_PATH);
   return outputFile(LOG_PATH, '')
@@ -152,7 +151,7 @@ function handleOpenFileLocation() {
 
 function resetLog() {
   clearLogState();
-  clearSearchState()
+  clearSearchState();
   startTailLog();
 }
 async function reLoadLog() {
@@ -328,12 +327,12 @@ async function reLoadLog() {
                 :size-dependencies="[item.message]"
                 :data-index="index"
               >
-              <div
-                :id="`kf-log-item-${item.id}`"
-                :active="active"
-                class="kf-log-line"
-                v-html="dealLogMessage(getItemHtmlResult(item, 'message'))"
-              ></div>
+                <div
+                  :id="`kf-log-item-${item.id}`"
+                  :active="active"
+                  class="kf-log-line"
+                  v-html="dealLogMessage(getItemHtmlResult(item, 'message'))"
+                ></div>
               </DynamicScrollerItem>
             </template>
           </DynamicScroller>

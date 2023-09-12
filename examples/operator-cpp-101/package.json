@@ -1,11 +1,7 @@
 {
   "name": "@kungfu-trader/examples-operator-cpp",
   "author": "kungfu-trader",
-<<<<<<< HEAD
   "version": "2.6.3-alpha.8",
-=======
-  "version": "2.5.10-alpha.1",
->>>>>>> 3abf5e259dd8cd2bfb0d931ef928b28dbab34754
   "description": "KungFu Operator 101 - C++ Demo",
   "license": "Apache-2.0",
   "private": true,
@@ -19,10 +15,6 @@
     "format": "node ../../framework/core/.gyp/run-format-cpp.js src"
   },
   "devDependencies": {
-<<<<<<< HEAD
     "@kungfu-trader/kungfu-sdk": "^2.6.3-alpha.8"
-=======
-    "@kungfu-trader/kungfu-sdk": "^2.5.10-alpha.1"
->>>>>>> 3abf5e259dd8cd2bfb0d931ef928b28dbab34754
   }
 }

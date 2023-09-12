@@ -71,7 +71,7 @@ import path from 'path';
 import {
   startExtService,
   startStrategyOperator,
-  deleteProcess,
+  stopProcess,
   listProcessStatus,
 } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
 import { Proc } from 'pm2';
@@ -914,7 +914,7 @@ export const handleOpenReplayView = async (
     hideloading();
     const { processStatus } = await listProcessStatus();
     if (processStatus[processId]) {
-      await deleteProcess(processId);
+      await stopProcess(processId);
     }
 
     await startStrategyOperator(

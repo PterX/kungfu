@@ -26,7 +26,6 @@ import {
   StrategyExtTypes,
   OrderInputKeyEnum,
   CurrencyEnum,
-  KfCategoryEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
   getKfCategoryData,
@@ -62,7 +61,7 @@ import {
   isAllMainProcessRunning,
   Pm2ProcessStatusData,
   Pm2ProcessStatusDetailData,
-  deleteProcess,
+  stopProcess,
 } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
 import { Modal } from 'ant-design-vue';
 import { ExclamationCircleOutlined } from '@ant-design/icons-vue';
@@ -476,7 +475,7 @@ export const useRemoveReplayProcess = (): {
         cancelText: t('cancel'),
         icon: createVNode(ExclamationCircleOutlined),
         onOk() {
-          return deleteProcess(processId)
+          return stopProcess(processId)
             .then(() => {
               resolve();
             })
@@ -2129,14 +2128,6 @@ export const useReplay = (): {
     }[]
   >([]);
 
-  const LocationEnum = {
-    [KfCategoryEnum.md]: 'md',
-    [KfCategoryEnum.td]: 'td',
-    [KfCategoryEnum.strategy]: 'strategy',
-    [KfCategoryEnum.system]: 'system',
-    [KfCategoryEnum.operator]: 'operator',
-  };
-
   const handleOpenReplayConfirmView = async (
     record: KungfuApi.KfConfig,
     curSession?: KungfuApi.Session,
@@ -2209,18 +2200,6 @@ export const useReplay = (): {
     const date = getYearMonthDay();
     const beginTime = `${date} ${startTime}`;
     const endTimeStr = `${date} ${endTime}`;
-    const realFilePath = isOperator ? filePath : params.file_path;
-    const procseeId = getProcessIdByKfLocation(
-      {
-        category:
-          LocationEnum[currentSession.category] || currentSession.category,
-        group: currentSession.group,
-        name: currentSession.name,
-        mode: 'replay',
-      },
-      'replay',
-    );
-    localStorage.setItem(`${procseeId}_file`, realFilePath);
 
     replayConfig.value = {
       session_info: sessionInfo,
@@ -2275,7 +2254,25 @@ export const useReplay = (): {
       name: currentLocation.value.name,
       replayConfig: replayConfig.value,
     };
-    localStorage.setItem(processId, JSON.stringify(params));
+
+    const replayArgsStr = localStorage.getItem('replayConfigs');
+    if (replayArgsStr) {
+      const replayArgsObj = JSON.parse(replayArgsStr);
+      replayArgsObj[processId] = {
+        args: params,
+        filePath: replayConfig.value.file_path,
+      };
+      localStorage.setItem('replayConfigs', JSON.stringify(replayArgsObj));
+    } else {
+      const replayArgsObj = {
+        [processId]: {
+          args: params,
+          filePath: replayConfig.value.file_path,
+        },
+      };
+      localStorage.setItem('replayConfigs', JSON.stringify(replayArgsObj));
+    }
+
     if (isJournal) {
       const { startProcess, ProcessConfigs } = await getJournalReplayConfigs(
         currentLocation.value,

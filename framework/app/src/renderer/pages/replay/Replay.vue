@@ -128,89 +128,94 @@ watch(
       LogLevelType[newVal ? newVal.replace('%20', ' ') : ''] || '';
   },
 );
+
+const throwError = (messageKey: string) => {
+  error(t(messageKey));
+};
+
 async function reLoadLog() {
   if (!isReplayAble.value) {
-    error(t('replay.only_operator_or_strategy_can_be_replayed'));
+    throwError('replay.only_operator_or_strategy_can_be_replayed');
     return;
   }
 
-  if (currentWindow) {
-    const pawin = currentWindow.getParentWindow();
-    if (pawin) {
-      const config = localStorage.getItem(props.params.processId);
-      if (!config) {
-        error(t('replay.please_start_replay'));
-        return;
-      }
-      ensureFileSync(LOG_PATH);
-      outputFile(LOG_PATH, '')
-        .then(() => {
-          ipcEmit('clear-process', {
-            processId: props.params.processId || '',
-          }).then(() => {
-            logViewRef.value.resetLog();
-            const configParams = JSON.parse(config);
-            let rerunFlag = false;
-            const begintime = `${DateTimeStr} ${props.params.beginTime}`;
-            const endtime = `${DateTimeStr} ${props.params.endTime}`;
-            if (configParams && configParams.replayConfig) {
-              rerunFlag =
-                configParams.replayConfig.begin_time === begintime &&
-                configParams.replayConfig.end_time === endtime;
-            }
-            let filePath = props.params.filePath;
-            if (!filePath) {
-              filePath =
-                localStorage.getItem(`${props.params.processId}_file`) || '';
-              if (!filePath) {
-                error(t('replay.please_start_replay'));
-                return;
-              }
-            }
+  if (!currentWindow) return;
 
-            const args = rerunFlag
-              ? configParams
-              : {
-                  category: configParams.category,
-                  group: configParams.group,
-                  name: configParams.name,
-                  replayConfig: {
-                    category: configParams.category,
-                    group: configParams.group,
-                    begin_time: begintime,
-                    end_time: endtime,
-                    log_level: props.params.logLevel
-                      ? props.params.logLevel.replace('%20', ' ')
-                      : '-l info',
-                    session_name: props.params.sessionName,
-                    file_path: filePath,
-                  },
-                };
-            if (!rerunFlag) {
-              localStorage.setItem(
-                props.params.processId,
-                JSON.stringify(args),
-              );
-              logLevel.value = LogLevelType[args.replayConfig.log_level];
-            }
-            pawin.webContents.send('startReplay', {
-              replayProcessParams: args,
-            });
-          });
-        })
-        .catch((err: Error) => {
-          error(err.message || t('operation_failed'));
-        });
-    }
+  const pawin = currentWindow.getParentWindow();
+  if (!pawin) return;
+
+  const configs = localStorage.getItem('replayConfigs');
+  if (!configs) {
+    throwError('replay.please_start_replay');
+    return;
+  }
+
+  const replayArgs = JSON.parse(configs);
+  const config = replayArgs?.[props.params.processId];
+  if (!config) {
+    throwError('replay.please_start_replay');
+    return;
+  }
+
+  const { args: configArgs, filePath: currentFile } = config;
+
+  const begintime = `${DateTimeStr} ${props.params.beginTime}`;
+  const endtime = `${DateTimeStr} ${props.params.endTime}`;
+  const rerunFlag =
+    configArgs?.replayConfig?.begin_time === begintime &&
+    configArgs?.replayConfig?.end_time === endtime;
+
+  let filePath = props.params.filePath || currentFile;
+  if (!filePath) {
+    throwError('replay.please_start_replay');
+    return;
+  }
+
+  const args = rerunFlag
+    ? configArgs
+    : {
+        category: configArgs.category,
+        group: configArgs.group,
+        name: configArgs.name,
+        replayConfig: {
+          category: configArgs.category,
+          group: configArgs.group,
+          begin_time: begintime,
+          end_time: endtime,
+          log_level: props.params.logLevel
+            ? props.params.logLevel.replace('%20', ' ')
+            : '-l info',
+          session_name: props.params.sessionName,
+          file_path: filePath,
+        },
+      };
+
+  if (!rerunFlag) {
+    replayArgs[props.params.processId].args = args;
+    localStorage.setItem('replayConfigs', JSON.stringify(replayArgs));
+    logLevel.value = LogLevelType[args.replayConfig.log_level];
+  }
+
+  try {
+    ensureFileSync(LOG_PATH);
+    await outputFile(LOG_PATH, '');
+    await ipcEmit('clear-process', { processId: props.params.processId || '' });
+    logViewRef.value && logViewRef.value.resetLog();
+    pawin.webContents.send('startReplay', { replayProcessParams: args });
+  } catch (err) {
+    console.error(error);
   }
 }
 
 function updateLogLevel(level: string) {
-  const config = localStorage.getItem(props.params.processId);
-  if (config) {
-    const replayParams = JSON.parse(config);
-    if (replayParams && replayParams.replayConfig) {
-      logLevel.value = LogLevelType[replayParams.replayConfig.log_level];
+  const configs = localStorage.getItem('replayConfigs');
+  if (configs) {
+    const config = configs[props.params.processId];
+    if (config) {
+      const replayParams = config.args;
+      if (replayParams && replayParams.replayConfig) {
+        logLevel.value = LogLevelType[replayParams.replayConfig.log_level];
+      }
     }
   }
 }

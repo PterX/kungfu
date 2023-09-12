@@ -30,6 +30,7 @@ import {
   buildRuntimeChildDirByType,
 } from '../config/pathConfig';
 import { getKfGlobalSettingsValue } from '../config/globalSettings';
+import { KfModeTypes } from '../typings/enums';
 import { Observable } from 'rxjs';
 import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
@@ -1060,7 +1061,7 @@ export const startStrategyOperatorByLocalPython = async (
   name: string,
   filePath: string,
   pythonPath: string,
-  mode = 'live',
+  mode: KfModeTypes = 'live',
   replayConfig?: KungfuApi.ReplayConfigOrigin,
 ): Promise<Proc | void> => {
   const isReplay = mode === 'replay';
@@ -1128,7 +1129,7 @@ export const startStrategyOperator = async (
   category: 'strategy' | 'operator',
   id: string,
   filePath: string,
-  mode = 'live',
+  mode: KfModeTypes = 'live',
   replayConfig?: KungfuApi.ReplayConfigOrigin,
 ): Promise<Proc | void> => {
   const isReplay = mode === 'replay';

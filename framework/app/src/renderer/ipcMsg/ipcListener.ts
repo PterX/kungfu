@@ -2,7 +2,7 @@ import { ipcRenderer } from 'electron';
 import { BrowserWindow } from '@electron/remote';
 import {
   startStrategyOperator,
-  deleteProcess,
+  stopProcess,
   listProcessStatus,
 } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
 import { getProcessIdByKfLocation } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
@@ -44,7 +44,7 @@ export function bindIPCListener(store) {
     );
     const { processStatus } = await listProcessStatus();
     if (processStatus[processId]) {
-      await deleteProcess(processId);
+      await stopProcess(processId);
     }
 
     await startStrategyOperator(category, '', '', 'replay', replayConfig);

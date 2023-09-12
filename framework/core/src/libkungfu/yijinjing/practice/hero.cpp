@@ -69,7 +69,7 @@ bool hero::setup() {
   return true;
 }
 
-void hero::pre_setup() { return; }
+void hero::pre_setup() {}
 
 void hero::step() {
   continual_ = false;
@@ -131,6 +131,19 @@ writer_ptr hero::get_writer(uint32_t dest_id) const {
     SPDLOG_ERROR("no writer for {}", get_location_uname(dest_id));
   }
   return writers_.at(dest_id);
+}
+
+bool hero::has_band_writer(uint32_t dest_id) const {
+  std::lock_guard<std::mutex> lk(band_mtx_);
+  return band_writers_.find(dest_id) != band_writers_.end();
+}
+
+writer_ptr hero::get_band_writer(uint32_t dest_id) const {
+  std::lock_guard<std::mutex> lk(band_mtx_);
+  if (band_writers_.find(dest_id) == band_writers_.end()) {
+    SPDLOG_ERROR("no band writer for {}", get_location_uname(dest_id));
+  }
+  return band_writers_.at(dest_id);
 }
 
 [[maybe_unused]] const WriterMap &hero::get_writers() const { return writers_; }

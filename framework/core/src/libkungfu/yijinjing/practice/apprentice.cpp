@@ -228,10 +228,12 @@ void apprentice::on_write_to(const event_ptr &event) {
 
 void apprentice::on_write_to_band(const event_ptr &event) {
   const auto &request = event->data<RequestWriteToBand>();
+  SPDLOG_DEBUG("RequestWriteToBand: {}", request.to_string());
   auto dest_id = request.location_uid;
   auto page_size = request.page_size;
-  if (writers_.find(dest_id) == writers_.end()) {
-    writers_.emplace(dest_id, get_io_device()->open_writer(dest_id, page_size));
+  std::lock_guard<std::mutex> lk(band_mtx_);
+  if (band_writers_.find(dest_id) == band_writers_.end()) {
+    band_writers_.emplace(dest_id, get_io_device()->open_writer(dest_id, page_size));
   }
 }
 

@@ -44,9 +44,13 @@ MarketDataXTP::~MarketDataXTP() {
   }
 }
 
-void MarketDataXTP::on_start() {
-  level2_tick_band_uid_ = request_band("market-data-band", 256);
+void MarketDataXTP::pre_start() {
+  quote_band_uid_ = request_band("market-data-band-quote", 256);
+  entrust_band_uid_ = request_band("market-data-band-entrust", 256);
+  transaction_band_uid_ = request_band("market-data-band-transaction", 256);
+}
 
+void MarketDataXTP::on_start() {
   MDConfiguration config = nlohmann::json::parse(get_config());
   if (config.client_id < 1 or config.client_id > 99) {
     SPDLOG_ERROR("client_id must between 1 and 99");
@@ -66,10 +70,12 @@ void MarketDataXTP::on_start() {
     update_broker_state(BrokerState::LoggedIn);
     update_broker_state(BrokerState::Ready);
     SPDLOG_INFO("login success! (account_id) {}", config.account_id);
-    api_->QueryAllTickers(XTP_EXCHANGE_SH);
-    api_->QueryAllTickers(XTP_EXCHANGE_SZ);
-    api_->QueryAllTickersFullInfo(XTP_EXCHANGE_SH);
-    api_->QueryAllTickersFullInfo(XTP_EXCHANGE_SZ);
+    if (not check_if_stored_instruments(time::strfnow("%Y%m%d"))) {
+      api_->QueryAllTickers(XTP_EXCHANGE_SH);
+      api_->QueryAllTickers(XTP_EXCHANGE_SZ);
+      api_->QueryAllTickersFullInfo(XTP_EXCHANGE_SH);
+      api_->QueryAllTickersFullInfo(XTP_EXCHANGE_SZ);
+    }
   } else {
     update_broker_state(BrokerState::LoginFailed);
     SPDLOG_ERROR("failed to login, [{}] {}", api_->GetApiLastError()->error_id, api_->GetApiLastError()->error_msg);
@@ -166,20 +172,46 @@ void MarketDataXTP::OnQueryAllTickers(XTPQSI *ticker_info, XTPRI *error_info, bo
 
 void MarketDataXTP::OnDepthMarketData(XTPMD *market_data, int64_t *bid1_qty, int32_t bid1_count, int32_t max_bid1_count,
                                       int64_t *ask1_qty, int32_t ask1_count, int32_t max_ask1_count) {
-  Quote &quote = get_writer(0)->open_data<Quote>(0);
+  SPDLOG_DEBUG("instrument_id: {}", market_data->ticker);
+  if (nullptr == market_data) {
+    SPDLOG_ERROR("XTPMD is nullptr");
+  }
+
+  if (not quote_band_writer_) {
+    SPDLOG_DEBUG("quote_band_writer_ is nullptr");
+    while (not has_band_writer(quote_band_uid_)) {
+      SPDLOG_DEBUG("sleep_for : {}", time::strfnow());
+      std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    quote_band_writer_ = get_band_writer(quote_band_uid_);
+  }
+
+  Quote &quote = quote_band_writer_->open_data<Quote>(0);
   from_xtp(*market_data, quote);
-  get_writer(0)->close_data();
+  quote_band_writer_->close_data();
 }
 
 void MarketDataXTP::OnTickByTick(XTPTBT *tbt_data) {
   if (tbt_data->type == XTP_TBT_ENTRUST) {
-    Entrust &entrust = get_writer(level2_tick_band_uid_)->open_data<Entrust>(0);
+    if (not entrust_band_writer_) {
+      while (not has_band_writer(entrust_band_uid_)) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+      }
+      entrust_band_writer_ = get_band_writer(entrust_band_uid_);
+    }
+    Entrust &entrust = entrust_band_writer_->open_data<Entrust>(0);
     from_xtp(*tbt_data, entrust);
-    get_writer(level2_tick_band_uid_)->close_data();
+    entrust_band_writer_->close_data();
   } else if (tbt_data->type == XTP_TBT_TRADE) {
-    Transaction &transaction = get_writer(level2_tick_band_uid_)->open_data<Transaction>(0);
+    if (not transaction_band_writer_) {
+      while (not has_band_writer(transaction_band_uid_)) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+      }
+      transaction_band_writer_ = get_band_writer(transaction_band_uid_);
+    }
+    Transaction &transaction = transaction_band_writer_->open_data<Transaction>(0);
     from_xtp(*tbt_data, transaction);
-    get_writer(level2_tick_band_uid_)->close_data();
+    transaction_band_writer_->close_data();
   }
 }
 
@@ -206,5 +238,9 @@ void MarketDataXTP::OnQueryAllTickersFullInfo(XTPQFI *ticker_info, XTPRI *error_
   instrument.instrument_type = get_instrument_type(instrument.exchange_id, instrument.instrument_id);
   SPDLOG_TRACE("instrument {}", instrument.to_string());
   get_writer(0)->close_data();
+
+  if (is_last) {
+    record_stored_instruments_trading_day(time::strfnow("%Y%m%d"));
+  }
 }
 } // namespace kungfu::wingchun::xtp

@@ -42,17 +42,11 @@ import { ipcEmit } from '@kungfu-trader/kungfu-app/src/renderer/ipcMsg/emitter';
 import { ensureFileSync, outputFile } from 'fs-extra';
 import { useRemoveReplayProcess } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import { messagePrompt } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
-import {getYearMonthDay} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { getYearMonthDay } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { LogLevelType } from '@kungfu-trader/kungfu-app/src/typings/enums';
 
 import { listProcessStatus } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
-import {
-  computed,
-  onBeforeUnmount,
-  onMounted,
-  ref,
-  watch,
-} from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 
 const { t } = VueI18n.global;
@@ -96,8 +90,7 @@ onMounted(() => {
     const { processId } = args;
     if (processId === props.params.processId) {
       logViewRef.value && logViewRef.value.resetLog();
-  }
-  
+    }
   });
   const replayPocessCheckTimer = setInterval(async () => {
     const { processStatus } = await listProcessStatus();
@@ -154,30 +147,41 @@ async function reLoadLog() {
       ensureFileSync(LOG_PATH);
       outputFile(LOG_PATH, '')
         .then(() => {
-          ipcEmit('clear-process', {processId:props.params.processId || ''}).then(() => {
+          ipcEmit('clear-process', {
+            processId: props.params.processId || '',
+          }).then(() => {
             logViewRef.value.resetLog();
             const configParams = JSON.parse(config);
             let rerunFlag = false;
             const begintime = `${DateTimeStr} ${props.params.beginTime}`;
             const endtime = `${DateTimeStr} ${props.params.endTime}`;
-            if(configParams && configParams.replayConfig) {
-              rerunFlag = configParams.replayConfig.begin_time === begintime && configParams.replayConfig.end_time === endtime;
+            if (configParams && configParams.replayConfig) {
+              rerunFlag =
+                configParams.replayConfig.begin_time === begintime &&
+                configParams.replayConfig.end_time === endtime;
             }
 
-            const args = rerunFlag ? configParams : {
-                category: configParams.category,
-                group: configParams.group,
-                name: configParams.name,
-                replayConfig: {
-                  begin_time: begintime,
-                  end_time: endtime,
-                  log_level:  props.params.logLevel ? props.params.logLevel.replace('%20', ' ') : '-l info' ,
-                  session_name: props.params.sessionName,
-                  path: props.params.filePath
-                }
-            }
+            const args = rerunFlag
+              ? configParams
+              : {
+                  category: configParams.category,
+                  group: configParams.group,
+                  name: configParams.name,
+                  replayConfig: {
+                    begin_time: begintime,
+                    end_time: endtime,
+                    log_level: props.params.logLevel
+                      ? props.params.logLevel.replace('%20', ' ')
+                      : '-l info',
+                    session_name: props.params.sessionName,
+                    path: props.params.filePath,
+                  },
+                };
             if (!rerunFlag) {
-              localStorage.setItem(props.params.processId,JSON.stringify(args));
+              localStorage.setItem(
+                props.params.processId,
+                JSON.stringify(args),
+              );
             }
             pawin.webContents.send('startReplay', {
               replayProcessParams: args,

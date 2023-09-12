@@ -238,7 +238,7 @@ const replayPramas = computed(() => {
     logPath: logPath,
     logLevel: replayConfig.value.log_level || '-l info',
     sessionName: currentSession.value.name || '',
-    filePath:replayConfig.value.path || '',
+    filePath: replayConfig.value.path || '',
     processId: `${category}-replay_${name}`,
   };
 });
@@ -353,7 +353,9 @@ watch(
         outputFile(logPath, '')
           .then(() => {
             if (currentWindow) {
-              ipcEmit('clear-process', {processId: replayPramas.value.processId || ''})
+              ipcEmit('clear-process', {
+                processId: replayPramas.value.processId || '',
+              })
                 .then(() => {
                   const pawin =
                     currentWindow && currentWindow.getParentWindow();
@@ -480,7 +482,7 @@ const dealRowClassName = (row) => {
         flex: 0 0 50px;
         height: 50px;
         background-color: #1d1d1d;
-        padding: 5px 20px;
+        padding: 5px 16px;
         margin-bottom: 2px;
         display: flex;
         align-items: center;

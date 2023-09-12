@@ -26,6 +26,7 @@ import {
   StrategyExtTypes,
   OrderInputKeyEnum,
   CurrencyEnum,
+  KfCategoryEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
   getKfCategoryData,
@@ -480,7 +481,6 @@ export const useRemoveReplayProcess = (): {
               resolve();
             })
             .catch((err) => {
-              kfLogger.error(err);
               reject(err);
             });
         },
@@ -2115,11 +2115,12 @@ export const useReplay = (): {
   const replayConfig = ref<KungfuApi.ReplayConfig>({
     session_info: '',
     group: 'default',
+    category: '',
     begin_time: '',
     end_time: '',
     log_level: replaySetting.log_level || '-l info',
     session_name: '',
-    path: '',
+    file_path: '',
   });
   const sessionOptions = ref<
     {
@@ -2127,6 +2128,15 @@ export const useReplay = (): {
       value: string;
     }[]
   >([]);
+
+  const LocationEnum = {
+    [KfCategoryEnum.md]: 'md',
+    [KfCategoryEnum.td]: 'td',
+    [KfCategoryEnum.strategy]: 'strategy',
+    [KfCategoryEnum.system]: 'system',
+    [KfCategoryEnum.operator]: 'operator',
+  };
+
   const handleOpenReplayConfirmView = async (
     record: KungfuApi.KfConfig,
     curSession?: KungfuApi.Session,
@@ -2199,16 +2209,29 @@ export const useReplay = (): {
     const date = getYearMonthDay();
     const beginTime = `${date} ${startTime}`;
     const endTimeStr = `${date} ${endTime}`;
+    const realFilePath = isOperator ? filePath : params.file_path;
+    const procseeId = getProcessIdByKfLocation(
+      {
+        category:
+          LocationEnum[currentSession.category] || currentSession.category,
+        group: currentSession.group,
+        name: currentSession.name,
+        mode: 'replay',
+      },
+      'replay',
+    );
+    localStorage.setItem(`${procseeId}_file`, realFilePath);
 
     replayConfig.value = {
       session_info: sessionInfo,
       group: record.group,
+      category: record.category,
       begin_time: beginTime,
       end_time: endTimeStr,
       log_level: logLevel,
       session_name: currentSession.name,
-      path: isOperator ? filePath : params.file_path,
-    };
+      file_path: isOperator ? filePath : params.file_path,
+    } as KungfuApi.ReplayConfig;
 
     currentLocation.value = record;
 

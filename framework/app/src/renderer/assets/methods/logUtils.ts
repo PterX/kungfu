@@ -26,7 +26,6 @@ export const getUrlParams = (): Record<string, string> => {
       params[key] = urlParams[key];
     }
   });
-  console.log('getUrlParams', params);
   return params;
 };
 

@@ -70,7 +70,9 @@ import {
 import path from 'path';
 import {
   startExtService,
-  startReplay,
+  startStrategyOperator,
+  deleteProcess,
+  listProcessStatus,
 } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
 import { Proc } from 'pm2';
 import { VueNode } from 'ant-design-vue/lib/_util/type';
@@ -675,6 +677,7 @@ function getNewWindowLocation(): { x: number; y: number } | null {
 
 export const openReplayView = (
   type: 'strategy' | 'operator',
+  group: string,
   logPath: string,
   beginTime: string,
   endTime: string,
@@ -686,7 +689,7 @@ export const openReplayView = (
   return openNewBrowserWindow(
     globalThis.__runtimeDir,
     'replay',
-    `?logPath=${logPath}&sessionName=${sessionName}&filePath=${filePath}&category=${type}&beginTime=${beginTime}&endTime=${endTime}&logLevel=${log_level}&processId=${processId}`,
+    `?logPath=${logPath}&sessionName=${sessionName}&filePath=${filePath}&category=${type}&group=${group}&beginTime=${beginTime}&endTime=${endTime}&logLevel=${log_level}&processId=${processId}`,
     {
       width: 1280,
       height: 960,
@@ -899,16 +902,28 @@ export const handleOpenReplayView = async (
 
   return openReplayView(
     config.category,
+    config.group,
     logPath,
     beginTime,
     endTime,
     logLevel,
     replayConfig.session_name,
-    replayConfig.path,
+    replayConfig.file_path,
     processId,
   ).finally(async () => {
     hideloading();
-    await startReplay(config, replayConfig);
+    const { processStatus } = await listProcessStatus();
+    if (processStatus[processId]) {
+      await deleteProcess(processId);
+    }
+
+    await startStrategyOperator(
+      config.category,
+      '',
+      '',
+      'replay',
+      replayConfig,
+    );
   });
 };
 

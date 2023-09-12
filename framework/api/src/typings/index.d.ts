@@ -1149,14 +1149,18 @@ declare namespace KungfuApi {
     state: StrategyStateStatusTypes;
   }
 
-  export interface ReplayConfig {
+  export interface ReplayConfig extends ReplayConfigOrigin {
     session_info: string;
+  }
+
+  export interface ReplayConfigOrigin {
     group: string;
+    category: string;
     begin_time: string;
     end_time: string;
     log_level: string;
     session_name: string;
-    path: string;
+    file_path: string;
   }
 
   export interface Watcher {
@@ -1465,6 +1469,7 @@ declare namespace Code {
   import { SpaceTabSettingEnum, SpaceSizeSettingEnum } from './enums';
   import { session } from 'electron';
   import path from 'path';
+  import Replay from '@kungfu-trader/kungfu-app/src/renderer/pages/replay/Replay.vue';
 
   export interface CodeInfo {
     code_id: string;

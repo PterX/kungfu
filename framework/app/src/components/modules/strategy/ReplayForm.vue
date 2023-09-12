@@ -235,26 +235,11 @@ const handleCancel = () => {
           <p>{{ t('replay.tips_title') }}</p>
           <ul>
             <li>
-              {{ `1. ${t('replay.replay_tips2_part1')}` }}
+              {{ `1. ${t('replay.replay_tips1_part1')}` }}
               <span class="highlighted-text">
-                {{ t('replay.replay_tips2_part2') }}
+                {{ t('replay.replay_tips1_part2') }}
               </span>
-              {{ t('replay.replay_tips2_part3') }}
-            </li>
-            <li>
-              {{ `2. ${t('replay.replay_tips3_part1')}` }}
-              <span class="highlighted-text">
-                {{ t('replay.replay_tips3_part2') }}
-              </span>
-              {{ t('replay.replay_tips3_part3') }}
-            </li>
-          </ul>
-        </div>
-        <div class="note-content" v-else>
-          <p>{{ t('replay.tips_title') }}</p>
-          <ul>
-            <li>
-              {{ `1. ${t('replay.replay_tips1')}` }}
+              {{ t('replay.replay_tips1_part3') }}
             </li>
             <li>
               {{ `2. ${t('replay.replay_tips2_part1')}` }}
@@ -263,12 +248,24 @@ const handleCancel = () => {
               </span>
               {{ t('replay.replay_tips2_part3') }}
             </li>
+          </ul>
+        </div>
+        <div class="note-content" v-else>
+          <p>{{ t('replay.tips_title') }}</p>
+          <ul>
             <li>
-              {{ `3. ${t('replay.replay_tips3_part1')}` }}
+              {{ `1. ${t('replay.replay_tips1_part1')}` }}
               <span class="highlighted-text">
-                {{ t('replay.replay_tips3_part2') }}
+                {{ t('replay.replay_tips1_part2') }}
               </span>
-              {{ t('replay.replay_tips3_part3') }}
+              {{ t('replay.replay_tips1_part3') }}
+            </li>
+            <li>
+              {{ `2. ${t('replay.replay_tips2_part1')}` }}
+              <span class="highlighted-text">
+                {{ t('replay.replay_tips2_part2') }}
+              </span>
+              {{ t('replay.replay_tips2_part3') }}
             </li>
           </ul>
         </div>

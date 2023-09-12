@@ -1060,7 +1060,10 @@ export const startStrategyOperatorByLocalPython = async (
   name: string,
   filePath: string,
   pythonPath: string,
+  mode = 'live',
+  replayConfig?: KungfuApi.ReplayConfigOrigin,
 ): Promise<Proc | void> => {
+  const isReplay = mode === 'replay';
   const baseArgs = [
     'run',
     '-c',
@@ -1086,6 +1089,29 @@ export const startStrategyOperatorByLocalPython = async (
     .slice(fullPythonPathList.length - 1)
     .join('/');
 
+  if (isReplay && replayConfig) {
+    const args = `-m kungfu ${replayConfig.log_level} run -c ${replayConfig.category} -g ${replayConfig.group} -n ${replayConfig.session_name} -m ${mode} ${replayConfig.file_path} -b '${replayConfig.begin_time}' -e '${replayConfig.end_time}'`;
+    const name = getProcessIdByKfLocation(
+      {
+        category: replayConfig.category,
+        group: replayConfig.group,
+        name: replayConfig.session_name,
+        mode: mode,
+      },
+      mode,
+    );
+    const cwd = `${dealSpaceInPath(pythonFolder)}`;
+    return startProcess({
+      name: name,
+      args,
+      cwd: cwd,
+      script: `${pythonFile}`,
+      force: true,
+    }).catch((err) => {
+      kfLogger.error(err);
+    });
+  }
+
   return startProcess({
     name: `${category}_${name}`,
     args,
@@ -1102,7 +1128,10 @@ export const startStrategyOperator = async (
   category: 'strategy' | 'operator',
   id: string,
   filePath: string,
+  mode = 'live',
+  replayConfig?: KungfuApi.ReplayConfigOrigin,
 ): Promise<Proc | void> => {
+  const isReplay = mode === 'replay';
   filePath = dealSpaceInPath(filePath);
   const globalSetting = getKfGlobalSettingsValue();
   const ifLocalPython = globalSetting?.strategy?.python ?? false;
@@ -1118,6 +1147,37 @@ export const startStrategyOperator = async (
     }
   } catch (err) {
     kfLogger.warn(err);
+  }
+
+  if (isReplay && replayConfig) {
+    const processId = getProcessIdByKfLocation(
+      {
+        category: replayConfig.category,
+        group: replayConfig.group,
+        name: replayConfig.session_name,
+        mode: mode,
+      },
+      'replay',
+    );
+    if (ifLocalPython && replayConfig.file_path.endsWith('.py')) {
+      return startStrategyOperatorByLocalPython(
+        category,
+        id,
+        filePath,
+        pythonPath,
+        mode,
+        replayConfig,
+      );
+    } else {
+      const args = `${replayConfig.log_level} run -c ${replayConfig.category} -g ${replayConfig.group} -n ${replayConfig.session_name} -m replay ${replayConfig.file_path} -b '${replayConfig.begin_time}' -e '${replayConfig.end_time}'`;
+      return startProcess({
+        name: processId,
+        args,
+        force: true,
+      }).catch((err) => {
+        kfLogger.error(err);
+      });
+    }
   }
 
   if (ifLocalPython && filePath.endsWith('.py')) {
@@ -1139,28 +1199,6 @@ export const startStrategyOperator = async (
       kfLogger.error(err);
     });
   }
-};
-
-//启动replay
-export const startReplay = async (
-  location: KungfuApi.KfLocation,
-  replayConfig: KungfuApi.ReplayConfig,
-): Promise<Proc | void> => {
-  const { session_name, log_level, path, begin_time, end_time } = replayConfig;
-  const strategyOperatorIdResolved = getProcessIdByKfLocation(
-    location,
-    'replay',
-  );
-
-  const args = `${log_level} run -c ${location.category} -g ${location.group} -n ${session_name} -m replay ${path} -b '${begin_time}' -e '${end_time}'`;
-
-  return startProcess({
-    name: strategyOperatorIdResolved,
-    args,
-    force: true,
-  }).catch((err) => {
-    kfLogger.error(err);
-  });
 };
 
 export const startDzxy = () => {

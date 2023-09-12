@@ -238,10 +238,6 @@ uint32_t Trader::get_risk_uid() const { return risk_uid_; }
 
 [[maybe_unused]] void Trader::disable_recover() { disable_recover_ = true; }
 
-yijinjing::journal::writer_ptr &Trader::get_thread_writer() {
-  return dynamic_cast<TraderVendor &>(get_vendor()).get_thread_writer();
-}
-
 void Trader::try_req_account() {
   if (is_sync_account() and BrokerState::Ready == state_) {
     req_account();

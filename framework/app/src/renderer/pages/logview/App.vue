@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { setHtmlTitle } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import { getUrlParams } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/logUtils';
-import Index from '@kungfu-trader/kungfu-app/src/renderer/pages/logview/index.vue';
+import LogView from '@kungfu-trader/kungfu-app/src/renderer/pages/logview/LogView.vue';
 
 const params = getUrlParams();
 console.log(params);
@@ -10,7 +10,7 @@ const LOG_PATH = params.logPath || '';
 setHtmlTitle(LOG_PATH);
 </script>
 <template>
-  <Index :params="params" :type="'logview'" />
+  <LogView :log-path="LOG_PATH" />
 </template>
 
 <style lang="less">

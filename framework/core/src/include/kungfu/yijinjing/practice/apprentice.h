@@ -132,8 +132,12 @@ public:
 
   std::thread &get_cleaning_worker();
 
+  yijinjing::journal::writer_ptr &get_thread_writer();
+
 protected:
   cache::bank state_bank_;
+  yijinjing::journal::writer_ptr master_cmd_writer_for_thread_{};
+  inline static thread_local yijinjing::journal::writer_ptr thread_writer_{};
 
   friend void add_location(yijinjing::practice::apprentice &app, const yijinjing::data::location_ptr &location) {
     app.add_location(app.now(), location);

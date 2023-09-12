@@ -63,97 +63,57 @@ export const SessionStatus: Record<
   },
 };
 
-export const getFrameColumns = (): KfTradingDataTableHeaderConfig[] => [
+export const getFrameColumns = (
+  searchInUsing: boolean,
+): KfTradingDataTableHeaderConfig[] => [
   {
     type: 'string',
     name: t('journalConfig.gen_time'),
     dataIndex: 'genTimeResolved',
-    width: 160,
-    overflow: 'ellipsis',
+    width: 128,
+    textOverflow: 'ellipsis',
     sorter: buildSorter('genTime'),
   },
   {
     type: 'string',
     name: `${t('journalConfig.source')} → ${t('journalConfig.dest')}`,
     dataIndex: 'sourceToDest',
-    overflow: 'ellipsis',
+    textOverflow: 'ellipsis',
     sorter: buildStrSorter('sourceToDest'),
-    width: 280,
+    width: 216,
   },
   {
     type: 'string',
     name: t('journalConfig.frame_id'),
     dataIndex: 'frameId',
     align: 'right',
-    overflow: 'ellipsis',
+    textOverflow: 'ellipsis',
     sorter: buildStrSorter('frameId'),
 
-    width: 70,
+    width: 50,
   },
   {
     type: 'string',
     name: t('journalConfig.page_id'),
     dataIndex: 'pageId',
     align: 'right',
-    overflow: 'ellipsis',
+    textOverflow: 'ellipsis',
     sorter: buildStrSorter('pageId'),
-    width: 50,
+    width: 40,
   },
   {
     type: 'string',
     name: t('journalConfig.msg_type'),
     dataIndex: 'msgTypeName',
-    width: 190,
+    align: 'center',
+    width: 180,
   },
   {
     type: 'string',
     name: t('journalConfig.msg_details'),
     dataIndex: 'dataAsString',
-    overflow: 'ellipsis',
+    textOverflow: searchInUsing ? 'clip' : 'ellipsis',
+    wrap: searchInUsing,
     flex: 1,
   },
 ];
-
-export const getReplayConfig = (
-  startTime: string,
-  endTime: string,
-): KungfuApi.KfStrategyExtConfig => {
-  return {
-    type: [],
-    name: t('strategyConfig.replay'),
-    category: 'strategy',
-    key: 'default',
-    extPath: '',
-    settings: [
-      {
-        key: 'start_time',
-        name: t('strategyConfig.start_time'),
-        type: 'timePicker',
-        disabled: true,
-      },
-      {
-        key: 'end_time',
-        name: t('strategyConfig.end_time'),
-        type: 'timePicker',
-        abledTimeRange: [
-          startTime ? startTime : '00:00:00',
-          endTime ? endTime : '23:59:59',
-        ],
-      },
-      {
-        key: 'log_level',
-        name: t('strategyConfig.log_level'),
-        type: 'select',
-        options: [
-          { value: 'TRACE', label: 'TRACE' },
-          { value: 'DEBUG', label: 'DEBUG' },
-          { value: 'INFO', label: 'INFO' },
-          { value: 'WARN', label: 'WARN' },
-          { value: 'ERROR', label: 'ERROR' },
-          { value: 'CRITICAL', label: 'CRITICAL' },
-        ],
-        default: 'INFO',
-      },
-    ],
-  };
-};

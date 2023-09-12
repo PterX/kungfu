@@ -234,8 +234,6 @@ public:
 
   void on_recover();
 
-  yijinjing::journal::writer_ptr &get_thread_writer();
-
 protected:
   void react() override;
 
@@ -251,8 +249,6 @@ private:
   OrderService order_service_;
   OrderTriggerService order_trigger_service_;
   TraderWriterHook_ptr hook_;
-  yijinjing::journal::writer_ptr master_cmd_writer_for_thread_{};
-  inline static thread_local yijinjing::journal::writer_ptr thread_writer_{};
 
   OrderService &get_order_service();
 
@@ -366,8 +362,6 @@ public:
   void disable_recover();
 
   virtual void on_recover(){};
-
-  [[nodiscard]] yijinjing::journal::writer_ptr &get_thread_writer();
 
   [[nodiscard]] bool is_sync_account() const { return sync_account_; }
 

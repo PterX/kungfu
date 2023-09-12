@@ -96,7 +96,7 @@ import {
   confirmModal,
   makeSearchOptionFormInstruments,
   handleOpenReplayView,
-  handleOpenJournalReplayView,
+  getJournalReplayConfigs,
 } from './uiUtils';
 import { storeToRefs } from 'pinia';
 import { ipcRenderer } from 'electron';
@@ -2088,7 +2088,6 @@ export const useReplay = (): {
       endTime: string;
       logLevel: string;
     },
-    location: KungfuApi.KfConfig | null,
     isJournal?: boolean,
   ): void;
   sessionOptions: Ref<
@@ -2098,25 +2097,27 @@ export const useReplay = (): {
     }[]
   >;
 } => {
-  const { replaySetting } = storeToRefs(useGlobalStore());
   const setReplayModalVisible = ref(false);
   const journalReplayflag = ref(0);
   const replayProcessParams = ref<
     | {
         category: string;
         group: string;
+        name: string;
         replayConfig: KungfuApi.ReplayConfig;
       }
     | undefined
   >(undefined);
 
   const currentLocation = ref<KungfuApi.KfConfig | null>(null);
+  const config = localStorage.getItem('replaySetting');
+  const replaySetting = config ? JSON.parse(config) : {};
   const replayConfig = ref<KungfuApi.ReplayConfig>({
     session_info: '',
     group: 'default',
     begin_time: '',
     end_time: '',
-    log_level: '',
+    log_level: replaySetting.log_level || '-l info',
     session_name: '',
     path: '',
   });
@@ -2184,14 +2185,16 @@ export const useReplay = (): {
       error(t('replay.process_has_not_been_started'));
       return;
     }
+    const config = localStorage.getItem('replaySetting');
+    const replaySetting = config ? JSON.parse(config) : {};
     const startTime = getNanoDateString(currentSession.begin_time);
     const endTime =
-      replaySetting.value.end_time && replaySetting.value.end_time > startTime
-        ? replaySetting.value.end_time
+      replaySetting.end_time && replaySetting.end_time > startTime
+        ? replaySetting.end_time
         : currentSession.end_time
         ? getNanoDateString(currentSession.end_time)
         : getNanoDateString(BigInt(new Date().getTime()) * 1000000n);
-    const logLevel = replaySetting.value.log_level || '-l info';
+    const logLevel = replaySetting.log_level || '-l info';
     const params = record.value ? JSON.parse(record.value) : {};
     const date = getYearMonthDay();
     const beginTime = `${date} ${startTime}`;
@@ -2219,10 +2222,9 @@ export const useReplay = (): {
       endTime: string;
       logLevel: string;
     },
-    location: KungfuApi.KfConfig | null,
     isJournal = false,
   ) => {
-    if (!location) {
+    if (!currentLocation.value) {
       error();
       return;
     }
@@ -2230,40 +2232,42 @@ export const useReplay = (): {
     const endTime =
       data.endTime ||
       getNanoDateString(BigInt(new Date().getTime()) * 1000000n);
-    useGlobalStore().setReplaySetting({
+    const replaySetting = {
       begin_time: startTime,
       end_time: endTime,
       log_level: data.logLevel,
-    });
+    };
+    localStorage.setItem('replaySetting', JSON.stringify(replaySetting));
     setReplayModalVisible.value = false;
     const date = getYearMonthDay();
     const beginTime = `${date} ${startTime}`;
     const endTimeStr = `${date} ${endTime}`;
-    const processId = `${location.category}_replay_${startTime}_${endTime}`;
+    const processId = getProcessIdByKfLocation(currentLocation.value, 'replay');
     replayConfig.value.begin_time = beginTime;
     replayConfig.value.end_time = endTimeStr;
+    replayConfig.value.log_level = data.logLevel;
     const params = {
-      category: location.category,
-      group: location.group,
+      category: currentLocation.value.category,
+      group: currentLocation.value.group,
+      name: currentLocation.value.name,
       replayConfig: replayConfig.value,
     };
     localStorage.setItem(processId, JSON.stringify(params));
     if (isJournal) {
-      const { startProcess, ProcessConfigs } =
-        await handleOpenJournalReplayView(
-          location,
-          replayConfig.value,
-          journalReplayflag.value,
-        );
+      const { startProcess, ProcessConfigs } = await getJournalReplayConfigs(
+        currentLocation.value,
+        replayConfig.value,
+        journalReplayflag.value,
+      );
       journalReplayflag.value = startProcess;
       replayProcessParams.value = ProcessConfigs;
     } else {
       await handleOpenReplayView(
-        location,
-        processId,
+        currentLocation.value,
         startTime,
         endTime,
         data.logLevel,
+        processId,
         replayConfig.value,
       );
     }

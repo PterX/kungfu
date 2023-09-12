@@ -367,7 +367,7 @@ watch(
             if (currentWindow) {
               ipcEmit('clear-process', {
                 processId: replayPramas.value.processId || '',
-              })
+              });
               ipcEmit('clear-process', {
                 processId: replayPramas.value.processId || '',
               })

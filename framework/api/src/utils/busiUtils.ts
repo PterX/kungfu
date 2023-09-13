@@ -1058,11 +1058,11 @@ export const getProcessIdByKfLocation = (
     case 'operator':
       if (kfLocation.group === 'default') {
         return mode
-          ? `${kfLocation.category}-${mode}_${kfLocation.name}`
+          ? `${kfLocation.category}_${kfLocation.name}-${mode}`
           : `${kfLocation.category}_${kfLocation.name}`;
       } else {
         return mode
-          ? `${kfLocation.category}_${kfLocation.group}-${mode}_${kfLocation.name}`
+          ? `${kfLocation.category}_${kfLocation.group}_${kfLocation.name}-${mode}`
           : `${kfLocation.category}_${kfLocation.group}_${kfLocation.name}`;
       }
     case 'system':

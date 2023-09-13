@@ -517,7 +517,8 @@ def load_report(ctx, path):
                 ctx.logger.debug(f"import as cpp {lib_name} success")
                 factory_func = getattr(module, cls.__name__.lower())
                 return factory_func()
-            except Exception as e:
+            except AttributeError as e:
+                sys.modules.pop(lib_name)
                 ctx.logger.debug(f"fallback to python loader due to: {e}")
                 ctx.report = os.path.join(os.path.dirname(path), lib_name)
                 return cls(ctx)

@@ -215,6 +215,8 @@ private:
   }
 
   void guard_position(const longfist::types::Position &position);
+
+  void guard_asset(const longfist::types::Asset &asset);
 };
 
 class TraderVendor : public BrokerVendor {

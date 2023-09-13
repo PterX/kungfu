@@ -313,7 +313,7 @@ Napi::Value Watcher::IssueBasketOrder(const Napi::CallbackInfo &info) {
   auto basket_order_info = info[0].ToObject();
   basket_order_info.Set("dest_id", Napi::Number::New(info.Env(), account_location->uid));
   if (info.Length() == 2) {
-    basket_order_info.Set("source_id", Napi::Number::New(info.Env(), get_home_uid()));
+    basket_order_info.Set("source_id", Napi::Number::New(info.Env(), get_live_home_uid()));
   } else {
     auto strategy_location = IODevice::ExtractLocation(info, 2, get_locator());
     basket_order_info.Set("source_id", Napi::Number::New(info.Env(), strategy_location->uid));
@@ -635,7 +635,7 @@ void Watcher::UpdateEventCache(const event_ptr &event) {
 
 location_ptr Watcher::FindLocation(const Napi::CallbackInfo &info) {
   if (info.Length() == 0) {
-    return get_io_device()->get_home();
+    return get_io_device()->get_live_home();
   }
   uint32_t uid = 0;
   if (info[0].IsNumber()) {

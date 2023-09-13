@@ -36,14 +36,12 @@ hero::hero(io_device_ptr io_device)
       io_device_(std::move(io_device)), now_(0) {
 
   os::handle_os_signals(this);
-  util::set_error_log_dir(get_locator()->layout_dir(
-      get_home(),
-      layout::LOG)); // get_io_device()->get_home()->locator->layout_file(get_io_device()->get_home(),layout::LOG,
-  add_location(0, get_io_device()->get_home());
+  util::set_error_log_dir(get_locator()->layout_dir(get_home(), layout::LOG));
+  add_location(0, get_io_device()->get_live_home());
   add_location(0, master_home_location_);
   add_location(0, master_cmd_location_);
   add_location(0, ledger_home_location_);
-  for (const auto &l : get_home()->locator->list_locations("*", "*", "*", "*")) {
+  for (const auto &l : get_live_home()->locator->list_locations("*", "*", "*", "*")) {
     add_location(0, l);
   }
   reader_ = io_device_->open_reader_to_subscribe();
@@ -100,7 +98,10 @@ int64_t hero::now() const { return now_; }
 
 void hero::set_now(int64_t now) { now_ = now; }
 
-void hero::set_begin_time(int64_t begin_time) { begin_time_ = begin_time; }
+void hero::set_begin_time(int64_t begin_time) {
+  begin_time_ = begin_time;
+  io_device_->set_begin_time(begin_time);
+}
 
 int64_t hero::get_begin_time() const { return begin_time_; }
 
@@ -275,7 +276,7 @@ void hero::register_channel(int64_t, const Channel &channel) {
     SPDLOG_TRACE("channel [{:08x}] {} -> {} up", channel_uid, source_uname, dest_uname);
   }
 
-  if (channel.source_id == get_home_uid() and not has_writer(channel.dest_id)) {
+  if (channel.source_id == get_live_home_uid() and not has_writer(channel.dest_id)) {
     writers_.insert_or_assign(channel.dest_id, get_io_device()->open_writer(channel.dest_id));
   }
 }
@@ -305,7 +306,7 @@ void hero::register_band(int64_t, const Band &band) {
     SPDLOG_TRACE("band [{:08x}] {} -> {} up", band_uid, source_uname, dest_uname);
   }
 
-  if (band.source_id == get_home_uid() and not has_writer(band.dest_id)) {
+  if (band.source_id == get_live_home_uid() and not has_writer(band.dest_id)) {
     writers_.insert_or_assign(band.dest_id, get_io_device()->open_writer(band.dest_id));
   }
 }

@@ -6,7 +6,6 @@
 #include <kungfu/yijinjing/journal/common.h>
 
 namespace kungfu::yijinjing::journal {
-
 /**
  * Basic memory unit,
  * holds header / data / errorMsg (if needs)
@@ -59,8 +58,6 @@ struct frame : event {
   }
 
 private:
-  /** address with type,
-   * will keep moving forward until change page */
   longfist::types::frame_header *header_ = nullptr;
 
   frame() = default;
@@ -89,10 +86,25 @@ private:
 
   void copy(const frame &source) { memcpy(header_, source.header_, source.frame_length()); }
 
+  friend struct cloned_frame;
+
   friend class journal;
 
   friend class writer;
-};
-} // namespace kungfu::yijinjing::journal
 
+  friend class replay_writer;
+};
+
+struct cloned_frame : frame {
+  cloned_frame() : frame() {}
+
+  ~cloned_frame() override { free(header_); };
+
+  void copy(frame &from) {
+    header_ = reinterpret_cast<longfist::types::frame_header *>(malloc(from.frame_length()));
+    memcpy(header_, from.header_, from.frame_length());
+  }
+};
+
+} // namespace kungfu::yijinjing::journal
 #endif // KUNGFU_YIJINJING_FRAME_H

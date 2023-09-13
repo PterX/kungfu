@@ -183,7 +183,11 @@ void apprentice::on_register(int64_t trigger_time, const Register &register_data
 
 void apprentice::on_deregister(const event_ptr &event) {
   uint32_t location_uid = event->data<Deregister>().location_uid;
+  SPDLOG_DEBUG("deregister app {}", get_location_uname(location_uid));
   if (location_uid == get_live_home_uid()) {
+    if (get_home()->mode == mode::REPLAY) {
+      request_deregister();
+    }
     return;
   }
 

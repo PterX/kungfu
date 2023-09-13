@@ -681,7 +681,7 @@ void Watcher::MonitorMarketData(int64_t trigger_time, const location_ptr &md_loc
 
 void Watcher::OnRegister(int64_t trigger_time, const Register &register_data) {
   auto app_uid = register_data.location_uid;
-  if (app_uid == get_home_uid()) {
+  if (app_uid == get_live_home_uid()) {
     return;
   }
 

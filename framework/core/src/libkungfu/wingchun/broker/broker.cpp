@@ -67,7 +67,7 @@ std::string BrokerService::get_risk_setting() const {
   return risk_setting_obj.data.to_string();
 }
 
-std::string BrokerService::get_runtime_folder() { return vendor_.get_locator()->layout_dir(get_home(), layout::LOG); }
+std::string BrokerService::get_runtime_folder() { return vendor_.get_locator()->layout_dir(get_live_home(), layout::LOG); }
 
 const location_ptr &BrokerService::get_home() const { return vendor_.get_home(); }
 

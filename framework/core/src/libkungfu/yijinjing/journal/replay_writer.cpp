@@ -22,16 +22,14 @@ replay_writer::replay_writer(const data::location_ptr &location, uint32_t dest_i
 frame_ptr replay_writer::open_frame(int64_t trigger_time, int32_t msg_type, uint32_t length) {
   while (reader_for_write_->data_available()) {
     auto frame = reader_for_write_->current_frame();
-    if (frame->msg_type() == msg_type and frame->gen_time() >= trigger_time) {
+    if (frame->msg_type() == msg_type) {
       break;
     }
     reader_for_write_->next();
-    journal_.next();
   }
 
   if (not reader_for_write_->data_available()) {
-    SPDLOG_ERROR("no more data available");
-    throw yijinjing_error("no more data available");
+    SPDLOG_WARN("no more data available msg_type {} trigger_time {}, from {} to {} ", msg_type, time::strftime(trigger_time), get_location()->uname, get_dest());
   }
 
   cloned_frame_.copy(*reader_for_write_->current_frame());
@@ -40,7 +38,8 @@ frame_ptr replay_writer::open_frame(int64_t trigger_time, int32_t msg_type, uint
 
 void replay_writer::close_frame(size_t data_length, int64_t gen_time) {
   cloned_frame_.copy(*reader_for_write_->current_frame());
-  reader_for_write_->next();
-  journal_.next();
+  if (reader_for_write_->data_available()) {
+    reader_for_write_->next();
+  }
 }
 } // namespace kungfu::yijinjing::journal

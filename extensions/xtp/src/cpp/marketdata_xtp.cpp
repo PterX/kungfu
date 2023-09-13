@@ -44,7 +44,7 @@ MarketDataXTP::~MarketDataXTP() {
   }
 }
 
-void MarketDataXTP::pre_start() {  
+void MarketDataXTP::pre_start() {
   entrust_band_uid_ = request_band("market-data-band-entrust", 256);
   transaction_band_uid_ = request_band("market-data-band-transaction", 256);
 }
@@ -164,30 +164,34 @@ void MarketDataXTP::OnQueryAllTickers(XTPQSI *ticker_info, XTPRI *error_info, bo
     return;
   }
 
-  Instrument &instrument = get_writer(0)->open_data<Instrument>(0);
+  if (not public_writer_) {
+    while (not has_writer(location::PUBLIC)) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    public_writer_ = get_writer(location::PUBLIC);
+  }
+
+  Instrument &instrument = public_writer_->open_data<Instrument>(0);
   from_xtp(ticker_info, instrument);
-  get_writer(0)->close_data();
+  public_writer_->close_data();
 }
 
 void MarketDataXTP::OnDepthMarketData(XTPMD *market_data, int64_t *bid1_qty, int32_t bid1_count, int32_t max_bid1_count,
                                       int64_t *ask1_qty, int32_t ask1_count, int32_t max_ask1_count) {
-  SPDLOG_DEBUG("instrument_id: {}", market_data->ticker);
   if (nullptr == market_data) {
     SPDLOG_ERROR("XTPMD is nullptr");
   }
 
-  if (not quote_band_writer_) {
-    SPDLOG_DEBUG("quote_band_writer_ is nullptr");
-    while (not has_writer(0)) {
-      SPDLOG_DEBUG("sleep_for : {}", time::strfnow());
+  if (not public_writer_) {
+    while (not has_writer(location::PUBLIC)) {
       std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
-    quote_band_writer_ = get_writer(0);
+    public_writer_ = get_writer(location::PUBLIC);
   }
 
-  Quote &quote = quote_band_writer_->open_data<Quote>(0);
+  Quote &quote = public_writer_->open_data<Quote>(0);
   from_xtp(*market_data, quote);
-  quote_band_writer_->close_data();
+  public_writer_->close_data();
 }
 
 void MarketDataXTP::OnTickByTick(XTPTBT *tbt_data) {
@@ -225,7 +229,14 @@ void MarketDataXTP::OnQueryAllTickersFullInfo(XTPQFI *ticker_info, XTPRI *error_
     return;
   }
 
-  Instrument &instrument = get_writer(0)->open_data<Instrument>(0);
+  if (not public_writer_) {
+    while (not has_writer(location::PUBLIC)) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    public_writer_ = get_writer(location::PUBLIC);
+  }
+
+  Instrument &instrument = public_writer_->open_data<Instrument>(0);
   strcpy(instrument.instrument_id, ticker_info->ticker);
   if (ticker_info->exchange_id == 1) {
     instrument.exchange_id = EXCHANGE_SSE;
@@ -236,7 +247,7 @@ void MarketDataXTP::OnQueryAllTickersFullInfo(XTPQFI *ticker_info, XTPRI *error_
   memcpy(instrument.product_id, ticker_info->ticker_name, strlen(ticker_info->ticker_name));
   instrument.instrument_type = get_instrument_type(instrument.exchange_id, instrument.instrument_id);
   SPDLOG_TRACE("instrument {}", instrument.to_string());
-  get_writer(0)->close_data();
+  public_writer_->close_data();
 
   if (is_last) {
     record_stored_instruments_trading_day(time::strfnow("%Y%m%d"));

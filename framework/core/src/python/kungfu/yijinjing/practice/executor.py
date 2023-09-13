@@ -518,7 +518,7 @@ def load_report(ctx, path):
                 factory_func = getattr(module, cls.__name__.lower())
                 return factory_func()
             except AttributeError as e:
-                sys.modules.pop(lib_name)                
+                sys.modules.pop(lib_name)
                 ctx.logger.debug(f"fallback to python loader due to: {e}")
                 ctx.report = os.path.join(os.path.dirname(path), lib_name)
                 return cls(ctx)

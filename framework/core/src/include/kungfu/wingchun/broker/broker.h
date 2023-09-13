@@ -69,7 +69,11 @@ public:
 
   [[nodiscard]] yijinjing::journal::writer_ptr get_writer(uint32_t dest_id) const;
 
+  [[nodiscard]] yijinjing::journal::writer_ptr get_band_writer(uint32_t dest_id) const;
+
   [[nodiscard]] bool has_writer(uint32_t dest_id) const;
+
+  [[nodiscard]] bool has_band_writer(uint32_t dest_id) const;
 
   [[nodiscard]] yijinjing::journal::writer_ptr &get_thread_writer();
 

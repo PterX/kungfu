@@ -81,6 +81,12 @@ writer_ptr BrokerService::get_writer(uint32_t dest_id) const { return vendor_.ge
 
 bool BrokerService::has_writer(uint32_t dest_id) const { return vendor_.has_writer(dest_id); }
 
+yijinjing::journal::writer_ptr BrokerService::get_band_writer(uint32_t dest_id) const {
+  return vendor_.get_band_writer(dest_id);
+}
+
+bool BrokerService::has_band_writer(uint32_t dest_id) const { return vendor_.has_band_writer(dest_id); }
+
 const cache::bank &BrokerService::get_state_bank() const { return vendor_.get_state_bank(); }
 
 [[maybe_unused]] bool BrokerService::check_if_stored_instruments(const std::string &trading_day) const {

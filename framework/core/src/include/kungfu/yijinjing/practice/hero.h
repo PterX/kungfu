@@ -82,6 +82,10 @@ public:
 
   [[nodiscard]] yijinjing::journal::writer_ptr get_writer(uint32_t dest_id) const;
 
+  bool has_band_writer(uint32_t dest_id) const;
+
+  [[nodiscard]] yijinjing::journal::writer_ptr get_band_writer(uint32_t dest_id) const;
+
   [[maybe_unused]] [[nodiscard]] const WriterMap &get_writers() const;
 
   bool has_location(uint32_t uid) const;
@@ -165,6 +169,8 @@ protected:
   int64_t end_time_;
   yijinjing::journal::reader_ptr reader_;
   WriterMap writers_ = {};
+  WriterMap band_writers_ = {};
+  mutable std::mutex band_mtx_{};
 
   rx::connectable_observable<event_ptr> events_ = {};
 

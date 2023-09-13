@@ -153,6 +153,7 @@ import {
 import {
   getYearMonthDay,
   delayMilliSeconds,
+  getProcessIdByKfLocation,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { getNanoDateString } from '@kungfu-trader/kungfu-js-api/kungfu';
 
@@ -231,15 +232,25 @@ const replayPramas = computed(() => {
     (currentSession.value.end_time
       ? getNanoDateString(currentSession.value.end_time)
       : getNanoDateString(BigInt(new Date().getTime()) * 1000000n));
+  const processId = getProcessIdByKfLocation(
+    {
+      category,
+      group,
+      name,
+      mode: 'replay',
+    },
+    'replay',
+  );
   return {
     category: category,
+    group: group,
     beginTime: begin_time,
     endTime: end_time,
     logPath: logPath,
     logLevel: replayConfig.value.log_level || '-l info',
     sessionName: currentSession.value.name || '',
-    filePath: replayConfig.value.path || '',
-    processId: `${category}-replay_${name}`,
+    filePath: replayConfig.value.file_path || '',
+    processId: processId,
   };
 });
 
@@ -299,12 +310,13 @@ const customRow = (record: KungfuApi.SessionResolved) => {
         const replaySetting = config ? JSON.parse(config) : {};
         replayConfig.value = {
           session_info: '',
+          category: '',
           group: 'default',
           begin_time: '',
           end_time: '',
           log_level: replaySetting.log_level || '-l info',
           session_name: '',
-          path: '',
+          file_path: '',
         };
         delayMilliSeconds(0).then(() => {
           replayRef.value && replayRef.value.updateLogLevel();
@@ -353,6 +365,9 @@ watch(
         outputFile(logPath, '')
           .then(() => {
             if (currentWindow) {
+              ipcEmit('clear-process', {
+                processId: replayPramas.value.processId || '',
+              });
               ipcEmit('clear-process', {
                 processId: replayPramas.value.processId || '',
               })

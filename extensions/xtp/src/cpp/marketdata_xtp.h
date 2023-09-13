@@ -229,9 +229,9 @@ private:
   uint32_t entrust_band_uid_{};
   uint32_t transaction_band_uid_{};
 
-  yijinjing::journal::writer_ptr public_writer_{};
-  yijinjing::journal::writer_ptr entrust_band_writer_{};
-  yijinjing::journal::writer_ptr transaction_band_writer_{};
+  inline static thread_local yijinjing::journal::writer_ptr public_writer_{};
+  inline static thread_local yijinjing::journal::writer_ptr entrust_band_writer_{};
+  inline static thread_local yijinjing::journal::writer_ptr transaction_band_writer_{};
 
   bool subscribe(const std::vector<std::string> &instruments, const std::string &exchange_id);
 };

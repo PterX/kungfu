@@ -296,7 +296,7 @@ export const selectTargetKfConfig = async (
       type: 'autocomplete',
       name: 'process',
       message: 'Select targeted md / td / strategy  ',
-      source: async (answersSoFar: { process: string }, input: string) => {
+      source: async (_answersSoFar: { process: string }, input: string) => {
         input = input || '';
         return mdTdStrategyList.filter((s: string): boolean =>
           s.includes(input),

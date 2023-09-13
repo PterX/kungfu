@@ -54,7 +54,7 @@ program
   .description(
     'monitor all process with merged logs OR monitor one trading process (with -l)',
   )
-  .action((type: string, commander: Command) => {
+  .action((_type: string, commander: Command) => {
     const list =
       commander['list'] ||
       process.argv.includes('-l') ||

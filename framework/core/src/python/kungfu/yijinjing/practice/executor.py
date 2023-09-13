@@ -517,9 +517,7 @@ def load_runner(ctx, locator):
 def parse_begin_end(ctx):
     ctx.logger.debug(f"ctx.mode: {ctx.mode}")
 
-    if kfj.MODES[ctx.mode] == lf.enums.mode.BACKTEST and (
-        not ctx.begin or not ctx.end
-    ):
+    if kfj.MODES[ctx.mode] == lf.enums.mode.BACKTEST and (not ctx.begin or not ctx.end):
         raise ValueError("backtest mode must specify begin and end")
 
     if kfj.MODES[ctx.mode] == lf.enums.mode.REPLAY and (

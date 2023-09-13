@@ -619,7 +619,7 @@ export const openLogView = (
   logPath: string,
 ): Promise<Electron.BrowserWindow> => {
   return openNewBrowserWindow(
-    globalThis.__runtimeDir,
+    process.env.KF_APP_RUNTIME_DIR,
     'logview',
     `?logPath=${logPath}`,
   );
@@ -631,7 +631,7 @@ export const openCodeView = (
   isEntryFilenameEditable: boolean,
 ): Promise<Electron.BrowserWindow> => {
   return openNewBrowserWindow(
-    globalThis.__runtimeDir,
+    process.env.KF_APP_RUNTIME_DIR,
     'code',
     `?id=${id}&filePath=${filePath}&isEntryFilenameEditable=${isEntryFilenameEditable}`,
   );
@@ -642,7 +642,7 @@ export const openJournalView = (
   locationUID: string,
 ): Promise<Electron.BrowserWindow> => {
   return openNewBrowserWindow(
-    globalThis.__runtimeDir,
+    process.env.KF_APP_RUNTIME_DIR,
     'journal',
     `?processId=${processId}&locationUID=${locationUID}`,
     {

@@ -8,6 +8,13 @@
         <span class="tree-deal-file">
           <span
             class="create"
+            :title="$t('editor.open_folder')"
+            @click="handleOpenFileLocation(filePath)"
+          >
+            <SelectOutlined class="icon" />
+          </span>
+          <span
+            class="create"
             :title="$t('editor.new_file')"
             v-if="currentCodePath"
             @click="handleAddFile"
@@ -21,13 +28,6 @@
             @click="handleAddFolder"
           >
             <FolderAddFilled class="icon" />
-          </span>
-          <span
-            class="create"
-            :title="$t('editor.open_folder')"
-            @click="handleOpenFileLocation"
-          >
-            <SelectOutlined class="icon" />
           </span>
         </span>
       </div>
@@ -55,8 +55,8 @@ import { watch, ref } from 'vue';
 import FileNode from './FileNode.vue';
 import { storeToRefs } from 'pinia';
 import { useCodeStore } from '../store/codeStore';
-import { shell } from '@electron/remote';
 import path from 'path';
+import { shell } from '@electron/remote';
 import {
   FileAddFilled,
   FolderAddFilled,
@@ -104,6 +104,12 @@ watch(props.currentNode as Code.CodeInfo, (newCurrentNode) => {
     }
   });
 });
+
+function handleOpenFileLocation() {
+  const filePath = fileTree.value[0].filePath;
+  if (!filePath) return;
+  return shell.showItemInFolder(filePath);
+}
 
 //加文件夹
 function handleAddFolder() {
@@ -190,10 +196,6 @@ function bindFunctionalNode(curFileTree) {
     parentId: '',
   };
   return curFileTree;
-}
-
-function handleOpenFileLocation() {
-  return shell.showItemInFolder(props.filePath);
 }
 </script>
 

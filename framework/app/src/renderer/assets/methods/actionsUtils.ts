@@ -1239,7 +1239,6 @@ export const useSubscibeInstrumentAtEntry = (
       });
     }
   });
-
   watch(appStates, (newAppStates, oldAppStates) => {
     Object.keys(newAppStates || {}).forEach((processId: string) => {
       const newState = newAppStates[processId];
@@ -2516,15 +2515,47 @@ export const useMakeOrderSubscribe = (
   const app = getCurrentInstance();
   let lastTriggerTag: 'makeOrder' | 'orderBookUpdate' | '' = '';
   let lastVolume = 0;
+  let dealPrice: number | null = null;
+  function closestNumber(target: number, numbers: number[]): number {
+    if (numbers.length === 0) {
+      return target;
+    }
+
+    return numbers.reduce((prev, curr) =>
+      Math.abs(curr - target) < Math.abs(prev - target) ? curr : prev,
+    );
+  }
   onMounted(() => {
     if (app?.proxy) {
       const subscription = app.proxy.$globalBus.subscribe(
         (data: KfEvent.KfBusEvent) => {
           if (data.tag === 'makeOrder') {
-            const { offset, side, volume, price, instrumentType, accountId } = (
-              data as KfEvent.TriggerMakeOrder
-            ).orderInput;
+            const {
+              offset,
+              side,
+              volume,
+              price,
+              instrumentType,
+              accountId,
+              instrumentId,
+            } = (data as KfEvent.TriggerMakeOrder).orderInput;
+            const quote: KungfuApi.Quote[] = window.watcher.ledger.Quote.filter(
+              'instrument_id',
+              instrumentId,
+            ).list();
 
+            if (quote.length !== 0) {
+              dealPrice = closestNumber(
+                price - 10,
+                quote[0].ask_price.concat(quote[0].bid_price),
+              );
+              if (quote[0].lower_limit_price && quote[0].upper_limit_price)
+                if (dealPrice <= quote[0].lower_limit_price) {
+                  dealPrice = quote[0].lower_limit_price;
+                } else {
+                  dealPrice = quote[0].upper_limit_price;
+                }
+            }
             const instrumentValue = buildInstrumentSelectOptionValue(
               (data as KfEvent.TriggerMakeOrder).orderInput,
             );
@@ -2533,7 +2564,9 @@ export const useMakeOrderSubscribe = (
             formState.value.offset = +offset;
             formState.value.side = +side;
             formState.value.volume = +Number(volume).kfToFixed(0);
-            formState.value.limit_price = +Number(price).kfToFixed(4);
+            formState.value.limit_price = +Number(dealPrice || price).kfToFixed(
+              4,
+            );
             formState.value.instrument_type = +instrumentType;
 
             if (accountId) {

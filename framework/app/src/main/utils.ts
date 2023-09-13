@@ -35,7 +35,7 @@ export function showKungfuInfo(): void {
   const info =
     `app_name: ${appName} \n` +
     `app_version: ${appVersion} \n` +
-    `kungfu_base_version: ${version}\n` +
+    `core_version: ${version}\n` +
     `electron: ${electronVersion} \n` +
     `python: ${__python_version}\n` +
     `platform: ${os.platform()} \n` +

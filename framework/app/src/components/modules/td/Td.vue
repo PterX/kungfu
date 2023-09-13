@@ -55,16 +55,17 @@ import SetTdGroupModal from './SetTdGroupModal.vue';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
 import { messagePrompt } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
-import { storeToRefs } from 'pinia';
 import { FundTransTypeEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 
 const { t } = VueI18n.global;
 const { success, error } = messagePrompt();
 const handleSwitchProcessStatus = handleSwitchProcessStatusGenerator();
 const { dashboardBodyHeight, handleBodySizeChange } = useDashboardBodySize();
-const { globalSetting } = storeToRefs(useGlobalStore());
 const isShowAssetMargin = computed(() => {
-  return !!globalSetting.value?.trade?.assetMargin;
+  if (!extConfigs.value['td']) return false;
+  return Object.values(extConfigs.value['td']).some(
+    (item: KungfuApi.KfTdExtConfig) => item?.showAssetMargin,
+  );
 });
 
 globalThis.HookKeeper.getHooks().dealTradingData.register(

@@ -22,10 +22,7 @@ yjj = kungfu.__binding__.yijinjing
 @click.option("-b", "--begin", type=str, required=True, help="begin time")
 @click.option("-e", "--end", type=str, required=True, help="end time")
 @click.option(
-    "-c",
-    "--category",
-    type=click.Choice(kfj.CATEGORIES.keys()),
-    help="category",
+    "-c", "--category", type=click.Choice(kfj.CATEGORIES.keys()), help="category",
 )
 @click.option("-g", "--group", type=str, required=True, help="source")
 @click.option("-n", "--name", type=str, required=True, help="source")

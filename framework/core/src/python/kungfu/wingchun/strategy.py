@@ -25,13 +25,7 @@ class Runner(wc.Runner):
         if ctx.arguments is None:
             ctx.arguments = "{}"
         wc.Runner.__init__(
-            self,
-            locator,
-            ctx.group,
-            ctx.name,
-            mode,
-            ctx.low_latency,
-            ctx.arguments,
+            self, locator, ctx.group, ctx.name, mode, ctx.low_latency, ctx.arguments,
         )
         self.ctx = ctx
 
@@ -334,10 +328,7 @@ class Strategy(wc.Strategy):
 
     def on_operator_state_change(self, wc_context, operator_state_update, location):
         self.__call_proxy(
-            self._on_operator_state_change,
-            self.ctx,
-            operator_state_update,
-            location,
+            self._on_operator_state_change, self.ctx, operator_state_update, location,
         )
 
     def on_history_order(self, wc_context, history_order, location, dest):

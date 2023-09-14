@@ -46,7 +46,7 @@ import { getYearMonthDay } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { LogLevelType } from '@kungfu-trader/kungfu-app/src/typings/enums';
 
 import { listProcessStatus } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 
 const { t } = VueI18n.global;
@@ -80,11 +80,6 @@ const logLevel = ref(
 const LOG_PATH = props.params.logPath || '';
 const CHECK_REPLAY_PROCESS_TIMER = 1000;
 const isLoading = ref(false);
-const replayList = ['strategy', 'operator'];
-const isReplayAble = computed(() => {
-  return replayList.includes(props.params.category);
-});
-
 onMounted(() => {
   ipcRenderer.on('clear-process', async (_event, args) => {
     const { processId } = args;
@@ -134,11 +129,6 @@ const throwError = (messageKey: string) => {
 };
 
 async function reLoadLog() {
-  if (!isReplayAble.value) {
-    throwError('replay.only_operator_or_strategy_can_be_replayed');
-    return;
-  }
-
   if (!currentWindow) return;
 
   const pawin = currentWindow.getParentWindow();

@@ -52,6 +52,10 @@ void TraderWriterHook::on_close_frame(int64_t gen_time, frame_ptr frame) {
     guard_position(frame->data<Position>());
     break;
   }
+  case Asset::tag: {
+    guard_asset(frame->data<Asset>());
+    break;
+  }
   }
 }
 
@@ -66,10 +70,15 @@ AlgoOrderService &TraderWriterHook::get_algo_order_service() { return vendor_.ge
 void TraderWriterHook::guard_position(const Position &const_position) {
   auto &position = const_cast<Position &>(const_position);
   position.update_time = vendor_.now();
-  position.source_id = vendor_.get_home_uid();
-  position.holder_uid = vendor_.get_home_uid();
+  position.source_id = vendor_.get_live_home_uid();
+  position.holder_uid = vendor_.get_live_home_uid();
   position.source_op_id = get_source_op_id(position.holder_uid, position.source_id);
   position.instrument_type = get_instrument_type(position.exchange_id, position.instrument_id);
+}
+
+void TraderWriterHook::guard_asset(const Asset &const_asset) {
+  auto &asset = const_cast<Asset &>(const_asset);
+  asset.holder_uid = vendor_.get_live_home_uid();
 }
 
 // ====================== TraderWriterHook end ======================

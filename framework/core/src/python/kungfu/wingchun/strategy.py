@@ -163,14 +163,22 @@ class Strategy(wc.Strategy):
             func(*args)
 
     def __init_book(self):
+        mode = (
+            lf.enums.mode.LIVE
+            if kfj.MODES[self.ctx.mode] != lf.enums.mode.BACKTEST
+            else lf.enums.mode.BACKTEST
+        )
+        locator = (
+            self.ctx.runtime_locator
+            if kfj.MODES[self.ctx.mode] != lf.enums.mode.BACKTEST
+            else self.ctx.backtest_locator
+        )
         location = yjj.location(
-            kfj.MODES[self.ctx.mode],
+            mode,
             lf.enums.category.STRATEGY,
             self.ctx.group,
             self.ctx.name,
-            self.ctx.runtime_locator
-            if kfj.MODES[self.ctx.mode] != lf.enums.mode.BACKTEST
-            else self.ctx.backtest_locator,
+            locator,
         )
 
         self.ctx.book = self.ctx.wc_context.bookkeeper.get_book(location.uid)

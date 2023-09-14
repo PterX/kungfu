@@ -51,27 +51,33 @@ BrokerState BrokerService::get_state() { return state_; }
 
 std::string BrokerService::get_config() const {
   auto &config_map = get_state_bank()[boost::hana::type_c<Config>];
-  if (config_map.find(get_home_uid()) == config_map.end()) {
+  if (config_map.find(get_live_home_uid()) == config_map.end()) {
     return "{}";
   }
-  auto &config_obj = config_map.at(get_home_uid());
+  auto &config_obj = config_map.at(get_live_home_uid());
   return config_obj.data.value;
 }
 
 std::string BrokerService::get_risk_setting() const {
   auto &risk_setting_map = get_state_bank()[boost::hana::type_c<RiskSetting>];
-  if (risk_setting_map.find(get_home_uid()) == risk_setting_map.end()) {
+  if (risk_setting_map.find(get_live_home_uid()) == risk_setting_map.end()) {
     return "{}";
   }
-  auto &risk_setting_obj = risk_setting_map.at(get_home_uid());
+  auto &risk_setting_obj = risk_setting_map.at(get_live_home_uid());
   return risk_setting_obj.data.to_string();
 }
 
-std::string BrokerService::get_runtime_folder() { return vendor_.get_locator()->layout_dir(get_home(), layout::LOG); }
+std::string BrokerService::get_runtime_folder() {
+  return vendor_.get_locator()->layout_dir(get_live_home(), layout::LOG);
+}
 
 const location_ptr &BrokerService::get_home() const { return vendor_.get_home(); }
 
+const location_ptr &BrokerService::get_live_home() const { return vendor_.get_live_home(); }
+
 uint32_t BrokerService::get_home_uid() const { return vendor_.get_home_uid(); }
+
+uint32_t BrokerService::get_live_home_uid() const { return vendor_.get_live_home_uid(); }
 
 writer_ptr BrokerService::get_writer(uint32_t dest_id) const { return vendor_.get_writer(dest_id); }
 
@@ -154,7 +160,7 @@ void BrokerService::update_broker_state(BrokerState state) {
   auto writer = get_writer(location::PUBLIC);
   BrokerStateUpdate &broker_state = writer->open_data<BrokerStateUpdate>();
   broker_state.state = state_;
-  broker_state.location_uid = get_home_uid();
+  broker_state.location_uid = get_live_home_uid();
   writer->close_data();
 }
 

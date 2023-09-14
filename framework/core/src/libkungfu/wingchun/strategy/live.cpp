@@ -47,7 +47,7 @@ bool LiveContext::is_started() const { return started_; }
 void LiveContext::prepare(const event_ptr &event) {
   if (event->msg_type() == Position::tag) {
     const Position &position = event->data<Position>();
-    if (position.holder_uid == get_home_uid()) {
+    if (position.holder_uid == get_live_home_uid()) {
       get_broker_client().subscribe(position.exchange_id, position.instrument_id);
     }
   }
@@ -70,7 +70,7 @@ void LiveContext::prepare(const event_ptr &event) {
     return;
   }
 
-  if (not broker_client_.has_enrolled_td_channel(get_home_uid())) {
+  if (not broker_client_.has_enrolled_td_channel(get_live_home_uid())) {
     return;
   }
 
@@ -133,7 +133,7 @@ int32_t LiveContext::add_time_interval(int64_t duration, const std::function<voi
 void LiveContext::clear_timer(int32_t timer_id) { app_.clear_timer(timer_id); }
 
 void LiveContext::add_account(const std::string &source, const std::string &account) {
-  auto home = app_.get_home();
+  auto home = app_.get_live_home();
   auto account_location = location::make_shared(mode::LIVE, category::TD, source, account, home->locator);
   if (not app_.has_location(account_location->uid)) {
     SPDLOG_ERROR("invalid account {}_{}", source, account);
@@ -144,7 +144,7 @@ void LiveContext::add_account(const std::string &source, const std::string &acco
 
 void LiveContext::subscribe(const std::string &source, const std::vector<std::string> &instrument_ids,
                             const std::string &exchange_ids) {
-  auto md_location = broker_client_.find_md_location(source, app_.get_home());
+  auto md_location = broker_client_.find_md_location(source, app_.get_live_home());
   for (const auto &instrument_id : instrument_ids) {
     broker_client_.subscribe(md_location, exchange_ids, instrument_id);
   }
@@ -154,14 +154,14 @@ void LiveContext::subscribe(const std::string &source, const std::vector<std::st
 
 void LiveContext::subscribe_all(const std::string &source, uint8_t market_type, uint64_t instrument_type,
                                 uint64_t data_type) {
-  auto md_location = broker_client_.find_md_location(source, app_.get_home());
+  auto md_location = broker_client_.find_md_location(source, app_.get_live_home());
   broker_client_.subscribe_all(md_location, market_type, instrument_type, data_type);
   ensure_connect();
   send_instrument_keys();
 }
 
 void LiveContext::subscribe_operator(const std::string &group, const std::string &name) {
-  auto home = app_.get_home();
+  auto home = app_.get_live_home();
   auto operator_location = location::make_shared(mode::LIVE, category::OPERATOR, group, name, home->locator);
   if (not app_.has_location(operator_location->uid)) {
     SPDLOG_ERROR("subscribe operator no location");
@@ -190,9 +190,8 @@ uint64_t LiveContext::insert_block_message(const std::string &source, const std:
   msg.match_number = match_number;
   msg.is_specific = is_specific;
   msg.block_id = writer->current_frame_uid();
-  uint64_t block_id = msg.block_id;
   writer->close_data();
-  return block_id;
+  return msg.block_id;
 }
 
 uint64_t LiveContext::insert_order_trigger(const std::string &instrument_id, const std::string &exchange_id,
@@ -278,7 +277,7 @@ uint64_t LiveContext::insert_order(const std::string &instrument_id, const std::
   input.insert_time = time::now_in_nano();
   writer->close_data();
   if (not is_bypass_accounting()) {
-    bookkeeper_.on_order_input(now(), get_home_uid(), account_location_uid, input);
+    bookkeeper_.on_order_input(now(), get_live_home_uid(), account_location_uid, input);
   }
   return input.order_id;
 }
@@ -309,7 +308,7 @@ uint64_t LiveContext::insert_order_input(const std::string &source, const std::s
   memcpy(&input, &order_input, sizeof(input));
   writer->close_data();
   if (not is_bypass_accounting()) {
-    bookkeeper_.on_order_input(now(), get_home_uid(), account_location_uid, order_input);
+    bookkeeper_.on_order_input(now(), get_live_home_uid(), account_location_uid, order_input);
   }
   return order_input.order_id;
 }
@@ -347,7 +346,7 @@ LiveContext::insert_batch_orders(const std::string &source, const std::string &a
   }
 
   auto writer = app_.get_writer(account_location_uid);
-  writer->mark(time::now_in_nano(), BatchOrderBegin::tag);
+  writer->mark(now(), BatchOrderBegin::tag);
 
   for (int i = 0; i < instrument_ids.size(); ++i) {
     uint64_t order_id =
@@ -356,7 +355,7 @@ LiveContext::insert_batch_orders(const std::string &source, const std::string &a
     order_ids.push_back(order_id);
   }
 
-  writer->mark(time::now_in_nano(), BatchOrderEnd::tag);
+  writer->mark(now(), BatchOrderEnd::tag);
   writer->close_data();
   return order_ids;
 }
@@ -376,7 +375,7 @@ std::vector<uint64_t> LiveContext::insert_array_orders(const std::string &source
   }
 
   auto writer = app_.get_writer(account_location_uid);
-  writer->mark(time::now_in_nano(), BatchOrderBegin::tag);
+  writer->mark(now(), BatchOrderBegin::tag);
 
   for (const OrderInput &input : order_inputs) {
     uint64_t order_id =
@@ -385,7 +384,7 @@ std::vector<uint64_t> LiveContext::insert_array_orders(const std::string &source
     order_ids.push_back(order_id);
   }
 
-  writer->mark(time::now_in_nano(), BatchOrderEnd::tag);
+  writer->mark(now(), BatchOrderEnd::tag);
   writer->close_data();
   return order_ids;
 }
@@ -435,7 +434,7 @@ uint64_t LiveContext::cancel_order(uint64_t order_id, OrderActionFlag action_fla
     return 0;
   }
 
-  uint32_t account_location_uid = (order_id >> 32u) xor (get_home_uid());
+  uint32_t account_location_uid = (order_id >> 32u) xor (get_live_home_uid());
   if (not broker_client_.is_ready(account_location_uid)) {
     SPDLOG_ERROR("account {} not ready", app_.get_location_uname(account_location_uid));
     return 0;
@@ -458,7 +457,7 @@ uint64_t LiveContext::cancel_order_trigger(uint64_t trigger_id) {
     return 0;
   }
 
-  uint32_t account_location_uid = (trigger_id >> 32u) xor (get_home_uid());
+  uint32_t account_location_uid = (trigger_id >> 32u) xor (get_live_home_uid());
   if (not broker_client_.is_ready(account_location_uid)) {
     SPDLOG_ERROR("account {} not ready", app_.get_location_uname(account_location_uid));
     return 0;
@@ -481,7 +480,7 @@ uint64_t LiveContext::cancel_algo_order(uint64_t algo_order_id, AlgoOrderActionF
     return 0;
   }
 
-  uint32_t account_location_uid = (algo_order_id >> 32u) xor (get_home_uid());
+  uint32_t account_location_uid = (algo_order_id >> 32u) xor (get_live_home_uid());
   if (not broker_client_.is_ready(account_location_uid)) {
     SPDLOG_ERROR("account {} not ready", app_.get_location_uname(account_location_uid));
     return 0;
@@ -504,7 +503,7 @@ uint64_t LiveContext::toggle_algo_order(uint64_t algo_order_id, longfist::enums:
     return 0;
   }
 
-  uint32_t account_location_uid = (algo_order_id >> 32u) xor (get_home_uid());
+  uint32_t account_location_uid = (algo_order_id >> 32u) xor (get_live_home_uid());
   if (not broker_client_.is_ready(account_location_uid)) {
     SPDLOG_ERROR("toggle_algo_order account {} not ready", app_.get_location_uname(account_location_uid));
     return 0;
@@ -607,5 +606,7 @@ void LiveContext::set_resume_policy(longfist::enums::ResumePolicy resume_policy)
 longfist::enums::ResumePolicy LiveContext::get_resume_policy() { return broker_client_.get_resume_policy_value(); }
 
 uint32_t LiveContext::get_home_uid() const { return app_.get_home_uid(); }
+
+uint32_t LiveContext::get_live_home_uid() const { return app_.get_live_home_uid(); }
 
 } // namespace kungfu::wingchun::strategy

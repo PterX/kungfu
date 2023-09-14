@@ -63,7 +63,11 @@ public:
 
   [[nodiscard]] const yijinjing::data::location_ptr &get_home() const;
 
+  [[nodiscard]] const yijinjing::data::location_ptr &get_live_home() const;
+
   [[nodiscard]] uint32_t get_home_uid() const;
+
+  [[nodiscard]] uint32_t get_live_home_uid() const;
 
   [[nodiscard]] yijinjing::io_device_ptr get_io_device() const;
 

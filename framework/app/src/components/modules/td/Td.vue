@@ -6,6 +6,7 @@ import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/p
 import KfProcessStatus from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfProcessStatus.vue';
 import KfSetExtensionModal from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfSetExtensionModal.vue';
 import KfSetByConfigModal from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfSetByConfigModal.vue';
+import KfReplaySettingModal from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfReplaySettingModal.vue';
 import FundTransModal from './FundTransModal.vue';
 import Icon, {
   FileTextOutlined,
@@ -14,6 +15,7 @@ import Icon, {
   BankOutlined,
   ReloadOutlined,
   PayCircleOutlined,
+  HistoryOutlined,
 } from '@ant-design/icons-vue';
 
 import { categoryRegisterConfig, getColumns, getFundTransKey } from './config';
@@ -36,6 +38,7 @@ import {
   useAllKfConfigData,
   useTdGroups,
   useAssets,
+  useReplay,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import {
   dealAssetPrice,
@@ -104,6 +107,14 @@ const { allProcessOnline, handleSwitchAllProcessStatus } = useSwitchAllConfig(
   td,
   processStatusData,
 );
+
+const {
+  replayConfig,
+  setReplayModalVisible,
+  sessionOptions,
+  handleOpenReplayConfirmView,
+  handleReplayModal,
+} = useReplay();
 
 const tdGroupDataLoaded = ref<boolean>(false);
 const addTdGroupModalVisble = ref<boolean>(false);
@@ -713,6 +724,12 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
           </template>
           <template v-else-if="column.dataIndex === 'actions'">
             <div v-if="record.category === 'td'" class="kf-actions__warp">
+              <HistoryOutlined
+                style="font-size: 12px"
+                @click.stop="
+                  handleOpenReplayConfirmView(record as KungfuApi.KfConfig)
+                "
+              ></HistoryOutlined>
               <BankOutlined
                 style="font-size: 12px"
                 @click.stop="handleOpenJournalView(record)"
@@ -798,6 +815,20 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
       v-if="setTdGroupModalVisble"
       v-model:visible="setTdGroupModalVisble"
     ></SetTdGroupModal>
+    <KfReplaySettingModal
+      v-if="setReplayModalVisible"
+      :width="520"
+      v-model:visible="setReplayModalVisible"
+      :session-options="sessionOptions"
+      :session-info="replayConfig.session_info"
+      :begin-time="replayConfig.begin_time.split(' ')[1]"
+      :end-time="
+        replayConfig.end_time ? replayConfig.end_time.split(' ')[1] : ''
+      "
+      :log-level="replayConfig.log_level"
+      @close="setReplayModalVisible = false"
+      @confirm="(event) => handleReplayModal(event)"
+    ></KfReplaySettingModal>
   </div>
 </template>
 <style lang="less">

@@ -1,11 +1,13 @@
 import { ipcRenderer } from 'electron';
 import { BrowserWindow } from '@electron/remote';
 import {
-  startStrategyOperator,
   stopProcess,
   listProcessStatus,
 } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
-import { getProcessIdByKfLocation } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import {
+  getProcessIdByKfLocation,
+  startReplay,
+} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 
 export function bindIPCListener(store) {
   ipcRenderer.removeAllListeners('ipc-emit-strategyList');
@@ -46,7 +48,14 @@ export function bindIPCListener(store) {
     if (processStatus[processId]) {
       await stopProcess(processId);
     }
-
-    await startStrategyOperator(category, '', '', 'replay', replayConfig);
+    await startReplay(
+      {
+        category,
+        group,
+        name,
+        mode: 'replay',
+      },
+      replayConfig,
+    );
   });
 }

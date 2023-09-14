@@ -696,7 +696,7 @@ export const openReplayView = (
   processId: string,
 ): Promise<Electron.BrowserWindow> => {
   return openNewBrowserWindow(
-    globalThis.__runtimeDir,
+    process.env.KF_APP_RUNTIME_DIR,
     'replay',
     `?logPath=${logPath}&sessionName=${sessionName}&filePath=${filePath}&category=${type}&group=${group}&beginTime=${beginTime}&endTime=${endTime}&logLevel=${log_level}&processId=${processId}`,
     {

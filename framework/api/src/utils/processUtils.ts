@@ -1055,7 +1055,7 @@ export const startTd = async (
   replayConfig?: KungfuApi.ReplayConfigOrigin,
 ): Promise<Proc | void> => {
   const globalSetting = getKfGlobalSettingsValue();
-  const autorestart = globalSetting?.system?.autoRestartTd ?? true;
+  let autorestart = globalSetting?.system?.autoRestartTd ?? true;
   const extDirs = await flattenExtensionModuleDirs(EXTENSION_DIRS);
   const { source, id } = (accountId || '').parseSourceAccountId();
   let args = '';
@@ -1067,6 +1067,7 @@ export const startTd = async (
   await fse.ensureDir(cwd);
 
   if (mode === 'replay' && replayConfig) {
+    autorestart = false;
     const location = {
       category: replayConfig.category,
       group: replayConfig.group,

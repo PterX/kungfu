@@ -33,7 +33,6 @@ BacktestContext::BacktestContext(practice::apprentice &app, const rx::connectabl
                                               std::move(to_indexer))),
       report_(std::move(report)) {
   log::copy_log_settings(app_.get_home(), app_.get_home()->name);
-  // add_location(app_, app_.get_home());
 }
 
 void BacktestContext::on_start() {

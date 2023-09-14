@@ -298,7 +298,7 @@ private:
   struct TimerTask {
     int32_t timer_id;
     std::function<void(event_ptr)> call_back;
-    TimerTask(int32_t id, std::function<void(event_ptr)> cb) : timer_id(id), call_back(cb){};
+    TimerTask(int32_t id, std::function<void(event_ptr)> cb) : timer_id(id), call_back(std::move(cb)){};
   };
   broker::PassiveClient broker_client_;
   book::Bookkeeper bookkeeper_;

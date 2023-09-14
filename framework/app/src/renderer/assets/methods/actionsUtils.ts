@@ -2513,9 +2513,6 @@ export const useMakeOrderSubscribe = (
   formState: Ref<Record<string, KungfuApi.KfConfigValue>>,
 ) => {
   const app = getCurrentInstance();
-  let lastTriggerTag: 'makeOrder' | 'orderBookUpdate' | '' = '';
-  let lastVolume = 0;
-  let dealPrice: number | null = null;
   function closestNumber(target: number, numbers: number[]): number {
     if (numbers.length === 0) {
       return target;
@@ -2538,22 +2535,22 @@ export const useMakeOrderSubscribe = (
               instrumentType,
               accountId,
               instrumentId,
+              exchangeId,
             } = (data as KfEvent.TriggerMakeOrder).orderInput;
-            const quote: KungfuApi.Quote[] = window.watcher.ledger.Quote.filter(
-              'instrument_id',
-              instrumentId,
-            ).list();
+            const uid = hashInstrumentUKey(instrumentId, exchangeId);
+            const quote: KungfuApi.Quote = window.watcher.ledger.Quote[uid];
 
-            if (quote.length !== 0) {
+            let dealPrice = price;
+            if (quote) {
               dealPrice = closestNumber(
-                price - 10,
-                quote[0].ask_price.concat(quote[0].bid_price),
+                price,
+                quote.ask_price.concat(quote.bid_price),
               );
-              if (quote[0].lower_limit_price && quote[0].upper_limit_price)
-                if (dealPrice <= quote[0].lower_limit_price) {
-                  dealPrice = quote[0].lower_limit_price;
+              if (quote.lower_limit_price && quote.upper_limit_price)
+                if (dealPrice <= quote.lower_limit_price) {
+                  dealPrice = quote.lower_limit_price;
                 } else {
-                  dealPrice = quote[0].upper_limit_price;
+                  dealPrice = quote.upper_limit_price;
                 }
             }
             const instrumentValue = buildInstrumentSelectOptionValue(
@@ -2564,16 +2561,12 @@ export const useMakeOrderSubscribe = (
             formState.value.offset = +offset;
             formState.value.side = +side;
             formState.value.volume = +Number(volume).kfToFixed(0);
-            formState.value.limit_price = +Number(dealPrice || price).kfToFixed(
-              4,
-            );
+            formState.value.limit_price = +Number(dealPrice).kfToFixed(4);
             formState.value.instrument_type = +instrumentType;
 
             if (accountId) {
               formState.value.account_id = accountId;
             }
-            lastTriggerTag = 'makeOrder';
-            lastVolume = formState.value.volume;
           }
 
           if (data.tag === 'orderBookUpdate') {
@@ -2593,27 +2586,8 @@ export const useMakeOrderSubscribe = (
             if (!!price && !Number.isNaN(price) && +price !== 0) {
               formState.value.limit_price = +Number(price).kfToFixed(4);
             }
-
-            const shouldUpdateVolume =
-              (lastTriggerTag === 'orderBookUpdate' &&
-                lastVolume === formState.value.volume) ||
-              !formState.value.volume;
-            const isNewVolumeValuable =
-              !!volume &&
-              !Number.isNaN(Number(volume)) &&
-              BigInt(volume) !== BigInt(0);
-
-            if (shouldUpdateVolume && isNewVolumeValuable) {
-              formState.value.volume = +Number(volume).kfToFixed(0);
-              lastVolume = formState.value.volume;
-            }
-
+            formState.value.volume = +Number(volume).kfToFixed(0);
             formState.value.side = +side;
-            if (shouldUpdateVolume) {
-              lastTriggerTag = 'orderBookUpdate';
-            } else {
-              lastVolume = 0;
-            }
           }
         },
       );

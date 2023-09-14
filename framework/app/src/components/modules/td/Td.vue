@@ -61,10 +61,21 @@ const { t } = VueI18n.global;
 const { success, error } = messagePrompt();
 const handleSwitchProcessStatus = handleSwitchProcessStatusGenerator();
 const { dashboardBodyHeight, handleBodySizeChange } = useDashboardBodySize();
+const tdAssetMarginMap = computed(() => {
+  const obj: Record<string, boolean> = {};
+  if (!extConfigs.value['td']) return obj;
+  Object.keys(extConfigs.value['td'] || {}).forEach((key) => {
+    const extConfig = extConfigs.value['td'][key];
+    if (extConfig?.showAssetMargin) {
+      obj[key] = true;
+    }
+  });
+  return obj;
+});
 const isShowAssetMargin = computed(() => {
   if (!extConfigs.value['td']) return false;
-  return Object.values(extConfigs.value['td']).some(
-    (item: KungfuApi.KfTdExtConfig) => item?.showAssetMargin,
+  return Object.keys(extConfigs.value['td']).some(
+    (item: string) => tdAssetMarginMap[item],
   );
 });
 
@@ -685,7 +696,11 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
               v-if="record.category === 'td'"
               mode="compare-zero"
               :num="
-                dealAssetPrice(getAssetMarginsByKfConfig(record).avail_margin)
+                tdAssetMarginMap[record.group]
+                  ? dealAssetPrice(
+                      getAssetMarginsByKfConfig(record).avail_margin,
+                    )
+                  : '--'
               "
             ></KfBlinkNum>
             <KfBlinkNum
@@ -701,7 +716,11 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
             <KfBlinkNum
               v-if="record.category === 'td'"
               mode="compare-zero"
-              :num="dealAssetPrice(getAssetMarginsByKfConfig(record).cash_debt)"
+              :num="
+                tdAssetMarginMap[record.group]
+                  ? dealAssetPrice(getAssetMarginsByKfConfig(record).cash_debt)
+                  : '--'
+              "
             ></KfBlinkNum>
             <KfBlinkNum
               v-else-if="record.category === 'tdGroup'"
@@ -715,13 +734,19 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
               v-if="record.category === 'td'"
               mode="compare-zero"
               :num="
-                dealAssetPrice(getAssetMarginsByKfConfig(record).total_asset)
+                tdAssetMarginMap[record.group]
+                  ? dealAssetPrice(
+                      getAssetMarginsByKfConfig(record).total_asset,
+                    )
+                  : '--'
               "
             ></KfBlinkNum>
             <KfBlinkNum
               v-else-if="isShowAssetMargin && record.category === 'tdGroup'"
               :num="
-                dealAssetPrice(getAssetMarginsByTdGroup(record).total_asset)
+                tdAssetMarginMap[record.group]
+                  ? dealAssetPrice(getAssetMarginsByTdGroup(record).total_asset)
+                  : '--'
               "
             ></KfBlinkNum>
           </template>

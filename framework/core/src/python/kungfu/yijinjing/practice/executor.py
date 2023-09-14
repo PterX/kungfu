@@ -262,6 +262,11 @@ class ExtensionExecutor:
         self.ctx.logger.debug("set service for vendor")
         vendor.set_service(service)
         self.ctx.logger.info(f"vendor {location.uname} ready to run")
+
+        if kfj.MODES[ctx.mode] == lf.enums.mode.REPLAY:
+            begin_time_stamp, end_time_stamp = parse_begin_end(ctx)
+            vendor.set_begin_time(begin_time_stamp)
+            vendor.set_end_time(end_time_stamp)
         vendor.run()
 
     def run_market_data(self):

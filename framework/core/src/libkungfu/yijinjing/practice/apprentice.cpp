@@ -93,7 +93,6 @@ bool apprentice::release_page() {
 }
 
 void apprentice::react() {
-  events_ | is(TimeReset::tag) | first() | $$(reset_time(event->data<TimeReset>()));
   events_ | is(Location::tag) | $$(add_location(event->gen_time(), event->data<Location>()));
   events_ | is(Register::tag) | $$(on_register(event->trigger_time(), event->data<Register>()));
   events_ | is(RequestReadFromOthers::tag) | $$(on_request_read_from_others(event));
@@ -111,6 +110,10 @@ void apprentice::react() {
   SPDLOG_TRACE("building reactive event handlers");
   on_react();
   cleaner_.on_react();
+
+  if (get_io_device()->get_home()->mode != mode::BACKTEST) {
+    events_ | is(TimeReset::tag) | first() | $$(reset_time(event->data<TimeReset>()));
+  }
 
   if (get_io_device()->get_home()->mode == mode::LIVE) {
     auto self_register_event = events_ | skip_until(events_ | is(Register::tag) | filter([&](const event_ptr &event) {

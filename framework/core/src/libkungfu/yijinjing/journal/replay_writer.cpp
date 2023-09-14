@@ -29,7 +29,8 @@ frame_ptr replay_writer::open_frame(int64_t trigger_time, int32_t msg_type, uint
   }
 
   if (not reader_for_write_->data_available()) {
-    SPDLOG_WARN("no more data available msg_type {} trigger_time {}, from {} to {} ", msg_type, time::strftime(trigger_time), get_location()->uname, get_dest());
+    SPDLOG_WARN("no more data available msg_type {} trigger_time {}, from {} to {} ", msg_type,
+                time::strftime(trigger_time), get_location()->uname, get_dest());
   }
 
   cloned_frame_.copy(*reader_for_write_->current_frame());

@@ -1066,9 +1066,11 @@ export const getProcessIdByKfLocation = (
           : `${kfLocation.category}_${kfLocation.group}_${kfLocation.name}`;
       }
     case 'system':
-      return kfLocation.name;
+      return mode ? `${kfLocation.name}-${mode}` : `${kfLocation.name}`;
     default:
-      return `${kfLocation.category}_${kfLocation.group}_${kfLocation.name}`;
+      return mode
+        ? `${kfLocation.category}_${kfLocation.group}_${kfLocation.name}-${mode}`
+        : `${kfLocation.category}_${kfLocation.group}_${kfLocation.name}`;
   }
 };
 
@@ -2687,4 +2689,37 @@ export function getYearMonthDay(delimiter = '-') {
   const monthStr = month < 10 ? `0${month}` : `${month}`;
   const dayStr = day < 10 ? `0${day}` : `${day}`;
   return `${year}${delimiter}${monthStr}${delimiter}${dayStr}`;
+}
+
+export function startReplay(
+  location: KungfuApi.KfConfig | KungfuApi.KfLocation,
+  replayConfig: KungfuApi.ReplayConfigOrigin,
+) {
+  switch (location.category) {
+    case 'td':
+      return startTd(
+        `${location.group}_${location.name}`,
+        location,
+        'replay',
+        replayConfig,
+      );
+    case 'strategy':
+    case 'operator':
+      return startStrategyOperator(
+        location.category,
+        '',
+        '',
+        'replay',
+        replayConfig,
+      );
+    case 'system':
+      if (location.name === 'ledger') {
+        return startLedger(false, 'replay', replayConfig);
+      } else {
+        return Promise.reject(new Error('Location is not supported to replay'));
+      }
+
+    default:
+      return Promise.reject(new Error('Location is not supported to replay'));
+  }
 }

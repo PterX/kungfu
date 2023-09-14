@@ -52,6 +52,7 @@ import {
   removeTodayArchive,
   getYearMonthDay,
   debounce,
+  startReplay,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
@@ -78,7 +79,6 @@ import {
 import path from 'path';
 import {
   startExtService,
-  startStrategyOperator,
   stopProcess,
   listProcessStatus,
 } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
@@ -925,14 +925,7 @@ export const handleOpenReplayView = async (
     if (processStatus[processId]) {
       await stopProcess(processId);
     }
-
-    await startStrategyOperator(
-      config.category,
-      '',
-      '',
-      'replay',
-      replayConfig,
-    );
+    await startReplay(config, replayConfig);
   });
 };
 

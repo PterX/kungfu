@@ -933,8 +933,7 @@ export default {
     process_has_not_been_started: 'The process has not been started',
     please_start_replay: 'Please start replay',
     please_select_strategy_or_operator: 'Please select strategy or operator',
-    only_operator_or_strategy_can_be_replayed:
-      'Only operator or strategy can be replayed',
+    process_can_not_replay: 'the process can not replay',
     tips_title: '* Tips:',
     replay_tips1_part1: 'Replay functionality relies on data time, ',
     replay_tips1_part2:

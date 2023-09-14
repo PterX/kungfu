@@ -51,17 +51,15 @@
         <template v-if="instrumentList.length > 0">
           <div
             v-for="item in instrumentList"
-            :key="item.instrumentId"
+            :key="item"
             :class="{
               'instrument-item_wrap': true,
               'color-default': true,
-              'selected-status': selectedInstrument.includes(item.instrumentId),
+              'selected-status': selectedInstrument.includes(item),
             }"
             @click="getCurInstrument(item)"
           >
-            <span class="instrument-item">{{ item.instrumentId }}</span>
-            <span class="instrument-item">{{ item.instrumentName }}</span>
-            <span class="instrument-item">{{ item.exchangeId }}</span>
+            <span>{{ item }}</span>
           </div>
         </template>
 
@@ -119,12 +117,18 @@ import {
   hashInstrumentUKey,
 } from '@kungfu-trader/kungfu-js-api/kungfu';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
-import { sideOffsetMap } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
+import {
+  ExchangeIds,
+  sideOffsetMap,
+} from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import {
   OffsetEnum,
   SideEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
-import { delayMilliSeconds } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import {
+  debounce,
+  delayMilliSeconds,
+} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 
 const { t } = VueI18n.global;
 
@@ -175,13 +179,7 @@ const selectedInstrument = ref<string>('');
 const xAxisData = ref<number[]>([]);
 const quoteXAxisData = ref<number[]>([]);
 const searchOrderId = ref<string>('');
-const instrumentList = ref<
-  {
-    instrumentId: string;
-    instrumentName: string;
-    exchangeId: string;
-  }[]
->([]);
+const instrumentList = ref<string[]>([]);
 
 onMounted(() => {
   dealAllFrameData();
@@ -437,7 +435,11 @@ function dealFrame<T extends FrameResolvedDataType>(
       tradingData.instrument_id,
       tradingData.exchange_id,
     );
-    const key = buildInstrumentSelectOptionLabel(kfInstrumentsJSON[uidKey]);
+    const key = kfInstrumentsJSON[uidKey]
+      ? buildInstrumentSelectOptionLabel(kfInstrumentsJSON[uidKey])
+      : `${tradingData.instrument_id} ${
+          ExchangeIds[tradingData.exchange_id.toUpperCase()]?.name || ''
+        }`;
 
     if (hasInstrumentId.includes(tradingData.instrument_id)) {
       result[key].push(tradingData);
@@ -523,46 +525,21 @@ function getInstrumentList(searchKey?: string) {
       ...Object.keys(orderInputByInstrument.value),
     ]),
   );
-  if (searchKey) {
-    return allInstrument
-      .filter((item) => {
+
+  return searchKey
+    ? allInstrument.filter((item) => {
         return item.includes(searchKey);
       })
-      .map((key) => {
-        const [instrumentId, instrumentName, exchangeId] = key.split(' ');
-        return {
-          instrumentId,
-          instrumentName,
-          exchangeId,
-        };
-      });
-  } else {
-    return allInstrument.map((key) => {
-      const [instrumentId, instrumentName, exchangeId] = key.split(' ');
-      return {
-        instrumentId,
-        instrumentName,
-        exchangeId,
-      };
-    });
-  }
+    : allInstrument;
 }
 
-function getCurInstrument(instrument: {
-  instrumentId: string;
-  instrumentName: string;
-  exchangeId: string;
-}) {
-  const key = [
-    instrument.instrumentId,
-    instrument.instrumentName,
-    instrument.exchangeId,
-  ].join(' ');
-  selectedInstrument.value = key;
+function getCurInstrument(instrument: string) {
+  selectedInstrument.value = instrument;
   selectedOrderId = 0n;
   searchOrderId.value = '';
+  xAxisData.value = [];
 
-  setXAxisMinMax(key);
+  setXAxisMinMax(instrument);
 
   updateOption();
 }
@@ -851,6 +828,10 @@ const chartFrameList = computed(() => {
 
 function getTradingDataValueByKey(data: FrameResolvedDataType) {
   let dataTime = 0n;
+  if (!data)
+    return {
+      dataTime,
+    };
   switch (data.msgTypeName) {
     case 'quote':
       if ('data_time' in data) dataTime = data.data_time;
@@ -897,14 +878,20 @@ function tooltipFormatter(data: FrameResolvedDataType, type?: string) {
       }
       return (pre += `<div class="tooltip-row">
           <span class="tooltip-item-key">${cur}</span>
-          <span class="tooltip-item-value">${data[cur]}</span>
+          <span class="tooltip-item-value">${
+            cur === 'data_time' ? dealKfTime(data[cur]) : data[cur]
+          }</span>
         </div>`);
     }, '');
   } else {
     htmlTemplate = Object.keys(data).reduce((pre, cur) => {
       return (pre += `<div class="tooltip-row">
           <span class="tooltip-item-key">${cur}</span>
-          <span class="tooltip-item-value">${data[cur]}</span>
+          <span class="tooltip-item-value">${
+            ['insert_time', 'update_time'].includes(cur)
+              ? dealKfTime(data[cur])
+              : data[cur]
+          }</span>
         </div>`);
     }, '');
   }
@@ -1039,9 +1026,9 @@ function setXAxisMinMax(key: string) {
   }
 }
 
-function handleInputChange() {
+const handleInputChange = debounce(() => {
   instrumentList.value = getInstrumentList(searchInstrument.value);
-}
+}, 300);
 </script>
 
 <style lang="less">

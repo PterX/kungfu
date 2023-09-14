@@ -796,6 +796,7 @@ function getRocketParams(args: string, ifRocket: boolean) {
 function buildArgs(options: {
   prefix?: string;
   loglevel?: string;
+  extensionDirs?: string;
   location?: KungfuApi.KfLocation;
   extraArgs?: string;
   args?: string;
@@ -816,17 +817,20 @@ function buildArgs(options: {
   if (logLevel) {
     fullArgsArray.push(logLevel);
   }
+  if (options.extensionDirs) {
+    fullArgsArray.push(`-X ${options.extensionDirs}`);
+  }
 
+  if (options.location) {
+    const locationArgs = `run -c ${options.location.category} -g ${options.location.group} -n ${options.location.name} -m ${options.location.mode}`;
+    fullArgsArray.push(locationArgs);
+  }
   if (options.extraArgs) {
     fullArgsArray.push(options.extraArgs);
   }
-  if (options.location) {
-    const locationArgs = `run -c ${options.location.category} -g ${options.location.group} -n ${options.location.name}`;
-    fullArgsArray.push(locationArgs);
-  }
 
   if (options.args) {
-    fullArgsArray.push(options.args);
+    fullArgsArray.push(`-a ${options.args}`);
   }
 
   if (options.suffix) {
@@ -920,7 +924,7 @@ export const startLedger = async (
   mode: KfModeTypes = 'live',
   replayConfig?: KungfuApi.ReplayConfigOrigin,
 ): Promise<void> => {
-  const processName = 'ledger';
+  let processName = '';
   const isReplay = mode === 'replay';
   let args = '';
 
@@ -938,19 +942,21 @@ export const startLedger = async (
         name: 'ledger',
         mode: mode,
       },
-      args: ` -a '{"bypass_refresh_book": ${bypassRefreshBook}}'`,
+      args: `'{"bypass_refresh_book": ${bypassRefreshBook}}'`,
     });
     if (mode === 'replay' && replayConfig) {
+      const location = {
+        category: 'system',
+        group: 'service',
+        name: 'ledger',
+        mode: mode,
+      };
       args = buildArgs({
-        location: {
-          category: 'system',
-          group: 'service',
-          name: 'ledger',
-          mode: mode,
-        },
-        args: ` -a '{"bypass_refresh_book": ${bypassRefreshBook}}'`,
-        suffix: `-m replay -b '${replayConfig.begin_time}' -e '${replayConfig.end_time}'`,
+        location,
+        args: `'{"bypass_refresh_book": ${bypassRefreshBook}}'`,
+        suffix: `-b '${replayConfig.begin_time}' -e '${replayConfig.end_time}'`,
       });
+      processName = getProcessIdByKfLocation(location, mode);
     } else {
       args = buildArgs({
         location: {
@@ -959,8 +965,9 @@ export const startLedger = async (
           name: 'ledger',
           mode: mode,
         },
-        args: ` -a '{"bypass_refresh_book": ${bypassRefreshBook}}'`,
+        args: `'{"bypass_refresh_book": ${bypassRefreshBook}}'`,
       });
+      processName = 'ledger';
     }
     await startProcess({
       name: processName,
@@ -1002,7 +1009,7 @@ export const startMd = async (
 ): Promise<Proc | void> => {
   const extDirs = await flattenExtensionModuleDirs(EXTENSION_DIRS);
   const args = buildArgs({
-    extraArgs: `-X "${extDirs
+    extensionDirs: `"${extDirs
       .map((dir) => dealSpaceInPath(path.dirname(dir)))
       .join(path.delimiter)}"`,
     location: {
@@ -1067,16 +1074,16 @@ export const startTd = async (
       mode: mode,
     };
     args = buildArgs({
-      extraArgs: `-X "${extDirs
+      extensionDirs: `"${extDirs
         .map((dir) => dealSpaceInPath(path.dirname(dir)))
         .join(path.delimiter)}"`,
       location,
-      suffix: `-m replay -b '${replayConfig.begin_time}' -e '${replayConfig.end_time}'`,
+      suffix: `-b '${replayConfig.begin_time}' -e '${replayConfig.end_time}'`,
     });
-    fullProcessId = getProcessIdByKfLocation(location, 'replay');
+    fullProcessId = getProcessIdByKfLocation(location, mode);
   } else {
     args = buildArgs({
-      extraArgs: `-X "${extDirs
+      extensionDirs: `"${extDirs
         .map((dir) => dealSpaceInPath(path.dirname(dir)))
         .join(path.delimiter)}"`,
       location: {
@@ -1119,7 +1126,7 @@ export const startTask = async (
 ): Promise<Proc | void> => {
   const extDirs = await flattenExtensionModuleDirs(EXTENSION_DIRS);
   const argsResolved = buildArgs({
-    extraArgs: `-X "${extDirs
+    extensionDirs: `"${extDirs
       .map((dir) => dealSpaceInPath(path.dirname(dir)))
       .join(path.delimiter)}"`,
     location: {
@@ -1128,7 +1135,8 @@ export const startTask = async (
       name: `"${taskLocation.name}"`,
       mode: 'live',
     },
-    args: `'${soPath}' -a '${args}'`,
+    extraArgs: `'${soPath}'`,
+    args: `'${args}'`,
   });
 
   return startProcess({
@@ -1166,10 +1174,10 @@ export const startOperatorByExt = async (
         name: `"${name}"`,
         mode: mode,
       },
-      extraArgs: `-X "${extDirs
+      extensionDirs: `"${extDirs
         .map((dir) => dealSpaceInPath(path.dirname(dir)))
         .join(path.delimiter)}"`,
-      suffix: `-m replay -b '${replayConfig.begin_time}' -e '${replayConfig.end_time}'`,
+      suffix: `-b '${replayConfig.begin_time}' -e '${replayConfig.end_time}'`,
     });
 
     fullProcessId = getProcessIdByKfLocation(
@@ -1179,7 +1187,7 @@ export const startOperatorByExt = async (
         name: replayConfig.session_name,
         mode: mode,
       },
-      'replay',
+      mode,
     );
   } else {
     args = buildArgs({
@@ -1189,7 +1197,7 @@ export const startOperatorByExt = async (
         name: `"${name}"`,
         mode: mode,
       },
-      extraArgs: `-X "${extDirs
+      extensionDirs: `"${extDirs
         .map((dir) => dealSpaceInPath(path.dirname(dir)))
         .join(path.delimiter)}"`,
     });
@@ -1245,7 +1253,7 @@ export const startStrategyOperatorByLocalPython = async (
         name: replayConfig.session_name,
         mode: mode,
       },
-      suffix: `-m ${mode} '${replayConfig.file_path}' -b '${replayConfig.begin_time}' -e '${replayConfig.end_time}'`,
+      suffix: `'${replayConfig.file_path}' -b '${replayConfig.begin_time}' -e '${replayConfig.end_time}'`,
     });
     fullProcessId = getProcessIdByKfLocation(
       {
@@ -1330,7 +1338,7 @@ export const startStrategyOperator = async (
         name: replayConfig.session_name,
         mode: mode,
       },
-      'replay',
+      mode,
     );
     if (ifLocalPython && replayConfig.file_path.endsWith('.py')) {
       return startStrategyOperatorByLocalPython(
@@ -1350,7 +1358,7 @@ export const startStrategyOperator = async (
           name: replayConfig.session_name,
           mode: mode,
         },
-        suffix: `-m replay ${replayConfig.file_path} -b '${replayConfig.begin_time}' -e '${replayConfig.end_time}'`,
+        suffix: `${replayConfig.file_path} -b '${replayConfig.begin_time}' -e '${replayConfig.end_time}'`,
       });
       return startProcess({
         name: processId,
@@ -1431,7 +1439,7 @@ export const startExtService = async (
     } else {
       const extDirs = await flattenExtensionModuleDirs(EXTENSION_DIRS);
       const args = buildArgs({
-        extraArgs: `-X "${
+        extensionDirs: `"${
           cwd ||
           extDirs
             .map((dir) => dealSpaceInPath(path.dirname(dir)))

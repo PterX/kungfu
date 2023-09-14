@@ -398,6 +398,14 @@ export const findTargetFromArray = <T>(
   return null;
 };
 
+export const timestampToTimeString = (
+  timestamp: bigint,
+  format = 'YYYY-MM-DD HH:mm:ss',
+) => {
+  const date = new Date(Number(timestamp) / 1000000);
+  return dayjs(date).format(format);
+};
+
 export const buildObjectFromArray = <T>(
   list: Array<T>,
   targetKey: number | string,
@@ -1041,6 +1049,7 @@ export const removeDB = (targetFolder: string): Promise<void> => {
 
 export const getProcessIdByKfLocation = (
   kfLocation: KungfuApi.KfLocation,
+  mode?: string,
 ): string => {
   switch (kfLocation.category) {
     case 'md':
@@ -1048,9 +1057,13 @@ export const getProcessIdByKfLocation = (
     case 'strategy':
     case 'operator':
       if (kfLocation.group === 'default') {
-        return `${kfLocation.category}_${kfLocation.name}`;
+        return mode
+          ? `${kfLocation.category}_${kfLocation.name}-${mode}`
+          : `${kfLocation.category}_${kfLocation.name}`;
       } else {
-        return `${kfLocation.category}_${kfLocation.group}_${kfLocation.name}`;
+        return mode
+          ? `${kfLocation.category}_${kfLocation.group}_${kfLocation.name}-${mode}`
+          : `${kfLocation.category}_${kfLocation.group}_${kfLocation.name}`;
       }
     case 'system':
       return kfLocation.name;
@@ -2656,4 +2669,22 @@ export function countDecimalPlaces(num: number) {
 export function roundToDecimalPlaces(num: number, precision: number) {
   const multiplier = Math.pow(10, precision);
   return Math.round(num * multiplier) / multiplier;
+}
+
+export function getHourMinuteSecond(delimiter = ':') {
+  const now = new Date();
+  const hour = now.getHours();
+  const minute = now.getMinutes();
+  const second = now.getSeconds();
+  return `${hour}${delimiter}${minute}${delimiter}${second}`;
+}
+
+export function getYearMonthDay(delimiter = '-') {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1;
+  const day = now.getDate();
+  const monthStr = month < 10 ? `0${month}` : `${month}`;
+  const dayStr = day < 10 ? `0${day}` : `${day}`;
+  return `${year}${delimiter}${monthStr}${delimiter}${dayStr}`;
 }

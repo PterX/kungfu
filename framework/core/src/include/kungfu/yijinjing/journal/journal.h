@@ -88,7 +88,7 @@ private:
   frame_ptr frame_;
   uint64_t page_frame_nb_;
   bool replica_{false};
-  longfist::enums::Priority priority_;
+  const longfist::enums::Priority priority_;
 
   void load_page(int page_id);
 
@@ -152,15 +152,15 @@ public:
 
   bool release_page();
 
+  static uint32_t find_page_size(const data::location_ptr &location, uint32_t dest_id);
+
 private:
   void sort_without_buffer();
 
   void build_buffer();
 
   struct later {
-    bool operator()(journal *const lhs, journal *const rhs) const {
-      return lhs->current_frame()->gen_time() > rhs->current_frame()->gen_time();
-    };
+    bool operator()(const journal *const lhs, const journal *const rhs) const;
   };
 
   const bool lazy_;
@@ -173,8 +173,6 @@ private:
   std::vector<journal *> no_data_journals_buffer_{};
   std::priority_queue<journal *, std::vector<journal *>, later> has_data_journals_heap_{};
   std::recursive_mutex mtx_{};
-
-  static uint32_t find_page_size(const data::location_ptr &location, uint32_t dest_id);
 };
 
 class writer {

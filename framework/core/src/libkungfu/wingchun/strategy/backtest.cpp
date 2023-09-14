@@ -63,7 +63,7 @@ void BacktestContext::on_start() {
          add_order_id(*matcher_, order_action.order_id, event->source(), event->dest());
          matcher_->on_order_action(order_action));
   events_ | is(OrderActionError::tag) | $$(remove_order_id(*matcher_, event->data<OrderActionError>().order_id));
-  events_ | $$(on_timer_check());
+  events_ | $$(on_timer_check(); lease_expired_check(););
 }
 
 bool BacktestContext::is_started() const { return true; }
@@ -72,16 +72,32 @@ void BacktestContext::prepare(const event_ptr &event) {}
 
 int64_t BacktestContext::now() const { return app_.now(); }
 
-void BacktestContext::add_timer(int64_t nanotime, const std::function<void(event_ptr)> &callback) {
-  pre_timer_callbacks_.emplace(nanotime, callback);
+int32_t BacktestContext::add_timer(int64_t nanotime, const std::function<void(event_ptr)> &callback) {
+  const int32_t timer_id = timer_usage_count_++;
+  pre_timer_callbacks_.emplace(nanotime, TimerTask{timer_id, callback});
+  return timer_id;
 }
 
-void BacktestContext::add_time_interval(int64_t duration, const std::function<void(event_ptr)> &callback) {
-  auto timer_callback = [this, callback, duration](event_ptr event) {
+int32_t BacktestContext::add_time_interval(int64_t duration, const std::function<void(event_ptr)> &callback) {
+  const int32_t timer_id = timer_usage_count_++;
+  return add_timer_interval_helper(duration, timer_id, callback);
+}
+
+int32_t BacktestContext::add_timer_interval_helper(int64_t duration, int32_t timer_id,
+                                                   const std::function<void(event_ptr)> &callback) {
+  auto timer_callback = [this, callback, duration, timer_id](event_ptr event) {
     callback(event);
-    this->add_time_interval(duration, callback);
+    this->add_timer_interval_helper(duration, timer_id, callback);
   };
-  pre_timer_callbacks_.emplace(now() + duration, timer_callback);
+  pre_timer_callbacks_.emplace(now() + duration, TimerTask{timer_id, timer_callback});
+  return timer_id;
+}
+
+void BacktestContext::clear_timer(int32_t timer_id) {
+  std::erase_if(pre_timer_callbacks_,
+                [timer_id](const auto &timer_task) { return timer_task.second.timer_id == timer_id; });
+  std::erase_if(timer_callbacks_,
+                [timer_id](const auto &timer_task) { return timer_task.second.timer_id == timer_id; });
 }
 
 void BacktestContext::on_timer_check() {
@@ -98,7 +114,7 @@ void BacktestContext::on_timer_check() {
       time_event["data"] = nlohmann::json::object();
       // TODO use app_.make_nano_msg instead
       // Time time_event{};
-      it->second(std::make_shared<nanomsg_json>(time_event.dump()));
+      it->second.call_back(std::make_shared<nanomsg_json>(time_event.dump()));
       it = timer_callbacks_.erase(it);
     } else {
       return;
@@ -111,14 +127,33 @@ void BacktestContext::add_account(const std::string &source, const std::string &
   add_location(app_, td_location);
 }
 
+void BacktestContext::lease_expired_check() {
+  int64_t now_time = now();
+  for (auto it = lease_locations_.begin(); it != lease_locations_.end();) {
+    if (it->first < now_time) {
+      for (const auto &expired_location : it->second) {
+        SPDLOG_TRACE("sliced location expired, locator={}, location={} disjoining.",
+                     expired_location->locator->get_root(), expired_location->uname);
+        app_.get_reader()->disjoin(expired_location, location::PUBLIC);
+      }
+      it = lease_locations_.erase(it);
+    } else {
+      break;
+    }
+  }
+}
+
 void BacktestContext::subscribe(const std::string &source, const std::vector<std::string> &instrument_ids,
                                 const std::string &exchange_id) {
   for (auto data_type : {Quote::tag, Tree::tag, Entrust::tag, Transaction::tag}) {
     for (const auto &instrument_id : instrument_ids) {
       int64_t slice_begin_time = app_.now();
+      int64_t slice_end_time{INT64_MAX};
       do {
         auto md_location = from_indexer_->find_md_slice_location(slice_begin_time, source, source, instrument_id,
                                                                  exchange_id, data_type);
+        slice_end_time = from_indexer_->get_md_slice_end_time(slice_begin_time, source, source, instrument_id,
+                                                              exchange_id, data_type);
         if (md_location->locator->list_page_id(md_location, location::PUBLIC).empty()) {
           SPDLOG_WARN("md public journal in locator={}, location={} not exists", md_location->locator->get_root(),
                       md_location->uname);
@@ -129,9 +164,8 @@ void BacktestContext::subscribe(const std::string &source, const std::vector<std
         add_location(app_, md_location);
         app_.get_reader()->join(md_location, location::PUBLIC, slice_begin_time);
         broker_client_.subscribe(md_location, exchange_id, instrument_id);
-      } while ((slice_begin_time = 1 + from_indexer_->get_md_slice_end_time(slice_begin_time, source, source,
-                                                                            instrument_id, exchange_id, data_type)) <
-               app_.get_end_time());
+        lease_locations_[slice_end_time].push_back(std::move(md_location));
+      } while ((slice_begin_time = 1 + slice_end_time) < app_.get_end_time());
     }
   }
 }
@@ -143,8 +177,10 @@ void BacktestContext::subscribe_all(const std::string &source, uint8_t market_ty
 
 void BacktestContext::subscribe_operator(const std::string &group, const std::string &name) {
   int64_t slice_begin_time = app_.now();
+  int64_t slice_end_time{INT64_MAX};
   do {
     auto op_location = from_indexer_->find_operator_slice_location(slice_begin_time, group, name);
+    slice_end_time = from_indexer_->get_operator_slice_end_time(slice_begin_time, group, name);
     if (op_location->locator->list_page_id(op_location, location::PUBLIC).empty()) {
       SPDLOG_WARN("operator public journal in locator={}, location={} not exists", op_location->locator->get_root(),
                   op_location->uname);
@@ -155,8 +191,8 @@ void BacktestContext::subscribe_operator(const std::string &group, const std::st
     add_location(app_, op_location);
     app_.get_reader()->join(op_location, location::PUBLIC, slice_begin_time);
     broker_client_.enroll_operator(op_location);
-  } while ((slice_begin_time = 1 + from_indexer_->get_operator_slice_end_time(slice_begin_time, group, name)) <
-           app_.get_end_time());
+    lease_locations_[slice_end_time].push_back(std::move(op_location));
+  } while ((slice_begin_time = 1 + slice_end_time) < app_.get_end_time());
 }
 
 uint64_t BacktestContext::insert_block_message(const std::string &source, const std::string &account,

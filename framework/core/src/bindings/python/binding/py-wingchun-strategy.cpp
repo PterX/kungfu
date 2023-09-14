@@ -172,6 +172,7 @@ void bind_strategy(pybind11::module &m) {
       .def("is_started", &strategy::Context::is_started)
       .def("add_timer", &strategy::Context::add_timer)
       .def("add_time_interval", &strategy::Context::add_time_interval)
+      .def("clear_timer", &strategy::Context::clear_timer)
       .def("add_account", &strategy::Context::add_account)
       .def("subscribe", &strategy::Context::subscribe)
       .def("subscribe_all", &strategy::Context::subscribe_all, py::arg("source"),

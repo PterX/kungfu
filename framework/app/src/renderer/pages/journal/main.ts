@@ -27,6 +27,7 @@ import {
   Menu,
   Tag,
   Table,
+  TimePicker,
 } from 'ant-design-vue';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import globalBus from '@kungfu-trader/kungfu-js-api/utils/globalBus';
@@ -54,6 +55,7 @@ app
   .use(Slider)
   .use(Tag)
   .use(Table)
+  .use(TimePicker)
   .use(VueVirtualScroller);
 
 app.use(VueI18n);

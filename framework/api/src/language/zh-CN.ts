@@ -66,6 +66,7 @@ export default {
   open_window: '正在打开窗口',
   open_code_editor: '正在打开代码编辑器',
   open_journal_dashboard: '正在打开 journal 面板',
+  open_replay_dashboard: '正在打开回放面板',
   open_trading_task_view: '正在打开交易任务视图',
   add_board: '添加面板',
   select_board: '请选择要添加的面板',
@@ -549,6 +550,11 @@ export default {
     strategy_tip: '需保证该策略 ID 唯一',
 
     add_strategy: '添加',
+    replay: '回放',
+    start_time: '开始时间',
+    end_time: '结束时间',
+    log_level: '日志级别',
+    no_sessions_for_replay_warn: '该进程暂时未运行过, 无法回放',
   },
 
   operatorConfig: {
@@ -699,6 +705,10 @@ export default {
 
     selete_msg_type: '过滤消息类型',
     empty_export_data: '没有可导出的信息',
+
+    replay: '回放',
+
+    please_select_strategy_or_operator: '请选择策略或算子',
   },
 
   tradeConfig: {
@@ -902,6 +912,30 @@ export default {
 
   logview: {
     scroll_to_bottom: '滚动到底部',
+  },
+
+  replay: {
+    session: 'Session',
+    replay: '回放',
+    log_level: '日志级别',
+    begin_time: '开始时间',
+    end_time: '结束时间',
+    try_again: '重试',
+    stop_replay: '停止回放',
+    please_select_session: '请选择 Session',
+    please_select_log_level: '请选择日志级别',
+    stop_replay_warn_content: '关闭窗口将会停止回放, 是否仍然关闭窗口?',
+    process_has_not_been_started: '该进程暂时未运行过, 无法回放',
+    please_start_replay: '请先启动回放',
+    only_operator_or_strategy_can_be_replayed: '只有算子或策略才能回放',
+    tips_title: '* 注:',
+    replay_tips1_part1: '回放依赖数据时间, ',
+    replay_tips1_part2: '请勿在策略内使用物理时间相关代码来表达"now"',
+    replay_tips1_part3:
+      '(如 python 的 time 或者 yjj.now_in_nano), 建议使用策略提供的context.now 方法, 否则回放无法按照预期执行.',
+    replay_tips2_part1: '回放仅可增加 log, ',
+    replay_tips2_part2: '请勿修改策略逻辑',
+    replay_tips2_part3: ', 否则会由于输出数据与实际不符而报错.',
   },
 
   master_interrupt: '主控进程 master 中断',

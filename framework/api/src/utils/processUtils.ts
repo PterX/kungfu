@@ -6,6 +6,7 @@ import { Proc, ProcessDescription, StartOptions } from 'pm2';
 import pm2 from './pm2Custom';
 import { getUserLocale } from 'get-user-locale';
 import find from 'find-process';
+import { ensureFileSync } from 'fs-extra';
 
 import {
   kfLogger,
@@ -29,6 +30,7 @@ import {
   buildRuntimeChildDirByType,
 } from '../config/pathConfig';
 import { getKfGlobalSettingsValue } from '../config/globalSettings';
+import { KfModeTypes } from '../typings/enums';
 import { Observable } from 'rxjs';
 import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
@@ -122,7 +124,6 @@ export const forceKill = (pids: number[]) => {
     kfLogger.warn((<Error>err).message);
   });
 };
-
 export const forceKillByKeyWords = (
   tasks: Array<string | RegExp>,
   strict = true,
@@ -522,6 +523,9 @@ export const startProcess = async (
       { category: '*', group: '*', name: '*' } as KungfuApi.DerivedKfLocation,
       options,
     );
+
+  const filePath = buildProcessLogPath(options.name);
+  ensureFileSync(filePath);
   const optionsResolved: Pm2StartOptions = {
     name: options.name,
     args: options.args, //有问题吗？
@@ -1057,7 +1061,10 @@ export const startStrategyOperatorByLocalPython = async (
   name: string,
   filePath: string,
   pythonPath: string,
+  mode: KfModeTypes = 'live',
+  replayConfig?: KungfuApi.ReplayConfigOrigin,
 ): Promise<Proc | void> => {
+  const isReplay = mode === 'replay';
   const baseArgs = [
     'run',
     '-c',
@@ -1083,6 +1090,29 @@ export const startStrategyOperatorByLocalPython = async (
     .slice(fullPythonPathList.length - 1)
     .join('/');
 
+  if (isReplay && replayConfig) {
+    const args = `-m kungfu ${replayConfig.log_level} run -c ${replayConfig.category} -g ${replayConfig.group} -n ${replayConfig.session_name} -m ${mode} ${replayConfig.file_path} -b '${replayConfig.begin_time}' -e '${replayConfig.end_time}'`;
+    const name = getProcessIdByKfLocation(
+      {
+        category: replayConfig.category,
+        group: replayConfig.group,
+        name: replayConfig.session_name,
+        mode: mode,
+      },
+      mode,
+    );
+    const cwd = `${dealSpaceInPath(pythonFolder)}`;
+    return startProcess({
+      name: name,
+      args,
+      cwd: cwd,
+      script: `${pythonFile}`,
+      force: true,
+    }).catch((err) => {
+      kfLogger.error(err);
+    });
+  }
+
   return startProcess({
     name: `${category}_${name}`,
     args,
@@ -1099,7 +1129,10 @@ export const startStrategyOperator = async (
   category: 'strategy' | 'operator',
   id: string,
   filePath: string,
+  mode: KfModeTypes = 'live',
+  replayConfig?: KungfuApi.ReplayConfigOrigin,
 ): Promise<Proc | void> => {
+  const isReplay = mode === 'replay';
   filePath = dealSpaceInPath(filePath);
   const globalSetting = getKfGlobalSettingsValue();
   const ifLocalPython = globalSetting?.strategy?.python ?? false;
@@ -1115,6 +1148,37 @@ export const startStrategyOperator = async (
     }
   } catch (err) {
     kfLogger.warn(err);
+  }
+
+  if (isReplay && replayConfig) {
+    const processId = getProcessIdByKfLocation(
+      {
+        category: replayConfig.category,
+        group: replayConfig.group,
+        name: replayConfig.session_name,
+        mode: mode,
+      },
+      'replay',
+    );
+    if (ifLocalPython && replayConfig.file_path.endsWith('.py')) {
+      return startStrategyOperatorByLocalPython(
+        category,
+        id,
+        filePath,
+        pythonPath,
+        mode,
+        replayConfig,
+      );
+    } else {
+      const args = `${replayConfig.log_level} run -c ${replayConfig.category} -g ${replayConfig.group} -n ${replayConfig.session_name} -m replay ${replayConfig.file_path} -b '${replayConfig.begin_time}' -e '${replayConfig.end_time}'`;
+      return startProcess({
+        name: processId,
+        args,
+        force: true,
+      }).catch((err) => {
+        kfLogger.error(err);
+      });
+    }
   }
 
   if (ifLocalPython && filePath.endsWith('.py')) {

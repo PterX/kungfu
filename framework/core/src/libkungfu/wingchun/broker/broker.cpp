@@ -77,6 +77,12 @@ writer_ptr BrokerService::get_writer(uint32_t dest_id) const { return vendor_.ge
 
 bool BrokerService::has_writer(uint32_t dest_id) const { return vendor_.has_writer(dest_id); }
 
+yijinjing::journal::writer_ptr BrokerService::get_band_writer(uint32_t dest_id) const {
+  return vendor_.get_band_writer(dest_id);
+}
+
+bool BrokerService::has_band_writer(uint32_t dest_id) const { return vendor_.has_band_writer(dest_id); }
+
 const cache::bank &BrokerService::get_state_bank() const { return vendor_.get_state_bank(); }
 
 [[maybe_unused]] bool BrokerService::check_if_stored_instruments(const std::string &trading_day) const {
@@ -108,13 +114,40 @@ const cache::bank &BrokerService::get_state_bank() const { return vendor_.get_st
   SPDLOG_INFO("STORED_INSTRUMENT_TRADING_DAY {}", trading_day);
 }
 
-void BrokerService::add_timer(int64_t nanotime, const std::function<void(const event_ptr &)> &callback) {
-  vendor_.add_timer(nanotime, callback);
+[[maybe_unused]] bool BrokerService::check_if_stored_baskets(const std::string &trading_day) const {
+  SPDLOG_INFO("CHECK_IF_STORED_BASKETS trading_day {}", trading_day);
+  auto &time_key_value_map = get_state_bank()[boost::hana::type_c<TimeKeyValue>];
+  for (const auto &pair : time_key_value_map) {
+    const TimeKeyValue &timeKeyValue = pair.second.data;
+    if (timeKeyValue.key == "basket_stored_trading_day") {
+      if (timeKeyValue.value == trading_day) {
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
-void BrokerService::add_time_interval(int64_t nanotime, const std::function<void(const event_ptr &)> &callback) {
-  vendor_.add_time_interval(nanotime, callback);
+[[maybe_unused]] void BrokerService::record_stored_baskets_trading_day(const std::string &trading_day) {
+  auto writer = get_writer(location::PUBLIC);
+  TimeKeyValue basket_stored_trading_day_tkv = {};
+  basket_stored_trading_day_tkv.update_time = now();
+  basket_stored_trading_day_tkv.key = "basket_stored_trading_day";
+  basket_stored_trading_day_tkv.value = trading_day;
+  writer->write(now(), basket_stored_trading_day_tkv);
+
+  SPDLOG_INFO("STORED_BASKET_TRADING_DAY {}", trading_day);
 }
+
+int32_t BrokerService::add_timer(int64_t nanotime, const std::function<void(const event_ptr &)> &callback) {
+  return vendor_.add_timer(nanotime, callback);
+}
+
+int32_t BrokerService::add_time_interval(int64_t nanotime, const std::function<void(const event_ptr &)> &callback) {
+  return vendor_.add_time_interval(nanotime, callback);
+}
+
+void BrokerService::clear_timer(int32_t timer_id) { vendor_.clear_timer(timer_id); }
 
 void BrokerService::update_broker_state(BrokerState state) {
   state_ = state;
@@ -126,5 +159,7 @@ void BrokerService::update_broker_state(BrokerState state) {
 }
 
 yijinjing::io_device_ptr BrokerService::get_io_device() const { return get_vendor().get_io_device(); }
+
+yijinjing::journal::writer_ptr &BrokerService::get_thread_writer() { return vendor_.get_thread_writer(); }
 
 } // namespace kungfu::wingchun::broker

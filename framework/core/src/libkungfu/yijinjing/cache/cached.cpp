@@ -129,7 +129,7 @@ void cached::restore(const location_ptr &location, const journal::writer_ptr &wr
   restore_states(location, writer);
 }
 
-void cached::clear_cache_shift(const location_ptr &location) {
+void cached::reset_cache_shift(const location_ptr &location) {
   if (bypass_cached_) {
     return;
   }

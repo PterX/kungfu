@@ -199,6 +199,8 @@ declare namespace KungfuApi {
     search?: KfConfigItemSearch;
     importMode?: 'reset' | 'add';
     disableDateRange?: number; // 时间范围选择器不可选的日期范围
+    abledTimeRange?: [string, string]; // 时间范围选择器不可选的时间范围
+
     maxlength?: number;
 
     // ---- some ui releated ----;
@@ -424,8 +426,6 @@ declare namespace KungfuApi {
   export interface KfLogData {
     id: number;
     message: string;
-    messageOrigin: string;
-    messageForSearch: string;
   }
 
   export class KfFixedList<T> {
@@ -1147,6 +1147,20 @@ declare namespace KungfuApi {
     state: StrategyStateStatusTypes;
   }
 
+  export interface ReplayConfig extends ReplayConfigOrigin {
+    session_info: string;
+  }
+
+  export interface ReplayConfigOrigin {
+    group: string;
+    category: string;
+    begin_time: string;
+    end_time: string;
+    log_level: string;
+    session_name: string;
+    file_path: string;
+  }
+
   export interface Watcher {
     appStates: Record<string, BrokerStateStatusEnum>;
     strategyStates: Record<string, StrategyStateDataOrigin>;
@@ -1451,6 +1465,9 @@ declare module '@kungfu-trader/kungfu-core' {
 declare namespace Code {
   import { Stats } from 'fs-extra';
   import { SpaceTabSettingEnum, SpaceSizeSettingEnum } from './enums';
+  import { session } from 'electron';
+  import path from 'path';
+  import Replay from '@kungfu-trader/kungfu-app/src/renderer/pages/replay/Replay.vue';
 
   export interface CodeInfo {
     code_id: string;

@@ -122,6 +122,7 @@ void Trader::enable_positions_sync() { sync_position_ = true; }
 void Trader::on_asset_sync() {
   if (state_ == BrokerState::Ready) {
     req_account();
+    disable_sync_account();
   }
 }
 
@@ -138,7 +139,7 @@ void Trader::recover() {
 }
 
 void Trader::recover_from_journal() {
-  tracer trc(get_home(), false, true, time::today_start(), time::now_in_nano());
+  tracer trc(get_home(), false, true, time::trading_day_start(), time::now_in_nano());
   SPDLOG_DEBUG("before tracer read");
   int64_t count = 0;
   auto &state_bank = const_cast<cache::bank &>(get_vendor().get_state_bank());
@@ -204,7 +205,7 @@ void Trader::deal_write_frame() {
 void Trader::deal_read_frame() {
   // write a Lost Order to journal when read an OrderInput whose order_id not in orders_
   SPDLOG_DEBUG("before state_bank read");
-  int64_t count = 0;
+  uint64_t count = 0;
   auto &state_bank = get_vendor().get_state_bank();
 
   auto &order_input_state_map = state_bank[boost::hana::type_c<OrderInput>];
@@ -237,12 +238,9 @@ uint32_t Trader::get_risk_uid() const { return risk_uid_; }
 
 [[maybe_unused]] void Trader::disable_recover() { disable_recover_ = true; }
 
-yijinjing::journal::writer_ptr &Trader::get_thread_writer() {
-  return dynamic_cast<TraderVendor &>(get_vendor()).get_thread_writer();
-}
-
 void Trader::try_req_account() {
-  if (is_sync_account()) {
+  if (is_sync_account() and BrokerState::Ready == state_) {
+    sync_asset_ = false; // write Asset to PUBLIC every 5 seconds
     req_account();
     disable_sync_account();
   }

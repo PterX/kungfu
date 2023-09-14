@@ -63,53 +63,57 @@ export const SessionStatus: Record<
   },
 };
 
-export const getFrameColumns = (): KfTradingDataTableHeaderConfig[] => [
+export const getFrameColumns = (
+  searchInUsing: boolean,
+): KfTradingDataTableHeaderConfig[] => [
   {
     type: 'string',
     name: t('journalConfig.gen_time'),
     dataIndex: 'genTimeResolved',
-    width: 160,
-    overflow: 'ellipsis',
+    width: 128,
+    textOverflow: 'ellipsis',
     sorter: buildSorter('genTime'),
   },
   {
     type: 'string',
     name: `${t('journalConfig.source')} → ${t('journalConfig.dest')}`,
     dataIndex: 'sourceToDest',
-    overflow: 'ellipsis',
+    textOverflow: 'ellipsis',
     sorter: buildStrSorter('sourceToDest'),
-    width: 280,
+    width: 216,
   },
   {
     type: 'string',
     name: t('journalConfig.frame_id'),
     dataIndex: 'frameId',
     align: 'right',
-    overflow: 'ellipsis',
+    textOverflow: 'ellipsis',
     sorter: buildStrSorter('frameId'),
 
-    width: 70,
+    width: 50,
   },
   {
     type: 'string',
     name: t('journalConfig.page_id'),
     dataIndex: 'pageId',
     align: 'right',
-    overflow: 'ellipsis',
+    textOverflow: 'ellipsis',
     sorter: buildStrSorter('pageId'),
-    width: 50,
+    width: 40,
   },
   {
     type: 'string',
     name: t('journalConfig.msg_type'),
     dataIndex: 'msgTypeName',
-    width: 190,
+    align: 'center',
+    width: 180,
   },
   {
     type: 'string',
     name: t('journalConfig.msg_details'),
     dataIndex: 'dataAsString',
-    overflow: 'ellipsis',
+    textOverflow: searchInUsing ? 'clip' : 'ellipsis',
+    wrap: searchInUsing,
     flex: 1,
   },
 ];

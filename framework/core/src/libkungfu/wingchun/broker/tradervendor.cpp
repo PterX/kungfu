@@ -108,7 +108,7 @@ void TraderVendor::react() {
 void TraderVendor::on_start() {
   BrokerVendor::on_start();
   service_->pre_start();
-  
+
   events_ | is(OrderAction::tag) | $$(order_service_.on_order_action(event));
   events_ | is(BlockMessage::tag) | $$(order_service_.on_block_message(event->data<BlockMessage>()));
   events_ | is(BatchOrderBegin::tag, BatchOrderEnd::tag) | $$(order_service_.on_batch_order_tag(event));

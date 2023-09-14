@@ -464,6 +464,9 @@ def load_report(ctx, path):
         elif path.endswith(".so") or path.endswith(".pyd"):
             sys.path.append(str(Path(path).parent))
             lib_name = Path(path).stem.split(".")[0]
+            dirname = os.path.dirname(path)
+            site.setup(dirname)
+            sys.path.insert(0, dirname)
             try:
                 module = importlib.import_module(lib_name)
                 ctx.logger.debug(f"import as cpp {lib_name} success")

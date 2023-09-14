@@ -240,11 +240,8 @@ uint32_t Trader::get_risk_uid() const { return risk_uid_; }
 
 void Trader::try_req_account() {
   if (is_sync_account() and BrokerState::Ready == state_) {
+    sync_asset_ = false; // write Asset to PUBLIC every 5 seconds
     req_account();
-    auto writer = get_writer(location::SYNC);
-    PositionEnd &end = writer->open_data<PositionEnd>(0);
-    end.holder_uid = get_home_uid();
-    writer->close_data();
     disable_sync_account();
   }
 }

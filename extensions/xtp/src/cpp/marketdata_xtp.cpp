@@ -9,8 +9,6 @@
 using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
 
-#undef SIGNAL_LOG
-
 namespace kungfu::wingchun::xtp {
 struct MDConfiguration {
   int client_id;

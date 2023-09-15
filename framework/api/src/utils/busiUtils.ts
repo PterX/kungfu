@@ -87,6 +87,7 @@ import {
   startStrategyOperator,
   startTd,
   listProcessStatus,
+  startTask,
 } from './processUtils';
 import { Proc } from 'pm2';
 import {
@@ -102,7 +103,6 @@ import { getKfGlobalSettingsValue } from '../config/globalSettings';
 import { Currency } from '../config/tradingConfig';
 const { t } = VueI18n.global;
 import { Observable } from 'rxjs';
-import { startTask } from './processUtils';
 
 interface SourceAccountId {
   source: string;

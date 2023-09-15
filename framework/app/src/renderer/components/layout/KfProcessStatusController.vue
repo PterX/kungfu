@@ -5,6 +5,7 @@ import Icon, {
   BankOutlined,
   HistoryOutlined,
 } from '@ant-design/icons-vue';
+import { storeToRefs } from 'pinia';
 import { notification } from 'ant-design-vue';
 
 import KfProcessStatus from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfProcessStatus.vue';
@@ -39,10 +40,13 @@ import {
   useProcessStatusDetailData,
   useReplay,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
+import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
 import { KfCategoryTypes } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 
 const { t } = VueI18n.global;
+
+const { testCase } = storeToRefs(useGlobalStore());
 
 const app = getCurrentInstance();
 const handleSwitchProcessStatus = handleSwitchProcessStatusGenerator();
@@ -312,9 +316,8 @@ onMounted(() => {
               <div class="actions kf-actions__warp">
                 <HistoryOutlined
                   v-if="
-                    config.group !== 'master' &&
-                    config.category !== 'md' &&
-                    !(config.category === 'system' && config.name === 'archive')
+                    testCase.replayEnabled[config.category] ||
+                    (config.category === 'system' && config.name === 'ledger')
                   "
                   style="font-size: 12px"
                   @click.stop="

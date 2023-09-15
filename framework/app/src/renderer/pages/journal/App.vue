@@ -170,6 +170,7 @@ import { useJournalStore } from './store/journalStore';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { getAllKfConfigOriginData } from '@kungfu-trader/kungfu-js-api/actions';
 import { ipcEmit } from '@kungfu-trader/kungfu-app/src/renderer/ipcMsg/emitter';
+import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
 
 import { useReplay } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import KfDashboard from '../../components/public/KfDashboard.vue';
@@ -179,7 +180,7 @@ import Replay from '@kungfu-trader/kungfu-app/src/renderer/pages/replay/Replay.v
 import KfReplaySettingModal from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfReplaySettingModal.vue';
 
 const { t } = VueI18n.global;
-
+const { testCase } = storeToRefs(useGlobalStore());
 const replayRef = ref();
 
 let currentWindow: Electron.BrowserWindow | null = null;
@@ -208,14 +209,13 @@ const columns = getSessionColumns();
 const operator = ref<KungfuApi.KfConfig[]>([]);
 const strategy = ref<KungfuApi.KfConfig[]>([]);
 const td = ref<KungfuApi.KfConfig[]>([]);
-const replayList = ['strategy', 'operator', 'td'];
 const replayPramas = computed(() => {
   if (
-    !currentSession.value ||
     !(
-      replayList.includes(currentSession.value.category) ||
-      (currentSession.value.category === 'system' &&
-        currentSession.value.name === 'ledger')
+      currentSession.value &&
+      (testCase.value.replayEnabled[currentSession.value.category] ||
+        (currentSession.value.category === 'system' &&
+          currentSession.value.name === 'ledger'))
     )
   )
     return {};
@@ -262,7 +262,7 @@ const replayPramas = computed(() => {
 const isShowReplay = computed(() => {
   return (
     currentSession.value &&
-    (replayList.includes(currentSession.value.category) ||
+    (testCase.value.replayEnabled[currentSession.value.category] ||
       (currentSession.value.category === 'system' &&
         currentSession.value.name === 'ledger'))
   );
@@ -302,11 +302,10 @@ const menus = computed(() => [
 const isCurrentMenuItem = (key: 'event' | 'visual' | 'replay') => {
   if (currentMenuList.value.includes(key) && key === 'replay') {
     return (
-      replayList.includes(
-        currentSession.value ? currentSession.value.category : '',
-      ) ||
-      (currentSession.value?.category === 'system' &&
-        currentSession.value?.name === 'ledger')
+      currentSession.value &&
+      (testCase.value.replayEnabled[currentSession.value.category] ||
+        (currentSession.value.category === 'system' &&
+          currentSession.value.name === 'ledger'))
     );
   } else {
     return currentMenuList.value.includes(key);

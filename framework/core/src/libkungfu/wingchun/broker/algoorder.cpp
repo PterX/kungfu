@@ -19,6 +19,21 @@ void AlgoOrderService::on_algo_order_input(const event_ptr &event) {
     state<AlgoOrderInput> algo_order_input_state(event->source(), event->dest(), event->gen_time(), algo_order_input);
     local_algo_order_inputs_.insert_or_assign(algo_order_input.order_id, algo_order_input_state);
   }
+
+  if (algo_order_input.is_local and algo_order_input.origin_order_id != UINT64_ZERO ){
+    if (local_algo_orders_.find(algo_order_input.origin_order_id) == local_algo_orders_.end()) {
+      SPDLOG_ERROR("failed to find local algo order, origin_order_id: {}", algo_order_input.origin_order_id);
+      return;
+    }
+
+    auto &target_algo_order_state = local_algo_orders_.at(algo_order_input.origin_order_id);
+    auto &target_algo_order = target_algo_order_state.data;
+
+    algo_order_from_input(algo_order_input, target_algo_order);
+
+    return;
+  }
+
   get_service().insert_algo_order(event);
 }
 
@@ -150,6 +165,7 @@ int64_t AlgoOrderService::get_volume_traded(uint64_t algo_order_id) {
 
   return traded_volume;
 }
+
 
 void AlgoOrderService::clean_algo_orders(bool bypass_recover) {
   std::for_each(algo_orders_.begin(), algo_orders_.end(), [&](auto &pair) {

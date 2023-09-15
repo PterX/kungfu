@@ -306,9 +306,19 @@ uint64_t BacktestContext::insert_algo_order(const std::string &instrument_id, co
                                             const std::string &source, const std::string &account, int64_t begin_time,
                                             int64_t end_time, int64_t volume, PriceType type, Side side, Offset offset,
                                             const std::string &algo_type_id, const std::string &algo_id,
-                                            const std::string &args, bool is_local) {
+                                            const std::string &args, bool is_local, uint32_t basket_uid) {
   return {};
 }
+
+
+uint64_t BacktestContext::update_algo_order(uint64_t origin_order_id, const std::string &instrument_id, const std::string &exchange_id,
+                                            const std::string &source, const std::string &account, int64_t begin_time,
+                                            int64_t end_time, int64_t volume, PriceType type, Side side, Offset offset,
+                                            const std::string &algo_type_id, const std::string &algo_id,
+                                            const std::string &args, bool is_local, uint32_t basket_uid) {
+  return {};
+}
+
 
 uint64_t BacktestContext::cancel_order(uint64_t order_id, OrderActionFlag action_flag) {
   auto account_uid = app_.get_home_uid();

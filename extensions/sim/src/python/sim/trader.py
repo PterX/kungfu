@@ -48,6 +48,8 @@ class TraderSim(wc.Trader):
         self.ctx.orders = {}
         self.ctx.triggers = {}
 
+    
+
         for k, v in self.orders.items():
             self.ctx.orders[k] = v.data
 

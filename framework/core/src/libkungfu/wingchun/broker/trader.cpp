@@ -246,5 +246,18 @@ void Trader::try_req_account() {
   }
 }
 
-void Trader::on_risk_setting() {}
+void Trader::on_risk_setting() {
+  const std::string msg = get_risk_setting();
+  SPDLOG_DEBUG("RiskSetting: {}", msg);
+  auto risk_setting = RiskSetting(msg.c_str(), msg.length());
+  auto risk_check = risk_setting.risk_check;
+  if (risk_check) {
+    // let process crash if value is not a json
+    auto config = nlohmann::json::parse(risk_setting.value);
+    const auto risk_name = config.value<std::string>("risk_name", "");
+    if (not risk_name.empty()) {
+      risk_uid_ = location(get_home()->mode, category::SYSTEM, "service", risk_name, get_home()->locator).location_uid;
+    }
+  }
+}
 } // namespace kungfu::wingchun::broker

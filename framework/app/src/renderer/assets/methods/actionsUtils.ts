@@ -12,6 +12,7 @@ import {
 } from '@kungfu-trader/kungfu-js-api/kungfu';
 
 import { setKfConfig } from '@kungfu-trader/kungfu-js-api/kungfu/store';
+import { KfCategoryNameMap } from '@kungfu-trader/kungfu-js-api/config/systemConfig';
 import {
   BrokerStateStatusTypes,
   DirectionEnum,
@@ -2132,10 +2133,6 @@ export const useReplay = (): {
     record: KungfuApi.KfConfig,
     curSession?: KungfuApi.Session,
   ) => {
-    if (record.category !== 'operator' && record.category !== 'strategy') {
-      error(t('replay.only_operator_or_strategy_can_be_replayed'));
-      return;
-    }
     let isOperator = false;
     let filePath = '';
     if (record.category === 'operator' && record.group !== 'default') {
@@ -2166,7 +2163,11 @@ export const useReplay = (): {
     } else {
       for (let i = sessions.length - 1; i >= 0; i--) {
         const item = sessions[i];
-        if (item.location_uid === record.location_uid) {
+        if (
+          KfCategoryNameMap[item.category] === record.category &&
+          item.group === record.group &&
+          item.name === record.name
+        ) {
           currentSession ||= item;
 
           const beginTimeStr = getNanoDateString(item.begin_time);

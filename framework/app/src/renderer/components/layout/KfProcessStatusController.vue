@@ -3,10 +3,12 @@ import Icon, {
   ClusterOutlined,
   FileTextOutlined,
   BankOutlined,
+  HistoryOutlined,
 } from '@ant-design/icons-vue';
 import { notification } from 'ant-design-vue';
 
 import KfProcessStatus from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfProcessStatus.vue';
+import KfReplaySettingModal from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfReplaySettingModal.vue';
 
 import {
   computed,
@@ -35,6 +37,7 @@ import {
   useAllKfConfigData,
   useExtConfigsRelated,
   useProcessStatusDetailData,
+  useReplay,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import { KfCategoryTypes } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
@@ -58,6 +61,14 @@ const {
   processStatusDetailData,
   getProcessStatusName,
 } = useProcessStatusDetailData();
+
+const {
+  replayConfig,
+  setReplayModalVisible,
+  sessionOptions,
+  handleOpenReplayConfirmView,
+  handleReplayModal,
+} = useReplay();
 const { tdExtTypeMap, mdExtTypeMap } = useExtConfigsRelated();
 
 let isClosingWindow = false;
@@ -299,6 +310,17 @@ onMounted(() => {
                 }}
               </div>
               <div class="actions kf-actions__warp">
+                <HistoryOutlined
+                  v-if="
+                    config.group !== 'master' &&
+                    config.category !== 'md' &&
+                    !(config.category === 'system' && config.name === 'archive')
+                  "
+                  style="font-size: 12px"
+                  @click.stop="
+                    handleOpenReplayConfirmView(config as KungfuApi.KfConfig)
+                  "
+                ></HistoryOutlined>
                 <BankOutlined
                   style="font-size: 12px"
                   @click.stop="handleOpenJournalView(config)"
@@ -313,6 +335,20 @@ onMounted(() => {
         </template>
       </div>
     </a-drawer>
+    <KfReplaySettingModal
+      v-if="setReplayModalVisible"
+      :width="520"
+      v-model:visible="setReplayModalVisible"
+      :session-options="sessionOptions"
+      :session-info="replayConfig.session_info"
+      :begin-time="replayConfig.begin_time.split(' ')[1]"
+      :end-time="
+        replayConfig.end_time ? replayConfig.end_time.split(' ')[1] : ''
+      "
+      :log-level="replayConfig.log_level"
+      @close="setReplayModalVisible = false"
+      @confirm="(event) => handleReplayModal(event)"
+    ></KfReplaySettingModal>
   </div>
 </template>
 
@@ -384,7 +420,9 @@ onMounted(() => {
       }
 
       .actions {
-        width: 60px;
+        display: flex;
+        justify-content: flex-end;
+        width: 90px;
       }
     }
   }

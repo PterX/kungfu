@@ -113,7 +113,7 @@
       </div>
     </div>
   </a-layout>
-  <ReplayForm
+  <KfReplaySettingModal
     v-if="setReplayModalVisible"
     :width="520"
     v-model:visible="setReplayModalVisible"
@@ -126,7 +126,7 @@
     :log-level="replayConfig.log_level"
     @close="setReplayModalVisible = false"
     @confirm="(event) => handleReplayModal(event, true)"
-  ></ReplayForm>
+  ></KfReplaySettingModal>
 </template>
 
 <script setup lang="ts">
@@ -148,7 +148,6 @@ import {
   removeLoadingMask,
   useDashboardBodySize,
   useTableSearchKeyword,
-  setHtmlTitle,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import {
   getYearMonthDay,
@@ -176,7 +175,7 @@ import KfDashboard from '../../components/public/KfDashboard.vue';
 
 import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
 import Replay from '@kungfu-trader/kungfu-app/src/renderer/pages/replay/Replay.vue';
-import ReplayForm from '@kungfu-trader/kungfu-app/src/components/modules/strategy/ReplayForm.vue';
+import KfReplaySettingModal from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfReplaySettingModal.vue';
 
 const { t } = VueI18n.global;
 
@@ -207,11 +206,16 @@ const { handleBodySizeChange, dashboardBodyHeight } = useDashboardBodySize();
 const columns = getSessionColumns();
 const operator = ref<KungfuApi.KfConfig[]>([]);
 const strategy = ref<KungfuApi.KfConfig[]>([]);
-const replayList = ['strategy', 'operator'];
+const td = ref<KungfuApi.KfConfig[]>([]);
+const replayList = ['strategy', 'operator', 'td'];
 const replayPramas = computed(() => {
   if (
     !currentSession.value ||
-    !replayList.includes(currentSession.value.category)
+    !(
+      replayList.includes(currentSession.value.category) ||
+      (currentSession.value.category === 'system' &&
+        currentSession.value.name === 'ledger')
+    )
   )
     return {};
   const { category, group, name } = currentSession.value;
@@ -278,9 +282,12 @@ const menus = [
 ];
 const isCurrentMenuItem = (key: 'event' | 'visual' | 'replay') => {
   if (currentMenuList.value.includes(key) && key === 'replay') {
-    setHtmlTitle(replayPramas.value.logPath);
-    return replayList.includes(
-      currentSession.value ? currentSession.value.category : '',
+    return (
+      replayList.includes(
+        currentSession.value ? currentSession.value.category : '',
+      ) ||
+      (currentSession.value?.category === 'system' &&
+        currentSession.value?.name === 'ledger')
     );
   } else {
     return currentMenuList.value.includes(key);
@@ -328,10 +335,15 @@ const customRow = (record: KungfuApi.SessionResolved) => {
 
 onMounted(async () => {
   currentWindow = getCurrentWindow();
-  const { operator: originOperator, strategy: originStategy } =
-    await getAllKfConfigOriginData();
+  const {
+    operator: originOperator,
+    strategy: originStategy,
+    td: originTd,
+  } = await getAllKfConfigOriginData();
   operator.value = originOperator;
   strategy.value = originStategy;
+  td.value = originTd;
+
   setSessions();
   removeLoadingMask();
   window.addEventListener('resize', () => {
@@ -415,7 +427,7 @@ const dealLocation = () => {
 
   if (currentSession.value?.category === 'operator') {
     if (operator.value.length === 0) {
-      messagePrompt().error(t('strategyConfig.operator_be_empty'));
+      messagePrompt().error(t('replay.process_has_not_been_started'));
       return;
     }
     for (let i = 0; i < operator.value.length; i++) {
@@ -428,7 +440,7 @@ const dealLocation = () => {
     }
   } else if (currentSession.value?.category === 'strategy') {
     if (strategy.value.length === 0) {
-      messagePrompt().error();
+      messagePrompt().error(t('replay.process_has_not_been_started'));
       return;
     }
     for (let i = 0; i < strategy.value.length; i++) {
@@ -439,10 +451,18 @@ const dealLocation = () => {
         break;
       }
     }
+  } else if (currentSession.value?.category === 'td') {
+    if (td.value.length === 0) {
+      messagePrompt().error(t('replay.process_has_not_been_started'));
+      return;
+    }
+  } else if (currentSession.value?.category === 'system') {
+    if (locationResolved.name !== 'ledger') {
+      messagePrompt().error(t('replay.process_can_not_replay'));
+      return;
+    }
   } else {
-    messagePrompt().error(
-      t('replay.only_operator_or_strategy_can_be_replayed'),
-    );
+    messagePrompt().error(t('replay.process_can_not_replay'));
     return;
   }
 

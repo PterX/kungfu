@@ -168,17 +168,26 @@ class ServiceLoader(dict):
             )
             self.ctx.logger = find_logger(self.ctx.location, self.ctx.log_level)
             self.ctx.logger.info(
-                f"starting service {name}, low_latency={low_latency}, arguments={self.ctx.arguments}"
+                f"starting service {name}, low_latency={low_latency}, arguments={self.ctx.arguments}, mode={mode}"
             )
-            if "is_python_service" in dir(service) and service.is_python_service:
-                service(self.ctx).run()
-            else:
-                service(
+
+            the_service = (
+                service(self.ctx)
+                if "is_python_service" in dir(service) and service.is_python_service
+                else service(
                     self.ctx.runtime_locator,
                     kfj.MODES[self.ctx.mode],
                     self.ctx.low_latency,
                     self.ctx.arguments,
-                ).run()
+                )
+            )
+
+            if kfj.MODES[self.ctx.mode] == lf.enums.mode.REPLAY:
+                begin_time_stamp, end_time_stamp = parse_begin_end(self.ctx)
+                the_service.set_begin_time(begin_time_stamp)
+                the_service.set_end_time(end_time_stamp)
+
+            the_service.run()
 
         return run
 
@@ -253,6 +262,11 @@ class ExtensionExecutor:
         self.ctx.logger.debug("set service for vendor")
         vendor.set_service(service)
         self.ctx.logger.info(f"vendor {location.uname} ready to run")
+
+        if kfj.MODES[ctx.mode] == lf.enums.mode.REPLAY:
+            begin_time_stamp, end_time_stamp = parse_begin_end(ctx)
+            vendor.set_begin_time(begin_time_stamp)
+            vendor.set_end_time(end_time_stamp)
         vendor.run()
 
     def run_market_data(self):
@@ -303,7 +317,7 @@ class ExtensionExecutor:
             matcher = load_matcher(ctx, ctx.matcher)
             if matcher:
                 ctx.runner.set_matcher(matcher)
-            begin_time_stamp, end_time_stamp = self.parse_begin_end(ctx)
+            begin_time_stamp, end_time_stamp = parse_begin_end(ctx)
             ctx.runner.set_begin_time(begin_time_stamp)
             ctx.runner.set_end_time(end_time_stamp)
             from_indexer, to_indexer = self.parse_from_to_indexer(
@@ -315,7 +329,7 @@ class ExtensionExecutor:
                 report = load_report(ctx, ctx.report)
                 ctx.runner.set_report(report)
         if kfj.MODES[ctx.mode] == lf.enums.mode.REPLAY:
-            begin_time_stamp, end_time_stamp = self.parse_begin_end(ctx)
+            begin_time_stamp, end_time_stamp = parse_begin_end(ctx)
             ctx.runner.set_begin_time(begin_time_stamp)
             ctx.runner.set_end_time(end_time_stamp)
 
@@ -375,7 +389,7 @@ class ExtensionExecutor:
             )
         ctx.op_runner = OpRunner(ctx, kfj.MODES[ctx.mode])
         if kfj.MODES[ctx.mode] == lf.enums.mode.BACKTEST:
-            begin_time_stamp, end_time_stamp = self.parse_begin_end(ctx)
+            begin_time_stamp, end_time_stamp = parse_begin_end(ctx)
             ctx.op_runner.set_begin_time(begin_time_stamp)
             ctx.op_runner.set_end_time(end_time_stamp)
             from_indexer, to_indexer = self.parse_from_to_indexer(
@@ -388,7 +402,7 @@ class ExtensionExecutor:
                 ctx.op_runner.set_report(report)
         # ctx.runner = self.load_runner(ctx)
         if kfj.MODES[ctx.mode] == lf.enums.mode.REPLAY:
-            begin_time_stamp, end_time_stamp = self.parse_begin_end(ctx)
+            begin_time_stamp, end_time_stamp = parse_begin_end(ctx)
             ctx.op_runner.set_begin_time(begin_time_stamp)
             ctx.op_runner.set_end_time(end_time_stamp)
 
@@ -396,63 +410,6 @@ class ExtensionExecutor:
         ctx.op_runner.run()
         if kfj.MODES[ctx.mode] == lf.enums.mode.BACKTEST and ctx.report:
             report.sumerize()
-
-    def parse_begin_end(self, ctx):
-        ctx.logger.debug(f"ctx.mode: {ctx.mode}")
-
-        if kfj.MODES[ctx.mode] == lf.enums.mode.BACKTEST and (
-            not ctx.begin or not ctx.end
-        ):
-            raise ValueError("backtest mode must specify begin and end")
-
-        if kfj.MODES[ctx.mode] == lf.enums.mode.REPLAY and (
-            not (ctx.begin and ctx.end) and not ctx.session_id
-        ):
-            raise ValueError("replay mode must specify begin and end or session_id")
-
-        begin_time_stamp = (
-            kft.strptimes(
-                ctx.begin,
-                (
-                    "%F %T",
-                    "%F %T.%N",
-                    "%Y%m%d",
-                    "%Y-%m-%d",
-                    "%Y-%m-%d %H:%M:%S",
-                    "%Y-%m-%d %H:%M:%S.%f",
-                    "%Y-%m-%d %H:%M:%S.%N",
-                ),
-            )
-            if ctx.begin
-            else yjj.now_in_nano()
-        )
-        end_time_stamp = (
-            kft.strptimes(
-                ctx.end,
-                (
-                    "%F %T",
-                    "%F %T.%N",
-                    "%Y%m%d",
-                    "%Y-%m-%d",
-                    "%Y-%m-%d %H:%M:%S",
-                    "%Y-%m-%d %H:%M:%S.%f",
-                    "%Y-%m-%d %H:%M:%S.%N",
-                ),
-            )
-            if ctx.end
-            else yjj.now_in_nano()
-        )
-        end_time_stamp = min(yjj.now_in_nano(), end_time_stamp)
-
-        if ctx.session_id:
-            session = kfj.find_session(ctx, ctx.session_id)
-            begin_time_stamp = session["begin_time"]
-            end_time_stamp = session["end_time"] if session.closed else end_time_stamp
-
-        ctx.logger.debug(
-            f"begin time: {kft.strftime(begin_time_stamp)}, end_time_stamp: {kft.strftime(end_time_stamp)}"
-        )
-        return begin_time_stamp, end_time_stamp
 
     def parse_from_to_indexer(self, ctx, begin, end):
         from_indexer = wc.SliceIndexer(begin, end)
@@ -563,3 +520,59 @@ def load_runner(ctx, locator):
         return runner
     else:
         return Runner(ctx, locator, kfj.MODES[ctx.mode])
+
+
+def parse_begin_end(ctx):
+    ctx.logger.debug(f"ctx.mode: {ctx.mode}")
+
+    if kfj.MODES[ctx.mode] == lf.enums.mode.BACKTEST and (not ctx.begin or not ctx.end):
+        raise ValueError("backtest mode must specify begin and end")
+
+    if kfj.MODES[ctx.mode] == lf.enums.mode.REPLAY and (
+        not (ctx.begin and ctx.end) and not ctx.session_id
+    ):
+        raise ValueError("replay mode must specify begin and end or session_id")
+
+    begin_time_stamp = (
+        kft.strptimes(
+            ctx.begin,
+            (
+                "%F %T",
+                "%F %T.%N",
+                "%Y%m%d",
+                "%Y-%m-%d",
+                "%Y-%m-%d %H:%M:%S",
+                "%Y-%m-%d %H:%M:%S.%f",
+                "%Y-%m-%d %H:%M:%S.%N",
+            ),
+        )
+        if ctx.begin
+        else yjj.now_in_nano()
+    )
+    end_time_stamp = (
+        kft.strptimes(
+            ctx.end,
+            (
+                "%F %T",
+                "%F %T.%N",
+                "%Y%m%d",
+                "%Y-%m-%d",
+                "%Y-%m-%d %H:%M:%S",
+                "%Y-%m-%d %H:%M:%S.%f",
+                "%Y-%m-%d %H:%M:%S.%N",
+            ),
+        )
+        if ctx.end
+        else yjj.now_in_nano()
+    )
+    end_time_stamp = min(yjj.now_in_nano(), end_time_stamp)
+
+    if ctx.session_id:
+        session = kfj.find_session(ctx, ctx.session_id)
+        begin_time_stamp = session["begin_time"]
+        end_time_stamp = session["end_time"] if session.closed else end_time_stamp
+
+    ctx.logger.debug(
+        f"begin time: {kft.strftime(begin_time_stamp)}, end_time_stamp: {kft.strftime(end_time_stamp)}"
+    )
+    return begin_time_stamp, end_time_stamp

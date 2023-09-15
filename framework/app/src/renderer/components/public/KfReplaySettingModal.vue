@@ -51,14 +51,21 @@ const dealEndTime = () => {
   if (endTime === 'now') {
     endTime = getNanoDateString(BigInt(new Date().getTime()) * 1000000n);
   }
-  const a = formatTimeToNanoseconds(formState.value.endTime, [
+  formState.value.endTime = formatTimeToNanoseconds(formState.value.endTime, [
     props.beginTime,
     endTime,
   ]);
-  formState.value.endTime = a;
 };
 onMounted(() => {
   dealEndTime();
+  if (props.sessionInfo) {
+    const now = props.sessionInfo.split('--')[1];
+    if (now === 'now') {
+      formState.value.endTime = getNanoDateString(
+        BigInt(new Date().getTime()) * 1000000n,
+      );
+    }
+  }
   formState.value.sessionInfo = props.sessionInfo;
 });
 

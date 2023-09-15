@@ -13,6 +13,17 @@
 #include <mutex>
 
 namespace kungfu::yijinjing::journal {
+
+struct noop_publisher : public publisher {
+  noop_publisher() = default;
+  bool is_usable() override { return true; }
+  bool setup() override { return true; }
+  int notify() override { return 0; }
+  int publish(const std::string &json_message, int flags = NNG_FLAG_NONBLOCK, bool no_exception = false) override {
+    return 0;
+  };
+};
+
 /**
  * Journal class, the abstraction of continuous memory access
  */
@@ -126,8 +137,6 @@ public:
 
   void disjoin_channel(uint32_t location_uid, uint32_t dest_id);
 
-  void keep_only(uint32_t location_uid, uint32_t dest_id);
-
   [[nodiscard]] frame_ptr current_frame() const { return current_->current_frame(); }
 
   [[nodiscard]] uint64_t current_frame_id() const { return current_->current_frame_id(); }
@@ -181,6 +190,8 @@ public:
          const bus_ptr &bus);
   writer(const data::location_ptr &location, uint32_t dest_id, bool lazy, publisher_ptr publisher, bool low_latency,
          const bus_ptr &bus, uint32_t page_size);
+  writer(const data::location_ptr &location, uint32_t dest_id, bool lazy, publisher_ptr publisher, bool low_latency,
+         const bus_ptr &bus, uint32_t page_size, int64_t begin_time);
 
   [[nodiscard]] const data::location_ptr &get_location() const { return journal_.location_; }
 
@@ -311,8 +322,8 @@ public:
 class hookable_writer : public writer {
 public:
   explicit hookable_writer(const data::location_ptr &location, uint32_t dest_id, bool lazy, publisher_ptr publisher,
-                           bool low_latency, const bus_ptr &bus, const writer_hook_ptr &hook)
-      : writer(location, dest_id, lazy, publisher, low_latency, bus), hook_(hook) {}
+                           bool low_latency, const bus_ptr &bus, uint32_t page_size, const writer_hook_ptr &hook)
+      : writer(location, dest_id, lazy, publisher, low_latency, bus, page_size), hook_(hook) {}
 
   frame_ptr open_frame(int64_t trigger_time, int32_t msg_type, uint32_t length) override;
 
@@ -320,6 +331,20 @@ public:
 
 private:
   writer_hook_ptr hook_;
+};
+
+class replay_writer : public writer {
+public:
+  explicit replay_writer(const data::location_ptr &location, uint32_t dest_id, publisher_ptr publisher,
+                         const bus_ptr &bus, uint32_t page_size, int64_t begin_time);
+
+  frame_ptr open_frame(int64_t trigger_time, int32_t msg_type, uint32_t length) override;
+
+  void close_frame(size_t data_length, int64_t gen_time) override;
+
+private:
+  reader_ptr reader_for_write_;
+  cloned_frame cloned_frame_ = {};
 };
 
 } // namespace kungfu::yijinjing::journal

@@ -143,18 +143,6 @@ reader::reader(const reader &other) : lazy_(other.lazy_), low_latency_(other.low
   }
 }
 
-void reader::keep_only(uint32_t location_uid, uint32_t dest_id) {
-  for (auto it = journals_.begin(); it != journals_.end();) {
-    if (it->first.location_uid == location_uid && it->first.dest_id == dest_id) {
-      it++;
-    } else {
-      it = journals_.erase(it);
-    }
-  }
-  current_ = nullptr;
-  sort_without_buffer();
-}
-
 journal &reader::get_journal_ref(const data::location_ptr &location, uint32_t dest_id) {
   auto key = journal_key(location, dest_id);
   auto iter = journals_.find(key);

@@ -10,7 +10,6 @@
 #include <kungfu/wingchun/strategy/backtest.h>
 #include <kungfu/wingchun/strategy/live.h>
 #include <kungfu/wingchun/strategy/matcher.h>
-#include <kungfu/wingchun/strategy/replay.h>
 #include <kungfu/wingchun/strategy/strategy.h>
 #include <kungfu/yijinjing/practice/apprentice.h>
 

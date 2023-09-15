@@ -52,6 +52,10 @@ void TraderWriterHook::on_close_frame(int64_t gen_time, frame_ptr frame) {
     guard_position(frame->data<Position>());
     break;
   }
+  case Asset::tag: {
+    guard_asset(frame->data<Asset>());
+    break;
+  }
   }
 }
 
@@ -66,10 +70,15 @@ AlgoOrderService &TraderWriterHook::get_algo_order_service() { return vendor_.ge
 void TraderWriterHook::guard_position(const Position &const_position) {
   auto &position = const_cast<Position &>(const_position);
   position.update_time = vendor_.now();
-  position.source_id = vendor_.get_home_uid();
-  position.holder_uid = vendor_.get_home_uid();
+  position.source_id = vendor_.get_live_home_uid();
+  position.holder_uid = vendor_.get_live_home_uid();
   position.source_op_id = get_source_op_id(position.holder_uid, position.source_id);
   position.instrument_type = get_instrument_type(position.exchange_id, position.instrument_id);
+}
+
+void TraderWriterHook::guard_asset(const Asset &const_asset) {
+  auto &asset = const_cast<Asset &>(const_asset);
+  asset.holder_uid = vendor_.get_live_home_uid();
 }
 
 // ====================== TraderWriterHook end ======================
@@ -165,26 +174,6 @@ void TraderVendor::on_recover() {
   service_->on_recover();
 }
 
-yijinjing::journal::writer_ptr &TraderVendor::get_thread_writer() {
-  if (not thread_writer_) {
-    uint32_t dest_id = kungfu::yijinjing::util::get_thread_id();
-    thread_writer_ = get_io_device()->open_writer(dest_id);
-
-    /// join channel in sub-thread will crash, so tell master to ask myself to join
-    /// do not use writer because of multi-thread concurrency issues
-    if (not master_cmd_writer_for_thread_) {
-      SPDLOG_ERROR("has no writer of master_cmd: {:8x}:{}", get_master_command_uid(),
-                   get_location_uname(get_master_command_uid()));
-    }
-    RequestReadFromOthers &request = master_cmd_writer_for_thread_->open_data<RequestReadFromOthers>();
-    request.source_id = get_home_uid();
-    request.dest_id = dest_id;
-    request.from_time = now();
-    SPDLOG_TRACE("RequestReadFromOthers: {}", request.to_string());
-    master_cmd_writer_for_thread_->close_data();
-  }
-  return thread_writer_;
-}
 // ====================== TraderVendor end ======================
 
 } // namespace kungfu::wingchun::broker

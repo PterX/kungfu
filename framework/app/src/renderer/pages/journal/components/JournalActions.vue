@@ -1,6 +1,10 @@
 <template>
   <div class="journal-action">
-    <a-button @click="handleOpenReplayConfirmModal" style="margin-left: 8px">
+    <a-button
+      v-if="isShowReplay"
+      @click="handleOpenReplayConfirmModal"
+      style="margin-left: 8px"
+    >
       {{ t('replay.replay') }}
     </a-button>
     <a-button @click="handleOpenExportFormModal" style="margin-left: 8px">
@@ -56,6 +60,10 @@ import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { messagePrompt } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import { writeCsvByStream } from '../utils';
 const { t } = VueI18n.global;
+
+defineProps<{
+  isShowReplay: boolean;
+}>();
 
 const emit = defineEmits<{
   (

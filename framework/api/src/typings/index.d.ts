@@ -426,8 +426,6 @@ declare namespace KungfuApi {
   export interface KfLogData {
     id: number;
     message: string;
-    messageOrigin: string;
-    messageForSearch: string;
   }
 
   export class KfFixedList<T> {
@@ -1149,14 +1147,18 @@ declare namespace KungfuApi {
     state: StrategyStateStatusTypes;
   }
 
-  export interface ReplayConfig {
+  export interface ReplayConfig extends ReplayConfigOrigin {
     session_info: string;
+  }
+
+  export interface ReplayConfigOrigin {
     group: string;
+    category: string;
     begin_time: string;
     end_time: string;
     log_level: string;
     session_name: string;
-    path: string;
+    file_path: string;
   }
 
   export interface Watcher {
@@ -1463,9 +1465,9 @@ declare module '@kungfu-trader/kungfu-core' {
 declare namespace Code {
   import { Stats } from 'fs-extra';
   import { SpaceTabSettingEnum, SpaceSizeSettingEnum } from './enums';
-  import Replay from '@kungfu-trader/kungfu-app/src/renderer/pages/logview/index.vue';
   import { session } from 'electron';
   import path from 'path';
+  import Replay from '@kungfu-trader/kungfu-app/src/renderer/pages/replay/Replay.vue';
 
   export interface CodeInfo {
     code_id: string;

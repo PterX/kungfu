@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { nextTick, onMounted, ref, computed, onBeforeUnmount } from 'vue';
-// import { storeToRefs } from 'pinia';
+import { onMounted, ref } from 'vue';
 import {
   UpOutlined,
   DownOutlined,
@@ -10,59 +9,35 @@ import {
 import {
   messagePrompt,
   removeLoadingMask,
-  setHtmlTitle,
+  useScrollerTableSearch,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
-import { useRemoveReplayProcess } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
-// import { useJournalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/journal/store/journalStore';
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
 import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
-import { LogLevelType } from '@kungfu-trader/kungfu-app/src/typings/enums';
 import { ensureFileSync, outputFile } from 'fs-extra';
-import { shell, BrowserWindow } from '@electron/remote';
-import { clipboard } from 'electron';
-import { platform } from 'os';
+import { shell } from '@electron/remote';
 import {
   useLogInit,
-  useLogSearch,
+  dealLogMessage,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/logUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
-import { listProcessStatus } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
-
-// const { replayProcessConfigMap } = storeToRefs(useJournalStore());
-
-const { handleRemoveReplayProcess } = useRemoveReplayProcess();
-
-const currentWindow = BrowserWindow.getFocusedWindow();
 
 const { t } = VueI18n.global;
 const { success, error } = messagePrompt();
 
+defineExpose({
+  resetLog,
+});
+
 const props = withDefaults(
   defineProps<{
-    params: Record<string, string>;
-    type?: string;
-    isJournal?: boolean;
-    replayProcessParams?: {
-      category: string;
-      group: string;
-      replayConfig: KungfuApi.ReplayConfig;
-    };
+    logPath: string;
   }>(),
   {
-    isJournal: false,
+    logPath: '',
   },
 );
 
-const CHECK_REPLAY_PROCESS_TIMER = 1000;
-const params = props.params;
-const isLoading = ref(false);
-const LOG_PATH = params.logPath || '';
-const replayList = ['strategy', 'operator'];
-const isReplayAble = computed(() => {
-  return replayList.includes(props.params.category);
-});
-
-setHtmlTitle(LOG_PATH);
+const LOG_PATH = props.logPath || '';
 
 const boardSize = ref<{ width: number; height: number }>({
   width: 0,
@@ -92,57 +67,22 @@ const {
 const {
   inputSearchRef,
   searchKeyword,
-  currentResultPointerIndex,
+  currentResultIndex,
   totalResultCount,
-  clearLogSearchState,
+  clearSearchState,
   handleToDownSearchResult,
   handleToUpSearchResult,
-} = useLogSearch(logList, scrollerTableRef, boardSize);
+  getItemHtmlResult,
+} = useScrollerTableSearch(
+  () => logList.list,
+  'id',
+  ['message'],
+  scrollerTableRef,
+);
 
 onMounted(() => {
-  const replayPocessCheckTimer = setInterval(async () => {
-    const { processStatus } = await listProcessStatus();
-    if (processStatus) {
-      if (processStatus[props.params.processId] === 'online') {
-        isLoading.value = true;
-      } else {
-        isLoading.value = false;
-      }
-    }
-  }, CHECK_REPLAY_PROCESS_TIMER);
-  if (props.type && props.type === 'replay' && !props.isJournal) {
-    if (currentWindow) {
-      currentWindow.on('close', async (event) => {
-        event.preventDefault();
-        handleRemoveReplayProcess(props.params.processId).finally(() => {
-          currentWindow.destroy();
-        });
-      });
-    }
-  }
-  onBeforeUnmount(() => {
-    clearInterval(replayPocessCheckTimer);
-  });
-
   removeLoadingMask();
   resetLog();
-});
-
-document.addEventListener('keydown', (e) => {
-  const ctrlCmd = platform() === 'darwin' ? e.metaKey : e.ctrlKey;
-  if (ctrlCmd && e.key === 'f') {
-    searchKeyword.value = clipboard.readText();
-    if (inputSearchRef.value) {
-      const $inputWrapper = inputSearchRef.value.$el.firstElementChild;
-      const $input = $inputWrapper.querySelector('input');
-      if ($input) {
-        $input.focus();
-        nextTick().then(() => {
-          $input.select();
-        });
-      }
-    }
-  }
 });
 
 function handleRemoveLog(): Promise<void> {
@@ -163,57 +103,8 @@ function handleOpenFileLocation() {
 
 function resetLog() {
   clearLogState();
-  clearLogSearchState();
+  clearSearchState();
   startTailLog();
-}
-async function reLoadLog() {
-  if (!isReplayAble.value) {
-    messagePrompt().error(
-      t('replay.only_operator_or_strategy_can_be_replayed'),
-    );
-    return;
-  }
-
-  if (currentWindow) {
-    const pawin = currentWindow.getParentWindow();
-    if (pawin) {
-      if (props.isJournal) {
-        const config = localStorage.getItem(props.params.processId);
-        if (!config) {
-          messagePrompt().error(t('replay.please_start_replay'));
-          return;
-        }
-        ensureFileSync(LOG_PATH);
-        outputFile(LOG_PATH, '')
-          .then(() => {
-            resetLog();
-            pawin.webContents.send('startReplay', {
-              replayProcessParams: JSON.parse(config),
-            });
-          })
-          .catch((err: Error) => {
-            error(err.message || t('operation_failed'));
-          });
-
-        return;
-      } else if (!props.isJournal) {
-        ensureFileSync(LOG_PATH);
-        outputFile(LOG_PATH, '')
-          .then(() => {
-            resetLog();
-            pawin.webContents.send('trigger-main-window-hook', {
-              hookName: props.params.processId,
-              key: 'start',
-            });
-          })
-          .catch((err: Error) => {
-            error(err.message || t('operation_failed'));
-          });
-      } else {
-        messagePrompt().error(t('replay.please_start_replay'));
-      }
-    }
-  }
 }
 </script>
 <template>
@@ -222,43 +113,10 @@ async function reLoadLog() {
       <div class="kf-log-view__warp">
         <KfDashboard @boardSizeChange="handleChangeBoardSize">
           <template #title>
-            <KfDashboardItem v-if="props.type && props.type === 'replay'">
-              <div class="replay_title">
-                {{ $t('replay.replay') }}
-              </div>
-            </KfDashboardItem>
-            <KfDashboardItem v-if="props.type && props.type === 'replay'">
-              <div class="replay_title">
-                {{
-                  `${$t('replay.log_level')}: ${
-                    LogLevelType[props.params.logLevel.replace('%20', ' ')] ||
-                    'INFO'
-                  }`
-                }}
-              </div>
-            </KfDashboardItem>
-            <KfDashboardItem v-if="props.type && props.type === 'replay'">
-              <div class="replay_title">
-                {{ `${$t('replay.begin_time')}: ${props.params.beginTime}` }}
-              </div>
-            </KfDashboardItem>
-            <KfDashboardItem v-if="props.type && props.type === 'replay'">
-              <div class="replay_title">
-                {{ `${$t('replay.end_time')}: ${props.params.endTime}` }}
-              </div>
-            </KfDashboardItem>
+            <slot name="title"></slot>
           </template>
           <template #header>
-            <KfDashboardItem>
-              <a-button
-                v-if="props.type && props.type === 'replay'"
-                @click="reLoadLog"
-                size="small"
-                :loading="isLoading"
-              >
-                {{ $t('replay.try_again') }}
-              </a-button>
-            </KfDashboardItem>
+            <slot name="action"></slot>
             <KfDashboardItem>
               <a-checkbox
                 v-model:checked="scrollToBottomChecked"
@@ -278,7 +136,7 @@ async function reLoadLog() {
                   style="width: 120px"
                 />
                 <div class="current-to-total search-int-table__item">
-                  {{ currentResultPointerIndex }} /
+                  {{ currentResultIndex }} /
                   {{ totalResultCount }}
                 </div>
                 <div
@@ -298,7 +156,11 @@ async function reLoadLog() {
             <KfDashboardItem>
               <a-button size="small">
                 <template #icon>
-                  <ReloadOutlined class="kf-hover" style="font-size: 14px" />
+                  <ReloadOutlined
+                    class="kf-hover"
+                    style="font-size: 14px"
+                    @click="resetLog"
+                  />
                 </template>
               </a-button>
             </KfDashboardItem>
@@ -343,7 +205,7 @@ async function reLoadLog() {
                   :id="`kf-log-item-${item.id}`"
                   :active="active"
                   class="kf-log-line"
-                  v-html="item.messageForSearch || item.message"
+                  v-html="dealLogMessage(getItemHtmlResult(item, 'message'))"
                 ></div>
               </DynamicScrollerItem>
             </template>

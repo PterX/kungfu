@@ -1,9 +1,14 @@
+import os from 'os';
 import {
   ComputedRef,
   Ref,
   ref,
   computed,
   watch,
+  readonly,
+  nextTick,
+  onMounted,
+  onBeforeUnmount,
   getCurrentInstance,
   toRaw,
   Component,
@@ -14,7 +19,10 @@ import {
   provide,
   createVNode,
   FunctionalComponent,
+  ComponentPublicInstance,
+  isRef,
 } from 'vue';
+import { ensureFileSync, outputFile } from 'fs-extra';
 import {
   CheckCircleOutlined,
   ExclamationCircleOutlined,
@@ -43,6 +51,8 @@ import {
   isHexOrRgbColor,
   removeTodayArchive,
   getYearMonthDay,
+  debounce,
+  startReplay,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
@@ -53,7 +63,8 @@ import {
   dialog,
   nativeImage,
 } from '@electron/remote';
-import { ipcRenderer } from 'electron';
+import { ipcRenderer, clipboard } from 'electron';
+import { ipcEmit } from '@kungfu-trader/kungfu-app/src/renderer/ipcMsg/emitter';
 import {
   message,
   MessageArgsProps,
@@ -68,7 +79,8 @@ import {
 import path from 'path';
 import {
   startExtService,
-  startReplay,
+  stopProcess,
+  listProcessStatus,
 } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
 import { Proc } from 'pm2';
 import { VueNode } from 'ant-design-vue/lib/_util/type';
@@ -77,6 +89,7 @@ const { t } = VueI18n.global;
 import fse from 'fs-extra';
 import fsPromise from 'fs/promises';
 import md from 'markdown-it';
+import Mark from 'mark.js';
 import { Router } from 'vue-router';
 import { normalizePath } from '@kungfu-trader/kungfu-js-api/utils/osUtils';
 import { getDialogLogoPath } from '@kungfu-trader/kungfu-js-api/config/brand';
@@ -583,8 +596,6 @@ export const openNewBrowserWindow = (
     //判断是否是macOS系统
     const isMacOS = process.platform === 'darwin';
 
-    let offsetX, offsetY;
-
     win.on('ready-to-show', function () {
       if (isMacOS) {
         if (isParentFullScreen) {
@@ -601,19 +612,6 @@ export const openNewBrowserWindow = (
 
     win.on('closed', () => {
       resolve(win);
-    });
-
-    ipcRenderer.on('trigger-main-window-hook', (_event, args) => {
-      const { key, hookName } = args;
-      if (key && hookName) {
-        globalThis.HookKeeper.getHooks().processAction.trigger(hookName, key);
-      }
-    });
-
-    ipcRenderer.on('startReplay', async (_event, args) => {
-      const { replayProcessParams } = args;
-      const { category, group, replayConfig } = replayProcessParams;
-      await startReplay(category, group, replayConfig);
     });
 
     if (isMacOS) {
@@ -633,22 +631,27 @@ export const openNewBrowserWindow = (
         currentWindow.setSize(parentWidth, parentHeight);
         currentWindow.setPosition(parentX, parentY);
 
-        offsetX = newX - parentX;
-        offsetY = newY - parentY;
-
-        win.setAlwaysOnTop(true);
-
         win.show();
       });
 
-      currentWindow.on('move', () => {
-        const [newParentX, newParentY] = currentWindow.getPosition();
+      if (win && !win.isDestroyed()) {
+        currentWindow.on('resize', () => {
+          if (win.getSize()[0] === 300 && win.getSize()[1] === 30) {
+            const [parentX, parentY, parentWidth, parentHeight] = [
+              currentWindow.getPosition()[0],
+              currentWindow.getPosition()[1],
+              currentWindow.getSize()[0],
+              currentWindow.getSize()[1],
+            ];
 
-        const newChildX = newParentX + offsetX;
-        const newChildY = newParentY + offsetY;
-        win.setPosition(newChildX, newChildY);
-        win.show();
-      });
+            const newX = parentX + parentWidth - 300;
+            const newY = parentY + parentHeight - 30;
+
+            win.setPosition(newX, newY);
+            win.show();
+          }
+        });
+      }
     } else {
       win && win.show();
     }
@@ -683,15 +686,19 @@ function getNewWindowLocation(): { x: number; y: number } | null {
 
 export const openReplayView = (
   type: 'strategy' | 'operator',
-  filePath: string,
+  group: string,
+  logPath: string,
   beginTime: string,
   endTime: string,
   log_level: string,
+  sessionName: string,
+  filePath: string,
+  processId: string,
 ): Promise<Electron.BrowserWindow> => {
   return openNewBrowserWindow(
-    globalThis.__runtimeDir,
+    process.env.KF_APP_RUNTIME_DIR,
     'replay',
-    `?logPath=${filePath}&category=${type}&beginTime=${beginTime}&endTime=${endTime}&logLevel=${log_level}&processId=${type}_replay_${beginTime}_${endTime}`,
+    `?logPath=${logPath}&sessionName=${sessionName}&filePath=${filePath}&category=${type}&group=${group}&beginTime=${beginTime}&endTime=${endTime}&logLevel=${log_level}&processId=${processId}`,
     {
       width: 1280,
       height: 960,
@@ -703,7 +710,7 @@ export const openLogView = (
   logPath: string,
 ): Promise<Electron.BrowserWindow> => {
   return openNewBrowserWindow(
-    globalThis.__runtimeDir,
+    process.env.KF_APP_RUNTIME_DIR,
     'logview',
     `?logPath=${logPath}`,
   );
@@ -715,7 +722,7 @@ export const openCodeView = (
   isEntryFilenameEditable: boolean,
 ): Promise<Electron.BrowserWindow> => {
   return openNewBrowserWindow(
-    globalThis.__runtimeDir,
+    process.env.KF_APP_RUNTIME_DIR,
     'code',
     `?id=${id}&filePath=${filePath}&isEntryFilenameEditable=${isEntryFilenameEditable}`,
   );
@@ -726,7 +733,7 @@ export const openJournalView = (
   locationUID: string,
 ): Promise<Electron.BrowserWindow> => {
   return openNewBrowserWindow(
-    globalThis.__runtimeDir,
+    process.env.KF_APP_RUNTIME_DIR,
     'journal',
     `?processId=${processId}&locationUID=${locationUID}`,
     {
@@ -766,7 +773,6 @@ export const parseURIParams = (): Record<string, string> => {
 
   return paramsData;
 };
-
 export const useIpcListener = (): void => {
   const app = getCurrentInstance();
   ipcRenderer.removeAllListeners('main-process-messages');
@@ -875,38 +881,55 @@ export const messagePrompt = (): {
 
 export const handleOpenReplayView = async (
   config: KungfuApi.KfConfig | KungfuApi.KfLocation,
-  processId: string,
   beginTime: string,
   endTime: string,
   logLevel: string,
+  processId: string,
   replayConfig: KungfuApi.ReplayConfig,
 ): Promise<Electron.BrowserWindow> => {
   const dateStr = getYearMonthDay();
   const hideloading = messagePrompt().loading(t('open_replay_dashboard'));
   const logPath = buildProcessReplayPath(config, `${config.name}_${dateStr}`);
   if (replayConfig) {
-    globalThis.HookKeeper.getHooks().processAction.register(
-      processId,
-      'start',
-      async () => {
-        await startReplay(config.category, config.group, replayConfig);
-        console.log(`start replay${processId}`);
-      },
-    );
-    await startReplay(config.category, config.group, replayConfig);
+    try {
+      ensureFileSync(logPath);
+      await outputFile(logPath, '');
+    } catch (error) {
+      console.error(error);
+      messagePrompt().error();
+    }
+
+    try {
+      await ipcEmit('clear-process', {
+        processId,
+      });
+    } catch (error) {
+      console.error(error);
+      messagePrompt().error();
+    }
   }
+
   return openReplayView(
     config.category,
+    config.group,
     logPath,
     beginTime,
     endTime,
     logLevel,
-  ).finally(() => {
+    replayConfig.session_name,
+    replayConfig.file_path,
+    processId,
+  ).finally(async () => {
     hideloading();
+    const { processStatus } = await listProcessStatus();
+    if (processStatus[processId]) {
+      await stopProcess(processId);
+    }
+    await startReplay(config, replayConfig);
   });
 };
 
-export const handleOpenJournalReplayView = async (
+export const getJournalReplayConfigs = async (
   config: KungfuApi.KfConfig | KungfuApi.KfLocation,
   replayConfig: KungfuApi.ReplayConfig,
   count: number,
@@ -916,6 +939,7 @@ export const handleOpenJournalReplayView = async (
     | {
         category: string;
         group: string;
+        name: string;
         replayConfig: KungfuApi.ReplayConfig;
       }
     | undefined;
@@ -926,6 +950,7 @@ export const handleOpenJournalReplayView = async (
       ProcessConfigs: {
         category: config.category,
         group: config.group,
+        name: config.name,
         replayConfig,
       },
     };
@@ -1304,4 +1329,530 @@ export const showInitAfterReloadConfirmDialog = () => {
     .then(() => {
       return true;
     });
+};
+
+export const useSearchHtml = (options: {
+  context: () => string | HTMLElement | HTMLElement[] | NodeList;
+  keywordsRef: Ref<string>;
+  inputSearchRef: Ref<ComponentPublicInstance>;
+}) => {
+  const { context, keywordsRef, inputSearchRef } = options;
+  let markInstance: Mark;
+  const MARK_CLASS = 'kf-mark',
+    MARK_CURRENT_CLASS = 'kf-mark-current',
+    MARK_IGNORE_CLASS = 'kf-mark-ignore';
+  const defaultMarkOptions: Mark.MarkOptions = {
+    className: MARK_CLASS,
+    exclude: [MARK_IGNORE_CLASS],
+  };
+
+  const currentFocusMarkIndex = ref(0);
+  const allMarkElements = ref<Element[]>([]);
+
+  const isInputFocused = ref(false);
+  const inputElement = computed(() => {
+    if (inputSearchRef.value) {
+      const inputWrapper = inputSearchRef.value.$el as Element | undefined;
+      if (inputWrapper) {
+        const input = inputWrapper.querySelector('input');
+        return input;
+      }
+    }
+
+    return null;
+  });
+
+  document.addEventListener('keydown', (e) => {
+    const ctrlCmd = os.platform() === 'darwin' ? e.metaKey : e.ctrlKey;
+    if (ctrlCmd && e.key === 'f') {
+      keywordsRef.value =
+        window.getSelection()?.toString() || clipboard.readText() || '';
+      inputElement.value?.select();
+    }
+
+    if (e.key === 'enter') {
+      if (
+        inputElement.value &&
+        isInputFocused.value &&
+        allMarkElements.value.length
+      ) {
+        if (e.shiftKey) {
+          focusPreviousMark();
+        } else {
+          focusNextMark();
+        }
+      }
+    }
+  });
+
+  watch(keywordsRef, (newVal) => {
+    const keywords = newVal.trim();
+    if (keywords) {
+      updateMark(keywords);
+    } else {
+      unmark();
+    }
+  });
+
+  onMounted(() => {
+    markInstance = new Mark(context());
+
+    if (inputElement.value) {
+      inputElement.value.addEventListener('focus', () => {
+        isInputFocused.value = true;
+      });
+
+      inputElement.value.addEventListener('blur', () => {
+        isInputFocused.value = false;
+      });
+    }
+  });
+
+  function unmark() {
+    return new Promise<void>((resolve) => {
+      markInstance.unmark({
+        done: () => resolve(),
+      });
+    });
+  }
+
+  function mark(keywords: string) {
+    return new Promise<Element[]>((resolve) => {
+      const matchElements: Element[] = [];
+      markInstance.mark(keywords, {
+        ...defaultMarkOptions,
+        each: (el) => matchElements.push(el),
+        done: () => resolve(matchElements),
+        noMatch: () => resolve([]),
+      });
+    });
+  }
+
+  function updateMark(keywords: string) {
+    return unmark()
+      .then(() => mark(keywords))
+      .then((elements) => {
+        allMarkElements.value = elements;
+        if (elements.length) {
+          focusMarkByIndex(0);
+        }
+      });
+  }
+
+  function focusMarkByIndex(index: number) {
+    return nextTick(() => {
+      if (
+        index === currentFocusMarkIndex.value ||
+        index < 0 ||
+        index > allMarkElements.value.length - 1
+      )
+        return;
+
+      const targetElement = allMarkElements.value[index];
+      targetElement.classList.add(MARK_CURRENT_CLASS);
+      targetElement.scrollIntoView();
+      currentFocusMarkIndex.value = index;
+    });
+  }
+
+  function focusPreviousMark(num = 1) {
+    focusMarkByIndex(currentFocusMarkIndex.value - num);
+  }
+
+  function focusNextMark(num = 1) {
+    focusMarkByIndex(currentFocusMarkIndex.value + num);
+  }
+
+  return {
+    currentFocusMarkIndex: readonly(currentFocusMarkIndex),
+    focusMarkByIndex,
+    focusPreviousMark,
+    focusNextMark,
+  };
+};
+
+export const useScrollerTableSearch = <T extends object>(
+  rawsList: (() => T[]) | Ref<T[]> | ComputedRef<T[]>,
+  keyField: keyof T,
+  keysToSearch: Array<string & keyof T>,
+  scrollerTableRef: Ref<
+    ComponentPublicInstance & { scrollToItem(i: number): void }
+  >,
+) => {
+  interface SearchResultByContent {
+    raw: T;
+    rawIndex: number;
+    results: Record<keyof T, string>;
+  }
+
+  interface ResultFlattened {
+    resultKey: string;
+    keyForSearch: string;
+  }
+
+  const buildKeywordRegExp = (string: string) => {
+    const regExpStr = string
+      .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      .replace(/\s+/g, '\\s+')
+      .replace(/\//g, '(\\/|&#x2F;)')
+      .replace(/&/g, '(&|&amp;)')
+      .replace(/</g, '(<|&lt;)')
+      .replace(/>/g, '(>|&gt;)')
+      .replace(/"/g, '("|&quot;)')
+      .replace(/'/g, "('|&#39;)")
+      .replace(/`/g, '(`|&#96;)');
+
+    return new RegExp(regExpStr, 'g');
+  };
+
+  const searchInUsing = ref(false);
+  const inputSearchRef = ref();
+  const isInputFocused = ref(false);
+  const searchKeyword = ref<string>('');
+  const searchKeywordReg = computed(() => {
+    let reg: RegExp | null = null;
+    try {
+      reg = buildKeywordRegExp(searchKeyword.value);
+    } catch (err) {
+      console.error(err);
+    }
+
+    return reg;
+  });
+
+  const inputElement = computed(() => {
+    if (inputSearchRef.value) {
+      const inputWrapper = inputSearchRef.value.$el as Element | undefined;
+      if (inputWrapper) {
+        const input = inputWrapper.querySelector('input');
+        return input;
+      }
+    }
+
+    return null;
+  });
+
+  const scrollerTableElement = computed(() => {
+    if (scrollerTableRef.value) {
+      return scrollerTableRef.value.$el as Element | null;
+    }
+
+    return null;
+  });
+
+  const scrollerTableElementRect = computed(() => {
+    if (scrollerTableElement.value) {
+      return scrollerTableElement.value.getBoundingClientRect();
+    }
+
+    return null;
+  });
+
+  // current index is begin from 1, valued 0 mean not has focus
+  const currentResultIndex = ref<number>(0);
+  const searchResults = ref<Record<string, SearchResultByContent>>({});
+  const flatResults = ref<Record<number, ResultFlattened>>({});
+  const totalResultCount = ref(0);
+
+  const clearSearchResultState = () => {
+    searchResults.value = {};
+    flatResults.value = {};
+    totalResultCount.value = 0;
+    currentResultIndex.value = 0;
+  };
+
+  const clearSearchState = (): void => {
+    clearSearchResultState();
+    searchKeyword.value = '';
+  };
+
+  const handleKeydown = (e: KeyboardEvent) => {
+    const ctrlCmd = os.platform() === 'darwin' ? e.metaKey : e.ctrlKey;
+    if (ctrlCmd && e.key === 'f') {
+      searchInUsing.value = true;
+      searchKeyword.value =
+        window.getSelection()?.toString() || clipboard.readText() || '';
+      nextTick(() => inputElement.value?.select());
+    }
+
+    if (e.key === 'Enter') {
+      if (isInputFocused.value && totalResultCount.value) {
+        if (e.shiftKey) {
+          handleToUpSearchResult();
+        } else {
+          handleToDownSearchResult();
+        }
+      }
+    }
+
+    if (e.key === 'Escape') {
+      searchInUsing.value = false;
+      clearSearchState();
+    }
+  };
+
+  const handleInputFocus = () => {
+    isInputFocused.value = true;
+  };
+
+  const handleInputBlur = () => {
+    isInputFocused.value = false;
+  };
+
+  const registerKeydownEvent = () => {
+    document.addEventListener('keydown', handleKeydown);
+  };
+
+  const registerInputFocusEvent = () => {
+    const register = (input: HTMLInputElement) => {
+      input.addEventListener('focus', handleInputFocus);
+      input.addEventListener('blur', handleInputBlur);
+    };
+
+    if (inputElement.value) {
+      register(inputElement.value);
+    }
+  };
+
+  onBeforeUnmount(() => {
+    document.removeEventListener('keydown', handleKeydown);
+    inputElement.value?.removeEventListener('focus', handleInputFocus);
+    inputElement.value?.removeEventListener('blur', handleInputBlur);
+  });
+
+  watch(inputElement, (newInput) => {
+    if (newInput) {
+      registerInputFocusEvent();
+      searchInUsing.value && newInput.select();
+    }
+  });
+
+  onMounted(() => {
+    registerKeydownEvent();
+    registerInputFocusEvent();
+  });
+
+  const getMarkElementIdByIndex = (index: number): string => `kf-mark-${index}`;
+
+  const buildResultFromContentForSearch = (
+    contentForSearch: string,
+    curIndex: number,
+  ): string | null => {
+    if (searchKeywordReg.value?.test(contentForSearch)) {
+      const id = getMarkElementIdByIndex(curIndex);
+      const className =
+        currentResultIndex.value === curIndex
+          ? 'kf-mark kf-mark-current'
+          : 'kf-mark';
+      return contentForSearch.replace(
+        searchKeywordReg.value as RegExp,
+        `<mark id="${id}" class="${className}">${searchKeyword.value}</mark>`,
+      );
+    }
+
+    return null;
+  };
+
+  const initBuildSearchResult = (
+    item: T,
+    rawIndex: number,
+  ): SearchResultByContent | null => {
+    if (!searchKeywordReg.value) return null;
+
+    const results = keysToSearch.reduce((pre, key) => {
+      if (!pre) pre = {} as Record<keyof T, string>;
+
+      const contentForSearch = `${item[key]}`;
+      const curIndex = totalResultCount.value + 1;
+
+      const result = buildResultFromContentForSearch(
+        contentForSearch,
+        curIndex,
+      );
+      if (result) {
+        pre[key] = result;
+        totalResultCount.value++;
+        flatResults.value[curIndex] = {
+          resultKey: `${item[keyField]}`,
+          keyForSearch: key,
+        };
+      }
+
+      return pre;
+    }, null as Record<keyof T, string> | null);
+
+    if (!results) return null;
+
+    return {
+      raw: item,
+      rawIndex,
+      results,
+    };
+  };
+
+  const getRawsListResolved = () => {
+    return isRef(rawsList) ? rawsList.value : rawsList();
+  };
+
+  const updateSearchResults = () => {
+    clearSearchResultState();
+
+    return nextTick(() => {
+      const rawsListResolved = getRawsListResolved();
+      rawsListResolved.forEach((item: T, index) => {
+        const searchResult = initBuildSearchResult(item, index);
+
+        if (searchResult) {
+          searchResults.value[`${item[keyField]}`] = searchResult;
+        }
+      });
+    });
+  };
+
+  const getResultElementByIndex = (index: number) => {
+    if (index <= 0 || index > totalResultCount.value) return null;
+    return document.getElementById(getMarkElementIdByIndex(index));
+  };
+
+  const isResultItemVisible = (index: number): boolean => {
+    const element = getResultElementByIndex(index);
+
+    if (element && scrollerTableElementRect.value) {
+      const rect = element.getBoundingClientRect();
+
+      if (
+        rect.top > scrollerTableElementRect.value.top &&
+        rect.bottom < scrollerTableElementRect.value.bottom
+      ) {
+        return true;
+      }
+    }
+
+    return false;
+  };
+
+  /**
+   * Scroll to the item by index from flatResults.
+   * @param index The index form flatResults keys, start from 1.
+   * @returns void
+   */
+  const scrollToItemByIndex = (index: number): void => {
+    if (isResultItemVisible(index)) {
+      return;
+    }
+
+    if (index >= 0) {
+      const { resultKey } = flatResults.value[index];
+      const contentIndex = searchResults.value[resultKey].rawIndex;
+      scrollerTableRef.value.scrollToItem(contentIndex);
+    }
+  };
+
+  const updateSearchResultByIndex = (index: number) => {
+    const { resultKey, keyForSearch } = flatResults.value[index];
+    const curContent = searchResults.value[resultKey].raw;
+    const resolvedSearchResult = buildResultFromContentForSearch(
+      curContent[keyForSearch],
+      index,
+    );
+    if (resolvedSearchResult) {
+      searchResults.value[resultKey].results[keyForSearch] =
+        resolvedSearchResult;
+    }
+  };
+
+  const initCurrentResultIndex = (): void => {
+    const index = Object.keys(flatResults.value).findIndex((i) =>
+      isResultItemVisible(+i),
+    );
+
+    const initIndex = index > -1 ? index + 1 : 1;
+    currentResultIndex.value = initIndex;
+    scrollToItemByIndex(initIndex);
+
+    if (index > -1) {
+      updateSearchResultByIndex(initIndex);
+    }
+  };
+
+  watch(
+    searchKeywordReg,
+    debounce(() => {
+      if (
+        searchKeyword.value.trim() === '' ||
+        searchKeywordReg.value === null
+      ) {
+        clearSearchState();
+        return;
+      }
+
+      updateSearchResults().then(() => {
+        if (totalResultCount.value) {
+          initCurrentResultIndex();
+        }
+      });
+    }),
+  );
+
+  watch(currentResultIndex, (newIndex: number, oldIndex: number) => {
+    if (newIndex === 0) {
+      return;
+    }
+
+    if (oldIndex > 0) {
+      updateSearchResultByIndex(oldIndex);
+    }
+
+    updateSearchResultByIndex(newIndex);
+    scrollToItemByIndex(newIndex);
+  });
+
+  const handleToDownSearchResult = (): void => {
+    if (totalResultCount.value === 0) return;
+    if (currentResultIndex.value === totalResultCount.value) {
+      if (totalResultCount.value === 1) {
+        scrollToItemByIndex(1);
+      } else {
+        currentResultIndex.value = 1;
+      }
+    } else {
+      currentResultIndex.value++;
+    }
+  };
+
+  const handleToUpSearchResult = (): void => {
+    if (totalResultCount.value === 0) return;
+    if (currentResultIndex.value === 1) {
+      if (totalResultCount.value === 1) {
+        scrollToItemByIndex(1);
+      } else {
+        currentResultIndex.value = totalResultCount.value;
+      }
+    } else {
+      currentResultIndex.value--;
+    }
+  };
+
+  const getItemHtmlResult = (item: T, key: keyof T) => {
+    const searchResult = searchResults.value[`${item[keyField]}`] as
+      | SearchResultByContent
+      | undefined;
+    if (searchResult?.results[key]) {
+      return searchResult.results[key];
+    }
+
+    return `${item[key]}`;
+  };
+
+  return {
+    searchInUsing,
+    inputSearchRef,
+    searchKeyword,
+    currentResultIndex,
+    totalResultCount,
+    clearSearchState,
+    handleToDownSearchResult,
+    handleToUpSearchResult,
+    getItemHtmlResult,
+  };
 };

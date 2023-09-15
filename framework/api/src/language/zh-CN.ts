@@ -927,7 +927,16 @@ export default {
     stop_replay_warn_content: '关闭窗口将会停止回放, 是否仍然关闭窗口?',
     process_has_not_been_started: '该进程暂时未运行过, 无法回放',
     please_start_replay: '请先启动回放',
-    only_operator_or_strategy_can_be_replayed: '只有算子或策略才能回放',
+    process_can_not_replay: '该进程无法回放',
+    tips_title: '* 注:',
+    replay_tips1_part1: '回放依赖数据时间, ',
+    replay_tips1_part2: '请勿在策略内使用物理时间相关代码来表达"now"',
+    replay_tips1_part3:
+      '(如 python 的 time 或者 yjj.now_in_nano), 建议使用策略提供的context.now 方法, 否则回放无法按照预期执行.',
+    replay_tips2_part1: '回放仅可增加 log, ',
+    replay_tips2_part2: '请勿修改策略逻辑',
+    replay_tips2_part3: ', 否则会由于输出数据与实际不符而报错.',
+    process_not_found: '进程不存在',
   },
 
   master_interrupt: '主控进程 master 中断',

@@ -60,7 +60,7 @@ void BasketOrderEngine::update_basket_order(int64_t trigger_time, const longfist
     SPDLOG_WARN("no writer for basket order dest_id {} {}", dest_id, app_.get_location_uname(dest_id));
     return;
   }
-  if (app_.get_home_uid() == source_id) {
+  if (app_.get_live_home_uid() == source_id) {
     app_.get_writer(dest_id)->write(app_.now(), basket_order_state->get_state().data);
   }
 }

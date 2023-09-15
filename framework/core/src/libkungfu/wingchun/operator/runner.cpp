@@ -33,10 +33,6 @@ Context_ptr Runner::make_context() {
     return std::make_shared<BacktestContext>(*this, events_, std::move(from_indexer_), std::move(to_indexer_), report_, time_interval_);
   }
 
-  if (get_home()->mode == mode::REPLAY) {
-    return std::make_shared<ReplayContext>(*this, events_);
-  }
-
   return std::make_shared<LiveContext>(*this, events_);
 }
 

@@ -62,7 +62,9 @@ interface GlobalState {
 
   globalSetting: Record<string, Record<string, KungfuApi.KfConfigValue>>;
 
-  replaySetting: Record<string, string>;
+  testCase: {
+    replayEnabled: Partial<Record<KfCategoryTypes | 'ledger', boolean>>;
+  };
 
   currentGlobalKfLocation:
     | KungfuApi.KfLocation
@@ -119,9 +121,16 @@ export const useGlobalStore = defineStore('global', {
 
       riskSettings: [],
 
-      replaySetting: {},
-
       globalSetting: {},
+
+      testCase: {
+        replayEnabled: {
+          td: false,
+          ledger: true,
+          strategy: true,
+          operator: true,
+        },
+      },
 
       currentGlobalKfLocation: null,
       orderBookCurrentInstrument: undefined,
@@ -159,6 +168,10 @@ export const useGlobalStore = defineStore('global', {
       instrumentsMap: Record<string, KungfuApi.InstrumentResolved>,
     ) {
       this.instrumentsMap = toRaw(instrumentsMap);
+    },
+
+    setTestCase(key: KfCategoryTypes | 'ledger', value: boolean) {
+      this.testCase.replayEnabled[key] = value;
     },
 
     setCurrentGlobalKfLocation(
@@ -249,10 +262,6 @@ export const useGlobalStore = defineStore('global', {
       return getAllRiskSettingList().then((res) => {
         this.riskSettings = res;
       });
-    },
-
-    setReplaySetting(replaySetting: Record<string, string>) {
-      this.replaySetting = replaySetting;
     },
 
     setBasketList() {

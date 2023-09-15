@@ -413,7 +413,7 @@ private:
       if (info.Length() == 2) {
         instruction.*id_ptr = MakeInstructionUID(account_writer, account_location->uid);
         account_writer->write(trigger_time, instruction);
-        UpdateBook(get_home_uid(), account_location->uid, instruction);
+        UpdateBook(get_live_home_uid(), account_location->uid, instruction);
         return Napi::BigInt::New(info.Env(), instruction.*id_ptr);
       }
 

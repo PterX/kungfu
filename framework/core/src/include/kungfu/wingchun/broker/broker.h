@@ -63,13 +63,23 @@ public:
 
   [[nodiscard]] const yijinjing::data::location_ptr &get_home() const;
 
+  [[nodiscard]] const yijinjing::data::location_ptr &get_live_home() const;
+
   [[nodiscard]] uint32_t get_home_uid() const;
+
+  [[nodiscard]] uint32_t get_live_home_uid() const;
 
   [[nodiscard]] yijinjing::io_device_ptr get_io_device() const;
 
   [[nodiscard]] yijinjing::journal::writer_ptr get_writer(uint32_t dest_id) const;
 
+  [[nodiscard]] yijinjing::journal::writer_ptr get_band_writer(uint32_t dest_id) const;
+
   [[nodiscard]] bool has_writer(uint32_t dest_id) const;
+
+  [[nodiscard]] bool has_band_writer(uint32_t dest_id) const;
+
+  [[nodiscard]] yijinjing::journal::writer_ptr &get_thread_writer();
 
   template <typename DataType>
   void write_to(const DataType &data, uint32_t dest_id = yijinjing::data::location::PUBLIC) {
@@ -92,6 +102,10 @@ public:
   [[maybe_unused]] [[nodiscard]] bool check_if_stored_instruments(const std::string &trading_day) const;
 
   [[maybe_unused]] void record_stored_instruments_trading_day(const std::string &trading_day) const;
+
+  [[maybe_unused]] [[nodiscard]] bool check_if_stored_baskets(const std::string &trading_day) const;
+
+  [[maybe_unused]] void record_stored_baskets_trading_day(const std::string &trading_Day);
 
   int32_t add_timer(int64_t nanotime, const std::function<void(const event_ptr &)> &callback);
 

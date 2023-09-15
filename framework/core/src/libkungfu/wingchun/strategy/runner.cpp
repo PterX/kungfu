@@ -49,10 +49,6 @@ Context_ptr Runner::make_context() {
     return backtest_context;
   }
 
-  if (get_home()->mode == mode::REPLAY) {
-    return std::make_shared<ReplayContext>(*this, events_);
-  }
-
   return std::make_shared<LiveContext>(*this, events_);
 }
 

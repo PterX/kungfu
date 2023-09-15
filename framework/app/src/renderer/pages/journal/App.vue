@@ -77,7 +77,7 @@
           class="kf-journal-time-slider"
         ></TimeSlider>
         <JournalActions
-          :currentSession="currentSession"
+          :is-show-replay="isShowReplay"
           @export-journal-data="onJournalActionsData"
           @start-replay="dealLocation"
         />
@@ -96,26 +96,25 @@
         </a-menu>
         <div class="kf-journal-menu-content">
           <EventsDashBoard
-            v-if="currentSession"
-            v-show="isCurrentMenuItem('event')"
+            v-if="currentSession && isCurrentMenuItem('event')"
             ref="eventDashBoard"
           />
           <Replay
             v-if="
               currentSession &&
+              isShowReplay &&
               replayPramas.processId &&
               isCurrentMenuItem('replay')
             "
+            ref="replayRef"
             :params="replayPramas"
-            :is-journal="true"
-            :type="'replay'"
             :key="replayPramas.processId"
           />
         </div>
       </div>
     </div>
   </a-layout>
-  <ReplayForm
+  <KfReplaySettingModal
     v-if="setReplayModalVisible"
     :width="520"
     v-model:visible="setReplayModalVisible"
@@ -127,8 +126,8 @@
     :now="getNanoDateString(BigInt(new Date().getTime()) * 1000000n)"
     :log-level="replayConfig.log_level"
     @close="setReplayModalVisible = false"
-    @confirm="(event) => handleReplayModal(event, currentLocationConfig, true)"
-  ></ReplayForm>
+    @confirm="(event) => handleReplayModal(event, true)"
+  ></KfReplaySettingModal>
 </template>
 
 <script setup lang="ts">
@@ -140,37 +139,49 @@ import {
   watch,
   onUnmounted,
 } from 'vue';
+import { ensureFileSync, outputFile } from 'fs-extra';
 import { storeToRefs } from 'pinia';
 import { getSessionColumns, SessionStatus } from './config';
-import { BrowserWindow } from '@electron/remote';
+import { getCurrentWindow } from '@electron/remote';
 import { buildProcessReplayPath } from '@kungfu-trader/kungfu-js-api/config/pathConfig';
 import {
   messagePrompt,
   removeLoadingMask,
   useDashboardBodySize,
   useTableSearchKeyword,
-  setHtmlTitle,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
-import { getYearMonthDay } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import {
+  getYearMonthDay,
+  delayMilliSeconds,
+  getProcessIdByKfLocation,
+} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { getNanoDateString } from '@kungfu-trader/kungfu-js-api/kungfu';
 
 import { dealCategory } from './utils';
-import { UnorderedListOutlined, HistoryOutlined } from '@ant-design/icons-vue';
+import {
+  UnorderedListOutlined,
+  HistoryOutlined,
+  ReloadOutlined,
+} from '@ant-design/icons-vue';
 import TimeSlider from './components/TimeSlider.vue';
 import JournalActions from './components/JournalActions.vue';
 import EventsDashBoard from './components/EventsDashboard.vue';
 import { useJournalStore } from './store/journalStore';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { getAllKfConfigOriginData } from '@kungfu-trader/kungfu-js-api/actions';
+import { ipcEmit } from '@kungfu-trader/kungfu-app/src/renderer/ipcMsg/emitter';
+import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
 
 import { useReplay } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import KfDashboard from '../../components/public/KfDashboard.vue';
 
 import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
-import Replay from '@kungfu-trader/kungfu-app/src/renderer/pages/logview/index.vue';
-import ReplayForm from '@kungfu-trader/kungfu-app/src/components/modules/strategy/ReplayForm.vue';
+import Replay from '@kungfu-trader/kungfu-app/src/renderer/pages/replay/Replay.vue';
+import KfReplaySettingModal from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfReplaySettingModal.vue';
 
 const { t } = VueI18n.global;
+const { testCase } = storeToRefs(useGlobalStore());
+const replayRef = ref();
 
 let currentWindow: Electron.BrowserWindow | null = null;
 const {
@@ -183,7 +194,6 @@ const {
 } = storeToRefs(useJournalStore());
 
 const {
-  currentLocation: currentLocationConfig,
   replayConfig,
   setReplayModalVisible,
   sessionOptions,
@@ -198,11 +208,15 @@ const { handleBodySizeChange, dashboardBodyHeight } = useDashboardBodySize();
 const columns = getSessionColumns();
 const operator = ref<KungfuApi.KfConfig[]>([]);
 const strategy = ref<KungfuApi.KfConfig[]>([]);
-const replayList = ['strategy', 'operator'];
+const td = ref<KungfuApi.KfConfig[]>([]);
 const replayPramas = computed(() => {
   if (
-    !currentSession.value ||
-    !replayList.includes(currentSession.value.category)
+    !(
+      currentSession.value &&
+      (testCase.value.replayEnabled[currentSession.value.category] ||
+        (currentSession.value.category === 'system' &&
+          currentSession.value.name === 'ledger'))
+    )
   )
     return {};
   const { category, group, name } = currentSession.value;
@@ -223,16 +237,36 @@ const replayPramas = computed(() => {
     (currentSession.value.end_time
       ? getNanoDateString(currentSession.value.end_time)
       : getNanoDateString(BigInt(new Date().getTime()) * 1000000n));
+  const processId = getProcessIdByKfLocation(
+    {
+      category,
+      group,
+      name,
+      mode: 'replay',
+    },
+    'replay',
+  );
   return {
     category: category,
+    group: group,
     beginTime: begin_time,
     endTime: end_time,
     logPath: logPath,
     logLevel: replayConfig.value.log_level || '-l info',
-    processId: `${category}_replay_${begin_time}_${end_time}`,
+    sessionName: currentSession.value.name || '',
+    filePath: replayConfig.value.file_path || '',
+    processId: processId,
   };
 });
 
+const isShowReplay = computed(() => {
+  return (
+    currentSession.value &&
+    (testCase.value.replayEnabled[currentSession.value.category] ||
+      (currentSession.value.category === 'system' &&
+        currentSession.value.name === 'ledger'))
+  );
+});
 const { searchKeyword, tableData } =
   useTableSearchKeyword<KungfuApi.SessionResolved>(sessions, [
     'sessionName',
@@ -243,22 +277,36 @@ const { searchKeyword, tableData } =
 
 const app = getCurrentInstance();
 const currentMenuList = ref<('event' | 'visual' | 'replay')[]>(['event']);
-const menus = [
-  {
-    key: 'event',
-    title: t('journalConfig.Event'),
-    icon: UnorderedListOutlined,
-  },
-  {
-    key: 'replay',
-    title: t('journalConfig.replay'),
-    icon: HistoryOutlined,
-  },
-];
+const menus = computed(() => [
+  ...(isShowReplay.value
+    ? [
+        {
+          key: 'event',
+          title: t('journalConfig.Event'),
+          icon: UnorderedListOutlined,
+        },
+        {
+          key: 'replay',
+          title: t('journalConfig.replay'),
+          icon: HistoryOutlined,
+        },
+      ]
+    : [
+        {
+          key: 'event',
+          title: t('journalConfig.Event'),
+          icon: UnorderedListOutlined,
+        },
+      ]),
+]);
 const isCurrentMenuItem = (key: 'event' | 'visual' | 'replay') => {
   if (currentMenuList.value.includes(key) && key === 'replay') {
-    setHtmlTitle(replayPramas.value.logPath);
-    return replayList.includes(extractWordAfterLog(replayPramas.value.logPath));
+    return (
+      currentSession.value &&
+      (testCase.value.replayEnabled[currentSession.value.category] ||
+        (currentSession.value.category === 'system' &&
+          currentSession.value.name === 'ledger'))
+    );
   } else {
     return currentMenuList.value.includes(key);
   }
@@ -281,25 +329,39 @@ const customRow = (record: KungfuApi.SessionResolved) => {
   return {
     onClick: () => {
       setCurrentSession(record);
-      replayConfig.value = {
-        session_info: '',
-        group: 'default',
-        begin_time: '',
-        end_time: '',
-        log_level: '',
-        session_name: '',
-        path: '',
-      };
+
+      if (replayPramas.value.processId) {
+        const config = localStorage.getItem('replaySetting');
+        const replaySetting = config ? JSON.parse(config) : {};
+        replayConfig.value = {
+          session_info: '',
+          category: '',
+          group: 'default',
+          begin_time: '',
+          end_time: '',
+          log_level: replaySetting.log_level || '-l info',
+          session_name: '',
+          file_path: '',
+        };
+        delayMilliSeconds(0).then(() => {
+          replayRef.value && replayRef.value.updateLogLevel();
+        });
+      }
     },
   };
 };
 
 onMounted(async () => {
-  currentWindow = BrowserWindow.getFocusedWindow();
-  const { operator: originOperator, strategy: originStategy } =
-    await getAllKfConfigOriginData();
+  currentWindow = getCurrentWindow();
+  const {
+    operator: originOperator,
+    strategy: originStategy,
+    td: originTd,
+  } = await getAllKfConfigOriginData();
   operator.value = originOperator;
   strategy.value = originStategy;
+  td.value = originTd;
+
   setSessions();
   removeLoadingMask();
   window.addEventListener('resize', () => {
@@ -318,14 +380,42 @@ watch(
   () => journalReplayflag.value,
   (val) => {
     if (val) {
-      if (currentWindow) {
-        const pawin = currentWindow.getParentWindow();
-        if (pawin) {
-          pawin.webContents.send('startReplay', {
-            replayProcessParams: replayProcessParams.value,
+      if (currentSession.value) {
+        const dateStr = getYearMonthDay();
+        const logPath = buildProcessReplayPath(
+          {
+            category: currentSession.value.category,
+            group: currentSession.value.group,
+            name: currentSession.value.name,
+          },
+          `${currentSession.value.name}_${dateStr}`,
+        );
+
+        ensureFileSync(logPath);
+        outputFile(logPath, '')
+          .then(() => {
+            if (currentWindow) {
+              ipcEmit('clear-process', {
+                processId: replayPramas.value.processId || '',
+              })
+                .then(() => {
+                  const pawin =
+                    currentWindow && currentWindow.getParentWindow();
+                  if (pawin) {
+                    pawin.webContents.send('startReplay', {
+                      replayProcessParams: replayProcessParams.value,
+                    });
+                    currentMenuList.value = ['replay'];
+                  }
+                })
+                .catch((err) => {
+                  console.error(err);
+                });
+            }
+          })
+          .catch((err) => {
+            console.log(err);
           });
-          currentMenuList.value = ['replay'];
-        }
       }
     }
   },
@@ -351,35 +441,47 @@ const dealLocation = () => {
   };
 
   if (currentSession.value?.category === 'operator') {
-    if (operator.value.length === 0) {
-      messagePrompt().error(t('strategyConfig.operator_be_empty'));
-      return;
-    }
-    for (let i = 0; i < operator.value.length; i++) {
-      if (
-        operator.value[i].location_uid === currentSession.value.location_uid
-      ) {
-        locationResolved.value = operator.value[i].value;
-        break;
+    if (currentSession.value?.group === 'default') {
+      if (operator.value.length === 0) {
+        messagePrompt().error(t('replay.process_has_not_been_started'));
+        return;
+      }
+      for (let i = 0; i < operator.value.length; i++) {
+        if (
+          operator.value[i].location_uid === currentSession.value.location_uid
+        ) {
+          locationResolved.value = operator.value[i].value;
+          break;
+        }
       }
     }
   } else if (currentSession.value?.category === 'strategy') {
-    if (strategy.value.length === 0) {
-      messagePrompt().error();
-      return;
-    }
-    for (let i = 0; i < strategy.value.length; i++) {
-      if (
-        strategy.value[i].location_uid === currentSession.value.location_uid
-      ) {
-        locationResolved.value = strategy.value[i].value;
-        break;
+    if (currentSession.value?.group === 'default') {
+      if (strategy.value.length === 0) {
+        messagePrompt().error(t('replay.process_has_not_been_started'));
+        return;
+      }
+      for (let i = 0; i < strategy.value.length; i++) {
+        if (
+          strategy.value[i].location_uid === currentSession.value.location_uid
+        ) {
+          locationResolved.value = strategy.value[i].value;
+          break;
+        }
       }
     }
+  } else if (currentSession.value?.category === 'td') {
+    if (td.value.length === 0) {
+      messagePrompt().error(t('replay.process_has_not_been_started'));
+      return;
+    }
+  } else if (currentSession.value?.category === 'system') {
+    if (locationResolved.name !== 'ledger') {
+      messagePrompt().error(t('replay.process_can_not_replay'));
+      return;
+    }
   } else {
-    messagePrompt().error(
-      t('replay.only_operator_or_strategy_can_be_replayed'),
-    );
+    messagePrompt().error(t('replay.process_can_not_replay'));
     return;
   }
 
@@ -391,11 +493,6 @@ const dealRowClassName = (row) => {
     ? 'current-global-kfLocation'
     : '';
 };
-
-function extractWordAfterLog(inputString) {
-  const match = inputString.match(/\/log\/([^\/]+)/);
-  return match ? match[1] : null;
-}
 </script>
 
 <style lang="less">
@@ -439,7 +536,7 @@ function extractWordAfterLog(inputString) {
         flex: 0 0 50px;
         height: 50px;
         background-color: #1d1d1d;
-        padding: 5px 20px;
+        padding: 5px 16px;
         margin-bottom: 2px;
         display: flex;
         align-items: center;

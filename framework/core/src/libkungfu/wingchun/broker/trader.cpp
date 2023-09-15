@@ -33,7 +33,7 @@ bool Trader::insert_algo_order(const event_ptr &event) {
   return true;
 }
 
-[[maybe_unused]] const std::string &Trader::get_account_id() const { return get_home()->name; }
+[[maybe_unused]] const std::string &Trader::get_account_id() const { return get_live_home()->name; }
 
 yijinjing::journal::writer_ptr Trader::get_asset_writer() const {
   return get_writer(sync_asset_ ? location::SYNC : location::PUBLIC);
@@ -139,7 +139,7 @@ void Trader::recover() {
 }
 
 void Trader::recover_from_journal() {
-  tracer trc(get_home(), false, true, time::trading_day_start(), time::now_in_nano());
+  tracer trc(get_live_home(), false, true, time::trading_day_start(), time::now_in_nano());
   SPDLOG_DEBUG("before tracer read");
   int64_t count = 0;
   auto &state_bank = const_cast<cache::bank &>(get_vendor().get_state_bank());
@@ -238,12 +238,9 @@ uint32_t Trader::get_risk_uid() const { return risk_uid_; }
 
 [[maybe_unused]] void Trader::disable_recover() { disable_recover_ = true; }
 
-yijinjing::journal::writer_ptr &Trader::get_thread_writer() {
-  return dynamic_cast<TraderVendor &>(get_vendor()).get_thread_writer();
-}
-
 void Trader::try_req_account() {
   if (is_sync_account() and BrokerState::Ready == state_) {
+    sync_asset_ = false; // write Asset to PUBLIC every 5 seconds
     req_account();
     disable_sync_account();
   }

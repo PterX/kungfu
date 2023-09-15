@@ -86,6 +86,8 @@ import {
   startOperatorByExt,
   startStrategyOperator,
   startTd,
+  listProcessStatus,
+  startTask,
 } from './processUtils';
 import { Proc } from 'pm2';
 import {
@@ -1049,6 +1051,7 @@ export const removeDB = (targetFolder: string): Promise<void> => {
 
 export const getProcessIdByKfLocation = (
   kfLocation: KungfuApi.KfLocation,
+  mode?: string,
 ): string => {
   switch (kfLocation.category) {
     case 'md':
@@ -1056,14 +1059,20 @@ export const getProcessIdByKfLocation = (
     case 'strategy':
     case 'operator':
       if (kfLocation.group === 'default') {
-        return `${kfLocation.category}_${kfLocation.name}`;
+        return mode
+          ? `${kfLocation.category}_${kfLocation.name}-${mode}`
+          : `${kfLocation.category}_${kfLocation.name}`;
       } else {
-        return `${kfLocation.category}_${kfLocation.group}_${kfLocation.name}`;
+        return mode
+          ? `${kfLocation.category}_${kfLocation.group}_${kfLocation.name}-${mode}`
+          : `${kfLocation.category}_${kfLocation.group}_${kfLocation.name}`;
       }
     case 'system':
-      return kfLocation.name;
+      return mode ? `${kfLocation.name}-${mode}` : `${kfLocation.name}`;
     default:
-      return `${kfLocation.category}_${kfLocation.group}_${kfLocation.name}`;
+      return mode
+        ? `${kfLocation.category}_${kfLocation.group}_${kfLocation.name}-${mode}`
+        : `${kfLocation.category}_${kfLocation.group}_${kfLocation.name}`;
   }
 };
 
@@ -2682,4 +2691,75 @@ export function getYearMonthDay(delimiter = '-') {
   const monthStr = month < 10 ? `0${month}` : `${month}`;
   const dayStr = day < 10 ? `0${day}` : `${day}`;
   return `${year}${delimiter}${monthStr}${delimiter}${dayStr}`;
+}
+
+export function parseTaskSettingsFromEnv(configSettingsEnv = '[]') {
+  let configSettings: KungfuApi.KfConfigItem[] = [];
+
+  try {
+    configSettings = JSON.parse(configSettingsEnv) as KungfuApi.KfConfigItem[];
+  } catch (err) {
+    console.error((<Error>err).message);
+  }
+  return configSettings;
+}
+
+export async function startReplay(
+  location: KungfuApi.KfConfig | KungfuApi.KfLocation,
+  replayConfig: KungfuApi.ReplayConfigOrigin,
+) {
+  if (location.category === 'strategy' && location.group !== 'default') {
+    const { processStatusWithDetail } = await listProcessStatus();
+    const extConfigs = await getKfExtensionConfig();
+    const extKey = location.group;
+    const extConfig: KungfuApi.KfStrategyExtConfig = (extConfigs['strategy'] ||
+      {})[extKey];
+    const soPath = path.join(extConfig.extPath, extKey);
+    const processId = getProcessIdByKfLocation(location);
+
+    const processStatusDetail = processStatusWithDetail[processId];
+    if (!processStatusDetail) {
+      kfLogger.error(`Process ${processId} not found`);
+      return Promise.reject(new Error(t('replay.process_not_found')));
+    }
+    const { args, config_settings } = processStatusDetail;
+    const dealArgs = minimist(args as string[])['a'] || '';
+    const configSettings = parseTaskSettingsFromEnv(config_settings || '[]');
+    location.mode = 'replay';
+    return startTask(
+      location,
+      soPath,
+      dealArgs,
+      configSettings,
+      'replay',
+      replayConfig,
+    );
+  }
+  switch (location.category) {
+    case 'td':
+      return startTd(
+        `${location.group}_${location.name}`,
+        location,
+        'replay',
+        replayConfig,
+      );
+    case 'strategy':
+    case 'operator':
+      return startStrategyOperator(
+        location.category,
+        '',
+        '',
+        'replay',
+        replayConfig,
+      );
+    case 'system':
+      if (location.name === 'ledger') {
+        return startLedger(false, 'replay', replayConfig);
+      } else {
+        return Promise.reject(new Error('Location is not supported to replay'));
+      }
+
+    default:
+      return Promise.reject(new Error('Location is not supported to replay'));
+  }
 }

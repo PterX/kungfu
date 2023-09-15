@@ -3,7 +3,7 @@ import { ref, computed, toRefs, Ref } from 'vue';
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
 import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
 import KfSetByConfigModal from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfSetByConfigModal.vue';
-import ReplayForm from './ReplayForm.vue';
+import KfReplaySettingModal from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfReplaySettingModal.vue';
 import Icon, {
   FileTextOutlined,
   SettingOutlined,
@@ -74,7 +74,6 @@ const { allProcessOnline, handleSwitchAllProcessStatus } = useSwitchAllConfig(
 );
 
 const {
-  currentLocation,
   replayConfig,
   setReplayModalVisible,
   sessionOptions,
@@ -277,7 +276,7 @@ function handleOpenCodeViewResolved(record: KungfuApi.KfConfig) {
       :primaryKeyAvoidRepeatCompareTarget="strategyIdList"
       @confirm="handleConfirmAddUpdateKfConfig($event, 'strategy', 'default')"
     ></KfSetByConfigModal>
-    <ReplayForm
+    <KfReplaySettingModal
       v-if="setReplayModalVisible"
       :width="520"
       v-model:visible="setReplayModalVisible"
@@ -289,8 +288,8 @@ function handleOpenCodeViewResolved(record: KungfuApi.KfConfig) {
       "
       :log-level="replayConfig.log_level"
       @close="setReplayModalVisible = false"
-      @confirm="(event) => handleReplayModal(event, currentLocation)"
-    ></ReplayForm>
+      @confirm="(event) => handleReplayModal(event)"
+    ></KfReplaySettingModal>
   </div>
 </template>
 <style lang="less">

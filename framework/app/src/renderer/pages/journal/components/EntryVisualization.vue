@@ -68,12 +68,22 @@
     </div>
     <div ref="chartWrapper" class="kf-chart_wrap">
       <a-input-search
+        v-show="instrumentList.length > 0"
         v-model:value="searchOrderId"
         class="chart-search-order-id"
         :placeholder="$t('journalConfig.search_order_id')"
         @search="handleSearchOrderId"
       />
-      <div id="strategyChart" class="kf-chart_content"></div>
+      <div
+        v-show="instrumentList.length > 0"
+        id="strategyChart"
+        class="kf-chart_content"
+      ></div>
+      <a-empty
+        v-show="instrumentList.length === 0"
+        class="kf-chart_content"
+        :image="simpleImage"
+      ></a-empty>
     </div>
     <a-spin
       class="kf-journal-spin"
@@ -183,9 +193,6 @@ const instrumentList = ref<string[]>([]);
 
 onMounted(() => {
   dealAllFrameData();
-  nextTick(() => {
-    initChart();
-  });
 });
 
 onBeforeUnmount(() => {
@@ -354,6 +361,11 @@ function dealAllFrameData() {
 
   if (instrumentList.value.length > 0) {
     getCurInstrument(instrumentList.value[0]);
+    if (!myChart) {
+      nextTick(() => {
+        initChart();
+      });
+    }
   }
 }
 
@@ -718,14 +730,19 @@ function addChartEventListener(myChart: echarts.ECharts) {
         .forEach((serie) => {
           serie.data.forEach((item: SeriesData) => {
             if (item.customInfo.orderId === orderId) {
+              let shadowColor = '';
               item.symbolSize = 20;
-              if (item.itemStyle) {
-                item.itemStyle = {
-                  ...item.itemStyle,
-                  shadowBlur: 30,
-                  shadowColor: item.itemStyle.color,
-                };
+              if (item.customInfo.msgTypeName === 'orderAction') {
+                shadowColor = '#73F3F6';
+              } else {
+                shadowColor =
+                  item.itemStyle?.color === '#f21717' ? '#f37370' : '#8fd460';
               }
+              item.itemStyle = {
+                ...item.itemStyle,
+                shadowBlur: 10,
+                shadowColor,
+              };
             } else {
               item.symbolSize = 10;
               item.itemStyle = {
@@ -767,6 +784,10 @@ function addChartEventListener(myChart: echarts.ECharts) {
         .forEach((serie) => {
           serie.data.forEach((item) => {
             item.symbolSize = 10;
+            item.itemStyle = {
+              ...item.itemStyle,
+              shadowBlur: 0,
+            };
           });
         });
       myChart && myChart.setOption(option);
@@ -945,14 +966,19 @@ function handleSearchOrderId() {
           orderIdInfo.tableRowId = item.customInfo.tableRowId;
 
           dataTime = item.customInfo.time;
+          let shadowColor = '';
           item.symbolSize = 20;
-          if (item.itemStyle) {
-            item.itemStyle = {
-              ...item.itemStyle,
-              shadowBlur: 30,
-              shadowColor: item.itemStyle.color,
-            };
+          if (item.customInfo.msgTypeName === 'orderAction') {
+            shadowColor = '#73F3F6';
+          } else {
+            shadowColor =
+              item.itemStyle?.color === '#f21717' ? '#f37370' : '#8fd460';
           }
+          item.itemStyle = {
+            ...item.itemStyle,
+            shadowBlur: 10,
+            shadowColor,
+          };
         } else {
           item.symbolSize = 10;
           item.itemStyle = {
@@ -1100,7 +1126,8 @@ const handleInputChange = debounce(() => {
       position: absolute;
       top: 0;
       right: 0;
-      width: 300px;
+      width: 20%;
+      max-width: 300px;
       z-index: 999;
     }
     .kf-chart_content {

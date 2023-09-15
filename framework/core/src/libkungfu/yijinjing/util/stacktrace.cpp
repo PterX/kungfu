@@ -103,10 +103,11 @@ DWORD SehFiler(DWORD code) {
     KF_LOG_CRITICAL("Invalid handle,error code: {:#x}", code);
     break;
   default:
-    if (code & (1 << 29))
+    if (code & (1 << 29)) {
       KF_LOG_CRITICAL("Custom exception,error code: {:#x}", code);
-    else
+    } else {
       KF_LOG_CRITICAL("Unknown exception,error code: {:#x}", code);
+    }
     break;
   }
   return EXCEPTION_EXECUTE_HANDLER;
@@ -145,8 +146,9 @@ DWORD print_stack_trace(EXCEPTION_POINTERS *ep) {
     sw.show_callstack(log_file, nullptr);
   }
 
-  if (log_file.is_open())
+  if (log_file.is_open()) {
     KF_LOG_CRITICAL("# An error report file with more information is saved as:  {}", path);
+  }
 
   log_file.close();
 

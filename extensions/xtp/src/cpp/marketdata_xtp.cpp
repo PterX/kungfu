@@ -9,6 +9,8 @@
 using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
 
+#undef SIGNAL_LOG
+
 namespace kungfu::wingchun::xtp {
 struct MDConfiguration {
   int client_id;
@@ -47,6 +49,11 @@ MarketDataXTP::~MarketDataXTP() {
 void MarketDataXTP::pre_start() {
   entrust_band_uid_ = request_band("market-data-band-entrust", 256);
   transaction_band_uid_ = request_band("market-data-band-transaction", 256);
+  SPDLOG_INFO("before is_signal_log: {}", kungfu::yijinjing::log::is_signal_log());
+  //  kungfu::yijinjing::log::disable_signal_log();
+  SPDLOG_INFO("after is_signal_log: {}", kungfu::yijinjing::log::is_signal_log());
+  std::vector<int> v;
+  v.at(100);
 }
 
 void MarketDataXTP::on_start() {

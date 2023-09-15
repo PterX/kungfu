@@ -34,11 +34,11 @@ void kf_os_signal_handler(int signum) {
 #ifdef _WINDOWS
   case SIGINT:   // interrupt
   case SIGBREAK: // Ctrl-Break sequence
-    SPDLOG_INFO("kungfu app interrupted");
+    KF_LOG_INFO("kungfu app interrupted");
     stop_hero();
     break;
   case SIGTERM: // Software termination signal from kill
-    SPDLOG_INFO("kungfu app terminated");
+    KF_LOG_INFO("kungfu app terminated");
     stop_hero();
     break;
   case SIGILL:         // illegal instruction - invalid function image
@@ -46,7 +46,7 @@ void kf_os_signal_handler(int signum) {
   case SIGSEGV:        // segment violation
   case SIGABRT:        // abnormal termination triggered by abort call
   case SIGABRT_COMPAT: // SIGABRT compatible with other platforms, same as SIGABRT
-    SPDLOG_CRITICAL("kungfu app stopped by signal {}", signum);
+    KF_LOG_CRITICAL("kungfu app stopped by signal {}", signum);
     print_stack_trace(nullptr);
     exit_hero(signum);
     break;
@@ -56,24 +56,24 @@ void kf_os_signal_handler(int signum) {
   case SIGCHLD:  // discard signal       child status has changed
   case SIGIO:    // discard signal       I/O is possible on a descriptor (see fcntl(2))
   case SIGWINCH: // discard signal       Window size change
-    SPDLOG_INFO("kungfu app discard signal {}", signum);
+    KF_LOG_INFO("kungfu app discard signal {}", signum);
     break;
   case SIGSTOP: // stop process         stop (cannot be caught or ignored)
   case SIGTSTP: // stop process         stop signal generated from keyboard
   case SIGTTIN: // stop process         background read attempted from control terminal
   case SIGTTOU: // stop process         background write attempted to control terminal
-    SPDLOG_CRITICAL("kungfu app stopped by signal {}", signum);
+    KF_LOG_CRITICAL("kungfu app stopped by signal {}", signum);
     exit_hero(signum);
   case SIGINT: // terminate process    interrupt program
-    SPDLOG_INFO("kungfu app interrupted");
+    KF_LOG_INFO("kungfu app interrupted");
     stop_hero();
     break;
   case SIGTERM: // terminate process    software termination signal
-    SPDLOG_INFO("kungfu app terminated");
+    KF_LOG_INFO("kungfu app terminated");
     stop_hero();
     break;
   case SIGKILL: // terminate process    kill program
-    SPDLOG_INFO("kungfu app killed");
+    KF_LOG_INFO("kungfu app killed");
     exit_hero(signum);
   case SIGHUP:    // terminate process    terminal line hangup
   case SIGPIPE:   // terminate process    write on a pipe with no reader
@@ -82,12 +82,12 @@ void kf_os_signal_handler(int signum) {
   case SIGXFSZ:   // terminate process    file size limit exceeded (see setrlimit(2))
   case SIGVTALRM: // terminate process    virtual time alarm (see setitimer(2))
   case SIGPROF:   // terminate process    profiling timer alarm (see setitimer(2))
-    SPDLOG_CRITICAL("kungfu app terminated by signal {}", signum);
+    KF_LOG_CRITICAL("kungfu app terminated by signal {}", signum);
     print_stack_trace();
     exit_hero(signum);
   case SIGUSR1: // terminate process    User defined signal 1
   case SIGUSR2: // terminate process    User defined signal 2
-    SPDLOG_CRITICAL("kungfu app caught user defined signal {}", signum);
+    KF_LOG_CRITICAL("kungfu app caught user defined signal {}", signum);
     print_stack_trace();
     exit_hero(signum);
   case SIGQUIT: // create core image    quit program
@@ -96,29 +96,29 @@ void kf_os_signal_handler(int signum) {
   case SIGABRT: // create core image    abort program (formerly SIGIOT)
   case SIGFPE:  // create core image    floating-point exception
   case SIGBUS:  // create core image    bus error
-    SPDLOG_CRITICAL("bus error");
+    KF_LOG_CRITICAL("bus error");
     print_stack_trace();
     exit_hero(signum);
   case SIGSEGV: // create core image    segmentation violation
-    SPDLOG_CRITICAL("segmentation violation");
+    KF_LOG_CRITICAL("segmentation violation");
     print_stack_trace();
     exit_hero(signum);
   case SIGSYS: // create core image    non-existent system call invoked
-    SPDLOG_CRITICAL("kungfu app caught unexpected signal {}", signum);
+    KF_LOG_CRITICAL("kungfu app caught unexpected signal {}", signum);
     print_stack_trace();
     exit_hero(signum);
 #endif // _WINDOWS
 #ifdef __APPLE__
   case SIGINFO: // discard signal       status request from keyboard
-    SPDLOG_INFO("kungfu app discard signal {}", signum);
+    KF_LOG_INFO("kungfu app discard signal {}", signum);
     break;
   case SIGEMT: // create core image    emulate instruction executed
-    SPDLOG_CRITICAL("kungfu app caught unexpected signal {}", signum);
+    KF_LOG_CRITICAL("kungfu app caught unexpected signal {}", signum);
     print_stack_trace();
     exit_hero(signum);
 #endif // __APPLE__
   default:
-    SPDLOG_INFO("kungfu app caught unknown signal {}, signal ignored", signum);
+    KF_LOG_INFO("kungfu app caught unknown signal {}, signal ignored", signum);
   }
 }
 
@@ -132,7 +132,7 @@ void handle_os_signals(void *hero) {
   hero_instance = static_cast<yijinjing::practice::hero *>(hero);
 
   if (not signals_handler_enabled) {
-    SPDLOG_WARN("OS signals hander disabled");
+    KF_LOG_WARN("OS signals hander disabled");
     return;
   }
 

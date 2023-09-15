@@ -30,7 +30,7 @@ Context_ptr Runner::make_context() {
       SPDLOG_WARN("Runner in backtest mode not specified.");
     }
     set_runner(*report_, this, nullptr);
-    return std::make_shared<BacktestContext>(*this, events_, std::move(from_indexer_), std::move(to_indexer_), report_);
+    return std::make_shared<BacktestContext>(*this, events_, std::move(from_indexer_), std::move(to_indexer_), report_, time_interval_);
   }
 
   if (get_home()->mode == mode::REPLAY) {
@@ -47,6 +47,16 @@ void Runner::set_from_indexer(const tool::SliceIndexer_ptr &indexer) { from_inde
 void Runner::set_to_indexer(const tool::SliceIndexer_ptr &indexer) { to_indexer_ = indexer; }
 
 void Runner::set_report(const tool::Report_ptr &report) { report_ = report; }
+
+void Runner::set_time_interval(int64_t time_interval) {
+  if (time_interval <= 0) {
+    throw  wingchun_error(fmt::format("time_interval should be positive other than {}", time_interval_));
+  }
+  if (time_interval <= 100 * time_unit::NANOSECONDS_PER_MILLISECOND) {
+    SPDLOG_WARN("No need to make time_interval smaller than 100ms which will cause to much resource.");
+  }
+  time_interval_ = time_interval;
+}
 
 tool::Report_ptr Runner::get_report() const { return report_; }
 

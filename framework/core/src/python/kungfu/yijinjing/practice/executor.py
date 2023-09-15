@@ -314,6 +314,8 @@ class ExtensionExecutor:
             if ctx.report:
                 report = load_report(ctx, ctx.report)
                 ctx.runner.set_report(report)
+            if ctx.time_interval:
+                ctx.runner.set_time_interval(ctx.time_interval * kft.NANO_PER_SECOND)
         if kfj.MODES[ctx.mode] == lf.enums.mode.REPLAY:
             begin_time_stamp, end_time_stamp = self.parse_begin_end(ctx)
             ctx.runner.set_begin_time(begin_time_stamp)
@@ -386,6 +388,8 @@ class ExtensionExecutor:
             if ctx.report:
                 report = load_report(ctx, ctx.report)
                 ctx.op_runner.set_report(report)
+            if ctx.time_interval:
+                ctx.runner.set_time_interval(ctx.time_interval * kft.NANO_PER_SECOND)
         # ctx.runner = self.load_runner(ctx)
         if kfj.MODES[ctx.mode] == lf.enums.mode.REPLAY:
             begin_time_stamp, end_time_stamp = self.parse_begin_end(ctx)

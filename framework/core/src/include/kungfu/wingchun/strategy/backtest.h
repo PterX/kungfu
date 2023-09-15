@@ -18,7 +18,7 @@ class BacktestContext : public Context {
 public:
   explicit BacktestContext(yijinjing::practice::apprentice &app, const rx::connectable_observable<event_ptr> &events,
                            Matcher_ptr matcher, tool::SliceIndexer_ptr from_indexer, tool::SliceIndexer_ptr to_indexer,
-                           tool::Report_ptr report);
+                           tool::Report_ptr report, int64_t time_interval);
 
   /**
    * checked_ is strated started.
@@ -306,6 +306,7 @@ private:
   tool::SliceIndexer_ptr from_indexer_;
   tool::SliceTool_ptr slice_tool_;
   tool::Report_ptr report_;
+  int64_t time_interval_;
   int32_t timer_usage_count_{0};
   std::multimap<int64_t, TimerTask> pre_timer_callbacks_{};
   std::multimap<int64_t, TimerTask> timer_callbacks_{};
@@ -314,6 +315,7 @@ private:
   void on_timer_check();
   void lease_expired_check();
   int32_t add_timer_interval_helper(int64_t duration, int32_t timer_id, const std::function<void(event_ptr)> &callback);
+  void init_time_events();
 };
 
 DECLARE_PTR(BacktestContext)

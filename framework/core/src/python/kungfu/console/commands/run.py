@@ -50,6 +50,12 @@ service_command_context = kfc.pass_context("low_latency")
     type=str,
     help="path to report .dll/.so/.py",
 )
+@click.option(
+    "-I",
+    "--time_interval",
+    type=int,
+    help="the Maximum error in time, in seconds, for when the callback function of add_timer/add_time_interval will be called",
+)
 @click.option("-b", "--begin", type=str, required=False, help="begin time")
 @click.option("-e", "--end", type=str, required=False, help="end time")
 @click.option("-i", "--session_id", type=int, required=False, help="session id")
@@ -69,6 +75,7 @@ def run(
     from_indexer,
     to_indexer,
     report,
+    time_interval,
     begin,
     end,
     session_id,
@@ -86,6 +93,7 @@ def run(
     ctx.from_indexer = from_indexer
     ctx.to_indexer = to_indexer
     ctx.report = report
+    ctx.time_interval = time_interval
     ctx.begin = begin
     ctx.end = end
     ctx.session_id = session_id

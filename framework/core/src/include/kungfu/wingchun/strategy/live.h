@@ -33,6 +33,12 @@ public:
   uint32_t get_home_uid() const override;
 
   /**
+   * Get location_uid of current process
+   * @return location_uid
+   */
+  uint32_t get_live_home_uid() const;
+
+  /**
    * Add one shot timer callback.
    * @param nanotime when to call in nano seconds
    * @param callback callback function

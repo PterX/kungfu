@@ -325,6 +325,8 @@ has_book
 get_book
 get_books
 set_accounting_method
+set_begin_time
+set_end_time
 get_location
 on_start
 now
@@ -367,8 +369,6 @@ req_account
 req_position
 set_service
 get_arguments
-set_begin_time
-set_end_time
 set_from_indexer
 set_to_indexer
 set_report

@@ -12,6 +12,12 @@
 #include <spdlog/sinks/stdout_color_sinks.h>
 
 namespace kungfu::yijinjing::log {
+bool signal_log = true;
+
+void disable_signal_log() { signal_log = false; }
+
+bool is_signal_log() { return signal_log; }
+
 class pattern_formatter : public spdlog::formatter {
 public:
   pattern_formatter() : spdlog_formatter(LOG_PATTERN) {}

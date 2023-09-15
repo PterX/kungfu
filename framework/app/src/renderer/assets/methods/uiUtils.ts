@@ -52,6 +52,7 @@ import {
   removeTodayArchive,
   getYearMonthDay,
   debounce,
+  startReplay,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
@@ -78,7 +79,6 @@ import {
 import path from 'path';
 import {
   startExtService,
-  startStrategyOperator,
   stopProcess,
   listProcessStatus,
 } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
@@ -696,7 +696,7 @@ export const openReplayView = (
   processId: string,
 ): Promise<Electron.BrowserWindow> => {
   return openNewBrowserWindow(
-    globalThis.__runtimeDir,
+    process.env.KF_APP_RUNTIME_DIR,
     'replay',
     `?logPath=${logPath}&sessionName=${sessionName}&filePath=${filePath}&category=${type}&group=${group}&beginTime=${beginTime}&endTime=${endTime}&logLevel=${log_level}&processId=${processId}`,
     {
@@ -710,7 +710,7 @@ export const openLogView = (
   logPath: string,
 ): Promise<Electron.BrowserWindow> => {
   return openNewBrowserWindow(
-    globalThis.__runtimeDir,
+    process.env.KF_APP_RUNTIME_DIR,
     'logview',
     `?logPath=${logPath}`,
   );
@@ -722,7 +722,7 @@ export const openCodeView = (
   isEntryFilenameEditable: boolean,
 ): Promise<Electron.BrowserWindow> => {
   return openNewBrowserWindow(
-    globalThis.__runtimeDir,
+    process.env.KF_APP_RUNTIME_DIR,
     'code',
     `?id=${id}&filePath=${filePath}&isEntryFilenameEditable=${isEntryFilenameEditable}`,
   );
@@ -733,7 +733,7 @@ export const openJournalView = (
   locationUID: string,
 ): Promise<Electron.BrowserWindow> => {
   return openNewBrowserWindow(
-    globalThis.__runtimeDir,
+    process.env.KF_APP_RUNTIME_DIR,
     'journal',
     `?processId=${processId}&locationUID=${locationUID}`,
     {
@@ -925,14 +925,7 @@ export const handleOpenReplayView = async (
     if (processStatus[processId]) {
       await stopProcess(processId);
     }
-
-    await startStrategyOperator(
-      config.category,
-      '',
-      '',
-      'replay',
-      replayConfig,
-    );
+    await startReplay(config, replayConfig);
   });
 };
 
@@ -1660,7 +1653,7 @@ export const useScrollerTableSearch = <T extends object>(
     return null;
   };
 
-  const buildSearchResult = (
+  const initBuildSearchResult = (
     item: T,
     rawIndex: number,
   ): SearchResultByContent | null => {
@@ -1707,7 +1700,7 @@ export const useScrollerTableSearch = <T extends object>(
     return nextTick(() => {
       const rawsListResolved = getRawsListResolved();
       rawsListResolved.forEach((item: T, index) => {
-        const searchResult = buildSearchResult(item, index);
+        const searchResult = initBuildSearchResult(item, index);
 
         if (searchResult) {
           searchResults.value[`${item[keyField]}`] = searchResult;
@@ -1738,6 +1731,11 @@ export const useScrollerTableSearch = <T extends object>(
     return false;
   };
 
+  /**
+   * Scroll to the item by index from flatResults.
+   * @param index The index form flatResults keys, start from 1.
+   * @returns void
+   */
   const scrollToItemByIndex = (index: number): void => {
     if (isResultItemVisible(index)) {
       return;
@@ -1812,7 +1810,11 @@ export const useScrollerTableSearch = <T extends object>(
   const handleToDownSearchResult = (): void => {
     if (totalResultCount.value === 0) return;
     if (currentResultIndex.value === totalResultCount.value) {
-      currentResultIndex.value = 1;
+      if (totalResultCount.value === 1) {
+        scrollToItemByIndex(1);
+      } else {
+        currentResultIndex.value = 1;
+      }
     } else {
       currentResultIndex.value++;
     }
@@ -1821,7 +1823,11 @@ export const useScrollerTableSearch = <T extends object>(
   const handleToUpSearchResult = (): void => {
     if (totalResultCount.value === 0) return;
     if (currentResultIndex.value === 1) {
-      currentResultIndex.value = totalResultCount.value;
+      if (totalResultCount.value === 1) {
+        scrollToItemByIndex(1);
+      } else {
+        currentResultIndex.value = totalResultCount.value;
+      }
     } else {
       currentResultIndex.value--;
     }

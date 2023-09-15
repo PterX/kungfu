@@ -446,7 +446,7 @@ void TraderXTP::OnQueryAsset(XTPQueryAssetRsp *asset, XTPRI *error_info, int req
     if (error_info == nullptr || error_info->error_id == 0) {
       from_xtp(*asset, account);
     }
-    account.holder_uid = get_home()->uid;
+    account.holder_uid = get_live_home()->uid;
     account.update_time = yijinjing::time::now_in_nano();
     SPDLOG_TRACE("Asset: {}", account.to_string());
     writer->close_data();

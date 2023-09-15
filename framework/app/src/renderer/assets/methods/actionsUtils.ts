@@ -2078,9 +2078,9 @@ export const useReplay = (): {
     | undefined
   >;
   handleOpenReplayConfirmView(
-    record: KungfuApi.KfConfig,
+    record: KungfuApi.KfConfig | KungfuApi.KfLocation,
     session?: KungfuApi.Session,
-  ): void;
+  ): Promise<void>;
   handleReplayModal(
     data: {
       sessionInfo: string;
@@ -2216,6 +2216,7 @@ export const useReplay = (): {
     currentLocation.value = record;
 
     setReplayModalVisible.value = true;
+    return Promise.resolve();
   };
 
   const handleReplayModal = async (

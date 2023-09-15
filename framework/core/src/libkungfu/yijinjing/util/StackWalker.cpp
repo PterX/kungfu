@@ -88,6 +88,7 @@
 
 #include "StackWalker.h"
 #include <kungfu/common.h>
+#include <kungfu/yijinjing/log.h>
 
 #include <cstdio>
 #include <cstdlib>
@@ -1080,8 +1081,6 @@ BOOL StackWalker::ShowCallstack(HANDLE hThread, const CONTEXT *context, PReadPro
       // show procedure info (SymGetSymFromAddr64())
       if (this->m_sw->pSGSFA(this->m_hProcess, s.AddrPC.Offset, &(csEntry.offsetFromSmybol), pSym) != FALSE) {
         MyStrCpy(csEntry.name, STACKWALK_MAX_NAMELEN, pSym->Name);
-        // SPDLOG_INFO("csEntry.name: {}", csEntry.name);
-        //  UnDecorateSymbolName()
         this->m_sw->pUDSN(pSym->Name, csEntry.undName, STACKWALK_MAX_NAMELEN, UNDNAME_NAME_ONLY);
         this->m_sw->pUDSN(pSym->Name, csEntry.undFullName, STACKWALK_MAX_NAMELEN, UNDNAME_COMPLETE);
       } else {
@@ -1135,7 +1134,6 @@ BOOL StackWalker::ShowCallstack(HANDLE hThread, const CONTEXT *context, PReadPro
           csEntry.symTypeString = nullptr;
           break;
         }
-        // SPDLOG_DEBUG("SymType: {}", csEntry.symTypeString);
         MyStrCpy(csEntry.moduleName, STACKWALK_MAX_NAMELEN, Module.ModuleName);
         csEntry.baseOfImage = Module.BaseOfImage;
         MyStrCpy(csEntry.loadedImageName, STACKWALK_MAX_NAMELEN, Module.LoadedImageName);
@@ -1242,7 +1240,6 @@ void StackWalker::OnLoadModule(LPCSTR img, LPCSTR mod, DWORD64 baseAddr, DWORD s
   }
   buffer[STACKWALK_MAX_NAMELEN - 1] = 0; // be sure it is NULL terminated
   OnOutput(buffer);
-  // SPDLOG_INFO("OnLoadModule:{}", buffer);
 }
 
 void StackWalker::OnCallstackEntry(CallstackEntryType eType, CallstackEntry &entry) {
@@ -1273,7 +1270,7 @@ void StackWalker::OnCallstackEntry(CallstackEntryType eType, CallstackEntry &ent
     }
     buffer[STACKWALK_MAX_NAMELEN - 1] = 0;
     OnOutput(buffer);
-    SPDLOG_CRITICAL("{}", buffer);
+    KF_LOG_CRITICAL("{}", buffer);
   }
 }
 
@@ -1735,12 +1732,12 @@ bool StackWalker::decode(const void *addr, char *buf, int buflen, int *offset, b
 bool StackWalker::decode_locked(const void *addr, char *buf, int buflen, int *offset, bool do_demangle) {
 
   DWORD64 displacement;
-  PIMAGEHLP_SYMBOL64 pSymbol = NULL;
+  PIMAGEHLP_SYMBOL64 pSymbol = nullptr;
   bool success = false;
 
   pSymbol = (IMAGEHLP_SYMBOL64 *)malloc(sizeof(IMAGEHLP_SYMBOL64) + STACKWALK_MAX_NAMELEN);
   if (!pSymbol) {
-    SPDLOG_CRITICAL("not enough memory....");
+    KF_LOG_CRITICAL("not enough memory....");
     return false;
   }
   ::memset(pSymbol, 0, sizeof(IMAGEHLP_SYMBOL64) + STACKWALK_MAX_NAMELEN);
@@ -1752,7 +1749,8 @@ bool StackWalker::decode_locked(const void *addr, char *buf, int buflen, int *of
   // combination). Lets be super careful.
   ::memset(pSymbol->Name, 0, pSymbol->MaxNameLength); // To catch truncation.
 
-  if (success = this->m_sw->pSGSFA(::GetCurrentProcess(), (DWORD64)addr, &displacement, pSymbol)) {
+  success = this->m_sw->pSGSFA(::GetCurrentProcess(), (DWORD64)addr, &displacement, pSymbol);
+  if (success) {
     // success = true;
     if (pSymbol->Name[pSymbol->MaxNameLength - 1] != '\0') {
       // Symbol was truncated. Do not attempt to demangle. Instead, zero terminate the
@@ -1861,7 +1859,7 @@ bool StackWalker::get_source_info(const void *addr, char *buf, size_t buflen, in
 #if 0
     else{
       DWORD error_code = GetLastError();
-      SPDLOG_CRITICAL("\tsymGetLineFromAddr64 returned error, error code: {:d}", error_code);
+      KF_LOG_CRITICAL("\tsymGetLineFromAddr64 returned error, error code: {:d}", error_code);
     }
 #endif
   return false;
@@ -1870,7 +1868,7 @@ bool StackWalker::get_source_info(const void *addr, char *buf, size_t buflen, in
 bool StackWalker::_print_native_stack(std::ostream &st, const void *context, char *buf, int buf_size) {
 
   CONTEXT ctx;
-  if (context != NULL) {
+  if (context != nullptr) {
     memcpy(&ctx, context, sizeof(ctx));
   } else {
     memset(&ctx, 0, sizeof(CONTEXT));
@@ -1918,8 +1916,7 @@ bool StackWalker::_print_native_stack(std::ostream &st, const void *context, cha
           }
         }
         if (console_count > 0) {
-          // std::cout << std::endl;
-          SPDLOG_CRITICAL("{}", buffer_console);
+          KF_LOG_CRITICAL("{}", buffer_console);
           console_count--;
         }
         st << std::endl;
@@ -1941,10 +1938,10 @@ bool StackWalker::_print_native_stack(std::ostream &st, const void *context, cha
                                   GetCurrentThread(),       // __in      HANDLE hThread,
                                   &stk,                     // __inout   LP STACKFRAME64 StackFrame,
                                   &ctx,                     // __inout   PVOID ContextRecord,
-                                  NULL,                     // ReadMemoryRoutine
+                                  nullptr,                  // ReadMemoryRoutine
                                   this->m_sw->pSFTA,        // FunctionTableAccessRoutine,
                                   this->m_sw->pSGMB,        // GetModuleBaseRoutine
-                                  NULL                      // TranslateAddressRoutine
+                                  nullptr                   // TranslateAddressRoutine
     );
 
     if (!result) {

@@ -77,7 +77,7 @@
           class="kf-journal-time-slider"
         ></TimeSlider>
         <JournalActions
-          :currentSession="currentSession"
+          :is-show-replay="isShowReplay"
           @export-journal-data="onJournalActionsData"
           @start-replay="dealLocation"
         />
@@ -102,6 +102,7 @@
           <Replay
             v-if="
               currentSession &&
+              isShowReplay &&
               replayPramas.processId &&
               isCurrentMenuItem('replay')
             "
@@ -258,6 +259,14 @@ const replayPramas = computed(() => {
   };
 });
 
+const isShowReplay = computed(() => {
+  return (
+    currentSession.value &&
+    (replayList.includes(currentSession.value.category) ||
+      (currentSession.value.category === 'system' &&
+        currentSession.value.name === 'ledger'))
+  );
+});
 const { searchKeyword, tableData } =
   useTableSearchKeyword<KungfuApi.SessionResolved>(sessions, [
     'sessionName',
@@ -268,18 +277,28 @@ const { searchKeyword, tableData } =
 
 const app = getCurrentInstance();
 const currentMenuList = ref<('event' | 'visual' | 'replay')[]>(['event']);
-const menus = [
-  {
-    key: 'event',
-    title: t('journalConfig.Event'),
-    icon: UnorderedListOutlined,
-  },
-  {
-    key: 'replay',
-    title: t('journalConfig.replay'),
-    icon: HistoryOutlined,
-  },
-];
+const menus = computed(() => [
+  ...(isShowReplay.value
+    ? [
+        {
+          key: 'event',
+          title: t('journalConfig.Event'),
+          icon: UnorderedListOutlined,
+        },
+        {
+          key: 'replay',
+          title: t('journalConfig.replay'),
+          icon: HistoryOutlined,
+        },
+      ]
+    : [
+        {
+          key: 'event',
+          title: t('journalConfig.Event'),
+          icon: UnorderedListOutlined,
+        },
+      ]),
+]);
 const isCurrentMenuItem = (key: 'event' | 'visual' | 'replay') => {
   if (currentMenuList.value.includes(key) && key === 'replay') {
     return (
@@ -379,9 +398,6 @@ watch(
             if (currentWindow) {
               ipcEmit('clear-process', {
                 processId: replayPramas.value.processId || '',
-              });
-              ipcEmit('clear-process', {
-                processId: replayPramas.value.processId || '',
               })
                 .then(() => {
                   const pawin =
@@ -426,29 +442,33 @@ const dealLocation = () => {
   };
 
   if (currentSession.value?.category === 'operator') {
-    if (operator.value.length === 0) {
-      messagePrompt().error(t('replay.process_has_not_been_started'));
-      return;
-    }
-    for (let i = 0; i < operator.value.length; i++) {
-      if (
-        operator.value[i].location_uid === currentSession.value.location_uid
-      ) {
-        locationResolved.value = operator.value[i].value;
-        break;
+    if (currentSession.value?.group === 'default') {
+      if (operator.value.length === 0) {
+        messagePrompt().error(t('replay.process_has_not_been_started'));
+        return;
+      }
+      for (let i = 0; i < operator.value.length; i++) {
+        if (
+          operator.value[i].location_uid === currentSession.value.location_uid
+        ) {
+          locationResolved.value = operator.value[i].value;
+          break;
+        }
       }
     }
   } else if (currentSession.value?.category === 'strategy') {
-    if (strategy.value.length === 0) {
-      messagePrompt().error(t('replay.process_has_not_been_started'));
-      return;
-    }
-    for (let i = 0; i < strategy.value.length; i++) {
-      if (
-        strategy.value[i].location_uid === currentSession.value.location_uid
-      ) {
-        locationResolved.value = strategy.value[i].value;
-        break;
+    if (currentSession.value?.group === 'default') {
+      if (strategy.value.length === 0) {
+        messagePrompt().error(t('replay.process_has_not_been_started'));
+        return;
+      }
+      for (let i = 0; i < strategy.value.length; i++) {
+        if (
+          strategy.value[i].location_uid === currentSession.value.location_uid
+        ) {
+          locationResolved.value = strategy.value[i].value;
+          break;
+        }
       }
     }
   } else if (currentSession.value?.category === 'td') {

@@ -86,6 +86,7 @@ import {
   startOperatorByExt,
   startStrategyOperator,
   startTd,
+  listProcessStatus,
 } from './processUtils';
 import { Proc } from 'pm2';
 import {
@@ -101,6 +102,7 @@ import { getKfGlobalSettingsValue } from '../config/globalSettings';
 import { Currency } from '../config/tradingConfig';
 const { t } = VueI18n.global;
 import { Observable } from 'rxjs';
+import { startTask } from './processUtils';
 
 interface SourceAccountId {
   source: string;
@@ -2691,10 +2693,48 @@ export function getYearMonthDay(delimiter = '-') {
   return `${year}${delimiter}${monthStr}${delimiter}${dayStr}`;
 }
 
-export function startReplay(
+export function parseTaskSettingsFromEnv(configSettingsEnv = '[]') {
+  let configSettings: KungfuApi.KfConfigItem[] = [];
+
+  try {
+    configSettings = JSON.parse(configSettingsEnv) as KungfuApi.KfConfigItem[];
+  } catch (err) {
+    console.error((<Error>err).message);
+  }
+  return configSettings;
+}
+
+export async function startReplay(
   location: KungfuApi.KfConfig | KungfuApi.KfLocation,
   replayConfig: KungfuApi.ReplayConfigOrigin,
 ) {
+  if (location.category === 'strategy' && location.group !== 'default') {
+    const { processStatusWithDetail } = await listProcessStatus();
+    const extConfigs = await getKfExtensionConfig();
+    const extKey = location.group;
+    const extConfig: KungfuApi.KfStrategyExtConfig = (extConfigs['strategy'] ||
+      {})[extKey];
+    const soPath = path.join(extConfig.extPath, extKey);
+    const processId = getProcessIdByKfLocation(location);
+
+    const processStatusDetail = processStatusWithDetail[processId];
+    if (!processStatusDetail) {
+      kfLogger.error(`Process ${processId} not found`);
+      return Promise.reject(new Error(t('replay.process_not_found')));
+    }
+    const { args, config_settings } = processStatusDetail;
+    const dealArgs = minimist(args as string[])['a'] || '';
+    const configSettings = parseTaskSettingsFromEnv(config_settings || '[]');
+    location.mode = 'replay';
+    return startTask(
+      location,
+      soPath,
+      dealArgs,
+      configSettings,
+      'replay',
+      replayConfig,
+    );
+  }
   switch (location.category) {
     case 'td':
       return startTd(

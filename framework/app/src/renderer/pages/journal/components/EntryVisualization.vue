@@ -268,15 +268,18 @@ watch(
                 seriesIndex: 0,
                 dataIndex: closestTimeIndex,
               });
+
+              return delayMilliSeconds(3000);
             })
             .then(() => {
-              delayMilliSeconds(3000).then(() => {
-                myChart.dispatchAction({
-                  type: 'downplay',
-                  seriesIndex: 0,
-                  dataIndex: closestTimeIndex,
-                });
+              myChart.dispatchAction({
+                type: 'downplay',
+                seriesIndex: 0,
+                dataIndex: closestTimeIndex,
               });
+            })
+            .catch((error) => {
+              messagePrompt().error(error);
             });
         } else {
           selectedOrderId = orderId as bigint;

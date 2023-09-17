@@ -30,7 +30,8 @@ Context_ptr Runner::make_context() {
       SPDLOG_WARN("Runner in backtest mode not specified.");
     }
     set_runner(*report_, this, nullptr);
-    return std::make_shared<BacktestContext>(*this, events_, std::move(from_indexer_), std::move(to_indexer_), report_, time_interval_);
+    return std::make_shared<BacktestContext>(*this, events_, std::move(from_indexer_), std::move(to_indexer_), report_,
+                                             time_interval_);
   }
 
   return std::make_shared<LiveContext>(*this, events_);
@@ -46,7 +47,7 @@ void Runner::set_report(const tool::Report_ptr &report) { report_ = report; }
 
 void Runner::set_time_interval(int64_t time_interval) {
   if (time_interval <= 0) {
-    throw  wingchun_error(fmt::format("time_interval should be positive other than {}", time_interval_));
+    throw wingchun_error(fmt::format("time_interval should be positive other than {}", time_interval_));
   }
   if (time_interval <= 100 * time_unit::NANOSECONDS_PER_MILLISECOND) {
     SPDLOG_WARN("No need to make time_interval smaller than 100ms which will cause to much resource.");

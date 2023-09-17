@@ -15,7 +15,8 @@ using kungfu::yijinjing::nanomsg::nanomsg_json;
 namespace kungfu::wingchun::op {
 
 BacktestContext::BacktestContext(apprentice &app, const rx::connectable_observable<event_ptr> &events,
-                                 SliceIndexer_ptr from_indexer, SliceIndexer_ptr to_indexer, Report_ptr report, int64_t time_interval)
+                                 SliceIndexer_ptr from_indexer, SliceIndexer_ptr to_indexer, Report_ptr report,
+                                 int64_t time_interval)
     : Context(app, events), broker_client_(app), from_indexer_(std::move(from_indexer)),
       slice_tool_(std::make_shared<SliceTool>(category::OPERATOR, app.get_home()->group, app.get_home()->name,
                                               std::move(to_indexer))),

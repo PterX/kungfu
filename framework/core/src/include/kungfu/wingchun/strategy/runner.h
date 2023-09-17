@@ -37,7 +37,6 @@ public:
 
   void set_time_interval(int64_t time_interval);
 
-
   void on_exit() override;
 
 protected:

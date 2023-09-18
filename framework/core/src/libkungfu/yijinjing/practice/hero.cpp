@@ -33,7 +33,7 @@ hero::hero(io_device_ptr io_device)
       master_home_location_(make_system_location("master", "master", io_device->get_locator())),
       master_cmd_location_(make_system_location("master", encode(io_device), io_device->get_locator())),
       ledger_home_location_(make_system_location("service", "ledger", io_device->get_locator())),
-      io_device_(std::move(io_device)), now_(0), main_thread_id_(kungfu::yijinjing::util::get_thread_id()) {
+      io_device_(std::move(io_device)), now_(0), main_thread_id_(util::get_thread_id()) {
 
   os::handle_os_signals(this);
   util::set_error_log_dir(get_locator()->layout_dir(get_home(), layout::LOG));
@@ -126,18 +126,18 @@ uint32_t hero::get_live_home_uid() const { return get_io_device()->get_live_home
 [[maybe_unused]] reader_ptr hero::get_reader() const { return reader_; }
 
 bool hero::has_writer(uint32_t dest_id) const {
-  if (kungfu::yijinjing::util::get_thread_id() != main_thread_id_) {
+  if (util::get_thread_id() != main_thread_id_) {
     return has_band_writer(dest_id) or writers_.find(dest_id) != writers_.end();
   }
   return writers_.find(dest_id) != writers_.end();
 }
 
 writer_ptr hero::get_writer(uint32_t dest_id) const {
-  if (kungfu::yijinjing::util::get_thread_id() != main_thread_id_) {
+  if (util::get_thread_id() != main_thread_id_) {
     try {
       return get_band_writer(dest_id);
     } catch (const std::exception &e) {
-      SPDLOG_WARN("Unexpected exception by get_band_writer of dest_id {}:{}, {}", dest_id, get_location_uname(dest_id),
+      SPDLOG_WARN("Unexpected exception by get_band_writer for dest_id {}:{}, {}", dest_id, get_location_uname(dest_id),
                   e.what());
     }
   }

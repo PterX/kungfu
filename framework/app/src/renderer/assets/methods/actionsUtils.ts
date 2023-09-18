@@ -1239,7 +1239,6 @@ export const useSubscibeInstrumentAtEntry = (
       });
     }
   });
-
   watch(appStates, (newAppStates, oldAppStates) => {
     Object.keys(newAppStates || {}).forEach((processId: string) => {
       const newState = newAppStates[processId];
@@ -2514,17 +2513,46 @@ export const useMakeOrderSubscribe = (
   formState: Ref<Record<string, KungfuApi.KfConfigValue>>,
 ) => {
   const app = getCurrentInstance();
-  let lastTriggerTag: 'makeOrder' | 'orderBookUpdate' | '' = '';
-  let lastVolume = 0;
+  function closestNumber(target: number, numbers: number[]): number {
+    if (numbers.length === 0) {
+      return target;
+    }
+
+    return numbers.reduce((prev, curr) =>
+      Math.abs(curr - target) < Math.abs(prev - target) ? curr : prev,
+    );
+  }
   onMounted(() => {
     if (app?.proxy) {
       const subscription = app.proxy.$globalBus.subscribe(
         (data: KfEvent.KfBusEvent) => {
           if (data.tag === 'makeOrder') {
-            const { offset, side, volume, price, instrumentType, accountId } = (
-              data as KfEvent.TriggerMakeOrder
-            ).orderInput;
+            const {
+              offset,
+              side,
+              volume,
+              price,
+              instrumentType,
+              accountId,
+              instrumentId,
+              exchangeId,
+            } = (data as KfEvent.TriggerMakeOrder).orderInput;
+            const uid = hashInstrumentUKey(instrumentId, exchangeId);
+            const quote: KungfuApi.Quote = window.watcher.ledger.Quote[uid];
 
+            let dealPrice = price;
+            if (quote) {
+              dealPrice = closestNumber(
+                price,
+                quote.ask_price.concat(quote.bid_price),
+              );
+              if (quote.lower_limit_price && quote.upper_limit_price)
+                if (dealPrice <= quote.lower_limit_price) {
+                  dealPrice = quote.lower_limit_price;
+                } else {
+                  dealPrice = quote.upper_limit_price;
+                }
+            }
             const instrumentValue = buildInstrumentSelectOptionValue(
               (data as KfEvent.TriggerMakeOrder).orderInput,
             );
@@ -2533,14 +2561,12 @@ export const useMakeOrderSubscribe = (
             formState.value.offset = +offset;
             formState.value.side = +side;
             formState.value.volume = +Number(volume).kfToFixed(0);
-            formState.value.limit_price = +Number(price).kfToFixed(4);
+            formState.value.limit_price = +Number(dealPrice).kfToFixed(4);
             formState.value.instrument_type = +instrumentType;
 
             if (accountId) {
               formState.value.account_id = accountId;
             }
-            lastTriggerTag = 'makeOrder';
-            lastVolume = formState.value.volume;
           }
 
           if (data.tag === 'orderBookUpdate') {
@@ -2560,27 +2586,8 @@ export const useMakeOrderSubscribe = (
             if (!!price && !Number.isNaN(price) && +price !== 0) {
               formState.value.limit_price = +Number(price).kfToFixed(4);
             }
-
-            const shouldUpdateVolume =
-              (lastTriggerTag === 'orderBookUpdate' &&
-                lastVolume === formState.value.volume) ||
-              !formState.value.volume;
-            const isNewVolumeValuable =
-              !!volume &&
-              !Number.isNaN(Number(volume)) &&
-              BigInt(volume) !== BigInt(0);
-
-            if (shouldUpdateVolume && isNewVolumeValuable) {
-              formState.value.volume = +Number(volume).kfToFixed(0);
-              lastVolume = formState.value.volume;
-            }
-
+            formState.value.volume = +Number(volume).kfToFixed(0);
             formState.value.side = +side;
-            if (shouldUpdateVolume) {
-              lastTriggerTag = 'orderBookUpdate';
-            } else {
-              lastVolume = 0;
-            }
           }
         },
       );

@@ -69,7 +69,11 @@ public:
 
   BasketMap &get_baskets() { return baskets_; }
 
-  BasketInstrumentMap &get_basket_instruments() { return basket_instruments_; }
+  BasketInstrumentElement &get_basket_instruments_by_basket_uid(uint32_t basket_uid) {
+    if (basket_instruments_.find(basket_uid) != basket_instruments_.end()) {
+      return basket_instruments_.at(basket_uid);
+    }
+  }
 
   std::mutex &get_update_book_mutex();
 

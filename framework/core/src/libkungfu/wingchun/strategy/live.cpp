@@ -394,7 +394,7 @@ uint64_t LiveContext::insert_algo_order(const std::string &instrument_id, const 
                                         int64_t end_time, int64_t volume, longfist::enums::PriceType type,
                                         longfist::enums::Side side, longfist::enums::Offset offset,
                                         const std::string &algo_type_id, const std::string &algo_id,
-                                        const std::string &args, bool is_local, uint32_t basket_uid ) {
+                                        const std::string &args, bool is_local, uint32_t basket_uid) {
   if (not is_started()) {
     SPDLOG_ERROR("context not ready");
     return 0;
@@ -404,7 +404,6 @@ uint64_t LiveContext::insert_algo_order(const std::string &instrument_id, const 
   if (not broker_client_.is_ready(account_location_uid)) {
     SPDLOG_ERROR("account {} not ready", app_.get_location_uname(account_location_uid));
     return 0;
-
   }
 
   auto writer = app_.get_writer(account_location_uid);
@@ -431,11 +430,12 @@ uint64_t LiveContext::insert_algo_order(const std::string &instrument_id, const 
   return input.order_id;
 }
 
-uint64_t LiveContext::update_algo_order(uint64_t origin_order_id, const std::string &instrument_id, const std::string &exchange_id,
-                                            const std::string &source, const std::string &account, int64_t begin_time,
-                                            int64_t end_time, int64_t volume, PriceType type, Side side, Offset offset,
-                                            const std::string &algo_type_id, const std::string &algo_id,
-                                            const std::string &args, bool is_local, uint32_t basket_uid) {
+uint64_t LiveContext::update_algo_order(uint64_t origin_order_id, const std::string &instrument_id,
+                                        const std::string &exchange_id, const std::string &source,
+                                        const std::string &account, int64_t begin_time, int64_t end_time,
+                                        int64_t volume, PriceType type, Side side, Offset offset,
+                                        const std::string &algo_type_id, const std::string &algo_id,
+                                        const std::string &args, bool is_local, uint32_t basket_uid) {
   if (not is_started()) {
     SPDLOG_ERROR("context not ready");
     return 0;
@@ -471,7 +471,6 @@ uint64_t LiveContext::update_algo_order(uint64_t origin_order_id, const std::str
   writer->write(now(), input);
   return input.order_id;
 }
-
 
 uint64_t LiveContext::cancel_order(uint64_t order_id, OrderActionFlag action_flag) {
   if (not is_started()) {

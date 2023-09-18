@@ -431,7 +431,7 @@ KF_DEFINE_DATA_TYPE(                                           //
     (kungfu::array<char, EXCHANGE_ID_LEN>, exchange_id),     // 交易所代码
     (enums::InstrumentType, instrument_type),                // 合约类型
 
-    (uint32_t, basket_uid),                                  //basket订单的id
+    (uint32_t, basket_uid), // basket订单的id
 
     (enums::Side, side),            // 买卖方向
     (enums::Offset, offset),        // 开平方向
@@ -458,7 +458,7 @@ KF_DEFINE_PACK_TYPE(                                           //
     (kungfu::array<char, EXCHANGE_ID_LEN>, exchange_id),     // 交易所代码
     (enums::InstrumentType, instrument_type),                // 合约类型
 
-    (uint32_t, basket_uid),                                  //basket订单的id
+    (uint32_t, basket_uid), // basket订单的id
 
     (enums::Side, side),            // 买卖方向
     (enums::Offset, offset),        // 开平方向

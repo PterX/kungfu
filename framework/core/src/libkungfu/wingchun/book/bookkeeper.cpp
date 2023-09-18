@@ -179,7 +179,14 @@ void Bookkeeper::update_basket_instrument(const longfist::types::BasketInstrumen
 
   auto basket_instrument_hashed = hash_basket_instrument(basket_instrument.basket_uid, basket_instrument.exchange_id,
                                                          basket_instrument.instrument_id);
-  basket_instruments_.insert_or_assign(basket_instrument_hashed, basket_instrument);
+
+  if (basket_instruments_.find(basket_instrument.basket_uid) == basket_instruments_.end()) {
+    BasketInstrumentElement basket_instrument_element;
+    basket_instruments_.emplace(basket_instrument.basket_uid, basket_instrument_element);
+  }
+
+  auto &basket_instrument_element = basket_instruments_.at(basket_instrument.basket_uid);
+  basket_instrument_element.insert_or_assign(basket_instrument_hashed, basket_instrument);
 }
 
 void Bookkeeper::update_commission(const event_ptr &event, const longfist::types::Commission &commission) {

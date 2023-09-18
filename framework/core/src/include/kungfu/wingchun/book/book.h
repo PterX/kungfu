@@ -23,8 +23,11 @@ typedef std::unordered_map<uint32_t, longfist::types::Instrument> InstrumentMap;
 // key = basket_uid
 typedef std::unordered_map<uint32_t, longfist::types::Basket> BasketMap;
 
-// fist_key = basket_uid ;second_key = hash_basket_instrument(basket_uid, exchange_id, instrument_id)
-typedef std::unordered_map<uint32_t, longfist::types::BasketInstrument> BasketInstrumentMap;
+// key = hash_basket_instrument(basket_uid, exchange_id, instrument_id)
+typedef std::unordered_map<uint32_t, longfist::types::BasketInstrument> BasketInstrumentElement;
+
+// key = basket_uid
+typedef std::unordered_map<uint32_t, BasketInstrumentElement> BasketInstrumentMap;
 
 // key = hash_instrument(source_id, exchange_id, instrument_id)
 typedef std::unordered_map<uint32_t, longfist::types::Position> PositionMap;
@@ -45,7 +48,7 @@ struct Book {
   CommissionMap &commissions;
   const InstrumentMap &instruments;
   const BasketMap &baskets;
-  const BasketInstrumentMap &bakset_instruments;
+  const BasketInstrumentMap &basket_instruments;
   InstrumentFactorMap instrument_factors = {};
   longfist::types::Asset asset = {};
   PositionMap long_positions = {};
@@ -57,7 +60,7 @@ struct Book {
   yijinjing::data::location_ptr home;
 
   Book(CommissionMap &commissions_ref, const InstrumentMap &instruments_ref, BasketMap &baskets_ref,
-       BasketInstrumentMap &bakset_instruments_ref, yijinjing::data::location_ptr home_location);
+       BasketInstrumentMap &basket_instruments_ref, yijinjing::data::location_ptr home_location);
 
   double get_frozen_price(uint64_t order_id);
 
@@ -267,7 +270,11 @@ struct Book {
 
   [[nodiscard]] const BasketMap &get_baskets() const { return baskets; }
 
-  [[nodiscard]] const BasketInstrumentMap &get_basket_instruments() const { return bakset_instruments; }
+  [[nodiscard]] const BasketInstrumentElement &get_basket_instruments_by_basket_uid(uint32_t basket_uid) const {
+    if (basket_instruments.find(basket_uid) != basket_instruments.end()) {
+      return basket_instruments.at(basket_uid);
+    }
+  }
 
   Book &operator=(const Book &book) { return *this; }
 };

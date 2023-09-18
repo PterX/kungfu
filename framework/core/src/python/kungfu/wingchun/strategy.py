@@ -168,11 +168,7 @@ class Strategy(wc.Strategy):
             else self.ctx.backtest_locator
         )
         location = yjj.location(
-            mode,
-            lf.enums.category.STRATEGY,
-            self.ctx.group,
-            self.ctx.name,
-            locator,
+            mode, lf.enums.category.STRATEGY, self.ctx.group, self.ctx.name, locator,
         )
 
         self.ctx.book = self.ctx.wc_context.bookkeeper.get_book(location.uid)

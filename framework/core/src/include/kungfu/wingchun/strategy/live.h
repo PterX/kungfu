@@ -224,10 +224,9 @@ public:
                              int64_t end_time, int64_t volume, longfist::enums::PriceType type,
                              longfist::enums::Side side, longfist::enums::Offset offset,
                              const std::string &algo_type_id, const std::string &algo_id, const std::string &args,
-                             bool is_local = false , uint32_t basket_uid = 0) override;
+                             bool is_local = false, uint32_t basket_uid = 0) override;
 
-
-    /**
+  /**
    * @param origin_order_id origin order id
    * @param instrument_id instrument ID
    * @param exchange_id exchange ID
@@ -251,7 +250,7 @@ public:
                              int64_t end_time, int64_t volume, longfist::enums::PriceType type,
                              longfist::enums::Side side, longfist::enums::Offset offset,
                              const std::string &algo_type_id, const std::string &algo_id, const std::string &args,
-                             bool is_local = false , uint32_t basket_uid = 0) override;
+                             bool is_local = false, uint32_t basket_uid = 0) override;
 
   /**
    * Cancel order.

@@ -17,9 +17,9 @@ using namespace kungfu::yijinjing::data;
 
 namespace kungfu::wingchun::book {
 Book::Book(CommissionMap &commissions_ref, const InstrumentMap &instruments_ref, BasketMap &baskets_ref,
-           BasketInstrumentMap &bakset_instruments_ref, yijinjing::data::location_ptr home_location)
+           BasketInstrumentMap &basket_instruments_ref, yijinjing::data::location_ptr home_location)
     : commissions(commissions_ref), instruments(instruments_ref), baskets(baskets_ref),
-      bakset_instruments(bakset_instruments_ref), home(home_location) {}
+      basket_instruments(basket_instruments_ref), home(home_location) {}
 
 double Book::get_frozen_price(uint64_t order_id) {
   if (orders.find(order_id) != orders.end()) {

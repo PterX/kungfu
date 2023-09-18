@@ -151,14 +151,13 @@ void BacktestContext::init_time_events() {
   // auto j_instrument_obj = j_obj["Instrument"];
   // auto j_instrument_factor_obj = j_obj["InstrumentFactor"];
 
-
   auto write_next_time_mark = [writer, this](auto e) {
     auto next_time = now() + time_interval_;
     writer->mark_at(next_time, next_time, Time::tag);
   };
   write_next_time_mark(nullptr);
   add_time_interval(time_interval_, write_next_time_mark);
-  
+
   SPDLOG_DEBUG("init {} Time events done.", (app_.get_end_time() - app_.get_begin_time()) / time_interval_);
 }
 

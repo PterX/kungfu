@@ -29,7 +29,7 @@ public:
 
   void set_time_interval(int64_t time_interval);
 
-  void set_backtest_config(const std::string & backtest_config);
+  void set_backtest_config(const std::string &backtest_config);
 
   void on_exit() override;
 

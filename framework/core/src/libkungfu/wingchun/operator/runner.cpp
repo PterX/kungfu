@@ -55,9 +55,7 @@ void Runner::set_time_interval(int64_t time_interval) {
   time_interval_ = time_interval;
 }
 
-void Runner::set_backtest_config(const std::string &backtest_config) {
-  backtest_config_ = backtest_config;
-}
+void Runner::set_backtest_config(const std::string &backtest_config) { backtest_config_ = backtest_config; }
 
 tool::Report_ptr Runner::get_report() const { return report_; }
 

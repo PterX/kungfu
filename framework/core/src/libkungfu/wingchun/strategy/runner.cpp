@@ -42,8 +42,9 @@ Context_ptr Runner::make_context() {
       SPDLOG_WARN("Runner in backtest mode not specified Report.");
     }
     set_runner(*matcher_, this);
-    auto backtest_context = std::make_shared<BacktestContext>(
-        *this, events_, std::move(matcher_), std::move(from_indexer_), std::move(to_indexer_), report_, time_interval_, backtest_config_);
+    auto backtest_context =
+        std::make_shared<BacktestContext>(*this, events_, std::move(matcher_), std::move(from_indexer_),
+                                          std::move(to_indexer_), report_, time_interval_, std::move(backtest_config_));
 
     set_runner(*report_, this, std::addressof(backtest_context->get_bookkeeper()));
     return backtest_context;
@@ -72,9 +73,7 @@ void Runner::set_time_interval(int64_t time_interval) {
   time_interval_ = time_interval;
 }
 
-void Runner::set_backtest_config(const std::string &backtest_config) {
-  backtest_config_ = backtest_config;
-}
+void Runner::set_backtest_config(const std::string &backtest_config) { backtest_config_ = backtest_config; }
 
 tool::Report_ptr Runner::get_report() const { return report_; }
 

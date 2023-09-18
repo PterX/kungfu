@@ -119,7 +119,7 @@ void BacktestContext::init_time_events() {
   };
   write_next_time_mark(nullptr);
   add_time_interval(time_interval_, write_next_time_mark);
-  
+
   SPDLOG_DEBUG("init {} Time events done.", (app_.get_end_time() - app_.get_begin_time()) / time_interval_);
 }
 

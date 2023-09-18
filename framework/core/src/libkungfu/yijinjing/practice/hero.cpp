@@ -125,15 +125,20 @@ uint32_t hero::get_live_home_uid() const { return get_io_device()->get_live_home
 
 [[maybe_unused]] reader_ptr hero::get_reader() const { return reader_; }
 
-bool hero::has_writer(uint32_t dest_id) const { return writers_.find(dest_id) != writers_.end(); }
+bool hero::has_writer(uint32_t dest_id) const {
+  if (kungfu::yijinjing::util::get_thread_id() != main_thread_id_) {
+    return has_band_writer(dest_id) or writers_.find(dest_id) != writers_.end();
+  }
+  return writers_.find(dest_id) != writers_.end();
+}
 
 writer_ptr hero::get_writer(uint32_t dest_id) const {
   if (kungfu::yijinjing::util::get_thread_id() != main_thread_id_) {
     try {
       return get_band_writer(dest_id);
     } catch (const std::exception &e) {
-      SPDLOG_ERROR("Unexpected exception by get_band_writer of dest_id {}:{}, {}", dest_id, get_location_uname(dest_id),
-                   e.what());
+      SPDLOG_WARN("Unexpected exception by get_band_writer of dest_id {}:{}, {}", dest_id, get_location_uname(dest_id),
+                  e.what());
     }
   }
 

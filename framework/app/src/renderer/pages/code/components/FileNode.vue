@@ -66,6 +66,13 @@
             v-show="fileNode && !onEditing && fileNode.name && !fileNode?.root"
           >
             <span
+              class="mouse-over"
+              :title="$t('editor.open_folder')"
+              @click.stop="handleOpenFileLocation(fileNode.filePath)"
+            >
+              <SelectOutlined class="icon" />
+            </span>
+            <span
               v-if="!isEntryFile || isEntryFilenameEditable"
               class="mouse-over"
               :title="$t('rename')"
@@ -132,7 +139,12 @@ export default {
 </script>
 
 <script setup lang="ts">
-import { EditFilled, DeleteFilled } from '@ant-design/icons-vue';
+import { shell } from '@electron/remote';
+import {
+  SelectOutlined,
+  EditFilled,
+  DeleteFilled,
+} from '@ant-design/icons-vue';
 import { useCodeStore } from '../store/codeStore';
 import iconFolderJSON from '../config/iconFolderConfig.json';
 import iconFileJSON from '../config/iconFileConfig.json';
@@ -204,6 +216,10 @@ watch(isShowChildren, () => {
 function enterBlur(e) {
   resetStatus();
   e.target.blur();
+}
+
+function handleOpenFileLocation(path: string) {
+  return shell.showItemInFolder(path);
 }
 
 //点击文件或文件树

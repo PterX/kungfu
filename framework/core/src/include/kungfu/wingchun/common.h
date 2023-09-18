@@ -153,6 +153,7 @@ inline bool is_final_status(const longfist::enums::OrderStatus &status) {
   case longfist::enums::OrderStatus::PartialFilledActive:
   case longfist::enums::OrderStatus::Unknown:
   case longfist::enums::OrderStatus::Cancelling:
+  case longfist::enums::OrderStatus::Pause:
     return false;
   default:
     return true;

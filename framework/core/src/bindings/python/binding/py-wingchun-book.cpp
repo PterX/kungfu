@@ -88,7 +88,8 @@ void bind_book(pybind11::module &m) {
            py::overload_cast<const std::string &, const std::string &, const char *, const char *>(
                &Book::get_short_position),
            py::return_value_policy::reference)
-      .def ("get_basket_instruments_by_basket_uid", &Book::get_basket_instruments_by_basket_uid, py::return_value_policy::reference );
+      .def("get_basket_instruments_by_basket_uid", &Book::get_basket_instruments_by_basket_uid,
+           py::return_value_policy::reference);
 
   py::class_<AccountingMethod, PyAccountingMethod, AccountingMethod_ptr>(m, "AccountingMethod")
       .def(py::init<>())

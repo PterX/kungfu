@@ -64,7 +64,7 @@ const { t } = VueI18n.global;
 const { success, error } = messagePrompt();
 const handleSwitchProcessStatus = handleSwitchProcessStatusGenerator();
 const { dashboardBodyHeight, handleBodySizeChange } = useDashboardBodySize();
-const { globalSetting } = storeToRefs(useGlobalStore());
+const { globalSetting, testCase } = storeToRefs(useGlobalStore());
 const isShowMarginTrading = computed(() => {
   return !!globalSetting.value?.trade?.marginTrading;
 });
@@ -725,6 +725,7 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
           <template v-else-if="column.dataIndex === 'actions'">
             <div v-if="record.category === 'td'" class="kf-actions__warp">
               <HistoryOutlined
+                v-if="testCase.replayEnabled[record.category]"
                 style="font-size: 12px"
                 @click.stop="
                   handleOpenReplayConfirmView(record as KungfuApi.KfConfig)

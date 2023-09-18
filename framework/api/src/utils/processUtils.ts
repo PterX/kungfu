@@ -935,16 +935,7 @@ export const startLedger = async (
       process.env.BY_PASS_REFRESHBOOK ??
       globalSetting?.performance?.bypassRefreshBook ??
       false;
-    args = buildArgs({
-      location: {
-        category: 'system',
-        group: 'service',
-        name: 'ledger',
-        mode: mode,
-      },
-      args: `'{"bypass_refresh_book": ${bypassRefreshBook}}'`,
-    });
-    if (mode === 'replay' && replayConfig) {
+    if (isReplay && replayConfig) {
       const location = {
         category: 'system',
         group: 'service',
@@ -952,6 +943,7 @@ export const startLedger = async (
         mode: mode,
       };
       args = buildArgs({
+        loglevel: replayConfig.log_level,
         location,
         args: `'{"bypass_refresh_book": ${bypassRefreshBook}}'`,
         suffix: `-b '${replayConfig.begin_time}' -e '${replayConfig.end_time}'`,
@@ -1075,6 +1067,7 @@ export const startTd = async (
       mode: mode,
     };
     args = buildArgs({
+      loglevel: replayConfig.log_level,
       extensionDirs: `"${extDirs
         .map((dir) => dealSpaceInPath(path.dirname(dir)))
         .join(path.delimiter)}"`,
@@ -1124,21 +1117,44 @@ export const startTask = async (
   soPath: string,
   args: string,
   configSettings: KungfuApi.KfConfigItem[],
+  mode: KfModeTypes = 'live',
+  replayConfig?: KungfuApi.ReplayConfigOrigin,
 ): Promise<Proc | void> => {
+  const isReplay = mode === 'replay';
   const extDirs = await flattenExtensionModuleDirs(EXTENSION_DIRS);
-  const argsResolved = buildArgs({
-    extensionDirs: `"${extDirs
-      .map((dir) => dealSpaceInPath(path.dirname(dir)))
-      .join(path.delimiter)}"`,
-    location: {
-      category: 'strategy',
-      group: `"${taskLocation.group}"`,
-      name: `"${taskLocation.name}"`,
-      mode: 'live',
-    },
-    extraArgs: `'${soPath}'`,
-    args: `'${args}'`,
-  });
+  let argsResolved = '';
+
+  if (isReplay && replayConfig) {
+    argsResolved = buildArgs({
+      loglevel: replayConfig.log_level,
+      extensionDirs: `"${extDirs
+        .map((dir) => dealSpaceInPath(path.dirname(dir)))
+        .join(path.delimiter)}"`,
+      location: {
+        category: 'strategy',
+        group: `"${taskLocation.group}"`,
+        name: `"${taskLocation.name}"`,
+        mode: 'replay',
+      },
+      extraArgs: `'${soPath}'`,
+      args: `'${args}'`,
+      suffix: `-b '${replayConfig.begin_time}' -e '${replayConfig.end_time}'`,
+    });
+  } else {
+    argsResolved = buildArgs({
+      extensionDirs: `"${extDirs
+        .map((dir) => dealSpaceInPath(path.dirname(dir)))
+        .join(path.delimiter)}"`,
+      location: {
+        category: 'strategy',
+        group: `"${taskLocation.group}"`,
+        name: `"${taskLocation.name}"`,
+        mode: 'live',
+      },
+      extraArgs: `'${soPath}'`,
+      args: `'${args}'`,
+    });
+  }
 
   return startProcess({
     name: getProcessIdByKfLocation(taskLocation),
@@ -1146,7 +1162,7 @@ export const startTask = async (
     env: {
       CONFIG_SETTING: JSON.stringify(configSettings),
     },
-    force: true,
+    force: isReplay,
   }).catch((err) => {
     kfLogger.error(err);
   });
@@ -1169,6 +1185,7 @@ export const startOperatorByExt = async (
   await fse.ensureDir(cwd);
   if (isReplay && replayConfig) {
     args = buildArgs({
+      loglevel: replayConfig.log_level,
       location: {
         category: 'operator',
         group: `"${group}"`,
@@ -1248,6 +1265,7 @@ export const startStrategyOperatorByLocalPython = async (
   if (isReplay && replayConfig) {
     args = buildArgs({
       prefix: '-m kungfu',
+      loglevel: replayConfig.log_level,
       location: {
         category: replayConfig.category,
         group: replayConfig.group,

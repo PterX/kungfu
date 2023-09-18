@@ -62,6 +62,10 @@ interface GlobalState {
 
   globalSetting: Record<string, Record<string, KungfuApi.KfConfigValue>>;
 
+  testCase: {
+    replayEnabled: Partial<Record<KfCategoryTypes | 'ledger', boolean>>;
+  };
+
   currentGlobalKfLocation:
     | KungfuApi.KfLocation
     | KungfuApi.KfConfig
@@ -119,6 +123,15 @@ export const useGlobalStore = defineStore('global', {
 
       globalSetting: {},
 
+      testCase: {
+        replayEnabled: {
+          td: false,
+          ledger: true,
+          strategy: true,
+          operator: true,
+        },
+      },
+
       currentGlobalKfLocation: null,
       orderBookCurrentInstrument: undefined,
 
@@ -155,6 +168,10 @@ export const useGlobalStore = defineStore('global', {
       instrumentsMap: Record<string, KungfuApi.InstrumentResolved>,
     ) {
       this.instrumentsMap = toRaw(instrumentsMap);
+    },
+
+    setTestCase(key: KfCategoryTypes | 'ledger', value: boolean) {
+      this.testCase.replayEnabled[key] = value;
     },
 
     setCurrentGlobalKfLocation(

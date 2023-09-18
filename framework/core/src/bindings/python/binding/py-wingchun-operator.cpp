@@ -90,6 +90,7 @@ void bind_operator(pybind11::module &m) {
       .def("set_to_indexer", &op::Runner::set_to_indexer)
       .def("set_report", &op::Runner::set_report)
       .def("set_time_interval", &op::Runner::set_time_interval)
+      .def("set_backtest_config", &op::Runner::set_backtest_config)
       .def("now", &op::Runner::now)
       .def("run", &op::Runner::run)
       .def("setup", &op::Runner::setup)

@@ -16,11 +16,11 @@ namespace kungfu::wingchun::op {
 
 BacktestContext::BacktestContext(apprentice &app, const rx::connectable_observable<event_ptr> &events,
                                  SliceIndexer_ptr from_indexer, SliceIndexer_ptr to_indexer, Report_ptr report,
-                                 int64_t time_interval)
+                                 int64_t time_interval, std::string backtest_config)
     : Context(app, events), broker_client_(app), from_indexer_(std::move(from_indexer)),
       slice_tool_(std::make_shared<SliceTool>(category::OPERATOR, app.get_home()->group, app.get_home()->name,
                                               std::move(to_indexer))),
-      report_(std::move(report)), time_interval_(time_interval) {
+      report_(std::move(report)), time_interval_(time_interval), backtest_config_(std::move(backtest_config)) {
   KUNGFU_SETUP_LOGGER(app_.get_home(), app_.get_home()->name);
 }
 
@@ -84,8 +84,8 @@ void BacktestContext::on_timer_check() {
       time_event["msg_type"] = Time::tag;
       time_event["gen_time"] = now_time;
       time_event["trigger_time"] = now_time;
-      time_event["source"] = app_.get_home_uid();
-      time_event["dest"] = app_.get_home_uid();
+      time_event["source"] = app_.get_live_home_uid();
+      time_event["dest"] = app_.get_live_home_uid();
       time_event["data"] = nlohmann::json::object();
       it->second.call_back(std::make_shared<nanomsg_json>(time_event.dump()));
       it = timer_callbacks_.erase(it);
@@ -112,11 +112,15 @@ void BacktestContext::lease_expired_check() {
 }
 
 void BacktestContext::init_time_events() {
-  auto &&writer = app_.get_writer(app_.get_live_home_uid());
-  for (int64_t mark_time = app_.get_begin_time(); mark_time <= app_.get_end_time(); mark_time += time_interval_) {
-    writer->mark_at(mark_time, mark_time, Time::tag);
-  }
-  SPDLOG_DEBUG("init {} Time events done.", (app_.get_end_time() - app_.get_begin_time() / time_interval_));
+  auto writer = app_.get_writer(app_.get_live_home_uid());
+  auto write_next_time_mark = [writer, this](auto e) {
+    auto next_time = now() + time_interval_;
+    writer->mark_at(next_time, next_time, Time::tag);
+  };
+  write_next_time_mark(nullptr);
+  add_time_interval(time_interval_, write_next_time_mark);
+  
+  SPDLOG_DEBUG("init {} Time events done.", (app_.get_end_time() - app_.get_begin_time()) / time_interval_);
 }
 
 void BacktestContext::subscribe(const std::string &source, const std::vector<std::string> &instrument_ids,

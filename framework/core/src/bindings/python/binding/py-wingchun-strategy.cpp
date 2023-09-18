@@ -159,6 +159,7 @@ void bind_strategy(pybind11::module &m) {
       .def("set_to_indexer", &strategy::Runner::set_to_indexer)
       .def("set_time_interval", &strategy::Runner::set_time_interval)
       .def("set_report", &strategy::Runner::set_report)
+      .def("set_backtest_config", &strategy::Runner::set_backtest_config)
       .def("now", &strategy::Runner::now)
       .def("run", &strategy::Runner::run)
       .def("setup", &strategy::Runner::setup)

@@ -55,6 +55,12 @@ service_command_context = kfc.pass_context("low_latency")
     type=int,
     help="the Maximum error in time, in seconds, for when the callback function of add_timer/add_time_interval will be called",
 )
+@click.option(
+    "-B",
+    "--backtest",
+    type=str,
+    help="the backtest config in json format or .json file path.",
+)
 @click.option("-b", "--begin", type=str, required=False, help="begin time")
 @click.option("-e", "--end", type=str, required=False, help="end time")
 @click.option("-i", "--session_id", type=int, required=False, help="session id")
@@ -75,6 +81,7 @@ def run(
     to_indexer,
     report,
     time_interval,
+    backtest,
     begin,
     end,
     session_id,
@@ -92,6 +99,7 @@ def run(
     ctx.from_indexer = from_indexer
     ctx.to_indexer = to_indexer
     ctx.report = report
+    ctx.backtest = backtest
     ctx.time_interval = time_interval
     ctx.begin = begin
     ctx.end = end

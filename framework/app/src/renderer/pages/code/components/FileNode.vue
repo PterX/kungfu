@@ -234,7 +234,7 @@ const handleAddFileBlur = (e) => {
   if (names.indexOf(filename) != -1 || !filename) {
     store.removeFileFolderPending({
       id: fileNode.value?.parentId,
-      type: type,
+      type: type.value,
     });
     addValue.value = '';
     return;
@@ -252,7 +252,7 @@ const handleAddFileBlur = (e) => {
     }
     store.removeFileFolderPending({
       id: fileNode.value?.parentId,
-      type: type,
+      type: type.value,
     });
     reloadFolder(parentId, filename);
     success(

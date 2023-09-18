@@ -101,10 +101,7 @@ class PrioritizedCommandGroup(click.Group):
     "~/.config on linux, ~/Library/Application Support on mac",
 )
 @click.option(
-    "-X",
-    "--extension-path",
-    type=str,
-    help="where to find extensions",
+    "-X", "--extension-path", type=str, help="where to find extensions",
 )
 @click.option(
     "-l",

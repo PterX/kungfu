@@ -128,12 +128,8 @@ kfc_a = Analysis(
             (make_path(build_whl_dir, "*"), "kungfu-wheel"),
             (make_path(build_dir, "include"), "include"),
         ],
-        src_dirs=[
-            src_dir,
-        ],
-        build_dirs=[
-            build_cpp_dir,
-        ],
+        src_dirs=[src_dir,],
+        build_dirs=[build_cpp_dir,],
         packages=[],
     ),
     hiddenimports=extend_hiddenimports(
@@ -156,14 +152,9 @@ kfc_a = Analysis(
             "scipy",
             "statsmodels",
         ],
-        executable_modules=[
-            "kungfu",
-            "pip",
-        ],
+        executable_modules=["kungfu", "pip",],
     ),
-    excludes=[
-        "matplotlib",
-    ],
+    excludes=["matplotlib",],
     hookspath=get_hookspath(),
     runtime_hooks=get_runtimehooks(),
     cipher=block_cipher,

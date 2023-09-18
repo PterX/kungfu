@@ -56,6 +56,8 @@ public:
 void bind_book(pybind11::module &m) {
   py::bind_map<CommissionMap>(m, "CommissionMap");
   py::bind_map<InstrumentMap>(m, "InstrumentMap");
+  py::bind_map<BasketMap>(m, "BasketMap");
+  py::bind_map<BasketInstrumentElement>(m, "BasketInstrumentElement");
   py::bind_map<PositionMap>(m, "PositionMap");
   py::bind_map<OrderInputMap>(m, "OrderInputMap");
   py::bind_map<OrderMap>(m, "OrderMap");
@@ -71,6 +73,7 @@ void bind_book(pybind11::module &m) {
       .def_readonly("instrument_factors", &Book::instrument_factors, py::return_value_policy::reference)
       .def_property_readonly("instruments", &Book::get_instruments, py::return_value_policy::reference)
       .def_property_readonly("commissions", &Book::get_commissions, py::return_value_policy::reference)
+      .def_property_readonly("baskets", &Book::get_baskets, py::return_value_policy::reference)
       .def("update", &Book::update)
       .def("has_long_position", py::overload_cast<const std::string &, const std::string &, const char *, const char *>(
                                     &Book::has_long_position, py::const_))
@@ -84,7 +87,8 @@ void bind_book(pybind11::module &m) {
       .def("get_short_position",
            py::overload_cast<const std::string &, const std::string &, const char *, const char *>(
                &Book::get_short_position),
-           py::return_value_policy::reference);
+           py::return_value_policy::reference)
+      .def ("get_basket_instruments_by_basket_uid", &Book::get_basket_instruments_by_basket_uid, py::return_value_policy::reference );
 
   py::class_<AccountingMethod, PyAccountingMethod, AccountingMethod_ptr>(m, "AccountingMethod")
       .def(py::init<>())

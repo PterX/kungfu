@@ -25,13 +25,7 @@ class Runner(wc.Runner):
         if ctx.arguments is None:
             ctx.arguments = "{}"
         wc.Runner.__init__(
-            self,
-            locator,
-            ctx.group,
-            ctx.name,
-            mode,
-            ctx.low_latency,
-            ctx.arguments,
+            self, locator, ctx.group, ctx.name, mode, ctx.low_latency, ctx.arguments,
         )
         self.ctx = ctx
 
@@ -174,11 +168,7 @@ class Strategy(wc.Strategy):
             else self.ctx.backtest_locator
         )
         location = yjj.location(
-            mode,
-            lf.enums.category.STRATEGY,
-            self.ctx.group,
-            self.ctx.name,
-            locator,
+            mode, lf.enums.category.STRATEGY, self.ctx.group, self.ctx.name, locator,
         )
 
         self.ctx.book = self.ctx.wc_context.bookkeeper.get_book(location.uid)
@@ -257,6 +247,7 @@ class Strategy(wc.Strategy):
         self.ctx.insert_batch_orders = wc_context.insert_batch_orders
         self.ctx.insert_array_orders = wc_context.insert_array_orders
         self.ctx.insert_algo_order = wc_context.insert_algo_order
+        self.ctx.update_algo_order = wc_context.update_algo_order
         self.ctx.cancel_order = wc_context.cancel_order
         self.ctx.cancel_order_trigger = wc_context.cancel_order_trigger
         self.ctx.cancel_algo_order = wc_context.cancel_algo_order
@@ -342,10 +333,7 @@ class Strategy(wc.Strategy):
 
     def on_operator_state_change(self, wc_context, operator_state_update, location):
         self.__call_proxy(
-            self._on_operator_state_change,
-            self.ctx,
-            operator_state_update,
-            location,
+            self._on_operator_state_change, self.ctx, operator_state_update, location,
         )
 
     def on_history_order(self, wc_context, history_order, location, dest):

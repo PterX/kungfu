@@ -76,7 +76,7 @@ private:
 
   void set_msg_type(int32_t msg_type) { header_->msg_type = msg_type; }
 
-  void set_msg_type(longfist::enums::FrameDataType data_type) { header_->data_type = data_type; }
+  void set_data_type(longfist::enums::FrameDataType data_type) { header_->data_type = data_type; }
 
   void set_source(uint32_t source) { header_->source = source; }
 

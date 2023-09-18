@@ -936,6 +936,7 @@ export default {
     replay_tips2_part1: '回放仅可增加 log, ',
     replay_tips2_part2: '请勿修改策略逻辑',
     replay_tips2_part3: ', 否则会由于输出数据与实际不符而报错.',
+    process_not_found: '进程不存在',
   },
 
   master_interrupt: '主控进程 master 中断',

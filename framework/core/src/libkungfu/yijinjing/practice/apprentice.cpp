@@ -319,9 +319,9 @@ bool apprentice::is_timer_enabled(int32_t timer_id) { return timers_.try_emplace
 
 void apprentice::enable_timer(int32_t timer_id) { timers_.insert_or_assign(timer_id, true); }
 
-yijinjing::journal::writer_ptr &apprentice::get_thread_writer() {
+journal::writer_ptr &apprentice::get_thread_writer() {
   if (not thread_writer_) {
-    uint32_t dest_id = kungfu::yijinjing::util::get_thread_id();
+    uint32_t dest_id = util::get_thread_id();
     thread_writer_ = get_io_device()->open_writer(dest_id);
 
     /// join channel in sub-thread will crash, so tell master to ask myself to join

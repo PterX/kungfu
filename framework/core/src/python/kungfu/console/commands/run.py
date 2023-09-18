@@ -20,34 +20,19 @@ service_command_context = kfc.pass_context("low_latency")
     "-m", "--mode", default="live", type=click.Choice(kfj.MODES.keys()), help="mode"
 )
 @click.option(
-    "-c",
-    "--category",
-    type=click.Choice(kfj.CATEGORIES.keys()),
-    help="category",
+    "-c", "--category", type=click.Choice(kfj.CATEGORIES.keys()), help="category",
 )
 @click.option(
-    "-M",
-    "--matcher",
-    type=str,
-    help="path to matcher .dll/.so/.py",
+    "-M", "--matcher", type=str, help="path to matcher .dll/.so/.py",
 )
 @click.option(
-    "-F",
-    "--from_indexer",
-    type=str,
-    help="path to from_indexer .py",
+    "-F", "--from_indexer", type=str, help="path to from_indexer .py",
 )
 @click.option(
-    "-T",
-    "--to_indexer",
-    type=str,
-    help="path to to_indexer .py",
+    "-T", "--to_indexer", type=str, help="path to to_indexer .py",
 )
 @click.option(
-    "-r",
-    "--report",
-    type=str,
-    help="path to report .dll/.so/.py",
+    "-r", "--report", type=str, help="path to report .dll/.so/.py",
 )
 @click.option(
     "-I",

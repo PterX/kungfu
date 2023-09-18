@@ -21,8 +21,8 @@ PYBIND11_MAKE_OPAQUE(BasketInstrumentMap)
 namespace kungfu::wingchun::pybind {
 
 void bind_basketorder(pybind11::module &m) {
-  py::bind_map<BasketMap>(m, "BasketMap");
-  py::bind_map<BasketInstrumentMap>(m, "BasketInstrumentMap");
+  // py::bind_map<BasketMap>(m, "BasketMap");
+  // py::bind_map<BasketInstrumentMap>(m, "BasketInstrumentMap");
 
   py::class_<BasketOrderEngine, std::shared_ptr<BasketOrderEngine>>(m, "BasketOrderEngine")
       .def_property_readonly("baskets", &BasketOrderEngine::get_baskets)

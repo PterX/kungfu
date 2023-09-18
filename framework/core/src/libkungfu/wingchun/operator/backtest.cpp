@@ -15,11 +15,12 @@ using kungfu::yijinjing::nanomsg::nanomsg_json;
 namespace kungfu::wingchun::op {
 
 BacktestContext::BacktestContext(apprentice &app, const rx::connectable_observable<event_ptr> &events,
-                                 SliceIndexer_ptr from_indexer, SliceIndexer_ptr to_indexer, Report_ptr report)
+                                 SliceIndexer_ptr from_indexer, SliceIndexer_ptr to_indexer, Report_ptr report,
+                                 int64_t time_interval)
     : Context(app, events), broker_client_(app), from_indexer_(std::move(from_indexer)),
       slice_tool_(std::make_shared<SliceTool>(category::OPERATOR, app.get_home()->group, app.get_home()->name,
                                               std::move(to_indexer))),
-      report_(std::move(report)) {
+      report_(std::move(report)), time_interval_(time_interval) {
   KUNGFU_SETUP_LOGGER(app_.get_home(), app_.get_home()->name);
 }
 
@@ -31,6 +32,7 @@ void BacktestContext::on_start() {
   events_ | is_own<Tree>(get_broker_client()) | $$(report_->on_tree(event->data<Tree>()););
   events_ | is(SyntheticData::tag) | $$(report_->on_read_synthetic_data(event->data<SyntheticData>()));
   events_ | $$(on_timer_check(); lease_expired_check(););
+  init_time_events();
 }
 
 bool BacktestContext::is_started() const { return true; }
@@ -107,6 +109,14 @@ void BacktestContext::lease_expired_check() {
       break;
     }
   }
+}
+
+void BacktestContext::init_time_events() {
+  auto &&writer = app_.get_writer(app_.get_live_home_uid());
+  for (int64_t mark_time = app_.get_begin_time(); mark_time <= app_.get_end_time(); mark_time += time_interval_) {
+    writer->mark_at(mark_time, mark_time, Time::tag);
+  }
+  SPDLOG_DEBUG("init {} Time events done.", (app_.get_end_time() - app_.get_begin_time() / time_interval_));
 }
 
 void BacktestContext::subscribe(const std::string &source, const std::vector<std::string> &instrument_ids,

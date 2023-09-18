@@ -26,14 +26,13 @@ namespace kungfu::wingchun::strategy {
 
 BacktestContext::BacktestContext(practice::apprentice &app, const rx::connectable_observable<event_ptr> &events,
                                  Matcher_ptr matcher, SliceIndexer_ptr from_indexer, SliceIndexer_ptr to_indexer,
-                                 Report_ptr report)
+                                 Report_ptr report, int64_t time_interval)
     : Context(app, events), broker_client_(app_), bookkeeper_(app_, broker_client_), matcher_(std::move(matcher)),
       from_indexer_(from_indexer),
       slice_tool_(std::make_shared<SliceTool>(category::STRATEGY, app.get_home()->group, app.get_home()->name,
                                               std::move(to_indexer))),
-      report_(std::move(report)) {
+      report_(std::move(report)), time_interval_(time_interval) {
   log::copy_log_settings(app_.get_home(), app_.get_home()->name);
-  // add_location(app_, app_.get_home());
 }
 
 void BacktestContext::on_start() {
@@ -64,6 +63,7 @@ void BacktestContext::on_start() {
          matcher_->on_order_action(order_action));
   events_ | is(OrderActionError::tag) | $$(remove_order_id(*matcher_, event->data<OrderActionError>().order_id));
   events_ | $$(on_timer_check(); lease_expired_check(););
+  init_time_events();
 }
 
 bool BacktestContext::is_started() const { return true; }
@@ -143,6 +143,14 @@ void BacktestContext::lease_expired_check() {
   }
 }
 
+void BacktestContext::init_time_events() {
+  auto &&writer = app_.get_writer(app_.get_live_home_uid());
+  for (int64_t mark_time = app_.get_begin_time(); mark_time <= app_.get_end_time(); mark_time += time_interval_) {
+    writer->mark_at(mark_time, mark_time, Time::tag);
+  }
+  SPDLOG_DEBUG("init {} Time events done.", (app_.get_end_time() - app_.get_begin_time() / time_interval_));
+}
+
 void BacktestContext::subscribe(const std::string &source, const std::vector<std::string> &instrument_ids,
                                 const std::string &exchange_id) {
   for (auto data_type : {Quote::tag, Tree::tag, Entrust::tag, Transaction::tag}) {
@@ -220,7 +228,7 @@ uint64_t BacktestContext::insert_order(const std::string &instrument_id, const s
                  exchange_id);
     return 0;
   }
-  auto writer = app_.get_writer(location::PUBLIC);
+  auto &&writer = app_.get_writer(location::PUBLIC);
   uint32_t td_dest = find_td_location(source, account)->uid;
   OrderInput input{};
   input.order_id = get_order_id(writer, td_dest);
@@ -253,7 +261,7 @@ uint64_t BacktestContext::insert_order_input(const std::string &source, const st
     return 0;
   }
   uint32_t td_dest = find_td_location(source, account)->uid;
-  auto writer = app_.get_writer(location::PUBLIC);
+  auto &&writer = app_.get_writer(location::PUBLIC);
   order_input.order_id = order_input.order_id == 0 ? get_order_id(writer, td_dest) : order_input.order_id;
   order_input.insert_time = insert_time;
   writer->write_raw_at_as(now(), now(), app_.get_home_uid(), td_dest, order_input.tag,
@@ -323,7 +331,7 @@ uint64_t BacktestContext::cancel_order(uint64_t order_id, OrderActionFlag action
   if (not app_.has_location(account_location_uid)) {
     SPDLOG_ERROR("no writer for [{:08x}]", account_location_uid);
   }
-  auto writer = app_.get_writer(location::PUBLIC);
+  auto &&writer = app_.get_writer(location::PUBLIC);
   OrderAction action{};
 
   action.order_action_id = writer->current_frame_uid();

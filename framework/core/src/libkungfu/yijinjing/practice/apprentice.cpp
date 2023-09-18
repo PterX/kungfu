@@ -156,9 +156,14 @@ void apprentice::react() {
     exceed_end_time_check | $([&](const event_ptr &event) { request_deregister(); });
   }
   if (get_io_device()->get_home()->mode == mode::BACKTEST) {
-    // dest_id 0 should be configurable TODO
     std::string journal_dir = get_locator()->layout_dir(get_home(), layout::JOURNAL);
     fs::remove_all(journal_dir);
+    std::string master_cmd_dir = get_locator()->layout_dir(master_cmd_location_, layout::JOURNAL);
+    fs::remove_all(master_cmd_dir);
+    auto app_cmd_writer = get_io_device()->open_writer_at(master_cmd_location_, get_live_home_uid());
+
+    writers_.insert_or_assign(get_live_home_uid(), app_cmd_writer);
+    reader_->join(master_cmd_location_, get_live_home_uid(), begin_time_);
     writers_.insert_or_assign(location::PUBLIC, get_io_device()->open_writer(location::PUBLIC));
     reader_->join(get_home(), location::PUBLIC, begin_time_);
     started_ = true;

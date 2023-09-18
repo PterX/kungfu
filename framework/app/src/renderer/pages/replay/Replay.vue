@@ -156,10 +156,6 @@ async function reLoadLog() {
     configArgs?.replayConfig?.end_time === endtime;
 
   let filePath = props.params.filePath || currentFile;
-  if (!filePath) {
-    throwError('replay.please_start_replay');
-    return;
-  }
 
   const args = rerunFlag
     ? configArgs
@@ -191,7 +187,9 @@ async function reLoadLog() {
     await outputFile(LOG_PATH, '');
     await ipcEmit('clear-process', { processId: props.params.processId || '' });
     logViewRef.value && logViewRef.value.resetLog();
-    pawin.webContents.send('startReplay', { replayProcessParams: args });
+    pawin.webContents.send('startReplay', {
+      replayProcessParams: args,
+    });
   } catch (err) {
     console.error(error);
   }

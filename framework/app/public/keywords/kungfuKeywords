@@ -372,6 +372,7 @@ get_arguments
 set_from_indexer
 set_to_indexer
 set_report
+set_time_interval
 setup
 step
 on_exit
@@ -539,9 +540,6 @@ SSE
 SZE
 MarketType
 Snapshot
-Entrust
-Transaction
-Tree
 SubscribeDataType
 Stock
 Future
@@ -663,6 +661,7 @@ PartialFilledNotActive
 PartialFilledActive
 Lost
 Cancelling
+Pause
 OrderStatus
 Currency
 Pending

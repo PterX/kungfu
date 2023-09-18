@@ -633,6 +633,8 @@ const getKfExtensionConfigByCategory = (
                       resolveOrderTriggerConfig(extConfigByCategory),
                     settings: extConfigByCategory[category]?.settings || [],
                     fundTrans: extConfigByCategory[category]?.fund_trans || {},
+                    showAssetMargin:
+                      extConfigByCategory[category]?.show_asset_margin || false,
                   },
                 };
                 break;

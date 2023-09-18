@@ -897,6 +897,7 @@ export default {
     current_strategy: 'Current strategy',
     new_file: 'New File',
     new_folder: 'New Folder',
+    open_folder: 'Open Folder',
     set_strategy_success: 'Strategy {file} file path changed successfully',
     entry_file: 'Entry File',
     creaate_success: '{file} created successfully',

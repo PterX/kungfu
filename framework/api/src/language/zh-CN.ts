@@ -898,6 +898,7 @@ export default {
     current_strategy: '当前策略',
     new_file: '新建文件',
     new_folder: '新建文件夹',
+    open_folder: '打开文件夹',
     set_strategy_success: '策略 {file} 文件路径修改成功!',
     entry_file: '入口文件',
     creaate_success: '{file} 创建成功!',

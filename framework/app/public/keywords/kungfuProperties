@@ -325,9 +325,6 @@ SSE
 SZE
 MarketType
 Snapshot
-Entrust
-Transaction
-Tree
 SubscribeDataType
 Stock
 Future
@@ -449,6 +446,7 @@ PartialFilledNotActive
 PartialFilledActive
 Lost
 Cancelling
+Pause
 OrderStatus
 Currency
 Pending

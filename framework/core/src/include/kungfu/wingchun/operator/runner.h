@@ -27,6 +27,8 @@ public:
 
   tool::Report_ptr get_report() const;
 
+  void set_time_interval(int64_t time_interval);
+
   void on_exit() override;
 
 protected:
@@ -52,6 +54,7 @@ private:
   tool::SliceIndexer_ptr from_indexer_;
   tool::SliceIndexer_ptr to_indexer_;
   tool::Report_ptr report_;
+  int64_t time_interval_{yijinjing::time_unit::NANOSECONDS_PER_SECOND};
 
   template <typename OnMethod = void (Operator::*)(Context_ptr &)> void invoke(OnMethod method) {
     auto context = std::dynamic_pointer_cast<Context>(context_);

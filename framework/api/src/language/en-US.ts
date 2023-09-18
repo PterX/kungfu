@@ -944,6 +944,7 @@ export default {
     replay_tips2_part2: `Modifying the strategy's logic may lead to errors`,
     replay_tips2_part3:
       'due to discrepancies between the output data and the actual execution.',
+    process_not_found: 'Process not found',
   },
 
   master_interrupt: 'master interrupted',

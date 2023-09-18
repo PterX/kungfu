@@ -46,17 +46,23 @@ class Report(wc.Report):
             self._module, "on_entrust", lambda ctx, entrust: None
         )
         self._on_transaction = getattr(
-            self._module, "on_transaction", lambda ctx, transaction: None,
+            self._module,
+            "on_transaction",
+            lambda ctx, transaction: None,
         )
 
         self._on_tree = getattr(self._module, "on_tree", lambda ctx, tree: None)
 
         self._on_read_synthetic_data = getattr(
-            self._module, "on_read_synthetic_data", lambda ctx, synthetic_data: None,
+            self._module,
+            "on_read_synthetic_data",
+            lambda ctx, synthetic_data: None,
         )
 
         self._on_write_synthetic_data = getattr(
-            self._module, "on_write_synthetic_data", lambda ctx, synthetic_data: None,
+            self._module,
+            "on_write_synthetic_data",
+            lambda ctx, synthetic_data: None,
         )
 
         self._on_order = getattr(self._module, "on_order", lambda ctx, order: None)

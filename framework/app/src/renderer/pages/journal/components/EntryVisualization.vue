@@ -163,6 +163,15 @@ type FrameResolvedDataType =
   | OrderChartResolved
   | OrderActionResolved;
 
+const props = withDefaults(
+  defineProps<{
+    category: string;
+  }>(),
+  {
+    category: 'strategy',
+  },
+);
+
 const { setCurrentSession, setSelectedChartItem } = useJournalStore();
 const {
   sessions,
@@ -202,7 +211,7 @@ onBeforeUnmount(() => {
 
 const strategyData = computed(() => {
   return sessions.value.filter((item) => {
-    return item.category === 'strategy';
+    return item.category === props.category;
   });
 });
 

@@ -1,10 +1,7 @@
 <template>
   <a-layout>
     <div class="kf-journal-view__wrap">
-      <div
-        v-if="!visualVisibility"
-        class="kf-journal-session__warp kf-translateZ"
-      >
+      <div v-if="!visualVisible" class="kf-journal-session__warp kf-translateZ">
         <KfDashboard @boardSizeChange="handleBodySizeChange">
           <template #header>
             <KfDashboardItem>
@@ -68,7 +65,8 @@
       </div>
 
       <EntryVisualization
-        v-if="visualVisibility"
+        v-if="visualVisible"
+        :category="currentSession?.category"
         class="kf-journal-visualization"
       />
 
@@ -86,7 +84,7 @@
         ></TimeSlider>
         <div class="kf-journal-visualization-btn">
           <a-button
-            v-if="currentSession?.category === 'strategy'"
+            v-if="visualBtnVisible"
             style="margin-right: 8px; color: #d22e88; border-color: #d22e88"
             @click="onEntryVisualization"
           >
@@ -170,7 +168,12 @@ const menus = [
     icon: UnorderedListOutlined,
   },
 ];
-const visualVisibility = ref<boolean>(false);
+const visualVisible = ref<boolean>(false);
+const visualBtnVisible = computed(() => {
+  return ['strategy', 'md', 'operator'].includes(
+    currentSession.value?.category,
+  );
+});
 
 const isCurrentMenuItem = (key: 'event' | 'visual') =>
   currentMenuList.value.includes(key);
@@ -189,7 +192,7 @@ const exportFileName = computed(() => {
 });
 
 const visualBtnText = computed(() => {
-  return visualVisibility.value
+  return visualVisible.value
     ? t('journalConfig.quit_visualization')
     : t('journalConfig.entry_visualization');
 });
@@ -226,7 +229,7 @@ const dealRowClassName = (row) => {
 };
 
 function onEntryVisualization() {
-  visualVisibility.value = !visualVisibility.value;
+  visualVisible.value = !visualVisible.value;
 }
 </script>
 

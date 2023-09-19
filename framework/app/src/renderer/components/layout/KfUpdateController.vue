@@ -116,7 +116,6 @@ const {
   checkingUpdate,
   hasNewVersion,
   downloadStarted,
-
   process,
   progressStatus,
   errorMessage,

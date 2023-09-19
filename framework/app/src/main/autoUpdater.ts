@@ -58,7 +58,7 @@ const getNextMinorReleaseVersion = (version: semver.SemVer) => {
 const getLastedSkippedVersion = () => {
   const skippedVersions = globalStorage.getItem('skippedVersions');
   if (skippedVersions) {
-    const versionArrays = JSON.parse(skippedVersions);
+    const versionArrays = skippedVersions;
     if (Array.isArray(versionArrays)) {
       return versionArrays[versionArrays.length - 1];
     } else {
@@ -72,16 +72,52 @@ const getLastedSkippedVersion = () => {
 function saveSkippedVersion(version: string) {
   const skippedVersions = globalStorage.getItem('skippedVersions');
   if (skippedVersions) {
-    const versionArrays = JSON.parse(skippedVersions);
+    const versionArrays = skippedVersions;
     if (Array.isArray(versionArrays)) {
       versionArrays.push(version);
-      globalStorage.setItem('skippedVersions', JSON.stringify(versionArrays));
+      globalStorage.setItem('skippedVersions', versionArrays);
     } else {
-      globalStorage.setItem('skippedVersions', JSON.stringify([version]));
+      globalStorage.setItem('skippedVersions', [version]);
     }
   } else {
-    globalStorage.setItem('skippedVersions', JSON.stringify([version]));
+    globalStorage.setItem('skippedVersions', [version]);
   }
+}
+
+function getDefaultTargetVersions(version: semver.SemVer) {
+  const isPrerelease = !!version.prerelease.length;
+  if (isPrerelease) {
+    return [
+      semver.inc(version, 'prerelease', 'alpha') || 'kungfu-version-unknow',
+      getAlphaReleaseVersion(version),
+    ];
+  } else {
+    return [
+      semver.inc(version, 'patch') || 'kungfu-version-unknow',
+      getNextMinorReleaseVersion(version),
+    ];
+  }
+}
+
+function setUpdaterOption(
+  targetVersion: string,
+  rawUpdateOption: Writeable<AllPublishOptions>,
+  projectName: string,
+  version: semver.SemVer,
+) {
+  const updaterOption = { ...rawUpdateOption };
+  if (!targetVersion || !updaterOption) return false;
+
+  const artifactPath = `${projectName}/v${version.major}/v${targetVersion}`;
+  updaterOption.channel = getChannel(targetVersion.includes('-alpha'));
+  if (updaterOption.provider === 'generic') {
+    updaterOption.url = `${updaterOption.url}/${artifactPath}`;
+  } else if (updaterOption.provider === 's3') {
+    updaterOption.path = artifactPath;
+  }
+
+  autoUpdater.setFeedURL(updaterOption);
+  return updaterOption;
 }
 
 function handleUpdateKungfu(
@@ -91,44 +127,6 @@ function handleUpdateKungfu(
   kfLogger.info('Kungfu client version: ', app.getVersion());
   kfLogger.info('Kungfu client isPacked: ', app.isPackaged);
   if (!app.isPackaged) return;
-
-  const rootPackageJson = readRootPackageJsonSync();
-  const rawUpdateOption = rootPackageJson?.kungfuCraft?.autoUpdate?.update;
-  if (!rootPackageJson || !rawUpdateOption) return;
-
-  const projectName = getProjectName(rootPackageJson);
-  let lastSkipedVersion = getLastedSkippedVersion();
-  const curVersion = lastSkipedVersion || rootPackageJson.version;
-  let version = semver.parse(curVersion as string) as semver.SemVer;
-
-  if (!targetVersions.length) {
-    targetVersions = getDefaultTargetVersions(version);
-  }
-
-  if (!targetVersions.length) return;
-
-  kfLogger.info(
-    'Kungfu autoUpdater all target versions: ',
-    JSON.stringify(targetVersions),
-  );
-
-  let curTargetVersion = targetVersions.shift();
-  if (!curTargetVersion) return;
-
-  const updaterOption = setUpdaterOption(
-    curTargetVersion,
-    rawUpdateOption,
-    projectName,
-    version,
-  );
-  if (!updaterOption) return;
-
-  kfLogger.info(
-    'Kungfu autoUpdater check option: ',
-    JSON.stringify(updaterOption),
-  );
-
-  configureAutoUpdater(MainWindow, targetVersions, curVersion, updaterOption);
 
   function setupAutoUpdaterListeners(
     MainWindow: BrowserWindow | null,
@@ -238,7 +236,8 @@ function handleUpdateKungfu(
       kfLogger.info('auto-update-retry-check-update');
 
       lastSkipedVersion = getLastedSkippedVersion();
-      curVersion = lastSkipedVersion || rootPackageJson.version;
+      curVersion = lastSkipedVersion || rootPackageJson.version || '';
+      if (curVersion === '') return;
       version = semver.parse(curVersion as string) as semver.SemVer;
       targetVersions = getDefaultTargetVersions(version);
       curTargetVersion = targetVersions.shift();
@@ -267,6 +266,7 @@ function handleUpdateKungfu(
       });
     }
   }
+
   function configureAutoUpdater(
     MainWindow: BrowserWindow | null,
     targetVersions: string[],
@@ -284,42 +284,45 @@ function handleUpdateKungfu(
       updaterOption,
     );
   }
-}
 
-function getDefaultTargetVersions(version: semver.SemVer) {
-  const isPrerelease = !!version.prerelease.length;
-  if (isPrerelease) {
-    return [
-      semver.inc(version, 'prerelease', 'alpha') || 'kungfu-version-unknow',
-      getAlphaReleaseVersion(version),
-    ];
-  } else {
-    return [
-      semver.inc(version, 'patch') || 'kungfu-version-unknow',
-      getNextMinorReleaseVersion(version),
-    ];
-  }
-}
+  const rootPackageJson = readRootPackageJsonSync();
+  const rawUpdateOption = rootPackageJson?.kungfuCraft?.autoUpdate?.update;
+  if (!rootPackageJson || !rawUpdateOption) return;
 
-function setUpdaterOption(
-  targetVersion: string,
-  rawUpdateOption: Writeable<AllPublishOptions>,
-  projectName: string,
-  version: semver.SemVer,
-) {
-  const updaterOption = { ...rawUpdateOption };
-  if (!targetVersion || !updaterOption) return false;
+  const projectName = getProjectName(rootPackageJson);
+  let lastSkipedVersion = getLastedSkippedVersion();
+  const curVersion = lastSkipedVersion || rootPackageJson.version;
+  if (!curVersion) return;
+  let version = semver.parse(curVersion as string) as semver.SemVer;
 
-  const artifactPath = `${projectName}/v${version.major}/v${targetVersion}`;
-  updaterOption.channel = getChannel(targetVersion.includes('-alpha'));
-  if (updaterOption.provider === 'generic') {
-    updaterOption.url = `${updaterOption.url}/${artifactPath}`;
-  } else if (updaterOption.provider === 's3') {
-    updaterOption.path = artifactPath;
+  if (!targetVersions.length) {
+    targetVersions = getDefaultTargetVersions(version);
   }
 
-  autoUpdater.setFeedURL(updaterOption);
-  return updaterOption;
+  if (!targetVersions.length) return;
+
+  kfLogger.info(
+    'Kungfu autoUpdater all target versions: ',
+    JSON.stringify(targetVersions),
+  );
+
+  let curTargetVersion = targetVersions.shift();
+  if (!curTargetVersion) return;
+
+  const updaterOption = setUpdaterOption(
+    curTargetVersion,
+    rawUpdateOption,
+    projectName,
+    version,
+  );
+  if (!updaterOption) return;
+
+  kfLogger.info(
+    'Kungfu autoUpdater check option: ',
+    JSON.stringify(updaterOption),
+  );
+
+  configureAutoUpdater(MainWindow, targetVersions, curVersion, updaterOption);
 }
 
 export { handleUpdateKungfu };

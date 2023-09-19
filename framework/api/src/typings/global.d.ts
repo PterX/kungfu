@@ -143,5 +143,5 @@ export interface RootConfigJSON {
 
 export interface GlobalStorageData {
   ifNotFirstRunning?: boolean;
-  skippedVersions?: string;
+  skippedVersions?: string[];
 }

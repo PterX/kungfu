@@ -127,10 +127,10 @@ export const useUpdateVersion = () => {
   );
   const errorMessage = ref('');
   const process = ref<number>();
-  const skipedVersionList = globalStorage.getItem('skippedVersions') || '[]';
-  if (skipedVersionList && skipedVersionList.length > 0) {
+  const skipedVersionList = globalStorage.getItem('skippedVersions');
+  if (skipedVersionList) {
     hasSkiped.value = true;
-    const list = JSON.parse(skipedVersionList);
+    const list = skipedVersionList;
     lastSkippedVersion.value = list[list.length - 1];
     newVersion.value = lastSkippedVersion.value;
   }

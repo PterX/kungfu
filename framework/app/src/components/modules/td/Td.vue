@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, toRefs, onMounted, toRaw } from 'vue';
-import {storeToRefs} from 'pinia'
+import { storeToRefs } from 'pinia';
 
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
 import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
@@ -694,18 +694,14 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
             ></KfBlinkNum>
           </template>
           <template
-            v-else-if="
-              isShowAssetMargin && column.dataIndex === 'avail_margin'
-            "
+            v-else-if="isShowAssetMargin && column.dataIndex === 'avail_margin'"
           >
             <KfBlinkNum
               v-if="record.category === 'td'"
               mode="compare-zero"
               :num="
                 tdAssetMarginMap[record.group]
-                  ? dealAssetPrice(
-                    getAssetsByKfConfig(record).avail_margin,
-                    )
+                  ? dealAssetPrice(getAssetsByKfConfig(record).avail_margin)
                   : '--'
               "
             ></KfBlinkNum>
@@ -732,18 +728,14 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
             ></KfBlinkNum>
           </template>
           <template
-            v-else-if="
-              isShowAssetMargin && column.dataIndex === 'total_asset'
-            "
+            v-else-if="isShowAssetMargin && column.dataIndex === 'total_asset'"
           >
             <KfBlinkNum
               v-if="record.category === 'td'"
               mode="compare-zero"
               :num="
                 tdAssetMarginMap[record.group]
-                  ? dealAssetPrice(
-                      getAssetsByKfConfig(record).total_asset,
-                    )
+                  ? dealAssetPrice(getAssetsByKfConfig(record).total_asset)
                   : '--'
               "
             ></KfBlinkNum>

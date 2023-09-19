@@ -420,7 +420,6 @@ class ExtensionExecutor:
         to_indexer = wc.SliceIndexer(begin, end)
         if ctx.from_indexer:
             from_indexer = SliceIndexer(ctx, begin, end, ctx.from_indexer)
-            # from_indexer = wc.DayIndexer(begin, end)
         if ctx.to_indexer:
             to_indexer = SliceIndexer(ctx, begin, end, ctx.to_indexer)
         return from_indexer, to_indexer

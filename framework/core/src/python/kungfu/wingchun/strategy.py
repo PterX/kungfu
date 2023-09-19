@@ -199,12 +199,22 @@ class Strategy(wc.Strategy):
         self.ctx.wc_context.add_account(source, account)
 
     def __get_account_book(self, source, account):
+        mode = (
+            lf.enums.mode.LIVE
+            if kfj.MODES[self.ctx.mode] != lf.enums.mode.BACKTEST
+            else lf.enums.mode.BACKTEST
+        )
+        locator = (
+            self.ctx.runtime_locator
+            if kfj.MODES[self.ctx.mode] != lf.enums.mode.BACKTEST
+            else self.ctx.backtest_locator
+        )
         location = yjj.location(
-            lf.enums.mode.LIVE,
+            mode,
             lf.enums.category.TD,
             source,
             account,
-            self.ctx.runtime_locator,
+            locator,
         )
         return self.ctx.wc_context.bookkeeper.get_book(location.uid)
 

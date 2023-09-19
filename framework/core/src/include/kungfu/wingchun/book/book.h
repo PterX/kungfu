@@ -270,11 +270,7 @@ struct Book {
 
   [[nodiscard]] const BasketMap &get_baskets() const { return baskets; }
 
-  [[nodiscard]] const BasketInstrumentElement &get_basket_instruments_by_basket_uid(uint32_t basket_uid) const {
-    if (basket_instruments.find(basket_uid) != basket_instruments.end()) {
-      return basket_instruments.at(basket_uid);
-    }
-  }
+  [[nodiscard]] const BasketInstrumentMap &get_basket_instruments() const { return basket_instruments; }
 
   Book &operator=(const Book &book) { return *this; }
 };

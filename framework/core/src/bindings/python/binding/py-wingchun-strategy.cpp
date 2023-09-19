@@ -198,7 +198,12 @@ void bind_strategy(pybind11::module &m) {
       .def("insert_algo_order", &strategy::Context::insert_algo_order, py::arg("instrument_id"), py::arg("exchange_id"),
            py::arg("source"), py::arg("account"), py::arg("begin_time"), py::arg("end_time"), py::arg("volume"),
            py::arg("type"), py::arg("side"), py::arg("offset"), py::arg("algo_type_id"), py::arg("algo_id"),
-           py::arg("args"), py::arg("is_local") = false)
+           py::arg("args"), py::arg("is_local") = false, py::arg("baskrt_uid") = 0)
+      .def("update_algo_order", &strategy::Context::update_algo_order, py::arg("origin_order_id"),
+           py::arg("instrument_id"), py::arg("exchange_id"), py::arg("source"), py::arg("account"),
+           py::arg("begin_time"), py::arg("end_time"), py::arg("volume"), py::arg("type"), py::arg("side"),
+           py::arg("offset"), py::arg("algo_type_id"), py::arg("algo_id"), py::arg("args"), py::arg("is_local") = false,
+           py::arg("baskrt_uid") = 0)
       .def("cancel_order", &strategy::Context::cancel_order, py::arg("order_id"),
            py::arg("action_flag") = OrderActionFlag::Cancel)
       .def("cancel_order_trigger", &strategy::Context::cancel_order_trigger)

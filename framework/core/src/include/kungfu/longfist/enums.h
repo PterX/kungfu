@@ -501,7 +501,8 @@ enum class OrderStatus : int8_t {
   PartialFilledNotActive, // 部成部撤
   PartialFilledActive,    // 部成交易中
   Lost,                   // 丢失
-  Cancelling              // 待撤
+  Cancelling,             // 待撤
+  Pause                   // 暂停
 };
 
 NLOHMANN_JSON_SERIALIZE_ENUM(OrderStatus, {
@@ -515,6 +516,7 @@ NLOHMANN_JSON_SERIALIZE_ENUM(OrderStatus, {
                                               {OrderStatus::PartialFilledActive, "PartialFilledActive"},
                                               {OrderStatus::Lost, "Lost"},
                                               {OrderStatus::Cancelling, "Cancelling"},
+                                              {OrderStatus::Pause, "Pause"},
                                           })
 
 inline std::ostream &operator<<(std::ostream &os, OrderStatus t) { return os << int32_t(t); }

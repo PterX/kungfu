@@ -153,6 +153,7 @@ inline bool is_final_status(const longfist::enums::OrderStatus &status) {
   case longfist::enums::OrderStatus::PartialFilledActive:
   case longfist::enums::OrderStatus::Unknown:
   case longfist::enums::OrderStatus::Cancelling:
+  case longfist::enums::OrderStatus::Pause:
     return false;
   default:
     return true;
@@ -734,6 +735,7 @@ inline void algo_order_from_input(const longfist::types::AlgoOrderInput &algo_or
   algo_order.price_type = algo_order_input.price_type;
   algo_order.volume = algo_order_input.volume;
   algo_order.volume_left = algo_order_input.volume;
+  algo_order.basket_uid = algo_order_input.basket_uid;
 
   strcpy(algo_order.algo_type_id, algo_order_input.algo_type_id);
   strcpy(algo_order.algo_id, algo_order_input.algo_id);

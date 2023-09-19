@@ -2549,7 +2549,7 @@ export const useMakeOrderSubscribe = (
               if (quote.lower_limit_price && quote.upper_limit_price)
                 if (dealPrice <= quote.lower_limit_price) {
                   dealPrice = quote.lower_limit_price;
-                } else {
+                } else if (dealPrice >= quote.upper_limit_price) {
                   dealPrice = quote.upper_limit_price;
                 }
             }

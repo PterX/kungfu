@@ -140,6 +140,8 @@ writer_ptr hero::get_writer(uint32_t dest_id) const {
       SPDLOG_WARN("Unexpected exception by get_band_writer for dest_id {}:{}, {}", dest_id, get_location_uname(dest_id),
                   e.what());
     }
+  } else if (band_writers_.find(dest_id) != band_writers_.end()) {
+    return band_writers_.at(dest_id);
   }
 
   if (writers_.find(dest_id) == writers_.end()) {

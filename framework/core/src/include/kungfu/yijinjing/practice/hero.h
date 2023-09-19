@@ -171,6 +171,7 @@ protected:
   WriterMap writers_ = {};
   WriterMap band_writers_ = {};
   mutable std::mutex band_mtx_{};
+  const size_t main_thread_id_{};
 
   rx::connectable_observable<event_ptr> events_ = {};
 

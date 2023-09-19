@@ -15,6 +15,7 @@ has_long_position
 has_short_position
 get_long_position
 get_short_position
+get_basket_instruments_by_basket_uid
 apply_quote
 apply_order_input
 apply_order
@@ -99,6 +100,7 @@ add_account
 insert_order_input
 insert_block_message
 insert_array_orders
+update_algo_order
 hold_book
 hold_positions
 is_book_held

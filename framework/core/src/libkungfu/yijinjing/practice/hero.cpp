@@ -33,7 +33,7 @@ hero::hero(io_device_ptr io_device)
       master_home_location_(make_system_location("master", "master", io_device->get_locator())),
       master_cmd_location_(make_system_location("master", encode(io_device), io_device->get_locator())),
       ledger_home_location_(make_system_location("service", "ledger", io_device->get_locator())),
-      io_device_(std::move(io_device)), now_(0) {
+      io_device_(std::move(io_device)), now_(0), main_thread_id_(util::get_thread_id()) {
 
   os::handle_os_signals(this);
   util::set_error_log_dir(get_locator()->layout_dir(get_home(), layout::LOG));
@@ -125,9 +125,23 @@ uint32_t hero::get_live_home_uid() const { return get_io_device()->get_live_home
 
 [[maybe_unused]] reader_ptr hero::get_reader() const { return reader_; }
 
-bool hero::has_writer(uint32_t dest_id) const { return writers_.find(dest_id) != writers_.end(); }
+bool hero::has_writer(uint32_t dest_id) const {
+  if (util::get_thread_id() != main_thread_id_) {
+    return has_band_writer(dest_id) or writers_.find(dest_id) != writers_.end();
+  }
+  return writers_.find(dest_id) != writers_.end();
+}
 
 writer_ptr hero::get_writer(uint32_t dest_id) const {
+  if (util::get_thread_id() != main_thread_id_) {
+    try {
+      return get_band_writer(dest_id);
+    } catch (const std::exception &e) {
+      SPDLOG_WARN("Unexpected exception by get_band_writer for dest_id {}:{}, {}", dest_id, get_location_uname(dest_id),
+                  e.what());
+    }
+  }
+
   if (writers_.find(dest_id) == writers_.end()) {
     SPDLOG_ERROR("no writer for {}", get_location_uname(dest_id));
   }
@@ -200,7 +214,7 @@ const Channel &hero::get_channel(uint64_t hash) const {
 
 const std::unordered_map<uint32_t, longfist::types::Register> &hero::get_registry() const { return registry_; }
 
-const std::unordered_map<uint32_t, yijinjing::data::location_ptr> &hero::get_locations() const { return locations_; }
+const std::unordered_map<uint32_t, data::location_ptr> &hero::get_locations() const { return locations_; }
 
 bool hero::has_band(uint32_t source, uint32_t dest) const { return has_band(make_source_dest_hash(source, dest)); }
 
@@ -355,7 +369,7 @@ void hero::require_write_to(int64_t trigger_time, uint32_t source_id, uint32_t d
 }
 
 void hero::require_write_to_band(int64_t trigger_time, uint32_t source_id,
-                                 const yijinjing::data::location_ptr &location, uint32_t page_size) const {
+                                 const data::location_ptr &location, uint32_t page_size) const {
   auto writer = get_writer(source_id);
   RequestWriteToBand msg = {};
   location->to<RequestWriteToBand>(msg);

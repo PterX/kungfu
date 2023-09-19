@@ -73,10 +73,16 @@ export function viewAllJournal(mainWindow: BrowserWindow): void {
 export function foundNewVersion(
   mainWindow: BrowserWindow,
   newVersion: string,
+  oldVersion?: string,
 ): void {
   sendMsgToMainWindow(mainWindow, 'auto-update-find-new-version', {
     newVersion,
+    oldVersion,
   });
+}
+
+export function skipVersion(mainWindow: BrowserWindow, version: string): void {
+  sendMsgToMainWindow(mainWindow, 'auto-update-skip-version', { version });
 }
 
 export function startDownloadNewVersion(mainWindow: BrowserWindow): void {

@@ -36,12 +36,40 @@
             </a-button>
           </div>
         </div>
+        <div v-else-if="hasSkiped">
+          <span>
+            {{ $t('autoUpdater.current_version') + ': ' + oldVersion }}
+          </span>
+          <span style="margin-left: 8px">
+            {{
+              $t('autoUpdater.new_version') +
+              ': ' +
+              newVersion +
+              `(${$t('autoUpdater.has_skiped')})`
+            }}
+          </span>
+          <a-button
+            type="link"
+            size="small"
+            :loading="checkingUpdate"
+            @click="handleToRetryCheckUpdate"
+          >
+            {{ $t('autoUpdater.retry_check') }}
+          </a-button>
+        </div>
         <div v-else>
           <span>
             {{ $t('autoUpdater.new_version') + ': ' + newVersion }}
           </span>
           <a-button type="link" @click="handleToStartDownload">
             {{ $t('autoUpdater.start_download') }}
+          </a-button>
+          <a-button
+            type="link"
+            style="padding-left: 0px"
+            @click="skipVersion(newVersion)"
+          >
+            {{ $t('autoUpdater.skip_version') }}
           </a-button>
         </div>
       </template>
@@ -82,15 +110,19 @@ import { useUpdateVersion } from '@kungfu-trader/kungfu-app/src/renderer/assets/
 const {
   popoverVisible,
   newVersion,
+  oldVersion,
+  hasSkiped,
   currentVersion,
   checkingUpdate,
   hasNewVersion,
   downloadStarted,
+
   process,
   progressStatus,
   errorMessage,
   handleToRetryCheckUpdate,
   handleToStartDownload,
+  skipVersion,
   handleQuitAndInstall,
 } = useUpdateVersion();
 </script>

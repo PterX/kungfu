@@ -45,7 +45,7 @@
               $t('autoUpdater.new_version') +
               ': ' +
               newVersion +
-              `(${$t('autoUpdater.has_skiped')})`
+              `(${$t('autoUpdater.has_skipped')})`
             }}
           </span>
           <a-button

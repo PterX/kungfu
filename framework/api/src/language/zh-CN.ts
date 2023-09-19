@@ -864,7 +864,7 @@ export default {
     new_version: '新版本',
     skip_version: '跳过此版本',
     retry_check: '检测',
-    has_skiped: '已跳过此版本',
+    has_skipped: '已跳过此版本',
     start_download: '开始下载',
     retry_download: '重试',
     find_new_version: '发现新版本: {version}\n是否现在下载安装包? ',

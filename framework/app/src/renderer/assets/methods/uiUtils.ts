@@ -1057,7 +1057,9 @@ export const extraConfirmModal = (
   content: VueNode | (() => VueNode) | string,
   okText = t('confirm'),
   cancelText = t('cancel'),
-  extraTextList?: string[],
+  extraTextList?: {
+    text: string;
+  }[],
 ): Promise<'ok' | 'cancel' | string> => {
   return new Promise((resolve) => {
     const Comp = defineComponent({
@@ -1101,9 +1103,9 @@ export const extraConfirmModal = (
                 h(
                   Button,
                   {
-                    onClick: () => this.close(item),
+                    onClick: () => this.close(item.text),
                   },
-                  () => item,
+                  () => item.text,
                 ),
               ) || []),
               h(

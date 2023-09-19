@@ -127,10 +127,10 @@ export const useUpdateVersion = () => {
   );
   const errorMessage = ref('');
   const process = ref<number>();
-  const skipedVersionList = globalStorage.getItem('skippedVersions');
-  if (skipedVersionList) {
+  const skippedVersionList = globalStorage.getItem('skippedVersions');
+  if (skippedVersionList) {
     hasSkiped.value = true;
-    const list = skipedVersionList;
+    const list = skippedVersionList;
     lastSkippedVersion.value = list[list.length - 1];
     newVersion.value = lastSkippedVersion.value;
   }
@@ -152,7 +152,7 @@ export const useUpdateVersion = () => {
       }),
       t('confirm'),
       t('cancel'),
-      [t('autoUpdater.skip_version')],
+      [{ text: t('autoUpdater.skip_version') }],
     ).then((action) => {
       if (action === 'ok') {
         ipcRenderer.send('auto-update-confirm-result', true);

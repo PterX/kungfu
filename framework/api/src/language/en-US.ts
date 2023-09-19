@@ -862,7 +862,7 @@ export default {
     new_version: 'New version',
     skip_version: 'Skip version',
     retry_check: 'Check',
-    has_skiped: 'Has skiped the version',
+    has_skipped: 'Has skipped the version',
     start_download: 'Start Download',
     retry_download: 'Retry',
     find_new_version: 'Found new version: {version}\nIf you want download now?',

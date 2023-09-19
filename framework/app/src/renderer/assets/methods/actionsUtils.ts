@@ -807,7 +807,7 @@ export const showTradingDataDetail = <T extends KungfuApi.TradingDataTypes>(
   item: T,
   typename: string,
   filterKeys?: Array<keyof T>,
-): Promise<boolean | 'extra' | null> => {
+): Promise<boolean> => {
   const dataResolved = dealTradingDataItem(item, window.watcher);
   const vnode = Object.keys(dataResolved || {})
     .filter((key) => {

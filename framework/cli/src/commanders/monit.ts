@@ -31,6 +31,11 @@ export const monitPrompt = async (list: boolean) => {
     clearTimeout(timer);
   }, 1000);
 
+  process.on('SIGINT', () => {
+    watcher?.quit();
+    process.exit();
+  });
+
   process.on('exit', () => {
     watcher?.quit();
   });

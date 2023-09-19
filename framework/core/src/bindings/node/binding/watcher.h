@@ -24,6 +24,7 @@ namespace kungfu::node {
 constexpr uint64_t ID_TRANC = 0x00000000FFFFFFFF;
 constexpr uint32_t PAGE_ID_MASK = 0x80000000;
 constexpr uint32_t TRANSFER_TRADING_DATA_LIMIT = 2000;
+constexpr uint32_t TRANSFER_STATIC_DATA_LIMIT = 10000;
 
 class WatcherAutoClient : public wingchun::broker::SilentAutoClient {
 public:
@@ -330,11 +331,19 @@ private:
   template <typename DataType> void UpdateLedger(const boost::hana::basic_type<DataType> &type) {
     using DataTypeMap = std::unordered_map<uint64_t, state<DataType>>;
     auto &target_map = const_cast<DataTypeMap &>(data_bank_[type]);
+    auto is_throttle_data_type = type == boost::hana::type_c<longfist::types::Instrument> ||
+                                 type == boost::hana::type_c<longfist::types::InstrumentFactor> ||
+                                 type == boost::hana::type_c<longfist::types::BasketInstrument>;
     auto iter = target_map.begin();
+    auto count = 0;
     while (iter != target_map.end()) {
       const auto &state = iter->second;
       update_ledger(state.update_time, state.source, state.dest, state.data);
       iter = target_map.erase(iter);
+
+      if (is_throttle_data_type && count++ <= TRANSFER_STATIC_DATA_LIMIT) {
+        break;
+      }
     }
   }
 

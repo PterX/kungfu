@@ -186,7 +186,7 @@ void cached::handle_cached_feeds(int store_volume_every_loop) {
   boost::hana::for_each(StateDataTypes, [&](auto it) {
     using DataType = typename decltype(+boost::hana::second(it))::type;
 
-    if (DataType::tag == Instrument::tag) {
+    if (DataType::tag == Instrument::tag or DataType::tag == BasketInstrument::tag) {
       return;
     }
 

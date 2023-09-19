@@ -214,7 +214,7 @@ const Channel &hero::get_channel(uint64_t hash) const {
 
 const std::unordered_map<uint32_t, longfist::types::Register> &hero::get_registry() const { return registry_; }
 
-const std::unordered_map<uint32_t, yijinjing::data::location_ptr> &hero::get_locations() const { return locations_; }
+const std::unordered_map<uint32_t, data::location_ptr> &hero::get_locations() const { return locations_; }
 
 bool hero::has_band(uint32_t source, uint32_t dest) const { return has_band(make_source_dest_hash(source, dest)); }
 
@@ -369,7 +369,7 @@ void hero::require_write_to(int64_t trigger_time, uint32_t source_id, uint32_t d
 }
 
 void hero::require_write_to_band(int64_t trigger_time, uint32_t source_id,
-                                 const yijinjing::data::location_ptr &location, uint32_t page_size) const {
+                                 const data::location_ptr &location, uint32_t page_size) const {
   auto writer = get_writer(source_id);
   RequestWriteToBand msg = {};
   location->to<RequestWriteToBand>(msg);

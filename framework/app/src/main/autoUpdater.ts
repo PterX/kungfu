@@ -132,7 +132,6 @@ function handleUpdateKungfu(
     MainWindow: BrowserWindow | null,
     targetVersions: string[],
     curVersion: string,
-    updaterOption: any,
   ) {
     autoUpdater.removeAllListeners();
     let curErrorBeCalled = false;
@@ -196,7 +195,7 @@ function handleUpdateKungfu(
             killAllBeforeQuit(MainWindow),
           ])
             .catch((err) => {
-              kfLogger.error('installError', err);
+              kfLogger.error(err);
             })
             .finally(() => {
               delayMilliSeconds(1000).then(() => {
@@ -211,7 +210,7 @@ function handleUpdateKungfu(
                       true,
                     )
                     .catch((err) => {
-                      kfLogger.error('installError1', err);
+                      kfLogger.error(err);
                     })
                     .finally(() => {
                       results.errors.forEach((error) => kfLogger.error(error));
@@ -271,18 +270,12 @@ function handleUpdateKungfu(
     MainWindow: BrowserWindow | null,
     targetVersions: string[],
     curVersion: string,
-    updaterOption: any,
   ) {
     autoUpdater.autoDownload = false;
     autoUpdater.autoInstallOnAppQuit = false;
     autoUpdater.autoRunAppAfterInstall = true;
 
-    setupAutoUpdaterListeners(
-      MainWindow,
-      targetVersions,
-      curVersion,
-      updaterOption,
-    );
+    setupAutoUpdaterListeners(MainWindow, targetVersions, curVersion);
   }
 
   const rootPackageJson = readRootPackageJsonSync();
@@ -322,7 +315,7 @@ function handleUpdateKungfu(
     JSON.stringify(updaterOption),
   );
 
-  configureAutoUpdater(MainWindow, targetVersions, curVersion, updaterOption);
+  configureAutoUpdater(MainWindow, targetVersions, curVersion);
 }
 
 export { handleUpdateKungfu };

@@ -84,7 +84,7 @@
         ></TimeSlider>
         <div class="kf-journal-visualization-btn">
           <a-button
-            v-if="visualBtnVisible"
+            v-if="currentSession?.category === 'strategy'"
             style="margin-right: 8px; color: #d22e88; border-color: #d22e88"
             @click="onEntryVisualization"
           >
@@ -169,11 +169,6 @@ const menus = [
   },
 ];
 const visualVisible = ref<boolean>(false);
-const visualBtnVisible = computed(() => {
-  return ['strategy', 'md', 'operator'].includes(
-    currentSession.value?.category,
-  );
-});
 
 const isCurrentMenuItem = (key: 'event' | 'visual') =>
   currentMenuList.value.includes(key);

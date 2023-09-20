@@ -142,7 +142,11 @@ import {
 
 const { t } = VueI18n.global;
 
-type WithTableRowInfo<T> = T & { tableRowId: string; msgTypeName: string };
+type WithTableRowInfo<T> = T & {
+  tableRowId: string;
+  msgTypeName: string;
+  index?: number;
+};
 type QuoteChartResolved = WithTableRowInfo<KungfuApi.Quote>;
 type OrderInputChartResolved = WithTableRowInfo<KungfuApi.OrderInput>;
 type OrderChartResolved = WithTableRowInfo<KungfuApi.Order>;
@@ -179,6 +183,7 @@ const {
   currentSessionKey,
   currentFrameList,
   currentFrame,
+  currentTime,
 } = storeToRefs(useJournalStore());
 const { dashboardBodyHeight } = useDashboardBodySize();
 const columns = getStrategyColumns();
@@ -186,22 +191,14 @@ const simpleImage = Empty.PRESENTED_IMAGE_SIMPLE;
 const kfInstrumentsJSON: Record<string, KungfuApi.InstrumentResolved> =
   fse.readJsonSync(path.join(KF_CONFIG_DIR, 'defaultInstruments.json'));
 const searchInstrument = ref<string>('');
-
-const quoteByInstrument = ref<Record<string, QuoteChartResolved[]>>({});
-const orderInputByInstrument = ref<Record<string, OrderInputChartResolved[]>>(
-  {},
-);
-const orderByInstrument = ref<Record<string, OrderChartResolved[]>>({});
-const orderActionByInstrument = ref<Record<string, OrderActionResolved[]>>({});
-
 const selectedInstrument = ref<string>('');
-const xAxisData = ref<number[]>([]);
-const quoteXAxisData = ref<number[]>([]);
+const xAxisData = ref<Record<string, number[]>>({});
+const quoteXAxisData = ref<Record<string, number[]>>({});
 const searchOrderId = ref<string>('');
 const instrumentList = ref<string[]>([]);
 
 onMounted(() => {
-  dealAllFrameData();
+  init();
 });
 
 onBeforeUnmount(() => {
@@ -219,7 +216,7 @@ const customRow = (record: KungfuApi.SessionResolved) => {
   return {
     onClick: () => {
       setCurrentSession(record);
-      dealAllFrameData();
+      init();
     },
   };
 };
@@ -234,7 +231,7 @@ watch(
   () => isLoadingFrames.value,
   (newValue) => {
     if (!newValue) {
-      dealAllFrameData();
+      init();
     }
   },
 );
@@ -262,7 +259,7 @@ watch(
             if ('order_id' in chartData) orderId = chartData.order_id;
             break;
           case 'Order':
-            if ('update_time' in chartData) dataTime = chartData.update_time;
+            if ('insert_time' in chartData) dataTime = chartData.insert_time;
             if ('order_id' in chartData) orderId = chartData.order_id;
             break;
           case 'OrderAction':
@@ -274,9 +271,8 @@ watch(
         if (newCurrentFram.msgTypeName === 'Quote') {
           const closestTimeIndex = findClosestTime(
             Number(dataTime),
-            quoteXAxisData.value,
+            quoteXAxisData.value[selectedInstrument.value],
           );
-
           delayMilliSeconds(500)
             .then(() => {
               myChart.dispatchAction({
@@ -284,7 +280,6 @@ watch(
                 seriesIndex: 0,
                 dataIndex: closestTimeIndex,
               });
-
               return delayMilliSeconds(3000);
             })
             .then(() => {
@@ -308,15 +303,25 @@ watch(
                 if (item.customInfo.orderId === orderId) {
                   hasOrderId = true;
                   item.symbolSize = 20;
-                  if (item.itemStyle) {
-                    item.itemStyle = {
-                      ...item.itemStyle,
-                      shadowBlur: 30,
-                      shadowColor: item.itemStyle.color,
-                    };
+                  let shadowColor = '';
+                  if (item.customInfo.msgTypeName === 'orderAction') {
+                    shadowColor = '#73F3F6';
+                  } else {
+                    shadowColor =
+                      item.itemStyle?.color === '#f21717'
+                        ? '#f37370'
+                        : '#8fd460';
                   }
+                  item.itemStyle = {
+                    ...item.itemStyle,
+                    shadowBlur: 10,
+                    shadowColor,
+                  };
                 } else {
-                  item.symbolSize = 10;
+                  item.itemStyle = {
+                    ...item.itemStyle,
+                    shadowBlur: 0,
+                  };
                 }
               });
             });
@@ -337,35 +342,31 @@ watch(
 );
 
 function reset() {
-  orderByInstrument.value = {};
-  quoteByInstrument.value = {};
-  orderInputByInstrument.value = {};
+  frameListResolved.value = {};
+  chartSeriesData.value = {};
+  xAxisData.value = {};
+  quoteXAxisData.value = {};
+  orderInfoMap.value = {};
   searchInstrument.value = '';
   searchOrderId.value = '';
   selectedInstrument.value = '';
-  xAxisData.value = [];
 }
 
-function dealAllFrameData() {
+function init() {
   reset();
-  dealFrameListMap();
-  quoteByInstrument.value = dealFrame<QuoteChartResolved>(
-    'quote',
-    kfInstrumentsJSON,
-  );
-  orderByInstrument.value = dealFrame<OrderChartResolved>(
-    'order',
-    kfInstrumentsJSON,
-  );
-  orderInputByInstrument.value = dealFrame<OrderInputChartResolved>(
-    'orderInput',
-    kfInstrumentsJSON,
-  );
-  orderActionByInstrument.value = dealFrame<OrderActionResolved>(
-    'orderAction',
-    kfInstrumentsJSON,
-  );
 
+  currentFrameList.value.forEach((item) => {
+    if (item.msgTypeName === 'Order') {
+      const tradingData = item.data as KungfuApi.Order;
+      orderInfoMap.value[tradingData.order_id.toString()] = {
+        instrumentId: tradingData.instrument_id,
+        exchangeId: tradingData.exchange_id,
+        limitPrice: tradingData.limit_price,
+      };
+    }
+  });
+
+  dealFrameData();
   instrumentList.value = getInstrumentList();
 
   if (instrumentList.value.length > 0) {
@@ -378,192 +379,244 @@ function dealAllFrameData() {
   }
 }
 
-const chartFrameListMap = ref<Record<string, KungfuApi.FrameResolved[]>>({
-  quote: [],
-  orderInput: [],
-  order: [],
-  orderAction: [],
-});
+const orderInfoMap = ref<
+  Record<
+    string,
+    {
+      instrumentId: string;
+      exchangeId: string;
+      limitPrice: number;
+    }
+  >
+>({});
 
-function dealFrameListMap() {
-  chartFrameListMap.value = {
-    quote: [],
-    orderInput: [],
-    order: [],
-    orderAction: [],
-  };
+const frameListResolved = ref<
+  Record<
+    string,
+    {
+      Quote: QuoteChartResolved[];
+      OrderInput: OrderInputChartResolved[];
+      Order: OrderChartResolved[];
+      OrderAction: OrderActionResolved[];
+    }
+  >
+>({});
 
-  let requestStart = false;
+const chartSeriesData = ref<
+  Record<
+    string,
+    {
+      Quote: SeriesData[];
+      OrderInput: SeriesData[];
+      Order: SeriesData[];
+      OrderAction: SeriesData[];
+    }
+  >
+>({});
+
+function dealFrameData() {
   currentFrameList.value.forEach((item, index) => {
-    if (item.msgTypeName === 'RequestStart') {
-      requestStart = true;
-    }
-    if (requestStart) {
-      item.index = index;
-      if (item.msgTypeName === 'Quote') {
-        chartFrameListMap.value.quote.push(item);
-      } else if (item.msgTypeName === 'OrderInput') {
-        chartFrameListMap.value.orderInput.push(item);
-      } else if (item.msgTypeName === 'Order') {
-        chartFrameListMap.value.order.push(item);
-      } else if (item.msgTypeName === 'OrderAction') {
-        chartFrameListMap.value.orderAction.push(item);
-      }
-    }
-  });
-}
+    if (
+      !['Quote', 'OrderInput', 'Order', 'OrderAction'].includes(
+        item.msgTypeName,
+      )
+    )
+      return;
 
-function dealFrame<T extends FrameResolvedDataType>(
-  msgTypeName: string,
-  kfInstrumentsJSON: Record<string, KungfuApi.InstrumentResolved>,
-): Record<string, T[]> {
-  const hasInstrumentId: string[] = [];
-  const result: Record<string, T[]> = {};
-  const frameList = chartFrameListMap.value[msgTypeName];
-  let orders: KungfuApi.Order[] = [];
-
-  if (msgTypeName === 'orderAction') {
-    orders = chartFrameListMap.value['order'].map((frame) => {
-      return frame.data as KungfuApi.Order;
-    });
-  }
-
-  frameList.forEach((item) => {
-    let tradingData = {} as T;
-    if (msgTypeName === 'orderAction') {
-      const orderAction = item.data as KungfuApi.OrderAction;
-      const order = orders.filter((order) => {
-        return orderAction.order_id === order.order_id;
-      })[0];
-
-      if (!order) {
-        messagePrompt().error('数据异常');
-      }
-      tradingData = {
-        ...orderAction,
-        instrument_id: order.instrument_id,
-        exchange_id: order.exchange_id,
-        limit_price: order.limit_price,
-        tableRowId: item.id,
-        msgTypeName,
-      } as T;
-    } else {
-      tradingData = {
-        ...(item.data as FrameDataType),
-        tableRowId: item.id,
-        msgTypeName,
-      } as T;
-    }
-
-    const uidKey = hashInstrumentUKey(
-      tradingData.instrument_id,
-      tradingData.exchange_id,
+    let tradingData = item.data as FrameDataType;
+    let tradingDataResolved: FrameResolvedDataType | null = null;
+    const { dataTime } = getTradingDataValueByKey(
+      tradingData,
+      item.msgTypeName,
     );
-    const key = kfInstrumentsJSON[uidKey]
-      ? buildInstrumentSelectOptionLabel(kfInstrumentsJSON[uidKey])
-      : `${tradingData.instrument_id} ${
-          ExchangeIds[tradingData.exchange_id.toUpperCase()]?.name || ''
-        }`;
 
-    if (hasInstrumentId.includes(tradingData.instrument_id)) {
-      result[key].push(tradingData);
+    if (dataTime < currentTime.value) return;
+
+    let uidKey = '';
+    let key = '';
+    if (item.msgTypeName === 'OrderAction') {
+      tradingData = tradingData as KungfuApi.OrderAction;
+      const { instrumentId, exchangeId, limitPrice } =
+        orderInfoMap.value[tradingData.order_id.toString()] ?? {};
+      if (!instrumentId || !exchangeId) {
+        console.error('数据异常或信号源为OrderAction');
+        return;
+      }
+      uidKey = hashInstrumentUKey(instrumentId, exchangeId);
+
+      tradingDataResolved = {
+        ...tradingData,
+        instrument_id: instrumentId,
+        exchange_id: exchangeId,
+        limit_price: limitPrice,
+        tableRowId: item.id,
+        msgTypeName: item.msgTypeName,
+        index,
+      };
+
+      key = kfInstrumentsJSON[uidKey]
+        ? buildInstrumentSelectOptionLabel(kfInstrumentsJSON[uidKey])
+        : `${instrumentId} ${
+            ExchangeIds[exchangeId.toUpperCase()]?.name || ''
+          }`;
     } else {
-      hasInstrumentId.push(tradingData.instrument_id);
-      result[key] = [tradingData];
+      if ('instrument_id' in tradingData) {
+        uidKey = hashInstrumentUKey(
+          tradingData.instrument_id,
+          tradingData.exchange_id,
+        );
+
+        tradingDataResolved = {
+          ...tradingData,
+          tableRowId: item.id,
+          msgTypeName: item.msgTypeName,
+          index,
+        };
+
+        key = kfInstrumentsJSON[uidKey]
+          ? buildInstrumentSelectOptionLabel(kfInstrumentsJSON[uidKey])
+          : `${tradingData.instrument_id} ${
+              ExchangeIds[tradingData.exchange_id.toUpperCase()]?.name || ''
+            }`;
+      }
     }
-  });
-
-  return result;
-}
-
-function dealChartDataByFrameResolved<T extends FrameResolvedDataType>(
-  selectedInstrument: string,
-  frameResolved: Record<string, FrameResolvedDataType[]>,
-  type: string,
-): {
-  value: (string | number)[];
-  data: T;
-}[] {
-  if (Object.keys(frameResolved).length === 0 || !selectedInstrument) return [];
-
-  const tradingData = frameResolved[selectedInstrument];
-  if (!tradingData) return [];
-
-  const timeData = tradingData.map((item) => {
-    let dataTime = 0n;
-    switch (type) {
-      case 'Quote':
-        if ('data_time' in item) dataTime = item.data_time;
-        break;
-      case 'OrderInput':
-        if ('insert_time' in item) dataTime = item.insert_time;
-        break;
-      case 'Order':
-        if ('update_time' in item) dataTime = item.update_time;
-        break;
-      case 'OrderAction':
-        if ('insert_time' in item) dataTime = item.insert_time;
-        break;
+    if (!key) {
+      console.error('数据异常');
+      return;
     }
-    return Number(dataTime);
-  });
-  if (type === 'Quote') {
-    quoteXAxisData.value = timeData;
-  }
-  xAxisData.value = [...xAxisData.value, ...timeData];
-
-  return frameResolved[selectedInstrument].map((item) => {
-    let time = 0n,
-      price = 0;
-    switch (type) {
-      case 'Quote':
-        if ('data_time' in item) time = item.data_time;
-        if ('last_price' in item) price = item.last_price;
-        break;
-      case 'OrderInput':
-        if ('insert_time' in item) time = item.insert_time;
-        if ('limit_price' in item) price = item.limit_price;
-        break;
-      case 'Order':
-        if ('update_time' in item) time = item.update_time;
-        if ('limit_price' in item) price = item.limit_price;
-        break;
-      case 'OrderAction':
-        if ('insert_time' in item) time = item.insert_time;
-        if ('limit_price' in item) price = item.limit_price;
-        break;
+    if (!frameListResolved.value[key]) {
+      frameListResolved.value[key] = {
+        Quote: [],
+        Order: [],
+        OrderInput: [],
+        OrderAction: [],
+      };
     }
+    if (!chartSeriesData.value[key]) {
+      chartSeriesData.value[key] = {
+        Quote: [],
+        Order: [],
+        OrderInput: [],
+        OrderAction: [],
+      };
+    }
+    frameListResolved.value[key][item.msgTypeName].push(tradingDataResolved);
+    if (tradingDataResolved) {
+      const { dataTime, price } = getTradingDataValueByKey(tradingDataResolved);
 
-    return {
-      value: [dealKfTime(time), price],
-      data: item as T,
-    };
+      if (!xAxisData.value[key]) {
+        xAxisData.value[key] = [];
+      } else {
+        xAxisData.value[key].push(Number(dataTime));
+      }
+
+      if (item.msgTypeName === 'Quote') {
+        if (!quoteXAxisData.value[key]) {
+          quoteXAxisData.value[key] = [];
+        }
+        quoteXAxisData.value[key].push(Number(dataTime));
+        tradingDataResolved = tradingDataResolved as QuoteChartResolved;
+        chartSeriesData.value[key].Quote.push({
+          value: [dealKfTime(dataTime), price],
+          tooltip: {
+            position: 'bottom',
+            formatter: tooltipFormatter(tradingDataResolved, 'Quote'),
+          },
+          customInfo: {
+            tableRowId: tradingDataResolved.tableRowId,
+            time: tradingDataResolved.data_time,
+            msgTypeName: tradingDataResolved.msgTypeName,
+          },
+        });
+      } else if (item.msgTypeName === 'OrderInput') {
+        tradingDataResolved = tradingDataResolved as OrderInputChartResolved;
+        chartSeriesData.value[key].OrderInput.push({
+          value: [dealKfTime(dataTime), price],
+          symbolRotate: tradingDataResolved.side === 0 ? 180 : 0,
+          itemStyle: {
+            color: tradingDataResolved.side === 0 ? '#f21717' : '#17b07f',
+          },
+          tooltip: {
+            position: 'bottom',
+            formatter: tooltipFormatter(tradingDataResolved),
+          },
+          customInfo: {
+            orderId: tradingDataResolved.order_id || 0n,
+            tableRowId: tradingDataResolved.tableRowId,
+            time: tradingDataResolved.insert_time,
+            msgTypeName: tradingDataResolved.msgTypeName,
+          },
+        });
+      } else if (item.msgTypeName === 'Order') {
+        tradingDataResolved = tradingDataResolved as OrderChartResolved;
+        chartSeriesData.value[key].Order.push({
+          value: [dealKfTime(dataTime), price],
+          symbolRotate: tradingDataResolved.side === 0 ? 180 : 0,
+          symbolOffset:
+            tradingDataResolved.side === 0 ? [0, '-160%'] : [0, '160%'],
+          itemStyle: {
+            color: tradingDataResolved.side === 0 ? '#f21717' : '#17b07f',
+          },
+          tooltip: {
+            position: 'bottom',
+            formatter: tooltipFormatter(tradingDataResolved),
+          },
+          customInfo: {
+            orderId: tradingDataResolved.order_id || 0n,
+            tableRowId: tradingDataResolved.tableRowId,
+            time: tradingDataResolved.insert_time,
+            msgTypeName: tradingDataResolved.msgTypeName,
+          },
+          label: {
+            show: true,
+            position: tradingDataResolved.side === 0 ? 'top' : 'bottom',
+            color: tradingDataResolved.side === 0 ? '#f21717' : '#17b07f',
+            formatter: () => {
+              const side =
+                (tradingDataResolved as OrderChartResolved).side ??
+                SideEnum.Unknown;
+              const offset =
+                (tradingDataResolved as OrderChartResolved).offset ??
+                OffsetEnum.Unknown;
+
+              return sideOffsetMap[side]
+                ? sideOffsetMap[side][offset] || '--'
+                : '--';
+            },
+          },
+        });
+      } else if (item.msgTypeName === 'OrderAction') {
+        tradingDataResolved = tradingDataResolved as OrderActionResolved;
+        chartSeriesData.value[key].OrderAction.push({
+          value: [dealKfTime(dataTime), price],
+          tooltip: {
+            position: 'bottom',
+            formatter: tooltipFormatter(tradingDataResolved),
+          },
+          customInfo: {
+            orderId: tradingDataResolved.order_id || 0n,
+            tableRowId: tradingDataResolved.tableRowId,
+            time: tradingDataResolved.insert_time,
+            msgTypeName: tradingDataResolved.msgTypeName,
+          },
+        });
+      }
+    }
   });
 }
 
 function getInstrumentList(searchKey?: string) {
-  const allInstrument = Array.from(
-    new Set([
-      ...Object.keys(orderByInstrument.value),
-      ...Object.keys(quoteByInstrument.value),
-      ...Object.keys(orderInputByInstrument.value),
-    ]),
-  );
-
   return searchKey
-    ? allInstrument.filter((item) => {
+    ? Object.keys(frameListResolved.value).filter((item) => {
         return item.includes(searchKey);
       })
-    : allInstrument;
+    : Object.keys(frameListResolved.value);
 }
 
 function getCurInstrument(instrument: string) {
   selectedInstrument.value = instrument;
   selectedOrderId = 0n;
   searchOrderId.value = '';
-  xAxisData.value = [];
-
-  setXAxisMinMax(instrument);
 
   updateOption();
 }
@@ -591,6 +644,8 @@ const initChart = () => {
 };
 
 const updateOption = () => {
+  setXAxisMinMax();
+
   option.yAxis.min = xAxisMinMax.value.min;
   option.yAxis.max = xAxisMinMax.value.max;
 
@@ -599,114 +654,22 @@ const updateOption = () => {
     item.end = 20;
   });
 
-  option.series[0].data = dealChartDataByFrameResolved<QuoteChartResolved>(
-    selectedInstrument.value,
-    quoteByInstrument.value,
-    'Quote',
-  ).map((item) => {
-    return {
-      value: item.value,
-      tooltip: {
-        position: 'bottom',
-        formatter: tooltipFormatter(item.data, 'quote'),
-      },
-      customInfo: {
-        tableRowId: item.data.tableRowId,
-        time: item.data.data_time,
-        msgTypeName: item.data.msgTypeName,
-      },
-    };
-  });
+  option.series[0].data = chartSeriesData.value[selectedInstrument.value].Quote;
+  option.series[1].data =
+    chartSeriesData.value[selectedInstrument.value].OrderInput;
+  option.series[2].data = chartSeriesData.value[selectedInstrument.value].Order;
+  option.series[3].data =
+    chartSeriesData.value[selectedInstrument.value].OrderAction;
 
-  option.series[1].data = dealChartDataByFrameResolved<OrderInputChartResolved>(
-    selectedInstrument.value,
-    orderInputByInstrument.value,
-    'OrderInput',
-  ).map((item) => {
-    return {
-      value: item.value,
-      symbolRotate: item.data.side === 0 ? 180 : 0,
-      itemStyle: {
-        color: item.data.side === 0 ? '#f21717' : '#17b07f',
-      },
-      tooltip: {
-        position: 'bottom',
-        formatter: tooltipFormatter(item.data),
-      },
-      customInfo: {
-        orderId: item.data.order_id || 0n,
-        tableRowId: item.data.tableRowId,
-        time: item.data.insert_time,
-        msgTypeName: item.data.msgTypeName,
-      },
-    };
-  });
-
-  option.series[2].data = dealChartDataByFrameResolved<OrderChartResolved>(
-    selectedInstrument.value,
-    orderByInstrument.value,
-    'Order',
-  ).map((item) => {
-    return {
-      value: item.value,
-      symbolRotate: item.data.side === 0 ? 180 : 0,
-      itemStyle: {
-        color: item.data.side === 0 ? '#f21717' : '#17b07f',
-      },
-      tooltip: {
-        position: 'bottom',
-        formatter: tooltipFormatter(item.data),
-      },
-      symbolOffset: item.data.side === 0 ? [0, '-160%'] : [0, '160%'],
-      customInfo: {
-        orderId: item.data.order_id || 0n,
-        tableRowId: item.data.tableRowId,
-        time: item.data.update_time,
-        msgTypeName: item.data.msgTypeName,
-      },
-      label: {
-        show: true,
-        position: item.data.side === 0 ? 'top' : 'bottom',
-        color: item.data.side === 0 ? '#f21717' : '#17b07f',
-        formatter: () => {
-          const side = item.data.side ?? SideEnum.Unknown;
-          const offset = item.data.offset ?? OffsetEnum.Unknown;
-
-          return sideOffsetMap[side]
-            ? sideOffsetMap[side][offset] || '--'
-            : '--';
-        },
-      },
-    };
-  });
-
-  option.series[3].data = dealChartDataByFrameResolved<OrderActionResolved>(
-    selectedInstrument.value,
-    orderActionByInstrument.value,
-    'OrderAction',
-  ).map((item) => {
-    return {
-      value: item.value,
-      tooltip: {
-        position: 'bottom',
-        formatter: tooltipFormatter(item.data),
-      },
-      customInfo: {
-        orderId: item.data.order_id || 0n,
-        tableRowId: item.data.tableRowId,
-        time: item.data.insert_time,
-        msgTypeName: item.data.msgTypeName,
-      },
-    };
-  });
-
-  xAxisData.value.sort((a, b) => {
+  option.xAxis.data = xAxisData.value[selectedInstrument.value]
+    .sort((a, b) => {
+      return a - b;
+    })
+    .map((item) => {
+      return dealKfTime(BigInt(item));
+    });
+  quoteXAxisData.value[selectedInstrument.value]?.sort((a, b) => {
     return a - b;
-  });
-
-  const xAxis = xAxisData.value;
-  option.xAxis.data = xAxis.map((item) => {
-    return dealKfTime(BigInt(item));
   });
 
   myChart && myChart.setOption(option);
@@ -724,11 +687,13 @@ function addChartEventListener(myChart: echarts.ECharts) {
     const serieItemData = params.data as SeriesData;
     const { msgTypeName, tableRowId, orderId } = serieItemData.customInfo;
 
-    chartFrameListMap.value[msgTypeName].forEach((fram) => {
-      if (fram.id === tableRowId) {
-        setSelectedChartItem(fram.index ?? 0);
-      }
-    });
+    frameListResolved.value[selectedInstrument.value][msgTypeName].forEach(
+      (fram) => {
+        if (fram.tableRowId === tableRowId) {
+          setSelectedChartItem(fram.index ?? 0);
+        }
+      },
+    );
 
     if (params.componentSubType === 'scatter') {
       selectedOrderId = orderId || 0n;
@@ -814,9 +779,9 @@ function addChartEventListener(myChart: echarts.ECharts) {
     ]);
 
     let { dataTime } = getTradingDataValueByKey(chartFrameList.value[index]);
-    const closestTimeIndex = findClosestTime(
+    let closestTimeIndex = findClosestTime(
       Number(dataTime),
-      quoteXAxisData.value,
+      quoteXAxisData.value[selectedInstrument.value],
     );
     if (lastIndex !== undefined) {
       myChart.dispatchAction({
@@ -848,10 +813,10 @@ function addChartEventListener(myChart: echarts.ECharts) {
 
 const chartFrameList = computed(() => {
   return [
-    ...(quoteByInstrument.value[selectedInstrument.value] ?? []),
-    ...(orderByInstrument.value[selectedInstrument.value] ?? []),
-    ...(orderInputByInstrument.value[selectedInstrument.value] ?? []),
-    ...(orderActionByInstrument.value[selectedInstrument.value] ?? []),
+    ...(frameListResolved.value[selectedInstrument.value].Quote ?? []),
+    ...(frameListResolved.value[selectedInstrument.value].Order ?? []),
+    ...(frameListResolved.value[selectedInstrument.value].OrderInput ?? []),
+    ...(frameListResolved.value[selectedInstrument.value].OrderAction ?? []),
   ].sort((a, b) => {
     let aDataTime = getTradingDataValueByKey(a).dataTime;
     let bDataTime = getTradingDataValueByKey(b).dataTime;
@@ -859,29 +824,50 @@ const chartFrameList = computed(() => {
   });
 });
 
-function getTradingDataValueByKey(data: FrameResolvedDataType) {
-  let dataTime = 0n;
+function getTradingDataValueByKey(
+  data: FrameResolvedDataType | FrameDataType,
+  type?: string,
+) {
+  let dataTime = 0n,
+    price = 0;
   if (!data)
     return {
       dataTime,
+      price,
     };
-  switch (data.msgTypeName) {
-    case 'quote':
+  let msgTypeName = '';
+  if ('msgTypeName' in data) {
+    msgTypeName = data.msgTypeName;
+  } else if (type) {
+    msgTypeName = type;
+  } else {
+    return {
+      dataTime,
+      price,
+    };
+  }
+  switch (msgTypeName) {
+    case 'Quote':
       if ('data_time' in data) dataTime = data.data_time;
+      if ('last_price' in data) price = data.last_price;
       break;
-    case 'orderInput':
+    case 'OrderInput':
       if ('insert_time' in data) dataTime = data.insert_time;
+      if ('limit_price' in data) price = data.limit_price;
       break;
-    case 'order':
-      if ('update_time' in data) dataTime = data.update_time;
-      break;
-    case 'orderAction':
+    case 'Order':
       if ('insert_time' in data) dataTime = data.insert_time;
+      if ('limit_price' in data) price = data.limit_price;
+      break;
+    case 'OrderAction':
+      if ('insert_time' in data) dataTime = data.insert_time;
+      if ('limit_price' in data) price = data.limit_price;
       break;
   }
 
   return {
     dataTime,
+    price,
   };
 }
 
@@ -1002,7 +988,9 @@ function handleSearchOrderId() {
     return;
   }
 
-  chartFrameListMap.value[orderIdInfo.msgTypeName].forEach((fram) => {
+  frameListResolved.value[selectedInstrument.value][
+    orderIdInfo.msgTypeName
+  ].forEach((fram) => {
     if (fram.id === orderIdInfo.tableRowId) {
       setSelectedChartItem(fram.index ?? 0);
     }
@@ -1014,8 +1002,14 @@ function handleSearchOrderId() {
 }
 
 function setDataZoom(dataTime: bigint) {
-  const closestTimeIndex = findClosestTime(Number(dataTime), xAxisData.value);
-  const start = ((closestTimeIndex / xAxisData.value.length) * 100).kfRound(2);
+  const closestTimeIndex = findClosestTime(
+    Number(dataTime),
+    xAxisData.value[selectedInstrument.value],
+  );
+  const start = (
+    (closestTimeIndex / xAxisData.value[selectedInstrument.value].length) *
+    100
+  ).kfRound(2);
   if (start <= 15) {
     option.dataZoom.forEach((item) => {
       item.start = 0;
@@ -1029,10 +1023,10 @@ function setDataZoom(dataTime: bigint) {
   }
 }
 
-function setXAxisMinMax(key: string) {
-  if (quoteByInstrument.value[key]?.length > 0) {
+function setXAxisMinMax() {
+  if (frameListResolved.value[selectedInstrument.value].Quote.length > 0) {
     const { upper_limit_price, lower_limit_price, last_price } =
-      quoteByInstrument.value[key][0];
+      frameListResolved.value[selectedInstrument.value].Quote[0];
     xAxisMinMax.value.max = upper_limit_price
       ? Math.floor(upper_limit_price)
       : last_price
@@ -1045,10 +1039,17 @@ function setXAxisMinMax(key: string) {
       : 'dataMin';
   } else {
     let limit_price;
-    if (orderInputByInstrument.value[key]?.length > 0) {
-      limit_price = orderInputByInstrument.value[key][0].limit_price;
-    } else if (orderByInstrument.value[key]?.length > 0) {
-      limit_price = orderByInstrument.value[key][0].limit_price;
+    if (
+      frameListResolved.value[selectedInstrument.value].OrderInput.length > 0
+    ) {
+      limit_price =
+        frameListResolved.value[selectedInstrument.value].OrderInput[0]
+          .limit_price;
+    } else if (
+      frameListResolved.value[selectedInstrument.value].Order.length > 0
+    ) {
+      limit_price =
+        frameListResolved.value[selectedInstrument.value].Order[0].limit_price;
     } else {
       xAxisMinMax.value = {
         max: 'dataMax',
@@ -1144,7 +1145,7 @@ const handleInputChange = debounce(() => {
       height: 100%;
     }
     .tooltip-container {
-      width: 450px;
+      width: 400px;
       color: #ffffffd9;
       .tooltip-row {
         display: flex;

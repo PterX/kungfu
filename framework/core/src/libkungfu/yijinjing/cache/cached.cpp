@@ -240,7 +240,7 @@ void cached::store_states_feeds() {
         return;
       }
       using DataType = typename decltype(+boost::hana::second(it))::type;
-      if (DataType::tag == Instrument::tag) {
+      if (DataType::tag == Instrument::tag or DataType::tag == BasketInstrument::tag) {
         return;
       }
 

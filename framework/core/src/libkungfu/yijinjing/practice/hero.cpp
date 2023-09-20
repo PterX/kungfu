@@ -140,6 +140,8 @@ writer_ptr hero::get_writer(uint32_t dest_id) const {
       SPDLOG_WARN("Unexpected exception by get_band_writer for dest_id {}:{}, {}", dest_id, get_location_uname(dest_id),
                   e.what());
     }
+  } else if (band_writers_.find(dest_id) != band_writers_.end()) {
+    return band_writers_.at(dest_id);
   }
 
   if (writers_.find(dest_id) == writers_.end()) {
@@ -368,8 +370,8 @@ void hero::require_write_to(int64_t trigger_time, uint32_t source_id, uint32_t d
   writer->close_data();
 }
 
-void hero::require_write_to_band(int64_t trigger_time, uint32_t source_id,
-                                 const data::location_ptr &location, uint32_t page_size) const {
+void hero::require_write_to_band(int64_t trigger_time, uint32_t source_id, const data::location_ptr &location,
+                                 uint32_t page_size) const {
   auto writer = get_writer(source_id);
   RequestWriteToBand msg = {};
   location->to<RequestWriteToBand>(msg);

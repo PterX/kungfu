@@ -417,7 +417,6 @@ class ExtensionExecutor:
         if kfj.MODES[ctx.mode] == lf.enums.mode.BACKTEST and ctx.report:
             report.sumerize()
 
-
 class RegistryJSONEncoder(json.JSONEncoder):
     def default(self, obj):
         test = isinstance(obj, ExtensionLoader) or isinstance(obj, types.FunctionType)

@@ -220,13 +220,6 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
         ],
       },
       {
-        key: 'marginTrading',
-        name: t('globalSettingConfig.margin_trading'),
-        tip: t('globalSettingConfig.show_margin_trading'),
-        default: false,
-        type: 'bool',
-      },
-      {
         key: 'posTableColumns',
         name: t('globalSettingConfig.pos_table_columns'),
         type: 'checkboxGroup',

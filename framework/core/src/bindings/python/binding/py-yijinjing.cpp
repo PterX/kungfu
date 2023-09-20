@@ -143,6 +143,7 @@ void bind(pybind11::module &&m) {
 
   // nanosecond-time related
   m.def("now_in_nano", &time::now_in_nano);
+  m.def("today_start", &time::today_start);
   m.def("strftime", &time::strftime, py::arg("nanotime"), py::arg("format") = KUNGFU_TIMESTAMP_FORMAT);
   m.def("strptime", py::overload_cast<const std::string &, const std::string &>(&time::strptime), py::arg("timestr"),
         py::arg("format") = KUNGFU_TIMESTAMP_FORMAT);
@@ -256,6 +257,8 @@ void bind(pybind11::module &&m) {
   auto writer_class = py::class_<writer, writer_ptr>(m, "writer");
   writer_class.def(py::init<const data::location_ptr &, uint32_t, bool, publisher_ptr, bool, const bus_ptr &>())
       .def("current_frame_uid", &writer::current_frame_uid)
+      .def("get_location", &writer::get_location)
+      .def("get_dest", &writer::get_dest)
       .def("copy_frame", &writer::copy_frame)
       .def("mark", &writer::mark)
       .def("mark_at", &writer::mark_at)

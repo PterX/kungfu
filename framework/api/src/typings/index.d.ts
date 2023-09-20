@@ -249,6 +249,7 @@ declare namespace KungfuApi {
         order_trigger?: Record<string, Record<string, boolean>>;
         settings: KfConfigItem[];
         fund_trans?: KfExtFundTransConfig | null;
+        show_asset_margin?: boolean;
       };
       md?: {
         type?: TdMdExtTypes[] | TdMdExtTypes;
@@ -302,6 +303,7 @@ declare namespace KungfuApi {
     orderTrigger: Partial<Record<OrderTriggerConfigTypeEnum, boolean>>;
     settings: KfConfigItem[];
     fundTrans?: KfExtFundTransConfig | null;
+    showAssetMargin?: boolean;
   }
 
   export interface KfMdExtConfig extends KfExtConfigBase<'md'> {

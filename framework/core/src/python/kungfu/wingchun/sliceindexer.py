@@ -7,6 +7,7 @@ import functools
 import kungfu
 import os
 import sys
+from pathlib import Path
 
 from kungfu.console.utils import import_force
 from kungfu.yijinjing import time as kft
@@ -33,7 +34,12 @@ class SliceIndexer(wc.SliceIndexer):
         indexer_dir = os.path.dirname(path)
         name_no_ext = os.path.split(os.path.basename(path))
         sys.path.insert(0, os.path.relpath(indexer_dir))
+
         module_name = os.path.splitext(name_no_ext[1])[0]
+        if path.endswith(".so") or path.endswith(".pyd"):
+            sys.path.append(str(Path(path).parent))
+            module_name = Path(path).stem.split(".")[0]
+
         self._module = __import__(module_name)
         self._find_md_slice_location = getattr(
             self._module, "find_md_slice_location", lambda ctx: None

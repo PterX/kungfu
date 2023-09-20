@@ -75,6 +75,9 @@ const { dealDataWithCache } = useDealDataWithCaches<
 >(['uid_key', 'update_time']);
 const { globalSetting } = storeToRefs(useGlobalStore());
 
+const lastPriceSorter = (a: KungfuApi.Position, b: KungfuApi.Position) => {
+  return getPositionLastPrice(a) - getPositionLastPrice(b);
+};
 const columns = computed(() => {
   const defaultLocation = {
     category: 'td',
@@ -92,13 +95,17 @@ const columns = computed(() => {
     .options?.map((item) => item.value);
   const selectedOptions: string[] = globalSetting.value?.trade?.posTableColumns;
   if (!posTableColumnsOptions || !selectedOptions)
-    return getColumns(currentGlobalKfLocation.value || defaultLocation);
+    return getColumns(
+      currentGlobalKfLocation.value || defaultLocation,
+      lastPriceSorter,
+    );
   const notSelectedOptions = posTableColumnsOptions.filter((item) => {
     return !selectedOptions.includes(item as string);
   });
 
   const columnsConfig = getColumns(
     currentGlobalKfLocation.value || defaultLocation,
+    lastPriceSorter,
   );
 
   return columnsConfig.filter((item) => {
@@ -171,8 +178,7 @@ function handleClickRow(data: {
     side: row.direction === 0 ? SideEnum.Sell : SideEnum.Buy,
     offset,
     volume: getPosClosableVolumeByOffset(row, offset),
-
-    price: row.last_price || row.avg_open_price || 0,
+    price: getPositionLastPrice(row) || row.avg_open_price || 0,
     accountId: dealLocationUIDResolved(row.source_id),
   };
   triggerMakeOrder(ensuredInstrument, extraOrderInput);

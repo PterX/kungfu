@@ -633,6 +633,8 @@ const getKfExtensionConfigByCategory = (
                       resolveOrderTriggerConfig(extConfigByCategory),
                     settings: extConfigByCategory[category]?.settings || [],
                     fundTrans: extConfigByCategory[category]?.fund_trans || {},
+                    showAssetMargin:
+                      extConfigByCategory[category]?.show_asset_margin || false,
                   },
                 };
                 break;
@@ -2306,11 +2308,13 @@ export const initFormStateByConfig = (
       defaultValue = item?.default;
     }
 
+    const initItemValue = (initValue || {})[item.key];
     if (
-      (initValue || {})[item.key] !== undefined &&
-      (initValue || {})[item.key] !== item?.default
+      initItemValue !== undefined &&
+      initItemValue !== item?.default &&
+      typeof initItemValue === typeof item?.default
     ) {
-      defaultValue = (initValue || {})[item.key];
+      defaultValue = initItemValue;
     }
 
     if (defaultValue === undefined) {

@@ -106,7 +106,7 @@ int socket::listen(const std::string &path, int flags) {
   url_ = "ipc://" + path;
   int rc = nng_listen(sock_, url_.c_str(), NULL, flags);
   if (rc != 0) {
-    SPDLOG_ERROR("can not listen to {}, error [{}] {}", url_, rc, nng_strerror(rc));
+    SPDLOG_WARN("can not listen to {}, error [{}] {}", url_, rc, nng_strerror(rc));
   }
 
   return rc;
@@ -116,7 +116,7 @@ int socket::dial(const std::string &path, int flags) {
   url_ = "ipc://" + path;
   int rc = nng_dial(sock_, url_.c_str(), NULL, flags);
   if (rc != 0) {
-    SPDLOG_ERROR("can not dial to {}, error [{}] {}", url_, rc, nng_strerror(rc));
+    SPDLOG_WARN("can not dial to {}, error [{}] {}", url_, rc, nng_strerror(rc));
   }
   return rc;
 }

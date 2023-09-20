@@ -65,7 +65,11 @@ public:
 
   longfist::enums::AccountingMethodType get_accounting_method_type() { return account_method_type_; }
 
-  InstrumentMap get_instruments() { return instruments_; }
+  InstrumentMap &get_instruments() { return instruments_; }
+
+  BasketMap &get_baskets() { return baskets_; }
+
+  BasketInstrumentMap &get_basket_instruments() { return basket_instruments_; }
 
   std::mutex &get_update_book_mutex();
 
@@ -129,6 +133,8 @@ private:
   bool positions_guarded_ = false;
   CommissionMap commissions_ = {};
   InstrumentMap instruments_ = {};
+  BasketMap baskets_ = {};
+  BasketInstrumentMap basket_instruments_ = {};
   BookMap books_ = {};
   AccountingMethodMap accounting_methods_ = {};
   std::vector<BookListener_ptr> book_listeners_ = {};
@@ -141,6 +147,10 @@ private:
   void batch_update_book_by_quote();
 
   void update_instrument(const longfist::types::Instrument &instrument);
+
+  void update_basket(const longfist::types::Basket &basket);
+
+  void update_basket_instrument(const longfist::types::BasketInstrument &basket_instrument);
 
   void update_commission(const event_ptr &event, const longfist::types::Commission &commission);
 

@@ -199,12 +199,22 @@ class Strategy(wc.Strategy):
         self.ctx.wc_context.add_account(source, account)
 
     def __get_account_book(self, source, account):
+        mode = (
+            lf.enums.mode.LIVE
+            if kfj.MODES[self.ctx.mode] != lf.enums.mode.BACKTEST
+            else lf.enums.mode.BACKTEST
+        )
+        locator = (
+            self.ctx.runtime_locator
+            if kfj.MODES[self.ctx.mode] != lf.enums.mode.BACKTEST
+            else self.ctx.backtest_locator
+        )
         location = yjj.location(
-            lf.enums.mode.LIVE,
+            mode,
             lf.enums.category.TD,
             source,
             account,
-            self.ctx.runtime_locator,
+            locator,
         )
         return self.ctx.wc_context.bookkeeper.get_book(location.uid)
 
@@ -257,6 +267,7 @@ class Strategy(wc.Strategy):
         self.ctx.insert_batch_orders = wc_context.insert_batch_orders
         self.ctx.insert_array_orders = wc_context.insert_array_orders
         self.ctx.insert_algo_order = wc_context.insert_algo_order
+        self.ctx.update_algo_order = wc_context.update_algo_order
         self.ctx.cancel_order = wc_context.cancel_order
         self.ctx.cancel_order_trigger = wc_context.cancel_order_trigger
         self.ctx.cancel_algo_order = wc_context.cancel_algo_order

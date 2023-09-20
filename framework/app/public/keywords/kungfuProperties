@@ -157,6 +157,8 @@ stop_price
 trigger_type
 external_trigger_id
 order_trigger_action_id
+origin_order_id
+basket_uid
 algo_type_id
 algo_id
 args
@@ -227,7 +229,6 @@ max_cash_ratio
 max_purchase_volume
 max_redemption_volume
 min_volume
-basket_uid
 rate
 replace_flag
 cash_premium_ratio
@@ -325,9 +326,6 @@ SSE
 SZE
 MarketType
 Snapshot
-Entrust
-Transaction
-Tree
 SubscribeDataType
 Stock
 Future
@@ -449,6 +447,7 @@ PartialFilledNotActive
 PartialFilledActive
 Lost
 Cancelling
+Pause
 OrderStatus
 Currency
 Pending

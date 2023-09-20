@@ -20,6 +20,15 @@ typedef std::unordered_map<uint32_t, longfist::types::Commission> CommissionMap;
 // key = hash_instrument(exchange_id, instrument_id)
 typedef std::unordered_map<uint32_t, longfist::types::Instrument> InstrumentMap;
 
+// key = basket_uid
+typedef std::unordered_map<uint32_t, longfist::types::Basket> BasketMap;
+
+// key = hash_basket_instrument(basket_uid, exchange_id, instrument_id)
+typedef std::unordered_map<uint32_t, longfist::types::BasketInstrument> BasketInstrumentElement;
+
+// key = basket_uid
+typedef std::unordered_map<uint32_t, BasketInstrumentElement> BasketInstrumentMap;
+
 // key = hash_instrument(source_id, exchange_id, instrument_id)
 typedef std::unordered_map<uint32_t, longfist::types::Position> PositionMap;
 
@@ -38,6 +47,8 @@ typedef std::unordered_map<uint32_t, longfist::types::InstrumentFactor> Instrume
 struct Book {
   CommissionMap &commissions;
   const InstrumentMap &instruments;
+  const BasketMap &baskets;
+  const BasketInstrumentMap &basket_instruments;
   InstrumentFactorMap instrument_factors = {};
   longfist::types::Asset asset = {};
   PositionMap long_positions = {};
@@ -48,8 +59,8 @@ struct Book {
   TradeMap trades = {};
   yijinjing::data::location_ptr home;
 
-  Book(CommissionMap &commissions_ref, const InstrumentMap &instruments_ref,
-       yijinjing::data::location_ptr home_location);
+  Book(CommissionMap &commissions_ref, const InstrumentMap &instruments_ref, BasketMap &baskets_ref,
+       BasketInstrumentMap &basket_instruments_ref, yijinjing::data::location_ptr home_location);
 
   double get_frozen_price(uint64_t order_id);
 
@@ -256,6 +267,10 @@ struct Book {
   [[nodiscard]] const InstrumentMap &get_instruments() const { return instruments; }
 
   [[nodiscard]] const CommissionMap &get_commissions() const { return commissions; }
+
+  [[nodiscard]] const BasketMap &get_baskets() const { return baskets; }
+
+  [[nodiscard]] const BasketInstrumentMap &get_basket_instruments() const { return basket_instruments; }
 
   Book &operator=(const Book &book) { return *this; }
 };

@@ -165,12 +165,15 @@ void BacktestContext::subscribe(const std::string &source, const std::vector<std
         if (md_location->locator->list_page_id(md_location, location::PUBLIC).empty()) {
           SPDLOG_WARN("md public journal in locator={}, location={} not exists", md_location->locator->get_root(),
                       md_location->uname);
-          continue;
         }
-        SPDLOG_TRACE("subscribed md public locator={}, location={}", md_location->locator->get_root(),
-                     md_location->uname);
+
         add_location(app_, md_location);
-        app_.get_reader()->join(md_location, location::PUBLIC, slice_begin_time);
+        for (const auto dest_id : md_location->locator->list_location_dest(md_location)) {
+          SPDLOG_TRACE("subscribed md dest {}, locator={}, location={}", dest_id, md_location->locator->get_root(),
+                       md_location->uname);
+          app_.get_reader()->join(md_location, dest_id, slice_begin_time);
+        }
+
         broker_client_.subscribe(md_location, exchange_id, instrument_id);
         lease_locations_[slice_end_time].push_back(std::move(md_location));
       } while ((slice_begin_time = 1 + slice_end_time) < app_.get_end_time());
@@ -194,10 +197,14 @@ void BacktestContext::subscribe_operator(const std::string &group, const std::st
                   op_location->uname);
       continue;
     }
-    SPDLOG_TRACE("subscribed operator public locator={}, location={}", op_location->locator->get_root(),
-                 op_location->uname);
+
     add_location(app_, op_location);
-    app_.get_reader()->join(op_location, location::PUBLIC, slice_begin_time);
+    for (const auto dest_id : op_location->locator->list_location_dest(op_location)) {
+      SPDLOG_TRACE("subscribed operator dest {}, locator={}, location={}", dest_id, op_location->locator->get_root(),
+                   op_location->uname);
+      app_.get_reader()->join(op_location, dest_id, slice_begin_time);
+    }
+
     broker_client_.enroll_operator(op_location);
     lease_locations_[slice_end_time].push_back(std::move(op_location));
   } while ((slice_begin_time = 1 + slice_end_time) < app_.get_end_time());
@@ -314,7 +321,16 @@ uint64_t BacktestContext::insert_algo_order(const std::string &instrument_id, co
                                             const std::string &source, const std::string &account, int64_t begin_time,
                                             int64_t end_time, int64_t volume, PriceType type, Side side, Offset offset,
                                             const std::string &algo_type_id, const std::string &algo_id,
-                                            const std::string &args, bool is_local) {
+                                            const std::string &args, bool is_local, uint32_t basket_uid) {
+  return {};
+}
+
+uint64_t BacktestContext::update_algo_order(uint64_t origin_order_id, const std::string &instrument_id,
+                                            const std::string &exchange_id, const std::string &source,
+                                            const std::string &account, int64_t begin_time, int64_t end_time,
+                                            int64_t volume, PriceType type, Side side, Offset offset,
+                                            const std::string &algo_type_id, const std::string &algo_id,
+                                            const std::string &args, bool is_local, uint32_t basket_uid) {
   return {};
 }
 

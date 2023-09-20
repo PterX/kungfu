@@ -422,6 +422,7 @@ KF_DEFINE_PACK_TYPE(                                                            
 KF_DEFINE_DATA_TYPE(                                           //
     AlgoOrderInput, 213, PK(order_id), TIMESTAMP(insert_time), //
     (uint64_t, order_id),                                      // 算法单ID
+    (uint64_t, origin_order_id),                               // 原算法单ID
     (int64_t, insert_time),                                    // 下单时间
     (int64_t, begin_time),                                     // 开始时间
     (int64_t, end_time),                                       // 结束时间
@@ -429,6 +430,8 @@ KF_DEFINE_DATA_TYPE(                                           //
     (kungfu::array<char, INSTRUMENT_ID_LEN>, instrument_id), // 合约代码
     (kungfu::array<char, EXCHANGE_ID_LEN>, exchange_id),     // 交易所代码
     (enums::InstrumentType, instrument_type),                // 合约类型
+
+    (uint32_t, basket_uid), // basket订单的id
 
     (enums::Side, side),            // 买卖方向
     (enums::Offset, offset),        // 开平方向
@@ -454,6 +457,8 @@ KF_DEFINE_PACK_TYPE(                                           //
     (kungfu::array<char, INSTRUMENT_ID_LEN>, instrument_id), // 合约代码
     (kungfu::array<char, EXCHANGE_ID_LEN>, exchange_id),     // 交易所代码
     (enums::InstrumentType, instrument_type),                // 合约类型
+
+    (uint32_t, basket_uid), // basket订单的id
 
     (enums::Side, side),            // 买卖方向
     (enums::Offset, offset),        // 开平方向

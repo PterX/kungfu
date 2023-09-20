@@ -2575,16 +2575,18 @@ export const useMakeOrderSubscribe = (
 
             let dealPrice = price;
             if (quote) {
-              dealPrice = closestNumber(
-                price,
-                quote.ask_price.concat(quote.bid_price),
-              );
-              if (quote.lower_limit_price && quote.upper_limit_price)
-                if (dealPrice <= quote.lower_limit_price) {
-                  dealPrice = quote.lower_limit_price;
-                } else if (dealPrice >= quote.upper_limit_price) {
-                  dealPrice = quote.upper_limit_price;
-                }
+              if (Number(dealPrice) !== quote.last_price) {
+                dealPrice = closestNumber(
+                  price,
+                  quote.ask_price.concat(quote.bid_price),
+                );
+                if (quote.lower_limit_price && quote.upper_limit_price)
+                  if (dealPrice <= quote.lower_limit_price) {
+                    dealPrice = quote.lower_limit_price;
+                  } else if (dealPrice >= quote.upper_limit_price) {
+                    dealPrice = quote.upper_limit_price;
+                  }
+              }
             }
             const instrumentValue = buildInstrumentSelectOptionValue(
               (data as KfEvent.TriggerMakeOrder).orderInput,

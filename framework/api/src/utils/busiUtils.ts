@@ -591,7 +591,7 @@ const getKfExtConfigList = async (): Promise<KungfuApi.KfExtOriginConfig[]> => {
   });
 };
 
-export const getKfExtConfigsByType = () => {
+export const getKfExtOriginConfigsByType = () => {
   return getKfExtConfigList().then((extList) => {
     return extList.reduce((configsByType, extConfig) => {
       if (!configsByType[extConfig.type]) configsByType[extConfig.type] = {};

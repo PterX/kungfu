@@ -175,6 +175,13 @@ void bind_enums(py::module &m) {
       .export_values()
       .def("__eq__", [](const Direction &a, int b) { return static_cast<int>(a) == b; });
 
+  py::enum_<BasketVolumeType>(m_enums, "BasketVolumeType", py::arithmetic())
+      .value("Unknown", BasketVolumeType::Unknown)
+      .value("Quantity", BasketVolumeType::Quantity)
+      .value("Proportion", BasketVolumeType::Proportion)
+      .export_values()
+      .def("__eq__", [](const BasketVolumeType &a, int b) { return static_cast<int>(a) == b; });
+
   py::enum_<BasketType>(m_enums, "BasketType", py::arithmetic())
       .value("Custom", BasketType::Custom)
       .value("ETF", BasketType::ETF)

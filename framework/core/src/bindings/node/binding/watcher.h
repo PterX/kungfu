@@ -14,7 +14,6 @@
 #include "io.h"
 #include "journal.h"
 #include "operators.h"
-#include <kungfu/wingchun/basketorder/basketorderengine.h>
 #include <kungfu/wingchun/book/bookkeeper.h>
 #include <kungfu/wingchun/broker/client.h>
 #include <kungfu/yijinjing/cache/runtime.h>
@@ -288,13 +287,6 @@ private:
   }
 
   template <typename TradingData>
-  std::enable_if_t<std::is_same_v<TradingData, longfist::types::BasketOrder>> UpdateBook(uint32_t source, uint32_t dest,
-                                                                                         const TradingData &data) {
-    state<kungfu::longfist::types::BasketOrder> cache_state_basket_order(source, dest, now(), data);
-    data_bank_ << cache_state_basket_order;
-  }
-
-  template <typename TradingData>
   std::enable_if_t<std::is_same_v<TradingData, longfist::types::AlgoOrderInput>>
   UpdateBook(uint32_t source, uint32_t dest, const TradingData &data) {
     state<kungfu::longfist::types::AlgoOrderInput> cache_state_algo_order_input(source, dest, now(), data);
@@ -304,7 +296,6 @@ private:
   template <typename TradingData>
   std::enable_if_t<not std::is_same_v<TradingData, longfist::types::OrderTriggerInput> and
                    not std::is_same_v<TradingData, longfist::types::OrderInput> and
-                   not std::is_same_v<TradingData, longfist::types::BasketOrder> and
                    not std::is_same_v<TradingData, longfist::types::OrderTriggerInput> and
                    not std::is_same_v<TradingData, longfist::types::AlgoOrderInput>>
   UpdateBook(uint32_t source, uint32_t dest, const TradingData &data) {}

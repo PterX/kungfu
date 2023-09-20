@@ -540,28 +540,6 @@ NLOHMANN_JSON_SERIALIZE_ENUM(Currency, {
 
 inline std::ostream &operator<<(std::ostream &os, Currency t) { return os << int32_t(t); }
 
-enum class BasketOrderStatus : int8_t { Unknown, Pending, PartialFilledNotActive, PartialFilledActive, Filled };
-
-NLOHMANN_JSON_SERIALIZE_ENUM(BasketOrderStatus,
-                             {
-                                 {BasketOrderStatus::Unknown, "Unknown"},
-                                 {BasketOrderStatus::Pending, "Pending"},
-                                 {BasketOrderStatus::PartialFilledNotActive, "PartialFilledNotActive"},
-                                 {BasketOrderStatus::PartialFilledActive, "PartialFilledActive"},
-                                 {BasketOrderStatus::Filled, "Filled"},
-                             })
-
-inline std::ostream &operator<<(std::ostream &os, BasketOrderStatus t) { return os << int32_t(t); }
-
-enum class BasketOrderCalculationMode : int8_t { Static, Dynamic };
-
-NLOHMANN_JSON_SERIALIZE_ENUM(BasketOrderCalculationMode, {
-                                                             {BasketOrderCalculationMode::Static, "Static"},
-                                                             {BasketOrderCalculationMode::Dynamic, "Dynamic"},
-                                                         })
-
-inline std::ostream &operator<<(std::ostream &os, BasketOrderCalculationMode t) { return os << int32_t(t); }
-
 enum class BasketVolumeType : int8_t { Unknown, Quantity, Proportion };
 
 NLOHMANN_JSON_SERIALIZE_ENUM(BasketVolumeType, {

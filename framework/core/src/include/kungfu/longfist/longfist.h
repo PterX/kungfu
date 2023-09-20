@@ -27,7 +27,6 @@ constexpr auto AllTypes = boost::hana::make_map( //
     TYPE_PAIR(OrderActionError),                 // 205
     TYPE_PAIR(BlockMessage),                     // 206
     TYPE_PAIR(OrderStat),                        // 207
-    TYPE_PAIR(BasketOrder),                      // 208
     TYPE_PAIR(OrderTriggerInput),                // 209
     TYPE_PAIR(OrderTrigger),                     // 210
     TYPE_PAIR(OrderTriggerAction),               // 211
@@ -119,7 +118,6 @@ constexpr auto AllTypes = boost::hana::make_map( //
     TYPE_PAIR(OrderActionError),                                      // 205
     TYPE_PAIR(BlockMessage),                                          // 206
     TYPE_PAIR(OrderStat),                                             // 207
-    TYPE_PAIR(BasketOrder),                                           // 208
     TYPE_PAIR(OrderTriggerInput),                                     // 209
     TYPE_PAIR(OrderTrigger),                                          // 210
     TYPE_PAIR(OrderTriggerAction),                                    // 211
@@ -198,7 +196,6 @@ constexpr auto StateDataTypes = boost::hana::make_map( //
     TYPE_PAIR(OrderActionError),                       // 205
     TYPE_PAIR(BlockMessage),                           // 206
     TYPE_PAIR(OrderStat),                              // 2072
-    TYPE_PAIR(BasketOrder),                            // 208
     TYPE_PAIR(OrderTriggerInput),                      // 209
     TYPE_PAIR(OrderTrigger),                           // 210
     TYPE_PAIR(OrderTriggerAction),                     // 211
@@ -228,7 +225,6 @@ constexpr auto TradingDataTypes = boost::hana::make_map( //
     TYPE_PAIR(Trade),                                    // 203
     TYPE_PAIR(BlockMessage),                             // 206
     TYPE_PAIR(OrderStat),                                // 207
-    TYPE_PAIR(BasketOrder),                              // 208
     TYPE_PAIR(OrderTriggerInput),                        // 209
     TYPE_PAIR(OrderTrigger),                             // 210
     TYPE_PAIR(AlgoOrderInput),                           // 213

@@ -308,23 +308,25 @@ Napi::Value Watcher::IssueOrder(const Napi::CallbackInfo &info) {
 Napi::Value Watcher::IssueBasketOrder(const Napi::CallbackInfo &info) {
   SPDLOG_INFO("issue basket order manually");
 
-  auto account_location = IODevice::ExtractLocation(info, 1, get_locator());
-  auto basket_order_info = info[0].ToObject();
-  basket_order_info.Set("dest_id", Napi::Number::New(info.Env(), account_location->uid));
-  if (info.Length() == 2) {
-    basket_order_info.Set("source_id", Napi::Number::New(info.Env(), get_live_home_uid()));
-  } else {
-    auto strategy_location = IODevice::ExtractLocation(info, 2, get_locator());
-    basket_order_info.Set("source_id", Napi::Number::New(info.Env(), strategy_location->uid));
-  }
+  // auto account_location = IODevice::ExtractLocation(info, 1, get_locator());
+  // auto basket_order_info = info[0].ToObject();
+  // basket_order_info.Set("dest_id", Napi::Number::New(info.Env(), account_location->uid));
+  // if (info.Length() == 2) {
+  //   basket_order_info.Set("source_id", Napi::Number::New(info.Env(), get_live_home_uid()));
+  // } else {
+  //   auto strategy_location = IODevice::ExtractLocation(info, 2, get_locator());
+  //   basket_order_info.Set("source_id", Napi::Number::New(info.Env(), strategy_location->uid));
+  // }
 
-  if (GetBigInt(basket_order_info.Get("volume")) == VOLUME_ZERO) {
-    basket_order_info.Set("calculation_mode", Napi::Number::New(info.Env(), int(BasketOrderCalculationMode::Dynamic)));
-  } else {
-    basket_order_info.Set("calculation_mode", Napi::Number::New(info.Env(), int(BasketOrderCalculationMode::Static)));
-  }
+  // if (GetBigInt(basket_order_info.Get("volume")) == VOLUME_ZERO) {
+  //   basket_order_info.Set("calculation_mode", Napi::Number::New(info.Env(),
+  //   int(BasketOrderCalculationMode::Dynamic)));
+  // } else {
+  //   basket_order_info.Set("calculation_mode", Napi::Number::New(info.Env(),
+  //   int(BasketOrderCalculationMode::Static)));
+  // }
 
-  return InteractWithTD<BasketOrder>(info, info[0].ToObject(), &BasketOrder::order_id);
+  // return InteractWithTD<BasketOrder>(info, info[0].ToObject(), &BasketOrder::order_id);
 }
 
 Napi::Value Watcher::IssueAlgoOrder(const Napi::CallbackInfo &info) {

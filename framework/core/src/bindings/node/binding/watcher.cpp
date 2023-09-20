@@ -122,7 +122,6 @@ Watcher::Watcher(const Napi::CallbackInfo &info)
       milliseconds_sleep_after_step_(GetMillisecondsSleepAfterStep(info)),                        //
       broker_client_(*this, bypass_trading_data_),                                                //
       bookkeeper_(*this, broker_client_, bypass_quote_),                                          //
-      basketorder_engine_(*this),                                                                 //
       state_ref_(Napi::ObjectReference::New(Napi::Object::New(info.Env()), 1)),                   //
       ledger_ref_(Napi::ObjectReference::New(Napi::Object::New(info.Env()), 1)),                  //
       app_states_ref_(Napi::ObjectReference::New(Napi::Object::New(info.Env()), 1)),              //
@@ -452,17 +451,13 @@ void Watcher::on_react() {
 
   // for receive history data
   auto before_start_events = events_ | take_until(events_ | is(RequestStart::tag));
-  before_start_events | is(Instrument::tag) | $$(Feed(event, event->data<Instrument>()));
-  // bookkeeper restore, only Instrument and Commission
-  before_start_events | is(Instrument::tag, Commission::tag) | $$(cached::feed_state_data(event, state_bank_));
   // accept trading data from cached state, so even if ui reload, history data is able to be shown
   before_start_events | is_trading_data() | $$(cached::feed_state_data(event, data_bank_));
+  before_start_events | is_static_data() | $$(cached::feed_state_data(event, data_bank_));
 }
 
 void Watcher::on_start() {
   broker_client_.on_start(events_);
-  basketorder_engine_.on_start(events_);
-  UpdateBasketOrders(); // refresh basketorders
 
   if (not bypass_trading_data_) {
     bookkeeper_.on_start(events_);
@@ -471,17 +466,14 @@ void Watcher::on_start() {
 
     // for receive runtime data
     events_ | is(Quote::tag) | is_subscribed(subscribed_instruments_) | $$(cached::feed_state_data(event, data_bank_));
-    events_ | is(Instrument::tag) | $$(Feed(event, event->data<Instrument>()));
     // position should be always read from bookkeeper in watcher, because of position_guard, instead of feeds;
-    events_ | skip_while(while_is(Quote::tag, Instrument::tag, Position::tag)) |
-        $$(cached::feed_state_data(event, data_bank_));
+    events_ | skip_while(while_is(Quote::tag, Position::tag)) | $$(cached::feed_state_data(event, data_bank_));
 
     if (not bypass_quote_) {
       events_ | is(Quote::tag) | is_subscribed(subscribed_instruments_) | $$(UpdateBook(event, event->data<Quote>()));
     }
 
     events_ | is(Order::tag) | $$(UpdateBook(event, event->data<Order>()));
-    events_ | is(Order::tag) | $$(UpdateBasketOrder(event->trigger_time(), event->data<Order>()));
     events_ | is(Position::tag) | $$(UpdateBook(event, event->data<Position>()));
     events_ | is(PositionEnd::tag) | $$(UpdateAsset(event, event->data<PositionEnd>().holder_uid));
 
@@ -528,14 +520,6 @@ void Watcher::refresh_account_book(int64_t trigger_time, uint32_t account_uid) {
 
   subscribe_positions(book->long_positions);
   subscribe_positions(book->short_positions);
-}
-
-void Watcher::Feed(const event_ptr &event, const Instrument &instrument) {
-  uint32_t uid = instrument.uid();
-  if (feeded_instruments_.find(uid) == feeded_instruments_.end()) {
-    data_bank_ << typed_event_ptr<Instrument>(event);
-    feeded_instruments_.insert(uid);
-  }
 }
 
 void Watcher::RestoreState(const location_ptr &state_location, int64_t from, int64_t to, bool sync_schema) {
@@ -686,7 +670,8 @@ void Watcher::OnRegister(int64_t trigger_time, const Register &register_data) {
   }
 
   auto app_location = get_location(app_uid);
-  if (app_location->category == category::MD or app_location->category == category::TD) {
+  if (app_location->category == category::MD or app_location->category == category::TD or
+      app_location->category == category::OPERATOR) {
     location_uid_states_map_.insert_or_assign(app_location->uid, int(BrokerState::Pending));
   }
 
@@ -697,7 +682,8 @@ void Watcher::OnRegister(int64_t trigger_time, const Register &register_data) {
 
 void Watcher::OnDeregister(int64_t trigger_time, const Deregister &deregister_data) {
   auto app_location = location::make_shared(deregister_data, get_locator());
-  if (app_location->category == category::MD or app_location->category == category::TD) {
+  if (app_location->category == category::MD or app_location->category == category::TD or
+      app_location->category == category::OPERATOR) {
     location_uid_states_map_.insert_or_assign(app_location->uid, int(BrokerState::Pending));
   }
 

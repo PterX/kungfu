@@ -86,6 +86,8 @@
             "name": "bar.period",
             "type": "int",
             "tip": "bar.period_tip",
+            "min": 1,
+            "default": 1,
             "required": true
           }
         ]

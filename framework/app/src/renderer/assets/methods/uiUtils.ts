@@ -21,8 +21,11 @@ import {
   FunctionalComponent,
   ComponentPublicInstance,
   isRef,
+  createApp,
+  defineComponent,
 } from 'vue';
 import { ensureFileSync, outputFile } from 'fs-extra';
+import { Button } from 'ant-design-vue';
 import {
   CheckCircleOutlined,
   ExclamationCircleOutlined,
@@ -1220,6 +1223,88 @@ export const confirmModal = (
         resolve(false);
       },
     });
+  });
+};
+
+export const extraConfirmModal = (
+  title: string,
+  content: VueNode | (() => VueNode) | string,
+  okText = t('confirm'),
+  cancelText = t('cancel'),
+  extraTextList?: {
+    text: string;
+  }[],
+): Promise<'ok' | 'cancel' | string> => {
+  return new Promise((resolve) => {
+    const Comp = defineComponent({
+      setup() {
+        const visible = ref(true);
+
+        const close = (result: 'ok' | 'cancel' | string) => {
+          resolve(result);
+          visible.value = false;
+        };
+
+        return {
+          visible,
+          close,
+          content,
+          title,
+          okText,
+          cancelText,
+          extraTextList,
+        };
+      },
+      render() {
+        return h(
+          Modal,
+          {
+            visible: this.visible,
+            title: this.title,
+            'onUpdate:visible': (newVal: boolean) => {
+              this.visible = newVal;
+            },
+            onCancel: () => this.close('cancel'),
+          },
+          {
+            default: () => [
+              typeof this.content === 'function'
+                ? this.content()
+                : this.content,
+            ],
+            footer: () => [
+              ...(this.extraTextList?.map((item) =>
+                h(
+                  Button,
+                  {
+                    onClick: () => this.close(item.text),
+                  },
+                  () => item.text,
+                ),
+              ) || []),
+              h(
+                Button,
+                {
+                  onClick: () => this.close('cancel'),
+                },
+                () => this.cancelText,
+              ),
+              h(
+                Button,
+                {
+                  type: 'primary',
+                  onClick: () => this.close('ok'),
+                },
+                () => this.okText,
+              ),
+            ],
+          },
+        );
+      },
+    });
+
+    const app = createApp(Comp);
+    app.mount(document.createElement('div'));
   });
 };
 

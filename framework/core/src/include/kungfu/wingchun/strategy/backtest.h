@@ -326,23 +326,15 @@ protected:
     try {
       auto state_config_obj = config_obj[DataType::type_name.c_str()];
       for (auto time_it = state_config_obj.begin(); time_it != state_config_obj.end(); ++time_it) {
-        if (time_it.key() == "default") {
-          for (auto it = time_it.value().begin(); it != time_it.value().end(); ++it) {
-            auto state = DataType(nlohmann::to_string(it.value()));
-            SPDLOG_DEBUG("key: {}, value: {}", time_it.key(), state.to_string());
-            writer->write_at(now(), now(), state);
-          }
-        } else {
-          int64_t update_time = yijinjing::time::strptime(time_it.key(), "%Y-%m-%d %H:%M:%S");
-          if (update_time < now()) {
-            SPDLOG_WARN("update_time={} of state data in backtest_config is earlier than begin_time {}", time_it.key(), yijinjing::time::strftime(now()));
-            continue;
-          }
-          for (auto it = time_it.value().begin(); it != time_it.value().end(); ++it) {
-            auto state = DataType(nlohmann::to_string(it.value()));
-            SPDLOG_DEBUG("key: {}, value: {}", time_it.key(), state.to_string());
-            add_timer(update_time, [this, state, writer](const auto &e) { writer->write_at(now(), now(), state); });
-          }
+        int64_t update_time = time_it.key() == "default" ?  now() : yijinjing::time::strptime(time_it.key(), "%Y-%m-%d %H:%M:%S");
+        if (update_time < now()) {
+          SPDLOG_WARN("update_time={} of state data in backtest_config is earlier than begin_time {}", time_it.key(), yijinjing::time::strftime(now()));
+          continue;
+        }
+        for (auto it = time_it.value().begin(); it != time_it.value().end(); ++it) {
+          auto state = DataType(nlohmann::to_string(it.value()));
+          SPDLOG_DEBUG("key: {}, value: {}", time_it.key(), state.to_string());
+          add_timer(update_time, [this, state, writer](const auto &e) { writer->write_at(now(), now(), state); });
         }
       }
     } catch (const std::exception &e) {

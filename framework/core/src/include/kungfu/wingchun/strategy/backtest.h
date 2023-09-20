@@ -321,6 +321,36 @@ protected:
 
   uint64_t get_order_id(const yijinjing::journal::writer_ptr &writer, uint32_t dest) const;
 
+  template <typename DataType> 
+  void parse_then_write_in_timer(const nlohmann::json &config_obj, const yijinjing::journal::writer_ptr &writer) {
+    try {
+      auto state_config_obj = config_obj[DataType::type_name.c_str()];
+      for (auto time_it = state_config_obj.begin(); time_it != state_config_obj.end(); ++time_it) {
+        if (time_it.key() == "default") {
+          for (auto it = time_it.value().begin(); it != time_it.value().end(); ++it) {
+            auto state = DataType(nlohmann::to_string(it.value()));
+            SPDLOG_DEBUG("key: {}, value: {}", time_it.key(), state.to_string());
+            writer->write_at(now(), now(), state);
+          }
+        } else {
+          int64_t update_time = yijinjing::time::strptime(time_it.key(), "%Y-%m-%d %H:%M:%S");
+          if (update_time < now()) {
+            SPDLOG_WARN("update_time={} of state data in backtest_config is earlier than begin_time {}", time_it.key(), yijinjing::time::strftime(now()));
+            continue;
+          }
+          for (auto it = time_it.value().begin(); it != time_it.value().end(); ++it) {
+            auto state = DataType(nlohmann::to_string(it.value()));
+            SPDLOG_DEBUG("key: {}, value: {}", time_it.key(), state.to_string());
+            add_timer(update_time, [this, state, writer](const auto &e) { writer->write_at(now(), now(), state); });
+          }
+        }
+      }
+    } catch (const std::exception &e) {
+      SPDLOG_ERROR("parse backtest_config error: {}", e.what());
+      throw wingchun_error(e.what());
+    }
+  }
+
 private:
   struct TimerTask {
     int32_t timer_id;
@@ -334,7 +364,7 @@ private:
   tool::SliceTool_ptr slice_tool_;
   tool::Report_ptr report_;
   int64_t time_interval_;
-  const std::string backtest_config_;
+  const std::string backtest_config_{"{}"};
   int32_t timer_usage_count_{0};
   std::multimap<int64_t, TimerTask> pre_timer_callbacks_{};
   std::multimap<int64_t, TimerTask> timer_callbacks_{};

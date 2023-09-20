@@ -126,7 +126,7 @@ private:
   tool::SliceTool_ptr slice_tool_;
   tool::Report_ptr report_;
   int64_t time_interval_;
-  const std::string backtest_config_;
+  const std::string backtest_config_{"{}"};
   int32_t timer_usage_count_{0};
   std::multimap<int64_t, TimerTask> pre_timer_callbacks_{};
   std::multimap<int64_t, TimerTask> timer_callbacks_{};

@@ -143,13 +143,12 @@ void BacktestContext::lease_expired_check() {
   }
 }
 
+
 void BacktestContext::init_time_events() {
   auto writer = app_.get_writer(app_.get_live_home_uid());
-
-  // nlohmann::json j_obj = nlohmann::json::parse(backtest_config_);
-  // auto j_commission_obj = j_obj["Commission"];
-  // auto j_instrument_obj = j_obj["Instrument"];
-  // auto j_instrument_factor_obj = j_obj["InstrumentFactor"];
+  nlohmann::json j_obj = nlohmann::json::parse(backtest_config_);
+  parse_then_write_in_timer<Commission>(j_obj, writer);
+  parse_then_write_in_timer<Instrument>(j_obj, writer);
 
   auto write_next_time_mark = [writer, this](auto e) {
     auto next_time = now() + time_interval_;

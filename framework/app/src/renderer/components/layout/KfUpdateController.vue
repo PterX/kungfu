@@ -38,7 +38,7 @@
         </div>
         <div v-else-if="hasSkiped">
           <span>
-            {{ $t('autoUpdater.current_version') + ': ' + oldVersion }}
+            {{ $t('autoUpdater.current_version') + ': ' + currentVersion }}
           </span>
           <span style="margin-left: 8px">
             {{
@@ -73,25 +73,49 @@
           </a-button>
         </div>
       </template>
+
       <template v-else>
-        <span>
-          {{
-            $t('autoUpdater.current_version') +
-            ': ' +
-            currentVersion +
-            ' ( ' +
-            $t('autoUpdater.already_latest_version') +
-            ' )'
-          }}
-        </span>
-        <a-button
-          type="link"
-          size="small"
-          :loading="checkingUpdate"
-          @click="handleToRetryCheckUpdate"
-        >
-          {{ $t('autoUpdater.retry_check') }}
-        </a-button>
+        <div v-if="hasSkiped">
+          <span>
+            {{ $t('autoUpdater.current_version') + ': ' + currentVersion }}
+          </span>
+          <span style="margin-left: 8px">
+            {{
+              $t('autoUpdater.new_version') +
+              ': ' +
+              newVersion +
+              `(${$t('autoUpdater.has_skipped')})`
+            }}
+          </span>
+          <a-button
+            type="link"
+            size="small"
+            :loading="checkingUpdate"
+            @click="handleToRetryCheckUpdate"
+          >
+            {{ $t('autoUpdater.retry_check') }}
+          </a-button>
+        </div>
+        <div v-else>
+          <span>
+            {{
+              $t('autoUpdater.current_version') +
+              ': ' +
+              currentVersion +
+              ' ( ' +
+              $t('autoUpdater.already_latest_version') +
+              ' )'
+            }}
+          </span>
+          <a-button
+            type="link"
+            size="small"
+            :loading="checkingUpdate"
+            @click="handleToRetryCheckUpdate"
+          >
+            {{ $t('autoUpdater.retry_check') }}
+          </a-button>
+        </div>
       </template>
     </template>
     <div class="kf-update-controller-entry__wrap">
@@ -110,7 +134,6 @@ import { useUpdateVersion } from '@kungfu-trader/kungfu-app/src/renderer/assets/
 const {
   popoverVisible,
   newVersion,
-  oldVersion,
   hasSkiped,
   currentVersion,
   checkingUpdate,

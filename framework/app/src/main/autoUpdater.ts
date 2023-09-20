@@ -153,7 +153,7 @@ function handleUpdateKungfu(
     autoUpdater.on('update-available', (info) => {
       kfLogger.info('Got a new kungfu client version', JSON.stringify(info));
       if (MainWindow) {
-        foundNewVersion(MainWindow, info.version, curVersion);
+        foundNewVersion(MainWindow, info.version);
 
         ipcMain.on('auto-update-skip-version', (event, version) => {
           saveSkippedVersion(version);

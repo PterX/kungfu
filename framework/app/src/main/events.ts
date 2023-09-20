@@ -73,11 +73,9 @@ export function viewAllJournal(mainWindow: BrowserWindow): void {
 export function foundNewVersion(
   mainWindow: BrowserWindow,
   newVersion: string,
-  oldVersion?: string,
 ): void {
   sendMsgToMainWindow(mainWindow, 'auto-update-find-new-version', {
     newVersion,
-    oldVersion,
   });
 }
 

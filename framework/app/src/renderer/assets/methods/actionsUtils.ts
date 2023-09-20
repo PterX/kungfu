@@ -115,7 +115,6 @@ export const useUpdateVersion = () => {
   const packageJson = readRootPackageJsonSync();
   const currentVersion = ref(packageJson?.version);
   const newVersion = ref('');
-  const oldVersion = ref('');
   const lastSkippedVersion = ref('');
   const hasSkiped = ref(false);
   const popoverVisible = ref(false);
@@ -196,7 +195,6 @@ export const useUpdateVersion = () => {
           checkingUpdate.value = false;
           hasNewVersion.value = true;
           newVersion.value = data.payload.newVersion;
-          oldVersion.value = data.payload.oldVersion;
           hasSkiped.value = newVersion.value === lastSkippedVersion.value;
           errorMessage.value = '';
           isCheckVersionLogicEnable() &&
@@ -244,7 +242,6 @@ export const useUpdateVersion = () => {
   return {
     popoverVisible,
     newVersion,
-    oldVersion,
     hasSkiped,
     currentVersion,
     checkingUpdate,

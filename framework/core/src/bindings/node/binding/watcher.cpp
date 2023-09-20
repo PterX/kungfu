@@ -327,6 +327,7 @@ Napi::Value Watcher::IssueBasketOrder(const Napi::CallbackInfo &info) {
   // }
 
   // return InteractWithTD<BasketOrder>(info, info[0].ToObject(), &BasketOrder::order_id);
+  return Napi::BigInt::New(info.Env(), std::uint64_t(0));
 }
 
 Napi::Value Watcher::IssueAlgoOrder(const Napi::CallbackInfo &info) {

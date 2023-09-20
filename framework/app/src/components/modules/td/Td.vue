@@ -75,7 +75,7 @@ const tdAssetMarginMap = computed(() => {
 const isShowAssetMargin = computed(() => {
   if (!extConfigs.value['td']) return false;
   return Object.keys(extConfigs.value['td']).some(
-    (item: string) => tdAssetMarginMap[item],
+    (item: string) => tdAssetMarginMap.value[item],
   );
 });
 

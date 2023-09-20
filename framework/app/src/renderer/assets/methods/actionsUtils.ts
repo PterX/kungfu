@@ -87,12 +87,14 @@ import {
   buildInstrumentSelectOptionLabel,
   buildInstrumentSelectOptionValue,
   confirmModal,
+  extraConfirmModal,
   makeSearchOptionFormInstruments,
 } from './uiUtils';
 import { storeToRefs } from 'pinia';
 import { ipcRenderer } from 'electron';
 import { throttleTime } from 'rxjs';
 import { useGlobalStore } from '../../pages/index/store/global';
+import globalStorage from '@kungfu-trader/kungfu-js-api/utils/globalStorage';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { messagePrompt } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import sound from 'sound-play';
@@ -113,6 +115,8 @@ export const useUpdateVersion = () => {
   const packageJson = readRootPackageJsonSync();
   const currentVersion = ref(packageJson?.version);
   const newVersion = ref('');
+  const lastSkippedVersion = ref('');
+  const hasSkiped = ref(false);
   const popoverVisible = ref(false);
   const hasNewVersion = ref(false);
   const checkingUpdate = ref(false);
@@ -122,6 +126,13 @@ export const useUpdateVersion = () => {
   );
   const errorMessage = ref('');
   const process = ref<number>();
+  const skippedVersionList = globalStorage.getItem('skippedVersions');
+  if (skippedVersionList) {
+    hasSkiped.value = true;
+    const list = skippedVersionList;
+    lastSkippedVersion.value = list[list.length - 1];
+    newVersion.value = lastSkippedVersion.value;
+  }
 
   const handleToRetryCheckUpdate = () => {
     ipcRenderer.send('auto-update-retry-check-update');
@@ -133,18 +144,31 @@ export const useUpdateVersion = () => {
   };
 
   const handleToConfirmStartUpdate = (newVersion: string) => {
-    confirmModal(
+    extraConfirmModal(
       t('autoUpdater.update'),
       t('autoUpdater.find_new_version', {
         version: newVersion,
       }),
-    ).then((flag) => {
-      ipcRenderer.send('auto-update-confirm-result', flag);
+      t('confirm'),
+      t('cancel'),
+      [{ text: t('autoUpdater.skip_version') }],
+    ).then((action) => {
+      if (action === 'ok') {
+        ipcRenderer.send('auto-update-confirm-result', true);
+      } else if (action === t('autoUpdater.skip_version')) {
+        ipcRenderer.send('auto-update-skip-version', newVersion);
+      } else {
+        ipcRenderer.send('auto-update-confirm-result', false);
+      }
     });
   };
 
   const handleToStartDownload = () => {
     ipcRenderer.send('auto-update-to-start-download');
+  };
+
+  const skipVersion = (version: string) => {
+    ipcRenderer.send('auto-update-skip-version', version);
   };
 
   const handleQuitAndInstall = () => {
@@ -171,9 +195,16 @@ export const useUpdateVersion = () => {
           checkingUpdate.value = false;
           hasNewVersion.value = true;
           newVersion.value = data.payload.newVersion;
+          hasSkiped.value = newVersion.value === lastSkippedVersion.value;
           errorMessage.value = '';
           isCheckVersionLogicEnable() &&
             handleToConfirmStartUpdate(data.payload.newVersion);
+        }
+
+        if (data.name === 'auto-update-skip-version') {
+          checkingUpdate.value = false;
+          hasNewVersion.value = true;
+          hasSkiped.value = true;
         }
 
         if (data.tag === 'auto-update-up-to-date') {
@@ -211,6 +242,7 @@ export const useUpdateVersion = () => {
   return {
     popoverVisible,
     newVersion,
+    hasSkiped,
     currentVersion,
     checkingUpdate,
     hasNewVersion,
@@ -220,6 +252,7 @@ export const useUpdateVersion = () => {
     errorMessage,
     handleToRetryCheckUpdate,
     handleToStartDownload,
+    skipVersion,
     handleQuitAndInstall,
   };
 };
@@ -2549,7 +2582,7 @@ export const useMakeOrderSubscribe = (
               if (quote.lower_limit_price && quote.upper_limit_price)
                 if (dealPrice <= quote.lower_limit_price) {
                   dealPrice = quote.lower_limit_price;
-                } else {
+                } else if (dealPrice >= quote.upper_limit_price) {
                   dealPrice = quote.upper_limit_price;
                 }
             }

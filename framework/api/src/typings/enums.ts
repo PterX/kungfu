@@ -211,6 +211,17 @@ export enum BasketOrderStatusEnum {
   Filled,
 }
 
+export enum KfExtTypeEnum {
+  Unknown = 'unknown',
+  Broker = 'broker',
+  Task = 'task',
+  Operator = 'operator',
+  Service = 'service',
+  UI = 'ui',
+  Matcher = 'matcher',
+  Indexer = 'indexer',
+}
+
 export enum KfCategoryEnum {
   md,
   td,

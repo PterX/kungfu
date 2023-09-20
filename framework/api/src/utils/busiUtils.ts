@@ -72,6 +72,7 @@ import {
   OrderTriggerStatusEnum,
   OrderTriggerConfigTypeEnum,
   OrderTriggerFlag,
+  KfExtTypeEnum,
 } from '../typings/enums';
 import {
   graceDeleteProcess,
@@ -541,6 +542,27 @@ export const flattenExtensionModuleDirs = async (
   return extensionModuleDirs;
 };
 
+const dealKfExtType = (jsonConfig: {
+  name: string;
+  kungfuConfig: KungfuApi.KfExtOriginConfig;
+}) => {
+  const { name, kungfuConfig } = jsonConfig;
+  const allExtTypes = Object.values(KfExtTypeEnum);
+  if (kungfuConfig.type && allExtTypes.includes(kungfuConfig.type)) {
+    return kungfuConfig.type;
+  }
+
+  if (name && name.startsWith?.('@kungfu-trader/kfx')) {
+    const nameStrArr = name.split('/')[1].split('-');
+    if (nameStrArr.length >= 3) {
+      const extType = nameStrArr[1] as KfExtTypeEnum;
+      if (allExtTypes.includes(extType)) return extType;
+    }
+  }
+
+  return KfExtTypeEnum.Unknown;
+};
+
 const getKfExtConfigList = async (): Promise<KungfuApi.KfExtOriginConfig[]> => {
   const extModuleDirs = await flattenExtensionModuleDirs(EXTENSION_DIRS);
   const packageJSONPaths = extModuleDirs.map((item) =>
@@ -549,10 +571,15 @@ const getKfExtConfigList = async (): Promise<KungfuApi.KfExtOriginConfig[]> => {
   return await Promise.all(
     packageJSONPaths.map((item) => {
       return fse.readJSON(item).then((jsonConfig) => {
-        return {
-          ...(jsonConfig.kungfuConfig || {}),
-          extPath: path.dirname(item),
-        };
+        if (jsonConfig.kungfuConfig) {
+          return {
+            ...(jsonConfig.kungfuConfig || {}),
+            type: dealKfExtType(jsonConfig),
+            extPath: path.dirname(item),
+          };
+        }
+
+        return null;
       });
     }),
   ).then((configList: KungfuApi.KfExtOriginConfig[]) => {
@@ -561,6 +588,17 @@ const getKfExtConfigList = async (): Promise<KungfuApi.KfExtOriginConfig[]> => {
         config: KungfuApi.KfExtOriginConfig,
       ): config is KungfuApi.KfExtOriginConfig => !!config,
     );
+  });
+};
+
+export const getKfExtConfigsByType = () => {
+  return getKfExtConfigList().then((extList) => {
+    return extList.reduce((configsByType, extConfig) => {
+      if (!configsByType[extConfig.type]) configsByType[extConfig.type] = {};
+
+      configsByType[extConfig.type][extConfig.key] = extConfig;
+      return configsByType;
+    }, {} as Partial<KungfuApi.KfExtOriginConfigs>);
   });
 };
 
@@ -596,6 +634,8 @@ const getKfExtensionConfigByCategory = (
     .filter((item) => !!item.config)
     .reduce(
       (configByCategory, extConfig: KungfuApi.KfExtOriginConfig) => {
+        if (!extConfig['config']) return configByCategory;
+
         const extKey = extConfig.key;
         const extName = extConfig.name;
         const extPath = extConfig.extPath;

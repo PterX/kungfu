@@ -35,6 +35,7 @@ declare namespace KungfuApi {
     CommissionModeEnum,
     DirectionEnum,
     OrderStatusEnum,
+    KfExtTypeEnum,
     KfCategoryEnum,
     KfCategoryTypes,
     KfUIExtLocatorTypes,
@@ -215,9 +216,124 @@ declare namespace KungfuApi {
     type: KfConfigItemSupportedTypes;
   }
 
+  export interface KfExtOriginBaseConfig<T extends KfExtTypeEnum> {
+    key: string;
+    name: string;
+    type: T;
+    extPath: string;
+    language?: {
+      'zh-CN': Record<string, string>;
+      'en-US': Record<string, string>;
+      [langName: string]: Record<string, string>;
+    };
+  }
+
+  export interface KfExtOriginBrokerConfig
+    extends KfExtOriginBaseConfig<KfExtTypeEnum.Broker> {
+    config?: {
+      td?: {
+        type?: TdMdExtTypes[] | TdMdExtTypes;
+        order_trigger?: Record<string, Record<string, boolean>>;
+        settings: KfConfigItem[];
+        fund_trans?: KfExtFundTransConfig | null;
+        show_asset_margin?: boolean;
+      };
+      md?: {
+        type?: TdMdExtTypes[] | TdMdExtTypes;
+        settings: KfConfigItem[];
+      };
+    };
+  }
+
+  export interface KfExtOriginTaskConfig
+    extends KfExtOriginBaseConfig<KfExtTypeEnum.Task> {
+    config?: {
+      strategy?: {
+        type?: StrategyExtTypes[] | StrategyExtTypes;
+        settings: KfConfigItem[];
+      };
+    };
+  }
+
+  export interface KfExtOriginOperatorConfig
+    extends KfExtOriginBaseConfig<KfExtTypeEnum.Operator> {
+    config?: {
+      operator?: {
+        type?: StrategyExtTypes[] | StrategyExtTypes;
+        settings: KfConfigItem[];
+      };
+    };
+  }
+
+  export interface KfExtOriginServiceConfig
+    extends KfExtOriginBaseConfig<KfExtTypeEnum.Service> {
+    config?: {
+      system?: Record<
+        string,
+        {
+          type?: SystemExtTypes[] | SystemExtTypes;
+          for: ExtRunForEnvTypesEnum[] | ExtRunForEnvTypesEnum;
+          script: string;
+          settings?: KfConfigItem[];
+        }
+      >;
+    };
+  }
+
+  export interface KfExtOriginUIConfig
+    extends KfExtOriginBaseConfig<KfExtTypeEnum.UI> {
+    config?: {
+      system?: Record<
+        string,
+        {
+          type?: SystemExtTypes[] | SystemExtTypes;
+          for: ExtRunForEnvTypesEnum[] | ExtRunForEnvTypesEnum;
+          script: string;
+          settings?: KfConfigItem[];
+        }
+      >;
+    };
+    ui_config?: {
+      position: KfUIExtLocatorTypes;
+      exhibit?: KfExhibitConfig;
+      components?:
+        | {
+            index: string;
+          }
+        | {
+            entry: string;
+            page: string;
+          };
+      script?: string;
+    };
+    cli_config?: {
+      exhibit?: KfExhibitConfig;
+      components?: Record<
+        string,
+        {
+          position: 'index' | 'dzxy';
+          entry: string;
+        }
+      >;
+      script?: string;
+    };
+  }
+
+  export interface KfExtOriginMatcherConfig
+    extends KfExtOriginBaseConfig<KfExtTypeEnum.Matcher> {
+    config?: any;
+  }
+
+  export interface KfExtOriginIndexerConfig
+    extends KfExtOriginBaseConfig<KfExtTypeEnum.Indexer> {
+    useFor?: KfModeTypes[];
+    config?: any;
+  }
+
   export interface KfExtOriginConfig {
     key: string;
     name: string;
+    type: KfExtTypeEnum;
     extPath: string;
     ui_config?: {
       position: KfUIExtLocatorTypes;
@@ -278,6 +394,34 @@ declare namespace KungfuApi {
       'en-US': Record<string, string>;
       [langName: string]: Record<string, string>;
     };
+  }
+
+  // export type KfExtOriginConfig =
+  //   | KfExtOriginBrokerConfig
+  //   | KfExtOriginTaskConfig
+  //   | KfExtOriginOperatorConfig
+  //   | KfExtOriginServiceConfig
+  //   | KfExtOriginMatcherConfig
+  //   | KfExtOriginIndexerConfig
+  //   | KfExtOriginUIConfig;
+
+  export interface KfExtOriginConfigs {
+    broker: Record<string, KfExtOriginBrokerConfig>;
+    task: Record<string, KfExtOriginTaskConfig>;
+    operator: Record<string, KfExtOriginOperatorConfig>;
+    service: Record<string, KfExtOriginServiceConfig>;
+    matcher: Record<string, KfExtOriginMatcherConfig>;
+    indexer: Record<string, KfExtOriginIndexerConfig>;
+    ui: Record<string, KfExtOriginUIConfig>;
+  }
+
+  export interface KfExtOriginConfigsMapByCategory
+    extends Record<KfCategoryTypes, KfExtOriginConfig> {
+    td: KfExtOriginBrokerConfig;
+    md: KfExtOriginBrokerConfig;
+    strategy: KfExtOriginTaskConfig;
+    operator: KfExtOriginOperatorConfig;
+    system: KfExtOriginServiceConfig;
   }
 
   interface KfExhibitConfig {
@@ -1368,7 +1512,6 @@ declare namespace KungfuApi {
       bypassRefreshBook = false,
       millisecondsSleepAfterStep = 200,
     ): Watcher | null;
-    shutdown(): void;
     formatStringToHashHex(id: string): string;
     formatTime(nano: bigint, format: string): string;
     hash(str: string | number): string;

@@ -191,7 +191,7 @@ constexpr auto StateDataTypes = boost::hana::make_map( //
     TYPE_PAIR(OrderAction),                            // 204
     TYPE_PAIR(OrderActionError),                       // 205
     TYPE_PAIR(BlockMessage),                           // 206
-    TYPE_PAIR(OrderStat),                              // 207
+    TYPE_PAIR(OrderStat),                              // 2072
     TYPE_PAIR(BasketOrder),                            // 208
     TYPE_PAIR(OrderTriggerInput),                      // 209
     TYPE_PAIR(OrderTrigger),                           // 210
@@ -223,6 +223,14 @@ constexpr auto TradingDataTypes = boost::hana::make_map( //
     TYPE_PAIR(OrderTrigger)                              // 210
 );
 
+constexpr auto StaticDataTypes = boost::hana::make_map( //
+    TYPE_PAIR(InstrumentFactor),                        // 105
+    TYPE_PAIR(Commission),                              // 10203
+    TYPE_PAIR(Instrument),                              // 10204
+    TYPE_PAIR(Basket),                                  // 10206
+    TYPE_PAIR(BasketInstrument)                         // 10207
+);
+
 const auto build_data_set = [](auto types) {
   std::unordered_set<int32_t> s;
   boost::hana::for_each(types, [&](auto it) {
@@ -235,6 +243,7 @@ const auto build_data_set = [](auto types) {
 const auto AllTypesTags = build_data_set(AllTypes);
 const auto TradingDataTags = build_data_set(TradingDataTypes);
 const auto ProfileDataTags = build_data_set(ProfileDataTypes);
+const auto StaticDataTags = build_data_set(StaticDataTypes);
 
 constexpr auto build_data_map = [](auto types) {
   auto maps = boost::hana::transform(boost::hana::values(types), [](auto value) {

@@ -9,7 +9,7 @@
           <span
             class="create"
             :title="$t('editor.open_folder')"
-            @click="handleOpenFileLocation(filePath)"
+            @click="handleOpenFileLocation()"
           >
             <SelectOutlined class="icon" />
           </span>
@@ -107,7 +107,10 @@ watch(props.currentNode as Code.CodeInfo, (newCurrentNode) => {
 
 function handleOpenFileLocation() {
   const filePath = fileTree.value[0].filePath;
-  if (!filePath) return;
+  if (!filePath) {
+    error();
+    return;
+  }
   return shell.showItemInFolder(filePath);
 }
 

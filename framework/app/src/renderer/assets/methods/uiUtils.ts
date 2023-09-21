@@ -40,8 +40,6 @@ import {
   getInstrumentTypeData,
   getProcessIdByKfLocation,
   kfLogger,
-  removeJournal,
-  removeDB,
   getAvailExtServiceList,
   getKfExtensionLanguage,
   loopToRunProcess,
@@ -50,9 +48,9 @@ import {
   removeArchiveBeforeToday,
   isKfColor,
   isHexOrRgbColor,
-  removeTodayArchive,
   debounce,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import globalStorage from '@kungfu-trader/kungfu-js-api/utils/globalStorage';
 import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
 import { ExchangeIds } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
@@ -480,42 +478,8 @@ const removeArchiveBeforeStartAll = (): Promise<void> => {
   });
 };
 
-const removeJournalBeforeStartAll = (): Promise<void> => {
-  const needClearJournalStr = localStorage.getItem('needClearJournal');
-  const needClearJournal = !!(needClearJournalStr && +needClearJournalStr);
-
-  kfLogger.info('needClearJournal: ', needClearJournal);
-
-  if (needClearJournal) {
-    localStorage.setItem('needClearJournal', '0');
-    kfLogger.info('Clear Journal Done', needClearJournal);
-    return removeTodayArchive(ARCHIVE_DIR).then(() => removeJournal(KF_HOME));
-  } else {
-    return Promise.resolve();
-  }
-};
-
-const removeDBBeforeStartAll = (): Promise<void> => {
-  const needClearDBStr = localStorage.getItem('needClearDB');
-  const needClearDB = !!(needClearDBStr && +needClearDBStr);
-
-  kfLogger.info('needClearDB: ', needClearDB);
-
-  if (needClearDB) {
-    localStorage.setItem('needClearDB', '0');
-    kfLogger.info('Clear DB Done');
-    return removeDB(KF_HOME);
-  } else {
-    return Promise.resolve();
-  }
-};
-
 export const preStartAll = async (): Promise<(void | Proc)[]> => {
-  return Promise.all([
-    removeJournalBeforeStartAll(),
-    removeDBBeforeStartAll(),
-    removeArchiveBeforeStartAll(),
-  ]);
+  return Promise.all([removeArchiveBeforeStartAll()]);
 };
 
 export const checkCpusNumAndConfirmModal = (): Promise<boolean> => {
@@ -701,12 +665,12 @@ export const useIpcListener = (): void => {
 };
 
 export const markClearJournal = (): void => {
-  localStorage.setItem('needClearJournal', '1');
+  globalStorage.setItem('needClearJournal', true);
   messagePrompt().success(t('clear', { content: 'journal' }));
 };
 
 export const markClearDB = (): void => {
-  localStorage.setItem('needClearDB', '1');
+  globalStorage.setItem('needClearDB', true);
   messagePrompt().success(t('clear', { content: 'DB' }));
 };
 

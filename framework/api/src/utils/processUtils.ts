@@ -18,6 +18,8 @@ import {
   delayMilliSeconds,
   isTdMdOperatorStrategy,
   deleteNNFiles,
+  removeDBIfNeed,
+  removeJournalIfNeed,
 } from '../utils/busiUtils';
 import {
   buildProcessLogPath,
@@ -1275,6 +1277,8 @@ export const initClean = async (withApp: boolean, withPm2: boolean) => {
     // have to be killExtra, otherwise main process starting takes too long
     await killExtra(withApp, withPm2);
     await deleteNNFiles();
+    await removeDBIfNeed();
+    await removeJournalIfNeed();
   } catch (err) {
     kfLogger.error('initClean error: ', err);
   }

@@ -387,33 +387,18 @@ body {
 .kf-markdown__wrap {
   width: 100%;
   font-size: 14px;
+  font-family: inherit !important;
 
-  .list {
-    display: block;
-    margin-block-start: 1em;
-    margin-block-end: 1em;
-    margin-inline-start: 0px;
-    margin-inline-end: 0px;
-    padding-inline-start: 20px;
+  code {
+    font-family: inherit !important;
   }
 
-  ul {
-    .list();
-    list-style-type: disc;
+  pre {
+    padding: 8px !important;
+    background-color: #191919 !important;
   }
 
-  ol {
-    .list();
-    list-style-type: decimal;
-  }
-
-  h1 {
-    font-size: 1.7em;
-  }
-
-  blockquote {
-    padding: 10px 20px;
-    margin: 0 0 20px;
-    border-left: 5px solid rgba(238, 238, 238, 0.3);
+  &.markdown-body {
+    background-color: inherit !important;
   }
 }

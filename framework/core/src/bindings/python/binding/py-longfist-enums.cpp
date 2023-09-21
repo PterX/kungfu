@@ -175,15 +175,6 @@ void bind_enums(py::module &m) {
       .export_values()
       .def("__eq__", [](const Direction &a, int b) { return static_cast<int>(a) == b; });
 
-  py::enum_<BasketOrderStatus>(m_enums, "BasketOrderStatus", py::arithmetic())
-      .value("Unknown", BasketOrderStatus::Unknown)
-      .value("Pending", BasketOrderStatus::Pending)
-      .value("PartialFilledNotActive", BasketOrderStatus::PartialFilledNotActive)
-      .value("PartialFilledActive", BasketOrderStatus::PartialFilledActive)
-      .value("Filled", BasketOrderStatus::Filled)
-      .export_values()
-      .def("__eq__", [](const BasketOrderStatus &a, int b) { return static_cast<int>(a) == b; });
-
   py::enum_<BasketVolumeType>(m_enums, "BasketVolumeType", py::arithmetic())
       .value("Unknown", BasketVolumeType::Unknown)
       .value("Quantity", BasketVolumeType::Quantity)

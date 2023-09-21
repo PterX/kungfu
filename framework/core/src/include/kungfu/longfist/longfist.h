@@ -27,7 +27,6 @@ constexpr auto AllTypes = boost::hana::make_map( //
     TYPE_PAIR(OrderActionError),                 // 205
     TYPE_PAIR(BlockMessage),                     // 206
     TYPE_PAIR(OrderStat),                        // 207
-    TYPE_PAIR(BasketOrder),                      // 208
     TYPE_PAIR(OrderTriggerInput),                // 209
     TYPE_PAIR(OrderTrigger),                     // 210
     TYPE_PAIR(OrderTriggerAction),               // 211
@@ -119,7 +118,6 @@ constexpr auto AllTypes = boost::hana::make_map( //
     TYPE_PAIR(OrderActionError),                                      // 205
     TYPE_PAIR(BlockMessage),                                          // 206
     TYPE_PAIR(OrderStat),                                             // 207
-    TYPE_PAIR(BasketOrder),                                           // 208
     TYPE_PAIR(OrderTriggerInput),                                     // 209
     TYPE_PAIR(OrderTrigger),                                          // 210
     TYPE_PAIR(OrderTriggerAction),                                    // 211
@@ -197,8 +195,7 @@ constexpr auto StateDataTypes = boost::hana::make_map( //
     TYPE_PAIR(OrderAction),                            // 204
     TYPE_PAIR(OrderActionError),                       // 205
     TYPE_PAIR(BlockMessage),                           // 206
-    TYPE_PAIR(OrderStat),                              // 207
-    TYPE_PAIR(BasketOrder),                            // 208
+    TYPE_PAIR(OrderStat),                              // 2072
     TYPE_PAIR(OrderTriggerInput),                      // 209
     TYPE_PAIR(OrderTrigger),                           // 210
     TYPE_PAIR(OrderTriggerAction),                     // 211
@@ -228,7 +225,6 @@ constexpr auto TradingDataTypes = boost::hana::make_map( //
     TYPE_PAIR(Trade),                                    // 203
     TYPE_PAIR(BlockMessage),                             // 206
     TYPE_PAIR(OrderStat),                                // 207
-    TYPE_PAIR(BasketOrder),                              // 208
     TYPE_PAIR(OrderTriggerInput),                        // 209
     TYPE_PAIR(OrderTrigger),                             // 210
     TYPE_PAIR(AlgoOrderInput),                           // 213
@@ -240,6 +236,14 @@ constexpr auto MarketDataTypes = boost::hana::make_map( //
     TYPE_PAIR(Tree),                                    //
     TYPE_PAIR(Entrust),                                 //
     TYPE_PAIR(Transaction)                              //
+);
+
+constexpr auto StaticDataTypes = boost::hana::make_map( //
+    TYPE_PAIR(InstrumentFactor),                        // 105
+    TYPE_PAIR(Commission),                              // 10203
+    TYPE_PAIR(Instrument),                              // 10204
+    TYPE_PAIR(Basket),                                  // 10206
+    TYPE_PAIR(BasketInstrument)                         // 10207
 );
 
 template <typename T> constexpr bool is_in_types(auto types) { return boost::hana::contains(types, T::type_name); }
@@ -260,6 +264,7 @@ const auto build_data_set = [](auto types) {
 const auto AllTypesTags = build_data_set(AllTypes);
 const auto TradingDataTags = build_data_set(TradingDataTypes);
 const auto ProfileDataTags = build_data_set(ProfileDataTypes);
+const auto StaticDataTags = build_data_set(StaticDataTypes);
 
 constexpr auto build_data_map = [](auto types) {
   auto maps = boost::hana::transform(boost::hana::values(types), [](auto value) {

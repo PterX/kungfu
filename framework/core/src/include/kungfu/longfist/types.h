@@ -317,30 +317,6 @@ KF_DEFINE_PACK_TYPE(                                  //
     (double, avg_price)                               //
 );
 
-KF_DEFINE_PACK_TYPE(                                        //
-    BasketOrder, 208, PK(order_id), TIMESTAMP(insert_time), //
-    (uint64_t, order_id),                                   // 篮子单uid
-    (uint64_t, parent_id),                                  // 母单号
-
-    (int64_t, insert_time), // 下单时间
-    (int64_t, update_time), // 更新时间
-
-    (enums::Side, side),              // 买卖方向
-    (enums::PriceType, price_type),   // 价格类型
-    (enums::PriceLevel, price_level), // 价格级别
-    (double, price_offset),           // 价格偏移量
-
-    (int64_t, volume),      // 成交量
-    (int64_t, volume_left), // 剩余数量
-
-    (enums::BasketOrderStatus, status), // 订单状态
-
-    (uint32_t, source_id), // 下单方
-    (uint32_t, dest_id),   // 下单账户
-
-    (enums::BasketOrderCalculationMode, calculation_mode) // 计算方式
-);
-
 KF_DEFINE_PACK_TYPE(                                                //
     OrderTriggerInput, 209, PK(trigger_id), TIMESTAMP(insert_time), //
     (uint64_t, trigger_id),                                         // 触发器id

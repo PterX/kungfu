@@ -318,6 +318,7 @@ watch(
                     shadowColor,
                   };
                 } else {
+                  item.symbolSize = 10;
                   item.itemStyle = {
                     ...item.itemStyle,
                     shadowBlur: 0,

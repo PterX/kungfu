@@ -3,7 +3,7 @@
     <template #title>
       <KfDashboardItem>
         <div class="replay_title">
-          {{ $t('replay.replay') }}
+          {{ enableMatcher ? $t('replay.backtest') : $t('replay.replay') }}
         </div>
       </KfDashboardItem>
       <KfDashboardItem>
@@ -46,7 +46,7 @@ import { getYearMonthDay } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { LogLevelType } from '@kungfu-trader/kungfu-app/src/typings/enums';
 
 import { listProcessStatus } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
-import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 
 const { t } = VueI18n.global;
@@ -71,6 +71,10 @@ const props = withDefaults(
   },
 );
 
+const enableMatcher = computed(() => {
+  return !!props.params.enableMatcher;
+});
+
 const logLevel = ref(
   LogLevelType[
     props.params.logLevel ? props.params.logLevel.replace('%20', ' ') : ''
@@ -80,7 +84,7 @@ const logLevel = ref(
 const LOG_PATH = props.params.logPath || '';
 const CHECK_REPLAY_PROCESS_TIMER = 1000;
 const isLoading = ref(false);
-onMounted(() => {
+onMounted(async () => {
   ipcRenderer.on('clear-process', async (_event, args) => {
     const { processId } = args;
     if (processId === props.params.processId) {
@@ -106,6 +110,10 @@ onMounted(() => {
   if (!props.closeImmediately) {
     currentWindow.on('close', async (event) => {
       event.preventDefault();
+      const { processStatus } = await listProcessStatus();
+      if (processStatus[props.params.processId] !== 'online') {
+        currentWindow.destroy();
+      }
       handleRemoveReplayProcess(props.params.processId).finally(() => {
         currentWindow.destroy();
       });
@@ -130,6 +138,13 @@ const throwError = (messageKey: string) => {
 
 async function reLoadLog() {
   if (!currentWindow) return;
+
+  const { processStatus } = await listProcessStatus();
+
+  if (!processStatus[props.params.processId]) {
+    throwError('replay.please_start_replay');
+    return;
+  }
 
   const pawin = currentWindow.getParentWindow();
   if (!pawin) return;
@@ -163,6 +178,7 @@ async function reLoadLog() {
         category: configArgs.category,
         group: configArgs.group,
         name: configArgs.name,
+        mode: configArgs.mode,
         replayConfig: {
           category: configArgs.category,
           group: configArgs.group,
@@ -173,6 +189,7 @@ async function reLoadLog() {
             : '-l info',
           session_name: props.params.sessionName,
           file_path: filePath,
+          enable_matcher: enableMatcher.value,
         },
       };
 

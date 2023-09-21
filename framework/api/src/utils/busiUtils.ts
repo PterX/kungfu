@@ -563,6 +563,22 @@ const dealKfExtType = (jsonConfig: {
   return KfExtTypeEnum.Unknown;
 };
 
+export const findSoAndPydFiles = async (
+  directory: string,
+): Promise<string[]> => {
+  const entries = await fse.readdir(directory, { withFileTypes: true });
+
+  const matchingFiles = entries
+    .filter(
+      (entry) =>
+        entry.isFile() &&
+        (entry.name.endsWith('.so') || entry.name.endsWith('.pyd')),
+    )
+    .map((entry) => path.join(directory, entry.name));
+
+  return matchingFiles;
+};
+
 const getKfExtConfigList = async (): Promise<KungfuApi.KfExtOriginConfig[]> => {
   const extModuleDirs = await flattenExtensionModuleDirs(EXTENSION_DIRS);
   const packageJSONPaths = extModuleDirs.map((item) =>
@@ -2786,13 +2802,14 @@ export async function startReplay(
     const { args, config_settings } = processStatusDetail;
     const dealArgs = minimist(args as string[])['a'] || '';
     const configSettings = parseTaskSettingsFromEnv(config_settings || '[]');
-    location.mode = 'replay';
+    const enableMatcher = replayConfig.enable_matcher;
+    location.mode = enableMatcher ? 'backtest' : 'replay';
     return startTask(
       location,
       soPath,
       dealArgs,
       configSettings,
-      'replay',
+      location.mode,
       replayConfig,
     );
   }
@@ -2806,11 +2823,13 @@ export async function startReplay(
       );
     case 'strategy':
     case 'operator':
+      const enableMatcher = replayConfig.enable_matcher;
+      location.mode = enableMatcher ? 'backtest' : 'replay';
       return startStrategyOperator(
         location.category,
         '',
         '',
-        'replay',
+        enableMatcher ? 'backtest' : 'replay',
         replayConfig,
       );
     case 'system':

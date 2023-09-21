@@ -1239,6 +1239,7 @@ declare namespace KungfuApi {
     log_level: string;
     session_name: string;
     file_path: string;
+    enable_matcher: boolean;
   }
 
   export interface Watcher {

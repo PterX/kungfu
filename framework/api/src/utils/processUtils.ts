@@ -19,6 +19,8 @@ import {
   delayMilliSeconds,
   isTdMdOperatorStrategy,
   deleteNNFiles,
+  findSoAndPydFiles,
+  getKfExtOriginConfigsByType,
 } from '../utils/busiUtils';
 import {
   buildProcessLogPath,
@@ -537,7 +539,7 @@ export const startProcess = async (
     merge_logs: true,
     log_date_format: 'YYYY-MM-DD HH:mm:ss',
     autorestart: options.autorestart || false,
-    max_restarts: options.max_restarts || 1,
+    max_restarts: options.max_restarts || (options.autorestart ? 1 : 0),
     min_uptime: 3600000, //该时间段内最大启动次数max_restarts, 如果超过则不重启, 如果没超过, 则一直重启
     restart_delay: 1000,
     watch: options.watch || false,
@@ -1173,7 +1175,7 @@ export const startOperatorByExt = async (
   mode: KfModeTypes = 'live',
   replayConfig?: KungfuApi.ReplayConfigOrigin,
 ) => {
-  const isReplay = mode === 'replay';
+  const isReplay = mode === 'replay' || mode === 'backtest';
   let args = '';
   let fullProcessId = '';
   const extDirs = await flattenExtensionModuleDirs(EXTENSION_DIRS);
@@ -1184,6 +1186,48 @@ export const startOperatorByExt = async (
   );
   await fse.ensureDir(cwd);
   if (isReplay && replayConfig) {
+    let backtestArgs = '';
+    if (mode === 'backtest') {
+      const isEnableMatcher = replayConfig.enable_matcher;
+      const extOriginConfigs = await getKfExtOriginConfigsByType();
+      let matcherPath = '';
+      let indexerPath = '';
+
+      if (extOriginConfigs) {
+        const { matcher, indexer } = extOriginConfigs;
+
+        if (indexer) {
+          for (const key of Object.keys(indexer)) {
+            if (indexer[key]['useFor']?.includes('replay')) {
+              const files = await findSoAndPydFiles(indexer[key].extPath);
+              if (files.length > 0) {
+                indexerPath = files[0];
+                break;
+              }
+            }
+          }
+        }
+
+        if (matcher) {
+          for (const key of Object.keys(matcher)) {
+            if (
+              matcher[key]['useFor']?.includes('replay') &&
+              matcher[key].extPath
+            ) {
+              const files = await findSoAndPydFiles(matcher[key].extPath);
+              if (files.length > 0) {
+                matcherPath = files[0];
+                break;
+              }
+            }
+          }
+        }
+      }
+
+      backtestArgs = isEnableMatcher
+        ? `-M '${matcherPath}' --from_indexer '${indexerPath}'`
+        : '';
+    }
     args = buildArgs({
       loglevel: replayConfig.log_level,
       location: {
@@ -1195,7 +1239,7 @@ export const startOperatorByExt = async (
       extensionDirs: `"${extDirs
         .map((dir) => dealSpaceInPath(path.dirname(dir)))
         .join(path.delimiter)}"`,
-      suffix: `-b '${replayConfig.begin_time}' -e '${replayConfig.end_time}'`,
+      suffix: `${backtestArgs} -b '${replayConfig.begin_time}' -e '${replayConfig.end_time}'`,
     });
 
     fullProcessId = getProcessIdByKfLocation(
@@ -1246,7 +1290,7 @@ export const startStrategyOperatorByLocalPython = async (
   mode: KfModeTypes = 'live',
   replayConfig?: KungfuApi.ReplayConfigOrigin,
 ): Promise<Proc | void> => {
-  const isReplay = mode === 'replay';
+  const isReplay = mode === 'replay' || mode === 'backtest';
   let args = '';
   let fullProcessId = '';
 
@@ -1263,6 +1307,49 @@ export const startStrategyOperatorByLocalPython = async (
     .join('/');
 
   if (isReplay && replayConfig) {
+    let backtestArgs = '';
+    if (mode === 'backtest') {
+      const isEnableMatcher = replayConfig.enable_matcher;
+      const extOriginConfigs = await getKfExtOriginConfigsByType();
+      let matcherPath = '';
+      let indexerPath = '';
+
+      if (extOriginConfigs) {
+        const { matcher, indexer } = extOriginConfigs;
+
+        if (indexer) {
+          for (const key of Object.keys(indexer)) {
+            if (indexer[key]['useFor']?.includes('replay')) {
+              const files = await findSoAndPydFiles(indexer[key].extPath);
+              if (files.length > 0) {
+                indexerPath = files[0];
+                break;
+              }
+            }
+          }
+        }
+
+        if (matcher) {
+          for (const key of Object.keys(matcher)) {
+            if (
+              matcher[key]['useFor']?.includes('replay') &&
+              matcher[key].extPath
+            ) {
+              const files = await findSoAndPydFiles(matcher[key].extPath);
+              if (files.length > 0) {
+                matcherPath = files[0];
+                break;
+              }
+            }
+          }
+        }
+      }
+
+      backtestArgs = isEnableMatcher
+        ? `-M '${matcherPath}' --from_indexer '${indexerPath}'`
+        : '';
+    }
+
     args = buildArgs({
       prefix: '-m kungfu',
       loglevel: replayConfig.log_level,
@@ -1272,7 +1359,7 @@ export const startStrategyOperatorByLocalPython = async (
         name: replayConfig.session_name,
         mode: mode,
       },
-      suffix: `'${replayConfig.file_path}' -b '${replayConfig.begin_time}' -e '${replayConfig.end_time}'`,
+      suffix: `'${replayConfig.file_path}' ${backtestArgs} -b '${replayConfig.begin_time}' -e '${replayConfig.end_time}'`,
     });
     fullProcessId = getProcessIdByKfLocation(
       {
@@ -1316,7 +1403,7 @@ export const startStrategyOperator = async (
   mode: KfModeTypes = 'live',
   replayConfig?: KungfuApi.ReplayConfigOrigin,
 ): Promise<Proc | void> => {
-  const isReplay = mode === 'replay';
+  const isReplay = mode === 'replay' || mode === 'backtest';
   filePath = dealSpaceInPath(filePath);
   const globalSetting = getKfGlobalSettingsValue();
   const ifLocalPython = globalSetting?.strategy?.python ?? false;
@@ -1369,6 +1456,49 @@ export const startStrategyOperator = async (
         replayConfig,
       );
     } else {
+      let backtestArgs = '';
+      if (mode === 'backtest') {
+        const isEnableMatcher = replayConfig.enable_matcher;
+        const extOriginConfigs = await getKfExtOriginConfigsByType();
+        let matcherPath = '';
+        let indexerPath = '';
+
+        if (extOriginConfigs) {
+          const { matcher, indexer } = extOriginConfigs;
+
+          if (indexer) {
+            for (const key of Object.keys(indexer)) {
+              if (indexer[key]['useFor']?.includes('replay')) {
+                const files = await findSoAndPydFiles(indexer[key].extPath);
+                if (files.length > 0) {
+                  indexerPath = files[0];
+                  break;
+                }
+              }
+            }
+          }
+
+          if (matcher) {
+            for (const key of Object.keys(matcher)) {
+              if (
+                matcher[key]['useFor']?.includes('replay') &&
+                matcher[key].extPath
+              ) {
+                const files = await findSoAndPydFiles(matcher[key].extPath);
+                if (files.length > 0) {
+                  matcherPath = files[0];
+                  break;
+                }
+              }
+            }
+          }
+        }
+
+        backtestArgs = isEnableMatcher
+          ? `-M '${matcherPath}' --from_indexer '${indexerPath}'`
+          : '';
+      }
+
       const args = buildArgs({
         loglevel: replayConfig.log_level,
         location: {
@@ -1377,7 +1507,7 @@ export const startStrategyOperator = async (
           name: replayConfig.session_name,
           mode: mode,
         },
-        suffix: `${replayConfig.file_path} -b '${replayConfig.begin_time}' -e '${replayConfig.end_time}'`,
+        suffix: `'${replayConfig.file_path}' ${backtestArgs} -b '${replayConfig.begin_time}' -e '${replayConfig.end_time}'`,
       });
       return startProcess({
         name: processId,

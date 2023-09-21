@@ -35,6 +35,7 @@ import {
   ARCHIVE_DIR,
   buildProcessLogPath,
   buildProcessReplayPath,
+  buildProcessBacktestPath,
   KF_HOME,
   KUNGFU_RESOURCES_DIR,
 } from '@kungfu-trader/kungfu-js-api/config/pathConfig';
@@ -696,12 +697,13 @@ export const openReplayView = (
   log_level: string,
   sessionName: string,
   filePath: string,
+  enableMatcher: boolean,
   processId: string,
 ): Promise<Electron.BrowserWindow> => {
   return openNewBrowserWindow(
     process.env.KF_APP_RUNTIME_DIR,
     'replay',
-    `?logPath=${logPath}&sessionName=${sessionName}&filePath=${filePath}&category=${type}&group=${group}&beginTime=${beginTime}&endTime=${endTime}&logLevel=${log_level}&processId=${processId}`,
+    `?logPath=${logPath}&enableMatcher=${enableMatcher}&sessionName=${sessionName}&filePath=${filePath}&category=${type}&group=${group}&beginTime=${beginTime}&endTime=${endTime}&logLevel=${log_level}&processId=${processId}`,
     {
       width: 1280,
       height: 960,
@@ -892,7 +894,9 @@ export const handleOpenReplayView = async (
 ): Promise<Electron.BrowserWindow> => {
   const dateStr = getYearMonthDay();
   const hideloading = messagePrompt().loading(t('open_replay_dashboard'));
-  const logPath = buildProcessReplayPath(config, `${config.name}_${dateStr}`);
+  const logPath = replayConfig.enable_matcher
+    ? buildProcessBacktestPath(config, `${config.name}_${dateStr}`)
+    : buildProcessReplayPath(config, `${config.name}_${dateStr}`);
   if (replayConfig) {
     try {
       ensureFileSync(logPath);
@@ -921,11 +925,12 @@ export const handleOpenReplayView = async (
     logLevel,
     replayConfig.session_name,
     replayConfig.file_path,
+    replayConfig.enable_matcher,
     processId,
   ).finally(async () => {
     hideloading();
     const { processStatus } = await listProcessStatus();
-    if (processStatus[processId]) {
+    if (processStatus[processId] === 'online') {
       await stopProcess(processId);
     }
     await startReplay(config, replayConfig);
@@ -943,6 +948,7 @@ export const getJournalReplayConfigs = async (
         category: string;
         group: string;
         name: string;
+        mode: string;
         replayConfig: KungfuApi.ReplayConfig;
       }
     | undefined;
@@ -954,6 +960,7 @@ export const getJournalReplayConfigs = async (
         category: config.category,
         group: config.group,
         name: config.name,
+        mode: replayConfig.enable_matcher ? 'backtest' : 'replay',
         replayConfig,
       },
     };

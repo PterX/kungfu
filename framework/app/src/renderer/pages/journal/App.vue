@@ -119,6 +119,7 @@
     :width="520"
     v-model:visible="setReplayModalVisible"
     :is-journal="true"
+    :has-back-test="hasBacktest"
     :session-options="sessionOptions"
     :session-info="replayConfig.session_info"
     :begin-time="replayConfig.begin_time.split(' ')[1]"
@@ -143,7 +144,10 @@ import { ensureFileSync, outputFile } from 'fs-extra';
 import { storeToRefs } from 'pinia';
 import { getSessionColumns, SessionStatus } from './config';
 import { getCurrentWindow } from '@electron/remote';
-import { buildProcessReplayPath } from '@kungfu-trader/kungfu-js-api/config/pathConfig';
+import {
+  buildProcessReplayPath,
+  buildProcessBacktestPath,
+} from '@kungfu-trader/kungfu-js-api/config/pathConfig';
 import {
   messagePrompt,
   removeLoadingMask,
@@ -209,6 +213,9 @@ const columns = getSessionColumns();
 const operator = ref<KungfuApi.KfConfig[]>([]);
 const strategy = ref<KungfuApi.KfConfig[]>([]);
 const td = ref<KungfuApi.KfConfig[]>([]);
+const hasBacktest = computed(() => {
+  return currentSession.value?.category === 'strategy';
+});
 const replayPramas = computed(() => {
   if (
     !(
@@ -219,16 +226,28 @@ const replayPramas = computed(() => {
     )
   )
     return {};
+  const mode = replayConfig.value.enable_matcher ? 'backtest' : 'replay';
   const { category, group, name } = currentSession.value;
   const dateStr = getYearMonthDay();
-  const logPath = buildProcessReplayPath(
-    {
-      category,
-      group,
-      name,
-    },
-    `${currentSession.value.name}_${dateStr}`,
-  );
+  const logPath = replayConfig.value.enable_matcher
+    ? buildProcessBacktestPath(
+        {
+          category,
+          group,
+          name,
+          mode,
+        },
+        `${currentSession.value.name}_${dateStr}`,
+      )
+    : buildProcessReplayPath(
+        {
+          category,
+          group,
+          name,
+          mode,
+        },
+        `${currentSession.value.name}_${dateStr}`,
+      );
   const begin_time =
     replayConfig.value.begin_time.split(' ')[1] ||
     getNanoDateString(currentSession.value.begin_time);
@@ -242,9 +261,9 @@ const replayPramas = computed(() => {
       category,
       group,
       name,
-      mode: 'replay',
+      mode,
     },
-    'replay',
+    mode,
   );
   return {
     category: category,
@@ -256,6 +275,7 @@ const replayPramas = computed(() => {
     sessionName: currentSession.value.name || '',
     filePath: replayConfig.value.file_path || '',
     processId: processId,
+    enableMatcher: replayConfig.value.enable_matcher,
   };
 });
 
@@ -342,6 +362,7 @@ const customRow = (record: KungfuApi.SessionResolved) => {
           log_level: replaySetting.log_level || '-l info',
           session_name: '',
           file_path: '',
+          enable_matcher: false,
         };
         delayMilliSeconds(0).then(() => {
           replayRef.value && replayRef.value.updateLogLevel();
@@ -387,6 +408,7 @@ watch(
             category: currentSession.value.category,
             group: currentSession.value.group,
             name: currentSession.value.name,
+            mode: replayConfig.value.enable_matcher ? 'backtest' : 'replay',
           },
           `${currentSession.value.name}_${dateStr}`,
         );

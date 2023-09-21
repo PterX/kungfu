@@ -32,6 +32,9 @@
   },
   "kungfuConfig": {
     "key": "KungfuMatcher101Cpp",
-    "name": "Matcher101Cpp"
+    "name": "Matcher101Cpp",
+    "useFor": [
+      "replay"
+    ]
   }
 }

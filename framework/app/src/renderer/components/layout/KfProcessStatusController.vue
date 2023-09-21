@@ -342,6 +342,7 @@ onMounted(() => {
       v-if="setReplayModalVisible"
       :width="520"
       v-model:visible="setReplayModalVisible"
+      :has-back-test="replayConfig.category === 'strategy'"
       :session-options="sessionOptions"
       :session-info="replayConfig.session_info"
       :begin-time="replayConfig.begin_time.split(' ')[1]"

@@ -2104,6 +2104,8 @@ export const useReplay = (): {
     | {
         category: string;
         group: string;
+        name: string;
+        mode: string;
         replayConfig: KungfuApi.ReplayConfig;
       }
     | undefined
@@ -2118,6 +2120,7 @@ export const useReplay = (): {
       beginTime: string;
       endTime: string;
       logLevel: string;
+      enableMatcher: boolean;
     },
     isJournal?: boolean,
   ): void;
@@ -2135,6 +2138,7 @@ export const useReplay = (): {
         category: string;
         group: string;
         name: string;
+        mode: string;
         replayConfig: KungfuApi.ReplayConfig;
       }
     | undefined
@@ -2152,6 +2156,7 @@ export const useReplay = (): {
     log_level: replaySetting.log_level || '-l info',
     session_name: '',
     file_path: '',
+    enable_matcher: false,
   });
   const sessionOptions = ref<
     {
@@ -2242,6 +2247,7 @@ export const useReplay = (): {
       log_level: logLevel,
       session_name: currentSession.name,
       file_path: isOperator ? filePath : params.file_path,
+      enable_matcher: false,
     } as KungfuApi.ReplayConfig;
 
     currentLocation.value = record;
@@ -2256,6 +2262,7 @@ export const useReplay = (): {
       beginTime: string;
       endTime: string;
       logLevel: string;
+      enableMatcher: boolean;
     },
     isJournal = false,
   ) => {
@@ -2263,6 +2270,7 @@ export const useReplay = (): {
       error();
       return;
     }
+    const mode = data.enableMatcher ? 'backtest' : 'replay';
     const startTime = data.beginTime;
     const endTime =
       data.endTime ||
@@ -2277,14 +2285,16 @@ export const useReplay = (): {
     const date = getYearMonthDay();
     const beginTime = `${date} ${startTime}`;
     const endTimeStr = `${date} ${endTime}`;
-    const processId = getProcessIdByKfLocation(currentLocation.value, 'replay');
+    const processId = getProcessIdByKfLocation(currentLocation.value, mode);
     replayConfig.value.begin_time = beginTime;
     replayConfig.value.end_time = endTimeStr;
     replayConfig.value.log_level = data.logLevel;
+    replayConfig.value.enable_matcher = data.enableMatcher;
     const params = {
       category: currentLocation.value.category,
       group: currentLocation.value.group,
       name: currentLocation.value.name,
+      mode: mode,
       replayConfig: replayConfig.value,
     };
 

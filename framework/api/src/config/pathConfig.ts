@@ -150,11 +150,7 @@ export const buildProcessLogPath = (processId: string) => {
 
 //获取进程回放日志地址
 export const buildProcessReplayPath = (
-  location: {
-    category: string;
-    group: string;
-    name: string;
-  },
+  location: KungfuApi.KfLocation,
   processId: string,
 ) => {
   return path.join(
@@ -164,6 +160,23 @@ export const buildProcessReplayPath = (
     `${location.group}`,
     `${location.name}`,
     'replay',
+    `${processId}.log`,
+  );
+};
+
+//获取进程回测日志地址
+export const buildProcessBacktestPath = (
+  location: KungfuApi.KfLocation,
+  processId: string,
+) => {
+  return path.join(
+    KF_HOME,
+    'backtest',
+    'log',
+    `${location.category}`,
+    `${location.group}`,
+    `${location.name}`,
+    'backtest',
     `${processId}.log`,
   );
 };

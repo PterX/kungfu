@@ -4,6 +4,7 @@ import fse, { Stats } from 'fs-extra';
 import log4js from 'log4js';
 import os from 'os';
 import {
+  ARCHIVE_DIR,
   buildProcessLogPath,
   EXTENSION_DIRS,
   KF_HOME,
@@ -97,6 +98,7 @@ import {
 import minimist from 'minimist';
 import VueI18n, { useLanguage } from '../language';
 import { T0T1Config } from '../typings/global';
+import globalStorage from './globalStorage';
 import { getKfGlobalSettingsValue } from '../config/globalSettings';
 import { Currency } from '../config/tradingConfig';
 const { t } = VueI18n.global;
@@ -1031,6 +1033,34 @@ export const removeDB = (targetFolder: string): Promise<void> => {
       res.errors.forEach((err) => kfLogger.error(err));
     },
   );
+};
+
+export const removeJournalIfNeed = (): Promise<void> => {
+  const needClearJournal = !!globalStorage.getItem('needClearJournal');
+
+  kfLogger.info('needClearJournal: ', needClearJournal);
+
+  if (needClearJournal) {
+    globalStorage.setItem('needClearJournal', false);
+    kfLogger.info('Clear Journal Done', needClearJournal);
+    return removeTodayArchive(ARCHIVE_DIR).then(() => removeJournal(KF_HOME));
+  } else {
+    return Promise.resolve();
+  }
+};
+
+export const removeDBIfNeed = (): Promise<void> => {
+  const needClearDB = !!globalStorage.getItem('needClearDB');
+
+  kfLogger.info('needClearDB: ', needClearDB);
+
+  if (needClearDB) {
+    globalStorage.setItem('needClearDB', false);
+    kfLogger.info('Clear DB Done');
+    return removeDB(KF_HOME);
+  } else {
+    return Promise.resolve();
+  }
 };
 
 export const getProcessIdByKfLocation = (

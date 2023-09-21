@@ -633,16 +633,36 @@ const getKfExtensionConfigByCategory = (
   return extConfigs
     .filter((item) => !!item.config)
     .reduce(
-      (configByCategory, extConfig: KungfuApi.KfExtOriginConfig) => {
-        if (!extConfig['config']) return configByCategory;
+      (configByCategory, extConfig) => {
+        if (!extConfig.config) return configByCategory;
 
         const extKey = extConfig.key;
         const extName = extConfig.name;
         const extPath = extConfig.extPath;
         (Object.keys(extConfig['config'] || {}) as KfCategoryTypes[]).forEach(
           (category: KfCategoryTypes) => {
-            const extConfigByCategory = extConfig['config'] || {};
-            const buildExtConfig = <T extends KfCategoryTypes>(category: T) => {
+            const buildExtConfig = <T extends KfCategoryTypes>(
+              extOriginConfig: KungfuApi.KfExtOriginConfig['config'],
+              category: T,
+            ) => {
+              return {
+                ...(configByCategory[category] || {}),
+                [extKey]: {
+                  name: extName,
+                  extPath,
+                  category,
+                  key: extKey,
+                  type: resolveTypesInExtConfig(
+                    extOriginConfig[category]?.type || [],
+                  ),
+                  settings: extOriginConfig[category]?.settings || [],
+                },
+              } as KungfuApi.KfExtConfigs[T];
+            };
+
+            if (category === 'td') {
+              const extOriginConfig =
+                (extConfig as KungfuApi.KfExtOriginBrokerConfig).config || {};
               configByCategory[category] = {
                 ...(configByCategory[category] || {}),
                 [extKey]: {
@@ -651,64 +671,59 @@ const getKfExtensionConfigByCategory = (
                   category,
                   key: extKey,
                   type: resolveTypesInExtConfig(
-                    extConfigByCategory[category]?.type || [],
+                    extOriginConfig[category]?.type || [],
                   ),
-                  settings: extConfigByCategory[category]?.settings || [],
+                  orderTrigger: resolveOrderTriggerConfig(extOriginConfig),
+                  settings: extOriginConfig[category]?.settings || [],
+                  fundTrans: extOriginConfig[category]?.fund_trans || {},
+                  showAssetMargin:
+                    extOriginConfig[category]?.show_asset_margin || false,
                 },
-              } as KungfuApi.KfExtConfigs[T];
-            };
-            switch (category) {
-              case 'td':
-                configByCategory[category] = {
-                  ...(configByCategory[category] || {}),
-                  [extKey]: {
-                    name: extName,
-                    extPath,
-                    category,
-                    key: extKey,
-                    type: resolveTypesInExtConfig(
-                      extConfigByCategory[category]?.type || [],
-                    ),
-                    orderTrigger:
-                      resolveOrderTriggerConfig(extConfigByCategory),
-                    settings: extConfigByCategory[category]?.settings || [],
-                    fundTrans: extConfigByCategory[category]?.fund_trans || {},
-                    showAssetMargin:
-                      extConfigByCategory[category]?.show_asset_margin || false,
-                  },
-                };
-                break;
-              case 'md':
-                buildExtConfig('md');
-                break;
-              case 'strategy':
-                buildExtConfig('strategy');
-                break;
-              case 'operator':
-                buildExtConfig('operator');
-                break;
-              case 'system':
-                configByCategory[category] = {
-                  ...(configByCategory[category] || {}),
-                  [extKey]:
-                    Object.entries(extConfigByCategory[category] || {}).reduce(
-                      (resolved, [name, item]) => ({
-                        ...resolved,
-                        [name]: {
-                          name: name || extName,
-                          extPath,
-                          category,
-                          key: extKey,
-                          type: resolveTypesInExtConfig(item?.type || []),
-                          for: [item.for].flat(),
-                          script: item?.script || '',
-                          settings: item?.settings || [],
-                        },
-                      }),
-                      {} as KungfuApi.KfSystemExtConfigs,
-                    ) || {},
-                };
-                break;
+              };
+            } else if (category === 'md') {
+              const extOriginConfig =
+                (extConfig as KungfuApi.KfExtOriginBrokerConfig).config || {};
+              configByCategory[category] = buildExtConfig(
+                extOriginConfig,
+                'md',
+              );
+            } else if (category === 'strategy') {
+              const extOriginConfig =
+                (extConfig as KungfuApi.KfExtOriginBrokerConfig).config || {};
+              configByCategory[category] = buildExtConfig(
+                extOriginConfig,
+                'strategy',
+              );
+            } else if (category === 'operator') {
+              const extOriginConfig =
+                (extConfig as KungfuApi.KfExtOriginBrokerConfig).config || {};
+              configByCategory[category] = buildExtConfig(
+                extOriginConfig,
+                'operator',
+              );
+            } else if (category === 'system') {
+              const extOriginConfig =
+                (extConfig as KungfuApi.KfExtOriginServiceConfig).config || {};
+              configByCategory[category] = {
+                ...(configByCategory[category] || {}),
+                [extKey]:
+                  Object.entries(extOriginConfig[category] || {}).reduce(
+                    (resolved, [name, item]) => ({
+                      ...resolved,
+                      [name]: {
+                        name: name || extName,
+                        extPath,
+                        category,
+                        key: extKey,
+                        type: resolveTypesInExtConfig(item?.type || []),
+                        for: [item.for].flat(),
+                        script: item?.script || '',
+                        settings: item?.settings || [],
+                      },
+                    }),
+                    {} as KungfuApi.KfSystemExtConfigs,
+                  ) || {},
+              };
             }
           },
         );
@@ -728,12 +743,13 @@ const getKfUIExtensionConfigByExtKey = (
   extConfigs: KungfuApi.KfExtOriginConfig[],
 ): KungfuApi.KfUIExtConfigs => {
   return extConfigs
-    .filter((item) => !!item.ui_config)
+    .filter((item) => 'ui_config' in item && !!item.ui_config)
     .reduce((configByExtraKey, extConfig) => {
-      const extKey = extConfig.key;
-      const extName = extConfig.name;
-      const extPath = extConfig.extPath;
-      const uiConfig = extConfig['ui_config'];
+      const extUIConfig = extConfig as KungfuApi.KfExtOriginUIConfig;
+      const extKey = extUIConfig.key;
+      const extName = extUIConfig.name;
+      const extPath = extUIConfig.extPath;
+      const uiConfig = extUIConfig['ui_config'];
       const position = uiConfig?.position || '';
       const exhibit = uiConfig?.exhibit || ({} as KungfuApi.KfExhibitConfig);
       const components = uiConfig?.components || null;
@@ -755,12 +771,13 @@ const getKfCliExtensionConfigByExtKey = (
   extConfigs: KungfuApi.KfExtOriginConfig[],
 ): KungfuApi.KfCliExtConfigs => {
   return extConfigs
-    .filter((item) => !!item.cli_config)
+    .filter((item) => 'cli_config' in item && !!item.cli_config)
     .reduce((configByExtraKey, extConfig) => {
-      const extKey = extConfig.key;
-      const extName = extConfig.name;
-      const extPath = extConfig.extPath;
-      const cliConfig = extConfig['cli_config'];
+      const extUIConfig = extConfig as KungfuApi.KfExtOriginUIConfig;
+      const extKey = extUIConfig.key;
+      const extName = extUIConfig.name;
+      const extPath = extUIConfig.extPath;
+      const cliConfig = extUIConfig['cli_config'];
       const exhibit = cliConfig?.exhibit || ({} as KungfuApi.KfExhibitConfig);
       const components = cliConfig?.components || null;
       const script = cliConfig?.script || '';

@@ -15,7 +15,6 @@ has_long_position
 has_short_position
 get_long_position
 get_short_position
-get_basket_instruments_by_basket_uid
 apply_quote
 apply_order_input
 apply_order
@@ -146,6 +145,7 @@ order_trigger_from_input
 order_trigger_from_order
 order_input_from_trigger_order
 now_in_nano
+today_start
 strftime
 strptime
 strfnow

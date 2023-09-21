@@ -76,6 +76,10 @@ import {
   triggerStartStep,
 } from '@kungfu-trader/kungfu-js-api/kungfu/tradingData';
 
+// markdown 样式
+import 'github-markdown-css/github-markdown-dark.css';
+import 'highlight.js/styles/stackoverflow-dark.css';
+
 import VueVirtualScroller from 'vue-virtual-scroller';
 import 'vue-virtual-scroller/dist/vue-virtual-scroller.css';
 import { useComponents } from './useComponents';

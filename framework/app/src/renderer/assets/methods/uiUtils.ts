@@ -72,6 +72,11 @@ const { t } = VueI18n.global;
 import fse from 'fs-extra';
 import fsPromise from 'fs/promises';
 import md from 'markdown-it';
+import mdHljs from 'markdown-it-highlightjs';
+import hlForCpp from 'highlight.js/lib/languages/cpp';
+import hlForPython from 'highlight.js/lib/languages/python';
+import hlForJs from 'highlight.js/lib/languages/javascript';
+import hlForTs from 'highlight.js/lib/languages/typescript';
 import { Router } from 'vue-router';
 import { normalizePath } from '@kungfu-trader/kungfu-js-api/utils/osUtils';
 import { getDialogLogoPath } from '@kungfu-trader/kungfu-js-api/config/brand';
@@ -1100,11 +1105,22 @@ export const confirmModalByCustomArgs = (
   });
 };
 
-const markdown = md();
+const markdown = md('commonmark');
+markdown.use(mdHljs, {
+  inline: true,
+  register: {
+    cpp: hlForCpp,
+    python: hlForPython,
+    js: hlForJs,
+    ts: hlForTs,
+  },
+});
 export const compileMd2Html = (content: string): string => {
   try {
     return (
-      '<div class="kf-markdown__wrap">' + markdown.render(content) + '</div>'
+      '<div class="kf-markdown__wrap markdown-body">' +
+      markdown.render(content) +
+      '</div>'
     );
   } catch (error) {
     console.error(error);
@@ -1127,7 +1143,7 @@ export const openReadmeModal = (title: string, readmePath: string) => {
       const str = buffer.toString();
       const mdHtml = markdown.render(str);
       const content = h('div', {
-        class: 'kf-markdown__wrap',
+        class: 'kf-markdown__wrap markdown-body',
         innerHTML: mdHtml,
       });
       return Modal.confirm({

@@ -184,6 +184,7 @@ disjoin
 disjoin_channel
 on_load_page
 current_frame_uid
+get_dest
 copy_frame
 mark
 mark_at

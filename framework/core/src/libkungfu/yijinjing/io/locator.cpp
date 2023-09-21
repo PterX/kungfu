@@ -142,10 +142,21 @@ std::vector<location_ptr> locator::list_locations(const std::string &category, c
   for (auto &it : fs::recursive_directory_iterator(root_)) {
     auto path = it.path().string();
     if (it.is_directory() and std::regex_match(path, match, search_regex)) {
-      auto l = location::make_shared(es::get_mode_by_name(match[4].str()),     //
-                                     es::get_category_by_name(match[1].str()), //
-                                     match[2].str(),                           //
-                                     match[3].str(),                           //
+      // sometimes bad locations existed, like self log writtern by broker in cwd folder, we need to avoid them
+      std::string mode_name = match[4].str();
+      auto mode = es::get_mode_by_name(mode_name);
+      if (mode == es::mode::LIVE and mode_name != "live") {
+        continue;
+      }
+      std::string category_name = match[1].str();
+      auto category = es::get_category_by_name(category_name);
+      if (category == es::category::SYSTEM and mode_name != "system") {
+        continue;
+      }
+      auto l = location::make_shared(mode,           //
+                                     category,       //
+                                     match[2].str(), //
+                                     match[3].str(), //
                                      std::make_shared<locator>(root_.string()));
       if (avoid_repeat_locations.find(l->uid) == avoid_repeat_locations.end()) {
         avoid_repeat_locations.emplace(l->uid, l);
@@ -158,7 +169,7 @@ std::vector<location_ptr> locator::list_locations(const std::string &category, c
 
 std::vector<uint32_t> locator::list_location_dest(const location_ptr &location) const {
   std::unordered_set<uint32_t> set = {};
-  auto dir = fs::path(layout_dir(location, es::layout::JOURNAL));
+  auto dir = fs::path(layout_dir(location, es::layout::JOURNAL, false));
   if (not fs::exists(dir)) {
     return {};
   }

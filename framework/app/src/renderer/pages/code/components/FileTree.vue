@@ -107,7 +107,10 @@ watch(props.currentNode as Code.CodeInfo, (newCurrentNode) => {
 
 function handleOpenFileLocation() {
   const filePath = fileTree.value[0].filePath;
-  if (!filePath) return;
+  if (!filePath) {
+    error();
+    return;
+  }
   return shell.showItemInFolder(filePath);
 }
 

@@ -160,16 +160,6 @@ inline bool is_final_status(const longfist::enums::OrderStatus &status) {
   }
 }
 
-[[maybe_unused]] inline bool is_final_basket_order_status(const longfist::enums::BasketOrderStatus &status) {
-  switch (status) {
-  case longfist::enums::BasketOrderStatus::Unknown:
-  case longfist::enums::BasketOrderStatus::Pending:
-    return false;
-  default:
-    return true;
-  }
-}
-
 inline bool is_convertible_bond(const std::string &instrument_id, const std::string &exchange_id) {
   return ((string_equals_n(instrument_id, "123", 3) || string_equals_n(instrument_id, "128", 3) ||
            string_equals_n(instrument_id, "117", 3) || string_equals_n(instrument_id, "127", 3) ||

@@ -1,8 +1,8 @@
 __uid__
-baskets
-basket_instruments
 instruments
 commissions
+baskets
+basket_instruments
 home
 state
 runtime_folder
@@ -149,9 +149,6 @@ input_time
 ack_time
 total_price
 total_volume
-price_level
-price_offset
-dest_id
 trigger_id
 stop_price
 trigger_type
@@ -232,6 +229,7 @@ min_volume
 rate
 replace_flag
 cash_premium_ratio
+dest_id
 base_time
 duration
 repeat
@@ -249,7 +247,6 @@ OrderAction
 OrderActionError
 BlockMessage
 OrderStat
-BasketOrder
 OrderTriggerInput
 OrderTrigger
 OrderTriggerAction
@@ -487,6 +484,7 @@ disjoin
 disjoin_channel
 on_load_page
 current_frame_uid
+get_dest
 copy_frame
 mark
 mark_at
@@ -667,14 +665,6 @@ Cancelling
 Pause
 OrderStatus
 Currency
-Pending
-PartialFilledNotActive
-PartialFilledActive
-Filled
-BasketOrderStatus
-Static
-Dynamic
-BasketOrderCalculationMode
 Quantity
 Proportion
 BasketVolumeType

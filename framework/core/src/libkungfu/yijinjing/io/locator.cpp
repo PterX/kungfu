@@ -169,7 +169,7 @@ std::vector<location_ptr> locator::list_locations(const std::string &category, c
 
 std::vector<uint32_t> locator::list_location_dest(const location_ptr &location) const {
   std::unordered_set<uint32_t> set = {};
-  auto dir = fs::path(layout_dir(location, es::layout::JOURNAL));
+  auto dir = fs::path(layout_dir(location, es::layout::JOURNAL, false));
   if (not fs::exists(dir)) {
     return {};
   }

@@ -18,6 +18,7 @@ import {
   onMounted,
   onBeforeUnmount,
   getCurrentInstance,
+  nextTick,
 } from 'vue';
 import { SystemProcessName } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import {
@@ -74,6 +75,8 @@ const {
   handleReplayModal,
 } = useReplay();
 const { tdExtTypeMap, mdExtTypeMap } = useExtConfigsRelated();
+
+let hasBacktest = false;
 
 let isClosingWindow = false;
 let isRestartSystem = 0;
@@ -150,6 +153,13 @@ const mainStatusWell = computed(() => {
 
 function handleOpenProcessControllerBoard(): void {
   processControllerBoardVisible.value = true;
+}
+
+function handleClickReplay(config: KungfuApi.KfLocation) {
+  hasBacktest = config.category === 'strategy';
+  nextTick(() => {
+    handleOpenReplayConfirmView(config);
+  });
 }
 
 const prefixMap = ref({});
@@ -320,9 +330,7 @@ onMounted(() => {
                     (config.category === 'system' && config.name === 'ledger')
                   "
                   style="font-size: 12px"
-                  @click.stop="
-                    handleOpenReplayConfirmView(config as KungfuApi.KfConfig)
-                  "
+                  @click.stop="handleClickReplay(config)"
                 ></HistoryOutlined>
                 <BankOutlined
                   style="font-size: 12px"
@@ -342,7 +350,7 @@ onMounted(() => {
       v-if="setReplayModalVisible"
       :width="520"
       v-model:visible="setReplayModalVisible"
-      :has-back-test="replayConfig.category === 'strategy'"
+      :has-back-test="hasBacktest"
       :session-options="sessionOptions"
       :session-info="replayConfig.session_info"
       :begin-time="replayConfig.begin_time.split(' ')[1]"

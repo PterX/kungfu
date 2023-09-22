@@ -24,7 +24,11 @@
     </template>
     <template #action>
       <KfDashboardItem>
-        <a-button @click="reLoadLog" size="small" :loading="isLoading">
+        <a-button
+          @click="reLoadLog"
+          size="small"
+          :loading="isLoading || startReloading"
+        >
           {{ $t('replay.try_again') }}
         </a-button>
       </KfDashboardItem>
@@ -71,8 +75,13 @@ const props = withDefaults(
   },
 );
 
+const RELOADING_TIMER = 5000;
+let reloadingTimer: NodeJS.Timeout | null = null;
+
+const startReloading = ref(false);
+
 const enableMatcher = computed(() => {
-  return !!props.params.enableMatcher;
+  return props.params.enableMatcher === 'true';
 });
 
 const logLevel = ref(
@@ -95,7 +104,12 @@ onMounted(async () => {
     const { processStatus } = await listProcessStatus();
     if (processStatus) {
       if (processStatus[props.params.processId] === 'online') {
+        startReloading.value = false;
         isLoading.value = true;
+        if (reloadingTimer) {
+          clearTimeout(reloadingTimer);
+          reloadingTimer = null;
+        }
       } else {
         isLoading.value = false;
       }
@@ -137,6 +151,10 @@ const throwError = (messageKey: string) => {
 };
 
 async function reLoadLog() {
+  if (reloadingTimer) {
+    clearTimeout(reloadingTimer);
+    reloadingTimer = null;
+  }
   if (!currentWindow) return;
 
   const { processStatus } = await listProcessStatus();
@@ -202,6 +220,10 @@ async function reLoadLog() {
   try {
     ensureFileSync(LOG_PATH);
     await outputFile(LOG_PATH, '');
+    startReloading.value = true;
+    reloadingTimer = setTimeout(() => {
+      startReloading.value = false;
+    }, RELOADING_TIMER);
     await ipcEmit('clear-process', { processId: props.params.processId || '' });
     logViewRef.value && logViewRef.value.resetLog();
     pawin.webContents.send('startReplay', {

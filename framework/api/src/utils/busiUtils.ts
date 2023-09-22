@@ -1128,24 +1128,27 @@ export const getProcessIdByKfLocation = (
   kfLocation: KungfuApi.KfLocation,
   mode?: string,
 ): string => {
+  const shouleConcatNMode = mode && mode !== 'live';
   switch (kfLocation.category) {
     case 'md':
       return `${kfLocation.category}_${kfLocation.group}`;
     case 'strategy':
     case 'operator':
       if (kfLocation.group === 'default') {
-        return mode
+        return shouleConcatNMode
           ? `${kfLocation.category}_${kfLocation.name}-${mode}`
           : `${kfLocation.category}_${kfLocation.name}`;
       } else {
-        return mode
+        return shouleConcatNMode
           ? `${kfLocation.category}_${kfLocation.group}_${kfLocation.name}-${mode}`
           : `${kfLocation.category}_${kfLocation.group}_${kfLocation.name}`;
       }
     case 'system':
-      return mode ? `${kfLocation.name}-${mode}` : `${kfLocation.name}`;
+      return shouleConcatNMode
+        ? `${kfLocation.name}-${mode}`
+        : `${kfLocation.name}`;
     default:
-      return mode
+      return shouleConcatNMode
         ? `${kfLocation.category}_${kfLocation.group}_${kfLocation.name}-${mode}`
         : `${kfLocation.category}_${kfLocation.group}_${kfLocation.name}`;
   }
@@ -2644,7 +2647,11 @@ export const getTaskListFromProcessStatusData = (
     .filter((processId) => {
       return (
         taskPrefixs.findIndex((cg) => {
-          return processId.indexOf(cg) === 0;
+          return (
+            processId.indexOf(cg) === 0 &&
+            !processId.endsWith('-replay') &&
+            !processId.endsWith('-backtest')
+          );
         }) !== -1
       );
     })

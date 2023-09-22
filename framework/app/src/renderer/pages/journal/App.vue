@@ -275,7 +275,7 @@ const replayPramas = computed(() => {
     sessionName: currentSession.value.name || '',
     filePath: replayConfig.value.file_path || '',
     processId: processId,
-    enableMatcher: replayConfig.value.enable_matcher,
+    enableMatcher: (replayConfig.value.enable_matcher || false).toString(),
   };
 });
 

@@ -2313,10 +2313,14 @@ export const initFormStateByConfig = (
     }
 
     const initItemValue = (initValue || {})[item.key];
+    const ifCanCoverDefault =
+      item?.default === undefined || item.default === null
+        ? true
+        : typeof initItemValue === typeof item?.default;
     if (
       initItemValue !== undefined &&
       initItemValue !== item?.default &&
-      typeof initItemValue === typeof item?.default
+      ifCanCoverDefault
     ) {
       defaultValue = initItemValue;
     }

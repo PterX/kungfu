@@ -250,6 +250,8 @@ private:
   bool custom_OnTradeEvent(const event_ptr &event);
   bool custom_OnQueryOrder(const event_ptr &event);
   bool custom_OnQueryTrade(const event_ptr &event);
+  bool custom_OnQueryAsset(const event_ptr &event);
+  bool custom_OnQueryPosition(const event_ptr &event);
 
   bool custom_OnCancelOrderError(const XTPOrderCancelInfo &cancel_info, const XTPRI &error_info, uint64_t session_id);
   bool custom_OnOrderEvent(const XTPOrderInfo &order_info, const XTPRI &error_info, uint64_t session_id);
@@ -258,6 +260,11 @@ private:
                            uint64_t session_id);
   bool custom_OnQueryTrade(const XTPTradeReport &trade_info, const XTPRI &error_info, int request_id, bool is_last,
                            uint64_t session_id);
+  bool custom_OnQueryAsset(const XTPQueryAssetRsp &asset, const XTPRI &error_info, int request_id, bool is_last,
+                           uint64_t session_id);
+  bool custom_OnQueryPosition(const XTPQueryStkPositionRsp &position, const XTPRI &error_info, int request_id,
+                              bool is_last, uint64_t session_id);
+
   void try_deal_XTPTradeReport(uint64_t xtp_order_id);
   bool generate_external_order(const XTPOrderInfo &order_info);
 

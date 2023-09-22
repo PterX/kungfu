@@ -7,7 +7,8 @@ from pathlib import Path
 import sys
 import os
 
-from kungfu.console.commands import kfc, PrioritizedCommandGroup
+from kungfu.console.commands import kfc
+from kungfu.console import site
 from kungfu.yijinjing import time as kft
 from kungfu.yijinjing.log import find_logger
 from kungfu.yijinjing import journal as kfj
@@ -84,10 +85,12 @@ def slicetool(
     tool_path = Path(tool_path)
     tool_dir = str(tool_path.parent)
     sys.path.append(os.path.relpath(tool_dir))
+    site.setup(tool_dir)
 
     module_name = tool_path.stem.split(".")[0]
     logger.debug(f"loading module from {tool_path}")
     module = importlib.import_module(module_name)
+    
 
     if indexer_path:
         indexer = sliceindexer.SliceIndexer(
@@ -97,13 +100,13 @@ def slicetool(
         # indexer = wc.DayIndexer(begin_time_stamp, end_time_stamp)
         indexer = wc.SliceIndexer(begin_time_stamp, end_time_stamp)
 
-    if not tool_path.suffix.endswith("py"):
+    try:
         slice_tool_builder = getattr(module, "slice_tool")
         tool = slice_tool_builder(
             kfj.CATEGORIES[category], group, name, indexer, overwrite, arguments
         )
         tool.run()
-    else:
+    except AttributeError:
         tool_script = getattr(module, "run")
         tool_script(
             wc.SliceTool(

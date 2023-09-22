@@ -462,7 +462,6 @@ def load_report(ctx, path):
         if path.endswith(".py") or os.path.isdir(path):
             return cls(ctx)  # keep strategy alive for pybind11
         elif path.endswith(".so") or path.endswith(".pyd"):
-            sys.path.append(str(Path(path).parent))
             lib_name = Path(path).stem.split(".")[0]
             dirname = os.path.dirname(path)
             site.setup(dirname)
@@ -572,6 +571,7 @@ def parse_begin_end(ctx):
     )
     return begin_time_stamp, end_time_stamp
 
+
 def parse_from_to_indexer(ctx, begin, end):
     from_indexer = wc.SliceIndexer(begin, end)
     to_indexer = wc.SliceIndexer(begin, end)
@@ -582,6 +582,7 @@ def parse_from_to_indexer(ctx, begin, end):
         to_indexer = SliceIndexer(ctx, begin, end, ctx.to_indexer)
     return from_indexer, to_indexer
 
+
 def parse_backtest_config(ctx):
     if ctx.backtest is None:
         return "{}"
@@ -589,7 +590,6 @@ def parse_backtest_config(ctx):
     if os.path.exists(ctx.backtest):
         with open(ctx.backtest, "r") as f:
             backtest_config = f.read()
+    # json format check.
     json.loads(backtest_config)
     return backtest_config
-        
-    

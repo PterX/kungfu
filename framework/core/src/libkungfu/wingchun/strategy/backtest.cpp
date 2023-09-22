@@ -143,7 +143,6 @@ void BacktestContext::lease_expired_check() {
   }
 }
 
-
 void BacktestContext::init_time_events() {
   auto writer = app_.get_writer(app_.get_live_home_uid());
   nlohmann::json j_obj = nlohmann::json::parse(backtest_config_);

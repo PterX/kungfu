@@ -440,7 +440,6 @@ function dealFrameData() {
       const { instrumentId, exchangeId, limitPrice } =
         orderInfoMap.value[tradingData.order_id.toString()] ?? {};
       if (!instrumentId || !exchangeId) {
-        console.error('数据异常或信号源为OrderAction');
         return;
       }
       uidKey = hashInstrumentUKey(instrumentId, exchangeId);
@@ -482,7 +481,6 @@ function dealFrameData() {
       }
     }
     if (!key) {
-      console.error('数据异常');
       return;
     }
     if (!frameListResolved.value[key]) {

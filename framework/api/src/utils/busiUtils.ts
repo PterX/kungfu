@@ -1132,26 +1132,26 @@ export const getProcessIdByKfLocation = (
   switch (kfLocation.category) {
     case 'md':
       return shouldConcatMode
-        ? `${kfLocation.category}_${kfLocation.group}_${mode}`
+        ? `${kfLocation.category}_${kfLocation.group}-${mode}`
         : `${kfLocation.category}_${kfLocation.group}`;
     case 'strategy':
     case 'operator':
       if (kfLocation.group === 'default') {
         return shouldConcatMode
-          ? `${kfLocation.category}_${kfLocation.name}_${mode}`
+          ? `${kfLocation.category}_${kfLocation.name}-${mode}`
           : `${kfLocation.category}_${kfLocation.name}`;
       } else {
         return shouldConcatMode
-          ? `${kfLocation.category}_${kfLocation.group}_${kfLocation.name}_${mode}`
+          ? `${kfLocation.category}_${kfLocation.group}_${kfLocation.name}-${mode}`
           : `${kfLocation.category}_${kfLocation.group}_${kfLocation.name}`;
       }
     case 'system':
       return shouldConcatMode
-        ? `${kfLocation.name}_${mode}`
+        ? `${kfLocation.name}-${mode}`
         : `${kfLocation.name}`;
     default:
       return shouldConcatMode
-        ? `${kfLocation.category}_${kfLocation.group}_${kfLocation.name}_${mode}`
+        ? `${kfLocation.category}_${kfLocation.group}_${kfLocation.name}-${mode}`
         : `${kfLocation.category}_${kfLocation.group}_${kfLocation.name}`;
   }
 };

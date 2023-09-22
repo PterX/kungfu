@@ -817,10 +817,7 @@ async function getBacktestArgs(isEnableMatcher: boolean) {
 
     if (matcher) {
       for (const key of Object.keys(matcher)) {
-        if (
-          matcher[key]['useFor']?.includes('replay') &&
-          matcher[key].extPath
-        ) {
+        if (matcher[key].extPath) {
           const files = await findSoAndPydFiles(matcher[key].extPath);
           if (files.length > 0) {
             matcherPath = files[0];
@@ -829,6 +826,9 @@ async function getBacktestArgs(isEnableMatcher: boolean) {
         }
       }
     }
+  }
+  if (!isEnableMatcher) {
+    kfLogger.warn('matcher is not enable');
   }
 
   return isEnableMatcher

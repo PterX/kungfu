@@ -11,7 +11,7 @@ const formRef = ref();
 const props = withDefaults(
   defineProps<{
     isJournal?: boolean;
-    hasBackTest?: boolean;
+    canBacktest?: boolean;
     visible: boolean;
     sessionOptions: {
       label: string;
@@ -65,26 +65,26 @@ const getBacktestConfig = async () => {
   let hasMatcher = false;
   if (extOriginConfigs) {
     const { matcher, indexer } = extOriginConfigs;
+
     if (indexer) {
-      Object.keys(indexer).forEach((key) => {
+      for (const key of Object.keys(indexer)) {
         if (indexer[key]['useFor']?.includes('replay')) {
           hasIndexer = true;
+          break;
         }
-      });
+      }
     }
-    if (matcher) {
-      Object.keys(matcher).forEach((key) => {
-        if (matcher[key]['useFor']?.includes('replay')) {
-          hasMatcher = true;
-        }
-      });
+
+    if (matcher && Object.keys(matcher).length > 0) {
+      hasMatcher = true;
     }
   }
+
   isShowMatcher.value = hasMatcher && hasIndexer;
   formState.value.enableMatcher = isShowMatcher.value;
 };
 onMounted(() => {
-  props.hasBackTest ? getBacktestConfig() : '';
+  props.canBacktest ? getBacktestConfig() : '';
   dealEndTime();
   if (props.sessionInfo) {
     const now = props.sessionInfo.split('--')[1];

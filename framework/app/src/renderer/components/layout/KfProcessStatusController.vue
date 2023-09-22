@@ -76,7 +76,7 @@ const {
 } = useReplay();
 const { tdExtTypeMap, mdExtTypeMap } = useExtConfigsRelated();
 
-let hasBacktest = false;
+let canBacktest = false;
 
 let isClosingWindow = false;
 let isRestartSystem = 0;
@@ -156,7 +156,7 @@ function handleOpenProcessControllerBoard(): void {
 }
 
 function handleClickReplay(config: KungfuApi.KfLocation) {
-  hasBacktest = config.category === 'strategy';
+  canBacktest = config.category === 'strategy';
   nextTick(() => {
     handleOpenReplayConfirmView(config);
   });
@@ -350,7 +350,7 @@ onMounted(() => {
       v-if="setReplayModalVisible"
       :width="520"
       v-model:visible="setReplayModalVisible"
-      :has-back-test="hasBacktest"
+      :can-backtest="canBacktest"
       :session-options="sessionOptions"
       :session-info="replayConfig.session_info"
       :begin-time="replayConfig.begin_time.split(' ')[1]"

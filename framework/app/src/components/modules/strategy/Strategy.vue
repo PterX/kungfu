@@ -280,7 +280,7 @@ function handleOpenCodeViewResolved(record: KungfuApi.KfConfig) {
       v-if="setReplayModalVisible"
       :width="520"
       v-model:visible="setReplayModalVisible"
-      :has-back-test="true"
+      :can-backtest="true"
       :session-options="sessionOptions"
       :session-info="replayConfig.session_info"
       :begin-time="replayConfig.begin_time.split(' ')[1]"

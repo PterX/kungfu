@@ -1128,28 +1128,30 @@ export const getProcessIdByKfLocation = (
   kfLocation: KungfuApi.KfLocation,
   mode?: string,
 ): string => {
-  const shouleConcatNMode = mode && mode !== 'live';
+  const shouldConcatMode = mode && mode !== 'live';
   switch (kfLocation.category) {
     case 'md':
-      return `${kfLocation.category}_${kfLocation.group}`;
+      return shouldConcatMode
+        ? `${kfLocation.category}_${kfLocation.group}_${mode}`
+        : `${kfLocation.category}_${kfLocation.group}`;
     case 'strategy':
     case 'operator':
       if (kfLocation.group === 'default') {
-        return shouleConcatNMode
-          ? `${kfLocation.category}_${kfLocation.name}-${mode}`
+        return shouldConcatMode
+          ? `${kfLocation.category}_${kfLocation.name}_${mode}`
           : `${kfLocation.category}_${kfLocation.name}`;
       } else {
-        return shouleConcatNMode
-          ? `${kfLocation.category}_${kfLocation.group}_${kfLocation.name}-${mode}`
+        return shouldConcatMode
+          ? `${kfLocation.category}_${kfLocation.group}_${kfLocation.name}_${mode}`
           : `${kfLocation.category}_${kfLocation.group}_${kfLocation.name}`;
       }
     case 'system':
-      return shouleConcatNMode
-        ? `${kfLocation.name}-${mode}`
+      return shouldConcatMode
+        ? `${kfLocation.name}_${mode}`
         : `${kfLocation.name}`;
     default:
-      return shouleConcatNMode
-        ? `${kfLocation.category}_${kfLocation.group}_${kfLocation.name}-${mode}`
+      return shouldConcatMode
+        ? `${kfLocation.category}_${kfLocation.group}_${kfLocation.name}_${mode}`
         : `${kfLocation.category}_${kfLocation.group}_${kfLocation.name}`;
   }
 };
@@ -2836,7 +2838,7 @@ export async function startReplay(
         location.category,
         '',
         '',
-        enableMatcher ? 'backtest' : 'replay',
+        location.mode,
         replayConfig,
       );
     case 'system':

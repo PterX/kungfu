@@ -119,7 +119,7 @@
     :width="520"
     v-model:visible="setReplayModalVisible"
     :is-journal="true"
-    :has-back-test="hasBacktest"
+    :can-backtest="canBacktest"
     :session-options="sessionOptions"
     :session-info="replayConfig.session_info"
     :begin-time="replayConfig.begin_time.split(' ')[1]"
@@ -213,7 +213,7 @@ const columns = getSessionColumns();
 const operator = ref<KungfuApi.KfConfig[]>([]);
 const strategy = ref<KungfuApi.KfConfig[]>([]);
 const td = ref<KungfuApi.KfConfig[]>([]);
-const hasBacktest = computed(() => {
+const canBacktest = computed(() => {
   return currentSession.value?.category === 'strategy';
 });
 const replayPramas = computed(() => {

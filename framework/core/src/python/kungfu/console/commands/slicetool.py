@@ -90,7 +90,6 @@ def slicetool(
     module_name = tool_path.stem.split(".")[0]
     logger.debug(f"loading module from {tool_path}")
     module = importlib.import_module(module_name)
-    
 
     if indexer_path:
         indexer = sliceindexer.SliceIndexer(

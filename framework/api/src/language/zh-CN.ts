@@ -920,11 +920,14 @@ export default {
   replay: {
     session: 'Session',
     replay: '回放',
+    backtest: '回测',
     log_level: '日志级别',
     begin_time: '开始时间',
     end_time: '结束时间',
     try_again: '重试',
     stop_replay: '停止回放',
+    stop_backtest: '停止回测',
+    enable_matcher: '使用撮合器',
     please_select_session: '请选择 Session',
     please_select_log_level: '请选择日志级别',
     stop_replay_warn_content: '关闭窗口将会停止回放, 是否仍然关闭窗口?',
@@ -940,6 +943,7 @@ export default {
     replay_tips2_part2: '请勿修改策略逻辑',
     replay_tips2_part3: ', 否则会由于输出数据与实际不符而报错.',
     process_not_found: '进程不存在',
+    enable_matcher_tip: '使用撮合器的情况下, 可以修改策略逻辑并进行回放',
   },
 
   master_interrupt: '主控进程 master 中断',

@@ -924,11 +924,14 @@ export default {
   replay: {
     session: 'Session',
     replay: 'Replay',
+    backtest: 'Backtest',
     log_level: 'Log Level',
     begin_time: 'Begin Time',
     end_time: 'End Time',
     try_again: 'Try Again',
     stop_replay: 'Stop Replay',
+    stop_backtest: 'Stop Backtest',
+    enable_matcher: 'Enable Matcher',
     please_select_session: 'Please select session',
     please_select_log_level: 'Please select log level',
     stop_replay_warn_content:
@@ -948,6 +951,8 @@ export default {
     replay_tips2_part3:
       'due to discrepancies between the output data and the actual execution.',
     process_not_found: 'Process not found',
+    enable_matcher_tip:
+      'When using the matcher, you can modify the strategy logic and replay it',
   },
 
   master_interrupt: 'master interrupted',

@@ -424,6 +424,7 @@ function getProcessStatusName(
       v-if="setReplayModalVisible"
       :width="520"
       v-model:visible="setReplayModalVisible"
+      :can-backtest="true"
       :session-options="sessionOptions"
       :session-info="replayConfig.session_info"
       :begin-time="replayConfig.begin_time.split(' ')[1]"

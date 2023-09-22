@@ -42,6 +42,9 @@
   "kungfuConfig": {
     "key": "IndexerLive",
     "name": "IndexerLive",
+    "useFor": [
+      "replay"
+    ],
     "config": {}
   }
 }

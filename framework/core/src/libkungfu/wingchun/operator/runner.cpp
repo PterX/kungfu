@@ -31,7 +31,7 @@ Context_ptr Runner::make_context() {
     }
     set_runner(*report_, this, nullptr);
     return std::make_shared<BacktestContext>(*this, events_, std::move(from_indexer_), std::move(to_indexer_), report_,
-                                             time_interval_);
+                                             time_interval_, std::move(backtest_config_));
   }
 
   return std::make_shared<LiveContext>(*this, events_);
@@ -54,6 +54,8 @@ void Runner::set_time_interval(int64_t time_interval) {
   }
   time_interval_ = time_interval;
 }
+
+void Runner::set_backtest_config(const std::string &backtest_config) { backtest_config_ = backtest_config; }
 
 tool::Report_ptr Runner::get_report() const { return report_; }
 

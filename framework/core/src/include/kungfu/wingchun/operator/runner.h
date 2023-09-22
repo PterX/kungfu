@@ -29,6 +29,8 @@ public:
 
   void set_time_interval(int64_t time_interval);
 
+  void set_backtest_config(const std::string &backtest_config);
+
   void on_exit() override;
 
 protected:
@@ -55,6 +57,7 @@ private:
   tool::SliceIndexer_ptr to_indexer_;
   tool::Report_ptr report_;
   int64_t time_interval_{yijinjing::time_unit::NANOSECONDS_PER_SECOND};
+  std::string backtest_config_;
 
   template <typename OnMethod = void (Operator::*)(Context_ptr &)> void invoke(OnMethod method) {
     auto context = std::dynamic_pointer_cast<Context>(context_);

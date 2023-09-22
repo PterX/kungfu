@@ -62,6 +62,174 @@
             <span>{{ item }}</span>
           </div>
         </template>
+        <template v-if="instrumentList.length > 0">
+          <div
+            v-for="item in instrumentList"
+            :key="item"
+            :class="{
+              'instrument-item_wrap': true,
+              'color-default': true,
+              'selected-status': selectedInstrument.includes(item),
+            }"
+            @click="getCurInstrument(item)"
+          >
+            <span>{{ item }}</span>
+          </div>
+        </template>
+        <template v-if="instrumentList.length > 0">
+          <div
+            v-for="item in instrumentList"
+            :key="item"
+            :class="{
+              'instrument-item_wrap': true,
+              'color-default': true,
+              'selected-status': selectedInstrument.includes(item),
+            }"
+            @click="getCurInstrument(item)"
+          >
+            <span>{{ item }}</span>
+          </div>
+        </template>
+        <template v-if="instrumentList.length > 0">
+          <div
+            v-for="item in instrumentList"
+            :key="item"
+            :class="{
+              'instrument-item_wrap': true,
+              'color-default': true,
+              'selected-status': selectedInstrument.includes(item),
+            }"
+            @click="getCurInstrument(item)"
+          >
+            <span>{{ item }}</span>
+          </div>
+        </template>
+        <template v-if="instrumentList.length > 0">
+          <div
+            v-for="item in instrumentList"
+            :key="item"
+            :class="{
+              'instrument-item_wrap': true,
+              'color-default': true,
+              'selected-status': selectedInstrument.includes(item),
+            }"
+            @click="getCurInstrument(item)"
+          >
+            <span>{{ item }}</span>
+          </div>
+        </template>
+        <template v-if="instrumentList.length > 0">
+          <div
+            v-for="item in instrumentList"
+            :key="item"
+            :class="{
+              'instrument-item_wrap': true,
+              'color-default': true,
+              'selected-status': selectedInstrument.includes(item),
+            }"
+            @click="getCurInstrument(item)"
+          >
+            <span>{{ item }}</span>
+          </div>
+        </template>
+        <template v-if="instrumentList.length > 0">
+          <div
+            v-for="item in instrumentList"
+            :key="item"
+            :class="{
+              'instrument-item_wrap': true,
+              'color-default': true,
+              'selected-status': selectedInstrument.includes(item),
+            }"
+            @click="getCurInstrument(item)"
+          >
+            <span>{{ item }}</span>
+          </div>
+        </template>
+        <template v-if="instrumentList.length > 0">
+          <div
+            v-for="item in instrumentList"
+            :key="item"
+            :class="{
+              'instrument-item_wrap': true,
+              'color-default': true,
+              'selected-status': selectedInstrument.includes(item),
+            }"
+            @click="getCurInstrument(item)"
+          >
+            <span>{{ item }}</span>
+          </div>
+        </template>
+        <template v-if="instrumentList.length > 0">
+          <div
+            v-for="item in instrumentList"
+            :key="item"
+            :class="{
+              'instrument-item_wrap': true,
+              'color-default': true,
+              'selected-status': selectedInstrument.includes(item),
+            }"
+            @click="getCurInstrument(item)"
+          >
+            <span>{{ item }}</span>
+          </div>
+        </template>
+        <template v-if="instrumentList.length > 0">
+          <div
+            v-for="item in instrumentList"
+            :key="item"
+            :class="{
+              'instrument-item_wrap': true,
+              'color-default': true,
+              'selected-status': selectedInstrument.includes(item),
+            }"
+            @click="getCurInstrument(item)"
+          >
+            <span>{{ item }}</span>
+          </div>
+        </template>
+        <template v-if="instrumentList.length > 0">
+          <div
+            v-for="item in instrumentList"
+            :key="item"
+            :class="{
+              'instrument-item_wrap': true,
+              'color-default': true,
+              'selected-status': selectedInstrument.includes(item),
+            }"
+            @click="getCurInstrument(item)"
+          >
+            <span>{{ item }}</span>
+          </div>
+        </template>
+        <template v-if="instrumentList.length > 0">
+          <div
+            v-for="item in instrumentList"
+            :key="item"
+            :class="{
+              'instrument-item_wrap': true,
+              'color-default': true,
+              'selected-status': selectedInstrument.includes(item),
+            }"
+            @click="getCurInstrument(item)"
+          >
+            <span>{{ item }}</span>
+          </div>
+        </template>
+        <template v-if="instrumentList.length > 0">
+          <div
+            v-for="item in instrumentList"
+            :key="item"
+            :class="{
+              'instrument-item_wrap': true,
+              'color-default': true,
+              'selected-status': selectedInstrument.includes(item),
+            }"
+            @click="getCurInstrument(item)"
+          >
+            <span>{{ item }}</span>
+          </div>
+        </template>
 
         <a-empty v-else class="kf-chart_content" :image="simpleImage"></a-empty>
       </div>
@@ -1108,6 +1276,7 @@ const handleInputChange = debounce(() => {
       line-height: 28px;
     }
     .instrument-list {
+      overflow: auto;
       height: calc(100% - 28px);
       .instrument-item_wrap {
         line-height: 28px;

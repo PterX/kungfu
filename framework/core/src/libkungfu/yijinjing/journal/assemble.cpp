@@ -22,9 +22,9 @@ publisher_ptr sink::get_publisher() { return publisher_; }
 
 bus_ptr sink::get_bus() { return bus_; }
 
-uint32_t sink::find_page_size(const data::location_ptr& location, uint32_t dest_id) {
+uint32_t sink::find_page_size(const data::location_ptr &location, uint32_t dest_id) {
   return reader::find_page_size(location, dest_id);
-} 
+}
 
 copy_sink::copy_sink(data::locator_ptr locator) : sink(), locator_(std::move(locator)) {}
 

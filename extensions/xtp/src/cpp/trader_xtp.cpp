@@ -208,15 +208,17 @@ bool TraderXTP::custom_OnOrderEvent(const XTPOrderInfo &order_info, const XTPRI 
   }
 
   auto &order_state = order_state_iter->second;
-  from_xtp(order_info, order_state.data);
-  order_state.data.update_time = yijinjing::time::now_in_nano();
-  if (error_info.error_id != 0) {
-    order_state.data.error_id = error_info.error_id;
-    strncpy(order_state.data.error_msg, error_info.error_msg, strlen(error_info.error_msg));
+  if (not is_final_status(order_state.data.status)) {
+    from_xtp(order_info, order_state.data);
+    order_state.data.update_time = yijinjing::time::now_in_nano();
+    if (error_info.error_id != 0) {
+      order_state.data.error_id = error_info.error_id;
+      strncpy(order_state.data.error_msg, error_info.error_msg, strlen(error_info.error_msg));
+    }
+    try_write_to(order_state.data, order_state.dest);
+    SPDLOG_DEBUG("Order: {}", order_state.data.to_string());
+    try_deal_XTPTradeReport(order_info.order_xtp_id);
   }
-  try_write_to(order_state.data, order_state.dest);
-  SPDLOG_DEBUG("Order: {}", order_state.data.to_string());
-  try_deal_XTPTradeReport(order_info.order_xtp_id);
   return true;
 }
 
@@ -403,26 +405,46 @@ bool TraderXTP::custom_OnCancelOrderError(const XTPOrderCancelInfo &cancel_info,
 
 void TraderXTP::OnQueryPosition(XTPQueryStkPositionRsp *position, XTPRI *error_info, int request_id, bool is_last,
                                 uint64_t session_id) {
-  if (error_info != nullptr && error_info->error_id != 0) {
-    SPDLOG_ERROR("error_id:{}, error_msg: {}, request_id: {}, last: {}", error_info->error_id, error_info->error_msg,
-                 request_id, is_last);
-    return;
-  }
   if (nullptr == position) {
     SPDLOG_ERROR("XTPQueryStkPositionRsp is nullptr");
     return;
   }
-
   SPDLOG_TRACE("XTPQueryStkPositionRsp: {}", to_string(*position));
+
+  auto &bf_position = get_thread_writer()->open_custom_data<BufferXTPQueryStkPositionRsp>(kQueryPositionType);
+  memcpy(&bf_position.position, position, sizeof(XTPQueryStkPositionRsp));
+  if (error_info != nullptr) {
+    memcpy(&bf_position.error_info, error_info, sizeof(XTPRI));
+  } else {
+    memset(&bf_position.error_info, 0, sizeof(XTPRI));
+  }
+  bf_position.request_id = request_id;
+  bf_position.is_last = is_last;
+  bf_position.session_id = session_id;
+  get_thread_writer()->close_data();
+}
+
+bool TraderXTP::custom_OnQueryPosition(const event_ptr &event) {
+  const auto &bf_position = event->custom_data<BufferXTPQueryStkPositionRsp>();
+  return custom_OnQueryPosition(bf_position.position, bf_position.error_info, bf_position.request_id,
+                                bf_position.is_last, bf_position.session_id);
+}
+
+bool TraderXTP::custom_OnQueryPosition(const XTPQueryStkPositionRsp &position, const XTPRI &error_info, int request_id,
+                                       bool is_last, uint64_t session_id) {
+  if (error_info.error_id != 0) {
+    SPDLOG_ERROR("error_id:{}, error_msg: {}, request_id: {}, last: {}", error_info.error_id, error_info.error_msg,
+                 request_id, is_last);
+    return false;
+  }
+
+  SPDLOG_TRACE("XTPQueryStkPositionRsp: {}", to_string(position));
   auto writer = get_position_writer();
   Position &stock_pos = writer->open_data<Position>(0);
-  if (error_info == nullptr || error_info->error_id == 0) {
-    from_xtp(*position, stock_pos);
-  }
+  from_xtp(position, stock_pos);
   stock_pos.holder_uid = get_home_uid();
   stock_pos.instrument_type = get_instrument_type(stock_pos.exchange_id, stock_pos.instrument_id);
   stock_pos.direction = Direction::Long;
-  strncpy(stock_pos.trading_day, trading_day_.c_str(), DATE_LEN);
   stock_pos.update_time = yijinjing::time::now_in_nano();
   SPDLOG_TRACE("Position: {}", stock_pos.to_string());
   writer->close_data();
@@ -432,28 +454,53 @@ void TraderXTP::OnQueryPosition(XTPQueryStkPositionRsp *position, XTPRI *error_i
     writer->close_data();
     enable_positions_sync();
   }
+  return true;
 }
 
 void TraderXTP::OnQueryAsset(XTPQueryAssetRsp *asset, XTPRI *error_info, int request_id, bool is_last,
                              uint64_t session_id) {
-  if (error_info != nullptr && error_info->error_id != 0) {
-    SPDLOG_ERROR("error_id: {}, error_msg: {}, request_id: {}, last: {}", error_info->error_id, error_info->error_msg,
-                 request_id, is_last);
-  }
   if (nullptr == asset) {
     SPDLOG_ERROR("XTPQueryAssetRsp is nullptr");
     return;
   }
-  if (error_info == nullptr || error_info->error_id == 0 || error_info->error_id == 11000350) {
-    SPDLOG_TRACE("OnQueryAsset: {}", to_string(*asset));
+  SPDLOG_TRACE("XTPQueryAssetRsp: {}", to_string(*error_info));
+
+  auto &bf_asset = get_thread_writer()->open_custom_data<BufferXTPQueryAssetRsp>(kQueryAssetType);
+  memcpy(&bf_asset.asset, asset, sizeof(XTPQueryAssetRsp));
+  if (error_info != nullptr) {
+    memcpy(&bf_asset.error_info, error_info, sizeof(XTPRI));
+  } else {
+    memset(&bf_asset.error_info, 0, sizeof(XTPRI));
+  }
+  bf_asset.request_id = request_id;
+  bf_asset.is_last = is_last;
+  bf_asset.session_id = session_id;
+  get_thread_writer()->close_data();
+}
+
+bool TraderXTP::custom_OnQueryAsset(const event_ptr &event) {
+  const auto &bf_asset = event->custom_data<BufferXTPQueryAssetRsp>();
+  return custom_OnQueryAsset(bf_asset.asset, bf_asset.error_info, bf_asset.request_id, bf_asset.is_last,
+                             bf_asset.session_id);
+}
+
+bool TraderXTP::custom_OnQueryAsset(const XTPQueryAssetRsp &asset, const XTPRI &error_info, int request_id,
+                                    bool is_last, uint64_t session_id) {
+  if (error_info.error_id != 0) {
+    SPDLOG_ERROR("error_id: {}, error_msg: {}, request_id: {}, last: {}", error_info.error_id, error_info.error_msg,
+                 request_id, is_last);
+  }
+
+  if (error_info.error_id == 0 || error_info.error_id == 11000350) {
+    SPDLOG_TRACE("OnQueryAsset: {}", to_string(asset));
     auto writer = get_asset_writer();
     Asset &account = writer->open_data<Asset>(0);
-    if (error_info == nullptr || error_info->error_id == 0) {
-      from_xtp(*asset, account);
+    if (error_info.error_id == 0) {
+      from_xtp(asset, account);
     }
-    strncpy(account.trading_day, trading_day_.c_str(), DATE_LEN);
     account.holder_uid = get_home_uid();
     account.update_time = yijinjing::time::now_in_nano();
+    SPDLOG_TRACE("Asset: {}", account.to_string());
     writer->close_data();
     enable_asset_sync();
   }
@@ -640,6 +687,7 @@ bool TraderXTP::custom_OnQueryTrade(const XTPTradeReport &trade_info, const XTPR
 
 void TraderXTP::on_recover() {
   for (auto &pair : orders_) {
+    SPDLOG_DEBUG("Order: {}", pair.second.data.to_string());
     const std::string str_external_order_id = pair.second.data.external_order_id.to_string();
     if (not str_external_order_id.empty()) {
       uint64_t order_id = pair.first;
@@ -649,7 +697,7 @@ void TraderXTP::on_recover() {
     }
   }
   for (auto &pair : trades_) {
-    SPDLOG_DEBUG("trade: {}", pair.second.data.to_string());
+    SPDLOG_DEBUG("Trade: {}", pair.second.data.to_string());
     uint64_t order_xtp_id = std::stoull(pair.second.data.external_order_id);
     map_xtp_order_id_to_xtp_trader_ids_.try_emplace(order_xtp_id)
         .first->second.emplace(pair.second.data.external_trade_id.to_string());
@@ -719,6 +767,10 @@ bool TraderXTP::on_custom_event(const event_ptr &event) {
     return custom_OnQueryTrade(event);
   case kCancelOrderErrorType:
     return custom_OnCancelOrderError(event);
+  case kQueryAssetType:
+    return custom_OnQueryAsset(event);
+  case kQueryPositionType:
+    return custom_OnQueryPosition(event);
   default:
     SPDLOG_ERROR("unrecognized msg_type: {}", event->msg_type());
     return false;

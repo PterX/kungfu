@@ -188,7 +188,10 @@ protected:
                return (event->msg_type() == longfist::types::Time::tag &&
                        event->gen_time() > timer_checkpoints_[timer_id] + duration_ns);
              }) |
-             rx::first() | rx::filter([&, timer_id](const event_ptr &) { return is_timer_enabled(timer_id); });
+             rx::first() | rx::filter([&, timer_id](const event_ptr &) {
+               timer_checkpoints_.erase(timer_id);
+               return is_timer_enabled(timer_id);
+             });
     };
   }
 

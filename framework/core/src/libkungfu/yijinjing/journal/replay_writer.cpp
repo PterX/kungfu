@@ -50,7 +50,7 @@ uint64_t replay_writer::current_frame_uid() {
   boost::hana::for_each(longfist::AllDataTypes, [&](auto it) {
     using DataType = typename decltype(+boost::hana::second(it))::type;
     if (frame->msg_type() == DataType::tag) {
-        uid = frame->data<DataType>().uid();
+      uid = frame->data<DataType>().uid();
     }
   });
   return uid;

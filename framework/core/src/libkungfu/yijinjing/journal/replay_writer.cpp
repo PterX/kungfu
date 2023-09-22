@@ -29,7 +29,7 @@ frame_ptr replay_writer::open_frame(int64_t trigger_time, int32_t msg_type, uint
   }
 
   if (not reader_for_write_->data_available()) {
-    SPDLOG_WARN("no more data available msg_type {} trigger_time {}, from {} to {} ", msg_type,
+    SPDLOG_WARN("no more data available for msg_type {} trigger_time {}, from {} to {} ", msg_type,
                 time::strftime(trigger_time), get_location()->uname, get_dest());
   }
 
@@ -42,5 +42,17 @@ void replay_writer::close_frame(size_t data_length, int64_t gen_time) {
   if (reader_for_write_->data_available()) {
     reader_for_write_->next();
   }
+}
+
+uint64_t replay_writer::current_frame_uid() {
+  uint64_t uid = 0;
+  auto frame = reader_for_write_->current_frame();
+  boost::hana::for_each(longfist::AllDataTypes, [&](auto it) {
+    using DataType = typename decltype(+boost::hana::second(it))::type;
+    if (frame->msg_type() == DataType::tag) {
+        uid = frame->data<DataType>().uid();
+    }
+  });
+  return uid;
 }
 } // namespace kungfu::yijinjing::journal

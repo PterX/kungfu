@@ -201,7 +201,7 @@ public:
 
   [[nodiscard]] page_ptr get_current_page() const { return journal_.page_; }
 
-  uint64_t current_frame_uid();
+  virtual uint64_t current_frame_uid();
 
   virtual frame_ptr open_frame(int64_t trigger_time, int32_t msg_type, uint32_t length);
 
@@ -341,6 +341,8 @@ public:
   frame_ptr open_frame(int64_t trigger_time, int32_t msg_type, uint32_t length) override;
 
   void close_frame(size_t data_length, int64_t gen_time) override;
+
+  uint64_t current_frame_uid() override;
 
 private:
   reader_ptr reader_for_write_;

@@ -94,6 +94,12 @@ function generateCMakeFiles(projectName, kungfuBuild) {
   kungfuBuild = kungfuBuild || { cpp: { target: 'bind/python' } };
 
   const cppSources = [kungfuBuild.cpp.src || ['src/cpp']].flat();
+  const cppExternalSourcesOpt = kungfuBuild.cpp.external || [];
+  const cppExternalSources = Array.isArray(cppExternalSourcesOpt)
+    ? cppExternalSourcesOpt.map(function (element) {
+        return dealPath(path.join('node_modules', element, 'src/cpp'));
+      })
+    : [dealPath(path.join('node_modules', cppExternalSourcesOpt, 'src/cpp'))];
 
   const cppLinksOpt = kungfuBuild.cpp.links || [];
   const cppLinks = Array.isArray(cppLinksOpt)
@@ -113,6 +119,7 @@ function generateCMakeFiles(projectName, kungfuBuild) {
       includes: glob.sync(`${kungfuLibDirPattern}/include`),
       links: glob.sync(`${kungfuLibDirPattern}/lib`),
       sources: cppSources,
+      externalSources: cppExternalSources,
       extraSource: extraSources[kungfuBuild.cpp.target],
       makeTarget: targetMakers[kungfuBuild.cpp.target],
       makeTargetLinkType: targetLinkTypes[kungfuBuild.cpp.target],

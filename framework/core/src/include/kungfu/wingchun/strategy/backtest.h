@@ -324,6 +324,8 @@ protected:
   template <typename DataType>
   void parse_then_write_in_timer(const nlohmann::json &config_obj, const yijinjing::journal::writer_ptr &writer) {
     try {
+      if (not config_obj.contains(DataType::type_name.c_str()))
+        return;
       auto state_config_obj = config_obj[DataType::type_name.c_str()];
       for (auto time_it = state_config_obj.begin(); time_it != state_config_obj.end(); ++time_it) {
         int64_t update_time =
@@ -335,12 +337,14 @@ protected:
         }
         for (auto it = time_it.value().begin(); it != time_it.value().end(); ++it) {
           auto state = DataType(nlohmann::to_string(it.value()));
-          SPDLOG_DEBUG("key: {}, value: {}", time_it.key(), state.to_string());
-          add_timer(update_time, [this, state, writer](const auto &e) { writer->write_at(now(), now(), state); });
+          add_timer(update_time, [this, state, writer](const auto &e) {
+            writer->write_raw_at_as(now(), now(), app_.get_home_uid(), yijinjing::data::location::PUBLIC, state.tag,
+                                    reinterpret_cast<uintptr_t>(&state), sizeof(state));
+          });
         }
       }
     } catch (const std::exception &e) {
-      SPDLOG_ERROR("parse backtest_config error: {}", e.what());
+      SPDLOG_ERROR("parse the {} data in backtest_config error: {}", DataType::type_name.c_str(), e.what());
       throw wingchun_error(e.what());
     }
   }
@@ -360,6 +364,7 @@ private:
   int64_t time_interval_;
   const std::string backtest_config_{"{}"};
   int32_t timer_usage_count_{0};
+  int32_t protected_timer_id_;
   std::multimap<int64_t, TimerTask> pre_timer_callbacks_{};
   std::multimap<int64_t, TimerTask> timer_callbacks_{};
   std::map<int64_t, std::vector<yijinjing::data::location_ptr>> lease_locations_{};

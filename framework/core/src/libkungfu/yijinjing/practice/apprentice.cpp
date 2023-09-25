@@ -160,7 +160,7 @@ void apprentice::react() {
     fs::remove_all(journal_dir);
     std::string master_cmd_dir = get_locator()->layout_dir(master_cmd_location_, layout::JOURNAL);
     fs::remove_all(master_cmd_dir);
-    auto app_cmd_writer = get_io_device()->open_writer_at(master_cmd_location_, get_home_uiget_home_uidd());
+    auto app_cmd_writer = get_io_device()->open_writer_at(master_cmd_location_, get_home_uid());
 
     writers_.insert_or_assign(get_home_uid(), app_cmd_writer);
     reader_->join(master_cmd_location_, get_home_uid(), begin_time_);

@@ -4,6 +4,7 @@ import fse, { Stats } from 'fs-extra';
 import log4js from 'log4js';
 import os from 'os';
 import {
+  ARCHIVE_DIR,
   buildProcessLogPath,
   buildRuntimeChildDirByType,
   EXTENSION_DIRS,
@@ -72,6 +73,7 @@ import {
   OrderTriggerStatusEnum,
   OrderTriggerConfigTypeEnum,
   OrderTriggerFlag,
+  KfExtTypeEnum,
 } from '../typings/enums';
 import {
   graceDeleteProcess,
@@ -99,6 +101,7 @@ import {
 import minimist from 'minimist';
 import VueI18n, { useLanguage } from '../language';
 import { T0T1Config } from '../typings/global';
+import globalStorage from './globalStorage';
 import { getKfGlobalSettingsValue } from '../config/globalSettings';
 import { Currency } from '../config/tradingConfig';
 const { t } = VueI18n.global;
@@ -541,6 +544,43 @@ export const flattenExtensionModuleDirs = async (
   return extensionModuleDirs;
 };
 
+const dealKfExtType = (jsonConfig: {
+  name: string;
+  kungfuConfig: KungfuApi.KfExtOriginConfig;
+}) => {
+  const { name, kungfuConfig } = jsonConfig;
+  const allExtTypes = Object.values(KfExtTypeEnum);
+  if (kungfuConfig.type && allExtTypes.includes(kungfuConfig.type)) {
+    return kungfuConfig.type;
+  }
+
+  if (name && name.startsWith?.('@kungfu-trader/kfx')) {
+    const nameStrArr = name.split('/')[1].split('-');
+    if (nameStrArr.length >= 3) {
+      const extType = nameStrArr[1] as KfExtTypeEnum;
+      if (allExtTypes.includes(extType)) return extType;
+    }
+  }
+
+  return KfExtTypeEnum.Unknown;
+};
+
+export const findSoAndPydFiles = async (
+  directory: string,
+): Promise<string[]> => {
+  const entries = await fse.readdir(directory, { withFileTypes: true });
+
+  const matchingFiles = entries
+    .filter(
+      (entry) =>
+        entry.isFile() &&
+        (entry.name.endsWith('.so') || entry.name.endsWith('.pyd')),
+    )
+    .map((entry) => path.join(directory, entry.name));
+
+  return matchingFiles;
+};
+
 const getKfExtConfigList = async (): Promise<KungfuApi.KfExtOriginConfig[]> => {
   const extModuleDirs = await flattenExtensionModuleDirs(EXTENSION_DIRS);
   const packageJSONPaths = extModuleDirs.map((item) =>
@@ -549,10 +589,15 @@ const getKfExtConfigList = async (): Promise<KungfuApi.KfExtOriginConfig[]> => {
   return await Promise.all(
     packageJSONPaths.map((item) => {
       return fse.readJSON(item).then((jsonConfig) => {
-        return {
-          ...(jsonConfig.kungfuConfig || {}),
-          extPath: path.dirname(item),
-        };
+        if (jsonConfig.kungfuConfig) {
+          return {
+            ...(jsonConfig.kungfuConfig || {}),
+            type: dealKfExtType(jsonConfig),
+            extPath: path.dirname(item),
+          };
+        }
+
+        return null;
       });
     }),
   ).then((configList: KungfuApi.KfExtOriginConfig[]) => {
@@ -561,6 +606,17 @@ const getKfExtConfigList = async (): Promise<KungfuApi.KfExtOriginConfig[]> => {
         config: KungfuApi.KfExtOriginConfig,
       ): config is KungfuApi.KfExtOriginConfig => !!config,
     );
+  });
+};
+
+export const getKfExtOriginConfigsByType = () => {
+  return getKfExtConfigList().then((extList) => {
+    return extList.reduce((configsByType, extConfig) => {
+      if (!configsByType[extConfig.type]) configsByType[extConfig.type] = {};
+
+      configsByType[extConfig.type][extConfig.key] = extConfig;
+      return configsByType;
+    }, {} as Partial<KungfuApi.KfExtOriginConfigs>);
   });
 };
 
@@ -595,14 +651,36 @@ const getKfExtensionConfigByCategory = (
   return extConfigs
     .filter((item) => !!item.config)
     .reduce(
-      (configByCategory, extConfig: KungfuApi.KfExtOriginConfig) => {
+      (configByCategory, extConfig) => {
+        if (!extConfig.config) return configByCategory;
+
         const extKey = extConfig.key;
         const extName = extConfig.name;
         const extPath = extConfig.extPath;
         (Object.keys(extConfig['config'] || {}) as KfCategoryTypes[]).forEach(
           (category: KfCategoryTypes) => {
-            const extConfigByCategory = extConfig['config'] || {};
-            const buildExtConfig = <T extends KfCategoryTypes>(category: T) => {
+            const buildExtConfig = <T extends KfCategoryTypes>(
+              extOriginConfig: KungfuApi.KfExtOriginConfig['config'],
+              category: T,
+            ) => {
+              return {
+                ...(configByCategory[category] || {}),
+                [extKey]: {
+                  name: extName,
+                  extPath,
+                  category,
+                  key: extKey,
+                  type: resolveTypesInExtConfig(
+                    extOriginConfig[category]?.type || [],
+                  ),
+                  settings: extOriginConfig[category]?.settings || [],
+                },
+              } as KungfuApi.KfExtConfigs[T];
+            };
+
+            if (category === 'td') {
+              const extOriginConfig =
+                (extConfig as KungfuApi.KfExtOriginBrokerConfig).config || {};
               configByCategory[category] = {
                 ...(configByCategory[category] || {}),
                 [extKey]: {
@@ -611,64 +689,59 @@ const getKfExtensionConfigByCategory = (
                   category,
                   key: extKey,
                   type: resolveTypesInExtConfig(
-                    extConfigByCategory[category]?.type || [],
+                    extOriginConfig[category]?.type || [],
                   ),
-                  settings: extConfigByCategory[category]?.settings || [],
+                  orderTrigger: resolveOrderTriggerConfig(extOriginConfig),
+                  settings: extOriginConfig[category]?.settings || [],
+                  fundTrans: extOriginConfig[category]?.fund_trans || {},
+                  showAssetMargin:
+                    extOriginConfig[category]?.show_asset_margin || false,
                 },
-              } as KungfuApi.KfExtConfigs[T];
-            };
-            switch (category) {
-              case 'td':
-                configByCategory[category] = {
-                  ...(configByCategory[category] || {}),
-                  [extKey]: {
-                    name: extName,
-                    extPath,
-                    category,
-                    key: extKey,
-                    type: resolveTypesInExtConfig(
-                      extConfigByCategory[category]?.type || [],
-                    ),
-                    orderTrigger:
-                      resolveOrderTriggerConfig(extConfigByCategory),
-                    settings: extConfigByCategory[category]?.settings || [],
-                    fundTrans: extConfigByCategory[category]?.fund_trans || {},
-                    showAssetMargin:
-                      extConfigByCategory[category]?.show_asset_margin || false,
-                  },
-                };
-                break;
-              case 'md':
-                buildExtConfig('md');
-                break;
-              case 'strategy':
-                buildExtConfig('strategy');
-                break;
-              case 'operator':
-                buildExtConfig('operator');
-                break;
-              case 'system':
-                configByCategory[category] = {
-                  ...(configByCategory[category] || {}),
-                  [extKey]:
-                    Object.entries(extConfigByCategory[category] || {}).reduce(
-                      (resolved, [name, item]) => ({
-                        ...resolved,
-                        [name]: {
-                          name: name || extName,
-                          extPath,
-                          category,
-                          key: extKey,
-                          type: resolveTypesInExtConfig(item?.type || []),
-                          for: [item.for].flat(),
-                          script: item?.script || '',
-                          settings: item?.settings || [],
-                        },
-                      }),
-                      {} as KungfuApi.KfSystemExtConfigs,
-                    ) || {},
-                };
-                break;
+              };
+            } else if (category === 'md') {
+              const extOriginConfig =
+                (extConfig as KungfuApi.KfExtOriginBrokerConfig).config || {};
+              configByCategory[category] = buildExtConfig(
+                extOriginConfig,
+                'md',
+              );
+            } else if (category === 'strategy') {
+              const extOriginConfig =
+                (extConfig as KungfuApi.KfExtOriginBrokerConfig).config || {};
+              configByCategory[category] = buildExtConfig(
+                extOriginConfig,
+                'strategy',
+              );
+            } else if (category === 'operator') {
+              const extOriginConfig =
+                (extConfig as KungfuApi.KfExtOriginBrokerConfig).config || {};
+              configByCategory[category] = buildExtConfig(
+                extOriginConfig,
+                'operator',
+              );
+            } else if (category === 'system') {
+              const extOriginConfig =
+                (extConfig as KungfuApi.KfExtOriginServiceConfig).config || {};
+              configByCategory[category] = {
+                ...(configByCategory[category] || {}),
+                [extKey]:
+                  Object.entries(extOriginConfig[category] || {}).reduce(
+                    (resolved, [name, item]) => ({
+                      ...resolved,
+                      [name]: {
+                        name: name || extName,
+                        extPath,
+                        category,
+                        key: extKey,
+                        type: resolveTypesInExtConfig(item?.type || []),
+                        for: [item.for].flat(),
+                        script: item?.script || '',
+                        settings: item?.settings || [],
+                      },
+                    }),
+                    {} as KungfuApi.KfSystemExtConfigs,
+                  ) || {},
+              };
             }
           },
         );
@@ -688,12 +761,13 @@ const getKfUIExtensionConfigByExtKey = (
   extConfigs: KungfuApi.KfExtOriginConfig[],
 ): KungfuApi.KfUIExtConfigs => {
   return extConfigs
-    .filter((item) => !!item.ui_config)
+    .filter((item) => 'ui_config' in item && !!item.ui_config)
     .reduce((configByExtraKey, extConfig) => {
-      const extKey = extConfig.key;
-      const extName = extConfig.name;
-      const extPath = extConfig.extPath;
-      const uiConfig = extConfig['ui_config'];
+      const extUIConfig = extConfig as KungfuApi.KfExtOriginUIConfig;
+      const extKey = extUIConfig.key;
+      const extName = extUIConfig.name;
+      const extPath = extUIConfig.extPath;
+      const uiConfig = extUIConfig['ui_config'];
       const position = uiConfig?.position || '';
       const exhibit = uiConfig?.exhibit || ({} as KungfuApi.KfExhibitConfig);
       const components = uiConfig?.components || null;
@@ -715,12 +789,13 @@ const getKfCliExtensionConfigByExtKey = (
   extConfigs: KungfuApi.KfExtOriginConfig[],
 ): KungfuApi.KfCliExtConfigs => {
   return extConfigs
-    .filter((item) => !!item.cli_config)
+    .filter((item) => 'cli_config' in item && !!item.cli_config)
     .reduce((configByExtraKey, extConfig) => {
-      const extKey = extConfig.key;
-      const extName = extConfig.name;
-      const extPath = extConfig.extPath;
-      const cliConfig = extConfig['cli_config'];
+      const extUIConfig = extConfig as KungfuApi.KfExtOriginUIConfig;
+      const extKey = extUIConfig.key;
+      const extName = extUIConfig.name;
+      const extPath = extUIConfig.extPath;
+      const cliConfig = extUIConfig['cli_config'];
       const exhibit = cliConfig?.exhibit || ({} as KungfuApi.KfExhibitConfig);
       const components = cliConfig?.components || null;
       const script = cliConfig?.script || '';
@@ -1051,28 +1126,61 @@ export const removeDB = (targetFolder: string): Promise<void> => {
   );
 };
 
+export const removeJournalIfNeed = (): Promise<void> => {
+  const needClearJournal = !!globalStorage.getItem('needClearJournal');
+
+  kfLogger.info('needClearJournal: ', needClearJournal);
+
+  if (needClearJournal) {
+    globalStorage.setItem('needClearJournal', false);
+    kfLogger.info('Clear Journal Done', needClearJournal);
+    return removeTodayArchive(ARCHIVE_DIR).then(() => removeJournal(KF_HOME));
+  } else {
+    return Promise.resolve();
+  }
+};
+
+export const removeDBIfNeed = (): Promise<void> => {
+  const needClearDB = !!globalStorage.getItem('needClearDB');
+
+  kfLogger.info('needClearDB: ', needClearDB);
+
+  if (needClearDB) {
+    globalStorage.setItem('needClearDB', false);
+    kfLogger.info('Clear DB Done');
+    return removeDB(KF_HOME);
+  } else {
+    return Promise.resolve();
+  }
+};
+
 export const getProcessIdByKfLocation = (
   kfLocation: KungfuApi.KfLocation,
   mode?: string,
 ): string => {
+  const shouldConcatMode = mode && mode !== 'live';
   switch (kfLocation.category) {
     case 'md':
-      return `${kfLocation.category}_${kfLocation.group}`;
+      return shouldConcatMode
+        ? `${kfLocation.category}_${kfLocation.group}-${mode}`
+        : `${kfLocation.category}_${kfLocation.group}`;
     case 'strategy':
     case 'operator':
       if (kfLocation.group === 'default') {
-        return mode
+        return shouldConcatMode
           ? `${kfLocation.category}_${kfLocation.name}-${mode}`
           : `${kfLocation.category}_${kfLocation.name}`;
       } else {
-        return mode
+        return shouldConcatMode
           ? `${kfLocation.category}_${kfLocation.group}_${kfLocation.name}-${mode}`
           : `${kfLocation.category}_${kfLocation.group}_${kfLocation.name}`;
       }
     case 'system':
-      return mode ? `${kfLocation.name}-${mode}` : `${kfLocation.name}`;
+      return shouldConcatMode
+        ? `${kfLocation.name}-${mode}`
+        : `${kfLocation.name}`;
     default:
-      return mode
+      return shouldConcatMode
         ? `${kfLocation.category}_${kfLocation.group}_${kfLocation.name}-${mode}`
         : `${kfLocation.category}_${kfLocation.group}_${kfLocation.name}`;
   }
@@ -2309,10 +2417,14 @@ export const initFormStateByConfig = (
     }
 
     const initItemValue = (initValue || {})[item.key];
+    const ifCanCoverDefault =
+      item?.default === undefined || item.default === null
+        ? true
+        : typeof initItemValue === typeof item?.default;
     if (
       initItemValue !== undefined &&
       initItemValue !== item?.default &&
-      typeof initItemValue === typeof item?.default
+      ifCanCoverDefault
     ) {
       defaultValue = initItemValue;
     }
@@ -2571,7 +2683,11 @@ export const getTaskListFromProcessStatusData = (
     .filter((processId) => {
       return (
         taskPrefixs.findIndex((cg) => {
-          return processId.indexOf(cg) === 0;
+          return (
+            processId.indexOf(cg) === 0 &&
+            !processId.endsWith('-replay') &&
+            !processId.endsWith('-backtest')
+          );
         }) !== -1
       );
     })
@@ -2729,13 +2845,13 @@ export async function startReplay(
     const { args, config_settings } = processStatusDetail;
     const dealArgs = minimist(args as string[])['a'] || '';
     const configSettings = parseTaskSettingsFromEnv(config_settings || '[]');
-    location.mode = 'replay';
+    const enableMatcher = replayConfig.enable_matcher;
     return startTask(
       location,
       soPath,
       dealArgs,
       configSettings,
-      'replay',
+      enableMatcher ? 'backtest' : 'replay',
       replayConfig,
     );
   }
@@ -2749,11 +2865,12 @@ export async function startReplay(
       );
     case 'strategy':
     case 'operator':
+      const enableMatcher = replayConfig.enable_matcher;
       return startStrategyOperator(
         location.category,
         '',
         '',
-        'replay',
+        enableMatcher ? 'backtest' : 'replay',
         replayConfig,
       );
     case 'system':

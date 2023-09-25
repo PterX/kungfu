@@ -22,6 +22,10 @@ publisher_ptr sink::get_publisher() { return publisher_; }
 
 bus_ptr sink::get_bus() { return bus_; }
 
+uint32_t sink::find_page_size(const data::location_ptr &location, uint32_t dest_id) {
+  return reader::find_page_size(location, dest_id);
+}
+
 copy_sink::copy_sink(data::locator_ptr locator) : sink(), locator_(std::move(locator)) {}
 
 void copy_sink::put(const data::location_ptr &location, uint32_t dest_id, const frame_ptr &frame) {
@@ -29,9 +33,9 @@ void copy_sink::put(const data::location_ptr &location, uint32_t dest_id, const 
   auto &writers = pair.first->second;
   if (writers.find(dest_id) == writers.end()) {
     auto target_location = data::location::make_shared(*location, locator_);
-    auto page_size = reader::find_page_size(target_location, dest_id);
+    auto page_size = find_page_size(target_location, dest_id);
     writers.try_emplace(dest_id, std::make_shared<writer>(target_location, dest_id, true, get_publisher(), false,
-                                                          std::make_shared<bus>(false)));
+                                                          std::make_shared<bus>(false), page_size));
   }
   writers.at(dest_id)->copy_frame(frame);
 }

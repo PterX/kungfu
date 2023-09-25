@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue';
 import { ReloadOutlined } from '@ant-design/icons-vue';
 import { getNanoDateString } from '@kungfu-trader/kungfu-js-api/kungfu';
+import { getKfExtOriginConfigsByType } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 
@@ -10,6 +11,7 @@ const formRef = ref();
 const props = withDefaults(
   defineProps<{
     isJournal?: boolean;
+    canBacktest?: boolean;
     visible: boolean;
     sessionOptions: {
       label: string;
@@ -56,7 +58,33 @@ const dealEndTime = () => {
     endTime,
   ]);
 };
+
+const getBacktestConfig = async () => {
+  const extOriginConfigs = await getKfExtOriginConfigsByType();
+  let hasIndexer = false;
+  let hasMatcher = false;
+  if (extOriginConfigs) {
+    const { matcher, indexer } = extOriginConfigs;
+
+    if (indexer) {
+      for (const key of Object.keys(indexer)) {
+        if (indexer[key]['useFor']?.includes('replay')) {
+          hasIndexer = true;
+          break;
+        }
+      }
+    }
+
+    if (matcher && Object.keys(matcher).length > 0) {
+      hasMatcher = true;
+    }
+  }
+
+  isShowMatcher.value = hasMatcher && hasIndexer;
+  formState.value.enableMatcher = isShowMatcher.value;
+};
 onMounted(() => {
+  props.canBacktest ? getBacktestConfig() : '';
   dealEndTime();
   if (props.sessionInfo) {
     const now = props.sessionInfo.split('--')[1];
@@ -78,11 +106,14 @@ const logLevelOptions = [
   { value: '-l critical', label: 'CRITICAL' },
 ];
 
+const isShowMatcher = ref(false);
+
 const formState = ref({
   sessionInfo: '',
   beginTime: props.beginTime || '',
   endTime: props.endTime || '',
   logLevel: props.logLevel || '-l info',
+  enableMatcher: false,
 });
 const handleSelectSessionInfo = (value: string) => {
   formState.value.beginTime = value.split('--')[0];
@@ -234,6 +265,17 @@ const handleCancel = () => {
               {{ item.label }}
             </a-select-option>
           </a-select>
+        </a-form-item>
+        <a-form-item
+          v-if="isShowMatcher"
+          :label="$t('replay.enable_matcher')"
+          name="enableMatcher"
+          :extra="$t('replay.enable_matcher_tip')"
+        >
+          <a-switch
+            v-model:checked="formState.enableMatcher"
+            size="small"
+          ></a-switch>
         </a-form-item>
       </a-form>
       <div class="form-note">

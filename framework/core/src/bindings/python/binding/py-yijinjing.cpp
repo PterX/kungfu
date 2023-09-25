@@ -276,6 +276,7 @@ void bind(pybind11::module &&m) {
       .def_property_readonly("publisher", &sink::get_publisher)
       .def_property_readonly("bus", &sink::get_bus)
       .def("put", &sink::put)
+      .def("find_page_size", &sink::find_page_size)
       .def("close", &sink::close);
 
   py::class_<null_sink, sink, std::shared_ptr<null_sink>>(m, "null_sink").def(py::init<>());

@@ -34,18 +34,18 @@ export function bindIPCListener(store) {
   });
   ipcRenderer.on('startReplay', async (_event, args) => {
     const { replayProcessParams } = args;
-    const { category, group, name, replayConfig } = replayProcessParams;
+    const { category, group, name, mode, replayConfig } = replayProcessParams;
     const processId = getProcessIdByKfLocation(
       {
         category,
         group,
         name,
-        mode: 'replay',
+        mode,
       },
-      'replay',
+      mode,
     );
     const { processStatus } = await listProcessStatus();
-    if (processStatus[processId]) {
+    if (processStatus[processId] === 'online') {
       await stopProcess(processId);
     }
     await startReplay(
@@ -53,7 +53,7 @@ export function bindIPCListener(store) {
         category,
         group,
         name,
-        mode: 'replay',
+        mode,
       },
       replayConfig,
     );

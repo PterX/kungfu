@@ -35,6 +35,7 @@ import {
   ARCHIVE_DIR,
   buildProcessLogPath,
   buildProcessReplayPath,
+  buildProcessBacktestPath,
   KF_HOME,
   KUNGFU_RESOURCES_DIR,
 } from '@kungfu-trader/kungfu-js-api/config/pathConfig';
@@ -42,8 +43,6 @@ import {
   getInstrumentTypeData,
   getProcessIdByKfLocation,
   kfLogger,
-  removeJournal,
-  removeDB,
   getAvailExtServiceList,
   getKfExtensionLanguage,
   loopToRunProcess,
@@ -52,11 +51,11 @@ import {
   removeArchiveBeforeToday,
   isKfColor,
   isHexOrRgbColor,
-  removeTodayArchive,
   getYearMonthDay,
   debounce,
   startReplay,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import globalStorage from '@kungfu-trader/kungfu-js-api/utils/globalStorage';
 import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
 import { ExchangeIds } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
@@ -489,42 +488,8 @@ const removeArchiveBeforeStartAll = (): Promise<void> => {
   });
 };
 
-const removeJournalBeforeStartAll = (): Promise<void> => {
-  const needClearJournalStr = localStorage.getItem('needClearJournal');
-  const needClearJournal = !!(needClearJournalStr && +needClearJournalStr);
-
-  kfLogger.info('needClearJournal: ', needClearJournal);
-
-  if (needClearJournal) {
-    localStorage.setItem('needClearJournal', '0');
-    kfLogger.info('Clear Journal Done', needClearJournal);
-    return removeTodayArchive(ARCHIVE_DIR).then(() => removeJournal(KF_HOME));
-  } else {
-    return Promise.resolve();
-  }
-};
-
-const removeDBBeforeStartAll = (): Promise<void> => {
-  const needClearDBStr = localStorage.getItem('needClearDB');
-  const needClearDB = !!(needClearDBStr && +needClearDBStr);
-
-  kfLogger.info('needClearDB: ', needClearDB);
-
-  if (needClearDB) {
-    localStorage.setItem('needClearDB', '0');
-    kfLogger.info('Clear DB Done');
-    return removeDB(KF_HOME);
-  } else {
-    return Promise.resolve();
-  }
-};
-
 export const preStartAll = async (): Promise<(void | Proc)[]> => {
-  return Promise.all([
-    removeJournalBeforeStartAll(),
-    removeDBBeforeStartAll(),
-    removeArchiveBeforeStartAll(),
-  ]);
+  return Promise.all([removeArchiveBeforeStartAll()]);
 };
 
 export const checkCpusNumAndConfirmModal = (): Promise<boolean> => {
@@ -696,12 +661,13 @@ export const openReplayView = (
   log_level: string,
   sessionName: string,
   filePath: string,
+  enableMatcher: boolean,
   processId: string,
 ): Promise<Electron.BrowserWindow> => {
   return openNewBrowserWindow(
     process.env.KF_APP_RUNTIME_DIR,
     'replay',
-    `?logPath=${logPath}&sessionName=${sessionName}&filePath=${filePath}&category=${type}&group=${group}&beginTime=${beginTime}&endTime=${endTime}&logLevel=${log_level}&processId=${processId}`,
+    `?logPath=${logPath}&enableMatcher=${enableMatcher}&sessionName=${sessionName}&filePath=${filePath}&category=${type}&group=${group}&beginTime=${beginTime}&endTime=${endTime}&logLevel=${log_level}&processId=${processId}`,
     {
       width: 1280,
       height: 960,
@@ -791,12 +757,12 @@ export const useIpcListener = (): void => {
 };
 
 export const markClearJournal = (): void => {
-  localStorage.setItem('needClearJournal', '1');
+  globalStorage.setItem('needClearJournal', true);
   messagePrompt().success(t('clear', { content: 'journal' }));
 };
 
 export const markClearDB = (): void => {
-  localStorage.setItem('needClearDB', '1');
+  globalStorage.setItem('needClearDB', true);
   messagePrompt().success(t('clear', { content: 'DB' }));
 };
 
@@ -892,7 +858,9 @@ export const handleOpenReplayView = async (
 ): Promise<Electron.BrowserWindow> => {
   const dateStr = getYearMonthDay();
   const hideloading = messagePrompt().loading(t('open_replay_dashboard'));
-  const logPath = buildProcessReplayPath(config, `${config.name}_${dateStr}`);
+  const logPath = replayConfig.enable_matcher
+    ? buildProcessBacktestPath(config, `${config.name}_${dateStr}`)
+    : buildProcessReplayPath(config, `${config.name}_${dateStr}`);
   if (replayConfig) {
     try {
       ensureFileSync(logPath);
@@ -921,11 +889,12 @@ export const handleOpenReplayView = async (
     logLevel,
     replayConfig.session_name,
     replayConfig.file_path,
+    replayConfig.enable_matcher,
     processId,
   ).finally(async () => {
     hideloading();
     const { processStatus } = await listProcessStatus();
-    if (processStatus[processId]) {
+    if (processStatus[processId] === 'online') {
       await stopProcess(processId);
     }
     await startReplay(config, replayConfig);
@@ -943,6 +912,7 @@ export const getJournalReplayConfigs = async (
         category: string;
         group: string;
         name: string;
+        mode: string;
         replayConfig: KungfuApi.ReplayConfig;
       }
     | undefined;
@@ -954,6 +924,7 @@ export const getJournalReplayConfigs = async (
         category: config.category,
         group: config.group,
         name: config.name,
+        mode: replayConfig.enable_matcher ? 'backtest' : 'replay',
         replayConfig,
       },
     };

@@ -294,6 +294,16 @@ Napi::Value Watcher::IssueCustomData(const Napi::CallbackInfo &info) {
   return InteractWithLocation<TimeKeyValue>(info, info[0].ToObject());
 }
 
+Napi::Value Watcher::IssueBasket(const Napi::CallbackInfo &info) {
+  SPDLOG_INFO("issue basket data manually");
+  return InteractWithPublic<Basket>(info, info[0].ToObject());
+}
+
+Napi::Value Watcher::IssueBasketInstrument(const Napi::CallbackInfo &info) {
+  SPDLOG_INFO("issue basket instrument data manually");
+  return InteractWithPublic<BasketInstrument>(info, info[0].ToObject());
+}
+
 Napi::Value Watcher::IssueBlockMessage(const Napi::CallbackInfo &info) {
   SPDLOG_INFO("issue block message manually");
   return InteractWithTD<BlockMessage>(info, info[0].ToObject(), &BlockMessage::block_id);

@@ -81,7 +81,6 @@ const getBacktestConfig = async () => {
   }
 
   isShowMatcher.value = hasMatcher && hasIndexer;
-  formState.value.enableMatcher = isShowMatcher.value;
 };
 onMounted(() => {
   props.canBacktest ? getBacktestConfig() : '';

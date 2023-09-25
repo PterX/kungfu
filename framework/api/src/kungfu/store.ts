@@ -24,7 +24,7 @@ export const setKfConfig = (
 ): Promise<boolean> => {
   const configForLog = hidePasswordByLogger(configValue);
   kfLogger.info(
-    `Set Kungfu Config ${kfLocation.category} ${kfLocation.group} ${kfLocation.name} ${configForLog}`,
+    `Set Kungfu Config ${kfLocation.category} ${kfLocation.group} ${kfLocation.name} ${kfLocation.mode} ${configForLog}`,
   );
   return getResultUntilValuable(() =>
     configStore.setConfig(

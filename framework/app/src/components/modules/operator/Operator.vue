@@ -181,6 +181,7 @@ async function handleConfirmSetOperatorExtDialog(
         category: 'operator',
         group: selectedOperatorExtKey,
         name: '*',
+        mode: '*',
       },
       extConfig,
     );

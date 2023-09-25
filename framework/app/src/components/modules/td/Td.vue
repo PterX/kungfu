@@ -88,6 +88,7 @@ globalThis.HookKeeper.getHooks().dealTradingData.register(
     category: categoryRegisterConfig.category,
     group: '*',
     name: '*',
+    mode: '*',
   },
   categoryRegisterConfig,
 );
@@ -230,7 +231,7 @@ const columns = computed(() => {
         category: 'td',
         group: '*',
         name: '*',
-        mode: 'live',
+        mode: '*',
       },
       sorter,
       marginSorter,
@@ -284,6 +285,7 @@ async function handleOpenSetTdModal(
         category: 'td',
         group: selectedSource,
         name: '*',
+        mode: '*',
       },
       extConfig,
     );

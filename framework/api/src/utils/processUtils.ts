@@ -524,7 +524,12 @@ export const startProcess = async (
   options = await (globalThis.HookKeeper as KfHookKeeper)
     .getHooks()
     .resolveStartOptions.trigger(
-      { category: '*', group: '*', name: '*' } as KungfuApi.DerivedKfLocation,
+      {
+        category: '*',
+        group: '*',
+        name: '*',
+        mode: '*',
+      } as KungfuApi.DerivedKfLocation,
       options,
     );
 
@@ -938,20 +943,22 @@ export function startArchiveMakeTask(
 
 export const startMaster = async (force = false): Promise<void> => {
   const processName = 'master';
+  const location = {
+    category: 'system',
+    group: 'master',
+    name: 'master',
+    mode: 'live',
+  };
+  const ProcessId = getProcessIdByKfLocation(location);
 
   try {
     await preStartProcess(processName, force);
     if (force) await killKfc();
     const args = buildArgs({
-      location: {
-        category: 'system',
-        group: 'master',
-        name: 'master',
-        mode: 'live',
-      },
+      location,
     });
     await startProcess({
-      name: processName,
+      name: ProcessId,
       args,
       force,
       env: {
@@ -969,10 +976,15 @@ export const startLedger = async (
   mode: KfModeTypes = 'live',
   replayConfig?: KungfuApi.ReplayConfigOrigin,
 ): Promise<void> => {
-  let processName = '';
   const isReplay = mode === 'replay';
   let args = '';
-
+  const location = {
+    category: 'system',
+    group: 'service',
+    name: 'ledger',
+    mode: mode,
+  };
+  const processName = getProcessIdByKfLocation(location);
   try {
     !isReplay ? await preStartProcess(processName, force) : '';
     const globalSetting = getKfGlobalSettingsValue();
@@ -981,30 +993,17 @@ export const startLedger = async (
       globalSetting?.performance?.bypassRefreshBook ??
       false;
     if (isReplay && replayConfig) {
-      const location = {
-        category: 'system',
-        group: 'service',
-        name: 'ledger',
-        mode: mode,
-      };
       args = buildArgs({
         loglevel: replayConfig.log_level,
         location,
         args: `'{"bypass_refresh_book": ${bypassRefreshBook}}'`,
         suffix: `-b '${replayConfig.begin_time}' -e '${replayConfig.end_time}'`,
       });
-      processName = getProcessIdByKfLocation(location, mode);
     } else {
       args = buildArgs({
-        location: {
-          category: 'system',
-          group: 'service',
-          name: 'ledger',
-          mode: mode,
-        },
+        location,
         args: `'{"bypass_refresh_book": ${bypassRefreshBook}}'`,
       });
-      processName = 'ledger';
     }
     await startProcess({
       name: processName,
@@ -1041,9 +1040,9 @@ async function preStartProcess(
 
 //启动md
 export const startMd = async (
-  sourceId: string,
   kfConfig: KungfuApi.DerivedKfLocation,
 ): Promise<Proc | void> => {
+  const processId = getProcessIdByKfLocation(kfConfig);
   const extDirs = await flattenExtensionModuleDirs(EXTENSION_DIRS);
   const args = buildArgs({
     extensionDirs: `"${extDirs
@@ -1051,8 +1050,8 @@ export const startMd = async (
       .join(path.delimiter)}"`,
     location: {
       category: 'md',
-      group: `"${sourceId}"`,
-      name: `"${sourceId}"`,
+      group: `"${kfConfig.group}"`,
+      name: `"${kfConfig.name}"`,
       mode: 'live',
     },
   });
@@ -1060,8 +1059,8 @@ export const startMd = async (
     path.join(
       buildRuntimeChildDirByType('resources'),
       'md',
-      sourceId,
-      sourceId,
+      kfConfig.group,
+      kfConfig.name,
     ),
   );
   await fse.ensureDir(cwd);
@@ -1069,7 +1068,7 @@ export const startMd = async (
     await globalThis.HookKeeper.getHooks().resolveStartOptions.trigger(
       kfConfig,
       {
-        name: `md_${sourceId}`,
+        name: processId,
         cwd,
         script: `${dealSpaceInPath(path.join(KFC_DIR, kfcName))}`,
         args,
@@ -1119,7 +1118,7 @@ export const startTd = async (
       location,
       suffix: `-b '${replayConfig.begin_time}' -e '${replayConfig.end_time}'`,
     });
-    fullProcessId = getProcessIdByKfLocation(location, mode);
+    fullProcessId = getProcessIdByKfLocation(location);
   } else {
     args = buildArgs({
       extensionDirs: `"${extDirs
@@ -1127,12 +1126,12 @@ export const startTd = async (
         .join(path.delimiter)}"`,
       location: {
         category: 'td',
-        group: `"${source}"`,
-        name: `"${id}"`,
+        group: `"${kfConfig.group}"`,
+        name: `"${kfConfig.name}"`,
         mode: mode,
       },
     });
-    fullProcessId = `td_${accountId}`;
+    fullProcessId = getProcessIdByKfLocation(kfConfig);
   }
   const options =
     await globalThis.HookKeeper.getHooks().resolveStartOptions.trigger(
@@ -1168,14 +1167,19 @@ export const startTask = async (
   const isReplay = mode === 'replay' || mode === 'backtest';
   const extDirs = await flattenExtensionModuleDirs(EXTENSION_DIRS);
   let argsResolved = '';
-  let processId = '';
+  const processId = getProcessIdByKfLocation({
+    category: taskLocation.category,
+    group: taskLocation.group,
+    name: taskLocation.name,
+    mode,
+  });
 
   if (isReplay && replayConfig) {
     let backtestArgs = '';
     if (mode === 'backtest') {
       backtestArgs = await getBacktestArgs(replayConfig.enable_matcher);
     }
-    processId = getProcessIdByKfLocation(taskLocation, mode);
+
     argsResolved = buildArgs({
       loglevel: replayConfig.log_level,
       extensionDirs: `"${extDirs
@@ -1192,7 +1196,6 @@ export const startTask = async (
       suffix: `${backtestArgs} -b '${replayConfig.begin_time}' -e '${replayConfig.end_time}'`,
     });
   } else {
-    processId = getProcessIdByKfLocation(taskLocation);
     argsResolved = buildArgs({
       extensionDirs: `"${extDirs
         .map((dir) => dealSpaceInPath(path.dirname(dir)))
@@ -1250,15 +1253,12 @@ export const startOperatorByExt = async (
       suffix: `-b '${replayConfig.begin_time}' -e '${replayConfig.end_time}'`,
     });
 
-    fullProcessId = getProcessIdByKfLocation(
-      {
-        category: replayConfig.category,
-        group: replayConfig.group,
-        name: replayConfig.session_name,
-        mode: mode,
-      },
-      mode,
-    );
+    fullProcessId = getProcessIdByKfLocation({
+      category: replayConfig.category,
+      group: replayConfig.group,
+      name: replayConfig.session_name,
+      mode: mode,
+    });
   } else {
     args = buildArgs({
       location: {
@@ -1271,7 +1271,7 @@ export const startOperatorByExt = async (
         .map((dir) => dealSpaceInPath(path.dirname(dir)))
         .join(path.delimiter)}"`,
     });
-    fullProcessId = `operator_${group}_${name}`;
+    fullProcessId = getProcessIdByKfLocation(kfConfig);
   }
   const options =
     await globalThis.HookKeeper.getHooks().resolveStartOptions.trigger(
@@ -1291,8 +1291,7 @@ export const startOperatorByExt = async (
 };
 
 export const startStrategyOperatorByLocalPython = async (
-  category: 'strategy' | 'operator',
-  name: string,
+  KfLocation: KungfuApi.KfLocation,
   filePath: string,
   pythonPath: string,
   mode: KfModeTypes = 'live',
@@ -1331,27 +1330,19 @@ export const startStrategyOperatorByLocalPython = async (
       },
       suffix: `'${replayConfig.file_path}' ${backtestArgs} -b '${replayConfig.begin_time}' -e '${replayConfig.end_time}'`,
     });
-    fullProcessId = getProcessIdByKfLocation(
-      {
-        category: replayConfig.category,
-        group: replayConfig.group,
-        name: replayConfig.session_name,
-        mode: mode,
-      },
-      mode,
-    );
+    fullProcessId = getProcessIdByKfLocation({
+      category: replayConfig.category,
+      group: replayConfig.group,
+      name: replayConfig.session_name,
+      mode: mode,
+    });
   } else {
     args = buildArgs({
       prefix: '-m kungfu',
-      location: {
-        category: category,
-        group: 'default',
-        name: name,
-        mode: mode,
-      },
+      location: KfLocation,
       suffix: `'${filePath}'`,
     });
-    fullProcessId = `${category}_${name}`;
+    fullProcessId = getProcessIdByKfLocation(KfLocation);
   }
 
   return startProcess({
@@ -1367,25 +1358,25 @@ export const startStrategyOperatorByLocalPython = async (
 
 //启动strategy
 export const startStrategyOperator = async (
-  category: 'strategy' | 'operator',
-  id: string,
+  kfLocation: KungfuApi.KfLocation,
   filePath: string,
   mode: KfModeTypes = 'live',
   replayConfig?: KungfuApi.ReplayConfigOrigin,
 ): Promise<Proc | void> => {
+  const { category } = kfLocation;
+  const processId = getProcessIdByKfLocation(kfLocation);
   const isReplay = mode === 'replay' || mode === 'backtest';
   filePath = dealSpaceInPath(filePath);
   const globalSetting = getKfGlobalSettingsValue();
   const ifLocalPython = globalSetting?.strategy?.python ?? false;
   const pythonPath = globalSetting?.strategy?.pythonPath ?? '';
-  const strategyOperatorIdResolved = `${category}_${id}`;
 
   //因为pm2环境残留，在反复切换本地python跟内置python时，会出现本地python启动失败，所以需要先pm2 kill
   try {
     const { processStatus } = await listProcessStatus();
-    if (!getIfProcessDeleted(processStatus, strategyOperatorIdResolved)) {
-      kfLogger.info(`Clear existed ${category} ${strategyOperatorIdResolved}`);
-      await deleteProcess(strategyOperatorIdResolved);
+    if (!getIfProcessDeleted(processStatus, processId)) {
+      kfLogger.info(`Clear existed ${category} ${processId}`);
+      await deleteProcess(processId);
     }
   } catch (err) {
     kfLogger.warn(err);
@@ -1407,19 +1398,15 @@ export const startStrategyOperator = async (
         replayConfig,
       );
     }
-    const processId = getProcessIdByKfLocation(
-      {
-        category: replayConfig.category,
-        group: replayConfig.group,
-        name: replayConfig.session_name,
-        mode: mode,
-      },
-      mode,
-    );
+    const processId = getProcessIdByKfLocation({
+      category: replayConfig.category,
+      group: replayConfig.group,
+      name: replayConfig.session_name,
+      mode: mode,
+    });
     if (ifLocalPython && replayConfig.file_path.endsWith('.py')) {
       return startStrategyOperatorByLocalPython(
-        category,
-        id,
+        kfLocation,
         filePath,
         pythonPath,
         mode,
@@ -1452,24 +1439,14 @@ export const startStrategyOperator = async (
   }
 
   if (ifLocalPython && filePath.endsWith('.py')) {
-    return startStrategyOperatorByLocalPython(
-      category,
-      id,
-      filePath,
-      pythonPath,
-    );
+    return startStrategyOperatorByLocalPython(kfLocation, filePath, pythonPath);
   } else {
     const args = buildArgs({
-      location: {
-        category: category,
-        group: 'default',
-        name: `'${id}'`,
-        mode: mode,
-      },
+      location: kfLocation,
       suffix: `'${filePath}'`,
     });
     return startProcess({
-      name: strategyOperatorIdResolved,
+      name: processId,
       args,
       force: true,
     }).catch((err) => {

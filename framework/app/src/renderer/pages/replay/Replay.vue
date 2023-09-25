@@ -8,7 +8,7 @@
       </KfDashboardItem>
       <KfDashboardItem>
         <div class="replay_title">
-          {{ `${$t('replay.log_level')}: ${logLevel}` }}
+          {{ `${$t('replay.log_level')}: ${replayLogLevel}` }}
         </div>
       </KfDashboardItem>
       <KfDashboardItem>
@@ -75,7 +75,7 @@ const props = withDefaults(
   },
 );
 
-const RELOADING_TIMER = 5000;
+const RELOADING_TIMER = 10000;
 let reloadingTimer: NodeJS.Timeout | null = null;
 
 const startReloading = ref(false);
@@ -84,7 +84,7 @@ const enableMatcher = computed(() => {
   return props.params.enableMatcher === 'true';
 });
 
-const logLevel = ref(
+const replayLogLevel = ref(
   LogLevelType[
     props.params.logLevel ? props.params.logLevel.replace('%20', ' ') : ''
   ] || '',
@@ -141,7 +141,7 @@ onMounted(async () => {
 watch(
   () => props.params.logLevel,
   (newVal) => {
-    logLevel.value =
+    replayLogLevel.value =
       LogLevelType[newVal ? newVal.replace('%20', ' ') : ''] || '';
   },
 );
@@ -155,17 +155,23 @@ async function reLoadLog() {
     clearTimeout(reloadingTimer);
     reloadingTimer = null;
   }
-  if (!currentWindow) return;
+
+  if (!currentWindow) {
+    return;
+  }
 
   const { processStatus } = await listProcessStatus();
+  const processId = props.params.processId;
 
-  if (!processStatus[props.params.processId]) {
+  if (!processStatus[processId]) {
     throwError('replay.please_start_replay');
     return;
   }
 
   const pawin = currentWindow.getParentWindow();
-  if (!pawin) return;
+  if (!pawin) {
+    return;
+  }
 
   const configs = localStorage.getItem('replayConfigs');
   if (!configs) {
@@ -174,47 +180,49 @@ async function reLoadLog() {
   }
 
   const replayArgs = JSON.parse(configs);
-  const config = replayArgs?.[props.params.processId];
+  const config = replayArgs?.[processId];
   if (!config) {
     throwError('replay.please_start_replay');
     return;
   }
 
   const { args: configArgs, filePath: currentFile } = config;
-
-  const begintime = `${DateTimeStr} ${props.params.beginTime}`;
-  const endtime = `${DateTimeStr} ${props.params.endTime}`;
+  const {
+    beginTime,
+    endTime,
+    filePath: paramsFilePath,
+    logLevel,
+    sessionName,
+  } = props.params;
+  const begintime = `${DateTimeStr} ${beginTime}`;
+  const endtime = `${DateTimeStr} ${endTime}`;
   const rerunFlag =
     configArgs?.replayConfig?.begin_time === begintime &&
     configArgs?.replayConfig?.end_time === endtime;
 
-  let filePath = props.params.filePath || currentFile;
+  const filePath = paramsFilePath || currentFile;
+  const replayConfig = {
+    category: configArgs.category,
+    group: configArgs.group,
+    begin_time: begintime,
+    end_time: endtime,
+    log_level: logLevel ? logLevel.replace('%20', ' ') : '-l info',
+    session_name: sessionName,
+    file_path: filePath,
+    enable_matcher: enableMatcher.value,
+  };
 
   const args = rerunFlag
     ? configArgs
     : {
-        category: configArgs.category,
-        group: configArgs.group,
-        name: configArgs.name,
-        mode: configArgs.mode,
-        replayConfig: {
-          category: configArgs.category,
-          group: configArgs.group,
-          begin_time: begintime,
-          end_time: endtime,
-          log_level: props.params.logLevel
-            ? props.params.logLevel.replace('%20', ' ')
-            : '-l info',
-          session_name: props.params.sessionName,
-          file_path: filePath,
-          enable_matcher: enableMatcher.value,
-        },
+        ...configArgs,
+        replayConfig,
       };
 
   if (!rerunFlag) {
-    replayArgs[props.params.processId].args = args;
+    replayArgs[processId].args = args;
     localStorage.setItem('replayConfigs', JSON.stringify(replayArgs));
-    logLevel.value = LogLevelType[args.replayConfig.log_level];
+    replayLogLevel.value = LogLevelType[args.replayConfig.log_level];
   }
 
   try {
@@ -224,24 +232,25 @@ async function reLoadLog() {
     reloadingTimer = setTimeout(() => {
       startReloading.value = false;
     }, RELOADING_TIMER);
-    await ipcEmit('clear-process', { processId: props.params.processId || '' });
-    logViewRef.value && logViewRef.value.resetLog();
+    await ipcEmit('clear-process', { processId: processId || '' });
+    logViewRef.value?.resetLog();
     pawin.webContents.send('startReplay', {
       replayProcessParams: args,
     });
   } catch (err) {
-    console.error(error);
+    console.error(err);
   }
 }
 
 function updateLogLevel(level: string) {
   const configs = localStorage.getItem('replayConfigs');
   if (configs) {
-    const config = configs[props.params.processId];
+    const config = (JSON.parse(configs) || {})[props.params.processId];
     if (config) {
       const replayParams = config.args;
       if (replayParams && replayParams.replayConfig) {
-        logLevel.value = LogLevelType[replayParams.replayConfig.log_level];
+        replayLogLevel.value =
+          LogLevelType[replayParams.replayConfig.log_level];
       }
     }
   }

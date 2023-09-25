@@ -206,8 +206,8 @@ bool TraderXTP::custom_OnOrderEvent(const XTPOrderInfo &order_info, const XTPRI 
       order_state.data.error_id = error_info.error_id;
       strncpy(order_state.data.error_msg, error_info.error_msg, strlen(error_info.error_msg));
     }
-    SPDLOG_DEBUG("Order: {}", order_state.data.to_string());
     try_write_to(order_state.data, order_state.dest);
+    SPDLOG_DEBUG("Order: {}", order_state.data.to_string());
     try_deal_XTPTradeReport(order_info.order_xtp_id);
   }
   return true;
@@ -494,7 +494,7 @@ bool TraderXTP::custom_OnQueryAsset(const XTPQueryAssetRsp &asset, const XTPRI &
     if (error_info.error_id == 0) {
       from_xtp(asset, account);
     }
-    account.holder_uid = get_live_home()->uid;
+    account.holder_uid = get_live_home_uid();
     account.update_time = yijinjing::time::now_in_nano();
     SPDLOG_TRACE("Asset: {}", account.to_string());
     writer->close_data();

@@ -2846,13 +2846,12 @@ export async function startReplay(
     const dealArgs = minimist(args as string[])['a'] || '';
     const configSettings = parseTaskSettingsFromEnv(config_settings || '[]');
     const enableMatcher = replayConfig.enable_matcher;
-    location.mode = enableMatcher ? 'backtest' : 'replay';
     return startTask(
       location,
       soPath,
       dealArgs,
       configSettings,
-      location.mode,
+      enableMatcher ? 'backtest' : 'replay',
       replayConfig,
     );
   }
@@ -2867,12 +2866,11 @@ export async function startReplay(
     case 'strategy':
     case 'operator':
       const enableMatcher = replayConfig.enable_matcher;
-      location.mode = enableMatcher ? 'backtest' : 'replay';
       return startStrategyOperator(
         location.category,
         '',
         '',
-        location.mode,
+        enableMatcher ? 'backtest' : 'replay',
         replayConfig,
       );
     case 'system':

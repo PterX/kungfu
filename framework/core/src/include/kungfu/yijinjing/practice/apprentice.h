@@ -198,7 +198,12 @@ protected:
                  return false;
                };
              }) |
-             rx::first() | rx::filter([&, timer_id](const event_ptr &) { return is_timer_enabled(timer_id); });
+             rx::first() | rx::filter([&, timer_id](const event_ptr &) {
+               timer_checkpoints_.erase(timer_id);
+               bool enabled = is_timer_enabled(timer_id);
+               timers_.erase(timer_id);
+               return enabled;
+             });
     };
   }
 

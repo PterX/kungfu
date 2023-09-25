@@ -279,6 +279,7 @@ void master::on_request_write_to_band(const event_ptr &event) {
   // layout have to be journal, for locator::list_locations
   auto dirname = home->locator->layout_dir(target_location, enums::layout::JOURNAL);
   reader_->join(target_location, location::PUBLIC, trigger_time);
+  reader_->disjoin(target_location->uid);
 
   // notify others band location, but it represents a simulation location, no register, only location
   try_add_location(now(), target_location);

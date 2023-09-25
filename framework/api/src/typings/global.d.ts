@@ -78,7 +78,6 @@ declare module 'tail' {
 }
 
 declare module globalThis {
-  const __runtimeDir: string;
   const __publicResources: string;
   const __kfResourcesPath: string;
   const pm2: any;
@@ -105,7 +104,7 @@ export type AllPublishOptions =
   | S3Options
   | GenericServerOptions;
 
-type Writeable<T> = { -readonly [P in keyof T]: T[P] };
+export type Writeable<T> = { -readonly [P in keyof T]: T[P] };
 
 export interface RootConfigJSON {
   name?: string;
@@ -144,4 +143,7 @@ export interface RootConfigJSON {
 
 export interface GlobalStorageData {
   ifNotFirstRunning?: boolean;
+  skippedVersions?: string[];
+  needClearJournal?: boolean;
+  needClearDB?: boolean;
 }

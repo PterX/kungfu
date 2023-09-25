@@ -110,6 +110,31 @@ const cache::bank &BrokerService::get_state_bank() const { return vendor_.get_st
   SPDLOG_INFO("STORED_INSTRUMENT_TRADING_DAY {}", trading_day);
 }
 
+[[maybe_unused]] bool BrokerService::check_if_stored_baskets(const std::string &trading_day) const {
+  SPDLOG_INFO("CHECK_IF_STORED_BASKETS trading_day {}", trading_day);
+  auto &time_key_value_map = get_state_bank()[boost::hana::type_c<TimeKeyValue>];
+  for (const auto &pair : time_key_value_map) {
+    const TimeKeyValue &timeKeyValue = pair.second.data;
+    if (timeKeyValue.key == "basket_stored_trading_day") {
+      if (timeKeyValue.value == trading_day) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+[[maybe_unused]] void BrokerService::record_stored_baskets_trading_day(const std::string &trading_day) {
+  auto writer = get_writer(location::PUBLIC);
+  TimeKeyValue basket_stored_trading_day_tkv = {};
+  basket_stored_trading_day_tkv.update_time = now();
+  basket_stored_trading_day_tkv.key = "basket_stored_trading_day";
+  basket_stored_trading_day_tkv.value = trading_day;
+  writer->write(now(), basket_stored_trading_day_tkv);
+
+  SPDLOG_INFO("STORED_BASKET_TRADING_DAY {}", trading_day);
+}
+
 int32_t BrokerService::add_timer(int64_t nanotime, const std::function<void(const event_ptr &)> &callback) {
   return vendor_.add_timer(nanotime, callback);
 }

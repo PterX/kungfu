@@ -220,13 +220,6 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
         ],
       },
       {
-        key: 'assetMargin',
-        name: t('globalSettingConfig.asset_margin'),
-        tip: t('globalSettingConfig.show_asset_margin'),
-        default: false,
-        type: 'bool',
-      },
-      {
         key: 'posTableColumns',
         name: t('globalSettingConfig.pos_table_columns'),
         type: 'checkboxGroup',

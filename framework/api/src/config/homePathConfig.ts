@@ -19,8 +19,6 @@ if (process.env.NODE_ENV === 'development') {
     path.join(globalThis.__kfResourcesPath, 'app', 'dist', 'public');
 }
 
-globalThis.__runtimeDir = globalThis.__runtimeDir || path.resolve(__dirname);
-
 export const getDefaultHomeDir = (): string => {
   switch (os.platform()) {
     case 'darwin':

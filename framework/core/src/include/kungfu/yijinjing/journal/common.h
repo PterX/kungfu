@@ -15,6 +15,8 @@ namespace kungfu::yijinjing::journal {
 
 FORWARD_DECLARE_STRUCT_PTR(frame)
 
+FORWARD_DECLARE_STRUCT_PTR(cloned_frame)
+
 FORWARD_DECLARE_CLASS_PTR(page)
 
 FORWARD_DECLARE_CLASS_PTR(journal)

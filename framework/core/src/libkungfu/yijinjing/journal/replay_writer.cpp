@@ -33,12 +33,12 @@ frame_ptr replay_writer::open_frame(int64_t trigger_time, int32_t msg_type, uint
                 time::strftime(trigger_time), get_location()->uname, get_dest());
   }
 
-  cloned_frame_.copy(*reader_for_write_->current_frame());
-  return std::make_shared<cloned_frame>(cloned_frame_);
+  cloned_frame_->copy(*reader_for_write_->current_frame());
+  return cloned_frame_;
 }
 
 void replay_writer::close_frame(size_t data_length, int64_t gen_time) {
-  cloned_frame_.copy(*reader_for_write_->current_frame());
+  cloned_frame_->copy(*reader_for_write_->current_frame());
   if (reader_for_write_->data_available()) {
     reader_for_write_->next();
   }

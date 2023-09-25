@@ -2822,34 +2822,46 @@ export async function startReplay(
   location: KungfuApi.KfConfig | KungfuApi.KfLocation,
   replayConfig: KungfuApi.ReplayConfigOrigin,
 ) {
-  if (location.category === 'strategy' && location.group !== 'default') {
-    const { processStatusWithDetail } = await listProcessStatus();
-    const extConfigs = await getKfExtensionConfig();
-    const extKey = location.group;
-    const extConfig: KungfuApi.KfStrategyExtConfig = (extConfigs['strategy'] ||
-      {})[extKey];
-    const soPath = path.join(extConfig.extPath, extKey);
-    const processId = getProcessIdByKfLocation(location);
-
-    const processStatusDetail = processStatusWithDetail[processId];
-    if (!processStatusDetail) {
-      kfLogger.error(`Process ${processId} not found`);
-      return Promise.reject(new Error(t('replay.process_not_found')));
-    }
-    const { args, config_settings } = processStatusDetail;
-    const dealArgs = minimist(args as string[])['a'] || '';
-    const configSettings = parseTaskSettingsFromEnv(config_settings || '[]');
-    const enableMatcher = replayConfig.enable_matcher;
-    return startTask(
-      location,
-      soPath,
-      dealArgs,
-      configSettings,
-      enableMatcher ? 'backtest' : 'replay',
-      replayConfig,
-    );
-  }
   switch (location.category) {
+    case 'strategy':
+      if (location.group !== 'default') {
+        const { processStatusWithDetail } = await listProcessStatus();
+        const extConfigs = await getKfExtensionConfig();
+        const extKey = location.group;
+        const extConfig: KungfuApi.KfStrategyExtConfig = (extConfigs[
+          'strategy'
+        ] || {})[extKey];
+        const soPath = path.join(extConfig.extPath, extKey);
+        const processId = getProcessIdByKfLocation(location);
+
+        const processStatusDetail = processStatusWithDetail[processId];
+        if (!processStatusDetail) {
+          kfLogger.error(`Process ${processId} not found`);
+          return Promise.reject(new Error(t('replay.process_not_found')));
+        }
+        const { args, config_settings } = processStatusDetail;
+        const dealArgs = minimist(args as string[])['a'] || '';
+        const configSettings = parseTaskSettingsFromEnv(
+          config_settings || '[]',
+        );
+        const enableMatcher = replayConfig.enable_matcher;
+        return startTask(
+          location,
+          soPath,
+          dealArgs,
+          configSettings,
+          enableMatcher ? 'backtest' : 'replay',
+          replayConfig,
+        );
+      } else {
+        const enableMatcher = replayConfig.enable_matcher;
+        return startStrategyOperator(
+          location,
+          '',
+          enableMatcher ? 'backtest' : 'replay',
+          replayConfig,
+        );
+      }
     case 'td':
       return startTd(
         `${location.group}_${location.name}_${location.mode}`,
@@ -2857,7 +2869,6 @@ export async function startReplay(
         'replay',
         replayConfig,
       );
-    case 'strategy':
     case 'operator':
       const enableMatcher = replayConfig.enable_matcher;
       return startStrategyOperator(
@@ -2872,7 +2883,6 @@ export async function startReplay(
       } else {
         return Promise.reject(new Error('Location is not supported to replay'));
       }
-
     default:
       return Promise.reject(new Error('Location is not supported to replay'));
   }

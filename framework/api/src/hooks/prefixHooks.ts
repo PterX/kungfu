@@ -1,7 +1,7 @@
 import { FunctionalComponent } from '@vue/runtime-core/dist/runtime-core';
 import { AntdIconProps } from '@ant-design/icons-vue/lib/components/AntdIcon';
 import { kfLogger } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
-import { generateCombinations } from '@kungfu-trader/kungfu-js-api/hooks/hookUtils';
+import { generateLocationCombinations } from '@kungfu-trader/kungfu-js-api/hooks/hookUtils';
 
 export interface PrefixProps {
   key: string;
@@ -29,10 +29,15 @@ export class PrefixHooks {
           return Reflect.get(target, 'default');
         }
         const [category, group, name, mode] = prop.split('_');
-        const originalKeys = [category, group, name, mode];
+        const originalKeys = [category, group, name, mode] as [
+          string,
+          string,
+          string,
+          string,
+        ];
 
         const findMatchingKey = () => {
-          for (const key of generateCombinations(originalKeys)) {
+          for (const key of generateLocationCombinations(originalKeys)) {
             if (target[key]) {
               return target[key];
             }

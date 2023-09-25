@@ -932,7 +932,7 @@ export function startArchiveMakeTask(
   const bypassArchive = globalSetting?.system?.bypassArchive ?? false;
   return startProcessGetStatusUntilStop(
     {
-      name: 'archive_live',
+      name: 'archive',
       args: buildArgs({
         extraArgs: `journal archive ${bypassArchive ? '-m delete' : ''}`,
       }),

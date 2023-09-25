@@ -1,5 +1,5 @@
 import { kfLogger } from '../utils/busiUtils';
-import { generateCombinations } from '@kungfu-trader/kungfu-js-api/hooks/hookUtils';
+import { generateLocationCombinations } from '@kungfu-trader/kungfu-js-api/hooks/hookUtils';
 
 export interface KfTradingDataTableHeaderConfig {
   name: string;
@@ -123,10 +123,15 @@ export class DealTradingTableHooks {
           }
 
           const [category, group, name, mode] = prop.split('_');
-          const originalKeys = [category, group, name, mode];
+          const originalKeys: [string, string, string, string] = [
+            category,
+            group,
+            name,
+            mode,
+          ];
 
           const findMatchingKey = () => {
-            for (const key of generateCombinations(originalKeys)) {
+            for (const key of generateLocationCombinations(originalKeys)) {
               if (target[key]) {
                 return target[key];
               }

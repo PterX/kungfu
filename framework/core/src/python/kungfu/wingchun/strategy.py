@@ -163,7 +163,9 @@ class Strategy(wc.Strategy):
             func(*args)
 
     def __init_book(self):
-        location = self._find_location(lf.enums.category.STRATEGY, self.ctx.group, self.ctx.name)
+        location = self._find_location(
+            lf.enums.category.STRATEGY, self.ctx.group, self.ctx.name
+        )
         self.ctx.book = self.ctx.wc_context.bookkeeper.get_book(location.uid)
 
     def __add_timer(self, nanotime, callback):

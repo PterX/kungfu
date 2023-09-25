@@ -25,7 +25,8 @@ using namespace kungfu::yijinjing::nanomsg;
 namespace kungfu::yijinjing::practice {
 
 inline std::string encode(const io_device_ptr &io_device) {
-  auto home_uid = io_device->get_home()->mode == mode::BACKTEST ? io_device->get_home()->uid : io_device->get_live_home()->uid;
+  auto home_uid =
+      io_device->get_home()->mode == mode::BACKTEST ? io_device->get_home()->uid : io_device->get_live_home()->uid;
   return fmt::format("{:08x}", home_uid);
 }
 

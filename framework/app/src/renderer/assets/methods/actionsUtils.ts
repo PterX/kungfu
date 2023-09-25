@@ -2145,8 +2145,9 @@ export const useReplay = (): {
   >(undefined);
 
   const currentLocation = ref<KungfuApi.KfConfig | null>(null);
-  const config = localStorage.getItem('replaySetting');
-  const replaySetting = config ? JSON.parse(config) : {};
+  const replaySetting = JSON.parse(
+    localStorage.getItem('replaySetting') || '{}',
+  );
   const replayConfig = ref<KungfuApi.ReplayConfig>({
     session_info: '',
     group: 'default',
@@ -2182,9 +2183,7 @@ export const useReplay = (): {
       return;
     }
 
-    let currentSession: KungfuApi.Session | null = curSession
-      ? curSession
-      : null;
+    let currentSession: KungfuApi.Session | null = curSession || null;
     let sessionInfo = '';
     if (currentSession) {
       const beginTimeStr = getNanoDateString(currentSession.begin_time);
@@ -2223,8 +2222,9 @@ export const useReplay = (): {
       error(t('replay.process_has_not_been_started'));
       return;
     }
-    const config = localStorage.getItem('replaySetting');
-    const replaySetting = config ? JSON.parse(config) : {};
+    const replaySetting = JSON.parse(
+      localStorage.getItem('replaySetting') || '{}',
+    );
     const startTime = getNanoDateString(currentSession.begin_time);
     const endTime =
       replaySetting.end_time && replaySetting.end_time > startTime
@@ -2248,10 +2248,8 @@ export const useReplay = (): {
       session_name: currentSession.name,
       file_path: isOperator ? filePath : params.file_path,
       enable_matcher: false,
-    } as KungfuApi.ReplayConfig;
-
+    };
     currentLocation.value = record;
-
     setReplayModalVisible.value = true;
     return Promise.resolve();
   };
@@ -2285,7 +2283,12 @@ export const useReplay = (): {
     const date = getYearMonthDay();
     const beginTime = `${date} ${startTime}`;
     const endTimeStr = `${date} ${endTime}`;
-    const processId = getProcessIdByKfLocation(currentLocation.value, mode);
+    const processId = getProcessIdByKfLocation({
+      category: currentLocation.value.category,
+      group: currentLocation.value.group,
+      name: currentLocation.value.name,
+      mode: mode,
+    });
     replayConfig.value.begin_time = beginTime;
     replayConfig.value.end_time = endTimeStr;
     replayConfig.value.log_level = data.logLevel;
@@ -2299,22 +2302,12 @@ export const useReplay = (): {
     };
 
     const replayArgsStr = localStorage.getItem('replayConfigs');
-    if (replayArgsStr) {
-      const replayArgsObj = JSON.parse(replayArgsStr);
-      replayArgsObj[processId] = {
-        args: params,
-        filePath: replayConfig.value.file_path,
-      };
-      localStorage.setItem('replayConfigs', JSON.stringify(replayArgsObj));
-    } else {
-      const replayArgsObj = {
-        [processId]: {
-          args: params,
-          filePath: replayConfig.value.file_path,
-        },
-      };
-      localStorage.setItem('replayConfigs', JSON.stringify(replayArgsObj));
-    }
+    const replayArgsObj = replayArgsStr ? JSON.parse(replayArgsStr) : {};
+    replayArgsObj[processId] = {
+      args: params,
+      filePath: replayConfig.value.file_path,
+    };
+    localStorage.setItem('replayConfigs', JSON.stringify(replayArgsObj));
 
     if (isJournal) {
       const { startProcess, ProcessConfigs } = await getJournalReplayConfigs(

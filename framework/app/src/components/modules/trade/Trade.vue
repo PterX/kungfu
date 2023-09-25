@@ -79,7 +79,7 @@ const columns = computed(() => {
         category: 'td',
         group: '*',
         name: '*',
-        mode: 'live',
+        mode: '*',
       },
       !!historyDate.value,
     );

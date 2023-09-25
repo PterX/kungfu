@@ -256,15 +256,12 @@ const replayPramas = computed(() => {
     (currentSession.value.end_time
       ? getNanoDateString(currentSession.value.end_time)
       : getNanoDateString(BigInt(new Date().getTime()) * 1000000n));
-  const processId = getProcessIdByKfLocation(
-    {
-      category,
-      group,
-      name,
-      mode,
-    },
+  const processId = getProcessIdByKfLocation({
+    category,
+    group,
+    name,
     mode,
-  );
+  });
   return {
     category: category,
     group: group,

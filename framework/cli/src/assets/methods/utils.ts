@@ -350,7 +350,7 @@ export const dealMemory = (mem: number): string => {
 };
 
 export const dealProcessName = (name: string) => {
-  return name ? name.split('_').at(-1) : null;
+  return name ? name.split('_').at(-2) : null;
 };
 
 export const calcHeaderWidth = (

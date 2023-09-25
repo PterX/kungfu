@@ -53,6 +53,7 @@ globalThis.HookKeeper.getHooks().dealTradingData.register(
     category: categoryRegisterConfig.category,
     group: '*',
     name: '*',
+    mode: '*',
   },
   categoryRegisterConfig,
 );

@@ -29,16 +29,17 @@ frame_ptr replay_writer::open_frame(int64_t trigger_time, int32_t msg_type, uint
   }
 
   if (not reader_for_write_->data_available()) {
-    SPDLOG_WARN("no more data available for msg_type {} trigger_time {}, from {} to {} ", msg_type,
+    SPDLOG_WARN("no more data available for msg_type {} trigger_time {}, from {} to {}", msg_type,
                 time::strftime(trigger_time), get_location()->uname, get_dest());
+    raise(SIGINT);
   }
 
-  cloned_frame_.copy(*reader_for_write_->current_frame());
-  return std::make_shared<cloned_frame>(cloned_frame_);
+  cloned_frame_->copy(*reader_for_write_->current_frame());
+  return cloned_frame_;
 }
 
 void replay_writer::close_frame(size_t data_length, int64_t gen_time) {
-  cloned_frame_.copy(*reader_for_write_->current_frame());
+  cloned_frame_->copy(*reader_for_write_->current_frame());
   if (reader_for_write_->data_available()) {
     reader_for_write_->next();
   }

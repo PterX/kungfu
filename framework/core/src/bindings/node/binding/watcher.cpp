@@ -406,20 +406,20 @@ void Watcher::Init(Napi::Env env, Napi::Object exports) {
   Napi::Function func =
       DefineClass(env, "Watcher",
                   {
-                      InstanceMethod("now", &Watcher::Now),                                             //
-                      InstanceMethod("isUsable", &Watcher::IsUsable),                                   //
-                      InstanceMethod("isLive", &Watcher::IsLive),                                       //
-                      InstanceMethod("isStarted", &Watcher::IsStarted),                                 //
-                      InstanceMethod("requestStop", &Watcher::RequestStop),                             //
-                      InstanceMethod("hasLocation", &Watcher::HasLocation),                             //
-                      InstanceMethod("getLocation", &Watcher::GetLocation),                             //
-                      InstanceMethod("getLocationUID", &Watcher::GetLocationUID),                       //
-                      InstanceMethod("getInstrumentType", &Watcher::GetInstrumentType),                 //
-                      InstanceMethod("publishState", &Watcher::PublishState),                           //
-                      InstanceMethod("isReadyToInteract", &Watcher::IsReadyToInteract),                 //
+                      InstanceMethod("now", &Watcher::Now),                             //
+                      InstanceMethod("isUsable", &Watcher::IsUsable),                   //
+                      InstanceMethod("isLive", &Watcher::IsLive),                       //
+                      InstanceMethod("isStarted", &Watcher::IsStarted),                 //
+                      InstanceMethod("requestStop", &Watcher::RequestStop),             //
+                      InstanceMethod("hasLocation", &Watcher::HasLocation),             //
+                      InstanceMethod("getLocation", &Watcher::GetLocation),             //
+                      InstanceMethod("getLocationUID", &Watcher::GetLocationUID),       //
+                      InstanceMethod("getInstrumentType", &Watcher::GetInstrumentType), //
+                      InstanceMethod("publishState", &Watcher::PublishState),           //
+                      InstanceMethod("isReadyToInteract", &Watcher::IsReadyToInteract), //
                       InstanceMethod("issueCustomData", &Watcher::IssueCustomData),
                       InstanceMethod("IssueBasket", &Watcher::IssueBasket),
-                      InstanceMethod("IssueBasketInstrument", &Watcher::IssueBasketInstrument),                     //
+                      InstanceMethod("IssueBasketInstrument", &Watcher::IssueBasketInstrument),         //
                       InstanceMethod("issueBlockMessage", &Watcher::IssueBlockMessage),                 //
                       InstanceMethod("issueOrderTrigger", &Watcher::IssueOrderTrigger),                 //
                       InstanceMethod("issueOrder", &Watcher::IssueOrder),                               //

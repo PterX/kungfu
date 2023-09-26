@@ -87,7 +87,7 @@ public:
   Napi::Value IsReadyToInteract(const Napi::CallbackInfo &info);
 
   Napi::Value IssueCustomData(const Napi::CallbackInfo &info);
-  
+
   Napi::Value IssueBasket(const Napi::CallbackInfo &info);
 
   Napi::Value IssueBasketInstrument(const Napi::CallbackInfo &info);
@@ -421,20 +421,16 @@ private:
       Instruction instruction = {};
       serialize::JsGet{}(instruction_object, instruction);
 
-      if (info.Length() == 2) {
-        target_writer->write(trigger_time, instruction);
-        UpdateBook(get_live_home_uid(), yijinjing::data::location::PUBLIC, instruction);
-        return Napi::Boolean::New(info.Env(), true);
-      }
+      target_writer->write(trigger_time, instruction);
+      UpdateBook(get_live_home_uid(), yijinjing::data::location::PUBLIC, instruction);
+      return Napi::Boolean::New(info.Env(), true);
 
-      throw Napi::Error::New(info.Env(), "Invalid instruction arguments length");
     } catch (const std::exception &ex) {
       throw Napi::Error::New(info.Env(), fmt::format("invalid instruction arguments: {}", ex.what()));
     } catch (...) {
       throw Napi::Error::New(info.Env(), "invalid instruction arguments");
     }
   }
-
 
   template <typename Instruction, typename IdPtrType = uint64_t Instruction::*>
   Napi::Value InteractWithTD(const Napi::CallbackInfo &info, const Napi::Object &instruction_object, IdPtrType id_ptr) {

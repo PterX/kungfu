@@ -58,6 +58,7 @@ export const addMdTdStrategy = async (
           category: 'md',
           group: extKey,
           name: '*',
+          mode: '*',
         },
         extConfigs['md'][extKey],
       );
@@ -96,6 +97,7 @@ export const addMdTdStrategy = async (
           category: 'td',
           group: extKey,
           name: '*',
+          mode: '*',
         },
         extConfigs['td'][extKey],
       );

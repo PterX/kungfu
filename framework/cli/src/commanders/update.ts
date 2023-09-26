@@ -29,6 +29,7 @@ export const updateMdTdStrategy = async () => {
           category: 'md',
           group: kfLocation.group,
           name: '*',
+          mode: '*',
         },
         extConfigs['md'][kfLocation.group],
       );
@@ -53,6 +54,7 @@ export const updateMdTdStrategy = async () => {
           category: 'td',
           group: kfLocation.group,
           name: '*',
+          mode: '*',
         },
         extConfigs['td'][kfLocation.group],
       );

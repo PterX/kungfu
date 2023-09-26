@@ -139,46 +139,46 @@ declare global {
 //for td processId
 String.prototype.toAccountId = function (): string {
   if (this.indexOf('_') === -1) return this.toString();
-  if (this.split('_').length !== 3) return this.toString();
+  if (this.split('_').length !== 4) return this.toString();
   return this.split('_').slice(1).join('_');
 };
 
 //for md processId
 String.prototype.toSourceName = function (): string {
   if (this.indexOf('_') === -1) return this.toString();
-  if (this.split('_').length !== 2) return this.toString();
+  if (this.split('_').length !== 4) return this.toString();
   return this.split('_')[1];
 };
 
 //for strategy processId
 String.prototype.toStrategyId = function (): string {
   if (this.indexOf('_') === -1) return this.toString();
-  if (this.split('_').length !== 2) return this.toString();
+  if (this.split('_').length !== 3) return this.toString();
   return this.split('_')[1];
 };
 
 String.prototype.toKfCategory = function (): string {
   if (this.indexOf('_') === -1) return this.toString();
-  if (this.split('_').length !== 3) return this.toString();
+  if (this.split('_').length !== 4) return this.toString();
   return this.split('_')[0];
 };
 
 String.prototype.toKfGroup = function (): string {
   if (this.indexOf('_') === -1) return this.toString();
-  if (this.split('_').length !== 3) return this.toString();
+  if (this.split('_').length !== 4) return this.toString();
   return this.split('_')[1];
 };
 
 String.prototype.toKfName = function (): string {
   if (this.indexOf('_') === -1) return this.toString();
-  if (this.split('_').length !== 3) return this.toString();
+  if (this.split('_').length !== 4) return this.toString();
   return this.split('_')[2];
 };
 
 String.prototype.parseSourceAccountId = function (): SourceAccountId {
   const parseList = this.toString().split('_');
   //没有 "_"
-  if (parseList.length !== 2) {
+  if (parseList.length !== 2 && parseList.length !== 3) {
     throw new Error(`${this} accountId format is wrong！`);
   } else {
     return {
@@ -1156,49 +1156,47 @@ export const removeDBIfNeed = (): Promise<void> => {
 
 export const getProcessIdByKfLocation = (
   kfLocation: KungfuApi.KfLocation,
-  mode?: string,
 ): string => {
-  const shouldConcatMode = mode && mode !== 'live';
+  const mode = kfLocation.mode || 'live';
   switch (kfLocation.category) {
     case 'md':
-      return shouldConcatMode
-        ? `${kfLocation.category}_${kfLocation.group}-${mode}`
-        : `${kfLocation.category}_${kfLocation.group}`;
+      return `${kfLocation.category}_${kfLocation.group}_${mode}`;
     case 'strategy':
     case 'operator':
       if (kfLocation.group === 'default') {
-        return shouldConcatMode
-          ? `${kfLocation.category}_${kfLocation.name}-${mode}`
-          : `${kfLocation.category}_${kfLocation.name}`;
+        return `${kfLocation.category}_${kfLocation.name}_${mode}`;
       } else {
-        return shouldConcatMode
-          ? `${kfLocation.category}_${kfLocation.group}_${kfLocation.name}-${mode}`
-          : `${kfLocation.category}_${kfLocation.group}_${kfLocation.name}`;
+        return `${kfLocation.category}_${kfLocation.group}_${kfLocation.name}_${mode}`;
       }
     case 'system':
-      return shouldConcatMode
-        ? `${kfLocation.name}-${mode}`
-        : `${kfLocation.name}`;
+      return `${kfLocation.name}_${mode}`;
     default:
-      return shouldConcatMode
-        ? `${kfLocation.category}_${kfLocation.group}_${kfLocation.name}-${mode}`
-        : `${kfLocation.category}_${kfLocation.group}_${kfLocation.name}`;
+      return `${kfLocation.category}_${kfLocation.group}_${kfLocation.name}_${mode}`;
   }
 };
 
 export const getIdByKfLocation = (kfLocation: KungfuApi.KfLocation): string => {
+  const isLive = kfLocation.mode === 'live';
   switch (kfLocation.category) {
     case 'md':
-      return `${kfLocation.group}`;
+      return isLive
+        ? `${kfLocation.group}`
+        : `${kfLocation.group}_${kfLocation.mode}`;
     case 'strategy':
     case 'operator':
       if (kfLocation.group === 'default') {
-        return `${kfLocation.name}`;
+        return isLive
+          ? `${kfLocation.name}`
+          : `${kfLocation.name}_${kfLocation.mode}`;
       } else {
-        return `${kfLocation.group}_${kfLocation.name}`;
+        return isLive
+          ? `${kfLocation.group}_${kfLocation.name}`
+          : `${kfLocation.group}_${kfLocation.name}_${kfLocation.mode}`;
       }
     default:
-      return `${kfLocation.group}_${kfLocation.name}`;
+      return isLive
+        ? `${kfLocation.group}_${kfLocation.name}`
+        : `${kfLocation.group}_${kfLocation.name}_${kfLocation.mode}`;
   }
 };
 
@@ -1206,23 +1204,23 @@ export const getMdTdKfLocationByProcessId = (
   processId: string,
 ): KungfuApi.KfLocation | null => {
   if (processId.indexOf('td_') === 0) {
-    if (processId.split('_').length === 3) {
-      const [category, group, name] = processId.split('_');
+    if (processId.split('_').length === 4) {
+      const [category, group, name, mode] = processId.split('_');
       return {
         category: category as KfCategoryTypes,
         group,
         name,
-        mode: 'live',
+        mode: mode || 'live',
       };
     }
   } else if (processId.indexOf('md_') === 0) {
-    if (processId.split('_').length === 2) {
-      const [category, group] = processId.split('_');
+    if (processId.split('_').length === 3) {
+      const [category, group, mode] = processId.split('_');
       return {
         category: category as KfCategoryTypes,
         group,
         name: group,
-        mode: 'live',
+        mode: mode || 'live',
       };
     }
   }
@@ -1236,21 +1234,21 @@ export const getOperatorKfLocationByProcessId = (
   if (processId.indexOf('operator_') === 0) {
     const splits = processId.split('_');
 
-    if (splits.length === 3) {
-      const [category, group, name] = processId.split('_');
+    if (splits.length === 4) {
+      const [category, group, name, mode] = processId.split('_');
       return {
         category: category as KfCategoryTypes,
         group,
         name,
-        mode: 'live',
+        mode: mode || 'live',
       };
-    } else if (splits.length === 2) {
-      const [category, name] = processId.split('_');
+    } else if (splits.length === 3) {
+      const [category, name, mode] = processId.split('_');
       return {
         category: category as KfCategoryTypes,
         group: 'default',
         name,
-        mode: 'live',
+        mode: mode || 'live',
       };
     }
   }
@@ -1264,21 +1262,21 @@ export const getStrategyKfLocationByProcessId = (
   if (processId.indexOf('strategy_') === 0) {
     const splits = processId.split('_');
 
-    if (splits.length === 3) {
-      const [category, group, name] = processId.split('_');
+    if (splits.length === 4) {
+      const [category, group, name, mode] = processId.split('_');
       return {
         category: category as KfCategoryTypes,
         group,
         name,
-        mode: 'live',
+        mode: mode || 'live',
       };
-    } else if (splits.length === 2) {
-      const [category, name] = processId.split('_');
+    } else if (splits.length === 3) {
+      const [category, name, mode] = processId.split('_');
       return {
         category: category as KfCategoryTypes,
         group: 'default',
         name,
-        mode: 'live',
+        mode: mode || 'live',
       };
     }
   }
@@ -1519,7 +1517,7 @@ const startProcessByKfLocation = async (
     case 'td':
       return startTd(getIdByKfLocation(kfLocation), kfLocation);
     case 'md':
-      return startMd(getIdByKfLocation(kfLocation), kfLocation);
+      return startMd(kfLocation);
     case 'strategy':
     case 'operator':
       // 插件类 operator
@@ -1537,11 +1535,7 @@ const startProcessByKfLocation = async (
       if (!filePath) {
         throw new Error(`Start ${kfLocation.category} without file path`);
       }
-      return startStrategyOperator(
-        kfLocation.category,
-        getIdByKfLocation(kfLocation),
-        filePath,
-      );
+      return startStrategyOperator(kfLocation, filePath);
     default:
       return Promise.resolve();
   }
@@ -2685,8 +2679,8 @@ export const getTaskListFromProcessStatusData = (
         taskPrefixs.findIndex((cg) => {
           return (
             processId.indexOf(cg) === 0 &&
-            !processId.endsWith('-replay') &&
-            !processId.endsWith('-backtest')
+            !processId.endsWith('_replay') &&
+            !processId.endsWith('_backtest')
           );
         }) !== -1
       );
@@ -2828,47 +2822,57 @@ export async function startReplay(
   location: KungfuApi.KfConfig | KungfuApi.KfLocation,
   replayConfig: KungfuApi.ReplayConfigOrigin,
 ) {
-  if (location.category === 'strategy' && location.group !== 'default') {
-    const { processStatusWithDetail } = await listProcessStatus();
-    const extConfigs = await getKfExtensionConfig();
-    const extKey = location.group;
-    const extConfig: KungfuApi.KfStrategyExtConfig = (extConfigs['strategy'] ||
-      {})[extKey];
-    const soPath = path.join(extConfig.extPath, extKey);
-    const processId = getProcessIdByKfLocation(location);
-
-    const processStatusDetail = processStatusWithDetail[processId];
-    if (!processStatusDetail) {
-      kfLogger.error(`Process ${processId} not found`);
-      return Promise.reject(new Error(t('replay.process_not_found')));
-    }
-    const { args, config_settings } = processStatusDetail;
-    const dealArgs = minimist(args as string[])['a'] || '';
-    const configSettings = parseTaskSettingsFromEnv(config_settings || '[]');
-    const enableMatcher = replayConfig.enable_matcher;
-    return startTask(
-      location,
-      soPath,
-      dealArgs,
-      configSettings,
-      enableMatcher ? 'backtest' : 'replay',
-      replayConfig,
-    );
-  }
   switch (location.category) {
+    case 'strategy':
+      if (location.group !== 'default') {
+        const { processStatusWithDetail } = await listProcessStatus();
+        const extConfigs = await getKfExtensionConfig();
+        const extKey = location.group;
+        const extConfig: KungfuApi.KfStrategyExtConfig = (extConfigs[
+          'strategy'
+        ] || {})[extKey];
+        const soPath = path.join(extConfig.extPath, extKey);
+        const processId = getProcessIdByKfLocation(location);
+
+        const processStatusDetail = processStatusWithDetail[processId];
+        if (!processStatusDetail) {
+          kfLogger.error(`Process ${processId} not found`);
+          return Promise.reject(new Error(t('replay.process_not_found')));
+        }
+        const { args, config_settings } = processStatusDetail;
+        const dealArgs = minimist(args as string[])['a'] || '';
+        const configSettings = parseTaskSettingsFromEnv(
+          config_settings || '[]',
+        );
+        const enableMatcher = replayConfig.enable_matcher;
+        return startTask(
+          location,
+          soPath,
+          dealArgs,
+          configSettings,
+          enableMatcher ? 'backtest' : 'replay',
+          replayConfig,
+        );
+      } else {
+        const enableMatcher = replayConfig.enable_matcher;
+        return startStrategyOperator(
+          location,
+          '',
+          enableMatcher ? 'backtest' : 'replay',
+          replayConfig,
+        );
+      }
     case 'td':
       return startTd(
-        `${location.group}_${location.name}`,
+        `${location.group}_${location.name}_${location.mode}`,
         location,
         'replay',
         replayConfig,
       );
-    case 'strategy':
     case 'operator':
       const enableMatcher = replayConfig.enable_matcher;
       return startStrategyOperator(
-        location.category,
-        '',
+        location,
         '',
         enableMatcher ? 'backtest' : 'replay',
         replayConfig,
@@ -2879,7 +2883,6 @@ export async function startReplay(
       } else {
         return Promise.reject(new Error('Location is not supported to replay'));
       }
-
     default:
       return Promise.reject(new Error('Location is not supported to replay'));
   }

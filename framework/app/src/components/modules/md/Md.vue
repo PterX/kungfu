@@ -104,6 +104,7 @@ async function handleOpenSetMdDialog(
         category: 'md',
         group: selectedSource,
         name: '*',
+        mode: '*',
       },
       extConfig,
     );

@@ -81,6 +81,8 @@ public:
 
   [[nodiscard]] yijinjing::journal::writer_ptr &get_thread_writer();
 
+  [[nodiscard]] yijinjing::journal::writer_ptr &get_public_writer();
+
   template <typename DataType>
   void write_to(const DataType &data, uint32_t dest_id = yijinjing::data::location::PUBLIC) {
     vendor_.write_to(now(), data, dest_id);
@@ -101,7 +103,7 @@ public:
 
   [[maybe_unused]] [[nodiscard]] bool check_if_stored_instruments(const std::string &trading_day) const;
 
-  [[maybe_unused]] void record_stored_instruments_trading_day(const std::string &trading_day) const;
+  [[maybe_unused]] void record_stored_instruments_trading_day(const std::string &trading_day);
 
   [[maybe_unused]] [[nodiscard]] bool check_if_stored_baskets(const std::string &trading_day) const;
 

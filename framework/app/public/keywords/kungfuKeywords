@@ -371,6 +371,7 @@ set_from_indexer
 set_to_indexer
 set_report
 set_time_interval
+set_backtest_config
 setup
 step
 on_exit
@@ -492,6 +493,7 @@ write_bytes
 write
 write_at
 put
+find_page_size
 read_headers
 __plus__
 __rshift__

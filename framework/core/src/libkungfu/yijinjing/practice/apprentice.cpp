@@ -226,6 +226,9 @@ void apprentice::on_write_to(const event_ptr &event) {
     if (dest_id == get_master_command_uid()) {
       master_cmd_writer_for_thread_ = get_writer(dest_id);
     }
+    if (dest_id == location::PUBLIC) {
+      public_writer_ = get_writer(location::PUBLIC);
+    }
   }
 }
 
@@ -328,7 +331,7 @@ journal::writer_ptr &apprentice::get_thread_writer() {
     /// join channel in sub-thread will crash, so tell master to ask myself to join
     /// do not use writer because of multi-thread concurrency issues
     if (not master_cmd_writer_for_thread_) {
-      SPDLOG_ERROR("has no writer of master_cmd: {:8x}:{}", get_master_command_uid(),
+      SPDLOG_ERROR("has no writer for master_cmd: {:8x}:{}", get_master_command_uid(),
                    get_location_uname(get_master_command_uid()));
     }
     RequestReadFromOthers &request = master_cmd_writer_for_thread_->open_data<RequestReadFromOthers>();
@@ -340,5 +343,7 @@ journal::writer_ptr &apprentice::get_thread_writer() {
   }
   return thread_writer_;
 }
+
+yijinjing::journal::writer_ptr &apprentice::get_public_writer() { return public_writer_; }
 
 } // namespace kungfu::yijinjing::practice

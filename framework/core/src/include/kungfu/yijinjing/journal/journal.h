@@ -111,6 +111,8 @@ private:
   friend class reader;
 
   friend class writer;
+
+  friend class replay_writer;
 };
 
 class reader {

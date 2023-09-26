@@ -163,24 +163,9 @@ class Strategy(wc.Strategy):
             func(*args)
 
     def __init_book(self):
-        mode = (
-            lf.enums.mode.LIVE
-            if kfj.MODES[self.ctx.mode] != lf.enums.mode.BACKTEST
-            else lf.enums.mode.BACKTEST
+        location = self._find_location(
+            lf.enums.category.STRATEGY, self.ctx.group, self.ctx.name
         )
-        locator = (
-            self.ctx.runtime_locator
-            if kfj.MODES[self.ctx.mode] != lf.enums.mode.BACKTEST
-            else self.ctx.backtest_locator
-        )
-        location = yjj.location(
-            mode,
-            lf.enums.category.STRATEGY,
-            self.ctx.group,
-            self.ctx.name,
-            locator,
-        )
-
         self.ctx.book = self.ctx.wc_context.bookkeeper.get_book(location.uid)
 
     def __add_timer(self, nanotime, callback):
@@ -199,6 +184,10 @@ class Strategy(wc.Strategy):
         self.ctx.wc_context.add_account(source, account)
 
     def __get_account_book(self, source, account):
+        location = self._find_location(lf.enums.category.TD, source, account)
+        return self.ctx.wc_context.bookkeeper.get_book(location.uid)
+
+    def _find_location(self, category, group, name):
         mode = (
             lf.enums.mode.LIVE
             if kfj.MODES[self.ctx.mode] != lf.enums.mode.BACKTEST
@@ -211,12 +200,12 @@ class Strategy(wc.Strategy):
         )
         location = yjj.location(
             mode,
-            lf.enums.category.TD,
-            source,
-            account,
+            category,
+            group,
+            name,
             locator,
         )
-        return self.ctx.wc_context.bookkeeper.get_book(location.uid)
+        return location
 
     async def __async_insert_order(
         self,

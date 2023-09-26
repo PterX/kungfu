@@ -1075,9 +1075,11 @@ function validate(): Promise<void[]> {
     .flat();
 
   const innerFormValidates = innerFormRefs
-    .filter((formRef) => !!formRef)
+    .filter((formRef) => !!formRef && formRef?.validate)
     .map((formRef) => formRef?.validate() as unknown as Promise<void>);
-  return Promise.all([formRef.value.validate()].concat(...innerFormValidates));
+  return Promise.all(
+    [formRef.value?.validate?.()].concat(...innerFormValidates),
+  );
 }
 
 function clearValidate(): void {

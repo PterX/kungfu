@@ -893,6 +893,7 @@ export default {
     set_strategy_success: 'Strategy {file} file path changed successfully',
     entry_file: 'Entry File',
     creaate_success: '{file} created successfully',
+    illegal_file_name: 'Illegal file name',
 
     name_repeat:
       'This location already exists file or folder {name}, please select a different name',

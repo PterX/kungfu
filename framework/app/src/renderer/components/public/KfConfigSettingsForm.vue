@@ -20,6 +20,7 @@ import {
   nextTick,
   defineComponent,
 } from 'vue';
+import KfConfigSettingsForm from './KfConfigSettingsForm.vue';
 import {
   KfCategory,
   BasketVolumeType,
@@ -157,6 +158,12 @@ type TablesSearchRelated = Record<
 
 const app = getCurrentInstance();
 const formRef = ref();
+const innerFormRefKeys: string[] = [];
+const buildInnerFormRef = (item: KungfuApi.KfConfigItem) => {
+  const key = `inner-form-ref-${item.key}`;
+  if (!innerFormRefKeys.includes(key)) innerFormRefKeys.push(key);
+  return key;
+};
 
 const formState = ref(props.formState);
 const { td, md, operator, strategy } = toRefs(useAllKfConfigData());
@@ -1055,8 +1062,22 @@ function handleInstrumentDeselected(val: string, key: string) {
   }
 }
 
-function validate(): Promise<void> {
-  return formRef.value.validate();
+function validate(): Promise<void[]> {
+  const innerFormRefs = innerFormRefKeys
+    .map((refKey) => {
+      type FormRef = InstanceType<typeof KfConfigSettingsForm>;
+      if (app?.proxy?.$refs?.[refKey]) {
+        const refs = app.proxy.$refs[refKey] as FormRef | Array<FormRef>;
+        return refs;
+      }
+      return null;
+    })
+    .flat();
+
+  const innerFormValidates = innerFormRefs
+    .filter((formRef) => !!formRef)
+    .map((formRef) => formRef?.validate() as unknown as Promise<void>);
+  return Promise.all([formRef.value.validate()].concat(...innerFormValidates));
 }
 
 function clearValidate(): void {
@@ -1241,7 +1262,12 @@ defineExpose({
           item.disabled
         "
         @focus="numbersTyping[item.key] = true"
-        @blur="numbersTyping[item.key] = false"
+        @blur="
+          () => {
+            formState[item.key] = Number(formState[item.key]); // change value '' to 0.0000
+            numbersTyping[item.key] = false;
+          }
+        "
       ></a-input-number>
       <a-input-number
         v-else-if="item.type === 'percent'"
@@ -2009,6 +2035,7 @@ defineExpose({
               >
                 <div class="table-in-config-setting-row-from__wrap">
                   <KfConfigSettingsForm
+                    :ref="buildInnerFormRef(item)"
                     v-model:formState="_item.data"
                     :style="{
                       flexWrap: item.wrap || '',
@@ -2076,6 +2103,7 @@ defineExpose({
           >
             <div class="table-in-config-setting-row-from__wrap">
               <KfConfigSettingsForm
+                :ref="buildInnerFormRef(item)"
                 v-model:formState="formState[item.key][index]"
                 :config-settings="item.columns || []"
                 :change-type="changeType"

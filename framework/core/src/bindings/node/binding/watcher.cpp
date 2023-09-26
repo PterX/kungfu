@@ -417,7 +417,9 @@ void Watcher::Init(Napi::Env env, Napi::Object exports) {
                       InstanceMethod("getInstrumentType", &Watcher::GetInstrumentType),                 //
                       InstanceMethod("publishState", &Watcher::PublishState),                           //
                       InstanceMethod("isReadyToInteract", &Watcher::IsReadyToInteract),                 //
-                      InstanceMethod("issueCustomData", &Watcher::IssueCustomData),                     //
+                      InstanceMethod("issueCustomData", &Watcher::IssueCustomData),
+                      InstanceMethod("IssueBasket", &Watcher::IssueBasket),
+                      InstanceMethod("IssueBasketInstrument", &Watcher::IssueBasketInstrument),                     //
                       InstanceMethod("issueBlockMessage", &Watcher::IssueBlockMessage),                 //
                       InstanceMethod("issueOrderTrigger", &Watcher::IssueOrderTrigger),                 //
                       InstanceMethod("issueOrder", &Watcher::IssueOrder),                               //

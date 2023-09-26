@@ -346,7 +346,7 @@ public:
 
 private:
   reader_ptr reader_for_write_;
-  cloned_frame cloned_frame_ = {};
+  cloned_frame_ptr cloned_frame_ = std::make_shared<cloned_frame>();
 };
 
 } // namespace kungfu::yijinjing::journal

@@ -150,7 +150,7 @@ std::vector<location_ptr> locator::list_locations(const std::string &category, c
       }
       std::string category_name = match[1].str();
       auto category = es::get_category_by_name(category_name);
-      if (category == es::category::SYSTEM and mode_name != "system") {
+      if (category == es::category::SYSTEM and category_name != "system") {
         continue;
       }
       auto l = location::make_shared(mode,           //

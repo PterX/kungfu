@@ -1,6 +1,7 @@
 import dayjs from 'dayjs';
 import dayjsBusinessDays from 'dayjs-business-days';
 import { kungfu } from '@kungfu-trader/kungfu-core';
+import { kfLogger } from '@kungfu-trader/kungfu-js-api/utils/logUtils';
 import { KF_RUNTIME_DIR } from '../config/pathConfig';
 
 dayjs.extend(dayjsBusinessDays);
@@ -57,7 +58,7 @@ export function getRendererProcessId(): string {
   ]
     .filter((str) => !!str)
     .join('-');
-  // kfLogger.info(`Renderer ProcessId ${watcherId}`);
+  kfLogger.info(`Renderer ProcessId ${watcherId}`);
   return watcherId;
 }
 

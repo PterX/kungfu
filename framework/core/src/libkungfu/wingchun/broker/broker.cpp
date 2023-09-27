@@ -4,10 +4,10 @@
 // Created by Keren Dong on 2020/3/10.
 //
 
+#include <fstream>
 #include <kungfu/common.h>
 #include <kungfu/wingchun/broker/broker.h>
 #include <kungfu/yijinjing/time.h>
-
 #include <utility>
 
 using namespace kungfu::rx;
@@ -56,6 +56,27 @@ std::string BrokerService::get_config() const {
   }
   auto &config_obj = config_map.at(get_live_home_uid());
   return config_obj.data.value;
+}
+
+nlohmann::json BrokerService::get_kungfu_config() const {
+  char *ext_dirs = std::getenv("EXTENSION_DIRS");
+  if (ext_dirs != nullptr) {
+    std::string ext_dirs_string(ext_dirs);
+    std::string item;
+    SPDLOG_INFO(" EXTENSION_DIRS = {} ", ext_dirs);
+    std::stringstream ext_dirs_stringstream(ext_dirs_string);
+    while (std::getline(ext_dirs_stringstream, item, ';')) {
+      const std::string path = fmt::format("{}/{}/package.json", item, get_home()->group);
+      if (std::filesystem::exists(path)) {
+        std::ifstream f(path);
+        nlohmann::json data = nlohmann::json::parse(f);
+        if (data.contains("kungfuConfig") and data["kungfuConfig"].contains("config")) {
+          return data["kungfuConfig"]["config"];
+        }
+      }
+    }
+  }
+  return nlohmann::json::parse("{}");
 }
 
 std::string BrokerService::get_risk_setting() const {

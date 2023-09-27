@@ -904,6 +904,7 @@ export default {
     set_strategy_success: '策略 {file} 文件路径修改成功!',
     entry_file: '入口文件',
     creaate_success: '{file} 创建成功!',
+    illegal_file_name: '文件名不合法',
 
     name_repeat: '此位置已存在文件或文件夹 {name}, 请选择其他名称!',
     empty_input: '必须提供文件或文件夹名称!',

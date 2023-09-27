@@ -95,7 +95,7 @@ Position &Book::get_position(Direction direction, const char *exchange_id, const
 
 void Book::update(int64_t update_time, longfist::enums::AccountingMethodType accounting_method_type) {
   asset.update_time = update_time;
-  
+
   /* IMPORTANT:
    * remove assign and reassign of asset.margin
    * this function will be called when ledger sync asset and position from TD  every minute

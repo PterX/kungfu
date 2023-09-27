@@ -1,4 +1,4 @@
-import { kfLogger } from '../utils/busiUtils';
+import { kfLogger } from '../utils/logUtils';
 import { generateLocationCombinations } from '@kungfu-trader/kungfu-js-api/hooks/hookUtils';
 
 export interface KfTradingDataTableHeaderConfig {

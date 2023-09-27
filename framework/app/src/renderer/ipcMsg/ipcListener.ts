@@ -4,10 +4,8 @@ import {
   stopProcess,
   listProcessStatus,
 } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
-import {
-  getProcessIdByKfLocation,
-  startReplay,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { startReplay } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { getProcessIdByKfLocation } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 
 export function bindIPCListener(store) {
   ipcRenderer.removeAllListeners('ipc-emit-strategyList');

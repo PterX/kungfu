@@ -4,18 +4,22 @@ import {
   KfCategoryTypes,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
-  delayMilliSeconds,
   deleteNNFiles,
-  getAvailCliExtServiceList,
-  getKfExtensionConfig,
-  getProcessIdByKfLocation,
   getTaskListFromProcessStatusData,
-  isExtService,
-  kfLogger,
   removeArchiveBeforeToday,
   removeJournal,
   switchKfLocation,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import {
+  getKfExtensionConfig,
+  getAvailCliExtServiceList,
+} from '@kungfu-trader/kungfu-js-api/utils/extUtils';
+import {
+  isExtService,
+  getProcessIdByKfLocation,
+  delayMilliSeconds,
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import { kfLogger } from '@kungfu-trader/kungfu-js-api/utils/logUtils';
 import {
   killExtra,
   pm2Kill,

@@ -7,10 +7,8 @@ import {
   SideEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
-import {
-  getAbleHedgeFlag,
-  isShotable,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { getAbleHedgeFlag } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { isShotable } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 const { t } = VueI18n.global;
 
 export const LABEL_COL = 6;

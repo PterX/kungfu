@@ -61,7 +61,7 @@
 import { computed } from 'vue';
 import { ChannelRecords } from '../utils/filterUtils';
 import { useFrameFilters } from '../utils/filterUtils';
-import { debounce } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { debounce } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 
 const props = withDefaults(
   defineProps<{

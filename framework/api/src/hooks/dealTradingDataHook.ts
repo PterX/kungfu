@@ -6,10 +6,8 @@ import {
   KfCategoryEnum,
   KfCategoryTypes,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
-import {
-  dealTradingData,
-  kfLogger,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { dealTradingData } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { kfLogger } from '@kungfu-trader/kungfu-js-api/utils/logUtils';
 import { generateLocationCombinations } from '@kungfu-trader/kungfu-js-api/hooks/hookUtils';
 
 export interface DealTradingDataGetter {

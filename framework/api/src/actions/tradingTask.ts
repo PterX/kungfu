@@ -1,7 +1,5 @@
-import {
-  getKfExtensionConfig,
-  kfConfigItemsToProcessArgs,
-} from '../utils/busiUtils';
+import { kfConfigItemsToProcessArgs } from '../utils/commonUtils';
+import { getKfExtensionConfig } from '../utils/extUtils';
 import { Pm2ProcessStatusData, startTask } from '../utils/processUtils';
 import path from 'path';
 import { Proc } from 'pm2';

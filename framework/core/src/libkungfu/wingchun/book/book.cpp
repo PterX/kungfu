@@ -120,7 +120,8 @@ void Book::update(int64_t update_time, longfist::enums::AccountingMethodType acc
 
     if (instruments.find(hashed_instrument_key) != instruments.end()) {
       const auto &instrument = instruments.at(hashed_instrument_key);
-      db_contract_multiplier = instrument.contract_multiplier;
+      db_contract_multiplier = (instrument.contract_multiplier > 0) ? instrument.contract_multiplier
+                                                                    : DEFAULT_INSTRUMENT_CONTRACT_MULTIPLIER;
     }
 
     auto position_market_value = position.volume *

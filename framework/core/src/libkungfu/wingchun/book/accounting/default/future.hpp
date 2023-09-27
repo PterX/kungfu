@@ -256,6 +256,8 @@ private:
     book->asset.avail -= margin;
     book->asset.accumulated_fee += commission;
     book->asset.intraday_fee += commission;
+    // add asset_margin realtime calc, refer to Book::update(int64_t, AccountingMethodType)
+    book->asset.margin += margin;
   }
 
   void apply_close(Book_ptr &book, Position &position, const Trade &trade, bool is_local) {
@@ -294,6 +296,8 @@ private:
     book->asset.avail -= commission;
     book->asset.accumulated_fee += commission;
     book->asset.intraday_fee += commission;
+    // add asset_margin realtime calc, refer to Book::update(int64_t, AccountingMethodType)
+    book->asset.margin -= margin;
   }
 
   template <typename TradingData>

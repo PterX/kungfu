@@ -95,7 +95,15 @@ Position &Book::get_position(Direction direction, const char *exchange_id, const
 
 void Book::update(int64_t update_time, longfist::enums::AccountingMethodType accounting_method_type) {
   asset.update_time = update_time;
-  asset.margin = 0;
+  
+  /* IMPORTANT:
+   * remove assign and reassign of asset.margin
+   * this function will be called when ledger sync asset and position from TD  every minute
+   * margin will recalculate by this function, but margin of asset is not equal to sum of all positions margin,
+   * different exchange may have different margin discount
+   */
+
+  // asset.margin = 0;
   asset.market_value = 0;
   asset.unrealized_pnl = 0;
   asset.dynamic_equity = asset.avail;
@@ -131,7 +139,7 @@ void Book::update(int64_t update_time, longfist::enums::AccountingMethodType acc
                               db_exchage_rate * db_contract_multiplier;
     }
     margin += position.margin;
-
+    
     if (!(is_stock and position.direction == Direction::Short)) {
       asset.market_value += position_market_value;
       asset.unrealized_pnl += position.unrealized_pnl * db_exchage_rate;
@@ -155,7 +163,11 @@ void Book::update(int64_t update_time, longfist::enums::AccountingMethodType acc
     update_position(pair.second);
   }
 
-  asset.margin = margin;
+  //when bookkeeper first start, margin won't be 0
+  if(!asset.margin){
+    asset.margin = margin;
+  }
+  SPDLOG_DEBUG("asset_margin:{}",asset.margin);
   asset_margin.short_market_value = short_market_value;
 }
 

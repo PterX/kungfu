@@ -163,11 +163,9 @@ void Book::update(int64_t update_time, longfist::enums::AccountingMethodType acc
     update_position(pair.second);
   }
 
-  //when bookkeeper first start, margin won't be 0
-  if(!asset.margin){
-    asset.margin = margin;
-  }
-  SPDLOG_DEBUG("asset_margin:{}",asset.margin);
+  // when bookkeeper first start, margin won't be 0
+  // asset.margin = margin;
+
   asset_margin.short_market_value = short_market_value;
 }
 

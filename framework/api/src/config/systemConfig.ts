@@ -16,3 +16,6 @@ export const KfCategoryNameMap = {
   [KfCategoryEnum.system]: 'system',
   [KfCategoryEnum.operator]: 'operator',
 };
+
+export const invalidFileNameReg =
+  /^(con|prn|aux|nul|com[0-9]$|lpt[0-9]$)$|[\0-\x1F\x80-\x9F\\/:*?"<>|]/i;

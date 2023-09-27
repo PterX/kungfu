@@ -42,7 +42,8 @@ public:
 
         auto cm_mr = get_instrument_contract_multiplier_and_margin_ratio(book, position.exchange_id,
                                                                          position.instrument_id, position);
-        position.margin = cm_mr.contract_multiplier * position.settlement_price * position.volume * cm_mr.margin_ratio;
+        position.margin = cm_mr.contract_multiplier * position.settlement_price * cm_mr.exchange_rate *
+                          position.volume * cm_mr.margin_ratio;
 
         book->asset.avail -= (position.direction == Direction::Long ? 1 : -1) * (position.margin - margin_pre);
         position.pre_settlement_price = position.settlement_price;

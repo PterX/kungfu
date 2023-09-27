@@ -146,6 +146,9 @@ void TraderVendor::on_write_to(const event_ptr &event) {
     if (dest_id == get_master_command_uid()) {
       master_cmd_writer_for_thread_ = get_writer(dest_id);
     }
+    if (dest_id == location::PUBLIC) {
+      public_writer_ = get_writer(location::PUBLIC);
+    }
   }
 }
 

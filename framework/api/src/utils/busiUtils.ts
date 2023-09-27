@@ -38,7 +38,6 @@ import {
   T0ExchangeIds,
   PriceLevel,
   InstrumentMinOrderVolume,
-  KfDefaultSystemProcess,
   ExportTradingDataColumnsToFilter,
   OrderTriggerStatus,
   TriggerFlag,
@@ -106,7 +105,6 @@ import { getKfGlobalSettingsValue } from '../config/globalSettings';
 import { Currency } from '../config/tradingConfig';
 const { t } = VueI18n.global;
 import { Observable } from 'rxjs';
-
 interface SourceAccountId {
   source: string;
   id: string;
@@ -985,10 +983,11 @@ export const isTdMdOperatorStrategy = (category: KfCategoryTypes) => {
 
 export const isExtService = (location: KungfuApi.KfExtraLocation) => {
   const { category, group, name } = location;
+  const defaultSystemProcess = getDefaultSystemProcess();
   if (
     category === 'system' &&
     group === 'service' &&
-    KfDefaultSystemProcess.indexOf(name) === -1
+    defaultSystemProcess.indexOf(name) === -1
   )
     return true;
   return false;
@@ -1173,6 +1172,9 @@ export const getProcessIdByKfLocation = (
     default:
       return `${kfLocation.category}_${kfLocation.group}_${kfLocation.name}_${mode}`;
   }
+};
+export const getDefaultSystemProcess = () => {
+  return ['archive', 'master', 'cached', 'ledger', 'dzxy'];
 };
 
 export const getIdByKfLocation = (kfLocation: KungfuApi.KfLocation): string => {
@@ -1500,6 +1502,7 @@ const startProcessByKfLocation = async (
   }
 
   const isForce = force ?? true;
+  const defaultSystemProcess = getDefaultSystemProcess();
 
   switch (kfLocation.category) {
     case 'system':
@@ -1509,7 +1512,7 @@ const startProcessByKfLocation = async (
         return startLedger(isForce);
       } else if (
         kfLocation.group === 'service' &&
-        KfDefaultSystemProcess.indexOf(kfLocation.name) === -1
+        defaultSystemProcess.indexOf(kfLocation.name) === -1
       ) {
         startExtService(kfLocation as KungfuApi.KfExtServiceLocation);
       }

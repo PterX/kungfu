@@ -141,10 +141,10 @@ void Book::update(int64_t update_time, longfist::enums::AccountingMethodType acc
 
     double db_exchage_rate = DEFAULT_INSTRUMENT_EXCHANGE_RATE;
     double db_contract_multiplier = DEFAULT_INSTRUMENT_CONTRACT_MULTIPLIER;
-    auto hashed_instrument_key_with_source_id =
+    auto hashed_instrument_factor_key =
         hash_instrument(position.source_id, position.exchange_id, position.instrument_id);
-    if (instrument_factors.find(hashed_instrument_key_with_source_id) != instrument_factors.end()) {
-      auto &instrument_factor = instrument_factors.at(hashed_instrument_key_with_source_id);
+    if (instrument_factors.find(hashed_instrument_factor_key) != instrument_factors.end()) {
+      auto &instrument_factor = instrument_factors.at(hashed_instrument_factor_key);
       db_exchage_rate = is_equal(instrument_factor.exchange_rate, 0.0) ? DEFAULT_INSTRUMENT_EXCHANGE_RATE
                                                                        : instrument_factor.exchange_rate;
     }
@@ -170,7 +170,7 @@ void Book::update(int64_t update_time, longfist::enums::AccountingMethodType acc
     }
 
     if (position.direction == Direction::Short) {
-      asset.short_market_value = position_market_value;
+      asset.short_market_value += position_market_value;
     }
   };
 

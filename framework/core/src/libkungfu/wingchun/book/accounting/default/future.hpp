@@ -17,12 +17,6 @@ using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
 
 namespace kungfu::wingchun::book {
-
-#define DEFAULT_INSTRUMENT_CONTRACT_MULTIPLIER 10
-#define DEFAULT_INSTRUMENT_LONG_MARGIN_RATIO 0.1
-#define DEFAULT_INSTRUMENT_SHORT_MARGIN_RATIO 0.1
-#define DEFAULT_INSTRUMENT_EXCHANGE_RATE 1.0
-
 struct contract_multiplier_and_margin_ratio {
   int32_t contract_multiplier;
   double margin_ratio;
@@ -381,8 +375,8 @@ private:
 
     if (book->instrument_factors.find(hashed_instrument_key) == book->instrument_factors.end()) {
       cm_mr.exchange_rate = DEFAULT_INSTRUMENT_EXCHANGE_RATE;
-      cm_mr.margin_ratio = position.direction == Direction::Long ? DEFAULT_INSTRUMENT_LONG_MARGIN_RATIO
-                                                                 : DEFAULT_INSTRUMENT_SHORT_MARGIN_RATIO;
+      cm_mr.margin_ratio =
+          position.direction == Direction::Long ? DEFAULT_FUTURE_LONG_MARGIN_RATIO : DEFAULT_FUTURE_SHORT_MARGIN_RATIO;
     } else {
       auto &factor = book->instrument_factors.at(hashed_instrument_key);
       cm_mr.margin_ratio = margin_ratio(factor, position);

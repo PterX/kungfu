@@ -95,7 +95,7 @@ Position &Book::get_position(Direction direction, const char *exchange_id, const
 
 void Book::update(int64_t update_time, longfist::enums::AccountingMethodType accounting_method_type) {
   asset.update_time = update_time;
-  
+
   /* IMPORTANT:
    * remove assign and reassign of asset.margin
    * this function will be called when ledger sync asset and position from TD  every minute
@@ -117,27 +117,25 @@ void Book::update(int64_t update_time, longfist::enums::AccountingMethodType acc
         position.instrument_type == InstrumentType::Repo;
     auto is_future = position.instrument_type == InstrumentType::Future;
 
-    double db_exchage_rate = 1.0;
-    double db_contract_multiplier = 1.0;
+    double db_exchage_rate = DEFAULT_INSTRUMENT_EXCHANGE_RATE;
+    double db_contract_multiplier = DEFAULT_INSTRUMENT_CONTRACT_MULTIPLIER;
     auto hashed_instrument_key = hash_instrument(position.exchange_id, position.instrument_id);
     if (instrument_factors.find(hashed_instrument_key) != instrument_factors.end()) {
       auto &instrument_factor = instrument_factors.at(hashed_instrument_key);
-      db_exchage_rate = is_equal(instrument_factor.exchange_rate, 0.0) ? 1.0 : instrument_factor.exchange_rate;
+      db_exchage_rate = is_equal(instrument_factor.exchange_rate, 0.0) ? DEFAULT_INSTRUMENT_EXCHANGE_RATE
+                                                                       : instrument_factor.exchange_rate;
     }
 
     if (instruments.find(hashed_instrument_key) != instruments.end()) {
       const auto &instrument = instruments.at(hashed_instrument_key);
-      db_contract_multiplier = instrument.contract_multiplier;
+      db_contract_multiplier = (instrument.contract_multiplier > 0) ? instrument.contract_multiplier
+                                                                    : DEFAULT_INSTRUMENT_CONTRACT_MULTIPLIER;
     }
 
-    auto position_market_value =
-        position.volume * (position.last_price > 0 ? position.last_price : position.avg_open_price) * db_exchage_rate;
-
-    if (accounting_method_type == longfist::enums::AccountingMethodType::OTC && is_future) {
-      position_market_value = position.volume *
-                              (position.last_price > 0 ? position.last_price : position.avg_open_price) *
-                              db_exchage_rate * db_contract_multiplier;
-    }
+    auto position_market_value = position.volume *
+                                 (position.last_price > 0 ? position.last_price : position.avg_open_price) *
+                                 db_exchage_rate * db_contract_multiplier;
+    margin += position.margin;
 
     if (!(is_stock and position.direction == Direction::Short)) {
       asset.market_value += position_market_value;

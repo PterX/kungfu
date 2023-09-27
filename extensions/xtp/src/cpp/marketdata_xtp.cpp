@@ -45,8 +45,8 @@ MarketDataXTP::~MarketDataXTP() {
 }
 
 void MarketDataXTP::pre_start() {
-  entrust_band_uid_ = request_band("market-data-band-entrust", 256 * 8);
-  transaction_band_uid_ = request_band("market-data-band-transaction", 256 * 8);
+  entrust_band_uid_ = request_band("market-data-band-entrust", 256);
+  transaction_band_uid_ = request_band("market-data-band-transaction", 256);
 }
 
 void MarketDataXTP::on_start() {

@@ -18,7 +18,6 @@
           v-model:value="currentStartTimeInput"
           type="text"
           size="large"
-          autofocus
           :placeholder="$t('journalConfig.please_input_time')"
           style="width: 128px"
           @blur="handleStartTimeBlur"
@@ -87,8 +86,9 @@
         :size-dependencies-fields="['dataAsString']"
         :resizable="false"
         :custom-row-class="dealRowClassName"
-        @click-cell="handleOpenFrameDetail"
-        @click-row="handleOpenFrameDetail"
+        @click-cell="handleRightClickRow"
+        @click-row="handleRightClickRow"
+        @right-click-row="handleOpenFrameDetail"
         @onScrollToTop="handleScrollToTop"
         @onScrollToBottom="handleScrollToBottom"
       >
@@ -213,9 +213,15 @@ const {
   currentSessionBeginTime,
   currentSessionEndTime,
   currentFrameList,
+  isLoadingFrames,
+  selectedChartItem,
 } = storeToRefs(useJournalStore());
-const { setCurrentFrameList, setCurrentTime, setCurrentLastFrameTime } =
-  useJournalStore();
+const {
+  setCurrentFrameList,
+  setCurrentTime,
+  setCurrentLastFrameTime,
+  setCurrentFrame,
+} = useJournalStore();
 const sourceDestMap = getSourceDestMap();
 const { now } = useNow();
 const scrollerTableRef = ref();
@@ -262,7 +268,6 @@ const frameFilter = ref();
 let currentTracer: KungfuApi.Tracer | null = null;
 
 let requestBreakLoadingDataWhile = false;
-let isLoadingFrames = false;
 
 const channels = ref<ChannelRecords>({} as ChannelRecords);
 const selectedChannels = ref<string[]>([]);
@@ -310,6 +315,15 @@ watch(
   },
 );
 
+watch(
+  () => selectedChartItem.value,
+  (newScrollToItem) => {
+    if (scrollerTableRef.value) {
+      scrollerTableRef.value.scrollToItem(newScrollToItem);
+    }
+  },
+);
+
 const visible = ref(false);
 const currentRowData = ref<KungfuApi.FrameResolved | null>(null);
 const frameHeaderForShow = computed(() => {
@@ -343,7 +357,7 @@ const handleScrollToTop = () => {
 const handleScrollToBottom = debounce(async () => {
   console.warn('scrolling to bottom');
   if (!currentSession.value) return;
-  if (isLoadingFrames) return;
+  if (isLoadingFrames.value) return;
   await delayMilliSeconds(0);
   await loadFrameData(currentSession.value.index, true);
 }, 50);
@@ -372,6 +386,7 @@ const convertToTimestamp = (timeStr) => {
   }
 };
 const validateAndUpdateStartTime = async () => {
+  console.log(111, '`````````````');
   const timeRegex = /^(\d{10,19}|(\d{2}:\d{2}:\d{2}(\.\d{3})?))$/;
   if (timeRegex.test(currentStartTimeInput.value)) {
     const newStartTime = convertToTimestamp(currentStartTimeInput.value);
@@ -418,8 +433,12 @@ const modifyTimestamp = (isIncrease) => {
   validateAndUpdateStartTime();
 };
 
-const increaseTimestamp = () => modifyTimestamp(true);
-const decreaseTimestamp = () => modifyTimestamp(false);
+const increaseTimestamp = () => {
+  modifyTimestamp(true);
+};
+const decreaseTimestamp = () => {
+  modifyTimestamp(false);
+};
 
 watch(
   () => currentSession.value,
@@ -475,7 +494,7 @@ const initLoad = debounce(async () => {
   console.warn('initLoad');
   if (!currentSession.value) return;
   const sessionIdOrigin = currentSession.value.index;
-  isLoadingFrames && (requestBreakLoadingDataWhile = true);
+  isLoadingFrames.value && (requestBreakLoadingDataWhile = true);
   firstSplitFramesLoading.value = true;
   // wait for while looping and break while working
   await delayMilliSeconds(0);
@@ -607,9 +626,9 @@ const loadFrameData = async (currentSessionId: number, loadmore = false) => {
     }
   };
 
-  isLoadingFrames = true;
+  isLoadingFrames.value = true;
   return drain(currentSessionId).then((_: KungfuApi.FrameResolved[]) => {
-    isLoadingFrames = false;
+    isLoadingFrames.value = false;
     firstSplitFramesLoading.value = false;
     requestBreakLoadingDataWhile = false;
     currentFramesId.value = currentFrameList.value[0]?.id;
@@ -653,6 +672,10 @@ const dealTagBackgroundColor = (colorStr: string) => {
 const dealRowClassName = (row) => {
   return row.id === currentFramesId.value ? 'kf-current-table-select' : '';
 };
+
+function handleRightClickRow({ row }) {
+  setCurrentFrame(row);
+}
 </script>
 
 <style lang="less">

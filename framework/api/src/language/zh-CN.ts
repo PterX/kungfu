@@ -699,6 +699,21 @@ export default {
 
     selete_msg_type: '过滤消息类型',
     empty_export_data: '没有可导出的信息',
+
+    entry_visualization: '进入可视化',
+    quit_visualization: '退出可视化',
+    strategy_id: '策略id',
+    quote_legend: '行情订阅',
+    order_input_legend: '委托',
+    order_legend: '委托回报',
+    cancel_order_legend: '撤单',
+    search_order_id: '请搜索订单号',
+    search_instrument: '请搜索代码号',
+    search_order_id_error: '您搜索的订单号不存在, 请检查该订单号是否是所选标的',
+    buy_open: '买开',
+    buy_close: '买平',
+    sell_open: '卖开',
+    sell_close: '卖平',
   },
 
   tradeConfig: {

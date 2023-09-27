@@ -138,8 +138,7 @@ void Book::update(int64_t update_time, longfist::enums::AccountingMethodType acc
                               (position.last_price > 0 ? position.last_price : position.avg_open_price) *
                               db_exchage_rate * db_contract_multiplier;
     }
-    margin += position.margin;
-    
+
     if (!(is_stock and position.direction == Direction::Short)) {
       asset.market_value += position_market_value;
       asset.unrealized_pnl += position.unrealized_pnl * db_exchage_rate;
@@ -162,9 +161,6 @@ void Book::update(int64_t update_time, longfist::enums::AccountingMethodType acc
   for (auto &pair : short_positions) {
     update_position(pair.second);
   }
-
-  // when bookkeeper first start, margin won't be 0
-  // asset.margin = margin;
 
   asset_margin.short_market_value = short_market_value;
 }

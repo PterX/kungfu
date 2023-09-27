@@ -18,11 +18,11 @@ import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/p
 import KfBlinkNum from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfBlinkNum.vue';
 import KfTradingDataTable from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfTradingDataTable.vue';
 import { categoryRegisterConfig, getColumns } from './config';
+import { dealKfPrice } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   dealDirection,
   dealCurrency,
-  dealKfPrice,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+} from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import {
   LedgerCategoryEnum,
   SideEnum,
@@ -37,7 +37,7 @@ import {
   useDealDataWithCaches,
   showTradingDataDetail,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
-import { dealPosition } from '@kungfu-trader/kungfu-js-api/kungfu';
+import { dealPosition } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
 import {
   getPosClosableVolumeByOffset,

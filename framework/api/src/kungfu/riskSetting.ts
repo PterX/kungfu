@@ -1,7 +1,8 @@
 import path from 'path';
 import fse from 'fs-extra';
 import { riskSettingStore, longfist } from '.';
-import { kfLogger, getResultUntilValuable } from '../utils/busiUtils';
+import { getResultUntilValuable } from '../utils/commonUtils';
+import { kfLogger } from '../utils/logUtils';
 import { BASE_DB_DIR } from '../config/pathConfig';
 
 export const getAllKfRiskSettings = (): Promise<

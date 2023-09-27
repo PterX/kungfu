@@ -953,7 +953,7 @@ export default {
       'due to discrepancies between the output data and the actual execution.',
     process_not_found: 'Process not found',
     enable_matcher_tip:
-      'When using the matcher, you can modify the strategy logic and replay it',
+      'Use the matcher to run in backtest mode, the strategy logic can be modified.',
   },
 
   master_interrupt: 'master interrupted',

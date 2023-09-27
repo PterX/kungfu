@@ -2,10 +2,8 @@ import { selectTargetKfConfig } from '../assets/methods/utils';
 import monitor from '../components/monitor';
 import tradingDataMonitor from '../components/tradingDataMonitor';
 import { globalState } from '../assets/actions/globalState';
-import {
-  dealAppStates,
-  setTimerPromiseTask,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { dealAppStates } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { setTimerPromiseTask } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 
 export const monitPrompt = async (list: boolean) => {
   const { watcher } = await import(

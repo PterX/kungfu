@@ -4,7 +4,7 @@ import { reactive, Ref, ref } from 'vue';
 import {
   isCriticalLog,
   KfFixedList,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { Tail } from 'tail';
 import { messagePrompt, parseURIParams } from './uiUtils';
 import { ensureFileSync } from 'fs-extra';

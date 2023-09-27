@@ -6,7 +6,7 @@ import {
   KF_RUNTIME_DIR,
 } from './config/pathConfig';
 import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
-import { dealSpaceInPath } from './utils/busiUtils';
+import { dealSpaceInPath } from './utils/commonUtils';
 import { KUNGFU_SAFE_CPUS_NUM, getCpusNum } from './utils/osUtils';
 
 // 此文件为所有需要预置在进程时携带的环境变量

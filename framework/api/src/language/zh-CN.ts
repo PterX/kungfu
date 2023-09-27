@@ -944,7 +944,7 @@ export default {
     replay_tips2_part2: '请勿修改策略逻辑',
     replay_tips2_part3: ', 否则会由于输出数据与实际不符而报错.',
     process_not_found: '进程不存在',
-    enable_matcher_tip: '使用撮合器的情况下, 可以修改策略逻辑并进行回放',
+    enable_matcher_tip: '使用撮合器以回测模式运行,  策略逻辑可修改',
   },
 
   master_interrupt: '主控进程 master 中断',

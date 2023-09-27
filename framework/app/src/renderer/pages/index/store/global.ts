@@ -5,10 +5,10 @@ import {
   KfLayoutTargetDirectionClassName,
 } from '@kungfu-trader/kungfu-app/src/typings/enums';
 import {
-  getIdByKfLocation,
-  getKfExtensionConfig,
   getKfUIExtensionConfig,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+  getKfExtensionConfig,
+} from '@kungfu-trader/kungfu-js-api/utils/extUtils';
+import { getIdByKfLocation } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   getAllKfConfigOriginData,
   getAllRiskSettingList,

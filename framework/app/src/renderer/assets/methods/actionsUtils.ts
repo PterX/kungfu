@@ -2,14 +2,16 @@ import os from 'os';
 import { dialog, shell } from '@electron/remote';
 import { ensureRemoveLocation } from '@kungfu-trader/kungfu-js-api/actions';
 import {
+  hashInstrumentUKey,
+  sessionStore,
+} from '@kungfu-trader/kungfu-js-api/kungfu';
+import {
   dealPosition,
   dealTradingDataItem,
-  getKungfuHistoryData,
-  hashInstrumentUKey,
   kfRequestMarketData,
-  sessionStore,
+  getKungfuHistoryData,
   getNanoDateString,
-} from '@kungfu-trader/kungfu-js-api/kungfu';
+} from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 
 import { setKfConfig } from '@kungfu-trader/kungfu-js-api/kungfu/store';
 import { KfCategoryNameMap } from '@kungfu-trader/kungfu-js-api/config/systemConfig';
@@ -30,31 +32,36 @@ import {
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
   getKfCategoryData,
-  getIdByKfLocation,
-  getMdTdKfLocationByProcessId,
-  getProcessIdByKfLocation,
   switchKfLocation,
-  findTargetFromArray,
   getAppStateStatusName,
-  buildExtTypeMap,
   dealCategory,
-  getAvailExtServiceList,
   getStrategyStateStatusName,
   isBrokerStateReady,
-  dealKfNumber,
-  dealKfPrice,
-  transformSearchInstrumentResultToInstrument,
-  isShotable,
-  isT0,
   getTradingDataSortKey,
   isUpdateVersionLogicEnable,
   isCheckVersionLogicEnable,
-  kfLogger,
-  countDecimalPlaces,
-  buildTradingDataHeaders,
-  getYearMonthDay,
-  flattenExtensionModuleDirs,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import {
+  flattenExtensionModuleDirs,
+  getAvailExtServiceList,
+  buildExtTypeMap,
+} from '@kungfu-trader/kungfu-js-api/utils/extUtils';
+import {
+  isT0,
+  transformSearchInstrumentResultToInstrument,
+  isShotable,
+  buildTradingDataHeaders,
+} from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
+import {
+  getIdByKfLocation,
+  getProcessIdByKfLocation,
+  dealKfNumber,
+  dealKfPrice,
+  getYearMonthDay,
+  countDecimalPlaces,
+  findTargetFromArray,
+  getMdTdKfLocationByProcessId,
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { BasketVolumeType } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import { writeCsvWithUTF8Bom } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
@@ -116,6 +123,7 @@ import { RuleObject } from 'ant-design-vue/lib/form';
 import { TradeAccountingUsageMap } from '@kungfu-trader/kungfu-js-api/utils/accounting';
 import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
 import fse from 'fs-extra';
+import { kfLogger } from '@kungfu-trader/kungfu-js-api/utils/logUtils';
 import {
   LifeCycleHook,
   LifeCycleKeys,

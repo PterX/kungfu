@@ -3,11 +3,11 @@ import { ref, onMounted, computed, getCurrentInstance } from 'vue';
 
 import {
   getInstrumentTypeData,
-  getStrategyExtTypeData,
-  getExtConfigList,
   isTdMd,
   isOperator,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { getExtConfigList } from '@kungfu-trader/kungfu-js-api/utils/extUtils';
+import { getStrategyExtTypeData } from '@kungfu-trader/kungfu-js-api/utils/extUtils';
 import { useModalVisible } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import {
   KfCategoryTypes,

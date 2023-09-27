@@ -18,7 +18,7 @@ public:
 
   [[nodiscard]] uint32_t get_version() const { return header_->version; }
 
-  [[nodiscard]] uint32_t get_page_size() const { return header_->page_size; }
+  [[nodiscard]] uint64_t get_page_size() const { return header_->page_size; }
 
   [[nodiscard]] data::location_ptr get_location() const { return location_; }
 
@@ -40,7 +40,7 @@ public:
     return address() + header_->page_size - sizeof(longfist::types::frame_header);
   }
 
-  [[nodiscard]] uint32_t get_body_size() const { return size_ - header_->page_header_length; }
+  [[nodiscard]] uint64_t get_body_size() const { return size_ - header_->page_header_length; }
 
   [[nodiscard]] uintptr_t first_frame_address() const { return address() + header_->page_header_length; }
 

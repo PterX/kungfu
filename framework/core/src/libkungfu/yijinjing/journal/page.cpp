@@ -70,7 +70,7 @@ page_ptr page::load(const data::location_ptr &location, uint32_t dest_id, uint64
     throw journal_error(fmt::format("{} header length mismatch, required {}, found {}", path, sizeof(page_header), l));
   }
   if (header->page_size != page_size) {
-    uint32_t s = header->page_size;
+    uint64_t s = header->page_size;
     throw journal_error(fmt::format(
         "page size mismatch, required {}, found {}, location {}, path {}, dest_id {}, page_id {} is_writing {}",
         page_size, s, location->uname, path, dest_id, page_id, is_writing));

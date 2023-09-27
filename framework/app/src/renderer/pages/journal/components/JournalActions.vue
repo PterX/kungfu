@@ -1,7 +1,14 @@
 <template>
   <div class="journal-action">
     <a-button
-      v-if="isShowReplay"
+      v-if="isShowVisualAction"
+      style="margin-right: 8px; color: #d22e88; border-color: #d22e88"
+      @click="$emit('showVisual')"
+    >
+      {{ visualBtnText }}
+    </a-button>
+    <a-button
+      v-if="isShowReplayAction"
       @click="handleOpenReplayConfirmModal"
       style="margin-left: 8px"
     >
@@ -54,15 +61,16 @@
 import fse from 'fs-extra';
 import path from 'path';
 import { dialog } from '@electron/remote';
-import { reactive, ref } from 'vue';
+import { reactive, ref, computed } from 'vue';
 import { DashOutlined } from '@ant-design/icons-vue';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { messagePrompt } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import { writeCsvByStream } from '../utils';
 const { t } = VueI18n.global;
 
-defineProps<{
-  isShowReplay: boolean;
+const props = defineProps<{
+  isShowReplayAction: boolean;
+  isShowVisualAction: Boolean;
 }>();
 
 const emit = defineEmits<{
@@ -74,6 +82,7 @@ const emit = defineEmits<{
     ) => void,
   ): void;
   (e: 'startReplay'): void;
+  (e: 'showVisual'): void;
 }>();
 
 const EXPORT_KEY = 'export_file_path';
@@ -83,6 +92,12 @@ const exportFormState = reactive({
 });
 const exportFormModalVisible = ref(false);
 const message = messagePrompt();
+
+const visualBtnText = computed(() => {
+  return props.isShowVisualAction
+    ? t('journalConfig.quit_visualization')
+    : t('journalConfig.entry_visualization');
+});
 
 const exportModalConfig = {
   title: t('journalConfig.export'),

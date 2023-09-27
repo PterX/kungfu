@@ -1366,6 +1366,7 @@ declare namespace KungfuApi {
     genTimeResolved: string;
     triggerTimeResolved: string;
     msgTypeResolved: KfTradeValueCommonData;
+    index?: number;
   }
 
   export interface Tracer {

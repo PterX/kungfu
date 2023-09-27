@@ -146,6 +146,7 @@ export enum OffsetEnum {
   Close,
   CloseToday,
   CloseYest,
+  Unknown = 99,
 }
 
 export type OffsetTypes = keyof typeof OffsetEnum;

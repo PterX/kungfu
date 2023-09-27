@@ -703,6 +703,21 @@ export default {
 
     replay: 'Replay',
     please_select_strategy_or_operator: 'Please select strategy or operator',
+    entry_visualization: 'Entry visualization',
+    quit_visualization: 'Entry visualization',
+    strategy_id: 'Strategy ID',
+    quote_legend: 'Quote',
+    order_input_legend: 'OrderInput',
+    order_legend: 'Order',
+    cancel_order_legend: 'OrderAction',
+    search_order_id: 'Please search for order id',
+    search_instrument: 'Please search for code number',
+    search_order_id_error:
+      'The order number you searched for does not exist. Please check if it is the selected target',
+    buy_open: 'Buy to open',
+    buy_close: 'Buy to close',
+    sell_open: 'Sell to open',
+    sell_close: 'Sell to close',
   },
 
   tradeConfig: {

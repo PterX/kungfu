@@ -490,6 +490,7 @@ uint64_t LiveContext::cancel_order(uint64_t order_id, OrderActionFlag action_fla
   action.order_action_id = writer->current_frame_uid();
   action.order_id = order_id;
   action.action_flag = action_flag;
+  action.insert_time = time::now_in_nano();
 
   writer->close_data();
   return action.order_action_id;
@@ -513,6 +514,7 @@ uint64_t LiveContext::cancel_order_trigger(uint64_t trigger_id) {
   action.order_trigger_action_id = writer->current_frame_uid();
   action.trigger_id = trigger_id;
   action.action_flag = OrderActionFlag::Cancel;
+  action.insert_time = time::now_in_nano();
 
   writer->close_data();
   return action.order_trigger_action_id;
@@ -537,6 +539,8 @@ uint64_t LiveContext::cancel_algo_order(uint64_t algo_order_id, AlgoOrderActionF
   action.order_action_id = writer->current_frame_uid();
   action.order_id = algo_order_id;
   action.action_flag = action_flag;
+  action.insert_time = time::now_in_nano();
+
   writer->close_data();
   return action.order_action_id;
 }

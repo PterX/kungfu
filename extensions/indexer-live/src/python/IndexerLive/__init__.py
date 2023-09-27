@@ -19,7 +19,7 @@ def find_md_slice_location(
 def get_md_slice_end_time(
     ctx, nano_time, group, name, instrument_id, exchange_id, data_type
 ):
-    return kft.today_start() + 24 * 60 * 60 * 10**9
+    return kft.today_start() + kft.DAY_IN_NANO
 
 
 def find_operator_slice_location(ctx, nano_time, group, name):
@@ -30,4 +30,4 @@ def find_operator_slice_location(ctx, nano_time, group, name):
 
 
 def get_operator_slice_end_time(ctx, nano_time, group, name):
-    return kft.today_start() + 24 * 60 * 60 * 10**9
+    return kft.today_start() + kft.DAY_IN_NANO

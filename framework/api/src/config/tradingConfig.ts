@@ -35,14 +35,6 @@ import { Pm2ProcessStatusTypes } from '../utils/processUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 const { t } = VueI18n.global;
 
-export const KfDefaultSystemProcess = [
-  'archive',
-  'master',
-  'cached',
-  'ledger',
-  'dzxy',
-];
-
 export const Pm2ProcessStatus: Record<
   Pm2ProcessStatusTypes,
   KungfuApi.KfTradeValueCommonData

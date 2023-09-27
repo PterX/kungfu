@@ -36,10 +36,10 @@ BacktestContext::BacktestContext(practice::apprentice &app, const rx::connectabl
 }
 
 void BacktestContext::on_start() {
-  // auto writer = app_.get_writer(location::PUBLIC);
-  // writer->mark_at(app_.get_begin_time(), app_.get_begin_time(), RequestStart::tag);
   // broker_client_.on_start(events_);
-  bookkeeper_.on_start(events_);
+  if (not is_bypass_accounting()) {
+    bookkeeper_.on_start(events_);
+  }
   events_ | is_own<Quote>(get_broker_client()) |
       $$(matcher_->on_quote(event->data<Quote>()); report_->on_quote(event->data<Quote>()););
   events_ | is_own<Entrust>(get_broker_client()) |

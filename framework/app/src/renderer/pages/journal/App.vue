@@ -217,68 +217,53 @@ const canBacktest = computed(() => {
   return currentSession.value?.category === 'strategy';
 });
 const replayPramas = computed(() => {
+  const currentSessionValue = currentSession.value;
+  const replayConfigValue = replayConfig.value;
+  const replayEnabled = testCase.value.replayEnabled;
   if (
     !(
-      currentSession.value &&
-      (testCase.value.replayEnabled[currentSession.value.category] ||
-        (currentSession.value.category === 'system' &&
-          currentSession.value.name === 'ledger'))
+      currentSessionValue &&
+      (replayEnabled[currentSessionValue.category] ||
+        (currentSessionValue.category === 'system' &&
+          currentSessionValue.name === 'ledger'))
     )
-  )
+  ) {
     return {};
-  const mode = replayConfig.value.enable_matcher ? 'backtest' : 'replay';
-  const { category, group, name } = currentSession.value;
+  }
+  const mode = replayConfigValue.enable_matcher ? 'backtest' : 'replay';
+  const { category, group, name, begin_time, end_time } = currentSessionValue;
   const dateStr = getYearMonthDay();
-  const logPath = replayConfig.value.enable_matcher
+  const logPath = replayConfigValue.enable_matcher
     ? buildProcessBacktestPath(
-        {
-          category,
-          group,
-          name,
-          mode,
-        },
-        `${currentSession.value.name}_${dateStr}`,
+        { category, group, name, mode },
+        `${name}_${dateStr}`,
       )
     : buildProcessReplayPath(
-        {
-          category,
-          group,
-          name,
-          mode,
-        },
-        `${currentSession.value.name}_${dateStr}`,
+        { category, group, name, mode },
+        `${name}_${dateStr}`,
       );
-  const begin_time =
-    replayConfig.value.begin_time.split(' ')[1] ||
-    getNanoDateString(currentSession.value.begin_time);
-  const end_time =
-    replayConfig.value.end_time.split(' ')[1] ||
-    (currentSession.value.end_time
-      ? getNanoDateString(currentSession.value.end_time)
+  const beginTime =
+    replayConfigValue.begin_time.split(' ')[1] || getNanoDateString(begin_time);
+  const endTime =
+    replayConfigValue.end_time.split(' ')[1] ||
+    (end_time
+      ? getNanoDateString(end_time)
       : getNanoDateString(BigInt(new Date().getTime()) * 1000000n));
-  const processId = getProcessIdByKfLocation(
-    {
-      category,
-      group,
-      name,
-      mode,
-    },
-    mode,
-  );
+  const processId = getProcessIdByKfLocation({ category, group, name, mode });
+  const enableMatcher = replayConfigValue.enable_matcher || false;
   return {
-    category: category,
-    group: group,
-    beginTime: begin_time,
-    endTime: end_time,
-    logPath: logPath,
-    logLevel: replayConfig.value.log_level || '-l info',
-    sessionName: currentSession.value.name || '',
-    filePath: replayConfig.value.file_path || '',
-    processId: processId,
-    enableMatcher: (replayConfig.value.enable_matcher || false).toString(),
+    category,
+    group,
+    beginTime,
+    endTime,
+    logPath,
+    logLevel: replayConfigValue.log_level || '-l info',
+    sessionName: name || '',
+    filePath: replayConfigValue.file_path || '',
+    processId,
+    enableMatcher: enableMatcher.toString(),
   };
 });
-
 const isShowReplay = computed(() => {
   return (
     currentSession.value &&
@@ -449,67 +434,72 @@ const onJournalActionsData = (
   exportData(exportFileName.value, currentFrameList.value);
 };
 const dealLocation = () => {
-  if (!currentSession.value) {
+  const { value: currentSessionValue } = currentSession;
+  if (!currentSessionValue) {
     messagePrompt().error(t('replay.please_select_session'));
     return;
   }
-  const locationResolved: KungfuApi.KfConfig = {
-    category: currentSession.value.category,
-    group: currentSession.value.group,
-    name: currentSession.value.name,
-    mode: currentSession.value.mode,
-    location_uid: currentSession.value.location_uid,
+
+  const { category, group, name, mode, location_uid } = currentSessionValue;
+  const locationResolved = {
+    category,
+    group,
+    name,
+    mode,
+    location_uid,
     value: '',
   };
 
-  if (currentSession.value?.category === 'operator') {
-    if (currentSession.value?.group === 'default') {
-      if (operator.value.length === 0) {
+  switch (category) {
+    case 'operator':
+      if (group === 'default') {
+        const operatorValue = operator.value;
+        if (operatorValue.length === 0) {
+          messagePrompt().error(t('replay.process_has_not_been_started'));
+          return;
+        }
+        const operatorMatch = operatorValue.find(
+          (item) => item.location_uid === location_uid,
+        );
+        if (operatorMatch) {
+          locationResolved.value = operatorMatch.value;
+        }
+      }
+      break;
+    case 'strategy':
+      if (group === 'default') {
+        const strategyValue = strategy.value;
+        if (strategyValue.length === 0) {
+          messagePrompt().error(t('replay.process_has_not_been_started'));
+          return;
+        }
+        const strategyMatch = strategyValue.find(
+          (item) => item.location_uid === location_uid,
+        );
+        if (strategyMatch) {
+          locationResolved.value = strategyMatch.value;
+        }
+      }
+      break;
+    case 'td':
+      if (td.value.length === 0) {
         messagePrompt().error(t('replay.process_has_not_been_started'));
         return;
       }
-      for (let i = 0; i < operator.value.length; i++) {
-        if (
-          operator.value[i].location_uid === currentSession.value.location_uid
-        ) {
-          locationResolved.value = operator.value[i].value;
-          break;
-        }
-      }
-    }
-  } else if (currentSession.value?.category === 'strategy') {
-    if (currentSession.value?.group === 'default') {
-      if (strategy.value.length === 0) {
-        messagePrompt().error(t('replay.process_has_not_been_started'));
+      break;
+    case 'system':
+      if (name !== 'ledger') {
+        messagePrompt().error(t('replay.process_can_not_replay'));
         return;
       }
-      for (let i = 0; i < strategy.value.length; i++) {
-        if (
-          strategy.value[i].location_uid === currentSession.value.location_uid
-        ) {
-          locationResolved.value = strategy.value[i].value;
-          break;
-        }
-      }
-    }
-  } else if (currentSession.value?.category === 'td') {
-    if (td.value.length === 0) {
-      messagePrompt().error(t('replay.process_has_not_been_started'));
-      return;
-    }
-  } else if (currentSession.value?.category === 'system') {
-    if (locationResolved.name !== 'ledger') {
+      break;
+    default:
       messagePrompt().error(t('replay.process_can_not_replay'));
       return;
-    }
-  } else {
-    messagePrompt().error(t('replay.process_can_not_replay'));
-    return;
   }
 
-  handleOpenReplayConfirmView(locationResolved, currentSession.value);
+  handleOpenReplayConfirmView(locationResolved, currentSessionValue);
 };
-
 const dealRowClassName = (row) => {
   return row.begin_time === currentSessionKey.value
     ? 'current-global-kfLocation'

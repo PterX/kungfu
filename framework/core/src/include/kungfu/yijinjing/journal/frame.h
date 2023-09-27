@@ -102,7 +102,14 @@ struct cloned_frame : frame {
 
   void copy(frame &from) {
     header_ = reinterpret_cast<longfist::types::frame_header *>(malloc(from.frame_length()));
+    memset(header_, 0, from.frame_length());
     memcpy(header_, from.header_, from.frame_length());
+  }
+
+  void open(uint32_t data_length) {
+    auto frame_length = sizeof(longfist::types::frame_header) + data_length;
+    header_ = reinterpret_cast<longfist::types::frame_header *>(malloc(frame_length));
+    memset(header_, 0, frame_length);
   }
 };
 

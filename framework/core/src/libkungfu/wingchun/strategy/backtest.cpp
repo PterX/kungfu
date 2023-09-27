@@ -36,10 +36,10 @@ BacktestContext::BacktestContext(practice::apprentice &app, const rx::connectabl
 }
 
 void BacktestContext::on_start() {
-  // auto writer = app_.get_writer(location::PUBLIC);
-  // writer->mark_at(app_.get_begin_time(), app_.get_begin_time(), RequestStart::tag);
   // broker_client_.on_start(events_);
-  bookkeeper_.on_start(events_);
+  if (not is_bypass_accounting()) {
+    bookkeeper_.on_start(events_);
+  }
   events_ | is_own<Quote>(get_broker_client()) |
       $$(matcher_->on_quote(event->data<Quote>()); report_->on_quote(event->data<Quote>()););
   events_ | is_own<Entrust>(get_broker_client()) |
@@ -74,6 +74,9 @@ int64_t BacktestContext::now() const { return app_.now(); }
 
 int32_t BacktestContext::add_timer(int64_t nanotime, const std::function<void(event_ptr)> &callback) {
   const int32_t timer_id = timer_usage_count_++;
+  if (timer_id < 0) {
+    throw wingchun_error(fmt::format("timer_id={} is overflow", timer_id));
+  }
   pre_timer_callbacks_.emplace(nanotime, TimerTask{timer_id, callback});
   return timer_id;
 }
@@ -94,6 +97,10 @@ int32_t BacktestContext::add_timer_interval_helper(int64_t duration, int32_t tim
 }
 
 void BacktestContext::clear_timer(int32_t timer_id) {
+  if (timer_id <= protected_timer_id_) {
+    SPDLOG_WARN("timer_id={} lower than {} is reserved which is not allowed to clear", timer_id, protected_timer_id_);
+    return;
+  }
   std::erase_if(pre_timer_callbacks_,
                 [timer_id](const auto &timer_task) { return timer_task.second.timer_id == timer_id; });
   std::erase_if(timer_callbacks_,
@@ -144,7 +151,7 @@ void BacktestContext::lease_expired_check() {
 }
 
 void BacktestContext::init_time_events() {
-  auto writer = app_.get_writer(app_.get_live_home_uid());
+  auto writer = app_.get_writer(app_.get_home_uid());
   nlohmann::json j_obj = nlohmann::json::parse(backtest_config_);
   parse_then_write_in_timer<Commission>(j_obj, writer);
   parse_then_write_in_timer<Instrument>(j_obj, writer);
@@ -154,7 +161,7 @@ void BacktestContext::init_time_events() {
     writer->mark_at(next_time, next_time, Time::tag);
   };
   write_next_time_mark(nullptr);
-  add_time_interval(time_interval_, write_next_time_mark);
+  protected_timer_id_ = add_time_interval(time_interval_, write_next_time_mark);
 
   SPDLOG_DEBUG("init {} Time events done.", (app_.get_end_time() - app_.get_begin_time()) / time_interval_);
 }

@@ -491,7 +491,12 @@ async function confirmOrderPlace(
   const tdProcessId =
     currentGlobalKfLocation.value?.category === 'td'
       ? getProcessIdByKfLocation(currentGlobalKfLocation.value)
-      : `td_${account_id.toString()}`;
+      : getProcessIdByKfLocation({
+          category: 'td',
+          group: account_id.split('_')[0],
+          name: account_id.split('_')[1],
+          mode: 'live',
+        });
 
   if (processStatusData.value[tdProcessId] !== 'online') {
     return Promise.reject(

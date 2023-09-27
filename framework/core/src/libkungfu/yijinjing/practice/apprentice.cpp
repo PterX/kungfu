@@ -160,10 +160,10 @@ void apprentice::react() {
     fs::remove_all(journal_dir);
     std::string master_cmd_dir = get_locator()->layout_dir(master_cmd_location_, layout::JOURNAL);
     fs::remove_all(master_cmd_dir);
-    auto app_cmd_writer = get_io_device()->open_writer_at(master_cmd_location_, get_live_home_uid());
+    auto app_cmd_writer = get_io_device()->open_writer_at(master_cmd_location_, get_home_uid());
 
-    writers_.insert_or_assign(get_live_home_uid(), app_cmd_writer);
-    reader_->join(master_cmd_location_, get_live_home_uid(), begin_time_);
+    writers_.insert_or_assign(get_home_uid(), app_cmd_writer);
+    reader_->join(master_cmd_location_, get_home_uid(), begin_time_);
     writers_.insert_or_assign(location::PUBLIC, get_io_device()->open_writer(location::PUBLIC));
     reader_->join(get_home(), location::PUBLIC, begin_time_);
     started_ = true;
@@ -225,6 +225,9 @@ void apprentice::on_write_to(const event_ptr &event) {
     writers_.emplace(dest_id, get_io_device()->open_writer(dest_id));
     if (dest_id == get_master_command_uid()) {
       master_cmd_writer_for_thread_ = get_writer(dest_id);
+    }
+    if (dest_id == location::PUBLIC) {
+      public_writer_ = get_writer(location::PUBLIC);
     }
   }
 }
@@ -328,7 +331,7 @@ journal::writer_ptr &apprentice::get_thread_writer() {
     /// join channel in sub-thread will crash, so tell master to ask myself to join
     /// do not use writer because of multi-thread concurrency issues
     if (not master_cmd_writer_for_thread_) {
-      SPDLOG_ERROR("has no writer of master_cmd: {:8x}:{}", get_master_command_uid(),
+      SPDLOG_ERROR("has no writer for master_cmd: {:8x}:{}", get_master_command_uid(),
                    get_location_uname(get_master_command_uid()));
     }
     RequestReadFromOthers &request = master_cmd_writer_for_thread_->open_data<RequestReadFromOthers>();
@@ -340,5 +343,7 @@ journal::writer_ptr &apprentice::get_thread_writer() {
   }
   return thread_writer_;
 }
+
+yijinjing::journal::writer_ptr &apprentice::get_public_writer() { return public_writer_; }
 
 } // namespace kungfu::yijinjing::practice

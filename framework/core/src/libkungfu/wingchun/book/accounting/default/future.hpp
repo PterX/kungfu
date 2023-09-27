@@ -18,11 +18,6 @@ using namespace kungfu::yijinjing::data;
 
 namespace kungfu::wingchun::book {
 
-#define DEFAULT_INSTRUMENT_CONTRACT_MULTIPLIER 10
-#define DEFAULT_INSTRUMENT_LONG_MARGIN_RATIO 0.1
-#define DEFAULT_INSTRUMENT_SHORT_MARGIN_RATIO 0.1
-#define DEFAULT_INSTRUMENT_EXCHANGE_RATE 1.0
-
 struct future_contract_multiplier_and_margin_ratio {
   int32_t contract_multiplier;
   double margin_ratio;
@@ -237,6 +232,8 @@ private:
     book->asset.avail -= margin;
     book->asset.accumulated_fee += commission;
     book->asset.intraday_fee += commission;
+    // add asset_margin realtime calc, refer to Book::update(int64_t, AccountingMethodType)
+    book->asset.margin += margin;
   }
 
   void apply_close(Book_ptr &book, Position &position, const Trade &trade, bool is_local) {
@@ -275,6 +272,8 @@ private:
     book->asset.avail -= commission;
     book->asset.accumulated_fee += commission;
     book->asset.intraday_fee += commission;
+    // add asset_margin realtime calc, refer to Book::update(int64_t, AccountingMethodType)
+    book->asset.margin -= margin;
   }
 
   template <typename TradingData>
@@ -361,7 +360,7 @@ private:
     if (book->instrument_factors.find(hashed_instrument_factor_key) == book->instrument_factors.end()) {
       cm_mr.exchange_rate = DEFAULT_INSTRUMENT_EXCHANGE_RATE;
       cm_mr.margin_ratio =
-          direction == Direction::Long ? DEFAULT_INSTRUMENT_LONG_MARGIN_RATIO : DEFAULT_INSTRUMENT_SHORT_MARGIN_RATIO;
+          direction == Direction::Long ? DEFAULT_FUTURE_LONG_MARGIN_RATIO : DEFAULT_FUTURE_SHORT_MARGIN_RATIO;
     } else {
       auto &factor = book->instrument_factors.at(hashed_instrument_factor_key);
       cm_mr.margin_ratio = direction == Direction::Long ? factor.long_margin_ratio : factor.short_margin_ratio;

@@ -17,6 +17,7 @@ import {
 import { KfCategory } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import {
   KfCategoryEnum,
+  KfModeEnum,
   KfCategoryTypes,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
@@ -44,6 +45,7 @@ export const dealSession = (
   session.category = KfCategoryEnum[
     session.category as KfCategoryEnum
   ] as KfCategoryTypes;
+  session.mode = KfModeEnum[session.mode as KfModeEnum];
   return {
     ...session,
     sessionName: getIdByKfLocation(session),

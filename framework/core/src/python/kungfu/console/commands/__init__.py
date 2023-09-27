@@ -166,7 +166,7 @@ def kfc(ctx, home, extension_path, log_level, name, cli_dev_path):
     # have to keep locator alive from python side
     # https://github.com/pybind/pybind11/issues/1546
     ctx.runtime_locator = yjj.locator(ctx.runtime_dir)
-    ctx.backtest_locator = yjj.locator(ctx.backtest_dir)
+    ctx.backtest_locator = yjj.locator(lf.enums.mode.BACKTEST)
     ctx.config_location = yjj.location(
         lf.enums.mode.LIVE,
         lf.enums.category.SYSTEM,

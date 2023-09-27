@@ -31,14 +31,6 @@ struct contract_multiplier_and_margin_ratio {
 
 class StockAccountingMethod : public AccountingMethod {
 public:
-  static constexpr int DEFAULT_STOCK_CONTRACT_MULTIPLIER = 1;
-  static constexpr float DEFAULT_STOCK_LONG_MARGIN_RATIO = 1.0;
-  static constexpr float DEFAULT_STOCK_SHORT_MARGIN_RATIO = 0.6;
-  static constexpr float DEFAULT_STOCK_CONVERSION_RATE = 0.7;
-  static constexpr int AMOUT_PRECISION = 3;
-  static constexpr double MAX_COLLATERAL_RATIO = 1000.0;
-  static constexpr double DEFAULT_STOCK_EXCHANGE_RATE = 1.0;
-
   StockAccountingMethod() = default;
 
   virtual void apply_quote(Book_ptr &book, const Quote &quote) override {
@@ -353,11 +345,11 @@ protected:
     contract_multiplier_and_margin_ratio cd_mr = {};
 
     if (book->instruments.find(hashed_instrument_key) == book->instruments.end()) {
-      cd_mr.contract_multiplier = DEFAULT_STOCK_CONTRACT_MULTIPLIER;
+      cd_mr.contract_multiplier = DEFAULT_INSTRUMENT_CONTRACT_MULTIPLIER;
     } else {
       const auto &instrument = book->instruments.at(hashed_instrument_key);
       cd_mr.contract_multiplier =
-          instrument.contract_multiplier == 0 ? DEFAULT_STOCK_CONTRACT_MULTIPLIER : instrument.contract_multiplier;
+          instrument.contract_multiplier == 0 ? DEFAULT_INSTRUMENT_CONTRACT_MULTIPLIER : instrument.contract_multiplier;
     }
 
     auto hashed_instrument_factor_key = hash_instrument(account_id, exchange_id, instrument_id);
@@ -365,13 +357,14 @@ protected:
       cd_mr.margin_ratio =
           direction == Direction::Long ? DEFAULT_STOCK_LONG_MARGIN_RATIO : DEFAULT_STOCK_SHORT_MARGIN_RATIO;
       cd_mr.conversion_rate = DEFAULT_STOCK_CONVERSION_RATE;
-      cd_mr.exchange_rate = DEFAULT_STOCK_EXCHANGE_RATE;
+      cd_mr.exchange_rate = DEFAULT_INSTRUMENT_EXCHANGE_RATE;
     } else {
       auto &factor = book->instrument_factors.at(hashed_instrument_factor_key);
       cd_mr.margin_ratio = margin_ratio(factor, direction);
       cd_mr.conversion_rate =
           is_equal(factor.conversion_rate, 0.0) ? DEFAULT_STOCK_CONVERSION_RATE : factor.conversion_rate;
-      cd_mr.exchange_rate = is_equal(factor.exchange_rate, 0.0) ? 1.0 : factor.exchange_rate;
+      cd_mr.exchange_rate =
+          is_equal(factor.exchange_rate, 0.0) ? DEFAULT_INSTRUMENT_EXCHANGE_RATE : factor.exchange_rate;
     }
 
     return cd_mr;

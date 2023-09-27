@@ -146,8 +146,24 @@ watch(appStates, (newAppStates, oldAppStates) => {
 });
 
 const mainStatusWell = computed(() => {
-  const masterIsLive = processStatusData.value['master'] === 'online';
-  const ledgerIsLive = processStatusData.value['ledger'] === 'online';
+  const masterLocation = {
+    category: 'system',
+    name: 'master',
+    group: 'master',
+    mode: 'live',
+  };
+  const ledgerLocation = {
+    category: 'system',
+    name: 'ledger',
+    group: 'ledger',
+    mode: 'live',
+  };
+  const masterIsLive =
+    processStatusData.value[getProcessIdByKfLocation(masterLocation)] ===
+    'online';
+  const ledgerIsLive =
+    processStatusData.value[getProcessIdByKfLocation(ledgerLocation)] ===
+    'online';
   return masterIsLive && ledgerIsLive;
 });
 

@@ -35,6 +35,8 @@ uintptr_t load_mmap_buffer(const std::string &path, size_t size, bool is_writing
     throw journal_error("unable to mmap for page " + path);
   }
 
+  // https://learn.microsoft.com/zh-cn/windows/win32/memory/creating-a-file-mapping-object?redirectedfrom=MSDN
+  // max journal size is 2GB in Windows
   HANDLE fileMappingObject =
       CreateFileMapping(dumpFileDescriptor, NULL, (is_master) ? PAGE_READWRITE : PAGE_READONLY, 0, size, NULL);
 

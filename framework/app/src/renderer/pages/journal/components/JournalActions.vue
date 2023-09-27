@@ -3,7 +3,7 @@
     <a-button
       v-if="isShowVisualAction"
       style="margin-right: 8px; color: #d22e88; border-color: #d22e88"
-      @click="$emit('showVisual')"
+      @click="handleClickVisualAction"
     >
       {{ visualBtnText }}
     </a-button>
@@ -68,9 +68,9 @@ import { messagePrompt } from '@kungfu-trader/kungfu-app/src/renderer/assets/met
 import { writeCsvByStream } from '../utils';
 const { t } = VueI18n.global;
 
-const props = defineProps<{
+defineProps<{
   isShowReplayAction: boolean;
-  isShowVisualAction: Boolean;
+  isShowVisualAction: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -82,7 +82,7 @@ const emit = defineEmits<{
     ) => void,
   ): void;
   (e: 'startReplay'): void;
-  (e: 'showVisual'): void;
+  (e: 'showVisual', visible: boolean): void;
 }>();
 
 const EXPORT_KEY = 'export_file_path';
@@ -91,10 +91,11 @@ const exportFormState = reactive({
   [EXPORT_KEY]: '',
 });
 const exportFormModalVisible = ref(false);
+const entryVisual = ref(false);
 const message = messagePrompt();
 
 const visualBtnText = computed(() => {
-  return props.isShowVisualAction
+  return entryVisual.value
     ? t('journalConfig.quit_visualization')
     : t('journalConfig.entry_visualization');
 });
@@ -120,6 +121,11 @@ const rules = {
       });
   },
   trigger: 'change',
+};
+
+const handleClickVisualAction = () => {
+  entryVisual.value = !entryVisual.value;
+  emit('showVisual', entryVisual.value);
 };
 
 const handleOpenExportFormModal = () => {

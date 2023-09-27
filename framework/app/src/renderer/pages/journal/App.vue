@@ -83,8 +83,8 @@
           class="kf-journal-time-slider"
         ></TimeSlider>
         <JournalActions
-          :is-show-replay="isShowReplayAction"
-          :is-show-visual="isShowVisualAction"
+          :is-show-replay-action="isShowReplayAction"
+          :is-show-visual-action="isShowVisualAction"
           @export-journal-data="onJournalActionsData"
           @start-replay="dealLocation"
           @show-visual="onEntryVisualization"
@@ -282,7 +282,7 @@ const isShowReplayAction = computed(() => {
   );
 });
 const isShowVisualAction = computed(() => {
-  return currentSession.value && currentSession.value.category === 'strategy';
+  return !!currentSession.value && currentSession.value.category === 'strategy';
 });
 const { searchKeyword, tableData } =
   useTableSearchKeyword<KungfuApi.SessionResolved>(sessions, [
@@ -519,8 +519,8 @@ const dealRowClassName = (row) => {
     : '';
 };
 
-function onEntryVisualization() {
-  visualVisible.value = !visualVisible.value;
+function onEntryVisualization(visible: boolean) {
+  visualVisible.value = visible;
 }
 </script>
 

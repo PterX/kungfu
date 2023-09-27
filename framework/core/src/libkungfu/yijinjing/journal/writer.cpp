@@ -15,25 +15,25 @@ writer::writer(const data::location_ptr &location, uint32_t dest_id, bool lazy, 
                bool low_latency, const bus_ptr &bus)
     : frame_id_base_(static_cast<uint64_t>(location->uid xor dest_id) << 32u),
       journal_(location, dest_id, true, lazy, low_latency, bus, page::find_page_size(location, dest_id)),
-      publisher_(std::move(publisher)), size_to_write_(0),
+      publisher_(std::move(publisher)), size_to_write_(0), last_gen_time_(0),
       writer_start_time_32int_(time::nano_hashed(time::now_in_nano())) {
   journal_.seek_to_time(time::now_in_nano());
 }
 
 writer::writer(const data::location_ptr &location, uint32_t dest_id, bool lazy, publisher_ptr publisher,
-               bool low_latency, const bus_ptr &bus, uint32_t page_size)
+               bool low_latency, const bus_ptr &bus, uint64_t page_size)
     : frame_id_base_(static_cast<uint64_t>(location->uid xor dest_id) << 32u),
       journal_(location, dest_id, true, lazy, low_latency, bus, page::find_page_size(location, dest_id, page_size)),
-      publisher_(std::move(publisher)), size_to_write_(0),
+      publisher_(std::move(publisher)), size_to_write_(0), last_gen_time_(0),
       writer_start_time_32int_(time::nano_hashed(time::now_in_nano())) {
   journal_.seek_to_time(time::now_in_nano());
 }
 
 writer::writer(const data::location_ptr &location, uint32_t dest_id, bool lazy, publisher_ptr publisher,
-               bool low_latency, const bus_ptr &bus, uint32_t page_size, int64_t begin_time)
+               bool low_latency, const bus_ptr &bus, uint64_t page_size, int64_t begin_time)
     : frame_id_base_(static_cast<uint64_t>(location->uid xor dest_id) << 32u),
       journal_(location, dest_id, true, lazy, low_latency, bus, page::find_page_size(location, dest_id, page_size)),
-      publisher_(std::move(publisher)), size_to_write_(0),
+      publisher_(std::move(publisher)), size_to_write_(0), last_gen_time_(0),
       writer_start_time_32int_(time::nano_hashed(time::now_in_nano())) {
   journal_.seek_to_time(begin_time);
 }

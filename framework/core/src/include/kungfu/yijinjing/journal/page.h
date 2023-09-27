@@ -51,7 +51,7 @@ public:
            address_border();
   }
 
-  static page_ptr load(const data::location_ptr &location, uint32_t dest_id, uint32_t page_size, uint32_t page_id,
+  static page_ptr load(const data::location_ptr &location, uint32_t dest_id, uint64_t page_size, uint32_t page_id,
                        bool is_writing, bool lazy, bool pre_open = false);
 
   static page_ptr load_header_and_1st_frame_header(const data::location_ptr &location, uint32_t dest_id,
@@ -61,7 +61,7 @@ public:
 
   static uint32_t find_page_id(const data::location_ptr &location, uint32_t dest_id, int64_t time);
 
-  static uint32_t find_page_size(const data::location_ptr &location, uint32_t dest_id, uint32_t page_size = 0);
+  static uint64_t find_page_size(const data::location_ptr &location, uint32_t dest_id, uint64_t page_size = 0);
 
   static bool check_page_existed(const data::location_ptr &location, uint32_t dest_id);
 

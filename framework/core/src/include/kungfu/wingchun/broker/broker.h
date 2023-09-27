@@ -121,7 +121,7 @@ public:
 
   [[nodiscard]] BrokerVendor &get_vendor() const { return vendor_; }
 
-  [[maybe_unused]] uint32_t request_band(const std::string &band_name, uint32_t page_size = 0) {
+  [[maybe_unused]] uint32_t request_band(const std::string &band_name, uint64_t page_size = 0) {
     return vendor_.request_band(band_name, page_size);
   }
 

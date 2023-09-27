@@ -73,7 +73,7 @@ KF_DEFINE_PACK_TYPE(                          //
     page_header, 1, PK(version), PERPETUAL(), //
     (uint32_t, version),                      //
     (uint32_t, page_header_length),           //
-    (uint32_t, page_size),                    //
+    (uint64_t, page_size),                    //
     (uint32_t, frame_header_length),          //
     (longfist::enums::PageStatus, status),    // 0 close 1 preopen 2 open 3 flushing
     (uint64_t, last_frame_position)           //
@@ -956,7 +956,7 @@ KF_DEFINE_DATA_TYPE(                                          //
     (enums::mode, mode),                                      //
     (std::string, group),                                     //
     (std::string, name),                                      //
-    (uint32_t, page_size)                                     //
+    (uint64_t, page_size)                                     //
 );
 
 KF_DEFINE_PACK_TYPE(                                  //

@@ -33,7 +33,7 @@ void page::set_last_frame_position(uint64_t position) {
   const_cast<page_header *>(header_)->last_frame_position = position;
 }
 
-page_ptr page::load(const data::location_ptr &location, uint32_t dest_id, uint32_t page_size, uint32_t page_id,
+page_ptr page::load(const data::location_ptr &location, uint32_t dest_id, uint64_t page_size, uint32_t page_id,
                     bool is_writing, bool lazy, bool pre_open) {
   std::string path = get_page_path(location, dest_id, page_id);
   uintptr_t address = os::load_mmap_buffer(path, page_size, is_writing, lazy);
@@ -135,7 +135,7 @@ uint32_t page::find_page_id(const data::location_ptr &location, uint32_t dest_id
   return page_ids.front();
 }
 
-uint32_t page::find_page_size(const data::location_ptr &location, uint32_t dest_id, uint32_t page_size) {
+uint64_t page::find_page_size(const data::location_ptr &location, uint32_t dest_id, uint64_t page_size) {
   if (page_size > 0) {
     return page_size * MB;
   }

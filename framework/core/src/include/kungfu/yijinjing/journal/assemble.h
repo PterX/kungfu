@@ -21,7 +21,7 @@ public:
   virtual ~sink() = default;
   virtual void put(const data::location_ptr &location, uint32_t dest_id, const frame_ptr &frame) = 0;
   virtual void close(){};
-  uint32_t find_page_size(const data::location_ptr &location, uint32_t dest_id);
+  uint64_t find_page_size(const data::location_ptr &location, uint32_t dest_id);
 
   [[nodiscard]] publisher_ptr get_publisher();
   [[nodiscard]] bus_ptr get_bus();

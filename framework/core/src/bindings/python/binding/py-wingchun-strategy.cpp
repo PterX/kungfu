@@ -177,6 +177,7 @@ void bind_strategy(pybind11::module &m) {
       .def("clear_timer", &strategy::Context::clear_timer)
       .def("add_account", &strategy::Context::add_account)
       .def("subscribe", &strategy::Context::subscribe)
+      .def("unsubscribe", &strategy::Context::unsubscribe)
       .def("subscribe_all", &strategy::Context::subscribe_all, py::arg("source"),
            py::arg("market_type") = MarketType::All, py::arg("instrument_type") = SubscribeInstrumentType::All,
            py::arg("data_type") = SubscribeDataType::All)

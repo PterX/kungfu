@@ -105,6 +105,10 @@ void Client::subscribe(const InstrumentKey &instrument_key) {
   instrument_keys_.emplace(instrument_key.key, instrument_key);
 }
 
+void Client::unsubscribe(const InstrumentKey &instrument_key) {
+  instrument_keys_.erase(instrument_key.key);
+}
+
 void Client::subscribe(const std::string &exchange_id, const std::string &instrument_id) {
   uint32_t key = hash_instrument(exchange_id.c_str(), instrument_id.c_str());
   if (instrument_keys_.find(key) != instrument_keys_.end()) {
@@ -116,6 +120,11 @@ void Client::subscribe(const std::string &exchange_id, const std::string &instru
   strcpy(instrument_key.exchange_id, exchange_id.c_str());
   instrument_key.instrument_type = get_instrument_type(exchange_id, instrument_id);
   subscribe(instrument_key);
+}
+
+void Client::unsubscribe(const std::string &exchange_id, const std::string &instrument_id) {
+  uint32_t key = hash_instrument(exchange_id.c_str(), instrument_id.c_str());
+  instrument_keys_.erase(key);
 }
 
 void Client::subscribe(const location_ptr &md_location, const std::string &exchange_id,

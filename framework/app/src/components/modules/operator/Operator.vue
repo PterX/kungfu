@@ -37,12 +37,14 @@ import {
   useReplay,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import {
-  getIdByKfLocation,
-  getConfigValue,
   getIfProcessRunning,
-  getProcessIdByKfLocation,
   getIfProcessStopping,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import {
+  getIdByKfLocation,
+  getProcessIdByKfLocation,
+  getConfigValue,
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 
 import { AddOperatorTypeEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';

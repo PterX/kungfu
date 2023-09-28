@@ -4,7 +4,7 @@ import {
   useExtConfigsRelated,
   useProcessStatusDetailData,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
-import { kfConfigItemsToProcessArgs } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { kfConfigItemsToProcessArgs } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import globalBus from '@kungfu-trader/kungfu-js-api/utils/globalBus';
 import { startTradingTask } from '@kungfu-trader/kungfu-js-api/actions/tradingTask';
 import VueI18n, {

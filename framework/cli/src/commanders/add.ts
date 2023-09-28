@@ -8,12 +8,10 @@ import {
 import { KfCategoryTypes } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import autocompletePrompt from 'inquirer-autocomplete-prompt';
 import { PathPrompt } from 'inquirer-path';
-import {
-  getCombineValueByPrimaryKeys,
-  getExtConfigList,
-  getKfExtensionConfig,
-  getPrimaryKeyFromKfConfigItem,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { getCombineValueByPrimaryKeys } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { getExtConfigList } from '@kungfu-trader/kungfu-js-api/utils/extUtils';
+import { getKfExtensionConfig } from '@kungfu-trader/kungfu-js-api/utils/extUtils';
+import { getPrimaryKeyFromKfConfigItem } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { setKfConfig } from '@kungfu-trader/kungfu-js-api/kungfu/store';
 import { PromptAnswer } from '../typings';
 

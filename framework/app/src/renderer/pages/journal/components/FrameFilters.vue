@@ -42,6 +42,8 @@
         :placeholder="$t('journalConfig.selete_msg_type')"
         allow-clear
         @blur="handleApplyFilters"
+        @deselect="handleApplyFilters"
+        @change="handleClearAll"
       >
         <a-select-option
           v-for="option in msgTypesFilterOptions"
@@ -59,7 +61,7 @@
 import { computed } from 'vue';
 import { ChannelRecords } from '../utils/filterUtils';
 import { useFrameFilters } from '../utils/filterUtils';
-import { debounce } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { debounce } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 
 const props = withDefaults(
   defineProps<{
@@ -120,6 +122,12 @@ const resetFilters = () => {
 defineExpose({
   resetFilters,
 });
+
+function handleClearAll(value: number[]) {
+  if (!value || value.length === 0) {
+    applyFilters();
+  }
+}
 </script>
 
 <style lang="less">

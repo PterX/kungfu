@@ -286,7 +286,7 @@ const handleAddFile = (e) => {
 //添加/编辑输入检测
 function handleAddEditFileInput(val): void {
   const siblings = getSiblingsName((fileNode.value as Code.FileData).parentId);
-  const pattern = new RegExp('[\\ / : * ? " < > |]');
+  invalidFileNameReg.lastIndex = 0;
   if (siblings.indexOf(val) != -1) {
     editError.value = true;
     editErrorMessage.value = t('editor.name_repeat', {
@@ -295,9 +295,6 @@ function handleAddEditFileInput(val): void {
   } else if (!val) {
     editError.value = true;
     editErrorMessage.value = t('editor.empty_input');
-  } else if (pattern.test(val)) {
-    editError.value = true;
-    editErrorMessage.value = t('editor.illegal_character');
   } else if (invalidFileNameReg.test(val)) {
     editError.value = true;
     editErrorMessage.value = t('editor.illegal_file_name');

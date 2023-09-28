@@ -1,4 +1,4 @@
-import { Pm2ProcessStatusTypes } from '../utils/processUtils';
+import { Pm2ProcessStatusTypes } from '../typings/common';
 
 export enum BrokerStateStatusEnum {
   Pending = 0,
@@ -146,6 +146,7 @@ export enum OffsetEnum {
   Close,
   CloseToday,
   CloseYest,
+  Unknown = 99,
 }
 
 export type OffsetTypes = keyof typeof OffsetEnum;

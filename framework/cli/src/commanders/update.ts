@@ -4,10 +4,8 @@ import {
   getPromptQuestionsBySettings,
   selectTargetKfConfig,
 } from '../assets/methods/utils';
-import {
-  getIdByKfLocation,
-  getKfExtensionConfig,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { getKfExtensionConfig } from '@kungfu-trader/kungfu-js-api/utils/extUtils';
+import { getIdByKfLocation } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { setKfConfig } from '@kungfu-trader/kungfu-js-api/kungfu/store';
 
 export const updateMdTdStrategy = async () => {

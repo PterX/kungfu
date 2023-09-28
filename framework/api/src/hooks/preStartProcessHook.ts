@@ -1,5 +1,5 @@
 import { Proc } from 'pm2';
-import { kfLogger } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { kfLogger } from '@kungfu-trader/kungfu-js-api/utils/logUtils';
 import { generateLocationCombinations } from '@kungfu-trader/kungfu-js-api/hooks/hookUtils';
 
 export type PreStartProcessMethod = (

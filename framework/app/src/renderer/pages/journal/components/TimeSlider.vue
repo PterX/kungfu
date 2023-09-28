@@ -11,7 +11,7 @@
     </div>
     <a-slider
       ref="slider"
-      :value="currentTimeResolved"
+      v-model:value="currentTimeResolved"
       class="kf-time-slider"
       :class="{
         'kf-time-slider-handler-focus-1': false,
@@ -38,7 +38,8 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
+import { useWindowFocus } from '@vueuse/core';
 import { storeToRefs } from 'pinia';
 import { dealKfTime } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { ForwardOutlined, BackwardOutlined } from '@ant-design/icons-vue';
@@ -65,18 +66,44 @@ const {
 } = storeToRefs(useJournalStore());
 const { setCurrentTime } = useJournalStore();
 const { now } = useNow();
-const currentTimeResolved = computed(() => {
-  return nano2millionSecond(currentTime.value);
-});
-const onAfterChange = (milliseconds: number) => {
-  setCurrentTime(million2nanoSecond(milliseconds));
-};
 
 const toolTipVisable = ref(true);
 const SCALE = 1000000;
 const BIGINT_SCALE = BigInt(SCALE);
 const TEN_SECOND = BigInt(10000000000);
 const slider = ref();
+const currentTimeResolved = ref(0);
+
+const nano2millionSecond = (number: bigint | number) => {
+  if (typeof number === 'bigint') {
+    return Number(number / BIGINT_SCALE);
+  } else {
+    return number / SCALE;
+  }
+};
+
+const windowFocusStatus = useWindowFocus();
+
+watch(
+  currentTime,
+  (newVal) => {
+    currentTimeResolved.value = nano2millionSecond(newVal);
+  },
+  {
+    immediate: true,
+  },
+);
+
+watch(windowFocusStatus, () => {
+  if (!windowFocusStatus.value) {
+    (document.activeElement as HTMLElement).blur();
+  }
+});
+
+const onAfterChange = () => {
+  setCurrentTime(million2nanoSecond(currentTimeResolved.value));
+};
+
 const currentSessionEndTimeResolved = computed(() => {
   if (currentSession.value?.status === SessionStatusEnum.Finished) {
     return currentSessionEndTime.value;
@@ -107,20 +134,12 @@ const handleTimeForward = () => {
   setCurrentTime(currentLoadedLastestFrameGenTime.value);
 };
 
-const nano2millionSecond = (number: bigint | number) => {
-  if (typeof number === 'bigint') {
-    return Number(number / BIGINT_SCALE);
-  } else {
-    return number / SCALE;
-  }
-};
-
 const million2nanoSecond = (number: number) => {
   return BigInt(number * SCALE);
 };
 
 const tipFormatter = (num: number) => {
-  return dealKfTime(BigInt(num) * BIGINT_SCALE);
+  return dealKfTime(BigInt(num.kfRound()) * BIGINT_SCALE);
 };
 
 const getTooltipPopupContainer = (trigger: HTMLElement): HTMLElement => trigger;

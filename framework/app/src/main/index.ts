@@ -20,10 +20,8 @@ import {
   openUrl,
   destoryAllWindows,
 } from '@kungfu-trader/kungfu-app/src/main/utils';
-import {
-  kfLogger,
-  isUpdateVersionLogicEnable,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { isUpdateVersionLogicEnable } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { kfLogger } from '@kungfu-trader/kungfu-js-api/utils/logUtils';
 import { initClean } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
 import {
   clearDB,

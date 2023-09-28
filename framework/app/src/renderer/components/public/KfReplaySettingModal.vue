@@ -1,8 +1,8 @@
 <script lang="ts" setup>
 import { onMounted, ref } from 'vue';
 import { ReloadOutlined } from '@ant-design/icons-vue';
-import { getNanoDateString } from '@kungfu-trader/kungfu-js-api/kungfu';
-import { getKfExtOriginConfigsByType } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { getNanoDateString } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
+import { getKfExtOriginConfigsByType } from '@kungfu-trader/kungfu-js-api/utils/extUtils';
 
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 
@@ -289,7 +289,7 @@ const handleCancel = () => {
               </span>
               {{ t('replay.replay_tips1_part3') }}
             </li>
-            <li>
+            <li v-if="isShowMatcher">
               {{ `2. ${t('replay.replay_tips2_part1')}` }}
               <span class="highlighted-text">
                 {{ t('replay.replay_tips2_part2') }}
@@ -308,7 +308,7 @@ const handleCancel = () => {
               </span>
               {{ t('replay.replay_tips1_part3') }}
             </li>
-            <li>
+            <li v-if="isShowMatcher">
               {{ `2. ${t('replay.replay_tips2_part1')}` }}
               <span class="highlighted-text">
                 {{ t('replay.replay_tips2_part2') }}

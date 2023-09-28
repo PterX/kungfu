@@ -44,7 +44,7 @@ import {
   SpaceTabSettingEnum,
   SpaceSizeSettingEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
-import { deepClone } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { deepClone } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { storeToRefs } from 'pinia';
 import { ref, toRaw, watch } from 'vue';
 import { useCodeStore } from '../store/codeStore';

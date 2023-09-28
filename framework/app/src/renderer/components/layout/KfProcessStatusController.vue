@@ -29,11 +29,11 @@ import {
 import {
   getKfCategoryData,
   getIfProcessRunning,
-  getProcessIdByKfLocation,
   getPropertyFromProcessStatusDetailDataByKfLocation,
   getIfProcessStopping,
   isTdMd,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { getProcessIdByKfLocation } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   handleSwitchProcessStatusGenerator,
   useAllKfConfigData,

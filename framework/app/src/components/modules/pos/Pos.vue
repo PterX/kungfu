@@ -1,9 +1,10 @@
 <script setup lang="ts">
+import { getIdByKfLocation } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+
 import {
-  dealDirection,
   dealCurrency,
-  getIdByKfLocation,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+  dealDirection,
+} from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 
 import {
   useDownloadHistoryTradingData,
@@ -28,8 +29,8 @@ import {
 import { storeToRefs } from 'pinia';
 import { getColumns } from './config';
 import KfBlinkNum from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfBlinkNum.vue';
-import { dealKfPrice } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
-import { dealPosition } from '@kungfu-trader/kungfu-js-api/kungfu';
+import { dealKfPrice } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import { dealPosition } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
 import { SideEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {

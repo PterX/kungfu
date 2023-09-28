@@ -15,12 +15,12 @@ import {
   dealStockOffset,
   transformOrderInputToExtConfigForm,
 } from './utils';
+import { hashInstrumentUKey } from '@kungfu-trader/kungfu-js-api/kungfu';
 import {
   makeOrderByOrderInput,
-  hashInstrumentUKey,
   getPosClosableVolume,
   makeOrderByOrderTriggerInput,
-} from '@kungfu-trader/kungfu-js-api/kungfu';
+} from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import {
   InstrumentTypeEnum,
   OffsetEnum,
@@ -37,16 +37,20 @@ import {
   useTradeLimit,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import {
-  dealVolumeByInstrumentType,
-  getExtConfigList,
-  getIdByKfLocation,
   getOffsetByOffsetFilter,
-  getProcessIdByKfLocation,
   initFormStateByConfig,
+} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { getExtConfigList } from '@kungfu-trader/kungfu-js-api/utils/extUtils';
+import {
+  getIdByKfLocation,
+  getProcessIdByKfLocation,
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import {
   isShotable,
   dealOrderInputItem,
   transformSearchInstrumentResultToInstrument,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+  dealVolumeByInstrumentType,
+} from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import OrderConfirmModal from './OrderConfirmModal.vue';
 import OrderTriggerConfirmModal from './OrderTriggerConfirmModal.vue';
 import VueI18n, { useLanguage } from '@kungfu-trader/kungfu-js-api/language';

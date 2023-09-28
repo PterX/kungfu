@@ -1,9 +1,9 @@
 <template>
   <a-layout>
     <div class="kf-journal-view__wrap">
-      <div class="kf-journal-session__warp kf-translateZ">
+      <div v-if="!visualVisible" class="kf-journal-session__warp kf-translateZ">
         <KfDashboard @boardSizeChange="handleBodySizeChange">
-          <template v-slot:header>
+          <template #header>
             <KfDashboardItem>
               <a-input-search
                 v-model:value="searchKeyword"
@@ -29,7 +29,7 @@
             :custom-row="customRow"
             :default-expand-all-rows="true"
             :scroll="{ y: dashboardBodyHeight - 4 }"
-            :emptyText="$t('empty_text')"
+            :empty-text="$t('empty_text')"
           >
             <template
               #bodyCell="{
@@ -64,6 +64,12 @@
         </KfDashboard>
       </div>
 
+      <EntryVisualization
+        v-if="visualVisible"
+        :category="currentSession?.category"
+        class="kf-journal-visualization"
+      />
+
       <div class="kf-journal-control-bar">
         <div class="kf-journal-bar-title" v-if="currentSession">
           <a-tag :color="currentCategoryData?.color || 'default'">
@@ -77,9 +83,11 @@
           class="kf-journal-time-slider"
         ></TimeSlider>
         <JournalActions
-          :is-show-replay="isShowReplay"
+          :is-show-replay-action="isShowReplayAction"
+          :is-show-visual-action="isShowVisualAction"
           @export-journal-data="onJournalActionsData"
           @start-replay="dealLocation"
+          @show-visual="onEntryVisualization"
         />
       </div>
       <div class="kf-journal-menu__wrap">
@@ -102,7 +110,7 @@
           <Replay
             v-if="
               currentSession &&
-              isShowReplay &&
+              isShowReplayAction &&
               replayPramas.processId &&
               isCurrentMenuItem('replay')
             "
@@ -155,11 +163,11 @@ import {
   useTableSearchKeyword,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import {
+  getProcessIdByKfLocation,
   getYearMonthDay,
   delayMilliSeconds,
-  getProcessIdByKfLocation,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
-import { getNanoDateString } from '@kungfu-trader/kungfu-js-api/kungfu';
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import { getNanoDateString } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 
 import { dealCategory } from './utils';
 import {
@@ -170,6 +178,7 @@ import {
 import TimeSlider from './components/TimeSlider.vue';
 import JournalActions from './components/JournalActions.vue';
 import EventsDashBoard from './components/EventsDashboard.vue';
+import EntryVisualization from './components/EntryVisualization.vue';
 import { useJournalStore } from './store/journalStore';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { getAllKfConfigOriginData } from '@kungfu-trader/kungfu-js-api/actions';
@@ -264,13 +273,16 @@ const replayPramas = computed(() => {
     enableMatcher: enableMatcher.toString(),
   };
 });
-const isShowReplay = computed(() => {
+const isShowReplayAction = computed(() => {
   return (
     currentSession.value &&
     (testCase.value.replayEnabled[currentSession.value.category] ||
       (currentSession.value.category === 'system' &&
         currentSession.value.name === 'ledger'))
   );
+});
+const isShowVisualAction = computed(() => {
+  return !!currentSession.value && currentSession.value.category === 'strategy';
 });
 const { searchKeyword, tableData } =
   useTableSearchKeyword<KungfuApi.SessionResolved>(sessions, [
@@ -283,7 +295,7 @@ const { searchKeyword, tableData } =
 const app = getCurrentInstance();
 const currentMenuList = ref<('event' | 'visual' | 'replay')[]>(['event']);
 const menus = computed(() => [
-  ...(isShowReplay.value
+  ...(isShowReplayAction.value
     ? [
         {
           key: 'event',
@@ -316,6 +328,7 @@ const isCurrentMenuItem = (key: 'event' | 'visual' | 'replay') => {
     return currentMenuList.value.includes(key);
   }
 };
+const visualVisible = ref<boolean>(false);
 
 const exportFileName = computed(() => {
   if (currentSession.value) {
@@ -505,6 +518,10 @@ const dealRowClassName = (row) => {
     ? 'current-global-kfLocation'
     : '';
 };
+
+function onEntryVisualization(visible: boolean) {
+  visualVisible.value = visible;
+}
 </script>
 
 <style lang="less">
@@ -541,6 +558,14 @@ const dealRowClassName = (row) => {
         width: 60%;
         margin: auto;
         padding: 8px 0;
+        box-sizing: border-box;
+      }
+
+      .kf-journal-visualization {
+        flex: 0 0 300px;
+        height: 300px;
+        width: 100%;
+        padding: 8px 0 4px 0;
         box-sizing: border-box;
       }
 

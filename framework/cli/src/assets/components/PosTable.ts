@@ -1,8 +1,6 @@
 import { DirectionEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
-import {
-  dealDirection,
-  dealKfPrice,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { dealKfPrice } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import { dealDirection } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import colors from 'colors';
 import { calcHeaderWidth, colorNum, parseToString } from '../methods/utils';
 import Table from './Table';

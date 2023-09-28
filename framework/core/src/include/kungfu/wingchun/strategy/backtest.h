@@ -73,7 +73,7 @@ public:
    */
   void subscribe(const std::string &source, const std::vector<std::string> &instrument_ids,
                  const std::string &exchange_id) override;
-  
+
   /**
    * Unubscribe market data.
    * @param source MD group
@@ -81,7 +81,7 @@ public:
    * @param exchange_id exchange ID
    */
   virtual void unsubscribe(const std::string &source, const std::vector<std::string> &instrument_ids,
-                         const std::string &exchange_id) override;
+                           const std::string &exchange_id) override;
 
   /**
    * Subscribe all from given MD

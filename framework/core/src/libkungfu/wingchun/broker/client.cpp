@@ -105,9 +105,7 @@ void Client::subscribe(const InstrumentKey &instrument_key) {
   instrument_keys_.emplace(instrument_key.key, instrument_key);
 }
 
-void Client::unsubscribe(const InstrumentKey &instrument_key) {
-  instrument_keys_.erase(instrument_key.key);
-}
+void Client::unsubscribe(const InstrumentKey &instrument_key) { instrument_keys_.erase(instrument_key.key); }
 
 void Client::subscribe(const std::string &exchange_id, const std::string &instrument_id) {
   uint32_t key = hash_instrument(exchange_id.c_str(), instrument_id.c_str());

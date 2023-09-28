@@ -196,6 +196,13 @@ void BacktestContext::subscribe(const std::string &source, const std::vector<std
   }
 }
 
+void BacktestContext::unsubscribe(const std::string &source, const std::vector<std::string> &instrument_ids,
+                                  const std::string &exchange_id) {
+  std::for_each(instrument_ids.begin(), instrument_ids.end(), [&exchange_id, this](const auto &instrument_id) {
+    broker_client_.unsubscribe(exchange_id, instrument_id);
+  });
+}
+
 void BacktestContext::subscribe_all(const std::string &source, uint8_t market_type, uint64_t instrument_type,
                                     uint64_t data_type) {
   throw wingchun_error(fmt::format("not support subscribe_all in backtest mode"));

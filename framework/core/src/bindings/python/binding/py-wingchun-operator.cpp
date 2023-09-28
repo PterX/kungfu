@@ -106,6 +106,7 @@ void bind_operator(pybind11::module &m) {
       .def("add_time_interval", &op::Context::add_time_interval)
       .def("clear_timer", &op::Context::clear_timer)
       .def("subscribe", &op::Context::subscribe)
+      .def("unsubscribe", &op::Context::unsubscribe)
       .def("subscribe_all", &op::Context::subscribe_all, py::arg("source"), py::arg("market_type") = MarketType::All,
            py::arg("instrument_type") = SubscribeInstrumentType::All, py::arg("data_type") = SubscribeDataType::All)
       .def("subscribe_operator", &op::Context::subscribe_operator)

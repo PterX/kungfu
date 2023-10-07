@@ -138,7 +138,7 @@ import {
 import {
   debounce,
   delayMilliSeconds,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 
 const { t } = VueI18n.global;
 

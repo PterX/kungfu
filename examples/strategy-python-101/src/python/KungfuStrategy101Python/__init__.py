@@ -1,10 +1,11 @@
 import random
 from kungfu.wingchun.constants import *
 import kungfu
+
 wc = kungfu.__binding__.wingchun
 
 source = "sim"
-md_source="xtp"
+md_source = "xtp"
 exchange = Exchange.SSE
 
 
@@ -18,21 +19,24 @@ def pre_start(context):
     context.subscribe(md_source, ["600004"], exchange)
     context.subscribe(md_source, ["600009"], exchange)
 
+
 def post_start(context):
     account_uid = context.get_account_uid(source, "123456")
     context.log.info(f"account {source} '123456', account_uid: {account_uid}")
 
     instrument_factor_key = wc.utils.hash_instrument(account_uid, exchange, "600000")
     instrument_key = wc.utils.hash_instrument(exchange, "600000")
-    context.log.info(f"instrument_factor_key: {instrument_factor_key}, instrument_key: {instrument_key}")
+    context.log.info(
+        f"instrument_factor_key: {instrument_factor_key}, instrument_key: {instrument_key}"
+    )
 
     if instrument_factor_key in context.book.instrument_factors:
-      instrument_factor = context.book.instrument_factors[instrument_factor_key]
-      context.log.info(f"instrument_factor {instrument_factor}")
+        instrument_factor = context.book.instrument_factors[instrument_factor_key]
+        context.log.info(f"instrument_factor {instrument_factor}")
 
     if instrument_key in context.book.instruments:
-      instrument = context.book.instruments[instrument_key]
-      context.log.info(f"instrument {instrument}")
+        instrument = context.book.instruments[instrument_key]
+        context.log.info(f"instrument {instrument}")
 
 
 def on_quote(context, quote, location, dest):
@@ -46,17 +50,23 @@ def on_quote(context, quote, location, dest):
 
     instrument_key = wc.utils.hash_instrument(quote.exchange_id, quote.instrument_id)
     if instrument_key in context.book.instruments:
-      context.log.info(f"{quote.exchange_id}, {quote.instrument_id}, {instrument_key}, {context.book.instruments[instrument_key]}")
+        context.log.info(
+            f"{quote.exchange_id}, {quote.instrument_id}, {instrument_key}, {context.book.instruments[instrument_key]}"
+        )
+
 
 def on_synthetic_data(context, synthetic_dataa, location, dest):
     context.log.info("on_synthetic_data: {}".format(synthetic_dataa))
 
+
 def on_order(context, order, location, dest):
     pass
+
 
 def on_trade(context, trade, location, dest):
     pass
 
+
 def on_register(context, location):
     for key in context.get_account_book(source, "123456").instruments:
-      context.log.info(f"{key}, {instrument}")
+        context.log.info(f"{key}, {instrument}")

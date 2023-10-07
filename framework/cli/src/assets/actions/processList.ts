@@ -4,18 +4,23 @@ import {
   KfCategoryTypes,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
-  delayMilliSeconds,
   deleteNNFiles,
-  getAvailCliExtServiceList,
-  getKfExtensionConfig,
-  getProcessIdByKfLocation,
   getTaskListFromProcessStatusData,
-  isExtService,
-  kfLogger,
   removeArchiveBeforeToday,
   removeJournal,
   switchKfLocation,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import {
+  getKfExtensionConfig,
+  getAvailCliExtServiceList,
+} from '@kungfu-trader/kungfu-js-api/utils/extUtils';
+import {
+  isExtService,
+  getProcessIdByKfLocation,
+  getIdByKfLocation,
+  delayMilliSeconds,
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import { kfLogger } from '@kungfu-trader/kungfu-js-api/utils/logUtils';
 import {
   killExtra,
   pm2Kill,
@@ -122,6 +127,7 @@ export const specificProcessListObserver = (kfLocation: KungfuApi.KfConfig) =>
       const { extService } = mdTdStrategyExtService;
       const { processStatus, processStatusWithDetail } = ps;
       const processId = getProcessIdByKfLocation(kfLocation);
+      const processName = getIdByKfLocation(kfLocation);
 
       const extServiceList: ProcessListItem[] = extService.map((item) => {
         const processId = getProcessIdByKfLocation(item);
@@ -180,9 +186,9 @@ export const specificProcessListObserver = (kfLocation: KungfuApi.KfConfig) =>
           group: ledgerLocation.group,
           name: ledgerLocation.name,
           value: {},
-          status: processStatus['ledger'] || '--',
-          statusName: dealStatus(processStatus['ledger'] || '--'),
-          monit: processStatusWithDetail['ledger']?.monit,
+          status: processStatus[ledgerProcessId] || '--',
+          statusName: dealStatus(processStatus[ledgerProcessId] || '--'),
+          monit: processStatusWithDetail[ledgerProcessId]?.monit,
         },
         {
           processId: 'dzxy',
@@ -199,7 +205,7 @@ export const specificProcessListObserver = (kfLocation: KungfuApi.KfConfig) =>
         ...extServiceList,
         {
           processId,
-          processName: processId,
+          processName: processName,
           typeName: getCategoryName(kfLocation.category),
           category: kfLocation.category,
           group: kfLocation.group,
@@ -235,13 +241,14 @@ export const processListObservable = () =>
 
       const mdList: ProcessListItem[] = md.map((item) => {
         const processId = getProcessIdByKfLocation(item);
+        const processName = getIdByKfLocation(item);
         const prefixProps =
           globalThis.HookKeeper.getHooks().prefix.trigger(item);
         const prefix =
           prefixProps.prefixType === 'text' ? prefixProps.prefix : '';
         return {
           processId,
-          processName: prefix + processId,
+          processName: prefix + processName,
           typeName: getCategoryName(item.category),
           category: item.category,
           group: item.group,
@@ -259,13 +266,14 @@ export const processListObservable = () =>
 
       const operatorList: ProcessListItem[] = operator.map((item) => {
         const processId = getProcessIdByKfLocation(item);
+        const processName = getIdByKfLocation(item);
         const prefixProps =
           globalThis.HookKeeper.getHooks().prefix.trigger(item);
         const prefix =
           prefixProps.prefixType === 'text' ? prefixProps.prefix : '';
         return {
           processId,
-          processName: prefix + processId,
+          processName: prefix + processName,
           typeName: getCategoryName(item.category),
           category: item.category,
           group: item.group,
@@ -283,13 +291,14 @@ export const processListObservable = () =>
 
       const tdList: ProcessListItem[] = td.map((item) => {
         const processId = getProcessIdByKfLocation(item);
+        const processName = getIdByKfLocation(item);
         const prefixProps =
           globalThis.HookKeeper.getHooks().prefix.trigger(item);
         const prefix =
           prefixProps.prefixType === 'text' ? prefixProps.prefix : '';
         return {
           processId,
-          processName: prefix + processId,
+          processName: prefix + processName,
           typeName: getCategoryName(item.category),
           category: item.category,
           group: item.group,
@@ -307,13 +316,14 @@ export const processListObservable = () =>
 
       const strategyList: ProcessListItem[] = strategy.map((item) => {
         const processId = getProcessIdByKfLocation(item);
+        const processName = getIdByKfLocation(item);
         const prefixProps =
           globalThis.HookKeeper.getHooks().prefix.trigger(item);
         const prefix =
           prefixProps.prefixType === 'text' ? prefixProps.prefix : '';
         return {
           processId,
-          processName: prefix + processId,
+          processName: prefix + processName,
           typeName: getCategoryName(item.category),
           category: item.category,
           group: item.group,

@@ -1,4 +1,4 @@
-import { Pm2ProcessStatusTypes } from '../utils/processUtils';
+import { Pm2ProcessStatusTypes } from '../typings/common';
 
 export enum BrokerStateStatusEnum {
   Pending = 0,

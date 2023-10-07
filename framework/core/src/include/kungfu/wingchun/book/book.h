@@ -56,6 +56,8 @@ struct Book {
   const CommissionMap &commissions;
   const InstrumentMap &instruments;
   const InstrumentFactorMap &instrument_factors;
+  const BasketMap &baskets;
+  const BasketInstrumentMap &basket_instruments;
   longfist::types::Asset asset = {};
   PositionMap long_positions = {};
   PositionMap short_positions = {};

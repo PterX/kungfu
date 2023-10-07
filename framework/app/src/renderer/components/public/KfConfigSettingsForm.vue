@@ -29,8 +29,6 @@ import {
 } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import { SpecialWordsReg } from '@kungfu-trader/kungfu-js-api/config/systemConfig';
 import {
-  getIdByKfLocation,
-  transformSearchInstrumentResultToInstrument,
   numberEnumRadioType,
   numberEnumSelectType,
   stringEnumSelectType,
@@ -41,12 +39,19 @@ import {
   getCombineValueByPrimaryKeys,
   getPriceTypeConfig,
   initFormStateByConfig,
-  getPrimaryKeys,
-  dealPriceType,
-  dealPriceLevel,
-  dealSide,
   replaceNonAlphaNumericWithSpace,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+
+import {
+  getIdByKfLocation,
+  getPrimaryKeys,
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import {
+  dealPriceType,
+  dealSide,
+  dealPriceLevel,
+  transformSearchInstrumentResultToInstrument,
+} from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import { RuleObject } from 'ant-design-vue/lib/form';
 import {
   useActiveInstruments,

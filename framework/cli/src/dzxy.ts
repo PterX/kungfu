@@ -3,13 +3,16 @@ import './injectGlobal';
 import path from 'path';
 import { triggerStartStep } from '@kungfu-trader/kungfu-js-api/kungfu/tradingData';
 import {
-  buildTradingDataHeaders,
   getOrderTradeFilterKey,
-  getProcessIdByKfLocation,
   getTradingDataSortKey,
-  setTimerPromiseTask,
+  dealAssetsByHolderUID,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
-import { dealAssetsByHolderUID } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+
+import {
+  setTimerPromiseTask,
+  getProcessIdByKfLocation,
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import { buildTradingDataHeaders } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import { Pm2PacketMain } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
 import {
   dealOrder,
@@ -19,7 +22,7 @@ import {
   getKungfuHistoryData,
   getOrderLatencyDataByOrderStat,
   kfCancelAllOrders,
-} from '@kungfu-trader/kungfu-js-api/kungfu';
+} from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import { watcher } from '@kungfu-trader/kungfu-js-api/kungfu/watcher';
 import { HistoryDateEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import { writeCsvWithUTF8Bom } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';

@@ -266,13 +266,12 @@ inline void from_xtp(const XTPQueryOrderRsp &ori, HistoryOrder &des) {
   des.limit_price = ori.price;
   from_xtp(ori.order_status, des.status);
   from_xtp(ori.side, des.side);
-  //  des.offset = Offset::Open;
   set_offset(des);
   des.instrument_type = get_instrument_type(des.exchange_id, des.instrument_id);
   if (ori.update_time > 0) {
     des.update_time = nsec_from_xtp_timestamp(ori.update_time);
   }
-  des.external_order_id = std::to_string(ori.order_xtp_id).c_str();
+  des.external_order_id, std::to_string(ori.order_xtp_id).c_str();
 }
 
 inline void from_xtp(const XTPTradeReport &ori, Trade &des) {

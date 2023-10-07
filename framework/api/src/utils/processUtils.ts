@@ -9,21 +9,25 @@ import find from 'find-process';
 import { ensureFileSync } from 'fs-extra';
 
 import {
-  kfLogger,
-  dealSpaceInPath,
-  setTimerPromiseTask,
-  flattenExtensionModuleDirs,
-  getProcessIdByKfLocation,
   getIfProcessRunning,
   getIfProcessDeleted,
-  delayMilliSeconds,
   isTdMdOperatorStrategy,
   deleteNNFiles,
   removeDBIfNeed,
   removeJournalIfNeed,
-  findSoAndPydFiles,
-  getKfExtOriginConfigsByType,
 } from '../utils/busiUtils';
+import {
+  flattenExtensionModuleDirs,
+  getKfExtOriginConfigsByType,
+} from '../utils/extUtils';
+import {
+  setTimerPromiseTask,
+  getProcessIdByKfLocation,
+  findSoAndPydFiles,
+  dealSpaceInPath,
+  delayMilliSeconds,
+} from '../utils/commonUtils';
+import { kfLogger } from '../utils/logUtils';
 import {
   buildProcessLogPath,
   EXTENSION_DIRS,
@@ -33,14 +37,17 @@ import {
   KF_RUNTIME_DIR,
   buildRuntimeChildDirByType,
 } from '../config/pathConfig';
+
 import { getKfGlobalSettingsValue } from '../config/globalSettings';
 import { KfModeTypes } from '../typings/enums';
+import { Pm2ProcessStatusTypes } from '../typings/common';
 import { Observable } from 'rxjs';
 import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { Pm2StartOptions } from '../typings/global';
 import { KfHookKeeper } from '../hooks';
 import { getAppRuntimeDirName } from './fileUtils';
+import { getKfCommission } from '../kungfu/commission';
 const { t } = VueI18n.global;
 
 process.env.PM2_HOME = path.resolve(os.homedir(), '.pm2');
@@ -279,15 +286,6 @@ export const killExtra = (withApp: boolean, withPm2 = true, withKfc = true) => {
 };
 
 //===================== pm2 start =======================
-
-export type Pm2ProcessStatusTypes =
-  | 'online'
-  | 'stopping'
-  | 'stopped'
-  | 'launching'
-  | 'errored'
-  | 'waiting restart'
-  | 'one-launch-status';
 
 export type Pm2ProcessStatusData = Record<
   string,
@@ -843,6 +841,33 @@ async function getBacktestArgs(isEnableMatcher: boolean) {
     : '';
 }
 
+async function getBackTestConfigPath(group: string, name: string) {
+  const cwd = dealSpaceInPath(
+    path.join(buildRuntimeChildDirByType('resources'), 'strategy', group, name),
+  );
+
+  await fse.ensureDir(cwd);
+
+  if (window.watcher) {
+    const instruments = window.watcher.ledger.Instrument.list();
+    const comissions = await getKfCommission();
+
+    const backtestConfigJson = {
+      Comissions: {
+        default: comissions || [],
+      },
+      Instrument: {
+        default: instruments || [],
+      },
+    };
+
+    const backtestConfigPath = path.join(cwd, 'backtest_config.json');
+    await fse.writeJson(backtestConfigPath, backtestConfigJson);
+    return backtestConfigPath;
+  }
+  return '';
+}
+
 function buildArgs(options: {
   prefix?: string;
   loglevel?: string;
@@ -1176,8 +1201,15 @@ export const startTask = async (
 
   if (isReplay && replayConfig) {
     let backtestArgs = '';
+    let backtestConfigPath = '';
     if (mode === 'backtest') {
       backtestArgs = await getBacktestArgs(replayConfig.enable_matcher);
+      if (backtestArgs) {
+        backtestConfigPath = await getBackTestConfigPath(
+          replayConfig.group,
+          replayConfig.session_name,
+        );
+      }
     }
 
     argsResolved = buildArgs({
@@ -1191,7 +1223,9 @@ export const startTask = async (
         name: `"${taskLocation.name}"`,
         mode: mode,
       },
-      extraArgs: `'${soPath}'`,
+      extraArgs: `${
+        backtestConfigPath ? `-B '${backtestConfigPath}'` : ''
+      } '${soPath}'`,
       args: `'${args}'`,
       suffix: `${backtestArgs} -b '${replayConfig.begin_time}' -e '${replayConfig.end_time}'`,
     });
@@ -1315,8 +1349,15 @@ export const startStrategyOperatorByLocalPython = async (
 
   if (isReplay && replayConfig) {
     let backtestArgs = '';
+    let backtestConfigPath = '';
     if (mode === 'backtest') {
       backtestArgs = await getBacktestArgs(replayConfig.enable_matcher);
+      if (backtestArgs) {
+        backtestConfigPath = await getBackTestConfigPath(
+          replayConfig.group,
+          replayConfig.session_name,
+        );
+      }
     }
 
     args = buildArgs({
@@ -1328,7 +1369,11 @@ export const startStrategyOperatorByLocalPython = async (
         name: replayConfig.session_name,
         mode: mode,
       },
-      suffix: `'${replayConfig.file_path}' ${backtestArgs} -b '${replayConfig.begin_time}' -e '${replayConfig.end_time}'`,
+      suffix: `${backtestConfigPath ? `-B '${backtestConfigPath}'` : ''} '${
+        replayConfig.file_path
+      }' ${backtestArgs} -b '${replayConfig.begin_time}' -e '${
+        replayConfig.end_time
+      }'`,
     });
     fullProcessId = getProcessIdByKfLocation({
       category: replayConfig.category,
@@ -1373,10 +1418,12 @@ export const startStrategyOperator = async (
 
   //因为pm2环境残留，在反复切换本地python跟内置python时，会出现本地python启动失败，所以需要先pm2 kill
   try {
-    const { processStatus } = await listProcessStatus();
-    if (!getIfProcessDeleted(processStatus, processId)) {
-      kfLogger.info(`Clear existed ${category} ${processId}`);
-      await deleteProcess(processId);
+    if (!isReplay) {
+      const { processStatus } = await listProcessStatus();
+      if (!getIfProcessDeleted(processStatus, processId)) {
+        kfLogger.info(`Clear existed ${category} ${processId}`);
+        await deleteProcess(processId);
+      }
     }
   } catch (err) {
     kfLogger.warn(err);
@@ -1414,10 +1461,16 @@ export const startStrategyOperator = async (
       );
     } else {
       let backtestArgs = '';
+      let backtestConfigPath = '';
       if (mode === 'backtest') {
         backtestArgs = await getBacktestArgs(replayConfig.enable_matcher);
+        if (backtestArgs) {
+          backtestConfigPath = await getBackTestConfigPath(
+            replayConfig.group,
+            replayConfig.session_name,
+          );
+        }
       }
-
       const args = buildArgs({
         loglevel: replayConfig.log_level,
         location: {
@@ -1426,7 +1479,11 @@ export const startStrategyOperator = async (
           name: replayConfig.session_name,
           mode: mode,
         },
-        suffix: `'${replayConfig.file_path}' ${backtestArgs} -b '${replayConfig.begin_time}' -e '${replayConfig.end_time}'`,
+        suffix: `${backtestConfigPath ? `-B '${backtestConfigPath}'` : ''} '${
+          replayConfig.file_path
+        }' ${backtestArgs} -b '${replayConfig.begin_time}' -e '${
+          replayConfig.end_time
+        }'`,
       });
       return startProcess({
         name: processId,

@@ -11,10 +11,8 @@ import {
 import { dealMemory, parseToString } from '../assets/methods/utils';
 import { Log } from '../assets/actions/log';
 import { initBusEvent } from '../assets/actions/busEvent';
-import {
-  debounce,
-  setTimerPromiseTask,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { debounce } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import { setTimerPromiseTask } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 
 const WIDTH_LEFT_PANEL = 35;
 

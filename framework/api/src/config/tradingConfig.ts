@@ -30,7 +30,7 @@ import {
   OrderTriggerFlag,
 } from '../typings/enums';
 
-import { Pm2ProcessStatusTypes } from '../utils/processUtils';
+import { Pm2ProcessStatusTypes } from '../typings/common';
 
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 const { t } = VueI18n.global;

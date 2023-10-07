@@ -73,6 +73,8 @@ void bind_book(pybind11::module &m) {
       .def_property_readonly("instrument_factors", &Book::get_instrument_factors)
       .def_property_readonly("instruments", &Book::get_instruments)
       .def_property_readonly("commissions", &Book::get_commissions)
+      .def_property_readonly("baskets", &Book::get_baskets)
+      .def_property_readonly("basket_instruments", &Book::get_basket_instruments)
       .def("update", &Book::update)
       .def("has_long_position", py::overload_cast<const std::string &, const std::string &, const char *, const char *>(
                                     &Book::has_long_position, py::const_))

@@ -1,8 +1,8 @@
 <script lang="ts" setup>
 import { onMounted, ref } from 'vue';
 import { ReloadOutlined } from '@ant-design/icons-vue';
-import { getNanoDateString } from '@kungfu-trader/kungfu-js-api/kungfu';
-import { getKfExtOriginConfigsByType } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { getNanoDateString } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
+import { getKfExtOriginConfigsByType } from '@kungfu-trader/kungfu-js-api/utils/extUtils';
 
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 
@@ -290,11 +290,23 @@ const handleCancel = () => {
               {{ t('replay.replay_tips1_part3') }}
             </li>
             <li>
-              {{ `2. ${t('replay.replay_tips2_part1')}` }}
+              {{ `2. ` }}
               <span class="highlighted-text">
-                {{ t('replay.replay_tips2_part2') }}
+                {{ `${t('replay.replay_tips2_part1')}` }}
               </span>
-              {{ t('replay.replay_tips2_part3') }}
+              {{ t('replay.replay_tips2_part2') }}
+              <span class="highlighted-text">
+                {{ t('replay.replay_tips2_part3') }}
+              </span>
+              {{ t('replay.replay_tips2_part4') }}
+              <span class="highlighted-text">
+                {{ t('replay.replay_tips2_part5') }}
+              </span>
+              {{ t('replay.replay_tips2_part6') }}
+              <span class="highlighted-text">
+                {{ t('replay.replay_tips2_part7') }}
+              </span>
+              {{ t('replay.replay_tips2_part8') }}
             </li>
           </ul>
         </div>
@@ -309,11 +321,23 @@ const handleCancel = () => {
               {{ t('replay.replay_tips1_part3') }}
             </li>
             <li>
-              {{ `2. ${t('replay.replay_tips2_part1')}` }}
+              {{ `2. ` }}
               <span class="highlighted-text">
-                {{ t('replay.replay_tips2_part2') }}
+                {{ `${t('replay.replay_tips2_part1')}` }}
               </span>
-              {{ t('replay.replay_tips2_part3') }}
+              {{ t('replay.replay_tips2_part2') }}
+              <span class="highlighted-text">
+                {{ t('replay.replay_tips2_part3') }}
+              </span>
+              {{ t('replay.replay_tips2_part4') }}
+              <span class="highlighted-text">
+                {{ t('replay.replay_tips2_part5') }}
+              </span>
+              {{ t('replay.replay_tips2_part6') }}
+              <span class="highlighted-text">
+                {{ t('replay.replay_tips2_part7') }}
+              </span>
+              {{ t('replay.replay_tips2_part8') }}
             </li>
           </ul>
         </div>

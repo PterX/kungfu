@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { setTdGroup } from '@kungfu-trader/kungfu-js-api/actions';
-import { getIdByKfLocation } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { getIdByKfLocation } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   getInstrumentTypeColor,
   isInTdGroup,

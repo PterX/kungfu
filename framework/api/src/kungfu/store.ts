@@ -2,10 +2,10 @@ import path from 'path';
 import fse from 'fs-extra';
 import { configStore } from '../kungfu';
 import {
-  kfLogger,
-  hidePasswordByLogger,
   getResultUntilValuable,
-} from '../utils/busiUtils';
+  hidePasswordByLogger,
+} from '../utils/commonUtils';
+import { kfLogger } from '../utils/logUtils';
 import { BASE_DB_DIR } from '../config/pathConfig';
 
 export const getKfAllConfig = (): Promise<KungfuApi.KfConfigOrigin[]> => {

@@ -46,7 +46,7 @@ import { ipcEmit } from '@kungfu-trader/kungfu-app/src/renderer/ipcMsg/emitter';
 import { ensureFileSync, outputFile } from 'fs-extra';
 import { useRemoveReplayProcess } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import { messagePrompt } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
-import { getYearMonthDay } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { getYearMonthDay } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { LogLevelType } from '@kungfu-trader/kungfu-app/src/typings/enums';
 
 import { listProcessStatus } from '@kungfu-trader/kungfu-js-api/utils/processUtils';

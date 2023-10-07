@@ -68,8 +68,8 @@ struct Book {
   yijinjing::data::location_ptr home;
 
   Book(const CommissionMap &commissions_ref, const InstrumentMap &instruments_ref,
-           const InstrumentFactorMap &instrument_factors_ref, BasketMap &baskets_ref,
-           BasketInstrumentMap &basket_instruments_ref, yijinjing::data::location_ptr home_location);
+       const InstrumentFactorMap &instrument_factors_ref, BasketMap &baskets_ref,
+       BasketInstrumentMap &basket_instruments_ref, yijinjing::data::location_ptr home_location);
 
   double get_frozen_price(uint64_t order_id);
 

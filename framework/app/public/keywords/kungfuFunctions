@@ -165,6 +165,7 @@ has_env
 get_env
 layout_dir
 layout_file
+get_root
 list_page_id
 list_locations
 list_location_dest

@@ -442,7 +442,6 @@ bool TraderXTP::custom_OnQueryPosition(const XTPQueryStkPositionRsp &position, c
   stock_pos.instrument_type = get_instrument_type(stock_pos.exchange_id, stock_pos.instrument_id);
   stock_pos.direction = Direction::Long;
   stock_pos.update_time = yijinjing::time::now_in_nano();
-  strncpy(stock_pos.trading_day, trading_day_.c_str(), trading_day_.length());
   SPDLOG_TRACE("Position: {}", stock_pos.to_string());
   writer->close_data();
   if (is_last) {
@@ -497,7 +496,6 @@ bool TraderXTP::custom_OnQueryAsset(const XTPQueryAssetRsp &asset, const XTPRI &
     }
     account.holder_uid = get_live_home_uid();
     account.update_time = yijinjing::time::now_in_nano();
-    strncpy(account.trading_day, trading_day_.c_str(), trading_day_.length());
     SPDLOG_TRACE("Asset: {}", account.to_string());
     writer->close_data();
     enable_asset_sync();

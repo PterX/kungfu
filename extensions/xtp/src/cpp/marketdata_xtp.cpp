@@ -164,16 +164,9 @@ void MarketDataXTP::OnQueryAllTickers(XTPQSI *ticker_info, XTPRI *error_info, bo
     return;
   }
 
-  if (not public_writer_) {
-    while (not has_writer(location::PUBLIC)) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(1));
-    }
-    public_writer_ = get_writer(location::PUBLIC);
-  }
-
-  Instrument &instrument = public_writer_->open_data<Instrument>(0);
+  Instrument &instrument = get_public_writer()->open_data<Instrument>(0);
   from_xtp(ticker_info, instrument);
-  public_writer_->close_data();
+  get_public_writer()->close_data();
 }
 
 void MarketDataXTP::OnDepthMarketData(XTPMD *market_data, int64_t *bid1_qty, int32_t bid1_count, int32_t max_bid1_count,
@@ -182,16 +175,9 @@ void MarketDataXTP::OnDepthMarketData(XTPMD *market_data, int64_t *bid1_qty, int
     SPDLOG_ERROR("XTPMD is nullptr");
   }
 
-  if (not public_writer_) {
-    while (not has_writer(location::PUBLIC)) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(1));
-    }
-    public_writer_ = get_writer(location::PUBLIC);
-  }
-
-  Quote &quote = public_writer_->open_data<Quote>(0);
+  Quote &quote = get_public_writer()->open_data<Quote>(0);
   from_xtp(*market_data, quote);
-  public_writer_->close_data();
+  get_public_writer()->close_data();
 }
 
 void MarketDataXTP::OnTickByTick(XTPTBT *tbt_data) {
@@ -229,15 +215,8 @@ void MarketDataXTP::OnQueryAllTickersFullInfo(XTPQFI *ticker_info, XTPRI *error_
     return;
   }
 
-  if (not public_writer_) {
-    while (not has_writer(location::PUBLIC)) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(1));
-    }
-    public_writer_ = get_writer(location::PUBLIC);
-  }
-
-  Instrument &instrument = public_writer_->open_data<Instrument>(0);
-  strcpy(instrument.instrument_id, ticker_info->ticker);
+  Instrument &instrument = get_public_writer()->open_data<Instrument>(0);
+  instrument.instrument_id = ticker_info->ticker;
   if (ticker_info->exchange_id == 1) {
     instrument.exchange_id = EXCHANGE_SSE;
   } else if (ticker_info->exchange_id == 2) {
@@ -247,7 +226,7 @@ void MarketDataXTP::OnQueryAllTickersFullInfo(XTPQFI *ticker_info, XTPRI *error_
   memcpy(instrument.product_id, ticker_info->ticker_name, strlen(ticker_info->ticker_name));
   instrument.instrument_type = get_instrument_type(instrument.exchange_id, instrument.instrument_id);
   SPDLOG_TRACE("instrument {}", instrument.to_string());
-  public_writer_->close_data();
+  get_public_writer()->close_data();
 
   if (is_last) {
     record_stored_instruments_trading_day(time::strfnow("%Y%m%d"));

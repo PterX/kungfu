@@ -18,4 +18,4 @@ export const KfCategoryNameMap = {
 };
 
 export const invalidFileNameReg =
-  /^(con|prn|aux|nul|com[0-9]$|lpt[0-9]$)$|[\0-\x1F\x80-\x9F\\/:*?"<>|]/i;
+  /^(?:[^a-zA-Z0-9_/:？*' '<>$|]|.*[^a-zA-Z0-9_/:？*' '<>$|]$|\p{Emoji}|.*_.*|.*[/:？*' '<>$|].*|\b(?:[cC][oO][nN]|[pP][rR][nN]|[aA][uU][xX]|[nN][uU][lL]|[cC][oO][mM][0-9]|[lL][pP][tT][0-9])\b)/u;

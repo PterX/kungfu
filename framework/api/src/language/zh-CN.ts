@@ -707,8 +707,8 @@ export default {
     empty_export_data: '没有可导出的信息',
 
     replay: '回放',
-
     please_select_strategy_or_operator: '请选择策略或算子',
+
     entry_visualization: '进入可视化',
     quit_visualization: '退出可视化',
     strategy_id: '策略id',

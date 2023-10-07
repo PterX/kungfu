@@ -584,6 +584,7 @@ export const getOffsetConfig = (): Record<
 
   return Object.keys(OffsetEnum)
     .filter((key) => Number.isNaN(+key))
+    .filter((key) => key !== 'Unknown')
     .filter((offset) => !unsupportedOffset.includes(offset))
     .map((offset) => OffsetEnum[offset])
     .reduce((pre, enumValue: OffsetEnum) => {

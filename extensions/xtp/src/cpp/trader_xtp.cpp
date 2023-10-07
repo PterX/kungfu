@@ -500,6 +500,7 @@ bool TraderXTP::custom_OnQueryAsset(const XTPQueryAssetRsp &asset, const XTPRI &
     writer->close_data();
     enable_asset_sync();
   }
+  return true;
 }
 
 bool TraderXTP::req_history_order(const event_ptr &event) {

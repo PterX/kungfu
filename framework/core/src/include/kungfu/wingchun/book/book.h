@@ -46,7 +46,7 @@ typedef std::unordered_map<uint32_t, longfist::types::InstrumentFactor> Instrume
 struct Book {
   const CommissionMap &commissions;
   const InstrumentMap &instruments;
-  const InstrumentFactorMap instrument_factors;
+  const InstrumentFactorMap &instrument_factors;
   longfist::types::Asset asset = {};
   longfist::types::AssetMargin asset_margin = {};
   PositionMap long_positions = {};

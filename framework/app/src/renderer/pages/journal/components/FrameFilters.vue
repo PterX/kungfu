@@ -42,6 +42,8 @@
         :placeholder="$t('journalConfig.selete_msg_type')"
         allow-clear
         @blur="handleApplyFilters"
+        @deselect="handleApplyFilters"
+        @change="handleClearAll"
       >
         <a-select-option
           v-for="option in msgTypesFilterOptions"
@@ -120,6 +122,12 @@ const resetFilters = () => {
 defineExpose({
   resetFilters,
 });
+
+function handleClearAll(value: number[]) {
+  if (!value || value.length === 0) {
+    applyFilters();
+  }
+}
 </script>
 
 <style lang="less">

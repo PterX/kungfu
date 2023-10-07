@@ -11,6 +11,14 @@
 #include <kungfu/wingchun/common.h>
 
 namespace kungfu::wingchun::book {
+static constexpr int DEFAULT_INSTRUMENT_CONTRACT_MULTIPLIER = 1;
+static constexpr double DEFAULT_INSTRUMENT_EXCHANGE_RATE = 1.0;
+static constexpr double DEFAULT_FUTURE_LONG_MARGIN_RATIO = 1.0;
+static constexpr double DEFAULT_FUTURE_SHORT_MARGIN_RATIO = 1.0;
+static constexpr double DEFAULT_STOCK_LONG_MARGIN_RATIO = 1.0;
+static constexpr double DEFAULT_STOCK_SHORT_MARGIN_RATIO = 0.6;
+static constexpr double DEFAULT_STOCK_CONVERSION_RATE = 0.7;
+
 FORWARD_DECLARE_STRUCT_PTR(Book)
 FORWARD_DECLARE_CLASS_PTR(Bookkeeper)
 

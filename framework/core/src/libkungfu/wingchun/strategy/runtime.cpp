@@ -335,6 +335,7 @@ uint64_t RuntimeContext::cancel_order(uint64_t order_id, OrderActionFlag action_
   action.order_action_id = writer->current_frame_uid();
   action.order_id = order_id;
   action.action_flag = action_flag;
+  action.insert_time = time::now_in_nano();
 
   uint64_t order_action_id = action.order_action_id;
   writer->close_data();
@@ -354,6 +355,7 @@ uint64_t RuntimeContext::cancel_order_trigger(uint64_t trigger_id) {
   action.order_trigger_action_id = writer->current_frame_uid();
   action.trigger_id = trigger_id;
   action.action_flag = OrderActionFlag::Cancel;
+  action.insert_time = time::now_in_nano();
 
   uint64_t order_trigger_action_id = action.order_trigger_action_id;
   writer->close_data();

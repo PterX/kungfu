@@ -250,7 +250,9 @@ def archive(ctx, format, mode):
         os.makedirs(today_temp_path)
 
     ctx.logger.info("exporting journals")
-    yjj.assemble([ctx.runtime_locator, yjj.locator(today_temp_path)]) >> ArchiveSink(ctx)
+    yjj.assemble([ctx.runtime_locator, yjj.locator(today_temp_path)]) >> ArchiveSink(
+        ctx
+    )
     shutil.rmtree(today_temp_path)
 
     ctx.logger.info("exporting logs")

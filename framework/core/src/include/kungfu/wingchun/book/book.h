@@ -127,7 +127,7 @@ struct Book {
   void replace(const longfist::types::Trade &trade);
 
   [[nodiscard]] const InstrumentMap &get_instruments() const { return instruments; }
-  
+
   [[nodiscard]] const InstrumentFactorMap &get_instrument_factors() const { return instrument_factors; }
 
   [[nodiscard]] const CommissionMap &get_commissions() const { return commissions; }

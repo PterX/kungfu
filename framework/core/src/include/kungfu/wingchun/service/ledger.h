@@ -101,9 +101,6 @@ private:
 
   void write_positions(int64_t trigger_time, uint32_t dest, book::PositionMap &positions);
 
-  void write_instrument_factors(int64_t trigger_time, uint32_t strategy_uid,
-                                book::InstrumentFactorMap &instrument_factors);
-
   void request_asset_sync(int64_t trigger_time);
 
   void request_position_sync(int64_t trigger_time);

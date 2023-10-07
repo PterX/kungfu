@@ -808,7 +808,7 @@ export default {
 
     bypass_subscribe_position: 'Skip position market subscription',
     bypass_subscribe_position_desc:
-      'After opening, it will no longer default to subscribing to the market updates of trading account positions, and the trading account list will no longer display floating profits and losses. The market value related fields will be calculated using the average opening price. After opening, it can reduce the machine performance burden, and will take effect after restarting',
+      'After opening, it will no longer subscribe by default to the market updates for positions in the trading account, and the trading account list will no longer display floating profits and losses. Market value related fields are calculated using the average opening price. Activating this feature can reduce the machine performance burden and will take effect after restarting.',
     porformance: 'Performance',
     rocket_model: 'Open Rocket Model',
     rocket_model_desc:

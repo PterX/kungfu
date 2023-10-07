@@ -89,6 +89,9 @@ void Bookkeeper::restore(const cache::bank &state_bank) {
   for (auto &pair : state_bank[boost::hana::type_c<Instrument>]) {
     update_instrument(pair.second.data);
   }
+  for (auto &pair : state_bank[boost::hana::type_c<InstrumentFactor>]) {
+    update_instrument_factor(pair.second.data);
+  }
   for (auto &pair : state_bank[boost::hana::type_c<Basket>]) {
     update_basket(pair.second.data);
   }
@@ -124,16 +127,6 @@ void Bookkeeper::restore(const cache::bank &state_bank) {
     book->asset = asset;
     book->update(app_.now(), account_method_type_);
   }
-
-  for (auto &pair : state_bank[boost::hana::type_c<InstrumentFactor>]) {
-    auto &state = pair.second;
-    auto &instrument_factor = state.data;
-    if (not app_.has_location(instrument_factor.source_id)) {
-      continue;
-    }
-    update_instrument_factor(instrument_factor);
-  }
-
   for (auto &pair : state_bank[boost::hana::type_c<Order>]) {
     auto &order_state = pair.second;
     auto source_book = get_book(order_state.source);
@@ -161,7 +154,8 @@ void Bookkeeper::guard_positions() { positions_guarded_ = true; }
 
 Book_ptr Bookkeeper::make_book(uint32_t location_uid) {
   auto location = app_.get_location(location_uid);
-  auto book = std::make_shared<Book>(commissions_, instruments_, baskets_, basket_instruments_, location);
+  auto book =
+      std::make_shared<Book>(commissions_, instruments_, instrument_factors_, baskets_, basket_instruments_, location);
   auto &asset = book->asset;
   asset.holder_uid = location_uid;
   asset.ledger_category = location->category == category::TD ? LedgerCategory::Account : LedgerCategory::Strategy;
@@ -190,22 +184,15 @@ void Bookkeeper::update_basket_instrument(const longfist::types::BasketInstrumen
 }
 
 void Bookkeeper::update_commission(const event_ptr &event, const longfist::types::Commission &commission) {
-  for (auto &bk_pair : books_) {
-    auto &book = bk_pair.second;
-    if (book->asset.holder_uid == event->source()) {
-      book->replace(commission);
-    }
-  }
+  uint32_t product_key =
+      yijinjing::util::hash_str_32(commission.product_id) ^ yijinjing::util::hash_str_32(commission.exchange_id);
+  commissions_.insert_or_assign(product_key, commission);
 }
 
 void Bookkeeper::update_instrument_factor(const longfist::types::InstrumentFactor &instrument_factor) {
-  for (auto &bk_pair : books_) {
-    auto &book = bk_pair.second;
-    auto location = app_.get_location(book->asset.holder_uid);
-    if (location->category != category::TD or book->asset.holder_uid == instrument_factor.source_id) {
-      book->replace(instrument_factor);
-    }
-  }
+  auto instrument_factor_id =
+      hash_instrument(instrument_factor.source_id, instrument_factor.exchange_id, instrument_factor.instrument_id);
+  instrument_factors_.insert_or_assign(instrument_factor_id, instrument_factor);
 }
 
 void Bookkeeper::update_book(const event_ptr &event, const InstrumentKey &instrument_key) {

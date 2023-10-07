@@ -184,9 +184,9 @@ export const specificProcessListObserver = (kfLocation: KungfuApi.KfConfig) =>
           group: ledgerLocation.group,
           name: ledgerLocation.name,
           value: {},
-          status: processStatus['ledger'] || '--',
-          statusName: dealStatus(processStatus['ledger'] || '--'),
-          monit: processStatusWithDetail['ledger']?.monit,
+          status: processStatus[ledgerProcessId] || '--',
+          statusName: dealStatus(processStatus[ledgerProcessId] || '--'),
+          monit: processStatusWithDetail[ledgerProcessId]?.monit,
         },
         {
           processId: 'dzxy',

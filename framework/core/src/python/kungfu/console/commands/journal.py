@@ -18,7 +18,6 @@ from kungfu.yijinjing import LOG_PATTERN, ARCHIVE_PREFIX
 from kungfu.yijinjing import journal as kfj
 from kungfu.yijinjing import time as kft
 from kungfu.yijinjing.log import create_logger
-from kungfu.yijinjing.locator import Locator
 from kungfu.yijinjing.sinks.archive import ArchiveSink
 from kungfu.yijinjing.utils import prune_layout_files, prue_layout_dirs_before_timestamp
 
@@ -251,7 +250,7 @@ def archive(ctx, format, mode):
         os.makedirs(today_temp_path)
 
     ctx.logger.info("exporting journals")
-    yjj.assemble([ctx.runtime_locator, Locator(today_temp_path)]) >> ArchiveSink(ctx)
+    yjj.assemble([ctx.runtime_locator, yjj.locator(today_temp_path)]) >> ArchiveSink(ctx)
     shutil.rmtree(today_temp_path)
 
     ctx.logger.info("exporting logs")

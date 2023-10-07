@@ -53,11 +53,9 @@ typedef std::unordered_map<uint64_t, longfist::types::Trade> TradeMap;
 typedef std::unordered_map<uint32_t, longfist::types::InstrumentFactor> InstrumentFactorMap;
 
 struct Book {
-  CommissionMap &commissions;
+  const CommissionMap &commissions;
   const InstrumentMap &instruments;
-  const BasketMap &baskets;
-  const BasketInstrumentMap &basket_instruments;
-  InstrumentFactorMap instrument_factors = {};
+  const InstrumentFactorMap &instrument_factors;
   longfist::types::Asset asset = {};
   PositionMap long_positions = {};
   PositionMap short_positions = {};
@@ -67,8 +65,9 @@ struct Book {
   TradeMap trades = {};
   yijinjing::data::location_ptr home;
 
-  Book(CommissionMap &commissions_ref, const InstrumentMap &instruments_ref, BasketMap &baskets_ref,
-       BasketInstrumentMap &basket_instruments_ref, yijinjing::data::location_ptr home_location);
+  Book(const CommissionMap &commissions_ref, const InstrumentMap &instruments_ref,
+           const InstrumentFactorMap &instrument_factors_ref, BasketMap &baskets_ref,
+           BasketInstrumentMap &basket_instruments_ref, yijinjing::data::location_ptr home_location);
 
   double get_frozen_price(uint64_t order_id);
 
@@ -268,11 +267,9 @@ struct Book {
 
   void replace(const longfist::types::Trade &trade);
 
-  void replace(const longfist::types::Commission &commission);
-
-  void replace(const longfist::types::InstrumentFactor &instrument_factor);
-
   [[nodiscard]] const InstrumentMap &get_instruments() const { return instruments; }
+
+  [[nodiscard]] const InstrumentFactorMap &get_instrument_factors() const { return instrument_factors; }
 
   [[nodiscard]] const CommissionMap &get_commissions() const { return commissions; }
 

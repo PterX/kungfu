@@ -133,6 +133,7 @@ private:
   bool positions_guarded_ = false;
   CommissionMap commissions_ = {};
   InstrumentMap instruments_ = {};
+  InstrumentFactorMap instrument_factors_ = {};
   BasketMap baskets_ = {};
   BasketInstrumentMap basket_instruments_ = {};
   BookMap books_ = {};

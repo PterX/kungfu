@@ -16,9 +16,10 @@ using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
 
 namespace kungfu::wingchun::book {
-Book::Book(CommissionMap &commissions_ref, const InstrumentMap &instruments_ref, BasketMap &baskets_ref,
+Book::Book(const CommissionMap &commissions_ref, const InstrumentMap &instruments_ref,
+           const InstrumentFactorMap &instrument_factors_ref, BasketMap &baskets_ref,
            BasketInstrumentMap &basket_instruments_ref, yijinjing::data::location_ptr home_location)
-    : commissions(commissions_ref), instruments(instruments_ref), baskets(baskets_ref),
+    : commissions(commissions_ref), instruments(instruments_ref), instrument_factors(instrument_factors_ref),  baskets(baskets_ref),
       basket_instruments(basket_instruments_ref), home(home_location) {}
 
 double Book::get_frozen_price(uint64_t order_id) {
@@ -183,16 +184,5 @@ void Book::replace(const OrderInput &input) { order_inputs.insert_or_assign(inpu
 void Book::replace(const Order &order) { orders.insert_or_assign(order.order_id, order); }
 
 void Book::replace(const Trade &trade) { trades.insert_or_assign(trade.trade_id, trade); }
-
-void Book::replace(const Commission &commission) {
-  uint32_t product_key = yijinjing::util::hash_str_32(commission.product_id);
-  commissions.insert_or_assign(product_key, commission);
-}
-
-void Book::replace(const longfist::types::InstrumentFactor &instrument_factor) {
-  auto instrument_factor_id =
-      hash_instrument(instrument_factor.source_id, instrument_factor.exchange_id, instrument_factor.instrument_id);
-  instrument_factors.insert_or_assign(instrument_factor_id, instrument_factor);
-}
 
 } // namespace kungfu::wingchun::book

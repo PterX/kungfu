@@ -216,7 +216,7 @@ void MarketDataXTP::OnQueryAllTickersFullInfo(XTPQFI *ticker_info, XTPRI *error_
   }
 
   Instrument &instrument = get_public_writer()->open_data<Instrument>(0);
-  strcpy(instrument.instrument_id, ticker_info->ticker);
+  instrument.instrument_id = ticker_info->ticker;
   if (ticker_info->exchange_id == 1) {
     instrument.exchange_id = EXCHANGE_SSE;
   } else if (ticker_info->exchange_id == 2) {

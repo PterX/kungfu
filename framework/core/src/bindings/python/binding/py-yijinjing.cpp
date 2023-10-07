@@ -213,6 +213,7 @@ void bind(pybind11::module &&m) {
       .def("get_env", &locator::get_env)
       .def("layout_dir", &locator::layout_dir)
       .def("layout_file", &locator::layout_file)
+      .def("get_root", &locator::get_root)
       .def("list_page_id", &locator::list_page_id)
       .def("list_locations", &locator::list_locations, py::arg("category") = "*", py::arg("group") = "*",
            py::arg("name") = "*", py::arg("mode") = "*")
@@ -255,7 +256,8 @@ void bind(pybind11::module &&m) {
   py::class_<bus, bus_ptr>(m, "bus").def("on_load_page", &bus::on_load_page);
 
   auto writer_class = py::class_<writer, writer_ptr>(m, "writer");
-  writer_class.def(py::init<const data::location_ptr &, uint32_t, bool, publisher_ptr, bool, const bus_ptr &>())
+  writer_class
+      .def(py::init<const data::location_ptr &, uint32_t, bool, publisher_ptr, bool, const bus_ptr &, uint32_t>())
       .def("current_frame_uid", &writer::current_frame_uid)
       .def("get_location", &writer::get_location)
       .def("get_dest", &writer::get_dest)

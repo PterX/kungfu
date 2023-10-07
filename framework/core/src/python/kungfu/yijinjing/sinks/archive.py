@@ -4,7 +4,6 @@ import kungfu
 import os
 
 from kungfu.yijinjing.time import DAY_IN_NANO
-from kungfu.yijinjing.locator import Locator
 
 lf = kungfu.__binding__.longfist
 yjj = kungfu.__binding__.yijinjing
@@ -14,7 +13,7 @@ class ArchiveSink(yjj.sink):
     def __init__(self, ctx):
         yjj.sink.__init__(self)
         self.ctx = ctx
-        self.archive_locator = Locator(ctx.archive_dir)
+        self.archive_locator = yjj.locator(ctx.archive_dir)
         self.last_day = 0
         self.locator = None
         self.writer_maps = {}
@@ -24,7 +23,7 @@ class ArchiveSink(yjj.sink):
         if date > self.last_day:
             date_str = yjj.strftime(date * DAY_IN_NANO, "%Y-%m-%d")
             self.ctx.logger.info(f"making archive for {date_str}")
-            self.locator = Locator(os.path.join(self.ctx.archive_dir, date_str))
+            self.locator = yjj.locator(os.path.join(self.ctx.archive_dir, date_str))
             self.writer_maps = {}
             self.last_day = date
         if location.uid not in self.writer_maps:
@@ -38,7 +37,9 @@ class ArchiveSink(yjj.sink):
                 location.name,
                 self.locator,
             )
-            page_size = self.find_page_size(target_location, dest_id)
+
+            # have to find_page_size of 'location', instead of 'target_location'
+            page_size = int(self.find_page_size(location, dest_id) / (1024 * 1024))
             writers[dest_id] = yjj.writer(
                 target_location,
                 dest_id,

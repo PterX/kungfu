@@ -238,11 +238,11 @@ export const getKungfuDataByDateRange = (
   }
 
   kfLogger.info(
-    'is yesterday bussiness day',
+    'Is yesterday business day',
     yesterdayDate,
     isYesterdayBusinessDay,
   );
-  kfLogger.info('Export data', from, to);
+  kfLogger.info('Query history data', from, to);
 
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {

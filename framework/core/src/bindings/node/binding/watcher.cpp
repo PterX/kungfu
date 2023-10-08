@@ -294,12 +294,12 @@ Napi::Value Watcher::IssueCustomData(const Napi::CallbackInfo &info) {
   return InteractWithLocation<TimeKeyValue>(info, info[0].ToObject());
 }
 
-Napi::Value Watcher::IssueBasket(const Napi::CallbackInfo &info) {
+Napi::Value Watcher::RecordBasket(const Napi::CallbackInfo &info) {
   SPDLOG_INFO("issue basket data manually");
   return InteractWithPublic<Basket>(info, info[0].ToObject());
 }
 
-Napi::Value Watcher::IssueBasketInstrument(const Napi::CallbackInfo &info) {
+Napi::Value Watcher::RecordBasketInstrument(const Napi::CallbackInfo &info) {
   SPDLOG_INFO("issue basket instrument data manually");
   return InteractWithPublic<BasketInstrument>(info, info[0].ToObject());
 }
@@ -418,8 +418,8 @@ void Watcher::Init(Napi::Env env, Napi::Object exports) {
                       InstanceMethod("publishState", &Watcher::PublishState),           //
                       InstanceMethod("isReadyToInteract", &Watcher::IsReadyToInteract), //
                       InstanceMethod("issueCustomData", &Watcher::IssueCustomData),
-                      InstanceMethod("IssueBasket", &Watcher::IssueBasket),
-                      InstanceMethod("IssueBasketInstrument", &Watcher::IssueBasketInstrument),         //
+                      InstanceMethod("RecordBasket", &Watcher::RecordBasket),
+                      InstanceMethod("RecordBasketInstrument", &Watcher::RecordBasketInstrument),         //
                       InstanceMethod("issueBlockMessage", &Watcher::IssueBlockMessage),                 //
                       InstanceMethod("issueOrderTrigger", &Watcher::IssueOrderTrigger),                 //
                       InstanceMethod("issueOrder", &Watcher::IssueOrder),                               //

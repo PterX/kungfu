@@ -203,6 +203,10 @@ export const Offset: Record<OffsetEnum, KungfuApi.KfTradeValueCommonData> = {
     name: t('tradingConfig.close_yesterday'),
     color: 'green',
   },
+  [OffsetEnum.Unknown]: {
+    name: t('tradingConfig.unknown'),
+    color: 'default',
+  },
 };
 
 export const CodeTabSetting: Record<
@@ -1096,3 +1100,21 @@ export const OrderTriggerPriceType = [
   PriceTypeEnum.AtAuctionLimit,
   PriceTypeEnum.AtAuction,
 ];
+
+export const sideOffsetMap = {
+  [SideEnum.Buy]: {
+    [OffsetEnum.Open]: t('journalConfig.buy_open'),
+    [OffsetEnum.Close]: t('journalConfig.buy_close'),
+    [OffsetEnum.CloseToday]: t('journalConfig.buy_close'),
+    [OffsetEnum.CloseYest]: t('journalConfig.buy_close'),
+    [OffsetEnum.Unknown]: '--',
+  },
+  [SideEnum.Sell]: {
+    [OffsetEnum.Open]: t('journalConfig.sell_open'),
+    [OffsetEnum.Close]: t('journalConfig.sell_close'),
+    [OffsetEnum.CloseToday]: t('journalConfig.sell_close'),
+    [OffsetEnum.CloseYest]: t('journalConfig.sell_close'),
+    [OffsetEnum.Unknown]: '--',
+  },
+  [SideEnum.Unknown]: '--',
+};

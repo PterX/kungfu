@@ -11,6 +11,14 @@
 #include <kungfu/wingchun/common.h>
 
 namespace kungfu::wingchun::book {
+static constexpr int DEFAULT_INSTRUMENT_CONTRACT_MULTIPLIER = 1;
+static constexpr double DEFAULT_INSTRUMENT_EXCHANGE_RATE = 1.0;
+static constexpr double DEFAULT_FUTURE_LONG_MARGIN_RATIO = 1.0;
+static constexpr double DEFAULT_FUTURE_SHORT_MARGIN_RATIO = 1.0;
+static constexpr double DEFAULT_STOCK_LONG_MARGIN_RATIO = 1.0;
+static constexpr double DEFAULT_STOCK_SHORT_MARGIN_RATIO = 0.6;
+static constexpr double DEFAULT_STOCK_CONVERSION_RATE = 0.7;
+
 FORWARD_DECLARE_STRUCT_PTR(Book)
 FORWARD_DECLARE_CLASS_PTR(Bookkeeper)
 
@@ -36,9 +44,9 @@ typedef std::unordered_map<uint64_t, longfist::types::Trade> TradeMap;
 typedef std::unordered_map<uint32_t, longfist::types::InstrumentFactor> InstrumentFactorMap;
 
 struct Book {
-  CommissionMap &commissions;
+  const CommissionMap &commissions;
   const InstrumentMap &instruments;
-  InstrumentFactorMap instrument_factors = {};
+  const InstrumentFactorMap &instrument_factors;
   longfist::types::Asset asset = {};
   longfist::types::AssetMargin asset_margin = {};
   PositionMap long_positions = {};
@@ -47,7 +55,8 @@ struct Book {
   OrderMap orders = {};
   TradeMap trades = {};
 
-  Book(CommissionMap &commissions_ref, const InstrumentMap &instruments_ref);
+  Book(const CommissionMap &commissions_ref, const InstrumentMap &instruments_ref,
+       const InstrumentFactorMap &instrument_factors_ref);
 
   double get_frozen_price(uint64_t order_id);
 
@@ -117,11 +126,9 @@ struct Book {
 
   void replace(const longfist::types::Trade &trade);
 
-  void replace(const longfist::types::Commission &commission);
-
-  void replace(const longfist::types::InstrumentFactor &instrument_factor);
-
   [[nodiscard]] const InstrumentMap &get_instruments() const { return instruments; }
+
+  [[nodiscard]] const InstrumentFactorMap &get_instrument_factors() const { return instrument_factors; }
 
   [[nodiscard]] const CommissionMap &get_commissions() const { return commissions; }
 

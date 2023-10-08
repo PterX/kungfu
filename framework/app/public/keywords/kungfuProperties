@@ -1,6 +1,7 @@
 __uid__
 baskets
 basket_instruments
+instrument_factors
 instruments
 commissions
 home
@@ -37,7 +38,6 @@ asset_margin
 long_positions
 short_positions
 trades
-instrument_factors
 mode
 category
 group
@@ -312,9 +312,6 @@ SZSE
 HKEx
 MarketType
 Snapshot
-Entrust
-Transaction
-Tree
 SubscribeDataType
 Stock
 Future

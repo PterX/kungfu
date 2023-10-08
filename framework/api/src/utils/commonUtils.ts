@@ -25,6 +25,8 @@ export const booleanProcessEnv = (
   }
 };
 
+export const ifKfDev = () => booleanProcessEnv(process.env.IS_KF_DEV);
+
 export const dealKfNumber = (
   preNumber: bigint | number | undefined | unknown,
 ): string | number | bigint => {

@@ -1,4 +1,6 @@
 __uid__
+baskets
+basket_instruments
 instrument_factors
 instruments
 commissions
@@ -41,7 +43,7 @@ data
 asset
 long_positions
 short_positions
-order_inputs
+trades
 mode
 category
 group

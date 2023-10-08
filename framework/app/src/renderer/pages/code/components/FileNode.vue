@@ -152,7 +152,10 @@ import path from 'path';
 import { storeToRefs } from 'pinia';
 import { onMounted, ref, toRefs, computed, watch, nextTick } from 'vue';
 import { Alert } from 'ant-design-vue';
-import { invalidFileNameReg } from '@kungfu-trader/kungfu-js-api/config/systemConfig';
+import {
+  InvalidFileNameReg,
+  EmojiRegex,
+} from '@kungfu-trader/kungfu-js-api/config/systemConfig';
 import { openFolder } from '../../../assets/methods/codeUtils';
 import {
   removeFileFolder,
@@ -286,7 +289,8 @@ const handleAddFile = (e) => {
 //添加/编辑输入检测
 function handleAddEditFileInput(val): void {
   const siblings = getSiblingsName((fileNode.value as Code.FileData).parentId);
-  invalidFileNameReg.lastIndex = 0;
+  InvalidFileNameReg.lastIndex = 0;
+  EmojiRegex.lastIndex = 0;
   if (siblings.indexOf(val) != -1) {
     editError.value = true;
     editErrorMessage.value = t('editor.name_repeat', {
@@ -295,7 +299,10 @@ function handleAddEditFileInput(val): void {
   } else if (!val) {
     editError.value = true;
     editErrorMessage.value = t('editor.empty_input');
-  } else if (invalidFileNameReg.test(val)) {
+  } else if (EmojiRegex.test(val)) {
+    editError.value = true;
+    editErrorMessage.value = t('editor.illegal_file_name');
+  } else if (InvalidFileNameReg.test(val)) {
     editError.value = true;
     editErrorMessage.value = t('editor.illegal_file_name');
   } else {

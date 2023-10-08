@@ -301,7 +301,7 @@ watch(historyDate, async (newDate) => {
             ),
             ...getOrderLatencyDataByOrderStat(
               item,
-              window.watcher.ledger.OrderStat,
+              tradingData.OrderStat,
               price_precision,
             ),
           });

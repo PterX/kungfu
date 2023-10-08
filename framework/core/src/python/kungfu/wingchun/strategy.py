@@ -187,6 +187,10 @@ class Strategy(wc.Strategy):
         location = self._find_location(lf.enums.category.TD, source, account)
         return self.ctx.wc_context.bookkeeper.get_book(location.uid)
 
+    def __get_account_uid(self, source, account):
+        location = self._find_location(lf.enums.category.TD, source, account)
+        return location.uid
+
     def _find_location(self, category, group, name):
         mode = (
             lf.enums.mode.LIVE
@@ -273,6 +277,7 @@ class Strategy(wc.Strategy):
         self.ctx.hold_positions = wc_context.hold_positions
         self.ctx.set_resume_policy = wc_context.set_resume_policy
         self.ctx.get_account_book = self.__get_account_book
+        self.ctx.get_account_uid = self.__get_account_uid
         self.ctx.req_deregister = wc_context.req_deregister
         self.ctx.is_started = wc_context.is_started
         self.ctx.buy = functools.partial(self.__async_insert_order, Side.Buy)

@@ -12,6 +12,7 @@ namespace kungfu::wingchun::pybind {
 void bind_utils(pybind11::module &m) {
   auto m_utils = m.def_submodule("utils");
   m_utils.def("hash_instrument", pybind11::overload_cast<const char *, const char *>(&hash_instrument));
+  m_utils.def("hash_instrument", pybind11::overload_cast<uint32_t, const char *, const char *>(&hash_instrument));
   m_utils.def("is_valid_price", &is_valid_price);
   m_utils.def("is_final_status", &is_final_status);
   m_utils.def("get_instrument_type", &get_instrument_type);

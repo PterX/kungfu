@@ -808,7 +808,7 @@ export default {
 
     bypass_subscribe_position: 'Skip position market subscription',
     bypass_subscribe_position_desc:
-      'After opening, it will no longer default to subscribing to the market updates of trading account positions, and the trading account list will no longer display floating profits and losses. The market value related fields will be calculated using the average opening price. After opening, it can reduce the machine performance burden, and will take effect after restarting',
+      'After opening, it will no longer subscribe by default to the market updates for positions in the trading account, and the trading account list will no longer display floating profits and losses. Market value related fields are calculated using the average opening price. Activating this feature can reduce the machine performance burden and will take effect after restarting.',
     porformance: 'Performance',
     rocket_model: 'Open Rocket Model',
     rocket_model_desc:
@@ -961,11 +961,16 @@ export default {
     replay_tips1_part2:
       'please refrain from using physical time-related code within the strategy to express "now"',
     replay_tips1_part3: `(such as Python's time or yjj.now_in_nano). It is recommended to use the context.now method provided by the strategy. Otherwise, the replay may not execute as expected.`,
-    replay_tips2_part1:
-      'The replay function is limited to simulating and logging based on the states recorded from previously executed strategies.',
-    replay_tips2_part2: `Modifying the strategy's logic may lead to errors`,
-    replay_tips2_part3:
-      'due to discrepancies between the output data and the actual execution.',
+    replay_tips2_part1: 'When using the matcher',
+    replay_tips2_part2: 'for replay, the replay only adds log, ',
+    replay_tips2_part3: 'do not modify the strategy logic',
+    replay_tips2_part4:
+      ', otherwise an error will be reported due to inconsistent output data with the actual.',
+    replay_tips2_part5: 'When not using the matcher',
+    replay_tips2_part6: 'for replay, ',
+    replay_tips2_part7: 'you can modify the strategy logic',
+    replay_tips2_part8:
+      ', the matcher will use the data recorded in the actual trading for replay.',
     process_not_found: 'Process not found',
     enable_matcher_tip:
       'Use the matcher to run in backtest mode, the strategy logic can be modified.',

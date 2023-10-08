@@ -232,7 +232,7 @@ uint64_t LiveContext::insert_order_trigger(const std::string &instrument_id, con
   input.offset = offset;
   input.hedge_flag = hedge_flag;
   input.is_swap = is_swap;
-  input.insert_time = time::now_in_nano();
+  input.insert_time = now();
   writer->close_data();
   return input.trigger_id;
 }
@@ -274,7 +274,7 @@ uint64_t LiveContext::insert_order(const std::string &instrument_id, const std::
   input.block_id = block_id;
   input.parent_id = parent_id;
   input.is_swap = is_swap;
-  input.insert_time = time::now_in_nano();
+  input.insert_time = now();
   writer->close_data();
   if (not is_bypass_accounting()) {
     bookkeeper_.on_order_input(now(), get_live_home_uid(), account_location_uid, input);
@@ -304,7 +304,7 @@ uint64_t LiveContext::insert_order_input(const std::string &source, const std::s
   page_ptr page = writer->get_current_page(); // prevent that page released after close_data
   OrderInput &input = writer->open_data<OrderInput>(now());
   order_input.order_id = order_input.order_id == 0 ? writer->current_frame_uid() : order_input.order_id;
-  order_input.insert_time = time::now_in_nano();
+  order_input.insert_time = now();
   memcpy(&input, &order_input, sizeof(input));
   writer->close_data();
   if (not is_bypass_accounting()) {
@@ -490,7 +490,7 @@ uint64_t LiveContext::cancel_order(uint64_t order_id, OrderActionFlag action_fla
   action.order_action_id = writer->current_frame_uid();
   action.order_id = order_id;
   action.action_flag = action_flag;
-  action.insert_time = time::now_in_nano();
+  action.insert_time = now();
 
   writer->close_data();
   return action.order_action_id;
@@ -514,7 +514,7 @@ uint64_t LiveContext::cancel_order_trigger(uint64_t trigger_id) {
   action.order_trigger_action_id = writer->current_frame_uid();
   action.trigger_id = trigger_id;
   action.action_flag = OrderActionFlag::Cancel;
-  action.insert_time = time::now_in_nano();
+  action.insert_time = now();
 
   writer->close_data();
   return action.order_trigger_action_id;
@@ -539,7 +539,7 @@ uint64_t LiveContext::cancel_algo_order(uint64_t algo_order_id, AlgoOrderActionF
   action.order_action_id = writer->current_frame_uid();
   action.order_id = algo_order_id;
   action.action_flag = action_flag;
-  action.insert_time = time::now_in_nano();
+  action.insert_time = now();
 
   writer->close_data();
   return action.order_action_id;

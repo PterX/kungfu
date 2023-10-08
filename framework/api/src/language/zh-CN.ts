@@ -707,8 +707,8 @@ export default {
     empty_export_data: '没有可导出的信息',
 
     replay: '回放',
-
     please_select_strategy_or_operator: '请选择策略或算子',
+
     entry_visualization: '进入可视化',
     quit_visualization: '退出可视化',
     strategy_id: '策略id',
@@ -812,7 +812,7 @@ export default {
 
     bypass_subscribe_position: '跳过持仓行情订阅',
     bypass_subscribe_position_desc:
-      '打开后, 不再默认订阅交易账户持仓的行情更新, 且交易账户列表不再显示浮动盈亏, 市值相关字段使用开仓均价计算, 开启后可减轻机器性能负担, 重启后生效',
+      '打开后, 不再默认订阅交易账户持仓的行情更新, 浮动盈亏以及市值相关字段使用开仓均价计算, 开启后可减轻机器性能负担, 重启后生效',
     porformance: '性能',
     rocket_model: '开启极速模式',
     rocket_model_desc:
@@ -954,9 +954,14 @@ export default {
     replay_tips1_part2: '请勿在策略内使用物理时间相关代码来表达"now"',
     replay_tips1_part3:
       '(如 python 的 time 或者 yjj.now_in_nano), 建议使用策略提供的context.now 方法, 否则回放无法按照预期执行.',
-    replay_tips2_part1: '回放仅可增加 log, ',
-    replay_tips2_part2: '请勿修改策略逻辑',
-    replay_tips2_part3: ', 否则会由于输出数据与实际不符而报错.',
+    replay_tips2_part1: '不使用撮合器',
+    replay_tips2_part2: '进行回放时, 回放仅可增加log, ',
+    replay_tips2_part3: '请勿修改策略逻辑',
+    replay_tips2_part4: ', 否则会由于输出数据与实际不符而报错.',
+    replay_tips2_part5: '使用撮合器',
+    replay_tips2_part6: '进行回放时, ',
+    replay_tips2_part7: '可以修改策略逻辑',
+    replay_tips2_part8: '，撮合器将使用实盘中记录的数据撮合并进行回放.',
     process_not_found: '进程不存在',
     enable_matcher_tip: '使用撮合器以回测模式运行,  策略逻辑可修改',
   },

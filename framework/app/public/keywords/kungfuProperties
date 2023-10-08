@@ -1,4 +1,5 @@
 __uid__
+instrument_factors
 instruments
 commissions
 baskets
@@ -41,7 +42,6 @@ asset
 long_positions
 short_positions
 order_inputs
-instrument_factors
 mode
 category
 group

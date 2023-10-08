@@ -354,7 +354,7 @@ void bind_enums(py::module &m) {
       .export_values()
       .def("__eq__", [](const OrderTriggerFlag &a, int b) { return static_cast<int>(a) == b; });
 
-    py::enum_<CashReplaceFlag>(m_enums, "CashReplaceFlag", py::arithmetic())
+  py::enum_<CashReplaceFlag>(m_enums, "CashReplaceFlag", py::arithmetic())
       .value("UnReplace", CashReplaceFlag::UnReplace)
       .value("EnReplace", CashReplaceFlag::EnReplace)
       .value("MustReplace", CashReplaceFlag::MustReplace)
@@ -366,7 +366,7 @@ void bind_enums(py::module &m) {
       .export_values()
       .def("__eq__", [](const CashReplaceFlag &a, int b) { return static_cast<int>(a) == b; });
 
-    py::enum_<ETFType>(m_enums, "ETFType", py::arithmetic())
+  py::enum_<ETFType>(m_enums, "ETFType", py::arithmetic())
       .value("LocalETF", ETFType::LocalETF)
       .value("CrossCountryETF", ETFType::CrossCountryETF)
       .value("CrossMarketETF", ETFType::CrossMarketETF)

@@ -112,7 +112,7 @@ void bind_operator(pybind11::module &m) {
       .def("req_deregister", &op::Context::req_deregister)
       .def("update_operator_state", &op::Context::update_operator_state);
 
-  py::class_<op::RuntimeContext, op::Context, op::RuntimeContext_ptr>(m, "OpRuntimeContext")      
+  py::class_<op::RuntimeContext, op::Context, op::RuntimeContext_ptr>(m, "OpRuntimeContext")
       .def_property_readonly("basketorder_engine", &op::RuntimeContext::get_basketorder_engine,
                              py::return_value_policy::reference);
 

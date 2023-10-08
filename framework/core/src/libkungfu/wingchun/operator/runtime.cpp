@@ -18,12 +18,12 @@ using namespace kungfu::yijinjing::util;
 namespace kungfu::wingchun::op {
 
 RuntimeContext::RuntimeContext(apprentice &app, const rx::connectable_observable<event_ptr> &events)
-    : app_(app), events_(events), broker_client_(app_),basketorder_engine_(app_) {
+    : app_(app), events_(events), broker_client_(app_), basketorder_engine_(app_) {
   log::copy_log_settings(app_.get_home(), app_.get_home()->name);
 }
 
-void RuntimeContext::on_start() { 
-  broker_client_.on_start(events_); 
+void RuntimeContext::on_start() {
+  broker_client_.on_start(events_);
   basketorder_engine_.on_start(events_);
 }
 

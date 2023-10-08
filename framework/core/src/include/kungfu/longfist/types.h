@@ -832,7 +832,7 @@ KF_DEFINE_DATA_TYPE(                                         //
     (std::string, name),                                     // basket 名字
     (enums::BasketVolumeType, volume_type),                  // 比例/数量
     (int64_t, total_amount),                                 // 总数量
-    (enums::BasketType, basket_type),                               // 类型: Custom 或 ETF
+    (enums::BasketType, basket_type),                        // 类型: Custom 或 ETF
     (kungfu::array<char, INSTRUMENT_ID_LEN>, instrument_id), // ETF基金代码
     (kungfu::array<char, EXCHANGE_ID_LEN>, exchange_id),     // ETF基金的市场
     (double, net_unit_value),                                // 最小申赎单位净值

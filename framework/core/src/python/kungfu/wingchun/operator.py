@@ -92,7 +92,7 @@ class Operator(wc.Operator):
             asyncio.ensure_future(wrap())
         else:
             func(*args)
-    
+
     def __init_book(self):
         self.ctx.basketorder_engine = self.ctx.wc_context.basketorder_engine
 

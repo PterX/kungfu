@@ -353,5 +353,29 @@ void bind_enums(py::module &m) {
       .value("TriggerCancel", OrderTriggerFlag::TriggerCancel)
       .export_values()
       .def("__eq__", [](const OrderTriggerFlag &a, int b) { return static_cast<int>(a) == b; });
+
+    py::enum_<CashReplaceFlag>(m_enums, "CashReplaceFlag", py::arithmetic())
+      .value("UnReplace", CashReplaceFlag::UnReplace)
+      .value("EnReplace", CashReplaceFlag::EnReplace)
+      .value("MustReplace", CashReplaceFlag::MustReplace)
+      .value("UnSSEReplace", CashReplaceFlag::UnSSEReplace)
+      .value("UnSSEMustReplace", CashReplaceFlag::UnSSEMustReplace)
+      .value("UnSSESZEReplace", CashReplaceFlag::UnSSESZEReplace)
+      .value("UnSSESZEMustReplace", CashReplaceFlag::UnSSESZEMustReplace)
+      .value("Unknown", CashReplaceFlag::Unknown)
+      .export_values()
+      .def("__eq__", [](const CashReplaceFlag &a, int b) { return static_cast<int>(a) == b; });
+
+    py::enum_<ETFType>(m_enums, "ETFType", py::arithmetic())
+      .value("LocalETF", ETFType::LocalETF)
+      .value("CrossCountryETF", ETFType::CrossCountryETF)
+      .value("CrossMarketETF", ETFType::CrossMarketETF)
+      .value("CurrencyETF", ETFType::CurrencyETF)
+      .value("PhysicalBondETF", ETFType::PhysicalBondETF)
+      .value("CommodityETF", ETFType::CommodityETF)
+      .value("CashBondETF", ETFType::CashBondETF)
+      .value("Unknown", ETFType::Unknown)
+      .export_values()
+      .def("__eq__", [](const ETFType &a, int b) { return static_cast<int>(a) == b; });
 }
 } // namespace kungfu::longfist::pybind

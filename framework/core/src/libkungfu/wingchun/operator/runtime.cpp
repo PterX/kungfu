@@ -18,11 +18,14 @@ using namespace kungfu::yijinjing::util;
 namespace kungfu::wingchun::op {
 
 RuntimeContext::RuntimeContext(apprentice &app, const rx::connectable_observable<event_ptr> &events)
-    : app_(app), events_(events), broker_client_(app_) {
+    : app_(app), events_(events), broker_client_(app_),basketorder_engine_(app_) {
   log::copy_log_settings(app_.get_home(), app_.get_home()->name);
 }
 
-void RuntimeContext::on_start() { broker_client_.on_start(events_); }
+void RuntimeContext::on_start() { 
+  broker_client_.on_start(events_); 
+  basketorder_engine_.on_start(events_);
+}
 
 const std::string RuntimeContext::get_config() const {
   auto &config_map = app_.get_state_bank()[boost::hana::type_c<Config>];
@@ -153,5 +156,7 @@ void RuntimeContext::update_operator_state(OperatorStateUpdate &state_update) {
   state_update.location_uid = app_.get_home_uid();
   writer->write(state_update.update_time, state_update);
 }
+
+basketorder::BasketOrderEngine &RuntimeContext::get_basketorder_engine() { return basketorder_engine_; }
 
 } // namespace kungfu::wingchun::op

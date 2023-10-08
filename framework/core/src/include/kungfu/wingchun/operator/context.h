@@ -6,6 +6,7 @@
 #include <kungfu/longfist/longfist.h>
 #include <kungfu/wingchun/broker/client.h>
 #include <kungfu/yijinjing/practice/apprentice.h>
+#include <kungfu/wingchun/basketorder/basketorderengine.h>
 
 namespace kungfu::wingchun::op {
 class Context : public std::enable_shared_from_this<Context> {

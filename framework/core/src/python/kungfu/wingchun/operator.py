@@ -92,6 +92,9 @@ class Operator(wc.Operator):
             asyncio.ensure_future(wrap())
         else:
             func(*args)
+    
+    def __init_book(self):
+        self.ctx.basketorder_engine = self.ctx.wc_context.basketorder_engine
 
     def __add_timer(self, nanotime, callback):
         def wrap_callback(event):
@@ -117,6 +120,7 @@ class Operator(wc.Operator):
         self.ctx.update_operator_state = wc_context.update_operator_state
         self.ctx.publish_synthetic_data = wc_context.publish_synthetic_data
         self.ctx.req_deregister = wc_context.req_deregister
+        self.__init_book()
         self.__call_proxy(self._pre_start, self.ctx)
 
     def post_start(self, wc_context):

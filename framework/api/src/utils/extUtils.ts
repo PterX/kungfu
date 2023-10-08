@@ -13,7 +13,7 @@ import {
 } from '../typings/enums';
 import { InstrumentType, StrategyExtType } from '../config/tradingConfig';
 import { getChildFileStat } from './fileUtils';
-import { resolveTypesInExtConfig } from './commonUtils';
+import { ifKfDev, resolveTypesInExtConfig } from './commonUtils';
 import { EXTENSION_DIRS } from '../config/pathConfig';
 import { isTdMd } from './busiUtils';
 import VueI18n from '../language';
@@ -90,33 +90,40 @@ export const dealKfExtType = (jsonConfig: {
   return KfExtTypeEnum.Unknown;
 };
 
-export const getKfExtConfigList = async (): Promise<
-  KungfuApi.KfExtOriginConfig[]
-> => {
+const getKfExtConfigList = async (): Promise<KungfuApi.KfExtOriginConfig[]> => {
   const extModuleDirs = await flattenExtensionModuleDirs(EXTENSION_DIRS);
   const packageJSONPaths = extModuleDirs.map((item) =>
     path.join(item, 'package.json'),
   );
+  const isKfDev = ifKfDev();
   return await Promise.all(
     packageJSONPaths.map((item) => {
       return fse.readJSON(item).then((jsonConfig) => {
+        const curConfigList: KungfuApi.KfExtOriginConfig[] = [];
         if (jsonConfig.kungfuConfig) {
-          return {
+          curConfigList.push({
             ...(jsonConfig.kungfuConfig || {}),
-            type: dealKfExtType(jsonConfig),
             extPath: path.dirname(item),
-          };
+          });
         }
 
-        return null;
+        if (isKfDev && jsonConfig.kungfuConfigDev) {
+          curConfigList.push({
+            ...(jsonConfig.kungfuConfigDev || {}),
+            extPath: path.dirname(item),
+          });
+        }
+        return curConfigList;
       });
     }),
-  ).then((configList: KungfuApi.KfExtOriginConfig[]) => {
-    return configList.filter(
-      (
-        config: KungfuApi.KfExtOriginConfig,
-      ): config is KungfuApi.KfExtOriginConfig => !!config,
-    );
+  ).then((configList: KungfuApi.KfExtOriginConfig[][]) => {
+    return configList
+      .flat()
+      .filter(
+        (
+          config: KungfuApi.KfExtOriginConfig,
+        ): config is KungfuApi.KfExtOriginConfig => !!config,
+      );
   });
 };
 

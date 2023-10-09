@@ -103,6 +103,7 @@ const getKfExtConfigList = async (): Promise<KungfuApi.KfExtOriginConfig[]> => {
         if (jsonConfig.kungfuConfig) {
           curConfigList.push({
             ...(jsonConfig.kungfuConfig || {}),
+            type: dealKfExtType(jsonConfig),
             extPath: path.dirname(item),
           });
         }
@@ -110,6 +111,7 @@ const getKfExtConfigList = async (): Promise<KungfuApi.KfExtOriginConfig[]> => {
         if (isKfDev && jsonConfig.kungfuConfigDev) {
           curConfigList.push({
             ...(jsonConfig.kungfuConfigDev || {}),
+            type: dealKfExtType(jsonConfig),
             extPath: path.dirname(item),
           });
         }

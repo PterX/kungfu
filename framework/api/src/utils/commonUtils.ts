@@ -19,3 +19,5 @@ export const booleanProcessEnv = (
     return !!val;
   }
 };
+
+export const ifKfDev = () => booleanProcessEnv(process.env.IS_KF_DEV);

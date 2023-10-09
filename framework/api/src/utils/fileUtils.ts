@@ -10,27 +10,7 @@ import {
   buildRuntimeChildDirByType,
   RuntimeChildDirTypes,
 } from '../config/pathConfig';
-// import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
-
-export const booleanProcessEnv = (
-  val: string | boolean | undefined,
-): boolean => {
-  if (val === undefined) {
-    return false;
-  }
-
-  if (val === 'null') {
-    return false;
-  }
-
-  if (val === 'true') {
-    return true;
-  } else if (val === 'false') {
-    return false;
-  } else {
-    return !!val;
-  }
-};
+import { ifKfDev } from './commonUtils';
 
 //添加文件
 export const addFileSync = (
@@ -387,7 +367,7 @@ export const isDiskRootDirectory = (dirPath: string): boolean => {
 
 export const getAppRuntimeDirName = () => {
   const packageJson = readRootPackageJsonSync();
-  const productName = booleanProcessEnv(process.env.IS_KF_DEV)
+  const productName = ifKfDev()
     ? 'electron'
     : packageJson.kungfuCraft?.productName || 'Kungfu';
 

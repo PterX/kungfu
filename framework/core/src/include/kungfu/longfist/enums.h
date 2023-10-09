@@ -526,7 +526,14 @@ NLOHMANN_JSON_SERIALIZE_ENUM(Currency, {
 
 inline std::ostream &operator<<(std::ostream &os, Currency t) { return os << int32_t(t); }
 
-enum class BasketOrderStatus : int8_t { Unknown, Pending, PartialFilledNotActive, PartialFilledActive, Filled, Cancelled};
+enum class BasketOrderStatus : int8_t {
+  Unknown,
+  Pending,
+  PartialFilledNotActive,
+  PartialFilledActive,
+  Filled,
+  Cancelled
+};
 
 NLOHMANN_JSON_SERIALIZE_ENUM(BasketOrderStatus,
                              {

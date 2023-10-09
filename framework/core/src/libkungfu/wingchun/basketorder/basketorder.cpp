@@ -43,9 +43,9 @@ void BasketOrderState::update(const longfist::types::Order &order) {
     basket_order.status = BasketOrderStatus::Filled;
   } else if (is_all_order_end_val and basket_order.volume_left == basket_order.volume) {
     basket_order.status = BasketOrderStatus::Cancelled;
-  } else if (is_all_order_end_val ){
+  } else if (is_all_order_end_val) {
     basket_order.status = BasketOrderStatus::PartialFilledNotActive;
-  }else if (basket_order.volume_left < basket_order.volume) {
+  } else if (basket_order.volume_left < basket_order.volume) {
     basket_order.status = BasketOrderStatus::PartialFilledActive;
   } else {
     basket_order.status = BasketOrderStatus::Pending;

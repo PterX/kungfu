@@ -169,7 +169,7 @@ def trace(ctx, session_id, io_type, csv):
 @journal_command_context
 def clean(ctx, archive, dry):
     search_path = os.path.join(
-        ctx.runtime_dir, "*", "*", "*", "journal", "*", "*.journal"
+        ctx.runtime_dir, "journal", "*", "*", "*", "*", "*.journal"
     )
     journal_files = glob.glob(search_path)
     if dry:

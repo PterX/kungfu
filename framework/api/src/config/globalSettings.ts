@@ -24,7 +24,7 @@ const ifCpusNumSafe = booleanProcessEnv(process.env.IF_CPUS_NUM_SAFE);
 export interface KfSystemConfig {
   key: string;
   name: string;
-  config: KungfuApi.KfConfigItem[];
+  config: (KungfuApi.KfConfigItem & { for?: 'cli' | 'ui' | 'custom' })[];
 }
 
 const __python_version_resolved = __python_version
@@ -167,6 +167,7 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
         tip: t('globalSettingConfig.use_sound'),
         default: false,
         type: 'bool',
+        for: 'ui',
       },
       {
         key: 'fatFinger',
@@ -175,6 +176,7 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
         default: 0,
         type: 'percent',
         min: 0,
+        for: 'ui',
       },
       {
         key: 'close',
@@ -182,6 +184,7 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
         tip: t('globalSettingConfig.set_close_threshold'),
         default: 0,
         type: 'percent',
+        for: 'ui',
       },
 
       {
@@ -218,6 +221,7 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
             type: 'float',
           },
         ],
+        for: 'ui',
       },
       {
         key: 'posTableColumns',
@@ -246,6 +250,7 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
           },
         ],
         default: ['yesterday_volume', 'today_volume'],
+        for: 'ui',
       },
     ],
   },
@@ -269,6 +274,7 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
             label: CodeTabSetting[SpaceTabSettingEnum.TABS].name,
           },
         ],
+        for: 'ui',
       },
       {
         key: 'tabSpaceSize',
@@ -286,6 +292,7 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
             label: CodeSizeSetting[SpaceSizeSettingEnum.FOURINDENT].name,
           },
         ],
+        for: 'ui',
       },
     ],
   },

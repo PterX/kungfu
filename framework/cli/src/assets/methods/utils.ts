@@ -171,6 +171,23 @@ const buildMessage = (
   return `${action} ${key} ${renderSelect(configItem)} ${tip}`;
 };
 
+const getInstrumentChoicesAndMap = () => {
+  const instrumentMap: Record<string, string> = {};
+  const instruments = fse.readJSONSync(KF_INSTRUMENTS_PATH);
+  const availableInstruments = Object.keys(instruments).map((key) => {
+    const item = instruments[key];
+    instrumentMap[
+      `${ExchangeIds[item.exchangeId].name} ${item.instrumentId} ${
+        item.instrumentName
+      }`
+    ] = `${item.exchangeId}_${item.instrumentId}_${item.instrumentType}_${item.ukey}_${item.instrumentName}`;
+    return `${ExchangeIds[item.exchangeId].name} ${item.instrumentId} ${
+      item.instrumentName
+    }`;
+  });
+  return { availableInstruments, instrumentMap };
+};
+
 export const buildQuestionByKfConfigItem = async (
   configItem: KungfuApi.KfConfigItem,
   defaultValue: KungfuApi.KfConfigValue | undefined,
@@ -216,71 +233,46 @@ export const buildQuestionByKfConfigItem = async (
   };
 
   switch (type) {
-    case 'instrument': {
-      const instrumentMap: Record<string, string> = {};
-      const instruments = fse.readJSONSync(KF_INSTRUMENTS_PATH);
-      const availableInstrumets = Object.keys(instruments).map((key) => {
-        const item = instruments[key];
-        instrumentMap[
-          `${ExchangeIds[item.exchangeId].name} ${item.instrumentId} ${
-            item.instrumentName
-          }`
-        ] = `${item.exchangeId}_${item.instrumentId}_${item.instrumentType}_${item.ukey}_${item.instrumentName}`;
-        return `${ExchangeIds[item.exchangeId].name} ${item.instrumentId} ${
-          item.instrumentName
-        }`;
-      });
+    case 'instrument':
+    case 'instruments': {
+      const { availableInstruments, instrumentMap } =
+        getInstrumentChoicesAndMap();
+
       baseQuestion.pageSize = 10;
       baseQuestion.highlight = true;
       baseQuestion.searchable = true;
-      baseQuestion.message = 'Select instrument';
-      baseQuestion.source = function (_, input) {
-        input = input || '';
+      baseQuestion.message = `Select ${type}`;
+      baseQuestion.source = function (_, input = '') {
         return new Promise((resolve) => {
-          const results = availableInstrumets.filter((item) =>
+          const results = availableInstruments.filter((item) =>
             item.toLocaleLowerCase().includes(input.toLocaleLowerCase()),
           );
           resolve(results);
         });
       };
-      baseQuestion.filter = (value: KungfuApi.KfConfigValue) => {
-        if (!value) return value;
-        return instrumentMap[value];
-      };
+
+      if (type === 'instrument') {
+        baseQuestion.filter = (value: KungfuApi.KfConfigValue) => {
+          return instrumentMap[value];
+        };
+      } else {
+        baseQuestion.filter = (value: KungfuApi.KfConfigValue) => {
+          if (!value.length) return value;
+          return value.map((item) => instrumentMap[item]);
+        };
+      }
       break;
     }
-    case 'instruments': {
-      const instrumentMap: Record<string, string> = {};
-      const instruments = fse.readJSONSync(KF_INSTRUMENTS_PATH);
-      const availableInstrumets = Object.keys(instruments).map((key) => {
-        const item = instruments[key];
-        instrumentMap[
-          `${ExchangeIds[item.exchangeId].name} ${item.instrumentId} ${
-            item.instrumentName
-          }`
-        ] = `${item.exchangeId}_${item.instrumentId}_${item.instrumentType}_${item.ukey}_${item.instrumentName}`;
-        return `${ExchangeIds[item.exchangeId].name} ${item.instrumentId} ${
-          item.instrumentName
-        }`;
-      });
-      baseQuestion.pageSize = 10;
-      baseQuestion.highlight = true;
-      baseQuestion.searchable = true;
-      baseQuestion.message = 'Select instruments';
-      baseQuestion.source = function (_, input) {
-        input = input || '';
-        return new Promise((resolve) => {
-          const results = availableInstrumets.filter((item) =>
-            item.toLocaleLowerCase().includes(input.toLocaleLowerCase()),
-          );
-          resolve(results);
-        });
+    case 'percent': {
+      baseQuestion.validate = async function (value) {
+        const numValue = parseFloat(value);
+        const isValid = numValue >= 1 && numValue <= 100;
+        return (
+          isValid || new Error('Please enter a valid number between 1 and 100.')
+        );
       };
-      baseQuestion.filter = (value: KungfuApi.KfConfigValue) => {
-        if (!value.length) return value;
-        return value.map((item) => {
-          return instrumentMap[item];
-        });
+      baseQuestion.filter = function (value) {
+        return `${value}%`;
       };
       break;
     }

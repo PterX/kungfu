@@ -143,6 +143,7 @@ export const getQuestionInputType = (
       return 'confirm';
     case 'file':
     case 'folder':
+    case 'directory':
       return 'path';
     case 'instrument':
       return 'autocomplete';

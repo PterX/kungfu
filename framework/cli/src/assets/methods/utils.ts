@@ -2,6 +2,8 @@ import path from 'path';
 import fse from 'fs-extra';
 import inquirer from 'inquirer';
 import colors from 'colors';
+import checkboxPlusPrompt from 'inquirer-checkbox-plus-prompt';
+import { KF_INSTRUMENTS_PATH } from '@kungfu-trader/kungfu-js-api/config/pathConfig';
 import { KfCategoryTypes } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import resolveExtConfigHook from '@kungfu-trader/kungfu-js-api/hooks/resolveExtConfigHook';
 import {
@@ -23,6 +25,8 @@ import { Proc } from 'pm2';
 import { globalState } from '../actions/globalState';
 import { program } from 'commander';
 import { SpecialWordsReg } from '@kungfu-trader/kungfu-js-api/config/systemConfig';
+
+inquirer.registerPrompt('checkbox-plus', checkboxPlusPrompt);
 
 export const parseToString = (
   targetList: (string | number)[],
@@ -66,10 +70,12 @@ export const getKfCategoryFromString = (
   const isTd = typeString.toLocaleLowerCase().includes('td');
   const isMd = typeString.toLocaleLowerCase().includes('md');
   const isStrategy = typeString.toLocaleLowerCase().includes('strategy');
+  const isOperator = typeString.toLocaleLowerCase().includes('operator');
 
   if (isTd) return 'td';
   else if (isMd) return 'md';
   else if (isStrategy) return 'strategy';
+  else if (isOperator) return 'operator';
   else return 'system';
 };
 
@@ -83,19 +89,21 @@ export const parseExtDataList = (
   });
 };
 
-export const getPromptQuestionsBySettings = (
+export const getPromptQuestionsBySettings = async (
   settings: KungfuApi.KfConfigItem[],
   initValue?: Record<string, KungfuApi.KfConfigValue>,
 ): Promise<KungfuApi.KfConfigValue> => {
   const formState = initFormStateByConfig(settings, initValue || {});
-  const questions = settings.map((item) =>
-    buildQuestionByKfConfigItem(
-      item,
-      item.type === 'password' ? '' : formState[item.key],
-      !!initValue,
-    ),
+  const questionsPromises = settings.map(
+    async (item) =>
+      await buildQuestionByKfConfigItem(
+        item,
+        item.type === 'password' ? '' : formState[item.key],
+        !!initValue,
+      ),
   );
 
+  const questions = await Promise.all(questionsPromises);
   return inquirer
     .prompt(questions)
     .then((answers: Record<string, KungfuApi.KfConfigValue>) => {
@@ -133,6 +141,8 @@ export const getQuestionInputType = (
     case 'file':
     case 'folder':
       return 'path';
+    case 'instruments':
+      return 'checkbox-plus';
     default:
       return 'input';
   }
@@ -146,54 +156,90 @@ export const renderSelect = (configItem: KungfuApi.KfConfigItem) => {
   else return '';
 };
 
-export const buildQuestionByKfConfigItem = (
+const buildMessage = (
+  configItem: KungfuApi.KfConfigItem,
+  isUpdate: boolean,
+  key: string,
+) => {
+  return `${isUpdate ? 'Update' : 'Enter'} ${key} ${renderSelect(configItem)} ${
+    configItem.tip ? '(' + configItem.tip + ')' : ''
+  }`;
+};
+
+export const buildQuestionByKfConfigItem = async (
   configItem: KungfuApi.KfConfigItem,
   dafultValue: KungfuApi.KfConfigValue | undefined,
   isUpdate = false,
 ) => {
+  const { md } = await getAllKfConfigOriginData();
   const { key, type } = configItem;
   const targetType = getQuestionInputType(type);
-  const questions: PromptQuestion = {
-    type: targetType,
-    name: key,
-    choices:
-      targetType === 'list'
-        ? (configItem.options || configItem.data || []).map(
-            (item) => item.value,
-          )
-        : [],
-    message: `${isUpdate ? 'Update' : 'Enter'} ${key} ${renderSelect(
-      configItem,
-    )} ${configItem.tip ? '(' + configItem.tip + ')' : ''}`,
+  const validate = async (value: KungfuApi.KfConfigValue) => {
+    if (configItem.required && value.toString() === '') {
+      return new Error('Required');
+    }
 
-    validate: async (value: KungfuApi.KfConfigValue) => {
-      if (configItem.required && value.toString() === '') {
-        return new Error('Required');
+    if (configItem.primary) {
+      if (SpecialWordsReg.test(value)) {
+        return new Error(
+          'Cannot contain special characters or Chinese characters, and cannot start or end with - characters',
+        );
       }
+    }
 
-      if (configItem.primary) {
-        if (SpecialWordsReg.test(value)) {
-          return new Error(
-            'Cannot contain special characters or Chinese characters, and cannot start or end with - characters',
-          );
-        }
-      }
-
-      if ((isUpdate && configItem.primary) || configItem.disabled) {
-        if (value !== dafultValue) {
-          return new Error("This value can't change");
-        }
-
-        return true;
+    if ((isUpdate && configItem.primary) || configItem.disabled) {
+      if (value !== dafultValue) {
+        return new Error("This value can't change");
       }
 
       return true;
-    },
+    }
 
-    filter: (value: KungfuApi.KfConfigValue) => {
-      return targetType === 'number' && isNaN(value) ? 0 : value;
-    },
+    return true;
+  };
 
+  if (configItem.type === 'instruments') {
+    const instruments = fse.readJSONSync(KF_INSTRUMENTS_PATH);
+    const availableInstrumets = Object.keys(instruments).map((key) => {
+      const item = instruments[key];
+      return `${item.exchangeId}_${item.instrumentId}_${item.instrumentType}_${item.ukey}_${item.instrumentName}`;
+    });
+
+    return {
+      type: targetType,
+      name: key,
+      message: `select ${key} ${
+        configItem.tip ? '(' + configItem.tip + ')' : ''
+      }`,
+      pageSize: 10,
+      highlight: true,
+      searchable: true,
+      source: function (_, input) {
+        input = input || '';
+        return new Promise((resolve) => {
+          const results = availableInstrumets.filter((item) =>
+            item.toLocaleLowerCase().includes(input.toLocaleLowerCase()),
+          );
+          resolve(results);
+        });
+      },
+      validate,
+    };
+  }
+
+  const defaultChoices =
+    configItem.type === 'md'
+      ? md.map((item) => getIdByKfLocation(item))
+      : (configItem.options || configItem.data || []).map((item) => item.value);
+
+  const questions: PromptQuestion = {
+    type: targetType,
+    name: key,
+    choices: targetType === 'list' ? defaultChoices : [],
+    message: buildMessage(configItem, isUpdate, key),
+    validate,
+    filter: (value: KungfuApi.KfConfigValue) =>
+      targetType === 'number' && isNaN(value) ? 0 : value,
     ...(targetType === 'path' ? { cwd: process.cwd().toString() } : {}),
   };
 
@@ -244,8 +290,8 @@ export const getKfLocation = (
     case 'operator':
       return {
         category: 'operator',
-        group: (targetId || '').toKfGroup(),
-        name: (targetId || '').toKfName(),
+        group: 'default',
+        name: targetId,
         mode: 'live',
       };
     case 'strategy':
@@ -263,9 +309,9 @@ export const getKfLocation = (
 export const selectTargetKfConfig = async (
   noMd = false,
 ): Promise<KungfuApi.KfConfig | null> => {
-  const { md, td, strategy } = await getAllKfConfigOriginData();
+  const { md, td, strategy, operator } = await getAllKfConfigOriginData();
 
-  const mdTdStrategyList = [
+  const mdTdStrategyOperatorList = [
     ...(noMd
       ? []
       : md.map((item) =>
@@ -289,16 +335,23 @@ export const selectTargetKfConfig = async (
         1,
       ),
     ),
+    ...operator.map((item) =>
+      parseToString(
+        [colors.green('operator'), getIdByKfLocation(item)],
+        [8, 'auto'],
+        1,
+      ),
+    ),
   ];
 
   const answers: { process: string } = await inquirer.prompt([
     {
       type: 'autocomplete',
       name: 'process',
-      message: 'Select targeted md / td / strategy  ',
+      message: 'Select targeted md / td / strategy / operator  ',
       source: async (answersSoFar: { process: string }, input: string) => {
         input = input || '';
-        return mdTdStrategyList.filter((s: string): boolean =>
+        return mdTdStrategyOperatorList.filter((s: string): boolean =>
           s.includes(input),
         );
       },
@@ -306,13 +359,14 @@ export const selectTargetKfConfig = async (
   ]);
 
   const processes = answers.process;
+
   const splits = processes.split(' ');
   const targetType = splits[0].trim();
   const targetId = splits[splits.length - 1].trim();
   const type = getKfCategoryFromString(targetType);
   const kfLocation = getKfLocation(type, targetId);
   const processId = getProcessIdByKfLocation(kfLocation);
-  const searchList = [...md, ...td, ...strategy];
+  const searchList = [...md, ...td, ...strategy, ...operator];
   const targetIndex = searchList.findIndex((item: KungfuApi.KfConfig) => {
     const id = getProcessIdByKfLocation(item);
     if (id === processId) {

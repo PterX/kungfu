@@ -31,6 +31,7 @@ export const selectMdTdStrategy = async () => {
           colors.yellow('md'),
           colors.cyan('td'),
           colors.blue('strategy'),
+          colors.green('operator'),
         ];
       },
     },
@@ -39,7 +40,7 @@ export const selectMdTdStrategy = async () => {
   return getKfCategoryFromString(answers.type);
 };
 
-export const addMdTdStrategy = async (
+export const addMdTdStrategyOperator = async (
   type: KfCategoryTypes,
 ): Promise<boolean> => {
   const extConfigs = await getKfExtensionConfig();
@@ -161,6 +162,100 @@ export const addMdTdStrategy = async (
         add_time: +new Date().getTime() * Math.pow(10, 6),
       }),
     );
+  } else if (type === 'operator') {
+    const fileOrext = await inquirer.prompt([
+      {
+        type: 'list',
+        name: 'fileOrext',
+        message: 'Select operator type    ',
+        choices: ['file', 'extension'],
+      },
+    ]);
+    if (fileOrext.fileOrext === 'file') {
+      const operatorSettings: KungfuApi.KfConfigItem[] = [
+        {
+          key: 'operator_id',
+          name: '算子ID',
+          type: 'str',
+          primary: true,
+          required: true,
+          tip: '需保证该算子ID唯一',
+        },
+        {
+          key: 'file_path',
+          name: '文件路径',
+          type: 'file',
+          required: true,
+        },
+      ];
+
+      const formState = await getPromptQuestionsBySettings(operatorSettings);
+      const primaryKeys = getPrimaryKeyFromKfConfigItem(operatorSettings).map(
+        (item) => item.key,
+      );
+      const combinedValue = getCombineValueByPrimaryKeys(
+        primaryKeys,
+        formState,
+      );
+      const kfLocation: KungfuApi.KfLocation = {
+        category: 'operator',
+        group: 'default',
+        name: combinedValue,
+        mode: 'live',
+      };
+
+      return setKfConfig(
+        kfLocation,
+        JSON.stringify({
+          ...formState,
+          add_time: +new Date().getTime() * Math.pow(10, 6),
+        }),
+      );
+    } else {
+      const extDataList = getExtConfigList(
+        extConfigs,
+        'operator',
+      ) as KungfuApi.KfTdExtConfig[];
+      const extStrList = parseExtDataList(extDataList);
+      const { source } = await selectKfExtPrompt(extStrList);
+      const extKey = source.split('    ')[1];
+      const extConfig =
+        await globalThis.HookKeeper.getHooks().resolveExtConfig.trigger(
+          {
+            category: 'operator',
+            group: extKey,
+            name: '*',
+          },
+          extConfigs['operator'][extKey],
+        );
+      const settings = extConfig?.settings;
+      if (settings === undefined) {
+        throw new Error('Please check operator extension config');
+      }
+
+      const formState = await getPromptQuestionsBySettings(settings);
+      const primaryKeys = getPrimaryKeyFromKfConfigItem(settings).map(
+        (item) => item.key,
+      );
+      const combinedValue = getCombineValueByPrimaryKeys(
+        primaryKeys,
+        formState,
+      );
+      const kfLocation: KungfuApi.KfLocation = {
+        category: 'operator',
+        group: extKey,
+        name: combinedValue,
+        mode: 'live',
+      };
+
+      return setKfConfig(
+        kfLocation,
+        JSON.stringify({
+          ...formState,
+          add_time: +new Date().getTime() * Math.pow(10, 6),
+        }),
+      );
+    }
   }
 
   return Promise.resolve(false);

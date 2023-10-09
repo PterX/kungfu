@@ -16,7 +16,9 @@ type PromptInputType =
   | 'checkbox'
   | 'password'
   | 'editor'
-  | 'path';
+  | 'path'
+  | 'autocomplete'
+  | 'checkbox-plus';
 
 interface PromptQuestion {
   type: PromptInputType;

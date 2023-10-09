@@ -18,7 +18,7 @@ export const updateMdTdStrategy = async () => {
   }
 
   const extConfigs = await getKfExtensionConfig();
-  const { md, td, strategy } = await getAllKfConfigOriginData();
+  const { md, td, strategy, operator } = await getAllKfConfigOriginData();
 
   if (kfLocation.category === 'md') {
     const targetMd = getTargetKfConfig(md, kfLocation);
@@ -89,6 +89,32 @@ export const updateMdTdStrategy = async () => {
     ];
 
     return buildPromptAndSetConfig(strategySettings, initValue, kfLocation);
+  } else if (kfLocation.category === 'operator') {
+    const targetOperator = getTargetKfConfig(operator, kfLocation);
+
+    if (!targetOperator) {
+      throw new Error('targetTd is null');
+    }
+
+    const initValue = JSON.parse(targetOperator.value || '{}');
+    const operatorSettings: KungfuApi.KfConfigItem[] = [
+      {
+        key: 'operator_id',
+        name: '算子ID',
+        type: 'str',
+        primary: true,
+        required: true,
+        tip: '需保证该算子ID唯一',
+      },
+      {
+        key: 'file_path',
+        name: '算子路径',
+        type: 'file',
+        required: true,
+      },
+    ];
+
+    return buildPromptAndSetConfig(operatorSettings, initValue, kfLocation);
   }
 
   return false;

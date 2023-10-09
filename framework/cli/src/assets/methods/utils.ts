@@ -6,6 +6,7 @@ import checkboxPlusPrompt from 'inquirer-checkbox-plus-prompt';
 import { KF_INSTRUMENTS_PATH } from '@kungfu-trader/kungfu-js-api/config/pathConfig';
 import { KfCategoryTypes } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import resolveExtConfigHook from '@kungfu-trader/kungfu-js-api/hooks/resolveExtConfigHook';
+import { ExchangeIds } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import {
   getAvailCliExtServiceList,
   getIdByKfLocation,
@@ -25,6 +26,8 @@ import { Proc } from 'pm2';
 import { globalState } from '../actions/globalState';
 import { program } from 'commander';
 import { SpecialWordsReg } from '@kungfu-trader/kungfu-js-api/config/systemConfig';
+import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+const { t } = VueI18n.global;
 
 inquirer.registerPrompt('checkbox-plus', checkboxPlusPrompt);
 
@@ -164,7 +167,7 @@ const buildMessage = (
   key: string,
 ): string => {
   const action = isUpdate ? 'Update' : 'Enter';
-  const tip = configItem.tip ? `(${configItem.tip})` : '';
+  const tip = configItem.tip ? `(${t(`${configItem.tip}`)})` : '';
   return `${action} ${key} ${renderSelect(configItem)} ${tip}`;
 };
 
@@ -219,9 +222,13 @@ export const buildQuestionByKfConfigItem = async (
       const availableInstrumets = Object.keys(instruments).map((key) => {
         const item = instruments[key];
         instrumentMap[
-          `${item.exchangeId} ${item.instrumentId} ${item.instrumentName}`
+          `${ExchangeIds[item.exchangeId].name} ${item.instrumentId} ${
+            item.instrumentName
+          }`
         ] = `${item.exchangeId}_${item.instrumentId}_${item.instrumentType}_${item.ukey}_${item.instrumentName}`;
-        return `${item.exchangeId} ${item.instrumentId} ${item.instrumentName}`;
+        return `${ExchangeIds[item.exchangeId].name} ${item.instrumentId} ${
+          item.instrumentName
+        }`;
       });
       baseQuestion.pageSize = 10;
       baseQuestion.highlight = true;
@@ -248,9 +255,13 @@ export const buildQuestionByKfConfigItem = async (
       const availableInstrumets = Object.keys(instruments).map((key) => {
         const item = instruments[key];
         instrumentMap[
-          `${item.exchangeId} ${item.instrumentId} ${item.instrumentName}`
+          `${ExchangeIds[item.exchangeId].name} ${item.instrumentId} ${
+            item.instrumentName
+          }`
         ] = `${item.exchangeId}_${item.instrumentId}_${item.instrumentType}_${item.ukey}_${item.instrumentName}`;
-        return `${item.exchangeId} ${item.instrumentId} ${item.instrumentName}`;
+        return `${ExchangeIds[item.exchangeId].name} ${item.instrumentId} ${
+          item.instrumentName
+        }`;
       });
       baseQuestion.pageSize = 10;
       baseQuestion.highlight = true;

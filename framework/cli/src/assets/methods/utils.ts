@@ -213,6 +213,35 @@ export const buildQuestionByKfConfigItem = async (
   };
 
   switch (type) {
+    case 'instrument': {
+      const instrumentMap: Record<string, string> = {};
+      const instruments = fse.readJSONSync(KF_INSTRUMENTS_PATH);
+      const availableInstrumets = Object.keys(instruments).map((key) => {
+        const item = instruments[key];
+        instrumentMap[
+          `${item.exchangeId} ${item.instrumentId} ${item.instrumentName}`
+        ] = `${item.exchangeId}_${item.instrumentId}_${item.instrumentType}_${item.ukey}_${item.instrumentName}`;
+        return `${item.exchangeId} ${item.instrumentId} ${item.instrumentName}`;
+      });
+      baseQuestion.pageSize = 10;
+      baseQuestion.highlight = true;
+      baseQuestion.searchable = true;
+      baseQuestion.message = 'Select instrument';
+      baseQuestion.source = function (_, input) {
+        input = input || '';
+        return new Promise((resolve) => {
+          const results = availableInstrumets.filter((item) =>
+            item.toLocaleLowerCase().includes(input.toLocaleLowerCase()),
+          );
+          resolve(results);
+        });
+      };
+      baseQuestion.filter = (value: KungfuApi.KfConfigValue) => {
+        if (!value) return value;
+        return instrumentMap[value];
+      };
+      break;
+    }
     case 'instruments': {
       const instrumentMap: Record<string, string> = {};
       const instruments = fse.readJSONSync(KF_INSTRUMENTS_PATH);
@@ -223,7 +252,6 @@ export const buildQuestionByKfConfigItem = async (
         ] = `${item.exchangeId}_${item.instrumentId}_${item.instrumentType}_${item.ukey}_${item.instrumentName}`;
         return `${item.exchangeId} ${item.instrumentId} ${item.instrumentName}`;
       });
-      baseQuestion.choices = [];
       baseQuestion.pageSize = 10;
       baseQuestion.highlight = true;
       baseQuestion.searchable = true;
@@ -245,7 +273,6 @@ export const buildQuestionByKfConfigItem = async (
       };
       break;
     }
-
     case 'md': {
       const { md } = await getAllKfConfigOriginData();
       baseQuestion.choices = md.map((item: KungfuApi.KfConfig) =>
@@ -253,7 +280,6 @@ export const buildQuestionByKfConfigItem = async (
       );
       break;
     }
-
     default: {
       break;
     }

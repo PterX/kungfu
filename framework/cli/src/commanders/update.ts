@@ -9,6 +9,8 @@ import {
   getKfExtensionConfig,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { setKfConfig } from '@kungfu-trader/kungfu-js-api/kungfu/store';
+import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+const { t } = VueI18n.global;
 
 export const updateMdTdStrategy = async () => {
   const kfLocation = await selectTargetKfConfig();
@@ -74,15 +76,15 @@ export const updateMdTdStrategy = async () => {
     const strategySettings: KungfuApi.KfConfigItem[] = [
       {
         key: 'strategy_id',
-        name: '策略ID',
+        name: t('strategyConfig.strategy_id'),
         type: 'str',
         primary: true,
         required: true,
-        tip: '需保证该策略ID唯一',
+        tip: t('strategyConfig.strategy_id_tip'),
       },
       {
         key: 'file_path',
-        name: '策略路径',
+        name: t('strategyConfig.file_path'),
         type: 'file',
         required: true,
       },
@@ -100,15 +102,15 @@ export const updateMdTdStrategy = async () => {
     const operatorSettings: KungfuApi.KfConfigItem[] = [
       {
         key: 'operator_id',
-        name: '算子ID',
+        name: t('operatorConfig.operator_id'),
         type: 'str',
         primary: true,
         required: true,
-        tip: '需保证该算子ID唯一',
+        tip: t('operatorConfig.operator_id_tip'),
       },
       {
         key: 'file_path',
-        name: '算子路径',
+        name: t('operatorConfig.file_path'),
         type: 'file',
         required: true,
       },

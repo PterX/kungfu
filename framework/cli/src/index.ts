@@ -6,7 +6,10 @@ import colors from 'colors';
 import { version } from '../package.json';
 import { Command, program } from 'commander';
 import { listKfLocations } from './commanders/list';
-import { selectMdTdStrategy, addMdTdStrategyOperator } from './commanders/add';
+import {
+  selectMdTdStrategyOperator,
+  addMdTdStrategyOperator,
+} from './commanders/add';
 import { KfCategoryTypes } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
   BASE_DB_DIR,
@@ -78,7 +81,7 @@ program
   .command('add')
   .description('add a md, td, strategy or operator')
   .action(() => {
-    return selectMdTdStrategy()
+    return selectMdTdStrategyOperator()
       .then((type: string) => addMdTdStrategyOperator(type as KfCategoryTypes))
       .then(() => listKfLocations())
       .catch((err: Error) => {

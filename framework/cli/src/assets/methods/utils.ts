@@ -141,6 +141,8 @@ export const getQuestionInputType = (
     case 'file':
     case 'folder':
       return 'path';
+    case 'instrument':
+      return 'autocomplete';
     case 'instruments':
       return 'checkbox-plus';
     default:
@@ -160,18 +162,17 @@ const buildMessage = (
   configItem: KungfuApi.KfConfigItem,
   isUpdate: boolean,
   key: string,
-) => {
-  return `${isUpdate ? 'Update' : 'Enter'} ${key} ${renderSelect(configItem)} ${
-    configItem.tip ? '(' + configItem.tip + ')' : ''
-  }`;
+): string => {
+  const action = isUpdate ? 'Update' : 'Enter';
+  const tip = configItem.tip ? `(${configItem.tip})` : '';
+  return `${action} ${key} ${renderSelect(configItem)} ${tip}`;
 };
 
 export const buildQuestionByKfConfigItem = async (
   configItem: KungfuApi.KfConfigItem,
-  dafultValue: KungfuApi.KfConfigValue | undefined,
+  defaultValue: KungfuApi.KfConfigValue | undefined,
   isUpdate = false,
 ) => {
-  const { md } = await getAllKfConfigOriginData();
   const { key, type } = configItem;
   const targetType = getQuestionInputType(type);
   const validate = async (value: KungfuApi.KfConfigValue) => {
@@ -188,7 +189,7 @@ export const buildQuestionByKfConfigItem = async (
     }
 
     if ((isUpdate && configItem.primary) || configItem.disabled) {
-      if (value !== dafultValue) {
+      if (value !== defaultValue) {
         return new Error("This value can't change");
       }
 
@@ -198,23 +199,36 @@ export const buildQuestionByKfConfigItem = async (
     return true;
   };
 
-  if (configItem.type === 'instruments') {
-    const instruments = fse.readJSONSync(KF_INSTRUMENTS_PATH);
-    const availableInstrumets = Object.keys(instruments).map((key) => {
-      const item = instruments[key];
-      return `${item.exchangeId}_${item.instrumentId}_${item.instrumentType}_${item.ukey}_${item.instrumentName}`;
-    });
+  const baseQuestion: PromptQuestion = {
+    type: targetType,
+    name: key,
+    message: buildMessage(configItem, isUpdate, key),
+    validate: validate,
+    ...(targetType === 'path' ? { cwd: process.cwd().toString() } : {}),
+    choices: (configItem.options || configItem.data || []).map(
+      (item) => item.value,
+    ),
+    filter: (value: KungfuApi.KfConfigValue) =>
+      targetType === 'number' && isNaN(value) ? 0 : value,
+  };
 
-    return {
-      type: targetType,
-      name: key,
-      message: `select ${key} ${
-        configItem.tip ? '(' + configItem.tip + ')' : ''
-      }`,
-      pageSize: 10,
-      highlight: true,
-      searchable: true,
-      source: function (_, input) {
+  switch (type) {
+    case 'instruments': {
+      const instrumentMap: Record<string, string> = {};
+      const instruments = fse.readJSONSync(KF_INSTRUMENTS_PATH);
+      const availableInstrumets = Object.keys(instruments).map((key) => {
+        const item = instruments[key];
+        instrumentMap[
+          `${item.exchangeId} ${item.instrumentId} ${item.instrumentName}`
+        ] = `${item.exchangeId}_${item.instrumentId}_${item.instrumentType}_${item.ukey}_${item.instrumentName}`;
+        return `${item.exchangeId} ${item.instrumentId} ${item.instrumentName}`;
+      });
+      baseQuestion.choices = [];
+      baseQuestion.pageSize = 10;
+      baseQuestion.highlight = true;
+      baseQuestion.searchable = true;
+      baseQuestion.message = 'Select instruments';
+      baseQuestion.source = function (_, input) {
         input = input || '';
         return new Promise((resolve) => {
           const results = availableInstrumets.filter((item) =>
@@ -222,32 +236,33 @@ export const buildQuestionByKfConfigItem = async (
           );
           resolve(results);
         });
-      },
-      validate,
-    };
+      };
+      baseQuestion.filter = (value: KungfuApi.KfConfigValue) => {
+        if (!value.length) return value;
+        return value.map((item) => {
+          return instrumentMap[item];
+        });
+      };
+      break;
+    }
+
+    case 'md': {
+      const { md } = await getAllKfConfigOriginData();
+      baseQuestion.choices = md.map((item: KungfuApi.KfConfig) =>
+        getIdByKfLocation(item),
+      );
+      break;
+    }
+
+    default: {
+      break;
+    }
   }
 
-  const defaultChoices =
-    configItem.type === 'md'
-      ? md.map((item) => getIdByKfLocation(item))
-      : (configItem.options || configItem.data || []).map((item) => item.value);
-
-  const questions: PromptQuestion = {
-    type: targetType,
-    name: key,
-    choices: targetType === 'list' ? defaultChoices : [],
-    message: buildMessage(configItem, isUpdate, key),
-    validate,
-    filter: (value: KungfuApi.KfConfigValue) =>
-      targetType === 'number' && isNaN(value) ? 0 : value,
-    ...(targetType === 'path' ? { cwd: process.cwd().toString() } : {}),
-  };
-
-  if (dafultValue !== undefined && dafultValue !== '' && dafultValue !== 0) {
-    questions.default = dafultValue;
+  if (defaultValue) {
+    baseQuestion.default = defaultValue;
   }
-
-  return questions;
+  return baseQuestion;
 };
 
 export const trimAnswers = (answers: Record<string, string | number>) => {

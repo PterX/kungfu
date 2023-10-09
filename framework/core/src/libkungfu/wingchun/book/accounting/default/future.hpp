@@ -217,6 +217,7 @@ private:
                                         double(position.volume + trade.volume);
     position.volume += trade.volume;
     position.open_volume += trade.volume;
+    position.last_price = position.last_price > 0 ? position.last_price : trade.price;
     update_position(book, position);
 
     if (is_local) {
@@ -244,6 +245,7 @@ private:
     auto delta_margin = std::min(position.margin, margin);
     position.margin -= delta_margin;
     position.volume -= trade.volume;
+    position.last_price = position.last_price > 0 ? position.last_price : trade.price;
 
     if (is_local) {
       position.frozen_total -= trade.volume;

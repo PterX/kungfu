@@ -88,7 +88,7 @@ export const parseExtDataList = (
   return extList.map((ext) => {
     const isArray = typeof ext.type === 'object';
     const type = isArray ? (ext.type || []).join(' ') : ext.type || '';
-    return [ext.name, ext.key, type].join('    ');
+    return [ext.name, ext.key, type === 'unknown' ? '' : type].join('    ');
   });
 };
 
@@ -327,6 +327,32 @@ export const buildQuestionByKfConfigItem = async (
         return (
           isDir || new Error('Please enter a valid directory, not a file path.')
         );
+      });
+      break;
+    }
+    case 'file': {
+      validateList.push(async function (value) {
+        const exists = await fse.pathExists(value);
+        if (!exists) {
+          return new Error('Path does not exist.');
+        }
+
+        const stats = await fse.stat(value);
+        const isFile = stats.isFile();
+        return isFile || new Error('Please enter a valid file path.');
+      });
+      break;
+    }
+    case 'folder': {
+      validateList.push(async function (value) {
+        const exists = await fse.pathExists(value);
+        if (!exists) {
+          return new Error('Path does not exist.');
+        }
+
+        const stats = await fse.stat(value);
+        const isDir = stats.isDirectory();
+        return isDir || new Error('Please enter a valid folder path.');
       });
       break;
     }

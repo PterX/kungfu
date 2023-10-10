@@ -175,19 +175,27 @@ const buildMessage = (
 
 const getInstrumentChoicesAndMap = () => {
   const instrumentMap: Record<string, string> = {};
-  const instruments = fse.readJSONSync(KF_INSTRUMENTS_PATH);
-  const availableInstruments = Object.keys(instruments).map((key) => {
-    const item = instruments[key];
-    instrumentMap[
-      `${ExchangeIds[item.exchangeId].name} ${item.instrumentId} ${
+  if (!fse.pathExistsSync(KF_INSTRUMENTS_PATH)) {
+    return { availableInstruments: [], instrumentMap };
+  }
+  try {
+    const instruments = fse.readJSONSync(KF_INSTRUMENTS_PATH);
+    if (!instruments) return { availableInstruments: [], instrumentMap };
+    const availableInstruments = Object.keys(instruments).map((key) => {
+      const item = instruments[key];
+      instrumentMap[
+        `${ExchangeIds[item.exchangeId].name} ${item.instrumentId} ${
+          item.instrumentName
+        }`
+      ] = `${item.exchangeId}_${item.instrumentId}_${item.instrumentType}_${item.ukey}_${item.instrumentName}`;
+      return `${ExchangeIds[item.exchangeId].name} ${item.instrumentId} ${
         item.instrumentName
-      }`
-    ] = `${item.exchangeId}_${item.instrumentId}_${item.instrumentType}_${item.ukey}_${item.instrumentName}`;
-    return `${ExchangeIds[item.exchangeId].name} ${item.instrumentId} ${
-      item.instrumentName
-    }`;
-  });
-  return { availableInstruments, instrumentMap };
+      }`;
+    });
+    return { availableInstruments, instrumentMap };
+  } catch (error) {
+    return { availableInstruments: [], instrumentMap };
+  }
 };
 
 export const buildQuestionByKfConfigItem = async (

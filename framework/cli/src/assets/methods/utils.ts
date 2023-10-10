@@ -148,6 +148,7 @@ export const getQuestionInputType = (
     case 'instrument':
       return 'autocomplete';
     case 'instruments':
+    case 'multiSelect':
       return 'checkbox-plus';
     default:
       return 'input';
@@ -196,7 +197,11 @@ export const buildQuestionByKfConfigItem = async (
 ) => {
   const { key, type } = configItem;
   const targetType = getQuestionInputType(type);
-  const validate = async (value: KungfuApi.KfConfigValue) => {
+  const validateList: ((
+    value: KungfuApi.KfConfigValue,
+  ) => Promise<true | Error>)[] = [];
+
+  validateList.push(async (value) => {
     if (configItem.required && value.toString() === '') {
       return new Error('Required');
     }
@@ -218,13 +223,19 @@ export const buildQuestionByKfConfigItem = async (
     }
 
     return true;
-  };
+  });
 
   const baseQuestion: PromptQuestion = {
     type: targetType,
     name: key,
     message: buildMessage(configItem, isUpdate, key),
-    validate: validate,
+    validate: async (value: KungfuApi.KfConfigValue) => {
+      for (const validate of validateList) {
+        const res = await validate(value);
+        if (res !== true) return res;
+      }
+      return true;
+    },
     ...(targetType === 'path' ? { cwd: process.cwd().toString() } : {}),
     choices: (configItem.options || configItem.data || []).map(
       (item) => item.value,
@@ -234,6 +245,25 @@ export const buildQuestionByKfConfigItem = async (
   };
 
   switch (type) {
+    case 'multiSelect': {
+      baseQuestion.pageSize = 10;
+      baseQuestion.highlight = true;
+      baseQuestion.searchable = true;
+      baseQuestion.source = function (_, input = '') {
+        return new Promise((resolve) => {
+          const results = (configItem.options || configItem.data || [])
+            .map((item) => item.value)
+            .filter((item) =>
+              item
+                .toString()
+                .toLocaleLowerCase()
+                .includes(input.toLocaleLowerCase()),
+            );
+          resolve(results as string[]);
+        });
+      };
+      break;
+    }
     case 'instrument':
     case 'instruments': {
       const { availableInstruments, instrumentMap } =
@@ -265,16 +295,31 @@ export const buildQuestionByKfConfigItem = async (
       break;
     }
     case 'percent': {
-      baseQuestion.validate = async function (value) {
+      validateList.push(async function (value) {
         const numValue = parseFloat(value);
-        const isValid = numValue >= 1 && numValue <= 100;
+        const isValid = numValue >= 0 && numValue <= 100;
         return (
-          isValid || new Error('Please enter a valid number between 1 and 100.')
+          isValid || new Error('Please enter a valid number between 0 and 100.')
         );
-      };
+      });
       baseQuestion.filter = function (value) {
-        return `${value}%`;
+        return `${parseFloat(value)}%`;
       };
+      break;
+    }
+    case 'directory': {
+      validateList.push(async function (value) {
+        const exists = await fse.pathExists(value);
+        if (!exists) {
+          return new Error('Path does not exist.');
+        }
+
+        const stats = await fse.stat(value);
+        const isDir = stats.isDirectory();
+        return (
+          isDir || new Error('Please enter a valid directory, not a file path.')
+        );
+      });
       break;
     }
     case 'md': {

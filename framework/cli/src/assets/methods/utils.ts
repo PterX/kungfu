@@ -277,6 +277,21 @@ export const buildQuestionByKfConfigItem = async (
       };
       break;
     }
+    case 'directory': {
+      baseQuestion.validate = async function (value) {
+        const exists = await fse.pathExists(value);
+        if (!exists) {
+          return new Error('Path does not exist.');
+        }
+
+        const stats = await fse.stat(value);
+        const isDir = stats.isDirectory();
+        return (
+          isDir || new Error('Please enter a valid directory, not a file path.')
+        );
+      };
+      break;
+    }
     case 'md': {
       const { md } = await getAllKfConfigOriginData();
       baseQuestion.choices = md.map((item: KungfuApi.KfConfig) =>

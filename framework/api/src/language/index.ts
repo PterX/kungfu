@@ -4,7 +4,7 @@ import zh_CN from './zh-CN';
 import en_US from './en-US';
 import path from 'path';
 import fse from 'fs-extra';
-import { KF_CONFIG_PATH } from '../config/pathConfig';
+import { KF_CONFIG_PATH, KF_CONFIG_DEFAULT_PATH } from '../config/pathConfig';
 
 export const getExtraLanguage = () => {
   const languagePath = path.join(
@@ -51,17 +51,22 @@ const canLog =
 // 默认语言
 export const langDefault = process.env.LANG_ENV ?? 'zh-CN';
 let settingLanguage;
+let configPath = KF_CONFIG_DEFAULT_PATH;
 const extraLanguage = getExtraLanguage();
 const mergeCNLanguage = getMergeCNLanguage();
 const mergeENLanguage = getMergeENLanguage();
 
 if (fse.existsSync(KF_CONFIG_PATH)) {
-  const globalSettingJson = fse.readJSONSync(KF_CONFIG_PATH) as Record<
-    string,
-    Record<string, KungfuApi.KfConfigValue>
-  >; // 不直接使用 getKfGlobalSettingsValue 是因为会形成循环引用，会报错
-  settingLanguage = globalSettingJson?.system?.language ?? langDefault;
+  configPath = KF_CONFIG_PATH;
+} else {
+  configPath = KF_CONFIG_DEFAULT_PATH;
 }
+
+const globalSettingJson = fse.readJSONSync(configPath) as Record<
+  string,
+  Record<string, KungfuApi.KfConfigValue>
+>; // 不直接使用 getKfGlobalSettingsValue 是因为会形成循环引用，会报错
+settingLanguage = globalSettingJson?.system?.language ?? langDefault;
 
 // 语言库
 const messages = {

@@ -1115,7 +1115,7 @@ function handleInstrumentDeselected(val: string, key: string) {
   }
 }
 
-function validate(): Promise<void[]> {
+function validate(): Promise<Record<string, KungfuApi.KfConfigValue>> {
   const innerFormRefs = innerFormRefKeys
     .map((refKey) => {
       type FormRef = InstanceType<typeof KfConfigSettingsForm>;
@@ -1130,8 +1130,15 @@ function validate(): Promise<void[]> {
   const innerFormValidates = innerFormRefs
     .filter((formRef) => !!formRef && formRef?.validate)
     .map((formRef) => formRef?.validate() as unknown as Promise<void>);
-  return Promise.all(
-    [formRef.value?.validate?.()].concat(...innerFormValidates),
+
+  const mainFormValidation = formRef.value?.validate?.().then(() => {
+    return formState.value;
+  });
+
+  return Promise.all([mainFormValidation].concat(...innerFormValidates)).then(
+    (results) => {
+      return results[0];
+    },
   );
 }
 

@@ -7,6 +7,8 @@ import {
 import { getKfExtensionConfig } from '@kungfu-trader/kungfu-js-api/utils/extUtils';
 import { getIdByKfLocation } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { setKfConfig } from '@kungfu-trader/kungfu-js-api/kungfu/store';
+import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+const { t } = VueI18n.global;
 
 export const updateMdTdStrategy = async () => {
   const kfLocation = await selectTargetKfConfig();
@@ -16,7 +18,7 @@ export const updateMdTdStrategy = async () => {
   }
 
   const extConfigs = await getKfExtensionConfig();
-  const { md, td, strategy } = await getAllKfConfigOriginData();
+  const { md, td, strategy, operator } = await getAllKfConfigOriginData();
 
   if (kfLocation.category === 'md') {
     const targetMd = getTargetKfConfig(md, kfLocation);
@@ -74,21 +76,47 @@ export const updateMdTdStrategy = async () => {
     const strategySettings: KungfuApi.KfConfigItem[] = [
       {
         key: 'strategy_id',
-        name: '策略ID',
+        name: t('strategyConfig.strategy_id'),
         type: 'str',
         primary: true,
         required: true,
-        tip: '需保证该策略ID唯一',
+        tip: t('strategyConfig.strategy_id_tip'),
       },
       {
         key: 'file_path',
-        name: '策略路径',
+        name: t('strategyConfig.file_path'),
         type: 'file',
         required: true,
       },
     ];
 
     return buildPromptAndSetConfig(strategySettings, initValue, kfLocation);
+  } else if (kfLocation.category === 'operator') {
+    const targetOperator = getTargetKfConfig(operator, kfLocation);
+
+    if (!targetOperator) {
+      throw new Error('targetTd is null');
+    }
+
+    const initValue = JSON.parse(targetOperator.value || '{}');
+    const operatorSettings: KungfuApi.KfConfigItem[] = [
+      {
+        key: 'operator_id',
+        name: t('operatorConfig.operator_id'),
+        type: 'str',
+        primary: true,
+        required: true,
+        tip: t('operatorConfig.operator_id_tip'),
+      },
+      {
+        key: 'file_path',
+        name: t('operatorConfig.file_path'),
+        type: 'file',
+        required: true,
+      },
+    ];
+
+    return buildPromptAndSetConfig(operatorSettings, initValue, kfLocation);
   }
 
   return false;

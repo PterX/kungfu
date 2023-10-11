@@ -298,7 +298,7 @@ export const removeTargetFilesInFolder = async (
 
     for (const f of files) {
       for (const n of includes) {
-        if (f.includes(n) && !filters.includes(f)) {
+        if (f.includes(n) && !filters.some((filter) => f.includes(filter))) {
           try {
             const targetFile = path.join(folder, f);
             await fsPromise.rm(targetFile);

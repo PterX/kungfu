@@ -288,7 +288,10 @@ watch(
 watch(
   () => formState.value,
   (newVal) => {
-    const { account_id, instrument, volume, side, offset } = newVal;
+    let { account_id, instrument, volume, side, offset } = newVal;
+    if (![SideEnum.Buy, SideEnum.Sell].includes(side)) {
+      side = undefined;
+    }
     useGlobalStore().setGlobalFormState({
       account_id,
       instrument,

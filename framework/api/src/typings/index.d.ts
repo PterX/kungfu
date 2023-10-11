@@ -484,6 +484,7 @@ declare namespace KungfuApi {
     setAllBasketInstruments(basketInstruments: BasketInstrument[]): boolean;
     setBasketInstrument(basketInstrument: BasketInstrument): boolean;
     removeAllBasketInstruments(): boolean;
+    removeAllBasketInstrumentsByBasket(basketId: number): boolean;
   }
 
   export interface DataTable<T> {
@@ -1194,8 +1195,6 @@ declare namespace KungfuApi {
     ): bigint;
     issueCustomData(message: TimeKeyValue, targetLocation: KfLocation): boolean;
     issueBasketOrder(basketOrder: BasketOrder, tdLocation: KfLocation): bigint;
-    recordBasket(basket: Basket): boolean;
-    recordBasketInstrument(basketInstrument: BasketInstrument): boolean;
     quit(): void;
     now(): bigint;
   }

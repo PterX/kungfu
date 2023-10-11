@@ -334,11 +334,11 @@ Napi::Value Watcher::IssueBasketOrder(const Napi::CallbackInfo &info) {
 Napi::Value Watcher::IssueMark(const Napi::CallbackInfo &info) {
   SPDLOG_INFO("issue mark");
   uint32_t tag = GetNumber(info, 0);
-  auto account_location = IODevice::ExtractLocation(info, 1, get_locator());
-  if (not has_writer(account_location->location_uid)) {
+  auto target_location = IODevice::ExtractLocation(info, 1, get_locator());
+  if (not has_writer(target_location->location_uid)) {
     return Napi::Boolean::New(info.Env(), false);
   }
-  get_writer(account_location->location_uid)->mark(time::now_in_nano(), tag);
+  get_writer(target_location->location_uid)->mark(time::now_in_nano(), tag);
   return Napi::Boolean::New(info.Env(), true);
 }
 

@@ -31,6 +31,8 @@ void cached::on_react() {
   events_ | is(Location::tag) | $$(on_location(event));
   events_ | is(Register::tag) | $$(register_triggger_clear_cache_shift(event->data<Register>()));
   events_ | is(Register::tag) | $$(register_trigger_listen_public(event->gen_time(), event->data<Register>()));
+  events_ | is(CachedPause::tag) | $$(switch_feed_stroage(true));
+  events_ | is(CachedResume::tag) | $$(switch_feed_stroage(false));
   events_ | is(RequestCached::tag) | $([&](const event_ptr &event) {
     auto source_id = event->source();
 
@@ -142,6 +144,10 @@ void cached::mark_request_cached_done(uint32_t dest_id) {
 }
 
 void cached::handle_cached_feeds(int store_volume_every_loop) {
+  if (storage_pause_) {
+    return;
+  }
+
   int stored_controller = 0;
 
   auto clear_map = [&](auto &feed_map, auto type_name) {
@@ -198,6 +204,10 @@ void cached::handle_cached_feeds(int store_volume_every_loop) {
 }
 
 void cached::handle_profile_feeds(int store_volume_every_loop) {
+  if (storage_pause_) {
+    return;
+  }
+
   int stored_controller = 0;
   boost::hana::for_each(ProfileDataTypes, [&](auto it) {
     using DataType = typename decltype(+boost::hana::second(it))::type;
@@ -304,5 +314,7 @@ void cached::feed(const event_ptr &event) {
   feed_state_data(event, feed_bank_);
   feed_profile_data(event, profile_bank_);
 }
+
+void cached::switch_feed_stroage(bool pause) { storage_pause_ = pause; }
 
 } // namespace kungfu::yijinjing::cache

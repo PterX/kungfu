@@ -50,7 +50,6 @@ const canLog =
 
 // 默认语言
 export const langDefault = process.env.LANG_ENV ?? 'zh-CN';
-let settingLanguage;
 let configPath = KF_CONFIG_DEFAULT_PATH;
 const extraLanguage = getExtraLanguage();
 const mergeCNLanguage = getMergeCNLanguage();
@@ -66,7 +65,7 @@ const globalSettingJson = fse.readJSONSync(configPath) as Record<
   string,
   Record<string, KungfuApi.KfConfigValue>
 >; // 不直接使用 getKfGlobalSettingsValue 是因为会形成循环引用，会报错
-settingLanguage = globalSettingJson?.system?.language ?? langDefault;
+const settingLanguage = globalSettingJson?.system?.language ?? langDefault;
 
 // 语言库
 const messages = {

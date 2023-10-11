@@ -95,11 +95,16 @@ function generateCMakeFiles(projectName, kungfuBuild) {
 
   const cppSources = [kungfuBuild.cpp.src || ['src/cpp']].flat();
   const cppExternalSourcesOpt = kungfuBuild.cpp.external || [];
+  const corePath = customResolve('@kungfu-trader/kungfu-core');
+  const nodeModulesPath = path.join(
+    corePath.split('node_modules')[0],
+    'node_modules',
+  );
   const cppExternalSources = Array.isArray(cppExternalSourcesOpt)
     ? cppExternalSourcesOpt.map(function (element) {
-        return dealPath(path.join('node_modules', element, 'src/cpp'));
+        return dealPath(path.join(nodeModulesPath, element, 'src/cpp'));
       })
-    : [dealPath(path.join('node_modules', cppExternalSourcesOpt, 'src/cpp'))];
+    : [dealPath(path.join(nodeModulesPath, cppExternalSourcesOpt, 'src/cpp'))];
 
   const cppLinksOpt = kungfuBuild.cpp.links || [];
   const cppLinks = Array.isArray(cppLinksOpt)

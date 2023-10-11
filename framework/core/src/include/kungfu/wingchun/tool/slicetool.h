@@ -59,6 +59,8 @@ public:
 
   yijinjing::journal::frame_ptr current_frame() const;
 
+  yijinjing::journal::writer_ptr get_writer(const yijinjing::data::location_ptr &location, uint32_t dest_id);
+
 protected:
   void write_raw_at(yijinjing::data::location_ptr location, int64_t gen_time, int64_t trigger_time, uint32_t dest_id,
                     int32_t msg_type, uintptr_t data, uint32_t length);
@@ -79,8 +81,6 @@ protected:
   mutable int64_t last_gen_time_;
   mutable int64_t last_read_gen_time_;
   const std::string arguments_;
-
-  yijinjing::journal::writer_ptr get_writer(const yijinjing::data::location_ptr &location, uint32_t dest_id);
 
   void valid_time(int64_t gen_time, int64_t trigger_time) const;
 };

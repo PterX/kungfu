@@ -898,6 +898,7 @@ export default {
     value_existing: '{value}已存在',
     mandatory: '该项为必填项',
     resolved_tip: '成功匹配 {success} 个{value}, 失败 {fail} 个',
+    default_value_tip: '默认值不能改变',
   },
 
   editor: {

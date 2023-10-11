@@ -176,7 +176,7 @@ const props = withDefaults(
   },
 );
 
-const DEFAULT_ORDER_LENGTH = 15;
+const DEFAULT_ORDER_LENGTH = 30;
 const DEFAULT_CHART_LENGTH_RATE = 20;
 
 const { setCurrentSession, setSelectedChartItem } = useJournalStore();

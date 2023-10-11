@@ -898,6 +898,7 @@ export default {
     value_existing: '{value} has been in existence',
     mandatory: 'mandatory',
     resolved_tip: 'Success resolved {success} {value}, failed {fail}',
+    default_value_tip: 'This value can not change',
   },
 
   editor: {

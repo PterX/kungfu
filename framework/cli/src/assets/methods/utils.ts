@@ -14,6 +14,9 @@ import {
   getProcessIdByKfLocation,
   initFormStateByConfig,
   loopToRunProcess,
+  replaceNonAlphaNumericWithSpace,
+  getPrimaryKeys,
+  getCombineValueByPrimaryKeys,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { getAllKfConfigOriginData } from '@kungfu-trader/kungfu-js-api/actions';
 import {
@@ -93,20 +96,86 @@ export const parseExtDataList = (
 };
 
 export const getPromptQuestionsBySettings = async (
-  settings: KungfuApi.KfConfigItem[],
+  data: {
+    settings: KungfuApi.KfConfigItem[];
+    primaryKeyAvoidRepeatCompareTarget?: string[];
+    primaryKeyAvoidRepeatCompareExtra?: string;
+    passPrimaryKeySpecialWordsVerify?: boolean;
+  },
   initValue?: Record<string, KungfuApi.KfConfigValue>,
 ): Promise<KungfuApi.KfConfigValue> => {
+  const {
+    settings,
+    primaryKeyAvoidRepeatCompareTarget,
+    primaryKeyAvoidRepeatCompareExtra,
+    passPrimaryKeySpecialWordsVerify,
+  } = data;
   const formState = initFormStateByConfig(settings, initValue || {});
+  const primaryKeys = getPrimaryKeys(settings);
   const questionsPromises = settings.map(
     async (item) =>
       await buildQuestionByKfConfigItem(
         item,
         item.type === 'password' ? '' : formState[item.key],
         !!initValue,
+        async (value) => {
+          if (!primaryKeys.includes(item.key)) {
+            return true;
+          }
+
+          formState[item.key] = value;
+
+          return primaryKeyValidator(value);
+        },
       ),
   );
 
   const questions = await Promise.all(questionsPromises);
+
+  function primaryKeyValidator(value: string): true | Error {
+    const combineValue: string = getCombineValueByPrimaryKeys(
+      primaryKeys,
+      formState,
+      primaryKeyAvoidRepeatCompareExtra || '',
+    );
+
+    if (!combineValue || replaceNonAlphaNumericWithSpace(value) === '') {
+      return new Error(
+        t('validate.single_characters', {
+          value: combineValue,
+        }),
+      );
+    }
+
+    if (
+      SpecialWordsReg.test(value || '') &&
+      !passPrimaryKeySpecialWordsVerify
+    ) {
+      return new Error(t('validate.no_special_characters'));
+    }
+
+    if (
+      (value || '').toString().includes('_') &&
+      !passPrimaryKeySpecialWordsVerify
+    ) {
+      return new Error(t('validate.no_underline'));
+    }
+
+    if (
+      (primaryKeyAvoidRepeatCompareTarget || [])
+        .map((item): string => item.toLowerCase())
+        .includes(combineValue.toLowerCase())
+    ) {
+      return new Error(
+        t('validate.value_existing', {
+          value: combineValue,
+        }),
+      );
+    }
+
+    return true;
+  }
+
   return inquirer
     .prompt(questions)
     .then((answers: Record<string, KungfuApi.KfConfigValue>) => {
@@ -202,6 +271,7 @@ export const buildQuestionByKfConfigItem = async (
   configItem: KungfuApi.KfConfigItem,
   defaultValue: KungfuApi.KfConfigValue | undefined,
   isUpdate = false,
+  lastValidate?: (value: KungfuApi.KfConfigValue) => Promise<true | Error>,
 ) => {
   const { key, type } = configItem;
   const targetType = getQuestionInputType(type);
@@ -216,15 +286,13 @@ export const buildQuestionByKfConfigItem = async (
 
     if (configItem.primary) {
       if (SpecialWordsReg.test(value)) {
-        return new Error(
-          'Cannot contain special characters or Chinese characters, and cannot start or end with - characters',
-        );
+        return new Error(t('validate.no_special_characters'));
       }
     }
 
     if ((isUpdate && configItem.primary) || configItem.disabled) {
       if (value !== defaultValue) {
-        return new Error("This value can't change");
+        return new Error(t('validate.default_value_tip'));
       }
 
       return true;
@@ -244,7 +312,9 @@ export const buildQuestionByKfConfigItem = async (
       }
       return true;
     },
-    ...(targetType === 'path' ? { cwd: process.cwd().toString() } : {}),
+    ...(targetType === 'path'
+      ? { cwd: configItem.default || process.cwd().toString() }
+      : {}),
     choices: (configItem.options || configItem.data || []).map(
       (item) => item.value,
     ),
@@ -319,7 +389,7 @@ export const buildQuestionByKfConfigItem = async (
       validateList.push(async function (value) {
         const exists = await fse.pathExists(value);
         if (!exists) {
-          return new Error('Path does not exist.');
+          return new Error(value);
         }
 
         const stats = await fse.stat(value);
@@ -358,14 +428,21 @@ export const buildQuestionByKfConfigItem = async (
     }
     case 'md': {
       const { md } = await getAllKfConfigOriginData();
-      baseQuestion.choices = md.map((item: KungfuApi.KfConfig) =>
-        getIdByKfLocation(item),
-      );
+      if (md) {
+        baseQuestion.choices = md.map((item: KungfuApi.KfConfig) =>
+          getIdByKfLocation(item),
+        );
+      }
+
       break;
     }
     default: {
       break;
     }
+  }
+
+  if (lastValidate) {
+    validateList.push(lastValidate);
   }
 
   if (defaultValue) {

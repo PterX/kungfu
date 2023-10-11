@@ -294,16 +294,6 @@ Napi::Value Watcher::IssueCustomData(const Napi::CallbackInfo &info) {
   return InteractWithLocation<TimeKeyValue>(info, info[0].ToObject());
 }
 
-Napi::Value Watcher::RecordBasket(const Napi::CallbackInfo &info) {
-  SPDLOG_INFO("issue basket data manually");
-  return InteractWithPublic<Basket>(info, info[0].ToObject());
-}
-
-Napi::Value Watcher::RecordBasketInstrument(const Napi::CallbackInfo &info) {
-  SPDLOG_INFO("issue basket instrument data manually");
-  return InteractWithPublic<BasketInstrument>(info, info[0].ToObject());
-}
-
 Napi::Value Watcher::IssueBlockMessage(const Napi::CallbackInfo &info) {
   SPDLOG_INFO("issue block message manually");
   return InteractWithTD<BlockMessage>(info, info[0].ToObject(), &BlockMessage::block_id);
@@ -344,11 +334,11 @@ Napi::Value Watcher::IssueBasketOrder(const Napi::CallbackInfo &info) {
 Napi::Value Watcher::IssueMark(const Napi::CallbackInfo &info) {
   SPDLOG_INFO("issue mark");
   uint32_t tag = GetNumber(info, 0);
-  auto account_location = IODevice::ExtractLocation(info, 1, get_locator());
-  if (not has_writer(account_location->location_uid)) {
+  auto target_location = IODevice::ExtractLocation(info, 1, get_locator());
+  if (not has_writer(target_location->location_uid)) {
     return Napi::Boolean::New(info.Env(), false);
   }
-  get_writer(account_location->location_uid)->mark(time::now_in_nano(), tag);
+  get_writer(target_location->location_uid)->mark(time::now_in_nano(), tag);
   return Napi::Boolean::New(info.Env(), true);
 }
 
@@ -418,8 +408,6 @@ void Watcher::Init(Napi::Env env, Napi::Object exports) {
                       InstanceMethod("publishState", &Watcher::PublishState),           //
                       InstanceMethod("isReadyToInteract", &Watcher::IsReadyToInteract), //
                       InstanceMethod("issueCustomData", &Watcher::IssueCustomData),
-                      InstanceMethod("recordBasket", &Watcher::RecordBasket),
-                      InstanceMethod("recordBasketInstrument", &Watcher::RecordBasketInstrument),       //
                       InstanceMethod("issueBlockMessage", &Watcher::IssueBlockMessage),                 //
                       InstanceMethod("issueOrderTrigger", &Watcher::IssueOrderTrigger),                 //
                       InstanceMethod("issueOrder", &Watcher::IssueOrder),                               //

@@ -40,11 +40,12 @@ KF_DEFINE_MARK_TYPE(OperatorStateRequest, 10156);
 KF_DEFINE_MARK_TYPE(BrokerStateRequest, 10157);
 KF_DEFINE_MARK_TYPE(CachedReadyToRead, 10251);
 KF_DEFINE_MARK_TYPE(RequestCached, 10252);
+KF_DEFINE_MARK_TYPE(CachedPause, 10253);
+KF_DEFINE_MARK_TYPE(CachedResume, 10254);
 KF_DEFINE_MARK_TYPE(ResetBookRequest, 10451);
 KF_DEFINE_MARK_TYPE(MirrorPositionsRequest, 10452);
 KF_DEFINE_MARK_TYPE(KeepPositionsRequest, 10453);
 KF_DEFINE_MARK_TYPE(RebuildPositionsRequest, 10454);
-
 KF_DEFINE_PACK_TYPE(                                           //
     frame_header, 0, PK(gen_time), TIMESTAMP(gen_time),        //
     /** total frame length (including header and data body) */ //

@@ -88,10 +88,6 @@ public:
 
   Napi::Value IssueCustomData(const Napi::CallbackInfo &info);
 
-  Napi::Value RecordBasket(const Napi::CallbackInfo &info);
-
-  Napi::Value RecordBasketInstrument(const Napi::CallbackInfo &info);
-
   Napi::Value IssueBlockMessage(const Napi::CallbackInfo &info);
 
   Napi::Value IssueOrderTrigger(const Napi::CallbackInfo &info);

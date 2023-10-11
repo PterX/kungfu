@@ -82,6 +82,8 @@ constexpr auto AllTypes = boost::hana::make_map( //
     TYPE_PAIR(RequestCachedDone),                // 10209
     TYPE_PAIR(CachedReadyToRead),                // 10251
     TYPE_PAIR(RequestCached),                    // 10252
+    TYPE_PAIR(CachedPause),                      // 10253
+    TYPE_PAIR(CachedResume),                     // 10254
     TYPE_PAIR(RequestReadFrom),                  // 10301
     TYPE_PAIR(RequestReadFromPublic),            // 10302
     TYPE_PAIR(RequestReadFromSync),              // 10303

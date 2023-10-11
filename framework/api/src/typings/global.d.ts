@@ -37,7 +37,7 @@ declare global {
       KFC_DIR: string;
       KF_CONFIG_DIR: string;
       KF_APP_RUNTIME_DIR: string;
-      IS_KF_DEV: boolean;
+      IS_KF_DEV: boolean; // 判断当前是否通过 yarn dev 启动的开发模式
       CPUS_NUM: number;
       IF_CPUS_NUM_SAFE: boolean;
       ELECTRON_RUN_AS_NODE: boolean;
@@ -106,7 +106,7 @@ export type AllPublishOptions =
   | S3Options
   | GenericServerOptions;
 
-type Writeable<T> = { -readonly [P in keyof T]: T[P] };
+export type Writeable<T> = { -readonly [P in keyof T]: T[P] };
 
 export interface RootConfigJSON {
   name?: string;
@@ -145,4 +145,7 @@ export interface RootConfigJSON {
 
 export interface GlobalStorageData {
   ifNotFirstRunning?: boolean;
+  skippedVersions?: string[];
+  needClearJournal?: boolean;
+  needClearDB?: boolean;
 }

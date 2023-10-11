@@ -153,16 +153,7 @@ inline bool is_final_status(const longfist::enums::OrderStatus &status) {
   case longfist::enums::OrderStatus::PartialFilledActive:
   case longfist::enums::OrderStatus::Unknown:
   case longfist::enums::OrderStatus::Cancelling:
-    return false;
-  default:
-    return true;
-  }
-}
-
-[[maybe_unused]] inline bool is_final_basket_order_status(const longfist::enums::BasketOrderStatus &status) {
-  switch (status) {
-  case longfist::enums::BasketOrderStatus::Unknown:
-  case longfist::enums::BasketOrderStatus::Pending:
+  case longfist::enums::OrderStatus::Pause:
     return false;
   default:
     return true;
@@ -583,7 +574,7 @@ inline uint32_t hash_instrument(const char *exchange_id, const char *instrument_
   return yijinjing::util::hash_str_32(instrument_id) ^ yijinjing::util::hash_str_32(exchange_id);
 }
 
-inline int32_t hash_instrument(const longfist::types::Order &order) {
+inline uint32_t hash_instrument(const longfist::types::Order &order) {
   int32_t flag =
       get_direction(order.instrument_type, order.side, order.offset) == longfist::enums::Direction::Short ? -1 : 1;
   int32_t instrument_key = hash_instrument(order.exchange_id, order.instrument_id) * flag;
@@ -734,6 +725,7 @@ inline void algo_order_from_input(const longfist::types::AlgoOrderInput &algo_or
   algo_order.price_type = algo_order_input.price_type;
   algo_order.volume = algo_order_input.volume;
   algo_order.volume_left = algo_order_input.volume;
+  algo_order.basket_uid = algo_order_input.basket_uid;
 
   strcpy(algo_order.algo_type_id, algo_order_input.algo_type_id);
   strcpy(algo_order.algo_id, algo_order_input.algo_id);

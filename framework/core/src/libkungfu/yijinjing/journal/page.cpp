@@ -137,6 +137,9 @@ uint32_t page::find_page_id(const data::location_ptr &location, uint32_t dest_id
 
 uint32_t page::find_page_size(const data::location_ptr &location, uint32_t dest_id, uint32_t page_size) {
   if (page_size > 0) {
+    if (page_size < 2) {
+      return 2 * MB;
+    }
     return page_size * MB;
   }
 
@@ -146,14 +149,16 @@ uint32_t page::find_page_size(const data::location_ptr &location, uint32_t dest_
   if (location->mode == longfist::enums::mode::BACKTEST || location->mode == longfist::enums::mode::DATA) {
     return 128 * MB;
   }
-  if ((location->category == longfist::enums::category::TD ||
-       location->category == longfist::enums::category::STRATEGY ||
+  if (location->category == longfist::enums::category::TD) {
+    return 16 * MB;
+  }
+  if ((location->category == longfist::enums::category::STRATEGY ||
        location->category == longfist::enums::category::OPERATOR ||
        location->category == longfist::enums::category::SYSTEM) &&
       dest_id != 0) {
     return 16 * MB;
   }
-  return MB;
+  return 2 * MB;
 }
 
 bool page::check_page_existed(const data::location_ptr &location, uint32_t dest_id) {

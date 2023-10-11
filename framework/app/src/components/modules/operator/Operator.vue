@@ -6,7 +6,7 @@ import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/p
 import AddOperatorModal from './AddOperatorModal.vue';
 import KfSetByConfigModal from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfSetByConfigModal.vue';
 import KfSetExtensionModal from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfSetExtensionModal.vue';
-import ReplayForm from '@kungfu-trader/kungfu-app/src/components/modules/strategy/ReplayForm.vue';
+import KfReplaySettingModal from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfReplaySettingModal.vue';
 import KfProcessStatus from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfProcessStatus.vue';
 import Icon, {
   FileTextOutlined,
@@ -37,12 +37,14 @@ import {
   useReplay,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import {
-  getIdByKfLocation,
-  getConfigValue,
   getIfProcessRunning,
-  getProcessIdByKfLocation,
   getIfProcessStopping,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import {
+  getIdByKfLocation,
+  getProcessIdByKfLocation,
+  getConfigValue,
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 
 import { AddOperatorTypeEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
@@ -181,6 +183,7 @@ async function handleConfirmSetOperatorExtDialog(
         category: 'operator',
         group: selectedOperatorExtKey,
         name: '*',
+        mode: '*',
       },
       extConfig,
     );
@@ -379,7 +382,7 @@ function handleOpenCodeViewResolved(record: KungfuApi.KfConfig) {
         )
       "
     ></KfSetByConfigModal>
-    <ReplayForm
+    <KfReplaySettingModal
       v-if="setReplayModalVisible"
       :width="520"
       v-model:visible="setReplayModalVisible"
@@ -392,7 +395,7 @@ function handleOpenCodeViewResolved(record: KungfuApi.KfConfig) {
       :log-level="replayConfig.log_level"
       @close="setReplayModalVisible = false"
       @confirm="(event) => handleReplayModal(event)"
-    ></ReplayForm>
+    ></KfReplaySettingModal>
   </div>
 </template>
 <style lang="less">

@@ -1,4 +1,4 @@
-import { Pm2ProcessStatusTypes } from '../utils/processUtils';
+import { Pm2ProcessStatusTypes } from '../typings/common';
 
 export enum BrokerStateStatusEnum {
   Pending = 0,
@@ -146,6 +146,7 @@ export enum OffsetEnum {
   Close,
   CloseToday,
   CloseYest,
+  Unknown = 99,
 }
 
 export type OffsetTypes = keyof typeof OffsetEnum;
@@ -209,6 +210,17 @@ export enum BasketOrderStatusEnum {
   PartialFilledNotActive, // 部分成交已结束
   PartialFilledActive, // 部分成交未结束
   Filled,
+}
+
+export enum KfExtTypeEnum {
+  Unknown = 'unknown',
+  Broker = 'broker',
+  Task = 'task',
+  Operator = 'operator',
+  Service = 'service',
+  UI = 'ui',
+  Matcher = 'matcher',
+  Indexer = 'indexer',
 }
 
 export enum KfCategoryEnum {

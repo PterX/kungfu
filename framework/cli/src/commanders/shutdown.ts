@@ -4,10 +4,8 @@ import {
   pm2KillGodDaemon,
 } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
 import 'console-success';
-import {
-  delayMilliSeconds,
-  deleteNNFiles,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { deleteNNFiles } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { delayMilliSeconds } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 
 export const shutdown = async () => {
   try {

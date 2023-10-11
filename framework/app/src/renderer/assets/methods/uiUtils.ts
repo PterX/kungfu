@@ -21,8 +21,11 @@ import {
   FunctionalComponent,
   ComponentPublicInstance,
   isRef,
+  createApp,
+  defineComponent,
 } from 'vue';
 import { ensureFileSync, outputFile } from 'fs-extra';
+import { Button } from 'ant-design-vue';
 import {
   CheckCircleOutlined,
   ExclamationCircleOutlined,
@@ -32,27 +35,31 @@ import {
   ARCHIVE_DIR,
   buildProcessLogPath,
   buildProcessReplayPath,
+  buildProcessBacktestPath,
   KF_HOME,
   KUNGFU_RESOURCES_DIR,
 } from '@kungfu-trader/kungfu-js-api/config/pathConfig';
 import {
   getInstrumentTypeData,
-  getProcessIdByKfLocation,
-  kfLogger,
-  removeJournal,
-  removeDB,
-  getAvailExtServiceList,
-  getKfExtensionLanguage,
-  loopToRunProcess,
-  resolveInstrumentValue,
-  transformSearchInstrumentResultToInstrument,
   removeArchiveBeforeToday,
-  isKfColor,
-  isHexOrRgbColor,
-  removeTodayArchive,
-  getYearMonthDay,
-  debounce,
+  startReplay,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import {
+  getKfExtensionLanguage,
+  getAvailExtServiceList,
+} from '@kungfu-trader/kungfu-js-api/utils/extUtils';
+import {
+  getProcessIdByKfLocation,
+  getYearMonthDay,
+  resolveInstrumentValue,
+  isHexOrRgbColor,
+  debounce,
+  loopToRunProcess,
+  isKfColor,
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import { transformSearchInstrumentResultToInstrument } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
+import { kfLogger } from '@kungfu-trader/kungfu-js-api/utils/logUtils';
+import globalStorage from '@kungfu-trader/kungfu-js-api/utils/globalStorage';
 import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
 import { ExchangeIds } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
@@ -78,7 +85,6 @@ import {
 import path from 'path';
 import {
   startExtService,
-  startStrategyOperator,
   stopProcess,
   listProcessStatus,
 } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
@@ -486,42 +492,8 @@ const removeArchiveBeforeStartAll = (): Promise<void> => {
   });
 };
 
-const removeJournalBeforeStartAll = (): Promise<void> => {
-  const needClearJournalStr = localStorage.getItem('needClearJournal');
-  const needClearJournal = !!(needClearJournalStr && +needClearJournalStr);
-
-  kfLogger.info('needClearJournal: ', needClearJournal);
-
-  if (needClearJournal) {
-    localStorage.setItem('needClearJournal', '0');
-    kfLogger.info('Clear Journal Done', needClearJournal);
-    return removeTodayArchive(ARCHIVE_DIR).then(() => removeJournal(KF_HOME));
-  } else {
-    return Promise.resolve();
-  }
-};
-
-const removeDBBeforeStartAll = (): Promise<void> => {
-  const needClearDBStr = localStorage.getItem('needClearDB');
-  const needClearDB = !!(needClearDBStr && +needClearDBStr);
-
-  kfLogger.info('needClearDB: ', needClearDB);
-
-  if (needClearDB) {
-    localStorage.setItem('needClearDB', '0');
-    kfLogger.info('Clear DB Done');
-    return removeDB(KF_HOME);
-  } else {
-    return Promise.resolve();
-  }
-};
-
 export const preStartAll = async (): Promise<(void | Proc)[]> => {
-  return Promise.all([
-    removeJournalBeforeStartAll(),
-    removeDBBeforeStartAll(),
-    removeArchiveBeforeStartAll(),
-  ]);
+  return Promise.all([removeArchiveBeforeStartAll()]);
 };
 
 export const checkCpusNumAndConfirmModal = (): Promise<boolean> => {
@@ -693,12 +665,13 @@ export const openReplayView = (
   log_level: string,
   sessionName: string,
   filePath: string,
+  enableMatcher: boolean,
   processId: string,
 ): Promise<Electron.BrowserWindow> => {
   return openNewBrowserWindow(
-    globalThis.__runtimeDir,
+    process.env.KF_APP_RUNTIME_DIR,
     'replay',
-    `?logPath=${logPath}&sessionName=${sessionName}&filePath=${filePath}&category=${type}&group=${group}&beginTime=${beginTime}&endTime=${endTime}&logLevel=${log_level}&processId=${processId}`,
+    `?logPath=${logPath}&enableMatcher=${enableMatcher}&sessionName=${sessionName}&filePath=${filePath}&category=${type}&group=${group}&beginTime=${beginTime}&endTime=${endTime}&logLevel=${log_level}&processId=${processId}`,
     {
       width: 1280,
       height: 960,
@@ -788,12 +761,12 @@ export const useIpcListener = (): void => {
 };
 
 export const markClearJournal = (): void => {
-  localStorage.setItem('needClearJournal', '1');
+  globalStorage.setItem('needClearJournal', true);
   messagePrompt().success(t('clear', { content: 'journal' }));
 };
 
 export const markClearDB = (): void => {
-  localStorage.setItem('needClearDB', '1');
+  globalStorage.setItem('needClearDB', true);
   messagePrompt().success(t('clear', { content: 'DB' }));
 };
 
@@ -889,7 +862,9 @@ export const handleOpenReplayView = async (
 ): Promise<Electron.BrowserWindow> => {
   const dateStr = getYearMonthDay();
   const hideloading = messagePrompt().loading(t('open_replay_dashboard'));
-  const logPath = buildProcessReplayPath(config, `${config.name}_${dateStr}`);
+  const logPath = replayConfig.enable_matcher
+    ? buildProcessBacktestPath(config, `${config.name}_${dateStr}`)
+    : buildProcessReplayPath(config, `${config.name}_${dateStr}`);
   if (replayConfig) {
     try {
       ensureFileSync(logPath);
@@ -918,21 +893,15 @@ export const handleOpenReplayView = async (
     logLevel,
     replayConfig.session_name,
     replayConfig.file_path,
+    replayConfig.enable_matcher,
     processId,
   ).finally(async () => {
     hideloading();
     const { processStatus } = await listProcessStatus();
-    if (processStatus[processId]) {
+    if (processStatus[processId] === 'online') {
       await stopProcess(processId);
     }
-
-    await startStrategyOperator(
-      config.category,
-      '',
-      '',
-      'replay',
-      replayConfig,
-    );
+    await startReplay(config, replayConfig);
   });
 };
 
@@ -947,6 +916,7 @@ export const getJournalReplayConfigs = async (
         category: string;
         group: string;
         name: string;
+        mode: string;
         replayConfig: KungfuApi.ReplayConfig;
       }
     | undefined;
@@ -958,6 +928,7 @@ export const getJournalReplayConfigs = async (
         category: config.category,
         group: config.group,
         name: config.name,
+        mode: replayConfig.enable_matcher ? 'backtest' : 'replay',
         replayConfig,
       },
     };
@@ -1227,6 +1198,88 @@ export const confirmModal = (
         resolve(false);
       },
     });
+  });
+};
+
+export const extraConfirmModal = (
+  title: string,
+  content: VueNode | (() => VueNode) | string,
+  okText = t('confirm'),
+  cancelText = t('cancel'),
+  extraTextList?: {
+    text: string;
+  }[],
+): Promise<'ok' | 'cancel' | string> => {
+  return new Promise((resolve) => {
+    const Comp = defineComponent({
+      setup() {
+        const visible = ref(true);
+
+        const close = (result: 'ok' | 'cancel' | string) => {
+          resolve(result);
+          visible.value = false;
+        };
+
+        return {
+          visible,
+          close,
+          content,
+          title,
+          okText,
+          cancelText,
+          extraTextList,
+        };
+      },
+      render() {
+        return h(
+          Modal,
+          {
+            visible: this.visible,
+            title: this.title,
+            'onUpdate:visible': (newVal: boolean) => {
+              this.visible = newVal;
+            },
+            onCancel: () => this.close('cancel'),
+          },
+          {
+            default: () => [
+              typeof this.content === 'function'
+                ? this.content()
+                : this.content,
+            ],
+            footer: () => [
+              ...(this.extraTextList?.map((item) =>
+                h(
+                  Button,
+                  {
+                    onClick: () => this.close(item.text),
+                  },
+                  () => item.text,
+                ),
+              ) || []),
+              h(
+                Button,
+                {
+                  onClick: () => this.close('cancel'),
+                },
+                () => this.cancelText,
+              ),
+              h(
+                Button,
+                {
+                  type: 'primary',
+                  onClick: () => this.close('ok'),
+                },
+                () => this.okText,
+              ),
+            ],
+          },
+        );
+      },
+    });
+
+    const app = createApp(Comp);
+    app.mount(document.createElement('div'));
   });
 };
 

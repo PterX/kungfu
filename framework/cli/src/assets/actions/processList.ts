@@ -4,18 +4,23 @@ import {
   KfCategoryTypes,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
-  delayMilliSeconds,
   deleteNNFiles,
-  getAvailCliExtServiceList,
-  getKfExtensionConfig,
-  getProcessIdByKfLocation,
   getTaskListFromProcessStatusData,
-  isExtService,
-  kfLogger,
   removeArchiveBeforeToday,
   removeJournal,
   switchKfLocation,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import {
+  getKfExtensionConfig,
+  getAvailCliExtServiceList,
+} from '@kungfu-trader/kungfu-js-api/utils/extUtils';
+import {
+  isExtService,
+  getProcessIdByKfLocation,
+  getIdByKfLocation,
+  delayMilliSeconds,
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import { kfLogger } from '@kungfu-trader/kungfu-js-api/utils/logUtils';
 import {
   killExtra,
   pm2Kill,
@@ -122,6 +127,7 @@ export const specificProcessListObserver = (kfLocation: KungfuApi.KfConfig) =>
       const { extService } = mdTdStrategyExtService;
       const { processStatus, processStatusWithDetail } = ps;
       const processId = getProcessIdByKfLocation(kfLocation);
+      const processName = getIdByKfLocation(kfLocation);
 
       const extServiceList: ProcessListItem[] = extService.map((item) => {
         const processId = getProcessIdByKfLocation(item);
@@ -144,31 +150,45 @@ export const specificProcessListObserver = (kfLocation: KungfuApi.KfConfig) =>
           cwd: item.cwd,
         };
       });
+      const masterLocation: KungfuApi.KfLocation = {
+        category: 'system',
+        group: 'master',
+        name: 'master',
+        mode: 'live',
+      };
+      const ledgerLocation: KungfuApi.KfLocation = {
+        category: 'system',
+        group: 'service',
+        name: 'ledger',
+        mode: 'live',
+      };
 
+      const masterProcessId = getProcessIdByKfLocation(masterLocation);
+      const ledgerProcessId = getProcessIdByKfLocation(ledgerLocation);
       return [
         {
-          processId: 'master',
+          processId: masterProcessId,
           processName: colors.bold('MASTER'),
           typeName: colors.bgMagenta('Sys'),
-          category: 'system',
-          group: 'master',
-          name: 'master',
+          category: masterLocation.category,
+          group: masterLocation.group,
+          name: masterLocation.name,
           value: {},
-          status: processStatus['master'] || '--',
-          statusName: dealStatus(processStatus['master'] || '--'),
-          monit: processStatusWithDetail['master']?.monit,
+          status: processStatus[masterProcessId] || '--',
+          statusName: dealStatus(processStatus[masterProcessId] || '--'),
+          monit: processStatusWithDetail[masterProcessId]?.monit,
         },
         {
-          processId: 'ledger',
+          processId: ledgerProcessId,
           processName: 'LEDGER',
           typeName: colors.bgMagenta('Sys'),
-          category: 'system',
-          group: 'service',
-          name: 'ledger',
+          category: ledgerLocation.category,
+          group: ledgerLocation.group,
+          name: ledgerLocation.name,
           value: {},
-          status: processStatus['ledger'] || '--',
-          statusName: dealStatus(processStatus['ledger'] || '--'),
-          monit: processStatusWithDetail['ledger']?.monit,
+          status: processStatus[ledgerProcessId] || '--',
+          statusName: dealStatus(processStatus[ledgerProcessId] || '--'),
+          monit: processStatusWithDetail[ledgerProcessId]?.monit,
         },
         {
           processId: 'dzxy',
@@ -185,7 +205,7 @@ export const specificProcessListObserver = (kfLocation: KungfuApi.KfConfig) =>
         ...extServiceList,
         {
           processId,
-          processName: processId,
+          processName: processName,
           typeName: getCategoryName(kfLocation.category),
           category: kfLocation.category,
           group: kfLocation.group,
@@ -221,13 +241,14 @@ export const processListObservable = () =>
 
       const mdList: ProcessListItem[] = md.map((item) => {
         const processId = getProcessIdByKfLocation(item);
+        const processName = getIdByKfLocation(item);
         const prefixProps =
           globalThis.HookKeeper.getHooks().prefix.trigger(item);
         const prefix =
           prefixProps.prefixType === 'text' ? prefixProps.prefix : '';
         return {
           processId,
-          processName: prefix + processId,
+          processName: prefix + processName,
           typeName: getCategoryName(item.category),
           category: item.category,
           group: item.group,
@@ -245,13 +266,14 @@ export const processListObservable = () =>
 
       const operatorList: ProcessListItem[] = operator.map((item) => {
         const processId = getProcessIdByKfLocation(item);
+        const processName = getIdByKfLocation(item);
         const prefixProps =
           globalThis.HookKeeper.getHooks().prefix.trigger(item);
         const prefix =
           prefixProps.prefixType === 'text' ? prefixProps.prefix : '';
         return {
           processId,
-          processName: prefix + processId,
+          processName: prefix + processName,
           typeName: getCategoryName(item.category),
           category: item.category,
           group: item.group,
@@ -269,13 +291,14 @@ export const processListObservable = () =>
 
       const tdList: ProcessListItem[] = td.map((item) => {
         const processId = getProcessIdByKfLocation(item);
+        const processName = getIdByKfLocation(item);
         const prefixProps =
           globalThis.HookKeeper.getHooks().prefix.trigger(item);
         const prefix =
           prefixProps.prefixType === 'text' ? prefixProps.prefix : '';
         return {
           processId,
-          processName: prefix + processId,
+          processName: prefix + processName,
           typeName: getCategoryName(item.category),
           category: item.category,
           group: item.group,
@@ -293,13 +316,14 @@ export const processListObservable = () =>
 
       const strategyList: ProcessListItem[] = strategy.map((item) => {
         const processId = getProcessIdByKfLocation(item);
+        const processName = getIdByKfLocation(item);
         const prefixProps =
           globalThis.HookKeeper.getHooks().prefix.trigger(item);
         const prefix =
           prefixProps.prefixType === 'text' ? prefixProps.prefix : '';
         return {
           processId,
-          processName: prefix + processId,
+          processName: prefix + processName,
           typeName: getCategoryName(item.category),
           category: item.category,
           group: item.group,
@@ -368,6 +392,20 @@ export const processListObservable = () =>
       );
       const masterPrefix =
         masterPrefixProps.prefixType === 'text' ? masterPrefixProps.prefix : '';
+      const masterLocation: KungfuApi.KfLocation = {
+        category: 'system',
+        group: 'master',
+        name: 'master',
+        mode: 'live',
+      };
+      const ledgerLocation: KungfuApi.KfLocation = {
+        category: 'system',
+        group: 'service',
+        name: 'ledger',
+        mode: 'live',
+      };
+      const masterProcessId = getProcessIdByKfLocation(masterLocation);
+      const ledgerProcessId = getProcessIdByKfLocation(ledgerLocation);
 
       return [
         {
@@ -383,28 +421,28 @@ export const processListObservable = () =>
           monit: processStatusWithDetail['archive']?.monit,
         },
         {
-          processId: 'master',
+          processId: masterProcessId,
           processName: colors.bold(masterPrefix + 'MASTER'),
           typeName: colors.bgMagenta('Sys'),
-          category: 'system',
-          group: 'master',
-          name: 'master',
+          category: masterLocation.category,
+          group: masterLocation.group,
+          name: masterLocation.name,
           value: {},
-          status: processStatus['master'] || '--',
-          statusName: dealStatus(processStatus['master'] || '--'),
-          monit: processStatusWithDetail['master']?.monit,
+          status: processStatus[masterProcessId] || '--',
+          statusName: dealStatus(processStatus[masterProcessId] || '--'),
+          monit: processStatusWithDetail[masterProcessId]?.monit,
         },
         {
-          processId: 'ledger',
+          processId: ledgerProcessId,
           processName: 'LEDGER',
           typeName: colors.bgMagenta('Sys'),
-          category: 'system',
-          group: 'service',
-          name: 'ledger',
+          category: ledgerLocation.category,
+          group: ledgerLocation.group,
+          name: ledgerLocation.name,
           value: {},
-          status: processStatus['ledger'] || '--',
-          statusName: dealStatus(processStatus['ledger'] || '--'),
-          monit: processStatusWithDetail['ledger']?.monit,
+          status: processStatus[ledgerProcessId] || '--',
+          statusName: dealStatus(processStatus[ledgerProcessId] || '--'),
+          monit: processStatusWithDetail[ledgerProcessId]?.monit,
         },
         {
           processId: 'dzxy',
@@ -439,12 +477,13 @@ export const switchProcess = async (
   const status = proc.status !== '--';
   const startOrStop = status ? 'Stop' : 'Start';
   const { category, group, name, value, cwd, script } = proc;
-  const isTargetExtService = isExtService({
+  const location = {
     category,
     group,
     name,
     mode: 'live',
-  });
+  };
+  const isTargetExtService = isExtService(location);
 
   const switchProcessExceptMaster = () => {
     if (!watcher) {
@@ -500,7 +539,7 @@ export const switchProcess = async (
 
   switch (category) {
     case 'system':
-      if (proc.processId === 'master') {
+      if (proc.processId === getProcessIdByKfLocation(location)) {
         //开启，要归档, cli 需要clearjournal
         preSwitchMain(status, messageBoard, loading)
           .then(() => {

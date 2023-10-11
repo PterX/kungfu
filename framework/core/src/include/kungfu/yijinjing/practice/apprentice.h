@@ -87,7 +87,7 @@ public:
     } else {
       events_ | rx::is(longfist::types::Channel::tag) | rx::filter([&, dest_id](const event_ptr &event) {
         const longfist::types::Channel &channel = event->data<longfist::types::Channel>();
-        return channel.source_id == get_home_uid() and channel.dest_id == dest_id;
+        return channel.source_id == get_live_home_uid() and channel.dest_id == dest_id;
       }) | rx::first() |
           rx::$([&, data, dest_id](const event_ptr &event) { write_to(now(), data, dest_id); });
       // call request_write_to to create writer in on_frame, in case that try_write_to the same dest_id multiple times
@@ -103,7 +103,7 @@ public:
     } else {
       events_ | rx::is(longfist::types::Channel::tag) | rx::filter([&, dest_id](const event_ptr &event) {
         const longfist::types::Channel &channel = event->data<longfist::types::Channel>();
-        return channel.source_id == get_home_uid() and channel.dest_id == dest_id;
+        return channel.source_id == get_live_home_uid() and channel.dest_id == dest_id;
       }) | rx::first() |
           rx::$([&, msg_type, data, length, dest_id](const event_ptr &event) {
             get_writer(dest_id)->write_raw(now(), msg_type, reinterpret_cast<uintptr_t>(&data), length);
@@ -121,7 +121,7 @@ public:
     request["msg_type"] = DataType::tag;
     request["gen_time"] = now;
     request["trigger_time"] = now;
-    request["initial_source"] = get_home_uid();
+    request["initial_source"] = get_live_home_uid();
     request["source"] = source;
     request["dest"] = dest;
     request["data"] = nlohmann::json::parse(data.to_string());
@@ -134,9 +134,12 @@ public:
 
   yijinjing::journal::writer_ptr &get_thread_writer();
 
+  yijinjing::journal::writer_ptr &get_public_writer();
+
 protected:
   cache::bank state_bank_;
   yijinjing::journal::writer_ptr master_cmd_writer_for_thread_{};
+  yijinjing::journal::writer_ptr public_writer_{};
   inline static thread_local yijinjing::journal::writer_ptr thread_writer_{};
 
   friend void add_location(yijinjing::practice::apprentice &app, const yijinjing::data::location_ptr &location) {
@@ -184,7 +187,7 @@ protected:
     r.base_time = now();
     r.duration = duration_ns;
     r.repeat = 1;
-    r.location_uid = get_home_uid();
+    r.location_uid = get_live_home_uid();
     writer->close_data();
     timer_checkpoints_[timer_id] = now();
     timer_requests_.insert_or_assign(timer_id, r);
@@ -198,7 +201,12 @@ protected:
                  return false;
                };
              }) |
-             rx::first() | rx::filter([&, timer_id](const event_ptr &) { return is_timer_enabled(timer_id); });
+             rx::first() | rx::filter([&, timer_id](const event_ptr &) {
+               timer_checkpoints_.erase(timer_id);
+               bool enabled = is_timer_enabled(timer_id);
+               timers_.erase(timer_id);
+               return enabled;
+             });
     };
   }
 
@@ -212,7 +220,7 @@ protected:
     r.base_time = now();
     r.duration = duration_ns;
     r.repeat = 1;
-    r.location_uid = get_home_uid();
+    r.location_uid = get_live_home_uid();
     writer->close_data();
     timer_checkpoints_[timer_id] = now();
     timer_requests_.insert_or_assign(timer_id, r);
@@ -229,7 +237,7 @@ protected:
                  r.base_time = now();
                  r.duration = duration_ns;
                  r.repeat = 1;
-                 r.location_uid = get_home_uid();
+                 r.location_uid = get_live_home_uid();
                  writer->close_data();
                  timer_checkpoints_[timer_id] = now();
                  timer_requests_.insert_or_assign(timer_id, r);
@@ -251,7 +259,7 @@ protected:
     r.base_time = now();
     r.duration = duration_ns;
     r.repeat = 1;
-    r.location_uid = get_home_uid();
+    r.location_uid = get_live_home_uid();
     writer->close_data();
     timer_checkpoints_[timer_id] = now();
     timer_requests_.insert_or_assign(timer_id, r);
@@ -267,7 +275,7 @@ protected:
                   r.base_time = now();
                   r.duration = duration_ns;
                   r.repeat = 1;
-                  r.location_uid = get_home_uid();
+                  r.location_uid = get_live_home_uid();
                   writer->close_data();
                   timer_checkpoints_[timer_id] = now();
                   timer_requests_.insert_or_assign(timer_id, r);

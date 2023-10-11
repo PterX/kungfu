@@ -33,7 +33,7 @@ bool Trader::insert_algo_order(const event_ptr &event) {
   return true;
 }
 
-[[maybe_unused]] const std::string &Trader::get_account_id() const { return get_home()->name; }
+[[maybe_unused]] const std::string &Trader::get_account_id() const { return get_live_home()->name; }
 
 yijinjing::journal::writer_ptr Trader::get_asset_writer() const {
   return get_writer(sync_asset_ ? location::SYNC : location::PUBLIC);
@@ -139,7 +139,7 @@ void Trader::recover() {
 }
 
 void Trader::recover_from_journal() {
-  tracer trc(get_home(), false, true, time::trading_day_start(), time::now_in_nano());
+  tracer trc(get_live_home(), false, true, time::trading_day_start(), time::now_in_nano());
   SPDLOG_DEBUG("before tracer read");
   int64_t count = 0;
   auto &state_bank = const_cast<cache::bank &>(get_vendor().get_state_bank());
@@ -246,5 +246,18 @@ void Trader::try_req_account() {
   }
 }
 
-void Trader::on_risk_setting() {}
+void Trader::on_risk_setting() {
+  const std::string msg = get_risk_setting();
+  SPDLOG_DEBUG("RiskSetting: {}", msg);
+  auto risk_setting_data = nlohmann::json::parse(msg);
+  auto risk_check = risk_setting_data.value<bool>("risk_check", false);
+  if (risk_check) {
+    // let process crash if value is not a json
+    auto config = nlohmann::json::parse(risk_setting_data.value<std::string>("value", "{}"));
+    const auto risk_name = config.value<std::string>("risk_name", "");
+    if (not risk_name.empty()) {
+      risk_uid_ = location(get_home()->mode, category::SYSTEM, "service", risk_name, get_home()->locator).location_uid;
+    }
+  }
+}
 } // namespace kungfu::wingchun::broker

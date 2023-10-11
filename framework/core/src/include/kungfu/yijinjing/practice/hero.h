@@ -22,8 +22,8 @@ namespace kungfu::yijinjing::practice {
 
 inline yijinjing::data::location_ptr make_system_location(const std::string &group, const std::string &name,
                                                           const data::locator_ptr &locator) {
-  return yijinjing::data::location::make_shared(longfist::enums::mode::LIVE, longfist::enums::category::SYSTEM, group,
-                                                name, locator);
+  return yijinjing::data::location::make_shared(locator->get_dir_mode(), longfist::enums::category::SYSTEM, group, name,
+                                                locator);
 }
 
 typedef std::unordered_map<uint32_t, yijinjing::journal::writer_ptr> WriterMap;
@@ -171,6 +171,7 @@ protected:
   WriterMap writers_ = {};
   WriterMap band_writers_ = {};
   mutable std::mutex band_mtx_{};
+  const size_t main_thread_id_{};
 
   rx::connectable_observable<event_ptr> events_ = {};
 

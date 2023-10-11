@@ -1,5 +1,5 @@
 import { DealTradingTableHooks } from '@kungfu-trader/kungfu-js-api/hooks/dealTradingTableHook';
-import { isTdStrategyCategory } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { isTdStrategyCategory } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 const { t } = VueI18n.global;
 

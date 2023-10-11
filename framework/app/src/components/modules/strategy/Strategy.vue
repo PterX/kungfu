@@ -3,7 +3,7 @@ import { ref, computed, toRefs, Ref } from 'vue';
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
 import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
 import KfSetByConfigModal from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfSetByConfigModal.vue';
-import ReplayForm from './ReplayForm.vue';
+import KfReplaySettingModal from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfReplaySettingModal.vue';
 import Icon, {
   FileTextOutlined,
   SettingOutlined,
@@ -33,12 +33,14 @@ import {
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 
 import {
-  dealAssetPrice,
-  getConfigValue,
   getIfProcessRunning,
   getIfProcessStopping,
-  getProcessIdByKfLocation,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import {
+  dealAssetPrice,
+  getProcessIdByKfLocation,
+  getConfigValue,
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { getColumns, setStrategyConfig } from './config';
 import path from 'path';
 import KfBlinkNum from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfBlinkNum.vue';
@@ -276,10 +278,11 @@ function handleOpenCodeViewResolved(record: KungfuApi.KfConfig) {
       :primaryKeyAvoidRepeatCompareTarget="strategyIdList"
       @confirm="handleConfirmAddUpdateKfConfig($event, 'strategy', 'default')"
     ></KfSetByConfigModal>
-    <ReplayForm
+    <KfReplaySettingModal
       v-if="setReplayModalVisible"
       :width="520"
       v-model:visible="setReplayModalVisible"
+      :can-backtest="true"
       :session-options="sessionOptions"
       :session-info="replayConfig.session_info"
       :begin-time="replayConfig.begin_time.split(' ')[1]"
@@ -289,7 +292,7 @@ function handleOpenCodeViewResolved(record: KungfuApi.KfConfig) {
       :log-level="replayConfig.log_level"
       @close="setReplayModalVisible = false"
       @confirm="(event) => handleReplayModal(event)"
-    ></ReplayForm>
+    ></KfReplaySettingModal>
   </div>
 </template>
 <style lang="less">

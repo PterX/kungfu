@@ -10,15 +10,7 @@
 #include <kungfu/yijinjing/journal/journal.h>
 
 namespace kungfu::yijinjing::journal {
-struct noop_publisher : public publisher {
-  noop_publisher() = default;
-  bool is_usable() override { return true; }
-  bool setup() override { return true; }
-  int notify() override { return 0; }
-  int publish(const std::string &json_message, int flags = NNG_FLAG_NONBLOCK, bool no_exception = false) override {
-    return 0;
-  };
-};
+
 struct assemble_exception : std::runtime_error {
   explicit assemble_exception(const std::string &msg) : std::runtime_error(msg){};
 };
@@ -29,6 +21,8 @@ public:
   virtual ~sink() = default;
   virtual void put(const data::location_ptr &location, uint32_t dest_id, const frame_ptr &frame) = 0;
   virtual void close(){};
+  uint32_t find_page_size(const data::location_ptr &location, uint32_t dest_id);
+
   [[nodiscard]] publisher_ptr get_publisher();
   [[nodiscard]] bus_ptr get_bus();
 

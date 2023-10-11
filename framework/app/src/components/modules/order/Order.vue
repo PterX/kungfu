@@ -1,11 +1,13 @@
 <script setup lang="ts">
+import { delayMilliSeconds } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
-  dealSide,
-  dealOffset,
   getIdByKfLocation,
-  delayMilliSeconds,
   getProcessIdByKfLocation,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import {
+  dealOffset,
+  dealSide,
+} from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import {
   useActiveInstruments,
   useExtConfigsRelated,
@@ -46,7 +48,7 @@ import {
   makeOrderByOrderInput,
   getOrderLatencyDataByOrderStat,
   kfCancelAllOrdersTrigger,
-} from '@kungfu-trader/kungfu-js-api/kungfu';
+} from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import type { Dayjs } from 'dayjs';
 import {
   OrderCancelledStatus,
@@ -119,7 +121,7 @@ const columns = computed(() => {
         category: 'td',
         group: '*',
         name: '*',
-        mode: 'live',
+        mode: '*',
       },
       !!historyDate.value,
     );
@@ -301,7 +303,7 @@ watch(historyDate, async (newDate) => {
             ),
             ...getOrderLatencyDataByOrderStat(
               item,
-              window.watcher.ledger.OrderStat,
+              tradingData.OrderStat,
               price_precision,
             ),
           });

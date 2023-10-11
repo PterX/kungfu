@@ -3,12 +3,12 @@
     <template #title>
       <KfDashboardItem>
         <div class="replay_title">
-          {{ $t('replay.replay') }}
+          {{ enableMatcher ? $t('replay.backtest') : $t('replay.replay') }}
         </div>
       </KfDashboardItem>
       <KfDashboardItem>
         <div class="replay_title">
-          {{ `${$t('replay.log_level')}: ${logLevel}` }}
+          {{ `${$t('replay.log_level')}: ${replayLogLevel}` }}
         </div>
       </KfDashboardItem>
       <KfDashboardItem>
@@ -24,7 +24,11 @@
     </template>
     <template #action>
       <KfDashboardItem>
-        <a-button @click="reLoadLog" size="small" :loading="isLoading">
+        <a-button
+          @click="reLoadLog"
+          size="small"
+          :loading="isLoading || startReloading"
+        >
           {{ $t('replay.try_again') }}
         </a-button>
       </KfDashboardItem>
@@ -42,7 +46,7 @@ import { ipcEmit } from '@kungfu-trader/kungfu-app/src/renderer/ipcMsg/emitter';
 import { ensureFileSync, outputFile } from 'fs-extra';
 import { useRemoveReplayProcess } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import { messagePrompt } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
-import { getYearMonthDay } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { getYearMonthDay } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { LogLevelType } from '@kungfu-trader/kungfu-app/src/typings/enums';
 
 import { listProcessStatus } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
@@ -71,7 +75,16 @@ const props = withDefaults(
   },
 );
 
-const logLevel = ref(
+const RELOADING_TIMER = 10000;
+let reloadingTimer: NodeJS.Timeout | null = null;
+
+const startReloading = ref(false);
+
+const enableMatcher = computed(() => {
+  return props.params.enableMatcher === 'true';
+});
+
+const replayLogLevel = ref(
   LogLevelType[
     props.params.logLevel ? props.params.logLevel.replace('%20', ' ') : ''
   ] || '',
@@ -80,12 +93,7 @@ const logLevel = ref(
 const LOG_PATH = props.params.logPath || '';
 const CHECK_REPLAY_PROCESS_TIMER = 1000;
 const isLoading = ref(false);
-const replayList = ['strategy', 'operator'];
-const isReplayAble = computed(() => {
-  return replayList.includes(props.params.category);
-});
-
-onMounted(() => {
+onMounted(async () => {
   ipcRenderer.on('clear-process', async (_event, args) => {
     const { processId } = args;
     if (processId === props.params.processId) {
@@ -96,7 +104,12 @@ onMounted(() => {
     const { processStatus } = await listProcessStatus();
     if (processStatus) {
       if (processStatus[props.params.processId] === 'online') {
+        startReloading.value = false;
         isLoading.value = true;
+        if (reloadingTimer) {
+          clearTimeout(reloadingTimer);
+          reloadingTimer = null;
+        }
       } else {
         isLoading.value = false;
       }
@@ -111,6 +124,10 @@ onMounted(() => {
   if (!props.closeImmediately) {
     currentWindow.on('close', async (event) => {
       event.preventDefault();
+      const { processStatus } = await listProcessStatus();
+      if (processStatus[props.params.processId] !== 'online') {
+        currentWindow.destroy();
+      }
       handleRemoveReplayProcess(props.params.processId).finally(() => {
         currentWindow.destroy();
       });
@@ -124,7 +141,7 @@ onMounted(() => {
 watch(
   () => props.params.logLevel,
   (newVal) => {
-    logLevel.value =
+    replayLogLevel.value =
       LogLevelType[newVal ? newVal.replace('%20', ' ') : ''] || '';
   },
 );
@@ -134,15 +151,27 @@ const throwError = (messageKey: string) => {
 };
 
 async function reLoadLog() {
-  if (!isReplayAble.value) {
-    throwError('replay.only_operator_or_strategy_can_be_replayed');
+  if (reloadingTimer) {
+    clearTimeout(reloadingTimer);
+    reloadingTimer = null;
+  }
+
+  if (!currentWindow) {
     return;
   }
 
-  if (!currentWindow) return;
+  const { processStatus } = await listProcessStatus();
+  const processId = props.params.processId;
+
+  if (!processStatus[processId]) {
+    throwError('replay.please_start_replay');
+    return;
+  }
 
   const pawin = currentWindow.getParentWindow();
-  if (!pawin) return;
+  if (!pawin) {
+    return;
+  }
 
   const configs = localStorage.getItem('replayConfigs');
   if (!configs) {
@@ -151,70 +180,77 @@ async function reLoadLog() {
   }
 
   const replayArgs = JSON.parse(configs);
-  const config = replayArgs?.[props.params.processId];
+  const config = replayArgs?.[processId];
   if (!config) {
     throwError('replay.please_start_replay');
     return;
   }
 
   const { args: configArgs, filePath: currentFile } = config;
-
-  const begintime = `${DateTimeStr} ${props.params.beginTime}`;
-  const endtime = `${DateTimeStr} ${props.params.endTime}`;
+  const {
+    beginTime,
+    endTime,
+    filePath: paramsFilePath,
+    logLevel,
+    sessionName,
+  } = props.params;
+  const begintime = `${DateTimeStr} ${beginTime}`;
+  const endtime = `${DateTimeStr} ${endTime}`;
   const rerunFlag =
     configArgs?.replayConfig?.begin_time === begintime &&
     configArgs?.replayConfig?.end_time === endtime;
 
-  let filePath = props.params.filePath || currentFile;
-  if (!filePath) {
-    throwError('replay.please_start_replay');
-    return;
-  }
+  const filePath = paramsFilePath || currentFile;
+  const replayConfig = {
+    category: configArgs.category,
+    group: configArgs.group,
+    begin_time: begintime,
+    end_time: endtime,
+    log_level: logLevel ? logLevel.replace('%20', ' ') : '-l info',
+    session_name: sessionName,
+    file_path: filePath,
+    enable_matcher: enableMatcher.value,
+  };
 
   const args = rerunFlag
     ? configArgs
     : {
-        category: configArgs.category,
-        group: configArgs.group,
-        name: configArgs.name,
-        replayConfig: {
-          category: configArgs.category,
-          group: configArgs.group,
-          begin_time: begintime,
-          end_time: endtime,
-          log_level: props.params.logLevel
-            ? props.params.logLevel.replace('%20', ' ')
-            : '-l info',
-          session_name: props.params.sessionName,
-          file_path: filePath,
-        },
+        ...configArgs,
+        replayConfig,
       };
 
   if (!rerunFlag) {
-    replayArgs[props.params.processId].args = args;
+    replayArgs[processId].args = args;
     localStorage.setItem('replayConfigs', JSON.stringify(replayArgs));
-    logLevel.value = LogLevelType[args.replayConfig.log_level];
+    replayLogLevel.value = LogLevelType[args.replayConfig.log_level];
   }
 
   try {
     ensureFileSync(LOG_PATH);
     await outputFile(LOG_PATH, '');
-    await ipcEmit('clear-process', { processId: props.params.processId || '' });
-    logViewRef.value && logViewRef.value.resetLog();
-    pawin.webContents.send('startReplay', { replayProcessParams: args });
+    startReloading.value = true;
+    reloadingTimer = setTimeout(() => {
+      startReloading.value = false;
+    }, RELOADING_TIMER);
+    await ipcEmit('clear-process', { processId: processId || '' });
+    logViewRef.value?.resetLog();
+    pawin.webContents.send('startReplay', {
+      replayProcessParams: args,
+    });
   } catch (err) {
-    console.error(error);
+    console.error(err);
   }
 }
 
 function updateLogLevel(level: string) {
   const configs = localStorage.getItem('replayConfigs');
   if (configs) {
-    const config = configs[props.params.processId];
+    const config = (JSON.parse(configs) || {})[props.params.processId];
     if (config) {
       const replayParams = config.args;
       if (replayParams && replayParams.replayConfig) {
-        logLevel.value = LogLevelType[replayParams.replayConfig.log_level];
+        replayLogLevel.value =
+          LogLevelType[replayParams.replayConfig.log_level];
       }
     }
   }

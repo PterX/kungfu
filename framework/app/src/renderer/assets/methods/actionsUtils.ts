@@ -2,16 +2,19 @@ import os from 'os';
 import { dialog, shell } from '@electron/remote';
 import { ensureRemoveLocation } from '@kungfu-trader/kungfu-js-api/actions';
 import {
+  hashInstrumentUKey,
+  sessionStore,
+} from '@kungfu-trader/kungfu-js-api/kungfu';
+import {
   dealPosition,
   dealTradingDataItem,
-  getKungfuHistoryData,
-  hashInstrumentUKey,
   kfRequestMarketData,
-  sessionStore,
+  getKungfuHistoryData,
   getNanoDateString,
-} from '@kungfu-trader/kungfu-js-api/kungfu';
+} from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 
 import { setKfConfig } from '@kungfu-trader/kungfu-js-api/kungfu/store';
+import { KfCategoryNameMap } from '@kungfu-trader/kungfu-js-api/config/systemConfig';
 import {
   BrokerStateStatusTypes,
   DirectionEnum,
@@ -29,31 +32,36 @@ import {
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
   getKfCategoryData,
-  getIdByKfLocation,
-  getMdTdKfLocationByProcessId,
-  getProcessIdByKfLocation,
   switchKfLocation,
-  findTargetFromArray,
   getAppStateStatusName,
-  buildExtTypeMap,
   dealCategory,
-  getAvailExtServiceList,
   getStrategyStateStatusName,
   isBrokerStateReady,
-  dealKfNumber,
-  dealKfPrice,
-  transformSearchInstrumentResultToInstrument,
-  isShotable,
-  isT0,
   getTradingDataSortKey,
   isUpdateVersionLogicEnable,
   isCheckVersionLogicEnable,
-  kfLogger,
-  countDecimalPlaces,
-  buildTradingDataHeaders,
-  getYearMonthDay,
-  flattenExtensionModuleDirs,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import {
+  flattenExtensionModuleDirs,
+  getAvailExtServiceList,
+  buildExtTypeMap,
+} from '@kungfu-trader/kungfu-js-api/utils/extUtils';
+import {
+  isT0,
+  transformSearchInstrumentResultToInstrument,
+  isShotable,
+  buildTradingDataHeaders,
+} from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
+import {
+  getIdByKfLocation,
+  getProcessIdByKfLocation,
+  dealKfNumber,
+  dealKfPrice,
+  getYearMonthDay,
+  countDecimalPlaces,
+  findTargetFromArray,
+  getMdTdKfLocationByProcessId,
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { BasketVolumeType } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import { writeCsvWithUTF8Bom } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
@@ -94,6 +102,7 @@ import {
   buildInstrumentSelectOptionLabel,
   buildInstrumentSelectOptionValue,
   confirmModal,
+  extraConfirmModal,
   makeSearchOptionFormInstruments,
   handleOpenReplayView,
   getJournalReplayConfigs,
@@ -102,7 +111,7 @@ import { storeToRefs } from 'pinia';
 import { ipcRenderer } from 'electron';
 import { throttleTime } from 'rxjs';
 import { useGlobalStore } from '../../pages/index/store/global';
-
+import globalStorage from '@kungfu-trader/kungfu-js-api/utils/globalStorage';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { messagePrompt } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import sound from 'sound-play';
@@ -114,6 +123,7 @@ import { RuleObject } from 'ant-design-vue/lib/form';
 import { TradeAccountingUsageMap } from '@kungfu-trader/kungfu-js-api/utils/accounting';
 import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
 import fse from 'fs-extra';
+import { kfLogger } from '@kungfu-trader/kungfu-js-api/utils/logUtils';
 import {
   LifeCycleHook,
   LifeCycleKeys,
@@ -127,6 +137,8 @@ export const useUpdateVersion = () => {
   const packageJson = readRootPackageJsonSync();
   const currentVersion = ref(packageJson?.version);
   const newVersion = ref('');
+  const lastSkippedVersion = ref('');
+  const hasSkiped = ref(false);
   const popoverVisible = ref(false);
   const hasNewVersion = ref(false);
   const checkingUpdate = ref(false);
@@ -136,6 +148,13 @@ export const useUpdateVersion = () => {
   );
   const errorMessage = ref('');
   const process = ref<number>();
+  const skippedVersionList = globalStorage.getItem('skippedVersions');
+  if (skippedVersionList) {
+    hasSkiped.value = true;
+    const list = skippedVersionList;
+    lastSkippedVersion.value = list[list.length - 1];
+    newVersion.value = lastSkippedVersion.value;
+  }
 
   const handleToRetryCheckUpdate = () => {
     ipcRenderer.send('auto-update-retry-check-update');
@@ -147,18 +166,31 @@ export const useUpdateVersion = () => {
   };
 
   const handleToConfirmStartUpdate = (newVersion: string) => {
-    confirmModal(
+    extraConfirmModal(
       t('autoUpdater.update'),
       t('autoUpdater.find_new_version', {
         version: newVersion,
       }),
-    ).then((flag) => {
-      ipcRenderer.send('auto-update-confirm-result', flag);
+      t('confirm'),
+      t('cancel'),
+      [{ text: t('autoUpdater.skip_version') }],
+    ).then((action) => {
+      if (action === 'ok') {
+        ipcRenderer.send('auto-update-confirm-result', true);
+      } else if (action === t('autoUpdater.skip_version')) {
+        ipcRenderer.send('auto-update-skip-version', newVersion);
+      } else {
+        ipcRenderer.send('auto-update-confirm-result', false);
+      }
     });
   };
 
   const handleToStartDownload = () => {
     ipcRenderer.send('auto-update-to-start-download');
+  };
+
+  const skipVersion = (version: string) => {
+    ipcRenderer.send('auto-update-skip-version', version);
   };
 
   const handleQuitAndInstall = () => {
@@ -185,9 +217,16 @@ export const useUpdateVersion = () => {
           checkingUpdate.value = false;
           hasNewVersion.value = true;
           newVersion.value = data.payload.newVersion;
+          hasSkiped.value = newVersion.value === lastSkippedVersion.value;
           errorMessage.value = '';
           isCheckVersionLogicEnable() &&
             handleToConfirmStartUpdate(data.payload.newVersion);
+        }
+
+        if (data.name === 'auto-update-skip-version') {
+          checkingUpdate.value = false;
+          hasNewVersion.value = true;
+          hasSkiped.value = true;
         }
 
         if (data.tag === 'auto-update-up-to-date') {
@@ -225,6 +264,7 @@ export const useUpdateVersion = () => {
   return {
     popoverVisible,
     newVersion,
+    hasSkiped,
     currentVersion,
     checkingUpdate,
     hasNewVersion,
@@ -234,6 +274,7 @@ export const useUpdateVersion = () => {
     errorMessage,
     handleToRetryCheckUpdate,
     handleToStartDownload,
+    skipVersion,
     handleQuitAndInstall,
   };
 };
@@ -1282,7 +1323,6 @@ export const useSubscibeInstrumentAtEntry = (
       });
     }
   });
-
   watch(appStates, (newAppStates, oldAppStates) => {
     Object.keys(newAppStates || {}).forEach((processId: string) => {
       const newState = newAppStates[processId];
@@ -2072,20 +2112,23 @@ export const useReplay = (): {
     | {
         category: string;
         group: string;
+        name: string;
+        mode: string;
         replayConfig: KungfuApi.ReplayConfig;
       }
     | undefined
   >;
   handleOpenReplayConfirmView(
-    record: KungfuApi.KfConfig,
+    record: KungfuApi.KfConfig | KungfuApi.KfLocation,
     session?: KungfuApi.Session,
-  ): void;
+  ): Promise<void>;
   handleReplayModal(
     data: {
       sessionInfo: string;
       beginTime: string;
       endTime: string;
       logLevel: string;
+      enableMatcher: boolean;
     },
     isJournal?: boolean,
   ): void;
@@ -2103,14 +2146,16 @@ export const useReplay = (): {
         category: string;
         group: string;
         name: string;
+        mode: string;
         replayConfig: KungfuApi.ReplayConfig;
       }
     | undefined
   >(undefined);
 
   const currentLocation = ref<KungfuApi.KfConfig | null>(null);
-  const config = localStorage.getItem('replaySetting');
-  const replaySetting = config ? JSON.parse(config) : {};
+  const replaySetting = JSON.parse(
+    localStorage.getItem('replaySetting') || '{}',
+  );
   const replayConfig = ref<KungfuApi.ReplayConfig>({
     session_info: '',
     group: 'default',
@@ -2120,6 +2165,7 @@ export const useReplay = (): {
     log_level: replaySetting.log_level || '-l info',
     session_name: '',
     file_path: '',
+    enable_matcher: false,
   });
   const sessionOptions = ref<
     {
@@ -2132,10 +2178,6 @@ export const useReplay = (): {
     record: KungfuApi.KfConfig,
     curSession?: KungfuApi.Session,
   ) => {
-    if (record.category !== 'operator' && record.category !== 'strategy') {
-      error(t('replay.only_operator_or_strategy_can_be_replayed'));
-      return;
-    }
     let isOperator = false;
     let filePath = '';
     if (record.category === 'operator' && record.group !== 'default') {
@@ -2149,9 +2191,7 @@ export const useReplay = (): {
       return;
     }
 
-    let currentSession: KungfuApi.Session | null = curSession
-      ? curSession
-      : null;
+    let currentSession: KungfuApi.Session | null = curSession || null;
     let sessionInfo = '';
     if (currentSession) {
       const beginTimeStr = getNanoDateString(currentSession.begin_time);
@@ -2166,7 +2206,11 @@ export const useReplay = (): {
     } else {
       for (let i = sessions.length - 1; i >= 0; i--) {
         const item = sessions[i];
-        if (item.location_uid === record.location_uid) {
+        if (
+          KfCategoryNameMap[item.category] === record.category &&
+          item.group === record.group &&
+          item.name === record.name
+        ) {
           currentSession ||= item;
 
           const beginTimeStr = getNanoDateString(item.begin_time);
@@ -2186,8 +2230,9 @@ export const useReplay = (): {
       error(t('replay.process_has_not_been_started'));
       return;
     }
-    const config = localStorage.getItem('replaySetting');
-    const replaySetting = config ? JSON.parse(config) : {};
+    const replaySetting = JSON.parse(
+      localStorage.getItem('replaySetting') || '{}',
+    );
     const startTime = getNanoDateString(currentSession.begin_time);
     const endTime =
       replaySetting.end_time && replaySetting.end_time > startTime
@@ -2210,11 +2255,11 @@ export const useReplay = (): {
       log_level: logLevel,
       session_name: currentSession.name,
       file_path: isOperator ? filePath : params.file_path,
-    } as KungfuApi.ReplayConfig;
-
+      enable_matcher: false,
+    };
     currentLocation.value = record;
-
     setReplayModalVisible.value = true;
+    return Promise.resolve();
   };
 
   const handleReplayModal = async (
@@ -2223,6 +2268,7 @@ export const useReplay = (): {
       beginTime: string;
       endTime: string;
       logLevel: string;
+      enableMatcher: boolean;
     },
     isJournal = false,
   ) => {
@@ -2230,6 +2276,7 @@ export const useReplay = (): {
       error();
       return;
     }
+    const mode = data.enableMatcher ? 'backtest' : 'replay';
     const startTime = data.beginTime;
     const endTime =
       data.endTime ||
@@ -2244,34 +2291,31 @@ export const useReplay = (): {
     const date = getYearMonthDay();
     const beginTime = `${date} ${startTime}`;
     const endTimeStr = `${date} ${endTime}`;
-    const processId = getProcessIdByKfLocation(currentLocation.value, 'replay');
+    const processId = getProcessIdByKfLocation({
+      category: currentLocation.value.category,
+      group: currentLocation.value.group,
+      name: currentLocation.value.name,
+      mode: mode,
+    });
     replayConfig.value.begin_time = beginTime;
     replayConfig.value.end_time = endTimeStr;
     replayConfig.value.log_level = data.logLevel;
+    replayConfig.value.enable_matcher = data.enableMatcher;
     const params = {
       category: currentLocation.value.category,
       group: currentLocation.value.group,
       name: currentLocation.value.name,
+      mode: mode,
       replayConfig: replayConfig.value,
     };
 
     const replayArgsStr = localStorage.getItem('replayConfigs');
-    if (replayArgsStr) {
-      const replayArgsObj = JSON.parse(replayArgsStr);
-      replayArgsObj[processId] = {
-        args: params,
-        filePath: replayConfig.value.file_path,
-      };
-      localStorage.setItem('replayConfigs', JSON.stringify(replayArgsObj));
-    } else {
-      const replayArgsObj = {
-        [processId]: {
-          args: params,
-          filePath: replayConfig.value.file_path,
-        },
-      };
-      localStorage.setItem('replayConfigs', JSON.stringify(replayArgsObj));
-    }
+    const replayArgsObj = replayArgsStr ? JSON.parse(replayArgsStr) : {};
+    replayArgsObj[processId] = {
+      args: params,
+      filePath: replayConfig.value.file_path,
+    };
+    localStorage.setItem('replayConfigs', JSON.stringify(replayArgsObj));
 
     if (isJournal) {
       const { startProcess, ProcessConfigs } = await getJournalReplayConfigs(
@@ -2768,17 +2812,48 @@ export const useMakeOrderSubscribe = (
   formState: Ref<Record<string, KungfuApi.KfConfigValue>>,
 ) => {
   const app = getCurrentInstance();
-  let lastTriggerTag: 'makeOrder' | 'orderBookUpdate' | '' = '';
-  let lastVolume = 0;
+  function closestNumber(target: number, numbers: number[]): number {
+    if (numbers.length === 0) {
+      return target;
+    }
+
+    return numbers.reduce((prev, curr) =>
+      Math.abs(curr - target) < Math.abs(prev - target) ? curr : prev,
+    );
+  }
   onMounted(() => {
     if (app?.proxy) {
       const subscription = app.proxy.$globalBus.subscribe(
         (data: KfEvent.KfBusEvent) => {
           if (data.tag === 'makeOrder') {
-            const { offset, side, volume, price, instrumentType, accountId } = (
-              data as KfEvent.TriggerMakeOrder
-            ).orderInput;
+            const {
+              offset,
+              side,
+              volume,
+              price,
+              instrumentType,
+              accountId,
+              instrumentId,
+              exchangeId,
+            } = (data as KfEvent.TriggerMakeOrder).orderInput;
+            const uid = hashInstrumentUKey(instrumentId, exchangeId);
+            const quote: KungfuApi.Quote = window.watcher.ledger.Quote[uid];
 
+            let dealPrice = price;
+            if (quote) {
+              if (Number(dealPrice) !== quote.last_price) {
+                dealPrice = closestNumber(
+                  price,
+                  quote.ask_price.concat(quote.bid_price),
+                );
+                if (quote.lower_limit_price && quote.upper_limit_price)
+                  if (dealPrice <= quote.lower_limit_price) {
+                    dealPrice = quote.lower_limit_price;
+                  } else if (dealPrice >= quote.upper_limit_price) {
+                    dealPrice = quote.upper_limit_price;
+                  }
+              }
+            }
             const instrumentValue = buildInstrumentSelectOptionValue(
               (data as KfEvent.TriggerMakeOrder).orderInput,
             );
@@ -2787,14 +2862,12 @@ export const useMakeOrderSubscribe = (
             formState.value.offset = +offset;
             formState.value.side = +side;
             formState.value.volume = +Number(volume).kfToFixed(0);
-            formState.value.limit_price = +Number(price).kfToFixed(4);
+            formState.value.limit_price = +Number(dealPrice).kfToFixed(4);
             formState.value.instrument_type = +instrumentType;
 
             if (accountId) {
               formState.value.account_id = accountId;
             }
-            lastTriggerTag = 'makeOrder';
-            lastVolume = formState.value.volume;
           }
 
           if (data.tag === 'orderBookUpdate') {
@@ -2814,27 +2887,8 @@ export const useMakeOrderSubscribe = (
             if (!!price && !Number.isNaN(price) && +price !== 0) {
               formState.value.limit_price = +Number(price).kfToFixed(4);
             }
-
-            const shouldUpdateVolume =
-              (lastTriggerTag === 'orderBookUpdate' &&
-                lastVolume === formState.value.volume) ||
-              !formState.value.volume;
-            const isNewVolumeValuable =
-              !!volume &&
-              !Number.isNaN(Number(volume)) &&
-              BigInt(volume) !== BigInt(0);
-
-            if (shouldUpdateVolume && isNewVolumeValuable) {
-              formState.value.volume = +Number(volume).kfToFixed(0);
-              lastVolume = formState.value.volume;
-            }
-
+            formState.value.volume = +Number(volume).kfToFixed(0);
             formState.value.side = +side;
-            if (shouldUpdateVolume) {
-              lastTriggerTag = 'orderBookUpdate';
-            } else {
-              lastVolume = 0;
-            }
           }
         },
       );

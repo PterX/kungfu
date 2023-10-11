@@ -1,7 +1,8 @@
 <script lang="ts" setup>
 import { onMounted, ref } from 'vue';
 import { ReloadOutlined } from '@ant-design/icons-vue';
-import { getNanoDateString } from '@kungfu-trader/kungfu-js-api/kungfu';
+import { getNanoDateString } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
+import { getKfExtOriginConfigsByType } from '@kungfu-trader/kungfu-js-api/utils/extUtils';
 
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 
@@ -10,6 +11,7 @@ const formRef = ref();
 const props = withDefaults(
   defineProps<{
     isJournal?: boolean;
+    canBacktest?: boolean;
     visible: boolean;
     sessionOptions: {
       label: string;
@@ -51,14 +53,46 @@ const dealEndTime = () => {
   if (endTime === 'now') {
     endTime = getNanoDateString(BigInt(new Date().getTime()) * 1000000n);
   }
-  const a = formatTimeToNanoseconds(formState.value.endTime, [
+  formState.value.endTime = formatTimeToNanoseconds(formState.value.endTime, [
     props.beginTime,
     endTime,
   ]);
-  formState.value.endTime = a;
+};
+
+const getBacktestConfig = async () => {
+  const extOriginConfigs = await getKfExtOriginConfigsByType();
+  let hasIndexer = false;
+  let hasMatcher = false;
+  if (extOriginConfigs) {
+    const { matcher, indexer } = extOriginConfigs;
+
+    if (indexer) {
+      for (const key of Object.keys(indexer)) {
+        if (indexer[key]['useFor']?.includes('replay')) {
+          hasIndexer = true;
+          break;
+        }
+      }
+    }
+
+    if (matcher && Object.keys(matcher).length > 0) {
+      hasMatcher = true;
+    }
+  }
+
+  isShowMatcher.value = hasMatcher && hasIndexer;
 };
 onMounted(() => {
+  props.canBacktest ? getBacktestConfig() : '';
   dealEndTime();
+  if (props.sessionInfo) {
+    const now = props.sessionInfo.split('--')[1];
+    if (now === 'now') {
+      formState.value.endTime = getNanoDateString(
+        BigInt(new Date().getTime()) * 1000000n,
+      );
+    }
+  }
   formState.value.sessionInfo = props.sessionInfo;
 });
 
@@ -71,11 +105,14 @@ const logLevelOptions = [
   { value: '-l critical', label: 'CRITICAL' },
 ];
 
+const isShowMatcher = ref(false);
+
 const formState = ref({
   sessionInfo: '',
   beginTime: props.beginTime || '',
   endTime: props.endTime || '',
   logLevel: props.logLevel || '-l info',
+  enableMatcher: false,
 });
 const handleSelectSessionInfo = (value: string) => {
   formState.value.beginTime = value.split('--')[0];
@@ -228,6 +265,17 @@ const handleCancel = () => {
             </a-select-option>
           </a-select>
         </a-form-item>
+        <a-form-item
+          v-if="isShowMatcher"
+          :label="$t('replay.enable_matcher')"
+          name="enableMatcher"
+          :extra="$t('replay.enable_matcher_tip')"
+        >
+          <a-switch
+            v-model:checked="formState.enableMatcher"
+            size="small"
+          ></a-switch>
+        </a-form-item>
       </a-form>
       <div class="form-note">
         <div class="spacer"></div>
@@ -242,11 +290,23 @@ const handleCancel = () => {
               {{ t('replay.replay_tips1_part3') }}
             </li>
             <li>
-              {{ `2. ${t('replay.replay_tips2_part1')}` }}
+              {{ `2. ` }}
               <span class="highlighted-text">
-                {{ t('replay.replay_tips2_part2') }}
+                {{ `${t('replay.replay_tips2_part1')}` }}
               </span>
-              {{ t('replay.replay_tips2_part3') }}
+              {{ t('replay.replay_tips2_part2') }}
+              <span class="highlighted-text">
+                {{ t('replay.replay_tips2_part3') }}
+              </span>
+              {{ t('replay.replay_tips2_part4') }}
+              <span class="highlighted-text">
+                {{ t('replay.replay_tips2_part5') }}
+              </span>
+              {{ t('replay.replay_tips2_part6') }}
+              <span class="highlighted-text">
+                {{ t('replay.replay_tips2_part7') }}
+              </span>
+              {{ t('replay.replay_tips2_part8') }}
             </li>
           </ul>
         </div>
@@ -261,11 +321,23 @@ const handleCancel = () => {
               {{ t('replay.replay_tips1_part3') }}
             </li>
             <li>
-              {{ `2. ${t('replay.replay_tips2_part1')}` }}
+              {{ `2. ` }}
               <span class="highlighted-text">
-                {{ t('replay.replay_tips2_part2') }}
+                {{ `${t('replay.replay_tips2_part1')}` }}
               </span>
-              {{ t('replay.replay_tips2_part3') }}
+              {{ t('replay.replay_tips2_part2') }}
+              <span class="highlighted-text">
+                {{ t('replay.replay_tips2_part3') }}
+              </span>
+              {{ t('replay.replay_tips2_part4') }}
+              <span class="highlighted-text">
+                {{ t('replay.replay_tips2_part5') }}
+              </span>
+              {{ t('replay.replay_tips2_part6') }}
+              <span class="highlighted-text">
+                {{ t('replay.replay_tips2_part7') }}
+              </span>
+              {{ t('replay.replay_tips2_part8') }}
             </li>
           </ul>
         </div>

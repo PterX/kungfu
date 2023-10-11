@@ -23,6 +23,8 @@ has_book
 get_book
 get_books
 set_accounting_method
+set_begin_time
+set_end_time
 get_location
 on_start
 now
@@ -65,11 +67,11 @@ req_account
 req_position
 set_service
 get_arguments
-set_begin_time
-set_end_time
 set_from_indexer
 set_to_indexer
 set_report
+set_time_interval
+set_backtest_config
 setup
 step
 on_exit
@@ -98,6 +100,7 @@ add_account
 insert_order_input
 insert_block_message
 insert_array_orders
+update_algo_order
 hold_book
 hold_positions
 is_book_held
@@ -143,6 +146,7 @@ order_trigger_from_input
 order_trigger_from_order
 order_input_from_trigger_order
 now_in_nano
+today_start
 strftime
 strptime
 strfnow
@@ -161,6 +165,7 @@ has_env
 get_env
 layout_dir
 layout_file
+get_root
 list_page_id
 list_locations
 list_location_dest
@@ -181,6 +186,7 @@ disjoin
 disjoin_channel
 on_load_page
 current_frame_uid
+get_dest
 copy_frame
 mark
 mark_at
@@ -188,6 +194,7 @@ write_bytes
 write
 write_at
 put
+find_page_size
 read_headers
 __plus__
 __rshift__

@@ -1,8 +1,9 @@
 __uid__
-baskets
-basket_instruments
+instrument_factors
 instruments
 commissions
+baskets
+basket_instruments
 home
 state
 runtime_folder
@@ -41,7 +42,6 @@ asset
 long_positions
 short_positions
 order_inputs
-instrument_factors
 mode
 category
 group
@@ -149,14 +149,13 @@ input_time
 ack_time
 total_price
 total_volume
-price_level
-price_offset
-dest_id
 trigger_id
 stop_price
 trigger_type
 external_trigger_id
 order_trigger_action_id
+origin_order_id
+basket_uid
 algo_type_id
 algo_id
 args
@@ -227,10 +226,10 @@ max_cash_ratio
 max_purchase_volume
 max_redemption_volume
 min_volume
-basket_uid
 rate
 replace_flag
 cash_premium_ratio
+dest_id
 base_time
 duration
 repeat
@@ -248,7 +247,6 @@ OrderAction
 OrderActionError
 BlockMessage
 OrderStat
-BasketOrder
 OrderTriggerInput
 OrderTrigger
 OrderTriggerAction
@@ -325,6 +323,8 @@ has_book
 get_book
 get_books
 set_accounting_method
+set_begin_time
+set_end_time
 get_location
 on_start
 now
@@ -367,11 +367,11 @@ req_account
 req_position
 set_service
 get_arguments
-set_begin_time
-set_end_time
 set_from_indexer
 set_to_indexer
 set_report
+set_time_interval
+set_backtest_config
 setup
 step
 on_exit
@@ -400,6 +400,7 @@ add_account
 insert_order_input
 insert_block_message
 insert_array_orders
+update_algo_order
 hold_book
 hold_positions
 is_book_held
@@ -445,6 +446,7 @@ order_trigger_from_input
 order_trigger_from_order
 order_input_from_trigger_order
 now_in_nano
+today_start
 strftime
 strptime
 strfnow
@@ -463,6 +465,7 @@ has_env
 get_env
 layout_dir
 layout_file
+get_root
 list_page_id
 list_locations
 list_location_dest
@@ -483,6 +486,7 @@ disjoin
 disjoin_channel
 on_load_page
 current_frame_uid
+get_dest
 copy_frame
 mark
 mark_at
@@ -490,6 +494,7 @@ write_bytes
 write
 write_at
 put
+find_page_size
 read_headers
 __plus__
 __rshift__
@@ -539,9 +544,6 @@ SSE
 SZE
 MarketType
 Snapshot
-Entrust
-Transaction
-Tree
 SubscribeDataType
 Stock
 Future
@@ -663,16 +665,9 @@ PartialFilledNotActive
 PartialFilledActive
 Lost
 Cancelling
+Pause
 OrderStatus
 Currency
-Pending
-PartialFilledNotActive
-PartialFilledActive
-Filled
-BasketOrderStatus
-Static
-Dynamic
-BasketOrderCalculationMode
 Quantity
 Proportion
 BasketVolumeType

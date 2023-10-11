@@ -4,7 +4,7 @@ import {
   KfSystemConfig,
   setKfGlobalSettingsValue,
 } from '@kungfu-trader/kungfu-js-api/config/globalSettings';
-import { findTargetFromArray } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { findTargetFromArray } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import inquirer from 'inquirer';
 import JsonTree from '../assets/components/JsonTree';
 import { getPromptQuestionsBySettings } from '../assets/methods/utils';

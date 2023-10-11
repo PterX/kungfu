@@ -15,6 +15,7 @@ const buildStrSorter =
 
 export const getColumns = (
   kfLocation: KungfuApi.KfLocation,
+  lastPriceSorter: (a: KungfuApi.Position, b: KungfuApi.Position) => number,
 ): KfTradingDataTableHeaderConfig[] =>
   (globalThis.HookKeeper.getHooks().dealTradingTable as DealTradingTableHooks)
     .trigger(kfLocation, 'position')
@@ -126,7 +127,7 @@ export const getColumns = (
         dataIndex: 'last_price_resolved',
         flex: 1.5,
         align: 'right',
-        sorter: buildSorter('last_price'),
+        sorter: lastPriceSorter,
       },
       {
         type: 'number',

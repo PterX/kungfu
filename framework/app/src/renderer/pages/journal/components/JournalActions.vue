@@ -1,6 +1,17 @@
 <template>
   <div class="journal-action">
-    <a-button @click="handleOpenReplayConfirmModal" style="margin-left: 8px">
+    <a-button
+      v-if="isShowVisualAction"
+      style="margin-right: 8px; color: #d22e88; border-color: #d22e88"
+      @click="handleClickVisualAction"
+    >
+      {{ visualBtnText }}
+    </a-button>
+    <a-button
+      v-if="isShowReplayAction"
+      @click="handleOpenReplayConfirmModal"
+      style="margin-left: 8px"
+    >
       {{ t('replay.replay') }}
     </a-button>
     <a-button @click="handleOpenExportFormModal" style="margin-left: 8px">
@@ -50,12 +61,17 @@
 import fse from 'fs-extra';
 import path from 'path';
 import { dialog } from '@electron/remote';
-import { reactive, ref } from 'vue';
+import { reactive, ref, computed } from 'vue';
 import { DashOutlined } from '@ant-design/icons-vue';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { messagePrompt } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import { writeCsvByStream } from '../utils';
 const { t } = VueI18n.global;
+
+defineProps<{
+  isShowReplayAction: boolean;
+  isShowVisualAction: boolean;
+}>();
 
 const emit = defineEmits<{
   (
@@ -66,6 +82,7 @@ const emit = defineEmits<{
     ) => void,
   ): void;
   (e: 'startReplay'): void;
+  (e: 'showVisual', visible: boolean): void;
 }>();
 
 const EXPORT_KEY = 'export_file_path';
@@ -74,7 +91,14 @@ const exportFormState = reactive({
   [EXPORT_KEY]: '',
 });
 const exportFormModalVisible = ref(false);
+const entryVisual = ref(false);
 const message = messagePrompt();
+
+const visualBtnText = computed(() => {
+  return entryVisual.value
+    ? t('journalConfig.quit_visualization')
+    : t('journalConfig.entry_visualization');
+});
 
 const exportModalConfig = {
   title: t('journalConfig.export'),
@@ -97,6 +121,11 @@ const rules = {
       });
   },
   trigger: 'change',
+};
+
+const handleClickVisualAction = () => {
+  entryVisual.value = !entryVisual.value;
+  emit('showVisual', entryVisual.value);
 };
 
 const handleOpenExportFormModal = () => {

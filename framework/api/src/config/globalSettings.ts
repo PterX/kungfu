@@ -172,7 +172,7 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
         key: 'fatFinger',
         name: t('globalSettingConfig.fat_finger_threshold'),
         tip: t('globalSettingConfig.set_fat_finger'),
-        default: '',
+        default: 0,
         type: 'percent',
         min: 0,
       },
@@ -180,7 +180,7 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
         key: 'close',
         name: t('globalSettingConfig.close_threshold'),
         tip: t('globalSettingConfig.set_close_threshold'),
-        default: '',
+        default: 0,
         type: 'percent',
       },
 
@@ -218,13 +218,6 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
             type: 'float',
           },
         ],
-      },
-      {
-        key: 'marginTrading',
-        name: t('globalSettingConfig.margin_trading'),
-        tip: t('globalSettingConfig.show_margin_trading'),
-        default: false,
-        type: 'bool',
       },
       {
         key: 'posTableColumns',

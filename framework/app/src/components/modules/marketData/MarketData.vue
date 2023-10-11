@@ -18,11 +18,11 @@ import {
   useQuote,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import { StarFilled, PlusOutlined } from '@ant-design/icons-vue';
+import { transformSearchInstrumentResultToInstrument } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import {
   dealKfPrice,
   dealKfNumber,
-  transformSearchInstrumentResultToInstrument,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   OffsetEnum,
   SideEnum,

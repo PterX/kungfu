@@ -4,14 +4,16 @@ import inquirer from 'inquirer';
 import colors from 'colors';
 import { KfCategoryTypes } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import resolveExtConfigHook from '@kungfu-trader/kungfu-js-api/hooks/resolveExtConfigHook';
+import { initFormStateByConfig } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import {
-  getAvailCliExtServiceList,
-  getIdByKfLocation,
   getKfCliExtensionConfig,
+  getAvailCliExtServiceList,
+} from '@kungfu-trader/kungfu-js-api/utils/extUtils';
+import {
+  getIdByKfLocation,
   getProcessIdByKfLocation,
-  initFormStateByConfig,
   loopToRunProcess,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { getAllKfConfigOriginData } from '@kungfu-trader/kungfu-js-api/actions';
 import {
   BrokerStateStatus,
@@ -350,7 +352,11 @@ export const dealMemory = (mem: number): string => {
 };
 
 export const dealProcessName = (name: string) => {
-  return name ? name.split('_').at(-1) : null;
+  return name
+    ? name === 'archive'
+      ? name.split('_').at(-1)
+      : name.split('_').at(-2)
+    : null;
 };
 
 export const calcHeaderWidth = (

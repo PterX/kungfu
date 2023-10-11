@@ -703,6 +703,21 @@ export default {
 
     replay: 'Replay',
     please_select_strategy_or_operator: 'Please select strategy or operator',
+    entry_visualization: 'Entry visualization',
+    quit_visualization: 'Entry visualization',
+    strategy_id: 'Strategy ID',
+    quote_legend: 'Quote',
+    order_input_legend: 'OrderInput',
+    order_legend: 'Order',
+    cancel_order_legend: 'OrderAction',
+    search_order_id: 'Please search for order id',
+    search_instrument: 'Please search for code number',
+    search_order_id_error:
+      'The order number you searched for does not exist. Please check if it is the selected target',
+    buy_open: 'Buy to open',
+    buy_close: 'Buy to close',
+    sell_open: 'Sell to open',
+    sell_close: 'Sell to close',
   },
 
   tradeConfig: {
@@ -793,7 +808,7 @@ export default {
 
     bypass_subscribe_position: 'Skip position market subscription',
     bypass_subscribe_position_desc:
-      'After opening, it will no longer default to subscribing to the market updates of trading account positions, and the trading account list will no longer display floating profits and losses. The market value related fields will be calculated using the average opening price. After opening, it can reduce the machine performance burden, and will take effect after restarting',
+      'After opening, it will no longer subscribe by default to the market updates for positions in the trading account, and the trading account list will no longer display floating profits and losses. Market value related fields are calculated using the average opening price. Activating this feature can reduce the machine performance burden and will take effect after restarting.',
     porformance: 'Performance',
     rocket_model: 'Open Rocket Model',
     rocket_model_desc:
@@ -870,7 +885,9 @@ export default {
     current_version: 'Current version',
     already_latest_version: 'Already latest version',
     new_version: 'New version',
+    skip_version: 'Skip version',
     retry_check: 'Check',
+    has_skipped: 'Has skipped the version',
     start_download: 'Start Download',
     retry_download: 'Retry',
     find_new_version: 'Found new version: {version}\nIf you want download now?',
@@ -897,9 +914,11 @@ export default {
     current_strategy: 'Current strategy',
     new_file: 'New File',
     new_folder: 'New Folder',
+    open_folder: 'Open Folder',
     set_strategy_success: 'Strategy {file} file path changed successfully',
     entry_file: 'Entry File',
     creaate_success: '{file} created successfully',
+    illegal_file_name: 'Illegal file name',
 
     name_repeat:
       'This location already exists file or folder {name}, please select a different name',
@@ -921,11 +940,14 @@ export default {
   replay: {
     session: 'Session',
     replay: 'Replay',
+    backtest: 'Backtest',
     log_level: 'Log Level',
     begin_time: 'Begin Time',
     end_time: 'End Time',
     try_again: 'Try Again',
     stop_replay: 'Stop Replay',
+    stop_backtest: 'Stop Backtest',
+    enable_matcher: 'Enable Matcher',
     please_select_session: 'Please select session',
     please_select_log_level: 'Please select log level',
     stop_replay_warn_content:
@@ -933,18 +955,25 @@ export default {
     process_has_not_been_started: 'The process has not been started',
     please_start_replay: 'Please start replay',
     please_select_strategy_or_operator: 'Please select strategy or operator',
-    only_operator_or_strategy_can_be_replayed:
-      'Only operator or strategy can be replayed',
+    process_can_not_replay: 'the process can not replay',
     tips_title: '* Tips:',
     replay_tips1_part1: 'Replay functionality relies on data time, ',
     replay_tips1_part2:
       'please refrain from using physical time-related code within the strategy to express "now"',
     replay_tips1_part3: `(such as Python's time or yjj.now_in_nano). It is recommended to use the context.now method provided by the strategy. Otherwise, the replay may not execute as expected.`,
-    replay_tips2_part1:
-      'The replay function is limited to simulating and logging based on the states recorded from previously executed strategies.',
-    replay_tips2_part2: `Modifying the strategy's logic may lead to errors`,
-    replay_tips2_part3:
-      'due to discrepancies between the output data and the actual execution.',
+    replay_tips2_part1: 'When using the matcher',
+    replay_tips2_part2: 'for replay, the replay only adds log, ',
+    replay_tips2_part3: 'do not modify the strategy logic',
+    replay_tips2_part4:
+      ', otherwise an error will be reported due to inconsistent output data with the actual.',
+    replay_tips2_part5: 'When not using the matcher',
+    replay_tips2_part6: 'for replay, ',
+    replay_tips2_part7: 'you can modify the strategy logic',
+    replay_tips2_part8:
+      ', the matcher will use the data recorded in the actual trading for replay.',
+    process_not_found: 'Process not found',
+    enable_matcher_tip:
+      'Use the matcher to run in backtest mode, the strategy logic can be modified.',
   },
 
   master_interrupt: 'master interrupted',

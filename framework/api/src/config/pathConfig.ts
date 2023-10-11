@@ -4,7 +4,7 @@ import fse from 'fs-extra';
 
 import { addFileSync, readRootPackageJsonSync } from '../utils/fileUtils';
 import { KF_DEFAULT_HOME_ROOT_DIR } from '../config/homePathConfig';
-import { booleanProcessEnv } from '../utils/commonUtils';
+import { ifKfDev } from '../utils/commonUtils';
 
 //================== config & resources start =================================
 
@@ -18,9 +18,7 @@ export const KF_CONFIG_DEFAULT_PATH = path.join(
 
 const rootPackageJson = readRootPackageJsonSync();
 const productName = rootPackageJson.kungfuCraft?.productName || 'Kungfu';
-const currentProductName = booleanProcessEnv(process.env.IS_KF_DEV)
-  ? 'Kungfu-dev'
-  : productName;
+const currentProductName = ifKfDev() ? 'Kungfu-dev' : productName;
 export const KF_CONFIG_ROOT_DIR = path.join(KF_DEFAULT_HOME_ROOT_DIR, 'config');
 export const KF_CONFIG_DIR = path.join(KF_CONFIG_ROOT_DIR, currentProductName);
 addFileSync('', KF_CONFIG_DIR, 'folder');
@@ -150,11 +148,7 @@ export const buildProcessLogPath = (processId: string) => {
 
 //获取进程回放日志地址
 export const buildProcessReplayPath = (
-  location: {
-    category: string;
-    group: string;
-    name: string;
-  },
+  location: KungfuApi.KfLocation,
   processId: string,
 ) => {
   return path.join(
@@ -164,6 +158,23 @@ export const buildProcessReplayPath = (
     `${location.group}`,
     `${location.name}`,
     'replay',
+    `${processId}.log`,
+  );
+};
+
+//获取进程回测日志地址
+export const buildProcessBacktestPath = (
+  location: KungfuApi.KfLocation,
+  processId: string,
+) => {
+  return path.join(
+    KF_HOME,
+    'backtest',
+    'log',
+    `${location.category}`,
+    `${location.group}`,
+    `${location.name}`,
+    'backtest',
     `${processId}.log`,
   );
 };

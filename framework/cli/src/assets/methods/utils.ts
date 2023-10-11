@@ -394,9 +394,7 @@ export const buildQuestionByKfConfigItem = async (
 
         const stats = await fse.stat(value);
         const isDir = stats.isDirectory();
-        return (
-          isDir || new Error('Please enter a valid directory, not a file path.')
-        );
+        return isDir || new Error(t('请输入一个目录'));
       });
       break;
     }
@@ -404,12 +402,12 @@ export const buildQuestionByKfConfigItem = async (
       validateList.push(async function (value) {
         const exists = await fse.pathExists(value);
         if (!exists) {
-          return new Error('Path does not exist.');
+          return new Error(t('文件路径不存在'));
         }
 
         const stats = await fse.stat(value);
         const isFile = stats.isFile();
-        return isFile || new Error('Please enter a valid file path.');
+        return isFile || new Error(t('请输入文件路径'));
       });
       break;
     }
@@ -417,12 +415,12 @@ export const buildQuestionByKfConfigItem = async (
       validateList.push(async function (value) {
         const exists = await fse.pathExists(value);
         if (!exists) {
-          return new Error('Path does not exist.');
+          return new Error(t('文件路径不存在'));
         }
 
         const stats = await fse.stat(value);
         const isDir = stats.isDirectory();
-        return isDir || new Error('Please enter a valid folder path.');
+        return isDir || new Error(t('请输入文件夹路径'));
       });
       break;
     }

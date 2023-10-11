@@ -981,6 +981,9 @@ export default {
   错误: 'error',
   文件路径不存在: 'The file path does not exist',
   策略id不存在: 'The strategy id does not exist',
+  请输入文件路径: 'Please enter the file path',
+  请输入文件夹路径: 'Please enter the folder path',
+  请输入一个目录: 'Please enter a directory',
 
   可用仓位: 'Avail Pos',
   可用资金: 'Avail Asset',

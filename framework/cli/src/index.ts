@@ -6,7 +6,10 @@ import colors from 'colors';
 import { version } from '../package.json';
 import { Command, program } from 'commander';
 import { listKfLocations } from './commanders/list';
-import { selectMdTdStrategy, addMdTdStrategy } from './commanders/add';
+import {
+  selectMdTdStrategyOperator,
+  addMdTdStrategyOperator,
+} from './commanders/add';
 import { KfCategoryTypes } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
   BASE_DB_DIR,
@@ -76,10 +79,10 @@ program
 
 program
   .command('add')
-  .description('add a md, td or strategy')
+  .description('add a md, td, strategy or operator')
   .action(() => {
-    return selectMdTdStrategy()
-      .then((type: string) => addMdTdStrategy(type as KfCategoryTypes))
+    return selectMdTdStrategyOperator()
+      .then((type: string) => addMdTdStrategyOperator(type as KfCategoryTypes))
       .then(() => listKfLocations())
       .catch((err: Error) => {
         console.error(err);
@@ -90,7 +93,7 @@ program
 
 program
   .command('update')
-  .description('update a md, td or strategy')
+  .description('update a md, td, strategy or operator')
   .action(() => {
     return updateMdTdStrategy()
       .then(() => listKfLocations())
@@ -103,7 +106,7 @@ program
 
 program
   .command('remove')
-  .description('remove a md, td or strategy')
+  .description('remove a md, td, strategy or operator')
   .action(() => {
     return removeMdTdStrategy()
       .then(() => listKfLocations())

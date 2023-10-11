@@ -58,11 +58,11 @@ void apprentice::request_write_to(int64_t trigger_time, uint32_t dest_id) {
   require_write_to(trigger_time, get_master_command_uid(), dest_id);
 }
 
-void apprentice::request_write_to_band(int64_t trigger_time, const location_ptr &location, uint32_t page_size) {
+void apprentice::request_write_to_band(int64_t trigger_time, const location_ptr &location, uint64_t page_size) {
   require_write_to_band(trigger_time, get_master_command_uid(), location, page_size);
 }
 
-uint32_t apprentice::request_band(const std::string &band_name, uint32_t page_size) {
+uint32_t apprentice::request_band(const std::string &band_name, uint64_t page_size) {
   auto io_device = get_io_device();
   auto home = io_device->get_live_home();
   auto band_location = location::make_shared(home->mode, home->category, home->group, band_name, get_locator());
@@ -344,6 +344,6 @@ journal::writer_ptr &apprentice::get_thread_writer() {
   return thread_writer_;
 }
 
-yijinjing::journal::writer_ptr &apprentice::get_public_writer() { return public_writer_; }
+journal::writer_ptr &apprentice::get_public_writer() { return public_writer_; }
 
 } // namespace kungfu::yijinjing::practice

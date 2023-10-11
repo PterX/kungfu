@@ -10,7 +10,7 @@ reader::~reader() {
   journals_.clear();
 }
 
-void reader::join(const data::location_ptr &location, uint32_t dest_id, const int64_t from_time, uint32_t page_size,
+void reader::join(const data::location_ptr &location, uint32_t dest_id, const int64_t from_time, uint64_t page_size,
                   longfist::enums::Priority priority) {
   SPDLOG_TRACE("join location: {}, dest_id: {}, page_size: {} ", location->to_string(), dest_id, page_size);
   auto key = journal_key(location, dest_id);
@@ -154,7 +154,7 @@ journal &reader::get_journal_ref(const data::location_ptr &location, uint32_t de
   throw journal_error(fmt::format("no journal found for location: {}, dest_id: {} ", location->uname, dest_id));
 }
 
-uint32_t reader::find_page_size(const data::location_ptr &location, uint32_t dest_id) {
+uint64_t reader::find_page_size(const data::location_ptr &location, uint32_t dest_id) {
   std::vector<uint32_t> page_ids = location->locator->list_page_id(location, dest_id);
   if (page_ids.empty()) {
     SPDLOG_ERROR("no page for current journal {} -> {}", location->uname, dest_id);

@@ -33,7 +33,7 @@ void page::set_last_frame_position(uint64_t position) {
   const_cast<page_header *>(header_)->last_frame_position = position;
 }
 
-page_ptr page::load(const data::location_ptr &location, uint32_t dest_id, uint32_t page_size, uint32_t page_id,
+page_ptr page::load(const data::location_ptr &location, uint32_t dest_id, uint64_t page_size, uint32_t page_id,
                     bool is_writing, bool lazy, bool pre_open) {
   std::string path = get_page_path(location, dest_id, page_id);
   uintptr_t address = os::load_mmap_buffer(path, page_size, is_writing, lazy);
@@ -70,7 +70,7 @@ page_ptr page::load(const data::location_ptr &location, uint32_t dest_id, uint32
     throw journal_error(fmt::format("{} header length mismatch, required {}, found {}", path, sizeof(page_header), l));
   }
   if (header->page_size != page_size) {
-    uint32_t s = header->page_size;
+    uint64_t s = header->page_size;
     throw journal_error(fmt::format(
         "page size mismatch, required {}, found {}, location {}, path {}, dest_id {}, page_id {} is_writing {}",
         page_size, s, location->uname, path, dest_id, page_id, is_writing));
@@ -135,12 +135,12 @@ uint32_t page::find_page_id(const data::location_ptr &location, uint32_t dest_id
   return page_ids.front();
 }
 
-uint32_t page::find_page_size(const data::location_ptr &location, uint32_t dest_id, uint32_t page_size) {
+uint64_t page::find_page_size(const data::location_ptr &location, uint32_t dest_id, uint64_t page_size) {
   if (page_size > 0) {
-    if (page_size < 2) {
+    if (page_size < 2 ) {
       return 2 * MB;
     }
-    return page_size * MB;
+    return std::min<uint64_t>(page_size * MB, UINT64_MAX / 2);
   }
 
   if (location->category == longfist::enums::category::MD && dest_id != data::location::SYNC) {

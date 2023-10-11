@@ -137,7 +137,7 @@ uint32_t page::find_page_id(const data::location_ptr &location, uint32_t dest_id
 
 uint64_t page::find_page_size(const data::location_ptr &location, uint32_t dest_id, uint64_t page_size) {
   if (page_size > 0) {
-    if (page_size < 2 ) {
+    if (page_size < 2) {
       return 2 * MB;
     }
     return std::min<uint64_t>(page_size * MB, UINT64_MAX / 2);

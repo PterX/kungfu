@@ -898,6 +898,7 @@ export default {
     value_existing: '{value}已存在',
     mandatory: '该项为必填项',
     resolved_tip: '成功匹配 {success} 个{value}, 失败 {fail} 个',
+    default_value_tip: '默认值不能改变',
   },
 
   editor: {
@@ -970,6 +971,9 @@ export default {
   错误: '错误',
   文件路径不存在: '文件路径不存在',
   策略id不存在: '策略 id 不存在',
+  请输入文件路径: '请输入文件路径',
+  请输入文件夹路径: '请输入文件夹路径',
+  请输入一个目录: '请输入一个目录',
 
   可用仓位: '可用仓位',
   可用资金: '可用资金',

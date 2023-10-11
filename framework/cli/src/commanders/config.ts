@@ -52,7 +52,7 @@ export const setGlobalSetting = async () => {
   const initValue: Record<string, KungfuApi.KfConfigValue> =
     kfGlobalSettingsValue[target];
 
-  const formState = await getPromptQuestionsBySettings(settings, initValue);
+  const formState = await getPromptQuestionsBySettings({ settings }, initValue);
   setKfGlobalSettingsValue({
     ...kfGlobalSettingsValue,
     [target]: formState,

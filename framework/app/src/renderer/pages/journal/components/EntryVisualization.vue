@@ -176,6 +176,9 @@ const props = withDefaults(
   },
 );
 
+const DEFAULT_ORDER_LENGTH = 15;
+const DEFAULT_CHART_LENGTH_RATE = 20;
+
 const { setCurrentSession, setSelectedChartItem } = useJournalStore();
 const {
   sessions,
@@ -648,17 +651,28 @@ const updateOption = () => {
   option.yAxis.min = xAxisMinMax.value.min;
   option.yAxis.max = xAxisMinMax.value.max;
 
-  option.dataZoom.forEach((item) => {
-    item.start = 0;
-    item.end = 20;
-  });
-
   option.series[0].data = chartSeriesData.value[selectedInstrument.value].Quote;
   option.series[1].data =
     chartSeriesData.value[selectedInstrument.value].OrderInput;
   option.series[2].data = chartSeriesData.value[selectedInstrument.value].Order;
   option.series[3].data =
     chartSeriesData.value[selectedInstrument.value].OrderAction;
+
+  const dataLength = option.series[1].data.length;
+  if (dataLength <= DEFAULT_ORDER_LENGTH) {
+    option.dataZoom.forEach((item) => {
+      item.start = 0;
+      item.end = 100;
+    });
+  } else {
+    option.dataZoom.forEach((item) => {
+      item.start = 0;
+      item.end =
+        (DEFAULT_ORDER_LENGTH / dataLength) * 100 < DEFAULT_CHART_LENGTH_RATE
+          ? DEFAULT_CHART_LENGTH_RATE
+          : (DEFAULT_ORDER_LENGTH / dataLength) * 100;
+    });
+  }
 
   option.xAxis.data = xAxisData.value[selectedInstrument.value]
     .sort((a, b) => {

@@ -161,6 +161,18 @@ exports.DefaultLibSiteURL = process.env.GITHUB_ACTIONS
   ? DefaultLibSiteURL_US
   : DefaultLibSiteURL_CN;
 
+exports.checkIfSkipBuild = () => {
+  const packageJson = shell.getPackageJson();
+  const skipBuildPlatforms = [
+    packageJson.kungfuBuild?.skipBuildPlatforms || [],
+  ].flat(1);
+
+  if (skipBuildPlatforms && skipBuildPlatforms.includes(detectPlatform())) {
+    return true;
+  }
+  return false;
+};
+
 exports.list = async (
   libSiteURL,
   matchName,
@@ -301,7 +313,7 @@ exports.installBatch = async (
   arch = os.arch(),
 ) => {
   const packageJson = shell.getPackageJson();
-  if ('kungfuDependencies' in packageJson) {
+  if (libSiteURL && 'kungfuDependencies' in packageJson) {
     const libs = packageJson.kungfuDependencies;
     for (const libName in libs) {
       await this.installSingleLib(
@@ -313,6 +325,7 @@ exports.installBatch = async (
       );
     }
   }
+
   if (hasSourceFor(packageJson, 'python')) {
     const { cmd, args0 } = getKfcCmdArgs();
     spawnExec(cmd, [...args0, 'engage', 'pdm', 'makeup']);

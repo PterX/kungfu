@@ -17,6 +17,10 @@ module.exports = {
       });
   },
   run: async (argv) => {
+    if (sdk.lib.extension.checkIfSkipBuild()) {
+      console.log('-- skip build on this platform');
+      return;
+    }
     if (argv['update-project-config']) {
       sdk.lib.project.configure(false, true);
     }

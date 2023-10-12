@@ -18,7 +18,8 @@ type PromptInputType =
   | 'editor'
   | 'path'
   | 'autocomplete'
-  | 'checkbox-plus';
+  | 'checkbox-plus'
+  | 'file-path';
 
 interface PromptQuestion {
   type: PromptInputType;

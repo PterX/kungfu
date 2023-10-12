@@ -166,11 +166,13 @@ export const getPromptQuestionsBySettings = async (
         .map((item): string => item.toLowerCase())
         .includes(combineValue.toLowerCase())
     ) {
-      return new Error(
-        t('validate.value_existing', {
-          value: combineValue,
-        }),
-      );
+      return initValue
+        ? true
+        : new Error(
+            t('validate.value_existing', {
+              value: combineValue,
+            }),
+          );
     }
 
     return true;
@@ -210,10 +212,11 @@ export const getQuestionInputType = (
       return 'list';
     case 'bool':
       return 'confirm';
-    case 'file':
     case 'folder':
     case 'directory':
       return 'path';
+    case 'file':
+      return 'file-path';
     case 'instrument':
       return 'autocomplete';
     case 'instruments':
@@ -313,7 +316,7 @@ export const buildQuestionByKfConfigItem = async (
       return true;
     },
     ...(targetType === 'path'
-      ? { cwd: configItem.default || process.cwd().toString() }
+      ? { cwd: configItem.default || defaultValue || process.cwd().toString() }
       : {}),
     choices: (configItem.options || configItem.data || []).map(
       (item) => item.value,
@@ -362,11 +365,12 @@ export const buildQuestionByKfConfigItem = async (
 
       if (type === 'instrument') {
         baseQuestion.filter = (value: KungfuApi.KfConfigValue) => {
+          if (!value) return defaultValue || value;
           return instrumentMap[value];
         };
       } else {
         baseQuestion.filter = (value: KungfuApi.KfConfigValue) => {
-          if (!value.length) return value;
+          if (!value.length) return defaultValue || value;
           return value.map((item) => instrumentMap[item]);
         };
       }

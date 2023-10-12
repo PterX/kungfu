@@ -93,28 +93,42 @@ export const updateMdTdStrategy = async () => {
     return buildPromptAndSetConfig(strategySettings, initValue, kfLocation);
   } else if (kfLocation.category === 'operator') {
     const targetOperator = getTargetKfConfig(operator, kfLocation);
+    let operatorSettings: KungfuApi.KfConfigItem[] = [];
 
     if (!targetOperator) {
       throw new Error('targetTd is null');
     }
 
     const initValue = JSON.parse(targetOperator.value || '{}');
-    const operatorSettings: KungfuApi.KfConfigItem[] = [
-      {
-        key: 'operator_id',
-        name: t('operatorConfig.operator_id'),
-        type: 'str',
-        primary: true,
-        required: true,
-        tip: t('operatorConfig.operator_id_tip'),
-      },
-      {
-        key: 'file_path',
-        name: t('operatorConfig.file_path'),
-        type: 'file',
-        required: true,
-      },
-    ];
+    if (kfLocation.group === 'default') {
+      operatorSettings = [
+        {
+          key: 'operator_id',
+          name: t('operatorConfig.operator_id'),
+          type: 'str',
+          primary: true,
+          required: true,
+          tip: t('operatorConfig.operator_id_tip'),
+        },
+        {
+          key: 'file_path',
+          name: t('operatorConfig.file_path'),
+          type: 'file',
+          required: true,
+        },
+      ];
+    } else {
+      const extConfig =
+        await globalThis.HookKeeper.getHooks().resolveExtConfig.trigger(
+          {
+            category: 'operator',
+            group: kfLocation.group,
+            name: '*',
+          },
+          extConfigs['operator'][kfLocation.group],
+        );
+      operatorSettings = extConfig?.settings;
+    }
 
     return buildPromptAndSetConfig(operatorSettings, initValue, kfLocation);
   }

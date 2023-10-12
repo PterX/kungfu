@@ -1,3 +1,4 @@
+import { defineComponent, ref, onBeforeUnmount } from 'vue';
 import {
   InstrumentTypeEnum,
   OffsetEnum,
@@ -67,35 +68,66 @@ export function dealOrderPlaceVNode(
   );
 }
 
+const CustomCheckbox = defineComponent({
+  name: 'CustomCheckbox',
+  props: {
+    defaultChecked: Boolean,
+    label: {
+      type: String,
+      default: '',
+      required: true,
+    },
+  },
+  setup(props) {
+    const isChecked = ref(props.defaultChecked);
+
+    const handleCheckboxChange = (e) => {
+      isChecked.value = e.target.checked;
+    };
+
+    onBeforeUnmount(async () => {
+      if (isChecked.value) {
+        const globalSetting = await getKfGlobalSettingsValue();
+        globalSetting.trade.skipConfirmMakeOrder = isChecked.value;
+
+        try {
+          await setKfGlobalSettingsValue(globalSetting);
+          globalBus.next({
+            tag: 'saved:globalSetting',
+          });
+          useGlobalStore().setKfGlobalSetting();
+        } catch (error) {
+          console.error('Failed to save global setting:', error);
+        }
+      }
+    });
+
+    return () =>
+      h(
+        Checkbox,
+        {
+          style: {
+            position: 'absolute',
+            left: '24px',
+            bottom: '24px',
+          },
+          checked: isChecked.value,
+          onChange: handleCheckboxChange,
+        },
+        { default: () => [props.label] },
+      );
+  },
+});
+
 export const createOrderPlaceVNode = (
   orderInputResolved: Record<string, KungfuApi.KfTradeValueCommonData>,
   orderInputTrans: Record<string, string>,
   orderCount: number,
 ) => {
-  const checkBoxVNode = h(
-    Checkbox,
-    {
-      style: {
-        position: 'absolute',
-        left: '24px',
-        bottom: '24px',
-      },
-      defaultChecked: !!globalSetting.value?.trade?.skipConfirmMakeOrder,
-      onChange: async (e) => {
-        const isChecked = e.target.checked;
-        const globalSetting = await getKfGlobalSettingsValue();
-        globalSetting.trade.skipConfirmMakeOrder = isChecked;
-
-        setKfGlobalSettingsValue(globalSetting).then(() => {
-          globalBus.next({
-            tag: 'saved:globalSetting',
-          });
-          useGlobalStore().setKfGlobalSetting();
-        });
-      },
-    },
-    t('tradingConfig.hide_next_time'),
-  );
+  const checkBoxVNode = h(CustomCheckbox, {
+    defaultChecked: !!globalSetting.value?.trade?.skipConfirmMakeOrder,
+    label: t('tradingConfig.hide_next_time'),
+  });
   const vnode = Object.keys(orderInputResolved)
     .filter((key) => {
       if (orderInputResolved[key].name.toString() === '[object Object]') {

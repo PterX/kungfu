@@ -403,6 +403,7 @@ export default {
     beyond_to_open: 'Take excess to open',
     reach: 'Reach',
     above: 'Above',
+    hide_next_time: 'Hide next time',
   },
 
   orderConfig: {
@@ -839,6 +840,7 @@ export default {
     limit_value: 'Maximum',
     asset_margin: 'AssetMargin',
     show_asset_margin: 'AssetMargin Mode',
+    skip_confirm_make_order: 'Skip Confirm Make Order',
 
     code_editor: 'Editor',
     tab_space_type: 'Indentation Category',

@@ -82,16 +82,16 @@ export const createOrderPlaceVNode = (
       },
       defaultChecked: !!globalSetting.value?.trade?.skipConfirmMakeOrder,
       onChange: async (e) => {
-        if (e.target.checked) {
-          const globalSetting = await getKfGlobalSettingsValue();
-          globalSetting.trade.skipConfirmMakeOrder = e.target.checked;
-          setKfGlobalSettingsValue(globalSetting).then(() => {
-            globalBus.next({
-              tag: 'saved:globalSetting',
-            });
-            useGlobalStore().setKfGlobalSetting();
+        const isChecked = e.target.checked;
+        const globalSetting = await getKfGlobalSettingsValue();
+        globalSetting.trade.skipConfirmMakeOrder = isChecked;
+
+        setKfGlobalSettingsValue(globalSetting).then(() => {
+          globalBus.next({
+            tag: 'saved:globalSetting',
           });
-        }
+          useGlobalStore().setKfGlobalSetting();
+        });
       },
     },
     t('tradingConfig.hide_next_time'),

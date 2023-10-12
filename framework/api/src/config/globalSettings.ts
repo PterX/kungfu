@@ -186,6 +186,14 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
         type: 'percent',
         for: 'ui',
       },
+      {
+        key: 'skipMakeOrder',
+        name: t('globalSettingConfig.skip_confirm_make_order'),
+        tip: t('globalSettingConfig.skip_confirm_make_order'),
+        default: false,
+        type: 'bool',
+        for: 'ui',
+      },
 
       {
         key: 'limit',

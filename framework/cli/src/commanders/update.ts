@@ -135,7 +135,36 @@ async function buildPromptAndSetConfig(
   initValue: Record<string, KungfuApi.KfConfigValue>,
   kfLocation: KungfuApi.KfLocation,
 ): Promise<boolean> {
-  const formState = await getPromptQuestionsBySettings(settings, initValue);
+  let formState: KungfuApi.KfConfigValue = {};
+  const categoryList = ['md', 'td', 'strategy', 'operator', 'system'];
+  const category = kfLocation.category;
+  if (categoryList.includes(category)) {
+    const configData = await getAllKfConfigOriginData();
+    const categoryType = configData[category];
+    const idList = categoryType
+      ? categoryType.map((item: KungfuApi.KfLocation): string =>
+          getIdByKfLocation(item),
+        )
+      : [];
+    const primaryKeyAvoidRepeatCompareTarget = idList;
+    const primaryKeyAvoidRepeatCompareExtra = kfLocation.group;
+
+    formState = await getPromptQuestionsBySettings(
+      {
+        settings,
+        primaryKeyAvoidRepeatCompareTarget,
+        primaryKeyAvoidRepeatCompareExtra,
+      },
+      initValue,
+    );
+  } else {
+    formState = await getPromptQuestionsBySettings(
+      {
+        settings,
+      },
+      initValue,
+    );
+  }
 
   return setKfConfig(
     kfLocation,

@@ -400,7 +400,7 @@ export default {
     beyond_to_open: '超出部分反向开仓',
     reach: '达到',
     above: '超过',
-    hide_next_time: '下次不再显示',
+    hide_next_time: '下次不再提示',
   },
 
   orderConfig: {

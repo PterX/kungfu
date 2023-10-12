@@ -842,7 +842,7 @@ export default {
     asset_margin: '两融',
     pos_table_columns: '持仓表格项配置',
     show_asset_margin: '展示两融',
-    skip_confirm_make_order: '跳过下单确认',
+    skip_confirm_make_order: '跳过手动下单弹窗',
 
     code_editor: '代码编辑器',
     tab_space_type: '缩进类别',

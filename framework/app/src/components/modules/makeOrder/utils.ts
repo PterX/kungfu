@@ -80,11 +80,11 @@ export const createOrderPlaceVNode = (
         left: '24px',
         bottom: '24px',
       },
-      defaultChecked: !!globalSetting.value?.trade?.skipMakeOrder,
+      defaultChecked: !!globalSetting.value?.trade?.skipConfirmMakeOrder,
       onChange: async (e) => {
         if (e.target.checked) {
           const globalSetting = await getKfGlobalSettingsValue();
-          globalSetting.trade.skipMakeOrder = e.target.checked;
+          globalSetting.trade.skipConfirmMakeOrder = e.target.checked;
           setKfGlobalSettingsValue(globalSetting).then(() => {
             globalBus.next({
               tag: 'saved:globalSetting',

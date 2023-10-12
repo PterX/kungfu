@@ -195,7 +195,7 @@ function handleMakeOrder() {
         );
         return;
       }
-      if (!globalSetting.value?.trade?.skipMakeOrder) {
+      if (!globalSetting.value?.trade?.skipConfirmMakeOrder) {
         const flag = await confirmModal(
           t('tradingConfig.place_confirm'),
           dealOrderPlaceVNode(makeOrderInput, 1, true),

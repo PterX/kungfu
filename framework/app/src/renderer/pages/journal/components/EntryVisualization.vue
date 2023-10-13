@@ -63,7 +63,11 @@
           </div>
         </template>
 
-        <a-empty v-else class="kf-chart_content" :image="simpleImage"></a-empty>
+        <a-empty
+          v-else
+          :image="simpleImage"
+          :description="t('empty_text')"
+        ></a-empty>
       </div>
     </div>
     <div ref="chartWrapper" class="kf-chart_wrap">
@@ -81,8 +85,8 @@
       ></div>
       <a-empty
         v-show="instrumentList.length === 0"
-        class="kf-chart_content"
         :image="simpleImage"
+        :description="t('empty_text')"
       ></a-empty>
     </div>
     <a-spin
@@ -176,7 +180,7 @@ const props = withDefaults(
   },
 );
 
-const DEFAULT_ORDER_LENGTH = 15;
+const DEFAULT_ORDER_LENGTH = 30;
 const DEFAULT_CHART_LENGTH_RATE = 20;
 
 const { setCurrentSession, setSelectedChartItem } = useJournalStore();
@@ -239,109 +243,116 @@ watch(
   },
 );
 
+const handleFrameChange = async (newCurrentFram) => {
+  if (newCurrentFram) {
+    let dataTime = 0n;
+    let hasOrderId = false;
+    if (
+      ['Quote', 'OrderInput', 'Order', 'OrderAction'].includes(
+        newCurrentFram.msgTypeName,
+      )
+    ) {
+      const chartData = newCurrentFram.data as FrameResolvedDataType;
+      let orderId: string | bigint = 0n;
+      switch (newCurrentFram.msgTypeName) {
+        case 'Quote':
+          if ('data_time' in chartData) dataTime = chartData.data_time;
+          orderId = newCurrentFram.id;
+          break;
+        case 'OrderInput':
+          if ('insert_time' in chartData) dataTime = chartData.insert_time;
+          if ('order_id' in chartData) orderId = chartData.order_id;
+          break;
+        case 'Order':
+          if ('insert_time' in chartData) dataTime = chartData.insert_time;
+          if ('order_id' in chartData) orderId = chartData.order_id;
+          break;
+        case 'OrderAction':
+          if ('insert_time' in chartData) dataTime = chartData.insert_time;
+          if ('order_id' in chartData) orderId = chartData.order_id;
+          break;
+      }
+
+      if (newCurrentFram.msgTypeName === 'Quote') {
+        const closestTimeIndex = findClosestTime(
+          Number(dataTime),
+          quoteXAxisData.value[selectedInstrument.value],
+        );
+        delayMilliSeconds(500)
+          .then(() => {
+            myChart.dispatchAction({
+              type: 'highlight',
+              seriesIndex: 0,
+              dataIndex: closestTimeIndex,
+            });
+            return delayMilliSeconds(3000);
+          })
+          .then(() => {
+            myChart.dispatchAction({
+              type: 'downplay',
+              seriesIndex: 0,
+              dataIndex: closestTimeIndex,
+            });
+          })
+          .catch((error) => {
+            messagePrompt().error(error);
+          });
+      } else {
+        selectedOrderId = orderId as bigint;
+        option.series
+          .filter((serie, index) => {
+            return index !== 0;
+          })
+          .forEach((serie) => {
+            serie.data.forEach((item) => {
+              if (item.customInfo.orderId === orderId) {
+                hasOrderId = true;
+                item.symbolSize = 20;
+                let shadowColor = '';
+                if (item.customInfo.msgTypeName === 'orderAction') {
+                  shadowColor = '#73F3F6';
+                } else {
+                  shadowColor =
+                    item.itemStyle?.color === '#f21717' ? '#f37370' : '#8fd460';
+                }
+                item.itemStyle = {
+                  ...item.itemStyle,
+                  shadowBlur: 10,
+                  shadowColor,
+                };
+              } else {
+                item.symbolSize = 10;
+                item.itemStyle = {
+                  ...item.itemStyle,
+                  shadowBlur: 0,
+                };
+              }
+            });
+          });
+
+        if (!hasOrderId) {
+          for (const ins of instrumentList.value) {
+            if (ins.includes(chartData.instrument_id)) {
+              await getCurInstrument(ins);
+              return handleFrameChange(newCurrentFram);
+            }
+          }
+          return;
+        }
+      }
+    } else {
+      dataTime = newCurrentFram.genTime;
+    }
+
+    setDataZoom(dataTime);
+    myChart && myChart.setOption(option);
+  }
+};
+
 watch(
   () => currentFrame.value,
   (newCurrentFram) => {
-    if (newCurrentFram) {
-      let dataTime = 0n;
-      let hasOrderId = false;
-      if (
-        ['Quote', 'OrderInput', 'Order', 'OrderAction'].includes(
-          newCurrentFram.msgTypeName,
-        )
-      ) {
-        const chartData = newCurrentFram.data as FrameResolvedDataType;
-        let orderId: string | bigint = 0n;
-        switch (newCurrentFram.msgTypeName) {
-          case 'Quote':
-            if ('data_time' in chartData) dataTime = chartData.data_time;
-            orderId = newCurrentFram.id;
-            break;
-          case 'OrderInput':
-            if ('insert_time' in chartData) dataTime = chartData.insert_time;
-            if ('order_id' in chartData) orderId = chartData.order_id;
-            break;
-          case 'Order':
-            if ('insert_time' in chartData) dataTime = chartData.insert_time;
-            if ('order_id' in chartData) orderId = chartData.order_id;
-            break;
-          case 'OrderAction':
-            if ('insert_time' in chartData) dataTime = chartData.insert_time;
-            if ('order_id' in chartData) orderId = chartData.order_id;
-            break;
-        }
-
-        if (newCurrentFram.msgTypeName === 'Quote') {
-          const closestTimeIndex = findClosestTime(
-            Number(dataTime),
-            quoteXAxisData.value[selectedInstrument.value],
-          );
-          delayMilliSeconds(500)
-            .then(() => {
-              myChart.dispatchAction({
-                type: 'highlight',
-                seriesIndex: 0,
-                dataIndex: closestTimeIndex,
-              });
-              return delayMilliSeconds(3000);
-            })
-            .then(() => {
-              myChart.dispatchAction({
-                type: 'downplay',
-                seriesIndex: 0,
-                dataIndex: closestTimeIndex,
-              });
-            })
-            .catch((error) => {
-              messagePrompt().error(error);
-            });
-        } else {
-          selectedOrderId = orderId as bigint;
-          option.series
-            .filter((serie, index) => {
-              return index !== 0;
-            })
-            .forEach((serie) => {
-              serie.data.forEach((item) => {
-                if (item.customInfo.orderId === orderId) {
-                  hasOrderId = true;
-                  item.symbolSize = 20;
-                  let shadowColor = '';
-                  if (item.customInfo.msgTypeName === 'orderAction') {
-                    shadowColor = '#73F3F6';
-                  } else {
-                    shadowColor =
-                      item.itemStyle?.color === '#f21717'
-                        ? '#f37370'
-                        : '#8fd460';
-                  }
-                  item.itemStyle = {
-                    ...item.itemStyle,
-                    shadowBlur: 10,
-                    shadowColor,
-                  };
-                } else {
-                  item.symbolSize = 10;
-                  item.itemStyle = {
-                    ...item.itemStyle,
-                    shadowBlur: 0,
-                  };
-                }
-              });
-            });
-
-          if (!hasOrderId) {
-            messagePrompt().error(t('journalConfig.search_order_id_error'));
-            return;
-          }
-        }
-      } else {
-        dataTime = newCurrentFram.genTime;
-      }
-
-      setDataZoom(dataTime);
-      myChart && myChart.setOption(option);
-    }
+    handleFrameChange(newCurrentFram);
   },
 );
 
@@ -1015,25 +1026,18 @@ function handleSearchOrderId() {
 }
 
 function setDataZoom(dataTime: bigint) {
-  const closestTimeIndex = findClosestTime(
-    Number(dataTime),
-    xAxisData.value[selectedInstrument.value],
-  );
-  const start = (
-    (closestTimeIndex / xAxisData.value[selectedInstrument.value].length) *
-    100
-  ).kfRound(2);
-  if (start <= 15) {
-    option.dataZoom.forEach((item) => {
-      item.start = 0;
-      item.end = 20;
-    });
-  } else {
-    option.dataZoom.forEach((item) => {
-      item.start = start - 10;
-      item.end = start + 10;
-    });
-  }
+  const timeList = xAxisData.value[selectedInstrument.value];
+  if (timeList.length === 0) return;
+  const frontPortion = Number(dataTime) - Number(timeList[0]);
+  const behandPortion =
+    Number(timeList[timeList.length - 1]) - Number(timeList[0]);
+  const rate = frontPortion / behandPortion;
+  const start = rate * 100 - 10 < 0 ? 0 : rate * 100 - 10;
+  const end = rate * 100 + 10 > 100 ? 100 : rate * 100 + 10;
+  option.dataZoom.forEach((item) => {
+    item.start = start;
+    item.end = end;
+  });
 }
 
 function setXAxisMinMax() {
@@ -1096,9 +1100,17 @@ const handleInputChange = debounce(() => {
       margin-left: 8px;
     }
   }
-  .ant-empty-normal {
-    padding: 32px 0;
-    margin: 0;
+  .ant-empty {
+    height: auto;
+    margin-top: 48px;
+
+    .ant-empty-image {
+      height: auto;
+    }
+
+    .ant-empty-description {
+      color: @input-placeholder-color;
+    }
   }
   .ant-table {
     background-color: #1d1d1d;

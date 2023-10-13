@@ -25,7 +25,11 @@ import {
   defineComponent,
 } from 'vue';
 import { ensureFileSync, outputFile } from 'fs-extra';
+import dayjs from 'dayjs';
+import 'dayjs/locale/zh-cn';
 import { Button } from 'ant-design-vue';
+import { Locale } from 'ant-design-vue/es/locale-provider';
+import zhCN from 'ant-design-vue/es/locale/zh_CN';
 import {
   CheckCircleOutlined,
   ExclamationCircleOutlined,
@@ -90,7 +94,10 @@ import {
 } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
 import { Proc } from 'pm2';
 import { VueNode } from 'ant-design-vue/lib/_util/type';
-import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+import VueI18n, {
+  langDefault,
+  getGlobalSettingLanguage,
+} from '@kungfu-trader/kungfu-js-api/language';
 const { t } = VueI18n.global;
 import fse from 'fs-extra';
 import fsPromise from 'fs/promises';
@@ -260,6 +267,26 @@ export const loadExtComponents = (
         }
     }
   });
+};
+
+export const useLocale = () => {
+  const app = getCurrentInstance();
+  const locale = ref<Locale>();
+  const localeMap = {
+    'zh-CN': 'zh-cn',
+    'en-US': 'en',
+  };
+  const globalSettingLanguage = getGlobalSettingLanguage() || langDefault;
+  dayjs.locale(localeMap[globalSettingLanguage] || 'zh-cn');
+
+  onMounted(() => {
+    locale.value =
+      (app?.proxy?.$antLocalesMap || {})[globalSettingLanguage] || zhCN;
+  });
+
+  return {
+    locale,
+  };
 };
 
 export const useModalVisible = (

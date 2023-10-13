@@ -81,6 +81,7 @@ public:
     if (pair.second) {
       bar.instrument_id = quote.instrument_id.to_string();
       bar.exchange_id = quote.exchange_id.to_string();
+      bar.instrument_type = quote.instrument_type;
       auto current_time = context->now();
       bar.start_time = current_time - current_time % time_interval_;
       bar.end_time = bar.start_time + time_interval_;

@@ -152,7 +152,9 @@ const parseByCli = (cli, isRootCli = false) => {
 module.exports = {
   isProduction,
   kfcName,
+  ModeMap,
   dealPath,
+  getCurrentMode,
   getKfcPath,
   getKfcCmdArgs,
   getCmakeCmdArgs,

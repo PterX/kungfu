@@ -186,6 +186,14 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
         type: 'percent',
         for: 'ui',
       },
+      {
+        key: 'skipConfirmMakeOrder',
+        name: t('globalSettingConfig.skip_confirm_make_order'),
+        tip: t('globalSettingConfig.set_skip_confirm_make_order'),
+        default: false,
+        type: 'bool',
+        for: 'ui',
+      },
 
       {
         key: 'limit',
@@ -221,25 +229,6 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
             type: 'float',
           },
         ],
-        for: 'ui',
-      },
-      {
-        key: 'confirmWindow',
-        name: t('globalSettingConfig.confirm_window'),
-        type: 'checkboxGroup',
-        options: [
-          {
-            value: 'confirm_Order_window',
-            label: t('globalSettingConfig.enable_confirm_order_window'),
-          },
-          {
-            value: 'confirm_cancel_all_orders_window',
-            label: t(
-              'globalSettingConfig.enable_confirm_cancel_all_orders_window',
-            ),
-          },
-        ],
-        default: ['confirm_Order_window', 'confirm_cancel_all_orders_window'],
         for: 'ui',
       },
       {

@@ -37,57 +37,59 @@
         </template>
       </a-table>
     </div>
-    <div class="kf-instrument_wrap">
-      <div class="search-input">
-        <KfDashboardItem>
-          <a-input-search
-            v-model:value="searchInstrument"
-            :placeholder="$t('journalConfig.search_instrument')"
-            @change="handleInputChange"
-          />
-        </KfDashboardItem>
-      </div>
-      <div class="instrument-list">
-        <template v-if="instrumentList.length > 0">
-          <div
-            v-for="item in instrumentList"
-            :key="item"
-            :class="{
-              'instrument-item_wrap': true,
-              'color-default': true,
-              'selected-status': selectedInstrument.includes(item),
-            }"
-            @click="getCurInstrument(item)"
-          >
-            <span>{{ item }}</span>
-          </div>
-        </template>
+    <div class="kf-visualization_data_content">
+      <div class="kf-instrument_wrap">
+        <div class="search-input">
+          <KfDashboardItem>
+            <a-input-search
+              v-model:value="searchInstrument"
+              :placeholder="$t('journalConfig.search_instrument')"
+              @change="handleInputChange"
+            />
+          </KfDashboardItem>
+        </div>
+        <div class="instrument-list">
+          <template v-if="instrumentList.length > 0">
+            <div
+              v-for="item in instrumentList"
+              :key="item"
+              :class="{
+                'instrument-item_wrap': true,
+                'color-default': true,
+                'selected-status': selectedInstrument.includes(item),
+              }"
+              @click="getCurInstrument(item)"
+            >
+              <span>{{ item }}</span>
+            </div>
+          </template>
 
+          <a-empty
+            v-else
+            :image="simpleImage"
+            :description="t('empty_text')"
+          ></a-empty>
+        </div>
+      </div>
+      <div ref="chartWrapper" class="kf-chart_wrap">
+        <a-input-search
+          v-show="instrumentList.length > 0"
+          v-model:value="searchOrderId"
+          class="chart-search-order-id"
+          :placeholder="$t('journalConfig.search_order_id')"
+          @search="handleSearchOrderId"
+        />
+        <div
+          v-show="instrumentList.length > 0"
+          id="strategyChart"
+          class="kf-chart_content"
+        ></div>
         <a-empty
-          v-else
+          v-show="instrumentList.length === 0"
           :image="simpleImage"
           :description="t('empty_text')"
         ></a-empty>
       </div>
-    </div>
-    <div ref="chartWrapper" class="kf-chart_wrap">
-      <a-input-search
-        v-show="instrumentList.length > 0"
-        v-model:value="searchOrderId"
-        class="chart-search-order-id"
-        :placeholder="$t('journalConfig.search_order_id')"
-        @search="handleSearchOrderId"
-      />
-      <div
-        v-show="instrumentList.length > 0"
-        id="strategyChart"
-        class="kf-chart_content"
-      ></div>
-      <a-empty
-        v-show="instrumentList.length === 0"
-        :image="simpleImage"
-        :description="t('empty_text')"
-      ></a-empty>
       <a-spin
         class="kf-journal-spin"
         :spinning="isLoadingFrames"
@@ -759,23 +761,6 @@ function addChartEventListener(myChart: echarts.ECharts) {
     }
   });
 
-  myChart.on('datazoom', (params) => {
-    let { start, end, batch } = params as {
-      start: number;
-      end: number;
-      batch: { start: number; end: number }[];
-    };
-    if (!start || !end) {
-      start = batch ? (batch[0] ? batch[0].start : 0) : 0;
-      end = batch ? (batch[0] ? batch[0].end : 0) : 100;
-    }
-
-    option.dataZoom.forEach((item) => {
-      item.start = start;
-      item.end = end;
-    });
-  });
-
   myChart.getZr().on('click', (event) => {
     if (!event.target) {
       if (!Number(selectedOrderId)) return;
@@ -1099,27 +1084,7 @@ const handleInputChange = debounce(() => {
 .kf-visualization_wrap {
   position: relative;
   display: flex;
-  .ant-spin.ant-spin-spinning {
-    position: absolute;
-  }
 
-  .kf-journal-spin {
-    .ant-spin-text {
-      margin-left: 8px;
-    }
-  }
-  .ant-empty {
-    height: auto;
-    margin-top: 48px;
-
-    .ant-empty-image {
-      height: auto;
-    }
-
-    .ant-empty-description {
-      color: @input-placeholder-color;
-    }
-  }
   .ant-table {
     background-color: #1d1d1d;
     .ant-table-cell-fix-left,
@@ -1130,61 +1095,89 @@ const handleInputChange = debounce(() => {
   .kf-strategy_wrap {
     flex: 0 0 400px;
   }
-  .kf-instrument_wrap {
-    flex: 0 0 200px;
-    margin: 0 4px;
-    background-color: #1d1d1d;
-    .search-input {
-      width: 100%;
-      min-height: 28px;
-      line-height: 28px;
+  .kf-visualization_data_content {
+    display: flex;
+    position: relative;
+    width: 100%;
+    height: 100%;
+    .ant-spin.ant-spin-spinning {
+      position: absolute;
     }
-    .instrument-list {
-      overflow: auto;
-      height: calc(100% - 28px);
-      .instrument-item_wrap {
+
+    .kf-journal-spin {
+      .ant-spin-text {
+        margin-left: 8px;
+      }
+    }
+    .ant-empty {
+      height: auto;
+      margin-top: 48px;
+
+      .ant-empty-image {
+        height: auto;
+      }
+
+      .ant-empty-description {
+        color: @input-placeholder-color;
+      }
+    }
+    .kf-instrument_wrap {
+      flex: 0 0 200px;
+      margin: 0 4px;
+      background-color: #1d1d1d;
+      .search-input {
+        width: 100%;
+        min-height: 28px;
         line-height: 28px;
-        height: 28px;
-        padding: 0 4px;
-        font-size: 12px;
-        text-align: left;
-        cursor: pointer;
-        &:hover {
+      }
+      .instrument-list {
+        overflow: auto;
+        height: calc(100% - 28px);
+        .instrument-item_wrap {
+          line-height: 28px;
+          height: 28px;
+          padding: 0 4px;
+          font-size: 12px;
+          text-align: left;
+          color: #ffffffd9;
+          cursor: pointer;
+          &:hover {
+            background: #434343;
+          }
+        }
+        .selected-status {
           background: #434343;
         }
-      }
-      .selected-status {
-        background: #434343;
-      }
-      .instrument-item {
-        margin-right: 2px;
+        .instrument-item {
+          margin-right: 2px;
+        }
       }
     }
-  }
-  .kf-chart_wrap {
-    flex: 1;
-    overflow: visible;
-    position: relative;
-    color: #ffffff;
-    background-color: #1d1d1d;
-    .chart-search-order-id {
-      position: absolute;
-      top: 0;
-      right: 0;
-      width: 20%;
-      max-width: 300px;
-      z-index: 999;
-    }
-    .kf-chart_content {
-      width: 100%;
-      height: 100%;
-    }
-    .tooltip-container {
-      width: 400px;
-      color: #ffffffd9;
-      .tooltip-row {
-        display: flex;
-        justify-content: space-between;
+    .kf-chart_wrap {
+      flex: 1;
+      overflow: visible;
+      position: relative;
+      color: #ffffff;
+      background-color: #1d1d1d;
+      .chart-search-order-id {
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 20%;
+        max-width: 300px;
+        z-index: 999;
+      }
+      .kf-chart_content {
+        width: 100%;
+        height: 100%;
+      }
+      .tooltip-container {
+        width: 400px;
+        color: #ffffffd9;
+        .tooltip-row {
+          display: flex;
+          justify-content: space-between;
+        }
       }
     }
   }

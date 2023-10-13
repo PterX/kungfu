@@ -86,8 +86,8 @@
         :size-dependencies-fields="['dataAsString']"
         :resizable="false"
         :custom-row-class="dealRowClassName"
-        @click-cell="handleRightClickRow"
-        @click-row="handleRightClickRow"
+        @click-cell="handleClickRow"
+        @click-row="handleClickRow"
         @right-click-row="handleOpenFrameDetail"
         @onScrollToTop="handleScrollToTop"
         @onScrollToBottom="handleScrollToBottom"
@@ -678,7 +678,7 @@ const dealRowClassName = (row) => {
   return row.id === currentFrameId.value ? 'kf-current-table-select' : '';
 };
 
-function handleRightClickRow({ row }) {
+function handleClickRow({ row }) {
   setCurrentFrame(row);
   currentFrameId.value === row.id
     ? setCurrentFrameId('')

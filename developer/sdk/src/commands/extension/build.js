@@ -1,4 +1,7 @@
 const sdk = require('@kungfu-trader/kungfu-sdk');
+const { ModeMap, getCurrentMode } = require('../../utils');
+
+const isInProdApp = getCurrentMode() === ModeMap.IN_PROD_APP;
 
 module.exports = {
   flags: 'build',
@@ -13,7 +16,7 @@ module.exports = {
       .option('update-project-config', {
         type: 'boolean',
         desc: 'update project config files',
-        defaultValue: true,
+        defaultValue: !isInProdApp,
       })
       .option('build_type', {
         type: 'string',

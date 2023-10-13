@@ -840,7 +840,10 @@ export default {
     limit_value: 'Maximum',
     asset_margin: 'AssetMargin',
     show_asset_margin: 'AssetMargin Mode',
-    skip_confirm_make_order: 'Skip Confirm Make Order',
+    confirm_window: ' Secondary Confirmation Popup Configuration',
+    enable_confirm_order_window: 'Enable Order Confirmation Popup',
+    enable_confirm_cancel_all_orders_window:
+      'Enable Full Order Withdrawal Confirmation Popup',
 
     code_editor: 'Editor',
     tab_space_type: 'Indentation Category',

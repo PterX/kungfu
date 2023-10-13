@@ -501,7 +501,10 @@ async function confirmOrderPlace(
       new Error(t('tradingConfig.start_process', { process: tdProcessId })),
     );
   }
-  if (!globalSetting.value?.trade?.skipConfirmMakeOrder) {
+  if (
+    Array.isArray(globalSetting.value?.trade?.confirmWindow) &&
+    globalSetting.value?.trade?.confirmWindow.includes('confirm_Order_window')
+  ) {
     const flag = await confirmModal(
       t('tradingConfig.place_confirm'),
       dealOrderPlaceVNode(makeOrderInput, orderCount, false),

@@ -88,12 +88,12 @@
         :image="simpleImage"
         :description="t('empty_text')"
       ></a-empty>
+      <a-spin
+        class="kf-journal-spin"
+        :spinning="isLoadingFrames"
+        :tip="$t('journalConfig.loading_journal')"
+      />
     </div>
-    <a-spin
-      class="kf-journal-spin"
-      :spinning="isLoadingFrames"
-      :tip="$t('journalConfig.loading_journal')"
-    />
   </div>
 </template>
 
@@ -1165,6 +1165,7 @@ const handleInputChange = debounce(() => {
     flex: 1;
     overflow: visible;
     position: relative;
+    color: #ffffff;
     background-color: #1d1d1d;
     .chart-search-order-id {
       position: absolute;

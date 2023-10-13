@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
 import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
-import { gethidNextTimeCheckoutBox } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
+import { getHideNextTimeCheckbox } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 
 import {
   confirmModal,
@@ -468,7 +468,7 @@ function handleCancelOrderTrigger(
 
 const creatVNode = (str: string) => {
   const checkBoxVNode = h(
-    gethidNextTimeCheckoutBox('confirm_cancel_all_orders_window'),
+    getHideNextTimeCheckbox('confirm_cancel_all_orders_window'),
     {
       defaultChecked: !(
         Array.isArray(globalSetting.value?.trade?.confirmWindow) &&

@@ -1052,7 +1052,7 @@ export const confirmModal = (
     });
   });
 };
-export const gethidNextTimeCheckoutBox = (str: string) =>
+export const getHideNextTimeCheckbox = (str: string) =>
   defineComponent({
     name: 'CustomCheckbox',
     props: {

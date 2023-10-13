@@ -26,7 +26,7 @@ import {
   CalendarOutlined,
   PieChartOutlined,
 } from '@ant-design/icons-vue';
-import { gethidNextTimeCheckoutBox } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
+import { getHideNextTimeCheckbox } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import {
   computed,
   getCurrentInstance,
@@ -370,7 +370,7 @@ function handleCancelOrder(order: KungfuApi.OrderResolved): void {
 
 const creatVNode = (str: string) => {
   const checkBoxVNode = h(
-    gethidNextTimeCheckoutBox('confirm_cancel_all_orders_window'),
+    getHideNextTimeCheckbox('confirm_cancel_all_orders_window'),
     {
       defaultChecked: !(
         Array.isArray(globalSetting.value?.trade?.confirmWindow) &&

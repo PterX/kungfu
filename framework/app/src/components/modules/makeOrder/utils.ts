@@ -3,7 +3,7 @@ import {
   OffsetEnum,
   SideEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
-import { gethidNextTimeCheckoutBox } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
+import { getHideNextTimeCheckbox } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 
 import { storeToRefs } from 'pinia';
 import { dealOrderInputItem } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
@@ -68,7 +68,7 @@ export const createOrderPlaceVNode = (
   orderInputTrans: Record<string, string>,
   orderCount: number,
 ) => {
-  const checkBoxVNode = h(gethidNextTimeCheckoutBox('confirm_Order_window'), {
+  const checkBoxVNode = h(getHideNextTimeCheckbox('confirm_Order_window'), {
     defaultChecked: !(
       Array.isArray(globalSetting.value?.trade?.confirmWindow) &&
       globalSetting.value?.trade?.confirmWindow.includes('confirm_Order_window')

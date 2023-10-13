@@ -1,6 +1,9 @@
 {
   "name": "@kungfu-trader/kfx-operator-bar",
-  "author": "kungfu-trader",
+  "author": {
+    "name": "Kungfu Trader",
+    "email": "info@kungfu.link"
+  },
   "version": "2.6.5-alpha.2",
   "description": "KungFu Operator for Bar Data",
   "license": "Apache-2.0",
@@ -19,9 +22,9 @@
     "host": "https://prebuilt.libkungfu.cc"
   },
   "scripts": {
-    "clean": "kfs operator clean",
-    "build": "kfs operator build",
-    "package": "kfs operator package",
+    "clean": "kfs extension clean",
+    "build": "kfs extension build",
+    "package": "kfs extension package",
     "install": "node -e \"require('@kungfu-trader/kungfu-core').prebuilt('install')\"",
     "format": "node ../../framework/core/.gyp/run-format-cpp.js src"
   },

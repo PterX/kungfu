@@ -9,9 +9,9 @@
     "key": "KungfuStrategy101Python"
   },
   "scripts": {
-    "clean": "kfs strategy clean",
-    "build": "kfs strategy build",
-    "package": "kfs strategy package",
+    "clean": "kfs extension clean",
+    "build": "kfs extension build",
+    "package": "kfs extension package",
     "format": "node ../../framework/core/.gyp/run-format-python.js src"
   },
   "devDependencies": {

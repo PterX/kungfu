@@ -169,7 +169,7 @@
         </a-card>
       </template>
       <template v-else>
-        <a-empty :image="simpleImage"></a-empty>
+        <a-empty :image="simpleImage" :description="t('empty_text')"></a-empty>
       </template>
     </a-drawer>
   </div>
@@ -206,6 +206,10 @@ import {
   debounce,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { useScrollerTableSearch } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
+import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+
+const { t } = VueI18n.global;
+
 const { contentVisible } = useResizeFlag();
 const {
   currentSession,

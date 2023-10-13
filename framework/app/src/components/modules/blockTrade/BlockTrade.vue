@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue';
+import { storeToRefs } from 'pinia';
+import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
 import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
 import KfConfigSettingsForm from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfConfigSettingsForm.vue';
@@ -34,6 +36,7 @@ import {
 
 const { t } = VueI18n.global;
 const { error } = messagePrompt();
+const { globalSetting } = storeToRefs(useGlobalStore());
 const { getPriceTickAndPrecision } = useActiveInstruments();
 
 const { handleBodySizeChange } = useDashboardBodySize();
@@ -190,12 +193,13 @@ function handleMakeOrder() {
         );
         return;
       }
-
-      const flag = await confirmModal(
-        t('tradingConfig.place_confirm'),
-        dealOrderPlaceVNode({ ...makeOrderInput, ...blockMessage }, 1),
-      );
-      if (!flag) return;
+      if (!globalSetting.value?.trade?.skipConfirmMakeOrder) {
+        const flag = await confirmModal(
+          t('tradingConfig.place_confirm'),
+          dealOrderPlaceVNode({ ...makeOrderInput, ...blockMessage }, 1),
+        );
+        if (!flag) return;
+      }
 
       makeOrderByBlockMessage(
         window.watcher,

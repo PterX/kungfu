@@ -11,7 +11,11 @@ import { PathPrompt } from 'inquirer-path';
 import { getCombineValueByPrimaryKeys } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { getExtConfigList } from '@kungfu-trader/kungfu-js-api/utils/extUtils';
 import { getKfExtensionConfig } from '@kungfu-trader/kungfu-js-api/utils/extUtils';
-import { getPrimaryKeyFromKfConfigItem } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import {
+  getPrimaryKeyFromKfConfigItem,
+  getIdByKfLocation,
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import { getAllKfConfigOriginData } from '@kungfu-trader/kungfu-js-api/actions';
 import { setKfConfig } from '@kungfu-trader/kungfu-js-api/kungfu/store';
 import { PromptAnswer } from '../typings';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
@@ -46,6 +50,7 @@ export const addMdTdStrategyOperator = async (
   const extConfigs = await getKfExtensionConfig();
 
   if (type === 'md') {
+    const { md } = await getAllKfConfigOriginData();
     const extDataList = getExtConfigList(
       extConfigs,
       'md',
@@ -68,8 +73,19 @@ export const addMdTdStrategyOperator = async (
     if (settings === undefined) {
       throw new Error('Please check md extension config');
     }
+    const mdIdList = md.map((item: KungfuApi.KfLocation): string =>
+      getIdByKfLocation(item),
+    );
+    const primaryKeyAvoidRepeatCompareTarget = mdIdList;
+    const primaryKeyAvoidRepeatCompareExtra = extKey;
+    const passPrimaryKeySpecialWordsVerify = false;
 
-    const formState = await getPromptQuestionsBySettings(settings);
+    const formState = await getPromptQuestionsBySettings({
+      settings,
+      primaryKeyAvoidRepeatCompareTarget,
+      primaryKeyAvoidRepeatCompareExtra,
+      passPrimaryKeySpecialWordsVerify,
+    });
     const kfLocation: KungfuApi.KfLocation = {
       category: 'md',
       group: extKey,
@@ -85,6 +101,7 @@ export const addMdTdStrategyOperator = async (
       }),
     );
   } else if (type === 'td') {
+    const { td } = await getAllKfConfigOriginData();
     const extDataList = getExtConfigList(
       extConfigs,
       'td',
@@ -108,7 +125,19 @@ export const addMdTdStrategyOperator = async (
       throw new Error('Please check td extension config');
     }
 
-    const formState = await getPromptQuestionsBySettings(settings);
+    const TdIdList = td.map(
+      (item: KungfuApi.KfLocation): string => `${item.group}_${item.name}`,
+    );
+    const primaryKeyAvoidRepeatCompareTarget = TdIdList;
+    const primaryKeyAvoidRepeatCompareExtra = extKey;
+    const passPrimaryKeySpecialWordsVerify = false;
+
+    const formState = await getPromptQuestionsBySettings({
+      settings,
+      primaryKeyAvoidRepeatCompareTarget,
+      primaryKeyAvoidRepeatCompareExtra,
+      passPrimaryKeySpecialWordsVerify,
+    });
     const primaryKeys = getPrimaryKeyFromKfConfigItem(settings).map(
       (item) => item.key,
     );
@@ -128,6 +157,7 @@ export const addMdTdStrategyOperator = async (
       }),
     );
   } else if (type === 'strategy') {
+    const { strategy } = await getAllKfConfigOriginData();
     const strategySettings: KungfuApi.KfConfigItem[] = [
       {
         key: 'strategy_id',
@@ -144,8 +174,17 @@ export const addMdTdStrategyOperator = async (
         required: true,
       },
     ];
+    const strategyIdList = strategy.map(
+      (item: KungfuApi.KfLocation): string => item.name,
+    );
 
-    const formState = await getPromptQuestionsBySettings(strategySettings);
+    const primaryKeyAvoidRepeatCompareTarget = strategyIdList;
+
+    const formState = await getPromptQuestionsBySettings({
+      settings: strategySettings,
+      primaryKeyAvoidRepeatCompareTarget,
+    });
+
     const primaryKeys = getPrimaryKeyFromKfConfigItem(strategySettings).map(
       (item) => item.key,
     );
@@ -165,6 +204,7 @@ export const addMdTdStrategyOperator = async (
       }),
     );
   } else if (type === 'operator') {
+    const { operator } = await getAllKfConfigOriginData();
     const fileOrext = await inquirer.prompt([
       {
         type: 'list',
@@ -191,7 +231,16 @@ export const addMdTdStrategyOperator = async (
         },
       ];
 
-      const formState = await getPromptQuestionsBySettings(operatorSettings);
+      const operatorList = operator.map((item: KungfuApi.KfLocation): string =>
+        getIdByKfLocation(item),
+      );
+
+      const primaryKeyAvoidRepeatCompareTarget = operatorList;
+
+      const formState = await getPromptQuestionsBySettings({
+        settings: operatorSettings,
+        primaryKeyAvoidRepeatCompareTarget,
+      });
       const primaryKeys = getPrimaryKeyFromKfConfigItem(operatorSettings).map(
         (item) => item.key,
       );
@@ -235,7 +284,18 @@ export const addMdTdStrategyOperator = async (
         throw new Error('Please check operator extension config');
       }
 
-      const formState = await getPromptQuestionsBySettings(settings);
+      const operatorList = operator.map((item: KungfuApi.KfLocation): string =>
+        getIdByKfLocation(item),
+      );
+
+      const primaryKeyAvoidRepeatCompareTarget = operatorList;
+      const primaryKeyAvoidRepeatCompareExtra = extKey;
+
+      const formState = await getPromptQuestionsBySettings({
+        settings,
+        primaryKeyAvoidRepeatCompareTarget,
+        primaryKeyAvoidRepeatCompareExtra,
+      });
       const primaryKeys = getPrimaryKeyFromKfConfigItem(settings).map(
         (item) => item.key,
       );

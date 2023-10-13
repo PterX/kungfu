@@ -182,8 +182,11 @@ const props = withDefaults(
 
 const DEFAULT_ORDER_LENGTH = 30;
 const DEFAULT_CHART_LENGTH_RATE = 20;
+const DEFAULT_SYMBOL_SIZE = 10;
+const ACTIVE_SYMBOL_SIZE = 20;
 
-const { setCurrentSession, setSelectedChartItem } = useJournalStore();
+const { setCurrentSession, setSelectedChartItem, setCurrentFrameId } =
+  useJournalStore();
 const {
   sessions,
   isLoadingFrames,
@@ -307,7 +310,7 @@ const handleFrameChange = async (newCurrentFram) => {
             serie.data.forEach((item) => {
               if (item.customInfo.orderId === orderId) {
                 hasOrderId = true;
-                item.symbolSize = 20;
+                item.symbolSize = ACTIVE_SYMBOL_SIZE;
                 let shadowColor = '';
                 if (item.customInfo.msgTypeName === 'orderAction') {
                   shadowColor = '#73F3F6';
@@ -321,7 +324,7 @@ const handleFrameChange = async (newCurrentFram) => {
                   shadowColor,
                 };
               } else {
-                item.symbolSize = 10;
+                item.symbolSize = DEFAULT_SYMBOL_SIZE;
                 item.itemStyle = {
                   ...item.itemStyle,
                   shadowBlur: 0,
@@ -714,6 +717,7 @@ function addChartEventListener(myChart: echarts.ECharts) {
     frameListResolved.value[selectedInstrument.value][msgTypeName].forEach(
       (fram) => {
         if (fram.tableRowId === tableRowId) {
+          setCurrentFrameId(fram.tableRowId || '');
           setSelectedChartItem(fram.index ?? 0);
         }
       },
@@ -729,7 +733,7 @@ function addChartEventListener(myChart: echarts.ECharts) {
           serie.data.forEach((item: SeriesData) => {
             if (item.customInfo.orderId === orderId) {
               let shadowColor = '';
-              item.symbolSize = 20;
+              item.symbolSize = ACTIVE_SYMBOL_SIZE;
               if (item.customInfo.msgTypeName === 'orderAction') {
                 shadowColor = '#73F3F6';
               } else {
@@ -742,7 +746,7 @@ function addChartEventListener(myChart: echarts.ECharts) {
                 shadowColor,
               };
             } else {
-              item.symbolSize = 10;
+              item.symbolSize = DEFAULT_SYMBOL_SIZE;
               item.itemStyle = {
                 ...item.itemStyle,
                 shadowBlur: 0,
@@ -781,7 +785,11 @@ function addChartEventListener(myChart: echarts.ECharts) {
         })
         .forEach((serie) => {
           serie.data.forEach((item) => {
-            item.symbolSize = 10;
+            if (item.symbolSize !== DEFAULT_SYMBOL_SIZE) {
+              setCurrentFrameId('');
+              item.symbolSize = DEFAULT_SYMBOL_SIZE;
+            }
+
             item.itemStyle = {
               ...item.itemStyle,
               shadowBlur: 0,
@@ -986,7 +994,7 @@ function handleSearchOrderId() {
 
           dataTime = item.customInfo.time;
           let shadowColor = '';
-          item.symbolSize = 20;
+          item.symbolSize = ACTIVE_SYMBOL_SIZE;
           if (item.customInfo.msgTypeName === 'orderAction') {
             shadowColor = '#73F3F6';
           } else {
@@ -999,7 +1007,7 @@ function handleSearchOrderId() {
             shadowColor,
           };
         } else {
-          item.symbolSize = 10;
+          item.symbolSize = DEFAULT_SYMBOL_SIZE;
           item.itemStyle = {
             ...item.itemStyle,
             shadowBlur: 0,

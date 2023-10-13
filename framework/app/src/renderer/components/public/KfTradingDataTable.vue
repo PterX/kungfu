@@ -680,6 +680,10 @@ defineExpose({
     background: @table-row-hover-bg;
   }
 
+  .kf-current-table-select {
+    background: #b3b0b0 !important;
+  }
+
   .kf-table-cell {
     padding: 0 6px;
     box-sizing: border-box;

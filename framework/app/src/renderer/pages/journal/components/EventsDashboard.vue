@@ -219,12 +219,14 @@ const {
   currentFrameList,
   isLoadingFrames,
   selectedChartItem,
+  currentFrameId,
 } = storeToRefs(useJournalStore());
 const {
   setCurrentFrameList,
   setCurrentTime,
   setCurrentLastFrameTime,
   setCurrentFrame,
+  setCurrentFrameId,
 } = useJournalStore();
 const sourceDestMap = getSourceDestMap();
 const { now } = useNow();
@@ -267,7 +269,6 @@ const inputRef = ref<HTMLInputElement>({} as HTMLInputElement);
 const frameColumns = computed(() => getFrameColumns(searchInUsing.value));
 const simpleImage = Empty.PRESENTED_IMAGE_SIMPLE;
 const firstSplitFramesLoading = ref(false);
-const currentFramesId = ref<string>('');
 const frameFilter = ref();
 let currentTracer: KungfuApi.Tracer | null = null;
 
@@ -635,12 +636,12 @@ const loadFrameData = async (currentSessionId: number, loadmore = false) => {
     isLoadingFrames.value = false;
     firstSplitFramesLoading.value = false;
     requestBreakLoadingDataWhile = false;
-    currentFramesId.value = currentFrameList.value[0]?.id;
+    setCurrentFrameId(currentFrameList.value[0]?.id);
   });
 };
 
 const handleOpenFrameDetail = async ({ row }) => {
-  currentFramesId.value = row.id;
+  setCurrentFrameId(row.id);
   currentRowData.value = row as KungfuApi.FrameResolved;
   await nextTick();
   visible.value = true;
@@ -674,11 +675,14 @@ const dealTagBackgroundColor = (colorStr: string) => {
 };
 
 const dealRowClassName = (row) => {
-  return row.id === currentFramesId.value ? 'kf-current-table-select' : '';
+  return row.id === currentFrameId.value ? 'kf-current-table-select' : '';
 };
 
 function handleRightClickRow({ row }) {
   setCurrentFrame(row);
+  currentFrameId.value === row.id
+    ? setCurrentFrameId('')
+    : setCurrentFrameId(row.id);
 }
 </script>
 

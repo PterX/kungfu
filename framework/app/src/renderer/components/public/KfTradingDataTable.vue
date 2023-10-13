@@ -681,7 +681,7 @@ defineExpose({
   }
 
   .kf-current-table-select {
-    background: #b3b0b0 !important;
+    background: #b3b0b0;
   }
 
   .kf-table-cell {

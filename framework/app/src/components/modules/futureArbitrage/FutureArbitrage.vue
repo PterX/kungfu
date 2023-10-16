@@ -195,12 +195,7 @@ function handleMakeOrder() {
         );
         return;
       }
-      if (
-        Array.isArray(globalSetting.value?.trade?.confirmWindow) &&
-        globalSetting.value?.trade?.confirmWindow.includes(
-          'confirm_Order_window',
-        )
-      ) {
+      if (!globalSetting.value?.trade?.skipConfirmMakeOrder) {
         const flag = await confirmModal(
           t('tradingConfig.place_confirm'),
           dealOrderPlaceVNode(makeOrderInput, 1, true),

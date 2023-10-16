@@ -555,6 +555,7 @@ export default {
   operatorConfig: {
     operator: '算子',
     operator_id: '算子 ID',
+    operator_ext: '算子插件',
     operator_file: '算子文件',
     operator_path: '算子路径',
     operator_path_tip:
@@ -842,9 +843,9 @@ export default {
     asset_margin: '两融',
     pos_table_columns: '持仓表格项配置',
     show_asset_margin: '展示两融',
-    confirm_window: '二次确认弹窗配置',
-    enable_confirm_order_window: '启用下单确认弹窗',
-    enable_confirm_cancel_all_orders_window: '启用全部撤单确认弹窗',
+    skip_confirm_make_order: '跳过下单确认弹窗',
+    set_skip_confirm_make_order:
+      '开启后, 手动下单时不再弹出二次确认弹窗, 直接执行下单操作',
 
     code_editor: '代码编辑器',
     tab_space_type: '缩进类别',

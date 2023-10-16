@@ -1,4 +1,3 @@
-/* eslint-disable vue/one-component-per-file */
 import os from 'os';
 import {
   ComputedRef,
@@ -26,8 +25,6 @@ import {
   defineComponent,
 } from 'vue';
 import dayjs from 'dayjs';
-import { Checkbox } from 'ant-design-vue';
-
 import 'dayjs/locale/zh-cn';
 import { Button } from 'ant-design-vue';
 import { Locale } from 'ant-design-vue/es/locale-provider';
@@ -57,13 +54,6 @@ import {
   isHexOrRgbColor,
   debounce,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
-import {
-  getKfGlobalSettingsValue,
-  setKfGlobalSettingsValue,
-} from '@kungfu-trader/kungfu-js-api/config/globalSettings';
-import globalBus from '@kungfu-trader/kungfu-js-api/utils/globalBus';
-import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
-
 import globalStorage from '@kungfu-trader/kungfu-js-api/utils/globalStorage';
 import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
@@ -1052,60 +1042,6 @@ export const confirmModal = (
     });
   });
 };
-export const getHideNextTimeCheckbox = (str: string) =>
-  defineComponent({
-    name: 'CustomCheckbox',
-    props: {
-      defaultChecked: Boolean,
-      label: {
-        type: String,
-        default: '',
-        required: true,
-      },
-    },
-    setup(props) {
-      const isChecked = ref(props.defaultChecked);
-
-      const handleCheckboxChange = (e) => {
-        isChecked.value = e.target.checked;
-      };
-
-      onBeforeUnmount(async () => {
-        if (isChecked.value) {
-          const globalSetting = await getKfGlobalSettingsValue();
-          globalSetting?.trade?.confirmWindow?.splice(
-            globalSetting?.trade?.confirmWindow?.indexOf(str),
-            1,
-          );
-
-          try {
-            await setKfGlobalSettingsValue(globalSetting);
-            globalBus.next({
-              tag: 'saved:globalSetting',
-            });
-            useGlobalStore().setKfGlobalSetting();
-          } catch (error) {
-            console.error('Failed to save global setting:', error);
-          }
-        }
-      });
-
-      return () =>
-        h(
-          Checkbox,
-          {
-            style: {
-              position: 'absolute',
-              left: '24px',
-              bottom: '24px',
-            },
-            checked: isChecked.value,
-            onChange: handleCheckboxChange,
-          },
-          { default: () => [props.label] },
-        );
-    },
-  });
 
 export const extraConfirmModal = (
   title: string,

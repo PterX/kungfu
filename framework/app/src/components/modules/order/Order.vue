@@ -19,14 +19,13 @@ import {
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
 import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
 import KfTradingDataTable from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfTradingDataTable.vue';
-
 import {
   DownloadOutlined,
   LoadingOutlined,
   CalendarOutlined,
   PieChartOutlined,
 } from '@ant-design/icons-vue';
-import { getHideNextTimeCheckbox } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
+
 import {
   computed,
   getCurrentInstance,
@@ -37,9 +36,7 @@ import {
   toRaw,
   watch,
   nextTick,
-  h,
 } from 'vue';
-import { storeToRefs } from 'pinia';
 import { getColumns } from './config';
 import {
   dealOrder,
@@ -51,7 +48,6 @@ import {
   kfCancelAllOrdersTrigger,
 } from '@kungfu-trader/kungfu-js-api/kungfu';
 import type { Dayjs } from 'dayjs';
-import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
 import {
   OrderCancelledStatus,
   OrderTriggerCancelStatus,
@@ -83,7 +79,6 @@ const { getPriceTickAndPrecision } = useActiveInstruments();
 const { extConfigs } = useExtConfigsRelated();
 
 const { handleBodySizeChange } = useDashboardBodySize();
-const { globalSetting } = storeToRefs(useGlobalStore());
 
 const { processStatusData } = useProcessStatusDetailData();
 const { dealDataWithCache, clearCaches } = useDealDataWithCaches<
@@ -368,65 +363,33 @@ function handleCancelOrder(order: KungfuApi.OrderResolved): void {
     });
 }
 
-const creatVNode = (str: string) => {
-  const checkBoxVNode = h(
-    getHideNextTimeCheckbox('confirm_cancel_all_orders_window'),
-    {
-      defaultChecked: !(
-        Array.isArray(globalSetting.value?.trade?.confirmWindow) &&
-        globalSetting.value?.trade?.confirmWindow.includes(
-          'confirm_cancel_all_orders_window',
-        )
-      ),
-      label: t('tradingConfig.hide_next_time'),
-    },
-  );
-  return h(
-    'div',
-    {
-      style: {
-        display: 'flex',
-        flexDirection: 'column',
-      },
-    },
-    [h('div', str), checkBoxVNode],
-  );
-};
-
-async function handleCancelAllOrders(): Promise<void> {
+function handleCancelAllOrders(): void {
   if (!currentGlobalKfLocation.value || !window.watcher) {
     error();
     return;
   }
 
   const name = getIdByKfLocation(currentGlobalKfLocation.value);
-  if (
-    Array.isArray(globalSetting.value?.trade?.confirmWindow) &&
-    globalSetting.value?.trade?.confirmWindow.includes(
-      'confirm_cancel_all_orders_window',
-    )
-  ) {
-    const flag = await confirmModal(
-      t('orderConfig.confirm_cancel_all'),
-      creatVNode(
-        `${t('orderConfig.confirm')} ${
-          currentCategoryData.value?.name
-        } ${name} ${t('orderConfig.cancel_all')}`,
-      ),
-    );
+
+  confirmModal(
+    t('orderConfig.confirm_cancel_all'),
+    `${t('orderConfig.confirm')} ${currentCategoryData.value?.name} ${name} ${t(
+      'orderConfig.cancel_all',
+    )}`,
+  ).then((flag) => {
     if (!flag || !currentGlobalKfLocation.value || !window.watcher) {
       return;
     }
-  }
 
-  const orders = getTargetCancelOrders();
-  kfCancelAllOrders(window.watcher, orders)
-    .then(() => {
-      success();
-    })
-    .catch((err) => {
-      error(err.message);
-    });
+    const orders = getTargetCancelOrders();
+    return kfCancelAllOrders(window.watcher, orders)
+      .then(() => {
+        success();
+      })
+      .catch((err) => {
+        error(err.message);
+      });
+  });
 }
 
 function handleInsertOrderTrigger(order: KungfuApi.OrderResolved): void {

@@ -265,7 +265,7 @@ export class TradingDataDashboard extends Dashboard {
       'orderTable',
       'tradeTable',
     ];
-    this.screen.key(['left', 'right'], (ch: string, key: { name: string }) => {
+    this.screen.key(['left', 'right'], (_ch: string, key: { name: string }) => {
       key.name === 'left' ? i-- : i++;
       if (i === 6) i = 0;
       if (i === -1) i = 5;

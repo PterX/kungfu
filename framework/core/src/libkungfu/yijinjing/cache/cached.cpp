@@ -186,7 +186,7 @@ void cached::handle_cached_feeds(int store_volume_every_loop) {
   boost::hana::for_each(StateDataTypes, [&](auto it) {
     using DataType = typename decltype(+boost::hana::second(it))::type;
 
-    if (DataType::tag == Instrument::tag) {
+    if (DataType::tag == Instrument::tag or DataType::tag == BasketInstrument::tag) {
       return;
     }
 
@@ -255,7 +255,9 @@ void cached::register_trigger_listen_public(int64_t gen_time, const Register &re
   auto app_uid = register_data.location_uid;
   auto app_location = get_location(app_uid);
 
-  if (app_location->category != category::TD) {
+  // pass when not td, or not app (for static info storage)
+  if (app_location->category != category::TD or
+      not(app_location->group == "node" && app_location->category == category::SYSTEM)) {
     return;
   }
 

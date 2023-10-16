@@ -14,7 +14,9 @@ const buildStrSorter =
   (a: KungfuApi.PositionResolved, b: KungfuApi.PositionResolved) =>
     a[dataIndex].toString().localeCompare(b[dataIndex].toString());
 
-export const getColumns = (): KfTradingDataTableHeaderConfig[] => [
+export const getColumns = (
+  lastPriceSorter: (a: KungfuApi.Position, b: KungfuApi.Position) => number,
+): KfTradingDataTableHeaderConfig[] => [
   {
     type: 'string',
     name: t('posGlobalConfig.instrument_id'),
@@ -93,7 +95,7 @@ export const getColumns = (): KfTradingDataTableHeaderConfig[] => [
     dataIndex: 'last_price_resolved',
     width: 110,
     align: 'right',
-    sorter: buildSorter('last_price'),
+    sorter: lastPriceSorter,
   },
   {
     type: 'number',

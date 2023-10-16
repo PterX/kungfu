@@ -16,8 +16,9 @@ using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
 
 namespace kungfu::wingchun::book {
-Book::Book(CommissionMap &commissions_ref, const InstrumentMap &instruments_ref)
-    : commissions(commissions_ref), instruments(instruments_ref) {}
+Book::Book(const CommissionMap &commissions_ref, const InstrumentMap &instruments_ref,
+           const InstrumentFactorMap &instrument_factors_ref)
+    : commissions(commissions_ref), instruments(instruments_ref), instrument_factors(instrument_factors_ref) {}
 
 double Book::get_frozen_price(uint64_t order_id) {
   if (orders.find(order_id) != orders.end()) {
@@ -95,12 +96,20 @@ Position &Book::get_position(Direction direction, const char *exchange_id, const
 
 void Book::update(int64_t update_time, longfist::enums::AccountingMethodType accounting_method_type) {
   asset.update_time = update_time;
-  asset.margin = 0;
+
+  /* IMPORTANT:
+   * remove assign and reassign of asset.margin
+   * this function will be called when ledger sync asset and position from TD  every minute
+   * margin will recalculate by this function, but margin of asset is not equal to sum of all positions margin,
+   * different exchange may have different margin discount
+   */
+
+  // asset.margin = 0;
   asset.market_value = 0;
+  asset_margin.short_market_value = 0;
   asset.unrealized_pnl = 0;
   asset.dynamic_equity = asset.avail;
-  double margin = 0;
-  double short_market_value = 0;
+
   auto update_position = [&](Position &position) {
     auto is_stock =
         position.instrument_type == InstrumentType::Stock or position.instrument_type == InstrumentType::Bond or
@@ -109,42 +118,36 @@ void Book::update(int64_t update_time, longfist::enums::AccountingMethodType acc
         position.instrument_type == InstrumentType::Repo;
     auto is_future = position.instrument_type == InstrumentType::Future;
 
-    double db_exchage_rate = 1.0;
-    double db_contract_multiplier = 1.0;
+    double db_exchage_rate = DEFAULT_INSTRUMENT_EXCHANGE_RATE;
+    double db_contract_multiplier = DEFAULT_INSTRUMENT_CONTRACT_MULTIPLIER;
     auto hashed_instrument_key = hash_instrument(position.exchange_id, position.instrument_id);
     if (instrument_factors.find(hashed_instrument_key) != instrument_factors.end()) {
       auto &instrument_factor = instrument_factors.at(hashed_instrument_key);
-      db_exchage_rate = is_equal(instrument_factor.exchange_rate, 0.0) ? 1.0 : instrument_factor.exchange_rate;
+      db_exchage_rate = is_equal(instrument_factor.exchange_rate, 0.0) ? DEFAULT_INSTRUMENT_EXCHANGE_RATE
+                                                                       : instrument_factor.exchange_rate;
     }
 
     if (instruments.find(hashed_instrument_key) != instruments.end()) {
       const auto &instrument = instruments.at(hashed_instrument_key);
-      db_contract_multiplier = instrument.contract_multiplier;
+      db_contract_multiplier = (instrument.contract_multiplier > 0) ? instrument.contract_multiplier
+                                                                    : DEFAULT_INSTRUMENT_CONTRACT_MULTIPLIER;
     }
 
-    auto position_market_value =
-        position.volume * (position.last_price > 0 ? position.last_price : position.avg_open_price) * db_exchage_rate;
+    auto position_market_value = position.volume *
+                                 (position.last_price > 0 ? position.last_price : position.avg_open_price) *
+                                 db_exchage_rate * db_contract_multiplier;
 
-    if (accounting_method_type == longfist::enums::AccountingMethodType::OTC && is_future) {
-      position_market_value = position.volume *
-                              (position.last_price > 0 ? position.last_price : position.avg_open_price) *
-                              db_exchage_rate * db_contract_multiplier;
-    }
-    margin += position.margin;
+    asset.market_value += position_market_value;
+    asset.unrealized_pnl += position.unrealized_pnl * db_exchage_rate;
 
-    if (!(is_stock and position.direction == Direction::Short)) {
-      asset.market_value += position_market_value;
-      asset.unrealized_pnl += position.unrealized_pnl * db_exchage_rate;
-    }
     if (is_stock) {
-      if (position.direction == Direction::Long) {
-        asset.dynamic_equity += position_market_value;
-      } else {
-        short_market_value += position_market_value;
-      }
-
+      asset.dynamic_equity += position_market_value;
     } else if (is_future) {
       asset.dynamic_equity += position.margin + position.position_pnl * db_exchage_rate;
+    }
+
+    if (position.direction == Direction::Short) {
+      asset_margin.short_market_value += position_market_value;
     }
   };
 
@@ -154,9 +157,6 @@ void Book::update(int64_t update_time, longfist::enums::AccountingMethodType acc
   for (auto &pair : short_positions) {
     update_position(pair.second);
   }
-
-  asset.margin = margin;
-  asset_margin.short_market_value = short_market_value;
 }
 
 void Book::replace(const OrderInput &input) { order_inputs.insert_or_assign(input.order_id, input); }
@@ -164,16 +164,5 @@ void Book::replace(const OrderInput &input) { order_inputs.insert_or_assign(inpu
 void Book::replace(const Order &order) { orders.insert_or_assign(order.order_id, order); }
 
 void Book::replace(const Trade &trade) { trades.insert_or_assign(trade.trade_id, trade); }
-
-void Book::replace(const Commission &commission) {
-  uint32_t product_key =
-      yijinjing::util::hash_str_32(commission.product_id) ^ yijinjing::util::hash_str_32(commission.exchange_id);
-  commissions.insert_or_assign(product_key, commission);
-}
-
-void Book::replace(const longfist::types::InstrumentFactor &instrument_factor) {
-  auto instrument_factor_id = hash_instrument(instrument_factor.exchange_id, instrument_factor.instrument_id);
-  instrument_factors.insert_or_assign(instrument_factor_id, instrument_factor);
-}
 
 } // namespace kungfu::wingchun::book

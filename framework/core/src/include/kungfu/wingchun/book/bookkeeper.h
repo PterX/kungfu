@@ -131,6 +131,7 @@ private:
   bool positions_guarded_ = false;
   CommissionMap commissions_ = {};
   InstrumentMap instruments_ = {};
+  InstrumentFactorMap instrument_factors_ = {};
   BookMap books_ = {};
   AccountingMethodMap accounting_methods_ = {};
   std::vector<BookListener_ptr> book_listeners_ = {};

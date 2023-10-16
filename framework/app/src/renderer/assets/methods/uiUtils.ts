@@ -21,7 +21,14 @@ import {
   FunctionalComponent,
   ComponentPublicInstance,
   isRef,
+  createApp,
+  defineComponent,
 } from 'vue';
+import dayjs from 'dayjs';
+import 'dayjs/locale/zh-cn';
+import { Button } from 'ant-design-vue';
+import { Locale } from 'ant-design-vue/es/locale-provider';
+import zhCN from 'ant-design-vue/es/locale/zh_CN';
 import {
   CheckCircleOutlined,
   ExclamationCircleOutlined,
@@ -37,8 +44,6 @@ import {
   getInstrumentTypeData,
   getProcessIdByKfLocation,
   kfLogger,
-  removeJournal,
-  removeDB,
   getAvailExtServiceList,
   getKfExtensionLanguage,
   loopToRunProcess,
@@ -47,9 +52,9 @@ import {
   removeArchiveBeforeToday,
   isKfColor,
   isHexOrRgbColor,
-  removeTodayArchive,
   debounce,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import globalStorage from '@kungfu-trader/kungfu-js-api/utils/globalStorage';
 import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
 import { ExchangeIds } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
@@ -75,7 +80,10 @@ import path from 'path';
 import { startExtService } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
 import { Proc } from 'pm2';
 import { VueNode } from 'ant-design-vue/lib/_util/type';
-import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+import VueI18n, {
+  langDefault,
+  getGlobalSettingLanguage,
+} from '@kungfu-trader/kungfu-js-api/language';
 const { t } = VueI18n.global;
 import fse from 'fs-extra';
 import fsPromise from 'fs/promises';
@@ -245,6 +253,26 @@ export const loadExtComponents = (
         }
     }
   });
+};
+
+export const useLocale = () => {
+  const app = getCurrentInstance();
+  const locale = ref<Locale>();
+  const localeMap = {
+    'zh-CN': 'zh-cn',
+    'en-US': 'en',
+  };
+  const globalSettingLanguage = getGlobalSettingLanguage() || langDefault;
+  dayjs.locale(localeMap[globalSettingLanguage] || 'zh-cn');
+
+  onMounted(() => {
+    locale.value =
+      (app?.proxy?.$antLocalesMap || {})[globalSettingLanguage] || zhCN;
+  });
+
+  return {
+    locale,
+  };
 };
 
 export const useModalVisible = (
@@ -477,42 +505,8 @@ const removeArchiveBeforeStartAll = (): Promise<void> => {
   });
 };
 
-const removeJournalBeforeStartAll = (): Promise<void> => {
-  const needClearJournalStr = localStorage.getItem('needClearJournal');
-  const needClearJournal = !!(needClearJournalStr && +needClearJournalStr);
-
-  kfLogger.info('needClearJournal: ', needClearJournal);
-
-  if (needClearJournal) {
-    localStorage.setItem('needClearJournal', '0');
-    kfLogger.info('Clear Journal Done', needClearJournal);
-    return removeTodayArchive(ARCHIVE_DIR).then(() => removeJournal(KF_HOME));
-  } else {
-    return Promise.resolve();
-  }
-};
-
-const removeDBBeforeStartAll = (): Promise<void> => {
-  const needClearDBStr = localStorage.getItem('needClearDB');
-  const needClearDB = !!(needClearDBStr && +needClearDBStr);
-
-  kfLogger.info('needClearDB: ', needClearDB);
-
-  if (needClearDB) {
-    localStorage.setItem('needClearDB', '0');
-    kfLogger.info('Clear DB Done');
-    return removeDB(KF_HOME);
-  } else {
-    return Promise.resolve();
-  }
-};
-
 export const preStartAll = async (): Promise<(void | Proc)[]> => {
-  return Promise.all([
-    removeJournalBeforeStartAll(),
-    removeDBBeforeStartAll(),
-    removeArchiveBeforeStartAll(),
-  ]);
+  return Promise.all([removeArchiveBeforeStartAll()]);
 };
 
 export const checkCpusNumAndConfirmModal = (): Promise<boolean> => {
@@ -698,12 +692,12 @@ export const useIpcListener = (): void => {
 };
 
 export const markClearJournal = (): void => {
-  localStorage.setItem('needClearJournal', '1');
+  globalStorage.setItem('needClearJournal', true);
   messagePrompt().success(t('clear', { content: 'journal' }));
 };
 
 export const markClearDB = (): void => {
-  localStorage.setItem('needClearDB', '1');
+  globalStorage.setItem('needClearDB', true);
   messagePrompt().success(t('clear', { content: 'DB' }));
 };
 
@@ -1046,6 +1040,88 @@ export const confirmModal = (
         resolve(false);
       },
     });
+  });
+};
+
+export const extraConfirmModal = (
+  title: string,
+  content: VueNode | (() => VueNode) | string,
+  okText = t('confirm'),
+  cancelText = t('cancel'),
+  extraTextList?: {
+    text: string;
+  }[],
+): Promise<'ok' | 'cancel' | string> => {
+  return new Promise((resolve) => {
+    const Comp = defineComponent({
+      setup() {
+        const visible = ref(true);
+
+        const close = (result: 'ok' | 'cancel' | string) => {
+          resolve(result);
+          visible.value = false;
+        };
+
+        return {
+          visible,
+          close,
+          content,
+          title,
+          okText,
+          cancelText,
+          extraTextList,
+        };
+      },
+      render() {
+        return h(
+          Modal,
+          {
+            visible: this.visible,
+            title: this.title,
+            'onUpdate:visible': (newVal: boolean) => {
+              this.visible = newVal;
+            },
+            onCancel: () => this.close('cancel'),
+          },
+          {
+            default: () => [
+              typeof this.content === 'function'
+                ? this.content()
+                : this.content,
+            ],
+            footer: () => [
+              ...(this.extraTextList?.map((item) =>
+                h(
+                  Button,
+                  {
+                    onClick: () => this.close(item.text),
+                  },
+                  () => item.text,
+                ),
+              ) || []),
+              h(
+                Button,
+                {
+                  onClick: () => this.close('cancel'),
+                },
+                () => this.cancelText,
+              ),
+              h(
+                Button,
+                {
+                  type: 'primary',
+                  onClick: () => this.close('ok'),
+                },
+                () => this.okText,
+              ),
+            ],
+          },
+        );
+      },
+    });
+
+    const app = createApp(Comp);
+    app.mount(document.createElement('div'));
   });
 };
 

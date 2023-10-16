@@ -18,6 +18,8 @@ import {
   delayMilliSeconds,
   isTdMdOperatorStrategy,
   deleteNNFiles,
+  removeDBIfNeed,
+  removeJournalIfNeed,
 } from '../utils/busiUtils';
 import {
   buildProcessLogPath,
@@ -29,7 +31,10 @@ import {
 } from '../config/pathConfig';
 import { getKfGlobalSettingsValue } from '../config/globalSettings';
 import { Observable } from 'rxjs';
-import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import {
+  booleanProcessEnv,
+  ifKfDev,
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { Pm2StartOptions } from '../typings/global';
 import { KfHookKeeper } from '../hooks';
@@ -171,7 +176,7 @@ const isProcessBelongsToCurrentApp = (pro: FindProcessResult) => {
 };
 
 export const killKfc = (byCurrentApp = false): Promise<void> => {
-  const isKfDev = booleanProcessEnv(process.env.IS_KF_DEV);
+  const isKfDev = ifKfDev();
   return new Promise((resolve) => {
     findProcessByKeywords([kfcName], false)
       .then((processList) => {
@@ -546,9 +551,7 @@ export const startProcess = async (
         .join(path.delimiter),
       KFC_DIR: process.env.KFC_DIR || '',
       CLI_DIR: process.env.CLI_DIR || '',
-      IS_KF_DEV: booleanProcessEnv(process.env.IS_KF_DEV)
-        ? `${process.env.IS_KF_DEV}`
-        : '',
+      IS_KF_DEV: ifKfDev() ? 'true' : '',
       KF_HOME: dealSpaceInPath(KF_HOME),
       KF_RUNTIME_DIR: dealSpaceInPath(KF_RUNTIME_DIR),
       KF_CONFIG_DIR: dealSpaceInPath(KF_CONFIG_DIR),
@@ -1275,6 +1278,8 @@ export const initClean = async (withApp: boolean, withPm2: boolean) => {
     // have to be killExtra, otherwise main process starting takes too long
     await killExtra(withApp, withPm2);
     await deleteNNFiles();
+    await removeDBIfNeed();
+    await removeJournalIfNeed();
   } catch (err) {
     kfLogger.error('initClean error: ', err);
   }

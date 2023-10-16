@@ -1,6 +1,7 @@
 __uid__
 baskets
 basket_instruments
+instrument_factors
 instruments
 commissions
 home
@@ -37,7 +38,6 @@ asset_margin
 long_positions
 short_positions
 trades
-instrument_factors
 mode
 category
 group
@@ -452,6 +452,7 @@ disjoin
 disjoin_channel
 on_load_page
 current_frame_uid
+get_dest
 copy_frame
 mark
 mark_at

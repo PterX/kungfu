@@ -2,8 +2,11 @@ import path from 'path';
 import fse from 'fs-extra';
 import inquirer from 'inquirer';
 import colors from 'colors';
+import checkboxPlusPrompt from 'inquirer-checkbox-plus-prompt';
+import { KF_INSTRUMENTS_PATH } from '@kungfu-trader/kungfu-js-api/config/pathConfig';
 import { KfCategoryTypes } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import resolveExtConfigHook from '@kungfu-trader/kungfu-js-api/hooks/resolveExtConfigHook';
+import { ExchangeIds } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import {
   getAvailCliExtServiceList,
   getIdByKfLocation,
@@ -11,6 +14,9 @@ import {
   getProcessIdByKfLocation,
   initFormStateByConfig,
   loopToRunProcess,
+  replaceNonAlphaNumericWithSpace,
+  getPrimaryKeys,
+  getCombineValueByPrimaryKeys,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { getAllKfConfigOriginData } from '@kungfu-trader/kungfu-js-api/actions';
 import {
@@ -23,6 +29,10 @@ import { Proc } from 'pm2';
 import { globalState } from '../actions/globalState';
 import { program } from 'commander';
 import { SpecialWordsReg } from '@kungfu-trader/kungfu-js-api/config/systemConfig';
+import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+const { t } = VueI18n.global;
+
+inquirer.registerPrompt('checkbox-plus', checkboxPlusPrompt);
 
 export const parseToString = (
   targetList: (string | number)[],
@@ -66,10 +76,12 @@ export const getKfCategoryFromString = (
   const isTd = typeString.toLocaleLowerCase().includes('td');
   const isMd = typeString.toLocaleLowerCase().includes('md');
   const isStrategy = typeString.toLocaleLowerCase().includes('strategy');
+  const isOperator = typeString.toLocaleLowerCase().includes('operator');
 
   if (isTd) return 'td';
   else if (isMd) return 'md';
   else if (isStrategy) return 'strategy';
+  else if (isOperator) return 'operator';
   else return 'system';
 };
 
@@ -79,22 +91,92 @@ export const parseExtDataList = (
   return extList.map((ext) => {
     const isArray = typeof ext.type === 'object';
     const type = isArray ? (ext.type || []).join(' ') : ext.type || '';
-    return [ext.name, ext.key, type].join('    ');
+    return [ext.name, ext.key, type === 'unknown' ? '' : type].join('    ');
   });
 };
 
-export const getPromptQuestionsBySettings = (
-  settings: KungfuApi.KfConfigItem[],
+export const getPromptQuestionsBySettings = async (
+  data: {
+    settings: KungfuApi.KfConfigItem[];
+    primaryKeyAvoidRepeatCompareTarget?: string[];
+    primaryKeyAvoidRepeatCompareExtra?: string;
+    passPrimaryKeySpecialWordsVerify?: boolean;
+  },
   initValue?: Record<string, KungfuApi.KfConfigValue>,
 ): Promise<KungfuApi.KfConfigValue> => {
+  const {
+    settings,
+    primaryKeyAvoidRepeatCompareTarget,
+    primaryKeyAvoidRepeatCompareExtra,
+    passPrimaryKeySpecialWordsVerify,
+  } = data;
   const formState = initFormStateByConfig(settings, initValue || {});
-  const questions = settings.map((item) =>
-    buildQuestionByKfConfigItem(
-      item,
-      item.type === 'password' ? '' : formState[item.key],
-      !!initValue,
-    ),
+  const primaryKeys = getPrimaryKeys(settings);
+  const questionsPromises = settings.map(
+    async (item) =>
+      await buildQuestionByKfConfigItem(
+        item,
+        item.type === 'password' ? '' : formState[item.key],
+        !!initValue,
+        async (value) => {
+          if (!primaryKeys.includes(item.key)) {
+            return true;
+          }
+
+          formState[item.key] = value;
+
+          return primaryKeyValidator(value);
+        },
+      ),
   );
+
+  const questions = await Promise.all(questionsPromises);
+
+  function primaryKeyValidator(value: string): true | Error {
+    const combineValue: string = getCombineValueByPrimaryKeys(
+      primaryKeys,
+      formState,
+      primaryKeyAvoidRepeatCompareExtra || '',
+    );
+
+    if (!combineValue || replaceNonAlphaNumericWithSpace(value) === '') {
+      return new Error(
+        t('validate.single_characters', {
+          value: combineValue,
+        }),
+      );
+    }
+
+    if (
+      SpecialWordsReg.test(value || '') &&
+      !passPrimaryKeySpecialWordsVerify
+    ) {
+      return new Error(t('validate.no_special_characters'));
+    }
+
+    if (
+      (value || '').toString().includes('_') &&
+      !passPrimaryKeySpecialWordsVerify
+    ) {
+      return new Error(t('validate.no_underline'));
+    }
+
+    if (
+      (primaryKeyAvoidRepeatCompareTarget || [])
+        .map((item): string => item.toLowerCase())
+        .includes(combineValue.toLowerCase())
+    ) {
+      return initValue
+        ? true
+        : new Error(
+            t('validate.value_existing', {
+              value: combineValue,
+            }),
+          );
+    }
+
+    return true;
+  }
 
   return inquirer
     .prompt(questions)
@@ -130,9 +212,16 @@ export const getQuestionInputType = (
       return 'list';
     case 'bool':
       return 'confirm';
-    case 'file':
     case 'folder':
+    case 'directory':
       return 'path';
+    case 'file':
+      return 'file-path';
+    case 'instrument':
+      return 'autocomplete';
+    case 'instruments':
+    case 'multiSelect':
+      return 'checkbox-plus';
     default:
       return 'input';
   }
@@ -146,62 +235,222 @@ export const renderSelect = (configItem: KungfuApi.KfConfigItem) => {
   else return '';
 };
 
-export const buildQuestionByKfConfigItem = (
+const buildMessage = (
   configItem: KungfuApi.KfConfigItem,
-  dafultValue: KungfuApi.KfConfigValue | undefined,
+  isUpdate: boolean,
+  key: string,
+): string => {
+  const action = isUpdate ? 'Update' : 'Enter';
+  const tip = configItem.tip ? `(${t(`${configItem.tip}`)})` : '';
+  return `${action} ${key} ${renderSelect(configItem)} ${tip}`;
+};
+
+const getInstrumentChoicesAndMap = () => {
+  const instrumentMap: Record<string, string> = {};
+  if (!fse.pathExistsSync(KF_INSTRUMENTS_PATH)) {
+    return { availableInstruments: [], instrumentMap };
+  }
+  try {
+    const instruments = fse.readJSONSync(KF_INSTRUMENTS_PATH);
+    if (!instruments) return { availableInstruments: [], instrumentMap };
+    const availableInstruments = Object.keys(instruments).map((key) => {
+      const item = instruments[key];
+      instrumentMap[
+        `${ExchangeIds[item.exchangeId].name} ${item.instrumentId} ${
+          item.instrumentName
+        }`
+      ] = `${item.exchangeId}_${item.instrumentId}_${item.instrumentType}_${item.ukey}_${item.instrumentName}`;
+      return `${ExchangeIds[item.exchangeId].name} ${item.instrumentId} ${
+        item.instrumentName
+      }`;
+    });
+    return { availableInstruments, instrumentMap };
+  } catch (error) {
+    return { availableInstruments: [], instrumentMap };
+  }
+};
+
+export const buildQuestionByKfConfigItem = async (
+  configItem: KungfuApi.KfConfigItem,
+  defaultValue: KungfuApi.KfConfigValue | undefined,
   isUpdate = false,
+  lastValidate?: (value: KungfuApi.KfConfigValue) => Promise<true | Error>,
 ) => {
   const { key, type } = configItem;
   const targetType = getQuestionInputType(type);
-  const questions: PromptQuestion = {
-    type: targetType,
-    name: key,
-    choices:
-      targetType === 'list'
-        ? (configItem.options || configItem.data || []).map(
-            (item) => item.value,
-          )
-        : [],
-    message: `${isUpdate ? 'Update' : 'Enter'} ${key} ${renderSelect(
-      configItem,
-    )} ${configItem.tip ? '(' + configItem.tip + ')' : ''}`,
+  const validateList: ((
+    value: KungfuApi.KfConfigValue,
+  ) => Promise<true | Error>)[] = [];
 
-    validate: async (value: KungfuApi.KfConfigValue) => {
-      if (configItem.required && value.toString() === '') {
-        return new Error('Required');
+  validateList.push(async (value) => {
+    if (configItem.required && value.toString() === '') {
+      return new Error('Required');
+    }
+
+    if (configItem.primary) {
+      if (SpecialWordsReg.test(value)) {
+        return new Error(t('validate.no_special_characters'));
       }
+    }
 
-      if (configItem.primary) {
-        if (SpecialWordsReg.test(value)) {
-          return new Error(
-            'Cannot contain special characters or Chinese characters, and cannot start or end with - characters',
-          );
-        }
-      }
-
-      if ((isUpdate && configItem.primary) || configItem.disabled) {
-        if (value !== dafultValue) {
-          return new Error("This value can't change");
-        }
-
-        return true;
+    if ((isUpdate && configItem.primary) || configItem.disabled) {
+      if (value !== defaultValue) {
+        return new Error(t('validate.default_value_tip'));
       }
 
       return true;
-    },
+    }
 
-    filter: (value: KungfuApi.KfConfigValue) => {
-      return targetType === 'number' && isNaN(value) ? 0 : value;
-    },
+    return true;
+  });
 
-    ...(targetType === 'path' ? { cwd: process.cwd().toString() } : {}),
+  const baseQuestion: PromptQuestion = {
+    type: targetType,
+    name: key,
+    message: buildMessage(configItem, isUpdate, key),
+    validate: async (value: KungfuApi.KfConfigValue) => {
+      for (const validate of validateList) {
+        const res = await validate(value);
+        if (res !== true) return res;
+      }
+      return true;
+    },
+    ...(targetType === 'path'
+      ? { cwd: configItem.default || defaultValue || process.cwd().toString() }
+      : {}),
+    choices: (configItem.options || configItem.data || []).map(
+      (item) => item.value,
+    ),
+    filter: (value: KungfuApi.KfConfigValue) =>
+      targetType === 'number' && isNaN(value) ? 0 : value,
   };
 
-  if (dafultValue !== undefined && dafultValue !== '' && dafultValue !== 0) {
-    questions.default = dafultValue;
+  switch (type) {
+    case 'multiSelect': {
+      baseQuestion.pageSize = 10;
+      baseQuestion.highlight = true;
+      baseQuestion.searchable = true;
+      baseQuestion.source = function (_, input = '') {
+        return new Promise((resolve) => {
+          const results = (configItem.options || configItem.data || [])
+            .map((item) => item.value)
+            .filter((item) =>
+              item
+                .toString()
+                .toLocaleLowerCase()
+                .includes(input.toLocaleLowerCase()),
+            );
+          resolve(results as string[]);
+        });
+      };
+      break;
+    }
+    case 'instrument':
+    case 'instruments': {
+      const { availableInstruments, instrumentMap } =
+        getInstrumentChoicesAndMap();
+
+      baseQuestion.pageSize = 10;
+      baseQuestion.highlight = true;
+      baseQuestion.searchable = true;
+      baseQuestion.message = `Select ${type}`;
+      baseQuestion.source = function (_, input = '') {
+        return new Promise((resolve) => {
+          const results = availableInstruments.filter((item) =>
+            item.toLocaleLowerCase().includes(input.toLocaleLowerCase()),
+          );
+          resolve(results);
+        });
+      };
+
+      if (type === 'instrument') {
+        baseQuestion.filter = (value: KungfuApi.KfConfigValue) => {
+          if (!value) return defaultValue || value;
+          return instrumentMap[value];
+        };
+      } else {
+        baseQuestion.filter = (value: KungfuApi.KfConfigValue) => {
+          if (!value.length) return defaultValue || value;
+          return value.map((item) => instrumentMap[item]);
+        };
+      }
+      break;
+    }
+    case 'percent': {
+      validateList.push(async function (value) {
+        const numValue = parseFloat(value);
+        const isValid = numValue >= 0 && numValue <= 100;
+        return (
+          isValid || new Error('Please enter a valid number between 0 and 100.')
+        );
+      });
+      baseQuestion.filter = function (value) {
+        return `${parseFloat(value)}%`;
+      };
+      break;
+    }
+    case 'directory': {
+      validateList.push(async function (value) {
+        const exists = await fse.pathExists(value);
+        if (!exists) {
+          return new Error(value);
+        }
+
+        const stats = await fse.stat(value);
+        const isDir = stats.isDirectory();
+        return isDir || new Error(t('请输入一个目录'));
+      });
+      break;
+    }
+    case 'file': {
+      validateList.push(async function (value) {
+        const exists = await fse.pathExists(value);
+        if (!exists) {
+          return new Error(t('文件路径不存在'));
+        }
+
+        const stats = await fse.stat(value);
+        const isFile = stats.isFile();
+        return isFile || new Error(t('请输入文件路径'));
+      });
+      break;
+    }
+    case 'folder': {
+      validateList.push(async function (value) {
+        const exists = await fse.pathExists(value);
+        if (!exists) {
+          return new Error(t('文件路径不存在'));
+        }
+
+        const stats = await fse.stat(value);
+        const isDir = stats.isDirectory();
+        return isDir || new Error(t('请输入文件夹路径'));
+      });
+      break;
+    }
+    case 'md': {
+      const { md } = await getAllKfConfigOriginData();
+      if (md) {
+        baseQuestion.choices = md.map((item: KungfuApi.KfConfig) =>
+          getIdByKfLocation(item),
+        );
+      }
+
+      break;
+    }
+    default: {
+      break;
+    }
   }
 
-  return questions;
+  if (lastValidate) {
+    validateList.push(lastValidate);
+  }
+
+  if (defaultValue) {
+    baseQuestion.default = defaultValue;
+  }
+  return baseQuestion;
 };
 
 export const trimAnswers = (answers: Record<string, string | number>) => {
@@ -244,8 +493,8 @@ export const getKfLocation = (
     case 'operator':
       return {
         category: 'operator',
-        group: (targetId || '').toKfGroup(),
-        name: (targetId || '').toKfName(),
+        group: 'default',
+        name: targetId,
         mode: 'live',
       };
     case 'strategy':
@@ -263,9 +512,9 @@ export const getKfLocation = (
 export const selectTargetKfConfig = async (
   noMd = false,
 ): Promise<KungfuApi.KfConfig | null> => {
-  const { md, td, strategy } = await getAllKfConfigOriginData();
+  const { md, td, strategy, operator } = await getAllKfConfigOriginData();
 
-  const mdTdStrategyList = [
+  const mdTdStrategyOperatorList = [
     ...(noMd
       ? []
       : md.map((item) =>
@@ -289,16 +538,23 @@ export const selectTargetKfConfig = async (
         1,
       ),
     ),
+    ...operator.map((item) =>
+      parseToString(
+        [colors.green('operator'), getIdByKfLocation(item)],
+        [8, 'auto'],
+        1,
+      ),
+    ),
   ];
 
   const answers: { process: string } = await inquirer.prompt([
     {
       type: 'autocomplete',
       name: 'process',
-      message: 'Select targeted md / td / strategy  ',
-      source: async (_answersSoFar: { process: string }, input: string) => {
+      message: 'Select targeted md / td / strategy / operator  ',
+      source: async (answersSoFar: { process: string }, input: string) => {
         input = input || '';
-        return mdTdStrategyList.filter((s: string): boolean =>
+        return mdTdStrategyOperatorList.filter((s: string): boolean =>
           s.includes(input),
         );
       },
@@ -306,13 +562,14 @@ export const selectTargetKfConfig = async (
   ]);
 
   const processes = answers.process;
+
   const splits = processes.split(' ');
   const targetType = splits[0].trim();
   const targetId = splits[splits.length - 1].trim();
   const type = getKfCategoryFromString(targetType);
   const kfLocation = getKfLocation(type, targetId);
   const processId = getProcessIdByKfLocation(kfLocation);
-  const searchList = [...md, ...td, ...strategy];
+  const searchList = [...md, ...td, ...strategy, ...operator];
   const targetIndex = searchList.findIndex((item: KungfuApi.KfConfig) => {
     const id = getProcessIdByKfLocation(item);
     if (id === processId) {

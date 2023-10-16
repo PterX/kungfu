@@ -403,6 +403,7 @@ export default {
     beyond_to_open: 'Take excess to open',
     reach: 'Reach',
     above: 'Above',
+    hide_next_time: 'Hide next time',
   },
 
   orderConfig: {
@@ -561,6 +562,7 @@ export default {
   operatorConfig: {
     operator: 'operator',
     operator_id: 'operator_id',
+    operator_ext: 'operator_ext',
     operator_file: 'operator_file',
     operator_path: 'operator_path',
     operator_path_tip:
@@ -693,6 +695,22 @@ export default {
 
     selete_msg_type: 'Filter MsgType',
     empty_export_data: 'No information to export',
+
+    entry_visualization: 'Entry visualization',
+    quit_visualization: 'Entry visualization',
+    strategy_id: 'Strategy ID',
+    quote_legend: 'Quote',
+    order_input_legend: 'OrderInput',
+    order_legend: 'Order',
+    cancel_order_legend: 'OrderAction',
+    search_order_id: 'Please search for order id',
+    search_instrument: 'Please search for code number',
+    search_order_id_error:
+      'The order number you searched for does not exist. Please check if it is the selected target',
+    buy_open: 'Buy to open',
+    buy_close: 'Buy to close',
+    sell_open: 'Sell to open',
+    sell_close: 'Sell to close',
   },
 
   tradeConfig: {
@@ -783,7 +801,7 @@ export default {
 
     bypass_subscribe_position: 'Skip position market subscription',
     bypass_subscribe_position_desc:
-      'After opening, it will no longer default to subscribing to the market updates of trading account positions, and the trading account list will no longer display floating profits and losses. The market value related fields will be calculated using the average opening price. After opening, it can reduce the machine performance burden, and will take effect after restarting',
+      'After opening, it will no longer subscribe by default to the market updates for positions in the trading account, and the trading account list will no longer display floating profits and losses. Market value related fields are calculated using the average opening price. Activating this feature can reduce the machine performance burden and will take effect after restarting.',
     porformance: 'Performance',
     rocket_model: 'Open Rocket Model',
     rocket_model_desc:
@@ -823,6 +841,9 @@ export default {
     limit_value: 'Maximum',
     asset_margin: 'AssetMargin',
     show_asset_margin: 'AssetMargin Mode',
+    skip_confirm_make_order: 'Skip Confirm Make Order',
+    set_skip_confirm_make_order:
+      'After enabling, when placing an order manually, the secondary confirmation popup will no longer appear, and the order will be executed directly.',
 
     code_editor: 'Editor',
     tab_space_type: 'Indentation Category',
@@ -860,7 +881,9 @@ export default {
     current_version: 'Current version',
     already_latest_version: 'Already latest version',
     new_version: 'New version',
+    skip_version: 'Skip version',
     retry_check: 'Check',
+    has_skipped: 'Has skipped the version',
     start_download: 'Start Download',
     retry_download: 'Retry',
     find_new_version: 'Found new version: {version}\nIf you want download now?',
@@ -880,6 +903,7 @@ export default {
     value_existing: '{value} has been in existence',
     mandatory: 'mandatory',
     resolved_tip: 'Success resolved {success} {value}, failed {fail}',
+    default_value_tip: 'This value can not change',
   },
 
   editor: {
@@ -887,9 +911,11 @@ export default {
     current_strategy: 'Current strategy',
     new_file: 'New File',
     new_folder: 'New Folder',
+    open_folder: 'Open Folder',
     set_strategy_success: 'Strategy {file} file path changed successfully',
     entry_file: 'Entry File',
     creaate_success: '{file} created successfully',
+    illegal_file_name: 'Illegal file name',
 
     name_repeat:
       'This location already exists file or folder {name}, please select a different name',
@@ -960,6 +986,9 @@ export default {
   错误: 'error',
   文件路径不存在: 'The file path does not exist',
   策略id不存在: 'The strategy id does not exist',
+  请输入文件路径: 'Please enter the file path',
+  请输入文件夹路径: 'Please enter the folder path',
+  请输入一个目录: 'Please enter a directory',
 
   可用仓位: 'Avail Pos',
   可用资金: 'Avail Asset',

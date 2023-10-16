@@ -400,6 +400,7 @@ export default {
     beyond_to_open: '超出部分反向开仓',
     reach: '达到',
     above: '超过',
+    hide_next_time: '下次不再提示',
   },
 
   orderConfig: {
@@ -554,6 +555,7 @@ export default {
   operatorConfig: {
     operator: '算子',
     operator_id: '算子 ID',
+    operator_ext: '算子插件',
     operator_file: '算子文件',
     operator_path: '算子路径',
     operator_path_tip:
@@ -699,6 +701,21 @@ export default {
 
     selete_msg_type: '过滤消息类型',
     empty_export_data: '没有可导出的信息',
+
+    entry_visualization: '进入可视化',
+    quit_visualization: '退出可视化',
+    strategy_id: '策略id',
+    quote_legend: '行情订阅',
+    order_input_legend: '委托',
+    order_legend: '委托回报',
+    cancel_order_legend: '撤单',
+    search_order_id: '请搜索订单号',
+    search_instrument: '请搜索代码号',
+    search_order_id_error: '您搜索的订单号不存在, 请检查该订单号是否是所选标的',
+    buy_open: '买开',
+    buy_close: '买平',
+    sell_open: '卖开',
+    sell_close: '卖平',
   },
 
   tradeConfig: {
@@ -788,7 +805,7 @@ export default {
 
     bypass_subscribe_position: '跳过持仓行情订阅',
     bypass_subscribe_position_desc:
-      '打开后, 不再默认订阅交易账户持仓的行情更新, 且交易账户列表不再显示浮动盈亏, 市值相关字段使用开仓均价计算, 开启后可减轻机器性能负担, 重启后生效',
+      '打开后, 不再默认订阅交易账户持仓的行情更新, 浮动盈亏以及市值相关字段使用开仓均价计算, 开启后可减轻机器性能负担, 重启后生效',
     porformance: '性能',
     rocket_model: '开启极速模式',
     rocket_model_desc:
@@ -826,6 +843,9 @@ export default {
     asset_margin: '两融',
     pos_table_columns: '持仓表格项配置',
     show_asset_margin: '展示两融',
+    skip_confirm_make_order: '跳过下单确认弹窗',
+    set_skip_confirm_make_order:
+      '开启后, 手动下单时不再弹出二次确认弹窗, 直接执行下单操作',
 
     code_editor: '代码编辑器',
     tab_space_type: '缩进类别',
@@ -862,7 +882,9 @@ export default {
     current_version: '当前版本',
     already_latest_version: '已是最新版本',
     new_version: '新版本',
+    skip_version: '跳过此版本',
     retry_check: '检测',
+    has_skipped: '已跳过此版本',
     start_download: '开始下载',
     retry_download: '重试',
     find_new_version: '发现新版本: {version}\n是否现在下载安装包? ',
@@ -881,6 +903,7 @@ export default {
     value_existing: '{value}已存在',
     mandatory: '该项为必填项',
     resolved_tip: '成功匹配 {success} 个{value}, 失败 {fail} 个',
+    default_value_tip: '默认值不能改变',
   },
 
   editor: {
@@ -888,9 +911,11 @@ export default {
     current_strategy: '当前策略',
     new_file: '新建文件',
     new_folder: '新建文件夹',
+    open_folder: '打开文件夹',
     set_strategy_success: '策略 {file} 文件路径修改成功!',
     entry_file: '入口文件',
     creaate_success: '{file} 创建成功!',
+    illegal_file_name: '文件名不合法',
 
     name_repeat: '此位置已存在文件或文件夹 {name}, 请选择其他名称!',
     empty_input: '必须提供文件或文件夹名称!',
@@ -951,6 +976,9 @@ export default {
   错误: '错误',
   文件路径不存在: '文件路径不存在',
   策略id不存在: '策略 id 不存在',
+  请输入文件路径: '请输入文件路径',
+  请输入文件夹路径: '请输入文件夹路径',
+  请输入一个目录: '请输入一个目录',
 
   可用仓位: '可用仓位',
   可用资金: '可用资金',

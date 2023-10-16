@@ -403,6 +403,7 @@ export default {
     beyond_to_open: 'Take excess to open',
     reach: 'Reach',
     above: 'Above',
+    hide_next_time: 'Hide next time',
   },
 
   orderConfig: {
@@ -561,6 +562,7 @@ export default {
   operatorConfig: {
     operator: 'operator',
     operator_id: 'operator_id',
+    operator_ext: 'operator_ext',
     operator_file: 'operator_file',
     operator_path: 'operator_path',
     operator_path_tip:
@@ -839,6 +841,9 @@ export default {
     limit_value: 'Maximum',
     asset_margin: 'AssetMargin',
     show_asset_margin: 'AssetMargin Mode',
+    skip_confirm_make_order: 'Skip Confirm Make Order',
+    set_skip_confirm_make_order:
+      'After enabling, when placing an order manually, the secondary confirmation popup will no longer appear, and the order will be executed directly.',
 
     code_editor: 'Editor',
     tab_space_type: 'Indentation Category',
@@ -898,6 +903,7 @@ export default {
     value_existing: '{value} has been in existence',
     mandatory: 'mandatory',
     resolved_tip: 'Success resolved {success} {value}, failed {fail}',
+    default_value_tip: 'This value can not change',
   },
 
   editor: {
@@ -980,6 +986,9 @@ export default {
   错误: 'error',
   文件路径不存在: 'The file path does not exist',
   策略id不存在: 'The strategy id does not exist',
+  请输入文件路径: 'Please enter the file path',
+  请输入文件夹路径: 'Please enter the folder path',
+  请输入一个目录: 'Please enter a directory',
 
   可用仓位: 'Avail Pos',
   可用资金: 'Avail Asset',

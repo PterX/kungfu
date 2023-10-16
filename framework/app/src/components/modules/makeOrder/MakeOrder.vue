@@ -288,7 +288,10 @@ watch(
 watch(
   () => formState.value,
   (newVal) => {
-    const { account_id, instrument, volume, side, offset } = newVal;
+    let { account_id, instrument, volume, side, offset } = newVal;
+    if (![SideEnum.Buy, SideEnum.Sell].includes(side)) {
+      side = undefined;
+    }
     useGlobalStore().setGlobalFormState({
       account_id,
       instrument,
@@ -498,13 +501,14 @@ async function confirmOrderPlace(
       new Error(t('tradingConfig.start_process', { process: tdProcessId })),
     );
   }
+  if (!globalSetting.value?.trade?.skipConfirmMakeOrder) {
+    const flag = await confirmModal(
+      t('tradingConfig.place_confirm'),
+      dealOrderPlaceVNode(makeOrderInput, orderCount, false),
+    );
 
-  const flag = await confirmModal(
-    t('tradingConfig.place_confirm'),
-    dealOrderPlaceVNode(makeOrderInput, orderCount, false),
-  );
-
-  if (!flag) return Promise.resolve('');
+    if (!flag) return Promise.resolve('');
+  }
 
   return Promise.resolve(tdProcessId);
 }

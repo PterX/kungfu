@@ -271,11 +271,7 @@ export const processListObservable = () =>
           name: item.name,
           value: JSON.parse(item.value || '{}'),
           status: processStatus[processId] || '--',
-          statusName: dealStatus(
-            processStatus[processId]
-              ? appStates[processId] || processStatus[processId] || '--'
-              : '--',
-          ),
+          statusName: dealStatus(processStatus[processId] || '--'),
           monit: processStatusWithDetail[processId]?.monit,
         };
       });

@@ -2,6 +2,7 @@ const { parseByCli } = require('../utils');
 
 const subcommands = [
   'build',
+  'package',
   'clean',
   'compile',
   'configure',

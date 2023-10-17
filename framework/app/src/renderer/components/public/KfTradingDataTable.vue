@@ -310,6 +310,14 @@ function handleSelectAll(isChecked: boolean) {
   const allUnSelected = Object.assign({}, allRowKeyFieldFalse);
   const allRowsMap = Object.assign({}, toRaw(dataSourceMap.value));
 
+  Object.keys(props.selection).forEach((key) => {
+    if (props.selection[key].disabled) {
+      delete allSelected[key];
+      delete allUnSelected[key];
+      delete allRowsMap[key];
+    }
+  });
+
   selectedRowKeyFieldValues.value = isChecked ? allSelected : allUnSelected;
   selectedRowsMap.value = isChecked ? allRowsMap : {};
 }
@@ -319,7 +327,10 @@ watch(
   (val) => {
     if (!props.selectable) return;
 
-    const allRowLength = props.dataSource.length;
+    const disabledRowLength = Object.values(props.selection).filter(
+      (item) => item.disabled,
+    ).length;
+    const allRowLength = props.dataSource.length - disabledRowLength;
     if (!allRowLength) return;
 
     const selectedRowLength = Object.values(val).filter((item) => item).length;

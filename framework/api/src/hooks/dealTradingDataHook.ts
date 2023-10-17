@@ -201,7 +201,7 @@ export class DealTradingDataHooks {
               }
             }
             // eslint-disable-next-line
-            return (key: string) => DefaultUnkownDealTrdaingDataHook;
+            return (_key: string) => DefaultUnkownDealTrdaingDataHook;
           };
 
           return findMatchingKey();

@@ -312,9 +312,10 @@ function handleSelectAll(isChecked: boolean) {
 
   Object.keys(props.selection).forEach((key) => {
     if (props.selection[key].disabled) {
-      delete allSelected[key];
-      delete allUnSelected[key];
-      delete allRowsMap[key];
+      const curSelectState = selectedRowKeyFieldValues.value[key];
+      allSelected[key] = curSelectState;
+      allUnSelected[key] = curSelectState;
+      if (!curSelectState) delete allRowsMap[key];
     }
   });
 
@@ -333,7 +334,9 @@ watch(
     const allRowLength = props.dataSource.length - disabledRowLength;
     if (!allRowLength) return;
 
-    const selectedRowLength = Object.values(val).filter((item) => item).length;
+    const selectedRowLength = Object.keys(val).filter(
+      (key) => !props.selection[key]?.disabled && val[key],
+    ).length;
 
     selectAllIndeterminate.value =
       !!selectedRowLength && selectedRowLength < allRowLength;

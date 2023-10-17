@@ -189,7 +189,7 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
       {
         key: 'skipConfirmMakeOrder',
         name: t('globalSettingConfig.skip_confirm_make_order'),
-        tip: t('globalSettingConfig.skip_confirm_make_order'),
+        tip: t('globalSettingConfig.set_skip_confirm_make_order'),
         default: false,
         type: 'bool',
         for: 'ui',

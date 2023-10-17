@@ -569,6 +569,7 @@ export default {
   operatorConfig: {
     operator: 'operator',
     operator_id: 'operator_id',
+    operator_ext: 'operator_ext',
     operator_file: 'operator_file',
     operator_path: 'operator_path',
     operator_path_tip:
@@ -851,6 +852,8 @@ export default {
     margin_trading: 'MarginTrading',
     show_margin_trading: 'MarginTrading Mode',
     skip_confirm_make_order: 'Skip Confirm Make Order',
+    set_skip_confirm_make_order:
+      'After enabling, when placing an order manually, the secondary confirmation popup will no longer appear, and the order will be executed directly.',
 
     code_editor: 'Editor',
     tab_space_type: 'Indentation Category',

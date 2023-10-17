@@ -30,7 +30,7 @@ export class ResetOptionHook<Method, ValueType> {
               }
             }
             return (
-              kfLocation: KungfuApi.DerivedKfLocation,
+              _kfLocation: KungfuApi.DerivedKfLocation,
               value: ValueType,
             ) => Promise.resolve(value);
           };

@@ -144,7 +144,17 @@ export const specificProcessListObserver = (kfLocation: KungfuApi.KfConfig) =>
           name: item.name,
           value: JSON.parse(item.value || '{}'),
           status: processStatus[processId] || '--',
-          statusName: dealStatus(processStatus[processId] || '--'),
+          statusName:
+            getProcessStatus(
+              {
+                category: item.category,
+                group: item.group,
+                name: item.name,
+                mode: item.mode,
+              },
+              processStatus,
+              appStates,
+            ) || '--',
           monit: processStatusWithDetail[processId]?.monit,
           script: item.script,
           cwd: item.cwd,
@@ -175,7 +185,17 @@ export const specificProcessListObserver = (kfLocation: KungfuApi.KfConfig) =>
           name: masterLocation.name,
           value: {},
           status: processStatus[masterProcessId] || '--',
-          statusName: dealStatus(processStatus[masterProcessId] || '--'),
+          statusName:
+            getProcessStatus(
+              {
+                category: 'system',
+                group: 'master',
+                name: 'master',
+                mode: 'live',
+              },
+              processStatus,
+              appStates,
+            ) || '--',
           monit: processStatusWithDetail[masterProcessId]?.monit,
         },
         {
@@ -187,7 +207,17 @@ export const specificProcessListObserver = (kfLocation: KungfuApi.KfConfig) =>
           name: ledgerLocation.name,
           value: {},
           status: processStatus[ledgerProcessId] || '--',
-          statusName: dealStatus(processStatus[ledgerProcessId] || '--'),
+          statusName:
+            getProcessStatus(
+              {
+                category: 'system',
+                group: 'service',
+                name: 'ledger',
+                mode: 'live',
+              },
+              processStatus,
+              appStates,
+            ) || '--',
           monit: processStatusWithDetail[ledgerProcessId]?.monit,
         },
         {
@@ -200,6 +230,7 @@ export const specificProcessListObserver = (kfLocation: KungfuApi.KfConfig) =>
           value: {},
           status: processStatus['dzxy'] || '--',
           statusName: dealStatus(processStatus['dzxy'] || '--'),
+
           monit: processStatusWithDetail['dzxy']?.monit,
         },
         ...extServiceList,
@@ -212,7 +243,8 @@ export const specificProcessListObserver = (kfLocation: KungfuApi.KfConfig) =>
           name: kfLocation.name,
           value: JSON.parse(kfLocation.value || '{}'),
           status: processStatus[processId] || '--',
-          statusName: getProcessStatus(kfLocation, processStatus, appStates),
+          statusName:
+            getProcessStatus(kfLocation, processStatus, appStates) || '--',
           monit: processStatusWithDetail[processId]?.monit,
         },
       ];
@@ -255,11 +287,7 @@ export const processListObservable = () =>
           name: item.name,
           value: JSON.parse(item.value || '{}'),
           status: processStatus[processId] || '--',
-          statusName: dealStatus(
-            processStatus[processId]
-              ? appStates[processId] || processStatus[processId] || '--'
-              : '--',
-          ),
+          statusName: getProcessStatus(item, processStatus, appStates) || '--',
           monit: processStatusWithDetail[processId]?.monit,
         };
       });
@@ -271,6 +299,7 @@ export const processListObservable = () =>
           globalThis.HookKeeper.getHooks().prefix.trigger(item);
         const prefix =
           prefixProps.prefixType === 'text' ? prefixProps.prefix : '';
+
         return {
           processId,
           processName: prefix + processName,
@@ -280,11 +309,7 @@ export const processListObservable = () =>
           name: item.name,
           value: JSON.parse(item.value || '{}'),
           status: processStatus[processId] || '--',
-          statusName: dealStatus(
-            processStatus[processId]
-              ? appStates[processId] || processStatus[processId] || '--'
-              : '--',
-          ),
+          statusName: getProcessStatus(item, processStatus, appStates) || '--',
           monit: processStatusWithDetail[processId]?.monit,
         };
       });
@@ -305,11 +330,7 @@ export const processListObservable = () =>
           name: item.name,
           value: JSON.parse(item.value || '{}'),
           status: processStatus[processId] || '--',
-          statusName: dealStatus(
-            processStatus[processId]
-              ? appStates[processId] || processStatus[processId] || '--'
-              : '--',
-          ),
+          statusName: getProcessStatus(item, processStatus, appStates) || '--',
           monit: processStatusWithDetail[processId]?.monit,
         };
       });
@@ -330,7 +351,7 @@ export const processListObservable = () =>
           name: item.name,
           value: JSON.parse(item.value || '{}'),
           status: processStatus[processId] || '--',
-          statusName: dealStatus(processStatus[processId] || '--'),
+          statusName: getProcessStatus(item, processStatus, appStates) || '--',
           monit: processStatusWithDetail[processId]?.monit,
         };
       });
@@ -350,7 +371,7 @@ export const processListObservable = () =>
           name: item.name,
           value: JSON.parse(item.value || '{}'),
           status: processStatus[processId] || '--',
-          statusName: dealStatus(processStatus[processId] || '--'),
+          statusName: getProcessStatus(item, processStatus, appStates) || '--',
           monit: processStatusWithDetail[processId]?.monit,
           script: item.script,
           cwd: item.cwd,
@@ -375,7 +396,17 @@ export const processListObservable = () =>
           name: item.name?.toKfName() || '',
           value: '',
           status: item.status || '--',
-          statusName: dealStatus(item.status || '--'),
+          statusName:
+            getProcessStatus(
+              {
+                category: 'strategy',
+                group: item.name?.toKfGroup() || '',
+                name: item.name?.toKfName() || '',
+                mode: 'live',
+              },
+              processStatus,
+              appStates,
+            ) || '--',
           monit: item.monit,
           script: item.script,
           cwd: item.cwd,
@@ -429,7 +460,17 @@ export const processListObservable = () =>
           name: masterLocation.name,
           value: {},
           status: processStatus[masterProcessId] || '--',
-          statusName: dealStatus(processStatus[masterProcessId] || '--'),
+          statusName:
+            getProcessStatus(
+              {
+                category: 'system',
+                group: 'master',
+                name: 'master',
+                mode: 'live',
+              },
+              processStatus,
+              appStates,
+            ) || '--',
           monit: processStatusWithDetail[masterProcessId]?.monit,
         },
         {
@@ -441,7 +482,17 @@ export const processListObservable = () =>
           name: ledgerLocation.name,
           value: {},
           status: processStatus[ledgerProcessId] || '--',
-          statusName: dealStatus(processStatus[ledgerProcessId] || '--'),
+          statusName:
+            getProcessStatus(
+              {
+                category: 'system',
+                group: 'service',
+                name: 'ledger',
+                mode: 'live',
+              },
+              processStatus,
+              appStates,
+            ) || '--',
           monit: processStatusWithDetail[ledgerProcessId]?.monit,
         },
         {

@@ -117,7 +117,7 @@ export const categoryRegisterConfig: DealTradingDataGetter = {
     color: 'pink',
   },
   order: {
-    getter(watcher, orders, kfLocation) {
+    getter(_watcher, orders, kfLocation) {
       const { group, name } = kfLocation;
       return orders
         .filter('exchange_id', group)
@@ -126,7 +126,7 @@ export const categoryRegisterConfig: DealTradingDataGetter = {
     },
   },
   trade: {
-    getter(watcher, trades, kfLocation) {
+    getter(_watcher, trades, kfLocation) {
       const { group, name } = kfLocation;
       return trades
         .filter('exchange_id', group)
@@ -135,7 +135,7 @@ export const categoryRegisterConfig: DealTradingDataGetter = {
     },
   },
   position: {
-    getter(watcher, position, kfLocation) {
+    getter(_watcher, position, kfLocation) {
       const { group, name, direction } =
         kfLocation as KungfuApi.KfExtraLocation;
       return position

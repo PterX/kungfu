@@ -140,7 +140,7 @@ const DefaultUnkownDealTrdaingDataHook = {
   order: {
     getter: (
       // eslint-disable-next-line
-      ...args: [
+      ..._args: [
         watcher: KungfuApi.Watcher,
         orders: KungfuApi.DataTable<KungfuApi.Order>,
         kfLocation: KungfuApi.KfLocation,
@@ -151,7 +151,7 @@ const DefaultUnkownDealTrdaingDataHook = {
   trade: {
     getter: (
       // eslint-disable-next-line
-      ...args: [
+      ..._args: [
         watcher: KungfuApi.Watcher,
         trades: KungfuApi.DataTable<KungfuApi.Trade>,
         kfLocation: KungfuApi.KfLocation,
@@ -162,7 +162,7 @@ const DefaultUnkownDealTrdaingDataHook = {
   position: {
     getter: (
       // eslint-disable-next-line
-      ...args: [
+      ..._args: [
         watcher: KungfuApi.Watcher,
         positions: KungfuApi.DataTable<KungfuApi.Position>,
         kfLocation: KungfuApi.KfLocation,
@@ -201,7 +201,7 @@ export class DealTradingDataHooks {
               }
             }
             // eslint-disable-next-line
-            return (key: string) => DefaultUnkownDealTrdaingDataHook;
+            return (_key: string) => DefaultUnkownDealTrdaingDataHook;
           };
 
           return findMatchingKey();

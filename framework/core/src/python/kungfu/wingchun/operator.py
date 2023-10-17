@@ -41,6 +41,7 @@ class Operator(wc.Operator):
 
     def __init_operator(self, path):
         operator_dir = os.path.dirname(path)
+        sys.path.insert(0, operator_dir)
         name_no_ext = os.path.split(os.path.basename(path))
         sys.path.insert(0, os.path.relpath(operator_dir))
         module_name = os.path.splitext(name_no_ext[1])[0]

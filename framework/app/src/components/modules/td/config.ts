@@ -137,7 +137,7 @@ export const categoryRegisterConfig: DealTradingDataGetter = {
     color: '#FAAD14',
   },
   order: {
-    getter(watcher, orders, kfLocation: KungfuApi.KfExtraLocation) {
+    getter(_watcher, orders, kfLocation: KungfuApi.KfExtraLocation) {
       const { children } = kfLocation;
       const tdList = (children || []) as KungfuApi.KfConfig[];
       const locationUids = tdList.map((item) => item.location_uid);
@@ -147,7 +147,7 @@ export const categoryRegisterConfig: DealTradingDataGetter = {
     },
   },
   trade: {
-    getter(watcher, trades, kfLocation: KungfuApi.KfExtraLocation) {
+    getter(_watcher, trades, kfLocation: KungfuApi.KfExtraLocation) {
       const { children } = kfLocation;
       const tdList = (children || []) as KungfuApi.KfConfig[];
       const locationUids = tdList.map((item) => item.location_uid);
@@ -157,7 +157,7 @@ export const categoryRegisterConfig: DealTradingDataGetter = {
     },
   },
   position: {
-    getter(watcher, position, kfLocation: KungfuApi.KfExtraLocation) {
+    getter(_watcher, position, kfLocation: KungfuApi.KfExtraLocation) {
       const { children } = kfLocation;
       const tdList = (children || []) as KungfuApi.KfConfig[];
       const locationUids = tdList.map((item) => item.location_uid);

@@ -9,7 +9,7 @@ import { getProcessIdByKfLocation } from '@kungfu-trader/kungfu-js-api/utils/com
 
 export function bindIPCListener(store) {
   ipcRenderer.removeAllListeners('ipc-emit-strategyList');
-  ipcRenderer.on('ipc-emit-strategyList', (event, { childWinId }) => {
+  ipcRenderer.on('ipc-emit-strategyList', (_event, { childWinId }) => {
     const childWin = BrowserWindow.fromId(childWinId);
     return new Promise(() => {
       if (childWin) {
@@ -19,7 +19,7 @@ export function bindIPCListener(store) {
   });
 
   ipcRenderer.removeAllListeners('ipc-emit-strategyStates');
-  ipcRenderer.on('ipc-emit-strategyStates', (event, { childWinId }) => {
+  ipcRenderer.on('ipc-emit-strategyStates', (_event, { childWinId }) => {
     const childWin = BrowserWindow.fromId(childWinId);
     return new Promise(() => {
       if (childWin) {

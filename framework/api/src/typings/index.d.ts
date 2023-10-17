@@ -939,6 +939,7 @@ declare namespace KungfuApi {
     lower_limit_price: number; //跌停板价
     close_price: number; //收盘价
     settlement_price: number; //结算价
+    iopv: number;
 
     bid_price: number[]; //申买价
     ask_price: number[]; //申卖价

@@ -33,6 +33,18 @@ public:
   uint32_t get_home_uid() const override;
 
   /**
+   * Get config from database.
+   * @return  config of current location_uid
+   */
+  const std::string get_config() const override;
+
+  /**
+   * Get static data.
+   * @return static data reference
+   */
+  const staticdata::StaticData &get_static_data() const override;
+
+  /**
    * Get current time in nano seconds.
    * @return current time in nano seconds
    */
@@ -366,6 +378,7 @@ private:
   };
   broker::PassiveClient broker_client_;
   book::Bookkeeper bookkeeper_;
+  staticdata::StaticData static_data_;
   Matcher_ptr matcher_;
   tool::SliceIndexer_ptr from_indexer_;
   tool::SliceTool_ptr slice_tool_;

@@ -20,14 +20,8 @@ using namespace kungfu::wingchun::book;
 
 namespace py = pybind11;
 
-PYBIND11_MAKE_OPAQUE(CommissionMap)
-PYBIND11_MAKE_OPAQUE(InstrumentMap)
-PYBIND11_MAKE_OPAQUE(PositionMap)
-PYBIND11_MAKE_OPAQUE(OrderInputMap)
-PYBIND11_MAKE_OPAQUE(OrderMap)
-PYBIND11_MAKE_OPAQUE(TradeMap)
-
 namespace kungfu::wingchun::pybind {
+
 class PyAccountingMethod : public AccountingMethod {
 public:
   using AccountingMethod::AccountingMethod;
@@ -54,14 +48,6 @@ public:
 };
 
 void bind_book(pybind11::module &m) {
-  py::bind_map<CommissionMap>(m, "CommissionMap");
-  py::bind_map<InstrumentMap>(m, "InstrumentMap");
-  py::bind_map<BasketMap>(m, "BasketMap");
-  py::bind_map<BasketInstrumentElement>(m, "BasketInstrumentElement");
-  py::bind_map<PositionMap>(m, "PositionMap");
-  py::bind_map<OrderInputMap>(m, "OrderInputMap");
-  py::bind_map<OrderMap>(m, "OrderMap");
-  py::bind_map<TradeMap>(m, "TradeMap");
 
   py::class_<Book, Book_ptr>(m, "Book")
       .def_readonly("asset", &Book::asset, py::return_value_policy::reference)
@@ -73,8 +59,6 @@ void bind_book(pybind11::module &m) {
       .def_property_readonly("instrument_factors", &Book::get_instrument_factors)
       .def_property_readonly("instruments", &Book::get_instruments)
       .def_property_readonly("commissions", &Book::get_commissions)
-      .def_property_readonly("baskets", &Book::get_baskets)
-      .def_property_readonly("basket_instruments", &Book::get_basket_instruments)
       .def("update", &Book::update)
       .def("has_long_position", py::overload_cast<const std::string &, const std::string &, const char *, const char *>(
                                     &Book::has_long_position, py::const_))
@@ -101,6 +85,8 @@ void bind_book(pybind11::module &m) {
       .def("has_book", &Bookkeeper::has_book)
       .def("get_book", &Bookkeeper::get_book)
       .def("get_books", &Bookkeeper::get_books)
-      .def("set_accounting_method", &Bookkeeper::set_accounting_method);
+      .def("set_accounting_method", &Bookkeeper::set_accounting_method)
+      .def_property_readonly("instruments", &Bookkeeper::get_instruments)
+      .def_property_readonly("commissions", &Bookkeeper::get_commissions);
 }
 } // namespace kungfu::wingchun::pybind

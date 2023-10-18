@@ -15,7 +15,7 @@ namespace kungfu::wingchun::book {
 // key = location_uid
 typedef std::unordered_map<uint32_t, Book_ptr> BookMap;
 
-typedef std::unordered_map<uint32_t, kungfu::state<longfist::types::Quote>> QuoteMap;
+typedef std::unordered_map<uint32_t, kungfu::state<longfist::types::Quote>> QuoteStateMap;
 
 typedef std::unordered_map<longfist::enums::InstrumentType, AccountingMethod_ptr> AccountingMethodMap;
 
@@ -65,11 +65,9 @@ public:
 
   longfist::enums::AccountingMethodType get_accounting_method_type() { return account_method_type_; }
 
-  InstrumentMap &get_instruments() { return instruments_; }
+  const map::InstrumentMap &get_instruments() const { return instruments_; }
 
-  BasketMap &get_baskets() { return baskets_; }
-
-  BasketInstrumentMap &get_basket_instruments() { return basket_instruments_; }
+  const map::CommissionMap &get_commissions() const { return commissions_; }
 
   std::mutex &get_update_book_mutex();
 
@@ -126,16 +124,14 @@ private:
   yijinjing::practice::apprentice &app_;
   broker::Client &broker_client_;
   const bool bypass_quote_;
-  QuoteMap quotes_;
+  QuoteStateMap quotes_;
 
   const longfist::enums::AccountingMethodType account_method_type_;
   std::mutex update_book_mutex_;
   bool positions_guarded_ = false;
-  CommissionMap commissions_ = {};
-  InstrumentMap instruments_ = {};
-  InstrumentFactorMap instrument_factors_ = {};
-  BasketMap baskets_ = {};
-  BasketInstrumentMap basket_instruments_ = {};
+  map::CommissionMap commissions_ = {};
+  map::InstrumentMap instruments_ = {};
+  map::InstrumentFactorMap instrument_factors_ = {};
   BookMap books_ = {};
   AccountingMethodMap accounting_methods_ = {};
   std::vector<BookListener_ptr> book_listeners_ = {};
@@ -148,10 +144,6 @@ private:
   void batch_update_book_by_quote();
 
   void update_instrument(const longfist::types::Instrument &instrument);
-
-  void update_basket(const longfist::types::Basket &basket);
-
-  void update_basket_instrument(const longfist::types::BasketInstrument &basket_instrument);
 
   void update_commission(const event_ptr &event, const longfist::types::Commission &commission);
 

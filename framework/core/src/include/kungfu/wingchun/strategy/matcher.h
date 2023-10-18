@@ -70,7 +70,6 @@ DECLARE_PTR(Matcher)
 class BasicMatcher : public Matcher {
 public:
   typedef std::unordered_map<uint64_t, longfist::types::Order> OrderMap;
-  // typedef std::unordered_map<longfist::types::InstrumentKey, longfist::types::Quote> QuoteMap;
   typedef std::unordered_map<uint32_t, longfist::types::Quote> QuoteMap;
 
   virtual void on_quote(const longfist::types::Quote &quote) override;

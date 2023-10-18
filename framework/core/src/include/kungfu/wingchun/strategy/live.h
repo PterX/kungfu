@@ -39,6 +39,18 @@ public:
   uint32_t get_live_home_uid() const;
 
   /**
+   * Get config from database.
+   * @return  config of current location_uid
+   */
+  const std::string get_config() const override;
+
+  /**
+   * Get static data.
+   * @return static data reference
+   */
+  const staticdata::StaticData &get_static_data() const override;
+
+  /**
    * Add one shot timer callback.
    * @param nanotime when to call in nano seconds
    * @param callback callback function
@@ -330,6 +342,7 @@ private:
 
   broker::PassiveClient broker_client_;
   book::Bookkeeper bookkeeper_;
+  staticdata::StaticData static_data_;
 };
 
 DECLARE_PTR(LiveContext)

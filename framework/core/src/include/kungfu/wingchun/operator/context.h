@@ -5,6 +5,7 @@
 
 #include <kungfu/longfist/longfist.h>
 #include <kungfu/wingchun/broker/client.h>
+#include <kungfu/wingchun/staticdata/staticdata.h>
 #include <kungfu/yijinjing/practice/apprentice.h>
 
 namespace kungfu::wingchun::op {
@@ -37,6 +38,19 @@ public:
    * @return  config of current location_uid
    */
   virtual const std::string get_config() const = 0;
+
+  /**
+   * Get arguments kfc run -a
+   * @return string of arguments
+   */
+
+  virtual std::string get_arguments() { return app_.get_arguments(); };
+
+  /**
+   * Get static data.
+   * @return static data reference
+   */
+  virtual const staticdata::StaticData &get_static_data() const = 0;
 
   /**
    * Add one shot timer callback.
@@ -109,13 +123,6 @@ public:
    * @param infos vector<string>, info_a, info_b, info_c.
    */
   virtual void update_operator_state(longfist::types::OperatorStateUpdate &state_update) {}
-
-  /**
-   * Get arguments kfc run -a
-   * @return string of arguments
-   */
-
-  virtual std::string get_arguments() { return app_.get_arguments(); };
 
   /**
    * Get broker client.

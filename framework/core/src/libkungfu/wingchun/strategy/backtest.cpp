@@ -27,8 +27,8 @@ namespace kungfu::wingchun::strategy {
 BacktestContext::BacktestContext(practice::apprentice &app, const rx::connectable_observable<event_ptr> &events,
                                  Matcher_ptr matcher, SliceIndexer_ptr from_indexer, SliceIndexer_ptr to_indexer,
                                  Report_ptr report, int64_t time_interval, std::string backtest_config)
-    : Context(app, events), broker_client_(app_), bookkeeper_(app_, broker_client_), matcher_(std::move(matcher)),
-      from_indexer_(from_indexer),
+    : Context(app, events), broker_client_(app_), bookkeeper_(app_, broker_client_), static_data_(app),
+      matcher_(std::move(matcher)), from_indexer_(from_indexer),
       slice_tool_(std::make_shared<SliceTool>(category::STRATEGY, app.get_home()->group, app.get_home()->name,
                                               std::move(to_indexer))),
       report_(std::move(report)), time_interval_(time_interval), backtest_config_(std::move(backtest_config)) {
@@ -36,7 +36,7 @@ BacktestContext::BacktestContext(practice::apprentice &app, const rx::connectabl
 }
 
 void BacktestContext::on_start() {
-  // broker_client_.on_start(events_);
+  static_data_.on_start(events_);
   if (not is_bypass_accounting()) {
     bookkeeper_.on_start(events_);
   }
@@ -418,4 +418,8 @@ uint64_t BacktestContext::get_order_id(const writer_ptr &writer, uint32_t dest) 
 }
 
 uint32_t BacktestContext::get_home_uid() const { return app_.get_home_uid(); }
+
+const std::string BacktestContext::get_config() const { return "{}"; }
+
+const staticdata::StaticData &BacktestContext::get_static_data() const { return static_data_; }
 } // namespace kungfu::wingchun::strategy

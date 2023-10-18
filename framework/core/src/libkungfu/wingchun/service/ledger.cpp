@@ -18,6 +18,7 @@ using namespace kungfu::longfist::types;
 using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::cache;
+using namespace kungfu::wingchun::map;
 
 #define DEFAULT_AVG_VALID_VALUE 10000.0
 
@@ -298,7 +299,7 @@ void Ledger::write_strategy_data(int64_t trigger_time, uint32_t strategy_uid) {
   writer->close_data();
 }
 
-void Ledger::write_positions(int64_t trigger_time, uint32_t dest, book::PositionMap &positions) {
+void Ledger::write_positions(int64_t trigger_time, uint32_t dest, PositionMap &positions) {
   auto writer = get_writer(dest);
   for (const auto &pair : positions) {
     writer->write_as(trigger_time, pair.second, get_live_home_uid(), pair.second.holder_uid);
@@ -306,7 +307,7 @@ void Ledger::write_positions(int64_t trigger_time, uint32_t dest, book::Position
 }
 
 void Ledger::write_instrument_factors(int64_t trigger_time, uint32_t dest,
-                                      const book::InstrumentFactorMap &instrument_factors) {
+                                      const InstrumentFactorMap &instrument_factors) {
   auto writer = get_writer(dest);
   for (const auto &pair : instrument_factors) {
     writer->write(trigger_time, pair.second);

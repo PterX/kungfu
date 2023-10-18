@@ -17,7 +17,11 @@ void bind(pybind11::module &&m);
 
 namespace kungfu::wingchun::pybind {
 
+void bind_map_types(pybind11::module &m);
+
 void bind_book(pybind11::module &m);
+
+void bind_staticdata(pybind11::module &m);
 
 void bind_broker(pybind11::module &m);
 

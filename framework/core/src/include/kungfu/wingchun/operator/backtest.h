@@ -40,6 +40,12 @@ public:
   const std::string get_config() const override;
 
   /**
+   * Get static data.
+   * @return static data reference
+   */
+  const staticdata::StaticData &get_static_data() const override;
+
+  /**
    * Add one shot timer callback.
    * @param nanotime when to call in nano seconds
    * @param callback callback function
@@ -159,6 +165,7 @@ private:
     TimerTask(int32_t id, std::function<void(event_ptr)> cb) : timer_id(id), call_back(std::move(cb)){};
   };
   broker::PassiveClient broker_client_;
+  staticdata::StaticData static_data_;
   tool::SliceIndexer_ptr from_indexer_;
   tool::SliceTool_ptr slice_tool_;
   tool::Report_ptr report_;

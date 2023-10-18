@@ -101,7 +101,7 @@ void bind_operator(pybind11::module &m) {
   py::class_<op::Context, std::shared_ptr<op::Context>>(m, "OpContext")
       .def_property_readonly("config", &op::Context::get_config, py::return_value_policy::reference)
       .def_property_readonly("arguments", &op::Context::get_arguments, py::return_value_policy::reference)
-      .def_property_readonly("static_data", &op::Context::get_static_data, py::return_value_policy::reference)
+      .def_property_readonly("bookkeeper", &op::Context::get_bookkeeper, py::return_value_policy::reference)
       .def("now", &op::Context::now)
       .def("is_started", &op::Context::is_started)
       .def("add_timer", &op::Context::add_timer)

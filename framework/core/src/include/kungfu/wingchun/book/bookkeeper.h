@@ -8,6 +8,7 @@
 #define WINGCHUN_BOOKKEEPER_H
 
 #include <kungfu/wingchun/book/accounting.h>
+#include <kungfu/wingchun/book/staticdata.h>
 #include <kungfu/wingchun/broker/client.h>
 #include <kungfu/yijinjing/practice/apprentice.h>
 
@@ -65,9 +66,7 @@ public:
 
   longfist::enums::AccountingMethodType get_accounting_method_type() { return account_method_type_; }
 
-  const map::InstrumentMap &get_instruments() const { return instruments_; }
-
-  const map::CommissionMap &get_commissions() const { return commissions_; }
+  const StaticData &get_static_data() const { return static_data_; }
 
   std::mutex &get_update_book_mutex();
 
@@ -123,15 +122,13 @@ public:
 private:
   yijinjing::practice::apprentice &app_;
   broker::Client &broker_client_;
+  book::StaticData static_data_;
   const bool bypass_quote_;
   QuoteStateMap quotes_;
 
   const longfist::enums::AccountingMethodType account_method_type_;
   std::mutex update_book_mutex_;
   bool positions_guarded_ = false;
-  map::CommissionMap commissions_ = {};
-  map::InstrumentMap instruments_ = {};
-  map::InstrumentFactorMap instrument_factors_ = {};
   BookMap books_ = {};
   AccountingMethodMap accounting_methods_ = {};
   std::vector<BookListener_ptr> book_listeners_ = {};
@@ -142,12 +139,6 @@ private:
   Book_ptr make_book(uint32_t location_uid);
 
   void batch_update_book_by_quote();
-
-  void update_instrument(const longfist::types::Instrument &instrument);
-
-  void update_commission(const event_ptr &event, const longfist::types::Commission &commission);
-
-  void update_instrument_factor(const longfist::types::InstrumentFactor &instrument_factor);
 
   void try_update_asset(const longfist::types::Asset &asset);
 

@@ -5,7 +5,7 @@
 #include <kungfu/wingchun/common.h>
 #include <kungfu/yijinjing/practice/apprentice.h>
 
-namespace kungfu::wingchun::staticdata {
+namespace kungfu::wingchun::book {
 
 class StaticData {
 public:
@@ -45,6 +45,6 @@ private:
 
   void replace(const longfist::types::InstrumentFactor &instrument_factor);
 };
-} // namespace kungfu::wingchun::staticdata
+} // namespace kungfu::wingchun::book
 
 #endif // WINGCHUN_STATIC_DATA_H

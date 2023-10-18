@@ -9,8 +9,8 @@
 
 #include <kungfu/longfist/longfist.h>
 #include <kungfu/wingchun/book/bookkeeper.h>
+#include <kungfu/wingchun/book/staticdata.h>
 #include <kungfu/wingchun/broker/client.h>
-#include <kungfu/wingchun/staticdata/staticdata.h>
 #include <kungfu/wingchun/strategy/strategy.h>
 #include <kungfu/yijinjing/practice/apprentice.h>
 
@@ -52,12 +52,6 @@ public:
    */
 
   virtual std::string get_arguments() { return app_.get_arguments(); };
-
-  /**
-   * Get static data.
-   * @return static data reference
-   */
-  virtual const staticdata::StaticData &get_static_data() const = 0;
 
   /**
    * Add one shot timer callback.

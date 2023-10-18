@@ -8,6 +8,7 @@
 #include <kungfu/wingchun/book/accounting.h>
 #include <kungfu/wingchun/book/book.h>
 #include <kungfu/wingchun/book/bookkeeper.h>
+#include <kungfu/wingchun/book/staticdata.h>
 
 using namespace kungfu::longfist;
 using namespace kungfu::longfist::types;
@@ -56,9 +57,6 @@ void bind_book(pybind11::module &m) {
       .def_readonly("order_inputs", &Book::order_inputs, py::return_value_policy::reference)
       .def_readonly("orders", &Book::orders, py::return_value_policy::reference)
       .def_readonly("trades", &Book::trades, py::return_value_policy::reference)
-      .def_property_readonly("instrument_factors", &Book::get_instrument_factors)
-      .def_property_readonly("instruments", &Book::get_instruments)
-      .def_property_readonly("commissions", &Book::get_commissions)
       .def("update", &Book::update)
       .def("has_long_position", py::overload_cast<const std::string &, const std::string &, const char *, const char *>(
                                     &Book::has_long_position, py::const_))
@@ -86,7 +84,13 @@ void bind_book(pybind11::module &m) {
       .def("get_book", &Bookkeeper::get_book)
       .def("get_books", &Bookkeeper::get_books)
       .def("set_accounting_method", &Bookkeeper::set_accounting_method)
-      .def_property_readonly("instruments", &Bookkeeper::get_instruments)
-      .def_property_readonly("commissions", &Bookkeeper::get_commissions);
+      .def_property_readonly("static_data", &Bookkeeper::get_static_data, py::return_value_policy::reference);
+
+  py::class_<StaticData, std::shared_ptr<StaticData>>(m, "StaticData")
+      .def_property_readonly("baskets", &StaticData::get_baskets)
+      .def_property_readonly("basket_instruments", &StaticData::get_basket_instruments)
+      .def_property_readonly("commissions", &StaticData::get_commissions)
+      .def_property_readonly("instruments", &StaticData::get_instruments)
+      .def_property_readonly("instrument_factors", &StaticData::get_instrument_factors);
 }
 } // namespace kungfu::wingchun::pybind

@@ -18,7 +18,7 @@ using namespace kungfu::yijinjing::util;
 
 namespace kungfu::wingchun::book {
 Bookkeeper::Bookkeeper(apprentice &app, broker::Client &broker_client, bool bypass_quote)
-    : app_(app), broker_client_(broker_client), bypass_quote_(bypass_quote),
+    : app_(app), broker_client_(broker_client), static_data_(app), bypass_quote_(bypass_quote),
       account_method_type_(book::get_accounting_method_type()) {
   book::AccountingMethod::setup_defaults(*this, account_method_type_);
 }
@@ -41,11 +41,9 @@ void Bookkeeper::set_accounting_method(InstrumentType instrument_type, const Acc
 }
 
 void Bookkeeper::on_start(const rx::connectable_observable<event_ptr> &events) {
+  static_data_.on_start(events);
   restore(app_.get_state_bank());
 
-  events | is(Instrument::tag) | $$(update_instrument(event->data<Instrument>()));
-  events | is(Commission::tag) | $$(update_commission(event, event->data<Commission>()));
-  events | is(InstrumentFactor::tag) | $$(update_instrument_factor(event->data<InstrumentFactor>()));
   events | is_own<Quote>(broker_client_) | $$(try_update_book(event, event->data<Quote>()));
   events | is(InstrumentKey::tag) | $$(update_book(event, event->data<InstrumentKey>()));
   events | is(OrderInput::tag) |
@@ -85,18 +83,6 @@ void Bookkeeper::on_order_input(int64_t update_time, uint32_t source, uint32_t d
 }
 
 void Bookkeeper::restore(const cache::bank &state_bank) {
-  for (auto &pair : state_bank[boost::hana::type_c<Instrument>]) {
-    update_instrument(pair.second.data);
-  }
-  for (auto &pair : state_bank[boost::hana::type_c<InstrumentFactor>]) {
-    update_instrument_factor(pair.second.data);
-  }
-  for (auto &pair : state_bank[boost::hana::type_c<Commission>]) {
-    auto &state = pair.second;
-    auto &commission = state.data;
-    uint32_t product_key = hash_product(commission.exchange_id, commission.product_id);
-    commissions_.insert_or_assign(product_key, commission);
-  }
   for (auto &pair : state_bank[boost::hana::type_c<Position>]) {
     auto &state = pair.second;
     auto &position = state.data;
@@ -148,27 +134,12 @@ void Bookkeeper::guard_positions() { positions_guarded_ = true; }
 
 Book_ptr Bookkeeper::make_book(uint32_t location_uid) {
   auto location = app_.get_location(location_uid);
-  auto book = std::make_shared<Book>(commissions_, instruments_, instrument_factors_, location);
+  auto book = std::make_shared<Book>(static_data_.get_commissions(), static_data_.get_instruments(),
+                                     static_data_.get_instrument_factors(), location);
   auto &asset = book->asset;
   asset.holder_uid = location_uid;
   asset.ledger_category = location->category == category::TD ? LedgerCategory::Account : LedgerCategory::Strategy;
   return book;
-}
-
-void Bookkeeper::update_instrument(const longfist::types::Instrument &instrument) {
-  auto hashed_instrument_key = hash_instrument(instrument.exchange_id, instrument.instrument_id);
-  instruments_.insert_or_assign(hashed_instrument_key, instrument);
-}
-
-void Bookkeeper::update_commission(const event_ptr &event, const longfist::types::Commission &commission) {
-  uint32_t product_key = hash_product(commission.exchange_id, commission.product_id);
-  commissions_.insert_or_assign(product_key, commission);
-}
-
-void Bookkeeper::update_instrument_factor(const longfist::types::InstrumentFactor &instrument_factor) {
-  auto instrument_factor_id =
-      hash_instrument(instrument_factor.source_id, instrument_factor.exchange_id, instrument_factor.instrument_id);
-  instrument_factors_.insert_or_assign(instrument_factor_id, instrument_factor);
 }
 
 void Bookkeeper::update_book(const event_ptr &event, const InstrumentKey &instrument_key) {

@@ -23,7 +23,7 @@ using namespace kungfu::yijinjing::journal;
 namespace kungfu::wingchun::strategy {
 
 LiveContext::LiveContext(apprentice &app, const rx::connectable_observable<event_ptr> &events)
-    : Context(app, events), broker_client_(app_), bookkeeper_(app_, broker_client_), static_data_(app_) {
+    : Context(app, events), broker_client_(app_), bookkeeper_(app_, broker_client_) {
   log::copy_log_settings(app_.get_home(), app_.get_home()->name);
 }
 
@@ -37,7 +37,6 @@ void LiveContext::on_start() {
   }
 
   broker_client_.on_start(events_);
-  static_data_.on_start(events_);
   if (not is_bypass_accounting()) {
     bookkeeper_.on_start(events_);
   }
@@ -666,7 +665,4 @@ const std::string LiveContext::get_config() const {
   auto &config_obj = config_map.at(app_.get_live_home_uid());
   return config_obj.data.value;
 }
-
-const staticdata::StaticData &LiveContext::get_static_data() const { return static_data_; }
-
 } // namespace kungfu::wingchun::strategy

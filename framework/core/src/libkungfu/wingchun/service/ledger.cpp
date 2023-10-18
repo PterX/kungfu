@@ -162,7 +162,7 @@ void Ledger::update_order_stat(const event_ptr &event, const Trade &data) {
 
 double Ledger::translate_by_price_tick(const char *exchange_id, const char *instrument_id, double price) {
   auto hashed_instrument_key = hash_instrument(exchange_id, instrument_id);
-  auto instruments = bookkeeper_.get_instruments();
+  auto instruments = bookkeeper_.get_static_data().get_instruments();
   if (instruments.find(hashed_instrument_key) != instruments.end()) {
     double price_tick = instruments[hashed_instrument_key].price_tick;
     if (is_valid_price(price_tick)) {

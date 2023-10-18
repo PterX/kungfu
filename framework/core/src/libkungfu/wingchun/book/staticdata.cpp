@@ -1,8 +1,7 @@
-#include <kungfu/wingchun/staticdata/staticdata.h>
+#include <kungfu/wingchun/book/staticdata.h>
 
 using namespace kungfu::rx;
 using namespace kungfu::wingchun;
-using namespace kungfu::wingchun::staticdata;
 using namespace kungfu::longfist::enums;
 using namespace kungfu::longfist::types;
 using namespace kungfu::yijinjing::practice;
@@ -10,7 +9,7 @@ using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::util;
 
-namespace kungfu::wingchun::staticdata {
+namespace kungfu::wingchun::book {
 
 StaticData::StaticData(apprentice &app) : app_(app) {}
 
@@ -52,8 +51,9 @@ void StaticData::replace(const Instrument &instrument) {
 }
 
 void StaticData::replace(const InstrumentFactor &instrument_factor) {
-  auto instrument_factor_hashed = hash_instrument(instrument_factor.exchange_id, instrument_factor.instrument_id);
+  auto instrument_factor_hashed =
+      hash_instrument(instrument_factor.source_id, instrument_factor.exchange_id, instrument_factor.instrument_id);
   instrument_factors_.insert_or_assign(instrument_factor_hashed, instrument_factor);
 }
 
-} // namespace kungfu::wingchun::staticdata
+} // namespace kungfu::wingchun::book

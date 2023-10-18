@@ -8,6 +8,7 @@
 #define WINGCHUN_BOOK_H
 
 #include <kungfu/longfist/longfist.h>
+#include <kungfu/wingchun/book/staticdata.h>
 #include <kungfu/wingchun/common.h>
 
 namespace kungfu::wingchun::book {

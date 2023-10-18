@@ -4,8 +4,9 @@
 #define WINGCHUN_OPERATOR_CONTEXT_H
 
 #include <kungfu/longfist/longfist.h>
+#include <kungfu/wingchun/book/bookkeeper.h>
+#include <kungfu/wingchun/book/staticdata.h>
 #include <kungfu/wingchun/broker/client.h>
-#include <kungfu/wingchun/staticdata/staticdata.h>
 #include <kungfu/yijinjing/practice/apprentice.h>
 
 namespace kungfu::wingchun::op {
@@ -45,12 +46,6 @@ public:
    */
 
   virtual std::string get_arguments() { return app_.get_arguments(); };
-
-  /**
-   * Get static data.
-   * @return static data reference
-   */
-  virtual const staticdata::StaticData &get_static_data() const = 0;
 
   /**
    * Add one shot timer callback.
@@ -129,6 +124,12 @@ public:
    * @return broker client reference
    */
   virtual broker::Client &get_broker_client() = 0;
+
+  /**
+   * Get bookkeeper.
+   * @return bookkeeper reference
+   */
+  virtual book::Bookkeeper &get_bookkeeper() = 0;
 
   /**
    *

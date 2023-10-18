@@ -488,11 +488,11 @@ declare namespace KungfuApi {
   }
 
   export interface DataTable<T> {
-    [hashed: string]: T;
+    [hashed: string]: Readonly<T>;
     filter(key: string, value: string | number | bigint): DataTable<T>;
     nofilter(key: string, value: string | number | bigint): DataTable<T>;
-    sort(key: string): T[];
-    list(): T[];
+    sort(key: string): Readonly<T>[];
+    list(): Readonly<T>[];
   }
 
   export interface Asset {
@@ -1334,7 +1334,6 @@ declare namespace KungfuApi {
       bypassRefreshBook = false,
       millisecondsSleepAfterStep = 200,
     ): Watcher | null;
-    shutdown(): void;
     formatStringToHashHex(id: string): string;
     formatTime(nano: bigint, format: string): string;
     hash(str: string | number): string;

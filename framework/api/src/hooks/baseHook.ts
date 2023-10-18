@@ -26,7 +26,7 @@ export class ResetOptionHook<Method, ValueType> {
             return target[`${category}_*_*`];
           }
 
-          return (kfLocation: KungfuApi.DerivedKfLocation, value: ValueType) =>
+          return (_kfLocation: KungfuApi.DerivedKfLocation, value: ValueType) =>
             Promise.resolve(value);
         },
 

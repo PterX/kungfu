@@ -208,7 +208,7 @@ export class MonitorDashboard extends Dashboard {
 
     let i = 0;
     const boards = ['processBoard', 'logBoard'];
-    this.screen.key(['left', 'right'], (ch: string, key: { name: string }) => {
+    this.screen.key(['left', 'right'], (_ch: string, key: { name: string }) => {
       key.name === 'left' ? i-- : i++;
       if (i === 2) i = 0;
       if (i === -1) i = 1;

@@ -127,11 +127,11 @@ const getKfExtConfigList = async (): Promise<KungfuApi.KfExtOriginConfig[]> => {
             ...(jsonConfig.kungfuConfig || {}),
             type: dealKfExtType(jsonConfig),
             version: jsonConfig.version || '',
-          dependencies: jsonConfig.dependencies || {},
-          description: jsonConfig.description || '',
+            dependencies: jsonConfig.dependencies || {},
+            description: jsonConfig.description || '',
             extPath,
             readmePath: path.join(extPath, 'README.md'),
-          releaseNotePath: path.join(extPath, 'RELEASENOTE.md'),
+            releaseNotePath: path.join(extPath, 'RELEASENOTE.md'),
           });
         }
 
@@ -140,11 +140,11 @@ const getKfExtConfigList = async (): Promise<KungfuApi.KfExtOriginConfig[]> => {
             ...(jsonConfig.kungfuConfigDev || {}),
             type: dealKfExtType(jsonConfig),
             version: jsonConfig.version || '',
-          dependencies: jsonConfig.dependencies || {},
-          description: jsonConfig.description || '',
+            dependencies: jsonConfig.dependencies || {},
+            description: jsonConfig.description || '',
             extPath,
             readmePath: path.join(extPath, 'README.md'),
-          releaseNotePath: path.join(extPath, 'RELEASENOTE.md'),
+            releaseNotePath: path.join(extPath, 'RELEASENOTE.md'),
           });
         }
         return curConfigList;
@@ -227,6 +227,8 @@ export const getKfExtensionConfigByCategory = (
                   dependencies,
                   category,
                   key: extKey,
+                  silent: extOriginConfig[category]?.silent ?? false,
+                  roles: extOriginConfig[category]?.roles || {},
                   type: resolveTypesInExtConfig(
                     extOriginConfig[category]?.type || [],
                   ),
@@ -251,6 +253,7 @@ export const getKfExtensionConfigByCategory = (
                   category,
                   key: extKey,
                   silent: extOriginConfig[category]?.silent ?? false,
+                  roles: extOriginConfig[category]?.roles || {},
                   type: resolveTypesInExtConfig(
                     extOriginConfig[category]?.type || [],
                   ),
@@ -302,6 +305,7 @@ export const getKfExtensionConfigByCategory = (
                         category,
                         key: extKey,
                         silent: item?.silent ?? false,
+                        roles: extOriginConfig[category]?.roles || {},
                         type: resolveTypesInExtConfig(item?.type || []),
                         for: [item.for].flat(),
                         script: item?.script || '',
@@ -345,6 +349,7 @@ const getKfUIExtensionConfigByExtKey = (
         dependencies,
       } = extUIConfig;
       const silent = uiConfig?.silent ?? false;
+      const roles = uiConfig?.roles ?? {};
       const position = uiConfig?.position || '';
       const exhibit = uiConfig?.exhibit || ({} as KungfuApi.KfExhibitConfig);
       const components = uiConfig?.components || null;
@@ -355,6 +360,7 @@ const getKfUIExtensionConfigByExtKey = (
         category: 'ui',
         name: extName,
         silent,
+        roles,
         extPath,
         readmePath,
         releaseNotePath,
@@ -388,6 +394,7 @@ const getKfCliExtensionConfigByExtKey = (
         dependencies,
       } = extUIConfig;
       const silent = cliConfig?.silent ?? false;
+      const roles = cliConfig?.roles ?? {};
       const exhibit = cliConfig?.exhibit || ({} as KungfuApi.KfExhibitConfig);
       const components = cliConfig?.components || null;
       const script = cliConfig?.script || '';
@@ -397,6 +404,7 @@ const getKfCliExtensionConfigByExtKey = (
         category: 'cli',
         name: extName,
         silent,
+        roles,
         extPath,
         readmePath,
         releaseNotePath,

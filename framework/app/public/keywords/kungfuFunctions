@@ -141,6 +141,7 @@ hash_instrument
 is_valid_price
 is_final_status
 get_instrument_type
+get_instrument_product
 order_from_input
 trade_from_order
 order_trigger_from_input

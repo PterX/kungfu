@@ -143,6 +143,7 @@ void bind(pybind11::module &&m) {
 
   // nanosecond-time related
   m.def("now_in_nano", &time::now_in_nano);
+  m.def("today_start", &time::today_start);
   m.def("strftime", &time::strftime, py::arg("nanotime"), py::arg("format") = KUNGFU_TIMESTAMP_FORMAT);
   m.def("strptime", py::overload_cast<const std::string &, const std::string &>(&time::strptime), py::arg("timestr"),
         py::arg("format") = KUNGFU_TIMESTAMP_FORMAT);
@@ -212,6 +213,7 @@ void bind(pybind11::module &&m) {
       .def("get_env", &locator::get_env)
       .def("layout_dir", &locator::layout_dir)
       .def("layout_file", &locator::layout_file)
+      .def("get_root", &locator::get_root)
       .def("list_page_id", &locator::list_page_id)
       .def("list_locations", &locator::list_locations, py::arg("category") = "*", py::arg("group") = "*",
            py::arg("name") = "*", py::arg("mode") = "*")
@@ -254,8 +256,11 @@ void bind(pybind11::module &&m) {
   py::class_<bus, bus_ptr>(m, "bus").def("on_load_page", &bus::on_load_page);
 
   auto writer_class = py::class_<writer, writer_ptr>(m, "writer");
-  writer_class.def(py::init<const data::location_ptr &, uint32_t, bool, publisher_ptr, bool, const bus_ptr &>())
+  writer_class
+      .def(py::init<const data::location_ptr &, uint32_t, bool, publisher_ptr, bool, const bus_ptr &, uint32_t>())
       .def("current_frame_uid", &writer::current_frame_uid)
+      .def("get_location", &writer::get_location)
+      .def("get_dest", &writer::get_dest)
       .def("copy_frame", &writer::copy_frame)
       .def("mark", &writer::mark)
       .def("mark_at", &writer::mark_at)
@@ -273,6 +278,7 @@ void bind(pybind11::module &&m) {
       .def_property_readonly("publisher", &sink::get_publisher)
       .def_property_readonly("bus", &sink::get_bus)
       .def("put", &sink::put)
+      .def("find_page_size", &sink::find_page_size)
       .def("close", &sink::close);
 
   py::class_<null_sink, sink, std::shared_ptr<null_sink>>(m, "null_sink").def(py::init<>());

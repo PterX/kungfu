@@ -6,7 +6,6 @@
 #include <kungfu/yijinjing/journal/common.h>
 
 namespace kungfu::yijinjing::journal {
-
 /**
  * Basic memory unit,
  * holds header / data / errorMsg (if needs)
@@ -59,8 +58,6 @@ struct frame : event {
   }
 
 private:
-  /** address with type,
-   * will keep moving forward until change page */
   longfist::types::frame_header *header_ = nullptr;
 
   frame() = default;
@@ -79,7 +76,7 @@ private:
 
   void set_msg_type(int32_t msg_type) { header_->msg_type = msg_type; }
 
-  void set_msg_type(longfist::enums::FrameDataType data_type) { header_->data_type = data_type; }
+  void set_data_type(longfist::enums::FrameDataType data_type) { header_->data_type = data_type; }
 
   void set_source(uint32_t source) { header_->source = source; }
 
@@ -89,10 +86,32 @@ private:
 
   void copy(const frame &source) { memcpy(header_, source.header_, source.frame_length()); }
 
+  friend struct cloned_frame;
+
   friend class journal;
 
   friend class writer;
-};
-} // namespace kungfu::yijinjing::journal
 
+  friend class replay_writer;
+};
+
+struct cloned_frame : frame {
+  cloned_frame() : frame() {}
+
+  ~cloned_frame() override { free(header_); };
+
+  void copy(frame &from) {
+    header_ = reinterpret_cast<longfist::types::frame_header *>(malloc(from.frame_length()));
+    memset(header_, 0, from.frame_length());
+    memcpy(header_, from.header_, from.frame_length());
+  }
+
+  void open(uint32_t data_length) {
+    auto frame_length = sizeof(longfist::types::frame_header) + data_length;
+    header_ = reinterpret_cast<longfist::types::frame_header *>(malloc(frame_length));
+    memset(header_, 0, frame_length);
+  }
+};
+
+} // namespace kungfu::yijinjing::journal
 #endif // KUNGFU_YIJINJING_FRAME_H

@@ -20,10 +20,8 @@ import {
   openUrl,
   destoryAllWindows,
 } from '@kungfu-trader/kungfu-app/src/main/utils';
-import {
-  kfLogger,
-  isUpdateVersionLogicEnable,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { isUpdateVersionLogicEnable } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { kfLogger } from '@kungfu-trader/kungfu-js-api/utils/logUtils';
 import { initClean } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
 import {
   clearDB,
@@ -210,6 +208,8 @@ app.on('ready', () => {
 });
 
 //一上来先把所有之前意外没关掉的 pm2/kfc/electron 进程kill掉
+// 并且需要在此步检查是否需要清理 journal 和 DB
+// 以上步骤均在 initClean 方法中
 console.time('init clean');
 initClean(true, true).finally(() => {
   console.timeEnd('init clean');

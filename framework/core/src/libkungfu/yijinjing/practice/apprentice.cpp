@@ -38,57 +38,49 @@ int64_t apprentice::get_last_active_time() const { return last_active_time_; }
 const cache::bank &apprentice::get_state_bank() const { return state_bank_; }
 
 void apprentice::request_read_from(int64_t trigger_time, uint32_t source_id, int64_t from_time) {
-  if (get_io_device()->get_home()->mode == mode::LIVE) {
-    require_read_from(trigger_time, get_master_command_uid(), source_id, from_time);
-  }
+  require_read_from(trigger_time, get_master_command_uid(), source_id, from_time);
 }
 
 void apprentice::request_read_from_public(int64_t trigger_time, uint32_t source_id, int64_t from_time) {
-  if (get_io_device()->get_home()->mode == mode::LIVE) {
-    require_read_from_public(trigger_time, get_master_command_uid(), source_id, from_time);
-  }
+  require_read_from_public(trigger_time, get_master_command_uid(), source_id, from_time);
 }
 
 void apprentice::request_read_from_sync(int64_t trigger_time, uint32_t source_id, int64_t from_time) {
-  if (get_io_device()->get_home()->mode == mode::LIVE) {
-    require_read_from_sync(trigger_time, get_master_command_uid(), source_id, from_time);
-  }
+  require_read_from_sync(trigger_time, get_master_command_uid(), source_id, from_time);
 }
 
 void apprentice::request_read_from_source_to_dest(int64_t trigger_time, const location_ptr &source_location,
                                                   uint32_t dest_id) {
-  if (get_io_device()->get_home()->mode == mode::LIVE) {
-    reader_join(source_location->uid, dest_id, trigger_time);
-  }
+  reader_join(source_location->uid, dest_id, trigger_time);
 }
 
 void apprentice::request_write_to(int64_t trigger_time, uint32_t dest_id) {
-  if (get_io_device()->get_home()->mode == mode::LIVE) {
-    require_write_to(trigger_time, get_master_command_uid(), dest_id);
-  }
+  require_write_to(trigger_time, get_master_command_uid(), dest_id);
 }
 
-void apprentice::request_write_to_band(int64_t trigger_time, const location_ptr &location, uint32_t page_size) {
-  if (get_io_device()->get_home()->mode == mode::LIVE) {
-    require_write_to_band(trigger_time, get_master_command_uid(), location, page_size);
-  }
+void apprentice::request_write_to_band(int64_t trigger_time, const location_ptr &location, uint64_t page_size) {
+  require_write_to_band(trigger_time, get_master_command_uid(), location, page_size);
 }
 
-uint32_t apprentice::request_band(const std::string &band_name, uint32_t page_size) {
+uint32_t apprentice::request_band(const std::string &band_name, uint64_t page_size) {
   auto io_device = get_io_device();
-  auto home = io_device->get_home();
+  auto home = io_device->get_live_home();
   auto band_location = location::make_shared(home->mode, home->category, home->group, band_name, get_locator());
   request_write_to_band(now(), band_location, page_size);
   return band_location->uid;
 }
 
-void apprentice::add_timer(int64_t nanotime, const std::function<void(const event_ptr &)> &callback) {
-  events_ | timer(nanotime) | $([&, callback](const event_ptr &event) { callback(event); });
+int32_t apprentice::add_timer(int64_t nanotime, const std::function<void(const event_ptr &)> &callback) {
+  int32_t timer_id = get_timer_usage_count();
+  events_ | timer(nanotime, timer_id) | $([&, callback](const event_ptr &event) { callback(event); });
+  return timer_id;
 }
 
-void apprentice::add_time_interval(int64_t duration, const std::function<void(const event_ptr &)> &callback) {
-  events_ | time_interval(std::chrono::nanoseconds(duration)) |
+int32_t apprentice::add_time_interval(int64_t duration, const std::function<void(const event_ptr &)> &callback) {
+  int32_t timer_id = get_timer_usage_count();
+  events_ | time_interval(std::chrono::nanoseconds(duration), timer_id) |
       $([&, callback](const event_ptr &event) { callback(event); });
+  return timer_id;
 }
 
 bool apprentice::release_page() {
@@ -101,9 +93,6 @@ bool apprentice::release_page() {
 }
 
 void apprentice::react() {
-  if (get_home()->mode == mode::LIVE or get_home()->mode == mode::REPLAY) {
-    events_ | is(TimeReset::tag) | first() | $$(reset_time(event->data<TimeReset>()));
-  }
   events_ | is(Location::tag) | $$(add_location(event->gen_time(), event->data<Location>()));
   events_ | is(Register::tag) | $$(on_register(event->trigger_time(), event->data<Register>()));
   events_ | is(RequestReadFromOthers::tag) | $$(on_request_read_from_others(event));
@@ -114,8 +103,7 @@ void apprentice::react() {
   events_ | is(RequestWriteToBand::tag) | $$(on_write_to_band(event));
   events_ | is(Channel::tag) | $$(register_channel(event->gen_time(), event->data<Channel>()));
   events_ | is(Band::tag) | $$(register_band(event->gen_time(), event->data<Band>()));
-  events_ | is(RequestStop::tag) | to(get_home_uid()) | $$(signal_stop());
-  events_ | is(RequestStop::tag) | to(get_live_home_uid()) | $$(signal_stop()); // for replay
+  events_ | is(RequestStop::tag) | to(get_live_home_uid()) | $$(signal_stop());
   events_ | take_until(events_ | is(RequestStart::tag)) | $$(cached::feed_state_data(event, state_bank_));
   events_ | is(Deregister::tag) | $$(on_deregister(event));
 
@@ -123,10 +111,14 @@ void apprentice::react() {
   on_react();
   cleaner_.on_react();
 
+  if (get_io_device()->get_home()->mode != mode::BACKTEST) {
+    events_ | is(TimeReset::tag) | first() | $$(reset_time(event->data<TimeReset>()));
+  }
+
   if (get_io_device()->get_home()->mode == mode::LIVE) {
     auto self_register_event = events_ | skip_until(events_ | is(Register::tag) | filter([&](const event_ptr &event) {
                                                       auto uid = event->data<Register>().location_uid;
-                                                      return uid == get_home_uid();
+                                                      return uid == get_live_home_uid();
                                                     })) |
                                first();
 
@@ -157,11 +149,21 @@ void apprentice::react() {
   if (get_io_device()->get_home()->mode == mode::REPLAY) {
     reader_->join(master_cmd_location_, get_live_home_uid(), begin_time_);
     expect_start();
+
+    auto exceed_end_time_check =
+        events_ | skip_until(events_ | filter([&](const event_ptr &event) { return event->gen_time() > end_time_; })) |
+        first();
+    exceed_end_time_check | $([&](const event_ptr &event) { request_deregister(); });
   }
   if (get_io_device()->get_home()->mode == mode::BACKTEST) {
-    // dest_id 0 should be configurable TODO
     std::string journal_dir = get_locator()->layout_dir(get_home(), layout::JOURNAL);
     fs::remove_all(journal_dir);
+    std::string master_cmd_dir = get_locator()->layout_dir(master_cmd_location_, layout::JOURNAL);
+    fs::remove_all(master_cmd_dir);
+    auto app_cmd_writer = get_io_device()->open_writer_at(master_cmd_location_, get_home_uid());
+
+    writers_.insert_or_assign(get_home_uid(), app_cmd_writer);
+    reader_->join(master_cmd_location_, get_home_uid(), begin_time_);
     writers_.insert_or_assign(location::PUBLIC, get_io_device()->open_writer(location::PUBLIC));
     reader_->join(get_home(), location::PUBLIC, begin_time_);
     started_ = true;
@@ -172,6 +174,7 @@ void apprentice::react() {
 void apprentice::on_active() {}
 
 void apprentice::on_frame() {
+  // request_write_to the dest which from try_write_to
   for (const uint32_t dest_id : try_write_dest_ids_) {
     request_write_to(now(), dest_id);
   }
@@ -188,7 +191,12 @@ void apprentice::on_register(int64_t trigger_time, const Register &register_data
 
 void apprentice::on_deregister(const event_ptr &event) {
   uint32_t location_uid = event->data<Deregister>().location_uid;
+  SPDLOG_DEBUG("deregister app {}", get_location_uname(location_uid));
   if (location_uid == get_live_home_uid()) {
+    if (get_home()->mode == mode::REPLAY) {
+      SPDLOG_WARN("deregister app in replay mode");
+      request_deregister();
+    }
     return;
   }
 
@@ -215,15 +223,23 @@ void apprentice::on_write_to(const event_ptr &event) {
   auto dest_id = event->data<RequestWriteTo>().dest_id;
   if (writers_.find(dest_id) == writers_.end()) {
     writers_.emplace(dest_id, get_io_device()->open_writer(dest_id));
+    if (dest_id == get_master_command_uid()) {
+      master_cmd_writer_for_thread_ = get_writer(dest_id);
+    }
+    if (dest_id == location::PUBLIC) {
+      public_writer_ = get_writer(location::PUBLIC);
+    }
   }
 }
 
 void apprentice::on_write_to_band(const event_ptr &event) {
   const auto &request = event->data<RequestWriteToBand>();
+  SPDLOG_DEBUG("RequestWriteToBand: {}", request.to_string());
   auto dest_id = request.location_uid;
   auto page_size = request.page_size;
-  if (writers_.find(dest_id) == writers_.end()) {
-    writers_.emplace(dest_id, get_io_device()->open_writer(dest_id, page_size));
+  std::lock_guard<std::mutex> lk(band_mtx_);
+  if (band_writers_.find(dest_id) == band_writers_.end()) {
+    band_writers_.emplace(dest_id, get_io_device()->open_writer(dest_id, page_size));
   }
 }
 
@@ -255,7 +271,7 @@ void apprentice::reader_join(uint32_t source_id, uint32_t dest_id, int64_t from_
 
 void apprentice::checkin() {
   auto now = time::now_in_nano();
-  auto home = get_home();
+  auto home = get_live_home();
   Register register_data{};
   register_data.mode = home->mode;
   register_data.category = home->category;
@@ -270,7 +286,7 @@ void apprentice::checkin() {
 
   auto try_register = [&]() {
     return get_io_device()->get_publisher()->publish(
-               make_nano_msg(get_home_uid(), master_home_location_->uid, register_data), 0, true) == 0;
+               make_nano_msg(get_live_home_uid(), master_home_location_->uid, register_data), 0, true) == 0;
   };
 
   int count = (REGISTER_TIMEOUT_SECONDS * 1000) / DEFAULT_NOTICE_TIMEOUT;
@@ -300,5 +316,34 @@ void apprentice::reset_time(const longfist::types::TimeReset &time_reset) {
 }
 
 std::thread &apprentice::get_cleaning_worker() { return cleaner_.get_cleaning_worker(); }
+
+void apprentice::clear_timer(int32_t timer_id) { timers_.insert_or_assign(timer_id, false); }
+
+bool apprentice::is_timer_enabled(int32_t timer_id) { return timers_.try_emplace(timer_id).first->second; }
+
+void apprentice::enable_timer(int32_t timer_id) { timers_.insert_or_assign(timer_id, true); }
+
+journal::writer_ptr &apprentice::get_thread_writer() {
+  if (not thread_writer_) {
+    uint32_t dest_id = util::get_thread_id();
+    thread_writer_ = get_io_device()->open_writer(dest_id);
+
+    /// join channel in sub-thread will crash, so tell master to ask myself to join
+    /// do not use writer because of multi-thread concurrency issues
+    if (not master_cmd_writer_for_thread_) {
+      SPDLOG_ERROR("has no writer for master_cmd: {:8x}:{}", get_master_command_uid(),
+                   get_location_uname(get_master_command_uid()));
+    }
+    RequestReadFromOthers &request = master_cmd_writer_for_thread_->open_data<RequestReadFromOthers>();
+    request.source_id = get_live_home_uid();
+    request.dest_id = dest_id;
+    request.from_time = now();
+    SPDLOG_TRACE("RequestReadFromOthers: {}", request.to_string());
+    master_cmd_writer_for_thread_->close_data();
+  }
+  return thread_writer_;
+}
+
+journal::writer_ptr &apprentice::get_public_writer() { return public_writer_; }
 
 } // namespace kungfu::yijinjing::practice

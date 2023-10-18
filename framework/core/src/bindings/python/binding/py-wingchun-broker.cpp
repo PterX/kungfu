@@ -108,8 +108,10 @@ void bind_broker(pybind11::module &m) {
   py::class_<BrokerVendor, PyBrokerVendor, std::shared_ptr<BrokerVendor>>(m, "BrokerVendor")
       .def(py::init<location_ptr, bool, const std::string &>())
       .def_property_readonly("home", &BrokerVendor::get_home)
-      .def("run", &BrokerVendor::run)
-      .def("get_location", &BrokerVendor::get_location);
+      .def("set_begin_time", &BrokerVendor::set_begin_time)
+      .def("set_end_time", &BrokerVendor::set_end_time)
+      .def("get_location", &BrokerVendor::get_location)
+      .def("run", &BrokerVendor::run);
 
   py::class_<MarketData, PyMarketData, std::shared_ptr<MarketData>>(m, "MarketData")
       .def(py::init<BrokerVendor &>())
@@ -123,6 +125,7 @@ void bind_broker(pybind11::module &m) {
       .def("has_writer", &MarketData::has_writer)
       .def("add_timer", &MarketData::add_timer)
       .def("add_time_interval", &MarketData::add_time_interval)
+      .def("clear_timer", &MarketData::clear_timer)
       .def("update_broker_state", &MarketData::update_broker_state)
       .def("subscribe", &MarketData::subscribe)
       .def("subscribe_all", &MarketData::subscribe_all)
@@ -162,6 +165,7 @@ void bind_broker(pybind11::module &m) {
       .def("get_account_type", &Trader::get_account_type)
       .def("add_timer", &Trader::add_timer)
       .def("add_time_interval", &Trader::add_time_interval)
+      .def("clear_timer", &Trader::clear_timer)
       .def("update_broker_state", &Trader::update_broker_state)
       .def("insert_order", &Trader::insert_order)
       .def("insert_block_order", &Trader::insert_block_order)

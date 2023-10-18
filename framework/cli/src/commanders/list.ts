@@ -1,13 +1,11 @@
 import { getAllKfConfigOriginData } from '@kungfu-trader/kungfu-js-api/actions';
-import {
-  getIdByKfLocation,
-  getKfExtensionConfig,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { getKfExtensionConfig } from '@kungfu-trader/kungfu-js-api/utils/extUtils';
+import { getIdByKfLocation } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import colors from 'colors';
 import { dealKfConfigValue, parseToString } from '../assets/methods/utils';
 
 export const listKfLocations = async (): Promise<void> => {
-  const { md, td, strategy } = await getAllKfConfigOriginData();
+  const { md, td, strategy, operator } = await getAllKfConfigOriginData();
   const extConfigs = await getKfExtensionConfig();
 
   const mdList = await Promise.all(
@@ -49,8 +47,24 @@ export const listKfLocations = async (): Promise<void> => {
     );
   });
 
-  if ([...mdList, ...tdList, ...strategyList].length === 0) {
-    console.log('No mds, tds and strategies');
+  const operatorList = await Promise.all(
+    operator.map(async (s): Promise<string> => {
+      return parseToString(
+        [
+          colors.green('operator'),
+          colors.bold(getIdByKfLocation(s)),
+          s.group === 'default'
+            ? JSON.parse(s.value).file_path
+            : await dealKfConfigValue(s, extConfigs),
+        ],
+        [10, 15, 'auto'],
+        1,
+      );
+    }),
+  );
+
+  if ([...mdList, ...tdList, ...strategyList, ...operatorList].length === 0) {
+    console.log('No mds, tds, strategies and operators');
   } else {
     console.log(
       [
@@ -60,6 +74,8 @@ export const listKfLocations = async (): Promise<void> => {
         ...tdList,
         `\n${colors.bold.underline('Strategy:')} \n`,
         ...strategyList,
+        `\n${colors.bold.underline('Operator:')} \n`,
+        ...operatorList,
       ].join('\n'),
     );
   }

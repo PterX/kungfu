@@ -9,9 +9,9 @@
     "key": "KungfuOperator101Cpp"
   },
   "scripts": {
-    "clean": "kfs operator clean",
-    "build": "kfs operator build",
-    "package": "kfs operator package",
+    "clean": "kfs extension clean",
+    "build": "kfs extension build",
+    "package": "kfs extension package",
     "format": "node ../../framework/core/.gyp/run-format-cpp.js src"
   },
   "devDependencies": {

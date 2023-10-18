@@ -7,8 +7,6 @@ import kungfu
 import shutil
 import os
 
-from kungfu.yijinjing.locator import Locator
-
 lf = kungfu.__binding__.longfist
 yjj = kungfu.__binding__.yijinjing
 
@@ -42,9 +40,9 @@ class Adapter:
         if os.path.exists(target_path):
             shutil.move(target_path, backup_path)
 
-        target_locator = Locator(target_path)
-        backup_locator = Locator(backup_path)
-        output_locator = Locator(output_path)
+        target_locator = yjj.locator(target_path)
+        backup_locator = yjj.locator(backup_path)
+        output_locator = yjj.locator(output_path)
 
         sink = yjj.null_sink()
         writers = {}

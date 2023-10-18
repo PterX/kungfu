@@ -5,7 +5,7 @@ import { buildProcessLogPath } from '@kungfu-trader/kungfu-js-api/config/pathCon
 import {
   isCriticalLog,
   KfFixedList,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { ensureFileSync } from 'fs-extra';
 
 export class Log {

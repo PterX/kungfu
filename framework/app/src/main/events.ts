@@ -79,6 +79,10 @@ export function foundNewVersion(
   });
 }
 
+export function skipVersion(mainWindow: BrowserWindow, version: string): void {
+  sendMsgToMainWindow(mainWindow, 'auto-update-skip-version', { version });
+}
+
 export function startDownloadNewVersion(mainWindow: BrowserWindow): void {
   sendMsgToMainWindow(mainWindow, 'auto-update-start-download');
 }

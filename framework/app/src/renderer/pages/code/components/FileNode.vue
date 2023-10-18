@@ -40,8 +40,8 @@
             @click.stop="() => {}"
             @focus.stop="() => {}"
             @change="changePath"
-            @blur="handleEditFileBlur"
-            @pressEnter="enterBlur"
+            @blur="handleEditFile"
+            @pressEnter="handleEditFile"
           ></a-input>
           <a-input
             v-else-if="!isPending && !onEditing"
@@ -55,8 +55,8 @@
             @focus.stop="() => {}"
             :value="addValue"
             @change="addChangePath"
-            @blur="handleAddFileBlur"
-            @pressEnter="enterBlur"
+            @blur="handleAddFile"
+            @pressEnter="handleAddFile"
           ></a-input>
           <span class="text-overflow" v-show="isEntryFile && !onEditing">
             <span class="text-entry-file">({{ $t('editor.entry_file') }})</span>
@@ -65,6 +65,13 @@
             class="deal-file"
             v-show="fileNode && !onEditing && fileNode.name && !fileNode?.root"
           >
+            <span
+              class="mouse-over"
+              :title="$t('editor.open_folder')"
+              @click.stop="handleOpenFileLocation(fileNode.filePath)"
+            >
+              <SelectOutlined class="icon" />
+            </span>
             <span
               v-if="!isEntryFile || isEntryFilenameEditable"
               class="mouse-over"
@@ -132,7 +139,12 @@ export default {
 </script>
 
 <script setup lang="ts">
-import { EditFilled, DeleteFilled } from '@ant-design/icons-vue';
+import { shell } from '@electron/remote';
+import {
+  SelectOutlined,
+  EditFilled,
+  DeleteFilled,
+} from '@ant-design/icons-vue';
 import { useCodeStore } from '../store/codeStore';
 import iconFolderJSON from '../config/iconFolderConfig.json';
 import iconFileJSON from '../config/iconFileConfig.json';
@@ -140,6 +152,7 @@ import path from 'path';
 import { storeToRefs } from 'pinia';
 import { onMounted, ref, toRefs, computed, watch, nextTick } from 'vue';
 import { Alert } from 'ant-design-vue';
+import { InvalidFileNameReg } from '@kungfu-trader/kungfu-js-api/config/systemConfig';
 import { openFolder } from '../../../assets/methods/codeUtils';
 import {
   removeFileFolder,
@@ -201,9 +214,8 @@ watch(isShowChildren, () => {
   iconPath.value = getIcon(fileNode.value);
 });
 
-function enterBlur(e) {
-  resetStatus();
-  e.target.blur();
+function handleOpenFileLocation(path: string) {
+  return shell.showItemInFolder(path);
 }
 
 //点击文件或文件树
@@ -222,21 +234,24 @@ function handleClickFile(file) {
 }
 
 //添加文件或文件夹时
-const handleAddFileBlur = (e) => {
-  resetStatus();
+const handleAddFile = (e) => {
   e.stopPropagation();
   const filename = addValue.value;
   //test 重复 或 为空
   const parentId = fileNode.value?.parentId;
-  if (parentId === null || parentId === undefined) return;
+  if (parentId === null || parentId === undefined) {
+    resetStatus();
+    return;
+  }
   const names = getSiblingsName(parentId);
-  //如果为空则直接删除（重复会通过@input来判断）
-  if (names.indexOf(filename) != -1 || !filename) {
+  //如果错误或为空则直接删除（重复会通过@input来判断）
+  if (editError.value || names.indexOf(filename) != -1 || !filename) {
     store.removeFileFolderPending({
       id: fileNode.value?.parentId,
-      type: type,
+      type: type.value,
     });
     addValue.value = '';
+    resetStatus();
     return;
   }
   //添加文件
@@ -252,7 +267,7 @@ const handleAddFileBlur = (e) => {
     }
     store.removeFileFolderPending({
       id: fileNode.value?.parentId,
-      type: type,
+      type: type.value,
     });
     reloadFolder(parentId, filename);
     success(
@@ -271,7 +286,7 @@ const handleAddFileBlur = (e) => {
 //添加/编辑输入检测
 function handleAddEditFileInput(val): void {
   const siblings = getSiblingsName((fileNode.value as Code.FileData).parentId);
-  const pattern = new RegExp('[\\ / : * ? " < > |]');
+  InvalidFileNameReg.lastIndex = 0;
   if (siblings.indexOf(val) != -1) {
     editError.value = true;
     editErrorMessage.value = t('editor.name_repeat', {
@@ -280,9 +295,9 @@ function handleAddEditFileInput(val): void {
   } else if (!val) {
     editError.value = true;
     editErrorMessage.value = t('editor.empty_input');
-  } else if (pattern.test(val)) {
+  } else if (InvalidFileNameReg.test(val)) {
     editError.value = true;
-    editErrorMessage.value = t('editor.illegal_character');
+    editErrorMessage.value = t('editor.illegal_file_name');
   } else {
     editError.value = false;
     editErrorMessage.value = '';
@@ -343,7 +358,7 @@ function addChangePath(e): void {
 }
 
 //重命名文件blur
-const handleEditFileBlur = () => {
+const handleEditFile = () => {
   onEditing.value = false;
   if (editValue.value == fileNode.value.name) {
     return;

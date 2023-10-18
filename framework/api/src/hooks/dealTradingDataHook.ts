@@ -6,10 +6,9 @@ import {
   KfCategoryEnum,
   KfCategoryTypes,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
-import {
-  dealTradingData,
-  kfLogger,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { dealTradingData } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { kfLogger } from '@kungfu-trader/kungfu-js-api/utils/logUtils';
+import { generateLocationCombinations } from '@kungfu-trader/kungfu-js-api/hooks/hookUtils';
 
 export interface DealTradingDataGetter {
   category: KfCategoryTypes | string;
@@ -141,7 +140,7 @@ const DefaultUnkownDealTrdaingDataHook = {
   order: {
     getter: (
       // eslint-disable-next-line
-      ...args: [
+      ..._args: [
         watcher: KungfuApi.Watcher,
         orders: KungfuApi.DataTable<KungfuApi.Order>,
         kfLocation: KungfuApi.KfLocation,
@@ -152,7 +151,7 @@ const DefaultUnkownDealTrdaingDataHook = {
   trade: {
     getter: (
       // eslint-disable-next-line
-      ...args: [
+      ..._args: [
         watcher: KungfuApi.Watcher,
         trades: KungfuApi.DataTable<KungfuApi.Trade>,
         kfLocation: KungfuApi.KfLocation,
@@ -163,7 +162,7 @@ const DefaultUnkownDealTrdaingDataHook = {
   position: {
     getter: (
       // eslint-disable-next-line
-      ...args: [
+      ..._args: [
         watcher: KungfuApi.Watcher,
         positions: KungfuApi.DataTable<KungfuApi.Position>,
         kfLocation: KungfuApi.KfLocation,
@@ -177,30 +176,35 @@ export class DealTradingDataHooks {
   constructor() {
     this.hooks = new Proxy(
       {
-        'td_*_*': DefaultTdDealTrdaingDataHook,
-        'strategy_*_*': DefaultStrategyDealTrdaingDataHook,
+        'td_*_*_*': DefaultTdDealTrdaingDataHook,
+        'strategy_*_*_*': DefaultStrategyDealTrdaingDataHook,
       },
       {
         get(target: Record<string, DealTradingDataGetter>, prop: string) {
           const locationPairs = prop.split('_');
-          if (locationPairs.length != 3) {
+          if (locationPairs.length != 4) {
             kfLogger.warn(`Invalid hook key: ${prop}`);
             return [];
           }
+          const [category, group, name, mode] = prop.split('_');
+          const originalKeys: [string, string, string, string] = [
+            category,
+            group,
+            name,
+            mode,
+          ];
 
-          const [category, group, name] = prop.split('_');
-          if (target[`${category}_${group}_${name}`]) {
-            return target[`${category}_${group}_${name}`];
-          } else if (target[`${category}_*_${name}`]) {
-            return target[`${category}_*_${name}`];
-          } else if (target[`${category}_${group}_*`]) {
-            return target[`${category}_${group}_*`];
-          } else if (target[`${category}_*_*`]) {
-            return target[`${category}_*_*`];
-          }
+          const findMatchingKey = () => {
+            for (const key of generateLocationCombinations(originalKeys)) {
+              if (target[key]) {
+                return target[key];
+              }
+            }
+            // eslint-disable-next-line
+            return (_key: string) => DefaultUnkownDealTrdaingDataHook;
+          };
 
-          // eslint-disable-next-line
-          return (key: string) => DefaultUnkownDealTrdaingDataHook;
+          return findMatchingKey();
         },
 
         set(
@@ -225,8 +229,8 @@ export class DealTradingDataHooks {
     kfLocation: KungfuApi.DerivedKfLocation,
     getter: DealTradingDataGetter,
   ) {
-    const { category, group, name } = kfLocation;
-    const key = `${category}_${group}_${name}`;
+    const { category, group, name, mode } = kfLocation;
+    const key = `${category}_${group}_${name}_${mode}`;
     Reflect.set(this.hooks, key, getter);
   }
 
@@ -241,8 +245,8 @@ export class DealTradingDataHooks {
       return [];
     }
 
-    const { category, group, name } = kfLocation;
-    const key = `${category}_${group}_${name}`;
+    const { category, group, name, mode } = kfLocation;
+    const key = `${category}_${group}_${name}_${mode}`;
     const getter = Reflect.get(this.hooks, key)[tradingDataType].getter;
     return getter(
       watcher,
@@ -253,8 +257,8 @@ export class DealTradingDataHooks {
 
   getCategoryMap(): Record<string, KungfuApi.KfTradeValueCommonData> {
     return Object.keys(this.hooks).reduce((pre, key) => {
-      const [category, group, name] = key.split('_');
-      if (group === name && group === '*') {
+      const [category, group, name, mode] = key.split('_');
+      if (group === name && group === '*' && mode === '*') {
         pre[category] = Reflect.get(this.hooks, key).commonData;
       }
       return pre;

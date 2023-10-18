@@ -19,7 +19,30 @@
 #define KUNGFU_SETUP_LOGGER(location, name) kungfu::yijinjing::log::copy_log_settings(location, name)
 #endif // KUNGFU_SETUP_LOGGER
 
+#define KF_LOG_TRACE                                                                                                   \
+  if (kungfu::yijinjing::log::is_signal_log())                                                                         \
+  SPDLOG_TRACE
+#define KF_LOG_DEBUG                                                                                                   \
+  if (kungfu::yijinjing::log::is_signal_log())                                                                         \
+  SPDLOG_DEBUG
+#define KF_LOG_INFO                                                                                                    \
+  if (kungfu::yijinjing::log::is_signal_log())                                                                         \
+  SPDLOG_INFO
+#define KF_LOG_WARN                                                                                                    \
+  if (kungfu::yijinjing::log::is_signal_log())                                                                         \
+  SPDLOG_WARN
+#define KF_LOG_ERROR                                                                                                   \
+  if (kungfu::yijinjing::log::is_signal_log())                                                                         \
+  SPDLOG_ERROR
+#define KF_LOG_CRITICAL                                                                                                \
+  if (kungfu::yijinjing::log::is_signal_log())                                                                         \
+  SPDLOG_CRITICAL
+
 namespace kungfu::yijinjing::log {
+
+void disable_signal_log();
+
+bool is_signal_log();
 
 std::shared_ptr<spdlog::logger> get_main_logger();
 

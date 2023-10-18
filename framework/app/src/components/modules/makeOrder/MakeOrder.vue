@@ -15,12 +15,12 @@ import {
   dealStockOffset,
   transformOrderInputToExtConfigForm,
 } from './utils';
+import { hashInstrumentUKey } from '@kungfu-trader/kungfu-js-api/kungfu';
 import {
   makeOrderByOrderInput,
-  hashInstrumentUKey,
   getPosClosableVolume,
   makeOrderByOrderTriggerInput,
-} from '@kungfu-trader/kungfu-js-api/kungfu';
+} from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import {
   InstrumentTypeEnum,
   OffsetEnum,
@@ -37,16 +37,20 @@ import {
   useTradeLimit,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import {
-  dealVolumeByInstrumentType,
-  getExtConfigList,
-  getIdByKfLocation,
   getOffsetByOffsetFilter,
-  getProcessIdByKfLocation,
   initFormStateByConfig,
+} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { getExtConfigList } from '@kungfu-trader/kungfu-js-api/utils/extUtils';
+import {
+  getIdByKfLocation,
+  getProcessIdByKfLocation,
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import {
   isShotable,
   dealOrderInputItem,
   transformSearchInstrumentResultToInstrument,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+  dealVolumeByInstrumentType,
+} from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import OrderConfirmModal from './OrderConfirmModal.vue';
 import OrderTriggerConfirmModal from './OrderTriggerConfirmModal.vue';
 import VueI18n, { useLanguage } from '@kungfu-trader/kungfu-js-api/language';
@@ -288,7 +292,10 @@ watch(
 watch(
   () => formState.value,
   (newVal) => {
-    const { account_id, instrument, volume, side, offset } = newVal;
+    let { account_id, instrument, volume, side, offset } = newVal;
+    if (![SideEnum.Buy, SideEnum.Sell].includes(side)) {
+      side = undefined;
+    }
     useGlobalStore().setGlobalFormState({
       account_id,
       instrument,
@@ -491,20 +498,26 @@ async function confirmOrderPlace(
   const tdProcessId =
     currentGlobalKfLocation.value?.category === 'td'
       ? getProcessIdByKfLocation(currentGlobalKfLocation.value)
-      : `td_${account_id.toString()}`;
+      : getProcessIdByKfLocation({
+          category: 'td',
+          group: account_id.split('_')[0],
+          name: account_id.split('_')[1],
+          mode: 'live',
+        });
 
   if (processStatusData.value[tdProcessId] !== 'online') {
     return Promise.reject(
       new Error(t('tradingConfig.start_process', { process: tdProcessId })),
     );
   }
+  if (!globalSetting.value?.trade?.skipConfirmMakeOrder) {
+    const flag = await confirmModal(
+      t('tradingConfig.place_confirm'),
+      dealOrderPlaceVNode(makeOrderInput, orderCount, false),
+    );
 
-  const flag = await confirmModal(
-    t('tradingConfig.place_confirm'),
-    dealOrderPlaceVNode(makeOrderInput, orderCount, false),
-  );
-
-  if (!flag) return Promise.resolve('');
+    if (!flag) return Promise.resolve('');
+  }
 
   return Promise.resolve(tdProcessId);
 }

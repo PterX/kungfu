@@ -70,12 +70,6 @@
   };                                                                                                                   \
   class StrategyType : public kungfu::wingchun::strategy::Strategy
 
-// no clear what this macro for.
-// #define KUNGFU_DEFINE_OPERATOR(OperatorType) \
-//   m.def("operator", [&]() { \
-//     return std::static_pointer_cast<kungfu::wingchun::op::Operator>(std::make_shared<OperatorType>());           \
-//   })
-
 #define KUNGFU_MAIN_OPERATOR(OperatorType)                                                                             \
   class OperatorType;                                                                                                  \
   PYBIND11_MODULE(KUNGFU_MODULE_NAME, m) {                                                                             \

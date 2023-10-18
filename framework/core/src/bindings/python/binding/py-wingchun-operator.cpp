@@ -89,6 +89,8 @@ void bind_operator(pybind11::module &m) {
       .def("set_from_indexer", &op::Runner::set_from_indexer)
       .def("set_to_indexer", &op::Runner::set_to_indexer)
       .def("set_report", &op::Runner::set_report)
+      .def("set_time_interval", &op::Runner::set_time_interval)
+      .def("set_backtest_config", &op::Runner::set_backtest_config)
       .def("now", &op::Runner::now)
       .def("run", &op::Runner::run)
       .def("setup", &op::Runner::setup)
@@ -102,7 +104,9 @@ void bind_operator(pybind11::module &m) {
       .def("is_started", &op::Context::is_started)
       .def("add_timer", &op::Context::add_timer)
       .def("add_time_interval", &op::Context::add_time_interval)
+      .def("clear_timer", &op::Context::clear_timer)
       .def("subscribe", &op::Context::subscribe)
+      .def("unsubscribe", &op::Context::unsubscribe)
       .def("subscribe_all", &op::Context::subscribe_all, py::arg("source"), py::arg("market_type") = MarketType::All,
            py::arg("instrument_type") = SubscribeInstrumentType::All, py::arg("data_type") = SubscribeDataType::All)
       .def("subscribe_operator", &op::Context::subscribe_operator)

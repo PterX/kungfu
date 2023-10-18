@@ -24,6 +24,7 @@ Napi::FunctionReference History::constructor = {};
 History::History(const Napi::CallbackInfo &info)
     : ObjectWrap(info), locator_(IODevice::ExtractRuntimeLocatorByIndex(info, 0)),
       ledger_location_(location::make_shared(mode::LIVE, category::SYSTEM, "service", "ledger", locator_)),
+      renderer_location_(location::make_shared(mode::LIVE, category::SYSTEM, "node", "renderer-app", locator_)),
       profile_(locator_) {}
 
 Napi::Value History::SelectPeriod(const Napi::CallbackInfo &info) {
@@ -38,6 +39,7 @@ Napi::Value History::SelectPeriod(const Napi::CallbackInfo &info) {
       auto state_location = location::make_shared(config, locator_);
       serialize::JsRestoreState(result_ref, state_location)(from, to);
     }
+    serialize::JsRestoreState(result_ref, renderer_location_)(from, to);
     serialize::JsRestoreState(result_ref, ledger_location_)(from, to);
     return result_ref.Value();
   } catch (const std::exception &ex) {

@@ -20,6 +20,7 @@ import {
   nextTick,
   defineComponent,
 } from 'vue';
+import KfConfigSettingsForm from './KfConfigSettingsForm.vue';
 import {
   KfCategory,
   BasketVolumeType,
@@ -28,8 +29,6 @@ import {
 } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import { SpecialWordsReg } from '@kungfu-trader/kungfu-js-api/config/systemConfig';
 import {
-  getIdByKfLocation,
-  transformSearchInstrumentResultToInstrument,
   numberEnumRadioType,
   numberEnumSelectType,
   stringEnumSelectType,
@@ -40,12 +39,19 @@ import {
   getCombineValueByPrimaryKeys,
   getPriceTypeConfig,
   initFormStateByConfig,
-  getPrimaryKeys,
-  dealPriceType,
-  dealPriceLevel,
-  dealSide,
   replaceNonAlphaNumericWithSpace,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+
+import {
+  getIdByKfLocation,
+  getPrimaryKeys,
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import {
+  dealPriceType,
+  dealSide,
+  dealPriceLevel,
+  transformSearchInstrumentResultToInstrument,
+} from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import { RuleObject } from 'ant-design-vue/lib/form';
 import {
   useActiveInstruments,
@@ -158,6 +164,12 @@ type TablesSearchRelated = Record<
 
 const app = getCurrentInstance();
 const formRef = ref();
+const innerFormRefKeys: string[] = [];
+const buildInnerFormRef = (item: KungfuApi.KfConfigItem) => {
+  const key = `inner-form-ref-${item.key}`;
+  if (!innerFormRefKeys.includes(key)) innerFormRefKeys.push(key);
+  return key;
+};
 
 const formState = ref(props.formState);
 const { td, md, operator, strategy } = toRefs(useAllKfConfigData());
@@ -1010,6 +1022,51 @@ function disabledEndTime(
   };
 }
 
+function initDisabledTime(stratTime: string, endTimeLstring) {
+  const [startHour, startMinute] = stratTime.split(':');
+  const [endHour, endMinute] = endTimeLstring.split(':');
+  let hours: number[] = [];
+  let minutes: number[] = [];
+  let seconds: number[] = [];
+  if (!startHour || !startMinute || !endHour || !endMinute) {
+    return {
+      disabledHours: () => [],
+      disabledMinutes: () => [],
+    };
+  }
+  return {
+    disabledHours: () => {
+      for (let i = 0; i < Number(startHour); i++) {
+        hours.push(i);
+      }
+      for (let i = Number(endHour) + 1; i < 24; i++) {
+        hours.push(i);
+      }
+      return hours;
+    },
+    disabledMinutes: (seletedHour: number) => {
+      if (seletedHour === -1) return Array.from({ length: 60 }, (_, i) => i);
+      if (seletedHour === Number(startHour)) {
+        for (let i = 0; i < Number(startMinute); i++) {
+          minutes.push(i);
+        }
+      }
+      if (seletedHour === Number(endHour)) {
+        for (let i = Number(endMinute) + 1; i < 60; i++) {
+          minutes.push(i);
+        }
+      }
+      return minutes;
+    },
+    disabledSeconds: (seletedMinute: number) => {
+      if (seletedMinute === -1) {
+        return Array.from({ length: 60 }, (_, i) => i);
+      }
+      return seconds;
+    },
+  };
+}
+
 function handleRangePickerChange(date: Dayjs[], key: string) {
   if (date) {
     formState.value[key] = date.map((d) =>
@@ -1058,8 +1115,31 @@ function handleInstrumentDeselected(val: string, key: string) {
   }
 }
 
-function validate(): Promise<void> {
-  return formRef.value.validate();
+function validate(): Promise<Record<string, KungfuApi.KfConfigValue>> {
+  const innerFormRefs = innerFormRefKeys
+    .map((refKey) => {
+      type FormRef = InstanceType<typeof KfConfigSettingsForm>;
+      if (app?.proxy?.$refs?.[refKey]) {
+        const refs = app.proxy.$refs[refKey] as FormRef | Array<FormRef>;
+        return refs;
+      }
+      return null;
+    })
+    .flat();
+
+  const innerFormValidates = innerFormRefs
+    .filter((formRef) => !!formRef && formRef?.validate)
+    .map((formRef) => formRef?.validate() as unknown as Promise<void>);
+
+  const mainFormValidation = formRef.value?.validate?.().then(() => {
+    return formState.value;
+  });
+
+  return Promise.all([mainFormValidation].concat(...innerFormValidates)).then(
+    (results) => {
+      return results[0];
+    },
+  );
 }
 
 function clearValidate(): void {
@@ -1244,7 +1324,12 @@ defineExpose({
           item.disabled
         "
         @focus="numbersTyping[item.key] = true"
-        @blur="numbersTyping[item.key] = false"
+        @blur="
+          () => {
+            formState[item.key] = Number(formState[item.key]); // change value '' to 0.0000
+            numbersTyping[item.key] = false;
+          }
+        "
       ></a-input-number>
       <a-input-number
         v-else-if="item.type === 'percent'"
@@ -1896,6 +1981,12 @@ defineExpose({
           item.disabled
         "
         :value="formState[item.key] == null ? null : dayjs(formState[item.key])"
+        :disabled-time="
+          item.abledTimeRange ? ()=>{return initDisabledTime(...item.abledTimeRange as [string,string])} : ()=>{    return {
+      disabledHours: () => {return[1]},
+      disabledMinutes: () => [],
+    };}
+        "
         @change="handleTimePickerChange($event as unknown as Dayjs, item.key)"
       ></a-time-picker>
       <div
@@ -2012,6 +2103,7 @@ defineExpose({
               >
                 <div class="table-in-config-setting-row-from__wrap">
                   <KfConfigSettingsForm
+                    :ref="buildInnerFormRef(item)"
                     v-model:formState="_item.data"
                     :style="{
                       flexWrap: item.wrap || '',
@@ -2079,6 +2171,7 @@ defineExpose({
           >
             <div class="table-in-config-setting-row-from__wrap">
               <KfConfigSettingsForm
+                :ref="buildInnerFormRef(item)"
                 v-model:formState="formState[item.key][index]"
                 :config-settings="item.columns || []"
                 :change-type="changeType"

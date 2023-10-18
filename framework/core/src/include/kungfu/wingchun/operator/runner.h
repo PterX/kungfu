@@ -5,7 +5,6 @@
 #include <kungfu/wingchun/operator/backtest.h>
 #include <kungfu/wingchun/operator/live.h>
 #include <kungfu/wingchun/operator/operator.h>
-#include <kungfu/wingchun/operator/replay.h>
 #include <kungfu/yijinjing/practice/apprentice.h>
 
 namespace kungfu::wingchun::op {
@@ -27,6 +26,10 @@ public:
   void set_report(const tool::Report_ptr &report);
 
   tool::Report_ptr get_report() const;
+
+  void set_time_interval(int64_t time_interval);
+
+  void set_backtest_config(const std::string &backtest_config);
 
   void on_exit() override;
 
@@ -53,6 +56,8 @@ private:
   tool::SliceIndexer_ptr from_indexer_;
   tool::SliceIndexer_ptr to_indexer_;
   tool::Report_ptr report_;
+  int64_t time_interval_{yijinjing::time_unit::NANOSECONDS_PER_SECOND};
+  std::string backtest_config_;
 
   template <typename OnMethod = void (Operator::*)(Context_ptr &)> void invoke(OnMethod method) {
     auto context = std::dynamic_pointer_cast<Context>(context_);

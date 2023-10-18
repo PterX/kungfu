@@ -68,3 +68,7 @@ def strptime(timestr, format=DATETIME_FORMAT):
 
 def strfnow(format=DATETIME_FORMAT):
     return strftime(yjj.now_in_nano(), format)
+
+
+def today_start():
+    return yjj.today_start()

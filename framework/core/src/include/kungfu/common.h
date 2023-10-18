@@ -335,6 +335,8 @@ template <typename DataType> struct data {
     boost::hana::for_each(boost::hana::accessors<DataType>(), [&, this](auto it) {
       auto name = boost::hana::first(it);
       auto accessor = boost::hana::second(it);
+      if (not jobj.contains(name.c_str()))
+        return;
       auto &j = jobj[name.c_str()];
       auto &v = accessor(*const_cast<DataType *>(reinterpret_cast<const DataType *>(this)));
       restore_from_json(j, v);

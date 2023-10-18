@@ -32,7 +32,7 @@ protected:
   nanomsg_resource(const io_device &io_device, bool low_latency, protocol p)
       : io_device_(io_device), low_latency_(low_latency),
         location_(std::make_shared<data::location>(mode::LIVE, longfist::enums::category::SYSTEM, "master", "master",
-                                                   io_device_.get_home()->locator)),
+                                                   io_device_.get_live_home()->locator)),
         listen_path_(io_device_.get_url_factory()->make_path_listen(location_, p)),
         dial_path_(io_device_.get_url_factory()->make_path_dial(location_, p)), socket_(p) {}
 
@@ -147,14 +147,14 @@ public:
 };
 
 io_device::io_device(data::location_ptr home, const bool low_latency, const bool lazy)
-    : home_(std::move(home)), low_latency_(low_latency), lazy_(lazy),
+    : home_(std::move(home)),
+      live_home_(location::make_shared(mode::LIVE, home_->category, home_->group, home_->name, home_->locator)),
+      low_latency_(low_latency), lazy_(lazy), begin_time_(time::now_in_nano()),
       bus_(std::make_shared<bus>(is_cleaner_required())) {
   if (spdlog::default_logger()->name().empty()) {
     yijinjing::log::setup_log(home_, home_->name);
   }
   ensure_sqlite_initilize();
-
-  live_home_ = location::make_shared(mode::LIVE, home_->category, home_->group, home_->name, home_->locator);
   url_factory_ = std::make_shared<ipc_url_factory>();
 }
 
@@ -166,21 +166,41 @@ reader_ptr io_device::open_reader(const data::location_ptr &location, uint32_t d
   return r;
 }
 
-writer_ptr io_device::open_writer(uint32_t dest_id, uint32_t page_size) {
-  return std::make_shared<writer>(home_, dest_id, lazy_, publisher_, low_latency_, bus_, page_size);
+writer_ptr io_device::open_writer(uint32_t dest_id, uint64_t page_size) {
+  if (home_->mode != mode::REPLAY) {
+    return std::make_shared<writer>(home_, dest_id, lazy_, publisher_, low_latency_, bus_, page_size);
+  } else {
+    return std::make_shared<replay_writer>(live_home_, dest_id, std::make_shared<noop_publisher>(),
+                                           std::make_shared<bus>(false), page_size, begin_time_);
+  }
 }
 
-writer_ptr io_device::open_writer_at(const data::location_ptr &location, uint32_t dest_id, uint32_t page_size) {
-  return std::make_shared<writer>(location, dest_id, lazy_, publisher_, low_latency_, bus_, page_size);
+writer_ptr io_device::open_writer_at(const data::location_ptr &location, uint32_t dest_id, uint64_t page_size) {
+  if (home_->mode != mode::REPLAY) {
+    return std::make_shared<writer>(location, dest_id, lazy_, publisher_, low_latency_, bus_, page_size);
+  } else {
+    return std::make_shared<replay_writer>(location, dest_id, std::make_shared<noop_publisher>(),
+                                           std::make_shared<bus>(false), page_size, begin_time_);
+  }
 }
 
-writer_ptr io_device::open_hookable_writer(uint32_t dest, const writer_hook_ptr &hook) {
-  return std::make_shared<hookable_writer>(home_, dest, lazy_, publisher_, low_latency_, bus_, hook);
+writer_ptr io_device::open_hookable_writer(uint32_t dest_id, const writer_hook_ptr &hook, uint64_t page_size) {
+  if (home_->mode != mode::REPLAY) {
+    return std::make_shared<hookable_writer>(home_, dest_id, lazy_, publisher_, low_latency_, bus_, page_size, hook);
+  } else {
+    return std::make_shared<replay_writer>(live_home_, dest_id, std::make_shared<noop_publisher>(),
+                                           std::make_shared<bus>(false), page_size, begin_time_);
+  }
 }
 
 writer_ptr io_device::open_hookable_writer_at(const data::location_ptr &location, uint32_t dest_id,
-                                              const writer_hook_ptr &hook) {
-  return std::make_shared<hookable_writer>(location, dest_id, lazy_, publisher_, low_latency_, bus_, hook);
+                                              const writer_hook_ptr &hook, uint64_t page_size) {
+  if (home_->mode != mode::REPLAY) {
+    return std::make_shared<hookable_writer>(location, dest_id, lazy_, publisher_, low_latency_, bus_, page_size, hook);
+  } else {
+    return std::make_shared<replay_writer>(live_home_, dest_id, std::make_shared<noop_publisher>(),
+                                           std::make_shared<bus>(false), page_size, begin_time_);
+  }
 }
 
 io_device_master::io_device_master(data::location_ptr home, bool low_latency)
@@ -205,6 +225,9 @@ bool io_device_client::setup() {
   publisher_ = std::make_shared<nanomsg_publisher_client>(*this, is_low_latency());
   observer_ = std::make_shared<nanomsg_observer_client>(*this, is_low_latency());
   auto is_live_mode = get_home()->mode == mode::LIVE;
+  if (not is_live_mode) {
+    return true;
+  }
 
   auto try_setup = [&]() {
     auto prc = publisher_->setup();
@@ -214,7 +237,7 @@ bool io_device_client::setup() {
   };
 
   int count = (REGISTER_TIMEOUT_SECONDS * 1000) / SETUP_TIMEOUT;
-  while (not try_setup() && is_live_mode) {
+  while (not try_setup()) {
     SPDLOG_WARN("try setup failed, retrying...");
     if (count-- <= 0) {
       SPDLOG_ERROR("setup failed");

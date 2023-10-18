@@ -35,6 +35,7 @@ declare namespace KungfuApi {
     CommissionModeEnum,
     DirectionEnum,
     OrderStatusEnum,
+    KfExtTypeEnum,
     KfCategoryEnum,
     KfCategoryTypes,
     KfUIExtLocatorTypes,
@@ -199,6 +200,8 @@ declare namespace KungfuApi {
     search?: KfConfigItemSearch;
     importMode?: 'reset' | 'add';
     disableDateRange?: number; // 时间范围选择器不可选的日期范围
+    abledTimeRange?: [string, string]; // 时间范围选择器不可选的时间范围
+
     maxlength?: number;
 
     // ---- some ui releated ----;
@@ -213,17 +216,103 @@ declare namespace KungfuApi {
     type: KfConfigItemSupportedTypes;
   }
 
-  export interface KfExtOriginConfig {
+  export interface KfExtOriginBaseConfig<T extends KfExtTypeEnum> {
     key: string;
     name: string;
+    type: T;
     version: string;
     description: string;
     dependencies: Record<string, string>;
     extPath: string;
     readmePath: string;
     releaseNotePath: string;
+    language?: {
+      'zh-CN': Record<string, string>;
+      'en-US': Record<string, string>;
+      [langName: string]: Record<string, string>;
+    };
+  }
+
+  export interface KfExtOriginBrokerConfig
+    extends KfExtOriginBaseConfig<KfExtTypeEnum.Broker> {
+    config?: {
+      td?: {
+        silent?: boolean;
+        roles?: Record<string, string[]>;
+        type?: TdMdExtTypes[] | TdMdExtTypes;
+        order_trigger?: Record<string, Record<string, boolean>>;
+        settings: KfConfigItem[];
+        fund_trans?: KfExtFundTransConfig | null;
+        show_asset_margin?: boolean;
+      };
+      md?: {
+        silent?: boolean;
+        roles?: Record<string, string[]>;
+        type?: TdMdExtTypes[] | TdMdExtTypes;
+        settings: KfConfigItem[];
+      };
+    };
+  }
+
+  export interface KfExtOriginTaskConfig
+    extends KfExtOriginBaseConfig<KfExtTypeEnum.Task> {
+    config?: {
+      strategy?: {
+        silent?: boolean;
+        roles?: Record<string, string[]>;
+        type?: StrategyExtTypes[] | StrategyExtTypes;
+        settings: KfConfigItem[];
+      };
+    };
+  }
+
+  export interface KfExtOriginOperatorConfig
+    extends KfExtOriginBaseConfig<KfExtTypeEnum.Operator> {
+    config?: {
+      operator?: {
+        silent?: boolean;
+        roles?: Record<string, string[]>;
+        type?: StrategyExtTypes[] | StrategyExtTypes;
+        settings: KfConfigItem[];
+      };
+    };
+  }
+
+  export interface KfExtOriginServiceConfig
+    extends KfExtOriginBaseConfig<KfExtTypeEnum.Service> {
+    config?: {
+      system?: Record<
+        string,
+        {
+          silent?: boolean;
+          roles?: Record<string, string[]>;
+          type?: SystemExtTypes[] | SystemExtTypes;
+          for: ExtRunForEnvTypesEnum[] | ExtRunForEnvTypesEnum;
+          script: string;
+          settings?: KfConfigItem[];
+        }
+      >;
+    };
+  }
+
+  export interface KfExtOriginUIConfig
+    extends KfExtOriginBaseConfig<KfExtTypeEnum.UI> {
+    config?: {
+      system?: Record<
+        string,
+        {
+          silent?: boolean;
+          roles?: Record<string, string[]>;
+          type?: SystemExtTypes[] | SystemExtTypes;
+          for: ExtRunForEnvTypesEnum[] | ExtRunForEnvTypesEnum;
+          script: string;
+          settings?: KfConfigItem[];
+        }
+      >;
+    };
     ui_config?: {
-      silent: boolean;
+      silent?: boolean;
+      roles?: Record<string, string[]>;
       position: KfUIExtLocatorTypes;
       exhibit?: KfExhibitConfig;
       components?:
@@ -237,7 +326,8 @@ declare namespace KungfuApi {
       script?: string;
     };
     cli_config?: {
-      silent: boolean;
+      silent?: boolean;
+      roles?: Record<string, string[]>;
       exhibit?: KfExhibitConfig;
       components?: Record<
         string,
@@ -248,45 +338,45 @@ declare namespace KungfuApi {
       >;
       script?: string;
     };
-    config?: {
-      td?: {
-        silent: boolean;
-        type?: TdMdExtTypes[] | TdMdExtTypes;
-        order_trigger?: Record<string, Record<string, boolean>>;
-        settings: KfConfigItem[];
-        fund_trans?: KfExtFundTransConfig | null;
-      };
-      md?: {
-        silent: boolean;
-        type?: TdMdExtTypes[] | TdMdExtTypes;
-        settings: KfConfigItem[];
-      };
-      strategy?: {
-        silent: boolean;
-        type?: StrategyExtTypes[] | StrategyExtTypes;
-        settings: KfConfigItem[];
-      };
-      operator?: {
-        silent: boolean;
-        type?: StrategyExtTypes[] | StrategyExtTypes;
-        settings: KfConfigItem[];
-      };
-      system?: Record<
-        string,
-        {
-          silent: boolean;
-          type?: SystemExtTypes[] | SystemExtTypes;
-          for: ExtRunForEnvTypesEnum[] | ExtRunForEnvTypesEnum;
-          script: string;
-          settings?: KfConfigItem[];
-        }
-      >;
-    };
-    language: {
-      'zh-CN': Record<string, string>;
-      'en-US': Record<string, string>;
-      [langName: string]: Record<string, string>;
-    };
+  }
+
+  export interface KfExtOriginMatcherConfig
+    extends KfExtOriginBaseConfig<KfExtTypeEnum.Matcher> {
+    config?: any;
+  }
+
+  export interface KfExtOriginIndexerConfig
+    extends KfExtOriginBaseConfig<KfExtTypeEnum.Indexer> {
+    useFor?: KfModeTypes[];
+    config?: any;
+  }
+
+  export type KfExtOriginConfig =
+    | KfExtOriginBrokerConfig
+    | KfExtOriginTaskConfig
+    | KfExtOriginOperatorConfig
+    | KfExtOriginServiceConfig
+    | KfExtOriginMatcherConfig
+    | KfExtOriginIndexerConfig
+    | KfExtOriginUIConfig;
+
+  export interface KfExtOriginConfigs {
+    broker: Record<string, KfExtOriginBrokerConfig>;
+    task: Record<string, KfExtOriginTaskConfig>;
+    operator: Record<string, KfExtOriginOperatorConfig>;
+    service: Record<string, KfExtOriginServiceConfig>;
+    matcher: Record<string, KfExtOriginMatcherConfig>;
+    indexer: Record<string, KfExtOriginIndexerConfig>;
+    ui: Record<string, KfExtOriginUIConfig>;
+  }
+
+  export interface KfExtOriginConfigsMapByCategory
+    extends Record<KfCategoryTypes, KfExtOriginConfig> {
+    td: KfExtOriginBrokerConfig;
+    md: KfExtOriginBrokerConfig;
+    strategy: KfExtOriginTaskConfig;
+    operator: KfExtOriginOperatorConfig;
+    system: KfExtOriginServiceConfig;
   }
 
   interface KfExhibitConfig {
@@ -312,6 +402,7 @@ declare namespace KungfuApi {
     readmePath: string;
     releaseNotePath: string;
     silent: boolean;
+    roles: Record<string, string[]>;
   }
 
   export interface KfTdExtConfig extends KfExtConfigBase<'td' | 'tdGroup'> {
@@ -319,6 +410,7 @@ declare namespace KungfuApi {
     orderTrigger: Partial<Record<OrderTriggerConfigTypeEnum, boolean>>;
     settings: KfConfigItem[];
     fundTrans?: KfExtFundTransConfig | null;
+    showAssetMargin?: boolean;
   }
 
   export interface KfMdExtConfig extends KfExtConfigBase<'md'> {
@@ -444,8 +536,6 @@ declare namespace KungfuApi {
   export interface KfLogData {
     id: number;
     message: string;
-    messageOrigin: string;
-    messageForSearch: string;
   }
 
   export class KfFixedList<T> {
@@ -505,11 +595,11 @@ declare namespace KungfuApi {
   }
 
   export interface DataTable<T> {
-    [hashed: string]: T;
+    [hashed: string]: Readonly<T>;
     filter(key: string, value: string | number | bigint): DataTable<T>;
     nofilter(key: string, value: string | number | bigint): DataTable<T>;
-    sort(key: string): T[];
-    list(): T[];
+    sort(key: string): Readonly<T>[];
+    list(): Readonly<T>[];
   }
 
   export interface Asset {
@@ -1167,6 +1257,21 @@ declare namespace KungfuApi {
     state: StrategyStateStatusTypes;
   }
 
+  export interface ReplayConfig extends ReplayConfigOrigin {
+    session_info: string;
+  }
+
+  export interface ReplayConfigOrigin {
+    group: string;
+    category: string;
+    begin_time: string;
+    end_time: string;
+    log_level: string;
+    session_name: string;
+    file_path: string;
+    enable_matcher: boolean;
+  }
+
   export interface Watcher {
     appStates: Record<string, BrokerStateStatusEnum>;
     strategyStates: Record<string, StrategyStateDataOrigin>;
@@ -1291,6 +1396,7 @@ declare namespace KungfuApi {
     genTimeResolved: string;
     triggerTimeResolved: string;
     msgTypeResolved: KfTradeValueCommonData;
+    index?: number;
   }
 
   export interface Tracer {
@@ -1372,7 +1478,6 @@ declare namespace KungfuApi {
       bypassRefreshBook = false,
       millisecondsSleepAfterStep = 200,
     ): Watcher | null;
-    shutdown(): void;
     formatStringToHashHex(id: string): string;
     formatTime(nano: bigint, format: string): string;
     hash(str: string | number): string;
@@ -1471,6 +1576,9 @@ declare module '@kungfu-trader/kungfu-core' {
 declare namespace Code {
   import { Stats } from 'fs-extra';
   import { SpaceTabSettingEnum, SpaceSizeSettingEnum } from './enums';
+  import { session } from 'electron';
+  import path from 'path';
+  import Replay from '@kungfu-trader/kungfu-app/src/renderer/pages/replay/Replay.vue';
 
   export interface CodeInfo {
     code_id: string;

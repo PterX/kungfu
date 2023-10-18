@@ -2,10 +2,10 @@ import path from 'path';
 import fse from 'fs-extra';
 import { configStore } from '../kungfu';
 import {
-  kfLogger,
-  hidePasswordByLogger,
   getResultUntilValuable,
-} from '../utils/busiUtils';
+  hidePasswordByLogger,
+} from '../utils/commonUtils';
+import { kfLogger } from '../utils/logUtils';
 import { BASE_DB_DIR } from '../config/pathConfig';
 
 export const getKfAllConfig = (): Promise<KungfuApi.KfConfigOrigin[]> => {
@@ -24,7 +24,7 @@ export const setKfConfig = (
 ): Promise<boolean> => {
   const configForLog = hidePasswordByLogger(configValue);
   kfLogger.info(
-    `Set Kungfu Config ${kfLocation.category} ${kfLocation.group} ${kfLocation.name} ${configForLog}`,
+    `Set Kungfu Config ${kfLocation.category} ${kfLocation.group} ${kfLocation.name} ${kfLocation.mode} ${configForLog}`,
   );
   return getResultUntilValuable(() =>
     configStore.setConfig(

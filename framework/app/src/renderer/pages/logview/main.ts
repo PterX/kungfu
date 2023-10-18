@@ -1,7 +1,7 @@
 import './setEnv';
 import { createApp } from 'vue';
 import App from '@kungfu-trader/kungfu-app/src/renderer/pages/logview/App.vue';
-
+import store from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store';
 import VueVirtualScroller from 'vue-virtual-scroller';
 import 'vue-virtual-scroller/dist/vue-virtual-scroller.css';
 import { Button, Checkbox, Input, Layout, Spin } from 'ant-design-vue';
@@ -11,6 +11,7 @@ import { loadCustomFont } from '@kungfu-trader/kungfu-app/src/renderer/assets/me
 const app = createApp(App);
 
 app
+  .use(store)
   .use(Layout)
   .use(Button)
   .use(Checkbox)

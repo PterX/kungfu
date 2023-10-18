@@ -14,7 +14,9 @@ const buildStrSorter =
   (a: KungfuApi.PositionResolved, b: KungfuApi.PositionResolved) =>
     a[dataIndex].toString().localeCompare(b[dataIndex].toString());
 
-export const getColumns = (): KfTradingDataTableHeaderConfig[] => [
+export const getColumns = (
+  lastPriceSorter: (a: KungfuApi.Position, b: KungfuApi.Position) => number,
+): KfTradingDataTableHeaderConfig[] => [
   {
     type: 'string',
     name: t('posGlobalConfig.instrument_id'),
@@ -93,7 +95,7 @@ export const getColumns = (): KfTradingDataTableHeaderConfig[] => [
     dataIndex: 'last_price_resolved',
     width: 110,
     align: 'right',
-    sorter: buildSorter('last_price'),
+    sorter: lastPriceSorter,
   },
   {
     type: 'number',
@@ -115,7 +117,7 @@ export const categoryRegisterConfig: DealTradingDataGetter = {
     color: 'pink',
   },
   order: {
-    getter(watcher, orders, kfLocation) {
+    getter(_watcher, orders, kfLocation) {
       const { group, name } = kfLocation;
       return orders
         .filter('exchange_id', group)
@@ -124,7 +126,7 @@ export const categoryRegisterConfig: DealTradingDataGetter = {
     },
   },
   trade: {
-    getter(watcher, trades, kfLocation) {
+    getter(_watcher, trades, kfLocation) {
       const { group, name } = kfLocation;
       return trades
         .filter('exchange_id', group)
@@ -133,7 +135,7 @@ export const categoryRegisterConfig: DealTradingDataGetter = {
     },
   },
   position: {
-    getter(watcher, position, kfLocation) {
+    getter(_watcher, position, kfLocation) {
       const { group, name, direction } =
         kfLocation as KungfuApi.KfExtraLocation;
       return position

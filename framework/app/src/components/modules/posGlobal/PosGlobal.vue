@@ -18,11 +18,11 @@ import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/p
 import KfBlinkNum from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfBlinkNum.vue';
 import KfTradingDataTable from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfTradingDataTable.vue';
 import { categoryRegisterConfig, getColumns } from './config';
+import { dealKfPrice } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   dealDirection,
   dealCurrency,
-  dealKfPrice,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+} from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import {
   LedgerCategoryEnum,
   SideEnum,
@@ -37,7 +37,7 @@ import {
   useDealDataWithCaches,
   showTradingDataDetail,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
-import { dealPosition } from '@kungfu-trader/kungfu-js-api/kungfu';
+import { dealPosition } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
 import {
   getPosClosableVolumeByOffset,
@@ -53,6 +53,7 @@ globalThis.HookKeeper.getHooks().dealTradingData.register(
     category: categoryRegisterConfig.category,
     group: '*',
     name: '*',
+    mode: '*',
   },
   categoryRegisterConfig,
 );
@@ -84,6 +85,9 @@ const { dealDataWithCache } = useDealDataWithCaches<
 >(['uid_key', 'update_time']);
 const { globalSetting } = storeToRefs(useGlobalStore());
 
+const lastPriceSorter = (a: KungfuApi.Position, b: KungfuApi.Position) => {
+  return getPositionLastPrice(a) - getPositionLastPrice(b);
+};
 const columns = computed(() => {
   const kfGlobalSettings = getKfGlobalSettings();
   const tradeSettings = kfGlobalSettings.filter(
@@ -93,12 +97,13 @@ const columns = computed(() => {
     .filter((item) => item.key === 'posTableColumns')[0]
     .options?.map((item) => item.value);
   const selectedOptions: string[] = globalSetting.value?.trade?.posTableColumns;
-  if (!posTableColumnsOptions || !selectedOptions) return getColumns();
+  if (!posTableColumnsOptions || !selectedOptions)
+    return getColumns(lastPriceSorter);
   const notSelectedOptions = posTableColumnsOptions.filter((item) => {
     return !selectedOptions.includes(item as string);
   });
 
-  const columnsConfig = getColumns();
+  const columnsConfig = getColumns(lastPriceSorter);
 
   return columnsConfig.filter((item) => {
     return !notSelectedOptions.includes(item.dataIndex);
@@ -174,17 +179,6 @@ function buildGlobalPositions(
     return posStat;
   }, {} as PosStat);
 
-  // const locale = 'en';
-  // const localeOptions: Intl.CollatorOptions = {
-  //   numeric: true,
-  //   sensitivity: 'base',
-  //   ignorePunctuation: true,
-  //   usage: 'sort',
-  // };
-  // return Object.values(posStatData).sort((item1, item2) => {
-  //   return item1.id.localeCompare(item2.id, locale, localeOptions);
-  // });
-  // 性能问题，暂时不 sort
   return Object.values(posStatData);
 }
 
@@ -246,7 +240,7 @@ function tiggerOrderBookAndMakeOrder(record: KungfuApi.PositionResolved) {
     offset,
     volume: getPosClosableVolumeByOffset(record, offset),
 
-    price: record.last_price || 0,
+    price: getPositionLastPrice(record) || 0,
   };
   triggerMakeOrder(ensuredInstrument, extraOrderInput);
 }

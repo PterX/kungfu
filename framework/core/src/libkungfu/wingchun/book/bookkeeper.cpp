@@ -43,6 +43,8 @@ void Bookkeeper::on_start(const rx::connectable_observable<event_ptr> &events) {
   restore(app_.get_state_bank());
 
   events | is(Instrument::tag) | $$(update_instrument(event->data<Instrument>()));
+  events | is(Basket::tag) | $$(update_basket(event->data<Basket>()));
+  events | is(BasketInstrument::tag) | $$(update_basket_instrument(event->data<BasketInstrument>()));
   events | is(Commission::tag) | $$(update_commission(event, event->data<Commission>()));
   events | is(InstrumentFactor::tag) | $$(update_instrument_factor(event->data<InstrumentFactor>()));
   events | is_own<Quote>(broker_client_) | $$(try_update_book(event, event->data<Quote>()));
@@ -87,10 +89,20 @@ void Bookkeeper::restore(const cache::bank &state_bank) {
   for (auto &pair : state_bank[boost::hana::type_c<Instrument>]) {
     update_instrument(pair.second.data);
   }
+  for (auto &pair : state_bank[boost::hana::type_c<InstrumentFactor>]) {
+    update_instrument_factor(pair.second.data);
+  }
+  for (auto &pair : state_bank[boost::hana::type_c<Basket>]) {
+    update_basket(pair.second.data);
+  }
+  for (auto &pair : state_bank[boost::hana::type_c<BasketInstrument>]) {
+    update_basket_instrument(pair.second.data);
+  }
   for (auto &pair : state_bank[boost::hana::type_c<Commission>]) {
     auto &state = pair.second;
     auto &commission = state.data;
-    commissions_.insert_or_assign(hash_str_32(commission.product_id), commission);
+    uint32_t product_key = hash_product(commission.exchange_id, commission.product_id);
+    commissions_.insert_or_assign(product_key, commission);
   }
   for (auto &pair : state_bank[boost::hana::type_c<Position>]) {
     auto &state = pair.second;
@@ -103,7 +115,7 @@ void Bookkeeper::restore(const cache::bank &state_bank) {
     auto &positions = is_long ? book->long_positions : book->short_positions;
     positions[hash_instrument(position.source_id, position.exchange_id, position.instrument_id)] = position;
     positions[hash_instrument(position.source_id, position.exchange_id, position.instrument_id)].source_op_id =
-        book->source_op_id(position.holder_uid, position.source_id);
+        get_source_op_id(position.holder_uid, position.source_id);
     book->add_source_id(position.source_id);
   }
   for (auto &pair : state_bank[boost::hana::type_c<Asset>]) {
@@ -116,16 +128,6 @@ void Bookkeeper::restore(const cache::bank &state_bank) {
     book->asset = asset;
     book->update(app_.now(), account_method_type_);
   }
-
-  for (auto &pair : state_bank[boost::hana::type_c<InstrumentFactor>]) {
-    auto &state = pair.second;
-    auto &instrument_factor = state.data;
-    if (not app_.has_location(instrument_factor.source_id)) {
-      continue;
-    }
-    update_instrument_factor(instrument_factor);
-  }
-
   for (auto &pair : state_bank[boost::hana::type_c<Order>]) {
     auto &order_state = pair.second;
     auto source_book = get_book(order_state.source);
@@ -153,7 +155,8 @@ void Bookkeeper::guard_positions() { positions_guarded_ = true; }
 
 Book_ptr Bookkeeper::make_book(uint32_t location_uid) {
   auto location = app_.get_location(location_uid);
-  auto book = std::make_shared<Book>(commissions_, instruments_, location);
+  auto book =
+      std::make_shared<Book>(commissions_, instruments_, instrument_factors_, baskets_, basket_instruments_, location);
   auto &asset = book->asset;
   asset.holder_uid = location_uid;
   asset.ledger_category = location->category == category::TD ? LedgerCategory::Account : LedgerCategory::Strategy;
@@ -165,23 +168,31 @@ void Bookkeeper::update_instrument(const longfist::types::Instrument &instrument
   instruments_.insert_or_assign(hashed_instrument_key, instrument);
 }
 
-void Bookkeeper::update_commission(const event_ptr &event, const longfist::types::Commission &commission) {
-  for (auto &bk_pair : books_) {
-    auto &book = bk_pair.second;
-    if (book->asset.holder_uid == event->source()) {
-      book->replace(commission);
-    }
+void Bookkeeper::update_basket(const longfist::types::Basket &basket) { baskets_.insert_or_assign(basket.id, basket); }
+
+void Bookkeeper::update_basket_instrument(const longfist::types::BasketInstrument &basket_instrument) {
+
+  auto basket_instrument_hashed = hash_basket_instrument(basket_instrument.basket_uid, basket_instrument.exchange_id,
+                                                         basket_instrument.instrument_id);
+
+  if (basket_instruments_.find(basket_instrument.basket_uid) == basket_instruments_.end()) {
+    BasketInstrumentElement basket_instrument_element;
+    basket_instruments_.emplace(basket_instrument.basket_uid, basket_instrument_element);
   }
+
+  auto &basket_instrument_element = basket_instruments_.at(basket_instrument.basket_uid);
+  basket_instrument_element.insert_or_assign(basket_instrument_hashed, basket_instrument);
+}
+
+void Bookkeeper::update_commission(const event_ptr &event, const longfist::types::Commission &commission) {
+  uint32_t product_key = hash_product(commission.exchange_id, commission.product_id);
+  commissions_.insert_or_assign(product_key, commission);
 }
 
 void Bookkeeper::update_instrument_factor(const longfist::types::InstrumentFactor &instrument_factor) {
-  for (auto &bk_pair : books_) {
-    auto &book = bk_pair.second;
-    auto location = app_.get_location(book->asset.holder_uid);
-    if (location->category != category::TD or book->asset.holder_uid == instrument_factor.source_id) {
-      book->replace(instrument_factor);
-    }
-  }
+  auto instrument_factor_id =
+      hash_instrument(instrument_factor.source_id, instrument_factor.exchange_id, instrument_factor.instrument_id);
+  instrument_factors_.insert_or_assign(instrument_factor_id, instrument_factor);
 }
 
 void Bookkeeper::update_book(const event_ptr &event, const InstrumentKey &instrument_key) {

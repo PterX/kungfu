@@ -13,7 +13,7 @@ class BacktestContext : public Context {
 public:
   explicit BacktestContext(yijinjing::practice::apprentice &app, const rx::connectable_observable<event_ptr> &events,
                            tool::SliceIndexer_ptr from_indexer, tool::SliceIndexer_ptr to_indexer,
-                           tool::Report_ptr report);
+                           tool::Report_ptr report, int64_t time_interval, std::string backtest_config);
 
   /**
    * checked_ is strated started.
@@ -44,14 +44,20 @@ public:
    * @param nanotime when to call in nano seconds
    * @param callback callback function
    */
-  void add_timer(int64_t nanotime, const std::function<void(event_ptr)> &callback) override;
+  int32_t add_timer(int64_t nanotime, const std::function<void(event_ptr)> &callback) override;
 
   /**
    * Add periodically callback.
    * @param duration duration in nano seconds
    * @param callback callback function
    */
-  void add_time_interval(int64_t duration, const std::function<void(event_ptr)> &callback) override;
+  int32_t add_time_interval(int64_t duration, const std::function<void(event_ptr)> &callback) override;
+
+  /**
+   * Clear timer
+   * @param timer_id id of timer, return by add_timer and add_time_interval
+   */
+  void clear_timer(int32_t timer_id) override;
 
   /**
    * Subscribe market data.
@@ -61,6 +67,15 @@ public:
    */
   void subscribe(const std::string &source, const std::vector<std::string> &instrument_ids,
                  const std::string &exchange_id) override;
+
+  /**
+   * Unubscribe market data.
+   * @param source MD group
+   * @param instrument_ids instrument IDs
+   * @param exchange_id exchange ID
+   */
+  virtual void unsubscribe(const std::string &source, const std::vector<std::string> &instrument_ids,
+                           const std::string &exchange_id) override;
 
   /**
    * Subscribe all from given MD
@@ -109,15 +124,56 @@ protected:
 
   void prepare(const event_ptr &event) override{};
 
+  template <typename DataType>
+  void parse_then_write_in_timer(const nlohmann::json &config_obj, const yijinjing::journal::writer_ptr &writer) {
+    try {
+      if (not config_obj.contains(DataType::type_name.c_str()))
+        return;
+      auto state_config_obj = config_obj[DataType::type_name.c_str()];
+      for (auto time_it = state_config_obj.begin(); time_it != state_config_obj.end(); ++time_it) {
+        int64_t update_time =
+            time_it.key() == "default" ? now() : yijinjing::time::strptime(time_it.key(), "%Y-%m-%d %H:%M:%S");
+        if (update_time < now()) {
+          SPDLOG_WARN("update_time={} of state data in backtest_config is earlier than begin_time {}", time_it.key(),
+                      yijinjing::time::strftime(now()));
+          continue;
+        }
+        for (auto it = time_it.value().begin(); it != time_it.value().end(); ++it) {
+          auto state = DataType(nlohmann::to_string(it.value()));
+          add_timer(update_time, [this, state, writer](const auto &e) {
+            writer->write_raw_at_as(now(), now(), app_.get_home_uid(), yijinjing::data::location::PUBLIC, state.tag,
+                                    reinterpret_cast<uintptr_t>(&state), sizeof(state));
+          });
+        }
+      }
+    } catch (const std::exception &e) {
+      SPDLOG_ERROR("parse the {} data in backtest_config error: {}", DataType::type_name.c_str(), e.what());
+      throw wingchun_error(e.what());
+    }
+  }
+
 private:
+  struct TimerTask {
+    int32_t timer_id;
+    std::function<void(event_ptr)> call_back;
+    TimerTask(int32_t id, std::function<void(event_ptr)> cb) : timer_id(id), call_back(std::move(cb)){};
+  };
   broker::PassiveClient broker_client_;
   tool::SliceIndexer_ptr from_indexer_;
   tool::SliceTool_ptr slice_tool_;
   tool::Report_ptr report_;
-  std::multimap<int64_t, std::function<void(event_ptr)>> pre_timer_callbacks_ = {};
-  std::multimap<int64_t, std::function<void(event_ptr)>> timer_callbacks_ = {};
+  int64_t time_interval_;
+  const std::string backtest_config_{"{}"};
+  int32_t timer_usage_count_{0};
+  int32_t protected_timer_id_;
+  std::multimap<int64_t, TimerTask> pre_timer_callbacks_{};
+  std::multimap<int64_t, TimerTask> timer_callbacks_{};
+  std::map<int64_t, std::vector<yijinjing::data::location_ptr>> lease_locations_{};
 
   void on_timer_check();
+  void lease_expired_check();
+  int32_t add_timer_interval_helper(int64_t duration, int32_t timer_id, const std::function<void(event_ptr)> &callback);
+  void init_time_events();
 };
 
 DECLARE_PTR(BacktestContext)

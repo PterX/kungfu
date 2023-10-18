@@ -41,6 +41,7 @@ class Operator(wc.Operator):
 
     def __init_operator(self, path):
         operator_dir = os.path.dirname(path)
+        sys.path.insert(0, operator_dir)
         name_no_ext = os.path.split(os.path.basename(path))
         sys.path.insert(0, os.path.relpath(operator_dir))
         module_name = os.path.splitext(name_no_ext[1])[0]
@@ -103,20 +104,22 @@ class Operator(wc.Operator):
         def wrap_callback(event):
             self.__call_proxy(callback, self.ctx, event)
 
-        self.ctx.wc_context.add_timer(nanotime, wrap_callback)
+        return self.ctx.wc_context.add_timer(nanotime, wrap_callback)
 
     def __add_time_interval(self, duration, callback):
         def wrap_callback(event):
             self.__call_proxy(callback, self.ctx, event)
 
-        self.ctx.wc_context.add_time_interval(duration, wrap_callback)
+        return self.ctx.wc_context.add_time_interval(duration, wrap_callback)
 
     def pre_start(self, wc_context):
         self.ctx.wc_context = wc_context
         self.ctx.now = wc_context.now
         self.ctx.add_timer = self.__add_timer
         self.ctx.add_time_interval = self.__add_time_interval
+        self.ctx.clear_timer = wc_context.clear_timer
         self.ctx.subscribe = wc_context.subscribe
+        self.ctx.unsubscribe = wc_context.unsubscribe
         self.ctx.subscribe_all = wc_context.subscribe_all
         self.ctx.subscribe_operator = wc_context.subscribe_operator
         self.ctx.update_operator_state = wc_context.update_operator_state

@@ -66,6 +66,7 @@ export default {
   open_window: '正在打开窗口',
   open_code_editor: '正在打开代码编辑器',
   open_journal_dashboard: '正在打开 journal 面板',
+  open_replay_dashboard: '正在打开回放面板',
   open_trading_task_view: '正在打开交易任务视图',
   add_board: '添加面板',
   select_board: '请选择要添加的面板',
@@ -400,6 +401,7 @@ export default {
     beyond_to_open: '超出部分反向开仓',
     reach: '达到',
     above: '超过',
+    hide_next_time: '下次不再提示',
   },
 
   orderConfig: {
@@ -549,11 +551,17 @@ export default {
     strategy_tip: '需保证该策略 ID 唯一',
 
     add_strategy: '添加',
+    replay: '回放',
+    start_time: '开始时间',
+    end_time: '结束时间',
+    log_level: '日志级别',
+    no_sessions_for_replay_warn: '该进程暂时未运行过, 无法回放',
   },
 
   operatorConfig: {
     operator: '算子',
     operator_id: '算子 ID',
+    operator_ext: '算子插件',
     operator_file: '算子文件',
     operator_path: '算子路径',
     operator_path_tip:
@@ -699,6 +707,24 @@ export default {
 
     selete_msg_type: '过滤消息类型',
     empty_export_data: '没有可导出的信息',
+
+    replay: '回放',
+    please_select_strategy_or_operator: '请选择策略或算子',
+
+    entry_visualization: '进入可视化',
+    quit_visualization: '退出可视化',
+    strategy_id: '策略id',
+    quote_legend: '行情订阅',
+    order_input_legend: '委托',
+    order_legend: '委托回报',
+    cancel_order_legend: '撤单',
+    search_order_id: '请搜索订单号',
+    search_instrument: '请搜索代码号',
+    search_order_id_error: '您搜索的订单号不存在, 请检查该订单号是否是所选标的',
+    buy_open: '买开',
+    buy_close: '买平',
+    sell_open: '卖开',
+    sell_close: '卖平',
   },
 
   tradeConfig: {
@@ -788,7 +814,7 @@ export default {
 
     bypass_subscribe_position: '跳过持仓行情订阅',
     bypass_subscribe_position_desc:
-      '打开后, 不再默认订阅交易账户持仓的行情更新, 且交易账户列表不再显示浮动盈亏, 市值相关字段使用开仓均价计算, 开启后可减轻机器性能负担, 重启后生效',
+      '打开后, 不再默认订阅交易账户持仓的行情更新, 浮动盈亏以及市值相关字段使用开仓均价计算, 开启后可减轻机器性能负担, 重启后生效',
     porformance: '性能',
     rocket_model: '开启极速模式',
     rocket_model_desc:
@@ -823,9 +849,12 @@ export default {
     order_input_key: '限制属性',
     single_price: '单笔成交价',
     limit_value: '最大值',
-    margin_trading: '两融',
     pos_table_columns: '持仓表格项配置',
+    margin_trading: '两融',
     show_margin_trading: '展示两融',
+    skip_confirm_make_order: '跳过下单确认弹窗',
+    set_skip_confirm_make_order:
+      '开启后, 手动下单时不再弹出二次确认弹窗, 直接执行下单操作',
 
     code_editor: '代码编辑器',
     tab_space_type: '缩进类别',
@@ -862,7 +891,9 @@ export default {
     current_version: '当前版本',
     already_latest_version: '已是最新版本',
     new_version: '新版本',
+    skip_version: '跳过此版本',
     retry_check: '检测',
+    has_skipped: '已跳过此版本',
     start_download: '开始下载',
     retry_download: '重试',
     find_new_version: '发现新版本: {version}\n是否现在下载安装包? ',
@@ -881,6 +912,7 @@ export default {
     value_existing: '{value}已存在',
     mandatory: '该项为必填项',
     resolved_tip: '成功匹配 {success} 个{value}, 失败 {fail} 个',
+    default_value_tip: '默认值不能改变',
   },
 
   editor: {
@@ -888,9 +920,11 @@ export default {
     current_strategy: '当前策略',
     new_file: '新建文件',
     new_folder: '新建文件夹',
+    open_folder: '打开文件夹',
     set_strategy_success: '策略 {file} 文件路径修改成功!',
     entry_file: '入口文件',
     creaate_success: '{file} 创建成功!',
+    illegal_file_name: '文件名不合法',
 
     name_repeat: '此位置已存在文件或文件夹 {name}, 请选择其他名称!',
     empty_input: '必须提供文件或文件夹名称!',
@@ -902,6 +936,40 @@ export default {
 
   logview: {
     scroll_to_bottom: '滚动到底部',
+  },
+
+  replay: {
+    session: 'Session',
+    replay: '回放',
+    backtest: '回测',
+    log_level: '日志级别',
+    begin_time: '开始时间',
+    end_time: '结束时间',
+    try_again: '重试',
+    stop_replay: '停止回放',
+    stop_backtest: '停止回测',
+    enable_matcher: '使用撮合器',
+    please_select_session: '请选择 Session',
+    please_select_log_level: '请选择日志级别',
+    stop_replay_warn_content: '关闭窗口将会停止回放, 是否仍然关闭窗口?',
+    process_has_not_been_started: '该进程暂时未运行过, 无法回放',
+    please_start_replay: '请先启动回放',
+    process_can_not_replay: '该进程无法回放',
+    tips_title: '* 注:',
+    replay_tips1_part1: '回放依赖数据时间, ',
+    replay_tips1_part2: '请勿在策略内使用物理时间相关代码来表达"now"',
+    replay_tips1_part3:
+      '(如 python 的 time 或者 yjj.now_in_nano), 建议使用策略提供的context.now 方法, 否则回放无法按照预期执行.',
+    replay_tips2_part1: '不使用撮合器',
+    replay_tips2_part2: '进行回放时, 回放仅可增加log, ',
+    replay_tips2_part3: '请勿修改策略逻辑',
+    replay_tips2_part4: ', 否则会由于输出数据与实际不符而报错.',
+    replay_tips2_part5: '使用撮合器',
+    replay_tips2_part6: '进行回放时, ',
+    replay_tips2_part7: '可以修改策略逻辑',
+    replay_tips2_part8: '，撮合器将使用实盘中记录的数据撮合并进行回放.',
+    process_not_found: '进程不存在',
+    enable_matcher_tip: '使用撮合器以回测模式运行,  策略逻辑可修改',
   },
 
   master_interrupt: '主控进程 master 中断',
@@ -947,6 +1015,9 @@ export default {
   错误: '错误',
   文件路径不存在: '文件路径不存在',
   策略id不存在: '策略 id 不存在',
+  请输入文件路径: '请输入文件路径',
+  请输入文件夹路径: '请输入文件夹路径',
+  请输入一个目录: '请输入一个目录',
 
   可用仓位: '可用仓位',
   可用资金: '可用资金',

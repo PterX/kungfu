@@ -6,11 +6,11 @@ import {
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import { computed } from 'vue';
 import { Stats } from 'fast-stats';
+import { dealAssetPrice } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   dealOffset,
   dealSide,
-  dealAssetPrice,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+} from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import { useActiveInstruments } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import { statisColums } from './config';
 import { Dayjs } from 'dayjs';

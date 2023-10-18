@@ -132,6 +132,7 @@ void master::register_app(const event_ptr &event) {
 
   // after register sent, then open session
   cached_.open_session(app_location, event->gen_time());
+  cached_.reset_cache_shift(app_location);
   cached_.try_ensure_cached_storage(app_location, location::PUBLIC);
   cached_.restore(app_location, app_cmd_writer);
 
@@ -279,6 +280,7 @@ void master::on_request_write_to_band(const event_ptr &event) {
   // layout have to be journal, for locator::list_locations
   auto dirname = home->locator->layout_dir(target_location, enums::layout::JOURNAL);
   reader_->join(target_location, location::PUBLIC, trigger_time, 1);
+  reader_->disjoin(target_location->location_uid);
 
   // notify others band location, but it represents a simulation location, no register, only location
   try_add_location(now(), target_location);

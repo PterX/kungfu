@@ -1,9 +1,9 @@
 <script setup lang="ts">
+import { delayMilliSeconds } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
-  dealSide,
   dealOffset,
-  delayMilliSeconds,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+  dealSide,
+} from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import { useActiveInstruments } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 
 import {
@@ -35,7 +35,7 @@ import { getColumns } from './config';
 import {
   dealTrade,
   getKungfuHistoryData,
-} from '@kungfu-trader/kungfu-js-api/kungfu';
+} from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import type { Dayjs } from 'dayjs';
 import {
   showTradingDataDetail,
@@ -79,7 +79,7 @@ const columns = computed(() => {
         category: 'td',
         group: '*',
         name: '*',
-        mode: 'live',
+        mode: '*',
       },
       !!historyDate.value,
     );

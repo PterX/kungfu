@@ -117,7 +117,7 @@ OrderStat &Ledger::ensure_order_stat(uint64_t order_id, const event_ptr &event) 
     order_stat.order_id = order_id;
     order_stat.md_time = event->trigger_time();
     order_stat.input_time = event->gen_time();
-    order_stats_.try_emplace(order_id, get_home_uid(), event->source(), event->gen_time(), order_stat);
+    order_stats_.try_emplace(order_id, get_live_home_uid(), event->source(), event->gen_time(), order_stat);
   }
   return order_stats_.at(order_id).data;
 }
@@ -289,7 +289,7 @@ void Ledger::write_strategy_data(int64_t trigger_time, uint32_t strategy_uid) {
     if ((has_account or is_strategy) or is_node) {
       write_positions(trigger_time, strategy_uid, book->long_positions);
       write_positions(trigger_time, strategy_uid, book->short_positions);
-      write_instrument_factors(trigger_time, strategy_uid, book->instrument_factors);
+      write_instrument_factors(trigger_time, strategy_uid, book->get_instrument_factors());
       writer->write(trigger_time, asset);
     }
   }
@@ -301,12 +301,12 @@ void Ledger::write_strategy_data(int64_t trigger_time, uint32_t strategy_uid) {
 void Ledger::write_positions(int64_t trigger_time, uint32_t dest, book::PositionMap &positions) {
   auto writer = get_writer(dest);
   for (const auto &pair : positions) {
-    writer->write_as(trigger_time, pair.second, get_home_uid(), pair.second.holder_uid);
+    writer->write_as(trigger_time, pair.second, get_live_home_uid(), pair.second.holder_uid);
   }
 }
 
 void Ledger::write_instrument_factors(int64_t trigger_time, uint32_t dest,
-                                      book::InstrumentFactorMap &instrument_factors) {
+                                      const book::InstrumentFactorMap &instrument_factors) {
   auto writer = get_writer(dest);
   for (const auto &pair : instrument_factors) {
     writer->write(trigger_time, pair.second);

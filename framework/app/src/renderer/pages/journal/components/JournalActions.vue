@@ -1,58 +1,77 @@
 <template>
-  <a-button @click="handleOpenExportFormModal">
-    {{ t('journalConfig.export') }}
-  </a-button>
-
-  <a-modal
-    v-model:visible="exportFormModalVisible"
-    :width="520"
-    class="kf-set-by-config-modal"
-    :title="exportModalConfig.title"
-    :destroy-on-close="true"
-    :cancel-text="$t('cancel')"
-    :ok-text="$t('confirm')"
-    @ok="handleConfirmExport"
-  >
-    <a-form
-      ref="formRef"
-      class="kf-config-form"
-      :model="exportFormState"
-      :colon="false"
-      :scroll-to-first-error="true"
+  <div class="journal-action">
+    <a-button
+      v-if="isShowVisualAction"
+      style="margin-right: 8px; color: #d22e88; border-color: #d22e88"
+      @click="handleClickVisualAction"
     >
-      <a-form-item
-        :key="EXPORT_KEY"
-        :rules="rules"
-        :label="exportModalConfig.name"
-        :required="true"
+      {{ visualBtnText }}
+    </a-button>
+    <a-button
+      v-if="isShowReplayAction"
+      @click="handleOpenReplayConfirmModal"
+      style="margin-left: 8px"
+    >
+      {{ t('replay.replay') }}
+    </a-button>
+    <a-button @click="handleOpenExportFormModal" style="margin-left: 8px">
+      {{ t('journalConfig.export') }}
+    </a-button>
+    <a-modal
+      v-model:visible="exportFormModalVisible"
+      :width="520"
+      class="kf-set-by-config-modal"
+      :title="exportModalConfig.title"
+      :destroy-on-close="true"
+      :cancel-text="$t('cancel')"
+      :ok-text="$t('confirm')"
+      @ok="handleConfirmExport"
+    >
+      <a-form
+        ref="formRef"
+        class="kf-config-form"
+        :model="exportFormState"
+        :colon="false"
+        :scroll-to-first-error="true"
       >
-        <div class="kf-form-item__warp file">
-          <a-button size="small" @click="handleSelectFile">
-            <template #icon><DashOutlined /></template>
-          </a-button>
-          <div
-            class="file-path"
-            :title="(exportFormState[EXPORT_KEY] || '').toString()"
-          >
-            <span class="name">{{ exportFormState[EXPORT_KEY] }}</span>
+        <a-form-item
+          :key="EXPORT_KEY"
+          :rules="rules"
+          :label="exportModalConfig.name"
+          :required="true"
+        >
+          <div class="kf-form-item__warp file">
+            <a-button size="small" @click="handleSelectFile">
+              <template #icon><DashOutlined /></template>
+            </a-button>
+            <div
+              class="file-path"
+              :title="(exportFormState[EXPORT_KEY] || '').toString()"
+            >
+              <span class="name">{{ exportFormState[EXPORT_KEY] }}</span>
+            </div>
           </div>
-        </div>
-      </a-form-item>
-    </a-form>
-  </a-modal>
+        </a-form-item>
+      </a-form>
+    </a-modal>
+  </div>
 </template>
 
 <script setup lang="ts">
 import fse from 'fs-extra';
 import path from 'path';
 import { dialog } from '@electron/remote';
-import { reactive, ref } from 'vue';
+import { reactive, ref, computed } from 'vue';
 import { DashOutlined } from '@ant-design/icons-vue';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { messagePrompt } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import { writeCsvByStream } from '../utils';
-
 const { t } = VueI18n.global;
+
+defineProps<{
+  isShowReplayAction: boolean;
+  isShowVisualAction: boolean;
+}>();
 
 const emit = defineEmits<{
   (
@@ -62,6 +81,8 @@ const emit = defineEmits<{
       exportData: KungfuApi.FrameResolved[],
     ) => void,
   ): void;
+  (e: 'startReplay'): void;
+  (e: 'showVisual', visible: boolean): void;
 }>();
 
 const EXPORT_KEY = 'export_file_path';
@@ -70,7 +91,14 @@ const exportFormState = reactive({
   [EXPORT_KEY]: '',
 });
 const exportFormModalVisible = ref(false);
+const entryVisual = ref(false);
 const message = messagePrompt();
+
+const visualBtnText = computed(() => {
+  return entryVisual.value
+    ? t('journalConfig.quit_visualization')
+    : t('journalConfig.entry_visualization');
+});
 
 const exportModalConfig = {
   title: t('journalConfig.export'),
@@ -93,6 +121,11 @@ const rules = {
       });
   },
   trigger: 'change',
+};
+
+const handleClickVisualAction = () => {
+  entryVisual.value = !entryVisual.value;
+  emit('showVisual', entryVisual.value);
 };
 
 const handleOpenExportFormModal = () => {
@@ -167,6 +200,10 @@ const handleConfirmExport = () => {
     },
   );
 };
+
+const handleOpenReplayConfirmModal = async () => {
+  emit('startReplay');
+};
 </script>
 
 <style lang="less">
@@ -189,5 +226,11 @@ const handleConfirmExport = () => {
       width: 40px;
     }
   }
+}
+
+.journal-action {
+  display: flex;
+  justify-content: flex-end;
+  margin-left: 16px;
 }
 </style>

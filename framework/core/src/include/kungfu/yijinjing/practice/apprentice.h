@@ -17,7 +17,7 @@ class apprentice;
 
 class cleaner {
 public:
-  explicit cleaner(yijinjing::practice::apprentice &app);
+  explicit cleaner(apprentice &app);
 
   virtual ~cleaner();
 
@@ -26,7 +26,7 @@ public:
   std::thread &get_cleaning_worker();
 
 private:
-  yijinjing::practice::apprentice &app_;
+  practice::apprentice &app_;
   std::thread cleaning_worker_;
   std::mutex cv_mutex_;
   std::mutex quite_mutex_;
@@ -39,7 +39,7 @@ private:
 
 class apprentice : public hero {
 public:
-  explicit apprentice(yijinjing::data::location_ptr home, bool low_latency = false, std::string arguments = "{}");
+  explicit apprentice(data::location_ptr home, bool low_latency = false, std::string arguments = "{}");
 
   bool is_started() const;
 
@@ -59,15 +59,14 @@ public:
 
   void request_read_from_sync(int64_t trigger_time, uint32_t source_id, int64_t from_time);
 
-  void request_read_from_source_to_dest(int64_t trigger_time, const yijinjing::data::location_ptr &source_location,
+  void request_read_from_source_to_dest(int64_t trigger_time, const data::location_ptr &source_location,
                                         uint32_t dest_id);
 
   void request_write_to(int64_t trigger_time, uint32_t dest_id);
 
-  void request_write_to_band(int64_t trigger_time, const yijinjing::data::location_ptr &location,
-                             uint32_t page_size = 0);
+  void request_write_to_band(int64_t trigger_time, const data::location_ptr &location, uint64_t page_size = 0);
 
-  uint32_t request_band(const std::string &band_name, uint32_t page_size = 0);
+  uint32_t request_band(const std::string &band_name, uint64_t page_size = 0);
 
   int32_t add_timer(int64_t nanotime, const std::function<void(const event_ptr &)> &callback);
 
@@ -76,12 +75,12 @@ public:
   void clear_timer(int32_t timer_id);
 
   template <typename DataType>
-  void write_to(int64_t trigger_time, const DataType &data, uint32_t dest_id = yijinjing::data::location::PUBLIC) {
+  void write_to(int64_t trigger_time, const DataType &data, uint32_t dest_id = data::location::PUBLIC) {
     get_writer(dest_id)->write(trigger_time, data);
   }
 
   template <typename DataType>
-  void try_write_to(int64_t trigger_time, const DataType &data, uint32_t dest_id = yijinjing::data::location::PUBLIC) {
+  void try_write_to(int64_t trigger_time, const DataType &data, uint32_t dest_id = data::location::PUBLIC) {
     if (has_writer(dest_id)) {
       get_writer(dest_id)->write(trigger_time, data);
     } else {
@@ -97,7 +96,7 @@ public:
 
   template <typename DataType>
   void try_write_raw_to(int64_t trigger_time, int32_t msg_type, const DataType &data, uint32_t length,
-                        uint32_t dest_id = yijinjing::data::location::PUBLIC) {
+                        uint32_t dest_id = data::location::PUBLIC) {
     if (has_writer(dest_id)) {
       get_writer(dest_id)->write_raw(trigger_time, msg_type, reinterpret_cast<uintptr_t>(&data), length);
     } else {
@@ -132,17 +131,17 @@ public:
 
   std::thread &get_cleaning_worker();
 
-  yijinjing::journal::writer_ptr &get_thread_writer();
+  journal::writer_ptr &get_thread_writer();
 
-  yijinjing::journal::writer_ptr &get_public_writer();
+  journal::writer_ptr &get_public_writer();
 
 protected:
   cache::bank state_bank_;
-  yijinjing::journal::writer_ptr master_cmd_writer_for_thread_{};
-  yijinjing::journal::writer_ptr public_writer_{};
-  inline static thread_local yijinjing::journal::writer_ptr thread_writer_{};
+  journal::writer_ptr master_cmd_writer_for_thread_{};
+  journal::writer_ptr public_writer_{};
+  inline static thread_local journal::writer_ptr thread_writer_{};
 
-  friend void add_location(yijinjing::practice::apprentice &app, const yijinjing::data::location_ptr &location) {
+  friend void add_location(practice::apprentice &app, const data::location_ptr &location) {
     app.add_location(app.now(), location);
   }
 
@@ -301,7 +300,7 @@ private:
   int64_t checkin_time_ = INT64_MIN;
   int32_t timer_usage_count_ = 0;
   const std::string arguments_{};
-  yijinjing::practice::cleaner cleaner_;
+  cleaner cleaner_;
   std::unordered_map<int, int64_t> timer_checkpoints_ = {};
   std::unordered_map<int, longfist::types::TimeRequest> timer_requests_ = {};
   std::unordered_set<uint32_t> try_write_dest_ids_{};

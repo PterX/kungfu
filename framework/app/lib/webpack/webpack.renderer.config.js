@@ -34,6 +34,8 @@ const webpackConfig = (argv) => {
   const pagesConfig = getPagesConfig(argv);
   fse.removeSync(path.join(publicDir, 'python'));
 
+  argv.enableThreadLoader = true;
+  const threaderLoader = toolkit.webpack.getThreadLoaderConfig(argv);
   return merge(toolkit.webpack.makeConfig(argv), {
     externals: getWebpackExternals(),
     entry: pagesConfig.entry,
@@ -72,7 +74,7 @@ const webpackConfig = (argv) => {
         },
         {
           test: /\.vue$/,
-          use: 'vue-loader',
+          use: [...threaderLoader, { loader: 'vue-loader' }],
         },
         {
           test: /\.worker\.ts$/,

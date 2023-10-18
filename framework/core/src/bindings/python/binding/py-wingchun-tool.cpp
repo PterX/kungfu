@@ -111,7 +111,8 @@ void bind_tool(pybind11::module &m) {
                               .def("next", &SliceTool::next)
                               .def("data_available", &SliceTool::data_available)
                               .def("current_frame", &SliceTool::current_frame)
-                              .def("join", &SliceTool::join);
+                              .def("join", &SliceTool::join)
+                              .def("get_writer", &SliceTool::get_writer);
 
   boost::hana::for_each(boost::hana::insert(MarketDataTypes, TYPE_PAIR(SyntheticData)), [&](auto type) {
     using DataType = typename decltype(+boost::hana::second(type))::type;

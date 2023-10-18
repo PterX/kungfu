@@ -401,6 +401,7 @@ export default {
     beyond_to_open: '超出部分反向开仓',
     reach: '达到',
     above: '超过',
+    hide_next_time: '下次不再提示',
   },
 
   orderConfig: {
@@ -560,6 +561,7 @@ export default {
   operatorConfig: {
     operator: '算子',
     operator_id: '算子 ID',
+    operator_ext: '算子插件',
     operator_file: '算子文件',
     operator_path: '算子路径',
     operator_path_tip:
@@ -847,9 +849,12 @@ export default {
     order_input_key: '限制属性',
     single_price: '单笔成交价',
     limit_value: '最大值',
-    margin_trading: '两融',
     pos_table_columns: '持仓表格项配置',
+    margin_trading: '两融',
     show_margin_trading: '展示两融',
+    skip_confirm_make_order: '跳过下单确认弹窗',
+    set_skip_confirm_make_order:
+      '开启后, 手动下单时不再弹出二次确认弹窗, 直接执行下单操作',
 
     code_editor: '代码编辑器',
     tab_space_type: '缩进类别',
@@ -907,6 +912,7 @@ export default {
     value_existing: '{value}已存在',
     mandatory: '该项为必填项',
     resolved_tip: '成功匹配 {success} 个{value}, 失败 {fail} 个',
+    default_value_tip: '默认值不能改变',
   },
 
   editor: {
@@ -1009,6 +1015,9 @@ export default {
   错误: '错误',
   文件路径不存在: '文件路径不存在',
   策略id不存在: '策略 id 不存在',
+  请输入文件路径: '请输入文件路径',
+  请输入文件夹路径: '请输入文件夹路径',
+  请输入一个目录: '请输入一个目录',
 
   可用仓位: '可用仓位',
   可用资金: '可用资金',

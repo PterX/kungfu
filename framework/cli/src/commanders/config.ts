@@ -19,9 +19,13 @@ const promptQuestionForSelectTargetConfigItem = () => {
       name: 'target',
       message: 'Select config target    ',
       source: async () => {
-        return Object.values(kfGlobalSettings).map(
-          (systemConfigItem: KfSystemConfig) => systemConfigItem.key,
-        );
+        return Object.values(kfGlobalSettings)
+          .filter(
+            (systemConfigItem: KfSystemConfig) =>
+              systemConfigItem.key !== 'code' &&
+              systemConfigItem.key !== 'trade',
+          )
+          .map((systemConfigItem: KfSystemConfig) => systemConfigItem.key);
       },
     },
   ]);
@@ -42,11 +46,13 @@ export const setGlobalSetting = async () => {
     throw new Error(`Gloabl setting no ${target} option`);
   }
 
-  const settings: KungfuApi.KfConfigItem[] = targetConfigItem.config;
+  const settings: KungfuApi.KfConfigItem[] = targetConfigItem.config.filter(
+    (item) => !item.for || item.for === 'cli',
+  );
   const initValue: Record<string, KungfuApi.KfConfigValue> =
     kfGlobalSettingsValue[target];
 
-  const formState = await getPromptQuestionsBySettings(settings, initValue);
+  const formState = await getPromptQuestionsBySettings({ settings }, initValue);
   setKfGlobalSettingsValue({
     ...kfGlobalSettingsValue,
     [target]: formState,
@@ -64,8 +70,14 @@ const getConfigTipsMap = (settings) => {
 };
 
 export const showGlobalSetting = () => {
+  const kfGlobalSettingsJson = getKfGlobalSettingsValue();
+  for (const key of Object.keys(kfGlobalSettingsJson)) {
+    if (Object.keys(kfGlobalSettingsJson[key]).length === 0) {
+      delete kfGlobalSettingsJson[key];
+    }
+  }
   const jsonTree = new JsonTree({
-    json: getKfGlobalSettingsValue(),
+    json: kfGlobalSettingsJson,
     tipsMap: getConfigTipsMap(kfGlobalSettings),
     aliasKeyMap: { close: 'CloseThreshold' },
     keyWidth: 18,

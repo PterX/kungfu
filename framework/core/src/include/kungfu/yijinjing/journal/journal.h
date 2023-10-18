@@ -47,7 +47,7 @@ typedef std::map<journal_key, journal> JournalMap;
 class journal {
 public:
   journal(data::location_ptr location, uint32_t dest_id, bool is_writing, bool lazy, bool low_latency,
-          const bus_ptr &bus, uint32_t page_size, longfist::enums::Priority priority = longfist::enums::Priority::Low)
+          const bus_ptr &bus, uint64_t page_size, longfist::enums::Priority priority = longfist::enums::Priority::Low)
       : location_(std::move(location)), dest_id_(dest_id), is_writing_(is_writing), lazy_(lazy),
         low_latency_(low_latency), bus_(bus), frame_(std::shared_ptr<frame>(new frame())), page_frame_nb_(0u),
         page_size_(page_size), priority_(priority), replica_(false) {}
@@ -87,7 +87,7 @@ public:
 private:
   const data::location_ptr location_;
   const uint32_t dest_id_;
-  const uint32_t page_size_;
+  const uint64_t page_size_;
   const bool is_writing_;
   const bool lazy_;
   const bool low_latency_;
@@ -130,7 +130,7 @@ public:
    * @param dest_id journal dest id
    * @param from_time subscribe events after this time, 0 means from start
    */
-  void join(const data::location_ptr &location, uint32_t dest_id, int64_t from_time, uint32_t page_size = 0,
+  void join(const data::location_ptr &location, uint32_t dest_id, int64_t from_time, uint64_t page_size = 0,
             longfist::enums::Priority priority = longfist::enums::Priority::Low);
 
   void disjoin(uint32_t location_uid);
@@ -163,7 +163,7 @@ public:
 
   bool release_page();
 
-  static uint32_t find_page_size(const data::location_ptr &location, uint32_t dest_id);
+  static uint64_t find_page_size(const data::location_ptr &location, uint32_t dest_id);
 
 private:
   void sort_without_buffer();
@@ -191,9 +191,9 @@ public:
   writer(const data::location_ptr &location, uint32_t dest_id, bool lazy, publisher_ptr publisher, bool low_latency,
          const bus_ptr &bus);
   writer(const data::location_ptr &location, uint32_t dest_id, bool lazy, publisher_ptr publisher, bool low_latency,
-         const bus_ptr &bus, uint32_t page_size);
+         const bus_ptr &bus, uint64_t page_size);
   writer(const data::location_ptr &location, uint32_t dest_id, bool lazy, publisher_ptr publisher, bool low_latency,
-         const bus_ptr &bus, uint32_t page_size, int64_t begin_time);
+         const bus_ptr &bus, uint64_t page_size, int64_t begin_time);
 
   [[nodiscard]] const data::location_ptr &get_location() const { return journal_.location_; }
 
@@ -324,7 +324,7 @@ public:
 class hookable_writer : public writer {
 public:
   explicit hookable_writer(const data::location_ptr &location, uint32_t dest_id, bool lazy, publisher_ptr publisher,
-                           bool low_latency, const bus_ptr &bus, uint32_t page_size, const writer_hook_ptr &hook)
+                           bool low_latency, const bus_ptr &bus, uint64_t page_size, const writer_hook_ptr &hook)
       : writer(location, dest_id, lazy, publisher, low_latency, bus, page_size), hook_(hook) {}
 
   frame_ptr open_frame(int64_t trigger_time, int32_t msg_type, uint32_t length) override;
@@ -338,7 +338,7 @@ private:
 class replay_writer : public writer {
 public:
   explicit replay_writer(const data::location_ptr &location, uint32_t dest_id, publisher_ptr publisher,
-                         const bus_ptr &bus, uint32_t page_size, int64_t begin_time);
+                         const bus_ptr &bus, uint64_t page_size, int64_t begin_time);
 
   frame_ptr open_frame(int64_t trigger_time, int32_t msg_type, uint32_t length) override;
 

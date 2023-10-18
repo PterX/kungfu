@@ -95,11 +95,16 @@ function generateCMakeFiles(projectName, kungfuBuild) {
 
   const cppSources = [kungfuBuild.cpp.src || ['src/cpp']].flat();
   const cppExternalSourcesOpt = kungfuBuild.cpp.external || [];
+  const corePath = customResolve('@kungfu-trader/kungfu-core');
+  const nodeModulesPath = path.join(
+    corePath.split('node_modules')[0],
+    'node_modules',
+  );
   const cppExternalSources = Array.isArray(cppExternalSourcesOpt)
     ? cppExternalSourcesOpt.map(function (element) {
-        return dealPath(path.join('node_modules', element, 'src/cpp'));
+        return dealPath(path.join(nodeModulesPath, element, 'src/cpp'));
       })
-    : [dealPath(path.join('node_modules', cppExternalSourcesOpt, 'src/cpp'))];
+    : [dealPath(path.join(nodeModulesPath, cppExternalSourcesOpt, 'src/cpp'))];
 
   const cppLinksOpt = kungfuBuild.cpp.links || [];
   const cppLinks = Array.isArray(cppLinksOpt)
@@ -155,6 +160,18 @@ const DefaultLibSiteURL_US = 'https://external.libkungfu.io';
 exports.DefaultLibSiteURL = process.env.GITHUB_ACTIONS
   ? DefaultLibSiteURL_US
   : DefaultLibSiteURL_CN;
+
+exports.checkIfSkipBuild = () => {
+  const packageJson = shell.getPackageJson();
+  const skipBuildPlatforms = [
+    packageJson.kungfuBuild?.skipBuildPlatforms || [],
+  ].flat(1);
+
+  if (skipBuildPlatforms && skipBuildPlatforms.includes(detectPlatform())) {
+    return true;
+  }
+  return false;
+};
 
 exports.list = async (
   libSiteURL,
@@ -296,7 +313,7 @@ exports.installBatch = async (
   arch = os.arch(),
 ) => {
   const packageJson = shell.getPackageJson();
-  if ('kungfuDependencies' in packageJson) {
+  if (libSiteURL && 'kungfuDependencies' in packageJson) {
     const libs = packageJson.kungfuDependencies;
     for (const libName in libs) {
       await this.installSingleLib(
@@ -308,6 +325,7 @@ exports.installBatch = async (
       );
     }
   }
+
   if (hasSourceFor(packageJson, 'python')) {
     const { cmd, args0 } = getKfcCmdArgs();
     spawnExec(cmd, [...args0, 'engage', 'pdm', 'makeup']);

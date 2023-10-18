@@ -232,7 +232,7 @@ function clearState(): void {
   activeFile.value = null;
 }
 
-function pythonProvideCompletionItems(model, position, context, token) {
+function pythonProvideCompletionItems(model, position) {
   const lastChars = model.getValueInRange({
     startLineNumber: position.lineNumber,
     startColumn: 0,

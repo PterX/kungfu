@@ -101,7 +101,8 @@ void Bookkeeper::restore(const cache::bank &state_bank) {
   for (auto &pair : state_bank[boost::hana::type_c<Commission>]) {
     auto &state = pair.second;
     auto &commission = state.data;
-    commissions_.insert_or_assign(hash_str_32(commission.product_id), commission);
+    uint32_t product_key = hash_product(commission.exchange_id, commission.product_id);
+    commissions_.insert_or_assign(product_key, commission);
   }
   for (auto &pair : state_bank[boost::hana::type_c<Position>]) {
     auto &state = pair.second;
@@ -184,8 +185,7 @@ void Bookkeeper::update_basket_instrument(const longfist::types::BasketInstrumen
 }
 
 void Bookkeeper::update_commission(const event_ptr &event, const longfist::types::Commission &commission) {
-  uint32_t product_key =
-      yijinjing::util::hash_str_32(commission.product_id) ^ yijinjing::util::hash_str_32(commission.exchange_id);
+  uint32_t product_key = hash_product(commission.exchange_id, commission.product_id);
   commissions_.insert_or_assign(product_key, commission);
 }
 

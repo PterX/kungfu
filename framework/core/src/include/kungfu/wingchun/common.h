@@ -570,6 +570,10 @@ inline longfist::enums::Direction get_opposite_direction(longfist::enums::Instru
                                                        : longfist::enums::Direction::Long;
 }
 
+inline uint32_t hash_product(const char *exchange_id, const char *product_id) {
+  return yijinjing::util::hash_str_32(product_id) ^ yijinjing::util::hash_str_32(exchange_id);
+}
+
 inline uint32_t hash_instrument(const char *exchange_id, const char *instrument_id) {
   return yijinjing::util::hash_str_32(instrument_id) ^ yijinjing::util::hash_str_32(exchange_id);
 }

@@ -290,7 +290,7 @@ void Ledger::write_strategy_data(int64_t trigger_time, uint32_t strategy_uid) {
     if ((has_account or is_strategy) or is_node) {
       write_positions(trigger_time, strategy_uid, book->long_positions);
       write_positions(trigger_time, strategy_uid, book->short_positions);
-      write_instrument_factors(trigger_time, strategy_uid, book->get_instrument_factors());
+      write_instrument_factors(trigger_time, strategy_uid, bookkeeper_.get_static_data().get_instrument_factors());
       writer->write(trigger_time, asset);
     }
   }

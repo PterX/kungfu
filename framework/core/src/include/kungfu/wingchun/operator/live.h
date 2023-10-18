@@ -109,6 +109,12 @@ public:
    */
   broker::Client &get_broker_client() override;
 
+  /**
+   * Get bookkeeper.
+   * @return bookkeeper reference
+   */
+  book::Bookkeeper &get_bookkeeper() override;
+
   void check_dependency_state(const event_ptr &event);
 
   yijinjing::data::location_ptr get_location(uint32_t location_uid) override;
@@ -123,9 +129,11 @@ protected:
   void prepare(const event_ptr &event) override;
 
 private:
-  broker::PassiveClient broker_client_;
   longfist::enums::OperatorState state_;
   bool broker_states_requested_{false};
+
+  broker::PassiveClient broker_client_;
+  book::Bookkeeper bookkeeper_;
 };
 
 DECLARE_PTR(LiveContext)

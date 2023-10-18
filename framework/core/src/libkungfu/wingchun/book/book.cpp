@@ -14,13 +14,13 @@ using namespace kungfu::longfist::enums;
 using namespace kungfu::yijinjing::practice;
 using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
+using namespace kungfu::wingchun::map;
 
 namespace kungfu::wingchun::book {
 Book::Book(const CommissionMap &commissions_ref, const InstrumentMap &instruments_ref,
-           const InstrumentFactorMap &instrument_factors_ref, BasketMap &baskets_ref,
-           BasketInstrumentMap &basket_instruments_ref, yijinjing::data::location_ptr home_location)
+           const InstrumentFactorMap &instrument_factors_ref, yijinjing::data::location_ptr home_location)
     : commissions(commissions_ref), instruments(instruments_ref), instrument_factors(instrument_factors_ref),
-      baskets(baskets_ref), basket_instruments(basket_instruments_ref), home(home_location) {}
+      home(home_location) {}
 
 double Book::get_frozen_price(uint64_t order_id) {
   if (orders.find(order_id) != orders.end()) {
@@ -87,7 +87,7 @@ Position &Book::get_short_position(const std::string &source, const std::string 
 Position &Book::get_position(uint32_t source_id, Direction direction, const char *exchange_id,
                              const char *instrument_id) {
   assert(asset.holder_uid != 0);
-  PositionMap &positions = direction == Direction::Long ? long_positions : short_positions;
+  map::PositionMap &positions = direction == Direction::Long ? long_positions : short_positions;
   auto position_id = hash_instrument(source_id, exchange_id, instrument_id);
   auto pair = positions.try_emplace(position_id);
   auto &position = pair.first->second;
@@ -107,7 +107,7 @@ Position &Book::get_position(uint32_t source_id, Direction direction, const char
 
 bool Book::has_position(uint32_t source_id, longfist::enums::Direction direction, const char *exchange_id,
                         const char *instrument_id) {
-  PositionMap &positions = direction == Direction::Long ? long_positions : short_positions;
+  map::PositionMap &positions = direction == Direction::Long ? long_positions : short_positions;
   auto position_id = hash_instrument(source_id, exchange_id, instrument_id);
   if (positions.find(position_id) == positions.end()) {
     return false;

@@ -9,7 +9,6 @@
 
 #include <kungfu/longfist/longfist.h>
 #include <kungfu/wingchun/broker/broker.h>
-// #include <kungfu/wingchun/broker/algoorder.h>
 #include <kungfu/yijinjing/io.h>
 #include <kungfu/yijinjing/log.h>
 #include <kungfu/yijinjing/practice/apprentice.h>

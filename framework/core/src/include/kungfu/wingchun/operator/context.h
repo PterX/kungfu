@@ -4,6 +4,8 @@
 #define WINGCHUN_OPERATOR_CONTEXT_H
 
 #include <kungfu/longfist/longfist.h>
+#include <kungfu/wingchun/book/bookkeeper.h>
+#include <kungfu/wingchun/book/staticdata.h>
 #include <kungfu/wingchun/broker/client.h>
 #include <kungfu/yijinjing/practice/apprentice.h>
 
@@ -37,6 +39,13 @@ public:
    * @return  config of current location_uid
    */
   virtual const std::string get_config() const = 0;
+
+  /**
+   * Get arguments kfc run -a
+   * @return string of arguments
+   */
+
+  virtual std::string get_arguments() { return app_.get_arguments(); };
 
   /**
    * Add one shot timer callback.
@@ -111,17 +120,16 @@ public:
   virtual void update_operator_state(longfist::types::OperatorStateUpdate &state_update) {}
 
   /**
-   * Get arguments kfc run -a
-   * @return string of arguments
-   */
-
-  virtual std::string get_arguments() { return app_.get_arguments(); };
-
-  /**
    * Get broker client.
    * @return broker client reference
    */
   virtual broker::Client &get_broker_client() = 0;
+
+  /**
+   * Get bookkeeper.
+   * @return bookkeeper reference
+   */
+  virtual book::Bookkeeper &get_bookkeeper() = 0;
 
   /**
    *

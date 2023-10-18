@@ -850,8 +850,7 @@ export default {
     single_price: '单笔成交价',
     limit_value: '最大值',
     pos_table_columns: '持仓表格项配置',
-    margin_trading: '两融',
-    show_margin_trading: '展示两融',
+    show_asset_margin: '展示两融',
     skip_confirm_make_order: '跳过下单确认弹窗',
     set_skip_confirm_make_order:
       '开启后, 手动下单时不再弹出二次确认弹窗, 直接执行下单操作',

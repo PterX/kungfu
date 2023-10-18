@@ -562,6 +562,7 @@ export default {
   operatorConfig: {
     operator: 'operator',
     operator_id: 'operator_id',
+    operator_ext: 'operator_ext',
     operator_file: 'operator_file',
     operator_path: 'operator_path',
     operator_path_tip:

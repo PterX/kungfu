@@ -197,8 +197,17 @@ async function handleConfirmSetOperatorExtDialog(
 }
 
 function getOperatorPathShowName(kfConfig: KungfuApi.KfConfig): string {
-  const strategyPath = getConfigValue(kfConfig).file_path || '--';
+  const configValue = getConfigValue(kfConfig);
+  if (!configValue || !configValue.file_path) return '--';
+
+  const strategyPath = configValue.file_path;
   return path.basename(strategyPath);
+}
+
+function getOperatorExtShowName(kfConfig: KungfuApi.KfConfig): string {
+  if (kfConfig.group === 'default') return '--';
+
+  return extConfigs.value.operator[kfConfig.group]?.name || kfConfig.group;
 }
 
 function handleRemoveOperator(record: KungfuApi.KfConfig) {
@@ -221,7 +230,7 @@ function handleOpenCodeViewResolved(record: KungfuApi.KfConfig) {
 <template>
   <div class="kf-operator__warp kf-translateZ">
     <KfDashboard @bodySizeChange="handleBodySizeChange">
-      <template v-slot:header>
+      <template #header>
         <KfDashboardItem>
           <a-input-search
             v-model:value="searchKeyword"
@@ -246,14 +255,14 @@ function handleOpenCodeViewResolved(record: KungfuApi.KfConfig) {
         </KfDashboardItem>
       </template>
       <a-table
-        class="kf-ant-table"
         ref="table"
+        class="kf-ant-table"
         :columns="columns"
         :data-source="tableData"
         size="small"
         :pagination="false"
         :scroll="{ y: dashboardBodyHeight - 4 }"
-        :emptyText="$t('empty_text')"
+        :empty-text="$t('empty_text')"
       >
         <template
           #bodyCell="{
@@ -275,9 +284,12 @@ function handleOpenCodeViewResolved(record: KungfuApi.KfConfig) {
           <template v-else-if="column.dataIndex === 'operatorFile'">
             {{ getOperatorPathShowName(record) }}
           </template>
+          <template v-else-if="column.dataIndex === 'operatorExt'">
+            {{ getOperatorExtShowName(record) }}
+          </template>
           <template v-else-if="column.dataIndex === 'stateStatus'">
             <KfProcessStatus
-              :statusName="getProcessStatusName(record)"
+              :status-name="getProcessStatusName(record)"
             ></KfProcessStatus>
           </template>
           <template v-else-if="column.dataIndex === 'processStatus'">
@@ -338,24 +350,24 @@ function handleOpenCodeViewResolved(record: KungfuApi.KfConfig) {
     ></AddOperatorModal>
     <KfSetByConfigModal
       v-if="setOperatorModalVisible"
-      :width="420"
       v-model:visible="setOperatorModalVisible"
+      :width="420"
       :payload="setOperatorConfigPayload"
-      :primaryKeyAvoidRepeatCompareTarget="operatorIdList"
+      :primary-key-avoid-repeat-compare-target="operatorIdList"
       @confirm="handleConfirmAddUpdateKfConfig($event, 'operator', 'default')"
     ></KfSetByConfigModal>
     <KfSetExtensionModal
       v-if="setExtensionModalVisible"
       v-model:visible="setExtensionModalVisible"
-      extensionType="operator"
+      extension-type="operator"
       @confirm="handleConfirmSetOperatorExtDialog('add', $event)"
     ></KfSetExtensionModal>
     <KfSetByConfigModal
       v-if="setOperatorByExtModalVisible"
       v-model:visible="setOperatorByExtModalVisible"
       :payload="setOperatorConfigPayload"
-      :primaryKeyAvoidRepeatCompareTarget="operatorIdList"
-      :primaryKeyAvoidRepeatCompareExtra="currentSelectedExtKey"
+      :primary-key-avoid-repeat-compare-target="operatorIdList"
+      :primary-key-avoid-repeat-compare-extra="currentSelectedExtKey"
       @confirm="
         handleConfirmAddUpdateKfConfig(
           $event,

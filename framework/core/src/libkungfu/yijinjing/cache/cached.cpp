@@ -256,8 +256,7 @@ void cached::register_trigger_listen_public(int64_t gen_time, const Register &re
   auto app_location = get_location(app_uid);
 
   // pass when not td, or not app (for static info storage)
-  if (app_location->category != category::TD or
-      not(app_location->group == "node" && app_location->category == category::SYSTEM)) {
+  if (app_location->category != category::TD) {
     return;
   }
 

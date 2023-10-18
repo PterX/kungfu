@@ -555,6 +555,7 @@ export default {
   operatorConfig: {
     operator: '算子',
     operator_id: '算子 ID',
+    operator_ext: '算子插件',
     operator_file: '算子文件',
     operator_path: '算子路径',
     operator_path_tip:

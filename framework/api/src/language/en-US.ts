@@ -849,8 +849,6 @@ export default {
     single_price: 'Single Price',
     limit_value: 'Maximum',
     pos_table_columns: 'Position Table Columns',
-    margin_trading: 'MarginTrading',
-    show_margin_trading: 'MarginTrading Mode',
     skip_confirm_make_order: 'Skip Confirm Make Order',
     set_skip_confirm_make_order:
       'After enabling, when placing an order manually, the secondary confirmation popup will no longer appear, and the order will be executed directly.',

@@ -2,8 +2,6 @@ __uid__
 instrument_factors
 instruments
 commissions
-baskets
-basket_instruments
 home
 state
 runtime_folder
@@ -16,10 +14,13 @@ order_trigger_actions
 algo_orders
 algo_order_actions
 context
+arguments
+static_data
 io_device
 usable
 bookkeeper
-arguments
+baskets
+basket_instruments
 begin_time
 end_time
 gen_time

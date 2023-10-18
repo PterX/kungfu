@@ -33,6 +33,12 @@ public:
   uint32_t get_home_uid() const override;
 
   /**
+   * Get config from database.
+   * @return  config of current location_uid
+   */
+  const std::string get_config() const override;
+
+  /**
    * Get current time in nano seconds.
    * @return current time in nano seconds
    */

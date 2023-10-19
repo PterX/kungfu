@@ -464,6 +464,7 @@ void Watcher::on_start() {
 
     events_ | is(Order::tag) | $$(UpdateBook(event, event->data<Order>()));
     events_ | is(Order::tag) | $$(UpdateBasketOrder(event->trigger_time(), event->data<Order>()));
+    events_ | is(Asset::tag) | $$(UpdateBook(event, event->data<Asset>()));
     events_ | is(Position::tag) | $$(UpdateBook(event, event->data<Position>()));
     events_ | is(PositionEnd::tag) | $$(UpdateAsset(event, event->data<PositionEnd>().holder_uid));
 
@@ -812,6 +813,12 @@ void Watcher::UpdateBook(const event_ptr &event, const Position &position) {
   state<Position> cache_state_oppsite_position(book_oppsite_position.holder_uid, event->dest(), event->gen_time(),
                                                book_oppsite_position);
   feed_state_data_bank(cache_state_oppsite_position, data_bank_);
+}
+
+void Watcher::UpdateBook(const event_ptr &event, const Asset &asset) {
+  auto book = bookkeeper_.get_book(asset.holder_uid);
+  state<Asset> cache_state_asset(ledger_home_location_->uid, asset.holder_uid, event->gen_time(), book->asset);
+  feed_state_data_bank(cache_state_asset, data_bank_);
 }
 
 Watcher::BookListener::BookListener(Watcher &watcher) : watcher_(watcher) {}

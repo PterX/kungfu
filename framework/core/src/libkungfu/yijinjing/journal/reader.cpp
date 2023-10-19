@@ -95,7 +95,7 @@ void reader::sort() {
   if (not buffer_built_) {
     build_buffer();
   }
-  int64_t min_time = time::now_in_nano();
+  int64_t min_time = INT64_MAX;
   no_data_journals_buffer_.erase(std::remove_if(no_data_journals_buffer_.begin(), no_data_journals_buffer_.end(),
                                                 [this](const auto &journal_ptr) {
                                                   const bool has_data = journal_ptr->current_frame()->has_data();

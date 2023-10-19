@@ -111,6 +111,7 @@ class Operator(wc.Operator):
 
     def pre_start(self, wc_context):
         self.ctx.wc_context = wc_context
+        self.ctx.config = wc_context.config
         self.ctx.now = wc_context.now
         self.ctx.add_timer = self.__add_timer
         self.ctx.add_time_interval = self.__add_time_interval

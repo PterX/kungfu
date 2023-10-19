@@ -51,6 +51,7 @@ void Bookkeeper::on_start(const rx::connectable_observable<event_ptr> &events) {
   events | is(Order::tag) | $$(update_book<Order>(event, &AccountingMethod::apply_order));
   events | is(Trade::tag) | $$(update_book<Trade>(event, &AccountingMethod::apply_trade));
   events | fork<Asset>(location::SYNC, &Bookkeeper::try_update_asset_replica, &Bookkeeper::try_update_asset);
+  events | is(Asset::tag) | $$(update_book(event, event->data<Asset>()));
   events | fork<Position>(location::SYNC, &Bookkeeper::try_update_position_replica, &Bookkeeper::try_update_position);
   events | fork<PositionEnd>(location::SYNC, &Bookkeeper::update_position_guard, &Bookkeeper::try_update_position_end);
   events | is(ResetBookRequest::tag) | $$(drop_book(event->source()));
@@ -175,6 +176,12 @@ void Bookkeeper::update_book(int64_t trigger_time, const Quote &quote) {
     }
     book->apply_long_position_for(quote, apply);
     book->apply_short_position_for(quote, apply);
+  }
+}
+
+void Bookkeeper::update_book(const event_ptr &event, const Asset &asset) {
+  if (app_.has_location(asset.holder_uid)) {
+    get_book(asset.holder_uid)->update(event->gen_time(), account_method_type_);
   }
 }
 

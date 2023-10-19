@@ -216,6 +216,8 @@ private:
 
   void UpdateBook(const event_ptr &event, const longfist::types::Position &position);
 
+  void UpdateBook(const event_ptr &event, const longfist::types::Asset &asset);
+
   void SyncLedger();
 
   void TryRefreshTradingData();

@@ -176,7 +176,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, computed, watch, nextTick, onMounted } from 'vue';
+import { ref, computed, watch, nextTick, onMounted, onBeforeMount } from 'vue';
 import { storeToRefs } from 'pinia';
 import { Empty } from 'ant-design-vue';
 import {
@@ -475,9 +475,24 @@ watch(
     }
   },
 );
+let inittimer: NodeJS.Timeout | null = null;
 
 onMounted(() => {
   init();
+  nextTick(() => {
+    if (inittimer) clearInterval(inittimer);
+    inittimer = setInterval(() => {
+      if (!isLoadingFrames.value) {
+        init();
+      }
+    }, 10000);
+  });
+});
+
+onBeforeMount(() => {
+  if (inittimer) {
+    clearInterval(inittimer);
+  }
 });
 
 const init = debounce(() => {

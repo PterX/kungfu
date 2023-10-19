@@ -79,7 +79,16 @@
           :placeholder="$t('journalConfig.search_order_id')"
           @search="handleSearchOrderId"
         />
-        <div id="strategyChart" class="kf-chart_content"></div>
+        <div
+          v-show="instrumentList.length > 0"
+          id="strategyChart"
+          class="kf-chart_content"
+        ></div>
+        <a-empty
+          v-show="instrumentList.length === 0"
+          :image="simpleImage"
+          :description="t('empty_text')"
+        ></a-empty>
       </div>
       <a-spin
         class="kf-journal-spin"
@@ -310,11 +319,11 @@ const handleFrameChange = async (newCurrentFram) => {
           .forEach((serie) => {
             serie.data.forEach((item) => {
               const defaultSize = getDefaultSize(serie.name);
-              if (item.customInfo.orderId === orderId) {
+              if (item.customInfo?.orderId === orderId) {
                 hasOrderId = true;
                 item.symbolSize = ACTIVE_SYMBOL_SIZE;
                 let shadowColor = '';
-                if (item.customInfo.msgTypeName === 'orderAction') {
+                if (item.customInfo?.msgTypeName === 'orderAction') {
                   shadowColor = '#73F3F6';
                 } else {
                   shadowColor =
@@ -390,7 +399,9 @@ function init() {
   instrumentList.value = getInstrumentList();
 
   if (instrumentList.value.length > 0) {
-    getCurInstrument(instrumentList.value[0]);
+    nextTick(() => {
+      getCurInstrument(instrumentList.value[0]);
+    });
   }
 }
 
@@ -531,6 +542,9 @@ function dealFrameData() {
         tradingDataResolved = tradingDataResolved as QuoteChartResolved;
         chartSeriesData.value[key].Quote.line.push({
           value: [dataTime.toString(), price],
+        });
+        chartSeriesData.value[key].Quote.symbol.push({
+          value: [dataTime.toString(), price],
           tooltip: {
             position: 'bottom',
             formatter: tooltipFormatter(tradingDataResolved, 'Quote'),
@@ -540,9 +554,6 @@ function dealFrameData() {
             time: tradingDataResolved.data_time,
             msgTypeName: tradingDataResolved.msgTypeName,
           },
-        });
-        chartSeriesData.value[key].Quote.symbol.push({
-          value: [dataTime.toString(), price],
         });
       } else if (item.msgTypeName === 'OrderInput') {
         tradingDataResolved = tradingDataResolved as OrderInputChartResolved;
@@ -721,14 +732,8 @@ const updateOption = () => {
     .map((item) => {
       return item.toString();
     });
-  // .reduce((prev, cur) => {
-  //   if (prev.includes(getNanoDateString(BigInt(cur)))) {
-  //     return prev;
-  //   }
-  //   return [...prev, getNanoDateString(BigInt(cur))] as string[];
-  // }, [] as string[]);
   option.xAxis.axisLabel.formatter = (value: string) => {
-    return getNanoDateString(BigInt(value), 6, 3);
+    return getNanoDateString(BigInt(value), 6, 6);
   };
   quoteXAxisData.value[selectedInstrument.value]?.sort((a, b) => {
     return a - b;
@@ -762,6 +767,7 @@ function addChartEventListener(myChart: echarts.ECharts) {
   myChart.on('click', (params) => {
     if (!option || !params.data) return;
     const serieItemData = params.data as SeriesData;
+    if (!serieItemData.customInfo) return;
     const { msgTypeName, tableRowId, orderId } = serieItemData.customInfo;
 
     frameListResolved.value[selectedInstrument.value][msgTypeName].forEach(
@@ -782,10 +788,10 @@ function addChartEventListener(myChart: echarts.ECharts) {
         .forEach((serie) => {
           const defaultSize = getDefaultSize(serie.name);
           serie.data.forEach((item: SeriesData) => {
-            if (item.customInfo.orderId === orderId) {
+            if (item.customInfo?.orderId === orderId) {
               let shadowColor = '';
               item.symbolSize = ACTIVE_SYMBOL_SIZE;
-              if (item.customInfo.msgTypeName === 'orderAction') {
+              if (item.customInfo?.msgTypeName === 'orderAction') {
                 shadowColor = '#73F3F6';
               } else {
                 shadowColor =
@@ -810,27 +816,17 @@ function addChartEventListener(myChart: echarts.ECharts) {
     }
   });
 
-  // myChart.on('mouseover', function (params) {
-  //   if (
-  //     params.componentType === 'series' &&
-  //     params.seriesType === 'line' &&
-  //     params.dataIndex != null
-  //   ) {
-  //     myChart.dispatchAction({
-  //       type: 'highlight',
-  //       seriesIndex: params.seriesIndex,
-  //       dataIndex: params.dataIndex,
-  //     });
-  //   }
-  // });
+  myChart.on('datazoom', (params) => {
+    let { start, end } = params as {
+      start: number;
+      end: number;
+    };
 
-  // myChart.on('mouseout', function (params) {
-  //   myChart.dispatchAction({
-  //     type: 'downplay',
-  //     seriesIndex: params.seriesIndex,
-  //     dataIndex: params.dataIndex,
-  //   });
-  // });
+    option.dataZoom.forEach((item) => {
+      item.start = start;
+      item.end = end;
+    });
+  });
 
   myChart.getZr().on('click', (event) => {
     if (!event.target) {
@@ -1045,7 +1041,7 @@ function handleSearchOrderId() {
     .forEach((serie) => {
       serie.data.forEach((item) => {
         const defaultSize = getDefaultSize(serie.name);
-        if (item.customInfo.orderId === BigInt(searchOrderId.value)) {
+        if (item.customInfo?.orderId === BigInt(searchOrderId.value)) {
           orderIdInfo.hasId = true;
           orderIdInfo.msgTypeName = item.customInfo.msgTypeName;
           orderIdInfo.tableRowId = item.customInfo.tableRowId;
@@ -1093,13 +1089,12 @@ function handleSearchOrderId() {
 
 function setDataZoom(dataTime: bigint) {
   const timeList = xAxisData.value[selectedInstrument.value];
+
   if (!timeList || timeList.length === 0) return;
-  const frontPortion = Number(dataTime) - Number(timeList[0]);
-  const behandPortion =
-    Number(timeList[timeList.length - 1]) - Number(timeList[0]);
-  const rate = frontPortion / behandPortion;
-  const start = rate * 100 - 10 < 0 ? 0 : rate * 100 - 10;
-  const end = rate * 100 + 10 > 100 ? 100 : rate * 100 + 10;
+  const index = timeList.indexOf(dataTime.toString());
+  const rate = index / timeList.length;
+  const start = rate * 100 - 15 < 0 ? 0 : rate * 100 - 15;
+  const end = rate * 100 + 15 > 100 ? 100 : rate * 100 + 15;
   option.dataZoom.forEach((item) => {
     item.start = start;
     item.end = end;

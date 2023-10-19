@@ -268,7 +268,7 @@ export const getChartOption = () => {
         data: [] as SeriesData[],
         symbol: circle,
         symbolSize: 10,
-        showSymbol: false, // 修改此处，只在鼠标悬停在标记上时才显示标记
+        showSymbol: false,
         itemStyle: {
           color: '#0F6DA6',
         },
@@ -287,7 +287,7 @@ export const getChartOption = () => {
         symbolKeepAspect: false,
         symbolOffset: [],
         symbol: triangleSvg,
-        zlevel: 1,
+        zlevel: 2,
       },
       {
         name: t('journalConfig.order_legend'),
@@ -316,25 +316,25 @@ export const getChartOption = () => {
         itemStyle: {
           color: '#73F3F6',
         },
-        zlevel: 2,
+        zlevel: 3,
       },
       {
-        name: t('journalConfig.quote_legend'), // 使用相同的 name，确保与原线图相关联
-        type: 'scatter', // 类型是 scatter
-        data: [] as SeriesData[], // 使用与线图相同的数据
-        symbol: circle, // 您想用于标记的形状
-        showSymbol: false, // 显示标记
-        symbolSize: 10, // 标记的大小
+        name: t('journalConfig.quote_legend'),
+        type: 'scatter',
+        data: [] as SeriesData[],
+        symbol: circle,
+        showSymbol: true,
+        symbolSize: 10,
         itemStyle: {
-          color: 'transparent', // 标记的颜色
+          color: 'transparent',
         },
         emphasis: {
           symbolSize: 10,
           itemStyle: {
-            color: '#0F6DA6', // 高亮颜色
+            color: '#0F6DA6',
           },
         },
-        zlevel: 0,
+        zlevel: 1,
       },
     ],
     grid: {

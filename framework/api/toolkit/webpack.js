@@ -2,6 +2,7 @@ const path = require('path');
 const webpack = require('webpack');
 const TerserPlugin = require('terser-webpack-plugin');
 const ESLintPlugin = require('eslint-webpack-plugin');
+const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 const { isProduction, getAppDir } = require('./utils');
 
 module.exports = {
@@ -71,6 +72,7 @@ module.exports = {
                   test: /\.[tj]s$/,
                   ...tjsIncludes,
                   use: [
+                    // ...threadLoader, // ts-loader 开了多线程编译会变慢
                     {
                       loader: 'ts-loader',
                       options: {
@@ -81,9 +83,8 @@ module.exports = {
                         // 对应文件添加个.ts或.tsx后缀
                         // NOTE: 这里对 vue 做了额外处理, 所以如果启用了 threadLoader, 在 vue-loader 中也需要启用 threadLoader, 否则会有问题
                         appendTsSuffixTo: ['\\.vue$'],
-                        transpileOnly: false, // 关闭类型检测，即值进行转译
                         allowTsInNodeModules: true,
-                        happyPackMode: !!threadLoader.length,
+                        happyPackMode: !!threadLoader.length, // 无论 ts-loader 用不用多线程, 只要别处有用, 这个都得启用
                       },
                     },
                   ],
@@ -144,6 +145,22 @@ module.exports = {
         libraryTarget: 'commonjs2',
       },
       plugins: [
+        ...(threadLoader.length // 当使用 threaderLoader 时, ts-loader 会默认只编译, 不检测类型, 需要额外引入 fork-ts-checker-webpack-plugin 来做类型检测
+          ? [
+              new ForkTsCheckerWebpackPlugin({
+                typescript: {
+                  configFile: path.resolve(
+                    process.cwd().toString(),
+                    'tsconfig.json',
+                  ),
+                  diagnosticOptions: {
+                    semantic: true,
+                    syntactic: true,
+                  },
+                },
+              }),
+            ]
+          : []),
         new ESLintPlugin({
           fix: true /* 自动帮助修复 */,
           extensions: ['js', 'json', 'ts', 'json', 'css', 'less'],

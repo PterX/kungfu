@@ -23,7 +23,7 @@
       :max="maxTime"
       :step="nano2millionSecond(props.step)"
       :tip-formatter="tipFormatter"
-      @change="onAfterChange"
+      @after-change="() => onAfterChange()"
     />
     <div class="kf-time-slider-time">
       <span class="kf-time-slider-text" style="text-align: start">
@@ -46,6 +46,7 @@ import { ForwardOutlined, BackwardOutlined } from '@ant-design/icons-vue';
 import { SessionStatusEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import { useNow, useResizeFlag } from '../utils';
 import { useJournalStore } from '../store/journalStore';
+import { delayMilliSeconds } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 
 const props = withDefaults(
   defineProps<{
@@ -87,7 +88,9 @@ const windowFocusStatus = useWindowFocus();
 watch(
   currentTime,
   (newVal) => {
-    currentTimeResolved.value = nano2millionSecond(newVal);
+    delayMilliSeconds(0).then(() => {
+      currentTimeResolved.value = nano2millionSecond(newVal);
+    });
   },
   {
     immediate: true,

@@ -34,7 +34,6 @@ import { getKfGlobalSettingsValue } from '@kungfu-trader/kungfu-js-api/config/gl
 
 interface GlobalState {
   boardsMap: KfLayout.BoardsMap;
-  journalBoardMap: KfLayout.BoardsMap;
   dragedContentData: KfLayout.ContentData | null;
   isBoardDragging: boolean;
   extConfigs: KungfuApi.KfExtConfigs;
@@ -86,7 +85,6 @@ export const useGlobalStore = defineStore('global', {
   state: (): GlobalState => {
     return {
       boardsMap: {},
-      journalBoardMap: {},
       dragedContentData: null,
       isBoardDragging: false,
       extConfigs: toRaw<KungfuApi.KfExtConfigs>({
@@ -348,10 +346,6 @@ export const useGlobalStore = defineStore('global', {
 
     initBoardsMap(boardsMap: KfLayout.BoardsMap) {
       this.boardsMap = JSON.parse(JSON.stringify(boardsMap));
-    },
-
-    initJournalBoardsMap(boardsMap: KfLayout.BoardsMap) {
-      this.journalBoardMap = JSON.parse(JSON.stringify(boardsMap));
     },
 
     setBoardsMapAttrById(

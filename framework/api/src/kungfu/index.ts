@@ -101,6 +101,17 @@ export const dealKfTime = (nano: bigint, date = false): string => {
   return kf.formatTime(nano, '%H:%M:%S.%N').slice(0, 12);
 };
 
+export const getNanoDateString = (
+  nane: bigint,
+  i = 6,
+  lastSplit = 0,
+): string => {
+  return kf
+    .formatTime(nane, '%m/%d %H:%M:%S.%N')
+    .slice(i)
+    .slice(0, -1 * lastSplit);
+};
+
 export const dealTradingDataItem = (
   item: KungfuApi.TradingDataTypes,
   watcher: KungfuApi.Watcher | null,

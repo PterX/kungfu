@@ -62,7 +62,7 @@ export const useJournalStore = defineStore('journal', {
     },
 
     setCurrentTime(nano: bigint) {
-      this.currentTime = nano;
+      this.currentTime !== nano ? (this.currentTime = nano) : null;
     },
 
     setCurrentFrameList(frameList: KungfuApi.FrameResolved[]) {

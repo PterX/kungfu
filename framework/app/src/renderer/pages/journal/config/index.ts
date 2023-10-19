@@ -2,6 +2,10 @@ import { SessionStatusEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 
 const { t } = VueI18n.global;
+// const rect = 'path://M0 0h24v24H0z';
+//圆形svg
+const circle =
+  'path://M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2';
 const arrowSvg =
   'path://M678.4 409.6l-147.2-192c-6.4-12.8-25.6-12.8-38.4 0l-147.2 192C339.2 428.8 345.6 448 364.8 448L448 448l0 352C448 819.2 460.8 832 480 832l64 0C563.2 832 576 819.2 576 800L576 448l83.2 0C678.4 448 684.8 428.8 678.4 409.6z';
 const triangleSvg =
@@ -155,8 +159,8 @@ export interface ChartDataCustomInfo {
 }
 
 export interface SeriesData {
-  value: (string | number)[];
-  customInfo: ChartDataCustomInfo;
+  value: (string | number | bigint)[];
+  customInfo?: ChartDataCustomInfo;
   symbolRotate?: number;
   symbolOffset?: (string | number)[];
   symbolSize?: number;
@@ -168,6 +172,21 @@ export interface SeriesData {
   tooltip?: {
     position: string;
     formatter: string;
+    trigger?: string;
+  };
+  emphasis?: {
+    itemStyle?: {
+      color: string;
+    };
+    showSymbol?: boolean;
+    symbol?: string;
+    symbolSize?: number;
+  };
+  blur?: {
+    showSymbol?: boolean;
+  };
+  lineStyle?: {
+    silent?: boolean;
   };
   label?: {
     show: boolean;
@@ -211,6 +230,11 @@ export const getChartOption = () => {
     xAxis: {
       type: 'category',
       data: [] as string[],
+      axisLabel: {
+        formatter: function (value) {
+          return value;
+        },
+      },
     },
     yAxis: {
       type: 'value',
@@ -219,8 +243,9 @@ export const getChartOption = () => {
           color: '#434343',
         },
       },
-      min: 'dataMin' as string | number,
-      max: 'dataMax' as string | number,
+      min: 0 as string | number,
+      max: 10 as string | number,
+      interval: 2,
     },
     dataZoom: [
       {
@@ -241,24 +266,25 @@ export const getChartOption = () => {
         name: t('journalConfig.quote_legend'),
         type: 'line',
         data: [] as SeriesData[],
-        symbol: 'pin',
-        symbolSize: 16,
-        showSymbol: false,
+        symbol: circle,
+        symbolSize: 10,
+        showSymbol: false, // 修改此处，只在鼠标悬停在标记上时才显示标记
         itemStyle: {
           color: '#0F6DA6',
         },
         lineStyle: {
           color: '#0F6DA6',
         },
+        silent: true,
         zlevel: 0,
       },
       {
         name: t('journalConfig.order_input_legend'),
         type: 'scatter',
-        symbolSize: 10,
+        symbolSize: 8,
         data: [] as SeriesData[],
         legendHoverLink: false,
-        symbolKeepAspect: true,
+        symbolKeepAspect: false,
         symbolOffset: [],
         symbol: triangleSvg,
         zlevel: 1,
@@ -266,13 +292,17 @@ export const getChartOption = () => {
       {
         name: t('journalConfig.order_legend'),
         type: 'scatter',
-        symbolSize: 10,
+        symbolSize: 12,
         data: [] as SeriesData[],
         legendHoverLink: false,
         symbolKeepAspect: true,
         symbolOffset: [],
         symbol: arrowSvg,
         zlevel: 3,
+        itemStyle: {
+          borderColor: 'transparent',
+          borderWidth: 10,
+        },
       },
       {
         name: t('journalConfig.cancel_order_legend'),
@@ -288,6 +318,29 @@ export const getChartOption = () => {
         },
         zlevel: 2,
       },
+      {
+        name: t('journalConfig.quote_legend'), // 使用相同的 name，确保与原线图相关联
+        type: 'scatter', // 类型是 scatter
+        data: [] as SeriesData[], // 使用与线图相同的数据
+        symbol: circle, // 您想用于标记的形状
+        showSymbol: false, // 显示标记
+        symbolSize: 10, // 标记的大小
+        itemStyle: {
+          color: 'transparent', // 标记的颜色
+        },
+        emphasis: {
+          symbolSize: 10,
+          itemStyle: {
+            color: '#0F6DA6', // 高亮颜色
+          },
+        },
+        zlevel: 0,
+      },
     ],
+    grid: {
+      left: '32px',
+      right: '32px',
+      containLabel: true,
+    },
   };
 };

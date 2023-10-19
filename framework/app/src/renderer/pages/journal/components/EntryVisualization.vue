@@ -79,16 +79,7 @@
           :placeholder="$t('journalConfig.search_order_id')"
           @search="handleSearchOrderId"
         />
-        <div
-          v-show="instrumentList.length > 0"
-          id="strategyChart"
-          class="kf-chart_content"
-        ></div>
-        <a-empty
-          v-show="instrumentList.length === 0"
-          :image="simpleImage"
-          :description="t('empty_text')"
-        ></a-empty>
+        <div id="strategyChart" class="kf-chart_content"></div>
       </div>
       <a-spin
         class="kf-journal-spin"
@@ -129,7 +120,7 @@ import {
 import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
 import { KF_CONFIG_DIR } from '@kungfu-trader/kungfu-js-api/config/pathConfig';
 import {
-  dealKfTime,
+  getNanoDateString,
   hashInstrumentUKey,
 } from '@kungfu-trader/kungfu-js-api/kungfu';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
@@ -182,6 +173,8 @@ const props = withDefaults(
   },
 );
 
+const DEFAULT_MIN_Y_SPLIT = 5;
+const DFEAUKT_Y_SPACE = 50;
 const DEFAULT_ORDER_LENGTH = 30;
 const DEFAULT_CHART_LENGTH_RATE = 20;
 const DEFAULT_SYMBOL_SIZE = 10;
@@ -204,18 +197,24 @@ const kfInstrumentsJSON: Record<string, KungfuApi.InstrumentResolved> =
   fse.readJsonSync(path.join(KF_CONFIG_DIR, 'defaultInstruments.json'));
 const searchInstrument = ref<string>('');
 const selectedInstrument = ref<string>('');
-const xAxisData = ref<Record<string, number[]>>({});
+const xAxisData = ref<Record<string, (number | string | bigint)[]>>({});
 const quoteXAxisData = ref<Record<string, number[]>>({});
 const searchOrderId = ref<string>('');
 const instrumentList = ref<string[]>([]);
-
 onMounted(() => {
+  nextTick(() => {
+    initChart();
+  });
   init();
 });
 
 onBeforeUnmount(() => {
-  window.removeEventListener('resize', handleResize);
+  window.removeEventListener('resize', () => handleResize());
   myChart && myChart.dispose();
+});
+
+defineExpose({
+  handleResize,
 });
 
 const strategyData = computed(() => {
@@ -310,6 +309,7 @@ const handleFrameChange = async (newCurrentFram) => {
           })
           .forEach((serie) => {
             serie.data.forEach((item) => {
+              const defaultSize = getDefaultSize(serie.name);
               if (item.customInfo.orderId === orderId) {
                 hasOrderId = true;
                 item.symbolSize = ACTIVE_SYMBOL_SIZE;
@@ -326,7 +326,7 @@ const handleFrameChange = async (newCurrentFram) => {
                   shadowColor,
                 };
               } else {
-                item.symbolSize = DEFAULT_SYMBOL_SIZE;
+                item.symbolSize = defaultSize;
                 item.itemStyle = {
                   ...item.itemStyle,
                   shadowBlur: 0,
@@ -391,11 +391,6 @@ function init() {
 
   if (instrumentList.value.length > 0) {
     getCurInstrument(instrumentList.value[0]);
-    if (!myChart) {
-      nextTick(() => {
-        initChart();
-      });
-    }
   }
 }
 
@@ -426,7 +421,7 @@ const chartSeriesData = ref<
   Record<
     string,
     {
-      Quote: SeriesData[];
+      Quote: { line: SeriesData[]; symbol: SeriesData[] };
       OrderInput: SeriesData[];
       Order: SeriesData[];
       OrderAction: SeriesData[];
@@ -512,7 +507,7 @@ function dealFrameData() {
     }
     if (!chartSeriesData.value[key]) {
       chartSeriesData.value[key] = {
-        Quote: [],
+        Quote: { line: [], symbol: [] },
         Order: [],
         OrderInput: [],
         OrderAction: [],
@@ -525,7 +520,7 @@ function dealFrameData() {
       if (!xAxisData.value[key]) {
         xAxisData.value[key] = [];
       } else {
-        xAxisData.value[key].push(Number(dataTime));
+        xAxisData.value[key].push(dataTime.toString());
       }
 
       if (item.msgTypeName === 'Quote') {
@@ -534,8 +529,8 @@ function dealFrameData() {
         }
         quoteXAxisData.value[key].push(Number(dataTime));
         tradingDataResolved = tradingDataResolved as QuoteChartResolved;
-        chartSeriesData.value[key].Quote.push({
-          value: [dealKfTime(dataTime), price],
+        chartSeriesData.value[key].Quote.line.push({
+          value: [dataTime.toString(), price],
           tooltip: {
             position: 'bottom',
             formatter: tooltipFormatter(tradingDataResolved, 'Quote'),
@@ -546,10 +541,13 @@ function dealFrameData() {
             msgTypeName: tradingDataResolved.msgTypeName,
           },
         });
+        chartSeriesData.value[key].Quote.symbol.push({
+          value: [dataTime.toString(), price],
+        });
       } else if (item.msgTypeName === 'OrderInput') {
         tradingDataResolved = tradingDataResolved as OrderInputChartResolved;
         chartSeriesData.value[key].OrderInput.push({
-          value: [dealKfTime(dataTime), price],
+          value: [dataTime.toString(), price],
           symbolRotate: tradingDataResolved.side === 0 ? 180 : 0,
           itemStyle: {
             color: tradingDataResolved.side === 0 ? '#f21717' : '#17b07f',
@@ -568,7 +566,7 @@ function dealFrameData() {
       } else if (item.msgTypeName === 'Order') {
         tradingDataResolved = tradingDataResolved as OrderChartResolved;
         chartSeriesData.value[key].Order.push({
-          value: [dealKfTime(dataTime), price],
+          value: [dataTime.toString(), price],
           symbolRotate: tradingDataResolved.side === 0 ? 180 : 0,
           symbolOffset:
             tradingDataResolved.side === 0 ? [0, '-160%'] : [0, '160%'],
@@ -606,7 +604,7 @@ function dealFrameData() {
       } else if (item.msgTypeName === 'OrderAction') {
         tradingDataResolved = tradingDataResolved as OrderActionResolved;
         chartSeriesData.value[key].OrderAction.push({
-          value: [dealKfTime(dataTime), price],
+          value: [dataTime.toString(), price],
           tooltip: {
             position: 'bottom',
             formatter: tooltipFormatter(tradingDataResolved),
@@ -651,28 +649,54 @@ const xAxisMinMax = ref<{
   max: 'dataMax',
 });
 
-const initChart = () => {
+function initChart() {
   const element = document.getElementById('strategyChart');
   if (element) {
     myChart = echarts.init(element as HTMLElement);
-
     addChartEventListener(myChart);
     myChart.setOption(option);
+  }
+}
+
+const setInterval = () => {
+  const element = document.getElementById('strategyChart');
+  const yHeight = element?.clientHeight;
+  let interval = 2;
+  if (yHeight) {
+    let minYSplit = DEFAULT_MIN_Y_SPLIT;
+    let ySpace = DFEAUKT_Y_SPACE;
+
+    const dataRange =
+      Number(xAxisMinMax.value.max) - Number(xAxisMinMax.value.min);
+    let desiredPixelPerSection = yHeight / minYSplit;
+
+    if (desiredPixelPerSection >= ySpace) {
+      desiredPixelPerSection = ySpace;
+      interval = (dataRange * desiredPixelPerSection) / yHeight;
+    } else {
+      interval = dataRange / minYSplit;
+    }
+
+    option.yAxis.interval = interval.kfRound(2);
   }
 };
 
 const updateOption = () => {
   setXAxisMinMax();
 
+  setInterval();
   option.yAxis.min = xAxisMinMax.value.min;
   option.yAxis.max = xAxisMinMax.value.max;
 
-  option.series[0].data = chartSeriesData.value[selectedInstrument.value].Quote;
+  option.series[0].data =
+    chartSeriesData.value[selectedInstrument.value].Quote.line;
   option.series[1].data =
     chartSeriesData.value[selectedInstrument.value].OrderInput;
   option.series[2].data = chartSeriesData.value[selectedInstrument.value].Order;
   option.series[3].data =
     chartSeriesData.value[selectedInstrument.value].OrderAction;
+  option.series[4].data =
+    chartSeriesData.value[selectedInstrument.value].Quote.symbol;
 
   const dataLength = option.series[1].data.length;
   if (dataLength <= DEFAULT_ORDER_LENGTH) {
@@ -692,11 +716,20 @@ const updateOption = () => {
 
   option.xAxis.data = xAxisData.value[selectedInstrument.value]
     .sort((a, b) => {
-      return a - b;
+      return Number(a) - Number(b);
     })
     .map((item) => {
-      return dealKfTime(BigInt(item));
+      return item.toString();
     });
+  // .reduce((prev, cur) => {
+  //   if (prev.includes(getNanoDateString(BigInt(cur)))) {
+  //     return prev;
+  //   }
+  //   return [...prev, getNanoDateString(BigInt(cur))] as string[];
+  // }, [] as string[]);
+  option.xAxis.axisLabel.formatter = (value: string) => {
+    return getNanoDateString(BigInt(value), 6, 3);
+  };
   quoteXAxisData.value[selectedInstrument.value]?.sort((a, b) => {
     return a - b;
   });
@@ -704,12 +737,27 @@ const updateOption = () => {
   myChart && myChart.setOption(option);
 };
 
-function handleResize() {
-  myChart && myChart.resize();
+function handleResize(update = false) {
+  if (myChart) {
+    if (update) {
+      updateOption();
+    }
+    myChart.resize();
+  }
+}
+function getDefaultSize(name: string) {
+  switch (name) {
+    case t('journalConfig.order_input_legend'):
+      return 8;
+    case t('journalConfig.order_legend'):
+      return 12;
+    default:
+      return DEFAULT_SYMBOL_SIZE;
+  }
 }
 
 function addChartEventListener(myChart: echarts.ECharts) {
-  window.addEventListener('resize', handleResize);
+  window.addEventListener('resize', () => handleResize());
 
   myChart.on('click', (params) => {
     if (!option || !params.data) return;
@@ -732,6 +780,7 @@ function addChartEventListener(myChart: echarts.ECharts) {
           return index !== 0;
         })
         .forEach((serie) => {
+          const defaultSize = getDefaultSize(serie.name);
           serie.data.forEach((item: SeriesData) => {
             if (item.customInfo.orderId === orderId) {
               let shadowColor = '';
@@ -748,7 +797,7 @@ function addChartEventListener(myChart: echarts.ECharts) {
                 shadowColor,
               };
             } else {
-              item.symbolSize = DEFAULT_SYMBOL_SIZE;
+              item.symbolSize = defaultSize;
               item.itemStyle = {
                 ...item.itemStyle,
                 shadowBlur: 0,
@@ -761,6 +810,28 @@ function addChartEventListener(myChart: echarts.ECharts) {
     }
   });
 
+  // myChart.on('mouseover', function (params) {
+  //   if (
+  //     params.componentType === 'series' &&
+  //     params.seriesType === 'line' &&
+  //     params.dataIndex != null
+  //   ) {
+  //     myChart.dispatchAction({
+  //       type: 'highlight',
+  //       seriesIndex: params.seriesIndex,
+  //       dataIndex: params.dataIndex,
+  //     });
+  //   }
+  // });
+
+  // myChart.on('mouseout', function (params) {
+  //   myChart.dispatchAction({
+  //     type: 'downplay',
+  //     seriesIndex: params.seriesIndex,
+  //     dataIndex: params.dataIndex,
+  //   });
+  // });
+
   myChart.getZr().on('click', (event) => {
     if (!event.target) {
       if (!Number(selectedOrderId)) return;
@@ -769,10 +840,11 @@ function addChartEventListener(myChart: echarts.ECharts) {
           return index !== 0;
         })
         .forEach((serie) => {
+          const defaultSize = getDefaultSize(serie.name);
           serie.data.forEach((item) => {
-            if (item.symbolSize !== DEFAULT_SYMBOL_SIZE) {
+            if (item.symbolSize !== defaultSize) {
               setCurrentFrameId('');
-              item.symbolSize = DEFAULT_SYMBOL_SIZE;
+              item.symbolSize = defaultSize;
             }
 
             item.itemStyle = {
@@ -915,7 +987,7 @@ function tooltipFormatter(data: FrameResolvedDataType, type?: string) {
       return (pre += `<div class="tooltip-row">
           <span class="tooltip-item-key">${cur}</span>
           <span class="tooltip-item-value">${
-            cur === 'data_time' ? dealKfTime(data[cur]) : data[cur]
+            cur === 'data_time' ? getNanoDateString(data[cur]) : data[cur]
           }</span>
         </div>`);
     }, '');
@@ -925,7 +997,7 @@ function tooltipFormatter(data: FrameResolvedDataType, type?: string) {
           <span class="tooltip-item-key">${cur}</span>
           <span class="tooltip-item-value">${
             ['insert_time', 'update_time'].includes(cur)
-              ? dealKfTime(data[cur])
+              ? getNanoDateString(data[cur])
               : data[cur]
           }</span>
         </div>`);
@@ -972,6 +1044,7 @@ function handleSearchOrderId() {
     })
     .forEach((serie) => {
       serie.data.forEach((item) => {
+        const defaultSize = getDefaultSize(serie.name);
         if (item.customInfo.orderId === BigInt(searchOrderId.value)) {
           orderIdInfo.hasId = true;
           orderIdInfo.msgTypeName = item.customInfo.msgTypeName;
@@ -992,7 +1065,7 @@ function handleSearchOrderId() {
             shadowColor,
           };
         } else {
-          item.symbolSize = DEFAULT_SYMBOL_SIZE;
+          item.symbolSize = defaultSize;
           item.itemStyle = {
             ...item.itemStyle,
             shadowBlur: 0,
@@ -1020,7 +1093,7 @@ function handleSearchOrderId() {
 
 function setDataZoom(dataTime: bigint) {
   const timeList = xAxisData.value[selectedInstrument.value];
-  if (timeList.length === 0) return;
+  if (!timeList || timeList.length === 0) return;
   const frontPortion = Number(dataTime) - Number(timeList[0]);
   const behandPortion =
     Number(timeList[timeList.length - 1]) - Number(timeList[0]);
@@ -1084,6 +1157,7 @@ const handleInputChange = debounce(() => {
 .kf-visualization_wrap {
   position: relative;
   display: flex;
+  height: 100%;
 
   .ant-table {
     background-color: #1d1d1d;

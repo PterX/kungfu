@@ -1388,6 +1388,11 @@ declare namespace KungfuApi {
     orderInputKey: OrderInputKeyEnum;
     limitValue: number;
   }
+
+  export interface BoardStyle {
+    flex: string;
+    height?: string;
+  }
 }
 
 declare module '@kungfu-trader/kungfu-core' {

@@ -1045,7 +1045,8 @@ declare namespace KungfuApi {
     | Quote
     | Trade
     | OrderTrigger
-    | Basket;
+    | Basket
+    | BasketInstrument;
 
   export type TradingDataTypeName = keyof TradingData;
 

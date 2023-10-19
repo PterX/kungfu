@@ -1,7 +1,10 @@
 __uid__
-instrument_factors
-instruments
 commissions
+instruments
+instrument_factors
+static_data
+baskets
+basket_instruments
 home
 state
 runtime_folder
@@ -15,12 +18,9 @@ algo_orders
 algo_order_actions
 context
 arguments
-static_data
+bookkeeper
 io_device
 usable
-bookkeeper
-baskets
-basket_instruments
 begin_time
 end_time
 gen_time
@@ -182,8 +182,8 @@ seq
 orig_order_no
 bid_no
 ask_no
-exec_type
 bs_flag
+exec_type
 trade_num
 bid_weighted_avg_price
 total_bid_volume

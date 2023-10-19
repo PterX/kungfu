@@ -144,6 +144,7 @@ export const useUpdateVersion = () => {
   };
 
   const handleToConfirmStartUpdate = (newVersion: string) => {
+    popoverVisible.value = false;
     extraConfirmModal(
       t('autoUpdater.update'),
       t('autoUpdater.find_new_version', {

@@ -66,7 +66,7 @@ void reader::next() {
 }
 
 void reader::sort() {
-  int64_t min_time = time::now_in_nano();
+  int64_t min_time = INT64_MAX;
   for (auto &pair : journals_) {
     auto &journal = pair.second;
     auto &frame = journal.current_frame();

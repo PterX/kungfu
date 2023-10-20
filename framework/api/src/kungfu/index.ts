@@ -102,14 +102,19 @@ export const dealKfTime = (nano: bigint, date = false): string => {
 };
 
 export const getNanoDateString = (
-  nane: bigint,
+  nano: bigint,
   i = 6,
   lastSplit = 0,
 ): string => {
-  return kf
-    .formatTime(nane, '%m/%d %H:%M:%S.%N')
-    .slice(i)
-    .slice(0, -1 * lastSplit);
+  let formattedTime = kf.formatTime(nano, '%m/%d %H:%M:%S.%N');
+
+  formattedTime = formattedTime.slice(i);
+
+  if (lastSplit !== 0) {
+    formattedTime = formattedTime.slice(0, -1 * lastSplit);
+  }
+
+  return formattedTime;
 };
 
 export const dealTradingDataItem = (

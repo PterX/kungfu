@@ -78,7 +78,7 @@ private:
 
   void feed(const event_ptr &event);
 
-  void switch_feed_stroage(bool pause);
+  void switch_feed_storage(bool pause);
 };
 
 } // namespace kungfu::yijinjing::cache

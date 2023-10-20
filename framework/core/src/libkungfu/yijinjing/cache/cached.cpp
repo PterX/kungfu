@@ -31,8 +31,8 @@ void cached::on_react() {
   events_ | is(Location::tag) | $$(on_location(event));
   events_ | is(Register::tag) | $$(register_triggger_clear_cache_shift(event->data<Register>()));
   events_ | is(Register::tag) | $$(register_trigger_listen_public(event->gen_time(), event->data<Register>()));
-  events_ | is(CachedPause::tag) | $$(switch_feed_stroage(true));
-  events_ | is(CachedResume::tag) | $$(switch_feed_stroage(false));
+  events_ | is(CachedPause::tag) | $$(switch_feed_storage(true));
+  events_ | is(CachedResume::tag) | $$(switch_feed_storage(false));
   events_ | is(RequestCached::tag) | $([&](const event_ptr &event) {
     auto source_id = event->source();
 
@@ -265,8 +265,7 @@ void cached::register_trigger_listen_public(int64_t gen_time, const Register &re
   auto app_uid = register_data.location_uid;
   auto app_location = get_location(app_uid);
 
-  if (not(app_location->category == category::TD or
-          (app_location->group == "node" and app_location->category == category::SYSTEM))) {
+  if (app_location->category != category::TD) {
     return;
   }
 
@@ -315,6 +314,6 @@ void cached::feed(const event_ptr &event) {
   feed_profile_data(event, profile_bank_);
 }
 
-void cached::switch_feed_stroage(bool pause) { storage_pause_ = pause; }
+void cached::switch_feed_storage(bool pause) { storage_pause_ = pause; }
 
 } // namespace kungfu::yijinjing::cache

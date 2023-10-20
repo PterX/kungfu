@@ -46,6 +46,7 @@ KF_DEFINE_MARK_TYPE(ResetBookRequest, 10451);
 KF_DEFINE_MARK_TYPE(MirrorPositionsRequest, 10452);
 KF_DEFINE_MARK_TYPE(KeepPositionsRequest, 10453);
 KF_DEFINE_MARK_TYPE(RebuildPositionsRequest, 10454);
+
 KF_DEFINE_PACK_TYPE(                                           //
     frame_header, 0, PK(gen_time), TIMESTAMP(gen_time),        //
     /** total frame length (including header and data body) */ //

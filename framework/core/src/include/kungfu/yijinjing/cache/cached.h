@@ -54,6 +54,7 @@ private:
   yijinjing::cache::profile profile_;
   ProfileStateBank profile_bank_ = ProfileStateBank(longfist::ProfileDataTypes);
   const int store_volume_every_loop_;
+  bool storage_pause_ = false;
 
   void on_location(const event_ptr &event);
 
@@ -76,6 +77,8 @@ private:
   void ensure_cached_storage(uint32_t source_id, uint32_t dest_id);
 
   void feed(const event_ptr &event);
+
+  void switch_feed_storage(bool pause);
 };
 
 } // namespace kungfu::yijinjing::cache

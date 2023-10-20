@@ -103,6 +103,8 @@ OrderTriggerType = lf.enums.OrderTriggerType
 BasketVolumeType = lf.enums.BasketVolumeType
 BasketType = lf.enums.BasketType
 
+CashReplaceFlag = lf.enums.CashReplaceFlag
+ETFType = lf.enums.ETFType
 
 InstrumentTypeInStockAccount = [
     InstrumentType.Stock,

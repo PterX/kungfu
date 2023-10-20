@@ -64,6 +64,20 @@ Napi::Value BasketInstrumentStore::RemoveAllBasketInstruments(const Napi::Callba
   return Napi::Boolean::New(info.Env(), true);
 }
 
+Napi::Value BasketInstrumentStore::RemoveAllBasketInstrumentsByBasket(const Napi::CallbackInfo &info) {
+  auto basket_uid = (uint32_t)GetNumber(info, 0);
+  try {
+    using TargetAttrPtrType = decltype(BasketInstrument::basket_uid);
+    profile_.get_storage()->remove_all<BasketInstrument>(
+        sqlite_orm::where(sqlite_orm::is_equal(&BasketInstrument::basket_uid, basket_uid)));
+  } catch (const std::exception &ex) {
+    SPDLOG_ERROR("failed to RemoveAllBasketInstrumentsByBasket {}", ex.what());
+    yijinjing::util::print_stack_trace();
+    return Napi::Boolean::New(info.Env(), false);
+  }
+  return Napi::Boolean::New(info.Env(), true);
+}
+
 Napi::Value BasketInstrumentStore::SetBasketInstrument(const Napi::CallbackInfo &info) {
   try {
     if (not info[0].IsObject()) {
@@ -93,6 +107,8 @@ void BasketInstrumentStore::Init(Napi::Env env, Napi::Object exports) {
                       InstanceMethod("setAllBasketInstruments", &BasketInstrumentStore::SetAllBasketInstruments),
                       InstanceMethod("getAllBasketInstrument", &BasketInstrumentStore::GetAllBasketInstrument),
                       InstanceMethod("removeAllBasketInstruments", &BasketInstrumentStore::RemoveAllBasketInstruments),
+                      InstanceMethod("removeAllBasketInstrumentsByBasket",
+                                     &BasketInstrumentStore::RemoveAllBasketInstrumentsByBasket),
                   });
 
   constructor = Napi::Persistent(func);

@@ -7,6 +7,7 @@ import {
   getKungfuHistoryData,
   hashInstrumentUKey,
   kfRequestMarketData,
+  longfist,
 } from '@kungfu-trader/kungfu-js-api/kungfu';
 
 import { setKfConfig } from '@kungfu-trader/kungfu-js-api/kungfu/store';
@@ -2673,6 +2674,7 @@ export const useBasket = () => {
     const [id, name, volume_type, total_amount] = res;
 
     return {
+      ...longfist.types.Basket(),
       id: Number(id),
       name,
       volume_type: Number(volume_type),

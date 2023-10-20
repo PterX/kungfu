@@ -187,7 +187,6 @@ const journalHeadStyle = ref<KungfuApi.BoardStyle>(
     flex: '1 1 20%',
   },
 );
-console.log('journalHeadStyle', journalHeadStyle.value, boardStyle);
 const journalContentStyle = ref<KungfuApi.BoardStyle>(
   boardStyle['journalContent'] || {
     flex: '1 1 80%',

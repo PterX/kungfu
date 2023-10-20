@@ -477,6 +477,7 @@ void Watcher::on_start() {
     }
 
     events_ | is(Order::tag) | $$(UpdateBook(event, event->data<Order>()));
+    events_ | is(Asset::tag) | $$(UpdateAsset(event, event->data<Asset>().holder_uid));
     events_ | is(Position::tag) | $$(UpdateBook(event, event->data<Position>()));
     events_ | is(PositionEnd::tag) | $$(UpdateAsset(event, event->data<PositionEnd>().holder_uid));
 
@@ -791,7 +792,6 @@ void Watcher::UpdateBook(const event_ptr &event, const Quote &quote) {
     }
 
     auto apply = [&](auto &position) { UpdateBook(event, position); };
-
     book->apply_long_position_for(quote, apply);
     book->apply_short_position_for(quote, apply);
 

@@ -716,6 +716,9 @@ const updateOption = () => {
     option.dataZoom.forEach((item) => {
       item.start = 0;
       item.end = 100;
+      item.labelFormatter = function (value) {
+        return getNanoDateString(BigInt(option.xAxis.data[value]), 6, 3);
+      };
     });
   } else {
     option.dataZoom.forEach((item) => {
@@ -724,6 +727,9 @@ const updateOption = () => {
         (DEFAULT_ORDER_LENGTH / dataLength) * 100 < DEFAULT_CHART_LENGTH_RATE
           ? DEFAULT_CHART_LENGTH_RATE
           : (DEFAULT_ORDER_LENGTH / dataLength) * 100;
+      item.labelFormatter = function (value) {
+        return getNanoDateString(BigInt(option.xAxis.data[value]), 6, 3);
+      };
     });
   }
 
@@ -735,7 +741,7 @@ const updateOption = () => {
       return item.toString();
     });
   option.xAxis.axisLabel.formatter = (value: string) => {
-    return getNanoDateString(BigInt(value), 6, 6);
+    return getNanoDateString(BigInt(value), 6, 3);
   };
   quoteXAxisData.value[selectedInstrument.value]?.sort((a, b) => {
     return a - b;
@@ -785,7 +791,7 @@ function addChartEventListener(myChart: echarts.ECharts) {
       selectedOrderId = orderId || 0n;
       option.series
         .filter((serie, index) => {
-          return index !== 0;
+          return index !== 0 && index !== 4;
         })
         .forEach((serie) => {
           const defaultSize = getDefaultSize(serie.name);

@@ -86,8 +86,8 @@
         :size-dependencies-fields="['dataAsString']"
         :resizable="false"
         :custom-row-class="dealRowClassName"
-        @click-cell="handleRightClickRow"
-        @click-row="handleRightClickRow"
+        @click-cell="handleClickRow"
+        @click-row="handleClickRow"
         @right-click-row="handleOpenFrameDetail"
         @onScrollToTop="handleScrollToTop"
         @onScrollToBottom="handleScrollToBottom"
@@ -176,7 +176,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, computed, watch, nextTick, onMounted } from 'vue';
+import { ref, computed, watch, nextTick, onMounted, onBeforeMount } from 'vue';
 import { storeToRefs } from 'pinia';
 import { Empty } from 'ant-design-vue';
 import {
@@ -219,12 +219,14 @@ const {
   currentFrameList,
   isLoadingFrames,
   selectedChartItem,
+  currentFrameId,
 } = storeToRefs(useJournalStore());
 const {
   setCurrentFrameList,
   setCurrentTime,
   setCurrentLastFrameTime,
   setCurrentFrame,
+  setCurrentFrameId,
 } = useJournalStore();
 const sourceDestMap = getSourceDestMap();
 const { now } = useNow();
@@ -266,7 +268,6 @@ const inputRef = ref<HTMLInputElement>({} as HTMLInputElement);
 const frameColumns = computed(() => getFrameColumns(searchInUsing.value));
 const simpleImage = Empty.PRESENTED_IMAGE_SIMPLE;
 const firstSplitFramesLoading = ref(false);
-const currentFramesId = ref<string>('');
 const frameFilter = ref();
 let currentTracer: KungfuApi.Tracer | null = null;
 
@@ -361,6 +362,7 @@ const handleScrollToBottom = debounce(async () => {
   console.warn('scrolling to bottom');
   if (!currentSession.value) return;
   if (isLoadingFrames.value) return;
+  // wait for while looping and break while working
   await delayMilliSeconds(0);
   await loadFrameData(currentSession.value.index, true);
 }, 50);
@@ -389,7 +391,6 @@ const convertToTimestamp = (timeStr) => {
   }
 };
 const validateAndUpdateStartTime = async () => {
-  console.log(111, '`````````````');
   const timeRegex = /^(\d{10,19}|(\d{2}:\d{2}:\d{2}(\.\d{3})?))$/;
   if (timeRegex.test(currentStartTimeInput.value)) {
     const newStartTime = convertToTimestamp(currentStartTimeInput.value);
@@ -473,9 +474,27 @@ watch(
     }
   },
 );
+let initTimer: NodeJS.Timeout | null = null;
 
 onMounted(() => {
   init();
+  nextTick(() => {
+    if (initTimer) clearInterval(initTimer);
+    initTimer = setInterval(() => {
+      if (
+        !isLoadingFrames.value &&
+        currentFrameList.value.length < DEFAULT_LIST_SIZE
+      ) {
+        init();
+      }
+    }, 10000);
+  });
+});
+
+onBeforeMount(() => {
+  if (initTimer) {
+    clearInterval(initTimer);
+  }
 });
 
 const init = debounce(() => {
@@ -634,12 +653,12 @@ const loadFrameData = async (currentSessionId: number, loadmore = false) => {
     isLoadingFrames.value = false;
     firstSplitFramesLoading.value = false;
     requestBreakLoadingDataWhile = false;
-    currentFramesId.value = currentFrameList.value[0]?.id;
+    setCurrentFrameId(currentFrameList.value[0]?.id);
   });
 };
 
 const handleOpenFrameDetail = async ({ row }) => {
-  currentFramesId.value = row.id;
+  setCurrentFrameId(row.id);
   currentRowData.value = row as KungfuApi.FrameResolved;
   await nextTick();
   visible.value = true;
@@ -673,11 +692,14 @@ const dealTagBackgroundColor = (colorStr: string) => {
 };
 
 const dealRowClassName = (row) => {
-  return row.id === currentFramesId.value ? 'kf-current-table-select' : '';
+  return row.id === currentFrameId.value ? 'kf-current-table-select' : '';
 };
 
-function handleRightClickRow({ row }) {
+function handleClickRow({ row }) {
   setCurrentFrame(row);
+  currentFrameId.value === row.id
+    ? setCurrentFrameId('')
+    : setCurrentFrameId(row.id);
 }
 </script>
 

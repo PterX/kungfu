@@ -1006,16 +1006,16 @@ function tooltipFormatter(data: FrameResolvedDataType, type?: string) {
   `;
 }
 
-function findClosestTime(targetTime: number, times: number[]) {
+function findClosestTime(targetTime: number, times: (number | string)[]) {
   if (times.length === 0) {
     return 0;
   }
 
   let closestIndex = 0;
-  let closestDiff = Math.abs(targetTime - times[0]);
+  let closestDiff = Math.abs(targetTime - Number(times[0]));
 
   times.forEach((item, index) => {
-    const currentDiff = Math.abs(targetTime - item);
+    const currentDiff = Math.abs(targetTime - Number(item));
     if (currentDiff < closestDiff) {
       closestDiff = currentDiff;
       closestIndex = index;
@@ -1088,11 +1088,14 @@ function handleSearchOrderId() {
 }
 
 function setDataZoom(dataTime: bigint) {
-  const timeList = xAxisData.value[selectedInstrument.value];
+  const timeList = xAxisData.value[selectedInstrument.value] as string[];
 
   if (!timeList || timeList.length === 0) return;
-  const index = timeList.indexOf(dataTime.toString());
-  const rate = index / timeList.length;
+  let index = timeList.indexOf(dataTime.toString());
+  if (index === -1) {
+    index = findClosestTime(Number(dataTime), timeList);
+  }
+  const rate = (index + 1) / timeList.length;
   const start = rate * 100 - 15 < 0 ? 0 : rate * 100 - 15;
   const end = rate * 100 + 15 > 100 ? 100 : rate * 100 + 15;
   option.dataZoom.forEach((item) => {

@@ -482,7 +482,10 @@ onMounted(() => {
   nextTick(() => {
     if (inittimer) clearInterval(inittimer);
     inittimer = setInterval(() => {
-      if (!isLoadingFrames.value) {
+      if (
+        !isLoadingFrames.value &&
+        currentFrameList.value.length < DEFAULT_LIST_SIZE
+      ) {
         init();
       }
     }, 10000);

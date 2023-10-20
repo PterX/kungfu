@@ -253,13 +253,14 @@ void master::feed(const event_ptr &event) {
     return;
   }
 
+  cached_.update_session(std::dynamic_pointer_cast<journal::frame>(event));
+
   if (event->dest() == location::SYNC) {
     return;
   }
 
-  cached_.update_session(std::dynamic_pointer_cast<journal::frame>(event));
-
-  if (get_location(event->source())->category == category::MD) {
+  if (event->msg_type() != Instrument::tag and event->msg_type() != InstrumentFactor::tag and
+      get_location(event->source())->category == category::MD) {
     return;
   }
 

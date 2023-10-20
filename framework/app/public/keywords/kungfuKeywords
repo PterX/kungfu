@@ -1,7 +1,8 @@
 __uid__
-instrument_factors
-instruments
 commissions
+instruments
+instrument_factors
+static_data
 baskets
 basket_instruments
 home
@@ -16,10 +17,10 @@ order_trigger_actions
 algo_orders
 algo_order_actions
 context
+arguments
+bookkeeper
 io_device
 usable
-bookkeeper
-arguments
 begin_time
 end_time
 gen_time
@@ -436,10 +437,12 @@ init
 sumerize
 on_read_synthetic_data
 on_write_synthetic_data
+hash_product
 hash_instrument
 is_valid_price
 is_final_status
 get_instrument_type
+get_instrument_product
 order_from_input
 trade_from_order
 order_trigger_from_input

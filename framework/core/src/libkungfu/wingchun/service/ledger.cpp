@@ -18,6 +18,7 @@ using namespace kungfu::longfist::types;
 using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::cache;
+using namespace kungfu::wingchun::map;
 
 #define DEFAULT_AVG_VALID_VALUE 10000.0
 
@@ -161,7 +162,7 @@ void Ledger::update_order_stat(const event_ptr &event, const Trade &data) {
 
 double Ledger::translate_by_price_tick(const char *exchange_id, const char *instrument_id, double price) {
   auto hashed_instrument_key = hash_instrument(exchange_id, instrument_id);
-  auto instruments = bookkeeper_.get_instruments();
+  auto instruments = bookkeeper_.get_static_data().get_instruments();
   if (instruments.find(hashed_instrument_key) != instruments.end()) {
     double price_tick = instruments[hashed_instrument_key].price_tick;
     if (is_valid_price(price_tick)) {
@@ -289,7 +290,7 @@ void Ledger::write_strategy_data(int64_t trigger_time, uint32_t strategy_uid) {
     if ((has_account or is_strategy) or is_node) {
       write_positions(trigger_time, strategy_uid, book->long_positions);
       write_positions(trigger_time, strategy_uid, book->short_positions);
-      write_instrument_factors(trigger_time, strategy_uid, book->get_instrument_factors());
+      write_instrument_factors(trigger_time, strategy_uid, bookkeeper_.get_static_data().get_instrument_factors());
       writer->write(trigger_time, asset);
     }
   }
@@ -298,7 +299,7 @@ void Ledger::write_strategy_data(int64_t trigger_time, uint32_t strategy_uid) {
   writer->close_data();
 }
 
-void Ledger::write_positions(int64_t trigger_time, uint32_t dest, book::PositionMap &positions) {
+void Ledger::write_positions(int64_t trigger_time, uint32_t dest, PositionMap &positions) {
   auto writer = get_writer(dest);
   for (const auto &pair : positions) {
     writer->write_as(trigger_time, pair.second, get_live_home_uid(), pair.second.holder_uid);
@@ -306,7 +307,7 @@ void Ledger::write_positions(int64_t trigger_time, uint32_t dest, book::Position
 }
 
 void Ledger::write_instrument_factors(int64_t trigger_time, uint32_t dest,
-                                      const book::InstrumentFactorMap &instrument_factors) {
+                                      const InstrumentFactorMap &instrument_factors) {
   auto writer = get_writer(dest);
   for (const auto &pair : instrument_factors) {
     writer->write(trigger_time, pair.second);

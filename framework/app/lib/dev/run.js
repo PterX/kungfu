@@ -157,7 +157,9 @@ const run = (distDir, distName = 'app', withWebpack) => {
     process.chdir(process.cwd().toString());
   }
 
-  return Promise.all(tasks.map((f) => f(argv))).then(() => startElectron(argv));
+  return Promise.all(tasks.map((f) => f({ ...argv }))).then(() =>
+    startElectron(argv),
+  );
 };
 
 module.exports = run;

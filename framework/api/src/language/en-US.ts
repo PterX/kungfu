@@ -840,6 +840,7 @@ export default {
     single_price: 'Single Price',
     limit_value: 'Maximum',
     asset_margin: 'AssetMargin',
+    pos_table_columns: 'Position Table Item Configuration',
     show_asset_margin: 'AssetMargin Mode',
     skip_confirm_make_order: 'Skip Confirm Make Order',
     set_skip_confirm_make_order:

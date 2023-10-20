@@ -129,9 +129,7 @@ import {
 import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
 import { KF_CONFIG_DIR } from '@kungfu-trader/kungfu-js-api/config/pathConfig';
 import { getNanoDateString } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
-import {
-  hashInstrumentUKey,
-} from '@kungfu-trader/kungfu-js-api/kungfu';
+import { hashInstrumentUKey } from '@kungfu-trader/kungfu-js-api/kungfu';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import {
   ExchangeIds,

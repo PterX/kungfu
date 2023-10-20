@@ -392,7 +392,6 @@ const convertToTimestamp = (timeStr) => {
   }
 };
 const validateAndUpdateStartTime = async () => {
-  console.log(111, '`````````````');
   const timeRegex = /^(\d{10,19}|(\d{2}:\d{2}:\d{2}(\.\d{3})?))$/;
   if (timeRegex.test(currentStartTimeInput.value)) {
     const newStartTime = convertToTimestamp(currentStartTimeInput.value);

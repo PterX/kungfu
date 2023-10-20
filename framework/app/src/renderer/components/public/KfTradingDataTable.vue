@@ -694,6 +694,10 @@ defineExpose({
     background: @table-row-hover-bg;
   }
 
+  .kf-current-table-select {
+    background: #434343;
+  }
+
   .kf-table-cell {
     padding: 0 6px;
     box-sizing: border-box;

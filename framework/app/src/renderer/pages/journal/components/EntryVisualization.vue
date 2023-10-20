@@ -37,63 +37,65 @@
         </template>
       </a-table>
     </div>
-    <div class="kf-instrument_wrap">
-      <div class="search-input">
-        <KfDashboardItem>
-          <a-input-search
-            v-model:value="searchInstrument"
-            :placeholder="$t('journalConfig.search_instrument')"
-            @change="handleInputChange"
-          />
-        </KfDashboardItem>
-      </div>
-      <div class="instrument-list">
-        <template v-if="instrumentList.length > 0">
-          <div
-            v-for="item in instrumentList"
-            :key="item"
-            :class="{
-              'instrument-item_wrap': true,
-              'color-default': true,
-              'selected-status': selectedInstrument.includes(item),
-            }"
-            @click="getCurInstrument(item)"
-          >
-            <span>{{ item }}</span>
-          </div>
-        </template>
+    <div class="kf-visualization_data_content">
+      <div class="kf-instrument_wrap">
+        <div class="search-input">
+          <KfDashboardItem>
+            <a-input-search
+              v-model:value="searchInstrument"
+              :placeholder="$t('journalConfig.search_instrument')"
+              @change="handleInputChange"
+            />
+          </KfDashboardItem>
+        </div>
+        <div class="instrument-list">
+          <template v-if="instrumentList.length > 0">
+            <div
+              v-for="item in instrumentList"
+              :key="item"
+              :class="{
+                'instrument-item_wrap': true,
+                'color-default': true,
+                'selected-status': selectedInstrument.includes(item),
+              }"
+              @click="getCurInstrument(item)"
+            >
+              <span>{{ item }}</span>
+            </div>
+          </template>
 
+          <a-empty
+            v-else
+            :image="simpleImage"
+            :description="t('empty_text')"
+          ></a-empty>
+        </div>
+      </div>
+      <div ref="chartWrapper" class="kf-chart_wrap">
+        <a-input-search
+          v-show="instrumentList.length > 0"
+          v-model:value="searchOrderId"
+          class="chart-search-order-id"
+          :placeholder="$t('journalConfig.search_order_id')"
+          @search="handleSearchOrderId"
+        />
+        <div
+          v-show="instrumentList.length > 0"
+          id="strategyChart"
+          class="kf-chart_content"
+        ></div>
         <a-empty
-          v-else
+          v-show="instrumentList.length === 0"
           :image="simpleImage"
           :description="t('empty_text')"
         ></a-empty>
       </div>
-    </div>
-    <div ref="chartWrapper" class="kf-chart_wrap">
-      <a-input-search
-        v-show="instrumentList.length > 0"
-        v-model:value="searchOrderId"
-        class="chart-search-order-id"
-        :placeholder="$t('journalConfig.search_order_id')"
-        @search="handleSearchOrderId"
+      <a-spin
+        class="kf-journal-spin"
+        :spinning="isLoadingFrames"
+        :tip="$t('journalConfig.loading_journal')"
       />
-      <div
-        v-show="instrumentList.length > 0"
-        id="strategyChart"
-        class="kf-chart_content"
-      ></div>
-      <a-empty
-        v-show="instrumentList.length === 0"
-        :image="simpleImage"
-        :description="t('empty_text')"
-      ></a-empty>
     </div>
-    <a-spin
-      class="kf-journal-spin"
-      :spinning="isLoadingFrames"
-      :tip="$t('journalConfig.loading_journal')"
-    />
   </div>
 </template>
 
@@ -127,7 +129,7 @@ import {
 import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
 import { KF_CONFIG_DIR } from '@kungfu-trader/kungfu-js-api/config/pathConfig';
 import {
-  dealKfTime,
+  getNanoDateString,
   hashInstrumentUKey,
 } from '@kungfu-trader/kungfu-js-api/kungfu';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
@@ -180,10 +182,16 @@ const props = withDefaults(
   },
 );
 
+const DEFAULT_MIN_Y_SPLIT = 5;
+const DFEAUKT_Y_SPACE = 50;
 const DEFAULT_ORDER_LENGTH = 30;
 const DEFAULT_CHART_LENGTH_RATE = 20;
+const DEFAULT_SYMBOL_SIZE = 10;
+const ACTIVE_SYMBOL_SIZE = 20;
+const DATA_RANGE_SIZE = 15;
 
-const { setCurrentSession, setSelectedChartItem } = useJournalStore();
+const { setCurrentSession, setSelectedChartItem, setCurrentFrameId } =
+  useJournalStore();
 const {
   sessions,
   isLoadingFrames,
@@ -199,18 +207,24 @@ const kfInstrumentsJSON: Record<string, KungfuApi.InstrumentResolved> =
   fse.readJsonSync(path.join(KF_CONFIG_DIR, 'defaultInstruments.json'));
 const searchInstrument = ref<string>('');
 const selectedInstrument = ref<string>('');
-const xAxisData = ref<Record<string, number[]>>({});
+const xAxisData = ref<Record<string, (number | string | bigint)[]>>({});
 const quoteXAxisData = ref<Record<string, number[]>>({});
 const searchOrderId = ref<string>('');
 const instrumentList = ref<string[]>([]);
-
 onMounted(() => {
-  init();
+  nextTick(() => {
+    initChart();
+  });
+  initChartData();
 });
 
 onBeforeUnmount(() => {
-  window.removeEventListener('resize', handleResize);
+  window.removeEventListener('resize', () => handleResize());
   myChart && myChart.dispose();
+});
+
+defineExpose({
+  handleResize,
 });
 
 const strategyData = computed(() => {
@@ -223,7 +237,7 @@ const customRow = (record: KungfuApi.SessionResolved) => {
   return {
     onClick: () => {
       setCurrentSession(record);
-      init();
+      initChartData();
     },
   };
 };
@@ -238,7 +252,7 @@ watch(
   () => isLoadingFrames.value,
   (newValue) => {
     if (!newValue) {
-      init();
+      initChartData();
     }
   },
 );
@@ -305,11 +319,12 @@ const handleFrameChange = async (newCurrentFram) => {
           })
           .forEach((serie) => {
             serie.data.forEach((item) => {
-              if (item.customInfo.orderId === orderId) {
+              const defaultSize = getDefaultSize(serie.name);
+              if (item.customInfo?.orderId === orderId) {
                 hasOrderId = true;
-                item.symbolSize = 20;
+                item.symbolSize = ACTIVE_SYMBOL_SIZE;
                 let shadowColor = '';
-                if (item.customInfo.msgTypeName === 'orderAction') {
+                if (item.customInfo?.msgTypeName === 'orderAction') {
                   shadowColor = '#73F3F6';
                 } else {
                   shadowColor =
@@ -321,7 +336,7 @@ const handleFrameChange = async (newCurrentFram) => {
                   shadowColor,
                 };
               } else {
-                item.symbolSize = 10;
+                item.symbolSize = defaultSize;
                 item.itemStyle = {
                   ...item.itemStyle,
                   shadowBlur: 0,
@@ -367,7 +382,7 @@ function reset() {
   selectedInstrument.value = '';
 }
 
-function init() {
+function initChartData() {
   reset();
 
   currentFrameList.value.forEach((item) => {
@@ -385,12 +400,9 @@ function init() {
   instrumentList.value = getInstrumentList();
 
   if (instrumentList.value.length > 0) {
-    getCurInstrument(instrumentList.value[0]);
-    if (!myChart) {
-      nextTick(() => {
-        initChart();
-      });
-    }
+    nextTick(() => {
+      getCurInstrument(instrumentList.value[0]);
+    });
   }
 }
 
@@ -421,7 +433,7 @@ const chartSeriesData = ref<
   Record<
     string,
     {
-      Quote: SeriesData[];
+      Quote: { line: SeriesData[]; symbol: SeriesData[] };
       OrderInput: SeriesData[];
       Order: SeriesData[];
       OrderAction: SeriesData[];
@@ -507,7 +519,7 @@ function dealFrameData() {
     }
     if (!chartSeriesData.value[key]) {
       chartSeriesData.value[key] = {
-        Quote: [],
+        Quote: { line: [], symbol: [] },
         Order: [],
         OrderInput: [],
         OrderAction: [],
@@ -520,7 +532,7 @@ function dealFrameData() {
       if (!xAxisData.value[key]) {
         xAxisData.value[key] = [];
       } else {
-        xAxisData.value[key].push(Number(dataTime));
+        xAxisData.value[key].push(dataTime.toString());
       }
 
       if (item.msgTypeName === 'Quote') {
@@ -529,8 +541,11 @@ function dealFrameData() {
         }
         quoteXAxisData.value[key].push(Number(dataTime));
         tradingDataResolved = tradingDataResolved as QuoteChartResolved;
-        chartSeriesData.value[key].Quote.push({
-          value: [dealKfTime(dataTime), price],
+        chartSeriesData.value[key].Quote.line.push({
+          value: [dataTime.toString(), price],
+        });
+        chartSeriesData.value[key].Quote.symbol.push({
+          value: [dataTime.toString(), price],
           tooltip: {
             position: 'bottom',
             formatter: tooltipFormatter(tradingDataResolved, 'Quote'),
@@ -544,7 +559,7 @@ function dealFrameData() {
       } else if (item.msgTypeName === 'OrderInput') {
         tradingDataResolved = tradingDataResolved as OrderInputChartResolved;
         chartSeriesData.value[key].OrderInput.push({
-          value: [dealKfTime(dataTime), price],
+          value: [dataTime.toString(), price],
           symbolRotate: tradingDataResolved.side === 0 ? 180 : 0,
           itemStyle: {
             color: tradingDataResolved.side === 0 ? '#f21717' : '#17b07f',
@@ -563,7 +578,7 @@ function dealFrameData() {
       } else if (item.msgTypeName === 'Order') {
         tradingDataResolved = tradingDataResolved as OrderChartResolved;
         chartSeriesData.value[key].Order.push({
-          value: [dealKfTime(dataTime), price],
+          value: [dataTime.toString(), price],
           symbolRotate: tradingDataResolved.side === 0 ? 180 : 0,
           symbolOffset:
             tradingDataResolved.side === 0 ? [0, '-160%'] : [0, '160%'],
@@ -601,7 +616,7 @@ function dealFrameData() {
       } else if (item.msgTypeName === 'OrderAction') {
         tradingDataResolved = tradingDataResolved as OrderActionResolved;
         chartSeriesData.value[key].OrderAction.push({
-          value: [dealKfTime(dataTime), price],
+          value: [dataTime.toString(), price],
           tooltip: {
             position: 'bottom',
             formatter: tooltipFormatter(tradingDataResolved),
@@ -646,28 +661,55 @@ const xAxisMinMax = ref<{
   max: 'dataMax',
 });
 
-const initChart = () => {
+function initChart() {
   const element = document.getElementById('strategyChart');
   if (element) {
     myChart = echarts.init(element as HTMLElement);
-
     addChartEventListener(myChart);
     myChart.setOption(option);
   }
+}
+
+const getYAxisInterval = () => {
+  const element = document.getElementById('strategyChart');
+  const yHeight = element?.clientHeight;
+  let interval = 2;
+  if (yHeight) {
+    let minYSplit = DEFAULT_MIN_Y_SPLIT;
+    let ySpace = DFEAUKT_Y_SPACE;
+
+    const dataRange =
+      Number(xAxisMinMax.value.max) - Number(xAxisMinMax.value.min);
+    let desiredPixelPerSection = yHeight / minYSplit;
+
+    if (desiredPixelPerSection >= ySpace) {
+      desiredPixelPerSection = ySpace;
+      interval = (dataRange * desiredPixelPerSection) / yHeight;
+    } else {
+      interval = dataRange / minYSplit;
+    }
+
+    return interval.kfRound(2);
+  }
+  return interval;
 };
 
 const updateOption = () => {
   setXAxisMinMax();
 
+  option.yAxis.interval = getYAxisInterval();
   option.yAxis.min = xAxisMinMax.value.min;
   option.yAxis.max = xAxisMinMax.value.max;
 
-  option.series[0].data = chartSeriesData.value[selectedInstrument.value].Quote;
+  option.series[0].data =
+    chartSeriesData.value[selectedInstrument.value].Quote.line;
   option.series[1].data =
     chartSeriesData.value[selectedInstrument.value].OrderInput;
   option.series[2].data = chartSeriesData.value[selectedInstrument.value].Order;
   option.series[3].data =
     chartSeriesData.value[selectedInstrument.value].OrderAction;
+  option.series[4].data =
+    chartSeriesData.value[selectedInstrument.value].Quote.symbol;
 
   const dataLength = option.series[1].data.length;
   if (dataLength <= DEFAULT_ORDER_LENGTH) {
@@ -687,11 +729,14 @@ const updateOption = () => {
 
   option.xAxis.data = xAxisData.value[selectedInstrument.value]
     .sort((a, b) => {
-      return a - b;
+      return Number(a) - Number(b);
     })
     .map((item) => {
-      return dealKfTime(BigInt(item));
+      return item.toString();
     });
+  option.xAxis.axisLabel.formatter = (value: string) => {
+    return getNanoDateString(BigInt(value), 6, 6);
+  };
   quoteXAxisData.value[selectedInstrument.value]?.sort((a, b) => {
     return a - b;
   });
@@ -699,21 +744,38 @@ const updateOption = () => {
   myChart && myChart.setOption(option);
 };
 
-function handleResize() {
-  myChart && myChart.resize();
+function handleResize(update = false) {
+  if (myChart) {
+    if (update) {
+      updateOption();
+    }
+    myChart.resize();
+  }
+}
+function getDefaultSize(name: string) {
+  switch (name) {
+    case t('journalConfig.order_input_legend'):
+      return 8;
+    case t('journalConfig.order_legend'):
+      return 12;
+    default:
+      return DEFAULT_SYMBOL_SIZE;
+  }
 }
 
 function addChartEventListener(myChart: echarts.ECharts) {
-  window.addEventListener('resize', handleResize);
+  window.addEventListener('resize', () => handleResize());
 
   myChart.on('click', (params) => {
     if (!option || !params.data) return;
     const serieItemData = params.data as SeriesData;
+    if (!serieItemData.customInfo) return;
     const { msgTypeName, tableRowId, orderId } = serieItemData.customInfo;
 
     frameListResolved.value[selectedInstrument.value][msgTypeName].forEach(
       (fram) => {
         if (fram.tableRowId === tableRowId) {
+          setCurrentFrameId(fram.tableRowId || '');
           setSelectedChartItem(fram.index ?? 0);
         }
       },
@@ -726,11 +788,12 @@ function addChartEventListener(myChart: echarts.ECharts) {
           return index !== 0;
         })
         .forEach((serie) => {
+          const defaultSize = getDefaultSize(serie.name);
           serie.data.forEach((item: SeriesData) => {
-            if (item.customInfo.orderId === orderId) {
+            if (item.customInfo?.orderId === orderId) {
               let shadowColor = '';
-              item.symbolSize = 20;
-              if (item.customInfo.msgTypeName === 'orderAction') {
+              item.symbolSize = ACTIVE_SYMBOL_SIZE;
+              if (item.customInfo?.msgTypeName === 'orderAction') {
                 shadowColor = '#73F3F6';
               } else {
                 shadowColor =
@@ -742,7 +805,7 @@ function addChartEventListener(myChart: echarts.ECharts) {
                 shadowColor,
               };
             } else {
-              item.symbolSize = 10;
+              item.symbolSize = defaultSize;
               item.itemStyle = {
                 ...item.itemStyle,
                 shadowBlur: 0,
@@ -756,15 +819,10 @@ function addChartEventListener(myChart: echarts.ECharts) {
   });
 
   myChart.on('datazoom', (params) => {
-    let { start, end, batch } = params as {
+    let { start, end } = params as {
       start: number;
       end: number;
-      batch: { start: number; end: number }[];
     };
-    if (!start || !end) {
-      start = batch ? (batch[0] ? batch[0].start : 0) : 0;
-      end = batch ? (batch[0] ? batch[0].end : 0) : 100;
-    }
 
     option.dataZoom.forEach((item) => {
       item.start = start;
@@ -780,8 +838,13 @@ function addChartEventListener(myChart: echarts.ECharts) {
           return index !== 0;
         })
         .forEach((serie) => {
+          const defaultSize = getDefaultSize(serie.name);
           serie.data.forEach((item) => {
-            item.symbolSize = 10;
+            if (item.symbolSize !== defaultSize) {
+              setCurrentFrameId('');
+              item.symbolSize = defaultSize;
+            }
+
             item.itemStyle = {
               ...item.itemStyle,
               shadowBlur: 0,
@@ -922,7 +985,7 @@ function tooltipFormatter(data: FrameResolvedDataType, type?: string) {
       return (pre += `<div class="tooltip-row">
           <span class="tooltip-item-key">${cur}</span>
           <span class="tooltip-item-value">${
-            cur === 'data_time' ? dealKfTime(data[cur]) : data[cur]
+            cur === 'data_time' ? getNanoDateString(data[cur]) : data[cur]
           }</span>
         </div>`);
     }, '');
@@ -932,7 +995,7 @@ function tooltipFormatter(data: FrameResolvedDataType, type?: string) {
           <span class="tooltip-item-key">${cur}</span>
           <span class="tooltip-item-value">${
             ['insert_time', 'update_time'].includes(cur)
-              ? dealKfTime(data[cur])
+              ? getNanoDateString(data[cur])
               : data[cur]
           }</span>
         </div>`);
@@ -945,16 +1008,16 @@ function tooltipFormatter(data: FrameResolvedDataType, type?: string) {
   `;
 }
 
-function findClosestTime(targetTime: number, times: number[]) {
+function findClosestTime(targetTime: number, times: (number | string)[]) {
   if (times.length === 0) {
     return 0;
   }
 
   let closestIndex = 0;
-  let closestDiff = Math.abs(targetTime - times[0]);
+  let closestDiff = Math.abs(targetTime - Number(times[0]));
 
   times.forEach((item, index) => {
-    const currentDiff = Math.abs(targetTime - item);
+    const currentDiff = Math.abs(targetTime - Number(item));
     if (currentDiff < closestDiff) {
       closestDiff = currentDiff;
       closestIndex = index;
@@ -979,14 +1042,15 @@ function handleSearchOrderId() {
     })
     .forEach((serie) => {
       serie.data.forEach((item) => {
-        if (item.customInfo.orderId === BigInt(searchOrderId.value)) {
+        const defaultSize = getDefaultSize(serie.name);
+        if (item.customInfo?.orderId === BigInt(searchOrderId.value)) {
           orderIdInfo.hasId = true;
           orderIdInfo.msgTypeName = item.customInfo.msgTypeName;
           orderIdInfo.tableRowId = item.customInfo.tableRowId;
 
           dataTime = item.customInfo.time;
           let shadowColor = '';
-          item.symbolSize = 20;
+          item.symbolSize = ACTIVE_SYMBOL_SIZE;
           if (item.customInfo.msgTypeName === 'orderAction') {
             shadowColor = '#73F3F6';
           } else {
@@ -999,7 +1063,7 @@ function handleSearchOrderId() {
             shadowColor,
           };
         } else {
-          item.symbolSize = 10;
+          item.symbolSize = defaultSize;
           item.itemStyle = {
             ...item.itemStyle,
             shadowBlur: 0,
@@ -1026,14 +1090,18 @@ function handleSearchOrderId() {
 }
 
 function setDataZoom(dataTime: bigint) {
-  const timeList = xAxisData.value[selectedInstrument.value];
-  if (timeList.length === 0) return;
-  const frontPortion = Number(dataTime) - Number(timeList[0]);
-  const behandPortion =
-    Number(timeList[timeList.length - 1]) - Number(timeList[0]);
-  const rate = frontPortion / behandPortion;
-  const start = rate * 100 - 10 < 0 ? 0 : rate * 100 - 10;
-  const end = rate * 100 + 10 > 100 ? 100 : rate * 100 + 10;
+  const timeList = xAxisData.value[selectedInstrument.value] as string[];
+
+  if (!timeList || timeList.length === 0) return;
+  let index = timeList.indexOf(dataTime.toString());
+  if (index === -1) {
+    index = findClosestTime(Number(dataTime), timeList);
+  }
+  const rate = (index + 1) / timeList.length;
+  const start =
+    rate * 100 - DATA_RANGE_SIZE < 0 ? 0 : rate * 100 - DATA_RANGE_SIZE;
+  const end =
+    rate * 100 + DATA_RANGE_SIZE > 100 ? 100 : rate * 100 + DATA_RANGE_SIZE;
   option.dataZoom.forEach((item) => {
     item.start = start;
     item.end = end;
@@ -1091,27 +1159,8 @@ const handleInputChange = debounce(() => {
 .kf-visualization_wrap {
   position: relative;
   display: flex;
-  .ant-spin.ant-spin-spinning {
-    position: absolute;
-  }
+  height: 100%;
 
-  .kf-journal-spin {
-    .ant-spin-text {
-      margin-left: 8px;
-    }
-  }
-  .ant-empty {
-    height: auto;
-    margin-top: 48px;
-
-    .ant-empty-image {
-      height: auto;
-    }
-
-    .ant-empty-description {
-      color: @input-placeholder-color;
-    }
-  }
   .ant-table {
     background-color: #1d1d1d;
     .ant-table-cell-fix-left,
@@ -1122,60 +1171,89 @@ const handleInputChange = debounce(() => {
   .kf-strategy_wrap {
     flex: 0 0 400px;
   }
-  .kf-instrument_wrap {
-    flex: 0 0 200px;
-    margin: 0 4px;
-    background-color: #1d1d1d;
-    .search-input {
-      width: 100%;
-      min-height: 28px;
-      line-height: 28px;
+  .kf-visualization_data_content {
+    display: flex;
+    position: relative;
+    width: 100%;
+    height: 100%;
+    .ant-spin.ant-spin-spinning {
+      position: absolute;
     }
-    .instrument-list {
-      overflow: auto;
-      height: calc(100% - 28px);
-      .instrument-item_wrap {
+
+    .kf-journal-spin {
+      .ant-spin-text {
+        margin-left: 8px;
+      }
+    }
+    .ant-empty {
+      height: auto;
+      margin-top: 48px;
+
+      .ant-empty-image {
+        height: auto;
+      }
+
+      .ant-empty-description {
+        color: @input-placeholder-color;
+      }
+    }
+    .kf-instrument_wrap {
+      flex: 0 0 200px;
+      margin: 0 4px;
+      background-color: #1d1d1d;
+      .search-input {
+        width: 100%;
+        min-height: 28px;
         line-height: 28px;
-        height: 28px;
-        padding: 0 4px;
-        font-size: 12px;
-        text-align: left;
-        cursor: pointer;
-        &:hover {
+      }
+      .instrument-list {
+        overflow: auto;
+        height: calc(100% - 28px);
+        .instrument-item_wrap {
+          line-height: 28px;
+          height: 28px;
+          padding: 0 4px;
+          font-size: 12px;
+          text-align: left;
+          color: #ffffffd9;
+          cursor: pointer;
+          &:hover {
+            background: #434343;
+          }
+        }
+        .selected-status {
           background: #434343;
         }
-      }
-      .selected-status {
-        background: #434343;
-      }
-      .instrument-item {
-        margin-right: 2px;
+        .instrument-item {
+          margin-right: 2px;
+        }
       }
     }
-  }
-  .kf-chart_wrap {
-    flex: 1;
-    overflow: visible;
-    position: relative;
-    background-color: #1d1d1d;
-    .chart-search-order-id {
-      position: absolute;
-      top: 0;
-      right: 0;
-      width: 20%;
-      max-width: 300px;
-      z-index: 999;
-    }
-    .kf-chart_content {
-      width: 100%;
-      height: 100%;
-    }
-    .tooltip-container {
-      width: 400px;
-      color: #ffffffd9;
-      .tooltip-row {
-        display: flex;
-        justify-content: space-between;
+    .kf-chart_wrap {
+      flex: 1;
+      overflow: visible;
+      position: relative;
+      color: #ffffff;
+      background-color: #1d1d1d;
+      .chart-search-order-id {
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 20%;
+        max-width: 300px;
+        z-index: 999;
+      }
+      .kf-chart_content {
+        width: 100%;
+        height: 100%;
+      }
+      .tooltip-container {
+        width: 400px;
+        color: #ffffffd9;
+        .tooltip-row {
+          display: flex;
+          justify-content: space-between;
+        }
       }
     }
   }

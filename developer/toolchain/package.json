@@ -4,7 +4,7 @@
     "name": "Kungfu Trader",
     "email": "info@kungfu.link"
   },
-  "version": "2.5.12-alpha.10",
+  "version": "2.5.13-alpha.0",
   "description": "Toolchain for Kungfu Development (babel/cmake-js/node-gyp/webpack/yarn/etc).",
   "license": "Apache-2.0",
   "main": "package.json",
@@ -57,6 +57,7 @@
     "file-loader": "^6.2.0",
     "find-root": "^1.1.0",
     "find-yarn-workspace-root": "^2.0.0",
+    "fork-ts-checker-webpack-plugin": "^9.0.0",
     "fs-extra": "^10.0.1",
     "html-webpack-plugin": "^5.5.0",
     "less": "^4.1.2",

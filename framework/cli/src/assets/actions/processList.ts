@@ -139,7 +139,17 @@ export const specificProcessListObserver = (kfLocation: KungfuApi.KfConfig) =>
           name: item.name,
           value: JSON.parse(item.value || '{}'),
           status: processStatus[processId] || '--',
-          statusName: dealStatus(processStatus[processId] || '--'),
+          statusName:
+            getProcessStatus(
+              {
+                category: item.category,
+                group: item.group,
+                name: item.name,
+                mode: item.mode,
+              },
+              processStatus,
+              appStates,
+            ) || '--',
           monit: processStatusWithDetail[processId]?.monit,
           script: item.script,
           cwd: item.cwd,
@@ -156,7 +166,17 @@ export const specificProcessListObserver = (kfLocation: KungfuApi.KfConfig) =>
           name: 'master',
           value: {},
           status: processStatus['master'] || '--',
-          statusName: dealStatus(processStatus['master'] || '--'),
+          statusName:
+            getProcessStatus(
+              {
+                category: 'system',
+                group: 'master',
+                name: 'master',
+                mode: 'live',
+              },
+              processStatus,
+              appStates,
+            ) || '--',
           monit: processStatusWithDetail['master']?.monit,
         },
         {
@@ -168,7 +188,18 @@ export const specificProcessListObserver = (kfLocation: KungfuApi.KfConfig) =>
           name: 'cached',
           value: {},
           status: processStatus['cached'] || '--',
-          statusName: dealStatus(processStatus['cached'] || '--'),
+          statusName:
+            getProcessStatus(
+              {
+                category: 'system',
+                group: 'service',
+                name: 'cached',
+                mode: 'live',
+              },
+              processStatus,
+              appStates,
+            ) || '--',
+
           monit: processStatusWithDetail['cached']?.monit,
         },
         {
@@ -180,7 +211,17 @@ export const specificProcessListObserver = (kfLocation: KungfuApi.KfConfig) =>
           name: 'ledger',
           value: {},
           status: processStatus['ledger'] || '--',
-          statusName: dealStatus(processStatus['ledger'] || '--'),
+          statusName:
+            getProcessStatus(
+              {
+                category: 'system',
+                group: 'service',
+                name: 'ledger',
+                mode: 'live',
+              },
+              processStatus,
+              appStates,
+            ) || '--',
           monit: processStatusWithDetail['ledger']?.monit,
         },
         {
@@ -192,7 +233,18 @@ export const specificProcessListObserver = (kfLocation: KungfuApi.KfConfig) =>
           name: 'dzxy',
           value: {},
           status: processStatus['dzxy'] || '--',
-          statusName: dealStatus(processStatus['dzxy'] || '--'),
+          statusName:
+            getProcessStatus(
+              {
+                category: 'system',
+                group: 'service',
+                name: 'dzxy',
+                mode: 'live',
+              },
+              processStatus,
+              appStates,
+            ) || '--',
+
           monit: processStatusWithDetail['dzxy']?.monit,
         },
         ...extServiceList,
@@ -205,7 +257,8 @@ export const specificProcessListObserver = (kfLocation: KungfuApi.KfConfig) =>
           name: kfLocation.name,
           value: JSON.parse(kfLocation.value || '{}'),
           status: processStatus[processId] || '--',
-          statusName: getProcessStatus(kfLocation, processStatus, appStates),
+          statusName:
+            getProcessStatus(kfLocation, processStatus, appStates) || '--',
           monit: processStatusWithDetail[processId]?.monit,
         },
       ];
@@ -247,11 +300,7 @@ export const processListObservable = () =>
           name: item.name,
           value: JSON.parse(item.value || '{}'),
           status: processStatus[processId] || '--',
-          statusName: dealStatus(
-            processStatus[processId]
-              ? appStates[processId] || processStatus[processId] || '--'
-              : '--',
-          ),
+          statusName: getProcessStatus(item, processStatus, appStates) || '--',
           monit: processStatusWithDetail[processId]?.monit,
         };
       });
@@ -262,6 +311,7 @@ export const processListObservable = () =>
           globalThis.HookKeeper.getHooks().prefix.trigger(item);
         const prefix =
           prefixProps.prefixType === 'text' ? prefixProps.prefix : '';
+
         return {
           processId,
           processName: prefix + processId,
@@ -271,7 +321,7 @@ export const processListObservable = () =>
           name: item.name,
           value: JSON.parse(item.value || '{}'),
           status: processStatus[processId] || '--',
-          statusName: dealStatus(processStatus[processId] || '--'),
+          statusName: getProcessStatus(item, processStatus, appStates) || '--',
           monit: processStatusWithDetail[processId]?.monit,
         };
       });
@@ -291,11 +341,7 @@ export const processListObservable = () =>
           name: item.name,
           value: JSON.parse(item.value || '{}'),
           status: processStatus[processId] || '--',
-          statusName: dealStatus(
-            processStatus[processId]
-              ? appStates[processId] || processStatus[processId] || '--'
-              : '--',
-          ),
+          statusName: getProcessStatus(item, processStatus, appStates) || '--',
           monit: processStatusWithDetail[processId]?.monit,
         };
       });
@@ -315,7 +361,7 @@ export const processListObservable = () =>
           name: item.name,
           value: JSON.parse(item.value || '{}'),
           status: processStatus[processId] || '--',
-          statusName: dealStatus(processStatus[processId] || '--'),
+          statusName: getProcessStatus(item, processStatus, appStates) || '--',
           monit: processStatusWithDetail[processId]?.monit,
         };
       });
@@ -335,7 +381,7 @@ export const processListObservable = () =>
           name: item.name,
           value: JSON.parse(item.value || '{}'),
           status: processStatus[processId] || '--',
-          statusName: dealStatus(processStatus[processId] || '--'),
+          statusName: getProcessStatus(item, processStatus, appStates) || '--',
           monit: processStatusWithDetail[processId]?.monit,
           script: item.script,
           cwd: item.cwd,
@@ -360,7 +406,17 @@ export const processListObservable = () =>
           name: item.name?.toKfName() || '',
           value: '',
           status: item.status || '--',
-          statusName: dealStatus(item.status || '--'),
+          statusName:
+            getProcessStatus(
+              {
+                category: 'strategy',
+                group: item.name?.toKfGroup() || '',
+                name: item.name?.toKfName() || '',
+                mode: 'live',
+              },
+              processStatus,
+              appStates,
+            ) || '--',
           monit: item.monit,
           script: item.script,
           cwd: item.cwd,
@@ -388,7 +444,17 @@ export const processListObservable = () =>
           name: '',
           value: {},
           status: processStatus['archive'] || '--',
-          statusName: dealStatus(processStatus['archive'] || '--'),
+          statusName:
+            getProcessStatus(
+              {
+                category: 'system',
+                group: '',
+                name: 'archive',
+                mode: 'live',
+              },
+              processStatus,
+              appStates,
+            ) || '--',
           monit: processStatusWithDetail['archive']?.monit,
         },
         {
@@ -400,7 +466,17 @@ export const processListObservable = () =>
           name: 'master',
           value: {},
           status: processStatus['master'] || '--',
-          statusName: dealStatus(processStatus['master'] || '--'),
+          statusName:
+            getProcessStatus(
+              {
+                category: 'system',
+                group: 'master',
+                name: 'master',
+                mode: 'live',
+              },
+              processStatus,
+              appStates,
+            ) || '--',
           monit: processStatusWithDetail['master']?.monit,
         },
         {
@@ -412,7 +488,17 @@ export const processListObservable = () =>
           name: 'cached',
           value: {},
           status: processStatus['cached'] || '--',
-          statusName: dealStatus(processStatus['cached'] || '--'),
+          statusName:
+            getProcessStatus(
+              {
+                category: 'system',
+                group: 'service',
+                name: 'cached',
+                mode: 'live',
+              },
+              processStatus,
+              appStates,
+            ) || '--',
           monit: processStatusWithDetail['cached']?.monit,
         },
         {
@@ -424,7 +510,17 @@ export const processListObservable = () =>
           name: 'ledger',
           value: {},
           status: processStatus['ledger'] || '--',
-          statusName: dealStatus(processStatus['ledger'] || '--'),
+          statusName:
+            getProcessStatus(
+              {
+                category: 'system',
+                group: 'service',
+                name: 'ledger',
+                mode: 'live',
+              },
+              processStatus,
+              appStates,
+            ) || '--',
           monit: processStatusWithDetail['ledger']?.monit,
         },
         {
@@ -436,7 +532,17 @@ export const processListObservable = () =>
           name: 'dzxy',
           value: {},
           status: processStatus['dzxy'] || '--',
-          statusName: dealStatus(processStatus['dzxy'] || '--'),
+          statusName:
+            getProcessStatus(
+              {
+                category: 'system',
+                group: 'service',
+                name: 'dzxy',
+                mode: 'live',
+              },
+              processStatus,
+              appStates,
+            ) || '--',
           monit: processStatusWithDetail['dzxy']?.monit,
         },
         ...extServiceList,

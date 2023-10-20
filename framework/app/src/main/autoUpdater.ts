@@ -70,6 +70,15 @@ const getLastedSkippedVersion = () => {
   }
 };
 
+const getCurrentLastedVersion = (currentVersion: string) => {
+  const skipLastedVersion = getLastedSkippedVersion();
+  return skipLastedVersion
+    ? semver.gt(currentVersion, skipLastedVersion || '')
+      ? currentVersion
+      : skipLastedVersion
+    : currentVersion;
+};
+
 function saveSkippedVersion(version: string) {
   const skippedVersions = globalStorage.getItem('skippedVersions');
   if (skippedVersions) {
@@ -238,9 +247,8 @@ function handleUpdateKungfu(
   if (!rootPackageJson || !rawUpdateOption) return;
 
   const projectName = getProjectName(rootPackageJson);
-  let lastSkipedVersion = getLastedSkippedVersion();
-  const curVersion = lastSkipedVersion || rootPackageJson.version;
-  if (!curVersion) return;
+  const curVersion = getCurrentLastedVersion(rootPackageJson.version || '');
+  if (curVersion === '') return;
   let version = semver.parse(curVersion as string) as semver.SemVer;
 
   if (!targetVersions.length) {
@@ -285,8 +293,7 @@ function handleUpdateKungfu(
   ipcMain.on('auto-update-retry-check-update', () => {
     kfLogger.info('auto-update-retry-check-update');
 
-    lastSkipedVersion = getLastedSkippedVersion();
-    const curVersion = lastSkipedVersion || rootPackageJson.version || '';
+    const curVersion = getCurrentLastedVersion(rootPackageJson.version || '');
     if (curVersion === '') return;
     version = semver.parse(curVersion as string) as semver.SemVer;
     targetVersions = getDefaultTargetVersions(version);

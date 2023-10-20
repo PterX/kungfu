@@ -104,8 +104,20 @@ export const isT0 = (
   );
 };
 
-export const getNanoDateString = (nane: bigint, i = 6): string => {
-  return kf.formatTime(nane, '%m/%d %H:%M:%S.%N').slice(i);
+export const getNanoDateString = (
+  nano: bigint,
+  i = 6,
+  lastSplit = 0,
+): string => {
+  let formattedTime = kf.formatTime(nano, '%m/%d %H:%M:%S.%N');
+
+  formattedTime = formattedTime.slice(i);
+
+  if (lastSplit !== 0) {
+    formattedTime = formattedTime.slice(0, -1 * lastSplit);
+  }
+
+  return formattedTime;
 };
 
 export const resolveAccountId = (

@@ -308,6 +308,12 @@ export const removeAllBasketInstruments = () => {
   return Promise.resolve(basketInstrumentStore.removeAllBasketInstruments());
 };
 
+export const removeAllBasketInstrumentsByBasket = (basketId) => {
+  return Promise.resolve(
+    basketInstrumentStore.removeAllBasketInstrumentsByBasket(basketId),
+  );
+};
+
 export const setBasketInstrument = (
   basketInstrument: KungfuApi.BasketInstrument,
 ) => {

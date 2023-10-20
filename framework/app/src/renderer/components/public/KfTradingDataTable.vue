@@ -313,6 +313,15 @@ function handleSelectAll(isChecked: boolean) {
   const allUnSelected = Object.assign({}, allRowKeyFieldFalse);
   const allRowsMap = Object.assign({}, toRaw(dataSourceMap.value));
 
+  Object.keys(props.selection).forEach((key) => {
+    if (props.selection[key].disabled) {
+      const curSelectState = selectedRowKeyFieldValues.value[key];
+      allSelected[key] = curSelectState;
+      allUnSelected[key] = curSelectState;
+      if (!curSelectState) delete allRowsMap[key];
+    }
+  });
+
   selectedRowKeyFieldValues.value = isChecked ? allSelected : allUnSelected;
   selectedRowsMap.value = isChecked ? allRowsMap : {};
 }
@@ -322,10 +331,15 @@ watch(
   (val) => {
     if (!props.selectable) return;
 
-    const allRowLength = props.dataSource.length;
+    const disabledRowLength = Object.values(props.selection).filter(
+      (item) => item.disabled,
+    ).length;
+    const allRowLength = props.dataSource.length - disabledRowLength;
     if (!allRowLength) return;
 
-    const selectedRowLength = Object.values(val).filter((item) => item).length;
+    const selectedRowLength = Object.keys(val).filter(
+      (key) => !props.selection[key]?.disabled && val[key],
+    ).length;
 
     selectAllIndeterminate.value =
       !!selectedRowLength && selectedRowLength < allRowLength;
@@ -678,6 +692,10 @@ defineExpose({
 
   .kf-table-row:hover {
     background: @table-row-hover-bg;
+  }
+
+  .kf-current-table-select {
+    background: #434343;
   }
 
   .kf-table-cell {

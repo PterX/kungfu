@@ -74,7 +74,7 @@
           />
         </div>
       </div>
-      <div class="gutter"></div>
+      <div class="gutter" @mousedown="mouseDownHandler"></div>
       <div class="kf-journal-content" :style="journalContentStyle">
         <div class="kf-journal-control-bar">
           <div class="kf-journal-bar-title" v-if="currentSession">
@@ -248,6 +248,11 @@ const mouseMoveHandler = (event: MouseEvent) => {
     height: `${(100 * rightHeight) / div.height}%`,
     flex: 'unset',
   };
+};
+const mouseUpHandler = () => {
+  if (visualVisible.value) {
+    entryVisualzationRef.value?.handleResize(true);
+  }
   localStorage.setItem(
     'boardStyle',
     JSON.stringify({
@@ -255,11 +260,6 @@ const mouseMoveHandler = (event: MouseEvent) => {
       journalContent: journalContentStyle.value,
     }),
   );
-};
-const mouseUpHandler = () => {
-  if (visualVisible.value) {
-    entryVisualzationRef.value?.handleResize(true);
-  }
 
   document.removeEventListener('mousemove', mouseMoveHandler);
   document.removeEventListener('mouseup', mouseUpHandler);
@@ -278,14 +278,6 @@ onMounted(() => {
         tag: 'resize',
       } as KfEvent.ResizeEvent);
   });
-  const gutterElement = document.querySelector('.gutter');
-
-  if (gutterElement) {
-    (gutterElement as unknown as Document).addEventListener(
-      'mousedown',
-      mouseDownHandler,
-    );
-  }
 });
 
 const onExportJournalData = (

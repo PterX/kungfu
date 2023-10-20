@@ -74,6 +74,7 @@ const BIGINT_SCALE = BigInt(SCALE);
 const TEN_SECOND = BigInt(10000000000);
 const slider = ref();
 const currentTimeResolved = ref(0);
+const lastFocusTime = ref(0);
 
 const nano2millionSecond = (number: bigint | number) => {
   if (typeof number === 'bigint') {
@@ -104,7 +105,13 @@ watch(windowFocusStatus, () => {
 });
 
 const onAfterChange = () => {
-  setCurrentTime(million2nanoSecond(currentTimeResolved.value));
+  if (Math.abs(lastFocusTime.value - currentTimeResolved.value) > 200) {
+    setCurrentTime(million2nanoSecond(currentTimeResolved.value));
+    lastFocusTime.value = currentTimeResolved.value;
+  } else {
+    // fix the a-slider focus bug by setting the correct value
+    currentTimeResolved.value = nano2millionSecond(currentTime.value);
+  }
 };
 
 const currentSessionEndTimeResolved = computed(() => {

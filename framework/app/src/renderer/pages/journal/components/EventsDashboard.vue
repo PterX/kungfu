@@ -363,6 +363,7 @@ const handleScrollToBottom = debounce(async () => {
   console.warn('scrolling to bottom');
   if (!currentSession.value) return;
   if (isLoadingFrames.value) return;
+  // wait for while looping and break while working
   await delayMilliSeconds(0);
   await loadFrameData(currentSession.value.index, true);
 }, 50);
@@ -475,13 +476,13 @@ watch(
     }
   },
 );
-let inittimer: NodeJS.Timeout | null = null;
+let initTimer: NodeJS.Timeout | null = null;
 
 onMounted(() => {
   init();
   nextTick(() => {
-    if (inittimer) clearInterval(inittimer);
-    inittimer = setInterval(() => {
+    if (initTimer) clearInterval(initTimer);
+    initTimer = setInterval(() => {
       if (
         !isLoadingFrames.value &&
         currentFrameList.value.length < DEFAULT_LIST_SIZE
@@ -493,8 +494,8 @@ onMounted(() => {
 });
 
 onBeforeMount(() => {
-  if (inittimer) {
-    clearInterval(inittimer);
+  if (initTimer) {
+    clearInterval(initTimer);
   }
 });
 

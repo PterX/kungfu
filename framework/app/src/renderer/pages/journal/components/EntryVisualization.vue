@@ -188,6 +188,7 @@ const DEFAULT_ORDER_LENGTH = 30;
 const DEFAULT_CHART_LENGTH_RATE = 20;
 const DEFAULT_SYMBOL_SIZE = 10;
 const ACTIVE_SYMBOL_SIZE = 20;
+const DATA_RANGE_SIZE = 15;
 
 const { setCurrentSession, setSelectedChartItem, setCurrentFrameId } =
   useJournalStore();
@@ -214,7 +215,7 @@ onMounted(() => {
   nextTick(() => {
     initChart();
   });
-  init();
+  initChartData();
 });
 
 onBeforeUnmount(() => {
@@ -236,7 +237,7 @@ const customRow = (record: KungfuApi.SessionResolved) => {
   return {
     onClick: () => {
       setCurrentSession(record);
-      init();
+      initChartData();
     },
   };
 };
@@ -251,7 +252,7 @@ watch(
   () => isLoadingFrames.value,
   (newValue) => {
     if (!newValue) {
-      init();
+      initChartData();
     }
   },
 );
@@ -381,7 +382,7 @@ function reset() {
   selectedInstrument.value = '';
 }
 
-function init() {
+function initChartData() {
   reset();
 
   currentFrameList.value.forEach((item) => {
@@ -669,7 +670,7 @@ function initChart() {
   }
 }
 
-const setInterval = () => {
+const getYAxisInterval = () => {
   const element = document.getElementById('strategyChart');
   const yHeight = element?.clientHeight;
   let interval = 2;
@@ -688,14 +689,15 @@ const setInterval = () => {
       interval = dataRange / minYSplit;
     }
 
-    option.yAxis.interval = interval.kfRound(2);
+    return interval.kfRound(2);
   }
+  return interval;
 };
 
 const updateOption = () => {
   setXAxisMinMax();
 
-  setInterval();
+  option.yAxis.interval = getYAxisInterval();
   option.yAxis.min = xAxisMinMax.value.min;
   option.yAxis.max = xAxisMinMax.value.max;
 
@@ -1096,8 +1098,10 @@ function setDataZoom(dataTime: bigint) {
     index = findClosestTime(Number(dataTime), timeList);
   }
   const rate = (index + 1) / timeList.length;
-  const start = rate * 100 - 15 < 0 ? 0 : rate * 100 - 15;
-  const end = rate * 100 + 15 > 100 ? 100 : rate * 100 + 15;
+  const start =
+    rate * 100 - DATA_RANGE_SIZE < 0 ? 0 : rate * 100 - DATA_RANGE_SIZE;
+  const end =
+    rate * 100 + DATA_RANGE_SIZE > 100 ? 100 : rate * 100 + DATA_RANGE_SIZE;
   option.dataZoom.forEach((item) => {
     item.start = start;
     item.end = end;

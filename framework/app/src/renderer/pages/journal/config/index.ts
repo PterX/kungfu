@@ -2,9 +2,8 @@ import { SessionStatusEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 
 const { t } = VueI18n.global;
-// const rect = 'path://M0 0h24v24H0z';
-//圆形svg
-const circle =
+
+const circleSvg =
   'path://M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2';
 const arrowSvg =
   'path://M678.4 409.6l-147.2-192c-6.4-12.8-25.6-12.8-38.4 0l-147.2 192C339.2 428.8 345.6 448 364.8 448L448 448l0 352C448 819.2 460.8 832 480 832l64 0C563.2 832 576 819.2 576 800L576 448l83.2 0C678.4 448 684.8 428.8 678.4 409.6z';
@@ -266,7 +265,7 @@ export const getChartOption = () => {
         name: t('journalConfig.quote_legend'),
         type: 'line',
         data: [] as SeriesData[],
-        symbol: circle,
+        symbol: circleSvg,
         symbolSize: 10,
         showSymbol: false,
         itemStyle: {
@@ -322,7 +321,7 @@ export const getChartOption = () => {
         name: t('journalConfig.quote_legend'),
         type: 'scatter',
         data: [] as SeriesData[],
-        symbol: circle,
+        symbol: circleSvg,
         showSymbol: true,
         symbolSize: 10,
         itemStyle: {

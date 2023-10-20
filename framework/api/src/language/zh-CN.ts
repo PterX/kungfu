@@ -61,6 +61,9 @@ export default {
   file: '文件',
   folder: '文件夹',
 
+  please_enter_file_path: '请输入文件路径',
+  please_enter_folder_path: '请输入文件夹路径',
+
   no_focus: '当前页面没有聚焦',
   clear: '清理 {content} 完成, 请重启应用',
   open_window: '正在打开窗口',
@@ -904,6 +907,7 @@ export default {
     mandatory: '该项为必填项',
     resolved_tip: '成功匹配 {success} 个{value}, 失败 {fail} 个',
     default_value_tip: '默认值不能改变',
+    file_path_not_exist: '文件路径不存在',
   },
 
   editor: {

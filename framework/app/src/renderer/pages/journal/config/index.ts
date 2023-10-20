@@ -252,12 +252,18 @@ export const getChartOption = () => {
         xAxisIndex: 0,
         start: 0,
         end: 100,
+        labelFormatter: function (params: string) {
+          return params;
+        },
       },
       {
         type: 'inside',
         xAxisIndex: 0,
         start: 0,
         end: 100,
+        labelFormatter: function (params: string) {
+          return params;
+        },
       },
     ],
     series: [

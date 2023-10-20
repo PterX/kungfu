@@ -144,6 +144,7 @@ export const useUpdateVersion = () => {
   };
 
   const handleToConfirmStartUpdate = (newVersion: string) => {
+    popoverVisible.value = false;
     extraConfirmModal(
       t('autoUpdater.update'),
       t('autoUpdater.find_new_version', {
@@ -2578,7 +2579,9 @@ export const useMakeOrderSubscribe = (
               if (Number(dealPrice) !== quote.last_price) {
                 dealPrice = closestNumber(
                   price,
-                  quote.ask_price.concat(quote.bid_price),
+                  quote.ask_price
+                    .concat(quote.bid_price)
+                    .concat([quote.last_price]),
                 );
                 if (quote.lower_limit_price && quote.upper_limit_price)
                   if (dealPrice <= quote.lower_limit_price) {

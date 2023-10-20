@@ -103,6 +103,7 @@ import { getKfGlobalSettingsValue } from '../config/globalSettings';
 import { Currency } from '../config/tradingConfig';
 const { t } = VueI18n.global;
 import { Observable } from 'rxjs';
+import { ifKfDev } from './commonUtils';
 
 interface SourceAccountId {
   source: string;
@@ -538,21 +539,35 @@ const getKfExtConfigList = async (): Promise<KungfuApi.KfExtOriginConfig[]> => {
   const packageJSONPaths = extModuleDirs.map((item) =>
     path.join(item, 'package.json'),
   );
+  const isKfDev = ifKfDev();
   return await Promise.all(
     packageJSONPaths.map((item) => {
       return fse.readJSON(item).then((jsonConfig) => {
-        return {
-          ...(jsonConfig.kungfuConfig || {}),
-          extPath: path.dirname(item),
-        };
+        const curConfigList: KungfuApi.KfExtOriginConfig[] = [];
+        if (jsonConfig.kungfuConfig) {
+          curConfigList.push({
+            ...(jsonConfig.kungfuConfig || {}),
+            extPath: path.dirname(item),
+          });
+        }
+
+        if (isKfDev && jsonConfig.kungfuConfigDev) {
+          curConfigList.push({
+            ...(jsonConfig.kungfuConfigDev || {}),
+            extPath: path.dirname(item),
+          });
+        }
+        return curConfigList;
       });
     }),
-  ).then((configList: KungfuApi.KfExtOriginConfig[]) => {
-    return configList.filter(
-      (
-        config: KungfuApi.KfExtOriginConfig,
-      ): config is KungfuApi.KfExtOriginConfig => !!config,
-    );
+  ).then((configList: KungfuApi.KfExtOriginConfig[][]) => {
+    return configList
+      .flat()
+      .filter(
+        (
+          config: KungfuApi.KfExtOriginConfig,
+        ): config is KungfuApi.KfExtOriginConfig => !!config,
+      );
   });
 };
 

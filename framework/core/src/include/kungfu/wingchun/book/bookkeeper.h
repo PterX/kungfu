@@ -62,6 +62,8 @@ public:
 
   void update_book(int64_t trigger_time, const longfist::types::Quote &quote);
 
+  void update_book(const event_ptr &event, const longfist::types::Asset &asset);
+
   void add_book_listener(const BookListener_ptr &book_listener);
 
   void mirror_positions(int64_t trigger_time, uint32_t strategy_uid);
@@ -131,6 +133,7 @@ private:
   bool positions_guarded_ = false;
   CommissionMap commissions_ = {};
   InstrumentMap instruments_ = {};
+  InstrumentFactorMap instrument_factors_ = {};
   BookMap books_ = {};
   AccountingMethodMap accounting_methods_ = {};
   std::vector<BookListener_ptr> book_listeners_ = {};

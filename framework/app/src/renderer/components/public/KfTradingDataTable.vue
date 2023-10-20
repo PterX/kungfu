@@ -15,6 +15,9 @@ import {
   nextTick,
 } from 'vue';
 import { throttle } from 'lodash';
+import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+
+const { t } = VueI18n.global;
 
 type TableDataItem =
   | KungfuApi.TradingDataItem
@@ -566,7 +569,11 @@ defineExpose({
           </template>
         </RecycleScroller>
       </template>
-      <a-empty v-else :image="simpleImage"></a-empty>
+      <a-empty
+        v-else
+        :image="simpleImage"
+        :description="t('empty_text')"
+      ></a-empty>
     </div>
   </div>
 </template>

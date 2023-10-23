@@ -61,6 +61,9 @@ export default {
   file: 'File',
   folder: 'Folder',
 
+  please_enter_file_path: 'Please enter file path',
+  please_enter_folder_path: 'Please enter folder path',
+
   no_focus: 'The current page is not in focus',
   clear: 'Clearing {content} completed, please restart the application',
   open_window: 'Opening window',
@@ -905,6 +908,7 @@ export default {
     mandatory: 'mandatory',
     resolved_tip: 'Success resolved {success} {value}, failed {fail}',
     default_value_tip: 'This value can not change',
+    file_path_not_exist: 'File path does not exist',
   },
 
   editor: {

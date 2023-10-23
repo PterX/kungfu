@@ -1,11 +1,11 @@
 import { kfLogger, getResultUntilValuable } from '../utils/busiUtils';
-import { commissionStore, longfist, promiseWithDatabasePause } from './index';
+import { commissionStore, longfist, promiseWithCachedPause } from './index';
 
 export const getKfCommission = (
   watcher: KungfuApi.Watcher,
 ): Promise<KungfuApi.Commission[]> => {
   kfLogger.info('Get kungfu Commission');
-  return promiseWithDatabasePause(watcher, () =>
+  return promiseWithCachedPause(watcher, () =>
     getResultUntilValuable(() => commissionStore.getAllCommission()).then(
       (allCommissions) =>
         allCommissions.sort((a, b) =>
@@ -32,7 +32,7 @@ export const setKfCommission = (
       };
     });
 
-  return promiseWithDatabasePause(watcher, () => {
+  return promiseWithCachedPause(watcher, () => {
     return getResultUntilValuable(() =>
       commissionStore.setAllCommission(comissionsResolved),
     );

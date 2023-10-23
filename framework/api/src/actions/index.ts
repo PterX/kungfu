@@ -30,7 +30,7 @@ import {
 import {
   basketStore,
   basketInstrumentStore,
-  promiseWithDatabasePause,
+  promiseWithCachedPause,
 } from '@kungfu-trader/kungfu-js-api/kungfu';
 
 export const getAllKfConfigOriginData = (): Promise<
@@ -277,7 +277,7 @@ export const setAllRiskSettingList = (
 export const getAllBaskets = (
   watcher: KungfuApi.Watcher,
 ): Promise<KungfuApi.Basket[]> => {
-  return promiseWithDatabasePause(watcher, () => {
+  return promiseWithCachedPause(watcher, () => {
     return getResultUntilValuable(() => basketStore.getAllBasket());
   });
 };
@@ -286,7 +286,7 @@ export const setAllBaskets = (
   watcher: KungfuApi.Watcher,
   baskets: KungfuApi.Basket[],
 ) => {
-  return promiseWithDatabasePause(watcher, () => {
+  return promiseWithCachedPause(watcher, () => {
     return getResultUntilValuable(() => basketStore.setAllBasket(baskets));
   });
 };

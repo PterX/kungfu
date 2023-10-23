@@ -265,7 +265,7 @@ export const getKungfuDataByDateRange = (
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
       //by trading date
-      promiseWithDatabasePause(watcher, () =>
+      promiseWithCachedPause(watcher, () =>
         getResultUntilValuable(() => history.selectPeriod(from, to)),
       ).then((res) => {
         const kungfuDataToday = res;
@@ -1052,7 +1052,7 @@ export const dealPosition = (
   };
 };
 
-export const promiseWithDatabasePause = <T>(
+export const promiseWithCachedPause = <T>(
   watcher: KungfuApi.Watcher,
   promiseFunc: () => Promise<T>,
   delay = 200,

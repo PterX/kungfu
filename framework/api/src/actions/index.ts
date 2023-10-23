@@ -295,38 +295,53 @@ export const setAllBaskets = (
   });
 };
 
-export const getAllBasketInstruments = (): Promise<
-  KungfuApi.BasketInstrument[]
-> => {
-  const basketInstruments = basketInstrumentStore.getAllBasketInstrument();
-  if (basketInstruments) {
-    return Promise.resolve(basketInstruments);
-  }
-  return Promise.resolve([]);
+export const getAllBasketInstruments = (
+  watcher: KungfuApi.Watcher,
+): Promise<KungfuApi.BasketInstrument[]> => {
+  return promiseWithCachedPause(watcher, () => {
+    return getResultUntilValuable(() =>
+      basketInstrumentStore.getAllBasketInstrument(),
+    );
+  });
 };
 
 export const setAllBasketInstruments = (
+  watcher: KungfuApi.Watcher,
   basketInstruments: KungfuApi.BasketInstrument[],
 ) => {
-  return Promise.resolve(
-    basketInstrumentStore.setAllBasketInstruments(basketInstruments),
-  );
+  return promiseWithCachedPause(watcher, () => {
+    return getResultUntilValuable(() =>
+      basketInstrumentStore.setAllBasketInstruments(basketInstruments),
+    );
+  });
 };
 
-export const removeAllBasketInstruments = () => {
-  return Promise.resolve(basketInstrumentStore.removeAllBasketInstruments());
+export const removeAllBasketInstruments = (watcher: KungfuApi.Watcher) => {
+  return promiseWithCachedPause(watcher, () => {
+    return getResultUntilValuable(() =>
+      basketInstrumentStore.removeAllBasketInstruments(),
+    );
+  });
 };
 
-export const removeAllBasketInstrumentsByBasket = (basketId) => {
-  return Promise.resolve(
-    basketInstrumentStore.removeAllBasketInstrumentsByBasket(basketId),
-  );
+export const removeAllBasketInstrumentsByBasket = (
+  watcher: KungfuApi.Watcher,
+  basketId,
+) => {
+  return promiseWithCachedPause(watcher, () => {
+    return getResultUntilValuable(() =>
+      basketInstrumentStore.removeAllBasketInstrumentsByBasket(basketId),
+    );
+  });
 };
 
 export const setBasketInstrument = (
+  watcher: KungfuApi.Watcher,
   basketInstrument: KungfuApi.BasketInstrument,
 ) => {
-  return Promise.resolve(
-    basketInstrumentStore.setBasketInstrument(basketInstrument),
-  );
+  return promiseWithCachedPause(watcher, () => {
+    return getResultUntilValuable(() =>
+      basketInstrumentStore.setBasketInstrument(basketInstrument),
+    );
+  });
 };

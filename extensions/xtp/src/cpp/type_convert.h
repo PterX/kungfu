@@ -52,7 +52,6 @@ inline int64_t nsec_from_xtp_timestamp(int64_t xtp_time) {
   result.tm_sec = xtp_time % (int)1e5 / (int)1e3;
   int milli_sec = xtp_time % (int)1e3;
   std::time_t parsed_time = std::mktime(&result);
-  int64_t nano = parsed_time * kungfu::yijinjing::time_unit::NANOSECONDS_PER_SECOND;
   return parsed_time * kungfu::yijinjing::time_unit::NANOSECONDS_PER_SECOND +
          milli_sec * kungfu::yijinjing::time_unit::NANOSECONDS_PER_MILLISECOND;
 }
@@ -93,7 +92,7 @@ inline void from_xtp(const XTP_EXCHANGE_TYPE &xtp_exchange_type, char *exchange_
   }
 }
 
-inline void to_xtp(XTP_EXCHANGE_TYPE &xtp_exchange_type, char *exchange_id) {
+inline void to_xtp_exchange(XTP_EXCHANGE_TYPE &xtp_exchange_type, const char *exchange_id) {
   if (strcmp(exchange_id, "SSE") == 0) {
     xtp_exchange_type = XTP_EXCHANGE_SH;
   } else if (strcmp(exchange_id, "SZE") == 0) {

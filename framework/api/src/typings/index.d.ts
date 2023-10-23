@@ -457,7 +457,6 @@ declare namespace KungfuApi {
       name: string,
       mode: string,
     ): KungfuApi.KfConfig | false;
-    getAllLocation();
   }
 
   export interface HistoryStore {

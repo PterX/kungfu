@@ -228,7 +228,7 @@ export const getKfExtensionConfigByCategory = (
                   category,
                   key: extKey,
                   silent: extOriginConfig[category]?.silent ?? false,
-                  roles: extOriginConfig[category]?.roles || {},
+                  access: extOriginConfig[category]?.access || {},
                   type: resolveTypesInExtConfig(
                     extOriginConfig[category]?.type || [],
                   ),
@@ -253,7 +253,7 @@ export const getKfExtensionConfigByCategory = (
                   category,
                   key: extKey,
                   silent: extOriginConfig[category]?.silent ?? false,
-                  roles: extOriginConfig[category]?.roles || {},
+                  access: extOriginConfig[category]?.access || {},
                   type: resolveTypesInExtConfig(
                     extOriginConfig[category]?.type || [],
                   ),
@@ -305,7 +305,7 @@ export const getKfExtensionConfigByCategory = (
                         category,
                         key: extKey,
                         silent: item?.silent ?? false,
-                        roles: extOriginConfig[category]?.roles || {},
+                        access: extOriginConfig[category]?.access || {},
                         type: resolveTypesInExtConfig(item?.type || []),
                         for: [item.for].flat(),
                         script: item?.script || '',
@@ -349,7 +349,7 @@ const getKfUIExtensionConfigByExtKey = (
         dependencies,
       } = extUIConfig;
       const silent = uiConfig?.silent ?? false;
-      const roles = uiConfig?.roles ?? {};
+      const access = uiConfig?.access ?? {};
       const position = uiConfig?.position || '';
       const exhibit = uiConfig?.exhibit || ({} as KungfuApi.KfExhibitConfig);
       const components = uiConfig?.components || null;
@@ -360,7 +360,7 @@ const getKfUIExtensionConfigByExtKey = (
         category: 'ui',
         name: extName,
         silent,
-        roles,
+        access,
         extPath,
         readmePath,
         releaseNotePath,
@@ -394,7 +394,7 @@ const getKfCliExtensionConfigByExtKey = (
         dependencies,
       } = extUIConfig;
       const silent = cliConfig?.silent ?? false;
-      const roles = cliConfig?.roles ?? {};
+      const access = cliConfig?.access ?? {};
       const exhibit = cliConfig?.exhibit || ({} as KungfuApi.KfExhibitConfig);
       const components = cliConfig?.components || null;
       const script = cliConfig?.script || '';
@@ -404,7 +404,7 @@ const getKfCliExtensionConfigByExtKey = (
         category: 'cli',
         name: extName,
         silent,
-        roles,
+        access,
         extPath,
         readmePath,
         releaseNotePath,

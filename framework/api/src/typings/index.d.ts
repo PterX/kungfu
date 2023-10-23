@@ -241,7 +241,7 @@ declare namespace KungfuApi {
     config?: {
       td?: {
         silent?: boolean;
-        roles?: Record<string, string[]>;
+        access?: Record<string, string[]>;
         type?: TdMdExtTypes[] | TdMdExtTypes;
         order_trigger?: Record<string, Record<string, boolean>>;
         settings: KfConfigItem[];
@@ -250,7 +250,7 @@ declare namespace KungfuApi {
       };
       md?: {
         silent?: boolean;
-        roles?: Record<string, string[]>;
+        access?: Record<string, string[]>;
         type?: TdMdExtTypes[] | TdMdExtTypes;
         settings: KfConfigItem[];
       };
@@ -262,7 +262,7 @@ declare namespace KungfuApi {
     config?: {
       strategy?: {
         silent?: boolean;
-        roles?: Record<string, string[]>;
+        access?: Record<string, string[]>;
         type?: StrategyExtTypes[] | StrategyExtTypes;
         settings: KfConfigItem[];
       };
@@ -274,7 +274,7 @@ declare namespace KungfuApi {
     config?: {
       operator?: {
         silent?: boolean;
-        roles?: Record<string, string[]>;
+        access?: Record<string, string[]>;
         type?: StrategyExtTypes[] | StrategyExtTypes;
         settings: KfConfigItem[];
       };
@@ -288,7 +288,7 @@ declare namespace KungfuApi {
         string,
         {
           silent?: boolean;
-          roles?: Record<string, string[]>;
+          access?: Record<string, string[]>;
           type?: SystemExtTypes[] | SystemExtTypes;
           for: ExtRunForEnvTypesEnum[] | ExtRunForEnvTypesEnum;
           script: string;
@@ -305,7 +305,7 @@ declare namespace KungfuApi {
         string,
         {
           silent?: boolean;
-          roles?: Record<string, string[]>;
+          access?: Record<string, string[]>;
           type?: SystemExtTypes[] | SystemExtTypes;
           for: ExtRunForEnvTypesEnum[] | ExtRunForEnvTypesEnum;
           script: string;
@@ -315,7 +315,7 @@ declare namespace KungfuApi {
     };
     ui_config?: {
       silent?: boolean;
-      roles?: Record<string, string[]>;
+      access?: Record<string, string[]>;
       position: KfUIExtLocatorTypes;
       exhibit?: KfExhibitConfig;
       components?:
@@ -330,7 +330,7 @@ declare namespace KungfuApi {
     };
     cli_config?: {
       silent?: boolean;
-      roles?: Record<string, string[]>;
+      access?: Record<string, string[]>;
       exhibit?: KfExhibitConfig;
       components?: Record<
         string,
@@ -405,7 +405,7 @@ declare namespace KungfuApi {
     readmePath: string;
     releaseNotePath: string;
     silent: boolean;
-    roles: Record<string, string[]>;
+    access: Record<string, string[]>;
   }
 
   export interface KfTdExtConfig extends KfExtConfigBase<'td' | 'tdGroup'> {

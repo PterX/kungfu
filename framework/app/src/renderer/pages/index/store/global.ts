@@ -241,14 +241,14 @@ export const useGlobalStore = defineStore('global', {
       this.globalSetting = getKfGlobalSettingsValue();
     },
 
-    setRiskSettingList(watcher: KungfuApi.Watcher) {
-      return getAllRiskSettingList(watcher).then((res) => {
+    setRiskSettingList() {
+      return getAllRiskSettingList(window.watcher).then((res) => {
         this.riskSettings = res;
       });
     },
 
     setBasketList() {
-      return getAllBaskets().then((basketList) => {
+      return getAllBaskets(window.watcher).then((basketList) => {
         this.basketList = basketList;
       });
     },

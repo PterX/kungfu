@@ -17,6 +17,7 @@ import { pathExists, remove } from 'fs-extra';
 import {
   getIdByKfLocation,
   getProcessIdByKfLocation,
+  getResultUntilValuable,
 } from '../utils/busiUtils';
 import {
   getAllKfRiskSettings,
@@ -29,6 +30,7 @@ import {
 import {
   basketStore,
   basketInstrumentStore,
+  promiseWithDatabasePause,
 } from '@kungfu-trader/kungfu-js-api/kungfu';
 
 export const getAllKfConfigOriginData = (): Promise<
@@ -272,16 +274,21 @@ export const setAllRiskSettingList = (
   return setAllKfRiskSettings(watcher, riskSettingOrigins);
 };
 
-export const getAllBaskets = (): Promise<KungfuApi.Basket[]> => {
-  const baskets = basketStore.getAllBasket();
-  if (baskets) {
-    return Promise.resolve(baskets);
-  }
-  return Promise.resolve([]);
+export const getAllBaskets = (
+  watcher: KungfuApi.Watcher,
+): Promise<KungfuApi.Basket[]> => {
+  return promiseWithDatabasePause(watcher, () => {
+    return getResultUntilValuable(() => basketStore.getAllBasket());
+  });
 };
 
-export const setAllBaskets = (baskets: KungfuApi.Basket[]) => {
-  return Promise.resolve(basketStore.setAllBasket(baskets));
+export const setAllBaskets = (
+  watcher: KungfuApi.Watcher,
+  baskets: KungfuApi.Basket[],
+) => {
+  return promiseWithDatabasePause(watcher, () => {
+    return getResultUntilValuable(() => basketStore.setAllBasket(baskets));
+  });
 };
 
 export const getAllBasketInstruments = (): Promise<

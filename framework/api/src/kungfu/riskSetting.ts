@@ -1,6 +1,6 @@
 import path from 'path';
 import fse from 'fs-extra';
-import { riskSettingStore, longfist, promiseWithCachedPause } from '.';
+import { riskSettingStore, longfist, promiseWithDatabasePause } from '.';
 import { kfLogger, getResultUntilValuable } from '../utils/busiUtils';
 import { BASE_DB_DIR } from '../config/pathConfig';
 
@@ -12,7 +12,7 @@ export const getAllKfRiskSettings = (
     return Promise.resolve([]);
   }
 
-  return promiseWithCachedPause(watcher, () => {
+  return promiseWithDatabasePause(watcher, () => {
     return getResultUntilValuable(() =>
       riskSettingStore.getAllRiskSetting(),
     ).then((riskSettings) => Object.values(riskSettings));
@@ -32,7 +32,7 @@ export const setAllKfRiskSettings = (
       ...item,
     }));
 
-  return promiseWithCachedPause(watcher, () => {
+  return promiseWithDatabasePause(watcher, () => {
     return getResultUntilValuable(() =>
       riskSettingStore.setAllRiskSetting(riskSettingResolved),
     );

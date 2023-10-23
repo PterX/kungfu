@@ -83,7 +83,7 @@ const tradingDataSubscription = tradingDataSubject.subscribe(
 store.setKfConfigList();
 store.setKfExtConfigs();
 store.setSubscribedInstrumentsByLocal();
-store.setRiskSettingList(window.watcher);
+store.setRiskSettingList();
 store.setKfGlobalSetting();
 
 const busSubscription = globalBus.subscribe((data: KfEvent.KfBusEvent) => {
@@ -114,7 +114,7 @@ const busSubscription = globalBus.subscribe((data: KfEvent.KfBusEvent) => {
   }
   if (data.tag === 'update:riskSetting') {
     setAllRiskSettingList(window.watcher, data.riskSettings).finally(() => {
-      store.setRiskSettingList(window.watcher);
+      store.setRiskSettingList();
     });
   }
   if (data.tag === 'play:tradingError') {

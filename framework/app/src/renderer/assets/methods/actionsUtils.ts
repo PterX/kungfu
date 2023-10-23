@@ -4,6 +4,7 @@ import { ensureRemoveLocation } from '@kungfu-trader/kungfu-js-api/actions';
 import {
   hashInstrumentUKey,
   sessionStore,
+  longfist,
 } from '@kungfu-trader/kungfu-js-api/kungfu';
 import {
   dealPosition,
@@ -2939,6 +2940,7 @@ export const useBasket = () => {
     const [id, name, volume_type, total_amount] = res;
 
     return {
+      ...longfist.types.Basket(),
       id: Number(id),
       name,
       volume_type: Number(volume_type),

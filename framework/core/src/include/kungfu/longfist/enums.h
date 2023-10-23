@@ -376,7 +376,7 @@ NLOHMANN_JSON_SERIALIZE_ENUM(PriceType, {
 inline std::ostream &operator<<(std::ostream &os, PriceType t) { return os << int32_t(t); }
 
 // ETF成分股信息,标志改成分股是否可以由现金替代
-enum class CashRepalceFlag : int8_t {
+enum class CashReplaceFlag : int8_t {
   UnReplace,           // 不可替代
   EnReplace,           // 可以替代
   MustReplace,         // 必须替代
@@ -387,18 +387,18 @@ enum class CashRepalceFlag : int8_t {
   Unknown
 };
 
-NLOHMANN_JSON_SERIALIZE_ENUM(CashRepalceFlag, {
-                                                  {CashRepalceFlag::UnReplace, "UnReplace"},
-                                                  {CashRepalceFlag::EnReplace, "EnReplace"},
-                                                  {CashRepalceFlag::MustReplace, "MustReplace"},
-                                                  {CashRepalceFlag::UnSSEReplace, "UnSSEReplace"},
-                                                  {CashRepalceFlag::UnSSEMustReplace, "UnSSEMustReplace"},
-                                                  {CashRepalceFlag::UnSSESZEReplace, "UnSSESZEReplace"},
-                                                  {CashRepalceFlag::UnSSESZEMustReplace, "UnSSESZEMustReplace"},
-                                                  {CashRepalceFlag::Unknown, "Unknown"},
+NLOHMANN_JSON_SERIALIZE_ENUM(CashReplaceFlag, {
+                                                  {CashReplaceFlag::UnReplace, "UnReplace"},
+                                                  {CashReplaceFlag::EnReplace, "EnReplace"},
+                                                  {CashReplaceFlag::MustReplace, "MustReplace"},
+                                                  {CashReplaceFlag::UnSSEReplace, "UnSSEReplace"},
+                                                  {CashReplaceFlag::UnSSEMustReplace, "UnSSEMustReplace"},
+                                                  {CashReplaceFlag::UnSSESZEReplace, "UnSSESZEReplace"},
+                                                  {CashReplaceFlag::UnSSESZEMustReplace, "UnSSESZEMustReplace"},
+                                                  {CashReplaceFlag::Unknown, "Unknown"},
                                               })
 
-inline std::ostream &operator<<(std::ostream &os, CashRepalceFlag t) { return os << int32_t(t); }
+inline std::ostream &operator<<(std::ostream &os, CashReplaceFlag t) { return os << int32_t(t); }
 
 enum class ETFType : int8_t {
   LocalETF,        // 本市ETF

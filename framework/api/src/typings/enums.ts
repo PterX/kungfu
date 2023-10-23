@@ -57,6 +57,34 @@ export enum BasketVolumeTypeEnum {
 
 export type BasketVolumeTypes = keyof typeof BasketVolumeTypeEnum;
 
+export enum BasketTypeEnum {
+  Custom,
+  ETF,
+}
+
+export enum ETFTypeEnum {
+  LocalETF, // 本市ETF
+  CrossCountryETF, // 跨境ETF
+  CrossMarketETF, // 跨市ETF
+  CurrencyETF, // 货币ETF
+  PhysicalBondETF, // 实物债券ETF
+  CommodityETF, // 商品ETF
+  CashBondETF, // 现金债券ETF
+  Unknown,
+}
+
+// ETF成分股信息,标志改成分股是否可以由现金替代
+export enum CashReplaceFlagEnum {
+  UnReplace, // 不可替代
+  EnReplace, // 可以替代
+  MustReplace, // 必须替代
+  UnSSEReplace, // 非沪市退补现金替代
+  UnSSEMustReplace, // 非沪市必须现金替代
+  UnSSESZEReplace, // 非沪深退补现金替代
+  UnSSESZEMustReplace, // 非沪深必须现金替代
+  Unknown,
+}
+
 export enum PriceLevelEnum {
   Latest, // 最新价
   Sell5,

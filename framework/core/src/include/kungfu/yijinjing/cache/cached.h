@@ -70,6 +70,8 @@ public:
 
   yijinjing::index::SessionMap &get_all_sessions();
 
+  void switch_feed_storage(bool pause_storage);
+
   static constexpr auto feed_profile_data = [](const event_ptr &event, auto &receiver) {
     boost::hana::for_each(longfist::ProfileDataTypes, [&](auto it) {
       using DataType = typename decltype(+boost::hana::second(it))::type;
@@ -112,6 +114,7 @@ private:
   std::mutex states_store_mutex_;
   std::mutex profile_store_mutex_;
   bool m_quit_ = false;
+  std::atomic_bool storage_pause_ = false;
 
   yijinjing::data::location_ptr ledger_home_location_;
 

@@ -219,7 +219,7 @@ delivery_month
 id
 volume_type
 total_amount
-type
+basket_type
 net_unit_value
 etf_value
 cash_difference
@@ -547,6 +547,9 @@ SSE
 SZE
 MarketType
 Snapshot
+Entrust
+Transaction
+Tree
 SubscribeDataType
 Stock
 Future
@@ -626,7 +629,7 @@ UnSSEReplace
 UnSSEMustReplace
 UnSSESZEReplace
 UnSSESZEMustReplace
-CashRepalceFlag
+CashReplaceFlag
 LocalETF
 CrossCountryETF
 CrossMarketETF

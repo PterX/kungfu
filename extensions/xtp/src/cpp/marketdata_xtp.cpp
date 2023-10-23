@@ -18,6 +18,7 @@ struct MDConfiguration {
   int md_port;
   std::string protocol;
   int buffer_size;
+  bool query_instruments;
 };
 
 void from_json(const nlohmann::json &j, MDConfiguration &c) {
@@ -31,6 +32,7 @@ void from_json(const nlohmann::json &j, MDConfiguration &c) {
     c.protocol = "tcp";
   }
   c.buffer_size = j.value("buffer_size", 64);
+  c.query_instruments = j.value<bool>("query_instruments", false);
 }
 
 MarketDataXTP::MarketDataXTP(broker::BrokerVendor &vendor) : MarketData(vendor), api_(nullptr) {
@@ -69,7 +71,7 @@ void MarketDataXTP::on_start() {
     update_broker_state(BrokerState::LoggedIn);
     update_broker_state(BrokerState::Ready);
     SPDLOG_INFO("login success! (account_id) {}", config.account_id);
-    if (not check_if_stored_instruments(time::strfnow("%Y%m%d"))) {
+    if (config.query_instruments and not check_if_stored_instruments(time::strfnow("%Y%m%d"))) {
       api_->QueryAllTickers(XTP_EXCHANGE_SH);
       api_->QueryAllTickers(XTP_EXCHANGE_SZ);
       api_->QueryAllTickersFullInfo(XTP_EXCHANGE_SH);
@@ -94,10 +96,10 @@ bool MarketDataXTP::subscribe(const std::vector<InstrumentKey> &instrument_keys)
     }
   }
   if (!sse_tickers.empty()) {
-    result = result && subscribe(sse_tickers, EXCHANGE_SSE);
+    result &= subscribe(sse_tickers, EXCHANGE_SSE);
   }
   if (!sze_tickers.empty()) {
-    result = result && subscribe(sze_tickers, EXCHANGE_SZE);
+    result &= subscribe(sze_tickers, EXCHANGE_SZE);
   }
   return result;
 }
@@ -106,11 +108,13 @@ bool MarketDataXTP::subscribe(const std::vector<std::string> &instruments, const
   int size = instruments.size();
   std::vector<char *> insts;
   insts.reserve(size);
-  for (auto &s : instruments) {
-    insts.push_back((char *)&s[0]);
-  }
+  //  for (auto &s : instruments) {
+  //    insts.push_back((char *)&s[0]);
+  //  }
+  std::transform(instruments.begin(), instruments.end(), std::back_inserter(insts),
+                 [](auto &s) { return (char *)std::addressof(s); });
   XTP_EXCHANGE_TYPE exchange;
-  to_xtp(exchange, (char *)exchange_id.c_str());
+  to_xtp_exchange(exchange, exchange_id.c_str());
   int level1_result = api_->SubscribeMarketData(insts.data(), size, exchange);
   int level2_result = api_->SubscribeTickByTick(insts.data(), size, exchange);
   SPDLOG_INFO("subscribe {} from {}, l1 rtn code {}, l2 rtn code {}", size, exchange_id, level1_result, level2_result);

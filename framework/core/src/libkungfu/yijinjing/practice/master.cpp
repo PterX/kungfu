@@ -201,6 +201,8 @@ void master::react() {
   events_ | is(Register::tag) | $$(register_app(event));
   events_ | is(Ping::tag) | $$(pong(event));
   events_ | is(CacheReset::tag) | $([&](const event_ptr &event) { cached_.cache_reset(event); });
+  events_ | is(CachedPause::tag) | $$(cached_.switch_feed_storage(true));
+  events_ | is(CachedResume::tag) | $$(cached_.switch_feed_storage(false));
   events_ | instanceof <journal::frame>() | $$(feed(event));
 
   // have to be at bottom of react, for avoid event still required after reader disjoin
@@ -253,13 +255,14 @@ void master::feed(const event_ptr &event) {
     return;
   }
 
+  cached_.update_session(std::dynamic_pointer_cast<journal::frame>(event));
+
   if (event->dest() == location::SYNC) {
     return;
   }
 
-  cached_.update_session(std::dynamic_pointer_cast<journal::frame>(event));
-
-  if (get_location(event->source())->category == category::MD) {
+  if (event->msg_type() != Instrument::tag and event->msg_type() != InstrumentFactor::tag and
+      get_location(event->source())->category == category::MD) {
     return;
   }
 

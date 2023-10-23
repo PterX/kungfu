@@ -23,7 +23,7 @@
       :max="maxTime"
       :step="nano2millionSecond(props.step)"
       :tip-formatter="tipFormatter"
-      @change="onAfterChange"
+      @after-change="() => onAfterChange()"
     />
     <div class="kf-time-slider-time">
       <span class="kf-time-slider-text" style="text-align: start">
@@ -46,6 +46,7 @@ import { ForwardOutlined, BackwardOutlined } from '@ant-design/icons-vue';
 import { SessionStatusEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import { useNow, useResizeFlag } from '../utils';
 import { useJournalStore } from '../store/journalStore';
+import { delayMilliSeconds } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 
 const props = withDefaults(
   defineProps<{
@@ -73,6 +74,7 @@ const BIGINT_SCALE = BigInt(SCALE);
 const TEN_SECOND = BigInt(10000000000);
 const slider = ref();
 const currentTimeResolved = ref(0);
+const lastFocusTime = ref(0);
 
 const nano2millionSecond = (number: bigint | number) => {
   if (typeof number === 'bigint') {
@@ -87,7 +89,9 @@ const windowFocusStatus = useWindowFocus();
 watch(
   currentTime,
   (newVal) => {
-    currentTimeResolved.value = nano2millionSecond(newVal);
+    delayMilliSeconds(0).then(() => {
+      currentTimeResolved.value = nano2millionSecond(newVal);
+    });
   },
   {
     immediate: true,
@@ -101,7 +105,13 @@ watch(windowFocusStatus, () => {
 });
 
 const onAfterChange = () => {
-  setCurrentTime(million2nanoSecond(currentTimeResolved.value));
+  if (Math.abs(lastFocusTime.value - currentTimeResolved.value) > 200) {
+    setCurrentTime(million2nanoSecond(currentTimeResolved.value));
+    lastFocusTime.value = currentTimeResolved.value;
+  } else {
+    // fix the a-slider focus bug by setting the correct value
+    currentTimeResolved.value = nano2millionSecond(currentTime.value);
+  }
 };
 
 const currentSessionEndTimeResolved = computed(() => {
@@ -182,7 +192,6 @@ const getTooltipPopupContainer = (trigger: HTMLElement): HTMLElement => trigger;
 
   .kf-time-slider-handler-focus-1 {
     .ant-slider-handle-1 {
-      // border-color: #faad14;
       border-color: aqua;
     }
   }

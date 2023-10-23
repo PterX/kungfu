@@ -168,7 +168,8 @@ void bind_strategy(pybind11::module &m) {
       .def("add_strategy", &strategy::Runner::add_strategy);
 
   py::class_<strategy::Context, std::shared_ptr<strategy::Context>>(m, "Context")
-      .def_property_readonly("arguments", &strategy::Context::get_arguments)
+      .def_property_readonly("config", &strategy::Context::get_config, py::return_value_policy::reference)
+      .def_property_readonly("arguments", &strategy::Context::get_arguments, py::return_value_policy::reference)
       .def_property_readonly("bookkeeper", &strategy::Context::get_bookkeeper, py::return_value_policy::reference)
       .def("now", &strategy::Context::now)
       .def("is_started", &strategy::Context::is_started)

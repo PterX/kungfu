@@ -46,9 +46,6 @@ class Operator(wc.Operator):
         sys.path.insert(0, os.path.relpath(operator_dir))
         module_name = os.path.splitext(name_no_ext[1])[0]
         self._module = import_force(module_name)
-        # module_spec = importlib.util.spec_from_file_location(module_name, path)
-        # self._module = importlib.util.module_from_spec(module_spec)
-        # module_spec.loader.exec_module(self._module)
         self._pre_start = getattr(self._module, "pre_start", lambda ctx: None)
         self._post_start = getattr(self._module, "post_start", lambda ctx: None)
         self._pre_stop = getattr(self._module, "pre_stop", lambda ctx: None)
@@ -114,6 +111,7 @@ class Operator(wc.Operator):
 
     def pre_start(self, wc_context):
         self.ctx.wc_context = wc_context
+        self.ctx.config = wc_context.config
         self.ctx.now = wc_context.now
         self.ctx.add_timer = self.__add_timer
         self.ctx.add_time_interval = self.__add_time_interval
@@ -125,6 +123,7 @@ class Operator(wc.Operator):
         self.ctx.update_operator_state = wc_context.update_operator_state
         self.ctx.publish_synthetic_data = wc_context.publish_synthetic_data
         self.ctx.req_deregister = wc_context.req_deregister
+        self.ctx.static_data = wc_context.bookkeeper.static_data
         self.__call_proxy(self._pre_start, self.ctx)
 
     def post_start(self, wc_context):

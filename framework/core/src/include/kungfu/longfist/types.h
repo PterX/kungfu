@@ -42,6 +42,8 @@ KF_DEFINE_MARK_TYPE(OperatorStateRequest, 10156);
 KF_DEFINE_MARK_TYPE(BrokerStateRequest, 10157);
 KF_DEFINE_MARK_TYPE(CachedReadyToRead, 10251);
 KF_DEFINE_MARK_TYPE(RequestCached, 10252);
+KF_DEFINE_MARK_TYPE(CachedPause, 10253);
+KF_DEFINE_MARK_TYPE(CachedResume, 10254);
 KF_DEFINE_MARK_TYPE(ResetBookRequest, 10451);
 KF_DEFINE_MARK_TYPE(MirrorPositionsRequest, 10452);
 KF_DEFINE_MARK_TYPE(KeepPositionsRequest, 10453);
@@ -877,7 +879,7 @@ KF_DEFINE_DATA_TYPE(                                         //
     (std::string, name),                                     // basket 名字
     (enums::BasketVolumeType, volume_type),                  // 比例/数量
     (int64_t, total_amount),                                 // 总数量
-    (enums::BasketType, type),                               // 类型: Custom 或 ETF
+    (enums::BasketType, basket_type),                        // 类型: Custom 或 ETF
     (kungfu::array<char, INSTRUMENT_ID_LEN>, instrument_id), // ETF基金代码
     (kungfu::array<char, EXCHANGE_ID_LEN>, exchange_id),     // ETF基金的市场
     (double, net_unit_value),                                // 最小申赎单位净值
@@ -899,7 +901,7 @@ KF_DEFINE_PACK_TYPE(                                                            
     (enums::Direction, direction),                                                     // 方向
     (int64_t, volume),                                                                 // 数量
     (double, rate),                                                                    // 比例, volume比例
-    (enums::CashRepalceFlag, replace_flag),                                            // 是否可以由现金替代
+    (enums::CashReplaceFlag, replace_flag),                                            // 是否可以由现金替代
     (double, cash_premium_ratio),                                                      // 现金替代溢价比率
     (double, replace_balance)                                                          // 替代金额
 );

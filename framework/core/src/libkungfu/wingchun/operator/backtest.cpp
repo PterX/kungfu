@@ -17,7 +17,8 @@ namespace kungfu::wingchun::op {
 BacktestContext::BacktestContext(apprentice &app, const rx::connectable_observable<event_ptr> &events,
                                  SliceIndexer_ptr from_indexer, SliceIndexer_ptr to_indexer, Report_ptr report,
                                  int64_t time_interval, std::string backtest_config)
-    : Context(app, events), broker_client_(app), from_indexer_(std::move(from_indexer)),
+    : Context(app, events), broker_client_(app), bookkeeper_(app_, broker_client_),
+      from_indexer_(std::move(from_indexer)),
       slice_tool_(std::make_shared<SliceTool>(category::OPERATOR, app.get_home()->group, app.get_home()->name,
                                               std::move(to_indexer))),
       report_(std::move(report)), time_interval_(time_interval), backtest_config_(std::move(backtest_config)) {
@@ -26,6 +27,8 @@ BacktestContext::BacktestContext(apprentice &app, const rx::connectable_observab
 
 void BacktestContext::on_start() {
   broker_client_.on_start(events_);
+  bookkeeper_.on_start(events_);
+
   events_ | is_own<Quote>(get_broker_client()) | $$(report_->on_quote(event->data<Quote>()););
   events_ | is_own<Entrust>(get_broker_client()) | $$(report_->on_entrust(event->data<Entrust>()););
   events_ | is_own<Transaction>(get_broker_client()) | $$(report_->on_transaction(event->data<Transaction>()););
@@ -208,6 +211,8 @@ void BacktestContext::publish_synthetic_data(const std::string &key, const std::
 }
 
 broker::Client &BacktestContext::get_broker_client() { return broker_client_; }
+
+book::Bookkeeper &BacktestContext::get_bookkeeper() { return bookkeeper_; }
 
 void BacktestContext::req_deregister() {}
 

@@ -4,6 +4,7 @@ import { ensureRemoveLocation } from '@kungfu-trader/kungfu-js-api/actions';
 import {
   hashInstrumentUKey,
   sessionStore,
+  longfist,
 } from '@kungfu-trader/kungfu-js-api/kungfu';
 import {
   dealPosition,
@@ -166,6 +167,7 @@ export const useUpdateVersion = () => {
   };
 
   const handleToConfirmStartUpdate = (newVersion: string) => {
+    popoverVisible.value = false;
     extraConfirmModal(
       t('autoUpdater.update'),
       t('autoUpdater.find_new_version', {
@@ -2938,6 +2940,7 @@ export const useBasket = () => {
     const [id, name, volume_type, total_amount] = res;
 
     return {
+      ...longfist.types.Basket(),
       id: Number(id),
       name,
       volume_type: Number(volume_type),

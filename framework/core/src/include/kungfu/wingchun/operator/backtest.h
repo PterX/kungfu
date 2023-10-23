@@ -117,6 +117,12 @@ public:
    */
   broker::Client &get_broker_client() override;
 
+  /**
+   * Get bookkeeper.
+   * @return bookkeeper reference
+   */
+  virtual book::Bookkeeper &get_bookkeeper() override;
+
   yijinjing::data::location_ptr get_location(uint32_t location_uid) override;
 
 protected:
@@ -159,6 +165,7 @@ private:
     TimerTask(int32_t id, std::function<void(event_ptr)> cb) : timer_id(id), call_back(std::move(cb)){};
   };
   broker::PassiveClient broker_client_;
+  book::Bookkeeper bookkeeper_;
   tool::SliceIndexer_ptr from_indexer_;
   tool::SliceTool_ptr slice_tool_;
   tool::Report_ptr report_;

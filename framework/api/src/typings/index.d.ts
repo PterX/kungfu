@@ -56,6 +56,9 @@ declare namespace KungfuApi {
     FundTransEnum,
     FundTransTypeEnum,
     OrderTriggerFlag,
+    ETFTypeEnum,
+    CashReplaceFlagEnum,
+    BasketTypeEnum,
   } from './enums';
   import { Dayjs } from 'dayjs';
   import { Row } from 'fast-csv';
@@ -238,7 +241,7 @@ declare namespace KungfuApi {
     config?: {
       td?: {
         silent?: boolean;
-        roles?: Record<string, string[]>;
+        access?: Record<string, string[]>;
         type?: TdMdExtTypes[] | TdMdExtTypes;
         order_trigger?: Record<string, Record<string, boolean>>;
         settings: KfConfigItem[];
@@ -247,7 +250,7 @@ declare namespace KungfuApi {
       };
       md?: {
         silent?: boolean;
-        roles?: Record<string, string[]>;
+        access?: Record<string, string[]>;
         type?: TdMdExtTypes[] | TdMdExtTypes;
         settings: KfConfigItem[];
       };
@@ -259,7 +262,7 @@ declare namespace KungfuApi {
     config?: {
       strategy?: {
         silent?: boolean;
-        roles?: Record<string, string[]>;
+        access?: Record<string, string[]>;
         type?: StrategyExtTypes[] | StrategyExtTypes;
         settings: KfConfigItem[];
       };
@@ -271,7 +274,7 @@ declare namespace KungfuApi {
     config?: {
       operator?: {
         silent?: boolean;
-        roles?: Record<string, string[]>;
+        access?: Record<string, string[]>;
         type?: StrategyExtTypes[] | StrategyExtTypes;
         settings: KfConfigItem[];
       };
@@ -285,7 +288,7 @@ declare namespace KungfuApi {
         string,
         {
           silent?: boolean;
-          roles?: Record<string, string[]>;
+          access?: Record<string, string[]>;
           type?: SystemExtTypes[] | SystemExtTypes;
           for: ExtRunForEnvTypesEnum[] | ExtRunForEnvTypesEnum;
           script: string;
@@ -302,7 +305,7 @@ declare namespace KungfuApi {
         string,
         {
           silent?: boolean;
-          roles?: Record<string, string[]>;
+          access?: Record<string, string[]>;
           type?: SystemExtTypes[] | SystemExtTypes;
           for: ExtRunForEnvTypesEnum[] | ExtRunForEnvTypesEnum;
           script: string;
@@ -312,7 +315,7 @@ declare namespace KungfuApi {
     };
     ui_config?: {
       silent?: boolean;
-      roles?: Record<string, string[]>;
+      access?: Record<string, string[]>;
       position: KfUIExtLocatorTypes;
       exhibit?: KfExhibitConfig;
       components?:
@@ -327,7 +330,7 @@ declare namespace KungfuApi {
     };
     cli_config?: {
       silent?: boolean;
-      roles?: Record<string, string[]>;
+      access?: Record<string, string[]>;
       exhibit?: KfExhibitConfig;
       components?: Record<
         string,
@@ -402,7 +405,7 @@ declare namespace KungfuApi {
     readmePath: string;
     releaseNotePath: string;
     silent: boolean;
-    roles: Record<string, string[]>;
+    access: Record<string, string[]>;
   }
 
   export interface KfTdExtConfig extends KfExtConfigBase<'td' | 'tdGroup'> {
@@ -592,6 +595,7 @@ declare namespace KungfuApi {
     setAllBasketInstruments(basketInstruments: BasketInstrument[]): boolean;
     setBasketInstrument(basketInstrument: BasketInstrument): boolean;
     removeAllBasketInstruments(): boolean;
+    removeAllBasketInstrumentsByBasket(basketId: number): boolean;
   }
 
   export interface DataTable<T> {
@@ -878,6 +882,19 @@ declare namespace KungfuApi {
     uid_key: string;
   }
 
+  export interface SyntheticData {
+    key: string;
+    update_time: bigint;
+    tag_a: string;
+    tag_b: string;
+    tag_c: string;
+    value: string;
+
+    source: number;
+    dest: number;
+    uid_key: string;
+  }
+
   export interface TransferRecordResolved {
     amount: number;
     source: string;
@@ -1075,6 +1092,7 @@ declare namespace KungfuApi {
     lower_limit_price: number; //跌停板价
     close_price: number; //收盘价
     settlement_price: number; //结算价
+    iopv: number;
 
     bid_price: number[]; //申买价
     ask_price: number[]; //申卖价
@@ -1145,7 +1163,9 @@ declare namespace KungfuApi {
     | KungfuApi.Position
     | KungfuApi.Order
     | KungfuApi.Trade
-    | KungfuApi.Asset;
+    | KungfuApi.Asset
+    | KungfuApi.Basket
+    | KungfuApi.AssetMargin;
 
   export type TradingDataTable =
     | KungfuApi.DataTable<KungfuApi.Position>
@@ -1172,7 +1192,9 @@ declare namespace KungfuApi {
     | Position
     | Quote
     | Trade
-    | OrderTrigger;
+    | OrderTrigger
+    | Basket
+    | BasketInstrument;
 
   export type TradingDataTypeName = keyof TradingData;
 
@@ -1188,10 +1210,21 @@ declare namespace KungfuApi {
   }
 
   export interface Basket {
-    id: number;
-    name: string;
-    volume_type: BasketVolumeTypeEnum;
-    total_amount: bigint;
+    id: number; // basket id
+    name: string; // basket 名字
+    volume_type: BasketVolumeTypeEnum; // 比例/数量
+    total_amount: bigint; // 总数量
+    basket_type: BasketTypeEnum; // 类型: Custom 或 ETF
+    instrument_id: string; // ETF基金代码
+    exchange_id: string; // ETF基金的市场
+    net_unit_value: number; // 最小申赎单位净值
+    etf_value: number; // 基金份额净值
+    cash_difference: number; // 现金差额
+    max_cash_ratio: number; // 现金替代比例上限
+    max_purchase_volume: bigint; // 申购上限
+    max_redemption_volume: bigint; // 赎回上限
+    min_volume: bigint; // 最小申赎单位
+    etf_type: ETFTypeEnum; // etf种类
   }
 
   export interface BasketResolved extends Basket {
@@ -1208,6 +1241,9 @@ declare namespace KungfuApi {
     direction: DirectionEnum;
     volume: bigint; // 数量
     rate: number; // 比例
+    replace_flag: CashReplaceFlagEnum; // 是否可以由现金替代
+    cash_premium_ratio: number; // 现金替代溢价比率
+    replace_balance: number; // 替代金额
   }
 
   export interface BasketInstrumentResolved
@@ -1432,6 +1468,7 @@ declare namespace KungfuApi {
       BasketInstrument(): BasketInstrument;
       BasketOrder(): BasketOrder;
       TimeKeyValue(): TimeKeyValue;
+      SyntheticData(): SyntheticData;
     };
 
     msgTypes: Record<number, string>;
@@ -1566,6 +1603,11 @@ declare namespace KungfuApi {
     instrument: string;
     orderInputKey: OrderInputKeyEnum;
     limitValue: number;
+  }
+
+  export interface BoardStyle {
+    flex: string;
+    height?: string;
   }
 }
 

@@ -9,6 +9,7 @@
 
 #include <kungfu/longfist/longfist.h>
 #include <kungfu/wingchun/book/bookkeeper.h>
+#include <kungfu/wingchun/book/staticdata.h>
 #include <kungfu/wingchun/broker/client.h>
 #include <kungfu/wingchun/strategy/strategy.h>
 #include <kungfu/yijinjing/practice/apprentice.h>
@@ -38,6 +39,19 @@ public:
    * @return location_uid
    */
   virtual uint32_t get_home_uid() const = 0;
+
+  /**
+   * Get config from database.
+   * @return  config of current location_uid
+   */
+  virtual const std::string get_config() const = 0;
+
+  /**
+   * Get arguments kfc run -a
+   * @return string of arguments
+   */
+
+  virtual std::string get_arguments() { return app_.get_arguments(); };
 
   /**
    * Add one shot timer callback.
@@ -361,13 +375,6 @@ public:
    * @param infos vector<string>, info_a, info_b, info_c.
    */
   virtual void update_strategy_state(longfist::types::StrategyStateUpdate &state_update){};
-
-  /**
-   * Get arguments kfc run -a
-   * @return string of arguments
-   */
-
-  virtual std::string get_arguments() { return app_.get_arguments(); };
 
   /**
    *

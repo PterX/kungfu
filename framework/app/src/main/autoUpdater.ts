@@ -2,9 +2,11 @@ import semver from 'semver';
 import { app, ipcMain, BrowserWindow } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import globalStorage from '@kungfu-trader/kungfu-js-api/utils/globalStorage';
-import { delayMilliSeconds } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import {
+  delayMilliSeconds,
+  debounce,
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { kfLogger } from '@kungfu-trader/kungfu-js-api/utils/logUtils';
-
 import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
 import {
   downloadProcessUpdate,
@@ -68,6 +70,15 @@ const getLastedSkippedVersion = () => {
   }
 };
 
+const getCurrentLastedVersion = (currentVersion: string) => {
+  const skipLastedVersion = getLastedSkippedVersion();
+  return skipLastedVersion
+    ? semver.gt(currentVersion, skipLastedVersion || '')
+      ? currentVersion
+      : skipLastedVersion
+    : currentVersion;
+};
+
 function saveSkippedVersion(version: string) {
   const skippedVersions = globalStorage.getItem('skippedVersions');
   if (skippedVersions) {
@@ -97,6 +108,10 @@ function getDefaultTargetVersions(version: semver.SemVer) {
     ];
   }
 }
+
+const download = debounce(() => {
+  autoUpdater.downloadUpdate();
+}, 1000);
 
 function setUpdaterOption(
   targetVersion: string,
@@ -130,7 +145,6 @@ function handleUpdateKungfu(
   function setupAutoUpdaterListeners(
     MainWindow: BrowserWindow | null,
     targetVersions: string[],
-    curVersion: string,
   ) {
     autoUpdater.removeAllListeners();
     let curErrorBeCalled = false;
@@ -161,7 +175,7 @@ function handleUpdateKungfu(
 
         ipcMain.on('auto-update-confirm-result', (_, result) => {
           if (result) {
-            autoUpdater.downloadUpdate();
+            download();
             downloadStarted = true;
             kfLogger.info('Kungfu autoUpdater start-download');
             startDownloadNewVersion(MainWindow);
@@ -169,7 +183,7 @@ function handleUpdateKungfu(
         });
 
         ipcMain.on('auto-update-to-start-download', () => {
-          autoUpdater.downloadUpdate();
+          download();
           downloadStarted = true;
           kfLogger.info('Kungfu autoUpdater start-download');
           startDownloadNewVersion(MainWindow);
@@ -203,21 +217,12 @@ function handleUpdateKungfu(
                   ['.db', '.journal'],
                   ['etc', 'config.db'],
                 ).then((results) => {
-                  MainWindow.webContents
-                    .executeJavaScript(
-                      `localStorage.setItem('needClearJournal', '1');`,
-                      true,
-                    )
-                    .catch((err) => {
-                      kfLogger.error(err);
-                    })
-                    .finally(() => {
-                      results.errors.forEach((error) => kfLogger.error(error));
-                      delayMilliSeconds(1000).then(() => {
-                        autoUpdater.quitAndInstall(false, true);
-                        app.exit();
-                      });
-                    });
+                  globalStorage.setItem('needClearJournal', true);
+                  results.errors.forEach((error) => kfLogger.error(error));
+                  delayMilliSeconds(1000).then(() => {
+                    autoUpdater.quitAndInstall(false, true);
+                    app.exit();
+                  });
                 });
               });
             });
@@ -229,52 +234,12 @@ function handleUpdateKungfu(
       kfLogger.info('Download progress: ', JSON.stringify(progressInfo));
       if (MainWindow) downloadProcessUpdate(MainWindow, progressInfo.percent);
     });
-
-    ipcMain.on('auto-update-retry-check-update', () => {
-      kfLogger.info('auto-update-retry-check-update');
-
-      lastSkipedVersion = getLastedSkippedVersion();
-      curVersion = lastSkipedVersion || rootPackageJson.version || '';
-      if (curVersion === '') return;
-      version = semver.parse(curVersion as string) as semver.SemVer;
-      targetVersions = getDefaultTargetVersions(version);
-      curTargetVersion = targetVersions.shift();
-      if (!curTargetVersion || !rawUpdateOption) return;
-      const updaterOption = setUpdaterOption(
-        curTargetVersion,
-        rawUpdateOption,
-        projectName,
-        version,
-      );
-      if (!updaterOption) return;
-      kfLogger.info(
-        'Kungfu autoUpdater recheck option: ',
-        JSON.stringify(updaterOption),
-      );
-      autoUpdater.checkForUpdates();
-    });
-
-    if (isRendererReady) {
-      autoUpdater.checkForUpdates();
-    } else {
-      ipcMain.on('auto-update-renderer-ready', () => {
-        kfLogger.info('auto-update-renderer-ready');
-        autoUpdater.checkForUpdates();
-        isRendererReady = true;
-      });
-    }
   }
 
-  function configureAutoUpdater(
-    MainWindow: BrowserWindow | null,
-    targetVersions: string[],
-    curVersion: string,
-  ) {
+  function configureAutoUpdater() {
     autoUpdater.autoDownload = false;
     autoUpdater.autoInstallOnAppQuit = false;
     autoUpdater.autoRunAppAfterInstall = true;
-
-    setupAutoUpdaterListeners(MainWindow, targetVersions, curVersion);
   }
 
   const rootPackageJson = readRootPackageJsonSync();
@@ -282,9 +247,8 @@ function handleUpdateKungfu(
   if (!rootPackageJson || !rawUpdateOption) return;
 
   const projectName = getProjectName(rootPackageJson);
-  let lastSkipedVersion = getLastedSkippedVersion();
-  const curVersion = lastSkipedVersion || rootPackageJson.version;
-  if (!curVersion) return;
+  const curVersion = getCurrentLastedVersion(rootPackageJson.version || '');
+  if (curVersion === '') return;
   let version = semver.parse(curVersion as string) as semver.SemVer;
 
   if (!targetVersions.length) {
@@ -314,7 +278,41 @@ function handleUpdateKungfu(
     JSON.stringify(updaterOption),
   );
 
-  configureAutoUpdater(MainWindow, targetVersions, curVersion);
+  configureAutoUpdater();
+  setupAutoUpdaterListeners(MainWindow, targetVersions);
+  if (isRendererReady) {
+    autoUpdater.checkForUpdates();
+  } else {
+    ipcMain.on('auto-update-renderer-ready', () => {
+      kfLogger.info('auto-update-renderer-ready');
+      autoUpdater.checkForUpdates();
+      isRendererReady = true;
+    });
+  }
+
+  ipcMain.on('auto-update-retry-check-update', () => {
+    kfLogger.info('auto-update-retry-check-update');
+
+    const curVersion = getCurrentLastedVersion(rootPackageJson.version || '');
+    if (curVersion === '') return;
+    version = semver.parse(curVersion as string) as semver.SemVer;
+    targetVersions = getDefaultTargetVersions(version);
+    curTargetVersion = targetVersions.shift();
+    if (!curTargetVersion || !rawUpdateOption) return;
+    const updaterOption = setUpdaterOption(
+      curTargetVersion,
+      rawUpdateOption,
+      projectName,
+      version,
+    );
+    if (!updaterOption) return;
+    kfLogger.info(
+      'Kungfu autoUpdater recheck option: ',
+      JSON.stringify(updaterOption),
+    );
+    setupAutoUpdaterListeners(MainWindow, targetVersions);
+    autoUpdater.checkForUpdates();
+  });
 }
 
 export { handleUpdateKungfu };

@@ -43,9 +43,9 @@ Context_ptr Runner::make_context() {
     }
     set_runner(*matcher_, this);
     auto backtest_context =
-        std::make_shared<BacktestContext>(*this, events_, std::move(matcher_), std::move(from_indexer_),
-                                          std::move(to_indexer_), report_, time_interval_, std::move(backtest_config_));
-
+        std::make_shared<BacktestContext>(*this, events_, matcher_, std::move(from_indexer_), std::move(to_indexer_),
+                                          report_, time_interval_, std::move(backtest_config_));
+    set_bookkeeper(*matcher_, std::addressof(backtest_context->get_bookkeeper()));
     set_runner(*report_, this, std::addressof(backtest_context->get_bookkeeper()));
     return backtest_context;
   }

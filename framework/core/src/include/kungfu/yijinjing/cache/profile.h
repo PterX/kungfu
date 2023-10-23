@@ -54,12 +54,12 @@ public:
 
   template <typename DataType> void operator<<(const state<DataType> &s) { get_storage()->replace(s.data); }
 
+  yijinjing::cache::ProfileStoragePtr &get_storage();
+
 private:
   const std::string profile_db_file_;
 
   explicit profile(std::string profile_db_file);
-
-  yijinjing::cache::ProfileStoragePtr &get_storage();
 };
 } // namespace kungfu::yijinjing::cache
 

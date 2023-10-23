@@ -1,7 +1,8 @@
 __uid__
-instrument_factors
-instruments
 commissions
+instruments
+instrument_factors
+static_data
 baskets
 basket_instruments
 home
@@ -16,10 +17,10 @@ order_trigger_actions
 algo_orders
 algo_order_actions
 context
+arguments
+bookkeeper
 io_device
 usable
-bookkeeper
-arguments
 begin_time
 end_time
 gen_time
@@ -218,7 +219,7 @@ delivery_month
 id
 volume_type
 total_amount
-type
+basket_type
 net_unit_value
 etf_value
 cash_difference
@@ -625,7 +626,7 @@ UnSSEReplace
 UnSSEMustReplace
 UnSSESZEReplace
 UnSSESZEMustReplace
-CashRepalceFlag
+CashReplaceFlag
 LocalETF
 CrossCountryETF
 CrossMarketETF

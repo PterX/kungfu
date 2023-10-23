@@ -67,6 +67,7 @@ export const setOperatorConfig: KungfuApi.KfOperatorExtConfig = {
   category: 'operator',
   key: 'default',
   silent: true,
+  access: {},
   extPath: '',
   version: '',
   description: '',

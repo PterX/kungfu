@@ -17,6 +17,7 @@ import { pathExists, remove } from 'fs-extra';
 import {
   getIdByKfLocation,
   getProcessIdByKfLocation,
+  getResultUntilValuable,
 } from '../utils/busiUtils';
 import {
   getAllKfRiskSettings,
@@ -29,6 +30,7 @@ import {
 import {
   basketStore,
   basketInstrumentStore,
+  promiseWithCachedPause,
 } from '@kungfu-trader/kungfu-js-api/kungfu';
 
 export const getAllKfConfigOriginData = (): Promise<
@@ -212,8 +214,10 @@ export const setTdGroup = (tdGroups: KungfuApi.KfExtraLocation[]) => {
   return fse.outputJSON(KF_TD_GROUP_JSON_PATH, tdGroups);
 };
 
-export const getAllRiskSettingList = (): Promise<KungfuApi.RiskSetting[]> => {
-  return getAllKfRiskSettings().then((riskSettingOrigins) => {
+export const getAllRiskSettingList = (
+  watcher: KungfuApi.Watcher,
+): Promise<KungfuApi.RiskSetting[]> => {
+  return getAllKfRiskSettings(watcher).then((riskSettingOrigins) => {
     const riskSettings = riskSettingOrigins
       .filter(
         (item) =>
@@ -233,6 +237,7 @@ export const getAllRiskSettingList = (): Promise<KungfuApi.RiskSetting[]> => {
 };
 
 export const setAllRiskSettingList = (
+  watcher: KungfuApi.Watcher,
   riskSettings: KungfuApi.RiskSetting[],
 ) => {
   const riskSettingOrigins: KungfuApi.RiskSettingForSave[] = riskSettings
@@ -266,19 +271,24 @@ export const setAllRiskSettingList = (
       };
     });
 
-  return setAllKfRiskSettings(riskSettingOrigins);
+  return setAllKfRiskSettings(watcher, riskSettingOrigins);
 };
 
-export const getAllBaskets = (): Promise<KungfuApi.Basket[]> => {
-  const baskets = basketStore.getAllBasket();
-  if (baskets) {
-    return Promise.resolve(baskets);
-  }
-  return Promise.resolve([]);
+export const getAllBaskets = (
+  watcher: KungfuApi.Watcher,
+): Promise<KungfuApi.Basket[]> => {
+  return promiseWithCachedPause(watcher, () => {
+    return getResultUntilValuable(() => basketStore.getAllBasket());
+  });
 };
 
-export const setAllBaskets = (baskets: KungfuApi.Basket[]) => {
-  return Promise.resolve(basketStore.setAllBasket(baskets));
+export const setAllBaskets = (
+  watcher: KungfuApi.Watcher,
+  baskets: KungfuApi.Basket[],
+) => {
+  return promiseWithCachedPause(watcher, () => {
+    return getResultUntilValuable(() => basketStore.setAllBasket(baskets));
+  });
 };
 
 export const getAllBasketInstruments = (): Promise<

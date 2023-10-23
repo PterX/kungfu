@@ -242,13 +242,13 @@ export const useGlobalStore = defineStore('global', {
     },
 
     setRiskSettingList() {
-      return getAllRiskSettingList().then((res) => {
+      return getAllRiskSettingList(window.watcher).then((res) => {
         this.riskSettings = res;
       });
     },
 
     setBasketList() {
-      return getAllBaskets().then((basketList) => {
+      return getAllBaskets(window.watcher).then((basketList) => {
         this.basketList = basketList;
       });
     },

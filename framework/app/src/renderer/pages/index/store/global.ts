@@ -241,8 +241,8 @@ export const useGlobalStore = defineStore('global', {
       this.globalSetting = getKfGlobalSettingsValue();
     },
 
-    setRiskSettingList() {
-      return getAllRiskSettingList().then((res) => {
+    setRiskSettingList(watcher: KungfuApi.Watcher) {
+      return getAllRiskSettingList(watcher).then((res) => {
         this.riskSettings = res;
       });
     },

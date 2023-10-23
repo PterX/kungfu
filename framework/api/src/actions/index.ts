@@ -212,8 +212,10 @@ export const setTdGroup = (tdGroups: KungfuApi.KfExtraLocation[]) => {
   return fse.outputJSON(KF_TD_GROUP_JSON_PATH, tdGroups);
 };
 
-export const getAllRiskSettingList = (): Promise<KungfuApi.RiskSetting[]> => {
-  return getAllKfRiskSettings().then((riskSettingOrigins) => {
+export const getAllRiskSettingList = (
+  watcher: KungfuApi.Watcher,
+): Promise<KungfuApi.RiskSetting[]> => {
+  return getAllKfRiskSettings(watcher).then((riskSettingOrigins) => {
     const riskSettings = riskSettingOrigins
       .filter(
         (item) =>
@@ -233,6 +235,7 @@ export const getAllRiskSettingList = (): Promise<KungfuApi.RiskSetting[]> => {
 };
 
 export const setAllRiskSettingList = (
+  watcher: KungfuApi.Watcher,
   riskSettings: KungfuApi.RiskSetting[],
 ) => {
   const riskSettingOrigins: KungfuApi.RiskSettingForSave[] = riskSettings
@@ -266,7 +269,7 @@ export const setAllRiskSettingList = (
       };
     });
 
-  return setAllKfRiskSettings(riskSettingOrigins);
+  return setAllKfRiskSettings(watcher, riskSettingOrigins);
 };
 
 export const getAllBaskets = (): Promise<KungfuApi.Basket[]> => {

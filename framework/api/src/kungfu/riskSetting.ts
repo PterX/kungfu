@@ -1,23 +1,26 @@
 import path from 'path';
 import fse from 'fs-extra';
-import { riskSettingStore, longfist } from '.';
+import { riskSettingStore, longfist, promiseWithCachedPause } from '.';
 import { kfLogger, getResultUntilValuable } from '../utils/busiUtils';
 import { BASE_DB_DIR } from '../config/pathConfig';
 
-export const getAllKfRiskSettings = (): Promise<
-  KungfuApi.RiskSettingOrigin[]
-> => {
+export const getAllKfRiskSettings = (
+  watcher: KungfuApi.Watcher,
+): Promise<KungfuApi.RiskSettingOrigin[]> => {
   kfLogger.info('Get kungfu RiskSettings');
   if (!fse.pathExistsSync(path.join(BASE_DB_DIR, 'config.db'))) {
     return Promise.resolve([]);
   }
 
-  return getResultUntilValuable(() =>
-    riskSettingStore.getAllRiskSetting(),
-  ).then((riskSettings) => Object.values(riskSettings));
+  return promiseWithCachedPause(watcher, () => {
+    return getResultUntilValuable(() =>
+      riskSettingStore.getAllRiskSetting(),
+    ).then((riskSettings) => Object.values(riskSettings));
+  });
 };
 
 export const setAllKfRiskSettings = (
+  watcher: KungfuApi.Watcher,
   riskSettings: KungfuApi.RiskSettingForSave[],
 ): Promise<boolean> => {
   kfLogger.info('Set kungfu RiskSettings');
@@ -29,7 +32,9 @@ export const setAllKfRiskSettings = (
       ...item,
     }));
 
-  return getResultUntilValuable(() =>
-    riskSettingStore.setAllRiskSetting(riskSettingResolved),
-  );
+  return promiseWithCachedPause(watcher, () => {
+    return getResultUntilValuable(() =>
+      riskSettingStore.setAllRiskSetting(riskSettingResolved),
+    );
+  });
 };

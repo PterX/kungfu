@@ -614,9 +614,16 @@ function onEntryVisualization(visible: boolean) {
 
       .gutter {
         cursor: row-resize;
-        background-color: #333;
         width: 100%;
         height: 5px;
+      }
+
+      .gutter:hover {
+        background-color: #333;
+      }
+
+      .gutter:active {
+        background-color: #333;
       }
 
       .kf-journal-content {

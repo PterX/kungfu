@@ -254,9 +254,11 @@ export const useGlobalStore = defineStore('global', {
     },
 
     setBasketInstrumentList() {
-      return getAllBasketInstruments().then((basketInstrumentList) => {
-        this.basketInstrumentList = basketInstrumentList;
-      });
+      return getAllBasketInstruments(window.watcher).then(
+        (basketInstrumentList) => {
+          this.basketInstrumentList = basketInstrumentList;
+        },
+      );
     },
 
     checkCurrentGlobalKfLocationExisted() {

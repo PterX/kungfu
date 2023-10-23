@@ -31,42 +31,47 @@ import {
   basketInstrumentStore,
 } from '@kungfu-trader/kungfu-js-api/kungfu';
 
-export const getAllKfConfigOriginData = (): Promise<
-  Record<KfCategoryTypes, KungfuApi.KfConfig[]>
-> => {
-  return getKfAllConfig().then((allConfig: KungfuApi.KfConfigOrigin[]) => {
-    const allConfigResolved = allConfig.map(
-      (config: KungfuApi.KfConfigOrigin): KungfuApi.KfConfig => {
-        return {
-          ...config,
-          category: KfCategoryEnum[config.category] as KfCategoryTypes,
-          mode: KfModeEnum[config.mode] as KfModeTypes,
-        };
-      },
-    );
+export const getAllKfConfigOriginData = (
+  watcher?: KungfuApi.Watcher,
+): Promise<Record<KfCategoryTypes, KungfuApi.KfConfig[]>> => {
+  return getKfAllConfig(watcher).then(
+    (allConfig: KungfuApi.KfConfigOrigin[]) => {
+      const allConfigResolved = allConfig.map(
+        (config: KungfuApi.KfConfigOrigin): KungfuApi.KfConfig => {
+          return {
+            ...config,
+            category: KfCategoryEnum[config.category] as KfCategoryTypes,
+            mode: KfModeEnum[config.mode] as KfModeTypes,
+          };
+        },
+      );
 
-    return {
-      md: allConfigResolved.filter((config: KungfuApi.KfConfig) => {
-        return config.category === 'md';
-      }),
-      operator: allConfigResolved.filter((config: KungfuApi.KfConfig) => {
-        return config.category === 'operator';
-      }),
-      td: allConfigResolved.filter((config: KungfuApi.KfConfig) => {
-        return config.category === 'td';
-      }),
-      strategy: allConfigResolved.filter((config: KungfuApi.KfConfig) => {
-        return config.category === 'strategy';
-      }),
-      system: allConfigResolved.filter((config: KungfuApi.KfConfig) => {
-        return config.category === 'system';
-      }),
-    };
-  });
+      return {
+        md: allConfigResolved.filter((config: KungfuApi.KfConfig) => {
+          return config.category === 'md';
+        }),
+        operator: allConfigResolved.filter((config: KungfuApi.KfConfig) => {
+          return config.category === 'operator';
+        }),
+        td: allConfigResolved.filter((config: KungfuApi.KfConfig) => {
+          return config.category === 'td';
+        }),
+        strategy: allConfigResolved.filter((config: KungfuApi.KfConfig) => {
+          return config.category === 'strategy';
+        }),
+        system: allConfigResolved.filter((config: KungfuApi.KfConfig) => {
+          return config.category === 'system';
+        }),
+      };
+    },
+  );
 };
 
-export const isKfConfig = async (kfLocation: KungfuApi.KfLocation) => {
-  const allConfig = await getAllKfConfigOriginData();
+export const isKfConfig = async (
+  kfLocation: KungfuApi.KfLocation,
+  watcher?: KungfuApi.Watcher,
+) => {
+  const allConfig = await getAllKfConfigOriginData(watcher);
   const { category, group, name } = kfLocation;
   if (!allConfig[category]) {
     return false;
@@ -81,10 +86,11 @@ export const isKfConfig = async (kfLocation: KungfuApi.KfLocation) => {
 
 export const deleteAllByKfLocation = async (
   kfLocation: KungfuApi.KfLocation,
+  watcher?: KungfuApi.Watcher,
 ): Promise<void> => {
-  const isConfig = await isKfConfig(kfLocation);
+  const isConfig = await isKfConfig(kfLocation, watcher);
 
-  return (isConfig ? removeKfConfig(kfLocation) : Promise.resolve())
+  return (isConfig ? removeKfConfig(kfLocation, watcher) : Promise.resolve())
     .then(() => removeKfLocation(kfLocation))
     .then(() => removeLog(kfLocation));
 };
@@ -95,7 +101,7 @@ export const ensureRemoveLocation = (
   processStatus: Pm2ProcessStatusData,
 ) => {
   return graceDeleteProcess(watcher, kfLocation, processStatus).then(() =>
-    deleteAllByKfLocation(kfLocation),
+    deleteAllByKfLocation(kfLocation, watcher),
   );
 };
 

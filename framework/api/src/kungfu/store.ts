@@ -1,6 +1,6 @@
 import path from 'path';
 import fse from 'fs-extra';
-import { configStore } from '../kungfu';
+import { configStore, promiseWithCachedPause } from '../kungfu';
 import {
   getResultUntilValuable,
   hidePasswordByLogger,
@@ -8,11 +8,25 @@ import {
 import { kfLogger } from '../utils/logUtils';
 import { BASE_DB_DIR } from '../config/pathConfig';
 
-export const getKfAllConfig = (): Promise<KungfuApi.KfConfigOrigin[]> => {
+const buildConfigOperationPromise = <T>(
+  originGetter: () => T,
+  watcher?: KungfuApi.Watcher,
+) =>
+  watcher
+    ? promiseWithCachedPause(watcher, () =>
+        getResultUntilValuable(originGetter),
+      )
+    : getResultUntilValuable(originGetter);
+
+export const getKfAllConfig = (
+  watcher?: KungfuApi.Watcher,
+): Promise<KungfuApi.KfConfigOrigin[]> => {
   if (fse.pathExistsSync(path.join(BASE_DB_DIR, 'config.db'))) {
-    return getResultUntilValuable(() => configStore.getAllConfig()).then(
-      (allConfigs) => Object.values(allConfigs),
+    const promise = buildConfigOperationPromise(
+      () => configStore.getAllConfig(),
+      watcher,
     );
+    return promise.then((allConfigs) => Object.values(allConfigs));
   } else {
     return Promise.resolve([]);
   }
@@ -21,48 +35,62 @@ export const getKfAllConfig = (): Promise<KungfuApi.KfConfigOrigin[]> => {
 export const setKfConfig = (
   kfLocation: KungfuApi.KfLocation,
   configValue: string,
+  watcher?: KungfuApi.Watcher,
 ): Promise<boolean> => {
   const configForLog = hidePasswordByLogger(configValue);
   kfLogger.info(
     `Set Kungfu Config ${kfLocation.category} ${kfLocation.group} ${kfLocation.name} ${kfLocation.mode} ${configForLog}`,
   );
-  return getResultUntilValuable(() =>
-    configStore.setConfig(
-      kfLocation.category,
-      kfLocation.group,
-      kfLocation.name,
-      kfLocation.mode,
-      configValue,
-    ),
+  const promise = buildConfigOperationPromise(
+    () =>
+      configStore.setConfig(
+        kfLocation.category,
+        kfLocation.group,
+        kfLocation.name,
+        kfLocation.mode,
+        configValue,
+      ),
+    watcher,
   );
+  return promise;
 };
 
 export const removeKfConfig = (
   kfLocation: KungfuApi.KfLocation,
+  watcher?: KungfuApi.Watcher,
 ): Promise<boolean> => {
   kfLogger.info(
     `Remove Kungfu Config ${kfLocation.category} ${kfLocation.group} ${kfLocation.name}`,
   );
-  return getResultUntilValuable(() =>
-    configStore.removeConfig(
-      kfLocation.category,
-      kfLocation.group,
-      kfLocation.name,
-      kfLocation.mode,
-    ),
+  const promise = buildConfigOperationPromise(
+    () =>
+      configStore.removeConfig(
+        kfLocation.category,
+        kfLocation.group,
+        kfLocation.name,
+        kfLocation.mode,
+      ),
+    watcher,
   );
+  return promise;
 };
 
-export const getKfConfig = (strategyId: string) => {
+export const getKfConfig = (
+  strategyId: string,
+  watcher?: KungfuApi.Watcher,
+) => {
   const kfLocation: KungfuApi.KfLocation = getStrategyKfLocation(strategyId);
-  return getResultUntilValuable(() =>
-    configStore.getConfig(
-      kfLocation.category,
-      kfLocation.group,
-      kfLocation.name,
-      kfLocation.mode,
-    ),
+  const promise = buildConfigOperationPromise(
+    () =>
+      configStore.getConfig(
+        kfLocation.category,
+        kfLocation.group,
+        kfLocation.name,
+        kfLocation.mode,
+      ),
+    watcher,
   );
+  return promise;
 };
 
 export const getStrategyKfLocation = (strategyId: string) => {
@@ -72,8 +100,4 @@ export const getStrategyKfLocation = (strategyId: string) => {
     name: strategyId,
     mode: 'live',
   };
-};
-
-export const getAllLocation = (): Record<string, KungfuApi.KfConfig> => {
-  return configStore.getAllLocation();
 };

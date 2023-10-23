@@ -478,6 +478,7 @@ export const useAddUpdateRemoveKfConfig = (): {
                 ...formState,
                 add_time: +new Date().getTime() * Math.pow(10, 6),
               }),
+              window.watcher,
             )
               .then(() => {
                 success();

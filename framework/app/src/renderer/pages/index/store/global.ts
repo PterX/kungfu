@@ -219,7 +219,7 @@ export const useGlobalStore = defineStore('global', {
     },
 
     setKfConfigList() {
-      return getAllKfConfigOriginData().then((res) => {
+      return getAllKfConfigOriginData(window.watcher).then((res) => {
         const { md, strategy, operator } = res;
         let { td } = res;
         if (this.tdFilter) {

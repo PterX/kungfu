@@ -340,6 +340,7 @@ function onEntryVisualization() {
         width: 100%;
         display: flex;
         flex-direction: column;
+        z-index: 99;
       }
       .kf-journal-head-warp {
         flex: 1 1 20%;
@@ -358,6 +359,7 @@ function onEntryVisualization() {
           height: 100%;
           padding-top: 8px;
           box-sizing: border-box;
+          z-index: 1;
         }
       }
 

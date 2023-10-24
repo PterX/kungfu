@@ -729,6 +729,7 @@ function handleClickRow({ row }) {
   padding: 4px 0 4px 4px;
   box-sizing: border-box;
   overflow: hidden;
+  background-color: #141414;
 
   .kf-journal-spin {
     .ant-spin-text {

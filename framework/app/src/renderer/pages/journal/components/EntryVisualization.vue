@@ -85,7 +85,7 @@
           class="kf-chart_content"
         ></div>
         <a-empty
-          v-show="instrumentList.length === 0"
+          v-show="instrumentList.length === 0 || !hasInit"
           :image="simpleImage"
           :description="t('empty_text')"
         ></a-empty>
@@ -141,7 +141,10 @@ import {
   OffsetEnum,
   SideEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
-import { debounce } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import {
+  delayMilliSeconds,
+  debounce,
+} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 
 const { t } = VueI18n.global;
 
@@ -221,6 +224,8 @@ const xAxisMinMax = ref<{
   min: 'dataMin',
   max: 'dataMax',
 });
+const hasInit = ref<boolean>(false);
+const shouldResize = ref<boolean>(false);
 onMounted(() => {
   nextTick(async () => {
     await initChart();
@@ -249,7 +254,10 @@ const strategyData = computed(() => {
 });
 
 const showChartWrap = computed(() => {
-  return instrumentList.value.length > 0 || keepChartWrapAlice.value;
+  return (
+    (instrumentList.value.length > 0 && hasInit.value) ||
+    keepChartWrapAlice.value
+  );
 });
 
 const customRow = (record: KungfuApi.SessionResolved) => {
@@ -419,7 +427,7 @@ function initChartData() {
     });
   } else {
     nextTick(() => {
-      myChart && myChart.setOption(option);
+      updateOption();
     });
   }
 }
@@ -670,7 +678,7 @@ function getCurInstrument(instrument: string) {
 function initChart() {
   const element = document.getElementById('strategyChart');
   if (element) {
-    myChart = echarts.init(element as HTMLElement);
+    myChart = echarts.init(element as HTMLElement, '', { renderer: 'svg' });
     addChartEventListener(myChart);
   }
 }
@@ -699,7 +707,7 @@ const getYAxisInterval = () => {
   return interval;
 };
 
-const updateOption = () => {
+const updateOption = async () => {
   if (!chartSeriesData.value[selectedInstrument.value]) return;
   setXAxisMinMax();
 
@@ -754,14 +762,21 @@ const updateOption = () => {
   });
 
   myChart && myChart.setOption(option);
+  hasInit.value = true;
+  if (shouldResize.value) {
+    await delayMilliSeconds(0);
+    myChart.resize();
+  }
 };
 
 function handleResize(update = false) {
-  if (myChart) {
+  if (myChart && hasInit.value) {
     if (update) {
       updateOption();
     }
     myChart.resize();
+  } else {
+    shouldResize.value = true;
   }
 }
 function getDefaultSize(name: string) {
@@ -1283,7 +1298,7 @@ const handleInputChange = debounce(() => {
         right: 0;
         width: 20%;
         max-width: 300px;
-        z-index: 999;
+        z-index: 1;
       }
       .kf-chart_content {
         width: 100%;

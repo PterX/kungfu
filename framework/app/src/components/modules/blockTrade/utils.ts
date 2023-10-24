@@ -1,7 +1,5 @@
-import {
-  dealOrderInputItem,
-  dealUnderweightType,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { dealUnderweightType } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { dealOrderInputItem } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import { VNode } from 'vue';
 import { getBlockTradeOrderTrans } from './config';
 import { createOrderPlaceVNode } from '../makeOrder/utils';

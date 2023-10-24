@@ -163,42 +163,53 @@ class Strategy(wc.Strategy):
             func(*args)
 
     def __init_book(self):
-        location = yjj.location(
-            kfj.MODES[self.ctx.mode],
-            lf.enums.category.STRATEGY,
-            self.ctx.group,
-            self.ctx.name,
-            self.ctx.runtime_locator
-            if kfj.MODES[self.ctx.mode] != lf.enums.mode.BACKTEST
-            else self.ctx.backtest_locator,
+        location = self._find_location(
+            lf.enums.category.STRATEGY, self.ctx.group, self.ctx.name
         )
-
         self.ctx.book = self.ctx.wc_context.bookkeeper.get_book(location.uid)
 
     def __add_timer(self, nanotime, callback):
         def wrap_callback(event):
             self.__call_proxy(callback, self.ctx, event)
 
-        self.ctx.wc_context.add_timer(nanotime, wrap_callback)
+        return self.ctx.wc_context.add_timer(nanotime, wrap_callback)
 
     def __add_time_interval(self, duration, callback):
         def wrap_callback(event):
             self.__call_proxy(callback, self.ctx, event)
 
-        self.ctx.wc_context.add_time_interval(duration, wrap_callback)
+        return self.ctx.wc_context.add_time_interval(duration, wrap_callback)
 
     def __add_account(self, source, account):
         self.ctx.wc_context.add_account(source, account)
 
     def __get_account_book(self, source, account):
-        location = yjj.location(
-            lf.enums.mode.LIVE,
-            lf.enums.category.TD,
-            source,
-            account,
-            self.ctx.runtime_locator,
-        )
+        location = self._find_location(lf.enums.category.TD, source, account)
         return self.ctx.wc_context.bookkeeper.get_book(location.uid)
+
+    def __get_account_uid(self, source, account):
+        location = self._find_location(lf.enums.category.TD, source, account)
+        return location.uid
+
+    def _find_location(self, category, group, name):
+        mode = (
+            lf.enums.mode.LIVE
+            if kfj.MODES[self.ctx.mode] != lf.enums.mode.BACKTEST
+            else lf.enums.mode.BACKTEST
+        )
+        locator = (
+            self.ctx.runtime_locator
+            if kfj.MODES[self.ctx.mode] != lf.enums.mode.BACKTEST
+            else self.ctx.backtest_locator
+        )
+        location = yjj.location(
+            mode,
+            category,
+            group,
+            name,
+            locator,
+        )
+        return location
 
     async def __async_insert_order(
         self,
@@ -237,7 +248,9 @@ class Strategy(wc.Strategy):
         self.ctx.now = wc_context.now
         self.ctx.add_timer = self.__add_timer
         self.ctx.add_time_interval = self.__add_time_interval
+        self.ctx.clear_timer = wc_context.clear_timer
         self.ctx.subscribe = wc_context.subscribe
+        self.ctx.unsubscribe = wc_context.unsubscribe
         self.ctx.subscribe_all = wc_context.subscribe_all
         self.ctx.subscribe_operator = wc_context.subscribe_operator
         self.ctx.add_account = self.__add_account
@@ -248,6 +261,7 @@ class Strategy(wc.Strategy):
         self.ctx.insert_batch_orders = wc_context.insert_batch_orders
         self.ctx.insert_array_orders = wc_context.insert_array_orders
         self.ctx.insert_algo_order = wc_context.insert_algo_order
+        self.ctx.update_algo_order = wc_context.update_algo_order
         self.ctx.cancel_order = wc_context.cancel_order
         self.ctx.cancel_order_trigger = wc_context.cancel_order_trigger
         self.ctx.cancel_algo_order = wc_context.cancel_algo_order
@@ -263,10 +277,12 @@ class Strategy(wc.Strategy):
         self.ctx.hold_positions = wc_context.hold_positions
         self.ctx.set_resume_policy = wc_context.set_resume_policy
         self.ctx.get_account_book = self.__get_account_book
+        self.ctx.get_account_uid = self.__get_account_uid
         self.ctx.req_deregister = wc_context.req_deregister
         self.ctx.is_started = wc_context.is_started
         self.ctx.buy = functools.partial(self.__async_insert_order, Side.Buy)
         self.ctx.sell = functools.partial(self.__async_insert_order, Side.Sell)
+        self.ctx.static_data = wc_context.bookkeeper.static_data
         self.__init_book()
         self.__call_proxy(self._pre_start, self.ctx)
 

@@ -18,12 +18,14 @@ using namespace kungfu::yijinjing::util;
 namespace kungfu::wingchun::op {
 
 LiveContext::LiveContext(apprentice &app, const rx::connectable_observable<event_ptr> &events)
-    : Context(app, events), broker_client_(app_) {
+    : Context(app, events), broker_client_(app_), bookkeeper_(app_, broker_client_) {
   log::copy_log_settings(app_.get_home(), app_.get_home()->name);
 }
 
 void LiveContext::on_start() {
   broker_client_.on_start(events_);
+  bookkeeper_.on_start(events_);
+
   auto start_events = events_ | skip_until(events_ | filter([&](auto e) { return started_; }));
   start_events | is(Deregister::tag) | $$(check_dependency_state(event));
   start_events | is(OperatorStateUpdate::tag) | $$(check_dependency_state(event));
@@ -59,26 +61,28 @@ void LiveContext::prepare(const event_ptr &event) {
 
 const std::string LiveContext::get_config() const {
   auto &config_map = app_.get_state_bank()[boost::hana::type_c<Config>];
-  if (config_map.find(app_.get_home_uid()) == config_map.end()) {
+  if (config_map.find(app_.get_live_home_uid()) == config_map.end()) {
     return "{}";
   }
-  auto &config_obj = config_map.at(app_.get_home_uid());
+  auto &config_obj = config_map.at(app_.get_live_home_uid());
   return config_obj.data.value;
 }
 
 int64_t LiveContext::now() const { return app_.now(); }
 
-void LiveContext::add_timer(int64_t nanotime, const std::function<void(event_ptr)> &callback) {
-  app_.add_timer(nanotime, callback);
+int32_t LiveContext::add_timer(int64_t nanotime, const std::function<void(event_ptr)> &callback) {
+  return app_.add_timer(nanotime, callback);
 }
 
-void LiveContext::add_time_interval(int64_t duration, const std::function<void(event_ptr)> &callback) {
-  app_.add_time_interval(duration, callback);
+int32_t LiveContext::add_time_interval(int64_t duration, const std::function<void(event_ptr)> &callback) {
+  return app_.add_time_interval(duration, callback);
 }
+
+void LiveContext::clear_timer(int32_t timer_id) { app_.clear_timer(timer_id); }
 
 void LiveContext::subscribe(const std::string &source, const std::vector<std::string> &instrument_ids,
                             const std::string &exchange_id) {
-  auto md_location = broker_client_.find_md_location(source, app_.get_home());
+  auto md_location = broker_client_.find_md_location(source, app_.get_live_home());
   for (const auto &instrument_id : instrument_ids) {
     broker_client_.subscribe(md_location, exchange_id, instrument_id);
   }
@@ -86,14 +90,14 @@ void LiveContext::subscribe(const std::string &source, const std::vector<std::st
 
 void LiveContext::subscribe_all(const std::string &source, uint8_t market_type, uint64_t instrument_type,
                                 uint64_t data_type) {
-  auto md_location = broker_client_.find_md_location(source, app_.get_home());
+  auto md_location = broker_client_.find_md_location(source, app_.get_live_home());
   broker_client_.subscribe_all(md_location, market_type, instrument_type, data_type);
 }
 
 void LiveContext::subscribe_operator(const std::string &group, const std::string &name) {
   uint32_t hashed_op = hash_operator(group, name);
 
-  auto home = app_.get_home();
+  auto home = app_.get_live_home();
   auto operator_location = location::make_shared(mode::LIVE, category::OPERATOR, group, name, home->locator);
   if (not app_.has_location(operator_location->uid)) {
     SPDLOG_ERROR("subscribe operator no location");
@@ -114,6 +118,8 @@ void LiveContext::publish_synthetic_data(const std::string &key, const std::stri
 }
 
 broker::Client &LiveContext::get_broker_client() { return broker_client_; }
+
+book::Bookkeeper &LiveContext::get_bookkeeper() { return bookkeeper_; }
 
 void LiveContext::check_dependency_state(const event_ptr &event) {
   bool all_dependency_ready = true;
@@ -151,7 +157,7 @@ void LiveContext::update_operator_state(OperatorStateUpdate &state_update) {
   state_ = state_update.state;
   auto writer = app_.get_writer(location::PUBLIC);
   state_update.update_time = now();
-  state_update.location_uid = app_.get_home_uid();
+  state_update.location_uid = app_.get_live_home_uid();
   writer->write(state_update.update_time, state_update);
 }
 
@@ -166,5 +172,7 @@ void LiveContext::set_resume_policy(longfist::enums::ResumePolicy resume_policy)
 longfist::enums::ResumePolicy LiveContext::get_resume_policy() { return broker_client_.get_resume_policy_value(); }
 
 uint32_t LiveContext::get_home_uid() const { return app_.get_home_uid(); }
+
+uint32_t LiveContext::get_live_home_uid() const { return app_.get_live_home_uid(); }
 
 } // namespace kungfu::wingchun::op

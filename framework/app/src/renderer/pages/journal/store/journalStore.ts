@@ -16,6 +16,10 @@ interface journalState {
   currentTime: bigint;
   currentLoadedLastestFrameGenTime: bigint;
   currentLocation: LocationRseolved | null;
+  isLoadingFrames: boolean;
+  selectedChartItem: number;
+  currentFrame: KungfuApi.FrameResolved | null;
+  currentFrameId: string;
 }
 
 export const useJournalStore = defineStore('journal', {
@@ -26,6 +30,10 @@ export const useJournalStore = defineStore('journal', {
     currentTime: getNowInNano(),
     currentLoadedLastestFrameGenTime: 0n,
     currentLocation: null,
+    isLoadingFrames: false,
+    selectedChartItem: 0,
+    currentFrame: null,
+    currentFrameId: '',
   }),
 
   actions: {
@@ -54,7 +62,7 @@ export const useJournalStore = defineStore('journal', {
     },
 
     setCurrentTime(nano: bigint) {
-      this.currentTime = nano;
+      this.currentTime !== nano ? (this.currentTime = nano) : null;
     },
 
     setCurrentFrameList(frameList: KungfuApi.FrameResolved[]) {
@@ -63,6 +71,18 @@ export const useJournalStore = defineStore('journal', {
 
     setCurrentLastFrameTime(nano: bigint) {
       this.currentLoadedLastestFrameGenTime = nano;
+    },
+
+    setSelectedChartItem(index: number) {
+      this.selectedChartItem = index;
+    },
+
+    setCurrentFrameId(id: string) {
+      this.currentFrameId = id;
+    },
+
+    setCurrentFrame(frame: KungfuApi.FrameResolved) {
+      this.currentFrame = frame;
     },
   },
 

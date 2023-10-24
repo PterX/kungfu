@@ -22,8 +22,8 @@ namespace kungfu::yijinjing::practice {
 
 inline yijinjing::data::location_ptr make_system_location(const std::string &group, const std::string &name,
                                                           const data::locator_ptr &locator) {
-  return yijinjing::data::location::make_shared(longfist::enums::mode::LIVE, longfist::enums::category::SYSTEM, group,
-                                                name, locator);
+  return yijinjing::data::location::make_shared(locator->get_dir_mode(), longfist::enums::category::SYSTEM, group, name,
+                                                locator);
 }
 
 typedef std::unordered_map<uint32_t, yijinjing::journal::writer_ptr> WriterMap;
@@ -81,6 +81,10 @@ public:
   bool has_writer(uint32_t dest_id) const;
 
   [[nodiscard]] yijinjing::journal::writer_ptr get_writer(uint32_t dest_id) const;
+
+  bool has_band_writer(uint32_t dest_id) const;
+
+  [[nodiscard]] yijinjing::journal::writer_ptr get_band_writer(uint32_t dest_id) const;
 
   [[maybe_unused]] [[nodiscard]] const WriterMap &get_writers() const;
 
@@ -165,6 +169,9 @@ protected:
   int64_t end_time_;
   yijinjing::journal::reader_ptr reader_;
   WriterMap writers_ = {};
+  WriterMap band_writers_ = {};
+  mutable std::mutex band_mtx_{};
+  const size_t main_thread_id_{};
 
   rx::connectable_observable<event_ptr> events_ = {};
 
@@ -205,7 +212,7 @@ protected:
   void require_write_to(int64_t trigger_time, uint32_t source_id, uint32_t dest_id);
 
   void require_write_to_band(int64_t trigger_time, uint32_t source_id, const yijinjing::data::location_ptr &location,
-                             uint32_t page_size = 0) const;
+                             uint64_t page_size = 0) const;
 
   virtual void pre_setup();
 

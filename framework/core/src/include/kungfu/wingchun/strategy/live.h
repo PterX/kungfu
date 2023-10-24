@@ -33,18 +33,36 @@ public:
   uint32_t get_home_uid() const override;
 
   /**
+   * Get location_uid of current process
+   * @return location_uid
+   */
+  uint32_t get_live_home_uid() const;
+
+  /**
+   * Get config from database.
+   * @return  config of current location_uid
+   */
+  const std::string get_config() const override;
+
+  /**
    * Add one shot timer callback.
    * @param nanotime when to call in nano seconds
    * @param callback callback function
    */
-  void add_timer(int64_t nanotime, const std::function<void(event_ptr)> &callback) override;
+  int32_t add_timer(int64_t nanotime, const std::function<void(event_ptr)> &callback) override;
 
   /**
    * Add periodically callback.
    * @param duration duration in nano seconds
    * @param callback callback function
    */
-  void add_time_interval(int64_t duration, const std::function<void(event_ptr)> &callback) override;
+  int32_t add_time_interval(int64_t duration, const std::function<void(event_ptr)> &callback) override;
+
+  /**
+   * Clear timer
+   * @param timer_id id of timer, return by add_timer and add_time_interval
+   */
+  void clear_timer(int32_t timer_id) override;
 
   /**
    * Add account for strategy.
@@ -60,7 +78,7 @@ public:
    * @param exchange_ids exchange IDs
    */
   void subscribe(const std::string &source, const std::vector<std::string> &instrument_ids,
-                 const std::string &exchange_ids) override;
+                 const std::string &exchange_id) override;
 
   /**
    * Subscribe all from given MD
@@ -204,6 +222,7 @@ public:
    * @param algo_id algo id
    * @param args json string for algo custom arguments
    * @param is_local boolean marking local algo order
+   * @param basket_uid uint32_t basket_uid
    * @return order_id
    */
   uint64_t insert_algo_order(const std::string &instrument_id, const std::string &exchange_id,
@@ -211,7 +230,33 @@ public:
                              int64_t end_time, int64_t volume, longfist::enums::PriceType type,
                              longfist::enums::Side side, longfist::enums::Offset offset,
                              const std::string &algo_type_id, const std::string &algo_id, const std::string &args,
-                             bool is_local = false) override;
+                             bool is_local = false, uint32_t basket_uid = 0) override;
+
+  /**
+   * @param origin_order_id origin order id
+   * @param instrument_id instrument ID
+   * @param exchange_id exchange ID
+   * @param source source ID
+   * @param account account ID
+   * @param begin_time algo begin time
+   * @param end_time algo end time
+   * @param volume trade volume
+   * @param type price type
+   * @param side side
+   * @param offset offset, defaults to longfist::enums::Offset::Open
+   * @param algo_type_id algo type id
+   * @param algo_id algo id
+   * @param args json string for algo custom arguments
+   * @param is_local boolean marking local algo order
+   * @param basket_uid uint32_t basket_uid
+   * @return order_id
+   */
+  uint64_t update_algo_order(uint64_t origin_order_id, const std::string &instrument_id, const std::string &exchange_id,
+                             const std::string &source, const std::string &account, int64_t begin_time,
+                             int64_t end_time, int64_t volume, longfist::enums::PriceType type,
+                             longfist::enums::Side side, longfist::enums::Offset offset,
+                             const std::string &algo_type_id, const std::string &algo_id, const std::string &args,
+                             bool is_local = false, uint32_t basket_uid = 0) override;
 
   /**
    * Cancel order.

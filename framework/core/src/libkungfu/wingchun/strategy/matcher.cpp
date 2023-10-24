@@ -20,7 +20,7 @@ namespace kungfu::wingchun::strategy {
 void Matcher::update_order(const Order &order) {
   try {
     auto writer = app_->get_writer(location::PUBLIC);
-    auto [source, dest] = order_ids_.at(order.order_id);
+    auto [source, dest] = get_source_dest(order.order_id);
     writer->write_raw_at_as(now(), now(), dest, source, order.tag, reinterpret_cast<uintptr_t>(&order), sizeof(order));
   } catch (std::out_of_range &e) {
     throw std::out_of_range(
@@ -31,7 +31,7 @@ void Matcher::update_order(const Order &order) {
 void Matcher::update_trade(const Trade &trade) {
   try {
     auto writer = app_->get_writer(location::PUBLIC);
-    auto [source, dest] = order_ids_.at(trade.order_id);
+    auto [source, dest] = get_source_dest(trade.order_id);
     writer->write_raw_at_as(now(), now(), dest, source, trade.tag, reinterpret_cast<uintptr_t>(&trade), sizeof(trade));
   } catch (std::out_of_range &e) {
     throw std::out_of_range(
@@ -42,7 +42,7 @@ void Matcher::update_trade(const Trade &trade) {
 void Matcher::update_order_action_error(const OrderActionError &error) {
   try {
     auto writer = app_->get_writer(location::PUBLIC);
-    auto [source, dest] = order_ids_.at(error.order_id);
+    auto [source, dest] = get_source_dest(error.order_id);
     writer->write_raw_at_as(now(), now(), dest, source, error.tag, reinterpret_cast<uintptr_t>(&error), sizeof(error));
   } catch (std::out_of_range &e) {
     throw std::out_of_range(
@@ -51,6 +51,8 @@ void Matcher::update_order_action_error(const OrderActionError &error) {
 }
 
 void set_runner(Matcher &matcher, Runner *runner) { matcher.app_ = runner; }
+
+void set_bookkeeper(Matcher &matcher, book::Bookkeeper *bookkeeper) { matcher.bookkeeper_ = bookkeeper; }
 
 void add_order_id(Matcher &matcher, uint64_t order_id, uint32_t source, uint32_t dest) {
   matcher.order_ids_.insert_or_assign(order_id, std::make_pair(source, dest));
@@ -68,6 +70,10 @@ void BasicMatcher::on_quote(const Quote &quote) {
 };
 
 void BasicMatcher::on_order_input(const OrderInput &order_input) {
+  auto [stg_uid, td_uid] = get_source_dest(order_input.order_id);
+  auto stg_book = get_bookkeeper()->get_book(stg_uid);
+  auto td_book = get_bookkeeper()->get_book(td_uid);
+
   Order order{};
   order_from_input(order_input, order);
   if (order.price_type != PriceType::Limit) {

@@ -19,7 +19,6 @@ namespace kungfu::wingchun::service {
 class Ledger : public yijinjing::practice::apprentice {
   typedef std::unordered_map<uint32_t, longfist::types::BrokerStateUpdate> BrokerStateMap;
   typedef std::unordered_map<uint32_t, longfist::types::OperatorStateUpdate> OperatorStateMap;
-  typedef std::unordered_map<uint32_t, longfist::types::Position> PositionMap;
 
 public:
   explicit Ledger(yijinjing::data::locator_ptr locator, longfist::enums::mode m, bool low_latency,
@@ -99,10 +98,10 @@ private:
 
   void write_strategy_data(int64_t trigger_time, uint32_t strategy_uid);
 
-  void write_positions(int64_t trigger_time, uint32_t dest, book::PositionMap &positions);
+  void write_positions(int64_t trigger_time, uint32_t dest, map::PositionMap &positions);
 
   void write_instrument_factors(int64_t trigger_time, uint32_t strategy_uid,
-                                book::InstrumentFactorMap &instrument_factors);
+                                const map::InstrumentFactorMap &instrument_factors);
 
   void request_asset_sync(int64_t trigger_time);
 

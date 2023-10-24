@@ -375,6 +375,55 @@ NLOHMANN_JSON_SERIALIZE_ENUM(PriceType, {
 
 inline std::ostream &operator<<(std::ostream &os, PriceType t) { return os << int32_t(t); }
 
+// ETF成分股信息,标志改成分股是否可以由现金替代
+enum class CashReplaceFlag : int8_t {
+  UnReplace,           // 不可替代
+  EnReplace,           // 可以替代
+  MustReplace,         // 必须替代
+  UnSSEReplace,        // 非沪市退补现金替代
+  UnSSEMustReplace,    // 非沪市必须现金替代
+  UnSSESZEReplace,     // 非沪深退补现金替代
+  UnSSESZEMustReplace, // 非沪深必须现金替代
+  Unknown
+};
+
+NLOHMANN_JSON_SERIALIZE_ENUM(CashReplaceFlag, {
+                                                  {CashReplaceFlag::UnReplace, "UnReplace"},
+                                                  {CashReplaceFlag::EnReplace, "EnReplace"},
+                                                  {CashReplaceFlag::MustReplace, "MustReplace"},
+                                                  {CashReplaceFlag::UnSSEReplace, "UnSSEReplace"},
+                                                  {CashReplaceFlag::UnSSEMustReplace, "UnSSEMustReplace"},
+                                                  {CashReplaceFlag::UnSSESZEReplace, "UnSSESZEReplace"},
+                                                  {CashReplaceFlag::UnSSESZEMustReplace, "UnSSESZEMustReplace"},
+                                                  {CashReplaceFlag::Unknown, "Unknown"},
+                                              })
+
+inline std::ostream &operator<<(std::ostream &os, CashReplaceFlag t) { return os << int32_t(t); }
+
+enum class ETFType : int8_t {
+  LocalETF,        // 本市ETF
+  CrossCountryETF, // 跨境ETF
+  CrossMarketETF,  // 跨市ETF
+  CurrencyETF,     // 货币ETF
+  PhysicalBondETF, // 实物债券ETF
+  CommodityETF,    // 商品ETF
+  CashBondETF,     // 现金债券ETF
+  Unknown
+};
+
+NLOHMANN_JSON_SERIALIZE_ENUM(ETFType, {
+                                          {ETFType::LocalETF, "LocalETF"},
+                                          {ETFType::CrossCountryETF, "CrossCountryETF"},
+                                          {ETFType::CrossMarketETF, "CrossMarketETF"},
+                                          {ETFType::CurrencyETF, "CurrencyETF"},
+                                          {ETFType::PhysicalBondETF, "PhysicalBondETF"},
+                                          {ETFType::CommodityETF, "CommodityETF"},
+                                          {ETFType::CashBondETF, "CashBondETF"},
+                                          {ETFType::Unknown, "Unknown"},
+                                      })
+
+inline std::ostream &operator<<(std::ostream &os, ETFType t) { return os << int32_t(t); }
+
 enum class PriceLevel : int8_t {
   Last, // 最新价
   Sell5,
@@ -452,7 +501,8 @@ enum class OrderStatus : int8_t {
   PartialFilledNotActive, // 部成部撤
   PartialFilledActive,    // 部成交易中
   Lost,                   // 丢失
-  Cancelling              // 待撤
+  Cancelling,             // 待撤
+  Pause                   // 暂停
 };
 
 NLOHMANN_JSON_SERIALIZE_ENUM(OrderStatus, {
@@ -466,6 +516,7 @@ NLOHMANN_JSON_SERIALIZE_ENUM(OrderStatus, {
                                               {OrderStatus::PartialFilledActive, "PartialFilledActive"},
                                               {OrderStatus::Lost, "Lost"},
                                               {OrderStatus::Cancelling, "Cancelling"},
+                                              {OrderStatus::Pause, "Pause"},
                                           })
 
 inline std::ostream &operator<<(std::ostream &os, OrderStatus t) { return os << int32_t(t); }
@@ -488,28 +539,6 @@ NLOHMANN_JSON_SERIALIZE_ENUM(Currency, {
                                        })
 
 inline std::ostream &operator<<(std::ostream &os, Currency t) { return os << int32_t(t); }
-
-enum class BasketOrderStatus : int8_t { Unknown, Pending, PartialFilledNotActive, PartialFilledActive, Filled };
-
-NLOHMANN_JSON_SERIALIZE_ENUM(BasketOrderStatus,
-                             {
-                                 {BasketOrderStatus::Unknown, "Unknown"},
-                                 {BasketOrderStatus::Pending, "Pending"},
-                                 {BasketOrderStatus::PartialFilledNotActive, "PartialFilledNotActive"},
-                                 {BasketOrderStatus::PartialFilledActive, "PartialFilledActive"},
-                                 {BasketOrderStatus::Filled, "Filled"},
-                             })
-
-inline std::ostream &operator<<(std::ostream &os, BasketOrderStatus t) { return os << int32_t(t); }
-
-enum class BasketOrderCalculationMode : int8_t { Static, Dynamic };
-
-NLOHMANN_JSON_SERIALIZE_ENUM(BasketOrderCalculationMode, {
-                                                             {BasketOrderCalculationMode::Static, "Static"},
-                                                             {BasketOrderCalculationMode::Dynamic, "Dynamic"},
-                                                         })
-
-inline std::ostream &operator<<(std::ostream &os, BasketOrderCalculationMode t) { return os << int32_t(t); }
 
 enum class BasketVolumeType : int8_t { Unknown, Quantity, Proportion };
 

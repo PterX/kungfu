@@ -1,4 +1,4 @@
-import { kfLogger } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { kfLogger } from '@kungfu-trader/kungfu-js-api/utils/logUtils';
 type ContentId = string;
 type BoardId = number;
 

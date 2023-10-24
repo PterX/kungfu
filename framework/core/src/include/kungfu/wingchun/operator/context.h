@@ -4,6 +4,8 @@
 #define WINGCHUN_OPERATOR_CONTEXT_H
 
 #include <kungfu/longfist/longfist.h>
+#include <kungfu/wingchun/book/bookkeeper.h>
+#include <kungfu/wingchun/book/staticdata.h>
 #include <kungfu/wingchun/broker/client.h>
 #include <kungfu/yijinjing/practice/apprentice.h>
 
@@ -39,18 +41,31 @@ public:
   virtual const std::string get_config() const = 0;
 
   /**
+   * Get arguments kfc run -a
+   * @return string of arguments
+   */
+
+  virtual std::string get_arguments() { return app_.get_arguments(); };
+
+  /**
    * Add one shot timer callback.
    * @param nanotime when to call in nano seconds
    * @param callback callback function
    */
-  virtual void add_timer(int64_t nanotime, const std::function<void(event_ptr)> &callback) = 0;
+  virtual int32_t add_timer(int64_t nanotime, const std::function<void(event_ptr)> &callback) = 0;
 
   /**
    * Add periodically callback.
    * @param duration duration in nano seconds
    * @param callback callback function
    */
-  virtual void add_time_interval(int64_t duration, const std::function<void(event_ptr)> &callback) = 0;
+  virtual int32_t add_time_interval(int64_t duration, const std::function<void(event_ptr)> &callback) = 0;
+
+  /**
+   * Clear timer
+   * @param timer_id id of timer, return by add_timer and add_time_interval
+   */
+  virtual void clear_timer(int32_t timer_id) = 0;
 
   /**
    * Subscribe market data.
@@ -60,6 +75,15 @@ public:
    */
   virtual void subscribe(const std::string &source, const std::vector<std::string> &instrument_ids,
                          const std::string &exchange_id) = 0;
+
+  /**
+   * Unubscribe market data.
+   * @param source MD group
+   * @param instrument_ids instrument IDs
+   * @param exchange_id exchange ID
+   */
+  virtual void unsubscribe(const std::string &source, const std::vector<std::string> &instrument_ids,
+                           const std::string &exchange_id){};
 
   /**
    * Subscribe all from given MD
@@ -100,6 +124,12 @@ public:
    * @return broker client reference
    */
   virtual broker::Client &get_broker_client() = 0;
+
+  /**
+   * Get bookkeeper.
+   * @return bookkeeper reference
+   */
+  virtual book::Bookkeeper &get_bookkeeper() = 0;
 
   /**
    *

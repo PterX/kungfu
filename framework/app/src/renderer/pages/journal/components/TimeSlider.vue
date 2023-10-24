@@ -11,7 +11,7 @@
     </div>
     <a-slider
       ref="slider"
-      :value="currentTimeResolved"
+      v-model:value="currentTimeResolved"
       class="kf-time-slider"
       :class="{
         'kf-time-slider-handler-focus-1': false,
@@ -23,7 +23,7 @@
       :max="maxTime"
       :step="nano2millionSecond(props.step)"
       :tip-formatter="tipFormatter"
-      @change="onAfterChange"
+      @after-change="() => onAfterChange()"
     />
     <div class="kf-time-slider-time">
       <span class="kf-time-slider-text" style="text-align: start">
@@ -38,13 +38,15 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
+import { useWindowFocus } from '@vueuse/core';
 import { storeToRefs } from 'pinia';
 import { dealKfTime } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { ForwardOutlined, BackwardOutlined } from '@ant-design/icons-vue';
 import { SessionStatusEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import { useNow, useResizeFlag } from '../utils';
 import { useJournalStore } from '../store/journalStore';
+import { delayMilliSeconds } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 
 const props = withDefaults(
   defineProps<{
@@ -65,18 +67,53 @@ const {
 } = storeToRefs(useJournalStore());
 const { setCurrentTime } = useJournalStore();
 const { now } = useNow();
-const currentTimeResolved = computed(() => {
-  return nano2millionSecond(currentTime.value);
-});
-const onAfterChange = (milliseconds: number) => {
-  setCurrentTime(million2nanoSecond(milliseconds));
-};
 
 const toolTipVisable = ref(true);
 const SCALE = 1000000;
 const BIGINT_SCALE = BigInt(SCALE);
 const TEN_SECOND = BigInt(10000000000);
 const slider = ref();
+const currentTimeResolved = ref(0);
+const lastFocusTime = ref(0);
+
+const nano2millionSecond = (number: bigint | number) => {
+  if (typeof number === 'bigint') {
+    return Number(number / BIGINT_SCALE);
+  } else {
+    return number / SCALE;
+  }
+};
+
+const windowFocusStatus = useWindowFocus();
+
+watch(
+  currentTime,
+  (newVal) => {
+    delayMilliSeconds(0).then(() => {
+      currentTimeResolved.value = nano2millionSecond(newVal);
+    });
+  },
+  {
+    immediate: true,
+  },
+);
+
+watch(windowFocusStatus, () => {
+  if (!windowFocusStatus.value) {
+    (document.activeElement as HTMLElement).blur();
+  }
+});
+
+const onAfterChange = () => {
+  if (Math.abs(lastFocusTime.value - currentTimeResolved.value) > 200) {
+    setCurrentTime(million2nanoSecond(currentTimeResolved.value));
+    lastFocusTime.value = currentTimeResolved.value;
+  } else {
+    // fix the a-slider focus bug by setting the correct value
+    currentTimeResolved.value = nano2millionSecond(currentTime.value);
+  }
+};
+
 const currentSessionEndTimeResolved = computed(() => {
   if (currentSession.value?.status === SessionStatusEnum.Finished) {
     return currentSessionEndTime.value;
@@ -107,20 +144,12 @@ const handleTimeForward = () => {
   setCurrentTime(currentLoadedLastestFrameGenTime.value);
 };
 
-const nano2millionSecond = (number: bigint | number) => {
-  if (typeof number === 'bigint') {
-    return Number(number / BIGINT_SCALE);
-  } else {
-    return number / SCALE;
-  }
-};
-
 const million2nanoSecond = (number: number) => {
   return BigInt(number * SCALE);
 };
 
 const tipFormatter = (num: number) => {
-  return dealKfTime(BigInt(num) * BIGINT_SCALE);
+  return dealKfTime(BigInt(num.kfRound()) * BIGINT_SCALE);
 };
 
 const getTooltipPopupContainer = (trigger: HTMLElement): HTMLElement => trigger;
@@ -163,7 +192,6 @@ const getTooltipPopupContainer = (trigger: HTMLElement): HTMLElement => trigger;
 
   .kf-time-slider-handler-focus-1 {
     .ant-slider-handle-1 {
-      // border-color: #faad14;
       border-color: aqua;
     }
   }

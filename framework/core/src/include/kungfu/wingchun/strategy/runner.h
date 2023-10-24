@@ -10,7 +10,6 @@
 #include <kungfu/wingchun/strategy/backtest.h>
 #include <kungfu/wingchun/strategy/live.h>
 #include <kungfu/wingchun/strategy/matcher.h>
-#include <kungfu/wingchun/strategy/replay.h>
 #include <kungfu/wingchun/strategy/strategy.h>
 #include <kungfu/yijinjing/practice/apprentice.h>
 
@@ -35,6 +34,10 @@ public:
   void set_report(const tool::Report_ptr &report);
 
   tool::Report_ptr get_report() const;
+
+  void set_time_interval(int64_t time_interval);
+
+  void set_backtest_config(const std::string &backtest_config);
 
   void on_exit() override;
 
@@ -64,6 +67,8 @@ private:
   tool::SliceIndexer_ptr from_indexer_;
   tool::SliceIndexer_ptr to_indexer_;
   tool::Report_ptr report_;
+  int64_t time_interval_{yijinjing::time_unit::NANOSECONDS_PER_SECOND};
+  std::string backtest_config_;
 
   void inspect_channel(const event_ptr &event);
 

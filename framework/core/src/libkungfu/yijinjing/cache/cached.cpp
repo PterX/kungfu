@@ -129,7 +129,7 @@ void cached::restore(const location_ptr &location, const journal::writer_ptr &wr
   restore_states(location, writer);
 }
 
-void cached::clear_cache_shift(const location_ptr &location) {
+void cached::reset_cache_shift(const location_ptr &location) {
   if (bypass_cached_) {
     return;
   }
@@ -208,6 +208,10 @@ void cached::run_store_workers() {
 void cached::do_store_states_feeds() {
   while (true) {
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    if (storage_pause_) {
+      return;
+    }
+
     store_states_feeds();
 
     std::lock_guard<std::mutex> lock(feed_mutex_);
@@ -220,6 +224,10 @@ void cached::do_store_states_feeds() {
 void cached::do_store_profile_feeds() {
   while (true) {
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    if (storage_pause_) {
+      return;
+    }
+
     store_profile_feeds();
 
     std::lock_guard<std::mutex> lock(feed_mutex_);
@@ -240,7 +248,7 @@ void cached::store_states_feeds() {
         return;
       }
       using DataType = typename decltype(+boost::hana::second(it))::type;
-      if (DataType::tag == Instrument::tag) {
+      if (DataType::tag == Instrument::tag or DataType::tag == BasketInstrument::tag) {
         return;
       }
 
@@ -322,6 +330,7 @@ void cached::store_profile_feeds() {
 
   auto count = 0;
   auto store_profile_data_start_time = time::now_in_nano();
+
   boost::hana::for_each(ProfileDataTypes, [&](auto it) {
     using DataType = typename decltype(+boost::hana::second(it))::type;
     auto hana_type = boost::hana::type_c<DataType>;
@@ -385,5 +394,7 @@ void cached::update_session(const journal::frame_ptr &frame) {
   }
   session_builder_.update_session(frame);
 }
+
+void cached::switch_feed_storage(bool pause_storage) { storage_pause_ = pause_storage; }
 
 } // namespace kungfu::yijinjing::cache

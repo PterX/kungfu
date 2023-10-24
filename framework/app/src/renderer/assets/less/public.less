@@ -62,38 +62,26 @@
   }
 
   &.kf-message-success > .ant-message-notice-content {
-    // background-color: #1b2c17;
-    // border: 1px solid #33601d;
-
     .anticon {
       color: #60cd2a;
     }
   }
 
   &.kf-message-error > .ant-message-notice-content {
-    // background-color: #2e1919;
-    // border: 1px solid #7a3e3e;
-
     .anticon {
       color: #f6615f;
     }
   }
 
   &.kf-message-warning > .ant-message-notice-content {
-    // background-color: #2f2013;
-    // border: 1px solid #74491b;
-
     .anticon {
       color: #e09c15;
     }
   }
 
   &.kf-message-info > .ant-message-notice-content {
-    // background-color: #15212e;
-    // border: 1px solid #1e4a71;
-
     .anticon {
-      color: #1f92fe;
+      color: rgba(255, 255, 255, 0.85);
     }
   }
 }
@@ -224,6 +212,10 @@ body {
 
 .color-default {
   color: fade(@white, 50%);
+}
+
+.color-primary {
+  color: @primary-color;
 }
 
 .color-orange {
@@ -371,6 +363,8 @@ body {
   padding-top: 8px;
 
   .trading-data-detail-row {
+    word-break: break-all;
+
     .label,
     .value {
       display: inline-block;
@@ -400,5 +394,16 @@ body {
 
   &.markdown-body {
     background-color: inherit !important;
+  }
+}
+
+.kf-mark {
+  padding: 0;
+  background-color: fade(@white, 70%);
+  color: #000;
+
+  &.kf-mark-current {
+    background-color: @primary-color;
+    color: #fff;
   }
 }

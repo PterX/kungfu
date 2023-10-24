@@ -11,10 +11,8 @@ import {
 import { dealMemory, parseToString } from '../assets/methods/utils';
 import { Log } from '../assets/actions/log';
 import { initBusEvent } from '../assets/actions/busEvent';
-import {
-  debounce,
-  setTimerPromiseTask,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { debounce } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import { setTimerPromiseTask } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 
 const WIDTH_LEFT_PANEL = 35;
 
@@ -208,7 +206,7 @@ export class MonitorDashboard extends Dashboard {
 
     let i = 0;
     const boards = ['processBoard', 'logBoard'];
-    this.screen.key(['left', 'right'], (ch: string, key: { name: string }) => {
+    this.screen.key(['left', 'right'], (_ch: string, key: { name: string }) => {
       key.name === 'left' ? i-- : i++;
       if (i === 2) i = 0;
       if (i === -1) i = 1;

@@ -1,12 +1,16 @@
 import os from 'os';
 import path from 'path';
-import fse from 'fs-extra';
+import fse, { Stats } from 'fs-extra';
 import fsPromise from 'fs/promises';
 import * as csv from 'fast-csv';
 import { FormatterRow, ParserOptionsArgs } from 'fast-csv';
 import findRoot from 'find-root';
 import { RootConfigJSON } from '../typings/global';
-import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import {
+  buildRuntimeChildDirByType,
+  RuntimeChildDirTypes,
+} from '../config/pathConfig';
+import { ifKfDev } from './commonUtils';
 
 //添加文件
 export const addFileSync = (
@@ -298,7 +302,7 @@ export const removeTargetFilesInFolder = async (
 
     for (const f of files) {
       for (const n of includes) {
-        if (f.includes(n) && !filters.includes(f)) {
+        if (f.includes(n) && !filters.some((filter) => f.includes(filter))) {
           try {
             const targetFile = path.join(folder, f);
             await fsPromise.rm(targetFile);
@@ -363,7 +367,7 @@ export const isDiskRootDirectory = (dirPath: string): boolean => {
 
 export const getAppRuntimeDirName = () => {
   const packageJson = readRootPackageJsonSync();
-  const productName = booleanProcessEnv(process.env.IS_KF_DEV)
+  const productName = ifKfDev()
     ? 'electron'
     : packageJson.kungfuCraft?.productName || 'Kungfu';
 
@@ -375,5 +379,48 @@ export const getAppRuntimeDirName = () => {
       return productName + '.app';
     default:
       return productName;
+  }
+};
+
+export const getChildFileStat = async (
+  dirname: string,
+): Promise<Array<{ childFilePath: string; stat: Stats }>> => {
+  if (!(await fse.pathExists(dirname))) {
+    return [];
+  }
+
+  const cDirs = await fse.readdir(dirname);
+  const statsDatas: Array<{ childFilePath: string; stat: Stats }> =
+    await Promise.all(
+      cDirs.map((cDir: string) => {
+        const childFilePath = path.join(dirname, cDir);
+        return fse.stat(childFilePath).then((stat: Stats) => {
+          return {
+            childFilePath,
+            stat,
+          };
+        });
+      }),
+    );
+
+  return statsDatas;
+};
+
+export const removeNoDefaultStrategyFolders = async (): Promise<void> => {
+  const strategyDirs = RuntimeChildDirTypes.map((type) =>
+    path.join(buildRuntimeChildDirByType(type), 'strategy'),
+  );
+  for (const strategyDir of strategyDirs) {
+    if (!fse.pathExists(strategyDir)) continue;
+    const filedirList: string[] = (await listDir(strategyDir)) || [];
+    filedirList.map((fileOrFolder) => {
+      const fullPath = path.join(strategyDir, fileOrFolder);
+      if (fileOrFolder === 'default') {
+        if (fse.statSync(fullPath).isDirectory()) {
+          return Promise.resolve();
+        }
+      }
+      return fse.remove(fullPath);
+    });
   }
 };

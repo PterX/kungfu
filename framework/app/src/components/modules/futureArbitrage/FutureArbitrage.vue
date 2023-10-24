@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, ref } from 'vue';
+import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
+import { storeToRefs } from 'pinia';
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
 import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
 import KfConfigSettingsForm from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfConfigSettingsForm.vue';
@@ -7,12 +9,10 @@ import { getConfigSettings } from './config';
 import { RuleObject } from 'ant-design-vue/lib/form';
 import { categoryRegisterConfig } from '../posGlobal/config';
 import { FutureArbitrageCodeEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
-import { makeOrderByOrderInput } from '@kungfu-trader/kungfu-js-api/kungfu';
-import {
-  getProcessIdByKfLocation,
-  initFormStateByConfig,
-  transformSearchInstrumentResultToInstrument,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { makeOrderByOrderInput } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
+import { initFormStateByConfig } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { getProcessIdByKfLocation } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import { transformSearchInstrumentResultToInstrument } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import {
   useCurrentGlobalKfLocation,
   useProcessStatusDetailData,
@@ -29,6 +29,7 @@ const { t } = VueI18n.global;
 const { error } = messagePrompt();
 
 const { handleBodySizeChange } = useDashboardBodySize();
+const { globalSetting } = storeToRefs(useGlobalStore());
 
 const formState = ref(initFormStateByConfig(getConfigSettings(), {}));
 const formRef = ref();
@@ -192,12 +193,13 @@ function handleMakeOrder() {
         );
         return;
       }
-
-      const flag = await confirmModal(
-        t('tradingConfig.place_confirm'),
-        dealOrderPlaceVNode(makeOrderInput, 1, true),
-      );
-      if (!flag) return;
+      if (!globalSetting.value?.trade?.skipConfirmMakeOrder) {
+        const flag = await confirmModal(
+          t('tradingConfig.place_confirm'),
+          dealOrderPlaceVNode(makeOrderInput, 1, true),
+        );
+        if (!flag) return;
+      }
 
       makeOrderByOrderInput(
         window.watcher,

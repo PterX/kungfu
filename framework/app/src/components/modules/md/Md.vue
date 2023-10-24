@@ -23,11 +23,13 @@ import {
   useTableSearchKeyword,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import {
-  getIdByKfLocation,
   getIfProcessRunning,
   getIfProcessStopping,
-  getProcessIdByKfLocation,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import {
+  getIdByKfLocation,
+  getProcessIdByKfLocation,
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   handleSwitchProcessStatusGenerator,
   useAddUpdateRemoveKfConfig,
@@ -104,6 +106,7 @@ async function handleOpenSetMdDialog(
         category: 'md',
         group: selectedSource,
         name: '*',
+        mode: '*',
       },
       extConfig,
     );

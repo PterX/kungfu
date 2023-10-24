@@ -29,6 +29,12 @@ public:
   uint32_t get_home_uid() const override;
 
   /**
+   * Get location_uid of current process
+   * @return location_uid
+   */
+  uint32_t get_live_home_uid() const;
+
+  /**
    * Get config from database.
    * @return config of current location_uid
    */
@@ -39,14 +45,20 @@ public:
    * @param nanotime when to call in nano seconds
    * @param callback callback function
    */
-  void add_timer(int64_t nanotime, const std::function<void(event_ptr)> &callback) override;
+  int32_t add_timer(int64_t nanotime, const std::function<void(event_ptr)> &callback) override;
 
   /**
    * Add periodically callback.
    * @param duration duration in nano seconds
    * @param callback callback function
    */
-  void add_time_interval(int64_t duration, const std::function<void(event_ptr)> &callback) override;
+  int32_t add_time_interval(int64_t duration, const std::function<void(event_ptr)> &callback) override;
+
+  /**
+   * Clear timer
+   * @param timer_id id of timer, return by add_timer and add_time_interval
+   */
+  void clear_timer(int32_t timer_id) override;
 
   /**
    * Subscribe market data.
@@ -97,6 +109,12 @@ public:
    */
   broker::Client &get_broker_client() override;
 
+  /**
+   * Get bookkeeper.
+   * @return bookkeeper reference
+   */
+  book::Bookkeeper &get_bookkeeper() override;
+
   void check_dependency_state(const event_ptr &event);
 
   yijinjing::data::location_ptr get_location(uint32_t location_uid) override;
@@ -111,9 +129,11 @@ protected:
   void prepare(const event_ptr &event) override;
 
 private:
-  broker::PassiveClient broker_client_;
   longfist::enums::OperatorState state_;
   bool broker_states_requested_{false};
+
+  broker::PassiveClient broker_client_;
+  book::Bookkeeper bookkeeper_;
 };
 
 DECLARE_PTR(LiveContext)

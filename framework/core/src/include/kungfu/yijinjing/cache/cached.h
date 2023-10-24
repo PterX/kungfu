@@ -29,7 +29,7 @@ public:
 
   void restore(const yijinjing::data::location_ptr &location, const yijinjing::journal::writer_ptr &writer);
 
-  void clear_cache_shift(const yijinjing::data::location_ptr &location);
+  void reset_cache_shift(const yijinjing::data::location_ptr &location);
 
   void make_cache_shift(const yijinjing::data::location_ptr &location);
 
@@ -69,6 +69,8 @@ public:
   void update_session(const journal::frame_ptr &frame);
 
   yijinjing::index::SessionMap &get_all_sessions();
+
+  void switch_feed_storage(bool pause_storage);
 
   static constexpr auto feed_profile_data = [](const event_ptr &event, auto &receiver) {
     boost::hana::for_each(longfist::ProfileDataTypes, [&](auto it) {
@@ -112,6 +114,7 @@ private:
   std::mutex states_store_mutex_;
   std::mutex profile_store_mutex_;
   bool m_quit_ = false;
+  std::atomic_bool storage_pause_ = false;
 
   yijinjing::data::location_ptr ledger_home_location_;
 

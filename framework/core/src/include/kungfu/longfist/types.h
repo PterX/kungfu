@@ -42,6 +42,8 @@ KF_DEFINE_MARK_TYPE(OperatorStateRequest, 10156);
 KF_DEFINE_MARK_TYPE(BrokerStateRequest, 10157);
 KF_DEFINE_MARK_TYPE(CachedReadyToRead, 10251);
 KF_DEFINE_MARK_TYPE(RequestCached, 10252);
+KF_DEFINE_MARK_TYPE(CachedPause, 10253);
+KF_DEFINE_MARK_TYPE(CachedResume, 10254);
 KF_DEFINE_MARK_TYPE(ResetBookRequest, 10451);
 KF_DEFINE_MARK_TYPE(MirrorPositionsRequest, 10452);
 KF_DEFINE_MARK_TYPE(KeepPositionsRequest, 10453);
@@ -73,7 +75,7 @@ KF_DEFINE_PACK_TYPE(                          //
     page_header, 1, PK(version), PERPETUAL(), //
     (uint32_t, version),                      //
     (uint32_t, page_header_length),           //
-    (uint32_t, page_size),                    //
+    (uint64_t, page_size),                    //
     (uint32_t, frame_header_length),          //
     (longfist::enums::PageStatus, status),    // 0 close 1 preopen 2 open 3 flushing
     (uint64_t, last_frame_position)           //
@@ -317,30 +319,6 @@ KF_DEFINE_PACK_TYPE(                                  //
     (double, avg_price)                               //
 );
 
-KF_DEFINE_PACK_TYPE(                                        //
-    BasketOrder, 208, PK(order_id), TIMESTAMP(insert_time), //
-    (uint64_t, order_id),                                   // 篮子单uid
-    (uint64_t, parent_id),                                  // 母单号
-
-    (int64_t, insert_time), // 下单时间
-    (int64_t, update_time), // 更新时间
-
-    (enums::Side, side),              // 买卖方向
-    (enums::PriceType, price_type),   // 价格类型
-    (enums::PriceLevel, price_level), // 价格级别
-    (double, price_offset),           // 价格偏移量
-
-    (int64_t, volume),      // 成交量
-    (int64_t, volume_left), // 剩余数量
-
-    (enums::BasketOrderStatus, status), // 订单状态
-
-    (uint32_t, source_id), // 下单方
-    (uint32_t, dest_id),   // 下单账户
-
-    (enums::BasketOrderCalculationMode, calculation_mode) // 计算方式
-);
-
 KF_DEFINE_PACK_TYPE(                                                //
     OrderTriggerInput, 209, PK(trigger_id), TIMESTAMP(insert_time), //
     (uint64_t, trigger_id),                                         // 触发器id
@@ -422,6 +400,7 @@ KF_DEFINE_PACK_TYPE(                                                            
 KF_DEFINE_DATA_TYPE(                                           //
     AlgoOrderInput, 213, PK(order_id), TIMESTAMP(insert_time), //
     (uint64_t, order_id),                                      // 算法单ID
+    (uint64_t, origin_order_id),                               // 原算法单ID
     (int64_t, insert_time),                                    // 下单时间
     (int64_t, begin_time),                                     // 开始时间
     (int64_t, end_time),                                       // 结束时间
@@ -429,6 +408,8 @@ KF_DEFINE_DATA_TYPE(                                           //
     (kungfu::array<char, INSTRUMENT_ID_LEN>, instrument_id), // 合约代码
     (kungfu::array<char, EXCHANGE_ID_LEN>, exchange_id),     // 交易所代码
     (enums::InstrumentType, instrument_type),                // 合约类型
+
+    (uint32_t, basket_uid), // basket订单的id
 
     (enums::Side, side),            // 买卖方向
     (enums::Offset, offset),        // 开平方向
@@ -454,6 +435,8 @@ KF_DEFINE_PACK_TYPE(                                           //
     (kungfu::array<char, INSTRUMENT_ID_LEN>, instrument_id), // 合约代码
     (kungfu::array<char, EXCHANGE_ID_LEN>, exchange_id),     // 交易所代码
     (enums::InstrumentType, instrument_type),                // 合约类型
+
+    (uint32_t, basket_uid), // basket订单的id
 
     (enums::Side, side),            // 买卖方向
     (enums::Offset, offset),        // 开平方向
@@ -890,24 +873,37 @@ KF_DEFINE_DATA_TYPE(                                //
     (std::string, name)                             //
 );
 
-KF_DEFINE_DATA_TYPE(                        //
-    Basket, 10206, PK(id), PERPETUAL(),     //
-    (uint32_t, id),                         //
-    (std::string, name),                    //
-    (enums::BasketVolumeType, volume_type), // 比例/数量
-    (int64_t, total_amount),                // 总数量
-    (enums::BasketType, type)               // 类型: Custom 或 ETF
+KF_DEFINE_DATA_TYPE(                                         //
+    Basket, 100040, PK(id), PERPETUAL(),                     //
+    (uint32_t, id),                                          // basket id
+    (std::string, name),                                     // basket 名字
+    (enums::BasketVolumeType, volume_type),                  // 比例/数量
+    (int64_t, total_amount),                                 // 总数量
+    (enums::BasketType, basket_type),                        // 类型: Custom 或 ETF
+    (kungfu::array<char, INSTRUMENT_ID_LEN>, instrument_id), // ETF基金代码
+    (kungfu::array<char, EXCHANGE_ID_LEN>, exchange_id),     // ETF基金的市场
+    (double, net_unit_value),                                // 最小申赎单位净值
+    (double, etf_value),                                     // 基金份额净值
+    (double, cash_difference),                               // 现金差额
+    (double, max_cash_ratio),                                // 现金替代比例上限
+    (int64_t, max_purchase_volume),                          // 申购上限
+    (int64_t, max_redemption_volume),                        // 赎回上限
+    (int64_t, min_volume),                                   // 最小申赎单位
+    (enums::ETFType, etf_type)                               // etf种类
 );
 
-KF_DEFINE_PACK_TYPE(                                                                  //
-    BasketInstrument, 10207, PK(basket_uid, instrument_id, exchange_id), PERPETUAL(), //
-    (uint32_t, basket_uid),                                                           //
-    (kungfu::array<char, INSTRUMENT_ID_LEN>, instrument_id),                          // 合约ID
-    (kungfu::array<char, EXCHANGE_ID_LEN>, exchange_id),                              // 交易所ID
-    (enums::InstrumentType, instrument_type),                                         // 合约类型
-    (enums::Direction, direction),                                                    // 方向
-    (int64_t, volume),                                                                // 数量
-    (double, rate)                                                                    // 比例, volume比例
+KF_DEFINE_PACK_TYPE(                                                                   //
+    BasketInstrument, 100041, PK(basket_uid, instrument_id, exchange_id), PERPETUAL(), //
+    (uint32_t, basket_uid),                                                            //
+    (kungfu::array<char, INSTRUMENT_ID_LEN>, instrument_id),                           // 合约ID
+    (kungfu::array<char, EXCHANGE_ID_LEN>, exchange_id),                               // 交易所ID
+    (enums::InstrumentType, instrument_type),                                          // 合约类型
+    (enums::Direction, direction),                                                     // 方向
+    (int64_t, volume),                                                                 // 数量
+    (double, rate),                                                                    // 比例, volume比例
+    (enums::CashReplaceFlag, replace_flag),                                            // 是否可以由现金替代
+    (double, cash_premium_ratio),                                                      // 现金替代溢价比率
+    (double, replace_balance)                                                          // 替代金额
 );
 
 KF_DEFINE_PACK_TYPE(                              //
@@ -962,7 +958,7 @@ KF_DEFINE_DATA_TYPE(                                          //
     (enums::mode, mode),                                      //
     (std::string, group),                                     //
     (std::string, name),                                      //
-    (uint32_t, page_size)                                     //
+    (uint64_t, page_size)                                     //
 );
 
 KF_DEFINE_PACK_TYPE(                                  //

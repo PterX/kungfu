@@ -24,7 +24,7 @@ const ifCpusNumSafe = booleanProcessEnv(process.env.IF_CPUS_NUM_SAFE);
 export interface KfSystemConfig {
   key: string;
   name: string;
-  config: KungfuApi.KfConfigItem[];
+  config: (KungfuApi.KfConfigItem & { for?: 'cli' | 'ui' | 'custom' })[]; //for配置项用于区分配置项是用于cli还是ui, 不配置默认适配cli和ui
 }
 
 const __python_version_resolved = __python_version
@@ -167,21 +167,32 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
         tip: t('globalSettingConfig.use_sound'),
         default: false,
         type: 'bool',
+        for: 'ui',
       },
       {
         key: 'fatFinger',
         name: t('globalSettingConfig.fat_finger_threshold'),
         tip: t('globalSettingConfig.set_fat_finger'),
-        default: '',
+        default: 0,
         type: 'percent',
         min: 0,
+        for: 'ui',
       },
       {
         key: 'close',
         name: t('globalSettingConfig.close_threshold'),
         tip: t('globalSettingConfig.set_close_threshold'),
-        default: '',
+        default: 0,
         type: 'percent',
+        for: 'ui',
+      },
+      {
+        key: 'skipConfirmMakeOrder',
+        name: t('globalSettingConfig.skip_confirm_make_order'),
+        tip: t('globalSettingConfig.set_skip_confirm_make_order'),
+        default: false,
+        type: 'bool',
+        for: 'ui',
       },
 
       {
@@ -218,13 +229,7 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
             type: 'float',
           },
         ],
-      },
-      {
-        key: 'marginTrading',
-        name: t('globalSettingConfig.margin_trading'),
-        tip: t('globalSettingConfig.show_margin_trading'),
-        default: false,
-        type: 'bool',
+        for: 'ui',
       },
       {
         key: 'posTableColumns',
@@ -253,6 +258,7 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
           },
         ],
         default: ['yesterday_volume', 'today_volume'],
+        for: 'ui',
       },
     ],
   },
@@ -276,6 +282,7 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
             label: CodeTabSetting[SpaceTabSettingEnum.TABS].name,
           },
         ],
+        for: 'ui',
       },
       {
         key: 'tabSpaceSize',
@@ -293,6 +300,7 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
             label: CodeSizeSetting[SpaceSizeSettingEnum.FOURINDENT].name,
           },
         ],
+        for: 'ui',
       },
     ],
   },

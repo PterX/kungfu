@@ -10,6 +10,7 @@ using namespace kungfu::rx;
 using namespace kungfu::longfist::enums;
 using namespace kungfu::longfist::types;
 using namespace kungfu::wingchun::broker;
+using namespace kungfu::wingchun::map;
 using namespace kungfu::yijinjing::practice;
 using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
@@ -17,7 +18,7 @@ using namespace kungfu::yijinjing::util;
 
 namespace kungfu::wingchun::book {
 Bookkeeper::Bookkeeper(apprentice &app, broker::Client &broker_client, bool bypass_quote)
-    : app_(app), broker_client_(broker_client), bypass_quote_(bypass_quote),
+    : app_(app), broker_client_(broker_client), static_data_(app), bypass_quote_(bypass_quote),
       account_method_type_(book::get_accounting_method_type()) {
   book::AccountingMethod::setup_defaults(*this, account_method_type_);
 }
@@ -40,11 +41,9 @@ void Bookkeeper::set_accounting_method(InstrumentType instrument_type, const Acc
 }
 
 void Bookkeeper::on_start(const rx::connectable_observable<event_ptr> &events) {
+  static_data_.on_start(events);
   restore(app_.get_state_bank());
 
-  events | is(Instrument::tag) | $$(update_instrument(event->data<Instrument>()));
-  events | is(Commission::tag) | $$(update_commission(event, event->data<Commission>()));
-  events | is(InstrumentFactor::tag) | $$(update_instrument_factor(event->data<InstrumentFactor>()));
   events | is_own<Quote>(broker_client_) | $$(try_update_book(event, event->data<Quote>()));
   events | is(InstrumentKey::tag) | $$(update_book(event, event->data<InstrumentKey>()));
   events | is(OrderInput::tag) |
@@ -52,6 +51,7 @@ void Bookkeeper::on_start(const rx::connectable_observable<event_ptr> &events) {
   events | is(Order::tag) | $$(update_book<Order>(event, &AccountingMethod::apply_order));
   events | is(Trade::tag) | $$(update_book<Trade>(event, &AccountingMethod::apply_trade));
   events | fork<Asset>(location::SYNC, &Bookkeeper::try_update_asset_replica, &Bookkeeper::try_update_asset);
+  events | is(Asset::tag) | $$(update_book(event, event->data<Asset>()));
   events | fork<Position>(location::SYNC, &Bookkeeper::try_update_position_replica, &Bookkeeper::try_update_position);
   events | fork<PositionEnd>(location::SYNC, &Bookkeeper::update_position_guard, &Bookkeeper::try_update_position_end);
   events | is(ResetBookRequest::tag) | $$(drop_book(event->source()));
@@ -84,14 +84,6 @@ void Bookkeeper::on_order_input(int64_t update_time, uint32_t source, uint32_t d
 }
 
 void Bookkeeper::restore(const cache::bank &state_bank) {
-  for (auto &pair : state_bank[boost::hana::type_c<Instrument>]) {
-    update_instrument(pair.second.data);
-  }
-  for (auto &pair : state_bank[boost::hana::type_c<Commission>]) {
-    auto &state = pair.second;
-    auto &commission = state.data;
-    commissions_.insert_or_assign(hash_str_32(commission.product_id), commission);
-  }
   for (auto &pair : state_bank[boost::hana::type_c<Position>]) {
     auto &state = pair.second;
     auto &position = state.data;
@@ -103,7 +95,7 @@ void Bookkeeper::restore(const cache::bank &state_bank) {
     auto &positions = is_long ? book->long_positions : book->short_positions;
     positions[hash_instrument(position.source_id, position.exchange_id, position.instrument_id)] = position;
     positions[hash_instrument(position.source_id, position.exchange_id, position.instrument_id)].source_op_id =
-        book->source_op_id(position.holder_uid, position.source_id);
+        get_source_op_id(position.holder_uid, position.source_id);
     book->add_source_id(position.source_id);
   }
   for (auto &pair : state_bank[boost::hana::type_c<Asset>]) {
@@ -116,16 +108,6 @@ void Bookkeeper::restore(const cache::bank &state_bank) {
     book->asset = asset;
     book->update(app_.now(), account_method_type_);
   }
-
-  for (auto &pair : state_bank[boost::hana::type_c<InstrumentFactor>]) {
-    auto &state = pair.second;
-    auto &instrument_factor = state.data;
-    if (not app_.has_location(instrument_factor.source_id)) {
-      continue;
-    }
-    update_instrument_factor(instrument_factor);
-  }
-
   for (auto &pair : state_bank[boost::hana::type_c<Order>]) {
     auto &order_state = pair.second;
     auto source_book = get_book(order_state.source);
@@ -153,35 +135,12 @@ void Bookkeeper::guard_positions() { positions_guarded_ = true; }
 
 Book_ptr Bookkeeper::make_book(uint32_t location_uid) {
   auto location = app_.get_location(location_uid);
-  auto book = std::make_shared<Book>(commissions_, instruments_, location);
+  auto book = std::make_shared<Book>(static_data_.get_commissions(), static_data_.get_instruments(),
+                                     static_data_.get_instrument_factors(), location);
   auto &asset = book->asset;
   asset.holder_uid = location_uid;
   asset.ledger_category = location->category == category::TD ? LedgerCategory::Account : LedgerCategory::Strategy;
   return book;
-}
-
-void Bookkeeper::update_instrument(const longfist::types::Instrument &instrument) {
-  auto hashed_instrument_key = hash_instrument(instrument.exchange_id, instrument.instrument_id);
-  instruments_.insert_or_assign(hashed_instrument_key, instrument);
-}
-
-void Bookkeeper::update_commission(const event_ptr &event, const longfist::types::Commission &commission) {
-  for (auto &bk_pair : books_) {
-    auto &book = bk_pair.second;
-    if (book->asset.holder_uid == event->source()) {
-      book->replace(commission);
-    }
-  }
-}
-
-void Bookkeeper::update_instrument_factor(const longfist::types::InstrumentFactor &instrument_factor) {
-  for (auto &bk_pair : books_) {
-    auto &book = bk_pair.second;
-    auto location = app_.get_location(book->asset.holder_uid);
-    if (location->category != category::TD or book->asset.holder_uid == instrument_factor.source_id) {
-      book->replace(instrument_factor);
-    }
-  }
 }
 
 void Bookkeeper::update_book(const event_ptr &event, const InstrumentKey &instrument_key) {
@@ -217,6 +176,12 @@ void Bookkeeper::update_book(int64_t trigger_time, const Quote &quote) {
     }
     book->apply_long_position_for(quote, apply);
     book->apply_short_position_for(quote, apply);
+  }
+}
+
+void Bookkeeper::update_book(const event_ptr &event, const Asset &asset) {
+  if (app_.has_location(asset.holder_uid)) {
+    get_book(asset.holder_uid)->update(event->gen_time(), account_method_type_);
   }
 }
 

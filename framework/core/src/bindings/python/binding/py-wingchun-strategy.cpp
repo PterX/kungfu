@@ -157,7 +157,9 @@ void bind_strategy(pybind11::module &m) {
       .def("set_matcher", &strategy::Runner::set_matcher)
       .def("set_from_indexer", &strategy::Runner::set_from_indexer)
       .def("set_to_indexer", &strategy::Runner::set_to_indexer)
+      .def("set_time_interval", &strategy::Runner::set_time_interval)
       .def("set_report", &strategy::Runner::set_report)
+      .def("set_backtest_config", &strategy::Runner::set_backtest_config)
       .def("now", &strategy::Runner::now)
       .def("run", &strategy::Runner::run)
       .def("setup", &strategy::Runner::setup)
@@ -166,14 +168,17 @@ void bind_strategy(pybind11::module &m) {
       .def("add_strategy", &strategy::Runner::add_strategy);
 
   py::class_<strategy::Context, std::shared_ptr<strategy::Context>>(m, "Context")
-      .def_property_readonly("arguments", &strategy::Context::get_arguments)
+      .def_property_readonly("config", &strategy::Context::get_config, py::return_value_policy::reference)
+      .def_property_readonly("arguments", &strategy::Context::get_arguments, py::return_value_policy::reference)
       .def_property_readonly("bookkeeper", &strategy::Context::get_bookkeeper, py::return_value_policy::reference)
       .def("now", &strategy::Context::now)
       .def("is_started", &strategy::Context::is_started)
       .def("add_timer", &strategy::Context::add_timer)
       .def("add_time_interval", &strategy::Context::add_time_interval)
+      .def("clear_timer", &strategy::Context::clear_timer)
       .def("add_account", &strategy::Context::add_account)
       .def("subscribe", &strategy::Context::subscribe)
+      .def("unsubscribe", &strategy::Context::unsubscribe)
       .def("subscribe_all", &strategy::Context::subscribe_all, py::arg("source"),
            py::arg("market_type") = MarketType::All, py::arg("instrument_type") = SubscribeInstrumentType::All,
            py::arg("data_type") = SubscribeDataType::All)
@@ -195,7 +200,12 @@ void bind_strategy(pybind11::module &m) {
       .def("insert_algo_order", &strategy::Context::insert_algo_order, py::arg("instrument_id"), py::arg("exchange_id"),
            py::arg("source"), py::arg("account"), py::arg("begin_time"), py::arg("end_time"), py::arg("volume"),
            py::arg("type"), py::arg("side"), py::arg("offset"), py::arg("algo_type_id"), py::arg("algo_id"),
-           py::arg("args"), py::arg("is_local") = false)
+           py::arg("args"), py::arg("is_local") = false, py::arg("baskrt_uid") = 0)
+      .def("update_algo_order", &strategy::Context::update_algo_order, py::arg("origin_order_id"),
+           py::arg("instrument_id"), py::arg("exchange_id"), py::arg("source"), py::arg("account"),
+           py::arg("begin_time"), py::arg("end_time"), py::arg("volume"), py::arg("type"), py::arg("side"),
+           py::arg("offset"), py::arg("algo_type_id"), py::arg("algo_id"), py::arg("args"), py::arg("is_local") = false,
+           py::arg("baskrt_uid") = 0)
       .def("cancel_order", &strategy::Context::cancel_order, py::arg("order_id"),
            py::arg("action_flag") = OrderActionFlag::Cancel)
       .def("cancel_order_trigger", &strategy::Context::cancel_order_trigger)

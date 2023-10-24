@@ -11,7 +11,7 @@ import { getCurrentInstance, onBeforeUnmount, onMounted, ref } from 'vue';
 
 import { useCurrentGlobalKfLocation } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import { dealKfTime } from '@kungfu-trader/kungfu-js-api/kungfu';
-import { dealKfPrice } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { dealKfPrice } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { ArrowRightOutlined } from '@ant-design/icons-vue';
 import { FundTransEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';

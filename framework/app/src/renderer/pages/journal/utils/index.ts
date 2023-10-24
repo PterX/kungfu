@@ -10,13 +10,14 @@ import {
 } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { parseURIParams } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import {
-  deepClone,
   getIdByKfLocation,
+  deepClone,
   getKfLocationByProcessId,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { KfCategory } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import {
   KfCategoryEnum,
+  KfModeEnum,
   KfCategoryTypes,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
@@ -44,6 +45,7 @@ export const dealSession = (
   session.category = KfCategoryEnum[
     session.category as KfCategoryEnum
   ] as KfCategoryTypes;
+  session.mode = KfModeEnum[session.mode as KfModeEnum];
   return {
     ...session,
     sessionName: getIdByKfLocation(session),
@@ -164,7 +166,7 @@ export const dealFrame = (
       session.location_uid,
       locationNameMap,
     ),
-    msgTypeName: longfist.msgTypes[+frame.msgType],
+    msgTypeName: longfist.msgTypes[+frame.msgType] || frame.msgType + '',
   };
 };
 
@@ -245,8 +247,8 @@ export const getSourceToDest = (
   currentLocationUid: number,
   locationMap: Record<string, string>,
 ): string => {
-  const sourceLocationName = locationMap[source + ''];
-  const destLocationName = locationMap[dest + ''];
+  const sourceLocationName = locationMap[source + ''] || source;
+  const destLocationName = locationMap[dest + ''] || dest;
   if (source === currentLocationUid) {
     return `self -> ${destLocationName}`;
   } else if (dest === currentLocationUid) {

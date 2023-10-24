@@ -175,15 +175,6 @@ void bind_enums(py::module &m) {
       .export_values()
       .def("__eq__", [](const Direction &a, int b) { return static_cast<int>(a) == b; });
 
-  py::enum_<BasketOrderStatus>(m_enums, "BasketOrderStatus", py::arithmetic())
-      .value("Unknown", BasketOrderStatus::Unknown)
-      .value("Pending", BasketOrderStatus::Pending)
-      .value("PartialFilledNotActive", BasketOrderStatus::PartialFilledNotActive)
-      .value("PartialFilledActive", BasketOrderStatus::PartialFilledActive)
-      .value("Filled", BasketOrderStatus::Filled)
-      .export_values()
-      .def("__eq__", [](const BasketOrderStatus &a, int b) { return static_cast<int>(a) == b; });
-
   py::enum_<BasketVolumeType>(m_enums, "BasketVolumeType", py::arithmetic())
       .value("Unknown", BasketVolumeType::Unknown)
       .value("Quantity", BasketVolumeType::Quantity)
@@ -367,5 +358,29 @@ void bind_enums(py::module &m) {
       .value("Continuous", ResumePolicy::Continuous)
       .export_values()
       .def("__eq__", [](const AlgoOrderActionFlag &a, int b) { return static_cast<int>(a) == b; });
+
+  py::enum_<CashReplaceFlag>(m_enums, "CashReplaceFlag", py::arithmetic())
+      .value("UnReplace", CashReplaceFlag::UnReplace)
+      .value("EnReplace", CashReplaceFlag::EnReplace)
+      .value("MustReplace", CashReplaceFlag::MustReplace)
+      .value("UnSSEReplace", CashReplaceFlag::UnSSEReplace)
+      .value("UnSSEMustReplace", CashReplaceFlag::UnSSEMustReplace)
+      .value("UnSSESZEReplace", CashReplaceFlag::UnSSESZEReplace)
+      .value("UnSSESZEMustReplace", CashReplaceFlag::UnSSESZEMustReplace)
+      .value("Unknown", CashReplaceFlag::Unknown)
+      .export_values()
+      .def("__eq__", [](const CashReplaceFlag &a, int b) { return static_cast<int>(a) == b; });
+
+  py::enum_<ETFType>(m_enums, "ETFType", py::arithmetic())
+      .value("LocalETF", ETFType::LocalETF)
+      .value("CrossCountryETF", ETFType::CrossCountryETF)
+      .value("CrossMarketETF", ETFType::CrossMarketETF)
+      .value("CurrencyETF", ETFType::CurrencyETF)
+      .value("PhysicalBondETF", ETFType::PhysicalBondETF)
+      .value("CommodityETF", ETFType::CommodityETF)
+      .value("CashBondETF", ETFType::CashBondETF)
+      .value("Unknown", ETFType::Unknown)
+      .export_values()
+      .def("__eq__", [](const ETFType &a, int b) { return static_cast<int>(a) == b; });
 }
 } // namespace kungfu::longfist::pybind

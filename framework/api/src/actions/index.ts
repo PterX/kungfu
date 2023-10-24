@@ -15,10 +15,8 @@ import {
   RuntimeChildDirTypes,
 } from '../config/pathConfig';
 import { pathExists, remove } from 'fs-extra';
-import {
-  getIdByKfLocation,
-  getProcessIdByKfLocation,
-} from '../utils/busiUtils';
+import { getProcessIdByKfLocation } from '../utils/commonUtils';
+import { getIdByKfLocation } from '../utils/commonUtils';
 import {
   getAllKfRiskSettings,
   setAllKfRiskSettings,
@@ -308,6 +306,12 @@ export const setAllBasketInstruments = (
 
 export const removeAllBasketInstruments = () => {
   return Promise.resolve(basketInstrumentStore.removeAllBasketInstruments());
+};
+
+export const removeAllBasketInstrumentsByBasket = (basketId) => {
+  return Promise.resolve(
+    basketInstrumentStore.removeAllBasketInstrumentsByBasket(basketId),
+  );
 };
 
 export const setBasketInstrument = (

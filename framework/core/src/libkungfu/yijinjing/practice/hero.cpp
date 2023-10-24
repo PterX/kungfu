@@ -25,7 +25,9 @@ using namespace kungfu::yijinjing::nanomsg;
 namespace kungfu::yijinjing::practice {
 
 inline std::string encode(const io_device_ptr &io_device) {
-  return fmt::format("{:08x}", io_device->get_live_home()->uid);
+  auto home_uid =
+      io_device->get_home()->mode == mode::BACKTEST ? io_device->get_home()->uid : io_device->get_live_home()->uid;
+  return fmt::format("{:08x}", home_uid);
 }
 
 hero::hero(io_device_ptr io_device)
@@ -33,17 +35,15 @@ hero::hero(io_device_ptr io_device)
       master_home_location_(make_system_location("master", "master", io_device->get_locator())),
       master_cmd_location_(make_system_location("master", encode(io_device), io_device->get_locator())),
       ledger_home_location_(make_system_location("service", "ledger", io_device->get_locator())),
-      io_device_(std::move(io_device)), now_(0) {
+      io_device_(std::move(io_device)), now_(0), main_thread_id_(util::get_thread_id()) {
 
   os::handle_os_signals(this);
-  util::set_error_log_dir(get_locator()->layout_dir(
-      get_home(),
-      layout::LOG)); // get_io_device()->get_home()->locator->layout_file(get_io_device()->get_home(),layout::LOG,
-  add_location(0, get_io_device()->get_home());
+  util::set_error_log_dir(get_locator()->layout_dir(get_home(), layout::LOG));
+  add_location(0, get_io_device()->get_live_home());
   add_location(0, master_home_location_);
   add_location(0, master_cmd_location_);
   add_location(0, ledger_home_location_);
-  for (const auto &l : get_home()->locator->list_locations("*", "*", "*", "*")) {
+  for (const auto &l : get_live_home()->locator->list_locations("*", "*", "*", "*")) {
     add_location(0, l);
   }
   reader_ = io_device_->open_reader_to_subscribe();
@@ -69,7 +69,7 @@ bool hero::setup() {
   return true;
 }
 
-void hero::pre_setup() { return; }
+void hero::pre_setup() {}
 
 void hero::step() {
   continual_ = false;
@@ -100,7 +100,10 @@ int64_t hero::now() const { return now_; }
 
 void hero::set_now(int64_t now) { now_ = now; }
 
-void hero::set_begin_time(int64_t begin_time) { begin_time_ = begin_time; }
+void hero::set_begin_time(int64_t begin_time) {
+  begin_time_ = begin_time;
+  io_device_->set_begin_time(begin_time);
+}
 
 int64_t hero::get_begin_time() const { return begin_time_; }
 
@@ -124,13 +127,42 @@ uint32_t hero::get_live_home_uid() const { return get_io_device()->get_live_home
 
 [[maybe_unused]] reader_ptr hero::get_reader() const { return reader_; }
 
-bool hero::has_writer(uint32_t dest_id) const { return writers_.find(dest_id) != writers_.end(); }
+bool hero::has_writer(uint32_t dest_id) const {
+  if (util::get_thread_id() != main_thread_id_) {
+    return has_band_writer(dest_id) or writers_.find(dest_id) != writers_.end();
+  }
+  return writers_.find(dest_id) != writers_.end();
+}
 
 writer_ptr hero::get_writer(uint32_t dest_id) const {
+  if (util::get_thread_id() != main_thread_id_) {
+    try {
+      return get_band_writer(dest_id);
+    } catch (const std::exception &e) {
+      SPDLOG_WARN("Unexpected exception by get_band_writer for dest_id {}:{}, {}", dest_id, get_location_uname(dest_id),
+                  e.what());
+    }
+  } else if (band_writers_.find(dest_id) != band_writers_.end()) {
+    return band_writers_.at(dest_id);
+  }
+
   if (writers_.find(dest_id) == writers_.end()) {
     SPDLOG_ERROR("no writer for {}", get_location_uname(dest_id));
   }
   return writers_.at(dest_id);
+}
+
+bool hero::has_band_writer(uint32_t dest_id) const {
+  std::lock_guard<std::mutex> lk(band_mtx_);
+  return band_writers_.find(dest_id) != band_writers_.end();
+}
+
+writer_ptr hero::get_band_writer(uint32_t dest_id) const {
+  std::lock_guard<std::mutex> lk(band_mtx_);
+  if (band_writers_.find(dest_id) == band_writers_.end()) {
+    SPDLOG_ERROR("no band writer for {}", get_location_uname(dest_id));
+  }
+  return band_writers_.at(dest_id);
 }
 
 [[maybe_unused]] const WriterMap &hero::get_writers() const { return writers_; }
@@ -186,7 +218,7 @@ const Channel &hero::get_channel(uint64_t hash) const {
 
 const std::unordered_map<uint32_t, longfist::types::Register> &hero::get_registry() const { return registry_; }
 
-const std::unordered_map<uint32_t, yijinjing::data::location_ptr> &hero::get_locations() const { return locations_; }
+const std::unordered_map<uint32_t, data::location_ptr> &hero::get_locations() const { return locations_; }
 
 bool hero::has_band(uint32_t source, uint32_t dest) const { return has_band(make_source_dest_hash(source, dest)); }
 
@@ -274,10 +306,6 @@ void hero::register_channel(int64_t, const Channel &channel) {
     auto dest_uname = get_location_uname(channel.dest_id);
     SPDLOG_TRACE("channel [{:08x}] {} -> {} up", channel_uid, source_uname, dest_uname);
   }
-
-  if (channel.source_id == get_home_uid() and not has_writer(channel.dest_id)) {
-    writers_.insert_or_assign(channel.dest_id, get_io_device()->open_writer(channel.dest_id));
-  }
 }
 
 void hero::deregister_channel(uint32_t source_id) {
@@ -303,10 +331,6 @@ void hero::register_band(int64_t, const Band &band) {
     auto source_uname = get_location_uname(band.source_id);
     auto dest_uname = get_location_uname(band.dest_id);
     SPDLOG_TRACE("band [{:08x}] {} -> {} up", band_uid, source_uname, dest_uname);
-  }
-
-  if (band.source_id == get_home_uid() and not has_writer(band.dest_id)) {
-    writers_.insert_or_assign(band.dest_id, get_io_device()->open_writer(band.dest_id));
   }
 }
 
@@ -348,8 +372,8 @@ void hero::require_write_to(int64_t trigger_time, uint32_t source_id, uint32_t d
   writer->close_data();
 }
 
-void hero::require_write_to_band(int64_t trigger_time, uint32_t source_id,
-                                 const yijinjing::data::location_ptr &location, uint32_t page_size) const {
+void hero::require_write_to_band(int64_t trigger_time, uint32_t source_id, const data::location_ptr &location,
+                                 uint64_t page_size) const {
   auto writer = get_writer(source_id);
   RequestWriteToBand msg = {};
   location->to<RequestWriteToBand>(msg);

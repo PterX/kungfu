@@ -1,7 +1,10 @@
 {
   "name": "@kungfu-trader/kfx-operator-bar",
-  "author": "kungfu-trader",
-  "version": "2.7.0-alpha.7",
+  "author": {
+    "name": "Kungfu Trader",
+    "email": "info@kungfu.link"
+  },
+  "version": "2.7.0-alpha.8",
   "description": "KungFu Operator for Bar Data",
   "license": "Apache-2.0",
   "main": "package.json",
@@ -19,17 +22,17 @@
     "host": "https://prebuilt.libkungfu.cc"
   },
   "scripts": {
-    "clean": "kfs operator clean",
-    "build": "kfs operator build",
-    "package": "kfs operator package",
+    "clean": "kfs extension clean",
+    "build": "kfs extension build",
+    "package": "kfs extension package",
     "install": "node -e \"require('@kungfu-trader/kungfu-core').prebuilt('install')\"",
     "format": "node ../../framework/core/.gyp/run-format-cpp.js src"
   },
   "dependencies": {
-    "@kungfu-trader/kungfu-core": "^2.7.0-alpha.7"
+    "@kungfu-trader/kungfu-core": "^2.7.0-alpha.8"
   },
   "devDependencies": {
-    "@kungfu-trader/kungfu-sdk": "^2.7.0-alpha.7"
+    "@kungfu-trader/kungfu-sdk": "^2.7.0-alpha.8"
   },
   "kungfuConfig": {
     "key": "bar",
@@ -86,6 +89,8 @@
             "name": "bar.period",
             "type": "int",
             "tip": "bar.period_tip",
+            "min": 1,
+            "default": 1,
             "required": true
           }
         ]

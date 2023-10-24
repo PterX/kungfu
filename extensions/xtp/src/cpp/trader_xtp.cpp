@@ -794,9 +794,15 @@ void TraderXTP::add_action_id(uint64_t xtp_order_id, int64_t action_id) {
 
 uint64_t TraderXTP::get_action_id(uint64_t xtp_order_id) {
   auto &action_ids = map_xtp_order_id_to_action_ids_.try_emplace(xtp_order_id).first->second;
-  uint64_t action_id = action_ids.front();
-  action_ids.pop();
-  return action_id;
+  if (not action_ids.empty()) {
+    uint64_t action_id = action_ids.front();
+    action_ids.pop();
+    SPDLOG_DEBUG("xtp_order_id:action_id = {}:{}", xtp_order_id, action_id);
+    return action_id;
+  } else {
+    SPDLOG_ERROR("action_ids is empty");
+    return 0;
+  }
 }
 
 } // namespace kungfu::wingchun::xtp

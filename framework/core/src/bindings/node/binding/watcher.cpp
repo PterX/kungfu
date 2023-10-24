@@ -334,11 +334,11 @@ Napi::Value Watcher::IssueBasketOrder(const Napi::CallbackInfo &info) {
 Napi::Value Watcher::IssueMark(const Napi::CallbackInfo &info) {
   SPDLOG_INFO("issue mark");
   uint32_t tag = GetNumber(info, 0);
-  auto account_location = IODevice::ExtractLocation(info, 1, get_locator());
-  if (not has_writer(account_location->location_uid)) {
+  auto target_location = IODevice::ExtractLocation(info, 1, get_locator());
+  if (not has_writer(target_location->location_uid)) {
     return Napi::Boolean::New(info.Env(), false);
   }
-  get_writer(account_location->location_uid)->mark(time::now_in_nano(), tag);
+  get_writer(target_location->location_uid)->mark(time::now_in_nano(), tag);
   return Napi::Boolean::New(info.Env(), true);
 }
 
@@ -818,35 +818,29 @@ void Watcher::UpdateBook(const event_ptr &event, const Position &position) {
 Watcher::BookListener::BookListener(Watcher &watcher) : watcher_(watcher) {}
 
 void Watcher::BookListener::on_asset_sync_reset(const Asset &old_asset, const Asset &new_asset) {
-  auto book = watcher_.bookkeeper_.get_book(new_asset.holder_uid);
-  state<Asset> cache_state(watcher_.ledger_home_location_->uid, book->asset.holder_uid, book->asset.update_time,
-                           book->asset);
+  state<Asset> cache_state(watcher_.ledger_home_location_->uid, new_asset.holder_uid, new_asset.update_time, new_asset);
   watcher_.feed_state_data_bank(cache_state, watcher_.data_bank_);
 }
 
 void Watcher::BookListener::on_asset_margin_sync_reset(const AssetMargin &old_asset_margin,
                                                        const AssetMargin &new_asset_margin) {
-  auto book = watcher_.bookkeeper_.get_book(new_asset_margin.holder_uid);
-  state<AssetMargin> cache_state(watcher_.ledger_home_location_->uid, book->asset_margin.holder_uid,
-                                 book->asset_margin.update_time, book->asset_margin);
+  state<AssetMargin> cache_state(watcher_.ledger_home_location_->uid, new_asset_margin.holder_uid,
+                                 new_asset_margin.update_time, new_asset_margin);
   watcher_.feed_state_data_bank(cache_state, watcher_.data_bank_);
 }
 
 void Watcher::BookListener::on_position_sync_reset(const book::Book &old_book, const book::Book &new_book) {
-  auto update_position = [&](book::PositionMap &position_map) {
+  auto update_position = [&](const book::PositionMap &position_map) {
     for (auto &pair : position_map) {
-      auto &position = pair.second;
+      const auto &position = pair.second;
       state<Position> cache_state(watcher_.ledger_home_location_->uid, position.holder_uid, position.update_time,
                                   position);
       watcher_.feed_state_data_bank(cache_state, watcher_.data_bank_);
     }
   };
 
-  for (auto &pair : watcher_.bookkeeper_.get_books()) {
-    auto &book = pair.second;
-    update_position(book->long_positions);
-    update_position(book->short_positions);
-  }
+  update_position(new_book.long_positions);
+  update_position(new_book.short_positions);
 }
 
 } // namespace kungfu::node

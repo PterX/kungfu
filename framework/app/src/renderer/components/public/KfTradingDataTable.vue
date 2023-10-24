@@ -13,9 +13,11 @@ import {
   ref,
   toRaw,
   nextTick,
+  watchEffect,
 } from 'vue';
 import { throttle } from 'lodash';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+import { useFastFindObjArrIndex } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 
 const { t } = VueI18n.global;
 
@@ -98,6 +100,9 @@ const selectAllIndeterminate = ref(false);
 const selectedRowKeyFieldValues = ref<Record<string, boolean>>({});
 const selectedRowsMap = ref<Record<string, TableDataItem>>({});
 let clickTimer: number | undefined;
+const { findIndexByKeyFieldValue, replaceArray } = useFastFindObjArrIndex(
+  computed(() => props.keyField),
+);
 
 const headerWidth = computed(() => {
   const widths: KfTradingDataTableHeaderConfig[] = []; //column use with
@@ -263,6 +268,10 @@ const dataSourceResolved = computed(() => {
   return props.dataSource;
 });
 
+watchEffect(() => {
+  replaceArray(dataSourceResolved.value);
+});
+
 function handleSort(
   dataIndex: string,
   sorter: undefined | ((a: any, b: any) => number),
@@ -313,6 +322,15 @@ function handleSelectAll(isChecked: boolean) {
   const allUnSelected = Object.assign({}, allRowKeyFieldFalse);
   const allRowsMap = Object.assign({}, toRaw(dataSourceMap.value));
 
+  Object.keys(props.selection).forEach((key) => {
+    if (props.selection[key].disabled) {
+      const curSelectState = selectedRowKeyFieldValues.value[key];
+      allSelected[key] = curSelectState;
+      allUnSelected[key] = curSelectState;
+      if (!curSelectState) delete allRowsMap[key];
+    }
+  });
+
   selectedRowKeyFieldValues.value = isChecked ? allSelected : allUnSelected;
   selectedRowsMap.value = isChecked ? allRowsMap : {};
 }
@@ -322,10 +340,15 @@ watch(
   (val) => {
     if (!props.selectable) return;
 
-    const allRowLength = props.dataSource.length;
+    const disabledRowLength = Object.values(props.selection).filter(
+      (item) => item.disabled,
+    ).length;
+    const allRowLength = props.dataSource.length - disabledRowLength;
     if (!allRowLength) return;
 
-    const selectedRowLength = Object.values(val).filter((item) => item).length;
+    const selectedRowLength = Object.keys(val).filter(
+      (key) => !props.selection[key]?.disabled && val[key],
+    ).length;
 
     selectAllIndeterminate.value =
       !!selectedRowLength && selectedRowLength < allRowLength;
@@ -336,7 +359,7 @@ watch(
   },
 );
 
-const scrollToItem = (index: number) => {
+const tableRefScrollToItem = (index: number) => {
   nextTick(() => {
     const scroller = props.dynamic
       ? dynamicScroller.value
@@ -345,6 +368,24 @@ const scrollToItem = (index: number) => {
       scroller.scrollToItem(index);
     }
   });
+};
+
+const scrollToItemByKeyFieldValue = (
+  keyFieldValue: string | number | bigint,
+) => {
+  const index = findIndexByKeyFieldValue(keyFieldValue);
+  if (index !== -1) {
+    tableRefScrollToItem(index);
+  }
+};
+
+const scrollToItem = (index: number) => {
+  const keyFieldValue = props.dataSource[index]?.[props.keyField];
+  keyFieldValue && scrollToItemByKeyFieldValue(keyFieldValue);
+};
+
+const scrollToTop = () => {
+  tableRefScrollToItem(0);
 };
 
 const getVisibleIndexRange = (): [number, number] => {
@@ -384,13 +425,22 @@ const getVisibleIndexRange = (): [number, number] => {
   return [-1, -1];
 };
 
+const resetSort = () => {
+  currentSorterFunction = undefined;
+  currentSorterIndex.value = '';
+  currentSorterOrder.value = '';
+};
+
 defineExpose({
   selectedRowsMap,
   isSelectAll,
   handleSelectRow,
   handleSelectAll,
+  scrollToItemByKeyFieldValue,
   scrollToItem,
+  scrollToTop,
   getVisibleIndexRange,
+  resetSort,
 });
 </script>
 <template>

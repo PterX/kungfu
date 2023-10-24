@@ -126,6 +126,8 @@ struct Book {
 
   void replace(const longfist::types::Trade &trade);
 
+  void mirror_position_from(const Book &book);
+
   [[nodiscard]] const InstrumentMap &get_instruments() const { return instruments; }
 
   [[nodiscard]] const InstrumentFactorMap &get_instrument_factors() const { return instrument_factors; }

@@ -109,6 +109,8 @@ public:
    */
   broker::PassiveClient &get_broker_client();
 
+  basketorder::BasketOrderEngine &get_basketorder_engine();
+
   void check_dependency_state(const event_ptr &event);
 
 protected:
@@ -128,6 +130,7 @@ private:
   broker::PassiveClient broker_client_;
   yijinjing::data::location_map md_locations_ = {};
   yijinjing::data::location_map op_locations_ = {};
+  basketorder::BasketOrderEngine basketorder_engine_;
   std::unordered_map<std::string, yijinjing::data::location_ptr> market_data_ = {};
   std::unordered_map<std::string, yijinjing::data::location_ptr> operator_data_ = {};
   longfist::enums::OperatorState state_;

@@ -334,26 +334,26 @@ inline void from_xtp(const XTPTickByTickStruct &ori, Entrust &des) {
   des.orig_order_no = ori.entrust.order_no;
 
   switch (ori.entrust.side) {
-    case 'B': {
-      des.side = Side::Buy;
-      break;
-    }
-    case 'S': {
-      des.side = Side::Sell;
-      break;
-    }
-    case '1': {
-      des.side = Side::Buy;
-      break;
-    }
-    case '2': {
-      des.side = Side::Sell;
-      break;
-    }
-    default: {
-      des.side = Side::Unknown;
-      break;
-    }
+  case 'B': {
+    des.side = Side::Buy;
+    break;
+  }
+  case 'S': {
+    des.side = Side::Sell;
+    break;
+  }
+  case '1': {
+    des.side = Side::Buy;
+    break;
+  }
+  case '2': {
+    des.side = Side::Sell;
+    break;
+  }
+  default: {
+    des.side = Side::Unknown;
+    break;
+  }
   }
 }
 
@@ -421,7 +421,7 @@ inline void from_xtp(const XTPTickByTickStruct &ori, Transaction &des) {
     default: {
       break;
     }
-  }
+    }
   }
 }
 } // namespace kungfu::wingchun::xtp

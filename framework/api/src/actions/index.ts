@@ -16,7 +16,10 @@ import {
 } from '../config/pathConfig';
 import { pathExists, remove } from 'fs-extra';
 import { getProcessIdByKfLocation } from '../utils/commonUtils';
-import { getIdByKfLocation, getResultUntilValuable } from '../utils/commonUtils';
+import {
+  getIdByKfLocation,
+  getResultUntilValuable,
+} from '../utils/commonUtils';
 import { promiseWithCachedPause } from '../utils/tradingUtils';
 import {
   getAllKfRiskSettings,

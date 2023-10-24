@@ -117,8 +117,6 @@ void bind_operator(pybind11::module &m) {
       .def("set_resume_policy", &op::Context::set_resume_policy)
       .def("req_deregister", &op::Context::req_deregister);
 
-  py::class_<op::LiveContext, op::Context, op::LiveContext_ptr>(m, "OpLiveContext");
-
   py::class_<op::Operator, PyOperator, op::Operator_ptr>(m, "Operator")
       .def(py::init())
       .def("pre_start", &op::Operator::pre_start)

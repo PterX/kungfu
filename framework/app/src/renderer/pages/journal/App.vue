@@ -1,123 +1,120 @@
 <template>
   <a-layout>
     <div class="kf-journal-view__wrap">
-      <div v-if="!visualVisible" class="kf-journal-session__warp kf-translateZ">
-        <KfDashboard @boardSizeChange="handleBodySizeChange">
-          <template #header>
-            <KfDashboardItem>
-              <a-input-search
-                v-model:value="searchKeyword"
-                :placeholder="$t('keyword_input')"
-                style="width: 120px"
-              />
-            </KfDashboardItem>
-            <KfDashboardItem>
-              <a-button size="small" @click="setSessions">
-                <template #icon>
-                  <reload-outlined style="font-size: 14px"></reload-outlined>
-                </template>
-              </a-button>
-            </KfDashboardItem>
-          </template>
-          <a-table
-            class="kf-ant-table"
-            :columns="columns"
-            :data-source="tableData"
-            :pagination="false"
-            size="small"
-            :row-class-name="dealRowClassName"
-            :custom-row="customRow"
-            :default-expand-all-rows="true"
-            :scroll="{ y: dashboardBodyHeight - 4 }"
-            :empty-text="$t('empty_text')"
-          >
-            <template
-              #bodyCell="{
-                column,
-                record,
-              }: {
-                column: KfTradingDataTableHeaderConfig,
-                record: KungfuApi.SessionResolved,
-              }"
-            >
-              <template v-if="column.dataIndex === 'sessionName'">
-                <a-tag
-                  :color="dealCategory(record.category)?.color || 'default'"
-                >
-                  {{ dealCategory(record.category)?.name }}
-                </a-tag>
-                {{
-                  record[column.dataIndex as keyof KungfuApi.SessionResolved]
-                }}
-              </template>
-              <template v-else-if="column.dataIndex === 'status'">
-                <span
-                  :style="{
-                    color: SessionStatus[record[column.dataIndex]].color,
-                  }"
-                >
-                  {{ SessionStatus[record[column.dataIndex]].name }}
-                </span>
-              </template>
-            </template>
-          </a-table>
-        </KfDashboard>
-      </div>
-
-      <EntryVisualization
-        v-if="visualVisible"
-        :category="currentSession?.category"
-        class="kf-journal-visualization"
-      />
-
-      <div class="kf-journal-control-bar">
-        <div class="kf-journal-bar-title" v-if="currentSession">
-          <a-tag :color="currentCategoryData?.color || 'default'">
-            {{ currentCategoryData?.name }}
-          </a-tag>
-          {{ currentSessionName }}
-        </div>
-        <TimeSlider
-          v-if="currentSession"
-          :step="60"
-          class="kf-journal-time-slider"
-        ></TimeSlider>
-        <JournalActions
-          :is-show-replay-action="isShowReplayAction"
-          :is-show-visual-action="isShowVisualAction"
-          @export-journal-data="onJournalActionsData"
-          @start-replay="dealLocation"
-          @show-visual="onEntryVisualization"
-        />
-      </div>
-      <div class="kf-journal-menu__wrap">
-        <a-menu
-          v-model:selectedKeys="currentMenuList"
-          class="kf-journal-menu-tab"
+      <div class="kf-journal-head-warp" :style="journalHeadStyle">
+        <div
+          v-if="!visualVisible"
+          class="kf-journal-session__warp kf-translateZ"
         >
-          <a-menu-item v-for="item in menus" :key="item.key">
-            <template #icon>
-              <component :is="item.icon"></component>
+          <KfDashboard @boardSizeChange="handleBodySizeChange">
+            <template #header>
+              <KfDashboardItem>
+                <a-input-search
+                  v-model:value="searchKeyword"
+                  :placeholder="$t('keyword_input')"
+                  style="width: 120px"
+                />
+              </KfDashboardItem>
+              <KfDashboardItem>
+                <a-button size="small" @click="setSessions">
+                  <template #icon>
+                    <reload-outlined style="font-size: 14px"></reload-outlined>
+                  </template>
+                </a-button>
+              </KfDashboardItem>
             </template>
-            {{ item.title }}
-          </a-menu-item>
-        </a-menu>
-        <div class="kf-journal-menu-content">
-          <EventsDashBoard
-            v-if="currentSession && isCurrentMenuItem('event')"
-            ref="eventDashBoard"
+            <a-table
+              class="kf-ant-table"
+              :columns="columns"
+              :data-source="tableData"
+              :pagination="false"
+              size="small"
+              :row-class-name="dealRowClassName"
+              :custom-row="customRow"
+              :default-expand-all-rows="true"
+              :scroll="{ y: dashboardBodyHeight - 4 }"
+              :empty-text="$t('empty_text')"
+            >
+              <template
+                #bodyCell="{
+                  column,
+                  record,
+                }: {
+                  column: KfTradingDataTableHeaderConfig,
+                  record: KungfuApi.SessionResolved,
+                }"
+              >
+                <template v-if="column.dataIndex === 'sessionName'">
+                  <a-tag
+                    :color="dealCategory(record.category)?.color || 'default'"
+                  >
+                    {{ dealCategory(record.category)?.name }}
+                  </a-tag>
+                  {{
+                    record[column.dataIndex as keyof KungfuApi.SessionResolved]
+                  }}
+                </template>
+                <template v-else-if="column.dataIndex === 'status'">
+                  <span
+                    :style="{
+                      color: SessionStatus[record[column.dataIndex]].color,
+                    }"
+                  >
+                    {{ SessionStatus[record[column.dataIndex]].name }}
+                  </span>
+                </template>
+              </template>
+            </a-table>
+          </KfDashboard>
+        </div>
+        <div v-if="visualVisible" class="kf-journal-visualization">
+          <EntryVisualization
+            ref="entryVisualzationRef"
+            :category="currentSession?.category"
           />
-          <Replay
-            v-if="
-              currentSession &&
-              isShowReplayAction &&
-              replayPramas.processId &&
-              isCurrentMenuItem('replay')
-            "
-            ref="replayRef"
-            :params="replayPramas"
-            :key="replayPramas.processId"
+        </div>
+      </div>
+      <div class="gutter" @mousedown="mouseDownHandler"></div>
+      <div class="kf-journal-content" :style="journalContentStyle">
+        <div class="kf-journal-control-bar">
+          <div class="kf-journal-bar-title" v-if="currentSession">
+            <a-tag :color="currentCategoryData?.color || 'default'">
+              {{ currentCategoryData?.name }}
+            </a-tag>
+            {{ currentSessionName }}
+          </div>
+          <TimeSlider
+            v-if="currentSession"
+            :step="60"
+            class="kf-journal-time-slider"
+          ></TimeSlider>
+          <JournalActions
+            :is-show-replay-action="isShowReplayAction"
+            :is-show-visual-action="isShowVisualAction"
+            @export-journal-data="onJournalActionsData"
+            @start-replay="dealLocation"
+            @show-visual="onEntryVisualization"
           />
+        </div>
+        <div class="kf-journal-menu__wrap">
+          <a-menu
+            v-model:selectedKeys="currentMenuList"
+            class="kf-journal-menu-tab"
+          >
+            <a-menu-item v-for="item in menus" :key="item.key">
+              <template #icon>
+                <component :is="item.icon"></component>
+              </template>
+              {{ item.title }}
+            </a-menu-item>
+          </a-menu>
+          <div class="kf-journal-menu-content">
+            <EventsDashBoard
+              v-if="currentSession"
+              v-show="isCurrentMenuItem('event')"
+              ref="eventDashBoard"
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -219,6 +216,9 @@ const {
 const { setSessions, setCurrentSession } = useJournalStore();
 const { handleBodySizeChange, dashboardBodyHeight } = useDashboardBodySize();
 const columns = getSessionColumns();
+
+const entryVisualzationRef = ref();
+
 const operator = ref<KungfuApi.KfConfig[]>([]);
 const strategy = ref<KungfuApi.KfConfig[]>([]);
 const td = ref<KungfuApi.KfConfig[]>([]);
@@ -329,6 +329,20 @@ const isCurrentMenuItem = (key: 'event' | 'visual' | 'replay') => {
   }
 };
 const visualVisible = ref<boolean>(false);
+const boardStyle = localStorage.getItem('boardStyle')
+  ? JSON.parse(localStorage.getItem('boardStyle') as string)
+  : {};
+
+const journalHeadStyle = ref<KungfuApi.BoardStyle>(
+  boardStyle['journalHead'] || {
+    flex: '1 1 20%',
+  },
+);
+const journalContentStyle = ref<KungfuApi.BoardStyle>(
+  boardStyle['journalContent'] || {
+    flex: '1 1 80%',
+  },
+);
 
 const exportFileName = computed(() => {
   if (currentSession.value) {
@@ -368,6 +382,52 @@ const customRow = (record: KungfuApi.SessionResolved) => {
       }
     },
   };
+};
+
+const mouseMoveHandler = (event: MouseEvent) => {
+  const journalHeadDom = ref<HTMLElement | null>(
+    document.querySelector('.kf-journal-head-warp'),
+  );
+  const journalContentDom = ref<HTMLElement | null>(
+    document.querySelector('.kf-journal-content'),
+  );
+
+  if (!journalHeadDom.value || !journalContentDom.value) return;
+
+  const container = document.querySelector('.kf-journal-view__wrap');
+  if (!container) return;
+  const div = container.getBoundingClientRect();
+
+  const leftHeight = event.clientY;
+  const rightHeight = window.innerHeight - event.clientY - 5;
+
+  journalHeadStyle.value = {
+    height: `${(100 * leftHeight) / div.height}%`,
+    flex: 'unset',
+  };
+  journalContentStyle.value = {
+    height: `${(100 * rightHeight) / div.height}%`,
+    flex: 'unset',
+  };
+};
+const mouseUpHandler = () => {
+  if (visualVisible.value) {
+    entryVisualzationRef.value?.handleResize(true);
+  }
+  localStorage.setItem(
+    'boardStyle',
+    JSON.stringify({
+      journalHead: journalHeadStyle.value,
+      journalContent: journalContentStyle.value,
+    }),
+  );
+
+  document.removeEventListener('mousemove', mouseMoveHandler);
+  document.removeEventListener('mouseup', mouseUpHandler);
+};
+const mouseDownHandler = (event: MouseEvent) => {
+  document.addEventListener('mousemove', mouseMoveHandler);
+  document.addEventListener('mouseup', mouseUpHandler);
 };
 
 onMounted(async () => {
@@ -552,21 +612,44 @@ function onEntryVisualization(visible: boolean) {
       display: flex;
       flex-direction: column;
 
-      .kf-journal-session__warp {
-        flex: 0 0 300px;
-        height: 300px;
-        width: 60%;
-        margin: auto;
-        padding: 8px 0;
-        box-sizing: border-box;
+      .gutter {
+        cursor: row-resize;
+        width: 100%;
+        height: 5px;
       }
 
-      .kf-journal-visualization {
-        flex: 0 0 300px;
-        height: 300px;
+      .gutter:hover {
+        background-color: #333;
+      }
+
+      .gutter:active {
+        background-color: #333;
+      }
+
+      .kf-journal-content {
+        flex: 1 1 80%;
         width: 100%;
-        padding: 8px 0 4px 0;
-        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+      }
+      .kf-journal-head-warp {
+        flex: 1 1 20%;
+        width: 100%;
+
+        .kf-journal-session__warp {
+          width: 60%;
+          height: 100%;
+          margin: auto;
+          padding: 8px 0;
+          box-sizing: border-box;
+        }
+
+        .kf-journal-visualization {
+          width: 100%;
+          height: 100%;
+          padding: 8px 0 4px 0;
+          box-sizing: border-box;
+        }
       }
 
       .kf-journal-control-bar {

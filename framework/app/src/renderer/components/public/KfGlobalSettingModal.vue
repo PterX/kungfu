@@ -79,7 +79,7 @@ onMounted(() => {
     tag: 'open:globalSetting',
   });
 
-  getKfCommission().then((res) => {
+  getKfCommission(window.watcher).then((res) => {
     commissions.value = res;
   });
 });
@@ -96,11 +96,11 @@ onUnmounted(() => {
     store.setKfGlobalSetting();
   });
 
-  setKfCommission(commissions.value);
+  setKfCommission(window.watcher, commissions.value);
 });
 
 function handleSaveCommission() {
-  setKfCommission(commissions.value)
+  setKfCommission(window.watcher, commissions.value)
     .then(() => {
       messagePrompt().success();
     })

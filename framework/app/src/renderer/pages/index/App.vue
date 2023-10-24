@@ -113,7 +113,7 @@ const busSubscription = globalBus.subscribe((data: KfEvent.KfBusEvent) => {
     }
   }
   if (data.tag === 'update:riskSetting') {
-    setAllRiskSettingList(data.riskSettings).finally(() => {
+    setAllRiskSettingList(window.watcher, data.riskSettings).finally(() => {
       store.setRiskSettingList();
     });
   }

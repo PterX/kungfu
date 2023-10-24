@@ -80,7 +80,7 @@
           @search="handleSearchOrderId"
         />
         <div
-          v-show="instrumentList.length > 0"
+          v-show="instrumentList.length > 0 || initDev"
           id="strategyChart"
           class="kf-chart_content"
         ></div>
@@ -92,7 +92,7 @@
       </div>
       <a-spin
         class="kf-journal-spin"
-        :spinning="isLoadingFrames"
+        :spinning="isLoadingFrames && instrumentList.length === 0"
         :tip="$t('journalConfig.loading_journal')"
       />
     </div>
@@ -141,10 +141,7 @@ import {
   OffsetEnum,
   SideEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
-import {
-  debounce,
-  delayMilliSeconds,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { debounce } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 
 const { t } = VueI18n.global;
 
@@ -185,10 +182,10 @@ const props = withDefaults(
 const DEFAULT_MIN_Y_SPLIT = 5;
 const DFEAUKT_Y_SPACE = 50;
 const DEFAULT_ORDER_LENGTH = 30;
-const DEFAULT_CHART_LENGTH_RATE = 20;
+const DEFAULT_CHART_LENGTH_RATE = 30;
 const DEFAULT_SYMBOL_SIZE = 10;
 const ACTIVE_SYMBOL_SIZE = 20;
-const DATA_RANGE_SIZE = 15;
+const DATA_RANGE_SIZE = 20;
 
 const { setCurrentSession, setSelectedChartItem, setCurrentFrameId } =
   useJournalStore();
@@ -211,10 +208,14 @@ const xAxisData = ref<Record<string, (number | string | bigint)[]>>({});
 const quoteXAxisData = ref<Record<string, number[]>>({});
 const searchOrderId = ref<string>('');
 const instrumentList = ref<string[]>([]);
+const initDev = ref<boolean>(true);
+let selectedOrderId = 0n;
 onMounted(() => {
-  nextTick(() => {
-    initChart();
+  nextTick(async () => {
+    await initChart();
+    initDev.value = false;
   });
+  // initDev.value = false;
   initChartData();
 });
 
@@ -292,30 +293,20 @@ const handleFrameChange = async (newCurrentFram) => {
           Number(dataTime),
           quoteXAxisData.value[selectedInstrument.value],
         );
-        delayMilliSeconds(500)
-          .then(() => {
-            myChart.dispatchAction({
-              type: 'highlight',
-              seriesIndex: 0,
-              dataIndex: closestTimeIndex,
-            });
-            return delayMilliSeconds(3000);
-          })
-          .then(() => {
-            myChart.dispatchAction({
-              type: 'downplay',
-              seriesIndex: 0,
-              dataIndex: closestTimeIndex,
-            });
-          })
-          .catch((error) => {
-            messagePrompt().error(error);
-          });
+        option.series[4].data.forEach((item, index) => {
+          index === closestTimeIndex
+            ? (item.itemStyle = {
+                color: '#0F6DA6',
+              })
+            : (item.itemStyle = {
+                color: 'transparent',
+              });
+        });
       } else {
         selectedOrderId = orderId as bigint;
         option.series
           .filter((serie, index) => {
-            return index !== 0;
+            return index !== 0 && index !== 4;
           })
           .forEach((serie) => {
             serie.data.forEach((item) => {
@@ -530,7 +521,7 @@ function dealFrameData() {
       const { dataTime, price } = getTradingDataValueByKey(tradingDataResolved);
 
       if (!xAxisData.value[key]) {
-        xAxisData.value[key] = [];
+        xAxisData.value[key] = [dataTime.toString()];
       } else {
         xAxisData.value[key].push(dataTime.toString());
       }
@@ -651,7 +642,6 @@ function getCurInstrument(instrument: string) {
 
 const chartWrapper = ref<HTMLElement>();
 let myChart: echarts.ECharts;
-let selectedOrderId = 0n;
 const option = getChartOption();
 const xAxisMinMax = ref<{
   min: number | string;
@@ -666,7 +656,6 @@ function initChart() {
   if (element) {
     myChart = echarts.init(element as HTMLElement);
     addChartEventListener(myChart);
-    myChart.setOption(option);
   }
 }
 
@@ -838,10 +827,10 @@ function addChartEventListener(myChart: echarts.ECharts) {
 
   myChart.getZr().on('click', (event) => {
     if (!event.target) {
-      if (!Number(selectedOrderId)) return;
+      // if (!Number(selectedOrderId)) return;
       option.series
         .filter((serie, index) => {
-          return index !== 0;
+          return index !== 0 && index !== 4;
         })
         .forEach((serie) => {
           const defaultSize = getDefaultSize(serie.name);
@@ -857,6 +846,14 @@ function addChartEventListener(myChart: echarts.ECharts) {
             };
           });
         });
+      option.series[4].data.forEach((item) => {
+        if (item.itemStyle?.color !== 'transparen') {
+          item.itemStyle = {
+            color: 'transparent',
+          };
+          setCurrentFrameId('');
+        }
+      });
       myChart && myChart.setOption(option);
       selectedOrderId = 0n;
     }
@@ -1018,19 +1015,26 @@ function findClosestTime(targetTime: number, times: (number | string)[]) {
   if (times.length === 0) {
     return 0;
   }
-
-  let closestIndex = 0;
-  let closestDiff = Math.abs(targetTime - Number(times[0]));
-
-  times.forEach((item, index) => {
-    const currentDiff = Math.abs(targetTime - Number(item));
-    if (currentDiff < closestDiff) {
-      closestDiff = currentDiff;
-      closestIndex = index;
+  let left = 0;
+  let right = times.length - 1;
+  let mid = 0;
+  if (times.indexOf(targetTime) !== -1) {
+    return times.indexOf(targetTime);
+  }
+  while (left <= right) {
+    mid = Math.floor((left + right) / 2);
+    if (times[mid] === targetTime) {
+      return mid;
+    } else if (Number(times[mid]) < targetTime) {
+      left = mid + 1;
+    } else {
+      right = mid - 1;
     }
-  });
-
-  return closestIndex;
+  }
+  return Math.abs(targetTime - Number(times[mid])) <
+    Math.abs(targetTime - Number(times[mid + 1]))
+    ? mid
+    : mid + 1;
 }
 
 function handleSearchOrderId() {
@@ -1044,7 +1048,7 @@ function handleSearchOrderId() {
 
   option.series
     .filter((serie, index) => {
-      return index !== 0;
+      return index !== 0 && index !== 4;
     })
     .forEach((serie) => {
       serie.data.forEach((item) => {

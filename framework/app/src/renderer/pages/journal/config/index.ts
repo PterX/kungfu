@@ -168,6 +168,7 @@ export interface SeriesData {
     shadowBlur?: number;
     shadowColor?: string;
   };
+  showSymbol?: boolean;
   tooltip?: {
     position: string;
     formatter: string;
@@ -187,6 +188,7 @@ export interface SeriesData {
   lineStyle?: {
     silent?: boolean;
   };
+  shadowColor?: string;
   label?: {
     show: boolean;
     position: string;
@@ -330,6 +332,9 @@ export const getChartOption = () => {
         symbol: circleSvg,
         showSymbol: true,
         symbolSize: 10,
+        legendHoverLink: false,
+        symbolKeepAspect: false,
+        symbolOffset: [],
         itemStyle: {
           color: 'transparent',
         },

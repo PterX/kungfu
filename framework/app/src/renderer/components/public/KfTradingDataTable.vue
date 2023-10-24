@@ -359,25 +359,33 @@ watch(
   },
 );
 
+const tableRefScrollToItem = (index: number) => {
+  nextTick(() => {
+    const scroller = props.dynamic
+      ? dynamicScroller.value
+      : normalScroller.value;
+    if (scroller) {
+      scroller.scrollToItem(index);
+    }
+  });
+};
+
 const scrollToItemByKeyFieldValue = (
   keyFieldValue: string | number | bigint,
 ) => {
   const index = findIndexByKeyFieldValue(keyFieldValue);
   if (index !== -1) {
-    nextTick(() => {
-      const scroller = props.dynamic
-        ? dynamicScroller.value
-        : normalScroller.value;
-      if (scroller) {
-        scroller.scrollToItem(index);
-      }
-    });
+    tableRefScrollToItem(index);
   }
 };
 
 const scrollToItem = (index: number) => {
   const keyFieldValue = props.dataSource[index]?.[props.keyField];
   keyFieldValue && scrollToItemByKeyFieldValue(keyFieldValue);
+};
+
+const scrollToTop = () => {
+  tableRefScrollToItem(0);
 };
 
 const getVisibleIndexRange = (): [number, number] => {
@@ -417,6 +425,12 @@ const getVisibleIndexRange = (): [number, number] => {
   return [-1, -1];
 };
 
+const resetSort = () => {
+  currentSorterFunction = undefined;
+  currentSorterIndex.value = '';
+  currentSorterOrder.value = '';
+};
+
 defineExpose({
   selectedRowsMap,
   isSelectAll,
@@ -424,7 +438,9 @@ defineExpose({
   handleSelectAll,
   scrollToItemByKeyFieldValue,
   scrollToItem,
+  scrollToTop,
   getVisibleIndexRange,
+  resetSort,
 });
 </script>
 <template>

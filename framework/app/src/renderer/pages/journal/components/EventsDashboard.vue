@@ -89,7 +89,6 @@
         @click-cell="handleClickRow"
         @click-row="handleClickRow"
         @right-click-row="handleOpenFrameDetail"
-        @onScrollToTop="handleScrollToTop"
         @onScrollToBottom="handleScrollToBottom"
       >
         <template
@@ -353,10 +352,10 @@ const frameDataForShow = computed(() => {
   });
 });
 
-const handleScrollToTop = () => {
-  //TODO on scroll to top event;
+const resetScrollToTop = () => {
   if (scrollerTableRef.value) {
-    scrollerTableRef.value.scrollToItem(0);
+    scrollerTableRef.value.resetSort();
+    scrollerTableRef.value.scrollToTop();
   }
 };
 
@@ -468,7 +467,7 @@ watch(
   () => firstSplitFramesLoading.value,
   (newIsLoading, oldIsLoading) => {
     if (!newIsLoading && oldIsLoading) {
-      handleScrollToTop();
+      resetScrollToTop();
     }
   },
 );
@@ -528,8 +527,14 @@ const initLoad = debounce(async () => {
   firstSplitFramesLoading.value = false;
 }, 50);
 
-const loadFrameData = async (currentSessionId: number, loadmore = false) => {
-  console.warn('loadFrameData, loadmore', loadmore);
+const loadFrameData = async (
+  currentSessionId: number,
+  option?: {
+    mode?: 'init' | 'loadMore' | 'loadMax';
+  },
+) => {
+  const mode = option?.mode ?? 'init';
+  console.warn('loadFrameData, mode', mode);
   const drain = async (
     sessionId: number,
   ): Promise<KungfuApi.FrameResolved[]> => {
@@ -632,7 +637,7 @@ const loadFrameData = async (currentSessionId: number, loadmore = false) => {
       !currentTracer.dataAvailable() ||
       currentFrameList.value.length >= DEFAULT_LIST_SIZE ||
       totalCount >= DEFAULT_LIST_SIZE ||
-      loadmore
+      mode === 'loadMore'
     ) {
       return currentFrameList.value;
     } else {
@@ -652,7 +657,7 @@ const loadFrameData = async (currentSessionId: number, loadmore = false) => {
     isLoadingFrames.value = false;
     firstSplitFramesLoading.value = false;
     requestBreakLoadingDataWhile = false;
-    setCurrentFrameId(currentFrameList.value[0]?.id);
+    if (mode === 'init') setCurrentFrameId(currentFrameList.value[0]?.id);
   });
 };
 
@@ -661,7 +666,9 @@ const loadMore = debounce(async (split = true) => {
   if (isLoadingFrames.value) return;
 
   await delayMilliSeconds(0);
-  await loadFrameData(currentSession.value.index, split as boolean);
+  await loadFrameData(currentSession.value.index, {
+    mode: split ? 'loadMore' : 'loadMax',
+  });
 }, 50);
 
 const handleOpenFrameDetail = async ({ row }) => {

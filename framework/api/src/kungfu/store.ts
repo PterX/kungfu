@@ -1,10 +1,11 @@
 import path from 'path';
 import fse from 'fs-extra';
-import { configStore, promiseWithCachedPause } from '../kungfu';
+import { configStore } from '../kungfu';
 import {
   getResultUntilValuable,
   hidePasswordByLogger,
 } from '../utils/commonUtils';
+import { promiseWithCachedPause } from '../utils/tradingUtils';
 import { kfLogger } from '../utils/logUtils';
 import { BASE_DB_DIR } from '../config/pathConfig';
 

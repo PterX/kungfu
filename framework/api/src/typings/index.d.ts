@@ -167,7 +167,7 @@ declare namespace KungfuApi {
   export interface KfConfigItemHeader {
     title: string;
     description: string;
-    type?: 'str' | 'num' | 'precent' | 'bool';
+    type?: 'str' | 'num' | 'percent' | 'bool';
     required?: boolean;
     default?: KfConfigValue;
   }
@@ -538,7 +538,6 @@ declare namespace KungfuApi {
       name: string,
       mode: string,
     ): KungfuApi.KfConfig | false;
-    getAllLocation();
   }
 
   export interface HistoryStore {

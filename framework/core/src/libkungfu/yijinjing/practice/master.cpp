@@ -261,6 +261,10 @@ void master::feed(const event_ptr &event) {
     return;
   }
 
+  if (get_location(event->source())->category == category::OPERATOR) {
+    return;
+  }
+
   if (event->msg_type() != Instrument::tag and event->msg_type() != InstrumentFactor::tag and
       get_location(event->source())->category == category::MD) {
     return;

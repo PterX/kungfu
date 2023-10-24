@@ -478,6 +478,7 @@ export const useAddUpdateRemoveKfConfig = (): {
                 ...formState,
                 add_time: +new Date().getTime() * Math.pow(10, 6),
               }),
+              window.watcher,
             )
               .then(() => {
                 success();
@@ -575,6 +576,7 @@ export const useDealExportHistoryTradingData = (): {
 
       try {
         historyData = await getKungfuHistoryData(
+          window.watcher,
           date,
           dateType,
           tradingDataType,
@@ -702,6 +704,7 @@ export const useDealExportHistoryTradingData = (): {
     } else {
       try {
         historyData = await getKungfuHistoryData(
+          window.watcher,
           date,
           dateType,
           tradingDataType,

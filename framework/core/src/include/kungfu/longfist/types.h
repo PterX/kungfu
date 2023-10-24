@@ -660,7 +660,7 @@ KF_DEFINE_PACK_TYPE(                                                        //
     (int64_t, ask_no), // 卖方订单号
 
     (enums::ExecType, exec_type), // SZ: 成交标识
-    (enums::BsFlag, bs_flag),     // 买卖方向
+    (enums::Side, side),          // 买卖方向
 
     (int64_t, main_seq), // 主序号
     (int64_t, seq),      // 子序号

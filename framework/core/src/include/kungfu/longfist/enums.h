@@ -11,7 +11,6 @@
 #include <nlohmann/json.hpp>
 #include <spdlog/fmt/ostr.h>
 
-
 #define KF_JSON_SERIALIZE_ENUM(ENUM_TYPE, ...)                                                                         \
   template <typename BasicJsonType> inline void to_json(BasicJsonType &j, const ENUM_TYPE &e) {                        \
     static_assert(std::is_enum<ENUM_TYPE>::value, #ENUM_TYPE " must be an enum!");                                     \
@@ -25,7 +24,7 @@
     static_assert(std::is_enum<ENUM_TYPE>::value, #ENUM_TYPE " must be an enum!");                                     \
     static const std::pair<ENUM_TYPE, BasicJsonType> m[] = __VA_ARGS__;                                                \
     if (j.is_number()) {                                                                                               \
-      e = static_cast<ENUM_TYPE>(j.template get<int8_t>());                                                                                                     \
+      e = static_cast<ENUM_TYPE>(j.template get<int8_t>());                                                            \
       return;                                                                                                          \
     }                                                                                                                  \
     auto it =                                                                                                          \
@@ -412,15 +411,15 @@ enum class CashReplaceFlag : int8_t {
 };
 
 KF_JSON_SERIALIZE_ENUM(CashReplaceFlag, {
-                                                  {CashReplaceFlag::UnReplace, "UnReplace"},
-                                                  {CashReplaceFlag::EnReplace, "EnReplace"},
-                                                  {CashReplaceFlag::MustReplace, "MustReplace"},
-                                                  {CashReplaceFlag::UnSSEReplace, "UnSSEReplace"},
-                                                  {CashReplaceFlag::UnSSEMustReplace, "UnSSEMustReplace"},
-                                                  {CashReplaceFlag::UnSSESZEReplace, "UnSSESZEReplace"},
-                                                  {CashReplaceFlag::UnSSESZEMustReplace, "UnSSESZEMustReplace"},
-                                                  {CashReplaceFlag::Unknown, "Unknown"},
-                                              })
+                                            {CashReplaceFlag::UnReplace, "UnReplace"},
+                                            {CashReplaceFlag::EnReplace, "EnReplace"},
+                                            {CashReplaceFlag::MustReplace, "MustReplace"},
+                                            {CashReplaceFlag::UnSSEReplace, "UnSSEReplace"},
+                                            {CashReplaceFlag::UnSSEMustReplace, "UnSSEMustReplace"},
+                                            {CashReplaceFlag::UnSSESZEReplace, "UnSSESZEReplace"},
+                                            {CashReplaceFlag::UnSSESZEMustReplace, "UnSSESZEMustReplace"},
+                                            {CashReplaceFlag::Unknown, "Unknown"},
+                                        })
 
 inline std::ostream &operator<<(std::ostream &os, CashReplaceFlag t) { return os << int32_t(t); }
 

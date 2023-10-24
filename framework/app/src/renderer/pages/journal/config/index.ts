@@ -303,7 +303,7 @@ export const getChartOption = () => {
         data: [] as SeriesData[],
         legendHoverLink: false,
         symbolKeepAspect: true,
-        symbolOffset: [],
+        symbolOffset: [-5, -5],
         symbol: arrowSvg,
         zlevel: 3,
         itemStyle: {

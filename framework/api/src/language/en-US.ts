@@ -707,6 +707,7 @@ export default {
     search_instrument: 'Please search for code number',
     search_order_id_error:
       'The order number you searched for does not exist. Please check if it is the selected target',
+    data_error: 'Data does not exist',
     buy_open: 'Buy to open',
     buy_close: 'Buy to close',
     sell_open: 'Sell to open',

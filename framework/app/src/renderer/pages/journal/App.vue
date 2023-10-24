@@ -324,7 +324,7 @@ function onEntryVisualization() {
       .gutter {
         cursor: row-resize;
         width: 100%;
-        height: 5px;
+        height: 4px;
       }
 
       .gutter:hover {
@@ -349,14 +349,14 @@ function onEntryVisualization() {
           width: 60%;
           height: 100%;
           margin: auto;
-          padding: 8px 0;
+          padding-top: 8px;
           box-sizing: border-box;
         }
 
         .kf-journal-visualization {
           width: 100%;
           height: 100%;
-          padding: 8px 0 4px 0;
+          padding-top: 8px;
           box-sizing: border-box;
         }
       }

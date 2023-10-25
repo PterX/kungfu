@@ -142,11 +142,6 @@ watchEffect(() => {
   replaceArray(dataSourceResolved.value);
 });
 
-const searchEnabled = computed(
-  () =>
-    props.searchOption.enabled && props.searchOption.keysForSearch.length > 0,
-);
-
 const scrollerRef = computed(() => {
   if (dynamic.value) {
     return dynamicScroller.value;
@@ -155,6 +150,10 @@ const scrollerRef = computed(() => {
   }
 });
 
+const searchEnabled = computed(
+  () =>
+    props.searchOption.enabled && props.searchOption.keysForSearch.length > 0,
+);
 const {
   searchInUsing,
   inputSearchRef,

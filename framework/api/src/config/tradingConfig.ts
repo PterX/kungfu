@@ -1056,6 +1056,7 @@ export const ExportTradingDataColumnsToFilter: Record<
   BasketOrder: [],
   InstrumentFactor: ['dest', 'source'],
   OrderTrigger: [],
+  SyntheticData: [],
 };
 
 export const OrderTriggerCancelStatus = [

@@ -17,6 +17,7 @@ interface journalState {
   currentLoadedLastestFrameGenTime: bigint;
   currentLocation: LocationRseolved | null;
   isLoadingFrames: boolean;
+  isBuildingTracer: boolean;
   selectedChartItem: number;
   currentFrame: KungfuApi.FrameResolved | null;
   currentFrameId: string;
@@ -31,6 +32,7 @@ export const useJournalStore = defineStore('journal', {
     currentLoadedLastestFrameGenTime: 0n,
     currentLocation: null,
     isLoadingFrames: false,
+    isBuildingTracer: false,
     selectedChartItem: 0,
     currentFrame: null,
     currentFrameId: '',

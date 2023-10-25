@@ -1126,6 +1126,7 @@ declare namespace KungfuApi {
     BasketInstrument: DataTable<BasketInstrument>;
     BasketOrder: DataTable<BasketOrder>;
     OrderTrigger: DataTable<OrderTrigger>;
+    SyntheticData: DataTable<SyntheticData>;
   }
 
   export type TradingDataItem =
@@ -1220,6 +1221,9 @@ declare namespace KungfuApi {
       InstrumentResolved {
     basketInstrumentName: string;
     basketInstrumentId: string;
+    todayVolume?: number;
+    yesterdayVolume?: number;
+    posVolume?: number;
   }
 
   export interface BasketInstrumentForOrder extends BasketInstrumentResolved {

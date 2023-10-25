@@ -157,6 +157,24 @@ export interface ChartDataCustomInfo {
   orderId?: bigint;
 }
 
+interface EChartsTooltipPositionParams {
+  dataIndex: number;
+}
+
+type Point = [number, number];
+type RectSize = {
+  contentSize: [number, number];
+  viewSize: [number, number];
+};
+
+export type PosFun = (
+  point: Point,
+  params: EChartsTooltipPositionParams[],
+  dom: HTMLElement,
+  rect: DOMRect,
+  size: RectSize,
+) => string;
+
 export interface SeriesData {
   value: (string | number | bigint)[];
   customInfo?: ChartDataCustomInfo;
@@ -170,7 +188,7 @@ export interface SeriesData {
   };
   showSymbol?: boolean;
   tooltip?: {
-    position: string;
+    position: string | PosFun;
     formatter: string;
     trigger?: string;
   };
@@ -303,7 +321,7 @@ export const getChartOption = () => {
         data: [] as SeriesData[],
         legendHoverLink: false,
         symbolKeepAspect: true,
-        symbolOffset: [-5, -5],
+        symbolOffset: [],
         symbol: arrowSvg,
         zlevel: 3,
         itemStyle: {
@@ -348,8 +366,8 @@ export const getChartOption = () => {
       },
     ],
     grid: {
-      left: '32px',
-      right: '32px',
+      left: '40px',
+      right: '80px',
       containLabel: true,
     },
   };

@@ -318,8 +318,7 @@ private:
     auto contract_multiplier = cm_mr.contract_multiplier;
     uint32_t product_key = hash_product(trade.exchange_id, get_instrument_product(trade.instrument_id).c_str());
     if (book->commissions.find(product_key) == book->commissions.end()) {
-      // TODO comment temporarliy for backtest without commisions
-      // SPDLOG_WARN("commission information missing for {}@{}", trade.instrument_id, trade.exchange_id);
+      SPDLOG_WARN("commission information missing for {}@{}", trade.instrument_id, trade.exchange_id);
       return 0;
     }
     const auto &commission = book->commissions.at(product_key);

@@ -424,7 +424,6 @@ uint64_t LiveContext::insert_algo_order(const std::string &instrument_id, const 
   strcpy(input.algo_id, algo_id.c_str());
   input.args = args;
   input.is_local = is_local;
-  input.basket_uid = basket_uid;
 
   writer->write(now(), input);
   return input.order_id;
@@ -466,7 +465,6 @@ uint64_t LiveContext::update_algo_order(uint64_t origin_order_id, const std::str
   strcpy(input.algo_id, algo_id.c_str());
   input.args = args;
   input.is_local = is_local;
-  input.basket_uid = basket_uid;
 
   writer->write(now(), input);
   return input.order_id;

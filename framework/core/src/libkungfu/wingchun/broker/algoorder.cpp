@@ -31,6 +31,8 @@ void AlgoOrderService::on_algo_order_input(const event_ptr &event) {
 
     algo_order_from_input(algo_order_input, target_algo_order);
 
+    waiting_record_local_algo_orders_.insert_or_assign(target_algo_order.order_id, target_algo_order_state);
+
     return;
   }
 

@@ -251,7 +251,8 @@ const {
 const FRAME_LIST_SPLIT = 200;
 const SCALE = 1000000;
 const HUNDRED_MILLISECONDS = 100000000;
-const DEFAULT_LIST_SIZE = 10000;
+const DEFAULT_LIST_SIZE = 5000;
+const CHECK_LOAD_MORE_TIME = 3000;
 const SHOW_DETAIL_MSG_TYPES = {
   [MsgType.Asset]: true,
   [MsgType.Position]: true,
@@ -360,11 +361,7 @@ const handleScrollToTop = () => {
 
 const handleScrollToBottom = debounce(async () => {
   console.warn('scrolling to bottom');
-  if (!currentSession.value) return;
-  if (isLoadingFrames.value) return;
-  // wait for while looping and break while working
-  await delayMilliSeconds(0);
-  await loadFrameData(currentSession.value.index, true);
+  await loadMore();
 }, 50);
 
 const handleStartTimeBlur = () => {
@@ -480,14 +477,15 @@ onMounted(() => {
   init();
   nextTick(() => {
     if (initTimer) clearInterval(initTimer);
-    initTimer = setInterval(() => {
+    initTimer = setInterval(async () => {
       if (
         !isLoadingFrames.value &&
-        currentFrameList.value.length < DEFAULT_LIST_SIZE
+        currentFrameList.value.length < DEFAULT_LIST_SIZE &&
+        currentTracer?.dataAvailable()
       ) {
-        init();
+        await loadMore(false);
       }
-    }, 10000);
+    }, CHECK_LOAD_MORE_TIME);
   });
 });
 
@@ -656,6 +654,14 @@ const loadFrameData = async (currentSessionId: number, loadmore = false) => {
     setCurrentFrameId(currentFrameList.value[0]?.id);
   });
 };
+
+const loadMore = debounce(async (split = true) => {
+  if (!currentSession.value) return;
+  if (isLoadingFrames.value) return;
+
+  await delayMilliSeconds(0);
+  await loadFrameData(currentSession.value.index, split as boolean);
+}, 50);
 
 const handleOpenFrameDetail = async ({ row }) => {
   setCurrentFrameId(row.id);

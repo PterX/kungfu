@@ -219,6 +219,7 @@ const {
   isLoadingFrames,
   selectedChartItem,
   currentFrameId,
+  isBuildingTracer,
 } = storeToRefs(useJournalStore());
 const {
   setCurrentFrameList,
@@ -459,7 +460,7 @@ watch(
   debounce((newVal, oldVal) => {
     if (newVal === oldVal) return;
     currentStartTimeInput.value = dealKfTime(currentTime.value);
-    init();
+    init(true);
   }, 100),
 );
 
@@ -495,17 +496,19 @@ onBeforeMount(() => {
   }
 });
 
-const init = debounce(() => {
+const init = debounce(async (buildTracer = false) => {
   console.warn('init');
   if (!currentSession.value) return;
-  if (!currentTracer) {
-    currentTracer = tracer(
+  if (!currentTracer || (buildTracer && currentTracer)) {
+    isBuildingTracer.value = true;
+    currentTracer = await tracer(
       currentSession.value as KungfuApi.KfLocation,
       readEvent.value,
       writeEvent.value,
       currentSession.value.begin_time,
       currentSession.value.end_time,
     );
+    isBuildingTracer.value = false;
   }
   initLoad();
 }, 50);
@@ -726,6 +729,7 @@ function handleClickRow({ row }) {
   padding: 4px 0 4px 4px;
   box-sizing: border-box;
   overflow: hidden;
+  background-color: #141414;
 
   .kf-journal-spin {
     .ant-spin-text {

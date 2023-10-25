@@ -854,7 +854,7 @@ async function getBackTestConfigPath(group: string, name: string) {
     const comissions = await getKfCommission(window.watcher);
 
     const backtestConfigJson = {
-      Comissions: {
+      Comission: {
         default: comissions || [],
       },
       Instrument: {

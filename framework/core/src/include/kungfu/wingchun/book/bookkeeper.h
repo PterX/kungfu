@@ -72,8 +72,6 @@ public:
 
   [[nodiscard]] bool is_sync_asset() const;
 
-  [[nodiscard]] bool is_sync_asset_margin() const;
-
   [[nodiscard]] bool is_sync_position() const;
 
   std::mutex &get_update_book_mutex();
@@ -142,7 +140,6 @@ private:
   std::vector<BookListener_ptr> book_listeners_ = {};
   BookMap books_replica_ = {}; // 暂存从location::SYNC传来的asset和position信息
   bool sync_asset_{};
-  bool sync_asset_margin_{};
   bool sync_position_{};
 
   Book_ptr make_book(uint32_t location_uid);

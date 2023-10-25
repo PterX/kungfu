@@ -22,13 +22,10 @@ Bookkeeper::Bookkeeper(apprentice &app, broker::Client &broker_client, bool bypa
       account_method_type_(book::get_accounting_method_type()) {
   book::AccountingMethod::setup_defaults(*this, account_method_type_);
   char *skip_sync_asset = std::getenv("KF_SKIP_SYNC_ASSET");
-  char *skip_sync_asset_margin = std::getenv("KF_SKIP_SYNC_ASSET_MARGIN");
   char *skip_sync_position = std::getenv("KF_SKIP_SYNC_POSITION");
   sync_asset_ = skip_sync_asset == nullptr;
-  sync_asset_margin_ = skip_sync_asset_margin == nullptr;
   sync_position_ = skip_sync_position == nullptr;
-  SPDLOG_DEBUG("sync_asset_: {}, sync_asset_margin_: {}, sync_position_: {}", sync_asset_, sync_asset_margin_,
-               sync_position_);
+  SPDLOG_DEBUG("sync_asset_: {},  sync_position_: {}", sync_asset_, sync_position_);
 }
 
 bool Bookkeeper::has_book(uint32_t location_uid) { return books_.find(location_uid) != books_.end(); }
@@ -333,8 +330,6 @@ void Bookkeeper::on_output_key(const event_ptr &event) {
 }
 
 bool Bookkeeper::is_sync_asset() const { return sync_asset_; }
-
-bool Bookkeeper::is_sync_asset_margin() const { return sync_asset_margin_; }
 
 bool Bookkeeper::is_sync_position() const { return sync_position_; }
 

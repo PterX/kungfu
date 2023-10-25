@@ -421,7 +421,7 @@ void Watcher::Init(Napi::Env env, Napi::Object exports) {
                       InstanceMethod("getInstrumentType", &Watcher::GetInstrumentType),                 //
                       InstanceMethod("publishState", &Watcher::PublishState),                           //
                       InstanceMethod("isReadyToInteract", &Watcher::IsReadyToInteract),                 //
-                      InstanceMethod("issueCustomData", &Watcher::IssueCustomData),
+                      InstanceMethod("issueCustomData", &Watcher::IssueCustomData),                     //
                       InstanceMethod("issueBlockMessage", &Watcher::IssueBlockMessage),                 //
                       InstanceMethod("issueOrderTrigger", &Watcher::IssueOrderTrigger),                 //
                       InstanceMethod("issueOrder", &Watcher::IssueOrder),                               //
@@ -827,8 +827,8 @@ void Watcher::BookListener::on_position_sync_reset(const book::Book &old_book, c
     watcher_.feed_state_data_bank(cache_state, watcher_.data_bank_);
   };
 
-  new_book->apply_long_positions(update_position);
-  new_book->apply_short_positions(update_position);
+  const_cast<book::Book &>(new_book).apply_long_positions(update_position);
+  const_cast<book::Book &>(new_book).apply_short_positions(update_position);
 }
 
 } // namespace kungfu::node

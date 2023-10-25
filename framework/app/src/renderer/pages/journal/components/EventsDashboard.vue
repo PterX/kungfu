@@ -89,7 +89,6 @@
         @click-cell="handleClickRow"
         @click-row="handleClickRow"
         @right-click-row="handleOpenFrameDetail"
-        @onScrollToTop="handleScrollToTop"
         @onScrollToBottom="handleScrollToBottom"
       >
         <template
@@ -220,6 +219,7 @@ const {
   isLoadingFrames,
   selectedChartItem,
   currentFrameId,
+  isBuildingTracer,
 } = storeToRefs(useJournalStore());
 const {
   setCurrentFrameList,
@@ -251,7 +251,8 @@ const {
 const FRAME_LIST_SPLIT = 200;
 const SCALE = 1000000;
 const HUNDRED_MILLISECONDS = 100000000;
-const DEFAULT_LIST_SIZE = 10000;
+const DEFAULT_LIST_SIZE = 5000;
+const CHECK_LOAD_MORE_TIME = 3000;
 const SHOW_DETAIL_MSG_TYPES = {
   [MsgType.Asset]: true,
   [MsgType.Position]: true,
@@ -351,20 +352,16 @@ const frameDataForShow = computed(() => {
   });
 });
 
-const handleScrollToTop = () => {
-  //TODO on scroll to top event;
+const resetScrollToTop = () => {
   if (scrollerTableRef.value) {
-    scrollerTableRef.value.scrollToItem(0);
+    scrollerTableRef.value.resetSort();
+    scrollerTableRef.value.scrollToTop();
   }
 };
 
 const handleScrollToBottom = debounce(async () => {
   console.warn('scrolling to bottom');
-  if (!currentSession.value) return;
-  if (isLoadingFrames.value) return;
-  // wait for while looping and break while working
-  await delayMilliSeconds(0);
-  await loadFrameData(currentSession.value.index, true);
+  await loadMore();
 }, 50);
 
 const handleStartTimeBlur = () => {
@@ -462,7 +459,7 @@ watch(
   debounce((newVal, oldVal) => {
     if (newVal === oldVal) return;
     currentStartTimeInput.value = dealKfTime(currentTime.value);
-    init();
+    init(true);
   }, 100),
 );
 
@@ -470,7 +467,7 @@ watch(
   () => firstSplitFramesLoading.value,
   (newIsLoading, oldIsLoading) => {
     if (!newIsLoading && oldIsLoading) {
-      handleScrollToTop();
+      resetScrollToTop();
     }
   },
 );
@@ -480,14 +477,15 @@ onMounted(() => {
   init();
   nextTick(() => {
     if (initTimer) clearInterval(initTimer);
-    initTimer = setInterval(() => {
+    initTimer = setInterval(async () => {
       if (
         !isLoadingFrames.value &&
-        currentFrameList.value.length < DEFAULT_LIST_SIZE
+        currentFrameList.value.length < DEFAULT_LIST_SIZE &&
+        currentTracer?.dataAvailable()
       ) {
-        init();
+        await loadMore(false);
       }
-    }, 10000);
+    }, CHECK_LOAD_MORE_TIME);
   });
 });
 
@@ -497,17 +495,19 @@ onBeforeMount(() => {
   }
 });
 
-const init = debounce(() => {
+const init = debounce(async (buildTracer = false) => {
   console.warn('init');
   if (!currentSession.value) return;
-  if (!currentTracer) {
-    currentTracer = tracer(
+  if (!currentTracer || (buildTracer && currentTracer)) {
+    isBuildingTracer.value = true;
+    currentTracer = await tracer(
       currentSession.value as KungfuApi.KfLocation,
       readEvent.value,
       writeEvent.value,
       currentSession.value.begin_time,
       currentSession.value.end_time,
     );
+    isBuildingTracer.value = false;
   }
   initLoad();
 }, 50);
@@ -529,8 +529,14 @@ const initLoad = debounce(async () => {
   firstSplitFramesLoading.value = false;
 }, 50);
 
-const loadFrameData = async (currentSessionId: number, loadmore = false) => {
-  console.warn('loadFrameData, loadmore', loadmore);
+const loadFrameData = async (
+  currentSessionId: number,
+  option?: {
+    mode?: 'init' | 'loadMore' | 'loadMax';
+  },
+) => {
+  const mode = option?.mode ?? 'init';
+  console.warn('loadFrameData, mode', mode);
   const drain = async (
     sessionId: number,
   ): Promise<KungfuApi.FrameResolved[]> => {
@@ -633,7 +639,7 @@ const loadFrameData = async (currentSessionId: number, loadmore = false) => {
       !currentTracer.dataAvailable() ||
       currentFrameList.value.length >= DEFAULT_LIST_SIZE ||
       totalCount >= DEFAULT_LIST_SIZE ||
-      loadmore
+      mode === 'loadMore'
     ) {
       return currentFrameList.value;
     } else {
@@ -653,9 +659,19 @@ const loadFrameData = async (currentSessionId: number, loadmore = false) => {
     isLoadingFrames.value = false;
     firstSplitFramesLoading.value = false;
     requestBreakLoadingDataWhile = false;
-    setCurrentFrameId(currentFrameList.value[0]?.id);
+    if (mode === 'init') setCurrentFrameId(currentFrameList.value[0]?.id);
   });
 };
+
+const loadMore = debounce(async (split = true) => {
+  if (!currentSession.value) return;
+  if (isLoadingFrames.value) return;
+
+  await delayMilliSeconds(0);
+  await loadFrameData(currentSession.value.index, {
+    mode: split ? 'loadMore' : 'loadMax',
+  });
+}, 50);
 
 const handleOpenFrameDetail = async ({ row }) => {
   setCurrentFrameId(row.id);
@@ -712,6 +728,7 @@ function handleClickRow({ row }) {
   padding: 4px 0 4px 4px;
   box-sizing: border-box;
   overflow: hidden;
+  background-color: #141414;
 
   .kf-journal-spin {
     .ant-spin-text {

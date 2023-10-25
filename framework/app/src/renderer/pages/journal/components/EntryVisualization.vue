@@ -80,19 +80,19 @@
           @search="handleSearchOrderId"
         />
         <div
-          v-show="instrumentList.length > 0"
+          v-show="showChartWrap"
           id="strategyChart"
           class="kf-chart_content"
         ></div>
         <a-empty
-          v-show="instrumentList.length === 0"
+          v-show="instrumentList.length === 0 || !hasInit"
           :image="simpleImage"
           :description="t('empty_text')"
         ></a-empty>
       </div>
       <a-spin
         class="kf-journal-spin"
-        :spinning="isLoadingFrames"
+        :spinning="visualizationLoading"
         :tip="$t('journalConfig.loading_journal')"
       />
     </div>
@@ -140,9 +140,9 @@ import {
   SideEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
-  debounce,
   delayMilliSeconds,
-} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+  debounce,
+} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 
 const { t } = VueI18n.global;
 
@@ -183,10 +183,10 @@ const props = withDefaults(
 const DEFAULT_MIN_Y_SPLIT = 5;
 const DFEAUKT_Y_SPACE = 50;
 const DEFAULT_ORDER_LENGTH = 30;
-const DEFAULT_CHART_LENGTH_RATE = 20;
+const DEFAULT_CHART_LENGTH_RATE = 30;
 const DEFAULT_SYMBOL_SIZE = 10;
 const ACTIVE_SYMBOL_SIZE = 20;
-const DATA_RANGE_SIZE = 15;
+const DATA_RANGE_SIZE = 20;
 
 const { setCurrentSession, setSelectedChartItem, setCurrentFrameId } =
   useJournalStore();
@@ -197,6 +197,7 @@ const {
   currentFrameList,
   currentFrame,
   currentTime,
+  isBuildingTracer,
 } = storeToRefs(useJournalStore());
 const { dashboardBodyHeight } = useDashboardBodySize();
 const columns = getStrategyColumns();
@@ -209,9 +210,24 @@ const xAxisData = ref<Record<string, (number | string | bigint)[]>>({});
 const quoteXAxisData = ref<Record<string, number[]>>({});
 const searchOrderId = ref<string>('');
 const instrumentList = ref<string[]>([]);
+const keepChartWrapAlice = ref<boolean>(true);
+let selectedSign = false;
+const chartWrapper = ref<HTMLElement>();
+let myChart: echarts.ECharts;
+const option = getChartOption();
+const xAxisMinMax = ref<{
+  min: number | string;
+  max: number | string;
+}>({
+  min: 'dataMin',
+  max: 'dataMax',
+});
+const hasInit = ref<boolean>(false);
+const shouldResize = ref<boolean>(false);
 onMounted(() => {
-  nextTick(() => {
-    initChart();
+  nextTick(async () => {
+    await initChart();
+    keepChartWrapAlice.value = false;
   });
   initChartData();
 });
@@ -225,10 +241,21 @@ defineExpose({
   handleResize,
 });
 
+const visualizationLoading = computed(() => {
+  return keepChartWrapAlice.value || isBuildingTracer.value;
+});
+
 const strategyData = computed(() => {
   return sessions.value.filter((item) => {
     return item.category === props.category;
   });
+});
+
+const showChartWrap = computed(() => {
+  return (
+    (instrumentList.value.length > 0 && hasInit.value) ||
+    keepChartWrapAlice.value
+  );
 });
 
 const customRow = (record: KungfuApi.SessionResolved) => {
@@ -284,36 +311,31 @@ const handleFrameChange = async (newCurrentFram) => {
           if ('order_id' in chartData) orderId = chartData.order_id;
           break;
       }
+      if (dataTime < currentTime.value) {
+        messagePrompt().error(t('journalConfig.data_error'));
+        return;
+      }
 
       if (newCurrentFram.msgTypeName === 'Quote') {
         const closestTimeIndex = findClosestTime(
           Number(dataTime),
           quoteXAxisData.value[selectedInstrument.value],
         );
-        delayMilliSeconds(500)
-          .then(() => {
-            myChart.dispatchAction({
-              type: 'highlight',
-              seriesIndex: 0,
-              dataIndex: closestTimeIndex,
-            });
-            return delayMilliSeconds(3000);
-          })
-          .then(() => {
-            myChart.dispatchAction({
-              type: 'downplay',
-              seriesIndex: 0,
-              dataIndex: closestTimeIndex,
-            });
-          })
-          .catch((error) => {
-            messagePrompt().error(error);
-          });
+        selectedSign = true;
+        option.series[4].data.forEach((item, index) => {
+          index === closestTimeIndex
+            ? (item.itemStyle = {
+                color: '#0F6DA6',
+              })
+            : (item.itemStyle = {
+                color: 'transparent',
+              });
+        });
       } else {
-        selectedOrderId = orderId as bigint;
+        selectedSign = true;
         option.series
           .filter((serie, index) => {
-            return index !== 0;
+            return index !== 0 && index !== 4;
           })
           .forEach((serie) => {
             serie.data.forEach((item) => {
@@ -400,6 +422,10 @@ function initChartData() {
   if (instrumentList.value.length > 0) {
     nextTick(() => {
       getCurInstrument(instrumentList.value[0]);
+    });
+  } else {
+    nextTick(() => {
+      updateOption();
     });
   }
 }
@@ -528,7 +554,7 @@ function dealFrameData() {
       const { dataTime, price } = getTradingDataValueByKey(tradingDataResolved);
 
       if (!xAxisData.value[key]) {
-        xAxisData.value[key] = [];
+        xAxisData.value[key] = [dataTime.toString()];
       } else {
         xAxisData.value[key].push(dataTime.toString());
       }
@@ -641,30 +667,17 @@ function getInstrumentList(searchKey?: string) {
 
 function getCurInstrument(instrument: string) {
   selectedInstrument.value = instrument;
-  selectedOrderId = 0n;
+  selectedSign = false;
   searchOrderId.value = '';
 
   updateOption();
 }
 
-const chartWrapper = ref<HTMLElement>();
-let myChart: echarts.ECharts;
-let selectedOrderId = 0n;
-const option = getChartOption();
-const xAxisMinMax = ref<{
-  min: number | string;
-  max: number | string;
-}>({
-  min: 'dataMin',
-  max: 'dataMax',
-});
-
 function initChart() {
   const element = document.getElementById('strategyChart');
   if (element) {
-    myChart = echarts.init(element as HTMLElement);
+    myChart = echarts.init(element as HTMLElement, '', { renderer: 'svg' });
     addChartEventListener(myChart);
-    myChart.setOption(option);
   }
 }
 
@@ -692,7 +705,8 @@ const getYAxisInterval = () => {
   return interval;
 };
 
-const updateOption = () => {
+const updateOption = async () => {
+  if (!chartSeriesData.value[selectedInstrument.value]) return;
   setXAxisMinMax();
 
   option.yAxis.interval = getYAxisInterval();
@@ -715,7 +729,7 @@ const updateOption = () => {
       item.start = 0;
       item.end = 100;
       item.labelFormatter = function (value) {
-        return getNanoDateString(BigInt(option.xAxis.data[value]), 6, 3);
+        return getNanoDateString(BigInt(option.xAxis.data[value]), 6, 6);
       };
     });
   } else {
@@ -726,7 +740,7 @@ const updateOption = () => {
           ? DEFAULT_CHART_LENGTH_RATE
           : (DEFAULT_ORDER_LENGTH / dataLength) * 100;
       item.labelFormatter = function (value) {
-        return getNanoDateString(BigInt(option.xAxis.data[value]), 6, 3);
+        return getNanoDateString(BigInt(option.xAxis.data[value]), 6, 6);
       };
     });
   }
@@ -739,21 +753,28 @@ const updateOption = () => {
       return item.toString();
     });
   option.xAxis.axisLabel.formatter = (value: string) => {
-    return getNanoDateString(BigInt(value), 6, 3);
+    return getNanoDateString(BigInt(value), 6, 6);
   };
   quoteXAxisData.value[selectedInstrument.value]?.sort((a, b) => {
     return a - b;
   });
 
   myChart && myChart.setOption(option);
+  hasInit.value = true;
+  if (shouldResize.value) {
+    await delayMilliSeconds(0);
+    myChart.resize();
+  }
 };
 
 function handleResize(update = false) {
-  if (myChart) {
+  if (myChart && hasInit.value) {
     if (update) {
       updateOption();
     }
     myChart.resize();
+  } else {
+    shouldResize.value = true;
   }
 }
 function getDefaultSize(name: string) {
@@ -786,7 +807,7 @@ function addChartEventListener(myChart: echarts.ECharts) {
     );
 
     if (params.componentSubType === 'scatter') {
-      selectedOrderId = orderId || 0n;
+      selectedSign = orderId ? true : false;
       option.series
         .filter((serie, index) => {
           return index !== 0 && index !== 4;
@@ -836,10 +857,10 @@ function addChartEventListener(myChart: echarts.ECharts) {
 
   myChart.getZr().on('click', (event) => {
     if (!event.target) {
-      if (!Number(selectedOrderId)) return;
+      if (!selectedSign) return;
       option.series
         .filter((serie, index) => {
-          return index !== 0;
+          return index !== 0 && index !== 4;
         })
         .forEach((serie) => {
           const defaultSize = getDefaultSize(serie.name);
@@ -855,8 +876,16 @@ function addChartEventListener(myChart: echarts.ECharts) {
             };
           });
         });
+      option.series[4].data.forEach((item) => {
+        if (item.itemStyle?.color !== 'transparen') {
+          item.itemStyle = {
+            color: 'transparent',
+          };
+          setCurrentFrameId('');
+        }
+      });
       myChart && myChart.setOption(option);
-      selectedOrderId = 0n;
+      selectedSign = false;
     }
   });
 
@@ -1016,19 +1045,26 @@ function findClosestTime(targetTime: number, times: (number | string)[]) {
   if (times.length === 0) {
     return 0;
   }
-
-  let closestIndex = 0;
-  let closestDiff = Math.abs(targetTime - Number(times[0]));
-
-  times.forEach((item, index) => {
-    const currentDiff = Math.abs(targetTime - Number(item));
-    if (currentDiff < closestDiff) {
-      closestDiff = currentDiff;
-      closestIndex = index;
+  let left = 0;
+  let right = times.length - 1;
+  let mid = 0;
+  if (times.indexOf(targetTime) !== -1) {
+    return times.indexOf(targetTime);
+  }
+  while (left <= right) {
+    mid = Math.floor((left + right) / 2);
+    if (times[mid] === targetTime) {
+      return mid;
+    } else if (Number(times[mid]) < targetTime) {
+      left = mid + 1;
+    } else {
+      right = mid - 1;
     }
-  });
-
-  return closestIndex;
+  }
+  return Math.abs(targetTime - Number(times[mid])) <
+    Math.abs(targetTime - Number(times[mid + 1]))
+    ? mid
+    : mid + 1;
 }
 
 function handleSearchOrderId() {
@@ -1042,15 +1078,23 @@ function handleSearchOrderId() {
 
   option.series
     .filter((serie, index) => {
-      return index !== 0;
+      return index !== 0 && index !== 4;
     })
     .forEach((serie) => {
       serie.data.forEach((item) => {
         const defaultSize = getDefaultSize(serie.name);
-        if (item.customInfo?.orderId === BigInt(searchOrderId.value)) {
+        if (item.customInfo?.orderId?.toString() === searchOrderId.value) {
           orderIdInfo.hasId = true;
           orderIdInfo.msgTypeName = item.customInfo.msgTypeName;
           orderIdInfo.tableRowId = item.customInfo.tableRowId;
+          frameListResolved.value[selectedInstrument.value][
+            orderIdInfo.msgTypeName
+          ].forEach((fram) => {
+            if (fram.tableRowId === item.customInfo?.tableRowId) {
+              setCurrentFrameId(fram.tableRowId || '');
+              setSelectedChartItem(fram.index ?? 0);
+            }
+          });
 
           dataTime = item.customInfo.time;
           let shadowColor = '';
@@ -1088,7 +1132,7 @@ function handleSearchOrderId() {
     }
   });
 
-  selectedOrderId = BigInt(searchOrderId.value);
+  selectedSign = searchOrderId.value ? true : false;
   setDataZoom(dataTime);
   myChart && myChart.setOption(option);
 }
@@ -1113,13 +1157,20 @@ function setDataZoom(dataTime: bigint) {
 }
 
 function setXAxisMinMax() {
+  if (!frameListResolved.value[selectedInstrument.value]) {
+    xAxisMinMax.value = {
+      max: 'dataMax',
+      min: 'dataMin',
+    };
+    return;
+  }
   if (frameListResolved.value[selectedInstrument.value].Quote.length > 0) {
     const { upper_limit_price, lower_limit_price, last_price } =
       frameListResolved.value[selectedInstrument.value].Quote[0];
     xAxisMinMax.value.max = upper_limit_price
-      ? Math.floor(upper_limit_price)
+      ? Math.ceil(upper_limit_price)
       : last_price
-      ? Math.floor(last_price * 1.2)
+      ? Math.ceil(last_price * 1.2)
       : 'dataMax';
     xAxisMinMax.value.min = lower_limit_price
       ? Math.floor(lower_limit_price)
@@ -1148,7 +1199,7 @@ function setXAxisMinMax() {
     }
 
     xAxisMinMax.value = {
-      max: Math.floor(limit_price * 1.2),
+      max: Math.ceil(limit_price * 1.2),
       min: Math.floor(limit_price * 0.8),
     };
   }
@@ -1245,7 +1296,7 @@ const handleInputChange = debounce(() => {
         right: 0;
         width: 20%;
         max-width: 300px;
-        z-index: 999;
+        z-index: 1;
       }
       .kf-chart_content {
         width: 100%;

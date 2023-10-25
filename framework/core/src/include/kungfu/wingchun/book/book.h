@@ -38,7 +38,7 @@ struct Book {
   yijinjing::data::location_ptr home;
 
   Book(const map::CommissionMap &commissions_ref, const map::InstrumentMap &instruments_ref,
-       const map::InstrumentFactorMap &instrument_factors_ref, yijinjing::data::location_ptr home_location);
+       const map::InstrumentFactorMap &instrument_factors_ref, yijinjing::data::location_ptr &home_location);
 
   double get_frozen_price(uint64_t order_id);
 
@@ -237,6 +237,8 @@ struct Book {
   void replace(const longfist::types::Order &order);
 
   void replace(const longfist::types::Trade &trade);
+
+  void mirror_position_from(const Book &book);
 
   [[nodiscard]] const map::InstrumentMap &get_instruments() const { return instruments; }
 

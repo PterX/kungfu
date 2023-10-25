@@ -91,6 +91,10 @@ public:
   void update_book(int64_t update_time, uint32_t source, uint32_t dest, const TradingData &data, ApplyMethod method) {
     std::lock_guard<std::mutex> lock(update_book_mutex_);
 
+    if ((is_td(source) and not is_ready_td(source)) or (is_td(dest) and not is_ready_td(dest))) {
+      return;
+    }
+
     if (accounting_methods_.find(data.instrument_type) == accounting_methods_.end()) {
       SPDLOG_WARN("accounting method not found for {}: {}", data.type_name.c_str(), data.to_string());
       return;
@@ -147,6 +151,7 @@ private:
   bool sync_asset_{};
   bool sync_asset_margin_{};
   bool sync_position_{};
+  std::unordered_map<uint32_t, bool> ready_tds_{};
 
   Book_ptr make_book(uint32_t location_uid);
 
@@ -173,6 +178,14 @@ private:
   void try_sync_position_end(const longfist::types::PositionEnd &position_end);
 
   Book_ptr get_book_replica(uint32_t location_uid);
+
+  void on_broker_state(const longfist::types::BrokerStateUpdate &);
+
+  void on_deregister(const longfist::types::Deregister &deregister);
+
+  bool is_td(uint32_t location_uid);
+
+  bool is_ready_td(uint32_t location_uid);
 };
 } // namespace kungfu::wingchun::book
 #endif // WINGCHUN_BOOKKEEPER_H

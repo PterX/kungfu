@@ -715,6 +715,7 @@ export default {
     search_order_id: '请搜索订单号',
     search_instrument: '请搜索代码号',
     search_order_id_error: '您搜索的订单号不存在, 请检查该订单号是否是所选标的',
+    data_error: '数据不存在',
     buy_open: '买开',
     buy_close: '买平',
     sell_open: '卖开',

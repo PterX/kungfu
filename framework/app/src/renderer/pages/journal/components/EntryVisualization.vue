@@ -107,6 +107,7 @@ import {
   getStrategyColumns,
   SeriesData,
   SessionStatus,
+  PosFun,
 } from '../config';
 import {
   computed,
@@ -189,6 +190,7 @@ const DEFAULT_CHART_LENGTH_RATE = 30;
 const DEFAULT_SYMBOL_SIZE = 10;
 const ACTIVE_SYMBOL_SIZE = 20;
 const DATA_RANGE_SIZE = 20;
+const DEFALUT_HALF_TOOLTIP_WIDTH = 200;
 
 const { setCurrentSession, setSelectedChartItem, setCurrentFrameId } =
   useJournalStore();
@@ -284,10 +286,14 @@ watch(
   },
 );
 
-const handleFrameChange = async (newCurrentFram) => {
+const handleFrameChange = async (newCurrentFram, retryCount = 0) => {
+  if (retryCount > instrumentList.value.length) {
+    console.error('Maximum retries reached.');
+    return;
+  }
   if (newCurrentFram) {
     let dataTime = 0n;
-    let hasOrderId = false;
+    let hasFound = false;
     if (
       ['Quote', 'OrderInput', 'Order', 'OrderAction'].includes(
         newCurrentFram.msgTypeName,
@@ -325,25 +331,28 @@ const handleFrameChange = async (newCurrentFram) => {
         );
         selectedSign = true;
         option.series[4].data.forEach((item, index) => {
-          index === closestTimeIndex
-            ? (item.itemStyle = {
-                color: '#0F6DA6',
-              })
-            : (item.itemStyle = {
-                color: 'transparent',
-              });
+          if (index === closestTimeIndex) {
+            hasFound = true;
+            item.itemStyle = {
+              color: '#0F6DA6',
+            };
+          } else {
+            item.itemStyle = {
+              color: 'transparent',
+            };
+          }
         });
       } else {
         selectedSign = true;
         option.series
-          .filter((serie, index) => {
+          .filter((_serie, index) => {
             return index !== 0 && index !== 4;
           })
           .forEach((serie) => {
             serie.data.forEach((item) => {
               const defaultSize = getDefaultSize(serie.name);
               if (item.customInfo?.orderId === orderId) {
-                hasOrderId = true;
+                hasFound = true;
                 item.symbolSize = ACTIVE_SYMBOL_SIZE;
                 let shadowColor = '';
                 if (item.customInfo?.msgTypeName === 'orderAction') {
@@ -366,16 +375,15 @@ const handleFrameChange = async (newCurrentFram) => {
               }
             });
           });
-
-        if (!hasOrderId) {
-          for (const ins of instrumentList.value) {
-            if (ins.includes(chartData.instrument_id)) {
-              await getCurInstrument(ins);
-              return handleFrameChange(newCurrentFram);
-            }
+      }
+      if (!hasFound) {
+        for (const ins of instrumentList.value) {
+          if (ins.includes(chartData.instrument_id)) {
+            await getCurInstrument(ins);
+            return handleFrameChange(newCurrentFram, retryCount++);
           }
-          return;
         }
+        return;
       }
     } else {
       dataTime = newCurrentFram.genTime;
@@ -466,6 +474,17 @@ const chartSeriesData = ref<
     }
   >
 >({});
+
+const setTooltipPosition: PosFun = (point, params, dom, rect, size) => {
+  const domWidth = size.viewSize[0];
+  const x = point[0];
+
+  if (domWidth - x < DEFALUT_HALF_TOOLTIP_WIDTH) {
+    return 'left';
+  } else {
+    return 'bottom';
+  }
+};
 
 function dealFrameData() {
   currentFrameList.value.forEach((item, index) => {
@@ -573,7 +592,7 @@ function dealFrameData() {
         chartSeriesData.value[key].Quote.symbol.push({
           value: [dataTime.toString(), price],
           tooltip: {
-            position: 'bottom',
+            position: setTooltipPosition,
             formatter: tooltipFormatter(tradingDataResolved, 'Quote'),
           },
           customInfo: {
@@ -591,7 +610,7 @@ function dealFrameData() {
             color: tradingDataResolved.side === 0 ? '#f21717' : '#17b07f',
           },
           tooltip: {
-            position: 'bottom',
+            position: setTooltipPosition,
             formatter: tooltipFormatter(tradingDataResolved),
           },
           customInfo: {
@@ -607,12 +626,12 @@ function dealFrameData() {
           value: [dataTime.toString(), price],
           symbolRotate: tradingDataResolved.side === 0 ? 180 : 0,
           symbolOffset:
-            tradingDataResolved.side === 0 ? [0, '-160%'] : [0, '160%'],
+            tradingDataResolved.side === 0 ? [0, '-120%'] : [0, '120%'],
           itemStyle: {
             color: tradingDataResolved.side === 0 ? '#f21717' : '#17b07f',
           },
           tooltip: {
-            position: 'bottom',
+            position: setTooltipPosition,
             formatter: tooltipFormatter(tradingDataResolved),
           },
           customInfo: {
@@ -644,7 +663,7 @@ function dealFrameData() {
         chartSeriesData.value[key].OrderAction.push({
           value: [dataTime.toString(), price],
           tooltip: {
-            position: 'bottom',
+            position: setTooltipPosition,
             formatter: tooltipFormatter(tradingDataResolved),
           },
           customInfo: {

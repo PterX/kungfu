@@ -870,6 +870,7 @@ export const dealTradingDataMethodsMap: Record<
   BasketInstrument: dealDefaultTradingData,
   BasketOrder: dealDefaultTradingData,
   OrderTrigger: dealOrderTradingData,
+  SyntheticData: dealDefaultTradingData,
 };
 
 export const dealTradingData = <T>(

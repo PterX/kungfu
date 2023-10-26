@@ -183,7 +183,6 @@ orig_order_no
 bid_no
 ask_no
 exec_type
-bs_flag
 trade_num
 bid_weighted_avg_price
 total_bid_volume
@@ -324,6 +323,9 @@ SSE
 SZE
 MarketType
 Snapshot
+Entrust
+Transaction
+Tree
 SubscribeDataType
 Stock
 Future

@@ -128,6 +128,10 @@ protected:
 
   void prepare(const event_ptr &event) override;
 
+  void ensure_connect();
+
+  void send_instrument_keys();
+
 private:
   longfist::enums::OperatorState state_;
   bool broker_states_requested_{false};

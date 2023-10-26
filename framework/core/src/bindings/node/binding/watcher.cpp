@@ -425,7 +425,7 @@ void Watcher::Init(Napi::Env env, Napi::Object exports) {
                       InstanceMethod("issueBlockMessage", &Watcher::IssueBlockMessage),                 //
                       InstanceMethod("issueOrderTrigger", &Watcher::IssueOrderTrigger),                 //
                       InstanceMethod("issueOrder", &Watcher::IssueOrder),                               //
-                      InstanceMethod("issueBasketOrder", &Watcher::IssueBasketOrder),                   //
+                      InstanceMethod("issueBasketOrder", &Watcher::IssueBasketOrder),
                       InstanceMethod("issueAlgoOrder", &Watcher::IssueAlgoOrder),                       //
                       InstanceMethod("issueMark", &Watcher::IssueMark),                                 //
                       InstanceMethod("cancelOrder", &Watcher::CancelOrder),                             //

@@ -179,7 +179,9 @@ private:
 
   Book_ptr get_book_replica(uint32_t location_uid);
 
-  void on_broker_state(const longfist::types::BrokerStateUpdate &);
+  void on_broker_state(const longfist::types::BrokerStateUpdate &state_update);
+
+  void on_register(const longfist::types::Register &reg);
 
   void on_deregister(const longfist::types::Deregister &deregister);
 

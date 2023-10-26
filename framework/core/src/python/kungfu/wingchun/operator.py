@@ -43,7 +43,6 @@ class Operator(wc.Operator):
         operator_dir = os.path.dirname(path)
         sys.path.insert(0, operator_dir)
         name_no_ext = os.path.split(os.path.basename(path))
-        sys.path.insert(0, os.path.relpath(operator_dir))
         module_name = os.path.splitext(name_no_ext[1])[0]
         self._module = import_force(module_name)
         self._pre_start = getattr(self._module, "pre_start", lambda ctx: None)

@@ -60,6 +60,9 @@ void Bookkeeper::on_start(const rx::connectable_observable<event_ptr> &events) {
   events | fork<PositionEnd>(location::SYNC, &Bookkeeper::try_sync_position_end, &Bookkeeper::try_update_position_end);
   events | is(ResetBookRequest::tag) | $$(drop_book(event->source()));
   events | is(OutputKey::tag) | $$(on_output_key(event));
+  events | is(BrokerStateUpdate::tag) | $$(on_broker_state(event->data<BrokerStateUpdate>()));
+  events | is(Register::tag) | $$(on_register(event->data<Register>()));
+  events | is(Deregister::tag) | $$(on_deregister(event->data<Deregister>()));
 
   if (bypass_quote_) {
     app_.add_time_interval(yijinjing::time_unit::NANOSECONDS_PER_SECOND * 15,
@@ -332,5 +335,30 @@ void Bookkeeper::on_output_key(const event_ptr &event) {
 bool Bookkeeper::is_sync_asset() const { return sync_asset_; }
 
 bool Bookkeeper::is_sync_position() const { return sync_position_; }
+
+void Bookkeeper::on_broker_state(const longfist::types::BrokerStateUpdate &state_update) {
+  ready_tds_.insert_or_assign(state_update.location_uid, state_update.state == BrokerState::Ready);
+}
+
+void Bookkeeper::on_deregister(const longfist::types::Deregister &deregister) {
+  if (deregister.category == category::TD) {
+    ready_tds_.insert_or_assign(deregister.location_uid, false);
+  }
+}
+
+void Bookkeeper::on_register(const longfist::types::Register &reg) {
+  if (reg.category == category::TD) {
+    ready_tds_.insert_or_assign(reg.location_uid, false);
+  }
+}
+
+bool Bookkeeper::is_td(uint32_t location_uid) {
+  if (not app_.has_location(location_uid)) {
+    return false;
+  }
+  return app_.get_location(location_uid)->category == category::TD;
+}
+
+bool Bookkeeper::is_ready_td(uint32_t location_uid) { return ready_tds_.try_emplace(location_uid).first->second; }
 
 } // namespace kungfu::wingchun::book

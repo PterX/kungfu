@@ -286,112 +286,91 @@ watch(
   },
 );
 
-const handleFrameChange = async (newCurrentFram, retryCount = 0) => {
+const handleFrameChange = async (newCurrentFrame, retryCount = 0) => {
   if (retryCount > instrumentList.value.length) {
     console.error('Maximum retries reached.');
     return;
   }
-  if (newCurrentFram) {
-    let dataTime = 0n;
-    let hasFound = false;
-    if (
-      ['Quote', 'OrderInput', 'Order', 'OrderAction'].includes(
-        newCurrentFram.msgTypeName,
+
+  if (!newCurrentFrame) return;
+
+  let dataTime = 0n;
+  let hasFound = false;
+  const chartData = newCurrentFrame.data as FrameResolvedDataType;
+  const types = ['Quote', 'OrderInput', 'Order', 'OrderAction'];
+
+  if (types.includes(newCurrentFrame.msgTypeName)) {
+    let orderId: string | bigint = 0n;
+
+    if ('data_time' in chartData && newCurrentFrame.msgTypeName === 'Quote') {
+      dataTime = chartData.data_time;
+    } else if (
+      'insert_time' in chartData &&
+      ['OrderInput', 'Order', 'OrderAction'].includes(
+        newCurrentFrame.msgTypeName,
       )
     ) {
-      const chartData = newCurrentFram.data as FrameResolvedDataType;
-      let orderId: string | bigint = 0n;
-      switch (newCurrentFram.msgTypeName) {
-        case 'Quote':
-          if ('data_time' in chartData) dataTime = chartData.data_time;
-          orderId = newCurrentFram.id;
-          break;
-        case 'OrderInput':
-          if ('insert_time' in chartData) dataTime = chartData.insert_time;
-          if ('order_id' in chartData) orderId = chartData.order_id;
-          break;
-        case 'Order':
-          if ('insert_time' in chartData) dataTime = chartData.insert_time;
-          if ('order_id' in chartData) orderId = chartData.order_id;
-          break;
-        case 'OrderAction':
-          if ('insert_time' in chartData) dataTime = chartData.insert_time;
-          if ('order_id' in chartData) orderId = chartData.order_id;
-          break;
-      }
-      if (dataTime < currentTime.value) {
-        messagePrompt().error(t('journalConfig.data_error'));
-        return;
-      }
-
-      if (newCurrentFram.msgTypeName === 'Quote') {
-        const closestTimeIndex = findClosestTime(
-          Number(dataTime),
-          quoteXAxisData.value[selectedInstrument.value],
-        );
-        selectedSign = true;
-        option.series[4].data.forEach((item, index) => {
-          if (index === closestTimeIndex) {
-            hasFound = true;
-            item.itemStyle = {
-              color: '#0F6DA6',
-            };
-          } else {
-            item.itemStyle = {
-              color: 'transparent',
-            };
-          }
-        });
-      } else {
-        selectedSign = true;
-        option.series
-          .filter((_serie, index) => {
-            return index !== 0 && index !== 4;
-          })
-          .forEach((serie) => {
-            serie.data.forEach((item) => {
-              const defaultSize = getDefaultSize(serie.name);
-              if (item.customInfo?.orderId === orderId) {
-                hasFound = true;
-                item.symbolSize = ACTIVE_SYMBOL_SIZE;
-                let shadowColor = '';
-                if (item.customInfo?.msgTypeName === 'orderAction') {
-                  shadowColor = '#73F3F6';
-                } else {
-                  shadowColor =
-                    item.itemStyle?.color === '#f21717' ? '#f37370' : '#8fd460';
-                }
-                item.itemStyle = {
-                  ...item.itemStyle,
-                  shadowBlur: 10,
-                  shadowColor,
-                };
-              } else {
-                item.symbolSize = defaultSize;
-                item.itemStyle = {
-                  ...item.itemStyle,
-                  shadowBlur: 0,
-                };
-              }
-            });
-          });
-      }
-      if (!hasFound) {
-        for (const ins of instrumentList.value) {
-          if (ins.includes(chartData.instrument_id)) {
-            await getCurInstrument(ins);
-            return handleFrameChange(newCurrentFram, retryCount++);
-          }
-        }
-        return;
-      }
-    } else {
-      dataTime = newCurrentFram.genTime;
+      dataTime = chartData.insert_time;
+      orderId = chartData.order_id;
     }
 
-    setDataZoom(dataTime);
-    myChart && myChart.setOption(option);
+    if (dataTime < currentTime.value) {
+      messagePrompt().error(t('journalConfig.data_error'));
+      return;
+    }
+
+    if (newCurrentFrame.msgTypeName === 'Quote') {
+      const closestTimeIndex = findClosestTime(
+        Number(dataTime),
+        quoteXAxisData.value[selectedInstrument.value],
+      );
+      option.series[4].data.forEach((item, index) => {
+        item.itemStyle = {
+          color: index === closestTimeIndex ? '#0F6DA6' : 'transparent',
+        };
+        if (index === closestTimeIndex) hasFound = true;
+      });
+    } else {
+      option.series
+        .filter((_serie, index) => index !== 0 && index !== 4)
+        .forEach((serie) => {
+          serie.data.forEach((item) => {
+            const isCurrentOrder = item.customInfo?.orderId === orderId;
+            const defaultSize = getDefaultSize(serie.name);
+            let shadowColor = '';
+            if (item.customInfo?.msgTypeName === 'orderAction') {
+              shadowColor = '#73F3F6';
+            } else {
+              shadowColor =
+                item.itemStyle?.color === '#f21717' ? '#f37370' : '#8fd460';
+            }
+            item.symbolSize = isCurrentOrder ? ACTIVE_SYMBOL_SIZE : defaultSize;
+            item.itemStyle = {
+              ...item.itemStyle,
+              shadowBlur: isCurrentOrder ? 10 : 0,
+              shadowColor: isCurrentOrder ? shadowColor : undefined,
+            };
+            if (isCurrentOrder) hasFound = true;
+          });
+        });
+    }
+
+    if (!hasFound) {
+      const targetInstrument = instrumentList.value.find((ins) =>
+        ins.includes(chartData.instrument_id),
+      );
+      if (targetInstrument) {
+        await getCurInstrument(targetInstrument);
+        return handleFrameChange(newCurrentFrame, retryCount + 1);
+      }
+      return;
+    }
+  } else {
+    dataTime = newCurrentFrame.genTime;
   }
+
+  setDataZoom(dataTime);
+  myChart && myChart.setOption(option);
 };
 
 watch(
@@ -495,186 +474,249 @@ function dealFrameData() {
     )
       return;
 
-    let tradingData = item.data as FrameDataType;
-    let tradingDataResolved: FrameResolvedDataType | null = null;
-    const { dataTime } = getTradingDataValueByKey(
-      tradingData,
-      item.msgTypeName,
+    const tradingDataResolved = resolveTradingData(item, index);
+    if (!tradingDataResolved) return;
+
+    const key = getKeyFromJSON(
+      '',
+      tradingDataResolved.instrument_id,
+      tradingDataResolved.exchange_id,
     );
 
-    if (dataTime < currentTime.value) return;
+    if (!key) return;
+    if (!frameListResolved.value[key]) initializeFrameListResolved(key);
+    if (!chartSeriesData.value[key]) initializeChartSeriesData(key);
 
-    let uidKey = '';
-    let key = '';
-    if (item.msgTypeName === 'OrderAction') {
-      tradingData = tradingData as KungfuApi.OrderAction;
-      const { instrumentId, exchangeId, limitPrice } =
-        orderInfoMap.value[tradingData.order_id.toString()] ?? {};
-      if (!instrumentId || !exchangeId) {
-        return;
-      }
-      uidKey = hashInstrumentUKey(instrumentId, exchangeId);
-
-      tradingDataResolved = {
-        ...tradingData,
-        instrument_id: instrumentId,
-        exchange_id: exchangeId,
-        limit_price: limitPrice,
-        tableRowId: item.id,
-        msgTypeName: item.msgTypeName,
-        index,
-      };
-
-      key = kfInstrumentsJSON[uidKey]
-        ? buildInstrumentSelectOptionLabel(kfInstrumentsJSON[uidKey])
-        : `${instrumentId} ${
-            ExchangeIds[exchangeId.toUpperCase()]?.name || ''
-          }`;
-    } else {
-      if ('instrument_id' in tradingData) {
-        uidKey = hashInstrumentUKey(
-          tradingData.instrument_id,
-          tradingData.exchange_id,
-        );
-
-        tradingDataResolved = {
-          ...tradingData,
-          tableRowId: item.id,
-          msgTypeName: item.msgTypeName,
-          index,
-        };
-
-        key = kfInstrumentsJSON[uidKey]
-          ? buildInstrumentSelectOptionLabel(kfInstrumentsJSON[uidKey])
-          : `${tradingData.instrument_id} ${
-              ExchangeIds[tradingData.exchange_id.toUpperCase()]?.name || ''
-            }`;
-      }
-    }
-    if (!key) {
-      return;
-    }
-    if (!frameListResolved.value[key]) {
-      frameListResolved.value[key] = {
-        Quote: [],
-        Order: [],
-        OrderInput: [],
-        OrderAction: [],
-      };
-    }
-    if (!chartSeriesData.value[key]) {
-      chartSeriesData.value[key] = {
-        Quote: { line: [], symbol: [] },
-        Order: [],
-        OrderInput: [],
-        OrderAction: [],
-      };
-    }
     frameListResolved.value[key][item.msgTypeName].push(tradingDataResolved);
-    if (tradingDataResolved) {
-      const { dataTime, price } = getTradingDataValueByKey(tradingDataResolved);
+    updateChartSeriesData(tradingDataResolved, key, item.msgTypeName);
+  });
+}
 
-      if (!xAxisData.value[key]) {
-        xAxisData.value[key] = [dataTime.toString()];
-      } else {
-        xAxisData.value[key].push(dataTime.toString());
-      }
+function resolveTradingData(item, index) {
+  const { dataTime } = getTradingDataValueByKey(item.data, item.msgTypeName);
 
-      if (item.msgTypeName === 'Quote') {
-        if (!quoteXAxisData.value[key]) {
-          quoteXAxisData.value[key] = [];
-        }
-        quoteXAxisData.value[key].push(Number(dataTime));
-        tradingDataResolved = tradingDataResolved as QuoteChartResolved;
-        chartSeriesData.value[key].Quote.line.push({
-          value: [dataTime.toString(), price],
-        });
-        chartSeriesData.value[key].Quote.symbol.push({
-          value: [dataTime.toString(), price],
-          tooltip: {
-            position: setTooltipPosition,
-            formatter: tooltipFormatter(tradingDataResolved, 'Quote'),
-          },
-          customInfo: {
-            tableRowId: tradingDataResolved.tableRowId,
-            time: tradingDataResolved.data_time,
-            msgTypeName: tradingDataResolved.msgTypeName,
-          },
-        });
-      } else if (item.msgTypeName === 'OrderInput') {
-        tradingDataResolved = tradingDataResolved as OrderInputChartResolved;
-        chartSeriesData.value[key].OrderInput.push({
-          value: [dataTime.toString(), price],
-          symbolRotate: tradingDataResolved.side === 0 ? 180 : 0,
-          itemStyle: {
-            color: tradingDataResolved.side === 0 ? '#f21717' : '#17b07f',
-          },
-          tooltip: {
-            position: setTooltipPosition,
-            formatter: tooltipFormatter(tradingDataResolved),
-          },
-          customInfo: {
-            orderId: tradingDataResolved.order_id || 0n,
-            tableRowId: tradingDataResolved.tableRowId,
-            time: tradingDataResolved.insert_time,
-            msgTypeName: tradingDataResolved.msgTypeName,
-          },
-        });
-      } else if (item.msgTypeName === 'Order') {
-        tradingDataResolved = tradingDataResolved as OrderChartResolved;
-        chartSeriesData.value[key].Order.push({
-          value: [dataTime.toString(), price],
-          symbolRotate: tradingDataResolved.side === 0 ? 180 : 0,
-          symbolOffset:
-            tradingDataResolved.side === 0 ? [0, '-120%'] : [0, '120%'],
-          itemStyle: {
-            color: tradingDataResolved.side === 0 ? '#f21717' : '#17b07f',
-          },
-          tooltip: {
-            position: setTooltipPosition,
-            formatter: tooltipFormatter(tradingDataResolved),
-          },
-          customInfo: {
-            orderId: tradingDataResolved.order_id || 0n,
-            tableRowId: tradingDataResolved.tableRowId,
-            time: tradingDataResolved.insert_time,
-            msgTypeName: tradingDataResolved.msgTypeName,
-          },
-          label: {
-            show: true,
-            position: tradingDataResolved.side === 0 ? 'top' : 'bottom',
-            color: tradingDataResolved.side === 0 ? '#f21717' : '#17b07f',
-            formatter: () => {
-              const side =
-                (tradingDataResolved as OrderChartResolved).side ??
-                SideEnum.Unknown;
-              const offset =
-                (tradingDataResolved as OrderChartResolved).offset ??
-                OffsetEnum.Unknown;
+  if (dataTime < currentTime.value) return null;
 
-              return sideOffsetMap[side]
-                ? sideOffsetMap[side][offset] || '--'
-                : '--';
-            },
-          },
-        });
-      } else if (item.msgTypeName === 'OrderAction') {
-        tradingDataResolved = tradingDataResolved as OrderActionResolved;
-        chartSeriesData.value[key].OrderAction.push({
-          value: [dataTime.toString(), price],
-          tooltip: {
-            position: setTooltipPosition,
-            formatter: tooltipFormatter(tradingDataResolved),
-          },
-          customInfo: {
-            orderId: tradingDataResolved.order_id || 0n,
-            tableRowId: tradingDataResolved.tableRowId,
-            time: tradingDataResolved.insert_time,
-            msgTypeName: tradingDataResolved.msgTypeName,
-          },
-        });
-      }
-    }
+  const tradingData = item.data;
+  let uidKey = '';
+  let key = '';
+
+  if (item.msgTypeName === 'OrderAction') {
+    const { instrumentId, exchangeId, limitPrice } =
+      orderInfoMap.value[tradingData.order_id.toString()] || {};
+
+    if (!instrumentId || !exchangeId) return null;
+
+    uidKey = hashInstrumentUKey(instrumentId, exchangeId);
+    key = getKeyFromJSON(uidKey, instrumentId, exchangeId);
+
+    return {
+      ...tradingData,
+      instrument_id: instrumentId,
+      exchange_id: exchangeId,
+      limit_price: limitPrice,
+      tableRowId: item.id,
+      msgTypeName: item.msgTypeName,
+      index,
+    };
+  }
+
+  if ('instrument_id' in tradingData) {
+    uidKey = hashInstrumentUKey(
+      tradingData.instrument_id,
+      tradingData.exchange_id,
+    );
+
+    key = getKeyFromJSON(
+      uidKey,
+      tradingData.instrument_id,
+      tradingData.exchange_id,
+    );
+    if (!key) return null;
+    return {
+      ...tradingData,
+      tableRowId: item.id,
+      msgTypeName: item.msgTypeName,
+      index,
+    };
+  }
+
+  return null;
+}
+
+function getKeyFromJSON(
+  uidKey: string,
+  instrumentId: string,
+  exchangeId: string,
+) {
+  return kfInstrumentsJSON[uidKey]
+    ? buildInstrumentSelectOptionLabel(kfInstrumentsJSON[uidKey])
+    : `${instrumentId} ${ExchangeIds[exchangeId.toUpperCase()]?.name || ''}`;
+}
+
+function initializeFrameListResolved(key: string) {
+  frameListResolved.value[key] = {
+    Quote: [],
+    Order: [],
+    OrderInput: [],
+    OrderAction: [],
+  };
+}
+
+function initializeChartSeriesData(key: string) {
+  chartSeriesData.value[key] = {
+    Quote: { line: [], symbol: [] },
+    Order: [],
+    OrderInput: [],
+    OrderAction: [],
+  };
+}
+
+function updateChartSeriesData(
+  tradingDataResolved: FrameResolvedDataType,
+  key: string,
+  msgTypeName: string,
+) {
+  const { dataTime, price } = getTradingDataValueByKey(tradingDataResolved);
+  xAxisData.value[key] = xAxisData.value[key] || [];
+  xAxisData.value[key].push(dataTime.toString());
+
+  if (msgTypeName === 'Quote')
+    updateQuoteData(
+      tradingDataResolved as QuoteChartResolved,
+      key,
+      dataTime,
+      price,
+    );
+  else if (msgTypeName === 'OrderInput')
+    updateOrderInputData(
+      tradingDataResolved as OrderInputChartResolved,
+      key,
+      dataTime,
+      price,
+    );
+  else if (msgTypeName === 'Order')
+    updateOrderData(
+      tradingDataResolved as OrderChartResolved,
+      key,
+      dataTime,
+      price,
+    );
+  else if (msgTypeName === 'OrderAction')
+    updateOrderActionData(
+      tradingDataResolved as OrderActionResolved,
+      key,
+      dataTime,
+      price,
+    );
+}
+
+function updateQuoteData(
+  tradingData: QuoteChartResolved,
+  key: string,
+  dataTime: bigint,
+  price: number,
+) {
+  if (!quoteXAxisData.value[key]) {
+    quoteXAxisData.value[key] = [];
+  }
+  quoteXAxisData.value[key].push(Number(dataTime));
+  chartSeriesData.value[key].Quote.line.push({
+    value: [dataTime.toString(), price],
+  });
+  chartSeriesData.value[key].Quote.symbol.push({
+    value: [dataTime.toString(), price],
+    tooltip: {
+      position: setTooltipPosition,
+      formatter: tooltipFormatter(tradingData, 'Quote'),
+    },
+    customInfo: {
+      tableRowId: tradingData.tableRowId,
+      time: tradingData.data_time,
+      msgTypeName: tradingData.msgTypeName,
+    },
+  });
+}
+
+function updateOrderInputData(
+  tradingData: OrderInputChartResolved,
+  key: string,
+  dataTime: bigint,
+  price: number,
+) {
+  chartSeriesData.value[key].OrderInput.push({
+    value: [dataTime.toString(), price],
+    symbolRotate: tradingData.side === 0 ? 180 : 0,
+    itemStyle: {
+      color: tradingData.side === 0 ? '#f21717' : '#17b07f',
+    },
+    tooltip: {
+      position: setTooltipPosition,
+      formatter: tooltipFormatter(tradingData),
+    },
+    customInfo: {
+      orderId: tradingData.order_id || 0n,
+      tableRowId: tradingData.tableRowId,
+      time: tradingData.insert_time,
+      msgTypeName: tradingData.msgTypeName,
+    },
+  });
+}
+
+function updateOrderData(
+  tradingData: OrderChartResolved,
+  key: string,
+  dataTime: bigint,
+  price: number,
+) {
+  chartSeriesData.value[key].Order.push({
+    value: [dataTime.toString(), price],
+    symbolRotate: tradingData.side === 0 ? 180 : 0,
+    symbolOffset: tradingData.side === 0 ? [0, '-120%'] : [0, '120%'],
+    itemStyle: {
+      color: tradingData.side === 0 ? '#f21717' : '#17b07f',
+    },
+    tooltip: {
+      position: setTooltipPosition,
+      formatter: tooltipFormatter(tradingData),
+    },
+    customInfo: {
+      orderId: tradingData.order_id || 0n,
+      tableRowId: tradingData.tableRowId,
+      time: tradingData.insert_time,
+      msgTypeName: tradingData.msgTypeName,
+    },
+    label: {
+      show: true,
+      position: tradingData.side === 0 ? 'top' : 'bottom',
+      color: tradingData.side === 0 ? '#f21717' : '#17b07f',
+      formatter: () => {
+        const side = tradingData.side ?? SideEnum.Unknown;
+        const offset = tradingData.offset ?? OffsetEnum.Unknown;
+        return sideOffsetMap[side] ? sideOffsetMap[side][offset] || '--' : '--';
+      },
+    },
+  });
+}
+
+function updateOrderActionData(
+  tradingData: OrderActionResolved,
+  key: string,
+  dataTime: bigint,
+  price: number,
+) {
+  chartSeriesData.value[key].OrderAction.push({
+    value: [dataTime.toString(), price],
+    tooltip: {
+      position: setTooltipPosition,
+      formatter: tooltipFormatter(tradingData),
+    },
+    customInfo: {
+      orderId: tradingData.order_id || 0n,
+      tableRowId: tradingData.tableRowId,
+      time: tradingData.insert_time,
+      msgTypeName: tradingData.msgTypeName,
+    },
   });
 }
 
@@ -727,61 +769,56 @@ const getYAxisInterval = () => {
 };
 
 const updateOption = async () => {
-  if (!chartSeriesData.value[selectedInstrument.value]) return;
+  const currentData = chartSeriesData.value[selectedInstrument.value];
+  if (!currentData) return;
+
   setXAxisMinMax();
 
+  const { min, max } = xAxisMinMax.value;
   option.yAxis.interval = getYAxisInterval();
-  option.yAxis.min = xAxisMinMax.value.min;
-  option.yAxis.max = xAxisMinMax.value.max;
+  option.yAxis.min = min;
+  option.yAxis.max = max;
 
-  option.series[0].data =
-    chartSeriesData.value[selectedInstrument.value].Quote.line;
-  option.series[1].data =
-    chartSeriesData.value[selectedInstrument.value].OrderInput;
-  option.series[2].data = chartSeriesData.value[selectedInstrument.value].Order;
-  option.series[3].data =
-    chartSeriesData.value[selectedInstrument.value].OrderAction;
-  option.series[4].data =
-    chartSeriesData.value[selectedInstrument.value].Quote.symbol;
+  const { Quote, OrderInput, Order, OrderAction } = currentData;
+  [
+    option.series[0].data,
+    option.series[1].data,
+    option.series[2].data,
+    option.series[3].data,
+    option.series[4].data,
+  ] = [Quote.line, OrderInput, Order, OrderAction, Quote.symbol];
 
   const dataLength = option.series[1].data.length;
-  if (dataLength <= DEFAULT_ORDER_LENGTH) {
-    option.dataZoom.forEach((item) => {
-      item.start = 0;
-      item.end = 100;
-      item.labelFormatter = function (value) {
-        return getNanoDateString(BigInt(option.xAxis.data[value]), 6, 6);
-      };
-    });
-  } else {
-    option.dataZoom.forEach((item) => {
-      item.start = 0;
-      item.end =
-        (DEFAULT_ORDER_LENGTH / dataLength) * 100 < DEFAULT_CHART_LENGTH_RATE
-          ? DEFAULT_CHART_LENGTH_RATE
-          : (DEFAULT_ORDER_LENGTH / dataLength) * 100;
-      item.labelFormatter = function (value) {
-        return getNanoDateString(BigInt(option.xAxis.data[value]), 6, 6);
-      };
-    });
-  }
+  const endZoomValue = (DEFAULT_ORDER_LENGTH / dataLength) * 100;
+  const adjustedZoomValue =
+    endZoomValue < DEFAULT_CHART_LENGTH_RATE
+      ? DEFAULT_CHART_LENGTH_RATE
+      : endZoomValue;
 
-  option.xAxis.data = xAxisData.value[selectedInstrument.value]
-    .sort((a, b) => {
-      return Number(a) - Number(b);
-    })
-    .map((item) => {
-      return item.toString();
-    });
-  option.xAxis.axisLabel.formatter = (value: string) => {
-    return getNanoDateString(BigInt(value), 6, 6);
-  };
-  quoteXAxisData.value[selectedInstrument.value]?.sort((a, b) => {
-    return a - b;
+  option.dataZoom.forEach((item) => {
+    item.start = 0;
+    item.end = dataLength <= DEFAULT_ORDER_LENGTH ? 100 : adjustedZoomValue;
+    item.labelFormatter = (value) =>
+      getNanoDateString(BigInt(option.xAxis.data[value]), 6, 6);
   });
 
-  myChart && myChart.setOption(option);
+  option.xAxis.data = xAxisData.value[selectedInstrument.value]
+    .sort((a, b) => Number(a) - Number(b))
+    .map((item) => item.toString());
+
+  option.xAxis.axisLabel.formatter = (value) =>
+    getNanoDateString(BigInt(value), 6, 6);
+
+  if (quoteXAxisData.value[selectedInstrument.value]) {
+    quoteXAxisData.value[selectedInstrument.value].sort((a, b) => a - b);
+  }
+
+  if (myChart) {
+    myChart.setOption(option);
+  }
+
   hasInit.value = true;
+
   if (shouldResize.value) {
     await delayMilliSeconds(0);
     myChart.resize();
@@ -1098,7 +1135,7 @@ function handleSearchOrderId() {
   let dataTime = 0n;
 
   option.series
-    .filter((serie, index) => {
+    .filter((_serie, index) => {
       return index !== 0 && index !== 4;
     })
     .forEach((serie) => {
@@ -1178,52 +1215,59 @@ function setDataZoom(dataTime: bigint) {
 }
 
 function setXAxisMinMax() {
-  if (!frameListResolved.value[selectedInstrument.value]) {
-    xAxisMinMax.value = {
-      max: 'dataMax',
-      min: 'dataMin',
-    };
+  const frames = frameListResolved.value[selectedInstrument.value];
+
+  if (!frames) {
+    setDefaultMinMax();
     return;
   }
-  if (frameListResolved.value[selectedInstrument.value].Quote.length > 0) {
-    const { upper_limit_price, lower_limit_price, last_price } =
-      frameListResolved.value[selectedInstrument.value].Quote[0];
-    xAxisMinMax.value.max = upper_limit_price
-      ? Math.ceil(upper_limit_price)
-      : last_price
-      ? Math.ceil(last_price * 1.2)
-      : 'dataMax';
-    xAxisMinMax.value.min = lower_limit_price
-      ? Math.floor(lower_limit_price)
-      : last_price
-      ? Math.floor(last_price * 0.8)
-      : 'dataMin';
-  } else {
-    let limit_price;
-    if (
-      frameListResolved.value[selectedInstrument.value].OrderInput.length > 0
-    ) {
-      limit_price =
-        frameListResolved.value[selectedInstrument.value].OrderInput[0]
-          .limit_price;
-    } else if (
-      frameListResolved.value[selectedInstrument.value].Order.length > 0
-    ) {
-      limit_price =
-        frameListResolved.value[selectedInstrument.value].Order[0].limit_price;
-    } else {
-      xAxisMinMax.value = {
-        max: 'dataMax',
-        min: 'dataMin',
-      };
-      return;
-    }
 
-    xAxisMinMax.value = {
-      max: Math.ceil(limit_price * 1.2),
-      min: Math.floor(limit_price * 0.8),
-    };
+  if (frames.Quote.length > 0) {
+    const { upper_limit_price, lower_limit_price, last_price } =
+      frames.Quote[0];
+    adjustXAxisByLimits(upper_limit_price, lower_limit_price, last_price);
+  } else {
+    const limitPrice = getLimitPriceFromOrderOrInput(frames);
+    if (limitPrice) {
+      adjustXAxisByLimitPrice(limitPrice);
+    } else {
+      setDefaultMinMax();
+    }
   }
+}
+
+function adjustXAxisByLimits(upper, lower, last) {
+  xAxisMinMax.value.max = upper
+    ? Math.ceil(upper)
+    : last
+    ? Math.ceil(last * 1.2)
+    : 'dataMax';
+  xAxisMinMax.value.min = lower
+    ? Math.floor(lower)
+    : last
+    ? Math.floor(last * 0.8)
+    : 'dataMin';
+}
+
+function getLimitPriceFromOrderOrInput(frames) {
+  if (frames.OrderInput.length > 0) {
+    return frames.OrderInput[0].limit_price;
+  } else if (frames.Order.length > 0) {
+    return frames.Order[0].limit_price;
+  }
+  return null;
+}
+
+function adjustXAxisByLimitPrice(limitPrice) {
+  xAxisMinMax.value.max = Math.ceil(limitPrice * 1.2);
+  xAxisMinMax.value.min = Math.floor(limitPrice * 0.8);
+}
+
+function setDefaultMinMax() {
+  xAxisMinMax.value = {
+    max: 'dataMax',
+    min: 'dataMin',
+  };
 }
 
 const handleInputChange = debounce(() => {

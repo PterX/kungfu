@@ -137,4 +137,6 @@ void writer::close_page(int64_t trigger_time) { journal_.close_page(trigger_time
 
 bool writer::release_page() { return journal_.release_page(); }
 
+bool writer::pre_load_next_page() { return journal_.pre_load_next_page(); }
+
 } // namespace kungfu::yijinjing::journal

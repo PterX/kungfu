@@ -8,7 +8,7 @@ namespace kungfu::yijinjing::journal {
 
 class bus {
 public:
-  bus(const bool on_load_page_required) : on_load_page_required_(on_load_page_required){};
+  explicit bus(const bool on_load_page_required) : on_load_page_required_(on_load_page_required){};
 
   virtual ~bus() = default;
 
@@ -16,7 +16,7 @@ public:
 
   std::condition_variable &get_cv() { return cv_; }
 
-  bool is_on_load_page_required() const { return on_load_page_required_; }
+  [[nodiscard]] bool is_on_load_page_required() const { return on_load_page_required_; }
 
   void notify_all();
 

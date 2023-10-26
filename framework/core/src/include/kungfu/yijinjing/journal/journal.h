@@ -91,6 +91,7 @@ private:
   bus_ptr bus_;
   page_ptr pre_page_;
   page_ptr page_;
+  page_ptr pre_load_page_;
   std::vector<page_ptr> passed_page_collector_;
   std::recursive_mutex passed_page_collector_mtx_;
   frame_ptr frame_;
@@ -98,6 +99,7 @@ private:
   bool replica_{false};
   const longfist::enums::Priority priority_;
   bool keep_page_{false};
+  bool pre_load_{false};
 
   void load_page(uint32_t page_id);
 
@@ -105,6 +107,8 @@ private:
 
   /** load next page, current page will be released if not empty */
   void load_next_page();
+
+  bool pre_load_next_page();
 
   void try_load_next_extra_page();
 
@@ -163,6 +167,8 @@ public:
 
   bool release_page();
 
+  bool pre_load_next_page();
+
   static uint64_t find_page_size(const data::location_ptr &location, uint32_t dest_id);
 
 private:
@@ -179,7 +185,6 @@ private:
   bus_ptr bus_;
   journal *current_;
   JournalMap journals_;
-  std::vector<journal> replica_journals_{};
   bool buffer_built_{false};
   std::vector<journal *> no_data_journals_buffer_{};
   std::priority_queue<journal *, std::vector<journal *>, later> has_data_journals_heap_{};
@@ -224,6 +229,8 @@ public:
                        uintptr_t data, uint32_t length);
 
   bool release_page();
+
+  bool pre_load_next_page();
 
   /**
    * Using auto with the return mess up the reference with the undlerying memory address, DO NOT USE it.

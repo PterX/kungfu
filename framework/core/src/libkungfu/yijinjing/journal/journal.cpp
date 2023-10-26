@@ -13,8 +13,10 @@ journal::journal(data::location_ptr location, uint32_t dest_id, bool is_writing,
       low_latency_(low_latency), bus_(std::move(bus)), frame_(std::shared_ptr<frame>(new frame())), page_frame_nb_(0u),
       page_size_(page_size), priority_(priority), replica_(false) {
   char *keep_page = std::getenv("KF_KEEP_PAGE");
+  char *pre_load = std::getenv("KF_PRE_LOAD");
   keep_page_ = keep_page != nullptr;
-  SPDLOG_DEBUG("keep_page_: {}", keep_page_);
+  pre_load_ = pre_load != nullptr;
+  SPDLOG_DEBUG("keep_page_: {}, pre_load_: {}", keep_page_, pre_load_);
 }
 
 journal::journal(const journal &other)
@@ -60,21 +62,34 @@ void journal::seek_to_time(int64_t nanotime) {
 
 void journal::load_page(uint32_t page_id) {
   if (page_.get() == nullptr or page_->get_page_id() != page_id) {
-
     if (page_.get() != nullptr && bus_->is_on_load_page_required()) {
       std::lock_guard<std::recursive_mutex> lk(passed_page_collector_mtx_);
       passed_page_collector_.push_back(std::move(page_));
       bus_->on_load_page();
     }
-
-    page_ = page::load(location_, dest_id_, page_size_, page_id, is_writing_, lazy_);
+    if (pre_load_page_ and pre_load_page_->get_page_id() == page_id) {
+      page_ = pre_load_page_;
+      pre_load_page_.reset();
+    } else {
+      page_ = page::load(location_, dest_id_, page_size_, page_id, is_writing_, lazy_);
+    }
   }
-
   frame_->set_address(page_->first_frame_address());
   page_frame_nb_ = 0u;
 }
 
 void journal::load_next_page() { load_page(page_->get_page_id() + 1); }
+
+bool journal::pre_load_next_page() {
+  if ((not pre_load_) or //
+      (not page_) or     //
+      (pre_load_page_ and pre_load_page_->get_page_id() == page_->get_page_id() + 1)) {
+    return false;
+  }
+  SPDLOG_DEBUG("pre_load_next_page: {}", page_->get_page_id() + 1);
+  pre_load_page_ = page::load(location_, dest_id_, page_size_, page_->get_page_id() + 1, is_writing_, lazy_);
+  return true;
+}
 
 // saving time for other process switch page, except the master
 // only for master reading, and low_latency mode
@@ -86,9 +101,9 @@ void journal::try_load_next_extra_page() {
 }
 
 bool journal::release_page() {
-  SPDLOG_TRACE("keep_page_: {}", keep_page_);
   if (keep_page_) {
-    return true;
+    SPDLOG_TRACE("keep_page_: {}", keep_page_);
+    return false;
   }
 
   static thread_local std::vector<page_ptr> queue_release_page{};

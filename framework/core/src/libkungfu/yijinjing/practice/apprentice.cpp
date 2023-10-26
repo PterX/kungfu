@@ -92,6 +92,15 @@ bool apprentice::release_page() {
   return result;
 }
 
+bool apprentice::pre_load_next_page() {
+  bool result = false;
+  result |= reader_->pre_load_next_page();
+  for (auto &iter : writers_) {
+    result |= iter.second->pre_load_next_page();
+  }
+  return result;
+}
+
 void apprentice::react() {
   events_ | is(Location::tag) | $$(add_location(event->gen_time(), event->data<Location>()));
   events_ | is(Register::tag) | $$(on_register(event->trigger_time(), event->data<Register>()));

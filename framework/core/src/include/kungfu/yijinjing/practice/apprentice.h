@@ -15,11 +15,11 @@
 namespace kungfu::yijinjing::practice {
 class apprentice;
 
-class cleaner {
+class resource_manager {
 public:
-  explicit cleaner(apprentice &app);
+  explicit resource_manager(apprentice &app);
 
-  virtual ~cleaner();
+  virtual ~resource_manager();
 
   void on_react();
 
@@ -32,7 +32,7 @@ private:
   std::mutex quite_mutex_;
   bool m_quit_ = false;
 
-  void do_clean();
+  void do_management();
 
   [[nodiscard]] bool is_cleaner_worker_required() const;
 };
@@ -111,8 +111,6 @@ public:
     }
   }
 
-  bool release_page();
-
   template <class DataType> std::string make_nano_msg(uint32_t source, uint32_t dest, const DataType &data) const {
     auto now = this->now();
     nlohmann::json request;
@@ -130,6 +128,10 @@ public:
   const std::string &get_arguments() const { return arguments_; }
 
   std::thread &get_cleaning_worker();
+
+  bool release_page();
+
+  bool pre_load_next_page();
 
   journal::writer_ptr &get_thread_writer();
 
@@ -300,7 +302,7 @@ private:
   int64_t checkin_time_ = INT64_MIN;
   int32_t timer_usage_count_ = 0;
   const std::string arguments_{};
-  cleaner cleaner_;
+  resource_manager cleaner_;
   std::unordered_map<int, int64_t> timer_checkpoints_ = {};
   std::unordered_map<int, longfist::types::TimeRequest> timer_requests_ = {};
   std::unordered_set<uint32_t> try_write_dest_ids_{};

@@ -129,8 +129,14 @@ bool reader::release_page() {
   for (auto &iter : journals_) {
     result |= iter.second.release_page();
   }
-  std::lock_guard<std::recursive_mutex> lk(mtx_);
-  replica_journals_.clear();
+  return result;
+}
+
+bool reader::pre_load_next_page() {
+  bool result = false;
+  for (auto &iter : journals_) {
+    result |= iter.second.pre_load_next_page();
+  }
   return result;
 }
 

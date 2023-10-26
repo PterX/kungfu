@@ -267,7 +267,7 @@ private:
     position.last_price = position.last_price > 0 ? position.last_price : trade.price;
 
     if (is_local) {
-      position.frozen_total -= trade.volume;
+      position.frozen_total = std::max(position.frozen_total - trade.volume, VOLUME_ZERO);
       if (trade.offset != Offset::CloseToday)
         position.frozen_yesterday = std::max(position.frozen_yesterday - trade.volume, VOLUME_ZERO);
     }

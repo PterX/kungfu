@@ -91,8 +91,6 @@ public:
 
   Napi::Value IssueOrder(const Napi::CallbackInfo &info);
 
-  Napi::Value IssueBasketOrder(const Napi::CallbackInfo &info);
-
   Napi::Value IssueAlgoOrder(const Napi::CallbackInfo &info);
 
   Napi::Value IssueMark(const Napi::CallbackInfo &info);

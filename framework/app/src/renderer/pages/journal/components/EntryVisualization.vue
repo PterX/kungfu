@@ -376,6 +376,8 @@ const handleFrameChange = async (newCurrentFrame, retryCount = 0) => {
         return handleFrameChange(newCurrentFrame, retryCount + 1);
       }
       return;
+    } else {
+      selectedSign = true;
     }
   } else {
     dataTime = newCurrentFrame.genTime;

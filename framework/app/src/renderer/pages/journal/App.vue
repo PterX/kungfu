@@ -325,7 +325,8 @@ function onEntryVisualization() {
       .gutter {
         cursor: row-resize;
         width: 100%;
-        height: 4px;
+        height: 4px !important;
+        z-index: 999;
       }
 
       .gutter:hover {

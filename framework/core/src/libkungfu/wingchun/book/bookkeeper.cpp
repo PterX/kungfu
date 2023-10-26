@@ -80,6 +80,7 @@ void Bookkeeper::on_start(const rx::connectable_observable<event_ptr> &events) {
   events | is(TradingDay::tag) | $$(on_trading_day(event->data<TradingDay>().timestamp));
   events | is(ResetBookRequest::tag) | $$(drop_book(event->source()));
   events | is(BrokerStateUpdate::tag) | $$(on_broker_state(event->data<BrokerStateUpdate>()));
+  events | is(Register::tag) | $$(on_register(event->data<Register>()));
   events | is(Deregister::tag) | $$(on_deregister(event->data<Deregister>()));
 
   if (bypass_quote_) {
@@ -360,6 +361,7 @@ void Bookkeeper::try_sync_position_end(const PositionEnd &position_end) {
       const auto &source_position = source_pair.second;
       const auto &target_position = target_book->get_position_for(source_position.direction, source_position);
       return source_position.volume != target_position.volume ||                   // 数量
+             source_position.open_volume != target_position.open_volume ||         // 今开
              source_position.yesterday_volume != target_position.yesterday_volume; // 昨仓数量
     });
   };
@@ -462,6 +464,13 @@ void Bookkeeper::on_deregister(const longfist::types::Deregister &deregister) {
     ready_tds_.insert_or_assign(deregister.location_uid, false);
   }
 }
+
+void Bookkeeper::on_register(const longfist::types::Register &reg) {
+  if (reg.category == category::TD) {
+    ready_tds_.insert_or_assign(reg.location_uid, false);
+  }
+}
+
 bool Bookkeeper::is_td(uint32_t location_uid) {
   if (not app_.has_location(location_uid)) {
     return false;

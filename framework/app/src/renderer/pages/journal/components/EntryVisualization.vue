@@ -315,11 +315,15 @@ const handleFrameChange = async (newCurrentFrame, retryCount = 0) => {
     }
 
     if (dataTime < currentTime.value) {
-      messagePrompt().error(t('journalConfig.data_error'));
+      messagePrompt().error(t('journalConfig.visual_vdata_error'));
       return;
     }
 
     if (newCurrentFrame.msgTypeName === 'Quote') {
+      if ((chartData as QuoteChartResolved).last_price === 0) {
+        messagePrompt().error(t('journalConfig.visual_vdata_error'));
+        return;
+      }
       const closestTimeIndex = findClosestTime(
         Number(dataTime),
         quoteXAxisData.value[selectedInstrument.value],
@@ -331,6 +335,14 @@ const handleFrameChange = async (newCurrentFrame, retryCount = 0) => {
         if (index === closestTimeIndex) hasFound = true;
       });
     } else {
+      if (
+        'limit_price' in chartData &&
+        chartData.limit_price === 0 &&
+        newCurrentFrame.msgTypeName !== 'OrderInput'
+      ) {
+        messagePrompt().error(t('journalConfig.visual_vdata_error'));
+        return;
+      }
       option.series
         .filter((_serie, index) => index !== 0 && index !== 4)
         .forEach((serie) => {
@@ -578,6 +590,7 @@ function updateChartSeriesData(
   msgTypeName: string,
 ) {
   const { dataTime, price } = getTradingDataValueByKey(tradingDataResolved);
+  if (msgTypeName !== 'OrderAction' && price === 0) return;
   xAxisData.value[key] = xAxisData.value[key] || [];
   xAxisData.value[key].push(dataTime.toString());
 

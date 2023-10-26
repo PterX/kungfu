@@ -7,10 +7,31 @@
 
 namespace kungfu::yijinjing::journal {
 
+journal::journal(data::location_ptr location, uint32_t dest_id, bool is_writing, bool lazy, bool low_latency,
+                 bus_ptr bus, uint64_t page_size, longfist::enums::Priority priority)
+    : location_(std::move(location)), dest_id_(dest_id), is_writing_(is_writing), lazy_(lazy),
+      low_latency_(low_latency), bus_(std::move(bus)), frame_(std::shared_ptr<frame>(new frame())), page_frame_nb_(0u),
+      page_size_(page_size), priority_(priority), replica_(false) {
+  char *keep_page = std::getenv("KF_KEEP_PAGE");
+  keep_page_ = keep_page != nullptr;
+  SPDLOG_DEBUG("keep_page_: {}", keep_page_);
+}
+
+journal::journal(const journal &other)
+    : location_(other.location_), dest_id_(other.dest_id_), page_size_(other.page_size_),
+      is_writing_(other.is_writing_), lazy_(other.lazy_), low_latency_(other.low_latency_), bus_(other.bus_),
+      page_frame_nb_(other.page_frame_nb_), priority_(other.priority_) {
+  pre_page_ = other.pre_page_;
+  page_ = other.page_;
+  frame_ = std::make_shared<frame>(*other.frame_);
+  replica_ = true;
+}
+
 journal::~journal() {
   if (page_) {
     page_.reset();
   }
+  keep_page_ = false;
   release_page();
 }
 
@@ -26,7 +47,7 @@ void journal::next() {
 }
 
 void journal::seek_to_time(int64_t nanotime) {
-  int page_id = page::find_page_id(location_, dest_id_, nanotime);
+  uint32_t page_id = page::find_page_id(location_, dest_id_, nanotime);
   load_page(page_id);
   while (page_->is_full() && page_->end_time() <= nanotime) {
     load_next_page();
@@ -37,7 +58,7 @@ void journal::seek_to_time(int64_t nanotime) {
   }
 }
 
-void journal::load_page(int page_id) {
+void journal::load_page(uint32_t page_id) {
   if (page_.get() == nullptr or page_->get_page_id() != page_id) {
 
     if (page_.get() != nullptr && bus_->is_on_load_page_required()) {
@@ -65,6 +86,11 @@ void journal::try_load_next_extra_page() {
 }
 
 bool journal::release_page() {
+  SPDLOG_TRACE("keep_page_: {}", keep_page_);
+  if (keep_page_) {
+    return true;
+  }
+
   static thread_local std::vector<page_ptr> queue_release_page{};
   {
     std::lock_guard<std::recursive_mutex> lk(passed_page_collector_mtx_);
@@ -90,14 +116,24 @@ bool journal::release_page() {
   return true;
 }
 
-journal::journal(const journal &other)
-    : location_(other.location_), dest_id_(other.dest_id_), page_size_(other.page_size_),
-      is_writing_(other.is_writing_), lazy_(other.lazy_), low_latency_(other.low_latency_), bus_(other.bus_),
-      page_frame_nb_(other.page_frame_nb_), priority_(other.priority_) {
-  pre_page_ = other.pre_page_;
-  page_ = other.page_;
-  frame_ = std::make_shared<frame>(*other.frame_);
-  replica_ = true;
+void journal::close_page(int64_t trigger_time, int64_t last_gen_time) {
+  page_ptr last_page = page_;
+
+  // must load_next_page before mark PageEnd::tag,
+  // or reader of other process may read next page before it created
+  load_next_page();
+
+  frame last_page_frame;
+  last_page_frame.set_address(last_page->last_frame_address());
+  last_page_frame.move_to_next();
+  last_page_frame.set_header_length();
+  last_page_frame.set_trigger_time(trigger_time);
+  last_page_frame.set_msg_type(longfist::types::PageEnd::tag);
+  last_page_frame.set_source(location_->uid);
+  last_page_frame.set_dest(dest_id_);
+  last_page_frame.set_gen_time(last_gen_time);
+  last_page_frame.set_data_length(0);
+  last_page->set_last_frame_position(last_page_frame.address() - last_page->address());
 }
 
 } // namespace kungfu::yijinjing::journal

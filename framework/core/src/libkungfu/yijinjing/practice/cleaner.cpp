@@ -18,6 +18,7 @@ void cleaner::on_react() {
   if (not cleaning_worker_.joinable()) {
     cleaning_worker_ = std::thread(&cleaner::do_clean, this);
   }
+  SPDLOG_DEBUG("cleaning_worker_ thread id: {}", cleaning_worker_.get_id());
 }
 
 void cleaner::do_clean() {

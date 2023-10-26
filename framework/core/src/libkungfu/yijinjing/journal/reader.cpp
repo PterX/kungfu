@@ -143,7 +143,7 @@ reader::reader(const reader &other) : lazy_(other.lazy_), low_latency_(other.low
   }
 }
 
-journal &reader::get_journal_ref(const data::location_ptr &location, uint32_t dest_id) {
+[[maybe_unused]] journal &reader::get_journal_ref(const data::location_ptr &location, uint32_t dest_id) {
   auto key = journal_key(location, dest_id);
   auto iter = journals_.find(key);
   if (iter != journals_.end()) {

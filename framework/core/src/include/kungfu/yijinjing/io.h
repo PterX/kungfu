@@ -26,9 +26,7 @@ public:
 
   bool is_usable() override { return publisher_ and observer_ and publisher_->is_usable() and observer_->is_usable(); }
 
-  bool is_lazy() { return lazy_; }
-
-  bool is_low_latency() { return low_latency_; }
+  [[nodiscard]] bool is_lazy() const { return lazy_; }
 
   bool setup() override {
     bool prc = publisher_->setup();
@@ -47,7 +45,8 @@ public:
   [[nodiscard]] bool is_cleaner_required() const {
     return low_latency_ && lazy_ && home_->mode == kungfu::longfist::enums::mode::LIVE;
   }
-  const journal::bus_ptr &get_bus() const { return bus_; }
+
+  [[nodiscard]] const journal::bus_ptr &get_bus() const { return bus_; }
 
   journal::reader_ptr open_reader_to_subscribe();
 
@@ -60,8 +59,9 @@ public:
   journal::writer_ptr open_hookable_writer(uint32_t dest_id, const journal::writer_hook_ptr &hook,
                                            uint64_t page_size = 0);
 
-  journal::writer_ptr open_hookable_writer_at(const data::location_ptr &location, uint32_t dest_id,
-                                              const journal::writer_hook_ptr &hook, uint64_t page_size = 0);
+  [[maybe_unused]] journal::writer_ptr open_hookable_writer_at(const data::location_ptr &location, uint32_t dest_id,
+                                                               const journal::writer_hook_ptr &hook,
+                                                               uint64_t page_size = 0);
 
   [[nodiscard]] nanomsg::url_factory_ptr get_url_factory() const { return url_factory_; }
 

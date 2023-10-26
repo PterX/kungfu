@@ -46,11 +46,8 @@ struct journal_key {
 typedef std::map<journal_key, journal> JournalMap;
 class journal {
 public:
-  journal(data::location_ptr location, uint32_t dest_id, bool is_writing, bool lazy, bool low_latency,
-          const bus_ptr &bus, uint64_t page_size, longfist::enums::Priority priority = longfist::enums::Priority::Low)
-      : location_(std::move(location)), dest_id_(dest_id), is_writing_(is_writing), lazy_(lazy),
-        low_latency_(low_latency), bus_(bus), frame_(std::shared_ptr<frame>(new frame())), page_frame_nb_(0u),
-        page_size_(page_size), priority_(priority), replica_(false) {}
+  journal(data::location_ptr location, uint32_t dest_id, bool is_writing, bool lazy, bool low_latency, bus_ptr bus,
+          uint64_t page_size, longfist::enums::Priority priority = longfist::enums::Priority::Low);
 
   journal(const journal &other);
 
@@ -100,8 +97,11 @@ private:
   uint64_t page_frame_nb_;
   bool replica_{false};
   const longfist::enums::Priority priority_;
+  bool keep_page_{false};
 
-  void load_page(int page_id);
+  void load_page(uint32_t page_id);
+
+  void close_page(int64_t trigger_time, int64_t last_gen_time);
 
   /** load next page, current page will be released if not empty */
   void load_next_page();
@@ -117,8 +117,8 @@ private:
 
 class reader {
 public:
-  explicit reader(bool lazy, bool low_latency, const bus_ptr &bus)
-      : lazy_(lazy), low_latency_(low_latency), bus_(bus), current_(nullptr){};
+  explicit reader(bool lazy, bool low_latency, bus_ptr bus)
+      : lazy_(lazy), low_latency_(low_latency), bus_(std::move(bus)), current_(nullptr){};
 
   reader(const reader &other);
 
@@ -149,7 +149,7 @@ public:
 
   [[nodiscard]] const JournalMap &get_journals() const { return journals_; }
 
-  journal &get_journal_ref(const data::location_ptr &location, uint32_t dest_id);
+  [[maybe_unused]] journal &get_journal_ref(const data::location_ptr &location, uint32_t dest_id);
 
   bool data_available();
 
@@ -199,7 +199,7 @@ public:
 
   [[maybe_unused]] [[nodiscard]] uint32_t get_dest() const { return journal_.dest_id_; }
 
-  [[nodiscard]] const journal &get_journal() const { return journal_; }
+  [[maybe_unused]] [[nodiscard]] const journal &get_journal() const { return journal_; }
 
   [[nodiscard]] page_ptr get_current_page() const { return journal_.page_; }
 
@@ -237,7 +237,7 @@ public:
     return const_cast<T &>(frame->template data<T>());
   }
 
-  template <typename T> T &open_custom_data(int32_t msg_type, int64_t trigger_time = 0) {
+  template <typename T> [[maybe_unused]] T &open_custom_data(int32_t msg_type, int64_t trigger_time = 0) {
     auto frame = open_frame(trigger_time, msg_type, sizeof(T));
     return const_cast<T &>(*reinterpret_cast<const T *>(frame->data_address()));
   }
@@ -324,8 +324,8 @@ public:
 class hookable_writer : public writer {
 public:
   explicit hookable_writer(const data::location_ptr &location, uint32_t dest_id, bool lazy, publisher_ptr publisher,
-                           bool low_latency, const bus_ptr &bus, uint64_t page_size, const writer_hook_ptr &hook)
-      : writer(location, dest_id, lazy, publisher, low_latency, bus, page_size), hook_(hook) {}
+                           bool low_latency, const bus_ptr &bus, uint64_t page_size, writer_hook_ptr hook)
+      : writer(location, dest_id, lazy, std::move(publisher), low_latency, bus, page_size), hook_(std::move(hook)) {}
 
   frame_ptr open_frame(int64_t trigger_time, int32_t msg_type, uint32_t length) override;
 

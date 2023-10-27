@@ -1718,11 +1718,18 @@ export const useActiveInstruments = () => {
     return { price_tick, price_precision };
   };
 
+  const getInstrumentCurrency = (instrumentId: string, exchangeId: string) => {
+    const instrument = getInstrumentByIdsWithWatcher(instrumentId, exchangeId);
+    const currency = instrument?.currency || CurrencyEnum.Unknown;
+    return currency;
+  };
+
   return {
     getInstrumentByIds,
     getInstrumentByIdsWithWatcher,
     getInstrumentCurrencyByIds,
     getPriceTickAndPrecision,
+    getInstrumentCurrency,
   };
 };
 
@@ -2392,7 +2399,6 @@ export const useCurrentPositionList = () => {
               watcher.ledger.Position,
               'position',
             ) as KungfuApi.Position[];
-
           currentPositionList.value = toRaw(
             currentPositions
               .reverse()

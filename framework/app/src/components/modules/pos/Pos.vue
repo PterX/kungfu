@@ -69,7 +69,8 @@ const { handleDownload } = useDownloadHistoryTradingData();
 const { triggerOrderBook, triggerMakeOrder } = useTriggerMakeOrder();
 const { instruments } = useInstruments();
 const { getPositionLastPrice } = useQuote();
-const { getPriceTickAndPrecision } = useActiveInstruments();
+const { getPriceTickAndPrecision, getInstrumentCurrency } =
+  useActiveInstruments();
 const { dealDataWithCache } = useDealDataWithCaches<
   KungfuApi.Position,
   KungfuApi.PositionResolved
@@ -136,9 +137,15 @@ onMounted(() => {
               item.instrument_id,
               item.exchange_id,
             );
+            const currency = getInstrumentCurrency(
+              item.instrument_id,
+              item.exchange_id,
+            );
 
-            return dealDataWithCache(item, () =>
-              dealPosition(watcher, item, price_precision),
+            return dealDataWithCache(
+              item,
+              () => dealPosition(watcher, item, price_precision),
+              { currency },
             );
           }),
         );

@@ -131,15 +131,13 @@ public:
         book->asset.avail += frozen_margin;
         book->asset.frozen_cash -= frozen_margin;
         book->asset.frozen_margin -= frozen_margin;
+      } else {
+        position.frozen_total = std::max(position.frozen_total - order.volume_left, VOLUME_ZERO);
       }
 
       if (offset == Offset::Close or offset == Offset::CloseYesterday) {
         position.frozen_total = std::max(position.frozen_total - order.volume_left, VOLUME_ZERO);
         position.frozen_yesterday = std::max(position.frozen_yesterday - order.volume_left, VOLUME_ZERO);
-      }
-
-      if (offset == Offset::CloseToday and position.frozen_total >= order.volume_left) {
-        position.frozen_total -= order.volume_left;
       }
 
       update_position(book, position);
@@ -246,7 +244,7 @@ private:
     position.last_price = position.last_price > 0 ? position.last_price : trade.price;
 
     if (is_local) {
-      position.frozen_total -= trade.volume;
+      position.frozen_total = std::max(position.frozen_total - trade.volume, VOLUME_ZERO);
       if (trade.offset != Offset::CloseToday)
         position.frozen_yesterday = std::max(position.frozen_yesterday - trade.volume, VOLUME_ZERO);
     }

@@ -298,10 +298,7 @@ Basket
 RequestWriteToBand
 TimeValue
 TimeKeyValue
-LIVE
-DATA
-REPLAY
-BACKTEST
+return ej_pair.first
 MD
 TD
 STRATEGY
@@ -323,9 +320,6 @@ SSE
 SZE
 MarketType
 Snapshot
-Entrust
-Transaction
-Tree
 SubscribeDataType
 Stock
 Future

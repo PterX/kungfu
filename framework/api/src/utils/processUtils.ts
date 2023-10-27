@@ -851,11 +851,11 @@ async function getBackTestConfigPath(group: string, name: string) {
 
   if (window.watcher) {
     const instruments = window.watcher.ledger.Instrument.list();
-    const comissions = await getKfCommission(window.watcher);
+    const commissions = await getKfCommission(window.watcher);
 
     const backtestConfigJson = {
-      Comissions: {
-        default: comissions || [],
+      Commission: {
+        default: commissions || [],
       },
       Instrument: {
         default: instruments || [],

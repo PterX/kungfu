@@ -25,6 +25,7 @@
             </template>
             <a-table
               class="kf-ant-table"
+              style="height: 100%"
               :columns="columns"
               :data-source="tableData"
               :pagination="false"
@@ -615,7 +616,8 @@ function onEntryVisualization(visible: boolean) {
       .gutter {
         cursor: row-resize;
         width: 100%;
-        height: 4px;
+        height: 4px !important;
+        z-index: 999;
       }
 
       .gutter:hover {

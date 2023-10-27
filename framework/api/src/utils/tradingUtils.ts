@@ -904,11 +904,11 @@ export const promiseWithCachedPause = <T>(
   delay = 200,
 ): Promise<T> => {
   return new Promise((resolve, reject) => {
-    const cachedLocation = {
+    const masterLocation = {
       category: 'system',
-      group: 'service',
+      group: 'master',
+      name: 'master',
       mode: 'live',
-      name: 'cached',
     };
 
     let keyCachedPause = 10253;
@@ -922,7 +922,7 @@ export const promiseWithCachedPause = <T>(
       }
     }
 
-    watcher.issueMark(keyCachedPause, cachedLocation);
+    watcher.issueMark(keyCachedPause, masterLocation);
     setTimeout(() => {
       promiseFunc()
         .then((res) => {
@@ -932,7 +932,7 @@ export const promiseWithCachedPause = <T>(
           reject(err);
         })
         .finally(() => {
-          watcher.issueMark(keyCachedResume, cachedLocation);
+          watcher.issueMark(keyCachedResume, masterLocation);
         });
     }, delay);
   });

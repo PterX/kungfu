@@ -267,9 +267,10 @@ void Bookkeeper::try_sync_position_end(const PositionEnd &position_end) {
       const auto &source_position = source_pair.second;
       auto &target_position = target_book->get_position(source_position.source_id, source_position.direction,
                                                         source_position.exchange_id, source_position.instrument_id);
-      return source_position.volume != target_position.volume ||                   // 数量
-             source_position.open_volume != target_position.open_volume ||         // 今开
-             source_position.yesterday_volume != target_position.yesterday_volume; // 昨仓数量
+      return source_position.volume != target_position.volume ||                     // 数量
+             source_position.open_volume != target_position.open_volume ||           // 今开
+             source_position.static_yesterday != target_position.static_yesterday || // 固定昨
+             source_position.yesterday_volume != target_position.yesterday_volume;   // 昨仓数量
     });
   };
 

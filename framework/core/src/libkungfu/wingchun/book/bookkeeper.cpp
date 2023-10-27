@@ -360,9 +360,10 @@ void Bookkeeper::try_sync_position_end(const PositionEnd &position_end) {
     return std::any_of(source_map.begin(), source_map.end(), [&](const auto &source_pair) {
       const auto &source_position = source_pair.second;
       const auto &target_position = target_book->get_position_for(source_position.direction, source_position);
-      return source_position.volume != target_position.volume ||                   // 数量
-             source_position.open_volume != target_position.open_volume ||         // 今开
-             source_position.yesterday_volume != target_position.yesterday_volume; // 昨仓数量
+      return source_position.volume != target_position.volume ||                     // 数量
+             source_position.open_volume != target_position.open_volume ||           // 今开
+             source_position.static_yesterday != target_position.static_yesterday || // 固定昨
+             source_position.yesterday_volume != target_position.yesterday_volume;   // 昨仓数量
     });
   };
 

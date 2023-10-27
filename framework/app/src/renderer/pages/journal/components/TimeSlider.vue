@@ -38,8 +38,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, ref, watch } from 'vue';
-import { useWindowFocus } from '@vueuse/core';
+import { computed, nextTick, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { dealKfTime } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { ForwardOutlined, BackwardOutlined } from '@ant-design/icons-vue';
@@ -74,7 +73,6 @@ const BIGINT_SCALE = BigInt(SCALE);
 const TEN_SECOND = BigInt(10000000000);
 const slider = ref();
 const currentTimeResolved = ref(0);
-const lastFocusTime = ref(0);
 
 const nano2millionSecond = (number: bigint | number) => {
   if (typeof number === 'bigint') {
@@ -83,8 +81,6 @@ const nano2millionSecond = (number: bigint | number) => {
     return number / SCALE;
   }
 };
-
-const windowFocusStatus = useWindowFocus();
 
 watch(
   currentTime,
@@ -98,21 +94,22 @@ watch(
   },
 );
 
-watch(windowFocusStatus, () => {
-  if (!windowFocusStatus.value) {
-    (document.activeElement as HTMLElement).blur();
-  }
-});
+const onAfterChange = (() => {
+  let isProcessing = false;
 
-const onAfterChange = () => {
-  if (Math.abs(lastFocusTime.value - currentTimeResolved.value) > 200) {
-    setCurrentTime(million2nanoSecond(currentTimeResolved.value));
-    lastFocusTime.value = currentTimeResolved.value;
-  } else {
-    // fix the a-slider focus bug by setting the correct value
-    currentTimeResolved.value = nano2millionSecond(currentTime.value);
-  }
-};
+  return () => {
+    if (isProcessing) return;
+
+    isProcessing = true;
+
+    nextTick(() => {
+      //触发blur事件,解决slider组件失焦时自动触发onAfterChange的bug
+      (document.activeElement as HTMLElement).blur();
+      setCurrentTime(million2nanoSecond(currentTimeResolved.value));
+      isProcessing = false;
+    });
+  };
+})();
 
 const currentSessionEndTimeResolved = computed(() => {
   if (currentSession.value?.status === SessionStatusEnum.Finished) {

@@ -4,6 +4,7 @@
 #define WINGCHUN_OPERATOR_CONTEXT_H
 
 #include <kungfu/longfist/longfist.h>
+#include <kungfu/wingchun/basketorder/basketorderengine.h>
 #include <kungfu/wingchun/broker/client.h>
 #include <kungfu/yijinjing/practice/apprentice.h>
 

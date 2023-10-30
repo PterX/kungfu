@@ -23,7 +23,7 @@
       :max="maxTime"
       :step="nano2millionSecond(props.step)"
       :tip-formatter="tipFormatter"
-      @change="onAfterChange"
+      @after-change="() => onAfterChange()"
     />
     <div class="kf-time-slider-time">
       <span class="kf-time-slider-text" style="text-align: start">
@@ -38,14 +38,14 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, ref, watch } from 'vue';
-import { useWindowFocus } from '@vueuse/core';
+import { computed, nextTick, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { dealKfTime } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { ForwardOutlined, BackwardOutlined } from '@ant-design/icons-vue';
 import { SessionStatusEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import { useNow, useResizeFlag } from '../utils';
 import { useJournalStore } from '../store/journalStore';
+import { delayMilliSeconds } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 
 const props = withDefaults(
   defineProps<{
@@ -82,27 +82,34 @@ const nano2millionSecond = (number: bigint | number) => {
   }
 };
 
-const windowFocusStatus = useWindowFocus();
-
 watch(
   currentTime,
   (newVal) => {
-    currentTimeResolved.value = nano2millionSecond(newVal);
+    delayMilliSeconds(0).then(() => {
+      currentTimeResolved.value = nano2millionSecond(newVal);
+    });
   },
   {
     immediate: true,
   },
 );
 
-watch(windowFocusStatus, () => {
-  if (!windowFocusStatus.value) {
-    (document.activeElement as HTMLElement).blur();
-  }
-});
+const onAfterChange = (() => {
+  let isProcessing = false;
 
-const onAfterChange = () => {
-  setCurrentTime(million2nanoSecond(currentTimeResolved.value));
-};
+  return () => {
+    if (isProcessing) return;
+
+    isProcessing = true;
+
+    nextTick(() => {
+      //触发blur事件,解决slider组件失焦时自动触发onAfterChange的bug
+      (document.activeElement as HTMLElement).blur();
+      setCurrentTime(million2nanoSecond(currentTimeResolved.value));
+      isProcessing = false;
+    });
+  };
+})();
 
 const currentSessionEndTimeResolved = computed(() => {
   if (currentSession.value?.status === SessionStatusEnum.Finished) {

@@ -7,6 +7,7 @@ import {
   getKungfuHistoryData,
   hashInstrumentUKey,
   kfRequestMarketData,
+  longfist,
 } from '@kungfu-trader/kungfu-js-api/kungfu';
 
 import { setKfConfig } from '@kungfu-trader/kungfu-js-api/kungfu/store';
@@ -67,6 +68,7 @@ import {
   ComputedRef,
   getCurrentInstance,
   h,
+  isRef,
   nextTick,
   onBeforeUnmount,
   onMounted,
@@ -455,6 +457,7 @@ export const useAddUpdateRemoveKfConfig = (): {
                 ...formState,
                 add_time: +new Date().getTime() * Math.pow(10, 6),
               }),
+              window.watcher,
             )
               .then(() => {
                 success();
@@ -523,6 +526,7 @@ export const useDealExportHistoryTradingData = (): {
 
       try {
         historyData = await getKungfuHistoryData(
+          window.watcher,
           date,
           dateType,
           tradingDataType,
@@ -650,6 +654,7 @@ export const useDealExportHistoryTradingData = (): {
     } else {
       try {
         historyData = await getKungfuHistoryData(
+          window.watcher,
           date,
           dateType,
           tradingDataType,
@@ -1663,11 +1668,18 @@ export const useActiveInstruments = () => {
     return { price_tick, price_precision };
   };
 
+  const getInstrumentCurrency = (instrumentId: string, exchangeId: string) => {
+    const instrument = getInstrumentByIdsWithWatcher(instrumentId, exchangeId);
+    const currency = instrument?.currency || CurrencyEnum.Unknown;
+    return currency;
+  };
+
   return {
     getInstrumentByIds,
     getInstrumentByIdsWithWatcher,
     getInstrumentCurrencyByIds,
     getPriceTickAndPrecision,
+    getInstrumentCurrency,
   };
 };
 
@@ -2121,7 +2133,6 @@ export const useCurrentPositionList = () => {
               watcher.ledger.Position,
               'position',
             ) as KungfuApi.Position[];
-
           currentPositionList.value = toRaw(
             currentPositions
               .reverse()
@@ -2673,6 +2684,7 @@ export const useBasket = () => {
     const [id, name, volume_type, total_amount] = res;
 
     return {
+      ...longfist.types.Basket(),
       id: Number(id),
       name,
       volume_type: Number(volume_type),
@@ -2732,5 +2744,58 @@ export const useDealDataWithCaches = <T, U>(keys: Array<keyof T>) => {
   return {
     dealDataWithCache,
     clearCaches,
+  };
+};
+
+export const useFastFindObjArrIndex = (
+  keyField: string | Ref<string> | ComputedRef<string>,
+) => {
+  let objArray: Array<object> = [];
+  let keyFieldResolved = isRef(keyField) ? keyField.value : keyField;
+  let keyFieldValue2Index: Record<string, number> = {};
+  let start = 0,
+    end = 0;
+
+  if (isRef(keyField)) {
+    watch(
+      () => keyField.value,
+      (newKey, oldKey) => {
+        if (newKey !== oldKey) {
+          keyFieldResolved = newKey;
+          keyFieldValue2Index = {};
+          start = 0;
+          end = 0;
+        }
+      },
+    );
+  }
+
+  const findIndexByKeyFieldValue = (
+    targetKeyFieldValue: string | number | bigint,
+  ) => {
+    const strTargetValue = `${targetKeyFieldValue}`;
+    if (typeof keyFieldValue2Index[strTargetValue] === 'number') {
+      return keyFieldValue2Index[strTargetValue];
+    }
+    for (let i = start; i < end; i++) {
+      const curKeyFieldValue = `${objArray[i][keyFieldResolved]}`;
+      keyFieldValue2Index[curKeyFieldValue] = i;
+      if (curKeyFieldValue === strTargetValue) {
+        return i;
+      }
+    }
+    return -1;
+  };
+
+  const replaceArray = (arr: Array<object>) => {
+    objArray = arr;
+    keyFieldValue2Index = {};
+    start = 0;
+    end = arr.length;
+  };
+
+  return {
+    findIndexByKeyFieldValue,
+    replaceArray,
   };
 };

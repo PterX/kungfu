@@ -7,7 +7,7 @@ import {
 } from '../assets/methods/utils';
 import { KfCategoryTypes } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import autocompletePrompt from 'inquirer-autocomplete-prompt';
-import { PathPrompt } from 'inquirer-path';
+import { PathPrompt } from 'inquirer-path-pro';
 import {
   getCombineValueByPrimaryKeys,
   getExtConfigList,

@@ -29,10 +29,12 @@ import { Proc } from 'pm2';
 import { globalState } from '../actions/globalState';
 import { program } from 'commander';
 import { SpecialWordsReg } from '@kungfu-trader/kungfu-js-api/config/systemConfig';
+import { PathPrompt } from 'inquirer-path-pro';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 const { t } = VueI18n.global;
 
 inquirer.registerPrompt('checkbox-plus', checkboxPlusPrompt);
+inquirer.registerPrompt('path', PathPrompt);
 
 export const parseToString = (
   targetList: (string | number)[],
@@ -214,9 +216,8 @@ export const getQuestionInputType = (
       return 'confirm';
     case 'folder':
     case 'directory':
-      return 'path';
     case 'file':
-      return 'file-path';
+      return 'path';
     case 'instrument':
       return 'autocomplete';
     case 'instruments':
@@ -315,9 +316,7 @@ export const buildQuestionByKfConfigItem = async (
       }
       return true;
     },
-    ...(targetType === 'path'
-      ? { cwd: configItem.default || defaultValue || process.cwd().toString() }
-      : {}),
+    ...(targetType === 'path' ? { cwd: process.cwd().toString() } : {}),
     choices: (configItem.options || configItem.data || []).map(
       (item) => item.value,
     ),
@@ -389,43 +388,32 @@ export const buildQuestionByKfConfigItem = async (
       };
       break;
     }
-    case 'directory': {
-      validateList.push(async function (value) {
-        const exists = await fse.pathExists(value);
-        if (!exists) {
-          return new Error(value);
-        }
-
-        const stats = await fse.stat(value);
-        const isDir = stats.isDirectory();
-        return isDir || new Error(t('请输入一个目录'));
-      });
-      break;
-    }
     case 'file': {
       validateList.push(async function (value) {
         const exists = await fse.pathExists(value);
         if (!exists) {
-          return new Error(t('文件路径不存在'));
+          return new Error(t('validate.file_path_not_exist'));
         }
 
         const stats = await fse.stat(value);
         const isFile = stats.isFile();
-        return isFile || new Error(t('请输入文件路径'));
+        return isFile || new Error(t('please_enter_file_path'));
       });
       break;
     }
+    case 'directory':
     case 'folder': {
       validateList.push(async function (value) {
         const exists = await fse.pathExists(value);
         if (!exists) {
-          return new Error(t('文件路径不存在'));
+          return new Error(t('validate.file_path_not_exist'));
         }
 
         const stats = await fse.stat(value);
         const isDir = stats.isDirectory();
-        return isDir || new Error(t('请输入文件夹路径'));
+        return isDir || new Error(t('please_enter_folder_path'));
       });
+      baseQuestion.directoryOnly = true;
       break;
     }
     case 'md': {

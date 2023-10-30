@@ -61,6 +61,9 @@ export default {
   file: '文件',
   folder: '文件夹',
 
+  please_enter_file_path: '请输入文件路径',
+  please_enter_folder_path: '请输入文件夹路径',
+
   no_focus: '当前页面没有聚焦',
   clear: '清理 {content} 完成, 请重启应用',
   open_window: '正在打开窗口',
@@ -712,6 +715,7 @@ export default {
     search_order_id: '请搜索订单号',
     search_instrument: '请搜索代码号',
     search_order_id_error: '您搜索的订单号不存在, 请检查该订单号是否是所选标的',
+    visual_vdata_error: '可视化数据不存在',
     buy_open: '买开',
     buy_close: '买平',
     sell_open: '卖开',
@@ -904,6 +908,7 @@ export default {
     mandatory: '该项为必填项',
     resolved_tip: '成功匹配 {success} 个{value}, 失败 {fail} 个',
     default_value_tip: '默认值不能改变',
+    file_path_not_exist: '文件路径不存在',
   },
 
   editor: {

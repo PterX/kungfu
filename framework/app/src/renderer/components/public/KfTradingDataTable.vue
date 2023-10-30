@@ -2,7 +2,12 @@
 import { sum } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { createReusableTemplate } from '@vueuse/core';
 import { Empty } from 'ant-design-vue';
-import { CaretUpOutlined, CaretDownOutlined } from '@ant-design/icons-vue';
+import {
+  CaretUpOutlined,
+  CaretDownOutlined,
+  UpOutlined,
+  DownOutlined,
+} from '@ant-design/icons-vue';
 import { filter } from 'rxjs';
 import {
   computed,
@@ -13,9 +18,13 @@ import {
   ref,
   toRaw,
   nextTick,
+  watchEffect,
+  ComputedRef,
 } from 'vue';
 import { throttle } from 'lodash';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+import { useFastFindObjArrIndex } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
+import { useScrollerTableSearch } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 
 const { t } = VueI18n.global;
 
@@ -37,6 +46,11 @@ const props = withDefaults(
     sizeDependenciesFields?: string[];
     selectable?: boolean;
     selection?: KfTradingDataTableSelection; // 仅在 selectable 为 true 的时候生效
+    searchOption?: {
+      enabled: boolean;
+      keysForSearch: string[];
+      dynamicTableInSearching?: boolean;
+    };
     customRowClass?: (row: TableDataItem) => string;
   }>(),
   {
@@ -51,6 +65,10 @@ const props = withDefaults(
     sizeDependenciesFields: () => [],
     selectable: false,
     selection: () => ({}),
+    searchOption: () => ({
+      enabled: false,
+      keysForSearch: [],
+    }),
     customRowClass: () => '',
   },
 );
@@ -85,8 +103,13 @@ const TradingDataTableItem = createReusableTemplate<{
   index: number;
   active: boolean;
 }>();
+const { findIndexByKeyFieldValue, replaceArray } = useFastFindObjArrIndex(
+  computed(() => props.keyField),
+);
+
 const normalScroller = ref();
 const dynamicScroller = ref();
+const dynamic = ref(props.dynamic);
 const simpleImage = Empty.PRESENTED_IMAGE_SIMPLE;
 const kfScrollerTableBodyRef = ref();
 const kfScrollerTableWidth = ref(0);
@@ -98,6 +121,81 @@ const selectAllIndeterminate = ref(false);
 const selectedRowKeyFieldValues = ref<Record<string, boolean>>({});
 const selectedRowsMap = ref<Record<string, TableDataItem>>({});
 let clickTimer: number | undefined;
+const currentSorterIndex = ref<string>('');
+const currentSorterOrder = ref<'' | 'ascend' | 'descend'>('');
+let currentSorterFunction: ((a: any, b: any) => number) | undefined = undefined;
+const dataSourceResolved = computed(() => {
+  if (
+    currentSorterIndex.value &&
+    currentSorterFunction &&
+    currentSorterOrder.value !== ''
+  ) {
+    if (currentSorterOrder.value === 'ascend') {
+      return props.dataSource.slice(0).sort(currentSorterFunction);
+    } else {
+      return props.dataSource.slice(0).sort(currentSorterFunction).reverse();
+    }
+  }
+  return props.dataSource;
+});
+watchEffect(() => {
+  replaceArray(dataSourceResolved.value);
+});
+
+const scrollerRef = computed(() => {
+  if (dynamic.value) {
+    return dynamicScroller.value;
+  } else {
+    return normalScroller.value;
+  }
+});
+
+const searchEnabled = computed(
+  () =>
+    props.searchOption.enabled && props.searchOption.keysForSearch.length > 0,
+);
+const {
+  searchInUsing,
+  inputSearchRef,
+  searchKeyword,
+  currentResultIndex,
+  totalResultCount,
+  handleToDownSearchResult,
+  handleToUpSearchResult,
+  getItemHtmlResult,
+  switchSearchable,
+} = useScrollerTableSearch(
+  dataSourceResolved as ComputedRef<Record<string, KungfuApi.KfConfigValue>[]>,
+  props.keyField,
+  props.searchOption.keysForSearch,
+  scrollerRef,
+);
+watchEffect(() => switchSearchable(searchEnabled.value));
+const willSwitchDynamic = computed(() =>
+  searchEnabled.value
+    ? props.searchOption.dynamicTableInSearching
+    : props.willSwitchDynamic,
+);
+watchEffect(() => {
+  dynamic.value = searchEnabled.value
+    ? props.searchOption.dynamicTableInSearching
+      ? searchInUsing.value
+      : props.dynamic
+    : props.dynamic;
+});
+watch(searchInUsing, (n, o) => {
+  if (n !== o) {
+    if (scrollerRef.value) {
+      const [startIndex] = getVisibleIndexRange();
+
+      if (startIndex !== undefined && startIndex > -1) {
+        nextTick(() => {
+          scrollerRef.value.scrollToItem(startIndex);
+        });
+      }
+    }
+  }
+});
 
 const headerWidth = computed(() => {
   const widths: KfTradingDataTableHeaderConfig[] = []; //column use with
@@ -198,6 +296,20 @@ const emitOnScrollToBottom = throttle(
   500,
 );
 
+const getSearchResultHtmlForSlot = (
+  item: TableDataItem,
+  column: KfTradingDataTableHeaderConfig,
+) => {
+  if (
+    searchEnabled.value &&
+    props.searchOption.keysForSearch.includes(column.dataIndex)
+  ) {
+    return getItemHtmlResult(item, column.dataIndex);
+  } else {
+    return `${item[column.dataIndex]}`;
+  }
+};
+
 function handleScroll(e: Event): void {
   const target = e.target as HTMLElement;
   if (target.scrollTop === 0) {
@@ -244,24 +356,6 @@ function handleMousedown(e: MouseEvent, row: TableDataItem): void {
     app && app.emit('rightClickRow', { event: e, row });
   }
 }
-
-const currentSorterIndex = ref<string>('');
-const currentSorterOrder = ref<'' | 'ascend' | 'descend'>('');
-let currentSorterFunction: ((a: any, b: any) => number) | undefined = undefined;
-const dataSourceResolved = computed(() => {
-  if (
-    currentSorterIndex.value &&
-    currentSorterFunction &&
-    currentSorterOrder.value !== ''
-  ) {
-    if (currentSorterOrder.value === 'ascend') {
-      return props.dataSource.slice(0).sort(currentSorterFunction);
-    } else {
-      return props.dataSource.slice(0).sort(currentSorterFunction).reverse();
-    }
-  }
-  return props.dataSource;
-});
 
 function handleSort(
   dataIndex: string,
@@ -313,6 +407,15 @@ function handleSelectAll(isChecked: boolean) {
   const allUnSelected = Object.assign({}, allRowKeyFieldFalse);
   const allRowsMap = Object.assign({}, toRaw(dataSourceMap.value));
 
+  Object.keys(props.selection).forEach((key) => {
+    if (props.selection[key].disabled) {
+      const curSelectState = selectedRowKeyFieldValues.value[key];
+      allSelected[key] = curSelectState;
+      allUnSelected[key] = curSelectState;
+      if (!curSelectState) delete allRowsMap[key];
+    }
+  });
+
   selectedRowKeyFieldValues.value = isChecked ? allSelected : allUnSelected;
   selectedRowsMap.value = isChecked ? allRowsMap : {};
 }
@@ -322,10 +425,15 @@ watch(
   (val) => {
     if (!props.selectable) return;
 
-    const allRowLength = props.dataSource.length;
+    const disabledRowLength = Object.values(props.selection).filter(
+      (item) => item.disabled,
+    ).length;
+    const allRowLength = props.dataSource.length - disabledRowLength;
     if (!allRowLength) return;
 
-    const selectedRowLength = Object.values(val).filter((item) => item).length;
+    const selectedRowLength = Object.keys(val).filter(
+      (key) => !props.selection[key]?.disabled && val[key],
+    ).length;
 
     selectAllIndeterminate.value =
       !!selectedRowLength && selectedRowLength < allRowLength;
@@ -336,15 +444,30 @@ watch(
   },
 );
 
-const scrollToItem = (index: number) => {
+const tableRefScrollToItem = (index: number) => {
   nextTick(() => {
-    const scroller = props.dynamic
-      ? dynamicScroller.value
-      : normalScroller.value;
-    if (scroller) {
-      scroller.scrollToItem(index);
+    if (scrollerRef.value) {
+      scrollerRef.value.scrollToItem(index);
     }
   });
+};
+
+const scrollToItemByKeyFieldValue = (
+  keyFieldValue: string | number | bigint,
+) => {
+  const index = findIndexByKeyFieldValue(keyFieldValue);
+  if (index !== -1) {
+    tableRefScrollToItem(index);
+  }
+};
+
+const scrollToItem = (index: number) => {
+  const keyFieldValue = props.dataSource[index]?.[props.keyField];
+  keyFieldValue && scrollToItemByKeyFieldValue(keyFieldValue);
+};
+
+const scrollToTop = () => {
+  tableRefScrollToItem(0);
 };
 
 const getVisibleIndexRange = (): [number, number] => {
@@ -384,17 +507,57 @@ const getVisibleIndexRange = (): [number, number] => {
   return [-1, -1];
 };
 
+const resetSort = () => {
+  currentSorterFunction = undefined;
+  currentSorterIndex.value = '';
+  currentSorterOrder.value = '';
+};
+
 defineExpose({
+  searchInUsing,
   selectedRowsMap,
   isSelectAll,
   handleSelectRow,
   handleSelectAll,
+  scrollToItemByKeyFieldValue,
   scrollToItem,
+  scrollToTop,
   getVisibleIndexRange,
+  resetSort,
 });
 </script>
 <template>
   <div class="kf-table">
+    <Transition name="fade">
+      <div v-show="searchInUsing" class="kf-search-in-table__warp">
+        <div class="kf-search-in-table__content">
+          <a-input-search
+            ref="inputSearchRef"
+            v-model:value="searchKeyword"
+            class="kf-search-in-table__item"
+            :placeholder="$t('keyword_input')"
+          />
+          <div class="kf-search-in-table__item">
+            {{ currentResultIndex }} /
+            {{ totalResultCount }}
+          </div>
+          <div class="kf-search-in-table__item kf-actions__warp">
+            <up-outlined
+              style="font-size: 14px; margin-left: 0px"
+              @click="handleToUpSearchResult"
+            />
+            <down-outlined
+              style="font-size: 14px; margin-left: 8px"
+              @click="handleToDownSearchResult"
+            />
+          </div>
+          <a-button @click="searchInUsing = false">
+            {{ $t('cancel') }}
+          </a-button>
+        </div>
+      </div>
+    </Transition>
+
     <ul class="kf-table-header kf-table-row">
       <li
         v-if="selectable"
@@ -439,6 +602,7 @@ defineExpose({
         </span>
       </li>
     </ul>
+
     <div ref="kfScrollerTableBodyRef" class="kf-table-body">
       <!-- reusable template for trading data item -->
       <TradingDataTableItem.define v-slot="{ type, item, index, active }">
@@ -491,10 +655,24 @@ defineExpose({
             :title="item[column.dataIndex]"
             @click.stop="handleClickCell($event, item, column)"
           >
-            <slot :item="item" :column="column">
-              <span>
-                {{ item[column.dataIndex as keyof TableDataItem] }}
-              </span>
+            <slot
+              :item="item"
+              :column="column"
+              :html="getSearchResultHtmlForSlot(item, column)"
+            >
+              <template
+                v-if="
+                  searchEnabled &&
+                  props.searchOption.keysForSearch.includes(column.dataIndex)
+                "
+              >
+                <span v-html="getItemHtmlResult(item, column.dataIndex)"></span>
+              </template>
+              <template v-else>
+                <span>
+                  {{ item[column.dataIndex as keyof TableDataItem] }}
+                </span>
+              </template>
             </slot>
           </li>
         </ul>
@@ -583,6 +761,48 @@ defineExpose({
   flex-direction: column;
   height: 100%;
   position: relative;
+
+  .fade-enter-active,
+  .fade-leave-active {
+    transition: all 0.3s ease;
+  }
+
+  .fade-enter-from,
+  .fade-leave-to {
+    top: -40px;
+  }
+
+  .fade-enter-to,
+  .fade-leave-from {
+    top: 0;
+  }
+
+  .kf-search-in-table__warp {
+    position: absolute;
+    right: 16px;
+    padding: 4px 0;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    font-size: 12px;
+    background-color: #1d1d1d;
+    z-index: 999;
+
+    .kf-search-in-table__content {
+      width: 480px;
+      display: flex;
+      align-items: center;
+
+      .kf-search-in-table__item {
+        margin: 0 4px;
+      }
+
+      .ant-input-search {
+        margin-left: 0;
+        flex: 1;
+      }
+    }
+  }
 
   .ant-empty {
     height: auto;
@@ -678,6 +898,10 @@ defineExpose({
 
   .kf-table-row:hover {
     background: @table-row-hover-bg;
+  }
+
+  .kf-current-table-select {
+    background: #434343;
   }
 
   .kf-table-cell {

@@ -219,7 +219,7 @@ export const useGlobalStore = defineStore('global', {
     },
 
     setKfConfigList() {
-      return getAllKfConfigOriginData().then((res) => {
+      return getAllKfConfigOriginData(window.watcher).then((res) => {
         const { md, strategy, operator } = res;
         let { td } = res;
         if (this.tdFilter) {
@@ -259,21 +259,23 @@ export const useGlobalStore = defineStore('global', {
     },
 
     setRiskSettingList() {
-      return getAllRiskSettingList().then((res) => {
+      return getAllRiskSettingList(window.watcher).then((res) => {
         this.riskSettings = res;
       });
     },
 
     setBasketList() {
-      return getAllBaskets().then((basketList) => {
+      return getAllBaskets(window.watcher).then((basketList) => {
         this.basketList = basketList;
       });
     },
 
     setBasketInstrumentList() {
-      return getAllBasketInstruments().then((basketInstrumentList) => {
-        this.basketInstrumentList = basketInstrumentList;
-      });
+      return getAllBasketInstruments(window.watcher).then(
+        (basketInstrumentList) => {
+          this.basketInstrumentList = basketInstrumentList;
+        },
+      );
     },
 
     checkCurrentGlobalKfLocationExisted() {

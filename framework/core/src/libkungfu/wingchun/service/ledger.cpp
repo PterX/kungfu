@@ -56,8 +56,14 @@ void Ledger::on_start() {
   events_ | is(PositionRequest::tag) | $$(write_strategy_data(event->gen_time(), event->source()));
   events_ | is(PositionEnd::tag) | $$(update_account_book(event->gen_time(), event->data<PositionEnd>().holder_uid));
 
-  add_time_interval(time_unit::NANOSECONDS_PER_MINUTE, [&](auto e) { request_asset_sync(e->gen_time()); });
-  add_time_interval(time_unit::NANOSECONDS_PER_MINUTE, [&](auto e) { request_position_sync(e->gen_time()); });
+  if (bookkeeper_.is_sync_asset()) {
+    add_time_interval(time_unit::NANOSECONDS_PER_MINUTE,
+                      [&](const event_ptr &e) { request_asset_sync(e->gen_time()); });
+  }
+  if (bookkeeper_.is_sync_position()) {
+    add_time_interval(time_unit::NANOSECONDS_PER_MINUTE,
+                      [&](const event_ptr &e) { request_position_sync(e->gen_time()); });
+  }
 
   SPDLOG_DEBUG("bypass_refresh_book {}", bypass_refresh_book());
   refresh_books();

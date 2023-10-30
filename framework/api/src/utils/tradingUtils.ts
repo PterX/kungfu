@@ -45,6 +45,7 @@ import {
   setTimerPromiseTask,
   getIdByKfLocation,
   getMdTdKfLocationByProcessId,
+  getResultUntilValuable,
 } from '../utils/commonUtils';
 import {
   HistoryDateEnum,
@@ -278,6 +279,7 @@ export const dealTradingDataItem = (
 };
 
 export const getKungfuDataByDateRange = (
+  watcher: KungfuApi.Watcher,
   date: number | string,
   dateType = HistoryDateEnum.naturalDate, //0 natural date, 1 tradingDate
 ): Promise<KungfuApi.TradingData | Record<string, unknown>> => {
@@ -310,17 +312,22 @@ export const getKungfuDataByDateRange = (
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
       //by trading date
-      const kungfuDataToday = history.selectPeriod(from, to);
+      promiseWithCachedPause(watcher, () =>
+        getResultUntilValuable(() => history.selectPeriod(from, to)),
+      ).then((res) => {
+        const kungfuDataToday = res;
 
-      if (!kungfuDataToday) return reject(new Error('database_locked'));
+        if (!kungfuDataToday) return reject(new Error('database_locked'));
 
-      resolve(kungfuDataToday);
-      clearTimeout(timer);
+        resolve(kungfuDataToday);
+        clearTimeout(timer);
+      });
     }, 160);
   });
 };
 
 export const getKungfuHistoryData = (
+  watcher: KungfuApi.Watcher,
   date: string,
   dateType: HistoryDateEnum,
   tradingDataTypeName: KungfuApi.TradingDataTypeName | 'all',
@@ -328,7 +335,7 @@ export const getKungfuHistoryData = (
 ): Promise<{
   tradingData: KungfuApi.TradingData;
 }> => {
-  return getKungfuDataByDateRange(date, dateType).then(
+  return getKungfuDataByDateRange(watcher, date, dateType).then(
     (tradingData: KungfuApi.TradingData | Record<string, unknown>) => {
       if (tradingDataTypeName === 'all') {
         return {
@@ -890,6 +897,47 @@ export const makeOrderByBasketTrade = (
     kfLocation,
   );
 };
+
+export const promiseWithCachedPause = <T>(
+  watcher: KungfuApi.Watcher,
+  promiseFunc: () => Promise<T>,
+  delay = 200,
+): Promise<T> => {
+  return new Promise((resolve, reject) => {
+    const masterLocation = {
+      category: 'system',
+      group: 'master',
+      name: 'master',
+      mode: 'live',
+    };
+
+    let keyCachedPause = 10253;
+    let keyCachedResume = 10254;
+    for (const key in longfist.msgTypes) {
+      const item = longfist.msgTypes[key];
+      if (item === 'CachedPause') {
+        keyCachedPause = Number(key);
+      } else if (item === 'CachedResume') {
+        keyCachedResume = Number(key);
+      }
+    }
+
+    watcher.issueMark(keyCachedPause, masterLocation);
+    setTimeout(() => {
+      promiseFunc()
+        .then((res) => {
+          resolve(res);
+        })
+        .catch((err) => {
+          reject(err);
+        })
+        .finally(() => {
+          watcher.issueMark(keyCachedResume, masterLocation);
+        });
+    }, delay);
+  });
+};
+
 export const getOrderLatencyDataByOrderStat = (
   order: KungfuApi.Order,
   orderStats: KungfuApi.DataTable<KungfuApi.OrderStat>,

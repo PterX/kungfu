@@ -117,7 +117,7 @@ KF_DEFINE_PACK_TYPE(                         //
     (double, total_asset),  // 总资产
     (double, avail_margin), // 可用保证金
 
-    (double, cash_debt),  // 融资负债
+    (double, long_debt),  // 融资负债
     (double, short_cash), // 融券卖出金额
 
     (double, margin_interest), // 融资融券利息

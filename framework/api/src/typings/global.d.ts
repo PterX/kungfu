@@ -6,7 +6,7 @@ import {
   GenericServerOptions,
 } from 'builder-util-runtime';
 import { KfHookKeeper } from '../hooks';
-import { GlobalStorage } from '../utils/globalStorage';
+import { getGlobalStorage } from '../utils/globalStorage';
 import { InstrumentTypeEnum, InstrumentTypes } from './enums';
 
 declare global {
@@ -51,7 +51,6 @@ declare global {
       REFRESH_LEDGER_BEFORE_SYNC: boolean;
       MILLISECONDS_SLEEP_AFTER_STEP: number;
       PM2_DEBUG: boolean;
-      LOCAL_IP?: string;
     }
 
     interface Process {
@@ -84,7 +83,7 @@ declare module globalThis {
   const pm2: any;
   const HookKeeper: KfHookKeeper;
   const i18n: I18n;
-  const globalStorage: GlobalStorage;
+  const getGlobalStorage: getGlobalStorage;
   const rootPackageJson: RootConfigJSON;
 }
 
@@ -147,5 +146,4 @@ export interface GlobalStorageData {
   skippedVersions?: string[];
   needClearJournal?: boolean;
   needClearDB?: boolean;
-  localIp?: string;
 }

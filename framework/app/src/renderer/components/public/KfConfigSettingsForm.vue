@@ -19,6 +19,7 @@ import {
   computed,
   nextTick,
   defineComponent,
+  inject,
 } from 'vue';
 import KfConfigSettingsForm from './KfConfigSettingsForm.vue';
 import {
@@ -73,6 +74,7 @@ import {
   dealKungfuColorToClassname,
   dealKungfuColorToStyleColor,
 } from '../../assets/methods/uiUtils';
+import { BuiltinComponentInjectKeysMap } from '@kungfu-trader/kungfu-app/src/renderer/assets/configs/symbols';
 
 const { t } = VueI18n.global;
 
@@ -188,6 +190,11 @@ const numberKeys = ref<Record<string, KungfuApi.KfConfigItem>>(
   filterNumberKeysFromConfigSettings(props.configSettings),
 );
 const numbersTyping = ref<Record<string, boolean>>({});
+
+const configSettingFormInject = inject(
+  BuiltinComponentInjectKeysMap.ConfigSettingForm,
+  {},
+);
 
 watch(
   () => props.configSettings,
@@ -307,7 +314,12 @@ if ('instrument' in formState.value && 'side' in formState.value) {
               SideEnum.Exec + '',
             ];
           } else {
-            sideRadiosList.value = Object.keys(Side).slice(0, 2);
+            if (configSettingFormInject?.sideFilter) {
+              sideRadiosList.value =
+                configSettingFormInject.sideFilter?.(instrumentType);
+            } else {
+              sideRadiosList.value = Object.keys(Side).slice(0, 2);
+            }
           }
         }
       }

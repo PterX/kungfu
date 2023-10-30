@@ -88,7 +88,7 @@ close_pnl
 avail
 total_asset
 avail_margin
-cash_debt
+long_debt
 short_cash
 margin_interest
 settlement

@@ -252,7 +252,8 @@
               }
             ],
             "required": false,
-            "tip": "xtp.protocol_tip"
+            "tip": "xtp.protocol_tip",
+            "default": "tcp"
           },
           {
             "key": "buffer_size",

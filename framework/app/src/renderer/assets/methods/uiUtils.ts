@@ -54,7 +54,7 @@ import {
   isHexOrRgbColor,
   debounce,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
-import globalStorage from '@kungfu-trader/kungfu-js-api/utils/globalStorage';
+import { getGlobalStorage } from '@kungfu-trader/kungfu-js-api/utils/globalStorage';
 import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
 import { ExchangeIds } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
@@ -94,6 +94,8 @@ import { normalizePath } from '@kungfu-trader/kungfu-js-api/utils/osUtils';
 import { getDialogLogoPath } from '@kungfu-trader/kungfu-js-api/config/brand';
 
 // this utils file is only for ui components
+
+const globalStorage = getGlobalStorage();
 
 export const loadCustomFont = () => {
   const fontsDir = path.normalize(path.join(KUNGFU_RESOURCES_DIR, 'fonts'));

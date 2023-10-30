@@ -80,10 +80,11 @@ import {
 } from './fileUtils';
 import minimist from 'minimist';
 import VueI18n from '../language';
-import globalStorage from './globalStorage';
+import { getGlobalStorage } from './globalStorage';
 import { getKfGlobalSettingsValue } from '../config/globalSettings';
 const { t } = VueI18n.global;
 
+const globalStorage = getGlobalStorage();
 interface SourceAccountId {
   source: string;
   id: string;

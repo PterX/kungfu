@@ -37,8 +37,6 @@ function writeStorage<T>(path: string, value: T & GlobalStorageData): boolean {
   }
 }
 
-export type GlobalStorageDataKeys = keyof GlobalStorageData;
-
 export interface ExtendedGlobalStorage<T> {
   _storage: T & GlobalStorageData;
   _storageUrl: string;

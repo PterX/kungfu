@@ -51,6 +51,7 @@ declare global {
       REFRESH_LEDGER_BEFORE_SYNC: boolean;
       MILLISECONDS_SLEEP_AFTER_STEP: number;
       PM2_DEBUG: boolean;
+      LOCAL_IP?: string;
     }
 
     interface Process {
@@ -146,4 +147,5 @@ export interface GlobalStorageData {
   skippedVersions?: string[];
   needClearJournal?: boolean;
   needClearDB?: boolean;
+  localIp?: string;
 }

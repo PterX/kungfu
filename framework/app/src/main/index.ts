@@ -49,7 +49,7 @@ import {
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
 import { handleUpdateKungfu } from './autoUpdater';
-import getGlobalStorage from '@kungfu-trader/kungfu-js-api/utils/globalStorage';
+import { getGlobalStorage } from '@kungfu-trader/kungfu-js-api/utils/globalStorage';
 const { t } = VueI18n.global;
 const globalStorage = getGlobalStorage();
 let MainWindow: BrowserWindow | null = null;

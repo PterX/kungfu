@@ -98,7 +98,7 @@ import {
 import minimist from 'minimist';
 import VueI18n, { useLanguage } from '../language';
 import { T0T1Config } from '../typings/global';
-import getGlobalStorage from './globalStorage';
+import { getGlobalStorage } from './globalStorage';
 import { getKfGlobalSettingsValue } from '../config/globalSettings';
 import { Currency } from '../config/tradingConfig';
 const { t } = VueI18n.global;

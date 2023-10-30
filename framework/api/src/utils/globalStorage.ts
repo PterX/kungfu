@@ -56,66 +56,59 @@ export interface ExtendedGlobalStorage<T> {
   clear: () => boolean;
 }
 
-export function createExtendedGlobalStorage<T>(): ExtendedGlobalStorage<T> {
-  const newGlobalStorage: ExtendedGlobalStorage<T> = {
-    _storage: { ifNotFirstRunning: false } as T & GlobalStorageData,
-    _storageUrl: path.join(KF_CONFIG_DIR, 'globalStorage.json'),
-    setStoragePath: (path: string) => {
-      newGlobalStorage._storageUrl = path;
-    },
-    getStoragePath: () => {
-      return newGlobalStorage._storageUrl;
-    },
-    getItem: <K extends keyof (T & GlobalStorageData)>(key: K) => {
-      return newGlobalStorage._storage[key];
-    },
-    setItem: <K extends keyof (T & GlobalStorageData)>(
-      key: K,
-      value: Exclude<(T & GlobalStorageData)[K], undefined | null>,
-    ) => {
-      const _storage = Object.assign({}, newGlobalStorage._storage);
-      _storage[key] = value;
-      const suc = writeStorage(newGlobalStorage._storageUrl, _storage);
-      if (suc) {
-        newGlobalStorage._storage = _storage;
-        return true;
-      }
-      return false;
-    },
-    getAll: () => {
-      return newGlobalStorage._storage;
-    },
-    removeItem: (key: keyof (T & GlobalStorageData)) => {
-      const _storage = Object.assign({}, newGlobalStorage._storage);
-      delete _storage[key];
-      const suc = writeStorage(newGlobalStorage._storageUrl, _storage);
-      if (suc) {
-        newGlobalStorage._storage = _storage;
-        return true;
-      }
-      return false;
-    },
-    clear: () => {
-      const suc = writeStorage(newGlobalStorage._storageUrl, {});
-      if (suc) {
-        newGlobalStorage._storage = {} as T & GlobalStorageData;
-        return true;
-      }
-      return false;
-    },
-  };
-
-  return newGlobalStorage;
+export function getGlobalStorage<T>(): ExtendedGlobalStorage<T> {
+  if (!globalThis.globalStorage) {
+    const newGlobalStorage: ExtendedGlobalStorage<T> = {
+      _storage: { ifNotFirstRunning: false } as T & GlobalStorageData,
+      _storageUrl: path.join(KF_CONFIG_DIR, 'globalStorage.json'),
+      setStoragePath: (path: string) => {
+        newGlobalStorage._storageUrl = path;
+      },
+      getStoragePath: () => {
+        return newGlobalStorage._storageUrl;
+      },
+      getItem: <K extends keyof (T & GlobalStorageData)>(key: K) => {
+        return newGlobalStorage._storage[key];
+      },
+      setItem: <K extends keyof (T & GlobalStorageData)>(
+        key: K,
+        value: Exclude<(T & GlobalStorageData)[K], undefined | null>,
+      ) => {
+        const _storage = Object.assign({}, newGlobalStorage._storage);
+        _storage[key] = value;
+        const suc = writeStorage(newGlobalStorage._storageUrl, _storage);
+        if (suc) {
+          newGlobalStorage._storage = _storage;
+          return true;
+        }
+        return false;
+      },
+      getAll: () => {
+        return newGlobalStorage._storage;
+      },
+      removeItem: (key: keyof (T & GlobalStorageData)) => {
+        const _storage = Object.assign({}, newGlobalStorage._storage);
+        delete _storage[key];
+        const suc = writeStorage(newGlobalStorage._storageUrl, _storage);
+        if (suc) {
+          newGlobalStorage._storage = _storage;
+          return true;
+        }
+        return false;
+      },
+      clear: () => {
+        const suc = writeStorage(newGlobalStorage._storageUrl, {});
+        if (suc) {
+          newGlobalStorage._storage = {} as T & GlobalStorageData;
+          return true;
+        }
+        return false;
+      },
+    };
+    initStorage(newGlobalStorage);
+    globalThis.globalStorage = newGlobalStorage;
+    return newGlobalStorage;
+  } else {
+    return globalThis.globalStorage;
+  }
 }
-
-type GlobalStorageFunction = <T = {}>() => ExtendedGlobalStorage<T>;
-
-if (!globalThis.getGlobalStorage) {
-  initStorage(createExtendedGlobalStorage<{}>());
-  globalThis.getGlobalStorage = function <T = {}>() {
-    const extendedStorage = createExtendedGlobalStorage<T>();
-    return extendedStorage;
-  };
-}
-
-export default globalThis.getGlobalStorage as GlobalStorageFunction;

@@ -6,7 +6,7 @@ import {
   GenericServerOptions,
 } from 'builder-util-runtime';
 import { KfHookKeeper } from '../hooks';
-import { GlobalStorage } from '../utils/globalStorage';
+import { ExtendedGlobalStorage } from '../utils/globalStorage';
 import { InstrumentTypeEnum, InstrumentTypes } from './enums';
 
 declare global {
@@ -83,7 +83,7 @@ declare module globalThis {
   const pm2: any;
   const HookKeeper: KfHookKeeper;
   const i18n: I18n;
-  const globalStorage: GlobalStorage;
+  const globalStorage: ExtendedGlobalStorage;
   const rootPackageJson: RootConfigJSON;
 }
 

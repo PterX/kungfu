@@ -3,109 +3,110 @@ import path from 'path';
 import { KF_CONFIG_DIR } from '../config/pathConfig';
 import { GlobalStorageData } from '../typings/global';
 
-function initStorage() {
+function initStorage<T>(storage: ExtendedGlobalStorage<T>): boolean {
   try {
-    const _storage = readStorage();
+    const _storage = readStorage<T>(storage);
     if (_storage) {
-      globalStorage._storage = _storage;
+      storage._storage = _storage;
       return true;
     }
-    fse.writeJSONSync(globalStorage._storageUrl, {});
-    globalStorage._storage = {};
+    fse.writeJSONSync(storage._storageUrl, {});
+    storage._storage = {} as T & GlobalStorageData;
     return true;
   } catch (e) {
     return false;
   }
 }
 
-function readStorage(): GlobalStorageData | false {
+function readStorage<T>(
+  storage: ExtendedGlobalStorage<T>,
+): (T & GlobalStorageData) | false {
   try {
-    return fse.readJSONSync(globalStorage._storageUrl);
+    return fse.readJSONSync(storage._storageUrl) as T & GlobalStorageData;
   } catch (error) {
     return false;
   }
 }
 
-function writeStorage(value: GlobalStorageData) {
+function writeStorage<T>(path: string, value: T & GlobalStorageData): boolean {
   try {
-    fse.writeJsonSync(globalStorage._storageUrl, value);
+    fse.writeJsonSync(path, value);
     return true;
   } catch (e) {
     return false;
   }
 }
 
-export type GlobalStorageDataKeys = keyof GlobalStorageData;
-
-export interface GlobalStorage {
-  _storage: GlobalStorageData;
+export interface ExtendedGlobalStorage<T> {
+  _storage: T & GlobalStorageData;
   _storageUrl: string;
   setStoragePath: (path: string) => void;
   getStoragePath: () => string;
-  getItem: <T extends GlobalStorageDataKeys>(key: T) => GlobalStorageData[T];
-  setItem: <T extends GlobalStorageDataKeys>(
-    key: T,
-    value: Exclude<GlobalStorageData[T], undefined | null>,
+  getItem: <K extends keyof (T & GlobalStorageData)>(
+    key: K,
+  ) => (T & GlobalStorageData)[K];
+  setItem: <K extends keyof (T & GlobalStorageData)>(
+    key: K,
+    value: Exclude<(T & GlobalStorageData)[K], undefined | null>,
   ) => boolean;
-  getAll: () => GlobalStorageData;
-  removeItem: (key: GlobalStorageDataKeys) => boolean;
+  getAll: () => T & GlobalStorageData;
+  removeItem: (key: keyof (T & GlobalStorageData)) => boolean;
   clear: () => boolean;
 }
 
-const globalStorage: GlobalStorage = {
-  _storage: { ifNotFirstRunning: false },
-  _storageUrl: path.join(KF_CONFIG_DIR, 'globalStorage.json'),
-  setStoragePath: (path: string) => {
-    globalStorage._storageUrl = path;
-  },
-  getStoragePath: () => {
-    return globalStorage._storageUrl;
-  },
-  getItem: <T extends GlobalStorageDataKeys>(key: T) => {
-    return globalStorage._storage[key];
-  },
-  setItem: <T extends GlobalStorageDataKeys>(
-    key: T,
-    value: GlobalStorageData[T],
-  ) => {
-    const _storage = Object.assign({}, globalStorage._storage);
-    _storage[key] = value;
-    const suc = writeStorage(_storage);
-    if (suc) {
-      globalStorage._storage = _storage;
-      return true;
-    }
-    return false;
-  },
-  getAll: () => {
-    return globalStorage._storage;
-  },
-  removeItem: (key: GlobalStorageDataKeys) => {
-    const value = globalStorage.getItem(key);
-    if (value) {
-      const _storage = Object.assign({}, globalStorage._storage);
-      delete _storage[key];
-      const suc = writeStorage(_storage);
-      if (suc) {
-        globalStorage._storage = _storage;
-        return true;
-      }
-    }
-    return false;
-  },
-  clear: () => {
-    const suc = writeStorage({});
-    if (suc) {
-      globalStorage._storage = {};
-      return true;
-    }
-    return false;
-  },
-};
-
-if (!globalThis.globalStorage) {
-  initStorage();
-  globalThis.globalStorage = globalStorage;
+export function getGlobalStorage<T>(): ExtendedGlobalStorage<T> {
+  if (!globalThis.globalStorage) {
+    const newGlobalStorage: ExtendedGlobalStorage<T> = {
+      _storage: { ifNotFirstRunning: false } as T & GlobalStorageData,
+      _storageUrl: path.join(KF_CONFIG_DIR, 'globalStorage.json'),
+      setStoragePath: (path: string) => {
+        newGlobalStorage._storageUrl = path;
+      },
+      getStoragePath: () => {
+        return newGlobalStorage._storageUrl;
+      },
+      getItem: <K extends keyof (T & GlobalStorageData)>(key: K) => {
+        return newGlobalStorage._storage[key];
+      },
+      setItem: <K extends keyof (T & GlobalStorageData)>(
+        key: K,
+        value: Exclude<(T & GlobalStorageData)[K], undefined | null>,
+      ) => {
+        const _storage = Object.assign({}, newGlobalStorage._storage);
+        _storage[key] = value;
+        const suc = writeStorage(newGlobalStorage._storageUrl, _storage);
+        if (suc) {
+          newGlobalStorage._storage = _storage;
+          return true;
+        }
+        return false;
+      },
+      getAll: () => {
+        return newGlobalStorage._storage;
+      },
+      removeItem: (key: keyof (T & GlobalStorageData)) => {
+        const _storage = Object.assign({}, newGlobalStorage._storage);
+        delete _storage[key];
+        const suc = writeStorage(newGlobalStorage._storageUrl, _storage);
+        if (suc) {
+          newGlobalStorage._storage = _storage;
+          return true;
+        }
+        return false;
+      },
+      clear: () => {
+        const suc = writeStorage(newGlobalStorage._storageUrl, {});
+        if (suc) {
+          newGlobalStorage._storage = {} as T & GlobalStorageData;
+          return true;
+        }
+        return false;
+      },
+    };
+    initStorage(newGlobalStorage);
+    globalThis.globalStorage = newGlobalStorage;
+    return newGlobalStorage;
+  } else {
+    return globalThis.globalStorage;
+  }
 }
-
-export default globalThis.globalStorage as GlobalStorage;

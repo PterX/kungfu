@@ -1664,6 +1664,7 @@ export const useScrollerTableSearch = <T extends object>(
     return new RegExp(regExpStr, 'g');
   };
 
+  let searchable = true;
   const searchInUsing = ref(false);
   const inputSearchRef = ref();
   const isInputFocused = ref(false);
@@ -1726,6 +1727,8 @@ export const useScrollerTableSearch = <T extends object>(
   };
 
   const handleKeydown = (e: KeyboardEvent) => {
+    if (!searchable) return;
+
     const ctrlCmd = os.platform() === 'darwin' ? e.metaKey : e.ctrlKey;
     if (ctrlCmd && e.key === 'f') {
       searchInUsing.value = true;
@@ -1751,10 +1754,12 @@ export const useScrollerTableSearch = <T extends object>(
   };
 
   const handleInputFocus = () => {
+    if (!searchable) return;
     isInputFocused.value = true;
   };
 
   const handleInputBlur = () => {
+    if (!searchable) return;
     isInputFocused.value = false;
   };
 
@@ -1855,6 +1860,8 @@ export const useScrollerTableSearch = <T extends object>(
 
   const updateSearchResults = () => {
     clearSearchResultState();
+    if (searchKeyword.value.trim() === '' || searchKeywordReg.value === null)
+      return Promise.resolve();
 
     return nextTick(() => {
       const rawsListResolved = getRawsListResolved();
@@ -1867,6 +1874,10 @@ export const useScrollerTableSearch = <T extends object>(
       });
     });
   };
+
+  if (isRef(rawsList)) {
+    watch(rawsList, updateSearchResults);
+  }
 
   const getResultElementByIndex = (index: number) => {
     if (index <= 0 || index > totalResultCount.value) return null;
@@ -1937,6 +1948,8 @@ export const useScrollerTableSearch = <T extends object>(
   watch(
     searchKeywordReg,
     debounce(() => {
+      if (!searchable) return;
+
       if (
         searchKeyword.value.trim() === '' ||
         searchKeywordReg.value === null
@@ -1954,6 +1967,8 @@ export const useScrollerTableSearch = <T extends object>(
   );
 
   watch(currentResultIndex, (newIndex: number, oldIndex: number) => {
+    if (!searchable) return;
+
     if (newIndex === 0) {
       return;
     }
@@ -2003,6 +2018,14 @@ export const useScrollerTableSearch = <T extends object>(
     return `${item[key]}`;
   };
 
+  const switchSearchable = (target: boolean) => {
+    if (!target) {
+      clearSearchState();
+      searchInUsing.value = false;
+    }
+    searchable = target;
+  };
+
   return {
     searchInUsing,
     inputSearchRef,
@@ -2013,5 +2036,6 @@ export const useScrollerTableSearch = <T extends object>(
     handleToDownSearchResult,
     handleToUpSearchResult,
     getItemHtmlResult,
+    switchSearchable,
   };
 };

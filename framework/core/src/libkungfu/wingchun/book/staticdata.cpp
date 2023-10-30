@@ -41,7 +41,7 @@ void StaticData::replace(const BasketInstrument &basket_instrument) {
 }
 
 void StaticData::replace(const Commission &commission) {
-  auto commission_hashed = hash_str_32(commission.product_id);
+  auto commission_hashed = hash_product(commission.exchange_id, commission.product_id);
   commissions_.insert_or_assign(commission_hashed, commission);
 }
 

@@ -167,7 +167,7 @@ declare namespace KungfuApi {
   export interface KfConfigItemHeader {
     title: string;
     description: string;
-    type?: 'str' | 'num' | 'precent' | 'bool';
+    type?: 'str' | 'num' | 'percent' | 'bool';
     required?: boolean;
     default?: KfConfigValue;
   }
@@ -568,7 +568,6 @@ declare namespace KungfuApi {
       name: string,
       mode: string,
     ): KungfuApi.KfConfig | false;
-    getAllLocation();
   }
 
   export interface HistoryStore {
@@ -1157,6 +1156,7 @@ declare namespace KungfuApi {
     BasketInstrument: DataTable<BasketInstrument>;
     BasketOrder: DataTable<BasketOrder>;
     OrderTrigger: DataTable<OrderTrigger>;
+    SyntheticData: DataTable<SyntheticData>;
   }
 
   export type TradingDataItem =
@@ -1251,6 +1251,9 @@ declare namespace KungfuApi {
       InstrumentResolved {
     basketInstrumentName: string;
     basketInstrumentId: string;
+    todayVolume?: number;
+    yesterdayVolume?: number;
+    posVolume?: number;
   }
 
   export interface BasketInstrumentForOrder extends BasketInstrumentResolved {

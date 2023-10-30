@@ -61,6 +61,9 @@ export default {
   file: 'File',
   folder: 'Folder',
 
+  please_enter_file_path: 'Please enter file path',
+  please_enter_folder_path: 'Please enter folder path',
+
   no_focus: 'The current page is not in focus',
   clear: 'Clearing {content} completed, please restart the application',
   open_window: 'Opening window',
@@ -716,6 +719,7 @@ export default {
     search_instrument: 'Please search for code number',
     search_order_id_error:
       'The order number you searched for does not exist. Please check if it is the selected target',
+    visual_vdata_error: 'Visual data does not exist',
     buy_open: 'Buy to open',
     buy_close: 'Buy to close',
     sell_open: 'Sell to open',
@@ -913,6 +917,7 @@ export default {
     mandatory: 'mandatory',
     resolved_tip: 'Success resolved {success} {value}, failed {fail}',
     default_value_tip: 'This value can not change',
+    file_path_not_exist: 'File path does not exist',
   },
 
   editor: {

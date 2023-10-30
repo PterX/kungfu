@@ -183,7 +183,6 @@ orig_order_no
 bid_no
 ask_no
 exec_type
-bs_flag
 trade_num
 bid_weighted_avg_price
 total_bid_volume
@@ -299,10 +298,7 @@ Basket
 RequestWriteToBand
 TimeValue
 TimeKeyValue
-LIVE
-DATA
-REPLAY
-BACKTEST
+return ej_pair.first
 MD
 TD
 STRATEGY

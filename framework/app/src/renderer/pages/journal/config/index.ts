@@ -157,6 +157,24 @@ export interface ChartDataCustomInfo {
   orderId?: bigint;
 }
 
+interface EChartsTooltipPositionParams {
+  dataIndex: number;
+}
+
+type Point = [number, number];
+type RectSize = {
+  contentSize: [number, number];
+  viewSize: [number, number];
+};
+
+export type PosFun = (
+  point: Point,
+  params: EChartsTooltipPositionParams[],
+  dom: HTMLElement,
+  rect: DOMRect,
+  size: RectSize,
+) => string;
+
 export interface SeriesData {
   value: (string | number | bigint)[];
   customInfo?: ChartDataCustomInfo;
@@ -168,8 +186,9 @@ export interface SeriesData {
     shadowBlur?: number;
     shadowColor?: string;
   };
+  showSymbol?: boolean;
   tooltip?: {
-    position: string;
+    position: string | PosFun;
     formatter: string;
     trigger?: string;
   };
@@ -187,6 +206,7 @@ export interface SeriesData {
   lineStyle?: {
     silent?: boolean;
   };
+  shadowColor?: string;
   label?: {
     show: boolean;
     position: string;
@@ -252,12 +272,18 @@ export const getChartOption = () => {
         xAxisIndex: 0,
         start: 0,
         end: 100,
+        labelFormatter: function (params: string) {
+          return params;
+        },
       },
       {
         type: 'inside',
         xAxisIndex: 0,
         start: 0,
         end: 100,
+        labelFormatter: function (params: string) {
+          return params;
+        },
       },
     ],
     series: [
@@ -324,6 +350,9 @@ export const getChartOption = () => {
         symbol: circleSvg,
         showSymbol: true,
         symbolSize: 10,
+        legendHoverLink: false,
+        symbolKeepAspect: false,
+        symbolOffset: [],
         itemStyle: {
           color: 'transparent',
         },
@@ -337,8 +366,8 @@ export const getChartOption = () => {
       },
     ],
     grid: {
-      left: '32px',
-      right: '32px',
+      left: '40px',
+      right: '80px',
       containLabel: true,
     },
   };

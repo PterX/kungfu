@@ -718,7 +718,7 @@ function buildCsvHeadersValidator(
         case 'num':
           if (Number.isNaN(Number(value))) return false;
           break;
-        case 'precent':
+        case 'percent':
           if (
             !value.endsWith('%') ||
             Number.isNaN(Number(value.replace('%', '')))
@@ -769,7 +769,7 @@ function buildCsvHeadersTransformer(
         case 'num':
           row[header.title] = Number(value);
           break;
-        case 'precent':
+        case 'percent':
           row[header.title] = Number(value.replace('%', ''));
           break;
         case 'bool':

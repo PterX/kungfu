@@ -602,7 +602,7 @@ declare namespace KungfuApi {
 
     total_asset: number; //总资产
     avail_margin: number; //可用保证金
-    cash_margin: number; //融资占用保证金
+    long_margin: number; //融资占用保证金
     short_margin: number; //融券占用保证金
     margin: number; //总占用保证金
 
@@ -610,7 +610,7 @@ declare namespace KungfuApi {
     short_cash: number; //融券卖出金额
 
     short_market_value: number; //融券卖出证券市值
-    margin_market_value: number; //融资买入证券市值
+    long_market_value: number; //融资买入证券市值
     margin_interest: number; //融资融券利息
     settlement: number; //融资融券清算资金
 

@@ -839,6 +839,8 @@ function updateOrderActionData(
       shadowBlur: 10,
     };
   }
+
+  chartSeriesData.value[key].OrderAction.push(baseObject);
 }
 
 function getInstrumentList(searchKey?: string) {

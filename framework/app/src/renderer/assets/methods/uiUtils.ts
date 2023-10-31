@@ -1656,10 +1656,12 @@ export const useScrollerTableSearch = <T extends object>(
 
             if (lastCurrentExistIndex !== -1) {
               updateCurrentResultIndex(lastCurrentExistIndex + 1, true);
+            } else {
+              updateCurrentResultIndex(1, true);
             }
           }
         });
-      }, 500),
+      }, 50),
     );
   }
 

@@ -52,7 +52,6 @@ inline int64_t nsec_from_xtp_timestamp(int64_t xtp_time) {
   result.tm_sec = xtp_time % (int)1e5 / (int)1e3;
   int milli_sec = xtp_time % (int)1e3;
   std::time_t parsed_time = std::mktime(&result);
-  int64_t nano = parsed_time * kungfu::yijinjing::time_unit::NANOSECONDS_PER_SECOND;
   return parsed_time * kungfu::yijinjing::time_unit::NANOSECONDS_PER_SECOND +
          milli_sec * kungfu::yijinjing::time_unit::NANOSECONDS_PER_MILLISECOND;
 }
@@ -93,7 +92,7 @@ inline void from_xtp(const XTP_EXCHANGE_TYPE &xtp_exchange_type, char *exchange_
   }
 }
 
-inline void to_xtp(XTP_EXCHANGE_TYPE &xtp_exchange_type, char *exchange_id) {
+inline void to_xtp_exchange(XTP_EXCHANGE_TYPE &xtp_exchange_type, const char *exchange_id) {
   if (strcmp(exchange_id, "SSE") == 0) {
     xtp_exchange_type = XTP_EXCHANGE_SH;
   } else if (strcmp(exchange_id, "SZE") == 0) {
@@ -331,6 +330,31 @@ inline void from_xtp(const XTPTickByTickStruct &ori, Entrust &des) {
   } else if (ori.entrust.ord_type == 'U') {
     des.price_type = PriceType::ForwardBest;
   }
+
+  des.orig_order_no = ori.entrust.order_no;
+
+  switch (ori.entrust.side) {
+  case 'B': {
+    des.side = Side::Buy;
+    break;
+  }
+  case 'S': {
+    des.side = Side::Sell;
+    break;
+  }
+  case '1': {
+    des.side = Side::Buy;
+    break;
+  }
+  case '2': {
+    des.side = Side::Sell;
+    break;
+  }
+  default: {
+    des.side = Side::Unknown;
+    break;
+  }
+  }
 }
 
 inline void from_xtp(const XTPTickByTickStruct &ori, Transaction &des) {
@@ -338,42 +362,66 @@ inline void from_xtp(const XTPTickByTickStruct &ori, Transaction &des) {
   des.instrument_id = ori.ticker;
   des.data_time = nsec_from_xtp_timestamp(ori.data_time);
 
-  des.main_seq = ori.trade.channel_no;
-  des.seq = ori.trade.seq;
+  if (ori.type == XTP_TBT_ENTRUST) {
+    des.instrument_id = ori.ticker;
+    des.data_time = nsec_from_xtp_timestamp(ori.data_time);
 
-  des.price = ori.trade.price;
-  des.volume = ori.trade.qty;
+    des.main_seq = ori.entrust.channel_no;
+    des.seq = ori.entrust.seq;
 
-  des.bid_no = ori.trade.bid_no;
-  des.ask_no = ori.trade.ask_no;
+    des.price = ori.entrust.price;
+    des.volume = ori.entrust.qty;
 
-  switch (ori.trade.trade_flag) {
-  case 'B': {
-    des.bs_flag = BsFlag::Buy;
-    des.exec_type = ExecType::Trade;
-    break;
-  }
-  case 'S': {
-    des.bs_flag = BsFlag::Sell;
-    des.exec_type = ExecType::Trade;
-    break;
-  }
-  case 'N': {
-    des.bs_flag = BsFlag::Unknown;
-    des.exec_type = ExecType::Trade;
-    break;
-  }
-  case '4': {
+    if (ori.entrust.side == 'B') {
+      des.side = Side::Buy;
+      des.bid_no = ori.entrust.order_no;
+    } else {
+      des.side = Side::Sell;
+      des.ask_no = ori.entrust.order_no;
+    }
     des.exec_type = ExecType::Cancel;
-    break;
-  }
-  case 'F': {
-    des.exec_type = ExecType::Trade;
-    break;
-  }
-  default: {
-    break;
-  }
+
+  } else {
+
+    des.main_seq = ori.trade.channel_no;
+    des.seq = ori.trade.seq;
+
+    des.price = ori.trade.price;
+    des.volume = ori.trade.qty;
+
+    des.bid_no = ori.trade.bid_no;
+    des.ask_no = ori.trade.ask_no;
+
+    switch (ori.trade.trade_flag) {
+    case 'B': {
+      des.side = Side::Buy;
+      des.exec_type = ExecType::Trade;
+      break;
+    }
+    case 'S': {
+      des.side = Side::Sell;
+      des.exec_type = ExecType::Trade;
+      break;
+    }
+    case 'N': {
+      des.side = Side::Unknown;
+      des.exec_type = ExecType::Trade;
+      break;
+    }
+    case '4': {
+      des.side = (des.bid_no < des.ask_no) ? Side::Sell : Side::Buy;
+      des.exec_type = ExecType::Cancel;
+      break;
+    }
+    case 'F': {
+      des.side = (des.bid_no < des.ask_no) ? Side::Sell : Side::Buy;
+      des.exec_type = ExecType::Trade;
+      break;
+    }
+    default: {
+      break;
+    }
+    }
   }
 }
 } // namespace kungfu::wingchun::xtp

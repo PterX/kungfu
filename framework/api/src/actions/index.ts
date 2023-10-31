@@ -16,7 +16,11 @@ import {
 } from '../config/pathConfig';
 import { pathExists, remove } from 'fs-extra';
 import { getProcessIdByKfLocation } from '../utils/commonUtils';
-import { getIdByKfLocation } from '../utils/commonUtils';
+import {
+  getIdByKfLocation,
+  getResultUntilValuable,
+} from '../utils/commonUtils';
+import { promiseWithCachedPause } from '../utils/tradingUtils';
 import {
   getAllKfRiskSettings,
   setAllKfRiskSettings,
@@ -30,42 +34,47 @@ import {
   basketInstrumentStore,
 } from '@kungfu-trader/kungfu-js-api/kungfu';
 
-export const getAllKfConfigOriginData = (): Promise<
-  Record<KfCategoryTypes, KungfuApi.KfConfig[]>
-> => {
-  return getKfAllConfig().then((allConfig: KungfuApi.KfConfigOrigin[]) => {
-    const allConfigResolved = allConfig.map(
-      (config: KungfuApi.KfConfigOrigin): KungfuApi.KfConfig => {
-        return {
-          ...config,
-          category: KfCategoryEnum[config.category] as KfCategoryTypes,
-          mode: KfModeEnum[config.mode] as KfModeTypes,
-        };
-      },
-    );
+export const getAllKfConfigOriginData = (
+  watcher?: KungfuApi.Watcher,
+): Promise<Record<KfCategoryTypes, KungfuApi.KfConfig[]>> => {
+  return getKfAllConfig(watcher).then(
+    (allConfig: KungfuApi.KfConfigOrigin[]) => {
+      const allConfigResolved = allConfig.map(
+        (config: KungfuApi.KfConfigOrigin): KungfuApi.KfConfig => {
+          return {
+            ...config,
+            category: KfCategoryEnum[config.category] as KfCategoryTypes,
+            mode: KfModeEnum[config.mode] as KfModeTypes,
+          };
+        },
+      );
 
-    return {
-      md: allConfigResolved.filter((config: KungfuApi.KfConfig) => {
-        return config.category === 'md';
-      }),
-      operator: allConfigResolved.filter((config: KungfuApi.KfConfig) => {
-        return config.category === 'operator';
-      }),
-      td: allConfigResolved.filter((config: KungfuApi.KfConfig) => {
-        return config.category === 'td';
-      }),
-      strategy: allConfigResolved.filter((config: KungfuApi.KfConfig) => {
-        return config.category === 'strategy';
-      }),
-      system: allConfigResolved.filter((config: KungfuApi.KfConfig) => {
-        return config.category === 'system';
-      }),
-    };
-  });
+      return {
+        md: allConfigResolved.filter((config: KungfuApi.KfConfig) => {
+          return config.category === 'md';
+        }),
+        operator: allConfigResolved.filter((config: KungfuApi.KfConfig) => {
+          return config.category === 'operator';
+        }),
+        td: allConfigResolved.filter((config: KungfuApi.KfConfig) => {
+          return config.category === 'td';
+        }),
+        strategy: allConfigResolved.filter((config: KungfuApi.KfConfig) => {
+          return config.category === 'strategy';
+        }),
+        system: allConfigResolved.filter((config: KungfuApi.KfConfig) => {
+          return config.category === 'system';
+        }),
+      };
+    },
+  );
 };
 
-export const isKfConfig = async (kfLocation: KungfuApi.KfLocation) => {
-  const allConfig = await getAllKfConfigOriginData();
+export const isKfConfig = async (
+  kfLocation: KungfuApi.KfLocation,
+  watcher?: KungfuApi.Watcher,
+) => {
+  const allConfig = await getAllKfConfigOriginData(watcher);
   const { category, group, name } = kfLocation;
   if (!allConfig[category]) {
     return false;
@@ -80,10 +89,11 @@ export const isKfConfig = async (kfLocation: KungfuApi.KfLocation) => {
 
 export const deleteAllByKfLocation = async (
   kfLocation: KungfuApi.KfLocation,
+  watcher?: KungfuApi.Watcher,
 ): Promise<void> => {
-  const isConfig = await isKfConfig(kfLocation);
+  const isConfig = await isKfConfig(kfLocation, watcher);
 
-  return (isConfig ? removeKfConfig(kfLocation) : Promise.resolve())
+  return (isConfig ? removeKfConfig(kfLocation, watcher) : Promise.resolve())
     .then(() => removeKfLocation(kfLocation))
     .then(() => removeLog(kfLocation));
 };
@@ -94,7 +104,7 @@ export const ensureRemoveLocation = (
   processStatus: Pm2ProcessStatusData,
 ) => {
   return graceDeleteProcess(watcher, kfLocation, processStatus).then(() =>
-    deleteAllByKfLocation(kfLocation),
+    deleteAllByKfLocation(kfLocation, watcher),
   );
 };
 
@@ -217,8 +227,10 @@ export const setTdGroup = (tdGroups: KungfuApi.KfExtraLocation[]) => {
   return fse.outputJSON(KF_TD_GROUP_JSON_PATH, tdGroups);
 };
 
-export const getAllRiskSettingList = (): Promise<KungfuApi.RiskSetting[]> => {
-  return getAllKfRiskSettings().then((riskSettingOrigins) => {
+export const getAllRiskSettingList = (
+  watcher: KungfuApi.Watcher,
+): Promise<KungfuApi.RiskSetting[]> => {
+  return getAllKfRiskSettings(watcher).then((riskSettingOrigins) => {
     const riskSettings = riskSettingOrigins
       .filter(
         (item) =>
@@ -238,6 +250,7 @@ export const getAllRiskSettingList = (): Promise<KungfuApi.RiskSetting[]> => {
 };
 
 export const setAllRiskSettingList = (
+  watcher: KungfuApi.Watcher,
   riskSettings: KungfuApi.RiskSetting[],
 ) => {
   const riskSettingOrigins: KungfuApi.RiskSettingForSave[] = riskSettings
@@ -271,53 +284,73 @@ export const setAllRiskSettingList = (
       };
     });
 
-  return setAllKfRiskSettings(riskSettingOrigins);
+  return setAllKfRiskSettings(watcher, riskSettingOrigins);
 };
 
-export const getAllBaskets = (): Promise<KungfuApi.Basket[]> => {
-  const baskets = basketStore.getAllBasket();
-  if (baskets) {
-    return Promise.resolve(baskets);
-  }
-  return Promise.resolve([]);
+export const getAllBaskets = (
+  watcher: KungfuApi.Watcher,
+): Promise<KungfuApi.Basket[]> => {
+  return promiseWithCachedPause(watcher, () => {
+    return getResultUntilValuable(() => basketStore.getAllBasket());
+  });
 };
 
-export const setAllBaskets = (baskets: KungfuApi.Basket[]) => {
-  return Promise.resolve(basketStore.setAllBasket(baskets));
+export const setAllBaskets = (
+  watcher: KungfuApi.Watcher,
+  baskets: KungfuApi.Basket[],
+) => {
+  return promiseWithCachedPause(watcher, () => {
+    return getResultUntilValuable(() => basketStore.setAllBasket(baskets));
+  });
 };
 
-export const getAllBasketInstruments = (): Promise<
-  KungfuApi.BasketInstrument[]
-> => {
-  const basketInstruments = basketInstrumentStore.getAllBasketInstrument();
-  if (basketInstruments) {
-    return Promise.resolve(basketInstruments);
-  }
-  return Promise.resolve([]);
+export const getAllBasketInstruments = (
+  watcher: KungfuApi.Watcher,
+): Promise<KungfuApi.BasketInstrument[]> => {
+  return promiseWithCachedPause(watcher, () => {
+    return getResultUntilValuable(() =>
+      basketInstrumentStore.getAllBasketInstrument(),
+    );
+  });
 };
 
 export const setAllBasketInstruments = (
+  watcher: KungfuApi.Watcher,
   basketInstruments: KungfuApi.BasketInstrument[],
 ) => {
-  return Promise.resolve(
-    basketInstrumentStore.setAllBasketInstruments(basketInstruments),
-  );
+  return promiseWithCachedPause(watcher, () => {
+    return getResultUntilValuable(() =>
+      basketInstrumentStore.setAllBasketInstruments(basketInstruments),
+    );
+  });
 };
 
-export const removeAllBasketInstruments = () => {
-  return Promise.resolve(basketInstrumentStore.removeAllBasketInstruments());
+export const removeAllBasketInstruments = (watcher: KungfuApi.Watcher) => {
+  return promiseWithCachedPause(watcher, () => {
+    return getResultUntilValuable(() =>
+      basketInstrumentStore.removeAllBasketInstruments(),
+    );
+  });
 };
 
-export const removeAllBasketInstrumentsByBasket = (basketId) => {
-  return Promise.resolve(
-    basketInstrumentStore.removeAllBasketInstrumentsByBasket(basketId),
-  );
+export const removeAllBasketInstrumentsByBasket = (
+  watcher: KungfuApi.Watcher,
+  basketId,
+) => {
+  return promiseWithCachedPause(watcher, () => {
+    return getResultUntilValuable(() =>
+      basketInstrumentStore.removeAllBasketInstrumentsByBasket(basketId),
+    );
+  });
 };
 
 export const setBasketInstrument = (
+  watcher: KungfuApi.Watcher,
   basketInstrument: KungfuApi.BasketInstrument,
 ) => {
-  return Promise.resolve(
-    basketInstrumentStore.setBasketInstrument(basketInstrument),
-  );
+  return promiseWithCachedPause(watcher, () => {
+    return getResultUntilValuable(() =>
+      basketInstrumentStore.setBasketInstrument(basketInstrument),
+    );
+  });
 };

@@ -92,13 +92,16 @@ KF_DEFINE_PACK_TYPE(                         //
     (double, static_equity),  // 静态权益
     (double, dynamic_equity), // 动态权益
 
-    (double, realized_pnl), // 累计收益
-    (double, unrealized_pnl),
+    (double, realized_pnl),   // 实现盈亏
+    (double, unrealized_pnl), // 未实现盈亏
 
-    (double, avail),        // 可用资金
-    (double, market_value), // 市值(股票)
+    (double, market_value),       // 市值(股票)
+    (double, short_market_value), // 融券卖出证券市值
+    (double, long_market_value),  // 融资买入证券市值
 
-    (double, margin), // 保证金(期货)
+    (double, margin),       // 保证金占用
+    (double, short_margin), // 融券占用保证金
+    (double, long_margin),  // 融资占用保证金
 
     (double, accumulated_fee), // 累计手续费
     (double, intraday_fee),    // 当日手续费
@@ -110,18 +113,15 @@ KF_DEFINE_PACK_TYPE(                         //
     (double, position_pnl), // 持仓盈亏(期货)
     (double, close_pnl),    // 平仓盈亏(期货)
 
+    (double, avail),        // 可用资金
     (double, total_asset),  // 总资产
     (double, avail_margin), // 可用保证金
-    (double, cash_margin),  // 融资占用保证金
-    (double, short_margin), // 融券占用保证金
 
-    (double, cash_debt),  // 融资负债
+    (double, long_debt),  // 融资负债
     (double, short_cash), // 融券卖出金额
 
-    (double, short_market_value),  // 融券卖出证券市值
-    (double, margin_market_value), // 融资买入证券市值
-    (double, margin_interest),     // 融资融券利息
-    (double, settlement),          // 融资融券清算资金
+    (double, margin_interest), // 融资融券利息
+    (double, settlement),      // 融资融券清算资金
 
     (double, credit),          // 信贷额度
     (double, collateral_ratio) // 担保比例
@@ -660,7 +660,7 @@ KF_DEFINE_PACK_TYPE(                                                        //
     (int64_t, ask_no), // 卖方订单号
 
     (enums::ExecType, exec_type), // SZ: 成交标识
-    (enums::BsFlag, bs_flag),     // 买卖方向
+    (enums::Side, side),          // 买卖方向
 
     (int64_t, main_seq), // 主序号
     (int64_t, seq),      // 子序号

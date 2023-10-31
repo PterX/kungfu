@@ -167,7 +167,7 @@ declare namespace KungfuApi {
   export interface KfConfigItemHeader {
     title: string;
     description: string;
-    type?: 'str' | 'num' | 'precent' | 'bool';
+    type?: 'str' | 'num' | 'percent' | 'bool';
     required?: boolean;
     default?: KfConfigValue;
   }
@@ -568,7 +568,6 @@ declare namespace KungfuApi {
       name: string,
       mode: string,
     ): KungfuApi.KfConfig | false;
-    getAllLocation();
   }
 
   export interface HistoryStore {
@@ -633,7 +632,7 @@ declare namespace KungfuApi {
 
     total_asset: number; //总资产
     avail_margin: number; //可用保证金
-    cash_margin: number; //融资占用保证金
+    long_margin: number; //融资占用保证金
     short_margin: number; //融券占用保证金
     margin: number; //总占用保证金
 
@@ -641,7 +640,7 @@ declare namespace KungfuApi {
     short_cash: number; //融券卖出金额
 
     short_market_value: number; //融券卖出证券市值
-    margin_market_value: number; //融资买入证券市值
+    long_market_value: number; //融资买入证券市值
     margin_interest: number; //融资融券利息
     settlement: number; //融资融券清算资金
 
@@ -1157,6 +1156,7 @@ declare namespace KungfuApi {
     BasketInstrument: DataTable<BasketInstrument>;
     BasketOrder: DataTable<BasketOrder>;
     OrderTrigger: DataTable<OrderTrigger>;
+    SyntheticData: DataTable<SyntheticData>;
   }
 
   export type TradingDataItem =
@@ -1251,6 +1251,9 @@ declare namespace KungfuApi {
       InstrumentResolved {
     basketInstrumentName: string;
     basketInstrumentId: string;
+    todayVolume?: number;
+    yesterdayVolume?: number;
+    posVolume?: number;
   }
 
   export interface BasketInstrumentForOrder extends BasketInstrumentResolved {

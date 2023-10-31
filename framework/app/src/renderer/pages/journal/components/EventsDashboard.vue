@@ -178,7 +178,7 @@ const {
   currentSessionBeginTime,
   currentSessionEndTime,
   currentFrameList,
-  isLoadingFrames,
+  journalLoadingType,
   selectedChartItem,
   currentFrameId,
   isBuildingTracer,
@@ -414,7 +414,7 @@ onMounted(() => {
     if (initTimer) clearInterval(initTimer);
     initTimer = setInterval(async () => {
       if (
-        !isLoadingFrames.value &&
+        journalLoadingType.value === 'finish' &&
         currentFrameList.value.length < DEFAULT_LIST_SIZE &&
         currentTracer?.dataAvailable()
       ) {
@@ -451,7 +451,8 @@ const initLoad = debounce(async () => {
   console.warn('initLoad');
   if (!currentSession.value) return;
   const sessionIdOrigin = currentSession.value.index;
-  isLoadingFrames.value && (requestBreakLoadingDataWhile = true);
+  journalLoadingType.value !== 'finish' &&
+    (requestBreakLoadingDataWhile = true);
   firstSplitFramesLoading.value = true;
   // wait for while looping and break while working
   await delayMilliSeconds(0);
@@ -588,9 +589,9 @@ const loadFrameData = async (
     }
   };
 
-  isLoadingFrames.value = true;
+  journalLoadingType.value = mode === 'init' ? 'init' : 'auto';
   return drain(currentSessionId).then((_: KungfuApi.FrameResolved[]) => {
-    isLoadingFrames.value = false;
+    journalLoadingType.value = 'finish';
     firstSplitFramesLoading.value = false;
     requestBreakLoadingDataWhile = false;
     if (mode === 'init') setCurrentFrameId(currentFrameList.value[0]?.id);
@@ -599,7 +600,7 @@ const loadFrameData = async (
 
 const loadMore = debounce(async (split = true) => {
   if (!currentSession.value) return;
-  if (isLoadingFrames.value) return;
+  if (journalLoadingType.value !== 'finish') return;
 
   await delayMilliSeconds(0);
   await loadFrameData(currentSession.value.index, {

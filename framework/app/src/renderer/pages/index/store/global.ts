@@ -15,13 +15,13 @@ import {
   getSubscribedInstruments,
   getTdGroups,
   getAllBaskets,
-  getAllBasketInstruments,
 } from '@kungfu-trader/kungfu-js-api/actions';
 import {
   Pm2ProcessStatusDetailData,
   Pm2ProcessStatusData,
 } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
 import {
+  BasketTypeEnum,
   BrokerStateStatusTypes,
   KfCategoryTypes,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
@@ -44,7 +44,6 @@ interface GlobalState {
   strategyList: KungfuApi.KfConfig[];
   operatorList: KungfuApi.KfConfig[];
   basketList: KungfuApi.Basket[];
-  basketInstrumentList: KungfuApi.BasketInstrument[];
 
   processStatusData: Pm2ProcessStatusData;
   processStatusWithDetail: Pm2ProcessStatusDetailData;
@@ -106,7 +105,6 @@ export const useGlobalStore = defineStore('global', {
       strategyList: [],
       operatorList: [],
       basketList: [],
-      basketInstrumentList: [],
 
       processStatusData: {},
       processStatusWithDetail: {},
@@ -266,16 +264,10 @@ export const useGlobalStore = defineStore('global', {
 
     setBasketList() {
       return getAllBaskets(window.watcher).then((basketList) => {
-        this.basketList = basketList;
+        this.basketList = basketList.filter(
+          (item) => item.basket_type === BasketTypeEnum.Custom,
+        );
       });
-    },
-
-    setBasketInstrumentList() {
-      return getAllBasketInstruments(window.watcher).then(
-        (basketInstrumentList) => {
-          this.basketInstrumentList = basketInstrumentList;
-        },
-      );
     },
 
     checkCurrentGlobalKfLocationExisted() {

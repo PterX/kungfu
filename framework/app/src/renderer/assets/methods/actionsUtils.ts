@@ -2920,7 +2920,6 @@ export const useBasket = () => {
   const store = useGlobalStore();
 
   const basketList = ref<KungfuApi.Basket[]>([]);
-  const basketInstrumentList = ref<KungfuApi.BasketInstrument[]>([]);
 
   onMounted(() => {
     if (app?.proxy) {
@@ -2930,10 +2929,7 @@ export const useBasket = () => {
 
   function updateBasketData() {
     store.setBasketList();
-    store.setBasketInstrumentList();
 
-    basketList.value = store.basketList;
-    basketInstrumentList.value = store.basketInstrumentList;
     return Promise.resolve();
   }
 
@@ -2961,7 +2957,6 @@ export const useBasket = () => {
 
   return {
     basketList,
-    basketInstrumentList,
     buildBasketOptionLabel,
     buildBasketOptionValue,
     parseBasketOptionValue,

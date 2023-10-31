@@ -251,7 +251,11 @@ defineExpose({
 });
 
 const visualizationLoading = computed(() => {
-  return keepChartWrapAlice.value || isBuildingTracer.value;
+  return (
+    keepChartWrapAlice.value ||
+    isBuildingTracer.value ||
+    journalLoadingType.value === 'init'
+  );
 });
 
 const strategyData = computed(() => {

@@ -1640,24 +1640,27 @@ export const useScrollerTableSearch = <T extends object>(
   };
 
   if (isRef(rawsList)) {
-    watch(rawsList, () => {
-      updateSearchResults().then(() => {
-        if (totalResultCount.value) {
-          const lastCurrentExistIndex = Object.values(
-            flatResults.value,
-          ).findIndex((result) => {
-            return (
-              result.resultKey === lastCurrentResult.resultKey &&
-              result.keyForSearch === lastCurrentResult.keyForSearch
-            );
-          });
+    watch(
+      rawsList,
+      debounce(() => {
+        updateSearchResults().then(() => {
+          if (totalResultCount.value) {
+            const lastCurrentExistIndex = Object.values(
+              flatResults.value,
+            ).findIndex((result) => {
+              return (
+                result.resultKey === lastCurrentResult.resultKey &&
+                result.keyForSearch === lastCurrentResult.keyForSearch
+              );
+            });
 
-          if (lastCurrentExistIndex !== -1) {
-            updateCurrentResultIndex(lastCurrentExistIndex + 1, true);
+            if (lastCurrentExistIndex !== -1) {
+              updateCurrentResultIndex(lastCurrentExistIndex + 1, true);
+            }
           }
-        }
-      });
-    });
+        });
+      }, 500),
+    );
   }
 
   const getResultElementByIndex = (index: number) => {
@@ -1767,7 +1770,7 @@ export const useScrollerTableSearch = <T extends object>(
 
   const handleToDownSearchResult = (): void => {
     if (totalResultCount.value === 0) return;
-    if (currentResultIndex.value === totalResultCount.value) {
+    if (currentResultIndex.value >= totalResultCount.value) {
       if (totalResultCount.value === 1) {
         scrollToItemByIndex(1);
       } else {
@@ -1780,7 +1783,7 @@ export const useScrollerTableSearch = <T extends object>(
 
   const handleToUpSearchResult = (): void => {
     if (totalResultCount.value === 0) return;
-    if (currentResultIndex.value === 1) {
+    if (currentResultIndex.value <= 1) {
       if (totalResultCount.value === 1) {
         scrollToItemByIndex(1);
       } else {

@@ -18,7 +18,7 @@ using namespace kungfu::wingchun::map;
 
 namespace kungfu::wingchun::book {
 Book::Book(const CommissionMap &commissions_ref, const InstrumentMap &instruments_ref,
-           const InstrumentFactorMap &instrument_factors_ref, yijinjing::data::location_ptr home_location)
+           const InstrumentFactorMap &instrument_factors_ref, yijinjing::data::location_ptr &home_location)
     : commissions(commissions_ref), instruments(instruments_ref), instrument_factors(instrument_factors_ref),
       home(home_location) {}
 
@@ -184,5 +184,20 @@ void Book::replace(const OrderInput &input) { order_inputs.insert_or_assign(inpu
 void Book::replace(const Order &order) { orders.insert_or_assign(order.order_id, order); }
 
 void Book::replace(const Trade &trade) { trades.insert_or_assign(trade.trade_id, trade); }
+
+void Book::mirror_position_from(const Book &book) {
+  auto mirror_position = [&](const PositionMap &source_map) {
+    for (auto &source_pair : source_map) {
+      longfist::copy(get_position(source_pair.second.source_id, source_pair.second.direction,
+                                  source_pair.second.exchange_id, source_pair.second.instrument_id),
+                     source_pair.second);
+    }
+  };
+
+  long_positions.clear();
+  short_positions.clear();
+  mirror_position(book.long_positions);
+  mirror_position(book.short_positions);
+}
 
 } // namespace kungfu::wingchun::book

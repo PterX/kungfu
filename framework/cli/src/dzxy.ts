@@ -231,7 +231,11 @@ function dealTradingDataItemResolved(item: KungfuApi.TradingDataTypes): Row {
 }
 
 async function exportTradingData(date, output_folder) {
+  if (!watcher) {
+    throw new Error('Watcher is NULL');
+  }
   const { tradingData } = await getKungfuHistoryData(
+    watcher,
     date,
     HistoryDateEnum.naturalDate,
     'all',

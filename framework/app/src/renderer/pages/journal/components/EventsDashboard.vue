@@ -47,58 +47,33 @@
       ></FrameFilters>
     </div>
     <div class="kf-journal-frame__wrap">
-      <Transition name="fade">
-        <div v-show="searchInUsing" class="kf-search-in-table__warp">
-          <div class="kf-search-in-table__content">
-            <a-input-search
-              ref="inputSearchRef"
-              v-model:value="searchKeyword"
-              class="kf-search-in-table__item"
-              :placeholder="$t('keyword_input')"
-            />
-            <div class="kf-search-in-table__item">
-              {{ currentResultIndex }} /
-              {{ totalResultCount }}
-            </div>
-            <div class="kf-search-in-table__item kf-actions__warp">
-              <up-outlined
-                style="font-size: 14px; margin-left: 0px"
-                @click="handleToUpSearchResult"
-              />
-              <down-outlined
-                style="font-size: 14px; margin-left: 8px"
-                @click="handleToDownSearchResult"
-              />
-            </div>
-            <a-button @click="searchInUsing = false">
-              {{ $t('cancel') }}
-            </a-button>
-          </div>
-        </div>
-      </Transition>
       <KfTradingDataTable
         ref="scrollerTableRef"
         :data-source="currentFrameList"
         :columns="frameColumns"
         key-field="id"
-        :dynamic="searchInUsing"
-        :will-switch-dynamic="true"
+        :search-option="{
+          enabled: true,
+          keysForSearch: ['msgTypeName', 'dataAsString'],
+          dynamicTableInSearching: true,
+        }"
         :size-dependencies-fields="['dataAsString']"
         :resizable="false"
         :custom-row-class="dealRowClassName"
         @click-cell="handleClickRow"
         @click-row="handleClickRow"
         @right-click-row="handleOpenFrameDetail"
-        @onScrollToTop="handleScrollToTop"
         @onScrollToBottom="handleScrollToBottom"
       >
         <template
           #default="{
             item,
             column,
+            html,
           }: {
             item: KungfuApi.FrameResolved,
             column: KfTradingDataTableHeaderConfig,
+            html: string,
           }"
         >
           <template v-if="column.dataIndex === 'msgTypeName'">
@@ -110,20 +85,12 @@
                 ),
               }"
             >
-              <span v-html="getItemHtmlResult(item, 'msgTypeName')"></span>
+              <span v-html="html"></span>
             </a-tag>
           </template>
           <template v-else-if="column.dataIndex === 'data'">
             <span v-if="SHOW_DETAIL_MSG_TYPES[+item.msgType]">
               {{ item.data }}
-            </span>
-          </template>
-          <template v-else-if="column.dataIndex === 'dataAsString'">
-            <span v-html="getItemHtmlResult(item, 'dataAsString')"></span>
-          </template>
-          <template v-else>
-            <span>
-              {{ item[column.dataIndex as keyof KungfuApi.FrameResolved] }}
             </span>
           </template>
         </template>
@@ -179,12 +146,7 @@
 import { ref, computed, watch, nextTick, onMounted, onBeforeMount } from 'vue';
 import { storeToRefs } from 'pinia';
 import { Empty } from 'ant-design-vue';
-import {
-  PlusOutlined,
-  MinusOutlined,
-  UpOutlined,
-  DownOutlined,
-} from '@ant-design/icons-vue';
+import { PlusOutlined, MinusOutlined } from '@ant-design/icons-vue';
 import { tracer } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { getFrameColumns } from '../config';
 import {
@@ -205,7 +167,6 @@ import {
   delayMilliSeconds,
   debounce,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
-import { useScrollerTableSearch } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 
 const { t } = VueI18n.global;
@@ -217,9 +178,10 @@ const {
   currentSessionBeginTime,
   currentSessionEndTime,
   currentFrameList,
-  isLoadingFrames,
+  journalLoadingType,
   selectedChartItem,
   currentFrameId,
+  isBuildingTracer,
 } = storeToRefs(useJournalStore());
 const {
   setCurrentFrameList,
@@ -230,28 +192,12 @@ const {
 } = useJournalStore();
 const sourceDestMap = getSourceDestMap();
 const { now } = useNow();
-const scrollerTableRef = ref();
-const {
-  searchInUsing,
-  inputSearchRef,
-  searchKeyword,
-  currentResultIndex,
-  totalResultCount,
-  clearSearchState,
-  handleToDownSearchResult,
-  handleToUpSearchResult,
-  getItemHtmlResult,
-} = useScrollerTableSearch(
-  currentFrameList,
-  'id',
-  ['msgTypeName', 'dataAsString'],
-  scrollerTableRef,
-);
 
 const FRAME_LIST_SPLIT = 200;
 const SCALE = 1000000;
 const HUNDRED_MILLISECONDS = 100000000;
-const DEFAULT_LIST_SIZE = 10000;
+const DEFAULT_LIST_SIZE = 5000;
+const CHECK_LOAD_MORE_TIME = 3000;
 const SHOW_DETAIL_MSG_TYPES = {
   [MsgType.Asset]: true,
   [MsgType.Position]: true,
@@ -264,8 +210,11 @@ const SHOW_DETAIL_MSG_TYPES = {
   [MsgType.Quote]: true,
 };
 
+const scrollerTableRef = ref();
 const inputRef = ref<HTMLInputElement>({} as HTMLInputElement);
-const frameColumns = computed(() => getFrameColumns(searchInUsing.value));
+const frameColumns = computed(() =>
+  getFrameColumns(scrollerTableRef.value?.searchInUsing),
+);
 const simpleImage = Empty.PRESENTED_IMAGE_SIMPLE;
 const firstSplitFramesLoading = ref(false);
 const frameFilter = ref();
@@ -287,20 +236,6 @@ const colorMap = {
   '#FAAD14': 'rgb(250, 173, 20)',
   purple: 'rgb(83, 29, 171)',
 };
-
-watch(searchInUsing, (n, o) => {
-  if (n !== o) {
-    if (scrollerTableRef.value) {
-      const [startIndex] = scrollerTableRef.value.getVisibleIndexRange();
-
-      if (startIndex !== undefined && startIndex > -1) {
-        nextTick(() => {
-          scrollerTableRef.value.scrollToItem(startIndex);
-        });
-      }
-    }
-  }
-});
 
 const loadedLastFrameTime = computed(() => {
   if (currentFrameList.value.length) {
@@ -351,20 +286,16 @@ const frameDataForShow = computed(() => {
   });
 });
 
-const handleScrollToTop = () => {
-  //TODO on scroll to top event;
+const resetScrollToTop = () => {
   if (scrollerTableRef.value) {
-    scrollerTableRef.value.scrollToItem(0);
+    scrollerTableRef.value.resetSort();
+    scrollerTableRef.value.scrollToTop();
   }
 };
 
 const handleScrollToBottom = debounce(async () => {
   console.warn('scrolling to bottom');
-  if (!currentSession.value) return;
-  if (isLoadingFrames.value) return;
-  // wait for while looping and break while working
-  await delayMilliSeconds(0);
-  await loadFrameData(currentSession.value.index, true);
+  await loadMore();
 }, 50);
 
 const handleStartTimeBlur = () => {
@@ -462,7 +393,7 @@ watch(
   debounce((newVal, oldVal) => {
     if (newVal === oldVal) return;
     currentStartTimeInput.value = dealKfTime(currentTime.value);
-    init();
+    init(true);
   }, 100),
 );
 
@@ -470,7 +401,7 @@ watch(
   () => firstSplitFramesLoading.value,
   (newIsLoading, oldIsLoading) => {
     if (!newIsLoading && oldIsLoading) {
-      handleScrollToTop();
+      resetScrollToTop();
     }
   },
 );
@@ -480,14 +411,15 @@ onMounted(() => {
   init();
   nextTick(() => {
     if (initTimer) clearInterval(initTimer);
-    initTimer = setInterval(() => {
+    initTimer = setInterval(async () => {
       if (
-        !isLoadingFrames.value &&
-        currentFrameList.value.length < DEFAULT_LIST_SIZE
+        journalLoadingType.value === 'finish' &&
+        currentFrameList.value.length < DEFAULT_LIST_SIZE &&
+        currentTracer?.dataAvailable()
       ) {
-        init();
+        await loadMore(false);
       }
-    }, 10000);
+    }, CHECK_LOAD_MORE_TIME);
   });
 });
 
@@ -497,17 +429,19 @@ onBeforeMount(() => {
   }
 });
 
-const init = debounce(() => {
+const init = debounce(async (buildTracer = false) => {
   console.warn('init');
   if (!currentSession.value) return;
-  if (!currentTracer) {
-    currentTracer = tracer(
+  if (!currentTracer || (buildTracer && currentTracer)) {
+    isBuildingTracer.value = true;
+    currentTracer = await tracer(
       currentSession.value as KungfuApi.KfLocation,
       readEvent.value,
       writeEvent.value,
       currentSession.value.begin_time,
       currentSession.value.end_time,
     );
+    isBuildingTracer.value = false;
   }
   initLoad();
 }, 50);
@@ -516,11 +450,11 @@ const initLoad = debounce(async () => {
   console.warn('initLoad');
   if (!currentSession.value) return;
   const sessionIdOrigin = currentSession.value.index;
-  isLoadingFrames.value && (requestBreakLoadingDataWhile = true);
+  journalLoadingType.value !== 'finish' &&
+    (requestBreakLoadingDataWhile = true);
   firstSplitFramesLoading.value = true;
   // wait for while looping and break while working
   await delayMilliSeconds(0);
-  clearSearchState();
   setCurrentFrameList([]);
   await nextTick();
   currentTracer?.seekToTime(currentTime.value);
@@ -529,8 +463,14 @@ const initLoad = debounce(async () => {
   firstSplitFramesLoading.value = false;
 }, 50);
 
-const loadFrameData = async (currentSessionId: number, loadmore = false) => {
-  console.warn('loadFrameData, loadmore', loadmore);
+const loadFrameData = async (
+  currentSessionId: number,
+  option?: {
+    mode?: 'init' | 'loadMore' | 'loadMax';
+  },
+) => {
+  const mode = option?.mode ?? 'init';
+  console.warn('loadFrameData, mode', mode);
   const drain = async (
     sessionId: number,
   ): Promise<KungfuApi.FrameResolved[]> => {
@@ -633,7 +573,7 @@ const loadFrameData = async (currentSessionId: number, loadmore = false) => {
       !currentTracer.dataAvailable() ||
       currentFrameList.value.length >= DEFAULT_LIST_SIZE ||
       totalCount >= DEFAULT_LIST_SIZE ||
-      loadmore
+      mode === 'loadMore'
     ) {
       return currentFrameList.value;
     } else {
@@ -648,14 +588,24 @@ const loadFrameData = async (currentSessionId: number, loadmore = false) => {
     }
   };
 
-  isLoadingFrames.value = true;
+  journalLoadingType.value = mode === 'init' ? 'init' : 'auto';
   return drain(currentSessionId).then((_: KungfuApi.FrameResolved[]) => {
-    isLoadingFrames.value = false;
+    journalLoadingType.value = 'finish';
     firstSplitFramesLoading.value = false;
     requestBreakLoadingDataWhile = false;
-    setCurrentFrameId(currentFrameList.value[0]?.id);
+    if (mode === 'init') setCurrentFrameId(currentFrameList.value[0]?.id);
   });
 };
+
+const loadMore = debounce(async (split = true) => {
+  if (!currentSession.value) return;
+  if (journalLoadingType.value !== 'finish') return;
+
+  await delayMilliSeconds(0);
+  await loadFrameData(currentSession.value.index, {
+    mode: split ? 'loadMore' : 'loadMax',
+  });
+}, 50);
 
 const handleOpenFrameDetail = async ({ row }) => {
   setCurrentFrameId(row.id);
@@ -712,6 +662,7 @@ function handleClickRow({ row }) {
   padding: 4px 0 4px 4px;
   box-sizing: border-box;
   overflow: hidden;
+  background-color: #141414;
 
   .kf-journal-spin {
     .ant-spin-text {
@@ -765,48 +716,6 @@ function handleClickRow({ row }) {
     flex: auto;
     overflow: hidden;
     position: relative;
-
-    .fade-enter-active,
-    .fade-leave-active {
-      transition: all 0.3s ease;
-    }
-
-    .fade-enter-from,
-    .fade-leave-to {
-      top: -40px;
-    }
-
-    .fade-enter-to,
-    .fade-leave-from {
-      top: 0;
-    }
-
-    .kf-search-in-table__warp {
-      position: absolute;
-      right: 16px;
-      padding: 4px 0;
-      display: flex;
-      justify-content: flex-end;
-      align-items: center;
-      font-size: 12px;
-      background-color: #1d1d1d;
-      z-index: 999;
-
-      .kf-search-in-table__content {
-        width: 480px;
-        display: flex;
-        align-items: center;
-
-        .kf-search-in-table__item {
-          margin: 0 4px;
-        }
-
-        .ant-input-search {
-          margin-left: 0;
-          flex: 1;
-        }
-      }
-    }
   }
 }
 

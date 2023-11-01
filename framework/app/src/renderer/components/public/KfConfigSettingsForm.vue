@@ -19,6 +19,7 @@ import {
   computed,
   nextTick,
   defineComponent,
+  inject,
 } from 'vue';
 import KfConfigSettingsForm from './KfConfigSettingsForm.vue';
 import {
@@ -79,6 +80,7 @@ import {
   dealKungfuColorToClassname,
   dealKungfuColorToStyleColor,
 } from '../../assets/methods/uiUtils';
+import { BuiltinComponentInjectKeysMap } from '@kungfu-trader/kungfu-app/src/renderer/assets/configs/symbols';
 
 const { t } = VueI18n.global;
 
@@ -194,6 +196,11 @@ const numberKeys = ref<Record<string, KungfuApi.KfConfigItem>>(
   filterNumberKeysFromConfigSettings(props.configSettings),
 );
 const numbersTyping = ref<Record<string, boolean>>({});
+
+const configSettingFormInject = inject(
+  BuiltinComponentInjectKeysMap.ConfigSettingForm,
+  {},
+);
 
 watch(
   () => props.configSettings,
@@ -313,7 +320,12 @@ if ('instrument' in formState.value && 'side' in formState.value) {
               SideEnum.Exec + '',
             ];
           } else {
-            sideRadiosList.value = Object.keys(Side).slice(0, 2);
+            if (configSettingFormInject?.sideFilter) {
+              sideRadiosList.value =
+                configSettingFormInject.sideFilter?.(instrumentType);
+            } else {
+              sideRadiosList.value = Object.keys(Side).slice(0, 2);
+            }
           }
         }
       }
@@ -713,12 +725,11 @@ function buildCsvHeadersValidator(
 
       switch (type) {
         case 'str':
-          if (!value) return false;
           break;
         case 'num':
           if (Number.isNaN(Number(value))) return false;
           break;
-        case 'precent':
+        case 'percent':
           if (
             !value.endsWith('%') ||
             Number.isNaN(Number(value.replace('%', '')))
@@ -769,7 +780,7 @@ function buildCsvHeadersTransformer(
         case 'num':
           row[header.title] = Number(value);
           break;
-        case 'precent':
+        case 'percent':
           row[header.title] = Number(value.replace('%', ''));
           break;
         case 'bool':

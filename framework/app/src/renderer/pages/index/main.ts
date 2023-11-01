@@ -239,6 +239,7 @@ const initStartAll = (bypassArchive = false) => {
 loadCustomFont().then(async () => {
   await mergeExtLanguages();
   await useComponents(app, router);
+  console.log('ifTodayFirstStart', ifTodayFirstStart());
   (globalThis.HookKeeper as KfHookKeeper)
     .getHooks()
     .lifeCycle.trigger(LifeCycleKeys.BeforeAppMount)

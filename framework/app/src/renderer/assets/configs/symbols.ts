@@ -5,6 +5,9 @@ import { InjectionKey } from 'vue';
 
 export const BuiltinComponentInjectKeysMap: {
   TradingTask: InjectionKey<BuiltinComponentPropsMap['TradingTask']>;
+  ConfigSettingForm: InjectionKey<
+    BuiltinComponentPropsMap['ConfigSettingForm']
+  >;
 } = {
   TradingTask: Symbol.for('TradingTask'),
   // Pos: Symbol.for('Pos'),
@@ -19,4 +22,5 @@ export const BuiltinComponentInjectKeysMap: {
   // MakeOrder: Symbol.for('MakeOrder'),
   // FutureArbitrage: Symbol.for('FutureArbitrage'),
   // BlockTrade: Symbol.for('BlockTrade'),
+  ConfigSettingForm: Symbol.for('ConfigSettingForm'),
 };

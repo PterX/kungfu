@@ -181,11 +181,7 @@ export interface SeriesData {
   symbolRotate?: number;
   symbolOffset?: (string | number)[];
   symbolSize?: number;
-  itemStyle?: {
-    color?: string;
-    shadowBlur?: number;
-    shadowColor?: string;
-  };
+  itemStyle?: ItemStyle;
   showSymbol?: boolean;
   tooltip?: {
     position: string | PosFun;
@@ -207,12 +203,19 @@ export interface SeriesData {
     silent?: boolean;
   };
   shadowColor?: string;
+  shadowBlur?: number;
   label?: {
     show: boolean;
     position: string;
     color: string;
     formatter: () => string;
   };
+}
+
+export interface ItemStyle {
+  color?: string;
+  shadowBlur?: number;
+  shadowColor?: string;
 }
 
 export const getChartOption = () => {
@@ -275,6 +278,9 @@ export const getChartOption = () => {
         labelFormatter: function (params: string) {
           return params;
         },
+        textStyle: {
+          color: '#ffffffd9',
+        },
       },
       {
         type: 'inside',
@@ -283,6 +289,9 @@ export const getChartOption = () => {
         end: 100,
         labelFormatter: function (params: string) {
           return params;
+        },
+        textStyle: {
+          color: '#ffffffd9',
         },
       },
     ],

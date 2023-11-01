@@ -1455,6 +1455,12 @@ export const useScrollerTableSearch = <T extends object>(
 
   // current index is begin from 1, valued 0 mean not has focus
   const currentResultIndex = ref<number>(0);
+  let resultIndexChangeSilent = false;
+  let lastCurrentResult: ResultFlattened & { index: number } = {
+    index: 0,
+    resultKey: '',
+    keyForSearch: '',
+  };
   const searchResults = ref<Record<string, SearchResultByContent>>({});
   const flatResults = ref<Record<number, ResultFlattened>>({});
   const totalResultCount = ref(0);
@@ -1541,6 +1547,19 @@ export const useScrollerTableSearch = <T extends object>(
     registerInputFocusEvent();
   });
 
+  const updateCurrentResultIndex = (index: number, silent = false) => {
+    currentResultIndex.value = index;
+    const currentResult = flatResults.value[index] || {
+      resultKey: '',
+      keyForSearch: '',
+    };
+    lastCurrentResult = {
+      ...currentResult,
+      index,
+    };
+    resultIndexChangeSilent = silent;
+  };
+
   const getMarkElementIdByIndex = (index: number): string => `kf-mark-${index}`;
 
   const buildResultFromContentForSearch = (
@@ -1621,7 +1640,29 @@ export const useScrollerTableSearch = <T extends object>(
   };
 
   if (isRef(rawsList)) {
-    watch(rawsList, updateSearchResults);
+    watch(
+      rawsList,
+      debounce(() => {
+        updateSearchResults().then(() => {
+          if (totalResultCount.value) {
+            const lastCurrentExistIndex = Object.values(
+              flatResults.value,
+            ).findIndex((result) => {
+              return (
+                result.resultKey === lastCurrentResult.resultKey &&
+                result.keyForSearch === lastCurrentResult.keyForSearch
+              );
+            });
+
+            if (lastCurrentExistIndex !== -1) {
+              updateCurrentResultIndex(lastCurrentExistIndex + 1, true);
+            } else {
+              updateCurrentResultIndex(1, true);
+            }
+          }
+        });
+      }, 50),
+    );
   }
 
   const getResultElementByIndex = (index: number) => {
@@ -1682,7 +1723,7 @@ export const useScrollerTableSearch = <T extends object>(
     );
 
     const initIndex = index > -1 ? index + 1 : 1;
-    currentResultIndex.value = initIndex;
+    updateCurrentResultIndex(initIndex);
     scrollToItemByIndex(initIndex);
 
     if (index > -1) {
@@ -1723,32 +1764,35 @@ export const useScrollerTableSearch = <T extends object>(
     }
 
     updateSearchResultByIndex(newIndex);
+
+    if (resultIndexChangeSilent) return;
+
     scrollToItemByIndex(newIndex);
   });
 
   const handleToDownSearchResult = (): void => {
     if (totalResultCount.value === 0) return;
-    if (currentResultIndex.value === totalResultCount.value) {
+    if (currentResultIndex.value >= totalResultCount.value) {
       if (totalResultCount.value === 1) {
         scrollToItemByIndex(1);
       } else {
-        currentResultIndex.value = 1;
+        updateCurrentResultIndex(1);
       }
     } else {
-      currentResultIndex.value++;
+      updateCurrentResultIndex(currentResultIndex.value + 1);
     }
   };
 
   const handleToUpSearchResult = (): void => {
     if (totalResultCount.value === 0) return;
-    if (currentResultIndex.value === 1) {
+    if (currentResultIndex.value <= 1) {
       if (totalResultCount.value === 1) {
         scrollToItemByIndex(1);
       } else {
-        currentResultIndex.value = totalResultCount.value;
+        updateCurrentResultIndex(totalResultCount.value);
       }
     } else {
-      currentResultIndex.value--;
+      updateCurrentResultIndex(currentResultIndex.value - 1);
     }
   };
 

@@ -196,7 +196,7 @@ const { setCurrentSession, setSelectedChartItem, setCurrentFrameId } =
   useJournalStore();
 const {
   sessions,
-  isLoadingFrames,
+  journalLoadingType,
   currentSessionKey,
   currentFrameList,
   currentFrame,
@@ -228,6 +228,11 @@ const xAxisMinMax = ref<{
 });
 const hasInit = ref<boolean>(false);
 const shouldResize = ref<boolean>(false);
+const highlightOption = {
+  time: 0n,
+  type: '',
+  orderId: 0n,
+};
 onMounted(() => {
   nextTick(async () => {
     await initChart();
@@ -246,7 +251,11 @@ defineExpose({
 });
 
 const visualizationLoading = computed(() => {
-  return keepChartWrapAlice.value || isBuildingTracer.value;
+  return (
+    keepChartWrapAlice.value ||
+    isBuildingTracer.value ||
+    journalLoadingType.value === 'init'
+  );
 });
 
 const strategyData = computed(() => {
@@ -278,10 +287,14 @@ const dealRowClassName = (row) => {
 };
 
 watch(
-  () => isLoadingFrames.value,
-  (newValue) => {
-    if (!newValue) {
-      initChartData();
+  () => journalLoadingType.value,
+  (newValue, oldValue) => {
+    if (newValue === 'finish') {
+      if (oldValue === 'init') {
+        initChartData();
+      } else {
+        initChartData(false);
+      }
     }
   },
 );
@@ -332,8 +345,25 @@ const handleFrameChange = async (newCurrentFrame, retryCount = 0) => {
         item.itemStyle = {
           color: index === closestTimeIndex ? '#0F6DA6' : 'transparent',
         };
-        if (index === closestTimeIndex) hasFound = true;
+        if (index === closestTimeIndex) {
+          hasFound = true;
+          highlightOption.orderId = item.customInfo?.orderId || 0n;
+          highlightOption.time = item.customInfo?.time || 0n;
+          highlightOption.type = item.customInfo?.msgTypeName || '';
+        }
       });
+      option.series
+        .filter((_serie, index) => index !== 0 && index !== 4)
+        .forEach((serie) => {
+          serie.data.forEach((item) => {
+            item.symbolSize = DEFAULT_SYMBOL_SIZE;
+            item.itemStyle = {
+              ...item.itemStyle,
+              shadowBlur: 0,
+              shadowColor: undefined,
+            };
+          });
+        });
     } else {
       if (
         'limit_price' in chartData &&
@@ -362,9 +392,19 @@ const handleFrameChange = async (newCurrentFrame, retryCount = 0) => {
               shadowBlur: isCurrentOrder ? 10 : 0,
               shadowColor: isCurrentOrder ? shadowColor : undefined,
             };
-            if (isCurrentOrder) hasFound = true;
+            if (isCurrentOrder) {
+              hasFound = true;
+              highlightOption.orderId = item.customInfo?.orderId || 0n;
+              highlightOption.time = item.customInfo?.time || 0n;
+              highlightOption.type = item.customInfo?.msgTypeName || '';
+            }
           });
         });
+      option.series[4].data.forEach((item) => {
+        item.itemStyle = {
+          color: 'transparent',
+        };
+      });
     }
 
     if (!hasFound) {
@@ -394,19 +434,21 @@ watch(
   },
 );
 
-function reset() {
+function reset(clearSelectedItem: boolean) {
   frameListResolved.value = {};
   chartSeriesData.value = {};
   xAxisData.value = {};
   quoteXAxisData.value = {};
   orderInfoMap.value = {};
-  searchInstrument.value = '';
-  searchOrderId.value = '';
-  selectedInstrument.value = '';
+  if (clearSelectedItem) {
+    searchInstrument.value = '';
+    searchOrderId.value = '';
+    selectedInstrument.value = '';
+  }
 }
 
-function initChartData() {
-  reset();
+function initChartData(clearSelectedItem = true) {
+  reset(clearSelectedItem);
 
   currentFrameList.value.forEach((item) => {
     if (item.msgTypeName === 'Order') {
@@ -419,16 +461,25 @@ function initChartData() {
     }
   });
 
-  dealFrameData();
-  instrumentList.value = getInstrumentList();
+  dealFrameData(clearSelectedItem);
+  instrumentList.value = getInstrumentList(searchInstrument.value);
 
   if (instrumentList.value.length > 0) {
     nextTick(() => {
-      getCurInstrument(instrumentList.value[0]);
+      let currentInstrument = '';
+      if (
+        selectedInstrument.value &&
+        instrumentList.value.includes(selectedInstrument.value)
+      ) {
+        currentInstrument = selectedInstrument.value;
+      } else {
+        currentInstrument = instrumentList.value[0];
+      }
+      getCurInstrument(currentInstrument, clearSelectedItem);
     });
   } else {
     nextTick(() => {
-      updateOption();
+      updateOption(clearSelectedItem);
     });
   }
 }
@@ -479,7 +530,7 @@ const setTooltipPosition: PosFun = (point, params, dom, rect, size) => {
   }
 };
 
-function dealFrameData() {
+function dealFrameData(clearSelectedItem = true) {
   currentFrameList.value.forEach((item, index) => {
     if (
       !['Quote', 'OrderInput', 'Order', 'OrderAction'].includes(
@@ -502,7 +553,12 @@ function dealFrameData() {
     if (!chartSeriesData.value[key]) initializeChartSeriesData(key);
 
     frameListResolved.value[key][item.msgTypeName].push(tradingDataResolved);
-    updateChartSeriesData(tradingDataResolved, key, item.msgTypeName);
+    updateChartSeriesData(
+      tradingDataResolved,
+      key,
+      item.msgTypeName,
+      clearSelectedItem,
+    );
   });
 }
 
@@ -590,11 +646,25 @@ function updateChartSeriesData(
   tradingDataResolved: FrameResolvedDataType,
   key: string,
   msgTypeName: string,
+  clearSelectedItem = true,
 ) {
+  let active = false;
   const { dataTime, price } = getTradingDataValueByKey(tradingDataResolved);
   if (msgTypeName !== 'OrderAction' && price === 0) return;
   xAxisData.value[key] = xAxisData.value[key] || [];
   xAxisData.value[key].push(dataTime.toString());
+
+  if (
+    !clearSelectedItem &&
+    (('order_id' in tradingDataResolved &&
+      highlightOption.orderId === tradingDataResolved.order_id &&
+      msgTypeName !== 'Quote') ||
+      (dataTime === highlightOption.time &&
+        msgTypeName === highlightOption.type &&
+        msgTypeName === 'Quote'))
+  ) {
+    active = true;
+  }
 
   if (msgTypeName === 'Quote')
     updateQuoteData(
@@ -602,6 +672,7 @@ function updateChartSeriesData(
       key,
       dataTime,
       price,
+      active,
     );
   else if (msgTypeName === 'OrderInput')
     updateOrderInputData(
@@ -609,6 +680,7 @@ function updateChartSeriesData(
       key,
       dataTime,
       price,
+      active,
     );
   else if (msgTypeName === 'Order')
     updateOrderData(
@@ -616,6 +688,7 @@ function updateChartSeriesData(
       key,
       dataTime,
       price,
+      active,
     );
   else if (msgTypeName === 'OrderAction')
     updateOrderActionData(
@@ -623,6 +696,7 @@ function updateChartSeriesData(
       key,
       dataTime,
       price,
+      active,
     );
 }
 
@@ -631,6 +705,7 @@ function updateQuoteData(
   key: string,
   dataTime: bigint,
   price: number,
+  active?: boolean,
 ) {
   if (!quoteXAxisData.value[key]) {
     quoteXAxisData.value[key] = [];
@@ -650,6 +725,9 @@ function updateQuoteData(
       time: tradingData.data_time,
       msgTypeName: tradingData.msgTypeName,
     },
+    itemStyle: {
+      color: active ? '#0F6DA6' : 'transparent',
+    },
   });
 }
 
@@ -658,8 +736,9 @@ function updateOrderInputData(
   key: string,
   dataTime: bigint,
   price: number,
+  active?: boolean,
 ) {
-  chartSeriesData.value[key].OrderInput.push({
+  const baseObject: SeriesData = {
     value: [dataTime.toString(), price],
     symbolRotate: tradingData.side === 0 ? 180 : 0,
     itemStyle: {
@@ -675,7 +754,17 @@ function updateOrderInputData(
       time: tradingData.insert_time,
       msgTypeName: tradingData.msgTypeName,
     },
-  });
+  };
+
+  if (active) {
+    baseObject.symbolSize = ACTIVE_SYMBOL_SIZE;
+    baseObject.itemStyle = {
+      color: tradingData.side === 0 ? '#f21717' : '#17b07f',
+      shadowColor: tradingData.side === 0 ? '#f37370' : '#8fd460',
+    };
+  }
+
+  chartSeriesData.value[key].OrderInput.push(baseObject);
 }
 
 function updateOrderData(
@@ -683,8 +772,9 @@ function updateOrderData(
   key: string,
   dataTime: bigint,
   price: number,
+  active?: boolean,
 ) {
-  chartSeriesData.value[key].Order.push({
+  const baseObject: SeriesData = {
     value: [dataTime.toString(), price],
     symbolRotate: tradingData.side === 0 ? 180 : 0,
     symbolOffset: tradingData.side === 0 ? [0, '-120%'] : [0, '120%'],
@@ -711,7 +801,17 @@ function updateOrderData(
         return sideOffsetMap[side] ? sideOffsetMap[side][offset] || '--' : '--';
       },
     },
-  });
+  };
+
+  if (active) {
+    baseObject.symbolSize = ACTIVE_SYMBOL_SIZE;
+    baseObject.itemStyle = {
+      color: tradingData.side === 0 ? '#f21717' : '#17b07f',
+      shadowColor: tradingData.side === 0 ? '#f37370' : '#8fd460',
+    };
+  }
+
+  chartSeriesData.value[key].Order.push(baseObject);
 }
 
 function updateOrderActionData(
@@ -719,9 +819,11 @@ function updateOrderActionData(
   key: string,
   dataTime: bigint,
   price: number,
+  active?: boolean,
 ) {
-  chartSeriesData.value[key].OrderAction.push({
+  const baseObject: SeriesData = {
     value: [dataTime.toString(), price],
+    symbolOffset: [0, '120%'],
     tooltip: {
       position: setTooltipPosition,
       formatter: tooltipFormatter(tradingData),
@@ -732,7 +834,17 @@ function updateOrderActionData(
       time: tradingData.insert_time,
       msgTypeName: tradingData.msgTypeName,
     },
-  });
+  };
+
+  if (active) {
+    baseObject.symbolSize = ACTIVE_SYMBOL_SIZE;
+    baseObject.itemStyle = {
+      shadowColor: '#73F3F6',
+      shadowBlur: 10,
+    };
+  }
+
+  chartSeriesData.value[key].OrderAction.push(baseObject);
 }
 
 function getInstrumentList(searchKey?: string) {
@@ -743,12 +855,15 @@ function getInstrumentList(searchKey?: string) {
     : Object.keys(frameListResolved.value);
 }
 
-function getCurInstrument(instrument: string) {
-  selectedInstrument.value = instrument;
-  selectedSign = false;
-  searchOrderId.value = '';
+function getCurInstrument(instrument: string, clearSelectedItem = true) {
+  if (clearSelectedItem) {
+    selectedSign = false;
+    resetHighlineOption();
+    selectedInstrument.value = instrument || '';
+    searchOrderId.value = '';
+  }
 
-  updateOption();
+  updateOption(clearSelectedItem);
 }
 
 function initChart() {
@@ -780,10 +895,13 @@ const getYAxisInterval = () => {
 
     return interval.kfRound(2);
   }
-  return interval;
+  return (
+    (Number(xAxisMinMax.value.max) - Number(xAxisMinMax.value.min)) / 4 ||
+    interval
+  );
 };
 
-const updateOption = async () => {
+const updateOption = async (clearSelectedItem = true) => {
   const currentData = chartSeriesData.value[selectedInstrument.value];
   if (!currentData) return;
 
@@ -810,17 +928,18 @@ const updateOption = async () => {
       ? DEFAULT_CHART_LENGTH_RATE
       : endZoomValue;
 
-  option.dataZoom.forEach((item) => {
-    item.start = 0;
-    item.end = dataLength <= DEFAULT_ORDER_LENGTH ? 100 : adjustedZoomValue;
-    item.labelFormatter = (value) =>
-      getNanoDateString(BigInt(option.xAxis.data[value]), 6, 6);
-  });
+  if (clearSelectedItem) {
+    option.dataZoom.forEach((item) => {
+      item.start = 0;
+      item.end = dataLength <= DEFAULT_ORDER_LENGTH ? 100 : adjustedZoomValue;
+      item.labelFormatter = (value) =>
+        getNanoDateString(BigInt(option.xAxis.data[value]), 6, 6);
+    });
+  }
 
   option.xAxis.data = xAxisData.value[selectedInstrument.value]
     .sort((a, b) => Number(a) - Number(b))
     .map((item) => item.toString());
-
   option.xAxis.axisLabel.formatter = (value) =>
     getNanoDateString(BigInt(value), 6, 6);
 
@@ -843,7 +962,7 @@ const updateOption = async () => {
 function handleResize(update = false) {
   if (myChart && hasInit.value) {
     if (update) {
-      updateOption();
+      updateOption(false);
     }
     myChart.resize();
   } else {
@@ -859,6 +978,12 @@ function getDefaultSize(name: string) {
     default:
       return DEFAULT_SYMBOL_SIZE;
   }
+}
+
+function resetHighlineOption() {
+  highlightOption.time = 0n;
+  highlightOption.type = '';
+  highlightOption.orderId = 0n;
 }
 
 function addChartEventListener(myChart: echarts.ECharts) {
@@ -882,13 +1007,17 @@ function addChartEventListener(myChart: echarts.ECharts) {
     if (params.componentSubType === 'scatter') {
       selectedSign = orderId ? true : false;
       option.series
-        .filter((serie, index) => {
+        .filter((_serie, index) => {
           return index !== 0 && index !== 4;
         })
         .forEach((serie) => {
           const defaultSize = getDefaultSize(serie.name);
           serie.data.forEach((item: SeriesData) => {
             if (item.customInfo?.orderId === orderId) {
+              highlightOption.orderId = item.customInfo?.orderId || 0n;
+              highlightOption.time = item.customInfo?.time || 0n;
+              highlightOption.type = item.customInfo?.msgTypeName || '';
+
               let shadowColor = '';
               item.symbolSize = ACTIVE_SYMBOL_SIZE;
               if (item.customInfo?.msgTypeName === 'orderAction') {
@@ -959,6 +1088,7 @@ function addChartEventListener(myChart: echarts.ECharts) {
       });
       myChart && myChart.setOption(option);
       selectedSign = false;
+      resetHighlineOption();
     }
   });
 
@@ -1115,7 +1245,7 @@ function tooltipFormatter(data: FrameResolvedDataType, type?: string) {
 }
 
 function findClosestTime(targetTime: number, times: (number | string)[]) {
-  if (times.length === 0) {
+  if (!times || times.length === 0) {
     return 0;
   }
   let left = 0;
@@ -1183,6 +1313,9 @@ function handleSearchOrderId() {
             shadowBlur: 10,
             shadowColor,
           };
+          highlightOption.orderId = item.customInfo?.orderId || 0n;
+          highlightOption.time = item.customInfo?.time || 0n;
+          highlightOption.type = item.customInfo?.msgTypeName || '';
         } else {
           item.symbolSize = defaultSize;
           item.itemStyle = {

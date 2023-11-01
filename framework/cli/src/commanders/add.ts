@@ -7,10 +7,12 @@ import {
 } from '../assets/methods/utils';
 import { KfCategoryTypes } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import autocompletePrompt from 'inquirer-autocomplete-prompt';
-import { PathPrompt } from 'inquirer-path';
 import { getCombineValueByPrimaryKeys } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
-import { getExtConfigList } from '@kungfu-trader/kungfu-js-api/utils/extUtils';
-import { getKfExtensionConfig } from '@kungfu-trader/kungfu-js-api/utils/extUtils';
+import {
+  getExtConfigList,
+  getKfExtensionConfig,
+} from '@kungfu-trader/kungfu-js-api/utils/extUtils';
+import { PathPrompt } from 'inquirer-path-pro';
 import {
   getPrimaryKeyFromKfConfigItem,
   getIdByKfLocation,

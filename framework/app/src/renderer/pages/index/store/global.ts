@@ -15,13 +15,13 @@ import {
   getSubscribedInstruments,
   getTdGroups,
   getAllBaskets,
-  getAllBasketInstruments,
 } from '@kungfu-trader/kungfu-js-api/actions';
 import {
   Pm2ProcessStatusDetailData,
   Pm2ProcessStatusData,
 } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
 import {
+  BasketTypeEnum,
   BrokerStateStatusTypes,
   KfCategoryTypes,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
@@ -44,7 +44,6 @@ interface GlobalState {
   strategyList: KungfuApi.KfConfig[];
   operatorList: KungfuApi.KfConfig[];
   basketList: KungfuApi.Basket[];
-  basketInstrumentList: KungfuApi.BasketInstrument[];
 
   processStatusData: Pm2ProcessStatusData;
   processStatusWithDetail: Pm2ProcessStatusDetailData;
@@ -106,7 +105,6 @@ export const useGlobalStore = defineStore('global', {
       strategyList: [],
       operatorList: [],
       basketList: [],
-      basketInstrumentList: [],
 
       processStatusData: {},
       processStatusWithDetail: {},
@@ -219,7 +217,7 @@ export const useGlobalStore = defineStore('global', {
     },
 
     setKfConfigList() {
-      return getAllKfConfigOriginData().then((res) => {
+      return getAllKfConfigOriginData(window.watcher).then((res) => {
         const { md, strategy, operator } = res;
         let { td } = res;
         if (this.tdFilter) {
@@ -259,20 +257,16 @@ export const useGlobalStore = defineStore('global', {
     },
 
     setRiskSettingList() {
-      return getAllRiskSettingList().then((res) => {
+      return getAllRiskSettingList(window.watcher).then((res) => {
         this.riskSettings = res;
       });
     },
 
     setBasketList() {
-      return getAllBaskets().then((basketList) => {
-        this.basketList = basketList;
-      });
-    },
-
-    setBasketInstrumentList() {
-      return getAllBasketInstruments().then((basketInstrumentList) => {
-        this.basketInstrumentList = basketInstrumentList;
+      return getAllBaskets(window.watcher).then((basketList) => {
+        this.basketList = basketList.filter(
+          (item) => item.basket_type === BasketTypeEnum.Custom,
+        );
       });
     },
 

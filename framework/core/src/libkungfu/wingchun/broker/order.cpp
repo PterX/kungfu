@@ -50,8 +50,9 @@ void OrderService::on_order_input(const event_ptr &event) {
 void OrderService::on_order_action(const event_ptr &event) {
   get_service().cancel_order(event);
   const auto &order_action = event->data<OrderAction>();
-  order_actions_.insert_or_assign(order_action.order_id,
-                                  state<OrderAction>{event->source(), event->dest(), event->gen_time(), order_action});
+  // source is cancel strategy, dest is TD, so swap source and dest
+  order_actions_.insert_or_assign(order_action.order_action_id,
+                                  state<OrderAction>{event->dest(), event->source(), event->gen_time(), order_action});
 }
 
 void OrderService::on_order(int64_t gen_time, uint32_t source, uint32_t dest, const Order &order) {

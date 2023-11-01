@@ -7,6 +7,7 @@ import {
   dealSession,
   getNowInNano,
 } from '../utils';
+import { JournalLoadingtype } from '../types';
 import { SessionStatusEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 
 interface journalState {
@@ -16,7 +17,8 @@ interface journalState {
   currentTime: bigint;
   currentLoadedLastestFrameGenTime: bigint;
   currentLocation: LocationRseolved | null;
-  isLoadingFrames: boolean;
+  journalLoadingType: JournalLoadingtype;
+  isBuildingTracer: boolean;
   selectedChartItem: number;
   currentFrame: KungfuApi.FrameResolved | null;
   currentFrameId: string;
@@ -30,7 +32,8 @@ export const useJournalStore = defineStore('journal', {
     currentTime: getNowInNano(),
     currentLoadedLastestFrameGenTime: 0n,
     currentLocation: null,
-    isLoadingFrames: false,
+    journalLoadingType: 'finish',
+    isBuildingTracer: false,
     selectedChartItem: 0,
     currentFrame: null,
     currentFrameId: '',

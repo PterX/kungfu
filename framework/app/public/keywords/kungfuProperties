@@ -71,9 +71,13 @@ initial_equity
 static_equity
 dynamic_equity
 realized_pnl
-avail
+unrealized_pnl
 market_value
+short_market_value
+long_market_value
 margin
+short_margin
+long_margin
 accumulated_fee
 intraday_fee
 frozen_cash
@@ -81,14 +85,11 @@ frozen_margin
 frozen_fee
 position_pnl
 close_pnl
+avail
 total_asset
 avail_margin
-cash_margin
-short_margin
-cash_debt
+long_debt
 short_cash
-short_market_value
-margin_market_value
 margin_interest
 settlement
 credit
@@ -109,7 +110,6 @@ close_price
 pre_close_price
 settlement_price
 pre_settlement_price
-unrealized_pnl
 source_id
 product_id
 is_trading
@@ -298,10 +298,7 @@ Basket
 RequestWriteToBand
 TimeValue
 TimeKeyValue
-LIVE
-DATA
-REPLAY
-BACKTEST
+return ej_pair.first
 MD
 TD
 STRATEGY

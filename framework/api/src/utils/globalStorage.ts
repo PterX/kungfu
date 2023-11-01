@@ -123,8 +123,7 @@ export function getGlobalStorage<T>(): ExtendedGlobalStorage<T> {
         return Reflect.get(target, key);
       },
     });
-    return newGlobalStorage;
-  } else {
-    return globalThis.globalStorage;
   }
+
+  return globalThis.globalStorage;
 }

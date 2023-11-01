@@ -725,7 +725,6 @@ function buildCsvHeadersValidator(
 
       switch (type) {
         case 'str':
-          if (!value) return false;
           break;
         case 'num':
           if (Number.isNaN(Number(value))) return false;

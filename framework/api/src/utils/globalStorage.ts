@@ -117,12 +117,7 @@ export function getGlobalStorage<T>(): ExtendedGlobalStorage<T> {
       },
     };
     initStorage(newGlobalStorage);
-    globalThis.globalStorage = new Proxy(newGlobalStorage, {
-      get: (target, key) => {
-        updateStorage(target);
-        return Reflect.get(target, key);
-      },
-    });
+    globalThis.globalStorage = newGlobalStorage;
   }
 
   return globalThis.globalStorage;

@@ -13,7 +13,6 @@ import {
 import { initialize, enable as enableRemote } from '@electron/remote/main';
 import path from 'path';
 import os from 'os';
-import dayjs from 'dayjs';
 import {
   showQuitMessageBox,
   showCrashMessageBox,
@@ -119,10 +118,6 @@ async function createWindow(
 
     isUpdateVersionLogicEnable() && handleUpdateKungfu(MainWindow);
     globalStorage.setItem('ifNotFirstRunning', true);
-    globalStorage.setItem(
-      'lastStartDateTime',
-      dayjs().format('YYYY-MM-DD HH:mm:ss'),
-    );
   });
 
   MainWindow.on('close', (e) => {

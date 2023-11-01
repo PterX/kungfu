@@ -53,10 +53,7 @@ import {
   delayMilliSeconds,
   buildIfWatcherLiveObservable,
   kfLogger,
-  ifTodayFirstStart,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
-import { LifeCycleKeys } from '@kungfu-trader/kungfu-js-api/hooks/lifeCycleHook';
-import { KfHookKeeper } from '@kungfu-trader/kungfu-js-api/hooks/index';
 import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   Pm2ProcessStatusDetailData,
@@ -239,13 +236,7 @@ const initStartAll = (bypassArchive = false) => {
 loadCustomFont().then(async () => {
   await mergeExtLanguages();
   await useComponents(app, router);
-  console.log('ifTodayFirstStart', ifTodayFirstStart());
-  (globalThis.HookKeeper as KfHookKeeper)
-    .getHooks()
-    .lifeCycle.trigger(LifeCycleKeys.BeforeAppMount)
-    .finally(() => {
-      app.mount('#app');
-    });
+  app.mount('#app');
 
   if (!booleanProcessEnv(process.env.RELOAD_AFTER_CRASHED)) {
     await initStartAll();

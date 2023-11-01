@@ -18,6 +18,7 @@ struct MDConfiguration {
   int md_port;
   std::string protocol;
   int buffer_size;
+  bool query_instruments;
 };
 
 void from_json(const nlohmann::json &j, MDConfiguration &c) {
@@ -31,6 +32,7 @@ void from_json(const nlohmann::json &j, MDConfiguration &c) {
     c.protocol = "tcp";
   }
   c.buffer_size = j.value("buffer_size", 64);
+  c.query_instruments = j.value<bool>("query_instruments", false);
 }
 
 MarketDataXTP::MarketDataXTP(broker::BrokerVendor &vendor) : MarketData(vendor), api_(nullptr) {
@@ -66,10 +68,12 @@ void MarketDataXTP::on_start() {
     update_broker_state(BrokerState::LoggedIn);
     update_broker_state(BrokerState::Ready);
     SPDLOG_INFO("login success! (account_id) {}", config.account_id);
-    api_->QueryAllTickers(XTP_EXCHANGE_SH);
-    api_->QueryAllTickers(XTP_EXCHANGE_SZ);
-    api_->QueryAllTickersFullInfo(XTP_EXCHANGE_SH);
-    api_->QueryAllTickersFullInfo(XTP_EXCHANGE_SZ);
+    if (config.query_instruments and not check_if_stored_instruments(time::strfnow("%Y%m%d"))) {
+      api_->QueryAllTickers(XTP_EXCHANGE_SH);
+      api_->QueryAllTickers(XTP_EXCHANGE_SZ);
+      api_->QueryAllTickersFullInfo(XTP_EXCHANGE_SH);
+      api_->QueryAllTickersFullInfo(XTP_EXCHANGE_SZ);
+    }
   } else {
     update_broker_state(BrokerState::LoginFailed);
     SPDLOG_ERROR("failed to login, [{}] {}", api_->GetApiLastError()->error_id, api_->GetApiLastError()->error_msg);
@@ -206,5 +210,8 @@ void MarketDataXTP::OnQueryAllTickersFullInfo(XTPQFI *ticker_info, XTPRI *error_
   instrument.instrument_type = get_instrument_type(instrument.exchange_id, instrument.instrument_id);
   SPDLOG_TRACE("instrument {}", instrument.to_string());
   get_writer(0)->close_data();
+  if (is_last) {
+    record_stored_instruments_trading_day(time::strfnow("%Y%m%d"));
+  }
 }
 } // namespace kungfu::wingchun::xtp

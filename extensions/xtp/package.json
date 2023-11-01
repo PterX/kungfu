@@ -4,7 +4,7 @@
     "name": "Kungfu Trader",
     "email": "info@kungfu.link"
   },
-  "version": "2.5.13",
+  "version": "2.5.14-alpha.3",
   "description": "Kungfu Extension - XTP Demo",
   "license": "Apache-2.0",
   "main": "package.json",
@@ -29,10 +29,10 @@
     "package": "kfs extension package"
   },
   "dependencies": {
-    "@kungfu-trader/kungfu-core": "^2.5.13"
+    "@kungfu-trader/kungfu-core": "^2.5.14-alpha.3"
   },
   "devDependencies": {
-    "@kungfu-trader/kungfu-sdk": "^2.5.13"
+    "@kungfu-trader/kungfu-sdk": "^2.5.14-alpha.3"
   },
   "kungfuDependencies": {
     "xtp": "v2.2.32.2"
@@ -88,7 +88,9 @@
         "sync_external_order_tip": "若开启则同步用户在其他交易软件的订单",
         "recover_order_trade": "恢复订单",
         "recover_order_trade_msg": "启动时是否查询恢复订单",
-        "recover_order_trade_tip": "若开启则启动时查询今日委托和成交"
+        "recover_order_trade_tip": "若开启则启动时查询今日委托和成交",
+        "query_instruments": "查询可交易标的",
+        "query_instruments_tip": "是否查询可交易标的, 开启后会查询所有可交易标的, 流量太大频繁查询可能导致账号或ip被XTP拉黑"
       },
       "en-US": {
         "account_name": "account name",
@@ -118,7 +120,9 @@
         "sync_external_order_tip": "If enabled, it synchronizes users' orders in other trading software",
         "recover_order_trade": "recover order trade",
         "recover_order_trade_msg": "Whether recover order trade",
-        "recover_order_trade_tip": "If enabled, query order and trade when TD ready"
+        "recover_order_trade_tip": "If enabled, query order and trade when TD ready",
+        "query_instruments": "query instruments",
+        "query_instruments_tip": "If enabled, query instruments. too much infomation may result in account or ip blacklisted by XTP"
       }
     },
     "config": {
@@ -248,7 +252,8 @@
               }
             ],
             "required": false,
-            "tip": "xtp.protocol_tip"
+            "tip": "xtp.protocol_tip",
+            "default": "tcp"
           },
           {
             "key": "buffer_size",
@@ -264,6 +269,14 @@
             "required": true,
             "tip": "xtp.client_id_tip",
             "default": 23
+          },
+          {
+            "key": "query_instruments",
+            "name": "xtp.query_instruments",
+            "type": "bool",
+            "required": false,
+            "tip": "xtp.query_instruments_tip",
+            "default": false
           }
         ]
       }

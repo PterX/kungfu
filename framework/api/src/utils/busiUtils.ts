@@ -2699,3 +2699,19 @@ export function roundToDecimalPlaces(num: number, precision: number) {
   const multiplier = Math.pow(10, precision);
   return Math.round(num * multiplier) / multiplier;
 }
+
+export const ifTodayFirstStart = () => {
+  const lastStartDateTime = globalStorage.getItem('lastStartDateTime');
+  if (lastStartDateTime) {
+    const dateDayjs = dayjs(lastStartDateTime);
+    if (dateDayjs.isValid()) {
+      const todayDayjs = dayjs();
+      return (
+        dateDayjs.isSame(todayDayjs, 'year') &&
+        dateDayjs.isSame(todayDayjs, 'month') &&
+        !dateDayjs.isSame(todayDayjs, 'day')
+      );
+    }
+  }
+  return true;
+};

@@ -111,20 +111,23 @@
           </a-menu>
           <div class="kf-journal-menu-content">
             <EventsDashBoard
-              v-if="currentSession && isCurrentMenuItem('event')"
+              v-show="currentSession && isCurrentMenuItem('event')"
               ref="eventDashBoard"
             />
-            <Replay
-              v-if="
-                currentSession &&
-                isShowReplayAction &&
-                replayPramas.processId &&
-                isCurrentMenuItem('replay')
-              "
-              ref="replayRef"
-              :params="replayPramas"
-              :key="replayPramas.processId"
-            />
+            <template v-if="replayPramas.logPath">
+              <Replay
+                v-show="
+                  currentSession &&
+                  isShowReplayAction &&
+                  replayPramas.logPath &&
+                  replayPramas.processId &&
+                  isCurrentMenuItem('replay')
+                "
+                ref="replayRef"
+                :params="replayPramas"
+                :key="replayPramas.processId"
+              />
+            </template>
           </div>
         </div>
       </div>

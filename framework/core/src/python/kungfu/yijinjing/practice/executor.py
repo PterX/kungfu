@@ -60,6 +60,18 @@ class ExecutorRegistry:
         ctx = self.ctx
         ctx.logger.debug(f"finding kungfu extension for {ctx.location}")
 
+        if ctx.arguments is None:
+            ctx.arguments = "{}"
+        elif ctx.arguments.endswith(".json"):
+            json_path = ctx.arguments.replace("\\", "/")
+            try:
+                with open(json_path, "r", encoding="utf-8") as file:
+                    ctx.arguments = json.dumps(json.load(file))
+                    ctx.logger.info(f"arguments: {ctx.arguments}")
+            except Exception as e:
+                ctx.logger.error(f"load json from {json_path} failed: {e}")
+                raise e
+
         if ctx.extension_path:
             deque(map(self.register_extensions, ctx.extension_path.split(path.pathsep)))
         elif ctx.path:

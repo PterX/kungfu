@@ -362,6 +362,10 @@ bool Bookkeeper::is_td(uint32_t location_uid) {
   return app_.get_location(location_uid)->category == category::TD;
 }
 
-bool Bookkeeper::is_ready_td(uint32_t location_uid) { return ready_tds_.try_emplace(location_uid).first->second; }
-
+bool Bookkeeper::is_ready_td(uint32_t location_uid) {
+  if (app_.get_location(location_uid)->mode == mode::BACKTEST) {
+    return true;
+  }
+  return ready_tds_.try_emplace(location_uid, false).first->second;
+}
 } // namespace kungfu::wingchun::book

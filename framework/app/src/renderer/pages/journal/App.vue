@@ -90,7 +90,7 @@
             class="kf-journal-time-slider"
           ></TimeSlider>
           <JournalActions
-            :is-show-replay-action="isShowReplayAction"
+            :is-show-replay-action="isShowReplayAction || false"
             :is-show-visual-action="isShowVisualAction"
             @export-journal-data="onJournalActionsData"
             @start-replay="dealLocation"
@@ -111,20 +111,23 @@
           </a-menu>
           <div class="kf-journal-menu-content">
             <EventsDashBoard
-              v-if="currentSession && isCurrentMenuItem('event')"
+              v-show="currentSession && isCurrentMenuItem('event')"
               ref="eventDashBoard"
             />
-            <Replay
-              v-if="
-                currentSession &&
-                isShowReplayAction &&
-                replayPramas.processId &&
-                isCurrentMenuItem('replay')
-              "
-              ref="replayRef"
-              :params="replayPramas"
-              :key="replayPramas.processId"
-            />
+            <template v-if="replayPramas.logPath">
+              <Replay
+                v-show="
+                  currentSession &&
+                  isShowReplayAction &&
+                  replayPramas.logPath &&
+                  replayPramas.processId &&
+                  isCurrentMenuItem('replay')
+                "
+                ref="replayRef"
+                :params="replayPramas"
+                :key="replayPramas.processId"
+              />
+            </template>
           </div>
         </div>
       </div>
@@ -155,6 +158,7 @@ import {
   getCurrentInstance,
   watch,
   onUnmounted,
+  ComputedRef,
 } from 'vue';
 import { ensureFileSync, outputFile } from 'fs-extra';
 import { storeToRefs } from 'pinia';
@@ -284,7 +288,7 @@ const replayPramas = computed(() => {
     enableMatcher: enableMatcher.toString(),
   };
 });
-const isShowReplayAction = computed(() => {
+const isShowReplayAction: ComputedRef<boolean> = computed(() => {
   return (
     currentSession.value &&
     (testCase.value.replayEnabled[currentSession.value.category] ||

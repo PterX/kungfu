@@ -25,6 +25,7 @@ using namespace kungfu::yijinjing::journal;
 namespace kungfu::yijinjing::os {
 
 uintptr_t load_mmap_buffer(const std::string &path, size_t size, bool is_writing, bool lazy) {
+
 #ifdef _WINDOWS
   bool is_master = is_writing || !lazy;
   HANDLE dumpFileDescriptor = CreateFileA(path.c_str(), (is_master) ? (GENERIC_READ | GENERIC_WRITE) : GENERIC_READ,

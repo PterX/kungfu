@@ -98,6 +98,7 @@ private:
   bool replica_{false};
   const longfist::enums::Priority priority_;
   bool keep_page_{false};
+  bool preload_{false};
 
   void load_page(uint32_t page_id);
 

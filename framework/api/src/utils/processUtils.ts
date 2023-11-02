@@ -1010,7 +1010,7 @@ export const startLedger = async (
 ): Promise<void> => {
   const isReplay = mode === 'replay';
   let args = '';
-  const location = getLedgerLocation();
+  const location = getLedgerLocation(mode);
   const ProcessId = getProcessIdByKfLocation(location);
   try {
     !isReplay ? await preStartProcess(ProcessId, force) : '';

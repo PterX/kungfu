@@ -108,7 +108,9 @@ export const getProcessIdByKfLocation = (
         return `${kfLocation.category}_${kfLocation.group}_${kfLocation.name}_${mode}`;
       }
     case 'system':
-      return `${kfLocation.name}_${mode}`;
+      return ['master', 'ledger'].includes(kfLocation.name)
+        ? `${kfLocation.name}_${mode}`
+        : kfLocation.name;
     default:
       return `${kfLocation.category}_${kfLocation.group}_${kfLocation.name}_${mode}`;
   }
@@ -181,6 +183,11 @@ export const getKfLocationByProcessId = (
     return getStrategyKfLocationByProcessId(processId);
   } else if (processId.indexOf('_') === -1) {
     return getSystemKfLocationProcessId(processId);
+  } else if (
+    processId.indexOf('master_') === 0 ||
+    processId.indexOf('ledger_') === 0
+  ) {
+    return getSystemKfLocationProcessId(processId.split('_')[0]);
   }
 
   return null;
@@ -512,13 +519,6 @@ export const getSystemKfLocationProcessId = (processId: string) => {
     return {
       category: 'system',
       group: processId,
-      name: processId,
-      mode: 'live',
-    };
-  } else if (['ledger', 'archive', 'dzxy'].indexOf(processId) !== -1) {
-    return {
-      category: 'system',
-      group: 'service',
       name: processId,
       mode: 'live',
     };

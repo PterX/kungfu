@@ -23,7 +23,7 @@ struct timer_task {
 
 class master : public hero {
 public:
-  explicit master(yijinjing::data::location_ptr home, bool low_latency = false, bool bypass_cached = false);
+  explicit master(const yijinjing::data::location_ptr &home, bool low_latency = false, bool bypass_cached = false);
 
   void on_exit() override;
 

@@ -47,18 +47,18 @@ import {
   ifKfDev,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
-  getMasterLocation,
-  getLedgerLocation,
-  getMasterProcessId,
-  getLedgerProcessId,
-  getDzxyProcessId,
-} from '@kungfu-trader/kungfu-js-api/utils/system';
+  buildMasterLocation,
+  buildLedgerLocation,
+  buildMasterProcessId,
+  buildLedgerProcessId,
+  buildDzxyProcessId,
+} from '@kungfu-trader/kungfu-js-api/utils/systemUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { Pm2StartOptions } from '../typings/global';
 import { KfHookKeeper } from '../hooks';
 import { getAppRuntimeDirName } from './fileUtils';
 import { getKfCommission } from '../kungfu/commission';
-import { getArchiveProcessId } from './system';
+import { buildArchiveProcessId } from './systemUtils';
 const { t } = VueI18n.global;
 
 process.env.PM2_HOME = path.resolve(os.homedir(), '.pm2');
@@ -949,8 +949,8 @@ export async function isAllMainProcessRunning(onlyMaster = false) {
   const { processStatus } = await listProcessStatus();
   kfLogger.info('isAllMainProcessRunning', processStatus);
 
-  const masterProcessId = getMasterProcessId();
-  const ledgerProcessId = getLedgerProcessId();
+  const masterProcessId = buildMasterProcessId();
+  const ledgerProcessId = buildLedgerProcessId();
 
   if (onlyMaster) {
     return getIfProcessRunning(processStatus, masterProcessId);
@@ -967,7 +967,7 @@ export function startArchiveMakeTask(
 ) {
   const globalSetting = getKfGlobalSettingsValue();
   const bypassArchive = globalSetting?.system?.bypassArchive ?? false;
-  const ProcessId = getArchiveProcessId();
+  const ProcessId = buildArchiveProcessId();
   return startProcessGetStatusUntilStop(
     {
       name: ProcessId,
@@ -980,7 +980,7 @@ export function startArchiveMakeTask(
 }
 
 export const startMaster = async (force = false): Promise<void> => {
-  const location = getMasterLocation();
+  const location = buildMasterLocation();
   const ProcessId = getProcessIdByKfLocation(location);
 
   try {
@@ -1010,7 +1010,7 @@ export const startLedger = async (
 ): Promise<void> => {
   const isReplay = mode === 'replay';
   let args = '';
-  const location = getLedgerLocation(mode);
+  const location = buildLedgerLocation(mode);
   const ProcessId = getProcessIdByKfLocation(location);
   try {
     !isReplay ? await preStartProcess(ProcessId, force) : '';
@@ -1515,7 +1515,7 @@ export const startStrategyOperator = async (
 };
 
 export const startDzxy = () => {
-  const ProcessId = getDzxyProcessId();
+  const ProcessId = buildDzxyProcessId();
 
   return startProcess({
     name: ProcessId,

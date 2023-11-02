@@ -1,7 +1,7 @@
 import { KfModeTypes } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import { getProcessIdByKfLocation } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 
-export const getMasterLocation = (
+export const buildMasterLocation = (
   mode: KfModeTypes = 'live',
 ): KungfuApi.KfLocation => {
   return {
@@ -12,7 +12,7 @@ export const getMasterLocation = (
   };
 };
 
-export const getLedgerLocation = (
+export const buildLedgerLocation = (
   mode: KfModeTypes = 'live',
 ): KungfuApi.KfLocation => {
   return {
@@ -23,7 +23,7 @@ export const getLedgerLocation = (
   };
 };
 
-export const getArhciveLocation = (
+export const buildArchiveLocation = (
   mode: KfModeTypes = 'live',
 ): KungfuApi.KfLocation => {
   return {
@@ -34,7 +34,7 @@ export const getArhciveLocation = (
   };
 };
 
-export const getDzxyLocation = (
+export const buildDzxyLocation = (
   mode: KfModeTypes = 'live',
 ): KungfuApi.KfLocation => {
   return {
@@ -45,18 +45,18 @@ export const getDzxyLocation = (
   };
 };
 
-export const getMasterProcessId = (mode: KfModeTypes = 'live') => {
-  return getProcessIdByKfLocation(getMasterLocation(mode));
+export const buildMasterProcessId = (mode: KfModeTypes = 'live') => {
+  return getProcessIdByKfLocation(buildMasterLocation(mode));
 };
 
-export const getLedgerProcessId = (mode: KfModeTypes = 'live') => {
-  return getProcessIdByKfLocation(getLedgerLocation(mode));
+export const buildLedgerProcessId = (mode: KfModeTypes = 'live') => {
+  return getProcessIdByKfLocation(buildLedgerLocation(mode));
 };
 
-export const getArchiveProcessId = (mode: KfModeTypes = 'live') => {
-  return getProcessIdByKfLocation(getArhciveLocation(mode));
+export const buildArchiveProcessId = (mode: KfModeTypes = 'live') => {
+  return getProcessIdByKfLocation(buildArchiveLocation(mode));
 };
 
-export const getDzxyProcessId = (mode: KfModeTypes = 'live') => {
-  return getProcessIdByKfLocation(getDzxyLocation(mode));
+export const buildDzxyProcessId = (mode: KfModeTypes = 'live') => {
+  return getProcessIdByKfLocation(buildDzxyLocation(mode));
 };

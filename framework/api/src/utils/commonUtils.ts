@@ -109,7 +109,6 @@ export const getProcessIdByKfLocation = (
       }
     case 'system':
       return `${kfLocation.name}_${mode}`;
-
     default:
       return `${kfLocation.category}_${kfLocation.group}_${kfLocation.name}_${mode}`;
   }
@@ -512,20 +511,22 @@ export const isTdStrategyCategory = (category: string): boolean => {
 
 export const getSystemKfLocationProcessId = (processId: string) => {
   if (!processId) return null;
-  const name = processId.split('_')[0];
+  const pair = processId.split('_');
+  if (pair.length !== 2) return null;
+  const [name, mode] = pair;
   if (name === 'master') {
     return {
       category: 'system',
       group: name,
-      name: name,
-      mode: 'live',
+      name,
+      mode,
     };
   } else {
     return {
       category: 'system',
       group: 'service',
-      name: name,
-      mode: 'live',
+      name,
+      mode,
     };
   }
 };

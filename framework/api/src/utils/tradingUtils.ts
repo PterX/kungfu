@@ -65,6 +65,7 @@ import {
 import { T0T1Config } from '../typings/global';
 
 import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
+import { getMasterLocation } from '@kungfu-trader/kungfu-js-api/utils/system';
 
 const { t } = VueI18n.global;
 
@@ -904,12 +905,7 @@ export const promiseWithCachedPause = <T>(
   delay = 200,
 ): Promise<T> => {
   return new Promise((resolve, reject) => {
-    const masterLocation = {
-      category: 'system',
-      group: 'master',
-      name: 'master',
-      mode: 'live',
-    };
+    const masterLocation = getMasterLocation();
 
     let keyCachedPause = 10253;
     let keyCachedResume = 10254;

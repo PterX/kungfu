@@ -90,7 +90,7 @@
             class="kf-journal-time-slider"
           ></TimeSlider>
           <JournalActions
-            :is-show-replay-action="isShowReplayAction"
+            :is-show-replay-action="isShowReplayAction || false"
             :is-show-visual-action="isShowVisualAction"
             @export-journal-data="onJournalActionsData"
             @start-replay="dealLocation"
@@ -158,6 +158,7 @@ import {
   getCurrentInstance,
   watch,
   onUnmounted,
+  ComputedRef,
 } from 'vue';
 import { ensureFileSync, outputFile } from 'fs-extra';
 import { storeToRefs } from 'pinia';
@@ -287,7 +288,7 @@ const replayPramas = computed(() => {
     enableMatcher: enableMatcher.toString(),
   };
 });
-const isShowReplayAction = computed(() => {
+const isShowReplayAction: ComputedRef<boolean> = computed(() => {
   return (
     currentSession.value &&
     (testCase.value.replayEnabled[currentSession.value.category] ||

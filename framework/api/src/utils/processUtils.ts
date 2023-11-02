@@ -46,11 +46,19 @@ import {
   booleanProcessEnv,
   ifKfDev,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import {
+  getMasterLocation,
+  getLedgerLocation,
+  getMasterProcessId,
+  getLedgerProcessId,
+  getDzxyProcessId,
+} from '@kungfu-trader/kungfu-js-api/utils/system';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { Pm2StartOptions } from '../typings/global';
 import { KfHookKeeper } from '../hooks';
 import { getAppRuntimeDirName } from './fileUtils';
 import { getKfCommission } from '../kungfu/commission';
+import { getArchiveProcessId } from './system';
 const { t } = VueI18n.global;
 
 process.env.PM2_HOME = path.resolve(os.homedir(), '.pm2');
@@ -941,13 +949,16 @@ export async function isAllMainProcessRunning(onlyMaster = false) {
   const { processStatus } = await listProcessStatus();
   kfLogger.info('isAllMainProcessRunning', processStatus);
 
+  const masterProcessId = getMasterProcessId();
+  const ledgerProcessId = getLedgerProcessId();
+
   if (onlyMaster) {
-    return getIfProcessRunning(processStatus, 'master');
+    return getIfProcessRunning(processStatus, masterProcessId);
   }
 
   return (
-    getIfProcessRunning(processStatus, 'master') &&
-    getIfProcessRunning(processStatus, 'ledger')
+    getIfProcessRunning(processStatus, masterProcessId) &&
+    getIfProcessRunning(processStatus, ledgerProcessId)
   );
 }
 
@@ -956,9 +967,10 @@ export function startArchiveMakeTask(
 ) {
   const globalSetting = getKfGlobalSettingsValue();
   const bypassArchive = globalSetting?.system?.bypassArchive ?? false;
+  const ProcessId = getArchiveProcessId();
   return startProcessGetStatusUntilStop(
     {
-      name: 'archive',
+      name: ProcessId,
       args: buildArgs({
         extraArgs: `journal archive ${bypassArchive ? '-m delete' : ''}`,
       }),
@@ -968,17 +980,11 @@ export function startArchiveMakeTask(
 }
 
 export const startMaster = async (force = false): Promise<void> => {
-  const processName = 'master';
-  const location = {
-    category: 'system',
-    group: 'master',
-    name: 'master',
-    mode: 'live',
-  };
+  const location = getMasterLocation();
   const ProcessId = getProcessIdByKfLocation(location);
 
   try {
-    await preStartProcess(processName, force);
+    await preStartProcess(ProcessId, force);
     if (force) await killKfc();
     const args = buildArgs({
       location,
@@ -1004,15 +1010,10 @@ export const startLedger = async (
 ): Promise<void> => {
   const isReplay = mode === 'replay';
   let args = '';
-  const location = {
-    category: 'system',
-    group: 'service',
-    name: 'ledger',
-    mode: mode,
-  };
-  const processName = getProcessIdByKfLocation(location);
+  const location = getLedgerLocation();
+  const ProcessId = getProcessIdByKfLocation(location);
   try {
-    !isReplay ? await preStartProcess(processName, force) : '';
+    !isReplay ? await preStartProcess(ProcessId, force) : '';
     const globalSetting = getKfGlobalSettingsValue();
     const bypassRefreshBook =
       process.env.BY_PASS_REFRESHBOOK ??
@@ -1032,7 +1033,7 @@ export const startLedger = async (
       });
     }
     await startProcess({
-      name: processName,
+      name: ProcessId,
       args,
       force,
     });
@@ -1042,10 +1043,10 @@ export const startLedger = async (
 };
 
 async function preStartProcess(
-  processName: string,
+  processId: string,
   force = false,
 ): Promise<void> {
-  const processOrError = await pm2Describe(processName);
+  const processOrError = await pm2Describe(processId);
   if (processOrError instanceof Error) {
     kfLogger.error(processOrError.message);
     throw processOrError;
@@ -1056,7 +1057,7 @@ async function preStartProcess(
   ).length;
 
   if (!force && isProcessAlive) {
-    const err = new Error(`kungfu ${processName} is alive`);
+    const err = new Error(`kungfu ${processId} is alive`);
     kfLogger.error(err);
     return Promise.reject(err);
   }
@@ -1514,8 +1515,10 @@ export const startStrategyOperator = async (
 };
 
 export const startDzxy = () => {
+  const ProcessId = getDzxyProcessId();
+
   return startProcess({
-    name: 'dzxy',
+    name: ProcessId,
     args: '',
     cwd: process.env.CLI_DIR,
     script: 'dzxy.js',

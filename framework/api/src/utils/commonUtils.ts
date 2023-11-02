@@ -108,9 +108,8 @@ export const getProcessIdByKfLocation = (
         return `${kfLocation.category}_${kfLocation.group}_${kfLocation.name}_${mode}`;
       }
     case 'system':
-      return ['master', 'ledger'].includes(kfLocation.name)
-        ? `${kfLocation.name}_${mode}`
-        : kfLocation.name;
+      return `${kfLocation.name}_${mode}`;
+
     default:
       return `${kfLocation.category}_${kfLocation.group}_${kfLocation.name}_${mode}`;
   }
@@ -181,13 +180,11 @@ export const getKfLocationByProcessId = (
     return getOperatorKfLocationByProcessId(processId);
   } else if (processId.indexOf('strategy_') === 0) {
     return getStrategyKfLocationByProcessId(processId);
-  } else if (processId.indexOf('_') === -1) {
-    return getSystemKfLocationProcessId(processId);
   } else if (
-    processId.indexOf('master_') === 0 ||
-    processId.indexOf('ledger_') === 0
+    processId.split('_').length === 2 &&
+    processId.indexOf('_live') !== -1
   ) {
-    return getSystemKfLocationProcessId(processId.split('_')[0]);
+    return getSystemKfLocationProcessId(processId);
   }
 
   return null;
@@ -515,23 +512,22 @@ export const isTdStrategyCategory = (category: string): boolean => {
 
 export const getSystemKfLocationProcessId = (processId: string) => {
   if (!processId) return null;
-  if (processId === 'master') {
+  const name = processId.split('_')[0];
+  if (name === 'master') {
     return {
       category: 'system',
-      group: processId,
-      name: processId,
+      group: name,
+      name: name,
       mode: 'live',
     };
   } else {
     return {
       category: 'system',
       group: 'service',
-      name: processId,
+      name: name,
       mode: 'live',
     };
   }
-
-  return null;
 };
 
 export const getStrategyKfLocationByProcessId = (

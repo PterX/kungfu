@@ -192,7 +192,9 @@ void cached::handle_cached_feeds(int store_volume_every_loop) {
   boost::hana::for_each(StateDataTypes, [&](auto it) {
     using DataType = typename decltype(+boost::hana::second(it))::type;
 
-    if (DataType::tag == Instrument::tag or DataType::tag == BasketInstrument::tag) {
+    // even if etf related types are profile types, but these data should only be stored in td's public.db, so this
+    // place should not filter Basket and Basket Instrument
+    if (DataType::tag == Instrument::tag) {
       return;
     }
 
@@ -211,8 +213,13 @@ void cached::handle_profile_feeds(int store_volume_every_loop) {
   int stored_controller = 0;
   boost::hana::for_each(ProfileDataTypes, [&](auto it) {
     using DataType = typename decltype(+boost::hana::second(it))::type;
-    auto hana_type = boost::hana::type_c<DataType>;
 
+    // only etf related data will be stored by cached, these data should be only store in td public.db, for CachedReset
+    if (DataType::tag == Basket::tag || DataType::tag == BasketInstrument::tag) {
+      return;
+    }
+
+    auto hana_type = boost::hana::type_c<DataType>;
     using FeedMap = std::unordered_map<uint64_t, state<DataType>>;
     auto &feed_map = const_cast<FeedMap &>(profile_bank_[hana_type]);
 

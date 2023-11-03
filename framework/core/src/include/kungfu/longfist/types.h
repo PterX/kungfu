@@ -96,8 +96,8 @@ KF_DEFINE_PACK_TYPE(                         //
     (double, unrealized_pnl), // 未实现盈亏
 
     (double, market_value),       // 市值
-    (double, short_market_value), // 融券卖出证券市值, 或otc业务市值(多)
-    (double, long_market_value),  // 融资买入证券市值, 或otc业务市值(空)
+    (double, long_market_value),  // 融资买入证券市值, 或otc业务市值(多)
+    (double, short_market_value), // 融券卖出证券市值, 或otc业务市值(空)
 
     (double, margin),       // 保证金占用
     (double, long_margin),  // 融资占用保证金, 或otc业务保证金占用(多)
@@ -115,13 +115,10 @@ KF_DEFINE_PACK_TYPE(                         //
 
     (double, avail),       // 可用资金
     (double, long_avail),  // otc业务可用资金(多)
-    (double, short_avail), // otc业务可用资金（空）
+    (double, short_avail), // otc业务可用资金(空）
 
-    (double, total_asset), // 总资产
-
-    (double, avail_margin),       // 可用保证金
-    (double, long_avail_margin),  // otc业务保证金可用(多)
-    (double, short_avail_margin), // otc业务保证金占用(空)
+    (double, total_asset),  // 总资产
+    (double, avail_margin), // 可用保证金
 
     (double, long_debt),  // 融资负债
     (double, short_cash), // 融券卖出金额

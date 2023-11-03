@@ -53,7 +53,6 @@ import {
   delayMilliSeconds,
   buildIfWatcherLiveObservable,
   kfLogger,
-  ifTodayFirstStart,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { LifeCycleKeys } from '@kungfu-trader/kungfu-js-api/hooks/lifeCycleHook';
 import { KfHookKeeper } from '@kungfu-trader/kungfu-js-api/hooks/index';

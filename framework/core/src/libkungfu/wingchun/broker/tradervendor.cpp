@@ -136,7 +136,7 @@ void TraderVendor::on_start() {
   service_->on_start();
 
   // after recover done, which take some time, then start to try req account
-  add_time_interval(5 * time_unit::NANOSECONDS_PER_SECOND, [&](auto e) { service_->try_req_account(); });
+  add_time_interval(7 * time_unit::NANOSECONDS_PER_SECOND, [&](auto e) { service_->try_req_account(); });
 }
 
 void TraderVendor::on_write_to(const event_ptr &event) {

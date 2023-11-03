@@ -12,10 +12,8 @@ journal::journal(data::location_ptr location, uint32_t dest_id, bool is_writing,
     : location_(std::move(location)), dest_id_(dest_id), is_writing_(is_writing), lazy_(lazy),
       low_latency_(low_latency), bus_(std::move(bus)), frame_(std::shared_ptr<frame>(new frame())), page_frame_nb_(0u),
       page_size_(page_size), priority_(priority), replica_(false) {
-  char *keep_page = std::getenv("KF_KEEP_PAGE");
-  char *preload = std::getenv("KF_PRELOAD");
-  keep_page_ = keep_page != nullptr;
-  preload_ = preload != nullptr;
+  keep_page_ = std::getenv("KF_KEEP_PAGE") != nullptr;
+  preload_ = std::getenv("KF_PRELOAD") != nullptr;
   SPDLOG_DEBUG("keep_page_: {}, preload_: {}", keep_page_, preload_);
 }
 

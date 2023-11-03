@@ -41,7 +41,7 @@ private:
   BrokerStateMap broker_states_ = {};
   OperatorStateMap operator_states_ = {};
 
-  bool bypass_refresh_book() const;
+  static bool bypass_refresh_book();
 
   void on_deregister(const longfist::types::Deregister &deregister);
 

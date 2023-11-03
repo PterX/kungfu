@@ -67,10 +67,12 @@ service_command_context = kfc.pass_context("low_latency")
 @click.option("-g", "--group", type=str, help="group")
 @click.option("-n", "--name", type=str, help="name")
 @click.option("-x", "--low-latency", is_flag=True, help="run in low latency mode")
-@click.option("-p", "--bypass-cached", is_flag=True, help="run in bypass cached mode")
 @click.argument("reference", type=str, required=False)
 @click.option("-a", "--arguments", type=str, required=False)
 @click.option("-v", "--vendor", type=str, required=False)
+@click.option(
+    "-ENV-bypass-cached", is_flag=True, required=False, help="run in bypass cached mode"
+)
 @click.option(
     "-ENV-keep-page",
     is_flag=True,
@@ -79,6 +81,18 @@ service_command_context = kfc.pass_context("low_latency")
 )
 @click.option(
     "-ENV-preload", is_flag=True, required=False, help="preload journal page "
+)
+@click.option(
+    "-ENV-bypass-accounting",
+    is_flag=True,
+    required=False,
+    help="bypass strategy bookkeeper accounting  ",
+)
+@click.option(
+    "-ENV-bypass-refresh-book",
+    is_flag=True,
+    required=False,
+    help="bypass refresh book in ledger  ",
 )
 @kfc.pass_context()
 def run(
@@ -97,12 +111,14 @@ def run(
     group,
     name,
     low_latency,
-    bypass_cached,
     reference,
     arguments,
     vendor,
     env_keep_page,
     env_preload,
+    env_bypass_accounting,
+    env_bypass_refresh_book,
+    env_bypass_cached,
 ):
     ctx.mode = mode
     ctx.category = category
@@ -118,7 +134,6 @@ def run(
     ctx.group = group
     ctx.name = name
     ctx.low_latency = low_latency
-    ctx.bypass_cached = bypass_cached
     ctx.path = reference
     ctx.arguments = arguments
     ctx.vendor = vendor

@@ -36,7 +36,6 @@ class Master(yjj.master):
             self,
             ctx.location,
             ctx.low_latency,
-            ctx.bypass_cached,
         )
         self.ctx = ctx
         self.ctx.master = self

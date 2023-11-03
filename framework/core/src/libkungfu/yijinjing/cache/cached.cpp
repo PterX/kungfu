@@ -331,8 +331,12 @@ void cached::store_profile_feeds() {
 
   boost::hana::for_each(ProfileDataTypes, [&](auto it) {
     using DataType = typename decltype(+boost::hana::second(it))::type;
-    auto hana_type = boost::hana::type_c<DataType>;
+        // only etf related data will be stored by cached, these data should be only store in td public.db, for CachedReset
+    if (DataType::tag == Basket::tag || DataType::tag == BasketInstrument::tag) {
+      return;
+    }
 
+    auto hana_type = boost::hana::type_c<DataType>;
     using FeedMap = std::unordered_map<uint64_t, state<DataType>>;
     auto &feed_map = const_cast<FeedMap &>(tmp_profile_bank[hana_type]);
     std::vector<DataType> tmp_profile_vector = {};

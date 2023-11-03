@@ -58,7 +58,6 @@ public:
     get_storage()->replace_range(v_s.begin(), v_s.end());
   }
 
-
   yijinjing::cache::ProfileStoragePtr &get_storage();
 
 private:

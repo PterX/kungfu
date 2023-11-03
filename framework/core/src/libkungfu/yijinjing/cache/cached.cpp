@@ -340,7 +340,6 @@ void cached::store_profile_feeds() {
       tmp_profile_vector.push_back(s.second.data);
     }
 
-
     profile_store_mutex_.lock();
     try {
       profile_ << tmp_profile_vector;

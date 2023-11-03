@@ -331,7 +331,7 @@ void cached::store_profile_feeds() {
 
   boost::hana::for_each(ProfileDataTypes, [&](auto it) {
     using DataType = typename decltype(+boost::hana::second(it))::type;
-        // only etf related data will be stored by cached, these data should be only store in td public.db, for CachedReset
+    // only etf related data will be stored by cached, these data should be only store in td public.db, for CachedReset
     if (DataType::tag == Basket::tag || DataType::tag == BasketInstrument::tag) {
       return;
     }

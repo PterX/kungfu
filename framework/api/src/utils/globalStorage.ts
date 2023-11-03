@@ -18,19 +18,6 @@ function initStorage<T>(storage: ExtendedGlobalStorage<T>): boolean {
   }
 }
 
-function updateStorage<T>(storage: ExtendedGlobalStorage<T>): boolean {
-  try {
-    const _storage = readStorage<T>(storage);
-    if (_storage) {
-      storage._storage = _storage;
-      return true;
-    }
-    return false;
-  } catch (e) {
-    return false;
-  }
-}
-
 function readStorage<T>(
   storage: ExtendedGlobalStorage<T>,
 ): (T & GlobalStorageData) | false {

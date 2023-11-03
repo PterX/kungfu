@@ -77,7 +77,9 @@ service_command_context = kfc.pass_context("low_latency")
     required=False,
     help="keep journal page when process running",
 )
-@click.option("-ENV-preload", is_flag=True, required=False, help="preload journal page ")
+@click.option(
+    "-ENV-preload", is_flag=True, required=False, help="preload journal page "
+)
 @kfc.pass_context()
 def run(
     ctx,

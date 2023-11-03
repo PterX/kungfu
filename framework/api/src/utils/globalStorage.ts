@@ -105,8 +105,7 @@ export function getGlobalStorage<T>(): ExtendedGlobalStorage<T> {
     };
     initStorage(newGlobalStorage);
     globalThis.globalStorage = newGlobalStorage;
-    return newGlobalStorage;
-  } else {
-    return globalThis.globalStorage;
   }
+
+  return globalThis.globalStorage;
 }

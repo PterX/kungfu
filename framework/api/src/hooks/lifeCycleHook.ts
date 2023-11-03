@@ -6,6 +6,7 @@ type ClearRegister = { clear: () => boolean };
 type RegisterReturnType = ClearRegister | false;
 
 export enum LifeCycleKeys {
+  BeforeAppMount = 'beforeAppMount',
   BeforeStopAllProcesses = 'beforeStopAllProcesses',
 }
 

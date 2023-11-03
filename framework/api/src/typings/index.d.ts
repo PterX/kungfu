@@ -1103,9 +1103,9 @@ declare namespace KungfuApi {
       InstrumentResolved {
     basketInstrumentName: string;
     basketInstrumentId: string;
-    todayVolume?: number;
-    yesterdayVolume?: number;
-    posVolume?: number;
+    todayVolume?: string;
+    yesterdayVolume?: string;
+    posVolume?: string;
   }
 
   export interface BasketInstrumentForOrder extends BasketInstrumentResolved {

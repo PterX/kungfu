@@ -125,7 +125,7 @@
                 "
                 ref="replayRef"
                 :params="replayPramas"
-                :key="replayPramas.processId"
+                @stop-replay-loading="stopLoadingInterval"
               />
             </template>
           </div>
@@ -146,7 +146,13 @@
     :now="getNanoDateString(BigInt(new Date().getTime()) * 1000000n)"
     :log-level="replayConfig.log_level"
     @close="setReplayModalVisible = false"
-    @confirm="(event) => handleReplayModal(event, true)"
+    @confirm="
+      async (event) => (
+        await handleReplayModal(event, true),
+        startLoadingInterval(),
+        updateLogLevel()
+      )
+    "
   ></KfReplaySettingModal>
 </template>
 
@@ -159,6 +165,7 @@ import {
   watch,
   onUnmounted,
   ComputedRef,
+  watchEffect,
 } from 'vue';
 import { ensureFileSync, outputFile } from 'fs-extra';
 import { storeToRefs } from 'pinia';
@@ -226,6 +233,9 @@ const {
   journalReplayflag,
   replayProcessParams,
   handleReplayModal,
+  startLoadingInterval,
+  stopLoadingInterval,
+  replayPreLoading,
 } = useReplay();
 
 const { setSessions, setCurrentSession } = useJournalStore();
@@ -257,7 +267,9 @@ const replayPramas = computed(() => {
   const mode = replayConfigValue.enable_matcher ? 'backtest' : 'replay';
   const { category, group, name, begin_time, end_time } = currentSessionValue;
   const dateStr = getYearMonthDay();
-  const logPath = replayConfigValue.enable_matcher
+  const logPath = setReplayModalVisible.value
+    ? replayPramas.value.logPath
+    : replayConfigValue.enable_matcher
     ? buildProcessBacktestPath(
         { category, group, name, mode },
         `${name}_${dateStr}`,
@@ -275,6 +287,7 @@ const replayPramas = computed(() => {
       : getNanoDateString(BigInt(new Date().getTime()) * 1000000n));
   const processId = getProcessIdByKfLocation({ category, group, name, mode });
   const enableMatcher = replayConfigValue.enable_matcher || false;
+
   return {
     category,
     group,
@@ -286,6 +299,7 @@ const replayPramas = computed(() => {
     filePath: replayConfigValue.file_path || '',
     processId,
     enableMatcher: enableMatcher.toString(),
+    replayPreLoading: replayPreLoading.value,
   };
 });
 const isShowReplayAction: ComputedRef<boolean> = computed(() => {
@@ -374,10 +388,11 @@ const exportFileName = computed(() => {
 
 const customRow = (record: KungfuApi.SessionResolved) => {
   return {
-    onClick: () => {
+    onClick: async () => {
       setCurrentSession(record);
 
       if (replayPramas.value.processId) {
+        stopLoadingInterval();
         const config = localStorage.getItem('replaySetting');
         const replaySetting = config ? JSON.parse(config) : {};
         replayConfig.value = {
@@ -391,9 +406,8 @@ const customRow = (record: KungfuApi.SessionResolved) => {
           file_path: '',
           enable_matcher: false,
         };
-        delayMilliSeconds(0).then(() => {
-          replayRef.value && replayRef.value.updateLogLevel();
-        });
+
+        updateLogLevel();
       }
     },
   };
@@ -476,22 +490,22 @@ watch(
     if (val) {
       if (currentSession.value) {
         const dateStr = getYearMonthDay();
-        const logPath = buildProcessReplayPath(
-          {
-            category: currentSession.value.category,
-            group: currentSession.value.group,
-            name: currentSession.value.name,
-            mode: replayConfig.value.enable_matcher ? 'backtest' : 'replay',
-          },
-          `${currentSession.value.name}_${dateStr}`,
-        );
+        const location = {
+          category: currentSession.value.category,
+          group: currentSession.value.group,
+          name: currentSession.value.name,
+          mode: replayConfig.value.enable_matcher ? 'backtest' : 'replay',
+        };
+        const logPath = replayConfig.value.enable_matcher
+          ? buildProcessBacktestPath(location, `${location.name}_${dateStr}`)
+          : buildProcessReplayPath(location, `${location.name}_${dateStr}`);
 
         ensureFileSync(logPath);
         outputFile(logPath, '')
           .then(() => {
             if (currentWindow) {
               ipcEmit('clear-process', {
-                processId: replayPramas.value.processId || '',
+                processId: (replayPramas.value.processId || '') as string,
               })
                 .then(() => {
                   const pawin =
@@ -515,6 +529,12 @@ watch(
     }
   },
 );
+
+function updateLogLevel() {
+  delayMilliSeconds(0).then(() => {
+    replayRef.value?.updateLogLevel();
+  });
+}
 
 const onJournalActionsData = (
   exportData: (fileName: string, exportData: KungfuApi.FrameResolved[]) => void,

@@ -130,7 +130,7 @@ void Book::update(int64_t update_time, longfist::enums::AccountingMethodType acc
   asset.market_value = 0;
   asset.long_market_value = 0;
   asset.short_market_value = 0;
-  asset.unrealized_pnl = 0;;
+  asset.unrealized_pnl = 0;
   asset.dynamic_equity = asset.avail;
 
   auto update_position = [&](const Position &position) {

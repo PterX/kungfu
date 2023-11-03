@@ -25,44 +25,33 @@ using namespace kungfu::yijinjing::journal;
 namespace kungfu::yijinjing::os {
 
 uintptr_t load_mmap_buffer(const std::string &path, size_t size, bool is_writing, bool lazy) {
-  SPDLOG_DEBUG("load_mmap_buffer: {}", util::get_thread_id());
-  static std::mutex load_page;
-  std::lock_guard<std::mutex> lk(load_page);
 #ifdef _WINDOWS
   bool is_master = is_writing || !lazy;
   HANDLE dumpFileDescriptor = CreateFileA(path.c_str(), (is_master) ? (GENERIC_READ | GENERIC_WRITE) : GENERIC_READ,
                                           FILE_SHARE_READ | FILE_SHARE_WRITE, NULL,
                                           (is_master) ? OPEN_ALWAYS : OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-  SPDLOG_DEBUG("CreateFileA: {}", util::get_thread_id());
   if (dumpFileDescriptor == INVALID_HANDLE_VALUE) {
-    SPDLOG_DEBUG("dumpFileDescriptor == INVALID_HANDLE_VALUE: {}", util::get_thread_id());
     throw journal_error("unable to mmap for page " + path);
   }
 
   // https://learn.microsoft.com/zh-cn/windows/win32/memory/creating-a-file-mapping-object?redirectedfrom=MSDN
   // max journal size is 2GB in Windows
-  SPDLOG_DEBUG("CreateFileMapping before: {}", util::get_thread_id());
   HANDLE fileMappingObject =
       CreateFileMapping(dumpFileDescriptor, NULL, (is_master) ? PAGE_READWRITE : PAGE_READONLY, 0, size, NULL);
-  SPDLOG_DEBUG("CreateFileMapping after: {}", util::get_thread_id());
 
   if (fileMappingObject == NULL) {
     int nRet = GetLastError();
-    SPDLOG_ERROR("{} CreateFileMapping Error = {}, {}\n", is_master ? "writer" : "reader", nRet, path);
     throw journal_error("unable to mmap for page " + path);
   }
 
   void *buffer = MapViewOfFile(fileMappingObject, (is_master) ? FILE_MAP_ALL_ACCESS : FILE_MAP_READ, 0, 0, size);
-  SPDLOG_DEBUG("MapViewOfFile: {}", util::get_thread_id());
 
   if (buffer == nullptr) {
     int nRet = GetLastError();
     throw journal_error("failed to load page " + path + ", MapViewOfFile Error " + std::to_string(nRet));
   }
   CloseHandle(fileMappingObject);
-  SPDLOG_DEBUG("CloseHandle(fileMappingObject): {}", util::get_thread_id());
   CloseHandle(dumpFileDescriptor);
-  SPDLOG_DEBUG("CloseHandle(dumpFileDescriptor): {}", util::get_thread_id());
 #else
   bool is_master = is_writing || !lazy;
   int fd = open(path.c_str(), (is_master ? O_RDWR : O_RDONLY) | O_CREAT, (mode_t)0600);
@@ -103,8 +92,6 @@ uintptr_t load_mmap_buffer(const std::string &path, size_t size, bool is_writing
 
   close(fd);
 #endif // _WINDOWS
-
-  SPDLOG_DEBUG("load_mmap_buffer over");
   return reinterpret_cast<uintptr_t>(buffer);
 }
 

@@ -65,6 +65,8 @@ public:
 
   static bool check_page_existed(const data::location_ptr &location, uint32_t dest_id);
 
+  static bool check_page_existed(const data::location_ptr &location, uint32_t dest_id, uint32_t page_id);
+
 private:
   const data::location_ptr location_;
   const uint32_t dest_id_;

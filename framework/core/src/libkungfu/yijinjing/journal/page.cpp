@@ -166,7 +166,11 @@ bool page::check_page_existed(const data::location_ptr &location, uint32_t dest_
   if (page_ids.empty()) {
     return false;
   }
-
   return true;
+}
+
+bool page::check_page_existed(const data::location_ptr &location, uint32_t dest_id, uint32_t page_id) {
+  std::vector<uint32_t> page_ids = location->locator->list_page_id(location, dest_id);
+  return std::any_of(page_ids.begin(), page_ids.end(), [&](uint32_t id) { return id == page_id; });
 }
 } // namespace kungfu::yijinjing::journal

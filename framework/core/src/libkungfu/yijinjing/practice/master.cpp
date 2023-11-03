@@ -22,7 +22,7 @@ using namespace kungfu::yijinjing::journal;
 
 namespace kungfu::yijinjing::practice {
 
-master::master(location_ptr home, bool low_latency, bool bypass_cached)
+master::master(const location_ptr &home, bool low_latency, bool bypass_cached)
     : hero(std::make_shared<io_device_master>(home, low_latency)), last_check_(0),
       cached_(get_io_device(), bypass_cached) {
 

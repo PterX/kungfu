@@ -13,10 +13,10 @@ journal::journal(data::location_ptr location, uint32_t dest_id, bool is_writing,
       low_latency_(low_latency), bus_(std::move(bus)), frame_(std::shared_ptr<frame>(new frame())), page_frame_nb_(0u),
       page_size_(page_size), priority_(priority), replica_(false) {
   char *keep_page = std::getenv("KF_KEEP_PAGE");
-  char *pre_load = std::getenv("KF_PRE_LOAD");
+  char *preload = std::getenv("KF_PRELOAD");
   keep_page_ = keep_page != nullptr;
-  pre_load_ = pre_load != nullptr;
-  SPDLOG_DEBUG("keep_page_: {}, pre_load_: {}", keep_page_, pre_load_);
+  preload_ = preload != nullptr;
+  SPDLOG_DEBUG("keep_page_: {}, preload_: {}", keep_page_, preload_);
 }
 
 journal::journal(const journal &other)
@@ -81,9 +81,11 @@ void journal::load_page(uint32_t page_id) {
 void journal::load_next_page() { load_page(page_->get_page_id() + 1); }
 
 bool journal::pre_load_next_page() {
-  if ((not pre_load_) or //
-      (not page_) or     //
-      (pre_load_page_ and pre_load_page_->get_page_id() == page_->get_page_id() + 1)) {
+  if ((not preload_) or                                                                                        //
+      (not page_) or                                                                                           //
+      (pre_load_page_ and pre_load_page_->get_page_id() == page_->get_page_id() + 1) or                        //
+      (not is_writing_ and not page::check_page_existed(location_, page_->dest_id_, page_->get_page_id() + 1)) //
+  ) {
     return false;
   }
   SPDLOG_DEBUG("pre_load_next_page: {}", page_->get_page_id() + 1);

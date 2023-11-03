@@ -71,6 +71,15 @@ service_command_context = kfc.pass_context("low_latency")
 @click.argument("reference", type=str, required=False)
 @click.option("-a", "--arguments", type=str, required=False)
 @click.option("-v", "--vendor", type=str, required=False)
+@click.option(
+    "-ENV-keep-page",
+    is_flag=True,
+    required=False,
+    help="keep journal page when process running",
+)
+@click.option(
+    "-ENV-preload", is_flag=True, required=False, help="preload journal page "
+)
 @kfc.pass_context()
 def run(
     ctx,
@@ -92,6 +101,8 @@ def run(
     reference,
     arguments,
     vendor,
+    env_keep_page,
+    env_preload,
 ):
     ctx.mode = mode
     ctx.category = category
@@ -111,9 +122,6 @@ def run(
     ctx.path = reference
     ctx.arguments = arguments
     ctx.vendor = vendor
-
-    if ctx.arguments is None:
-        ctx.arguments = "{}"
 
     registry = ExecutorRegistry(ctx)
 

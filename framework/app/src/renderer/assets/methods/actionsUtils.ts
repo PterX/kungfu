@@ -2148,7 +2148,13 @@ export const useReplay = (): {
       value: string;
     }[]
   >;
+  replayPreLoading: Ref<boolean>;
+  startLoadingInterval: () => void;
+  stopLoadingInterval: () => void;
 } => {
+  let loadingTimer: NodeJS.Timeout | null = null;
+  const DEFAULT_PRE_LOADING_TIME = 10000;
+  const replayPreLoading = ref(false);
   const setReplayModalVisible = ref(false);
   const journalReplayflag = ref(0);
   const replayProcessParams = ref<
@@ -2347,6 +2353,19 @@ export const useReplay = (): {
     }
   };
 
+  const startLoadingInterval = () => {
+    if (loadingTimer) clearInterval(loadingTimer);
+    replayPreLoading.value = true;
+    loadingTimer = setInterval(() => {
+      replayPreLoading.value = false;
+    }, DEFAULT_PRE_LOADING_TIME);
+  };
+
+  const stopLoadingInterval = () => {
+    if (loadingTimer) clearInterval(loadingTimer);
+    replayPreLoading.value = false;
+  };
+
   return {
     currentLocation,
     replayConfig,
@@ -2356,6 +2375,9 @@ export const useReplay = (): {
     replayProcessParams,
     handleOpenReplayConfirmView,
     handleReplayModal,
+    startLoadingInterval,
+    stopLoadingInterval,
+    replayPreLoading,
   };
 };
 

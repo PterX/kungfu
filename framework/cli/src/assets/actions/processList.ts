@@ -21,11 +21,11 @@ import {
   delayMilliSeconds,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
-  getMasterLocation,
-  getLedgerLocation,
-  getDzxyProcessId,
-  getArchiveProcessId,
-} from '@kungfu-trader/kungfu-js-api/utils/system';
+  buildMasterLocation,
+  buildLedgerLocation,
+  buildDzxyProcessId,
+  buildArchiveProcessId,
+} from '@kungfu-trader/kungfu-js-api/utils/systemUtils';
 import { kfLogger } from '@kungfu-trader/kungfu-js-api/utils/logUtils';
 import {
   killExtra,
@@ -166,12 +166,12 @@ export const specificProcessListObserver = (kfLocation: KungfuApi.KfConfig) =>
           cwd: item.cwd,
         };
       });
-      const masterLocation: KungfuApi.KfLocation = getMasterLocation();
-      const ledgerLocation: KungfuApi.KfLocation = getLedgerLocation();
+      const masterLocation: KungfuApi.KfLocation = buildMasterLocation();
+      const ledgerLocation: KungfuApi.KfLocation = buildLedgerLocation();
 
       const masterProcessId = getProcessIdByKfLocation(masterLocation);
       const ledgerProcessId = getProcessIdByKfLocation(ledgerLocation);
-      const dzxyProcessId = getDzxyProcessId();
+      const dzxyProcessId = buildDzxyProcessId();
       return [
         {
           processId: masterProcessId,
@@ -393,16 +393,16 @@ export const processListObservable = () =>
       });
 
       const masterPrefixProps = globalThis.HookKeeper.getHooks().prefix.trigger(
-        getMasterLocation(),
+        buildMasterLocation(),
       );
       const masterPrefix =
         masterPrefixProps.prefixType === 'text' ? masterPrefixProps.prefix : '';
-      const masterLocation: KungfuApi.KfLocation = getMasterLocation();
-      const ledgerLocation: KungfuApi.KfLocation = getLedgerLocation();
+      const masterLocation: KungfuApi.KfLocation = buildMasterLocation();
+      const ledgerLocation: KungfuApi.KfLocation = buildLedgerLocation();
       const masterProcessId = getProcessIdByKfLocation(masterLocation);
       const ledgerProcessId = getProcessIdByKfLocation(ledgerLocation);
-      const archiveProcessId = getArchiveProcessId();
-      const dzxyProcessId = getDzxyProcessId();
+      const archiveProcessId = buildArchiveProcessId();
+      const dzxyProcessId = buildDzxyProcessId();
 
       return [
         {

@@ -64,6 +64,11 @@ import {
   getMdTdKfLocationByProcessId,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import {
+  buildMasterLocation,
+  buildArchiveLocation,
+  buildLedgerLocation,
+} from '@kungfu-trader/kungfu-js-api/utils/systemUtils';
 import { BasketVolumeType } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import { writeCsvWithUTF8Bom } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
 import {
@@ -1986,29 +1991,20 @@ export const useAllKfConfigData = (): Record<
         ...(process.env.NODE_ENV === 'development'
           ? [
               {
+                ...buildArchiveLocation(),
                 location_uid: 0,
-                category: 'system',
-                group: 'service',
-                name: 'archive',
-                mode: 'live',
                 value: '',
               },
             ]
           : []),
         {
+          ...buildMasterLocation(),
           location_uid: 0,
-          category: 'system',
-          group: 'master',
-          name: 'master',
-          mode: 'live',
           value: '',
         },
         {
+          ...buildLedgerLocation(),
           location_uid: 0,
-          category: 'system',
-          group: 'service',
-          name: 'ledger',
-          mode: 'live',
           value: '',
         },
       ]),

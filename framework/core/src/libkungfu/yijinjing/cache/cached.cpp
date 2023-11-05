@@ -14,15 +14,13 @@ using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::cache;
 
-#define DEFAULT_STORE_VOLUME_BY_INTERVAL 50
-#define LOW_LATENCY_STORE_VOLUME_BY_INTERVAL 10
+#define DEFAULT_STORE_VOLUME_BY_INTERVAL 2000
 
 namespace kungfu::yijinjing::cache {
 
 cached::cached(locator_ptr locator, mode m, bool low_latency, const std::string &arguments)
     : apprentice(location::make_shared(m, category::SYSTEM, "service", "cached", std::move(locator)), low_latency),
-      profile_(get_locator()),
-      store_volume_every_loop_(low_latency ? LOW_LATENCY_STORE_VOLUME_BY_INTERVAL : DEFAULT_STORE_VOLUME_BY_INTERVAL) {
+      profile_(get_locator()) {
   profile_.setup();
   profile_get_all(profile_, profile_bank_);
 }
@@ -121,19 +119,14 @@ void cached::on_start() {
                        }) | $$(feed(event));
 
   add_time_interval(time_unit::NANOSECONDS_PER_MILLISECOND * 50, [&](auto e) {
-    handle_cached_feeds(store_volume_every_loop_);
-    handle_profile_feeds(store_volume_every_loop_);
+    handle_cached_feeds(DEFAULT_STORE_VOLUME_BY_INTERVAL);
+    handle_profile_feeds(DEFAULT_STORE_VOLUME_BY_INTERVAL);
   });
 }
 
 void cached::on_active() {
-  handle_cached_feeds(store_volume_every_loop_);
-  handle_profile_feeds(store_volume_every_loop_);
-}
-
-void cached::on_notify() {
-  SPDLOG_TRACE("cached::on_notify");
-  handle_cached_feeds(LOW_LATENCY_STORE_VOLUME_BY_INTERVAL);
+  handle_cached_feeds(DEFAULT_STORE_VOLUME_BY_INTERVAL);
+  handle_profile_feeds(DEFAULT_STORE_VOLUME_BY_INTERVAL);
 }
 
 void cached::mark_request_cached_done(uint32_t dest_id) {
@@ -149,30 +142,18 @@ void cached::handle_cached_feeds(int store_volume_every_loop) {
   }
 
   int stored_controller = 0;
+  auto store_states_start_time = time::now_in_nano();
+  location_bank tmp_location_bank = {};
 
   auto clear_map = [&](auto &feed_map, auto type_name) {
-    if (feed_map.size() != 0) {
-      auto iter = feed_map.begin();
-      while (iter != feed_map.end() and stored_controller <= store_volume_every_loop) {
-        auto &s = iter->second;
-        auto source_id = s.source;
-        auto dest_id = s.dest;
-        if (app_cache_shift_.find(source_id) != app_cache_shift_.end()) {
-          try {
-            app_cache_shift_.at(source_id) << s;
-            SPDLOG_TRACE("cache [feed] source {} dest {} {} data {}", get_location_uname(source_id),
-                         get_location_uname(dest_id), type_name.c_str(), s.data.to_string());
-          } catch (const std::exception &e) {
-            SPDLOG_ERROR("Unexpected exception by handle_cached_feeds {}", e.what());
-            stored_controller++;
-            break;
-          }
-
-          iter = feed_map.erase(iter);
-          stored_controller++;
-        } else {
-          iter++;
-        }
+    auto iter = feed_map.begin();
+    while (iter != feed_map.end() and stored_controller <= store_volume_every_loop) {
+      if (app_cache_shift_.find(iter->second.source) != app_cache_shift_.end()) {
+        tmp_location_bank << iter->second;
+        iter = feed_map.erase(iter);
+        stored_controller++;
+      } else {
+        iter++;
       }
     }
   };
@@ -184,10 +165,6 @@ void cached::handle_cached_feeds(int store_volume_every_loop) {
     auto &feed_map = const_cast<FeedMap &>(feed_bank_[hana_type]);
     clear_map(feed_map, DataType::type_name);
   });
-
-  if (stored_controller >= store_volume_every_loop) {
-    return;
-  }
 
   boost::hana::for_each(StateDataTypes, [&](auto it) {
     using DataType = typename decltype(+boost::hana::second(it))::type;
@@ -203,6 +180,29 @@ void cached::handle_cached_feeds(int store_volume_every_loop) {
     auto &feed_map = const_cast<FeedMap &>(feed_bank_[hana_type]);
     clear_map(feed_map, DataType::type_name);
   });
+
+  auto& location_bank_map = tmp_location_bank.get_map();
+  boost::hana::for_each(StateDataTypes, [&](auto it) {
+    using DataType = typename decltype(+boost::hana::second(it))::type;
+    auto hana_type = boost::hana::type_c<DataType>;
+    using StateMap = std::unordered_map<uint64_t, state<DataType>>;
+    
+    std::for_each(location_bank_map.begin(), location_bank_map.end(), [&](auto& pair) {
+      uint32_t source = pair.first >> 32u;
+      uint32_t dest = pair.first & 0xFFFFFFFF;
+      auto& state_bank = pair.second;
+      auto &state_map = const_cast<StateMap &>(state_bank[hana_type]);
+      std::vector<DataType> tmp_state_vector = {};
+      for (const auto &s : state_map) {
+        tmp_state_vector.push_back(s.second.data);
+      }
+      app_cache_shift_.at(source).replace_range(dest, tmp_state_vector);
+    });
+  });
+
+  auto store_states_end_time = time::now_in_nano();
+  SPDLOG_TRACE("store state data take {}ns, count {}", store_states_end_time - store_states_start_time,
+               stored_controller);
 }
 
 void cached::handle_profile_feeds(int store_volume_every_loop) {
@@ -211,6 +211,8 @@ void cached::handle_profile_feeds(int store_volume_every_loop) {
   }
 
   int stored_controller = 0;
+  auto store_profiles_start_time = time::now_in_nano();
+
   boost::hana::for_each(ProfileDataTypes, [&](auto it) {
     using DataType = typename decltype(+boost::hana::second(it))::type;
 
@@ -219,28 +221,31 @@ void cached::handle_profile_feeds(int store_volume_every_loop) {
       return;
     }
 
+    if (stored_controller > store_volume_every_loop) {
+      return;
+    }
+
     auto hana_type = boost::hana::type_c<DataType>;
     using FeedMap = std::unordered_map<uint64_t, state<DataType>>;
     auto &feed_map = const_cast<FeedMap &>(profile_bank_[hana_type]);
+    std::vector<DataType> tmp_profile_vector = {};
+    for (const auto &s : feed_map) {
+      tmp_profile_vector.push_back(s.second.data);
+      stored_controller++;
+    }
+    feed_map.clear();
 
-    if (feed_map.size() != 0) {
-      auto iter = feed_map.begin();
-      while (iter != feed_map.end() and stored_controller <= store_volume_every_loop) {
-        const auto &s = iter->second;
-        try {
-          profile_ << s;
-          SPDLOG_TRACE("cache [profile] {} data {}", DataType::type_name.c_str(), s.data.to_string());
-        } catch (const std::exception &e) {
-          SPDLOG_ERROR("Unexpected exception by handle_profile_feeds {}", e.what());
-          stored_controller++;
-          break;
-        }
-
-        iter = feed_map.erase(iter);
-        stored_controller++;
-      }
+    try {
+      profile_.replace_range(tmp_profile_vector);
+      SPDLOG_TRACE("cache [profile] {} size {}", DataType::type_name.c_str(), tmp_profile_vector.size());
+    } catch (const std::exception &e) {
+      SPDLOG_ERROR("Unexpected exception by handle_profile_feeds {}", e.what());
     }
   });
+
+  auto store_profiles_end_time = time::now_in_nano();
+  SPDLOG_TRACE("store state data take {}ns, count {}", store_profiles_end_time - store_profiles_start_time,
+               stored_controller);
 }
 
 void cached::on_location(const event_ptr &event) { profile_bank_ << typed_event_ptr<Location>(event); }

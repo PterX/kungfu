@@ -27,8 +27,6 @@ protected:
 
   void on_active() override;
 
-  void on_notify() override;
-
   static constexpr auto profile_get_all = [](auto &profile, auto &receiver) {
     boost::hana::for_each(longfist::ProfileDataTypes, [&](auto it) {
       auto type = boost::hana::second(it);
@@ -53,7 +51,6 @@ private:
   yijinjing::cache::bank feed_bank_;
   yijinjing::cache::profile profile_;
   ProfileStateBank profile_bank_ = ProfileStateBank(longfist::ProfileDataTypes);
-  const int store_volume_every_loop_;
   bool storage_pause_ = false;
 
   void on_location(const event_ptr &event);

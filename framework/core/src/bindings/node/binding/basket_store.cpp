@@ -27,9 +27,7 @@ Napi::Value BasketStore::SetAllBasket(const Napi::CallbackInfo &info) {
     }
     try {
       profile_.remove_all<Basket>();
-      for (auto basket : baskets) {
-        profile_.set(basket);
-      }
+      profile_.replace_range(baskets);
     } catch (const std::exception &ex) {
       SPDLOG_ERROR("failed to SetAllBasket {}", ex.what());
       yijinjing::util::print_stack_trace();

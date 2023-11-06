@@ -64,7 +64,7 @@ void journal::seek_to_time(int64_t nanotime) {
 void journal::load_page(uint32_t page_id) {
   if (page_.get() == nullptr or page_->get_page_id() != page_id) {
 
-    if (page_.get() != nullptr && bus_->is_on_load_page_required()) {
+    if (keep_page_ or (page_.get() != nullptr && bus_->is_on_load_page_required())) {
       std::lock_guard<std::recursive_mutex> lk(passed_page_collector_mtx_);
       passed_page_collector_.push_back(std::move(page_));
       bus_->on_load_page();
@@ -91,7 +91,7 @@ void journal::try_load_next_extra_page() {
 bool journal::release_page() {
   SPDLOG_TRACE("keep_page_: {}", keep_page_);
   if (keep_page_) {
-    return true;
+    return false;
   }
 
   static thread_local std::vector<page_ptr> queue_release_page{};

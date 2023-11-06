@@ -507,6 +507,17 @@ function primaryKeyValidator(_rule: RuleObject, value: string): Promise<void> {
   return Promise.resolve();
 }
 
+function emptyValidator(
+  _rule: RuleObject,
+  value: KungfuApi.KfConfigValue,
+): Promise<void> {
+  if (value === '' || value === null || value === undefined) {
+    return Promise.reject(new Error(t('validate.mandatory')));
+  }
+
+  return Promise.resolve();
+}
+
 function noZeroValidator(_rule: RuleObject, value: number): Promise<void> {
   if (Number.isNaN(+value)) {
     return Promise.reject(new Error(t('validate.no_zero_number')));
@@ -1234,6 +1245,7 @@ defineExpose({
                     {
                       required: item.required,
                       type: getValidatorType(item.type),
+                      validator: emptyValidator,
                       message: item.errMsg
                         ? isLanguageKeyAvailable(item.errMsg)
                           ? $t(item.errMsg)

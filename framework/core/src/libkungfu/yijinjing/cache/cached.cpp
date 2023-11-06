@@ -14,7 +14,10 @@ using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::cache;
 
-#define DEFAULT_STORE_VOLUME_BY_INTERVAL 5000
+// https://sqlite.org/limits.html
+// The maximum number of bytes in the text of an SQL statement is limited to SQLITE_MAX_SQL_LENGTH which defaults to
+// 1,000,000,000.
+#define DEFAULT_STORE_VOLUME_BY_INTERVAL 1000
 
 namespace kungfu::yijinjing::cache {
 
@@ -168,13 +171,6 @@ void cached::handle_cached_feeds(int store_volume_every_loop) {
 
   boost::hana::for_each(StateDataTypes, [&](auto it) {
     using DataType = typename decltype(+boost::hana::second(it))::type;
-
-    // even if etf related types are profile types, but these data should only be stored in td's public.db, so this
-    // place should not filter Basket and Basket Instrument
-    if (DataType::tag == Instrument::tag) {
-      return;
-    }
-
     auto hana_type = boost::hana::type_c<DataType>;
     using FeedMap = std::unordered_map<uint64_t, state<DataType>>;
     auto &feed_map = const_cast<FeedMap &>(feed_bank_[hana_type]);
@@ -227,11 +223,6 @@ void cached::handle_profile_feeds(int store_volume_every_loop) {
 
   boost::hana::for_each(ProfileDataTypes, [&](auto it) {
     using DataType = typename decltype(+boost::hana::second(it))::type;
-
-    // only etf related data will be stored by cached, these data should be only store in td public.db, for CachedReset
-    if (DataType::tag == Basket::tag || DataType::tag == BasketInstrument::tag) {
-      return;
-    }
 
     if (stored_controller > store_volume_every_loop) {
       return;
@@ -338,8 +329,17 @@ void cached::feed(const event_ptr &event) {
       get_location(event->source())->category == category::MD) {
     return;
   }
-  feed_state_data(event, feed_bank_);
-  feed_profile_data(event, profile_bank_);
+
+  // even if etf related types are profile types, but these data should only be stored in td's public.db, so this
+  // place should not filter Basket and Basket Instrument
+  if (event->msg_type() != Instrument::tag) {
+    feed_state_data(event, feed_bank_);
+  }
+
+  // only etf related data will be stored by cached, these data should be only store in td public.db, for CachedReset
+  if (event->msg_type() != Basket::tag and event->msg_type() != BasketInstrument::tag) {
+    feed_profile_data(event, profile_bank_);
+  }
 }
 
 void cached::switch_feed_storage(bool pause) { storage_pause_ = pause; }

@@ -254,10 +254,22 @@ watch(
   { immediate: true },
 );
 
+const initScrollerTableWidth = () => {
+  // 一上来查表格宽度会是 0, 所以轮询查
+  requestAnimationFrame(() => {
+    if (
+      kfScrollerTableBodyRef.value &&
+      kfScrollerTableBodyRef.value.clientWidth
+    ) {
+      kfScrollerTableWidth.value = kfScrollerTableBodyRef.value.clientWidth - 8;
+    } else {
+      initScrollerTableWidth();
+    }
+  });
+};
+
 onMounted(() => {
-  if (kfScrollerTableBodyRef.value) {
-    kfScrollerTableWidth.value = kfScrollerTableBodyRef.value.clientWidth - 8;
-  }
+  initScrollerTableWidth();
 
   if (app?.proxy && props.resizable) {
     const subscription = app?.proxy.$globalBus

@@ -30,7 +30,7 @@ import {
   getPosClosableVolume,
   makeOrderByOrderTriggerInput,
 } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
-import { useDynamicStyle } from '@kungfu-trader/kungfu-js-api/utils/hook';
+import { useKeyboardControlStyle } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import {
   InstrumentTypeEnum,
   OffsetEnum,
@@ -112,10 +112,10 @@ const {
 
 const { getValidatorByOrderInputKey } = useTradeLimit();
 
-const uniqueClassName = `item-focus-background + ${Date.now()}`;
+const uniqueClassName = `item-focus-background-${Date.now()}`;
 
 onMounted(() => {
-  const { cleanup } = useDynamicStyle(
+  const { cleanup } = useKeyboardControlStyle(
     bordRef,
     formRef,
     uniqueClassName,

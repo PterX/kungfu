@@ -73,11 +73,11 @@ dynamic_equity
 realized_pnl
 unrealized_pnl
 market_value
-short_market_value
 long_market_value
+short_market_value
 margin
-short_margin
 long_margin
+short_margin
 accumulated_fee
 intraday_fee
 frozen_cash
@@ -86,6 +86,8 @@ frozen_fee
 position_pnl
 close_pnl
 avail
+long_avail
+short_avail
 total_asset
 avail_margin
 long_debt
@@ -543,6 +545,9 @@ SSE
 SZE
 MarketType
 Snapshot
+Entrust
+Transaction
+Tree
 SubscribeDataType
 Stock
 Future

@@ -91,7 +91,8 @@ private:
   bus_ptr bus_;
   page_ptr pre_page_;
   page_ptr page_;
-  page_ptr pre_load_page_;
+  page_ptr preload_page_;
+  std::recursive_mutex load_page_mtx_;
   std::vector<page_ptr> passed_page_collector_;
   std::recursive_mutex passed_page_collector_mtx_;
   frame_ptr frame_;

@@ -144,41 +144,15 @@ void cached::handle_cached_feeds(int store_volume_every_loop) {
     return;
   }
 
-  int stored_controller = 0;
-  auto store_states_start_time = time::now_in_nano();
   location_bank tmp_location_bank = {};
+  auto store_states_start_time = time::now_in_nano();
 
-  auto clear_map = [&](auto &feed_map, auto type_name) {
-    auto iter = feed_map.begin();
-    while (iter != feed_map.end() and stored_controller <= store_volume_every_loop) {
-      if (app_cache_shift_.find(iter->second.source) != app_cache_shift_.end()) {
-        tmp_location_bank << iter->second;
-        iter = feed_map.erase(iter);
-        stored_controller++;
-      } else {
-        iter++;
-      }
-    }
-  };
-
-  boost::hana::for_each(TradingDataTypes, [&](auto it) {
-    using DataType = typename decltype(+boost::hana::second(it))::type;
-    auto hana_type = boost::hana::type_c<DataType>;
-    using FeedMap = std::unordered_map<uint64_t, state<DataType>>;
-    auto &feed_map = const_cast<FeedMap &>(feed_bank_[hana_type]);
-    clear_map(feed_map, DataType::type_name);
-  });
-
-  boost::hana::for_each(StateDataTypes, [&](auto it) {
-    using DataType = typename decltype(+boost::hana::second(it))::type;
-    auto hana_type = boost::hana::type_c<DataType>;
-    using FeedMap = std::unordered_map<uint64_t, state<DataType>>;
-    auto &feed_map = const_cast<FeedMap &>(feed_bank_[hana_type]);
-    clear_map(feed_map, DataType::type_name);
-  });
+  auto trading_data_count = transfer_from_bank<bank, location_bank>(TradingDataTypes, feed_bank_, tmp_location_bank,
+                                                                    DEFAULT_STORE_VOLUME_BY_INTERVAL);
+  auto others_data_count = transfer_from_bank<bank, location_bank>(
+      StateDataTypes, feed_bank_, tmp_location_bank, DEFAULT_STORE_VOLUME_BY_INTERVAL - trading_data_count);
 
   auto &location_bank_map = tmp_location_bank.get_map();
-
   std::for_each(location_bank_map.begin(), location_bank_map.end(), [&](auto &pair) {
     uint32_t source = pair.first >> 32u;
     uint32_t dest = pair.first & 0xFFFFFFFF;
@@ -188,7 +162,6 @@ void cached::handle_cached_feeds(int store_volume_every_loop) {
       using DataType = typename decltype(+boost::hana::second(it))::type;
       auto hana_type = boost::hana::type_c<DataType>;
       using StateMap = std::unordered_map<uint64_t, state<DataType>>;
-
       auto &state_map = const_cast<StateMap &>(state_bank[hana_type]);
       std::vector<DataType> tmp_state_vector = {};
       for (const auto &s : state_map) {
@@ -196,6 +169,10 @@ void cached::handle_cached_feeds(int store_volume_every_loop) {
       }
 
       if (tmp_state_vector.size() <= 0) {
+        return;
+      }
+
+      if (app_cache_shift_.find(source) == app_cache_shift_.end()) {
         return;
       }
 
@@ -210,7 +187,7 @@ void cached::handle_cached_feeds(int store_volume_every_loop) {
 
   auto store_states_end_time = time::now_in_nano();
   SPDLOG_TRACE("store state data take {}ns, count {}", store_states_end_time - store_states_start_time,
-               stored_controller);
+               trading_data_count + others_data_count);
 }
 
 void cached::handle_profile_feeds(int store_volume_every_loop) {
@@ -218,25 +195,20 @@ void cached::handle_profile_feeds(int store_volume_every_loop) {
     return;
   }
 
-  int stored_controller = 0;
+  ProfileStateBank tmp_profile_bank = ProfileStateBank(ProfileDataTypes);
   auto store_profiles_start_time = time::now_in_nano();
 
+  auto count = transfer_from_bank<ProfileStateBank, ProfileStateBank>(ProfileDataTypes, profile_bank_, tmp_profile_bank,
+                                                                      DEFAULT_STORE_VOLUME_BY_INTERVAL);
   boost::hana::for_each(ProfileDataTypes, [&](auto it) {
     using DataType = typename decltype(+boost::hana::second(it))::type;
-
-    if (stored_controller > store_volume_every_loop) {
-      return;
-    }
-
     auto hana_type = boost::hana::type_c<DataType>;
     using FeedMap = std::unordered_map<uint64_t, state<DataType>>;
-    auto &feed_map = const_cast<FeedMap &>(profile_bank_[hana_type]);
+    auto &feed_map = const_cast<FeedMap &>(tmp_profile_bank[hana_type]);
     std::vector<DataType> tmp_profile_vector = {};
     for (const auto &s : feed_map) {
       tmp_profile_vector.push_back(s.second.data);
-      stored_controller++;
     }
-    feed_map.clear();
 
     if (tmp_profile_vector.size() <= 0) {
       return;
@@ -251,8 +223,7 @@ void cached::handle_profile_feeds(int store_volume_every_loop) {
   });
 
   auto store_profiles_end_time = time::now_in_nano();
-  SPDLOG_TRACE("store profile data take {}ns, count {}", store_profiles_end_time - store_profiles_start_time,
-               stored_controller);
+  SPDLOG_TRACE("store profile data take {}ns, count {}", store_profiles_end_time - store_profiles_start_time, count);
 }
 
 void cached::on_location(const event_ptr &event) { profile_bank_ << typed_event_ptr<Location>(event); }

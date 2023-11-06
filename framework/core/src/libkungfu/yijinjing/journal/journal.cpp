@@ -80,7 +80,7 @@ void journal::load_page(uint32_t page_id) {
 
 void journal::load_next_page() { load_page(page_->get_page_id() + 1); }
 
-bool journal::pre_load_next_page() {
+bool journal::preload_next_page() {
   if ((not preload_) or                                                                                        //
       (not page_) or                                                                                           //
       (pre_load_page_ and pre_load_page_->get_page_id() == page_->get_page_id() + 1) or                        //
@@ -88,7 +88,7 @@ bool journal::pre_load_next_page() {
   ) {
     return false;
   }
-  SPDLOG_DEBUG("pre_load_next_page: {}", page_->get_page_id() + 1);
+  SPDLOG_TRACE("preload_next_page: {}", page_->get_page_id() + 1);
   pre_load_page_ = page::load(location_, dest_id_, page_size_, page_->get_page_id() + 1, is_writing_, lazy_);
   return true;
 }

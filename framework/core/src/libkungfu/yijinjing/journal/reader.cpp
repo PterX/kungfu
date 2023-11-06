@@ -135,7 +135,7 @@ bool reader::release_page() {
 bool reader::pre_load_next_page() {
   bool result = false;
   for (auto &iter : journals_) {
-    result |= iter.second.pre_load_next_page();
+    result |= iter.second.preload_next_page();
   }
   return result;
 }

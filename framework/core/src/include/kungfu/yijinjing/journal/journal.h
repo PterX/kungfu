@@ -108,7 +108,7 @@ private:
   /** load next page, current page will be released if not empty */
   void load_next_page();
 
-  bool pre_load_next_page();
+  bool preload_next_page();
 
   void try_load_next_extra_page();
 

@@ -35,7 +35,7 @@ void resource_manager::do_management() {
 
       bool flag = false;
       flag |= app_.pre_load_next_page();
-      SPDLOG_DEBUG("app_.pre_load_next_page: {}", flag);
+      SPDLOG_DEBUG("app_.preload_next_page: {}", flag);
       flag |= app_.release_page();
       SPDLOG_DEBUG("app_.release_page: {}", flag);
       return flag and app_.is_live();

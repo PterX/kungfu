@@ -10,8 +10,4 @@ void bus::on_load_page() {
 
 void bus::notify_all() { cv_.notify_all(); }
 
-bool bus::is_keep_page() const { return keep_page_; }
-
-void bus::enable_keep_page() { keep_page_ = true; }
-
 } // namespace kungfu::yijinjing::journal

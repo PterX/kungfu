@@ -20,10 +20,6 @@ public:
 
   void notify_all();
 
-  [[nodiscard]] bool is_keep_page() const;
-
-  void enable_keep_page();
-
 private:
   std::condition_variable cv_;
   const bool on_load_page_required_;

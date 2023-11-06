@@ -2,6 +2,9 @@ import { SessionStatusEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 
 const { t } = VueI18n.global;
+
+const circleSvg =
+  'path://M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2';
 const arrowSvg =
   'path://M678.4 409.6l-147.2-192c-6.4-12.8-25.6-12.8-38.4 0l-147.2 192C339.2 428.8 345.6 448 364.8 448L448 448l0 352C448 819.2 460.8 832 480 832l64 0C563.2 832 576 819.2 576 800L576 448l83.2 0C678.4 448 684.8 428.8 678.4 409.6z';
 const triangleSvg =
@@ -154,27 +157,65 @@ export interface ChartDataCustomInfo {
   orderId?: bigint;
 }
 
+interface EChartsTooltipPositionParams {
+  dataIndex: number;
+}
+
+type Point = [number, number];
+type RectSize = {
+  contentSize: [number, number];
+  viewSize: [number, number];
+};
+
+export type PosFun = (
+  point: Point,
+  params: EChartsTooltipPositionParams[],
+  dom: HTMLElement,
+  rect: DOMRect,
+  size: RectSize,
+) => string;
+
 export interface SeriesData {
-  value: (string | number)[];
-  customInfo: ChartDataCustomInfo;
+  value: (string | number | bigint)[];
+  customInfo?: ChartDataCustomInfo;
   symbolRotate?: number;
   symbolOffset?: (string | number)[];
   symbolSize?: number;
-  itemStyle?: {
-    color?: string;
-    shadowBlur?: number;
-    shadowColor?: string;
-  };
+  itemStyle?: ItemStyle;
+  showSymbol?: boolean;
   tooltip?: {
-    position: string;
+    position: string | PosFun;
     formatter: string;
+    trigger?: string;
   };
+  emphasis?: {
+    itemStyle?: {
+      color: string;
+    };
+    showSymbol?: boolean;
+    symbol?: string;
+    symbolSize?: number;
+  };
+  blur?: {
+    showSymbol?: boolean;
+  };
+  lineStyle?: {
+    silent?: boolean;
+  };
+  shadowColor?: string;
+  shadowBlur?: number;
   label?: {
     show: boolean;
     position: string;
     color: string;
     formatter: () => string;
   };
+}
+
+export interface ItemStyle {
+  color?: string;
+  shadowBlur?: number;
+  shadowColor?: string;
 }
 
 export const getChartOption = () => {
@@ -211,6 +252,11 @@ export const getChartOption = () => {
     xAxis: {
       type: 'category',
       data: [] as string[],
+      axisLabel: {
+        formatter: function (value) {
+          return value;
+        },
+      },
     },
     yAxis: {
       type: 'value',
@@ -219,8 +265,9 @@ export const getChartOption = () => {
           color: '#434343',
         },
       },
-      min: 'dataMin' as string | number,
-      max: 'dataMax' as string | number,
+      min: 0 as string | number,
+      max: 10 as string | number,
+      interval: 2,
     },
     dataZoom: [
       {
@@ -228,12 +275,24 @@ export const getChartOption = () => {
         xAxisIndex: 0,
         start: 0,
         end: 100,
+        labelFormatter: function (params: string) {
+          return params;
+        },
+        textStyle: {
+          color: '#ffffffd9',
+        },
       },
       {
         type: 'inside',
         xAxisIndex: 0,
         start: 0,
         end: 100,
+        labelFormatter: function (params: string) {
+          return params;
+        },
+        textStyle: {
+          color: '#ffffffd9',
+        },
       },
     ],
     series: [
@@ -241,8 +300,8 @@ export const getChartOption = () => {
         name: t('journalConfig.quote_legend'),
         type: 'line',
         data: [] as SeriesData[],
-        symbol: 'pin',
-        symbolSize: 16,
+        symbol: circleSvg,
+        symbolSize: 10,
         showSymbol: false,
         itemStyle: {
           color: '#0F6DA6',
@@ -250,29 +309,34 @@ export const getChartOption = () => {
         lineStyle: {
           color: '#0F6DA6',
         },
+        silent: true,
         zlevel: 0,
       },
       {
         name: t('journalConfig.order_input_legend'),
         type: 'scatter',
-        symbolSize: 10,
+        symbolSize: 8,
         data: [] as SeriesData[],
         legendHoverLink: false,
-        symbolKeepAspect: true,
+        symbolKeepAspect: false,
         symbolOffset: [],
         symbol: triangleSvg,
-        zlevel: 1,
+        zlevel: 2,
       },
       {
         name: t('journalConfig.order_legend'),
         type: 'scatter',
-        symbolSize: 10,
+        symbolSize: 12,
         data: [] as SeriesData[],
         legendHoverLink: false,
         symbolKeepAspect: true,
         symbolOffset: [],
         symbol: arrowSvg,
         zlevel: 3,
+        itemStyle: {
+          borderColor: 'transparent',
+          borderWidth: 10,
+        },
       },
       {
         name: t('journalConfig.cancel_order_legend'),
@@ -286,8 +350,34 @@ export const getChartOption = () => {
         itemStyle: {
           color: '#73F3F6',
         },
-        zlevel: 2,
+        zlevel: 3,
+      },
+      {
+        name: t('journalConfig.quote_legend'),
+        type: 'scatter',
+        data: [] as SeriesData[],
+        symbol: circleSvg,
+        showSymbol: true,
+        symbolSize: 10,
+        legendHoverLink: false,
+        symbolKeepAspect: false,
+        symbolOffset: [],
+        itemStyle: {
+          color: 'transparent',
+        },
+        emphasis: {
+          symbolSize: 10,
+          itemStyle: {
+            color: '#0F6DA6',
+          },
+        },
+        zlevel: 1,
       },
     ],
+    grid: {
+      left: '40px',
+      right: '80px',
+      containLabel: true,
+    },
   };
 };

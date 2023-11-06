@@ -269,6 +269,7 @@ watch(historyDate, async (newDate) => {
   delayMilliSeconds(500)
     .then(() =>
       getKungfuHistoryData(
+        window.watcher,
         newDate.format(),
         HistoryDateEnum.naturalDate,
         'Order',

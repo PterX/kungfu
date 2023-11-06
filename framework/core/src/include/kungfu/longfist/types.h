@@ -42,6 +42,8 @@ KF_DEFINE_MARK_TYPE(OperatorStateRequest, 10156);
 KF_DEFINE_MARK_TYPE(BrokerStateRequest, 10157);
 KF_DEFINE_MARK_TYPE(CachedReadyToRead, 10251);
 KF_DEFINE_MARK_TYPE(RequestCached, 10252);
+KF_DEFINE_MARK_TYPE(CachedPause, 10253);
+KF_DEFINE_MARK_TYPE(CachedResume, 10254);
 KF_DEFINE_MARK_TYPE(ResetBookRequest, 10451);
 KF_DEFINE_MARK_TYPE(MirrorPositionsRequest, 10452);
 KF_DEFINE_MARK_TYPE(KeepPositionsRequest, 10453);
@@ -90,13 +92,16 @@ KF_DEFINE_PACK_TYPE(                         //
     (double, static_equity),  // 静态权益
     (double, dynamic_equity), // 动态权益
 
-    (double, realized_pnl), // 累计收益
-    (double, unrealized_pnl),
+    (double, realized_pnl),   // 实现盈亏
+    (double, unrealized_pnl), // 未实现盈亏
 
-    (double, avail),        // 可用资金
-    (double, market_value), // 市值(股票)
+    (double, market_value),       // 市值
+    (double, long_market_value),  // 融资买入证券市值, 或otc业务市值(多)
+    (double, short_market_value), // 融券卖出证券市值, 或otc业务市值(空)
 
-    (double, margin), // 保证金(期货)
+    (double, margin),       // 保证金占用
+    (double, long_margin),  // 融资占用保证金, 或otc业务保证金占用(多)
+    (double, short_margin), // 融券占用保证金, 或otc业务保证金占用(空)
 
     (double, accumulated_fee), // 累计手续费
     (double, intraday_fee),    // 当日手续费
@@ -108,18 +113,18 @@ KF_DEFINE_PACK_TYPE(                         //
     (double, position_pnl), // 持仓盈亏(期货)
     (double, close_pnl),    // 平仓盈亏(期货)
 
+    (double, avail),       // 可用资金
+    (double, long_avail),  // otc业务可用资金(多)
+    (double, short_avail), // otc业务可用资金(空）
+
     (double, total_asset),  // 总资产
     (double, avail_margin), // 可用保证金
-    (double, cash_margin),  // 融资占用保证金
-    (double, short_margin), // 融券占用保证金
 
-    (double, cash_debt),  // 融资负债
+    (double, long_debt),  // 融资负债
     (double, short_cash), // 融券卖出金额
 
-    (double, short_market_value),  // 融券卖出证券市值
-    (double, margin_market_value), // 融资买入证券市值
-    (double, margin_interest),     // 融资融券利息
-    (double, settlement),          // 融资融券清算资金
+    (double, margin_interest), // 融资融券利息
+    (double, settlement),      // 融资融券清算资金
 
     (double, credit),          // 信贷额度
     (double, collateral_ratio) // 担保比例
@@ -658,7 +663,7 @@ KF_DEFINE_PACK_TYPE(                                                        //
     (int64_t, ask_no), // 卖方订单号
 
     (enums::ExecType, exec_type), // SZ: 成交标识
-    (enums::BsFlag, bs_flag),     // 买卖方向
+    (enums::Side, side),          // 买卖方向
 
     (int64_t, main_seq), // 主序号
     (int64_t, seq),      // 子序号
@@ -877,7 +882,7 @@ KF_DEFINE_DATA_TYPE(                                         //
     (std::string, name),                                     // basket 名字
     (enums::BasketVolumeType, volume_type),                  // 比例/数量
     (int64_t, total_amount),                                 // 总数量
-    (enums::BasketType, type),                               // 类型: Custom 或 ETF
+    (enums::BasketType, basket_type),                        // 类型: Custom 或 ETF
     (kungfu::array<char, INSTRUMENT_ID_LEN>, instrument_id), // ETF基金代码
     (kungfu::array<char, EXCHANGE_ID_LEN>, exchange_id),     // ETF基金的市场
     (double, net_unit_value),                                // 最小申赎单位净值
@@ -899,7 +904,7 @@ KF_DEFINE_PACK_TYPE(                                                            
     (enums::Direction, direction),                                                     // 方向
     (int64_t, volume),                                                                 // 数量
     (double, rate),                                                                    // 比例, volume比例
-    (enums::CashRepalceFlag, replace_flag),                                            // 是否可以由现金替代
+    (enums::CashReplaceFlag, replace_flag),                                            // 是否可以由现金替代
     (double, cash_premium_ratio),                                                      // 现金替代溢价比率
     (double, replace_balance)                                                          // 替代金额
 );

@@ -1,7 +1,7 @@
 import semver from 'semver';
 import { app, ipcMain, BrowserWindow } from 'electron';
 import { autoUpdater } from 'electron-updater';
-import globalStorage from '@kungfu-trader/kungfu-js-api/utils/globalStorage';
+import { getGlobalStorage } from '@kungfu-trader/kungfu-js-api/utils/globalStorage';
 import {
   delayMilliSeconds,
   debounce,
@@ -25,6 +25,7 @@ import {
   Writeable,
   AllPublishOptions,
 } from '@kungfu-trader/kungfu-js-api/typings/global';
+const globalStorage = getGlobalStorage();
 
 autoUpdater.logger = kfLogger;
 let isRendererReady = false;
@@ -58,6 +59,7 @@ const getNextMinorReleaseVersion = (version: semver.SemVer) => {
 
 const getLastedSkippedVersion = () => {
   const skippedVersions = globalStorage.getItem('skippedVersions');
+
   if (skippedVersions) {
     const versionArrays = skippedVersions;
     if (Array.isArray(versionArrays)) {
@@ -68,6 +70,15 @@ const getLastedSkippedVersion = () => {
   } else {
     return false;
   }
+};
+
+const getCurrentLastedVersion = (currentVersion: string) => {
+  const skipLastedVersion = getLastedSkippedVersion();
+  return skipLastedVersion
+    ? semver.gt(currentVersion, skipLastedVersion || '')
+      ? currentVersion
+      : skipLastedVersion
+    : currentVersion;
 };
 
 function saveSkippedVersion(version: string) {
@@ -238,9 +249,8 @@ function handleUpdateKungfu(
   if (!rootPackageJson || !rawUpdateOption) return;
 
   const projectName = getProjectName(rootPackageJson);
-  let lastSkipedVersion = getLastedSkippedVersion();
-  const curVersion = lastSkipedVersion || rootPackageJson.version;
-  if (!curVersion) return;
+  const curVersion = getCurrentLastedVersion(rootPackageJson.version || '');
+  if (curVersion === '') return;
   let version = semver.parse(curVersion as string) as semver.SemVer;
 
   if (!targetVersions.length) {
@@ -285,8 +295,7 @@ function handleUpdateKungfu(
   ipcMain.on('auto-update-retry-check-update', () => {
     kfLogger.info('auto-update-retry-check-update');
 
-    lastSkipedVersion = getLastedSkippedVersion();
-    const curVersion = lastSkipedVersion || rootPackageJson.version || '';
+    const curVersion = getCurrentLastedVersion(rootPackageJson.version || '');
     if (curVersion === '') return;
     version = semver.parse(curVersion as string) as semver.SemVer;
     targetVersions = getDefaultTargetVersions(version);

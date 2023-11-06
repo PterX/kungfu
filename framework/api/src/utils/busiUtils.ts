@@ -80,10 +80,11 @@ import {
 } from './fileUtils';
 import minimist from 'minimist';
 import VueI18n from '../language';
-import globalStorage from './globalStorage';
+import { getGlobalStorage } from './globalStorage';
 import { getKfGlobalSettingsValue } from '../config/globalSettings';
 const { t } = VueI18n.global;
 
+const globalStorage = getGlobalStorage();
 interface SourceAccountId {
   source: string;
   id: string;
@@ -870,6 +871,7 @@ export const dealTradingDataMethodsMap: Record<
   BasketInstrument: dealDefaultTradingData,
   BasketOrder: dealDefaultTradingData,
   OrderTrigger: dealOrderTradingData,
+  SyntheticData: dealDefaultTradingData,
 };
 
 export const dealTradingData = <T>(
@@ -1187,3 +1189,19 @@ export async function startReplay(
       return Promise.reject(new Error('Location is not supported to replay'));
   }
 }
+
+export const ifTodayFirstStart = () => {
+  const lastStartDateTime = globalStorage.getItem('lastStartDateTime');
+  if (lastStartDateTime) {
+    const dateDayjs = dayjs(lastStartDateTime);
+    if (dateDayjs.isValid()) {
+      const todayDayjs = dayjs();
+      return (
+        dateDayjs.isSame(todayDayjs, 'year') &&
+        dateDayjs.isSame(todayDayjs, 'month') &&
+        !dateDayjs.isSame(todayDayjs, 'day')
+      );
+    }
+  }
+  return true;
+};

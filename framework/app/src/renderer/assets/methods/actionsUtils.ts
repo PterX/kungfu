@@ -4,6 +4,7 @@ import { ensureRemoveLocation } from '@kungfu-trader/kungfu-js-api/actions';
 import {
   hashInstrumentUKey,
   sessionStore,
+  longfist,
 } from '@kungfu-trader/kungfu-js-api/kungfu';
 import {
   dealPosition,
@@ -63,6 +64,11 @@ import {
   getMdTdKfLocationByProcessId,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import {
+  buildMasterLocation,
+  buildArchiveLocation,
+  buildLedgerLocation,
+} from '@kungfu-trader/kungfu-js-api/utils/systemUtils';
 import { BasketVolumeType } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import { writeCsvWithUTF8Bom } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
 import {
@@ -81,6 +87,7 @@ import {
   ComputedRef,
   getCurrentInstance,
   h,
+  isRef,
   nextTick,
   onBeforeUnmount,
   onMounted,
@@ -111,7 +118,7 @@ import { storeToRefs } from 'pinia';
 import { ipcRenderer } from 'electron';
 import { throttleTime } from 'rxjs';
 import { useGlobalStore } from '../../pages/index/store/global';
-import globalStorage from '@kungfu-trader/kungfu-js-api/utils/globalStorage';
+import { getGlobalStorage } from '@kungfu-trader/kungfu-js-api/utils/globalStorage';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { messagePrompt } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import sound from 'sound-play';
@@ -130,6 +137,7 @@ import {
 } from '@kungfu-trader/kungfu-js-api/hooks/lifeCycleHook';
 
 const { t } = VueI18n.global;
+const globalStorage = getGlobalStorage();
 const { success, error } = messagePrompt();
 
 export const useUpdateVersion = () => {
@@ -477,6 +485,7 @@ export const useAddUpdateRemoveKfConfig = (): {
                 ...formState,
                 add_time: +new Date().getTime() * Math.pow(10, 6),
               }),
+              window.watcher,
             )
               .then(() => {
                 success();
@@ -574,6 +583,7 @@ export const useDealExportHistoryTradingData = (): {
 
       try {
         historyData = await getKungfuHistoryData(
+          window.watcher,
           date,
           dateType,
           tradingDataType,
@@ -701,6 +711,7 @@ export const useDealExportHistoryTradingData = (): {
     } else {
       try {
         historyData = await getKungfuHistoryData(
+          window.watcher,
           date,
           dateType,
           tradingDataType,
@@ -1713,11 +1724,18 @@ export const useActiveInstruments = () => {
     return { price_tick, price_precision };
   };
 
+  const getInstrumentCurrency = (instrumentId: string, exchangeId: string) => {
+    const instrument = getInstrumentByIdsWithWatcher(instrumentId, exchangeId);
+    const currency = instrument?.currency || CurrencyEnum.Unknown;
+    return currency;
+  };
+
   return {
     getInstrumentByIds,
     getInstrumentByIdsWithWatcher,
     getInstrumentCurrencyByIds,
     getPriceTickAndPrecision,
+    getInstrumentCurrency,
   };
 };
 
@@ -1973,29 +1991,20 @@ export const useAllKfConfigData = (): Record<
         ...(process.env.NODE_ENV === 'development'
           ? [
               {
+                ...buildArchiveLocation(),
                 location_uid: 0,
-                category: 'system',
-                group: 'service',
-                name: 'archive',
-                mode: 'live',
                 value: '',
               },
             ]
           : []),
         {
+          ...buildMasterLocation(),
           location_uid: 0,
-          category: 'system',
-          group: 'master',
-          name: 'master',
-          mode: 'live',
           value: '',
         },
         {
+          ...buildLedgerLocation(),
           location_uid: 0,
-          category: 'system',
-          group: 'service',
-          name: 'ledger',
-          mode: 'live',
           value: '',
         },
       ]),
@@ -2139,7 +2148,13 @@ export const useReplay = (): {
       value: string;
     }[]
   >;
+  replayPreLoading: Ref<boolean>;
+  startLoadingInterval: () => void;
+  stopLoadingInterval: () => void;
 } => {
+  let loadingTimer: NodeJS.Timeout | null = null;
+  const DEFAULT_PRE_LOADING_TIME = 10000;
+  const replayPreLoading = ref(false);
   const setReplayModalVisible = ref(false);
   const journalReplayflag = ref(0);
   const replayProcessParams = ref<
@@ -2338,6 +2353,19 @@ export const useReplay = (): {
     }
   };
 
+  const startLoadingInterval = () => {
+    if (loadingTimer) clearInterval(loadingTimer);
+    replayPreLoading.value = true;
+    loadingTimer = setInterval(() => {
+      replayPreLoading.value = false;
+    }, DEFAULT_PRE_LOADING_TIME);
+  };
+
+  const stopLoadingInterval = () => {
+    if (loadingTimer) clearInterval(loadingTimer);
+    replayPreLoading.value = false;
+  };
+
   return {
     currentLocation,
     replayConfig,
@@ -2347,6 +2375,9 @@ export const useReplay = (): {
     replayProcessParams,
     handleOpenReplayConfirmView,
     handleReplayModal,
+    startLoadingInterval,
+    stopLoadingInterval,
+    replayPreLoading,
   };
 };
 
@@ -2387,7 +2418,6 @@ export const useCurrentPositionList = () => {
               watcher.ledger.Position,
               'position',
             ) as KungfuApi.Position[];
-
           currentPositionList.value = toRaw(
             currentPositions
               .reverse()
@@ -2908,7 +2938,6 @@ export const useBasket = () => {
   const store = useGlobalStore();
 
   const basketList = ref<KungfuApi.Basket[]>([]);
-  const basketInstrumentList = ref<KungfuApi.BasketInstrument[]>([]);
 
   onMounted(() => {
     if (app?.proxy) {
@@ -2918,10 +2947,7 @@ export const useBasket = () => {
 
   function updateBasketData() {
     store.setBasketList();
-    store.setBasketInstrumentList();
 
-    basketList.value = store.basketList;
-    basketInstrumentList.value = store.basketInstrumentList;
     return Promise.resolve();
   }
 
@@ -2939,6 +2965,7 @@ export const useBasket = () => {
     const [id, name, volume_type, total_amount] = res;
 
     return {
+      ...longfist.types.Basket(),
       id: Number(id),
       name,
       volume_type: Number(volume_type),
@@ -2948,7 +2975,6 @@ export const useBasket = () => {
 
   return {
     basketList,
-    basketInstrumentList,
     buildBasketOptionLabel,
     buildBasketOptionValue,
     parseBasketOptionValue,
@@ -2998,5 +3024,58 @@ export const useDealDataWithCaches = <T, U>(keys: Array<keyof T>) => {
   return {
     dealDataWithCache,
     clearCaches,
+  };
+};
+
+export const useFastFindObjArrIndex = (
+  keyField: string | Ref<string> | ComputedRef<string>,
+) => {
+  let objArray: Array<object> = [];
+  let keyFieldResolved = isRef(keyField) ? keyField.value : keyField;
+  let keyFieldValue2Index: Record<string, number> = {};
+  let start = 0,
+    end = 0;
+
+  if (isRef(keyField)) {
+    watch(
+      () => keyField.value,
+      (newKey, oldKey) => {
+        if (newKey !== oldKey) {
+          keyFieldResolved = newKey;
+          keyFieldValue2Index = {};
+          start = 0;
+          end = 0;
+        }
+      },
+    );
+  }
+
+  const findIndexByKeyFieldValue = (
+    targetKeyFieldValue: string | number | bigint,
+  ) => {
+    const strTargetValue = `${targetKeyFieldValue}`;
+    if (typeof keyFieldValue2Index[strTargetValue] === 'number') {
+      return keyFieldValue2Index[strTargetValue];
+    }
+    for (let i = start; i < end; i++) {
+      const curKeyFieldValue = `${objArray[i][keyFieldResolved]}`;
+      keyFieldValue2Index[curKeyFieldValue] = i;
+      if (curKeyFieldValue === strTargetValue) {
+        return i;
+      }
+    }
+    return -1;
+  };
+
+  const replaceArray = (arr: Array<object>) => {
+    objArray = arr;
+    keyFieldValue2Index = {};
+    start = 0;
+    end = arr.length;
+  };
+
+  return {
+    findIndexByKeyFieldValue,
+    replaceArray,
   };
 };

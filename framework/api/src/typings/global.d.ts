@@ -145,6 +145,7 @@ export interface RootConfigJSON {
 
 export interface GlobalStorageData {
   ifNotFirstRunning?: boolean;
+  lastStartDateTime?: string;
   skippedVersions?: string[];
   needClearJournal?: boolean;
   needClearDB?: boolean;

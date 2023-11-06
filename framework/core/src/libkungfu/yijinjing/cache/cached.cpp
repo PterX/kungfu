@@ -293,7 +293,7 @@ void cached::register_trigger_listen_public(int64_t gen_time, const Register &re
   auto app_uid = register_data.location_uid;
   auto app_location = get_location(app_uid);
 
-  if (app_location->category != category::TD and app_location->category != category::MD) {
+  if (app_location->category != category::TD) {
     return;
   }
 

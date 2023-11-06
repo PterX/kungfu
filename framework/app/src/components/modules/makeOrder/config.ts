@@ -18,8 +18,6 @@ export const getConfigSettings = (
   category?: KfCategoryTypes,
   instrumentTypeEnum?: InstrumentTypeEnum,
   sideEnum?: SideEnum,
-  volume?: number,
-  apart?: boolean,
   priceType?: PriceTypeEnum,
   pricePrecision?: number,
   step?: number,
@@ -69,7 +67,6 @@ export const getConfigSettings = (
             : null,
         ].filter((item) => !!item) as KungfuApi.KfConfigItem[])
       : []),
-
     {
       key: 'price_type',
       name: t('tradingConfig.price_type'),
@@ -96,41 +93,6 @@ export const getConfigSettings = (
       min: 0,
       required: true,
     },
-    ...[
-      volume && volume > 1
-        ? {
-            key: 'apart_order',
-            name: t('tradingConfig.apart_order'),
-            type: 'bool',
-            default: false,
-          }
-        : null,
-      apart
-        ? {
-            key: 'every_volume',
-            name: t('tradingConfig.every_volume'),
-            type: 'int',
-            min: 1,
-            max: volume,
-            default: isShotable(
-              instrumentTypeEnum || InstrumentTypeEnum.unknown,
-            )
-              ? 1
-              : 100,
-            required: true,
-          }
-        : null,
-      instrumentTypeEnum === InstrumentTypeEnum.future &&
-      sideEnum !== SideEnum.Exec
-        ? {
-            key: 'order_trigger',
-            name: t('tradingConfig.order_trigger'),
-            type: 'bool',
-            tip: t('orderTriggerConfig.make_order_modal_tip'),
-            default: false,
-          }
-        : null,
-    ],
   ].filter((item) => !!item) as KungfuApi.KfConfigItem[];
 
   return defaultSettings;

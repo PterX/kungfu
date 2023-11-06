@@ -181,16 +181,16 @@ void cached::handle_cached_feeds(int store_volume_every_loop) {
     clear_map(feed_map, DataType::type_name);
   });
 
-  auto& location_bank_map = tmp_location_bank.get_map();
+  auto &location_bank_map = tmp_location_bank.get_map();
   boost::hana::for_each(StateDataTypes, [&](auto it) {
     using DataType = typename decltype(+boost::hana::second(it))::type;
     auto hana_type = boost::hana::type_c<DataType>;
     using StateMap = std::unordered_map<uint64_t, state<DataType>>;
-    
-    std::for_each(location_bank_map.begin(), location_bank_map.end(), [&](auto& pair) {
+
+    std::for_each(location_bank_map.begin(), location_bank_map.end(), [&](auto &pair) {
       uint32_t source = pair.first >> 32u;
       uint32_t dest = pair.first & 0xFFFFFFFF;
-      auto& state_bank = pair.second;
+      auto &state_bank = pair.second;
       auto &state_map = const_cast<StateMap &>(state_bank[hana_type]);
       std::vector<DataType> tmp_state_vector = {};
       for (const auto &s : state_map) {

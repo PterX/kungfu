@@ -26,7 +26,7 @@ public:
   Napi::Value RemoveAllBasketInstrumentsByBasket(const Napi::CallbackInfo &info);
 
   Napi::Value SetBasketInstrument(const Napi::CallbackInfo &info);
-  
+
   Napi::Value SetBasketInstruments(const Napi::CallbackInfo &info);
 
   static void Init(Napi::Env env, Napi::Object exports);

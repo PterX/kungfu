@@ -105,9 +105,9 @@ Napi::Value BasketInstrumentStore::SetBasketInstruments(const Napi::CallbackInfo
   BasketInstrument basket_instrument = {};
   get(info[0].ToObject(), basket_instrument);
   basket_instruments.push_back(basket_instrument);
-  
+
   try {
-   profile_.replace_range(basket_instruments);
+    profile_.replace_range(basket_instruments);
   } catch (const std::exception &ex) {
     SPDLOG_ERROR("failed to SetBasketInstrument {}", ex.what());
     yijinjing::util::print_stack_trace();

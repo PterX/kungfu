@@ -60,6 +60,8 @@ import {
   booleanProcessEnv,
   delayMilliSeconds,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import { LifeCycleKeys } from '@kungfu-trader/kungfu-js-api/hooks/lifeCycleHook';
+import { KfHookKeeper } from '@kungfu-trader/kungfu-js-api/hooks/index';
 import {
   Pm2ProcessStatusDetailData,
   Pm2ProcessStatusData,
@@ -247,7 +249,12 @@ const initStartAll = (bypassArchive = false) => {
 loadCustomFont().then(async () => {
   await mergeExtLanguages();
   await useComponents(app, router);
-  app.mount('#app');
+  (globalThis.HookKeeper as KfHookKeeper)
+    .getHooks()
+    .lifeCycle.trigger(LifeCycleKeys.BeforeAppMount)
+    .finally(() => {
+      app.mount('#app');
+    });
 
   if (!booleanProcessEnv(process.env.RELOAD_AFTER_CRASHED)) {
     await initStartAll();

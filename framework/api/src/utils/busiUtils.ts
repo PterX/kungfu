@@ -1189,3 +1189,19 @@ export async function startReplay(
       return Promise.reject(new Error('Location is not supported to replay'));
   }
 }
+
+export const ifTodayFirstStart = () => {
+  const lastStartDateTime = globalStorage.getItem('lastStartDateTime');
+  if (lastStartDateTime) {
+    const dateDayjs = dayjs(lastStartDateTime);
+    if (dateDayjs.isValid()) {
+      const todayDayjs = dayjs();
+      return (
+        dateDayjs.isSame(todayDayjs, 'year') &&
+        dateDayjs.isSame(todayDayjs, 'month') &&
+        !dateDayjs.isSame(todayDayjs, 'day')
+      );
+    }
+  }
+  return true;
+};

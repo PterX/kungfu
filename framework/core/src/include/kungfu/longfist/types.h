@@ -95,13 +95,13 @@ KF_DEFINE_PACK_TYPE(                         //
     (double, realized_pnl),   // 实现盈亏
     (double, unrealized_pnl), // 未实现盈亏
 
-    (double, market_value),       // 市值(股票)
-    (double, short_market_value), // 融券卖出证券市值
-    (double, long_market_value),  // 融资买入证券市值
+    (double, market_value),       // 市值
+    (double, long_market_value),  // 融资买入证券市值, 或otc业务市值(多)
+    (double, short_market_value), // 融券卖出证券市值, 或otc业务市值(空)
 
     (double, margin),       // 保证金占用
-    (double, short_margin), // 融券占用保证金
-    (double, long_margin),  // 融资占用保证金
+    (double, long_margin),  // 融资占用保证金, 或otc业务保证金占用(多)
+    (double, short_margin), // 融券占用保证金, 或otc业务保证金占用(空)
 
     (double, accumulated_fee), // 累计手续费
     (double, intraday_fee),    // 当日手续费
@@ -113,7 +113,10 @@ KF_DEFINE_PACK_TYPE(                         //
     (double, position_pnl), // 持仓盈亏(期货)
     (double, close_pnl),    // 平仓盈亏(期货)
 
-    (double, avail),        // 可用资金
+    (double, avail),       // 可用资金
+    (double, long_avail),  // otc业务可用资金(多)
+    (double, short_avail), // otc业务可用资金(空）
+
     (double, total_asset),  // 总资产
     (double, avail_margin), // 可用保证金
 

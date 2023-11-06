@@ -67,7 +67,18 @@ const currentWindow = getCurrentWindow();
 
 const props = withDefaults(
   defineProps<{
-    params: Record<string, string>;
+    params: Partial<{
+      category: string;
+      group: string;
+      beginTime: string;
+      endTime: string;
+      logPath: string;
+      logLevel: string;
+      sessionName: string;
+      filePath: string;
+      processId: string;
+      enableMatcher: string;
+    }>;
     closeImmediately?: boolean;
   }>(),
   {
@@ -103,7 +114,10 @@ onMounted(async () => {
   const replayPocessCheckTimer = setInterval(async () => {
     const { processStatus } = await listProcessStatus();
     if (processStatus) {
-      if (processStatus[props.params.processId] === 'online') {
+      if (
+        props.params.processId &&
+        processStatus[props.params.processId] === 'online'
+      ) {
         startReloading.value = false;
         isLoading.value = true;
         if (reloadingTimer) {
@@ -125,12 +139,16 @@ onMounted(async () => {
     currentWindow.on('close', async (event) => {
       event.preventDefault();
       const { processStatus } = await listProcessStatus();
-      if (processStatus[props.params.processId] !== 'online') {
+      if (
+        props.params.processId &&
+        processStatus[props.params.processId] !== 'online'
+      ) {
         currentWindow.destroy();
       }
-      handleRemoveReplayProcess(props.params.processId).finally(() => {
-        currentWindow.destroy();
-      });
+      props.params.processId &&
+        handleRemoveReplayProcess(props.params.processId).finally(() => {
+          currentWindow.destroy();
+        });
     });
   }
   onBeforeUnmount(() => {
@@ -161,7 +179,7 @@ async function reLoadLog() {
   }
 
   const { processStatus } = await listProcessStatus();
-  const processId = props.params.processId;
+  const processId = props.params.processId || '';
 
   if (!processStatus[processId]) {
     throwError('replay.please_start_replay');
@@ -245,7 +263,7 @@ async function reLoadLog() {
 function updateLogLevel(level: string) {
   const configs = localStorage.getItem('replayConfigs');
   if (configs) {
-    const config = (JSON.parse(configs) || {})[props.params.processId];
+    const config = (JSON.parse(configs) || {})[props.params.processId || ''];
     if (config) {
       const replayParams = config.args;
       if (replayParams && replayParams.replayConfig) {

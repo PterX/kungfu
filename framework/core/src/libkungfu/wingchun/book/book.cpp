@@ -128,6 +128,7 @@ void Book::update(int64_t update_time, longfist::enums::AccountingMethodType acc
 
   // asset.margin = 0;
   asset.market_value = 0;
+  asset.long_market_value = 0;
   asset.short_market_value = 0;
   asset.unrealized_pnl = 0;
   asset.dynamic_equity = asset.avail;
@@ -172,6 +173,8 @@ void Book::update(int64_t update_time, longfist::enums::AccountingMethodType acc
 
     if (position.direction == Direction::Short) {
       asset.short_market_value += position_market_value;
+    } else {
+      asset.long_market_value += position_market_value;
     }
   };
 

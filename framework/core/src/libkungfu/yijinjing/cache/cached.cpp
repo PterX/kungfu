@@ -283,7 +283,7 @@ void cached::store_states_feeds() {
                        s.data.to_string());
           iter++;
         } catch (const std::exception &e) {
-          SPDLOG_ERROR("Unexpected exception by handle_cached_feeds {}", e.what());
+          SPDLOG_ERROR("Unexpected exception by store_states_feeds {}", e.what());
         }
         states_store_mutex_.unlock();
       } else {
@@ -321,8 +321,6 @@ void cached::store_states_feeds() {
 }
 
 void cached::store_profile_feeds() {
-  // there are important info like locations in profile, every app register need these info, so do not clear profile
-  // bank;
   feed_mutex_.lock();
   ProfileStateBank tmp_profile_bank = profile_feed_bank_;
   profile_feed_bank_.clear();
@@ -337,23 +335,20 @@ void cached::store_profile_feeds() {
 
     using FeedMap = std::unordered_map<uint64_t, state<DataType>>;
     auto &feed_map = const_cast<FeedMap &>(tmp_profile_bank[hana_type]);
-
-    if (feed_map.size() != 0) {
-      auto iter = feed_map.begin();
-      while (iter != feed_map.end()) {
-        const auto &s = iter->second;
-        profile_store_mutex_.lock();
-        try {
-          profile_ << s;
-          count++;
-          SPDLOG_TRACE("cache [profile] {} data {}", DataType::type_name.c_str(), s.data.to_string());
-          iter++;
-        } catch (const std::exception &e) {
-          SPDLOG_ERROR("Unexpected exception by handle_profile_feeds {}", e.what());
-        }
-        profile_store_mutex_.unlock();
-      }
+    std::vector<DataType> tmp_profile_vector = {};
+    for (const auto &s : feed_map) {
+      tmp_profile_vector.push_back(s.second.data);
     }
+
+    profile_store_mutex_.lock();
+    try {
+      profile_ << tmp_profile_vector;
+      count += tmp_profile_vector.size();
+      SPDLOG_TRACE("cache [profile] {} size {}", DataType::type_name.c_str(), tmp_profile_vector.size());
+    } catch (const std::exception &e) {
+      SPDLOG_ERROR("Unexpected exception by store_profile_feeds {}", e.what());
+    }
+    profile_store_mutex_.unlock();
   });
   auto store_profile_data_end_time = time::now_in_nano();
   SPDLOG_TRACE("store profile data take {}ns, count {}", store_profile_data_end_time - store_profile_data_start_time,

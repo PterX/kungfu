@@ -83,7 +83,11 @@ Session &session_builder::open_session(const location_ptr &source_location, int6
   session.begin_time = time;
   session.end_time = 0;
   session.update_time = time;
-  session_storage_->replace(session);
+  try {
+    session_storage_->replace(session);
+  } catch (const std::exception &ex) {
+    SPDLOG_ERROR("failed to open_session replace {} {}", session.to_string(), ex.what());
+  }
   return session;
 }
 
@@ -98,7 +102,11 @@ void session_builder::close_session(const location_ptr &source_location, int64_t
   auto &session = live_sessions_.at(source_location->uid);
   session.end_time = time;
   session.update_time = time;
-  session_storage_->replace(session);
+  try {
+    session_storage_->replace(session);
+  } catch (const std::exception &ex) {
+    SPDLOG_ERROR("failed to close_session replace {} {}", session.to_string(), ex.what());
+  }
 }
 
 void session_builder::close_all_sessions(int64_t time) {
@@ -107,7 +115,11 @@ void session_builder::close_all_sessions(int64_t time) {
     auto &session = pair.second;
     session.end_time = time;
     session.update_time = time;
-    session_storage_->replace(session);
+    try {
+      session_storage_->replace(session);
+    } catch (const std::exception &ex) {
+      SPDLOG_ERROR("failed to close_all_sessions replace {} {}", session.to_string(), ex.what());
+    }
   }
 }
 

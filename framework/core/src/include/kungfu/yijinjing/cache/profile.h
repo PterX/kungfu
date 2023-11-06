@@ -54,6 +54,10 @@ public:
 
   template <typename DataType> void operator<<(const state<DataType> &s) { get_storage()->replace(s.data); }
 
+  template <typename DataType> void operator<<(const std::vector<DataType> &v_s) {
+    get_storage()->replace_range(v_s.begin(), v_s.end());
+  }
+
   yijinjing::cache::ProfileStoragePtr &get_storage();
 
 private:

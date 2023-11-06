@@ -14,7 +14,7 @@ using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::cache;
 
-#define DEFAULT_STORE_VOLUME_BY_INTERVAL 2000
+#define DEFAULT_STORE_VOLUME_BY_INTERVAL 5000
 
 namespace kungfu::yijinjing::cache {
 
@@ -118,7 +118,7 @@ void cached::on_start() {
                          return source_id != master_home_location_->uid and source_id != get_master_command_uid();
                        }) | $$(feed(event));
 
-  add_time_interval(time_unit::NANOSECONDS_PER_MILLISECOND * 50, [&](auto e) {
+  add_time_interval(time_unit::NANOSECONDS_PER_MILLISECOND * 1000, [&](auto e) {
     handle_cached_feeds(DEFAULT_STORE_VOLUME_BY_INTERVAL);
     handle_profile_feeds(DEFAULT_STORE_VOLUME_BY_INTERVAL);
   });
@@ -182,21 +182,33 @@ void cached::handle_cached_feeds(int store_volume_every_loop) {
   });
 
   auto &location_bank_map = tmp_location_bank.get_map();
-  boost::hana::for_each(StateDataTypes, [&](auto it) {
-    using DataType = typename decltype(+boost::hana::second(it))::type;
-    auto hana_type = boost::hana::type_c<DataType>;
-    using StateMap = std::unordered_map<uint64_t, state<DataType>>;
 
-    std::for_each(location_bank_map.begin(), location_bank_map.end(), [&](auto &pair) {
-      uint32_t source = pair.first >> 32u;
-      uint32_t dest = pair.first & 0xFFFFFFFF;
-      auto &state_bank = pair.second;
+  std::for_each(location_bank_map.begin(), location_bank_map.end(), [&](auto &pair) {
+    uint32_t source = pair.first >> 32u;
+    uint32_t dest = pair.first & 0xFFFFFFFF;
+    auto &state_bank = pair.second;
+
+    boost::hana::for_each(StateDataTypes, [&](auto it) {
+      using DataType = typename decltype(+boost::hana::second(it))::type;
+      auto hana_type = boost::hana::type_c<DataType>;
+      using StateMap = std::unordered_map<uint64_t, state<DataType>>;
+
       auto &state_map = const_cast<StateMap &>(state_bank[hana_type]);
       std::vector<DataType> tmp_state_vector = {};
       for (const auto &s : state_map) {
         tmp_state_vector.push_back(s.second.data);
       }
-      app_cache_shift_.at(source).replace_range(dest, tmp_state_vector);
+
+      if (tmp_state_vector.size() <= 0) {
+        return;
+      }
+
+      try {
+        app_cache_shift_.at(source).replace_range(dest, tmp_state_vector);
+        SPDLOG_TRACE("cache [state] {} size {}", DataType::type_name.c_str(), tmp_state_vector.size());
+      } catch (const std::exception &e) {
+        SPDLOG_ERROR("Unexpected exception by handle_cached_feeds {}", e.what());
+      }
     });
   });
 
@@ -235,6 +247,10 @@ void cached::handle_profile_feeds(int store_volume_every_loop) {
     }
     feed_map.clear();
 
+    if (tmp_profile_vector.size() <= 0) {
+      return;
+    }
+
     try {
       profile_.replace_range(tmp_profile_vector);
       SPDLOG_TRACE("cache [profile] {} size {}", DataType::type_name.c_str(), tmp_profile_vector.size());
@@ -244,7 +260,7 @@ void cached::handle_profile_feeds(int store_volume_every_loop) {
   });
 
   auto store_profiles_end_time = time::now_in_nano();
-  SPDLOG_TRACE("store state data take {}ns, count {}", store_profiles_end_time - store_profiles_start_time,
+  SPDLOG_TRACE("store profile data take {}ns, count {}", store_profiles_end_time - store_profiles_start_time,
                stored_controller);
 }
 
@@ -277,7 +293,7 @@ void cached::register_trigger_listen_public(int64_t gen_time, const Register &re
   auto app_uid = register_data.location_uid;
   auto app_location = get_location(app_uid);
 
-  if (app_location->category != category::TD) {
+  if (app_location->category != category::TD and app_location->category != category::MD) {
     return;
   }
 

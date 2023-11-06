@@ -1,5 +1,14 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from 'vue';
+import {
+  computed,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  watch,
+} from 'vue';
+import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
+
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
 import KfConfigSettingsForm from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfConfigSettingsForm.vue';
 import {
@@ -21,13 +30,13 @@ import {
   getPosClosableVolume,
   makeOrderByOrderTriggerInput,
 } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
+import { useDynamicStyle } from '@kungfu-trader/kungfu-js-api/utils/hook';
 import {
   InstrumentTypeEnum,
   OffsetEnum,
   OrderInputKeyEnum,
   SideEnum,
   PriceTypeEnum,
-  OrderTriggerConfigTypeEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
   useCurrentGlobalKfLocation,
@@ -47,12 +56,9 @@ import {
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   isShotable,
-  dealOrderInputItem,
-  transformSearchInstrumentResultToInstrument,
   dealVolumeByInstrumentType,
 } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import OrderConfirmModal from './OrderConfirmModal.vue';
-import OrderTriggerConfirmModal from './OrderTriggerConfirmModal.vue';
 import VueI18n, { useLanguage } from '@kungfu-trader/kungfu-js-api/language';
 import { useTradingTask } from '../tradingTask/utils';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
@@ -61,7 +67,6 @@ import {
   useMakeOrderInfo,
   useMakeOrderSubscribe,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
-import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
 
 const { t } = VueI18n.global;
 const { error, success } = messagePrompt();
@@ -75,8 +80,10 @@ const { handleBodySizeChange } = useDashboardBodySize();
 const formState = ref(
   initFormStateByConfig(getConfigSettings('td', InstrumentTypeEnum.future), {}),
 );
+let cleanupFun: () => void;
 
 const formRef = ref();
+const bordRef = ref();
 const { subscribeAllInstrumentByAppStates } = useInstruments();
 const { appStates, processStatusData } = useProcessStatusDetailData();
 const { mdExtTypeMap, extConfigs } = useExtConfigsRelated();
@@ -104,6 +111,24 @@ const {
 } = useCurrentGlobalKfLocation(window.watcher);
 
 const { getValidatorByOrderInputKey } = useTradeLimit();
+
+const uniqueClassName = `item-focus-background + ${Date.now()}`;
+
+onMounted(() => {
+  const { cleanup } = useDynamicStyle(
+    bordRef,
+    formRef,
+    uniqueClassName,
+    '.ant-form-item-control-input:focus-within { background: rgba(67, 67, 67, 0.3); }',
+    true,
+    1,
+  );
+  cleanupFun = cleanup;
+
+  onBeforeUnmount(() => {
+    cleanupFun();
+  });
+});
 
 const makeOrderInstrumentType = ref<InstrumentTypeEnum>(
   InstrumentTypeEnum.unknown,
@@ -134,11 +159,13 @@ const configSettings = computed(() => {
   }
 
   const { category } = currentGlobalKfLocation.value;
-  const { side } = formState.value;
+  const { side, apart_order, volume } = formState.value;
   return getConfigSettings(
     category,
     makeOrderInstrumentType.value,
     side,
+    volume,
+    apart_order,
     +formState.value.price_type,
     pricePrecision,
     step,
@@ -383,28 +410,6 @@ function handleResetMakeOrderForm(): void {
   });
 }
 
-// 拆单
-async function handleApartOrder(): Promise<void> {
-  try {
-    await formRef.value.validate();
-    const makeOrderInput: KungfuApi.MakeOrderInput = await initOrderInputData();
-    const flag = await showCloseModal(makeOrderInput);
-    if (!flag) return;
-    const isContinue = await confirmContinueOrderModal(
-      dealFatFingerMessage(makeOrderInput),
-    );
-    if (isContinue !== null && !isContinue) return;
-
-    isShowConfirmModal.value = true;
-    curOrderVolume.value = Number(makeOrderInput.volume);
-    curOrderType.value = makeOrderInput.instrument_type;
-  } catch (e) {
-    if ((<Error>e).message) {
-      error((<Error>e).message);
-    }
-  }
-}
-
 // 拆单弹窗确认回调
 async function handleApartedConfirm(volumeList: number[]): Promise<void> {
   try {
@@ -595,11 +600,20 @@ async function confirmApartCloseToOpen(
 }
 
 // 下单
-async function handleMakeOrder(): Promise<void> {
+async function handleMakeOrder(side?: SideEnum): Promise<void> {
   try {
     if (!currentGlobalKfLocation.value) return;
 
     await formRef.value.validate();
+    if (side && typeof side === 'number') {
+      formState.value.side = side;
+    }
+    if (formState.value.order_trigger) {
+      handleOrderTriggerConfirm();
+      console.log('trd');
+      return;
+    }
+    const volumeList: number[] = [];
     const makeOrderInput: KungfuApi.MakeOrderInput = await initOrderInputData();
     const flag = await showCloseModal(makeOrderInput);
     if (!flag) return;
@@ -607,8 +621,24 @@ async function handleMakeOrder(): Promise<void> {
       dealFatFingerMessage(makeOrderInput),
     );
     if (isContinue !== null && !isContinue) return;
-    const makeOrderInputs = await confirmApartCloseToOpen(makeOrderInput);
 
+    if (formState.value.apart_order && formState.value.every_volume > 0) {
+      const { every_volume } = formState.value;
+      const { volume } = makeOrderInput;
+
+      for (let i = every_volume; i <= volume; i += every_volume) {
+        volumeList.push(every_volume);
+      }
+      if (volumeList.length > 0) {
+        const remainder = volume % every_volume;
+        if (remainder !== 0) {
+          volumeList.push(remainder);
+        }
+        await handleApartedConfirm(volumeList);
+        return;
+      }
+    }
+    const makeOrderInputs = await confirmApartCloseToOpen(makeOrderInput);
     for (let orderInput of makeOrderInputs) {
       const tdProcessId = await confirmOrderPlace(orderInput);
       if (!tdProcessId) continue;
@@ -620,78 +650,16 @@ async function handleMakeOrder(): Promise<void> {
     }
   }
 }
+//TODO: 买卖双键
+// async function handleOpenOrder() {
+//   handleMakeOrder(SideEnum.Buy);
+// }
 
-const isShowOrderTriggerConfirmModal = ref<boolean>(false);
-const orderTriggerInputResolved = ref<
-  Record<string, KungfuApi.KfTradeValueCommonData>
->({});
+// async function handleCloseOrder() {
+//   handleMakeOrder(SideEnum.Sell);
+// }
+
 const orderTriggerInput = ref<KungfuApi.MakeOrderInput>();
-const orderTriggerBtnVisible = computed(() => {
-  const rootPackageJson = readRootPackageJsonSync();
-  if (rootPackageJson?.appConfig?.orderTrigger === false) {
-    return false;
-  }
-
-  const tdName = currentGlobalKfLocation.value?.group as string;
-  const extConfig = extConfigs.value.td[tdName];
-  if (
-    extConfig &&
-    extConfig.orderTrigger[OrderTriggerConfigTypeEnum.MakeOrder]
-  ) {
-    const { instrument, side } = formState.value;
-    if (!instrument) {
-      return false;
-    }
-    const { instrumentType } = transformSearchInstrumentResultToInstrument(
-      instrument,
-    ) as KungfuApi.InstrumentResolved;
-    if (
-      instrumentType === InstrumentTypeEnum.future &&
-      side !== SideEnum.Exec
-    ) {
-      return true;
-    } else {
-      return false;
-    }
-  } else {
-    return false;
-  }
-});
-
-// 预埋
-async function handleOrderTrigger() {
-  try {
-    if (!currentGlobalKfLocation.value) return;
-
-    await formRef.value.validate();
-    orderTriggerInput.value = await initOrderInputData();
-
-    const { account_id } = formState.value;
-    const tdProcessId =
-      currentGlobalKfLocation.value?.category === 'td'
-        ? getProcessIdByKfLocation(currentGlobalKfLocation.value)
-        : `td_${account_id.toString()}`;
-
-    if (processStatusData.value[tdProcessId] !== 'online') {
-      error(t('tradingConfig.start_process', { process: tdProcessId }));
-      return;
-    }
-
-    isShowOrderTriggerConfirmModal.value = true;
-    const { price_precision } = getPriceTickAndPrecision(
-      orderTriggerInput.value.instrument_id,
-      orderTriggerInput.value.exchange_id,
-    );
-    orderTriggerInputResolved.value = dealOrderInputItem(
-      orderTriggerInput.value,
-      price_precision,
-    );
-  } catch (e) {
-    if ((<Error>e).message) {
-      error((<Error>e).message);
-    }
-  }
-}
 
 function handleOrderTriggerConfirm() {
   if (!currentGlobalKfLocation.value) return;
@@ -852,7 +820,12 @@ watch(
 
 <template>
   <div class="kf-make-order-dashboard__warp">
-    <KfDashboard @boardSizeChange="handleBodySizeChange">
+    <KfDashboard
+      ref="bordRef"
+      id="make-order-form"
+      tabindex="0"
+      @boardSizeChange="handleBodySizeChange"
+    >
       <template v-slot:title>
         <span v-if="currentGlobalKfLocation">
           <a-tag
@@ -865,6 +838,18 @@ watch(
             {{ getCurrentGlobalKfLocationId(currentGlobalKfLocation) }}
           </span>
         </span>
+      </template>
+      <template #header>
+        <KfDashboardItem>
+          <a-button
+            tabindex="-1"
+            style="flex: 0"
+            size="small"
+            @click="handleResetMakeOrderForm"
+          >
+            {{ $t('tradingConfig.reset_order') }}
+          </a-button>
+        </KfDashboardItem>
       </template>
       <div class="make-order__wrap">
         <div class="make-order-content">
@@ -883,6 +868,7 @@ watch(
               <a-col :span="LABEL_COL + WRAPPER_COL">
                 <a-button
                   v-for="percent in percentList"
+                  tabindex="-1"
                   :class="{
                     'percent-button': true,
                     'percent-button-active': currentPercent === percent,
@@ -899,7 +885,7 @@ watch(
               </a-col>
             </div>
             <template v-if="isAccountOrInstrumentConfirmed">
-              <div class="make-order-position">
+              <div class="make-order-position" tabindex="-1">
                 <a-col :span="LABEL_COL" class="position-label">
                   {{
                     showAmountOrPosition === 'amount'
@@ -915,7 +901,7 @@ watch(
                   }}
                 </a-col>
               </div>
-              <div class="make-order-position">
+              <div class="make-order-position" tabindex="-1">
                 <a-col :span="LABEL_COL" class="position-label">
                   {{
                     isShotable(instrumentResolved?.instrumentType)
@@ -929,7 +915,7 @@ watch(
                   {{ currentTradeAmount }}
                 </a-col>
               </div>
-              <div class="make-order-position">
+              <div class="make-order-position" tabindex="-1">
                 <a-col :span="LABEL_COL" class="position-label">
                   {{
                     showAmountOrPosition === 'amount'
@@ -947,6 +933,7 @@ watch(
               </div>
               <a-card
                 v-if="availTradingTaskExtensionList.length"
+                tabindex="-1"
                 class="make-order-algorithm__wrap"
                 :title="$t('tradingConfig.algorithm')"
                 size="small"
@@ -971,31 +958,18 @@ watch(
           </div>
         </div>
         <div class="make-order-btns">
-          <a-button
-            style="flex: 0"
-            size="small"
-            @click="handleResetMakeOrderForm"
-          >
-            {{ $t('tradingConfig.reset_order') }}
+          <!-- <a-button class="make-order" @click="handleOpenOrder()">
+            {{ $t('tradingConfig.buy') }}
           </a-button>
+          <a-button class="make-order" @click="handleCloseOrder()">
+            {{ $t('tradingConfig.sell') }}
+          </a-button> -->
           <a-button class="make-order" @click="handleMakeOrder">
             {{ $t('tradingConfig.place_order') }}
-          </a-button>
-          <a-button v-if="orderTriggerBtnVisible" @click="handleOrderTrigger">
-            {{ $t('tradingConfig.order_trigger') }}
-          </a-button>
-          <a-button @click="handleApartOrder">
-            {{ $t('tradingConfig.apart_order') }}
           </a-button>
         </div>
       </div>
     </KfDashboard>
-    <OrderTriggerConfirmModal
-      v-if="isShowOrderTriggerConfirmModal"
-      v-model:visible="isShowOrderTriggerConfirmModal"
-      :orderTriggerInput="orderTriggerInputResolved"
-      @confirm="handleOrderTriggerConfirm"
-    ></OrderTriggerConfirmModal>
     <OrderConfirmModal
       v-if="isShowConfirmModal && curOrderType"
       v-model:visible="isShowConfirmModal"

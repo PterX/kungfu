@@ -204,7 +204,22 @@ const configSettingFormInject = inject(
 
 watch(
   () => props.configSettings,
-  (newVal) => {
+  (newVal, oldVal) => {
+    if (!newVal || newVal.length === 0) return;
+    if (oldVal) {
+      const oldKeySet = new Set(oldVal.map((item) => item.key));
+      const newValMap = Object.fromEntries(
+        newVal.map((item) => [item.key, item.default]),
+      );
+
+      for (const key in newValMap) {
+        if (!oldKeySet.has(key)) {
+          newValMap[key] !== undefined
+            ? (formState.value[key] = newValMap[key])
+            : null;
+        }
+      }
+    }
     primaryKeys.value = getPrimaryKeys(newVal);
     instrumentKeys.value = filterInstrumentKeysFromConfigSettings(newVal);
     tableKeys.value = filterTableKeysFromConfigSettings(newVal);

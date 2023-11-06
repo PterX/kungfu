@@ -147,8 +147,8 @@ void cached::handle_cached_feeds(int store_volume_every_loop) {
   location_bank tmp_location_bank = {};
   auto store_states_start_time = time::now_in_nano();
 
-  auto trading_data_count = transfer_from_bank<bank, location_bank>(
-      TradingDataTypes, feed_bank_, tmp_location_bank, DEFAULT_STORE_VOLUME_BY_INTERVAL);
+  auto trading_data_count = transfer_from_bank<bank, location_bank>(TradingDataTypes, feed_bank_, tmp_location_bank,
+                                                                    DEFAULT_STORE_VOLUME_BY_INTERVAL);
   auto others_data_count = transfer_from_bank<bank, location_bank>(
       StateDataTypes, feed_bank_, tmp_location_bank, DEFAULT_STORE_VOLUME_BY_INTERVAL - trading_data_count);
 
@@ -255,7 +255,7 @@ void cached::register_trigger_listen_public(int64_t gen_time, const Register &re
   auto app_uid = register_data.location_uid;
   auto app_location = get_location(app_uid);
 
-  if (app_location->category != category::TD and app_location->category != category::MD) {
+  if (app_location->category != category::TD) {
     return;
   }
 

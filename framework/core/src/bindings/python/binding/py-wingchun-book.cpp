@@ -19,14 +19,6 @@ using namespace kungfu::wingchun;
 using namespace kungfu::wingchun::book;
 
 namespace py = pybind11;
-
-PYBIND11_MAKE_OPAQUE(CommissionMap)
-PYBIND11_MAKE_OPAQUE(InstrumentMap)
-PYBIND11_MAKE_OPAQUE(PositionMap)
-PYBIND11_MAKE_OPAQUE(OrderInputMap)
-PYBIND11_MAKE_OPAQUE(OrderMap)
-PYBIND11_MAKE_OPAQUE(TradeMap)
-
 namespace kungfu::wingchun::pybind {
 class PyAccountingMethod : public AccountingMethod {
 public:
@@ -58,12 +50,6 @@ public:
 };
 
 void bind_book(pybind11::module &m) {
-  py::bind_map<CommissionMap>(m, "CommissionMap");
-  py::bind_map<InstrumentMap>(m, "InstrumentMap");
-  py::bind_map<PositionMap>(m, "PositionMap");
-  py::bind_map<OrderInputMap>(m, "OrderInputMap");
-  py::bind_map<OrderMap>(m, "OrderMap");
-  py::bind_map<TradeMap>(m, "TradeMap");
 
   py::class_<Book, Book_ptr>(m, "Book")
       .def_readonly("asset", &Book::asset, py::return_value_policy::reference)

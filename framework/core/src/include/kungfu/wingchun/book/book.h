@@ -22,41 +22,20 @@ static constexpr double DEFAULT_STOCK_CONVERSION_RATE = 0.7;
 FORWARD_DECLARE_STRUCT_PTR(Book)
 FORWARD_DECLARE_CLASS_PTR(Bookkeeper)
 
-// key = hash_str_32(product_id)
-typedef std::unordered_map<uint32_t, longfist::types::Commission> CommissionMap;
-
-// key = hash_instrument(exchange_id, instrument_id)
-typedef std::unordered_map<uint32_t, longfist::types::Instrument> InstrumentMap;
-
-// key = hash_instrument(exchange_id, instrument_id)
-typedef std::unordered_map<uint32_t, longfist::types::Position> PositionMap;
-
-// key = order_id
-typedef std::unordered_map<uint64_t, longfist::types::OrderInput> OrderInputMap;
-
-// key = order_id
-typedef std::unordered_map<uint64_t, longfist::types::Order> OrderMap;
-
-// key = trade_id
-typedef std::unordered_map<uint64_t, longfist::types::Trade> TradeMap;
-
-// key = hash_instrument(exchange_id, instrument_id)
-typedef std::unordered_map<uint32_t, longfist::types::InstrumentFactor> InstrumentFactorMap;
-
 struct Book {
-  const CommissionMap &commissions;
-  const InstrumentMap &instruments;
-  const InstrumentFactorMap &instrument_factors;
+  const map::CommissionMap &commissions;
+  const map::InstrumentMap &instruments;
+  const map::InstrumentFactorMap &instrument_factors;
   longfist::types::Asset asset = {};
   longfist::types::AssetMargin asset_margin = {};
-  PositionMap long_positions = {};
-  PositionMap short_positions = {};
-  OrderInputMap order_inputs = {};
-  OrderMap orders = {};
-  TradeMap trades = {};
+  map::PositionMap long_positions = {};
+  map::PositionMap short_positions = {};
+  map::OrderInputMap order_inputs = {};
+  map::OrderMap orders = {};
+  map::TradeMap trades = {};
 
-  Book(const CommissionMap &commissions_ref, const InstrumentMap &instruments_ref,
-       const InstrumentFactorMap &instrument_factors_ref);
+  Book(const map::CommissionMap &commissions_ref, const map::InstrumentMap &instruments_ref,
+       const map::InstrumentFactorMap &instrument_factors_ref);
 
   double get_frozen_price(uint64_t order_id);
 
@@ -128,11 +107,11 @@ struct Book {
 
   void mirror_position_from(const Book &book);
 
-  [[nodiscard]] const InstrumentMap &get_instruments() const { return instruments; }
+  [[nodiscard]] const map::InstrumentMap &get_instruments() const { return instruments; }
 
-  [[nodiscard]] const InstrumentFactorMap &get_instrument_factors() const { return instrument_factors; }
+  [[nodiscard]] const map::InstrumentFactorMap &get_instrument_factors() const { return instrument_factors; }
 
-  [[nodiscard]] const CommissionMap &get_commissions() const { return commissions; }
+  [[nodiscard]] const map::CommissionMap &get_commissions() const { return commissions; }
 
   Book &operator=(const Book &book) { return *this; }
 };

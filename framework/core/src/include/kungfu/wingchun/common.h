@@ -674,4 +674,35 @@ inline void order_input_from_trigger_order(const longfist::types::OrderTriggerIn
 
 } // namespace kungfu::wingchun
 
+namespace kungfu::wingchun::map {
+
+// key = hash_str_32(product_id)
+typedef std::unordered_map<uint32_t, longfist::types::Commission> CommissionMap;
+
+// key = hash_instrument(exchange_id, instrument_id)
+typedef std::unordered_map<uint32_t, longfist::types::Instrument> InstrumentMap;
+
+// key = hash_instrument(source_id, exchange_id, instrument_id)
+typedef std::unordered_map<uint32_t, longfist::types::InstrumentFactor> InstrumentFactorMap;
+
+// key = hash_instrument(exchange_id, instrument_id)
+typedef std::unordered_map<uint32_t, longfist::types::Position> PositionMap;
+
+// key = order_id
+typedef std::unordered_map<uint64_t, longfist::types::OrderInput> OrderInputMap;
+
+// key = order_id
+typedef std::unordered_map<uint64_t, longfist::types::Order> OrderMap;
+
+// key = trade_id
+typedef std::unordered_map<uint64_t, longfist::types::Trade> TradeMap;
+
+// key = basket_uid
+typedef std::unordered_map<uint32_t, longfist::types::Basket> BasketMap;
+
+// key = hash_basket_instrument(basket_uid, exchange_id, instrument_id)
+typedef std::unordered_map<uint32_t, longfist::types::BasketInstrument> BasketInstrumentMap;
+
+} // namespace kungfu::wingchun::map
+
 #endif // WINGCHUN_COMMON_H

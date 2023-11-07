@@ -15,6 +15,7 @@ using namespace kungfu::yijinjing::practice;
 using namespace kungfu::longfist;
 using namespace kungfu::longfist::enums;
 using namespace kungfu::longfist::types;
+using namespace kungfu::wingchun::map;
 using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::cache;
@@ -296,7 +297,6 @@ void Ledger::write_strategy_data(int64_t trigger_time, uint32_t strategy_uid) {
     if ((has_account or is_strategy) or is_node) {
       write_positions(trigger_time, strategy_uid, book->long_positions);
       write_positions(trigger_time, strategy_uid, book->short_positions);
-      write_instrument_factors(trigger_time, strategy_uid, bookkeeper_.get_static_data().get_instrument_factors());
       writer->write(trigger_time, asset);
     }
   }
@@ -309,14 +309,6 @@ void Ledger::write_positions(int64_t trigger_time, uint32_t dest, PositionMap &p
   auto writer = get_writer(dest);
   for (const auto &pair : positions) {
     writer->write_as(trigger_time, pair.second, get_live_home_uid(), pair.second.holder_uid);
-  }
-}
-
-void Ledger::write_instrument_factors(int64_t trigger_time, uint32_t dest,
-                                      const InstrumentFactorMap &instrument_factors) {
-  auto writer = get_writer(dest);
-  for (const auto &pair : instrument_factors) {
-    writer->write(trigger_time, pair.second);
   }
 }
 

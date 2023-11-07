@@ -119,6 +119,15 @@ public:
     });
   }
 
+  template <typename TargetType, typename DataTypes>
+  void restore_to(DataTypes datatypes, TargetType &target, uint32_t dest) {
+    ensure_storage(dest);
+    boost::hana::for_each(datatypes, [&](auto it) {
+      using DataType = typename decltype(+boost::hana::second(it))::type;
+      restore<DataType>(target, dest, storage_map_.at(dest));
+    });
+  }
+
   template <typename DataType> void operator<<(const typed_event_ptr<DataType> &event) {
     ensure_storage(event->dest());
     storage_map_.at(event->dest())->replace(event->template data<DataType>());

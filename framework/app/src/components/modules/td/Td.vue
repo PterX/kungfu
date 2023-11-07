@@ -19,7 +19,13 @@ import Icon, {
   HistoryOutlined,
 } from '@ant-design/icons-vue';
 
-import { categoryRegisterConfig, getColumns, getFundTransKey } from './config';
+import {
+  categoryRegisterConfig,
+  getColumns,
+  getFundTransKey,
+  assetDetailShowList,
+  assetMarginDetailShowList,
+} from './config';
 import {
   useTableSearchKeyword,
   handleOpenLogview,
@@ -40,6 +46,7 @@ import {
   useTdGroups,
   useAssets,
   useReplay,
+  showTradingDataDetail,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import {
   getIfProcessRunning,
@@ -249,6 +256,30 @@ const columns = computed(() => {
   );
 });
 
+const customRowResolved = (
+  record: KungfuApi.KfLocation | KungfuApi.KfConfig,
+) => {
+  const allAssetDetailList = [
+    ...assetDetailShowList,
+    ...(tdAssetMarginMap.value[record.group] ? assetMarginDetailShowList : []),
+  ];
+  const assetGetter = () =>
+    allAssetDetailList.reduce((assetDetails, assetInfo) => {
+      assetDetails[assetInfo.label] = dealAssetPrice(
+        getAssetsByKfConfig(record)[assetInfo.key],
+      );
+      return assetDetails;
+    }, {} as Record<string, string>);
+  return {
+    ...customRow(record),
+    onMousedown: (event: MouseEvent) => {
+      if (event.button === 2) {
+        showTradingDataDetail(assetGetter, t('tdConfig.asset_details'));
+      }
+    },
+  };
+};
+
 const getPrefixByLocation = (kfLocation: KungfuApi.KfLocation) =>
   globalThis.HookKeeper.getHooks().prefix.trigger(kfLocation);
 
@@ -400,7 +431,7 @@ function handleConfirmFundTrans(formState) {
     formState.target &&
     formState.source === formState.target
   ) {
-    error('划入节点和划出节点不能一致，请重新选择！');
+    error('');
     return;
   }
 
@@ -562,7 +593,7 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
         :pagination="false"
         :scroll="{ y: dashboardBodyHeight - 4 }"
         :row-class-name="dealRowClassName"
-        :custom-row="customRow"
+        :custom-row="customRowResolved"
         :default-expand-all-rows="true"
         :empty-text="$t('empty_text')"
       >

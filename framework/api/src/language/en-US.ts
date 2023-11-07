@@ -500,6 +500,8 @@ export default {
     total_asset: 'total_asset',
     actions: 'actions',
 
+    asset_details: 'Asset',
+
     add_td: 'Add',
     add_group_placeholder: 'Add group',
     set_td_group: 'Account Group Settings',
@@ -522,6 +524,8 @@ export default {
     target: 'Into the node',
     amount: 'Amount incurred',
     trading_day: 'Transfer time',
+    source_target_cannot_be_same:
+      'Transfer source and target cannot be the same, please reselect!',
     tip_error: 'Transfer failed, please contact the administrator!',
     capitalaccountor: 'Fund account',
     trade_password: 'Transaction password',

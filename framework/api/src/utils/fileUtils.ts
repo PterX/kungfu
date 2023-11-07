@@ -89,11 +89,11 @@ export const readCSV = <T>(
  * });
  * ```
  */
-export const createWriteCsvStream = (
+export const createWriteCsvStream = <T extends FormatterRow>(
   filePath: string,
   headers: boolean | string[],
-  transform?: (row: KungfuApi.TradingDataTypes) => FormatterRow,
-): csv.CsvFormatterStream<KungfuApi.TradingDataTypes, csv.FormatterRow> => {
+  transform?: (row: T) => FormatterRow,
+): csv.CsvFormatterStream<T, csv.FormatterRow> => {
   const csvStream = csv.format({ headers, transform });
   const fileWriteStream = fse.createWriteStream(path.normalize(filePath));
   // 解决Excel导出乱码的问题
@@ -119,11 +119,11 @@ export const createWriteCsvStream = (
   return csvStream;
 };
 
-export const writeCsvWithUTF8Bom = (
+export const writeCsvWithUTF8Bom = <T extends FormatterRow>(
   filePath: string,
-  rows: KungfuApi.TradingDataTypes[],
+  rows: T[],
   headers: boolean | string[],
-  transform = (row: KungfuApi.TradingDataTypes) => row as FormatterRow,
+  transform = (row: T) => row as FormatterRow,
 ) => {
   filePath = path.normalize(filePath);
   return new Promise<void>((resolve, reject) => {

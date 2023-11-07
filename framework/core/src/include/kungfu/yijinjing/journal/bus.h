@@ -1,9 +1,7 @@
 #ifndef KUNGFU_BUS_H
 #define KUNGFU_BUS_H
-
 #include <condition_variable>
 #include <kungfu/common.h>
-
 namespace kungfu::yijinjing::journal {
 
 class bus {
@@ -20,14 +18,19 @@ public:
 
   void notify_all();
 
+  void consume();
+
+  void produce();
+
+  void wait();
+
 private:
-  std::condition_variable cv_;
+  std::condition_variable cv_{};
+  std::mutex cv_mutex_{};
+  bool ready_{false};
   const bool on_load_page_required_;
-  bool keep_page_{};
 };
 
 DECLARE_PTR(bus);
-
 } // namespace kungfu::yijinjing::journal
-
 #endif // KUNGFU_BUS_H

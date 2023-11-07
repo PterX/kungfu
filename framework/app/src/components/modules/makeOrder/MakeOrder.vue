@@ -1013,6 +1013,7 @@ watch(
                   class="make-order-algorithm-btns"
                   v-for="item in availTradingTaskExtensionList"
                   @click="handleOpenTradingTaskConfigModal(item)"
+                  :key="item.key"
                 >
                   {{
                     isLanguageKeyAvailable(item.name)

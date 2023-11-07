@@ -7,7 +7,7 @@ class Exchange:
     SSE = "SSE"  # 上交所
     SZE = "SZE"  # 深交所
     BSE = "BSE"  # 北交所
-    GFEX = "GFEX"  # 广交所
+    GFEX = "GFEX"  # 广期所
     SHFE = "SHFE"  # 上期所
     DCE = "DCE"  # 大商所
     CZCE = "CZCE"  # 郑商所

@@ -71,7 +71,6 @@ export function dealLogMessage(line: string): string {
 }
 
 export const useLogInit = (
-  logPath: string,
   nLines = 10000,
 ): {
   logList: KungfuApi.KfFixedList<KungfuApi.KfLogData>;
@@ -79,7 +78,7 @@ export const useLogInit = (
   scrollerTableRef: Ref;
   isLoading: Ref<boolean>;
   scrollToBottom: () => void;
-  startTailLog: () => void;
+  startTailLog: (logPath: string) => void;
   clearLogState: () => void;
 } => {
   // const LOADING_TIMEOUT = 2000;
@@ -91,15 +90,14 @@ export const useLogInit = (
   const scrollToBottomChecked = ref<boolean>(false);
   const isLoading = ref<boolean>(false);
 
-  ensureFileSync(logPath);
-
   const scrollToBottom = () => {
     if (scrollToBottomChecked.value) {
       scrollerTableRef.value.scrollToBottom();
     }
   };
 
-  const startTailLog = () => {
+  const startTailLog = (logPath: string) => {
+    ensureFileSync(logPath);
     let lastLineReceivedAt = Date.now();
 
     isLoading.value = true;

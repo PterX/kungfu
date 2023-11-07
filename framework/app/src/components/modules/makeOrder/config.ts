@@ -74,7 +74,6 @@ export const getConfigSettings = (
             : null,
         ].filter((item) => !!item) as KungfuApi.KfConfigItem[])
       : []),
-
     {
       key: 'price_type',
       name: t('tradingConfig.price_type'),

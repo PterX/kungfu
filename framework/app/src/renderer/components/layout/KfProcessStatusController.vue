@@ -33,6 +33,10 @@ import {
   getIfProcessStopping,
   isTdMd,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import {
+  buildMasterLocation,
+  buildLedgerLocation,
+} from '@kungfu-trader/kungfu-js-api/utils/systemUtils';
 import { getProcessIdByKfLocation } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   handleSwitchProcessStatusGenerator,
@@ -146,18 +150,8 @@ watch(appStates, (newAppStates, oldAppStates) => {
 });
 
 const mainStatusWell = computed(() => {
-  const masterLocation = {
-    category: 'system',
-    name: 'master',
-    group: 'master',
-    mode: 'live',
-  };
-  const ledgerLocation = {
-    category: 'system',
-    name: 'ledger',
-    group: 'ledger',
-    mode: 'live',
-  };
+  const masterLocation = buildMasterLocation();
+  const ledgerLocation = buildLedgerLocation();
   const masterIsLive =
     processStatusData.value[getProcessIdByKfLocation(masterLocation)] ===
     'online';
@@ -456,3 +450,4 @@ onMounted(() => {
   }
 }
 </style>
+@kungfu-trader/kungfu-js-api/utils/systemConfig

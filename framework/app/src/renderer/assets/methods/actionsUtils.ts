@@ -64,6 +64,11 @@ import {
   getMdTdKfLocationByProcessId,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import {
+  buildMasterLocation,
+  buildArchiveLocation,
+  buildLedgerLocation,
+} from '@kungfu-trader/kungfu-js-api/utils/systemUtils';
 import { BasketVolumeType } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import { writeCsvWithUTF8Bom } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
 import {
@@ -858,38 +863,49 @@ export const handleExportInstrumentWhitelists = async (): Promise<void> => {
     });
 };
 
-export const showTradingDataDetail = <T extends KungfuApi.TradingDataTypes>(
-  item: T,
+export const showTradingDataDetail = <
+  T extends Record<string, string | number | bigint>,
+>(
+  item: T | (() => T),
   typename: string,
   filterKeys?: Array<keyof T>,
 ): Promise<boolean> => {
-  const dataResolved = dealTradingDataItem(item, window.watcher);
-  const vnode = Object.keys(dataResolved || {})
-    .filter((key) => {
-      if (filterKeys && (filterKeys as string[]).includes(key)) {
-        return false;
-      }
-      if (dataResolved[key].toString() === '[object Object]') {
-        return false;
-      }
-      return dataResolved[key] !== '';
-    })
-    .map((key) =>
-      h('div', { class: 'trading-data-detail-row' }, [
-        h('span', { class: 'label' }, `${key}`),
-        h('span', { class: 'value' }, `${dataResolved[key]}`),
-      ]),
+  const generateVnode = () => {
+    const itemResolved = typeof item === 'function' ? item() : item;
+    const dataResolved = dealTradingDataItem(
+      itemResolved as unknown as KungfuApi.TradingDataTypes,
+      window.watcher,
     );
 
-  return confirmModal(
-    `${typename} ${t('detail')}`,
-    h(
+    const vnode = Object.keys(dataResolved || {})
+      .filter((key) => {
+        if (filterKeys && (filterKeys as string[]).includes(key)) {
+          return false;
+        }
+        if (dataResolved[key].toString() === '[object Object]') {
+          return false;
+        }
+        return dataResolved[key] !== '';
+      })
+      .map((key) =>
+        h('div', { class: 'trading-data-detail-row' }, [
+          h('span', { class: 'label' }, `${key}`),
+          h('span', { class: 'value' }, `${dataResolved[key]}`),
+        ]),
+      );
+
+    return h(
       'div',
       {
         class: 'trading-data-detail__warp',
       },
       vnode,
-    ),
+    );
+  };
+
+  return confirmModal(
+    `${typename} ${t('detail')}`,
+    generateVnode,
     t('confirm'),
   );
 };
@@ -1986,29 +2002,20 @@ export const useAllKfConfigData = (): Record<
         ...(process.env.NODE_ENV === 'development'
           ? [
               {
+                ...buildArchiveLocation(),
                 location_uid: 0,
-                category: 'system',
-                group: 'service',
-                name: 'archive',
-                mode: 'live',
                 value: '',
               },
             ]
           : []),
         {
+          ...buildMasterLocation(),
           location_uid: 0,
-          category: 'system',
-          group: 'master',
-          name: 'master',
-          mode: 'live',
           value: '',
         },
         {
+          ...buildLedgerLocation(),
           location_uid: 0,
-          category: 'system',
-          group: 'service',
-          name: 'ledger',
-          mode: 'live',
           value: '',
         },
       ]),
@@ -2152,7 +2159,13 @@ export const useReplay = (): {
       value: string;
     }[]
   >;
+  replayPreLoading: Ref<boolean>;
+  startLoadingInterval: () => void;
+  stopLoadingInterval: () => void;
 } => {
+  let loadingTimer: NodeJS.Timeout | null = null;
+  const DEFAULT_PRE_LOADING_TIME = 10000;
+  const replayPreLoading = ref(false);
   const setReplayModalVisible = ref(false);
   const journalReplayflag = ref(0);
   const replayProcessParams = ref<
@@ -2351,6 +2364,19 @@ export const useReplay = (): {
     }
   };
 
+  const startLoadingInterval = () => {
+    if (loadingTimer) clearInterval(loadingTimer);
+    replayPreLoading.value = true;
+    loadingTimer = setInterval(() => {
+      replayPreLoading.value = false;
+    }, DEFAULT_PRE_LOADING_TIME);
+  };
+
+  const stopLoadingInterval = () => {
+    if (loadingTimer) clearInterval(loadingTimer);
+    replayPreLoading.value = false;
+  };
+
   return {
     currentLocation,
     replayConfig,
@@ -2360,6 +2386,9 @@ export const useReplay = (): {
     replayProcessParams,
     handleOpenReplayConfirmView,
     handleReplayModal,
+    startLoadingInterval,
+    stopLoadingInterval,
+    replayPreLoading,
   };
 };
 

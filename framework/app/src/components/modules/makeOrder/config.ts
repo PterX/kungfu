@@ -20,6 +20,7 @@ export const getConfigSettings = (
   sideEnum?: SideEnum,
   volume?: number,
   apart?: boolean,
+  orderTriggerVisible?: boolean,
   priceType?: PriceTypeEnum,
   pricePrecision?: number,
   step?: number,
@@ -46,18 +47,22 @@ export const getConfigSettings = (
       default: SideEnum.Buy,
       required: true,
     },
-    ...(isShotable(instrumentTypeEnum || InstrumentTypeEnum.unknown)
-      ? ([
+    {
+      key: 'offset',
+      name: t('tradingConfig.offset'),
+      type: 'offset',
+      default: OffsetEnum.Open,
+      required: true,
+      isHidden: !(
+        isShotable(instrumentTypeEnum || InstrumentTypeEnum.unknown) &&
+        !(
           instrumentTypeEnum === InstrumentTypeEnum.stockoption &&
           sideEnum === SideEnum.Exec
-            ? null
-            : {
-                key: 'offset',
-                name: t('tradingConfig.offset'),
-                type: 'offset',
-                default: OffsetEnum.Open,
-                required: true,
-              },
+        )
+      ),
+    },
+    ...(isShotable(instrumentTypeEnum || InstrumentTypeEnum.unknown)
+      ? ([
           instrumentTypeEnum === InstrumentTypeEnum.future && getAbleHedgeFlag()
             ? {
                 key: 'hedge_flag',
@@ -105,7 +110,7 @@ export const getConfigSettings = (
             default: false,
           }
         : null,
-      apart
+      volume && volume > 1 && apart
         ? {
             key: 'every_volume',
             name: t('tradingConfig.every_volume'),
@@ -120,6 +125,7 @@ export const getConfigSettings = (
             required: true,
           }
         : null,
+      orderTriggerVisible &&
       instrumentTypeEnum === InstrumentTypeEnum.future &&
       sideEnum !== SideEnum.Exec
         ? {

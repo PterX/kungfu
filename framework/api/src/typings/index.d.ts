@@ -204,6 +204,7 @@ declare namespace KungfuApi {
     importMode?: 'reset' | 'add';
     disableDateRange?: number; // 时间范围选择器不可选的日期范围
     abledTimeRange?: [string, string]; // 时间范围选择器不可选的时间范围
+    isHidden?: boolean;
 
     maxlength?: number;
 

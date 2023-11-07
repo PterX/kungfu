@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, ref } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
 import { storeToRefs } from 'pinia';
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
@@ -21,6 +21,7 @@ import {
   confirmModal,
   messagePrompt,
   useDashboardBodySize,
+  useKeyboardMakeOrderStyle,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { dealOrderPlaceVNode } from '../makeOrder/utils';
@@ -33,6 +34,10 @@ const { globalSetting } = storeToRefs(useGlobalStore());
 
 const formState = ref(initFormStateByConfig(getConfigSettings(), {}));
 const formRef = ref();
+const boardRef = ref();
+const makeOrderBtnId = `make-order-btn-${Date.now()}`;
+let cleanupFun: () => void;
+const uniqueClassName = `item-focus-background-${Date.now()}`;
 const { processStatusData } = useProcessStatusDetailData();
 
 const {
@@ -40,6 +45,22 @@ const {
   currentCategoryData,
   getCurrentGlobalKfLocationId,
 } = useCurrentGlobalKfLocation(window.watcher);
+
+onMounted(() => {
+  const { cleanup } = useKeyboardMakeOrderStyle(
+    boardRef,
+    formRef,
+    uniqueClassName,
+    '.ant-form-item-control-input:focus-within { background: rgba(67, 67, 67, 0.3); }',
+    true,
+    2,
+  );
+  cleanupFun = cleanup;
+
+  onBeforeUnmount(() => {
+    cleanupFun();
+  });
+});
 
 const isShowCurrentGlobalKfLocationTitle = computed(() => {
   return (
@@ -193,12 +214,18 @@ function handleMakeOrder() {
         );
         return;
       }
+      const makeOrderBtn = document.getElementById(makeOrderBtnId);
       if (!globalSetting.value?.trade?.skipConfirmMakeOrder) {
         const flag = await confirmModal(
           t('tradingConfig.place_confirm'),
           dealOrderPlaceVNode(makeOrderInput, 1, true),
         );
-        if (!flag) return;
+        if (!flag) {
+          if (makeOrderBtn) {
+            (makeOrderBtn as HTMLElement).focus();
+          }
+          return;
+        }
       }
 
       makeOrderByOrderInput(
@@ -206,9 +233,15 @@ function handleMakeOrder() {
         makeOrderInput,
         currentGlobalKfLocation.value,
         tdProcessId.toAccountId(),
-      ).catch((err) => {
-        error(err.message);
-      });
+      )
+        .then(() => {
+          if (makeOrderBtn) {
+            (makeOrderBtn as HTMLElement).focus();
+          }
+        })
+        .catch((err) => {
+          error(err.message);
+        });
     })
     .catch((err: Error) => {
       console.error(err);
@@ -217,7 +250,11 @@ function handleMakeOrder() {
 </script>
 <template>
   <div class="kf-make-order-dashboard__warp">
-    <KfDashboard @boardSizeChange="handleBodySizeChange">
+    <KfDashboard
+      ref="boardRef"
+      tabindex="0"
+      @boardSizeChange="handleBodySizeChange"
+    >
       <template v-slot:title>
         <span
           v-if="currentGlobalKfLocation && isShowCurrentGlobalKfLocationTitle"
@@ -235,7 +272,11 @@ function handleMakeOrder() {
       </template>
       <template v-slot:header>
         <KfDashboardItem>
-          <a-button size="small" @click="handleResetMakeOrderForm">
+          <a-button
+            tabindex="-2"
+            size="small"
+            @click="handleResetMakeOrderForm"
+          >
             {{ $t('futureArbitrageConfig.reset_order') }}
           </a-button>
         </KfDashboardItem>
@@ -254,7 +295,7 @@ function handleMakeOrder() {
           ></KfConfigSettingsForm>
         </div>
         <div class="make-order-btns">
-          <a-button size="small" @click="handleMakeOrder">
+          <a-button :id="makeOrderBtnId" size="small" @click="handleMakeOrder">
             {{ $t('futureArbitrageConfig.place_order') }}
           </a-button>
         </div>

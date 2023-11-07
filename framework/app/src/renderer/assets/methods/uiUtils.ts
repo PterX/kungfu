@@ -271,7 +271,7 @@ export const loadExtComponents = (
   });
 };
 
-export function useKeyboardControlStyle(
+export function useKeyboardMakeOrderStyle(
   boardRef,
   elementRef,
   uniqueClassName,
@@ -308,7 +308,10 @@ export function useKeyboardControlStyle(
 
       if (e.code === 'Tab') {
         for (const board of globalThis.globalBoardStylesMap.keys()) {
-          if (board && board === document.activeElement) {
+          if (
+            (board && board === document.activeElement) ||
+            isChildOf(board, document.activeElement)
+          ) {
             const methods = globalThis.globalBoardStylesMap.get(board);
             for (const method of methods) {
               method();
@@ -403,9 +406,12 @@ export function useKeyboardControlStyle(
   };
 
   function loopFocusWithinBoard(board) {
-    const focusableElements = board.querySelectorAll(
-      'a[href], button, textarea, input[type="text"], input[type="radio"], input[type="checkbox"], select',
-    );
+    const allElements = board.querySelectorAll(
+      'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]',
+    ) as HTMLElement[];
+    const focusableElements = Array.from(allElements).filter((el) => {
+      return el.tabIndex !== -1 || el.getAttribute('tabindex') === null;
+    });
     const firstFocusableElement = focusableElements[0];
     const lastFocusableElement =
       focusableElements[focusableElements.length - 1];
@@ -417,6 +423,22 @@ export function useKeyboardControlStyle(
       ) {
         e.preventDefault();
         firstFocusableElement.focus();
+      }
+
+      if (
+        e.key === 'Tab' &&
+        e.shiftKey &&
+        document.activeElement === focusableElements[1]
+      ) {
+        e.preventDefault();
+        firstFocusableElement.focus();
+      } else if (
+        e.key === 'Tab' &&
+        e.shiftKey &&
+        document.activeElement === firstFocusableElement
+      ) {
+        e.preventDefault();
+        lastFocusableElement.focus();
       }
     });
   }

@@ -48,20 +48,24 @@ public:
 
   template <typename DataType> void remove_all() { get_storage()->remove_all<DataType>(); }
 
+  template <typename DataType, typename SqliteExpression> void remove_all(SqliteExpression se) {
+    get_storage()->remove_all<DataType>(se);
+  }
+
   template <typename DataType> void operator<<(const typed_event_ptr<DataType> &event) {
     get_storage()->replace(event->template data<DataType>());
   }
 
   template <typename DataType> void operator<<(const state<DataType> &s) { get_storage()->replace(s.data); }
 
-  template <typename DataType> void operator<<(const std::vector<DataType> &v_s) {
-    get_storage()->replace_range(v_s.begin(), v_s.end());
+  template <typename DataType> void replace_range(const std::vector<DataType> &v) {
+    get_storage()->replace_range(v.begin(), v.end());
   }
-
-  yijinjing::cache::ProfileStoragePtr &get_storage();
 
 private:
   const std::string profile_db_file_;
+
+  yijinjing::cache::ProfileStoragePtr &get_storage();
 
   explicit profile(std::string profile_db_file);
 };

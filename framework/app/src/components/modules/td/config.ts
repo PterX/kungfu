@@ -126,6 +126,20 @@ export const getColumns = (
       },
     ]);
 
+export const assetDetailShowList = [
+  { key: 'unrealized_pnl', label: t('tdConfig.unrealized_pnl') },
+  { key: 'market_value', label: t('tdConfig.marked_value') },
+  { key: 'margin', label: t('tdConfig.margin') },
+  { key: 'avail', label: t('tdConfig.avail_money') },
+  { key: 'unrealized_pnl', label: t('tdConfig.unrealized_pnl') },
+] as const;
+
+export const assetMarginDetailShowList = [
+  { key: 'avail_margin', label: t('tdConfig.avail_margin') },
+  { key: 'cash_debt', label: t('tdConfig.cash_debt') },
+  { key: 'total_asset', label: t('tdConfig.total_asset') },
+] as const;
+
 const orderSortKey = getTradingDataSortKey('Order');
 const tradeSortKey = getTradingDataSortKey('Trade');
 const positionSortKey = getTradingDataSortKey('Position');

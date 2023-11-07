@@ -35,12 +35,8 @@ void cleaner::do_clean() {
 bool cleaner::is_cleaner_worker_required() const { return app_.get_bus()->is_on_load_page_required(); }
 
 cleaner::~cleaner() {
-
-  quite_mutex_.lock();
   m_quit_ = true;
-  quite_mutex_.unlock();
   app_.get_bus()->notify_all();
-
   if (cleaning_worker_.joinable()) {
     cleaning_worker_.join();
     SPDLOG_INFO("~cleaner cleaning_worker_ joined");

@@ -54,7 +54,7 @@ import {
   isHexOrRgbColor,
   debounce,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
-import globalStorage from '@kungfu-trader/kungfu-js-api/utils/globalStorage';
+import { getGlobalStorage } from '@kungfu-trader/kungfu-js-api/utils/globalStorage';
 import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
 import { ExchangeIds } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
@@ -94,6 +94,8 @@ import { normalizePath } from '@kungfu-trader/kungfu-js-api/utils/osUtils';
 import { getDialogLogoPath } from '@kungfu-trader/kungfu-js-api/config/brand';
 
 // this utils file is only for ui components
+
+const globalStorage = getGlobalStorage();
 
 export const loadCustomFont = () => {
   const fontsDir = path.normalize(path.join(KUNGFU_RESOURCES_DIR, 'fonts'));
@@ -1407,6 +1409,7 @@ export const useScrollerTableSearch = <T extends object>(
     return new RegExp(regExpStr, 'g');
   };
 
+  let searchable = true;
   const searchInUsing = ref(false);
   const inputSearchRef = ref();
   const isInputFocused = ref(false);
@@ -1452,6 +1455,12 @@ export const useScrollerTableSearch = <T extends object>(
 
   // current index is begin from 1, valued 0 mean not has focus
   const currentResultIndex = ref<number>(0);
+  let resultIndexChangeSilent = false;
+  let lastCurrentResult: ResultFlattened & { index: number } = {
+    index: 0,
+    resultKey: '',
+    keyForSearch: '',
+  };
   const searchResults = ref<Record<string, SearchResultByContent>>({});
   const flatResults = ref<Record<number, ResultFlattened>>({});
   const totalResultCount = ref(0);
@@ -1469,6 +1478,8 @@ export const useScrollerTableSearch = <T extends object>(
   };
 
   const handleKeydown = (e: KeyboardEvent) => {
+    if (!searchable) return;
+
     const ctrlCmd = os.platform() === 'darwin' ? e.metaKey : e.ctrlKey;
     if (ctrlCmd && e.key === 'f') {
       searchInUsing.value = true;
@@ -1494,10 +1505,12 @@ export const useScrollerTableSearch = <T extends object>(
   };
 
   const handleInputFocus = () => {
+    if (!searchable) return;
     isInputFocused.value = true;
   };
 
   const handleInputBlur = () => {
+    if (!searchable) return;
     isInputFocused.value = false;
   };
 
@@ -1533,6 +1546,19 @@ export const useScrollerTableSearch = <T extends object>(
     registerKeydownEvent();
     registerInputFocusEvent();
   });
+
+  const updateCurrentResultIndex = (index: number, silent = false) => {
+    currentResultIndex.value = index;
+    const currentResult = flatResults.value[index] || {
+      resultKey: '',
+      keyForSearch: '',
+    };
+    lastCurrentResult = {
+      ...currentResult,
+      index,
+    };
+    resultIndexChangeSilent = silent;
+  };
 
   const getMarkElementIdByIndex = (index: number): string => `kf-mark-${index}`;
 
@@ -1598,6 +1624,8 @@ export const useScrollerTableSearch = <T extends object>(
 
   const updateSearchResults = () => {
     clearSearchResultState();
+    if (searchKeyword.value.trim() === '' || searchKeywordReg.value === null)
+      return Promise.resolve();
 
     return nextTick(() => {
       const rawsListResolved = getRawsListResolved();
@@ -1610,6 +1638,32 @@ export const useScrollerTableSearch = <T extends object>(
       });
     });
   };
+
+  if (isRef(rawsList)) {
+    watch(
+      rawsList,
+      debounce(() => {
+        updateSearchResults().then(() => {
+          if (totalResultCount.value) {
+            const lastCurrentExistIndex = Object.values(
+              flatResults.value,
+            ).findIndex((result) => {
+              return (
+                result.resultKey === lastCurrentResult.resultKey &&
+                result.keyForSearch === lastCurrentResult.keyForSearch
+              );
+            });
+
+            if (lastCurrentExistIndex !== -1) {
+              updateCurrentResultIndex(lastCurrentExistIndex + 1, true);
+            } else {
+              updateCurrentResultIndex(1, true);
+            }
+          }
+        });
+      }, 50),
+    );
+  }
 
   const getResultElementByIndex = (index: number) => {
     if (index <= 0 || index > totalResultCount.value) return null;
@@ -1669,7 +1723,7 @@ export const useScrollerTableSearch = <T extends object>(
     );
 
     const initIndex = index > -1 ? index + 1 : 1;
-    currentResultIndex.value = initIndex;
+    updateCurrentResultIndex(initIndex);
     scrollToItemByIndex(initIndex);
 
     if (index > -1) {
@@ -1680,6 +1734,8 @@ export const useScrollerTableSearch = <T extends object>(
   watch(
     searchKeywordReg,
     debounce(() => {
+      if (!searchable) return;
+
       if (
         searchKeyword.value.trim() === '' ||
         searchKeywordReg.value === null
@@ -1697,6 +1753,8 @@ export const useScrollerTableSearch = <T extends object>(
   );
 
   watch(currentResultIndex, (newIndex: number, oldIndex: number) => {
+    if (!searchable) return;
+
     if (newIndex === 0) {
       return;
     }
@@ -1706,32 +1764,35 @@ export const useScrollerTableSearch = <T extends object>(
     }
 
     updateSearchResultByIndex(newIndex);
+
+    if (resultIndexChangeSilent) return;
+
     scrollToItemByIndex(newIndex);
   });
 
   const handleToDownSearchResult = (): void => {
     if (totalResultCount.value === 0) return;
-    if (currentResultIndex.value === totalResultCount.value) {
+    if (currentResultIndex.value >= totalResultCount.value) {
       if (totalResultCount.value === 1) {
         scrollToItemByIndex(1);
       } else {
-        currentResultIndex.value = 1;
+        updateCurrentResultIndex(1);
       }
     } else {
-      currentResultIndex.value++;
+      updateCurrentResultIndex(currentResultIndex.value + 1);
     }
   };
 
   const handleToUpSearchResult = (): void => {
     if (totalResultCount.value === 0) return;
-    if (currentResultIndex.value === 1) {
+    if (currentResultIndex.value <= 1) {
       if (totalResultCount.value === 1) {
         scrollToItemByIndex(1);
       } else {
-        currentResultIndex.value = totalResultCount.value;
+        updateCurrentResultIndex(totalResultCount.value);
       }
     } else {
-      currentResultIndex.value--;
+      updateCurrentResultIndex(currentResultIndex.value - 1);
     }
   };
 
@@ -1746,6 +1807,14 @@ export const useScrollerTableSearch = <T extends object>(
     return `${item[key]}`;
   };
 
+  const switchSearchable = (target: boolean) => {
+    if (!target) {
+      clearSearchState();
+      searchInUsing.value = false;
+    }
+    searchable = target;
+  };
+
   return {
     searchInUsing,
     inputSearchRef,
@@ -1756,5 +1825,6 @@ export const useScrollerTableSearch = <T extends object>(
     handleToDownSearchResult,
     handleToUpSearchResult,
     getItemHtmlResult,
+    switchSearchable,
   };
 };

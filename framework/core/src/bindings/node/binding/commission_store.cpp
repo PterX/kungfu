@@ -55,9 +55,7 @@ Napi::Value CommissionStore::SetAllCommission(const Napi::CallbackInfo &info) {
     }
     try {
       profile_.remove_all<Commission>();
-      for (auto commission : commissions) {
-        profile_.set(commission);
-      }
+      profile_.replace_range(commissions);
     } catch (const std::exception &ex) {
       SPDLOG_ERROR("failed to SetAllCommission {}", ex.what());
       yijinjing::util::print_stack_trace();

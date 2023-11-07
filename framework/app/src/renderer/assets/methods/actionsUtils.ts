@@ -96,7 +96,7 @@ import { storeToRefs } from 'pinia';
 import { ipcRenderer } from 'electron';
 import { throttleTime } from 'rxjs';
 import { useGlobalStore } from '../../pages/index/store/global';
-import globalStorage from '@kungfu-trader/kungfu-js-api/utils/globalStorage';
+import { getGlobalStorage } from '@kungfu-trader/kungfu-js-api/utils/globalStorage';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { messagePrompt } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import sound from 'sound-play';
@@ -110,6 +110,7 @@ import {
 } from '@kungfu-trader/kungfu-js-api/hooks/lifeCycleHook';
 
 const { t } = VueI18n.global;
+const globalStorage = getGlobalStorage();
 const { success, error } = messagePrompt();
 
 export const useUpdateVersion = () => {
@@ -1668,11 +1669,18 @@ export const useActiveInstruments = () => {
     return { price_tick, price_precision };
   };
 
+  const getInstrumentCurrency = (instrumentId: string, exchangeId: string) => {
+    const instrument = getInstrumentByIdsWithWatcher(instrumentId, exchangeId);
+    const currency = instrument?.currency || CurrencyEnum.Unknown;
+    return currency;
+  };
+
   return {
     getInstrumentByIds,
     getInstrumentByIdsWithWatcher,
     getInstrumentCurrencyByIds,
     getPriceTickAndPrecision,
+    getInstrumentCurrency,
   };
 };
 
@@ -2126,7 +2134,6 @@ export const useCurrentPositionList = () => {
               watcher.ledger.Position,
               'position',
             ) as KungfuApi.Position[];
-
           currentPositionList.value = toRaw(
             currentPositions
               .reverse()
@@ -2647,7 +2654,6 @@ export const useBasket = () => {
   const store = useGlobalStore();
 
   const basketList = ref<KungfuApi.Basket[]>([]);
-  const basketInstrumentList = ref<KungfuApi.BasketInstrument[]>([]);
 
   onMounted(() => {
     if (app?.proxy) {
@@ -2657,10 +2663,7 @@ export const useBasket = () => {
 
   function updateBasketData() {
     store.setBasketList();
-    store.setBasketInstrumentList();
 
-    basketList.value = store.basketList;
-    basketInstrumentList.value = store.basketInstrumentList;
     return Promise.resolve();
   }
 
@@ -2688,7 +2691,6 @@ export const useBasket = () => {
 
   return {
     basketList,
-    basketInstrumentList,
     buildBasketOptionLabel,
     buildBasketOptionValue,
     parseBasketOptionValue,

@@ -134,6 +134,53 @@ const DefaultStrategyDealTrdaingDataHook = {
   },
 };
 
+const DefaultOperatorDealTrdaingDataHook = {
+  category: 'operator',
+  commonData: KfCategory[KfCategoryEnum.operator],
+  order: {
+    getter: (
+      watcher: KungfuApi.Watcher,
+      orders: KungfuApi.DataTable<KungfuApi.Order>,
+      kfLocation: KungfuApi.KfLocation,
+    ) => {
+      return dealTradingData<KungfuApi.Order>(
+        watcher,
+        orders,
+        'Order',
+        kfLocation,
+      ) as KungfuApi.Order[];
+    },
+  },
+  trade: {
+    getter: (
+      watcher: KungfuApi.Watcher,
+      trades: KungfuApi.DataTable<KungfuApi.Trade>,
+      kfLocation: KungfuApi.KfLocation,
+    ) => {
+      return dealTradingData<KungfuApi.Trade>(
+        watcher,
+        trades,
+        'Trade',
+        kfLocation,
+      ) as KungfuApi.Trade[];
+    },
+  },
+  position: {
+    getter: (
+      watcher: KungfuApi.Watcher,
+      positions: KungfuApi.DataTable<KungfuApi.Position>,
+      kfLocation: KungfuApi.KfLocation,
+    ) => {
+      return dealTradingData<KungfuApi.Position>(
+        watcher,
+        positions,
+        'Position',
+        kfLocation,
+      ) as KungfuApi.Position[];
+    },
+  },
+};
+
 const DefaultUnkownDealTrdaingDataHook = {
   category: 'Unknown',
   commonData: UnknownKfCategory,
@@ -179,6 +226,7 @@ export class DealTradingDataHooks {
       {
         'td_*_*': DefaultTdDealTrdaingDataHook,
         'strategy_*_*': DefaultStrategyDealTrdaingDataHook,
+        'operator_*_*': DefaultOperatorDealTrdaingDataHook,
       },
       {
         get(target: Record<string, DealTradingDataGetter>, prop: string) {

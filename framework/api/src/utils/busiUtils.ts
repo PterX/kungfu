@@ -98,13 +98,14 @@ import {
 import minimist from 'minimist';
 import VueI18n, { useLanguage } from '../language';
 import { T0T1Config } from '../typings/global';
-import globalStorage from './globalStorage';
+import { getGlobalStorage } from './globalStorage';
 import { getKfGlobalSettingsValue } from '../config/globalSettings';
 import { Currency } from '../config/tradingConfig';
 const { t } = VueI18n.global;
 import { Observable } from 'rxjs';
 import { ifKfDev } from './commonUtils';
 
+const globalStorage = getGlobalStorage();
 interface SourceAccountId {
   source: string;
   id: string;
@@ -2698,3 +2699,19 @@ export function roundToDecimalPlaces(num: number, precision: number) {
   const multiplier = Math.pow(10, precision);
   return Math.round(num * multiplier) / multiplier;
 }
+
+export const ifTodayFirstStart = () => {
+  const lastStartDateTime = globalStorage.getItem('lastStartDateTime');
+  if (lastStartDateTime) {
+    const dateDayjs = dayjs(lastStartDateTime);
+    if (dateDayjs.isValid()) {
+      const todayDayjs = dayjs();
+      return (
+        dateDayjs.isSame(todayDayjs, 'year') &&
+        dateDayjs.isSame(todayDayjs, 'month') &&
+        !dateDayjs.isSame(todayDayjs, 'day')
+      );
+    }
+  }
+  return true;
+};

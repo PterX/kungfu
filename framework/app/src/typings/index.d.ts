@@ -100,6 +100,9 @@ interface BuiltinComponentPropsMap {
       strategyExtConfig: KungfuApi.KfStrategyExtConfig,
     ) => boolean;
   };
+  ConfigSettingForm?: {
+    sideFilter?: (instrumentType: InstrumentTypeEnum) => string[];
+  };
 }
 
 declare module 'worker-loader!*' {

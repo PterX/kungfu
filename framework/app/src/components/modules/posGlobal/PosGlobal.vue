@@ -76,8 +76,11 @@ const {
 const { instruments } = useInstruments();
 const { getPositionLastPrice } = useQuote();
 const { triggerOrderBook, triggerMakeOrder } = useTriggerMakeOrder();
-const { getInstrumentCurrencyByIds, getPriceTickAndPrecision } =
-  useActiveInstruments();
+const {
+  getInstrumentCurrencyByIds,
+  getPriceTickAndPrecision,
+  getInstrumentCurrency,
+} = useActiveInstruments();
 const { dealDataWithCache } = useDealDataWithCaches<
   KungfuApi.Position,
   KungfuApi.PositionResolved
@@ -127,9 +130,15 @@ onMounted(() => {
                 position.instrument_id,
                 position.exchange_id,
               );
+              const currency = getInstrumentCurrency(
+                position.instrument_id,
+                position.exchange_id,
+              );
 
-              return dealDataWithCache(position, () =>
-                dealPosition(watcher, position, price_precision),
+              return dealDataWithCache(
+                position,
+                () => dealPosition(watcher, position, price_precision),
+                { currency },
               );
             }),
           );

@@ -25,6 +25,7 @@
             </template>
             <a-table
               class="kf-ant-table"
+              style="height: 100%"
               :columns="columns"
               :data-source="tableData"
               :pagination="false"
@@ -184,12 +185,12 @@ const boardStyle = localStorage.getItem('boardStyle')
 
 const journalHeadStyle = ref<KungfuApi.BoardStyle>(
   boardStyle['journalHead'] || {
-    flex: '1 1 20%',
+    height: '20%',
   },
 );
 const journalContentStyle = ref<KungfuApi.BoardStyle>(
   boardStyle['journalContent'] || {
-    flex: '1 1 80%',
+    height: '80%',
   },
 );
 
@@ -324,7 +325,8 @@ function onEntryVisualization() {
       .gutter {
         cursor: row-resize;
         width: 100%;
-        height: 4px;
+        height: 4px !important;
+        flex: 0 0 4px;
       }
 
       .gutter:hover {

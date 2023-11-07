@@ -86,18 +86,19 @@ void journal::load_page(uint32_t page_id) {
 
 void journal::load_next_page() { load_page(page_->get_page_id() + 1); }
 
-bool journal::preload_next_page() {
+void journal::preload_next_page() {
   std::lock_guard<std::recursive_mutex> lk(load_page_mtx_);
-  if (not preload_ or not page_ or                                                         //
+  if ((not preload_ or not page_) or                                                       //
       (preload_page_ and preload_page_->get_page_id() == page_->get_page_id() + 1) or      //
+      (page_->header_->status == longfist::enums::PageStatus::PreOpen) or                  //
       (not page::check_page_existed(location_, page_->dest_id_, page_->get_page_id() + 1)) //
   ) {
-    return false;
+    SPDLOG_TRACE("page_->header_->status: {}", page_->header_->status);
+    return;
   }
 
   SPDLOG_TRACE("preload_next_page: {}, {}->{}", page_->get_page_id() + 1, location_->uname, dest_id_);
-  preload_page_ = page::load(location_, dest_id_, page_size_, page_->get_page_id() + 1, is_writing_, lazy_, true);
-  return true;
+  preload_page_ = page::load(location_, dest_id_, page_size_, page_->get_page_id() + 1, is_writing_, lazy_);
 }
 
 // saving time for other process switch page, except the master
@@ -106,21 +107,20 @@ void journal::try_load_next_extra_page() {
   if (lazy_ || is_writing_ || !low_latency_ || page_size_ != page::find_page_size(location_, dest_id_)) {
     return;
   }
-  SPDLOG_TRACE("try_load_next_extra_page: {}, {}->{}", page_->get_page_id() + 1, location_->uname, dest_id_);
   pre_page_ = page::load(location_, dest_id_, page_->get_page_size(), page_->get_page_id() + 1, false, lazy_, true);
 }
 
-bool journal::release_page() {
+void journal::release_page() {
   if (keep_page_) {
     SPDLOG_TRACE("keep_page_: {}, {}->{}", keep_page_, location_->uname, dest_id_);
-    return false;
+    return;
   }
 
   static thread_local std::vector<page_ptr> queue_release_page{};
   {
     std::lock_guard<std::recursive_mutex> lk_passed_page(passed_page_collector_mtx_);
     if (passed_page_collector_.empty()) {
-      return false;
+      return;
     }
 
     for (auto &page : passed_page_collector_) {
@@ -137,8 +137,6 @@ bool journal::release_page() {
     page.reset();
   }
   queue_release_page.clear();
-
-  return true;
 }
 
 void journal::close_page(int64_t trigger_time, int64_t last_gen_time) {

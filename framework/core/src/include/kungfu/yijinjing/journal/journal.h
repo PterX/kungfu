@@ -79,7 +79,7 @@ public:
    */
   void seek_to_time(int64_t nanotime);
 
-  bool release_page();
+  void release_page();
 
 private:
   const data::location_ptr location_;
@@ -109,7 +109,7 @@ private:
   /** load next page, current page will be released if not empty */
   void load_next_page();
 
-  bool preload_next_page();
+  void preload_next_page();
 
   void try_load_next_extra_page();
 
@@ -166,9 +166,9 @@ public:
 
   void sort();
 
-  bool release_page();
+  void release_page();
 
-  bool pre_load_next_page();
+  void preload_next_page();
 
   static uint64_t find_page_size(const data::location_ptr &location, uint32_t dest_id);
 
@@ -229,9 +229,9 @@ public:
   void write_raw_at_as(int64_t gen_time, int64_t trigger_time, uint32_t source, uint32_t dest, int32_t msg_type,
                        uintptr_t data, uint32_t length);
 
-  bool release_page();
+  void release_page();
 
-  bool pre_load_next_page();
+  void preload_next_page();
 
   /**
    * Using auto with the return mess up the reference with the undlerying memory address, DO NOT USE it.

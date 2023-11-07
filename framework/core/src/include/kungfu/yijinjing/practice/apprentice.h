@@ -109,6 +109,8 @@ public:
     }
   }
 
+  void release_page();
+
   template <class DataType> std::string make_nano_msg(uint32_t source, uint32_t dest, const DataType &data) const {
     auto now = this->now();
     nlohmann::json request;
@@ -127,9 +129,7 @@ public:
 
   std::thread &get_cleaning_worker();
 
-  bool release_page();
-
-  bool pre_load_next_page();
+  void preload_next_page();
 
   journal::writer_ptr &get_thread_writer();
 

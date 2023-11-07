@@ -22,31 +22,9 @@ void resource_manager::on_react() {
 }
 
 void resource_manager::do_management() {
-  //  while (true) {
-  //    std::unique_lock lk(app_.get_bus()->get_cv_mutex());
-  //    app_.get_bus()->get_cv().wait(lk, [&]() {
-  //      if (m_quit_) {
-  //        app_.release_page();
-  //        return true;
-  //      }
-  //
-  //      bool flag = false;
-  //      flag |= app_.pre_load_next_page();
-  //      SPDLOG_DEBUG("app_.preload_next_page: {}", flag);
-  //      flag |= app_.release_page();
-  //      SPDLOG_DEBUG("app_.release_page: {}", flag);
-  //      return flag and app_.is_live();
-  //    });
-  //    lk.unlock();
-  //
-  //    if (m_quit_) {
-  //      break;
-  //    }
-  //  }
-
   while (true) {
     app_.get_bus()->wait();
-    app_.pre_load_next_page();
+    app_.preload_next_page();
     app_.release_page();
     app_.get_bus()->consume();
     if (m_quit_) {

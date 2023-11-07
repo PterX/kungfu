@@ -1,9 +1,7 @@
 #ifndef KUNGFU_BUS_H
 #define KUNGFU_BUS_H
-
 #include <condition_variable>
 #include <kungfu/common.h>
-
 namespace kungfu::yijinjing::journal {
 
 class bus {
@@ -36,7 +34,5 @@ private:
 };
 
 DECLARE_PTR(bus);
-
 } // namespace kungfu::yijinjing::journal
-
 #endif // KUNGFU_BUS_H

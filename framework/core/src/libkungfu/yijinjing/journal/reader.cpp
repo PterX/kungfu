@@ -124,20 +124,16 @@ void reader::build_buffer() {
   buffer_built_ = true;
 }
 
-bool reader::release_page() {
-  bool result = false;
+void reader::release_page() {
   for (auto &iter : journals_) {
-    result |= iter.second.release_page();
+    iter.second.release_page();
   }
-  return result;
 }
 
-bool reader::pre_load_next_page() {
-  bool result = false;
+void reader::preload_next_page() {
   for (auto &iter : journals_) {
-    result |= iter.second.preload_next_page();
+    iter.second.preload_next_page();
   }
-  return result;
 }
 
 reader::reader(const reader &other) : lazy_(other.lazy_), low_latency_(other.low_latency_), bus_(other.bus_) {

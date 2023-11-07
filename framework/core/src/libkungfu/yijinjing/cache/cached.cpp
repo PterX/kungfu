@@ -73,7 +73,14 @@ void cached::restore_states(const yijinjing::data::location_ptr &location,
     SPDLOG_ERROR("failed to write cache {} {} {}", location->uid, location->uname, ex.what());
   }
 
-  if (location->category == category::TD or location->category == category::STRATEGY) {
+  const bool IS_NODE = location->category == category::SYSTEM and location->group == "node";
+  const bool IS_LEDGER = location->uid == ledger_home_location_->uid;
+  const bool IS_TD = location->category == category::TD;
+  const bool IS_STRATEGY = location->category == category::STRATEGY;
+  const bool IS_OPERATOR = location->category == category::OPERATOR;
+  const bool IS_SYSTEM = location->category == category::SYSTEM;
+
+  if (IS_TD or IS_STRATEGY) {
     for (const auto &other_location : location->locator->list_locations("*", "*", "*", "*")) {
       if (other_location->category == category::SYSTEM) {
         continue;
@@ -92,29 +99,46 @@ void cached::restore_states(const yijinjing::data::location_ptr &location,
     }
   }
 
-  if (location->uid == ledger_home_location_->uid or
-      (location->category == category::SYSTEM and location->group == "node")) {
-    for (const auto &other_location : location->locator->list_locations("td", "*", "*", "live")) {
-      for (auto dest : location->locator->list_location_dest_by_db(other_location)) {
+  // static data in td
+  if (IS_STRATEGY or IS_OPERATOR or IS_SYSTEM) {
+    for (const auto &td_location : location->locator->list_locations("td", "*", "*", "live")) {
+      auto dests = location->locator->list_location_dest_by_db(td_location);
+      if (std::find(dests.begin(), dests.end(), location::PUBLIC) != dests.end()) {
         try {
-          ensure_cached_storage(other_location, dest);
-          app_states_shift_.at(other_location->uid).restore_to(writer, dest);
+          ensure_cached_storage(td_location, location::PUBLIC);
+          app_states_shift_.at(td_location->uid).restore_to(StaticDataTypes, writer, location::PUBLIC);
         } catch (const std::exception &ex) {
-          SPDLOG_ERROR("failed to write cache {} {} {} for target {}", other_location->uname, dest, ex.what(),
+          SPDLOG_ERROR("failed to write static data {} {} {} for target {}", td_location->uname, location::PUBLIC,
+                       ex.what(), location->uname);
+        }
+      }
+    }
+  }
+
+  // restore all trading data from tds, including static data in td
+  if (IS_LEDGER or IS_NODE) {
+    for (const auto &td_location : location->locator->list_locations("td", "*", "*", "live")) {
+      for (auto dest : location->locator->list_location_dest_by_db(td_location)) {
+        try {
+          ensure_cached_storage(td_location, dest);
+          app_states_shift_.at(td_location->uid).restore_to(writer, dest);
+        } catch (const std::exception &ex) {
+          SPDLOG_ERROR("failed to write cache {} {} {} for target {}", td_location->uname, dest, ex.what(),
                        location->uname);
         }
       }
     }
   }
 
-  if (location->category == category::SYSTEM and location->group == "node") {
-    for (const auto &other_location : location->locator->list_locations("system", "service", "ledger", "live")) {
-      for (auto dest : location->locator->list_location_dest_by_db(other_location)) {
+  // for watcher reload ledger written datas after crash
+  if (IS_NODE) {
+    for (const auto &ledger_location : location->locator->list_locations("system", "service", "ledger", "live")) {
+      for (auto dest : location->locator->list_location_dest_by_db(ledger_location)) {
         try {
-          ensure_cached_storage(other_location, dest);
+          ensure_cached_storage(ledger_location, dest);
 
         } catch (const std::exception &ex) {
-          SPDLOG_ERROR("failed to write cache {} {} {} for target {}", other_location->uname, dest, ex.what(),
+          SPDLOG_ERROR("failed to write cache {} {} {} for target {}", ledger_location->uname, dest, ex.what(),
                        location->uname);
         }
       }

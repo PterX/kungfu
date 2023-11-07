@@ -70,7 +70,7 @@ void journal::load_page(uint32_t page_id) {
       }
 
       if (preload_ and preload_page_ and preload_page_->get_page_id() == page_id) {
-        SPDLOG_DEBUG("assign preload_page_ {} to page_ {}, ", preload_page_->get_page_id(), page_->get_page_id());
+        SPDLOG_DEBUG("assign preload_page_ {} to page_ , ", preload_page_->get_page_id());
         page_ = std::move(preload_page_);
       } else {
         page_ = page::load(location_, dest_id_, page_size_, page_id, is_writing_, lazy_);
@@ -96,7 +96,7 @@ bool journal::preload_next_page() {
   }
 
   SPDLOG_TRACE("preload_next_page: {}, {}->{}", page_->get_page_id() + 1, location_->uname, dest_id_);
-  preload_page_ = page::load(location_, dest_id_, page_size_, page_->get_page_id() + 1, is_writing_, lazy_);
+  preload_page_ = page::load(location_, dest_id_, page_size_, page_->get_page_id() + 1, is_writing_, lazy_, true);
   return true;
 }
 

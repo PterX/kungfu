@@ -20,7 +20,6 @@ using namespace kungfu::wingchun;
 using namespace kungfu::wingchun::book;
 
 namespace py = pybind11;
-
 namespace kungfu::wingchun::pybind {
 
 class PyAccountingMethod : public AccountingMethod {

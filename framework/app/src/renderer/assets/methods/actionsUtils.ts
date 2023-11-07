@@ -864,7 +864,7 @@ export const handleExportInstrumentWhitelists = async (): Promise<void> => {
 };
 
 export const showTradingDataDetail = <
-  T extends Record<string, string | number | bigint>,
+  T extends Record<string, KungfuApi.KfConfigValue>,
 >(
   item: T | (() => T),
   typename: string,

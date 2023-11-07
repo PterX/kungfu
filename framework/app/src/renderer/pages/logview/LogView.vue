@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, watch } from 'vue';
 import {
   UpOutlined,
   DownOutlined,
@@ -26,6 +26,7 @@ const { success, error } = messagePrompt();
 
 defineExpose({
   resetLog,
+  getListLength,
 });
 
 const props = withDefaults(
@@ -37,7 +38,17 @@ const props = withDefaults(
   },
 );
 
-const LOG_PATH = props.logPath || '';
+let logPath = props.logPath || '';
+
+watch(
+  () => props.logPath,
+  (newVal) => {
+    if (newVal) {
+      logPath = props.logPath;
+      resetLog();
+    }
+  },
+);
 
 const boardSize = ref<{ width: number; height: number }>({
   width: 0,
@@ -62,7 +73,7 @@ const {
   scrollToBottom,
   startTailLog,
   clearLogState,
-} = useLogInit(LOG_PATH);
+} = useLogInit();
 
 const {
   inputSearchRef,
@@ -86,8 +97,8 @@ onMounted(() => {
 });
 
 function handleRemoveLog(): Promise<void> {
-  ensureFileSync(LOG_PATH);
-  return outputFile(LOG_PATH, '')
+  ensureFileSync(logPath);
+  return outputFile(logPath, '')
     .then(() => {
       success();
       resetLog();
@@ -98,13 +109,17 @@ function handleRemoveLog(): Promise<void> {
 }
 
 function handleOpenFileLocation() {
-  return shell.showItemInFolder(LOG_PATH);
+  return shell.showItemInFolder(logPath);
 }
 
 function resetLog() {
   clearLogState();
   clearSearchState();
-  startTailLog();
+  startTailLog(logPath);
+}
+
+function getListLength() {
+  return logList.list.length;
 }
 </script>
 <template>

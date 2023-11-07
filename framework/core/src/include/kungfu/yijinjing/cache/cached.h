@@ -113,7 +113,7 @@ private:
   std::mutex feed_mutex_;
   std::mutex states_store_mutex_;
   std::mutex profile_store_mutex_;
-  bool m_quit_ = false;
+  std::atomic<bool> m_quit_ = false;
   std::atomic_bool storage_pause_ = false;
 
   yijinjing::data::location_ptr ledger_home_location_;
@@ -144,6 +144,25 @@ private:
       SPDLOG_ERROR("Unexpected exception by profile_get_all {}", e.what());
     }
   };
+
+  template <typename SourceType, typename DestType>
+  static constexpr auto transfer_from_bank =
+      [](auto datatypes, SourceType &data_source, DestType &data_dest, int32_t limit) {
+        auto count = 0;
+        boost::hana::for_each(datatypes, [&](auto it) {
+          using DataType = typename decltype(+boost::hana::second(it))::type;
+          auto hana_type = boost::hana::type_c<DataType>;
+          using FeedMap = std::unordered_map<uint64_t, state<DataType>>;
+          auto &feed_map = const_cast<FeedMap &>(data_source[hana_type]);
+          auto iter = feed_map.begin();
+          while (iter != feed_map.end() and count < limit) {
+            data_dest << iter->second;
+            iter = feed_map.erase(iter);
+            count++;
+          }
+        });
+        return count;
+      };
 };
 
 } // namespace kungfu::yijinjing::cache

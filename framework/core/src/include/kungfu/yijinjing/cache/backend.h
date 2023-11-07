@@ -119,11 +119,6 @@ public:
     });
   }
 
-  template <typename DataType> void replace_range(uint32_t dest_id, const std::vector<DataType> &v_s) {
-    ensure_storage(dest_id);
-    storage_map_.at(dest_id)->replace_range(v_s.begin(), v_s.end());
-  }
-
   template <typename DataType> void operator<<(const typed_event_ptr<DataType> &event) {
     ensure_storage(event->dest());
     storage_map_.at(event->dest())->replace(event->template data<DataType>());
@@ -132,6 +127,11 @@ public:
   template <typename DataType> void operator<<(const state<DataType> &s) {
     ensure_storage(s.dest);
     storage_map_.at(s.dest)->replace(s.data);
+  }
+
+  template <typename DataType> void replace_range(uint32_t dest, const std::vector<DataType> &v) {
+    ensure_storage(dest);
+    storage_map_.at(dest)->replace_range(v.begin(), v.end());
   }
 
   template <typename DataType> void operator-=(const typed_event_ptr<DataType> &event) {

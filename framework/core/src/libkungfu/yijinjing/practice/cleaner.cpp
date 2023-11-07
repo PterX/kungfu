@@ -25,13 +25,10 @@ void resource_manager::do_management() {
   while (true) {
     std::unique_lock lk(cv_mutex_);
     app_.get_bus()->get_cv().wait(lk, [&]() {
-      quite_mutex_.lock();
       if (m_quit_) {
-        quite_mutex_.unlock();
         app_.release_page();
         return true;
       }
-      quite_mutex_.unlock();
 
       bool flag = false;
       flag |= app_.pre_load_next_page();
@@ -42,7 +39,6 @@ void resource_manager::do_management() {
     });
     lk.unlock();
 
-    std::lock_guard<std::mutex> lock(quite_mutex_);
     if (m_quit_) {
       break;
     }
@@ -52,9 +48,7 @@ void resource_manager::do_management() {
 bool resource_manager::is_cleaner_worker_required() const { return app_.get_bus()->is_on_load_page_required(); }
 
 resource_manager::~resource_manager() {
-  quite_mutex_.lock();
   m_quit_ = true;
-  quite_mutex_.unlock();
   app_.get_bus()->notify_all();
 
   if (cleaning_worker_.joinable()) {

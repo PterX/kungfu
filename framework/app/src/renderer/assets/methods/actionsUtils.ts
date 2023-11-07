@@ -863,38 +863,49 @@ export const handleExportInstrumentWhitelists = async (): Promise<void> => {
     });
 };
 
-export const showTradingDataDetail = <T extends KungfuApi.TradingDataTypes>(
-  item: T,
+export const showTradingDataDetail = <
+  T extends Record<string, string | number | bigint>,
+>(
+  item: T | (() => T),
   typename: string,
   filterKeys?: Array<keyof T>,
 ): Promise<boolean> => {
-  const dataResolved = dealTradingDataItem(item, window.watcher);
-  const vnode = Object.keys(dataResolved || {})
-    .filter((key) => {
-      if (filterKeys && (filterKeys as string[]).includes(key)) {
-        return false;
-      }
-      if (dataResolved[key].toString() === '[object Object]') {
-        return false;
-      }
-      return dataResolved[key] !== '';
-    })
-    .map((key) =>
-      h('div', { class: 'trading-data-detail-row' }, [
-        h('span', { class: 'label' }, `${key}`),
-        h('span', { class: 'value' }, `${dataResolved[key]}`),
-      ]),
+  const generateVnode = () => {
+    const itemResolved = typeof item === 'function' ? item() : item;
+    const dataResolved = dealTradingDataItem(
+      itemResolved as unknown as KungfuApi.TradingDataTypes,
+      window.watcher,
     );
 
-  return confirmModal(
-    `${typename} ${t('detail')}`,
-    h(
+    const vnode = Object.keys(dataResolved || {})
+      .filter((key) => {
+        if (filterKeys && (filterKeys as string[]).includes(key)) {
+          return false;
+        }
+        if (dataResolved[key].toString() === '[object Object]') {
+          return false;
+        }
+        return dataResolved[key] !== '';
+      })
+      .map((key) =>
+        h('div', { class: 'trading-data-detail-row' }, [
+          h('span', { class: 'label' }, `${key}`),
+          h('span', { class: 'value' }, `${dataResolved[key]}`),
+        ]),
+      );
+
+    return h(
       'div',
       {
         class: 'trading-data-detail__warp',
       },
       vnode,
-    ),
+    );
+  };
+
+  return confirmModal(
+    `${typename} ${t('detail')}`,
+    generateVnode,
     t('confirm'),
   );
 };

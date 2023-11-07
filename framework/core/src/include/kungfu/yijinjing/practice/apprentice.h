@@ -109,7 +109,7 @@ public:
     }
   }
 
-  bool release_page();
+  void release_page();
 
   template <class DataType> std::string make_nano_msg(uint32_t source, uint32_t dest, const DataType &data) const {
     auto now = this->now();

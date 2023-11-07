@@ -135,6 +135,6 @@ void writer::close_data(int64_t gen_time) { close_frame(size_to_write_, gen_time
 
 void writer::close_page(int64_t trigger_time) { journal_.close_page(trigger_time, last_gen_time_); }
 
-bool writer::release_page() { return journal_.release_page(); }
+void writer::release_page() { journal_.release_page(); }
 
 } // namespace kungfu::yijinjing::journal

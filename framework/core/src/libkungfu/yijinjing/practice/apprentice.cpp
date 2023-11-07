@@ -83,13 +83,11 @@ int32_t apprentice::add_time_interval(int64_t duration, const std::function<void
   return timer_id;
 }
 
-bool apprentice::release_page() {
-  bool result = false;
-  result |= reader_->release_page();
+void apprentice::release_page() {
+  reader_->release_page();
   for (auto &iter : writers_) {
-    result |= iter.second->release_page();
+    iter.second->release_page();
   }
-  return result;
 }
 
 void apprentice::react() {

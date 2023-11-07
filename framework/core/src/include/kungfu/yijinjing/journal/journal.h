@@ -79,7 +79,7 @@ public:
    */
   void seek_to_time(int64_t nanotime);
 
-  bool release_page();
+  void release_page();
 
 private:
   const data::location_ptr location_;
@@ -162,7 +162,7 @@ public:
 
   void sort();
 
-  bool release_page();
+  void release_page();
 
   static uint64_t find_page_size(const data::location_ptr &location, uint32_t dest_id);
 
@@ -180,7 +180,6 @@ private:
   bus_ptr bus_;
   journal *current_;
   JournalMap journals_;
-  std::vector<journal> replica_journals_{};
   bool buffer_built_{false};
   std::vector<journal *> no_data_journals_buffer_{};
   std::priority_queue<journal *, std::vector<journal *>, later> has_data_journals_heap_{};
@@ -224,7 +223,7 @@ public:
   void write_raw_at_as(int64_t gen_time, int64_t trigger_time, uint32_t source, uint32_t dest, int32_t msg_type,
                        uintptr_t data, uint32_t length);
 
-  bool release_page();
+  void release_page();
 
   /**
    * Using auto with the return mess up the reference with the undlerying memory address, DO NOT USE it.

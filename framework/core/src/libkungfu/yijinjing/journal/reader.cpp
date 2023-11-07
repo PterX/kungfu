@@ -124,14 +124,10 @@ void reader::build_buffer() {
   buffer_built_ = true;
 }
 
-bool reader::release_page() {
-  bool result = false;
+void reader::release_page() {
   for (auto &iter : journals_) {
-    result |= iter.second.release_page();
+    iter.second.release_page();
   }
-  std::lock_guard<std::recursive_mutex> lk(mtx_);
-  replica_journals_.clear();
-  return result;
 }
 
 reader::reader(const reader &other) : lazy_(other.lazy_), low_latency_(other.low_latency_), bus_(other.bus_) {

@@ -85,17 +85,17 @@ void journal::try_load_next_extra_page() {
   pre_page_ = page::load(location_, dest_id_, page_->get_page_size(), page_->get_page_id() + 1, false, lazy_, true);
 }
 
-bool journal::release_page() {
-  SPDLOG_TRACE("keep_page_: {}", keep_page_);
+void journal::release_page() {
   if (keep_page_) {
-    return false;
+    SPDLOG_TRACE("keep_page_: {}", keep_page_);
+    return;
   }
 
   static thread_local std::vector<page_ptr> queue_release_page{};
   {
     std::lock_guard<std::recursive_mutex> lk(passed_page_collector_mtx_);
     if (passed_page_collector_.empty()) {
-      return false;
+      return;
     }
 
     for (auto &page : passed_page_collector_) {
@@ -112,8 +112,6 @@ bool journal::release_page() {
     page.reset();
   }
   queue_release_page.clear();
-
-  return true;
 }
 
 void journal::close_page(int64_t trigger_time, int64_t last_gen_time) {

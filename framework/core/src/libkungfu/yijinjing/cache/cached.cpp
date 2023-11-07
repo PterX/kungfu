@@ -48,13 +48,22 @@ void cached::on_react() {
     app_cache_shift_.try_emplace(source_id, location);
     auto cached_writer = get_writer(source_id);
 
+    auto cached_restore_start_time = yijinjing::time::now_in_nano();
+
     try {
       app_cache_shift_.at(source_id) >> cached_writer;
     } catch (const std::exception &ex) {
       SPDLOG_ERROR("failed to write cache {} {} {}", source_id, get_location_uname(source_id), ex.what());
     }
 
-    if (location->category == category::TD or location->category == category::STRATEGY) {
+    const bool IS_NODE = location->category == category::SYSTEM and location->group == "node";
+    const bool IS_LEDGER = location->uid == get_ledger_home_location()->uid;
+    const bool IS_TD = location->category == category::TD;
+    const bool IS_STRATEGY = location->category == category::STRATEGY;
+    const bool IS_OPERATOR = location->category == category::OPERATOR;
+    const bool IS_SYSTEM = location->category == category::SYSTEM;
+
+    if (IS_TD or IS_STRATEGY) {
       for (const auto &other_location : location->locator->list_locations("*", "*", "*", "live")) {
         if (other_location->category == category::SYSTEM) {
           continue;
@@ -73,29 +82,46 @@ void cached::on_react() {
       }
     }
 
-    if (location->uid == get_ledger_home_location()->uid or
-        (location->category == category::SYSTEM and location->group == "node")) {
-      for (const auto &other_location : location->locator->list_locations("td", "*", "*", "live")) {
-        for (auto dest : location->locator->list_location_dest_by_db(other_location)) {
+    // static data in td
+    if (IS_STRATEGY or IS_OPERATOR or IS_SYSTEM) {
+      for (const auto &td_location : location->locator->list_locations("td", "*", "*", "live")) {
+        auto dests = location->locator->list_location_dest_by_db(td_location);
+        if (std::find(dests.begin(), dests.end(), location::PUBLIC) != dests.end()) {
           try {
-            make_cache_shift(other_location->uid, dest);
-            app_cache_shift_.at(other_location->uid).restore_to(cached_writer, dest);
+            make_cache_shift(td_location->uid, location::PUBLIC);
+            app_cache_shift_.at(td_location->uid).restore_to(StaticDataTypes, cached_writer, location::PUBLIC);
           } catch (const std::exception &ex) {
-            SPDLOG_ERROR("failed to write cache {} {} {} for target {}", other_location->uname, dest, ex.what(),
+            SPDLOG_ERROR("failed to write static data {} {} {} for target {}", td_location->uname, location::PUBLIC,
+                         ex.what(), location->uname);
+          }
+        }
+      }
+    }
+
+    // restore all trading data from tds, including static data in td
+    if (IS_LEDGER or IS_NODE) {
+      for (const auto &td_location : location->locator->list_locations("td", "*", "*", "live")) {
+        for (auto dest : location->locator->list_location_dest_by_db(td_location)) {
+          try {
+            make_cache_shift(td_location->uid, dest);
+            app_cache_shift_.at(td_location->uid).restore_to(cached_writer, dest);
+          } catch (const std::exception &ex) {
+            SPDLOG_ERROR("failed to write cache {} {} {} for target {}", td_location->uname, dest, ex.what(),
                          location->uname);
           }
         }
       }
     }
 
-    if (location->category == category::SYSTEM and location->group == "node") {
-      for (const auto &other_location : location->locator->list_locations("system", "service", "ledger", "live")) {
-        for (auto dest : location->locator->list_location_dest_by_db(other_location)) {
+    // for watcher reload ledger written datas after crash
+    if (IS_NODE) {
+      for (const auto &ledger_location : location->locator->list_locations("system", "service", "ledger", "live")) {
+        for (auto dest : location->locator->list_location_dest_by_db(ledger_location)) {
           try {
-            make_cache_shift(other_location->uid, dest);
-            app_cache_shift_.at(other_location->uid).restore_to(cached_writer, dest);
+            make_cache_shift(ledger_location->uid, dest);
+            app_cache_shift_.at(ledger_location->uid).restore_to(cached_writer, dest);
           } catch (const std::exception &ex) {
-            SPDLOG_ERROR("failed to write cache {} {} {} for target {}", other_location->uname, dest, ex.what(),
+            SPDLOG_ERROR("failed to write cache {} {} {} for target {}", ledger_location->uname, dest, ex.what(),
                          location->uname);
           }
         }
@@ -108,6 +134,9 @@ void cached::on_react() {
     } catch (const std::exception &ex) {
       SPDLOG_ERROR("failed to write profile info {} {} {}", source_id, get_location_uname(source_id), ex.what());
     }
+
+    auto cached_restore_end_time = yijinjing::time::now_in_nano();
+    SPDLOG_DEBUG("{} cached restore take {}ns", location->uname, cached_restore_end_time - cached_restore_start_time);
 
     mark_request_cached_done(source_id);
   });

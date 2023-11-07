@@ -72,7 +72,7 @@ public:
 
   longfist::enums::AccountingMethodType get_accounting_method_type() { return account_method_type_; }
 
-  InstrumentMap get_instruments() { return instruments_; }
+  map::InstrumentMap get_instruments() { return instruments_; }
 
   [[nodiscard]] bool is_sync_asset() const;
 
@@ -141,9 +141,9 @@ private:
   const longfist::enums::AccountingMethodType account_method_type_;
   std::mutex update_book_mutex_;
   bool positions_guarded_ = false;
-  CommissionMap commissions_ = {};
-  InstrumentMap instruments_ = {};
-  InstrumentFactorMap instrument_factors_ = {};
+  map::CommissionMap commissions_ = {};
+  map::InstrumentMap instruments_ = {};
+  map::InstrumentFactorMap instrument_factors_ = {};
   BookMap books_ = {};
   AccountingMethodMap accounting_methods_ = {};
   std::vector<BookListener_ptr> book_listeners_ = {};

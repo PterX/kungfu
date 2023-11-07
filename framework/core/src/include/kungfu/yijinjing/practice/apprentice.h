@@ -28,7 +28,6 @@ public:
 private:
   practice::apprentice &app_;
   std::thread cleaning_worker_;
-  std::mutex cv_mutex_;
   std::atomic<bool> m_quit_ = false;
 
   void do_management();

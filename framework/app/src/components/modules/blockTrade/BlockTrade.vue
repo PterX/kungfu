@@ -31,7 +31,7 @@ import {
   confirmModal,
   messagePrompt,
   useDashboardBodySize,
-  useKeyboardMakeOrderStyle,
+  useKeyboardControllerStyle,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
@@ -54,7 +54,6 @@ const formState = ref(initFormStateByConfig(getConfigSettings(), {}));
 const formRef = ref();
 const boardRef = ref();
 const makeOrderBtnId = `make-order-btn-${Date.now()}`;
-let cleanupFun: () => void;
 const { processStatusData } = useProcessStatusDetailData();
 
 const {
@@ -64,22 +63,12 @@ const {
 } = useCurrentGlobalKfLocation(window.watcher);
 useMakeOrderSubscribe(formState);
 
-const uniqueClassName = `item-focus-background-${Date.now()}`;
-onMounted(() => {
-  const { cleanup } = useKeyboardMakeOrderStyle(
-    boardRef,
-    formRef,
-    uniqueClassName,
-    '.ant-form-item-control-input:focus-within { background: rgba(67, 67, 67, 0.3); }',
-    true,
-    0,
-  );
-  cleanupFun = cleanup;
-
-  onBeforeUnmount(() => {
-    cleanupFun();
-  });
-});
+useKeyboardControllerStyle(
+  boardRef,
+  formRef,
+  '.ant-form-item-control-input:focus-within { background: rgba(67, 67, 67, 0.3); }',
+  0,
+);
 
 let pricePrecision = 0;
 let step = 1;

@@ -23,6 +23,7 @@ import {
   isRef,
   createApp,
   defineComponent,
+  onUnmounted,
 } from 'vue';
 import { ensureFileSync, outputFile } from 'fs-extra';
 import dayjs from 'dayjs';
@@ -271,66 +272,16 @@ export const loadExtComponents = (
   });
 };
 
-export function useKeyboardMakeOrderStyle(
-  boardRef,
-  elementRef,
-  uniqueClassName,
-  styleString,
-  immediate = true,
-  shortcutNumber,
+export function useKeyboardControllerStyle(
+  boardRef: Ref<HTMLElement | ComponentPublicInstance | null>,
+  elementRef: Ref<HTMLElement | ComponentPublicInstance | null> = ref(null),
+  styleString: string,
+  shortcutNumber: number,
 ) {
-  if (!globalThis.globalBoardStylesMap) {
-    globalThis.globalBoardStylesMap = new Map();
-    document.addEventListener('keydown', function (e) {
-      if (
-        (e.ctrlKey || e.metaKey) &&
-        e.shiftKey &&
-        e.code.startsWith('Digit')
-      ) {
-        const boardNumber = parseInt(e.code.replace('Digit', ''), 10);
-        const boardsStack = globalThis.globalBoardStylesMap.get(boardNumber);
+  const uniqueClassName = `kf-keyboard-style-${Date.now()}`;
 
-        const board = boardsStack && boardsStack[boardsStack.length - 1];
-
-        if (board) {
-          board.focus();
-          board.classList.add('kf-highlight-outline');
-          setTimeout(() => {
-            board.classList.remove('kf-highlight-outline');
-          }, 300);
-          const methods = globalThis.globalBoardStylesMap.get(board);
-          if (!methods) return;
-          for (const method of methods) {
-            method();
-          }
-        }
-      }
-
-      if (e.code === 'Tab') {
-        for (const board of globalThis.globalBoardStylesMap.keys()) {
-          if (
-            (board && board === document.activeElement) ||
-            isChildOf(board, document.activeElement)
-          ) {
-            const methods = globalThis.globalBoardStylesMap.get(board);
-            for (const method of methods) {
-              method();
-            }
-          }
-        }
-      }
-    });
-  }
-  let element = elementRef.value;
-  let board = boardRef.value;
-
-  if (board?.$el) {
-    board = board.$el;
-  }
-
-  if (element?.$el) {
-    element = element.$el;
-  }
+  let board;
+  let element;
 
   const styleEl = document.createElement('style');
   document.head.appendChild(styleEl);
@@ -346,15 +297,61 @@ export function useKeyboardMakeOrderStyle(
     element.classList.remove(uniqueClassName);
   };
 
-  const methods = globalThis.globalBoardStylesMap.get(board) || [];
-  methods.push(addStyle);
-  globalThis.globalBoardStylesMap.set(board, methods);
+  function setupBoard() {
+    if (!board) {
+      return;
+    }
 
-  const boardsStack = globalThis.globalBoardStylesMap.get(shortcutNumber) || [];
-  boardsStack.push(board);
-  globalThis.globalBoardStylesMap.set(shortcutNumber, boardsStack);
+    board.addEventListener('focus', () => board.focus());
+    board.addEventListener('focusout', () =>
+      setTimeout(() => {
+        if (!isChildOf(board, document.activeElement)) {
+          removeStyle();
+        }
+      }),
+    );
+    document.addEventListener('keydown', keyBoardFn);
+    loopFocusWithinBoard(board);
+  }
 
-  board.addEventListener('focus', () => board.focus());
+  const cleanup = () => {
+    if (board) {
+      board.removeEventListener('focus', () => board.focus());
+      board.removeEventListener('focusout', () =>
+        setTimeout(() => {
+          if (!isChildOf(board, document.activeElement)) {
+            removeStyle();
+          }
+        }),
+      );
+    }
+    document.removeEventListener('keydown', keyBoardFn);
+    styleEl.remove();
+  };
+
+  watch(
+    boardRef,
+    (newBoard) => {
+      if (!newBoard) {
+        return;
+      }
+      (board = boardRef.value
+        ? '$el' in boardRef.value
+          ? boardRef.value.$el
+          : boardRef.value
+        : null),
+        (element = elementRef.value
+          ? '$el' in elementRef.value
+            ? elementRef.value.$el
+            : elementRef.value
+          : board.value),
+        setupBoard();
+    },
+    { immediate: true },
+  );
+
+  onMounted(setupBoard);
+  onUnmounted(cleanup);
 
   function isChildOf(parent, child) {
     let node = child.parentNode;
@@ -366,46 +363,36 @@ export function useKeyboardMakeOrderStyle(
     }
     return false;
   }
+  function keyBoardFn(e: KeyboardEvent) {
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.code.startsWith('Digit')) {
+      e.preventDefault();
+      const boardNumber = parseInt(e.code.replace('Digit', ''), 10);
+      if (boardNumber !== shortcutNumber) return;
 
-  board.addEventListener('focusout', () => {
-    setTimeout(() => {
-      if (!isChildOf(board, document.activeElement)) {
-        removeStyle();
+      if (board) {
+        e.stopPropagation();
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        board.focus();
+        board.classList.add('kf-highlight-outline');
+        setTimeout(() => {
+          board.classList.remove('kf-highlight-outline');
+        }, 300);
+        addStyle();
       }
-    });
-  });
+    }
 
-  watch(
-    () => [elementRef.value, styleString],
-    () => {
-      element = elementRef.value;
-      if (element?.$el) {
-        element = element.$el;
+    if (e.code === 'Tab') {
+      if (
+        document.activeElement === board ||
+        isChildOf(board, document.activeElement)
+      ) {
+        addStyle();
       }
-    },
-    { immediate },
-  );
-
-  const cleanup = () => {
-    const methods = globalThis.globalBoardStylesMap.get(board);
-    const index = methods.indexOf(addStyle);
-    if (index > -1) {
-      methods.splice(index, 1);
     }
-    if (methods.length === 0) {
-      globalThis.globalBoardStylesMap.delete(board);
-    }
-    const boardsStack = globalThis.globalBoardStylesMap.get(shortcutNumber);
-    const boardIndex = boardsStack.indexOf(board);
-    if (boardIndex > -1) {
-      boardsStack.splice(boardIndex, 1);
-    }
-    if (boardsStack.length === 0) {
-      globalThis.globalBoardStylesMap.delete(shortcutNumber);
-    }
-  };
-
+  }
   function loopFocusWithinBoard(board) {
+    if (!board) return;
     const allElements = board.querySelectorAll(
       'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]',
     ) as HTMLElement[];
@@ -443,9 +430,7 @@ export function useKeyboardMakeOrderStyle(
     });
   }
 
-  loopFocusWithinBoard(board);
-
-  return { addStyle, removeStyle, cleanup };
+  return { addStyle, removeStyle, cleanup, uniqueClassName };
 }
 
 export const useLocale = () => {

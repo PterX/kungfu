@@ -31,7 +31,7 @@ import {
   makeOrderByOrderTriggerInput,
   transformSearchInstrumentResultToInstrument,
 } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
-import { useKeyboardMakeOrderStyle } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
+import { useKeyboardControllerStyle } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import {
   InstrumentTypeEnum,
   OffsetEnum,
@@ -82,7 +82,6 @@ const { handleBodySizeChange } = useDashboardBodySize();
 const formState = ref(
   initFormStateByConfig(getConfigSettings('td', InstrumentTypeEnum.future), {}),
 );
-let cleanupFun: () => void;
 
 const formRef = ref();
 const boardRef = ref();
@@ -114,24 +113,12 @@ const {
 } = useCurrentGlobalKfLocation(window.watcher);
 
 const { getValidatorByOrderInputKey } = useTradeLimit();
-
-const uniqueClassName = `item-focus-background-${Date.now()}`;
-
-onMounted(() => {
-  const { cleanup } = useKeyboardMakeOrderStyle(
-    boardRef,
-    formRef,
-    uniqueClassName,
-    '.ant-form-item-control-input:focus-within { background: rgba(67, 67, 67, 0.3); }',
-    true,
-    1,
-  );
-  cleanupFun = cleanup;
-
-  onBeforeUnmount(() => {
-    cleanupFun();
-  });
-});
+useKeyboardControllerStyle(
+  boardRef,
+  formRef,
+  '.ant-form-item-control-input:focus-within { background: rgba(67, 67, 67, 0.3); }',
+  1,
+);
 
 const makeOrderInstrumentType = ref<InstrumentTypeEnum>(
   InstrumentTypeEnum.unknown,

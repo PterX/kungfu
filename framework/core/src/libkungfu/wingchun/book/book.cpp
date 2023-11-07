@@ -14,6 +14,7 @@ using namespace kungfu::longfist::enums;
 using namespace kungfu::yijinjing::practice;
 using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
+using namespace kungfu::wingchun::map;
 
 namespace kungfu::wingchun::book {
 Book::Book(const CommissionMap &commissions_ref, const InstrumentMap &instruments_ref,

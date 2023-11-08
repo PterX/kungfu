@@ -24,6 +24,7 @@ import {
   createApp,
   defineComponent,
   onUnmounted,
+  watchEffect,
 } from 'vue';
 import { ensureFileSync, outputFile } from 'fs-extra';
 import dayjs from 'dayjs';
@@ -73,6 +74,7 @@ import {
   getCurrentWindow,
   dialog,
   nativeImage,
+  globalShortcut,
 } from '@electron/remote';
 import { ipcRenderer, clipboard } from 'electron';
 import { ipcEmit } from '@kungfu-trader/kungfu-app/src/renderer/ipcMsg/emitter';
@@ -107,6 +109,7 @@ import Mark from 'mark.js';
 import { Router } from 'vue-router';
 import { normalizePath } from '@kungfu-trader/kungfu-js-api/utils/osUtils';
 import { getDialogLogoPath } from '@kungfu-trader/kungfu-js-api/config/brand';
+import { LatestUsedQueue } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 
 // this utils file is only for ui components
 
@@ -268,6 +271,42 @@ export const loadExtComponents = (
         } else {
           console.warn(`${key}-index not in cData`);
         }
+    }
+  });
+};
+
+export const useShortcuts = (shortcutsOption: {
+  [shortcut: string]: {
+    elementIdList: string[];
+    onFocus?: (el: HTMLElement) => void;
+  };
+}) => {
+  const shortcutsElementsQueue: Record<string, LatestUsedQueue<string>> = {};
+
+  onMounted(() => {
+    for (const shortcut in shortcutsOption) {
+      const { elementIdList, onFocus } = shortcutsOption[shortcut];
+      shortcutsElementsQueue[shortcut] = new LatestUsedQueue(elementIdList);
+
+      const res = globalShortcut.isRegistered(shortcut);
+      if (!res) {
+        console.error(`Failed to register shortcut ${shortcut}`);
+        return;
+      }
+
+      let iterator;
+      document.onkeydown(shortcut, (e) => {
+        if (ctrl + i) {
+          if (!iterator) {
+            iterator = shortcutsElementsQueue[shortcut].generateIterator();
+            document.onkeyup((e) => {
+              if (e.key === null) iterator = null;
+            });
+          }
+
+          iterator?.next().value();
+        }
+      });
     }
   });
 };

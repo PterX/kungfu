@@ -753,3 +753,58 @@ export const kfConfigItemsToProcessArgs = (
       }, {} as Record<string, KungfuApi.KfConfigValue>),
   );
 };
+
+export class LatestUsedQueue<T> {
+  private queue: T[];
+  private maxLen: number | null;
+
+  constructor(initQueue: T[], maxLen: number | null = null) {
+    this.queue = initQueue;
+    this.maxLen = maxLen;
+  }
+
+  get value() {
+    return this.queue;
+  }
+
+  put(item: T) {
+    this.queue.unshift(item);
+    if (this.maxLen !== null && this.queue.length > this.maxLen) {
+      this.queue.pop();
+    }
+  }
+
+  private use(index: number) {
+    if (index >= this.queue.length) throw new Error('index out of queue range');
+    const item = this.queue[index];
+    this.queue.splice(index, 1);
+    this.queue.unshift(item);
+    return item;
+  }
+
+  useLatest() {
+    return this.use(0);
+  }
+
+  *[Symbol.iterator]() {
+    for (let i = 0; i < this.queue.length; i++) {
+      yield this.use(i);
+    }
+  }
+
+  generateIterator() {
+    return this[Symbol.iterator]();
+  }
+
+  useByForEach(callback: (item: T, next: () => void) => void) {
+    const iterator = this.generateIterator();
+    const next = () => {
+      const { value, done } = iterator.next();
+      if (done || value === void 0) {
+        return;
+      }
+      callback(value, next);
+    };
+    next();
+  }
+}

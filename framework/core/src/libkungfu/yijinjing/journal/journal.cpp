@@ -41,6 +41,7 @@ void journal::next() {
   assert(page_.get() != nullptr);
   if (frame_->msg_type() == longfist::types::PageEnd::tag) {
     load_next_page();
+    SPDLOG_INFO("next try_load_next_extra_page:  {} -> {}", location_->uname, dest_id_);
     try_load_next_extra_page();
   } else {
     frame_->move_to_next();
@@ -49,11 +50,15 @@ void journal::next() {
 }
 
 void journal::seek_to_time(int64_t nanotime) {
+  SPDLOG_INFO("seek_to_time: {}, {} -> {}", nanotime, location_->uname, dest_id_);
   uint32_t page_id = page::find_page_id(location_, dest_id_, nanotime);
   load_page(page_id);
+  SPDLOG_INFO("page header: {}, {}", page_->get_page_id(), page_->header_->to_string());
   while (page_->is_full() && page_->end_time() <= nanotime) {
+    SPDLOG_INFO("page header: {}, {}", page_->get_page_id(), page_->header_->to_string());
     load_next_page();
   }
+  SPDLOG_INFO("try_load_next_extra_page: {}, {} -> {}", nanotime, location_->uname, dest_id_);
   try_load_next_extra_page();
   while (frame_->has_data() && frame_->gen_time() <= nanotime) {
     next();
@@ -61,6 +66,7 @@ void journal::seek_to_time(int64_t nanotime) {
 }
 
 void journal::load_page(uint32_t page_id) {
+  SPDLOG_INFO("page_id: {}, {} -> {}", page_id, location_->uname, dest_id_);
   {
     std::lock_guard<std::recursive_mutex> lk_load_page(load_page_mtx_);
     if (not page_ or page_->get_page_id() != page_id) {
@@ -70,8 +76,11 @@ void journal::load_page(uint32_t page_id) {
       }
 
       if (preload_ and preload_page_ and preload_page_->get_page_id() == page_id) {
-        SPDLOG_DEBUG("assign preload_page_ {} to page_ , ", preload_page_->get_page_id());
+        SPDLOG_DEBUG("assign preload_page_ {} , {} to page_ , ", preload_page_->get_page_id(),
+                     preload_page_->header_->to_string());
         page_ = std::move(preload_page_);
+        page_->enable_page();
+        SPDLOG_INFO("page_: {}, {}", page_->get_page_id(), page_->header_->to_string());
       } else {
         page_ = page::load(location_, dest_id_, page_size_, page_id, is_writing_, lazy_);
       }
@@ -93,21 +102,28 @@ void journal::preload_next_page() {
       (page_->header_->status == longfist::enums::PageStatus::PreOpen) or                  //
       (not page::check_page_existed(location_, page_->dest_id_, page_->get_page_id() + 1)) //
   ) {
-    SPDLOG_TRACE("page_->header_->status: {}", page_->header_->status);
     return;
   }
 
-  SPDLOG_TRACE("preload_next_page: {}, {}->{}", page_->get_page_id() + 1, location_->uname, dest_id_);
-  preload_page_ = page::load(location_, dest_id_, page_size_, page_->get_page_id() + 1, is_writing_, lazy_);
+  SPDLOG_INFO("preload_next_page: {}, {}->{}, page_: {}", page_->get_page_id() + 1, location_->uname, dest_id_,
+              page_->header_->to_string());
+  preload_page_ = page::load(location_, dest_id_, page_size_, page_->get_page_id() + 1, is_writing_, lazy_, true);
+  SPDLOG_INFO("preload_page_ : {}, {}", preload_page_->get_page_id(), preload_page_->header_->to_string());
 }
 
 // saving time for other process switch page, except the master
 // only for master reading, and low_latency mode
 void journal::try_load_next_extra_page() {
-  if (lazy_ || is_writing_ || !low_latency_ || page_size_ != page::find_page_size(location_, dest_id_)) {
+  if (lazy_ || is_writing_ || !low_latency_ || page_size_ != page::find_page_size(location_, dest_id_) ||
+      page_->is_pre_open()) {
     return;
   }
+  SPDLOG_INFO("try_load_next_extra_page");
+  SPDLOG_INFO("page_ :{}->{}, {}, {}", page_->get_location()->uname, dest_id_, page_->get_page_id(),
+              page_->header_->to_string());
   pre_page_ = page::load(location_, dest_id_, page_->get_page_size(), page_->get_page_id() + 1, false, lazy_, true);
+  SPDLOG_INFO("pre_page_ :{}->{}, {}, {}", pre_page_->get_location()->uname, dest_id_, pre_page_->get_page_id(),
+              pre_page_->header_->to_string());
 }
 
 void journal::release_page() {

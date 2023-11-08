@@ -51,6 +51,8 @@ public:
            address_border();
   }
 
+  [[nodiscard]] bool is_pre_open() const { return header_->status == longfist::enums::PageStatus::PreOpen; };
+
   static page_ptr load(const data::location_ptr &location, uint32_t dest_id, uint64_t page_size, uint32_t page_id,
                        bool is_writing, bool lazy, bool pre_open = false);
 
@@ -83,6 +85,8 @@ private:
    * update page header when new frame added
    */
   void set_last_frame_position(uint64_t position);
+
+  void enable_page();
 
   friend class journal;
 

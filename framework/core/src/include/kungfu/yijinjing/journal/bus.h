@@ -12,10 +12,6 @@ public:
 
   void on_load_page();
 
-  std::condition_variable &get_cv() { return cv_; }
-
-  std::mutex &get_cv_mutex() { return cv_mutex_; }
-
   [[nodiscard]] bool is_on_load_page_required() const { return on_load_page_required_; }
 
   void notify_all();
@@ -29,7 +25,7 @@ public:
 private:
   std::condition_variable cv_{};
   std::mutex cv_mutex_{};
-  bool ready_{false};
+  std::atomic<bool> ready_{false};
   const bool on_load_page_required_;
 };
 

@@ -378,7 +378,6 @@ export function useKeyboardControllerStyle(
         setTimeout(() => {
           board.classList.remove('kf-highlight-outline');
         }, 300);
-        addStyle();
       }
     }
 

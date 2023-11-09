@@ -259,8 +259,10 @@ function handleShowTradingDataDetail({
   event: MouseEvent;
   row: KungfuApi.PositionResolved;
 }) {
+  row.last_price = getPositionLastPrice(row, 'last_price_resolved');
   showTradingDataDetail(row, t('posGlobalConfig.pos_detail_header'), [
     'account_id_resolved',
+    'last_price_resolved',
   ]);
 }
 </script>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, ref, watch } from 'vue';
+import { computed, nextTick, ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
@@ -19,6 +19,7 @@ import {
   useMakeOrderSubscribe,
   useProcessStatusDetailData,
   useActiveInstruments,
+  useFormCurrentState,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import {
   confirmModal,
@@ -50,10 +51,9 @@ const {
   currentCategoryData,
   getCurrentGlobalKfLocationId,
 } = useCurrentGlobalKfLocation(window.watcher);
+const { currentAccountLocation, curInstrumentResolved } =
+  useFormCurrentState(formState);
 useMakeOrderSubscribe(formState);
-
-let pricePrecision = 0;
-let step = 1;
 
 const getResolvedOffset = (
   offset: OffsetEnum,
@@ -73,8 +73,20 @@ const configSettings = computed(() => {
     return getConfigSettings();
   }
 
+  let step = 0.0001,
+    pricePrecision = 4;
+  if (curInstrumentResolved.value) {
+    const { instrumentId, exchangeId } = curInstrumentResolved.value;
+    const { price_tick, price_precision } = getPriceTickAndPrecision(
+      instrumentId,
+      exchangeId,
+    );
+    step = price_tick;
+    pricePrecision = price_precision;
+  }
+
   const { category } = currentGlobalKfLocation.value;
-  return getConfigSettings(category, step, pricePrecision);
+  return getConfigSettings(category, pricePrecision, step);
 });
 
 function numberValidator(_rule: RuleObject, value: string | number) {
@@ -101,31 +113,6 @@ function handleResetMakeOrderForm() {
     formRef.value.clearValidate();
   });
 }
-
-watch(
-  () => formState.value.instrument,
-  () => {
-    const instrument = formState.value.instrument.toString();
-    const instrumnetResolved =
-      transformSearchInstrumentResultToInstrument(instrument);
-    if (instrumnetResolved) {
-      const { instrumentId, exchangeId } = instrumnetResolved;
-      const { price_tick, price_precision } = getPriceTickAndPrecision(
-        instrumentId,
-        exchangeId,
-      );
-      step = price_tick;
-      pricePrecision = price_precision;
-      const limitPriceIndex = configSettings.value.findIndex((configItem) => {
-        return configItem.key === 'limit_price';
-      });
-      if (limitPriceIndex) {
-        configSettings.value[limitPriceIndex].step = step;
-        configSettings.value[limitPriceIndex].precision = pricePrecision;
-      }
-    }
-  },
-);
 
 function handleMakeOrder() {
   formRef.value
@@ -163,7 +150,7 @@ function handleMakeOrder() {
         volume: +volume,
         price_type: +price_type,
         side: +side,
-        offset: getResolvedOffset(+offset, +side, +instrumentType),
+        offset: getResolvedOffset(offset, +side, +instrumentType),
         hedge_flag: HedgeFlagEnum.Speculation,
         is_swap: !!is_swap,
         parent_id: 0n,
@@ -177,15 +164,13 @@ function handleMakeOrder() {
         block_id: 0n,
       };
 
-      if (!currentGlobalKfLocation.value) {
-        error(t('location_error'));
+      if (!currentAccountLocation.value) {
         return;
       }
 
-      const tdProcessId =
-        currentGlobalKfLocation.value?.category === 'td'
-          ? getProcessIdByKfLocation(currentGlobalKfLocation.value)
-          : `td_${account_id.toString()}`;
+      const tdProcessId = currentAccountLocation.value
+        ? getProcessIdByKfLocation(currentAccountLocation.value)
+        : `td_${account_id.toString()}`;
 
       if (processStatusData.value[tdProcessId] !== 'online') {
         error(
@@ -205,7 +190,7 @@ function handleMakeOrder() {
         window.watcher,
         blockMessage,
         makeOrderInput,
-        currentGlobalKfLocation.value,
+        currentAccountLocation.value,
         tdProcessId.toAccountId(),
       ).catch((err) => {
         error(err.message);

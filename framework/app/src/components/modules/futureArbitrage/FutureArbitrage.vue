@@ -15,6 +15,7 @@ import { getProcessIdByKfLocation } from '@kungfu-trader/kungfu-js-api/utils/com
 import { transformSearchInstrumentResultToInstrument } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import {
   useCurrentGlobalKfLocation,
+  useFormCurrentState,
   useProcessStatusDetailData,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import {
@@ -40,6 +41,7 @@ const {
   currentCategoryData,
   getCurrentGlobalKfLocationId,
 } = useCurrentGlobalKfLocation(window.watcher);
+const { currentAccountLocation } = useFormCurrentState(formState);
 
 const isShowCurrentGlobalKfLocationTitle = computed(() => {
   return (
@@ -177,15 +179,13 @@ function handleMakeOrder() {
         parent_id: 0n,
       };
 
-      if (!currentGlobalKfLocation.value) {
-        error(t('location_error'));
+      if (!currentAccountLocation.value) {
         return;
       }
 
-      const tdProcessId =
-        currentGlobalKfLocation.value?.category === 'td'
-          ? getProcessIdByKfLocation(currentGlobalKfLocation.value)
-          : `td_${account_id.toString()}`;
+      const tdProcessId = currentAccountLocation.value
+        ? getProcessIdByKfLocation(currentAccountLocation.value)
+        : `td_${account_id.toString()}`;
 
       if (processStatusData.value[tdProcessId] !== 'online') {
         error(
@@ -204,7 +204,7 @@ function handleMakeOrder() {
       makeOrderByOrderInput(
         window.watcher,
         makeOrderInput,
-        currentGlobalKfLocation.value,
+        currentAccountLocation.value,
         tdProcessId.toAccountId(),
       ).catch((err) => {
         error(err.message);

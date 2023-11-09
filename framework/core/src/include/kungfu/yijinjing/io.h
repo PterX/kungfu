@@ -42,7 +42,7 @@ public:
 
   [[nodiscard]] bool is_low_latency() const { return low_latency_; }
 
-  [[nodiscard]] bool is_cleaner_required() const {
+  [[nodiscard]] bool is_resource_manager_required() const {
     return low_latency_ && lazy_ && home_->mode == kungfu::longfist::enums::mode::LIVE;
   }
 

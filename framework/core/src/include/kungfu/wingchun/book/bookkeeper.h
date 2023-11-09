@@ -143,9 +143,9 @@ private:
   AccountingMethodMap accounting_methods_ = {};
   std::vector<BookListener_ptr> book_listeners_ = {};
   BookMap books_replica_ = {}; // 暂存从location::SYNC传来的asset和position信息
-  bool sync_asset_{};
-  bool sync_position_{};
-  std::unordered_map<uint32_t, bool> ready_tds_{};
+  bool sync_asset_ = false;
+  bool sync_position_ = false;
+  std::unordered_map<uint32_t, bool> ready_tds_ = {};
 
   Book_ptr make_book(uint32_t location_uid);
 

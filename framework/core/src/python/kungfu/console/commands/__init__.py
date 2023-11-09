@@ -76,6 +76,15 @@ class PrioritizedCommandGroup(click.Group):
                     if v:
                         os.environ[k] = k
 
+                ARG_dict = {
+                    ("KF_" + key[4:]).upper(): value
+                    for key, value in kwargs.items()
+                    if key.upper().startswith("ARG_")
+                }
+                for k, v in ARG_dict.items():
+                    if v:
+                        os.environ[k] = v
+
                 for key in [
                     "name",
                     "home",

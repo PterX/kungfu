@@ -161,7 +161,7 @@ uint64_t page::find_page_size(const data::location_ptr &location, uint32_t dest_
   if ((location->category == longfist::enums::category::STRATEGY ||
        location->category == longfist::enums::category::OPERATOR ||
        location->category == longfist::enums::category::SYSTEM) &&
-      dest_id != 0) {
+      (dest_id != data::location::PUBLIC and dest_id != data::location::SYNC)) {
     return 16 * MB;
   }
   return 2 * MB;

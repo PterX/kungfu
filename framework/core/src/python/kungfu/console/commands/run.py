@@ -94,6 +94,24 @@ service_command_context = kfc.pass_context("low_latency")
     required=False,
     help="bypass refresh book in ledger  ",
 )
+@click.option(
+    "-ENV-bypass-sync-asset",
+    is_flag=True,
+    required=False,
+    help="bypass sync asset every minute  ",
+)
+@click.option(
+    "-ENV-bypass-sync-position",
+    is_flag=True,
+    required=False,
+    help="bypass sync position every minute  ",
+)
+@click.option(
+    "-ARG-max-pre-create-size",
+    type=str,
+    required=False,
+    help="master max preload journal page size ",
+)
 @kfc.pass_context()
 def run(
     ctx,
@@ -119,6 +137,9 @@ def run(
     env_bypass_accounting,
     env_bypass_refresh_book,
     env_bypass_cached,
+    env_bypass_sync_asset,
+    env_bypass_sync_position,
+    arg_max_pre_create_size,
 ):
     ctx.mode = mode
     ctx.category = category

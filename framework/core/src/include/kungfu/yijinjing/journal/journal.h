@@ -83,24 +83,25 @@ public:
 
 private:
   const data::location_ptr location_;
-  const uint32_t dest_id_;
   const uint64_t page_size_;
+  const uint32_t dest_id_;
   const bool is_writing_;
   const bool lazy_;
   const bool low_latency_;
-  bus_ptr bus_;
-  page_ptr pre_page_;
-  page_ptr page_;
-  page_ptr preload_page_;
-  std::recursive_mutex load_page_mtx_;
-  std::vector<page_ptr> passed_page_collector_;
-  std::recursive_mutex passed_page_collector_mtx_;
-  frame_ptr frame_;
-  uint64_t page_frame_nb_;
-  bool replica_{false};
   const longfist::enums::Priority priority_;
-  bool keep_page_{false};
-  bool preload_{false};
+  bus_ptr bus_ = {};
+  page_ptr pre_create_page_ = {};
+  page_ptr page_ = {};
+  page_ptr preload_page_ = {};
+  std::recursive_mutex load_page_mtx_ = {};
+  std::vector<page_ptr> passed_page_collector_ = {};
+  std::recursive_mutex passed_page_collector_mtx_ = {};
+  frame_ptr frame_ = {};
+  uint64_t page_frame_nb_ = 0;
+  bool replica_ = false;
+  bool keep_page_ = false;
+  bool preload_ = false;
+  uint32_t max_pre_create_size_ = 0;
 
   void load_page(uint32_t page_id);
 

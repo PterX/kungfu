@@ -14,14 +14,23 @@ journal::journal(data::location_ptr location, uint32_t dest_id, bool is_writing,
       page_size_(page_size), priority_(priority), replica_(false) {
   keep_page_ = std::getenv("KF_KEEP_PAGE") != nullptr;
   preload_ = std::getenv("KF_PRELOAD") != nullptr;
-  SPDLOG_DEBUG("keep_page_: {}, preload_: {}", keep_page_, preload_);
+  char *preload_size = std::getenv("KF_MAX_PRE_CREATE_SIZE");
+  try {
+    if (preload_size != nullptr) {
+      max_pre_create_size_ = std::stoul(preload_size);
+    }
+  } catch (std::exception &e) {
+    SPDLOG_ERROR("failed to parse KF_MAX_PRE_CREATE_SIZE: {}", e.what());
+    max_pre_create_size_ = 0;
+  }
+  SPDLOG_DEBUG("keep_page_: {}, preload_: {}, max_pre_create_size_: {}", keep_page_, preload_, max_pre_create_size_);
 }
 
 journal::journal(const journal &other)
     : location_(other.location_), dest_id_(other.dest_id_), page_size_(other.page_size_),
       is_writing_(other.is_writing_), lazy_(other.lazy_), low_latency_(other.low_latency_), bus_(other.bus_),
       page_frame_nb_(other.page_frame_nb_), priority_(other.priority_) {
-  pre_page_ = other.pre_page_;
+  pre_create_page_ = other.pre_create_page_;
   page_ = other.page_;
   frame_ = std::make_shared<frame>(*other.frame_);
   replica_ = true;
@@ -59,12 +68,15 @@ void journal::seek_to_time(int64_t nanotime) {
 }
 
 void journal::load_page(uint32_t page_id) {
-  {
-    std::lock_guard<std::recursive_mutex> lk_load_page(load_page_mtx_);
+  auto fn_load = [&]() {
     if (not page_ or page_->get_page_id() != page_id) {
-      if (page_ and (keep_page_ or bus_->is_on_load_page_required())) {
-        std::lock_guard<std::recursive_mutex> lk_passed_page(passed_page_collector_mtx_);
-        passed_page_collector_.push_back(std::move(page_));
+      if (page_) {
+        if (bus_->is_on_load_page_required()) {
+          std::lock_guard<std::recursive_mutex> lk_passed_page(passed_page_collector_mtx_);
+          passed_page_collector_.push_back(std::move(page_));
+        } else if (keep_page_) {
+          passed_page_collector_.push_back(std::move(page_));
+        }
       }
 
       if (preload_ and preload_page_ and preload_page_->get_page_id() == page_id) {
@@ -76,9 +88,14 @@ void journal::load_page(uint32_t page_id) {
     }
     frame_->set_address(page_->first_frame_address());
     page_frame_nb_ = 0u;
-  }
-  if (preload_ or bus_->is_on_load_page_required()) {
+  };
+
+  if (bus_->is_on_load_page_required()) {
+    std::lock_guard<std::recursive_mutex> lk_load_page(load_page_mtx_);
+    fn_load();
     bus_->on_load_page();
+  } else {
+    fn_load();
   }
 }
 
@@ -86,10 +103,10 @@ void journal::load_next_page() { load_page(page_->get_page_id() + 1); }
 
 void journal::preload_next_page() {
   std::lock_guard<std::recursive_mutex> lk(load_page_mtx_);
-  if ((not preload_ or not page_) or                                                       //
-      (preload_page_ and preload_page_->get_page_id() == page_->get_page_id() + 1) or      //
-      (page_->header_->status == longfist::enums::PageStatus::PreOpen) or                  //
-      (not page::check_page_existed(location_, page_->dest_id_, page_->get_page_id() + 1)) //
+  if ((not preload_ or not page_) or                                                                           //
+      (preload_page_ and preload_page_->get_page_id() == page_->get_page_id() + 1) or                          //
+      (page_->header_->status == longfist::enums::PageStatus::PreOpen) or                                      //
+      (not is_writing_ and not page::check_page_existed(location_, page_->dest_id_, page_->get_page_id() + 1)) //
   ) {
     return;
   }
@@ -100,11 +117,15 @@ void journal::preload_next_page() {
 // saving time for other process switch page, except the master
 // only for master reading, and low_latency mode
 void journal::try_load_next_extra_page() {
-  if (lazy_ || is_writing_ || !low_latency_ || page_size_ != page::find_page_size(location_, dest_id_) ||
-      page_->is_pre_open()) {
+  if (lazy_ || is_writing_ || !low_latency_ ||                                        //
+      page_size_ != page::find_page_size(location_, dest_id_) ||                      //
+      page_->is_pre_open() ||                                                         //
+      max_pre_create_size_ > 0 and page_->get_page_size() > max_pre_create_size_ * MB //
+  ) {
     return;
   }
-  pre_page_ = page::load(location_, dest_id_, page_->get_page_size(), page_->get_page_id() + 1, false, lazy_, true);
+  pre_create_page_ =
+      page::load(location_, dest_id_, page_->get_page_size(), page_->get_page_id() + 1, false, lazy_, true);
 }
 
 void journal::release_page() {

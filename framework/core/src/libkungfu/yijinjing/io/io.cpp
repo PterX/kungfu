@@ -150,7 +150,7 @@ io_device::io_device(data::location_ptr home, const bool low_latency, const bool
     : home_(std::move(home)),
       live_home_(location::make_shared(mode::LIVE, home_->category, home_->group, home_->name, home_->locator)),
       low_latency_(low_latency), lazy_(lazy), begin_time_(time::now_in_nano()),
-      bus_(std::make_shared<bus>(is_cleaner_required())) {
+      bus_(std::make_shared<bus>(is_resource_manager_required())) {
   if (spdlog::default_logger()->name().empty()) {
     yijinjing::log::setup_log(home_, home_->name);
   }

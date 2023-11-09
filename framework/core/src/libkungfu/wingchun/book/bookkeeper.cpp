@@ -21,10 +21,8 @@ Bookkeeper::Bookkeeper(apprentice &app, broker::Client &broker_client, bool bypa
     : app_(app), broker_client_(broker_client), static_data_(app), bypass_quote_(bypass_quote),
       account_method_type_(book::get_accounting_method_type()) {
   book::AccountingMethod::setup_defaults(*this, account_method_type_);
-  char *skip_sync_asset = std::getenv("KF_SKIP_SYNC_ASSET");
-  char *skip_sync_position = std::getenv("KF_SKIP_SYNC_POSITION");
-  sync_asset_ = skip_sync_asset == nullptr;
-  sync_position_ = skip_sync_position == nullptr;
+  sync_asset_ = std::getenv("KF_BYPASS_SYNC_ASSET") == nullptr;
+  sync_position_ = std::getenv("KF_BYPASS_SYNC_POSITION") == nullptr;
   SPDLOG_DEBUG("sync_asset_: {},  sync_position_: {}", sync_asset_, sync_position_);
 }
 

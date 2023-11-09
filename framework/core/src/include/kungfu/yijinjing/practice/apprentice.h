@@ -23,16 +23,16 @@ public:
 
   void on_react();
 
-  std::thread &get_cleaning_worker();
+  std::thread &get_resource_management_worker();
 
 private:
   practice::apprentice &app_;
-  std::thread cleaning_worker_;
+  std::thread resource_management_worker;
   std::atomic<bool> m_quit_ = false;
 
   void do_management();
 
-  [[nodiscard]] bool is_cleaner_worker_required() const;
+  [[nodiscard]] bool is_resource_management_worker_required() const;
 };
 
 class apprentice : public hero {
@@ -127,7 +127,7 @@ public:
 
   const std::string &get_arguments() const { return arguments_; }
 
-  std::thread &get_cleaning_worker();
+  std::thread &get_resource_management_worker();
 
   void preload_next_page();
 
@@ -295,16 +295,16 @@ protected:
   }
 
 private:
+  resource_manager manager_;
   bool started_ = false;
   int64_t last_active_time_ = INT64_MIN;
   int64_t checkin_time_ = INT64_MIN;
-  int32_t timer_usage_count_ = 0;
-  const std::string arguments_{};
-  resource_manager cleaner_;
+  int32_t timer_usage_count_{0};
+  const std::string arguments_ = {};
   std::unordered_map<int, int64_t> timer_checkpoints_ = {};
   std::unordered_map<int, longfist::types::TimeRequest> timer_requests_ = {};
-  std::unordered_set<uint32_t> try_write_dest_ids_{};
-  std::unordered_map<int32_t, bool> timers_{};
+  std::unordered_set<uint32_t> try_write_dest_ids_ = {};
+  std::unordered_map<int32_t, bool> timers_ = {};
 
   void checkin();
 

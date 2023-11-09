@@ -115,8 +115,10 @@ void journal::preload_next_page() {
   ) {
     return;
   }
-
+  auto t1 = yijinjing::time::now_in_nano();
   preload_page_ = page::load(location_, dest_id_, page_size_, page_->get_page_id() + 1, is_writing_, lazy_, true);
+  auto t2 = yijinjing::time::now_in_nano();
+  SPDLOG_ERROR("preload_page_ used time: {} ns", (t2 - t1));
 }
 
 // saving time for other process switch page, except the master

@@ -219,8 +219,9 @@ void cached::feed(const event_ptr &event) {
     feed_profile_data(event, profile_feed_bank_);
   }
 
-  // instrument to its source's public db
-  feed_state_data(event, states_feed_bank_);
+  if (not bypass_cached_ and event->msg_type() != Instrument::tag) {
+    feed_state_data(event, states_feed_bank_);
+  }
 }
 
 void cached::run_store_workers() {

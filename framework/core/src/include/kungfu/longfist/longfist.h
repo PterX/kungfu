@@ -177,6 +177,7 @@ constexpr auto ProfileDataTypes = boost::hana::make_map( //
     TYPE_PAIR(Config),                                   // 10201
     TYPE_PAIR(RiskSetting),                              // 10202
     TYPE_PAIR(Commission),                               // 10203
+    TYPE_PAIR(Instrument),                               // 10204
     TYPE_PAIR(Location),                                 // 10205
     TYPE_PAIR(Basket),                                   // 10206
     TYPE_PAIR(BasketInstrument)                          // 10207

@@ -215,8 +215,7 @@ void cached::cache_reset(const event_ptr &event) {
 void cached::feed(const event_ptr &event) {
   std::lock_guard<std::mutex> lock(feed_mutex_);
   // only etf related data will be stored by cached, these data should be only store in td public.db, for CachedReset
-  if (event->msg_type() != BasketInstrument::tag and event->msg_type() != Basket::tag and
-      event->msg_type() != Instrument::tag) {
+  if (event->msg_type() != BasketInstrument::tag and event->msg_type() != Basket::tag) {
     feed_profile_data(event, profile_feed_bank_);
   }
 

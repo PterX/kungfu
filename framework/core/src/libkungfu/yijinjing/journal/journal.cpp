@@ -68,6 +68,8 @@ void journal::seek_to_time(int64_t nanotime) {
 }
 
 void journal::load_page(uint32_t page_id) {
+  auto t1 = yijinjing::time::now_in_nano();
+  bool use_preload = false;
   auto fn_load = [&]() {
     if (not page_ or page_->get_page_id() != page_id) {
       if (page_) {
@@ -82,6 +84,7 @@ void journal::load_page(uint32_t page_id) {
       if (preload_ and preload_page_ and preload_page_->get_page_id() == page_id) {
         page_ = std::move(preload_page_);
         page_->enable_page();
+        use_preload = true;
       } else {
         page_ = page::load(location_, dest_id_, page_size_, page_id, is_writing_, lazy_);
       }
@@ -90,13 +93,15 @@ void journal::load_page(uint32_t page_id) {
     page_frame_nb_ = 0u;
   };
 
-  if (bus_->is_on_load_page_required()) {
+  if (preload_ and bus_->is_on_load_page_required()) {
     std::lock_guard<std::recursive_mutex> lk_load_page(load_page_mtx_);
     fn_load();
     bus_->on_load_page();
   } else {
     fn_load();
   }
+  auto t2 = yijinjing::time::now_in_nano();
+  SPDLOG_ERROR("load_page used time: {} ns, use_preload: {}", (t2 - t1), use_preload);
 }
 
 void journal::load_next_page() { load_page(page_->get_page_id() + 1); }

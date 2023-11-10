@@ -244,7 +244,7 @@ bool TraderXTP::generate_external_order(const XTPOrderInfo &order_info) {
   Order &order = writer->open_data<Order>(now());
   order.order_id = writer->current_frame_uid();
   from_xtp(order_info, order);
-  order.insert_time = nano;
+  order.insert_time =  nsec_from_xtp_timestamp(order_info.insert_time);
   order.update_time = nano;
   orders_.emplace(order.uid(), state<Order>(get_home_uid(), location::PUBLIC, nano, order));
   map_kf_to_xtp_order_id_.emplace(uint64_t(order.order_id), order_info.order_xtp_id);

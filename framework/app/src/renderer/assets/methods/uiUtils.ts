@@ -640,16 +640,15 @@ export const openNewBrowserWindow = (
     const isMacOS = process.platform === 'darwin';
 
     win.on('ready-to-show', function () {
-      if (isMacOS) {
-        if (isParentFullScreen) {
-          win.setFullScreen(false);
-          win.setSize(1080, 766);
-          win.center();
-        }
+      if (isMacOS && isParentFullScreen) {
+        win.setFullScreen(false);
+        win.setSize(1080, 766);
         win.show();
+        win.center();
         win.focus();
       } else {
-        win && win.focus();
+        win.show();
+        win.focus();
       }
     });
 
@@ -673,8 +672,6 @@ export const openNewBrowserWindow = (
         win.setPosition(newX, newY);
         currentWindow.setSize(parentWidth, parentHeight);
         currentWindow.setPosition(parentX, parentY);
-
-        win.show();
       });
 
       if (win && !win.isDestroyed()) {
@@ -691,12 +688,9 @@ export const openNewBrowserWindow = (
             const newY = parentY + parentHeight - 30;
 
             win.setPosition(newX, newY);
-            win.show();
           }
         });
       }
-    } else {
-      win && win.show();
     }
 
     win.webContents.loadURL(modalPath);

@@ -512,9 +512,9 @@ declare namespace KungfuApi {
   export type KfAllExtConfig = KfExtConfig | KfUIExtConfig | KfCliExtConfig;
 
   export type KfExtLanguages = {
-    'zh-CN': Record<string, Record<string, string>>;
-    'en-US': Record<string, Record<string, string>>;
-    [langName: string]: Record<string, Record<string, string>>;
+    'zh-CN': Record<string, string | Record<string, string>>;
+    'en-US': Record<string, string | Record<string, string>>;
+    [langName: string]: Record<string, string | Record<string, string>>;
   };
 
   export interface SetKfConfigPayload {
@@ -621,6 +621,8 @@ declare namespace KungfuApi {
     realized_pnl: number; //累计收益
     unrealized_pnl: number;
     avail: number; //可用资金
+    long_avail: number; // otc业务可用资金(多)
+    short_avail: number; // otc业务可用资金(空）
     market_value: number; //市值(股票)
     margin: number; //保证金(期货)
     accumulated_fee: number; //累计手续费

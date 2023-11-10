@@ -499,7 +499,12 @@ declare namespace KungfuApi {
 
   export type KfCliExtConfigs = Record<string, KfCliExtConfig>;
 
-  export interface KfAllExtConfigs extends KfExtConfigs {
+  export interface KfBacktestExtConfigs {
+    indexer: Record<string, KfExtOriginIndexerConfig>;
+    matcher: Record<string, KfExtOriginIndexerConfig>;
+  }
+
+  export interface KfAllExtConfigs extends KfExtConfigs, KfBacktestExtConfigs {
     ui: KfUIExtConfigs;
     cli: KfCliExtConfigs;
   }
@@ -507,9 +512,9 @@ declare namespace KungfuApi {
   export type KfAllExtConfig = KfExtConfig | KfUIExtConfig | KfCliExtConfig;
 
   export type KfExtLanguages = {
-    'zh-CN': Record<string, Record<string, string>>;
-    'en-US': Record<string, Record<string, string>>;
-    [langName: string]: Record<string, Record<string, string>>;
+    'zh-CN': Record<string, string | Record<string, string>>;
+    'en-US': Record<string, string | Record<string, string>>;
+    [langName: string]: Record<string, string | Record<string, string>>;
   };
 
   export interface SetKfConfigPayload {

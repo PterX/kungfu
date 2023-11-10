@@ -131,7 +131,6 @@ export const assetDetailShowList = [
   { key: 'market_value', label: t('tdConfig.marked_value') },
   { key: 'margin', label: t('tdConfig.margin') },
   { key: 'avail', label: t('tdConfig.avail_money') },
-  { key: 'unrealized_pnl', label: t('tdConfig.unrealized_pnl') },
 ] as const;
 
 export const assetMarginDetailShowList = [

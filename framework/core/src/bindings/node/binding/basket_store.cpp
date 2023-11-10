@@ -55,6 +55,33 @@ Napi::Value BasketStore::SetBasket(const Napi::CallbackInfo &info) {
   return Napi::Boolean::New(info.Env(), true);
 }
 
+Napi::Value BasketStore::SetBaskets(const Napi::CallbackInfo &info) {
+  if (not info[0].IsArray()) {
+    throw Napi::Error::New(info.Env(), "Invalid argument");
+  }
+
+  auto args = info[0].As<Napi::Array>();
+  std::vector<Basket> baskets;
+  for (int i = 0; i < args.Length(); i++) {
+    Basket basket = {};
+    get(args.Get(i).ToObject(), basket);
+    if (basket.id == (uint32_t)0) {
+      basket.id = util::hash_str_32(basket.name);
+    }
+    baskets.push_back(basket);
+  }
+
+  try {
+    profile_.replace_range(baskets);
+  } catch (const std::exception &ex) {
+    SPDLOG_ERROR("failed to SetBasketInstrument {}", ex.what());
+    yijinjing::util::print_stack_trace();
+    return Napi::Boolean::New(info.Env(), false);
+  }
+
+  return Napi::Boolean::New(info.Env(), true);
+}
+
 Napi::Value BasketStore::GetAllBasket(const Napi::CallbackInfo &info) {
   try {
     auto baskets = profile_.get_all(Basket{});
@@ -80,6 +107,7 @@ void BasketStore::Init(Napi::Env env, Napi::Object exports) {
                                     {
                                         InstanceMethod("setAllBasket", &BasketStore::SetAllBasket),
                                         InstanceMethod("setBasket", &BasketStore::SetBasket),
+                                        InstanceMethod("setBaskets", &BasketStore::SetBaskets),
                                         InstanceMethod("getAllBasket", &BasketStore::GetAllBasket),
                                     });
 

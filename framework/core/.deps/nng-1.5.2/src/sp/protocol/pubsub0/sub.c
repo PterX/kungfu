@@ -326,7 +326,7 @@ sub0_recv_cb(void *arg)
 		return;
 	}
 
-	nni_aio_list_init(&finish);
+	NNI_LIST_INIT(&finish, nng_aio, a_finish_node);
 
 	msg = nni_aio_get_msg(&p->aio_recv);
 	nni_aio_set_msg(&p->aio_recv, NULL);

@@ -18,6 +18,7 @@ add_compile_definitions(HAVE_USLEEP=1)
 add_compile_definitions(SPDLOG_ACTIVE_LEVEL=${SPDLOG_LOG_LEVEL_COMPILE})
 add_compile_definitions(SPDLOG_NO_NAME)
 add_compile_definitions(SPDLOG_NO_ATOMIC_LEVELS)
+add_compile_definitions(NNG_STATIC_LIB)
 
 ##########################################################################
 

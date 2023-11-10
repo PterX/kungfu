@@ -252,20 +252,7 @@ if (NNG_ENABLE_TLS)
     add_definitions(-DNNG_SUPP_TLS)
 endif ()
 
-if (NNG_TESTS)
-    enable_testing()
-    set(all_tests, "")
-endif ()
-
 add_subdirectory(src)
-
-if (NNG_TESTS)
-    add_subdirectory(tests)
-endif ()
-
-#  Build the tools
-
-add_subdirectory(docs/man)
 
 set(CPACK_PACKAGE_NAME ${PROJECT_NAME})
 set(CPACK_PACKAGE_VERSION ${NNG_PACKAGE_VERSION})

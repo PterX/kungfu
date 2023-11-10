@@ -375,6 +375,7 @@ export const getKfExtensionLanguage = async () => {
               return langData[langName][nameKey];
           }
         }
+
         const defaultName =
           langName === 'zh-CN'
             ? config.name

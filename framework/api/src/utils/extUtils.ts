@@ -443,8 +443,22 @@ export const getAllExtensions =
     const extConfigs = getKfExtensionConfigByCategory(kfExtConfigList);
     const uiExtConfigs = getKfUIExtensionConfigByExtKey(kfExtConfigList);
     const cliExtConfigs = getKfCliExtensionConfigByExtKey(kfExtConfigList);
+    const indexerAndMatcherConfigs = kfExtConfigList.reduce(
+      (extConfigs, ext) => {
+        if (
+          ext.type === KfExtTypeEnum.Indexer ||
+          ext.type === KfExtTypeEnum.Matcher
+        ) {
+          extConfigs[ext.type][ext.key] = ext;
+        }
+        return extConfigs;
+      },
+      { indexer: {}, matcher: {} } as KungfuApi.KfBacktestExtConfigs,
+    );
+
     return {
       ...extConfigs,
+      ...indexerAndMatcherConfigs,
       ui: uiExtConfigs,
       cli: cliExtConfigs,
     };

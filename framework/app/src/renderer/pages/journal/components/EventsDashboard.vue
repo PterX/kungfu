@@ -277,12 +277,12 @@ const frameHeaderForShow = computed(() => {
 });
 const frameDataForShow = computed(() => {
   if (!currentRowData.value) return [];
-
-  const dataAsString = currentRowData.value.dataAsString.slice(2, -1);
-  return dataAsString.split(',"').map((item) => {
-    item = '"' + item;
-    const pair = item.split(':');
-    return { key: pair[0], value: pair[1] };
+  const data = JSON.parse(currentRowData.value.dataAsString);
+  return Object.entries(data).map(([key, value]) => {
+    return {
+      key,
+      value,
+    };
   });
 });
 

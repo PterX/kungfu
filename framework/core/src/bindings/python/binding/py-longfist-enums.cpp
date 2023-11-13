@@ -362,6 +362,8 @@ void bind_enums(py::module &m) {
       .value("UnSSEMustReplace", CashReplaceFlag::UnSSEMustReplace)
       .value("UnSSESZEReplace", CashReplaceFlag::UnSSESZEReplace)
       .value("UnSSESZEMustReplace", CashReplaceFlag::UnSSESZEMustReplace)
+      .value("UnHKReplace", CashReplaceFlag::UnHKReplace)
+      .value("UnHKMustReplace", CashReplaceFlag::UnHKMustReplace)
       .value("Unknown", CashReplaceFlag::Unknown)
       .export_values()
       .def("__eq__", [](const CashReplaceFlag &a, int b) { return static_cast<int>(a) == b; });

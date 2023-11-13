@@ -24,7 +24,6 @@ import {
   createApp,
   defineComponent,
   onUnmounted,
-  watchEffect,
 } from 'vue';
 import { ensureFileSync, outputFile } from 'fs-extra';
 import dayjs from 'dayjs';
@@ -62,6 +61,7 @@ import {
   debounce,
   loopToRunProcess,
   isKfColor,
+  LinkedList,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { transformSearchInstrumentResultToInstrument } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import { kfLogger } from '@kungfu-trader/kungfu-js-api/utils/logUtils';
@@ -110,6 +110,7 @@ import { Router } from 'vue-router';
 import { normalizePath } from '@kungfu-trader/kungfu-js-api/utils/osUtils';
 import { getDialogLogoPath } from '@kungfu-trader/kungfu-js-api/config/brand';
 import { LatestUsedQueue } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import { keyShortMap } from '@kungfu-trader/kungfu-js-api/config/systemConfig';
 
 // this utils file is only for ui components
 
@@ -285,7 +286,7 @@ export const useShortcuts = (shortcutsOption: {
 
   onMounted(() => {
     for (const shortcut in shortcutsOption) {
-      const { elementIdList, onFocus } = shortcutsOption[shortcut];
+      const { elementIdList } = shortcutsOption[shortcut];
       shortcutsElementsQueue[shortcut] = new LatestUsedQueue(elementIdList);
 
       const res = globalShortcut.isRegistered(shortcut);
@@ -295,104 +296,307 @@ export const useShortcuts = (shortcutsOption: {
       }
 
       let iterator;
-      document.onkeydown(shortcut, (e) => {
-        if (ctrl + i) {
+      document.addEventListener('keydown', (e: KeyboardEvent) => {
+        if (
+          (e.ctrlKey || e.metaKey) &&
+          e.shiftKey &&
+          e.code.startsWith('Digit')
+        ) {
+          const boardStr = e.code.replace('Digit', '');
+          if (boardStr !== shortcut.split('+')[2]) return;
           if (!iterator) {
             iterator = shortcutsElementsQueue[shortcut].generateIterator();
-            document.onkeyup((e) => {
+            document.addEventListener('keyup', (e: KeyboardEvent) => {
               if (e.key === null) iterator = null;
             });
           }
 
-          iterator?.next().value();
+          iterator?.next()?.value?.();
         }
       });
     }
   });
 };
 
-export function useKeyboardControllerStyle(
-  boardRef: Ref<HTMLElement | ComponentPublicInstance | null>,
-  elementRef: Ref<HTMLElement | ComponentPublicInstance | null> = ref(null),
-  styleString: string,
-  shortcutNumber: number,
-) {
-  const uniqueClassName = `kf-keyboard-style-${Date.now()}`;
+export function useStyle(styleString: string) {
+  const key = Date.now();
+  const styleSheet = document.styleSheets[0];
+  const styleIndex = styleSheet.cssRules.length;
+  const uniqueClassName = `kf-keyboard-style-${key}`;
+  const fullStyleStr = `.${uniqueClassName} ${styleString}`;
 
-  let board;
-  let element;
+  if (styleSheet) {
+    try {
+      styleSheet.insertRule(fullStyleStr, styleIndex);
+    } catch (error) {
+      console.error(error);
+    }
+  }
 
-  const styleEl = document.createElement('style');
-  document.head.appendChild(styleEl);
-  styleEl.textContent = `.${uniqueClassName} ${styleString}`;
-
-  const addStyle = () => {
-    if (!element) return;
+  const addStyle = (element: Element) => {
     element.classList.add(uniqueClassName);
+    return () => {
+      element.classList.remove(uniqueClassName);
+      try {
+        styleSheet.deleteRule(styleIndex);
+      } catch (error) {
+        console.error(error);
+      }
+    };
   };
 
-  const removeStyle = () => {
-    if (!element) return;
+  const removeStyle = (element: Element) => {
     element.classList.remove(uniqueClassName);
   };
 
-  function setupBoard() {
-    if (!board) {
-      return;
+  const cleanup = () => {
+    try {
+      styleSheet.deleteRule(styleIndex);
+    } catch (error) {
+      console.error(error);
     }
+  };
 
-    board.addEventListener('focus', () => board.focus());
-    board.addEventListener('focusout', () =>
-      setTimeout(() => {
-        if (!isChildOf(board, document.activeElement)) {
-          removeStyle();
+  return { addStyle, removeStyle, cleanup };
+}
+
+export function useShortcutFocuseBoard() {
+  const key = Date.now().toString();
+  let keyShort = '';
+
+  const setupShortcut = (
+    boardRef: Ref<HTMLElement | ComponentPublicInstance | null>,
+    curKeyShort: string,
+  ) => {
+    const clean = watch(
+      boardRef,
+      (newBoard) => {
+        if (newBoard) {
+          const board = boardRef.value
+            ? '$el' in boardRef.value
+              ? boardRef.value.$el
+              : boardRef.value
+            : null;
+          if (!globalThis.KeyShortMap[curKeyShort]) {
+            globalThis.KeyShortMap[curKeyShort] = new LinkedList<HTMLElement>();
+            globalThis.KeyShortMap[curKeyShort].prepend(key, board);
+          } else {
+            globalThis.KeyShortMap[curKeyShort].prepend(key, board);
+          }
+          keyShort = curKeyShort;
+          clean();
         }
-      }),
+      },
+      { immediate: true },
     );
-    document.addEventListener('keydown', keyBoardFn);
-    loopFocusWithinBoard(board);
+  };
+
+  const cleanupShortcut = () => {
+    if (keyShort && globalThis.KeyShortMap[keyShort]) {
+      globalThis.KeyShortMap[keyShort].remove(key);
+    }
+  };
+
+  const registerKeyDown = () => {
+    if (globalThis.KeyShortMap) return;
+    globalThis.KeyShortMap = {};
+
+    document.addEventListener('keydown', async (e: KeyboardEvent) => {
+      if (
+        (e.ctrlKey || e.metaKey) &&
+        e.shiftKey &&
+        e.code.startsWith('Digit')
+      ) {
+        e.preventDefault();
+        e.stopPropagation();
+        const keyShortStr = `CommandOrControl+Shift+${e.code.replace(
+          'Digit',
+          '',
+        )}`;
+        if (globalThis.KeyShortMap[keyShortStr]) {
+          const linkList = globalThis.KeyShortMap[keyShortStr];
+          const pos = linkList.getPos();
+          const boardContent = linkList.getValue(pos);
+          boardContent.classList.add('kf-highlight-outline');
+          boardContent.focus();
+          await setTimeout(() => {
+            boardContent.classList.remove('kf-highlight-outline');
+          }, 300);
+
+          const keyUpHandler = (e: KeyboardEvent) => {
+            if (
+              e.ctrlKey === false ||
+              e.metaKey === false ||
+              e.shiftKey === false
+            ) {
+              linkList.moveRestToHead(pos);
+              linkList.resetPos();
+              document.removeEventListener('keyup', keyUpHandler);
+            }
+          };
+          document.addEventListener('keyup', keyUpHandler);
+
+          linkList.posNext();
+        }
+      }
+    });
+  };
+
+  const setPos = () => {
+    if (globalThis.KeyShortMap[keyShort]) {
+      globalThis.KeyShortMap[keyShort].setPos(key);
+    }
+  };
+
+  onUnmounted(cleanupShortcut);
+
+  return { setupShortcut, cleanupShortcut, registerKeyDown, setPos };
+}
+
+export function useTabFocus(
+  boardRef: Ref<HTMLElement | ComponentPublicInstance | null>,
+  customFocusHandler:
+    | ((e: KeyboardEvent, focusableElements: HTMLElement[]) => void)
+    | null = null,
+  focusableElementsResolver?: (
+    defaultFoucsableElements: HTMLElement[],
+  ) => HTMLElement[],
+) {
+  let board;
+  let focusableElements: HTMLElement[] = [];
+
+  const updateFocusableElements = () => {
+    if (!board) return;
+
+    const elements = Array.from(
+      board.querySelectorAll(
+        'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      ),
+    ) as HTMLElement[];
+
+    focusableElements = focusableElementsResolver
+      ? focusableElementsResolver(elements)
+      : elements;
+  };
+
+  function loopFocusWithinBoard() {
+    if (!board) return;
+
+    customFocusHandler
+      ? board.addEventListener('keydown', (e: KeyboardEvent) =>
+          customFocusHandler(e, focusableElements),
+        )
+      : board.addEventListener('keydown', defaultFocusHandler);
   }
 
-  const cleanup = () => {
-    if (board) {
-      board.removeEventListener('focus', () => board.focus());
-      board.removeEventListener('focusout', () =>
-        setTimeout(() => {
-          if (!isChildOf(board, document.activeElement)) {
-            removeStyle();
-          }
-        }),
-      );
-    }
-    document.removeEventListener('keydown', keyBoardFn);
-    styleEl.remove();
+  const setupFocus = () => {
+    updateFocusableElements();
+    loopFocusWithinBoard();
   };
+
+  // 默认的键盘事件处理函数
+  const defaultFocusHandler = (e: KeyboardEvent) => {
+    if (e.key !== 'Tab') return;
+
+    if (focusableElements.length === 0) return;
+
+    const firstFocusableElement = focusableElements[0];
+    const lastFocusableElement =
+      focusableElements[focusableElements.length - 1];
+
+    // 判断按下的是否是Shift+Tab
+    const isShiftTab = e.shiftKey && e.key === 'Tab';
+
+    if (isShiftTab) {
+      // Shift + Tab: 移动到上一个可聚焦元素
+      if (document.activeElement === firstFocusableElement) {
+        lastFocusableElement.focus();
+        e.preventDefault();
+      } else {
+        // 寻找当前聚焦元素的前一个元素并聚焦
+        const currentElementIndex = focusableElements.findIndex(
+          (element) => element === document.activeElement,
+        );
+        if (currentElementIndex > 0) {
+          focusableElements[currentElementIndex - 1].focus();
+          e.preventDefault();
+        }
+      }
+    } else {
+      // Tab: 移动到下一个可聚焦元素
+      if (document.activeElement === lastFocusableElement) {
+        firstFocusableElement.focus();
+        e.preventDefault();
+      } else {
+        // 寻找当前聚焦元素的后一个元素并聚焦
+        const currentElementIndex = focusableElements.findIndex(
+          (element) => element === document.activeElement,
+        );
+        if (
+          currentElementIndex >= 0 &&
+          currentElementIndex < focusableElements.length - 1
+        ) {
+          focusableElements[currentElementIndex + 1].focus();
+          e.preventDefault();
+        }
+      }
+    }
+  };
+
+  const cleanupFocus = () => {
+    if (!board) return;
+
+    if (board && customFocusHandler) {
+      board.removeEventListener('keydown', customFocusHandler);
+    }
+  };
+
+  onUnmounted(cleanupFocus);
 
   watch(
     boardRef,
     (newBoard) => {
-      if (!newBoard) {
-        return;
+      if (newBoard) {
+        if (!boardRef.value) {
+          return;
+        }
+        board =
+          boardRef.value instanceof HTMLElement
+            ? boardRef.value
+            : boardRef.value.$el;
+        setupFocus();
       }
-      (board = boardRef.value
-        ? '$el' in boardRef.value
-          ? boardRef.value.$el
-          : boardRef.value
-        : null),
-        (element = elementRef.value
-          ? '$el' in elementRef.value
-            ? elementRef.value.$el
-            : elementRef.value
-          : board.value),
-        setupBoard();
     },
     { immediate: true },
   );
 
-  onMounted(setupBoard);
-  onUnmounted(cleanup);
+  onUnmounted(cleanupFocus);
 
-  function isChildOf(parent, child) {
+  return { cleanupFocus, setupFocus };
+}
+
+export function useKeyboardControllerStyle(
+  boardName: string,
+  styleString: string,
+  boardRef: Ref<HTMLElement | ComponentPublicInstance | null>,
+  controlAreaStyleRef: Ref<HTMLElement | ComponentPublicInstance | null> = ref(
+    null,
+  ),
+) {
+  const keyShort = keyShortMap[boardName];
+  const {
+    addStyle,
+    removeStyle,
+    cleanup: cleanupStyle,
+  } = useStyle(styleString);
+  const { setupShortcut, setPos } = useShortcutFocuseBoard();
+  useTabFocus(boardRef, loopFocuse);
+  setupShortcut(boardRef, keyShort);
+
+  let board;
+  let element;
+
+  const isChildOf = (parent: Element, child: Element) => {
     let node = child.parentNode;
     while (node !== null) {
       if (node === parent) {
@@ -401,74 +605,115 @@ export function useKeyboardControllerStyle(
       node = node.parentNode;
     }
     return false;
-  }
-  function keyBoardFn(e: KeyboardEvent) {
-    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.code.startsWith('Digit')) {
-      e.preventDefault();
-      const boardNumber = parseInt(e.code.replace('Digit', ''), 10);
-      if (boardNumber !== shortcutNumber) return;
+  };
 
-      if (board) {
-        e.stopPropagation();
-        e.preventDefault();
-        e.stopImmediatePropagation();
-        board.focus();
-        board.classList.add('kf-highlight-outline');
-        setTimeout(() => {
-          board.classList.remove('kf-highlight-outline');
-        }, 300);
-      }
-    }
-
-    if (e.code === 'Tab') {
-      if (
-        document.activeElement === board ||
-        isChildOf(board, document.activeElement)
-      ) {
-        addStyle();
-      }
-    }
-  }
-  function loopFocusWithinBoard(board) {
+  function loopFocuse(e: KeyboardEvent, focusableElements: HTMLElement[]) {
     if (!board) return;
-    const allElements = board.querySelectorAll(
-      'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]',
-    ) as HTMLElement[];
-    const focusableElements = Array.from(allElements).filter((el) => {
-      return el.tabIndex !== -1 || el.getAttribute('tabindex') === null;
-    });
+
+    const isTabPressed = e.key === 'Tab';
+
+    if (focusableElements.length === 0) {
+      return;
+    }
+
     const firstFocusableElement = focusableElements[0];
     const lastFocusableElement =
       focusableElements[focusableElements.length - 1];
-    board.addEventListener('keydown', function (e) {
-      if (
-        e.key === 'Tab' &&
-        !e.shiftKey &&
-        document.activeElement === lastFocusableElement
-      ) {
-        e.preventDefault();
-        firstFocusableElement.focus();
-      }
 
+    if (!isTabPressed) {
+      return;
+    }
+
+    if (e.shiftKey) {
+      if (document.activeElement === firstFocusableElement) {
+        lastFocusableElement?.focus();
+        e.preventDefault();
+      } else if (document.activeElement === focusableElements[1]) {
+        firstFocusableElement?.focus();
+        e.preventDefault();
+      }
+    } else {
+      if (document.activeElement === lastFocusableElement) {
+        firstFocusableElement?.focus();
+        e.preventDefault();
+      }
+    }
+  }
+
+  function keyBoardFn(e: KeyboardEvent) {
+    if (e.code === 'Tab') {
+      if (!boardRef.value) return;
+      const board =
+        boardRef.value instanceof HTMLElement
+          ? boardRef.value
+          : boardRef.value.$el;
       if (
-        e.key === 'Tab' &&
-        e.shiftKey &&
-        document.activeElement === focusableElements[1]
+        document.activeElement &&
+        board &&
+        (document.activeElement === board ||
+          isChildOf(board, document.activeElement))
       ) {
-        e.preventDefault();
-        firstFocusableElement.focus();
-      } else if (
-        e.key === 'Tab' &&
-        e.shiftKey &&
-        document.activeElement === firstFocusableElement
+        addStyle(element);
+      } else {
+        removeStyle(element);
+      }
+    }
+  }
+
+  watch(
+    boardRef,
+    (newBoard, oldBoard) => {
+      if (oldBoard) {
+        board.removeEventListener('click', focusOutHandler);
+        board.removeEventListener('focus', setPos);
+        cleanupStyle();
+      }
+      if (newBoard) {
+        (board = boardRef.value
+          ? '$el' in boardRef.value
+            ? boardRef.value.$el
+            : boardRef.value
+          : null),
+          (element = controlAreaStyleRef.value
+            ? '$el' in controlAreaStyleRef.value
+              ? controlAreaStyleRef.value.$el
+              : controlAreaStyleRef.value
+            : board),
+          board.addEventListener('click', setPos);
+        board.addEventListener('focusout', focusOutHandler);
+        document.addEventListener('keydown', keyBoardFn);
+      }
+    },
+    { immediate: true },
+  );
+
+  function focusOutHandler() {
+    setTimeout(() => {
+      if (
+        board &&
+        document.activeElement &&
+        !isChildOf(board, document.activeElement)
       ) {
-        e.preventDefault();
-        lastFocusableElement.focus();
+        removeStyle(element);
       }
     });
   }
 
-  return { addStyle, removeStyle, cleanup, uniqueClassName };
+  function cleanup() {
+    cleanupStyle();
+    if (board) {
+      board.removeEventListener('focusout', focusOutHandler);
+    }
+  }
+  onUnmounted(() => {
+    document.removeEventListener('keydown', keyBoardFn);
+    cleanup();
+  });
+
+  return {
+    addStyle,
+    removeStyle,
+  };
 }
 
 export const useLocale = () => {

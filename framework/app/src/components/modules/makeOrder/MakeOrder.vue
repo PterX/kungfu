@@ -1,12 +1,5 @@
 <script setup lang="ts">
-import {
-  computed,
-  nextTick,
-  onBeforeUnmount,
-  onMounted,
-  ref,
-  watch,
-} from 'vue';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
 
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
@@ -114,10 +107,11 @@ const {
 
 const { getValidatorByOrderInputKey } = useTradeLimit();
 useKeyboardControllerStyle(
+  'MakeOrder',
+  '.ant-form-item-control-input:focus-within { background: rgba(67, 67, 67, 0.3); }',
+
   boardRef,
   formRef,
-  '.ant-form-item-control-input:focus-within { background: rgba(67, 67, 67, 0.3); }',
-  1,
 );
 
 const makeOrderInstrumentType = ref<InstrumentTypeEnum>(
@@ -367,7 +361,20 @@ watch(
 watch(
   () => formState.value,
   (newVal) => {
-    let { account_id, instrument, volume, side, offset } = newVal;
+    let { account_id, instrument, volume, side, offset, every_volume } = newVal;
+    if (every_volume) {
+      if (every_volume > volume) {
+        if (!instrumentResolved.value) {
+          every_volume = 1;
+          return;
+        }
+        every_volume = isShotable(
+          instrumentResolved.value.instrumentType || InstrumentTypeEnum.unknown,
+        )
+          ? 1
+          : 100;
+      }
+    }
     if (![SideEnum.Buy, SideEnum.Sell].includes(side)) {
       side = undefined;
     }

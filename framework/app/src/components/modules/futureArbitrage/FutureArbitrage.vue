@@ -45,10 +45,10 @@ const {
 } = useCurrentGlobalKfLocation(window.watcher);
 
 useKeyboardControllerStyle(
+  'FutureArbitrage',
+  '.ant-form-item-control-input:focus-within { background: rgba(67, 67, 67, 0.3); }',
   boardRef,
   formRef,
-  '.ant-form-item-control-input:focus-within { background: rgba(67, 67, 67, 0.3); }',
-  2,
 );
 
 const isShowCurrentGlobalKfLocationTitle = computed(() => {

@@ -1,12 +1,5 @@
 <script setup lang="ts">
-import {
-  computed,
-  nextTick,
-  onBeforeUnmount,
-  onMounted,
-  ref,
-  watch,
-} from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
@@ -64,10 +57,10 @@ const {
 useMakeOrderSubscribe(formState);
 
 useKeyboardControllerStyle(
+  'BlockTrade',
+  '.ant-form-item-control-input:focus-within { background: rgba(67, 67, 67, 0.3); }',
   boardRef,
   formRef,
-  '.ant-form-item-control-input:focus-within { background: rgba(67, 67, 67, 0.3); }',
-  0,
 );
 
 let pricePrecision = 0;

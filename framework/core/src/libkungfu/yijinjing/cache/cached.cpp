@@ -19,6 +19,7 @@ using namespace kungfu::yijinjing::cache;
 // The maximum number of bytes in the text of an SQL statement is limited to SQLITE_MAX_SQL_LENGTH which defaults to
 // 1,000,000,000.
 #define DEFAULT_STORE_VOLUME_BY_INTERVAL 2000
+#define STORE_INTERVAL 500
 
 namespace kungfu::yijinjing::cache {
 
@@ -234,7 +235,7 @@ void cached::run_store_workers() {
 
 void cached::do_store_states_feeds() {
   while (!m_quit_) {
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    std::this_thread::sleep_for(std::chrono::milliseconds(STORE_INTERVAL));
     if (storage_pause_) {
       return;
     }
@@ -246,7 +247,7 @@ void cached::do_store_states_feeds() {
 
 void cached::do_store_profile_feeds() {
   while (!m_quit_) {
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    std::this_thread::sleep_for(std::chrono::milliseconds(STORE_INTERVAL));
     if (storage_pause_) {
       return;
     }

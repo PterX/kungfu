@@ -420,8 +420,8 @@ KF_JSON_SERIALIZE_ENUM(CashReplaceFlag, {
                                             {CashReplaceFlag::UnSSEMustReplace, "UnSSEMustReplace"},
                                             {CashReplaceFlag::UnSSESZEReplace, "UnSSESZEReplace"},
                                             {CashReplaceFlag::UnSSESZEMustReplace, "UnSSESZEMustReplace"},
-                                                      {CashReplaceFlag::UnHKReplace, "UnHKReplace"},
-                                                  {CashReplaceFlag::UnHKMustReplace, "UnHKMustReplace"},
+                                            {CashReplaceFlag::UnHKReplace, "UnHKReplace"},
+                                            {CashReplaceFlag::UnHKMustReplace, "UnHKMustReplace"},
                                             {CashReplaceFlag::Unknown, "Unknown"},
                                         })
 

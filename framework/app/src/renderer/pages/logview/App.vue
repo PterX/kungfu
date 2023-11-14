@@ -180,7 +180,9 @@ function resetLog() {
           >
             <DynamicScrollerItem
               :item="item"
+              :key="item.id"
               :active="active"
+              :data-active="active"
               :size-dependencies="[item.message]"
               :data-index="index"
             >

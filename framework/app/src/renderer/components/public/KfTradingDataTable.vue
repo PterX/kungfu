@@ -715,7 +715,9 @@ defineExpose({
           >
             <DynamicScrollerItem
               :item="item"
+              :key="`${item[keyField as keyof TableDataItem]}-${index}`"
               :active="active"
+              :data-active="active"
               :size-dependencies="getSizeDependencies(item)"
               :data-index="index"
             >

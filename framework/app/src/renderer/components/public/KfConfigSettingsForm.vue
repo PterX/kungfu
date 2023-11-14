@@ -2021,15 +2021,13 @@ defineExpose({
               tablesSearchRelated[item.key].tableData.value.length
             "
             :style="{
-              maxHeight: `${
-                calcTableItemHeight(layout, !!item.noDivider) * 10
-              }px`,
-              overflowY: 'overlay',
+              height: `${calcTableItemHeight(layout, !!item.noDivider) * 10}px`,
+              overflowY: 'auto',
             }"
             :items="tablesSearchRelated[item.key].tableData.value"
             :item-size="calcTableItemHeight(layout, !!item.noDivider)"
             key-field="id"
-            :buffer="0"
+            :buffer="calcTableItemHeight(layout, !!item.noDivider)"
           >
             <template
               #default="{

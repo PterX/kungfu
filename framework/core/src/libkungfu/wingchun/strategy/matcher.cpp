@@ -52,8 +52,8 @@ void Matcher::update_order_action_error(const OrderActionError &error) {
 
 void set_runner(Matcher &matcher, Runner *runner) { matcher.app_ = runner; }
 
-void init_matcher(Matcher &matcher, book::Bookkeeper *bookkeeper, const std::string &matcher_config) { 
-  matcher.bookkeeper_ = bookkeeper; 
+void init_matcher(Matcher &matcher, book::Bookkeeper *bookkeeper, const std::string &matcher_config) {
+  matcher.bookkeeper_ = bookkeeper;
   matcher.config_ = matcher_config;
 }
 

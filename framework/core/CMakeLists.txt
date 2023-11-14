@@ -35,6 +35,12 @@ include_directories(src/include)
 
 ##########################################################################
 
+#nng
+message(STATUS "Compile NNG")
+add_subdirectory(.deps/nng-1.5.2)
+
+##########################################################################
+
 set(KUNGFU_BUILD_DIR ${CMAKE_BINARY_DIR})
 set(KUNGFU_BUILD_LIBRARY_DIR ${KUNGFU_BUILD_DIR}/${CMAKE_BUILD_TYPE})
 
@@ -65,7 +71,3 @@ if (NOT DEFINED ENV{KUNGFU_BUILD_SKIP_PYKUNGFU} OR NOT $ENV{KUNGFU_BUILD_SKIP_PY
   add_subdirectory(.deps/pybind11-2.9.0)
   add_subdirectory(src/bindings/python)
 endif()
-
-#nng
-message(STATUS "Compile NNG")
-add_subdirectory(.deps/nng-1.5.2)

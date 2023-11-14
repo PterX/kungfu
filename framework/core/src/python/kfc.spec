@@ -124,7 +124,7 @@ kfc_a = Analysis(
             (cmake_dir, "cmake"),
             (make_path(dep_hana_dir, "include"), "include"),
             (make_path(dep_sqlite_orm_dir, "include"), "include"),
-            (dep_nng_dir, "pybind11"),
+            (make_path(dep_nng_dir, "include"), "include"),
             (dep_pybind11_dir, "pybind11"),
             (make_path(build_output_dir, "*"), "."),
             (make_path(build_whl_dir, "*"), "kungfu-wheel"),

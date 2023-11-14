@@ -278,12 +278,7 @@ protected:
                 }
               }))
           .merge(events_ | rx::filter([&, duration_ns, timer_id](const event_ptr &event) {
-<<<<<<< HEAD
-                   if (event->gen_time() > timer_checkpoints_[timer_id] + duration_ns) {
-                     timer_requests_.erase(timer_id);
-=======
                    if (event->gen_time() >= timer_checkpoints_[timer_id] + duration_ns) {
->>>>>>> 23dd88f95f12b81406cb46e156fc8491df41f1db
                      throw rx::timeout_error("timeout");
                    }
                    timer_requests_.erase(timer_id);

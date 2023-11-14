@@ -71,6 +71,7 @@ class Report(wc.Report):
 
     def init(self):
         self.ctx.bookkeeper = self.bookkeeper
+        self.ctx.report_config = self.config
         self._init(self.ctx)
 
     def sumerize(self):

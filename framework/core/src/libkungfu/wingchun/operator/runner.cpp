@@ -29,7 +29,9 @@ Context_ptr Runner::make_context() {
       report_ = std::make_shared<tool::Report>();
       SPDLOG_WARN("Runner in backtest mode not specified.");
     }
-    set_runner(*report_, this, nullptr);
+    nlohmann::json j_obj = nlohmann::json::parse(backtest_config_);
+    std::string report_config = j_obj["Report"].dump();
+    init_report(*report_, this, nullptr, report_config);
     return std::make_shared<BacktestContext>(*this, events_, std::move(from_indexer_), std::move(to_indexer_), report_,
                                              time_interval_, std::move(backtest_config_));
   }

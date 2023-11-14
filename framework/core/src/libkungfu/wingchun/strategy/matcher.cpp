@@ -52,7 +52,10 @@ void Matcher::update_order_action_error(const OrderActionError &error) {
 
 void set_runner(Matcher &matcher, Runner *runner) { matcher.app_ = runner; }
 
-void set_bookkeeper(Matcher &matcher, book::Bookkeeper *bookkeeper) { matcher.bookkeeper_ = bookkeeper; }
+void init_matcher(Matcher &matcher, book::Bookkeeper *bookkeeper, const std::string &matcher_config) { 
+  matcher.bookkeeper_ = bookkeeper; 
+  matcher.config_ = matcher_config;
+}
 
 void add_order_id(Matcher &matcher, uint64_t order_id, uint32_t source, uint32_t dest) {
   matcher.order_ids_.insert_or_assign(order_id, std::make_pair(source, dest));

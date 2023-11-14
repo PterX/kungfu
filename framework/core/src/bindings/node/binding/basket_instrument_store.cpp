@@ -97,14 +97,17 @@ Napi::Value BasketInstrumentStore::SetBasketInstrument(const Napi::CallbackInfo 
 }
 
 Napi::Value BasketInstrumentStore::SetBasketInstruments(const Napi::CallbackInfo &info) {
-  std::vector<BasketInstrument> basket_instruments;
-  if (not info[0].IsObject()) {
+  if (not info[0].IsArray()) {
     throw Napi::Error::New(info.Env(), "Invalid argument");
   }
 
-  BasketInstrument basket_instrument = {};
-  get(info[0].ToObject(), basket_instrument);
-  basket_instruments.push_back(basket_instrument);
+  auto args = info[0].As<Napi::Array>();
+  std::vector<BasketInstrument> basket_instruments;
+  for (int i = 0; i < args.Length(); i++) {
+    BasketInstrument basket_instrument = {};
+    get(args.Get(i).ToObject(), basket_instrument);
+    basket_instruments.push_back(basket_instrument);
+  }
 
   try {
     profile_.replace_range(basket_instruments);
@@ -113,6 +116,7 @@ Napi::Value BasketInstrumentStore::SetBasketInstruments(const Napi::CallbackInfo
     yijinjing::util::print_stack_trace();
     return Napi::Boolean::New(info.Env(), false);
   }
+
   return Napi::Boolean::New(info.Env(), true);
 }
 

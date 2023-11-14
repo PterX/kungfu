@@ -476,12 +476,15 @@ declare namespace KungfuApi {
   export interface BasketStore {
     getAllBasket(): Basket[] | false;
     setAllBasket(baskets: Basket[]): boolean;
+    setBasket(basket: Basket): boolean;
+    setBaskets(baskets: Basket[]): boolean;
   }
 
   export interface BasketInstrumentStore {
     getAllBasketInstrument(): BasketInstrument[] | false;
     setAllBasketInstruments(basketInstruments: BasketInstrument[]): boolean;
     setBasketInstrument(basketInstrument: BasketInstrument): boolean;
+    setBasketInstruments(basketInstruments: BasketInstrument[]): boolean;
     removeAllBasketInstruments(): boolean;
     removeAllBasketInstrumentsByBasket(basketId: number): boolean;
   }

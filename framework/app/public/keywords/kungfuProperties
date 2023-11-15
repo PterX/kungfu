@@ -322,9 +322,6 @@ SSE
 SZE
 MarketType
 Snapshot
-Entrust
-Transaction
-Tree
 SubscribeDataType
 Stock
 Future
@@ -404,6 +401,8 @@ UnSSEReplace
 UnSSEMustReplace
 UnSSESZEReplace
 UnSSESZEMustReplace
+UnHKReplace
+UnHKMustReplace
 CashReplaceFlag
 LocalETF
 CrossCountryETF

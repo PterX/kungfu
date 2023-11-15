@@ -193,7 +193,7 @@ protected:
                bool enabled = is_timer_enabled(timer_id);
                timers_.erase(timer_id);
                if (not enabled) {
-                 SPDLOG_INFO("timer for timer_id {} is disabled", timer_id);
+                 SPDLOG_WARN("timer for timer_id {} is disabled", timer_id);
                }
                return enabled;
              });
@@ -216,7 +216,7 @@ protected:
       return events_ | rx::take_until(events_ | rx::filter([&, timer_id](const event_ptr &event) {
                                         bool enabled = is_timer_enabled(timer_id);
                                         if (not enabled) {
-                                          SPDLOG_INFO("interval timer for timer_id {} is disabled", timer_id);
+                                          SPDLOG_WARN("interval timer for timer_id {} is disabled", timer_id);
                                           timers_.erase(timer_id);
                                           timer_checkpoints_.erase(timer_id);
                                         }

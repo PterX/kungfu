@@ -3000,6 +3000,7 @@ export const useBasket = () => {
   function updateBasketData() {
     store.setBasketList();
 
+    basketList.value = store.basketList;
     return Promise.resolve();
   }
 

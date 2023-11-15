@@ -198,6 +198,9 @@ protected:
                timer_checkpoints_.erase(timer_id);
                bool enabled = is_timer_enabled(timer_id);
                timers_.erase(timer_id);
+               if (not enabled) {
+                 SPDLOG_WARN("timer for timer_id {} is disabled", timer_id);
+               }
                return enabled;
              });
     };
@@ -219,7 +222,13 @@ protected:
     timer_requests_.insert_or_assign(timer_id, r);
     return [&, duration_ns, timer_id](const rx::observable<event_ptr> &src) {
       return events_ | rx::take_until(events_ | rx::filter([&, timer_id](const event_ptr &event) {
-                                        return not is_timer_enabled(timer_id);
+                                        bool enabled = is_timer_enabled(timer_id);
+                                        if (not enabled) {
+                                          SPDLOG_WARN("interval timer for timer_id {} is disabled", timer_id);
+                                          timers_.erase(timer_id);
+                                          timer_checkpoints_.erase(timer_id);
+                                        }
+                                        return not enabled;
                                       })) |
              rx::filter([&, duration_ns, timer_id](const event_ptr &event) {
                if (event->msg_type() == longfist::types::Time::tag &&

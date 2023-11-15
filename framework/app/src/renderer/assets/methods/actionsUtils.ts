@@ -864,7 +864,7 @@ export const handleExportInstrumentWhitelists = async (): Promise<void> => {
 };
 
 export const showTradingDataDetail = <
-  T extends Record<string, string | number | bigint>,
+  T extends Record<string, KungfuApi.KfConfigValue>,
 >(
   item: T | (() => T),
   typename: string,
@@ -1488,11 +1488,7 @@ export const useQuote = (): {
     // 若 position 没有 last_price, 则取 quote 的 last_price
     const quote = getQuoteByPosition(pos);
     if (quote) {
-      return (
-        (quote.data_time > pos.update_time
-          ? quote.last_price
-          : Number(pos[lastPriceKey]) || quote.last_price) || 0
-      );
+      return quote.last_price || Number(pos[lastPriceKey]) || 0;
     }
     return Number(pos[lastPriceKey]) || 0;
   };
@@ -2447,6 +2443,51 @@ export const useCurrentPositionList = () => {
 
   return {
     currentPositionList,
+  };
+};
+
+export const useFormCurrentState = (
+  formState: Ref<Record<string, KungfuApi.KfConfigValue>>,
+  keys?: {
+    accountKey?: string;
+    instrumentKey?: string;
+  },
+) => {
+  const { currentGlobalKfLocation } = useCurrentGlobalKfLocation(
+    window.watcher,
+  );
+  const accountKey = keys?.accountKey || 'account_id';
+  const instrumentKey = keys?.instrumentKey || 'account_id';
+
+  const curInstrumentResolved = computed(() => {
+    const instrument = formState.value[instrumentKey];
+    return instrument
+      ? transformSearchInstrumentResultToInstrument(instrument)
+      : null;
+  });
+
+  const currentAccountLocation = computed(() => {
+    if (
+      currentGlobalKfLocation.value &&
+      currentGlobalKfLocation.value.category === 'td'
+    ) {
+      return currentGlobalKfLocation.value;
+    } else if (formState.value[accountKey]) {
+      const { source, id } = formState.value[accountKey].parseSourceAccountId();
+      return {
+        category: 'td',
+        group: source,
+        name: id,
+        mode: 'live',
+      } as KungfuApi.KfLocation;
+    } else {
+      return null;
+    }
+  });
+
+  return {
+    curInstrumentResolved,
+    currentAccountLocation,
   };
 };
 

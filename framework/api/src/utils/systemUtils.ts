@@ -23,6 +23,17 @@ export const buildLedgerLocation = (
   };
 };
 
+export const buildCachedLocation = (
+  mode: KfModeTypes = 'live',
+): KungfuApi.KfLocation => {
+  return {
+    category: 'system',
+    group: 'service',
+    name: 'cached',
+    mode,
+  };
+};
+
 export const buildArchiveLocation = (
   mode: KfModeTypes = 'live',
 ): KungfuApi.KfLocation => {
@@ -51,6 +62,10 @@ export const buildMasterProcessId = (mode: KfModeTypes = 'live') => {
 
 export const buildLedgerProcessId = (mode: KfModeTypes = 'live') => {
   return getProcessIdByKfLocation(buildLedgerLocation(mode));
+};
+
+export const buildCachedProcessId = (mode: KfModeTypes = 'live') => {
+  return getProcessIdByKfLocation(buildCachedLocation(mode));
 };
 
 export const buildArchiveProcessId = (mode: KfModeTypes = 'live') => {

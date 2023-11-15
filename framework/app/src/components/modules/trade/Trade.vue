@@ -218,7 +218,7 @@ function handleShowTradingDataDetail({
   event: MouseEvent;
   row: KungfuApi.TradingDataItem;
 }) {
-  showTradingDataDetail(row as KungfuApi.TradeResolved, '成交');
+  showTradingDataDetail(row, '成交');
 }
 </script>
 <template>

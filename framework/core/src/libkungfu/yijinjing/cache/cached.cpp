@@ -87,8 +87,10 @@ void cached::restore_states(const yijinjing::data::location_ptr &location,
         continue;
       }
 
+      auto is_current_location = other_location->uid == location->uid;
+
       for (auto dest : location->locator->list_location_dest_by_db(other_location)) {
-        if (dest == location->uid) {
+        if (dest == location->uid or (is_current_location && dest == location::PUBLIC)) {
           try {
             ensure_cached_storage(other_location, dest);
             app_states_shift_.at(other_location->uid).restore_to(writer, dest);

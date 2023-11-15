@@ -590,6 +590,8 @@ UnSSEReplace
 UnSSEMustReplace
 UnSSESZEReplace
 UnSSESZEMustReplace
+UnHKReplace
+UnHKMustReplace
 CashReplaceFlag
 LocalETF
 CrossCountryETF

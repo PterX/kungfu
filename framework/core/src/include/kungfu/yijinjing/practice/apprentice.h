@@ -218,6 +218,7 @@ protected:
                                         if (not enabled) {
                                           SPDLOG_INFO("interval timer for timer_id {} is disabled", timer_id);
                                           timers_.erase(timer_id);
+                                          timer_checkpoints_.erase(timer_id);
                                         }
                                         return not enabled;
                                       })) |

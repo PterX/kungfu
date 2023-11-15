@@ -439,6 +439,8 @@ inline std::string get_instrument_product(const char *instrument_id) {
   while (instrument_id[i] != 0) {
     if (instrument_id[i] < '0' || instrument_id[i] > '9') {
       product.push_back(std::toupper(instrument_id[i]));
+    } else {
+      break;
     }
     ++i;
   }

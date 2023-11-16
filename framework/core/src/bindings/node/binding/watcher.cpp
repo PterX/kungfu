@@ -16,6 +16,7 @@ using namespace kungfu::longfist;
 using namespace kungfu::longfist::enums;
 using namespace kungfu::longfist::types;
 using namespace kungfu::wingchun;
+using namespace kungfu::wingchun::map;
 using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::cache;
 using namespace kungfu::yijinjing::data;
@@ -830,7 +831,7 @@ void Watcher::BookListener::on_asset_margin_sync_reset(const AssetMargin &old_as
 }
 
 void Watcher::BookListener::on_position_sync_reset(const book::Book &old_book, const book::Book &new_book) {
-  auto update_position = [&](const book::PositionMap &position_map) {
+  auto update_position = [&](const auto &position_map) {
     for (auto &pair : position_map) {
       const auto &position = pair.second;
       state<Position> cache_state(watcher_.ledger_home_location_->uid, position.holder_uid, position.update_time,

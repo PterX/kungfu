@@ -10,12 +10,6 @@ namespace kungfu::wingchun::basketorder {
 
 FORWARD_DECLARE_CLASS_PTR(BasketOrderEngine)
 
-// key = basket_uid
-typedef std::unordered_map<uint32_t, longfist::types::Basket> BasketMap;
-
-// key = hash_basket_instrument(basket_uid, exchange_id, instrument_id)
-typedef std::unordered_map<uint32_t, longfist::types::BasketInstrument> BasketInstrumentMap;
-
 // key = order_id
 typedef std::unordered_map<uint64_t, BasketOrderState_ptr> BasketOrderStateMap;
 
@@ -45,14 +39,14 @@ public:
 
   kungfu::state<longfist::types::BasketOrder> &get_basket_order(uint64_t basket_order_id);
 
-  [[nodiscard]] const BasketMap &get_baskets() const { return baskets_; }
+  [[nodiscard]] const map::BasketMap &get_baskets() const { return baskets_; }
 
-  [[nodiscard]] const BasketInstrumentMap &get_basket_instruments() const { return basket_instruments_; }
+  [[nodiscard]] const map::BasketInstrumentMap &get_basket_instruments() const { return basket_instruments_; }
 
 private:
   yijinjing::practice::apprentice &app_;
-  BasketMap baskets_ = {};
-  BasketInstrumentMap basket_instruments_{};
+  map::BasketMap baskets_ = {};
+  map::BasketInstrumentMap basket_instruments_{};
   BasketOrderStateMap basket_order_states_ = {};
 
   BasketOrderState_ptr make_basket_order_state(int64_t update_time, const longfist::types::BasketOrder &basket_order);

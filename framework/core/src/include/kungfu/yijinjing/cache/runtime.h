@@ -50,6 +50,22 @@ private:
   longfist::StateMapType state_map_ = longfist::build_state_map(longfist::StateDataTypes);
 };
 
+class location_bank {
+public:
+  template <typename DataType> void operator<<(const state<DataType> &state) {
+    uint64_t source_to_dest = ((uint64_t)state.source << 32u) | state.dest;
+
+    auto pair = location_state_map_.try_emplace(source_to_dest, longfist::build_state_map(longfist::StateDataTypes));
+    auto &target_map = pair.first->second[boost::hana::type_c<DataType>];
+    target_map.insert_or_assign(state.data.uid(), state);
+  }
+
+  const std::unordered_map<uint64_t, longfist::StateMapType> &get_map() const { return location_state_map_; }
+
+private:
+  std::unordered_map<uint64_t, longfist::StateMapType> location_state_map_ = {};
+};
+
 template <typename DataTypes, typename DataTypesMap> class typed_bank {
 public:
   explicit typed_bank(const DataTypes &types) : types_(types), state_map_(longfist::build_state_map(types_)) {}

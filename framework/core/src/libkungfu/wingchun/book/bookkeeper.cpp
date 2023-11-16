@@ -10,6 +10,7 @@ using namespace kungfu::rx;
 using namespace kungfu::longfist::enums;
 using namespace kungfu::longfist::types;
 using namespace kungfu::wingchun::broker;
+using namespace kungfu::wingchun::map;
 using namespace kungfu::yijinjing::practice;
 using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
@@ -377,6 +378,7 @@ void Bookkeeper::try_sync_position_end(const PositionEnd &position_end) {
       book_listener->on_position_sync_reset(*old_book, *new_book);
     }
     old_book->mirror_position_from(*new_book);
+    old_book->update(app_.now(), account_method_type_);
   }
   books_replica_.erase(position_end.holder_uid); // delete replica every time
 }

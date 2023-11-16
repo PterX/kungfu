@@ -40,7 +40,6 @@ void Runner::on_trading_day(const event_ptr &event, int64_t daytime) {
 void Runner::react() {
   context_ = make_context();
   context_->set_arguments(get_arguments());
-  enable(*context_);
   context_->get_bookkeeper().add_book_listener(std::make_shared<BookListener>(*this));
 
   auto start_events = events_ | skip_until(events_ | filter([&](auto e) { return started_; }));
@@ -84,6 +83,8 @@ void Runner::inspect_channel(const event_ptr &event) {
 
 void Runner::on_start() {
   pre_start();
+  enable(*context_);
+
   // TODO add skip_until for broker_states_requested_ == true later
   events_ | is_own<Deregister>(context_->get_broker_client()) |
       $$(invoke(&Strategy::on_deregister, event->data<Deregister>(), get_location(event->source())));

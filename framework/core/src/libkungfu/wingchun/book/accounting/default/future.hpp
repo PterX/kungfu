@@ -13,6 +13,7 @@
 using namespace kungfu::longfist::enums;
 using namespace kungfu::longfist::types;
 using namespace kungfu::wingchun;
+using namespace kungfu::wingchun::map;
 using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
 
@@ -336,7 +337,8 @@ private:
         get_instrument_contract_multiplier_and_margin_ratio(book, trade.exchange_id, trade.instrument_id, position);
 
     auto contract_multiplier = cm_mr.contract_multiplier;
-    auto product_key = yijinjing::util::hash_str_32(get_instrument_product(trade.instrument_id));
+    auto product_key = yijinjing::util::hash_str_32(get_instrument_product(trade.instrument_id)) ^
+                       yijinjing::util::hash_str_32(trade.exchange_id);
     if (book->commissions.find(product_key) == book->commissions.end()) {
       SPDLOG_WARN("commission information missing for {}@{}", trade.instrument_id, trade.exchange_id);
       return 0;

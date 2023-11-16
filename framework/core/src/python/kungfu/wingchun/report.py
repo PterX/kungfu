@@ -4,6 +4,8 @@ import asyncio
 import importlib.util
 import inspect
 from functools import partial
+from abc import ABC, abstractmethod
+from datetime import datetime, timedelta
 import kungfu
 import os
 import sys
@@ -13,6 +15,7 @@ from kungfu.yijinjing import time as kft
 from kungfu.wingchun import constants
 from kungfu.wingchun import utils
 from kungfu.wingchun.constants import *
+
 
 lf = kungfu.__binding__.longfist
 wc = kungfu.__binding__.wingchun
@@ -99,3 +102,110 @@ class Report(wc.Report):
 
     def on_trade(self, trade):
         self._on_trade(self.ctx, trade)
+
+class PeriodResult(ABC):
+    def __init__(self, begin_time: int) -> None:
+        self._last_now = begin_time
+        
+    def __init_subclass__(cls, **kwargs):
+        def init_decorator(previous_init):
+            def new_init(self, *args, **kwargs):
+                previous_init(self, *args, **kwargs)
+                if type(self) == cls:
+                    self.__post_init__()
+            return new_init
+
+        cls.__init__ = init_decorator(cls.__init__)
+    
+    def __post_init__(self):
+        self.init_state()
+
+    def update(self, nano_now: int, book: wc.Book, **kargs):
+        n_period = self._n_period_cross(nano_now)
+        if n_period == 0:
+            return
+        for index in reversed(range(n_period)):
+            if index == 0:
+                self.append_state(**self.evaluate_state(nano_now, book, **kargs))
+            else:
+                self.append_default_state()
+    
+    def _n_period_cross(self, nano_now: int) -> int:
+        if not hasattr(self, "_last_now"):
+            self._last_now = nano_now
+        last_datetime = kft.to_datetime(self._last_now)
+        now_datetime = kft.to_datetime(nano_now)
+
+        n_period = 0
+        next_datetime = self.next_period(last_datetime)
+        while next_datetime < now_datetime:
+            n_period += 1
+            next_datetime = self.next_period(next_datetime)
+        self._last_now = nano_now
+        return n_period
+
+    def get_strategy_asset(self, bookkeeper: wc.Bookkeeper) -> lf.types.Asset:
+        books = bookkeeper.get_books()
+        for book in books.values():
+            asset = book.asset
+            if asset.ledger_category == LedgerCategory.Strategy:
+                return asset
+        return None
+
+    @staticmethod
+    @abstractmethod
+    def begin_period(date_time: datetime) -> datetime:
+        date_time = date_time.replace(hour=0, minute=0, second=0, microsecond=0)
+        return date_time
+
+    @staticmethod
+    @abstractmethod
+    def period_delta() -> timedelta:
+        return timedelta(days=1)
+
+    @staticmethod
+    @abstractmethod
+    def is_trading_time(date_time: datetime) -> bool:
+        return True
+
+    @classmethod
+    def next_period(cls, date_time: datetime) -> datetime:
+        date_time = cls.begin_period(date_time)
+        date_time += cls.period_delta()
+        while not cls.is_trading_time(date_time):
+            date_time += cls.period_delta()
+        return date_time
+    
+    @classmethod
+    def n_period_between(cls, begin: datetime, end: datetime) -> int:
+        n_period = 0
+        next_datetime = cls.next_period(begin)
+        while next_datetime < end:
+            n_period += 1
+            next_datetime = cls.next_period(next_datetime)
+        return n_period
+
+    @classmethod
+    def annual_periods(cls, begin: datetime) -> int:
+        year_begin = begin.replace(
+            month=1, day=1, hour=0, minute=0, second=0, microsecond=0
+        )
+        year_end = year_begin.replace(year=year_begin.year + 1)
+        return cls.n_period_between(year_begin, year_end)
+    
+    @abstractmethod
+    def init_state(self):
+        pass
+    
+    @abstractmethod
+    def append_default_state(self):
+        pass
+
+    @abstractmethod
+    def append_state(self, **kargs):
+        pass
+
+    @abstractmethod
+    def evaluate_state(self, nano_now: int, book: wc.Book, **kargs):
+        pass
+

@@ -79,7 +79,7 @@ try:
                 11: "SHFE",
                 12: "SHFE",
                 13: "SHFE",
-                14: "SHFE",
+                14: "INE",
                 15: "DCE",
                 16: "DCE",
                 17: "DCE",

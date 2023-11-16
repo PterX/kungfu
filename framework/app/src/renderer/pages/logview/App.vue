@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import {
   UpOutlined,
   DownOutlined,
@@ -45,10 +45,15 @@ const handleChangeBoardSize = ({
   boardSize.value.height = height;
 };
 
+const DEFAULT_UPDATE_INTERVAL = 150;
+const DEFAULT_LINES = 50000;
+const IGNORED_INTERAL_LINES = 10000;
+
 const {
   logList,
   scrollToBottomChecked,
   scrollerTableRef,
+  isLoading,
   scrollToBottom,
   startTailLog,
   clearLogState,
@@ -73,7 +78,27 @@ const {
 onMounted(() => {
   removeLoadingMask();
   resetLog();
+  scrollerTableRef.value?.$el.addEventListener('scroll', scrollHeader);
 });
+
+let timer;
+const scrollHeader = (e) => {
+  if (timer) clearTimeout(timer);
+  if (e?.detail === 'handle') return;
+
+  //数据量大时快速滚动会导致加载dom不准确，需要手动触发一次滚动事件进行渲染
+  timer = setTimeout(() => {
+    scrollerTableRef.value.$refs.scroller.$_scrollDirty = false;
+    scrollerTableRef.value.$refs.scroller.$_lastUpdateScrollPosition -= 35;
+    console.log(
+      'scrollerTableRef.value.$refs.$scrollDirty',
+      e,
+      scrollerTableRef.value.$refs.scroller.$_scrollDirty,
+    );
+    const newEvent = new CustomEvent('scroll', { detail: 'handle' });
+    scrollerTableRef.value?.$el.dispatchEvent(newEvent);
+  }, 500);
+};
 
 function handleRemoveLog(): Promise<void> {
   ensureFileSync(LOG_PATH);
@@ -96,12 +121,41 @@ function resetLog() {
   clearSearchState();
   startTailLog();
 }
+
+const updateIntervalRef = computed(() => {
+  return setUpdateInterval(logList.list.length);
+});
+
+const setUpdateInterval = (count: number) => {
+  if (scrollToBottomChecked.value) {
+    return 0;
+  } else if (count <= IGNORED_INTERAL_LINES) {
+    return 0;
+  } else {
+    console.log('updateIntervalRef', count, updateIntervalRef.value);
+    return (
+      (DEFAULT_UPDATE_INTERVAL * (count - IGNORED_INTERAL_LINES)) /
+      (DEFAULT_LINES - IGNORED_INTERAL_LINES)
+    );
+  }
+};
 </script>
 <template>
   <a-layout>
     <div class="kf-log-view__warp">
       <KfDashboard @boardSizeChange="handleChangeBoardSize">
         <template #header>
+          <KfDashboardItem>
+            <a-button
+              v-if="isLoading"
+              type="text"
+              size="small"
+              :loading="isLoading"
+              style="pointer-events: none"
+            >
+              {{ $t('logview.loading_data') }}
+            </a-button>
+          </KfDashboardItem>
           <KfDashboardItem>
             <a-checkbox
               v-model:checked="scrollToBottomChecked"
@@ -164,6 +218,7 @@ function resetLog() {
           ref="scrollerTableRef"
           class="kf-table"
           :items="logList.list"
+          :update-interval="updateIntervalRef"
           :min-item-size="36"
           :simple-array="true"
         >

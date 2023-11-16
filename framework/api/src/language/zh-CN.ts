@@ -932,6 +932,7 @@ export default {
 
   logview: {
     scroll_to_bottom: '滚动到底部',
+    loading_data: '正在加载中...',
   },
 
   master_interrupt: '主控进程 master 中断',

@@ -94,7 +94,7 @@ const scrollHeader = (e) => {
       DEFAULT_MIN_ITEM_SIZE;
     const newEvent = new CustomEvent('scroll', { detail: 'handle' });
     scrollerTableRef.value?.$el.dispatchEvent(newEvent);
-  }, 500);
+  }, DEFAULT_UPDATE_INTERVAL * 2);
 };
 
 function handleRemoveLog(): Promise<void> {

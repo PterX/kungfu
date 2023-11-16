@@ -46,8 +46,8 @@ const handleChangeBoardSize = ({
 };
 
 const DEFAULT_UPDATE_INTERVAL = 150;
-const DEFAULT_LINES = 50000;
-const IGNORED_INTERAL_LINES = 10000;
+const DEFAULT_LINES = 20000;
+const IGNORED_INTERVAL_LINES = 10000;
 const DEFAULT_MIN_ITEM_SIZE = 36;
 
 const {
@@ -58,7 +58,7 @@ const {
   scrollToBottom,
   startTailLog,
   clearLogState,
-} = useLogInit(LOG_PATH);
+} = useLogInit(LOG_PATH, DEFAULT_LINES);
 
 const {
   inputSearchRef,
@@ -119,22 +119,19 @@ function resetLog() {
   startTailLog();
 }
 
-const updateIntervalRef = computed(() => {
-  return setUpdateInterval(logList.list.length);
-});
-
-const setUpdateInterval = (count: number) => {
+const updateInterval = computed(() => {
   if (scrollToBottomChecked.value) {
     return 0;
-  } else if (count <= IGNORED_INTERAL_LINES) {
+  } else if (logList.list.length <= IGNORED_INTERVAL_LINES) {
     return 0;
   } else {
     return (
-      (DEFAULT_UPDATE_INTERVAL * (count - IGNORED_INTERAL_LINES)) /
-      (DEFAULT_LINES - IGNORED_INTERAL_LINES)
+      (DEFAULT_UPDATE_INTERVAL *
+        (logList.list.length - IGNORED_INTERVAL_LINES)) /
+      (DEFAULT_LINES - IGNORED_INTERVAL_LINES)
     );
   }
-};
+});
 </script>
 <template>
   <a-layout>
@@ -214,7 +211,7 @@ const setUpdateInterval = (count: number) => {
           ref="scrollerTableRef"
           class="kf-table"
           :items="logList.list"
-          :update-interval="updateIntervalRef"
+          :update-interval="updateInterval"
           :min-item-size="DEFAULT_MIN_ITEM_SIZE"
           :simple-array="true"
         >

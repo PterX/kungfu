@@ -59,7 +59,7 @@ export function dealLogMessage(line: string): string {
 
 export const useLogInit = (
   logPath: string,
-  nLines = 50000,
+  nLines = 10000,
 ): {
   logList: KungfuApi.KfFixedList<KungfuApi.KfLogData>;
   scrollToBottomChecked: Ref<boolean>;

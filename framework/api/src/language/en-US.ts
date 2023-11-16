@@ -950,6 +950,7 @@ export default {
 
   logview: {
     scroll_to_bottom: 'Scroll to bottom',
+    loading_data: 'Loading...',
   },
 
   replay: {

@@ -48,6 +48,7 @@ const handleChangeBoardSize = ({
 const DEFAULT_UPDATE_INTERVAL = 150;
 const DEFAULT_LINES = 50000;
 const IGNORED_INTERAL_LINES = 10000;
+const DEFAULT_MIN_ITEM_SIZE = 36;
 
 const {
   logList,
@@ -89,12 +90,8 @@ const scrollHeader = (e) => {
   //数据量大时快速滚动会导致加载dom不准确，需要手动触发一次滚动事件进行渲染
   timer = setTimeout(() => {
     scrollerTableRef.value.$refs.scroller.$_scrollDirty = false;
-    scrollerTableRef.value.$refs.scroller.$_lastUpdateScrollPosition -= 35;
-    console.log(
-      'scrollerTableRef.value.$refs.$scrollDirty',
-      e,
-      scrollerTableRef.value.$refs.scroller.$_scrollDirty,
-    );
+    scrollerTableRef.value.$refs.scroller.$_lastUpdateScrollPosition -=
+      DEFAULT_MIN_ITEM_SIZE;
     const newEvent = new CustomEvent('scroll', { detail: 'handle' });
     scrollerTableRef.value?.$el.dispatchEvent(newEvent);
   }, 500);
@@ -132,7 +129,6 @@ const setUpdateInterval = (count: number) => {
   } else if (count <= IGNORED_INTERAL_LINES) {
     return 0;
   } else {
-    console.log('updateIntervalRef', count, updateIntervalRef.value);
     return (
       (DEFAULT_UPDATE_INTERVAL * (count - IGNORED_INTERAL_LINES)) /
       (DEFAULT_LINES - IGNORED_INTERAL_LINES)
@@ -219,7 +215,7 @@ const setUpdateInterval = (count: number) => {
           class="kf-table"
           :items="logList.list"
           :update-interval="updateIntervalRef"
-          :min-item-size="36"
+          :min-item-size="DEFAULT_MIN_ITEM_SIZE"
           :simple-array="true"
         >
           <template

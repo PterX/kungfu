@@ -82,6 +82,8 @@ export enum CashReplaceFlagEnum {
   UnSSEMustReplace, // 非沪市必须现金替代
   UnSSESZEReplace, // 非沪深退补现金替代
   UnSSESZEMustReplace, // 非沪深必须现金替代
+  UnHKReplace, // 港市退补现金替代
+  UnHKMustReplace, // 港市必须现金替代
   Unknown,
 }
 

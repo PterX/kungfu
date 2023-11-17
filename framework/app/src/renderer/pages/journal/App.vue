@@ -34,8 +34,13 @@
               :custom-row="customRow"
               :default-expand-all-rows="true"
               :scroll="{ y: dashboardBodyHeight - 4 }"
-              :empty-text="$t('empty_text')"
             >
+            <template #emptyText>
+                <a-empty
+                  :image="simpleImage"
+                  :description="t('empty_text')"
+                ></a-empty>
+              </template>
               <template
                 #bodyCell="{
                   column,
@@ -165,7 +170,6 @@ import {
   watch,
   onUnmounted,
   ComputedRef,
-  watchEffect,
 } from 'vue';
 import { ensureFileSync, outputFile } from 'fs-extra';
 import { storeToRefs } from 'pinia';
@@ -189,6 +193,8 @@ import {
 import { getNanoDateString } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 
 import { dealCategory } from './utils';
+import { Empty } from 'ant-design-vue';
+
 import {
   UnorderedListOutlined,
   HistoryOutlined,
@@ -322,6 +328,7 @@ const { searchKeyword, tableData } =
   ]);
 
 const app = getCurrentInstance();
+const simpleImage = Empty.PRESENTED_IMAGE_SIMPLE;
 const currentMenuList = ref<('event' | 'visual' | 'replay')[]>(['event']);
 const menus = computed(() => [
   ...(isShowReplayAction.value

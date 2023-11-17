@@ -18,6 +18,13 @@ def find_md_slice_location(ctx, nano_time, group, name, instrument_id, exchange_
 	elif instrument_type == InstrumentType.Future:
 		if data_type not in (msg.Quote, ):
 			return None
+		# TODO  open_datetime, expire_datetime = get_open_expire(instrument_id, exchange_id)
+		#  if not (open_datetime < nano_time < expire_datetime) :
+		#      return None
+	# elif instrument_type == InstrumentType.Crypto
+	# elif instrument_type == InstrumentType.CryptoFuture
+	# elif instrument_type == InstrumentType.CryptoUFuture
+
 
 		
 	slice_end = get_md_slice_end_time(ctx, nano_time, group, name, instrument_id, exchange_id, data_type)

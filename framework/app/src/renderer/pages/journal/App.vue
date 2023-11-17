@@ -131,7 +131,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, computed, getCurrentInstance, watchEffect } from 'vue';
+import { onMounted, ref, computed, getCurrentInstance } from 'vue';
 import { storeToRefs } from 'pinia';
 import { getSessionColumns, SessionStatus } from './config';
 import {
@@ -174,10 +174,6 @@ const { searchKeyword, tableData } =
     'group',
     'name',
   ]);
-
-watchEffect(() => {
-  console.log('table', tableData.value);
-});
 
 const app = getCurrentInstance();
 const simpleImage = Empty.PRESENTED_IMAGE_SIMPLE;
@@ -299,7 +295,6 @@ const onExportJournalData = (
 };
 
 const dealRowClassName = (row) => {
-  console.log('row', row);
   return row.begin_time === currentSessionKey.value
     ? 'current-global-kfLocation'
     : '';

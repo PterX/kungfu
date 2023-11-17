@@ -35,7 +35,7 @@
               :default-expand-all-rows="true"
               :scroll="{ y: dashboardBodyHeight - 4 }"
             >
-            <template #emptyText>
+              <template #emptyText>
                 <a-empty
                   :image="simpleImage"
                   :description="t('empty_text')"

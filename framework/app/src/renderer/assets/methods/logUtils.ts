@@ -76,7 +76,6 @@ export const useLogInit = (
   const scrollerTableRef = ref();
   const scrollToBottomChecked = ref<boolean>(false);
   const isLoading = ref<boolean>(false);
-  let lastLineReceivedAt = Date.now();
   let loadingTimeoutId: NodeJS.Timeout | null = null;
 
   ensureFileSync(logPath);
@@ -87,18 +86,12 @@ export const useLogInit = (
     }
   };
 
-  const initLoading = () => {
-    if (loadingTimeoutId) return;
+  const updateLoading = () => {
     isLoading.value = true;
-    loadingTimeoutId = setInterval(checkLoadingStatus, 1000);
-
-    function checkLoadingStatus() {
-      if (Date.now() - lastLineReceivedAt > 1000) {
-        isLoading.value = false;
-        loadingTimeoutId && clearInterval(loadingTimeoutId);
-        loadingTimeoutId = null;
-      }
-    }
+    loadingTimeoutId && clearTimeout(loadingTimeoutId);
+    loadingTimeoutId = setTimeout(() => {
+      isLoading.value = false;
+    }, 1000);
   };
 
   const startTailLog = () => {
@@ -111,8 +104,7 @@ export const useLogInit = (
 
     let markId: number = +new Date();
     LogTail.on('line', (line: string) => {
-      lastLineReceivedAt = Date.now();
-      initLoading();
+      updateLoading();
       logList.insert({
         id: markId++,
         message: preDealLogMessage(line),

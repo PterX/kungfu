@@ -34,8 +34,13 @@
               :custom-row="customRow"
               :default-expand-all-rows="true"
               :scroll="{ y: dashboardBodyHeight - 4 }"
-              :empty-text="$t('empty_text')"
             >
+              <template #emptyText>
+                <a-empty
+                  :image="simpleImage"
+                  :description="t('empty_text')"
+                ></a-empty>
+              </template>
               <template
                 #bodyCell="{
                   column,
@@ -126,7 +131,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, computed, getCurrentInstance } from 'vue';
+import { onMounted, ref, computed, getCurrentInstance, watchEffect } from 'vue';
 import { storeToRefs } from 'pinia';
 import { getSessionColumns, SessionStatus } from './config';
 import {
@@ -136,6 +141,7 @@ import {
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 
 import { dealCategory } from './utils';
+import { Empty } from 'ant-design-vue';
 import { UnorderedListOutlined, ReloadOutlined } from '@ant-design/icons-vue';
 import TimeSlider from './components/TimeSlider.vue';
 import ExportJournal from './components/ExportJournal.vue';
@@ -169,7 +175,12 @@ const { searchKeyword, tableData } =
     'name',
   ]);
 
+watchEffect(() => {
+  console.log('table', tableData.value);
+});
+
 const app = getCurrentInstance();
+const simpleImage = Empty.PRESENTED_IMAGE_SIMPLE;
 const currentMenuList = ref<('event' | 'visual')[]>(['event']);
 const menus = [
   {
@@ -288,6 +299,7 @@ const onExportJournalData = (
 };
 
 const dealRowClassName = (row) => {
+  console.log('row', row);
   return row.begin_time === currentSessionKey.value
     ? 'current-global-kfLocation'
     : '';
@@ -354,6 +366,11 @@ function onEntryVisualization() {
           margin: auto;
           padding-top: 8px;
           box-sizing: border-box;
+
+          .ant-empty {
+            height: auto;
+            margin-top: 48px;
+          }
         }
 
         .kf-journal-visualization {

@@ -686,6 +686,11 @@ function onEntryVisualization(visible: boolean) {
           margin: auto;
           padding-top: 8px;
           box-sizing: border-box;
+
+          .ant-empty {
+            height: auto;
+            margin-top: 48px;
+          }
         }
 
         .kf-journal-visualization {

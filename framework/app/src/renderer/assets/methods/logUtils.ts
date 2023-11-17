@@ -76,6 +76,9 @@ export const useLogInit = (
   const scrollerTableRef = ref();
   const scrollToBottomChecked = ref<boolean>(false);
   const isLoading = ref<boolean>(false);
+  let lastLineReceivedAt = Date.now();
+  let loadingTimeoutId: NodeJS.Timeout | null = null;
+
   ensureFileSync(logPath);
 
   const scrollToBottom = () => {
@@ -84,9 +87,21 @@ export const useLogInit = (
     }
   };
 
-  const startTailLog = () => {
-    let lastLineReceivedAt = Date.now();
+  const initLoading = () => {
+    if (loadingTimeoutId) return;
     isLoading.value = true;
+    loadingTimeoutId = setInterval(checkLoadingStatus, 1000);
+
+    function checkLoadingStatus() {
+      if (Date.now() - lastLineReceivedAt > 1000) {
+        isLoading.value = false;
+        loadingTimeoutId && clearInterval(loadingTimeoutId);
+        loadingTimeoutId = null;
+      }
+    }
+  };
+
+  const startTailLog = () => {
     LogTail && LogTail.unwatch();
     LogTail = new Tail(logPath, {
       follow: true,
@@ -97,6 +112,7 @@ export const useLogInit = (
     let markId: number = +new Date();
     LogTail.on('line', (line: string) => {
       lastLineReceivedAt = Date.now();
+      initLoading();
       logList.insert({
         id: markId++,
         message: preDealLogMessage(line),
@@ -110,17 +126,7 @@ export const useLogInit = (
     });
 
     LogTail.watch();
-    const timeoutId = setInterval(checkLoadingStatus, 1000); // 每1秒检查一次
-
-    function checkLoadingStatus() {
-      if (Date.now() - lastLineReceivedAt > 1000) {
-        // 1秒没有接收到新行
-        isLoading.value = false;
-        clearInterval(timeoutId);
-      }
-    }
   };
-
   const clearLogState = () => {
     logList.list = [];
     LogTail?.unwatch();

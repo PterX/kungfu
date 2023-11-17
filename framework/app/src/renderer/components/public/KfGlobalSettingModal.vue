@@ -327,6 +327,10 @@ function handleAddCommission() {
 
           .ant-input-group-wrapper.ant-input-search {
             margin-right: 30px;
+            .ant-btn-lg {
+              height: 32px !important;
+              width: 32px !important;
+            }
           }
         }
 

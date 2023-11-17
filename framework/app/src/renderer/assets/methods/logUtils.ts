@@ -91,7 +91,6 @@ export const useLogInit = (
   const isLoading = ref<boolean>(false);
   let loadingTimeoutId: NodeJS.Timeout | null = null;
 
-
   const scrollToBottom = () => {
     if (scrollToBottomChecked.value) {
       scrollerTableRef.value.scrollToBottom();

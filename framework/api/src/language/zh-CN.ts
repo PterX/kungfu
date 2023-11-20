@@ -911,7 +911,7 @@ export default {
 
   validate: {
     no_special_characters: '不能含有特殊字符和中文',
-    single_characters: '必须包含数字和字母',
+    single_characters: '至少包含一个字母或数字',
     no_underline: '不能含有下划线',
     no_zero_number: '请输入非零数字',
     no_negative_number: '请输入非负数',
@@ -943,6 +943,7 @@ export default {
 
   logview: {
     scroll_to_bottom: '滚动到底部',
+    loading_data: '正在加载中...',
   },
 
   replay: {

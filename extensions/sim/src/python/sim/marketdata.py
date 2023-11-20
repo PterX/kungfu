@@ -87,7 +87,6 @@ class MarketDataSim(wc.MarketData):
             self.get_writer(0).write(0, quote)
 
     def subscribe(self, instruments):
-        return True
         self.logger.debug(f"subscribe {instruments}")
         for inst in instruments:
             instrument_key = wc.utils.hash_instrument(

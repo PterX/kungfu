@@ -68,7 +68,6 @@ void journal::seek_to_time(int64_t nanotime) {
 }
 
 void journal::load_page(uint32_t page_id) {
-  auto t1 = yijinjing::time::now_in_nano();
   bool use_preload = false;
   auto fn_load = [&]() {
     if (not page_ or page_->get_page_id() != page_id) {
@@ -100,8 +99,6 @@ void journal::load_page(uint32_t page_id) {
   } else {
     fn_load();
   }
-  auto t2 = yijinjing::time::now_in_nano();
-  SPDLOG_ERROR("load_page used time: {} ns, use_preload: {}", (t2 - t1), use_preload);
 }
 
 void journal::load_next_page() { load_page(page_->get_page_id() + 1); }
@@ -115,10 +112,7 @@ void journal::preload_next_page() {
   ) {
     return;
   }
-  auto t1 = yijinjing::time::now_in_nano();
   preload_page_ = page::load(location_, dest_id_, page_size_, page_->get_page_id() + 1, is_writing_, lazy_, true);
-  auto t2 = yijinjing::time::now_in_nano();
-  SPDLOG_ERROR("preload_page_ used time: {} ns", (t2 - t1));
 }
 
 // saving time for other process switch page, except the master

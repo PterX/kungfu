@@ -41,6 +41,7 @@ uintptr_t load_mmap_buffer(const std::string &path, size_t size, bool is_writing
 
   if (fileMappingObject == NULL) {
     int nRet = GetLastError();
+    SPDLOG_ERROR("{} CreateFileMapping Error = {}, {}\n", is_master ? "writer" : "reader", nRet, path);
     throw journal_error("unable to mmap for page " + path);
   }
 

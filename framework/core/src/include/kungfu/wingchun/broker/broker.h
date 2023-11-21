@@ -91,8 +91,10 @@ public:
   }
 
   template <typename DataType>
-  void try_write_to(const DataType &data, uint32_t dest_id = yijinjing::data::location::PUBLIC) {
-    vendor_.try_write_to(now(), data, dest_id);
+  void try_write_to(
+      const DataType &data, uint32_t dest_id = yijinjing::data::location::PUBLIC,
+      const std::function<void()> &callback = []() {}) {
+    vendor_.try_write_to(now(), data, dest_id, callback);
   }
 
   template <typename DataType>

@@ -721,6 +721,7 @@ inline void algo_order_from_input(const longfist::types::AlgoOrderInput &algo_or
   algo_order.order_id = algo_order_input.order_id;
   algo_order.begin_time = algo_order_input.begin_time;
   algo_order.end_time = algo_order_input.end_time;
+  algo_order.insert_time = algo_order_input.insert_time;
 
   strcpy(algo_order.instrument_id, algo_order_input.instrument_id);
   strcpy(algo_order.exchange_id, algo_order_input.exchange_id);

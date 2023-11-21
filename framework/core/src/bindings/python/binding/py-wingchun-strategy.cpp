@@ -202,7 +202,8 @@ void bind_strategy(pybind11::module &m) {
            py::arg("type"), py::arg("side"), py::arg("offset"), py::arg("algo_type_id"), py::arg("algo_id"),
            py::arg("args"), py::arg("is_local") = false, py::arg("baskrt_uid") = 0,
            py::arg("price_level") = PriceLevel::Last, py::arg("price_offset") = 0)
-      .def("update_algo_order_volume", &strategy::Context::update_algo_order_volume, py::arg("origin_order_id"), py::arg("source"), py::arg("account"),py::arg("volume"))
+      .def("update_algo_order_volume", &strategy::Context::update_algo_order_volume, py::arg("origin_order_id"),
+           py::arg("source"), py::arg("account"), py::arg("volume"))
       .def("cancel_order", &strategy::Context::cancel_order, py::arg("order_id"),
            py::arg("action_flag") = OrderActionFlag::Cancel)
       .def("cancel_order_trigger", &strategy::Context::cancel_order_trigger)

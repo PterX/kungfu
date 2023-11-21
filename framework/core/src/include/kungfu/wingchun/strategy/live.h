@@ -253,7 +253,8 @@ public:
    * @param basket_uid uint32_t basket_uid
    * @return order_id
    */
-  uint64_t update_algo_order_volume(uint64_t origin_order_id,const std::string &source, const std::string &account,int64_t volume) override;
+  uint64_t update_algo_order_volume(uint64_t origin_order_id, const std::string &source, const std::string &account,
+                                    int64_t volume) override;
 
   /**
    * Cancel order.

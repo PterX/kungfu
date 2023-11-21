@@ -347,7 +347,8 @@ uint64_t BacktestContext::insert_algo_order(const std::string &instrument_id, co
   return {};
 }
 
-uint64_t BacktestContext::update_algo_order_volume(uint64_t origin_order_id,const std::string &source, const std::string &account,int64_t volume) {
+uint64_t BacktestContext::update_algo_order_volume(uint64_t origin_order_id, const std::string &source,
+                                                   const std::string &account, int64_t volume) {
   return {};
 }
 

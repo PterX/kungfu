@@ -414,9 +414,9 @@ KF_DEFINE_DATA_TYPE(                                           //
 
     (uint32_t, basket_uid), // basket订单的id
 
-    (enums::Side, side),            // 买卖方向
-    (enums::Offset, offset),        // 开平方向
-    (enums::PriceType, price_type), // 价格类型
+    (enums::Side, side),              // 买卖方向
+    (enums::Offset, offset),          // 开平方向
+    (enums::PriceType, price_type),   // 价格类型
     (enums::PriceLevel, price_level), // 价格级别
     (double, price_offset),           // 价格偏移量
 
@@ -447,9 +447,9 @@ KF_DEFINE_PACK_TYPE(                                           //
 
     (uint32_t, basket_uid), // basket订单的id
 
-    (enums::Side, side),            // 买卖方向
-    (enums::Offset, offset),        // 开平方向
-    (enums::PriceType, price_type), // 价格类型
+    (enums::Side, side),              // 买卖方向
+    (enums::Offset, offset),          // 开平方向
+    (enums::PriceType, price_type),   // 价格类型
     (enums::PriceLevel, price_level), // 价格级别
     (double, price_offset),           // 价格偏移量
 

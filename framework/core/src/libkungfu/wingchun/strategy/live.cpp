@@ -434,7 +434,8 @@ uint64_t LiveContext::insert_algo_order(const std::string &instrument_id, const 
   return input.order_id;
 }
 
-uint64_t LiveContext::update_algo_order_volume(uint64_t origin_order_id,const std::string &source, const std::string &account,int64_t volume) {
+uint64_t LiveContext::update_algo_order_volume(uint64_t origin_order_id, const std::string &source,
+                                               const std::string &account, int64_t volume) {
   if (not is_started()) {
     SPDLOG_ERROR("context not ready");
     return 0;

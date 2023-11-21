@@ -275,7 +275,8 @@ public:
    * @param is_local boolean marking local algo order
    * @param basket_uid basket uid
    */
-  virtual uint64_t update_algo_order_volume(uint64_t origin_order_id,const std::string &source, const std::string &account,int64_t volume) = 0;
+  virtual uint64_t update_algo_order_volume(uint64_t origin_order_id, const std::string &source,
+                                            const std::string &account, int64_t volume) = 0;
 
   /**
    * Cancel order.

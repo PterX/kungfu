@@ -414,7 +414,13 @@ KF_DEFINE_DATA_TYPE(                                           //
     (enums::Side, side),            // 买卖方向
     (enums::Offset, offset),        // 开平方向
     (enums::PriceType, price_type), // 价格类型
-    (int64_t, volume),              // 目标量
+    (enums::PriceLevel, price_level), // 价格级别
+    (double, price_offset),           // 价格偏移量
+
+    (int64_t, volume), // 目标量
+
+    (uint32_t, source_id), // 下单方
+    (uint32_t, dest_id),   // 目标账户
 
     (kungfu::array<char, ALGO_TYPE_ID_LEN>, algo_type_id), // 算法类型
     (kungfu::array<char, ALGO_ID_LEN>, algo_id),           // 算法id
@@ -441,9 +447,14 @@ KF_DEFINE_PACK_TYPE(                                           //
     (enums::Side, side),            // 买卖方向
     (enums::Offset, offset),        // 开平方向
     (enums::PriceType, price_type), // 价格类型
+    (enums::PriceLevel, price_level), // 价格级别
+    (double, price_offset),           // 价格偏移量
 
     (int64_t, volume),      // 目标量
     (int64_t, volume_left), // 剩余数量
+
+    (uint32_t, source_id), // 下单方
+    (uint32_t, dest_id),   // 目标账户
 
     (kungfu::array<char, ALGO_TYPE_ID_LEN>, algo_type_id), // 算法类型
     (kungfu::array<char, ALGO_ID_LEN>, algo_id),           // 算法id

@@ -157,6 +157,9 @@ external_trigger_id
 order_trigger_action_id
 origin_order_id
 basket_uid
+price_level
+price_offset
+dest_id
 algo_type_id
 algo_id
 args
@@ -229,7 +232,6 @@ min_volume
 rate
 replace_flag
 cash_premium_ratio
-dest_id
 base_time
 duration
 repeat
@@ -320,6 +322,9 @@ SSE
 SZE
 MarketType
 Snapshot
+Entrust
+Transaction
+Tree
 SubscribeDataType
 Stock
 Future

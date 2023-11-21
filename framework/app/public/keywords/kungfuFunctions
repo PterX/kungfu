@@ -100,7 +100,7 @@ add_account
 insert_order_input
 insert_block_message
 insert_array_orders
-update_algo_order
+update_algo_order_volume
 hold_book
 hold_positions
 is_book_held

@@ -727,9 +727,16 @@ inline void algo_order_from_input(const longfist::types::AlgoOrderInput &algo_or
   algo_order.side = algo_order_input.side;
   algo_order.offset = algo_order_input.offset;
   algo_order.price_type = algo_order_input.price_type;
+  algo_order.price_level = algo_order_input.price_level;
+  algo_order.price_offset = algo_order_input.price_offset;
+
   algo_order.volume = algo_order_input.volume;
   algo_order.volume_left = algo_order_input.volume;
+
   algo_order.basket_uid = algo_order_input.basket_uid;
+
+  algo_order.source_id = algo_order_input.source_id;
+  algo_order.dest_id = algo_order_input.dest_id;
 
   strcpy(algo_order.algo_type_id, algo_order_input.algo_type_id);
   strcpy(algo_order.algo_id, algo_order_input.algo_id);

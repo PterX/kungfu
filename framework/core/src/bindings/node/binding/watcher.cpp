@@ -306,7 +306,18 @@ Napi::Value Watcher::IssueOrder(const Napi::CallbackInfo &info) {
 }
 
 Napi::Value Watcher::IssueAlgoOrder(const Napi::CallbackInfo &info) {
+
   SPDLOG_INFO("issue algo order manually");
+  auto account_location = IODevice::ExtractLocation(info, 1, get_locator());
+  auto algo_order_info = info[0].ToObject();
+  algo_order_info.Set("dest_id", Napi::Number::New(info.Env(), account_location->uid));
+  if (info.Length() == 2) {
+    algo_order_info.Set("source_id", Napi::Number::New(info.Env(), get_home_uid()));
+  } else {
+    auto strategy_location = IODevice::ExtractLocation(info, 2, get_locator());
+    algo_order_info.Set("source_id", Napi::Number::New(info.Env(), strategy_location->uid));
+  }
+
   return InteractWithTD<AlgoOrderInput>(info, info[0].ToObject(), &AlgoOrderInput::order_id);
 }
 

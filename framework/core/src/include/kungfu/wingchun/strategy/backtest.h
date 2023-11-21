@@ -242,7 +242,9 @@ public:
                                      int64_t end_time, int64_t volume, longfist::enums::PriceType type,
                                      longfist::enums::Side side, longfist::enums::Offset offset,
                                      const std::string &algo_type_id, const std::string &algo_id,
-                                     const std::string &args, bool is_local = false, uint32_t basket_uid = 0) override;
+                                     const std::string &args, bool is_local = false, uint32_t basket_uid = 0,
+                                     longfist::enums::PriceLevel price_level = longfist::enums::PriceLevel::Last,
+                                     double price_offset = 0) override;
 
   /**
    * @param origin_order_id origin order id to update
@@ -262,13 +264,7 @@ public:
    * @param is_local boolean marking local algo order
    * @param basket_uid basket uid
    */
-  virtual uint64_t update_algo_order(uint64_t origin_order_id, const std::string &instrument_id,
-                                     const std::string &exchange_id, const std::string &source,
-                                     const std::string &account, int64_t begin_time, int64_t end_time, int64_t volume,
-                                     longfist::enums::PriceType type, longfist::enums::Side side,
-                                     longfist::enums::Offset offset, const std::string &algo_type_id,
-                                     const std::string &algo_id, const std::string &args, bool is_local = false,
-                                     uint32_t basket_uid = 0) override;
+  virtual uint64_t update_algo_order_volume(uint64_t origin_order_id,const std::string &source, const std::string &account,int64_t volume) override;
 
   /**
    * Cancel order.

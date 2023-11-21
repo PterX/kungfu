@@ -19,7 +19,6 @@ using namespace kungfu::wingchun::map;
 using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::cache;
-using namespace kungfu::wingchun::map;
 
 #define DEFAULT_AVG_VALID_VALUE 10000.0
 

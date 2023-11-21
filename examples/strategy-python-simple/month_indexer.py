@@ -1,6 +1,8 @@
 import kungfu
 from kungfu.yijinjing import time as kft
 from kungfu.yijinjing import journal as kfj
+from kungfu.wingchun.constants import *
+from kungfu.wingchun import msg
 
 from typing import Text
 
@@ -9,6 +11,15 @@ wc = kungfu.__binding__.wingchun
 yjj = kungfu.__binding__.yijinjing
 
 def find_md_slice_location(ctx, nano_time, group, name, instrument_id, exchange_id, data_type):
+	instrument_type = wc.utils.get_instrument_type(exchange_id, instrument_id)
+	if instrument_type == InstrumentType.Stock:
+		if data_type not in (msg.Quote, msg.Entrust, msg.Transactioni):
+			return None
+	elif instrument_type == InstrumentType.Future:
+		if data_type not in (msg.Quote, ):
+			return None
+
+		
 	slice_end = get_md_slice_end_time(ctx, nano_time, group, name, instrument_id, exchange_id, data_type)
 	dir_name = "{}_{}@{}".format(data_type, instrument_id, exchange_id)
 	slice_locator = yjj.locator(lf.enums.mode.DATA, ["month_md", "until" + kft.strftime(slice_end, kft.SESSION_DATETIME_FORMAT), dir_name])

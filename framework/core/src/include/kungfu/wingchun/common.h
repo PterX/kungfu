@@ -743,7 +743,7 @@ inline void algo_order_from_input(const longfist::types::AlgoOrderInput &algo_or
 
 namespace kungfu::wingchun::map {
 
-// key = hash_str_32(product_id)
+// key = hash_product(exchange_id, product_id)
 typedef std::unordered_map<uint32_t, longfist::types::Commission> CommissionMap;
 
 // key = hash_instrument(exchange_id, instrument_id)

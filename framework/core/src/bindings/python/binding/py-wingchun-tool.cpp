@@ -154,6 +154,7 @@ void bind_tool(pybind11::module &m) {
   py::class_<Report, PyReport, Report_ptr>(m, "Report")
       .def(py::init<>())
       .def_property_readonly("bookkeeper", &Report::get_bookkeeper)
+      .def_property_readonly("config", &Report::get_config)
       .def("now", &Report::now)
       .def("init", &Report::init)
       .def("sumerize", &Report::sumerize)

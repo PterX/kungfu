@@ -41,12 +41,15 @@ Context_ptr Runner::make_context() {
       report_ = std::make_shared<tool::Report>();
       SPDLOG_WARN("Runner in backtest mode not specified Report.");
     }
+    nlohmann::json j_obj = nlohmann::json::parse(backtest_config_);
+    std::string matcher_config = j_obj["Matcher"].dump();
+    std::string report_config = j_obj["Report"].dump();
     set_runner(*matcher_, this);
     auto backtest_context =
         std::make_shared<BacktestContext>(*this, events_, matcher_, std::move(from_indexer_), std::move(to_indexer_),
                                           report_, time_interval_, std::move(backtest_config_));
-    set_bookkeeper(*matcher_, std::addressof(backtest_context->get_bookkeeper()));
-    set_runner(*report_, this, std::addressof(backtest_context->get_bookkeeper()));
+    init_matcher(*matcher_, std::addressof(backtest_context->get_bookkeeper()), matcher_config);
+    init_report(*report_, this, std::addressof(backtest_context->get_bookkeeper()), report_config);
     return backtest_context;
   }
 

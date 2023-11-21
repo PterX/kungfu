@@ -103,20 +103,22 @@ class Report(wc.Report):
     def on_trade(self, trade):
         self._on_trade(self.ctx, trade)
 
+
 class PeriodResult(ABC):
     def __init__(self, begin_time: int) -> None:
         self._last_now = begin_time
-        
+
     def __init_subclass__(cls, **kwargs):
         def init_decorator(previous_init):
             def new_init(self, *args, **kwargs):
                 previous_init(self, *args, **kwargs)
                 if type(self) == cls:
                     self.__post_init__()
+
             return new_init
 
         cls.__init__ = init_decorator(cls.__init__)
-    
+
     def __post_init__(self):
         self.init_state()
 
@@ -129,7 +131,7 @@ class PeriodResult(ABC):
                 self.append_state(**self.evaluate_state(nano_now, book, **kargs))
             else:
                 self.append_default_state()
-    
+
     def _n_period_cross(self, nano_now: int) -> int:
         if not hasattr(self, "_last_now"):
             self._last_now = nano_now
@@ -175,7 +177,7 @@ class PeriodResult(ABC):
         while not cls.is_trading_time(date_time):
             date_time += cls.period_delta()
         return date_time
-    
+
     @classmethod
     def n_period_between(cls, begin: datetime, end: datetime) -> int:
         n_period = 0
@@ -192,11 +194,11 @@ class PeriodResult(ABC):
         )
         year_end = year_begin.replace(year=year_begin.year + 1)
         return cls.n_period_between(year_begin, year_end)
-    
+
     @abstractmethod
     def init_state(self):
         pass
-    
+
     @abstractmethod
     def append_default_state(self):
         pass
@@ -208,4 +210,3 @@ class PeriodResult(ABC):
     @abstractmethod
     def evaluate_state(self, nano_now: int, book: wc.Book, **kargs):
         pass
-

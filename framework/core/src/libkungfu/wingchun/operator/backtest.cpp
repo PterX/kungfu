@@ -147,6 +147,8 @@ void BacktestContext::subscribe(const std::string &source, const std::vector<std
                                                                  exchange_id, data_type);
         slice_end_time = from_indexer_->get_md_slice_end_time(slice_begin_time, source, source, instrument_id,
                                                               exchange_id, data_type);
+        if (not md_location) 
+          continue;
         if (md_location->locator->list_page_id(md_location, location::PUBLIC).empty()) {
           SPDLOG_WARN("md public journal in locator={}, location={} not exists", md_location->locator->get_root(),
                       md_location->uname);
@@ -184,6 +186,8 @@ void BacktestContext::subscribe_operator(const std::string &group, const std::st
   do {
     auto op_location = from_indexer_->find_operator_slice_location(slice_begin_time, group, name);
     slice_end_time = from_indexer_->get_operator_slice_end_time(slice_begin_time, group, name);
+    if (not op_location) 
+          continue;
     if (op_location->locator->list_page_id(op_location, location::PUBLIC).empty()) {
       SPDLOG_WARN("operator public journal in locator={}, location={} not exists", op_location->locator->get_root(),
                   op_location->uname);

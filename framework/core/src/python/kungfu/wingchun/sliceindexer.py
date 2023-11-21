@@ -14,6 +14,7 @@ from kungfu.yijinjing import time as kft
 from kungfu.wingchun import constants
 from kungfu.wingchun import utils
 from kungfu.wingchun.constants import *
+from kungfu.wingchun import msg
 
 lf = kungfu.__binding__.longfist
 wc = kungfu.__binding__.wingchun

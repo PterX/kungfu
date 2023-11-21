@@ -913,7 +913,7 @@ export default {
   validate: {
     no_special_characters:
       'Cannot contain special characters or Chinese characters, and cannot start or end with - characters',
-    single_characters: 'Must contain numbers and letters',
+    single_characters: 'Contain at least one letter or number',
     no_underscore: 'Cannot contain underscores',
     no_zero_number: 'Cannot contain zero',
     no_negative_number: 'Cannot contain negative',
@@ -950,6 +950,7 @@ export default {
 
   logview: {
     scroll_to_bottom: 'Scroll to bottom',
+    loading_data: 'Loading...',
   },
 
   replay: {

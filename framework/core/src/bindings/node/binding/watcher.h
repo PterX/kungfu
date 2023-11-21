@@ -117,6 +117,10 @@ public:
 
   void RequestDeregister();
 
+  bool has_writer(uint32_t dest_id) const override;
+
+  yijinjing::journal::writer_ptr get_writer(uint32_t dest_id) const override;
+
 protected:
   const bool bypass_quote_;
   const bool bypass_trading_data_;

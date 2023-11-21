@@ -34,8 +34,13 @@
               :custom-row="customRow"
               :default-expand-all-rows="true"
               :scroll="{ y: dashboardBodyHeight - 4 }"
-              :empty-text="$t('empty_text')"
             >
+              <template #emptyText>
+                <a-empty
+                  :image="simpleImage"
+                  :description="t('empty_text')"
+                ></a-empty>
+              </template>
               <template
                 #bodyCell="{
                   column,
@@ -90,7 +95,7 @@
             class="kf-journal-time-slider"
           ></TimeSlider>
           <JournalActions
-            :is-show-replay-action="isShowReplayAction"
+            :is-show-replay-action="isShowReplayAction || false"
             :is-show-visual-action="isShowVisualAction"
             @export-journal-data="onJournalActionsData"
             @start-replay="dealLocation"
@@ -111,10 +116,23 @@
           </a-menu>
           <div class="kf-journal-menu-content">
             <EventsDashBoard
-              v-if="currentSession"
-              v-show="isCurrentMenuItem('event')"
+              v-show="currentSession && isCurrentMenuItem('event')"
               ref="eventDashBoard"
             />
+            <template v-if="replayPramas.logPath">
+              <Replay
+                v-show="
+                  currentSession &&
+                  isShowReplayAction &&
+                  replayPramas.logPath &&
+                  replayPramas.processId &&
+                  isCurrentMenuItem('replay')
+                "
+                ref="replayRef"
+                :params="replayPramas"
+                @stop-replay-loading="stopLoadingInterval"
+              />
+            </template>
           </div>
         </div>
       </div>
@@ -133,7 +151,13 @@
     :now="getNanoDateString(BigInt(new Date().getTime()) * 1000000n)"
     :log-level="replayConfig.log_level"
     @close="setReplayModalVisible = false"
-    @confirm="(event) => handleReplayModal(event, true)"
+    @confirm="
+      async (event) => (
+        await handleReplayModal(event, true),
+        startLoadingInterval(),
+        updateLogLevel()
+      )
+    "
   ></KfReplaySettingModal>
 </template>
 
@@ -145,6 +169,7 @@ import {
   getCurrentInstance,
   watch,
   onUnmounted,
+  ComputedRef,
 } from 'vue';
 import { ensureFileSync, outputFile } from 'fs-extra';
 import { storeToRefs } from 'pinia';
@@ -168,6 +193,8 @@ import {
 import { getNanoDateString } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 
 import { dealCategory } from './utils';
+import { Empty } from 'ant-design-vue';
+
 import {
   UnorderedListOutlined,
   HistoryOutlined,
@@ -212,6 +239,9 @@ const {
   journalReplayflag,
   replayProcessParams,
   handleReplayModal,
+  startLoadingInterval,
+  stopLoadingInterval,
+  replayPreLoading,
 } = useReplay();
 
 const { setSessions, setCurrentSession } = useJournalStore();
@@ -243,7 +273,9 @@ const replayPramas = computed(() => {
   const mode = replayConfigValue.enable_matcher ? 'backtest' : 'replay';
   const { category, group, name, begin_time, end_time } = currentSessionValue;
   const dateStr = getYearMonthDay();
-  const logPath = replayConfigValue.enable_matcher
+  const logPath = setReplayModalVisible.value
+    ? replayPramas.value.logPath
+    : replayConfigValue.enable_matcher
     ? buildProcessBacktestPath(
         { category, group, name, mode },
         `${name}_${dateStr}`,
@@ -261,6 +293,7 @@ const replayPramas = computed(() => {
       : getNanoDateString(BigInt(new Date().getTime()) * 1000000n));
   const processId = getProcessIdByKfLocation({ category, group, name, mode });
   const enableMatcher = replayConfigValue.enable_matcher || false;
+
   return {
     category,
     group,
@@ -272,9 +305,10 @@ const replayPramas = computed(() => {
     filePath: replayConfigValue.file_path || '',
     processId,
     enableMatcher: enableMatcher.toString(),
+    replayPreLoading: replayPreLoading.value,
   };
 });
-const isShowReplayAction = computed(() => {
+const isShowReplayAction: ComputedRef<boolean> = computed(() => {
   return (
     currentSession.value &&
     (testCase.value.replayEnabled[currentSession.value.category] ||
@@ -294,6 +328,7 @@ const { searchKeyword, tableData } =
   ]);
 
 const app = getCurrentInstance();
+const simpleImage = Empty.PRESENTED_IMAGE_SIMPLE;
 const currentMenuList = ref<('event' | 'visual' | 'replay')[]>(['event']);
 const menus = computed(() => [
   ...(isShowReplayAction.value
@@ -336,12 +371,12 @@ const boardStyle = localStorage.getItem('boardStyle')
 
 const journalHeadStyle = ref<KungfuApi.BoardStyle>(
   boardStyle['journalHead'] || {
-    flex: '1 1 20%',
+    height: '20%',
   },
 );
 const journalContentStyle = ref<KungfuApi.BoardStyle>(
   boardStyle['journalContent'] || {
-    flex: '1 1 80%',
+    height: '80%',
   },
 );
 
@@ -360,10 +395,11 @@ const exportFileName = computed(() => {
 
 const customRow = (record: KungfuApi.SessionResolved) => {
   return {
-    onClick: () => {
+    onClick: async () => {
       setCurrentSession(record);
 
       if (replayPramas.value.processId) {
+        stopLoadingInterval();
         const config = localStorage.getItem('replaySetting');
         const replaySetting = config ? JSON.parse(config) : {};
         replayConfig.value = {
@@ -377,9 +413,8 @@ const customRow = (record: KungfuApi.SessionResolved) => {
           file_path: '',
           enable_matcher: false,
         };
-        delayMilliSeconds(0).then(() => {
-          replayRef.value && replayRef.value.updateLogLevel();
-        });
+
+        updateLogLevel();
       }
     },
   };
@@ -462,22 +497,22 @@ watch(
     if (val) {
       if (currentSession.value) {
         const dateStr = getYearMonthDay();
-        const logPath = buildProcessReplayPath(
-          {
-            category: currentSession.value.category,
-            group: currentSession.value.group,
-            name: currentSession.value.name,
-            mode: replayConfig.value.enable_matcher ? 'backtest' : 'replay',
-          },
-          `${currentSession.value.name}_${dateStr}`,
-        );
+        const location = {
+          category: currentSession.value.category,
+          group: currentSession.value.group,
+          name: currentSession.value.name,
+          mode: replayConfig.value.enable_matcher ? 'backtest' : 'replay',
+        };
+        const logPath = replayConfig.value.enable_matcher
+          ? buildProcessBacktestPath(location, `${location.name}_${dateStr}`)
+          : buildProcessReplayPath(location, `${location.name}_${dateStr}`);
 
         ensureFileSync(logPath);
         outputFile(logPath, '')
           .then(() => {
             if (currentWindow) {
               ipcEmit('clear-process', {
-                processId: replayPramas.value.processId || '',
+                processId: (replayPramas.value.processId || '') as string,
               })
                 .then(() => {
                   const pawin =
@@ -501,6 +536,12 @@ watch(
     }
   },
 );
+
+function updateLogLevel() {
+  delayMilliSeconds(0).then(() => {
+    replayRef.value?.updateLogLevel();
+  });
+}
 
 const onJournalActionsData = (
   exportData: (fileName: string, exportData: KungfuApi.FrameResolved[]) => void,
@@ -617,7 +658,7 @@ function onEntryVisualization(visible: boolean) {
         cursor: row-resize;
         width: 100%;
         height: 4px !important;
-        z-index: 999;
+        flex: 0 0 4px;
       }
 
       .gutter:hover {
@@ -645,6 +686,11 @@ function onEntryVisualization(visible: boolean) {
           margin: auto;
           padding-top: 8px;
           box-sizing: border-box;
+
+          .ant-empty {
+            height: auto;
+            margin-top: 48px;
+          }
         }
 
         .kf-journal-visualization {

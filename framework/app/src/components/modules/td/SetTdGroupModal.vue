@@ -74,6 +74,7 @@ function transformKfConfigToDataNode(
     title: target.name,
     category: target.category,
     group: target.group,
+    mode: target.mode,
     key: `${target.category}_${target.group}_${target.name}`,
   };
 }

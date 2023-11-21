@@ -261,7 +261,7 @@ export default {
     SSE: '上交所',
     SZE: '深交所',
     BSE: '北交所',
-    GFEX: '广交所',
+    GFEX: '广期所',
     SHFE: '上期所',
     DCE: '大商所',
     CZCE: '郑商所',
@@ -496,6 +496,8 @@ export default {
     total_asset: '总资产',
     actions: '操作',
 
+    asset_details: '资金',
+
     add_td: '添加',
     add_group_placeholder: '添加分组',
     set_td_group: '账户分组设置',
@@ -516,6 +518,7 @@ export default {
     target: '划入节点',
     amount: '发生金额',
     update_time: '划转时间',
+    source_target_cannot_be_same: '划入节点和划出节点不能一致，请重新选择!',
     tip_error: '划转失败,请联系管理员!',
     capitalaccountor: '资金账号',
     trade_password: '交易密码',
@@ -908,7 +911,7 @@ export default {
 
   validate: {
     no_special_characters: '不能含有特殊字符和中文',
-    single_characters: '必须包含数字和字母',
+    single_characters: '至少包含一个字母或数字',
     no_underline: '不能含有下划线',
     no_zero_number: '请输入非零数字',
     no_negative_number: '请输入非负数',
@@ -940,6 +943,7 @@ export default {
 
   logview: {
     scroll_to_bottom: '滚动到底部',
+    loading_data: '正在加载中...',
   },
 
   replay: {

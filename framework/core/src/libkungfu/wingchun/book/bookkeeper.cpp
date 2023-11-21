@@ -56,6 +56,7 @@ void Bookkeeper::on_start(const rx::connectable_observable<event_ptr> &events) {
   events | is(Order::tag) | $$(update_book<Order>(event, &AccountingMethod::apply_order));
   events | is(Trade::tag) | $$(update_book<Trade>(event, &AccountingMethod::apply_trade));
   events | fork<Asset>(location::SYNC, &Bookkeeper::try_sync_asset, &Bookkeeper::try_update_asset);
+  events | is(Asset::tag) | $$(update_book(event, event->data<Asset>()));
   events | fork<Position>(location::SYNC, &Bookkeeper::try_sync_position, &Bookkeeper::try_update_position);
   events | fork<PositionEnd>(location::SYNC, &Bookkeeper::try_sync_position_end, &Bookkeeper::try_update_position_end);
   events | is(ResetBookRequest::tag) | $$(drop_book(event->source()));
@@ -283,6 +284,7 @@ void Bookkeeper::try_sync_position_end(const PositionEnd &position_end) {
       book_listener->on_position_sync_reset(*old_book, *new_book);
     }
     old_book->mirror_position_from(*new_book);
+    old_book->update(app_.now(), account_method_type_);
   }
   books_replica_.erase(position_end.holder_uid); // delete replica every time
 }
@@ -361,6 +363,10 @@ bool Bookkeeper::is_td(uint32_t location_uid) {
   return app_.get_location(location_uid)->category == category::TD;
 }
 
-bool Bookkeeper::is_ready_td(uint32_t location_uid) { return ready_tds_.try_emplace(location_uid).first->second; }
-
+bool Bookkeeper::is_ready_td(uint32_t location_uid) {
+  if (app_.get_location(location_uid)->mode == mode::BACKTEST) {
+    return true;
+  }
+  return ready_tds_.try_emplace(location_uid, false).first->second;
+}
 } // namespace kungfu::wingchun::book

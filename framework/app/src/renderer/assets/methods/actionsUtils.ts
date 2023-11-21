@@ -64,6 +64,11 @@ import {
   getMdTdKfLocationByProcessId,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import {
+  buildMasterLocation,
+  buildArchiveLocation,
+  buildLedgerLocation,
+} from '@kungfu-trader/kungfu-js-api/utils/systemUtils';
 import { BasketVolumeType } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import { writeCsvWithUTF8Bom } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
 import {
@@ -113,7 +118,7 @@ import { storeToRefs } from 'pinia';
 import { ipcRenderer } from 'electron';
 import { throttleTime } from 'rxjs';
 import { useGlobalStore } from '../../pages/index/store/global';
-import globalStorage from '@kungfu-trader/kungfu-js-api/utils/globalStorage';
+import { getGlobalStorage } from '@kungfu-trader/kungfu-js-api/utils/globalStorage';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { messagePrompt } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import sound from 'sound-play';
@@ -132,6 +137,7 @@ import {
 } from '@kungfu-trader/kungfu-js-api/hooks/lifeCycleHook';
 
 const { t } = VueI18n.global;
+const globalStorage = getGlobalStorage();
 const { success, error } = messagePrompt();
 
 export const useUpdateVersion = () => {
@@ -857,38 +863,49 @@ export const handleExportInstrumentWhitelists = async (): Promise<void> => {
     });
 };
 
-export const showTradingDataDetail = <T extends KungfuApi.TradingDataTypes>(
-  item: T,
+export const showTradingDataDetail = <
+  T extends Record<string, KungfuApi.KfConfigValue>,
+>(
+  item: T | (() => T),
   typename: string,
   filterKeys?: Array<keyof T>,
 ): Promise<boolean> => {
-  const dataResolved = dealTradingDataItem(item, window.watcher);
-  const vnode = Object.keys(dataResolved || {})
-    .filter((key) => {
-      if (filterKeys && (filterKeys as string[]).includes(key)) {
-        return false;
-      }
-      if (dataResolved[key].toString() === '[object Object]') {
-        return false;
-      }
-      return dataResolved[key] !== '';
-    })
-    .map((key) =>
-      h('div', { class: 'trading-data-detail-row' }, [
-        h('span', { class: 'label' }, `${key}`),
-        h('span', { class: 'value' }, `${dataResolved[key]}`),
-      ]),
+  const generateVnode = () => {
+    const itemResolved = typeof item === 'function' ? item() : item;
+    const dataResolved = dealTradingDataItem(
+      itemResolved as unknown as KungfuApi.TradingDataTypes,
+      window.watcher,
     );
 
-  return confirmModal(
-    `${typename} ${t('detail')}`,
-    h(
+    const vnode = Object.keys(dataResolved || {})
+      .filter((key) => {
+        if (filterKeys && (filterKeys as string[]).includes(key)) {
+          return false;
+        }
+        if (dataResolved[key].toString() === '[object Object]') {
+          return false;
+        }
+        return dataResolved[key] !== '';
+      })
+      .map((key) =>
+        h('div', { class: 'trading-data-detail-row' }, [
+          h('span', { class: 'label' }, `${key}`),
+          h('span', { class: 'value' }, `${dataResolved[key]}`),
+        ]),
+      );
+
+    return h(
       'div',
       {
         class: 'trading-data-detail__warp',
       },
       vnode,
-    ),
+    );
+  };
+
+  return confirmModal(
+    `${typename} ${t('detail')}`,
+    generateVnode,
     t('confirm'),
   );
 };
@@ -1471,11 +1488,7 @@ export const useQuote = (): {
     // 若 position 没有 last_price, 则取 quote 的 last_price
     const quote = getQuoteByPosition(pos);
     if (quote) {
-      return (
-        (quote.data_time > pos.update_time
-          ? quote.last_price
-          : Number(pos[lastPriceKey]) || quote.last_price) || 0
-      );
+      return quote.last_price || Number(pos[lastPriceKey]) || 0;
     }
     return Number(pos[lastPriceKey]) || 0;
   };
@@ -1985,29 +1998,20 @@ export const useAllKfConfigData = (): Record<
         ...(process.env.NODE_ENV === 'development'
           ? [
               {
+                ...buildArchiveLocation(),
                 location_uid: 0,
-                category: 'system',
-                group: 'service',
-                name: 'archive',
-                mode: 'live',
                 value: '',
               },
             ]
           : []),
         {
+          ...buildMasterLocation(),
           location_uid: 0,
-          category: 'system',
-          group: 'master',
-          name: 'master',
-          mode: 'live',
           value: '',
         },
         {
+          ...buildLedgerLocation(),
           location_uid: 0,
-          category: 'system',
-          group: 'service',
-          name: 'ledger',
-          mode: 'live',
           value: '',
         },
       ]),
@@ -2151,7 +2155,13 @@ export const useReplay = (): {
       value: string;
     }[]
   >;
+  replayPreLoading: Ref<boolean>;
+  startLoadingInterval: () => void;
+  stopLoadingInterval: () => void;
 } => {
+  let loadingTimer: NodeJS.Timeout | null = null;
+  const DEFAULT_PRE_LOADING_TIME = 10000;
+  const replayPreLoading = ref(false);
   const setReplayModalVisible = ref(false);
   const journalReplayflag = ref(0);
   const replayProcessParams = ref<
@@ -2350,6 +2360,19 @@ export const useReplay = (): {
     }
   };
 
+  const startLoadingInterval = () => {
+    if (loadingTimer) clearInterval(loadingTimer);
+    replayPreLoading.value = true;
+    loadingTimer = setInterval(() => {
+      replayPreLoading.value = false;
+    }, DEFAULT_PRE_LOADING_TIME);
+  };
+
+  const stopLoadingInterval = () => {
+    if (loadingTimer) clearInterval(loadingTimer);
+    replayPreLoading.value = false;
+  };
+
   return {
     currentLocation,
     replayConfig,
@@ -2359,6 +2382,9 @@ export const useReplay = (): {
     replayProcessParams,
     handleOpenReplayConfirmView,
     handleReplayModal,
+    startLoadingInterval,
+    stopLoadingInterval,
+    replayPreLoading,
   };
 };
 
@@ -2417,6 +2443,51 @@ export const useCurrentPositionList = () => {
 
   return {
     currentPositionList,
+  };
+};
+
+export const useFormCurrentState = (
+  formState: Ref<Record<string, KungfuApi.KfConfigValue>>,
+  keys?: {
+    accountKey?: string;
+    instrumentKey?: string;
+  },
+) => {
+  const { currentGlobalKfLocation } = useCurrentGlobalKfLocation(
+    window.watcher,
+  );
+  const accountKey = keys?.accountKey || 'account_id';
+  const instrumentKey = keys?.instrumentKey || 'account_id';
+
+  const curInstrumentResolved = computed(() => {
+    const instrument = formState.value[instrumentKey];
+    return instrument
+      ? transformSearchInstrumentResultToInstrument(instrument)
+      : null;
+  });
+
+  const currentAccountLocation = computed(() => {
+    if (
+      currentGlobalKfLocation.value &&
+      currentGlobalKfLocation.value.category === 'td'
+    ) {
+      return currentGlobalKfLocation.value;
+    } else if (formState.value[accountKey]) {
+      const { source, id } = formState.value[accountKey].parseSourceAccountId();
+      return {
+        category: 'td',
+        group: source,
+        name: id,
+        mode: 'live',
+      } as KungfuApi.KfLocation;
+    } else {
+      return null;
+    }
+  });
+
+  return {
+    curInstrumentResolved,
+    currentAccountLocation,
   };
 };
 
@@ -2919,7 +2990,6 @@ export const useBasket = () => {
   const store = useGlobalStore();
 
   const basketList = ref<KungfuApi.Basket[]>([]);
-  const basketInstrumentList = ref<KungfuApi.BasketInstrument[]>([]);
 
   onMounted(() => {
     if (app?.proxy) {
@@ -2929,10 +2999,8 @@ export const useBasket = () => {
 
   function updateBasketData() {
     store.setBasketList();
-    store.setBasketInstrumentList();
 
     basketList.value = store.basketList;
-    basketInstrumentList.value = store.basketInstrumentList;
     return Promise.resolve();
   }
 
@@ -2960,7 +3028,6 @@ export const useBasket = () => {
 
   return {
     basketList,
-    basketInstrumentList,
     buildBasketOptionLabel,
     buildBasketOptionValue,
     parseBasketOptionValue,

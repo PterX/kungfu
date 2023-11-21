@@ -71,7 +71,6 @@ export function dealLogMessage(line: string): string {
 }
 
 export const useLogInit = (
-  logPath: string,
   nLines = 10000,
 ): {
   logList: KungfuApi.KfFixedList<KungfuApi.KfLogData>;
@@ -79,7 +78,7 @@ export const useLogInit = (
   scrollerTableRef: Ref;
   isLoading: Ref<boolean>;
   scrollToBottom: () => void;
-  startTailLog: () => void;
+  startTailLog: (logPath: string) => void;
   clearLogState: () => void;
 } => {
   // const LOADING_TIMEOUT = 2000;
@@ -90,8 +89,7 @@ export const useLogInit = (
   const scrollerTableRef = ref();
   const scrollToBottomChecked = ref<boolean>(false);
   const isLoading = ref<boolean>(false);
-
-  ensureFileSync(logPath);
+  let loadingTimeoutId: NodeJS.Timeout | null = null;
 
   const scrollToBottom = () => {
     if (scrollToBottomChecked.value) {
@@ -99,10 +97,17 @@ export const useLogInit = (
     }
   };
 
-  const startTailLog = () => {
-    let lastLineReceivedAt = Date.now();
-
+  const updateLoading = () => {
     isLoading.value = true;
+    loadingTimeoutId && clearTimeout(loadingTimeoutId);
+    loadingTimeoutId = setTimeout(() => {
+      isLoading.value = false;
+    }, 1000);
+  };
+
+  const startTailLog = (logPath: string) => {
+    ensureFileSync(logPath);
+
     LogTail && LogTail.unwatch();
     LogTail = new Tail(logPath, {
       follow: true,
@@ -112,7 +117,7 @@ export const useLogInit = (
 
     let markId: number = +new Date();
     LogTail.on('line', (line: string) => {
-      lastLineReceivedAt = Date.now();
+      updateLoading();
       logList.insert({
         id: markId++,
         message: preDealLogMessage(line),
@@ -125,22 +130,11 @@ export const useLogInit = (
     });
 
     LogTail.watch();
-    const timeoutId = setInterval(checkLoadingStatus, 1000); // 每1秒检查一次
-
-    function checkLoadingStatus() {
-      if (Date.now() - lastLineReceivedAt > 1000) {
-        // 1秒没有接收到新行
-        isLoading.value = false;
-        clearInterval(timeoutId);
-      }
-    }
   };
-
   const clearLogState = () => {
     logList.list = [];
     LogTail?.unwatch();
     LogTail = null;
-    isLoading.value = false;
   };
 
   return {

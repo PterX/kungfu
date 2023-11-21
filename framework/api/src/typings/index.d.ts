@@ -477,9 +477,9 @@ declare namespace KungfuApi {
   >;
 
   export type KfExtLanguages = {
-    'zh-CN': Record<string, Record<string, string>>;
-    'en-US': Record<string, Record<string, string>>;
-    [langName: string]: Record<string, Record<string, string>>;
+    'zh-CN': Record<string, string | Record<string, string>>;
+    'en-US': Record<string, string | Record<string, string>>;
+    [langName: string]: Record<string, string | Record<string, string>>;
   };
 
   export interface SetKfConfigPayload {
@@ -557,12 +557,15 @@ declare namespace KungfuApi {
   export interface BasketStore {
     getAllBasket(): Basket[] | false;
     setAllBasket(baskets: Basket[]): boolean;
+    setBasket(basket: Basket): boolean;
+    setBaskets(baskets: Basket[]): boolean;
   }
 
   export interface BasketInstrumentStore {
     getAllBasketInstrument(): BasketInstrument[] | false;
     setAllBasketInstruments(basketInstruments: BasketInstrument[]): boolean;
     setBasketInstrument(basketInstrument: BasketInstrument): boolean;
+    setBasketInstruments(basketInstruments: BasketInstrument[]): boolean;
     removeAllBasketInstruments(): boolean;
     removeAllBasketInstrumentsByBasket(basketId: number): boolean;
   }
@@ -586,6 +589,8 @@ declare namespace KungfuApi {
     realized_pnl: number; //累计收益
     unrealized_pnl: number;
     avail: number; //可用资金
+    long_avail: number; // otc业务可用资金(多)
+    short_avail: number; // otc业务可用资金(空）
     market_value: number; //市值(股票)
     margin: number; //保证金(期货)
     accumulated_fee: number; //累计手续费
@@ -602,7 +607,7 @@ declare namespace KungfuApi {
 
     total_asset: number; //总资产
     avail_margin: number; //可用保证金
-    cash_margin: number; //融资占用保证金
+    long_margin: number; //融资占用保证金
     short_margin: number; //融券占用保证金
     margin: number; //总占用保证金
 
@@ -610,7 +615,7 @@ declare namespace KungfuApi {
     short_cash: number; //融券卖出金额
 
     short_market_value: number; //融券卖出证券市值
-    margin_market_value: number; //融资买入证券市值
+    long_market_value: number; //融资买入证券市值
     margin_interest: number; //融资融券利息
     settlement: number; //融资融券清算资金
 
@@ -1221,9 +1226,9 @@ declare namespace KungfuApi {
       InstrumentResolved {
     basketInstrumentName: string;
     basketInstrumentId: string;
-    todayVolume?: number;
-    yesterdayVolume?: number;
-    posVolume?: number;
+    todayVolume?: string;
+    yesterdayVolume?: string;
+    posVolume?: string;
   }
 
   export interface BasketInstrumentForOrder extends BasketInstrumentResolved {

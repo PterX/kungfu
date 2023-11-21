@@ -1,5 +1,5 @@
 <template>
-  <LogView ref="logViewRef" :log-path="LOG_PATH">
+  <LogView ref="logViewRef" :log-path="logPath">
     <template #title>
       <KfDashboardItem>
         <div class="replay_title">
@@ -27,7 +27,7 @@
         <a-button
           @click="reLoadLog"
           size="small"
-          :loading="isLoading || startReloading"
+          :loading="isLoading || preLoading"
         >
           {{ $t('replay.try_again') }}
         </a-button>
@@ -67,7 +67,19 @@ const currentWindow = getCurrentWindow();
 
 const props = withDefaults(
   defineProps<{
-    params: Record<string, string>;
+    params: Partial<{
+      category: string;
+      group: string;
+      beginTime: string;
+      endTime: string;
+      logPath: string;
+      logLevel: string;
+      sessionName: string;
+      filePath: string;
+      processId: string;
+      enableMatcher: string;
+      replayPreLoading: boolean;
+    }>;
     closeImmediately?: boolean;
   }>(),
   {
@@ -75,10 +87,18 @@ const props = withDefaults(
   },
 );
 
+const emit = defineEmits<{
+  (e: 'stopReplayLoading'): void;
+}>();
+
 const RELOADING_TIMER = 10000;
 let reloadingTimer: NodeJS.Timeout | null = null;
 
 const startReloading = ref(false);
+
+const preLoading = computed(() => {
+  return startReloading.value || props.params.replayPreLoading;
+});
 
 const enableMatcher = computed(() => {
   return props.params.enableMatcher === 'true';
@@ -90,7 +110,10 @@ const replayLogLevel = ref(
   ] || '',
 );
 
-const LOG_PATH = props.params.logPath || '';
+const logPath = computed(() => {
+  return props.params.logPath || '';
+});
+
 const CHECK_REPLAY_PROCESS_TIMER = 1000;
 const isLoading = ref(false);
 onMounted(async () => {
@@ -103,7 +126,11 @@ onMounted(async () => {
   const replayPocessCheckTimer = setInterval(async () => {
     const { processStatus } = await listProcessStatus();
     if (processStatus) {
-      if (processStatus[props.params.processId] === 'online') {
+      if (
+        props.params.processId &&
+        processStatus[props.params.processId] === 'online'
+      ) {
+        emit('stopReplayLoading');
         startReloading.value = false;
         isLoading.value = true;
         if (reloadingTimer) {
@@ -125,12 +152,16 @@ onMounted(async () => {
     currentWindow.on('close', async (event) => {
       event.preventDefault();
       const { processStatus } = await listProcessStatus();
-      if (processStatus[props.params.processId] !== 'online') {
+      if (
+        props.params.processId &&
+        processStatus[props.params.processId] !== 'online'
+      ) {
         currentWindow.destroy();
       }
-      handleRemoveReplayProcess(props.params.processId).finally(() => {
-        currentWindow.destroy();
-      });
+      props.params.processId &&
+        handleRemoveReplayProcess(props.params.processId).finally(() => {
+          currentWindow.destroy();
+        });
     });
   }
   onBeforeUnmount(() => {
@@ -161,7 +192,7 @@ async function reLoadLog() {
   }
 
   const { processStatus } = await listProcessStatus();
-  const processId = props.params.processId;
+  const processId = props.params.processId || '';
 
   if (!processStatus[processId]) {
     throwError('replay.please_start_replay');
@@ -226,8 +257,11 @@ async function reLoadLog() {
   }
 
   try {
-    ensureFileSync(LOG_PATH);
-    await outputFile(LOG_PATH, '');
+    ensureFileSync(logPath.value);
+    await outputFile(logPath.value, '');
+    if (props.params.replayPreLoading) {
+      emit('stopReplayLoading');
+    }
     startReloading.value = true;
     reloadingTimer = setTimeout(() => {
       startReloading.value = false;
@@ -242,10 +276,10 @@ async function reLoadLog() {
   }
 }
 
-function updateLogLevel(level: string) {
+function updateLogLevel() {
   const configs = localStorage.getItem('replayConfigs');
   if (configs) {
-    const config = (JSON.parse(configs) || {})[props.params.processId];
+    const config = (JSON.parse(configs) || {})[props.params.processId || ''];
     if (config) {
       const replayParams = config.args;
       if (replayParams && replayParams.replayConfig) {

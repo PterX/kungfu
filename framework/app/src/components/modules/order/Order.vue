@@ -498,10 +498,7 @@ function handleShowTradingDataDetail({
   event: MouseEvent;
   row: KungfuApi.TradingDataItem;
 }) {
-  showTradingDataDetail(
-    row as KungfuApi.OrderResolved,
-    t('orderConfig.entrust'),
-  );
+  showTradingDataDetail(row, t('orderConfig.entrust'));
 }
 
 const adjustOrderConfig = reactive({

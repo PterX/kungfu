@@ -500,6 +500,8 @@ export default {
     total_asset: 'total_asset',
     actions: 'actions',
 
+    asset_details: 'Asset',
+
     add_td: 'Add',
     add_group_placeholder: 'Add group',
     set_td_group: 'Account Group Settings',
@@ -522,6 +524,8 @@ export default {
     target: 'Into the node',
     amount: 'Amount incurred',
     trading_day: 'Transfer time',
+    source_target_cannot_be_same:
+      'Transfer source and target cannot be the same, please reselect!',
     tip_error: 'Transfer failed, please contact the administrator!',
     capitalaccountor: 'Fund account',
     trade_password: 'Transaction password',
@@ -909,7 +913,7 @@ export default {
   validate: {
     no_special_characters:
       'Cannot contain special characters or Chinese characters, and cannot start or end with - characters',
-    single_characters: 'Must contain numbers and letters',
+    single_characters: 'Contain at least one letter or number',
     no_underscore: 'Cannot contain underscores',
     no_zero_number: 'Cannot contain zero',
     no_negative_number: 'Cannot contain negative',
@@ -946,6 +950,7 @@ export default {
 
   logview: {
     scroll_to_bottom: 'Scroll to bottom',
+    loading_data: 'Loading...',
   },
 
   replay: {

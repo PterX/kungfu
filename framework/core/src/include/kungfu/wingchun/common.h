@@ -19,7 +19,7 @@
 #define EXCHANGE_SSE "SSE"     // 上交所
 #define EXCHANGE_SZE "SZE"     // 深交所
 #define EXCHANGE_BSE "BSE"     // 北交所
-#define EXCHANGE_GFEX "GFEX"   // 广交所
+#define EXCHANGE_GFEX "GFEX"   // 广期所
 #define EXCHANGE_SHFE "SHFE"   // 上期所
 #define EXCHANGE_DCE "DCE"     // 大商所
 #define EXCHANGE_CZCE "CZCE"   // 郑商所
@@ -456,6 +456,8 @@ inline std::string get_instrument_product(const char *instrument_id) {
   while (instrument_id[i] != 0) {
     if (instrument_id[i] < '0' || instrument_id[i] > '9') {
       product.push_back(std::toupper(instrument_id[i]));
+    } else {
+      break;
     }
     ++i;
   }

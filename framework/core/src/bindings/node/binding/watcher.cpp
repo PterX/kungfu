@@ -460,6 +460,15 @@ void Watcher::on_react() {
   before_start_events | is_static_data() | $$(cached::feed_state_data(event, data_bank_));
 }
 
+bool Watcher::has_writer(uint32_t dest_id) const { return writers_.find(dest_id) != writers_.end(); }
+
+journal::writer_ptr Watcher::get_writer(uint32_t dest_id) const {
+  if (writers_.find(dest_id) == writers_.end()) {
+    SPDLOG_ERROR("no writer for {}", get_location_uname(dest_id));
+  }
+  return writers_.at(dest_id);
+}
+
 void Watcher::on_start() {
   broker_client_.on_start(events_);
 

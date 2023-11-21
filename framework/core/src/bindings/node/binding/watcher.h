@@ -131,6 +131,10 @@ protected:
 
   void on_start() override;
 
+public:
+  bool has_writer(uint32_t dest_id) const override;
+  yijinjing::journal::writer_ptr get_writer(uint32_t dest_id) const override;
+
 private:
   static Napi::FunctionReference constructor;
   static void cleanup() {

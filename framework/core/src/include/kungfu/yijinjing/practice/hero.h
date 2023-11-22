@@ -78,9 +78,9 @@ public:
 
   [[maybe_unused]] [[nodiscard]] yijinjing::journal::reader_ptr get_reader() const;
 
-  bool has_writer(uint32_t dest_id) const;
+  virtual bool has_writer(uint32_t dest_id) const;
 
-  [[nodiscard]] yijinjing::journal::writer_ptr get_writer(uint32_t dest_id) const;
+  [[nodiscard]] virtual yijinjing::journal::writer_ptr get_writer(uint32_t dest_id) const;
 
   bool has_band_writer(uint32_t dest_id) const;
 

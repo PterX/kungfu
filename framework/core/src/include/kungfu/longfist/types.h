@@ -844,7 +844,8 @@ KF_DEFINE_DATA_TYPE(                                         //
     (int64_t, max_purchase_volume),                          // 申购上限
     (int64_t, max_redemption_volume),                        // 赎回上限
     (int64_t, min_volume),                                   // 最小申赎单位
-    (enums::ETFType, etf_type)                               // etf种类
+    (enums::ETFType, etf_type),                               // etf种类
+    (enums::ETFStatus, etf_status)                           //etf状态
 );
 
 KF_DEFINE_PACK_TYPE(                                                                   //

@@ -291,7 +291,18 @@ inline longfist::enums::InstrumentType get_instrument_type_by_exchange_hk(const 
       {90000, 99999, longfist::enums::InstrumentType::Stock},       // 供日後使用
   };
 
-  int nId = std::stoi(instrument_id);
+  int nId =0;
+  try {
+    nId = std::stoi(instrument_id);
+  } catch (const std::invalid_argument &ia) {
+    // Handle invalid_argument exception
+    SPDLOG_ERROR("Invalid argument: {}", ia.what());
+    return longfist::enums::InstrumentType::Unknown;
+  } catch (const std::out_of_range &oor) {
+    // Handle out_of_range exception
+    SPDLOG_ERROR("Out of range: {}", oor.what());
+    return longfist::enums::InstrumentType::Unknown;
+  } 
 
   for (auto &iter : hk_code_type_def) {
     if (nId >= iter.beg && nId <= iter.end) {

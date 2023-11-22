@@ -62,7 +62,8 @@ void MarketDataXTP::on_start() {
   auto protocol_type = get_xtp_protocol_type(config.protocol);
   std::string runtime_folder = get_runtime_folder();
   SPDLOG_INFO("Connecting XTP MD for {} at {}://{}:{}", account_id, config.protocol, md_ip, config.md_port);
-  api_ = XTP::API::QuoteApi::CreateQuoteApi(config.client_id, runtime_folder.c_str());
+  api_ =
+      XTP::API::QuoteApi::CreateQuoteApi(config.client_id, runtime_folder.c_str(), XTP_LOG_LEVEL::XTP_LOG_LEVEL_INFO);
   if (config.protocol == "udp") {
     api_->SetUDPBufferSize(config.buffer_size);
   }

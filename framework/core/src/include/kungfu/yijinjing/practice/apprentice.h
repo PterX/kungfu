@@ -78,16 +78,21 @@ public:
   }
 
   template <typename DataType>
-  void try_write_to(int64_t trigger_time, const DataType &data, uint32_t dest_id = data::location::PUBLIC) {
+  void try_write_to(
+      int64_t trigger_time, const DataType &data, uint32_t dest_id = data::location::PUBLIC,
+      const std::function<void()> &callback = []() {}) {
     if (has_writer(dest_id)) {
       get_writer(dest_id)->write(trigger_time, data);
+      callback();
     } else {
       events_ | rx::is(longfist::types::Channel::tag) | rx::filter([&, dest_id](const event_ptr &event) {
         const longfist::types::Channel &channel = event->data<longfist::types::Channel>();
         return channel.source_id == get_live_home_uid() and channel.dest_id == dest_id;
       }) | rx::first() |
-          rx::$([&, data, dest_id](const event_ptr &event) { write_to(now(), data, dest_id); });
-      // call request_write_to to create writer in on_frame, in case that try_write_to the same dest_id multiple times
+          rx::$([&, data, dest_id, callback](const event_ptr &event) {
+            write_to(now(), data, dest_id);
+            callback();
+          });
       try_write_dest_ids_.emplace(dest_id);
     }
   }

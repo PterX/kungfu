@@ -68,7 +68,6 @@ void journal::seek_to_time(int64_t nanotime) {
 }
 
 void journal::load_page(uint32_t page_id) {
-  bool use_preload = false;
   auto fn_load = [&]() {
     if (not page_ or page_->get_page_id() != page_id) {
       if (page_) {
@@ -83,7 +82,6 @@ void journal::load_page(uint32_t page_id) {
       if (preload_ and preload_page_ and preload_page_->get_page_id() == page_id) {
         page_ = std::move(preload_page_);
         page_->enable_page();
-        use_preload = true;
       } else {
         page_ = page::load(location_, dest_id_, page_size_, page_id, is_writing_, lazy_);
       }

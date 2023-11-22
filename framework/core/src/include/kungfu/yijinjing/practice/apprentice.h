@@ -194,7 +194,6 @@ protected:
     r.location_uid = get_live_home_uid();
     writer->close_data();
     timer_checkpoints_[timer_id] = now();
-    timer_requests_.insert_or_assign(timer_id, r);
     return [&, duration_ns, timer_id](const rx::observable<event_ptr> &src) {
       return events_ | rx::filter([&, duration_ns, timer_id](const event_ptr &event) {
                return (event->msg_type() == longfist::types::Time::tag &&
@@ -225,7 +224,6 @@ protected:
     r.location_uid = get_live_home_uid();
     writer->close_data();
     timer_checkpoints_[timer_id] = now();
-    timer_requests_.insert_or_assign(timer_id, r);
     return [&, duration_ns, timer_id](const rx::observable<event_ptr> &src) {
       return events_ | rx::take_until(events_ | rx::filter([&, timer_id](const event_ptr &event) {
                                         bool enabled = is_timer_enabled(timer_id);
@@ -248,7 +246,6 @@ protected:
                  r.location_uid = get_live_home_uid();
                  writer->close_data();
                  timer_checkpoints_[timer_id] = now();
-                 timer_requests_.insert_or_assign(timer_id, r);
                  return true;
                } else {
                  return false;
@@ -270,7 +267,6 @@ protected:
     r.location_uid = get_live_home_uid();
     writer->close_data();
     timer_checkpoints_[timer_id] = now();
-    timer_requests_.insert_or_assign(timer_id, r);
     return [&, duration_ns, timer_id](const rx::observable<event_ptr> &src) {
       return (src | rx::take_until(events_ | rx::filter([&, timer_id](const event_ptr &event) {
                                      return not is_timer_enabled(timer_id);
@@ -286,7 +282,6 @@ protected:
                   r.location_uid = get_live_home_uid();
                   writer->close_data();
                   timer_checkpoints_[timer_id] = now();
-                  timer_requests_.insert_or_assign(timer_id, r);
                   return true;
                 } else {
                   return false;
@@ -296,7 +291,6 @@ protected:
                    if (event->gen_time() >= timer_checkpoints_[timer_id] + duration_ns) {
                      throw rx::timeout_error("timeout");
                    }
-                   timer_requests_.erase(timer_id);
                    return false;
                  }));
     };
@@ -310,7 +304,6 @@ private:
   int32_t timer_usage_count_{0};
   const std::string arguments_ = {};
   std::unordered_map<int, int64_t> timer_checkpoints_ = {};
-  std::unordered_map<int, longfist::types::TimeRequest> timer_requests_ = {};
   std::unordered_set<uint32_t> try_write_dest_ids_ = {};
   std::unordered_map<int32_t, bool> timers_ = {};
 

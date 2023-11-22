@@ -11,6 +11,10 @@ using namespace longfist::types;
 constexpr uint32_t PAGE_ID_TRANC = 0xFF000000;
 constexpr uint32_t FRAME_ID_TRANC = 0x00FFFFFF;
 
+inline uint32_t verify_cpu_word_length(uint32_t length) {
+  return ((length + (sizeof(uintptr_t) - 1)) & ~(sizeof(uintptr_t) - 1));
+}
+
 writer::writer(const data::location_ptr &location, uint32_t dest_id, bool lazy, publisher_ptr publisher,
                bool low_latency, const bus_ptr &bus)
     : frame_id_base_(static_cast<uint64_t>(location->uid xor dest_id) << 32u),
@@ -46,6 +50,7 @@ uint64_t writer::current_frame_uid() {
 }
 
 frame_ptr writer::open_frame(int64_t trigger_time, int32_t msg_type, uint32_t data_length) {
+  data_length = verify_cpu_word_length(data_length);
   int64_t start_time = time::now_in_nano();
   while (not writer_mtx_.try_lock()) {
     if (time::now_in_nano() - start_time > 30 * time_unit::NANOSECONDS_PER_SECOND) {
@@ -68,6 +73,7 @@ frame_ptr writer::open_frame(int64_t trigger_time, int32_t msg_type, uint32_t da
 }
 
 void writer::close_frame(size_t data_length, int64_t gen_time) {
+  data_length = verify_cpu_word_length(data_length);
   assert(size_to_write_ >= data_length);
   auto frame = journal_.current_frame();
   auto next_frame_address = frame->address() + frame->header_length() + data_length;

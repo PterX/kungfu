@@ -202,6 +202,7 @@ declare namespace KungfuApi {
     importMode?: 'reset' | 'add';
     disableDateRange?: number; // 时间范围选择器不可选的日期范围
     maxlength?: number;
+    showArg?: boolean; // 交易任务是否显示参数
 
     // ---- some ui releated ----;
     noDivider?: boolean;

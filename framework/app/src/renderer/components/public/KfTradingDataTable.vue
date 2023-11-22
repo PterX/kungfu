@@ -123,7 +123,9 @@ const selectedRowsMap = ref<Record<string, TableDataItem>>({});
 let clickTimer: number | undefined;
 const currentSorterIndex = ref<string>('');
 const currentSorterOrder = ref<'' | 'ascend' | 'descend'>('');
-let currentSorterFunction: ((a: any, b: any) => number) | undefined = undefined;
+let currentSorterFunction:
+  | ((a: any, b: any, sorterOrder: '' | 'ascend' | 'descend') => number)
+  | undefined = undefined;
 const dataSourceResolved = computed(() => {
   if (
     currentSorterIndex.value &&
@@ -131,9 +133,24 @@ const dataSourceResolved = computed(() => {
     currentSorterOrder.value !== ''
   ) {
     if (currentSorterOrder.value === 'ascend') {
-      return props.dataSource.slice(0).sort(currentSorterFunction);
+      return props.dataSource.slice(0).sort((a, b): number => {
+        if (currentSorterFunction) {
+          return currentSorterFunction(a, b, currentSorterOrder.value);
+        } else {
+          return 0;
+        }
+      });
     } else {
-      return props.dataSource.slice(0).sort(currentSorterFunction).reverse();
+      return props.dataSource
+        .slice(0)
+        .sort((a, b): number => {
+          if (currentSorterFunction) {
+            return currentSorterFunction(a, b, currentSorterOrder.value);
+          } else {
+            return 0;
+          }
+        })
+        .reverse();
     }
   }
   return props.dataSource;
@@ -371,7 +388,9 @@ function handleMousedown(e: MouseEvent, row: TableDataItem): void {
 
 function handleSort(
   dataIndex: string,
-  sorter: undefined | ((a: any, b: any) => number),
+  sorter:
+    | undefined
+    | ((a: any, b: any, sorterOrder: '' | 'ascend' | 'descend') => number),
 ): void {
   if (!sorter || !dataIndex) {
     return;

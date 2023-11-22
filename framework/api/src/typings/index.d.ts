@@ -206,6 +206,7 @@ declare namespace KungfuApi {
     abledTimeRange?: [string, string]; // 时间范围选择器不可选的时间范围
 
     maxlength?: number;
+    showArg?: boolean; // 交易任务是否显示参数
 
     // ---- some ui releated ----;
     noDivider?: boolean;

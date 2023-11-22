@@ -24,7 +24,7 @@ import {
   getIfProcessStopping,
   getStrategyKfLocationByProcessId,
   fromProcessArgsToKfConfigItems,
-  kfConfigItemsToArgsByPrimaryForShow,
+  kfConfigItemsToArgsByShowArgForShow,
   dealTradingTaskName,
   getTaskListFromProcessStatusData,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
@@ -270,7 +270,7 @@ function resolveArgs(record: Pm2ProcessStatusDetail) {
 
   const configSettings = parseTaskSettingsFromEnv(record.config_settings);
   const formState = fromProcessArgsToKfConfigItems(record.args || []);
-  const argsForShow = kfConfigItemsToArgsByPrimaryForShow(
+  const argsForShow = kfConfigItemsToArgsByShowArgForShow(
     configSettings,
     formState,
   );

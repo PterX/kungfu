@@ -85,7 +85,9 @@ import zhCN from 'ant-design-vue/es/locale/zh_CN';
 import enUS from 'ant-design-vue/es/locale/en_US';
 import { first } from 'rxjs';
 import { getCurrentWebContents } from '@electron/remote';
+import { getGlobalStorage } from '@kungfu-trader/kungfu-js-api/utils/globalStorage';
 const app = createApp(App);
+const globalStorage = getGlobalStorage();
 
 app
   .use(store)
@@ -242,6 +244,9 @@ loadCustomFont().then(async () => {
     .getHooks()
     .lifeCycle.trigger(LifeCycleKeys.BeforeAppMount)
     .finally(() => {
+      if (!globalStorage.getItem('ifNotFirstRunning')) {
+        localStorage.clear();
+      }
       app.mount('#app');
     });
 

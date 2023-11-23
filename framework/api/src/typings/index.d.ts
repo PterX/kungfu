@@ -206,6 +206,7 @@ declare namespace KungfuApi {
     abledTimeRange?: [string, string]; // 时间范围选择器不可选的时间范围
 
     maxlength?: number;
+    showArg?: boolean; // 交易任务是否显示参数
 
     // ---- some ui releated ----;
     noDivider?: boolean;
@@ -927,6 +928,7 @@ declare namespace KungfuApi {
 
   export interface AlgoOrderInput {
     order_id: bigint;
+    origin_order_id: bigint;
     insert_time: bigint;
     begin_time: bigint;
     end_time: bigint;
@@ -935,9 +937,13 @@ declare namespace KungfuApi {
     exchange_id: string;
     instrument_type: InstrumentTypeEnum;
 
+    basket_uid: number; // basket订单的id
+
     side: SideEnum;
     offset: OffsetEnum;
     price_type: PriceTypeEnum;
+    price_level: PriceLevelEnum;
+    price_offset: number; // 价格偏移
     volume: bigint;
 
     algo_type_id: string; // 算法类型
@@ -959,9 +965,13 @@ declare namespace KungfuApi {
     exchange_id: string; // 交易所代码
     instrument_type: InstrumentTypeEnum;
 
+    basket_uid: number; // basket订单的id
+
     side: SideEnum;
     offset: OffsetEnum;
     price_type: PriceTypeEnum;
+    price_level: PriceLevelEnum;
+    price_offset: number; // 价格偏移
 
     volume: bigint; // 目标量
     volume_left: bigint; // 剩余数量
@@ -971,6 +981,9 @@ declare namespace KungfuApi {
 
     status: OrderStatusEnum; // 订单状态
     error_msg: string; // 错误信息
+
+    source_id: number; // 下单方
+    dest_id: number;
   }
 
   export interface AlgoOrderAction {

@@ -416,7 +416,6 @@ NLOHMANN_JSON_SERIALIZE_ENUM(ETFType, {
 
 inline std::ostream &operator<<(std::ostream &os, ETFType t) { return os << int32_t(t); }
 
-
 enum class ETFStatus : int8_t {
   Forbid,         // 不允许申购也不允许赎回
   Allow,          // 允许申购和赎回
@@ -426,12 +425,12 @@ enum class ETFStatus : int8_t {
 };
 
 NLOHMANN_JSON_SERIALIZE_ENUM(ETFStatus, {
-                                    {ETFStatus::Forbid, "Forbid"},
-                                    {ETFStatus::Allow, "Allow"},
-                                    {ETFStatus::PurchaseOnly, "PurchaseOnly"},
-                                    {ETFStatus::RedemptionOnly, "RedemptionOnly"},
-                                    {ETFStatus::Unknown, "Unknown"},
-                                })
+                                            {ETFStatus::Forbid, "Forbid"},
+                                            {ETFStatus::Allow, "Allow"},
+                                            {ETFStatus::PurchaseOnly, "PurchaseOnly"},
+                                            {ETFStatus::RedemptionOnly, "RedemptionOnly"},
+                                            {ETFStatus::Unknown, "Unknown"},
+                                        })
 
 inline std::ostream &operator<<(std::ostream &os, ETFStatus t) { return os << int32_t(t); }
 

@@ -380,7 +380,7 @@ void bind_enums(py::module &m) {
       .export_values()
       .def("__eq__", [](const ETFType &a, int b) { return static_cast<int>(a) == b; });
 
-    py::enum_<ETFStatus>(m_enums, "ETFStatus", py::arithmetic())
+  py::enum_<ETFStatus>(m_enums, "ETFStatus", py::arithmetic())
       .value("Forbid", ETFStatus::Forbid)
       .value("Allow", ETFStatus::Allow)
       .value("PurchaseOnly", ETFStatus::PurchaseOnly)

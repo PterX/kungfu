@@ -799,10 +799,6 @@ function buildArgs(args: string): string {
   return [logLevel, args, rocket].join(' ');
 }
 
-function dealSpaceInStr(str: string): string {
-  return str.replace(/ /g, '_');
-}
-
 //循环获取processStatus
 function startGetProcessStatusByName(
   name: string,
@@ -1021,7 +1017,7 @@ export const startTask = async (
       .map((dir) => dealSpaceInPath(path.dirname(dir)))
       .join(path.delimiter)}" run -c strategy -g "${taskLocation.group}" -n "${
       taskLocation.name
-    }" '${soPath}' -a '${dealSpaceInStr(args)}'`, // args is a JSON string
+    }" '${soPath}' -a '${args}'`, // args is a JSON string
   );
 
   return startProcess({

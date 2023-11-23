@@ -295,11 +295,10 @@ private:
     data_bank_ << cache_state_algo_order_input;
   }
 
-
   template <typename TradingData>
   std::enable_if_t<not std::is_same_v<TradingData, longfist::types::OrderTriggerInput> and
                    not std::is_same_v<TradingData, longfist::types::OrderInput> and
-                   not std::is_same_v<TradingData, longfist::types::AlgoOrderInput> >
+                   not std::is_same_v<TradingData, longfist::types::AlgoOrderInput>>
   UpdateBook(uint32_t source, uint32_t dest, const TradingData &data) {}
 
   uint64_t MakeInstructionUID(yijinjing::journal::writer_ptr &writer, uint32_t dest, uint32_t client_id = 0) {

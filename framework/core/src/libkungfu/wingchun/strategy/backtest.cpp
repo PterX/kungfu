@@ -167,15 +167,16 @@ void BacktestContext::init_time_events() {
 
 void BacktestContext::subscribe(const std::string &source, const std::vector<std::string> &instrument_ids,
                                 const std::string &exchange_id) {
-  for (auto data_type : {Quote::tag, Tree::tag, Entrust::tag, Transaction::tag}) {
+  boost::hana::for_each(longfist::MarketDataTypes, [&](auto it) {
+    using DataType = typename decltype(+boost::hana::second(it))::type;
     for (const auto &instrument_id : instrument_ids) {
       int64_t slice_begin_time = app_.now();
       int64_t slice_end_time{INT64_MAX};
       do {
         auto md_location = from_indexer_->find_md_slice_location(slice_begin_time, source, source, instrument_id,
-                                                                 exchange_id, data_type);
+                                                                 exchange_id, DataType::tag);
         slice_end_time = from_indexer_->get_md_slice_end_time(slice_begin_time, source, source, instrument_id,
-                                                              exchange_id, data_type);
+                                                              exchange_id, DataType::tag);
         if (not md_location)
           continue;
         if (md_location->locator->list_page_id(md_location, location::PUBLIC).empty()) {
@@ -194,7 +195,7 @@ void BacktestContext::subscribe(const std::string &source, const std::vector<std
         lease_locations_[slice_end_time].push_back(std::move(md_location));
       } while ((slice_begin_time = 1 + slice_end_time) < app_.get_end_time());
     }
-  }
+  });
 }
 
 void BacktestContext::unsubscribe(const std::string &source, const std::vector<std::string> &instrument_ids,

@@ -45,7 +45,7 @@ const resolveInstruments = (
     const { instrument_id, instrument_type, product_id, exchange_id, ukey } =
       item;
     const oldInstrument = existedData[ukey] || null;
-    const instrumentName = decodeBuffer(product_id);
+    const instrumentName = decodeBuffer(product_id).replaceAll("'", '');
     const instrumentNameResolved =
       instrumentName || oldInstrument?.instrumentName || '';
     const instrumentType =

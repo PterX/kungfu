@@ -799,8 +799,7 @@ function buildArgs(args: string): string {
   return [logLevel, args, rocket].join(' ');
 }
 
-//将字符串里的空格转成下划线
-function dealSpaceInPath(str: string): string {
+function dealSpaceInStr(str: string): string {
   return str.replace(/ /g, '_');
 }
 
@@ -1022,7 +1021,7 @@ export const startTask = async (
       .map((dir) => dealSpaceInPath(path.dirname(dir)))
       .join(path.delimiter)}" run -c strategy -g "${taskLocation.group}" -n "${
       taskLocation.name
-    }" '${soPath}' -a '${dealSpaceInPath(args)}'`, // args is a JSON string
+    }" '${soPath}' -a '${dealSpaceInStr(args)}'`, // args is a JSON string
   );
 
   return startProcess({

@@ -13,7 +13,7 @@ yjj = kungfu.__binding__.yijinjing
 def find_md_slice_location(ctx, nano_time, group, name, instrument_id, exchange_id, data_type):
 	instrument_type = wc.utils.get_instrument_type(exchange_id, instrument_id)
 	if instrument_type == InstrumentType.Stock:
-		if data_type not in (msg.Quote, msg.Entrust, msg.Transactioni):
+		if data_type not in (msg.Quote, msg.Entrust, msg.Transaction):
 			return None
 	elif instrument_type == InstrumentType.Future:
 		if data_type not in (msg.Quote, ):

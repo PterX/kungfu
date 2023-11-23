@@ -292,15 +292,15 @@ inline longfist::enums::InstrumentType get_instrument_type_by_exchange_hk(const 
   };
 
   int nId =0;
-  try {
+   try {
     nId = std::stoi(instrument_id);
   } catch (const std::invalid_argument &ia) {
     // Handle invalid_argument exception
-    SPDLOG_ERROR("Invalid argument: {}", ia.what());
+    SPDLOG_ERROR("Invalid argument: {}, instrument_id: {}", ia.what(), instrument_id);
     return longfist::enums::InstrumentType::Unknown;
   } catch (const std::out_of_range &oor) {
     // Handle out_of_range exception
-    SPDLOG_ERROR("Out of range: {}", oor.what());
+    SPDLOG_ERROR("Out of range: {}, instrument_id: {}", oor.what(), instrument_id);
     return longfist::enums::InstrumentType::Unknown;
   } 
 

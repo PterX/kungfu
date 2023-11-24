@@ -239,11 +239,11 @@ const initStartAll = (bypassArchive = false) => {
 loadCustomFont().then(async () => {
   await mergeExtLanguages();
   await useComponents(app, router);
+  clearLocalStorageWithNewVersion();
   (globalThis.HookKeeper as KfHookKeeper)
     .getHooks()
     .lifeCycle.trigger(LifeCycleKeys.BeforeAppMount)
     .finally(() => {
-      clearLocalStorageWithNewVersion();
       app.mount('#app');
     });
 

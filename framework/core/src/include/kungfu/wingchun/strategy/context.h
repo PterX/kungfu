@@ -259,21 +259,10 @@ public:
 
   /**
    * @param origin_order_id origin order id to update
-   * @param instrument_id instrument ID
-   * @param exchange_id exchange ID
    * @param source source ID
    * @param account account ID
-   * @param begin_time algo begin time
-   * @param end_time algo end time
    * @param volume trade volume
-   * @param type price type
-   * @param side side
-   * @param offset offset, defaults to longfist::enums::Offset::Open
-   * @param algo_type_id algo type id
-   * @param algo_id algo id
-   * @param args json string for algo custom arguments
-   * @param is_local boolean marking local algo order
-   * @param basket_uid basket uid
+   * @return order_id
    */
   virtual uint64_t update_algo_order_volume(uint64_t origin_order_id, const std::string &source,
                                             const std::string &account, int64_t volume) = 0;

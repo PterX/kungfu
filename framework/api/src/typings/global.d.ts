@@ -139,7 +139,7 @@ export interface RootConfigJSON {
       ableHedgeFlag?: boolean;
     };
 
-    clearLocalStorage?: boolean;
+    clearLocalStorageWithNewVersion?: boolean;
   };
 }
 

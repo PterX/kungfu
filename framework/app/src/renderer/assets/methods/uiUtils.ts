@@ -1838,7 +1838,7 @@ export const clearLocalStorageWithNewVersion = () => {
       rootPackageJson.version,
     ]);
 
-    if (rootPackageJson.appConfig?.clearLocalStorage ?? true) {
+    if (rootPackageJson.appConfig?.clearLocalStorageWithNewVersion ?? false) {
       localStorage.clear();
     }
   }

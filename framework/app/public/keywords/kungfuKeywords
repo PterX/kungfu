@@ -336,6 +336,7 @@ has_writer
 add_timer
 add_time_interval
 clear_timer
+request_deregister
 update_broker_state
 subscribe
 subscribe_all
@@ -546,9 +547,6 @@ SSE
 SZE
 MarketType
 Snapshot
-Entrust
-Transaction
-Tree
 SubscribeDataType
 Stock
 Future

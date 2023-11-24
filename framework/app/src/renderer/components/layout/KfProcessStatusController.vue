@@ -416,6 +416,10 @@ onMounted(() => {
         align-items: center;
         margin-right: 8px;
 
+        .process-id {
+          width: 112px;
+        }
+
         .info-item {
           margin-right: 8px;
 

@@ -1213,6 +1213,7 @@ declare namespace KungfuApi {
     max_redemption_volume: bigint; // 赎回上限
     min_volume: bigint; // 最小申赎单位
     etf_type: ETFTypeEnum; // etf种类
+    etf_status: ETFStatus; // etf状态
   }
 
   export interface BasketResolved extends Basket {
@@ -1242,6 +1243,7 @@ declare namespace KungfuApi {
     todayVolume?: string;
     yesterdayVolume?: string;
     posVolume?: string;
+    lastPrice?: number;
   }
 
   export interface BasketInstrumentForOrder extends BasketInstrumentResolved {

@@ -1,5 +1,12 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from 'vue';
+import {
+  computed,
+  getCurrentInstance,
+  nextTick,
+  onMounted,
+  ref,
+  watch,
+} from 'vue';
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
 import KfConfigSettingsForm from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfConfigSettingsForm.vue';
 import {
@@ -65,6 +72,7 @@ import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/file
 
 const { t } = VueI18n.global;
 const { error, success } = messagePrompt();
+const app = getCurrentInstance();
 
 const { getPriceTickAndPrecision } = useActiveInstruments();
 const { instrumentKeyAccountsMap, uiExtConfigs, globalSetting } = storeToRefs(
@@ -614,6 +622,11 @@ async function handleMakeOrder(): Promise<void> {
       if (!tdProcessId) continue;
       await placeOrder(orderInput, currentGlobalKfLocation.value, tdProcessId);
     }
+    app?.proxy?.$globalBus.next({
+      tag: 'main',
+      name: 'click:makeOrder',
+      orderInput: makeOrderInput,
+    });
   } catch (e) {
     if ((<Error>e).message) {
       error((<Error>e).message);

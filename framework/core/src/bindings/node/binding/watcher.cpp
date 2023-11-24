@@ -306,33 +306,10 @@ Napi::Value Watcher::IssueOrder(const Napi::CallbackInfo &info) {
   return InteractWithTD<OrderInput>(info, info[0].ToObject(), &OrderInput::order_id);
 }
 
-Napi::Value Watcher::IssueBasketOrder(const Napi::CallbackInfo &info) {
-  SPDLOG_INFO("issue basket order manually");
-
-  // auto account_location = IODevice::ExtractLocation(info, 1, get_locator());
-  // auto basket_order_info = info[0].ToObject();
-  // basket_order_info.Set("dest_id", Napi::Number::New(info.Env(), account_location->uid));
-  // if (info.Length() == 2) {
-  //   basket_order_info.Set("source_id", Napi::Number::New(info.Env(), get_live_home_uid()));
-  // } else {
-  //   auto strategy_location = IODevice::ExtractLocation(info, 2, get_locator());
-  //   basket_order_info.Set("source_id", Napi::Number::New(info.Env(), strategy_location->uid));
-  // }
-
-  // if (GetBigInt(basket_order_info.Get("volume")) == VOLUME_ZERO) {
-  //   basket_order_info.Set("calculation_mode", Napi::Number::New(info.Env(),
-  //   int(BasketOrderCalculationMode::Dynamic)));
-  // } else {
-  //   basket_order_info.Set("calculation_mode", Napi::Number::New(info.Env(),
-  //   int(BasketOrderCalculationMode::Static)));
-  // }
-
-  // return InteractWithTD<BasketOrder>(info, info[0].ToObject(), &BasketOrder::order_id);
-  return Napi::BigInt::New(info.Env(), std::uint64_t(0));
-}
-
 Napi::Value Watcher::IssueAlgoOrder(const Napi::CallbackInfo &info) {
+
   SPDLOG_INFO("issue algo order manually");
+
   return InteractWithTD<AlgoOrderInput>(info, info[0].ToObject(), &AlgoOrderInput::order_id);
 }
 
@@ -426,7 +403,6 @@ void Watcher::Init(Napi::Env env, Napi::Object exports) {
                       InstanceMethod("issueBlockMessage", &Watcher::IssueBlockMessage),                 //
                       InstanceMethod("issueOrderTrigger", &Watcher::IssueOrderTrigger),                 //
                       InstanceMethod("issueOrder", &Watcher::IssueOrder),                               //
-                      InstanceMethod("issueBasketOrder", &Watcher::IssueBasketOrder),                   //
                       InstanceMethod("issueAlgoOrder", &Watcher::IssueAlgoOrder),                       //
                       InstanceMethod("issueMark", &Watcher::IssueMark),                                 //
                       InstanceMethod("cancelOrder", &Watcher::CancelOrder),                             //

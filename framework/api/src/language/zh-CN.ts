@@ -850,6 +850,9 @@ export default {
     skip_confirm_make_order: '跳过下单确认弹窗',
     set_skip_confirm_make_order:
       '开启后, 手动下单时不再弹出二次确认弹窗, 直接执行下单操作',
+    skip_sync_position: '跳过每分钟一次的持仓同步',
+    set_skip_sync_position:
+      '开启后不再进行每分钟一次的持仓同步, 仅在启动交易账户时拉取最新持仓。(每分钟一次的持仓同步有概率会因为在途成交回报问题导致持仓重复计算, 开启该选项后仅在功夫本地计算持仓, 但如果涉及功夫系统外委托对持仓造成的影响, 则不会更新到本地)',
 
     code_editor: '代码编辑器',
     tab_space_type: '缩进类别',

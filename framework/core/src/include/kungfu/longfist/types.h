@@ -422,9 +422,6 @@ KF_DEFINE_DATA_TYPE(                                           //
 
     (int64_t, volume), // 目标量
 
-    // (uint32_t, source_id), // 下单方
-    // (uint32_t, dest_id),   // 目标账户
-
     (kungfu::array<char, ALGO_TYPE_ID_LEN>, algo_type_id), // 算法类型
     (kungfu::array<char, ALGO_ID_LEN>, algo_id),           // 算法id
 
@@ -455,9 +452,6 @@ KF_DEFINE_PACK_TYPE(                                           //
 
     (int64_t, volume),      // 目标量
     (int64_t, volume_left), // 剩余数量
-
-    // (uint32_t, source_id), // 下单方
-    // (uint32_t, dest_id),   // 目标账户
 
     (kungfu::array<char, ALGO_TYPE_ID_LEN>, algo_type_id), // 算法类型
     (kungfu::array<char, ALGO_ID_LEN>, algo_id),           // 算法id

@@ -161,7 +161,6 @@ origin_order_id
 basket_uid
 price_level
 price_offset
-dest_id
 algo_type_id
 algo_id
 args
@@ -231,9 +230,11 @@ max_cash_ratio
 max_purchase_volume
 max_redemption_volume
 min_volume
+etf_type
 rate
 replace_flag
 cash_premium_ratio
+dest_id
 base_time
 duration
 repeat
@@ -417,6 +418,11 @@ PhysicalBondETF
 CommodityETF
 CashBondETF
 ETFType
+Forbid
+Allow
+PurchaseOnly
+RedemptionOnly
+ETFStatus
 Last
 Sell5
 Sell4

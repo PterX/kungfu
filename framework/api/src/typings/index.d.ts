@@ -1111,7 +1111,7 @@ declare namespace KungfuApi {
     todayVolume?: string;
     yesterdayVolume?: string;
     posVolume?: string;
-    last_price?: number;
+    lastPrice?: number;
   }
 
   export interface BasketInstrumentForOrder extends BasketInstrumentResolved {

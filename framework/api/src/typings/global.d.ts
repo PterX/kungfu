@@ -138,6 +138,8 @@ export interface RootConfigJSON {
       offsetFilter?: Record<string, boolean>;
       ableHedgeFlag?: boolean;
     };
+
+    clearLocalStorage?: boolean;
   };
 }
 

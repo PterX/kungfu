@@ -147,4 +147,5 @@ export interface GlobalStorageData {
   skippedVersions?: string[];
   needClearJournal?: boolean;
   needClearDB?: boolean;
+  historicalUsedVersions?: string[];
 }

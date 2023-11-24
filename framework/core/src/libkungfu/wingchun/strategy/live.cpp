@@ -413,8 +413,6 @@ uint64_t LiveContext::insert_algo_order(const std::string &instrument_id, const 
   input.insert_time = now();
   input.begin_time = begin_time;
   input.end_time = end_time;
-  input.source_id = app_.get_home_uid();
-  input.dest_id = account_location_uid;
   strcpy(input.instrument_id, instrument_id.c_str());
   strcpy(input.exchange_id, exchange_id.c_str());
   input.instrument_type = get_instrument_type(exchange_id, instrument_id);
@@ -453,6 +451,7 @@ uint64_t LiveContext::update_algo_order_volume(uint64_t origin_order_id, const s
   input.origin_order_id = origin_order_id;
   input.volume = volume;
   input.is_local = true;
+  input.insert_time = now();
 
   writer->write(now(), input);
   return input.order_id;

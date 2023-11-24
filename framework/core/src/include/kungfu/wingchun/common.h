@@ -748,9 +748,6 @@ inline void algo_order_from_input(const longfist::types::AlgoOrderInput &algo_or
 
   algo_order.basket_uid = algo_order_input.basket_uid;
 
-  algo_order.source_id = algo_order_input.source_id;
-  algo_order.dest_id = algo_order_input.dest_id;
-
   strcpy(algo_order.algo_type_id, algo_order_input.algo_type_id);
   strcpy(algo_order.algo_id, algo_order_input.algo_id);
 

@@ -33,7 +33,7 @@ class Report(wc.Report):
         ctx.constants = constants
         ctx.utils = utils
         self.ctx = ctx
-        self.__init_report(ctx.report)
+        self.__init_report(ctx.path)
 
     def __init_report(self, path):
         report_dir = os.path.dirname(path)

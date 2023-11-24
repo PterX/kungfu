@@ -282,8 +282,18 @@ inline longfist::enums::InstrumentType get_instrument_type_by_exchange_hk(const 
       {89000, 89999, longfist::enums::InstrumentType::StockOption}, // 衍生權證
       {90000, 99999, longfist::enums::InstrumentType::Stock},       // 供日後使用
   };
-
-  int nId = std::stoi(instrument_id);
+  int nId = 0;
+  try {
+    nId = std::stoi(instrument_id);
+  } catch (const std::invalid_argument &ia) {
+    // Handle invalid_argument exception
+    SPDLOG_ERROR("Invalid argument: {}, instrument_id: {}", ia.what(), instrument_id);
+    return longfist::enums::InstrumentType::Unknown;
+  } catch (const std::out_of_range &oor) {
+    // Handle out_of_range exception
+    SPDLOG_ERROR("Out of range: {}, instrument_id: {}", oor.what(), instrument_id);
+    return longfist::enums::InstrumentType::Unknown;
+  }
 
   for (auto &iter : hk_code_type_def) {
     if (nId >= iter.beg && nId <= iter.end) {
@@ -721,6 +731,7 @@ inline void algo_order_from_input(const longfist::types::AlgoOrderInput &algo_or
   algo_order.order_id = algo_order_input.order_id;
   algo_order.begin_time = algo_order_input.begin_time;
   algo_order.end_time = algo_order_input.end_time;
+  algo_order.insert_time = algo_order_input.insert_time;
 
   strcpy(algo_order.instrument_id, algo_order_input.instrument_id);
   strcpy(algo_order.exchange_id, algo_order_input.exchange_id);
@@ -729,8 +740,12 @@ inline void algo_order_from_input(const longfist::types::AlgoOrderInput &algo_or
   algo_order.side = algo_order_input.side;
   algo_order.offset = algo_order_input.offset;
   algo_order.price_type = algo_order_input.price_type;
+  algo_order.price_level = algo_order_input.price_level;
+  algo_order.price_offset = algo_order_input.price_offset;
+
   algo_order.volume = algo_order_input.volume;
   algo_order.volume_left = algo_order_input.volume;
+
   algo_order.basket_uid = algo_order_input.basket_uid;
 
   strcpy(algo_order.algo_type_id, algo_order_input.algo_type_id);

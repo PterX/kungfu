@@ -384,5 +384,13 @@ void bind_enums(py::module &m) {
       .value("Unknown", ETFType::Unknown)
       .export_values()
       .def("__eq__", [](const ETFType &a, int b) { return static_cast<int>(a) == b; });
+
+  py::enum_<ETFStatus>(m_enums, "ETFStatus", py::arithmetic())
+      .value("Forbid", ETFStatus::Forbid)
+      .value("Allow", ETFStatus::Allow)
+      .value("PurchaseOnly", ETFStatus::PurchaseOnly)
+      .value("RedemptionOnly", ETFStatus::RedemptionOnly)
+      .value("Unknown", ETFStatus::Unknown)
+      .def("__eq__", [](const ETFStatus &a, int b) { return static_cast<int>(a) == b; });
 }
 } // namespace kungfu::longfist::pybind

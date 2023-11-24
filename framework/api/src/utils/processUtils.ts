@@ -879,6 +879,7 @@ export const startLedger = async (force = false): Promise<void> => {
       process.env.BY_PASS_REFRESHBOOK ??
       globalSetting?.performance?.bypassRefreshBook ??
       false;
+    const skipSyncPosition = globalSetting?.trade?.skipSyncPosition ?? false;
     const args = buildArgs(
       `run -c system -g service -n ledger -a '{"bypass_refresh_book": ${bypassRefreshBook}}'`,
     );
@@ -886,6 +887,11 @@ export const startLedger = async (force = false): Promise<void> => {
       name: processName,
       args,
       force,
+      env: skipSyncPosition
+        ? {
+            KF_SKIP_SYNC_POSITION: 'true',
+          }
+        : {},
     });
   } catch (err: unknown) {
     kfLogger.error((<Error>err).message);

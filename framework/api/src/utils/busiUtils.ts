@@ -2560,13 +2560,13 @@ export const dealByConfigItemType = (
   }
 };
 
-export const kfConfigItemsToArgsByPrimaryForShow = (
+export const kfConfigItemsToArgsByShowArgForShow = (
   settings: KungfuApi.KfConfigItem[],
   formState: Record<string, KungfuApi.KfConfigValue>,
 ): string => {
   const { isLanguageKeyAvailable } = useLanguage();
   return settings
-    .filter((item) => item.primary)
+    .filter((item) => item.showArg)
     .map((item) => ({
       label: isLanguageKeyAvailable(item.name) ? t(item.name) : item.name,
       value: dealByConfigItemType(item.type, formState[item.key], item.options),

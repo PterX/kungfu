@@ -33,7 +33,7 @@ void AlgoOrderService::on_algo_order_input(const event_ptr &event) {
     target_algo_order.volume = algo_order_input.volume;
 
     // waiting_record_local_algo_orders_.insert_or_assign(target_algo_order.order_id, target_algo_order_state);
-    
+    vendor_.get_writer(event->source())->write(time::now_in_nano(), target_algo_order);
 
     return;
   }

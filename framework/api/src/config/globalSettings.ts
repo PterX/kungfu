@@ -194,7 +194,6 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
         type: 'bool',
         for: 'ui',
       },
-
       {
         key: 'limit',
         name: t('globalSettingConfig.trade_limit'),
@@ -259,6 +258,13 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
         ],
         default: ['yesterday_volume', 'today_volume'],
         for: 'ui',
+      },
+      {
+        key: 'skipSyncPosition',
+        name: t('globalSettingConfig.skip_sync_position'),
+        tip: t('globalSettingConfig.set_skip_sync_position'),
+        type: 'bool',
+        default: false,
       },
     ],
   },

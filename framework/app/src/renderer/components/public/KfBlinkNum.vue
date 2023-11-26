@@ -74,12 +74,12 @@ watch(
     :title="num"
     :key="num"
   >
-    <template v-if="$slots.frontIcon">
-      <slot name="frontIcon"></slot>
+    <template v-if="$slots.prefix">
+      <slot name="prefix"></slot>
     </template>
     <span>{{ num }}</span>
-    <template v-if="$slots.endIcon">
-      <slot name="endIcon"></slot>
+    <template v-if="$slots.suffix">
+      <slot name="suffix"></slot>
     </template>
   </div>
 </template>

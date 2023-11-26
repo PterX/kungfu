@@ -362,10 +362,9 @@ void Bookkeeper::try_sync_position_end(const PositionEnd &position_end) {
     return std::any_of(source_map.begin(), source_map.end(), [&](const auto &source_pair) {
       const auto &source_position = source_pair.second;
       const auto &target_position = target_book->get_position_for(source_position.direction, source_position);
-      return source_position.volume != target_position.volume ||                     // 数量
-             source_position.open_volume != target_position.open_volume ||           // 今开
-             source_position.yesterday_volume != target_position.yesterday_volume || // 昨仓数量
-             source_position.frozen_total != target_position.frozen_total;           // 冻结数量
+      return source_position.volume != target_position.volume ||                   // 数量
+             source_position.open_volume != target_position.open_volume ||         // 今开
+             source_position.yesterday_volume != target_position.yesterday_volume; // 昨仓数量
     });
   };
 
@@ -377,8 +376,8 @@ void Bookkeeper::try_sync_position_end(const PositionEnd &position_end) {
     for (auto &book_listener : book_listeners_) {
       book_listener->on_position_sync_reset(*old_book, *new_book);
     }
-    SPDLOG_WARN("local position volume of {} is different from TD server",
-                app_.get_location_uname(position_end.holder_uid));
+    SPDLOG_DEBUG("local position volume of {} is different from TD server",
+                 app_.get_location_uname(position_end.holder_uid));
     old_book->mirror_position_from(*new_book);
     old_book->update(app_.now(), account_method_type_);
   }

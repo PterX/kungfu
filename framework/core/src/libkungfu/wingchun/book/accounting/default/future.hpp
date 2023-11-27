@@ -63,7 +63,7 @@ public:
 
   void apply_quote(Book_ptr &book, const Quote &quote) override {
     auto apply = [&](Position &position) {
-      if (position.volume == 0) {
+      if (position.volume <= 0) { // only calculate when greater than 0
         return;
       }
       auto cm_mr =
@@ -139,11 +139,7 @@ public:
   }
 
   void apply_order(uint32_t source, uint32_t dest, Book_ptr &book, const Order &order) override {
-    if (not guard_order_accounting(book, order)) {
-      return;
-    }
-
-    if (dest == location::SYNC or dest == location::PUBLIC) {
+    if (not guard_order_accounting(source, dest, book, order)) {
       return;
     }
 
@@ -171,7 +167,7 @@ public:
   }
 
   void apply_trade(uint32_t source, uint32_t dest, Book_ptr &book, const Trade &trade) override {
-    if (not guard_trade_accounting(book, trade)) {
+    if (not guard_trade_accounting(source, dest, book, trade)) {
       return;
     }
 
@@ -228,10 +224,10 @@ private:
     auto margin_ratio_by_pos = cm_mr.margin_ratio;
     auto margin = contract_multiplier * trade.price * cm_mr.exchange_rate * trade.volume * margin_ratio_by_pos;
     position.margin += margin;
-    position.avg_open_price = (position.volume + trade.volume == 0)
-                                  ? 0
-                                  : (position.avg_open_price * position.volume + trade.price * trade.volume) /
-                                        double(position.volume + trade.volume);
+    if (position.volume + trade.volume > 0 && trade.price > 0) { // only calculate when greater than 0
+      position.avg_open_price = (position.avg_open_price * position.volume + trade.price * trade.volume) /
+                                double(position.volume + trade.volume);
+    }
     position.volume += trade.volume;
     position.open_volume += trade.volume;
     position.last_price = position.last_price > 0 ? position.last_price : trade.price;

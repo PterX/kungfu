@@ -77,23 +77,7 @@ void TraderVendor::clean_orders() {
       order.status = OrderStatus::Lost;
       order.update_time = time::now_in_nano();
 
-      if (strategy_uid == location::PUBLIC) {
-        write_to(now(), order);
-        continue;
-      }
-
-      strategy_uids.emplace(strategy_uid);
-
-      events_ | is(Channel::tag) | filter([&, strategy_uid](const event_ptr &event) {
-        const Channel &channel = event->data<Channel>();
-        return channel.source_id == get_home_uid() and channel.dest_id == strategy_uid;
-      }) | first() |
-          $([this, order, strategy_uid](auto event) { write_to(now(), order, strategy_uid); });
-    }
-  }
-  for (auto uid : strategy_uids) {
-    if (not has_writer(uid)) {
-      request_write_to(now(), uid);
+      try_write_to(now(), order, strategy_uid);
     }
   }
 }

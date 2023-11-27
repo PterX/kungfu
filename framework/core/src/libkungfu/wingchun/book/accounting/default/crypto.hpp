@@ -45,13 +45,13 @@ public:
   virtual void apply_order_input(uint32_t source, uint32_t dest, Book_ptr &book, const OrderInput &input) override {}
 
   virtual void apply_order(uint32_t source, uint32_t dest, Book_ptr &book, const Order &order) override {
-    if (not guard_order_accounting(book, order)) {
+    if (not guard_order_accounting(source, dest, book, order)) {
       return;
     }
   }
 
   virtual void apply_trade(uint32_t source, uint32_t dest, Book_ptr &book, const Trade &trade) override {
-    if (not guard_trade_accounting(book, trade)) {
+    if (not guard_trade_accounting(source, dest, book, trade)) {
       return;
     }
 

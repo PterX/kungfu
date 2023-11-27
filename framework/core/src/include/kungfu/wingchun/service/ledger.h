@@ -36,10 +36,12 @@ protected:
 private:
   broker::AutoClient broker_client_;
   book::Bookkeeper bookkeeper_;
-  std::unordered_map<uint32_t, book::Book> tmp_books_;
+  std::unordered_map<uint32_t, book::Book> tmp_books_ = {};
   std::unordered_map<uint64_t, state<longfist::types::OrderStat>> order_stats_ = {};
   BrokerStateMap broker_states_ = {};
   OperatorStateMap operator_states_ = {};
+  bool sync_asset_ = false;
+  bool sync_position_ = false;
 
   static bool bypass_refresh_book();
 

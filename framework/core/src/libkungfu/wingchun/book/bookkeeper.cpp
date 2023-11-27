@@ -21,9 +21,6 @@ Bookkeeper::Bookkeeper(apprentice &app, broker::Client &broker_client, bool bypa
     : app_(app), broker_client_(broker_client), static_data_(app), bypass_quote_(bypass_quote),
       account_method_type_(book::get_accounting_method_type()) {
   book::AccountingMethod::setup_defaults(*this, account_method_type_);
-  sync_asset_ = std::getenv("KF_BYPASS_SYNC_ASSET") == nullptr;
-  sync_position_ = std::getenv("KF_BYPASS_SYNC_POSITION") == nullptr;
-  SPDLOG_DEBUG("sync_asset_: {},  sync_position_: {}", sync_asset_, sync_position_);
 }
 
 bool Bookkeeper::has_book(uint32_t location_uid) { return books_.find(location_uid) != books_.end(); }
@@ -220,7 +217,7 @@ void Bookkeeper::try_update_position(const Position &position) {
 }
 
 void Bookkeeper::try_sync_asset(const longfist::types::Asset &asset) {
-  if (not sync_asset_ or not app_.has_location(asset.holder_uid)) {
+  if (not app_.has_location(asset.holder_uid)) {
     return;
   }
 
@@ -238,7 +235,7 @@ void Bookkeeper::try_sync_asset(const longfist::types::Asset &asset) {
 }
 
 void Bookkeeper::try_sync_position(const longfist::types::Position &position) {
-  if (not sync_position_ or not app_.has_location(position.holder_uid)) {
+  if (not app_.has_location(position.holder_uid)) {
     return;
   }
   auto book = get_book_replica(position.holder_uid);
@@ -254,7 +251,7 @@ Book_ptr Bookkeeper::get_book_replica(uint32_t location_uid) {
 }
 
 void Bookkeeper::try_sync_position_end(const PositionEnd &position_end) {
-  if (not sync_position_ or not app_.has_location(position_end.holder_uid)) {
+  if (not app_.has_location(position_end.holder_uid)) {
     return;
   }
 
@@ -266,10 +263,9 @@ void Bookkeeper::try_sync_position_end(const PositionEnd &position_end) {
       const auto &source_position = source_pair.second;
       auto &target_position = target_book->get_position(source_position.source_id, source_position.direction,
                                                         source_position.exchange_id, source_position.instrument_id);
-      return source_position.volume != target_position.volume ||                     // 数量
-             source_position.open_volume != target_position.open_volume ||           // 今开
-             source_position.yesterday_volume != target_position.yesterday_volume || // 昨仓数量
-             source_position.frozen_total != target_position.frozen_total;           // 冻结数量
+      return source_position.volume != target_position.volume ||                   // 数量
+             source_position.open_volume != target_position.open_volume ||         // 今开
+             source_position.yesterday_volume != target_position.yesterday_volume; // 昨仓数量
     });
   };
 
@@ -281,8 +277,8 @@ void Bookkeeper::try_sync_position_end(const PositionEnd &position_end) {
     for (auto &book_listener : book_listeners_) {
       book_listener->on_position_sync_reset(*old_book, *new_book);
     }
-    SPDLOG_WARN("local position volume of {} is different from TD server",
-                app_.get_location_uname(position_end.holder_uid));
+    SPDLOG_DEBUG("local position volume of {} is different from TD server",
+                 app_.get_location_uname(position_end.holder_uid));
     old_book->mirror_position_from(*new_book);
     old_book->update(app_.now(), account_method_type_);
   }
@@ -335,10 +331,6 @@ void Bookkeeper::on_output_key(const event_ptr &event) {
   const OutputKey &key = event->data<OutputKey>();
   get_book(event->source())->add_source_id(key.location_uid);
 }
-
-bool Bookkeeper::is_sync_asset() const { return sync_asset_; }
-
-bool Bookkeeper::is_sync_position() const { return sync_position_; }
 
 void Bookkeeper::on_broker_state(const longfist::types::BrokerStateUpdate &state_update) {
   ready_tds_.insert_or_assign(state_update.location_uid, state_update.state == BrokerState::Ready);

@@ -29,8 +29,8 @@ public:
   FutureAccountingMethod() = default;
 
   void apply_quote(Book_ptr &book, const Quote &quote) override {
-    auto apply = [&](auto &position) {
-      if (position.volume == 0) {
+    auto apply = [&](Position &position) {
+      if (position.volume <= 0) { // only calculate when greater than 0
         return;
       }
 
@@ -203,10 +203,10 @@ private:
     auto margin_ratio_by_pos = cm_mr.margin_ratio;
     auto margin = contract_multiplier * trade.price * cm_mr.exchange_rate * trade.volume * margin_ratio_by_pos;
     position.margin += margin;
-    position.avg_open_price = (position.volume + trade.volume == 0)
-                                  ? 0
-                                  : (position.avg_open_price * position.volume + trade.price * trade.volume) /
-                                        double(position.volume + trade.volume);
+    if (position.volume + trade.volume > 0 && trade.price > 0) { // only calculate when greater than 0
+      position.avg_open_price = (position.avg_open_price * position.volume + trade.price * trade.volume) /
+                                double(position.volume + trade.volume);
+    }
     position.volume += trade.volume;
     position.open_volume += trade.volume;
     position.last_price = position.last_price > 0 ? position.last_price : trade.price;
@@ -225,7 +225,6 @@ private:
     book->asset.avail -= margin;
     book->asset.accumulated_fee += commission;
     book->asset.intraday_fee += commission;
-    // add asset_margin realtime calc, refer to Book::update(int64_t, AccountingMethodType)
     book->asset.margin += margin;
   }
 

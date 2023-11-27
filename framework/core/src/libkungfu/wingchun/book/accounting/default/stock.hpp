@@ -134,11 +134,7 @@ public:
   }
 
   virtual void apply_order(uint32_t source, uint32_t dest, Book_ptr &book, const Order &order) override {
-    if (not guard_order_accounting(book, order)) {
-      return;
-    }
-
-    if (dest == location::SYNC or dest == location::PUBLIC) {
+    if (not guard_order_accounting(source, dest, book, order)) {
       return;
     }
 
@@ -158,7 +154,7 @@ public:
     update_position(book, position);
   }
   virtual void apply_trade(uint32_t source, uint32_t dest, Book_ptr &book, const Trade &trade) override {
-    if (not guard_trade_accounting(book, trade)) {
+    if (not guard_trade_accounting(source, dest, book, trade)) {
       return;
     }
 
@@ -168,10 +164,6 @@ public:
       apply_sell(book, trade, is_local);
     } else if (trade.side == Side::Buy) {
       apply_buy(book, trade, is_local);
-    }
-
-    if (not is_local) {
-      return;
     }
 
     if (trade.side == Side::MarginTrade) {

@@ -27,11 +27,7 @@ public:
   }
 
   void apply_order(uint32_t source, uint32_t dest, Book_ptr &book, const Order &order) override {
-    if (not guard_order_accounting(book, order)) {
-      return;
-    }
-
-    if (dest == location::SYNC or dest == location::PUBLIC) {
+    if (not guard_order_accounting(source, dest, book, order)) {
       return;
     }
 

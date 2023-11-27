@@ -230,15 +230,11 @@ protected:
     double tax = calculate_tax(trade);
     position.last_price = position.last_price > 0 ? position.last_price : trade.price;
     if (position.volume + trade.volume > 0 && trade.price > 0) {
-      position.avg_open_price = (position.volume + trade.volume == 0)
-                                    ? 0
-                                    : (position.avg_open_price * position.volume + trade_amt / cd_mr.exchange_rate) /
-                                          (double)(position.volume + trade.volume);
+      position.avg_open_price = (position.avg_open_price * position.volume + trade_amt / cd_mr.exchange_rate) /
+                                (double)(position.volume + trade.volume);
       position.position_cost_price =
-          (position.volume + trade.volume == 0)
-              ? 0
-              : (position.position_cost_price * position.volume + trade_amt / cd_mr.exchange_rate + commission + tax) /
-                    (double)(position.volume + trade.volume);
+          (position.position_cost_price * position.volume + trade_amt / cd_mr.exchange_rate + commission + tax) /
+          (double)(position.volume + trade.volume);
     }
     position.volume += trade.volume;
     position.open_volume += trade.volume;

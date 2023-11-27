@@ -5,11 +5,7 @@
     "name": "Kungfu Trader",
     "email": "info@kungfu.link"
   },
-<<<<<<< HEAD
   "version": "2.6.8-alpha.14",
-=======
-  "version": "2.5.18-alpha.4",
->>>>>>> 98170afc4828412aad47efca428303c2c9100381
   "description": "Kungfu Trader Artifact",
   "license": "Apache-2.0",
   "private": true,
@@ -26,7 +22,6 @@
     "cli": "yarn kfs craft cli"
   },
   "dependencies": {
-<<<<<<< HEAD
     "@kungfu-trader/kfx-broker-sim": "^2.6.8-alpha.14",
     "@kungfu-trader/kfx-broker-xtp-demo": "^2.6.8-alpha.14",
     "@kungfu-trader/kfx-indexer-live": "^2.6.8-alpha.14",
@@ -36,15 +31,6 @@
     "@kungfu-trader/kungfu-cli": "^2.6.8-alpha.14",
     "@kungfu-trader/kungfu-core": "^2.6.8-alpha.14",
     "@kungfu-trader/kungfu-sdk": "^2.6.8-alpha.14"
-=======
-    "@kungfu-trader/kfx-broker-sim": "^2.5.18-alpha.4",
-    "@kungfu-trader/kfx-broker-xtp-demo": "^2.5.18-alpha.4",
-    "@kungfu-trader/kfx-operator-bar": "^2.5.18-alpha.4",
-    "@kungfu-trader/kungfu-app": "^2.5.18-alpha.4",
-    "@kungfu-trader/kungfu-cli": "^2.5.18-alpha.4",
-    "@kungfu-trader/kungfu-core": "^2.5.18-alpha.4",
-    "@kungfu-trader/kungfu-sdk": "^2.5.18-alpha.4"
->>>>>>> 98170afc4828412aad47efca428303c2c9100381
   },
   "repository": {
     "url": "https://github.com/kungfu-trader/kungfu.git"

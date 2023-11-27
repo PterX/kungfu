@@ -85,7 +85,9 @@ watch(
 </template>
 <style lang="less">
 .kf-blink-num {
-  display: inline-block;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
   width: 100%;
   height: 100%;
   box-sizing: border-box;
@@ -113,10 +115,6 @@ watch(
       color: @green-6;
       animation: nanoGreenColorBlink 0.7s 1;
     }
-  }
-
-  span {
-    vertical-align: middle;
   }
 }
 

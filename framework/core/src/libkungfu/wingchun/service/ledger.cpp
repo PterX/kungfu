@@ -28,8 +28,8 @@ Ledger::Ledger(locator_ptr locator, mode m, bool low_latency, const std::string 
     : apprentice(location::make_shared(m, category::SYSTEM, "service", "ledger", std::move(locator)), low_latency,
                  arguments),
       broker_client_(*this), bookkeeper_(*this, broker_client_, true) {
-  sync_asset_ = std::getenv("KF_SKIP_SYNC_ASSET") == nullptr;
-  sync_position_ = std::getenv("KF_SKIP_SYNC_POSITION") == nullptr;
+  sync_asset_ = std::getenv("KF_BYPASS_SYNC_ASSET") == nullptr;
+  sync_position_ = std::getenv("KF_BYPASS_SYNC_POSITION") == nullptr;
   SPDLOG_DEBUG("sync_asset_: {},  sync_position_: {}", sync_asset_, sync_position_);
 }
 

@@ -1046,6 +1046,8 @@ export const startLedger = async (
       process.env.BY_PASS_REFRESHBOOK ??
       globalSetting?.performance?.bypassRefreshBook ??
       false;
+    const skipSyncPosition = globalSetting?.trade?.skipSyncPosition ?? false;
+
     if (isReplay && replayConfig) {
       args = buildKfcArgs({
         logLevel: replayConfig.log_level,
@@ -1063,10 +1065,16 @@ export const startLedger = async (
         },
       });
     }
+
     await startProcess({
       name: ProcessId,
       args,
       force,
+      env: skipSyncPosition
+        ? {
+            KF_SKIP_SYNC_POSITION: 'true',
+          }
+        : {},
     });
   } catch (err: unknown) {
     kfLogger.error((<Error>err).message);

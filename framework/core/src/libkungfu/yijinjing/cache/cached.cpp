@@ -18,8 +18,8 @@ using namespace kungfu::yijinjing::cache;
 // https://sqlite.org/limits.html
 // The maximum number of bytes in the text of an SQL statement is limited to SQLITE_MAX_SQL_LENGTH which defaults to
 // 1,000,000,000.
-#define DEFAULT_STORE_VOLUME_BY_INTERVAL 2000
-#define STORE_INTERVAL 500
+#define DEFAULT_STORE_VOLUME_BY_INTERVAL 1000
+#define STORE_INTERVAL 100
 
 namespace kungfu::yijinjing::cache {
 

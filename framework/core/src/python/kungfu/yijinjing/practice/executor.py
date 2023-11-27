@@ -326,8 +326,14 @@ class ExtensionExecutor:
             )
 
         if kfj.MODES[ctx.mode] == lf.enums.mode.BACKTEST:
-            matcher = load_matcher(ctx, ctx.matcher)
-            if matcher:
+            if ctx.matcher:
+                matcher = load_module(
+                    ctx,
+                    ctx.matcher,
+                    Path(ctx.matcher).stem.split(".")[0],
+                    None,
+                    "matcher",
+                )
                 ctx.runner.set_matcher(matcher)
             begin_time_stamp, end_time_stamp = parse_begin_end(ctx)
             ctx.runner.set_begin_time(begin_time_stamp)
@@ -338,7 +344,9 @@ class ExtensionExecutor:
             ctx.runner.set_from_indexer(from_indexer)
             ctx.runner.set_to_indexer(to_indexer)
             if ctx.report:
-                report = load_report(ctx, ctx.report)
+                report = load_module(
+                    ctx, ctx.report, Path(ctx.report).stem.split(".")[0], Report
+                )
                 ctx.runner.set_report(report)
             if ctx.time_interval:
                 ctx.runner.set_time_interval(ctx.time_interval * kft.NANO_PER_SECOND)
@@ -413,7 +421,9 @@ class ExtensionExecutor:
             ctx.op_runner.set_from_indexer(from_indexer)
             ctx.op_runner.set_to_indexer(to_indexer)
             if ctx.report:
-                report = load_report(ctx, ctx.report)
+                report = load_module(
+                    ctx, ctx.report, Path(ctx.report).stem.split(".")[0], Report
+                )
                 ctx.op_runner.set_report(report)
             if ctx.time_interval:
                 ctx.op_runner.set_time_interval(ctx.time_interval * kft.NANO_PER_SECOND)
@@ -436,8 +446,9 @@ class RegistryJSONEncoder(json.JSONEncoder):
         return str(obj) if test else obj.__dict__
 
 
-def load_module(ctx, path, key, cls):
-    cls_name = cls.__name__
+def load_module(ctx, path, key, cls, cls_name=None):
+    if cls:
+        cls_name = cls.__name__
     ctx.logger.debug(f"loading {cls_name} from {path}")
     ctx.logger.debug(f"{cls_name} key: {key}")
     ctx.logger.debug(f"{cls_name} dirname: {os.path.dirname(path)}")
@@ -445,7 +456,7 @@ def load_module(ctx, path, key, cls):
     if path.endswith(".py"):
         return cls(ctx)  # keep strategy alive for pybind11
     elif key is not None and (path.endswith(".so") or path.endswith(".pyd")):
-        return try_load_cpp_module(ctx, path, key, cls)
+        return try_load_cpp_module(ctx, path, key, cls, cls_name)
     elif key is not None and path.endswith(key):
         return cls(ctx)
     else:
@@ -453,51 +464,12 @@ def load_module(ctx, path, key, cls):
         return cls(ctx)
 
 
-def load_matcher(ctx, path):
-    if not ctx.matcher:
-        return None
-    try:
-        sys.path.append(str(Path(path).parent))
-        lib_name = Path(path).stem.split(".")[0]
-        module = importlib.import_module(lib_name)
-        ctx.logger.debug(f"import matcher: {lib_name} success")
-        matcher_builder = getattr(module, "matcher")
-        return matcher_builder()
-    except Exception as e:
-        ctx.logger.debug("load_matcher failed: {}".format(e))
-        ctx.logger.warn("matcher path: {} cannot be import by python".format(path))
-        raise e
-
-
-def load_report(ctx, path):
-    cls = Report
-    try:
-        if path.endswith(".py") or os.path.isdir(path):
-            return cls(ctx)  # keep strategy alive for pybind11
-        elif path.endswith(".so") or path.endswith(".pyd"):
-            lib_name = Path(path).stem.split(".")[0]
-            dirname = os.path.dirname(path)
-            site.setup(dirname)
-            sys.path.insert(0, dirname)
-            try:
-                module = importlib.import_module(lib_name)
-                ctx.logger.debug(f"import as cpp {lib_name} success")
-                factory_func = getattr(module, cls.__name__.lower())
-                return factory_func()
-            except AttributeError as e:
-                sys.modules.pop(lib_name)
-                ctx.logger.debug(f"fallback to python loader due to: {e}")
-                ctx.report = os.path.join(os.path.dirname(path), lib_name)
-                return cls(ctx)
-        raise FileNotFoundError(f"report path: {path} not found")
-    except Exception as e:
-        ctx.logger.debug("load_report failed: {}".format(e))
-        ctx.logger.critical("report path: {} cannot be imported.".format(path))
-        raise e
-
-
-def try_load_cpp_module(ctx, path, key, cls):
-    cls_name = cls.__name__
+def try_load_cpp_module(ctx, path, key, cls, cls_name):
+    if cls:
+        cls_name = cls.__name__
+    dirname = os.path.dirname(path)
+    site.setup(dirname)
+    sys.path.insert(0, dirname)
     try:
         module = importlib.import_module(key)
         ctx.logger.debug(f"import as cpp {cls_name} success")

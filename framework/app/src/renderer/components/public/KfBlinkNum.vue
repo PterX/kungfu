@@ -74,7 +74,13 @@ watch(
     :title="num"
     :key="num"
   >
+    <template v-if="$slots.prefix">
+      <slot name="prefix"></slot>
+    </template>
     <span>{{ num }}</span>
+    <template v-if="$slots.suffix">
+      <slot name="suffix"></slot>
+    </template>
   </div>
 </template>
 <style lang="less">
@@ -111,10 +117,6 @@ watch(
 
   span {
     vertical-align: middle;
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    right: 8px;
   }
 }
 

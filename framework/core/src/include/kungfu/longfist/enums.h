@@ -459,13 +459,13 @@ enum class ETFStatus : int8_t {
   Unknown
 };
 
-NLOHMANN_JSON_SERIALIZE_ENUM(ETFStatus, {
-                                            {ETFStatus::Forbid, "Forbid"},
-                                            {ETFStatus::Allow, "Allow"},
-                                            {ETFStatus::PurchaseOnly, "PurchaseOnly"},
-                                            {ETFStatus::RedemptionOnly, "RedemptionOnly"},
-                                            {ETFStatus::Unknown, "Unknown"},
-                                        })
+KF_JSON_SERIALIZE_ENUM(ETFStatus, {
+                                      {ETFStatus::Forbid, "Forbid"},
+                                      {ETFStatus::Allow, "Allow"},
+                                      {ETFStatus::PurchaseOnly, "PurchaseOnly"},
+                                      {ETFStatus::RedemptionOnly, "RedemptionOnly"},
+                                      {ETFStatus::Unknown, "Unknown"},
+                                  })
 
 inline std::ostream &operator<<(std::ostream &os, ETFStatus t) { return os << int32_t(t); }
 

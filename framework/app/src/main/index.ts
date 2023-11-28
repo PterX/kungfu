@@ -397,7 +397,7 @@ function setMenu() {
               {
                 label: t('API_documentation'),
                 click: () =>
-                  openUrl('https://docs.kungfu-trader.com/latest/07-api.html'),
+                  openUrl('https://docs.kungfu-trader.com/latest/06-api.html'),
               },
               // {
               //   label: t('Kungfu_forum'),

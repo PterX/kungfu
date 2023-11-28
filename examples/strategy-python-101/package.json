@@ -6,7 +6,14 @@
   "license": "Apache-2.0",
   "private": true,
   "kungfuConfig": {
-    "key": "KungfuStrategy101Python"
+    "key": "KungfuStrategy101Python",
+    "assets": [
+      {
+        "name": "strategyDemo",
+        "src": "./src/python/KungfuStrategy101Python/__init__.py",
+        "dest": "strategyDemo.py"
+      }
+    ]
   },
   "scripts": {
     "clean": "kfs extension clean",

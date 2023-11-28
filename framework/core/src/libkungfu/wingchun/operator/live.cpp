@@ -86,12 +86,16 @@ void LiveContext::subscribe(const std::string &source, const std::vector<std::st
   for (const auto &instrument_id : instrument_ids) {
     broker_client_.subscribe(md_location, exchange_id, instrument_id);
   }
+  ensure_connect();
+  send_instrument_keys();
 }
 
 void LiveContext::subscribe_all(const std::string &source, uint8_t market_type, uint64_t instrument_type,
                                 uint64_t data_type) {
   auto md_location = broker_client_.find_md_location(source, app_.get_live_home());
   broker_client_.subscribe_all(md_location, market_type, instrument_type, data_type);
+  ensure_connect();
+  send_instrument_keys();
 }
 
 void LiveContext::subscribe_operator(const std::string &group, const std::string &name) {
@@ -159,6 +163,33 @@ void LiveContext::update_operator_state(OperatorStateUpdate &state_update) {
   state_update.update_time = now();
   state_update.location_uid = app_.get_live_home_uid();
   writer->write(state_update.update_time, state_update);
+}
+
+void LiveContext::ensure_connect() {
+  if (not started_) {
+    return;
+  }
+
+  const event_ptr &e = app_.get_reader()->current_frame();
+  for (const auto &pair : app_.get_registry()) {
+    SPDLOG_DEBUG("Register: {}", pair.second.to_string());
+    broker_client_.connect(e, pair.second);
+  }
+
+  for (const auto &pair : app_.get_bands()) {
+    SPDLOG_DEBUG("Band: {}", pair.second.to_string());
+    broker_client_.connect(e, pair.second);
+  }
+}
+
+void LiveContext::send_instrument_keys() {
+  if (not is_started()) {
+    return;
+  }
+  for (const auto &pair : app_.get_locations()) {
+    SPDLOG_DEBUG("Location: {}", pair.second->to_string());
+    broker_client_.try_renew(now(), pair.second);
+  }
 }
 
 yijinjing::data::location_ptr LiveContext::get_location(uint32_t location_uid) {

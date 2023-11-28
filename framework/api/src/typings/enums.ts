@@ -259,6 +259,7 @@ export enum KfExtTypeEnum {
   UI = 'ui',
   Matcher = 'matcher',
   Indexer = 'indexer',
+  Example = 'example',
 }
 
 export enum KfCategoryEnum {

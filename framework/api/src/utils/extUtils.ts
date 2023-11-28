@@ -100,18 +100,26 @@ export const dealKfExtType = (jsonConfig: {
     return kungfuConfig.type;
   }
 
-  if (name && name.startsWith?.('@kungfu-trader/kfx')) {
-    const nameStrArr = name.split('/')[1].split('-');
-    if (nameStrArr.length >= 3) {
-      const extType = nameStrArr[1] as KfExtTypeEnum;
-      if (allExtTypes.includes(extType)) return extType;
+  if (name) {
+    if (name.startsWith?.('@kungfu-trader/kfx')) {
+      const nameStrArr = name.split('/')[1].split('-');
+      if (nameStrArr.length >= 3) {
+        const extType = nameStrArr[1] as KfExtTypeEnum;
+        if (allExtTypes.includes(extType)) return extType;
+      }
+    }
+
+    if (name.startsWith?.('@kungfu-trader/examples')) {
+      return KfExtTypeEnum.Example;
     }
   }
 
   return KfExtTypeEnum.Unknown;
 };
 
-const getKfExtConfigList = async (): Promise<KungfuApi.KfExtOriginConfig[]> => {
+export const getKfExtConfigList = async (): Promise<
+  KungfuApi.KfExtOriginConfig[]
+> => {
   const extModuleDirs = await flattenExtensionModuleDirs(EXTENSION_DIRS);
   const packageJSONPaths = extModuleDirs.map((item) =>
     path.join(item, 'package.json'),

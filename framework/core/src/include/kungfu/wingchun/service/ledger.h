@@ -44,6 +44,9 @@ private:
   std::unordered_map<uint64_t, state<longfist::types::OrderStat>> order_stats_ = {};
   BrokerStateMap broker_states_ = {};
   OperatorStateMap operator_states_ = {};
+  bool sync_asset_ = false;
+  bool sync_asset_margin_ = false;
+  bool sync_position_ = false;
 
   bool bypass_refresh_book() const;
 

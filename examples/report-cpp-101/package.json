@@ -4,7 +4,6 @@
   "version": "2.7.0-alpha.21",
   "description": "KungFu Report 10",
   "license": "Apache-2.0",
-  "private": true,
   "kungfuConfig": {
     "key": "KungfuReport101Cpp"
   },

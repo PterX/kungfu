@@ -4,7 +4,6 @@
   "version": "2.7.0-alpha.21",
   "description": "KungFu Operator 101 - Python Demo",
   "license": "Apache-2.0",
-  "private": true,
   "kungfuConfig": {
     "key": "KungfuOperator101Python"
   },

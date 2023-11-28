@@ -117,6 +117,17 @@ export const dealKfExtType = (jsonConfig: {
   return KfExtTypeEnum.Unknown;
 };
 
+export const buildExtAssets = (kungfuConfig) => {
+  return (kungfuConfig.assets || []).reduce(
+    (assetsMap, asset: KungfuApi.KfExtOriginConfigAsset) => {
+      if (asset.name && asset.dest) assetsMap[asset.name] = asset;
+
+      return assetsMap;
+    },
+    {} as Record<string, KungfuApi.KfExtOriginConfigAsset>,
+  );
+};
+
 export const getKfExtConfigList = async (): Promise<
   KungfuApi.KfExtOriginConfig[]
 > => {
@@ -130,21 +141,13 @@ export const getKfExtConfigList = async (): Promise<
       return fse.readJSON(item).then((jsonConfig) => {
         const curConfigList: KungfuApi.KfExtOriginConfig[] = [];
         const extPath = path.dirname(item);
-        const assets = (jsonConfig.assets || []).reduce(
-          (assetsMap, asset: KungfuApi.KfExtOriginConfigAsset) => {
-            if (asset.name && asset.dest) assetsMap[asset.name] = asset;
-
-            return assetsMap;
-          },
-          {} as Record<string, KungfuApi.KfExtOriginConfigAsset>,
-        );
 
         if (jsonConfig.kungfuConfig) {
           curConfigList.push({
             ...(jsonConfig.kungfuConfig || {}),
             type: dealKfExtType(jsonConfig),
             version: jsonConfig.version || '',
-            assets,
+            assets: buildExtAssets(jsonConfig.kungfuConfig),
             dependencies: jsonConfig.dependencies || {},
             description: jsonConfig.description || '',
             extPath,
@@ -158,7 +161,7 @@ export const getKfExtConfigList = async (): Promise<
             ...(jsonConfig.kungfuConfigDev || {}),
             type: dealKfExtType(jsonConfig),
             version: jsonConfig.version || '',
-            assets,
+            assets: buildExtAssets(jsonConfig.kungfuConfigDev),
             dependencies: jsonConfig.dependencies || {},
             description: jsonConfig.description || '',
             extPath,

@@ -4,7 +4,6 @@
   "version": "2.7.0-alpha.21",
   "description": "KungFu Strategy 101 - C++ Demo",
   "license": "Apache-2.0",
-  "private": true,
   "kungfuConfig": {
     "key": "KungfuStrategy101Cpp"
   },

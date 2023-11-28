@@ -27,10 +27,10 @@ def post_start(context):
 def on_quote(context, quote, location, dest):
     side = random.choice([Side.Buy, Side.Sell])
     offset = random.choice([Offset.Open, Offset.Close])
-    side = Side.Buy
+    side = random.choice([Side.Buy, Side.Sell])
     price = quote.ask_price[0] if side == Side.Buy else quote.bid_price[0]
     price_type = random.choice([PriceType.Any, PriceType.Limit])
-    volume = 1 if quote.instrument_type == InstrumentType.Future else 100
+    volume = 3 if quote.instrument_type == InstrumentType.Future else 300
     order_id = context.insert_order(
         quote.instrument_id,
         quote.exchange_id,
@@ -43,6 +43,8 @@ def on_quote(context, quote, location, dest):
         offset,
     )
     context.log.info(f"insert order: {order_id}")
+    # 报完即撤
+    context.cancel_order(order_id)
 
 
 # 监听算子广播信息
@@ -52,9 +54,6 @@ def on_synthetic_data(context, synthetic_dataa, location, dest):
 
 def on_order(context, order, location, dest):
     context.log.info(f"on_order: {order}, from {location} to {dest}")
-    if not wc.utils.is_final_status(order.status):
-        # 报完即撤
-        context.cancel_order(order.order_id)
 
 
 def on_trade(context, trade, location, dest):

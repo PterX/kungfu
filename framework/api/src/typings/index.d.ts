@@ -982,8 +982,8 @@ declare namespace KungfuApi {
     status: OrderStatusEnum; // 订单状态
     error_msg: string; // 错误信息
 
-    source_id: number; // 下单方
-    dest_id: number;
+    source: number; // 下单方
+    dest: number;
   }
 
   export interface AlgoOrderAction {

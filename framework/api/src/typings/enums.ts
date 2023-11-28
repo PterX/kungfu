@@ -73,6 +73,14 @@ export enum ETFTypeEnum {
   Unknown,
 }
 
+export enum ETFStatusEnum {
+  Forbid, // 不允许申购也不允许赎回
+  Allow, // 允许申购和赎回
+  PurchaseOnly, // 只允许申购
+  RedemptionOnly, // 只允许赎回
+  Unknown,
+}
+
 // ETF成分股信息,标志改成分股是否可以由现金替代
 export enum CashReplaceFlagEnum {
   UnReplace, // 不可替代

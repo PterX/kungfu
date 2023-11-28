@@ -122,11 +122,21 @@ const getKfExtConfigList = async (): Promise<KungfuApi.KfExtOriginConfig[]> => {
       return fse.readJSON(item).then((jsonConfig) => {
         const curConfigList: KungfuApi.KfExtOriginConfig[] = [];
         const extPath = path.dirname(item);
+        const assets = (jsonConfig.assets || []).reduce(
+          (assetsMap, asset: KungfuApi.KfExtOriginConfigAsset) => {
+            if (asset.name && asset.dest) assetsMap[asset.name] = asset;
+
+            return assetsMap;
+          },
+          {} as Record<string, KungfuApi.KfExtOriginConfigAsset>,
+        );
+
         if (jsonConfig.kungfuConfig) {
           curConfigList.push({
             ...(jsonConfig.kungfuConfig || {}),
             type: dealKfExtType(jsonConfig),
             version: jsonConfig.version || '',
+            assets,
             dependencies: jsonConfig.dependencies || {},
             description: jsonConfig.description || '',
             extPath,
@@ -140,6 +150,7 @@ const getKfExtConfigList = async (): Promise<KungfuApi.KfExtOriginConfig[]> => {
             ...(jsonConfig.kungfuConfigDev || {}),
             type: dealKfExtType(jsonConfig),
             version: jsonConfig.version || '',
+            assets,
             dependencies: jsonConfig.dependencies || {},
             description: jsonConfig.description || '',
             extPath,
@@ -205,6 +216,7 @@ export const getKfExtensionConfigByCategory = (
           extPath,
           readmePath,
           releaseNotePath,
+          assets,
           version,
           description,
           dependencies,
@@ -222,6 +234,7 @@ export const getKfExtensionConfigByCategory = (
                   extPath,
                   readmePath,
                   releaseNotePath,
+                  assets,
                   version,
                   description,
                   dependencies,
@@ -247,6 +260,7 @@ export const getKfExtensionConfigByCategory = (
                   extPath,
                   readmePath,
                   releaseNotePath,
+                  assets,
                   version,
                   description,
                   dependencies,
@@ -299,6 +313,7 @@ export const getKfExtensionConfigByCategory = (
                         extPath,
                         readmePath,
                         releaseNotePath,
+                        assets,
                         version,
                         description,
                         dependencies,
@@ -344,6 +359,7 @@ const getKfUIExtensionConfigByExtKey = (
         ui_config: uiConfig,
         readmePath,
         releaseNotePath,
+        assets,
         version,
         description,
         dependencies,
@@ -361,6 +377,7 @@ const getKfUIExtensionConfigByExtKey = (
         name: extName,
         silent,
         access,
+        assets,
         extPath,
         readmePath,
         releaseNotePath,
@@ -389,6 +406,7 @@ const getKfCliExtensionConfigByExtKey = (
         cli_config: cliConfig,
         readmePath,
         releaseNotePath,
+        assets,
         version,
         description,
         dependencies,
@@ -405,6 +423,7 @@ const getKfCliExtensionConfigByExtKey = (
         name: extName,
         silent,
         access,
+        assets,
         extPath,
         readmePath,
         releaseNotePath,

@@ -220,12 +220,20 @@ declare namespace KungfuApi {
     type: KfConfigItemSupportedTypes;
   }
 
+  export interface KfExtOriginConfigAsset {
+    name?: string;
+    src: string;
+    dest?: string;
+    filter?: string;
+  }
+
   export interface KfExtOriginBaseConfig<T extends KfExtTypeEnum> {
     key: string;
     name: string;
     type: T;
     version: string;
     description: string;
+    assets: Record<string, kfExtOriginConfigAsset>;
     dependencies: Record<string, string>;
     extPath: string;
     readmePath: string;
@@ -401,6 +409,7 @@ declare namespace KungfuApi {
     key: string;
     version: string;
     description: string;
+    assets: Record<string, kfExtOriginConfigAsset>;
     dependencies: Record<string, string>;
     extPath: string;
     readmePath: string;

@@ -27,7 +27,7 @@ public:
   OtcStockAccountingMethod() = default;
 
   void apply_trade(uint32_t source, uint32_t dest, Book_ptr &book, const Trade &trade) override {
-    if (not guard_trade_accounting(book, trade)) {
+    if (not guard_trade_accounting(source, dest, book, trade)) {
       return;
     }
 

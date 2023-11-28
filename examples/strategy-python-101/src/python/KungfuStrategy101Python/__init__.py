@@ -42,6 +42,7 @@ def on_quote(context, quote, location, dest):
         side,
         offset,
     )
+    context.log.info(f"insert order: {order_id}")
 
 
 # 监听算子广播信息

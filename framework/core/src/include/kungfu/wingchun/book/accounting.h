@@ -46,9 +46,9 @@ public:
   static void setup_defaults(Bookkeeper &bookkeeper,
                              const longfist::enums::AccountingMethodType accounting_method_type);
 
-  bool guard_order_accounting(Book_ptr book, const longfist::types::Order &order);
+  bool guard_order_accounting(uint32_t source, uint32_t dest, Book_ptr book, const longfist::types::Order &order);
 
-  bool guard_trade_accounting(Book_ptr book, const longfist::types::Trade &trade);
+  bool guard_trade_accounting(uint32_t source, uint32_t dest, Book_ptr book, const longfist::types::Trade &trade);
 };
 
 DECLARE_PTR(AccountingMethod)

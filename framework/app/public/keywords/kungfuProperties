@@ -159,6 +159,8 @@ external_trigger_id
 order_trigger_action_id
 origin_order_id
 basket_uid
+price_level
+price_offset
 algo_type_id
 algo_id
 args

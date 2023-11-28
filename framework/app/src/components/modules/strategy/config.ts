@@ -61,6 +61,7 @@ export const setStrategyConfig: KungfuApi.KfStrategyExtConfig = {
   key: 'default',
   silent: true,
   access: {},
+  assets: {},
   extPath: '',
   version: '',
   description: '',

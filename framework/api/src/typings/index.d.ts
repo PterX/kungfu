@@ -220,12 +220,20 @@ declare namespace KungfuApi {
     type: KfConfigItemSupportedTypes;
   }
 
+  export interface KfExtOriginConfigAsset {
+    name?: string;
+    src: string;
+    dest?: string;
+    filter?: string;
+  }
+
   export interface KfExtOriginBaseConfig<T extends KfExtTypeEnum> {
     key: string;
     name: string;
     type: T;
     version: string;
     description: string;
+    assets: Record<string, kfExtOriginConfigAsset>;
     dependencies: Record<string, string>;
     extPath: string;
     readmePath: string;
@@ -401,6 +409,7 @@ declare namespace KungfuApi {
     key: string;
     version: string;
     description: string;
+    assets: Record<string, kfExtOriginConfigAsset>;
     dependencies: Record<string, string>;
     extPath: string;
     readmePath: string;
@@ -1017,8 +1026,8 @@ declare namespace KungfuApi {
     status: OrderStatusEnum; // 订单状态
     error_msg: string; // 错误信息
 
-    source_id: number; // 下单方
-    dest_id: number;
+    source: number; // 下单方
+    dest: number;
   }
 
   export interface AlgoOrderAction {
@@ -1248,6 +1257,7 @@ declare namespace KungfuApi {
     max_redemption_volume: bigint; // 赎回上限
     min_volume: bigint; // 最小申赎单位
     etf_type: ETFTypeEnum; // etf种类
+    etf_status: ETFStatus; // etf状态
   }
 
   export interface BasketResolved extends Basket {
@@ -1277,6 +1287,7 @@ declare namespace KungfuApi {
     todayVolume?: string;
     yesterdayVolume?: string;
     posVolume?: string;
+    lastPrice?: number;
   }
 
   export interface BasketInstrumentForOrder extends BasketInstrumentResolved {

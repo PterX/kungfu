@@ -1,12 +1,18 @@
 {
   "name": "@kungfu-trader/examples-strategy-python",
   "author": "kungfu-trader",
-  "version": "2.7.0-alpha.20",
+  "version": "2.7.0-alpha.21",
   "description": "KungFu Strategy 101 - Python Demo",
   "license": "Apache-2.0",
-  "private": true,
   "kungfuConfig": {
-    "key": "KungfuStrategy101Python"
+    "key": "KungfuStrategy101Python",
+    "assets": [
+      {
+        "name": "strategyDemo",
+        "src": "./src/python/KungfuStrategy101Python/__init__.py",
+        "dest": "strategyDemo.py"
+      }
+    ]
   },
   "scripts": {
     "clean": "kfs extension clean",
@@ -15,7 +21,7 @@
     "format": "node ../../framework/core/.gyp/run-format-python.js src"
   },
   "devDependencies": {
-    "@kungfu-trader/kungfu-sdk": "^2.7.0-alpha.20"
+    "@kungfu-trader/kungfu-sdk": "^2.7.0-alpha.21"
   },
   "repository": {
     "url": "https://github.com/kungfu-trader/kungfu.git"

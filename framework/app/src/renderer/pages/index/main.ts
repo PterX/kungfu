@@ -51,6 +51,7 @@ import {
   checkCpusNumAndConfirmModal,
   loadCustomFont,
   showInitAfterReloadConfirmDialog,
+  clearLocalStorageWithNewVersion,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
 import { buildIfWatcherLiveObservable } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
@@ -93,9 +94,10 @@ import zhCN from 'ant-design-vue/es/locale/zh_CN';
 import enUS from 'ant-design-vue/es/locale/en_US';
 import { first } from 'rxjs';
 import { getCurrentWebContents } from '@electron/remote';
-import { getGlobalStorage } from '@kungfu-trader/kungfu-js-api/utils/globalStorage';
+import { getAllExtensions } from '@kungfu-trader/kungfu-js-api/utils/extUtils';
 const app = createApp(App);
-const globalStorage = getGlobalStorage();
+
+getAllExtensions().then((res) => console.log(res));
 
 app
   .use(store)
@@ -251,13 +253,11 @@ const initStartAll = (bypassArchive = false) => {
 loadCustomFont().then(async () => {
   await mergeExtLanguages();
   await useComponents(app, router);
+  clearLocalStorageWithNewVersion();
   (globalThis.HookKeeper as KfHookKeeper)
     .getHooks()
     .lifeCycle.trigger(LifeCycleKeys.BeforeAppMount)
     .finally(() => {
-      if (!globalStorage.getItem('ifNotFirstRunning')) {
-        localStorage.clear();
-      }
       app.mount('#app');
     });
 

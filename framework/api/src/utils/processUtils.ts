@@ -578,7 +578,7 @@ export const startProcess = async (
   ensureFileSync(filePath);
   const optionsResolved: Pm2StartOptions = {
     name: options.name,
-    args: options.args + tempArg, //有问题吗？
+    args: `${options.args} ${tempArg}`, //有问题吗？
     cwd: options.cwd || path.join(KFC_DIR),
     script: options.script || kfcName,
     interpreter: options.interpreter || 'none',

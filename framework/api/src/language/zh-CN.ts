@@ -818,6 +818,26 @@ export default {
     bypass_archive: '跳过归档',
     bypass_archive_desc:
       '开启后, 每次启动会删除所有 journal, 且仅保留当日 runtime 目录下 log, 跳过归档后无法恢复之前的内存数据, 会加快启动速度',
+    bypass_cached: 'bypass_cached',
+    bypass_cached_desc:
+      'master跳过除了profile以外的所有db操作, 即交易数据不落库',
+    keep_page: 'keep_page',
+    keep_page_desc:
+      '开启后进程不再释放读完或者写完的页, 直到进程退出时再做共享内存释放, 可以根据~page的trace级别日志判断是否生效',
+    preload: 'preload',
+    preload_desc:
+      '开启此开关且在急速模式下, 写进程会调用子线程预先加载下一页的journal page, 切页时可以减少共享内存mmap的时间, 需要额外添加测试代码才能观测到是否生效',
+    bypass_accounting1: 'bypass_accounting',
+    bypass_accounting_desc1: '开启后策略跳过交易数据计算',
+    bypass_refresh_book: 'bypass_refresh_book',
+    bypass_refresh_book_desc: '开启后ledger跳过book更新',
+    bypass_sync_asset: 'bypass_sync_asset',
+    bypass_sync_asset_desc: '开启后跳过每分钟资金同步',
+    bypass_sync_position: 'bypass_sync_position',
+    bypass_sync_position_desc: '开启后跳过每分钟持仓同步',
+    max_pre_create_size: 'max_pre_create_size',
+    max_pre_create_size_desc:
+      '极速模式下, master会预先创建下一页的journal文件, 可通过观察目录下的大于和小于设定大小的journal文件页数判断是否生效, 单位为MB',
 
     bypass_subscribe_position: '跳过持仓行情订阅',
     bypass_subscribe_position_desc:

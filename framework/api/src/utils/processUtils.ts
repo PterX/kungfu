@@ -526,6 +526,24 @@ export function pm2LaunchBus(cb: (err: Error, pm2_bus: Pm2Bus) => void) {
   pm2.launchBus(cb);
 }
 
+type KfcEnvOptType<T> =
+  | T
+  | {
+      value: T;
+      prefix?: 'ENV' | 'ARG';
+    };
+
+export interface KfcEnvs {
+  bypassCached?: KfcEnvOptType<boolean>;
+  bypassAccounting?: KfcEnvOptType<boolean>;
+  bypassRefreshBook?: KfcEnvOptType<boolean>;
+  bypassSyncAsset?: KfcEnvOptType<boolean>;
+  bypassSyncPosition?: KfcEnvOptType<boolean>;
+  keepPage?: KfcEnvOptType<boolean>;
+  preload?: KfcEnvOptType<boolean>;
+  maxPreCreateSize?: KfcEnvOptType<number>;
+}
+
 export const startProcess = async (
   options: Pm2StartOptions,
 ): Promise<Proc | void> => {
@@ -542,11 +560,25 @@ export const startProcess = async (
       options,
     );
 
+  const globalSetting = getKfGlobalSettingsValue();
+  const tempArg = buildKfcEnv({
+    bypassCached: globalSetting.system.bypassCached,
+    bypassAccounting: globalSetting.system.bypassAccounting,
+    bypassRefreshBook: globalSetting.system.bypassRefreshBook,
+    bypassSyncAsset: globalSetting.system.bypassSyncAsset,
+    bypassSyncPosition: globalSetting.system.bypassSyncPosition,
+    keepPage: globalSetting.system.keepPage,
+    preload: globalSetting.system.preload,
+    maxPreCreateSize: globalSetting.system.maxPreCreateSize,
+  });
+  console.log('args', options.args);
+  console.log('tempArg', tempArg);
+
   const filePath = buildProcessLogPath(options.name);
   ensureFileSync(filePath);
   const optionsResolved: Pm2StartOptions = {
     name: options.name,
-    args: options.args, //有问题吗？
+    args: options.args + tempArg, //有问题吗？
     cwd: options.cwd || path.join(KFC_DIR),
     script: options.script || kfcName,
     interpreter: options.interpreter || 'none',
@@ -877,19 +909,26 @@ function buildRocketParams(args: string, ifRocket: boolean) {
   return rocket;
 }
 
-function buildKfcEnv(env: {
-  bypassCached?: boolean;
-  bypassAccounting?: boolean;
-  bypassRefreshBook?: boolean;
-  keepPage?: boolean;
-  preload?: boolean;
-}) {
+function buildKfcEnv(env: KfcEnvs) {
   return Object.keys(env)
-    .filter((key) => env[key])
-    .map(
-      (key) =>
-        `-ENV-${key.replace(/(?<!^)[A-Z]/, (s) => '-' + s.toLowerCase())}`,
-    )
+    .map((key) => {
+      const opt = env[key as keyof KfcEnvs];
+      if (!opt) return null;
+
+      const isOptObj = typeof opt === 'object';
+      const value = isOptObj ? opt.value : opt;
+      const isValueBool = typeof value === 'boolean';
+      const defaultPrefix = isValueBool ? 'ENV' : 'ARG';
+      const prefix = isOptObj ? opt.prefix || defaultPrefix : defaultPrefix;
+
+      const valueResolved = isValueBool ? '' : `=${value}`;
+      const keyResolved = key.replaceAll(
+        /(?<!^)[A-Z]/g,
+        (s) => '-' + s.toLowerCase(),
+      );
+      return `-${prefix}-${keyResolved}${valueResolved}`;
+    })
+    .filter((i) => !!i)
     .join(' ');
 }
 

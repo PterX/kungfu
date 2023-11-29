@@ -849,6 +849,9 @@ export default {
     skip_confirm_make_order: 'Skip Confirm Make Order',
     set_skip_confirm_make_order:
       'After enabling, when placing an order manually, the secondary confirmation popup will no longer appear, and the order will be executed directly.',
+    skip_sync_position: 'Skip Position Sync Once Per Minute',
+    set_skip_sync_position:
+      'Once enabled, position synchronization will no longer be performed once per minute, only pull the latest position when starting the trading account (Position synchronization once a minute has the probability of double counting of positions due to in-transit transaction return issues, after this option is turned on, positions will only be calculated locally in Kungfu. But if it involves the impact of the order outside the kungfu system on the position, it will not be updated to the local),  restart is required.',
 
     code_editor: 'Editor',
     tab_space_type: 'Indentation Category',

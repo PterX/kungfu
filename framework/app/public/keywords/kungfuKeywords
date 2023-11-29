@@ -218,6 +218,7 @@ max_cash_ratio
 max_purchase_volume
 max_redemption_volume
 min_volume
+etf_type
 basket_uid
 rate
 replace_flag
@@ -325,6 +326,7 @@ has_writer
 add_timer
 add_time_interval
 clear_timer
+request_deregister
 update_broker_state
 subscribe
 subscribe_all
@@ -601,6 +603,11 @@ PhysicalBondETF
 CommodityETF
 CashBondETF
 ETFType
+Forbid
+Allow
+PurchaseOnly
+RedemptionOnly
+ETFStatus
 Last
 Sell5
 Sell4

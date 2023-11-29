@@ -138,6 +138,8 @@ export interface RootConfigJSON {
       offsetFilter?: Record<string, boolean>;
       ableHedgeFlag?: boolean;
     };
+
+    clearLocalStorageWithNewVersion?: boolean;
   };
 }
 
@@ -147,4 +149,5 @@ export interface GlobalStorageData {
   skippedVersions?: string[];
   needClearJournal?: boolean;
   needClearDB?: boolean;
+  historicalUsedVersions?: string[];
 }

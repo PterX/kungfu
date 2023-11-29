@@ -4,11 +4,7 @@
     "name": "Kungfu Trader",
     "email": "info@kungfu.link"
   },
-<<<<<<< HEAD
   "version": "2.6.8-alpha.17",
-=======
-  "version": "2.5.18-alpha.7",
->>>>>>> 5c1cb88c8c767389d732233f5621a0e5150e2ec3
   "description": "Toolchain for Kungfu Development (babel/cmake-js/node-gyp/webpack/yarn/etc).",
   "license": "Apache-2.0",
   "main": "package.json",

@@ -921,7 +921,7 @@ function buildKfcEnv(env: KfcEnvs) {
       const defaultPrefix = isValueBool ? 'ENV' : 'ARG';
       const prefix = isOptObj ? opt.prefix || defaultPrefix : defaultPrefix;
 
-      const valueResolved = isValueBool ? '' : `=${value}`;
+      const valueResolved = isValueBool ? '' : ` ${value}`;
       const keyResolved = key.replaceAll(
         /(?<!^)[A-Z]/g,
         (s) => '-' + s.toLowerCase(),

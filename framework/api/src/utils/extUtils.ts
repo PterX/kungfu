@@ -120,7 +120,7 @@ export const dealKfExtType = (jsonConfig: {
 export const buildExtAssets = (kungfuConfig) => {
   return (kungfuConfig.assets || []).reduce(
     (assetsMap, asset: KungfuApi.KfExtOriginConfigAsset) => {
-      if (typeof asset === 'object' && asset.name && asset.dest)
+      if (typeof asset === 'object' && asset.name)
         assetsMap[asset.name] = asset;
 
       return assetsMap;

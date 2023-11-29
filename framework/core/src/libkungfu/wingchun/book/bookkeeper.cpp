@@ -327,14 +327,11 @@ void Bookkeeper::mirror_positions(int64_t trigger_time, uint32_t strategy_uid) {
   strategy_book->update(trigger_time, account_method_type_);
 }
 
-<<<<<<< HEAD
 void Bookkeeper::on_output_key(const event_ptr &event) {
   const OutputKey &key = event->data<OutputKey>();
   get_book(event->source())->add_source_id(key.location_uid);
 }
 
-=======
->>>>>>> 5c1cb88c8c767389d732233f5621a0e5150e2ec3
 void Bookkeeper::on_broker_state(const longfist::types::BrokerStateUpdate &state_update) {
   ready_tds_.insert_or_assign(state_update.location_uid, state_update.state == BrokerState::Ready);
 }

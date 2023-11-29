@@ -1,9 +1,5 @@
 {
-<<<<<<< HEAD
   "version": "2.6.8-alpha.17",
-=======
-  "version": "2.5.18-alpha.7",
->>>>>>> 5c1cb88c8c767389d732233f5621a0e5150e2ec3
   "packages": [
     "framework/*",
     "developer/*",

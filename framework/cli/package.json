@@ -4,7 +4,11 @@
     "name": "Kungfu Trader",
     "email": "info@kungfu.link"
   },
+<<<<<<< HEAD
   "version": "2.6.8-alpha.17",
+=======
+  "version": "2.5.18-alpha.7",
+>>>>>>> 5c1cb88c8c767389d732233f5621a0e5150e2ec3
   "description": "Kungfu App Framework",
   "license": "Apache-2.0",
   "repository": {
@@ -33,14 +37,22 @@
     "format": "prettier -l -w --config ../core/.prettierrc.js ."
   },
   "dependencies": {
+<<<<<<< HEAD
     "@kungfu-trader/kungfu-js-api": "^2.6.8-alpha.17",
+=======
+    "@kungfu-trader/kungfu-js-api": "^2.5.18-alpha.7",
+>>>>>>> 5c1cb88c8c767389d732233f5621a0e5150e2ec3
     "blessed": "^0.1.81",
     "core-js": "^3.20.0"
   },
   "devDependencies": {
     "@babel/core": "^7.0.0",
     "@babel/polyfill": "^7.12.1",
+<<<<<<< HEAD
     "@kungfu-trader/kungfu-toolchain": "^2.6.8-alpha.17",
+=======
+    "@kungfu-trader/kungfu-toolchain": "^2.5.18-alpha.7",
+>>>>>>> 5c1cb88c8c767389d732233f5621a0e5150e2ec3
     "@types/blessed": "^0.1.19",
     "colors": "^1.4.0",
     "commander": "^9.0.0",

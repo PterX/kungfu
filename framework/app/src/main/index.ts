@@ -21,6 +21,7 @@ import {
   openUrl,
   destoryAllWindows,
 } from '@kungfu-trader/kungfu-app/src/main/utils';
+import packageJSON from '@kungfu-trader/kungfu-app/package.json';
 import {
   kfLogger,
   isUpdateVersionLogicEnable,
@@ -286,6 +287,7 @@ function setMenu() {
 
   const rootPackageJson = readRootPackageJsonSync();
   const isShowHelp = !(rootPackageJson?.appConfig?.showHelp === false); // 如果没有显示设置为 false，则显示
+  const mainVersion = packageJSON.version.slice(0, 3);
 
   const template: MenuItemConstructorOptions[] = [
     {
@@ -394,12 +396,16 @@ function setMenu() {
               {
                 label: t('user_manual'),
                 click: () =>
-                  openUrl('https://docs.kungfu-trader.com/latest/index.html'),
+                  openUrl(
+                    `https://docs.kungfu-trader.com/v${mainVersion}/index.html`,
+                  ),
               },
               {
                 label: t('API_documentation'),
                 click: () =>
-                  openUrl('https://docs.kungfu-trader.com/latest/07-api.html'),
+                  openUrl(
+                    `https://docs.kungfu-trader.com/v${mainVersion}/06-api.html`,
+                  ),
               },
               // {
               //   label: t('Kungfu_forum'),

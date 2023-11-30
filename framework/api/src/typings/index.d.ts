@@ -556,7 +556,7 @@ declare namespace KungfuApi {
 
     contract_multiplier: number; //合约乘数
     price_tick: number; //最小变动价位
-    quantity_unit: number; //最小变动价位
+    quantity_unit: number; //最小数量单位
 
     open_date: string; //上市日
     create_date: string; //创建日

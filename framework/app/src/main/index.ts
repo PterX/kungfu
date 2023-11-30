@@ -404,7 +404,7 @@ function setMenu() {
                 label: t('API_documentation'),
                 click: () =>
                   openUrl(
-                    `https://docs.kungfu-trader.com/v${mainVersion}/06-api.html`,
+                    `https://docs.kungfu-trader.com/v${mainVersion}/07-api.html`,
                   ),
               },
               // {

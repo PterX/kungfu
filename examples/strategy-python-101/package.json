@@ -4,7 +4,7 @@
     "name": "Kungfu Trader",
     "email": "info@kungfu.link"
   },
-  "version": "2.7.0-alpha.22",
+  "version": "2.7.0-alpha.23",
   "description": "KungFu Strategy 101 - Python Demo",
   "license": "Apache-2.0",
   "main": "package.json",
@@ -25,6 +25,7 @@
     "clean": "kfs extension clean",
     "build": "kfs extension build",
     "package": "kfs extension package",
+    "install": "node -e \"require('@kungfu-trader/kungfu-core').prebuilt('install')\"",
     "format": "node ../../framework/core/.gyp/run-format-python.js src"
   },
   "kungfuBuild": {
@@ -43,6 +44,6 @@
     ]
   },
   "devDependencies": {
-    "@kungfu-trader/kungfu-sdk": "^2.7.0-alpha.22"
+    "@kungfu-trader/kungfu-sdk": "^2.7.0-alpha.23"
   }
 }

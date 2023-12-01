@@ -31,12 +31,12 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(XTPMarketDataStruct, exchange_id, ticker, las
                                    curr_delta, data_time, qty, turnover, avg_price, bid, ask, bid_qty, ask_qty,
                                    trades_count, ticker_status);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(XTPRspInfoStruct, error_id, error_msg);
-
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(XTPOrderInfoEx, order_xtp_id, order_client_id, order_cancel_client_id,
                                    order_cancel_xtp_id, ticker, market, price, quantity, price_type, business_type,
                                    qty_traded, qty_left, insert_time, update_time, cancel_time, trade_amount,
                                    order_local_id, order_status, order_submit_status, order_type, order_exch_id,
                                    order_err_t, unknown);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(XTPSpecificTickerStruct, exchange_id, ticker);
 } // namespace nlohmann
 namespace kungfu::wingchun::xtp {
 template <typename T> std::string to_string(const T &ori) {

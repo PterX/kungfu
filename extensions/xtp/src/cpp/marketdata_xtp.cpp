@@ -109,11 +109,8 @@ bool MarketDataXTP::subscribe(const std::vector<std::string> &instruments, const
   int size = instruments.size();
   std::vector<char *> insts;
   insts.reserve(size);
-  //  for (auto &s : instruments) {
-  //    insts.push_back((char *)&s[0]);
-  //  }
   std::transform(instruments.begin(), instruments.end(), std::back_inserter(insts),
-                 [](auto &s) { return (char *)std::addressof(s); });
+                 [](auto &s) { return const_cast<char *>(s.c_str()); });
   XTP_EXCHANGE_TYPE exchange;
   to_xtp_exchange(exchange, exchange_id.c_str());
   int level1_result = api_->SubscribeMarketData(insts.data(), size, exchange);
@@ -141,12 +138,18 @@ void MarketDataXTP::OnDisconnected(int reason) {
 }
 
 void MarketDataXTP::OnSubMarketData(XTPST *ticker, XTPRI *error_info, bool is_last) {
+  if (nullptr != ticker) {
+    SPDLOG_DEBUG("XTPST: {}, is_last: {}", to_string(*ticker), is_last);
+  }
   if (error_info != nullptr && error_info->error_id != 0) {
     SPDLOG_ERROR("failed to subscribe level 1, [{}] {}", error_info->error_id, error_info->error_msg);
   }
 }
 
 void MarketDataXTP::OnSubTickByTick(XTPST *ticker, XTPRI *error_info, bool is_last) {
+  if (nullptr != ticker) {
+    SPDLOG_DEBUG("XTPST: {}, is_last: {}", to_string(*ticker), is_last);
+  }
   if (error_info != nullptr && error_info->error_id != 0) {
     SPDLOG_ERROR("failed to subscribe level 2, [{}] {}", error_info->error_id, error_info->error_msg);
   }

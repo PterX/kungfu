@@ -18,7 +18,6 @@ add_compile_definitions(HAVE_USLEEP=1)
 add_compile_definitions(SPDLOG_ACTIVE_LEVEL=${SPDLOG_LOG_LEVEL_COMPILE})
 add_compile_definitions(SPDLOG_NO_NAME)
 add_compile_definitions(SPDLOG_NO_ATOMIC_LEVELS)
-add_compile_definitions(NNG_STATIC_LIB)
 
 ##########################################################################
 
@@ -31,18 +30,10 @@ option(KUNGFU_WITH_DEBUG_EXAMPLE "" OFF)
 
 include_directories(.deps/hana-1.80.0/include)
 include_directories(.deps/sqlite_orm-1.7.1/include)
-include_directories(.deps/nng-1.5.2/include)
 include_directories(src/include)
 
 ##########################################################################
 
-# Bundle NNG into the project
-# TODO: use conan to manage NNG (when the following issue is resolved)
-# REF: https://github.com/nanomsg/nng/pull/1695
-message(STATUS "Compile NNG")
-add_subdirectory(.deps/nng-1.5.2)
-
-##########################################################################
 
 set(KUNGFU_BUILD_DIR ${CMAKE_BINARY_DIR})
 set(KUNGFU_BUILD_LIBRARY_DIR ${KUNGFU_BUILD_DIR}/${CMAKE_BUILD_TYPE})

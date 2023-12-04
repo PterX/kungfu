@@ -127,6 +127,9 @@ export default {
     import_successed: '导入成功',
     import_failed: '导入失败',
     csv_format_error: 'csv 格式错误, 请检查后重试',
+    add_csv_tip_prefix: '注: csv填写规则如下, ',
+    add_csv_tip_required: '*为必填项',
+    add_csv_tip_suffix: ', 必填项未填会导致上传失败',
   },
 
   tradingConfig: {

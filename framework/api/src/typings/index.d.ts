@@ -199,6 +199,7 @@ declare namespace KungfuApi {
     options?: KfSelectOption[];
     data?: KfSelectOption[];
     headers?: KfConfigItemHeader[];
+    extraHeadersTip?: string;
     template?: KfConfigItemTemplate[];
     search?: KfConfigItemSearch;
     importMode?: 'reset' | 'add';

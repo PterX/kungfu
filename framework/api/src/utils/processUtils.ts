@@ -571,8 +571,8 @@ export const startProcess = async (
     preload: globalSetting.system.preload,
     maxPreCreateSize: globalSetting.system.maxPreCreateSize,
   });
-  console.log('args', options.args);
-  console.log('tempArg', tempArg);
+  kfLogger.info('args', options.args);
+  kfLogger.info('tempArg', tempArg);
 
   const filePath = buildProcessLogPath(options.name);
   ensureFileSync(filePath);
@@ -940,13 +940,7 @@ function buildKfcArgs(options: {
   extraArgs?: string;
   args?: string;
   suffix?: string;
-  env?: {
-    bypassCached?: boolean;
-    bypassAccounting?: boolean;
-    bypassRefreshBook?: boolean;
-    keepPage?: boolean;
-    preload?: boolean;
-  };
+  env?: KfcEnvs;
 }): string {
   const globalSetting = getKfGlobalSettingsValue();
   const logLevel: string =
@@ -1082,7 +1076,7 @@ export const startLedger = async (
     !isReplay ? await preStartProcess(ProcessId, force) : '';
     const globalSetting = getKfGlobalSettingsValue();
     const bypassRefreshBook =
-      process.env.BY_PASS_REFRESHBOOK ??
+      booleanProcessEnv(process.env.BY_PASS_REFRESHBOOK) ??
       globalSetting?.performance?.bypassRefreshBook ??
       false;
     const skipSyncPosition = globalSetting?.trade?.skipSyncPosition ?? false;

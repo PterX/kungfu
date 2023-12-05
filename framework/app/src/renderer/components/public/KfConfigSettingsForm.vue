@@ -691,19 +691,6 @@ function csvTableCallback(
   };
 }
 
-function buildCsvHeadersDescription(headers: KungfuApi.KfConfigItemHeader[]) {
-  return (
-    headers
-      .map((header) =>
-        [
-          header.title,
-          ...(header.description ? [header.description] : []),
-        ].join(': '),
-      )
-      .join('. ') + '.'
-  );
-}
-
 function buildCsvHeadersValidator(
   headers: KungfuApi.KfConfigItemHeader[] | undefined,
 ) {

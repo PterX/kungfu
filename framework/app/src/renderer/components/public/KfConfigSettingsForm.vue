@@ -1889,13 +1889,25 @@ defineExpose({
               {{ $t('settingsFormConfig.csv_template') }}
             </a-button>
           </div>
-          <span v-if="item.headers" class="select-csv-tip">
-            {{
-              $t('settingsFormConfig.add_csv_desc', {
-                header: buildCsvHeadersDescription(item.headers),
-              })
-            }}
-          </span>
+          <div v-if="!!item.headers" class="select-csv-tip">
+            <p>
+              {{ $t('settingsFormConfig.add_csv_tip_prefix') }}
+              <span class="color-red">
+                {{ $t('settingsFormConfig.add_csv_tip_required') }}
+              </span>
+              {{ $t('settingsFormConfig.add_csv_tip_suffix') }}
+              <span v-if="item.extraHeadersTip">
+                {{ item.extraHeadersTip }}
+              </span>
+            </p>
+            <p>
+              <span v-for="header in item.headers" :key="header.title">
+                <span v-if="header.required" class="color-red">*</span>
+                <span class="color-primary">{{ header.title }}</span>
+                <span>{{ `: ${header.description}` }}</span>
+              </span>
+            </p>
+          </div>
         </div>
         <div
           v-if="customerFormItemTips[item.key]"
@@ -2048,13 +2060,25 @@ defineExpose({
               {{ $t('settingsFormConfig.csv_template') }}
             </a-button>
           </div>
-          <span v-if="!!item.headers" class="select-csv-tip">
-            {{
-              $t('settingsFormConfig.add_csv_desc', {
-                header: buildCsvHeadersDescription(item.headers),
-              })
-            }}
-          </span>
+          <div v-if="!!item.headers" class="select-csv-tip">
+            <p>
+              {{ $t('settingsFormConfig.add_csv_tip_prefix') }}
+              <span class="color-red">
+                {{ $t('settingsFormConfig.add_csv_tip_required') }}
+              </span>
+              {{ $t('settingsFormConfig.add_csv_tip_suffix') }}
+              <span v-if="item.extraHeadersTip">
+                {{ item.extraHeadersTip }}
+              </span>
+            </p>
+            <p>
+              <span v-for="header in item.headers" :key="header.title">
+                <span v-if="header.required" class="color-red">*</span>
+                <span class="color-primary">{{ header.title }}</span>
+                <span>{{ `: ${header.description}` }}</span>
+              </span>
+            </p>
+          </div>
         </div>
 
         <div class="table-in-config-setting-form-head">

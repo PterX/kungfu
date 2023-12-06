@@ -11,7 +11,7 @@ using namespace longfist::types;
 constexpr uint32_t PAGE_ID_TRANC = 0xFF000000;
 constexpr uint32_t FRAME_ID_TRANC = 0x00FFFFFF;
 
-inline uint32_t verify_cpu_word_length(uint32_t length) {
+inline size_t verify_cpu_word_length(size_t length) {
   return ((length + (sizeof(uintptr_t) - 1)) & ~(sizeof(uintptr_t) - 1));
 }
 
@@ -49,7 +49,7 @@ uint64_t writer::current_frame_uid() {
   return frame_id_base_ | ((page_part | frame_part) xor writer_start_time_32int_);
 }
 
-frame_ptr writer::open_frame(int64_t trigger_time, int32_t msg_type, uint32_t data_length) {
+frame_ptr writer::open_frame(int64_t trigger_time, int32_t msg_type, size_t data_length) {
   data_length = verify_cpu_word_length(data_length);
   int64_t start_time = time::now_in_nano();
   while (not writer_mtx_.try_lock()) {

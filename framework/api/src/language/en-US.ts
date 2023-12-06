@@ -128,6 +128,10 @@ export default {
     import_successed: 'Import Successed',
     import_failed: 'Import Failed',
     csv_format_error: 'Csv format error, please check and retry',
+    add_csv_tip_prefix: 'Note: The rules for filling in CSV are as follows, ',
+    add_csv_tip_required: '*Required',
+    add_csv_tip_suffix:
+      ', Failure to fill in required fields will result in upload failure',
   },
 
   tradingConfig: {
@@ -863,7 +867,7 @@ export default {
       'After enabling, when placing an order manually, the secondary confirmation popup will no longer appear, and the order will be executed directly.',
     skip_sync_position: 'Skip Position Sync Once Per Minute',
     set_skip_sync_position:
-      'Once enabled, position synchronization will no longer be performed once per minute, only pull the latest position when starting the trading account (Position synchronization once a minute has the probability of double counting of positions due to in-transit transaction return issues, after this option is turned on, positions will only be calculated locally in Kungfu. But if it involves the impact of the order outside the kungfu system on the position, it will not be updated to the local).',
+      'Once enabled, position synchronization will no longer be performed once per minute, only pull the latest position when starting the trading account (Position synchronization once a minute has the probability of double counting of positions due to in-transit transaction return issues, after this option is turned on, positions will only be calculated locally in Kungfu. But if it involves the impact of the order outside the kungfu system on the position, it will not be updated to the local),  restart is required.',
 
     code_editor: 'Editor',
     tab_space_type: 'Indentation Category',

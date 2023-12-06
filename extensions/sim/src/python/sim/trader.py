@@ -44,6 +44,7 @@ class TraderSim(wc.Trader):
     def on_start(self):
         config = json.loads(self.config)
         self.match_mode = config.get("match_mode", MatchMode.Custom)
+        self.logger.debug(f"match_mode: {self.match_mode}")
 
         self.ctx.orders = {}
         self.ctx.triggers = {}
@@ -257,7 +258,6 @@ class TraderSim(wc.Trader):
                 trade.instrument_type = order.instrument_type
                 trade.exchange_id = order.exchange_id
                 trade.trade_time = yjj.now_in_nano()
-                trade.trading_day = kft.strfnow("%Y%m%d")
                 writer.write(gen_time, trade)
                 volume_traded -= trade.volume
                 self.logger.debug(f"trade.trade_id: {trade.trade_id}")

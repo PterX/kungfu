@@ -35,5 +35,6 @@ module.exports = {
     await sdk.lib.extension.installBatch(argv.url);
     sdk.lib.extension.configure();
     sdk.lib.extension.compile(argv['build_type']);
+    sdk.lib.extension.generateAssets();
   },
 };

@@ -30,7 +30,7 @@ class KungfuCoreConan(ConanFile):
     requires = [
         "fmt/8.1.1",
         "nlohmann_json/3.11.2",
-        # "nng/1.5.2",
+        "nng/1.6.0",
         "rxcpp/4.1.1",
         "sqlite3/3.39.2",
         # "sqlite_orm/1.7.1",
@@ -131,7 +131,6 @@ class KungfuCoreConan(ConanFile):
             self.copy("*", dst="deps/hana", src=glob(".deps/hana-*")[0])
             self.copy("*", dst="deps/pybind11", src=glob(".deps/pybind11-*")[0])
             self.copy("*", dst="deps/sqlite_orm", src=glob(".deps/sqlite_orm-*")[0])
-            self.copy("*", dst="deps/nng", src=glob(".deps/nng-*")[0])
             self.copy("*", dst="cmake", src=".cmake")
 
     def package_info(self):

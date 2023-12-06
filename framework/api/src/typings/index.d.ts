@@ -199,6 +199,7 @@ declare namespace KungfuApi {
     options?: KfSelectOption[];
     data?: KfSelectOption[];
     headers?: KfConfigItemHeader[];
+    extraHeadersTip?: string;
     template?: KfConfigItemTemplate[];
     search?: KfConfigItemSearch;
     importMode?: 'reset' | 'add';
@@ -220,12 +221,20 @@ declare namespace KungfuApi {
     type: KfConfigItemSupportedTypes;
   }
 
+  export interface KfExtOriginConfigAsset {
+    name?: string;
+    src: string;
+    dest?: string;
+    filter?: string;
+  }
+
   export interface KfExtOriginBaseConfig<T extends KfExtTypeEnum> {
     key: string;
     name: string;
     type: T;
     version: string;
     description: string;
+    assets: Record<string, kfExtOriginConfigAsset>;
     dependencies: Record<string, string>;
     extPath: string;
     readmePath: string;
@@ -401,6 +410,7 @@ declare namespace KungfuApi {
     key: string;
     version: string;
     description: string;
+    assets: Record<string, kfExtOriginConfigAsset>;
     dependencies: Record<string, string>;
     extPath: string;
     readmePath: string;
@@ -668,7 +678,7 @@ declare namespace KungfuApi {
 
     contract_multiplier: number; //合约乘数
     price_tick: number; //最小变动价位
-    quantity_unit: number; //最小变动价位
+    quantity_unit: number; //最小数量单位
 
     open_date: string; //上市日
     create_date: string; //创建日
@@ -1017,8 +1027,8 @@ declare namespace KungfuApi {
     status: OrderStatusEnum; // 订单状态
     error_msg: string; // 错误信息
 
-    source_id: number; // 下单方
-    dest_id: number;
+    source: number; // 下单方
+    dest: number;
   }
 
   export interface AlgoOrderAction {

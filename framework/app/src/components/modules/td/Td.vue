@@ -269,6 +269,10 @@ const columns = computed(() => {
 const customRowResolved = (
   record: KungfuApi.KfLocation | KungfuApi.KfConfig,
 ) => {
+  if (record.category === 'tdGroup') {
+    return customRow(record);
+  }
+
   const allAssetDetailList = [
     ...assetDetailShowList,
     ...(tdAssetMarginMap.value[record.group] ? assetMarginDetailShowList : []),

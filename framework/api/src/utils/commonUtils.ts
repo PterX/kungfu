@@ -753,3 +753,27 @@ export const kfConfigItemsToProcessArgs = (
       }, {} as Record<string, KungfuApi.KfConfigValue>),
   );
 };
+
+export const buildTableColumnSorterWithStrike = <T>(
+  type: 'num' | 'str',
+  dataIndex: keyof T,
+) => {
+  return (a: T, b: T, sorterOrder: '' | 'ascend' | 'descend') => {
+    if (type === 'num') {
+      let aVal: unknown = a[dataIndex] ?? '--',
+        bVal: unknown = b[dataIndex] ?? '--';
+      if (sorterOrder === 'ascend') {
+        aVal = aVal === '--' ? Infinity : aVal;
+        bVal = bVal === '--' ? Infinity : bVal;
+      } else if (sorterOrder === 'descend') {
+        aVal = aVal === '--' ? -Infinity : aVal;
+        bVal = bVal === '--' ? -Infinity : bVal;
+      } else {
+        return 0;
+      }
+      return Number(aVal) - Number(bVal);
+    } else {
+      return `${a[dataIndex] ?? ''}`.localeCompare(`${b[dataIndex] ?? ''}`);
+    }
+  };
+};

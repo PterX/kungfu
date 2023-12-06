@@ -1,7 +1,10 @@
 import { LedgerCategoryEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { DealTradingDataGetter } from '@kungfu-trader/kungfu-js-api/hooks/dealTradingDataHook';
-import { getTradingDataSortKey } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import {
+  buildTableColumnSorterWithStrike,
+  getTradingDataSortKey,
+} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 const { t } = VueI18n.global;
 
 const buildSorter =
@@ -87,7 +90,10 @@ export const getColumns = (
     dataIndex: 'avg_open_price_resolved',
     width: 110,
     align: 'right',
-    sorter: buildSorter('avg_open_price'),
+    sorter: buildTableColumnSorterWithStrike<KungfuApi.PositionResolved>(
+      'num',
+      'avg_open_price_resolved',
+    ),
   },
   {
     type: 'number',
@@ -103,7 +109,10 @@ export const getColumns = (
     dataIndex: 'unrealized_pnl_resolved',
     width: 110,
     align: 'right',
-    sorter: buildSorter('unrealized_pnl'),
+    sorter: buildTableColumnSorterWithStrike<KungfuApi.PositionResolved>(
+      'num',
+      'unrealized_pnl_resolved',
+    ),
   },
 ];
 

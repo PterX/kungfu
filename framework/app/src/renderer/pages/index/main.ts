@@ -94,7 +94,10 @@ import zhCN from 'ant-design-vue/es/locale/zh_CN';
 import enUS from 'ant-design-vue/es/locale/en_US';
 import { first } from 'rxjs';
 import { getCurrentWebContents } from '@electron/remote';
+import { getAllExtensions } from '@kungfu-trader/kungfu-js-api/utils/extUtils';
 const app = createApp(App);
+
+getAllExtensions().then((res) => console.log(res));
 
 app
   .use(store)

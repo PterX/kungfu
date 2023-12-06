@@ -1,10 +1,9 @@
 {
   "name": "@kungfu-trader/example-report-python",
   "author": "kungfu-trader",
-  "version": "2.7.0-alpha.21",
+  "version": "2.7.0-alpha.26",
   "description": "KungFu Report 10 python example",
   "license": "Apache-2.0",
-  "private": true,
   "kungfuConfig": {
     "key": "KungfuReport101Python"
   },
@@ -15,6 +14,6 @@
     "format": "node ../../framework/core/.gyp/run-format-cpp.js src"
   },
   "devDependencies": {
-    "@kungfu-trader/kungfu-sdk": "^2.7.0-alpha.21"
+    "@kungfu-trader/kungfu-sdk": "^2.7.0-alpha.26"
   }
 }

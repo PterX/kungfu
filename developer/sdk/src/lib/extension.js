@@ -439,6 +439,36 @@ exports.format = () => {
   }
 };
 
+exports.generateAssets = () => {
+  const packageJson = shell.getPackageJson();
+  const extensionName = packageJson.kungfuConfig.key;
+  const outputDir = path.join('dist', extensionName);
+  const kungfuConfig = packageJson.kungfuConfig || {};
+  if (!kungfuConfig.assets) return;
+
+  const assets = kungfuConfig.assets;
+  if (!Array.isArray(assets)) return;
+
+  for (let i = 0; i < assets.length; i++) {
+    const asset = assets[i];
+
+    if (!asset.src || !asset.dest) continue;
+
+    const src = path.normalize(asset.src);
+    const dest = path.join(outputDir, path.normalize(asset.dest || ''));
+    const filterRegExp = asset.filter && new RegExp(asset.filter);
+
+    fse.copySync(src, dest, {
+      filter: (src) => {
+        if (filterRegExp) {
+          return filterRegExp.test(src);
+        }
+        return true;
+      },
+    });
+  }
+};
+
 function updatePackageJson(packageJson) {
   const config = packageJson.kungfuConfig || { key: 'KungfuTraderStrategy' };
   const module_name =

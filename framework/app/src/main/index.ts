@@ -23,6 +23,7 @@ import {
 } from '@kungfu-trader/kungfu-app/src/main/utils';
 import { isUpdateVersionLogicEnable } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { kfLogger } from '@kungfu-trader/kungfu-js-api/utils/logUtils';
+import packageJSON from '@kungfu-trader/kungfu-app/package.json';
 import { initClean } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
 import {
   clearDB,
@@ -284,6 +285,7 @@ function setMenu() {
 
   const rootPackageJson = readRootPackageJsonSync();
   const isShowHelp = !(rootPackageJson?.appConfig?.showHelp === false); // 如果没有显示设置为 false，则显示
+  const mainVersion = packageJSON.version.slice(0, 3);
 
   const template: MenuItemConstructorOptions[] = [
     {
@@ -392,12 +394,16 @@ function setMenu() {
               {
                 label: t('user_manual'),
                 click: () =>
-                  openUrl('https://docs.kungfu-trader.com/latest/index.html'),
+                  openUrl(
+                    `https://docs.kungfu-trader.com/v${mainVersion}/index.html`,
+                  ),
               },
               {
                 label: t('API_documentation'),
                 click: () =>
-                  openUrl('https://docs.kungfu-trader.com/latest/07-api.html'),
+                  openUrl(
+                    `https://docs.kungfu-trader.com/v${mainVersion}/07-api.html`,
+                  ),
               },
               // {
               //   label: t('Kungfu_forum'),

@@ -112,11 +112,7 @@ public:
   }
 
   virtual void apply_order(uint32_t account_id, uint32_t dest, Book_ptr &book, const Order &order) override {
-    if (not guard_order_accounting(book, order)) {
-      return;
-    }
-
-    if (dest == location::SYNC or dest == location::PUBLIC) {
+    if (not guard_order_accounting(account_id, dest, book, order)) {
       return;
     }
 
@@ -141,7 +137,7 @@ public:
   }
 
   virtual void apply_trade(uint32_t account_id, uint32_t dest, Book_ptr &book, const Trade &trade) override {
-    if (not guard_trade_accounting(book, trade)) {
+    if (not guard_trade_accounting(account_id, dest, book, trade)) {
       return;
     }
 
@@ -152,10 +148,6 @@ public:
         apply_sell(book, position, trade, is_local);
       } else if (trade.side == Side::Buy) {
         apply_buy(book, position, trade, is_local);
-      }
-
-      if (not is_local) {
-        return;
       }
 
       if (trade.side == Side::MarginTrade) {
@@ -217,15 +209,11 @@ protected:
     double tax = calculate_tax(trade);
     position.last_price = position.last_price > 0 ? position.last_price : trade.price;
     if (position.volume + trade.volume > 0 && trade.price > 0) {
-      position.avg_open_price = (position.volume + trade.volume == 0)
-                                    ? 0
-                                    : (position.avg_open_price * position.volume + trade_amt / cd_mr.exchange_rate) /
-                                          (double)(position.volume + trade.volume);
+      position.avg_open_price = (position.avg_open_price * position.volume + trade_amt / cd_mr.exchange_rate) /
+                                (double)(position.volume + trade.volume);
       position.position_cost_price =
-          (position.volume + trade.volume == 0)
-              ? 0
-              : (position.position_cost_price * position.volume + trade_amt / cd_mr.exchange_rate + commission + tax) /
-                    (double)(position.volume + trade.volume);
+          (position.position_cost_price * position.volume + trade_amt / cd_mr.exchange_rate + commission + tax) /
+          (double)(position.volume + trade.volume);
     }
     position.volume += trade.volume;
     position.open_volume += trade.volume;

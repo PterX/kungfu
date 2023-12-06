@@ -73,7 +73,7 @@ export enum ETFTypeEnum {
   Unknown,
 }
 
-export enum ETFStatus {
+export enum ETFStatusEnum {
   Forbid, // 不允许申购也不允许赎回
   Allow, // 允许申购和赎回
   PurchaseOnly, // 只允许申购
@@ -259,6 +259,7 @@ export enum KfExtTypeEnum {
   UI = 'ui',
   Matcher = 'matcher',
   Indexer = 'indexer',
+  Example = 'example',
 }
 
 export enum KfCategoryEnum {

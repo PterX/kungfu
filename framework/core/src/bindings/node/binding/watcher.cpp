@@ -429,6 +429,8 @@ void Watcher::Init(Napi::Env env, Napi::Object exports) {
 void Watcher::on_react() {
   SPDLOG_INFO("watcher on react");
 
+  events_ | is(Register::tag) | $$(OnRegister(event->gen_time(), event->data<Register>()));
+  events_ | is(Deregister::tag) | $$(OnDeregister(event->gen_time(), event->data<Deregister>()));
   // for receive history data
   auto before_start_events = events_ | take_until(events_ | is(RequestStart::tag));
   // accept trading data from cached state, so even if ui reload, history data is able to be shown
@@ -473,8 +475,8 @@ void Watcher::on_start() {
   }
 
   events_ | is(Channel::tag) | $$(InspectChannel(event->gen_time(), event->data<Channel>()));
-  events_ | is(Register::tag) | $$(OnRegister(event->gen_time(), event->data<Register>()));
-  events_ | is(Deregister::tag) | $$(OnDeregister(event->gen_time(), event->data<Deregister>()));
+  //  events_ | is(Register::tag) | $$(OnRegister(event->gen_time(), event->data<Register>()));
+  //  events_ | is(Deregister::tag) | $$(OnDeregister(event->gen_time(), event->data<Deregister>()));
   events_ | is(BrokerStateUpdate::tag) |
       $$(UpdateBrokerOperatorState<BrokerStateUpdate>(event->source(), event->dest(),
                                                       event->data<BrokerStateUpdate>()));
@@ -559,6 +561,7 @@ void Watcher::SyncAppStates() {
     auto app_state = Napi::Number::New(app_states_ref_.Env(), s.second);
     app_states_ref_.Set(format(s.first), app_state);
   }
+  location_uid_states_map_.clear();
 }
 
 void Watcher::SyncStrategyStates() {
@@ -572,6 +575,7 @@ void Watcher::SyncStrategyStates() {
     strategy_state_obj.Set("value", Napi::String::New(strategy_states_ref_.Env(), s.second.value));
     strategy_states_ref_.Set(format(s.first), strategy_state_obj);
   }
+  location_uid_strategy_states_map_.clear();
 }
 
 void Watcher::SyncEventCache() {
@@ -753,6 +757,8 @@ void Watcher::AfterMasterDown(const Napi::CallbackInfo &info) {
   Napi::HandleScope scope(info.Env());
   reader_->disjoin(get_master_command_uid());
   writers_.clear();
+  strategy_states_ref_.Reset();
+  app_states_ref_.Reset();
   serialize::InitTradingDataInStateMap(ledger_ref_, "ledger");
 }
 

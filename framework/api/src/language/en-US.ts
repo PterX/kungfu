@@ -128,6 +128,10 @@ export default {
     import_successed: 'Import Successed',
     import_failed: 'Import Failed',
     csv_format_error: 'Csv format error, please check and retry',
+    add_csv_tip_prefix: 'Note: The rules for filling in CSV are as follows, ',
+    add_csv_tip_required: '*Required',
+    add_csv_tip_suffix:
+      ', Failure to fill in required fields will result in upload failure',
   },
 
   tradingConfig: {

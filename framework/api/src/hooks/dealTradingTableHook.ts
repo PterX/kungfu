@@ -18,7 +18,7 @@ export interface KfTradingDataTableHeaderConfig {
     | 'direction'
     | 'actions';
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  sorter?: (a: any, b: any) => number;
+  sorter?: (a: any, b: any, sorterOrder: '' | 'ascend' | 'descend') => number;
 }
 
 export interface AntTableColumn {
@@ -28,7 +28,15 @@ export interface AntTableColumn {
   width?: number | string;
   minWidth?: number | string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  sorter?: boolean | { compare: (a: any, b: any) => number };
+  sorter?:
+    | boolean
+    | {
+        compare: (
+          a: any,
+          b: any,
+          sorterOrder: '' | 'ascend' | 'descend',
+        ) => number;
+      };
   align?: string;
   fixed?: string;
 }

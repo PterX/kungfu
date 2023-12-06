@@ -140,9 +140,10 @@ void TraderVendor::on_start() {
 }
 
 void TraderVendor::on_write_to(const event_ptr &event) {
-  auto dest_id = event->data<RequestWriteTo>().dest_id;
+  const auto &request = event->data<RequestWriteTo>();
+  uint32_t dest_id = request.dest_id;
   if (writers_.find(dest_id) == writers_.end()) {
-    writers_.emplace(dest_id, get_io_device()->open_hookable_writer(dest_id, hook_));
+    writers_.emplace(dest_id, get_io_device()->open_hookable_writer(dest_id, hook_, request.page_size));
     if (dest_id == get_master_command_uid()) {
       master_cmd_writer_for_thread_ = get_writer(dest_id);
     }

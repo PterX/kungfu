@@ -314,8 +314,8 @@ void master::on_request_write_to(const event_ptr &event) {
   if (not is_location_live(app_uid)) {
     return;
   }
-  reader_->join(get_location(app_uid), request.dest_id, trigger_time);
-  require_write_to(trigger_time, app_uid, request.dest_id);
+  reader_->join(get_location(app_uid), request.dest_id, trigger_time, request.page_size);
+  require_write_to(trigger_time, app_uid, request.dest_id, request.page_size);
   cached_.try_ensure_cached_storage(get_location(app_uid), request.dest_id);
 
   if (is_location_live(request.dest_id) and has_writer(request.dest_id)) {
@@ -336,9 +336,9 @@ void master::on_request_read_from(const event_ptr &event) {
   if (not check_location_live(request.source_id, app_uid)) {
     return;
   }
-  reader_->join(get_location(request.source_id), app_uid, trigger_time);
-  require_write_to(trigger_time, request.source_id, app_uid);
-  require_read_from(trigger_time, app_uid, request.source_id, request.from_time);
+  reader_->join(get_location(request.source_id), app_uid, trigger_time, request.page_size);
+  require_write_to(trigger_time, request.source_id, app_uid, request.page_size);
+  require_read_from(trigger_time, app_uid, request.source_id, request.from_time, request.page_size);
   cached_.try_ensure_cached_storage(get_location(request.source_id), app_uid);
 
   Channel channel = {};
@@ -350,17 +350,16 @@ void master::on_request_read_from(const event_ptr &event) {
 
 void master::on_request_read_from_public(const event_ptr &event) {
   const RequestReadFromPublic &request = event->data<RequestReadFromPublic>();
-  require_read_from_public(event->gen_time(), event->source(), request.source_id, request.from_time);
+  require_read_from_public(event->gen_time(), event->source(), request.source_id, request.from_time, request.page_size);
 }
 
 void master::on_request_read_from_sync(const event_ptr &event) {
   const RequestReadFromSync &request = event->data<RequestReadFromSync>();
-  require_read_from_sync(event->gen_time(), event->source(), request.source_id, request.from_time);
+  require_read_from_sync(event->gen_time(), event->source(), request.source_id, request.from_time, request.page_size);
 }
 
 void master::on_request_read_from_others(const event_ptr &event) {
-  RequestReadFromOthers request{};
-  request = event->data<RequestReadFromOthers>();
+  const RequestReadFromOthers request = event->data<RequestReadFromOthers>();
   auto source = event->source();
   if (has_writer(source)) {
     get_writer(source)->write(now(), request);

@@ -190,7 +190,7 @@ void BrokerService::update_broker_state(BrokerState state) {
 
 io_device_ptr BrokerService::get_io_device() const { return get_vendor().get_io_device(); }
 
-writer_ptr &BrokerService::get_thread_writer() { return vendor_.get_thread_writer(); }
+writer_ptr &BrokerService::get_thread_writer(uint32_t page_size) { return vendor_.get_thread_writer(page_size); }
 
 writer_ptr &BrokerService::get_public_writer() { return vendor_.get_public_writer(); }
 
